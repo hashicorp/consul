@@ -353,8 +353,19 @@ raft_protocol = 3
 raft_snapshot_threshold = 16384
 raft_snapshot_interval = "30s"
 raft_trailing_logs = 83749
-raft_boltdb {
-    NoFreelistSync = true
+raft_logstore {
+    backend = "wal"
+    disable_log_cache = true
+    verification {
+        enabled = true
+        interval = "12345s"
+    }
+    boltdb {
+        no_freelist_sync = true
+    }
+    wal {
+       segment_size_mb = 15
+    }
 }
 read_replica = true
 reconnect_timeout = "23739s"

@@ -114,8 +114,10 @@ func NewFromDeps(deps Deps) *FSM {
 	return fsm
 }
 
-func (c *FSM) ChunkingFSM() *raftchunking.ChunkingFSM {
-	return c.chunker
+func (c *FSM) ChunkingFSM() raft.FSM {
+	// Wrap the chunker in a shim. This is not a ChunkingFSM any more but the only
+	// caller of this passes it directly to Raft as a raft.FSM.
+	return &logVerificationChunkingShim{chunker: c.chunker}
 }
 
 // State is used to return a handle to the current state
@@ -128,6 +130,11 @@ func (c *FSM) State() *state.Store {
 func (c *FSM) Apply(log *raft.Log) interface{} {
 	buf := log.Data
 	msgType := structs.MessageType(buf[0])
+
+	// This is tricky stuff. We no longer let the ChunkingFSM wrap us completely
+	// because Chunking FSM doesn't know how to handle raft log verification
+	// checkpoints properly. So instead we have to be extra careful to correctly
+	// call into the chunking FSM when we need it.
 
 	// Check if this message type should be ignored when unknown. This is
 	// used so that new commands can be added with developer control if older
