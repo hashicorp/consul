@@ -422,6 +422,16 @@ represents a location outside the Consul cluster. They can be dialed directly wh
                 'The namespace of the upstream. This should not be set to the wildcard specifier `*`.',
             },
             {
+              name: 'Peer',
+              type: 'string: ""',
+              description: 
+                `The name of the peer containing the upstream. Do not use a wildcard specifier ( \`*\`).<br><br>
+                    If the \`peer\` field is not set in any \`Overrides\` configuration, then Consul applies overrides to peered services with the same [\`name\`](/consul/docs/connect/config-entries/service-defaults#name). 
+                    This maintains backward compatibility with Consul 1.14.0. 
+                    If the \`peer\` field is specified in any override, then backward compatibility with Consul 1.14.0 is disabled. 
+                    As a result, each peered service must have a separate override configuration if desired.` ,
+            },
+            {
               name: 'Protocol',
               type: 'string: ""',
               description: `The protocol for the upstream listener.<br><br>
@@ -433,6 +443,8 @@ represents a location outside the Consul cluster. They can be dialed directly wh
                     proxy upstream config will not fully enable some
                     [L7 features](/consul/docs/connect/l7-traffic).
                     It is supported here for backwards compatibility with Consul versions prior to 1.6.0.
+                    In addition, the \`protocol\` of a peered service cannot be overriden. Any value in 
+                    this field is ignored for peered services.
                   `,
             },
             {

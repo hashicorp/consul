@@ -1,0 +1,3 @@
+```release-note:improvement
+client: add support for RemoveEmptyTags in Prepared Queries templates.
+```

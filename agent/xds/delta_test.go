@@ -10,6 +10,7 @@ import (
 
 	"github.com/armon/go-metrics"
 	envoy_discovery_v3 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
+	"github.com/hashicorp/consul/api"
 	"github.com/stretchr/testify/require"
 	rpcstatus "google.golang.org/genproto/googleapis/rpc/status"
 	"google.golang.org/grpc/codes"
@@ -20,8 +21,7 @@ import (
 	"github.com/hashicorp/consul/agent/grpc-external/limiter"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/agent/xds/xdscommon"
-	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/envoyextensions/xdscommon"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/version"
 )
@@ -1069,7 +1069,7 @@ func TestServer_DeltaAggregatedResources_v3_ACLEnforcement(t *testing.T) {
 				// Ensure the correct token was passed
 				require.Equal(t, tt.token, id)
 				// Parse the ACL and enforce it
-				policy, err := acl.NewPolicyFromSource(tt.acl, acl.SyntaxLegacy, nil, nil)
+				policy, err := acl.NewPolicyFromSource(tt.acl, nil, nil)
 				require.NoError(t, err)
 				return acl.NewPolicyAuthorizerWithDefaults(acl.RootAuthorizer("deny"), []*acl.Policy{policy}, nil)
 			}
@@ -1158,7 +1158,7 @@ func TestServer_DeltaAggregatedResources_v3_ACLTokenDeleted_StreamTerminatedDuri
 	aclRules := `service "web" { policy = "write" }`
 	token := "service-write-on-web"
 
-	policy, err := acl.NewPolicyFromSource(aclRules, acl.SyntaxLegacy, nil, nil)
+	policy, err := acl.NewPolicyFromSource(aclRules, nil, nil)
 	require.NoError(t, err)
 
 	var validToken atomic.Value
@@ -1256,7 +1256,7 @@ func TestServer_DeltaAggregatedResources_v3_ACLTokenDeleted_StreamTerminatedInBa
 	aclRules := `service "web" { policy = "write" }`
 	token := "service-write-on-web"
 
-	policy, err := acl.NewPolicyFromSource(aclRules, acl.SyntaxLegacy, nil, nil)
+	policy, err := acl.NewPolicyFromSource(aclRules, nil, nil)
 	require.NoError(t, err)
 
 	var validToken atomic.Value
@@ -1538,7 +1538,7 @@ func assertDeltaResponse(t *testing.T, got, want *envoy_discovery_v3.DeltaDiscov
 func mustMakeVersionMap(t *testing.T, resources ...proto.Message) map[string]string {
 	m := make(map[string]string)
 	for _, res := range resources {
-		name := getResourceName(res)
+		name := xdscommon.GetResourceName(res)
 		m[name] = mustHashResource(t, res)
 	}
 	return m

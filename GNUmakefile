@@ -366,7 +366,7 @@ codegen-tools:
 	@$(SHELL) $(CURDIR)/build-support/scripts/devtools.sh -codegen
 
 .PHONY: deep-copy
-deep-copy:
+deep-copy: codegen-tools
 	@$(SHELL) $(CURDIR)/agent/structs/deep-copy.sh
 	@$(SHELL) $(CURDIR)/agent/proxycfg/deep-copy.sh
 

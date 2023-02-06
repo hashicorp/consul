@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
+	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/serf/serf"
@@ -37,8 +38,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
 	tokenStore "github.com/hashicorp/consul/agent/token"
-	"github.com/hashicorp/consul/agent/xds/proxysupport"
-	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/envoyextensions/xdscommon"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
@@ -535,7 +535,7 @@ func TestAgent_Service(t *testing.T) {
 
 	tests := []struct {
 		name       string
-		tokenRules string
+		policies   string
 		url        string
 		updateFunc func()
 		wantWait   time.Duration
@@ -671,7 +671,7 @@ func TestAgent_Service(t *testing.T) {
 			name: "err: bad ACL for service",
 			url:  "/v1/agent/service/web-sidecar-proxy",
 			// Limited token doesn't grant read to the service
-			tokenRules: `
+			policies: `
 			key "" {
 				policy = "read"
 			}
@@ -685,7 +685,7 @@ func TestAgent_Service(t *testing.T) {
 			name: "good ACL for service",
 			url:  "/v1/agent/service/web-sidecar-proxy",
 			// Limited token doesn't grant read to the service
-			tokenRules: `
+			policies: `
 			service "web-sidecar-proxy" {
 				policy = "read"
 			}
@@ -711,9 +711,9 @@ func TestAgent_Service(t *testing.T) {
 
 			// Inject the root token for tests that don't care about ACL
 			token := "root"
-			if tt.tokenRules != "" {
+			if tt.policies != "" {
 				// Create new token and use that.
-				token = testCreateToken(t, a, tt.tokenRules)
+				token = testCreateToken(t, a, tt.policies)
 			}
 			req.Header.Set("X-Consul-Token", token)
 			resp := httptest.NewRecorder()
@@ -1508,7 +1508,7 @@ func TestAgent_Self(t *testing.T) {
 			if tc.expectXDS {
 				require.NotNil(t, val.XDS, "xds component missing when gRPC is enabled")
 				require.Equal(t,
-					map[string][]string{"envoy": proxysupport.EnvoyVersions},
+					map[string][]string{"envoy": xdscommon.EnvoyVersions},
 					val.XDS.SupportedProxies,
 				)
 				require.Equal(t, a.Config.GRPCTLSPort, val.XDS.Ports.TLS)
@@ -4353,7 +4353,7 @@ func testAgent_RegisterServiceDeregisterService_Sidecar(t *testing.T, extraHCL s
 		// directly.
 		json                        string
 		enableACL                   bool
-		tokenRules                  string
+		policies                    string
 		wantNS                      *structs.NodeService
 		wantErr                     string
 		wantSidecarIDLeftAfterDereg bool
@@ -4396,7 +4396,7 @@ func testAgent_RegisterServiceDeregisterService_Sidecar(t *testing.T, extraHCL s
 			}
 			`,
 			enableACL: true,
-			tokenRules: `
+			policies: `
 			service "web-sidecar-proxy" {
 				policy = "write"
 			}
@@ -4417,10 +4417,10 @@ func testAgent_RegisterServiceDeregisterService_Sidecar(t *testing.T, extraHCL s
 				}
 			}
 			`,
-			enableACL:  true,
-			tokenRules: ``, // No token rules means no valid token
-			wantNS:     nil,
-			wantErr:    "Permission denied",
+			enableACL: true,
+			policies:  ``, // No token rules means no valid token
+			wantNS:    nil,
+			wantErr:   "Permission denied",
 		},
 		{
 			name: "ACL OK for service but not for sidecar",
@@ -4435,7 +4435,7 @@ func testAgent_RegisterServiceDeregisterService_Sidecar(t *testing.T, extraHCL s
 			`,
 			enableACL: true,
 			// This will become more common/reasonable when ACLs support exact match.
-			tokenRules: `
+			policies: `
 			service "web-sidecar-proxy" {
 				policy = "deny"
 			}
@@ -4461,7 +4461,7 @@ func testAgent_RegisterServiceDeregisterService_Sidecar(t *testing.T, extraHCL s
 			}
 			`,
 			enableACL: true,
-			tokenRules: `
+			policies: `
 			service "web-sidecar-proxy" {
 				policy = "write"
 			}
@@ -4485,7 +4485,7 @@ func testAgent_RegisterServiceDeregisterService_Sidecar(t *testing.T, extraHCL s
 			}
 			`,
 			enableACL: true,
-			tokenRules: `
+			policies: `
 			service "web-sidecar-proxy" {
 				policy = "write"
 			}
@@ -4514,7 +4514,7 @@ func testAgent_RegisterServiceDeregisterService_Sidecar(t *testing.T, extraHCL s
 			}
 			`,
 			enableACL: true,
-			tokenRules: `
+			policies: `
 			service "web-sidecar-proxy" {
 				policy = "write"
 			}
@@ -4739,8 +4739,8 @@ func testAgent_RegisterServiceDeregisterService_Sidecar(t *testing.T, extraHCL s
 
 			// Create an ACL token with require policy
 			var token string
-			if tt.enableACL && tt.tokenRules != "" {
-				token = testCreateToken(t, a, tt.tokenRules)
+			if tt.enableACL && tt.policies != "" {
+				token = testCreateToken(t, a, tt.policies)
 			}
 
 			br := bytes.NewBufferString(tt.json)
@@ -4850,7 +4850,7 @@ func testAgent_RegisterServiceDeregisterService_Sidecar_UDP(t *testing.T, extraH
 		// directly.
 		json                        string
 		enableACL                   bool
-		tokenRules                  string
+		policies                    string
 		wantNS                      *structs.NodeService
 		wantErr                     string
 		wantSidecarIDLeftAfterDereg bool
@@ -4893,7 +4893,7 @@ func testAgent_RegisterServiceDeregisterService_Sidecar_UDP(t *testing.T, extraH
 			}
 			`,
 			enableACL: true,
-			tokenRules: `
+			policies: `
 			service "web-sidecar-proxy" {
 				policy = "write"
 			}
@@ -4914,10 +4914,10 @@ func testAgent_RegisterServiceDeregisterService_Sidecar_UDP(t *testing.T, extraH
 				}
 			}
 			`,
-			enableACL:  true,
-			tokenRules: ``, // No token rules means no valid token
-			wantNS:     nil,
-			wantErr:    "Permission denied",
+			enableACL: true,
+			policies:  ``, // No policies means no valid token
+			wantNS:    nil,
+			wantErr:   "Permission denied",
 		},
 		{
 			name: "ACL OK for service but not for sidecar",
@@ -4932,7 +4932,7 @@ func testAgent_RegisterServiceDeregisterService_Sidecar_UDP(t *testing.T, extraH
 			`,
 			enableACL: true,
 			// This will become more common/reasonable when ACLs support exact match.
-			tokenRules: `
+			policies: `
 			service "web-sidecar-proxy" {
 				policy = "deny"
 			}
@@ -4958,7 +4958,7 @@ func testAgent_RegisterServiceDeregisterService_Sidecar_UDP(t *testing.T, extraH
 			}
 			`,
 			enableACL: true,
-			tokenRules: `
+			policies: `
 			service "web-sidecar-proxy" {
 				policy = "write"
 			}
@@ -4982,7 +4982,7 @@ func testAgent_RegisterServiceDeregisterService_Sidecar_UDP(t *testing.T, extraH
 			}
 			`,
 			enableACL: true,
-			tokenRules: `
+			policies: `
 			service "web-sidecar-proxy" {
 				policy = "write"
 			}
@@ -5011,7 +5011,7 @@ func testAgent_RegisterServiceDeregisterService_Sidecar_UDP(t *testing.T, extraH
 			}
 			`,
 			enableACL: true,
-			tokenRules: `
+			policies: `
 			service "web-sidecar-proxy" {
 				policy = "write"
 			}
@@ -5236,8 +5236,8 @@ func testAgent_RegisterServiceDeregisterService_Sidecar_UDP(t *testing.T, extraH
 
 			// Create an ACL token with require policy
 			var token string
-			if tt.enableACL && tt.tokenRules != "" {
-				token = testCreateToken(t, a, tt.tokenRules)
+			if tt.enableACL && tt.policies != "" {
+				token = testCreateToken(t, a, tt.policies)
 			}
 
 			br := bytes.NewBufferString(tt.json)

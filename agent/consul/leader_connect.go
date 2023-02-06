@@ -76,7 +76,8 @@ func (s *Server) runConfigEntryControllers(ctx context.Context) error {
 
 	group.Go(func() error {
 		logger := s.logger.Named(logging.APIGatewayController)
-		return gateways.NewAPIGatewayController(s.fsm, s.publisher, logger).Run(ctx)
+		datastore := NewFSMDataStore(s, s.fsm)
+		return gateways.NewAPIGatewayController(datastore, s.publisher, logger).Run(ctx)
 	})
 
 	group.Go(func() error {

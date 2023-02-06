@@ -306,10 +306,6 @@ func (w *TokenWriter) write(token, existing *structs.ACLToken, fromLogin bool) (
 	}
 	token.NodeIdentities = nodeIdentities
 
-	if token.Type != "" {
-		return nil, errors.New("Type cannot be specified for this token")
-	}
-
 	if err := w.enterpriseValidation(token, existing); err != nil {
 		return nil, err
 	}

@@ -435,7 +435,7 @@ func findIngressServiceMatchingUpstream(l structs.IngressListener, u structs.Ups
 	// only one IngressService for each unique name although originally that
 	// wasn't checked as it didn't matter. Assume there is only one now
 	// though!
-	wantSID := u.DestinationID()
+	wantSID := u.DestinationID().ServiceName.ToServiceID()
 	var foundSameNSWildcard *structs.IngressService
 	for _, s := range l.Services {
 		sid := structs.NewServiceID(s.Name, &s.EnterpriseMeta)

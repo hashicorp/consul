@@ -913,7 +913,7 @@ func (a *ACL) PolicySet(args *structs.ACLPolicySetRequest, reply *structs.ACLPol
 	}
 
 	// validate the rules
-	_, err = acl.NewPolicyFromSource(policy.Rules, policy.Syntax, a.srv.aclConfig, policy.EnterprisePolicyMeta())
+	_, err = acl.NewPolicyFromSource(policy.Rules, a.srv.aclConfig, policy.EnterprisePolicyMeta())
 	if err != nil {
 		return err
 	}

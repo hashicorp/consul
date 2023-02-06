@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/consul/envoyextensions/xdscommon"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
 	"github.com/mitchellh/hashstructure"
@@ -24,7 +25,6 @@ import (
 	"github.com/hashicorp/consul/agent/debug"
 	"github.com/hashicorp/consul/agent/structs"
 	token_store "github.com/hashicorp/consul/agent/token"
-	"github.com/hashicorp/consul/agent/xds/proxysupport"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/lib"
@@ -88,7 +88,7 @@ func (s *HTTPHandlers) AgentSelf(resp http.ResponseWriter, req *http.Request) (i
 	if s.agent.xdsServer != nil {
 		xds = &XDSSelf{
 			SupportedProxies: map[string][]string{
-				"envoy": proxysupport.EnvoyVersions,
+				"envoy": xdscommon.EnvoyVersions,
 			},
 			// Prefer the TLS port. See comment on the XDSSelf struct for details.
 			Port: s.agent.config.GRPCTLSPort,
