@@ -5,13 +5,6 @@ import (
 	"strings"
 )
 
-type SyntaxVersion int
-
-const (
-	SyntaxCurrent SyntaxVersion = iota
-	SyntaxLegacy
-)
-
 const (
 	PolicyDeny  = "deny"
 	PolicyRead  = "read"
