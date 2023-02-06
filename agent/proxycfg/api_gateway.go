@@ -160,6 +160,8 @@ func (h *handlerAPIGateway) handleGatewayConfigUpdate(ctx context.Context, u Upd
 
 	switch gwConf := resp.Entry.(type) {
 	case *structs.BoundAPIGatewayConfigEntry:
+		snap.APIGateway.BoundGatewayConfig = gwConf
+
 		seenRefs := make(map[structs.ResourceReference]any)
 		for _, listener := range gwConf.Listeners {
 			snap.APIGateway.BoundListeners[listener.Name] = listener
@@ -224,6 +226,8 @@ func (h *handlerAPIGateway) handleGatewayConfigUpdate(ctx context.Context, u Upd
 		snap.APIGateway.BoundGatewayConfigLoaded = true
 		break
 	case *structs.APIGatewayConfigEntry:
+		snap.APIGateway.GatewayConfig = gwConf
+
 		for _, listener := range gwConf.Listeners {
 			snap.APIGateway.Listeners[listener.Name] = listener
 		}
@@ -279,6 +283,7 @@ func (h *handlerAPIGateway) handleRouteConfigUpdate(ctx context.Context, u Updat
 	}
 
 	seenUpstreamIDs := make(map[UpstreamID]struct{})
+	upstreams := make(map[APIGatewayListenerKey]structs.Upstreams)
 
 	switch route := resp.Entry.(type) {
 	case *structs.HTTPRouteConfigEntry:
@@ -286,6 +291,35 @@ func (h *handlerAPIGateway) handleRouteConfigUpdate(ctx context.Context, u Updat
 
 		for _, rule := range route.Rules {
 			for _, service := range rule.Services {
+				for _, listener := range snap.APIGateway.Listeners {
+					shouldBind := false
+					for _, parent := range route.Parents {
+						if h.referenceIsForListener(parent, listener, snap) {
+							shouldBind = true
+							break
+						}
+					}
+					if !shouldBind {
+						continue
+					}
+
+					upstream := structs.Upstream{
+						DestinationName:      service.Name,
+						DestinationNamespace: service.NamespaceOrDefault(),
+						DestinationPartition: service.PartitionOrDefault(),
+						LocalBindPort:        listener.Port,
+						//IngressHosts:         g.Hosts,
+						// Pass the protocol that was configured on the listener in order
+						// to force that protocol on the Envoy listener.
+						Config: map[string]interface{}{
+							"protocol": "http",
+						},
+					}
+
+					listenerKey := APIGatewayListenerKey{Protocol: string(listener.Protocol), Port: listener.Port}
+					upstreams[listenerKey] = append(upstreams[listenerKey], upstream)
+				}
+
 				upstreamID := NewUpstreamIDFromServiceName(service.ServiceName())
 				seenUpstreamIDs[upstreamID] = struct{}{}
 
@@ -308,13 +342,38 @@ func (h *handlerAPIGateway) handleRouteConfigUpdate(ctx context.Context, u Updat
 		snap.APIGateway.TCPRoutes.Set(ref, route)
 
 		for _, service := range route.Services {
-			// TODO We don't have enough information (missing port, for example)
-			//   Do we actually need to construct and store this in snap.APIGateway.Upstreams?
-			//   Maybe we should collect these in h.handleGatewayServicesUpdate
-			//upstream := structs.Upstream{}
-
 			upstreamID := NewUpstreamIDFromServiceName(service.ServiceName())
 			seenUpstreamIDs[upstreamID] = struct{}{}
+
+			// For each listener, check if this route should bind and, if so, create an upstream.
+			for _, listener := range snap.APIGateway.Listeners {
+				shouldBind := false
+				for _, parent := range route.Parents {
+					if h.referenceIsForListener(parent, listener, snap) {
+						shouldBind = true
+						break
+					}
+				}
+				if !shouldBind {
+					continue
+				}
+
+				upstream := structs.Upstream{
+					DestinationName:      service.Name,
+					DestinationNamespace: service.NamespaceOrDefault(),
+					DestinationPartition: service.PartitionOrDefault(),
+					LocalBindPort:        listener.Port,
+					//IngressHosts:         g.Hosts,
+					// Pass the protocol that was configured on the ingress listener in order
+					// to force that protocol on the Envoy listener.
+					Config: map[string]interface{}{
+						"protocol": "tcp",
+					},
+				}
+
+				listenerKey := APIGatewayListenerKey{Protocol: string(listener.Protocol), Port: listener.Port}
+				upstreams[listenerKey] = append(upstreams[listenerKey], upstream)
+			}
 
 			watchOpts := discoveryChainWatchOpts{
 				id:         upstreamID,
@@ -333,7 +392,7 @@ func (h *handlerAPIGateway) handleRouteConfigUpdate(ctx context.Context, u Updat
 		return fmt.Errorf("invalid type for config entry: %T", resp.Entry)
 	}
 
-	//snap.APIGateway.Upstreams = TODO
+	snap.APIGateway.Upstreams = upstreams
 	snap.APIGateway.UpstreamsSet = seenUpstreamIDs
 	//snap.APIGateway.Hosts = TODO
 	snap.APIGateway.HostsSet = true
@@ -362,6 +421,21 @@ func (h *handlerAPIGateway) handleRouteConfigUpdate(ctx context.Context, u Updat
 	return nil
 }
 
+// referenceIsForListener returns whether the provided structs.ResourceReference
+// targets the provided structs.APIGatewayListener. For this to be true, the kind
+// and name must match the structs.APIGatewayConfigEntry containing the listener,
+// and the reference must specify either no section name or the name of the listener
+// as the section name.
+func (h *handlerAPIGateway) referenceIsForListener(ref structs.ResourceReference, listener structs.APIGatewayListener, snap *ConfigSnapshot) bool {
+	if ref.Kind != snap.APIGateway.GatewayConfig.Kind {
+		return false
+	}
+	if ref.Name != snap.APIGateway.GatewayConfig.Name {
+		return false
+	}
+	return ref.SectionName == "" || ref.SectionName == listener.Name
+}
+
 // handleGatewayServicesUpdate responds to changes in the set of watched upstreams for a gateway
 func (h *handlerAPIGateway) handleGatewayServicesUpdate(ctx context.Context, u UpdateEvent, snap *ConfigSnapshot) error {
 	services, ok := u.Result.(*structs.IndexedGatewayServices)
@@ -374,7 +448,7 @@ func (h *handlerAPIGateway) handleGatewayServicesUpdate(ctx context.Context, u U
 	watchedSvcs := make(map[UpstreamID]struct{})
 	upstreams := make(map[IngressListenerKey]structs.Upstreams)
 	for _, service := range services.Services {
-		upstream := makeUpstream(service)
+		upstream := makeUpstreamForGatewayService(service)
 		uid := NewUpstreamID(&upstream)
 
 		// TODO(peering): pipe destination_peer here
