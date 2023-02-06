@@ -148,6 +148,7 @@ func (l *GatewayChainSynthesizer) synthesizeEntries() ([]structs.IngressService,
 // This is currently used to help API gateways masquarade as ingress gateways
 // by providing a set of virtual config entries that change the routing behavior
 // to upstreams referenced in the given HTTPRoutes or TCPRoutes.
+// TODO make this take a slice of chains
 func (l *GatewayChainSynthesizer) Synthesize(chain *structs.CompiledDiscoveryChain, extra ...*structs.CompiledDiscoveryChain) ([]structs.IngressService, *structs.CompiledDiscoveryChain, error) {
 	extra = append([]*structs.CompiledDiscoveryChain{chain}, extra...)
 

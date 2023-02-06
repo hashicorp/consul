@@ -699,17 +699,18 @@ func (c *configSnapshotAPIGateway) ToIngress(datacenter string) (configSnapshotI
 	for name, listener := range c.Listeners {
 		boundListener, ok := c.BoundListeners[name]
 		if !ok {
-			// This should never happen, but if it does, we should just skip it.
+			// Skip any listeners that don't have a bound listener. Once the bound listener is created, this will be run again.
 			continue
 		}
 
 		ingressListener := structs.IngressListener{
 			Port:     listener.Port,
 			Protocol: string(listener.Protocol),
-			// TODO TLS
+			// TODO TLS determine what cluster name and cert resource should be.
 			TLS: nil,
 		}
 
+		// TODO BREAK THIS OUT INTO SEP FUNC
 		chains := []*structs.CompiledDiscoveryChain{}
 		synthesizer := discoverychain.NewGatewayChainSynthesizer(datacenter, c.APIGatewayConfigEntry)
 		for _, routeRef := range boundListener.Routes {
@@ -769,7 +770,6 @@ func (c *configSnapshotAPIGateway) ToIngress(datacenter string) (configSnapshotI
 		ConfigSnapshotUpstreams: upstreams,
 		GatewayConfigLoaded:     true,
 		Listeners:               ingressListeners,
-		Defaults:                structs.IngressServiceConfig{},
 	}, nil
 }
 
