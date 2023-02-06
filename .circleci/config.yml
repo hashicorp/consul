@@ -1108,6 +1108,18 @@ workflows:
       - go-test:
           requires: [dev-build]
       - go-test-lib:
+          name: "go-test-envoyextensions"
+          path: envoyextensions
+          go-version: "1.19"
+          requires: [dev-build]
+          <<: *filter-ignore-non-go-branches
+      - go-test-lib:
+          name: "go-test-troubleshoot"
+          path: troubleshoot
+          go-version: "1.19"
+          requires: [dev-build]
+          <<: *filter-ignore-non-go-branches
+      - go-test-lib:
           name: "go-test-api go1.18"
           path: api
           go-version: "1.18"
