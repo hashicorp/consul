@@ -1244,7 +1244,7 @@ func (r *ACLTokenSetRequest) RequestDatacenter() string {
 
 // ACLTokenGetRequest is used for token read operations at the RPC layer
 type ACLTokenGetRequest struct {
-	TokenID     string         // id used for the token lookup
+	TokenID     string         // ID used for the token lookup
 	TokenIDType ACLTokenIDType // The Type of ID used to lookup the token
 	Expanded    bool
 	Datacenter  string // The datacenter to perform the request within
@@ -1258,7 +1258,7 @@ func (r *ACLTokenGetRequest) RequestDatacenter() string {
 
 // ACLTokenDeleteRequest is used for token deletion operations at the RPC layer
 type ACLTokenDeleteRequest struct {
-	TokenID    string // ID of the token to delete
+	TokenID    string // Accessor ID of the token to delete
 	Datacenter string // The datacenter to perform the request within
 	acl.EnterpriseMeta
 	WriteRequest
@@ -1324,7 +1324,7 @@ type ACLTokenBatchSetRequest struct {
 // This is particularly useful during token replication when
 // multiple tokens need to be removed from the local DCs state.
 type ACLTokenBatchDeleteRequest struct {
-	TokenAccessorIDs []string // Tokens to delete
+	TokenIDs []string // Tokens to delete
 }
 
 type ACLInitialTokenBootstrapRequest struct {

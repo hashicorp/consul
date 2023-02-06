@@ -7,6 +7,7 @@ import (
 	"time"
 
 	envoy_discovery_v3 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
+
 	"github.com/hashicorp/consul/envoyextensions/xdscommon"
 
 	"github.com/armon/go-metrics"
@@ -102,11 +103,11 @@ type ProxyConfigSource interface {
 // A full description of the XDS protocol can be found at
 // https://www.envoyproxy.io/docs/envoy/latest/api-docs/xds_protocol
 type Server struct {
-	NodeName     string
-	Logger       hclog.Logger
-	CfgSrc       ProxyConfigSource
-	ResolveToken ACLResolverFunc
-	CfgFetcher   ConfigFetcher
+	NodeName           string
+	Logger             hclog.Logger
+	CfgSrc             ProxyConfigSource
+	ResolveTokenSecret ACLResolverFunc
+	CfgFetcher         ConfigFetcher
 
 	// AuthCheckFrequency is how often we should re-check the credentials used
 	// during a long-lived gRPC Stream after it has been initially established.
@@ -156,14 +157,14 @@ func NewServer(
 	nodeName string,
 	logger hclog.Logger,
 	cfgMgr ProxyConfigSource,
-	resolveToken ACLResolverFunc,
+	resolveTokenSecret ACLResolverFunc,
 	cfgFetcher ConfigFetcher,
 ) *Server {
 	return &Server{
 		NodeName:           nodeName,
 		Logger:             logger,
 		CfgSrc:             cfgMgr,
-		ResolveToken:       resolveToken,
+		ResolveTokenSecret: resolveTokenSecret,
 		CfgFetcher:         cfgFetcher,
 		AuthCheckFrequency: DefaultAuthCheckFrequency,
 		activeStreams:      &activeStreamCounters{},
@@ -190,7 +191,7 @@ func (s *Server) authenticate(ctx context.Context) (acl.Authorizer, error) {
 		return nil, status.Errorf(codes.Internal, "error fetching options from context: %v", err)
 	}
 
-	authz, err := s.ResolveToken(options.Token)
+	authz, err := s.ResolveTokenSecret(options.Token)
 	if acl.IsErrNotFound(err) {
 		return nil, status.Errorf(codes.Unauthenticated, "unauthenticated: %v", err)
 	} else if acl.IsErrPermissionDenied(err) {

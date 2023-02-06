@@ -51,11 +51,11 @@ func (c *cmd) Run(args []string) int {
 	tokenAccessor := c.tokenAccessorID
 	if tokenAccessor == "" {
 		if c.tokenID == "" {
-			c.UI.Error(fmt.Sprintf("Must specify the -accessor-id parameter"))
+			c.UI.Error("Must specify the -accessor-id parameter")
 			return 1
 		} else {
 			tokenAccessor = c.tokenID
-			c.UI.Warn(fmt.Sprintf("Use the -accessor-id parameter to specify token by Accessor ID."))
+			c.UI.Warn("Use the -accessor-id parameter to specify token by Accessor ID.")
 		}
 	}
 

@@ -602,7 +602,7 @@ func (a *ACL) TokenDelete(args *structs.ACLTokenDeleteRequest, reply *string) er
 	}
 
 	req := &structs.ACLTokenBatchDeleteRequest{
-		TokenAccessorIDs: []string{args.TokenID},
+		TokenIDs: []string{args.TokenID},
 	}
 
 	_, err = a.srv.raftApply(structs.ACLTokenDeleteRequestType, req)

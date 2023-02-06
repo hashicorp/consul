@@ -99,11 +99,11 @@ func (c *cmd) Run(args []string) int {
 	tokenAccessor := c.tokenAccessorID
 	if tokenAccessor == "" {
 		if c.tokenID == "" {
-			c.UI.Error(fmt.Sprintf("Cannot update a token without specifying the -accessor-id parameter"))
+			c.UI.Error("Cannot update a token without specifying the -accessor-id parameter")
 			return 1
 		} else {
 			tokenAccessor = c.tokenID
-			c.UI.Warn(fmt.Sprintf("Use the -accessor-id parameter to specify token by Accessor ID."))
+			c.UI.Warn("Use the -accessor-id parameter to specify token by Accessor ID")
 		}
 	}
 

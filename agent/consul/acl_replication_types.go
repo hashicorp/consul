@@ -84,7 +84,7 @@ func (r *aclTokenReplicator) FetchUpdated(srv *Server, updates []string) (int, e
 
 func (r *aclTokenReplicator) DeleteLocalBatch(srv *Server, batch []string) error {
 	req := structs.ACLTokenBatchDeleteRequest{
-		TokenAccessorIDs: batch,
+		TokenIDs: batch,
 	}
 
 	_, err := srv.leaderRaftApply("ACL.TokenDelete", structs.ACLTokenDeleteRequestType, &req)

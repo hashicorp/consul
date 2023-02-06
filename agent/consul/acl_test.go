@@ -69,7 +69,7 @@ func resolveTokenAsync(r *ACLResolver, token string, ch chan *asyncResolutionRes
 	ch <- &asyncResolutionResult{authz: authz, err: err}
 }
 
-func resolveToken(t *testing.T, r *ACLResolver, token string) acl.Authorizer {
+func resolveTokenSecret(t *testing.T, r *ACLResolver, token string) acl.Authorizer {
 	t.Helper()
 	authz, err := r.ResolveTokenSecret(token)
 	require.NoError(t, err)
@@ -1696,7 +1696,7 @@ func testACLResolver_variousTokens(t *testing.T, delegate *ACLResolverTestDelega
 				RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 2},
 			},
 		})
-		authz := resolveToken(t, r, "missing-policy")
+		authz := resolveTokenSecret(t, r, "missing-policy")
 		require.NotNil(t, authz)
 		require.Equal(t, acl.Allow, authz.ACLRead(nil))
 		require.Equal(t, acl.Deny, authz.NodeWrite("foo", nil))
@@ -1729,7 +1729,7 @@ func testACLResolver_variousTokens(t *testing.T, delegate *ACLResolverTestDelega
 				RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 2},
 			},
 		})
-		authz := resolveToken(t, r, "missing-role")
+		authz := resolveTokenSecret(t, r, "missing-role")
 		require.NotNil(t, authz)
 		require.Equal(t, acl.Allow, authz.ACLRead(nil))
 		require.Equal(t, acl.Deny, authz.NodeWrite("foo", nil))
@@ -1763,7 +1763,7 @@ func testACLResolver_variousTokens(t *testing.T, delegate *ACLResolverTestDelega
 				RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 2},
 			},
 		})
-		authz := resolveToken(t, r, "missing-policy-on-role")
+		authz := resolveTokenSecret(t, r, "missing-policy-on-role")
 		require.NotNil(t, authz)
 		require.Equal(t, acl.Allow, authz.ACLRead(nil))
 		require.Equal(t, acl.Deny, authz.NodeWrite("foo", nil))
@@ -1796,7 +1796,7 @@ func testACLResolver_variousTokens(t *testing.T, delegate *ACLResolverTestDelega
 				RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 2},
 			},
 		})
-		authz := resolveToken(t, r, "found")
+		authz := resolveTokenSecret(t, r, "found")
 		require.NotNil(t, authz)
 		require.Equal(t, acl.Deny, authz.ACLRead(nil))
 		require.Equal(t, acl.Allow, authz.NodeWrite("foo", nil))
@@ -1837,7 +1837,7 @@ func testACLResolver_variousTokens(t *testing.T, delegate *ACLResolverTestDelega
 				RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 2},
 			},
 		})
-		authz := resolveToken(t, r, "found-role")
+		authz := resolveTokenSecret(t, r, "found-role")
 		require.NotNil(t, authz)
 		require.Equal(t, acl.Deny, authz.ACLRead(nil))
 		require.Equal(t, acl.Allow, authz.NodeWrite("foo", nil))
@@ -1889,7 +1889,7 @@ func testACLResolver_variousTokens(t *testing.T, delegate *ACLResolverTestDelega
 				RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 2},
 			},
 		})
-		authz := resolveToken(t, r, "found-policy-and-role")
+		authz := resolveTokenSecret(t, r, "found-policy-and-role")
 		require.NotNil(t, authz)
 		require.Equal(t, acl.Deny, authz.ACLRead(nil))
 		require.Equal(t, acl.Allow, authz.NodeWrite("foo", nil))
@@ -1921,7 +1921,7 @@ func testACLResolver_variousTokens(t *testing.T, delegate *ACLResolverTestDelega
 				},
 			},
 		})
-		authz := resolveToken(t, r, "found-role-node-identity")
+		authz := resolveTokenSecret(t, r, "found-role-node-identity")
 		require.NotNil(t, authz)
 		require.Equal(t, acl.Allow, authz.NodeWrite("test-node", nil))
 		require.Equal(t, acl.Deny, authz.NodeWrite("test-node-dc2", nil))

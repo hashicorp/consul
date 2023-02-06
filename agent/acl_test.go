@@ -89,7 +89,7 @@ func NewTestACLAgent(t *testing.T, name string, hcl string, resolveAuthz authzRe
 	return a
 }
 
-func (a *TestACLAgent) ResolveToken(secretID string) (acl.Authorizer, error) {
+func (a *TestACLAgent) ResolveTokenSecret(secretID string) (acl.Authorizer, error) {
 	if a.resolveAuthzFn == nil {
 		return nil, fmt.Errorf("ResolveTokenSecret call is unexpected - no authz resolver callback set")
 	}
@@ -99,7 +99,7 @@ func (a *TestACLAgent) ResolveToken(secretID string) (acl.Authorizer, error) {
 }
 
 func (a *TestACLAgent) ResolveTokenAndDefaultMeta(secretID string, entMeta *acl.EnterpriseMeta, authzContext *acl.AuthorizerContext) (resolver.Result, error) {
-	authz, err := a.ResolveToken(secretID)
+	authz, err := a.ResolveTokenSecret(secretID)
 	if err != nil {
 		return resolver.Result{}, err
 	}

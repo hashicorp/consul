@@ -503,7 +503,7 @@ func (c *FSM) applyACLTokenDeleteOperation(buf []byte, index uint64) interface{}
 	defer metrics.MeasureSinceWithLabels([]string{"fsm", "acl", "token"}, time.Now(),
 		[]metrics.Label{{Name: "op", Value: "delete"}})
 
-	return c.state.ACLTokenBatchDelete(index, req.TokenAccessorIDs)
+	return c.state.ACLTokenBatchDelete(index, req.TokenIDs)
 }
 
 func (c *FSM) applyACLTokenBootstrap(buf []byte, index uint64) interface{} {
