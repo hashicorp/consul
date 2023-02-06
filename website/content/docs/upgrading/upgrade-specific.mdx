@@ -87,6 +87,54 @@ In Consul v1.15 and higher:
 
    </CodeBlockConfig>
 
+#### `service-defaults` Overrides for Upstream Peered Services
+
+In Consul 1.14.x, `service-defaults` upstream [`overrides`](/consul/docs/connect/config-entries/service-defaults#overrides) apply to both local and peered services as long as the `name` field matches.
+Consul 1.15.0 is backward compatible with 1.14 if the [`peer`](/consul/docs/connect/config-entries/service-defaults#peer) is not set in any override.
+We recommend converting any upstream peer service overrides as a 1.15.x post-upgrade step.
+
+Before Consul v1.15:
+
+   <CodeBlockConfig>
+
+   ```hcl
+   Kind = "service-defaults"
+   Name = "<SERVICE_NAME>"
+   Protocol  = "http"
+   UpstreamConfig = {
+     Overrides = [
+       {
+          Name = foo      # Applies to local `foo` and any peered service `foo`
+       }
+     ]
+   }
+   ```
+
+   </CodeBlockConfig>
+
+In Consul v1.15 and higher:
+
+   <CodeBlockConfig>
+
+   ```hcl
+   Kind = "service-defaults"
+   Name = "<SERVICE_NAME>"
+   Protocol  = "http"
+   UpstreamConfig = {
+     Overrides = [
+       {
+          Name = foo  # Applies to local service `foo` 
+       },
+       {
+          Name = foo  # Applies to `foo` imported from peered cluster `bar`
+          Peer = bar
+       }
+     ]
+   }
+   ```
+
+   </CodeBlockConfig>
+
 ## Consul 1.14.x
 
 ### Service Mesh Compatibility

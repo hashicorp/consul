@@ -1,4 +1,4 @@
-package xds
+package xdscommon
 
 import (
 	"fmt"
@@ -23,35 +23,35 @@ type unsupportedVersion struct {
 	Why       string
 }
 
-type supportedProxyFeatures struct {
+type SupportedProxyFeatures struct {
 	// Put feature switches here when necessary. For reference, The most recent remove of a feature flag was removed in
 	// <insert PR here>.
 }
 
-func determineSupportedProxyFeatures(node *envoy_core_v3.Node) (supportedProxyFeatures, error) {
+func DetermineSupportedProxyFeatures(node *envoy_core_v3.Node) (SupportedProxyFeatures, error) {
 	version := determineEnvoyVersionFromNode(node)
 	return determineSupportedProxyFeaturesFromVersion(version)
 }
 
-func determineSupportedProxyFeaturesFromString(vs string) (supportedProxyFeatures, error) {
+func DetermineSupportedProxyFeaturesFromString(vs string) (SupportedProxyFeatures, error) {
 	version := version.Must(version.NewVersion(vs))
 	return determineSupportedProxyFeaturesFromVersion(version)
 }
 
-func determineSupportedProxyFeaturesFromVersion(version *version.Version) (supportedProxyFeatures, error) {
+func determineSupportedProxyFeaturesFromVersion(version *version.Version) (SupportedProxyFeatures, error) {
 	if version == nil {
 		// This would happen on either extremely old builds OR perhaps on
 		// custom builds. Should we error?
-		return supportedProxyFeatures{}, nil
+		return SupportedProxyFeatures{}, nil
 	}
 
 	if version.LessThan(minSupportedVersion) {
-		return supportedProxyFeatures{}, fmt.Errorf("Envoy %s is too old and is not supported by Consul", version)
+		return SupportedProxyFeatures{}, fmt.Errorf("Envoy %s is too old and is not supported by Consul", version)
 	}
 
 	for _, uv := range specificUnsupportedVersions {
 		if version.Equal(uv.Version) {
-			return supportedProxyFeatures{}, fmt.Errorf(
+			return SupportedProxyFeatures{}, fmt.Errorf(
 				"Envoy %s is too old of a point release and is not supported by Consul because it %s. "+
 					"Please upgrade to version %s.",
 				version,
@@ -61,7 +61,7 @@ func determineSupportedProxyFeaturesFromVersion(version *version.Version) (suppo
 		}
 	}
 
-	sf := supportedProxyFeatures{}
+	sf := SupportedProxyFeatures{}
 
 	// when feature flags necessary, populate here by calling version.LessThan(...)
 

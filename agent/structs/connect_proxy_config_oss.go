@@ -11,9 +11,10 @@ func (us *Upstream) GetEnterpriseMeta() *acl.EnterpriseMeta {
 	return DefaultEnterpriseMetaInDefaultPartition()
 }
 
-func (us *Upstream) DestinationID() ServiceID {
-	return ServiceID{
-		ID: us.DestinationName,
+func (us *Upstream) DestinationID() PeeredServiceName {
+	return PeeredServiceName{
+		Peer:        us.DestinationPeer,
+		ServiceName: NewServiceName(us.DestinationName, DefaultEnterpriseMetaInDefaultPartition()),
 	}
 }
 

@@ -172,25 +172,31 @@ func TestServerRequestRateLimit(t *testing.T) {
 }
 
 func checkForMetric(t *retry.R, metricsInfo *api.MetricsInfo, operationName string, expectedLimitType string) {
-	for _, counter := range metricsInfo.Counters {
-		if counter.Name == "consul.rate.limit" {
-			operation, ok := counter.Labels["op"]
-			require.True(t, ok)
+	const counterName = "rpc.rate_limit.exceeded"
 
-			limitType, ok := counter.Labels["limit_type"]
-			require.True(t, ok)
-
-			mode, ok := counter.Labels["mode"]
-			require.True(t, ok)
-
-			if operation == operationName {
-				require.Equal(t, 2, counter.Count)
-				require.Equal(t, expectedLimitType, limitType)
-				require.Equal(t, "disabled", mode)
-			}
+	var counter api.SampledValue
+	for _, c := range metricsInfo.Counters {
+		if counter.Name == counterName {
+			counter = c
+			break
 		}
 	}
+	require.NotNilf(t, counter, "counter not found: %s", counterName)
 
+	operation, ok := counter.Labels["op"]
+	require.True(t, ok)
+
+	limitType, ok := counter.Labels["limit_type"]
+	require.True(t, ok)
+
+	mode, ok := counter.Labels["mode"]
+	require.True(t, ok)
+
+	if operation == operationName {
+		require.Equal(t, 2, counter.Count)
+		require.Equal(t, expectedLimitType, limitType)
+		require.Equal(t, "disabled", mode)
+	}
 }
 
 func checkLogsForMessage(t *retry.R, logs []string, msg string, operationName string, logType string, logShouldExist bool) {

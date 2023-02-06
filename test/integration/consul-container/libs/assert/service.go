@@ -64,7 +64,7 @@ func HTTPServiceEchoes(t *testing.T, ip string, port int, path string) {
 		}
 
 		if !strings.Contains(string(body), phrase) {
-			r.Fatal("received an incorrect response ", body)
+			r.Fatal("received an incorrect response ", string(body))
 		}
 	})
 }
@@ -74,4 +74,11 @@ func ServiceLogContains(t *testing.T, service libservice.Service, target string)
 	logs, err := service.GetLogs()
 	require.NoError(t, err)
 	return strings.Contains(logs, target)
+}
+
+// AssertContainerState validates service container status
+func AssertContainerState(t *testing.T, service libservice.Service, state string) {
+	containerStatus, err := service.GetStatus()
+	require.NoError(t, err)
+	require.Equal(t, containerStatus, state, fmt.Sprintf("Expected: %s. Got %s", containerStatus, state))
 }

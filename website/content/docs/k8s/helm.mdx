@@ -222,13 +222,13 @@ Use these links to navigate to a particular top-level stanza.
         - `authMethodPath` ((#v-global-secretsbackend-vault-connectca-authmethodpath)) (`string: kubernetes`) - The mount path of the Kubernetes auth method in Vault.
 
         - `rootPKIPath` ((#v-global-secretsbackend-vault-connectca-rootpkipath)) (`string: ""`) - The path to a PKI secrets engine for the root certificate.
-          For more details, please refer to [Vault Connect CA configuration](/consul/docs/connect/ca/vault#rootpkipath).
+          For more details, please refer to [Vault Connect CA configuration](https://www.consul.io/docs/connect/ca/vault#rootpkipath).
 
         - `intermediatePKIPath` ((#v-global-secretsbackend-vault-connectca-intermediatepkipath)) (`string: ""`) - The path to a PKI secrets engine for the generated intermediate certificate.
-          For more details, please refer to [Vault Connect CA configuration](/consul/docs/connect/ca/vault#intermediatepkipath).
+          For more details, please refer to [Vault Connect CA configuration](https://www.consul.io/docs/connect/ca/vault#intermediatepkipath).
 
         - `additionalConfig` ((#v-global-secretsbackend-vault-connectca-additionalconfig)) (`string: {}`) - Additional Connect CA configuration in JSON format.
-          Please refer to [Vault Connect CA configuration](/consul/docs/connect/ca/vault#configuration)
+          Please refer to [Vault Connect CA configuration](https://www.consul.io/docs/connect/ca/vault#configuration)
           for all configuration options available for that provider.
 
           Example:
@@ -263,14 +263,14 @@ Use these links to navigate to a particular top-level stanza.
 
       - `connectInject` ((#v-global-secretsbackend-vault-connectinject))
 
-        - `caCert` ((#v-global-secretsbackend-vault-connectinject-cacert)) - Configuration to the Vault Secret that Kubernetes will use on
+        - `caCert` ((#v-global-secretsbackend-vault-connectinject-cacert)) - Configuration to the Vault Secret that Kubernetes uses on
           Kubernetes pod creation, deletion, and update, to get CA certificates
           used issued from vault to send webhooks to the ConnectInject.
 
           - `secretName` ((#v-global-secretsbackend-vault-connectinject-cacert-secretname)) (`string: null`) - The Vault secret path that contains the CA certificate for
             Connect Inject webhooks.
 
-        - `tlsCert` ((#v-global-secretsbackend-vault-connectinject-tlscert)) - Configuration to the Vault Secret that Kubernetes will use on
+        - `tlsCert` ((#v-global-secretsbackend-vault-connectinject-tlscert)) - Configuration to the Vault Secret that Kubernetes uses on
           Kubernetes pod creation, deletion, and update, to get TLS certificates
           used issued from vault to send webhooks to the ConnectInject.
 
@@ -319,7 +319,7 @@ Use these links to navigate to a particular top-level stanza.
     - `enabled` ((#v-global-tls-enabled)) (`boolean: false`) - If true, the Helm chart will enable TLS for Consul
       servers and clients and all consul-k8s-control-plane components, as well as generate certificate
       authority (optional) and server and client certificates.
-      This setting is required for [Cluster Peering](/consul/docs/connect/cluster-peering/k8s).
+      This setting is required for [Cluster Peering](https://developer.hashicorp.com/consul/docs/connect/cluster-peering/k8s).
 
     - `enableAutoEncrypt` ((#v-global-tls-enableautoencrypt)) (`boolean: false`) - If true, turns on the auto-encrypt feature on clients and servers.
       It also switches consul-k8s-control-plane components to retrieve the CA from the servers
@@ -482,7 +482,7 @@ Use these links to navigate to a particular top-level stanza.
       This address must be reachable from the Consul servers in the primary datacenter.
       This auth method will be used to provision ACL tokens for Consul components and is different
       from the one used by the Consul Service Mesh.
-      Please see the [Kubernetes Auth Method documentation](/consul/docs/acl/auth-methods/kubernetes).
+      Please see the [Kubernetes Auth Method documentation](https://consul.io/docs/acl/auth-methods/kubernetes).
 
       You can retrieve this value from your `kubeconfig` by running:
 
@@ -568,6 +568,16 @@ Use these links to navigate to a particular top-level stanza.
       - `secretName` ((#v-global-cloud-scadaaddress-secretname)) (`string: null`) - The name of the Kubernetes secret that holds the scada address.
 
       - `secretKey` ((#v-global-cloud-scadaaddress-secretkey)) (`string: null`) - The key within the Kubernetes secret that holds the scada address.
+
+  - `extraLabels` ((#v-global-extralabels)) (`map`) - Extra labels to attach to all pods, deployments, daemonsets, statefulsets, and jobs. This should be a YAML map.
+
+    Example:
+
+    ```yaml
+    extraLabels:
+      labelKey: label-value
+      anotherLabelKey: another-label-value
+    ```
 
 ### server ((#h-server))
 
@@ -662,11 +672,11 @@ Use these links to navigate to a particular top-level stanza.
     storage classes, the PersistentVolumeClaims would need to be manually created.
     A `null` value will use the Kubernetes cluster's default StorageClass. If a default
     StorageClass does not exist, you will need to create one.
-    Refer to the [Read/Write Tuning](/consul/docs/install/performance#read-write-tuning)
+    Refer to the [Read/Write Tuning](https://www.consul.io/docs/install/performance#read-write-tuning)
     section of the Server Performance Requirements documentation for considerations
     around choosing a performant storage class.
 
-    ~> **Note:** The [Reference Architecture](/consul/tutorials/production-deploy/reference-architecture#hardware-sizing-for-consul-servers)
+    ~> **Note:** The [Reference Architecture](https://learn.hashicorp.com/tutorials/consul/reference-architecture#hardware-sizing-for-consul-servers)
     contains best practices and recommendations for selecting suitable
     hardware sizes for your Consul servers.
 
@@ -727,9 +737,9 @@ Use these links to navigate to a particular top-level stanza.
   - `disruptionBudget` ((#v-server-disruptionbudget)) - This configures the PodDisruptionBudget (https://kubernetes.io/docs/tasks/run-application/configure-pdb/)
     for the server cluster.
 
-    - `enabled` ((#v-server-disruptionbudget-enabled)) (`boolean: true`) - This will enable/disable registering a PodDisruptionBudget for the server
-      cluster. If this is enabled, it will only register the budget so long as
-      the server cluster is enabled.
+    - `enabled` ((#v-server-disruptionbudget-enabled)) (`boolean: true`) - Enables registering a PodDisruptionBudget for the server
+      cluster. If enabled, it only registers the budget so long as
+      the server cluster is enabled. To disable, set to `false`.
 
     - `maxUnavailable` ((#v-server-disruptionbudget-maxunavailable)) (`integer: null`) - The maximum number of unavailable pods. By default, this will be
       automatically computed based on the `server.replicas` value to be `(n/2)-1`.
@@ -1578,7 +1588,7 @@ Use these links to navigate to a particular top-level stanza.
 
   - `cni` ((#v-connectinject-cni)) - Configures consul-cni plugin for Consul Service mesh services
 
-    - `enabled` ((#v-connectinject-cni-enabled)) (`boolean: false`) - If true, then all traffic redirection setup will use the consul-cni plugin.
+    - `enabled` ((#v-connectinject-cni-enabled)) (`boolean: false`) - If true, then all traffic redirection setup uses the consul-cni plugin.
       Requires connectInject.enabled to also be true.
 
     - `logLevel` ((#v-connectinject-cni-loglevel)) (`string: null`) - Log level for the installer and plugin. Overrides global.logLevel
@@ -1876,11 +1886,11 @@ Use these links to navigate to a particular top-level stanza.
 
 ### meshGateway ((#h-meshgateway))
 
-- `meshGateway` ((#v-meshgateway)) - [Mesh Gateways](/consul/docs/connect/gateways/mesh-gateway) enable Consul Connect to work across Consul datacenters.
+- `meshGateway` ((#v-meshgateway)) - [Mesh Gateways](https://developer.hashicorp.com/consul/docs/connect/gateways/mesh-gateway) enable Consul Connect to work across Consul datacenters.
 
-  - `enabled` ((#v-meshgateway-enabled)) (`boolean: false`) - If [mesh gateways](/consul/docs/connect/gateways/mesh-gateway) are enabled, a Deployment will be created that runs
+  - `enabled` ((#v-meshgateway-enabled)) (`boolean: false`) - If [mesh gateways](https://developer.hashicorp.com/consul/docs/connect/gateways/mesh-gateway) are enabled, a Deployment will be created that runs
     gateways and Consul Connect will be configured to use gateways.
-    This setting is required for [Cluster Peering](/consul/docs/connect/cluster-peering/k8s).
+    This setting is required for [Cluster Peering](https://developer.hashicorp.com/consul/docs/connect/cluster-peering/k8s).
     Requirements: consul 1.6.0+ if using `global.acls.manageSystemACLs``.
 
   - `replicas` ((#v-meshgateway-replicas)) (`integer: 1`) - Number of replicas for the Deployment.
@@ -2306,9 +2316,9 @@ Use these links to navigate to a particular top-level stanza.
         beta.kubernetes.io/arch: amd64
       ```
 
-    - `tolerations` ((#v-apigateway-managedgatewayclass-tolerations)) (`string: null`) - This value defines the tolerations that will be assigned to a gateway pod.
+    - `tolerations` ((#v-apigateway-managedgatewayclass-tolerations)) (`string: null`) - Toleration settings for gateway pods created with the managed gateway class. 
       This should be a multi-line string matching the
-      Tolerations (https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/) array in a Pod spec.
+      [Tolerations](https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/) array in a Pod spec.
 
     - `serviceType` ((#v-apigateway-managedgatewayclass-servicetype)) (`string: LoadBalancer`) - This value defines the type of service created for gateways (e.g. LoadBalancer, ClusterIP)
 

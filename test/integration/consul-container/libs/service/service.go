@@ -15,4 +15,5 @@ type Service interface {
 	Start() (err error)
 	Terminate() error
 	Restart() error
+	GetStatus() (string, error)
 }

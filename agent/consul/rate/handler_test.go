@@ -104,7 +104,7 @@ func TestHandler(t *testing.T) {
 			expectErr:         nil,
 			expectLog:         true,
 			expectMetric:      true,
-			expectMetricName:  "consul.rate_limit;limit_type=global/write;op=Foo.Bar;mode=permissive",
+			expectMetricName:  "rpc.rate_limit.exceeded;limit_type=global/write;op=Foo.Bar;mode=permissive",
 			expectMetricCount: 1,
 		},
 		"global write limit exceeded (enforcing, leader)": {
@@ -121,7 +121,7 @@ func TestHandler(t *testing.T) {
 			expectErr:         ErrRetryLater,
 			expectLog:         true,
 			expectMetric:      true,
-			expectMetricName:  "consul.rate_limit;limit_type=global/write;op=Foo.Bar;mode=enforcing",
+			expectMetricName:  "rpc.rate_limit.exceeded;limit_type=global/write;op=Foo.Bar;mode=enforcing",
 			expectMetricCount: 1,
 		},
 		"global write limit exceeded (enforcing, follower)": {
@@ -138,7 +138,7 @@ func TestHandler(t *testing.T) {
 			expectErr:         ErrRetryElsewhere,
 			expectLog:         true,
 			expectMetric:      true,
-			expectMetricName:  "consul.rate_limit;limit_type=global/write;op=Foo.Bar;mode=enforcing",
+			expectMetricName:  "rpc.rate_limit.exceeded;limit_type=global/write;op=Foo.Bar;mode=enforcing",
 			expectMetricCount: 1,
 		},
 		"global read limit disabled": {
@@ -180,7 +180,7 @@ func TestHandler(t *testing.T) {
 			expectErr:         nil,
 			expectLog:         true,
 			expectMetric:      true,
-			expectMetricName:  "consul.rate_limit;limit_type=global/read;op=Foo.Bar;mode=permissive",
+			expectMetricName:  "rpc.rate_limit.exceeded;limit_type=global/read;op=Foo.Bar;mode=permissive",
 			expectMetricCount: 1,
 		},
 		"global read limit exceeded (enforcing, leader)": {
@@ -197,7 +197,7 @@ func TestHandler(t *testing.T) {
 			expectErr:         ErrRetryElsewhere,
 			expectLog:         true,
 			expectMetric:      true,
-			expectMetricName:  "consul.rate_limit;limit_type=global/read;op=Foo.Bar;mode=enforcing",
+			expectMetricName:  "rpc.rate_limit.exceeded;limit_type=global/read;op=Foo.Bar;mode=enforcing",
 			expectMetricCount: 1,
 		},
 		"global read limit exceeded (enforcing, follower)": {
@@ -214,7 +214,7 @@ func TestHandler(t *testing.T) {
 			expectErr:         ErrRetryElsewhere,
 			expectLog:         true,
 			expectMetric:      true,
-			expectMetricName:  "consul.rate_limit;limit_type=global/read;op=Foo.Bar;mode=enforcing",
+			expectMetricName:  "rpc.rate_limit.exceeded;limit_type=global/read;op=Foo.Bar;mode=enforcing",
 			expectMetricCount: 1,
 		},
 	}

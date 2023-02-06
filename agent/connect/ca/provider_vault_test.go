@@ -198,7 +198,6 @@ func TestVaultCAProvider_Configure(t *testing.T) {
 				"IntermediatePKIPath": "pki-intermediate/",
 			},
 			expectedValue: func(t *testing.T, v *VaultProvider) {
-
 				h := v.client.Headers()
 				require.Equal(t, "ns1", h.Get(vaultconst.NamespaceHeaderName))
 			},
@@ -306,9 +305,13 @@ func TestVaultCAProvider_RenewTokenStopWatcherOnConfigure(t *testing.T) {
 		"IntermediatePKIPath": "pki-intermediate/",
 	})
 
-	var gotStopped = uint32(0)
+	// overwrite stopWatcher to set flag on stop for testing
+	// be sure that original stopWatcher gets called to avoid goroutine leak
+	gotStopped := uint32(0)
+	realStop := provider.stopWatcher
 	provider.stopWatcher = func() {
 		atomic.StoreUint32(&gotStopped, 1)
+		realStop()
 	}
 
 	// Check the last renewal time.
