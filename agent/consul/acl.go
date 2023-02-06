@@ -284,7 +284,7 @@ func agentRecoveryAuthorizer(nodeName string, entMeta *acl.EnterpriseMeta, aclCo
 	node_prefix "" {
 		policy = "read"
 	}
-	`, nodeName), acl.SyntaxCurrent, &conf, entMeta.ToEnterprisePolicyMeta())
+	`, nodeName), &conf, entMeta.ToEnterprisePolicyMeta())
 	if err != nil {
 		return nil, err
 	}

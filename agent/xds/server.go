@@ -7,6 +7,7 @@ import (
 	"time"
 
 	envoy_discovery_v3 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
+	"github.com/hashicorp/consul/envoyextensions/xdscommon"
 
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
@@ -20,7 +21,6 @@ import (
 	"github.com/hashicorp/consul/agent/grpc-external/limiter"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/agent/xds/xdscommon"
 )
 
 var (
@@ -52,9 +52,6 @@ var (
 type ADSStream = envoy_discovery_v3.AggregatedDiscoveryService_StreamAggregatedResourcesServer
 
 const (
-	// OutboundListenerName is the name we give the outbound Envoy listener when transparent proxy mode is enabled.
-	OutboundListenerName = "outbound_listener"
-
 	// LocalAgentClusterName is the name we give the local agent "cluster" in
 	// Envoy config. Note that all cluster names may collide with service names
 	// since we want cluster names and service names to match to enable nice

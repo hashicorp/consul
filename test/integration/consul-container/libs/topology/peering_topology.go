@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/hashicorp/consul/api"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/api"
 
 	libassert "github.com/hashicorp/consul/test/integration/consul-container/libs/assert"
 	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
@@ -24,6 +25,7 @@ type BuiltCluster struct {
 	Context   *libcluster.BuildContext
 	Service   libservice.Service
 	Container *libservice.ConnectContainer
+	Gateway   libservice.Service
 }
 
 // BasicPeeringTwoClustersSetup sets up a scenario for testing peering, which consists of
@@ -40,8 +42,8 @@ func BasicPeeringTwoClustersSetup(
 	t *testing.T,
 	consulVersion string,
 ) (*BuiltCluster, *BuiltCluster) {
-	acceptingCluster, acceptingCtx, acceptingClient := NewPeeringCluster(t, "dc1", 3, consulVersion)
-	dialingCluster, dialingCtx, dialingClient := NewPeeringCluster(t, "dc2", 1, consulVersion)
+	acceptingCluster, acceptingCtx, acceptingClient := NewPeeringCluster(t, "dc1", 3, consulVersion, true)
+	dialingCluster, dialingCtx, dialingClient := NewPeeringCluster(t, "dc2", 1, consulVersion, true)
 	require.NoError(t, dialingCluster.PeerWithCluster(acceptingClient, AcceptingPeerName, DialingPeerName))
 
 	libassert.PeeringStatus(t, acceptingClient, AcceptingPeerName, api.PeeringStateActive)
@@ -49,23 +51,34 @@ func BasicPeeringTwoClustersSetup(
 
 	// Register an static-server service in acceptingCluster and export to dialing cluster
 	var serverSidecarService libservice.Service
+	var acceptingClusterGateway libservice.Service
 	{
 		clientNode := acceptingCluster.Clients()[0]
 
 		// Create a service and proxy instance
 		var err error
-		serverSidecarService, _, err := libservice.CreateAndRegisterStaticServerAndSidecar(clientNode)
+		// Create a service and proxy instance
+		serviceOpts := libservice.ServiceOpts{
+			Name: libservice.StaticServerServiceName,
+			ID:   "static-server",
+			Meta: map[string]string{"version": ""},
+		}
+		serverSidecarService, _, err := libservice.CreateAndRegisterStaticServerAndSidecar(clientNode, &serviceOpts)
 		require.NoError(t, err)
 
-		libassert.CatalogServiceExists(t, acceptingClient, "static-server")
+		libassert.CatalogServiceExists(t, acceptingClient, libservice.StaticServerServiceName)
 		libassert.CatalogServiceExists(t, acceptingClient, "static-server-sidecar-proxy")
 
 		require.NoError(t, serverSidecarService.Export("default", AcceptingPeerName, acceptingClient))
 
+		// Create the mesh gateway for dataplane traffic
+		acceptingClusterGateway, err = libservice.NewGatewayService(context.Background(), "mesh", "mesh", clientNode)
+		require.NoError(t, err)
 	}
 
 	// Register an static-client service in dialing cluster and set upstream to static-server service
 	var clientSidecarService *libservice.ConnectContainer
+	var dialingClusterGateway libservice.Service
 	{
 		clientNode := dialingCluster.Clients()[0]
 
@@ -75,22 +88,30 @@ func BasicPeeringTwoClustersSetup(
 		require.NoError(t, err)
 
 		libassert.CatalogServiceExists(t, dialingClient, "static-client-sidecar-proxy")
+
+		// Create the mesh gateway for dataplane traffic
+		dialingClusterGateway, err = libservice.NewGatewayService(context.Background(), "mesh", "mesh", clientNode)
+		require.NoError(t, err)
 	}
 
+	_, adminPort := clientSidecarService.GetAdminAddr()
+	libassert.AssertUpstreamEndpointStatus(t, adminPort, fmt.Sprintf("static-server.default.%s.external", DialingPeerName), "HEALTHY", 1)
 	_, port := clientSidecarService.GetAddr()
-	libassert.HTTPServiceEchoes(t, "localhost", port)
+	libassert.HTTPServiceEchoes(t, "localhost", port, "")
 
 	return &BuiltCluster{
 			Cluster:   acceptingCluster,
 			Context:   acceptingCtx,
 			Service:   serverSidecarService,
 			Container: nil,
+			Gateway:   acceptingClusterGateway,
 		},
 		&BuiltCluster{
 			Cluster:   dialingCluster,
 			Context:   dialingCtx,
 			Service:   nil,
 			Container: clientSidecarService,
+			Gateway:   dialingClusterGateway,
 		}
 }
 
@@ -154,13 +175,14 @@ func NewPeeringCluster(
 	datacenter string,
 	numServers int,
 	version string,
+	injectAutoEncryption bool,
 ) (*libcluster.Cluster, *libcluster.BuildContext, *api.Client) {
 	require.NotEmpty(t, datacenter)
 	require.True(t, numServers > 0)
 
 	opts := libcluster.BuildOptions{
 		Datacenter:             datacenter,
-		InjectAutoEncryption:   true,
+		InjectAutoEncryption:   injectAutoEncryption,
 		InjectGossipEncryption: true,
 		AllowHTTPAnyway:        true,
 		ConsulVersion:          version,
@@ -201,10 +223,6 @@ func NewPeeringCluster(
 	ok, err := utils.ApplyDefaultProxySettings(client)
 	require.NoError(t, err)
 	require.True(t, ok)
-
-	// Create the mesh gateway for dataplane traffic
-	_, err = libservice.NewGatewayService(context.Background(), "mesh", "mesh", clientNode)
-	require.NoError(t, err)
 
 	return cluster, ctx, client
 }

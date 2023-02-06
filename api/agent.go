@@ -201,11 +201,11 @@ const (
 	// ACLModeEnabled indicates that ACLs are enabled and operating in new ACL
 	// mode (v1.4.0+ ACLs)
 	ACLModeEnabled MemberACLMode = "1"
-	// ACLModeLegacy indicates that ACLs are enabled and operating in legacy mode.
-	ACLModeLegacy MemberACLMode = "2"
+	// ACLModeLegacy has been deprecated, and will be treated as ACLModeUnknown.
+	ACLModeLegacy MemberACLMode = "2" // DEPRECATED
 	// ACLModeUnkown is used to indicate that the AgentMember.Tags didn't advertise
 	// an ACL mode at all. This is the case for Consul versions before v1.4.0 and
-	// should be treated similarly to ACLModeLegacy.
+	// should be treated the same as ACLModeLegacy.
 	ACLModeUnknown MemberACLMode = "3"
 )
 
@@ -244,8 +244,6 @@ func (m *AgentMember) ACLMode() MemberACLMode {
 		return ACLModeDisabled
 	case ACLModeEnabled:
 		return ACLModeEnabled
-	case ACLModeLegacy:
-		return ACLModeLegacy
 	default:
 		return ACLModeUnknown
 	}
@@ -1268,35 +1266,35 @@ func (a *Agent) monitor(loglevel string, logJSON bool, stopCh <-chan struct{}, q
 }
 
 // UpdateACLToken updates the agent's "acl_token". See updateToken for more
-// details.
+// details. Deprecated in Consul 1.4.
 //
 // DEPRECATED (ACL-Legacy-Compat) - Prefer UpdateDefaultACLToken for v1.4.3 and above
 func (a *Agent) UpdateACLToken(token string, q *WriteOptions) (*WriteMeta, error) {
-	return a.updateToken("acl_token", token, q)
+	return nil, fmt.Errorf("Legacy ACL Tokens were deprecated in Consul 1.4")
 }
 
 // UpdateACLAgentToken updates the agent's "acl_agent_token". See updateToken
-// for more details.
+// for more details. Deprecated in Consul 1.4.
 //
 // DEPRECATED (ACL-Legacy-Compat) - Prefer UpdateAgentACLToken for v1.4.3 and above
 func (a *Agent) UpdateACLAgentToken(token string, q *WriteOptions) (*WriteMeta, error) {
-	return a.updateToken("acl_agent_token", token, q)
+	return nil, fmt.Errorf("Legacy ACL Tokens were deprecated in Consul 1.4")
 }
 
 // UpdateACLAgentMasterToken updates the agent's "acl_agent_master_token". See
-// updateToken for more details.
+// updateToken for more details. Deprecated in Consul 1.4.
 //
 // DEPRECATED (ACL-Legacy-Compat) - Prefer UpdateAgentMasterACLToken for v1.4.3 and above
 func (a *Agent) UpdateACLAgentMasterToken(token string, q *WriteOptions) (*WriteMeta, error) {
-	return a.updateToken("acl_agent_master_token", token, q)
+	return nil, fmt.Errorf("Legacy ACL Tokens were deprecated in Consul 1.4")
 }
 
 // UpdateACLReplicationToken updates the agent's "acl_replication_token". See
-// updateToken for more details.
+// updateToken for more details. Deprecated in Consul 1.4.
 //
 // DEPRECATED (ACL-Legacy-Compat) - Prefer UpdateReplicationACLToken for v1.4.3 and above
 func (a *Agent) UpdateACLReplicationToken(token string, q *WriteOptions) (*WriteMeta, error) {
-	return a.updateToken("acl_replication_token", token, q)
+	return nil, fmt.Errorf("Legacy ACL Tokens were deprecated in Consul 1.4")
 }
 
 // UpdateDefaultACLToken updates the agent's "default" token. See updateToken

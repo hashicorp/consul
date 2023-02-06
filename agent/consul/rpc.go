@@ -557,7 +557,7 @@ func (c *limitedConn) Read(b []byte) (n int, err error) {
 }
 
 // canRetry returns true if the request and error indicate that a retry is safe.
-func canRetry(info structs.RPCInfo, err error, start time.Time, config *Config) bool {
+func canRetry(info structs.RPCInfo, err error, start time.Time, config *Config, retryableMessages []error) bool {
 	if info != nil {
 		timedOut, timeoutError := info.HasTimedOut(start, config.RPCHoldTimeout, config.MaxQueryTime, config.DefaultQueryTime)
 		if timeoutError != nil {
@@ -579,15 +579,6 @@ func canRetry(info structs.RPCInfo, err error, start time.Time, config *Config) 
 		return true
 	}
 
-	retryableMessages := []error{
-		// If we are chunking and it doesn't seem to have completed, try again.
-		ErrChunkingResubmit,
-
-		// These rate limit errors are returned before the handler is called, so are
-		// safe to retry.
-		rate.ErrRetryElsewhere,
-		rate.ErrRetryLater,
-	}
 	for _, m := range retryableMessages {
 		if err != nil && strings.Contains(err.Error(), m.Error()) {
 			return true
@@ -747,7 +738,14 @@ CHECK_LEADER:
 		}
 	}
 
-	if retry := canRetry(info, rpcErr, firstCheck, s.config); retry {
+	retryableMessages := []error{
+		// If we are chunking and it doesn't seem to have completed, try again.
+		ErrChunkingResubmit,
+
+		rate.ErrRetryLater,
+	}
+
+	if retry := canRetry(info, rpcErr, firstCheck, s.config, retryableMessages); retry {
 		// Gate the request until there is a leader
 		jitter := lib.RandomStagger(s.config.RPCHoldTimeout / structs.JitterFraction)
 		select {

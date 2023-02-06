@@ -470,10 +470,6 @@ func (a *ACL) TokenClone(args *structs.ACLTokenSetRequest, reply *structs.ACLTok
 		return fmt.Errorf("Cannot clone a token created from an auth method")
 	}
 
-	if token.Rules != "" {
-		return fmt.Errorf("Cannot clone a legacy ACL with this endpoint")
-	}
-
 	clone := &structs.ACLToken{
 		Policies:          token.Policies,
 		Roles:             token.Roles,
@@ -917,7 +913,7 @@ func (a *ACL) PolicySet(args *structs.ACLPolicySetRequest, reply *structs.ACLPol
 	}
 
 	// validate the rules
-	_, err = acl.NewPolicyFromSource(policy.Rules, policy.Syntax, a.srv.aclConfig, policy.EnterprisePolicyMeta())
+	_, err = acl.NewPolicyFromSource(policy.Rules, a.srv.aclConfig, policy.EnterprisePolicyMeta())
 	if err != nil {
 		return err
 	}

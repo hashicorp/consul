@@ -118,10 +118,10 @@ const (
 	aclRoleReplicationRoutineName         = "ACL role replication"
 	aclTokenReplicationRoutineName        = "ACL token replication"
 	aclTokenReapingRoutineName            = "acl token reaping"
-	aclUpgradeRoutineName                 = "legacy ACL token upgrade"
 	caRootPruningRoutineName              = "CA root pruning"
 	caRootMetricRoutineName               = "CA root expiration metric"
 	caSigningMetricRoutineName            = "CA signing expiration metric"
+	configEntryControllersRoutineName     = "config entry controllers"
 	configReplicationRoutineName          = "config entry replication"
 	federationStateReplicationRoutineName = "federation state replication"
 	federationStateAntiEntropyRoutineName = "federation state anti-entropy"
@@ -489,7 +489,7 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server, incom
 	}
 
 	rpcServerOpts := []func(*rpc.Server){
-		rpc.WithPreBodyInterceptor(middleware.GetNetRPCRateLimitingInterceptor(s.incomingRPCLimiter)),
+		rpc.WithPreBodyInterceptor(middleware.GetNetRPCRateLimitingInterceptor(s.incomingRPCLimiter, middleware.NewPanicHandler(s.logger))),
 	}
 
 	if flat.GetNetRPCInterceptorFunc != nil {

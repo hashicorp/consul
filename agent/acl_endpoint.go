@@ -215,8 +215,6 @@ func (s *HTTPHandlers) aclPolicyWriteInternal(_resp http.ResponseWriter, req *ht
 		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: fmt.Sprintf("Policy decoding failed: %v", err)}
 	}
 
-	args.Policy.Syntax = acl.SyntaxCurrent
-
 	if create {
 		if args.Policy.ID != "" {
 			return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Cannot specify the ID when creating a new policy"}
@@ -428,10 +426,8 @@ func (s *HTTPHandlers) aclTokenSetInternal(req *http.Request, tokenID string, cr
 	}
 
 	if !create {
-		if args.ACLToken.AccessorID != "" && args.ACLToken.AccessorID != tokenID {
+		if args.ACLToken.AccessorID != tokenID {
 			return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Token Accessor ID in URL and payload do not match"}
-		} else if args.ACLToken.AccessorID == "" {
-			args.ACLToken.AccessorID = tokenID
 		}
 	}
 
@@ -1011,10 +1007,9 @@ func (s *HTTPHandlers) ACLAuthorize(resp http.ResponseWriter, req *http.Request)
 	// There are a number of reason why this is okay.
 	//
 	// 1. The authorizations performed here are the same as what would be done if other HTTP APIs
-	//    were used. This is just a way to see if it would be allowed. In the future when we have
-	//    audit logging, these authorization checks will be logged along with those from the real
-	//    endpoints. In that respect, you can figure out if you have access just as easily by
-	//    attempting to perform the requested operation.
+	//    were used. This is just a way to see if it would be allowed. These authorization checks
+	//    will be logged along with those from the real endpoints. In that respect, you can figure
+	//    out if you have access just as easily by attempting to perform the requested operation.
 	// 2. In order to use this API you must have a valid ACL token secret.
 	// 3. Along with #2 you can use the ACL.GetPolicy RPC endpoint which will return a rolled up
 	//    set of policy rules showing your tokens effective policy. This RPC endpoint exposes

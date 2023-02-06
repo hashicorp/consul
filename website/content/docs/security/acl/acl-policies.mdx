@@ -11,7 +11,7 @@ This topic describes policies, which are components in Consul's access control l
 
 ## Introduction
 
-A policy is a group of one or more ACL rules that are linked to [ACL tokens](/docs/security/acl/acl-tokens). The following diagram describes the relationships between rules, policies, and tokens:
+A policy is a group of one or more ACL rules that are linked to [ACL tokens](/consul/docs/security/acl/acl-tokens). The following diagram describes the relationships between rules, policies, and tokens:
 
 ![ACL system component relationships](/img/acl-token-policy-rule-relationship.png)
 
@@ -21,7 +21,7 @@ The term "policy" should not be confused with the keyword `policy`. The keyword 
 
 Rules are one of several [attributes that form a policy](#policy-attributes). They are building blocks that define access to resources.
 
-This section describes about how to assemble rules into policies. Refer to the [ACL Rules Reference](/docs/security/acl/acl-rules) for additional details about how to configure rules and how they affect access to resources.
+This section describes about how to assemble rules into policies. Refer to the [ACL Rules Reference](/consul/docs/security/acl/acl-rules) for additional details about how to configure rules and how they affect access to resources.
 
 ### Rule Specification
 
@@ -104,7 +104,7 @@ Use the `policy` keyword and one of the following access levels to set a policy 
 - `write`: Allows the resource to be read and modified.
 - `deny`: Denies read and write access to the resource.
 
-The special `list` access level provides access to all keys with the specified resource label in the [Consul KV](/commands/kv/). The `list` access level can only be used with the `key_prefix` resource. The [`acl.enable_key_list_policy`](/docs/agent/config/config-files#acl_enable_key_list_policy) setting must be set to `true`.
+The special `list` access level provides access to all keys with the specified resource label in the [Consul KV](/consul/commands/kv/). The `list` access level can only be used with the `key_prefix` resource. The [`acl.enable_key_list_policy`](/consul/docs/agent/config/config-files#acl_enable_key_list_policy) setting must be set to `true`.
 
 ### Matching and Prefix Values
 
@@ -246,7 +246,7 @@ operator = "read"
 ## Rule Scope
 
 The rules from all policies, including roles and service identities, linked with a token are combined to form that token's effective rule set.
-Policy rules can be defined in either an `allowlist` or `denylist` mode, depending on the configuration of the [`acl_default_policy`](/docs/agent/config/config-files#acl_default_policy).
+Policy rules can be defined in either an `allowlist` or `denylist` mode, depending on the configuration of the [`acl_default_policy`](/consul/docs/agent/config/config-files#acl_default_policy).
 If the default policy is configured to deny access to all resources, then you can specify `allowlist` in policy rules to explicitly allow access to resources.
 Conversely, if the default policy is configured to allow access to all resources, then you can specify `denylist` in policy rules to explicitly deny access to resources.
 
@@ -256,7 +256,7 @@ After defining policies, the person responsible for administrating ACLs in your 
 
 ### Command Line
 
-Use the `consul acl policy` command to manage policies. Refer to the [ACL command line documentation](/commands/acl/policy) for details.
+Use the `consul acl policy` command to manage policies. Refer to the [ACL command line documentation](/consul/commands/acl/policy) for details.
 
 The following example creates a policy called `my-app-policy` and applies the rules defined in `rules.hcl`:
 
@@ -279,18 +279,19 @@ You can can define several attributes that attach additional metadata and specif
 
 ### HTTP API Endpoint
 
-The endpoint takes data formatted in HCL or JSON. Refer to the [ACL HTTP API endpoint documentation](/api-docs/acl) for details about the API.
+The endpoint takes data formatted in HCL or JSON. Refer to the [ACL HTTP API endpoint documentation](/consul/api-docs/acl) for details about the API.
 
 The following example adds a set of rules to a policy called `my-app-policy`. The policy defines access to the `key` resource (Consul K/V). The rules are formatted in HCL, but they are wrapped in JSON so that the data can be sent using cURL:
 
 ```shell-session
 $ curl \
     --request PUT \
+    --header "X-Consul-Token: <token with ACL 'write' access>" \
     --data \
 '{
   "Name": "my-app-policy",
   "Rules": "key \"\" { policy = \"read\" } key \"foo/\" { policy = \"write\" } key \"foo/private/\" { policy = \"deny\" } operator = \"read\""
-}' http://127.0.0.1:8500/v1/acl/policy?token=<token with ACL "write" access>
+}' http://127.0.0.1:8500/v1/acl/policy
 ```
 
 The following call performs the same operation as the previous example using JSON:
@@ -298,11 +299,12 @@ The following call performs the same operation as the previous example using JSO
 ```shell-session
 $ curl \
     --request PUT \
+    --header "X-Consul-Token: <management token>" \
     --data \
 '{
   "Name": "my-app-policy",
   "Rules": "{\"key\":{\"\":{\"policy\":\"read\"},\"foo/\":{\"policy\":\"write\"},\"foo/private\":{\"policy\":\"deny\"}},\"operator\":\"read\"}"
-}' http://127.0.0.1:8500/v1/acl/policy?token=<management token>
+}' http://127.0.0.1:8500/v1/acl/policy
 ```
 
 The policy configuration is returned when the call is successfully performed:
@@ -322,9 +324,9 @@ The policy configuration is returned when the call is successfully performed:
 
 A policy that has been implemented must still be linked to a token before the policy has an effect. A service or agent presents the token when interacting with resources in the network. The ACL system processes evaluate the policies linked to the token to determine if the requester has access to the requested resource.
 
-The person responsible for administrating ACLs can use the command line or call the API endpoint to link policies to tokens. Tokens can also be generated dynamically from an external system using Consul's [auth methods](/docs/security/acl/auth-methods) functionality.
+The person responsible for administrating ACLs can use the command line or call the API endpoint to link policies to tokens. Tokens can also be generated dynamically from an external system using Consul's [auth methods](/consul/docs/security/acl/auth-methods) functionality.
 
-Refer to the [tokens documentation](/docs/security/acl/acl-tokens), as well as the [ACL tutorial](https://learn.hashicorp.com/tutorials/consul/access-control-setup-production#create-the-agent-token), for details about creating and linking policies to tokens.
+Refer to the [tokens documentation](/consul/docs/security/acl/acl-tokens), as well as the [ACL tutorial](/consul/tutorials/security/access-control-setup-production#create-the-agent-token), for details about creating and linking policies to tokens.
 
 ## Policy Attributes
 
@@ -334,8 +336,8 @@ Additional metadata, such as the values of the `ID` and `name` fields, provide h
 
 Refer to the following topics for additional information:
 
-- [Namespaces](/docs/enterprise/namespaces)
-- [Admin Partitions](/docs/enterprise/admin-partitions)
+- [Namespaces](/consul/docs/enterprise/namespaces)
+- [Admin Partitions](/consul/docs/enterprise/admin-partitions)
 
 ACL policies can have the following attributes:
 
@@ -344,12 +346,12 @@ ACL policies can have the following attributes:
 | `ID`          | The policy's public identifier. Present the `ID` (or the `name`) value when interacting with policies. You can specify a value when creating policies or use the value auto-generated by Consul. | N/A      | N/A       |
 | `name`        | Unique name for the policy.                                                                                                                                                                      | Required | none      |
 | `description` | Human readable description of the policy.                                                                                                                                                        | Optional | none      |
-| `rules`       | Set of rules granting or denying permissions. See the [Rule Specification](/docs/security/acl/acl-rules#rule-specification) documentation for more details.                                               | Optional | none      |
+| `rules`       | Set of rules granting or denying permissions. See the [Rule Specification](/consul/docs/security/acl/acl-rules#rule-specification) documentation for more details.                                               | Optional | none      |
 | `datacenter`  | Datacenter in which the policy is valid. More than one datacenter can be specified.                                                                                                              | Optional | none      |
 | `namespace`   | <EnterpriseAlert inline /> Namespace in which the policy is valid. Added in Consul Enterprise 1.7.0.                                                                                             | Optional | `default` |
 | `partition`   | <EnterpriseAlert inline /> Admin partition in which the policy is valid. Added in Consul Enterprise 1.11.0                                                                                       | Optional | `default` |
 
--> **Non-default Namespaces and Partitions** - Rules defined in a policy tied to an namespace or admin partition other than `default` can only grant a subset of privileges that affect the namespace or partition. See [Namespace Rules](/docs/security/acl/acl-rules#namespace-rules) and [Admin Partition Rules](/docs/security/acl/acl-rules#admin-partition-rules) for additional information.
+-> **Non-default Namespaces and Partitions** - Rules defined in a policy tied to an namespace or admin partition other than `default` can only grant a subset of privileges that affect the namespace or partition. See [Namespace Rules](/consul/docs/security/acl/acl-rules#namespace-rules) and [Admin Partition Rules](/consul/docs/security/acl/acl-rules#admin-partition-rules) for additional information.
 
 You can view the current ACL policies on the command line or through the API. The following example demonstrates the command line usage:
 
@@ -401,7 +403,7 @@ This section includes example policy configurations for achieving specific use-c
 
 ### Enable the Snapshot Agent to Run on a Specific Node
 
-The `consul snapshot agent` command starts a process that takes snapshots of the state of the Consul servers and either saves them locally or pushes them to a remote storage service. Refer to [Consul Snapshot Agent](/commands/snapshot/agent) for additional information.
+The `consul snapshot agent` command starts a process that takes snapshots of the state of the Consul servers and either saves them locally or pushes them to a remote storage service. Refer to [Consul Snapshot Agent](/consul/commands/snapshot/agent) for additional information.
 
 In the following example, the ACL policy enables the snapshot agent to run on a node named `server-1234`.
 
@@ -451,7 +453,7 @@ service "consul-snapshot" {
 
 ### Enable Vault to Access the Consul Storage Backend
 
-If you are using [Vault](https://www.vaultproject.io/docs) to manage secrets in your infrastructure, you can configure Vault to use Consul's key/value (KV) store as backend storage to persist Vault's data. Refer to the [Consul KV documentation](/docs/dynamic-app-config/kv) and the [Vault storage documentation](https://www.vaultproject.io/docs/configuration/storage) for additional information.
+If you are using [Vault](/vault/docs) to manage secrets in your infrastructure, you can configure Vault to use Consul's key/value (KV) store as backend storage to persist Vault's data. Refer to the [Consul KV documentation](/consul/docs/dynamic-app-config/kv) and the [Vault storage documentation](/vault/docs/configuration/storage) for additional information.
 
 In the following example, the ACL policy enables Vault to register as a service
 and provides access to the `vault/` path in Consul's KV store.

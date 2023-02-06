@@ -10,17 +10,22 @@ import (
 	"time"
 
 	dockercontainer "github.com/docker/docker/api/types/container"
-	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/go-multierror"
 	"github.com/pkg/errors"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
+
+	"github.com/hashicorp/consul/api"
 
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 )
 
 const bootLogLine = "Consul agent running"
 const disableRYUKEnv = "TESTCONTAINERS_RYUK_DISABLED"
+
+// Exposed ports info
+const MaxEnvoyOnNode = 10                 // the max number of Envoy sidecar can run along with the agent, base is 19000
+const ServiceUpstreamLocalBindPort = 5000 // local bind Port of service's upstream
 
 // consulContainerNode implements the Agent interface by running a Consul agent
 // in a container.
@@ -44,7 +49,8 @@ type consulContainerNode struct {
 	clientCACertFile string
 	ip               string
 
-	nextAdminPortOffset int
+	nextAdminPortOffset   int
+	nextConnectPortOffset int
 
 	info AgentInfo
 }
@@ -53,10 +59,14 @@ func (c *consulContainerNode) GetPod() testcontainers.Container {
 	return c.pod
 }
 
-func (c *consulContainerNode) ClaimAdminPort() int {
+func (c *consulContainerNode) ClaimAdminPort() (int, error) {
+	if c.nextAdminPortOffset >= MaxEnvoyOnNode {
+		return 0, fmt.Errorf("running out of envoy admin port, max %d, already claimed %d",
+			MaxEnvoyOnNode, c.nextAdminPortOffset)
+	}
 	p := 19000 + c.nextAdminPortOffset
 	c.nextAdminPortOffset++
-	return p
+	return p, nil
 }
 
 // NewConsulContainer starts a Consul agent in a container with the given config.
@@ -198,9 +208,13 @@ func NewConsulContainer(ctx context.Context, config Config, network string, inde
 			_ = consulContainer.StopLogProducer()
 		})
 
-		consulContainer.FollowOutput(&LogConsumer{
-			Prefix: opts.name,
-		})
+		if config.LogConsumer != nil {
+			consulContainer.FollowOutput(config.LogConsumer)
+		} else {
+			consulContainer.FollowOutput(&LogConsumer{
+				Prefix: opts.name,
+			})
+		}
 	}
 
 	node := &consulContainerNode{
@@ -322,7 +336,7 @@ func (c *consulContainerNode) Upgrade(ctx context.Context, config Config) error 
 		return fmt.Errorf("new hostname %q should match old hostname %q", consulReq2.Hostname, c.consulReq.Hostname)
 	}
 
-	if err := c.TerminateAndRetainPod(); err != nil {
+	if err := c.TerminateAndRetainPod(true); err != nil {
 		return fmt.Errorf("error terminating running container during upgrade: %w", err)
 	}
 
@@ -351,18 +365,22 @@ func (c *consulContainerNode) Upgrade(ctx context.Context, config Config) error 
 // This might also include running termination functions for containers associated with the agent.
 // On failure, an error will be returned and the reaper process (RYUK) will handle cleanup.
 func (c *consulContainerNode) Terminate() error {
-	return c.terminate(false)
+	return c.terminate(false, false)
 }
-func (c *consulContainerNode) TerminateAndRetainPod() error {
-	return c.terminate(true)
+func (c *consulContainerNode) TerminateAndRetainPod(skipFuncs bool) error {
+	return c.terminate(true, skipFuncs)
 }
-func (c *consulContainerNode) terminate(retainPod bool) error {
+func (c *consulContainerNode) terminate(retainPod bool, skipFuncs bool) error {
 	// Services might register a termination function that should also fire
-	// when the "agent" is cleaned up
-	for _, f := range c.terminateFuncs {
-		err := f()
-		if err != nil {
-			continue
+	// when the "agent" is cleaned up.
+	// If skipFuncs is tru, We skip the terminateFuncs of connect sidecar, e.g.,
+	// during upgrade
+	if !skipFuncs {
+		for _, f := range c.terminateFuncs {
+			err := f()
+			if err != nil {
+				continue
+			}
 		}
 	}
 
@@ -419,30 +437,27 @@ func newContainerRequest(config Config, opts containerOpts) (podRequest, consulR
 		Name:       opts.name + "-pod",
 		SkipReaper: skipReaper,
 		ExposedPorts: []string{
-			"8500/tcp",
-			"8501/tcp",
+			"8500/tcp", // Consul HTTP API
+			"8501/tcp", // Consul HTTPs API
 
 			"8443/tcp", // Envoy Gateway Listener
 
-			"5000/tcp", // Envoy Connect Listener
-			"8079/tcp", // Envoy Connect Listener
-			"8080/tcp", // Envoy Connect Listener
-			"9998/tcp", // Envoy Connect Listener
-			"9999/tcp", // Envoy Connect Listener
-
-			"19000/tcp", // Envoy Admin Port
-			"19001/tcp", // Envoy Admin Port
-			"19002/tcp", // Envoy Admin Port
-			"19003/tcp", // Envoy Admin Port
-			"19004/tcp", // Envoy Admin Port
-			"19005/tcp", // Envoy Admin Port
-			"19006/tcp", // Envoy Admin Port
-			"19007/tcp", // Envoy Admin Port
-			"19008/tcp", // Envoy Admin Port
-			"19009/tcp", // Envoy Admin Port
+			"8079/tcp", // Envoy App Listener
+			"8080/tcp", // Envoy App Listener
+			"9998/tcp", // Envoy App Listener
+			"9999/tcp", // Envoy App Listener
 		},
 		Hostname: opts.hostname,
 		Networks: opts.addtionalNetworks,
+	}
+
+	// Envoy upstream listener
+	pod.ExposedPorts = append(pod.ExposedPorts, fmt.Sprintf("%d/tcp", ServiceUpstreamLocalBindPort))
+
+	// Reserve the exposed ports for Envoy admin port, e.g., 19000 - 19009
+	basePort := 19000
+	for i := 0; i < MaxEnvoyOnNode; i++ {
+		pod.ExposedPorts = append(pod.ExposedPorts, fmt.Sprintf("%d/tcp", basePort+i))
 	}
 
 	// For handshakes like auto-encrypt, it can take 10's of seconds for the agent to become "ready".

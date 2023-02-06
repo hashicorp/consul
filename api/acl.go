@@ -45,8 +45,8 @@ type ACLToken struct {
 	Hash              []byte        `json:",omitempty"`
 
 	// DEPRECATED (ACL-Legacy-Compat)
-	// Rules will only be present for legacy tokens returned via the new APIs
-	Rules string `json:",omitempty"`
+	// Rules are an artifact of legacy tokens deprecated in Consul 1.4
+	Rules string `json:"-"`
 
 	// Namespace is the namespace the ACLToken is associated with.
 	// Namespaces are a Consul Enterprise feature.
@@ -90,7 +90,7 @@ type ACLTokenListEntry struct {
 	ExpirationTime    *time.Time `json:",omitempty"`
 	CreateTime        time.Time
 	Hash              []byte
-	Legacy            bool
+	Legacy            bool `json:"-"` // DEPRECATED
 
 	// Namespace is the namespace the ACLTokenListEntry is associated with.
 	// Namespacing is a Consul Enterprise feature.
@@ -1042,58 +1042,19 @@ func (a *ACL) PolicyList(q *QueryOptions) ([]*ACLPolicyListEntry, *QueryMeta, er
 
 // RulesTranslate translates the legacy rule syntax into the current syntax.
 //
-// Deprecated: Support for the legacy syntax translation will be removed
-// when legacy ACL support is removed.
+// Deprecated: Support for the legacy syntax translation has been removed.
+// This function always returns an error.
 func (a *ACL) RulesTranslate(rules io.Reader) (string, error) {
-	r := a.c.newRequest("POST", "/v1/acl/rules/translate")
-	r.body = rules
-	r.header.Set("Content-Type", "text/plain")
-	rtt, resp, err := a.c.doRequest(r)
-	if err != nil {
-		return "", err
-	}
-	defer closeResponseBody(resp)
-	if err := requireOK(resp); err != nil {
-		return "", err
-	}
-
-	qm := &QueryMeta{}
-	parseQueryMeta(resp, qm)
-	qm.RequestTime = rtt
-
-	ruleBytes, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return "", fmt.Errorf("Failed to read translated rule body: %v", err)
-	}
-
-	return string(ruleBytes), nil
+	return "", fmt.Errorf("Legacy ACL rules were deprecated in Consul 1.4")
 }
 
 // RulesTranslateToken translates the rules associated with the legacy syntax
 // into the current syntax and returns the results.
 //
-// Deprecated: Support for the legacy syntax translation will be removed
-// when legacy ACL support is removed.
+// Deprecated: Support for the legacy syntax translation has been removed.
+// This function always returns an error.
 func (a *ACL) RulesTranslateToken(tokenID string) (string, error) {
-	r := a.c.newRequest("GET", "/v1/acl/rules/translate/"+tokenID)
-	rtt, resp, err := a.c.doRequest(r)
-	if err != nil {
-		return "", err
-	}
-	defer closeResponseBody(resp)
-	if err := requireOK(resp); err != nil {
-		return "", err
-	}
-	qm := &QueryMeta{}
-	parseQueryMeta(resp, qm)
-	qm.RequestTime = rtt
-
-	ruleBytes, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return "", fmt.Errorf("Failed to read translated rule body: %v", err)
-	}
-
-	return string(ruleBytes), nil
+	return "", fmt.Errorf("Legacy ACL tokens and rules were deprecated in Consul 1.4")
 }
 
 // RoleCreate will create a new role. It is not allowed for the role parameters

@@ -7,14 +7,14 @@ description: >-
 
 # Install Consul-Terraform-Sync
 
-Refer to the [introduction](https://learn.hashicorp.com/tutorials/consul/consul-terraform-sync-intro?utm_source=docs) tutorial for details about installing, configuring, and running Consul-Terraform-Sync (CTS) on your local machine with the Terraform driver.
+Refer to the [introduction](/consul/tutorials/network-infrastructure-automation/consul-terraform-sync-intro?utm_source=docs) tutorial for details about installing, configuring, and running Consul-Terraform-Sync (CTS) on your local machine with the Terraform driver.
 
 ## Install Consul-Terraform-Sync
 
 <Tabs>
 <Tab heading="Pre-compiled binary">
 
-To install CTS, find the [appropriate package](https://releases.hashicorp.com/consul-terraform-sync/) for your system and download it as a zip archive. For the CTS Enterprise binary, download a zip archive with the `+ent` metadata. [CTS Enterprise requires a Consul Enterprise license](/docs/nia/enterprise/license) to run.
+To install CTS, find the [appropriate package](https://releases.hashicorp.com/consul-terraform-sync/) for your system and download it as a zip archive. For the CTS Enterprise binary, download a zip archive with the `+ent` metadata. [CTS Enterprise requires a Consul Enterprise license](/consul/docs/nia/enterprise/license) to run.
 
 Unzip the package to extract the binary named `consul-terraform-sync`. Move the `consul-terraform-sync` binary to a location available on your `PATH`.
 
@@ -94,7 +94,7 @@ $ consul-terraform-sync -version
 
 ## Connect your Consul Cluster
 
-CTS connects with your Consul cluster in order to monitor the Consul catalog for service changes. These service changes lead to downstream updates to your network devices. You can configure your Consul cluster in CTS with the [Consul block](/docs/nia/configuration#consul). Below is an example:
+CTS connects with your Consul cluster in order to monitor the Consul catalog for service changes. These service changes lead to downstream updates to your network devices. You can configure your Consul cluster in CTS with the [Consul block](/consul/docs/nia/configuration#consul). Below is an example:
 
 ```hcl
 consul {
@@ -107,7 +107,7 @@ consul {
 
 CTS interacts with your network device through a network driver. For the Terraform network driver, CTS uses Terraform providers to make changes to your network infrastructure resources. You can reference existing provider docs on the Terraform Registry to configure each provider or create a new Terraform provider.
 
-Once you have identified a Terraform provider for all of your network devices, you can configure them in CTS with a [`terraform_provider` block](/docs/nia/configuration#terraform-provider) for each network device. Below is an example:
+Once you have identified a Terraform provider for all of your network devices, you can configure them in CTS with a [`terraform_provider` block](/consul/docs/nia/configuration#terraform-provider) for each network device. Below is an example:
 
 ```hcl
 terraform_provider "fake-firewall" {
@@ -121,4 +121,4 @@ This provider is then used by task(s) to execute a Terraform module that will up
 
 ### Multiple Instances per Provider
 
-You might have multiple instances of the same type of network device; for example, multiple instances of a firewall or load balancer. You can configure each instance with its own provider block and distinguish it by the `alias` meta-argument. See [multiple provider configurations](/docs/nia/configuration#multiple-provider-configurations) for more details and an example of the configuration.
+You might have multiple instances of the same type of network device; for example, multiple instances of a firewall or load balancer. You can configure each instance with its own provider block and distinguish it by the `alias` meta-argument. See [multiple provider configurations](/consul/docs/nia/configuration#multiple-provider-configurations) for more details and an example of the configuration.

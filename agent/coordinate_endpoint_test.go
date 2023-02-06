@@ -342,7 +342,8 @@ func TestCoordinate_Update_ACLDeny(t *testing.T) {
 	})
 
 	t.Run("valid token", func(t *testing.T) {
-		req, _ := http.NewRequest("PUT", "/v1/coordinate/update?token=root", jsonReader(body))
+		req, _ := http.NewRequest("PUT", "/v1/coordinate/update", jsonReader(body))
+		req.Header.Add("X-Consul-Token", "root")
 		if _, err := a.srv.CoordinateUpdate(nil, req); err != nil {
 			t.Fatalf("err: %v", err)
 		}

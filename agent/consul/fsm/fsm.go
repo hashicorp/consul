@@ -342,4 +342,39 @@ func (c *FSM) registerStreamSnapshotHandlers() {
 	if err != nil {
 		panic(fmt.Errorf("fatal error encountered registering streaming snapshot handlers: %w", err))
 	}
+
+	err = c.deps.Publisher.RegisterHandler(state.EventTopicAPIGateway, func(req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
+		return c.State().APIGatewaySnapshot(req, buf)
+	}, true)
+	if err != nil {
+		panic(fmt.Errorf("fatal error encountered registering streaming snapshot handlers: %w", err))
+	}
+
+	err = c.deps.Publisher.RegisterHandler(state.EventTopicInlineCertificate, func(req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
+		return c.State().InlineCertificateSnapshot(req, buf)
+	}, true)
+	if err != nil {
+		panic(fmt.Errorf("fatal error encountered registering streaming snapshot handlers: %w", err))
+	}
+
+	err = c.deps.Publisher.RegisterHandler(state.EventTopicHTTPRoute, func(req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
+		return c.State().HTTPRouteSnapshot(req, buf)
+	}, true)
+	if err != nil {
+		panic(fmt.Errorf("fatal error encountered registering streaming snapshot handlers: %w", err))
+	}
+
+	err = c.deps.Publisher.RegisterHandler(state.EventTopicTCPRoute, func(req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
+		return c.State().TCPRouteSnapshot(req, buf)
+	}, true)
+	if err != nil {
+		panic(fmt.Errorf("fatal error encountered registering streaming snapshot handlers: %w", err))
+	}
+
+	err = c.deps.Publisher.RegisterHandler(state.EventTopicBoundAPIGateway, func(req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
+		return c.State().BoundAPIGatewaySnapshot(req, buf)
+	}, true)
+	if err != nil {
+		panic(fmt.Errorf("fatal error encountered registering streaming snapshot handlers: %w", err))
+	}
 }

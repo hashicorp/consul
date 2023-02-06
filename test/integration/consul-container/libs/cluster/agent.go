@@ -3,8 +3,9 @@ package cluster
 import (
 	"context"
 
-	"github.com/hashicorp/consul/api"
 	"github.com/testcontainers/testcontainers-go"
+
+	"github.com/hashicorp/consul/api"
 
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 )
@@ -15,14 +16,14 @@ type Agent interface {
 	GetClient() *api.Client
 	GetName() string
 	GetPod() testcontainers.Container
-	ClaimAdminPort() int
+	ClaimAdminPort() (int, error)
 	GetConfig() Config
 	GetInfo() AgentInfo
 	GetDatacenter() string
 	IsServer() bool
 	RegisterTermination(func() error)
 	Terminate() error
-	TerminateAndRetainPod() error
+	TerminateAndRetainPod(bool) error
 	Upgrade(ctx context.Context, config Config) error
 	Exec(ctx context.Context, cmd []string) (int, error)
 	DataDir() string
@@ -40,6 +41,7 @@ type Config struct {
 	Image         string
 	Version       string
 	Cmd           []string
+	LogConsumer   testcontainers.LogConsumer
 
 	// service defaults
 	UseAPIWithTLS  bool // TODO

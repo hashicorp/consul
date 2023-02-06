@@ -15,7 +15,6 @@ export default class Token extends Model {
   @attr('string') IDPName;
   @attr('string') SecretID;
 
-  @attr('boolean') Legacy;
   @attr('boolean') Local;
   @attr('string', { defaultValue: () => '' }) Description;
   @attr() meta; // {}
@@ -28,12 +27,6 @@ export default class Token extends Model {
   @attr('string') Hash;
   @attr('number') CreateIndex;
   @attr('number') ModifyIndex;
-
-  // Legacy
-  @attr('string') Type;
-  @attr('string', { defaultValue: () => '' }) Name;
-  @attr('string') Rules;
-  // End Legacy
 
   @computed('Policies.[]')
   get isGlobalManagement() {

@@ -18,7 +18,7 @@ Consul supports access logs capture through Envoy proxies started through the [`
 
 ## Enable access logs
 
-Access logs configurations are defined globally in the [`proxy-defaults`](/docs/connect/config-entries/proxy-defaults#accesslogs) configuration entry. 
+Access logs configurations are defined globally in the [`proxy-defaults`](/consul/docs/connect/config-entries/proxy-defaults#accesslogs) configuration entry. 
 
 The following example is a minimal configuration for enabling access logs:
 
@@ -108,7 +108,7 @@ Custom logs can be either JSON format or text format.
 
 You can format access logs in JSON so that you can parse them with Application Monitoring Platforms (APMs).
 
-To use a custom access log, in the `proxy-defaults` configuration entry, set [`JSONFormat`](/docs/connect/config-entries/proxy-defaults#jsonformat) to the string representation of the desired JSON.
+To use a custom access log, in the `proxy-defaults` configuration entry, set [`JSONFormat`](/consul/docs/connect/config-entries/proxy-defaults#jsonformat) to the string representation of the desired JSON.
 
 Nesting is supported.
 
@@ -162,7 +162,7 @@ spec:
 
 ### Text format
 
-To use a custom access log formatted in plaintext, in the `proxy-defaults` configuration entry, set [`TextFormat`](/docs/connect/config-entries/proxy-defaults#textformat) to the desired customized string.
+To use a custom access log formatted in plaintext, in the `proxy-defaults` configuration entry, set [`TextFormat`](/consul/docs/connect/config-entries/proxy-defaults#textformat) to the desired customized string.
 
 New lines are automatically added to the end of the log to keep each access log on its own line in the output.
 
@@ -205,7 +205,7 @@ spec:
 ## Kubernetes
 
 As part of its normal operation, the Envoy debugging logs for the `consul-dataplane`, `envoy`, or `envoy-sidecar` containers are written to `stderr`.
-The access log [`Type`](/docs/connect/config-entries/proxy-defaults#type) is set to `stdout` by default for access logs when enabled.
+The access log [`Type`](/consul/docs/connect/config-entries/proxy-defaults#type) is set to `stdout` by default for access logs when enabled.
 Use a log aggregating solution to separate the machine-readable access logs from the Envoy process debug logs.
 
 ## Write to a file

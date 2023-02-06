@@ -8,14 +8,14 @@ description: >-
 # Vault as a Service Mesh Certificate Authority
 
 You can configure Consul to use [Vault](https://www.vaultproject.io/) as the certificate authority (CA) so that Vault can manage and sign certificates distributed to services in the mesh. 
-The Vault CA provider uses the [Vault PKI secrets engine](https://www.vaultproject.io/docs/secrets/pki) to generate and sign certificates. 
+The Vault CA provider uses the [Vault PKI secrets engine](/vault/docs/secrets/pki) to generate and sign certificates. 
 This page describes how configure the Vault CA provider.
 
 > **Tutorial:** Complete the [Vault as Consul Service Mesh Certification Authority](/consul/tutorials/vault-secure/vault-pki-consul-connect-ca) tutorial for hands-on guidance on how to configure Vault as the Consul service mesh certification authority.
 
 ## Requirements
 
-- Refer to [Service Mesh Certificate Authority Overview](/docs/connect/ca) for important background information about how Consul manages certificates with configurable CA providers.
+- Refer to [Service Mesh Certificate Authority Overview](/consul/docs/connect/ca) for important background information about how Consul manages certificates with configurable CA providers.
 
 - Vault 0.10.3 to 1.10.x.
 
@@ -27,7 +27,7 @@ You can enable Vault as the CA by configuring Consul to use `"vault"` as the CA 
 and including the required provider configuration options.
 You can provide the CA configuration in the server agents' configuration file
 or in the body of a `PUT` request to the
-[`/connect/ca/configuration`](/api-docs/connect/ca#update-ca-configuration) API endpoint.
+[`/connect/ca/configuration`](/consul/api-docs/connect/ca#update-ca-configuration) API endpoint.
 Refer to the [Configuration Reference](#configuration-reference) for details about configuration options and for example use cases. 
 
 The following example shows the required configurations for a default implementation:
@@ -83,14 +83,14 @@ The key after the slash refers to the corresponding option name in the agent con
 - `Token` / `token` (`string: ""`) - A token for accessing Vault.
   This is write-only and will not be exposed when reading the CA configuration.
   This token must have [proper privileges](#vault-acl-policies) for the PKI
-  paths configured. In Consul 1.8.5 and later, if the token has the [renewable](https://www.vaultproject.io/api-docs/auth/token#renewable)
+  paths configured. In Consul 1.8.5 and later, if the token has the [renewable](/vault/api-docs/auth/token#renewable)
   flag set, Consul will attempt to renew its lease periodically after half the
   duration has expired.
 
   !> **Warning:** You must either provide a token or configure an auth method below.
 
 - `AuthMethod` / `auth_method` (`map: nil`) - Vault auth method to use for logging in to Vault.
-  Please see [Vault Auth Methods](https://www.vaultproject.io/docs/auth) for more information
+  Please see [Vault Auth Methods](/vault/docs/auth) for more information
   on how to configure individual auth methods. If auth method is provided, Consul will obtain
   a new token from Vault when the token can no longer be renewed.
 
@@ -100,7 +100,7 @@ The key after the slash refers to the corresponding option name in the agent con
       If not provided the auth method type will be used as the mount path.
 
    - `Params`/`params` (`map: nil`) - The parameters to configure the auth method. Please see
-    [Vault Auth Methods](https://www.vaultproject.io/docs/auth) for information on how to configure the
+    [Vault Auth Methods](/vault/docs/auth) for information on how to configure the
     auth method you wish to use. If using the Kubernetes auth method,
     Consul will read the service account token from the
     default mount path `/var/run/secrets/kubernetes.io/serviceaccount/token` if the `jwt` parameter
@@ -112,7 +112,7 @@ The key after the slash refers to the corresponding option name in the agent con
   If the path does not
   exist, Consul will mount a new PKI secrets engine at the specified path with the
   `RootCertTTL` value as the root certificate's TTL. If the `RootCertTTL` is not set,
-  a [`max_lease_ttl`](https://www.vaultproject.io/api-docs/system/mounts)
+  a [`max_lease_ttl`](/vault/api-docs/system/mounts)
   of 87600 hours, or 10 years is applied by default as of Consul 1.11 and later. Prior to Consul 1.11,
   the root certificate TTL was set to 8760 hour, or 1 year, and was not configurable.
   The root certificate will expire at the end of the specified period.
@@ -174,7 +174,7 @@ The key after the slash refers to the corresponding option name in the agent con
 ### Root and Intermediate PKI Paths
 
 The Vault CA provider uses two separately configured
-[PKI secrets engines](https://www.vaultproject.io/docs/secrets/pki)
+[PKI secrets engines](/vault/docs/secrets/pki)
 for managing Consul service mesh certificates.
 
 The `RootPKIPath` is the PKI engine for the root certificate.

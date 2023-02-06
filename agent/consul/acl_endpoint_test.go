@@ -483,7 +483,6 @@ func TestACLEndpoint_TokenClone(t *testing.T) {
 		require.Equal(t, t1.Roles, t2.Roles)
 		require.Equal(t, t1.ServiceIdentities, t2.ServiceIdentities)
 		require.Equal(t, t1.NodeIdentities, t2.NodeIdentities)
-		require.Equal(t, t1.Rules, t2.Rules)
 		require.Equal(t, t1.Local, t2.Local)
 		require.NotEqual(t, t1.AccessorID, t2.AccessorID)
 		require.NotEqual(t, t1.SecretID, t2.SecretID)

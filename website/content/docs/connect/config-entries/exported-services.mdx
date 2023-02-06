@@ -7,7 +7,7 @@ description: >-
 
 # Exported Services Configuration Entry
 
-This topic describes the `exported-services` configuration entry type. The `exported-services` configuration entry enables Consul to export service instances to other clusters from a single file and connect services across clusters. For additional information, refer to [Cluster Peering](/docs/connect/cluster-peering) and [Admin Partitions](/docs/enterprise/admin-partitions).
+This topic describes the `exported-services` configuration entry type. The `exported-services` configuration entry enables Consul to export service instances to other clusters from a single file and connect services across clusters. For additional information, refer to [Cluster Peering](/consul/docs/connect/cluster-peering) and [Admin Partitions](/consul/docs/enterprise/admin-partitions).
 
 -> **v1.11.0+:** This config entry is supported in Consul versions 1.11.0+.
 
@@ -23,10 +23,10 @@ You can configure the settings defined in the `exported-services` configuration 
 ## Usage
 
 1. Verify that your datacenter meets the conditions specified in the [Requirements](#requirements).
-1. Specify the `exported-services` configuration in the agent configuration file (see [`config_entries`](/docs/agent/config/config-files#config_entries)) as described in [Configuration](#configuration).
+1. Specify the `exported-services` configuration in the agent configuration file (see [`config_entries`](/consul/docs/agent/config/config-files#config_entries)) as described in [Configuration](#configuration).
 1. Apply the configuration using one of the following methods:
-   - Kubernetes CRD: Refer to the [Custom Resource Definitions](/docs/k8s/crds) documentation for details.
-   - Issue the `consul config write` command: Refer to the [Consul Config Write](/commands/config/write) documentation for details.
+   - Kubernetes CRD: Refer to the [Custom Resource Definitions](/consul/docs/k8s/crds) documentation for details.
+   - Issue the `consul config write` command: Refer to the [Consul Config Write](/consul/commands/config/write) documentation for details.
 
 ## Configuration
 
@@ -891,4 +891,4 @@ partition "frontend" {
 </Tab>
 </Tabs>
 
-For additional information, refer to [Health HTTP Endpoint](/api-docs/health).
+For additional information, refer to [Health HTTP Endpoint](/consul/api-docs/health).

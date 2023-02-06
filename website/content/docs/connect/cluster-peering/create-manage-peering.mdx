@@ -12,7 +12,7 @@ A peering token enables cluster peering between different datacenters. Once you 
 
 ## Create a peering connection
 
-Cluster peering is enabled by default on Consul servers as of v1.14. For additional information, including options to disable cluster peering, refer to [Configuration Files](/docs/agent/config/config-files).
+Cluster peering is enabled by default on Consul servers as of v1.14. For additional information, including options to disable cluster peering, refer to [Configuration Files](/consul/docs/agent/config/config-files).
 
 The process to create a peering connection is a sequence with multiple steps:
 
@@ -34,7 +34,7 @@ Every time you generate a peering token, a single-use establishment secret is em
 <Tabs>
 <Tab heading="Consul API" group="api">
 
-In `cluster-01`, use the [`/peering/token` endpoint](/api-docs/peering#generate-a-peering-token) to issue a request for a peering token.
+In `cluster-01`, use the [`/peering/token` endpoint](/consul/api-docs/peering#generate-a-peering-token) to issue a request for a peering token.
 
 ```shell-session
 $ curl --request POST --data '{"Peer":"cluster-02"}' --url http://localhost:8500/v1/peering/token
@@ -58,7 +58,7 @@ Create a JSON file that contains the first cluster's name and the peering token.
 
 <Tab heading="Consul CLI" group="cli">
 
-In `cluster-01`, use the [`consul peering generate-token` command](/commands/peering/generate-token) to issue a request for a peering token.
+In `cluster-01`, use the [`consul peering generate-token` command](/consul/commands/peering/generate-token) to issue a request for a peering token.
 
 ```shell-session
 $ consul peering generate-token -name cluster-02
@@ -87,13 +87,13 @@ Next, use the peering token to establish a secure connection between the cluster
 <Tabs>
 <Tab heading="Consul API" group="api">
 
-In one of the client agents in "cluster-02," use `peering_token.json` and the [`/peering/establish` endpoint](/api-docs/peering#establish-a-peering-connection) to establish the peering connection. This endpoint does not generate an output unless there is an error.
+In one of the client agents in "cluster-02," use `peering_token.json` and the [`/peering/establish` endpoint](/consul/api-docs/peering#establish-a-peering-connection) to establish the peering connection. This endpoint does not generate an output unless there is an error.
 
 ```shell-session
 $ curl --request POST --data @peering_token.json http://127.0.0.1:8500/v1/peering/establish
 ```
 
-When you connect server agents through cluster peering, their default behavior is to peer to the `default` partition. To establish peering connections for other partitions through server agents, you must add the `Partition` field to `peering_token.json` and specify the partitions you want to peer. For additional configuration information, refer to [Cluster Peering - HTTP API](/api-docs/peering).
+When you connect server agents through cluster peering, their default behavior is to peer to the `default` partition. To establish peering connections for other partitions through server agents, you must add the `Partition` field to `peering_token.json` and specify the partitions you want to peer. For additional configuration information, refer to [Cluster Peering - HTTP API](/consul/api-docs/peering).
 
 You can dial the `peering/establish` endpoint once per peering token. Peering tokens cannot be reused after being used to establish a connection. If you need to re-establish a connection, you must generate a new peering token.
 
@@ -101,7 +101,7 @@ You can dial the `peering/establish` endpoint once per peering token. Peering to
 
 <Tab heading="Consul CLI" group="cli">
 
-In one of the client agents in "cluster-02," issue the [`consul peering establish` command](/commands/peering/establish) and specify the token generated in the previous step. The command establishes the peering connection.
+In one of the client agents in "cluster-02," issue the [`consul peering establish` command](/consul/commands/peering/establish) and specify the token generated in the previous step. The command establishes the peering connection.
 The commands prints "Successfully established peering connection with cluster-01" after the connection is established.
 
 ```shell-session
@@ -110,7 +110,7 @@ $ consul peering establish -name cluster-01 -peering-token token-from-generate
 
 When you connect server agents through cluster peering, they peer their default partitions.
 To establish peering connections for other partitions through server agents, you must add the `-partition` flag to the `establish` command and specify the partitions you want to peer.
-For additional configuration information, refer to [`consul peering establish` command](/commands/peering/establish) .
+For additional configuration information, refer to [`consul peering establish` command](/consul/commands/peering/establish) .
 
 You can run the `peering establish` command once per peering token.
 Peering tokens cannot be reused after being used to establish a connection.
@@ -205,11 +205,11 @@ Read access to all imported services is granted using either of the following ru
 - `service:write` permissions for any service in the sidecar's partition.
 - `service:read` and `node:read` for all services and nodes, respectively, in sidecar's namespace and partition.
 For Consul Enterprise, access is granted to all imported services in the service's partition.
-These permissions are satisfied when using a [service identity](/docs/security/acl/acl-roles#service-identities). 
+These permissions are satisfied when using a [service identity](/consul/docs/security/acl/acl-roles#service-identities). 
 
-Example rule files can be found in [Reading Servers](/docs/connect/config-entries/exported-services#reading-services) in the `exported-services` config entry documentation.
+Example rule files can be found in [Reading Servers](/consul/docs/connect/config-entries/exported-services#reading-services) in the `exported-services` config entry documentation.
 
-Refer to [ACLs System Overview](/docs/security/acl) for more information on ACLs and their setup.
+Refer to [ACLs System Overview](/consul/docs/security/acl) for more information on ACLs and their setup.
 
 ## Manage peering connections
 
@@ -222,7 +222,7 @@ You can list all active peering connections in a cluster.
 <Tabs>
 <Tab heading="Consul API" group="api">
 
-After you establish a peering connection, [query the `/peerings/` endpoint](/api-docs/peering#list-all-peerings) to get a list of all peering connections. For example, the following command requests a list of all peering connections on `localhost` and returns the information as a series of JSON objects:
+After you establish a peering connection, [query the `/peerings/` endpoint](/consul/api-docs/peering#list-all-peerings) to get a list of all peering connections. For example, the following command requests a list of all peering connections on `localhost` and returns the information as a series of JSON objects:
 
 ```shell-session
 $  curl http://127.0.0.1:8500/v1/peerings
@@ -258,7 +258,7 @@ $  curl http://127.0.0.1:8500/v1/peerings
 
 <Tab heading="Consul CLI" group="cli">
 
-After you establish a peering connection, run the [`consul peering list`](/commands/peering/list) command to get a list of all peering connections.
+After you establish a peering connection, run the [`consul peering list`](/consul/commands/peering/list) command to get a list of all peering connections.
 For example, the following command requests a list of all peering connections and returns the information in a table:
 
 ```shell-session
@@ -285,7 +285,7 @@ You can get information about individual peering connections between clusters.
 <Tabs>
 <Tab heading="Consul API" group="api">
 
-After you establish a peering connection, [query the `/peering/` endpoint](/api-docs/peering#read-a-peering-connection) to get peering information about for a specific cluster. For example, the following command requests peering connection information for "cluster-02" and returns the info as a JSON object:
+After you establish a peering connection, [query the `/peering/` endpoint](/consul/api-docs/peering#read-a-peering-connection) to get peering information about for a specific cluster. For example, the following command requests peering connection information for "cluster-02" and returns the info as a JSON object:
 
 ```shell-session
 $  curl http://127.0.0.1:8500/v1/peering/cluster-02
@@ -307,7 +307,7 @@ $  curl http://127.0.0.1:8500/v1/peering/cluster-02
 
 <Tab heading="Consul CLI" group="cli">
 
-After you establish a peering connection, run the [`consul peering read`](/commands/peering/list) command to get peering information about for a specific cluster.
+After you establish a peering connection, run the [`consul peering read`](/consul/commands/peering/list) command to get peering information about for a specific cluster.
 For example, the following command requests peering connection information for "cluster-02":
 
 ```shell-session
@@ -344,7 +344,7 @@ In the Consul UI, click **Peers**. The UI lists peering connections you created 
 
 You can check the status of your peering connection to perform health checks.
 
-To confirm that the peering connection between your clusters remains healthy, query the [`health/service` endpoint](/api-docs/health) of one cluster from the other cluster. For example, in "cluster-02," query the endpoint and add the `peer=cluster-01` query parameter to the end of the URL.
+To confirm that the peering connection between your clusters remains healthy, query the [`health/service` endpoint](/consul/api-docs/health) of one cluster from the other cluster. For example, in "cluster-02," query the endpoint and add the `peer=cluster-01` query parameter to the end of the URL.
 
 ```shell-session
 $ curl \
@@ -360,7 +360,7 @@ You can disconnect the peered clusters by deleting their connection. Deleting a 
 <Tabs>
 <Tab heading="Consul API" group="api">
 
-In "cluster-01," request the deletion through the [`/peering/ endpoint`](/api-docs/peering#delete-a-peering-connection).
+In "cluster-01," request the deletion through the [`/peering/ endpoint`](/consul/api-docs/peering#delete-a-peering-connection).
 
 ```shell-session
 $ curl --request DELETE http://127.0.0.1:8500/v1/peering/cluster-02
@@ -369,7 +369,7 @@ $ curl --request DELETE http://127.0.0.1:8500/v1/peering/cluster-02
 
 <Tab heading="Consul CLI" group="cli">
 
-In "cluster-01," request the deletion through the [`consul peering delete`](/commands/peering/list) command.
+In "cluster-01," request the deletion through the [`consul peering delete`](/consul/commands/peering/list) command.
 
 ```shell-session
 $ consul peering delete -name cluster-02
@@ -393,7 +393,7 @@ The following sections describe how to enable L7 traffic management features bet
 
 ### Service resolvers for redirects and failover
 
-As of Consul v1.14, you can use [dynamic traffic management](/consul/docs/connect/l7-traffic) to configure your service mesh so that services automatically failover and redirect between peers. The following examples update the [`service-resolver` config entry](/docs/connect/config-entries/) in `cluster-01` so that Consul redirects traffic intended for the `frontend` service to a backup instance in peer `cluster-02` when it detects multiple connection failures.
+As of Consul v1.14, you can use [dynamic traffic management](/consul/docs/connect/l7-traffic) to configure your service mesh so that services automatically failover and redirect between peers. The following examples update the [`service-resolver` config entry](/consul/docs/connect/config-entries/) in `cluster-01` so that Consul redirects traffic intended for the `frontend` service to a backup instance in peer `cluster-02` when it detects multiple connection failures.
 
 <CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
 

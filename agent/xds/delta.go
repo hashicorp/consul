@@ -5,30 +5,30 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
 
 	"github.com/armon/go-metrics"
-	envoy_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	envoy_config_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
-	envoy_endpoint_v3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
-	envoy_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	envoy_discovery_v3 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 
-	"github.com/hashicorp/go-hclog"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
 
+	"github.com/hashicorp/consul/agent/envoyextensions"
 	external "github.com/hashicorp/consul/agent/grpc-external"
 	"github.com/hashicorp/consul/agent/grpc-external/limiter"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/agent/xds/xdscommon"
+	"github.com/hashicorp/consul/agent/xds/extensionruntime"
+	"github.com/hashicorp/consul/envoyextensions/xdscommon"
 	"github.com/hashicorp/consul/logging"
+	"github.com/hashicorp/consul/version"
 )
 
 var errOverwhelmed = status.Error(codes.ResourceExhausted, "this server has too many xDS streams open, please try another")
@@ -117,7 +117,7 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 		currentVersions = make(map[string]map[string]string)
 	)
 
-	generator := newResourceGenerator(
+	generator := NewResourceGenerator(
 		s.Logger.Named(logging.XDS).With("xdsVersion", "v3"),
 		s.CfgFetcher,
 		true,
@@ -202,7 +202,7 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 			if node == nil && req.Node != nil {
 				node = req.Node
 				var err error
-				generator.ProxyFeatures, err = determineSupportedProxyFeatures(req.Node)
+				generator.ProxyFeatures, err = xdscommon.DetermineSupportedProxyFeatures(req.Node)
 				if err != nil {
 					return status.Errorf(codes.InvalidArgument, err.Error())
 				}
@@ -235,13 +235,13 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 			}
 			cfgSnap = cs
 
-			newRes, err := generator.allResourcesFromSnapshot(cfgSnap)
+			newRes, err := generator.AllResourcesFromSnapshot(cfgSnap)
 			if err != nil {
 				return status.Errorf(codes.Unavailable, "failed to generate all xDS resources from the snapshot: %v", err)
 			}
 
 			// index and hash the xDS structures
-			newResourceMap := indexResources(generator.Logger, newRes)
+			newResourceMap := xdscommon.IndexResources(generator.Logger, newRes)
 
 			if s.ResourceMapMutateFn != nil {
 				s.ResourceMapMutateFn(newResourceMap)
@@ -393,52 +393,67 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 }
 
 func (s *Server) applyEnvoyExtensions(resources *xdscommon.IndexedResources, cfgSnap *proxycfg.ConfigSnapshot) error {
-	var err error
-	cfgs := xdscommon.GetExtensionConfigurations(cfgSnap)
-
-	for _, extensions := range cfgs {
-		for _, ext := range extensions {
+	serviceConfigs := extensionruntime.GetRuntimeConfigurations(cfgSnap)
+	for _, cfgs := range serviceConfigs {
+		for _, cfg := range cfgs {
 			logFn := s.Logger.Warn
-			if ext.EnvoyExtension.Required {
+			if cfg.EnvoyExtension.Required {
 				logFn = s.Logger.Error
 			}
-			extensionContext := []interface{}{
-				"extension", ext.EnvoyExtension.Name,
-				"service", ext.ServiceName.Name,
-				"namespace", ext.ServiceName.Namespace,
-				"partition", ext.ServiceName.Partition,
+			errorParams := []interface{}{
+				"extension", cfg.EnvoyExtension.Name,
+				"service", cfg.ServiceName.Name,
+				"namespace", cfg.ServiceName.Namespace,
+				"partition", cfg.ServiceName.Partition,
 			}
 
-			extension, ok := GetBuiltInExtension(ext)
-			if !ok {
-				logFn("failed to find extension", extensionContext...)
-
-				if ext.EnvoyExtension.Required {
-					return status.Errorf(codes.Unavailable, "failed to find extension %q for service %q", ext.EnvoyExtension.Name, ext.ServiceName.Name)
+			getMetricLabels := func(err error) []metrics.Label {
+				return []metrics.Label{
+					{Name: "extension", Value: cfg.EnvoyExtension.Name},
+					{Name: "version", Value: "builtin/" + version.Version},
+					{Name: "service", Value: cfgSnap.Service},
+					{Name: "partition", Value: cfgSnap.ProxyID.PartitionOrDefault()},
+					{Name: "namespace", Value: cfgSnap.ProxyID.NamespaceOrDefault()},
+					{Name: "error", Value: strconv.FormatBool(err != nil)},
 				}
-
-				continue
 			}
 
-			err = extension.Validate(ext)
+			now := time.Now()
+			extender, err := envoyextensions.ConstructExtension(cfg.EnvoyExtension)
+			metrics.MeasureSinceWithLabels([]string{"envoy_extension", "validate_arguments"}, now, getMetricLabels(err))
 			if err != nil {
-				extensionContext = append(extensionContext, "error", err)
-				logFn("failed to validate extension arguments", extensionContext...)
-				if ext.EnvoyExtension.Required {
-					return status.Errorf(codes.Unavailable, "failed to validate arguments for extension %q for service %q", ext.EnvoyExtension.Name, ext.ServiceName.Name)
+				logFn("failed to construct extension", errorParams...)
+
+				if cfg.EnvoyExtension.Required {
+					return status.Errorf(codes.Unavailable, "failed to construct extension %q for service %q", cfg.EnvoyExtension.Name, cfg.ServiceName.Name)
 				}
 
 				continue
 			}
 
-			resources, err = extension.Extend(resources, ext)
+			now = time.Now()
+			err = extender.Validate(&cfg)
+			metrics.MeasureSinceWithLabels([]string{"envoy_extension", "validate"}, now, getMetricLabels(err))
+			if err != nil {
+				errorParams = append(errorParams, "error", err)
+				logFn("failed to validate extension arguments", errorParams...)
+				if cfg.EnvoyExtension.Required {
+					return status.Errorf(codes.Unavailable, "failed to validate arguments for extension %q for service %q", cfg.EnvoyExtension.Name, cfg.ServiceName.Name)
+				}
+
+				continue
+			}
+
+			now = time.Now()
+			resources, err = extender.Extend(resources, &cfg)
+			metrics.MeasureSinceWithLabels([]string{"envoy_extension", "extend"}, now, getMetricLabels(err))
 			if err == nil {
 				continue
 			}
 
-			logFn("failed to apply envoy extension", extensionContext...)
-			if ext.EnvoyExtension.Required {
-				return status.Errorf(codes.Unavailable, "failed to patch xDS resources in the %q plugin: %v", ext.EnvoyExtension.Name, err)
+			logFn("failed to apply envoy extension", errorParams...)
+			if cfg.EnvoyExtension.Required {
+				return status.Errorf(codes.Unavailable, "failed to patch xDS resources in the %q extension: %v", cfg.EnvoyExtension.Name, err)
 			}
 		}
 	}
@@ -573,7 +588,7 @@ func newDeltaType(
 // Recv handles new discovery requests from envoy.
 //
 // Returns true the first time a type receives a request.
-func (t *xDSDeltaType) Recv(req *envoy_discovery_v3.DeltaDiscoveryRequest, sf supportedProxyFeatures) deltaRecvResponse {
+func (t *xDSDeltaType) Recv(req *envoy_discovery_v3.DeltaDiscoveryRequest, sf xdscommon.SupportedProxyFeatures) deltaRecvResponse {
 	if t == nil {
 		return deltaRecvUnknownType // not something we care about
 	}
@@ -966,39 +981,6 @@ func populateChildIndexMap(resourceMap *xdscommon.IndexedResources) error {
 	}
 
 	return nil
-}
-
-func indexResources(logger hclog.Logger, resources map[string][]proto.Message) *xdscommon.IndexedResources {
-	data := xdscommon.EmptyIndexedResources()
-
-	for typeURL, typeRes := range resources {
-		for _, res := range typeRes {
-			name := getResourceName(res)
-			if name == "" {
-				logger.Warn("skipping unexpected xDS type found in delta snapshot", "typeURL", typeURL)
-			} else {
-				data.Index[typeURL][name] = res
-			}
-		}
-	}
-
-	return data
-}
-
-func getResourceName(res proto.Message) string {
-	// NOTE: this only covers types that we currently care about for LDS/RDS/CDS/EDS
-	switch x := res.(type) {
-	case *envoy_listener_v3.Listener: // LDS
-		return x.Name
-	case *envoy_route_v3.RouteConfiguration: // RDS
-		return x.Name
-	case *envoy_cluster_v3.Cluster: // CDS
-		return x.Name
-	case *envoy_endpoint_v3.ClusterLoadAssignment: // EDS
-		return x.ClusterName
-	default:
-		return ""
-	}
 }
 
 func hashResourceMap(resources map[string]proto.Message) (map[string]string, error) {

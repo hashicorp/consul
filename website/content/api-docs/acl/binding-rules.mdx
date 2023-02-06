@@ -14,7 +14,7 @@ The `/acl/binding-rule` endpoints [create](#create-a-binding-rule),
 rules in Consul.
 
 For more information on how to setup ACLs, please check
-the [ACL tutorial](https://learn.hashicorp.com/tutorials/consul/access-control-setup-production).
+the [ACL tutorial](/consul/tutorials/security/access-control-setup-production).
 
 ## Create a Binding Rule
 
@@ -25,16 +25,16 @@ This endpoint creates a new ACL binding rule.
 | `PUT`  | `/acl/binding-rule` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api-docs/features/blocking),
-[consistency modes](/api-docs/features/consistency),
-[agent caching](/api-docs/features/caching), and
-[required ACLs](/api-docs/api-structure#authentication).
+[blocking queries](/consul/api-docs/features/blocking),
+[consistency modes](/consul/api-docs/features/consistency),
+[agent caching](/consul/api-docs/features/caching), and
+[required ACLs](/consul/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
 | ---------------- | ----------------- | ------------- | ------------ |
 | `NO`             | `none`            | `none`        | `acl:write`  |
 
-The corresponding CLI command is [`consul acl binding-rule create`](/commands/acl/binding-rule/create).
+The corresponding CLI command is [`consul acl binding-rule create`](/consul/commands/acl/binding-rule/create).
 
 ### Query Parameters
 
@@ -154,16 +154,16 @@ response.
 | `GET`  | `/acl/binding-rule/:id` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api-docs/features/blocking),
-[consistency modes](/api-docs/features/consistency),
-[agent caching](/api-docs/features/caching), and
-[required ACLs](/api-docs/api-structure#authentication).
+[blocking queries](/consul/api-docs/features/blocking),
+[consistency modes](/consul/api-docs/features/consistency),
+[agent caching](/consul/api-docs/features/caching), and
+[required ACLs](/consul/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
 | ---------------- | ----------------- | ------------- | ------------ |
 | `YES`            | `all`             | `none`        | `acl:read`   |
 
-The corresponding CLI command is [`consul acl binding-rule read`](/commands/acl/binding-rule/read).
+The corresponding CLI command is [`consul acl binding-rule read`](/consul/commands/acl/binding-rule/read).
 
 ### Path Parameters
 
@@ -204,16 +204,16 @@ This endpoint updates an existing ACL binding rule.
 | `PUT`  | `/acl/binding-rule/:id` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api-docs/features/blocking),
-[consistency modes](/api-docs/features/consistency),
-[agent caching](/api-docs/features/caching), and
-[required ACLs](/api-docs/api-structure#authentication).
+[blocking queries](/consul/api-docs/features/blocking),
+[consistency modes](/consul/api-docs/features/consistency),
+[agent caching](/consul/api-docs/features/caching), and
+[required ACLs](/consul/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
 | ---------------- | ----------------- | ------------- | ------------ |
 | `NO`             | `none`            | `none`        | `acl:write`  |
 
-The corresponding CLI command is [`consul acl binding-rule update`](/commands/acl/binding-rule/update).
+The corresponding CLI command is [`consul acl binding-rule update`](/consul/commands/acl/binding-rule/update).
 
 ### Path Parameters
 
@@ -342,16 +342,16 @@ Even though the return type is application/json, the value is either true or
 false indicating whether the delete succeeded.
 
 The table below shows this endpoint's support for
-[blocking queries](/api-docs/features/blocking),
-[consistency modes](/api-docs/features/consistency),
-[agent caching](/api-docs/features/caching), and
-[required ACLs](/api-docs/api-structure#authentication).
+[blocking queries](/consul/api-docs/features/blocking),
+[consistency modes](/consul/api-docs/features/consistency),
+[agent caching](/consul/api-docs/features/caching), and
+[required ACLs](/consul/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
 | ---------------- | ----------------- | ------------- | ------------ |
 | `NO`             | `none`            | `none`        | `acl:write`  |
 
-The corresponding CLI command is [`consul acl binding-rule delete`](/commands/acl/binding-rule/delete).
+The corresponding CLI command is [`consul acl binding-rule delete`](/consul/commands/acl/binding-rule/delete).
 
 ### Path Parameters
 
@@ -384,16 +384,16 @@ This endpoint lists all the ACL binding rules.
 | `GET`  | `/acl/binding-rules` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api-docs/features/blocking),
-[consistency modes](/api-docs/features/consistency),
-[agent caching](/api-docs/features/caching), and
-[required ACLs](/api-docs/api-structure#authentication).
+[blocking queries](/consul/api-docs/features/blocking),
+[consistency modes](/consul/api-docs/features/consistency),
+[agent caching](/consul/api-docs/features/caching), and
+[required ACLs](/consul/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
 | ---------------- | ----------------- | ------------- | ------------ |
 | `YES`            | `all`             | `none`        | `acl:read`   |
 
-The corresponding CLI command is [`consul acl binding-rule list`](/commands/acl/binding-rule/list).
+The corresponding CLI command is [`consul acl binding-rule list`](/consul/commands/acl/binding-rule/list).
 
 ## Query Parameters
 

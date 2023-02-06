@@ -21,12 +21,18 @@ import (
 //   - Create an example static-client sidecar, then register both the service and sidecar with Consul
 //   - Make sure a call to the client sidecar local bind port returns a response from the upstream, static-server
 func TestBasicConnectService(t *testing.T) {
+	t.Parallel()
 	cluster := createCluster(t)
 
 	clientService := createServices(t, cluster)
 	_, port := clientService.GetAddr()
+	_, adminPort := clientService.GetAdminAddr()
 
-	libassert.HTTPServiceEchoes(t, "localhost", port)
+	libassert.AssertUpstreamEndpointStatus(t, adminPort, "static-server.default", "HEALTHY", 1)
+	libassert.GetEnvoyListenerTCPFilters(t, adminPort)
+
+	libassert.AssertContainerState(t, clientService, "running")
+	libassert.HTTPServiceEchoes(t, "localhost", port, "")
 }
 
 func createCluster(t *testing.T) *libcluster.Cluster {
@@ -64,13 +70,18 @@ func createCluster(t *testing.T) *libcluster.Cluster {
 func createServices(t *testing.T, cluster *libcluster.Cluster) libservice.Service {
 	node := cluster.Agents[0]
 	client := node.GetClient()
+	// Create a service and proxy instance
+	serviceOpts := &libservice.ServiceOpts{
+		Name: libservice.StaticServerServiceName,
+		ID:   "static-server",
+	}
 
 	// Create a service and proxy instance
-	_, _, err := libservice.CreateAndRegisterStaticServerAndSidecar(node)
+	_, _, err := libservice.CreateAndRegisterStaticServerAndSidecar(node, serviceOpts)
 	require.NoError(t, err)
 
 	libassert.CatalogServiceExists(t, client, "static-server-sidecar-proxy")
-	libassert.CatalogServiceExists(t, client, "static-server")
+	libassert.CatalogServiceExists(t, client, libservice.StaticServerServiceName)
 
 	// Create a client proxy instance with the server as an upstream
 	clientConnectProxy, err := libservice.CreateAndRegisterStaticClientSidecar(node, "", false)

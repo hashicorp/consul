@@ -7,12 +7,12 @@ description: >-
 
 # Federation Between Kubernetes Clusters with Vault as Secrets Backend
 
-~> **Note**: This topic requires familiarity with [Mesh Gateways](/docs/connect/gateways/mesh-gateway/service-to-service-traffic-wan-datacenters), [WAN Federation Via Mesh Gateways](/docs/connect/gateways/mesh-gateway/wan-federation-via-mesh-gateways).
+~> **Note**: This topic requires familiarity with [Mesh Gateways](/consul/docs/connect/gateways/mesh-gateway/service-to-service-traffic-wan-datacenters), [WAN Federation Via Mesh Gateways](/consul/docs/connect/gateways/mesh-gateway/wan-federation-via-mesh-gateways).
 
-This page describes how you can federate multiple Kubernetes clusters using Vault as the secrets backend.  See the [Multi-Cluster Overview](/docs/k8s/deployment-configurations/multi-cluster) for more information on use cases and how it works.
+This page describes how you can federate multiple Kubernetes clusters using Vault as the secrets backend.  See the [Multi-Cluster Overview](/consul/docs/k8s/deployment-configurations/multi-cluster) for more information on use cases and how it works.
 
 ## Differences Between Using Kubernetes Secrets vs. Vault
-The [Federation Between Kubernetes Clusters](/docs/k8s/deployment-configurations/multi-cluster/kubernetes) page provides an overview of WAN Federation using Mesh Gateways with Kubernetes secrets as the secret backend.  When using Vault as the secrets backend, there are different systems and data integration configuration that will be explained in the [Usage](#usage) section of this page.  The other main difference is that when using Vault, there is no need for you to export and import a [Federation Secret](/docs/k8s/deployment-configurations/multi-cluster/kubernetes#federation-secret) in each datacenter.
+The [Federation Between Kubernetes Clusters](/consul/docs/k8s/deployment-configurations/multi-cluster/kubernetes) page provides an overview of WAN Federation using Mesh Gateways with Kubernetes secrets as the secret backend.  When using Vault as the secrets backend, there are different systems and data integration configuration that will be explained in the [Usage](#usage) section of this page.  The other main difference is that when using Vault, there is no need for you to export and import a [Federation Secret](/consul/docs/k8s/deployment-configurations/multi-cluster/kubernetes#federation-secret) in each datacenter.
 
 ## Usage
 
@@ -28,7 +28,7 @@ The Vault Agents on each Consul pod will communicate directly with Vault on its 
 
 ![Vault agent and server communication](/img/k8s/consul-vault-wan-federation-vault-communication.svg 'Vault agent and server communication')
 
-The two data centers will federated using mesh gateways.  This communication topology is also described in the [WAN Federation Via Mesh Gateways](/docs/k8s/deployment-configurations/multi-cluster#wan-federation-via-mesh-gateways) section of [Multi-Cluster Federation Overview](/docs/k8s/deployment-configurations/multi-cluster).
+The two data centers will federated using mesh gateways.  This communication topology is also described in the [WAN Federation Via Mesh Gateways](/consul/docs/k8s/deployment-configurations/multi-cluster#wan-federation-via-mesh-gateways) section of [Multi-Cluster Federation Overview](/consul/docs/k8s/deployment-configurations/multi-cluster).
 
 ![Mesh Federation via Mesh Gateways](/img/k8s/consul-vault-wan-federation-mesh-communication.svg 'Mesh Federation via Mesh Gateways')
 
@@ -36,7 +36,7 @@ The two data centers will federated using mesh gateways.  This communication top
 
 In this setup, you will deploy Vault server in the primary datacenter (dc1) Kubernetes cluster, which is also the primary Consul datacenter. You will configure your Vault Helm installation in the secondary datacenter (dc2) Kubernetes cluster to use it as an external server. This way there will be a single vault server cluster that will be used by both Consul datacenters.
 
-~> **Note**: For demonstration purposes, the following example deploys a Vault server in dev mode. Do not use dev mode for production installations. Refer to the [Vault Deployment Guide](https://learn.hashicorp.com/tutorials/vault/raft-deployment-guide) for guidance on how to install Vault in a production setting.
+~> **Note**: For demonstration purposes, the following example deploys a Vault server in dev mode. Do not use dev mode for production installations. Refer to the [Vault Deployment Guide](/vault/tutorials/day-one-raft/raft-deployment-guide) for guidance on how to install Vault in a production setting.
 
 1. Change your current Kubernetes context to target the primary datacenter (dc1).
 
@@ -66,7 +66,7 @@ In this setup, you will deploy Vault server in the primary datacenter (dc1) Kube
 
 ### Configuring your local environment
 
-1. Install Consul locally so that you can generate the gossip key. Please see the [Precompiled Binaries](/docs/install#precompiled-binaries) section of the [Install Consul page](/docs/install#precompiled-binaries).
+1. Install Consul locally so that you can generate the gossip key. Please see the [Precompiled Binaries](/consul/docs/install#precompiled-binaries) section of the [Install Consul page](/consul/docs/install#precompiled-binaries).
 
 1. Set the VAULT_TOKEN with a default value.
 
@@ -126,7 +126,7 @@ Repeat the following steps for each datacenter in the cluster:
   1. Enable Vault as the Secrets Backend in the Consul datacenter
 
 ### Configure Vault Secrets engines
-1. Enable [Vault KV secrets engine - Version 2](https://www.vaultproject.io/docs/secrets/kv/kv-v2) in order to store the [Gossip Encryption Key](/docs/k8s/helm#v-global-acls-replicationtoken) and the ACL Replication token ([`global.acls.replicationToken`](/docs/k8s/helm#v-global-acls-replicationtoken)).
+1. Enable [Vault KV secrets engine - Version 2](/vault/docs/secrets/kv/kv-v2) in order to store the [Gossip Encryption Key](/consul/docs/k8s/helm#v-global-acls-replicationtoken) and the ACL Replication token ([`global.acls.replicationToken`](/consul/docs/k8s/helm#v-global-acls-replicationtoken)).
 
     ```shell-session
     $ vault secrets enable -path=consul kv-v2
@@ -184,7 +184,7 @@ Repeat the following steps for each datacenter in the cluster:
     $ vault write auth/kubernetes-dc1/config kubernetes_host=https://kubernetes.default.svc
     ```
 
-1. Enable Vault as the secrets backend in the primary datacenter (dc1).  However, you will not yet apply the Helm install command.  You will issue the Helm upgrade command after the [Data Integration](/docs/k8s/deployment-configurations/vault/wan-federation#setup-per-consul-datacenter-1) section.
+1. Enable Vault as the secrets backend in the primary datacenter (dc1).  However, you will not yet apply the Helm install command.  You will issue the Helm upgrade command after the [Data Integration](/consul/docs/k8s/deployment-configurations/vault/wan-federation#setup-per-consul-datacenter-1) section.
 
     <CodeBlockConfig filename="consul-dc1.yaml" linenumbers>
 
@@ -286,7 +286,7 @@ Repeat the following steps for each datacenter in the cluster:
       kubernetes_ca_cert="${K8S_DC2_CA_CERT}"
     ```
 
-1. Enable Vault as the secrets backend in the secondary Consul datacenter (dc2).  However, you will not yet apply the Helm install command.  You will issue the Helm upgrade command after the [Data Integration](/docs/k8s/deployment-configurations/vault/wan-federation#setup-per-consul-datacenter-1) section.
+1. Enable Vault as the secrets backend in the secondary Consul datacenter (dc2).  However, you will not yet apply the Helm install command.  You will issue the Helm upgrade command after the [Data Integration](/consul/docs/k8s/deployment-configurations/vault/wan-federation#setup-per-consul-datacenter-1) section.
 
     <CodeBlockConfig filename="values-dc2.yaml" linenumbers>
 
@@ -673,4 +673,4 @@ Repeat the following steps for each datacenter in the cluster:
 ## Next steps
 You have completed the process of federating the secondary datacenter (dc2) with the primary datacenter (dc1) using Vault as the Secrets backend.  To validate that everything is configured properly, please confirm that all pods within both datacenters are in a running state.
 
-For further detail on specific Consul secrets that are available to be stored in Vault, please checkout the detailed information in the [Data Integration](/docs/k8s/deployment-configurations/vault/data-integration) section of the [Vault as a Secrets Backend](/docs/k8s/deployment-configurations/vault) area of the Consul on Kubernetes documentation.
+For further detail on specific Consul secrets that are available to be stored in Vault, please checkout the detailed information in the [Data Integration](/consul/docs/k8s/deployment-configurations/vault/data-integration) section of the [Vault as a Secrets Backend](/consul/docs/k8s/deployment-configurations/vault) area of the Consul on Kubernetes documentation.

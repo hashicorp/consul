@@ -37,6 +37,7 @@ type Cluster struct {
 }
 
 type TestingT interface {
+	Logf(format string, args ...any)
 	Cleanup(f func())
 }
 
@@ -249,7 +250,7 @@ func (c *Cluster) StandardUpgrade(t *testing.T, ctx context.Context, targetVersi
 	}
 	t.Logf("The number of followers = %d", len(followers))
 
-	upgradeFn := func(agent Agent, clientFactory func() *api.Client) error {
+	upgradeFn := func(agent Agent, clientFactory func() (*api.Client, error)) error {
 		config := agent.GetConfig()
 		config.Version = targetVersion
 
@@ -278,10 +279,14 @@ func (c *Cluster) StandardUpgrade(t *testing.T, ctx context.Context, targetVersi
 			return err
 		}
 
-		client := clientFactory()
+		client, err := clientFactory()
+		if err != nil {
+			return err
+		}
 
-		// wait until the agent rejoin
+		// wait until the agent rejoin and leader is elected
 		WaitForMembers(t, client, len(c.Agents))
+		WaitForLeader(t, c, client)
 
 		return nil
 	}
@@ -289,22 +294,42 @@ func (c *Cluster) StandardUpgrade(t *testing.T, ctx context.Context, targetVersi
 	for _, agent := range followers {
 		t.Logf("Upgrade follower: %s", agent.GetName())
 
-		if err := upgradeFn(agent, leader.GetClient); err != nil {
+		err := upgradeFn(agent, func() (*api.Client, error) {
+			return leader.GetClient(), nil
+		})
+		if err != nil {
 			return fmt.Errorf("error upgrading follower %q: %w", agent.GetName(), err)
 		}
 	}
 
 	t.Logf("Upgrade leader: %s", leader.GetName())
-	err = upgradeFn(leader, func() *api.Client {
+	err = upgradeFn(leader, func() (*api.Client, error) {
 		if len(followers) > 0 {
-			return followers[0].GetClient()
+			return followers[0].GetClient(), nil
 		}
-		return c.APIClient(0)
+		return leader.GetClient(), nil
 	})
 	if err != nil {
 		return fmt.Errorf("error upgrading leader %q: %w", leader.GetName(), err)
 	}
 
+	clientAgents := c.Clients()
+	for _, agent := range clientAgents {
+		t.Logf("Upgrade client agent: %s", agent.GetName())
+
+		err = upgradeFn(agent, func() (*api.Client, error) {
+			leader, err = c.Leader()
+			if err != nil {
+				return nil, err
+			}
+			return leader.GetClient(), nil
+		})
+		if err != nil {
+			return fmt.Errorf("error upgrading client agent %q: %w", agent.GetName(), err)
+		}
+	}
+
+	t.Log("Update completed\n")
 	return nil
 }
 
@@ -496,4 +521,19 @@ func WaitForMembers(t *testing.T, client *api.Client, expectN int) {
 		require.NoError(r, err)
 		require.Equal(r, expectN, activeMembers)
 	})
+}
+
+func (c *Cluster) ConfigEntryWrite(entry api.ConfigEntry) error {
+	client, _ := c.GetClient(nil, true)
+
+	entries := client.ConfigEntries()
+	written := false
+	written, _, err := entries.Set(entry, nil)
+	if err != nil {
+		return fmt.Errorf("error set config entry: %v", err)
+	}
+	if !written {
+		return fmt.Errorf("config entry not updated: %s/%s", entry.GetKind(), entry.GetName())
+	}
+	return err
 }

@@ -1,20 +1,22 @@
 ---
 layout: commands
 page_title: 'Commands: Catalog List Nodes'
+description: >-
+  The `consul catalog nodes` command returns all known nodes and metadata about them. It can also query nodes that host a particular service or contain specific metadata.
 ---
 
 # Consul Catalog List Nodes
 
 Command: `consul catalog nodes`
 
-Corresponding HTTP API Endpoint: [\[GET\] /v1/catalog/nodes](/api-docs/catalog#list-nodes)
+Corresponding HTTP API Endpoint: [\[GET\] /v1/catalog/nodes](/consul/api-docs/catalog#list-nodes)
 
 The `catalog nodes` command prints all known nodes and metadata about them.
 It can also query for nodes that match a particular metadata or provide a
 particular service.
 
-The table below shows this command's [required ACLs](/api-docs/api-structure#authentication). Configuration of
-[blocking queries](/api-docs/features/blocking) and [agent caching](/api-docs/features/caching)
+The table below shows this command's [required ACLs](/consul/api-docs/api-structure#authentication). Configuration of
+[blocking queries](/consul/api-docs/features/blocking) and [agent caching](/consul/api-docs/features/caching)
 are not supported from commands, but may be from the corresponding HTTP endpoint.
 
 | ACL Required |
@@ -78,7 +80,7 @@ Usage: `consul catalog nodes [options]`
 
 - `-filter=<filter>` - Expression to use for filtering the results. Can be passed
   via stdin by using `-` for the value or from a file by passing `@<file path>`.
-  See the [`/catalog/nodes` API documentation](/api-docs/catalog#filtering) for a
+  See the [`/catalog/nodes` API documentation](/consul/api-docs/catalog#filtering) for a
   description of what is filterable.
 
 #### Enterprise Options

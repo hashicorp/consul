@@ -11,6 +11,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-version"
 	"github.com/mitchellh/cli"
 	"github.com/mitchellh/mapstructure"
@@ -20,10 +22,9 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/xds"
 	"github.com/hashicorp/consul/agent/xds/accesslogs"
-	"github.com/hashicorp/consul/agent/xds/proxysupport"
-	"github.com/hashicorp/consul/api"
 	proxyCmd "github.com/hashicorp/consul/command/connect/proxy"
 	"github.com/hashicorp/consul/command/flags"
+	"github.com/hashicorp/consul/envoyextensions/xdscommon"
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/tlsutil"
 )
@@ -42,6 +43,7 @@ type cmd struct {
 	http   *flags.HTTPFlags
 	help   string
 	client *api.Client
+	logger hclog.Logger
 
 	// flags
 	meshGateway              bool
@@ -65,6 +67,7 @@ type cmd struct {
 	prometheusCertFile       string
 	prometheusKeyFile        string
 	ignoreEnvoyCompatibility bool
+	enableLogging            bool
 
 	// mesh gateway registration information
 	register           bool
@@ -75,6 +78,9 @@ type cmd struct {
 	exposeServers      bool
 	omitDeprecatedTags bool
 
+	envoyReadyBindAddress string
+	envoyReadyBindPort    int
+
 	gatewaySvcName string
 	gatewayKind    api.ServiceKind
 
@@ -83,7 +89,7 @@ type cmd struct {
 
 const meshGatewayVal = "mesh"
 
-var defaultEnvoyVersion = proxysupport.EnvoyVersions[0]
+var defaultEnvoyVersion = xdscommon.EnvoyVersions[0]
 
 var supportedGateways = map[string]api.ServiceKind{
 	"mesh":        api.ServiceKindMeshGateway,
@@ -161,6 +167,11 @@ func (c *cmd) init() {
 	c.flags.Var(&c.lanAddress, "address",
 		"LAN address to advertise in the gateway service registration")
 
+	c.flags.StringVar(&c.envoyReadyBindAddress, "envoy-ready-bind-address", "",
+		"The address on which Envoy's readiness probe is available.")
+	c.flags.IntVar(&c.envoyReadyBindPort, "envoy-ready-bind-port", 0,
+		"The port on which Envoy's readiness probe is available.")
+
 	c.flags.Var(&c.wanAddress, "wan-address",
 		"WAN address to advertise in the gateway service registration. For ingress gateways, "+
 			"only an IP address (without a port) is required.")
@@ -212,6 +223,9 @@ func (c *cmd) init() {
 		"If set to `true`, this flag ignores the Envoy version compatibility check. We recommend setting this "+
 			"flag to `false` to ensure compatibility with Envoy and prevent potential issues. "+
 			"Default is `false`.")
+
+	c.flags.BoolVar(&c.enableLogging, "enable-config-gen-logging", false,
+		"Output debug log messages during config generation")
 
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
@@ -273,11 +287,18 @@ func (c *cmd) Run(args []string) int {
 		c.UI.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
 		return 1
 	}
+
 	// TODO: refactor
 	return c.run(c.flags.Args())
 }
 
 func (c *cmd) run(args []string) int {
+	opts := hclog.LoggerOptions{Level: hclog.Off}
+	if c.enableLogging {
+		opts.Level = hclog.Debug
+	}
+	c.logger = hclog.New(&opts)
+	c.logger.Debug("Starting Envoy config generation")
 
 	if c.nodeName != "" && c.proxyID == "" {
 		c.UI.Error("'-node-name' requires '-proxy-id'")
@@ -342,6 +363,7 @@ func (c *cmd) run(args []string) int {
 			c.proxyID = c.gatewaySvcName
 
 		}
+		c.logger.Debug("Set Proxy ID", "proxy-id", c.proxyID)
 	}
 	if c.proxyID == "" {
 		c.UI.Error("No proxy ID specified. One of -proxy-id, -sidecar-for, or -gateway is " +
@@ -435,6 +457,7 @@ func (c *cmd) run(args []string) int {
 			c.UI.Error(fmt.Sprintf("Error registering service %q: %s", svc.Name, err))
 			return 1
 		}
+		c.logger.Debug("Proxy registration complete")
 
 		if !c.bootstrap {
 			// We need stdout to be reserved exclusively for the JSON blob, so
@@ -449,6 +472,7 @@ func (c *cmd) run(args []string) int {
 	}
 
 	// Generate config
+	c.logger.Debug("Generating bootstrap config")
 	bootstrapJson, err := c.generateConfig()
 	if err != nil {
 		c.UI.Error(err.Error())
@@ -457,11 +481,13 @@ func (c *cmd) run(args []string) int {
 
 	if c.bootstrap {
 		// Just output it and we are done
+		c.logger.Debug("Outputting bootstrap config")
 		c.UI.Output(string(bootstrapJson))
 		return 0
 	}
 
 	// Find Envoy binary
+	c.logger.Debug("Finding envoy binary")
 	binary, err := c.findBinary()
 	if err != nil {
 		c.UI.Error("Couldn't find envoy binary: " + err.Error())
@@ -476,7 +502,7 @@ func (c *cmd) run(args []string) int {
 			return 1
 		}
 
-		ok, err := checkEnvoyVersionCompatibility(v, proxysupport.UnsupportedEnvoyVersions)
+		ok, err := checkEnvoyVersionCompatibility(v, xdscommon.UnsupportedEnvoyVersions)
 
 		if err != nil {
 			c.UI.Warn("There was an error checking the compatibility of the envoy version: " + err.Error())
@@ -489,6 +515,7 @@ func (c *cmd) run(args []string) int {
 		}
 	}
 
+	c.logger.Debug("Executing envoy binary")
 	err = execEnvoy(binary, nil, args, bootstrapJson)
 	if err == errUnsupportedOS {
 		c.UI.Error("Directly running Envoy is only supported on linux and macOS " +
@@ -610,6 +637,7 @@ func (c *cmd) generateConfig() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+	c.logger.Debug("Generated template args")
 
 	var bsCfg BootstrapConfig
 
@@ -657,6 +685,7 @@ func (c *cmd) generateConfig() ([]byte, error) {
 		datacenter = svcList.Node.Datacenter
 		c.gatewayKind = svcList.Services[0].Kind
 	}
+	c.logger.Debug("Fetched registration info")
 	if svcProxyConfig == nil {
 		return nil, errors.New("service is not a Connect proxy or gateway")
 	}
@@ -692,6 +721,7 @@ func (c *cmd) generateConfig() ([]byte, error) {
 	if err := generateAccessLogs(c, args); err != nil {
 		return nil, err
 	}
+	c.logger.Debug("Generated access logs")
 
 	// Setup ready listener for ingress gateway to pass healthcheck
 	if c.gatewayKind == api.ServiceKindIngressGateway {
@@ -702,6 +732,10 @@ func (c *cmd) generateConfig() ([]byte, error) {
 			lanAddr = "127.0.0.1" + lanAddr
 		}
 		bsCfg.ReadyBindAddr = lanAddr
+	}
+
+	if c.envoyReadyBindAddress != "" && c.envoyReadyBindPort != 0 {
+		bsCfg.ReadyBindAddr = fmt.Sprintf("%s:%d", c.envoyReadyBindAddress, c.envoyReadyBindPort)
 	}
 
 	if !c.disableCentralConfig {
@@ -951,7 +985,7 @@ func checkEnvoyVersionCompatibility(envoyVersion string, unsupportedList []strin
 	var cs strings.Builder
 
 	// Add one to the max minor version so that we accept all patches
-	splitS := strings.Split(proxysupport.GetMaxEnvoyMinorVersion(), ".")
+	splitS := strings.Split(xdscommon.GetMaxEnvoyMinorVersion(), ".")
 	minor, err := strconv.Atoi(splitS[1])
 	if err != nil {
 		return false, err
@@ -960,7 +994,7 @@ func checkEnvoyVersionCompatibility(envoyVersion string, unsupportedList []strin
 	maxSupported := fmt.Sprintf("%s.%d", splitS[0], minor)
 
 	// Build the constraint string, make sure that we are less than but not equal to maxSupported since we added 1
-	cs.WriteString(fmt.Sprintf(">= %s, < %s", proxysupport.GetMinEnvoyMinorVersion(), maxSupported))
+	cs.WriteString(fmt.Sprintf(">= %s, < %s", xdscommon.GetMinEnvoyMinorVersion(), maxSupported))
 	for _, s := range unsupportedList {
 		cs.WriteString(fmt.Sprintf(", != %s", s))
 	}

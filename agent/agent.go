@@ -2206,7 +2206,9 @@ func (a *Agent) readPersistedServiceConfigs() (map[structs.ServiceID]*structs.Se
 			}
 		}
 
-		if !acl.EqualPartitions(a.AgentEnterpriseMeta().PartitionOrDefault(), p.PartitionOrDefault()) {
+		if acl.EqualPartitions("", p.PartitionOrEmpty()) {
+			p.OverridePartition(a.AgentEnterpriseMeta().PartitionOrDefault())
+		} else if !acl.EqualPartitions(a.AgentEnterpriseMeta().PartitionOrDefault(), p.PartitionOrDefault()) {
 			a.logger.Info("Purging service config file in wrong partition",
 				"file", file,
 				"partition", p.PartitionOrDefault(),
@@ -3552,6 +3554,11 @@ func (a *Agent) loadServices(conf *config.RuntimeConfig, snap map[structs.CheckI
 
 	// Register the services from config
 	for _, service := range conf.Services {
+		// Default service partition to the same as agent
+		if service.EnterpriseMeta.PartitionOrEmpty() == "" {
+			service.EnterpriseMeta.OverridePartition(a.AgentEnterpriseMeta().PartitionOrDefault())
+		}
+
 		ns := service.NodeService()
 		chkTypes, err := service.CheckTypes()
 		if err != nil {
@@ -3661,7 +3668,11 @@ func (a *Agent) loadServices(conf *config.RuntimeConfig, snap map[structs.CheckI
 			}
 		}
 
-		if !acl.EqualPartitions(a.AgentEnterpriseMeta().PartitionOrDefault(), p.Service.PartitionOrDefault()) {
+		if acl.EqualPartitions("", p.Service.PartitionOrEmpty()) {
+			// NOTE: in case loading a service with empty partition (e.g., OSS -> ENT),
+			// we always default the service partition to the agent's partition.
+			p.Service.OverridePartition(a.AgentEnterpriseMeta().PartitionOrDefault())
+		} else if !acl.EqualPartitions(a.AgentEnterpriseMeta().PartitionOrDefault(), p.Service.PartitionOrDefault()) {
 			a.logger.Info("Purging service file in wrong partition",
 				"file", file,
 				"partition", p.Service.EnterpriseMeta.PartitionOrDefault(),

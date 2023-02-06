@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"io"
 	"path/filepath"
 	"strconv"
 	"time"
@@ -19,15 +20,42 @@ import (
 
 // ConnectContainer
 type ConnectContainer struct {
-	ctx         context.Context
-	container   testcontainers.Container
-	ip          string
-	appPort     int
-	adminPort   int
-	serviceName string
+	ctx              context.Context
+	container        testcontainers.Container
+	ip               string
+	appPort          int
+	adminPort        int
+	mappedPublicPort int
+	serviceName      string
 }
 
 var _ Service = (*ConnectContainer)(nil)
+
+func (g ConnectContainer) Export(partition, peer string, client *api.Client) error {
+	return fmt.Errorf("ConnectContainer export unimplemented")
+}
+
+func (g ConnectContainer) GetAddr() (string, int) {
+	return g.ip, g.appPort
+}
+
+func (g ConnectContainer) Restart() error {
+	return fmt.Errorf("Restart Unimplemented by ConnectContainer")
+}
+
+func (g ConnectContainer) GetLogs() (string, error) {
+	rc, err := g.container.Logs(context.Background())
+	if err != nil {
+		return "", fmt.Errorf("could not get logs for connect service %s: %w", g.GetServiceName(), err)
+	}
+	defer rc.Close()
+
+	out, err := io.ReadAll(rc)
+	if err != nil {
+		return "", fmt.Errorf("could not read from logs for connect service %s: %w", g.GetServiceName(), err)
+	}
+	return string(out), nil
+}
 
 func (g ConnectContainer) GetName() string {
 	name, err := g.container.Name(g.ctx)
@@ -37,31 +65,28 @@ func (g ConnectContainer) GetName() string {
 	return name
 }
 
-func (g ConnectContainer) GetAddr() (string, int) {
-	return g.ip, g.appPort
+func (g ConnectContainer) GetServiceName() string {
+	return g.serviceName
 }
 
 func (g ConnectContainer) Start() error {
 	if g.container == nil {
 		return fmt.Errorf("container has not been initialized")
 	}
-	return g.container.Start(context.Background())
+	return g.container.Start(g.ctx)
+}
+
+func (g ConnectContainer) Terminate() error {
+	return cluster.TerminateContainer(g.ctx, g.container, true)
 }
 
 func (g ConnectContainer) GetAdminAddr() (string, int) {
 	return "localhost", g.adminPort
 }
 
-func (c ConnectContainer) Terminate() error {
-	return cluster.TerminateContainer(c.ctx, c.container, true)
-}
-
-func (g ConnectContainer) Export(partition, peer string, client *api.Client) error {
-	return fmt.Errorf("ConnectContainer export unimplemented")
-}
-
-func (g ConnectContainer) GetServiceName() string {
-	return g.serviceName
+func (g ConnectContainer) GetStatus() (string, error) {
+	state, err := g.container.State(g.ctx)
+	return state.Status, err
 }
 
 // NewConnectService returns a container that runs envoy sidecar, launched by
@@ -69,13 +94,13 @@ func (g ConnectContainer) GetServiceName() string {
 // node. The container exposes port serviceBindPort and envoy admin port
 // (19000) by mapping them onto host ports. The container's name has a prefix
 // combining datacenter and name.
-func NewConnectService(ctx context.Context, name string, serviceName string, serviceBindPort int, node libcluster.Agent) (*ConnectContainer, error) {
+func NewConnectService(ctx context.Context, sidecarServiceName string, serviceName string, serviceBindPort int, node libcluster.Agent) (*ConnectContainer, error) {
 	nodeConfig := node.GetConfig()
 	if nodeConfig.ScratchDir == "" {
 		return nil, fmt.Errorf("node ScratchDir is required")
 	}
 
-	namePrefix := fmt.Sprintf("%s-service-connect-%s", node.GetDatacenter(), name)
+	namePrefix := fmt.Sprintf("%s-service-connect-%s", node.GetDatacenter(), sidecarServiceName)
 	containerName := utils.RandName(namePrefix)
 
 	envoyVersion := getEnvoyVersion()
@@ -91,7 +116,10 @@ func NewConnectService(ctx context.Context, name string, serviceName string, ser
 	}
 	dockerfileCtx.BuildArgs = buildargs
 
-	adminPort := node.ClaimAdminPort()
+	adminPort, err := node.ClaimAdminPort()
+	if err != nil {
+		return nil, err
+	}
 
 	req := testcontainers.ContainerRequest{
 		FromDockerfile: dockerfileCtx,
@@ -151,11 +179,13 @@ func NewConnectService(ctx context.Context, name string, serviceName string, ser
 		ip:          info.IP,
 		appPort:     info.MappedPorts[appPortStr].Int(),
 		adminPort:   info.MappedPorts[adminPortStr].Int(),
-		serviceName: name,
+		serviceName: sidecarServiceName,
 	}
 
-	fmt.Printf("NewConnectService: name %s, mappedAppPort %d, bind port %d\n",
+	fmt.Printf("NewConnectService: name %s, mapped App Port %d, service bind port %d\n",
 		serviceName, out.appPort, serviceBindPort)
+	fmt.Printf("NewConnectService sidecar: name %s, mapped admin port %d, admin port %d\n",
+		sidecarServiceName, out.adminPort, adminPort)
 
 	return out, nil
 }

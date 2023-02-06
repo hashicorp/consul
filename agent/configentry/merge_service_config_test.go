@@ -275,6 +275,13 @@ func Test_MergeServiceConfig_UpstreamOverrides(t *testing.T) {
 		defaults *structs.ServiceConfigResponse
 		service  *structs.NodeService
 	}
+	zapUpstreamId := structs.PeeredServiceName{
+		ServiceName: structs.NewServiceName("zap", structs.DefaultEnterpriseMetaInDefaultPartition()),
+	}
+	zapPeeredUpstreamId := structs.PeeredServiceName{
+		Peer:        "some-peer",
+		ServiceName: structs.NewServiceName("zap", structs.DefaultEnterpriseMetaInDefaultPartition()),
+	}
 	tests := []struct {
 		name string
 		args args
@@ -284,12 +291,9 @@ func Test_MergeServiceConfig_UpstreamOverrides(t *testing.T) {
 			name: "new config fields",
 			args: args{
 				defaults: &structs.ServiceConfigResponse{
-					UpstreamIDConfigs: structs.OpaqueUpstreamConfigs{
+					UpstreamConfigs: structs.OpaqueUpstreamConfigs{
 						{
-							Upstream: structs.ServiceID{
-								ID:             "zap",
-								EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
-							},
+							Upstream: zapUpstreamId,
 							Config: map[string]interface{}{
 								"passive_health_check": map[string]interface{}{
 									"Interval":    int64(10),
@@ -355,12 +359,9 @@ func Test_MergeServiceConfig_UpstreamOverrides(t *testing.T) {
 			name: "remote upstream config expands local upstream list in transparent mode",
 			args: args{
 				defaults: &structs.ServiceConfigResponse{
-					UpstreamIDConfigs: structs.OpaqueUpstreamConfigs{
+					UpstreamConfigs: structs.OpaqueUpstreamConfigs{
 						{
-							Upstream: structs.ServiceID{
-								ID:             "zap",
-								EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
-							},
+							Upstream: zapUpstreamId,
 							Config: map[string]interface{}{
 								"protocol": "grpc",
 							},
@@ -430,12 +431,9 @@ func Test_MergeServiceConfig_UpstreamOverrides(t *testing.T) {
 			name: "remote upstream config not added to local upstream list outside of transparent mode",
 			args: args{
 				defaults: &structs.ServiceConfigResponse{
-					UpstreamIDConfigs: structs.OpaqueUpstreamConfigs{
+					UpstreamConfigs: structs.OpaqueUpstreamConfigs{
 						{
-							Upstream: structs.ServiceID{
-								ID:             "zap",
-								EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
-							},
+							Upstream: zapUpstreamId,
 							Config: map[string]interface{}{
 								"protocol": "grpc",
 							},
@@ -488,12 +486,9 @@ func Test_MergeServiceConfig_UpstreamOverrides(t *testing.T) {
 			name: "upstream mode from remote defaults overrides local default",
 			args: args{
 				defaults: &structs.ServiceConfigResponse{
-					UpstreamIDConfigs: structs.OpaqueUpstreamConfigs{
+					UpstreamConfigs: structs.OpaqueUpstreamConfigs{
 						{
-							Upstream: structs.ServiceID{
-								ID:             "zap",
-								EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
-							},
+							Upstream: zapUpstreamId,
 							Config: map[string]interface{}{
 								"mesh_gateway": map[string]interface{}{
 									"Mode": "local",
@@ -548,12 +543,9 @@ func Test_MergeServiceConfig_UpstreamOverrides(t *testing.T) {
 			name: "mode in local upstream config overrides all",
 			args: args{
 				defaults: &structs.ServiceConfigResponse{
-					UpstreamIDConfigs: structs.OpaqueUpstreamConfigs{
+					UpstreamConfigs: structs.OpaqueUpstreamConfigs{
 						{
-							Upstream: structs.ServiceID{
-								ID:             "zap",
-								EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
-							},
+							Upstream: zapUpstreamId,
 							Config: map[string]interface{}{
 								"mesh_gateway": map[string]interface{}{
 									"Mode": "local",
@@ -608,15 +600,69 @@ func Test_MergeServiceConfig_UpstreamOverrides(t *testing.T) {
 			},
 		},
 		{
+			name: "peering upstreams are distinct from local-cluster upstreams",
+			args: args{
+				defaults: &structs.ServiceConfigResponse{
+					UpstreamConfigs: structs.OpaqueUpstreamConfigs{
+						{
+							Upstream: zapUpstreamId,
+							Config: map[string]interface{}{
+								"connect_timeout_ms": 2222,
+							},
+						},
+						{
+							Upstream: zapPeeredUpstreamId,
+							Config: map[string]interface{}{
+								"connect_timeout_ms": 3333,
+							},
+						},
+					},
+				},
+				service: &structs.NodeService{
+					ID:      "foo-proxy",
+					Service: "foo-proxy",
+					Proxy: structs.ConnectProxyConfig{
+						Upstreams: structs.Upstreams{
+							structs.Upstream{
+								DestinationName: "zap",
+							},
+							structs.Upstream{
+								DestinationPeer: "some-peer",
+								DestinationName: "zap",
+							},
+						},
+					},
+				},
+			},
+			want: &structs.NodeService{
+				ID:      "foo-proxy",
+				Service: "foo-proxy",
+				Proxy: structs.ConnectProxyConfig{
+					Upstreams: structs.Upstreams{
+						structs.Upstream{
+							DestinationName: "zap",
+							Config: map[string]interface{}{
+								"connect_timeout_ms": 2222,
+							},
+						},
+						structs.Upstream{
+							DestinationPeer: "some-peer",
+							DestinationName: "zap",
+							Config: map[string]interface{}{
+								"connect_timeout_ms": 3333,
+							},
+						},
+					},
+				},
+			},
+		},
+		{
 			name: "peering upstreams ignore protocol overrides",
 			args: args{
 				defaults: &structs.ServiceConfigResponse{
-					UpstreamIDConfigs: structs.OpaqueUpstreamConfigs{
+					UpstreamConfigs: structs.OpaqueUpstreamConfigs{
 						{
-							Upstream: structs.ServiceID{
-								ID:             "zap",
-								EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
-							},
+							Upstream: zapPeeredUpstreamId,
 							Config: map[string]interface{}{
 								"protocol": "http",
 							},
@@ -659,12 +705,9 @@ func Test_MergeServiceConfig_UpstreamOverrides(t *testing.T) {
 			name: "peering upstreams ignore protocol overrides with unset value",
 			args: args{
 				defaults: &structs.ServiceConfigResponse{
-					UpstreamIDConfigs: structs.OpaqueUpstreamConfigs{
+					UpstreamConfigs: structs.OpaqueUpstreamConfigs{
 						{
-							Upstream: structs.ServiceID{
-								ID:             "zap",
-								EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
-							},
+							Upstream: zapPeeredUpstreamId,
 							Config: map[string]interface{}{
 								"protocol": "http",
 							},
