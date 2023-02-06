@@ -1069,7 +1069,7 @@ func TestServer_DeltaAggregatedResources_v3_ACLEnforcement(t *testing.T) {
 				// Ensure the correct token was passed
 				require.Equal(t, tt.token, id)
 				// Parse the ACL and enforce it
-				policy, err := acl.NewPolicyFromSource(tt.acl, acl.SyntaxLegacy, nil, nil)
+				policy, err := acl.NewPolicyFromSource(tt.acl, nil, nil)
 				require.NoError(t, err)
 				return acl.NewPolicyAuthorizerWithDefaults(acl.RootAuthorizer("deny"), []*acl.Policy{policy}, nil)
 			}
@@ -1158,7 +1158,7 @@ func TestServer_DeltaAggregatedResources_v3_ACLTokenDeleted_StreamTerminatedDuri
 	aclRules := `service "web" { policy = "write" }`
 	token := "service-write-on-web"
 
-	policy, err := acl.NewPolicyFromSource(aclRules, acl.SyntaxLegacy, nil, nil)
+	policy, err := acl.NewPolicyFromSource(aclRules, nil, nil)
 	require.NoError(t, err)
 
 	var validToken atomic.Value
@@ -1256,7 +1256,7 @@ func TestServer_DeltaAggregatedResources_v3_ACLTokenDeleted_StreamTerminatedInBa
 	aclRules := `service "web" { policy = "write" }`
 	token := "service-write-on-web"
 
-	policy, err := acl.NewPolicyFromSource(aclRules, acl.SyntaxLegacy, nil, nil)
+	policy, err := acl.NewPolicyFromSource(aclRules, nil, nil)
 	require.NoError(t, err)
 
 	var validToken atomic.Value

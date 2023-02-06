@@ -201,11 +201,11 @@ const (
 	// ACLModeEnabled indicates that ACLs are enabled and operating in new ACL
 	// mode (v1.4.0+ ACLs)
 	ACLModeEnabled MemberACLMode = "1"
-	// ACLModeLegacy indicates that ACLs are enabled and operating in legacy mode.
-	ACLModeLegacy MemberACLMode = "2"
+	// ACLModeLegacy has been deprecated, and will be treated as ACLModeUnknown.
+	ACLModeLegacy MemberACLMode = "2" // DEPRECATED
 	// ACLModeUnkown is used to indicate that the AgentMember.Tags didn't advertise
 	// an ACL mode at all. This is the case for Consul versions before v1.4.0 and
-	// should be treated similarly to ACLModeLegacy.
+	// should be treated the same as ACLModeLegacy.
 	ACLModeUnknown MemberACLMode = "3"
 )
 
@@ -244,8 +244,6 @@ func (m *AgentMember) ACLMode() MemberACLMode {
 		return ACLModeDisabled
 	case ACLModeEnabled:
 		return ACLModeEnabled
-	case ACLModeLegacy:
-		return ACLModeLegacy
 	default:
 		return ACLModeUnknown
 	}

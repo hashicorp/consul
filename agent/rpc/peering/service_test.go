@@ -1729,28 +1729,24 @@ func upsertTestACLs(t *testing.T, store *state.Store) {
 	)
 	policies := structs.ACLPolicies{
 		{
-			ID:     testPolicyPeeringReadID,
-			Name:   "peering-read",
-			Rules:  `peering = "read"`,
-			Syntax: acl.SyntaxCurrent,
+			ID:    testPolicyPeeringReadID,
+			Name:  "peering-read",
+			Rules: `peering = "read"`,
 		},
 		{
-			ID:     testPolicyPeeringWriteID,
-			Name:   "peering-write",
-			Rules:  `peering = "write"`,
-			Syntax: acl.SyntaxCurrent,
+			ID:    testPolicyPeeringWriteID,
+			Name:  "peering-write",
+			Rules: `peering = "write"`,
 		},
 		{
-			ID:     testPolicyServiceReadID,
-			Name:   "service-read",
-			Rules:  `service "api" { policy = "read" }`,
-			Syntax: acl.SyntaxCurrent,
+			ID:    testPolicyServiceReadID,
+			Name:  "service-read",
+			Rules: `service "api" { policy = "read" }`,
 		},
 		{
-			ID:     testPolicyServiceWriteID,
-			Name:   "service-write",
-			Rules:  `service "api" { policy = "write" }`,
-			Syntax: acl.SyntaxCurrent,
+			ID:    testPolicyServiceWriteID,
+			Name:  "service-write",
+			Rules: `service "api" { policy = "write" }`,
 		},
 	}
 	require.NoError(t, store.ACLPolicyBatchSet(100, policies))
