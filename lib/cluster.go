@@ -45,7 +45,7 @@ func RandomStagger(intv time.Duration) time.Duration {
 	return time.Duration(uint64(rand.Int63()) % uint64(intv))
 }
 
-// RandomStagger returns an interval between min and the max duration
+// RandomStaggerWithRange returns an interval between min and the max duration
 func RandomStaggerWithRange(min time.Duration, max time.Duration) time.Duration {
 	return RandomStagger(max-min) + min
 }
