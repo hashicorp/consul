@@ -45,6 +45,11 @@ func RandomStagger(intv time.Duration) time.Duration {
 	return time.Duration(uint64(rand.Int63()) % uint64(intv))
 }
 
+// RandomStaggerWithRange returns an interval between min and the max duration
+func RandomStaggerWithRange(min time.Duration, max time.Duration) time.Duration {
+	return RandomStagger(max-min) + min
+}
+
 // RateScaledInterval is used to choose an interval to perform an action in
 // order to target an aggregate number of actions per second across the whole
 // cluster.
