@@ -2,15 +2,15 @@ package extensionruntime
 
 import (
 	"github.com/hashicorp/consul/agent/connect"
-	"github.com/hashicorp/consul/agent/envoyextensions/extensioncommon"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/envoyextensions/extensioncommon"
 )
 
 func GetRuntimeConfigurations(cfgSnap *proxycfg.ConfigSnapshot) map[api.CompoundServiceName][]extensioncommon.RuntimeConfig {
 	extensionsMap := make(map[api.CompoundServiceName][]api.EnvoyExtension)
-	upstreamMap := make(map[api.CompoundServiceName]extensioncommon.UpstreamData)
+	upstreamMap := make(map[api.CompoundServiceName]*extensioncommon.UpstreamData)
 	var kind api.ServiceKind
 	extensionConfigurationsMap := make(map[api.CompoundServiceName][]extensioncommon.RuntimeConfig)
 
@@ -64,7 +64,7 @@ func GetRuntimeConfigurations(cfgSnap *proxycfg.ConfigSnapshot) map[api.Compound
 				outgoingKind = api.ServiceKindConnectProxy
 			}
 
-			upstreamMap[compoundServiceName] = extensioncommon.UpstreamData{
+			upstreamMap[compoundServiceName] = &extensioncommon.UpstreamData{
 				SNI:               map[string]struct{}{sni: {}},
 				VIP:               vipForService[compoundServiceName],
 				EnvoyID:           uid.EnvoyID(),
@@ -110,7 +110,7 @@ func GetRuntimeConfigurations(cfgSnap *proxycfg.ConfigSnapshot) map[api.Compound
 				}
 			}
 
-			upstreamMap[compoundServiceName] = extensioncommon.UpstreamData{
+			upstreamMap[compoundServiceName] = &extensioncommon.UpstreamData{
 				SNI:               snis,
 				EnvoyID:           envoyID.EnvoyID(),
 				OutgoingProxyKind: api.ServiceKindTerminatingGateway,

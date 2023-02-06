@@ -64,9 +64,10 @@ func TestPeering_UpgradeToTarget_fromLatest(t *testing.T) {
 		//  - Register a new static-client service in dialing cluster and
 		//  - set upstream to static-server service in peered cluster
 
-		// Restart the gateway
-		err = dialing.Gateway.Restart()
-		require.NoError(t, err)
+		// Restart the gateway & proxy sidecar
+		require.NoError(t, dialing.Gateway.Restart())
+		require.NoError(t, dialing.Container.Restart())
+
 		// Restarted gateway should not have any measurement on data plane traffic
 		libassert.AssertEnvoyMetricAtMost(t, gatewayAdminPort,
 			"cluster.static-server.default.default.accepting-to-dialer.external",
@@ -76,6 +77,7 @@ func TestPeering_UpgradeToTarget_fromLatest(t *testing.T) {
 		require.NoError(t, err)
 		_, port := clientSidecarService.GetAddr()
 		_, adminPort := clientSidecarService.GetAdminAddr()
+		require.NoError(t, clientSidecarService.Restart())
 		libassert.AssertUpstreamEndpointStatus(t, adminPort, fmt.Sprintf("static-server.default.%s.external", libtopology.DialingPeerName), "HEALTHY", 1)
 		libassert.HTTPServiceEchoes(t, "localhost", port, "")
 	}

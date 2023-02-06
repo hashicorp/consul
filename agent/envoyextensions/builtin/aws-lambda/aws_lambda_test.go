@@ -18,8 +18,8 @@ import (
 	"google.golang.org/protobuf/types/known/anypb"
 	pstruct "google.golang.org/protobuf/types/known/structpb"
 
-	"github.com/hashicorp/consul/agent/envoyextensions/extensioncommon"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/envoyextensions/extensioncommon"
 	"github.com/hashicorp/consul/proto/prototest"
 )
 
@@ -67,7 +67,7 @@ func TestConstructor(t *testing.T) {
 			svc := api.CompoundServiceName{Name: "svc"}
 			ext := extensioncommon.RuntimeConfig{
 				ServiceName: svc,
-				Upstreams: map[api.CompoundServiceName]extensioncommon.UpstreamData{
+				Upstreams: map[api.CompoundServiceName]*extensioncommon.UpstreamData{
 					svc: {OutgoingProxyKind: kind},
 				},
 				EnvoyExtension: api.EnvoyExtension{
@@ -96,7 +96,7 @@ func TestCanApply(t *testing.T) {
 	require.False(t, a.CanApply(&extensioncommon.RuntimeConfig{
 		Kind:        api.ServiceKindConnectProxy,
 		ServiceName: api.CompoundServiceName{Name: "s1"},
-		Upstreams: map[api.CompoundServiceName]extensioncommon.UpstreamData{
+		Upstreams: map[api.CompoundServiceName]*extensioncommon.UpstreamData{
 			{Name: "s1"}: {
 				OutgoingProxyKind: api.ServiceKindTerminatingGateway,
 			},
@@ -105,7 +105,7 @@ func TestCanApply(t *testing.T) {
 	require.True(t, a.CanApply(&extensioncommon.RuntimeConfig{
 		Kind:        api.ServiceKindConnectProxy,
 		ServiceName: api.CompoundServiceName{Name: "s1"},
-		Upstreams: map[api.CompoundServiceName]extensioncommon.UpstreamData{
+		Upstreams: map[api.CompoundServiceName]*extensioncommon.UpstreamData{
 			{Name: "s1"}: {
 				OutgoingProxyKind: api.ServiceKindConnectProxy,
 			},

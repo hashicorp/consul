@@ -5,8 +5,8 @@ import (
 
 	awslambda "github.com/hashicorp/consul/agent/envoyextensions/builtin/aws-lambda"
 	"github.com/hashicorp/consul/agent/envoyextensions/builtin/lua"
-	"github.com/hashicorp/consul/agent/envoyextensions/extensioncommon"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/envoyextensions/extensioncommon"
 	"github.com/hashicorp/go-multierror"
 )
 

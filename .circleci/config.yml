@@ -230,6 +230,14 @@ jobs:
           working_directory: sdk
           command: *lintcmd
       - run:
+          name: lint envoyextensions
+          working_directory: envoyextensions
+          command: *lintcmd
+      - run:
+          name: lint troubleshoot
+          working_directory: troubleshoot
+          command: *lintcmd
+      - run:
           name: lint container tests
           working_directory: test/integration/consul-container
           command: *lintcmd
@@ -1099,6 +1107,18 @@ workflows:
       - dev-build: *filter-ignore-non-go-branches
       - go-test:
           requires: [dev-build]
+      - go-test-lib:
+          name: "go-test-envoyextensions"
+          path: envoyextensions
+          go-version: "1.19"
+          requires: [dev-build]
+          <<: *filter-ignore-non-go-branches
+      - go-test-lib:
+          name: "go-test-troubleshoot"
+          path: troubleshoot
+          go-version: "1.19"
+          requires: [dev-build]
+          <<: *filter-ignore-non-go-branches
       - go-test-lib:
           name: "go-test-api go1.18"
           path: api

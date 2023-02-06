@@ -34,7 +34,7 @@ type RuntimeConfig struct {
 
 	// Upstreams will only be configured if the EnvoyExtension is being applied to an upstream.
 	// If there are no Upstreams, then EnvoyExtension is being applied to the local service's resources.
-	Upstreams map[api.CompoundServiceName]UpstreamData
+	Upstreams map[api.CompoundServiceName]*UpstreamData
 
 	// Kind is mode the local Envoy proxy is running in. For now, only connect proxy and
 	// terminating gateways are supported.
