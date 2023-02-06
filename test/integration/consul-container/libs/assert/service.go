@@ -25,10 +25,23 @@ func CatalogServiceExists(t *testing.T, c *api.Client, svc string) {
 	retry.Run(t, func(r *retry.R) {
 		services, _, err := c.Catalog().Service(svc, "", nil)
 		if err != nil {
-			r.Fatal("error reading peering data")
+			r.Fatal("error reading service data")
 		}
 		if len(services) == 0 {
 			r.Fatal("did not find catalog entry for ", svc)
+		}
+	})
+}
+
+// CatalogServiceExists verifies the node name exists in the Consul catalog
+func CatalogNodeExists(t *testing.T, c *api.Client, nodeName string) {
+	retry.Run(t, func(r *retry.R) {
+		node, _, err := c.Catalog().Node(nodeName, nil)
+		if err != nil {
+			r.Fatal("error reading node data")
+		}
+		if node == nil {
+			r.Fatal("did not find node entry for", nodeName)
 		}
 	})
 }

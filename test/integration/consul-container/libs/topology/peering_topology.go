@@ -42,8 +42,17 @@ func BasicPeeringTwoClustersSetup(
 	t *testing.T,
 	consulVersion string,
 ) (*BuiltCluster, *BuiltCluster) {
-	acceptingCluster, acceptingCtx, acceptingClient := NewPeeringCluster(t, "dc1", 3, consulVersion, true)
-	dialingCluster, dialingCtx, dialingClient := NewPeeringCluster(t, "dc2", 1, consulVersion, true)
+	// acceptingCluster, acceptingCtx, acceptingClient := NewPeeringCluster(t, "dc1", 3, consulVersion, true)
+	acceptingCluster, acceptingCtx, acceptingClient := NewPeeringCluster(t, 3, &libcluster.BuildOptions{
+		Datacenter:           "dc1",
+		ConsulVersion:        consulVersion,
+		InjectAutoEncryption: true,
+	})
+	dialingCluster, dialingCtx, dialingClient := NewPeeringCluster(t, 1, &libcluster.BuildOptions{
+		Datacenter:           "dc2",
+		ConsulVersion:        consulVersion,
+		InjectAutoEncryption: true,
+	})
 	require.NoError(t, dialingCluster.PeerWithCluster(acceptingClient, AcceptingPeerName, DialingPeerName))
 
 	libassert.PeeringStatus(t, acceptingClient, AcceptingPeerName, api.PeeringStateActive)
@@ -172,20 +181,19 @@ func NewDialingCluster(
 // pointed at the client agent.
 func NewPeeringCluster(
 	t *testing.T,
-	datacenter string,
 	numServers int,
-	version string,
-	injectAutoEncryption bool,
+	buildOpts *libcluster.BuildOptions,
 ) (*libcluster.Cluster, *libcluster.BuildContext, *api.Client) {
-	require.NotEmpty(t, datacenter)
+	require.NotEmpty(t, buildOpts.Datacenter)
 	require.True(t, numServers > 0)
 
 	opts := libcluster.BuildOptions{
-		Datacenter:             datacenter,
-		InjectAutoEncryption:   injectAutoEncryption,
+		Datacenter:             buildOpts.Datacenter,
+		InjectAutoEncryption:   buildOpts.InjectAutoEncryption,
 		InjectGossipEncryption: true,
 		AllowHTTPAnyway:        true,
-		ConsulVersion:          version,
+		ConsulVersion:          buildOpts.ConsulVersion,
+		ACLEnabled:             buildOpts.ACLEnabled,
 	}
 	ctx := libcluster.NewBuildContext(t, opts)
 
@@ -193,7 +201,7 @@ func NewPeeringCluster(
 		Bootstrap(numServers).
 		Peering(true).
 		ToAgentConfig(t)
-	t.Logf("%s server config: \n%s", datacenter, serverConf.JSON)
+	t.Logf("%s server config: \n%s", opts.Datacenter, serverConf.JSON)
 
 	cluster, err := libcluster.NewN(t, *serverConf, numServers)
 	require.NoError(t, err)
@@ -204,12 +212,12 @@ func NewPeeringCluster(
 	}
 
 	// Add a stable client to register the service
-	clientConf := libcluster.NewConfigBuilder(ctx).
+	configbuiilder := libcluster.NewConfigBuilder(ctx).
 		Client().
 		Peering(true).
-		RetryJoin(retryJoin...).
-		ToAgentConfig(t)
-	t.Logf("%s server config: \n%s", datacenter, clientConf.JSON)
+		RetryJoin(retryJoin...)
+	clientConf := configbuiilder.ToAgentConfig(t)
+	t.Logf("%s client config: \n%s", opts.Datacenter, clientConf.JSON)
 
 	require.NoError(t, cluster.AddN(*clientConf, 1, true))
 

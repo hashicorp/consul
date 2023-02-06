@@ -4,11 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strconv"
 	"time"
 
+	goretry "github.com/avast/retry-go"
 	dockercontainer "github.com/docker/docker/api/types/container"
 	"github.com/hashicorp/go-multierror"
 	"github.com/pkg/errors"
@@ -70,7 +72,9 @@ func (c *consulContainerNode) ClaimAdminPort() (int, error) {
 }
 
 // NewConsulContainer starts a Consul agent in a container with the given config.
-func NewConsulContainer(ctx context.Context, config Config, network string, index int) (Agent, error) {
+func NewConsulContainer(ctx context.Context, config Config, cluster *Cluster) (Agent, error) {
+	network := cluster.NetworkName
+	index := cluster.Index
 	if config.ScratchDir == "" {
 		return nil, fmt.Errorf("ScratchDir is required")
 	}
@@ -241,6 +245,9 @@ func NewConsulContainer(ctx context.Context, config Config, network string, inde
 			apiConfig.TLSConfig.CAFile = clientCACertFile
 		}
 
+		if cluster.TokenBootstrap != "" {
+			apiConfig.Token = cluster.TokenBootstrap
+		}
 		apiClient, err := api.NewClient(apiConfig)
 		if err != nil {
 			return nil, err
@@ -249,6 +256,32 @@ func NewConsulContainer(ctx context.Context, config Config, network string, inde
 		node.client = apiClient
 		node.clientAddr = clientAddr
 		node.clientCACertFile = clientCACertFile
+	}
+
+	// Inject node token if ACL is enabled and the bootstrap token is generated
+	if cluster.TokenBootstrap != "" && cluster.ACLEnabled {
+		agentToken, err := cluster.CreateAgentToken(pc.Datacenter, name)
+		if err != nil {
+			return nil, err
+		}
+		cmd := []string{"consul", "acl", "set-agent-token",
+			"-token", cluster.TokenBootstrap,
+			"agent", agentToken}
+
+		// retry in case agent has not fully initialized
+		err = goretry.Do(
+			func() error {
+				_, err := node.Exec(context.Background(), cmd)
+				if err != nil {
+					return fmt.Errorf("error setting the agent token, error %s", err)
+				}
+				return nil
+			},
+			goretry.Delay(time.Second*1),
+		)
+		if err != nil {
+			return nil, fmt.Errorf("error setting agent token: %s", err)
+		}
 	}
 
 	// disable cleanup functions now that we have an object with a Terminate() function
@@ -268,6 +301,10 @@ func (c *consulContainerNode) GetName() string {
 	return name
 }
 
+func (c *consulContainerNode) GetAgentName() string {
+	return c.name
+}
+
 func (c *consulContainerNode) GetConfig() Config {
 	return c.config.Clone()
 }
@@ -283,6 +320,29 @@ func (c *consulContainerNode) IsServer() bool {
 // GetClient returns an API client that can be used to communicate with the Agent.
 func (c *consulContainerNode) GetClient() *api.Client {
 	return c.client
+}
+
+// NewClient returns an API client by making a new one based on the provided token
+// - updateDefault: if true update the default client
+func (c *consulContainerNode) NewClient(token string, updateDefault bool) (*api.Client, error) {
+	apiConfig := api.DefaultConfig()
+	apiConfig.Address = c.clientAddr
+	if c.clientCACertFile != "" {
+		apiConfig.TLSConfig.CAFile = c.clientCACertFile
+	}
+
+	if token != "" {
+		apiConfig.Token = token
+	}
+	apiClient, err := api.NewClient(apiConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	if updateDefault {
+		c.client = apiClient
+	}
+	return apiClient, nil
 }
 
 func (c *consulContainerNode) GetAPIAddrInfo() (addr, caCert string) {
@@ -301,9 +361,21 @@ func (c *consulContainerNode) RegisterTermination(f func() error) {
 	c.terminateFuncs = append(c.terminateFuncs, f)
 }
 
-func (c *consulContainerNode) Exec(ctx context.Context, cmd []string) (int, error) {
-	exit, _, err := c.container.Exec(ctx, cmd)
-	return exit, err
+func (c *consulContainerNode) Exec(ctx context.Context, cmd []string) (string, error) {
+	exitcode, reader, err := c.container.Exec(ctx, cmd)
+	if exitcode != 0 {
+		return "", fmt.Errorf("exec with exit code %d", exitcode)
+	}
+	if err != nil {
+		return "", fmt.Errorf("exec with error %s", err)
+	}
+
+	buf, err := io.ReadAll(reader)
+	if err != nil {
+		return "", fmt.Errorf("error reading from exe output: %s", err)
+	}
+
+	return string(buf), err
 }
 
 func (c *consulContainerNode) Upgrade(ctx context.Context, config Config) error {
