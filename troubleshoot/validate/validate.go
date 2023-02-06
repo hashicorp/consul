@@ -10,11 +10,12 @@ import (
 	envoy_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	envoy_aggregate_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/clusters/aggregate/v3"
 	envoy_resource_v3 "github.com/envoyproxy/go-control-plane/pkg/resource/v3"
+	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/go-multierror"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
 
-	"github.com/hashicorp/consul/agent/envoyextensions/extensioncommon"
+	"github.com/hashicorp/consul/envoyextensions/extensioncommon"
 )
 
 const builtinValidateExtension = "builtin/proxy/validate"
@@ -79,11 +80,21 @@ func MakeValidate(ext extensioncommon.RuntimeConfig) (extensioncommon.BasicExten
 
 	envoyID, _ := ext.EnvoyExtension.Arguments["envoyID"]
 	mainEnvoyID, _ := envoyID.(string)
-	if len(mainEnvoyID) == 0 {
-		return nil, fmt.Errorf("envoyID is required")
+	vip := ""
+	snis := map[string]struct{}{}
+	upstream, ok := ext.Upstreams[ext.ServiceName]
+	if ok {
+		vip = upstream.VIP
+		if upstream.SNI == nil || len(upstream.SNI) == 0 {
+			return nil, fmt.Errorf("no SNIs were set, unable to validate Envoy clusters")
+		}
+		snis = upstream.SNI
+	}
+	if mainEnvoyID == "" && vip == "" {
+		return nil, fmt.Errorf("envoyID or virtual IP is required")
 	}
 	plugin.envoyID = mainEnvoyID
-	plugin.snis = ext.Upstreams[ext.ServiceName].SNI
+	plugin.snis = snis
 	plugin.resources = make(map[string]*resource)
 
 	return &plugin, resultErr
@@ -256,11 +267,21 @@ func (p *Validate) PatchFilter(config *extensioncommon.RuntimeConfig, filter *en
 	// If a single filter exists for a listener we say it exists.
 	p.listener = true
 
-	if config := envoy_resource_v3.GetHTTPConnectionManager(filter); config != nil {
+	if httpConfig := envoy_resource_v3.GetHTTPConnectionManager(filter); httpConfig != nil {
 		// If the http filter uses RDS, then the clusters we need to validate exist in the route, and there's nothing
 		// else we need to do with the filter.
-		if config.GetRds() != nil {
+		if httpConfig.GetRds() != nil {
 			p.usesRDS = true
+
+			// Edit the runtime configuration to add an envoy ID based on the route name in the filter. This is because
+			// routes are matched by envoyID and in the transparent proxy case, we only have the VIP set in the
+			// RuntimeConfig.
+			p.envoyID = httpConfig.GetRds().RouteConfigName
+			emptyServiceKey := api.CompoundServiceName{}
+			upstream, ok := config.Upstreams[emptyServiceKey]
+			if ok {
+				upstream.EnvoyID = p.envoyID
+			}
 			return filter, true, nil
 		}
 	}

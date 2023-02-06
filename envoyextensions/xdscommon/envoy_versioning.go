@@ -4,15 +4,13 @@ import (
 	"fmt"
 
 	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
-	"github.com/hashicorp/consul/agent/xds/proxysupport"
-
 	"github.com/hashicorp/go-version"
 )
 
 var (
 	// minSupportedVersion is the oldest mainline version we support. This should always be
-	// the zero'th point release of the last element of proxysupport.EnvoyVersions.
-	minSupportedVersion = version.Must(version.NewVersion(proxysupport.GetMinEnvoyMinorVersion()))
+	// the zero'th point release of the last element of xdscommon.EnvoyVersions.
+	minSupportedVersion = version.Must(version.NewVersion(GetMinEnvoyMinorVersion()))
 
 	specificUnsupportedVersions = []unsupportedVersion{}
 )

@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-version"
 	"github.com/mitchellh/cli"
@@ -21,10 +22,9 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/xds"
 	"github.com/hashicorp/consul/agent/xds/accesslogs"
-	"github.com/hashicorp/consul/agent/xds/proxysupport"
-	"github.com/hashicorp/consul/api"
 	proxyCmd "github.com/hashicorp/consul/command/connect/proxy"
 	"github.com/hashicorp/consul/command/flags"
+	"github.com/hashicorp/consul/envoyextensions/xdscommon"
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/tlsutil"
 )
@@ -89,7 +89,7 @@ type cmd struct {
 
 const meshGatewayVal = "mesh"
 
-var defaultEnvoyVersion = proxysupport.EnvoyVersions[0]
+var defaultEnvoyVersion = xdscommon.EnvoyVersions[0]
 
 var supportedGateways = map[string]api.ServiceKind{
 	"mesh":        api.ServiceKindMeshGateway,
@@ -502,7 +502,7 @@ func (c *cmd) run(args []string) int {
 			return 1
 		}
 
-		ok, err := checkEnvoyVersionCompatibility(v, proxysupport.UnsupportedEnvoyVersions)
+		ok, err := checkEnvoyVersionCompatibility(v, xdscommon.UnsupportedEnvoyVersions)
 
 		if err != nil {
 			c.UI.Warn("There was an error checking the compatibility of the envoy version: " + err.Error())
@@ -985,7 +985,7 @@ func checkEnvoyVersionCompatibility(envoyVersion string, unsupportedList []strin
 	var cs strings.Builder
 
 	// Add one to the max minor version so that we accept all patches
-	splitS := strings.Split(proxysupport.GetMaxEnvoyMinorVersion(), ".")
+	splitS := strings.Split(xdscommon.GetMaxEnvoyMinorVersion(), ".")
 	minor, err := strconv.Atoi(splitS[1])
 	if err != nil {
 		return false, err
@@ -994,7 +994,7 @@ func checkEnvoyVersionCompatibility(envoyVersion string, unsupportedList []strin
 	maxSupported := fmt.Sprintf("%s.%d", splitS[0], minor)
 
 	// Build the constraint string, make sure that we are less than but not equal to maxSupported since we added 1
-	cs.WriteString(fmt.Sprintf(">= %s, < %s", proxysupport.GetMinEnvoyMinorVersion(), maxSupported))
+	cs.WriteString(fmt.Sprintf(">= %s, < %s", xdscommon.GetMinEnvoyMinorVersion(), maxSupported))
 	for _, s := range unsupportedList {
 		cs.WriteString(fmt.Sprintf(", != %s", s))
 	}

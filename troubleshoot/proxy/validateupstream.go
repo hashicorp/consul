@@ -1,13 +1,10 @@
-package validateupstream
+package troubleshoot
 
 import (
-	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/agent/envoyextensions/builtin/validate"
-	"github.com/hashicorp/consul/agent/envoyextensions/extensioncommon"
-	"github.com/hashicorp/consul/agent/proxycfg"
-	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/agent/xds/xdscommon"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/envoyextensions/extensioncommon"
+	"github.com/hashicorp/consul/envoyextensions/xdscommon"
+	"github.com/hashicorp/consul/troubleshoot/validate"
 
 	envoy_admin_v3 "github.com/envoyproxy/go-control-plane/envoy/admin/v3"
 	envoy_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
@@ -54,19 +51,7 @@ func ParseClusters(rawClusters []byte) (*envoy_admin_v3.Clusters, error) {
 
 // Validate validates the Envoy resources (indexedResources) for a given upstream service, peer, and vip. The peer
 // should be "" for an upstream not on a remote peer. The vip is required for a transparent proxy upstream.
-func Validate(indexedResources *xdscommon.IndexedResources, service api.CompoundServiceName, peer string, vip string, validateEndpoints bool, clusters *envoy_admin_v3.Clusters) error {
-	em := acl.NewEnterpriseMetaWithPartition(service.Partition, service.Namespace)
-	svc := structs.NewServiceName(service.Name, &em)
-
-	// The envoyID is used to identify which listener and filter matches the upstream service.
-	var envoyID string
-	psn := structs.PeeredServiceName{
-		ServiceName: svc,
-		Peer:        peer,
-	}
-	uid := proxycfg.NewUpstreamIDFromPeeredServiceName(psn)
-	envoyID = uid.EnvoyID()
-
+func Validate(indexedResources *xdscommon.IndexedResources, envoyID string, vip string, validateEndpoints bool, clusters *envoy_admin_v3.Clusters) error {
 	// Get all SNIs from the clusters in the configuration. Not all SNIs will need to be validated, but this ensures we
 	// capture SNIs which aren't directly identical to the upstream service name, but are still used for that upstream
 	// service. For example, in the case of having a splitter/redirect or another L7 config entry, the upstream service
@@ -78,6 +63,10 @@ func Validate(indexedResources *xdscommon.IndexedResources, service api.Compound
 		snis[s] = struct{}{}
 	}
 
+	// For this extension runtime configuration, we are only validating one upstream service, so the map key doesn't
+	// need the full service name.
+	emptyServiceKey := api.CompoundServiceName{}
+
 	// Build an ExtensionConfiguration for Validate plugin.
 	extConfig := extensioncommon.RuntimeConfig{
 		EnvoyExtension: api.EnvoyExtension{
@@ -86,9 +75,9 @@ func Validate(indexedResources *xdscommon.IndexedResources, service api.Compound
 				"envoyID": envoyID,
 			},
 		},
-		ServiceName: service,
-		Upstreams: map[api.CompoundServiceName]extensioncommon.UpstreamData{
-			service: {
+		ServiceName: emptyServiceKey,
+		Upstreams: map[api.CompoundServiceName]*extensioncommon.UpstreamData{
+			emptyServiceKey: {
 				VIP: vip,
 				// Even though snis are under the upstream service name we're validating, it actually contains all
 				// the cluster SNIs configured on this proxy, not just the upstream being validated. This means the

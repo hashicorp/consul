@@ -1,22 +1,17 @@
-package validateupstream
+package validateupstream_test
 
 import (
-	"io"
-	"os"
 	"testing"
 
-	envoy_admin_v3 "github.com/envoyproxy/go-control-plane/envoy/admin/v3"
+	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/xds"
 	"github.com/hashicorp/consul/agent/xds/testcommon"
+	"github.com/hashicorp/consul/envoyextensions/xdscommon"
+	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/consul/troubleshoot/proxy"
 	testinf "github.com/mitchellh/go-testing-interface"
 	"github.com/stretchr/testify/require"
-
-	"github.com/hashicorp/consul/agent/proxycfg"
-	"github.com/hashicorp/consul/agent/xds/proxysupport"
-	"github.com/hashicorp/consul/agent/xds/xdscommon"
-	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/sdk/testutil"
 )
 
 // TestValidateUpstreams only tests validation for listeners, routes, and clusters. Endpoints validation is done in a
@@ -37,13 +32,13 @@ func TestValidateUpstreams(t *testing.T) {
 	nodes := proxycfg.TestUpstreamNodes(t, "db")
 
 	tests := []struct {
-		name        string
-		create      func(t testinf.T) *proxycfg.ConfigSnapshot
-		patcher     func(*xdscommon.IndexedResources) *xdscommon.IndexedResources
-		err         string
-		peer        string
-		serviceName *api.CompoundServiceName
-		vip         string
+		name    string
+		create  func(t testinf.T) *proxycfg.ConfigSnapshot
+		patcher func(*xdscommon.IndexedResources) *xdscommon.IndexedResources
+		err     string
+		peer    string
+		vip     string
+		envoyID string
 	}{
 		{
 			name: "tcp-success",
@@ -150,10 +145,9 @@ func TestValidateUpstreams(t *testing.T) {
 			},
 		},
 		{
-			name:        "non-eds",
-			create:      proxycfg.TestConfigSnapshotPeering,
-			serviceName: &api.CompoundServiceName{Name: "payments"},
-			peer:        "cloud",
+			name:    "non-eds",
+			create:  proxycfg.TestConfigSnapshotPeering,
+			envoyID: "payments?peer=cloud",
 		},
 		{
 			name: "tproxy-success",
@@ -184,9 +178,6 @@ func TestValidateUpstreams(t *testing.T) {
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotTransparentProxyHTTPUpstream(t, configEntriesForGoogleRedirect()...)
 			},
-			serviceName: &api.CompoundServiceName{
-				Name: "google",
-			},
 			patcher: func(ir *xdscommon.IndexedResources) *xdscommon.IndexedResources {
 				return ir
 			},
@@ -197,16 +188,13 @@ func TestValidateUpstreams(t *testing.T) {
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotTransparentProxyHTTPUpstream(t, configEntriesForGoogleSplits()...)
 			},
-			serviceName: &api.CompoundServiceName{
-				Name: "google",
-			},
 			patcher: func(ir *xdscommon.IndexedResources) *xdscommon.IndexedResources {
 				return ir
 			},
 		},
 	}
 
-	latestEnvoyVersion := proxysupport.EnvoyVersions[0]
+	latestEnvoyVersion := xdscommon.EnvoyVersions[0]
 	sf, err := xdscommon.DetermineSupportedProxyFeaturesFromString(latestEnvoyVersion)
 	require.NoError(t, err)
 	for _, tt := range tests {
@@ -229,17 +217,15 @@ func TestValidateUpstreams(t *testing.T) {
 			if tt.patcher != nil {
 				indexedResources = tt.patcher(indexedResources)
 			}
-			serviceName := tt.serviceName
-			if serviceName == nil {
-				serviceName = &api.CompoundServiceName{
-					Name: "db",
-				}
+			envoyID := tt.envoyID
+			vip := tt.vip
+			if envoyID == "" && vip == "" {
+				envoyID = "db"
 			}
-			peer := tt.peer
 
 			// This only tests validation for listeners, routes, and clusters. Endpoints validation is done in a top
 			// level test that can parse the output of the /clusters endpoint. So for this test, we set clusters to nil.
-			err = Validate(indexedResources, *serviceName, peer, tt.vip, false, nil)
+			err = troubleshoot.Validate(indexedResources, envoyID, vip, false, nil)
 
 			if len(tt.err) == 0 {
 				require.NoError(t, err)
@@ -249,39 +235,6 @@ func TestValidateUpstreams(t *testing.T) {
 			}
 		})
 	}
-}
-
-func TestValidate2(t *testing.T) {
-	indexedResources := getConfig(t)
-	clusters := getClusters(t)
-	err := Validate(indexedResources, service, "", "", true, clusters)
-	require.NoError(t, err)
-}
-
-// TODO: Manually inspect the config and clusters files and hardcode the list of expected resource names for higher
-// confidence in these functions.
-func getConfig(t *testing.T) *xdscommon.IndexedResources {
-	file, err := os.Open("testdata/validateupstream/config.json")
-	require.NoError(t, err)
-	jsonBytes, err := io.ReadAll(file)
-	require.NoError(t, err)
-	indexedResources, err := ParseConfigDump(jsonBytes)
-	require.NoError(t, err)
-	return indexedResources
-}
-
-func getClusters(t *testing.T) *envoy_admin_v3.Clusters {
-	file, err := os.Open("testdata/validateupstream/clusters.json")
-	require.NoError(t, err)
-	jsonBytes, err := io.ReadAll(file)
-	require.NoError(t, err)
-	clusters, err := ParseClusters(jsonBytes)
-	require.NoError(t, err)
-	return clusters
-}
-
-var service = api.CompoundServiceName{
-	Name: "backend",
 }
 
 func configEntriesForDBSplits() []structs.ConfigEntry {

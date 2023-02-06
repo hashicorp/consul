@@ -7,7 +7,7 @@ import (
 	"os"
 
 	"github.com/hashicorp/consul/command/flags"
-	troubleshoot "github.com/hashicorp/consul/troubleshoot"
+	troubleshoot "github.com/hashicorp/consul/troubleshoot/proxy"
 	"github.com/mitchellh/cli"
 )
 
