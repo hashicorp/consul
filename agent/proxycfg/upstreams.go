@@ -63,6 +63,14 @@ func (s *handlerUpstreams) handleUpdateUpstreams(ctx context.Context, u UpdateEv
 		uid := UpstreamIDFromString(uidString)
 
 		switch snap.Kind {
+		case structs.ServiceKindAPIGateway:
+			if _, ok := snap.APIGateway.UpstreamsSet[uid]; !ok {
+				// Discovery chain is not associated with a known explicit or implicit upstream so it is purged/skipped.
+				// The associated watch was likely cancelled.
+				delete(upstreamsSnapshot.DiscoveryChain, uid)
+				s.logger.Trace("discovery-chain watch fired for unknown upstream", "upstream", uid)
+				return nil
+			}
 		case structs.ServiceKindIngressGateway:
 			if _, ok := snap.IngressGateway.UpstreamsSet[uid]; !ok {
 				// Discovery chain is not associated with a known explicit or implicit upstream so it is purged/skipped.
