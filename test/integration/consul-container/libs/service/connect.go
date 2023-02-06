@@ -40,7 +40,24 @@ func (g ConnectContainer) GetAddr() (string, int) {
 }
 
 func (g ConnectContainer) Restart() error {
-	return fmt.Errorf("Restart Unimplemented by ConnectContainer")
+	_, err := g.GetStatus()
+	if err != nil {
+		return fmt.Errorf("error fetching sidecar container state %s", err)
+	}
+
+	fmt.Printf("Stopping container: %s\n", g.GetName())
+	err = g.container.Stop(g.ctx, nil)
+
+	if err != nil {
+		return fmt.Errorf("error stopping sidecar container %s", err)
+	}
+
+	fmt.Printf("Starting container: %s\n", g.GetName())
+	err = g.container.Start(g.ctx)
+	if err != nil {
+		return fmt.Errorf("error starting sidecar container %s", err)
+	}
+	return nil
 }
 
 func (g ConnectContainer) GetLogs() (string, error) {
