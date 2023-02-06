@@ -1,0 +1,3 @@
+```release-note:bug
+config-entry(service-defaults): fix proxy config of service-defaults doesn't override the defaults
+```
