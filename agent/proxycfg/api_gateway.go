@@ -284,8 +284,26 @@ func (h *handlerAPIGateway) handleRouteConfigUpdate(ctx context.Context, u Updat
 	case *structs.HTTPRouteConfigEntry:
 		snap.APIGateway.HTTPRoutes.Set(ref, route)
 
-		// TODO Watch each referenced discovery chain
-		break
+		for _, rule := range route.Rules {
+			for _, service := range rule.Services {
+				upstreamID := NewUpstreamIDFromServiceName(structs.NewServiceName(service.Name, &service.EnterpriseMeta))
+				seenUpstreamIDs[upstreamID] = struct{}{}
+
+				watchOpts := discoveryChainWatchOpts{
+					id:        upstreamID,
+					name:      service.Name,
+					namespace: service.NamespaceOrDefault(),
+					partition: service.PartitionOrDefault(),
+					datacenter: h.stateConfig.source.Datacenter,
+				}
+
+				handler := &handlerUpstreams{handlerState: h.handlerState}
+				if err := handler.watchDiscoveryChain(ctx, snap, watchOpts); err != nil {
+					return fmt.Errorf("failed to watch discovery chain for %s: %w", upstreamID, err)
+				}
+			}
+		}
+
 	case *structs.TCPRouteConfigEntry:
 		snap.APIGateway.TCPRoutes.Set(ref, route)
 
