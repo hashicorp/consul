@@ -286,7 +286,7 @@ func (h *handlerAPIGateway) handleRouteConfigUpdate(ctx context.Context, u Updat
 
 		for _, rule := range route.Rules {
 			for _, service := range rule.Services {
-				upstreamID := NewUpstreamIDFromServiceName(structs.NewServiceName(service.Name, &service.EnterpriseMeta))
+				upstreamID := NewUpstreamIDFromServiceName(service.ServiceName())
 				seenUpstreamIDs[upstreamID] = struct{}{}
 
 				watchOpts := discoveryChainWatchOpts{
@@ -313,7 +313,7 @@ func (h *handlerAPIGateway) handleRouteConfigUpdate(ctx context.Context, u Updat
 			//   Maybe we should collect these in h.handleGatewayServicesUpdate
 			//upstream := structs.Upstream{}
 
-			upstreamID := NewUpstreamIDFromServiceName(structs.NewServiceName(service.Name, &service.EnterpriseMeta))
+			upstreamID := NewUpstreamIDFromServiceName(service.ServiceName())
 			seenUpstreamIDs[upstreamID] = struct{}{}
 
 			watchOpts := discoveryChainWatchOpts{

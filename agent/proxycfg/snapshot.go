@@ -663,6 +663,8 @@ type configSnapshotAPIGateway struct {
 	// Upstreams is a list of upstreams this ingress gateway should serve traffic
 	// to. This is constructed from the ingress-gateway config entry, and uses
 	// the GatewayServices RPC to retrieve them.
+	// TODO Determine if this is updated "for free" or not. If not, we might need
+	//   to do some work to populate it in handlerAPIGateway
 	Upstreams map[IngressListenerKey]structs.Upstreams
 
 	// UpstreamsSet is the unique set of UpstreamID the gateway routes to.
