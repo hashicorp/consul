@@ -13,6 +13,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/consul/envoyextensions/xdscommon"
 	"github.com/mitchellh/cli"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -20,7 +21,6 @@ import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/agent/xds"
-	"github.com/hashicorp/consul/agent/xds/proxysupport"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil"
 )
@@ -1701,44 +1701,44 @@ func TestCheckEnvoyVersionCompatibility(t *testing.T) {
 	}{
 		{
 			name:            "supported-using-proxy-support-defined",
-			envoyVersion:    proxysupport.EnvoyVersions[1],
-			unsupportedList: proxysupport.UnsupportedEnvoyVersions,
+			envoyVersion:    xdscommon.EnvoyVersions[1],
+			unsupportedList: xdscommon.UnsupportedEnvoyVersions,
 			expectedSupport: true,
 		},
 		{
 			name:            "supported-at-max",
-			envoyVersion:    proxysupport.GetMaxEnvoyMinorVersion(),
-			unsupportedList: proxysupport.UnsupportedEnvoyVersions,
+			envoyVersion:    xdscommon.GetMaxEnvoyMinorVersion(),
+			unsupportedList: xdscommon.UnsupportedEnvoyVersions,
 			expectedSupport: true,
 		},
 		{
 			name:            "supported-patch-higher",
-			envoyVersion:    addNPatchVersion(proxysupport.EnvoyVersions[0], 1),
-			unsupportedList: proxysupport.UnsupportedEnvoyVersions,
+			envoyVersion:    addNPatchVersion(xdscommon.EnvoyVersions[0], 1),
+			unsupportedList: xdscommon.UnsupportedEnvoyVersions,
 			expectedSupport: true,
 		},
 		{
 			name:            "not-supported-minor-higher",
-			envoyVersion:    addNMinorVersion(proxysupport.EnvoyVersions[0], 1),
-			unsupportedList: proxysupport.UnsupportedEnvoyVersions,
+			envoyVersion:    addNMinorVersion(xdscommon.EnvoyVersions[0], 1),
+			unsupportedList: xdscommon.UnsupportedEnvoyVersions,
 			expectedSupport: false,
 		},
 		{
 			name:            "not-supported-minor-lower",
-			envoyVersion:    addNMinorVersion(proxysupport.EnvoyVersions[len(proxysupport.EnvoyVersions)-1], -1),
-			unsupportedList: proxysupport.UnsupportedEnvoyVersions,
+			envoyVersion:    addNMinorVersion(xdscommon.EnvoyVersions[len(xdscommon.EnvoyVersions)-1], -1),
+			unsupportedList: xdscommon.UnsupportedEnvoyVersions,
 			expectedSupport: false,
 		},
 		{
 			name:            "not-supported-explicitly-unsupported-version",
-			envoyVersion:    addNPatchVersion(proxysupport.EnvoyVersions[0], 1),
-			unsupportedList: []string{"1.23.1", addNPatchVersion(proxysupport.EnvoyVersions[0], 1)},
+			envoyVersion:    addNPatchVersion(xdscommon.EnvoyVersions[0], 1),
+			unsupportedList: []string{"1.23.1", addNPatchVersion(xdscommon.EnvoyVersions[0], 1)},
 			expectedSupport: false,
 		},
 		{
 			name:            "error-bad-input",
 			envoyVersion:    "1.abc.3",
-			unsupportedList: proxysupport.UnsupportedEnvoyVersions,
+			unsupportedList: xdscommon.UnsupportedEnvoyVersions,
 			expectedSupport: false,
 			isErrorExpected: true,
 		},

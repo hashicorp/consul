@@ -1,4 +1,4 @@
-package proxysupport
+package xdscommon
 
 import "strings"
 

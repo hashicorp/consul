@@ -8,10 +8,10 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/hashicorp/consul/agent/envoyextensions/extensioncommon"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/envoyextensions/extensioncommon"
 )
 
 func TestGetRuntimeConfigurations_TerminatingGateway(t *testing.T) {
@@ -52,7 +52,7 @@ func TestGetRuntimeConfigurations_TerminatingGateway(t *testing.T) {
 					},
 				},
 				ServiceName: webService,
-				Upstreams: map[api.CompoundServiceName]extensioncommon.UpstreamData{
+				Upstreams: map[api.CompoundServiceName]*extensioncommon.UpstreamData{
 					apiService: {
 						SNI: map[string]struct{}{
 							"api.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul": {},
@@ -156,7 +156,7 @@ func TestGetRuntimeConfigurations_ConnectProxy(t *testing.T) {
 							},
 						},
 						ServiceName: dbService,
-						Upstreams: map[api.CompoundServiceName]extensioncommon.UpstreamData{
+						Upstreams: map[api.CompoundServiceName]*extensioncommon.UpstreamData{
 							dbService: {
 								SNI: map[string]struct{}{
 									"db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul": {},
@@ -176,7 +176,7 @@ func TestGetRuntimeConfigurations_ConnectProxy(t *testing.T) {
 							},
 						},
 						ServiceName: dbService,
-						Upstreams: map[api.CompoundServiceName]extensioncommon.UpstreamData{
+						Upstreams: map[api.CompoundServiceName]*extensioncommon.UpstreamData{
 							dbService: {
 								SNI: map[string]struct{}{
 									"db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul": {},
@@ -204,7 +204,7 @@ func TestGetRuntimeConfigurations_ConnectProxy(t *testing.T) {
 							},
 						},
 						ServiceName: dbService,
-						Upstreams: map[api.CompoundServiceName]extensioncommon.UpstreamData{
+						Upstreams: map[api.CompoundServiceName]*extensioncommon.UpstreamData{
 							dbService: {
 								SNI: map[string]struct{}{
 									"db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul": {},
@@ -224,7 +224,7 @@ func TestGetRuntimeConfigurations_ConnectProxy(t *testing.T) {
 							},
 						},
 						ServiceName: dbService,
-						Upstreams: map[api.CompoundServiceName]extensioncommon.UpstreamData{
+						Upstreams: map[api.CompoundServiceName]*extensioncommon.UpstreamData{
 							dbService: {
 								SNI: map[string]struct{}{
 									"db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul": {},
