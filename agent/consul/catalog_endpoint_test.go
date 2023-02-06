@@ -3876,13 +3876,10 @@ func TestVetDeregisterWithACL(t *testing.T) {
 
 	// Create a basic node policy.
 	policy, err := acl.NewPolicyFromSource(`
-node "node" {
-  policy = "write"
-},
-node_prefix "node" {
-  policy = "write"
-}
-`, nil, nil)
+    node_prefix "node" {
+      policy = "write"
+    }
+    `, nil, nil)
 	if err != nil {
 		t.Fatalf("err %v", err)
 	}

@@ -290,7 +290,7 @@ func (pr *PolicyRules) Validate(conf *Config) error {
 	return nil
 }
 
-func parseCurrent(rules string, conf *Config, meta *EnterprisePolicyMeta) (*Policy, error) {
+func parse(rules string, conf *Config, meta *EnterprisePolicyMeta) (*Policy, error) {
 	p, err := decodeRules(rules, conf, meta)
 	if err != nil {
 		return nil, err
@@ -318,7 +318,7 @@ func NewPolicyFromSource(rules string, conf *Config, meta *EnterprisePolicyMeta)
 
 	var policy *Policy
 	var err error
-	policy, err = parseCurrent(rules, conf, meta)
+	policy, err = parse(rules, conf, meta)
 	return policy, err
 }
 
