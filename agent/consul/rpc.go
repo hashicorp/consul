@@ -558,7 +558,7 @@ func (c *limitedConn) Read(b []byte) (n int, err error) {
 }
 
 func getWaitTime(rpcHoldTimeout time.Duration, retryCount int) time.Duration {
-	const backoffMultiplierInSeconds = 2.0
+	const backoffMultiplier = 2.0
 
 	rpcHoldTimeoutInMilli := int(rpcHoldTimeout.Milliseconds())
 	initialBackoffInMilli := rpcHoldTimeoutInMilli / structs.JitterFraction
@@ -567,9 +567,9 @@ func getWaitTime(rpcHoldTimeout time.Duration, retryCount int) time.Duration {
 		initialBackoffInMilli = 1
 	}
 
-	waitTimeInSeconds := initialBackoffInMilli * int(math.Pow(backoffMultiplierInSeconds, float64(retryCount-1)))
+	waitTimeInMilli := initialBackoffInMilli * int(math.Pow(backoffMultiplier, float64(retryCount-1)))
 
-	return time.Duration(waitTimeInSeconds) * time.Millisecond
+	return time.Duration(waitTimeInMilli) * time.Millisecond
 }
 
 // canRetry returns true if the request and error indicate that a retry is safe.
