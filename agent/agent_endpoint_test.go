@@ -4915,7 +4915,7 @@ func testAgent_RegisterServiceDeregisterService_Sidecar_UDP(t *testing.T, extraH
 			}
 			`,
 			enableACL: true,
-			policies:  ``, // No token rules means no valid token
+			policies:  ``, // No policies means no valid token
 			wantNS:    nil,
 			wantErr:   "Permission denied",
 		},

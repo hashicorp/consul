@@ -505,13 +505,13 @@ func TestACL_filterHealthChecks(t *testing.T) {
 			service "foo" {
 			  policy = "read"
 			}
-            service_prefix "foo" {
+			service_prefix "foo" {
 			  policy = "read"
 			}
 			node "node1" {
 			  policy = "read"
 			}
-            node_prefix "node1" {
+			node_prefix "node1" {
 			  policy = "read"
 			}
 		`, nil, nil)
@@ -533,7 +533,7 @@ func TestACL_filterHealthChecks(t *testing.T) {
 			service "foo" {
 			  policy = "read"
 			}
-            service_prefix "foo" {
+			service_prefix "foo" {
 			  policy = "read"
 			}
 		`, nil, nil)
@@ -555,7 +555,7 @@ func TestACL_filterHealthChecks(t *testing.T) {
 			node "node1" {
 			  policy = "read"
 			}
-            node_prefix "node1" {
+			node_prefix "node1" {
 			  policy = "read"
 			}
 		`, nil, nil)
@@ -616,7 +616,7 @@ func TestACL_filterIntentions(t *testing.T) {
 			service "foo" {
 			  policy = "read"
 			}
-            service_prefix "foo" {
+			service_prefix "foo" {
 			  policy = "read"
 			}
 		`, nil, nil)
@@ -1623,7 +1623,7 @@ func TestACL_filterNodeDump(t *testing.T) {
 			node "" {
 			  policy = "read"
 			},
-            node_prefix "" {
+			node_prefix "" {
 			  policy = "read"
 			}
 		`, nil, nil)
