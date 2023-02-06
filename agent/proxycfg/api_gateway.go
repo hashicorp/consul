@@ -122,13 +122,6 @@ func (h *handlerAPIGateway) handleUpdate(ctx context.Context, u UpdateEvent, sna
 		if err := h.handleRouteConfigUpdate(ctx, u, snap); err != nil {
 			return err
 		}
-	// TODO Suspect gatewayServicesWatchID is not applicable to API Gateway
-	//   since we handle all of this logic in the xRoute watchers
-	case u.CorrelationID == gatewayServicesWatchID:
-		// Handle change in the upstream services for the bound-api-gateway
-		if err := h.handleGatewayServicesUpdate(ctx, u, snap); err != nil {
-			return err
-		}
 	default:
 		return (*handlerUpstreams)(h).handleUpdateUpstreams(ctx, u, snap)
 	}
@@ -434,69 +427,6 @@ func (h *handlerAPIGateway) referenceIsForListener(ref structs.ResourceReference
 		return false
 	}
 	return ref.SectionName == "" || ref.SectionName == listener.Name
-}
-
-// handleGatewayServicesUpdate responds to changes in the set of watched upstreams for a gateway
-func (h *handlerAPIGateway) handleGatewayServicesUpdate(ctx context.Context, u UpdateEvent, snap *ConfigSnapshot) error {
-	services, ok := u.Result.(*structs.IndexedGatewayServices)
-	if !ok {
-		return fmt.Errorf("invalid type for response: %T", u.Result)
-	}
-
-	// Update our upstreams and watches.
-	var hosts []string
-	watchedSvcs := make(map[UpstreamID]struct{})
-	upstreams := make(map[IngressListenerKey]structs.Upstreams)
-	for _, service := range services.Services {
-		upstream := makeUpstreamForGatewayService(service)
-		uid := NewUpstreamID(&upstream)
-
-		// TODO(peering): pipe destination_peer here
-		watchOpts := discoveryChainWatchOpts{
-			id:         uid,
-			name:       upstream.DestinationName,
-			namespace:  upstream.DestinationNamespace,
-			partition:  upstream.DestinationPartition,
-			datacenter: h.source.Datacenter,
-		}
-
-		up := &handlerUpstreams{handlerState: h.handlerState}
-		if err := up.watchDiscoveryChain(ctx, snap, watchOpts); err != nil {
-			return fmt.Errorf("failed to watch discovery chain for %h: %v", uid, err)
-		}
-		watchedSvcs[uid] = struct{}{}
-
-		hosts = append(hosts, service.Hosts...)
-
-		id := IngressListenerKeyFromGWService(*service)
-		upstreams[id] = append(upstreams[id], upstream)
-	}
-
-	snap.APIGateway.Upstreams = upstreams
-	snap.APIGateway.UpstreamsSet = watchedSvcs
-	snap.APIGateway.Hosts = hosts
-	snap.APIGateway.HostsSet = true
-
-	for uid, cancelFn := range snap.APIGateway.WatchedDiscoveryChains {
-		if _, ok := watchedSvcs[uid]; !ok {
-			for targetID, cancelUpstreamFn := range snap.APIGateway.WatchedUpstreams[uid] {
-				delete(snap.APIGateway.WatchedUpstreams[uid], targetID)
-				delete(snap.APIGateway.WatchedUpstreamEndpoints[uid], targetID)
-				cancelUpstreamFn()
-
-				targetUID := NewUpstreamIDFromTargetID(targetID)
-				if targetUID.Peer != "" {
-					snap.APIGateway.PeerUpstreamEndpoints.CancelWatch(targetUID)
-					snap.APIGateway.UpstreamPeerTrustBundles.CancelWatch(targetUID.Peer)
-				}
-			}
-
-			cancelFn()
-			delete(snap.APIGateway.WatchedDiscoveryChains, uid)
-		}
-	}
-
-	return h.watchIngressLeafCert(ctx, snap)
 }
 
 func (h *handlerAPIGateway) watchIngressLeafCert(ctx context.Context, snap *ConfigSnapshot) error {
