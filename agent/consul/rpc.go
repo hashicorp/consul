@@ -557,14 +557,19 @@ func (c *limitedConn) Read(b []byte) (n int, err error) {
 	return c.lr.Read(b)
 }
 
-func getWaitTime(config *Config, previousWaitTime time.Duration, retryCount int) time.Duration {
-	rpcHoldTimeoutInSeconds := config.RPCHoldTimeout.Seconds()
-	initialBackoffInSeconds := math.Min(1, rpcHoldTimeoutInSeconds/structs.JitterFraction)
-	backoffMultiplierInSeconds := 2.0
+func getWaitTime(rpcHoldTimeout time.Duration, retryCount int) time.Duration {
+	const backoffMultiplierInSeconds = 2.0
 
-	waitTimeInSeconds := initialBackoffInSeconds * math.Pow(backoffMultiplierInSeconds, float64(retryCount-1))
+	rpcHoldTimeoutInMilli := int(rpcHoldTimeout.Milliseconds())
+	initialBackoffInMilli := rpcHoldTimeoutInMilli / structs.JitterFraction
 
-	return lib.RandomStaggerWithRange(previousWaitTime, time.Duration(waitTimeInSeconds*float64(time.Second)))
+	if initialBackoffInMilli < 1 {
+		initialBackoffInMilli = 1
+	}
+
+	waitTimeInSeconds := initialBackoffInMilli * int(math.Pow(backoffMultiplierInSeconds, float64(retryCount-1)))
+
+	return time.Duration(waitTimeInSeconds) * time.Millisecond
 }
 
 // canRetry returns true if the request and error indicate that a retry is safe.
@@ -761,7 +766,7 @@ CHECK_LEADER:
 
 	if retry := canRetry(info, rpcErr, firstCheck, s.config, retryableMessages); retry {
 		// Gate the request until there is a leader
-		jitter := getWaitTime(s.config, previousJitter, retryCount)
+		jitter := lib.RandomStaggerWithRange(previousJitter, getWaitTime(s.config.RPCHoldTimeout, retryCount))
 		previousJitter = jitter
 
 		select {

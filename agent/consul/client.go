@@ -325,7 +325,7 @@ TRY:
 	)
 
 	// We can wait a bit and retry!
-	jitter := getWaitTime(c.config, previousJitter, retryCount)
+	jitter := lib.RandomStaggerWithRange(previousJitter, getWaitTime(c.config.RPCHoldTimeout, retryCount))
 	previousJitter = jitter
 
 	select {

@@ -1622,42 +1622,48 @@ func TestRPC_AuthorizeRaftRPC(t *testing.T) {
 
 func TestGetWaitTime(t *testing.T) {
 	type testCase struct {
-		name       string
-		previous   time.Duration
-		expected   time.Duration
-		retryCount int
+		name           string
+		RPCHoldTimeout time.Duration
+		expected       time.Duration
+		retryCount     int
 	}
 	config := DefaultConfig()
-	config.RPCHoldTimeout = 7 * time.Second
+
 	run := func(t *testing.T, tc testCase) {
-		require.GreaterOrEqual(t, getWaitTime(config, tc.previous, tc.retryCount), tc.previous)
-		require.LessOrEqual(t, getWaitTime(config, tc.previous, tc.retryCount), tc.expected)
+		config.RPCHoldTimeout = tc.RPCHoldTimeout
+		require.Equal(t, tc.expected, getWaitTime(config.RPCHoldTimeout, tc.retryCount))
 	}
 
 	var testCases = []testCase{
 		{
-			name:       "first attempt",
-			retryCount: 1,
-			previous:   time.Duration(0),
-			expected:   time.Duration(430) * time.Millisecond,
+			name:           "init backoff small",
+			RPCHoldTimeout: 7 * time.Millisecond,
+			retryCount:     1,
+			expected:       1 * time.Millisecond,
 		},
 		{
-			name:       "second attempt",
-			retryCount: 2,
-			previous:   time.Duration(430) * time.Millisecond,
-			expected:   time.Duration(860) * time.Millisecond,
+			name:           "first attempt",
+			RPCHoldTimeout: 7 * time.Second,
+			retryCount:     1,
+			expected:       437 * time.Millisecond,
 		},
 		{
-			name:       "third attempt",
-			retryCount: 3,
-			previous:   time.Duration(860) * time.Millisecond,
-			expected:   time.Duration(1720) * time.Millisecond,
+			name:           "second attempt",
+			RPCHoldTimeout: 7 * time.Second,
+			retryCount:     2,
+			expected:       874 * time.Millisecond,
 		},
 		{
-			name:       "fourth attempt",
-			retryCount: 4,
-			previous:   time.Duration(1720) * time.Millisecond,
-			expected:   time.Duration(3440) * time.Millisecond,
+			name:           "third attempt",
+			RPCHoldTimeout: 7 * time.Second,
+			retryCount:     3,
+			expected:       1748 * time.Millisecond,
+		},
+		{
+			name:           "fourth attempt",
+			RPCHoldTimeout: 7 * time.Second,
+			retryCount:     4,
+			expected:       3496 * time.Millisecond,
 		},
 	}
 
