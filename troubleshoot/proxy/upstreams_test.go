@@ -24,7 +24,7 @@ func TestGetUpstreamIPsFromFilterChain(t *testing.T) {
 			},
 			IsVirtual: false,
 			ClusterNames: map[string]struct{}{
-				"passthrough~foo.default.dc1.internal.dc1.consul": struct{}{},
+				"passthrough~foo.default.dc1.internal.dc1.consul": {},
 			},
 		},
 		{
@@ -34,7 +34,7 @@ func TestGetUpstreamIPsFromFilterChain(t *testing.T) {
 			},
 			IsVirtual: true,
 			ClusterNames: map[string]struct{}{
-				"foo.default.dc1.internal.dc1.consul": struct{}{},
+				"foo.default.dc1.internal.dc1.consul": {},
 			},
 		},
 	}
