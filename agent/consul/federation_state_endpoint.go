@@ -58,7 +58,7 @@ func (c *FederationState) Apply(args *structs.FederationStateRequest, reply *boo
 	defer metrics.MeasureSince([]string{"federation_state", "apply"}, time.Now())
 
 	// Fetch the ACL token, if any.
-	authz, err := c.srv.ResolveToken(args.Token)
+	authz, err := c.srv.ResolveTokenSecret(args.Token)
 	if err != nil {
 		return err
 	}
@@ -104,7 +104,7 @@ func (c *FederationState) Get(args *structs.FederationStateQuery, reply *structs
 	defer metrics.MeasureSince([]string{"federation_state", "get"}, time.Now())
 
 	// Fetch the ACL token, if any.
-	authz, err := c.srv.ResolveToken(args.Token)
+	authz, err := c.srv.ResolveTokenSecret(args.Token)
 	if err != nil {
 		return err
 	}
@@ -143,7 +143,7 @@ func (c *FederationState) List(args *structs.DCSpecificRequest, reply *structs.I
 	defer metrics.MeasureSince([]string{"federation_state", "list"}, time.Now())
 
 	// Fetch the ACL token, if any.
-	authz, err := c.srv.ResolveToken(args.Token)
+	authz, err := c.srv.ResolveTokenSecret(args.Token)
 	if err != nil {
 		return err
 	}

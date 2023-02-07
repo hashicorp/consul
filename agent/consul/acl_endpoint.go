@@ -724,7 +724,7 @@ func (a *ACL) TokenBatchRead(args *structs.ACLTokenBatchGetRequest, reply *struc
 		return err
 	}
 
-	authz, err := a.srv.ResolveToken(args.Token)
+	authz, err := a.srv.ResolveTokenSecret(args.Token)
 	if err != nil {
 		return err
 	}
@@ -817,7 +817,7 @@ func (a *ACL) PolicyBatchRead(args *structs.ACLPolicyBatchGetRequest, reply *str
 		return err
 	}
 
-	authz, err := a.srv.ResolveToken(args.Token)
+	authz, err := a.srv.ResolveTokenSecret(args.Token)
 	if err != nil {
 		return err
 	}
@@ -1206,7 +1206,7 @@ func (a *ACL) RoleBatchRead(args *structs.ACLRoleBatchGetRequest, reply *structs
 		return err
 	}
 
-	authz, err := a.srv.ResolveToken(args.Token)
+	authz, err := a.srv.ResolveTokenSecret(args.Token)
 	if err != nil {
 		return err
 	}
@@ -2149,7 +2149,7 @@ func (a *ACL) Authorize(args *structs.RemoteACLAuthorizationRequest, reply *[]st
 		return err
 	}
 
-	authz, err := a.srv.ResolveToken(args.Token)
+	authz, err := a.srv.ResolveTokenSecret(args.Token)
 	if err != nil {
 		return err
 	}
