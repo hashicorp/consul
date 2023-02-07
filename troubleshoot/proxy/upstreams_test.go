@@ -22,16 +22,20 @@ func TestGetUpstreamIPsFromFilterChain(t *testing.T) {
 				"10.244.0.63",
 				"10.244.0.64",
 			},
-			IsVirtual:    false,
-			ClusterNames: map[string]struct{}{"passthrough~foo.default.dc1.internal.dc1.consul": struct{}{}},
+			IsVirtual: false,
+			ClusterNames: map[string]struct{}{
+				"passthrough~foo.default.dc1.internal.dc1.consul": struct{}{},
+			},
 		},
 		{
 			IPs: []string{
 				"10.96.5.96",
 				"240.0.0.1",
 			},
-			IsVirtual:    true,
-			ClusterNames: map[string]struct{}{"foo.default.dc1.internal.dc1.consul": struct{}{}},
+			IsVirtual: true,
+			ClusterNames: map[string]struct{}{
+				"foo.default.dc1.internal.dc1.consul": struct{}{},
+			},
 		},
 	}
 
