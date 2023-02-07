@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/proto/pbpeering"
 	"github.com/hashicorp/consul/types"
+	"time"
 )
 
 // DeepCopy generates a deep copy of *ConfigSnapshot
@@ -227,6 +228,68 @@ func (o *configSnapshotAPIGateway) DeepCopy() *configSnapshotAPIGateway {
 	if o.TLSConfig.CipherSuites != nil {
 		cp.TLSConfig.CipherSuites = make([]types.TLSCipherSuite, len(o.TLSConfig.CipherSuites))
 		copy(cp.TLSConfig.CipherSuites, o.TLSConfig.CipherSuites)
+	}
+	if o.GatewayConfig != nil {
+		cp.GatewayConfig = new(structs.APIGatewayConfigEntry)
+		*cp.GatewayConfig = *o.GatewayConfig
+		if o.GatewayConfig.Listeners != nil {
+			cp.GatewayConfig.Listeners = make([]structs.APIGatewayListener, len(o.GatewayConfig.Listeners))
+			copy(cp.GatewayConfig.Listeners, o.GatewayConfig.Listeners)
+			for i4 := range o.GatewayConfig.Listeners {
+				if o.GatewayConfig.Listeners[i4].TLS.Certificates != nil {
+					cp.GatewayConfig.Listeners[i4].TLS.Certificates = make([]structs.ResourceReference, len(o.GatewayConfig.Listeners[i4].TLS.Certificates))
+					copy(cp.GatewayConfig.Listeners[i4].TLS.Certificates, o.GatewayConfig.Listeners[i4].TLS.Certificates)
+				}
+				if o.GatewayConfig.Listeners[i4].TLS.CipherSuites != nil {
+					cp.GatewayConfig.Listeners[i4].TLS.CipherSuites = make([]types.TLSCipherSuite, len(o.GatewayConfig.Listeners[i4].TLS.CipherSuites))
+					copy(cp.GatewayConfig.Listeners[i4].TLS.CipherSuites, o.GatewayConfig.Listeners[i4].TLS.CipherSuites)
+				}
+			}
+		}
+		if o.GatewayConfig.Status.Conditions != nil {
+			cp.GatewayConfig.Status.Conditions = make([]structs.Condition, len(o.GatewayConfig.Status.Conditions))
+			copy(cp.GatewayConfig.Status.Conditions, o.GatewayConfig.Status.Conditions)
+			for i5 := range o.GatewayConfig.Status.Conditions {
+				if o.GatewayConfig.Status.Conditions[i5].Resource != nil {
+					cp.GatewayConfig.Status.Conditions[i5].Resource = new(structs.ResourceReference)
+					*cp.GatewayConfig.Status.Conditions[i5].Resource = *o.GatewayConfig.Status.Conditions[i5].Resource
+				}
+				if o.GatewayConfig.Status.Conditions[i5].LastTransitionTime != nil {
+					cp.GatewayConfig.Status.Conditions[i5].LastTransitionTime = new(time.Time)
+					*cp.GatewayConfig.Status.Conditions[i5].LastTransitionTime = *o.GatewayConfig.Status.Conditions[i5].LastTransitionTime
+				}
+			}
+		}
+		if o.GatewayConfig.Meta != nil {
+			cp.GatewayConfig.Meta = make(map[string]string, len(o.GatewayConfig.Meta))
+			for k4, v4 := range o.GatewayConfig.Meta {
+				cp.GatewayConfig.Meta[k4] = v4
+			}
+		}
+	}
+	if o.BoundGatewayConfig != nil {
+		cp.BoundGatewayConfig = new(structs.BoundAPIGatewayConfigEntry)
+		*cp.BoundGatewayConfig = *o.BoundGatewayConfig
+		if o.BoundGatewayConfig.Listeners != nil {
+			cp.BoundGatewayConfig.Listeners = make([]structs.BoundAPIGatewayListener, len(o.BoundGatewayConfig.Listeners))
+			copy(cp.BoundGatewayConfig.Listeners, o.BoundGatewayConfig.Listeners)
+			for i4 := range o.BoundGatewayConfig.Listeners {
+				if o.BoundGatewayConfig.Listeners[i4].Routes != nil {
+					cp.BoundGatewayConfig.Listeners[i4].Routes = make([]structs.ResourceReference, len(o.BoundGatewayConfig.Listeners[i4].Routes))
+					copy(cp.BoundGatewayConfig.Listeners[i4].Routes, o.BoundGatewayConfig.Listeners[i4].Routes)
+				}
+				if o.BoundGatewayConfig.Listeners[i4].Certificates != nil {
+					cp.BoundGatewayConfig.Listeners[i4].Certificates = make([]structs.ResourceReference, len(o.BoundGatewayConfig.Listeners[i4].Certificates))
+					copy(cp.BoundGatewayConfig.Listeners[i4].Certificates, o.BoundGatewayConfig.Listeners[i4].Certificates)
+				}
+			}
+		}
+		if o.BoundGatewayConfig.Meta != nil {
+			cp.BoundGatewayConfig.Meta = make(map[string]string, len(o.BoundGatewayConfig.Meta))
+			for k4, v4 := range o.BoundGatewayConfig.Meta {
+				cp.BoundGatewayConfig.Meta[k4] = v4
+			}
+		}
 	}
 	if o.Hosts != nil {
 		cp.Hosts = make([]string, len(o.Hosts))
