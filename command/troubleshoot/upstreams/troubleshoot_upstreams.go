@@ -68,15 +68,20 @@ func (c *cmd) Run(args []string) int {
 		c.UI.Error("error generating troubleshoot client: " + err.Error())
 		return 1
 	}
-	upstreams, err := t.GetUpstreams()
+	envoyIDs, upstreamIPs, err := t.GetUpstreams()
 	if err != nil {
 		c.UI.Error("error calling GetUpstreams: " + err.Error())
 		return 1
 	}
 
-	for _, u := range upstreams {
+	for _, u := range envoyIDs {
 		c.UI.Output(u)
 	}
+
+	for _, u := range upstreamIPs {
+		c.UI.Output(fmt.Sprintf("%+v   %v   %+v", u.IPs, u.IsVirtual, u.ClusterNames))
+	}
+
 	return 0
 }
 
