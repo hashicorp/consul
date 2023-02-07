@@ -112,7 +112,9 @@ func (t *Troubleshoot) GetUpstreams() ([]string, error) {
 
 			for _, listener := range lcd.GetDynamicListeners() {
 				upstream := envoyID(listener.Name)
-				if upstream != "" && upstream != "public_listener" {
+				if upstream != "" && upstream != "public_listener" &&
+					upstream != "outbound_listener" &&
+					upstream != "inbound_listener" {
 					upstreams = append(upstreams, upstream)
 				}
 			}
