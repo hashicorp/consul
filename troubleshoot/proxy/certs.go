@@ -1,6 +1,7 @@
 package troubleshoot
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
@@ -14,6 +15,14 @@ func (t *Troubleshoot) validateCerts(certs *envoy_admin_v3.Certificates) error {
 	// TODO: we can probably warn if the expiration date is close
 	var resultErr error
 	now := time.Now()
+
+	if certs == nil {
+		return errors.New("certs object is nil")
+	}
+
+	if len(certs.GetCertificates()) == 0 {
+		return errors.New("no certificates provided")
+	}
 
 	for _, cert := range certs.GetCertificates() {
 		for _, cacert := range cert.GetCaCert() {
