@@ -66,7 +66,7 @@ func reconcileEntry[T structs.ControlledConfigEntry](store *state.Store, ctx con
 	return reconciler(ctx, req, store, entry.(T))
 }
 
-func (r apiGatewayReconciler) enqueueCertificateReferencedGateways(store *state.Store, ctx context.Context, req controller.Request) error {
+func (r apiGatewayReconciler) enqueueCertificateReferencedGateways(store *state.Store, _ context.Context, req controller.Request) error {
 	logger := r.logger.With("inline-certificate", req.Name, "partition", req.Meta.PartitionOrDefault(), "namespace", req.Meta.NamespaceOrDefault())
 	logger.Debug("certificate changed, enqueueing dependent gateways")
 	defer logger.Debug("finished enqueuing gateways")
@@ -98,7 +98,7 @@ func (r apiGatewayReconciler) enqueueCertificateReferencedGateways(store *state.
 	return nil
 }
 
-func (r apiGatewayReconciler) cleanupBoundGateway(ctx context.Context, req controller.Request, store *state.Store) error {
+func (r apiGatewayReconciler) cleanupBoundGateway(_ context.Context, req controller.Request, store *state.Store) error {
 	logger := r.logger.With("bound-gateway", req.Name, "partition", req.Meta.PartitionOrDefault(), "namespace", req.Meta.NamespaceOrDefault())
 	logger.Debug("cleaning up bound gateway")
 	defer logger.Debug("finished cleaning up bound gateway")
@@ -119,7 +119,7 @@ func (r apiGatewayReconciler) cleanupBoundGateway(ctx context.Context, req contr
 	return nil
 }
 
-func (r apiGatewayReconciler) reconcileBoundGateway(ctx context.Context, req controller.Request, store *state.Store, bound *structs.BoundAPIGatewayConfigEntry) error {
+func (r apiGatewayReconciler) reconcileBoundGateway(_ context.Context, req controller.Request, store *state.Store, bound *structs.BoundAPIGatewayConfigEntry) error {
 	// this reconciler handles orphaned bound gateways at startup, it just checks to make sure there's still an existing gateway, and if not, it deletes the bound gateway
 	logger := r.logger.With("bound-gateway", req.Name, "partition", req.Meta.PartitionOrDefault(), "namespace", req.Meta.NamespaceOrDefault())
 	logger.Debug("reconciling bound gateway")
@@ -136,7 +136,7 @@ func (r apiGatewayReconciler) reconcileBoundGateway(ctx context.Context, req con
 	return nil
 }
 
-func (r apiGatewayReconciler) cleanupGateway(ctx context.Context, req controller.Request, store *state.Store) error {
+func (r apiGatewayReconciler) cleanupGateway(_ context.Context, req controller.Request, store *state.Store) error {
 	logger := r.logger.With("gateway", req.Name, "partition", req.Meta.PartitionOrDefault(), "namespace", req.Meta.NamespaceOrDefault())
 	logger.Debug("cleaning up deleted gateway")
 	defer logger.Debug("finished cleaning up deleted gateway")
@@ -148,7 +148,7 @@ func (r apiGatewayReconciler) cleanupGateway(ctx context.Context, req controller
 	return r.updater.Delete(bound)
 }
 
-func (r apiGatewayReconciler) reconcileGateway(ctx context.Context, req controller.Request, store *state.Store, gateway *structs.APIGatewayConfigEntry) error {
+func (r apiGatewayReconciler) reconcileGateway(_ context.Context, req controller.Request, store *state.Store, gateway *structs.APIGatewayConfigEntry) error {
 	now := time.Now()
 
 	logger := r.logger.With("gateway", req.Name, "partition", req.Meta.PartitionOrDefault(), "namespace", req.Meta.NamespaceOrDefault())
@@ -211,7 +211,7 @@ func (r apiGatewayReconciler) reconcileGateway(ctx context.Context, req controll
 		_, boundRefs, bindErrors := BindRoutesToGateways([]*gatewayMeta{meta}, route)
 		// unset the old gateway binding in case it's stale
 		for _, parent := range route.GetParents() {
-			if parent.Kind == gateway.Kind && parent.Name == parent.Name && parent.EnterpriseMeta.IsSame(&gateway.EnterpriseMeta) {
+			if parent.Kind == gateway.Kind && parent.Name == gateway.Name && parent.EnterpriseMeta.IsSame(&gateway.EnterpriseMeta) {
 				routeUpdater.RemoveCondition(structs.Condition{
 					Type:     "Bound",
 					Resource: &parent,
@@ -310,7 +310,7 @@ func (r apiGatewayReconciler) reconcileGateway(ctx context.Context, req controll
 	return nil
 }
 
-func (r apiGatewayReconciler) cleanupRoute(ctx context.Context, req controller.Request, store *state.Store) error {
+func (r apiGatewayReconciler) cleanupRoute(_ context.Context, req controller.Request, store *state.Store) error {
 	meta, err := getAllGatewayMeta(store)
 	if err != nil {
 		return err
@@ -327,7 +327,7 @@ func (r apiGatewayReconciler) cleanupRoute(ctx context.Context, req controller.R
 }
 
 // Reconcile reconciles Route config entries.
-func (r apiGatewayReconciler) reconcileRoute(ctx context.Context, req controller.Request, store *state.Store, route structs.BoundRoute) error {
+func (r apiGatewayReconciler) reconcileRoute(_ context.Context, req controller.Request, store *state.Store, route structs.BoundRoute) error {
 	now := time.Now()
 
 	meta, err := getAllGatewayMeta(store)

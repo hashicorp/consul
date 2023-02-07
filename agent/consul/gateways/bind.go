@@ -103,7 +103,7 @@ func RemoveGateway(gateway structs.ResourceReference, entries ...structs.BoundRo
 	for _, route := range entries {
 		updater := structs.NewStatusUpdater(route)
 		for _, parent := range route.GetParents() {
-			if parent.Kind == gateway.Kind && parent.Name == parent.Name && parent.EnterpriseMeta.IsSame(&gateway.EnterpriseMeta) {
+			if parent.Kind == gateway.Kind && parent.Name == gateway.Name && parent.EnterpriseMeta.IsSame(&gateway.EnterpriseMeta) {
 				updater.SetCondition(structs.Condition{
 					Type:               "Bound",
 					Status:             "False",
