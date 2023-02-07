@@ -17,7 +17,7 @@ func TestConfigEntries_ListRelatedServices_AndACLs(t *testing.T) {
 	// This test tests both of these because they are related functions.
 
 	newAuthz := func(t *testing.T, src string) acl.Authorizer {
-		policy, err := acl.NewPolicyFromSource(src, acl.SyntaxCurrent, nil, nil)
+		policy, err := acl.NewPolicyFromSource(src, nil, nil)
 		require.NoError(t, err)
 
 		authorizer, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
@@ -34,7 +34,7 @@ func TestConfigEntries_ListRelatedServices_AndACLs(t *testing.T) {
 			buf.WriteString(fmt.Sprintf("service %q { policy = %q }\n", s, "write"))
 		}
 
-		policy, err := acl.NewPolicyFromSource(buf.String(), acl.SyntaxCurrent, nil, nil)
+		policy, err := acl.NewPolicyFromSource(buf.String(), nil, nil)
 		require.NoError(t, err)
 
 		authorizer, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)

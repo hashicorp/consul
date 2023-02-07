@@ -526,7 +526,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 
 	a := ACL{srv: srv}
 
-	var tokenID string
+	var accessorID string
 
 	t.Run("Create it", func(t *testing.T) {
 		req := structs.ACLTokenSetRequest{
@@ -563,7 +563,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 		require.Equal(t, "foo", token.NodeIdentities[0].NodeName)
 		require.Equal(t, "dc1", token.NodeIdentities[0].Datacenter)
 
-		tokenID = token.AccessorID
+		accessorID = token.AccessorID
 	})
 
 	t.Run("Update it", func(t *testing.T) {
@@ -571,7 +571,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 			Datacenter: "dc1",
 			ACLToken: structs.ACLToken{
 				Description: "new-description",
-				AccessorID:  tokenID,
+				AccessorID:  accessorID,
 			},
 			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 		}
@@ -1085,7 +1085,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 		require.Equal(t, token.AccessorID, resp.AccessorID)
 		requireTimeEquals(t, &expectExpTime, resp.ExpirationTime)
 
-		tokenID = token.AccessorID
+		accessorID = token.AccessorID
 	})
 
 	var expTime time.Time
@@ -1118,7 +1118,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 		require.Equal(t, token.AccessorID, resp.AccessorID)
 		requireTimeEquals(t, &expTime, resp.ExpirationTime)
 
-		tokenID = token.AccessorID
+		accessorID = token.AccessorID
 	})
 
 	// do not insert another test at this point: these tests need to be serial
@@ -1128,7 +1128,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 			Datacenter: "dc1",
 			ACLToken: structs.ACLToken{
 				Description:    "new-description",
-				AccessorID:     tokenID,
+				AccessorID:     accessorID,
 				ExpirationTime: timePointer(expTime.Add(-1 * time.Second)),
 			},
 			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
@@ -1147,7 +1147,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 			Datacenter: "dc1",
 			ACLToken: structs.ACLToken{
 				Description: "new-description-1",
-				AccessorID:  tokenID,
+				AccessorID:  accessorID,
 			},
 			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 		}
@@ -1174,7 +1174,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 			Datacenter: "dc1",
 			ACLToken: structs.ACLToken{
 				Description:    "new-description-2",
-				AccessorID:     tokenID,
+				AccessorID:     accessorID,
 				ExpirationTime: &expTime,
 			},
 			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},

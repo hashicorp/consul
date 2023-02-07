@@ -3,12 +3,18 @@ package pbservice
 import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/proto/pbcommon"
-	"github.com/hashicorp/consul/proto/pbconfigentry"
 	"github.com/hashicorp/consul/types"
 )
 
 type CheckIDType = types.CheckID
 type NodeIDType = types.NodeID
+
+// Function variables to support proto generation
+// This allows for using functions in the local package without having to generate imports
+var EnvoyExtensionsToStructs = pbcommon.EnvoyExtensionsToStructs
+var EnvoyExtensionsFromStructs = pbcommon.EnvoyExtensionsFromStructs
+var ProtobufTypesStructToMapStringInterface = pbcommon.ProtobufTypesStructToMapStringInterface
+var MapStringInterfaceToProtobufTypesStruct = pbcommon.MapStringInterfaceToProtobufTypesStruct
 
 func RaftIndexToStructs(s *pbcommon.RaftIndex) structs.RaftIndex {
 	if s == nil {
@@ -269,14 +275,4 @@ func NewServiceDefinitionPtrFromStructs(t *structs.ServiceDefinition) *ServiceDe
 	sd := new(ServiceDefinition)
 	ServiceDefinitionFromStructs(t, sd)
 	return sd
-}
-
-// EnvoyExtensionsToStructs converts the protobuf type to structs. This is copied here because it either needs to be in the local package or in structs.
-func EnvoyExtensionsToStructs(args []*pbconfigentry.EnvoyExtension) []structs.EnvoyExtension {
-	return pbconfigentry.EnvoyExtensionsToStructs(args)
-}
-
-// EnvoyExtensionsFromStructs converts the structs type to protobuf type. This is copied here because it either needs to be in the local package or in structs.
-func EnvoyExtensionsFromStructs(args []structs.EnvoyExtension) []*pbconfigentry.EnvoyExtension {
-	return pbconfigentry.EnvoyExtensionsFromStructs(args)
 }

@@ -829,10 +829,6 @@ func TestAgentAntiEntropy_Services_WithChecks(t *testing.T) {
 }
 
 var testRegisterRules = `
- node "" {
- 	policy = "write"
- }
-
  service "api" {
  	policy = "write"
  }
@@ -862,6 +858,9 @@ func TestAgentAntiEntropy_Services_ACLDeny(t *testing.T) {
 	`)
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
+
+	// The agent token is the only token used for deleteService.
+	setAgentToken(t, a)
 
 	token := createToken(t, a, testRegisterRules)
 
@@ -1153,15 +1152,19 @@ type RPC interface {
 func createToken(t *testing.T, rpc RPC, policyRules string) string {
 	t.Helper()
 
+	uniqueId, err := uuid.GenerateUUID()
+	require.NoError(t, err)
+	policyName := "the-policy-" + uniqueId
+
 	reqPolicy := structs.ACLPolicySetRequest{
 		Datacenter: "dc1",
 		Policy: structs.ACLPolicy{
-			Name:  "the-policy",
+			Name:  policyName,
 			Rules: policyRules,
 		},
 		WriteRequest: structs.WriteRequest{Token: "root"},
 	}
-	err := rpc.RPC(context.Background(), "ACL.PolicySet", &reqPolicy, &structs.ACLPolicy{})
+	err = rpc.RPC(context.Background(), "ACL.PolicySet", &reqPolicy, &structs.ACLPolicy{})
 	require.NoError(t, err)
 
 	token, err := uuid.GenerateUUID()
@@ -1171,13 +1174,34 @@ func createToken(t *testing.T, rpc RPC, policyRules string) string {
 		Datacenter: "dc1",
 		ACLToken: structs.ACLToken{
 			SecretID: token,
-			Policies: []structs.ACLTokenPolicyLink{{Name: "the-policy"}},
+			Policies: []structs.ACLTokenPolicyLink{{Name: policyName}},
 		},
 		WriteRequest: structs.WriteRequest{Token: "root"},
 	}
 	err = rpc.RPC(context.Background(), "ACL.TokenSet", &reqToken, &structs.ACLToken{})
 	require.NoError(t, err)
 	return token
+}
+
+// setAgentToken sets the 'agent' token for this agent. It creates a new token
+// with node:write for the agent's node name, and service:write for any
+// service.
+func setAgentToken(t *testing.T, a *agent.TestAgent) {
+	var policy = fmt.Sprintf(`
+	  node "%s" {
+		policy = "write"
+	  }
+	  service_prefix "" {
+		policy = "read"
+	  }
+	`, a.Config.NodeName)
+
+	token := createToken(t, a, policy)
+
+	_, err := a.Client().Agent().UpdateAgentACLToken(token, &api.WriteOptions{Token: "root"})
+	if err != nil {
+		t.Fatalf("setting agent token: %v", err)
+	}
 }
 
 func TestAgentAntiEntropy_Checks(t *testing.T) {
@@ -1480,6 +1504,9 @@ func TestAgentAntiEntropy_Checks_ACLDeny(t *testing.T) {
 	defer a.Shutdown()
 
 	testrpc.WaitForLeader(t, a.RPC, dc)
+
+	// The agent token is the only token used for deleteCheck.
+	setAgentToken(t, a)
 
 	token := createToken(t, a, testRegisterRules)
 

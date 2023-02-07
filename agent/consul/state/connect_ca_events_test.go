@@ -105,7 +105,7 @@ func TestEventPayloadCARoots_HasReadPermission(t *testing.T) {
 			service "foo" {
 				policy = "write"
 			}
-		`, acl.SyntaxCurrent, nil, nil)
+		`, nil, nil)
 		require.NoError(t, err)
 
 		authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)

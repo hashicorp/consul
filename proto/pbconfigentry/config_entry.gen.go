@@ -238,22 +238,6 @@ func DestinationConfigFromStructs(t *structs.DestinationConfig, s *DestinationCo
 	s.Addresses = t.Addresses
 	s.Port = int32(t.Port)
 }
-func EnvoyExtensionToStructs(s *EnvoyExtension, t *structs.EnvoyExtension) {
-	if s == nil {
-		return
-	}
-	t.Name = s.Name
-	t.Required = s.Required
-	t.Arguments = EnvoyExtensionArgumentsToStructs(s.Arguments)
-}
-func EnvoyExtensionFromStructs(t *structs.EnvoyExtension, s *EnvoyExtension) {
-	if s == nil {
-		return
-	}
-	s.Name = t.Name
-	s.Required = t.Required
-	s.Arguments = EnvoyExtensionArgumentsFromStructs(t.Arguments)
-}
 func ExposeConfigToStructs(s *ExposeConfig, t *structs.ExposeConfig) {
 	if s == nil {
 		return
@@ -1242,14 +1226,7 @@ func ServiceDefaultsToStructs(s *ServiceDefaults, t *structs.ServiceConfigEntry)
 	t.LocalConnectTimeoutMs = int(s.LocalConnectTimeoutMs)
 	t.LocalRequestTimeoutMs = int(s.LocalRequestTimeoutMs)
 	t.BalanceInboundConnections = s.BalanceInboundConnections
-	{
-		t.EnvoyExtensions = make(structs.EnvoyExtensions, len(s.EnvoyExtensions))
-		for i := range s.EnvoyExtensions {
-			if s.EnvoyExtensions[i] != nil {
-				EnvoyExtensionToStructs(s.EnvoyExtensions[i], &t.EnvoyExtensions[i])
-			}
-		}
-	}
+	t.EnvoyExtensions = EnvoyExtensionsToStructs(s.EnvoyExtensions)
 	t.Meta = s.Meta
 }
 func ServiceDefaultsFromStructs(t *structs.ServiceConfigEntry, s *ServiceDefaults) {
@@ -1288,16 +1265,7 @@ func ServiceDefaultsFromStructs(t *structs.ServiceConfigEntry, s *ServiceDefault
 	s.LocalConnectTimeoutMs = int32(t.LocalConnectTimeoutMs)
 	s.LocalRequestTimeoutMs = int32(t.LocalRequestTimeoutMs)
 	s.BalanceInboundConnections = t.BalanceInboundConnections
-	{
-		s.EnvoyExtensions = make([]*EnvoyExtension, len(t.EnvoyExtensions))
-		for i := range t.EnvoyExtensions {
-			{
-				var x EnvoyExtension
-				EnvoyExtensionFromStructs(&t.EnvoyExtensions[i], &x)
-				s.EnvoyExtensions[i] = &x
-			}
-		}
-	}
+	s.EnvoyExtensions = EnvoyExtensionsFromStructs(t.EnvoyExtensions)
 	s.Meta = t.Meta
 }
 func ServiceIntentionsToStructs(s *ServiceIntentions, t *structs.ServiceIntentionsConfigEntry) {
@@ -1690,6 +1658,7 @@ func UpstreamConfigToStructs(s *UpstreamConfig, t *structs.UpstreamConfig) {
 	}
 	t.Name = s.Name
 	t.EnterpriseMeta = enterpriseMetaToStructs(s.EnterpriseMeta)
+	t.Peer = s.Peer
 	t.EnvoyListenerJSON = s.EnvoyListenerJSON
 	t.EnvoyClusterJSON = s.EnvoyClusterJSON
 	t.Protocol = s.Protocol
@@ -1715,6 +1684,7 @@ func UpstreamConfigFromStructs(t *structs.UpstreamConfig, s *UpstreamConfig) {
 	}
 	s.Name = t.Name
 	s.EnterpriseMeta = enterpriseMetaFromStructs(t.EnterpriseMeta)
+	s.Peer = t.Peer
 	s.EnvoyListenerJSON = t.EnvoyListenerJSON
 	s.EnvoyClusterJSON = t.EnvoyClusterJSON
 	s.Protocol = t.Protocol
