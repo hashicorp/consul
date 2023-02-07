@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"golang.org/x/sync/errgroup"
-
 	"golang.org/x/time/rate"
 
 	"github.com/hashicorp/go-version"
@@ -72,25 +70,31 @@ func (s *Server) stopConnectLeader() {
 }
 
 func (s *Server) runConfigEntryControllers(ctx context.Context) error {
-	group, ctx := errgroup.WithContext(ctx)
-
-	group.Go(func() error {
-		logger := s.logger.Named(logging.APIGatewayController)
-		datastore := NewFSMDataStore(s, s.fsm)
-		return gateways.NewAPIGatewayController(datastore, s.publisher, logger).Run(ctx)
-	})
-
-	group.Go(func() error {
-		logger := s.logger.Named(logging.HTTPRouteController)
-		return gateways.NewHTTPRouteController(s.fsm, s.publisher, logger).Run(ctx)
-	})
-
-	group.Go(func() error {
-		logger := s.logger.Named(logging.TCPRouteController)
-		return gateways.NewTCPRouteController(s.fsm, s.publisher, logger).Run(ctx)
-	})
-
-	return group.Wait()
+	updater := &gateways.Updater{
+		UpdateWithStatus: func(entry structs.ControlledConfigEntry) error {
+			_, err := s.leaderRaftApply("ConfigEntry.Apply", structs.ConfigEntryRequestType, &structs.ConfigEntryRequest{
+				Op:    structs.ConfigEntryUpsertWithStatusCAS,
+				Entry: entry,
+			})
+			return err
+		},
+		Update: func(entry structs.ConfigEntry) error {
+			_, err := s.leaderRaftApply("ConfigEntry.Apply", structs.ConfigEntryRequestType, &structs.ConfigEntryRequest{
+				Op:    structs.ConfigEntryUpsertCAS,
+				Entry: entry,
+			})
+			return err
+		},
+		Delete: func(entry structs.ConfigEntry) error {
+			_, err := s.leaderRaftApply("ConfigEntry.Delete", structs.ConfigEntryRequestType, &structs.ConfigEntryRequest{
+				Op:    structs.ConfigEntryDeleteCAS,
+				Entry: entry,
+			})
+			return err
+		},
+	}
+	logger := s.logger.Named(logging.APIGatewayController)
+	return gateways.NewAPIGatewayController(s.fsm, s.publisher, updater, logger).Run(ctx)
 }
 
 func (s *Server) runCARootPruning(ctx context.Context) error {
