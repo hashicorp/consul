@@ -413,7 +413,6 @@ func (s *Server) initializeACLs(ctx context.Context) error {
 				Name:           "global-management",
 				Description:    "Builtin Policy that grants unlimited access",
 				Rules:          structs.ACLPolicyGlobalManagement,
-				Syntax:         acl.SyntaxCurrent,
 				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 			}
 			if policy != nil {

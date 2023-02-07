@@ -10,7 +10,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/authmethod/testauth"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/structs/aclfilter"
@@ -31,7 +30,6 @@ func TestACLReplication_diffACLPolicies(t *testing.T) {
 			Name:        "policy1",
 			Description: "policy1 - already in sync",
 			Rules:       `acl = "read"`,
-			Syntax:      acl.SyntaxCurrent,
 			Datacenters: nil,
 			Hash:        []byte{1, 2, 3, 4},
 			RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 2},
@@ -41,7 +39,6 @@ func TestACLReplication_diffACLPolicies(t *testing.T) {
 			Name:        "policy2",
 			Description: "policy2 - updated but not changed",
 			Rules:       `acl = "read"`,
-			Syntax:      acl.SyntaxCurrent,
 			Datacenters: nil,
 			Hash:        []byte{1, 2, 3, 4},
 			RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 25},
@@ -51,7 +48,6 @@ func TestACLReplication_diffACLPolicies(t *testing.T) {
 			Name:        "policy3",
 			Description: "policy3 - updated and changed",
 			Rules:       `acl = "read"`,
-			Syntax:      acl.SyntaxCurrent,
 			Datacenters: nil,
 			Hash:        []byte{1, 2, 3, 4},
 			RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 25},
@@ -61,7 +57,6 @@ func TestACLReplication_diffACLPolicies(t *testing.T) {
 			Name:        "policy4",
 			Description: "policy4 - needs deleting",
 			Rules:       `acl = "read"`,
-			Syntax:      acl.SyntaxCurrent,
 			Datacenters: nil,
 			Hash:        []byte{1, 2, 3, 4},
 			RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 25},

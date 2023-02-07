@@ -33,7 +33,6 @@ func setupGlobalManagement(t *testing.T, s *Store) {
 		Name:        "global-management",
 		Description: "Builtin Policy that grants unlimited access",
 		Rules:       structs.ACLPolicyGlobalManagement,
-		Syntax:      acl.SyntaxCurrent,
 	}
 	policy.SetHash(true)
 	require.NoError(t, s.ACLPolicySet(1, &policy))
@@ -74,35 +73,30 @@ func setupExtraPolicies(t *testing.T, s *Store) {
 			Name:        "node-read",
 			Description: "Allows reading all node information",
 			Rules:       `node_prefix "" { policy = "read" }`,
-			Syntax:      acl.SyntaxCurrent,
 		},
 		&structs.ACLPolicy{
 			ID:          testPolicyID_B,
 			Name:        "agent-read",
 			Description: "Allows reading all node information",
 			Rules:       `agent_prefix "" { policy = "read" }`,
-			Syntax:      acl.SyntaxCurrent,
 		},
 		&structs.ACLPolicy{
 			ID:          testPolicyID_C,
 			Name:        "acl-read",
 			Description: "Allows acl read",
 			Rules:       `acl = "read"`,
-			Syntax:      acl.SyntaxCurrent,
 		},
 		&structs.ACLPolicy{
 			ID:          testPolicyID_D,
 			Name:        "acl-write",
 			Description: "Allows acl write",
 			Rules:       `acl = "write"`,
-			Syntax:      acl.SyntaxCurrent,
 		},
 		&structs.ACLPolicy{
 			ID:          testPolicyID_E,
 			Name:        "kv-read",
 			Description: "Allows kv read",
 			Rules:       `key_prefix "" { policy = "read" }`,
-			Syntax:      acl.SyntaxCurrent,
 		},
 	}
 
@@ -1068,7 +1062,6 @@ func TestStateStore_ACLToken_FixupPolicyLinks(t *testing.T) {
 		Name:        "node-read-renamed",
 		Description: "Allows reading all node information",
 		Rules:       `node_prefix "" { policy = "read" }`,
-		Syntax:      acl.SyntaxCurrent,
 	}
 	renamed.SetHash(true)
 	require.NoError(t, s.ACLPolicySet(3, renamed))
@@ -1475,7 +1468,6 @@ func TestStateStore_ACLPolicy_SetGet(t *testing.T) {
 			Name:        "node-read",
 			Description: "Allows reading all node information",
 			Rules:       `node_prefix "" { policy = "read" }`,
-			Syntax:      acl.SyntaxCurrent,
 			Datacenters: []string{"dc1"},
 		}
 
@@ -1488,7 +1480,6 @@ func TestStateStore_ACLPolicy_SetGet(t *testing.T) {
 		require.Equal(t, "node-read", rpolicy.Name)
 		require.Equal(t, "Allows reading all node information", rpolicy.Description)
 		require.Equal(t, `node_prefix "" { policy = "read" }`, rpolicy.Rules)
-		require.Equal(t, acl.SyntaxCurrent, rpolicy.Syntax)
 		require.Len(t, rpolicy.Datacenters, 1)
 		require.Equal(t, "dc1", rpolicy.Datacenters[0])
 		require.Equal(t, uint64(3), rpolicy.CreateIndex)
@@ -1502,7 +1493,6 @@ func TestStateStore_ACLPolicy_SetGet(t *testing.T) {
 		require.Equal(t, "global-management", rpolicy.Name)
 		require.Equal(t, "Builtin Policy that grants unlimited access", rpolicy.Description)
 		require.Equal(t, structs.ACLPolicyGlobalManagement, rpolicy.Rules)
-		require.Equal(t, acl.SyntaxCurrent, rpolicy.Syntax)
 		require.Len(t, rpolicy.Datacenters, 0)
 		require.Equal(t, uint64(1), rpolicy.CreateIndex)
 		require.Equal(t, uint64(1), rpolicy.ModifyIndex)
@@ -1518,7 +1508,6 @@ func TestStateStore_ACLPolicy_SetGet(t *testing.T) {
 			Name:        "node-read-modified",
 			Description: "Modified",
 			Rules:       `node_prefix "" { policy = "read" } node "secret" { policy = "deny" }`,
-			Syntax:      acl.SyntaxCurrent,
 			Datacenters: []string{"dc1", "dc2"},
 		}
 
@@ -2307,7 +2296,6 @@ func TestStateStore_ACLRole_FixupPolicyLinks(t *testing.T) {
 		Name:        "node-read-renamed",
 		Description: "Allows reading all node information",
 		Rules:       `node_prefix "" { policy = "read" }`,
-		Syntax:      acl.SyntaxCurrent,
 	}
 	renamed.SetHash(true)
 	require.NoError(t, s.ACLPolicySet(3, renamed))
@@ -3368,14 +3356,12 @@ func TestStateStore_ACLTokens_Snapshot_Restore(t *testing.T) {
 			Name:        "policy1",
 			Description: "policy1",
 			Rules:       `node_prefix "" { policy = "read" }`,
-			Syntax:      acl.SyntaxCurrent,
 		},
 		&structs.ACLPolicy{
 			ID:          "7b70fa0f-58cd-412d-93c3-a0f17bb19a3e",
 			Name:        "policy2",
 			Description: "policy2",
 			Rules:       `acl = "read"`,
-			Syntax:      acl.SyntaxCurrent,
 		},
 	}
 
@@ -3769,14 +3755,12 @@ func TestStateStore_ACLRoles_Snapshot_Restore(t *testing.T) {
 			Name:        "policy1",
 			Description: "policy1",
 			Rules:       `node_prefix "" { policy = "read" }`,
-			Syntax:      acl.SyntaxCurrent,
 		},
 		&structs.ACLPolicy{
 			ID:          "7b70fa0f-58cd-412d-93c3-a0f17bb19a3e",
 			Name:        "policy2",
 			Description: "policy2",
 			Rules:       `acl = "read"`,
-			Syntax:      acl.SyntaxCurrent,
 		},
 	}
 

@@ -908,21 +908,30 @@ func TestAPI_Headers(t *testing.T) {
 	require.Error(t, err)
 	require.Equal(t, "application/octet-stream", request.Header.Get("Content-Type"))
 
-	_, err = c.ACL().RulesTranslate(strings.NewReader(`
-	agent "" {
-	  policy = "read"
-	}
-	`))
-	// ACL support is disabled
-	require.Error(t, err)
-	require.Equal(t, "application/octet-stream", request.Header.Get("Content-Type"))
-
 	_, _, err = c.Event().Fire(&UserEvent{
 		Name:    "test",
 		Payload: []byte("foo"),
 	}, nil)
 	require.NoError(t, err)
 	require.Equal(t, "application/octet-stream", request.Header.Get("Content-Type"))
+}
+
+func TestAPI_Deprecated(t *testing.T) {
+	t.Parallel()
+	c, s := makeClientWithConfig(t, func(c *Config) {
+		transport := http.DefaultTransport.(*http.Transport).Clone()
+		c.Transport = transport
+	}, nil)
+	defer s.Stop()
+	// Rules translation functionality was completely removed in Consul 1.15.
+	_, err := c.ACL().RulesTranslate(strings.NewReader(`
+	agent "" {
+	  policy = "read"
+	}
+	`))
+	require.Error(t, err)
+	_, err = c.ACL().RulesTranslateToken("")
+	require.Error(t, err)
 }
 
 func TestAPI_RequestToHTTP(t *testing.T) {

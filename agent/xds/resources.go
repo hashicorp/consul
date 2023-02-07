@@ -3,7 +3,7 @@ package xds
 import (
 	"fmt"
 
-	"github.com/hashicorp/consul/agent/xds/xdscommon"
+	"github.com/hashicorp/consul/envoyextensions/xdscommon"
 	"github.com/hashicorp/go-hclog"
 	"google.golang.org/protobuf/proto"
 

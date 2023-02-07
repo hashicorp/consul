@@ -6,7 +6,6 @@ import (
 
 	envoy_admin_v3 "github.com/envoyproxy/go-control-plane/envoy/admin/v3"
 	"github.com/hashicorp/go-multierror"
-	"github.com/pkg/errors"
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
@@ -19,13 +18,13 @@ func (t *Troubleshoot) validateCerts(certs *envoy_admin_v3.Certificates) error {
 	for _, cert := range certs.GetCertificates() {
 		for _, cacert := range cert.GetCaCert() {
 			if now.After(cacert.GetExpirationTime().AsTime()) {
-				resultErr = multierror.Append(resultErr, errors.New("Ca cert is expired"))
+				resultErr = multierror.Append(resultErr, fmt.Errorf("Ca cert is expired"))
 			}
 
 		}
 		for _, cc := range cert.GetCertChain() {
 			if now.After(cc.GetExpirationTime().AsTime()) {
-				resultErr = multierror.Append(resultErr, errors.New("cert chain is expired"))
+				resultErr = multierror.Append(resultErr, fmt.Errorf("cert chain is expired"))
 			}
 		}
 	}

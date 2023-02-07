@@ -6,8 +6,8 @@ import (
 	envoy_admin_v3 "github.com/envoyproxy/go-control-plane/envoy/admin/v3"
 	envoy_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	envoy_aggregate_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/clusters/aggregate/v3"
-	"github.com/hashicorp/consul/agent/envoyextensions/extensioncommon"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/envoyextensions/extensioncommon"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/anypb"
 )
@@ -251,12 +251,34 @@ func TestMakeValidate(t *testing.T) {
 			arguments: map[string]interface{}{
 				"envoyID": "id",
 			},
+			snis: map[string]struct{}{
+				"sni1": {},
+				"sni2": {},
+			},
 			extensionName: "bad",
 			ok:            false,
 		},
 		"empty envoy ID": {
 			arguments: map[string]interface{}{"envoyID": ""},
-			ok:        false,
+			snis: map[string]struct{}{
+				"sni1": {},
+				"sni2": {},
+			},
+			ok: false,
+		},
+		"missing snis": {
+			arguments: map[string]interface{}{
+				"envoyID": "id",
+			},
+			expected: &Validate{
+				envoyID:   "id",
+				resources: map[string]*resource{},
+				snis: map[string]struct{}{
+					"sni1": {},
+					"sni2": {},
+				},
+			},
+			ok: false,
 		},
 		"valid everything": {
 			arguments: map[string]interface{}{
@@ -269,6 +291,10 @@ func TestMakeValidate(t *testing.T) {
 			expected: &Validate{
 				envoyID:   "id",
 				resources: map[string]*resource{},
+				snis: map[string]struct{}{
+					"sni1": {},
+					"sni2": {},
+				},
 			},
 			ok: true,
 		},
@@ -288,6 +314,11 @@ func TestMakeValidate(t *testing.T) {
 				EnvoyExtension: api.EnvoyExtension{
 					Name:      extensionName,
 					Arguments: tc.arguments,
+				},
+				Upstreams: map[api.CompoundServiceName]*extensioncommon.UpstreamData{
+					svc: {
+						SNI: tc.snis,
+					},
 				},
 			}
 

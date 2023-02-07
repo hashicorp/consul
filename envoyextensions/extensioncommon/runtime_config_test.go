@@ -13,7 +13,7 @@ func makeTestRuntimeConfig() RuntimeConfig {
 	rc := RuntimeConfig{
 		Kind:        api.ServiceKindConnectProxy,
 		ServiceName: sn,
-		Upstreams: map[api.CompoundServiceName]UpstreamData{
+		Upstreams: map[api.CompoundServiceName]*UpstreamData{
 			sn: {
 				EnvoyID:           "eid",
 				OutgoingProxyKind: api.ServiceKindTerminatingGateway,
