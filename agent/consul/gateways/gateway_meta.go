@@ -202,7 +202,7 @@ func (g *gatewayMeta) checkCertificates(store *state.Store) (map[structs.Resourc
 }
 
 func (g *gatewayMeta) checkConflicts() (structs.ControlledConfigEntry, bool) {
-	now := time.Now().UTC()
+	now := pointerTo(time.Now().UTC())
 	updater := structs.NewStatusUpdater(g.Gateway)
 	for i, listener := range g.BoundGateway.Listeners {
 		protocol := g.Gateway.Listeners[i].Protocol
@@ -220,7 +220,7 @@ func (g *gatewayMeta) checkConflicts() (structs.ControlledConfigEntry, bool) {
 						EnterpriseMeta: g.Gateway.EnterpriseMeta,
 					},
 					Message:            "TCP-based listeners currently only support binding a single route",
-					LastTransitionTime: &now,
+					LastTransitionTime: now,
 				})
 			}
 			continue
@@ -236,7 +236,7 @@ func (g *gatewayMeta) checkConflicts() (structs.ControlledConfigEntry, bool) {
 				EnterpriseMeta: g.Gateway.EnterpriseMeta,
 			},
 			Message:            "listener has no route conflicts",
-			LastTransitionTime: &now,
+			LastTransitionTime: now,
 		})
 	}
 

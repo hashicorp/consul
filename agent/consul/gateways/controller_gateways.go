@@ -182,7 +182,7 @@ func (r apiGatewayReconciler) reconcileGateway(_ context.Context, req controller
 			Status:             "False",
 			Reason:             "InvalidCertificate",
 			Message:            err.Error(),
-			Resource:           &ref,
+			Resource:           pointerTo(ref),
 			LastTransitionTime: &now,
 		})
 	}
@@ -214,7 +214,7 @@ func (r apiGatewayReconciler) reconcileGateway(_ context.Context, req controller
 			if parent.Kind == gateway.Kind && parent.Name == gateway.Name && parent.EnterpriseMeta.IsSame(&gateway.EnterpriseMeta) {
 				routeUpdater.RemoveCondition(structs.Condition{
 					Type:     "Bound",
-					Resource: &parent,
+					Resource: pointerTo(parent),
 				})
 			}
 		}
@@ -223,17 +223,17 @@ func (r apiGatewayReconciler) reconcileGateway(_ context.Context, req controller
 				Type:               "Bound",
 				Status:             "True",
 				Reason:             "Bound",
-				Resource:           &ref,
+				Resource:           pointerTo(ref),
 				Message:            "successfully bound route",
 				LastTransitionTime: &now,
 			})
 		}
-		for reference, err := range bindErrors {
+		for ref, err := range bindErrors {
 			routeUpdater.SetCondition(structs.Condition{
 				Type:               "Bound",
 				Status:             "False",
 				Reason:             "FailedToBind",
-				Resource:           &reference,
+				Resource:           pointerTo(ref),
 				Message:            err.Error(),
 				LastTransitionTime: &now,
 			})
@@ -382,7 +382,7 @@ func (r apiGatewayReconciler) reconcileRoute(_ context.Context, req controller.R
 	var triggerOnce sync.Once
 	validTargets := true
 	for _, service := range route.GetTargetedServices() {
-		_, chainSet, err := store.ReadDiscoveryChainConfigEntries(ws, service.Name, &service.EnterpriseMeta)
+		_, chainSet, err := store.ReadDiscoveryChainConfigEntries(ws, service.Name, pointerTo(service.EnterpriseMeta))
 		if err != nil {
 			return err
 		}
@@ -488,19 +488,19 @@ func (r apiGatewayReconciler) reconcileRoute(_ context.Context, req controller.R
 			Type:               "Bound",
 			Status:             "True",
 			Reason:             "Bound",
-			Resource:           &ref,
+			Resource:           pointerTo(ref),
 			Message:            "successfully bound route",
 			LastTransitionTime: &now,
 		})
 	}
 
 	// set any binding errors
-	for reference, err := range bindErrors {
+	for ref, err := range bindErrors {
 		updater.SetCondition(structs.Condition{
 			Type:               "Bound",
 			Status:             "False",
 			Reason:             "FailedToBind",
-			Resource:           &reference,
+			Resource:           pointerTo(ref),
 			Message:            err.Error(),
 			LastTransitionTime: &now,
 		})
@@ -561,4 +561,8 @@ func retrieveAllRoutesFromStore(store *state.Store) ([]structs.BoundRoute, error
 		routes = append(routes, route.(*structs.TCPRouteConfigEntry))
 	}
 	return routes, nil
+}
+
+func pointerTo[T any](value T) *T {
+	return &value
 }

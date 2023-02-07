@@ -78,7 +78,7 @@ func getReferences(route structs.BoundRoute) (referenceSet, gatewayRefs) {
 	gatewayRefs := make(gatewayRefs)
 	for _, ref := range route.GetParents() {
 		parentRefs[ref] = struct{}{}
-		kindName := configentry.NewKindName(structs.BoundAPIGateway, ref.Name, &ref.EnterpriseMeta)
+		kindName := configentry.NewKindName(structs.BoundAPIGateway, ref.Name, pointerTo(ref.EnterpriseMeta))
 		gatewayRefs[kindName] = append(gatewayRefs[kindName], ref)
 	}
 
@@ -98,7 +98,7 @@ func requestToResourceRef(req controller.Request) structs.ResourceReference {
 
 // RemoveGateway sets the route status for the given gateway to be unbound if it should be bound
 func RemoveGateway(gateway structs.ResourceReference, entries ...structs.BoundRoute) []structs.ControlledConfigEntry {
-	now := time.Now().UTC()
+	now := pointerTo(time.Now().UTC())
 	modified := []structs.ControlledConfigEntry{}
 	for _, route := range entries {
 		updater := structs.NewStatusUpdater(route)
@@ -109,8 +109,8 @@ func RemoveGateway(gateway structs.ResourceReference, entries ...structs.BoundRo
 					Status:             "False",
 					Reason:             "GatewayNotFound",
 					Message:            "gateway was not found",
-					Resource:           &parent,
-					LastTransitionTime: &now,
+					Resource:           pointerTo(parent),
+					LastTransitionTime: now,
 				})
 			}
 		}
