@@ -748,7 +748,7 @@ func (c *configSnapshotAPIGateway) ToIngress(datacenter string) (configSnapshotI
 			return configSnapshotIngressGateway{}, errors.New("could not synthesize discovery chain")
 		}
 
-		services, compiled, err := synthesizer.Synthesize(chains[0], chains[1:]...)
+		services, compiled, err := synthesizer.Synthesize(chains...)
 		if err != nil {
 			return configSnapshotIngressGateway{}, err
 		}

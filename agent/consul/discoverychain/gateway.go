@@ -10,15 +10,13 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 )
 
-func hostsKey(hosts ...string) string {
-	sort.Strings(hosts)
-	hostsHash := crc32.NewIEEE()
-	for _, h := range hosts {
-		if _, err := hostsHash.Write([]byte(h)); err != nil {
-			continue
-		}
-	}
-	return strconv.FormatUint(uint64(hostsHash.Sum32()), 16)
+// GatewayChainSynthesizer is used to synthesize a discovery chain for a
+// gateway from its configuration and multiple other discovery chains.
+type GatewayChainSynthesizer struct {
+	datacenter        string
+	gateway           *structs.APIGatewayConfigEntry
+	matchesByHostname map[string][]hostnameMatch
+	tcpRoutes         []structs.TCPRouteConfigEntry
 }
 
 type hostnameMatch struct {
@@ -27,13 +25,8 @@ type hostnameMatch struct {
 	services []structs.HTTPService
 }
 
-type GatewayChainSynthesizer struct {
-	datacenter        string
-	gateway           *structs.APIGatewayConfigEntry
-	matchesByHostname map[string][]hostnameMatch
-	tcpRoutes         []structs.TCPRouteConfigEntry
-}
-
+// NewGatewayChainSynthesizer creates a new GatewayChainSynthesizer for the
+// given gateway and datacenter.
 func NewGatewayChainSynthesizer(datacenter string, gateway *structs.APIGatewayConfigEntry) *GatewayChainSynthesizer {
 	return &GatewayChainSynthesizer{
 		datacenter:        datacenter,
@@ -86,6 +79,50 @@ func (l *GatewayChainSynthesizer) AddHTTPRoute(route structs.HTTPRouteConfigEntr
 	}
 }
 
+// Synthesize assembles a synthetic discovery chain from multiple other discovery chains
+// that have StartNodes that are referenced by routers or splitters in the entries for the
+// given CompileRequest.
+//
+// This is currently used to help API gateways masquarade as ingress gateways
+// by providing a set of virtual config entries that change the routing behavior
+// to upstreams referenced in the given HTTPRoutes or TCPRoutes.
+func (l *GatewayChainSynthesizer) Synthesize(chains ...*structs.CompiledDiscoveryChain) ([]structs.IngressService, *structs.CompiledDiscoveryChain, error) {
+	if len(chains) == 0 {
+		return nil, nil, fmt.Errorf("must provide at least one compiled discovery chain")
+	}
+
+	services, entries := l.synthesizeEntries()
+
+	if entries.IsEmpty() {
+		// we can't actually compile a discovery chain, i.e. we're using a TCPRoute-based listener, instead, just return the ingresses
+		// and the first pre-compiled discovery chain
+		return services, chains[0], nil
+	}
+
+	compiled, err := Compile(CompileRequest{
+		ServiceName:          l.gateway.Name,
+		EvaluateInNamespace:  l.gateway.NamespaceOrDefault(),
+		EvaluateInPartition:  l.gateway.PartitionOrDefault(),
+		EvaluateInDatacenter: l.datacenter,
+		Entries:              entries,
+	})
+	if err != nil {
+		return nil, nil, err
+	}
+
+	for _, c := range chains {
+		for id, target := range c.Targets {
+			compiled.Targets[id] = target
+		}
+		for id, node := range c.Nodes {
+			compiled.Nodes[id] = node
+		}
+		compiled.EnvoyExtensions = append(compiled.EnvoyExtensions, c.EnvoyExtensions...)
+	}
+
+	return services, compiled, nil
+}
+
 // consolidateHTTPRoutes combines all rules into the shortest possible list of routes
 // with one route per hostname containing all rules for that hostname.
 func (l *GatewayChainSynthesizer) consolidateHTTPRoutes() []structs.HTTPRouteConfigEntry {
@@ -122,6 +159,17 @@ func (l *GatewayChainSynthesizer) consolidateHTTPRoutes() []structs.HTTPRouteCon
 	return routes
 }
 
+func hostsKey(hosts ...string) string {
+	sort.Strings(hosts)
+	hostsHash := crc32.NewIEEE()
+	for _, h := range hosts {
+		if _, err := hostsHash.Write([]byte(h)); err != nil {
+			continue
+		}
+	}
+	return strconv.FormatUint(uint64(hostsHash.Sum32()), 16)
+}
+
 func (l *GatewayChainSynthesizer) synthesizeEntries() ([]structs.IngressService, *configentry.DiscoveryChainSet) {
 	services := []structs.IngressService{}
 	entries := configentry.NewDiscoveryChainSet()
@@ -139,47 +187,4 @@ func (l *GatewayChainSynthesizer) synthesizeEntries() ([]structs.IngressService,
 	}
 
 	return services, entries
-}
-
-// Synthesize assembles a synthetic discovery chain from multiple other discovery chains
-// that have StartNodes that are referenced by routers or splitters in the entries for the
-// given CompileRequest.
-//
-// This is currently used to help API gateways masquarade as ingress gateways
-// by providing a set of virtual config entries that change the routing behavior
-// to upstreams referenced in the given HTTPRoutes or TCPRoutes.
-// TODO make this take a slice of chains
-func (l *GatewayChainSynthesizer) Synthesize(chain *structs.CompiledDiscoveryChain, extra ...*structs.CompiledDiscoveryChain) ([]structs.IngressService, *structs.CompiledDiscoveryChain, error) {
-	extra = append([]*structs.CompiledDiscoveryChain{chain}, extra...)
-
-	services, entries := l.synthesizeEntries()
-
-	if entries.IsEmpty() {
-		// we can't actually compile a discovery chain, i.e. we're using a TCPRoute-based listener, instead, just return the ingresses
-		// and the first pre-compiled discovery chain
-		return services, chain, nil
-	}
-
-	compiled, err := Compile(CompileRequest{
-		ServiceName:          l.gateway.Name,
-		EvaluateInNamespace:  l.gateway.NamespaceOrDefault(),
-		EvaluateInPartition:  l.gateway.PartitionOrDefault(),
-		EvaluateInDatacenter: l.datacenter,
-		Entries:              entries,
-	})
-	if err != nil {
-		return nil, nil, err
-	}
-
-	for _, c := range extra {
-		for id, target := range c.Targets {
-			compiled.Targets[id] = target
-		}
-		for id, node := range c.Nodes {
-			compiled.Nodes[id] = node
-		}
-		compiled.EnvoyExtensions = append(compiled.EnvoyExtensions, c.EnvoyExtensions...)
-	}
-
-	return services, compiled, nil
 }
