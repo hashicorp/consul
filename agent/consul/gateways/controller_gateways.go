@@ -41,13 +41,9 @@ func (r apiGatewayReconciler) Reconcile(ctx context.Context, req controller.Requ
 	case structs.BoundAPIGateway:
 		return reconcileEntry(r.fsm.State(), ctx, req, r.reconcileBoundGateway, r.cleanupBoundGateway)
 	case structs.HTTPRoute:
-		return reconcileEntry(r.fsm.State(), ctx, req, func(ctx context.Context, req controller.Request, store *state.Store, route *structs.HTTPRouteConfigEntry) error {
-			return r.reconcileRoute(ctx, req, store, route)
-		}, r.cleanupRoute)
+		return reconcileEntry(r.fsm.State(), ctx, req, r.reconcileHTTPRoute, r.cleanupRoute)
 	case structs.TCPRoute:
-		return reconcileEntry(r.fsm.State(), ctx, req, func(ctx context.Context, req controller.Request, store *state.Store, route *structs.TCPRouteConfigEntry) error {
-			return r.reconcileRoute(ctx, req, store, route)
-		}, r.cleanupRoute)
+		return reconcileEntry(r.fsm.State(), ctx, req, r.reconcileTCPRoute, r.cleanupRoute)
 	case structs.InlineCertificate:
 		return r.enqueueCertificateReferencedGateways(r.fsm.State(), ctx, req)
 	default:
@@ -507,6 +503,14 @@ func (r apiGatewayReconciler) reconcileRoute(_ context.Context, req controller.R
 	}
 
 	return finalize(modifiedGateways)
+}
+
+func (r *apiGatewayReconciler) reconcileHTTPRoute(ctx context.Context, req controller.Request, store *state.Store, route *structs.HTTPRouteConfigEntry) error {
+	return r.reconcileRoute(ctx, req, store, route)
+}
+
+func (r *apiGatewayReconciler) reconcileTCPRoute(ctx context.Context, req controller.Request, store *state.Store, route *structs.TCPRouteConfigEntry) error {
+	return r.reconcileRoute(ctx, req, store, route)
 }
 
 func NewAPIGatewayController(fsm *fsm.FSM, publisher state.EventPublisher, updater *Updater, logger hclog.Logger) controller.Controller {
