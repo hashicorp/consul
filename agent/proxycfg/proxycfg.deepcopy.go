@@ -267,6 +267,44 @@ func (o *configSnapshotAPIGateway) DeepCopy() *configSnapshotAPIGateway {
 			}
 		}
 	}
+	if o.GatewayConfig != nil {
+		cp.GatewayConfig = new(structs.APIGatewayConfigEntry)
+		*cp.GatewayConfig = *o.GatewayConfig
+		if o.GatewayConfig.Listeners != nil {
+			cp.GatewayConfig.Listeners = make([]structs.APIGatewayListener, len(o.GatewayConfig.Listeners))
+			copy(cp.GatewayConfig.Listeners, o.GatewayConfig.Listeners)
+			for i4 := range o.GatewayConfig.Listeners {
+				if o.GatewayConfig.Listeners[i4].TLS.Certificates != nil {
+					cp.GatewayConfig.Listeners[i4].TLS.Certificates = make([]structs.ResourceReference, len(o.GatewayConfig.Listeners[i4].TLS.Certificates))
+					copy(cp.GatewayConfig.Listeners[i4].TLS.Certificates, o.GatewayConfig.Listeners[i4].TLS.Certificates)
+				}
+				if o.APIGatewayConfigEntry.Listeners[i4].TLS.CipherSuites != nil {
+					cp.APIGatewayConfigEntry.Listeners[i4].TLS.CipherSuites = make([]types.TLSCipherSuite, len(o.APIGatewayConfigEntry.Listeners[i4].TLS.CipherSuites))
+					copy(cp.APIGatewayConfigEntry.Listeners[i4].TLS.CipherSuites, o.APIGatewayConfigEntry.Listeners[i4].TLS.CipherSuites)
+				}
+			}
+		}
+		if o.APIGatewayConfigEntry.Status.Conditions != nil {
+			cp.APIGatewayConfigEntry.Status.Conditions = make([]structs.Condition, len(o.APIGatewayConfigEntry.Status.Conditions))
+			copy(cp.APIGatewayConfigEntry.Status.Conditions, o.APIGatewayConfigEntry.Status.Conditions)
+			for i5 := range o.APIGatewayConfigEntry.Status.Conditions {
+				if o.APIGatewayConfigEntry.Status.Conditions[i5].Resource != nil {
+					cp.APIGatewayConfigEntry.Status.Conditions[i5].Resource = new(structs.ResourceReference)
+					*cp.APIGatewayConfigEntry.Status.Conditions[i5].Resource = *o.APIGatewayConfigEntry.Status.Conditions[i5].Resource
+				}
+				if o.APIGatewayConfigEntry.Status.Conditions[i5].LastTransitionTime != nil {
+					cp.APIGatewayConfigEntry.Status.Conditions[i5].LastTransitionTime = new(time.Time)
+					*cp.APIGatewayConfigEntry.Status.Conditions[i5].LastTransitionTime = *o.APIGatewayConfigEntry.Status.Conditions[i5].LastTransitionTime
+				}
+			}
+		}
+		if o.APIGatewayConfigEntry.Meta != nil {
+			cp.APIGatewayConfigEntry.Meta = make(map[string]string, len(o.APIGatewayConfigEntry.Meta))
+			for k4, v4 := range o.APIGatewayConfigEntry.Meta {
+				cp.APIGatewayConfigEntry.Meta[k4] = v4
+			}
+		}
+	}
 	if o.Hosts != nil {
 		cp.Hosts = make([]string, len(o.Hosts))
 		copy(cp.Hosts, o.Hosts)

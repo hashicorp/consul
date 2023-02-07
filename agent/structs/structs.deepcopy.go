@@ -346,12 +346,18 @@ func (o *HTTPRouteConfigEntry) DeepCopy() *HTTPRouteConfigEntry {
 						}
 					}
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
+=======
+>>>>>>> ed10465d9a (Run deep copy)
 					if o.Rules[i2].Services[i4].Filters.URLRewrites != nil {
 						cp.Rules[i2].Services[i4].Filters.URLRewrites = make([]URLRewrite, len(o.Rules[i2].Services[i4].Filters.URLRewrites))
 						copy(cp.Rules[i2].Services[i4].Filters.URLRewrites, o.Rules[i2].Services[i4].Filters.URLRewrites)
 					}
+<<<<<<< HEAD
 >>>>>>> 690cd0f219 (Add discovery chain merging code (#16131))
+=======
+>>>>>>> ed10465d9a (Run deep copy)
 				}
 			}
 		}
