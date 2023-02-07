@@ -67,7 +67,7 @@ func (c *cmd) Run(args []string) int {
 			return 1
 		} else {
 			tokenAccessor = c.tokenID
-			c.UI.Warn("Use the -accessor-id parameter to specify token by Accessor ID.")
+			c.UI.Warn("The -id parameter is deprecated. Use the -accessor-id parameter instead.")
 		}
 	}
 
