@@ -800,7 +800,6 @@ type ConfigSnapshot struct {
 	IngressGateway configSnapshotIngressGateway
 
 	// api-gateway specific
-	// TODO Consider custom type configSnapshotAPIGateway
 	APIGateway configSnapshotAPIGateway
 }
 
