@@ -39,6 +39,11 @@ func NewTroubleshoot(envoyIP *net.IPAddr, envoyPort string) (*Troubleshoot, erro
 	if err != nil {
 		return nil, err
 	}
+
+	if envoyIP == nil {
+		return nil, fmt.Errorf("envoy address is empty")
+	}
+
 	return &Troubleshoot{
 		client:         c,
 		envoyAddr:      *envoyIP,
