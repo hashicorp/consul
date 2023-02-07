@@ -993,10 +993,10 @@ func (r *ACLResolver) resolveLocallyManagedToken(token string) (structs.ACLIdent
 	return r.resolveLocallyManagedEnterpriseToken(token)
 }
 
-// ResolveTokenSecret to an acl.Authorizer and structs.ACLIdentity. The acl.Authorizer
+// ResolveToken to an acl.Authorizer and structs.ACLIdentity. The acl.Authorizer
 // can be used to check permissions granted to the token using its secret, and the
 // ACLIdentity describes the token and any defaults applied to it.
-func (r *ACLResolver) ResolveTokenSecret(tokenSecretID string) (resolver.Result, error) {
+func (r *ACLResolver) ResolveToken(tokenSecretID string) (resolver.Result, error) {
 	if !r.ACLsEnabled() {
 		return resolver.Result{Authorizer: acl.ManageAll()}, nil
 	}
@@ -1078,7 +1078,7 @@ func (r *ACLResolver) ResolveTokenAndDefaultMeta(
 	entMeta *acl.EnterpriseMeta,
 	authzContext *acl.AuthorizerContext,
 ) (resolver.Result, error) {
-	result, err := r.ResolveTokenSecret(tokenSecretID)
+	result, err := r.ResolveToken(tokenSecretID)
 	if err != nil {
 		return resolver.Result{}, err
 	}
@@ -1121,7 +1121,7 @@ func filterACLWithAuthorizer(logger hclog.Logger, authorizer acl.Authorizer, sub
 // not authorized for read access will be removed from subj.
 func filterACL(r *ACLResolver, tokenSecretID string, subj interface{}) error {
 	// Get the ACL from the token
-	authorizer, err := r.ResolveTokenSecret(tokenSecretID)
+	authorizer, err := r.ResolveToken(tokenSecretID)
 	if err != nil {
 		return err
 	}

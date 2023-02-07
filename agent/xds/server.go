@@ -103,11 +103,11 @@ type ProxyConfigSource interface {
 // A full description of the XDS protocol can be found at
 // https://www.envoyproxy.io/docs/envoy/latest/api-docs/xds_protocol
 type Server struct {
-	NodeName           string
-	Logger             hclog.Logger
-	CfgSrc             ProxyConfigSource
-	ResolveTokenSecret ACLResolverFunc
-	CfgFetcher         ConfigFetcher
+	NodeName     string
+	Logger       hclog.Logger
+	CfgSrc       ProxyConfigSource
+	ResolveToken ACLResolverFunc
+	CfgFetcher   ConfigFetcher
 
 	// AuthCheckFrequency is how often we should re-check the credentials used
 	// during a long-lived gRPC Stream after it has been initially established.
@@ -164,7 +164,7 @@ func NewServer(
 		NodeName:           nodeName,
 		Logger:             logger,
 		CfgSrc:             cfgMgr,
-		ResolveTokenSecret: resolveTokenSecret,
+		ResolveToken:       resolveTokenSecret,
 		CfgFetcher:         cfgFetcher,
 		AuthCheckFrequency: DefaultAuthCheckFrequency,
 		activeStreams:      &activeStreamCounters{},
@@ -191,7 +191,7 @@ func (s *Server) authenticate(ctx context.Context) (acl.Authorizer, error) {
 		return nil, status.Errorf(codes.Internal, "error fetching options from context: %v", err)
 	}
 
-	authz, err := s.ResolveTokenSecret(options.Token)
+	authz, err := s.ResolveToken(options.Token)
 	if acl.IsErrNotFound(err) {
 		return nil, status.Errorf(codes.Unauthenticated, "unauthenticated: %v", err)
 	} else if acl.IsErrPermissionDenied(err) {
