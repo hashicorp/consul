@@ -426,13 +426,13 @@ func (h *handlerAPIGateway) referenceIsForListener(ref structs.ResourceReference
 func (h *handlerAPIGateway) watchIngressLeafCert(ctx context.Context, snap *ConfigSnapshot) error {
 	// Note that we DON'T test for TLS.enabled because we need a leaf cert for the
 	// gateway even without TLS to use as a client cert.
-	if !snap.IngressGateway.GatewayConfigLoaded || !snap.IngressGateway.HostsSet {
+	if !snap.APIGateway.GatewayConfigLoaded || !snap.APIGateway.HostsSet {
 		return nil
 	}
 
 	// Watch the leaf cert
-	if snap.IngressGateway.LeafCertWatchCancel != nil {
-		snap.IngressGateway.LeafCertWatchCancel()
+	if snap.APIGateway.LeafCertWatchCancel != nil {
+		snap.APIGateway.LeafCertWatchCancel()
 	}
 	ctx, cancel := context.WithCancel(ctx)
 	err := h.dataSources.LeafCertificate.Notify(ctx, &cachetype.ConnectCALeafRequest{
@@ -446,7 +446,7 @@ func (h *handlerAPIGateway) watchIngressLeafCert(ctx context.Context, snap *Conf
 		cancel()
 		return err
 	}
-	snap.IngressGateway.LeafCertWatchCancel = cancel
+	snap.APIGateway.LeafCertWatchCancel = cancel
 
 	return nil
 }
@@ -466,7 +466,7 @@ func (h *handlerAPIGateway) generateIngressDNSSANs(snap *ConfigSnapshot) []strin
 
 	var dnsNames []string
 	namespaces := make(map[string]struct{})
-	for _, upstreams := range snap.IngressGateway.Upstreams {
+	for _, upstreams := range snap.APIGateway.Upstreams {
 		for _, u := range upstreams {
 			namespaces[u.DestinationNamespace] = struct{}{}
 		}
@@ -490,7 +490,7 @@ func (h *handlerAPIGateway) generateIngressDNSSANs(snap *ConfigSnapshot) []strin
 		}
 	}
 
-	dnsNames = append(dnsNames, snap.IngressGateway.Hosts...)
+	dnsNames = append(dnsNames, snap.APIGateway.Hosts...)
 
 	return dnsNames
 }
