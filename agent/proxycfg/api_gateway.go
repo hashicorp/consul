@@ -170,6 +170,7 @@ func (h *handlerAPIGateway) handleGatewayConfigUpdate(ctx context.Context, u Upd
 				case structs.TCPRoute:
 					snap.APIGateway.TCPRoutes.InitWatch(ref, cancel)
 				default:
+					cancel()
 					return fmt.Errorf("unexpected route kind on gateway: %s", ref.Kind)
 				}
 
