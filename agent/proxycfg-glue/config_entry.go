@@ -60,8 +60,6 @@ func newConfigEntryRequest(req *structs.ConfigEntryQuery, deps ServerDataSourceD
 		topic = pbsubscribe.Topic_ServiceResolver
 	case structs.IngressGateway:
 		topic = pbsubscribe.Topic_IngressGateway
-	case structs.BoundAPIGateway:
-		topic = pbsubscribe.Topic_BoundAPIGateway
 	case structs.ServiceDefaults:
 		topic = pbsubscribe.Topic_ServiceDefaults
 	case structs.APIGateway:
