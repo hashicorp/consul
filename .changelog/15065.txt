@@ -1,0 +1,3 @@
+```release-note:bug
+peering: fix the error of wan address isn't taken by the peering token.
+```

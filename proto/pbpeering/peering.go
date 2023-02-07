@@ -1,9 +1,17 @@
 package pbpeering
 
 import (
+	"crypto/tls"
+	"crypto/x509"
+	"errors"
+	"fmt"
 	"time"
 
-	"github.com/golang/protobuf/ptypes/timestamp"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/timestamppb"
+
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
@@ -67,10 +75,19 @@ func (req *TrustBundleListByServiceRequest) RequestDatacenter() string {
 
 // ShouldDial returns true when the peering was stored via the peering initiation endpoint,
 // AND the peering is not marked as terminated by our peer.
-// If we generated a token for this peer we did not store our server addresses under PeerServerAddresses.
+// If we generated a token for this peer we did not store our server addresses under PeerServerAddresses or ManualServerAddresses.
 // These server addresses are for dialing, and only the peer initiating the peering will do the dialing.
 func (p *Peering) ShouldDial() bool {
-	return len(p.PeerServerAddresses) > 0
+	return len(p.PeerServerAddresses) > 0 || len(p.ManualServerAddresses) > 0
+}
+
+// GetAddressesToDial returns the listing of addresses that should be dialed for the peering.
+// It will ensure that manual addresses take precedence, if any are defined.
+func (p *Peering) GetAddressesToDial() []string {
+	if len(p.ManualServerAddresses) > 0 {
+		return p.ManualServerAddresses
+	}
+	return p.PeerServerAddresses
 }
 
 func (x PeeringState) GoString() string {
@@ -135,16 +152,95 @@ func PeeringStateFromAPI(t api.PeeringState) PeeringState {
 	}
 }
 
+func StreamStatusToAPI(status *StreamStatus) api.PeeringStreamStatus {
+	return api.PeeringStreamStatus{
+		ImportedServices: status.ImportedServices,
+		ExportedServices: status.ExportedServices,
+		LastHeartbeat:    TimePtrFromProto(status.LastHeartbeat),
+		LastReceive:      TimePtrFromProto(status.LastReceive),
+		LastSend:         TimePtrFromProto(status.LastSend),
+	}
+}
+
+func StreamStatusFromAPI(status api.PeeringStreamStatus) *StreamStatus {
+	return &StreamStatus{
+		ImportedServices: status.ImportedServices,
+		ExportedServices: status.ExportedServices,
+		LastHeartbeat:    TimePtrToProto(status.LastHeartbeat),
+		LastReceive:      TimePtrToProto(status.LastReceive),
+		LastSend:         TimePtrToProto(status.LastSend),
+	}
+}
+
 func (p *Peering) IsActive() bool {
-	if p != nil && p.State == PeeringState_TERMINATED {
+	if p == nil || p.State == PeeringState_TERMINATED {
 		return false
 	}
-	if p == nil || p.DeletedAt == nil {
+	if p.DeletedAt == nil {
 		return true
 	}
 
 	// The minimum protobuf timestamp is the Unix epoch rather than go's zero.
 	return structs.IsZeroProtoTime(p.DeletedAt)
+}
+
+// Validate is a validation helper that checks whether a secret ID is embedded in the container type.
+func (s *SecretsWriteRequest) Validate() error {
+	if s.PeerID == "" {
+		return errors.New("missing peer ID")
+	}
+	switch r := s.Request.(type) {
+	case *SecretsWriteRequest_GenerateToken:
+		if r != nil && r.GenerateToken.GetEstablishmentSecret() != "" {
+			return nil
+		}
+	case *SecretsWriteRequest_Establish:
+		if r != nil && r.Establish.GetActiveStreamSecret() != "" {
+			return nil
+		}
+	case *SecretsWriteRequest_ExchangeSecret:
+		if r != nil && r.ExchangeSecret.GetPendingStreamSecret() != "" {
+			return nil
+		}
+	case *SecretsWriteRequest_PromotePending:
+		if r != nil && r.PromotePending.GetActiveStreamSecret() != "" {
+			return nil
+		}
+	default:
+		return fmt.Errorf("unexpected request type %T", s.Request)
+	}
+
+	return errors.New("missing secret ID")
+}
+
+// TLSDialOption returns the gRPC DialOption to secure the transport if CAPems
+// ara available. If no CAPems were provided in the peering token then the
+// WithInsecure dial option is returned.
+func (p *Peering) TLSDialOption() (grpc.DialOption, error) {
+	//nolint:staticcheck
+	tlsOption := grpc.WithInsecure()
+
+	if len(p.PeerCAPems) > 0 {
+		var haveCerts bool
+		pool := x509.NewCertPool()
+		for _, pem := range p.PeerCAPems {
+			if !pool.AppendCertsFromPEM([]byte(pem)) {
+				return nil, fmt.Errorf("failed to parse PEM %s", pem)
+			}
+			if len(pem) > 0 {
+				haveCerts = true
+			}
+		}
+		if !haveCerts {
+			return nil, fmt.Errorf("failed to build cert pool from peer CA pems")
+		}
+		cfg := tls.Config{
+			ServerName: p.PeerServerName,
+			RootCAs:    pool,
+		}
+		tlsOption = grpc.WithTransportCredentials(credentials.NewTLS(&cfg))
+	}
+	return tlsOption, nil
 }
 
 func (p *Peering) ToAPI() *api.Peering {
@@ -176,6 +272,13 @@ func (resp *EstablishResponse) ToAPI() *api.PeeringEstablishResponse {
 	return &t
 }
 
+func (r *RemoteInfo) IsEmpty() bool {
+	if r == nil {
+		return true
+	}
+	return r.Partition == "" && r.Datacenter == ""
+}
+
 // convenience
 func NewGenerateTokenRequestFromAPI(req *api.PeeringGenerateTokenRequest) *GenerateTokenRequest {
 	if req == nil {
@@ -196,17 +299,28 @@ func NewEstablishRequestFromAPI(req *api.PeeringEstablishRequest) *EstablishRequ
 	return t
 }
 
-func TimePtrFromProto(s *timestamp.Timestamp) *time.Time {
+func TimePtrFromProto(s *timestamppb.Timestamp) *time.Time {
 	if s == nil {
 		return nil
 	}
-	t := structs.TimeFromProto(s)
+	t := s.AsTime()
 	return &t
 }
 
-func TimePtrToProto(s *time.Time) *timestamp.Timestamp {
+func TimePtrToProto(s *time.Time) *timestamppb.Timestamp {
 	if s == nil {
 		return nil
 	}
-	return structs.TimeToProto(*s)
+	return timestamppb.New(*s)
+}
+
+// DeepCopy returns a copy of the PeeringTrustBundle that can be passed around
+// without worrying about the receiver unsafely modifying it. It is used by the
+// generated DeepCopy methods in proxycfg.
+func (o *PeeringTrustBundle) DeepCopy() *PeeringTrustBundle {
+	cp, ok := proto.Clone(o).(*PeeringTrustBundle)
+	if !ok {
+		panic(fmt.Sprintf("failed to clone *PeeringTrustBundle, got: %T", cp))
+	}
+	return cp
 }

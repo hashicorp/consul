@@ -1,6 +1,7 @@
 package cachetype
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/hashicorp/consul/agent/cache"
@@ -45,7 +46,7 @@ func (c *ConfigEntryList) Fetch(opts cache.FetchOptions, req cache.Request) (cac
 
 	// Fetch
 	var reply structs.IndexedConfigEntries
-	if err := c.RPC.RPC("ConfigEntry.List", reqReal, &reply); err != nil {
+	if err := c.RPC.RPC(context.Background(), "ConfigEntry.List", reqReal, &reply); err != nil {
 		return result, err
 	}
 
@@ -86,7 +87,7 @@ func (c *ConfigEntry) Fetch(opts cache.FetchOptions, req cache.Request) (cache.F
 
 	// Fetch
 	var reply structs.ConfigEntryResponse
-	if err := c.RPC.RPC("ConfigEntry.Get", reqReal, &reply); err != nil {
+	if err := c.RPC.RPC(context.Background(), "ConfigEntry.Get", reqReal, &reply); err != nil {
 		return result, err
 	}
 

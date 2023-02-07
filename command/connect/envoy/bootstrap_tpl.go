@@ -27,9 +27,15 @@ type BootstrapTplArgs struct {
 	// TLS is enabled.
 	AgentCAPEM string
 
+	// AdminAccessLogConfig string representations of Envoy access log
+	// configurations for the admin interface.
+	AdminAccessLogConfig []string
+
 	// AdminAccessLogPath The path to write the access log for the
 	// administration server. If no access log is desired specify
-	// "/dev/null". By default it will use "/dev/null".
+	// "/dev/null". By default it will use "/dev/null". Will be overriden by
+	// AdminAccessLogConfig.
+	// DEPRECATED: use AdminAccessLogConfig
 	AdminAccessLogPath string
 
 	// AdminBindAddress is the address the Envoy admin server should bind to.
@@ -111,10 +117,21 @@ type BootstrapTplArgs struct {
 	// the envoy_prometheus_bind_addr listener.
 	PrometheusScrapePath string
 
-	PrometheusCAFile   string
-	PrometheusCAPath   string
+	// PrometheusCAFile is the path to a CA file for Envoy to use when serving TLS on the Prometheius metrics
+	// endpoint. Only applicable when envoy_prometheus_bind_addr is set in the proxy config.
+	PrometheusCAFile string
+
+	// PrometheusCAPath is the path to a directory of CA certificates for Envoy to use when serving the Prometheus
+	// metrics endpoint. Only applicable when envoy_prometheus_bind_addr is set in the proxy config.
+	PrometheusCAPath string
+
+	// PrometheusCertFile is the path to a certificate file for Envoy to use when serving TLS on the Prometheus
+	// metrics endpoint. Only applicable when envoy_prometheus_bind_addr is set in the proxy config.
 	PrometheusCertFile string
-	PrometheusKeyFile  string
+
+	// PrometheusKeyFile is the path to a private key file Envoy to use when serving TLS on the Prometheus metrics
+	// endpoint. Only applicable when envoy_prometheus_bind_addr is set in the proxy config.
+	PrometheusKeyFile string
 }
 
 // GRPC settings used in the bootstrap template.
@@ -140,7 +157,16 @@ type GRPC struct {
 // config.
 const bootstrapTemplate = `{
   "admin": {
+	{{- if (not .AdminAccessLogConfig) }}
     "access_log_path": "{{ .AdminAccessLogPath }}",
+	{{- end}}
+	{{- if .AdminAccessLogConfig }}
+    "access_log": [
+	{{- range $index, $element := .AdminAccessLogConfig}}
+        {{if $index}},{{end}}
+        {{$element}}
+    {{end}}],
+	{{- end}}
     "address": {
       "socket_address": {
         "address": "{{ .AdminBindAddress }}",

@@ -1,6 +1,7 @@
 package consul
 
 import (
+	"context"
 	"os"
 	"testing"
 	"time"
@@ -170,7 +171,7 @@ func TestLeader_FederationStateAntiEntropy_BlockingQuery(t *testing.T) {
 		}
 
 		out := false
-		require.NoError(t, s1.RPC("FederationState.Apply", &arg, &out))
+		require.NoError(t, s1.RPC(context.Background(), "FederationState.Apply", &arg, &out))
 	}
 
 	makeGateways := func(t *testing.T, csn structs.CheckServiceNode) {
@@ -185,7 +186,7 @@ func TestLeader_FederationStateAntiEntropy_BlockingQuery(t *testing.T) {
 			Checks:     csn.Checks,
 		}
 		var out struct{}
-		require.NoError(t, s2.RPC("Catalog.Register", &arg, &out))
+		require.NoError(t, s2.RPC(context.Background(), "Catalog.Register", &arg, &out))
 	}
 
 	type result struct {

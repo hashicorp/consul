@@ -26,6 +26,15 @@ const (
 
 	ProxyConfigGlobal string = "global"
 	MeshConfigMesh    string = "mesh"
+	APIGateway        string = "api-gateway"
+	TCPRoute          string = "tcp-route"
+	InlineCertificate string = "inline-certificate"
+	HTTPRoute         string = "http-route"
+)
+
+const (
+	BuiltinAWSLambdaExtension string = "builtin/aws/lambda"
+	BuiltinLuaExtension       string = "builtin/lua"
 )
 
 type ConfigEntry interface {
@@ -104,6 +113,13 @@ type ExposeConfig struct {
 	Paths []ExposePath `json:",omitempty"`
 }
 
+// EnvoyExtension has configuration for an extension that patches Envoy resources.
+type EnvoyExtension struct {
+	Name      string
+	Required  bool
+	Arguments map[string]interface{} `bexpr:"-"`
+}
+
 type ExposePath struct {
 	// ListenerPort defines the port of the proxy's listener for exposed paths.
 	ListenerPort int `json:",omitempty" alias:"listener_port"`
@@ -122,6 +138,36 @@ type ExposePath struct {
 	ParsedFromCheck bool
 }
 
+type LogSinkType string
+
+const (
+	DefaultLogSinkType LogSinkType = ""
+	FileLogSinkType    LogSinkType = "file"
+	StdErrLogSinkType  LogSinkType = "stderr"
+	StdOutLogSinkType  LogSinkType = "stdout"
+)
+
+// AccessLogsConfig contains the associated default settings for all Envoy instances within the datacenter or partition
+type AccessLogsConfig struct {
+	// Enabled turns off all access logging
+	Enabled bool `json:",omitempty" alias:"enabled"`
+
+	// DisableListenerLogs turns off just listener logs for connections rejected by Envoy because they don't
+	// have a matching listener filter.
+	DisableListenerLogs bool `json:",omitempty" alias:"disable_listener_logs"`
+
+	// Type selects the output for logs: "file", "stderr". "stdout"
+	Type LogSinkType `json:",omitempty" alias:"type"`
+
+	// Path is the output file to write logs
+	Path string `json:",omitempty" alias:"path"`
+
+	// The presence of one format string or the other implies the access log string encoding.
+	// Defining Both is invalid.
+	JSONFormat string `json:",omitempty" alias:"json_format"`
+	TextFormat string `json:",omitempty" alias:"text_format"`
+}
+
 type UpstreamConfiguration struct {
 	// Overrides is a slice of per-service configuration. The name field is
 	// required.
@@ -133,14 +179,17 @@ type UpstreamConfiguration struct {
 }
 
 type UpstreamConfig struct {
-	// Name is only accepted within a service-defaults config entry.
+	// Name is only accepted within service-defaults.upstreamConfig.overrides .
 	Name string `json:",omitempty"`
 
-	// Partition is only accepted within a service-defaults config entry.
+	// Partition is only accepted within service-defaults.upstreamConfig.overrides .
 	Partition string `json:",omitempty"`
 
-	// Namespace is only accepted within a service-defaults config entry.
+	// Namespace is only accepted within service-defaults.upstreamConfig.overrides .
 	Namespace string `json:",omitempty"`
+
+	// Peer is only accepted within service-defaults.upstreamConfig.overrides .
+	Peer string `json:",omitempty"`
 
 	// EnvoyListenerJSON is a complete override ("escape hatch") for the upstream's
 	// listener.
@@ -177,6 +226,10 @@ type UpstreamConfig struct {
 
 	// MeshGatewayConfig controls how Mesh Gateways are configured and used
 	MeshGateway MeshGatewayConfig `json:",omitempty" alias:"mesh_gateway" `
+
+	// BalanceOutboundConnections indicates that the proxy should attempt to evenly distribute
+	// outbound connections across worker threads. Only used by envoy proxies.
+	BalanceOutboundConnections string `json:",omitempty" alias:"balance_outbound_connections"`
 }
 
 // DestinationConfig represents a virtual service, i.e. one that is external to Consul
@@ -196,6 +249,11 @@ type PassiveHealthCheck struct {
 	// MaxFailures is the count of consecutive failures that results in a host
 	// being removed from the pool.
 	MaxFailures uint32 `alias:"max_failures"`
+
+	// EnforcingConsecutive5xx is the % chance that a host will be actually ejected
+	// when an outlier status is detected through consecutive 5xx.
+	// This setting can be used to disable ejection or to ramp it up slowly.
+	EnforcingConsecutive5xx *uint32 `json:",omitempty" alias:"enforcing_consecutive_5xx"`
 }
 
 // UpstreamLimits describes the limits that are associated with a specific
@@ -218,21 +276,26 @@ type UpstreamLimits struct {
 }
 
 type ServiceConfigEntry struct {
-	Kind             string
-	Name             string
-	Partition        string                  `json:",omitempty"`
-	Namespace        string                  `json:",omitempty"`
-	Protocol         string                  `json:",omitempty"`
-	Mode             ProxyMode               `json:",omitempty"`
-	TransparentProxy *TransparentProxyConfig `json:",omitempty" alias:"transparent_proxy"`
-	MeshGateway      MeshGatewayConfig       `json:",omitempty" alias:"mesh_gateway"`
-	Expose           ExposeConfig            `json:",omitempty"`
-	ExternalSNI      string                  `json:",omitempty" alias:"external_sni"`
-	UpstreamConfig   *UpstreamConfiguration  `json:",omitempty" alias:"upstream_config"`
-	Destination      *DestinationConfig      `json:",omitempty"`
-	Meta             map[string]string       `json:",omitempty"`
-	CreateIndex      uint64
-	ModifyIndex      uint64
+	Kind                      string
+	Name                      string
+	Partition                 string                  `json:",omitempty"`
+	Namespace                 string                  `json:",omitempty"`
+	Protocol                  string                  `json:",omitempty"`
+	Mode                      ProxyMode               `json:",omitempty"`
+	TransparentProxy          *TransparentProxyConfig `json:",omitempty" alias:"transparent_proxy"`
+	MeshGateway               MeshGatewayConfig       `json:",omitempty" alias:"mesh_gateway"`
+	Expose                    ExposeConfig            `json:",omitempty"`
+	ExternalSNI               string                  `json:",omitempty" alias:"external_sni"`
+	UpstreamConfig            *UpstreamConfiguration  `json:",omitempty" alias:"upstream_config"`
+	Destination               *DestinationConfig      `json:",omitempty"`
+	MaxInboundConnections     int                     `json:",omitempty" alias:"max_inbound_connections"`
+	LocalConnectTimeoutMs     int                     `json:",omitempty" alias:"local_connect_timeout_ms"`
+	LocalRequestTimeoutMs     int                     `json:",omitempty" alias:"local_request_timeout_ms"`
+	BalanceInboundConnections string                  `json:",omitempty" alias:"balance_inbound_connections"`
+	EnvoyExtensions           []EnvoyExtension        `json:",omitempty" alias:"envoy_extensions"`
+	Meta                      map[string]string       `json:",omitempty"`
+	CreateIndex               uint64
+	ModifyIndex               uint64
 }
 
 func (s *ServiceConfigEntry) GetKind() string            { return s.Kind }
@@ -253,6 +316,8 @@ type ProxyConfigEntry struct {
 	Config           map[string]interface{}  `json:",omitempty"`
 	MeshGateway      MeshGatewayConfig       `json:",omitempty" alias:"mesh_gateway"`
 	Expose           ExposeConfig            `json:",omitempty"`
+	AccessLogs       *AccessLogsConfig       `json:",omitempty" alias:"access_logs"`
+	EnvoyExtensions  []EnvoyExtension        `json:",omitempty" alias:"envoy_extensions"`
 
 	Meta        map[string]string `json:",omitempty"`
 	CreateIndex uint64
@@ -260,7 +325,7 @@ type ProxyConfigEntry struct {
 }
 
 func (p *ProxyConfigEntry) GetKind() string            { return p.Kind }
-func (p *ProxyConfigEntry) GetName() string            { return p.Name }
+func (p *ProxyConfigEntry) GetName() string            { return ProxyConfigGlobal }
 func (p *ProxyConfigEntry) GetPartition() string       { return p.Partition }
 func (p *ProxyConfigEntry) GetNamespace() string       { return p.Namespace }
 func (p *ProxyConfigEntry) GetMeta() map[string]string { return p.Meta }
@@ -289,6 +354,14 @@ func makeConfigEntry(kind, name string) (ConfigEntry, error) {
 		return &MeshConfigEntry{}, nil
 	case ExportedServices:
 		return &ExportedServicesConfigEntry{Name: name}, nil
+	case APIGateway:
+		return &APIGatewayConfigEntry{Kind: kind, Name: name}, nil
+	case TCPRoute:
+		return &TCPRouteConfigEntry{Kind: kind, Name: name}, nil
+	case InlineCertificate:
+		return &InlineCertificateConfigEntry{Kind: kind, Name: name}, nil
+	case HTTPRoute:
+		return &HTTPRouteConfigEntry{Kind: kind, Name: name}, nil
 	default:
 		return nil, fmt.Errorf("invalid config entry kind: %s", kind)
 	}

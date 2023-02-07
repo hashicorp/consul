@@ -2,23 +2,29 @@ package consul
 
 import (
 	"bufio"
+	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/serf/serf"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
 
 	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 	tokenStore "github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/sdk/freeport"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
@@ -355,8 +361,10 @@ func TestLeader_CheckServersMeta(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
-
 	t.Parallel()
+
+	ports := freeport.GetN(t, 2) // s3 grpc, s3 grpc_tls
+
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
@@ -383,6 +391,8 @@ func TestLeader_CheckServersMeta(t *testing.T) {
 		c.ACLInitialManagementToken = "root"
 		c.ACLResolverSettings.ACLDefaultPolicy = "allow"
 		c.Bootstrap = false
+		c.GRPCPort = ports[0]
+		c.GRPCTLSPort = ports[1]
 	})
 	defer os.RemoveAll(dir3)
 	defer s3.Shutdown()
@@ -455,6 +465,14 @@ func TestLeader_CheckServersMeta(t *testing.T) {
 		newVersion := service.Meta["version"]
 		if newVersion != versionToExpect {
 			r.Fatalf("Expected version to be updated to %s, was %s", versionToExpect, newVersion)
+		}
+		grpcPort := service.Meta["grpc_port"]
+		if grpcPort != strconv.Itoa(ports[0]) {
+			r.Fatalf("Expected grpc port to be %d, was %s", ports[0], grpcPort)
+		}
+		grpcTLSPort := service.Meta["grpc_tls_port"]
+		if grpcTLSPort != strconv.Itoa(ports[1]) {
+			r.Fatalf("Expected grpc tls port to be %d, was %s", ports[1], grpcTLSPort)
 		}
 	})
 }
@@ -571,7 +589,7 @@ func TestLeader_Reconcile_ReapMember(t *testing.T) {
 		},
 	}
 	var out struct{}
-	if err := s1.RPC("Catalog.Register", &dead, &out); err != nil {
+	if err := s1.RPC(context.Background(), "Catalog.Register", &dead, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -685,7 +703,7 @@ func TestLeader_Reconcile_Races(t *testing.T) {
 		},
 	}
 	var out struct{}
-	if err := s1.RPC("Catalog.Register", &req, &out); err != nil {
+	if err := s1.RPC(context.Background(), "Catalog.Register", &req, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -1281,6 +1299,13 @@ func TestLeader_ACL_Initialization(t *testing.T) {
 			_, policy, err := s1.fsm.State().ACLPolicyGetByID(nil, structs.ACLPolicyGlobalManagementID, nil)
 			require.NoError(t, err)
 			require.NotNil(t, policy)
+
+			serverToken, err := s1.getSystemMetadata(structs.ServerManagementTokenAccessorID)
+			require.NoError(t, err)
+			require.NotEmpty(t, serverToken)
+
+			_, err = uuid.ParseUUID(serverToken)
+			require.NoError(t, err)
 		})
 	}
 }
@@ -1435,7 +1460,7 @@ func TestLeader_ConfigEntryBootstrap_Fail(t *testing.T) {
 					},
 				},
 			},
-			expectMessage: `Failed to apply configuration entry "service-splitter" / "web": discovery chain "web" uses a protocol "tcp" that does not permit advanced routing or splitting behavior"`,
+			expectMessage: `Failed to apply configuration entry "service-splitter" / "web": discovery chain "web" uses a protocol "tcp" that does not permit advanced routing or splitting behavior`,
 		},
 		{
 			name: "service-intentions without migration",
@@ -1475,7 +1500,7 @@ func TestLeader_ConfigEntryBootstrap_Fail(t *testing.T) {
 			serverCB: func(c *Config) {
 				c.ConnectEnabled = false
 			},
-			expectMessage: `Refusing to apply configuration entry "service-intentions" / "web" because Connect must be enabled to bootstrap intentions"`,
+			expectMessage: `Refusing to apply configuration entry "service-intentions" / "web" because Connect must be enabled to bootstrap intentions`,
 		},
 	}
 
@@ -1494,9 +1519,11 @@ func TestLeader_ConfigEntryBootstrap_Fail(t *testing.T) {
 				scan := bufio.NewScanner(pr)
 				for scan.Scan() {
 					line := scan.Text()
+					lineJson := map[string]interface{}{}
+					json.Unmarshal([]byte(line), &lineJson)
 
 					if strings.Contains(line, "failed to establish leadership") {
-						applyErrorLine = line
+						applyErrorLine = lineJson["error"].(string)
 						ch <- ""
 						return
 					}
@@ -1521,15 +1548,16 @@ func TestLeader_ConfigEntryBootstrap_Fail(t *testing.T) {
 			}
 
 			logger := hclog.NewInterceptLogger(&hclog.LoggerOptions{
-				Name:   config.NodeName,
-				Level:  testutil.TestLogLevel,
-				Output: io.MultiWriter(pw, testutil.NewLogBuffer(t)),
+				Name:       config.NodeName,
+				Level:      testutil.TestLogLevel,
+				Output:     io.MultiWriter(pw, testutil.NewLogBuffer(t)),
+				JSONFormat: true,
 			})
 
 			deps := newDefaultDeps(t, config)
 			deps.Logger = logger
 
-			srv, err := NewServer(config, deps, grpc.NewServer())
+			srv, err := NewServer(config, deps, grpc.NewServer(), nil, logger)
 			require.NoError(t, err)
 			defer srv.Shutdown()
 
@@ -1566,7 +1594,7 @@ func TestDatacenterSupportsFederationStates(t *testing.T) {
 		}
 
 		var out struct{}
-		require.NoError(t, srv.RPC("Catalog.Register", &arg, &out))
+		require.NoError(t, srv.RPC(context.Background(), "Catalog.Register", &arg, &out))
 	}
 
 	t.Run("one node primary with old version", func(t *testing.T) {
@@ -1618,7 +1646,7 @@ func TestDatacenterSupportsFederationStates(t *testing.T) {
 			}
 
 			var out structs.FederationStateResponse
-			require.NoError(r, s1.RPC("FederationState.Get", &arg, &out))
+			require.NoError(r, s1.RPC(context.Background(), "FederationState.Get", &arg, &out))
 			require.NotNil(r, out.State)
 			require.Len(r, out.State.MeshGateways, 1)
 		})
@@ -1723,7 +1751,7 @@ func TestDatacenterSupportsFederationStates(t *testing.T) {
 			}
 
 			var out structs.IndexedFederationStates
-			require.NoError(r, s1.RPC("FederationState.List", &arg, &out))
+			require.NoError(r, s1.RPC(context.Background(), "FederationState.List", &arg, &out))
 			require.Len(r, out.States, 1)
 			require.Len(r, out.States[0].MeshGateways, 1)
 		})
@@ -1779,7 +1807,7 @@ func TestDatacenterSupportsFederationStates(t *testing.T) {
 			}
 
 			var out structs.IndexedFederationStates
-			require.NoError(r, s1.RPC("FederationState.List", &arg, &out))
+			require.NoError(r, s1.RPC(context.Background(), "FederationState.List", &arg, &out))
 			require.Len(r, out.States, 2)
 			require.Len(r, out.States[0].MeshGateways, 1)
 			require.Len(r, out.States[1].MeshGateways, 1)
@@ -1792,7 +1820,7 @@ func TestDatacenterSupportsFederationStates(t *testing.T) {
 			}
 
 			var out structs.IndexedFederationStates
-			require.NoError(r, s1.RPC("FederationState.List", &arg, &out))
+			require.NoError(r, s1.RPC(context.Background(), "FederationState.List", &arg, &out))
 			require.Len(r, out.States, 2)
 			require.Len(r, out.States[0].MeshGateways, 1)
 			require.Len(r, out.States[1].MeshGateways, 1)
@@ -1879,7 +1907,7 @@ func TestDatacenterSupportsIntentionsAsConfigEntries(t *testing.T) {
 		}
 
 		var id string
-		return srv.RPC("Intention.Apply", &arg, &id)
+		return srv.RPC(context.Background(), "Intention.Apply", &arg, &id)
 	}
 
 	getConfigEntry := func(srv *Server, dc, kind, name string) (structs.ConfigEntry, error) {
@@ -1889,7 +1917,7 @@ func TestDatacenterSupportsIntentionsAsConfigEntries(t *testing.T) {
 			Name:       name,
 		}
 		var reply structs.ConfigEntryResponse
-		if err := srv.RPC("ConfigEntry.Get", &arg, &reply); err != nil {
+		if err := srv.RPC(context.Background(), "ConfigEntry.Get", &arg, &reply); err != nil {
 			return nil, err
 		}
 		return reply.Entry, nil
@@ -2382,7 +2410,7 @@ func TestLeader_ACL_Initialization_AnonymousToken(t *testing.T) {
 	reqToken := structs.ACLTokenSetRequest{
 		Datacenter: "dc1",
 		ACLToken: structs.ACLToken{
-			AccessorID:  structs.ACLTokenAnonymousID,
+			AccessorID:  acl.AnonymousTokenID,
 			SecretID:    anonymousToken,
 			Description: "Anonymous Token",
 			CreateTime:  time.Now(),

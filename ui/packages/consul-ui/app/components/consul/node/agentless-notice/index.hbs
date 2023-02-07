@@ -1,0 +1,28 @@
+{{#if isVisible}}
+  <Notice data-test-node-agentless-notice @type='info' class='agentless-node-notice' as |notice|>
+    <notice.Header>
+      <h3>
+        {{t 'routes.dc.nodes.index.agentless.notice.header'}}
+      </h3>
+      <button type='button' aria-label='Dismiss notice' {{on 'click' this.dismissAgentlessNotice}}>
+        <FlightIcon @name='x' />
+      </button>
+    </notice.Header>
+    <notice.Body>
+      <p>
+        {{t 'routes.dc.nodes.index.agentless.notice.body'}}
+      </p>
+    </notice.Body>
+    <notice.Footer>
+      <p class='docs-link'>
+        <a
+          href='{{env "CONSUL_DOCS_DEVELOPER_URL"}}/connect/dataplane'
+          target='_blank'
+          rel='noopener noreferrer'
+        >
+          {{t 'routes.dc.nodes.index.agentless.notice.footer'}}
+        </a>
+      </p>
+    </notice.Footer>
+  </Notice>
+{{/if}}

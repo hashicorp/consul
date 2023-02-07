@@ -28,6 +28,9 @@ type PeerStreamServiceClient interface {
 	// buf:lint:ignore RPC_RESPONSE_STANDARD_NAME
 	// buf:lint:ignore RPC_REQUEST_RESPONSE_UNIQUE
 	StreamResources(ctx context.Context, opts ...grpc.CallOption) (PeerStreamService_StreamResourcesClient, error)
+	// ExchangeSecret is a unary RPC for exchanging the one-time establishment secret
+	// for a long-lived stream secret.
+	ExchangeSecret(ctx context.Context, in *ExchangeSecretRequest, opts ...grpc.CallOption) (*ExchangeSecretResponse, error)
 }
 
 type peerStreamServiceClient struct {
@@ -69,6 +72,15 @@ func (x *peerStreamServiceStreamResourcesClient) Recv() (*ReplicationMessage, er
 	return m, nil
 }
 
+func (c *peerStreamServiceClient) ExchangeSecret(ctx context.Context, in *ExchangeSecretRequest, opts ...grpc.CallOption) (*ExchangeSecretResponse, error) {
+	out := new(ExchangeSecretResponse)
+	err := c.cc.Invoke(ctx, "/hashicorp.consul.internal.peerstream.PeerStreamService/ExchangeSecret", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // PeerStreamServiceServer is the server API for PeerStreamService service.
 // All implementations should embed UnimplementedPeerStreamServiceServer
 // for forward compatibility
@@ -79,6 +91,9 @@ type PeerStreamServiceServer interface {
 	// buf:lint:ignore RPC_RESPONSE_STANDARD_NAME
 	// buf:lint:ignore RPC_REQUEST_RESPONSE_UNIQUE
 	StreamResources(PeerStreamService_StreamResourcesServer) error
+	// ExchangeSecret is a unary RPC for exchanging the one-time establishment secret
+	// for a long-lived stream secret.
+	ExchangeSecret(context.Context, *ExchangeSecretRequest) (*ExchangeSecretResponse, error)
 }
 
 // UnimplementedPeerStreamServiceServer should be embedded to have forward compatible implementations.
@@ -87,6 +102,9 @@ type UnimplementedPeerStreamServiceServer struct {
 
 func (UnimplementedPeerStreamServiceServer) StreamResources(PeerStreamService_StreamResourcesServer) error {
 	return status.Errorf(codes.Unimplemented, "method StreamResources not implemented")
+}
+func (UnimplementedPeerStreamServiceServer) ExchangeSecret(context.Context, *ExchangeSecretRequest) (*ExchangeSecretResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ExchangeSecret not implemented")
 }
 
 // UnsafePeerStreamServiceServer may be embedded to opt out of forward compatibility for this service.
@@ -126,13 +144,36 @@ func (x *peerStreamServiceStreamResourcesServer) Recv() (*ReplicationMessage, er
 	return m, nil
 }
 
+func _PeerStreamService_ExchangeSecret_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ExchangeSecretRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PeerStreamServiceServer).ExchangeSecret(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/hashicorp.consul.internal.peerstream.PeerStreamService/ExchangeSecret",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PeerStreamServiceServer).ExchangeSecret(ctx, req.(*ExchangeSecretRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // PeerStreamService_ServiceDesc is the grpc.ServiceDesc for PeerStreamService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var PeerStreamService_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "hashicorp.consul.internal.peerstream.PeerStreamService",
 	HandlerType: (*PeerStreamServiceServer)(nil),
-	Methods:     []grpc.MethodDesc{},
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "ExchangeSecret",
+			Handler:    _PeerStreamService_ExchangeSecret_Handler,
+		},
+	},
 	Streams: []grpc.StreamDesc{
 		{
 			StreamName:    "StreamResources",

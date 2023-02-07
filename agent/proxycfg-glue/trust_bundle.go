@@ -33,9 +33,19 @@ type serverTrustBundle struct {
 }
 
 func (s *serverTrustBundle) Notify(ctx context.Context, req *cachetype.TrustBundleReadRequest, correlationID string, ch chan<- proxycfg.UpdateEvent) error {
-	// TODO(peering): ACL check.
+	entMeta := structs.NodeEnterpriseMetaInPartition(req.Request.Partition)
+
 	return watch.ServerLocalNotify(ctx, correlationID, s.deps.GetStore,
 		func(ws memdb.WatchSet, store Store) (uint64, *pbpeering.TrustBundleReadResponse, error) {
+			var authzCtx acl.AuthorizerContext
+			authz, err := s.deps.ACLResolver.ResolveTokenAndDefaultMeta(req.Token, entMeta, &authzCtx)
+			if err != nil {
+				return 0, nil, err
+			}
+			if err := authz.ToAllowAuthorizer().ServiceWriteAnyAllowed(&authzCtx); err != nil {
+				return 0, nil, err
+			}
+
 			index, bundle, err := store.PeeringTrustBundleRead(ws, state.Query{
 				Value:          req.Request.Name,
 				EnterpriseMeta: *structs.NodeEnterpriseMetaInPartition(req.Request.Partition),
@@ -71,13 +81,20 @@ type serverTrustBundleList struct {
 func (s *serverTrustBundleList) Notify(ctx context.Context, req *cachetype.TrustBundleListRequest, correlationID string, ch chan<- proxycfg.UpdateEvent) error {
 	entMeta := acl.NewEnterpriseMetaWithPartition(req.Request.Partition, req.Request.Namespace)
 
-	// TODO(peering): ACL check.
 	return watch.ServerLocalNotify(ctx, correlationID, s.deps.GetStore,
 		func(ws memdb.WatchSet, store Store) (uint64, *pbpeering.TrustBundleListByServiceResponse, error) {
+			var authzCtx acl.AuthorizerContext
+			authz, err := s.deps.ACLResolver.ResolveTokenAndDefaultMeta(req.Token, &entMeta, &authzCtx)
+			if err != nil {
+				return 0, nil, err
+			}
+			if err := authz.ToAllowAuthorizer().ServiceWriteAllowed(req.Request.ServiceName, &authzCtx); err != nil {
+				return 0, nil, err
+			}
+
 			var (
 				index   uint64
 				bundles []*pbpeering.PeeringTrustBundle
-				err     error
 			)
 			switch {
 			case req.Request.Kind == string(structs.ServiceKindMeshGateway):

@@ -2,6 +2,7 @@ package agent
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -464,7 +465,7 @@ func TestOperator_AutopilotSetConfiguration(t *testing.T) {
 	}
 
 	var reply structs.AutopilotConfig
-	if err := a.RPC("Operator.AutopilotGetConfiguration", &args, &reply); err != nil {
+	if err := a.RPC(context.Background(), "Operator.AutopilotGetConfiguration", &args, &reply); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -499,7 +500,7 @@ func TestOperator_AutopilotCASConfiguration(t *testing.T) {
 	}
 
 	var reply structs.AutopilotConfig
-	if err := a.RPC("Operator.AutopilotGetConfiguration", &args, &reply); err != nil {
+	if err := a.RPC(context.Background(), "Operator.AutopilotGetConfiguration", &args, &reply); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -538,7 +539,7 @@ func TestOperator_AutopilotCASConfiguration(t *testing.T) {
 	}
 
 	// Verify the update
-	if err := a.RPC("Operator.AutopilotGetConfiguration", &args, &reply); err != nil {
+	if err := a.RPC(context.Background(), "Operator.AutopilotGetConfiguration", &args, &reply); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	if !reply.CleanupDeadServers {

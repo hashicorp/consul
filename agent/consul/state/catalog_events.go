@@ -44,7 +44,6 @@ type EventPayloadCheckServiceNode struct {
 }
 
 func (e EventPayloadCheckServiceNode) HasReadPermission(authz acl.Authorizer) bool {
-	// TODO(peering): figure out how authz works for peered data
 	return e.Value.CanRead(authz) == acl.Allow
 }
 

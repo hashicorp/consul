@@ -1,0 +1,3 @@
+```release-note:feature
+agent: Added a new config option `rpc_client_timeout` to tune timeouts for client RPC requests
+```

@@ -1,0 +1,4 @@
+```release-note:feature
+ui: Use withCredentials for all HTTP API requests
+```
+

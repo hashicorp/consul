@@ -3,8 +3,6 @@ package consul
 import (
 	"bytes"
 	"context"
-	"encoding/base64"
-	"encoding/json"
 	"fmt"
 	"os"
 	"reflect"
@@ -23,11 +21,14 @@ import (
 	"github.com/hashicorp/consul-net-rpc/net/rpc"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/connect"
+	grpcexternal "github.com/hashicorp/consul/agent/grpc-external"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/structs/aclfilter"
 	tokenStore "github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/proto/pbpeering"
+	"github.com/hashicorp/consul/sdk/freeport"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/types"
@@ -89,7 +90,7 @@ func TestPreparedQuery_Apply(t *testing.T) {
 
 	// Fix that and ensure Targets and NearestN cannot be set at the same time.
 	query.Query.Service.Failover.NearestN = 1
-	query.Query.Service.Failover.Targets = []structs.QueryFailoverTarget{{PeerName: "peer"}}
+	query.Query.Service.Failover.Targets = []structs.QueryFailoverTarget{{Peer: "peer"}}
 	err = msgpackrpc.CallWithCodec(codec, "PreparedQuery.Apply", &query, &reply)
 	if err == nil || !strings.Contains(err.Error(), "Targets cannot be populated with") {
 		t.Fatalf("bad: %v", err)
@@ -98,7 +99,7 @@ func TestPreparedQuery_Apply(t *testing.T) {
 	// Fix that and ensure Targets and Datacenters cannot be set at the same time.
 	query.Query.Service.Failover.NearestN = 0
 	query.Query.Service.Failover.Datacenters = []string{"dc2"}
-	query.Query.Service.Failover.Targets = []structs.QueryFailoverTarget{{PeerName: "peer"}}
+	query.Query.Service.Failover.Targets = []structs.QueryFailoverTarget{{Peer: "peer"}}
 	err = msgpackrpc.CallWithCodec(codec, "PreparedQuery.Apply", &query, &reply)
 	if err == nil || !strings.Contains(err.Error(), "Targets cannot be populated with") {
 		t.Fatalf("bad: %v", err)
@@ -1464,10 +1465,20 @@ func TestPreparedQuery_Execute(t *testing.T) {
 
 	s2.tokens.UpdateReplicationToken("root", tokenStore.TokenSourceConfig)
 
+	ca := connect.TestCA(t, nil)
 	dir3, s3 := testServerWithConfig(t, func(c *Config) {
 		c.Datacenter = "dc3"
 		c.PrimaryDatacenter = "dc3"
 		c.NodeName = "acceptingServer.dc3"
+		c.GRPCTLSPort = freeport.GetOne(t)
+		c.CAConfig = &structs.CAConfiguration{
+			ClusterID: connect.TestClusterID,
+			Provider:  structs.ConsulCAProvider,
+			Config: map[string]interface{}{
+				"PrivateKey": ca.SigningKey,
+				"RootCert":   ca.RootCert,
+			},
+		}
 	})
 	defer os.RemoveAll(dir3)
 	defer s3.Shutdown()
@@ -1494,14 +1505,19 @@ func TestPreparedQuery_Execute(t *testing.T) {
 	acceptingPeerName := "my-peer-accepting-server"
 	dialingPeerName := "my-peer-dialing-server"
 
-	// Set up peering between dc1 (dailing) and dc3 (accepting) and export the foo service
+	// Set up peering between dc1 (dialing) and dc3 (accepting) and export the foo service
 	{
 		// Create a peering by generating a token.
 		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 		t.Cleanup(cancel)
 
+		options := structs.QueryOptions{Token: "root"}
+		ctx, err := grpcexternal.ContextWithQueryOptions(ctx, options)
+		require.NoError(t, err)
+
 		conn, err := grpc.DialContext(ctx, s3.config.RPCAddr.String(),
 			grpc.WithContextDialer(newServerDialer(s3.config.RPCAddr.String())),
+			//nolint:staticcheck
 			grpc.WithInsecure(),
 			grpc.WithBlock())
 		require.NoError(t, err)
@@ -1513,25 +1529,31 @@ func TestPreparedQuery_Execute(t *testing.T) {
 		}
 		resp, err := peeringClient.GenerateToken(ctx, &req)
 		require.NoError(t, err)
-		tokenJSON, err := base64.StdEncoding.DecodeString(resp.PeeringToken)
-		require.NoError(t, err)
-		var token structs.PeeringToken
-		require.NoError(t, json.Unmarshal(tokenJSON, &token))
 
-		p := &pbpeering.Peering{
-			ID:                  "cc56f0b8-3885-4e78-8d7b-614a0c45712d",
-			Name:                acceptingPeerName,
-			PeerID:              token.PeerID,
-			PeerCAPems:          token.CA,
-			PeerServerName:      token.ServerName,
-			PeerServerAddresses: token.ServerAddresses,
+		conn, err = grpc.DialContext(ctx, s1.config.RPCAddr.String(),
+			grpc.WithContextDialer(newServerDialer(s1.config.RPCAddr.String())),
+			//nolint:staticcheck
+			grpc.WithInsecure(),
+			grpc.WithBlock())
+		require.NoError(t, err)
+		defer conn.Close()
+
+		peeringClient = pbpeering.NewPeeringServiceClient(conn)
+		establishReq := pbpeering.EstablishRequest{
+			PeerName:     acceptingPeerName,
+			PeeringToken: resp.PeeringToken,
 		}
-		require.True(t, p.ShouldDial())
-		require.NoError(t, s1.fsm.State().PeeringWrite(1000, p))
+		establishResp, err := peeringClient.Establish(ctx, &establishReq)
+		require.NoError(t, err)
+		require.NotNil(t, establishResp)
+
+		readResp, err := peeringClient.PeeringRead(ctx, &pbpeering.PeeringReadRequest{Name: acceptingPeerName})
+		require.NoError(t, err)
+		require.NotNil(t, readResp)
 
 		// Wait for the stream to be connected.
 		retry.Run(t, func(r *retry.R) {
-			status, found := s1.peerStreamServer.StreamStatus(p.ID)
+			status, found := s1.peerStreamServer.StreamStatus(readResp.GetPeering().GetID())
 			require.True(r, found)
 			require.True(r, status.Connected)
 		})
@@ -1544,7 +1566,7 @@ func TestPreparedQuery_Execute(t *testing.T) {
 				Services: []structs.ExportedService{
 					{
 						Name:      "foo",
-						Consumers: []structs.ServiceConsumer{{PeerName: dialingPeerName}},
+						Consumers: []structs.ServiceConsumer{{Peer: dialingPeerName}},
 					},
 				},
 			},
@@ -1556,7 +1578,7 @@ func TestPreparedQuery_Execute(t *testing.T) {
 
 	execNoNodesToken := createTokenWithPolicyName(t, codec1, "no-nodes", `service_prefix "foo" { policy = "read" }`, "root")
 	rules := `
-		service_prefix "foo" { policy = "read" }
+		service_prefix "" { policy = "read" }
 		node_prefix "" { policy = "read" }
 	`
 	execToken := createTokenWithPolicyName(t, codec1, "with-read", rules, "root")
@@ -2421,7 +2443,7 @@ func TestPreparedQuery_Execute(t *testing.T) {
 	query.Query.Service.Failover = structs.QueryFailoverOptions{
 		Targets: []structs.QueryFailoverTarget{
 			{Datacenter: "dc2"},
-			{PeerName: acceptingPeerName},
+			{Peer: acceptingPeerName},
 		},
 	}
 	require.NoError(t, msgpackrpc.CallWithCodec(codec1, "PreparedQuery.Apply", &query, &query.Query.ID))
@@ -2942,7 +2964,7 @@ func (m *mockQueryServer) GetOtherDatacentersByDistance() ([]string, error) {
 }
 
 func (m *mockQueryServer) ExecuteRemote(args *structs.PreparedQueryExecuteRemoteRequest, reply *structs.PreparedQueryExecuteResponse) error {
-	peerName := args.Query.Service.PeerName
+	peerName := args.Query.Service.Peer
 	dc := args.Datacenter
 	if peerName != "" {
 		m.QueryLog = append(m.QueryLog, fmt.Sprintf("peer:%s", peerName))
@@ -3294,15 +3316,15 @@ func TestPreparedQuery_queryFailover(t *testing.T) {
 	// Failover returns data from the first cluster peer with data.
 	query.Service.Failover.Datacenters = nil
 	query.Service.Failover.Targets = []structs.QueryFailoverTarget{
-		{PeerName: "cluster-01"},
+		{Peer: "cluster-01"},
 		{Datacenter: "dc44"},
-		{PeerName: "cluster-02"},
+		{Peer: "cluster-02"},
 	}
 	{
 		mock := &mockQueryServer{
 			Datacenters: []string{"dc44"},
 			QueryFn: func(args *structs.PreparedQueryExecuteRemoteRequest, reply *structs.PreparedQueryExecuteResponse) error {
-				if args.Query.Service.PeerName == "cluster-02" {
+				if args.Query.Service.Peer == "cluster-02" {
 					reply.Nodes = nodes()
 				}
 				return nil

@@ -3,12 +3,13 @@ package agent
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"os"
 	"path/filepath"
 	"sync/atomic"
 	"testing"
@@ -48,7 +49,7 @@ func TestUIIndex(t *testing.T) {
 
 	// Create file
 	path := filepath.Join(a.Config.UIConfig.Dir, "my-file")
-	if err := ioutil.WriteFile(path, []byte("test"), 0644); err != nil {
+	if err := os.WriteFile(path, []byte("test"), 0644); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -84,8 +85,9 @@ func TestUINodes(t *testing.T) {
 	}
 
 	t.Parallel()
-	a := NewTestAgent(t, "")
+	a := StartTestAgent(t, TestAgent{HCL: ``, Overrides: `peering = { test_allow_peer_registrations = true }`})
 	defer a.Shutdown()
+
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 	args := []*structs.RegisterRequest{
@@ -104,7 +106,7 @@ func TestUINodes(t *testing.T) {
 
 	for _, reg := range args {
 		var out struct{}
-		err := a.RPC("Catalog.Register", reg, &out)
+		err := a.RPC(context.Background(), "Catalog.Register", reg, &out)
 		require.NoError(t, err)
 	}
 
@@ -179,7 +181,7 @@ func TestUINodes_Filter(t *testing.T) {
 	}
 
 	var out struct{}
-	require.NoError(t, a.RPC("Catalog.Register", args, &out))
+	require.NoError(t, a.RPC(context.Background(), "Catalog.Register", args, &out))
 
 	args = &structs.RegisterRequest{
 		Datacenter: "dc1",
@@ -189,7 +191,7 @@ func TestUINodes_Filter(t *testing.T) {
 			"os": "macos",
 		},
 	}
-	require.NoError(t, a.RPC("Catalog.Register", args, &out))
+	require.NoError(t, a.RPC(context.Background(), "Catalog.Register", args, &out))
 
 	req, _ := http.NewRequest("GET", "/v1/internal/ui/nodes/dc1?filter="+url.QueryEscape("Meta.os == linux"), nil)
 	resp := httptest.NewRecorder()
@@ -235,7 +237,7 @@ func TestUINodeInfo(t *testing.T) {
 	}
 
 	var out struct{}
-	if err := a.RPC("Catalog.Register", args, &out); err != nil {
+	if err := a.RPC(context.Background(), "Catalog.Register", args, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -263,8 +265,9 @@ func TestUIServices(t *testing.T) {
 	}
 
 	t.Parallel()
-	a := NewTestAgent(t, "")
+	a := StartTestAgent(t, TestAgent{HCL: ``, Overrides: `peering = { test_allow_peer_registrations = true }`})
 	defer a.Shutdown()
+
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 	requests := []*structs.RegisterRequest{
@@ -389,7 +392,7 @@ func TestUIServices(t *testing.T) {
 
 	for _, args := range requests {
 		var out struct{}
-		require.NoError(t, a.RPC("Catalog.Register", args, &out))
+		require.NoError(t, a.RPC(context.Background(), "Catalog.Register", args, &out))
 	}
 
 	// establish "peer1"
@@ -424,7 +427,7 @@ func TestUIServices(t *testing.T) {
 			},
 		}
 		var regOutput struct{}
-		require.NoError(t, a.RPC("Catalog.Register", &arg, &regOutput))
+		require.NoError(t, a.RPC(context.Background(), "Catalog.Register", &arg, &regOutput))
 
 		args := &structs.TerminatingGatewayConfigEntry{
 			Name: "terminating-gateway",
@@ -445,7 +448,7 @@ func TestUIServices(t *testing.T) {
 			Entry:      args,
 		}
 		var configOutput bool
-		require.NoError(t, a.RPC("ConfigEntry.Apply", &req, &configOutput))
+		require.NoError(t, a.RPC(context.Background(), "ConfigEntry.Apply", &req, &configOutput))
 		require.True(t, configOutput)
 
 		// Web should not show up as ConnectedWithGateway since this one does not have any instances
@@ -464,7 +467,7 @@ func TestUIServices(t *testing.T) {
 			Datacenter: "dc1",
 			Entry:      args,
 		}
-		require.NoError(t, a.RPC("ConfigEntry.Apply", &req, &configOutput))
+		require.NoError(t, a.RPC(context.Background(), "ConfigEntry.Apply", &req, &configOutput))
 		require.True(t, configOutput)
 	}
 
@@ -667,6 +670,181 @@ func TestUIServices(t *testing.T) {
 	})
 }
 
+func TestUIExportedServices(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+	a := StartTestAgent(t, TestAgent{Overrides: `peering = { test_allow_peer_registrations = true }`})
+	defer a.Shutdown()
+
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+
+	requests := []*structs.RegisterRequest{
+		// register api service
+		{
+			Datacenter:     "dc1",
+			Node:           "node",
+			SkipNodeUpdate: true,
+			Service: &structs.NodeService{
+				Kind:    structs.ServiceKindTypical,
+				Service: "api",
+				ID:      "api-1",
+			},
+			Checks: structs.HealthChecks{
+				&structs.HealthCheck{
+					Node:        "node",
+					Name:        "api svc check",
+					ServiceName: "api",
+					ServiceID:   "api-1",
+					Status:      api.HealthWarning,
+				},
+			},
+		},
+		// register api-proxy svc
+		{
+			Datacenter:     "dc1",
+			Node:           "node",
+			SkipNodeUpdate: true,
+			Service: &structs.NodeService{
+				Kind:    structs.ServiceKindConnectProxy,
+				Service: "api-proxy",
+				ID:      "api-proxy-1",
+				Tags:    []string{},
+				Meta:    map[string]string{structs.MetaExternalSource: "k8s"},
+				Port:    1234,
+				Proxy: structs.ConnectProxyConfig{
+					DestinationServiceName: "api",
+				},
+			},
+			Checks: structs.HealthChecks{
+				&structs.HealthCheck{
+					Node:        "node",
+					Name:        "api proxy listening",
+					ServiceName: "api-proxy",
+					ServiceID:   "api-proxy-1",
+					Status:      api.HealthPassing,
+				},
+			},
+		},
+		// register service web
+		{
+			Datacenter: "dc1",
+			Node:       "bar",
+			Address:    "127.0.0.2",
+			Service: &structs.NodeService{
+				Kind:    structs.ServiceKindTypical,
+				Service: "web",
+				ID:      "web-1",
+				Tags:    []string{},
+				Meta:    map[string]string{structs.MetaExternalSource: "k8s"},
+				Port:    1234,
+			},
+			Checks: []*structs.HealthCheck{
+				{
+					Node:        "bar",
+					Name:        "web svc check",
+					Status:      api.HealthCritical,
+					ServiceName: "web",
+					ServiceID:   "web-1",
+				},
+			},
+		},
+	}
+
+	for _, args := range requests {
+		var out struct{}
+		require.NoError(t, a.RPC(context.Background(), "Catalog.Register", args, &out))
+	}
+
+	// establish "peer1"
+	{
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
+		req := &pbpeering.GenerateTokenRequest{
+			PeerName: "peer1",
+		}
+		_, err := a.rpcClientPeering.GenerateToken(ctx, req)
+		require.NoError(t, err)
+	}
+
+	{
+		// Register exported services
+		args := &structs.ExportedServicesConfigEntry{
+			Name: "default",
+			Services: []structs.ExportedService{
+				{
+					Name: "api",
+					Consumers: []structs.ServiceConsumer{
+						{
+							Peer: "peer1",
+						},
+					},
+				},
+			},
+		}
+		req := structs.ConfigEntryRequest{
+			Op:         structs.ConfigEntryUpsert,
+			Datacenter: "dc1",
+			Entry:      args,
+		}
+		var configOutput bool
+		require.NoError(t, a.RPC(context.Background(), "ConfigEntry.Apply", &req, &configOutput))
+		require.True(t, configOutput)
+	}
+
+	t.Run("valid peer", func(t *testing.T) {
+		t.Parallel()
+		req, _ := http.NewRequest("GET", "/v1/internal/ui/exported-services?peer=peer1", nil)
+		resp := httptest.NewRecorder()
+		a.srv.h.ServeHTTP(resp, req)
+		require.Equal(t, http.StatusOK, resp.Code)
+
+		decoder := json.NewDecoder(resp.Body)
+		var summary []*ServiceListingSummary
+		require.NoError(t, decoder.Decode(&summary))
+		assertIndex(t, resp)
+
+		require.Len(t, summary, 1)
+
+		// internal accounting that users don't see can be blown away
+		for _, sum := range summary {
+			sum.transparentProxySet = false
+			sum.externalSourceSet = nil
+			sum.checks = nil
+		}
+
+		expected := []*ServiceListingSummary{
+			{
+				ServiceSummary: ServiceSummary{
+					Kind:           structs.ServiceKindTypical,
+					Name:           "api",
+					Datacenter:     "dc1",
+					EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+				},
+			},
+		}
+		require.Equal(t, expected, summary)
+	})
+
+	t.Run("invalid peer", func(t *testing.T) {
+		t.Parallel()
+		req, _ := http.NewRequest("GET", "/v1/internal/ui/exported-services?peer=peer2", nil)
+		resp := httptest.NewRecorder()
+		a.srv.h.ServeHTTP(resp, req)
+		require.Equal(t, http.StatusOK, resp.Code)
+
+		decoder := json.NewDecoder(resp.Body)
+		var summary []*ServiceListingSummary
+		require.NoError(t, decoder.Decode(&summary))
+		assertIndex(t, resp)
+
+		require.Len(t, summary, 0)
+	})
+}
+
 func TestUIGatewayServiceNodes_Terminating(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
@@ -696,7 +874,7 @@ func TestUIGatewayServiceNodes_Terminating(t *testing.T) {
 			},
 		}
 		var regOutput struct{}
-		require.NoError(t, a.RPC("Catalog.Register", &arg, &regOutput))
+		require.NoError(t, a.RPC(context.Background(), "Catalog.Register", &arg, &regOutput))
 
 		arg = structs.RegisterRequest{
 			Datacenter: "dc1",
@@ -713,7 +891,7 @@ func TestUIGatewayServiceNodes_Terminating(t *testing.T) {
 				ServiceID: "db",
 			},
 		}
-		require.NoError(t, a.RPC("Catalog.Register", &arg, &regOutput))
+		require.NoError(t, a.RPC(context.Background(), "Catalog.Register", &arg, &regOutput))
 
 		arg = structs.RegisterRequest{
 			Datacenter: "dc1",
@@ -730,7 +908,7 @@ func TestUIGatewayServiceNodes_Terminating(t *testing.T) {
 				ServiceID: "db2",
 			},
 		}
-		require.NoError(t, a.RPC("Catalog.Register", &arg, &regOutput))
+		require.NoError(t, a.RPC(context.Background(), "Catalog.Register", &arg, &regOutput))
 	}
 
 	{
@@ -766,7 +944,7 @@ func TestUIGatewayServiceNodes_Terminating(t *testing.T) {
 			Entry:      args,
 		}
 		var configOutput bool
-		require.NoError(t, a.RPC("ConfigEntry.Apply", &req, &configOutput))
+		require.NoError(t, a.RPC(context.Background(), "ConfigEntry.Apply", &req, &configOutput))
 		require.True(t, configOutput)
 	}
 
@@ -834,7 +1012,7 @@ func TestUIGatewayServiceNodes_Ingress(t *testing.T) {
 			},
 		}
 		var regOutput struct{}
-		require.NoError(t, a.RPC("Catalog.Register", &arg, &regOutput))
+		require.NoError(t, a.RPC(context.Background(), "Catalog.Register", &arg, &regOutput))
 
 		arg = structs.RegisterRequest{
 			Datacenter: "dc1",
@@ -851,7 +1029,7 @@ func TestUIGatewayServiceNodes_Ingress(t *testing.T) {
 				ServiceID: "db",
 			},
 		}
-		require.NoError(t, a.RPC("Catalog.Register", &arg, &regOutput))
+		require.NoError(t, a.RPC(context.Background(), "Catalog.Register", &arg, &regOutput))
 
 		arg = structs.RegisterRequest{
 			Datacenter: "dc1",
@@ -868,7 +1046,7 @@ func TestUIGatewayServiceNodes_Ingress(t *testing.T) {
 				ServiceID: "db2",
 			},
 		}
-		require.NoError(t, a.RPC("Catalog.Register", &arg, &regOutput))
+		require.NoError(t, a.RPC(context.Background(), "Catalog.Register", &arg, &regOutput))
 
 		// Set web protocol to http
 		svcDefaultsReq := structs.ConfigEntryRequest{
@@ -879,7 +1057,7 @@ func TestUIGatewayServiceNodes_Ingress(t *testing.T) {
 			},
 		}
 		var configOutput bool
-		require.NoError(t, a.RPC("ConfigEntry.Apply", &svcDefaultsReq, &configOutput))
+		require.NoError(t, a.RPC(context.Background(), "ConfigEntry.Apply", &svcDefaultsReq, &configOutput))
 		require.True(t, configOutput)
 
 		// Register ingress-gateway config entry, linking it to db and redis (does not exist)
@@ -923,7 +1101,7 @@ func TestUIGatewayServiceNodes_Ingress(t *testing.T) {
 			Datacenter: "dc1",
 			Entry:      args,
 		}
-		require.NoError(t, a.RPC("ConfigEntry.Apply", &req, &configOutput))
+		require.NoError(t, a.RPC(context.Background(), "ConfigEntry.Apply", &req, &configOutput))
 		require.True(t, configOutput)
 	}
 
@@ -1012,7 +1190,7 @@ func TestUIGatewayIntentions(t *testing.T) {
 			},
 		}
 		var regOutput struct{}
-		require.NoError(t, a.RPC("Catalog.Register", &arg, &regOutput))
+		require.NoError(t, a.RPC(context.Background(), "Catalog.Register", &arg, &regOutput))
 
 		args := &structs.TerminatingGatewayConfigEntry{
 			Name: "terminating-gateway",
@@ -1036,7 +1214,7 @@ func TestUIGatewayIntentions(t *testing.T) {
 			Entry:      args,
 		}
 		var configOutput bool
-		require.NoError(t, a.RPC("ConfigEntry.Apply", &req, &configOutput))
+		require.NoError(t, a.RPC(context.Background(), "ConfigEntry.Apply", &req, &configOutput))
 		require.True(t, configOutput)
 	}
 
@@ -1052,7 +1230,7 @@ func TestUIGatewayIntentions(t *testing.T) {
 			req.Intention.DestinationName = v
 
 			var reply string
-			require.NoError(t, a.RPC("Intention.Apply", &req, &reply))
+			require.NoError(t, a.RPC(context.Background(), "Intention.Apply", &req, &reply))
 
 			req = structs.IntentionRequest{
 				Datacenter: "dc1",
@@ -1061,7 +1239,7 @@ func TestUIGatewayIntentions(t *testing.T) {
 			}
 			req.Intention.SourceName = v
 			req.Intention.DestinationName = "api"
-			require.NoError(t, a.RPC("Intention.Apply", &req, &reply))
+			require.NoError(t, a.RPC(context.Background(), "Intention.Apply", &req, &reply))
 		}
 	}
 
@@ -1520,7 +1698,7 @@ func TestUIServiceTopology(t *testing.T) {
 		}
 		for _, args := range registrations {
 			var out struct{}
-			require.NoError(t, a.RPC("Catalog.Register", args, &out))
+			require.NoError(t, a.RPC(context.Background(), "Catalog.Register", args, &out))
 		}
 	}
 
@@ -1658,7 +1836,7 @@ func TestUIServiceTopology(t *testing.T) {
 		}
 		for _, req := range entries {
 			out := false
-			require.NoError(t, a.RPC("ConfigEntry.Apply", &req, &out))
+			require.NoError(t, a.RPC(context.Background(), "ConfigEntry.Apply", &req, &out))
 		}
 	}
 
@@ -2116,7 +2294,7 @@ func TestUIServiceTopology_RoutingConfigs(t *testing.T) {
 		}
 		for _, args := range registrations {
 			var out struct{}
-			require.NoError(t, a.RPC("Catalog.Register", args, &out))
+			require.NoError(t, a.RPC(context.Background(), "Catalog.Register", args, &out))
 		}
 	}
 	{
@@ -2163,7 +2341,7 @@ func TestUIServiceTopology_RoutingConfigs(t *testing.T) {
 		}
 		for _, req := range entries {
 			out := false
-			require.NoError(t, a.RPC("ConfigEntry.Apply", &req, &out))
+			require.NoError(t, a.RPC(context.Background(), "ConfigEntry.Apply", &req, &out))
 		}
 	}
 

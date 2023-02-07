@@ -312,6 +312,60 @@
         {
           "filterChainMatch": {
             "serverNames": [
+              "destination.api-test-com.external-hostname-with-SNI.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
+            ]
+          },
+          "filters": [
+            {
+              "name": "envoy.filters.network.rbac",
+              "typedConfig": {
+                "@type": "type.googleapis.com/envoy.extensions.filters.network.rbac.v3.RBAC",
+                "rules": {
+
+                },
+                "statPrefix": "connect_authz"
+              }
+            },
+            {
+              "name": "envoy.filters.network.tcp_proxy",
+              "typedConfig": {
+                "@type": "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
+                "statPrefix": "upstream.external-hostname-with-SNI.default.default.dc1",
+                "cluster": "destination.api-test-com.external-hostname-with-SNI.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
+              }
+            }
+          ],
+          "transportSocket": {
+            "name": "tls",
+            "typedConfig": {
+              "@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.DownstreamTlsContext",
+              "commonTlsContext": {
+                "tlsParams": {
+
+                },
+                "tlsCertificates": [
+                  {
+                    "certificateChain": {
+                      "inlineString": "placeholder.crt\n"
+                    },
+                    "privateKey": {
+                      "inlineString": "placeholder.key\n"
+                    }
+                  }
+                ],
+                "validationContext": {
+                  "trustedCa": {
+                    "inlineString": "-----BEGIN CERTIFICATE-----\nMIICXDCCAgKgAwIBAgIICpZq70Z9LyUwCgYIKoZIzj0EAwIwFDESMBAGA1UEAxMJ\nVGVzdCBDQSAyMB4XDTE5MDMyMjEzNTgyNloXDTI5MDMyMjEzNTgyNlowFDESMBAG\nA1UEAxMJVGVzdCBDQSAyMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEIhywH1gx\nAsMwuF3ukAI5YL2jFxH6Usnma1HFSfVyxbXX1/uoZEYrj8yCAtdU2yoHETyd+Zx2\nThhRLP79pYegCaOCATwwggE4MA4GA1UdDwEB/wQEAwIBhjAPBgNVHRMBAf8EBTAD\nAQH/MGgGA1UdDgRhBF9kMToxMToxMTphYzoyYTpiYTo5NzpiMjozZjphYzo3Yjpi\nZDpkYTpiZTpiMTo4YTpmYzo5YTpiYTpiNTpiYzo4MzplNzo1ZTo0MTo2ZjpmMjo3\nMzo5NTo1ODowYzpkYjBqBgNVHSMEYzBhgF9kMToxMToxMTphYzoyYTpiYTo5Nzpi\nMjozZjphYzo3YjpiZDpkYTpiZTpiMTo4YTpmYzo5YTpiYTpiNTpiYzo4MzplNzo1\nZTo0MTo2ZjpmMjo3Mzo5NTo1ODowYzpkYjA/BgNVHREEODA2hjRzcGlmZmU6Ly8x\nMTExMTExMS0yMjIyLTMzMzMtNDQ0NC01NTU1NTU1NTU1NTUuY29uc3VsMAoGCCqG\nSM49BAMCA0gAMEUCICOY0i246rQHJt8o8Oya0D5PLL1FnmsQmQqIGCi31RwnAiEA\noR5f6Ku+cig2Il8T8LJujOp2/2A72QcHZA57B13y+8o=\n-----END CERTIFICATE-----\n"
+                  }
+                }
+              },
+              "requireClientCertificate": true
+            }
+          }
+        },
+        {
+          "filterChainMatch": {
+            "serverNames": [
               "destination.httpbin-org.external-hostname-HTTP.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
             ]
           },

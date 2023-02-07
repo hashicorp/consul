@@ -1754,7 +1754,7 @@ func TestCache_RefreshLifeCycle(t *testing.T) {
 	c.entriesLock.Lock()
 	entry, ok := c.entries[key]
 	require.True(t, ok)
-	require.True(t, entry.Fetching)
+	require.True(t, entry.GoroutineID > 0)
 	c.entriesLock.Unlock()
 
 	requestChan := make(chan error)
@@ -1792,7 +1792,7 @@ func TestCache_RefreshLifeCycle(t *testing.T) {
 	c.entriesLock.Lock()
 	entry, ok = c.entries[key]
 	require.True(t, ok)
-	require.True(t, entry.Fetching)
+	require.True(t, entry.GoroutineID > 0)
 	c.entriesLock.Unlock()
 
 	// background a call that will wait for a newer version - will result in an acl not found error
@@ -1817,7 +1817,7 @@ func TestCache_RefreshLifeCycle(t *testing.T) {
 	c.entriesLock.Lock()
 	entry, ok = c.entries[key]
 	require.True(t, ok)
-	require.False(t, entry.Fetching)
+	require.False(t, entry.GoroutineID > 0)
 	c.entriesLock.Unlock()
 }
 

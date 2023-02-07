@@ -1157,6 +1157,16 @@ func TestStructs_NodeService_ValidateConnectProxy(t *testing.T) {
 	}
 }
 
+func TestStructs_NodeService_ValidateConnectProxyWithAgentAutoAssign(t *testing.T) {
+	t.Run("connect-proxy: no port set", func(t *testing.T) {
+		ns := TestNodeServiceProxy(t)
+		ns.Port = 0
+
+		err := ns.ValidateForAgent()
+		assert.NoError(t, err)
+	})
+}
+
 func TestStructs_NodeService_ValidateConnectProxy_In_Partition(t *testing.T) {
 	cases := []struct {
 		Name   string
@@ -1728,7 +1738,7 @@ func TestCheckServiceNode_CanRead(t *testing.T) {
 				Node:    &Node{Node: "name"},
 				Service: &NodeService{Service: "service-name"},
 			},
-			authz:    aclAuthorizerCheckServiceNode{allowService: true},
+			authz:    aclAuthorizerCheckServiceNode{allowLocalService: true},
 			expected: acl.Deny,
 		},
 		{
@@ -1737,7 +1747,7 @@ func TestCheckServiceNode_CanRead(t *testing.T) {
 				Node:    &Node{Node: "name"},
 				Service: &NodeService{Service: "service-name"},
 			},
-			authz:    aclAuthorizerCheckServiceNode{allowNode: true},
+			authz:    aclAuthorizerCheckServiceNode{allowLocalNode: true},
 			expected: acl.Deny,
 		},
 		{
@@ -1749,6 +1759,24 @@ func TestCheckServiceNode_CanRead(t *testing.T) {
 			authz:    acl.AllowAll(),
 			expected: acl.Allow,
 		},
+		{
+			name: "can read imported csn if can read imported data",
+			csn: CheckServiceNode{
+				Node:    &Node{Node: "name", PeerName: "cluster-2"},
+				Service: &NodeService{Service: "service-name", PeerName: "cluster-2"},
+			},
+			authz:    aclAuthorizerCheckServiceNode{allowImported: true},
+			expected: acl.Allow,
+		},
+		{
+			name: "can't read imported csn with authz for local services and nodes",
+			csn: CheckServiceNode{
+				Node:    &Node{Node: "name", PeerName: "cluster-2"},
+				Service: &NodeService{Service: "service-name", PeerName: "cluster-2"},
+			},
+			authz:    aclAuthorizerCheckServiceNode{allowLocalService: true, allowLocalNode: true},
+			expected: acl.Deny,
+		},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -1759,19 +1787,34 @@ func TestCheckServiceNode_CanRead(t *testing.T) {
 
 type aclAuthorizerCheckServiceNode struct {
 	acl.Authorizer
-	allowNode    bool
-	allowService bool
+	allowLocalNode    bool
+	allowLocalService bool
+	allowImported     bool
 }
 
-func (a aclAuthorizerCheckServiceNode) ServiceRead(string, *acl.AuthorizerContext) acl.EnforcementDecision {
-	if a.allowService {
+func (a aclAuthorizerCheckServiceNode) ServiceRead(_ string, ctx *acl.AuthorizerContext) acl.EnforcementDecision {
+	if ctx.Peer != "" {
+		if a.allowImported {
+			return acl.Allow
+		}
+		return acl.Deny
+	}
+
+	if a.allowLocalService {
 		return acl.Allow
 	}
 	return acl.Deny
 }
 
-func (a aclAuthorizerCheckServiceNode) NodeRead(string, *acl.AuthorizerContext) acl.EnforcementDecision {
-	if a.allowNode {
+func (a aclAuthorizerCheckServiceNode) NodeRead(_ string, ctx *acl.AuthorizerContext) acl.EnforcementDecision {
+	if ctx.Peer != "" {
+		if a.allowImported {
+			return acl.Allow
+		}
+		return acl.Deny
+	}
+
+	if a.allowLocalNode {
 		return acl.Allow
 	}
 	return acl.Deny

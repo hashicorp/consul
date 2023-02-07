@@ -295,6 +295,7 @@ type consumer struct {
 }
 
 func newConsumer(t *testing.T, addr net.Addr, store *submatview.Store, srv string) *consumer {
+	//nolint:staticcheck
 	conn, err := grpc.Dial(addr.String(), grpc.WithInsecure())
 	require.NoError(t, err)
 

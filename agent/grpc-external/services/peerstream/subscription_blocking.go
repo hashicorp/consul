@@ -93,30 +93,27 @@ func (m *subscriptionManager) syncViaBlockingQuery(
 
 	store := m.getStore()
 
-	for {
+	for ctx.Err() == nil {
 		ws := memdb.NewWatchSet()
 		ws.Add(store.AbandonCh())
 		ws.Add(ctx.Done())
 
 		if result, err := queryFn(ctx, store, ws); err != nil {
-			logger.Error("failed to sync from query", "error", err)
-		} else {
-			// Block for any changes to the state store.
-			updateCh <- cache.UpdateEvent{
-				CorrelationID: correlationID,
-				Result:        result,
+			// Return immediately if the context was cancelled.
+			if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+				return
 			}
+			logger.Error("failed to sync from query", "error", err)
+			waiter.Wait(ctx)
+		} else {
+			select {
+			case <-ctx.Done():
+				return
+			case updateCh <- cache.UpdateEvent{CorrelationID: correlationID, Result: result}:
+				waiter.Reset()
+			}
+			// Block for any changes to the state store.
 			ws.WatchCtx(ctx)
-		}
-
-		if err := waiter.Wait(ctx); err != nil && !errors.Is(err, context.Canceled) && !errors.Is(err, context.DeadlineExceeded) {
-			logger.Error("failed to wait before re-trying sync", "error", err)
-		}
-
-		select {
-		case <-ctx.Done():
-			return
-		default:
 		}
 	}
 }

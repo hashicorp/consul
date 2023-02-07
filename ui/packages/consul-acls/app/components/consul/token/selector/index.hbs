@@ -53,6 +53,7 @@
                 <authForm.Method @matches="sso">
                   <OidcSelect
                     @dc={{@dc.Name}}
+                    @partition={{@partition}}
                     @nspace={{@nspace}}
                     @disabled={{authForm.disabled}}
                     @onchange={{authForm.submit}}

@@ -54,6 +54,16 @@ func TestValidatePeeringToken(t *testing.T) {
 			},
 		},
 		{
+			name: "invalid address port - manual",
+			token: &structs.PeeringToken{
+				CA:                    []string{validCA},
+				ManualServerAddresses: []string{"1.2.3.4"},
+			},
+			wantErr: &errPeeringInvalidServerAddress{
+				"1.2.3.4",
+			},
+		},
+		{
 			name: "invalid server name",
 			token: &structs.PeeringToken{
 				CA:              []string{validCA},

@@ -57,7 +57,7 @@ func AssertElementsMatch[V any](
 		}
 	}
 
-	if len(outX) == len(outY) && len(outX) == len(listX) {
+	if len(outX) == len(outY) && len(listX) == len(listY) {
 		return // matches
 	}
 

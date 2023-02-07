@@ -7,6 +7,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/pprof"
+	"net/netip"
 	"net/url"
 	"reflect"
 	"regexp"
@@ -21,11 +22,14 @@ import (
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/mitchellh/mapstructure"
 	"github.com/pkg/errors"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/consul"
+	"github.com/hashicorp/consul/agent/consul/rate"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/uiserver"
 	"github.com/hashicorp/consul/api"
@@ -81,6 +85,10 @@ type HTTPHandlers struct {
 	configReloaders []ConfigReloader
 	h               http.Handler
 	metricsProxyCfg atomic.Value
+
+	// proxyTransport is used by UIMetricsProxy to keep
+	// a managed pool of connections.
+	proxyTransport http.RoundTripper
 }
 
 // endpoint is a Consul-specific HTTP handler that takes the usual arguments in
@@ -203,13 +211,6 @@ func (s *HTTPHandlers) handler(enableDebug bool) http.Handler {
 			var token string
 			s.parseToken(req, &token)
 
-			// If enableDebug is not set, and ACLs are disabled, write
-			// an unauthorized response
-			if !enableDebug && s.checkACLDisabled() {
-				resp.WriteHeader(http.StatusUnauthorized)
-				return
-			}
-
 			authz, err := s.agent.delegate.ResolveTokenAndDefaultMeta(token, nil, nil)
 			if err != nil {
 				resp.WriteHeader(http.StatusForbidden)
@@ -241,12 +242,14 @@ func (s *HTTPHandlers) handler(enableDebug bool) http.Handler {
 		handleFuncMetrics(pattern, s.wrap(bound, methods))
 	}
 
-	// Register wrapped pprof handlers
-	handlePProf("/debug/pprof/", pprof.Index)
-	handlePProf("/debug/pprof/cmdline", pprof.Cmdline)
-	handlePProf("/debug/pprof/profile", pprof.Profile)
-	handlePProf("/debug/pprof/symbol", pprof.Symbol)
-	handlePProf("/debug/pprof/trace", pprof.Trace)
+	// If enableDebug or ACL enabled, register wrapped pprof handlers
+	if enableDebug || !s.checkACLDisabled() {
+		handlePProf("/debug/pprof/", pprof.Index)
+		handlePProf("/debug/pprof/cmdline", pprof.Cmdline)
+		handlePProf("/debug/pprof/profile", pprof.Profile)
+		handlePProf("/debug/pprof/symbol", pprof.Symbol)
+		handlePProf("/debug/pprof/trace", pprof.Trace)
+	}
 
 	if s.IsUIEnabled() {
 		// Note that we _don't_ support reloading ui_config.{enabled, content_dir,
@@ -287,12 +290,27 @@ func (s *HTTPHandlers) handler(enableDebug bool) http.Handler {
 	if s.agent.config.DisableHTTPUnprintableCharFilter {
 		h = mux
 	}
+
 	h = s.enterpriseHandler(h)
+	h = withRemoteAddrHandler(h)
 	s.h = &wrappedMux{
 		mux:     mux,
 		handler: h,
 	}
 	return s.h
+}
+
+// Injects remote addr into the request's context
+func withRemoteAddrHandler(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
+		addrPort, err := netip.ParseAddrPort(req.RemoteAddr)
+		if err == nil {
+			remoteAddr := net.TCPAddrFromAddrPort(addrPort)
+			ctx := consul.ContextWithRemoteAddr(req.Context(), remoteAddr)
+			req = req.WithContext(ctx)
+		}
+		next.ServeHTTP(resp, req)
+	})
 }
 
 // nodeName returns the node name of the agent
@@ -314,8 +332,8 @@ func (s *HTTPHandlers) nodeName() string {
 // this regular expression is applied, so the regular expression substitution
 // results in:
 //
-// /v1/acl/clone/foo?token=bar -> /v1/acl/clone/<hidden>?token=bar
-//                                ^---- $1 ----^^- $2 -^^-- $3 --^
+//	/v1/acl/clone/foo?token=bar -> /v1/acl/clone/<hidden>?token=bar
+//	                               ^---- $1 ----^^- $2 -^^-- $3 --^
 //
 // And then the loop that looks for parameters called "token" does the last
 // step to get to the final redacted form.
@@ -350,6 +368,9 @@ func (s *HTTPHandlers) wrap(handler endpoint, methods []string) http.HandlerFunc
 				}
 				logURL = strings.Replace(logURL, token, "<hidden>", -1)
 			}
+			httpLogger.Warn("This request used the token query parameter "+
+				"which is deprecated and will be removed in Consul 1.17",
+				"logUrl", logURL)
 		}
 		logURL = aclEndpointRE.ReplaceAllString(logURL, "$1<hidden>$4")
 
@@ -370,17 +391,53 @@ func (s *HTTPHandlers) wrap(handler endpoint, methods []string) http.HandlerFunc
 			if acl.IsErrPermissionDenied(err) || acl.IsErrNotFound(err) {
 				return true
 			}
+			if e, ok := status.FromError(err); ok && e.Code() == codes.PermissionDenied {
+				return true
+			}
 			return false
+		}
+
+		isTooManyRequests := func(err error) bool {
+			if err == nil {
+				return false
+			}
+
+			// Client-side RPC limits.
+			if structs.IsErrRPCRateExceeded(err) {
+				return true
+			}
+
+			// Connect CA rate limiter.
+			if err.Error() == consul.ErrRateLimited.Error() {
+				return true
+			}
+
+			// gRPC server rate limit interceptor.
+			if status.Code(err) == codes.ResourceExhausted {
+				return true
+			}
+
+			// net/rpc server rate limit interceptor.
+			return strings.Contains(err.Error(), rate.ErrRetryElsewhere.Error())
+		}
+
+		isServiceUnavailable := func(err error) bool {
+			if err == nil {
+				return false
+			}
+
+			// gRPC server rate limit interceptor.
+			if status.Code(err) == codes.Unavailable {
+				return true
+			}
+
+			// net/rpc server rate limit interceptor.
+			return strings.Contains(err.Error(), rate.ErrRetryLater.Error())
 		}
 
 		isMethodNotAllowed := func(err error) bool {
 			_, ok := err.(MethodNotAllowedError)
 			return ok
-		}
-
-		isTooManyRequests := func(err error) bool {
-			// Sadness net/rpc can't do nice typed errors so this is all we got
-			return err.Error() == consul.ErrRateLimited.Error()
 		}
 
 		addAllowHeader := func(methods []string) {
@@ -407,12 +464,19 @@ func (s *HTTPHandlers) wrap(handler endpoint, methods []string) http.HandlerFunc
 					"error", err)
 			}
 
+			// If the error came from gRPC, unpack it to get the real message.
+			msg := err.Error()
+			if s, ok := status.FromError(err); ok {
+				msg = s.Message()
+			}
+
 			switch {
 			case isForbidden(err):
 				resp.WriteHeader(http.StatusForbidden)
-				fmt.Fprint(resp, err.Error())
-			case structs.IsErrRPCRateExceeded(err):
+			case isTooManyRequests(err):
 				resp.WriteHeader(http.StatusTooManyRequests)
+			case isServiceUnavailable(err):
+				resp.WriteHeader(http.StatusServiceUnavailable)
 			case isMethodNotAllowed(err):
 				// RFC2616 states that for 405 Method Not Allowed the response
 				// MUST include an Allow header containing the list of valid
@@ -420,26 +484,21 @@ func (s *HTTPHandlers) wrap(handler endpoint, methods []string) http.HandlerFunc
 				// https://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html
 				addAllowHeader(err.(MethodNotAllowedError).Allow)
 				resp.WriteHeader(http.StatusMethodNotAllowed) // 405
-				fmt.Fprint(resp, err.Error())
 			case isHTTPError(err):
 				err := err.(HTTPError)
 				code := http.StatusInternalServerError
 				if err.StatusCode != 0 {
 					code = err.StatusCode
 				}
-				reason := "An unexpected error occurred"
-				if err.Error() != "" {
-					reason = err.Error()
+				if msg == "" {
+					msg = "An unexpected error occurred"
 				}
 				resp.WriteHeader(code)
-				fmt.Fprint(resp, reason)
-			case isTooManyRequests(err):
-				resp.WriteHeader(http.StatusTooManyRequests)
-				fmt.Fprint(resp, err.Error())
 			default:
 				resp.WriteHeader(http.StatusInternalServerError)
-				fmt.Fprint(resp, err.Error())
 			}
+
+			fmt.Fprint(resp, msg)
 		}
 
 		start := time.Now()

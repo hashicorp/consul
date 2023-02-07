@@ -12,7 +12,7 @@ import (
 //
 // Example:
 //
-//   m = TranslateKeys(m, map[string]string{"snake_case": "CamelCase"})
+//	m = TranslateKeys(m, map[string]string{"snake_case": "CamelCase"})
 //
 // If the canonical string provided is the empty string, the effect is to stop
 // recursing into any key matching the left hand side. In this case the left
@@ -27,13 +27,14 @@ import (
 // where the clash with key names in other parts of the definition :sob:
 //
 // Example:
-//   m - TranslateKeys(m, map[string]string{
-//     "foo_bar": "FooBar",
-//     "widget.config": "",
-//     // Assume widgets is an array, this will prevent recursing into any
-//     // item's config field
-//     "widgets.config": "",
-//   })
+//
+//	m - TranslateKeys(m, map[string]string{
+//	  "foo_bar": "FooBar",
+//	  "widget.config": "",
+//	  // Assume widgets is an array, this will prevent recursing into any
+//	  // item's config field
+//	  "widgets.config": "",
+//	})
 //
 // Deprecated: Use lib/decode.HookTranslateKeys instead.
 func TranslateKeys(v map[string]interface{}, dict map[string]string) {

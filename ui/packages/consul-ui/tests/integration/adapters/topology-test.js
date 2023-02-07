@@ -3,12 +3,12 @@ import { setupTest } from 'ember-qunit';
 import getNspaceRunner from 'consul-ui/tests/helpers/get-nspace-runner';
 
 const nspaceRunner = getNspaceRunner('topology');
-module('Integration | Adapter | topology', function(hooks) {
+module('Integration | Adapter | topology', function (hooks) {
   setupTest(hooks);
   const dc = 'dc-1';
   const id = 'slug';
   const kind = '';
-  test('requestForQueryRecord returns the correct url/method', function(assert) {
+  test('requestForQueryRecord returns the correct url/method', function (assert) {
     const adapter = this.owner.lookup('adapter:topology');
     const client = this.owner.lookup('service:client/http');
     const request = client.requestParams.bind(client);
@@ -20,17 +20,17 @@ module('Integration | Adapter | topology', function(hooks) {
     });
     assert.equal(`${actual.method} ${actual.url}`, expected);
   });
-  test("requestForQueryRecord throws if you don't specify an id", function(assert) {
+  test("requestForQueryRecord throws if you don't specify an id", function (assert) {
     const adapter = this.owner.lookup('adapter:topology');
     const client = this.owner.lookup('service:client/http');
     const request = client.url.bind(client);
-    assert.throws(function() {
+    assert.throws(function () {
       adapter.requestForQueryRecord(request, {
         dc: dc,
       });
     });
   });
-  test('requestForQueryRecord returns the correct body', function(assert) {
+  test('requestForQueryRecord returns the correct body', function (assert) {
     return nspaceRunner(
       (adapter, serializer, client) => {
         const request = client.body.bind(client);

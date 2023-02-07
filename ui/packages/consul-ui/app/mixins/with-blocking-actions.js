@@ -21,12 +21,12 @@ import { singularize } from 'ember-inflector';
 export default Mixin.create({
   _feedback: service('feedback'),
   settings: service('settings'),
-  init: function() {
+  init: function () {
     this._super(...arguments);
     const feedback = this._feedback;
     const route = this;
     set(this, 'feedback', {
-      execute: function(cb, type, error) {
+      execute: function (cb, type, error) {
         const temp = route.routeName.split('.');
         temp.pop();
         const routeName = singularize(temp.pop());
@@ -35,11 +35,11 @@ export default Mixin.create({
       },
     });
   },
-  afterCreate: function(item) {
+  afterCreate: function (item) {
     // do the same as update
     return this.afterUpdate(...arguments);
   },
-  afterUpdate: function(item) {
+  afterUpdate: function (item) {
     // e.g. dc.intentions.index
     const parts = this.routeName.split('.');
     // e.g. index or edit
@@ -47,7 +47,7 @@ export default Mixin.create({
     // e.g. dc.intentions, essentially go to the listings page
     return this.transitionTo(parts.join('.'));
   },
-  afterDelete: function(item) {
+  afterDelete: function (item) {
     // e.g. dc.intentions.index
     const parts = this.routeName.split('.');
     // e.g. index or edit
@@ -61,24 +61,24 @@ export default Mixin.create({
         return this.transitionTo(parts.join('.'));
     }
   },
-  errorCreate: function(type, e) {
+  errorCreate: function (type, e) {
     return type;
   },
-  errorUpdate: function(type, e) {
+  errorUpdate: function (type, e) {
     return type;
   },
-  errorDelete: function(type, e) {
+  errorDelete: function (type, e) {
     return type;
   },
   actions: {
-    cancel: function() {
+    cancel: function () {
       // do the same as an update, or override
       return this.afterUpdate(...arguments);
     },
-    create: function(item) {
+    create: function (item) {
       return this.feedback.execute(
         () => {
-          return this.repo.persist(item).then(item => {
+          return this.repo.persist(item).then((item) => {
             return this.afterCreate(...arguments);
           });
         },
@@ -88,7 +88,7 @@ export default Mixin.create({
         }
       );
     },
-    update: function(item) {
+    update: function (item) {
       return this.feedback.execute(
         () => {
           return this.repo.persist(item).then(() => {
@@ -101,7 +101,7 @@ export default Mixin.create({
         }
       );
     },
-    delete: function(item) {
+    delete: function (item) {
       return this.feedback.execute(
         () => {
           return this.repo.remove(item).then(() => {
@@ -114,7 +114,7 @@ export default Mixin.create({
         }
       );
     },
-    use: function(item) {
+    use: function (item) {
       return this.repo
         .findBySlug({
           dc: get(item, 'Datacenter'),
@@ -122,7 +122,7 @@ export default Mixin.create({
           partition: get(item, 'Partition'),
           id: get(item, 'AccessorID'),
         })
-        .then(item => {
+        .then((item) => {
           return this.settings.persist({
             token: {
               AccessorID: get(item, 'AccessorID'),
@@ -133,15 +133,15 @@ export default Mixin.create({
           });
         });
     },
-    logout: function(item) {
+    logout: function (item) {
       return this.settings.delete('token');
     },
-    clone: function(item) {
+    clone: function (item) {
       let cloned;
       return this.feedback.execute(() => {
         return this.repo
           .clone(item)
-          .then(item => {
+          .then((item) => {
             cloned = item;
             // cloning is similar to delete in that
             // if you clone from the listing page, stay on the listing page
@@ -149,7 +149,7 @@ export default Mixin.create({
             // so I can see it
             return this.afterDelete(...arguments);
           })
-          .then(function() {
+          .then(function () {
             return cloned;
           });
       }, 'clone');

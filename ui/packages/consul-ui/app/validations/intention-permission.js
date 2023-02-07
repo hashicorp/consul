@@ -6,8 +6,8 @@ import {
 import validateSometimes from 'ember-changeset-conditional-validations/validators/sometimes';
 
 const name = 'intention-permission';
-export default schema => ({
-  '*': validateSometimes([validatePresence(true)], function() {
+export default (schema) => ({
+  '*': validateSometimes([validatePresence(true)], function () {
     const methods = this.get('HTTP.Methods') || [];
     const headers = this.get('HTTP.Header') || [];
     const pathType = this.get('HTTP.PathType') || 'NoPath';
@@ -21,7 +21,7 @@ export default schema => ({
   }),
   Action: [validateInclusion({ in: schema[name].Action.allowedValues })],
   HTTP: {
-    Path: validateSometimes([validateFormat({ regex: /^\// })], function() {
+    Path: validateSometimes([validateFormat({ regex: /^\// })], function () {
       const pathType = this.get('HTTP.PathType');
       return typeof pathType !== 'undefined' && pathType !== 'NoPath';
     }),

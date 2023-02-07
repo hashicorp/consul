@@ -741,7 +741,18 @@ func (p *policyAuthorizer) OperatorWrite(*AuthorizerContext) EnforcementDecision
 }
 
 // NodeRead checks if reading (discovery) of a node is allowed
-func (p *policyAuthorizer) NodeRead(name string, _ *AuthorizerContext) EnforcementDecision {
+func (p *policyAuthorizer) NodeRead(name string, ctx *AuthorizerContext) EnforcementDecision {
+	// When reading a node imported from a peer we consider it to be allowed when:
+	//  - The request comes from a locally authenticated service, meaning that it
+	//    has service:write permissions on some name.
+	//  - The requester has permissions to read all nodes in its local cluster,
+	//    therefore it can also read imported nodes.
+	if ctx.PeerOrEmpty() != "" {
+		if p.ServiceWriteAny(nil) == Allow {
+			return Allow
+		}
+		return p.NodeReadAll(nil)
+	}
 	if rule, ok := getPolicy(name, p.nodeRules); ok {
 		return enforce(rule.access, AccessRead)
 	}
@@ -779,7 +790,18 @@ func (p *policyAuthorizer) PreparedQueryWrite(prefix string, _ *AuthorizerContex
 }
 
 // ServiceRead checks if reading (discovery) of a service is allowed
-func (p *policyAuthorizer) ServiceRead(name string, _ *AuthorizerContext) EnforcementDecision {
+func (p *policyAuthorizer) ServiceRead(name string, ctx *AuthorizerContext) EnforcementDecision {
+	// When reading a service imported from a peer we consider it to be allowed when:
+	//  - The request comes from a locally authenticated service, meaning that it
+	//    has service:write permissions on some name.
+	//  - The requester has permissions to read all services in its local cluster,
+	//    therefore it can also read imported services.
+	if ctx.PeerOrEmpty() != "" {
+		if p.ServiceWriteAny(nil) == Allow {
+			return Allow
+		}
+		return p.ServiceReadAll(nil)
+	}
 	if rule, ok := getPolicy(name, p.serviceRules); ok {
 		return enforce(rule.access, AccessRead)
 	}

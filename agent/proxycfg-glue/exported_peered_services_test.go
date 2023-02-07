@@ -4,12 +4,12 @@ import (
 	"context"
 	"testing"
 
-	"github.com/stretchr/testify/require"
-
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/proto/pbpeering"
+	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/stretchr/testify/require"
 )
 
 func TestServerExportedPeeredServices(t *testing.T) {
@@ -19,12 +19,15 @@ func TestServerExportedPeeredServices(t *testing.T) {
 	t.Cleanup(cancel)
 
 	store := state.NewStateStore(nil)
+	require.NoError(t, store.CASetConfig(0, &structs.CAConfiguration{ClusterID: "cluster-id"}))
 
 	for _, peer := range []string{"peer-1", "peer-2", "peer-3"} {
-		require.NoError(t, store.PeeringWrite(nextIndex(), &pbpeering.Peering{
-			ID:    testUUID(t),
-			Name:  peer,
-			State: pbpeering.PeeringState_ACTIVE,
+		require.NoError(t, store.PeeringWrite(nextIndex(), &pbpeering.PeeringWriteRequest{
+			Peering: &pbpeering.Peering{
+				ID:    testUUID(t),
+				Name:  peer,
+				State: pbpeering.PeeringState_ACTIVE,
+			},
 		}))
 	}
 
@@ -34,13 +37,13 @@ func TestServerExportedPeeredServices(t *testing.T) {
 			{
 				Name: "web",
 				Consumers: []structs.ServiceConsumer{
-					{PeerName: "peer-1"},
+					{Peer: "peer-1"},
 				},
 			},
 			{
 				Name: "db",
 				Consumers: []structs.ServiceConsumer{
-					{PeerName: "peer-2"},
+					{Peer: "peer-2"},
 				},
 			},
 		},
@@ -57,9 +60,9 @@ func TestServerExportedPeeredServices(t *testing.T) {
 		GetStore:    func() Store { return store },
 		ACLResolver: newStaticResolver(authz),
 	})
-	require.NoError(t, dataSource.Notify(ctx, &structs.DCSpecificRequest{}, "", eventCh))
+	require.NoError(t, dataSource.Notify(ctx, &structs.DCSpecificRequest{Datacenter: "dc1"}, "", eventCh))
 
-	t.Run("initial state", func(t *testing.T) {
+	testutil.RunStep(t, "initial state", func(t *testing.T) {
 		result := getEventResult[*structs.IndexedExportedServiceList](t, eventCh)
 		require.Equal(t,
 			map[string]structs.ServiceList{
@@ -69,27 +72,27 @@ func TestServerExportedPeeredServices(t *testing.T) {
 		)
 	})
 
-	t.Run("update exported services", func(t *testing.T) {
+	testutil.RunStep(t, "update exported services", func(t *testing.T) {
 		require.NoError(t, store.EnsureConfigEntry(nextIndex(), &structs.ExportedServicesConfigEntry{
 			Name: "default",
 			Services: []structs.ExportedService{
 				{
 					Name: "web",
 					Consumers: []structs.ServiceConsumer{
-						{PeerName: "peer-1"},
+						{Peer: "peer-1"},
 					},
 				},
 				{
 					Name: "db",
 					Consumers: []structs.ServiceConsumer{
-						{PeerName: "peer-2"},
+						{Peer: "peer-2"},
 					},
 				},
 				{
 					Name: "api",
 					Consumers: []structs.ServiceConsumer{
-						{PeerName: "peer-1"},
-						{PeerName: "peer-3"},
+						{Peer: "peer-1"},
+						{Peer: "peer-3"},
 					},
 				},
 			},

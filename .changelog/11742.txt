@@ -1,0 +1,3 @@
+```release-note:improvement
+api: Add filtering support to Catalog's List Services (v1/catalog/services)
+```

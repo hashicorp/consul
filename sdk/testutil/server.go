@@ -12,11 +12,11 @@ package testutil
 // otherwise cause an import cycle.
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"os"
@@ -31,6 +31,7 @@ import (
 
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/hashicorp/go-uuid"
+	"github.com/hashicorp/go-version"
 	"github.com/pkg/errors"
 
 	"github.com/hashicorp/consul/sdk/freeport"
@@ -52,6 +53,7 @@ type TestPortConfig struct {
 	SerfWan      int `json:"serf_wan,omitempty"`
 	Server       int `json:"server,omitempty"`
 	GRPC         int `json:"grpc,omitempty"`
+	GRPCTLS      int `json:"grpc_tls,omitempty"`
 	ProxyMinPort int `json:"proxy_min_port,omitempty"`
 	ProxyMaxPort int `json:"proxy_max_port,omitempty"`
 }
@@ -105,6 +107,7 @@ type TestServerConfig struct {
 	Connect             map[string]interface{} `json:"connect,omitempty"`
 	EnableDebug         bool                   `json:"enable_debug,omitempty"`
 	SkipLeaveOnInt      bool                   `json:"skip_leave_on_interrupt"`
+	Peering             *TestPeeringConfig     `json:"peering,omitempty"`
 	ReadyTimeout        time.Duration          `json:"-"`
 	StopTimeout         time.Duration          `json:"-"`
 	Stdout              io.Writer              `json:"-"`
@@ -139,26 +142,27 @@ type TestTokens struct {
 	AgentRecovery string `json:"agent_master,omitempty"`
 }
 
+type TestPeeringConfig struct {
+	Enabled bool `json:"enabled,omitempty"`
+}
+
 // ServerConfigCallback is a function interface which can be
 // passed to NewTestServerConfig to modify the server config.
 type ServerConfigCallback func(c *TestServerConfig)
 
 // defaultServerConfig returns a new TestServerConfig struct
 // with all of the listen ports incremented by one.
-func defaultServerConfig(t TestingTB) *TestServerConfig {
+func defaultServerConfig(t TestingTB, consulVersion *version.Version) *TestServerConfig {
 	nodeID, err := uuid.GenerateUUID()
 	if err != nil {
 		panic(err)
 	}
 
-	ports, err := freeport.Take(7)
-	if err != nil {
-		t.Fatalf("failed to take ports: %v", err)
-	}
+	ports := freeport.GetN(t, 7)
 
 	logBuffer := NewLogBuffer(t)
 
-	return &TestServerConfig{
+	conf := &TestServerConfig{
 		NodeName:          "node-" + nodeID,
 		NodeID:            nodeID,
 		DisableCheckpoint: true,
@@ -189,12 +193,21 @@ func defaultServerConfig(t TestingTB) *TestServerConfig {
 				"cluster_id": "11111111-2222-3333-4444-555555555555",
 			},
 		},
-		ReturnPorts: func() {
-			freeport.Return(ports)
-		},
-		Stdout: logBuffer,
-		Stderr: logBuffer,
+		Stdout:  logBuffer,
+		Stderr:  logBuffer,
+		Peering: &TestPeeringConfig{Enabled: true},
 	}
+
+	// Add version-specific tweaks
+	if consulVersion != nil {
+		// The GRPC TLS port did not exist prior to Consul 1.14
+		// Including it will cause issues in older installations.
+		if consulVersion.GreaterThanOrEqual(version.Must(version.NewVersion("1.14"))) {
+			conf.Ports.GRPCTLS = freeport.GetOne(t)
+		}
+	}
+
+	return conf
 }
 
 // TestService is used to serialize a service definition.
@@ -224,11 +237,12 @@ type TestServer struct {
 	cmd    *exec.Cmd
 	Config *TestServerConfig
 
-	HTTPAddr  string
-	HTTPSAddr string
-	LANAddr   string
-	WANAddr   string
-	GRPCAddr  string
+	HTTPAddr    string
+	HTTPSAddr   string
+	LANAddr     string
+	WANAddr     string
+	GRPCAddr    string
+	GRPCTLSAddr string
 
 	HTTPClient *http.Client
 
@@ -252,12 +266,17 @@ func NewTestServerConfigT(t TestingTB, cb ServerConfigCallback) (*TestServer, er
 		// Use test name for tmpdir if available
 		prefix = strings.Replace(t.Name(), "/", "_", -1)
 	}
-	tmpdir, err := ioutil.TempDir("", prefix)
+	tmpdir, err := os.MkdirTemp("", prefix)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create tempdir")
 	}
 
-	cfg := defaultServerConfig(t)
+	consulVersion, err := findConsulVersion()
+	if err != nil {
+		return nil, err
+	}
+
+	cfg := defaultServerConfig(t, consulVersion)
 	cfg.DataDir = filepath.Join(tmpdir, "data")
 	if cb != nil {
 		cb(cfg)
@@ -265,15 +284,13 @@ func NewTestServerConfigT(t TestingTB, cb ServerConfigCallback) (*TestServer, er
 
 	b, err := json.Marshal(cfg)
 	if err != nil {
-		cfg.ReturnPorts()
 		os.RemoveAll(tmpdir)
 		return nil, errors.Wrap(err, "failed marshaling json")
 	}
 
 	t.Logf("CONFIG JSON: %s", string(b))
 	configFile := filepath.Join(tmpdir, "config.json")
-	if err := ioutil.WriteFile(configFile, b, 0644); err != nil {
-		cfg.ReturnPorts()
+	if err := os.WriteFile(configFile, b, 0644); err != nil {
 		os.RemoveAll(tmpdir)
 		return nil, errors.Wrap(err, "failed writing config content")
 	}
@@ -285,7 +302,6 @@ func NewTestServerConfigT(t TestingTB, cb ServerConfigCallback) (*TestServer, er
 	cmd.Stdout = cfg.Stdout
 	cmd.Stderr = cfg.Stderr
 	if err := cmd.Start(); err != nil {
-		cfg.ReturnPorts()
 		os.RemoveAll(tmpdir)
 		return nil, errors.Wrap(err, "failed starting command")
 	}
@@ -305,11 +321,12 @@ func NewTestServerConfigT(t TestingTB, cb ServerConfigCallback) (*TestServer, er
 		Config: cfg,
 		cmd:    cmd,
 
-		HTTPAddr:  httpAddr,
-		HTTPSAddr: fmt.Sprintf("127.0.0.1:%d", cfg.Ports.HTTPS),
-		LANAddr:   fmt.Sprintf("127.0.0.1:%d", cfg.Ports.SerfLan),
-		WANAddr:   fmt.Sprintf("127.0.0.1:%d", cfg.Ports.SerfWan),
-		GRPCAddr:  fmt.Sprintf("127.0.0.1:%d", cfg.Ports.GRPC),
+		HTTPAddr:    httpAddr,
+		HTTPSAddr:   fmt.Sprintf("127.0.0.1:%d", cfg.Ports.HTTPS),
+		LANAddr:     fmt.Sprintf("127.0.0.1:%d", cfg.Ports.SerfLan),
+		WANAddr:     fmt.Sprintf("127.0.0.1:%d", cfg.Ports.SerfWan),
+		GRPCAddr:    fmt.Sprintf("127.0.0.1:%d", cfg.Ports.GRPC),
+		GRPCTLSAddr: fmt.Sprintf("127.0.0.1:%d", cfg.Ports.GRPCTLS),
 
 		HTTPClient: client,
 
@@ -330,7 +347,6 @@ func NewTestServerConfigT(t TestingTB, cb ServerConfigCallback) (*TestServer, er
 // Stop stops the test Consul server, and removes the Consul data
 // directory once we are done.
 func (s *TestServer) Stop() error {
-	defer s.Config.ReturnPorts()
 	defer os.RemoveAll(s.tmpdir)
 
 	// There was no process
@@ -564,4 +580,27 @@ func (s *TestServer) privilegedDelete(url string) (*http.Response, error) {
 		req.Header.Set("x-consul-token", s.Config.ACL.Tokens.InitialManagement)
 	}
 	return s.HTTPClient.Do(req)
+}
+
+func findConsulVersion() (*version.Version, error) {
+	cmd := exec.Command("consul", "version", "-format=json")
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	if err := cmd.Start(); err != nil {
+		return nil, errors.Wrap(err, "failed to get consul version")
+	}
+	cmd.Wait()
+	type consulVersion struct {
+		Version string
+	}
+	v := consulVersion{}
+	if err := json.Unmarshal(stdout.Bytes(), &v); err != nil {
+		return nil, errors.Wrap(err, "error parsing consul version json")
+	}
+	parsed, err := version.NewVersion(v.Version)
+	if err != nil {
+		return nil, errors.Wrap(err, "error parsing consul version")
+	}
+	return parsed, nil
 }

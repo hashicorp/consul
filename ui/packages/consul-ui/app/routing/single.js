@@ -3,10 +3,10 @@ import { assert } from '@ember/debug';
 import { Promise, hash } from 'rsvp';
 export default Route.extend({
   // repo: service('repositoryName'),
-  isCreate: function(params, transition) {
+  isCreate: function (params, transition) {
     return transition.targetName.split('.').pop() === 'create';
   },
-  model: function(params, transition) {
+  model: function (params, transition) {
     const repo = this.repo;
     assert(
       "`repo` is undefined, please define RepositoryService using `repo: service('repositoryName')`",

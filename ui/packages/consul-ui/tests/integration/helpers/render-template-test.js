@@ -3,7 +3,7 @@ import { setupRenderingTest } from 'ember-qunit';
 import { render } from '@ember/test-helpers';
 import { hbs } from 'ember-cli-htmlbars';
 
-module('Integration | Helper | render-template', function(hooks) {
+module('Integration | Helper | render-template', function (hooks) {
   setupRenderingTest(hooks);
 
   [
@@ -93,8 +93,8 @@ module('Integration | Helper | render-template', function(hooks) {
       },
       result: 'http://localhost/?=%23Na%2Fme',
     },
-  ].forEach(item => {
-    test('it renders', async function(assert) {
+  ].forEach((item) => {
+    test('it renders', async function (assert) {
       this.set('template', item.href);
       this.set('vars', item.vars);
 

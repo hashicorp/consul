@@ -29,8 +29,6 @@ func newHealthSnapshot(all []structs.CheckServiceNode, partition, peerName strin
 	// For all nodes, services, and checks we override the peer name and
 	// partition to be the local partition and local name for the peer.
 	for _, instance := range all {
-		// For all nodes, services, and checks we override the peer name and partition to be
-		// the local partition and local name for the peer.
 		instance.Node.PeerName = peerName
 		instance.Node.OverridePartition(partition)
 

@@ -1,25 +1,24 @@
-import { module } from 'qunit';
-import test from 'ember-sinon-qunit/test-support/test';
+import { module, test } from 'qunit';
 import { setupTest } from 'ember-qunit';
 import { HEADERS_SYMBOL as META } from 'consul-ui/utils/http/consul';
 
-module('Unit | Serializer | application', function(hooks) {
+module('Unit | Serializer | application', function (hooks) {
   setupTest(hooks);
 
   // Replace this with your real tests.
-  test('it exists', function(assert) {
+  test('it exists', function (assert) {
     const store = this.owner.lookup('service:store');
     const serializer = store.serializerFor('application');
 
     assert.ok(serializer);
   });
-  test('respondForDeleteRecord returns the expected pojo structure', function(assert) {
+  test('respondForDeleteRecord returns the expected pojo structure', function (assert) {
     const store = this.owner.lookup('service:store');
     const serializer = store.serializerFor('application');
     serializer.primaryKey = 'primary-key-name';
     serializer.slugKey = 'Name';
-    serializer.fingerprint = function(primary, slug, foreignValue) {
-      return function(item) {
+    serializer.fingerprint = function (primary, slug, foreignValue) {
+      return function (item) {
         return {
           ...item,
           ...{
@@ -30,7 +29,7 @@ module('Unit | Serializer | application', function(hooks) {
       };
     };
     // adapter.uidForURL = this.stub().returnsArg(0);
-    const respond = function(cb) {
+    const respond = function (cb) {
       const headers = {};
       const body = true;
       return cb(headers, body);
@@ -42,13 +41,13 @@ module('Unit | Serializer | application', function(hooks) {
     assert.deepEqual(actual, expected);
     // assert.ok(adapter.uidForURL.calledOnce);
   });
-  test('respondForQueryRecord returns the expected pojo structure', function(assert) {
+  test('respondForQueryRecord returns the expected pojo structure', function (assert) {
     const store = this.owner.lookup('service:store');
     const serializer = store.serializerFor('application');
     serializer.primaryKey = 'primary-key-name';
     serializer.slugKey = 'Name';
-    serializer.fingerprint = function(primary, slug, foreignValue) {
-      return function(item) {
+    serializer.fingerprint = function (primary, slug, foreignValue) {
+      return function (item) {
         return {
           ...item,
           ...{
@@ -64,7 +63,7 @@ module('Unit | Serializer | application', function(hooks) {
       [META]: {},
       'primary-key-name': 'name',
     };
-    const respond = function(cb) {
+    const respond = function (cb) {
       const headers = {};
       const body = {
         Name: 'name',
@@ -74,13 +73,13 @@ module('Unit | Serializer | application', function(hooks) {
     const actual = serializer.respondForQueryRecord(respond, { Name: 'name', dc: 'dc-1' });
     assert.deepEqual(actual, expected);
   });
-  test('respondForQuery returns the expected pojo structure', function(assert) {
+  test('respondForQuery returns the expected pojo structure', function (assert) {
     const store = this.owner.lookup('service:store');
     const serializer = store.serializerFor('application');
     serializer.primaryKey = 'primary-key-name';
     serializer.slugKey = 'Name';
-    serializer.fingerprint = function(primary, slug, foreignValue) {
-      return function(item) {
+    serializer.fingerprint = function (primary, slug, foreignValue) {
+      return function (item) {
         return {
           ...item,
           ...{
@@ -102,7 +101,7 @@ module('Unit | Serializer | application', function(hooks) {
         'primary-key-name': 'name2',
       },
     ];
-    const respond = function(cb) {
+    const respond = function (cb) {
       const headers = {};
       const body = [
         {

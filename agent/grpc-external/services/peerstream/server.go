@@ -26,13 +26,15 @@ const (
 
 type Server struct {
 	Config
+
+	Tracker *Tracker
 }
 
 type Config struct {
 	Backend     Backend
-	Tracker     *Tracker
 	GetStore    func() StateStore
 	Logger      hclog.Logger
+	ForwardRPC  func(structs.RPCInfo, func(*grpc.ClientConn) error) (bool, error)
 	ACLResolver ACLResolver
 	// Datacenter of the Consul server this gRPC server is hosted on
 	Datacenter     string
@@ -52,7 +54,6 @@ type ACLResolver interface {
 
 func NewServer(cfg Config) *Server {
 	requireNotNil(cfg.Backend, "Backend")
-	requireNotNil(cfg.Tracker, "Tracker")
 	requireNotNil(cfg.GetStore, "GetStore")
 	requireNotNil(cfg.Logger, "Logger")
 	// requireNotNil(cfg.ACLResolver, "ACLResolver") // TODO(peering): reenable check when ACLs are required
@@ -66,7 +67,8 @@ func NewServer(cfg Config) *Server {
 		cfg.incomingHeartbeatTimeout = defaultIncomingHeartbeatTimeout
 	}
 	return &Server{
-		Config: cfg,
+		Config:  cfg,
+		Tracker: NewTracker(cfg.incomingHeartbeatTimeout),
 	}
 }
 
@@ -97,10 +99,13 @@ type Backend interface {
 	// leader.
 	GetLeaderAddress() string
 
+	ValidateProposedPeeringSecret(id string) (bool, error)
+	PeeringSecretsWrite(req *pbpeering.SecretsWriteRequest) error
 	PeeringTerminateByID(req *pbpeering.PeeringTerminateByIDRequest) error
 	PeeringTrustBundleWrite(req *pbpeering.PeeringTrustBundleWriteRequest) error
 	CatalogRegister(req *structs.RegisterRequest) error
 	CatalogDeregister(req *structs.DeregisterRequest) error
+	PeeringWrite(req *pbpeering.PeeringWriteRequest) error
 }
 
 // StateStore provides a read-only interface for querying Peering data.
@@ -110,11 +115,14 @@ type StateStore interface {
 	PeeringList(ws memdb.WatchSet, entMeta acl.EnterpriseMeta) (uint64, []*pbpeering.Peering, error)
 	PeeringTrustBundleRead(ws memdb.WatchSet, q state.Query) (uint64, *pbpeering.PeeringTrustBundle, error)
 	PeeringTrustBundleList(ws memdb.WatchSet, entMeta acl.EnterpriseMeta) (uint64, []*pbpeering.PeeringTrustBundle, error)
+	PeeringSecretsRead(ws memdb.WatchSet, peerID string) (*pbpeering.PeeringSecrets, error)
 	ExportedServicesForPeer(ws memdb.WatchSet, peerID, dc string) (uint64, *structs.ExportedServiceList, error)
 	ServiceDump(ws memdb.WatchSet, kind structs.ServiceKind, useKind bool, entMeta *acl.EnterpriseMeta, peerName string) (uint64, structs.CheckServiceNodes, error)
 	CheckServiceNodes(ws memdb.WatchSet, serviceName string, entMeta *acl.EnterpriseMeta, peerName string) (uint64, structs.CheckServiceNodes, error)
 	NodeServices(ws memdb.WatchSet, nodeNameOrID string, entMeta *acl.EnterpriseMeta, peerName string) (uint64, *structs.NodeServices, error)
 	CAConfig(ws memdb.WatchSet) (uint64, *structs.CAConfiguration, error)
 	TrustBundleListByService(ws memdb.WatchSet, service, dc string, entMeta acl.EnterpriseMeta) (uint64, []*pbpeering.PeeringTrustBundle, error)
+	ServiceList(ws memdb.WatchSet, entMeta *acl.EnterpriseMeta, peerName string) (uint64, structs.ServiceList, error)
+	ConfigEntry(ws memdb.WatchSet, kind, name string, entMeta *acl.EnterpriseMeta) (uint64, structs.ConfigEntry, error)
 	AbandonCh() <-chan struct{}
 }

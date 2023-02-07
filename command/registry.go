@@ -33,7 +33,6 @@ import (
 	aclrlist "github.com/hashicorp/consul/command/acl/role/list"
 	aclrread "github.com/hashicorp/consul/command/acl/role/read"
 	aclrupdate "github.com/hashicorp/consul/command/acl/role/update"
-	aclrules "github.com/hashicorp/consul/command/acl/rules"
 	acltoken "github.com/hashicorp/consul/command/acl/token"
 	acltclone "github.com/hashicorp/consul/command/acl/token/clone"
 	acltcreate "github.com/hashicorp/consul/command/acl/token/create"
@@ -96,6 +95,13 @@ import (
 	operraft "github.com/hashicorp/consul/command/operator/raft"
 	operraftlist "github.com/hashicorp/consul/command/operator/raft/listpeers"
 	operraftremove "github.com/hashicorp/consul/command/operator/raft/removepeer"
+	"github.com/hashicorp/consul/command/operator/raft/transferleader"
+	"github.com/hashicorp/consul/command/peering"
+	peerdelete "github.com/hashicorp/consul/command/peering/delete"
+	peerestablish "github.com/hashicorp/consul/command/peering/establish"
+	peergenerate "github.com/hashicorp/consul/command/peering/generate"
+	peerlist "github.com/hashicorp/consul/command/peering/list"
+	peerread "github.com/hashicorp/consul/command/peering/read"
 	"github.com/hashicorp/consul/command/reload"
 	"github.com/hashicorp/consul/command/rtt"
 	"github.com/hashicorp/consul/command/services"
@@ -110,6 +116,9 @@ import (
 	tlscacreate "github.com/hashicorp/consul/command/tls/ca/create"
 	tlscert "github.com/hashicorp/consul/command/tls/cert"
 	tlscertcreate "github.com/hashicorp/consul/command/tls/cert/create"
+	troubleshoot "github.com/hashicorp/consul/command/troubleshoot"
+	troubleshootproxy "github.com/hashicorp/consul/command/troubleshoot/proxy"
+	troubleshootupstreams "github.com/hashicorp/consul/command/troubleshoot/upstreams"
 	"github.com/hashicorp/consul/command/validate"
 	"github.com/hashicorp/consul/command/version"
 	"github.com/hashicorp/consul/command/watch"
@@ -132,7 +141,6 @@ func RegisteredCommands(ui cli.Ui) map[string]mcli.CommandFactory {
 		entry{"acl policy read", func(ui cli.Ui) (cli.Command, error) { return aclpread.New(ui), nil }},
 		entry{"acl policy update", func(ui cli.Ui) (cli.Command, error) { return aclpupdate.New(ui), nil }},
 		entry{"acl policy delete", func(ui cli.Ui) (cli.Command, error) { return aclpdelete.New(ui), nil }},
-		entry{"acl translate-rules", func(ui cli.Ui) (cli.Command, error) { return aclrules.New(ui), nil }},
 		entry{"acl set-agent-token", func(ui cli.Ui) (cli.Command, error) { return aclagent.New(ui), nil }},
 		entry{"acl token", func(cli.Ui) (cli.Command, error) { return acltoken.New(), nil }},
 		entry{"acl token create", func(ui cli.Ui) (cli.Command, error) { return acltcreate.New(ui), nil }},
@@ -214,6 +222,13 @@ func RegisteredCommands(ui cli.Ui) map[string]mcli.CommandFactory {
 		entry{"operator raft", func(cli.Ui) (cli.Command, error) { return operraft.New(), nil }},
 		entry{"operator raft list-peers", func(ui cli.Ui) (cli.Command, error) { return operraftlist.New(ui), nil }},
 		entry{"operator raft remove-peer", func(ui cli.Ui) (cli.Command, error) { return operraftremove.New(ui), nil }},
+		entry{"operator raft transfer-leader", func(ui cli.Ui) (cli.Command, error) { return transferleader.New(ui), nil }},
+		entry{"peering", func(cli.Ui) (cli.Command, error) { return peering.New(), nil }},
+		entry{"peering delete", func(ui cli.Ui) (cli.Command, error) { return peerdelete.New(ui), nil }},
+		entry{"peering generate-token", func(ui cli.Ui) (cli.Command, error) { return peergenerate.New(ui), nil }},
+		entry{"peering establish", func(ui cli.Ui) (cli.Command, error) { return peerestablish.New(ui), nil }},
+		entry{"peering list", func(ui cli.Ui) (cli.Command, error) { return peerlist.New(ui), nil }},
+		entry{"peering read", func(ui cli.Ui) (cli.Command, error) { return peerread.New(ui), nil }},
 		entry{"reload", func(ui cli.Ui) (cli.Command, error) { return reload.New(ui), nil }},
 		entry{"rtt", func(ui cli.Ui) (cli.Command, error) { return rtt.New(ui), nil }},
 		entry{"services", func(cli.Ui) (cli.Command, error) { return services.New(), nil }},
@@ -228,6 +243,9 @@ func RegisteredCommands(ui cli.Ui) map[string]mcli.CommandFactory {
 		entry{"tls ca create", func(ui cli.Ui) (cli.Command, error) { return tlscacreate.New(ui), nil }},
 		entry{"tls cert", func(ui cli.Ui) (cli.Command, error) { return tlscert.New(), nil }},
 		entry{"tls cert create", func(ui cli.Ui) (cli.Command, error) { return tlscertcreate.New(ui), nil }},
+		entry{"troubleshoot", func(ui cli.Ui) (cli.Command, error) { return troubleshoot.New(), nil }},
+		entry{"troubleshoot proxy", func(ui cli.Ui) (cli.Command, error) { return troubleshootproxy.New(ui), nil }},
+		entry{"troubleshoot upstreams", func(ui cli.Ui) (cli.Command, error) { return troubleshootupstreams.New(ui), nil }},
 		entry{"validate", func(ui cli.Ui) (cli.Command, error) { return validate.New(ui), nil }},
 		entry{"version", func(ui cli.Ui) (cli.Command, error) { return version.New(ui), nil }},
 		entry{"watch", func(ui cli.Ui) (cli.Command, error) { return watch.New(ui, MakeShutdownCh()), nil }},

@@ -9,10 +9,10 @@ import obj from 'consul-ui/components/consul/intention/permission/header/form/pa
 
 const PermissionHeaderForm = create(obj());
 
-module('Integration | Component | consul/intention/permission/header/form', function(hooks) {
+module('Integration | Component | consul/intention/permission/header/form', function (hooks) {
   setupRenderingTest(hooks);
 
-  test('when IsPresent is selected we only show validate the header name', async function(assert) {
+  test('when IsPresent is selected we only show validate the header name', async function (assert) {
     this.set('PermissionHeaderForm', PermissionHeaderForm);
     // Handle any actions with this.set('myAction', function(val) { ... });
 

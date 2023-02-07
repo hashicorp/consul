@@ -2,10 +2,10 @@ package consul
 
 import (
 	"context"
+	"crypto/x509"
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net"
 	"os"
 	"path/filepath"
@@ -17,10 +17,9 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
-	connlimit "github.com/hashicorp/go-connlimit"
+	"github.com/hashicorp/go-connlimit"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
-	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/raft"
 	autopilot "github.com/hashicorp/raft-autopilot"
 	raftboltdb "github.com/hashicorp/raft-boltdb/v2"
@@ -35,10 +34,13 @@ import (
 	"github.com/hashicorp/consul/agent/consul/authmethod"
 	"github.com/hashicorp/consul/agent/consul/authmethod/ssoauth"
 	"github.com/hashicorp/consul/agent/consul/fsm"
+	"github.com/hashicorp/consul/agent/consul/multilimiter"
+	rpcRate "github.com/hashicorp/consul/agent/consul/rate"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/consul/usagemetrics"
 	"github.com/hashicorp/consul/agent/consul/wanfed"
+	"github.com/hashicorp/consul/agent/consul/xdscapacity"
 	aclgrpc "github.com/hashicorp/consul/agent/grpc-external/services/acl"
 	"github.com/hashicorp/consul/agent/grpc-external/services/connectca"
 	"github.com/hashicorp/consul/agent/grpc-external/services/dataplane"
@@ -46,10 +48,13 @@ import (
 	"github.com/hashicorp/consul/agent/grpc-external/services/serverdiscovery"
 	agentgrpc "github.com/hashicorp/consul/agent/grpc-internal"
 	"github.com/hashicorp/consul/agent/grpc-internal/services/subscribe"
+	"github.com/hashicorp/consul/agent/hcp"
+	logdrop "github.com/hashicorp/consul/agent/log-drop"
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/pool"
 	"github.com/hashicorp/consul/agent/router"
 	"github.com/hashicorp/consul/agent/rpc/middleware"
+	"github.com/hashicorp/consul/agent/rpc/operator"
 	"github.com/hashicorp/consul/agent/rpc/peering"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
@@ -59,6 +64,7 @@ import (
 	"github.com/hashicorp/consul/proto/pbsubscribe"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
+	cslversion "github.com/hashicorp/consul/version"
 )
 
 // NOTE The "consul.client.rpc" and "consul.client.rpc.exceeded" counters are defined in consul/client.go
@@ -112,10 +118,10 @@ const (
 	aclRoleReplicationRoutineName         = "ACL role replication"
 	aclTokenReplicationRoutineName        = "ACL token replication"
 	aclTokenReapingRoutineName            = "acl token reaping"
-	aclUpgradeRoutineName                 = "legacy ACL token upgrade"
 	caRootPruningRoutineName              = "CA root pruning"
 	caRootMetricRoutineName               = "CA root expiration metric"
 	caSigningMetricRoutineName            = "CA signing expiration metric"
+	configEntryControllersRoutineName     = "config entry controllers"
 	configReplicationRoutineName          = "config entry replication"
 	federationStateReplicationRoutineName = "federation state replication"
 	federationStateAntiEntropyRoutineName = "federation state anti-entropy"
@@ -138,6 +144,8 @@ const (
 	PoolKindPartition = "partition"
 	PoolKindSegment   = "segment"
 )
+
+const requestLimitsBurstMultiplier = 10
 
 // Server is Consul server which manages the service discovery,
 // health checking, DC forwarding, Raft, and multiple Serf pools.
@@ -253,7 +261,7 @@ type Server struct {
 	// enable RPC forwarding.
 	externalConnectCAServer *connectca.Server
 
-	// externalGRPCServer is the gRPC server exposed on the dedicated gRPC port, as
+	// externalGRPCServer has a gRPC server exposed on the dedicated gRPC ports, as
 	// opposed to the multiplexed "server" port which is served by grpcHandler.
 	externalGRPCServer *grpc.Server
 
@@ -272,6 +280,9 @@ type Server struct {
 	Listener    net.Listener
 	grpcHandler connHandler
 	rpcServer   *rpc.Server
+
+	// incomingRPCLimiter rate-limits incoming net/rpc and gRPC calls.
+	incomingRPCLimiter rpcRate.RequestLimitsHandler
 
 	// insecureRPCServer is a RPC server that is configure with
 	// IncomingInsecureRPCConfig to allow clients to call AutoEncrypt.Sign
@@ -368,14 +379,25 @@ type Server struct {
 	// peeringBackend is shared between the external and internal gRPC services for peering
 	peeringBackend *PeeringBackend
 
+	// operatorBackend is shared between the external and internal gRPC services for peering
+	operatorBackend *OperatorBackend
+
 	// peerStreamServer is a server used to handle peering streams from external clusters.
 	peerStreamServer *peerstream.Server
+
 	// peeringServer handles peering RPC requests internal to this cluster, like generating peering tokens.
-	peeringServer     *peering.Server
-	peerStreamTracker *peerstream.Tracker
+	peeringServer *peering.Server
+
+	// xdsCapacityController controls the number of concurrent xDS streams the
+	// server is able to handle.
+	xdsCapacityController *xdscapacity.Controller
+
+	// hcpManager handles pushing server status updates to the HashiCorp Cloud Platform when enabled
+	hcpManager *hcp.Manager
 
 	// embedded struct to hold all the enterprise specific data
 	EnterpriseServer
+	operatorServer *operator.Server
 }
 
 type connHandler interface {
@@ -386,7 +408,7 @@ type connHandler interface {
 
 // NewServer is used to construct a new Consul server from the configuration
 // and extra options, potentially returning an error.
-func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server) (*Server, error) {
+func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server, incomingRPCLimiter rpcRate.RequestLimitsHandler, serverLogger hclog.InterceptLogger) (*Server, error) {
 	logger := flat.Logger
 	if err := config.CheckProtocolVersion(); err != nil {
 		return nil, err
@@ -407,7 +429,6 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server) (*Ser
 	// Create the shutdown channel - this is closed but never written to.
 	shutdownCh := make(chan struct{})
 
-	serverLogger := flat.Logger.NamedIntercept(logging.ConsulServer)
 	loggers := newLoggerStore(serverLogger)
 
 	fsmDeps := fsm.Deps{
@@ -416,6 +437,10 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server) (*Ser
 			return state.NewStateStoreWithEventPublisher(gc, flat.EventPublisher)
 		},
 		Publisher: flat.EventPublisher,
+	}
+
+	if incomingRPCLimiter == nil {
+		incomingRPCLimiter = rpcRate.NullRequestLimitsHandler()
 	}
 
 	// Create server.
@@ -442,7 +467,16 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server) (*Ser
 		aclAuthMethodValidators: authmethod.NewCache(),
 		fsm:                     fsm.NewFromDeps(fsmDeps),
 		publisher:               flat.EventPublisher,
+		incomingRPCLimiter:      incomingRPCLimiter,
 	}
+
+	incomingRPCLimiter.Register(s)
+
+	s.hcpManager = hcp.NewManager(hcp.ManagerConfig{
+		Client:   flat.HCP.Client,
+		StatusFn: s.hcpServerStatus(flat),
+		Logger:   logger.Named("hcp_manager"),
+	})
 
 	var recorder *middleware.RequestRecorder
 	if flat.NewRequestRecorderFunc != nil {
@@ -454,15 +488,19 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server) (*Ser
 		return nil, fmt.Errorf("cannot initialize server with a nil RPC request recorder")
 	}
 
-	if flat.GetNetRPCInterceptorFunc == nil {
-		s.rpcServer = rpc.NewServer()
-		s.insecureRPCServer = rpc.NewServer()
-	} else {
-		s.rpcServer = rpc.NewServerWithOpts(rpc.WithServerServiceCallInterceptor(flat.GetNetRPCInterceptorFunc(recorder)))
-		s.insecureRPCServer = rpc.NewServerWithOpts(rpc.WithServerServiceCallInterceptor(flat.GetNetRPCInterceptorFunc(recorder)))
+	rpcServerOpts := []func(*rpc.Server){
+		rpc.WithPreBodyInterceptor(middleware.GetNetRPCRateLimitingInterceptor(s.incomingRPCLimiter, middleware.NewPanicHandler(s.logger))),
 	}
 
+	if flat.GetNetRPCInterceptorFunc != nil {
+		rpcServerOpts = append(rpcServerOpts, rpc.WithServerServiceCallInterceptor(flat.GetNetRPCInterceptorFunc(recorder)))
+	}
+
+	s.rpcServer = rpc.NewServerWithOpts(rpcServerOpts...)
+	s.insecureRPCServer = rpc.NewServerWithOpts(rpcServerOpts...)
+
 	s.rpcRecorder = recorder
+	s.incomingRPCLimiter.Run(&lib.StopChannelContext{StopCh: s.shutdownCh})
 
 	go s.publisher.Run(&lib.StopChannelContext{StopCh: s.shutdownCh})
 
@@ -724,16 +762,22 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server) (*Ser
 		Logger:      logger.Named("grpc-api.server-discovery"),
 	}).Register(s.externalGRPCServer)
 
-	s.peerStreamTracker = peerstream.NewTracker()
 	s.peeringBackend = NewPeeringBackend(s)
+	s.operatorBackend = NewOperatorBackend(s)
 	s.peerStreamServer = peerstream.NewServer(peerstream.Config{
 		Backend:        s.peeringBackend,
-		Tracker:        s.peerStreamTracker,
 		GetStore:       func() peerstream.StateStore { return s.FSM().State() },
 		Logger:         logger.Named("grpc-api.peerstream"),
 		ACLResolver:    s.ACLResolver,
 		Datacenter:     s.config.Datacenter,
 		ConnectEnabled: s.config.ConnectEnabled,
+		ForwardRPC: func(info structs.RPCInfo, fn func(*grpc.ClientConn) error) (bool, error) {
+			// Only forward the request if the dc in the request matches the server's datacenter.
+			if info.RequestDatacenter() != "" && info.RequestDatacenter() != config.Datacenter {
+				return false, fmt.Errorf("requests to generate peering tokens cannot be forwarded to remote datacenters")
+			}
+			return s.ForwardGRPC(s.grpcConnPool, info, fn)
+		},
 	})
 	s.peerStreamServer.Register(s.externalGRPCServer)
 
@@ -744,6 +788,13 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server) (*Ser
 	s.grpcHandler = newGRPCHandlerFromConfig(flat, config, s)
 	s.grpcLeaderForwarder = flat.LeaderForwarder
 	go s.trackLeaderChanges()
+
+	s.xdsCapacityController = xdscapacity.NewController(xdscapacity.Config{
+		Logger:         s.logger.Named(logging.XDSCapacityController),
+		GetStore:       func() xdscapacity.Store { return s.fsm.State() },
+		SessionLimiter: flat.XDSStreamLimiter,
+	})
+	go s.xdsCapacityController.Run(&lib.StopChannelContext{StopCh: s.shutdownCh})
 
 	// Initialize Autopilot. This must happen before starting leadership monitoring
 	// as establishing leadership could attempt to use autopilot and cause a panic.
@@ -773,6 +824,9 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server) (*Ser
 	// Start the metrics handlers.
 	go s.updateMetrics()
 
+	// Now we are setup, configure the HCP manager
+	go s.hcpManager.Run(&lib.StopChannelContext{StopCh: shutdownCh})
+
 	return s, nil
 }
 
@@ -783,7 +837,7 @@ func newGRPCHandlerFromConfig(deps Deps, config *Config, s *Server) connHandler 
 
 	p := peering.NewServer(peering.Config{
 		Backend: s.peeringBackend,
-		Tracker: s.peerStreamTracker,
+		Tracker: s.peerStreamServer.Tracker,
 		Logger:  deps.Logger.Named("grpc-api.peering"),
 		ForwardRPC: func(info structs.RPCInfo, fn func(*grpc.ClientConn) error) (bool, error) {
 			// Only forward the request if the dc in the request matches the server's datacenter.
@@ -797,6 +851,19 @@ func newGRPCHandlerFromConfig(deps Deps, config *Config, s *Server) connHandler 
 		PeeringEnabled: config.PeeringEnabled,
 	})
 	s.peeringServer = p
+	o := operator.NewServer(operator.Config{
+		Backend: s.operatorBackend,
+		Logger:  deps.Logger.Named("grpc-api.operator"),
+		ForwardRPC: func(info structs.RPCInfo, fn func(*grpc.ClientConn) error) (bool, error) {
+			// Only forward the request if the dc in the request matches the server's datacenter.
+			if info.RequestDatacenter() != "" && info.RequestDatacenter() != config.Datacenter {
+				return false, fmt.Errorf("requests to transfer leader cannot be forwarded to remote datacenters")
+			}
+			return s.ForwardGRPC(s.grpcConnPool, info, fn)
+		},
+		Datacenter: config.Datacenter,
+	})
+	s.operatorServer = o
 
 	register := func(srv *grpc.Server) {
 		if config.RPCConfig.EnableStreaming {
@@ -805,15 +872,17 @@ func newGRPCHandlerFromConfig(deps Deps, config *Config, s *Server) connHandler 
 				deps.Logger.Named("grpc-api.subscription")))
 		}
 		s.peeringServer.Register(srv)
+		s.operatorServer.Register(srv)
 		s.registerEnterpriseGRPCServices(deps, srv)
 
 		// Note: these external gRPC services are also exposed on the internal server to
 		// enable RPC forwarding.
+		s.peerStreamServer.Register(srv)
 		s.externalACLServer.Register(srv)
 		s.externalConnectCAServer.Register(srv)
 	}
 
-	return agentgrpc.NewHandler(deps.Logger, config.RPCAddr, register)
+	return agentgrpc.NewHandler(deps.Logger, config.RPCAddr, register, nil, s.incomingRPCLimiter)
 }
 
 func (s *Server) connectCARootsMonitor(ctx context.Context) {
@@ -935,7 +1004,7 @@ func (s *Server) setupRaft() error {
 		peersFile := filepath.Join(path, "peers.json")
 		peersInfoFile := filepath.Join(path, "peers.info")
 		if _, err := os.Stat(peersInfoFile); os.IsNotExist(err) {
-			if err := ioutil.WriteFile(peersInfoFile, []byte(peersInfoContent), 0755); err != nil {
+			if err := os.WriteFile(peersInfoFile, []byte(peersInfoContent), 0755); err != nil {
 				return fmt.Errorf("failed to write peers.info file: %v", err)
 			}
 
@@ -1163,20 +1232,25 @@ func (s *Server) Shutdown() error {
 	return nil
 }
 
-func (s *Server) attemptLeadershipTransfer() (success bool) {
-	leadershipTransferVersion := version.Must(version.NewVersion(LeaderTransferMinVersion))
-
-	ok, _ := ServersInDCMeetMinimumVersion(s, s.config.Datacenter, leadershipTransferVersion)
-	if !ok {
-		return false
+func (s *Server) attemptLeadershipTransfer(id raft.ServerID) (err error) {
+	var addr raft.ServerAddress
+	if id != "" {
+		addr, err = s.serverLookup.ServerAddr(id)
+		if err != nil {
+			return err
+		}
+		future := s.raft.LeadershipTransferToServer(id, addr)
+		if err := future.Error(); err != nil {
+			return err
+		}
+	} else {
+		future := s.raft.LeadershipTransfer()
+		if err := future.Error(); err != nil {
+			return err
+		}
 	}
 
-	future := s.raft.LeadershipTransfer()
-	if err := future.Error(); err != nil {
-		s.logger.Error("failed to transfer leadership, removing the server", "error", err)
-		return false
-	}
-	return true
+	return nil
 }
 
 // Leave is used to prepare for a graceful shutdown.
@@ -1198,7 +1272,7 @@ func (s *Server) Leave() error {
 	// removed for some reasonable period of time.
 	isLeader := s.IsLeader()
 	if isLeader && numPeers > 1 {
-		if s.attemptLeadershipTransfer() {
+		if err := s.attemptLeadershipTransfer(""); err == nil {
 			isLeader = false
 		} else {
 			future := s.raft.RemoveServer(raft.ServerID(s.config.NodeID), 0, 0)
@@ -1353,6 +1427,11 @@ func (s *Server) WANMembers() []serf.Member {
 	return s.serfWAN.Members()
 }
 
+// GetPeeringBackend is a test helper.
+func (s *Server) GetPeeringBackend() peering.Backend {
+	return s.peeringBackend
+}
+
 // RemoveFailedNode is used to remove a failed node from the cluster.
 func (s *Server) RemoveFailedNode(node string, prune bool, entMeta *acl.EnterpriseMeta) error {
 	var removeFn func(*serf.Serf, string) error
@@ -1413,10 +1492,11 @@ func (s *Server) AgentEnterpriseMeta() *acl.EnterpriseMeta {
 
 // inmemCodec is used to do an RPC call without going over a network
 type inmemCodec struct {
-	method string
-	args   interface{}
-	reply  interface{}
-	err    error
+	method     string
+	args       interface{}
+	reply      interface{}
+	err        error
+	sourceAddr net.Addr
 }
 
 func (i *inmemCodec) ReadRequestHeader(req *rpc.Request) error {
@@ -1442,16 +1522,22 @@ func (i *inmemCodec) WriteResponse(resp *rpc.Response, reply interface{}) error 
 	return nil
 }
 
+func (i *inmemCodec) SourceAddr() net.Addr {
+	return i.sourceAddr
+}
+
 func (i *inmemCodec) Close() error {
 	return nil
 }
 
 // RPC is used to make a local RPC call
-func (s *Server) RPC(method string, args interface{}, reply interface{}) error {
+func (s *Server) RPC(ctx context.Context, method string, args interface{}, reply interface{}) error {
+	remoteAddr, _ := RemoteAddrFromContext(ctx)
 	codec := &inmemCodec{
-		method: method,
-		args:   args,
-		reply:  reply,
+		method:     method,
+		args:       args,
+		reply:      reply,
+		sourceAddr: remoteAddr,
 	}
 
 	// Enforce the RPC limit.
@@ -1566,12 +1652,12 @@ func (s *Server) Stats() map[string]map[string]string {
 // GetLANCoordinate returns the coordinate of the node in the LAN gossip
 // pool.
 //
-// - Clients return a single coordinate for the single gossip pool they are
-//   in (default, segment, or partition).
+//   - Clients return a single coordinate for the single gossip pool they are
+//     in (default, segment, or partition).
 //
-// - Servers return one coordinate for their canonical gossip pool (i.e.
-//   default partition/segment) and one per segment they are also ancillary
-//   members of.
+//   - Servers return one coordinate for their canonical gossip pool (i.e.
+//     default partition/segment) and one per segment they are also ancillary
+//     members of.
 //
 // NOTE: servers do not emit coordinates for partitioned gossip pools they
 // are ancillary members of.
@@ -1606,9 +1692,15 @@ func (s *Server) ReloadConfig(config ReloadableConfig) error {
 	}
 
 	s.rpcLimiter.Store(rate.NewLimiter(config.RPCRateLimit, config.RPCMaxBurst))
+
+	if config.RequestLimits != nil {
+		s.incomingRPCLimiter.UpdateConfig(*convertConsulConfigToRateLimitHandlerConfig(*config.RequestLimits, nil))
+	}
+
 	s.rpcConnLimiter.SetConfig(connlimit.Config{
 		MaxConnsPerClientIP: config.RPCMaxConnsPerClient,
 	})
+	s.connPool.SetRPCClientTimeout(config.RPCClientTimeout)
 
 	if s.IsLeader() {
 		// only bootstrap the config entries if we are the leader
@@ -1690,11 +1782,107 @@ func (s *Server) trackLeaderChanges() {
 
 			s.grpcLeaderForwarder.UpdateLeaderAddr(s.config.Datacenter, string(leaderObs.LeaderAddr))
 			s.peeringBackend.SetLeaderAddress(string(leaderObs.LeaderAddr))
+
+			// Trigger sending an update to HCP status
+			s.hcpManager.SendUpdate()
 		case <-s.shutdownCh:
 			s.raft.DeregisterObserver(observer)
 			return
 		}
 	}
+}
+
+// hcpServerStatus is the callback used by the HCP manager to emit status updates to the HashiCorp Cloud Platform when
+// enabled.
+func (s *Server) hcpServerStatus(deps Deps) hcp.StatusCallback {
+	return func(ctx context.Context) (status hcp.ServerStatus, err error) {
+		status.Name = s.config.NodeName
+		status.ID = string(s.config.NodeID)
+		status.Version = cslversion.GetHumanVersion()
+		status.LanAddress = s.config.RPCAdvertise.IP.String()
+		status.GossipPort = s.config.SerfLANConfig.MemberlistConfig.AdvertisePort
+		status.RPCPort = s.config.RPCAddr.Port
+
+		tlsCert := s.tlsConfigurator.Cert()
+		if tlsCert != nil {
+			status.TLS.Enabled = true
+			leaf := tlsCert.Leaf
+			if leaf == nil {
+				// Parse the leaf cert
+				leaf, err = x509.ParseCertificate(tlsCert.Certificate[0])
+				if err != nil {
+					// Shouldn't be possible
+					return
+				}
+			}
+			status.TLS.CertName = leaf.Subject.CommonName
+			status.TLS.CertSerial = leaf.SerialNumber.String()
+			status.TLS.CertExpiry = leaf.NotAfter
+			status.TLS.VerifyIncoming = s.tlsConfigurator.VerifyIncomingRPC()
+			status.TLS.VerifyOutgoing = s.tlsConfigurator.Base().InternalRPC.VerifyOutgoing
+			status.TLS.VerifyServerHostname = s.tlsConfigurator.VerifyServerHostname()
+		}
+
+		status.Raft.IsLeader = s.raft.State() == raft.Leader
+		_, leaderID := s.raft.LeaderWithID()
+		status.Raft.KnownLeader = leaderID != ""
+		status.Raft.AppliedIndex = s.raft.AppliedIndex()
+		if !status.Raft.IsLeader {
+			status.Raft.TimeSinceLastContact = time.Since(s.raft.LastContact())
+		}
+
+		apState := s.autopilot.GetState()
+		status.Autopilot.Healthy = apState.Healthy
+		status.Autopilot.FailureTolerance = apState.FailureTolerance
+		status.Autopilot.NumServers = len(apState.Servers)
+		status.Autopilot.NumVoters = len(apState.Voters)
+		status.Autopilot.MinQuorum = int(s.getAutopilotConfigOrDefault().MinQuorum)
+
+		status.ScadaStatus = "unknown"
+		if deps.HCP.Provider != nil {
+			status.ScadaStatus = deps.HCP.Provider.SessionStatus()
+		}
+
+		return status, nil
+	}
+}
+
+func ConfiguredIncomingRPCLimiter(ctx context.Context, serverLogger hclog.InterceptLogger, consulCfg *Config) *rpcRate.Handler {
+	mlCfg := &multilimiter.Config{ReconcileCheckLimit: 30 * time.Second, ReconcileCheckInterval: time.Second}
+	limitsConfig := &RequestLimits{
+		Mode:      rpcRate.RequestLimitsModeFromNameWithDefault(consulCfg.RequestLimitsMode),
+		ReadRate:  consulCfg.RequestLimitsReadRate,
+		WriteRate: consulCfg.RequestLimitsWriteRate,
+	}
+
+	sink := logdrop.NewLogDropSink(ctx, 100, serverLogger.Named("rpc-rate-limit"), func(l logdrop.Log) {
+		metrics.IncrCounter([]string{"rpc", "rate_limit", "log_dropped"}, 1)
+	})
+	logger := hclog.NewInterceptLogger(&hclog.LoggerOptions{Output: io.Discard})
+	logger.RegisterSink(sink)
+
+	rateLimiterConfig := convertConsulConfigToRateLimitHandlerConfig(*limitsConfig, mlCfg)
+
+	return rpcRate.NewHandler(*rateLimiterConfig, logger)
+}
+
+func convertConsulConfigToRateLimitHandlerConfig(limitsConfig RequestLimits, multilimiterConfig *multilimiter.Config) *rpcRate.HandlerConfig {
+	hc := &rpcRate.HandlerConfig{
+		GlobalMode: limitsConfig.Mode,
+		GlobalReadConfig: multilimiter.LimiterConfig{
+			Rate:  limitsConfig.ReadRate,
+			Burst: int(limitsConfig.ReadRate) * requestLimitsBurstMultiplier,
+		},
+		GlobalWriteConfig: multilimiter.LimiterConfig{
+			Rate:  limitsConfig.WriteRate,
+			Burst: int(limitsConfig.WriteRate) * requestLimitsBurstMultiplier,
+		},
+	}
+	if multilimiterConfig != nil {
+		hc.Config = *multilimiterConfig
+	}
+
+	return hc
 }
 
 // peersInfoContent is used to help operators understand what happened to the

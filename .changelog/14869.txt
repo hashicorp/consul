@@ -1,0 +1,3 @@
+```release-note:bug
+grpc: Merge proxy-defaults and service-defaults in GetEnvoyBootstrapParams response.
+```

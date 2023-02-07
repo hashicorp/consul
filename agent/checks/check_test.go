@@ -17,16 +17,17 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/go-uuid"
+	"github.com/stretchr/testify/require"
+	"golang.org/x/net/http2"
+	"golang.org/x/net/http2/h2c"
+
 	"github.com/hashicorp/consul/agent/mock"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/freeport"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
-	"github.com/hashicorp/go-uuid"
-	"github.com/stretchr/testify/require"
-	http2 "golang.org/x/net/http2"
-	"golang.org/x/net/http2/h2c"
 )
 
 func uniqueID() string {
@@ -300,8 +301,6 @@ func TestCheckHTTP(t *testing.T) {
 		{code: 429, status: api.HealthWarning},
 
 		// critical
-		{code: 150, status: api.HealthCritical},
-		{code: 199, status: api.HealthCritical},
 		{code: 300, status: api.HealthCritical},
 		{code: 400, status: api.HealthCritical},
 		{code: 500, status: api.HealthCritical},
@@ -837,10 +836,20 @@ func TestCheckHTTP_TLS_BadVerify(t *testing.T) {
 		if got, want := notif.State(cid), api.HealthCritical; got != want {
 			r.Fatalf("got state %q want %q", got, want)
 		}
-		if !strings.Contains(notif.Output(cid), "certificate signed by unknown authority") {
+		if !isInvalidCertificateError(notif.Output(cid)) {
 			r.Fatalf("should fail with certificate error %v", notif.OutputMap())
 		}
 	})
+}
+
+// isInvalidCertificateError checks the error string for an untrusted certificate error.
+// The specific error message is different on Linux and macOS.
+//
+// TODO: Revisit this when https://github.com/golang/go/issues/52010 is resolved.
+// We may be able to simplify this to check only one error string.
+func isInvalidCertificateError(err string) bool {
+	return strings.Contains(err, "certificate signed by unknown authority") ||
+		strings.Contains(err, "certificate is not trusted")
 }
 
 func mockTCPServer(network string) net.Listener {
@@ -1401,9 +1410,8 @@ func TestCheckH2PING_TLS_BadVerify(t *testing.T) {
 		if got, want := notif.State(cid), api.HealthCritical; got != want {
 			r.Fatalf("got state %q want %q", got, want)
 		}
-		expectedOutput := "certificate signed by unknown authority"
-		if !strings.Contains(notif.Output(cid), expectedOutput) {
-			r.Fatalf("should have included output %s: %v", expectedOutput, notif.OutputMap())
+		if !isInvalidCertificateError(notif.Output(cid)) {
+			r.Fatalf("should fail with certificate error %v", notif.OutputMap())
 		}
 	})
 }

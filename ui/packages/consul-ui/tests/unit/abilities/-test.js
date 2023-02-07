@@ -2,27 +2,27 @@
 import { module, test } from 'qunit';
 import { setupTest } from 'ember-qunit';
 
-module('Unit | Ability | *', function(hooks) {
+module('Unit | Ability | *', function (hooks) {
   setupTest(hooks);
 
   // Replace this with your real tests.
-  test('it exists', function(assert) {
+  test('it exists', function (assert) {
     const abilities = Object.keys(requirejs.entries)
-      .filter(key => key.indexOf('/abilities/') !== -1)
-      .map(key => key.split('/').pop())
-      .filter(item => item !== '-test');
-    abilities.forEach(item => {
+      .filter((key) => key.indexOf('/abilities/') !== -1)
+      .map((key) => key.split('/').pop())
+      .filter((item) => item !== '-test');
+    abilities.forEach((item) => {
       const ability = this.owner.factoryFor(`ability:${item}`).create();
-      [true, false].forEach(bool => {
+      [true, false].forEach((bool) => {
         const permissions = this.owner.lookup(`service:repository/permission`);
         ability.permissions = {
-          has: _ => bool,
+          has: (_) => bool,
           permissions: bool ? ['more-than-zero'] : [],
-          generate: function() {
+          generate: function () {
             return permissions.generate(...arguments);
           },
         };
-        ['Create', 'Read', 'Update', 'Delete', 'Write', 'List'].forEach(perm => {
+        ['Create', 'Read', 'Update', 'Delete', 'Write', 'List'].forEach((perm) => {
           switch (item) {
             case 'permission':
               ability.item = {

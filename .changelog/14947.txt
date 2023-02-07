@@ -1,0 +1,3 @@
+```release-note:feature
+ui: Create peerings detail page
+```

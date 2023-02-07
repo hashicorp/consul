@@ -1,0 +1,3 @@
+```release-note:improvement
+dns: support RFC 2782 SRV lookups for prepared queries using format `_<query id or name>._tcp.query[.<datacenter>].<domain>`.
+```

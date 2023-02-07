@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"time"
@@ -13,8 +12,8 @@ import (
 	"github.com/armon/go-metrics/prometheus"
 	"github.com/hashicorp/go-bexpr"
 	"github.com/hashicorp/go-hclog"
-	memdb "github.com/hashicorp/go-memdb"
-	uuid "github.com/hashicorp/go-uuid"
+	"github.com/hashicorp/go-memdb"
+	"github.com/hashicorp/go-uuid"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/acl/resolver"
@@ -108,25 +107,24 @@ type ACL struct {
 // fileBootstrapResetIndex retrieves the reset index specified by the administrator from
 // the file on disk.
 //
-// Q: What is the bootstrap reset index?
-// A: If you happen to lose acess to all tokens capable of ACL management you need a way
-//    to get back into your system. This allows an admin to write the current
-//    bootstrap "index" into a special file on disk to override the mechanism preventing
-//    a second token bootstrap. The index will be retrieved by a API call to /v1/acl/bootstrap
-//    When already bootstrapped this API will return the reset index necessary within
-//    the error response. Once set in the file, the bootstrap API can be used again to
-//    get a new token.
+//	 Q: What is the bootstrap reset index?
+//	 A: If you happen to lose acess to all tokens capable of ACL management you need a way
+//				   to get back into your system. This allows an admin to write the current
+//				   bootstrap "index" into a special file on disk to override the mechanism preventing
+//				   a second token bootstrap. The index will be retrieved by a API call to /v1/acl/bootstrap
+//				   When already bootstrapped this API will return the reset index necessary within
+//				   the error response. Once set in the file, the bootstrap API can be used again to
+//				   get a new token.
 //
-// Q: Why is the reset index not in the config?
-// A: We want to be able to remove the reset index once we have used it. This prevents
-//    accidentally allowing bootstrapping yet again after a snapshot restore.
-//
+//	 Q: Why is the reset index not in the config?
+//	 A: We want to be able to remove the reset index once we have used it. This prevents
+//				   accidentally allowing bootstrapping yet again after a snapshot restore.
 func (a *ACL) fileBootstrapResetIndex() uint64 {
 	// Determine the file path to check
 	path := filepath.Join(a.srv.config.DataDir, aclBootstrapReset)
 
 	// Read the file
-	raw, err := ioutil.ReadFile(path)
+	raw, err := os.ReadFile(path)
 	if err != nil {
 		if !os.IsNotExist(err) {
 			a.logger.Error("bootstrap: failed to read path",
@@ -164,7 +162,7 @@ func (a *ACL) aclPreCheck() error {
 
 // BootstrapTokens is used to perform a one-time ACL bootstrap operation on
 // a cluster to get the first management token.
-func (a *ACL) BootstrapTokens(args *structs.DCSpecificRequest, reply *structs.ACLToken) error {
+func (a *ACL) BootstrapTokens(args *structs.ACLInitialTokenBootstrapRequest, reply *structs.ACLToken) error {
 	if err := a.aclPreCheck(); err != nil {
 		return err
 	}
@@ -209,9 +207,24 @@ func (a *ACL) BootstrapTokens(args *structs.DCSpecificRequest, reply *structs.AC
 	if err != nil {
 		return err
 	}
-	secret, err := lib.GenerateUUID(a.srv.checkTokenUUID)
-	if err != nil {
-		return err
+	secret := args.BootstrapSecret
+	if secret == "" {
+		secret, err = lib.GenerateUUID(a.srv.checkTokenUUID)
+		if err != nil {
+			return err
+		}
+	} else {
+		_, err = uuid.ParseUUID(secret)
+		if err != nil {
+			return err
+		}
+		ok, err := a.srv.checkTokenUUID(secret)
+		if err != nil {
+			return err
+		}
+		if !ok {
+			return fmt.Errorf("Provided token cannot be used because a token with that secret already exists.")
+		}
 	}
 
 	req := structs.ACLTokenBootstrapRequest{
@@ -457,10 +470,6 @@ func (a *ACL) TokenClone(args *structs.ACLTokenSetRequest, reply *structs.ACLTok
 		return fmt.Errorf("Cannot clone a token created from an auth method")
 	}
 
-	if token.Rules != "" {
-		return fmt.Errorf("Cannot clone a legacy ACL with this endpoint")
-	}
-
 	clone := &structs.ACLToken{
 		Policies:          token.Policies,
 		Roles:             token.Roles,
@@ -561,7 +570,7 @@ func (a *ACL) TokenDelete(args *structs.ACLTokenDeleteRequest, reply *string) er
 		return fmt.Errorf("Accessor ID is missing or an invalid UUID")
 	}
 
-	if args.TokenID == structs.ACLTokenAnonymousID {
+	if args.TokenID == acl.AnonymousTokenID {
 		return fmt.Errorf("Delete operation not permitted on the anonymous token")
 	}
 
@@ -904,7 +913,7 @@ func (a *ACL) PolicySet(args *structs.ACLPolicySetRequest, reply *structs.ACLPol
 	}
 
 	// validate the rules
-	_, err = acl.NewPolicyFromSource(policy.Rules, policy.Syntax, a.srv.aclConfig, policy.EnterprisePolicyMeta())
+	_, err = acl.NewPolicyFromSource(policy.Rules, a.srv.aclConfig, policy.EnterprisePolicyMeta())
 	if err != nil {
 		return err
 	}

@@ -3,7 +3,7 @@ package consul
 import (
 	"fmt"
 
-	bexpr "github.com/hashicorp/go-bexpr"
+	"github.com/hashicorp/go-bexpr"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/serf/serf"
@@ -153,64 +153,87 @@ func (m *Internal) ServiceDump(args *structs.ServiceDumpRequest, reply *structs.
 		&args.QueryOptions,
 		&reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
-			// we don't support calling this endpoint for a specific peer
-			if args.PeerName != "" {
-				return fmt.Errorf("this endpoint does not support specifying a peer: %q", args.PeerName)
-			}
-
 			// this maxIndex will be the max of the ServiceDump calls and the PeeringList call
 			var maxIndex uint64
 
-			// get a local dump for services
-			index, nodes, err := state.ServiceDump(ws, args.ServiceKind, args.UseServiceKind, &args.EnterpriseMeta, structs.DefaultPeerKeyword)
-			if err != nil {
-				return fmt.Errorf("could not get a service dump for local nodes: %w", err)
-			}
-
-			if index > maxIndex {
-				maxIndex = index
-			}
-			reply.Nodes = nodes
-
-			// get a list of all peerings
-			index, listedPeerings, err := state.PeeringList(ws, args.EnterpriseMeta)
-			if err != nil {
-				return fmt.Errorf("could not list peers for service dump %w", err)
-			}
-
-			if index > maxIndex {
-				maxIndex = index
-			}
-
-			for _, p := range listedPeerings {
-				index, importedNodes, err := state.ServiceDump(ws, args.ServiceKind, args.UseServiceKind, &args.EnterpriseMeta, p.Name)
+			// If PeerName is not empty, we return only the imported services from that peer
+			if args.PeerName != "" {
+				// get a local dump for services
+				index, nodes, err := state.ServiceDump(ws,
+					args.ServiceKind,
+					args.UseServiceKind,
+					// Note we fetch imported services with wildcard namespace because imported services' namespaces
+					// are in a different locality; regardless of our local namespace, we return all imported services
+					// of the local partition.
+					args.EnterpriseMeta.WithWildcardNamespace(),
+					args.PeerName)
 				if err != nil {
-					return fmt.Errorf("could not get a service dump for peer %q: %w", p.Name, err)
+					return fmt.Errorf("could not get a service dump for peer %q: %w", args.PeerName, err)
 				}
 
 				if index > maxIndex {
 					maxIndex = index
 				}
-				reply.ImportedNodes = append(reply.ImportedNodes, importedNodes...)
-			}
+				reply.Index = maxIndex
+				reply.ImportedNodes = nodes
 
-			// Get, store, and filter gateway services
-			idx, gatewayServices, err := state.DumpGatewayServices(ws)
-			if err != nil {
-				return err
-			}
-			reply.Gateways = gatewayServices
+			} else {
+				// otherwise return both local and all imported services
 
-			if idx > maxIndex {
-				maxIndex = idx
-			}
-			reply.Index = maxIndex
+				// get a local dump for services
+				index, nodes, err := state.ServiceDump(ws, args.ServiceKind, args.UseServiceKind, &args.EnterpriseMeta, structs.DefaultPeerKeyword)
+				if err != nil {
+					return fmt.Errorf("could not get a service dump for local nodes: %w", err)
+				}
 
-			raw, err := filter.Execute(reply.Nodes)
-			if err != nil {
-				return fmt.Errorf("could not filter local service dump: %w", err)
+				if index > maxIndex {
+					maxIndex = index
+				}
+				reply.Nodes = nodes
+
+				// get a list of all peerings
+				index, listedPeerings, err := state.PeeringList(ws, args.EnterpriseMeta)
+				if err != nil {
+					return fmt.Errorf("could not list peers for service dump %w", err)
+				}
+
+				if index > maxIndex {
+					maxIndex = index
+				}
+
+				for _, p := range listedPeerings {
+					// Note we fetch imported services with wildcard namespace because imported services' namespaces
+					// are in a different locality; regardless of our local namespace, we return all imported services
+					// of the local partition.
+					index, importedNodes, err := state.ServiceDump(ws, args.ServiceKind, args.UseServiceKind, args.EnterpriseMeta.WithWildcardNamespace(), p.Name)
+					if err != nil {
+						return fmt.Errorf("could not get a service dump for peer %q: %w", p.Name, err)
+					}
+
+					if index > maxIndex {
+						maxIndex = index
+					}
+					reply.ImportedNodes = append(reply.ImportedNodes, importedNodes...)
+				}
+
+				// Get, store, and filter gateway services
+				idx, gatewayServices, err := state.DumpGatewayServices(ws)
+				if err != nil {
+					return err
+				}
+				reply.Gateways = gatewayServices
+
+				if idx > maxIndex {
+					maxIndex = idx
+				}
+				reply.Index = maxIndex
+
+				raw, err := filter.Execute(reply.Nodes)
+				if err != nil {
+					return fmt.Errorf("could not filter local service dump: %w", err)
+				}
+				reply.Nodes = raw.(structs.CheckServiceNodes)
 			}
-			reply.Nodes = raw.(structs.CheckServiceNodes)
 
 			importedRaw, err := filter.Execute(reply.ImportedNodes)
 			if err != nil {
@@ -590,6 +613,7 @@ func (m *Internal) GatewayIntentions(args *structs.IntentionQueryRequest, reply 
 
 // ExportedPeeredServices is used to query the exported services for peers.
 // Returns services as a map of ServiceNames by peer.
+// To get exported services for a single peer, use ExportedServicesForPeer.
 func (m *Internal) ExportedPeeredServices(args *structs.DCSpecificRequest, reply *structs.IndexedExportedServiceList) error {
 	if done, err := m.srv.ForwardRPC("Internal.ExportedPeeredServices", args, reply); done {
 		return err
@@ -599,24 +623,74 @@ func (m *Internal) ExportedPeeredServices(args *structs.DCSpecificRequest, reply
 	if err != nil {
 		return err
 	}
-
 	if err := m.srv.validateEnterpriseRequest(&args.EnterpriseMeta, false); err != nil {
 		return err
 	}
-
-	// TODO(peering): acls: mesh gateway needs appropriate wildcard service:read
 
 	return m.srv.blockingQuery(
 		&args.QueryOptions,
 		&reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
-			index, serviceMap, err := state.ExportedServicesForAllPeersByName(ws, args.EnterpriseMeta)
+			index, serviceMap, err := state.ExportedServicesForAllPeersByName(ws, args.Datacenter, args.EnterpriseMeta)
 			if err != nil {
 				return err
 			}
 
 			reply.Index, reply.Services = index, serviceMap
 			m.srv.filterACLWithAuthorizer(authz, reply)
+			return nil
+		})
+}
+
+// ExportedServicesForPeer returns a list of Service names that are exported for a given peer.
+func (m *Internal) ExportedServicesForPeer(args *structs.ServiceDumpRequest, reply *structs.IndexedServiceList) error {
+	if done, err := m.srv.ForwardRPC("Internal.ExportedServicesForPeer", args, reply); done {
+		return err
+	}
+
+	var authzCtx acl.AuthorizerContext
+	authz, err := m.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, &authzCtx)
+	if err != nil {
+		return err
+	}
+	if err := m.srv.validateEnterpriseRequest(&args.EnterpriseMeta, false); err != nil {
+		return err
+	}
+	if args.PeerName == "" {
+		return fmt.Errorf("must provide PeerName")
+	}
+
+	return m.srv.blockingQuery(
+		&args.QueryOptions,
+		&reply.QueryMeta,
+		func(ws memdb.WatchSet, store *state.Store) error {
+
+			idx, p, err := store.PeeringRead(ws, state.Query{
+				Value:          args.PeerName,
+				EnterpriseMeta: args.EnterpriseMeta,
+			})
+			if err != nil {
+				return fmt.Errorf("error while fetching peer %q: %w", args.PeerName, err)
+			}
+			if p == nil {
+				reply.Index = idx
+				reply.Services = nil
+				return errNotFound
+			}
+			idx, exportedSvcs, err := store.ExportedServicesForPeer(ws, p.ID, args.Datacenter)
+			if err != nil {
+				return fmt.Errorf("error while listing exported services for peer %q: %w", args.PeerName, err)
+			}
+
+			reply.Index = idx
+			reply.Services = exportedSvcs.Services
+
+			// If MeshWrite is allowed, we assume it is an operator role and
+			// return all the services. Otherwise, the results are filtered.
+			if authz.MeshWrite(&authzCtx) != acl.Allow {
+				m.srv.filterACLWithAuthorizer(authz, reply)
+			}
+
 			return nil
 		})
 }
@@ -632,11 +706,14 @@ func (m *Internal) PeeredUpstreams(args *structs.PartitionSpecificRequest, reply
 		return err
 	}
 
-	// TODO(peering): ACL for filtering
-	// authz, err := m.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, nil)
-	// if err != nil {
-	// 	return err
-	// }
+	var authzCtx acl.AuthorizerContext
+	authz, err := m.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, &authzCtx)
+	if err != nil {
+		return err
+	}
+	if err := authz.ToAllowAuthorizer().ServiceWriteAnyAllowed(&authzCtx); err != nil {
+		return err
+	}
 
 	if err := m.srv.validateEnterpriseRequest(&args.EnterpriseMeta, false); err != nil {
 		return err
@@ -657,9 +734,6 @@ func (m *Internal) PeeredUpstreams(args *structs.PartitionSpecificRequest, reply
 			}
 
 			reply.Index, reply.Services = index, result
-
-			// TODO(peering): low priority: consider ACL filtering
-			// m.srv.filterACLWithAuthorizer(authz, reply)
 			return nil
 		})
 }
@@ -681,7 +755,7 @@ func (m *Internal) EventFire(args *structs.EventFireRequest,
 
 	if err := authz.ToAllowAuthorizer().EventWriteAllowed(args.Name, nil); err != nil {
 		accessorID := authz.AccessorID()
-		m.logger.Warn("user event blocked by ACLs", "event", args.Name, "accessorID", accessorID)
+		m.logger.Warn("user event blocked by ACLs", "event", args.Name, "accessorID", acl.AliasIfAnonymousToken(accessorID))
 		return err
 	}
 

@@ -1,6 +1,6 @@
-export default function(type) {
-  return function(cb) {
-    return function(params, hash = {}) {
+export default function (type) {
+  return function (cb) {
+    return function (params, hash = {}) {
       if (typeof params[0] !== type) {
         return params[0];
       }

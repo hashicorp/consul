@@ -41,6 +41,7 @@ Feature: login
     ---
     And I click login on the navigation
     And I click "[data-test-tab=tab_sso] button"
+    Then the "[name='partition']" input should have the value "default"
     And I type "partition" into "[name=partition]"
     And I click ".oidc-select button"
     Then a GET request was made to "/v1/internal/ui/oidc-auth-methods?dc=dc-1&ns=@namespace&partition=partition"

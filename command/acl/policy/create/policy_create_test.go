@@ -2,7 +2,7 @@ package policycreate
 
 import (
 	"encoding/json"
-	"io/ioutil"
+	"os"
 	"strings"
 	"testing"
 
@@ -47,7 +47,7 @@ func TestPolicyCreateCommand(t *testing.T) {
 	cmd := New(ui)
 
 	rules := []byte("service \"\" { policy = \"write\" }")
-	err := ioutil.WriteFile(testDir+"/rules.hcl", rules, 0644)
+	err := os.WriteFile(testDir+"/rules.hcl", rules, 0644)
 	require.NoError(t, err)
 
 	args := []string{
@@ -87,7 +87,7 @@ func TestPolicyCreateCommand_JSON(t *testing.T) {
 	cmd := New(ui)
 
 	rules := []byte("service \"\" { policy = \"write\" }")
-	err := ioutil.WriteFile(testDir+"/rules.hcl", rules, 0644)
+	err := os.WriteFile(testDir+"/rules.hcl", rules, 0644)
 	require.NoError(t, err)
 
 	args := []string{

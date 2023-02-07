@@ -10,9 +10,9 @@ import {
 } from 'consul-ui/utils/dom/event-source/index';
 import { module, test } from 'qunit';
 
-module('Unit | Utility | dom/event source/index', function() {
+module('Unit | Utility | dom/event source/index', function () {
   // Replace this with your real tests.
-  test('it works', function(assert) {
+  test('it works', function (assert) {
     // All The EventSource
     assert.ok(typeof CallableEventSource === 'function');
     assert.ok(typeof OpenableEventSource === 'function');

@@ -22,10 +22,11 @@ LABEL org.opencontainers.image.authors="Consul Team <consul@hashicorp.com>" \
       org.opencontainers.image.url="https://www.consul.io/" \
       org.opencontainers.image.documentation="https://www.consul.io/docs" \
       org.opencontainers.image.source="https://github.com/hashicorp/consul" \
-      org.opencontainers.image.version=$VERSION \
+      org.opencontainers.image.version=${VERSION} \
       org.opencontainers.image.vendor="HashiCorp" \
       org.opencontainers.image.title="consul" \
-      org.opencontainers.image.description="Consul is a datacenter runtime that provides service discovery, configuration, and orchestration."
+      org.opencontainers.image.description="Consul is a datacenter runtime that provides service discovery, configuration, and orchestration." \
+      version=${VERSION}
 
 # This is the location of the releases.
 ENV HASHICORP_RELEASES=https://releases.hashicorp.com
@@ -110,13 +111,13 @@ CMD ["agent", "-dev", "-client", "0.0.0.0"]
 # Remember, this image cannot be built locally.
 FROM docker.mirror.hashicorp.services/alpine:3.15 as default
 
-ARG VERSION
+ARG PRODUCT_VERSION
 ARG BIN_NAME
 
 # PRODUCT_NAME and PRODUCT_VERSION are the name of the software on releases.hashicorp.com
 # and the version to download. Example: PRODUCT_NAME=consul PRODUCT_VERSION=1.2.3.
 ENV BIN_NAME=$BIN_NAME
-ENV VERSION=$VERSION
+ENV PRODUCT_VERSION=$PRODUCT_VERSION
 
 ARG PRODUCT_REVISION
 ARG PRODUCT_NAME=$BIN_NAME
@@ -128,10 +129,11 @@ LABEL org.opencontainers.image.authors="Consul Team <consul@hashicorp.com>" \
       org.opencontainers.image.url="https://www.consul.io/" \
       org.opencontainers.image.documentation="https://www.consul.io/docs" \
       org.opencontainers.image.source="https://github.com/hashicorp/consul" \
-      org.opencontainers.image.version=$VERSION \
+      org.opencontainers.image.version=${PRODUCT_VERSION} \
       org.opencontainers.image.vendor="HashiCorp" \
       org.opencontainers.image.title="consul" \
-      org.opencontainers.image.description="Consul is a datacenter runtime that provides service discovery, configuration, and orchestration."
+      org.opencontainers.image.description="Consul is a datacenter runtime that provides service discovery, configuration, and orchestration." \
+      version=${PRODUCT_VERSION}
 
 # Set up certificates and base tools.
 # libc6-compat is needed to symlink the shared libraries for ARM builds
@@ -196,7 +198,7 @@ CMD ["agent", "-dev", "-client", "0.0.0.0"]
 
 # Red Hat UBI-based image
 # This target is used to build a Consul image for use on OpenShift.
-FROM registry.access.redhat.com/ubi8/ubi-minimal:8.6 as ubi
+FROM registry.access.redhat.com/ubi9-minimal:9.1.0 as ubi
 
 ARG PRODUCT_NAME
 ARG PRODUCT_VERSION
@@ -217,10 +219,11 @@ LABEL org.opencontainers.image.authors="Consul Team <consul@hashicorp.com>" \
       org.opencontainers.image.url="https://www.consul.io/" \
       org.opencontainers.image.documentation="https://www.consul.io/docs" \
       org.opencontainers.image.source="https://github.com/hashicorp/consul" \
-      org.opencontainers.image.version=$VERSION \
+      org.opencontainers.image.version=${PRODUCT_VERSION} \
       org.opencontainers.image.vendor="HashiCorp" \
       org.opencontainers.image.title="consul" \
-      org.opencontainers.image.description="Consul is a datacenter runtime that provides service discovery, configuration, and orchestration."
+      org.opencontainers.image.description="Consul is a datacenter runtime that provides service discovery, configuration, and orchestration." \
+      version=${PRODUCT_VERSION}
 
 # Copy license for Red Hat certification.
 COPY LICENSE /licenses/mozilla.txt
@@ -230,7 +233,7 @@ COPY LICENSE /licenses/mozilla.txt
 # Its shasum is hardcoded. If you upgrade the dumb-init verion you'll need to
 # also update the shasum.
 RUN set -eux && \
-    microdnf install -y ca-certificates curl gnupg libcap openssl iputils jq iptables wget unzip tar && \
+    microdnf install -y ca-certificates shadow-utils gnupg libcap openssl iputils jq iptables wget unzip tar && \
     wget -O /usr/bin/dumb-init https://github.com/Yelp/dumb-init/releases/download/v1.2.5/dumb-init_1.2.5_x86_64 && \
     echo 'e874b55f3279ca41415d290c512a7ba9d08f98041b28ae7c2acb19a545f1c4df /usr/bin/dumb-init' > dumb-init-shasum && \
     sha256sum --check dumb-init-shasum && \

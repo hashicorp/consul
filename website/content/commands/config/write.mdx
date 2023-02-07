@@ -1,20 +1,22 @@
 ---
 layout: commands
 page_title: 'Commands: Config Write'
+description: >-
+  The `consul config write` command creates or updates a configuration entry and applies it to your deployment.
 ---
 
 # Consul Config Write
 
 Command: `consul config write`
 
-Corresponding HTTP API Endpoint: [\[PUT\] /v1/config](/api-docs/config#apply-configuration)
+Corresponding HTTP API Endpoint: [\[PUT\] /v1/config](/consul/api-docs/config#apply-configuration)
 
 The `config write` command creates or updates a centralized config entry.
-See the [configuration entries docs](/docs/agent/config-entries) for more
+See the [configuration entries docs](/consul/docs/agent/config-entries) for more
 details about configuration entries.
 
-The table below shows this command's [required ACLs](/api#authentication). Configuration of
-[blocking queries](/api-docs/features/blocking) and [agent caching](/api-docs/features/caching)
+The table below shows this command's [required ACLs](/consul/api-docs/api-structure#authentication). Configuration of
+[blocking queries](/consul/api-docs/features/blocking) and [agent caching](/consul/api-docs/features/caching)
 are not supported from commands, but may be from the corresponding HTTP endpoint.
 
 | ACL Required<sup>1</sup>                                      |
@@ -41,22 +43,22 @@ are not supported from commands, but may be from the corresponding HTTP endpoint
 
 Usage: `consul config write [options] FILE`
 
-#### API Options
-
-@include 'http_api_options_client.mdx'
-
-#### Enterprise Options
-
-@include 'http_api_namespace_options.mdx'
-
-@include 'http_api_partition_options.mdx'
-
-#### Config Write Options
+#### Command Options
 
 - `-cas` - Specifies to use a Check-And-Set operation. If the index is
   0, Consul will only store the entry if it does not already exist. If the index is
   non-zero, the entry is only set if the current index matches the `ModifyIndex`
   of that entry.
+
+#### Enterprise Options
+
+@include 'http_api_partition_options.mdx'
+
+@include 'http_api_namespace_options.mdx'
+
+#### API Options
+
+@include 'http_api_options_client.mdx'
 
 ## Examples
 
@@ -71,7 +73,7 @@ From stdin:
 ### Config Entry examples
 
 All config entries must have a `Kind` when registered. See
-[Service Mesh - Config Entries](/docs/connect/config-entries) for the list of
+[Service Mesh - Config Entries](/consul/docs/connect/config-entries) for the list of
 supported config entries.
 
 #### Service defaults

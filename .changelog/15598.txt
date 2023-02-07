@@ -1,0 +1,4 @@
+```release-note:breaking-change
+config: Deprecate `-join`, `-join-wan`, `start_join`, and `start_join_wan`.
+These options are now aliases of `-retry-join`, `-retry-join-wan`, `retry_join`, and `retry_join_wan`, respectively.
+```

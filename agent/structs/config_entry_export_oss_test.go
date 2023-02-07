@@ -17,7 +17,7 @@ func TestExportedServicesConfigEntry_OSS(t *testing.T) {
 						Name: "web",
 						Consumers: []ServiceConsumer{
 							{
-								PeerName: "bar",
+								Peer: "bar",
 							},
 						},
 					},
@@ -31,7 +31,7 @@ func TestExportedServicesConfigEntry_OSS(t *testing.T) {
 						Namespace: "",
 						Consumers: []ServiceConsumer{
 							{
-								PeerName: "bar",
+								Peer: "bar",
 							},
 						},
 					},

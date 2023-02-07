@@ -2,8 +2,7 @@
 layout: docs
 page_title: Required Ports
 description: >-
-  Before starting Consul it is important to have the necessary bind ports
-  accessible.
+  Consul requires multiple ports for directing DNS, HTTP, gRPC, gossip, and sidecar proxy requests. Learn about required and optional ports, and how Consul uses them for specific communication functions.
 ---
 
 # Required Ports
@@ -22,6 +21,7 @@ Before running Consul, you should ensure the following bind ports are accessible
 | HTTP: The HTTP API (TCP Only)                                                                                 | 8500              |
 | HTTPS: The HTTPs API                                                                                          | disabled (8501)\* |
 | gRPC: The gRPC API                                                                                            | disabled (8502)\* |
+| gRPC TLS: The gRPC API with TLS connections                                                                   | disabled (8503)\* |
 | LAN Serf: The Serf LAN port (TCP and UDP)                                                                     | 8301              |
 | Wan Serf: The Serf WAN port (TCP and UDP)                                                                     | 8302              |
 | server: Server RPC address (TCP Only)                                                                         | 8300              |
@@ -55,4 +55,4 @@ the Serf WAN port (TCP/UDP) to be listening on both WAN and LAN interfaces. See 
 **Server RPC** This is used by servers to handle incoming
 requests from other agents.
 
-Note, the default ports can be changed in the [agent configuration](/docs/agent/config/config-files#ports).
+Note, the default ports can be changed in the [agent configuration](/consul/docs/agent/config/config-files#ports).

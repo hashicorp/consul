@@ -22,7 +22,7 @@ as |route|>
     <BlockSlot @name="loaded">
 {{#let
   loader.data
-  (not (can "write intention" item=item))
+  (not (can "write intention" item=loader.data))
 as |item readOnly|}}
   <AppView>
       <BlockSlot @name="breadcrumbs">

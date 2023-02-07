@@ -3,11 +3,11 @@
 'use strict';
 module.exports = {
   name: 'commands',
-  includedCommands: function() {
+  includedCommands: function () {
     return {
       'steps:list': {
         name: 'steps:list',
-        run: function(config, args) {
+        run: function (config, args) {
           require('./lib/list.js')(`${process.cwd()}/tests/steps.js`);
         },
       },

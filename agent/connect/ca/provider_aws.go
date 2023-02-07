@@ -75,6 +75,8 @@ type AWSProvider struct {
 	logger          hclog.Logger
 }
 
+var _ Provider = (*AWSProvider)(nil)
+
 // NewAWSProvider returns a new AWSProvider
 func NewAWSProvider(logger hclog.Logger) *AWSProvider {
 	return &AWSProvider{logger: logger}
@@ -498,23 +500,24 @@ func (a *AWSProvider) signCSR(csrPEM string, templateARN string, ttl time.Durati
 }
 
 // GenerateIntermediateCSR implements Provider
-func (a *AWSProvider) GenerateIntermediateCSR() (string, error) {
+func (a *AWSProvider) GenerateIntermediateCSR() (string, string, error) {
 	if a.isPrimary {
-		return "", fmt.Errorf("provider is the root certificate authority, " +
+		return "", "", fmt.Errorf("provider is the root certificate authority, " +
 			"cannot generate an intermediate CSR")
 	}
 
 	err := a.ensureCA()
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 
 	// We should have the CA created now and should be able to generate the CSR.
-	return a.getCACSR()
+	pem, err := a.getCACSR()
+	return pem, "", err
 }
 
 // SetIntermediate implements Provider
-func (a *AWSProvider) SetIntermediate(intermediatePEM string, rootPEM string) error {
+func (a *AWSProvider) SetIntermediate(intermediatePEM string, rootPEM string, _ string) error {
 	err := a.ensureCA()
 	if err != nil {
 		return err

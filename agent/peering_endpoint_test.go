@@ -22,25 +22,6 @@ import (
 	"github.com/hashicorp/consul/testrpc"
 )
 
-var validCA = `
------BEGIN CERTIFICATE-----
-MIICmDCCAj6gAwIBAgIBBzAKBggqhkjOPQQDAjAWMRQwEgYDVQQDEwtDb25zdWwg
-Q0EgNzAeFw0xODA1MjExNjMzMjhaFw0yODA1MTgxNjMzMjhaMBYxFDASBgNVBAMT
-C0NvbnN1bCBDQSA3MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAER0qlxjnRcMEr
-iSGlH7G7dYU7lzBEmLUSMZkyBbClmyV8+e8WANemjn+PLnCr40If9cmpr7RnC9Qk
-GTaLnLiF16OCAXswggF3MA4GA1UdDwEB/wQEAwIBhjAPBgNVHRMBAf8EBTADAQH/
-MGgGA1UdDgRhBF8xZjo5MTpjYTo0MTo4ZjphYzo2NzpiZjo1OTpjMjpmYTo0ZTo3
-NTo1YzpkODpmMDo1NTpkZTpiZTo3NTpiODozMzozMTpkNToyNDpiMDowNDpiMzpl
-ODo5Nzo1Yjo3ZTBqBgNVHSMEYzBhgF8xZjo5MTpjYTo0MTo4ZjphYzo2NzpiZjo1
-OTpjMjpmYTo0ZTo3NTo1YzpkODpmMDo1NTpkZTpiZTo3NTpiODozMzozMTpkNToy
-NDpiMDowNDpiMzplODo5Nzo1Yjo3ZTA/BgNVHREEODA2hjRzcGlmZmU6Ly8xMjRk
-ZjVhMC05ODIwLTc2YzMtOWFhOS02ZjYyMTY0YmExYzIuY29uc3VsMD0GA1UdHgEB
-/wQzMDGgLzAtgisxMjRkZjVhMC05ODIwLTc2YzMtOWFhOS02ZjYyMTY0YmExYzIu
-Y29uc3VsMAoGCCqGSM49BAMCA0gAMEUCIQDzkkI7R+0U12a+zq2EQhP/n2mHmta+
-fs2hBxWIELGwTAIgLdO7RRw+z9nnxCIA6kNl//mIQb+PGItespiHZKAz74Q=
------END CERTIFICATE-----
-`
-
 func TestHTTP_Peering_GenerateToken(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
@@ -50,6 +31,7 @@ func TestHTTP_Peering_GenerateToken(t *testing.T) {
 	a := NewTestAgent(t, "")
 
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+	testrpc.WaitForActiveCARoot(t, a.RPC, "dc1", nil)
 
 	t.Run("No Body", func(t *testing.T) {
 		req, err := http.NewRequest("POST", "/v1/peering/token", nil)
@@ -107,9 +89,9 @@ func TestHTTP_Peering_GenerateToken(t *testing.T) {
 		var token structs.PeeringToken
 		require.NoError(t, json.Unmarshal(tokenJSON, &token))
 
-		require.Nil(t, token.CA)
-		require.Equal(t, []string{fmt.Sprintf("127.0.0.1:%d", a.config.GRPCPort)}, token.ServerAddresses)
-		require.Equal(t, "server.dc1.consul", token.ServerName)
+		require.NotNil(t, token.CA)
+		require.Equal(t, []string{fmt.Sprintf("127.0.0.1:%d", a.config.GRPCTLSPort)}, token.ServerAddresses)
+		require.Equal(t, "server.dc1.peering.11111111-2222-3333-4444-555555555555.consul", token.ServerName)
 
 		// The PeerID in the token is randomly generated so we don't assert on its value.
 		require.NotEmpty(t, token.PeerID)
@@ -140,9 +122,10 @@ func TestHTTP_Peering_GenerateToken(t *testing.T) {
 		var token structs.PeeringToken
 		require.NoError(t, json.Unmarshal(tokenJSON, &token))
 
-		require.Nil(t, token.CA)
-		require.Equal(t, []string{externalAddress}, token.ServerAddresses)
-		require.Equal(t, "server.dc1.consul", token.ServerName)
+		require.NotNil(t, token.CA)
+		require.Equal(t, []string{externalAddress}, token.ManualServerAddresses)
+		require.Equal(t, []string{fmt.Sprintf("127.0.0.1:%d", a.config.GRPCTLSPort)}, token.ServerAddresses)
+		require.Equal(t, "server.dc1.peering.11111111-2222-3333-4444-555555555555.consul", token.ServerName)
 
 		// The PeerID in the token is randomly generated so we don't assert on its value.
 		require.NotEmpty(t, token.PeerID)
@@ -159,6 +142,7 @@ func TestHTTP_Peering_GenerateToken_EdgeCases(t *testing.T) {
 
 	a := NewTestAgent(t, "")
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+	testrpc.WaitForActiveCARoot(t, a.RPC, "dc1", nil)
 
 	body := &pbpeering.GenerateTokenRequest{
 		PeerName: "peering-a",
@@ -219,10 +203,9 @@ func TestHTTP_Peering_Establish(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	a := NewTestAgent(t, "")
-
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+	testrpc.WaitForActiveCARoot(t, a.RPC, "dc1", nil)
 
 	t.Run("No Body", func(t *testing.T) {
 		req, err := http.NewRequest("POST", "/v1/peering/establish", nil)
@@ -266,34 +249,42 @@ func TestHTTP_Peering_Establish(t *testing.T) {
 		require.Contains(t, string(body), "PeeringToken is required")
 	})
 
-	// TODO(peering): add more failure cases
-
 	t.Run("Success", func(t *testing.T) {
-		token := structs.PeeringToken{
-			CA:              []string{validCA},
-			ServerName:      "server.dc1.consul",
-			ServerAddresses: []string{fmt.Sprintf("1.2.3.4:%d", 443)},
-			PeerID:          "a0affd3e-f1c8-4bb9-9168-90fd902c441d",
-		}
-		tokenJSON, _ := json.Marshal(&token)
-		tokenB64 := base64.StdEncoding.EncodeToString(tokenJSON)
-		body := &pbpeering.EstablishRequest{
-			PeerName:     "peering-a",
-			PeeringToken: tokenB64,
-			Meta:         map[string]string{"foo": "bar"},
-		}
+		a2 := NewTestAgent(t, `datacenter = "dc2"`)
+		testrpc.WaitForTestAgent(t, a2.RPC, "dc2")
 
-		bodyBytes, err := json.Marshal(body)
+		bodyBytes, err := json.Marshal(&pbpeering.GenerateTokenRequest{
+			PeerName: "foo",
+		})
 		require.NoError(t, err)
 
-		req, err := http.NewRequest("POST", "/v1/peering/establish", bytes.NewReader(bodyBytes))
+		req, err := http.NewRequest("POST", "/v1/peering/token", bytes.NewReader(bodyBytes))
 		require.NoError(t, err)
 		resp := httptest.NewRecorder()
 		a.srv.h.ServeHTTP(resp, req)
 		require.Equal(t, http.StatusOK, resp.Code, "expected 200, got %d: %v", resp.Code, resp.Body.String())
 
-		// success response does not currently return a value so {} is correct
-		require.Equal(t, "{}", resp.Body.String())
+		var r pbpeering.GenerateTokenResponse
+		require.NoError(t, json.NewDecoder(resp.Body).Decode(&r))
+
+		b, err := json.Marshal(&pbpeering.EstablishRequest{
+			PeerName:     "zip",
+			PeeringToken: r.PeeringToken,
+			Meta:         map[string]string{"foo": "bar"},
+		})
+		require.NoError(t, err)
+
+		retry.Run(t, func(r *retry.R) {
+			req, err = http.NewRequest("POST", "/v1/peering/establish", bytes.NewReader(b))
+			require.NoError(r, err)
+
+			resp = httptest.NewRecorder()
+			a2.srv.h.ServeHTTP(resp, req)
+			require.Equal(r, http.StatusOK, resp.Code, "expected 200, got %d: %v", resp.Code, resp.Body.String())
+
+			// success response does not currently return a value so {} is correct
+			require.Equal(r, "{}", resp.Body.String())
+		})
 	})
 }
 
@@ -385,9 +376,8 @@ func TestHTTP_Peering_Read(t *testing.T) {
 		require.Equal(t, foo.Peering.Name, apiResp.Name)
 		require.Equal(t, foo.Peering.Meta, apiResp.Meta)
 
-		require.Equal(t, uint64(0), apiResp.ImportedServiceCount)
-		require.Equal(t, uint64(0), apiResp.ExportedServiceCount)
-
+		require.Equal(t, 0, len(apiResp.StreamStatus.ImportedServices))
+		require.Equal(t, 0, len(apiResp.StreamStatus.ExportedServices))
 	})
 
 	t.Run("not found", func(t *testing.T) {
@@ -409,21 +399,18 @@ func TestHTTP_Peering_Delete(t *testing.T) {
 	a := NewTestAgent(t, "")
 
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+	testrpc.WaitForActiveCARoot(t, a.RPC, "dc1", nil)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	foo := &pbpeering.PeeringWriteRequest{
-		Peering: &pbpeering.Peering{
-			Name:                "foo",
-			State:               pbpeering.PeeringState_ESTABLISHING,
-			PeerCAPems:          nil,
-			PeerServerName:      "fooservername",
-			PeerServerAddresses: []string{"addr1"},
-		},
-	}
-	_, err := a.rpcClientPeering.PeeringWrite(ctx, foo)
+	bodyBytes, err := json.Marshal(&pbpeering.GenerateTokenRequest{
+		PeerName: "foo",
+	})
 	require.NoError(t, err)
+
+	req, err := http.NewRequest("POST", "/v1/peering/token", bytes.NewReader(bodyBytes))
+	require.NoError(t, err)
+	resp := httptest.NewRecorder()
+	a.srv.h.ServeHTTP(resp, req)
+	require.Equal(t, http.StatusOK, resp.Code, "expected 200, got %d: %v", resp.Code, resp.Body.String())
 
 	t.Run("read existing token before attempting delete", func(t *testing.T) {
 		req, err := http.NewRequest("GET", "/v1/peering/foo", nil)
@@ -434,8 +421,7 @@ func TestHTTP_Peering_Delete(t *testing.T) {
 
 		var apiResp api.Peering
 		require.NoError(t, json.NewDecoder(resp.Body).Decode(&apiResp))
-
-		require.Equal(t, foo.Peering.Name, apiResp.Name)
+		require.Equal(t, "foo", apiResp.Name)
 	})
 
 	t.Run("delete the existing token we just read", func(t *testing.T) {
@@ -519,8 +505,8 @@ func TestHTTP_Peering_List(t *testing.T) {
 		require.Len(t, apiResp, 2)
 
 		for _, p := range apiResp {
-			require.Equal(t, uint64(0), p.ImportedServiceCount)
-			require.Equal(t, uint64(0), p.ExportedServiceCount)
+			require.Equal(t, 0, len(p.StreamStatus.ImportedServices))
+			require.Equal(t, 0, len(p.StreamStatus.ExportedServices))
 		}
 	})
 }

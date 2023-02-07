@@ -1,0 +1,3 @@
+```release-note:feature
+connect: Server address changes are streamed to peers
+```

@@ -1,0 +1,3 @@
+```release-note:bug
+debug: fixed bug that caused consul debug CLI to error on ACL-disabled clusters
+```

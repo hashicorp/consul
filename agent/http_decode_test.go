@@ -33,7 +33,6 @@ package agent
 import (
 	"bytes"
 	"fmt"
-
 	"strings"
 	"testing"
 	"time"
@@ -791,21 +790,7 @@ var translateServiceIDTCs = []translateKeyTestCase{
 	},
 }
 
-// ACLPolicySetRequest:
-// Policy	structs.ACLPolicy
-//     ID	string
-//     Name	string
-//     Description	string
-//     Rules	string
-//     Syntax	acl.SyntaxVersion
-//     Datacenters	[]string
-//     Hash	[]uint8
-//     RaftIndex	structs.RaftIndex
-//         CreateIndex	uint64
-//         ModifyIndex	uint64
-// Datacenter	string
-// WriteRequest	structs.WriteRequest
-//     Token	string
+// structs.ACLPolicySetRequest
 func TestDecodeACLPolicyWrite(t *testing.T) {
 
 	for _, tc := range hashTestCases {
@@ -833,35 +818,7 @@ func TestDecodeACLPolicyWrite(t *testing.T) {
 	}
 }
 
-// ACLTokenSetRequest:
-// ACLToken	structs.ACLToken
-//     AccessorID	string
-//     SecretID	string
-//     Description	string
-//     Policies	[]structs.ACLTokenPolicyLink
-//         ID	string
-//         Name	string
-//     Roles	[]structs.ACLTokenRoleLink
-//         ID	string
-//         Name	string
-//     ServiceIdentities	[]*structs.ACLServiceIdentity
-//         ServiceName	string
-//         Datacenters	[]string
-//     Type	string
-//     Rules	string
-//     Local	bool
-//     AuthMethod	string
-//     ExpirationTime	*time.Time
-//     ExpirationTTL	time.Duration
-//     CreateTime	time.Time
-//     Hash	[]uint8
-//     RaftIndex	structs.RaftIndex
-//         CreateIndex	uint64
-//         ModifyIndex	uint64
-// Create	bool
-// Datacenter	string
-// WriteRequest	structs.WriteRequest
-//     Token	string
+// structs.ACLTokenSetRequest
 func TestDecodeACLToken(t *testing.T) {
 	for _, tc := range translateValueTestCases {
 		t.Run(tc.desc, func(t *testing.T) {
@@ -1079,76 +1036,7 @@ func TestDecodeAgentRegisterCheck(t *testing.T) {
 
 }
 
-// ServiceDefinition:
-// Kind	structs.ServiceKind
-// ID	string
-// Name	string
-// Tags	[]string
-// Address	string
-// TaggedAddresses	map[string]structs.ServiceAddress
-//     Address	string
-//     Port	int
-// Meta	map[string]string
-// Port	int
-// Check	structs.CheckType
-//     CheckID	types.CheckID
-//     Name	string
-//     Status	string
-//     Notes	string
-//     ScriptArgs	[]string
-//     HTTP	string
-//     Header	map[string][]string
-//     Method	string
-//     TCP	string
-//     Interval	time.Duration
-//     AliasNode	string
-//     AliasService	string
-//     DockerContainerID	string
-//     Shell	string
-//     GRPC	string
-//     GRPCUseTLS	bool
-//     TLSServerName	string
-//     TLSSkipVerify	bool
-//     Timeout	time.Duration
-//     TTL	time.Duration
-//     ProxyHTTP	string
-//     ProxyGRPC	string
-//     DeregisterCriticalServiceAfter	time.Duration
-//     OutputMaxSize	int
-// Checks	structs.CheckTypes
-// Weights	*structs.Weights
-//     Passing	int
-//     Warning	int
-// Token	string
-// EnableTagOverride	bool
-// Proxy	*structs.ConnectProxyConfig
-//     DestinationServiceName	string
-//     DestinationServiceID	string
-//     LocalServiceAddress	string
-//     LocalServicePort	int
-//     Config	map[string]interface {}
-//     Upstreams	structs.Upstreams
-//         DestinationType	string
-//         DestinationNamespace	string
-//         DestinationName	string
-//         Datacenter	string
-//         LocalBindAddress	string
-//         LocalBindPort	int
-//         Config	map[string]interface {}
-//         MeshGateway	structs.MeshGatewayConfig
-//             Mode	structs.MeshGatewayMode
-//     MeshGateway	structs.MeshGatewayConfig
-//     Expose	structs.ExposeConfig
-//         Checks	bool
-//         Paths	[]structs.ExposePath
-//             ListenerPort	int
-//             Path	string
-//             LocalPathPort	int
-//             Protocol	string
-//             ParsedFromCheck	bool
-// Connect	*structs.ServiceConnect
-//     Native	bool
-//     SidecarService	*structs.ServiceDefinition
+// structs.ServiceDefinition
 func TestDecodeAgentRegisterService(t *testing.T) {
 	// key translation tests:
 	// decodeCB fields:
@@ -1969,133 +1857,7 @@ func TestDecodeAgentRegisterService(t *testing.T) {
 
 }
 
-// RegisterRequest:
-// Datacenter	string
-// ID	types.NodeID
-// Node	string
-// Address	string
-// TaggedAddresses	map[string]string
-// NodeMeta	map[string]string
-// Service	*structs.NodeService
-//     Kind	structs.ServiceKind
-//     ID	string
-//     Service	string
-//     Tags	[]string
-//     Address	string
-//     TaggedAddresses	map[string]structs.ServiceAddress
-//         Address	string
-//         Port	int
-//     Meta	map[string]string
-//     Port	int
-//     Weights	*structs.Weights
-//         Passing	int
-//         Warning	int
-//     EnableTagOverride	bool
-//     Proxy	structs.ConnectProxyConfig
-//         DestinationServiceName	string
-//         DestinationServiceID	string
-//         LocalServiceAddress	string
-//         LocalServicePort	int
-//         Config	map[string]interface {}
-//         Upstreams	structs.Upstreams
-//             DestinationType	string
-//             DestinationNamespace	string
-//             DestinationName	string
-//             Datacenter	string
-//             LocalBindAddress	string
-//             LocalBindPort	int
-//             Config	map[string]interface {}
-//             MeshGateway	structs.MeshGatewayConfig
-//                 Mode	structs.MeshGatewayMode
-//         MeshGateway	structs.MeshGatewayConfig
-//         Expose	structs.ExposeConfig
-//             Checks	bool
-//             Paths	[]structs.ExposePath
-//                 ListenerPort	int
-//                 Path	string
-//                 LocalPathPort	int
-//                 Protocol	string
-//                 ParsedFromCheck	bool
-//     Connect	structs.ServiceConnect
-//         Native	bool
-//         SidecarService	*structs.ServiceDefinition
-//             Kind	structs.ServiceKind
-//             ID	string
-//             Name	string
-//             Tags	[]string
-//             Address	string
-//             TaggedAddresses	map[string]structs.ServiceAddress
-//             Meta	map[string]string
-//             Port	int
-//             Check	structs.CheckType
-//                 CheckID	types.CheckID
-//                 Name	string
-//                 Status	string
-//                 Notes	string
-//                 ScriptArgs	[]string
-//                 HTTP	string
-//                 Header	map[string][]string
-//                 Method	string
-//                 TCP	string
-//                 Interval	time.Duration
-//                 AliasNode	string
-//                 AliasService	string
-//                 DockerContainerID	string
-//                 Shell	string
-//                 GRPC	string
-//                 GRPCUseTLS	bool
-//                 TLSServerName	string
-//                 TLSSkipVerify	bool
-//                 Timeout	time.Duration
-//                 TTL	time.Duration
-//                 ProxyHTTP	string
-//                 ProxyGRPC	string
-//                 DeregisterCriticalServiceAfter	time.Duration
-//                 OutputMaxSize	int
-//             Checks	structs.CheckTypes
-//             Weights	*structs.Weights
-//             Token	string
-//             EnableTagOverride	bool
-//             Proxy	*structs.ConnectProxyConfig
-//             Connect	*structs.ServiceConnect
-//     LocallyRegisteredAsSidecar	bool
-//     RaftIndex	structs.RaftIndex
-//         CreateIndex	uint64
-//         ModifyIndex	uint64
-// Check	*structs.HealthCheck
-//     Node	string
-//     CheckID	types.CheckID
-//     Name	string
-//     Status	string
-//     Notes	string
-//     Output	string
-//     ServiceID	string
-//     ServiceName	string
-//     ServiceTags	[]string
-//     Definition	structs.HealthCheckDefinition
-//         HTTP	string
-//         TLSServerName	string
-//         TLSSkipVerify	bool
-//         Header	map[string][]string
-//         Method	string
-//         TCP	string
-//         Interval	time.Duration
-//         OutputMaxSize	uint
-//         Timeout	time.Duration
-//         DeregisterCriticalServiceAfter	time.Duration
-//         ScriptArgs	[]string
-//         DockerContainerID	string
-//         Shell	string
-//         GRPC	string
-//         GRPCUseTLS	bool
-//         AliasNode	string
-//         AliasService	string
-//         TTL	time.Duration
-//     RaftIndex	structs.RaftIndex
-// Checks	structs.HealthChecks
-// SkipNodeUpdate	bool
-// WriteRequest	structs.WriteRequest
-//     Token	string
+// structs.RegisterRequest
 func TestDecodeCatalogRegister(t *testing.T) {
 	for _, tc := range durationTestCases {
 		t.Run(tc.desc, func(t *testing.T) {
@@ -2164,28 +1926,7 @@ func TestDecodeCatalogRegister(t *testing.T) {
 	}
 }
 
-// IntentionRequest:
-// Datacenter	string
-// Op	structs.IntentionOp
-// Intention	*structs.Intention
-//     ID	string
-//     Description	string
-//     SourceNS	string
-//     SourceName	string
-//     DestinationNS	string
-//     DestinationName	string
-//     SourceType	structs.IntentionSourceType
-//     Action	structs.IntentionAction
-//     Meta	map[string]string
-//     Precedence	int
-//     CreatedAt	time.Time	mapstructure:'-'
-//     UpdatedAt	time.Time	mapstructure:'-'
-//     Hash	[]uint8
-//     RaftIndex	structs.RaftIndex
-//         CreateIndex	uint64
-//         ModifyIndex	uint64
-// WriteRequest	structs.WriteRequest
-//     Token	string
+// structs.IntentionRequest
 func TestDecodeIntentionCreate(t *testing.T) {
 	for _, tc := range append(hashTestCases, timestampTestCases...) {
 		t.Run(tc.desc, func(t *testing.T) {
@@ -2300,22 +2041,7 @@ func TestDecodeOperatorAutopilotConfiguration(t *testing.T) {
 	}
 }
 
-// SessionRequest:
-// Datacenter	string
-// Op	structs.SessionOp
-// Session	structs.Session
-//     ID	string
-//     Name	string
-//     Node	string
-//     Checks	[]types.CheckID
-//     LockDelay	time.Duration
-//     Behavior	structs.SessionBehavior
-//     TTL	string
-//     RaftIndex	structs.RaftIndex
-//         CreateIndex	uint64
-//         ModifyIndex	uint64
-// WriteRequest	structs.WriteRequest
-//     Token	string
+// structs.SessionRequest
 func TestDecodeSessionCreate(t *testing.T) {
 	// outSession var is shared among test cases b/c of the
 	// nature/signature of the FixupChecks callback.
@@ -2454,137 +2180,7 @@ func TestDecodeSessionCreate(t *testing.T) {
 	}
 }
 
-// TxnOps:
-//         KV	*api.KVTxnOp
-//             Verb	api.KVOp
-//             Key	string
-//             Value	[]uint8
-//             Flags	uint64
-//             Index	uint64
-//             Session	string
-//         Node	*api.NodeTxnOp
-//             Verb	api.NodeOp
-//             Node	api.Node
-//                 ID	string
-//                 Node	string
-//                 Address	string
-//                 Datacenter	string
-//                 TaggedAddresses	map[string]string
-//                 Meta	map[string]string
-//                 CreateIndex	uint64
-//                 ModifyIndex	uint64
-//         Service	*api.ServiceTxnOp
-//             Verb	api.ServiceOp
-//             Node	string
-//             Service	api.AgentService
-//                 Kind	api.ServiceKind
-//                 ID	string
-//                 Service	string
-//                 Tags	[]string
-//                 Meta	map[string]string
-//                 Port	int
-//                 Address	string
-//                 TaggedAddresses	map[string]api.ServiceAddress
-//                     Address	string
-//                     Port	int
-//                 Weights	api.AgentWeights
-//                     Passing	int
-//                     Warning	int
-//                 EnableTagOverride	bool
-//                 CreateIndex	uint64
-//                 ModifyIndex	uint64
-//                 ContentHash	string
-//                 Proxy	*api.AgentServiceConnectProxyConfig
-//                     DestinationServiceName	string
-//                     DestinationServiceID	string
-//                     LocalServiceAddress	string
-//                     LocalServicePort	int
-//                     Config	map[string]interface {}
-//                     Upstreams	[]api.Upstream
-//                         DestinationType	api.UpstreamDestType
-//                         DestinationNamespace	string
-//                         DestinationName	string
-//                         Datacenter	string
-//                         LocalBindAddress	string
-//                         LocalBindPort	int
-//                         Config	map[string]interface {}
-//                         MeshGateway	api.MeshGatewayConfig
-//                             Mode	api.MeshGatewayMode
-//                     MeshGateway	api.MeshGatewayConfig
-//                     Expose	api.ExposeConfig
-//                         Checks	bool
-//                         Paths	[]api.ExposePath
-//                             ListenerPort	int
-//                             Path	string
-//                             LocalPathPort	int
-//                             Protocol	string
-//                             ParsedFromCheck	bool
-//                 Connect	*api.AgentServiceConnect
-//                     Native	bool
-//                     SidecarService	*api.AgentServiceRegistration
-//                         Kind	api.ServiceKind
-//                         ID	string
-//                         Name	string
-//                         Tags	[]string
-//                         Port	int
-//                         Address	string
-//                         TaggedAddresses	map[string]api.ServiceAddress
-//                         EnableTagOverride	bool
-//                         Meta	map[string]string
-//                         Weights	*api.AgentWeights
-//                         Check	*api.AgentServiceCheck
-//                             CheckID	string
-//                             Name	string
-//                             Args	[]string
-//                             DockerContainerID	string
-//                             Shell	string
-//                             Interval	string
-//                             Timeout	string
-//                             TTL	string
-//                             HTTP	string
-//                             Header	map[string][]string
-//                             Method	string
-//                             TCP	string
-//                             Status	string
-//                             Notes	string
-//                             TLSServerName	string
-//                             TLSSkipVerify	bool
-//                             GRPC	string
-//                             GRPCUseTLS	bool
-//                             AliasNode	string
-//                             AliasService	string
-//                             DeregisterCriticalServiceAfter	string
-//                         Checks	api.AgentServiceChecks
-//                         Proxy	*api.AgentServiceConnectProxyConfig
-//                         Connect	*api.AgentServiceConnect
-//         Check	*api.CheckTxnOp
-//             Verb	api.CheckOp
-//             Check	api.HealthCheck
-//                 Node	string
-//                 CheckID	string
-//                 Name	string
-//                 Status	string
-//                 Notes	string
-//                 Output	string
-//                 ServiceID	string
-//                 ServiceName	string
-//                 ServiceTags	[]string
-//                 Definition	api.HealthCheckDefinition
-//                     HTTP	string
-//                     Header	map[string][]string
-//                     Method	string
-//                     Body	string
-//                     TLSServerName	string
-//                     TLSSkipVerify	bool
-//                     TCP	string
-//                     IntervalDuration	time.Duration
-//                     TimeoutDuration	time.Duration
-//                     DeregisterCriticalServiceAfterDuration	time.Duration
-//                     Interval	api.ReadableDuration
-//                     Timeout	api.ReadableDuration
-//                     DeregisterCriticalServiceAfter	api.ReadableDuration
-//                 CreateIndex	uint64
-//                 ModifyIndex	uint64
+// structs.TxnOps
 func TestDecodeTxnConvertOps(t *testing.T) {
 	for _, tc := range durationTestCases {
 		t.Run(tc.desc, func(t *testing.T) {

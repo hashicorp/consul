@@ -147,7 +147,6 @@ func (q *QueryOptions) SetFilter(filter string) {
 	q.Filter = filter
 }
 
-//
 func (m *QueryMeta) GetIndex() uint64 {
 	if m != nil {
 		return m.Index

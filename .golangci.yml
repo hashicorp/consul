@@ -8,6 +8,8 @@ linters:
     - ineffassign
     - unparam
     - forbidigo
+    - gomodguard
+    - depguard
 
 issues:
   # Disable the default exclude list so that all excludes are explicitly
@@ -21,10 +23,10 @@ issues:
       text: 'SA9004:'
 
     - linters: [staticcheck]
-      text: 'SA1019: Package github.com/golang/protobuf/jsonpb is deprecated'
+      text: 'SA1019: "github.com/golang/protobuf/jsonpb" is deprecated: Use the "google.golang.org/protobuf/encoding/protojson" package instead.'
 
     - linters: [staticcheck]
-      text: 'SA1019: Package github.com/golang/protobuf/proto is deprecated'
+      text: 'SA1019: "github.com/golang/protobuf/proto" is deprecated: Use the "google.golang.org/protobuf/proto" package instead.'
 
     - linters: [staticcheck]
       text: 'SA1019: ptypes.MarshalAny is deprecated'
@@ -33,7 +35,10 @@ issues:
       text: 'SA1019: ptypes.UnmarshalAny is deprecated'
 
     - linters: [staticcheck]
-      text: 'SA1019: package github.com/golang/protobuf/ptypes is deprecated'  
+      text: 'SA1019: "github.com/golang/protobuf/ptypes" is deprecated: Well-known types have specialized functionality directly injected into the generated packages for each message type. See the deprecation notice for each function for the suggested alternative.'
+
+    - linters: [staticcheck]
+      text: 'SA1019: "io/ioutil" has been deprecated since Go 1.16'
 
     # An argument that always receives the same value is often not a problem.
     - linters: [unparam]
@@ -65,16 +70,49 @@ issues:
       path: '(_oss.go|_oss_test.go|_ent.go|_ent_test.go)'
 
 linters-settings:
+  govet:
+    check-shadowing: true
+    enable-all: true
+    disable:
+      - fieldalignment
+      - nilness
+      - shadow
+      - unusedwrite
   gofmt:
     simplify: true
   forbidigo:
     # Forbid the following identifiers (list of regexp).
     forbid:
+      - '\bioutil\b(# Use io and os packages instead of ioutil)?'
       - '\brequire\.New\b(# Use package-level functions with explicit TestingT)?'
       - '\bassert\.New\b(# Use package-level functions with explicit TestingT)?'
     # Exclude godoc examples from forbidigo checks.
     # Default: true
     exclude_godoc_examples: false
+  gomodguard:
+    blocked:
+      # List of blocked modules.
+      modules:
+        # Blocked module.
+        - github.com/hashicorp/net-rpc-msgpackrpc:
+            recommendations:
+              - github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc
+        - github.com/hashicorp/go-msgpack:
+            recommendations:
+              - github.com/hashicorp/consul-net-rpc/go-msgpack
+
+  depguard:
+    list-type: denylist
+    include-go-root: true
+    # A list of packages for the list type specified.
+    # Default: []
+    packages:
+      - net/rpc
+    # A list of packages for the list type specified.
+    # Specify an error message to output when a denied package is used.
+    # Default: []
+    packages-with-error-message:
+      - net/rpc: 'only use forked copy in github.com/hashicorp/consul-net-rpc/net/rpc'
 
 run:
   timeout: 10m

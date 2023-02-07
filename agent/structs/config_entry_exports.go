@@ -35,14 +35,14 @@ type ExportedService struct {
 }
 
 // ServiceConsumer represents a downstream consumer of the service to be exported.
-// At most one of Partition or PeerName must be specified.
+// At most one of Partition or Peer must be specified.
 type ServiceConsumer struct {
 	// Partition is the admin partition to export the service to.
-	// Deprecated: PeerName should be used for both remote peers and local partitions.
+	// Deprecated: Peer should be used for both remote peers and local partitions.
 	Partition string `json:",omitempty"`
 
-	// PeerName is the name of the peer to export the service to.
-	PeerName string `json:",omitempty" alias:"peer_name"`
+	// Peer is the name of the peer to export the service to.
+	Peer string `json:",omitempty" alias:"peer_name"`
 }
 
 func (e *ExportedServicesConfigEntry) ToMap() map[string]map[string][]string {
@@ -130,13 +130,13 @@ func (e *ExportedServicesConfigEntry) Validate() error {
 			return fmt.Errorf("Services[%d]: must have at least one consumer", i)
 		}
 		for j, consumer := range svc.Consumers {
-			if consumer.PeerName != "" && consumer.Partition != "" {
-				return fmt.Errorf("Services[%d].Consumers[%d]: must define at most one of PeerName or Partition", i, j)
+			if consumer.Peer != "" && consumer.Partition != "" {
+				return fmt.Errorf("Services[%d].Consumers[%d]: must define at most one of Peer or Partition", i, j)
 			}
 			if consumer.Partition == WildcardSpecifier {
 				return fmt.Errorf("Services[%d].Consumers[%d]: exporting to all partitions (wildcard) is not supported", i, j)
 			}
-			if consumer.PeerName == WildcardSpecifier {
+			if consumer.Peer == WildcardSpecifier {
 				return fmt.Errorf("Services[%d].Consumers[%d]: exporting to all peers (wildcard) is not supported", i, j)
 			}
 		}

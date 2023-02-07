@@ -83,7 +83,12 @@ func (t *TrustBundle) Fetch(_ cache.FetchOptions, req cache.Request) (cache.Fetc
 	reqReal.QueryOptions.SetAllowStale(true)
 
 	// Fetch
-	reply, err := t.Client.TrustBundleRead(external.ContextWithToken(context.Background(), reqReal.Token), reqReal.Request)
+	ctx, err := external.ContextWithQueryOptions(context.Background(), reqReal.QueryOptions)
+	if err != nil {
+		return result, err
+	}
+
+	reply, err := t.Client.TrustBundleRead(ctx, reqReal.Request)
 	if err != nil {
 		return result, err
 	}

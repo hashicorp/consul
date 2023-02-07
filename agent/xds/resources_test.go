@@ -9,14 +9,14 @@ import (
 	envoy_endpoint_v3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	envoy_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
+	"github.com/hashicorp/consul/agent/xds/testcommon"
+	"github.com/hashicorp/consul/envoyextensions/xdscommon"
 
 	testinf "github.com/mitchellh/go-testing-interface"
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/agent/xds/proxysupport"
-	"github.com/hashicorp/consul/agent/xds/xdscommon"
 	"github.com/hashicorp/consul/sdk/testutil"
 )
 
@@ -47,7 +47,7 @@ func TestAllResourcesFromSnapshot(t *testing.T) {
 
 	run := func(
 		t *testing.T,
-		sf supportedProxyFeatures,
+		sf xdscommon.SupportedProxyFeatures,
 		envoyVersion string,
 		latestEnvoyVersion string,
 		tt testcase,
@@ -61,20 +61,20 @@ func TestAllResourcesFromSnapshot(t *testing.T) {
 		// We need to replace the TLS certs with deterministic ones to make golden
 		// files workable. Note we don't update these otherwise they'd change
 		// golder files for every test case and so not be any use!
-		setupTLSRootsAndLeaf(t, snap)
+		testcommon.SetupTLSRootsAndLeaf(t, snap)
 
 		if tt.setup != nil {
 			tt.setup(snap)
 		}
 
 		// Need server just for logger dependency
-		g := newResourceGenerator(testutil.Logger(t), nil, false)
+		g := NewResourceGenerator(testutil.Logger(t), nil, false)
 		g.ProxyFeatures = sf
 		if tt.generatorSetup != nil {
 			tt.generatorSetup(g)
 		}
 
-		resources, err := g.allResourcesFromSnapshot(snap)
+		resources, err := g.AllResourcesFromSnapshot(snap)
 		require.NoError(t, err)
 
 		typeUrls := []string{
@@ -156,14 +156,19 @@ func TestAllResourcesFromSnapshot(t *testing.T) {
 			name:   "transparent-proxy-with-peered-upstreams",
 			create: proxycfg.TestConfigSnapshotPeeringTProxy,
 		},
+		{
+			name:   "local-mesh-gateway-with-peered-upstreams",
+			create: proxycfg.TestConfigSnapshotPeeringLocalMeshGateway,
+		},
 	}
 	tests = append(tests, getConnectProxyTransparentProxyGoldenTestCases()...)
 	tests = append(tests, getMeshGatewayPeeringGoldenTestCases()...)
+	tests = append(tests, getTrafficControlPeeringGoldenTestCases()...)
 	tests = append(tests, getEnterpriseGoldenTestCases()...)
 
-	latestEnvoyVersion := proxysupport.EnvoyVersions[0]
-	for _, envoyVersion := range proxysupport.EnvoyVersions {
-		sf, err := determineSupportedProxyFeaturesFromString(envoyVersion)
+	latestEnvoyVersion := xdscommon.EnvoyVersions[0]
+	for _, envoyVersion := range xdscommon.EnvoyVersions {
+		sf, err := xdscommon.DetermineSupportedProxyFeaturesFromString(envoyVersion)
 		require.NoError(t, err)
 		t.Run("envoy-"+envoyVersion, func(t *testing.T) {
 			for _, tt := range tests {
@@ -180,6 +185,10 @@ func getConnectProxyTransparentProxyGoldenTestCases() []goldenTestCase {
 		{
 			name:   "transparent-proxy-destination",
 			create: proxycfg.TestConfigSnapshotTransparentProxyDestination,
+		},
+		{
+			name:   "transparent-proxy-destination-http",
+			create: proxycfg.TestConfigSnapshotTransparentProxyDestinationHTTP,
 		},
 		{
 			name: "transparent-proxy-terminating-gateway-destinations-only",
@@ -208,6 +217,41 @@ func getMeshGatewayPeeringGoldenTestCases() []goldenTestCase {
 			name: "mesh-gateway-with-exported-peered-services-http-with-router",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotPeeredMeshGateway(t, "chain-and-l7-stuff", nil, nil)
+			},
+		},
+		{
+			name: "mesh-gateway-peering-control-plane",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotPeeredMeshGateway(t, "control-plane", nil, nil)
+			},
+		},
+		{
+			name: "mesh-gateway-with-imported-peered-services",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotPeeredMeshGateway(t, "imported-services", nil, nil)
+			},
+		},
+		{
+			name: "mesh-gateway-with-peer-through-mesh-gateway-enabled",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotPeeredMeshGateway(t, "peer-through-mesh-gateway", nil, nil)
+			},
+		},
+	}
+}
+
+func getTrafficControlPeeringGoldenTestCases() []goldenTestCase {
+	return []goldenTestCase{
+		{
+			name: "connect-proxy-with-chain-and-failover-to-cluster-peer",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "failover-to-cluster-peer", nil, nil)
+			},
+		},
+		{
+			name: "connect-proxy-with-chain-and-redirect-to-cluster-peer",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "redirect-to-cluster-peer", nil, nil)
 			},
 		},
 	}

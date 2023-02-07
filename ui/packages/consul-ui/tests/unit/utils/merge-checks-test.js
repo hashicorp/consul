@@ -1,8 +1,8 @@
 import mergeChecks from 'consul-ui/utils/merge-checks';
 import { module, test } from 'qunit';
 
-module('Unit | Utility | merge-checks', function() {
-  test('it works', function(assert) {
+module('Unit | Utility | merge-checks', function () {
+  test('it works', function (assert) {
     [
       {
         desc: 'One list of checks, not exposed',
@@ -139,7 +139,7 @@ module('Unit | Utility | merge-checks', function() {
           },
         ],
       },
-    ].forEach(spec => {
+    ].forEach((spec) => {
       const actual = mergeChecks(spec.checks, spec.exposed);
       assert.deepEqual(actual, spec.expected);
     });

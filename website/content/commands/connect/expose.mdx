@@ -14,7 +14,7 @@ Command: `consul connect expose`
 The connect expose subcommand is used to expose a Connect-enabled service
 through an Ingress gateway by modifying the gateway's configuration and adding
 an intention to allow traffic from the gateway to the service. See the
-[Ingress gateway documentation](/docs/connect/gateways/ingress-gateway) for more information
+[Ingress gateway documentation](/consul/docs/connect/gateways/ingress-gateway) for more information
 about Ingress gateways.
 
 ```text
@@ -24,13 +24,7 @@ Usage: consul connect expose [options]
   given protocol and port.
 ```
 
-#### API Options
-
-@include 'http_api_options_client.mdx'
-
-@include 'http_api_options_server.mdx'
-
-#### Expose Options
+#### Command Options
 
 - `-ingress-gateway` - (Required) The name of the ingress gateway service to use.
   A partition and namespace can optionally be specified as a prefix via the
@@ -49,6 +43,12 @@ Usage: consul connect expose [options]
 
 - `-host` - Additional DNS hostname to use for routing to this service. Can be
   specified multiple times.
+
+#### API Options
+
+@include 'http_api_options_client.mdx'
+
+@include 'http_api_options_server.mdx'
 
 ## Examples
 

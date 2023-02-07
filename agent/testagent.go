@@ -66,9 +66,13 @@ type TestAgent struct {
 	// and the directory will be removed once the test ends.
 	DataDir string
 
-	// UseTLS, if true, will disable the HTTP port and enable the HTTPS
+	// UseHTTPS, if true, will disable the HTTP port and enable the HTTPS
 	// one.
-	UseTLS bool
+	UseHTTPS bool
+
+	// UseGRPCTLS, if true, will disable the GRPC port and enable the GRPC+TLS
+	// one.
+	UseGRPCTLS bool
 
 	// dns is a reference to the first started DNS endpoint.
 	// It is valid after Start().
@@ -80,6 +84,9 @@ type TestAgent struct {
 	// overrides is an hcl config source to use to override otherwise
 	// non-user settable configurations
 	Overrides string
+
+	// allows the BaseDeps to be modified before starting the embedded agent
+	OverrideDeps func(deps *BaseDeps)
 
 	// Agent is the embedded consul agent.
 	// It is valid after Start().
@@ -138,6 +145,9 @@ func TestConfigHCL(nodeID string) string {
 		}
 		performance {
 			raft_multiplier = 1
+		}
+		peering {
+			enabled = true
 		}`, nodeID, connect.TestClusterID,
 	)
 }
@@ -180,7 +190,7 @@ func (a *TestAgent) Start(t *testing.T) error {
 		Name:       name,
 	})
 
-	portsConfig := randomPortsSource(t, a.UseTLS)
+	portsConfig := randomPortsSource(t, a.UseHTTPS)
 
 	// Create NodeID outside the closure, so that it does not change
 	testHCLConfig := TestConfigHCL(NodeID())
@@ -206,10 +216,13 @@ func (a *TestAgent) Start(t *testing.T) error {
 			} else {
 				result.RuntimeConfig.Telemetry.Disable = true
 			}
+			// Lower the maximum backoff period of a cache refresh just for
+			// tests see #14956 for more.
+			result.RuntimeConfig.Cache.CacheRefreshMaxWait = 1 * time.Second
 		}
 		return result, err
 	}
-	bd, err := NewBaseDeps(loader, logOutput)
+	bd, err := NewBaseDeps(loader, logOutput, logger)
 	if err != nil {
 		return fmt.Errorf("failed to create base deps: %w", err)
 	}
@@ -226,6 +239,10 @@ func (a *TestAgent) Start(t *testing.T) error {
 		bd.RuntimeConfig.AutoReloadConfigCoalesceInterval = a.Config.AutoReloadConfigCoalesceInterval
 	}
 	a.Config = bd.RuntimeConfig
+
+	if a.OverrideDeps != nil {
+		a.OverrideDeps(&bd)
+	}
 
 	agent, err := New(bd)
 	if err != nil {
@@ -279,7 +296,7 @@ func (a *TestAgent) waitForUp() error {
 					MaxQueryTime:  25 * time.Millisecond,
 				},
 			}
-			if err := a.RPC("Catalog.ListNodes", args, &out); err != nil {
+			if err := a.RPC(context.Background(), "Catalog.ListNodes", args, &out); err != nil {
 				retErr = fmt.Errorf("Catalog.ListNodes failed: %v", err)
 				continue // fail, try again
 			}
@@ -398,11 +415,11 @@ func (a *TestAgent) consulConfig() *consul.Config {
 // chance of port conflicts for concurrently executed test binaries.
 // Instead of relying on one set of ports to be sufficient we retry
 // starting the agent with different ports on port conflict.
-func randomPortsSource(t *testing.T, tls bool) string {
-	ports := freeport.GetN(t, 7)
+func randomPortsSource(t *testing.T, useHTTPS bool) string {
+	ports := freeport.GetN(t, 8)
 
 	var http, https int
-	if tls {
+	if useHTTPS {
 		http = -1
 		https = ports[2]
 	} else {
@@ -419,6 +436,7 @@ func randomPortsSource(t *testing.T, tls bool) string {
 			serf_wan = ` + strconv.Itoa(ports[4]) + `
 			server = ` + strconv.Itoa(ports[5]) + `
 			grpc = ` + strconv.Itoa(ports[6]) + `
+			grpc_tls = ` + strconv.Itoa(ports[7]) + `
 		}
 	`
 }
@@ -474,6 +492,9 @@ func TestConfig(logger hclog.Logger, sources ...config.Source) *config.RuntimeCo
 	// to make test deterministic. 0 results in default jitter being applied but a
 	// tiny delay is effectively thre same.
 	cfg.ConnectTestCALeafRootChangeSpread = 1 * time.Nanosecond
+
+	// allows registering objects with the PeerName
+	cfg.PeeringTestAllowPeerRegistrations = true
 
 	return cfg
 }

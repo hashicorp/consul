@@ -9,6 +9,13 @@ import (
 type CheckIDType = types.CheckID
 type NodeIDType = types.NodeID
 
+// Function variables to support proto generation
+// This allows for using functions in the local package without having to generate imports
+var EnvoyExtensionsToStructs = pbcommon.EnvoyExtensionsToStructs
+var EnvoyExtensionsFromStructs = pbcommon.EnvoyExtensionsFromStructs
+var ProtobufTypesStructToMapStringInterface = pbcommon.ProtobufTypesStructToMapStringInterface
+var MapStringInterfaceToProtobufTypesStruct = pbcommon.MapStringInterfaceToProtobufTypesStruct
+
 func RaftIndexToStructs(s *pbcommon.RaftIndex) structs.RaftIndex {
 	if s == nil {
 		return structs.RaftIndex{}

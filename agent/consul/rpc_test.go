@@ -9,7 +9,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"math"
 	"net"
 	"os"
@@ -31,6 +30,8 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/connect"
+	"github.com/hashicorp/consul/agent/consul/rate"
+	rpcRate "github.com/hashicorp/consul/agent/consul/rate"
 	"github.com/hashicorp/consul/agent/consul/state"
 	agent_grpc "github.com/hashicorp/consul/agent/grpc-internal"
 	"github.com/hashicorp/consul/agent/pool"
@@ -1047,7 +1048,7 @@ func TestRPC_LocalTokenStrippedOnForward(t *testing.T) {
 		tokenUpsertReq := structs.ACLTokenSetRequest{
 			Datacenter: "dc1",
 			ACLToken: structs.ACLToken{
-				AccessorID: structs.ACLTokenAnonymousID,
+				AccessorID: acl.AnonymousTokenID,
 				Policies: []structs.ACLTokenPolicyLink{
 					{
 						ID: kvPolicy.ID,
@@ -1159,12 +1160,12 @@ func TestRPC_LocalTokenStrippedOnForward_GRPC(t *testing.T) {
 			WriteRequest: structs.WriteRequest{Token: "root"},
 		}
 		var out struct{}
-		require.NoError(t, s1.RPC("Catalog.Register", &req, &out))
+		require.NoError(t, s1.RPC(context.Background(), "Catalog.Register", &req, &out))
 	})
 
 	var conn *grpc.ClientConn
 	{
-		client, builder := newClientWithGRPCResolver(t, func(c *Config) {
+		client, resolverBuilder, balancerBuilder := newClientWithGRPCPlumbing(t, func(c *Config) {
 			c.Datacenter = "dc2"
 			c.PrimaryDatacenter = "dc1"
 			c.RPCConfig.EnableStreaming = true
@@ -1173,9 +1174,10 @@ func TestRPC_LocalTokenStrippedOnForward_GRPC(t *testing.T) {
 		testrpc.WaitForTestAgent(t, client.RPC, "dc2", testrpc.WithToken("root"))
 
 		pool := agent_grpc.NewClientConnPool(agent_grpc.ClientConnPoolConfig{
-			Servers:               builder,
+			Servers:               resolverBuilder,
 			DialingFromServer:     false,
 			DialingFromDatacenter: "dc2",
+			BalancerBuilder:       balancerBuilder,
 		})
 
 		conn, err = pool.ClientConn("dc2")
@@ -1224,7 +1226,7 @@ func TestRPC_LocalTokenStrippedOnForward_GRPC(t *testing.T) {
 		tokenUpsertReq := structs.ACLTokenSetRequest{
 			Datacenter: "dc1",
 			ACLToken: structs.ACLToken{
-				AccessorID: structs.ACLTokenAnonymousID,
+				AccessorID: acl.AnonymousTokenID,
 				Policies: []structs.ACLTokenPolicyLink{
 					{ID: policy.ID},
 				},
@@ -1286,12 +1288,16 @@ func TestCanRetry(t *testing.T) {
 	config := DefaultConfig()
 	now := time.Now()
 	config.RPCHoldTimeout = 7 * time.Second
+	retryableMessages := []error{
+		ErrChunkingResubmit,
+		rpcRate.ErrRetryElsewhere,
+	}
 	run := func(t *testing.T, tc testCase) {
 		timeOutValue := tc.timeout
 		if timeOutValue.IsZero() {
 			timeOutValue = now
 		}
-		require.Equal(t, tc.expected, canRetry(tc.req, tc.err, timeOutValue, config))
+		require.Equal(t, tc.expected, canRetry(tc.req, tc.err, timeOutValue, config, retryableMessages))
 	}
 
 	var testCases = []testCase{
@@ -1309,6 +1315,16 @@ func TestCanRetry(t *testing.T) {
 			name:     "no leader error",
 			err:      fmt.Errorf("some wrapping: %w", structs.ErrNoLeader),
 			expected: true,
+		},
+		{
+			name:     "ErrRetryElsewhere",
+			err:      fmt.Errorf("some wrapping: %w", rate.ErrRetryElsewhere),
+			expected: true,
+		},
+		{
+			name:     "ErrRetryLater",
+			err:      fmt.Errorf("some wrapping: %w", rate.ErrRetryLater),
+			expected: false,
 		},
 		{
 			name:     "EOF on read request",
@@ -1378,12 +1394,8 @@ func (r isReadRequest) IsRead() bool {
 	return true
 }
 
-func (r isReadRequest) HasTimedOut(since time.Time, rpcHoldTimeout, maxQueryTime, defaultQueryTime time.Duration) (bool, error) {
+func (r isReadRequest) HasTimedOut(_ time.Time, _, _, _ time.Duration) (bool, error) {
 	return false, nil
-}
-
-func (r isReadRequest) Timeout(rpcHoldTimeout, maxQueryTime, defaultQueryTime time.Duration) time.Duration {
-	return time.Duration(-1)
 }
 
 func TestRPC_AuthorizeRaftRPC(t *testing.T) {
@@ -1394,13 +1406,13 @@ func TestRPC_AuthorizeRaftRPC(t *testing.T) {
 	require.NoError(t, err)
 
 	dir := testutil.TempDir(t, "certs")
-	err = ioutil.WriteFile(filepath.Join(dir, "ca.pem"), []byte(caPEM), 0600)
+	err = os.WriteFile(filepath.Join(dir, "ca.pem"), []byte(caPEM), 0600)
 	require.NoError(t, err)
 
 	intermediatePEM, intermediatePK, err := tlsutil.GenerateCert(tlsutil.CertOpts{IsCA: true, CA: caPEM, Signer: caSigner, Days: 5})
 	require.NoError(t, err)
 
-	err = ioutil.WriteFile(filepath.Join(dir, "intermediate.pem"), []byte(intermediatePEM), 0600)
+	err = os.WriteFile(filepath.Join(dir, "intermediate.pem"), []byte(intermediatePEM), 0600)
 	require.NoError(t, err)
 
 	newCert := func(t *testing.T, caPEM, pk, node, name string) {
@@ -1419,9 +1431,9 @@ func TestRPC_AuthorizeRaftRPC(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		err = ioutil.WriteFile(filepath.Join(dir, node+"-"+name+".pem"), []byte(pem), 0600)
+		err = os.WriteFile(filepath.Join(dir, node+"-"+name+".pem"), []byte(pem), 0600)
 		require.NoError(t, err)
-		err = ioutil.WriteFile(filepath.Join(dir, node+"-"+name+".key"), []byte(key), 0600)
+		err = os.WriteFile(filepath.Join(dir, node+"-"+name+".key"), []byte(key), 0600)
 		require.NoError(t, err)
 	}
 
@@ -1598,6 +1610,60 @@ func TestRPC_AuthorizeRaftRPC(t *testing.T) {
 			setupCert:   setupConnectCACert("server.dc1.consul"),
 			conn:        useNativeTLS,
 			expectError: true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			run(t, tc)
+		})
+	}
+}
+
+func TestGetWaitTime(t *testing.T) {
+	type testCase struct {
+		name           string
+		RPCHoldTimeout time.Duration
+		expected       time.Duration
+		retryCount     int
+	}
+	config := DefaultConfig()
+
+	run := func(t *testing.T, tc testCase) {
+		config.RPCHoldTimeout = tc.RPCHoldTimeout
+		require.Equal(t, tc.expected, getWaitTime(config.RPCHoldTimeout, tc.retryCount))
+	}
+
+	var testCases = []testCase{
+		{
+			name:           "init backoff small",
+			RPCHoldTimeout: 7 * time.Millisecond,
+			retryCount:     1,
+			expected:       1 * time.Millisecond,
+		},
+		{
+			name:           "first attempt",
+			RPCHoldTimeout: 7 * time.Second,
+			retryCount:     1,
+			expected:       437 * time.Millisecond,
+		},
+		{
+			name:           "second attempt",
+			RPCHoldTimeout: 7 * time.Second,
+			retryCount:     2,
+			expected:       874 * time.Millisecond,
+		},
+		{
+			name:           "third attempt",
+			RPCHoldTimeout: 7 * time.Second,
+			retryCount:     3,
+			expected:       1748 * time.Millisecond,
+		},
+		{
+			name:           "fourth attempt",
+			RPCHoldTimeout: 7 * time.Second,
+			retryCount:     4,
+			expected:       3496 * time.Millisecond,
 		},
 	}
 

@@ -3,6 +3,7 @@ package consul
 import (
 	"encoding/base64"
 	"fmt"
+	"math/rand"
 	"os"
 	"strings"
 	"testing"
@@ -31,7 +32,9 @@ func TestInternal_NodeInfo(t *testing.T) {
 	}
 
 	t.Parallel()
-	_, s1 := testServer(t)
+	_, s1 := testServerWithConfig(t, func(config *Config) {
+		config.PeeringTestAllowPeerRegistrations = true
+	})
 	codec := rpcClient(t, s1)
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
@@ -112,7 +115,9 @@ func TestInternal_NodeDump(t *testing.T) {
 	}
 
 	t.Parallel()
-	_, s1 := testServer(t)
+	_, s1 := testServerWithConfig(t, func(config *Config) {
+		config.PeeringTestAllowPeerRegistrations = true
+	})
 	codec := rpcClient(t, s1)
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
@@ -161,9 +166,11 @@ func TestInternal_NodeDump(t *testing.T) {
 		require.NoError(t, err)
 	}
 
-	err := s1.fsm.State().PeeringWrite(1, &pbpeering.Peering{
-		ID:   "9e650110-ac74-4c5a-a6a8-9348b2bed4e9",
-		Name: "peer1",
+	err := s1.fsm.State().PeeringWrite(1, &pbpeering.PeeringWriteRequest{
+		Peering: &pbpeering.Peering{
+			ID:   "9e650110-ac74-4c5a-a6a8-9348b2bed4e9",
+			Name: "peer1",
+		},
 	})
 	require.NoError(t, err)
 
@@ -220,7 +227,9 @@ func TestInternal_NodeDump_Filter(t *testing.T) {
 	}
 
 	t.Parallel()
-	_, s1 := testServer(t)
+	_, s1 := testServerWithConfig(t, func(config *Config) {
+		config.PeeringTestAllowPeerRegistrations = true
+	})
 	codec := rpcClient(t, s1)
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
@@ -269,9 +278,11 @@ func TestInternal_NodeDump_Filter(t *testing.T) {
 		require.NoError(t, err)
 	}
 
-	err := s1.fsm.State().PeeringWrite(1, &pbpeering.Peering{
-		ID:   "9e650110-ac74-4c5a-a6a8-9348b2bed4e9",
-		Name: "peer1",
+	err := s1.fsm.State().PeeringWrite(1, &pbpeering.PeeringWriteRequest{
+		Peering: &pbpeering.Peering{
+			ID:   "9e650110-ac74-4c5a-a6a8-9348b2bed4e9",
+			Name: "peer1",
+		},
 	})
 	require.NoError(t, err)
 
@@ -1755,7 +1766,9 @@ func TestInternal_ServiceDump_Peering(t *testing.T) {
 	}
 
 	t.Parallel()
-	_, s1 := testServer(t)
+	_, s1 := testServerWithConfig(t, func(config *Config) {
+		config.PeeringTestAllowPeerRegistrations = true
+	})
 	codec := rpcClient(t, s1)
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
@@ -1784,9 +1797,11 @@ func TestInternal_ServiceDump_Peering(t *testing.T) {
 
 	addPeerService(t, codec)
 
-	err := s1.fsm.State().PeeringWrite(1, &pbpeering.Peering{
-		ID:   "9e650110-ac74-4c5a-a6a8-9348b2bed4e9",
-		Name: "peer1",
+	err := s1.fsm.State().PeeringWrite(1, &pbpeering.PeeringWriteRequest{
+		Peering: &pbpeering.Peering{
+			ID:   "9e650110-ac74-4c5a-a6a8-9348b2bed4e9",
+			Name: "peer1",
+		},
 	})
 	require.NoError(t, err)
 
@@ -2782,6 +2797,10 @@ func TestInternal_PeeredUpstreams(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	orig := virtualIPVersionCheckInterval
+	virtualIPVersionCheckInterval = 50 * time.Millisecond
+	t.Cleanup(func() { virtualIPVersionCheckInterval = orig })
+
 	t.Parallel()
 	_, s1 := testServerWithConfig(t)
 
@@ -3286,4 +3305,316 @@ func TestInternal_ServiceGatewayService_Terminating_Destination(t *testing.T) {
 
 	assert.Len(t, nodes, 1)
 	assert.Equal(t, expect, nodes)
+}
+
+func TestInternal_ExportedPeeredServices_ACLEnforcement(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+	t.Parallel()
+
+	_, s := testServerWithConfig(t, testServerACLConfig)
+	codec := rpcClient(t, s)
+
+	require.NoError(t, s.fsm.State().PeeringWrite(1, &pbpeering.PeeringWriteRequest{
+		Peering: &pbpeering.Peering{
+			ID:   testUUID(),
+			Name: "peer-1",
+		},
+	}))
+	require.NoError(t, s.fsm.State().PeeringWrite(1, &pbpeering.PeeringWriteRequest{
+		Peering: &pbpeering.Peering{
+			ID:   testUUID(),
+			Name: "peer-2",
+		},
+	}))
+	require.NoError(t, s.fsm.State().EnsureConfigEntry(1, &structs.ExportedServicesConfigEntry{
+		Name: "default",
+		Services: []structs.ExportedService{
+			{
+				Name: "web",
+				Consumers: []structs.ServiceConsumer{
+					{Peer: "peer-1"},
+				},
+			},
+			{
+				Name: "db",
+				Consumers: []structs.ServiceConsumer{
+					{Peer: "peer-2"},
+				},
+			},
+			{
+				Name: "api",
+				Consumers: []structs.ServiceConsumer{
+					{Peer: "peer-1"},
+				},
+			},
+		},
+	}))
+
+	type testcase struct {
+		name      string
+		token     string
+		expect    map[string]structs.ServiceList
+		expectErr string
+	}
+	run := func(t *testing.T, tc testcase) {
+		var out *structs.IndexedExportedServiceList
+		req := structs.DCSpecificRequest{
+			Datacenter:   "dc1",
+			QueryOptions: structs.QueryOptions{Token: tc.token},
+		}
+		err := msgpackrpc.CallWithCodec(codec, "Internal.ExportedPeeredServices", &req, &out)
+
+		if tc.expectErr != "" {
+			require.Error(t, err)
+			require.Contains(t, err.Error(), tc.expectErr)
+			require.Nil(t, out)
+			return
+		}
+
+		require.NoError(t, err)
+
+		require.Len(t, out.Services, len(tc.expect))
+		for k, v := range tc.expect {
+			require.ElementsMatch(t, v, out.Services[k])
+		}
+	}
+	tcs := []testcase{
+		{
+			name: "can read all",
+			token: tokenWithRules(t, codec, TestDefaultInitialManagementToken,
+				`
+			service_prefix "" {
+				policy = "read"
+			}
+			`),
+			expect: map[string]structs.ServiceList{
+				"peer-1": {
+					structs.NewServiceName("api", nil),
+					structs.NewServiceName("web", nil),
+				},
+				"peer-2": {
+					structs.NewServiceName("db", nil),
+				},
+			},
+		},
+		{
+			name: "filtered",
+			token: tokenWithRules(t, codec, TestDefaultInitialManagementToken,
+				`
+			service "web" { policy = "read" }
+			service "api" { policy = "read" }
+			service "db"  { policy = "deny" }
+			`),
+			expect: map[string]structs.ServiceList{
+				"peer-1": {
+					structs.NewServiceName("api", nil),
+					structs.NewServiceName("web", nil),
+				},
+			},
+		},
+	}
+	for _, tc := range tcs {
+		t.Run(tc.name, func(t *testing.T) {
+			run(t, tc)
+		})
+	}
+}
+
+func tokenWithRules(t *testing.T, codec rpc.ClientCodec, mgmtToken, rules string) string {
+	t.Helper()
+
+	var tok *structs.ACLToken
+	var err error
+	retry.Run(t, func(r *retry.R) {
+		tok, err = upsertTestTokenWithPolicyRules(codec, mgmtToken, "dc1", rules)
+		require.NoError(r, err)
+	})
+	return tok.SecretID
+}
+
+func TestInternal_PeeredUpstreams_ACLEnforcement(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+	t.Parallel()
+
+	_, s := testServerWithConfig(t, testServerACLConfig)
+	codec := rpcClient(t, s)
+
+	type testcase struct {
+		name      string
+		token     string
+		expectErr string
+	}
+	run := func(t *testing.T, tc testcase) {
+		var out *structs.IndexedPeeredServiceList
+
+		req := structs.PartitionSpecificRequest{
+			Datacenter:   "dc1",
+			QueryOptions: structs.QueryOptions{Token: tc.token},
+		}
+		err := msgpackrpc.CallWithCodec(codec, "Internal.PeeredUpstreams", &req, &out)
+
+		if tc.expectErr != "" {
+			require.Error(t, err)
+			require.Contains(t, err.Error(), tc.expectErr)
+			require.Nil(t, out)
+		} else {
+			require.NoError(t, err)
+		}
+	}
+	tcs := []testcase{
+		{
+			name: "can write all",
+			token: tokenWithRules(t, codec, TestDefaultInitialManagementToken, `
+			service_prefix "" {
+				policy = "write"
+			}
+			`),
+		},
+		{
+			name:      "can't write",
+			token:     tokenWithRules(t, codec, TestDefaultInitialManagementToken, ``),
+			expectErr: "lacks permission 'service:write' on \"any service\"",
+		},
+	}
+	for _, tc := range tcs {
+		t.Run(tc.name, func(t *testing.T) {
+			run(t, tc)
+		})
+	}
+}
+
+func TestInternal_ExportedServicesForPeer_ACLEnforcement(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+	t.Parallel()
+
+	_, s := testServerWithConfig(t, testServerACLConfig)
+	codec := rpcClient(t, s)
+
+	require.NoError(t, s.fsm.State().PeeringWrite(1, &pbpeering.PeeringWriteRequest{
+		Peering: &pbpeering.Peering{
+			ID:   testUUID(),
+			Name: "peer-1",
+		},
+	}))
+	require.NoError(t, s.fsm.State().PeeringWrite(1, &pbpeering.PeeringWriteRequest{
+		Peering: &pbpeering.Peering{
+			ID:   testUUID(),
+			Name: "peer-2",
+		},
+	}))
+	require.NoError(t, s.fsm.State().EnsureConfigEntry(1, &structs.ExportedServicesConfigEntry{
+		Name: "default",
+		Services: []structs.ExportedService{
+			{
+				Name: "web",
+				Consumers: []structs.ServiceConsumer{
+					{Peer: "peer-1"},
+				},
+			},
+			{
+				Name: "db",
+				Consumers: []structs.ServiceConsumer{
+					{Peer: "peer-2"},
+				},
+			},
+			{
+				Name: "api",
+				Consumers: []structs.ServiceConsumer{
+					{Peer: "peer-1"},
+				},
+			},
+		},
+	}))
+
+	type testcase struct {
+		name      string
+		token     string
+		expect    structs.ServiceList
+		expectErr string
+	}
+	run := func(t *testing.T, tc testcase) {
+		var out *structs.IndexedServiceList
+		req := structs.ServiceDumpRequest{
+			Datacenter:   "dc1",
+			PeerName:     "peer-1",
+			QueryOptions: structs.QueryOptions{Token: tc.token},
+		}
+		err := msgpackrpc.CallWithCodec(codec, "Internal.ExportedServicesForPeer", &req, &out)
+
+		if tc.expectErr != "" {
+			require.Error(t, err)
+			require.Contains(t, err.Error(), tc.expectErr)
+			require.Nil(t, out)
+			return
+		}
+
+		require.NoError(t, err)
+		require.Equal(t, tc.expect, out.Services)
+	}
+	tcs := []testcase{
+		{
+			name: "can read all",
+			token: tokenWithRules(t, codec, TestDefaultInitialManagementToken,
+				`
+			service_prefix "" {
+				policy = "read"
+			}
+			`),
+			expect: structs.ServiceList{
+				structs.NewServiceName("api", nil),
+				structs.NewServiceName("web", nil),
+			},
+		},
+		{
+			name: "filtered",
+			token: tokenWithRules(t, codec, TestDefaultInitialManagementToken,
+				`
+			service "web" { policy = "read" }
+			service "api" { policy = "deny" }
+			`),
+			expect: structs.ServiceList{
+				structs.NewServiceName("web", nil),
+			},
+		},
+		{
+			name: "no service rules filters all results",
+			token: tokenWithRules(t, codec, TestDefaultInitialManagementToken,
+				``),
+			expect: structs.ServiceList{},
+		},
+		{
+			name: "no service rules but mesh write shows all results",
+			token: tokenWithRules(t, codec, TestDefaultInitialManagementToken,
+				`mesh = "write"`),
+			expect: structs.ServiceList{
+				structs.NewServiceName("api", nil),
+				structs.NewServiceName("web", nil),
+			},
+		},
+	}
+	for _, tc := range tcs {
+		t.Run(tc.name, func(t *testing.T) {
+			run(t, tc)
+		})
+	}
+}
+
+func testUUID() string {
+	buf := make([]byte, 16)
+	if _, err := rand.Read(buf); err != nil {
+		panic(fmt.Errorf("failed to read random bytes: %v", err))
+	}
+
+	return fmt.Sprintf("%08x-%04x-%04x-%04x-%12x",
+		buf[0:4],
+		buf[4:6],
+		buf[6:8],
+		buf[8:10],
+		buf[10:16])
 }

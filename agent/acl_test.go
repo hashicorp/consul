@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"testing"
@@ -51,6 +52,14 @@ func NewTestACLAgent(t *testing.T, name string, hcl string, resolveAuthz authzRe
 	dataDir := testutil.TempDir(t, "acl-agent")
 
 	logBuffer := testutil.NewLogBuffer(t)
+
+	logger := hclog.NewInterceptLogger(&hclog.LoggerOptions{
+		Name:       name,
+		Level:      testutil.TestLogLevel,
+		Output:     logBuffer,
+		TimeFormat: "04:05.000",
+	})
+
 	loader := func(source config.Source) (config.LoadResult, error) {
 		dataDir := fmt.Sprintf(`data_dir = "%s"`, dataDir)
 		opts := config.LoadOpts{
@@ -63,15 +72,9 @@ func NewTestACLAgent(t *testing.T, name string, hcl string, resolveAuthz authzRe
 		}
 		return result, err
 	}
-	bd, err := NewBaseDeps(loader, logBuffer)
+	bd, err := NewBaseDeps(loader, logBuffer, logger)
 	require.NoError(t, err)
 
-	bd.Logger = hclog.NewInterceptLogger(&hclog.LoggerOptions{
-		Name:       name,
-		Level:      testutil.TestLogLevel,
-		Output:     logBuffer,
-		TimeFormat: "04:05.000",
-	})
 	bd.MetricsConfig = &lib.MetricsConfig{
 		Handler: metrics.NewInmemSink(1*time.Second, time.Minute),
 	}
@@ -142,7 +145,7 @@ func (a *TestACLAgent) JoinLAN(addrs []string, entMeta *acl.EnterpriseMeta) (n i
 func (a *TestACLAgent) RemoveFailedNode(node string, prune bool, entMeta *acl.EnterpriseMeta) error {
 	return fmt.Errorf("Unimplemented")
 }
-func (a *TestACLAgent) RPC(method string, args interface{}, reply interface{}) error {
+func (a *TestACLAgent) RPC(ctx context.Context, method string, args interface{}, reply interface{}) error {
 	return fmt.Errorf("Unimplemented")
 }
 func (a *TestACLAgent) SnapshotRPC(args *structs.SnapshotRequest, in io.Reader, out io.Writer, replyFn structs.SnapshotReplyFn) error {
@@ -177,10 +180,9 @@ func authzFromPolicy(policy *acl.Policy, cfg *acl.Config) (acl.Authorizer, error
 	return acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, cfg)
 }
 
-type testToken struct {
+type testTokenRules struct {
 	token structs.ACLToken
-	// yes the rules can exist on the token itself but that is legacy behavior
-	// that I would prefer these tests not rely on
+	// rules to create associated policy
 	rules string
 }
 
@@ -191,7 +193,7 @@ var (
 	serviceRWSecret = "4a1017a2-f788-4be3-93f2-90566f1340bb"
 	otherRWSecret   = "a38e8016-91b6-4876-b3e7-a307abbb2002"
 
-	testTokens = map[string]testToken{
+	testACLs = map[string]testTokenRules{
 		nodeROSecret: {
 			token: structs.ACLToken{
 				AccessorID: "9df2d1a4-2d07-414e-8ead-6053f56ed2eb",
@@ -230,13 +232,13 @@ var (
 	}
 )
 
-func catalogPolicy(token string) (structs.ACLIdentity, acl.Authorizer, error) {
-	tok, ok := testTokens[token]
+func catalogPolicy(testACL string) (structs.ACLIdentity, acl.Authorizer, error) {
+	tok, ok := testACLs[testACL]
 	if !ok {
 		return nil, nil, acl.ErrNotFound
 	}
 
-	policy, err := acl.NewPolicyFromSource(tok.rules, acl.SyntaxCurrent, nil, nil)
+	policy, err := acl.NewPolicyFromSource(tok.rules, nil, nil)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -245,8 +247,8 @@ func catalogPolicy(token string) (structs.ACLIdentity, acl.Authorizer, error) {
 	return &tok.token, authz, err
 }
 
-func catalogIdent(token string) (structs.ACLIdentity, error) {
-	tok, ok := testTokens[token]
+func catalogIdent(testACL string) (structs.ACLIdentity, error) {
+	tok, ok := testACLs[testACL]
 	if !ok {
 		return nil, acl.ErrNotFound
 	}
@@ -277,7 +279,7 @@ func TestACL_vetServiceRegister(t *testing.T) {
 	a.State.AddServiceWithChecks(&structs.NodeService{
 		ID:      "my-service",
 		Service: "other",
-	}, nil, "")
+	}, nil, "", false)
 	err = a.vetServiceRegister(serviceRWSecret, &structs.NodeService{
 		ID:      "my-service",
 		Service: "service",
@@ -307,7 +309,7 @@ func TestACL_vetServiceUpdateWithAuthorizer(t *testing.T) {
 	a.State.AddServiceWithChecks(&structs.NodeService{
 		ID:      "my-service",
 		Service: "service",
-	}, nil, "")
+	}, nil, "", false)
 	err = vetServiceUpdate(serviceRWSecret, structs.NewServiceID("my-service", nil))
 	require.NoError(t, err)
 
@@ -364,12 +366,12 @@ func TestACL_vetCheckRegisterWithAuthorizer(t *testing.T) {
 	a.State.AddServiceWithChecks(&structs.NodeService{
 		ID:      "my-service",
 		Service: "service",
-	}, nil, "")
+	}, nil, "", false)
 	a.State.AddCheck(&structs.HealthCheck{
 		CheckID:     types.CheckID("my-check"),
 		ServiceID:   "my-service",
 		ServiceName: "other",
-	}, "")
+	}, "", false)
 	err = vetCheckRegister(serviceRWSecret, &structs.HealthCheck{
 		CheckID:     types.CheckID("my-check"),
 		ServiceID:   "my-service",
@@ -381,7 +383,7 @@ func TestACL_vetCheckRegisterWithAuthorizer(t *testing.T) {
 	// Try to register over a node check without write privs to the node.
 	a.State.AddCheck(&structs.HealthCheck{
 		CheckID: types.CheckID("my-node-check"),
-	}, "")
+	}, "", false)
 	err = vetCheckRegister(serviceRWSecret, &structs.HealthCheck{
 		CheckID:     types.CheckID("my-node-check"),
 		ServiceID:   "my-service",
@@ -413,12 +415,12 @@ func TestACL_vetCheckUpdateWithAuthorizer(t *testing.T) {
 	a.State.AddServiceWithChecks(&structs.NodeService{
 		ID:      "my-service",
 		Service: "service",
-	}, nil, "")
+	}, nil, "", false)
 	a.State.AddCheck(&structs.HealthCheck{
 		CheckID:     types.CheckID("my-service-check"),
 		ServiceID:   "my-service",
 		ServiceName: "service",
-	}, "")
+	}, "", false)
 	err = vetCheckUpdate(serviceRWSecret, structs.NewCheckID("my-service-check", nil))
 	require.NoError(t, err)
 
@@ -430,7 +432,7 @@ func TestACL_vetCheckUpdateWithAuthorizer(t *testing.T) {
 	// Update node check with write privs.
 	a.State.AddCheck(&structs.HealthCheck{
 		CheckID: types.CheckID("my-node-check"),
-	}, "")
+	}, "", false)
 	err = vetCheckUpdate(nodeRWSecret, structs.NewCheckID("my-node-check", nil))
 	require.NoError(t, err)
 

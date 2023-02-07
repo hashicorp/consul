@@ -10,16 +10,16 @@ export default class TopologySerializer extends Serializer {
 
   respondForQueryRecord(respond, query) {
     const intentionSerializer = this.store.serializerFor('intention');
-    return super.respondForQueryRecord(function(cb) {
-      return respond(function(headers, body) {
-        body.Downstreams.forEach(item => {
+    return super.respondForQueryRecord(function (cb) {
+      return respond(function (headers, body) {
+        body.Downstreams.forEach((item) => {
           item.Intention.SourceName = item.Name;
           item.Intention.SourceNS = item.Namespace;
           item.Intention.DestinationName = query.id;
           item.Intention.DestinationNS = query.ns || 'default';
           intentionSerializer.ensureID(item.Intention);
         });
-        body.Upstreams.forEach(item => {
+        body.Upstreams.forEach((item) => {
           item.Intention.SourceName = query.id;
           item.Intention.SourceNS = query.ns || 'default';
           item.Intention.DestinationName = item.Name;

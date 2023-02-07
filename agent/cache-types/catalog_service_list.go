@@ -1,6 +1,7 @@
 package cachetype
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/hashicorp/consul/agent/cache"
@@ -42,7 +43,7 @@ func (c *CatalogServiceList) Fetch(opts cache.FetchOptions, req cache.Request) (
 
 	// Fetch
 	var reply structs.IndexedServiceList
-	if err := c.RPC.RPC("Catalog.ServiceList", reqReal, &reply); err != nil {
+	if err := c.RPC.RPC(context.Background(), "Catalog.ServiceList", reqReal, &reply); err != nil {
 		return result, err
 	}
 

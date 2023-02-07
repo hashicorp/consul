@@ -4,7 +4,6 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"os"
 	"path/filepath"
@@ -102,10 +101,18 @@ type ProtocolConfig struct {
 	//
 	// Note: this setting only applies to the Internal RPC configuration.
 	VerifyServerHostname bool
+
+	// UseAutoCert is used to enable usage of auto_encrypt/auto_config generated
+	// certificate & key material on external gRPC listener.
+	UseAutoCert bool
 }
 
 // Config configures the Configurator.
 type Config struct {
+	// ServerMode indicates whether the configurator is attached to a server
+	// or client agent.
+	ServerMode bool
+
 	// InternalRPC is used to configure the internal multiplexed RPC protocol.
 	InternalRPC ProtocolConfig
 
@@ -167,6 +174,10 @@ type protocolConfig struct {
 	// combinedCAPool is a pool containing both manualCAPEMs and the certificates
 	// received from auto-config/auto-encrypt.
 	combinedCAPool *x509.CertPool
+
+	// useAutoCert indicates wether we should use auto-encrypt/config data
+	// for TLS server/listener. NOTE: Only applies to external GRPC Server.
+	useAutoCert bool
 }
 
 // Configurator provides tls.Config and net.Dial wrappers to enable TLS for
@@ -191,13 +202,15 @@ type Configurator struct {
 	https       protocolConfig
 	internalRPC protocolConfig
 
-	// autoTLS stores configuration that is received from the auto-encrypt or
-	// auto-config features.
+	// autoTLS stores configuration that is received from:
+	// - The auto-encrypt or auto-config features for client agents
+	// - The servercert.CertManager for server agents.
 	autoTLS struct {
 		extraCAPems          []string
 		connectCAPems        []string
 		cert                 *tls.Certificate
 		verifyServerHostname bool
+		peeringServerName    string
 	}
 
 	// logger is not protected by a lock. It must never be changed after
@@ -323,6 +336,7 @@ func (c *Configurator) loadProtocolConfig(base Config, pc ProtocolConfig) (*prot
 		manualCAPEMs:   pems,
 		manualCAPool:   manualPool,
 		combinedCAPool: combinedPool,
+		useAutoCert:    pc.UseAutoCert,
 	}, nil
 }
 
@@ -363,7 +377,7 @@ func (c *Configurator) UpdateAutoTLSCA(connectCAPems []string) error {
 	return nil
 }
 
-// UpdateAutoTLSCert receives the updated Auto-Encrypt certificate.
+// UpdateAutoTLSCert receives the updated automatically-provisioned certificate.
 func (c *Configurator) UpdateAutoTLSCert(pub, priv string) error {
 	cert, err := tls.X509KeyPair([]byte(pub), []byte(priv))
 	if err != nil {
@@ -377,6 +391,16 @@ func (c *Configurator) UpdateAutoTLSCert(pub, priv string) error {
 	atomic.AddUint64(&c.version, 1)
 	c.log("UpdateAutoTLSCert")
 	return nil
+}
+
+// UpdateAutoTLSPeeringServerName receives the updated automatically-provisioned certificate.
+func (c *Configurator) UpdateAutoTLSPeeringServerName(name string) {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+
+	c.autoTLS.peeringServerName = name
+	atomic.AddUint64(&c.version, 1)
+	c.log("UpdateAutoTLSPeeringServerName")
 }
 
 // UpdateAutoTLS receives updates from Auto-Config, only expected to be called on
@@ -491,7 +515,7 @@ func LoadCAs(caFile, caPath string) ([]string, error) {
 	pems := []string{}
 
 	readFn := func(path string) error {
-		pem, err := ioutil.ReadFile(path)
+		pem, err := os.ReadFile(path)
 		if err != nil {
 			return fmt.Errorf("Error loading from %s: %s", path, err)
 		}
@@ -576,9 +600,12 @@ func (c *Configurator) commonTLSConfig(state protocolConfig, cfg ProtocolConfig,
 	// to a server requesting a certificate. Return the autoEncrypt certificate
 	// if possible, otherwise default to the manually provisioned one.
 	tlsConfig.GetClientCertificate = func(*tls.CertificateRequestInfo) (*tls.Certificate, error) {
-		cert := c.autoTLS.cert
-		if cert == nil {
-			cert = state.cert
+		cert := state.cert
+
+		// In the general case we only prefer to dial out with the autoTLS cert if we are a client.
+		// The server's autoTLS cert is exclusively for peering control plane traffic.
+		if !c.base.ServerMode && c.autoTLS.cert != nil {
+			cert = c.autoTLS.cert
 		}
 
 		if cert == nil {
@@ -620,16 +647,15 @@ func (c *Configurator) Cert() *tls.Certificate {
 	return cert
 }
 
-// GRPCTLSConfigured returns whether there's a TLS certificate configured for
-// gRPC (either manually or by auto-config/auto-encrypt). It is checked, along
-// with the presence of an HTTPS port, to determine whether to enable TLS on
-// incoming gRPC connections.
+// GRPCServerUseTLS returns whether there's a TLS certificate configured for
+// (external) gRPC (either manually or by auto-config/auto-encrypt), and use
+// of TLS for gRPC has not been explicitly disabled at auto-encrypt.
 //
 // This function acquires a read lock because it reads from the config.
-func (c *Configurator) GRPCTLSConfigured() bool {
+func (c *Configurator) GRPCServerUseTLS() bool {
 	c.lock.RLock()
 	defer c.lock.RUnlock()
-	return c.grpc.cert != nil || c.autoTLS.cert != nil
+	return c.grpc.cert != nil || (c.grpc.useAutoCert && c.autoTLS.cert != nil)
 }
 
 // VerifyIncomingRPC returns true if we should verify incoming connnections to
@@ -743,8 +769,28 @@ func (c *Configurator) IncomingGRPCConfig() *tls.Config {
 		c.base.GRPC,
 		c.base.GRPC.VerifyIncoming,
 	)
-	config.GetConfigForClient = func(*tls.ClientHelloInfo) (*tls.Config, error) {
-		return c.IncomingGRPCConfig(), nil
+	config.GetConfigForClient = func(info *tls.ClientHelloInfo) (*tls.Config, error) {
+		conf := c.IncomingGRPCConfig()
+		// Do not enforce mutualTLS for peering SNI entries. This is necessary, because
+		// there is no way to specify an mTLS cert when establishing a peering connection.
+		// This bypass is only safe because the `grpc-middleware.AuthInterceptor` explicitly
+		// restricts the list of endpoints that can be called when peering SNI is present.
+		if c.autoTLS.peeringServerName != "" && info.ServerName == c.autoTLS.peeringServerName {
+			conf.ClientAuth = tls.NoClientCert
+		}
+		return conf, nil
+	}
+	config.GetCertificate = func(info *tls.ClientHelloInfo) (*tls.Certificate, error) {
+		if c.autoTLS.peeringServerName != "" && info.ServerName == c.autoTLS.peeringServerName {
+			// For peering control plane traffic we exclusively use the internally managed certificate.
+			// For all other traffic it is only a fallback if no manual certificate is provisioned.
+			return c.autoTLS.cert, nil
+		}
+
+		if c.grpc.cert != nil {
+			return c.grpc.cert, nil
+		}
+		return c.autoTLS.cert, nil
 	}
 	return config
 }
@@ -909,6 +955,12 @@ func (c *Configurator) AutoEncryptCert() *x509.Certificate {
 		return nil
 	}
 	return cert
+}
+
+func (c *Configurator) PeeringServerName() string {
+	c.lock.RLock()
+	defer c.lock.RUnlock()
+	return c.autoTLS.peeringServerName
 }
 
 func (c *Configurator) log(name string) {

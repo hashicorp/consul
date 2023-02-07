@@ -2,7 +2,7 @@ import { helper } from '@ember/component/helper';
 
 export default helper(function routeMatch([item], hash) {
   const prop = ['Present', 'Exact', 'Prefix', 'Suffix', 'Regex'].find(
-    prop => typeof item[prop] !== 'undefined'
+    (prop) => typeof item[prop] !== 'undefined'
   );
 
   switch (prop) {

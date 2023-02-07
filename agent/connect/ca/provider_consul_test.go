@@ -375,6 +375,30 @@ func testCrossSignProviders(t *testing.T, provider1, provider2 Provider) {
 	}
 }
 
+func testCrossSignProvidersShouldFail(t *testing.T, provider1, provider2 Provider) {
+	t.Helper()
+
+	// Get the root from the new provider to be cross-signed.
+	root, err := provider2.GenerateRoot()
+	require.NoError(t, err)
+
+	newRoot, err := connect.ParseCert(root.PEM)
+	require.NoError(t, err)
+	requireNotEncoded(t, newRoot.SubjectKeyId)
+	requireNotEncoded(t, newRoot.AuthorityKeyId)
+
+	newInterPEM, err := provider2.ActiveIntermediate()
+	require.NoError(t, err)
+	newIntermediate, err := connect.ParseCert(newInterPEM)
+	require.NoError(t, err)
+	requireNotEncoded(t, newIntermediate.SubjectKeyId)
+	requireNotEncoded(t, newIntermediate.AuthorityKeyId)
+
+	// Have provider1 cross sign our new root cert.
+	_, err = provider1.CrossSignCA(newRoot)
+	require.Error(t, err)
+}
+
 func TestConsulProvider_SignIntermediate(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
@@ -417,7 +441,7 @@ func TestConsulProvider_SignIntermediate(t *testing.T) {
 func testSignIntermediateCrossDC(t *testing.T, provider1, provider2 Provider) {
 
 	// Get the intermediate CSR from provider2.
-	csrPEM, err := provider2.GenerateIntermediateCSR()
+	csrPEM, opaque, err := provider2.GenerateIntermediateCSR()
 	require.NoError(t, err)
 	csr, err := connect.ParseCSR(csrPEM)
 	require.NoError(t, err)
@@ -430,7 +454,7 @@ func testSignIntermediateCrossDC(t *testing.T, provider1, provider2 Provider) {
 	rootPEM := root.PEM
 
 	// Give the new intermediate to provider2 to use.
-	require.NoError(t, provider2.SetIntermediate(intermediatePEM, rootPEM))
+	require.NoError(t, provider2.SetIntermediate(intermediatePEM, rootPEM, opaque))
 
 	// Have provider2 sign a leaf cert and make sure the chain is correct.
 	spiffeService := &connect.SpiffeIDService{

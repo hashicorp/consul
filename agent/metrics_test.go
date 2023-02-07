@@ -4,9 +4,9 @@ import (
 	"context"
 	"crypto/x509"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -47,7 +47,7 @@ func assertMetricExists(t *testing.T, respRec *httptest.ResponseRecorder, metric
 	}
 }
 
-// assertMetricExistsWithLabels looks in the prometheus metrics reponse for the metric name and all the labels. eg:
+// assertMetricExistsWithLabels looks in the prometheus metrics response for the metric name and all the labels. eg:
 // new_rpc_metrics_rpc_server_call{errored="false",method="Status.Ping",request_type="unknown",rpc_type="net/rpc"}
 func assertMetricExistsWithLabels(t *testing.T, respRec *httptest.ResponseRecorder, metric string, labelNames []string) {
 	if respRec.Body.String() == "" {
@@ -136,6 +136,28 @@ func assertMetricExistsWithValue(t *testing.T, respRec *httptest.ResponseRecorde
 	}
 }
 
+func assertMetricsWithLabelIsNonZero(t *testing.T, respRec *httptest.ResponseRecorder, label, labelValue string) {
+	if respRec.Body.String() == "" {
+		t.Fatalf("Response body is empty.")
+	}
+
+	metrics := respRec.Body.String()
+	labelWithValueTarget := label + "=" + "\"" + labelValue + "\""
+
+	for _, line := range strings.Split(metrics, "\n") {
+		if len(line) < 1 || line[0] == '#' {
+			continue
+		}
+
+		if strings.Contains(line, labelWithValueTarget) {
+			s := strings.SplitN(line, " ", 2)
+			if s[1] == "0" {
+				t.Fatalf("Metric with label provided \"%s:%s\" has the value 0", label, labelValue)
+			}
+		}
+	}
+}
+
 func assertMetricNotExists(t *testing.T, respRec *httptest.ResponseRecorder, metric string) {
 	if respRec.Body.String() == "" {
 		t.Fatalf("Response body is empty.")
@@ -166,7 +188,7 @@ func TestAgent_OneTwelveRPCMetrics(t *testing.T) {
 		defer a.Shutdown()
 
 		var out struct{}
-		err := a.RPC("Status.Ping", struct{}{}, &out)
+		err := a.RPC(context.Background(), "Status.Ping", struct{}{}, &out)
 		require.NoError(t, err)
 
 		respRec := httptest.NewRecorder()
@@ -191,11 +213,11 @@ func TestAgent_OneTwelveRPCMetrics(t *testing.T) {
 		defer a.Shutdown()
 
 		var out struct{}
-		err := a.RPC("Status.Ping", struct{}{}, &out)
+		err := a.RPC(context.Background(), "Status.Ping", struct{}{}, &out)
 		require.NoError(t, err)
-		err = a.RPC("Status.Ping", struct{}{}, &out)
+		err = a.RPC(context.Background(), "Status.Ping", struct{}{}, &out)
 		require.NoError(t, err)
-		err = a.RPC("Status.Ping", struct{}{}, &out)
+		err = a.RPC(context.Background(), "Status.Ping", struct{}{}, &out)
 		require.NoError(t, err)
 
 		respRec := httptest.NewRecorder()
@@ -205,6 +227,8 @@ func TestAgent_OneTwelveRPCMetrics(t *testing.T) {
 		assertMetricExistsWithLabels(t, respRec, metricsPrefix+"_rpc_server_call", []string{"errored", "method", "request_type", "rpc_type", "leader"})
 		// make sure we see 3 Status.Ping metrics corresponding to the calls we made above
 		assertLabelWithValueForMetricExistsNTime(t, respRec, metricsPrefix+"_rpc_server_call", "method", "Status.Ping", 3)
+		// make sure rpc calls with elapsed time below 1ms are reported as decimal
+		assertMetricsWithLabelIsNonZero(t, respRec, "method", "Status.Ping")
 	})
 }
 
@@ -313,7 +337,7 @@ func TestHTTPHandlers_AgentMetrics_TLSCertExpiry_Prometheus(t *testing.T) {
 	require.NoError(t, err)
 
 	caPath := filepath.Join(dir, "ca.pem")
-	err = ioutil.WriteFile(caPath, []byte(caPEM), 0600)
+	err = os.WriteFile(caPath, []byte(caPEM), 0600)
 	require.NoError(t, err)
 
 	signer, err := tlsutil.ParseSigner(caPK)
@@ -329,11 +353,11 @@ func TestHTTPHandlers_AgentMetrics_TLSCertExpiry_Prometheus(t *testing.T) {
 	require.NoError(t, err)
 
 	certPath := filepath.Join(dir, "cert.pem")
-	err = ioutil.WriteFile(certPath, []byte(pem), 0600)
+	err = os.WriteFile(certPath, []byte(pem), 0600)
 	require.NoError(t, err)
 
 	keyPath := filepath.Join(dir, "cert.key")
-	err = ioutil.WriteFile(keyPath, []byte(key), 0600)
+	err = os.WriteFile(keyPath, []byte(key), 0600)
 	require.NoError(t, err)
 
 	hcl := fmt.Sprintf(`

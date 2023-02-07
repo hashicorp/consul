@@ -1,14 +1,13 @@
 ---
 layout: docs
-page_title: 'Configuration Entry Kind: Exported Services'
+page_title: Exported Services - Configuration Entry Reference
 description: >-
-  The exported-services configuration entry enables you to export services from a single file.
-  Settings in this configuration entry can apply to services in any namespace of the specified partition. Write access to the mesh resource is required.
+  An exported services configuration entry defines the availability of a cluster's services to cluster peers and local admin partitions. Learn about `""exported-services""` config entry parameters and exporting services to other datacenters.
 ---
 
-# Exported Services
+# Exported Services Configuration Entry
 
-This topic describes the `exported-services` configuration entry type. The `exported-services` configuration entry enables Consul to export service instances to other clusters from a single file and connect services across clusters. For additional information, refer to [Cluster Peering](/docs/connect/cluster-peering) and [Admin Partitions](/docs/enterprise/admin-partitions).
+This topic describes the `exported-services` configuration entry type. The `exported-services` configuration entry enables Consul to export service instances to other clusters from a single file and connect services across clusters. For additional information, refer to [Cluster Peering](/consul/docs/connect/cluster-peering) and [Admin Partitions](/consul/docs/enterprise/admin-partitions).
 
 -> **v1.11.0+:** This config entry is supported in Consul versions 1.11.0+.
 
@@ -19,17 +18,15 @@ To configure Consul to export services contained in a Consul Enterprise admin pa
 You can configure the settings defined in the `exported-services` configuration entry to apply to all namespaces in a Consul Enterprise admin partition.
 
 ## Requirements
-
-- A 1.11.0+ Consul Enteprise binary or a 1.13.0+ Consul OSS binary.
 - **Enterprise Only**: A corresponding partition that the configuration entry can export from. For example, the `exported-services` configuration entry for a partition named `frontend` requires an existing `frontend` partition.
 
 ## Usage
 
 1. Verify that your datacenter meets the conditions specified in the [Requirements](#requirements).
-1. Specify the `exported-services` configuration in the agent configuration file (see [`config_entries`](/docs/agent/config/config-files#config_entries)) as described in [Configuration](#configuration).
+1. Specify the `exported-services` configuration in the agent configuration file (see [`config_entries`](/consul/docs/agent/config/config-files#config_entries)) as described in [Configuration](#configuration).
 1. Apply the configuration using one of the following methods:
-   - Kubernetes CRD: Refer to the [Custom Resource Definitions](/docs/k8s/crds) documentation for details.
-   - Issue the `consul config write` command: Refer to the [Consul Config Write](/commands/config/write) documentation for details.
+   - Kubernetes CRD: Refer to the [Custom Resource Definitions](/consul/docs/k8s/crds) documentation for details.
+   - Issue the `consul config write` command: Refer to the [Consul Config Write](/consul/commands/config/write) documentation for details.
 
 ## Configuration
 
@@ -47,7 +44,7 @@ Services = [
     Name = "<name of service to export>"
     Consumers = [
       {
-        PeerName = "<name of the peered cluster that dials the exported service>"
+        Peer = "<name of the peered cluster that dials the exported service>"
       }
     ]
   }
@@ -63,7 +60,7 @@ spec:
   services:
     - name: <name of service to export>
       consumers:
-        - peerName: <name of the peered cluster that dials the exported service>
+        - peer: <name of the peered cluster that dials the exported service>
 ```
 
 ```json
@@ -74,7 +71,7 @@ spec:
     "Name": "<name of service to export>",
     "Consumers": [
       {
-        "PeerName": "<name of the peered cluster that dials the exported service>"
+        "Peer": "<name of the peered cluster that dials the exported service>"
       }
     ]
   }
@@ -97,7 +94,7 @@ Services = [
     Namespace = "<namespace in the partition containing the service to export>"
     Consumers = [
       {
-        PeerName = "<name of the peered cluster that dials the exported service>"
+        Peer = "<name of the peered cluster that dials the exported service>"
       }
     ]
   }
@@ -114,7 +111,7 @@ spec:
     - name: <name of service to export>
       namespace: <namespace in the partition containing the service to export>
       consumers:
-        - peerName: <name of the peered cluster that dials the exported service>
+        - peer: <name of the peered cluster that dials the exported service>
 ```
 
 ```json
@@ -127,7 +124,7 @@ spec:
     "Namespace": "<namespace in the partition containing the service to export>"
     "Consumers": [
       {
-        "PeerName": "<name of the peered cluster that dials the exported service>"
+        "Peer": "<name of the peered cluster that dials the exported service>"
       }
     ]
   }
@@ -216,8 +213,8 @@ The `Services` parameter contains a list of one or more parameters that specify 
 The `Consumers` parameter contains a list of one or more parameters that specify the destination cluster for
 an exported service. Each item in the `Consumers` list must contain exactly one of the following parameters:
 
-- `PeerName`: Specifies the name of the peered cluster to export the service to.
-A asterisk wildcard (`*`) cannot be specified as the `PeerName`. Added in Consul 1.13.0.
+- `Peer`: Specifies the name of the peered cluster to export the service to.
+A asterisk wildcard (`*`) cannot be specified as the `Peer`. Added in Consul 1.13.0.
 - `Partition`: <EnterpriseAlert inline /> Specifies an admin partition in the datacenter to export the service to.
 A asterisk wildcard (`*`) cannot be specified as the `Partition`.
 
@@ -243,7 +240,7 @@ Services = [
     Name      = "payments"
     Consumers = [
         {
-            PeerName  = "web-shop"
+            Peer  = "web-shop"
         },
     ]
   },
@@ -251,7 +248,7 @@ Services = [
     Name      = "refunds"
     Consumers = [
         {
-            PeerName = "web-shop"
+            Peer = "web-shop"
         }
     ]
   }
@@ -267,10 +264,10 @@ spec:
   services:
     - name: payments
       consumers:
-        - peerName: web-shop
+        - peer: web-shop
     - name: refunds
       consumers:
-        - peerName: web-shop
+        - peer: web-shop
 ```
 
 ```json
@@ -281,7 +278,7 @@ spec:
       "Name": "payments",
       "Consumers": [
         {
-          "PeerName": "web-shop"
+          "Peer": "web-shop"
         },
       ],
     },
@@ -289,7 +286,7 @@ spec:
       "Name": "refunds",
       "Consumers": [
         {
-          "PeerName": "web-shop"
+          "Peer": "web-shop"
         }
       ]
     }
@@ -316,7 +313,7 @@ Services = [
     Namespace = "billing"
     Consumers = [
         {
-            PeerName  = "web-shop"
+            Peer  = "web-shop"
         },
     ]
   },
@@ -325,7 +322,7 @@ Services = [
     Namespace = "billing"
     Consumers = [
         {
-            PeerName = "web-shop"
+            Peer = "web-shop"
         }
     ]
   }
@@ -342,11 +339,11 @@ spec:
     - name: payments
       namespace: billing
       consumers:
-        - peerName: web-shop
+        - peer: web-shop
     - name: refunds
       namespace: billing
       consumers:
-        - peerName: web-shop
+        - peer: web-shop
 ```
 
 ```json
@@ -359,7 +356,7 @@ spec:
       "Namespace": "billing"
       "Consumers": [
         {
-          "PeerName": "web-shop"
+          "Peer": "web-shop"
         },
       ],
     },
@@ -368,7 +365,7 @@ spec:
       "Namespace": "billing",
       "Consumers": [
         {
-          "PeerName": "web-shop"
+          "Peer": "web-shop"
         }
       ]
     }
@@ -476,10 +473,10 @@ Services = [
     Name      = "*"
     Consumers = [
         {
-            PeerName  = "monitoring"
+            Peer  = "monitoring"
         },
         {
-            PeerName  = "platform"
+            Peer  = "platform"
         }
     ]
   }
@@ -495,8 +492,8 @@ spec:
   services:
     - name: *
       consumers:
-        - peerName: monitoring
-        - peerName: platform
+        - peer: monitoring
+        - peer: platform
 ```
 
 ```json
@@ -508,10 +505,10 @@ spec:
       "Namespace": "*"
       "Consumers": [
         {
-          "PeerName": "monitoring"
+          "Peer": "monitoring"
         },
         {
-          "PeerName": "platform"
+          "Peer": "platform"
         }
       ]
     }
@@ -538,10 +535,10 @@ Services = [
     Namespace = "*"
     Consumers = [
         {
-            PeerName = "monitoring"
+            Peer = "monitoring"
         },
         {
-            PeerName = "platform"
+            Peer = "platform"
         }
     ]
   }
@@ -558,8 +555,8 @@ spec:
     - name: *
       namespace: *
       consumers:
-        - peerName: monitoring
-        - peerName: platform
+        - peer: monitoring
+        - peer: platform
 ```
 
 ```json
@@ -572,10 +569,10 @@ spec:
       "Namespace": "*"
       "Consumers": [
         {
-          "PeerName": "monitoring"
+          "Peer": "monitoring"
         },
         {
-          "PeerName": "platform"
+          "Peer": "platform"
         }
       ]
     }
@@ -662,20 +659,236 @@ The following example queries the `finance` peer for the imported `payments` ser
 ```shell-session
 $ curl 'localhost:8500/v1/health/service/payments?peer=finance'
 ```
+An ACL token with either of the following permissions is required in the cluster where the query is made:
+- `service:write` permissions for any service.
+- `service:read` and `node:read` for all services and nodes, respectively.
+
+If the call in the previous example is made from a service named `web`, then the request requires either:
+- A token with `service:write` permissions to `web`.
+- A token with `service:read` and `node:read` to all names in the datacenter.
+
+<CodeTabs heading="Example ACL rules for reading imported services in Consul OSS">
+
+```hcl
+service "web" {
+    policy = "write"
+}
+
+# OR
+
+service_prefix "" {
+    policy = "read"
+}
+node_prefix "" {
+    policy = "read"
+}
+```
+
+```json
+{
+  "service": {
+    "web": {
+      "policy": "write"
+    }
+  }
+}
+
+## OR
+
+{
+  "service_prefix": {
+    "": {
+      "policy": "read"
+    }
+  },
+  "node_prefix": {
+    "": {
+      "policy": "read"
+    }
+  }
+}
+
+```
+
+</CodeTabs>
+
 </Tab>
 
-<Tab heading="Consul Enterprise">
+<Tab heading="Consul Enterprise (Partitions)">
 
 The following example queries the `finance` partition for the imported `payments` service:
 
 ```shell-session
 $ curl 'localhost:8500/v1/health/service/payments?partition=finance'
 ```
+
+An ACL token with either of the following permissions is required in the cluster where the query is made:
+- `service:write` permissions for any service in the partition where the query is made.
+- `service:read` and `node:read` for all services and nodes, respectively, in any namespace and the exact partition where the query is made.
+
+If the call in the previous example is made from a service named `web` in a partition named `frontend`, then the request requires either:
+- A token with `service:write` permissions to `web` in the `frontend` partition.
+- A token with `service:read` and `node:read` to all names in the `frontend` partition, for any namespace.
+
+<CodeTabs heading="Example ACL rules for reading imported services from a partition in Consul Enterprise">
+
+```hcl
+partition "frontend" {
+	namespace "dev" { # This could be any namespace
+		service "web" {
+			policy = "write"
+		}
+	}
+}
+
+# OR
+
+partition "frontend" {
+	namespace "dev" { # This could be any namespace
+		service_prefix "" {
+			policy = "read"
+		}
+		node_prefix "" {
+			policy = "read"
+		}
+	}
+}
+```
+
+```json
+{
+  "partition": {
+    "frontend": {
+	  "namespace": {
+        ## The following could be any namespace
+        "dev": {
+		  "service": {
+            "web": {
+			  "policy": "write"
+            }
+          }
+		}
+      }
+	}
+  }
+}
+
+## OR
+
+{
+  "partition": {
+    "frontend": {
+	  "namespace": {
+        ## The following could be any namespace
+        "dev": {
+		  "service_prefix": {
+            "": {
+              "policy": "read"
+            }
+          },
+          "node_prefix": {
+            "": {
+              "policy": "read"
+            }
+          }
+		}
+      }
+	}
+  }
+}
+```
+
+</CodeTabs>
+
+</Tab>
+
+<Tab heading="Consul Enterprise (Peers)">
+
+The following example queries the `finance` peer for the imported `payments` service:
+
+```shell-session
+$ curl 'localhost:8500/v1/health/service/payments?peer=finance'
+```
+
+An ACL token with either of the following permissions is required in the cluster where the query is made:
+- `service:write` permissions for any service in the partition where the query is made.
+- `service:read` and `node:read` for all services and nodes, respectively, in any namespace and the exact partition where the query is made.
+
+If the call in the previous example is made from a service named `web` in a partition named `frontend`, then the request requires either:
+- A token with `service:write` permissions to `web` in the `frontend` partition.
+- A token with `service:read` and `node:read` to all names in the `frontend` partition, for any namespace.
+
+<CodeTabs heading="Example ACL rules for reading imported services from a peer in Consul Enterprise">
+
+```hcl
+partition "frontend" {
+	namespace "dev" { # This could be any namespace
+		service "web" {
+			policy = "write"
+		}
+	}
+}
+
+# OR
+
+partition "frontend" {
+	namespace "dev" { # This could be any namespace
+		service_prefix "" {
+			policy = "read"
+		}
+		node_prefix "" {
+			policy = "read"
+		}
+	}
+}
+```
+
+```json
+{
+  "partition": {
+    "frontend": {
+	  "namespace": {
+        ## The following could be any namespace
+        "dev": {
+		  "service": {
+            "web": {
+			  "policy": "write"
+            }
+          }
+		}
+      }
+	}
+  }
+}
+
+## OR
+
+{
+  "partition": {
+    "frontend": {
+	  "namespace": {
+        ## The following could be any namespace
+        "dev": {
+		  "service_prefix": {
+            "": {
+              "policy": "read"
+            }
+          },
+          "node_prefix": {
+            "": {
+              "policy": "read"
+            }
+          }
+		}
+      }
+	}
+  }
+}
+```
+
+</CodeTabs>
+
 </Tab>
 </Tabs>
 
-An ACL token with `service:write` permissions is required for the cluster the query is made from. If the call in the previous example is made from a service named `web` in a partition named `frontend`, then the request requires a token with `write` permissions to `web` in the `frontend` partition.
-
-Exports are available to all services in the consumer cluster. In the previous example, any service with `write` permissions for the `frontend` partition can read exports.
-
-For additional information, refer to [Health HTTP Endpoint](/api-docs/health).
+For additional information, refer to [Health HTTP Endpoint](/consul/api-docs/health).

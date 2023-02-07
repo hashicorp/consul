@@ -1,0 +1,3 @@
+```release-note:improvement
+agent: Give better error when client specifies wrong datacenter when auto-encrypt is enabled.
+```

@@ -3,31 +3,35 @@ package xds
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"fmt"
-	"sort"
+	"strconv"
+	"sync"
 	"sync/atomic"
 	"time"
 
-	envoy_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
+	"github.com/armon/go-metrics"
 	envoy_config_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
-	envoy_endpoint_v3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
-	envoy_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	envoy_discovery_v3 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 
-	"github.com/golang/protobuf/proto"
-	"github.com/golang/protobuf/ptypes"
-	"github.com/hashicorp/go-hclog"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/anypb"
 
+	"github.com/hashicorp/consul/agent/envoyextensions"
 	external "github.com/hashicorp/consul/agent/grpc-external"
+	"github.com/hashicorp/consul/agent/grpc-external/limiter"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/agent/xds/serverlessplugin"
-	"github.com/hashicorp/consul/agent/xds/xdscommon"
+	"github.com/hashicorp/consul/agent/xds/extensionruntime"
+	"github.com/hashicorp/consul/envoyextensions/xdscommon"
 	"github.com/hashicorp/consul/logging"
+	"github.com/hashicorp/consul/version"
 )
+
+var errOverwhelmed = status.Error(codes.ResourceExhausted, "this server has too many xDS streams open, please try another")
 
 type deltaRecvResponse int
 
@@ -43,7 +47,7 @@ type ADSDeltaStream = envoy_discovery_v3.AggregatedDiscoveryService_DeltaAggrega
 
 // DeltaAggregatedResources implements envoy_discovery_v3.AggregatedDiscoveryServiceServer
 func (s *Server) DeltaAggregatedResources(stream ADSDeltaStream) error {
-	defer s.activeStreams.Increment("v3")()
+	defer s.activeStreams.Increment(stream.Context())()
 
 	// a channel for receiving incoming requests
 	reqCh := make(chan *envoy_discovery_v3.DeltaDiscoveryRequest)
@@ -81,15 +85,24 @@ const (
 )
 
 func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discovery_v3.DeltaDiscoveryRequest) error {
+	// Handle invalid ACL tokens up-front.
+	if _, err := s.authenticate(stream.Context()); err != nil {
+		return err
+	}
+
 	// Loop state
 	var (
 		cfgSnap     *proxycfg.ConfigSnapshot
 		node        *envoy_config_core_v3.Node
 		stateCh     <-chan *proxycfg.ConfigSnapshot
+		drainCh     limiter.SessionTerminatedChan
 		watchCancel func()
 		proxyID     structs.ServiceID
 		nonce       uint64 // xDS requires a unique nonce to correlate response/request pairs
 		ready       bool   // set to true after the first snapshot arrives
+
+		streamStartTime = time.Now()
+		streamStartOnce sync.Once
 	)
 
 	var (
@@ -104,7 +117,7 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 		currentVersions = make(map[string]map[string]string)
 	)
 
-	generator := newResourceGenerator(
+	generator := NewResourceGenerator(
 		s.Logger.Named(logging.XDS).With("xdsVersion", "v3"),
 		s.CfgFetcher,
 		true,
@@ -140,8 +153,14 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 	// representation of envoy state to force an update.
 	//
 	// see: https://github.com/envoyproxy/envoy/issues/13009
-	handlers[xdscommon.ListenerType].childType = handlers[xdscommon.RouteType]
-	handlers[xdscommon.ClusterType].childType = handlers[xdscommon.EndpointType]
+	handlers[xdscommon.ListenerType].deltaChild = &xDSDeltaChild{
+		childType:     handlers[xdscommon.RouteType],
+		childrenNames: make(map[string][]string),
+	}
+	handlers[xdscommon.ClusterType].deltaChild = &xDSDeltaChild{
+		childType:     handlers[xdscommon.EndpointType],
+		childrenNames: make(map[string][]string),
+	}
 
 	var authTimer <-chan time.Time
 	extendAuthTimer := func() {
@@ -154,6 +173,10 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 
 	for {
 		select {
+		case <-drainCh:
+			generator.Logger.Debug("draining stream to rebalance load")
+			metrics.IncrCounter([]string{"xds", "server", "streamDrained"}, 1)
+			return errOverwhelmed
 		case <-authTimer:
 			// It's been too long since a Discovery{Request,Response} so recheck ACLs.
 			if err := checkStreamACLs(cfgSnap); err != nil {
@@ -179,7 +202,7 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 			if node == nil && req.Node != nil {
 				node = req.Node
 				var err error
-				generator.ProxyFeatures, err = determineSupportedProxyFeatures(req.Node)
+				generator.ProxyFeatures, err = xdscommon.DetermineSupportedProxyFeatures(req.Node)
 				if err != nil {
 					return status.Errorf(codes.InvalidArgument, err.Error())
 				}
@@ -200,24 +223,33 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 				}
 			}
 
-		case cfgSnap = <-stateCh:
-			newRes, err := generator.allResourcesFromSnapshot(cfgSnap)
+		case cs, ok := <-stateCh:
+			if !ok {
+				// stateCh is closed either when *we* cancel the watch (on-exit via defer)
+				// or by the proxycfg.Manager when an irrecoverable error is encountered
+				// such as the ACL token getting deleted.
+				//
+				// We know for sure that this is the latter case, because in the former we
+				// would've already exited this loop.
+				return status.Error(codes.Aborted, "xDS stream terminated due to an irrecoverable error, please try again")
+			}
+			cfgSnap = cs
+
+			newRes, err := generator.AllResourcesFromSnapshot(cfgSnap)
 			if err != nil {
 				return status.Errorf(codes.Unavailable, "failed to generate all xDS resources from the snapshot: %v", err)
 			}
 
 			// index and hash the xDS structures
-			newResourceMap := indexResources(generator.Logger, newRes)
+			newResourceMap := xdscommon.IndexResources(generator.Logger, newRes)
 
 			if s.ResourceMapMutateFn != nil {
 				s.ResourceMapMutateFn(newResourceMap)
 			}
 
-			if s.serverlessPluginEnabled {
-				newResourceMap, err = serverlessplugin.MutateIndexedResources(newResourceMap, xdscommon.MakePluginConfiguration(cfgSnap))
-				if err != nil {
-					return status.Errorf(codes.Unavailable, "failed to patch xDS resources in the serverless plugin: %v", err)
-				}
+			if err = s.applyEnvoyExtensions(newResourceMap, cfgSnap); err != nil {
+				// err is already the result of calling status.Errorf
+				return err
 			}
 
 			if err := populateChildIndexMap(newResourceMap); err != nil {
@@ -253,8 +285,16 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 
 			// Start watching config for that proxy
 			var err error
-			stateCh, watchCancel, err = s.CfgSrc.Watch(proxyID, nodeName, external.TokenFromContext(stream.Context()))
+			options, err := external.QueryOptionsFromContext(stream.Context())
 			if err != nil {
+				return status.Errorf(codes.Internal, "failed to watch proxy service: %s", err)
+			}
+
+			stateCh, drainCh, watchCancel, err = s.CfgSrc.Watch(proxyID, nodeName, options.Token)
+			switch {
+			case errors.Is(err, limiter.ErrCapacityReached):
+				return errOverwhelmed
+			case err != nil:
 				return status.Errorf(codes.Internal, "failed to watch proxy service: %s", err)
 			}
 			// Note that in this case we _intend_ the defer to only be triggered when
@@ -308,26 +348,32 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 				continue
 			}
 
-			var pendingTypes []string
-			for typeUrl, handler := range handlers {
-				if !handler.registered {
-					continue
-				}
-				if len(handler.pendingUpdates) > 0 {
-					pendingTypes = append(pendingTypes, typeUrl)
-				}
-			}
-			if len(pendingTypes) > 0 {
-				sort.Strings(pendingTypes)
-				generator.Logger.Trace("Skipping delta computation because there are responses in flight",
-					"pendingTypeUrls", pendingTypes)
-				continue
-			}
-
 			generator.Logger.Trace("Invoking all xDS resource handlers and sending changed data if there are any")
 
+			streamStartOnce.Do(func() {
+				metrics.MeasureSince([]string{"xds", "server", "streamStart"}, streamStartTime)
+			})
+
 			for _, op := range xDSUpdateOrder {
-				err, sent := handlers[op.TypeUrl].SendIfNew(
+				if op.TypeUrl == xdscommon.ListenerType || op.TypeUrl == xdscommon.RouteType {
+					if clusterHandler := handlers[xdscommon.ClusterType]; clusterHandler.registered && len(clusterHandler.pendingUpdates) > 0 {
+						generator.Logger.Trace("Skipping delta computation for resource because there are dependent updates pending",
+							"typeUrl", op.TypeUrl, "dependent", xdscommon.ClusterType)
+
+						// Receiving an ACK from Envoy will unblock the select statement above,
+						// and re-trigger an attempt to send these skipped updates.
+						break
+					}
+					if endpointHandler := handlers[xdscommon.EndpointType]; endpointHandler.registered && len(endpointHandler.pendingUpdates) > 0 {
+						generator.Logger.Trace("Skipping delta computation for resource because there are dependent updates pending",
+							"typeUrl", op.TypeUrl, "dependent", xdscommon.EndpointType)
+
+						// Receiving an ACK from Envoy will unblock the select statement above,
+						// and re-trigger an attempt to send these skipped updates.
+						break
+					}
+				}
+				err, _ := handlers[op.TypeUrl].SendIfNew(
 					cfgSnap.Kind,
 					currentVersions[op.TypeUrl],
 					resourceMap,
@@ -341,12 +387,78 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 						op.errorLogNameReplyPrefix(),
 						op.TypeUrl, err)
 				}
-				if sent {
-					break // wait until we get an ACK to do more
-				}
 			}
 		}
 	}
+}
+
+func (s *Server) applyEnvoyExtensions(resources *xdscommon.IndexedResources, cfgSnap *proxycfg.ConfigSnapshot) error {
+	serviceConfigs := extensionruntime.GetRuntimeConfigurations(cfgSnap)
+	for _, cfgs := range serviceConfigs {
+		for _, cfg := range cfgs {
+			logFn := s.Logger.Warn
+			if cfg.EnvoyExtension.Required {
+				logFn = s.Logger.Error
+			}
+			errorParams := []interface{}{
+				"extension", cfg.EnvoyExtension.Name,
+				"service", cfg.ServiceName.Name,
+				"namespace", cfg.ServiceName.Namespace,
+				"partition", cfg.ServiceName.Partition,
+			}
+
+			getMetricLabels := func(err error) []metrics.Label {
+				return []metrics.Label{
+					{Name: "extension", Value: cfg.EnvoyExtension.Name},
+					{Name: "version", Value: "builtin/" + version.Version},
+					{Name: "service", Value: cfgSnap.Service},
+					{Name: "partition", Value: cfgSnap.ProxyID.PartitionOrDefault()},
+					{Name: "namespace", Value: cfgSnap.ProxyID.NamespaceOrDefault()},
+					{Name: "error", Value: strconv.FormatBool(err != nil)},
+				}
+			}
+
+			now := time.Now()
+			extender, err := envoyextensions.ConstructExtension(cfg.EnvoyExtension)
+			metrics.MeasureSinceWithLabels([]string{"envoy_extension", "validate_arguments"}, now, getMetricLabels(err))
+			if err != nil {
+				logFn("failed to construct extension", errorParams...)
+
+				if cfg.EnvoyExtension.Required {
+					return status.Errorf(codes.Unavailable, "failed to construct extension %q for service %q", cfg.EnvoyExtension.Name, cfg.ServiceName.Name)
+				}
+
+				continue
+			}
+
+			now = time.Now()
+			err = extender.Validate(&cfg)
+			metrics.MeasureSinceWithLabels([]string{"envoy_extension", "validate"}, now, getMetricLabels(err))
+			if err != nil {
+				errorParams = append(errorParams, "error", err)
+				logFn("failed to validate extension arguments", errorParams...)
+				if cfg.EnvoyExtension.Required {
+					return status.Errorf(codes.Unavailable, "failed to validate arguments for extension %q for service %q", cfg.EnvoyExtension.Name, cfg.ServiceName.Name)
+				}
+
+				continue
+			}
+
+			now = time.Now()
+			resources, err = extender.Extend(resources, &cfg)
+			metrics.MeasureSinceWithLabels([]string{"envoy_extension", "extend"}, now, getMetricLabels(err))
+			if err == nil {
+				continue
+			}
+
+			logFn("failed to apply envoy extension", errorParams...)
+			if cfg.EnvoyExtension.Required {
+				return status.Errorf(codes.Unavailable, "failed to patch xDS resources in the %q extension: %v", cfg.EnvoyExtension.Name, err)
+			}
+		}
+	}
+
+	return nil
 }
 
 var xDSUpdateOrder = []xDSUpdateOperation{
@@ -393,16 +505,26 @@ func (op *xDSUpdateOperation) errorLogNameReplyPrefix() string {
 	}
 }
 
+type xDSDeltaChild struct {
+	// childType is a type that in Envoy is actually stored within this type.
+	// Upserts of THIS type should potentially trigger dependent named
+	// resources within the child to be re-configured.
+	childType *xDSDeltaType
+
+	// childrenNames is map of parent resource names to a list of associated child resource
+	// names.
+	childrenNames map[string][]string
+}
+
 type xDSDeltaType struct {
 	generator    *ResourceGenerator
 	stream       ADSDeltaStream
 	typeURL      string
 	allowEmptyFn func(kind structs.ServiceKind) bool
 
-	// childType is a type that in Envoy is actually stored within this type.
-	// Upserts of THIS type should potentially trigger dependent named
-	// resources within the child to be re-configured.
-	childType *xDSDeltaType
+	// deltaChild contains data for an xDS child type if there is one.
+	// For example, endpoints are a child type of clusters.
+	deltaChild *xDSDeltaChild
 
 	// registered indicates if this type has been requested at least once by
 	// the proxy
@@ -442,9 +564,8 @@ func (t *xDSDeltaType) subscribed(name string) bool {
 }
 
 type PendingUpdate struct {
-	Remove         bool
-	Version        string
-	ChildResources []string // optional
+	Remove  bool
+	Version string
 }
 
 func newDeltaType(
@@ -467,7 +588,7 @@ func newDeltaType(
 // Recv handles new discovery requests from envoy.
 //
 // Returns true the first time a type receives a request.
-func (t *xDSDeltaType) Recv(req *envoy_discovery_v3.DeltaDiscoveryRequest, sf supportedProxyFeatures) deltaRecvResponse {
+func (t *xDSDeltaType) Recv(req *envoy_discovery_v3.DeltaDiscoveryRequest, sf xdscommon.SupportedProxyFeatures) deltaRecvResponse {
 	if t == nil {
 		return deltaRecvUnknownType // not something we care about
 	}
@@ -568,6 +689,15 @@ func (t *xDSDeltaType) Recv(req *envoy_discovery_v3.DeltaDiscoveryRequest, sf su
 				t.resourceVersions[name] = ""
 			}
 
+			// Certain xDS types are children of other types, meaning that if Envoy subscribes to a parent.
+			// We MUST assume that if Envoy ever had data for the children of this parent, then the child's
+			// data is gone.
+			if t.deltaChild != nil && t.deltaChild.childType.registered {
+				for _, childName := range t.deltaChild.childrenNames[name] {
+					t.ensureChildResend(name, childName)
+				}
+			}
+
 			if alreadySubscribed {
 				logger.Trace("re-subscribing resource for stream", "resource", name)
 			} else {
@@ -604,27 +734,6 @@ func (t *xDSDeltaType) ack(nonce string) {
 		}
 
 		t.resourceVersions[name] = obj.Version
-		if t.childType != nil {
-			// This branch only matters on UPDATE, since we already have
-			// mechanisms to clean up orphaned resources.
-			for _, childName := range obj.ChildResources {
-				if _, exist := t.childType.resourceVersions[childName]; !exist {
-					continue
-				}
-				if !t.subscribed(childName) {
-					continue
-				}
-				t.generator.Logger.Trace(
-					"triggering implicit update of resource",
-					"typeUrl", t.typeURL,
-					"resource", name,
-					"childTypeUrl", t.childType.typeURL,
-					"childResource", childName,
-				)
-				// Basically manifest this as a re-subscribe/re-sync
-				t.childType.resourceVersions[childName] = ""
-			}
-		}
 	}
 	t.sentToEnvoyOnce = true
 	delete(t.pendingUpdates, nonce)
@@ -644,6 +753,12 @@ func (t *xDSDeltaType) SendIfNew(
 	if t == nil || !t.registered {
 		return nil, false
 	}
+
+	// Wait for Envoy to catch up with this delta type before sending something new.
+	if len(t.pendingUpdates) > 0 {
+		return nil, false
+	}
+
 	logger := t.generator.Logger.With("typeUrl", t.typeURL)
 
 	allowEmpty := t.allowEmptyFn != nil && t.allowEmptyFn(kind)
@@ -679,14 +794,23 @@ func (t *xDSDeltaType) SendIfNew(
 	}
 	logger.Trace("sent response", "nonce", resp.Nonce)
 
-	if t.childType != nil {
-		// Capture the relevant child resource names on this pending update so
-		// we can properly clean up the linked children when this change is
-		// ACKed.
-		for name, obj := range updates {
+	// Certain xDS types are children of other types, meaning that if an update is pushed for a parent,
+	// we MUST send new data for all its children. Envoy will NOT re-subscribe to the child data upon
+	// receiving updates for the parent, so we need to handle this ourselves.
+	//
+	// Note that we do not check whether the deltaChild.childType is registered here, since we send
+	// parent types before child types, meaning that it's expected on first send of a parent that
+	// there are no subscriptions for the child type.
+	if t.deltaChild != nil {
+		for name := range updates {
 			if children, ok := resourceMap.ChildIndex[t.typeURL][name]; ok {
-				obj.ChildResources = children
-				updates[name] = obj
+				// Capture the relevant child resource names on this pending update so
+				// we can know the linked children if Envoy ever re-subscribes to the parent resource.
+				t.deltaChild.childrenNames[name] = children
+
+				for _, childName := range children {
+					t.ensureChildResend(name, childName)
+				}
 			}
 		}
 	}
@@ -789,7 +913,7 @@ func (t *xDSDeltaType) createDeltaResponse(
 			if !ok {
 				return nil, nil, fmt.Errorf("unknown name for type url %q: %s", t.typeURL, name)
 			}
-			any, err := ptypes.MarshalAny(res)
+			any, err := anypb.New(res)
 			if err != nil {
 				return nil, nil, err
 			}
@@ -804,6 +928,28 @@ func (t *xDSDeltaType) createDeltaResponse(
 	}
 
 	return resp, realUpdates, nil
+}
+
+func (t *xDSDeltaType) ensureChildResend(parentName, childName string) {
+	if _, exist := t.deltaChild.childType.resourceVersions[childName]; !exist {
+		return
+	}
+	if !t.subscribed(childName) {
+		return
+	}
+
+	t.generator.Logger.Trace(
+		"triggering implicit update of resource",
+		"typeUrl", t.typeURL,
+		"resource", parentName,
+		"childTypeUrl", t.deltaChild.childType.typeURL,
+		"childResource", childName,
+	)
+
+	// resourceVersions tracks the last known version for this childName that Envoy
+	// has ACKed. By setting this to empty it effectively tells us that Envoy does
+	// not have any data for that child, and we need to re-send.
+	t.deltaChild.childType.resourceVersions[childName] = ""
 }
 
 func computeResourceVersions(resourceMap *xdscommon.IndexedResources) (map[string]map[string]string, error) {
@@ -837,39 +983,6 @@ func populateChildIndexMap(resourceMap *xdscommon.IndexedResources) error {
 	return nil
 }
 
-func indexResources(logger hclog.Logger, resources map[string][]proto.Message) *xdscommon.IndexedResources {
-	data := xdscommon.EmptyIndexedResources()
-
-	for typeURL, typeRes := range resources {
-		for _, res := range typeRes {
-			name := getResourceName(res)
-			if name == "" {
-				logger.Warn("skipping unexpected xDS type found in delta snapshot", "typeURL", typeURL)
-			} else {
-				data.Index[typeURL][name] = res
-			}
-		}
-	}
-
-	return data
-}
-
-func getResourceName(res proto.Message) string {
-	// NOTE: this only covers types that we currently care about for LDS/RDS/CDS/EDS
-	switch x := res.(type) {
-	case *envoy_listener_v3.Listener: // LDS
-		return x.Name
-	case *envoy_route_v3.RouteConfiguration: // RDS
-		return x.Name
-	case *envoy_cluster_v3.Cluster: // CDS
-		return x.Name
-	case *envoy_endpoint_v3.ClusterLoadAssignment: // EDS
-		return x.ClusterName
-	default:
-		return ""
-	}
-}
-
 func hashResourceMap(resources map[string]proto.Message) (map[string]string, error) {
 	m := make(map[string]string)
 	for name, res := range resources {
@@ -885,15 +998,13 @@ func hashResourceMap(resources map[string]proto.Message) (map[string]string, err
 // hashResource will take a resource and create a SHA256 hash sum out of the marshaled bytes
 func hashResource(res proto.Message) (string, error) {
 	h := sha256.New()
-	buffer := proto.NewBuffer(nil)
-	buffer.SetDeterministic(true)
+	marshaller := proto.MarshalOptions{Deterministic: true}
 
-	err := buffer.Marshal(res)
+	data, err := marshaller.Marshal(res)
 	if err != nil {
 		return "", err
 	}
-	h.Write(buffer.Bytes())
-	buffer.Reset()
+	h.Write(data)
 
 	return hex.EncodeToString(h.Sum(nil)), nil
 }

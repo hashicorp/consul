@@ -79,7 +79,7 @@ export default class KvService extends RepositoryService {
     //   async () => {
     let items = await this.findAll(...arguments);
     const meta = items.meta;
-    items = items.filter(item => params.id !== get(item, 'Key'));
+    items = items.filter((item) => params.id !== get(item, 'Key'));
     items.meta = meta;
     return items;
     // },

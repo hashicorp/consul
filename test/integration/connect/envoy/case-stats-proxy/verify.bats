@@ -30,7 +30,7 @@ load helpers
 @test "s1 upstream should be able to connect to s2 with http/1.1" {
   run retry_default curl --http1.1 -s -f -d hello localhost:5000
   [ "$status" -eq 0 ]
-  [ "$output" = "hello" ]
+  [[ "$output" == *"hello"* ]]
 }
 
 @test "s1 proxy should be exposing the /stats prefix" {
@@ -47,16 +47,16 @@ load helpers
 
   # Response should include the http public listener.
   retry_default \
-     must_match_in_stats_proxy_response localhost:1239 \
+    must_match_in_stats_proxy_response localhost:1239 \
     'stats' 'http.public_listener'
 
   # /stats/prometheus should also be reachable and labelling the local cluster.
   retry_default \
-     must_match_in_stats_proxy_response localhost:1239 \
+    must_match_in_stats_proxy_response localhost:1239 \
     'stats/prometheus' '[\{,]consul_source_service="s1"[,}]'
 
   # /stats/prometheus should also be reachable and exposing metrics.
   retry_default \
-     must_match_in_stats_proxy_response localhost:1239 \
+    must_match_in_stats_proxy_response localhost:1239 \
     'stats/prometheus' 'envoy_http_downstream_rq_active'
 }

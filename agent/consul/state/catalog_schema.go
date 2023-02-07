@@ -418,7 +418,7 @@ func indexServiceNameFromHealthCheck(hc *structs.HealthCheck) ([]byte, error) {
 	return b.Bytes(), nil
 }
 
-//  gatewayServicesTableSchema returns a new table schema used to store information
+// gatewayServicesTableSchema returns a new table schema used to store information
 // about services associated with terminating gateways.
 func gatewayServicesTableSchema() *memdb.TableSchema {
 	return &memdb.TableSchema{

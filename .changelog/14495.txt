@@ -1,0 +1,3 @@
+```release-note:feature
+ui: Detect a TokenSecretID cookie and passthrough to localStorage
+```

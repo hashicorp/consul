@@ -60,10 +60,10 @@ func TestExportedServicesConfigEntry(t *testing.T) {
 						Name: "web",
 						Consumers: []ServiceConsumer{
 							{
-								PeerName: "foo",
+								Peer: "foo",
 							},
 							{
-								PeerName: "*",
+								Peer: "*",
 							},
 						},
 					},
@@ -80,13 +80,13 @@ func TestExportedServicesConfigEntry(t *testing.T) {
 						Consumers: []ServiceConsumer{
 							{
 								Partition: "foo",
-								PeerName:  "bar",
+								Peer:      "bar",
 							},
 						},
 					},
 				},
 			},
-			validateErr: `Services[0].Consumers[0]: must define at most one of PeerName or Partition`,
+			validateErr: `Services[0].Consumers[0]: must define at most one of Peer or Partition`,
 		},
 	}
 

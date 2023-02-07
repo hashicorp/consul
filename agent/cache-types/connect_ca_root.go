@@ -1,6 +1,7 @@
 package cachetype
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/hashicorp/consul/agent/cache"
@@ -38,7 +39,7 @@ func (c *ConnectCARoot) Fetch(opts cache.FetchOptions, req cache.Request) (cache
 
 	// Fetch
 	var reply structs.IndexedCARoots
-	if err := c.RPC.RPC("ConnectCA.Roots", reqReal, &reply); err != nil {
+	if err := c.RPC.RPC(context.Background(), "ConnectCA.Roots", reqReal, &reply); err != nil {
 		return result, err
 	}
 

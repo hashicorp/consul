@@ -6,8 +6,6 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/mitchellh/copystructure"
-
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/proxycfg/internal/watch"
 	"github.com/hashicorp/consul/agent/structs"
@@ -57,6 +55,16 @@ type ConfigSnapshotUpstreams struct {
 	// GatewayKey.String() -> CheckServiceNodes) and is used to determine the
 	// backing endpoints of a mesh gateway.
 	WatchedGatewayEndpoints map[UpstreamID]map[string]structs.CheckServiceNodes
+
+	// WatchedLocalGWEndpoints is used to store the backing endpoints of
+	// a local mesh gateway. Currently, this is used by peered upstreams
+	// configured with local mesh gateway mode so that they can watch for
+	// gateway endpoints.
+	//
+	// Note that the string form of GatewayKey is used as the key so empty
+	// fields can be normalized in OSS.
+	//   GatewayKey.String() -> structs.CheckServiceNodes
+	WatchedLocalGWEndpoints watch.Map[string, structs.CheckServiceNodes]
 
 	// UpstreamConfig is a map to an upstream's configuration.
 	UpstreamConfig map[UpstreamID]*structs.Upstream
@@ -179,6 +187,20 @@ func (c *configSnapshotConnectProxy) IsImplicitUpstream(uid UpstreamID) bool {
 	_, intentionImplicit := c.IntentionUpstreams[uid]
 	_, peeringImplicit := c.PeeredUpstreams[uid]
 	return intentionImplicit || peeringImplicit
+}
+
+func (c *configSnapshotConnectProxy) GetUpstream(uid UpstreamID, entMeta *acl.EnterpriseMeta) (*structs.Upstream, bool) {
+	upstream, found := c.UpstreamConfig[uid]
+	// We should fallback to the wildcard defaults generated from service-defaults + proxy-defaults
+	// whenever we don't find the upstream config.
+	if !found {
+		wildcardUID := NewWildcardUID(entMeta)
+		upstream = c.UpstreamConfig[wildcardUID]
+	}
+
+	explicit := upstream != nil && upstream.HasLocalPortOrSocket()
+	implicit := c.IsImplicitUpstream(uid)
+	return upstream, !implicit && !explicit
 }
 
 type configSnapshotTerminatingGateway struct {
@@ -338,6 +360,17 @@ func (c *configSnapshotTerminatingGateway) isEmpty() bool {
 		!c.MeshConfigSet
 }
 
+type PeerServersValue struct {
+	Addresses []structs.ServiceAddress
+	Index     uint64
+	UseCDS    bool
+}
+
+type PeeringServiceValue struct {
+	Nodes  structs.CheckServiceNodes
+	UseCDS bool
+}
+
 type configSnapshotMeshGateway struct {
 	// WatchedServices is a map of service name to a cancel function. This cancel
 	// function is tied to the watch of connect enabled services for the given
@@ -363,6 +396,19 @@ type configSnapshotMeshGateway struct {
 	// service in the local datacenter.
 	ServiceGroups map[structs.ServiceName]structs.CheckServiceNodes
 
+	// PeeringServices is a map of peer name -> (map of
+	// service name -> CheckServiceNodes) and is used to determine the backing
+	// endpoints of a service on a peer.
+	PeeringServices map[string]map[structs.ServiceName]PeeringServiceValue
+
+	// WatchedPeeringServices is a map of peer name -> (map of service name ->
+	// cancel function) and is used to track watches on services within a peer.
+	WatchedPeeringServices map[string]map[structs.ServiceName]context.CancelFunc
+
+	// WatchedPeers is a map of peer name -> cancel functions. It is used to
+	// track watches on peers.
+	WatchedPeers map[string]context.CancelFunc
+
 	// ServiceResolvers is a map of service name to an associated
 	// service-resolver config entry for that service.
 	ServiceResolvers map[structs.ServiceName]*structs.ServiceResolverConfigEntry
@@ -375,8 +421,11 @@ type configSnapshotMeshGateway struct {
 	// datacenter.
 	FedStateGateways map[string]structs.CheckServiceNodes
 
-	// ConsulServers is the list of consul servers in this datacenter.
-	ConsulServers structs.CheckServiceNodes
+	// WatchedLocalServers is a map of (structs.ConsulServiceName -> structs.CheckServiceNodes)`
+	// Mesh gateways can spin up watches for local servers both for
+	// WAN federation and for peering. This map ensures we only have one
+	// watch at a time.
+	WatchedLocalServers watch.Map[string, structs.CheckServiceNodes]
 
 	// HostnameDatacenters is a map of datacenters to mesh gateway instances with a hostname as the address.
 	// If hostnames are configured they must be provided to Envoy via CDS not EDS.
@@ -418,6 +467,13 @@ type configSnapshotMeshGateway struct {
 	// leaf cert watch with different parameters.
 	LeafCertWatchCancel context.CancelFunc
 
+	// PeerServers is the map of peering server names to their addresses.
+	PeerServers map[string]PeerServersValue
+
+	// PeerServersWatchCancel is a CancelFunc to use when resetting the watch
+	// on all peerings as it is enabled/disabled.
+	PeerServersWatchCancel context.CancelFunc
+
 	// PeeringTrustBundles is the list of trust bundles for peers where
 	// services have been exported to using this mesh gateway.
 	PeeringTrustBundles []*pbpeering.PeeringTrustBundle
@@ -438,6 +494,10 @@ func (c *ConfigSnapshot) MeshGatewayValidExportedServices() []structs.ServiceNam
 	for _, svc := range c.MeshGateway.ExportedServicesSlice {
 		if _, ok := c.MeshGateway.ExportedServicesWithPeers[svc]; !ok {
 			continue // not possible
+		}
+
+		if _, ok := c.MeshGateway.ServiceGroups[svc]; !ok {
+			continue // unregistered services
 		}
 
 		chain, ok := c.MeshGateway.DiscoveryChain[svc]
@@ -556,8 +616,8 @@ func (c *configSnapshotMeshGateway) isEmpty() bool {
 		len(c.ServiceResolvers) == 0 &&
 		len(c.GatewayGroups) == 0 &&
 		len(c.FedStateGateways) == 0 &&
-		len(c.ConsulServers) == 0 &&
 		len(c.HostnameDatacenters) == 0 &&
+		c.WatchedLocalServers.Len() == 0 &&
 		c.isEmptyPeering()
 }
 
@@ -609,6 +669,9 @@ type configSnapshotIngressGateway struct {
 	// Listeners is the original listener config from the ingress-gateway config
 	// entry to save us trying to pass fields through Upstreams
 	Listeners map[IngressListenerKey]structs.IngressListener
+
+	// Defaults is the default configuration for upstream service instances
+	Defaults structs.IngressServiceConfig
 }
 
 // isEmpty is a test helper
@@ -690,8 +753,11 @@ func (s *ConfigSnapshot) Valid() bool {
 			s.TerminatingGateway.MeshConfigSet
 
 	case structs.ServiceKindMeshGateway:
-		if s.ServiceMeta[structs.MetaWANFederationKey] == "1" {
-			if len(s.MeshGateway.ConsulServers) == 0 {
+		if s.MeshGateway.WatchedLocalServers.Len() == 0 {
+			if s.ServiceMeta[structs.MetaWANFederationKey] == "1" {
+				return false
+			}
+			if cfg := s.MeshConfig(); cfg.PeerThroughMeshGateways() {
 				return false
 			}
 		}
@@ -714,13 +780,8 @@ func (s *ConfigSnapshot) Valid() bool {
 
 // Clone makes a deep copy of the snapshot we can send to other goroutines
 // without worrying that they will racily read or mutate shared maps etc.
-func (s *ConfigSnapshot) Clone() (*ConfigSnapshot, error) {
-	snapCopy, err := copystructure.Copy(s)
-	if err != nil {
-		return nil, err
-	}
-
-	snap := snapCopy.(*ConfigSnapshot)
+func (s *ConfigSnapshot) Clone() *ConfigSnapshot {
+	snap := s.DeepCopy()
 
 	// nil these out as anything receiving one of these clones does not need them and should never "cancel" our watches
 	switch s.Kind {
@@ -747,7 +808,7 @@ func (s *ConfigSnapshot) Clone() (*ConfigSnapshot, error) {
 		snap.IngressGateway.LeafCertWatchCancel = nil
 	}
 
-	return snap, nil
+	return snap
 }
 
 func (s *ConfigSnapshot) Leaf() *structs.IssuedCert {
@@ -814,10 +875,22 @@ func (s *ConfigSnapshot) MeshConfigTLSOutgoing() *structs.MeshDirectionalTLSConf
 	return mesh.TLS.Outgoing
 }
 
-func (u *ConfigSnapshotUpstreams) UpstreamPeerMeta(uid UpstreamID) structs.PeeringServiceMeta {
+func (s *ConfigSnapshot) ToConfigSnapshotUpstreams() (*ConfigSnapshotUpstreams, error) {
+	switch s.Kind {
+	case structs.ServiceKindConnectProxy:
+		return &s.ConnectProxy.ConfigSnapshotUpstreams, nil
+	case structs.ServiceKindIngressGateway:
+		return &s.IngressGateway.ConfigSnapshotUpstreams, nil
+	default:
+		// This is a coherence check and should never fail
+		return nil, fmt.Errorf("No upstream snapshot for gateway mode %q", s.Kind)
+	}
+}
+
+func (u *ConfigSnapshotUpstreams) UpstreamPeerMeta(uid UpstreamID) (structs.PeeringServiceMeta, bool) {
 	nodes, _ := u.PeerUpstreamEndpoints.Get(uid)
 	if len(nodes) == 0 {
-		return structs.PeeringServiceMeta{}
+		return structs.PeeringServiceMeta{}, false
 	}
 
 	// In agent/rpc/peering/subscription_manager.go we denormalize the
@@ -833,9 +906,9 @@ func (u *ConfigSnapshotUpstreams) UpstreamPeerMeta(uid UpstreamID) structs.Peeri
 	// catalog to avoid this weird construction.
 	csn := nodes[0]
 	if csn.Service == nil {
-		return structs.PeeringServiceMeta{}
+		return structs.PeeringServiceMeta{}, false
 	}
-	return *csn.Service.Connect.PeerMeta
+	return *csn.Service.Connect.PeerMeta, true
 }
 
 // PeeredUpstreamIDs returns a slice of peered UpstreamIDs from explicit config entries

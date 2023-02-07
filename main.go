@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"os"
 
@@ -24,7 +24,7 @@ func main() {
 }
 
 func realMain() int {
-	log.SetOutput(ioutil.Discard)
+	log.SetOutput(io.Discard)
 
 	ui := &cli.BasicUI{
 		BasicUi: mcli.BasicUi{Writer: os.Stdout, ErrorWriter: os.Stderr},

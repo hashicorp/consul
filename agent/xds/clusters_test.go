@@ -8,15 +8,15 @@ import (
 	"text/template"
 
 	envoy_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
+	"github.com/hashicorp/consul/agent/xds/testcommon"
 
-	"github.com/golang/protobuf/ptypes/wrappers"
 	testinf "github.com/mitchellh/go-testing-interface"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/agent/xds/proxysupport"
-	"github.com/hashicorp/consul/agent/xds/xdscommon"
+	"github.com/hashicorp/consul/envoyextensions/xdscommon"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/types"
 )
@@ -166,6 +166,18 @@ func TestClustersFromSnapshot(t *testing.T) {
 				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
 					ns.Proxy.Config["local_connect_timeout_ms"] = 1234
 					ns.Proxy.Upstreams[0].Config["connect_timeout_ms"] = 2345
+				}, nil)
+			},
+		},
+		{
+			name: "custom-passive-healthcheck",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
+					ns.Proxy.Upstreams[0].Config["passive_health_check"] = map[string]interface{}{
+						"enforcing_consecutive_5xx": float64(80),
+						"max_failures":              float64(5),
+						"interval":                  float64(10),
+					}
 				}, nil)
 			},
 		},
@@ -401,10 +413,27 @@ func TestClustersFromSnapshot(t *testing.T) {
 			},
 		},
 		{
+			name: "mesh-gateway-tcp-keepalives",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotMeshGateway(t, "default", func(ns *structs.NodeService) {
+					ns.Proxy.Config["envoy_gateway_remote_tcp_enable_keepalive"] = true
+					ns.Proxy.Config["envoy_gateway_remote_tcp_keepalive_time"] = 120
+					ns.Proxy.Config["envoy_gateway_remote_tcp_keepalive_interval"] = 60
+					ns.Proxy.Config["envoy_gateway_remote_tcp_keepalive_probes"] = 7
+				}, nil)
+			},
+		},
+		{
 			name: "ingress-gateway",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotIngressGateway(t, true, "tcp",
 					"default", nil, nil, nil)
+			},
+		},
+		{
+			name: "ingress-gateway-nil-config-entry",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotIngressGateway_NilConfigEntry(t)
 			},
 		},
 		{
@@ -482,6 +511,104 @@ func TestClustersFromSnapshot(t *testing.T) {
 			},
 		},
 		{
+			name: "ingress-with-service-max-connections",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotIngressGateway(t, true, "tcp",
+					"simple", nil,
+					func(entry *structs.IngressGatewayConfigEntry) {
+						entry.Listeners[0].Services[0].MaxConnections = 4096
+					}, nil)
+			},
+		},
+		{
+			name: "ingress-with-defaults-service-max-connections",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotIngressGateway(t, true, "tcp",
+					"simple", nil,
+					func(entry *structs.IngressGatewayConfigEntry) {
+						entry.Defaults = &structs.IngressServiceConfig{
+							MaxConnections:        2048,
+							MaxPendingRequests:    512,
+							MaxConcurrentRequests: 4096,
+						}
+					}, nil)
+			},
+		},
+		{
+			name: "ingress-with-overwrite-defaults-service-max-connections",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotIngressGateway(t, true, "tcp",
+					"simple", nil,
+					func(entry *structs.IngressGatewayConfigEntry) {
+						entry.Defaults = &structs.IngressServiceConfig{
+							MaxConnections:     2048,
+							MaxPendingRequests: 512,
+						}
+						entry.Listeners[0].Services[0].MaxConnections = 4096
+						entry.Listeners[0].Services[0].MaxPendingRequests = 2048
+					}, nil)
+			},
+		},
+		{
+			name: "ingress-with-service-passive-health-check",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotIngressGateway(t, true, "tcp",
+					"simple", nil,
+					func(entry *structs.IngressGatewayConfigEntry) {
+						entry.Listeners[0].Services[0].MaxConnections = 4096
+						entry.Listeners[0].Services[0].PassiveHealthCheck = &structs.PassiveHealthCheck{
+							Interval:    5000000000,
+							MaxFailures: 10,
+						}
+					}, nil)
+			},
+		},
+		{
+			name: "ingress-with-defaults-passive-health-check",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotIngressGateway(t, true, "tcp",
+					"simple", nil,
+					func(entry *structs.IngressGatewayConfigEntry) {
+						enforcingConsecutive5xx := uint32(80)
+						entry.Defaults = &structs.IngressServiceConfig{
+							MaxConnections:        2048,
+							MaxPendingRequests:    512,
+							MaxConcurrentRequests: 4096,
+							PassiveHealthCheck: &structs.PassiveHealthCheck{
+								Interval:                5000000000,
+								MaxFailures:             10,
+								EnforcingConsecutive5xx: &enforcingConsecutive5xx,
+							},
+						}
+					}, nil)
+			},
+		},
+		{
+			name: "ingress-with-overwrite-defaults-passive-health-check",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotIngressGateway(t, true, "tcp",
+					"simple", nil,
+					func(entry *structs.IngressGatewayConfigEntry) {
+						defaultEnforcingConsecutive5xx := uint32(80)
+						entry.Defaults = &structs.IngressServiceConfig{
+							MaxConnections:     2048,
+							MaxPendingRequests: 512,
+							PassiveHealthCheck: &structs.PassiveHealthCheck{
+								Interval:                5000000000,
+								EnforcingConsecutive5xx: &defaultEnforcingConsecutive5xx,
+							},
+						}
+						enforcingConsecutive5xx := uint32(50)
+						entry.Listeners[0].Services[0].MaxConnections = 4096
+						entry.Listeners[0].Services[0].MaxPendingRequests = 2048
+						entry.Listeners[0].Services[0].PassiveHealthCheck = &structs.PassiveHealthCheck{
+							Interval:                8000000000,
+							EnforcingConsecutive5xx: &enforcingConsecutive5xx,
+						}
+					}, nil)
+			},
+		},
+		{
 			name: "ingress-with-chain-external-sni",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotIngressGateway(t, true, "tcp",
@@ -493,6 +620,13 @@ func TestClustersFromSnapshot(t *testing.T) {
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotIngressGateway(t, true, "tcp",
 					"failover", nil, nil, nil)
+			},
+		},
+		{
+			name: "ingress-with-chain-and-failover-to-cluster-peer",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotIngressGateway(t, true, "tcp",
+					"failover-to-cluster-peer", nil, nil, nil)
 			},
 		},
 		{
@@ -606,6 +740,20 @@ func TestClustersFromSnapshot(t *testing.T) {
 			create: proxycfg.TestConfigSnapshotTerminatingGatewayLBConfigNoHashPolicies,
 		},
 		{
+			name: "terminating-gateway-tcp-keepalives",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotTerminatingGateway(t, true, func(ns *structs.NodeService) {
+					if ns.Proxy.Config == nil {
+						ns.Proxy.Config = map[string]interface{}{}
+					}
+					ns.Proxy.Config["envoy_gateway_remote_tcp_enable_keepalive"] = true
+					ns.Proxy.Config["envoy_gateway_remote_tcp_keepalive_time"] = 133
+					ns.Proxy.Config["envoy_gateway_remote_tcp_keepalive_interval"] = 27
+					ns.Proxy.Config["envoy_gateway_remote_tcp_keepalive_probes"] = 5
+				}, nil)
+			},
+		},
+		{
 			name:   "ingress-multiple-listeners-duplicate-service",
 			create: proxycfg.TestConfigSnapshotIngress_MultipleListenersDuplicateService,
 		},
@@ -619,9 +767,9 @@ func TestClustersFromSnapshot(t *testing.T) {
 		},
 	}
 
-	latestEnvoyVersion := proxysupport.EnvoyVersions[0]
-	for _, envoyVersion := range proxysupport.EnvoyVersions {
-		sf, err := determineSupportedProxyFeaturesFromString(envoyVersion)
+	latestEnvoyVersion := xdscommon.EnvoyVersions[0]
+	for _, envoyVersion := range xdscommon.EnvoyVersions {
+		sf, err := xdscommon.DetermineSupportedProxyFeaturesFromString(envoyVersion)
 		require.NoError(t, err)
 		t.Run("envoy-"+envoyVersion, func(t *testing.T) {
 			for _, tt := range tests {
@@ -632,10 +780,10 @@ func TestClustersFromSnapshot(t *testing.T) {
 					// We need to replace the TLS certs with deterministic ones to make golden
 					// files workable. Note we don't update these otherwise they'd change
 					// golder files for every test case and so not be any use!
-					setupTLSRootsAndLeaf(t, snap)
+					testcommon.SetupTLSRootsAndLeaf(t, snap)
 
 					// Need server just for logger dependency
-					g := newResourceGenerator(testutil.Logger(t), nil, false)
+					g := NewResourceGenerator(testutil.Logger(t), nil, false)
 					g.ProxyFeatures = sf
 
 					clusters, err := g.clustersFromSnapshot(snap)
@@ -713,25 +861,6 @@ func customAppClusterJSON(t testinf.T, opts customClusterJSONOptions) string {
 	return buf.String()
 }
 
-func setupTLSRootsAndLeaf(t *testing.T, snap *proxycfg.ConfigSnapshot) {
-	if snap.Leaf() != nil {
-		switch snap.Kind {
-		case structs.ServiceKindConnectProxy:
-			snap.ConnectProxy.Leaf.CertPEM = loadTestResource(t, "test-leaf-cert")
-			snap.ConnectProxy.Leaf.PrivateKeyPEM = loadTestResource(t, "test-leaf-key")
-		case structs.ServiceKindIngressGateway:
-			snap.IngressGateway.Leaf.CertPEM = loadTestResource(t, "test-leaf-cert")
-			snap.IngressGateway.Leaf.PrivateKeyPEM = loadTestResource(t, "test-leaf-key")
-		case structs.ServiceKindMeshGateway:
-			snap.MeshGateway.Leaf.CertPEM = loadTestResource(t, "test-leaf-cert")
-			snap.MeshGateway.Leaf.PrivateKeyPEM = loadTestResource(t, "test-leaf-key")
-		}
-	}
-	if snap.Roots != nil {
-		snap.Roots.Roots[0].RootCert = loadTestResource(t, "test-root-cert")
-	}
-}
-
 func TestEnvoyLBConfig_InjectToCluster(t *testing.T) {
 	var tests = []struct {
 		name     string
@@ -779,8 +908,8 @@ func TestEnvoyLBConfig_InjectToCluster(t *testing.T) {
 				LbPolicy: envoy_cluster_v3.Cluster_RING_HASH,
 				LbConfig: &envoy_cluster_v3.Cluster_RingHashLbConfig_{
 					RingHashLbConfig: &envoy_cluster_v3.Cluster_RingHashLbConfig{
-						MinimumRingSize: &wrappers.UInt64Value{Value: 3},
-						MaximumRingSize: &wrappers.UInt64Value{Value: 7},
+						MinimumRingSize: &wrapperspb.UInt64Value{Value: 3},
+						MaximumRingSize: &wrapperspb.UInt64Value{Value: 7},
 					},
 				},
 			},
@@ -797,7 +926,7 @@ func TestEnvoyLBConfig_InjectToCluster(t *testing.T) {
 				LbPolicy: envoy_cluster_v3.Cluster_LEAST_REQUEST,
 				LbConfig: &envoy_cluster_v3.Cluster_LeastRequestLbConfig_{
 					LeastRequestLbConfig: &envoy_cluster_v3.Cluster_LeastRequestLbConfig{
-						ChoiceCount: &wrappers.UInt32Value{Value: 3},
+						ChoiceCount: &wrapperspb.UInt32Value{Value: 3},
 					},
 				},
 			},

@@ -14,18 +14,27 @@ type Tracker struct {
 	mu      sync.RWMutex
 	streams map[string]*MutableStatus
 
+	// heartbeatTimeout is the max duration a connection is allowed to be
+	// disconnected before the stream health is reported as non-healthy
+	heartbeatTimeout time.Duration
+
 	// timeNow is a shim for testing.
 	timeNow func() time.Time
 }
 
-func NewTracker() *Tracker {
+func NewTracker(heartbeatTimeout time.Duration) *Tracker {
+	if heartbeatTimeout == 0 {
+		heartbeatTimeout = defaultIncomingHeartbeatTimeout
+	}
 	return &Tracker{
-		streams: make(map[string]*MutableStatus),
-		timeNow: time.Now,
+		streams:          make(map[string]*MutableStatus),
+		timeNow:          time.Now,
+		heartbeatTimeout: heartbeatTimeout,
 	}
 }
 
-func (t *Tracker) SetClock(clock func() time.Time) {
+// setClock is used for debugging purposes only.
+func (t *Tracker) setClock(clock func() time.Time) {
 	if clock == nil {
 		t.timeNow = time.Now
 	} else {
@@ -101,7 +110,9 @@ func (t *Tracker) StreamStatus(id string) (resp Status, found bool) {
 
 	s, ok := t.streams[id]
 	if !ok {
-		return Status{}, false
+		return Status{
+			NeverConnected: true,
+		}, false
 	}
 	return s.GetStatus(), true
 }
@@ -126,6 +137,49 @@ func (t *Tracker) DeleteStatus(id string) {
 	delete(t.streams, id)
 }
 
+// IsHealthy is a calculates the health of a peering status.
+// We define a peering as unhealthy if its status has been in the following
+// states for longer than the configured incomingHeartbeatTimeout.
+//   - If it is disconnected
+//   - If the last received Nack is newer than last received Ack
+//   - If the last received error is newer than last received success
+//
+// If none of these conditions apply, we call the peering healthy.
+func (t *Tracker) IsHealthy(s Status) bool {
+	// If stream is in a disconnected state for longer than the configured
+	// heartbeat timeout, report as unhealthy.
+	if s.DisconnectTime != nil &&
+		t.timeNow().Sub(*s.DisconnectTime) > t.heartbeatTimeout {
+		return false
+	}
+
+	// If last Nack is after last Ack, it means the peer is unable to
+	// handle our replication message
+	if s.LastAck == nil {
+		s.LastAck = &time.Time{}
+	}
+
+	if s.LastNack != nil &&
+		s.LastNack.After(*s.LastAck) &&
+		t.timeNow().Sub(*s.LastAck) > t.heartbeatTimeout {
+		return false
+	}
+
+	// If last recv error is newer than last recv success, we were unable
+	// to handle the peer's replication message.
+	if s.LastRecvResourceSuccess == nil {
+		s.LastRecvResourceSuccess = &time.Time{}
+	}
+
+	if s.LastRecvError != nil &&
+		s.LastRecvError.After(*s.LastRecvResourceSuccess) &&
+		t.timeNow().Sub(*s.LastRecvError) > t.heartbeatTimeout {
+		return false
+	}
+
+	return true
+}
+
 type MutableStatus struct {
 	mu sync.RWMutex
 
@@ -145,47 +199,53 @@ type Status struct {
 	// Connected is true when there is an open stream for the peer.
 	Connected bool
 
+	// NeverConnected is true for peerings that have never connected, false otherwise.
+	NeverConnected bool
+
 	// DisconnectErrorMessage tracks the error that caused the stream to disconnect non-gracefully.
 	// If the stream is connected or it disconnected gracefully it will be empty.
 	DisconnectErrorMessage string
 
 	// If the status is not connected, DisconnectTime tracks when the stream was closed. Else it's zero.
-	DisconnectTime time.Time
+	DisconnectTime *time.Time
 
 	// LastAck tracks the time we received the last ACK for a resource replicated TO the peer.
-	LastAck time.Time
+	LastAck *time.Time
 
 	// LastNack tracks the time we received the last NACK for a resource replicated to the peer.
-	LastNack time.Time
+	LastNack *time.Time
 
 	// LastNackMessage tracks the reported error message associated with the last NACK from a peer.
 	LastNackMessage string
 
 	// LastSendError tracks the time of the last error sending into the stream.
-	LastSendError time.Time
+	LastSendError *time.Time
 
 	// LastSendErrorMessage tracks the last error message when sending into the stream.
 	LastSendErrorMessage string
 
+	// LastSendSuccess tracks the time we last successfully sent a resource TO the peer.
+	LastSendSuccess *time.Time
+
 	// LastRecvHeartbeat tracks when we last received a heartbeat from our peer.
-	LastRecvHeartbeat time.Time
+	LastRecvHeartbeat *time.Time
 
 	// LastRecvResourceSuccess tracks the time we last successfully stored a resource replicated FROM the peer.
-	LastRecvResourceSuccess time.Time
+	LastRecvResourceSuccess *time.Time
 
 	// LastRecvError tracks either:
 	// - The time we failed to store a resource replicated FROM the peer.
 	// - The time of the last error when receiving from the stream.
-	LastRecvError time.Time
+	LastRecvError *time.Time
 
 	// LastRecvErrorMessage tracks the last error message when receiving from the stream.
 	LastRecvErrorMessage string
 
 	// TODO(peering): consider keeping track of imported and exported services thru raft
 	// ImportedServices keeps track of which service names are imported for the peer
-	ImportedServices map[string]struct{}
+	ImportedServices []string
 	// ExportedServices keeps track of which service names a peer asks to export
-	ExportedServices map[string]struct{}
+	ExportedServices []string
 }
 
 func (s *Status) GetImportedServicesCount() uint64 {
@@ -199,7 +259,8 @@ func (s *Status) GetExportedServicesCount() uint64 {
 func newMutableStatus(now func() time.Time, connected bool) *MutableStatus {
 	return &MutableStatus{
 		Status: Status{
-			Connected: connected,
+			Connected:      connected,
+			NeverConnected: !connected,
 		},
 		timeNow: now,
 		doneCh:  make(chan struct{}),
@@ -212,41 +273,47 @@ func (s *MutableStatus) Done() <-chan struct{} {
 
 func (s *MutableStatus) TrackAck() {
 	s.mu.Lock()
-	s.LastAck = s.timeNow().UTC()
+	s.LastAck = ptr(s.timeNow().UTC())
 	s.mu.Unlock()
 }
 
 func (s *MutableStatus) TrackSendError(error string) {
 	s.mu.Lock()
-	s.LastSendError = s.timeNow().UTC()
+	s.LastSendError = ptr(s.timeNow().UTC())
 	s.LastSendErrorMessage = error
+	s.mu.Unlock()
+}
+
+func (s *MutableStatus) TrackSendSuccess() {
+	s.mu.Lock()
+	s.LastSendSuccess = ptr(s.timeNow().UTC())
 	s.mu.Unlock()
 }
 
 // TrackRecvResourceSuccess tracks receiving a replicated resource.
 func (s *MutableStatus) TrackRecvResourceSuccess() {
 	s.mu.Lock()
-	s.LastRecvResourceSuccess = s.timeNow().UTC()
+	s.LastRecvResourceSuccess = ptr(s.timeNow().UTC())
 	s.mu.Unlock()
 }
 
 // TrackRecvHeartbeat tracks receiving a heartbeat from our peer.
 func (s *MutableStatus) TrackRecvHeartbeat() {
 	s.mu.Lock()
-	s.LastRecvHeartbeat = s.timeNow().UTC()
+	s.LastRecvHeartbeat = ptr(s.timeNow().UTC())
 	s.mu.Unlock()
 }
 
 func (s *MutableStatus) TrackRecvError(error string) {
 	s.mu.Lock()
-	s.LastRecvError = s.timeNow().UTC()
+	s.LastRecvError = ptr(s.timeNow().UTC())
 	s.LastRecvErrorMessage = error
 	s.mu.Unlock()
 }
 
 func (s *MutableStatus) TrackNack(msg string) {
 	s.mu.Lock()
-	s.LastNack = s.timeNow().UTC()
+	s.LastNack = ptr(s.timeNow().UTC())
 	s.LastNackMessage = msg
 	s.mu.Unlock()
 }
@@ -254,7 +321,7 @@ func (s *MutableStatus) TrackNack(msg string) {
 func (s *MutableStatus) TrackConnected() {
 	s.mu.Lock()
 	s.Connected = true
-	s.DisconnectTime = time.Time{}
+	s.DisconnectTime = &time.Time{}
 	s.DisconnectErrorMessage = ""
 	s.mu.Unlock()
 }
@@ -264,7 +331,7 @@ func (s *MutableStatus) TrackConnected() {
 func (s *MutableStatus) TrackDisconnectedGracefully() {
 	s.mu.Lock()
 	s.Connected = false
-	s.DisconnectTime = s.timeNow().UTC()
+	s.DisconnectTime = ptr(s.timeNow().UTC())
 	s.DisconnectErrorMessage = ""
 	s.mu.Unlock()
 }
@@ -274,7 +341,7 @@ func (s *MutableStatus) TrackDisconnectedGracefully() {
 func (s *MutableStatus) TrackDisconnectedDueToError(error string) {
 	s.mu.Lock()
 	s.Connected = false
-	s.DisconnectTime = s.timeNow().UTC()
+	s.DisconnectTime = ptr(s.timeNow().UTC())
 	s.DisconnectErrorMessage = error
 	s.mu.Unlock()
 }
@@ -297,22 +364,15 @@ func (s *MutableStatus) GetStatus() Status {
 	return copy
 }
 
-func (s *MutableStatus) RemoveImportedService(sn structs.ServiceName) {
+func (s *MutableStatus) SetImportedServices(serviceNames []structs.ServiceName) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	delete(s.ImportedServices, sn.String())
-}
+	s.ImportedServices = make([]string, len(serviceNames))
 
-func (s *MutableStatus) TrackImportedService(sn structs.ServiceName) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	if s.ImportedServices == nil {
-		s.ImportedServices = make(map[string]struct{})
+	for i, sn := range serviceNames {
+		s.ImportedServices[i] = sn.Name
 	}
-
-	s.ImportedServices[sn.String()] = struct{}{}
 }
 
 func (s *MutableStatus) GetImportedServicesCount() int {
@@ -322,22 +382,15 @@ func (s *MutableStatus) GetImportedServicesCount() int {
 	return len(s.ImportedServices)
 }
 
-func (s *MutableStatus) RemoveExportedService(sn structs.ServiceName) {
+func (s *MutableStatus) SetExportedServices(serviceNames []structs.ServiceName) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	delete(s.ExportedServices, sn.String())
-}
+	s.ExportedServices = make([]string, len(serviceNames))
 
-func (s *MutableStatus) TrackExportedService(sn structs.ServiceName) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	if s.ExportedServices == nil {
-		s.ExportedServices = make(map[string]struct{})
+	for i, sn := range serviceNames {
+		s.ExportedServices[i] = sn.Name
 	}
-
-	s.ExportedServices[sn.String()] = struct{}{}
 }
 
 func (s *MutableStatus) GetExportedServicesCount() int {
@@ -345,4 +398,8 @@ func (s *MutableStatus) GetExportedServicesCount() int {
 	defer s.mu.RUnlock()
 
 	return len(s.ExportedServices)
+}
+
+func ptr[T any](x T) *T {
+	return &x
 }

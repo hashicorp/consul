@@ -39,6 +39,7 @@ func TestCloneSerfLANConfig(t *testing.T) {
 		"Ping",
 		"ProtocolVersion",
 		"PushPullInterval",
+		"QueueCheckInterval",
 		"RequireNodeNames",
 		"SkipInboundLabelCheck",
 		"SuspicionMaxTimeoutMult",

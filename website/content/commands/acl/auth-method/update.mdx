@@ -1,21 +1,23 @@
 ---
 layout: commands
 page_title: 'Commands: ACL Auth Method Update'
+description: |
+  The `consul acl auth-method update` command updates auth method configuration information.
 ---
 
 # Consul ACL Auth Method Update
 
 Command: `consul acl auth-method update`
 
-Corresponding HTTP API Endpoint: [\[PUT\] /v1/acl/auth-method/:name](/api-docs/acl/auth-methods#update-an-auth-method)
+Corresponding HTTP API Endpoint: [\[PUT\] /v1/acl/auth-method/:name](/consul/api-docs/acl/auth-methods#update-an-auth-method)
 
 The `acl auth-method update` command is used to update an auth method. The
 default operations is to merge the current auth method with those values
 provided to the command invocation. Therefore to update just one field, only
 the `-name` options and the option to modify must be provided.
 
-The table below shows this command's [required ACLs](/api#authentication). Configuration of
-[blocking queries](/api-docs/features/blocking) and [agent caching](/api-docs/features/caching)
+The table below shows this command's [required ACLs](/consul/api-docs/api-structure#authentication). Configuration of
+[blocking queries](/consul/api-docs/features/blocking) and [agent caching](/consul/api-docs/features/caching)
 are not supported from commands, but may be from the corresponding HTTP endpoint.
 
 | ACL Required |
@@ -25,12 +27,6 @@ are not supported from commands, but may be from the corresponding HTTP endpoint
 ## Usage
 
 Usage: `consul acl auth-method update [options] [args]`
-
-#### API Options
-
-@include 'http_api_options_client.mdx'
-
-@include 'http_api_options_server.mdx'
 
 #### Command Options
 
@@ -76,6 +72,8 @@ Usage: `consul acl auth-method update [options] [args]`
 
 #### Enterprise Options
 
+@include 'http_api_partition_options.mdx'
+
 @include 'http_api_namespace_options.mdx'
 
 - `-namespace-rule-bind-namespace=<value>` - Namespace to bind on match. Can
@@ -85,7 +83,11 @@ Usage: `consul acl auth-method update [options] [args]`
   verified identity attributes returned from the auth method during login to
   determine if the namespace rule applies. Added in Consul 1.8.0.
 
-@include 'http_api_partition_options.mdx'
+#### API Options
+
+@include 'http_api_options_client.mdx'
+
+@include 'http_api_options_server.mdx'
 
 ## Examples
 

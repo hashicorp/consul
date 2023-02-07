@@ -2,8 +2,42 @@
 
 set -euo pipefail
 
-# wait for bootstrap to apply config entries
-wait_for_config_entry ingress-gateway ingress-gateway
+upsert_config_entry primary '
+kind = "proxy-defaults"
+name = "global"
+config {
+  protocol = "http"
+}
+'
+
+upsert_config_entry primary '
+kind = "ingress-gateway"
+name = "ingress-gateway"
+tls {
+  enabled = true
+}
+listeners = [
+  {
+    port     = 9998
+    protocol = "http"
+    services = [
+      {
+        name = "s1"
+      }
+    ]
+  },
+  {
+    port     = 9999
+    protocol = "http"
+    services = [
+      {
+        name  = "s1"
+        hosts = ["test.example.com"]
+      }
+    ]
+  }
+]
+'
 
 register_services primary
 

@@ -1,0 +1,3 @@
+```release-note:bug
+agent: Fixes an issue where an agent that fails to start due to bad addresses won't clean up any existing listeners
+```

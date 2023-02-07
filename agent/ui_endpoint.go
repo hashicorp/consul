@@ -98,7 +98,7 @@ func (s *HTTPHandlers) UINodes(resp http.ResponseWriter, req *http.Request) (int
 	var out structs.IndexedNodeDump
 	defer setMeta(resp, &out.QueryMeta)
 RPC:
-	if err := s.agent.RPC("Internal.NodeDump", &args, &out); err != nil {
+	if err := s.agent.RPC(req.Context(), "Internal.NodeDump", &args, &out); err != nil {
 		// Retry the request allowing stale data if no leader
 		if strings.Contains(err.Error(), structs.ErrNoLeader.Error()) && !args.AllowStale {
 			args.AllowStale = true
@@ -160,7 +160,7 @@ func (s *HTTPHandlers) UINodeInfo(resp http.ResponseWriter, req *http.Request) (
 	var out structs.IndexedNodeDump
 	defer setMeta(resp, &out.QueryMeta)
 RPC:
-	if err := s.agent.RPC("Internal.NodeInfo", &args, &out); err != nil {
+	if err := s.agent.RPC(req.Context(), "Internal.NodeInfo", &args, &out); err != nil {
 		// Retry the request allowing stale data if no leader
 		if strings.Contains(err.Error(), structs.ErrNoLeader.Error()) && !args.AllowStale {
 			args.AllowStale = true
@@ -196,7 +196,7 @@ func (s *HTTPHandlers) UICatalogOverview(resp http.ResponseWriter, req *http.Req
 
 	// Make the RPC request
 	var out structs.CatalogSummary
-	if err := s.agent.RPC("Internal.CatalogOverview", &args, &out); err != nil {
+	if err := s.agent.RPC(req.Context(), "Internal.CatalogOverview", &args, &out); err != nil {
 		return nil, err
 	}
 
@@ -211,7 +211,9 @@ func (s *HTTPHandlers) UIServices(resp http.ResponseWriter, req *http.Request) (
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
 		return nil, nil
 	}
-
+	if peer := req.URL.Query().Get("peer"); peer != "" {
+		args.PeerName = peer
+	}
 	if err := s.parseEntMeta(req, &args.EnterpriseMeta); err != nil {
 		return nil, err
 	}
@@ -222,7 +224,7 @@ func (s *HTTPHandlers) UIServices(resp http.ResponseWriter, req *http.Request) (
 	var out structs.IndexedNodesWithGateways
 	defer setMeta(resp, &out.QueryMeta)
 RPC:
-	if err := s.agent.RPC("Internal.ServiceDump", &args, &out); err != nil {
+	if err := s.agent.RPC(req.Context(), "Internal.ServiceDump", &args, &out); err != nil {
 		// Retry the request allowing stale data if no leader
 		if strings.Contains(err.Error(), structs.ErrNoLeader.Error()) && !args.AllowStale {
 			args.AllowStale = true
@@ -291,7 +293,7 @@ func (s *HTTPHandlers) UIGatewayServicesNodes(resp http.ResponseWriter, req *htt
 	var out structs.IndexedServiceDump
 	defer setMeta(resp, &out.QueryMeta)
 RPC:
-	if err := s.agent.RPC("Internal.GatewayServiceDump", &args, &out); err != nil {
+	if err := s.agent.RPC(req.Context(), "Internal.GatewayServiceDump", &args, &out); err != nil {
 		// Retry the request allowing stale data if no leader
 		if strings.Contains(err.Error(), structs.ErrNoLeader.Error()) && !args.AllowStale {
 			args.AllowStale = true
@@ -344,7 +346,7 @@ func (s *HTTPHandlers) UIServiceTopology(resp http.ResponseWriter, req *http.Req
 	var out structs.IndexedServiceTopology
 	defer setMeta(resp, &out.QueryMeta)
 RPC:
-	if err := s.agent.RPC("Internal.ServiceTopology", &args, &out); err != nil {
+	if err := s.agent.RPC(req.Context(), "Internal.ServiceTopology", &args, &out); err != nil {
 		// Retry the request allowing stale data if no leader
 		if strings.Contains(err.Error(), structs.ErrNoLeader.Error()) && !args.AllowStale {
 			args.AllowStale = true
@@ -629,7 +631,7 @@ func (s *HTTPHandlers) UIGatewayIntentions(resp http.ResponseWriter, req *http.R
 	var reply structs.IndexedIntentions
 
 	defer setMeta(resp, &reply.QueryMeta)
-	if err := s.agent.RPC("Internal.GatewayIntentions", args, &reply); err != nil {
+	if err := s.agent.RPC(req.Context(), "Internal.GatewayIntentions", args, &reply); err != nil {
 		return nil, err
 	}
 
@@ -769,6 +771,7 @@ func (s *HTTPHandlers) UIMetricsProxy(resp http.ResponseWriter, req *http.Reques
 		Director: func(r *http.Request) {
 			r.URL = u
 		},
+		Transport: s.proxyTransport,
 		ErrorLog: log.StandardLogger(&hclog.StandardLoggerOptions{
 			InferLevels: true,
 		}),
@@ -776,4 +779,50 @@ func (s *HTTPHandlers) UIMetricsProxy(resp http.ResponseWriter, req *http.Reques
 
 	proxy.ServeHTTP(resp, req)
 	return nil, nil
+}
+
+// UIExportedServices is used to list the exported services to a given peer. We return a
+// barebones ServiceListingSummary which only contains the name and enterprise meta of a service.
+// Currently, the request and response mirror UIServices but the API may change in the future.
+func (s *HTTPHandlers) UIExportedServices(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	// Parse arguments
+	args := structs.ServiceDumpRequest{}
+	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
+		return nil, nil
+	}
+	if peer := req.URL.Query().Get("peer"); peer != "" {
+		args.PeerName = peer
+	}
+	if err := s.parseEntMeta(req, &args.EnterpriseMeta); err != nil {
+		return nil, err
+	}
+
+	// Make the RPC request
+	var out structs.IndexedServiceList
+	defer setMeta(resp, &out.QueryMeta)
+RPC:
+	if err := s.agent.RPC(req.Context(), "Internal.ExportedServicesForPeer", &args, &out); err != nil {
+		// Retry the request allowing stale data if no leader
+		if strings.Contains(err.Error(), structs.ErrNoLeader.Error()) && !args.AllowStale {
+			args.AllowStale = true
+			goto RPC
+		}
+		return nil, err
+	}
+	// Ensure at least a zero length slice
+	result := make([]*ServiceListingSummary, 0)
+	for _, svc := range out.Services {
+		// We synthesize a minimal summary for the frontend.
+		// The shape of the data may change in the future but
+		// currently only the service name is required.
+		sum := ServiceListingSummary{
+			ServiceSummary: ServiceSummary{
+				Name:           svc.Name,
+				EnterpriseMeta: svc.EnterpriseMeta,
+				Datacenter:     args.Datacenter,
+			},
+		}
+		result = append(result, &sum)
+	}
+	return result, nil
 }

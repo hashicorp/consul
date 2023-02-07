@@ -8,7 +8,7 @@ description: >-
 
 # Consul API Gateway 0.1.0
 
-## OVerview
+## Overview
 
 This is the first general availability (GA) release of Consul API Gateway. It
 provides controlled access for network traffic from outside a Consul service
@@ -41,7 +41,7 @@ This release includes the following features and capabilities:
 1. Deploy 1 or more logical API Gateways per Kubernetes cluster
 1. Support for HTTP, HTTPS, TCP, and TCP+TLS
 1. Support for HTTP versions 1.1 and 2
-1. Load balance across a service’s instances
+1. Load balance across a service's instances
 1. Listeners load TLS certificates, signed by any CA, from Kubernetes secret storage
 1. Route HTTP/S traffic to Services based on matching:
    - Hostname
@@ -68,10 +68,10 @@ This release includes the following features and capabilities:
 - HashiCorp Consul Helm chart 0.41.1+
 - Kubernetes 1.21+
 - Kubectl 1.21+
-- Envoy proxy support is determined by the Consul version deployed. Refer to [Envoy Integration](/docs/connect/proxies/envoy) for details.
+- Envoy proxy support is determined by the Consul version deployed. Refer to [Envoy Integration](/consul/docs/connect/proxies/envoy) for details.
 
 ## Kubernetes Gateway API Specification
 
 Supported version of the [Gateway API](https://gateway-api.sigs.k8s.io/) spec: `v1alpha2`(v0.4.1)
 
-For more detailed information, please refer to the [product documentation](/docs/api-gateway).
+For more detailed information, please refer to the [product documentation](/consul/docs/api-gateway).

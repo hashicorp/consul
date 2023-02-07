@@ -1,6 +1,7 @@
 package cachetype
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/hashicorp/consul/agent/cache"
@@ -41,7 +42,7 @@ func (i *PeeredUpstreams) Fetch(opts cache.FetchOptions, req cache.Request) (cac
 
 	// Fetch
 	var reply structs.IndexedPeeredServiceList
-	if err := i.RPC.RPC("Internal.PeeredUpstreams", reqReal, &reply); err != nil {
+	if err := i.RPC.RPC(context.Background(), "Internal.PeeredUpstreams", reqReal, &reply); err != nil {
 		return result, err
 	}
 

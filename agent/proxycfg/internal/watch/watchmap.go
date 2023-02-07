@@ -2,11 +2,18 @@ package watch
 
 import "context"
 
+// DeepCopyable describes a type that implements the DeepCopy
+// method to get a copy of itself that is safe to pass around
+// without worrying about receivers modifying the original.
+type DeepCopyable[T any] interface {
+	DeepCopy() T
+}
+
 // Map safely stores and retrieves values by validating that
 // there is a live watch for a key. InitWatch must be called
 // to associate a key with its cancel function before any
 // Set's are called.
-type Map[K comparable, V any] struct {
+type Map[K comparable, V DeepCopyable[V]] struct {
 	M map[K]watchedVal[V]
 }
 
@@ -20,8 +27,24 @@ type watchedVal[V any] struct {
 	cancel context.CancelFunc
 }
 
-func NewMap[K comparable, V any]() Map[K, V] {
+func NewMap[K comparable, V DeepCopyable[V]]() Map[K, V] {
 	return Map[K, V]{M: make(map[K]watchedVal[V])}
+}
+
+// DeepCopy returns a copy of the Map that is safe to be passed
+// around without worrying about receivers modifying the original
+// or canceling its watches.
+func (m Map[K, V]) DeepCopy() Map[K, V] {
+	dup := make(map[K]watchedVal[V], len(m.M))
+	for k, v := range m.M {
+		var val *V
+		if v.Val != nil {
+			dc := (*v.Val).DeepCopy()
+			val = &dc
+		}
+		dup[k] = watchedVal[V]{Val: val}
+	}
+	return Map[K, V]{M: dup}
 }
 
 // InitWatch associates a cancel function with a key,

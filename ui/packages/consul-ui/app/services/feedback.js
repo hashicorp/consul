@@ -3,10 +3,10 @@ import callableType from 'consul-ui/utils/callable-type';
 
 const TYPE_SUCCESS = 'success';
 const TYPE_ERROR = 'error';
-const defaultStatus = function(type, obj) {
+const defaultStatus = function (type, obj) {
   return type;
 };
-const notificationDefaults = function() {
+const notificationDefaults = function () {
   return {
     timeout: 6000,
     extendedTimeout: 300,
@@ -19,8 +19,8 @@ export default class FeedbackService extends Service {
 
   notification(action, modelName) {
     return {
-      success: item => this.success(item, action, undefined, modelName),
-      error: e => this.error(e, action, undefined, modelName),
+      success: (item) => this.success(item, action, undefined, modelName),
+      error: (e) => this.error(e, action, undefined, modelName),
     };
   }
 

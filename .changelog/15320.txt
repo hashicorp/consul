@@ -1,0 +1,3 @@
+```release-note:bug
+connect: strip port from DNS SANs for ingress gateway leaf certificate to avoid an invalid hostname error when using the Vault provider.
+```

@@ -18,6 +18,7 @@
         "ACLAgentToken": "hidden",
         "ACLDefaultToken": "hidden",
         "ACLReplicationToken": "hidden",
+        "ACLConfigFileRegistrationToken": "hidden",
         "DataDir": "",
         "EnablePersistence": false,
         "EnterpriseConfig": {}
@@ -78,6 +79,8 @@
     "BootstrapExpect": 0,
     "BuildDate": "2019-11-20 05:00:00 +0000 UTC",
     "Cache": {
+        "CacheRefreshBackoffMin": 0,
+        "CacheRefreshMaxWait": "0s",
         "EntryFetchMaxBurst": 42,
         "EntryFetchRate": 0.334,
         "Logger": null
@@ -108,6 +111,7 @@
             "Method": "",
             "Name": "zoo",
             "Notes": "",
+            "OSService": "",
             "OutputMaxSize": 4096,
             "ScriptArgs": [],
             "ServiceID": "",
@@ -124,12 +128,19 @@
         }
     ],
     "ClientAddrs": [],
+    "Cloud": {
+        "AuthURL": "",
+        "ClientID": "id",
+        "ClientSecret": "hidden",
+        "Hostname": "",
+        "ResourceID": "cluster1",
+        "ScadaAddress": ""
+    },
     "ConfigEntryBootstrap": [],
     "ConnectCAConfig": {},
     "ConnectCAProvider": "",
     "ConnectEnabled": false,
     "ConnectMeshGatewayWANFederationEnabled": false,
-    "ConnectServerlessPluginEnabled": false,
     "ConnectSidecarMaxPort": 0,
     "ConnectSidecarMinPort": 0,
     "ConnectTestCALeafRootChangeSpread": "0s",
@@ -192,6 +203,8 @@
     "ExposeMinPort": 0,
     "GRPCAddrs": [],
     "GRPCPort": 0,
+    "GRPCTLSAddrs": [],
+    "GRPCTLSPort": 0,
     "GossipLANGossipInterval": "0s",
     "GossipLANGossipNodes": 0,
     "GossipLANProbeInterval": "0s",
@@ -236,6 +249,7 @@
     "NodeMeta": {},
     "NodeName": "",
     "PeeringEnabled": false,
+    "PeeringTestAllowPeerRegistrations": false,
     "PidFile": "",
     "PrimaryDatacenter": "",
     "PrimaryGateways": [
@@ -244,6 +258,7 @@
     "PrimaryGatewaysInterval": "0s",
     "RPCAdvertiseAddr": "",
     "RPCBindAddr": "",
+    "RPCClientTimeout": "0s",
     "RPCConfig": {
         "EnableStreaming": false
     },
@@ -264,6 +279,9 @@
     "ReconnectTimeoutLAN": "0s",
     "ReconnectTimeoutWAN": "0s",
     "RejoinAfterLeave": false,
+    "RequestLimitsMode": 0,
+    "RequestLimitsReadRate": 0,
+    "RequestLimitsWriteRate": 0,
     "RetryJoinIntervalLAN": "0s",
     "RetryJoinIntervalWAN": "0s",
     "RetryJoinLAN": [
@@ -316,6 +334,7 @@
                 "Method": "",
                 "Name": "blurb",
                 "Notes": "",
+                "OSService": "",
                 "OutputMaxSize": 4096,
                 "ProxyGRPC": "",
                 "ProxyHTTP": "",
@@ -352,8 +371,6 @@
     ],
     "SessionTTLMin": "0s",
     "SkipLeaveOnInt": false,
-    "StartJoinAddrsLAN": [],
-    "StartJoinAddrsWAN": [],
     "StaticRuntimeConfig": {
         "EncryptVerifyIncoming": false,
         "EncryptVerifyOutgoing": false
@@ -371,6 +388,7 @@
             "CipherSuites": [],
             "KeyFile": "hidden",
             "TLSMinVersion": "",
+            "UseAutoCert": false,
             "VerifyIncoming": false,
             "VerifyOutgoing": false,
             "VerifyServerHostname": false
@@ -382,6 +400,7 @@
             "CipherSuites": [],
             "KeyFile": "hidden",
             "TLSMinVersion": "",
+            "UseAutoCert": false,
             "VerifyIncoming": false,
             "VerifyOutgoing": false,
             "VerifyServerHostname": false
@@ -393,11 +412,13 @@
             "CipherSuites": [],
             "KeyFile": "hidden",
             "TLSMinVersion": "",
+            "UseAutoCert": false,
             "VerifyIncoming": false,
             "VerifyOutgoing": false,
             "VerifyServerHostname": false
         },
         "NodeName": "",
+        "ServerMode": false,
         "ServerName": ""
     },
     "TaggedAddresses": {},
@@ -464,5 +485,6 @@
     "Version": "",
     "VersionMetadata": "",
     "VersionPrerelease": "",
-    "Watches": []
+    "Watches": [],
+    "XDSUpdateRateLimit": 0
 }

@@ -8,7 +8,7 @@ export default class LocalStorageService extends Service {
   source(src, configuration) {
     const slug = src.split(':').pop();
     return new StorageEventSource(
-      configuration => {
+      (configuration) => {
         return this.repo.findBySlug(slug);
       },
       {

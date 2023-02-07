@@ -13,7 +13,7 @@ export default modifier(function enabled($element, [bool = true], hash) {
     return;
   }
   for (const $el of $element.querySelectorAll('input,textarea,button')) {
-    if(bool && $el.dataset.disabled !== 'false') {
+    if (bool && $el.dataset.disabled !== 'false') {
       $element.setAttribute('disabled', bool);
       $element.setAttribute('aria-disabled', bool);
     } else {

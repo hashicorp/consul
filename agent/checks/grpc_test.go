@@ -4,7 +4,7 @@ import (
 	"crypto/tls"
 	"flag"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"net"
 	"os"
@@ -111,7 +111,7 @@ func TestGRPC_Proxied(t *testing.T) {
 	notif := mock.NewNotify()
 	logger := hclog.New(&hclog.LoggerOptions{
 		Name:   uniqueID(),
-		Output: ioutil.Discard,
+		Output: io.Discard,
 	})
 
 	statusHandler := NewStatusHandler(notif, logger, 0, 0, 0)
@@ -148,7 +148,7 @@ func TestGRPC_NotProxied(t *testing.T) {
 	notif := mock.NewNotify()
 	logger := hclog.New(&hclog.LoggerOptions{
 		Name:   uniqueID(),
-		Output: ioutil.Discard,
+		Output: io.Discard,
 	})
 
 	statusHandler := NewStatusHandler(notif, logger, 0, 0, 0)

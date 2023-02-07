@@ -1,0 +1,11 @@
+```release-note:improvement
+raft: Fix a race condition where the snapshot file is closed without being opened
+```
+
+```release-note:improvement
+raft: Allow nonVoter to initiate an election to avoid having an election infinite loop when a Voter is converted to NonVoter 
+```
+
+```release-note:improvement
+raft: Cap maximum grpc wait time when heartbeating to heartbeatTimeout/2
+```

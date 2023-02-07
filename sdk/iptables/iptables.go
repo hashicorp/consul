@@ -2,6 +2,7 @@ package iptables
 
 import (
 	"errors"
+	"fmt"
 	"strconv"
 )
 
@@ -29,6 +30,9 @@ const (
 type Config struct {
 	// ConsulDNSIP is the IP for Consul DNS to direct DNS queries to.
 	ConsulDNSIP string
+
+	// ConsulDNSPort is the port for Consul DNS to direct DNS queries to.
+	ConsulDNSPort int
 
 	// ProxyUserID is the user ID of the proxy process.
 	ProxyUserID string
@@ -107,7 +111,7 @@ func Setup(cfg Config) error {
 		cfg.IptablesProvider.AddRule("iptables", "-t", "nat", "-A", ProxyOutputRedirectChain, "-p", "tcp", "-j", "REDIRECT", "--to-port", strconv.Itoa(cfg.ProxyOutboundPort))
 
 		// The DNS rules are applied before the rules that directs all TCP traffic, so that the traffic going to port 53 goes through this rule first.
-		if cfg.ConsulDNSIP != "" {
+		if cfg.ConsulDNSIP != "" && cfg.ConsulDNSPort == 0 {
 			// Traffic in the DNSChain is directed to the Consul DNS Service IP.
 			cfg.IptablesProvider.AddRule("iptables", "-t", "nat", "-A", DNSChain, "-p", "udp", "--dport", "53", "-j", "DNAT", "--to-destination", cfg.ConsulDNSIP)
 			cfg.IptablesProvider.AddRule("iptables", "-t", "nat", "-A", DNSChain, "-p", "tcp", "--dport", "53", "-j", "DNAT", "--to-destination", cfg.ConsulDNSIP)
@@ -115,6 +119,19 @@ func Setup(cfg Config) error {
 			// For outbound TCP and UDP traffic going to port 53 (DNS), jump to the DNSChain.
 			cfg.IptablesProvider.AddRule("iptables", "-t", "nat", "-A", "OUTPUT", "-p", "udp", "--dport", "53", "-j", DNSChain)
 			cfg.IptablesProvider.AddRule("iptables", "-t", "nat", "-A", "OUTPUT", "-p", "tcp", "--dport", "53", "-j", DNSChain)
+		} else if cfg.ConsulDNSPort != 0 {
+			consulDNSIP := "127.0.0.1"
+			if cfg.ConsulDNSIP != "" {
+				consulDNSIP = cfg.ConsulDNSIP
+			}
+			consulDNSHostPort := fmt.Sprintf("%s:%d", consulDNSIP, cfg.ConsulDNSPort)
+			// Traffic in the DNSChain is directed to the Consul DNS Service IP.
+			cfg.IptablesProvider.AddRule("iptables", "-t", "nat", "-A", DNSChain, "-p", "udp", "-d", consulDNSIP, "--dport", "53", "-j", "DNAT", "--to-destination", consulDNSHostPort)
+			cfg.IptablesProvider.AddRule("iptables", "-t", "nat", "-A", DNSChain, "-p", "tcp", "-d", consulDNSIP, "--dport", "53", "-j", "DNAT", "--to-destination", consulDNSHostPort)
+
+			// For outbound TCP and UDP traffic going to port 53 (DNS), jump to the DNSChain. Only redirect traffic that's going to consul's DNS IP.
+			cfg.IptablesProvider.AddRule("iptables", "-t", "nat", "-A", "OUTPUT", "-p", "udp", "-d", consulDNSIP, "--dport", "53", "-j", DNSChain)
+			cfg.IptablesProvider.AddRule("iptables", "-t", "nat", "-A", "OUTPUT", "-p", "tcp", "-d", consulDNSIP, "--dport", "53", "-j", DNSChain)
 		}
 
 		// For outbound TCP traffic jump from OUTPUT chain to PROXY_OUTPUT chain.

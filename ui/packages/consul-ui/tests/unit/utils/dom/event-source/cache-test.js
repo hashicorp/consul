@@ -1,9 +1,9 @@
 import domEventSourceCache from 'consul-ui/utils/dom/event-source/cache';
-import { module } from 'qunit';
-import test from 'ember-sinon-qunit/test-support/test';
+import { module, test } from 'qunit';
+import sinon from 'sinon';
 
-module('Unit | Utility | dom/event-source/cache', function() {
-  const createEventSource = function() {
+module('Unit | Utility | dom/event-source/cache', function () {
+  const createEventSource = function () {
     return class {
       constructor(cb) {
         this.source = cb;
@@ -15,12 +15,12 @@ module('Unit | Utility | dom/event-source/cache', function() {
       close() {}
     };
   };
-  const createPromise = function(
-    resolve = result => result,
+  const createPromise = function (
+    resolve = (result) => result,
     reject = (result = { message: 'error' }) => result
   ) {
     class PromiseMock {
-      constructor(cb = function() {}) {
+      constructor(cb = function () {}) {
         cb(resolve);
       }
       then(cb) {
@@ -32,42 +32,42 @@ module('Unit | Utility | dom/event-source/cache', function() {
         return this;
       }
     }
-    PromiseMock.resolve = function(result) {
-      return new PromiseMock(function(resolve) {
+    PromiseMock.resolve = function (result) {
+      return new PromiseMock(function (resolve) {
         resolve(result);
       });
     };
-    PromiseMock.reject = function() {
+    PromiseMock.reject = function () {
       return new PromiseMock();
     };
     return PromiseMock;
   };
-  test('it returns a function', function(assert) {
+  test('it returns a function', function (assert) {
     const EventSource = createEventSource();
     const Promise = createPromise();
 
-    const getCache = domEventSourceCache(function() {}, EventSource, Promise);
+    const getCache = domEventSourceCache(function () {}, EventSource, Promise);
     assert.ok(typeof getCache === 'function');
   });
-  test('getCache returns a function', function(assert) {
+  test('getCache returns a function', function (assert) {
     const EventSource = createEventSource();
     const Promise = createPromise();
 
-    const getCache = domEventSourceCache(function() {}, EventSource, Promise);
+    const getCache = domEventSourceCache(function () {}, EventSource, Promise);
     const obj = {};
     const cache = getCache(obj);
     assert.ok(typeof cache === 'function');
   });
-  test('cache creates the default EventSource and keeps it open when there is a cursor', function(assert) {
+  test('cache creates the default EventSource and keeps it open when there is a cursor', function (assert) {
     const EventSource = createEventSource();
     const stub = {
       configuration: { cursor: 1 },
     };
-    const Promise = createPromise(function() {
+    const Promise = createPromise(function () {
       return stub;
     });
-    const source = this.stub().returns(Promise.resolve());
-    const cb = this.stub();
+    const source = sinon.stub().returns(Promise.resolve());
+    const cb = sinon.stub();
     const getCache = domEventSourceCache(source, EventSource, Promise);
     const obj = {};
     const cache = getCache(obj);
@@ -89,17 +89,17 @@ module('Unit | Utility | dom/event-source/cache', function() {
     assert.ok(source.calledTwice, 'promisifying source called once');
     assert.ok(retrievedEventSource instanceof Promise, 'source returns a Promise');
   });
-  test('cache creates the default EventSource and keeps it open when there is a cursor', function(assert) {
+  test('cache creates the default EventSource and keeps it open when there is a cursor', function (assert) {
     const EventSource = createEventSource();
     const stub = {
-      close: this.stub(),
+      close: sinon.stub(),
       configuration: { cursor: 1 },
     };
-    const Promise = createPromise(function() {
+    const Promise = createPromise(function () {
       return stub;
     });
-    const source = this.stub().returns(Promise.resolve());
-    const cb = this.stub();
+    const source = sinon.stub().returns(Promise.resolve());
+    const cb = sinon.stub();
     const getCache = domEventSourceCache(source, EventSource, Promise);
     const obj = {};
     const cache = getCache(obj);
@@ -113,21 +113,21 @@ module('Unit | Utility | dom/event-source/cache', function() {
     assert.ok(cb.calledOnce, 'callable event source callable called once');
     assert.ok(promisedEventSource instanceof Promise, 'source returns a Promise');
     // >>
-    return promisedEventSource.then(function() {
+    return promisedEventSource.then(function () {
       assert.notOk(stub.close.called, "close wasn't called");
     });
   });
-  test("cache creates the default EventSource and closes it when there isn't a cursor", function(assert) {
+  test("cache creates the default EventSource and closes it when there isn't a cursor", function (assert) {
     const EventSource = createEventSource();
     const stub = {
-      close: this.stub(),
+      close: sinon.stub(),
       configuration: {},
     };
-    const Promise = createPromise(function() {
+    const Promise = createPromise(function () {
       return stub;
     });
-    const source = this.stub().returns(Promise.resolve());
-    const cb = this.stub();
+    const source = sinon.stub().returns(Promise.resolve());
+    const cb = sinon.stub();
     const getCache = domEventSourceCache(source, EventSource, Promise);
     const obj = {};
     const cache = getCache(obj);
@@ -138,7 +138,7 @@ module('Unit | Utility | dom/event-source/cache', function() {
     assert.ok(cb.calledOnce, 'callable event source callable called once');
     assert.ok(promisedEventSource instanceof Promise, 'source returns a Promise');
     // >>
-    return promisedEventSource.then(function() {
+    return promisedEventSource.then(function () {
       assert.ok(stub.close.calledOnce, 'close was called');
     });
   });

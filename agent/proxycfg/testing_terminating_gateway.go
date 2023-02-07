@@ -4,6 +4,7 @@ import (
 	"github.com/mitchellh/go-testing-interface"
 
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/api"
 )
 
 func TestConfigSnapshotTerminatingGateway(t testing.T, populateServices bool, nsFn func(ns *structs.NodeService), extraUpdates []UpdateEvent) *ConfigSnapshot {
@@ -328,10 +329,11 @@ func TestConfigSnapshotTerminatingGatewayDestinations(t testing.T, populateDesti
 	roots, _ := TestCerts(t)
 
 	var (
-		externalIPTCP        = structs.NewServiceName("external-IP-TCP", nil)
-		externalHostnameTCP  = structs.NewServiceName("external-hostname-TCP", nil)
-		externalIPHTTP       = structs.NewServiceName("external-IP-HTTP", nil)
-		externalHostnameHTTP = structs.NewServiceName("external-hostname-HTTP", nil)
+		externalIPTCP           = structs.NewServiceName("external-IP-TCP", nil)
+		externalHostnameTCP     = structs.NewServiceName("external-hostname-TCP", nil)
+		externalIPHTTP          = structs.NewServiceName("external-IP-HTTP", nil)
+		externalHostnameHTTP    = structs.NewServiceName("external-hostname-HTTP", nil)
+		externalHostnameWithSNI = structs.NewServiceName("external-hostname-with-SNI", nil)
 	)
 
 	baseEvents := []UpdateEvent{
@@ -367,6 +369,12 @@ func TestConfigSnapshotTerminatingGatewayDestinations(t testing.T, populateDesti
 				Service:     externalHostnameHTTP,
 				ServiceKind: structs.GatewayServiceKindDestination,
 			},
+			&structs.GatewayService{
+				Service:     externalHostnameWithSNI,
+				ServiceKind: structs.GatewayServiceKindDestination,
+				CAFile:      "cert.pem",
+				SNI:         "api.test.com",
+			},
 		)
 
 		baseEvents = testSpliceEvents(baseEvents, []UpdateEvent{
@@ -393,6 +401,10 @@ func TestConfigSnapshotTerminatingGatewayDestinations(t testing.T, populateDesti
 				CorrelationID: serviceIntentionsIDPrefix + externalHostnameHTTP.String(),
 				Result:        structs.Intentions{},
 			},
+			{
+				CorrelationID: serviceIntentionsIDPrefix + externalHostnameWithSNI.String(),
+				Result:        structs.Intentions{},
+			},
 			// ========
 			{
 				CorrelationID: serviceLeafIDPrefix + externalIPTCP.String(),
@@ -417,6 +429,13 @@ func TestConfigSnapshotTerminatingGatewayDestinations(t testing.T, populateDesti
 			},
 			{
 				CorrelationID: serviceLeafIDPrefix + externalHostnameHTTP.String(),
+				Result: &structs.IssuedCert{
+					CertPEM:       "placeholder.crt",
+					PrivateKeyPEM: "placeholder.key",
+				},
+			},
+			{
+				CorrelationID: serviceLeafIDPrefix + externalHostnameWithSNI.String(),
 				Result: &structs.IssuedCert{
 					CertPEM:       "placeholder.crt",
 					PrivateKeyPEM: "placeholder.key",
@@ -470,6 +489,17 @@ func TestConfigSnapshotTerminatingGatewayDestinations(t testing.T, populateDesti
 					ProxyConfig: map[string]interface{}{"protocol": "http"},
 					Destination: structs.DestinationConfig{
 						Addresses: []string{"httpbin.org"},
+						Port:      80,
+					},
+				},
+			},
+			{
+				CorrelationID: serviceConfigIDPrefix + externalHostnameWithSNI.String(),
+				Result: &structs.ServiceConfigResponse{
+					Mode:        structs.ProxyModeTransparent,
+					ProxyConfig: map[string]interface{}{"protocol": "tcp"},
+					Destination: structs.DestinationConfig{
+						Addresses: []string{"api.test.com"},
 						Port:      80,
 					},
 				},
@@ -921,11 +951,14 @@ func TestConfigSnapshotTerminatingGatewayWithLambdaService(t testing.T, extraUpd
 		CorrelationID: serviceConfigIDPrefix + web.String(),
 		Result: &structs.ServiceConfigResponse{
 			ProxyConfig: map[string]interface{}{"protocol": "http"},
-			Meta: map[string]string{
-				"serverless.consul.hashicorp.com/v1alpha1/lambda/enabled":             "true",
-				"serverless.consul.hashicorp.com/v1alpha1/lambda/arn":                 "lambda-arn",
-				"serverless.consul.hashicorp.com/v1alpha1/lambda/payload-passthrough": "true",
-				"serverless.consul.hashicorp.com/v1alpha1/lambda/region":              "us-east-1",
+			EnvoyExtensions: []structs.EnvoyExtension{
+				{
+					Name: api.BuiltinAWSLambdaExtension,
+					Arguments: map[string]interface{}{
+						"ARN":                "arn:aws:lambda:us-east-1:111111111111:function:lambda-1234",
+						"PayloadPassthrough": true,
+					},
+				},
 			},
 		},
 	})

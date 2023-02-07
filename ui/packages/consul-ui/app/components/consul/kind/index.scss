@@ -3,4 +3,5 @@
 }
 .consul-kind::before {
   @extend %with-gateway-mask, %as-pseudo;
+  --icon-size: icon-300;
 }

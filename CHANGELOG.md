@@ -1,3 +1,558 @@
+## 1.14.4 (January 26, 2023)
+
+BREAKING CHANGES:
+
+* connect: Fix configuration merging for transparent proxy upstreams. Proxy-defaults and service-defaults config entries were not correctly merged for implicit upstreams in transparent proxy mode and would result in some configuration not being applied. To avoid issues when upgrading, ensure that any proxy-defaults or service-defaults have correct configuration for upstreams, since all fields will now be properly used to configure proxies. [[GH-16000](https://github.com/hashicorp/consul/issues/16000)]
+* peering: Newly created peering connections must use only lowercase characters in the `name` field. Existing peerings with uppercase characters will not be modified, but they may encounter issues in various circumstances. To maintain forward compatibility and avoid issues, it is recommended to destroy and re-create any invalid peering connections so that they do not have a name containing uppercase characters. [[GH-15697](https://github.com/hashicorp/consul/issues/15697)]
+
+FEATURES:
+
+* connect: add flags `envoy-ready-bind-port` and `envoy-ready-bind-address` to the `consul connect envoy` command that allows configuration of readiness probe on proxy for any service kind. [[GH-16015](https://github.com/hashicorp/consul/issues/16015)]
+* deps: update to latest go-discover to provide ECS auto-discover capabilities. [[GH-13782](https://github.com/hashicorp/consul/issues/13782)]
+
+IMPROVEMENTS:
+
+* acl: relax permissions on the `WatchServers`, `WatchRoots` and `GetSupportedDataplaneFeatures` gRPC endpoints to accept *any* valid ACL token [[GH-15346](https://github.com/hashicorp/consul/issues/15346)]
+* connect: Add support for ConsulResolver to specifies a filter expression [[GH-15659](https://github.com/hashicorp/consul/issues/15659)]
+* grpc: Use new balancer implementation to reduce periodic WARN logs when shuffling servers. [[GH-15701](https://github.com/hashicorp/consul/issues/15701)]
+* partition: **(Consul Enterprise only)** when loading service from on-disk config file or sending API request to agent endpoint,
+if the partition is unspecified, consul will default the partition in the request to agent's partition [[GH-16024](https://github.com/hashicorp/consul/issues/16024)]
+
+BUG FIXES:
+
+* agent: Fix assignment of error when auto-reloading cert and key file changes. [[GH-15769](https://github.com/hashicorp/consul/issues/15769)]
+* agent: Fix issue where the agent cache would incorrectly mark protobuf objects as updated. [[GH-15866](https://github.com/hashicorp/consul/issues/15866)]
+* cli: Fix issue where `consul connect envoy` was unable to configure TLS over unix-sockets to gRPC. [[GH-15913](https://github.com/hashicorp/consul/issues/15913)]
+* connect: **(Consul Enterprise only)** Fix issue where upstream configuration from proxy-defaults and service-defaults was not properly merged. This could occur when a mixture of empty-strings and "default" were used for the namespace or partition fields.
+* connect: Fix issue where service-resolver protocol checks incorrectly errored for failover peer targets. [[GH-15833](https://github.com/hashicorp/consul/issues/15833)]
+* connect: Fix issue where watches on upstream failover peer targets did not always query the correct data. [[GH-15865](https://github.com/hashicorp/consul/issues/15865)]
+* xds: fix bug where sessions for locally-managed services could fail with "this server has too many xDS streams open" [[GH-15789](https://github.com/hashicorp/consul/issues/15789)]
+
+## 1.13.6 (January 26, 2023)
+
+FEATURES:
+
+* connect: add flags `envoy-ready-bind-port` and `envoy-ready-bind-address` to the `consul connect envoy` command that allows configuration of readiness probe on proxy for any service kind. [[GH-16015](https://github.com/hashicorp/consul/issues/16015)]
+* deps: update to latest go-discover to provide ECS auto-discover capabilities. [[GH-13782](https://github.com/hashicorp/consul/issues/13782)]
+
+IMPROVEMENTS:
+
+* grpc: Use new balancer implementation to reduce periodic WARN logs when shuffling servers. [[GH-15701](https://github.com/hashicorp/consul/issues/15701)]
+* partition: **(Consul Enterprise only)** when loading service from on-disk config file or sending API request to agent endpoint,
+if the partition is unspecified, consul will default the partition in the request to agent's partition [[GH-16024](https://github.com/hashicorp/consul/issues/16024)]
+
+BUG FIXES:
+
+* agent: Fix assignment of error when auto-reloading cert and key file changes. [[GH-15769](https://github.com/hashicorp/consul/issues/15769)]
+
+## 1.12.9 (January 26, 2023)
+
+FEATURES:
+
+* deps: update to latest go-discover to provide ECS auto-discover capabilities. [[GH-13782](https://github.com/hashicorp/consul/issues/13782)]
+
+IMPROVEMENTS:
+
+* grpc: Use new balancer implementation to reduce periodic WARN logs when shuffling servers. [[GH-15701](https://github.com/hashicorp/consul/issues/15701)]
+
+BUG FIXES:
+
+* agent: Fix assignment of error when auto-reloading cert and key file changes. [[GH-15769](https://github.com/hashicorp/consul/issues/15769)]
+
+## 1.14.3 (December 13, 2022)
+
+SECURITY:
+
+* Upgrade to use Go 1.19.4. This resolves a vulnerability where restricted files can be read on Windows. [CVE-2022-41720](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2022-41720) [[GH-15705](https://github.com/hashicorp/consul/issues/15705)]
+* Upgrades `golang.org/x/net` to prevent a denial of service by excessive memory usage caused by HTTP2 requests. [CVE-2022-41717](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2022-41717) [[GH-15737](https://github.com/hashicorp/consul/issues/15737)]
+
+FEATURES:
+
+* ui: Add field for fallback server addresses to peer token generation form [[GH-15555](https://github.com/hashicorp/consul/issues/15555)]
+
+IMPROVEMENTS:
+
+* connect: ensure all vault connect CA tests use limited privilege tokens [[GH-15669](https://github.com/hashicorp/consul/issues/15669)]
+
+BUG FIXES:
+
+* agent: **(Enterprise Only)** Ensure configIntentionsConvertToList does not compare empty strings with populated strings when filtering intentions created prior to AdminPartitions.
+* connect: Fix issue where DialedDirectly configuration was not used by Consul Dataplane. [[GH-15760](https://github.com/hashicorp/consul/issues/15760)]
+* connect: Fix peering failovers ignoring local mesh gateway configuration. [[GH-15690](https://github.com/hashicorp/consul/issues/15690)]
+* connect: Fixed issue where using Vault 1.11+ as CA provider in a secondary datacenter would eventually break Intermediate CAs [[GH-15661](https://github.com/hashicorp/consul/issues/15661)]
+
+## 1.13.5 (December 13, 2022)
+
+SECURITY:
+
+* Upgrade to use Go 1.18.9. This resolves a vulnerability where restricted files can be read on Windows. [CVE-2022-41720](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2022-41720) [[GH-15706](https://github.com/hashicorp/consul/issues/15706)]
+* Upgrades `golang.org/x/net` to prevent a denial of service by excessive memory usage caused by HTTP2 requests. [CVE-2022-41717](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2022-41717) [[GH-15743](https://github.com/hashicorp/consul/issues/15743)]
+
+IMPROVEMENTS:
+
+* connect: ensure all vault connect CA tests use limited privilege tokens [[GH-15669](https://github.com/hashicorp/consul/issues/15669)]
+
+BUG FIXES:
+
+* agent: **(Enterprise Only)** Ensure configIntentionsConvertToList does not compare empty strings with populated strings when filtering intentions created prior to AdminPartitions.
+* cli: **(Enterprise Only)** Fix issue where `consul partition update` subcommand was not registered and therefore not available through the cli.
+* connect: Fixed issue where using Vault 1.11+ as CA provider in a secondary datacenter would eventually break Intermediate CAs [[GH-15661](https://github.com/hashicorp/consul/issues/15661)]
+
+## 1.12.8 (December 13, 2022)
+
+SECURITY:
+
+* Upgrade to use Go 1.18.9. This resolves a vulnerability where restricted files can be read on Windows. [CVE-2022-41720](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2022-41720) [[GH-15727](https://github.com/hashicorp/consul/issues/15727)]
+* Upgrades `golang.org/x/net` to prevent a denial of service by excessive memory usage caused by HTTP2 requests. [CVE-2022-41717](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2022-41717) [[GH-15746](https://github.com/hashicorp/consul/issues/15746)]
+
+IMPROVEMENTS:
+
+* connect: ensure all vault connect CA tests use limited privilege tokens [[GH-15669](https://github.com/hashicorp/consul/issues/15669)]
+
+BUG FIXES:
+
+* agent: **(Enterprise Only)** Ensure configIntentionsConvertToList does not compare empty strings with populated strings when filtering intentions created prior to AdminPartitions.
+* cli: **(Enterprise Only)** Fix issue where `consul partition update` subcommand was not registered and therefore not available through the cli.
+* connect: Fixed issue where using Vault 1.11+ as CA provider in a secondary datacenter would eventually break Intermediate CAs [[GH-15661](https://github.com/hashicorp/consul/issues/15661)]
+
+## 1.14.2 (November 30, 2022)
+
+FEATURES:
+
+* connect: Add local_idle_timeout_ms to allow configuring the Envoy route idle timeout on local_app
+connect: Add IdleTimeout to service-router to allow configuring the Envoy route idle timeout [[GH-14340](https://github.com/hashicorp/consul/issues/14340)]
+* snapshot: **(Enterprise Only)** Add support for the snapshot agent to use an IAM role for authentication/authorization when managing snapshots in S3.
+
+IMPROVEMENTS:
+
+* dns: Add support for cluster peering `.service` and `.node` DNS queries. [[GH-15596](https://github.com/hashicorp/consul/issues/15596)]
+
+BUG FIXES:
+
+* acl: avoid debug log spam in secondary datacenter servers due to management token not being initialized. [[GH-15610](https://github.com/hashicorp/consul/issues/15610)]
+* agent: Fixed issue where blocking queries with short waits could timeout on the client [[GH-15541](https://github.com/hashicorp/consul/issues/15541)]
+* ca: Fixed issue where using Vault as Connect CA with Vault-managed policies would error on start-up if the intermediate PKI mount existed but was empty [[GH-15525](https://github.com/hashicorp/consul/issues/15525)]
+* cli: **(Enterprise Only)** Fix issue where `consul partition update` subcommand was not registered and therefore not available through the cli.
+* connect: Fixed issue where using Vault 1.11+ as CA provider would eventually break Intermediate CAs in primary datacenters. A separate fix is needed to address the same issue in secondary datacenters. [[GH-15217](https://github.com/hashicorp/consul/issues/15217)] [[GH-15253](https://github.com/hashicorp/consul/issues/15253)]
+* namespace: **(Enterprise Only)** Fix a bug that caused blocking queries during namespace replication to timeout
+* peering: better represent non-passing states during peer check flattening [[GH-15615](https://github.com/hashicorp/consul/issues/15615)]
+* peering: fix the limit of replication gRPC message; set to 8MB [[GH-15503](https://github.com/hashicorp/consul/issues/15503)]
+
+## 1.13.4 (November 30, 2022)
+
+IMPROVEMENTS:
+
+* auto-config: Relax the validation on auto-config JWT authorization to allow non-whitespace, non-quote characters in node names. [[GH-15370](https://github.com/hashicorp/consul/issues/15370)]
+* raft: Allow nonVoter to initiate an election to avoid having an election infinite loop when a Voter is converted to NonVoter [[GH-14897](https://github.com/hashicorp/consul/issues/14897)]
+* raft: Cap maximum grpc wait time when heartbeating to heartbeatTimeout/2 [[GH-14897](https://github.com/hashicorp/consul/issues/14897)]
+* raft: Fix a race condition where the snapshot file is closed without being opened [[GH-14897](https://github.com/hashicorp/consul/issues/14897)]
+
+BUG FIXES:
+
+* agent: Fixed issue where blocking queries with short waits could timeout on the client [[GH-15541](https://github.com/hashicorp/consul/issues/15541)]
+* ca: Fixed issue where using Vault as Connect CA with Vault-managed policies would error on start-up if the intermediate PKI mount existed but was empty [[GH-15525](https://github.com/hashicorp/consul/issues/15525)]
+* connect: Fixed issue where using Vault 1.11+ as CA provider would eventually break Intermediate CAs in primary datacenters. A separate fix is needed to address the same issue in secondary datacenters. [[GH-15217](https://github.com/hashicorp/consul/issues/15217)] [[GH-15253](https://github.com/hashicorp/consul/issues/15253)]
+* connect: fixed bug where endpoint updates for new xDS clusters could block for 15s before being sent to Envoy. [[GH-15083](https://github.com/hashicorp/consul/issues/15083)]
+* connect: strip port from DNS SANs for ingress gateway leaf certificate to avoid an invalid hostname error when using the Vault provider. [[GH-15320](https://github.com/hashicorp/consul/issues/15320)]
+* debug: fixed bug that caused consul debug CLI to error on ACL-disabled clusters [[GH-15155](https://github.com/hashicorp/consul/issues/15155)]
+* deps: update go-memdb, fixing goroutine leak [[GH-15010](https://github.com/hashicorp/consul/issues/15010)] [[GH-15068](https://github.com/hashicorp/consul/issues/15068)]
+* namespace: **(Enterprise Only)** Fix a bug that caused blocking queries during namespace replication to timeout
+* namespace: **(Enterprise Only)** Fixed a bug where a client may incorrectly log that namespaces were not enabled in the local datacenter
+* peering: better represent non-passing states during peer check flattening [[GH-15615](https://github.com/hashicorp/consul/issues/15615)]
+* peering: fix the error of wan address isn't taken by the peering token. [[GH-15065](https://github.com/hashicorp/consul/issues/15065)]
+* peering: when wan address is set, peering stream should use the wan address. [[GH-15108](https://github.com/hashicorp/consul/issues/15108)]
+
+## 1.12.7 (November 30, 2022)
+
+BUG FIXES:
+
+* agent: Fixed issue where blocking queries with short waits could timeout on the client [[GH-15541](https://github.com/hashicorp/consul/issues/15541)]
+* ca: Fixed issue where using Vault as Connect CA with Vault-managed policies would error on start-up if the intermediate PKI mount existed but was empty [[GH-15525](https://github.com/hashicorp/consul/issues/15525)]
+* connect: Fixed issue where using Vault 1.11+ as CA provider would eventually break Intermediate CAs in primary datacenters. A separate fix is needed to address the same issue in secondary datacenters. [[GH-15217](https://github.com/hashicorp/consul/issues/15217)] [[GH-15253](https://github.com/hashicorp/consul/issues/15253)]
+* connect: fixed bug where endpoint updates for new xDS clusters could block for 15s before being sent to Envoy. [[GH-15083](https://github.com/hashicorp/consul/issues/15083)]
+* connect: strip port from DNS SANs for ingress gateway leaf certificate to avoid an invalid hostname error when using the Vault provider. [[GH-15320](https://github.com/hashicorp/consul/issues/15320)]
+* debug: fixed bug that caused consul debug CLI to error on ACL-disabled clusters [[GH-15155](https://github.com/hashicorp/consul/issues/15155)]
+* deps: update go-memdb, fixing goroutine leak [[GH-15010](https://github.com/hashicorp/consul/issues/15010)] [[GH-15068](https://github.com/hashicorp/consul/issues/15068)]
+* namespace: **(Enterprise Only)** Fix a bug that caused blocking queries during namespace replication to timeout
+* namespace: **(Enterprise Only)** Fixed a bug where a client may incorrectly log that namespaces were not enabled in the local datacenter
+
+## 1.14.1 (November 21, 2022)
+
+BUG FIXES:
+
+* cli: Fix issue where `consul connect envoy` incorrectly uses the HTTPS API configuration for xDS connections. [[GH-15466](https://github.com/hashicorp/consul/issues/15466)]
+* sdk: Fix SDK testutil backwards compatibility by only configuring grpc_tls port for new Consul versions. [[GH-15423](https://github.com/hashicorp/consul/issues/15423)]
+
+## 1.14.0 (November 15, 2022)
+
+KNOWN ISSUES:
+
+* cli: `consul connect envoy` incorrectly enables TLS for gRPC connections when the HTTP API is TLS-enabled.
+
+BREAKING CHANGES:
+
+* config: Add new `ports.grpc_tls` configuration option.
+Introduce a new port to better separate TLS config from the existing `ports.grpc` config.
+The new `ports.grpc_tls` only supports TLS encrypted communication.
+The existing `ports.grpc` now only supports plain-text communication. [[GH-15339](https://github.com/hashicorp/consul/issues/15339)]
+* config: update 1.14 config defaults: Enable `peering` and `connect` by default. [[GH-15302](https://github.com/hashicorp/consul/issues/15302)]
+* config: update 1.14 config defaults: Set gRPC TLS port default value to 8503 [[GH-15302](https://github.com/hashicorp/consul/issues/15302)]
+* connect: Removes support for Envoy 1.20 [[GH-15093](https://github.com/hashicorp/consul/issues/15093)]
+* peering: Rename `PeerName` to `Peer` on prepared queries and exported services. [[GH-14854](https://github.com/hashicorp/consul/issues/14854)]
+* xds: Convert service mesh failover to use Envoy's aggregate clusters. This
+changes the names of some [Envoy dynamic HTTP metrics](https://www.envoyproxy.io/docs/envoy/latest/configuration/upstream/cluster_manager/cluster_stats#dynamic-http-statistics). [[GH-14178](https://github.com/hashicorp/consul/issues/14178)]
+
+SECURITY:
+
+* Ensure that data imported from peers is filtered by ACLs at the UI Nodes/Services endpoints [CVE-2022-3920](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2022-3920) [[GH-15356](https://github.com/hashicorp/consul/issues/15356)]
+
+FEATURES:
+
+* DNS-proxy support via gRPC request. [[GH-14811](https://github.com/hashicorp/consul/issues/14811)]
+* cli: Add -node-name flag to redirect-traffic command to support running in environments without client agents. [[GH-14933](https://github.com/hashicorp/consul/issues/14933)]
+* cli: Add `-consul-dns-port` flag to the `consul connect redirect-traffic` command to allow forwarding DNS traffic to a specific Consul DNS port. [[GH-15050](https://github.com/hashicorp/consul/issues/15050)]
+* connect: Add Envoy connection balancing configuration fields. [[GH-14616](https://github.com/hashicorp/consul/issues/14616)]
+* grpc: Added metrics for external gRPC server. Added `server_type=internal|external` label to gRPC metrics. [[GH-14922](https://github.com/hashicorp/consul/issues/14922)]
+* http: Add new `get-or-empty` operation to the txn api. Refer to the [API docs](https://www.consul.io/api-docs/txn#kv-operations) for more information. [[GH-14474](https://github.com/hashicorp/consul/issues/14474)]
+* peering: Add mesh gateway local mode support for cluster peering. [[GH-14817](https://github.com/hashicorp/consul/issues/14817)]
+* peering: Add support for stale queries for trust bundle lookups [[GH-14724](https://github.com/hashicorp/consul/issues/14724)]
+* peering: Add support to failover to services running on cluster peers. [[GH-14396](https://github.com/hashicorp/consul/issues/14396)]
+* peering: Add support to redirect to services running on cluster peers with service resolvers. [[GH-14445](https://github.com/hashicorp/consul/issues/14445)]
+* peering: Ensure un-exported services get deleted even if the un-export happens while cluster peering replication is down. [[GH-14797](https://github.com/hashicorp/consul/issues/14797)]
+* peering: add support for routine peering control-plane traffic through mesh gateways [[GH-14981](https://github.com/hashicorp/consul/issues/14981)]
+* sdk: Configure `iptables` to forward DNS traffic to a specific DNS port. [[GH-15050](https://github.com/hashicorp/consul/issues/15050)]
+* telemetry: emit memberlist size metrics and broadcast queue depth metric. [[GH-14873](https://github.com/hashicorp/consul/issues/14873)]
+* ui: Added support for central config merging [[GH-14604](https://github.com/hashicorp/consul/issues/14604)]
+* ui: Create peerings detail page [[GH-14947](https://github.com/hashicorp/consul/issues/14947)]
+* ui: Detect a TokenSecretID cookie and passthrough to localStorage [[GH-14495](https://github.com/hashicorp/consul/issues/14495)]
+* ui: Display notice banner on nodes index page if synthetic nodes are being filtered. [[GH-14971](https://github.com/hashicorp/consul/issues/14971)]
+* ui: Filter agentless (synthetic) nodes from the nodes list page. [[GH-14970](https://github.com/hashicorp/consul/issues/14970)]
+* ui: Filter out node health checks on agentless service instances [[GH-14986](https://github.com/hashicorp/consul/issues/14986)]
+* ui: Remove node meta on service instances when using agentless and consolidate external-source labels on service instances page if they all match. [[GH-14921](https://github.com/hashicorp/consul/issues/14921)]
+* ui: Removed reference to node name on service instance page when using agentless [[GH-14903](https://github.com/hashicorp/consul/issues/14903)]
+* ui: Use withCredentials for all HTTP API requests [[GH-14343](https://github.com/hashicorp/consul/issues/14343)]
+* xds: servers will limit the number of concurrent xDS streams they can handle to balance the load across all servers [[GH-14397](https://github.com/hashicorp/consul/issues/14397)]
+
+IMPROVEMENTS:
+
+* peering: Add peering datacenter and partition to initial handshake. [[GH-14889](https://github.com/hashicorp/consul/issues/14889)]
+* xds: Added a rate limiter to the delivery of proxy config updates, to prevent updates to "global" resources such as wildcard intentions from overwhelming servers (see: `xds.update_max_per_second` config field) [[GH-14960](https://github.com/hashicorp/consul/issues/14960)]
+* xds: Removed a bottleneck in Envoy config generation, enabling a higher number of dataplanes per server [[GH-14934](https://github.com/hashicorp/consul/issues/14934)]
+* agent/hcp: add initial HashiCorp Cloud Platform integration [[GH-14723](https://github.com/hashicorp/consul/issues/14723)]
+* agent: Added configuration option cloud.scada_address. [[GH-14936](https://github.com/hashicorp/consul/issues/14936)]
+* api: Add filtering support to Catalog's List Services (v1/catalog/services) [[GH-11742](https://github.com/hashicorp/consul/issues/11742)]
+* api: Increase max number of operations inside a transaction for requests to /v1/txn (128) [[GH-14599](https://github.com/hashicorp/consul/issues/14599)]
+* auto-config: Relax the validation on auto-config JWT authorization to allow non-whitespace, non-quote characters in node names. [[GH-15370](https://github.com/hashicorp/consul/issues/15370)]
+* config-entry: Validate that service-resolver `Failover`s and `Redirect`s only
+specify `Partition` and `Namespace` on Consul Enterprise. This prevents scenarios
+where OSS Consul would save service-resolvers that require Consul Enterprise. [[GH-14162](https://github.com/hashicorp/consul/issues/14162)]
+* connect: Add Envoy 1.24.0 to support matrix [[GH-15093](https://github.com/hashicorp/consul/issues/15093)]
+* connect: Bump Envoy 1.20 to 1.20.7, 1.21 to 1.21.5 and 1.22 to 1.22.5 [[GH-14831](https://github.com/hashicorp/consul/issues/14831)]
+* connect: service-router destinations have gained a `RetryOn` field for specifying the conditions when Envoy should retry requests beyond specific status codes and generic connection failure which already exists. [[GH-12890](https://github.com/hashicorp/consul/issues/12890)]
+* dns/peering: **(Enterprise Only)** Support addresses in the formats `<servicename>.virtual.<namespace>.ns.<partition>.ap.<peername>.peer.consul` and `<servicename>.virtual.<partition>.ap.<peername>.peer.consul`. This longer form address that allows specifying `.peer` would need to be used for tproxy DNS requests made within non-default partitions for imported services.
+* dns: **(Enterprise Only)** All enterprise locality labels are now optional in DNS lookups. For example, service lookups support the following format: `[<tag>.]<service>.service[.<namespace>.ns][.<partition>.ap][.<datacenter>.dc]<domain>`. [[GH-14679](https://github.com/hashicorp/consul/issues/14679)]
+* integ test: fix flakiness due to test condition from retry app endoint [[GH-15233](https://github.com/hashicorp/consul/issues/15233)]
+* metrics: Service RPC calls less than 1ms are now emitted as a decimal number. [[GH-12905](https://github.com/hashicorp/consul/issues/12905)]
+* peering: adds an internally managed server certificate for automatic TLS between servers in peer clusters. [[GH-14556](https://github.com/hashicorp/consul/issues/14556)]
+* peering: require TLS for peering connections using server cert signed by Connect CA [[GH-14796](https://github.com/hashicorp/consul/issues/14796)]
+* peering: return information about the health of the peering when the leader is queried to read a peering. [[GH-14747](https://github.com/hashicorp/consul/issues/14747)]
+* raft: Allow nonVoter to initiate an election to avoid having an election infinite loop when a Voter is converted to NonVoter [[GH-14897](https://github.com/hashicorp/consul/issues/14897)]
+* raft: Cap maximum grpc wait time when heartbeating to heartbeatTimeout/2 [[GH-14897](https://github.com/hashicorp/consul/issues/14897)]
+* raft: Fix a race condition where the snapshot file is closed without being opened [[GH-14897](https://github.com/hashicorp/consul/issues/14897)]
+* telemetry: Added a `consul.xds.server.streamStart` metric to measure time taken to first generate xDS resources for an xDS stream. [[GH-14957](https://github.com/hashicorp/consul/issues/14957)]
+* ui: Improve guidance around topology visualisation [[GH-14527](https://github.com/hashicorp/consul/issues/14527)]
+* xds: Set `max_ejection_percent` on Envoy's outlier detection to 100% for peered services. [[GH-14373](https://github.com/hashicorp/consul/issues/14373)]
+* xds: configure Envoy `alpn_protocols` for connect-proxy and ingress-gateway based on service protocol. [[GH-14356](https://github.com/hashicorp/consul/pull/14356)]
+
+BUG FIXES:
+
+* checks: Do not set interval as timeout value [[GH-14619](https://github.com/hashicorp/consul/issues/14619)]
+* checks: If set, use proxy address for automatically added sidecar check instead of service address. [[GH-14433](https://github.com/hashicorp/consul/issues/14433)]
+* cli: Fix Consul kv CLI 'GET' flags 'keys' and 'recurse' to be set together [[GH-13493](https://github.com/hashicorp/consul/issues/13493)]
+* connect: Fix issue where mesh-gateway settings were not properly inherited from configuration entries. [[GH-15186](https://github.com/hashicorp/consul/issues/15186)]
+* connect: fixed bug where endpoint updates for new xDS clusters could block for 15s before being sent to Envoy. [[GH-15083](https://github.com/hashicorp/consul/issues/15083)]
+* connect: strip port from DNS SANs for ingress gateway leaf certificate to avoid an invalid hostname error when using the Vault provider. [[GH-15320](https://github.com/hashicorp/consul/issues/15320)]
+* debug: fixed bug that caused consul debug CLI to error on ACL-disabled clusters [[GH-15155](https://github.com/hashicorp/consul/issues/15155)]
+* deps: update go-memdb, fixing goroutine leak [[GH-15010](https://github.com/hashicorp/consul/issues/15010)] [[GH-15068](https://github.com/hashicorp/consul/issues/15068)]
+* grpc: Merge proxy-defaults and service-defaults in GetEnvoyBootstrapParams response. [[GH-14869](https://github.com/hashicorp/consul/issues/14869)]
+* metrics: Add duplicate metrics that have only a single "consul_" prefix for all existing metrics with double ("consul_consul_") prefix, with the intent to standardize on single prefixes. [[GH-14475](https://github.com/hashicorp/consul/issues/14475)]
+* namespace: **(Enterprise Only)** Fixed a bug where a client may incorrectly log that namespaces were not enabled in the local datacenter
+* peering: Fix a bug that resulted in /v1/agent/metrics returning an error. [[GH-15178](https://github.com/hashicorp/consul/issues/15178)]
+* peering: fix nil pointer in calling handleUpdateService [[GH-15160](https://github.com/hashicorp/consul/issues/15160)]
+* peering: fix the error of wan address isn't taken by the peering token. [[GH-15065](https://github.com/hashicorp/consul/issues/15065)]
+* peering: when wan address is set, peering stream should use the wan address. [[GH-15108](https://github.com/hashicorp/consul/issues/15108)]
+* proxycfg(mesh-gateway): Fix issue where deregistered services are not removed from mesh-gateway clusters. [[GH-15272](https://github.com/hashicorp/consul/issues/15272)]
+* server: fix goroutine/memory leaks in the xDS subsystem (these were present regardless of whether or not xDS was in-use) [[GH-14916](https://github.com/hashicorp/consul/issues/14916)]
+* server: fixes the error trying to source proxy configuration for http checks, in case of proxies using consul-dataplane. [[GH-14924](https://github.com/hashicorp/consul/issues/14924)]
+* xds: Central service configuration (proxy-defaults and service-defaults) is now correctly applied to Consul Dataplane proxies [[GH-14962](https://github.com/hashicorp/consul/issues/14962)]
+
+NOTES:
+
+* deps: Upgrade to use Go 1.19.2 [[GH-15090](https://github.com/hashicorp/consul/issues/15090)]
+
+## 1.13.3 (October 19, 2022)
+
+FEATURES:
+
+* agent: Added a new config option `rpc_client_timeout` to tune timeouts for client RPC requests [[GH-14965](https://github.com/hashicorp/consul/issues/14965)]
+* config-entry(ingress-gateway): Added support for `max_connections` for upstream clusters [[GH-14749](https://github.com/hashicorp/consul/issues/14749)]
+
+IMPROVEMENTS:
+
+* connect/ca: Log a warning message instead of erroring when attempting to update the intermediate pki mount when using the Vault provider. [[GH-15035](https://github.com/hashicorp/consul/issues/15035)]
+* connect: Added gateway options to Envoy proxy config for enabling tcp keepalives on terminating gateway upstreams and mesh gateways in remote datacenters. [[GH-14800](https://github.com/hashicorp/consul/issues/14800)]
+* connect: Bump Envoy 1.20 to 1.20.7, 1.21 to 1.21.5 and 1.22 to 1.22.5 [[GH-14828](https://github.com/hashicorp/consul/issues/14828)]
+* licensing: **(Enterprise Only)** Consul Enterprise production licenses do not degrade or terminate Consul upon expiration. They will only fail when trying to upgrade to a newer version of Consul. Evaluation licenses still terminate. [[GH-1990](https://github.com/hashicorp/consul/issues/1990)]
+
+BUG FIXES:
+
+* agent: avoid leaking the alias check runner goroutine when the check is de-registered [[GH-14935](https://github.com/hashicorp/consul/issues/14935)]
+* ca: fix a masked bug in leaf cert generation that would not be notified of root cert rotation after the first one [[GH-15005](https://github.com/hashicorp/consul/issues/15005)]
+* cache: prevent goroutine leak in agent cache [[GH-14908](https://github.com/hashicorp/consul/issues/14908)]
+* checks: Fixed a bug that prevented registration of UDP health checks from agent configuration files, such as service definition files with embedded health check definitions. [[GH-14885](https://github.com/hashicorp/consul/issues/14885)]
+* connect: Fixed a bug where transparent proxy does not correctly spawn listeners for upstreams to service-resolvers. [[GH-14751](https://github.com/hashicorp/consul/issues/14751)]
+* snapshot-agent: **(Enterprise only)** Fix a bug when a session is not found in Consul, which leads the agent to panic.
+
+## 1.12.6 (October 19, 2022)
+
+FEATURES:
+
+* agent: Added a new config option `rpc_client_timeout` to tune timeouts for client RPC requests [[GH-14965](https://github.com/hashicorp/consul/issues/14965)]
+* agent: Added information about build date alongside other version information for Consul. Extended /agent/self endpoint and `consul version` commands
+to report this. Agent also reports build date in log on startup. [[GH-13357](https://github.com/hashicorp/consul/issues/13357)]
+* config-entry(ingress-gateway): Added support for `max_connections` for upstream clusters [[GH-14749](https://github.com/hashicorp/consul/issues/14749)]
+
+IMPROVEMENTS:
+
+* connect/ca: Log a warning message instead of erroring when attempting to update the intermediate pki mount when using the Vault provider. [[GH-15035](https://github.com/hashicorp/consul/issues/15035)]
+* connect: Added gateway options to Envoy proxy config for enabling tcp keepalives on terminating gateway upstreams and mesh gateways in remote datacenters. [[GH-14800](https://github.com/hashicorp/consul/issues/14800)]
+* connect: Bump Envoy 1.20 to 1.20.7, 1.21 to 1.21.5 and 1.22 to 1.22.5 [[GH-14829](https://github.com/hashicorp/consul/issues/14829)]
+* licensing: **(Enterprise Only)** Consul Enterprise production licenses do not degrade or terminate Consul upon expiration. They will only fail when trying to upgrade to a newer version of Consul. Evaluation licenses still terminate. [[GH-1990](https://github.com/hashicorp/consul/issues/1990)]
+
+BUG FIXES:
+
+* agent: avoid leaking the alias check runner goroutine when the check is de-registered [[GH-14935](https://github.com/hashicorp/consul/issues/14935)]
+* ca: fix a masked bug in leaf cert generation that would not be notified of root cert rotation after the first one [[GH-15005](https://github.com/hashicorp/consul/issues/15005)]
+* cache: prevent goroutine leak in agent cache [[GH-14908](https://github.com/hashicorp/consul/issues/14908)]
+* connect: Fixed a bug where transparent proxy does not correctly spawn listeners for upstreams to service-resolvers. [[GH-14751](https://github.com/hashicorp/consul/issues/14751)]
+* snapshot-agent: **(Enterprise only)** Fix a bug when a session is not found in Consul, which leads the agent to panic.
+
+## 1.11.11 (October 19, 2022)
+
+FEATURES:
+
+* agent: Added a new config option `rpc_client_timeout` to tune timeouts for client RPC requests [[GH-14965](https://github.com/hashicorp/consul/issues/14965)]
+* config-entry(ingress-gateway): Added support for `max_connections` for upstream clusters [[GH-14749](https://github.com/hashicorp/consul/issues/14749)]
+
+IMPROVEMENTS:
+
+* connect/ca: Log a warning message instead of erroring when attempting to update the intermediate pki mount when using the Vault provider. [[GH-15035](https://github.com/hashicorp/consul/issues/15035)]
+* connect: Added gateway options to Envoy proxy config for enabling tcp keepalives on terminating gateway upstreams and mesh gateways in remote datacenters. [[GH-14800](https://github.com/hashicorp/consul/issues/14800)]
+* connect: Bump Envoy 1.20 to 1.20.7 [[GH-14830](https://github.com/hashicorp/consul/issues/14830)]
+
+BUG FIXES:
+
+* agent: avoid leaking the alias check runner goroutine when the check is de-registered [[GH-14935](https://github.com/hashicorp/consul/issues/14935)]
+* ca: fix a masked bug in leaf cert generation that would not be notified of root cert rotation after the first one [[GH-15005](https://github.com/hashicorp/consul/issues/15005)]
+* cache: prevent goroutine leak in agent cache [[GH-14908](https://github.com/hashicorp/consul/issues/14908)]
+* snapshot-agent: **(Enterprise only)** Fix a bug when a session is not found in Consul, which leads the agent to panic.
+
+## 1.11.10 (September 22, 2022)
+
+BUG FIXES:
+
+* kvs: Fixed a bug where query options were not being applied to KVS.Get RPC operations. [[GH-13344](https://github.com/hashicorp/consul/issues/13344)]
+
+## 1.13.2 (September 20, 2022)
+
+BREAKING CHANGES:
+
+* ca: If using Vault as the service mesh CA provider, the Vault policy used by Consul now requires the `update` capability on the intermediate PKI's tune mount configuration endpoint, such as `/sys/mounts/connect_inter/tune`. The breaking nature of this change is resolved in 1.13.3. Refer to [upgrade guidance](https://www.consul.io/docs/upgrading/upgrade-specific#modify-vault-policy-for-vault-ca-provider) for more information.
+
+SECURITY:
+
+* auto-config: Added input validation for auto-config JWT authorization checks. Prior to this change, it was possible for malicious actors to construct requests which incorrectly pass custom JWT claim validation for the `AutoConfig.InitialConfiguration` endpoint. Now, only a subset of characters are allowed for the input before evaluating the bexpr. [[GH-14577](https://github.com/hashicorp/consul/issues/14577)]
+* connect: Added URI length checks to ConnectCA CSR requests. Prior to this change, it was possible for a malicious actor to designate multiple SAN URI values in a call to the `ConnectCA.Sign` endpoint. The endpoint now only allows for exactly one SAN URI to be specified. [[GH-14579](https://github.com/hashicorp/consul/issues/14579)]
+
+FEATURES:
+
+* cli: Adds new subcommands for `peering` workflows. Refer to the [CLI docs](https://www.consul.io/commands/peering) for more information. [[GH-14423](https://github.com/hashicorp/consul/issues/14423)]
+* connect: Server address changes are streamed to peers [[GH-14285](https://github.com/hashicorp/consul/issues/14285)]
+* service-defaults: Added support for `local_request_timeout_ms` and
+`local_connect_timeout_ms` in servicedefaults config entry [[GH-14395](https://github.com/hashicorp/consul/issues/14395)]
+
+IMPROVEMENTS:
+
+* connect: Bump latest Envoy to 1.23.1 in test matrix [[GH-14573](https://github.com/hashicorp/consul/issues/14573)]
+* connect: expose new tracing configuration on envoy [[GH-13998](https://github.com/hashicorp/consul/issues/13998)]
+* envoy: adds additional Envoy outlier ejection parameters to passive health check configurations. [[GH-14238](https://github.com/hashicorp/consul/issues/14238)]
+* metrics: add labels of segment, partition, network area, network (lan or wan) to serf and memberlist metrics [[GH-14161](https://github.com/hashicorp/consul/issues/14161)]
+* peering: Validate peering tokens for server name conflicts [[GH-14563](https://github.com/hashicorp/consul/issues/14563)]
+* snapshot agent: **(Enterprise only)** Add support for path-based addressing when using s3 backend.
+* ui: Reuse connections for requests to /v1/internal/ui/metrics-proxy/ [[GH-14521](https://github.com/hashicorp/consul/issues/14521)]
+
+BUG FIXES:
+
+* agent: Fixes an issue where an agent that fails to start due to bad addresses won't clean up any existing listeners [[GH-14081](https://github.com/hashicorp/consul/issues/14081)]
+* api: Fix a breaking change caused by renaming `QueryDatacenterOptions` to
+`QueryFailoverOptions`. This adds `QueryDatacenterOptions` back as an alias to
+`QueryFailoverOptions` and marks it as deprecated. [[GH-14378](https://github.com/hashicorp/consul/issues/14378)]
+* ca: Fixed a bug with the Vault CA provider where the intermediate PKI mount and leaf cert role were not being updated when the CA configuration was changed. [[GH-14516](https://github.com/hashicorp/consul/issues/14516)]
+* cli: When launching a sidecar proxy with `consul connect envoy` or `consul connect proxy`, the `-sidecar-for` service ID argument is now treated as case-insensitive. [[GH-14034](https://github.com/hashicorp/consul/issues/14034)]
+* connect: Fix issue where `auto_config` and `auto_encrypt` could unintentionally enable TLS for gRPC xDS connections. [[GH-14269](https://github.com/hashicorp/consul/issues/14269)]
+* connect: Fixed a bug where old root CAs would be removed from the primary datacenter after switching providers and restarting the cluster. [[GH-14598](https://github.com/hashicorp/consul/issues/14598)]
+* connect: Fixed an issue where intermediate certificates could build up in the root CA because they were never being pruned after expiring. [[GH-14429](https://github.com/hashicorp/consul/issues/14429)]
+* connect: Fixed some spurious issues during peering establishment when a follower is dialed [[GH-14119](https://github.com/hashicorp/consul/issues/14119)]
+* envoy: validate name before deleting proxy default configurations. [[GH-14290](https://github.com/hashicorp/consul/issues/14290)]
+* peering: Fix issue preventing deletion and recreation of peerings in TERMINATED state. [[GH-14364](https://github.com/hashicorp/consul/issues/14364)]
+* rpc: Adds max jitter to client deadlines to prevent i/o deadline errors on blocking queries [[GH-14233](https://github.com/hashicorp/consul/issues/14233)]
+* tls: undo breaking change that prevented setting TLS for gRPC when using config flags available in Consul v1.11. [[GH-14668](https://github.com/hashicorp/consul/issues/14668)]
+* ui: Removed Overview page from HCP instalations [[GH-14606](https://github.com/hashicorp/consul/issues/14606)]
+
+## 1.12.5 (September 20, 2022)
+
+BREAKING CHANGES:
+
+* ca: If using Vault as the service mesh CA provider, the Vault policy used by Consul now requires the `update` capability on the intermediate PKI's tune mount configuration endpoint, such as `/sys/mounts/connect_inter/tune`. The breaking nature of this change is resolved in 1.12.6. Refer to [upgrade guidance](https://www.consul.io/docs/upgrading/upgrade-specific#modify-vault-policy-for-vault-ca-provider) for more information.
+
+SECURITY:
+
+* auto-config: Added input validation for auto-config JWT authorization checks. Prior to this change, it was possible for malicious actors to construct requests which incorrectly pass custom JWT claim validation for the `AutoConfig.InitialConfiguration` endpoint. Now, only a subset of characters are allowed for the input before evaluating the bexpr. [[GH-14577](https://github.com/hashicorp/consul/issues/14577)]
+* connect: Added URI length checks to ConnectCA CSR requests. Prior to this change, it was possible for a malicious actor to designate multiple SAN URI values in a call to the `ConnectCA.Sign` endpoint. The endpoint now only allows for exactly one SAN URI to be specified. [[GH-14579](https://github.com/hashicorp/consul/issues/14579)]
+
+IMPROVEMENTS:
+
+* envoy: adds additional Envoy outlier ejection parameters to passive health check configurations. [[GH-14238](https://github.com/hashicorp/consul/issues/14238)]
+* metrics: add labels of segment, partition, network area, network (lan or wan) to serf and memberlist metrics [[GH-14161](https://github.com/hashicorp/consul/issues/14161)]
+* snapshot agent: **(Enterprise only)** Add support for path-based addressing when using s3 backend.
+* ui: Reuse connections for requests to /v1/internal/ui/metrics-proxy/ [[GH-14521](https://github.com/hashicorp/consul/issues/14521)]
+
+BUG FIXES:
+
+* ca: Fixed a bug with the Vault CA provider where the intermediate PKI mount and leaf cert role were not being updated when the CA configuration was changed. [[GH-14516](https://github.com/hashicorp/consul/issues/14516)]
+* cli: When launching a sidecar proxy with `consul connect envoy` or `consul connect proxy`, the `-sidecar-for` service ID argument is now treated as case-insensitive. [[GH-14034](https://github.com/hashicorp/consul/issues/14034)]
+* connect: Fixed a bug where old root CAs would be removed from the primary datacenter after switching providers and restarting the cluster. [[GH-14598](https://github.com/hashicorp/consul/issues/14598)]
+* connect: Fixed an issue where intermediate certificates could build up in the root CA because they were never being pruned after expiring. [[GH-14429](https://github.com/hashicorp/consul/issues/14429)]
+* envoy: validate name before deleting proxy default configurations. [[GH-14290](https://github.com/hashicorp/consul/issues/14290)]
+* rpc: Adds max jitter to client deadlines to prevent i/o deadline errors on blocking queries [[GH-14233](https://github.com/hashicorp/consul/issues/14233)]
+* ui: Removed Overview page from HCP instalations [[GH-14606](https://github.com/hashicorp/consul/issues/14606)]
+
+## 1.11.9 (September 20, 2022)
+
+BREAKING CHANGES:
+
+* ca: If using Vault as the service mesh CA provider, the Vault policy used by Consul now requires the `update` capability on the intermediate PKI's tune mount configuration endpoint, such as `/sys/mounts/connect_inter/tune`. The breaking nature of this change is resolved in 1.11.11. Refer to [upgrade guidance](https://www.consul.io/docs/upgrading/upgrade-specific#modify-vault-policy-for-vault-ca-provider) for more information.
+
+SECURITY:
+
+* auto-config: Added input validation for auto-config JWT authorization checks. Prior to this change, it was possible for malicious actors to construct requests which incorrectly pass custom JWT claim validation for the `AutoConfig.InitialConfiguration` endpoint. Now, only a subset of characters are allowed for the input before evaluating the bexpr. [[GH-14577](https://github.com/hashicorp/consul/issues/14577)]
+* connect: Added URI length checks to ConnectCA CSR requests. Prior to this change, it was possible for a malicious actor to designate multiple SAN URI values in a call to the `ConnectCA.Sign` endpoint. The endpoint now only allows for exactly one SAN URI to be specified. [[GH-14579](https://github.com/[Ihashicorp/consul/issues/14579)]
+
+IMPROVEMENTS:
+
+* metrics: add labels of segment, partition, network area, network (lan or wan) to serf and memberlist metrics [[GH-14161](https://github.com/hashicorp/consul/issues/14161)]
+* snapshot agent: **(Enterprise only)** Add support for path-based addressing when using s3 backend.
+
+BUG FIXES:
+
+* ca: Fixed a bug with the Vault CA provider where the intermediate PKI mount and leaf cert role were not being updated when the CA configuration was changed. [[GH-14516](https://github.com/hashicorp/consul/issues/14516)]
+* cli: When launching a sidecar proxy with `consul connect envoy` or `consul connect proxy`, the `-sidecar-for` service ID argument is now treated as case-insensitive. [[GH-14034](https://github.com/hashicorp/consul/issues/14034)]
+* connect: Fixed a bug where old root CAs would be removed from the primary datacenter after switching providers and restarting the cluster. [[GH-14598](https://github.com/hashicorp/consul/issues/14598)]
+* connect: Fixed an issue where intermediate certificates could build up in the root CA because they were never being pruned after expiring. [[GH-14429](https://github.com/hashicorp/consul/issues/14429)]
+* rpc: Adds a deadline to client RPC calls, so that streams will no longer hang
+indefinitely in unstable network conditions. [[GH-8504](https://github.com/hashicorp/consul/issues/8504)] [[GH-11500](https://github.com/hashicorp/consul/issues/11500)]
+* rpc: Adds max jitter to client deadlines to prevent i/o deadline errors on blocking queries [[GH-14233](https://github.com/hashicorp/consul/issues/14233)]
+
+## 1.13.1 (August 11, 2022)
+
+BUG FIXES:
+
+* agent: Fixed a compatibility issue when restoring snapshots from pre-1.13.0 versions of Consul [[GH-14107](https://github.com/hashicorp/consul/issues/14107)] [[GH-14149](https://github.com/hashicorp/consul/issues/14149)]
+* connect: Fixed some spurious issues during peering establishment when a follower is dialed [[GH-14119](https://github.com/hashicorp/consul/issues/14119)]
+
+## 1.12.4 (August 11, 2022)
+
+BUG FIXES:
+
+* cli: when `acl token read` is used with the `-self` and `-expanded` flags, return an error instead of panicking [[GH-13787](https://github.com/hashicorp/consul/issues/13787)]
+* connect: Fixed a goroutine/memory leak that would occur when using the ingress gateway. [[GH-13847](https://github.com/hashicorp/consul/issues/13847)]
+* connect: Ingress gateways with a wildcard service entry should no longer pick up non-connect services as upstreams.
+connect: Terminating gateways with a wildcard service entry should no longer pick up connect services as upstreams. [[GH-13958](https://github.com/hashicorp/consul/issues/13958)]
+* ui: Fixes an issue where client side validation errors were not showing in certain areas [[GH-14021](https://github.com/hashicorp/consul/issues/14021)]
+
+## 1.11.8 (August 11, 2022)
+
+BUG FIXES:
+
+* connect: Fixed a goroutine/memory leak that would occur when using the ingress gateway. [[GH-13847](https://github.com/hashicorp/consul/issues/13847)]
+* connect: Ingress gateways with a wildcard service entry should no longer pick up non-connect services as upstreams.
+connect: Terminating gateways with a wildcard service entry should no longer pick up connect services as upstreams. [[GH-13958](https://github.com/hashicorp/consul/issues/13958)]
+
+## 1.13.0 (August 9, 2022)
+
+BREAKING CHANGES:
+
+* config-entry: Exporting a specific service name across all namespace is invalid.
+* connect: contains an upgrade compatibility issue when restoring snapshots containing service mesh proxy registrations from pre-1.13 versions of Consul [[GH-14107](https://github.com/hashicorp/consul/issues/14107)]. Fixed in 1.13.1 [[GH-14149](https://github.com/hashicorp/consul/issues/14149)]. Refer to [1.13 upgrade guidance](https://www.consul.io/docs/upgrading/upgrade-specific#all-service-mesh-deployments) for more information.
+* connect: if using auto-encrypt or auto-config, TLS is required for gRPC communication between Envoy and Consul as of 1.13.0; this TLS for gRPC requirement will be removed in a future 1.13 patch release. Refer to [1.13 upgrade guidance](https://www.consul.io/docs/upgrading/upgrade-specific#service-mesh-deployments-using-auto-encrypt-or-auto-config) for more information.
+* connect: if a pre-1.13 Consul agent's HTTPS port was not enabled, upgrading to 1.13 may turn on TLS for gRPC communication for Envoy and Consul depending on the agent's TLS configuration. Refer to [1.13 upgrade guidance](https://www.consul.io/docs/upgrading/upgrade-specific#grpc-tls) for more information.
+* connect: Removes support for Envoy 1.19 [[GH-13807](https://github.com/hashicorp/consul/issues/13807)]
+* telemetry: config flag `telemetry { disable_compat_1.9 = (true|false) }` has been removed. Before upgrading you should remove this flag from your config if the flag is being used. [[GH-13532](https://github.com/hashicorp/consul/issues/13532)]
+
+FEATURES:
+
+* **Cluster Peering (Beta)** This version adds a new model to federate Consul clusters for both service mesh and traditional service discovery. Cluster peering allows for service interconnectivity with looser coupling than the existing WAN federation. For more information refer to the [cluster peering](https://www.consul.io/docs/connect/cluster-peering) documentation.
+* **Transparent proxying through terminating gateways** This version adds egress traffic control to destinations outside of Consul's catalog, such as APIs on the public internet. Transparent proxies can dial [destinations defined in service-defaults](https://www.consul.io/docs/connect/config-entries/service-defaults#destination) and have the traffic routed through terminating gateways. For more information refer to the [terminating gateway](https://www.consul.io/docs/connect/gateways/terminating-gateway#terminating-gateway-configuration) documentation.
+* acl: It is now possible to login and logout using the gRPC API [[GH-12935](https://github.com/hashicorp/consul/issues/12935)]
+* agent: Added information about build date alongside other version information for Consul. Extended /agent/self endpoint and `consul version` commands
+to report this. Agent also reports build date in log on startup. [[GH-13357](https://github.com/hashicorp/consul/issues/13357)]
+* ca: Leaf certificates can now be obtained via the gRPC API: `Sign` [[GH-12787](https://github.com/hashicorp/consul/issues/12787)]
+* checks: add UDP health checks.. [[GH-12722](https://github.com/hashicorp/consul/issues/12722)]
+* cli: A new flag for config delete to delete a config entry in a
+valid config file, e.g., config delete -filename intention-allow.hcl [[GH-13677](https://github.com/hashicorp/consul/issues/13677)]
+* connect: Adds a new `destination` field to the `service-default` config entry that allows routing egress traffic
+through a terminating gateway in transparent proxy mode without modifying the catalog. [[GH-13613](https://github.com/hashicorp/consul/issues/13613)]
+* grpc: New gRPC endpoint to return envoy bootstrap parameters. [[GH-12825](https://github.com/hashicorp/consul/issues/12825)]
+* grpc: New gRPC endpoint to return envoy bootstrap parameters. [[GH-1717](https://github.com/hashicorp/consul/issues/1717)]
+* grpc: New gRPC service and endpoint to return the list of supported consul dataplane features [[GH-12695](https://github.com/hashicorp/consul/issues/12695)]
+* server: broadcast the public grpc port using lan serf and update the consul service in the catalog with the same data [[GH-13687](https://github.com/hashicorp/consul/issues/13687)]
+* streaming: Added topic that can be used to consume updates about the list of services in a datacenter [[GH-13722](https://github.com/hashicorp/consul/issues/13722)]
+* streaming: Added topics for `ingress-gateway`, `mesh`, `service-intentions` and `service-resolver` config entry events. [[GH-13658](https://github.com/hashicorp/consul/issues/13658)]
+
+IMPROVEMENTS:
+
+* api: `merge-central-config` query parameter support added to `/catalog/node-services/:node-name` API, to view a fully resolved service definition (especially when not written into the catalog that way). [[GH-13450](https://github.com/hashicorp/consul/issues/13450)]
+* api: `merge-central-config` query parameter support added to `/catalog/node-services/:node-name` API, to view a fully resolved service definition (especially when not written into the catalog that way). [[GH-2046](https://github.com/hashicorp/consul/issues/2046)]
+* api: `merge-central-config` query parameter support added to some catalog and health endpoints to view a fully resolved service definition (especially when not written into the catalog that way). [[GH-13001](https://github.com/hashicorp/consul/issues/13001)]
+* api: add the ability to specify a path prefix for when consul is behind a reverse proxy or API gateway [[GH-12914](https://github.com/hashicorp/consul/issues/12914)]
+* catalog: Add per-node indexes to reduce watchset firing for unrelated nodes and services. [[GH-12399](https://github.com/hashicorp/consul/issues/12399)]
+* connect: add validation to ensure connect native services have a port or socketpath specified on catalog registration.
+This was the only missing piece to ensure all mesh services are validated for a port (or socketpath) specification on catalog registration. [[GH-12881](https://github.com/hashicorp/consul/issues/12881)]
+* ui: Add new CopyableCode component and use it in certain pre-existing areas [[GH-13686](https://github.com/hashicorp/consul/issues/13686)]
+* acl: Clarify node/service identities must be lowercase [[GH-12807](https://github.com/hashicorp/consul/issues/12807)]
+* command: Add support for enabling TLS in the Envoy Prometheus endpoint via the `consul connect envoy` command.
+Adds the `-prometheus-ca-file`, `-prometheus-ca-path`, `-prometheus-cert-file` and `-prometheus-key-file` flags. [[GH-13481](https://github.com/hashicorp/consul/issues/13481)]
+* connect: Add Envoy 1.23.0 to support matrix [[GH-13807](https://github.com/hashicorp/consul/issues/13807)]
+* connect: Added a `max_inbound_connections` setting to service-defaults for limiting the number of concurrent inbound connections to each service instance. [[GH-13143](https://github.com/hashicorp/consul/issues/13143)]
+* grpc: Add a new ServerDiscovery.WatchServers gRPC endpoint for being notified when the set of ready servers has changed. [[GH-12819](https://github.com/hashicorp/consul/issues/12819)]
+* telemetry: Added `consul.raft.thread.main.saturation` and `consul.raft.thread.fsm.saturation` metrics to measure approximate saturation of the Raft goroutines [[GH-12865](https://github.com/hashicorp/consul/issues/12865)]
+* ui: removed external dependencies for serving UI assets in favor of Go's native embed capabilities [[GH-10996](https://github.com/hashicorp/consul/issues/10996)]
+* ui: upgrade ember-composable-helpers to v5.x [[GH-13394](https://github.com/hashicorp/consul/issues/13394)]
+
+BUG FIXES:
+
+* acl: Fixed a bug where the ACL down policy wasn't being applied on remote errors from the primary datacenter. [[GH-12885](https://github.com/hashicorp/consul/issues/12885)]
+* cli: when `acl token read` is used with the `-self` and `-expanded` flags, return an error instead of panicking [[GH-13787](https://github.com/hashicorp/consul/issues/13787)]
+* connect: Fixed a goroutine/memory leak that would occur when using the ingress gateway. [[GH-13847](https://github.com/hashicorp/consul/issues/13847)]
+* connect: Ingress gateways with a wildcard service entry should no longer pick up non-connect services as upstreams.
+connect: Terminating gateways with a wildcard service entry should no longer pick up connect services as upstreams. [[GH-13958](https://github.com/hashicorp/consul/issues/13958)]
+* proxycfg: Fixed a minor bug that would cause configuring a terminating gateway to watch too many service resolvers and waste resources doing filtering. [[GH-13012](https://github.com/hashicorp/consul/issues/13012)]
+* raft: upgrade to v1.3.8 which fixes a bug where non cluster member can still be able to participate in an election. [[GH-12844](https://github.com/hashicorp/consul/issues/12844)]
+* rpc: Adds a deadline to client RPC calls, so that streams will no longer hang
+indefinitely in unstable network conditions. [[GH-8504](https://github.com/hashicorp/consul/issues/8504)] [[GH-11500](https://github.com/hashicorp/consul/issues/11500)]
+* serf: upgrade serf to v0.9.8 which fixes a bug that crashes Consul when serf keyrings are listed [[GH-13062](https://github.com/hashicorp/consul/issues/13062)]
+* ui: Fixes an issue where client side validation errors were not showing in certain areas [[GH-14021](https://github.com/hashicorp/consul/issues/14021)]
+
 ## 1.12.3 (July 13, 2022)
 
 IMPROVEMENTS:
@@ -36,61 +591,6 @@ BUG FIXES:
 * agent: Fixed a bug in HTTP handlers where URLs were being decoded twice [[GH-13264](https://github.com/hashicorp/consul/issues/13264)]
 * fix a bug that caused an error when creating `grpc` or `http2` ingress gateway listeners with multiple services [[GH-13127](https://github.com/hashicorp/consul/issues/13127)]
 
-## 1.13.0-alpha2 (June 21, 2022)
-
-IMPROVEMENTS:
-
-* api: `merge-central-config` query parameter support added to `/catalog/node-services/:node-name` API, to view a fully resolved service definition (especially when not written into the catalog that way). [[GH-13450](https://github.com/hashicorp/consul/issues/13450)]
-* connect: Update Envoy support matrix to latest patch releases (1.22.2, 1.21.3, 1.20.4, 1.19.5) [[GH-13431](https://github.com/hashicorp/consul/issues/13431)]
-
-BUG FIXES:
-
-* ui: Fix incorrect text on certain page empty states [[GH-13409](https://github.com/hashicorp/consul/issues/13409)]
-
-## 1.13.0-alpha1 (June 15, 2022)
-
-BREAKING CHANGES:
-
-* config-entry: Exporting a specific service name across all namespace is invalid.
-
-FEATURES:
-
-* acl: It is now possible to login and logout using the gRPC API [[GH-12935](https://github.com/hashicorp/consul/issues/12935)]
-* agent: Added information about build date alongside other version information for Consul. Extended /agent/self endpoint and `consul version` commands
-to report this. Agent also reports build date in log on startup. [[GH-13357](https://github.com/hashicorp/consul/issues/13357)]
-* ca: Leaf certificates can now be obtained via the gRPC API: `Sign` [[GH-12787](https://github.com/hashicorp/consul/issues/12787)]
-* checks: add UDP health checks.. [[GH-12722](https://github.com/hashicorp/consul/issues/12722)]
-* grpc: New gRPC endpoint to return envoy bootstrap parameters. [[GH-12825](https://github.com/hashicorp/consul/issues/12825)]
-* grpc: New gRPC endpoint to return envoy bootstrap parameters. [[GH-1717](https://github.com/hashicorp/consul/issues/1717)]
-* grpc: New gRPC service and endpoint to return the list of supported consul dataplane features [[GH-12695](https://github.com/hashicorp/consul/issues/12695)]
-
-IMPROVEMENTS:
-
-* api: `merge-central-config` query parameter support added to some catalog and health endpoints to view a fully resolved service definition (especially when not written into the catalog that way). [[GH-13001](https://github.com/hashicorp/consul/issues/13001)]
-* api: add the ability to specify a path prefix for when consul is behind a reverse proxy or API gateway [[GH-12914](https://github.com/hashicorp/consul/issues/12914)]
-* connect: add validation to ensure connect native services have a port or socketpath specified on catalog registration.
-This was the only missing piece to ensure all mesh services are validated for a port (or socketpath) specification on catalog registration. [[GH-12881](https://github.com/hashicorp/consul/issues/12881)]
-* Support Vault namespaces in Connect CA by adding RootPKINamespace and
-IntermediatePKINamespace fields to the config. [[GH-12904](https://github.com/hashicorp/consul/issues/12904)]
-* acl: Clarify node/service identities must be lowercase [[GH-12807](https://github.com/hashicorp/consul/issues/12807)]
-* connect: Added a `max_inbound_connections` setting to service-defaults for limiting the number of concurrent inbound connections to each service instance. [[GH-13143](https://github.com/hashicorp/consul/issues/13143)]
-* dns: Added support for specifying admin partition in node lookups. [[GH-13421](https://github.com/hashicorp/consul/issues/13421)]
-* grpc: Add a new ServerDiscovery.WatchServers gRPC endpoint for being notified when the set of ready servers has changed. [[GH-12819](https://github.com/hashicorp/consul/issues/12819)]
-* telemetry: Added `consul.raft.thread.main.saturation` and `consul.raft.thread.fsm.saturation` metrics to measure approximate saturation of the Raft goroutines [[GH-12865](https://github.com/hashicorp/consul/issues/12865)]
-* telemetry: Added a `consul.server.isLeader` metric to track if a server is a leader or not. [[GH-13304](https://github.com/hashicorp/consul/issues/13304)]
-* ui: removed external dependencies for serving UI assets in favor of Go's native embed capabilities [[GH-10996](https://github.com/hashicorp/consul/issues/10996)]
-* ui: upgrade ember-composable-helpers to v5.x [[GH-13394](https://github.com/hashicorp/consul/issues/13394)]
-
-BUG FIXES:
-
-* acl: Fixed a bug where the ACL down policy wasn't being applied on remote errors from the primary datacenter. [[GH-12885](https://github.com/hashicorp/consul/issues/12885)]
-* agent: Fixed a bug in HTTP handlers where URLs were being decoded twice [[GH-13256](https://github.com/hashicorp/consul/issues/13256)]
-* deps: Update go-grpc/grpc, resolving connection memory leak [[GH-13051](https://github.com/hashicorp/consul/issues/13051)]
-* fix a bug that caused an error when creating `grpc` or `http2` ingress gateway listeners with multiple services [[GH-13127](https://github.com/hashicorp/consul/issues/13127)]
-* proxycfg: Fixed a minor bug that would cause configuring a terminating gateway to watch too many service resolvers and waste resources doing filtering. [[GH-13012](https://github.com/hashicorp/consul/issues/13012)]
-* raft: upgrade to v1.3.8 which fixes a bug where non cluster member can still be able to participate in an election. [[GH-12844](https://github.com/hashicorp/consul/issues/12844)]
-* serf: upgrade serf to v0.9.8 which fixes a bug that crashes Consul when serf keyrings are listed [[GH-13062](https://github.com/hashicorp/consul/issues/13062)]
-
 ## 1.12.2 (June 3, 2022)
 
 BUG FIXES:
@@ -120,6 +620,8 @@ BUG FIXES:
 * ca: fix a bug that caused a non blocking leaf cert query after a blocking leaf cert query to block [[GH-12820](https://github.com/hashicorp/consul/issues/12820)]
 * config: fix backwards compatibility bug where setting the (deprecated) top-level `verify_incoming` option would enable TLS client authentication on the gRPC port [[GH-13118](https://github.com/hashicorp/consul/issues/13118)]
 * health: ensure /v1/health/service/:service endpoint returns the most recent results when a filter is used with streaming #12640 [[GH-12640](https://github.com/hashicorp/consul/issues/12640)]
+* rpc: Adds a deadline to client RPC calls, so that streams will no longer hang
+indefinitely in unstable network conditions. [[GH-8504](https://github.com/hashicorp/consul/issues/8504)] [[GH-11500](https://github.com/hashicorp/consul/issues/11500)]
 * snapshot-agent: **(Enterprise only)** Fix a bug where providing the ACL token to the snapshot agent via a CLI or ENV variable without a license configured results in an error during license auto-retrieval.
 * ui: Re-instate '...' icon for row actions [[GH-13183](https://github.com/hashicorp/consul/issues/13183)]
 
@@ -203,6 +705,8 @@ BUG FIXES:
 * dns: allow max of 63 character DNS labels instead of 64 per RFC 1123 [[GH-12535](https://github.com/hashicorp/consul/issues/12535)]
 * logging: fix a bug with incorrect severity syslog messages (all messages were sent with NOTICE severity). [[GH-12079](https://github.com/hashicorp/consul/issues/12079)]
 * ui: Added Tags tab to gateways(just like exists for non-gateway services) [[GH-12400](https://github.com/hashicorp/consul/issues/12400)]
+* ui: Ensure proxy instance health is taken into account in Service Instance Listings [[GH-12279](https://github.com/hashicorp/consul/issues/12279)]
+* ui: Fixes an issue with the version footer wandering when scrolling [[GH-11850](https://github.com/hashicorp/consul/issues/11850)]
 
 NOTES:
 
@@ -301,6 +805,7 @@ BUG FIXES:
 * connect: fixes bug where passthrough addressses for transparent proxies dialed directly weren't being cleaned up. [[GH-12223](https://github.com/hashicorp/consul/issues/12223)]
 * partitions: **(Enterprise only)** Do not leave a serf partition when the partition is deleted
 * serf: update serf v0.9.7, complete the leave process if broadcasting leave timeout. [[GH-12057](https://github.com/hashicorp/consul/issues/12057)]
+* ui: Ensure proxy instance health is taken into account in Service Instance Listings [[GH-12279](https://github.com/hashicorp/consul/issues/12279)]
 * ui: Fix up a problem where occasionally an intention can visually disappear from the listing after saving [[GH-12315](https://github.com/hashicorp/consul/issues/12315)]
 * ui: Fixed a bug with creating multiple nested KVs in one interaction [[GH-12081](https://github.com/hashicorp/consul/issues/12081)]
 * ui: Include partition data when saving an intention from the topology visualization [[GH-12317](https://github.com/hashicorp/consul/issues/12317)]
@@ -364,6 +869,10 @@ FEATURES:
 * Admin Partitions (Consul Enterprise only) This version adds admin partitions, a new entity defining administrative and networking boundaries within a Consul deployment. For more information refer to the
  [Admin Partition](https://www.consul.io/docs/enterprise/admin-partitions) documentation. [[GH-11855](https://github.com/hashicorp/consul/issues/11855)]
 * networking: **(Enterprise Only)** Make `segment_limit` configurable, cap at 256.
+
+BUG FIXES:
+
+* ui: Fixes an issue with the version footer wandering when scrolling [[GH-11850](https://github.com/hashicorp/consul/issues/11850)]
 
 ## 1.11.0 (December 14, 2021)
 
@@ -464,6 +973,8 @@ BUG FIXES:
 * namespaces: **(Enterprise only)** ensure the namespace replicator doesn't replicate deleted namespaces
 * proxycfg: ensure all of the watches are canceled if they are cancelable [[GH-11824](https://github.com/hashicorp/consul/issues/11824)]
 * snapshot: **(Enterprise only)** fixed a bug where the snapshot agent would ignore the `license_path` setting in config files
+* ui: Change partitions to expect [] from the listing API [[GH-11791](https://github.com/hashicorp/consul/issues/11791)]
+* ui: Don't offer to save an intention with a source/destination wildcard partition [[GH-11804](https://github.com/hashicorp/consul/issues/11804)]
 * ui: Ensure all types of data get reconciled with the backend data [[GH-11237](https://github.com/hashicorp/consul/issues/11237)]
 * ui: Ensure dc selector correctly shows the currently selected dc [[GH-11380](https://github.com/hashicorp/consul/issues/11380)]
 * ui: Ensure we check intention permissions for specific services when deciding
@@ -913,6 +1424,24 @@ being expired. [[GH-10161](https://github.com/hashicorp/consul/issues/10161)]
 NOTES:
 
 * legal: **(Enterprise only)** Enterprise binary downloads will now include a copy of the EULA and Terms of Evaluation in the zip archive
+
+## 1.9.17 (April 13, 2022)
+
+SECURITY:
+
+* agent: Added a new check field, `disable_redirects`, that allows for disabling the following of redirects for HTTP checks. The intention is to default this to true in a future release so that redirects must explicitly be enabled. [[GH-12685](https://github.com/hashicorp/consul/issues/12685)]
+* connect: Properly set SNI when configured for services behind a terminating gateway. [[GH-12672](https://github.com/hashicorp/consul/issues/12672)]
+
+DEPRECATIONS:
+
+* tls: With the upgrade to Go 1.17, the ordering of `tls_cipher_suites` will no longer be honored, and `tls_prefer_server_cipher_suites` is now ignored. [[GH-12767](https://github.com/hashicorp/consul/issues/12767)]
+
+BUG FIXES:
+
+* connect/ca: cancel old Vault renewal on CA configuration. Provide a 1 - 6 second backoff on repeated token renewal requests to prevent overwhelming Vault. [[GH-12607](https://github.com/hashicorp/consul/issues/12607)]
+* memberlist: fixes a bug which prevented members from joining a cluster with
+large amounts of churn [[GH-253](https://github.com/hashicorp/memberlist/issues/253)] [[GH-12046](https://github.com/hashicorp/consul/issues/12046)]
+* replication: Fixed a bug which could prevent ACL replication from continuing successfully after a leader election. [[GH-12565](https://github.com/hashicorp/consul/issues/12565)]
 
 ## 1.9.16 (February 28, 2022)
 

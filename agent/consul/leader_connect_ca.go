@@ -16,14 +16,13 @@ import (
 	"golang.org/x/time/rate"
 
 	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/lib/semaphore"
-
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/connect/ca"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/lib/routine"
+	"github.com/hashicorp/consul/lib/semaphore"
 )
 
 type caState string
@@ -564,22 +563,9 @@ func (c *CAManager) primaryInitialize(provider ca.Provider, conf *structs.CAConf
 		return nil
 	}
 
-	// Get the highest index
-	idx, _, err := state.CARoots(nil)
-	if err != nil {
+	if err := c.persistNewRootAndConfig(provider, rootCA, conf); err != nil {
 		return err
 	}
-
-	// Store the root cert in raft
-	_, err = c.delegate.ApplyCARequest(&structs.CARequest{
-		Op:    structs.CAOpSetRoots,
-		Index: idx,
-		Roots: []*structs.CARoot{rootCA},
-	})
-	if err != nil {
-		return fmt.Errorf("raft apply failed: %w", err)
-	}
-
 	c.setCAProvider(provider, rootCA)
 
 	c.logger.Info("initialized primary datacenter CA with provider", "provider", conf.Provider)
@@ -1065,7 +1051,7 @@ func (c *CAManager) primaryRenewIntermediate(provider ca.Provider, newActiveRoot
 // provider.
 // Should only be called while the state lock is held by setting the state to non-ready.
 func (c *CAManager) secondaryRequestNewSigningCert(provider ca.Provider, newActiveRoot *structs.CARoot) error {
-	csr, err := provider.GenerateIntermediateCSR()
+	csr, opaque, err := provider.GenerateIntermediateCSR()
 	if err != nil {
 		return err
 	}
@@ -1077,12 +1063,12 @@ func (c *CAManager) secondaryRequestNewSigningCert(provider ca.Provider, newActi
 		return nil
 	}
 
-	if err := provider.SetIntermediate(intermediatePEM, newActiveRoot.RootCert); err != nil {
+	if err := provider.SetIntermediate(intermediatePEM, newActiveRoot.RootCert, opaque); err != nil {
 		return fmt.Errorf("Failed to set the intermediate certificate with the CA provider: %v", err)
 	}
 
 	if err := setLeafSigningCert(newActiveRoot, intermediatePEM); err != nil {
-		return err
+		return fmt.Errorf("Failed to set the leaf signing cert to the intermediate: %w", err)
 	}
 
 	c.logger.Info("received new intermediate certificate from primary datacenter")
@@ -1098,22 +1084,45 @@ func setLeafSigningCert(caRoot *structs.CARoot, pem string) error {
 		return fmt.Errorf("error parsing leaf signing cert: %w", err)
 	}
 
+	if err := pruneExpiredIntermediates(caRoot); err != nil {
+		return err
+	}
+
 	caRoot.IntermediateCerts = append(caRoot.IntermediateCerts, pem)
 	caRoot.SigningKeyID = connect.EncodeSigningKeyID(cert.SubjectKeyId)
 	return nil
 }
 
+// pruneExpiredIntermediates removes expired intermediate certificates
+// from the given CARoot.
+func pruneExpiredIntermediates(caRoot *structs.CARoot) error {
+	var newIntermediates []string
+	now := time.Now()
+	for _, intermediatePEM := range caRoot.IntermediateCerts {
+		cert, err := connect.ParseCert(intermediatePEM)
+		if err != nil {
+			return fmt.Errorf("error parsing leaf signing cert: %w", err)
+		}
+
+		// Only keep the intermediate cert if it's still valid.
+		if cert.NotAfter.After(now) {
+			newIntermediates = append(newIntermediates, intermediatePEM)
+		}
+	}
+
+	caRoot.IntermediateCerts = newIntermediates
+	return nil
+}
+
 // runRenewIntermediate periodically attempts to renew the intermediate cert.
 func (c *CAManager) runRenewIntermediate(ctx context.Context) error {
-	isPrimary := c.serverConf.Datacenter == c.serverConf.PrimaryDatacenter
-
 	for {
 		select {
 		case <-ctx.Done():
 			return nil
 		case <-time.After(structs.IntermediateCertRenewInterval):
 			retryLoopBackoffAbortOnSuccess(ctx, func() error {
-				return c.RenewIntermediate(ctx, isPrimary)
+				return c.RenewIntermediate(ctx)
 			}, func(err error) {
 				c.logger.Error("error renewing intermediate certs",
 					"routine", intermediateCertRenewWatchRoutineName,
@@ -1127,13 +1136,23 @@ func (c *CAManager) runRenewIntermediate(ctx context.Context) error {
 // RenewIntermediate checks the intermediate cert for
 // expiration. If more than half the time a cert is valid has passed,
 // it will try to renew it.
-func (c *CAManager) RenewIntermediate(ctx context.Context, isPrimary bool) error {
+func (c *CAManager) RenewIntermediate(ctx context.Context) error {
+	return c.renewIntermediate(ctx, false)
+}
+
+func (c *CAManager) renewIntermediateNow(ctx context.Context) error {
+	return c.renewIntermediate(ctx, true)
+}
+
+func (c *CAManager) renewIntermediate(ctx context.Context, forceNow bool) error {
 	// Grab the 'lock' right away so the provider/config can't be changed out while we check
 	// the intermediate.
 	if _, err := c.setState(caStateRenewIntermediate, true); err != nil {
 		return err
 	}
 	defer c.setState(caStateInitialized, false)
+
+	isPrimary := c.serverConf.InPrimaryDatacenter()
 
 	provider, _ := c.getCAProvider()
 	if provider == nil {
@@ -1172,8 +1191,10 @@ func (c *CAManager) RenewIntermediate(ctx context.Context, isPrimary bool) error
 		return fmt.Errorf("error parsing active intermediate cert: %v", err)
 	}
 
-	if lessThanHalfTimePassed(c.timeNow(), intermediateCert.NotBefore, intermediateCert.NotAfter) {
-		return nil
+	if !forceNow {
+		if lessThanHalfTimePassed(c.timeNow(), intermediateCert.NotBefore, intermediateCert.NotAfter) {
+			return nil
+		}
 	}
 
 	// Enough time has passed, go ahead with getting a new intermediate.
@@ -1181,18 +1202,26 @@ func (c *CAManager) RenewIntermediate(ctx context.Context, isPrimary bool) error
 	if !isPrimary {
 		renewalFunc = c.secondaryRequestNewSigningCert
 	}
-	errCh := make(chan error, 1)
-	go func() {
-		errCh <- renewalFunc(provider, activeRoot)
-	}()
 
-	// Wait for the renewal func to return or for the context to be canceled.
-	select {
-	case <-ctx.Done():
-		return ctx.Err()
-	case err := <-errCh:
+	if forceNow {
+		err := renewalFunc(provider, activeRoot)
 		if err != nil {
 			return err
+		}
+	} else {
+		errCh := make(chan error, 1)
+		go func() {
+			errCh <- renewalFunc(provider, activeRoot)
+		}()
+
+		// Wait for the renewal func to return or for the context to be canceled.
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case err := <-errCh:
+			if err != nil {
+				return err
+			}
 		}
 	}
 
@@ -1381,10 +1410,15 @@ func (l *connectSignRateLimiter) getCSRRateLimiterWithLimit(limit rate.Limit) *r
 // identified by the SPIFFE ID in the given CSR's SAN. It performs authorization
 // using the given acl.Authorizer.
 func (c *CAManager) AuthorizeAndSignCertificate(csr *x509.CertificateRequest, authz acl.Authorizer) (*structs.IssuedCert, error) {
-	// Parse the SPIFFE ID from the CSR SAN.
-	if len(csr.URIs) == 0 {
-		return nil, connect.InvalidCSRError("CSR SAN does not contain a SPIFFE ID")
+	// Note that only one spiffe id is allowed currently. If more than one is desired
+	// in future implmentations, then each ID should have authorization checks.
+	if len(csr.URIs) != 1 {
+		return nil, connect.InvalidCSRError("CSR SAN contains an invalid number of URIs: %v", len(csr.URIs))
 	}
+	if len(csr.EmailAddresses) > 0 {
+		return nil, connect.InvalidCSRError("CSR SAN does not allow specifying email addresses")
+	}
+	// Parse the SPIFFE ID from the CSR SAN.
 	spiffeID, err := connect.ParseCertURI(csr.URIs[0])
 	if err != nil {
 		return nil, err
@@ -1426,8 +1460,21 @@ func (c *CAManager) AuthorizeAndSignCertificate(csr *x509.CertificateRequest, au
 			return nil, connect.InvalidCSRError("SPIFFE ID in CSR from a different datacenter: %s, "+
 				"we are %s", v.Datacenter, dc)
 		}
+	case *connect.SpiffeIDServer:
+		// The authorizer passed in should have unlimited permissions.
+		if err := allow.ACLWriteAllowed(&authzContext); err != nil {
+			return nil, err
+		}
+
+		// Verify that the DC in the URI matches us.
+		// The request must have been issued by a local server.
+		dc := c.serverConf.Datacenter
+		if v.Datacenter != dc {
+			return nil, connect.InvalidCSRError("SPIFFE ID in CSR from a different datacenter: %s, "+
+				"we are %s", v.Datacenter, dc)
+		}
 	default:
-		return nil, connect.InvalidCSRError("SPIFFE ID in CSR must be a service or agent ID")
+		return nil, connect.InvalidCSRError("SPIFFE ID in CSR must be a service, mesh-gateway, or agent ID")
 	}
 
 	return c.SignCertificate(csr, spiffeID)
@@ -1447,9 +1494,11 @@ func (c *CAManager) SignCertificate(csr *x509.CertificateRequest, spiffeID conne
 	if err != nil {
 		return nil, err
 	}
+
 	signingID := connect.SpiffeIDSigningForCluster(config.ClusterID)
 	serviceID, isService := spiffeID.(*connect.SpiffeIDService)
 	agentID, isAgent := spiffeID.(*connect.SpiffeIDAgent)
+	serverID, isServer := spiffeID.(*connect.SpiffeIDServer)
 	mgwID, isMeshGateway := spiffeID.(*connect.SpiffeIDMeshGateway)
 
 	var entMeta acl.EnterpriseMeta
@@ -1468,6 +1517,12 @@ func (c *CAManager) SignCertificate(csr *x509.CertificateRequest, spiffeID conne
 		}
 		entMeta.Merge(mgwID.GetEnterpriseMeta())
 
+	case isServer:
+		if !signingID.CanSign(spiffeID) {
+			return nil, connect.InvalidCSRError("SPIFFE ID in CSR from a different trust domain: %s, "+
+				"we are %s", serverID.Host, signingID.Host())
+		}
+		entMeta.Normalize()
 	case isAgent:
 		// isAgent - if we support more ID types then this would need to be an else if
 		// here we are just automatically fixing the trust domain. For auto-encrypt and
@@ -1494,7 +1549,7 @@ func (c *CAManager) SignCertificate(csr *x509.CertificateRequest, spiffeID conne
 		entMeta.Merge(agentID.GetEnterpriseMeta())
 
 	default:
-		return nil, connect.InvalidCSRError("SPIFFE ID in CSR must be a service, agent, or mesh gateway ID")
+		return nil, connect.InvalidCSRError("SPIFFE ID in CSR must be a service, agent, server, or mesh gateway ID")
 	}
 
 	commonCfg, err := config.GetCommonConfig()
@@ -1583,6 +1638,8 @@ func (c *CAManager) SignCertificate(csr *x509.CertificateRequest, spiffeID conne
 	case isAgent:
 		reply.Agent = agentID.Agent
 		reply.AgentURI = cert.URIs[0].String()
+	case isServer:
+		reply.ServerURI = cert.URIs[0].String()
 	default:
 		return nil, errors.New("not possible")
 	}

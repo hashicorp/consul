@@ -1,6 +1,7 @@
 package cachetype
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/hashicorp/consul/agent/cache"
@@ -43,7 +44,7 @@ func (c *CompiledDiscoveryChain) Fetch(opts cache.FetchOptions, req cache.Reques
 
 	// Fetch
 	var reply structs.DiscoveryChainResponse
-	if err := c.RPC.RPC("DiscoveryChain.Get", reqReal, &reply); err != nil {
+	if err := c.RPC.RPC(context.Background(), "DiscoveryChain.Get", reqReal, &reply); err != nil {
 		return result, err
 	}
 

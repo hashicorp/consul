@@ -3,13 +3,13 @@ import { resolve } from 'rsvp';
 import startApp from '../helpers/start-app';
 import destroyApp from '../helpers/destroy-app';
 
-export default function(name, options = {}) {
+export default function (name, options = {}) {
   let setTimeout = window.setTimeout;
   let setInterval = window.setInterval;
   module(name, {
     beforeEach() {
-      const speedup = function(func) {
-        return function(cb, interval = 0) {
+      const speedup = function (func) {
+        return function (cb, interval = 0) {
           if (interval > 10) {
             interval = Math.max(Math.round(interval / 10), 10);
           }

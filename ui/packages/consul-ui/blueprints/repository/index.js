@@ -9,17 +9,16 @@ module.exports = {
   root: __dirname,
 
   fileMapTokens(options) {
-      return {
-        __path__() {
-          return path.join('services', 'repository');
-        }
-      };
+    return {
+      __path__() {
+        return path.join('services', 'repository');
+      },
+    };
   },
   locals(options) {
     // Return custom template variables here.
-    return {
-    };
-  }
+    return {};
+  },
 
   // afterInstall(options) {
   //   // Perform extra work here.

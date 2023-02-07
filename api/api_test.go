@@ -5,7 +5,6 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"net/url"
@@ -95,6 +94,10 @@ func makeClientWithConfig(
 	})
 	if server.Config.Bootstrap {
 		server.WaitForLeader(t)
+	}
+	connectEnabled := server.Config.Connect["enabled"]
+	if enabled, ok := connectEnabled.(bool); ok && server.Config.Server && enabled {
+		server.WaitForActiveCARoot(t)
 	}
 
 	conf.Address = server.HTTPAddr
@@ -614,15 +617,15 @@ func TestAPI_SetupTLSConfig(t *testing.T) {
 	assertDeepEqual(t, expectedCaPoolByDir, cc.RootCAs, cmpCertPool)
 
 	// Load certs in-memory
-	certPEM, err := ioutil.ReadFile("../test/hostname/Alice.crt")
+	certPEM, err := os.ReadFile("../test/hostname/Alice.crt")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	keyPEM, err := ioutil.ReadFile("../test/hostname/Alice.key")
+	keyPEM, err := os.ReadFile("../test/hostname/Alice.key")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	caPEM, err := ioutil.ReadFile("../test/hostname/CertAuth.crt")
+	caPEM, err := os.ReadFile("../test/hostname/CertAuth.crt")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -763,6 +766,7 @@ func TestAPI_SetQueryOptions(t *testing.T) {
 		Namespace:         "operator",
 		Partition:         "asdf",
 		Datacenter:        "foo",
+		Peer:              "dc10",
 		AllowStale:        true,
 		RequireConsistent: true,
 		WaitIndex:         1000,
@@ -777,6 +781,9 @@ func TestAPI_SetQueryOptions(t *testing.T) {
 		t.Fatalf("bad: %v", r.params)
 	}
 	if r.params.Get("partition") != "asdf" {
+		t.Fatalf("bad: %v", r.params)
+	}
+	if r.params.Get("peer") != "dc10" {
 		t.Fatalf("bad: %v", r.params)
 	}
 	if r.params.Get("dc") != "foo" {
@@ -901,21 +908,30 @@ func TestAPI_Headers(t *testing.T) {
 	require.Error(t, err)
 	require.Equal(t, "application/octet-stream", request.Header.Get("Content-Type"))
 
-	_, err = c.ACL().RulesTranslate(strings.NewReader(`
-	agent "" {
-	  policy = "read"
-	}
-	`))
-	// ACL support is disabled
-	require.Error(t, err)
-	require.Equal(t, "text/plain", request.Header.Get("Content-Type"))
-
 	_, _, err = c.Event().Fire(&UserEvent{
 		Name:    "test",
 		Payload: []byte("foo"),
 	}, nil)
 	require.NoError(t, err)
 	require.Equal(t, "application/octet-stream", request.Header.Get("Content-Type"))
+}
+
+func TestAPI_Deprecated(t *testing.T) {
+	t.Parallel()
+	c, s := makeClientWithConfig(t, func(c *Config) {
+		transport := http.DefaultTransport.(*http.Transport).Clone()
+		c.Transport = transport
+	}, nil)
+	defer s.Stop()
+	// Rules translation functionality was completely removed in Consul 1.15.
+	_, err := c.ACL().RulesTranslate(strings.NewReader(`
+	agent "" {
+	  policy = "read"
+	}
+	`))
+	require.Error(t, err)
+	_, err = c.ACL().RulesTranslateToken("")
+	require.Error(t, err)
 }
 
 func TestAPI_RequestToHTTP(t *testing.T) {
@@ -1183,7 +1199,7 @@ func getExpectedCaPoolByDir(t *testing.T) *x509.CertPool {
 	for _, entry := range entries {
 		filename := path.Join("../test/ca_path", entry.Name())
 
-		data, err := ioutil.ReadFile(filename)
+		data, err := os.ReadFile(filename)
 		require.NoError(t, err)
 
 		if !pool.AppendCertsFromPEM(data) {

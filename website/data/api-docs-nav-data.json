@@ -1,7 +1,12 @@
 [
   {
-    "title": "API Introduction",
-    "path": "index"
+    "title": "Overview",
+    "path": "index",
+    "hidden": true
+  },
+  {
+    "title": "API Structure",
+    "path": "api-structure"
   },
   {
     "title": "API Features",
@@ -37,10 +42,6 @@
       {
         "title": "Tokens",
         "path": "acl/tokens"
-      },
-      {
-        "title": "Legacy Tokens",
-        "path": "acl/legacy"
       },
       {
         "title": "Policies",

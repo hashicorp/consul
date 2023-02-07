@@ -4,7 +4,8 @@
 package acl
 
 const (
-	DefaultPartitionName = ""
+	WildcardPartitionName = ""
+	DefaultPartitionName  = ""
 )
 
 // Reviewer Note: This is a little bit strange; one might want it to be "" like partition name

@@ -1,56 +1,31 @@
 ---
 layout: docs
-page_title: Consul Service Mesh on Kubernetes
+page_title: How does Consul Service Mesh Work on Kubernetes?
 description: >-
-  Consul Service Mesh is a feature built into to Consul that enables automatic
-  service-to-service authorization and connection encryption across your Consul
-  services. Consul Service Mesh can be used with Kubernetes to secure pod communication with
-  other services.
+  An injection annotation allows Consul to automatically deploy sidecar proxies on Kubernetes pods, enabling Consul's service mesh for containers running on k8s. Learn how to configure sidecars, enable services with multiple ports, change default injection settings.
 ---
 
-# Consul Service Mesh on Kubernetes
+# How does Consul Service Mesh Work on Kubernetes?
 
-[Consul Service Mesh](/docs/connect) is a feature built into to Consul that enables
+[Consul Service Mesh](/consul/docs/connect) is a feature built into to Consul that enables
 automatic service-to-service authorization and connection encryption across
 your Consul services. Consul Service Mesh can be used with Kubernetes to secure pod
-communication with other pods and external Kubernetes services. Consul Connect is used interchangeably with the name 
-Consul Service Mesh and is what will be used to refer to for Service Mesh functionality within Consul. 
+communication with other pods and external Kubernetes services. _Consul Connect_ refers to the component in Consul that enables service mesh functionality. We sometimes use Connect to mean Consul service mesh throughout the documentation.
 
-The Connect sidecar running Envoy can be automatically injected into pods in
+Consul can automatically inject the sidecar running Envoy into pods in
 your cluster, making configuration for Kubernetes automatic.
 This functionality is provided by the
 [consul-k8s project](https://github.com/hashicorp/consul-k8s) and can be
 automatically installed and configured using the
-[Consul Helm chart](/docs/k8s/installation/install#helm-chart-installation).
+[Consul Helm chart](/consul/docs/k8s/installation/install#helm-chart-installation).
 
 ## Usage
 
-When the
-[Connect injector is installed](/docs/k8s/connect#installation-and-configuration),
-the Connect sidecar can be automatically added to all pods. This sidecar can both
-accept and establish connections using Connect, enabling the pod to communicate
-to clients and dependencies exclusively over authorized and encrypted
-connections.
+-> **Important:** As of consul-k8s `v0.26.0` and Consul Helm `v0.32.0`, a Kubernetes
+service is required to run services on the Consul service mesh.
 
--> **Note:** The examples in this section are valid and use
-publicly available images. If you've installed the Connect injector, feel free
-to run the examples in this section to try Connect with Kubernetes.
-Please note the documentation below this section on how to properly install
-and configure the Connect injector.
+Installing Consul on Kubernetes with [`connect-inject` enabled](/consul/docs/k8s/connect#installation-and-configuration) adds a sidecar to all pods. By default, it enables service mesh functionality with Consul Dataplane by injecting an Envoy proxy. You can also configure Consul to inject a client agent sidecar to connect to your service mesh. Refer to [Simplified Service Mesh with Consul Dataplane](/consul/docs/connect/dataplane) for more information.
 
-### Accepting Inbound Connections
-
-An example Deployment is shown below with Connect enabled to accept inbound
-connections. Notice that the Deployment would still be fully functional without
-Connect. Minimal to zero modifications are required to enable Connect in Kubernetes.
-Notice also that even though we're using a Deployment here, the same configuration
-would work on a Pod, a StatefulSet, or a DaemonSet.
-
-This Deployment specification starts a server that responds to any
-HTTP request with the static text "hello world".
-
--> **Note:** As of consul-k8s `v0.26.0` and Consul Helm `v0.32.0`, having a Kubernetes
-service is **required** to run services on the Consul Service Mesh.
 
 ```yaml
 apiVersion: v1
@@ -104,7 +79,7 @@ spec:
 The only change for Connect is the addition of the
 `consul.hashicorp.com/connect-inject` annotation. This enables injection
 for the Pod in this Deployment. The injector can also be
-[configured](/docs/k8s/connect#installation-and-configuration)
+[configured](/consul/docs/k8s/connect#installation-and-configuration)
 to automatically inject unless explicitly disabled, but the default
 installation requires opt-in using the annotation shown above.
 
@@ -119,7 +94,7 @@ proxy. The client Connect proxy will use Consul service discovery to find
 all available upstream proxies and their public ports.
 
 In the example above, the server is listening on `:8080`.
-By default, the Consul Service Mesh runs in [transparent proxy](/docs/connect/transparent-proxy) mode.
+By default, the Consul Service Mesh runs in [transparent proxy](/consul/docs/connect/transparent-proxy) mode.
 This means that even though the server binds to all interfaces,
 the inbound and outbound connections will automatically go through to the sidecar proxy.
 It also allows you to use Kubernetes DNS like you normally would without the
@@ -190,10 +165,10 @@ spec:
 By default when ACLs are enabled or when ACLs default policy is `allow`,
 Consul will automatically configure proxies with all upstreams from the same datacenter.
 When ACLs are enabled with default `deny` policy,
-you must supply an [intention](/docs/connect/intentions) to tell Consul which upstream you need to talk to.
+you must supply an [intention](/consul/docs/connect/intentions) to tell Consul which upstream you need to talk to.
 
 When upstreams are specified explicitly with the
-[`consul.hashicorp.com/connect-service-upstreams` annotation](/docs/k8s/annotations-and-labels#consul-hashicorp-com-connect-service-upstreams),
+[`consul.hashicorp.com/connect-service-upstreams` annotation](/consul/docs/k8s/annotations-and-labels#consul-hashicorp-com-connect-service-upstreams),
 the injector will also set environment variables `<NAME>_CONNECT_SERVICE_HOST`
 and `<NAME>_CONNECT_SERVICE_PORT` in every container in the Pod for every defined
 upstream. This is analogous to the standard Kubernetes service environment variables, but
@@ -209,9 +184,9 @@ $ kubectl exec deploy/static-client -- curl --silent http://static-server/
 "hello world"
 ```
 
-We can control access to the server using [intentions](/docs/connect/intentions).
-If you use the Consul UI or [CLI](/commands/intention/create) to
-create a deny [intention](/docs/connect/intentions) between
+We can control access to the server using [intentions](/consul/docs/connect/intentions).
+If you use the Consul UI or [CLI](/consul/commands/intention/create) to
+create a deny [intention](/consul/docs/connect/intentions) between
 "static-client" and "static-server", connections are immediately rejected
 without updating either of the running pods. You can then remove this
 intention to allow connections again.
@@ -272,6 +247,27 @@ spec:
 ```
 `web` will target `containerPort` `8080` and select pods labeled `app: web`. `web-admin` will target `containerPort`
 `9090` and will also select the same pods.
+
+~> Kubernetes 1.24+ only
+In Kubernetes 1.24+ you need to [create a Kubernetes secret](https://kubernetes.io/docs/concepts/configuration/secret/#service-account-token-secrets) for each multi-port service that references the ServiceAccount, and the Kubernetes secret must have the same name as the ServiceAccount:
+
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: web
+  annotations:
+    kubernetes.io/service-account.name: web
+  type: kubernetes.io/service-account-token
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: web-admin
+  annotations:
+    kubernetes.io/service-account.name: web-admin
+  type: kubernetes.io/service-account-token
+```
 
 Create a Deployment with any chosen name, and use the following annotations:
 ```yaml
@@ -355,6 +351,7 @@ The way this works is that a Consul service instance is being registered per por
 services in this case. An additional Envoy sidecar proxy and `connect-init` init container are also deployed per port in
 the Pod. So the upstream configuration can use the individual service names to reach each port as seen in the example.
 
+
 #### Caveats for Multi-port Pods
 * Transparent proxy is not supported for multi-port Pods.
 * Metrics and metrics merging is not supported for multi-port Pods.
@@ -375,18 +372,15 @@ provided by the
 [consul-k8s project](https://github.com/hashicorp/consul-k8s).
 This enables the automatic pod mutation shown in the usage section above.
 Installation of the mutating admission webhook is automated using the
-[Helm chart](/docs/k8s/installation/install).
+[Helm chart](/consul/docs/k8s/installation/install).
 
 To install the Connect injector, enable the Connect injection feature using
-[Helm values](/docs/k8s/helm#configuration-values) and
+[Helm values](/consul/docs/k8s/helm#configuration-values) and
 upgrade the installation using `helm upgrade` for existing installs or
 `helm install` for a fresh install.
 
 ```yaml
 connectInject:
-  enabled: true
-
-controller:
   enabled: true
 ```
 
@@ -398,7 +392,7 @@ the injector runs in, enable injection by default, and more.
 ### Verifying the Installation
 
 To verify the installation, run the
-["Accepting Inbound Connections"](/docs/k8s/connect#accepting-inbound-connections)
+["Accepting Inbound Connections"](/consul/docs/k8s/connect#accepting-inbound-connections)
 example from the "Usage" section above. After running this example, run
 `kubectl get pod static-server --output yaml`. In the raw YAML output, you should
 see injected Connect containers and an annotation
@@ -540,9 +534,9 @@ There are three options available:
 
 ### Consul Enterprise Namespace Upstreams
 
-When [transparent proxy](/docs/connect/transparent-proxy) is enabled and ACLs are disabled,
+When [transparent proxy](/consul/docs/connect/transparent-proxy) is enabled and ACLs are disabled,
 the upstreams will be configured automatically across Consul namespaces.
-When ACLs are enabled, you must configure it by specifying an [intention](/docs/connect/intentions),
+When ACLs are enabled, you must configure it by specifying an [intention](/consul/docs/connect/intentions),
 allowing services across Consul namespaces to talk to each other.
 
 If you wish to specify an upstream explicitly via the `consul.hashicorp.com/connect-service-upstreams` annotation,

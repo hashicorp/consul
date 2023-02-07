@@ -19,7 +19,7 @@ load helpers
 }
 
 @test "ingress-gateway should have healthy endpoints for s1" {
-   assert_upstream_has_endpoints_in_status 127.0.0.1:20000 s1 HEALTHY 1
+  assert_upstream_has_endpoints_in_status 127.0.0.1:20000 s1 HEALTHY 1
 }
 
 @test "should be able to connect to s1 through the TLS-enabled ingress port" {
@@ -30,7 +30,7 @@ load helpers
     --resolve s1.ingress.consul:9998:127.0.0.1 \
     https://s1.ingress.consul:9998
   [ "$status" -eq 0 ]
-  [ "$output" = "hello" ]
+  [[ "$output" == *"hello"* ]]
 }
 
 @test "should be able to connect to s1 through the TLS-enabled ingress port using the custom host" {
@@ -39,5 +39,5 @@ load helpers
     --resolve test.example.com:9999:127.0.0.1 \
     https://test.example.com:9999
   [ "$status" -eq 0 ]
-  [ "$output" = "hello" ]
+  [[ "$output" == *"hello"* ]]
 }

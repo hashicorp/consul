@@ -38,7 +38,6 @@ type cmd struct {
 	mergeServiceIdents bool
 	mergeNodeIdents    bool
 	showMeta           bool
-	upgradeLegacy      bool
 	format             string
 }
 
@@ -72,11 +71,6 @@ func (c *cmd) init() {
 	c.flags.Var((*flags.AppendSliceValue)(&c.nodeIdents), "node-identity", "Name of a "+
 		"node identity to use for this token. May be specified multiple times. Format is "+
 		"NODENAME:DATACENTER")
-	c.flags.BoolVar(&c.upgradeLegacy, "upgrade-legacy", false, "Add new polices "+
-		"to a legacy token replacing all existing rules. This will cause the legacy "+
-		"token to behave exactly like a new token but keep the same Secret.\n"+
-		"WARNING: you must ensure that the new policy or policies specified grant "+
-		"equivalent or appropriate access for the existing clients using this token.")
 	c.flags.StringVar(
 		&c.format,
 		"format",
@@ -117,18 +111,6 @@ func (c *cmd) Run(args []string) int {
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error when retrieving current token: %v", err))
 		return 1
-	}
-
-	if c.upgradeLegacy {
-		if t.Rules == "" {
-			// This is just for convenience it should actually be harmless to allow it
-			// to go through anyway.
-			c.UI.Error(fmt.Sprintf("Can't use -upgrade-legacy on a non-legacy token"))
-			return 1
-		}
-		// Reset the rules to nothing forcing this to be updated as a non-legacy
-		// token but with same secret.
-		t.Rules = ""
 	}
 
 	if c.description != "" {

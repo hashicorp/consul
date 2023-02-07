@@ -1,0 +1,4 @@
+```release-note:bug
+checks: Fixed a bug that prevented registration of UDP health checks from agent configuration files, such as service definition files with embedded health check definitions.
+```
+

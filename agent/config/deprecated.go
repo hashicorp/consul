@@ -68,6 +68,12 @@ type DeprecatedConfig struct {
 
 	// DEPRECATED(TLS) - this isn't honored by crypto/tls anymore.
 	TLSPreferServerCipherSuites *bool `mapstructure:"tls_prefer_server_cipher_suites"`
+
+	// DEPRECATED(JOIN) - replaced by retry_join
+	StartJoinAddrsLAN []string `mapstructure:"start_join"`
+
+	// DEPRECATED(JOIN) - replaced by retry_join_wan
+	StartJoinAddrsWAN []string `mapstructure:"start_join_wan"`
 }
 
 func applyDeprecatedConfig(d *decodeTarget) (Config, []string) {
@@ -170,6 +176,16 @@ func applyDeprecatedConfig(d *decodeTarget) (Config, []string) {
 			d.Config.ACL.EnableKeyListPolicy = dep.ACLEnableKeyListPolicy
 		}
 		warns = append(warns, deprecationWarning("acl_enable_key_list_policy", "acl.enable_key_list_policy"))
+	}
+
+	if len(dep.StartJoinAddrsLAN) > 0 {
+		d.Config.RetryJoinLAN = append(d.Config.RetryJoinLAN, dep.StartJoinAddrsLAN...)
+		warns = append(warns, deprecationWarning("start_join", "retry_join"))
+	}
+
+	if len(dep.StartJoinAddrsWAN) > 0 {
+		d.Config.RetryJoinWAN = append(d.Config.RetryJoinWAN, dep.StartJoinAddrsWAN...)
+		warns = append(warns, deprecationWarning("start_join_wan", "retry_join_wan"))
 	}
 
 	warns = append(warns, applyDeprecatedTLSConfig(dep, &d.Config)...)

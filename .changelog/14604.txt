@@ -1,0 +1,3 @@
+```release-note:feature
+ui: Added support for central config merging
+```

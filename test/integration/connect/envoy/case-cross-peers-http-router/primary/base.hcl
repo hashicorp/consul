@@ -1,0 +1,3 @@
+peering {
+  enabled = true
+}

@@ -7,6 +7,7 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
 )
 
@@ -34,11 +35,21 @@ func (s *HTTPHandlers) ACLBootstrap(resp http.ResponseWriter, req *http.Request)
 		return nil, aclDisabled
 	}
 
-	args := structs.DCSpecificRequest{
+	args := structs.ACLInitialTokenBootstrapRequest{
 		Datacenter: s.agent.config.Datacenter,
 	}
+
+	// Handle optional request body
+	if req.ContentLength > 0 {
+		var bootstrapSecretRequest api.BootstrapRequest
+		if err := lib.DecodeJSON(req.Body, &bootstrapSecretRequest); err != nil {
+			return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: fmt.Sprintf("Request decoding failed: %v", err)}
+		}
+		args.BootstrapSecret = bootstrapSecretRequest.BootstrapSecret
+	}
+
 	var out structs.ACLToken
-	err := s.agent.RPC("ACL.BootstrapTokens", &args, &out)
+	err := s.agent.RPC(req.Context(), "ACL.BootstrapTokens", &args, &out)
 	if err != nil {
 		if strings.Contains(err.Error(), structs.ACLBootstrapNotAllowedErr.Error()) {
 			return nil, acl.PermissionDeniedError{Cause: err.Error()}
@@ -64,7 +75,7 @@ func (s *HTTPHandlers) ACLReplicationStatus(resp http.ResponseWriter, req *http.
 
 	// Make the request.
 	var out structs.ACLReplicationStatus
-	if err := s.agent.RPC("ACL.ReplicationStatus", &args, &out); err != nil {
+	if err := s.agent.RPC(req.Context(), "ACL.ReplicationStatus", &args, &out); err != nil {
 		return nil, err
 	}
 	return out, nil
@@ -89,7 +100,7 @@ func (s *HTTPHandlers) ACLPolicyList(resp http.ResponseWriter, req *http.Request
 
 	var out structs.ACLPolicyListResponse
 	defer setMeta(resp, &out.QueryMeta)
-	if err := s.agent.RPC("ACL.PolicyList", &args, &out); err != nil {
+	if err := s.agent.RPC(req.Context(), "ACL.PolicyList", &args, &out); err != nil {
 		return nil, err
 	}
 
@@ -150,7 +161,7 @@ func (s *HTTPHandlers) ACLPolicyRead(resp http.ResponseWriter, req *http.Request
 
 	var out structs.ACLPolicyResponse
 	defer setMeta(resp, &out.QueryMeta)
-	if err := s.agent.RPC("ACL.PolicyRead", &args, &out); err != nil {
+	if err := s.agent.RPC(req.Context(), "ACL.PolicyRead", &args, &out); err != nil {
 		return nil, err
 	}
 
@@ -204,8 +215,6 @@ func (s *HTTPHandlers) aclPolicyWriteInternal(_resp http.ResponseWriter, req *ht
 		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: fmt.Sprintf("Policy decoding failed: %v", err)}
 	}
 
-	args.Policy.Syntax = acl.SyntaxCurrent
-
 	if create {
 		if args.Policy.ID != "" {
 			return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Cannot specify the ID when creating a new policy"}
@@ -219,7 +228,7 @@ func (s *HTTPHandlers) aclPolicyWriteInternal(_resp http.ResponseWriter, req *ht
 	}
 
 	var out structs.ACLPolicy
-	if err := s.agent.RPC("ACL.PolicySet", args, &out); err != nil {
+	if err := s.agent.RPC(req.Context(), "ACL.PolicySet", args, &out); err != nil {
 		return nil, err
 	}
 
@@ -237,7 +246,7 @@ func (s *HTTPHandlers) ACLPolicyDelete(resp http.ResponseWriter, req *http.Reque
 	}
 
 	var ignored string
-	if err := s.agent.RPC("ACL.PolicyDelete", args, &ignored); err != nil {
+	if err := s.agent.RPC(req.Context(), "ACL.PolicyDelete", args, &ignored); err != nil {
 		return nil, err
 	}
 
@@ -274,7 +283,7 @@ func (s *HTTPHandlers) ACLTokenList(resp http.ResponseWriter, req *http.Request)
 
 	var out structs.ACLTokenListResponse
 	defer setMeta(resp, &out.QueryMeta)
-	if err := s.agent.RPC("ACL.TokenList", &args, &out); err != nil {
+	if err := s.agent.RPC(req.Context(), "ACL.TokenList", &args, &out); err != nil {
 		return nil, err
 	}
 
@@ -336,7 +345,7 @@ func (s *HTTPHandlers) ACLTokenSelf(resp http.ResponseWriter, req *http.Request)
 
 	var out structs.ACLTokenResponse
 	defer setMeta(resp, &out.QueryMeta)
-	if err := s.agent.RPC("ACL.TokenRead", &args, &out); err != nil {
+	if err := s.agent.RPC(req.Context(), "ACL.TokenRead", &args, &out); err != nil {
 		return nil, err
 	}
 
@@ -379,7 +388,7 @@ func (s *HTTPHandlers) ACLTokenGet(resp http.ResponseWriter, req *http.Request, 
 
 	var out structs.ACLTokenResponse
 	defer setMeta(resp, &out.QueryMeta)
-	if err := s.agent.RPC("ACL.TokenRead", &args, &out); err != nil {
+	if err := s.agent.RPC(req.Context(), "ACL.TokenRead", &args, &out); err != nil {
 		return nil, err
 	}
 
@@ -417,15 +426,13 @@ func (s *HTTPHandlers) aclTokenSetInternal(req *http.Request, tokenID string, cr
 	}
 
 	if !create {
-		if args.ACLToken.AccessorID != "" && args.ACLToken.AccessorID != tokenID {
+		if args.ACLToken.AccessorID != tokenID {
 			return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Token Accessor ID in URL and payload do not match"}
-		} else if args.ACLToken.AccessorID == "" {
-			args.ACLToken.AccessorID = tokenID
 		}
 	}
 
 	var out structs.ACLToken
-	if err := s.agent.RPC("ACL.TokenSet", args, &out); err != nil {
+	if err := s.agent.RPC(req.Context(), "ACL.TokenSet", args, &out); err != nil {
 		return nil, err
 	}
 
@@ -443,7 +450,7 @@ func (s *HTTPHandlers) ACLTokenDelete(resp http.ResponseWriter, req *http.Reques
 	}
 
 	var ignored string
-	if err := s.agent.RPC("ACL.TokenDelete", args, &ignored); err != nil {
+	if err := s.agent.RPC(req.Context(), "ACL.TokenDelete", args, &ignored); err != nil {
 		return nil, err
 	}
 	return true, nil
@@ -471,7 +478,7 @@ func (s *HTTPHandlers) ACLTokenClone(resp http.ResponseWriter, req *http.Request
 	args.ACLToken.AccessorID = tokenID
 
 	var out structs.ACLToken
-	if err := s.agent.RPC("ACL.TokenClone", args, &out); err != nil {
+	if err := s.agent.RPC(req.Context(), "ACL.TokenClone", args, &out); err != nil {
 		return nil, err
 	}
 
@@ -499,7 +506,7 @@ func (s *HTTPHandlers) ACLRoleList(resp http.ResponseWriter, req *http.Request) 
 
 	var out structs.ACLRoleListResponse
 	defer setMeta(resp, &out.QueryMeta)
-	if err := s.agent.RPC("ACL.RoleList", &args, &out); err != nil {
+	if err := s.agent.RPC(req.Context(), "ACL.RoleList", &args, &out); err != nil {
 		return nil, err
 	}
 
@@ -576,7 +583,7 @@ func (s *HTTPHandlers) ACLRoleRead(resp http.ResponseWriter, req *http.Request, 
 
 	var out structs.ACLRoleResponse
 	defer setMeta(resp, &out.QueryMeta)
-	if err := s.agent.RPC("ACL.RoleRead", &args, &out); err != nil {
+	if err := s.agent.RPC(req.Context(), "ACL.RoleRead", &args, &out); err != nil {
 		return nil, err
 	}
 
@@ -616,7 +623,7 @@ func (s *HTTPHandlers) ACLRoleWrite(resp http.ResponseWriter, req *http.Request,
 	}
 
 	var out structs.ACLRole
-	if err := s.agent.RPC("ACL.RoleSet", args, &out); err != nil {
+	if err := s.agent.RPC(req.Context(), "ACL.RoleSet", args, &out); err != nil {
 		return nil, err
 	}
 
@@ -634,7 +641,7 @@ func (s *HTTPHandlers) ACLRoleDelete(resp http.ResponseWriter, req *http.Request
 	}
 
 	var ignored string
-	if err := s.agent.RPC("ACL.RoleDelete", args, &ignored); err != nil {
+	if err := s.agent.RPC(req.Context(), "ACL.RoleDelete", args, &ignored); err != nil {
 		return nil, err
 	}
 
@@ -663,7 +670,7 @@ func (s *HTTPHandlers) ACLBindingRuleList(resp http.ResponseWriter, req *http.Re
 
 	var out structs.ACLBindingRuleListResponse
 	defer setMeta(resp, &out.QueryMeta)
-	if err := s.agent.RPC("ACL.BindingRuleList", &args, &out); err != nil {
+	if err := s.agent.RPC(req.Context(), "ACL.BindingRuleList", &args, &out); err != nil {
 		return nil, err
 	}
 
@@ -723,7 +730,7 @@ func (s *HTTPHandlers) ACLBindingRuleRead(resp http.ResponseWriter, req *http.Re
 
 	var out structs.ACLBindingRuleResponse
 	defer setMeta(resp, &out.QueryMeta)
-	if err := s.agent.RPC("ACL.BindingRuleRead", &args, &out); err != nil {
+	if err := s.agent.RPC(req.Context(), "ACL.BindingRuleRead", &args, &out); err != nil {
 		return nil, err
 	}
 
@@ -762,7 +769,7 @@ func (s *HTTPHandlers) ACLBindingRuleWrite(resp http.ResponseWriter, req *http.R
 	}
 
 	var out structs.ACLBindingRule
-	if err := s.agent.RPC("ACL.BindingRuleSet", args, &out); err != nil {
+	if err := s.agent.RPC(req.Context(), "ACL.BindingRuleSet", args, &out); err != nil {
 		return nil, err
 	}
 
@@ -780,7 +787,7 @@ func (s *HTTPHandlers) ACLBindingRuleDelete(resp http.ResponseWriter, req *http.
 	}
 
 	var ignored bool
-	if err := s.agent.RPC("ACL.BindingRuleDelete", args, &ignored); err != nil {
+	if err := s.agent.RPC(req.Context(), "ACL.BindingRuleDelete", args, &ignored); err != nil {
 		return nil, err
 	}
 
@@ -806,7 +813,7 @@ func (s *HTTPHandlers) ACLAuthMethodList(resp http.ResponseWriter, req *http.Req
 
 	var out structs.ACLAuthMethodListResponse
 	defer setMeta(resp, &out.QueryMeta)
-	if err := s.agent.RPC("ACL.AuthMethodList", &args, &out); err != nil {
+	if err := s.agent.RPC(req.Context(), "ACL.AuthMethodList", &args, &out); err != nil {
 		return nil, err
 	}
 
@@ -865,7 +872,7 @@ func (s *HTTPHandlers) ACLAuthMethodRead(resp http.ResponseWriter, req *http.Req
 
 	var out structs.ACLAuthMethodResponse
 	defer setMeta(resp, &out.QueryMeta)
-	if err := s.agent.RPC("ACL.AuthMethodRead", &args, &out); err != nil {
+	if err := s.agent.RPC(req.Context(), "ACL.AuthMethodRead", &args, &out); err != nil {
 		return nil, err
 	}
 
@@ -907,7 +914,7 @@ func (s *HTTPHandlers) ACLAuthMethodWrite(resp http.ResponseWriter, req *http.Re
 	}
 
 	var out structs.ACLAuthMethod
-	if err := s.agent.RPC("ACL.AuthMethodSet", args, &out); err != nil {
+	if err := s.agent.RPC(req.Context(), "ACL.AuthMethodSet", args, &out); err != nil {
 		return nil, err
 	}
 
@@ -926,7 +933,7 @@ func (s *HTTPHandlers) ACLAuthMethodDelete(resp http.ResponseWriter, req *http.R
 	}
 
 	var ignored bool
-	if err := s.agent.RPC("ACL.AuthMethodDelete", args, &ignored); err != nil {
+	if err := s.agent.RPC(req.Context(), "ACL.AuthMethodDelete", args, &ignored); err != nil {
 		return nil, err
 	}
 
@@ -952,7 +959,7 @@ func (s *HTTPHandlers) ACLLogin(resp http.ResponseWriter, req *http.Request) (in
 	}
 
 	var out structs.ACLToken
-	if err := s.agent.RPC("ACL.Login", args, &out); err != nil {
+	if err := s.agent.RPC(req.Context(), "ACL.Login", args, &out); err != nil {
 		return nil, err
 	}
 
@@ -975,7 +982,7 @@ func (s *HTTPHandlers) ACLLogout(resp http.ResponseWriter, req *http.Request) (i
 	}
 
 	var ignored bool
-	if err := s.agent.RPC("ACL.Logout", &args, &ignored); err != nil {
+	if err := s.agent.RPC(req.Context(), "ACL.Logout", &args, &ignored); err != nil {
 		return nil, err
 	}
 
@@ -1000,10 +1007,9 @@ func (s *HTTPHandlers) ACLAuthorize(resp http.ResponseWriter, req *http.Request)
 	// There are a number of reason why this is okay.
 	//
 	// 1. The authorizations performed here are the same as what would be done if other HTTP APIs
-	//    were used. This is just a way to see if it would be allowed. In the future when we have
-	//    audit logging, these authorization checks will be logged along with those from the real
-	//    endpoints. In that respect, you can figure out if you have access just as easily by
-	//    attempting to perform the requested operation.
+	//    were used. This is just a way to see if it would be allowed. These authorization checks
+	//    will be logged along with those from the real endpoints. In that respect, you can figure
+	//    out if you have access just as easily by attempting to perform the requested operation.
 	// 2. In order to use this API you must have a valid ACL token secret.
 	// 3. Along with #2 you can use the ACL.GetPolicy RPC endpoint which will return a rolled up
 	//    set of policy rules showing your tokens effective policy. This RPC endpoint exposes
@@ -1051,7 +1057,7 @@ func (s *HTTPHandlers) ACLAuthorize(resp http.ResponseWriter, req *http.Request)
 	if request.Datacenter != "" && request.Datacenter != s.agent.config.Datacenter {
 		// when we are targeting a datacenter other than our own then we must issue an RPC
 		// to perform the resolution as it may involve a local token
-		if err := s.agent.RPC("ACL.Authorize", &request, &responses); err != nil {
+		if err := s.agent.RPC(req.Context(), "ACL.Authorize", &request, &responses); err != nil {
 			return nil, err
 		}
 	} else {

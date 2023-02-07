@@ -149,7 +149,9 @@ func (r *staticResolver) SwapAuthorizer(authz acl.Authorizer) {
 	r.authorizer = authz
 }
 
-func (r *staticResolver) ResolveTokenAndDefaultMeta(token string, entMeta *acl.EnterpriseMeta, authzContext *acl.AuthorizerContext) (resolver.Result, error) {
+func (r *staticResolver) ResolveTokenAndDefaultMeta(_ string, entMeta *acl.EnterpriseMeta, authzContext *acl.AuthorizerContext) (resolver.Result, error) {
+	entMeta.FillAuthzContext(authzContext)
+
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	return resolver.Result{Authorizer: r.authorizer}, nil

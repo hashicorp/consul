@@ -1,4 +1,4 @@
-export default function(visitable, creatable, text, tokens, popoverSelect) {
+export default function (visitable, creatable, text, tokens, popoverSelect) {
   return {
     visit: visitable('/:dc/acls/tokens'),
     update: text('[data-test-notification-update]'),

@@ -26,7 +26,7 @@ func TestUpstreams(t testing.T) Upstreams {
 			Config: map[string]interface{}{
 				// Float because this is how it is decoded by JSON decoder so this
 				// enables the value returned to be compared directly to a decoded JSON
-				// response without spurios type loss.
+				// response without spurious type loss.
 				"connect_timeout_ms": float64(1000),
 			},
 		},

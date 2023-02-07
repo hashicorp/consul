@@ -1,4 +1,4 @@
-export default function(el, name) {
+export default function (el, name) {
   let sibling = el;
   while ((sibling = sibling.nextSibling)) {
     if (sibling.nodeType === 1) {

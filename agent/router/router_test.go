@@ -9,12 +9,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/serf/coordinate"
+	"github.com/hashicorp/serf/serf"
+
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/types"
-	"github.com/hashicorp/serf/coordinate"
-	"github.com/hashicorp/serf/serf"
 
 	"github.com/stretchr/testify/require"
 )
@@ -96,10 +97,10 @@ func (m *mockCluster) AddLANMember(dc, name, role string, coord *coordinate.Coor
 //
 // Here's the layout of the nodes:
 //
-//            /----   dc1         ----\         /-  dc2  -\ /-  dc0  -\
-//             node2 node1       node3             node1       node0
-//   |     |     |     |     |     |     |     |     |     |     |
-//   0     1     2     3     4     5     6     7     8     9     10  (ms)
+//	         /----   dc1         ----\         /-  dc2  -\ /-  dc0  -\
+//	          node2 node1       node3             node1       node0
+//	|     |     |     |     |     |     |     |     |     |     |
+//	0     1     2     3     4     5     6     7     8     9     10  (ms)
 //
 // We also include a node4 in dc1 with no known coordinate, as well as a
 // mysterious dcX with no nodes with known coordinates.

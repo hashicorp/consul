@@ -1,11 +1,11 @@
 ---
 layout: docs
-page_title: Upgrade An Existing Cluster to CRDs
+page_title: Upgrade Existing Clusters to Use Custom Resource Definitions
 description: >-
-  Upgrade an existing cluster to use custom resources.
+  Kubernetes clusters configured with a Consul Helm chart version older than 0.30.0 require updates in order to use CRDs. Learn about upgrading to a supported Helm version and how to migrate a Consul config entry to a k8s CRD.
 ---
 
-# Upgrade An Existing Cluster to CRDs
+# Upgrade Existing Clusters to Use Custom Resource Definitions
 
 Upgrading to consul-helm versions >= `0.30.0` will require some changes if
 you utilize the following:
@@ -50,23 +50,18 @@ connectInject:
     defaultProtocol: 'http' # or any value
 ```
 
-Now you must use [custom resources](/docs/k8s/crds) to manage the protocol for
+Now you must use [custom resources](/consul/docs/k8s/crds) to manage the protocol for
 new and existing services:
 
-1. To upgrade, first ensure you're running Consul >= 1.9.0. See [Consul Version Upgrade](/docs/k8s/upgrade#consul-version-upgrade)
+1. To upgrade, first ensure you're running Consul >= 1.9.0. See [Consul Version Upgrade](/consul/docs/k8s/upgrade#consul-version-upgrade)
    for more information on how to upgrade Consul versions.
 
    This version is required to support custom resources.
 
 1. Next, modify your Helm values:
    1. Remove the `defaultProtocol` config. This won't affect existing services.
-   1. Set:
-      ```yaml
-      controller:
-        enabled: true
-      ```
 1. Now you can upgrade your Helm chart to the latest version with the new Helm values.
-1. From now on, any new service will require a [`ServiceDefaults`](/docs/connect/config-entries/service-defaults)
+1. From now on, any new service will require a [`ServiceDefaults`](/consul/docs/connect/config-entries/service-defaults)
    resource to set its protocol:
 
    ```yaml
@@ -127,7 +122,7 @@ You will need to perform the following steps to upgrade:
    effect on your existing cluster because this config is only read when
    the cluster is **first created**.
 1. You can then upgrade the Helm chart.
-1. If you later wish to _change_ the mode or any other setting in [`proxy-defaults`](/docs/connect/config-entries/proxy-defaults), you will need
+1. If you later wish to _change_ the mode or any other setting in [`proxy-defaults`](/consul/docs/connect/config-entries/proxy-defaults), you will need
    to follow the [Migrating Config Entries](#migrating-config-entries)
    instructions to migrate your `proxy-defaults` config entry to a `ProxyDefaults` resource.
 
@@ -156,7 +151,7 @@ spec:
 
 You will need to perform the following steps to upgrade:
 
-1. Ensure you're running Consul >= 1.9.0. See [Consul Version Upgrade](/docs/k8s/upgrade#consul-version-upgrade)
+1. Ensure you're running Consul >= 1.9.0. See [Consul Version Upgrade](/consul/docs/k8s/upgrade#consul-version-upgrade)
    for more information on how to upgrade Consul versions.
 
    This version is required to support custom resources.
@@ -164,15 +159,8 @@ You will need to perform the following steps to upgrade:
 1. Next, remove this annotation from existing deployments. This will have no
    effect on the deployments because the annotation was only used when the
    service was first created.
-1. Modify your Helm values and add:
-
-   ```yaml
-   controller:
-     enabled: true
-   ```
-
 1. Now you can upgrade your Helm chart to the latest version.
-1. From now on, any new service will require a [`ServiceDefaults`](/docs/connect/config-entries/service-defaults)
+1. From now on, any new service will require a [`ServiceDefaults`](/consul/docs/connect/config-entries/service-defaults)
    resource to set its protocol:
 
    ```yaml

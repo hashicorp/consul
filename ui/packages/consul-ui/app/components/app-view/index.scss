@@ -10,6 +10,9 @@
 %app-view-header .title {
   @extend %app-view-title;
 }
+%app-view-title .title-left-container {
+  @extend %app-view-title-left-container;
+}
 %app-view-header .actions {
   @extend %app-view-actions;
 }

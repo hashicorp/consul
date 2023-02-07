@@ -45,18 +45,24 @@ as |proxy|}}
       @items={{filter-by 'ServiceID' '' checks}}
     />
   {{else}}
-    <Consul::ExternalSource
-      @item={{item.Service}}
-    />
+    {{#unless this.areAllExternalSourcesMatching}}
+      <Consul::ExternalSource
+        @item={{item.Service}}
+      />
+    {{/unless}}
 
     <Consul::InstanceChecks
       @type="service"
       @items={{filter-by 'ServiceID' '' checks}}
     />
-    <Consul::InstanceChecks
-      @type="node"
-      @items={{reject-by 'ServiceID' '' checks}}
-    />
+
+    {{#unless item.Node.Meta.synthetic-node}}
+      <Consul::InstanceChecks
+        @type="node"
+        @items={{reject-by 'ServiceID' '' checks}}
+        data-test-node-health-checks
+      />
+    {{/unless}}
   {{/if}}
 {{#if proxy}}
     <dl class="mesh">
@@ -70,7 +76,7 @@ as |proxy|}}
       </dd>
     </dl>
 {{/if}}
-{{#if (not @node)}}
+{{#if (and (not @node) (not item.Node.Meta.synthetic-node))}}
     <dl class="node">
       <dt>
         <Tooltip>
@@ -78,7 +84,7 @@ as |proxy|}}
         </Tooltip>
       </dt>
       <dd>
-        <a href={{href-to 'dc.nodes.show' item.Node.Node}}>{{item.Node.Node}}</a>
+        <a data-test-node-name href={{href-to 'dc.nodes.show' item.Node.Node}}>{{item.Node.Node}}</a>
       </dd>
     </dl>
 {{/if}}

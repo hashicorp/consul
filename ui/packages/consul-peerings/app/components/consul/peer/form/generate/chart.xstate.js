@@ -20,6 +20,11 @@ export default {
       }
     },
     success: {
+      on: {
+        RESET: {
+          target: 'idle'
+        }
+      }
     },
     error: {},
   },

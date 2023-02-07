@@ -10,7 +10,7 @@ import (
 
 func TestFilter_DirEnt(t *testing.T) {
 	t.Parallel()
-	policy, _ := acl.NewPolicyFromSource(testFilterRules, acl.SyntaxLegacy, nil, nil)
+	policy, _ := acl.NewPolicyFromSource(testFilterRules, nil, nil)
 	aclR, _ := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
 
 	type tcase struct {
@@ -52,7 +52,7 @@ func TestFilter_DirEnt(t *testing.T) {
 
 func TestFilter_TxnResults(t *testing.T) {
 	t.Parallel()
-	policy, _ := acl.NewPolicyFromSource(testFilterRules, acl.SyntaxLegacy, nil, nil)
+	policy, _ := acl.NewPolicyFromSource(testFilterRules, nil, nil)
 	aclR, _ := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
 
 	type tcase struct {
@@ -101,16 +101,16 @@ func TestFilter_TxnResults(t *testing.T) {
 }
 
 var testFilterRules = `
-key "" {
+key_prefix "" {
 	policy = "deny"
 }
-key "foo/" {
+key_prefix "foo/" {
 	policy = "read"
 }
-key "foo/priv/" {
+key_prefix "foo/priv/" {
 	policy = "deny"
 }
-key "zip/" {
+key_prefix "zip/" {
 	policy = "read"
 }
 `

@@ -5,12 +5,18 @@ syntax = "proto3";
 
 package hashicorp.consul.serverdiscovery;
 
+import "proto-public/annotations/ratelimit/ratelimit.proto";
+
 service ServerDiscoveryService {
   // WatchServers will stream back sets of ready servers as they change such as
   // when new servers are added or older ones removed. A ready server is one that
   // should be considered ready for sending general RPC requests towards that would
   // catalog queries, xDS proxy configurations and similar services.
-  rpc WatchServers(WatchServersRequest) returns (stream WatchServersResponse) {}
+  rpc WatchServers(WatchServersRequest) returns (stream WatchServersResponse) {
+    option (hashicorp.consul.internal.ratelimit.spec) = {
+      operation_type: OPERATION_TYPE_READ,
+    };
+  }
 }
 
 message WatchServersRequest {

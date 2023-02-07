@@ -42,8 +42,8 @@ func (f *QueryFailoverOptions) AsTargets() []QueryFailoverTarget {
 }
 
 type QueryFailoverTarget struct {
-	// PeerName specifies a peer to try during failover.
-	PeerName string
+	// Peer specifies a peer to try during failover.
+	Peer string
 
 	// Datacenter specifies a datacenter to try during failover.
 	Datacenter string
@@ -105,9 +105,9 @@ type ServiceQuery struct {
 	// should be directly next to their services so this isn't an issue.
 	Connect bool
 
-	// If not empty, PeerName represents the peer that the service
+	// If not empty, Peer represents the peer that the service
 	// was imported from.
-	PeerName string
+	Peer string
 
 	// EnterpriseMeta is the embedded enterprise metadata
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`

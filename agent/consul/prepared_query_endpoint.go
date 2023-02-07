@@ -540,7 +540,7 @@ func (p *PreparedQuery) execute(query *structs.PreparedQuery,
 		f = state.CheckConnectServiceNodes
 	}
 
-	_, nodes, err := f(nil, query.Service.Service, &query.Service.EnterpriseMeta, query.Service.PeerName)
+	_, nodes, err := f(nil, query.Service.Service, &query.Service.EnterpriseMeta, query.Service.Peer)
 	if err != nil {
 		return err
 	}
@@ -571,7 +571,7 @@ func (p *PreparedQuery) execute(query *structs.PreparedQuery,
 	reply.DNS = query.DNS
 
 	// Stamp the result with its this datacenter or peer.
-	if peerName := query.Service.PeerName; peerName != "" {
+	if peerName := query.Service.Peer; peerName != "" {
 		reply.PeerName = peerName
 		reply.Datacenter = ""
 	} else {
@@ -756,7 +756,7 @@ func queryFailover(q queryServer, query *structs.PreparedQuery,
 			}
 		}
 
-		if target.PeerName != "" {
+		if target.Peer != "" {
 			targets = append(targets, target)
 		}
 	}
@@ -777,9 +777,9 @@ func queryFailover(q queryServer, query *structs.PreparedQuery,
 
 		// Reset PeerName because it may have been set by a previous failover
 		// target.
-		query.Service.PeerName = target.PeerName
+		query.Service.Peer = target.Peer
 		dc := target.Datacenter
-		if target.PeerName != "" {
+		if target.Peer != "" {
 			dc = q.GetLocalDC()
 		}
 
@@ -798,7 +798,7 @@ func queryFailover(q queryServer, query *structs.PreparedQuery,
 		if err = q.ExecuteRemote(remote, reply); err != nil {
 			q.GetLogger().Warn("Failed querying for service in datacenter",
 				"service", query.Service.Service,
-				"peerName", query.Service.PeerName,
+				"peerName", query.Service.Peer,
 				"datacenter", dc,
 				"error", err,
 			)

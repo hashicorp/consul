@@ -3,11 +3,12 @@ package structs
 import (
 	"errors"
 	"fmt"
-	"github.com/miekg/dns"
 	"net"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/miekg/dns"
 
 	"github.com/hashicorp/go-multierror"
 	"github.com/mitchellh/hashstructure"
@@ -17,6 +18,7 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
+	"github.com/hashicorp/consul/agent/envoyextensions"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/lib/decode"
 )
@@ -32,11 +34,18 @@ const (
 	ServiceIntentions  string = "service-intentions"
 	MeshConfig         string = "mesh"
 	ExportedServices   string = "exported-services"
+	APIGateway         string = "api-gateway"
+	BoundAPIGateway    string = "bound-api-gateway"
+	InlineCertificate  string = "inline-certificate"
+	HTTPRoute          string = "http-route"
+	TCPRoute           string = "tcp-route"
 
 	ProxyConfigGlobal string = "global"
 	MeshConfigMesh    string = "mesh"
 
 	DefaultServiceProtocol = "tcp"
+
+	ConnectionExactBalance = "exact_balance"
 )
 
 var AllConfigEntryKinds = []string{
@@ -50,6 +59,11 @@ var AllConfigEntryKinds = []string{
 	ServiceIntentions,
 	MeshConfig,
 	ExportedServices,
+	APIGateway,
+	BoundAPIGateway,
+	HTTPRoute,
+	TCPRoute,
+	InlineCertificate,
 }
 
 // ConfigEntry is the interface for centralized configuration stored in Raft.
@@ -71,6 +85,15 @@ type ConfigEntry interface {
 	GetMeta() map[string]string
 	GetEnterpriseMeta() *acl.EnterpriseMeta
 	GetRaftIndex() *RaftIndex
+}
+
+// ControlledConfigEntry is an optional interface implemented by a ConfigEntry
+// if it is reconciled via a controller and needs to respond with Status values.
+type ControlledConfigEntry interface {
+	DefaultStatus() Status
+	GetStatus() Status
+	SetStatus(status Status)
+	ConfigEntry
 }
 
 // UpdatableConfigEntry is the optional interface implemented by a ConfigEntry
@@ -97,17 +120,21 @@ type WarningConfigEntry interface {
 // ServiceConfiguration is the top-level struct for the configuration of a service
 // across the entire cluster.
 type ServiceConfigEntry struct {
-	Kind                  string
-	Name                  string
-	Protocol              string
-	Mode                  ProxyMode              `json:",omitempty"`
-	TransparentProxy      TransparentProxyConfig `json:",omitempty" alias:"transparent_proxy"`
-	MeshGateway           MeshGatewayConfig      `json:",omitempty" alias:"mesh_gateway"`
-	Expose                ExposeConfig           `json:",omitempty"`
-	ExternalSNI           string                 `json:",omitempty" alias:"external_sni"`
-	UpstreamConfig        *UpstreamConfiguration `json:",omitempty" alias:"upstream_config"`
-	Destination           *DestinationConfig     `json:",omitempty"`
-	MaxInboundConnections int                    `json:",omitempty" alias:"max_inbound_connections"`
+	Kind                      string
+	Name                      string
+	Protocol                  string
+	Mode                      ProxyMode              `json:",omitempty"`
+	TransparentProxy          TransparentProxyConfig `json:",omitempty" alias:"transparent_proxy"`
+	MeshGateway               MeshGatewayConfig      `json:",omitempty" alias:"mesh_gateway"`
+	Expose                    ExposeConfig           `json:",omitempty"`
+	ExternalSNI               string                 `json:",omitempty" alias:"external_sni"`
+	UpstreamConfig            *UpstreamConfiguration `json:",omitempty" alias:"upstream_config"`
+	Destination               *DestinationConfig     `json:",omitempty"`
+	MaxInboundConnections     int                    `json:",omitempty" alias:"max_inbound_connections"`
+	LocalConnectTimeoutMs     int                    `json:",omitempty" alias:"local_connect_timeout_ms"`
+	LocalRequestTimeoutMs     int                    `json:",omitempty" alias:"local_request_timeout_ms"`
+	BalanceInboundConnections string                 `json:",omitempty" alias:"balance_inbound_connections"`
+	EnvoyExtensions           EnvoyExtensions        `json:",omitempty" alias:"envoy_extensions"`
 
 	Meta               map[string]string `json:",omitempty"`
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
@@ -155,7 +182,7 @@ func (e *ServiceConfigEntry) Normalize() error {
 		for _, override := range e.UpstreamConfig.Overrides {
 			err := override.NormalizeWithName(&e.EnterpriseMeta)
 			if err != nil {
-				validationErr = multierror.Append(validationErr, fmt.Errorf("error in upstream override for %s: %v", override.ServiceName(), err))
+				validationErr = multierror.Append(validationErr, fmt.Errorf("error in upstream override for %s: %v", override.PeeredServiceName(), err))
 			}
 		}
 
@@ -180,6 +207,10 @@ func (e *ServiceConfigEntry) Validate() error {
 
 	validationErr := validateConfigEntryMeta(e.Meta)
 
+	if !isValidConnectionBalance(e.BalanceInboundConnections) {
+		validationErr = multierror.Append(validationErr, fmt.Errorf("invalid value for balance_inbound_connections: %v", e.BalanceInboundConnections))
+	}
+
 	// External endpoints are invalid with an existing service's upstream configuration
 	if e.UpstreamConfig != nil && e.Destination != nil {
 		validationErr = multierror.Append(validationErr, errors.New("UpstreamConfig and Destination are mutually exclusive for service defaults"))
@@ -190,7 +221,7 @@ func (e *ServiceConfigEntry) Validate() error {
 		for _, override := range e.UpstreamConfig.Overrides {
 			err := override.ValidateWithName()
 			if err != nil {
-				validationErr = multierror.Append(validationErr, fmt.Errorf("error in upstream override for %s: %v", override.ServiceName(), err))
+				validationErr = multierror.Append(validationErr, fmt.Errorf("error in upstream override for %s: %v", override.PeeredServiceName(), err))
 			}
 		}
 
@@ -222,6 +253,10 @@ func (e *ServiceConfigEntry) Validate() error {
 		if e.Destination.Port < 1 || e.Destination.Port > 65535 {
 			validationErr = multierror.Append(validationErr, fmt.Errorf("Invalid Port number %d", e.Destination.Port))
 		}
+	}
+
+	if err := envoyextensions.ValidateExtensions(e.EnvoyExtensions.ToAPI()); err != nil {
+		validationErr = multierror.Append(validationErr, err)
 	}
 
 	return validationErr
@@ -331,6 +366,8 @@ type ProxyConfigEntry struct {
 	TransparentProxy TransparentProxyConfig `json:",omitempty" alias:"transparent_proxy"`
 	MeshGateway      MeshGatewayConfig      `json:",omitempty" alias:"mesh_gateway"`
 	Expose           ExposeConfig           `json:",omitempty"`
+	AccessLogs       AccessLogsConfig       `json:",omitempty" alias:"access_logs"`
+	EnvoyExtensions  EnvoyExtensions        `json:",omitempty" alias:"envoy_extensions"`
 
 	Meta               map[string]string `json:",omitempty"`
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
@@ -362,6 +399,13 @@ func (e *ProxyConfigEntry) Normalize() error {
 	}
 
 	e.Kind = ProxyDefaults
+
+	// proxy default config only accepts global configs
+	// this check is replicated in normalize() and validate(),
+	// since validate is not called by all the endpoints (e.g., delete)
+	if e.Name != "" && e.Name != ProxyConfigGlobal {
+		return fmt.Errorf("invalid name (%q), only %q is supported", e.Name, ProxyConfigGlobal)
+	}
 	e.Name = ProxyConfigGlobal
 
 	e.EnterpriseMeta.Normalize()
@@ -378,7 +422,15 @@ func (e *ProxyConfigEntry) Validate() error {
 		return fmt.Errorf("invalid name (%q), only %q is supported", e.Name, ProxyConfigGlobal)
 	}
 
+	if err := e.AccessLogs.Validate(); err != nil {
+		return err
+	}
+
 	if err := validateConfigEntryMeta(e.Meta); err != nil {
+		return err
+	}
+
+	if err := envoyextensions.ValidateExtensions(e.EnvoyExtensions.ToAPI()); err != nil {
 		return err
 	}
 
@@ -521,10 +573,11 @@ func DecodeConfigEntry(raw map[string]interface{}) (ConfigEntry, error) {
 type ConfigEntryOp string
 
 const (
-	ConfigEntryUpsert    ConfigEntryOp = "upsert"
-	ConfigEntryUpsertCAS ConfigEntryOp = "upsert-cas"
-	ConfigEntryDelete    ConfigEntryOp = "delete"
-	ConfigEntryDeleteCAS ConfigEntryOp = "delete-cas"
+	ConfigEntryUpsert              ConfigEntryOp = "upsert"
+	ConfigEntryUpsertCAS           ConfigEntryOp = "upsert-cas"
+	ConfigEntryUpsertWithStatusCAS ConfigEntryOp = "upsert-with-status-cas"
+	ConfigEntryDelete              ConfigEntryOp = "delete"
+	ConfigEntryDeleteCAS           ConfigEntryOp = "delete-cas"
 )
 
 // ConfigEntryRequest is used when creating/updating/deleting a ConfigEntry.
@@ -614,6 +667,16 @@ func MakeConfigEntry(kind, name string) (ConfigEntry, error) {
 		return &MeshConfigEntry{}, nil
 	case ExportedServices:
 		return &ExportedServicesConfigEntry{Name: name}, nil
+	case APIGateway:
+		return &APIGatewayConfigEntry{Name: name}, nil
+	case BoundAPIGateway:
+		return &BoundAPIGatewayConfigEntry{Name: name}, nil
+	case InlineCertificate:
+		return &InlineCertificateConfigEntry{Name: name}, nil
+	case HTTPRoute:
+		return &HTTPRouteConfigEntry{Name: name}, nil
+	case TCPRoute:
+		return &TCPRouteConfigEntry{Name: name}, nil
 	default:
 		return nil, fmt.Errorf("invalid config entry kind: %s", kind)
 	}
@@ -691,13 +754,13 @@ type ServiceConfigRequest struct {
 	// Mode indicates how the requesting proxy's listeners are dialed
 	Mode ProxyMode
 
-	UpstreamIDs []ServiceID
+	// UpstreamServiceNames is a list of upstream service names to use for resolving the service config.
+	UpstreamServiceNames []PeeredServiceName
 
 	// DEPRECATED
-	// Upstreams is a list of upstream service names to use for resolving the service config
-	// UpstreamIDs should be used instead which can encode more than just the name to
-	// uniquely identify a service.
-	Upstreams []string
+	// UpstreamIDs is a list of upstream service names to use for resolving the service config.
+	// This field does not take the peer name into consideration, so it is deprecated.
+	UpstreamIDs []ServiceID
 
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	QueryOptions
@@ -705,6 +768,25 @@ type ServiceConfigRequest struct {
 
 func (s *ServiceConfigRequest) RequestDatacenter() string {
 	return s.Datacenter
+}
+
+// GetLocalUpstreamIDs returns the list of non-peer service ids for upstreams defined on this request.
+// This is often used for fetching service-defaults config entries.
+func (s *ServiceConfigRequest) GetLocalUpstreamIDs() []ServiceID {
+	var upstreams []ServiceID
+	if len(s.UpstreamIDs) > 0 {
+		// The legacy mode is mutually exclusive with the new mode, so we don't need
+		// to join the two lists together.
+		upstreams = append(upstreams, s.UpstreamIDs...)
+		return upstreams
+	}
+	for i := range s.UpstreamServiceNames {
+		u := &s.UpstreamServiceNames[i]
+		if u.Peer == "" {
+			upstreams = append(upstreams, u.ServiceName.ToServiceID())
+		}
+	}
+	return upstreams
 }
 
 func (r *ServiceConfigRequest) CacheInfo() cache.RequestInfo {
@@ -723,21 +805,21 @@ func (r *ServiceConfigRequest) CacheInfo() cache.RequestInfo {
 	// the slice would affect cache keys if we ever persist between agent restarts
 	// and change it.
 	v, err := hashstructure.Hash(struct {
-		Name              string
-		EnterpriseMeta    acl.EnterpriseMeta
-		Upstreams         []string    `hash:"set"`
-		UpstreamIDs       []ServiceID `hash:"set"`
-		MeshGatewayConfig MeshGatewayConfig
-		ProxyMode         ProxyMode
-		Filter            string
+		Name                 string
+		EnterpriseMeta       acl.EnterpriseMeta
+		UpstreamServiceNames []PeeredServiceName `hash:"set"`
+		UpstreamIDs          []ServiceID         `hash:"set"`
+		MeshGatewayConfig    MeshGatewayConfig
+		ProxyMode            ProxyMode
+		Filter               string
 	}{
-		Name:              r.Name,
-		EnterpriseMeta:    r.EnterpriseMeta,
-		Upstreams:         r.Upstreams,
-		UpstreamIDs:       r.UpstreamIDs,
-		ProxyMode:         r.Mode,
-		MeshGatewayConfig: r.MeshGateway,
-		Filter:            r.QueryOptions.Filter,
+		Name:                 r.Name,
+		EnterpriseMeta:       r.EnterpriseMeta,
+		UpstreamServiceNames: r.UpstreamServiceNames,
+		UpstreamIDs:          r.UpstreamIDs,
+		ProxyMode:            r.Mode,
+		MeshGatewayConfig:    r.MeshGateway,
+		Filter:               r.QueryOptions.Filter,
 	}, nil)
 	if err == nil {
 		// If there is an error, we don't set the key. A blank key forces
@@ -750,10 +832,12 @@ func (r *ServiceConfigRequest) CacheInfo() cache.RequestInfo {
 }
 
 type UpstreamConfig struct {
-	// Name is only accepted within a service-defaults config entry.
+	// Name is only accepted within service-defaults.upstreamConfig.overrides .
 	Name string `json:",omitempty"`
-	// EnterpriseMeta is only accepted within a service-defaults config entry.
+	// EnterpriseMeta is only accepted within service-defaults.upstreamConfig.overrides .
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
+	// Peer is only accepted within service-defaults.upstreamConfig.overrides .
+	Peer string
 
 	// EnvoyListenerJSON is a complete override ("escape hatch") for the upstream's
 	// listener.
@@ -790,6 +874,10 @@ type UpstreamConfig struct {
 
 	// MeshGatewayConfig controls how Mesh Gateways are configured and used
 	MeshGateway MeshGatewayConfig `json:",omitempty" alias:"mesh_gateway" `
+
+	// BalanceOutboundConnections indicates how the proxy should attempt to distribute
+	// connections across worker threads. Only used by envoy proxies.
+	BalanceOutboundConnections string `json:",omitempty" alias:"balance_outbound_connections"`
 }
 
 func (cfg UpstreamConfig) Clone() UpstreamConfig {
@@ -801,18 +889,14 @@ func (cfg UpstreamConfig) Clone() UpstreamConfig {
 	return cfg2
 }
 
-func (cfg *UpstreamConfig) ServiceID() ServiceID {
+func (cfg *UpstreamConfig) PeeredServiceName() PeeredServiceName {
 	if cfg.Name == "" {
-		return ServiceID{}
+		return PeeredServiceName{}
 	}
-	return NewServiceID(cfg.Name, &cfg.EnterpriseMeta)
-}
-
-func (cfg *UpstreamConfig) ServiceName() ServiceName {
-	if cfg.Name == "" {
-		return ServiceName{}
+	return PeeredServiceName{
+		Peer:        cfg.Peer,
+		ServiceName: NewServiceName(cfg.Name, &cfg.EnterpriseMeta),
 	}
-	return NewServiceName(cfg.Name, &cfg.EnterpriseMeta)
 }
 
 func (cfg UpstreamConfig) MergeInto(dst map[string]interface{}) {
@@ -837,6 +921,9 @@ func (cfg UpstreamConfig) MergeInto(dst map[string]interface{}) {
 	}
 	if cfg.PassiveHealthCheck != nil {
 		dst["passive_health_check"] = cfg.PassiveHealthCheck
+	}
+	if cfg.BalanceOutboundConnections != "" {
+		dst["balance_outbound_connections"] = cfg.BalanceOutboundConnections
 	}
 }
 
@@ -907,6 +994,10 @@ func (cfg UpstreamConfig) validate(named bool) error {
 		}
 	}
 
+	if !isValidConnectionBalance(cfg.BalanceOutboundConnections) {
+		validationErr = multierror.Append(validationErr, fmt.Errorf("invalid value for balance_outbound_connections: %v", cfg.BalanceOutboundConnections))
+	}
+
 	return validationErr
 }
 
@@ -961,6 +1052,11 @@ type PassiveHealthCheck struct {
 	// MaxFailures is the count of consecutive failures that results in a host
 	// being removed from the pool.
 	MaxFailures uint32 `json:",omitempty" alias:"max_failures"`
+
+	// EnforcingConsecutive5xx is the % chance that a host will be actually ejected
+	// when an outlier status is detected through consecutive 5xx.
+	// This setting can be used to disable ejection or to ramp it up slowly. Defaults to 100.
+	EnforcingConsecutive5xx *uint32 `json:",omitempty" alias:"enforcing_consecutive_5xx"`
 }
 
 func (chk *PassiveHealthCheck) Clone() *PassiveHealthCheck {
@@ -1039,33 +1135,32 @@ func (ul UpstreamLimits) Validate() error {
 	return nil
 }
 
-type OpaqueUpstreamConfig struct {
+type OpaqueUpstreamConfigDeprecated struct {
 	Upstream ServiceID
 	Config   map[string]interface{}
 }
+type OpaqueUpstreamConfigsDeprecated []OpaqueUpstreamConfigDeprecated
 
+type OpaqueUpstreamConfig struct {
+	Upstream PeeredServiceName
+	Config   map[string]interface{}
+}
 type OpaqueUpstreamConfigs []OpaqueUpstreamConfig
 
-func (configs OpaqueUpstreamConfigs) GetUpstreamConfig(sid ServiceID) (config map[string]interface{}, found bool) {
-	for _, usconf := range configs {
-		if usconf.Upstream.Matches(sid) {
-			return usconf.Config, true
-		}
-	}
-
-	return nil, false
-}
-
 type ServiceConfigResponse struct {
-	ProxyConfig       map[string]interface{}
-	UpstreamConfigs   map[string]map[string]interface{}
-	UpstreamIDConfigs OpaqueUpstreamConfigs
+	ProxyConfig map[string]interface{}
+	// DEPRECATED: UpstreamIDConfigs field exists only for backwards-compatibility
+	// during upgrades and should be removed in Consul 1.16.
+	UpstreamIDConfigs OpaqueUpstreamConfigsDeprecated
+	UpstreamConfigs   OpaqueUpstreamConfigs
 	MeshGateway       MeshGatewayConfig      `json:",omitempty"`
 	Expose            ExposeConfig           `json:",omitempty"`
 	TransparentProxy  TransparentProxyConfig `json:",omitempty"`
 	Mode              ProxyMode              `json:",omitempty"`
 	Destination       DestinationConfig      `json:",omitempty"`
+	AccessLogs        AccessLogsConfig       `json:",omitempty"`
 	Meta              map[string]string      `json:",omitempty"`
+	EnvoyExtensions   []EnvoyExtension       `json:",omitempty"`
 	QueryMeta
 }
 
@@ -1108,15 +1203,16 @@ func (r *ServiceConfigResponse) UnmarshalBinary(data []byte) error {
 	if err != nil {
 		return err
 	}
-	for k := range r.UpstreamConfigs {
-		r.UpstreamConfigs[k], err = lib.MapWalk(r.UpstreamConfigs[k])
+
+	for k := range r.UpstreamIDConfigs {
+		r.UpstreamIDConfigs[k].Config, err = lib.MapWalk(r.UpstreamIDConfigs[k].Config)
 		if err != nil {
 			return err
 		}
 	}
 
-	for k := range r.UpstreamIDConfigs {
-		r.UpstreamIDConfigs[k].Config, err = lib.MapWalk(r.UpstreamIDConfigs[k].Config)
+	for k := range r.UpstreamConfigs {
+		r.UpstreamConfigs[k].Config, err = lib.MapWalk(r.UpstreamConfigs[k].Config)
 		if err != nil {
 			return err
 		}
@@ -1206,4 +1302,8 @@ func validateConfigEntryMeta(meta map[string]string) error {
 
 type ConfigEntryDeleteResponse struct {
 	Deleted bool
+}
+
+func isValidConnectionBalance(s string) bool {
+	return s == "" || s == ConnectionExactBalance
 }

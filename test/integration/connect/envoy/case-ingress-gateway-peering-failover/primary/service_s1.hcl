@@ -1,0 +1,1 @@
+# We don't need an s1 because requests go through the gateway and not a sidecar.

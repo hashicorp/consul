@@ -17,7 +17,7 @@ const (
 	// maxTxnOps is used to set an upper limit on the number of operations
 	// inside a transaction. If there are more operations than this, then the
 	// client is likely abusing transactions.
-	maxTxnOps = 64
+	maxTxnOps = 128
 )
 
 // decodeValue decodes the value member of the given operation.
@@ -185,6 +185,7 @@ func (s *HTTPHandlers) convertOps(resp http.ResponseWriter, req *http.Request) (
 						Address:         node.Address,
 						Datacenter:      node.Datacenter,
 						TaggedAddresses: node.TaggedAddresses,
+						PeerName:        node.PeerName,
 						Meta:            node.Meta,
 						RaftIndex: structs.RaftIndex{
 							ModifyIndex: node.ModifyIndex,
@@ -207,6 +208,7 @@ func (s *HTTPHandlers) convertOps(resp http.ResponseWriter, req *http.Request) (
 					Service: structs.NodeService{
 						ID:      svc.ID,
 						Service: svc.Service,
+						Kind:    structs.ServiceKind(svc.Kind),
 						Tags:    svc.Tags,
 						Address: svc.Address,
 						Meta:    svc.Meta,
@@ -225,6 +227,39 @@ func (s *HTTPHandlers) convertOps(resp http.ResponseWriter, req *http.Request) (
 						},
 					},
 				},
+			}
+
+			if svc.Proxy != nil {
+				out.Service.Service.Proxy = structs.ConnectProxyConfig{}
+				t := &out.Service.Service.Proxy
+				if svc.Proxy.DestinationServiceName != "" {
+					t.DestinationServiceName = svc.Proxy.DestinationServiceName
+				}
+				if svc.Proxy.DestinationServiceID != "" {
+					t.DestinationServiceID = svc.Proxy.DestinationServiceID
+				}
+				if svc.Proxy.LocalServiceAddress != "" {
+					t.LocalServiceAddress = svc.Proxy.LocalServiceAddress
+				}
+				if svc.Proxy.LocalServicePort != 0 {
+					t.LocalServicePort = svc.Proxy.LocalServicePort
+				}
+				if svc.Proxy.LocalServiceSocketPath != "" {
+					t.LocalServiceSocketPath = svc.Proxy.LocalServiceSocketPath
+				}
+				if svc.Proxy.MeshGateway.Mode != "" {
+					t.MeshGateway.Mode = structs.MeshGatewayMode(svc.Proxy.MeshGateway.Mode)
+				}
+
+				if svc.Proxy.TransparentProxy != nil {
+					if svc.Proxy.TransparentProxy.DialedDirectly {
+						t.TransparentProxy.DialedDirectly = svc.Proxy.TransparentProxy.DialedDirectly
+					}
+
+					if svc.Proxy.TransparentProxy.OutboundListenerPort != 0 {
+						t.TransparentProxy.OutboundListenerPort = svc.Proxy.TransparentProxy.OutboundListenerPort
+					}
+				}
 			}
 			opsRPC = append(opsRPC, out)
 
@@ -265,6 +300,8 @@ func (s *HTTPHandlers) convertOps(resp http.ResponseWriter, req *http.Request) (
 						ServiceID:   check.ServiceID,
 						ServiceName: check.ServiceName,
 						ServiceTags: check.ServiceTags,
+						PeerName:    check.PeerName,
+						ExposedPort: check.ExposedPort,
 						Definition: structs.HealthCheckDefinition{
 							HTTP:                           check.Definition.HTTP,
 							TLSServerName:                  check.Definition.TLSServerName,
@@ -275,6 +312,7 @@ func (s *HTTPHandlers) convertOps(resp http.ResponseWriter, req *http.Request) (
 							TCP:                            check.Definition.TCP,
 							GRPC:                           check.Definition.GRPC,
 							GRPCUseTLS:                     check.Definition.GRPCUseTLS,
+							OSService:                      check.Definition.OSService,
 							Interval:                       interval,
 							Timeout:                        timeout,
 							DeregisterCriticalServiceAfter: deregisterCriticalServiceAfter,
@@ -318,7 +356,7 @@ func (s *HTTPHandlers) Txn(resp http.ResponseWriter, req *http.Request) (interfa
 		}
 
 		var reply structs.TxnReadResponse
-		if err := s.agent.RPC("Txn.Read", &args, &reply); err != nil {
+		if err := s.agent.RPC(req.Context(), "Txn.Read", &args, &reply); err != nil {
 			return nil, err
 		}
 
@@ -334,7 +372,7 @@ func (s *HTTPHandlers) Txn(resp http.ResponseWriter, req *http.Request) (interfa
 		s.parseToken(req, &args.Token)
 
 		var reply structs.TxnResponse
-		if err := s.agent.RPC("Txn.Apply", &args, &reply); err != nil {
+		if err := s.agent.RPC(req.Context(), "Txn.Apply", &args, &reply); err != nil {
 			return nil, err
 		}
 		ret, conflict = reply, len(reply.Errors) > 0

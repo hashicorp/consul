@@ -12,7 +12,9 @@ import (
 
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/consul"
+	consulrate "github.com/hashicorp/consul/agent/consul/rate"
 	"github.com/hashicorp/consul/agent/dns"
+	hcpconfig "github.com/hashicorp/consul/agent/hcp/config"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/api"
@@ -132,7 +134,7 @@ type RuntimeConfig struct {
 	// AutopilotMinQuorum sets the minimum number of servers required in a cluster
 	// before autopilot can prune dead servers.
 	//
-	//hcl: autopilot { min_quorum = int }
+	// hcl: autopilot { min_quorum = int }
 	AutopilotMinQuorum uint
 
 	// AutopilotRedundancyZoneTag is the Meta tag to use for separating servers
@@ -156,6 +158,11 @@ type RuntimeConfig struct {
 	//
 	// hcl: autopilot { upgrade_version_tag = string }
 	AutopilotUpgradeVersionTag string
+
+	// Cloud contains configuration for agents to connect to HCP.
+	//
+	// hcl: cloud { ... }
+	Cloud hcpconfig.CloudConfig
 
 	// DNSAllowStale is used to enable lookups with stale
 	// data. This gives horizontal read scalability since
@@ -435,6 +442,7 @@ type RuntimeConfig struct {
 	//     tls_skip_verify = (true|false)
 	//     timeout = "duration"
 	//     ttl = "duration"
+	//     os_service = string
 	//     success_before_passing = int
 	//     failures_before_warning = int
 	//     failures_before_critical = int
@@ -486,12 +494,6 @@ type RuntimeConfig struct {
 	// ConnectEnabled opts the agent into connect. It should be set on all clients
 	// and servers in a cluster for correct connect operation.
 	ConnectEnabled bool
-
-	// ConnectServerlessPluginEnabled opts the agent into the serverless plugin.
-	// This plugin allows services to be configured as AWS Lambdas. After the
-	// Lambda service is configured, Connect services can invoke the Lambda
-	// service like any other upstream.
-	ConnectServerlessPluginEnabled bool
 
 	// ConnectSidecarMinPort is the inclusive start of the range of ports
 	// allocated to the agent for asigning to sidecar services where no port is
@@ -670,12 +672,17 @@ type RuntimeConfig struct {
 	// flag: -encrypt string
 	EncryptKey string
 
-	// GRPCPort is the port the gRPC server listens on. Currently this only
-	// exposes the xDS and ext_authz APIs for Envoy and it is disabled by default.
+	// GRPCPort is the port the gRPC server listens on. It is disabled by default.
 	//
 	// hcl: ports { grpc = int }
 	// flags: -grpc-port int
 	GRPCPort int
+
+	// GRPCTLSPort is the port the gRPC server listens on. It is disabled by default.
+	//
+	// hcl: ports { grpc_tls = int }
+	// flags: -grpc-tls-port int
+	GRPCTLSPort int
 
 	// GRPCAddrs contains the list of TCP addresses and UNIX sockets the gRPC
 	// server will bind to. If the gRPC endpoint is disabled (ports.grpc <= 0)
@@ -691,6 +698,21 @@ type RuntimeConfig struct {
 	//
 	// hcl: client_addr = string addresses { grpc = string } ports { grpc = int }
 	GRPCAddrs []net.Addr
+
+	// GRPCTLSAddrs contains the list of TCP addresses and UNIX sockets the gRPC
+	// server will bind to. If the gRPC endpoint is disabled (ports.grpc <= 0)
+	// the list is empty.
+	//
+	// The addresses are taken from 'addresses.grpc_tls' which should contain a
+	// space separated list of ip addresses, UNIX socket paths and/or
+	// go-sockaddr templates. UNIX socket paths must be written as
+	// 'unix://<full path>', e.g. 'unix:///var/run/consul-grpc.sock'.
+	//
+	// If 'addresses.grpc_tls' was not provided the 'client_addr' addresses are
+	// used.
+	//
+	// hcl: client_addr = string addresses { grpc_tls = string } ports { grpc_tls = int }
+	GRPCTLSAddrs []net.Addr
 
 	// HTTPAddrs contains the list of TCP addresses and UNIX sockets the HTTP
 	// server will bind to. If the HTTP endpoint is disabled (ports.http <= 0)
@@ -818,6 +840,10 @@ type RuntimeConfig struct {
 	// hcl: peering { enabled = (true|false) }
 	PeeringEnabled bool
 
+	// TestAllowPeerRegistrations controls whether CatalogRegister endpoints allow
+	// registrations for objects with `PeerName`
+	PeeringTestAllowPeerRegistrations bool
+
 	// PidFile is the file to store our PID in.
 	//
 	// hcl: pid_file = string
@@ -877,6 +903,18 @@ type RuntimeConfig struct {
 	// hcl: performance { rpc_hold_timeout = "duration" }
 	RPCHoldTimeout time.Duration
 
+	// RPCClientTimeout limits how long a client is allowed to read from an RPC
+	// connection. This is used to set an upper bound for requests to eventually
+	// terminate so that RPC connections are not held indefinitely.
+	// It may be set to 0 explicitly to disable the timeout but this should never
+	// be used in production. Default is 60 seconds.
+	//
+	// Note: Blocking queries use MaxQueryTime and DefaultQueryTime to calculate
+	// timeouts.
+	//
+	// hcl: limits { rpc_client_timeout = "duration" }
+	RPCClientTimeout time.Duration
+
 	// RPCRateLimit and RPCMaxBurst control how frequently RPC calls are allowed
 	// to happen. In any large enough time interval, rate limiter limits the
 	// rate to RPCRateLimit tokens per second, with a maximum burst size of
@@ -886,14 +924,14 @@ type RuntimeConfig struct {
 	// See https://en.wikipedia.org/wiki/Token_bucket for more about token
 	// buckets.
 	//
-	// hcl: limit { rpc_rate = (float64|MaxFloat64) rpc_max_burst = int }
+	// hcl: limits { rpc_rate = (float64|MaxFloat64) rpc_max_burst = int }
 	RPCRateLimit rate.Limit
 	RPCMaxBurst  int
 
 	// RPCMaxConnsPerClient limits the number of concurrent TCP connections the
 	// RPC server will accept from any single source IP address.
 	//
-	// hcl: limits{ rpc_max_conns_per_client = 100 }
+	// hcl: limits { rpc_max_conns_per_client = 100 }
 	RPCMaxConnsPerClient int
 
 	// RPCProtocol is the Consul protocol version to use.
@@ -971,6 +1009,37 @@ type RuntimeConfig struct {
 	// hcl: rejoin_after_leave = (true|false)
 	// flag: -rejoin
 	RejoinAfterLeave bool
+
+	// RequestLimitsMode will disable or enable rate limiting.  If not disabled, it
+	// enforces the action that will occur when RequestLimitsReadRate
+	// or RequestLimitsWriteRate is exceeded.  The default value of "disabled" will
+	// prevent any rate limiting from occuring.  A value of "enforce" will block
+	// the request from processings by returning an error.  A value of
+	// "permissive" will not block the request and will allow the request to
+	// continue processing.
+	//
+	// hcl: limits { request_limits { mode = "permissive" } }
+	RequestLimitsMode consulrate.Mode
+
+	// RequestLimitsReadRate controls how frequently RPC, gRPC, and HTTP
+	// queries are allowed to happen. In any large enough time interval, rate
+	// limiter limits the rate to RequestLimitsReadRate tokens per second.
+	//
+	// See https://en.wikipedia.org/wiki/Token_bucket for more about token
+	// buckets.
+	//
+	// hcl: limits { request_limits { read_rate = (float64|MaxFloat64) } }
+	RequestLimitsReadRate rate.Limit
+
+	// RequestLimitsWriteRate controls how frequently RPC, gRPC, and HTTP
+	// writes are allowed to happen. In any large enough time interval, rate
+	// limiter limits the rate to RequestLimitsWriteRate tokens per second.
+	//
+	// See https://en.wikipedia.org/wiki/Token_bucket for more about token
+	// buckets.
+	//
+	// hcl: limits { request_limits { write_rate = (float64|MaxFloat64) } }
+	RequestLimitsWriteRate rate.Limit
 
 	// RetryJoinIntervalLAN specifies the amount of time to wait in between join
 	// attempts on agent start. The minimum allowed value is 1 second and
@@ -1314,25 +1383,9 @@ type RuntimeConfig struct {
 	SkipLeaveOnInt bool
 
 	// AutoReloadConfig indicate if the config will be
-	//auto reloaded bases on config file modification
+	// auto reloaded bases on config file modification
 	// hcl: auto_reload_config = (true|false)
 	AutoReloadConfig bool
-
-	// StartJoinAddrsLAN is a list of addresses to attempt to join -lan when the
-	// agent starts. If Serf is unable to communicate with any of these
-	// addresses, then the agent will error and exit.
-	//
-	// hcl: start_join = []string
-	// flag: -join string -join string
-	StartJoinAddrsLAN []string
-
-	// StartJoinWAN is a list of addresses to attempt to join -wan when the
-	// agent starts. If Serf is unable to communicate with any of these
-	// addresses, then the agent will error and exit.
-	//
-	// hcl: start_join_wan = []string
-	// flag: -join-wan string -join-wan string
-	StartJoinAddrsWAN []string
 
 	// TLS configures certificates, CA, cipher suites, and other TLS settings
 	// on Consul's listeners (i.e. Internal multiplexed RPC, HTTPS and gRPC).
@@ -1409,6 +1462,15 @@ type RuntimeConfig struct {
 	// ]
 	//
 	Watches []map[string]interface{}
+
+	// XDSUpdateRateLimit controls the maximum rate at which proxy config updates
+	// will be delivered, across all connected xDS streams. This is used to stop
+	// updates to "global" resources (e.g. wildcard intentions) from saturating
+	// system resources at the expense of other work, such as raft and gossip,
+	// which could cause general cluster instability.
+	//
+	// hcl: xds { update_max_per_second = (float64|MaxFloat64) }
+	XDSUpdateRateLimit rate.Limit
 
 	// AutoReloadConfigCoalesceInterval Coalesce Interval for auto reload config
 	AutoReloadConfigCoalesceInterval time.Duration
@@ -1653,6 +1715,11 @@ func (c *RuntimeConfig) VersionWithMetadata() string {
 // time.Duration values are formatted to improve readability.
 func (c *RuntimeConfig) Sanitized() map[string]interface{} {
 	return sanitize("rt", reflect.ValueOf(c)).Interface().(map[string]interface{})
+}
+
+// IsCloudEnabled returns true if a cloud.resource_id is set and the server mode is enabled
+func (c *RuntimeConfig) IsCloudEnabled() bool {
+	return c.ServerMode && c.Cloud.ResourceID != ""
 }
 
 // isSecret determines whether a field name represents a field which

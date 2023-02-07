@@ -1,20 +1,22 @@
 ---
 layout: commands
 page_title: 'Commands: Config List'
+description: >-
+  The `consul config list` command lists all configuration entries for each config entry kind.
 ---
 
 # Consul Config List
 
 Command: `consul config list`
 
-Corresponding HTTP API Endpoint: [\[GET\] /v1/config/:kind](/api-docs/config#list-configurations)
+Corresponding HTTP API Endpoint: [\[GET\] /v1/config/:kind](/consul/api-docs/config#list-configurations)
 
 The `config list` command lists all given config entries of the given kind.
-See the [configuration entries docs](/docs/agent/config-entries) for more
+See the [configuration entries docs](/consul/docs/agent/config-entries) for more
 details about configuration entries.
 
-The table below shows this command's [required ACLs](/api#authentication). Configuration of
-[blocking queries](/api-docs/features/blocking) and [agent caching](/api-docs/features/caching)
+The table below shows this command's [required ACLs](/consul/api-docs/api-structure#authentication). Configuration of
+[blocking queries](/consul/api-docs/features/blocking) and [agent caching](/consul/api-docs/features/caching)
 are not supported from commands, but may be from the corresponding HTTP endpoint.
 
 | ACL Required<sup>1</sup>              |
@@ -38,19 +40,19 @@ are not supported from commands, but may be from the corresponding HTTP endpoint
 
 Usage: `consul config list [options]`
 
-#### API Options
+#### Command Options
 
-@include 'http_api_options_client.mdx'
+- `-kind` - Specifies the kind of the config entry to list.
 
 #### Enterprise Options
 
-@include 'http_api_namespace_options.mdx'
-
 @include 'http_api_partition_options.mdx'
 
-#### Config List Options
+@include 'http_api_namespace_options.mdx'
 
-- `-kind` - Specifies the kind of the config entry to list.
+#### API Options
+
+@include 'http_api_options_client.mdx'
 
 ## Examples
 

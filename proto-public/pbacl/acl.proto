@@ -2,13 +2,23 @@ syntax = "proto3";
 
 package hashicorp.consul.acl;
 
+import "proto-public/annotations/ratelimit/ratelimit.proto";
+
 service ACLService {
   // Login exchanges the presented bearer token for a Consul ACL token using a
   // configured auth method.
-  rpc Login(LoginRequest) returns (LoginResponse) {}
+  rpc Login(LoginRequest) returns (LoginResponse) {
+    option (hashicorp.consul.internal.ratelimit.spec) = {
+      operation_type: OPERATION_TYPE_WRITE,
+    };
+  }
 
   // Logout destroys the given ACL token once the caller is done with it.
-  rpc Logout(LogoutRequest) returns (LogoutResponse) {}
+  rpc Logout(LogoutRequest) returns (LogoutResponse) {
+    option (hashicorp.consul.internal.ratelimit.spec) = {
+      operation_type: OPERATION_TYPE_WRITE,
+    };
+  }
 }
 
 message LogoutResponse {}

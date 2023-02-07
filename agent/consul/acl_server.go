@@ -1,6 +1,7 @@
 package consul
 
 import (
+	"crypto/subtle"
 	"fmt"
 	"time"
 
@@ -86,7 +87,7 @@ func (s *Server) checkBindingRuleUUID(id string) (bool, error) {
 }
 
 func (s *Server) InPrimaryDatacenter() bool {
-	return s.config.PrimaryDatacenter == "" || s.config.Datacenter == s.config.PrimaryDatacenter
+	return s.config.InPrimaryDatacenter()
 }
 
 func (s *Server) LocalTokensEnabled() bool {
@@ -106,6 +107,18 @@ func (s *Server) LocalTokensEnabled() bool {
 type serverACLResolverBackend struct {
 	// TODO: un-embed
 	*Server
+}
+
+func (s *serverACLResolverBackend) IsServerManagementToken(token string) bool {
+	mgmt, err := s.getSystemMetadata(structs.ServerManagementTokenAccessorID)
+	if err != nil {
+		s.logger.Debug("failed to fetch server management token: %w", err)
+		return false
+	}
+	if mgmt == "" {
+		return false
+	}
+	return subtle.ConstantTimeCompare([]byte(mgmt), []byte(token)) == 1
 }
 
 func (s *serverACLResolverBackend) ACLDatacenter() string {

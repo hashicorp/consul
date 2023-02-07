@@ -1,0 +1,3 @@
+```release-note:feature
+ui: Removed reference to node name on service instance page when using agentless 
+```

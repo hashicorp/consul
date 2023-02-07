@@ -51,7 +51,7 @@ func TestAPI_CatalogNodes(t *testing.T) {
 		want := &Node{
 			ID:         s.Config.NodeID,
 			Node:       s.Config.NodeName,
-			Partition:  splitDefaultPartition,
+			Partition:  defaultPartition,
 			Address:    "127.0.0.1",
 			Datacenter: "dc1",
 			TaggedAddresses: map[string]string{
@@ -1144,8 +1144,8 @@ func TestAPI_CatalogGatewayServices_Terminating(t *testing.T) {
 
 	expect := []*GatewayService{
 		{
-			Service:     CompoundServiceName{Name: "api", Namespace: splitDefaultNamespace, Partition: splitDefaultPartition},
-			Gateway:     CompoundServiceName{Name: "terminating", Namespace: splitDefaultNamespace, Partition: splitDefaultPartition},
+			Service:     CompoundServiceName{Name: "api", Namespace: defaultNamespace, Partition: defaultPartition},
+			Gateway:     CompoundServiceName{Name: "terminating", Namespace: defaultNamespace, Partition: defaultPartition},
 			GatewayKind: ServiceKindTerminatingGateway,
 			CAFile:      "api/ca.crt",
 			CertFile:    "api/client.crt",
@@ -1153,8 +1153,8 @@ func TestAPI_CatalogGatewayServices_Terminating(t *testing.T) {
 			SNI:         "my-domain",
 		},
 		{
-			Service:      CompoundServiceName{Name: "redis", Namespace: splitDefaultNamespace, Partition: splitDefaultPartition},
-			Gateway:      CompoundServiceName{Name: "terminating", Namespace: splitDefaultNamespace, Partition: splitDefaultPartition},
+			Service:      CompoundServiceName{Name: "redis", Namespace: defaultNamespace, Partition: defaultPartition},
+			Gateway:      CompoundServiceName{Name: "terminating", Namespace: defaultNamespace, Partition: defaultPartition},
 			GatewayKind:  ServiceKindTerminatingGateway,
 			CAFile:       "ca.crt",
 			CertFile:     "client.crt",
@@ -1212,15 +1212,15 @@ func TestAPI_CatalogGatewayServices_Ingress(t *testing.T) {
 
 	expect := []*GatewayService{
 		{
-			Service:     CompoundServiceName{Name: "api", Namespace: splitDefaultNamespace, Partition: splitDefaultPartition},
-			Gateway:     CompoundServiceName{Name: "ingress", Namespace: splitDefaultNamespace, Partition: splitDefaultPartition},
+			Service:     CompoundServiceName{Name: "api", Namespace: defaultNamespace, Partition: defaultPartition},
+			Gateway:     CompoundServiceName{Name: "ingress", Namespace: defaultNamespace, Partition: defaultPartition},
 			GatewayKind: ServiceKindIngressGateway,
 			Protocol:    "tcp",
 			Port:        8888,
 		},
 		{
-			Service:     CompoundServiceName{Name: "redis", Namespace: splitDefaultNamespace, Partition: splitDefaultPartition},
-			Gateway:     CompoundServiceName{Name: "ingress", Namespace: splitDefaultNamespace, Partition: splitDefaultPartition},
+			Service:     CompoundServiceName{Name: "redis", Namespace: defaultNamespace, Partition: defaultPartition},
+			Gateway:     CompoundServiceName{Name: "ingress", Namespace: defaultNamespace, Partition: defaultPartition},
 			GatewayKind: ServiceKindIngressGateway,
 			Protocol:    "tcp",
 			Port:        9999,

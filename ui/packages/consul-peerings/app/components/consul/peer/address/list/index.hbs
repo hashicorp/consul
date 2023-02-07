@@ -1,15 +1,25 @@
-<ListCollection
-  class="consul-peer-address-list"
-  ...attributes
-  @items={{@items}}
-as |item|>
-    <BlockSlot @name="header">
-      <p>
-        {{item}}
-        <CopyButton
-          @value={{item}}
-          @name="Address"
-        />
-      </p>
-    </BlockSlot>
-</ListCollection>
+<Providers::Dimension as |p|>
+  {{#if p.data.height}}
+    <div style={{p.data.fillRemainingHeightStyle}} class="overflow-y-scroll">
+      <VerticalCollection
+        @tagName="ul"
+        @estimateHeight={{p.data.height}}
+        @items={{@items}}
+        as |address index|
+      >
+        <li
+          class="px-3 h-12 hds-border-primary border-t-0 border-l-0 border-r-0 flex items-center justify-between group"
+        >
+          <div
+            class="hds-typography-display-300 text-hds-foreground-strong hds-font-weight-semibold"
+          >{{address}}</div>
+          <CopyButton
+            @value={{address}}
+            @name="Address"
+            class="opacity-0 group-hover:opacity-100"
+          />
+        </li>
+      </VerticalCollection>
+    </div>
+  {{/if}}
+</Providers::Dimension>

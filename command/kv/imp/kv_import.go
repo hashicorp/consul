@@ -8,7 +8,6 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path"
 
@@ -84,6 +83,11 @@ func (c *cmd) Run(args []string) int {
 			Value: value,
 		}
 
+		// if the key is a directory, we need to append /
+		if len(entry.Key) > 0 && entry.Key[len(entry.Key)-1] == '/' {
+			pair.Key += "/"
+		}
+
 		w := api.WriteOptions{Namespace: entry.Namespace}
 		if _, err := client.KV().Put(pair, &w); err != nil {
 			c.UI.Error(fmt.Sprintf("Error! Failed writing data for key %s: %s", pair.Key, err))
@@ -118,7 +122,7 @@ func (c *cmd) dataFromArgs(args []string) (string, error) {
 
 	switch data[0] {
 	case '@':
-		data, err := ioutil.ReadFile(data[1:])
+		data, err := os.ReadFile(data[1:])
 		if err != nil {
 			return "", fmt.Errorf("Failed to read file: %s", err)
 		}

@@ -38,6 +38,5 @@ deps: clean
 dist-vercel: clean
 	mkdir -p dist/ui && \
 	cd packages/consul-ui && \
-		CONSUL_UI_INSTALL_FLAGS=--focus \
 		$(MAKE) build-staging && \
 		mv dist/* ../../dist/ui

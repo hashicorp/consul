@@ -49,7 +49,7 @@ export default class StoreService extends Store {
     // TODO: Carry this over to the other methods ^
     return adapter
       .self(this, modelClass, token.secret, token)
-      .then(payload => serializer.normalizeResponse(this, modelClass, payload, token, 'self'));
+      .then((payload) => serializer.normalizeResponse(this, modelClass, payload, token, 'self'));
   }
 
   //
@@ -59,7 +59,7 @@ export default class StoreService extends Store {
     const adapter = this.adapterFor(modelName);
     const serializer = this.serializerFor(modelName);
     const modelClass = { modelName: modelName };
-    return adapter.queryLeader(this, modelClass, null, query).then(payload => {
+    return adapter.queryLeader(this, modelClass, null, query).then((payload) => {
       payload.meta = serializer.normalizeMeta(this, modelClass, payload, null, 'leader');
       return payload;
     });
@@ -73,7 +73,7 @@ export default class StoreService extends Store {
     const modelClass = { modelName: modelName };
     return adapter
       .authorize(this, modelClass, null, query)
-      .then(payload =>
+      .then((payload) =>
         serializer.normalizeResponse(this, modelClass, payload, undefined, 'authorize')
       );
   }

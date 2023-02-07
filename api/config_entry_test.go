@@ -104,6 +104,10 @@ func TestAPI_ConfigEntries(t *testing.T) {
 				"foo": "bar",
 				"gir": "zim",
 			},
+			MaxInboundConnections:     5,
+			BalanceInboundConnections: "exact_balance",
+			LocalConnectTimeoutMs:     5000,
+			LocalRequestTimeoutMs:     7000,
 		}
 
 		dest := &DestinationConfig{
@@ -144,6 +148,10 @@ func TestAPI_ConfigEntries(t *testing.T) {
 		require.Equal(t, service.Protocol, readService.Protocol)
 		require.Equal(t, service.Meta, readService.Meta)
 		require.Equal(t, service.Meta, readService.GetMeta())
+		require.Equal(t, service.MaxInboundConnections, readService.MaxInboundConnections)
+		require.Equal(t, service.BalanceInboundConnections, readService.BalanceInboundConnections)
+		require.Equal(t, service.LocalConnectTimeoutMs, readService.LocalConnectTimeoutMs)
+		require.Equal(t, service.LocalRequestTimeoutMs, readService.LocalRequestTimeoutMs)
 
 		// update it
 		service.Protocol = "tcp"
@@ -213,8 +221,8 @@ func TestAPI_ConfigEntries(t *testing.T) {
 				"foo": "bar",
 				"gir": "zim",
 			},
-			Partition: splitDefaultPartition,
-			Namespace: splitDefaultNamespace,
+			Partition: defaultPartition,
+			Namespace: defaultNamespace,
 		}
 		ce := c.ConfigEntries()
 
@@ -393,6 +401,13 @@ func TestDecodeConfigEntry(t *testing.T) {
 				"TransparentProxy": {
 					"OutboundListenerPort": 808,
 					"DialedDirectly": true
+				},
+				"AccessLogs": {
+					"Enabled": true,
+					"DisableListenerLogs": true,
+					"Type": "file",
+					"Path": "/tmp/logs.txt",
+					"TextFormat": "[%START_TIME%]"
 				}
 			}
 			`,
@@ -418,6 +433,13 @@ func TestDecodeConfigEntry(t *testing.T) {
 					OutboundListenerPort: 808,
 					DialedDirectly:       true,
 				},
+				AccessLogs: &AccessLogsConfig{
+					Enabled:             true,
+					DisableListenerLogs: true,
+					Type:                FileLogSinkType,
+					Path:                "/tmp/logs.txt",
+					TextFormat:          "[%START_TIME%]",
+				},
 			},
 		},
 		{
@@ -440,14 +462,17 @@ func TestDecodeConfigEntry(t *testing.T) {
 					"OutboundListenerPort": 808,
 					"DialedDirectly": true
 				},
+				"BalanceInboundConnections": "exact_balance",
 				"UpstreamConfig": {
 					"Overrides": [
 						{
 							"Name": "redis",
 							"PassiveHealthCheck": {
 								"MaxFailures": 3,
-								"Interval": "2s"
-							}
+								"Interval": "2s",
+								"EnforcingConsecutive5xx": 60
+							},
+							"BalanceOutboundConnections": "exact_balance"
 						},
 						{
 							"Name": "finance--billing",
@@ -491,14 +516,17 @@ func TestDecodeConfigEntry(t *testing.T) {
 					OutboundListenerPort: 808,
 					DialedDirectly:       true,
 				},
+				BalanceInboundConnections: "exact_balance",
 				UpstreamConfig: &UpstreamConfiguration{
 					Overrides: []*UpstreamConfig{
 						{
 							Name: "redis",
 							PassiveHealthCheck: &PassiveHealthCheck{
-								MaxFailures: 3,
-								Interval:    2 * time.Second,
+								MaxFailures:             3,
+								Interval:                2 * time.Second,
+								EnforcingConsecutive5xx: uint32Pointer(60),
 							},
+							BalanceOutboundConnections: "exact_balance",
 						},
 						{
 							Name:        "finance--billing",
@@ -598,6 +626,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 						  "Namespace": "leek",
 						  "PrefixRewrite": "/alternate",
 						  "RequestTimeout": "99s",
+						  "IdleTimeout": "99s",
 						  "NumRetries": 12345,
 						  "RetryOnConnectFailure": true,
 						  "RetryOnStatusCodes": [401, 209]
@@ -682,6 +711,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 							Namespace:             "leek",
 							PrefixRewrite:         "/alternate",
 							RequestTimeout:        99 * time.Second,
+							IdleTimeout:           99 * time.Second,
 							NumRetries:            12345,
 							RetryOnConnectFailure: true,
 							RetryOnStatusCodes:    []uint32{401, 209},
@@ -1308,6 +1338,9 @@ func TestDecodeConfigEntry(t *testing.T) {
 				},
 				"HTTP": {
 					"SanitizeXForwardedClientCert": true
+				},
+				"Peering": {
+					"PeerThroughMeshGateways": true
 				}
 			}
 			`,
@@ -1339,6 +1372,9 @@ func TestDecodeConfigEntry(t *testing.T) {
 				},
 				HTTP: &MeshHTTPConfig{
 					SanitizeXForwardedClientCert: true,
+				},
+				Peering: &PeeringMeshConfig{
+					PeerThroughMeshGateways: true,
 				},
 			},
 		},
@@ -1373,5 +1409,9 @@ func TestDecodeConfigEntry(t *testing.T) {
 }
 
 func intPointer(v int) *int {
+	return &v
+}
+
+func uint32Pointer(v uint32) *uint32 {
 	return &v
 }

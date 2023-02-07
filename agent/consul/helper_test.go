@@ -127,7 +127,7 @@ type clientOrServer interface {
 
 // joinLAN is a convenience function for
 //
-//   member.JoinLAN("127.0.0.1:"+leader.config.SerfLANConfig.MemberlistConfig.BindPort)
+//	member.JoinLAN("127.0.0.1:"+leader.config.SerfLANConfig.MemberlistConfig.BindPort)
 func joinLAN(t *testing.T, member clientOrServer, leader *Server) {
 	t.Helper()
 	joinLANWithOptions(t, member, leader, true)
@@ -184,7 +184,7 @@ func joinLANWithOptions(t *testing.T, member clientOrServer, leader *Server, doM
 
 // joinWAN is a convenience function for
 //
-//   member.JoinWAN("127.0.0.1:"+leader.config.SerfWANConfig.MemberlistConfig.BindPort)
+//	member.JoinWAN("127.0.0.1:"+leader.config.SerfWANConfig.MemberlistConfig.BindPort)
 func joinWAN(t *testing.T, member, leader *Server) {
 	t.Helper()
 	joinWANWithOptions(t, member, leader, true)
@@ -1213,10 +1213,12 @@ func registerTestRoutingConfigTopologyEntries(t *testing.T, codec rpc.ClientCode
 func registerLocalAndRemoteServicesVIPEnabled(t *testing.T, state *state.Store) {
 	t.Helper()
 
-	_, entry, err := state.SystemMetadataGet(nil, structs.SystemMetadataVirtualIPsEnabled)
-	require.NoError(t, err)
-	require.NotNil(t, entry)
-	require.Equal(t, "true", entry.Value)
+	retry.Run(t, func(r *retry.R) {
+		_, entry, err := state.SystemMetadataGet(nil, structs.SystemMetadataVirtualIPsEnabled)
+		require.NoError(r, err)
+		require.NotNil(r, entry)
+		require.Equal(r, "true", entry.Value)
+	})
 
 	// Register a local connect-native service
 	require.NoError(t, state.EnsureRegistration(10, &structs.RegisterRequest{

@@ -141,6 +141,7 @@ func init() {
 	registerCommand(structs.PeeringTerminateByIDType, (*FSM).applyPeeringTerminate)
 	registerCommand(structs.PeeringTrustBundleWriteType, (*FSM).applyPeeringTrustBundleWrite)
 	registerCommand(structs.PeeringTrustBundleDeleteType, (*FSM).applyPeeringTrustBundleDelete)
+	registerCommand(structs.PeeringSecretsWriteType, (*FSM).applyPeeringSecretsWrite)
 }
 
 func (c *FSM) applyRegister(buf []byte, index uint64) interface{} {
@@ -561,6 +562,14 @@ func (c *FSM) applyConfigEntryOperation(buf []byte, index uint64) interface{} {
 			return err
 		}
 		return true
+	case structs.ConfigEntryUpsertWithStatusCAS:
+		defer metrics.MeasureSinceWithLabels([]string{"fsm", "config_entry", req.Entry.GetKind()}, time.Now(),
+			[]metrics.Label{{Name: "op", Value: "upsert_with_status"}})
+		updated, err := c.state.EnsureConfigEntryWithStatusCAS(index, req.Entry.GetRaftIndex().ModifyIndex, req.Entry)
+		if err != nil {
+			return err
+		}
+		return updated
 	case structs.ConfigEntryDeleteCAS:
 		defer metrics.MeasureSinceWithLabels([]string{"fsm", "config_entry", req.Entry.GetKind()}, time.Now(),
 			[]metrics.Label{{Name: "op", Value: "delete"}})
@@ -699,11 +708,9 @@ func (c *FSM) applyPeeringWrite(buf []byte, index uint64) interface{} {
 	defer metrics.MeasureSinceWithLabels([]string{"fsm", "peering"}, time.Now(),
 		[]metrics.Label{{Name: "op", Value: "write"}})
 
-	return c.state.PeeringWrite(index, req.Peering)
+	return c.state.PeeringWrite(index, &req)
 }
 
-// TODO(peering): replace with deferred deletion since this operation
-// should involve cleanup of data associated with the peering.
 func (c *FSM) applyPeeringDelete(buf []byte, index uint64) interface{} {
 	var req pbpeering.PeeringDeleteRequest
 	if err := structs.DecodeProto(buf, &req); err != nil {
@@ -718,6 +725,18 @@ func (c *FSM) applyPeeringDelete(buf []byte, index uint64) interface{} {
 		EnterpriseMeta: *structs.NodeEnterpriseMetaInPartition(req.Partition),
 	}
 	return c.state.PeeringDelete(index, q)
+}
+
+func (c *FSM) applyPeeringSecretsWrite(buf []byte, index uint64) interface{} {
+	var req pbpeering.SecretsWriteRequest
+	if err := structs.DecodeProto(buf, &req); err != nil {
+		panic(fmt.Errorf("failed to decode peering secrets write request: %v", err))
+	}
+
+	defer metrics.MeasureSinceWithLabels([]string{"fsm", "peering_secrets"}, time.Now(),
+		[]metrics.Label{{Name: "op", Value: "write"}})
+
+	return c.state.PeeringSecretsWrite(index, &req)
 }
 
 func (c *FSM) applyPeeringTerminate(buf []byte, index uint64) interface{} {

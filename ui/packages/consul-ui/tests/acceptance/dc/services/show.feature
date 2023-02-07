@@ -105,6 +105,148 @@ Feature: dc / services / show: Show Service
       - "2.2.2.2:8000"
       - "3.3.3.3:8888"
     ---
+  Scenario: Given a combination of sources I should see them all on the instances 
+    Given 1 datacenter model with the value "dc1"
+    And 3 node models
+    And 1 service model from yaml
+    ---
+    - Checks:
+        - Status: critical
+      Service:
+        Kind: ~
+        ID: passing-service-8080
+        Port: 8080
+        Address: 1.1.1.1
+        Meta:
+          external-source: kubernetes
+      Node:
+        Address: 1.2.2.2
+        Meta:
+          synthetic-node: false
+    - Checks:
+        - Status: passing
+      Service:
+        Kind: ~
+        ID: service-8000
+        Port: 8000
+        Address: 2.2.2.2
+        Meta:
+          external-source: kubernetes
+      Node:
+        Address: 2.3.3.3
+        Meta:
+          synthetic-node: false
+    - Checks:
+        - Status: passing
+      Service:
+        Kind: ~
+        ID: service-8888
+        Port: 8888
+        Address: 3.3.3.3
+        Meta:
+          external-source: vault
+      Node:
+        Address: 3.4.4.4
+        Meta:
+          synthetic-node: false
+    ---
+    When I visit the service page for yaml
+    ---
+      dc: dc1
+      service: service-0
+    ---
+    And I click instances on the tabs
+    Then I see externalSource on the instances vertically like yaml
+    ---
+      - "kubernetes"
+      - "kubernetes"
+      - "vault"
+    ---
+    And I see nodeName on the instances like yaml
+    ---
+      - "node-0"
+      - "node-1"
+      - "node-2"
+    ---
+    And I see nodeChecks on the instances
+  Scenario: Given instances share the same external source, only show it at the top
+    Given 1 datacenter model with the value "dc1"
+    And 3 node models
+    And 1 service model from yaml
+    ---
+    - Checks:
+        - Status: critical
+      Service:
+        Kind: ~
+        ID: passing-service-8080
+        Port: 8080
+        Address: 1.1.1.1
+        Meta:
+          external-source: kubernetes
+      Node:
+        Address: 1.2.2.2
+        Meta:
+          synthetic-node: true
+    - Checks:
+        - Status: passing
+      Service:
+        Kind: ~
+        ID: service-8000
+        Port: 8000
+        Address: 2.2.2.2
+        Meta:
+          external-source: kubernetes
+      Node:
+        Address: 2.3.3.3
+        Meta:
+          synthetic-node: true
+    - Checks:
+        - Status: passing
+      Service:
+        Kind: ~
+        ID: service-8888
+        Port: 8888
+        Address: 3.3.3.3
+        Meta:
+          external-source: kubernetes
+      Node:
+        Address: 3.4.4.4
+    ---
+    When I visit the service page for yaml
+    ---
+      dc: dc1
+      service: service-0
+    ---
+    And I click instances on the tabs
+    Then I see externalSource like "kubernetes"
+    And I don't see externalSource on the instances
+  Scenario: Given one agentless instance, it should not show node health checks or node name
+    Given 1 datacenter model with the value "dc1"
+    And 1 node models
+    And 1 service model from yaml
+    ---
+    - Checks:
+        - Status: critical
+      Service:
+        Kind: ~
+        ID: passing-service-8080
+        Port: 8080
+        Address: 1.1.1.1
+        Meta:
+          external-source: kubernetes
+      Node:
+        Address: 1.2.2.2
+        Meta:
+          synthetic-node: true
+    ---
+    When I visit the service page for yaml
+    ---
+      dc: dc1
+      service: service-0
+    ---
+    And I click instances on the tabs
+    And I don't see nodeChecks on the instances
+    And I don't see nodeName on the instances
   Scenario: Given a dashboard template has been set
     Given 1 datacenter model with the value "dc1"
     And ui_config from yaml

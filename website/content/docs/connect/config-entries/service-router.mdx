@@ -1,12 +1,11 @@
 ---
 layout: docs
-page_title: 'Configuration Entry Kind: Service Router'
+page_title: Service Router - Configuration Entry Reference
 description: >-
-  The service-router config entry kind controls Connect traffic routing and
-  manipulation at networking layer 7 (e.g. HTTP).
+  The service router configuration entry kind defines where the service mesh routes requests based on L7 network information such as header or path. Use the reference guide to learn about `""service-router""` config entry parameters and how behaviors like request timeouts, retry behavior, header modification, and path rewriting can be applied to a request based on its header or path information.
 ---
 
-# Service Router
+# Service Router Configuration Entry
 
 The `service-router` config entry kind (`ServiceRouter` on Kubernetes) controls Connect traffic routing and
 manipulation at networking layer 7 (e.g. HTTP).
@@ -17,31 +16,26 @@ service of the same name.
 
 ## Requirements
 
-- Consul [service mesh connect](/docs/connect/configuration) enabled services
+- Consul [service mesh connect](/consul/docs/connect/configuration) enabled services
 - Service to service communication over the protocol `http`
-- Consul 1.8.4+ on Kubernetes.
-- Consul 1.5.0+ on other platforms.
-
--> **v1.8.4+:** On Kubernetes, the `ServiceRouter` custom resource is supported in Consul versions 1.8.4+.<br />
-**v1.6.0+:** On other platforms, this config entry is supported in Consul versions 1.6.0+.
 
 ## Interaction with other Config Entries
 
 - Service router config entries are a component of [L7 Traffic
-  Management](/docs/connect/l7-traffic).
+  Management](/consul/docs/connect/l7-traffic).
 
 - Service router config entries are restricted to only services that define
   their protocol as HTTP-based via a corresponding
-  [`service-defaults`](/docs/connect/config-entries/service-defaults) config
+  [`service-defaults`](/consul/docs/connect/config-entries/service-defaults) config
   entry or globally via
-  [`proxy-defaults`](/docs/connect/config-entries/proxy-defaults) .
+  [`proxy-defaults`](/consul/docs/connect/config-entries/proxy-defaults) .
 
 - Any route destination that omits the `ServiceSubset` field is eligible for
   splitting via a
-  [`service-splitter`](/docs/connect/config-entries/service-splitter) should
+  [`service-splitter`](/consul/docs/connect/config-entries/service-splitter) should
   one be configured for that service, otherwise resolution proceeds according
   to any configured
-  [`service-resolver`](/docs/connect/config-entries/service-resolver).
+  [`service-resolver`](/consul/docs/connect/config-entries/service-resolver).
 
 ## UI
 
@@ -304,7 +298,7 @@ Routes = [
     Match{
         HTTP {
             PathPrefix = "/coffees"
-        }  
+        }
     }
 
     Destination {
@@ -312,13 +306,14 @@ Routes = [
         RequestTimeout = "10s"
         NumRetries = 3
         RetryOnConnectFailure = true
+        RetryOn = ["reset"]
     }
   },
   {
     Match{
         HTTP {
             PathPrefix = "/orders"
-        }  
+        }
     }
 
     Destination {
@@ -326,6 +321,7 @@ Routes = [
         RequestTimeout = "10s"
         NumRetries = 3
         RetryOnConnectFailure = true
+        RetryOn = ["reset"]
     }
   }
 ]
@@ -346,6 +342,7 @@ spec:
         requestTimeout: 10s
         numRetries: 3
         retryOnConnectFailure: true
+        retryOn: ['reset']
     - match:
         http:
           pathExact: /orders
@@ -354,7 +351,7 @@ spec:
         requestTimeout: 10s
         numRetries: 3
         retryOnConnectFailure: true
-
+        retryOn: ['reset']
 ```
 
 
@@ -373,6 +370,7 @@ spec:
                 "NumRetries": 3,
                 "RequestTimeout": "10s",
                 "RetryOnConnectFailure": true,
+                "RetryOn": ["reset"],
                 "Service": "procurement"
             }
         },
@@ -386,6 +384,7 @@ spec:
                 "NumRetries": 3,
                 "RequestTimeout": "10s",
                 "RetryOnConnectFailure": true,
+                "RetryOn": ["reset"],
                 "Service": "procurement"
             }
         }
@@ -450,7 +449,7 @@ spec:
         {
           name: 'namespace',
           description:
-            'If running Consul Open Source, the namespace is ignored (see [Kubernetes Namespaces in Consul OSS](/docs/k8s/crds#consul-oss)). If running Consul Enterprise see [Kubernetes Namespaces in Consul Enterprise](/docs/k8s/crds#consul-enterprise) for more details.',
+            'If running Consul Open Source, the namespace is ignored (see [Kubernetes Namespaces in Consul OSS](/consul/docs/k8s/crds#consul-oss)). If running Consul Enterprise see [Kubernetes Namespaces in Consul Enterprise](/consul/docs/k8s/crds#consul-enterprise) for more details.',
         },
       ],
       hcl: false,
@@ -693,15 +692,30 @@ spec:
         'The total amount of time permitted for the entire downstream request (and retries) to be processed.',
     },
     {
-      name: 'NumRetries',
-      type: 'int: 0',
+      name: 'IdleTimeout',
+      type: 'duration: 0',
       description:
-        'The number of times to retry the request when a retryable result occurs.',
+        'The total amount of time permitted for the request stream to be idle',
+    },
+    {
+      name: 'NumRetries',
+      type: 'int: 1',
+      description: {
+        hcl: 'The number of times to retry the request when a retryable result occurs. You cannot set the value to `0`. To disable retries, unset all other retry settings (`RetryOnConnectFailure`, `RetryOn`, `RetryOnStatusCodes`)',
+        yaml: 'The number of times to retry the request when a retryable result occurs. You cannot set the value to `0`. To disable retries, unset all other retry settings (`retryOnConnectFailure`, `retryOn`, `retryOnStatusCodes`)',
+      }
     },
     {
       name: 'RetryOnConnectFailure',
       type: 'bool: false',
       description: 'Allows for connection failure errors to trigger a retry.',
+    },
+    {
+      name: 'RetryOn',
+      type: 'array<string>',
+      description: `Allows Consul to retry requests when they meet one of the following sets of conditions:
+                      \`5xx\`, \`gateway-error\`, \`reset\`, \`connect-failure\`, \`envoy-ratelimited\`, \`retriable-4xx\`,
+                      \`refused-stream\`, \`cancelled\`, \`deadline-exceeded\`, \`internal\`, \`resource-exhausted\`, or \`unavailable\``,
     },
     {
       name: 'RetryOnStatusCodes',
@@ -712,14 +726,14 @@ spec:
     {
       name: 'RequestHeaders',
       type: 'HTTPHeaderModifiers: <optional>',
-      description: `A set of [HTTP-specific header modification rules](/docs/connect/config-entries/service-router#httpheadermodifiers)
+      description: `A set of [HTTP-specific header modification rules](/consul/docs/connect/config-entries/service-router#httpheadermodifiers)
       that will be applied to requests routed to this service.
       This cannot be used with a \`tcp\` listener.`,
     },
     {
       name: 'ResponseHeaders',
       type: 'HTTPHeaderModifiers: <optional>',
-      description: `A set of [HTTP-specific header modification rules](/docs/connect/config-entries/service-router#httpheadermodifiers)
+      description: `A set of [HTTP-specific header modification rules](/consul/docs/connect/config-entries/service-router#httpheadermodifiers)
       that will be applied to responses from this service.
       This cannot be used with a \`tcp\` listener.`,
     },
@@ -766,7 +780,7 @@ spec:
 
 ## ACLs
 
-Configuration entries may be protected by [ACLs](/docs/security/acl).
+Configuration entries may be protected by [ACLs](/consul/docs/security/acl).
 
 Reading a `service-router` config entry requires `service:read` on the resource.
 
@@ -781,7 +795,7 @@ name in these fields:
 The actual syntax of the regular expression fields described here is entirely
 proxy-specific.
 
-When using [Envoy](/docs/connect/proxies/envoy) as a proxy (the only supported proxy in Kubernetes),
+When using [Envoy](/consul/docs/connect/proxies/envoy) as a proxy (the only supported proxy in Kubernetes),
 the syntax for these fields is version specific:
 
 | Envoy Version   | Syntax                                                              |

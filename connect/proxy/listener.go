@@ -166,9 +166,11 @@ func (l *Listener) Serve() error {
 
 // handleConn is the internal connection handler goroutine.
 func (l *Listener) handleConn(src net.Conn) {
-	defer src.Close()
-	// Make sure Listener.Close waits for this conn to be cleaned up.
-	defer l.connWG.Done()
+	defer func() {
+		// Make sure Listener.Close waits for this conn to be cleaned up.
+		src.Close()
+		l.connWG.Done()
+	}()
 
 	dst, err := l.dialFunc()
 	if err != nil {

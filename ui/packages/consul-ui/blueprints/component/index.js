@@ -1,4 +1,1 @@
-module.exports = Object.assign(
-  require('ember-source/blueprints/component/index.js')
-);
-
+module.exports = Object.assign(require('ember-source/blueprints/component/index.js'));

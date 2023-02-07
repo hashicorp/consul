@@ -1,40 +1,39 @@
 ---
 layout: docs
-page_title: Consul Enterprise Audit Logging
+page_title: Audit Logging (Enterprise)
 description: >-
-  Consul Enterprise provides the ability to write events of user behavior with Consul’s API so operations and security users can perform legal compliance auditing.
+  Audit logging secures Consul by capturing a record of HTTP API access and usage. Learn how to format agent configuration files to enable audit logs and specify the path to save logs to.
 ---
 
 # Audit Logging
 
 <EnterpriseAlert>
-  This feature requires
-  HashiCorp Cloud Platform (HCP) or self-managed Consul Enterprise.
-  Refer to the{' '}
-  <a href="/docs/enterprise#consul-enterprise-feature-availability">enterprise feature matrix</a>
-  {' '}for additional information.
+
+This feature requires
+HashiCorp Cloud Platform (HCP) or self-managed Consul Enterprise.
+Refer to the [enterprise feature matrix](/consul/docs/enterprise#consul-enterprise-feature-availability) for additional information.
+
 </EnterpriseAlert>
 
 With Consul Enterprise v1.8.0+, audit logging can be used to capture a clear and
 actionable log of authenticated events (both attempted and committed) that Consul
-processes via its HTTP API. These events are compiled them into a JSON format for easy export
+processes via its HTTP API. These events are then compiled into a JSON format for easy export
 and contain a timestamp, the operation performed, and the user who initiated the action.
 
 Audit logging enables security and compliance teams within an organization to get
 greater insight into Consul access and usage patterns.
 
-For more experience leveraging Consul's audit logging functionality, explore our
-HashiCorp Learn tutorial [Capture Consul Events with Audit Logging](https://learn.hashicorp.com/tutorials/consul/audit-logging).
+Complete the [Capture Consul Events with Audit Logging](/consul/tutorials/datacenter-operations/audit-logging) tutorial to learn more about Consul's audit logging functionality, 
 
 For detailed configuration information on configuring the Consul Enterprise's audit
-logging, review the Consul [Audit Log](/docs/agent/config/config-files#audit)
+logging, review the Consul [Audit Log](/consul/docs/agent/config/config-files#audit)
 documentation.
 
 ## Example Configuration
 
 Audit logging must be enabled on every agent in order to accurately capture all
 operations performed through the HTTP API. To enable logging, add
-the [`audit`](/docs/agent/config/config-files#audit) stanza to the agent's configuration.
+the [`audit`](/consul/docs/agent/config/config-files#audit) stanza to the agent's configuration.
 
 -> **Note**: Consul only logs operations which are initiated via the HTTP API.
 The audit log does not record operations that take place over the internal RPC
@@ -138,7 +137,7 @@ is set to `OperationStart` which indicates the agent has begun processing the
 request.
 
 The value of the `payload.auth.accessor_id` field is the accessor ID of the
-[ACL token](/docs/security/acl#tokens) which issued the request.
+[ACL token](/consul/docs/security/acl#tokens) which issued the request.
 
 <CodeBlockConfig highlight="10">
 

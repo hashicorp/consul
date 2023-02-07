@@ -7,8 +7,8 @@ const root = {
     remove: () => {},
   },
 };
-module('Unit | Helper | document-attrs', function() {
-  test('synchronize adds and removes values correctly', function(assert) {
+module('Unit | Helper | document-attrs', function () {
+  test('synchronize adds and removes values correctly', function (assert) {
     let attrs, actual;
     // add first helper
     const a = new Helper();

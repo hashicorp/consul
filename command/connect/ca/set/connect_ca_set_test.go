@@ -1,6 +1,7 @@
 package set
 
 import (
+	"context"
 	"strings"
 	"testing"
 	"time"
@@ -48,7 +49,7 @@ func TestConnectCASetConfigCommand(t *testing.T) {
 		Datacenter: "dc1",
 	}
 	var reply structs.CAConfiguration
-	require.NoError(t, a.RPC("ConnectCA.ConfigurationGet", &req, &reply))
+	require.NoError(t, a.RPC(context.Background(), "ConnectCA.ConfigurationGet", &req, &reply))
 	require.Equal(t, "consul", reply.Provider)
 
 	parsed, err := ca.ParseConsulCAConfig(reply.Config)

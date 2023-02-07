@@ -63,6 +63,7 @@ as |parts|}}
         {{! We push on a '' here so make sure we get a trailing slash/separator }}
           <li>
             <Action
+              {{action breadcrumb}}
               @href={{href-to 'dc.kv.folder'
                   (join '/'
                     (append

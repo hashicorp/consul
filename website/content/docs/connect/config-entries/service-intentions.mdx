@@ -1,13 +1,11 @@
 ---
 layout: docs
-page_title: 'Configuration Entry Kind: Service Intentions'
+page_title: Service Intentions - Configuration Entry Reference
 description: >-
-  The service-intentions config entry kind controls Connect traffic
-  authorization for both networking layer 4 (e.g. TCP) and networking layer 7
-  (e.g. HTTP).
+  The service intentions configuration entry kind defines the communication permissions between service types. Use the reference guide to learn about `""service-intentions""` config entry parameters and how to authorize L4 and L7 communication int he service mesh with intentions.
 ---
 
-# Service Intentions ((#service-intentions))
+# Service Intentions Configuration Entry ((#service-intentions))
 
 -> **1.9.0+:** This config entry is available in Consul versions 1.9.0 and newer.
 
@@ -16,7 +14,7 @@ authorization for both networking layer 4 (e.g. TCP) and networking layer 7
 (e.g. HTTP).
 
 Service intentions config entries represent a collection of
-[intentions](/docs/connect/intentions) sharing a specific destination. All
+[intentions](/consul/docs/connect/intentions) sharing a specific destination. All
 intentions governing access to a specific destination are stored in a single
 `service-intentions` config entry.
 
@@ -29,8 +27,8 @@ global setting) by defining a low precedence intention for that destination.
 
 L7 intentions within a config entry are restricted to only destination services
 that define their protocol as HTTP-based via a corresponding
-[`service-defaults`](/docs/connect/config-entries/service-defaults) config entry
-or globally via [`proxy-defaults`](/docs/connect/config-entries/proxy-defaults) .
+[`service-defaults`](/consul/docs/connect/config-entries/service-defaults) config entry
+or globally via [`proxy-defaults`](/consul/docs/connect/config-entries/proxy-defaults) .
 
 ## Sample Config Entries
 
@@ -356,7 +354,7 @@ spec:
     {
       name: 'Name',
       description:
-        "The name of the destination service for all intentions defined in this config entry. This may be set to the wildcard character (`*`) to match all services that don't otherwise have intentions defined. Wildcard intentions cannot be used when defining L7 [`Permissions`](/docs/connect/config-entries/service-intentions#permissions).",
+        "The name of the destination service for all intentions defined in this config entry. This may be set to the wildcard character (`*`) to match all services that don't otherwise have intentions defined. Wildcard intentions cannot be used when defining L7 [`Permissions`](/consul/docs/connect/config-entries/service-intentions#permissions).",
       type: 'string: <required>',
       yaml: false,
     },
@@ -365,7 +363,7 @@ spec:
       type: `string: "default"`,
       enterprise: true,
       description:
-        "Specifies the namespaces the config entry will apply to. This may be set to the wildcard character (`*`) to match all services in all namespaces that don't otherwise have intentions defined. Wildcard intentions cannot be used when defining L7 [`Permissions`](/docs/connect/config-entries/service-intentions#permissions).",
+        "Specifies the namespaces the config entry will apply to. This may be set to the wildcard character (`*`) to match all services in all namespaces that don't otherwise have intentions defined. Wildcard intentions cannot be used when defining L7 [`Permissions`](/consul/docs/connect/config-entries/service-intentions#permissions).",
       yaml: false,
     },
     {
@@ -388,12 +386,12 @@ spec:
         {
           name: 'name',
           description:
-            'Unlike other config entries, the `metadata.name` field is not used to set the name of the service being configured. Instead, that is set in `spec.destination.name`. Thus this name can be set to anything. See [ServiceIntentions Special Case (OSS)](/docs/k8s/crds#serviceintentions-special-case) or [ServiceIntentions Special Case (Enterprise)](/docs/k8s/crds#serviceintentions-special-case-enterprise) for more details.',
+            'Unlike other config entries, the `metadata.name` field is not used to set the name of the service being configured. Instead, that is set in `spec.destination.name`. Thus this name can be set to anything. See [ServiceIntentions Special Case (OSS)](/consul/docs/k8s/crds#serviceintentions-special-case) or [ServiceIntentions Special Case (Enterprise)](/consul/docs/k8s/crds#serviceintentions-special-case-enterprise) for more details.',
         },
         {
           name: 'namespace',
           description:
-            'If running Consul Open Source, the namespace is ignored (see [Kubernetes Namespaces in Consul OSS](/docs/k8s/crds#consul-oss)). If running Consul Enterprise see [Kubernetes Namespaces in Consul Enterprise](/docs/k8s/crds#consul-enterprise) for more details.',
+            'If running Consul Open Source, the namespace is ignored (see [Kubernetes Namespaces in Consul OSS](/consul/docs/k8s/crds#consul-oss)). If running Consul Enterprise see [Kubernetes Namespaces in Consul Enterprise](/consul/docs/k8s/crds#consul-enterprise) for more details.',
         },
       ],
       hcl: false,
@@ -407,7 +405,7 @@ spec:
           hcl: false,
           type: 'string: <required>',
           description:
-            "The name of the destination service for all intentions defined in this config entry. This may be set to the wildcard character (`*`) to match all services that don't otherwise have intentions defined. Wildcard intentions cannot be used when defining L7 [`Permissions`](/docs/connect/config-entries/service-intentions#permissions).",
+            "The name of the destination service for all intentions defined in this config entry. This may be set to the wildcard character (`*`) to match all services that don't otherwise have intentions defined. Wildcard intentions cannot be used when defining L7 [`Permissions`](/consul/docs/connect/config-entries/service-intentions#permissions).",
         },
         {
           name: 'namespace',
@@ -415,7 +413,7 @@ spec:
           enterprise: true,
           type: 'string: <optional>',
           description:
-            "Specifies the namespaces the config entry will apply to. This may be set to the wildcard character (`*`) to match all services in all namespaces that don't otherwise have intentions defined. If not set, the namespace used will depend on the `connectInject.consulNamespaces` configuration. See [ServiceIntentions Special Case (Enterprise)](/docs/k8s/crds#serviceintentions-special-case-enterprise) for more details. Wildcard intentions cannot be used when defining L7 [`Permissions`](/docs/connect/config-entries/service-intentions#permissions).",
+            "Specifies the namespaces the config entry will apply to. This may be set to the wildcard character (`*`) to match all services in all namespaces that don't otherwise have intentions defined. If not set, the namespace used will depend on the `connectInject.consulNamespaces` configuration. See [ServiceIntentions Special Case (Enterprise)](/consul/docs/k8s/crds#serviceintentions-special-case-enterprise) for more details. Wildcard intentions cannot be used when defining L7 [`Permissions`](/consul/docs/connect/config-entries/service-intentions#permissions).",
         },
       ],
     },
@@ -450,9 +448,9 @@ spec:
       type: 'string: ""',
       description: {
         hcl:
-          "Specifies the [peer](/docs/connect/cluster-peering/index.mdx) of the source service. `Peer` is mutually exclusive with `Partition`.",
+          "Specifies the [peer](/consul/docs/connect/cluster-peering/index.mdx) of the source service. `Peer` is mutually exclusive with `Partition`.",
         yaml:
-          "Specifies the [peer](/docs/connect/cluster-peering/index.mdx) of the source service. `peer` is mutually exclusive with `partition`.",
+          "Specifies the [peer](/consul/docs/connect/cluster-peering/index.mdx) of the source service. `peer` is mutually exclusive with `partition`.",
       },
     },
     {
@@ -498,7 +496,7 @@ spec:
                       first permission to match in the list is terminal and stops further
                       evaluation. As with L4 intentions, traffic that fails to match any of the
                       provided permissions in this intention will be subject to the default
-                      intention behavior is defined by the default [ACL policy](/docs/agent/config/config-files#acl_default_policy).<br><br>
+                      intention behavior is defined by the default [ACL policy](/consul/docs/agent/config/config-files#acl_default_policy).<br><br>
                       This should be omitted for an L4 intention as it is mutually exclusive with
                       the \`Action\` field.<br><br>
                       Setting \`Permissions\` is not valid if a wildcard is used for the \`Name\` or \`Namespace\` because they can only be
@@ -508,7 +506,7 @@ spec:
                       first permission to match in the list is terminal and stops further
                       evaluation. As with L4 intentions, traffic that fails to match any of the
                       provided permissions in this intention will be subject to the default
-                      intention behavior is defined by the default [ACL policy](/docs/agent/config/config-files#acl_default_policy).<br><br>
+                      intention behavior is defined by the default [ACL policy](/consul/docs/agent/config/config-files#acl_default_policy).<br><br>
                       This should be omitted for an L4 intention as it is mutually exclusive with
                       the \`action\` field.<br><br>
                       Setting \`permissions\` is not valid if a wildcard is used for the \`spec.destination.name\` or \`spec.destination.namespace\`
@@ -519,7 +517,7 @@ spec:
       name: 'Precedence',
       type: 'int: <read-only>',
       description:
-        'An [integer precedence value](/docs/connect/intentions#precedence-and-match-order) computed from the source and destination naming components.',
+        'An [integer precedence value](/consul/docs/connect/intentions#precedence-and-match-order) computed from the source and destination naming components.',
       yaml: false,
     },
     {
@@ -544,9 +542,9 @@ spec:
       description: `This is the UUID to uniquely identify
                       this intention in the system. Cannot be set directly and is exposed here as
                       an artifact of the config entry migration and is primarily used to allow
-                      legacy intention [API](/api-docs/connect/intentions#update-intention-by-id)
-                      [endpoints](/api-docs/connect/intentions#read-specific-intention-by-id) to
-                      continue to function for a period of time after [upgrading to 1.9.0](/docs/upgrading/upgrade-specific#consul-1-9-0).`,
+                      legacy intention [API](/consul/api-docs/connect/intentions#update-intention-by-id)
+                      [endpoints](/consul/api-docs/connect/intentions#read-specific-intention-by-id) to
+                      continue to function for a period of time after [upgrading to 1.9.0](/consul/docs/upgrading/upgrade-specific#consul-1-9-0).`,
       yaml: false,
     },
     {
@@ -556,9 +554,9 @@ spec:
                       metadata pairs attached to the intention, rather than to the enclosing config
                       entry. Cannot be set directly and is exposed here as an artifact of the
                       config entry migration and is primarily used to allow legacy intention
-                      [API](/api-docs/connect/intentions#update-intention-by-id)
-                      [endpoints](/api-docs/connect/intentions#read-specific-intention-by-id) to
-                      continue to function for a period of time after [upgrading to 1.9.0](/docs/upgrading/upgrade-specific#consul-1-9-0).`,
+                      [API](/consul/api-docs/connect/intentions#update-intention-by-id)
+                      [endpoints](/consul/api-docs/connect/intentions#read-specific-intention-by-id) to
+                      continue to function for a period of time after [upgrading to 1.9.0](/consul/docs/upgrading/upgrade-specific#consul-1-9-0).`,
       yaml: false,
     },
     {
@@ -567,9 +565,9 @@ spec:
       description: `The timestamp that this intention was
                       created. Cannot be set directly and is exposed here as an artifact of the
                       config entry migration and is primarily used to allow legacy intention
-                      [API](/api-docs/connect/intentions#update-intention-by-id)
-                      [endpoints](/api-docs/connect/intentions#read-specific-intention-by-id) to
-                      continue to function for a period of time after [upgrading to 1.9.0](/docs/upgrading/upgrade-specific#consul-1-9-0).`,
+                      [API](/consul/api-docs/connect/intentions#update-intention-by-id)
+                      [endpoints](/consul/api-docs/connect/intentions#read-specific-intention-by-id) to
+                      continue to function for a period of time after [upgrading to 1.9.0](/consul/docs/upgrading/upgrade-specific#consul-1-9-0).`,
       yaml: false,
     },
     {
@@ -578,9 +576,9 @@ spec:
       description: `The timestamp that this intention was
                       last updated. Cannot be set directly and is exposed here as an artifact of the
                       config entry migration and is primarily used to allow legacy intention
-                      [API](/api-docs/connect/intentions#update-intention-by-id)
-                      [endpoints](/api-docs/connect/intentions#read-specific-intention-by-id) to
-                      continue to function for a period of time after [upgrading to 1.9.0](/docs/upgrading/upgrade-specific#consul-1-9-0).`,
+                      [API](/consul/api-docs/connect/intentions#update-intention-by-id)
+                      [endpoints](/consul/api-docs/connect/intentions#read-specific-intention-by-id) to
+                      continue to function for a period of time after [upgrading to 1.9.0](/consul/docs/upgrading/upgrade-specific#consul-1-9-0).`,
       yaml: false,
     },
   ]}
@@ -720,7 +718,7 @@ spec:
 
 ## ACLs
 
-Configuration entries may be protected by [ACLs](/docs/security/acl).
+Configuration entries may be protected by [ACLs](/consul/docs/security/acl).
 
 Reading a `service-intentions` config entry requires `intentions:read` on the resource.
 
@@ -728,7 +726,7 @@ Creating, updating, or deleting a `service-intentions` config entry requires
 `intentions:write` on the resource.
 
 Intention ACL rules are specified as part of a `service` rule. See [Intention
-Management Permissions](/docs/connect/intentions#intention-management-permissions) for
+Management Permissions](/consul/docs/connect/intentions#intention-management-permissions) for
 more details.
 
 ## Regular Expression Syntax
@@ -736,5 +734,5 @@ more details.
 The actual syntax of the regular expression fields described here is entirely
 proxy-specific.
 
-When using [Envoy](/docs/connect/proxies/envoy) as a proxy, the syntax for
+When using [Envoy](/consul/docs/connect/proxies/envoy) as a proxy, the syntax for
 these fields is [RE2](https://github.com/google/re2/wiki/Syntax).

@@ -3,7 +3,7 @@ package authmethodcreate
 import (
 	"encoding/json"
 	"io"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -468,7 +468,7 @@ func TestAuthMethodCreateCommand_k8s(t *testing.T) {
 	})
 
 	caFile := filepath.Join(testDir, "ca.crt")
-	require.NoError(t, ioutil.WriteFile(caFile, []byte(ca.RootCert), 0600))
+	require.NoError(t, os.WriteFile(caFile, []byte(ca.RootCert), 0600))
 
 	t.Run("create k8s with cert file", func(t *testing.T) {
 		name := getTestName(t)
@@ -540,7 +540,7 @@ func TestAuthMethodCreateCommand_config(t *testing.T) {
 		name := getTestName(t)
 		configFile := filepath.Join(testDir, "config.json")
 		jsonConfig := `{"SessionID":"foo"}`
-		require.NoError(t, ioutil.WriteFile(configFile, []byte(jsonConfig), 0644))
+		require.NoError(t, os.WriteFile(configFile, []byte(jsonConfig), 0644))
 
 		args := []string{
 			"-http-addr=" + a.HTTPAddr(),

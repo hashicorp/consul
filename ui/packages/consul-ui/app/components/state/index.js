@@ -13,8 +13,9 @@ export default class State extends Component {
     if (typeof state === 'undefined') {
       return;
     }
-    this.render = typeof matches !== 'undefined' ?
-      this.state.matches(state, matches) :
-      !this.state.matches(state, notMatches);
+    this.render =
+      typeof matches !== 'undefined'
+        ? this.state.matches(state, matches)
+        : !this.state.matches(state, notMatches);
   }
 }

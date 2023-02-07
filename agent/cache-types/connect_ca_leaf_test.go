@@ -1,6 +1,7 @@
 package cachetype
 
 import (
+	"context"
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
@@ -180,7 +181,7 @@ func TestConnectCALeaf_changingRoots(t *testing.T) {
 	var resp *structs.IssuedCert
 	var idx uint64
 
-	rpc.On("RPC", "ConnectCA.Sign", mock.Anything, mock.Anything).Return(nil).
+	rpc.On("RPC", mock.Anything, "ConnectCA.Sign", mock.Anything, mock.Anything).Return(nil).
 		Run(func(args mock.Arguments) {
 			ca := caRoot
 			cIdx := atomic.AddUint64(&idx, 1)
@@ -188,7 +189,7 @@ func TestConnectCALeaf_changingRoots(t *testing.T) {
 				// Second time round use the new CA
 				ca = caRoot2
 			}
-			reply := args.Get(2).(*structs.IssuedCert)
+			reply := args.Get(3).(*structs.IssuedCert)
 			leaf, _ := connect.TestLeaf(t, "web", ca)
 			reply.CertPEM = leaf
 			reply.ValidAfter = time.Now().Add(-1 * time.Hour)
@@ -291,9 +292,9 @@ func TestConnectCALeaf_changingRootsJitterBetweenCalls(t *testing.T) {
 	// Instrument ConnectCA.Sign to return signed cert
 	var resp *structs.IssuedCert
 	var idx uint64
-	rpc.On("RPC", "ConnectCA.Sign", mock.Anything, mock.Anything).Return(nil).
+	rpc.On("RPC", mock.Anything, "ConnectCA.Sign", mock.Anything, mock.Anything).Return(nil).
 		Run(func(args mock.Arguments) {
-			reply := args.Get(2).(*structs.IssuedCert)
+			reply := args.Get(3).(*structs.IssuedCert)
 			leaf, _ := connect.TestLeaf(t, "web", caRoot)
 			reply.CertPEM = leaf
 			reply.ValidAfter = time.Now().Add(-1 * time.Hour)
@@ -432,9 +433,9 @@ func TestConnectCALeaf_changingRootsBetweenBlockingCalls(t *testing.T) {
 	// Instrument ConnectCA.Sign to return signed cert
 	var resp *structs.IssuedCert
 	var idx uint64
-	rpc.On("RPC", "ConnectCA.Sign", mock.Anything, mock.Anything).Return(nil).
+	rpc.On("RPC", mock.Anything, "ConnectCA.Sign", mock.Anything, mock.Anything).Return(nil).
 		Run(func(args mock.Arguments) {
-			reply := args.Get(2).(*structs.IssuedCert)
+			reply := args.Get(3).(*structs.IssuedCert)
 			leaf, _ := connect.TestLeaf(t, "web", caRoot)
 			reply.CertPEM = leaf
 			reply.ValidAfter = time.Now().Add(-1 * time.Hour)
@@ -547,7 +548,7 @@ func TestConnectCALeaf_CSRRateLimiting(t *testing.T) {
 	var idx, rateLimitedRPCs uint64
 
 	genCert := func(args mock.Arguments) {
-		reply := args.Get(2).(*structs.IssuedCert)
+		reply := args.Get(3).(*structs.IssuedCert)
 		leaf, _ := connect.TestLeaf(t, "web", caRoot)
 		reply.CertPEM = leaf
 		reply.ValidAfter = time.Now().Add(-1 * time.Hour)
@@ -564,16 +565,16 @@ func TestConnectCALeaf_CSRRateLimiting(t *testing.T) {
 	// First call return rate limit error. This is important as it checks
 	// behavior when cache is empty and we have to return a nil Value but need to
 	// save state to do the right thing for retry.
-	rpc.On("RPC", "ConnectCA.Sign", mock.Anything, mock.Anything).
+	rpc.On("RPC", mock.Anything, "ConnectCA.Sign", mock.Anything, mock.Anything).
 		Return(consul.ErrRateLimited).Once().Run(incRateLimit)
 	// Then succeed on second call
-	rpc.On("RPC", "ConnectCA.Sign", mock.Anything, mock.Anything).
+	rpc.On("RPC", mock.Anything, "ConnectCA.Sign", mock.Anything, mock.Anything).
 		Return(nil).Run(genCert).Once()
 	// Then be rate limited again on several further calls
-	rpc.On("RPC", "ConnectCA.Sign", mock.Anything, mock.Anything).
+	rpc.On("RPC", mock.Anything, "ConnectCA.Sign", mock.Anything, mock.Anything).
 		Return(consul.ErrRateLimited).Twice().Run(incRateLimit)
 	// Then fine after that
-	rpc.On("RPC", "ConnectCA.Sign", mock.Anything, mock.Anything).
+	rpc.On("RPC", mock.Anything, "ConnectCA.Sign", mock.Anything, mock.Anything).
 		Return(nil).Run(genCert)
 
 	opts := cache.FetchOptions{MinIndex: 0, Timeout: 10 * time.Minute}
@@ -726,9 +727,9 @@ func TestConnectCALeaf_watchRootsDedupingMultipleCallers(t *testing.T) {
 
 	// Instrument ConnectCA.Sign to return signed cert
 	var idx uint64
-	rpc.On("RPC", "ConnectCA.Sign", mock.Anything, mock.Anything).Return(nil).
+	rpc.On("RPC", mock.Anything, "ConnectCA.Sign", mock.Anything, mock.Anything).Return(nil).
 		Run(func(args mock.Arguments) {
-			reply := args.Get(2).(*structs.IssuedCert)
+			reply := args.Get(3).(*structs.IssuedCert)
 			// Note we will sign certs for same service name each time because
 			// otherwise we have to re-invent whole CSR endpoint here to be able to
 			// control things - parse PEM sign with right key etc. It doesn't matter -
@@ -923,9 +924,9 @@ func TestConnectCALeaf_expiringLeaf(t *testing.T) {
 	// Instrument ConnectCA.Sign to
 	var resp *structs.IssuedCert
 	var idx uint64
-	rpc.On("RPC", "ConnectCA.Sign", mock.Anything, mock.Anything).Return(nil).
+	rpc.On("RPC", mock.Anything, "ConnectCA.Sign", mock.Anything, mock.Anything).Return(nil).
 		Run(func(args mock.Arguments) {
-			reply := args.Get(2).(*structs.IssuedCert)
+			reply := args.Get(3).(*structs.IssuedCert)
 			reply.CreateIndex = atomic.AddUint64(&idx, 1)
 			reply.ModifyIndex = reply.CreateIndex
 
@@ -1016,13 +1017,13 @@ func TestConnectCALeaf_DNSSANForService(t *testing.T) {
 
 	// Instrument ConnectCA.Sign to
 	var caReq *structs.CASignRequest
-	rpc.On("RPC", "ConnectCA.Sign", mock.Anything, mock.Anything).Return(nil).
+	rpc.On("RPC", mock.Anything, "ConnectCA.Sign", mock.Anything, mock.Anything).Return(nil).
 		Run(func(args mock.Arguments) {
-			reply := args.Get(2).(*structs.IssuedCert)
+			reply := args.Get(3).(*structs.IssuedCert)
 			leaf, _ := connect.TestLeaf(t, "web", caRoot)
 			reply.CertPEM = leaf
 
-			caReq = args.Get(1).(*structs.CASignRequest)
+			caReq = args.Get(2).(*structs.CASignRequest)
 		})
 
 	opts := cache.FetchOptions{MinIndex: 0, Timeout: 10 * time.Second}
@@ -1093,7 +1094,7 @@ type testGatedRootsRPC struct {
 	ValueCh chan structs.IndexedCARoots
 }
 
-func (r *testGatedRootsRPC) RPC(method string, args interface{}, reply interface{}) error {
+func (r *testGatedRootsRPC) RPC(ctx context.Context, method string, args interface{}, reply interface{}) error {
 	if method != "ConnectCA.Roots" {
 		return fmt.Errorf("invalid RPC method: %s", method)
 	}
@@ -1163,5 +1164,12 @@ func TestConnectCALeaf_Key(t *testing.T) {
 				require.NotEqual(t, r5, r6, "Cache keys for different IPSAN should not be equal")
 			})
 		})
+	})
+	t.Run("server", func(t *testing.T) {
+		r1 := key(ConnectCALeafRequest{
+			Server:     true,
+			Datacenter: "us-east",
+		})
+		require.True(t, strings.HasPrefix(r1, "server:"), "Key %s does not start with server:", r1)
 	})
 }
