@@ -84,7 +84,10 @@ func (h *handlerAPIGateway) subscribeToConfigEntry(ctx context.Context, kind, na
 	}, watchID, h.ch)
 }
 
-// handleUpdate responds to changes in the api-gateway
+// handleUpdate responds to changes in the api-gateway. In general, we want
+// to crawl the various resources related to or attached to the gateway and
+// collect the list of things need to generate xDS.  This list of resources
+// includes the bound-api-gateway, http-routes, tcp-routes, and inline-certificates.
 func (h *handlerAPIGateway) handleUpdate(ctx context.Context, u UpdateEvent, snap *ConfigSnapshot) error {
 	if u.Err != nil {
 		return fmt.Errorf("error filling agent cache: %v", u.Err)
@@ -224,7 +227,7 @@ func (h *handlerAPIGateway) handleGatewayConfigUpdate(ctx context.Context, u Upd
 	return h.watchIngressLeafCert(ctx, snap)
 }
 
-// handleInlineCertConfigUpdate
+// handleInlineCertConfigUpdate stores the certificate for the gateway
 func (h *handlerAPIGateway) handleInlineCertConfigUpdate(ctx context.Context, u UpdateEvent, snap *ConfigSnapshot) error {
 	resp, ok := u.Result.(*structs.ConfigEntryResponse)
 	if !ok {
@@ -250,7 +253,8 @@ func (h *handlerAPIGateway) handleInlineCertConfigUpdate(ctx context.Context, u 
 	return nil
 }
 
-// handleRouteConfigUpdate
+// handleRouteConfigUpdate builds the list of upstreams for services on
+// the route and watches the related discovery chains.
 func (h *handlerAPIGateway) handleRouteConfigUpdate(ctx context.Context, u UpdateEvent, snap *ConfigSnapshot) error {
 	resp, ok := u.Result.(*structs.ConfigEntryResponse)
 	if !ok {
