@@ -202,7 +202,7 @@ func (g *gatewayMeta) checkCertificates(store *state.Store) (map[structs.Resourc
 }
 
 func (g *gatewayMeta) checkConflicts() (structs.ControlledConfigEntry, bool) {
-	now := time.Now()
+	now := time.Now().UTC()
 	updater := structs.NewStatusUpdater(g.Gateway)
 	for i, listener := range g.BoundGateway.Listeners {
 		protocol := g.Gateway.Listeners[i].Protocol

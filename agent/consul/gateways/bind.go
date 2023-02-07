@@ -98,7 +98,7 @@ func requestToResourceRef(req controller.Request) structs.ResourceReference {
 
 // RemoveGateway sets the route status for the given gateway to be unbound if it should be bound
 func RemoveGateway(gateway structs.ResourceReference, entries ...structs.BoundRoute) []structs.ControlledConfigEntry {
-	now := time.Now()
+	now := time.Now().UTC()
 	modified := []structs.ControlledConfigEntry{}
 	for _, route := range entries {
 		updater := structs.NewStatusUpdater(route)

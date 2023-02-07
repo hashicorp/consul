@@ -149,7 +149,7 @@ func (r apiGatewayReconciler) cleanupGateway(_ context.Context, req controller.R
 }
 
 func (r apiGatewayReconciler) reconcileGateway(_ context.Context, req controller.Request, store *state.Store, gateway *structs.APIGatewayConfigEntry) error {
-	now := time.Now()
+	now := time.Now().UTC()
 
 	logger := r.logger.With("gateway", req.Name, "partition", req.Meta.PartitionOrDefault(), "namespace", req.Meta.NamespaceOrDefault())
 	logger.Debug("started reconciling gateway")
@@ -328,7 +328,7 @@ func (r apiGatewayReconciler) cleanupRoute(_ context.Context, req controller.Req
 
 // Reconcile reconciles Route config entries.
 func (r apiGatewayReconciler) reconcileRoute(_ context.Context, req controller.Request, store *state.Store, route structs.BoundRoute) error {
-	now := time.Now()
+	now := time.Now().UTC()
 
 	meta, err := getAllGatewayMeta(store)
 	if err != nil {
