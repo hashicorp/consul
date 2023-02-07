@@ -706,49 +706,10 @@ func (c *configSnapshotAPIGateway) ToIngress(datacenter string) (configSnapshotI
 		ingressListener := structs.IngressListener{
 			Port:     listener.Port,
 			Protocol: string(listener.Protocol),
-			// TODO TLS determine what cluster name and cert resource should be.
-			TLS: nil,
 		}
 
-		// TODO BREAK THIS OUT INTO SEP FUNC
-		chains := []*structs.CompiledDiscoveryChain{}
-		synthesizer := discoverychain.NewGatewayChainSynthesizer(datacenter, c.APIGatewayConfigEntry)
-		for _, routeRef := range boundListener.Routes {
-			switch routeRef.Kind {
-			case structs.HTTPRoute:
-				route, ok := c.HTTPRoutes.Get(routeRef)
-				if !ok {
-					continue
-				}
-				synthesizer.AddHTTPRoute(*route)
-				for _, service := range route.GetTargets() {
-					id := NewUpstreamIDFromServiceName(structs.NewServiceName(service.Name, &service.EnterpriseMeta))
-					if chain := c.DiscoveryChain[id]; chain != nil {
-						chains = append(chains, chain)
-					}
-				}
-			case structs.TCPRoute:
-				route, ok := c.TCPRoutes.Get(routeRef)
-				if !ok {
-					continue
-				}
-				synthesizer.AddTCPRoute(*route)
-				for _, service := range route.GetTargets() {
-					id := NewUpstreamIDFromServiceName(structs.NewServiceName(service.Name, &service.EnterpriseMeta))
-					if chain := c.DiscoveryChain[id]; chain != nil {
-						chains = append(chains, chain)
-					}
-				}
-			default:
-				continue
-			}
-		}
-
-		if len(chains) == 0 {
-			return configSnapshotIngressGateway{}, errors.New("could not synthesize discovery chain")
-		}
-
-		services, compiled, err := synthesizer.Synthesize(chains...)
+		// Create a synthesized discovery chain for each service.
+		services, compiled, err := c.synthesizeChains(datacenter, boundListener)
 		if err != nil {
 			return configSnapshotIngressGateway{}, err
 		}
@@ -757,6 +718,13 @@ func (c *configSnapshotAPIGateway) ToIngress(datacenter string) (configSnapshotI
 			id := NewUpstreamIDFromServiceName(structs.NewServiceName(service.Name, &service.EnterpriseMeta))
 			synthesizedChains[id] = compiled
 		}
+
+		// Configure TLS for the ingress listener
+		tls, err := c.toIngressTLS()
+		if err != nil {
+			return configSnapshotIngressGateway{}, err
+		}
+		ingressListener.TLS = tls
 
 		ingressListeners[IngressListenerKey{
 			Port:     listener.Port,
@@ -771,6 +739,52 @@ func (c *configSnapshotAPIGateway) ToIngress(datacenter string) (configSnapshotI
 		GatewayConfigLoaded:     true,
 		Listeners:               ingressListeners,
 	}, nil
+}
+
+func (c *configSnapshotAPIGateway) synthesizeChains(datacenter string, boundListener structs.BoundAPIGatewayListener) ([]structs.IngressService, *structs.CompiledDiscoveryChain, error) {
+	chains := []*structs.CompiledDiscoveryChain{}
+	synthesizer := discoverychain.NewGatewayChainSynthesizer(datacenter, c.APIGatewayConfigEntry)
+	for _, routeRef := range boundListener.Routes {
+		switch routeRef.Kind {
+		case structs.HTTPRoute:
+			route, ok := c.HTTPRoutes.Get(routeRef)
+			if !ok {
+				continue
+			}
+			synthesizer.AddHTTPRoute(*route)
+			for _, service := range route.GetTargets() {
+				id := NewUpstreamIDFromServiceName(structs.NewServiceName(service.Name, &service.EnterpriseMeta))
+				if chain := c.DiscoveryChain[id]; chain != nil {
+					chains = append(chains, chain)
+				}
+			}
+		case structs.TCPRoute:
+			route, ok := c.TCPRoutes.Get(routeRef)
+			if !ok {
+				continue
+			}
+			synthesizer.AddTCPRoute(*route)
+			for _, service := range route.GetTargets() {
+				id := NewUpstreamIDFromServiceName(structs.NewServiceName(service.Name, &service.EnterpriseMeta))
+				if chain := c.DiscoveryChain[id]; chain != nil {
+					chains = append(chains, chain)
+				}
+			}
+		default:
+			continue
+		}
+	}
+
+	if len(chains) == 0 {
+		return nil, nil, errors.New("could not synthesize discovery chain")
+	}
+
+	return synthesizer.Synthesize(chains...)
+}
+
+func (c *configSnapshotAPIGateway) toIngressTLS() (*structs.GatewayTLSConfig, error) {
+	// TODO (t-eckert) this is dependent on future SDS work.
+	return &structs.GatewayTLSConfig{}, nil
 }
 
 type configSnapshotIngressGateway struct {
