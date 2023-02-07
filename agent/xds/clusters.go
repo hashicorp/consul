@@ -62,7 +62,9 @@ func (s *ResourceGenerator) clustersFromSnapshot(cfgSnap *proxycfg.ConfigSnapsho
 		}
 		return res, nil
 	case structs.ServiceKindAPIGateway:
-		res, err := s.clustersFromSnapshotIngressGateway(cfgSnap) // TODO Refactor func to handle ingress or API gw
+		// TODO Find a cleaner solution, can't currently pass unexported property types
+		cfgSnap.IngressGateway = cfgSnap.APIGateway.ToIngress()
+		res, err := s.clustersFromSnapshotIngressGateway(cfgSnap)
 		if err != nil {
 			return nil, err
 		}

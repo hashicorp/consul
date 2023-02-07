@@ -33,7 +33,9 @@ func (s *ResourceGenerator) routesFromSnapshot(cfgSnap *proxycfg.ConfigSnapshot)
 	case structs.ServiceKindIngressGateway:
 		return s.routesForIngressGateway(cfgSnap)
 	case structs.ServiceKindAPIGateway:
-		return s.routesForIngressGateway(cfgSnap) // TODO Refactor func to handle ingress or API gw
+		// TODO Find a cleaner solution, can't currently pass unexported property types
+		cfgSnap.IngressGateway = cfgSnap.APIGateway.ToIngress()
+		return s.routesForIngressGateway(cfgSnap)
 	case structs.ServiceKindTerminatingGateway:
 		return s.routesForTerminatingGateway(cfgSnap)
 	case structs.ServiceKindMeshGateway:
