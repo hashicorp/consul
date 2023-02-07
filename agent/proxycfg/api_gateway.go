@@ -56,17 +56,6 @@ func (h *handlerAPIGateway) initialize(ctx context.Context) (ConfigSnapshot, err
 		return snap, err
 	}
 
-	// Watch the api-gateway's list of upstreams
-	err = h.dataSources.GatewayServices.Notify(ctx, &structs.ServiceSpecificRequest{
-		Datacenter:     h.source.Datacenter,
-		QueryOptions:   structs.QueryOptions{Token: h.token},
-		ServiceName:    h.service,
-		EnterpriseMeta: h.proxyID.EnterpriseMeta,
-	}, gatewayServicesWatchID, h.ch)
-	if err != nil {
-		return snap, err
-	}
-
 	snap.APIGateway.HTTPRoutes = watch.NewMap[structs.ResourceReference, *structs.HTTPRouteConfigEntry]()
 	snap.APIGateway.TCPRoutes = watch.NewMap[structs.ResourceReference, *structs.TCPRouteConfigEntry]()
 	snap.APIGateway.Certificates = watch.NewMap[structs.ResourceReference, *structs.InlineCertificateConfigEntry]()
