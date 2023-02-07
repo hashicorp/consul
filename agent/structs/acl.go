@@ -1244,7 +1244,7 @@ func (r *ACLTokenSetRequest) RequestDatacenter() string {
 
 // ACLTokenGetRequest is used for token read operations at the RPC layer
 type ACLTokenGetRequest struct {
-	TokenID     string         // ID used for the token lookup
+	TokenID     string         // Accessor ID used for the token lookup
 	TokenIDType ACLTokenIDType // The Type of ID used to lookup the token
 	Expanded    bool
 	Datacenter  string // The datacenter to perform the request within
