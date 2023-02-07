@@ -153,7 +153,7 @@ func (s *Server) ResolveIdentityFromToken(token string) (bool, structs.ACLIdenti
 	defaultErr := acl.ErrNotFound
 	canBootstrap, _, _ := s.fsm.State().CanBootstrapACLToken()
 	if canBootstrap {
-		defaultErr = fmt.Errorf("ACL system must be bootstrapped: %w", defaultErr)
+		defaultErr = fmt.Errorf("ACL system must be bootstrapped before making any requests that require authorization: %w", defaultErr)
 	}
 	return s.InPrimaryDatacenter() || index > 0, nil, defaultErr
 }

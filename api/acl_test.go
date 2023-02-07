@@ -299,7 +299,7 @@ func TestAPI_ACLBootstrap(t *testing.T) {
 
 	// not bootstrapped
 	_, _, err := acl.TokenList(nil)
-	require.EqualError(t, err, "Unexpected response code: 403 (ACL system must be bootstrapped: ACL not found)")
+	require.EqualError(t, err, "Unexpected response code: 403 (ACL system must be bootstrapped before making any requests that require authorization: ACL not found)")
 	// bootstrap
 	mgmtTok, _, err := acl.Bootstrap()
 	require.NoError(t, err)
