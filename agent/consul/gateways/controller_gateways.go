@@ -57,12 +57,16 @@ func reconcileEntry[T structs.ControlledConfigEntry](store *state.Store, logger 
 		requestLogger(logger, req).Error("error fetching config entry for reconciliation request", "error", err)
 		return err
 	}
+
 	if entry == nil {
 		return cleaner(ctx, req, store)
 	}
+
 	return reconciler(ctx, req, store, entry.(T))
 }
 
+// enqueueCertificateReferencedGateways retrieves all gateway objects, filters to those referencing
+// the provided certificate, and enqueues the gateways for reconciliation
 func (r apiGatewayReconciler) enqueueCertificateReferencedGateways(store *state.Store, _ context.Context, req controller.Request) error {
 	logger := certificateRequestLogger(r.logger, req)
 
@@ -74,7 +78,9 @@ func (r apiGatewayReconciler) enqueueCertificateReferencedGateways(store *state.
 		logger.Error("error retrieving api gateways", "error", err)
 		return err
 	}
+
 	requests := []controller.Request{}
+
 	for _, entry := range entries {
 		gateway := entry.(*structs.APIGatewayConfigEntry)
 		for _, listener := range gateway.Listeners {
@@ -93,7 +99,9 @@ func (r apiGatewayReconciler) enqueueCertificateReferencedGateways(store *state.
 			}
 		}
 	}
+
 	r.controller.Enqueue(requests...)
+
 	return nil
 }
 
@@ -120,6 +128,7 @@ func (r apiGatewayReconciler) cleanupBoundGateway(_ context.Context, req control
 			return err
 		}
 	}
+
 	return nil
 }
 
@@ -135,6 +144,7 @@ func (r apiGatewayReconciler) reconcileBoundGateway(_ context.Context, req contr
 		logger.Error("error retrieving api gateway", "error", err)
 		return err
 	}
+
 	if gateway == nil {
 		// delete the bound gateway
 		logger.Debug("deleting bound api gateway")
@@ -143,6 +153,7 @@ func (r apiGatewayReconciler) reconcileBoundGateway(_ context.Context, req contr
 			return err
 		}
 	}
+
 	return nil
 }
 
@@ -163,6 +174,7 @@ func (r apiGatewayReconciler) cleanupGateway(_ context.Context, req controller.R
 		logger.Error("error deleting bound api gateway", "error", err)
 		return err
 	}
+
 	return nil
 }
 
@@ -191,7 +203,9 @@ func (r apiGatewayReconciler) reconcileGateway(_ context.Context, req controller
 		logger.Error("error retrieving bound api gateway", "error", err)
 		return err
 	}
+
 	meta := ensureInitializedMeta(gateway, bound)
+
 	certificateErrors, err := meta.checkCertificates(store)
 	if err != nil {
 		logger.Error("error checking gateway certificates", "error", err)
@@ -208,6 +222,7 @@ func (r apiGatewayReconciler) reconcileGateway(_ context.Context, req controller
 			LastTransitionTime: now,
 		})
 	}
+
 	if len(certificateErrors) > 0 {
 		updater.SetCondition(structs.Condition{
 			Type:               "Accepted",
@@ -231,6 +246,7 @@ func (r apiGatewayReconciler) reconcileGateway(_ context.Context, req controller
 	for _, route := range routes {
 		routeUpdater := structs.NewStatusUpdater(route)
 		_, boundRefs, bindErrors := BindRoutesToGateways([]*gatewayMeta{meta}, route)
+
 		// unset the old gateway binding in case it's stale
 		for _, parent := range route.GetParents() {
 			if parent.Kind == gateway.Kind && parent.Name == gateway.Name && parent.EnterpriseMeta.IsSame(&gateway.EnterpriseMeta) {
@@ -240,6 +256,8 @@ func (r apiGatewayReconciler) reconcileGateway(_ context.Context, req controller
 				})
 			}
 		}
+
+		// set the status for parents that have bound successfully
 		for _, ref := range boundRefs {
 			routeUpdater.SetCondition(structs.Condition{
 				Type:               "Bound",
@@ -250,6 +268,9 @@ func (r apiGatewayReconciler) reconcileGateway(_ context.Context, req controller
 				LastTransitionTime: now,
 			})
 		}
+
+		// set the status for any parents that have errored trying to
+		// bind
 		for ref, err := range bindErrors {
 			routeUpdater.SetCondition(structs.Condition{
 				Type:               "Bound",
@@ -260,6 +281,9 @@ func (r apiGatewayReconciler) reconcileGateway(_ context.Context, req controller
 				LastTransitionTime: now,
 			})
 		}
+
+		// if we've updated any statuses, then store them as needing
+		// to be updated
 		if entry, updated := routeUpdater.UpdateEntry(); updated {
 			updatedRoutes = append(updatedRoutes, entry)
 		}
@@ -268,6 +292,7 @@ func (r apiGatewayReconciler) reconcileGateway(_ context.Context, req controller
 	// first check for gateway conflicts
 	for i, listener := range meta.BoundGateway.Listeners {
 		protocol := meta.Gateway.Listeners[i].Protocol
+
 		switch protocol {
 		case structs.ListenerProtocolTCP:
 			if len(listener.Routes) > 1 {
@@ -287,6 +312,7 @@ func (r apiGatewayReconciler) reconcileGateway(_ context.Context, req controller
 				continue
 			}
 		}
+
 		updater.SetCondition(structs.Condition{
 			Type:   "Conflicted",
 			Status: "False",
@@ -353,7 +379,9 @@ func (r apiGatewayReconciler) cleanupRoute(_ context.Context, req controller.Req
 			return err
 		}
 	}
+
 	r.controller.RemoveTrigger(req)
+
 	return nil
 }
 
@@ -424,6 +452,7 @@ func (r apiGatewayReconciler) reconcileRoute(_ context.Context, req controller.R
 			logger.Error("error reading discovery chain", "error", err)
 			return err
 		}
+
 		// trigger a watch since we now need to check when the discovery chain gets updated
 		triggerOnce.Do(func() {
 			r.controller.AddTrigger(req, ws.WatchCtx)
@@ -492,6 +521,10 @@ func (r apiGatewayReconciler) reconcileRoute(_ context.Context, req controller.R
 			})
 		}
 	}
+
+	// if we have no upstream targets, then set the route as invalid
+	// this should already happen in the validation check on write, but
+	// we'll do it here too just in case
 	if len(route.GetTargetedServices()) == 0 {
 		updater.SetCondition(structs.Condition{
 			Type:               "Accepted",
@@ -502,6 +535,7 @@ func (r apiGatewayReconciler) reconcileRoute(_ context.Context, req controller.R
 		})
 		validTargets = false
 	}
+
 	if !validTargets {
 		// we return early, but need to make sure we're removed from all referencing
 		// gateways and our status is updated properly
@@ -512,9 +546,8 @@ func (r apiGatewayReconciler) reconcileRoute(_ context.Context, req controller.R
 		return finalize(updated)
 	}
 
-	r.logger.Debug("binding routes to gateway")
-
 	// the route is valid, attempt to bind it to all gateways
+	r.logger.Debug("binding routes to gateway")
 	modifiedGateways, boundRefs, bindErrors := BindRoutesToGateways(meta, route)
 
 	// set the status of the references that are bound
@@ -591,18 +624,22 @@ func retrieveAllRoutesFromStore(store *state.Store) ([]structs.BoundRoute, error
 	if err != nil {
 		return nil, err
 	}
+
 	_, tcpRoutes, err := store.ConfigEntriesByKind(nil, structs.TCPRoute, acl.WildcardEnterpriseMeta())
 	if err != nil {
 		return nil, err
 	}
 
 	routes := make([]structs.BoundRoute, 0, len(tcpRoutes)+len(httpRoutes))
+
 	for _, route := range httpRoutes {
 		routes = append(routes, route.(*structs.HTTPRouteConfigEntry))
 	}
+
 	for _, route := range tcpRoutes {
 		routes = append(routes, route.(*structs.TCPRouteConfigEntry))
 	}
+
 	return routes, nil
 }
 

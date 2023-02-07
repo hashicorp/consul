@@ -57,7 +57,7 @@ type Controller interface {
 	AddTrigger(request Request, trigger func(ctx context.Context) error)
 	// RemoveTrigger removes the triggering function associated with the Request object
 	RemoveTrigger(request Request)
-	// Enqueue adds a request to the queue
+	// Enqueue adds all of the given requests into the work queue.
 	Enqueue(requests ...Request)
 }
 
@@ -349,7 +349,7 @@ func (c *controller) enqueueEntry(entry structs.ConfigEntry, transformers ...Tra
 	}
 }
 
-// Enqueue adds all of the given entry into the work queue.
+// Enqueue adds all of the given requests into the work queue.
 func (c *controller) Enqueue(requests ...Request) {
 	for _, request := range requests {
 		c.work.Add(request)

@@ -41,23 +41,32 @@ func BindRoutesToGateways(gateways []*gatewayMeta, routes ...structs.BoundRoute)
 		// Iterate over all BoundAPIGateway config entries and try to bind them to the route if they are a parent.
 		for _, gateway := range gateways {
 			references, routeReferencesGateway := gatewayRefs[configentry.NewKindNameForEntry(gateway.BoundGateway)]
+
 			if routeReferencesGateway {
 				didUpdate, errors := gateway.updateRouteBinding(references, route)
+
 				if didUpdate {
 					modified = append(modified, gateway.BoundGateway)
 				}
+
 				for ref, err := range errors {
 					errored[ref] = err
 				}
+
 				for _, ref := range references {
 					delete(parentRefs, ref)
+
 					// this ref successfully bound, add it to the set that we'll update the
 					// status for
 					if _, found := errored[ref]; !found {
 						boundRefs = append(boundRefs, references...)
 					}
 				}
-			} else if gateway.unbindRoute(routeRef) {
+
+				continue
+			}
+
+			if gateway.unbindRoute(routeRef) {
 				modified = append(modified, gateway.BoundGateway)
 			}
 		}
@@ -76,6 +85,7 @@ func BindRoutesToGateways(gateways []*gatewayMeta, routes ...structs.BoundRoute)
 func getReferences(route structs.BoundRoute) (referenceSet, gatewayRefs) {
 	parentRefs := make(referenceSet)
 	gatewayRefs := make(gatewayRefs)
+
 	for _, ref := range route.GetParents() {
 		parentRefs[ref] = struct{}{}
 		kindName := configentry.NewKindName(structs.BoundAPIGateway, ref.Name, pointerTo(ref.EnterpriseMeta))
@@ -90,18 +100,23 @@ func requestToResourceRef(req controller.Request) structs.ResourceReference {
 		Kind: req.Kind,
 		Name: req.Name,
 	}
+
 	if req.Meta != nil {
 		ref.EnterpriseMeta = *req.Meta
 	}
+
 	return ref
 }
 
-// RemoveGateway sets the route status for the given gateway to be unbound if it should be bound
+// RemoveGateway sets the route's status appropriately when the gateway that it's
+// attempting to bind to does not exist
 func RemoveGateway(gateway structs.ResourceReference, entries ...structs.BoundRoute) []structs.ControlledConfigEntry {
 	now := pointerTo(time.Now().UTC())
 	modified := []structs.ControlledConfigEntry{}
+
 	for _, route := range entries {
 		updater := structs.NewStatusUpdater(route)
+
 		for _, parent := range route.GetParents() {
 			if parent.Kind == gateway.Kind && parent.Name == gateway.Name && parent.EnterpriseMeta.IsSame(&gateway.EnterpriseMeta) {
 				updater.SetCondition(structs.Condition{
@@ -114,10 +129,12 @@ func RemoveGateway(gateway structs.ResourceReference, entries ...structs.BoundRo
 				})
 			}
 		}
+
 		if toUpdate, shouldUpdate := updater.UpdateEntry(); shouldUpdate {
 			modified = append(modified, toUpdate)
 		}
 	}
+
 	return modified
 }
 
