@@ -29,6 +29,9 @@ type exampleContainer struct {
 
 var _ Service = (*exampleContainer)(nil)
 
+func (g exampleContainer) Exec(ctx context.Context, cmd []string) (int, io.Reader, error) {
+	return g.container.Exec(ctx, cmd)
+}
 func (g exampleContainer) Export(partition, peerName string, client *api.Client) error {
 	config := &api.ExportedServicesConfigEntry{
 		Name: partition,
