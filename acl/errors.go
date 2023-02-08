@@ -143,7 +143,7 @@ func extractAccessorID(authz interface{}) string {
 
 func ACLResourceNotExistError(resourceType string, entMeta EnterpriseMeta) error {
 	if ns := entMeta.NamespaceOrEmpty(); ns != "" {
-		return fmt.Errorf("%s not found in namespace %s: %w", resourceType, ns, ErrNotFound)
+		return fmt.Errorf("Requested %s not found in namespace %s: %w", resourceType, ns, ErrNotFound)
 	}
-	return fmt.Errorf("%s does not exist: %w", resourceType, ErrNotFound)
+	return fmt.Errorf("Requested %s does not exist: %w", resourceType, ErrNotFound)
 }
