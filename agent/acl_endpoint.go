@@ -162,12 +162,15 @@ func (s *HTTPHandlers) ACLPolicyRead(resp http.ResponseWriter, req *http.Request
 	var out structs.ACLPolicyResponse
 	defer setMeta(resp, &out.QueryMeta)
 	if err := s.agent.RPC(req.Context(), "ACL.PolicyRead", &args, &out); err != nil {
+		// should return permission denied error if missing permissions
 		return nil, err
 	}
 
 	if out.Policy == nil {
-		// TODO(rb): should this return a normal 404?
-		return nil, acl.ErrNotFound
+		// if no error was returned above, the policy does not exist
+		resp.WriteHeader(http.StatusNotFound)
+		msg := acl.ACLResourceNotExistError("policy", args.EnterpriseMeta)
+		return nil, HTTPError{StatusCode: http.StatusNotFound, Reason: msg.Error()}
 	}
 
 	return out.Policy, nil
@@ -247,6 +250,10 @@ func (s *HTTPHandlers) ACLPolicyDelete(resp http.ResponseWriter, req *http.Reque
 
 	var ignored string
 	if err := s.agent.RPC(req.Context(), "ACL.PolicyDelete", args, &ignored); err != nil {
+		if strings.Contains(err.Error(), acl.ErrNotFound.Error()) {
+			resp.WriteHeader(http.StatusNotFound)
+			return nil, HTTPError{StatusCode: http.StatusNotFound, Reason: "Cannot find policy to delete"}
+		}
 		return nil, err
 	}
 
@@ -346,11 +353,14 @@ func (s *HTTPHandlers) ACLTokenSelf(resp http.ResponseWriter, req *http.Request)
 	var out structs.ACLTokenResponse
 	defer setMeta(resp, &out.QueryMeta)
 	if err := s.agent.RPC(req.Context(), "ACL.TokenRead", &args, &out); err != nil {
+		// should return permission denied error if missing permissions
 		return nil, err
 	}
 
 	if out.Token == nil {
-		return nil, acl.ErrNotFound
+		// if no error was returned above, the token does not exist
+		resp.WriteHeader(http.StatusNotFound)
+		return nil, HTTPError{StatusCode: http.StatusNotFound, Reason: "Supplied token does not exist"}
 	}
 
 	return out.Token, nil
@@ -393,7 +403,10 @@ func (s *HTTPHandlers) ACLTokenGet(resp http.ResponseWriter, req *http.Request, 
 	}
 
 	if out.Token == nil {
-		return nil, acl.ErrNotFound
+		// if no error was returned above, the token does not exist
+		resp.WriteHeader(http.StatusNotFound)
+		msg := acl.ACLResourceNotExistError("token", args.EnterpriseMeta)
+		return nil, HTTPError{StatusCode: http.StatusNotFound, Reason: msg.Error()}
 	}
 
 	if args.Expanded {
@@ -449,6 +462,10 @@ func (s *HTTPHandlers) ACLTokenDelete(resp http.ResponseWriter, req *http.Reques
 
 	var ignored string
 	if err := s.agent.RPC(req.Context(), "ACL.TokenDelete", args, &ignored); err != nil {
+		if strings.Contains(err.Error(), acl.ErrNotFound.Error()) {
+			resp.WriteHeader(http.StatusNotFound)
+			return nil, HTTPError{StatusCode: http.StatusNotFound, Reason: "Cannot find token to delete"}
+		}
 		return nil, err
 	}
 	return true, nil
@@ -582,12 +599,15 @@ func (s *HTTPHandlers) ACLRoleRead(resp http.ResponseWriter, req *http.Request, 
 	var out structs.ACLRoleResponse
 	defer setMeta(resp, &out.QueryMeta)
 	if err := s.agent.RPC(req.Context(), "ACL.RoleRead", &args, &out); err != nil {
+		// should return permission denied error if missing permissions
 		return nil, err
 	}
 
 	if out.Role == nil {
+		// if not permission denied error is returned above, role does not exist
 		resp.WriteHeader(http.StatusNotFound)
-		return nil, nil
+		msg := acl.ACLResourceNotExistError("role", args.EnterpriseMeta)
+		return nil, HTTPError{StatusCode: http.StatusNotFound, Reason: msg.Error()}
 	}
 
 	return out.Role, nil
@@ -640,6 +660,10 @@ func (s *HTTPHandlers) ACLRoleDelete(resp http.ResponseWriter, req *http.Request
 
 	var ignored string
 	if err := s.agent.RPC(req.Context(), "ACL.RoleDelete", args, &ignored); err != nil {
+		if strings.Contains(err.Error(), acl.ErrNotFound.Error()) {
+			resp.WriteHeader(http.StatusNotFound)
+			return nil, HTTPError{StatusCode: http.StatusNotFound, Reason: "Cannot find role to delete"}
+		}
 		return nil, err
 	}
 
@@ -729,12 +753,15 @@ func (s *HTTPHandlers) ACLBindingRuleRead(resp http.ResponseWriter, req *http.Re
 	var out structs.ACLBindingRuleResponse
 	defer setMeta(resp, &out.QueryMeta)
 	if err := s.agent.RPC(req.Context(), "ACL.BindingRuleRead", &args, &out); err != nil {
+		// should return permission denied error if missing permissions
 		return nil, err
 	}
 
 	if out.BindingRule == nil {
+		// if no error was returned above, the binding rule does not exist
 		resp.WriteHeader(http.StatusNotFound)
-		return nil, nil
+		msg := acl.ACLResourceNotExistError("binding rule", args.EnterpriseMeta)
+		return nil, HTTPError{StatusCode: http.StatusNotFound, Reason: msg.Error()}
 	}
 
 	return out.BindingRule, nil
@@ -786,6 +813,10 @@ func (s *HTTPHandlers) ACLBindingRuleDelete(resp http.ResponseWriter, req *http.
 
 	var ignored bool
 	if err := s.agent.RPC(req.Context(), "ACL.BindingRuleDelete", args, &ignored); err != nil {
+		if strings.Contains(err.Error(), acl.ErrNotFound.Error()) {
+			resp.WriteHeader(http.StatusNotFound)
+			return nil, HTTPError{StatusCode: http.StatusNotFound, Reason: "Cannot find binding rule to delete"}
+		}
 		return nil, err
 	}
 
@@ -871,12 +902,15 @@ func (s *HTTPHandlers) ACLAuthMethodRead(resp http.ResponseWriter, req *http.Req
 	var out structs.ACLAuthMethodResponse
 	defer setMeta(resp, &out.QueryMeta)
 	if err := s.agent.RPC(req.Context(), "ACL.AuthMethodRead", &args, &out); err != nil {
+		// should return permission denied if missing permissions
 		return nil, err
 	}
 
 	if out.AuthMethod == nil {
+		// if no error was returned above, the auth method does not exist
 		resp.WriteHeader(http.StatusNotFound)
-		return nil, nil
+		msg := acl.ACLResourceNotExistError("auth method", args.EnterpriseMeta)
+		return nil, HTTPError{StatusCode: http.StatusNotFound, Reason: msg.Error()}
 	}
 
 	fixupAuthMethodConfig(out.AuthMethod)
@@ -932,6 +966,10 @@ func (s *HTTPHandlers) ACLAuthMethodDelete(resp http.ResponseWriter, req *http.R
 
 	var ignored bool
 	if err := s.agent.RPC(req.Context(), "ACL.AuthMethodDelete", args, &ignored); err != nil {
+		if strings.Contains(err.Error(), acl.ErrNotFound.Error()) {
+			resp.WriteHeader(http.StatusNotFound)
+			return nil, HTTPError{StatusCode: http.StatusNotFound, Reason: "Cannot find auth method to delete"}
+		}
 		return nil, err
 	}
 
@@ -976,7 +1014,7 @@ func (s *HTTPHandlers) ACLLogout(resp http.ResponseWriter, req *http.Request) (i
 	s.parseToken(req, &args.Token)
 
 	if args.Token == "" {
-		return nil, acl.ErrNotFound
+		return nil, HTTPError{StatusCode: http.StatusUnauthorized, Reason: "Supplied token does not exist"}
 	}
 
 	var ignored bool
