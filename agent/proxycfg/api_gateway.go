@@ -229,7 +229,7 @@ func (h *handlerAPIGateway) handleGatewayConfigUpdate(ctx context.Context, u Upd
 }
 
 // handleInlineCertConfigUpdate stores the certificate for the gateway
-func (h *handlerAPIGateway) handleInlineCertConfigUpdate(ctx context.Context, u UpdateEvent, snap *ConfigSnapshot) error {
+func (h *handlerAPIGateway) handleInlineCertConfigUpdate(_ context.Context, u UpdateEvent, snap *ConfigSnapshot) error {
 	resp, ok := u.Result.(*structs.ConfigEntryResponse)
 	if !ok {
 		return fmt.Errorf("invalid type for response: %T", u.Result)
@@ -250,7 +250,6 @@ func (h *handlerAPIGateway) handleInlineCertConfigUpdate(ctx context.Context, u 
 
 	snap.APIGateway.Certificates.Set(ref, cfg)
 
-	// TODO
 	return nil
 }
 
