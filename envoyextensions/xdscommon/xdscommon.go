@@ -46,6 +46,9 @@ const (
 
 	// ListenerType is the TypeURL for Listener discovery responses.
 	ListenerType = apiTypePrefix + "envoy.config.listener.v3.Listener"
+
+	// SecretType is the TypeURL for Secret discovery responses.
+	SecretType = apiTypePrefix + "envoy.extensions.transport_sockets.tls.v3.Secret"
 )
 
 type IndexedResources struct {

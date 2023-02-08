@@ -55,7 +55,7 @@ func TestValidateUpstreams(t *testing.T) {
 				delete(ir.Index[xdscommon.ListenerType], listenerName)
 				return ir
 			},
-			err: "no listener",
+			err: "no listener for upstream \"db\"",
 		},
 		{
 			name: "tcp-missing-cluster",
@@ -66,7 +66,7 @@ func TestValidateUpstreams(t *testing.T) {
 				delete(ir.Index[xdscommon.ClusterType], sni)
 				return ir
 			},
-			err: "no cluster",
+			err: "no cluster \"db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul\" for upstream \"db\"",
 		},
 		{
 			name: "http-success",
@@ -124,7 +124,7 @@ func TestValidateUpstreams(t *testing.T) {
 				delete(ir.Index[xdscommon.RouteType], "db")
 				return ir
 			},
-			err: "no route",
+			err: "no route for upstream \"db\"",
 		},
 		{
 			name: "redirect",
@@ -170,7 +170,7 @@ func TestValidateUpstreams(t *testing.T) {
 				delete(ir.Index[xdscommon.ClusterType], sni)
 				return ir
 			},
-			err: "no cluster",
+			err: "no cluster \"google.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul\" for upstream \"240.0.0.1\"",
 		},
 		{
 			name: "tproxy-http-redirect-success",
@@ -225,13 +225,17 @@ func TestValidateUpstreams(t *testing.T) {
 
 			// This only tests validation for listeners, routes, and clusters. Endpoints validation is done in a top
 			// level test that can parse the output of the /clusters endpoint. So for this test, we set clusters to nil.
-			err = troubleshoot.Validate(indexedResources, envoyID, vip, false, nil)
+			messages := troubleshoot.Validate(indexedResources, envoyID, vip, false, nil)
 
+			var outputErrors string
+			for _, msgError := range messages.Errors() {
+				outputErrors += msgError.Message
+				outputErrors += msgError.PossibleActions
+			}
 			if len(tt.err) == 0 {
-				require.NoError(t, err)
+				require.True(t, messages.Success())
 			} else {
-				require.Error(t, err)
-				require.Contains(t, err.Error(), tt.err)
+				require.Contains(t, outputErrors, tt.err)
 			}
 		})
 	}

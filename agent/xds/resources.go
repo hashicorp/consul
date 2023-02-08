@@ -3,9 +3,10 @@ package xds
 import (
 	"fmt"
 
-	"github.com/hashicorp/consul/envoyextensions/xdscommon"
 	"github.com/hashicorp/go-hclog"
 	"google.golang.org/protobuf/proto"
+
+	"github.com/hashicorp/consul/envoyextensions/xdscommon"
 
 	"github.com/hashicorp/consul/agent/proxycfg"
 )
@@ -34,6 +35,7 @@ func NewResourceGenerator(
 
 func (g *ResourceGenerator) AllResourcesFromSnapshot(cfgSnap *proxycfg.ConfigSnapshot) (map[string][]proto.Message, error) {
 	all := make(map[string][]proto.Message)
+	// TODO Add xdscommon.SecretType
 	for _, typeUrl := range []string{xdscommon.ListenerType, xdscommon.RouteType, xdscommon.ClusterType, xdscommon.EndpointType} {
 		res, err := g.resourcesFromSnapshot(typeUrl, cfgSnap)
 		if err != nil {
@@ -54,6 +56,8 @@ func (g *ResourceGenerator) resourcesFromSnapshot(typeUrl string, cfgSnap *proxy
 		return g.clustersFromSnapshot(cfgSnap)
 	case xdscommon.EndpointType:
 		return g.endpointsFromSnapshot(cfgSnap)
+	case xdscommon.SecretType:
+		return g.secretsFromSnapshot(cfgSnap)
 	default:
 		return nil, fmt.Errorf("unknown typeUrl: %s", typeUrl)
 	}
