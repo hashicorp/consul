@@ -268,7 +268,7 @@ func (h *handlerAPIGateway) handleRouteConfigUpdate(ctx context.Context, u Updat
 		Name: resp.Entry.GetName(),
 	}
 
-	seenUpstreamIDs := make(map[UpstreamID]struct{})
+	seenUpstreamIDs := make(map[UpstreamID]any)
 	upstreams := make(map[APIGatewayListenerKey]structs.Upstreams)
 
 	switch route := resp.Entry.(type) {

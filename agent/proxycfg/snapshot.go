@@ -670,7 +670,7 @@ type configSnapshotAPIGateway struct {
 	Upstreams map[IngressListenerKey]structs.Upstreams
 
 	// UpstreamsSet is the unique set of UpstreamID the gateway routes to.
-	UpstreamsSet map[UpstreamID]struct{}
+	UpstreamsSet map[UpstreamID]any
 
 	HTTPRoutes   watch.Map[structs.ResourceReference, *structs.HTTPRouteConfigEntry]
 	TCPRoutes    watch.Map[structs.ResourceReference, *structs.TCPRouteConfigEntry]
@@ -681,9 +681,6 @@ type configSnapshotAPIGateway struct {
 	Listeners map[string]structs.APIGatewayListener
 
 	BoundListeners map[string]structs.BoundAPIGatewayListener
-
-	// Defaults is the default configuration for upstream service instances
-	//Defaults structs.IngressServiceConfig
 }
 
 // ToIngress converts a configSnapshotAPIGateway to a configSnapshotIngressGateway.
