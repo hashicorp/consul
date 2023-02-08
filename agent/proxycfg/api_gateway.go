@@ -61,7 +61,6 @@ func (h *handlerAPIGateway) initialize(ctx context.Context) (ConfigSnapshot, err
 	snap.APIGateway.TCPRoutes = watch.NewMap[structs.ResourceReference, *structs.TCPRouteConfigEntry]()
 	snap.APIGateway.Certificates = watch.NewMap[structs.ResourceReference, *structs.InlineCertificateConfigEntry]()
 
-
 	// These need to be initialized here but are set by handlerUpstreams
 	snap.APIGateway.DiscoveryChain = make(map[UpstreamID]*structs.CompiledDiscoveryChain)
 	snap.APIGateway.PeerUpstreamEndpoints = watch.NewMap[UpstreamID, structs.CheckServiceNodes]()
@@ -415,6 +414,8 @@ func (h *handlerAPIGateway) handleRouteConfigUpdate(ctx context.Context, u Updat
 // and name must match the structs.APIGatewayConfigEntry containing the listener,
 // and the reference must specify either no section name or the name of the listener
 // as the section name.
+//
+// TODO This would probably be more generally useful as a helper in the structs pkg
 func (h *handlerAPIGateway) referenceIsForListener(ref structs.ResourceReference, listener structs.APIGatewayListener, snap *ConfigSnapshot) bool {
 	if ref.Kind != snap.APIGateway.GatewayConfig.Kind {
 		return false
