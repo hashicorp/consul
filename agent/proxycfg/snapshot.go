@@ -709,7 +709,7 @@ func (c *configSnapshotAPIGateway) ToIngress(datacenter string) (configSnapshotI
 		}
 
 		// Create a synthesized discovery chain for each service.
-		services, compiled, err := c.synthesizeChains(datacenter, boundListener)
+		services, compiled, err := c.synthesizeChains(datacenter, listener.Protocol, boundListener)
 		if err != nil {
 			return configSnapshotIngressGateway{}, err
 		}
@@ -741,14 +741,14 @@ func (c *configSnapshotAPIGateway) ToIngress(datacenter string) (configSnapshotI
 	}, nil
 }
 
-func (c *configSnapshotAPIGateway) synthesizeChains(datacenter string, boundListener structs.BoundAPIGatewayListener) ([]structs.IngressService, *structs.CompiledDiscoveryChain, error) {
+func (c *configSnapshotAPIGateway) synthesizeChains(datacenter string, protocol structs.APIGatewayListenerProtocol, boundListener structs.BoundAPIGatewayListener) ([]structs.IngressService, *structs.CompiledDiscoveryChain, error) {
 	chains := []*structs.CompiledDiscoveryChain{}
 	synthesizer := discoverychain.NewGatewayChainSynthesizer(datacenter, c.APIGatewayConfigEntry)
 	for _, routeRef := range boundListener.Routes {
 		switch routeRef.Kind {
 		case structs.HTTPRoute:
 			route, ok := c.HTTPRoutes.Get(routeRef)
-			if !ok {
+			if !ok || protocol != structs.ListenerProtocolHTTP {
 				continue
 			}
 			synthesizer.AddHTTPRoute(*route)
@@ -760,7 +760,7 @@ func (c *configSnapshotAPIGateway) synthesizeChains(datacenter string, boundList
 			}
 		case structs.TCPRoute:
 			route, ok := c.TCPRoutes.Get(routeRef)
-			if !ok {
+			if !ok || protocol != structs.ListenerProtocolTCP {
 				continue
 			}
 			synthesizer.AddTCPRoute(*route)
