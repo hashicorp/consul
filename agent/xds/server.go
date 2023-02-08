@@ -7,6 +7,7 @@ import (
 	"time"
 
 	envoy_discovery_v3 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
+
 	"github.com/hashicorp/consul/envoyextensions/xdscommon"
 
 	"github.com/armon/go-metrics"
@@ -156,14 +157,14 @@ func NewServer(
 	nodeName string,
 	logger hclog.Logger,
 	cfgMgr ProxyConfigSource,
-	resolveToken ACLResolverFunc,
+	resolveTokenSecret ACLResolverFunc,
 	cfgFetcher ConfigFetcher,
 ) *Server {
 	return &Server{
 		NodeName:           nodeName,
 		Logger:             logger,
 		CfgSrc:             cfgMgr,
-		ResolveToken:       resolveToken,
+		ResolveToken:       resolveTokenSecret,
 		CfgFetcher:         cfgFetcher,
 		AuthCheckFrequency: DefaultAuthCheckFrequency,
 		activeStreams:      &activeStreamCounters{},

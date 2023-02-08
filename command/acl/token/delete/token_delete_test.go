@@ -5,11 +5,12 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/mitchellh/cli"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/testrpc"
-	"github.com/mitchellh/cli"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestTokenDeleteCommand_noTabs(t *testing.T) {
@@ -54,7 +55,7 @@ func TestTokenDeleteCommand(t *testing.T) {
 	args := []string{
 		"-http-addr=" + a.HTTPAddr(),
 		"-token=root",
-		"-id=" + token.AccessorID,
+		"-accessor-id=" + token.AccessorID,
 	}
 
 	code := cmd.Run(args)

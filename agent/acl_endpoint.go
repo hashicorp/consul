@@ -295,7 +295,7 @@ func (s *HTTPHandlers) ACLTokenCRUD(resp http.ResponseWriter, req *http.Request)
 		return nil, aclDisabled
 	}
 
-	var fn func(resp http.ResponseWriter, req *http.Request, tokenID string) (interface{}, error)
+	var fn func(resp http.ResponseWriter, req *http.Request, tokenAccessorID string) (interface{}, error)
 
 	switch req.Method {
 	case "GET":
@@ -311,16 +311,16 @@ func (s *HTTPHandlers) ACLTokenCRUD(resp http.ResponseWriter, req *http.Request)
 		return nil, MethodNotAllowedError{req.Method, []string{"GET", "PUT", "DELETE"}}
 	}
 
-	tokenID := strings.TrimPrefix(req.URL.Path, "/v1/acl/token/")
-	if strings.HasSuffix(tokenID, "/clone") && req.Method == "PUT" {
-		tokenID = tokenID[:len(tokenID)-6]
+	tokenAccessorID := strings.TrimPrefix(req.URL.Path, "/v1/acl/token/")
+	if strings.HasSuffix(tokenAccessorID, "/clone") && req.Method == "PUT" {
+		tokenAccessorID = tokenAccessorID[:len(tokenAccessorID)-6]
 		fn = s.ACLTokenClone
 	}
-	if tokenID == "" && req.Method != "PUT" {
-		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Missing token ID"}
+	if tokenAccessorID == "" && req.Method != "PUT" {
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Missing token AccessorID"}
 	}
 
-	return fn(resp, req, tokenID)
+	return fn(resp, req, tokenAccessorID)
 }
 
 func (s *HTTPHandlers) ACLTokenSelf(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
@@ -336,7 +336,7 @@ func (s *HTTPHandlers) ACLTokenSelf(resp http.ResponseWriter, req *http.Request)
 		return nil, nil
 	}
 
-	// copy the token parameter to the ID
+	// copy the token secret parameter to the ID
 	args.TokenID = args.Token
 
 	if args.Datacenter == "" {
@@ -364,10 +364,10 @@ func (s *HTTPHandlers) ACLTokenCreate(resp http.ResponseWriter, req *http.Reques
 	return s.aclTokenSetInternal(req, "", true)
 }
 
-func (s *HTTPHandlers) ACLTokenGet(resp http.ResponseWriter, req *http.Request, tokenID string) (interface{}, error) {
+func (s *HTTPHandlers) ACLTokenGet(resp http.ResponseWriter, req *http.Request, tokenAccessorID string) (interface{}, error) {
 	args := structs.ACLTokenGetRequest{
 		Datacenter:  s.agent.config.Datacenter,
-		TokenID:     tokenID,
+		TokenID:     tokenAccessorID,
 		TokenIDType: structs.ACLTokenAccessor,
 	}
 
@@ -407,11 +407,11 @@ func (s *HTTPHandlers) ACLTokenGet(resp http.ResponseWriter, req *http.Request, 
 	return out.Token, nil
 }
 
-func (s *HTTPHandlers) ACLTokenSet(_ http.ResponseWriter, req *http.Request, tokenID string) (interface{}, error) {
-	return s.aclTokenSetInternal(req, tokenID, false)
+func (s *HTTPHandlers) ACLTokenSet(_ http.ResponseWriter, req *http.Request, tokenAccessorID string) (interface{}, error) {
+	return s.aclTokenSetInternal(req, tokenAccessorID, false)
 }
 
-func (s *HTTPHandlers) aclTokenSetInternal(req *http.Request, tokenID string, create bool) (interface{}, error) {
+func (s *HTTPHandlers) aclTokenSetInternal(req *http.Request, tokenAccessorID string, create bool) (interface{}, error) {
 	args := structs.ACLTokenSetRequest{
 		Datacenter: s.agent.config.Datacenter,
 		Create:     create,
@@ -425,10 +425,8 @@ func (s *HTTPHandlers) aclTokenSetInternal(req *http.Request, tokenID string, cr
 		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: fmt.Sprintf("Token decoding failed: %v", err)}
 	}
 
-	if !create {
-		if args.ACLToken.AccessorID != tokenID {
-			return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Token Accessor ID in URL and payload do not match"}
-		}
+	if !create && args.ACLToken.AccessorID != tokenAccessorID {
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Token Accessor ID in URL and payload do not match"}
 	}
 
 	var out structs.ACLToken
@@ -439,10 +437,10 @@ func (s *HTTPHandlers) aclTokenSetInternal(req *http.Request, tokenID string, cr
 	return &out, nil
 }
 
-func (s *HTTPHandlers) ACLTokenDelete(resp http.ResponseWriter, req *http.Request, tokenID string) (interface{}, error) {
+func (s *HTTPHandlers) ACLTokenDelete(resp http.ResponseWriter, req *http.Request, tokenAccessorID string) (interface{}, error) {
 	args := structs.ACLTokenDeleteRequest{
 		Datacenter: s.agent.config.Datacenter,
-		TokenID:    tokenID,
+		TokenID:    tokenAccessorID,
 	}
 	s.parseToken(req, &args.Token)
 	if err := s.parseEntMeta(req, &args.EnterpriseMeta); err != nil {
@@ -456,7 +454,7 @@ func (s *HTTPHandlers) ACLTokenDelete(resp http.ResponseWriter, req *http.Reques
 	return true, nil
 }
 
-func (s *HTTPHandlers) ACLTokenClone(resp http.ResponseWriter, req *http.Request, tokenID string) (interface{}, error) {
+func (s *HTTPHandlers) ACLTokenClone(resp http.ResponseWriter, req *http.Request, tokenAccessorID string) (interface{}, error) {
 	if s.checkACLDisabled() {
 		return nil, aclDisabled
 	}
@@ -475,7 +473,7 @@ func (s *HTTPHandlers) ACLTokenClone(resp http.ResponseWriter, req *http.Request
 	s.parseToken(req, &args.Token)
 
 	// Set this for the ID to clone
-	args.ACLToken.AccessorID = tokenID
+	args.ACLToken.AccessorID = tokenAccessorID
 
 	var out structs.ACLToken
 	if err := s.agent.RPC(req.Context(), "ACL.TokenClone", args, &out); err != nil {

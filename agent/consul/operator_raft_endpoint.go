@@ -2,7 +2,6 @@ package consul
 
 import (
 	"fmt"
-
 	"net"
 
 	"github.com/hashicorp/raft"

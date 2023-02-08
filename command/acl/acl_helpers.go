@@ -9,14 +9,14 @@ import (
 	"github.com/hashicorp/consul/api"
 )
 
-func GetTokenIDFromPartial(client *api.Client, partialID string) (string, error) {
-	if partialID == "anonymous" {
+func GetTokenAccessorIDFromPartial(client *api.Client, partialAccessorID string) (string, error) {
+	if partialAccessorID == "anonymous" {
 		return acl.AnonymousTokenID, nil
 	}
 
 	// the full UUID string was given
-	if len(partialID) == 36 {
-		return partialID, nil
+	if len(partialAccessorID) == 36 {
+		return partialAccessorID, nil
 	}
 
 	tokens, _, err := client.ACL().TokenList(nil)
@@ -24,21 +24,21 @@ func GetTokenIDFromPartial(client *api.Client, partialID string) (string, error)
 		return "", err
 	}
 
-	tokenID := ""
+	tokenAccessorID := ""
 	for _, token := range tokens {
-		if strings.HasPrefix(token.AccessorID, partialID) {
-			if tokenID != "" {
+		if strings.HasPrefix(token.AccessorID, partialAccessorID) {
+			if tokenAccessorID != "" {
 				return "", fmt.Errorf("Partial token ID is not unique")
 			}
-			tokenID = token.AccessorID
+			tokenAccessorID = token.AccessorID
 		}
 	}
 
-	if tokenID == "" {
-		return "", fmt.Errorf("No such token ID with prefix: %s", partialID)
+	if tokenAccessorID == "" {
+		return "", fmt.Errorf("No such token ID with prefix: %s", partialAccessorID)
 	}
 
-	return tokenID, nil
+	return tokenAccessorID, nil
 }
 
 func GetPolicyIDFromPartial(client *api.Client, partialID string) (string, error) {

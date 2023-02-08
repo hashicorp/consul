@@ -731,7 +731,7 @@ jobs:
       - checkout
       - add_ssh_keys: # needs a key to push updated static asset commit back to github
           fingerprints:
-            - "fc:55:84:15:0a:1d:c8:e9:06:d0:e8:9c:7b:a9:b7:31"
+            - "94:03:9e:8b:24:7f:36:60:00:30:b8:32:ed:e7:59:10"
       - attach_workspace:
           at: .
       - run:
