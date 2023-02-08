@@ -5,7 +5,7 @@ import (
 
 	"github.com/hashicorp/consul/envoyextensions/xdscommon"
 	"github.com/hashicorp/go-hclog"
-	"google.golang.org/protobuf/proto"
+	"github.com/golang/protobuf/proto"
 
 	"github.com/hashicorp/consul/agent/proxycfg"
 )
