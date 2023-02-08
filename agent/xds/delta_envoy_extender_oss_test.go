@@ -208,6 +208,27 @@ end`,
 				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", nsFunc, nil, makeLambdaServiceDefaults(true))
 			},
 		},
+		{
+			name: "http-local-ratelimit-applyto-filter",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
+					ns.Proxy.Config["protocol"] = "http"
+					ns.Proxy.EnvoyExtensions = []structs.EnvoyExtension{
+						{
+							Name: api.BuiltinLocalRatelimitExtension,
+							Arguments: map[string]interface{}{
+								"ProxyType":      "connect-proxy",
+								"MaxTokens":      3,
+								"TokensPerFill":  2,
+								"FillInterval":   10,
+								"FilterEnabled":  100,
+								"FilterEnforced": 100,
+							},
+						},
+					}
+				}, nil)
+			},
+		},
 	}
 
 	latestEnvoyVersion := xdscommon.EnvoyVersions[0]
