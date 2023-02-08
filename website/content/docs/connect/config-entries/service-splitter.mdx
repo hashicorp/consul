@@ -15,51 +15,50 @@ The following list outlines field hierarchy, language-specific data types, and r
 
 <Tab heading="HCL" group="hcl">
 
-- [`Kind`](#kind-kind): string | required
-- [`Name`](#name-name): string | required
-- [`Namespace`](#namespace-namespace): string | optional <EnterpriseAlert inline />
-- [`Partition`](#partition-partition): string | optional <EnterpriseAlert inline />
-- [`Meta`](#meta): map | optional
-- [`Splits`](#splits-splits): map | required
-	- [`Weight`](#weight-weight): number | required
-	- [`Service`](#service-service): string | required
-	- [`ServiceSubset`](#servicesubset-servicesubset): string | optional
-  - [`Namespace`](#namespace-namespace): string | optional <EnterpriseAlert inline />
-  - [`Partition`](#partition-partition): string | optional <EnterpriseAlert inline />
-  - [`RequestHeaders`](#requestheaders-requestheaders): map | optional
-    - [`Add`](#requestheaders-requestheaders): map | optional
-    - [`Set`](#requestheaders-requestheaders): map | optional
-    - [`Remove`](#requestheaders-requestheaders): map | optional
-  - [`ResponseHeaders`](#responseheaders-responseheaders): map | optional
-    - [`Add`](#responseheaders-responseheaders): map | optional
-    - [`Set`](#responseheaders-responseheaders): map | optional
-    - [`Remove`](#responseheaders-responseheaders): map | optional
+- [`Kind`](#kind): string | required
+- [`Name`](#name): string | required
+- [`Namespace`](#namespace): string <EnterpriseAlert inline />
+- [`Partition`](#partition): string <EnterpriseAlert inline />
+- [`Meta`](#meta): map 
+- [`Splits`](#splits): map | required
+	- [`Weight`](#splits-weight): number | required
+	- [`Service`](#splits-service): string | required
+	- [`ServiceSubset`](#splits-servicesubset): string 
+  - [`Namespace`](#splits-namespace): string <EnterpriseAlert inline />
+  - [`Partition`](#splits-partition): string <EnterpriseAlert inline />
+  - [`RequestHeaders`](#splits-requestheaders): map
+    - [`Add`](#splits-requestheaders): map 
+    - [`Set`](#splits-requestheaders): map 
+    - [`Remove`](#splits-requestheaders): map 
+  - [`ResponseHeaders`](#splits-responseheaders): map 
+    - [`Add`](#splits-responseheaders): map 
+    - [`Set`](#splits-responseheaders): map 
+    - [`Remove`](#splits-responseheaders): map 
 
 </Tab>
 
 <Tab heading="YAML" group="yaml">
 
 - [`apiVersion`](#apiVersion): string | required
-- [`kind`](#kind-kind): string | required
+- [`kind`](#kind): string | required
 - [`metadata`](#metadata): object | required
-	- [`name`](#name-name): string | required
-	- [`namespace`](#namespace-namespace): string | optional <EnterpriseAlert inline />
+	- [`name`](#metadata-name): string | required
+	- [`namespace`](#metadata-namespace): string | optional <EnterpriseAlert inline />
 - [`spec`](#spec): object | required
-	- [`splits`](#splits-splits): array | required
-		- [`weight`](#weight-weight): float32 | required
-		- [`service`](#service-service): string | required
-	  - [`serviceSubset`](#servicesubset-servicesubset): string | optional
-    - [`namespace`](#namespace-namespace): string | optional <EnterpriseAlert inline />
-    - [`partition`](#partition-partition): string | optional <EnterpriseAlert inline />
-    - [`requestHeaders`](#requestheaders-requestheaders): HTTPHeaderModifiers | optional
-      - [`Add`](#requestheaders-requestheaders): map | optional
-      - [`Set`](#requestheaders-requestheaders): map | optional
-      - [`Remove`](#requestheaders-requestheaders): map | optional
-    - [`responseHeaders`](#responseheaders-responseheaders): HTTPHeaderModifiers | optional
-      - [`Add`](#responseheaders-responseheaders): map | optional
-      - [`Set`](#responseheaders-responseheaders): map | optional
-      - [`Remove`](#responseheaders-responseheaders): map | optional
-
+	- [`splits`](#spec-splits): array | required
+		- [`weight`](#spec-splits-weight): float32 | required
+		- [`service`](#spec-splits-service): string | required
+	  - [`serviceSubset`](#spec-splits-servicesubset): string
+    - [`namespace`](#spec-splits-namespace): string <EnterpriseAlert inline />
+    - [`partition`](#spec-splits-partition): string <EnterpriseAlert inline />
+    - [`requestHeaders`](#spec-splits-requestheaders): HTTPHeaderModifiers 
+      - [`Add`](#spec-splits-requestheaders): map 
+      - [`Set`](#spec-splits-requestheaders): map 
+      - [`Remove`](#spec-splits-requestheaders): map 
+    - [`responseHeaders`](#spec-splits-responseheaders): HTTPHeaderModifiers 
+      - [`Add`](#spec-splits-responseheaders): map 
+      - [`Set`](#spec-splits-responseheaders): map 
+      - [`Remove`](#spec-splits-responseheaders): map 
 
 </Tab>
 </Tabs>
@@ -68,17 +67,13 @@ The following list outlines field hierarchy, language-specific data types, and r
 
 This section provides details about the fields you can configure in a `service-splitter` configuration entry.
 
-### `apiVersion`
+<Tabs>
 
-Kubernetes-only parameter that specifies the version of the Consul API that the configuration entry maps to Kubernetes configurations. The value must be `consul.hashicorp.com/v1alpha1`.  
+<Tab heading="HCL" group="hcl">
 
-### `Kind`, `kind` 
+### `Kind`` 
 
 Specifies the type of configuration entry to implement. 
-
-#### Paths
-- HCL: `Kind` 
-- YAML: `kind`
 
 #### Values
 
@@ -86,14 +81,9 @@ Specifies the type of configuration entry to implement.
 - Required: Required
 - Data type: String value that must be set to `service-splitter` in HCL or `serviceSplitter` in YAML. 
 
-### `Name`, `name`
+### `Name`
 
 Specifies a name for the configuration entry. The name is metadata that you can use to reference the configuration entry when performing operations, such as reading or writing configuration entry configuration entry settings. 
-
-#### Paths
-
-- HCL: `Name` 
-- YAML: `metadata.name 
 
 #### Values
 
@@ -102,14 +92,9 @@ Specifies a name for the configuration entry. The name is metadata that you can 
 - Data type: String
 
 
-### `Namespace`, `namespace` <EnterpriseAlert inline />
+### `Namespace` <EnterpriseAlert inline />
 
 Specifies the [namespace](/consul/docs/enterprise/namespaces) to apply the configuration entry.
-
-#### Paths
-
-- HCL: `Namespace`
-- YAML: `metadata.namespace`
 
 #### Values
 
@@ -117,14 +102,8 @@ Specifies the [namespace](/consul/docs/enterprise/namespaces) to apply the confi
 - Required: Optional
 - Data type: String
 
-
-### `Partition`, `partition` <EnterpriseAlert inline />
+### `Partition` <EnterpriseAlert inline />
 Specifies the [admin partition](consul/docs/enterprise/admin-partitions) to apply the configuration entry.
-
-#### Paths 
-
-- HCL: `Partition` 
-- YAML: `spec.splits.partition` 
 
 #### Values
 
@@ -132,14 +111,9 @@ Specifies the [admin partition](consul/docs/enterprise/admin-partitions) to appl
 - Required: Optional 
 - Data type: String
 
-### `Meta`, `meta`
+### `Meta`
 
 Specifies key-value pairs to add to the KV store.
-
-#### Paths
-
-- HCL: `Meta` 
-- YAML: `spec.meta` 
 
 #### Values
 
@@ -149,6 +123,163 @@ Specifies key-value pairs to add to the KV store.
   - keys: String
   - values: String, integer, or float 
 
+### `Splits`
+
+Defines how much traffic to send to sets of service instances during a traffic split. 
+
+#### Values 
+
+- Default: None
+- Required: Required for defining service splits
+- Data type: Array of objects that can contain the following fields:
+  - [`Splits.Weight`](#splits-weight): The sum of weights for a set of service instances must add up to 100. 
+  - [`Splits.Service`](#splits-service): This field is required to direct split traffic   
+  - [`Splits.ServiceSubset`](#splits-servicesubset)
+  - [`Splits.Namespace`](#splits-namespace) <Enterprise inline/>
+  - [`Splits.Partition`](#splits-partition) <Enterprise inline/>
+  - [`Splits.RequestHeaders`](#splits-requestheaders) 
+  - [`Splits.ResponseHeaders`](#splits-responseheaders)  
+
+### `Splits.Weight`
+
+Specifies the percentage of traffic sent to the set of service instances specified in the [`Service`, `service`](#service-service) field. Each weight must be a floating integer between `0` and `100`. The smallest representable value is `.01`. The sum of weights across all splits must add up to `100`.
+
+#### Values
+
+- Default: `null`
+- Required: Required for defining service splits
+- Data type: Floating integer from `.01` to `100`
+
+### `Splits.Service`
+
+Specifies the name of the service to resolve.
+
+#### Values
+
+- Default: The service matching the configuration entry [`Name`](#name) field.
+- Required: optional
+- Data type: String
+
+### `Splits.ServiceSubset`
+
+Specifies a subset of the service to resolve. This field overrides the `DefaultSubset`. 
+
+#### Values
+
+- Default: If empty, the `split` uses the default subset. 
+- Required: optional
+- Data type: String
+
+### `Splits.Namespace` <EnterpriseAlert inline />
+
+Specifies which [namespace](/consul/docs/enterprise/namespaces) to use in the FQDN when resolving the service. 
+
+#### Values
+
+- Default: The namespace specified in the top-level configuration entry.
+- Required: optional
+- Data type: String
+
+### `Splits.Partition` <EnterpriseAlert inline />
+
+Specifies which [admin partition](/consul/docs/enterprise/admin-partitions) to use in the FQDN when resolving the service. 
+
+#### Values
+
+- Default: By default, the `service-splitter` uses the [admin partition specified in the top-level configuration entry](#partition).
+- Required: optional
+- Data type: String
+
+### `Splits.RequestHeaders`
+
+Specifies a set of HTTP-specific header modification rules that apply to requests routed to the split. You cannot configure request headers if the listener protocol is set to `tcp`. Refer to [Set HTTP Headers](#set-http-headers) for an example configuration. 
+
+#### Values
+
+- Default: None
+- Required: optional
+- Values: Object containing one or more fields that define header modification rules
+  - `Add`: Map of one or more key-value pairs
+  - `Set`: Map of one or more key-value pairs
+  - `Remove`: Map of one or more key-value pairs
+
+The following table describes how to configure values for request headers:
+
+| Rule | Description | Type |  Required | 
+| --- 	    | ---	       | ---         | ---         | 
+| `Add` | Defines a set of key-value pairs to add to the header. Use header names as the keys. Header names are not case-sensitive. If header values with the same name already exist, the value is appended and Consul applies both headers. You can [use variable placeholders](#use-variable-placeholders). | map of strings | optional |
+| `Set` | Defines a set of key-value pairs to add to the request header or to replace existing header values with. Use header names as the keys. Header names are not case-sensitive. If header values with the same names already exist, Consul replaces the header values. You can [use variable placeholders](#use-variable-placeholders). | map of strings | optional |
+| `Remove` | Defines an array of headers to remove. Consul removes only headers containing exact matches. Header names are not case-sensitive. | array of strings | optional |
+
+#### Use variable placeholders
+
+For `Add` and `Set`, if the service is configured to use Envoy as the proxy, the value may contain variable placeholders, for example, `%DOWNSTREAM_REMOTE_ADDRESS%` to interpolate dynamic metadata into the value added.
+
+
+### `Splits.ResponseHeaders` 
+
+Specifies a set of HTTP-specific header modification rules that apply to responses from the split. You cannot configure request headers if the listener protocol is set to `tcp`. Refer to [Set HTTP Headers](#set-http-headers) for an example configuration.
+
+#### Values
+
+- Default: None
+- Required: optional
+- Values: Object containing one or more fields that define header modification rules
+  - `Add`: Map of one or more string key-value pairs
+  - `Set`: Map of one or more string key-value pairs
+  - `Remove`: Map of one or more string key-value pairs
+
+The following table describes how to configure values for response headers:
+  
+| Rule | Description | Type |  Required | 
+| --- 	    | ---	       | ---         | ---         | 
+| `Add` | Defines a set of key-value pairs to add to the header. Use header names as the keys. Header names are not case-sensitive. If header values with the same name already exist, the value is appended and Consul applies both headers. You can [use variable placeholders](#use-variable-placeholders). | map of strings | optional |
+| `Set` | Defines a set of key-value pairs to add to the request header or to replace existing header values with. Use header names as the keys. Header names are not case-sensitive. If header values with the same names already exist, Consul replaces the header values. You can [use variable placeholders](#use-variable-placeholders). | map of strings | optional |
+| `Remove` | Defines an array of headers to remove. Consul removes only headers containing exact matches. Header names are not case-sensitive. | array of strings | optional |
+
+#### Use variable placeholders
+
+For `Add` and `Set`, if the service is configured to use Envoy as the proxy, the value may contain variable placeholders, for example, `%DOWNSTREAM_REMOTE_ADDRESS%` to interpolate dynamic metadata into the value added. 
+
+</Tab>
+
+<Tab heading="YAML" group="yaml">
+
+### `apiVersion`
+
+Kubernetes-only parameter that specifies the version of the Consul API that the configuration entry maps to Kubernetes configurations. The value must be `consul.hashicorp.com/v1alpha1`.  
+
+### `kind` 
+
+Specifies the type of configuration entry to implement. 
+
+#### Values
+
+- Default: none
+- Required: Required
+- Data type: String value that must be set to `serviceSplitter` in YAML. 
+
+### `metadata.name`
+
+Specifies a name for the configuration entry. The name is metadata that you can use to reference the configuration entry when performing operations, such as reading or writing configuration entry configuration entry settings. 
+
+#### Values
+
+- Default: Name of the node 
+- Required: Required
+- Data type: String
+
+
+### `metadata.namespace` <EnterpriseAlert inline />
+
+Specifies the [namespace](/consul/docs/enterprise/namespaces) to apply the configuration entry.
+
+#### Values
+
+- Default: None
+- Required: Optional
+- Data type: String
+
 ### `spec`
 
 Kubernetes-only field that contains all of the configurations for service splitter pods.
@@ -157,38 +288,40 @@ Kubernetes-only field that contains all of the configurations for service splitt
 
 - Default: none 
 - Required: Required 
-- Data type: Object containing [`splits`](#splits-splits) configuration 
+- Data type: Object containing [`spec.splits`](#spec-splits) configuration 
 
-### `Splits`, `splits`
+### `spec.meta`
+
+Specifies key-value pairs to add to the KV store.
+
+#### Values
+
+- Default: none 
+- Required: Optional 
+- Data type: Map of one or more key-value pairs 
+  - keys: String
+  - values: String, integer, or float 
+
+### `spec.splits`
 
 Defines how much traffic to send to sets of service instances during a traffic split. 
-
-#### Paths
-
-- HCL: `Splits`
-- YAML: `spec.splits`
 
 #### Values 
 
 - Default: None
 - Required: Required for defining service splits
 - Data type: Array of objects that can contain the following fields:
-  - [`Weight`](#weight-weight), `weight` in YAML: The sum of weights for a set of service instances must add up to 100. 
-  - [`Service`](#service-service) , `service` in YAML: This field is required to direct split traffic   
-  - [`ServiceSubset`](#servicesubset-servicesubset), `serviceSubset` in YAML
-  - [`Namespace`](#namespace-namespace), `namespace` in YAML <Enterprise inline/>
-  - [`Partition`](#partition-partition), `partition` in YAML <Enterprise inline/>
-  - [`RequestHeaders`](#requestheaders-requestheaders), `requestHeaders` in YAML 
-  - [`ResponseHeaders`](#responseheaders-responseheaders), `responseHeaders` in YAML  
+  - [`spec.splits.weight`](#spec-splits-weight): The sum of weights for a set of service instances must add up to 100. 
+  - [`spec.splits.service`](#spec-splits-service): This field is required to direct split traffic   
+  - [`spec.splits.serviceSubset`](#spec-splits-servicesubset)
+  - [`spec.splits.namespace`](#spec-splits-namespace) <Enterprise inline/>
+  - [`spec.splits.partition`](#spec-splits-partition) <Enterprise inline/>
+  - [`spec.splits.requestHeaders`](#spec-splits-requestheaders) 
+  - [`spec.splits.responseHeaders`](#spec-splits-responseheaders)  
 
-### `Weight`, `weight`
+### `spec.splits.weight`
 
-Specifies the percentage of traffic sent to the set of service instances specified in the [`Service`, `service`](#service-service) field. Each weight must be a floating integer between `0` and `100`. The smallest representable value is `.01`. The sum of weights across all splits must add up to `100`.
-
-#### Paths
-
-- HCL: `Splits.Weight`
-- YAML: `spec.splits.weight`
+Specifies the percentage of traffic sent to the set of service instances specified in the [`spec.splits.service`](#spec-splits-service) field. Each weight must be a floating integer between `0` and `100`. The smallest representable value is `.01`. The sum of weights across all splits must add up to `100`.
 
 #### Values
 
@@ -196,29 +329,19 @@ Specifies the percentage of traffic sent to the set of service instances specifi
 - Required: Required for defining service splits
 - Data type: Floating integer from `.01` to `100`
 
-### `Service`, `service`
+### `spec.splits.service`
 
 Specifies the name of the service to resolve.
 
-#### Paths
-
-- HCL: `Splits.Service`
-- YAML: `spec.splits.service`
-
 #### Values
 
-- Default: The service matching the configuration entry [`Name`](#name-name) field.
+- Default: The service matching the configuration entry [`meta.name`](#metadata-name) field.
 - Required: optional
 - Data type: String
 
-### `ServiceSubset`, `serviceSubset`
+### `spec.splits.serviceSubset`
 
 Specifies a subset of the service to resolve. This field overrides the `DefaultSubset`. 
-
-#### Paths
-
-- HCL: `Splits.ServiceSubset`
-- YAML: `spec.splits.serviceSubset`
 
 #### Values
 
@@ -226,14 +349,9 @@ Specifies a subset of the service to resolve. This field overrides the `DefaultS
 - Required: optional
 - Data type: String
 
-### `Namespace`, `namespace` <EnterpriseAlert inline />
+### `spec.splits.namespace` <EnterpriseAlert inline />
 
 Specifies which [namespace](/consul/docs/enterprise/namespaces) to use in the FQDN when resolving the service. 
-
-#### Paths
-
-- HCL: `Splits.Namespace`
-- YAML: `spec.splits.namespace`
 
 #### Values
 
@@ -241,82 +359,80 @@ Specifies which [namespace](/consul/docs/enterprise/namespaces) to use in the FQ
 - Required: optional
 - Data type: String
 
-### `Partition`, `partition` <EnterpriseAlert inline />
-
-Specifies which [admin partition](/consul/docs/enterprise/admin-partitions) to use in the FQDN when resolving the service. 
-
-#### Paths
-
-- HCL: `Splits.Partition`
-- YAML: `spec.splits.partition`
+### `spec.splits.partition` <EnterpriseAlert inline />
+Specifies the [admin partition](consul/docs/enterprise/admin-partitions) to apply the configuration entry.
 
 #### Values
 
-- Default: By default, the `service-splitter` uses the [admin partition specified in the top-level configuration entry](#partition-partition).
+- Default: `Default` 
+- Required: Optional 
+- Data type: String
+
+
+### `spec.splits.partition` <EnterpriseAlert inline />
+
+Specifies which [admin partition](/consul/docs/enterprise/admin-partitions) to use in the FQDN when resolving the service. 
+
+#### Values
+
+- Default: By default, the `service-splitter` uses the [admin partition specified in the top-level configuration entry](#spec-partition).
 - Required: optional
 - Data type: String
 
 
-### `RequestHeaders`, `requestHeaders`
+### `spec.splits.requestHeaders`
 
 Specifies a set of HTTP-specific header modification rules that apply to requests routed to the split. You cannot configure request headers if the listener protocol is set to `tcp`. Refer to [Set HTTP Headers](#set-http-headers) for an example configuration. 
 
-#### Paths
-
-- HCL: `Splits.RequestHeaders`
-- YAML: `spec.splits.requestHeaders` 
-
-#### Values
+ #### Values
 
 - Default: None
 - Required: optional
 - Values: Object containing one or more fields that define header modification rules
-  - `Add`, `add` in YAML: Map of one or more key-value pairs
-  - `Set`, `set` in YAML: Map of one or more key-value pairs
-  - `Remove`, `remove` in YAML: Map of one or more key-value pairs
+  - `add`: Map of one or more key-value pairs
+  - `set`: Map of one or more key-value pairs
+  - `remove`: Map of one or more key-value pairs
 
 The following table describes how to configure values for request headers:
 
 | Rule | Description | Type |  Required | 
 | --- 	    | ---	       | ---         | ---         | 
-| `Add` <br/><nobr>`add` (Kubernetes)</nobr> | Defines a set of key-value pairs to add to the header. Use header names as the keys. Header names are not case-sensitive. If header values with the same name already exist, the value is appended and Consul applies both headers. You can [use variable placeholders](#use-variable-placeholders). | map of strings | optional |
-| `Set` <br/><nobr>`set` (Kubernetes)</nobr> | Defines a set of key-value pairs to add to the request header or to replace existing header values with. Use header names as the keys. Header names are not case-sensitive. If header values with the same names already exist, Consul replaces the header values. You can [use variable placeholders](#use-variable-placeholders). | map of strings | optional |
-| `Remove` <br/><nobr>`remove` (Kubernetes)</nobr> | Defines an array of headers to remove. Consul removes only headers containing exact matches. Header names are not case-sensitive. | array of strings | optional |
+| `add` | Defines a set of key-value pairs to add to the header. Use header names as the keys. Header names are not case-sensitive. If header values with the same name already exist, the value is appended and Consul applies both headers. You can [use variable placeholders](#use-variable-placeholders). | map of strings | optional |
+| `set` | Defines a set of key-value pairs to add to the request header or to replace existing header values with. Use header names as the keys. Header names are not case-sensitive. If header values with the same names already exist, Consul replaces the header values. You can [use variable placeholders](#use-variable-placeholders). | map of strings | optional |
+| `remove` | Defines an array of headers to remove. Consul removes only headers containing exact matches. Header names are not case-sensitive. | array of strings | optional |
 
 #### Use variable placeholders
 
-For `Add` and `Set`, if the service is configured to use Envoy as the proxy, the value may contain variable placeholders, for example, `%DOWNSTREAM_REMOTE_ADDRESS%` to interpolate dynamic metadata into the value added.
+For `add` and `set`, if the service is configured to use Envoy as the proxy, the value may contain variable placeholders, for example, `%DOWNSTREAM_REMOTE_ADDRESS%` to interpolate dynamic metadata into the value added.
 
-
-### `ResponseHeaders` | `responseHeaders` 
+### `spec.splits.responseHeaders`
 
 Specifies a set of HTTP-specific header modification rules that apply to responses from the split. You cannot configure request headers if the listener protocol is set to `tcp`. Refer to [Set HTTP Headers](#set-http-headers) for an example configuration.
 
-#### Paths
-
-- HCL: `Splits.ResponseHeaders`
-- YAML: `spec.splits.responseHeaders` 
-
-#### Values
+ #### Values
 
 - Default: None
 - Required: optional
 - Values: Object containing one or more fields that define header modification rules
-  - `Add`, `add` in YAML: Map of one or more string key-value pairs
-  - `Set`, `set` in YAML: Map of one or more string key-value pairs
-  - `Remove`, `remove` in YAML: Map of one or more string key-value pairs
+  - `add`: Map of one or more string key-value pairs
+  - `set`: Map of one or more string key-value pairs
+  - `remove`: Map of one or more string key-value pairs
 
 The following table describes how to configure values for response headers:
   
 | Rule | Description | Type |  Required | 
 | --- 	    | ---	       | ---         | ---         | 
-| `Add` <br/><nobr>`add` (Kubernetes)</nobr> | Defines a set of key-value pairs to add to the header. Use header names as the keys. Header names are not case-sensitive. If header values with the same name already exist, the value is appended and Consul applies both headers. You can [use variable placeholders](#use-variable-placeholders). | map of strings | optional |
-| `Set` <br/><nobr>`set` (Kubernetes)</nobr> | Defines a set of key-value pairs to add to the request header or to replace existing header values with. Use header names as the keys. Header names are not case-sensitive. If header values with the same names already exist, Consul replaces the header values. You can [use variable placeholders](#use-variable-placeholders). | map of strings | optional |
-| `Remove` <br/><nobr>`remove` (Kubernetes)</nobr> | Defines an array of headers to remove. Consul removes only headers containing exact matches. Header names are not case-sensitive. | array of strings | optional |
+| `add` | Defines a set of key-value pairs to add to the header. Use header names as the keys. Header names are not case-sensitive. If header values with the same name already exist, the value is appended and Consul applies both headers. You can [use variable placeholders](#use-variable-placeholders). | map of strings | optional |
+| `set` | Defines a set of key-value pairs to add to the request header or to replace existing header values with. Use header names as the keys. Header names are not case-sensitive. If header values with the same names already exist, Consul replaces the header values. You can [use variable placeholders](#use-variable-placeholders). | map of strings | optional |
+| `remove` | Defines an array of headers to remove. Consul removes only headers containing exact matches. Header names are not case-sensitive. | array of strings | optional |
 
 #### Use variable placeholders
 
-For `Add` and `Set`, if the service is configured to use Envoy as the proxy, the value may contain variable placeholders, for example, `%DOWNSTREAM_REMOTE_ADDRESS%` to interpolate dynamic metadata into the value added. 
+For `add` and `set`, if the service is configured to use Envoy as the proxy, the value may contain variable placeholders, for example, `%DOWNSTREAM_REMOTE_ADDRESS%` to interpolate dynamic metadata into the value added. 
+
+</Tab>
+
+</Tabs>
 
 ## Examples
 
