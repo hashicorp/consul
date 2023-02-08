@@ -629,6 +629,12 @@ func (r *DCSpecificRequest) CacheMinIndex() uint64 {
 	return r.QueryOptions.MinQueryIndex
 }
 
+type OperatorUsageRequest struct {
+	DCSpecificRequest
+
+	Global bool
+}
+
 type ServiceDumpRequest struct {
 	Datacenter         string
 	ServiceKind        ServiceKind
@@ -2238,6 +2244,21 @@ type IndexedServices struct {
 	// this is needed to be able to properly filter the list based on ACLs
 	acl.EnterpriseMeta
 	QueryMeta
+}
+
+type Usage struct {
+	Usage map[string]ServiceUsage
+
+	QueryMeta
+}
+
+// ServiceUsage contains all of the usage data related to services
+type ServiceUsage struct {
+	Services                 int
+	ServiceInstances         int
+	ConnectServiceInstances  map[string]int
+	BillableServiceInstances int
+	EnterpriseServiceUsage
 }
 
 // PeeredServiceName is a basic tuple of ServiceName and peer
