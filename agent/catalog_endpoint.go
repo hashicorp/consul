@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strings"
 
-	metrics "github.com/armon/go-metrics"
+	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
 
 	cachetype "github.com/hashicorp/consul/agent/cache-types"

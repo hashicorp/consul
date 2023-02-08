@@ -1,43 +1,58 @@
 package troubleshoot
 
 import (
-	"errors"
 	"fmt"
 	"time"
 
 	envoy_admin_v3 "github.com/envoyproxy/go-control-plane/envoy/admin/v3"
-	"github.com/hashicorp/go-multierror"
+	"github.com/hashicorp/consul/troubleshoot/validate"
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
-func (t *Troubleshoot) validateCerts(certs *envoy_admin_v3.Certificates) error {
+func (t *Troubleshoot) validateCerts(certs *envoy_admin_v3.Certificates) validate.Messages {
 
+	var certMessages validate.Messages
 	// TODO: we can probably warn if the expiration date is close
-	var resultErr error
 	now := time.Now()
 
 	if certs == nil {
-		return errors.New("certs object is nil")
+		msg := validate.Message{
+			Success: false,
+			Message: "certificate object is nil in the proxy configuration",
+		}
+		return []validate.Message{msg}
 	}
 
 	if len(certs.GetCertificates()) == 0 {
-		return errors.New("no certificates provided")
+		msg := validate.Message{
+			Success: false,
+			Message: "no certificates found",
+		}
+		return []validate.Message{msg}
 	}
 
 	for _, cert := range certs.GetCertificates() {
 		for _, cacert := range cert.GetCaCert() {
 			if now.After(cacert.GetExpirationTime().AsTime()) {
-				resultErr = multierror.Append(resultErr, fmt.Errorf("Ca cert is expired"))
+				msg := validate.Message{
+					Success: false,
+					Message: "ca certificate is expired",
+				}
+				certMessages = append(certMessages, msg)
 			}
 
 		}
 		for _, cc := range cert.GetCertChain() {
 			if now.After(cc.GetExpirationTime().AsTime()) {
-				resultErr = multierror.Append(resultErr, fmt.Errorf("cert chain is expired"))
+				msg := validate.Message{
+					Success: false,
+					Message: "certificate chain is expired",
+				}
+				certMessages = append(certMessages, msg)
 			}
 		}
 	}
-	return resultErr
+	return certMessages
 }
 
 func (t *Troubleshoot) getEnvoyCerts() (*envoy_admin_v3.Certificates, error) {

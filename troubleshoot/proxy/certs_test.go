@@ -15,21 +15,21 @@ func TestValidateCerts(t *testing.T) {
 
 	anHourAgo := timestamppb.New(time.Now().Add(-1 * time.Hour))
 
-	x := []struct {
+	cases := map[string]struct {
 		certs         *envoy_admin_v3.Certificates
 		expectedError string
 	}{
-		{
+		"cert is nil": {
 			certs:         nil,
-			expectedError: "certs object is nil",
+			expectedError: "certificate object is nil in the proxy configuration",
 		},
-		{
+		"no certificates": {
 			certs: &envoy_admin_v3.Certificates{
 				Certificates: []*envoy_admin_v3.Certificate{},
 			},
-			expectedError: "no certificates provided",
+			expectedError: "no certificates found",
 		},
-		{
+		"ca expired": {
 			certs: &envoy_admin_v3.Certificates{
 				Certificates: []*envoy_admin_v3.Certificate{
 					{
@@ -41,9 +41,9 @@ func TestValidateCerts(t *testing.T) {
 					},
 				},
 			},
-			expectedError: "Ca cert is expired",
+			expectedError: "ca certificate is expired",
 		},
-		{
+		"cert expired": {
 			certs: &envoy_admin_v3.Certificates{
 				Certificates: []*envoy_admin_v3.Certificate{
 					{
@@ -55,17 +55,27 @@ func TestValidateCerts(t *testing.T) {
 					},
 				},
 			},
-			expectedError: "cert chain is expired",
+			expectedError: "certificate chain is expired",
 		},
 	}
 
 	ts := Troubleshoot{}
-	for _, tc := range x {
-		err := ts.validateCerts(tc.certs)
-		if tc.expectedError != "" {
-			require.Error(t, err)
-			require.Contains(t, err.Error(), tc.expectedError)
-		}
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			messages := ts.validateCerts(tc.certs)
+
+			var outputErrors string
+			for _, msgError := range messages.Errors() {
+				outputErrors += msgError.Message
+				outputErrors += msgError.PossibleActions
+			}
+			if tc.expectedError == "" {
+				require.True(t, messages.Success())
+			} else {
+				require.Contains(t, outputErrors, tc.expectedError)
+			}
+
+		})
 	}
 
 }
