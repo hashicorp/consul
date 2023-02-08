@@ -147,7 +147,7 @@ func (t *Txn) Apply(args *structs.TxnRequest, reply *structs.TxnResponse) error 
 	defer metrics.MeasureSince([]string{"txn", "apply"}, time.Now())
 
 	// Run the pre-checks before we send the transaction into Raft.
-	authz, err := t.srv.ResolveTokenSecret(args.Token)
+	authz, err := t.srv.ResolveToken(args.Token)
 	if err != nil {
 		return err
 	}
@@ -191,7 +191,7 @@ func (t *Txn) Read(args *structs.TxnReadRequest, reply *structs.TxnReadResponse)
 	}
 
 	// Run the pre-checks before we perform the read.
-	authz, err := t.srv.ResolveTokenSecret(args.Token)
+	authz, err := t.srv.ResolveToken(args.Token)
 	if err != nil {
 		return err
 	}

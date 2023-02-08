@@ -60,7 +60,7 @@ func (s *ConnectCA) ConfigurationGet(
 	}
 
 	// This action requires operator read access.
-	authz, err := s.srv.ResolveTokenSecret(args.Token)
+	authz, err := s.srv.ResolveToken(args.Token)
 	if err != nil {
 		return err
 	}
@@ -92,7 +92,7 @@ func (s *ConnectCA) ConfigurationSet(
 	}
 
 	// This action requires operator write access.
-	authz, err := s.srv.ResolveTokenSecret(args.Token)
+	authz, err := s.srv.ResolveToken(args.Token)
 	if err != nil {
 		return err
 	}
@@ -149,7 +149,7 @@ func (s *ConnectCA) Sign(
 		return err
 	}
 
-	authz, err := s.srv.ResolveTokenSecret(args.Token)
+	authz, err := s.srv.ResolveToken(args.Token)
 	if err != nil {
 		return err
 	}
@@ -181,7 +181,7 @@ func (s *ConnectCA) SignIntermediate(
 	}
 
 	// This action requires operator write access.
-	authz, err := s.srv.ResolveTokenSecret(args.Token)
+	authz, err := s.srv.ResolveToken(args.Token)
 	if err != nil {
 		return err
 	}

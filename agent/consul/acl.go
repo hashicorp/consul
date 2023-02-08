@@ -1130,7 +1130,7 @@ func filterACL(r *ACLResolver, tokenSecretID string, subj interface{}) error {
 }
 
 type partitionInfoNoop struct{}
-git add
+
 func (p *partitionInfoNoop) ExportsForPartition(partition string) acl.ExportedServices {
 	return acl.ExportedServices{}
 }

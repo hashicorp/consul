@@ -78,7 +78,7 @@ func (p *PreparedQuery) Apply(args *structs.PreparedQueryRequest, reply *string)
 	*reply = args.Query.ID
 
 	// Get the ACL token for the request for the checks below.
-	authz, err := p.srv.ResolveTokenSecret(args.Token)
+	authz, err := p.srv.ResolveToken(args.Token)
 	if err != nil {
 		return err
 	}
