@@ -1193,7 +1193,8 @@ func (k ServiceKind) IsProxy() bool {
 	case ServiceKindConnectProxy,
 		ServiceKindMeshGateway,
 		ServiceKindTerminatingGateway,
-		ServiceKindIngressGateway:
+		ServiceKindIngressGateway,
+		ServiceKindAPIGateway:
 		return true
 	}
 	return false
@@ -1206,26 +1207,31 @@ const (
 	// default to the typical service.
 	ServiceKindTypical ServiceKind = ""
 
-	// ServiceKindConnectProxy is a proxy for the Connect feature. This
+	// ServiceKindConnectProxy is a proxy for the Consul Service Mesh. This
 	// service proxies another service within Consul and speaks the connect
 	// protocol.
 	ServiceKindConnectProxy ServiceKind = "connect-proxy"
 
-	// ServiceKindMeshGateway is a Mesh Gateway for the Connect feature. This
-	// service will proxy connections based off the SNI header set by other
+	// ServiceKindMeshGateway is a Mesh Gateway for the Consul Service Mesh.
+	// This service will proxy connections based off the SNI header set by other
 	// connect proxies
 	ServiceKindMeshGateway ServiceKind = "mesh-gateway"
 
-	// ServiceKindTerminatingGateway is a Terminating Gateway for the Connect
-	// feature. This service will proxy connections to services outside the mesh.
+	// ServiceKindTerminatingGateway is a Terminating Gateway for the Consul Service
+	// Mesh feature. This service will proxy connections to services outside the mesh.
 	ServiceKindTerminatingGateway ServiceKind = "terminating-gateway"
 
-	// ServiceKindIngressGateway is an Ingress Gateway for the Connect feature.
+	// ServiceKindIngressGateway is an Ingress Gateway for the Consul Service Mesh.
 	// This service allows external traffic to enter the mesh based on
 	// centralized configuration.
 	ServiceKindIngressGateway ServiceKind = "ingress-gateway"
 
-	// ServiceKindDestination is a Destination  for the Connect feature.
+	// ServiceKindAPIGateway is an API Gateway for the Consul Service Mesh.
+	// This service allows external traffic to enter the mesh based on
+	// centralized configuration.
+	ServiceKindAPIGateway ServiceKind = "api-gateway"
+
+	// ServiceKindDestination is a Destination  for the Consul Service Mesh feature.
 	// This service allows external traffic to exit the mesh through a terminating gateway
 	// based on centralized configuration.
 	ServiceKindDestination ServiceKind = "destination"
@@ -1424,7 +1430,8 @@ func (s *NodeService) IsSidecarProxy() bool {
 func (s *NodeService) IsGateway() bool {
 	return s.Kind == ServiceKindMeshGateway ||
 		s.Kind == ServiceKindTerminatingGateway ||
-		s.Kind == ServiceKindIngressGateway
+		s.Kind == ServiceKindIngressGateway ||
+		s.Kind == ServiceKindAPIGateway
 }
 
 // Validate validates the node service configuration.
