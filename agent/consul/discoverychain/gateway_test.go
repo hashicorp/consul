@@ -534,7 +534,8 @@ func TestGatewayChainSynthesizer_Synthesize(t *testing.T) {
 				tc.synthesizer.AddHTTPRoute(*httpRoute)
 			}
 
-			ingressServices, discoveryChain, err := tc.synthesizer.Synthesize(tc.chain, tc.extra...)
+			chains := append([]*structs.CompiledDiscoveryChain{tc.chain}, tc.extra...)
+			ingressServices, discoveryChain, err := tc.synthesizer.Synthesize(chains...)
 
 			require.NoError(t, err)
 			require.Equal(t, tc.expectedIngressServices, ingressServices)
