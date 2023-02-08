@@ -61,7 +61,7 @@ func APIGatewayListenerFromStructs(t *structs.APIGatewayListener, s *APIGatewayL
 	s.Name = t.Name
 	s.Hostname = t.Hostname
 	s.Port = int32(t.Port)
-	s.Protocol = apiGatewayProtocolFromStructs(t.Protocol)
+	s.Protocol = (t.Protocol)
 	{
 		var x APIGatewayTLSConfiguration
 		APIGatewayTLSConfigurationFromStructs(&t.TLS, &x)
@@ -364,6 +364,14 @@ func HTTPFiltersToStructs(s *HTTPFilters, t *structs.HTTPFilters) {
 			}
 		}
 	}
+	{
+		t.URLRewrites = make([]structs.URLRewrite, len(s.URLRewrites))
+		for i := range s.URLRewrites {
+			if s.URLRewrites[i] != nil {
+				URLRewriteToStructs(s.URLRewrites[i], &t.URLRewrites[i])
+			}
+		}
+	}
 }
 func HTTPFiltersFromStructs(t *structs.HTTPFilters, s *HTTPFilters) {
 	if s == nil {
@@ -376,6 +384,16 @@ func HTTPFiltersFromStructs(t *structs.HTTPFilters, s *HTTPFilters) {
 				var x HTTPHeaderFilter
 				HTTPHeaderFilterFromStructs(&t.Headers[i], &x)
 				s.Headers[i] = &x
+			}
+		}
+	}
+	{
+		s.URLRewrites = make([]*URLRewrite, len(t.URLRewrites))
+		for i := range t.URLRewrites {
+			{
+				var x URLRewrite
+				URLRewriteFromStructs(&t.URLRewrites[i], &x)
+				s.URLRewrites[i] = &x
 			}
 		}
 	}
@@ -1152,7 +1170,7 @@ func PassiveHealthCheckFromStructs(t *structs.PassiveHealthCheck, s *PassiveHeal
 	}
 	s.Interval = structs.DurationToProto(t.Interval)
 	s.MaxFailures = t.MaxFailures
-	s.EnforcingConsecutive5Xx = uint32FromPointerToUint32(t.EnforcingConsecutive5xx)
+	s.EnforcingConsecutive5Xx = (t.EnforcingConsecutive5xx)
 }
 func PeeringMeshConfigToStructs(s *PeeringMeshConfig, t *structs.PeeringMeshConfig) {
 	if s == nil {
@@ -1520,7 +1538,7 @@ func SourceIntentionFromStructs(t *structs.SourceIntention, s *SourceIntention) 
 	}
 	s.Precedence = int32(t.Precedence)
 	s.LegacyID = t.LegacyID
-	s.Type = intentionSourceTypeFromStructs(t.Type)
+	s.Type = (t.Type)
 	s.Description = t.Description
 	s.LegacyMeta = t.LegacyMeta
 	s.LegacyCreateTime = timeFromStructs(t.LegacyCreateTime)
@@ -1653,6 +1671,18 @@ func TransparentProxyMeshConfigFromStructs(t *structs.TransparentProxyMeshConfig
 		return
 	}
 	s.MeshDestinationsOnly = t.MeshDestinationsOnly
+}
+func URLRewriteToStructs(s *URLRewrite, t *structs.URLRewrite) {
+	if s == nil {
+		return
+	}
+	t.Path = s.Path
+}
+func URLRewriteFromStructs(t *structs.URLRewrite, s *URLRewrite) {
+	if s == nil {
+		return
+	}
+	s.Path = t.Path
 }
 func UpstreamConfigToStructs(s *UpstreamConfig, t *structs.UpstreamConfig) {
 	if s == nil {
