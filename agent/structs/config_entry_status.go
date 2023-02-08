@@ -131,7 +131,6 @@ func (c *Condition) IsSame(other *Condition) bool {
 type StatusUpdater struct {
 	entry  ControlledConfigEntry
 	status Status
-	dirty  bool
 }
 
 func NewStatusUpdater(entry ControlledConfigEntry) *StatusUpdater {
@@ -148,7 +147,6 @@ func (u *StatusUpdater) SetCondition(condition Condition) {
 			if !c.IsSame(&condition) {
 				// the conditions aren't identical, merge this one in
 				u.status.Conditions[i] = condition
-				u.dirty = true
 			}
 			// we either set the condition or it was already set, so
 			// just return
@@ -156,7 +154,6 @@ func (u *StatusUpdater) SetCondition(condition Condition) {
 		}
 	}
 	u.status.Conditions = append(u.status.Conditions, condition)
-	u.dirty = true
 }
 
 func (u *StatusUpdater) ClearConditions() {
@@ -166,10 +163,7 @@ func (u *StatusUpdater) ClearConditions() {
 func (u *StatusUpdater) RemoveCondition(condition Condition) {
 	filtered := []Condition{}
 	for _, c := range u.status.Conditions {
-		if c.IsCondition(&condition) {
-			// remove the condition and flag this as updated
-			u.dirty = true
-		} else {
+		if !c.IsCondition(&condition) {
 			filtered = append(filtered, c)
 		}
 	}
@@ -177,7 +171,7 @@ func (u *StatusUpdater) RemoveCondition(condition Condition) {
 }
 
 func (u *StatusUpdater) UpdateEntry() (ControlledConfigEntry, bool) {
-	if !u.dirty {
+	if u.status.SameConditions(u.entry.GetStatus()) {
 		return nil, false
 	}
 	u.entry.SetStatus(u.status)
