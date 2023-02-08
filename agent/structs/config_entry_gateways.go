@@ -915,6 +915,27 @@ type BoundAPIGatewayConfigEntry struct {
 	RaftIndex
 }
 
+// IsInitializedForGateway returns whether or not this bound api gateway is initialized with the given api gateway
+// including having corresponding listener entries for the gateway.
+func (e *BoundAPIGatewayConfigEntry) IsInitializedForGateway(gateway *APIGatewayConfigEntry) bool {
+	if e.Name != gateway.Name || !e.EnterpriseMeta.IsSame(&gateway.EnterpriseMeta) {
+		return false
+	}
+
+	// ensure that this has the same listener data (i.e. it's been reconciled)
+	if len(gateway.Listeners) != len(e.Listeners) {
+		return false
+	}
+
+	for i, listener := range e.Listeners {
+		if listener.Name != gateway.Listeners[i].Name {
+			return false
+		}
+	}
+
+	return true
+}
+
 func (e *BoundAPIGatewayConfigEntry) GetKind() string {
 	return BoundAPIGateway
 }
@@ -1002,21 +1023,43 @@ type BoundAPIGatewayListener struct {
 	Certificates []ResourceReference
 }
 
+func sameResources(first, second []ResourceReference) bool {
+	if len(first) != len(second) {
+		return false
+	}
+	for _, firstRef := range first {
+		found := false
+		for _, secondRef := range second {
+			if firstRef.IsSame(&secondRef) {
+				found = true
+				break
+			}
+		}
+		if !found {
+			return false
+		}
+	}
+	return true
+}
+
+func (l BoundAPIGatewayListener) IsSame(other BoundAPIGatewayListener) bool {
+	if l.Name != other.Name {
+		return false
+	}
+	if !sameResources(l.Certificates, other.Certificates) {
+		return false
+	}
+	return sameResources(l.Routes, other.Routes)
+}
+
 // BindRoute is used to create or update a route on the listener.
 // It returns true if the route was able to be bound to the listener.
 // Routes should only bind to listeners with their same section name
 // and protocol. Be sure to check both of these before attempting
 // to bind a route to the listener.
-func (l *BoundAPIGatewayListener) BindRoute(route BoundRoute) bool {
+func (l *BoundAPIGatewayListener) BindRoute(routeRef ResourceReference) bool {
 	if l == nil {
 		return false
-	}
-
-	// Convert the abstract route interface to a ResourceReference.
-	routeRef := ResourceReference{
-		Kind:           route.GetKind(),
-		Name:           route.GetName(),
-		EnterpriseMeta: *route.GetEnterpriseMeta(),
 	}
 
 	// If the listener has no routes, create a new slice of routes with the given route.
@@ -1039,13 +1082,13 @@ func (l *BoundAPIGatewayListener) BindRoute(route BoundRoute) bool {
 	return true
 }
 
-func (l *BoundAPIGatewayListener) UnbindRoute(route BoundRoute) bool {
+func (l *BoundAPIGatewayListener) UnbindRoute(route ResourceReference) bool {
 	if l == nil {
 		return false
 	}
 
 	for i, listenerRoute := range l.Routes {
-		if listenerRoute.Kind == route.GetKind() && listenerRoute.Name == route.GetName() && listenerRoute.EnterpriseMeta.IsSame(route.GetEnterpriseMeta()) {
+		if listenerRoute.Kind == route.Kind && listenerRoute.Name == route.Name && listenerRoute.EnterpriseMeta.IsSame(&route.EnterpriseMeta) {
 			l.Routes = append(l.Routes[:i], l.Routes[i+1:]...)
 			return true
 		}
@@ -1053,3 +1096,9 @@ func (l *BoundAPIGatewayListener) UnbindRoute(route BoundRoute) bool {
 
 	return false
 }
+
+func (e *BoundAPIGatewayConfigEntry) GetStatus() Status {
+	return Status{}
+}
+func (e *BoundAPIGatewayConfigEntry) SetStatus(status Status) {}
+func (e *BoundAPIGatewayConfigEntry) DefaultStatus() Status   { return Status{} }
