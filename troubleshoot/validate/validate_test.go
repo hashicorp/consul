@@ -171,6 +171,28 @@ func TestErrors(t *testing.T) {
 			},
 			err: "no healthy endpoints for aggregate cluster \"db-sni\" for upstream \"db\"",
 		},
+		"success: passthrough cluster doesn't error even though there are zero endpoints": {
+			validate: func() *Validate {
+				return &Validate{
+					envoyID: "db",
+					snis: map[string]struct{}{
+						"passthrough~db-sni": {},
+					},
+					listener: true,
+					usesRDS:  true,
+					route:    true,
+					resources: map[string]*resource{
+						"passthrough~db-sni": {
+							required: true,
+							cluster:  true,
+						},
+					},
+				}
+			},
+			endpointValidator: func(r *resource, s string, clusters *envoy_admin_v3.Clusters) {
+				r.loadAssignment = true
+			},
+		},
 	}
 
 	for n, tc := range cases {
