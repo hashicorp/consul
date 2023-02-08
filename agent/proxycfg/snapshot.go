@@ -647,12 +647,12 @@ type configSnapshotAPIGateway struct {
 	// GatewayConfigLoaded is used to determine if we have received the initial
 	// api-gateway config entry yet.
 	GatewayConfigLoaded bool
-	GatewayConfig *structs.APIGatewayConfigEntry
+	GatewayConfig       *structs.APIGatewayConfigEntry
 
 	// BoundGatewayConfigLoaded is used to determine if we have received the initial
 	// bound-api-gateway config entry yet.
 	BoundGatewayConfigLoaded bool
-	BoundGatewayConfig *structs.BoundAPIGatewayConfigEntry
+	BoundGatewayConfig       *structs.BoundAPIGatewayConfigEntry
 
 	// Hosts is the list of extra host entries to add to our leaf cert's DNS SANs
 	Hosts    []string
