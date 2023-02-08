@@ -229,7 +229,7 @@ func (h *handlerAPIGateway) handleGatewayConfigUpdate(ctx context.Context, u Upd
 }
 
 // handleInlineCertConfigUpdate stores the certificate for the gateway
-func (h *handlerAPIGateway) handleInlineCertConfigUpdate(ctx context.Context, u UpdateEvent, snap *ConfigSnapshot) error {
+func (h *handlerAPIGateway) handleInlineCertConfigUpdate(_ context.Context, u UpdateEvent, snap *ConfigSnapshot) error {
 	resp, ok := u.Result.(*structs.ConfigEntryResponse)
 	if !ok {
 		return fmt.Errorf("invalid type for response: %T", u.Result)
@@ -250,7 +250,6 @@ func (h *handlerAPIGateway) handleInlineCertConfigUpdate(ctx context.Context, u 
 
 	snap.APIGateway.Certificates.Set(ref, cfg)
 
-	// TODO
 	return nil
 }
 
@@ -270,7 +269,7 @@ func (h *handlerAPIGateway) handleRouteConfigUpdate(ctx context.Context, u Updat
 		Name: resp.Entry.GetName(),
 	}
 
-	seenUpstreamIDs := make(map[UpstreamID]any)
+	seenUpstreamIDs := make(map[UpstreamID]struct{})
 	upstreams := make(map[APIGatewayListenerKey]structs.Upstreams)
 
 	switch route := resp.Entry.(type) {
@@ -383,7 +382,7 @@ func (h *handlerAPIGateway) handleRouteConfigUpdate(ctx context.Context, u Updat
 	snap.APIGateway.Upstreams = upstreams
 	snap.APIGateway.UpstreamsSet = seenUpstreamIDs
 	//snap.APIGateway.Hosts = TODO
-	snap.APIGateway.HostsSet = true
+	snap.APIGateway.AreHostsSet = true
 
 	// Stop watching any upstreams and discovery chains that have become irrelevant
 	for upstreamID, cancelDiscoChain := range snap.APIGateway.WatchedDiscoveryChains {

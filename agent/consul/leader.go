@@ -334,6 +334,10 @@ func (s *Server) establishLeadership(ctx context.Context) error {
 
 	s.setConsistentReadReady()
 
+	if s.config.LogStoreConfig.Verification.Enabled {
+		s.startLogVerification(ctx)
+	}
+
 	s.logger.Debug("successfully established leadership", "duration", time.Since(start))
 	return nil
 }
@@ -341,6 +345,9 @@ func (s *Server) establishLeadership(ctx context.Context) error {
 // revokeLeadership is invoked once we step down as leader.
 // This is used to cleanup any state that may be specific to a leader.
 func (s *Server) revokeLeadership() {
+
+	s.stopLogVerification()
+
 	// Disable the tombstone GC, since it is only useful as a leader
 	s.tombstoneGC.SetEnabled(false)
 

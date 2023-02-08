@@ -9,9 +9,10 @@ import (
 // BoundRoute indicates a route that has parent gateways which
 // can be accessed by calling the GetParents associated function.
 type BoundRoute interface {
-	ConfigEntry
+	ControlledConfigEntry
 	GetParents() []ResourceReference
 	GetProtocol() APIGatewayListenerProtocol
+	GetServiceNames() []ServiceName
 }
 
 // HTTPRouteConfigEntry manages the configuration for a HTTP route
@@ -39,7 +40,7 @@ type HTTPRouteConfigEntry struct {
 	RaftIndex
 }
 
-func (e *HTTPRouteConfigEntry) GetTargets() []HTTPService {
+func (e *HTTPRouteConfigEntry) GetServices() []HTTPService {
 	targets := []HTTPService{}
 	for _, rule := range e.Rules {
 		for _, service := range rule.Services {
@@ -47,6 +48,14 @@ func (e *HTTPRouteConfigEntry) GetTargets() []HTTPService {
 		}
 	}
 	return targets
+}
+
+func (e *HTTPRouteConfigEntry) GetServiceNames() []ServiceName {
+	services := []ServiceName{}
+	for _, service := range e.GetServices() {
+		services = append(services, NewServiceName(service.Name, &service.EnterpriseMeta))
+	}
+	return services
 }
 
 func (e *HTTPRouteConfigEntry) GetKind() string {
@@ -64,8 +73,7 @@ func (e *HTTPRouteConfigEntry) GetParents() []ResourceReference {
 	if e == nil {
 		return []ResourceReference{}
 	}
-	// TODO HTTP Route should have "parents". Andrew will implement this in his work.
-	return []ResourceReference{}
+	return e.Parents
 }
 
 func (e *HTTPRouteConfigEntry) GetProtocol() APIGatewayListenerProtocol {
@@ -283,8 +291,16 @@ type TCPRouteConfigEntry struct {
 	RaftIndex
 }
 
-func (e *TCPRouteConfigEntry) GetTargets() []TCPService {
+func (e *TCPRouteConfigEntry) GetServices() []TCPService {
 	return e.Services
+}
+
+func (e *TCPRouteConfigEntry) GetServiceNames() []ServiceName {
+	services := []ServiceName{}
+	for _, service := range e.Services {
+		services = append(services, NewServiceName(service.Name, &service.EnterpriseMeta))
+	}
+	return services
 }
 
 func (e *TCPRouteConfigEntry) GetKind() string {

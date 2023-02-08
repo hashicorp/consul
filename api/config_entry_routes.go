@@ -121,6 +121,9 @@ type HTTPRouteConfigEntry struct {
 	// Namespace is the namespace the config entry is associated with.
 	// Namespacing is a Consul Enterprise feature.
 	Namespace string `json:",omitempty"`
+
+	// Status is the asynchronous status which an HTTPRoute propagates to the user.
+	Status ConfigEntryStatus
 }
 
 func (r *HTTPRouteConfigEntry) GetKind() string            { return HTTPRoute }

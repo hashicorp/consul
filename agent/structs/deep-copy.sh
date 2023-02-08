@@ -7,6 +7,8 @@ cd $PACKAGE_DIR
 deep-copy \
   -pointer-receiver \
   -o ./structs.deepcopy.go \
+  -type APIGatewayListener \
+  -type BoundAPIGatewayListener \
   -type CARoot \
   -type CheckServiceNode \
   -type CheckType \
@@ -48,4 +50,6 @@ deep-copy \
   -type TCPRouteConfigEntry \
   -type Upstream \
   -type UpstreamConfiguration \
+  -type Status \
+  -type BoundAPIGatewayConfigEntry \
   ./

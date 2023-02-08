@@ -597,12 +597,13 @@ message Status {
 // output=config_entry.gen.go
 // name=Structs
 message Condition {
-  string Status = 1;
-  string Reason = 2;
-  string Message = 3;
-  ResourceReference Resource = 4;
+  string Type = 1;
+  string Status = 2;
+  string Reason = 3;
+  string Message = 4;
+  ResourceReference Resource = 5;
   // mog: func-to=timeToStructs func-from=timeFromStructs
-  google.protobuf.Timestamp LastTransitionTime = 5;
+  google.protobuf.Timestamp LastTransitionTime = 6;
 }
 
 enum APIGatewayListenerProtocol {

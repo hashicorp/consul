@@ -659,12 +659,12 @@ type configSnapshotAPIGateway struct {
 	BoundGatewayConfig       *structs.BoundAPIGatewayConfigEntry
 
 	// Hosts is the list of extra host entries to add to our leaf cert's DNS SANs
-	Hosts    []string
-	HostsSet bool
+	Hosts       []string
+	AreHostsSet bool
 
 	// LeafCertWatchCancel is a CancelFunc to use when refreshing this gateway's
 	// leaf cert watch with different parameters.
-	LeafCertWatchCancel context.CancelFunc
+	//LeafCertWatchCancel context.CancelFunc
 
 	// Upstreams is a list of upstreams this ingress gateway should serve traffic
 	// to. This is constructed from the ingress-gateway config entry, and uses
@@ -674,7 +674,7 @@ type configSnapshotAPIGateway struct {
 	Upstreams map[IngressListenerKey]structs.Upstreams
 
 	// UpstreamsSet is the unique set of UpstreamID the gateway routes to.
-	UpstreamsSet map[UpstreamID]any
+	UpstreamsSet map[UpstreamID]struct{}
 
 	HTTPRoutes   watch.Map[structs.ResourceReference, *structs.HTTPRouteConfigEntry]
 	TCPRoutes    watch.Map[structs.ResourceReference, *structs.TCPRouteConfigEntry]
@@ -932,7 +932,7 @@ func (s *ConfigSnapshot) Valid() bool {
 		return s.Roots != nil &&
 			s.APIGateway.GatewayConfigLoaded &&
 			s.APIGateway.BoundGatewayConfigLoaded &&
-			s.APIGateway.HostsSet &&
+			s.APIGateway.AreHostsSet &&
 			s.APIGateway.MeshConfigSet
 	default:
 		return false
@@ -972,8 +972,10 @@ func (s *ConfigSnapshot) Clone() *ConfigSnapshot {
 		snap.APIGateway.WatchedUpstreams = nil
 		snap.APIGateway.WatchedGateways = nil
 		snap.APIGateway.WatchedDiscoveryChains = nil
+
 		// only api-gateway
-		snap.APIGateway.LeafCertWatchCancel = nil
+		//snap.APIGateway.LeafCertWatchCancel = nil
+		//snap.APIGateway.
 	}
 
 	return snap

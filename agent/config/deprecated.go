@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 
+	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/types"
 )
 
@@ -74,6 +75,9 @@ type DeprecatedConfig struct {
 
 	// DEPRECATED(JOIN) - replaced by retry_join_wan
 	StartJoinAddrsWAN []string `mapstructure:"start_join_wan"`
+
+	// DEPRECATED see RaftLogStore
+	RaftBoltDBConfig *consul.RaftBoltDBConfig `mapstructure:"raft_boltdb" json:"-"`
 }
 
 func applyDeprecatedConfig(d *decodeTarget) (Config, []string) {
@@ -186,6 +190,13 @@ func applyDeprecatedConfig(d *decodeTarget) (Config, []string) {
 	if len(dep.StartJoinAddrsWAN) > 0 {
 		d.Config.RetryJoinWAN = append(d.Config.RetryJoinWAN, dep.StartJoinAddrsWAN...)
 		warns = append(warns, deprecationWarning("start_join_wan", "retry_join_wan"))
+	}
+
+	if dep.RaftBoltDBConfig != nil {
+		if d.Config.RaftLogStore.BoltDBConfig.NoFreelistSync == nil {
+			d.Config.RaftLogStore.BoltDBConfig.NoFreelistSync = &dep.RaftBoltDBConfig.NoFreelistSync
+		}
+		warns = append(warns, deprecationWarning("raft_boltdb", "raft_logstore.boltdb"))
 	}
 
 	warns = append(warns, applyDeprecatedTLSConfig(dep, &d.Config)...)
