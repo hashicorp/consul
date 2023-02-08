@@ -244,6 +244,10 @@ type HTTPService struct {
 	acl.EnterpriseMeta
 }
 
+func (s HTTPService) ServiceName() ServiceName {
+	return NewServiceName(s.Name, &s.EnterpriseMeta)
+}
+
 var _ ControlledConfigEntry = (*HTTPRouteConfigEntry)(nil)
 
 func (e *HTTPRouteConfigEntry) GetStatus() Status {
@@ -397,4 +401,8 @@ type TCPService struct {
 	Weight int
 
 	acl.EnterpriseMeta
+}
+
+func (s TCPService) ServiceName() ServiceName {
+	return NewServiceName(s.Name, &s.EnterpriseMeta)
 }

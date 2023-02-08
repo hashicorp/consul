@@ -639,6 +639,65 @@ func (c *configSnapshotMeshGateway) isEmptyPeering() bool {
 		!c.PeeringTrustBundlesSet
 }
 
+type configSnapshotAPIGateway struct {
+	ConfigSnapshotUpstreams
+
+	TLSConfig structs.GatewayTLSConfig
+
+	// GatewayConfigLoaded is used to determine if we have received the initial
+	// api-gateway config entry yet.
+	GatewayConfigLoaded bool
+	GatewayConfig       *structs.APIGatewayConfigEntry
+
+	// BoundGatewayConfigLoaded is used to determine if we have received the initial
+	// bound-api-gateway config entry yet.
+	BoundGatewayConfigLoaded bool
+	BoundGatewayConfig       *structs.BoundAPIGatewayConfigEntry
+
+	// Hosts is the list of extra host entries to add to our leaf cert's DNS SANs
+	Hosts       []string
+	AreHostsSet bool
+
+	// LeafCertWatchCancel is a CancelFunc to use when refreshing this gateway's
+	// leaf cert watch with different parameters.
+	//LeafCertWatchCancel context.CancelFunc
+
+	// Upstreams is a list of upstreams this ingress gateway should serve traffic
+	// to. This is constructed from the ingress-gateway config entry, and uses
+	// the GatewayServices RPC to retrieve them.
+	// TODO Determine if this is updated "for free" or not. If not, we might need
+	//   to do some work to populate it in handlerAPIGateway
+	Upstreams map[IngressListenerKey]structs.Upstreams
+
+	// UpstreamsSet is the unique set of UpstreamID the gateway routes to.
+	UpstreamsSet map[UpstreamID]struct{}
+
+	HTTPRoutes   watch.Map[structs.ResourceReference, *structs.HTTPRouteConfigEntry]
+	TCPRoutes    watch.Map[structs.ResourceReference, *structs.TCPRouteConfigEntry]
+	Certificates watch.Map[structs.ResourceReference, *structs.InlineCertificateConfigEntry]
+
+	// Listeners is the original listener config from the api-gateway config
+	// entry to save us trying to pass fields through Upstreams
+	Listeners map[string]structs.APIGatewayListener
+
+	BoundListeners map[string]structs.BoundAPIGatewayListener
+}
+
+// ToIngress converts a configSnapshotAPIGateway to a configSnapshotIngressGateway.
+// This is temporary, for the sake of re-using existing codepaths when integrating
+// Consul API Gateway into Consul core.
+//
+// FUTURE: Remove when API gateways have custom snapshot generation
+func (c *configSnapshotAPIGateway) ToIngress() configSnapshotIngressGateway {
+
+	return configSnapshotIngressGateway{
+		ConfigSnapshotUpstreams: c.ConfigSnapshotUpstreams,
+		// TODO Build from c.Listeners
+		// Listeners:
+		Defaults: structs.IngressServiceConfig{},
+	}
+}
+
 type configSnapshotIngressGateway struct {
 	ConfigSnapshotUpstreams
 
@@ -687,6 +746,8 @@ func (c *configSnapshotIngressGateway) isEmpty() bool {
 		!c.MeshConfigSet
 }
 
+type APIGatewayListenerKey = IngressListenerKey
+
 type IngressListenerKey struct {
 	Protocol string
 	Port     int
@@ -734,6 +795,9 @@ type ConfigSnapshot struct {
 
 	// ingress-gateway specific
 	IngressGateway configSnapshotIngressGateway
+
+	// api-gateway specific
+	APIGateway configSnapshotAPIGateway
 }
 
 // Valid returns whether or not the snapshot has all required fields filled yet.
@@ -773,6 +837,14 @@ func (s *ConfigSnapshot) Valid() bool {
 			s.IngressGateway.GatewayConfigLoaded &&
 			s.IngressGateway.HostsSet &&
 			s.IngressGateway.MeshConfigSet
+
+	case structs.ServiceKindAPIGateway:
+		// TODO Is this the proper set of things to validate?
+		return s.Roots != nil &&
+			s.APIGateway.GatewayConfigLoaded &&
+			s.APIGateway.BoundGatewayConfigLoaded &&
+			s.APIGateway.AreHostsSet &&
+			s.APIGateway.MeshConfigSet
 	default:
 		return false
 	}
@@ -806,6 +878,15 @@ func (s *ConfigSnapshot) Clone() *ConfigSnapshot {
 		snap.IngressGateway.WatchedDiscoveryChains = nil
 		// only ingress-gateway
 		snap.IngressGateway.LeafCertWatchCancel = nil
+	case structs.ServiceKindAPIGateway:
+		// common with connect-proxy and api-gateway
+		snap.APIGateway.WatchedUpstreams = nil
+		snap.APIGateway.WatchedGateways = nil
+		snap.APIGateway.WatchedDiscoveryChains = nil
+
+		// only api-gateway
+		//snap.APIGateway.LeafCertWatchCancel = nil
+		//snap.APIGateway.
 	}
 
 	return snap
@@ -817,6 +898,8 @@ func (s *ConfigSnapshot) Leaf() *structs.IssuedCert {
 		return s.ConnectProxy.Leaf
 	case structs.ServiceKindIngressGateway:
 		return s.IngressGateway.Leaf
+	case structs.ServiceKindAPIGateway:
+		return s.APIGateway.Leaf
 	case structs.ServiceKindMeshGateway:
 		return s.MeshGateway.Leaf
 	default:
@@ -850,6 +933,8 @@ func (s *ConfigSnapshot) MeshConfig() *structs.MeshConfigEntry {
 		return s.ConnectProxy.MeshConfig
 	case structs.ServiceKindIngressGateway:
 		return s.IngressGateway.MeshConfig
+	case structs.ServiceKindAPIGateway:
+		return s.APIGateway.MeshConfig
 	case structs.ServiceKindTerminatingGateway:
 		return s.TerminatingGateway.MeshConfig
 	case structs.ServiceKindMeshGateway:
@@ -881,6 +966,8 @@ func (s *ConfigSnapshot) ToConfigSnapshotUpstreams() (*ConfigSnapshotUpstreams, 
 		return &s.ConnectProxy.ConfigSnapshotUpstreams, nil
 	case structs.ServiceKindIngressGateway:
 		return &s.IngressGateway.ConfigSnapshotUpstreams, nil
+	case structs.ServiceKindAPIGateway:
+		return &s.APIGateway.ConfigSnapshotUpstreams, nil
 	default:
 		// This is a coherence check and should never fail
 		return nil, fmt.Errorf("No upstream snapshot for gateway mode %q", s.Kind)
