@@ -23,6 +23,9 @@ import (
 	"github.com/hashicorp/raft"
 	autopilot "github.com/hashicorp/raft-autopilot"
 	raftboltdb "github.com/hashicorp/raft-boltdb/v2"
+	raftwal "github.com/hashicorp/raft-wal"
+	walmetrics "github.com/hashicorp/raft-wal/metrics"
+	"github.com/hashicorp/raft-wal/verifier"
 	"github.com/hashicorp/serf/serf"
 	"go.etcd.io/bbolt"
 	"golang.org/x/time/rate"
@@ -134,6 +137,7 @@ const (
 	peeringStreamsRoutineName             = "streaming peering resources"
 	peeringDeletionRoutineName            = "peering deferred deletion"
 	peeringStreamsMetricsRoutineName      = "metrics for streaming peering resources"
+	raftLogVerifierRoutineName            = "raft log verifier"
 )
 
 var (
@@ -144,6 +148,13 @@ const (
 	PoolKindPartition = "partition"
 	PoolKindSegment   = "segment"
 )
+
+// raftStore combines LogStore and io.Closer since we need both but have
+// multiple LogStore implementations that need closing too.
+type raftStore interface {
+	raft.LogStore
+	io.Closer
+}
 
 const requestLimitsBurstMultiplier = 10
 
@@ -228,7 +239,7 @@ type Server struct {
 	// the state directly.
 	raft          *raft.Raft
 	raftLayer     *RaftLayer
-	raftStore     *raftboltdb.BoltStore
+	raftStore     raftStore
 	raftTransport *raft.NetworkTransport
 	raftInmem     *raft.InmemStore
 
@@ -964,24 +975,68 @@ func (s *Server) setupRaft() error {
 			return err
 		}
 
-		// Create the backend raft store for logs and stable storage.
-		store, err := raftboltdb.New(raftboltdb.Options{
-			BoltOptions: &bbolt.Options{
-				NoFreelistSync: s.config.RaftBoltDBConfig.NoFreelistSync,
-			},
-			Path: filepath.Join(path, "raft.db"),
-		})
+		boltDBFile := filepath.Join(path, "raft.db")
+		boltFileExists, err := fileExists(boltDBFile)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed trying to see if raft.db exists not sure how to continue: %w", err)
 		}
-		s.raftStore = store
-		stable = store
 
-		// start publishing boltdb metrics
-		go store.RunMetrics(&lib.StopChannelContext{StopCh: s.shutdownCh}, 0)
+		// Only use WAL if there is no existing raft.db, even if it's enabled.
+		if s.config.LogStoreConfig.Backend == LogStoreBackendWAL && !boltFileExists {
+			walDir := filepath.Join(path, "wal")
+			if err := os.MkdirAll(walDir, 0755); err != nil {
+				return err
+			}
+
+			mc := walmetrics.NewGoMetricsCollector([]string{"raft", "wal"}, nil, nil)
+
+			wal, err := raftwal.Open(walDir,
+				raftwal.WithSegmentSize(s.config.LogStoreConfig.WAL.SegmentSize),
+				raftwal.WithMetricsCollector(mc),
+			)
+			if err != nil {
+				return fmt.Errorf("fail to open write-ahead-log: %w", err)
+			}
+
+			s.raftStore = wal
+			log = wal
+			stable = wal
+		} else {
+			if s.config.LogStoreConfig.Backend == LogStoreBackendWAL {
+				// User configured the new storage, but still has old raft.db. Warn
+				// them!
+				s.logger.Warn("BoltDB file raft.db found, IGNORING raft_logstore.backend which is set to 'wal'")
+			}
+
+			// Create the backend raft store for logs and stable storage.
+			store, err := raftboltdb.New(raftboltdb.Options{
+				BoltOptions: &bbolt.Options{
+					NoFreelistSync: s.config.LogStoreConfig.BoltDB.NoFreelistSync,
+				},
+				Path: boltDBFile,
+			})
+			if err != nil {
+				return err
+			}
+			s.raftStore = store
+			log = store
+			stable = store
+
+			// start publishing boltdb metrics
+			go store.RunMetrics(&lib.StopChannelContext{StopCh: s.shutdownCh}, 0)
+		}
+
+		// See if log verification is enabled
+		if s.config.LogStoreConfig.Verification.Enabled {
+			mc := walmetrics.NewGoMetricsCollector([]string{"raft", "logstore", "verifier"}, nil, nil)
+			reportFn := makeLogVerifyReportFn(s.logger.Named("raft.logstore.verifier"))
+			verifier := verifier.NewLogStore(log, isLogVerifyCheckpoint, reportFn, mc)
+			s.raftStore = verifier
+			log = verifier
+		}
 
 		// Wrap the store in a LogCache to improve performance.
-		cacheStore, err := raft.NewLogCache(raftLogCacheSize, store)
+		cacheStore, err := raft.NewLogCache(raftLogCacheSize, log)
 		if err != nil {
 			return err
 		}
@@ -1845,6 +1900,20 @@ func (s *Server) hcpServerStatus(deps Deps) hcp.StatusCallback {
 
 		return status, nil
 	}
+}
+
+func fileExists(name string) (bool, error) {
+	_, err := os.Stat(name)
+	if err == nil {
+		// File exists!
+		return true, nil
+	}
+	if errors.Is(err, os.ErrNotExist) {
+		return false, nil
+	}
+	// We hit some other error trying to stat the file which leaves us in an
+	// unknown state so we can't proceed.
+	return false, err
 }
 
 func ConfiguredIncomingRPCLimiter(ctx context.Context, serverLogger hclog.InterceptLogger, consulCfg *Config) *rpcRate.Handler {

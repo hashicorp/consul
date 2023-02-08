@@ -978,7 +978,7 @@ type RuntimeConfig struct {
 	// hcl: raft_trailing_logs = int
 	RaftTrailingLogs int
 
-	RaftBoltDBConfig consul.RaftBoltDBConfig
+	RaftLogStoreConfig consul.RaftLogStoreConfig
 
 	// ReconnectTimeoutLAN specifies the amount of time to wait to reconnect with
 	// another agent before deciding it's permanently gone. This can be used to

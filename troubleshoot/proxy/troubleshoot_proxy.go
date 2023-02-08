@@ -5,17 +5,18 @@ import (
 	"net"
 
 	envoy_admin_v3 "github.com/envoyproxy/go-control-plane/envoy/admin/v3"
+
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/go-multierror"
-	"google.golang.org/protobuf/proto"
 )
 
 const (
-	listeners string = "type.googleapis.com/envoy.admin.v3.ListenersConfigDump"
-	clusters  string = "type.googleapis.com/envoy.admin.v3.ClustersConfigDump"
-	routes    string = "type.googleapis.com/envoy.admin.v3.RoutesConfigDump"
-	endpoints string = "type.googleapis.com/envoy.admin.v3.EndpointsConfigDump"
-	bootstrap string = "type.googleapis.com/envoy.admin.v3.BootstrapConfigDump"
+	listeners       string = "type.googleapis.com/envoy.admin.v3.ListenersConfigDump"
+	clusters        string = "type.googleapis.com/envoy.admin.v3.ClustersConfigDump"
+	routes          string = "type.googleapis.com/envoy.admin.v3.RoutesConfigDump"
+	endpoints       string = "type.googleapis.com/envoy.admin.v3.EndpointsConfigDump"
+	bootstrap       string = "type.googleapis.com/envoy.admin.v3.BootstrapConfigDump"
+	httpConnManager string = "type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager"
 )
 
 type Troubleshoot struct {
@@ -94,36 +95,4 @@ func (t *Troubleshoot) RunAllTests(envoyID string) ([]string, error) {
 		resultErr = multierror.Append(resultErr, fmt.Errorf("unable to validate proxy config: %v", err))
 	}
 	return output, resultErr
-}
-
-func (t *Troubleshoot) GetUpstreams() ([]string, error) {
-
-	upstreams := []string{}
-
-	err := t.GetEnvoyConfigDump()
-	if err != nil {
-		return nil, err
-	}
-
-	for _, cfg := range t.envoyConfigDump.Configs {
-		switch cfg.TypeUrl {
-		case listeners:
-			lcd := &envoy_admin_v3.ListenersConfigDump{}
-
-			err := proto.Unmarshal(cfg.GetValue(), lcd)
-			if err != nil {
-				return nil, err
-			}
-
-			for _, listener := range lcd.GetDynamicListeners() {
-				upstream := envoyID(listener.Name)
-				if upstream != "" && upstream != "public_listener" &&
-					upstream != "outbound_listener" &&
-					upstream != "inbound_listener" {
-					upstreams = append(upstreams, upstream)
-				}
-			}
-		}
-	}
-	return upstreams, nil
 }
