@@ -54,7 +54,6 @@ func (t *Troubleshoot) GetEnvoyConfigDump() error {
 	if err != nil {
 		return err
 	}
-	// TODO: validate here
 	t.envoyConfigDump = config
 	return nil
 }
@@ -81,10 +80,10 @@ func (t *Troubleshoot) parseClusters(clusters *envoy_admin_v3.Clusters) ([]strin
 	return upstreams, nil
 }
 
-func (t *Troubleshoot) getEnvoyClusters() (*envoy_admin_v3.Clusters, error) {
+func (t *Troubleshoot) getEnvoyClusters() error {
 	clustersRaw, err := t.request("clusters?format=json")
 	if err != nil {
-		return nil, err
+		return err
 	}
 	clusters := &envoy_admin_v3.Clusters{}
 
@@ -93,10 +92,9 @@ func (t *Troubleshoot) getEnvoyClusters() (*envoy_admin_v3.Clusters, error) {
 	}
 	err = unmarshal.Unmarshal(clustersRaw, clusters)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	// TODO: validate here
 	t.envoyClusters = clusters
-	return clusters, nil
+	return nil
 }
