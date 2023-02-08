@@ -313,7 +313,7 @@ func (o *configSnapshotAPIGateway) DeepCopy() *configSnapshotAPIGateway {
 		}
 	}
 	if o.UpstreamsSet != nil {
-		cp.UpstreamsSet = make(map[UpstreamID]struct{}, len(o.UpstreamsSet))
+		cp.UpstreamsSet = make(map[UpstreamID]any, len(o.UpstreamsSet))
 		for k2, v2 := range o.UpstreamsSet {
 			cp.UpstreamsSet[k2] = v2
 		}
