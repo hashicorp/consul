@@ -17,7 +17,16 @@ export ENVOY_VERSION
 
 export DOCKER_BUILDKIT=1
 # Always run tests on amd64 because that's what the CI environment uses.
-export DOCKER_DEFAULT_PLATFORM="linux/amd64"
+export DOCKER_DEFAULT_PLATFORM=$(uname -m)
+if [[ "$DOCKER_DEFAULT_PLATFORM" == "aarch64" ]]; then
+  SOCAT_IMAGE="${HASHICORP_DOCKER_PROXY}/alpine/socat:1.7.4.4-r0"
+  PAUSE_IMAGE="k8s.gcr.io/pause-arm64:3.3"
+  ALL_IN_ONE_IMAGE="${HASHICORP_DOCKER_PROXY}/jaegertracing/all-in-one:1.41"
+else
+  SOCAT_IMAGE="${HASHICORP_DOCKER_PROXY}/alpine/socat:1.7.3.4-r1"
+  PAUSE_IMAGE="k8s.gcr.io/pause"
+  ALL_IN_ONE_IMAGE="${HASHICORP_DOCKER_PROXY}/jaegertracing/all-in-one:1.11"
+fi
 
 if [ ! -z "$DEBUG" ] ; then
   set -x
@@ -549,7 +558,7 @@ function suite_setup {
     docker run -d --name envoy_workdir_1 \
         $WORKDIR_SNIPPET \
         --net=none \
-        k8s.gcr.io/pause &>/dev/null
+        ${PAUSE_IMAGE} &>/dev/null
     # TODO(rb): switch back to "${HASHICORP_DOCKER_PROXY}/google/pause" once that is cached
 
     # pre-build the verify container
@@ -814,7 +823,7 @@ function run_container_fake-statsd {
   docker run -d --name $(container_name) \
     $WORKDIR_SNIPPET \
     $(network_snippet primary) \
-    "${HASHICORP_DOCKER_PROXY}/alpine/socat:1.7.3.4-r1" \
+    "${SOCAT_IMAGE}" \
     -u UDP-RECVFROM:8125,fork,reuseaddr \
     SYSTEM:'xargs -0 echo >> /workdir/primary/statsd/statsd.log'
 }
@@ -830,7 +839,7 @@ function run_container_jaeger {
   docker run -d --name $(container_name) \
     $WORKDIR_SNIPPET \
     $(network_snippet primary) \
-    "${HASHICORP_DOCKER_PROXY}/jaegertracing/all-in-one:1.11" \
+    "${ALL_IN_ONE_IMAGE}" \
     --collector.zipkin.http-port=9411
 }
 
