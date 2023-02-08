@@ -423,34 +423,5 @@ func (h *handlerAPIGateway) referenceIsForListener(ref structs.ResourceReference
 	if ref.Name != snap.APIGateway.GatewayConfig.Name {
 		return false
 	}
-
-	// Update our upstreams and watches.
-	var hosts []string
-	watchedSvcs := make(map[UpstreamID]struct{})
-	upstreams := make(map[IngressListenerKey]structs.Upstreams)
-	for _, service := range services.Services {
-		upstream := makeUpstream(service)
-		uid := NewUpstreamID(&upstream)
-
-		// TODO(peering): pipe destination_peer here
-		watchOpts := discoveryChainWatchOpts{
-			id:         uid,
-			name:       upstream.DestinationName,
-			namespace:  upstream.DestinationNamespace,
-			partition:  upstream.DestinationPartition,
-			datacenter: h.source.Datacenter,
-		}
-
-		up := &handlerUpstreams{handlerState: h.handlerState}
-		if err := up.watchDiscoveryChain(ctx, snap, watchOpts); err != nil {
-			return fmt.Errorf("failed to watch discovery chain for %+v: %v", uid, err)
-		}
-		watchedSvcs[uid] = struct{}{}
-
-		hosts = append(hosts, service.Hosts...)
-
-		id := IngressListenerKeyFromGWService(*service)
-		upstreams[id] = append(upstreams[id], upstream)
-	}
 	return ref.SectionName == "" || ref.SectionName == listener.Name
 }

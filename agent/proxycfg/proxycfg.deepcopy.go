@@ -278,30 +278,54 @@ func (o *configSnapshotAPIGateway) DeepCopy() *configSnapshotAPIGateway {
 					cp.GatewayConfig.Listeners[i4].TLS.Certificates = make([]structs.ResourceReference, len(o.GatewayConfig.Listeners[i4].TLS.Certificates))
 					copy(cp.GatewayConfig.Listeners[i4].TLS.Certificates, o.GatewayConfig.Listeners[i4].TLS.Certificates)
 				}
-				if o.APIGatewayConfigEntry.Listeners[i4].TLS.CipherSuites != nil {
-					cp.APIGatewayConfigEntry.Listeners[i4].TLS.CipherSuites = make([]types.TLSCipherSuite, len(o.APIGatewayConfigEntry.Listeners[i4].TLS.CipherSuites))
-					copy(cp.APIGatewayConfigEntry.Listeners[i4].TLS.CipherSuites, o.APIGatewayConfigEntry.Listeners[i4].TLS.CipherSuites)
+				if o.GatewayConfig.Listeners[i4].TLS.CipherSuites != nil {
+					cp.GatewayConfig.Listeners[i4].TLS.CipherSuites = make([]types.TLSCipherSuite, len(o.GatewayConfig.Listeners[i4].TLS.CipherSuites))
+					copy(cp.GatewayConfig.Listeners[i4].TLS.CipherSuites, o.GatewayConfig.Listeners[i4].TLS.CipherSuites)
 				}
 			}
 		}
-		if o.APIGatewayConfigEntry.Status.Conditions != nil {
-			cp.APIGatewayConfigEntry.Status.Conditions = make([]structs.Condition, len(o.APIGatewayConfigEntry.Status.Conditions))
-			copy(cp.APIGatewayConfigEntry.Status.Conditions, o.APIGatewayConfigEntry.Status.Conditions)
-			for i5 := range o.APIGatewayConfigEntry.Status.Conditions {
-				if o.APIGatewayConfigEntry.Status.Conditions[i5].Resource != nil {
-					cp.APIGatewayConfigEntry.Status.Conditions[i5].Resource = new(structs.ResourceReference)
-					*cp.APIGatewayConfigEntry.Status.Conditions[i5].Resource = *o.APIGatewayConfigEntry.Status.Conditions[i5].Resource
+		if o.GatewayConfig.Status.Conditions != nil {
+			cp.GatewayConfig.Status.Conditions = make([]structs.Condition, len(o.GatewayConfig.Status.Conditions))
+			copy(cp.GatewayConfig.Status.Conditions, o.GatewayConfig.Status.Conditions)
+			for i5 := range o.GatewayConfig.Status.Conditions {
+				if o.GatewayConfig.Status.Conditions[i5].Resource != nil {
+					cp.GatewayConfig.Status.Conditions[i5].Resource = new(structs.ResourceReference)
+					*cp.GatewayConfig.Status.Conditions[i5].Resource = *o.GatewayConfig.Status.Conditions[i5].Resource
 				}
-				if o.APIGatewayConfigEntry.Status.Conditions[i5].LastTransitionTime != nil {
-					cp.APIGatewayConfigEntry.Status.Conditions[i5].LastTransitionTime = new(time.Time)
-					*cp.APIGatewayConfigEntry.Status.Conditions[i5].LastTransitionTime = *o.APIGatewayConfigEntry.Status.Conditions[i5].LastTransitionTime
+				if o.GatewayConfig.Status.Conditions[i5].LastTransitionTime != nil {
+					cp.GatewayConfig.Status.Conditions[i5].LastTransitionTime = new(time.Time)
+					*cp.GatewayConfig.Status.Conditions[i5].LastTransitionTime = *o.GatewayConfig.Status.Conditions[i5].LastTransitionTime
 				}
 			}
 		}
-		if o.APIGatewayConfigEntry.Meta != nil {
-			cp.APIGatewayConfigEntry.Meta = make(map[string]string, len(o.APIGatewayConfigEntry.Meta))
-			for k4, v4 := range o.APIGatewayConfigEntry.Meta {
-				cp.APIGatewayConfigEntry.Meta[k4] = v4
+		if o.GatewayConfig.Meta != nil {
+			cp.GatewayConfig.Meta = make(map[string]string, len(o.GatewayConfig.Meta))
+			for k4, v4 := range o.GatewayConfig.Meta {
+				cp.GatewayConfig.Meta[k4] = v4
+			}
+		}
+	}
+	if o.BoundGatewayConfig != nil {
+		cp.BoundGatewayConfig = new(structs.BoundAPIGatewayConfigEntry)
+		*cp.BoundGatewayConfig = *o.BoundGatewayConfig
+		if o.BoundGatewayConfig.Listeners != nil {
+			cp.BoundGatewayConfig.Listeners = make([]structs.BoundAPIGatewayListener, len(o.BoundGatewayConfig.Listeners))
+			copy(cp.BoundGatewayConfig.Listeners, o.BoundGatewayConfig.Listeners)
+			for i4 := range o.BoundGatewayConfig.Listeners {
+				if o.BoundGatewayConfig.Listeners[i4].Routes != nil {
+					cp.BoundGatewayConfig.Listeners[i4].Routes = make([]structs.ResourceReference, len(o.BoundGatewayConfig.Listeners[i4].Routes))
+					copy(cp.BoundGatewayConfig.Listeners[i4].Routes, o.BoundGatewayConfig.Listeners[i4].Routes)
+				}
+				if o.BoundGatewayConfig.Listeners[i4].Certificates != nil {
+					cp.BoundGatewayConfig.Listeners[i4].Certificates = make([]structs.ResourceReference, len(o.BoundGatewayConfig.Listeners[i4].Certificates))
+					copy(cp.BoundGatewayConfig.Listeners[i4].Certificates, o.BoundGatewayConfig.Listeners[i4].Certificates)
+				}
+			}
+		}
+		if o.BoundGatewayConfig.Meta != nil {
+			cp.BoundGatewayConfig.Meta = make(map[string]string, len(o.BoundGatewayConfig.Meta))
+			for k4, v4 := range o.BoundGatewayConfig.Meta {
+				cp.BoundGatewayConfig.Meta[k4] = v4
 			}
 		}
 	}
