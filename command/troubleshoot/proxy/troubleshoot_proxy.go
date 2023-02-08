@@ -76,14 +76,21 @@ func (c *cmd) Run(args []string) int {
 		c.UI.Error("error generating troubleshoot client: " + err.Error())
 		return 1
 	}
-	output, err := t.RunAllTests(c.upstream)
+	messages, err := t.RunAllTests(c.upstream)
 	if err != nil {
 		c.UI.Error("error running the tests: " + err.Error())
 		return 1
 	}
 
-	for _, o := range output {
-		c.UI.Output(o)
+	for _, o := range messages {
+		if o.Success {
+			c.UI.Output(o.Message)
+		} else {
+			c.UI.Error(o.Message)
+			if o.PossibleActions != "" {
+				c.UI.Output(o.PossibleActions)
+			}
+		}
 	}
 	return 0
 }

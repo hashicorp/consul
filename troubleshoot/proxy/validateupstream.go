@@ -51,7 +51,7 @@ func ParseClusters(rawClusters []byte) (*envoy_admin_v3.Clusters, error) {
 
 // Validate validates the Envoy resources (indexedResources) for a given upstream service, peer, and vip. The peer
 // should be "" for an upstream not on a remote peer. The vip is required for a transparent proxy upstream.
-func Validate(indexedResources *xdscommon.IndexedResources, envoyID string, vip string, validateEndpoints bool, clusters *envoy_admin_v3.Clusters) error {
+func Validate(indexedResources *xdscommon.IndexedResources, envoyID string, vip string, validateEndpoints bool, clusters *envoy_admin_v3.Clusters) validate.Messages {
 	// Get all SNIs from the clusters in the configuration. Not all SNIs will need to be validated, but this ensures we
 	// capture SNIs which aren't directly identical to the upstream service name, but are still used for that upstream
 	// service. For example, in the case of having a splitter/redirect or another L7 config entry, the upstream service
@@ -91,19 +91,19 @@ func Validate(indexedResources *xdscommon.IndexedResources, envoyID string, vip 
 	}
 	basicExtension, err := validate.MakeValidate(extConfig)
 	if err != nil {
-		return err
+		return []validate.Message{{Message: err.Error()}}
 	}
 	extender := extensioncommon.BasicEnvoyExtender{
 		Extension: basicExtension,
 	}
 	err = extender.Validate(&extConfig)
 	if err != nil {
-		return err
+		return []validate.Message{{Message: err.Error()}}
 	}
 
 	_, err = extender.Extend(indexedResources, &extConfig)
 	if err != nil {
-		return err
+		return []validate.Message{{Message: err.Error()}}
 	}
 
 	v, ok := extender.Extension.(*validate.Validate)
@@ -111,7 +111,7 @@ func Validate(indexedResources *xdscommon.IndexedResources, envoyID string, vip 
 		panic("validate plugin was not correctly created")
 	}
 
-	return v.Errors(validateEndpoints, validate.DoEndpointValidation, clusters)
+	return v.GetMessages(validateEndpoints, validate.DoEndpointValidation, clusters)
 }
 
 func ProxyConfigDumpToIndexedResources(config *envoy_admin_v3.ConfigDump) (*xdscommon.IndexedResources, error) {
