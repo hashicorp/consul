@@ -655,8 +655,8 @@ type configSnapshotAPIGateway struct {
 	BoundGatewayConfig       *structs.BoundAPIGatewayConfigEntry
 
 	// Hosts is the list of extra host entries to add to our leaf cert's DNS SANs
-	Hosts    []string
-	HostsSet bool
+	Hosts       []string
+	AreHostsSet bool
 
 	// LeafCertWatchCancel is a CancelFunc to use when refreshing this gateway's
 	// leaf cert watch with different parameters.
@@ -843,7 +843,7 @@ func (s *ConfigSnapshot) Valid() bool {
 		return s.Roots != nil &&
 			s.APIGateway.GatewayConfigLoaded &&
 			s.APIGateway.BoundGatewayConfigLoaded &&
-			s.APIGateway.HostsSet &&
+			s.APIGateway.AreHostsSet &&
 			s.APIGateway.MeshConfigSet
 	default:
 		return false
