@@ -660,7 +660,7 @@ type configSnapshotAPIGateway struct {
 
 	// LeafCertWatchCancel is a CancelFunc to use when refreshing this gateway's
 	// leaf cert watch with different parameters.
-	LeafCertWatchCancel context.CancelFunc
+	//LeafCertWatchCancel context.CancelFunc
 
 	// Upstreams is a list of upstreams this ingress gateway should serve traffic
 	// to. This is constructed from the ingress-gateway config entry, and uses
@@ -670,7 +670,7 @@ type configSnapshotAPIGateway struct {
 	Upstreams map[IngressListenerKey]structs.Upstreams
 
 	// UpstreamsSet is the unique set of UpstreamID the gateway routes to.
-	UpstreamsSet map[UpstreamID]any
+	UpstreamsSet map[UpstreamID]struct{}
 
 	HTTPRoutes   watch.Map[structs.ResourceReference, *structs.HTTPRouteConfigEntry]
 	TCPRoutes    watch.Map[structs.ResourceReference, *structs.TCPRouteConfigEntry]
@@ -883,8 +883,10 @@ func (s *ConfigSnapshot) Clone() *ConfigSnapshot {
 		snap.APIGateway.WatchedUpstreams = nil
 		snap.APIGateway.WatchedGateways = nil
 		snap.APIGateway.WatchedDiscoveryChains = nil
+
 		// only api-gateway
-		snap.APIGateway.LeafCertWatchCancel = nil
+		//snap.APIGateway.LeafCertWatchCancel = nil
+		//snap.APIGateway.
 	}
 
 	return snap

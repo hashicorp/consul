@@ -7,6 +7,8 @@ cd $PACKAGE_DIR
 deep-copy \
   -pointer-receiver \
   -o ./structs.deepcopy.go \
+  -type APIGatewayListener \
+  -type BoundAPIGatewayListener \
   -type CARoot \
   -type CheckServiceNode \
   -type CheckType \
