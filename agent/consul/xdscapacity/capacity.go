@@ -11,7 +11,6 @@ import (
 	"github.com/hashicorp/go-memdb"
 	"golang.org/x/time/rate"
 
-	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib/retry"
 )
@@ -206,5 +205,5 @@ func (c *Controller) countProxies(ctx context.Context) (<-chan error, uint32, er
 
 type Store interface {
 	AbandonCh() <-chan struct{}
-	ServiceUsage(ws memdb.WatchSet) (uint64, state.ServiceUsage, error)
+	ServiceUsage(ws memdb.WatchSet) (uint64, structs.ServiceUsage, error)
 }
