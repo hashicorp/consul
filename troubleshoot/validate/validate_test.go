@@ -86,7 +86,7 @@ func TestErrors(t *testing.T) {
 			endpointValidator: func(r *resource, s string, clusters *envoy_admin_v3.Clusters) {
 				r.loadAssignment = true
 			},
-			err: "zero healthy endpoints",
+			err: "no healthy endpoints for cluster \"db-sni\" for upstream \"db\"",
 		},
 		"success: aggregate cluster with one target with endpoints": {
 			validate: func() *Validate {
@@ -169,21 +169,26 @@ func TestErrors(t *testing.T) {
 				r.loadAssignment = true
 				r.endpoints = 0
 			},
-			err: "zero healthy endpoints for aggregate cluster",
+			err: "no healthy endpoints for aggregate cluster \"db-sni\" for upstream \"db\"",
 		},
 	}
 
 	for n, tc := range cases {
 		t.Run(n, func(t *testing.T) {
 			v := tc.validate()
-			err := v.Errors(true, tc.endpointValidator, nil)
+			messages := v.GetMessages(true, tc.endpointValidator, nil)
 
-			if len(tc.err) == 0 {
-				require.NoError(t, err)
-			} else {
-				require.Error(t, err)
-				require.Contains(t, err.Error(), tc.err)
+			var outputErrors string
+			for _, msgError := range messages.Errors() {
+				outputErrors += msgError.Message
+				outputErrors += msgError.PossibleActions
 			}
+			if tc.err == "" {
+				require.True(t, messages.Success())
+			} else {
+				require.Contains(t, outputErrors, tc.err)
+			}
+
 		})
 	}
 
