@@ -915,20 +915,24 @@ type BoundAPIGatewayConfigEntry struct {
 	RaftIndex
 }
 
-// References returns whether or not this bound api gateway references the given api gateway.
-func (e *BoundAPIGatewayConfigEntry) References(gateway *APIGatewayConfigEntry) bool {
+// IsInitializedForGateway returns whether or not this bound api gateway is initialized with the given api gateway
+// including having corresponding listener entries for the gateway.
+func (e *BoundAPIGatewayConfigEntry) IsInitializedForGateway(gateway *APIGatewayConfigEntry) bool {
 	if e.Name != gateway.Name || !e.EnterpriseMeta.IsSame(&gateway.EnterpriseMeta) {
 		return false
 	}
+
 	// ensure that this has the same listener data (i.e. it's been reconciled)
 	if len(gateway.Listeners) != len(e.Listeners) {
 		return false
 	}
+
 	for i, listener := range e.Listeners {
 		if listener.Name != gateway.Listeners[i].Name {
 			return false
 		}
 	}
+
 	return true
 }
 

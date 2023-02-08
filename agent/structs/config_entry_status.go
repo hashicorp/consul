@@ -89,9 +89,7 @@ func (s Status) SameConditions(other Status) bool {
 	twoConditions := sortConditions(other.Conditions)
 	for i, condition := range oneConditions {
 		other := twoConditions[i]
-		if condition.Reason != other.Reason ||
-			condition.Message != other.Message ||
-			condition.Status != other.Status {
+		if !condition.IsSame(&other) {
 			return false
 		}
 	}

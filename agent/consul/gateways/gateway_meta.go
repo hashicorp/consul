@@ -23,7 +23,7 @@ type gatewayMeta struct {
 
 // getAllGatewayMeta returns a pre-constructed list of all valid gateway and state
 // tuples based on the state coming from the store. Any gateway that does not have
-// a current bound state will be filtered out.
+// a corresponding bound-api-gateway config entry will be filtered out.
 func getAllGatewayMeta(store *state.Store) ([]*gatewayMeta, error) {
 	_, gateways, err := store.ConfigEntriesByKind(nil, structs.APIGateway, acl.WildcardEnterpriseMeta())
 	if err != nil {
@@ -39,7 +39,7 @@ func getAllGatewayMeta(store *state.Store) ([]*gatewayMeta, error) {
 		bound := b.(*structs.BoundAPIGatewayConfigEntry)
 		for _, g := range gateways {
 			gateway := g.(*structs.APIGatewayConfigEntry)
-			if bound.References(gateway) {
+			if bound.IsInitializedForGateway(gateway) {
 				meta = append(meta, &gatewayMeta{
 					BoundGateway: bound,
 					Gateway:      gateway,
@@ -182,6 +182,8 @@ func (g *gatewayMeta) boundListenerByName(name string) (int, *structs.BoundAPIGa
 	return -1, nil
 }
 
+// checkCertificates verifies that all certificates referenced by the listeners on the gateway
+// exist and collects them onto the bound gateway
 func (g *gatewayMeta) checkCertificates(store *state.Store) (map[structs.ResourceReference]error, error) {
 	certificateErrors := map[structs.ResourceReference]error{}
 	for i, listener := range g.Gateway.Listeners {
@@ -201,6 +203,8 @@ func (g *gatewayMeta) checkCertificates(store *state.Store) (map[structs.Resourc
 	return certificateErrors, nil
 }
 
+// checkConflicts ensures that no TCP listener has more than the one allowed route and
+// assigns an appropriate status
 func (g *gatewayMeta) checkConflicts() (structs.ControlledConfigEntry, bool) {
 	now := pointerTo(time.Now().UTC())
 	updater := structs.NewStatusUpdater(g.Gateway)
@@ -240,8 +244,7 @@ func (g *gatewayMeta) checkConflicts() (structs.ControlledConfigEntry, bool) {
 		})
 	}
 
-	toUpdate, shouldUpdate := updater.UpdateEntry()
-	return toUpdate, shouldUpdate
+	return updater.UpdateEntry()
 }
 
 func ensureInitializedMeta(gateway *structs.APIGatewayConfigEntry, bound structs.ConfigEntry) *gatewayMeta {
@@ -258,13 +261,15 @@ func ensureInitializedMeta(gateway *structs.APIGatewayConfigEntry, bound structs
 
 	// we just clear out the bound state here since we recalculate it entirely
 	// in the gateway control loop
-	listeners := []structs.BoundAPIGatewayListener{}
+	listeners := make([]structs.BoundAPIGatewayListener, 0, len(gateway.Listeners))
 	for _, listener := range gateway.Listeners {
 		listeners = append(listeners, structs.BoundAPIGatewayListener{
 			Name: listener.Name,
 		})
 	}
+
 	b.Listeners = listeners
+
 	return &gatewayMeta{
 		BoundGateway: b,
 		Gateway:      gateway,
@@ -273,9 +278,11 @@ func ensureInitializedMeta(gateway *structs.APIGatewayConfigEntry, bound structs
 
 func stateIsDirty(initial, final *structs.BoundAPIGatewayConfigEntry) bool {
 	initialListeners := map[string]structs.BoundAPIGatewayListener{}
+
 	for _, listener := range initial.Listeners {
 		initialListeners[listener.Name] = listener
 	}
+
 	finalListeners := map[string]structs.BoundAPIGatewayListener{}
 	for _, listener := range final.Listeners {
 		finalListeners[listener.Name] = listener
@@ -294,5 +301,6 @@ func stateIsDirty(initial, final *structs.BoundAPIGatewayConfigEntry) bool {
 			return true
 		}
 	}
+
 	return false
 }

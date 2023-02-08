@@ -12,7 +12,7 @@ type BoundRoute interface {
 	ControlledConfigEntry
 	GetParents() []ResourceReference
 	GetProtocol() APIGatewayListenerProtocol
-	GetTargetedServices() []ServiceName
+	GetServiceNames() []ServiceName
 }
 
 // HTTPRouteConfigEntry manages the configuration for a HTTP route
@@ -40,7 +40,7 @@ type HTTPRouteConfigEntry struct {
 	RaftIndex
 }
 
-func (e *HTTPRouteConfigEntry) GetTargets() []HTTPService {
+func (e *HTTPRouteConfigEntry) GetServices() []HTTPService {
 	targets := []HTTPService{}
 	for _, rule := range e.Rules {
 		for _, service := range rule.Services {
@@ -50,9 +50,9 @@ func (e *HTTPRouteConfigEntry) GetTargets() []HTTPService {
 	return targets
 }
 
-func (e *HTTPRouteConfigEntry) GetTargetedServices() []ServiceName {
+func (e *HTTPRouteConfigEntry) GetServiceNames() []ServiceName {
 	services := []ServiceName{}
-	for _, service := range e.GetTargets() {
+	for _, service := range e.GetServices() {
 		services = append(services, NewServiceName(service.Name, &service.EnterpriseMeta))
 	}
 	return services
@@ -282,11 +282,11 @@ type TCPRouteConfigEntry struct {
 	RaftIndex
 }
 
-func (e *TCPRouteConfigEntry) GetTargets() []TCPService {
+func (e *TCPRouteConfigEntry) GetServices() []TCPService {
 	return e.Services
 }
 
-func (e *TCPRouteConfigEntry) GetTargetedServices() []ServiceName {
+func (e *TCPRouteConfigEntry) GetServiceNames() []ServiceName {
 	services := []ServiceName{}
 	for _, service := range e.Services {
 		services = append(services, NewServiceName(service.Name, &service.EnterpriseMeta))
