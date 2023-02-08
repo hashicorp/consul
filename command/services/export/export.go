@@ -126,6 +126,7 @@ func (c *cmd) initializeConfigEntry(cfgName string, peerNames, partitionNames []
 		Services: []api.ExportedService{
 			{
 				Name:      c.serviceName,
+				Namespace: c.http.Namespace(),
 				Consumers: buildConsumers(peerNames, partitionNames),
 			},
 		},
@@ -173,6 +174,7 @@ func (c *cmd) updateConfigEntry(cfg *api.ExportedServicesConfigEntry, peerNames,
 	if !serviceExists {
 		cfg.Services = append(cfg.Services, api.ExportedService{
 			Name:      c.serviceName,
+			Namespace: c.http.Namespace(),
 			Consumers: buildConsumers(peerNames, partitionNames),
 		})
 	}
