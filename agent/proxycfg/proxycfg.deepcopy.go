@@ -4,8 +4,6 @@ package proxycfg
 
 import (
 	"context"
-	"time"
-
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/proto/pbpeering"
 	"github.com/hashicorp/consul/types"
@@ -243,19 +241,9 @@ func (o *configSnapshotAPIGateway) DeepCopy() *configSnapshotAPIGateway {
 				}
 			}
 		}
-		if o.GatewayConfig.Status.Conditions != nil {
-			cp.GatewayConfig.Status.Conditions = make([]structs.Condition, len(o.GatewayConfig.Status.Conditions))
-			copy(cp.GatewayConfig.Status.Conditions, o.GatewayConfig.Status.Conditions)
-			for i5 := range o.GatewayConfig.Status.Conditions {
-				if o.GatewayConfig.Status.Conditions[i5].Resource != nil {
-					cp.GatewayConfig.Status.Conditions[i5].Resource = new(structs.ResourceReference)
-					*cp.GatewayConfig.Status.Conditions[i5].Resource = *o.GatewayConfig.Status.Conditions[i5].Resource
-				}
-				if o.GatewayConfig.Status.Conditions[i5].LastTransitionTime != nil {
-					cp.GatewayConfig.Status.Conditions[i5].LastTransitionTime = new(time.Time)
-					*cp.GatewayConfig.Status.Conditions[i5].LastTransitionTime = *o.GatewayConfig.Status.Conditions[i5].LastTransitionTime
-				}
-			}
+		{
+			retV := o.GatewayConfig.Status.DeepCopy()
+			cp.GatewayConfig.Status = *retV
 		}
 		if o.GatewayConfig.Meta != nil {
 			cp.GatewayConfig.Meta = make(map[string]string, len(o.GatewayConfig.Meta))
@@ -265,24 +253,7 @@ func (o *configSnapshotAPIGateway) DeepCopy() *configSnapshotAPIGateway {
 		}
 	}
 	if o.BoundGatewayConfig != nil {
-		cp.BoundGatewayConfig = new(structs.BoundAPIGatewayConfigEntry)
-		*cp.BoundGatewayConfig = *o.BoundGatewayConfig
-		if o.BoundGatewayConfig.Listeners != nil {
-			cp.BoundGatewayConfig.Listeners = make([]structs.BoundAPIGatewayListener, len(o.BoundGatewayConfig.Listeners))
-			copy(cp.BoundGatewayConfig.Listeners, o.BoundGatewayConfig.Listeners)
-			for i4 := range o.BoundGatewayConfig.Listeners {
-				{
-					retV := o.BoundGatewayConfig.Listeners[i4].DeepCopy()
-					cp.BoundGatewayConfig.Listeners[i4] = *retV
-				}
-			}
-		}
-		if o.BoundGatewayConfig.Meta != nil {
-			cp.BoundGatewayConfig.Meta = make(map[string]string, len(o.BoundGatewayConfig.Meta))
-			for k4, v4 := range o.BoundGatewayConfig.Meta {
-				cp.BoundGatewayConfig.Meta[k4] = v4
-			}
-		}
+		cp.BoundGatewayConfig = o.BoundGatewayConfig.DeepCopy()
 	}
 	if o.Hosts != nil {
 		cp.Hosts = make([]string, len(o.Hosts))
