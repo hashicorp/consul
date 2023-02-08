@@ -3,9 +3,10 @@ package xds
 import (
 	"fmt"
 
-	"github.com/hashicorp/consul/envoyextensions/xdscommon"
 	"github.com/hashicorp/go-hclog"
 	"google.golang.org/protobuf/proto"
+
+	"github.com/hashicorp/consul/envoyextensions/xdscommon"
 
 	"github.com/hashicorp/consul/agent/proxycfg"
 )
@@ -34,7 +35,8 @@ func NewResourceGenerator(
 
 func (g *ResourceGenerator) AllResourcesFromSnapshot(cfgSnap *proxycfg.ConfigSnapshot) (map[string][]proto.Message, error) {
 	all := make(map[string][]proto.Message)
-	for _, typeUrl := range []string{xdscommon.ListenerType, xdscommon.RouteType, xdscommon.ClusterType, xdscommon.EndpointType, xdscommon.SecretType} {
+	// TODO Add xdscommon.SecretType
+	for _, typeUrl := range []string{xdscommon.ListenerType, xdscommon.RouteType, xdscommon.ClusterType, xdscommon.EndpointType} {
 		res, err := g.resourcesFromSnapshot(typeUrl, cfgSnap)
 		if err != nil {
 			return nil, fmt.Errorf("failed to generate xDS resources for %q: %v", typeUrl, err)

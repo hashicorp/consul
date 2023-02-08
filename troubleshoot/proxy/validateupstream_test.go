@@ -17,8 +17,8 @@ import (
 func TestValidateFromJSON(t *testing.T) {
 	indexedResources := getConfig(t)
 	clusters := getClusters(t)
-	err := Validate(indexedResources, "backend", "", true, clusters)
-	require.NoError(t, err)
+	messages := Validate(indexedResources, "backend", "", true, clusters)
+	require.True(t, messages.Success())
 }
 
 // TODO: Manually inspect the config and clusters files and hardcode the list of expected resource names for higher
