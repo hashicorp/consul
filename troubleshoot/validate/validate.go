@@ -2,6 +2,7 @@ package validate
 
 import (
 	"fmt"
+	"strings"
 
 	envoy_admin_v3 "github.com/envoyproxy/go-control-plane/envoy/admin/v3"
 	envoy_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
@@ -179,6 +180,16 @@ func (v *Validate) GetMessages(validateEndpoints bool, endpointValidator Endpoin
 				Message: fmt.Sprintf("cluster %q for upstream %q found", sni, upstream),
 				Success: true,
 			})
+		}
+
+		// If the resource is a passthrough cluster, it will not have endpoints, so we need to skip the endpoint
+		// validation.
+		if strings.Contains(sni, "passthrough~") {
+			messages = append(messages, Message{
+				Message: fmt.Sprintf("cluster %q is a passthrough cluster, skipping endpoint healthiness check", sni),
+				Success: true,
+			})
+			continue
 		}
 
 		if validateEndpoints {
