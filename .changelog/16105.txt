@@ -5,7 +5,7 @@ acl errors: Delete and get requests now return descriptive errors when the speci
 3. Read Token/Policy/Role endpoints now return 404 when the resource cannot be found.
   - New error format: "Cannot find * to delete"
 4. Logout now returns a 401 error when the supplied token cannot be found
-  - New error format: "Token supplied with request not found"
+  - New error format: "Supplied token does not exist"
 5. Token Self endpoint now returns 404 when the token cannot be found.
   - New error format: "Supplied token does not exist"
 ```

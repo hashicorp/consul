@@ -1014,7 +1014,7 @@ func (s *HTTPHandlers) ACLLogout(resp http.ResponseWriter, req *http.Request) (i
 	s.parseToken(req, &args.Token)
 
 	if args.Token == "" {
-		return nil, HTTPError{StatusCode: http.StatusUnauthorized, Reason: "Token supplied with request not found"}
+		return nil, HTTPError{StatusCode: http.StatusUnauthorized, Reason: "Supplied token does not exist"}
 	}
 
 	var ignored bool
