@@ -75,21 +75,22 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	c.UI.Output("==== Upstreams (explicit upstreams only)")
-	c.UI.Output(fmt.Sprintf("==> Envoy Identifiers (%v)", len(envoyIDs)))
+	c.UI.Output(fmt.Sprintf("==> Upstreams (explicit upstreams only) (%v)", len(envoyIDs)))
 	for _, u := range envoyIDs {
 		c.UI.Output(u)
 	}
 
-	c.UI.Output("\n==== Upstream IPs (transparent proxy only)")
-	c.UI.Output(fmt.Sprintf("==> IPs (%v)", len(upstreamIPs)))
+	c.UI.Output(fmt.Sprintf("\n==> Upstream IPs (transparent proxy only) (%v)", len(upstreamIPs)))
 	for _, u := range upstreamIPs {
 		c.UI.Output(fmt.Sprintf("%+v   %v   %+v", u.IPs, u.IsVirtual, u.ClusterNames))
 	}
 
 	c.UI.Output("\nIf you don't see your upstream address or cluster for a transparent proxy upstream:")
-	c.UI.Output("\nCheck intentions: Tproxy upstreams are configured based on intentions, make sure you have configured intentions to allow traffic to your upstream.")
-	c.UI.Output("\nYou can also check that the right cluster is being dialed by running a dns lookup for the upstream you are dialing (i.e dig backend.svc.consul). If the address you get from that is missing from the Upstream IPs your proxy may be misconfigured.")
+	c.UI.Output("- Check intentions: Tproxy upstreams are configured based on intentions, make sure you " +
+		"have configured intentions to allow traffic to your upstream.")
+	c.UI.Output("- You can also check that the right cluster is being dialed by running a DNS lookup " +
+		"for the upstream you are dialing (i.e dig backend.svc.consul). If the address you get from that is missing " +
+		"from the Upstream IPs your proxy may be misconfigured.")
 	return 0
 }
 
