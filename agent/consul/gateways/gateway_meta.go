@@ -73,6 +73,7 @@ func (g *gatewayMeta) updateRouteBinding(refs []structs.ResourceReference, route
 		return false, errors
 	}
 
+	unboundListeners := make([]bool, 0, len(g.BoundGateway.Listeners))
 	for i, listener := range g.BoundGateway.Listeners {
 		routeRef := structs.ResourceReference{
 			Kind:           route.GetKind(),
@@ -80,19 +81,19 @@ func (g *gatewayMeta) updateRouteBinding(refs []structs.ResourceReference, route
 			EnterpriseMeta: *route.GetEnterpriseMeta(),
 		}
 		// Unbind to handle any stale route references.
-		didUnbind := listener.UnbindRoute(routeRef)
-		if didUnbind {
-			didUpdate = true
-		}
+		unboundListeners = append(unboundListeners, listener.UnbindRoute(routeRef))
 		g.BoundGateway.Listeners[i] = listener
+	}
 
-		for _, ref := range refs {
-			didBind, err := g.bindRoute(ref, route)
-			if err != nil {
-				errors[ref] = err
-			}
-			if didBind {
-				didUpdate = true
+	for _, ref := range refs {
+		boundListeners, err := g.bindRoute(ref, route)
+		if err != nil {
+			errors[ref] = err
+		} else {
+			for i, didUnbind := range unboundListeners {
+				if i >= len(boundListeners) || didUnbind != boundListeners[i] {
+					didUpdate = true
+				}
 			}
 		}
 	}
@@ -111,23 +112,24 @@ func (g *gatewayMeta) updateRouteBinding(refs []structs.ResourceReference, route
 //     on the gateway. If the section name is `""`, the route will be bound to all
 //     listeners on the gateway whose protocol matches the route's protocol.
 //   - have a protocol that matches the protocol of the listener it is being bound to.
-func (g *gatewayMeta) bindRoute(ref structs.ResourceReference, route structs.BoundRoute) (bool, error) {
+func (g *gatewayMeta) bindRoute(ref structs.ResourceReference, route structs.BoundRoute) ([]bool, error) {
 	if g.BoundGateway == nil || g.Gateway == nil {
-		return false, fmt.Errorf("gateway cannot be found")
+		return nil, fmt.Errorf("gateway cannot be found")
 	}
 
 	if ref.Kind != structs.APIGateway || g.Gateway.Name != ref.Name || !g.Gateway.EnterpriseMeta.IsSame(&ref.EnterpriseMeta) {
-		return false, nil
+		return nil, nil
 	}
 
 	if len(g.BoundGateway.Listeners) == 0 {
-		return false, fmt.Errorf("route cannot bind because gateway has no listeners")
+		return nil, fmt.Errorf("route cannot bind because gateway has no listeners")
 	}
 
-	didBind := false
+	binding := make([]bool, 0, len(g.Gateway.Listeners))
 	for _, listener := range g.Gateway.Listeners {
 		// A route with a section name of "" is bound to all listeners on the gateway.
 		if listener.Name != ref.SectionName && ref.SectionName != "" {
+			binding = append(binding, false)
 			continue
 		}
 
@@ -139,20 +141,29 @@ func (g *gatewayMeta) bindRoute(ref structs.ResourceReference, route structs.Bou
 			}
 			i, boundListener := g.boundListenerByName(listener.Name)
 			if boundListener != nil && boundListener.BindRoute(routeRef) {
-				didBind = true
+				binding = append(binding, true)
 				g.BoundGateway.Listeners[i] = *boundListener
+			} else {
+				binding = append(binding, false)
 			}
 		} else if ref.SectionName != "" {
 			// Failure to bind to a specific listener is an error
-			return false, fmt.Errorf("failed to bind route %s to gateway %s: listener %s is not a %s listener", route.GetName(), g.Gateway.Name, listener.Name, route.GetProtocol())
+			return nil, fmt.Errorf("failed to bind route %s to gateway %s: listener %s is not a %s listener", route.GetName(), g.Gateway.Name, listener.Name, route.GetProtocol())
+		}
+	}
+
+	didBind := false
+	for _, bound := range binding {
+		if bound {
+			didBind = true
 		}
 	}
 
 	if !didBind {
-		return didBind, fmt.Errorf("failed to bind route %s to gateway %s: no valid listener has name '%s' and uses %s protocol", route.GetName(), g.Gateway.Name, ref.SectionName, route.GetProtocol())
+		return nil, fmt.Errorf("failed to bind route %s to gateway %s: no valid listener has name '%s' and uses %s protocol", route.GetName(), g.Gateway.Name, ref.SectionName, route.GetProtocol())
 	}
 
-	return didBind, nil
+	return binding, nil
 }
 
 // unbindRoute takes a route and unbinds it from all of the listeners on a gateway.

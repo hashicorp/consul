@@ -15,7 +15,7 @@ func TestBoundAPIGatewayBindRoute(t *testing.T) {
 		gateway              gatewayMeta
 		route                structs.BoundRoute
 		expectedBoundGateway structs.BoundAPIGatewayConfigEntry
-		expectedDidBind      bool
+		expectedDidBind      []bool
 		expectedErr          error
 	}{
 		"Bind TCP Route to Gateway": {
@@ -67,7 +67,7 @@ func TestBoundAPIGatewayBindRoute(t *testing.T) {
 					},
 				},
 			},
-			expectedDidBind: true,
+			expectedDidBind: []bool{true},
 		},
 		"Bind TCP Route with wildcard section name to all listeners on Gateway": {
 			gateway: gatewayMeta{
@@ -151,7 +151,7 @@ func TestBoundAPIGatewayBindRoute(t *testing.T) {
 					},
 				},
 			},
-			expectedDidBind: true,
+			expectedDidBind: []bool{true, true, true},
 		},
 		"TCP Route cannot bind to Gateway because the parent reference kind is not APIGateway": {
 			gateway: gatewayMeta{
@@ -181,8 +181,7 @@ func TestBoundAPIGatewayBindRoute(t *testing.T) {
 				Name:      "Gateway",
 				Listeners: []structs.BoundAPIGatewayListener{},
 			},
-			expectedDidBind: false,
-			expectedErr:     nil,
+			expectedDidBind: nil,
 		},
 		"TCP Route cannot bind to Gateway because the parent reference name does not match": {
 			gateway: gatewayMeta{
@@ -213,8 +212,7 @@ func TestBoundAPIGatewayBindRoute(t *testing.T) {
 				Name:      "Gateway",
 				Listeners: []structs.BoundAPIGatewayListener{},
 			},
-			expectedDidBind: false,
-			expectedErr:     nil,
+			expectedDidBind: nil,
 		},
 		"TCP Route cannot bind to Gateway because it lacks listeners": {
 			gateway: gatewayMeta{
@@ -245,7 +243,7 @@ func TestBoundAPIGatewayBindRoute(t *testing.T) {
 				Name:      "Gateway",
 				Listeners: []structs.BoundAPIGatewayListener{},
 			},
-			expectedDidBind: false,
+			expectedDidBind: nil,
 			expectedErr:     fmt.Errorf("route cannot bind because gateway has no listeners"),
 		},
 		"TCP Route cannot bind to Gateway because it has an invalid section name": {
@@ -292,7 +290,7 @@ func TestBoundAPIGatewayBindRoute(t *testing.T) {
 					},
 				},
 			},
-			expectedDidBind: false,
+			expectedDidBind: nil,
 			expectedErr:     fmt.Errorf("failed to bind route Route to gateway Gateway: no valid listener has name 'Other Listener' and uses tcp protocol"),
 		},
 	}
