@@ -159,7 +159,7 @@ type testServerScenario struct {
 
 func newTestServerDeltaScenario(
 	t *testing.T,
-	resolveToken ACLResolverFunc,
+	resolveTokenSecret ACLResolverFunc,
 	proxyID string,
 	token string,
 	authCheckFrequency time.Duration,
@@ -185,7 +185,7 @@ func newTestServerDeltaScenario(
 		"node-123",
 		testutil.Logger(t),
 		mgr,
-		resolveToken,
+		resolveTokenSecret,
 		nil, /*cfgFetcher ConfigFetcher*/
 	)
 	if authCheckFrequency > 0 {

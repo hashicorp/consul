@@ -4418,7 +4418,7 @@ func testAgent_RegisterServiceDeregisterService_Sidecar(t *testing.T, extraHCL s
 			}
 			`,
 			enableACL: true,
-			policies:  ``, // No token rules means no valid token
+			policies:  ``, // No policy means no valid token
 			wantNS:    nil,
 			wantErr:   "Permission denied",
 		},
