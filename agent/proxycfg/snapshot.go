@@ -752,7 +752,7 @@ func (c *configSnapshotAPIGateway) synthesizeChains(datacenter string, protocol 
 				continue
 			}
 			synthesizer.AddHTTPRoute(*route)
-			for _, service := range route.GetTargets() {
+			for _, service := range route.GetServices() {
 				id := NewUpstreamIDFromServiceName(structs.NewServiceName(service.Name, &service.EnterpriseMeta))
 				if chain := c.DiscoveryChain[id]; chain != nil {
 					chains = append(chains, chain)
@@ -764,7 +764,7 @@ func (c *configSnapshotAPIGateway) synthesizeChains(datacenter string, protocol 
 				continue
 			}
 			synthesizer.AddTCPRoute(*route)
-			for _, service := range route.GetTargets() {
+			for _, service := range route.GetServices() {
 				id := NewUpstreamIDFromServiceName(structs.NewServiceName(service.Name, &service.EnterpriseMeta))
 				if chain := c.DiscoveryChain[id]; chain != nil {
 					chains = append(chains, chain)
