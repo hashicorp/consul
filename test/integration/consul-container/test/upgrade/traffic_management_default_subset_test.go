@@ -47,14 +47,17 @@ func TestTrafficManagement_ServiceWithSubsets(t *testing.T) {
 	}
 
 	run := func(t *testing.T, tc testcase) {
-		injectAutoEncryption := true
-
+		buildOpts := &libcluster.BuildOptions{
+			ConsulVersion:        tc.oldversion,
+			Datacenter:           "dc1",
+			InjectAutoEncryption: true,
+		}
 		// If version < 1.14 disable AutoEncryption
 		oldVersion, _ := version.NewVersion(tc.oldversion)
 		if oldVersion.LessThan(libutils.Version_1_14) {
-			injectAutoEncryption = false
+			buildOpts.InjectAutoEncryption = false
 		}
-		cluster, _, _ := topology.NewPeeringCluster(t, "dc1", 1, tc.oldversion, injectAutoEncryption)
+		cluster, _, _ := topology.NewPeeringCluster(t, 1, buildOpts)
 
 		// Register service resolver
 		serviceResolver := &api.ServiceResolverConfigEntry{

@@ -3,6 +3,7 @@ module github.com/hashicorp/consul/test/integration/consul-container
 go 1.19
 
 require (
+	github.com/avast/retry-go v3.0.0+incompatible
 	github.com/docker/docker v20.10.22+incompatible
 	github.com/docker/go-connections v0.4.0
 	github.com/hashicorp/consul/api v1.18.0
