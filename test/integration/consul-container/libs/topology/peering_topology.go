@@ -68,9 +68,11 @@ func BasicPeeringTwoClustersSetup(
 		var err error
 		// Create a service and proxy instance
 		serviceOpts := libservice.ServiceOpts{
-			Name: libservice.StaticServerServiceName,
-			ID:   "static-server",
-			Meta: map[string]string{"version": ""},
+			Name:     libservice.StaticServerServiceName,
+			ID:       "static-server",
+			Meta:     map[string]string{"version": ""},
+			HTTPPort: 8080,
+			GRPCPort: 8079,
 		}
 		serverSidecarService, _, err := libservice.CreateAndRegisterStaticServerAndSidecar(clientNode, &serviceOpts)
 		require.NoError(t, err)
@@ -107,6 +109,7 @@ func BasicPeeringTwoClustersSetup(
 	libassert.AssertUpstreamEndpointStatus(t, adminPort, fmt.Sprintf("static-server.default.%s.external", DialingPeerName), "HEALTHY", 1)
 	_, port := clientSidecarService.GetAddr()
 	libassert.HTTPServiceEchoes(t, "localhost", port, "")
+	libassert.AssertFortioName(t, fmt.Sprintf("http://localhost:%d", port), "static-server")
 
 	return &BuiltCluster{
 			Cluster:   acceptingCluster,

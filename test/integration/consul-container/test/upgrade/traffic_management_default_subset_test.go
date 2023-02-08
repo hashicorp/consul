@@ -76,28 +76,26 @@ func TestTrafficManagement_ServiceWithSubsets(t *testing.T) {
 		err := cluster.ConfigEntryWrite(serviceResolver)
 		require.NoError(t, err)
 
-		serverService, serverServiceV1, serverServiceV2, clientService := createService(t, cluster)
+		serverConnectProxy, serverConnectProxyV1, serverConnectProxyV2, clientConnectProxy := createService(t, cluster)
 
-		_, port := clientService.GetAddr()
-		_, adminPort := clientService.GetAdminAddr()
-		_, serverAdminPort := serverService.GetAdminAddr()
-		_, serverAdminPortV1 := serverServiceV1.GetAdminAddr()
-		_, serverAdminPortV2 := serverServiceV2.GetAdminAddr()
+		_, port := clientConnectProxy.GetAddr()
+		_, adminPort := clientConnectProxy.GetAdminAddr()
+		_, serverAdminPort := serverConnectProxy.GetAdminAddr()
+		_, serverAdminPortV1 := serverConnectProxyV1.GetAdminAddr()
+		_, serverAdminPortV2 := serverConnectProxyV2.GetAdminAddr()
 
 		// validate client and proxy is up and running
-		libassert.AssertContainerState(t, clientService, "running")
-
-		// TO-DO: static-client upstream should be able to connect to static-server-v2 via upstream s2
+		libassert.AssertContainerState(t, clientConnectProxy, "running")
 
 		libassert.HTTPServiceEchoes(t, "localhost", port, "")
 		libassert.AssertUpstreamEndpointStatus(t, adminPort, "v2.static-server.default", "HEALTHY", 1)
 
 		// Upgrade cluster, restart sidecars then begin service traffic validation
 		require.NoError(t, cluster.StandardUpgrade(t, context.Background(), tc.targetVersion))
-		require.NoError(t, clientService.Restart())
-		require.NoError(t, serverService.Restart())
-		require.NoError(t, serverServiceV1.Restart())
-		require.NoError(t, serverServiceV2.Restart())
+		require.NoError(t, clientConnectProxy.Restart())
+		require.NoError(t, serverConnectProxy.Restart())
+		require.NoError(t, serverConnectProxyV1.Restart())
+		require.NoError(t, serverConnectProxyV2.Restart())
 
 		// POST upgrade validation; repeat client & proxy validation
 		libassert.HTTPServiceEchoes(t, "localhost", port, "")
@@ -129,7 +127,8 @@ func TestTrafficManagement_ServiceWithSubsets(t *testing.T) {
 		libassert.AssertEnvoyPresentsCertURI(t, serverAdminPortV1, "static-server")
 		libassert.AssertEnvoyPresentsCertURI(t, serverAdminPortV2, "static-server")
 
-		// TO-DO: restart envoy sidecar and validate traffic management
+		// static-client upstream should connect to static-server-v2 because the default subset value is to v2 set in the service resolver
+		libassert.AssertFortioName(t, fmt.Sprintf("http://localhost:%d", port), "static-server-v2")
 	}
 
 	for _, tc := range tcs {
@@ -146,35 +145,41 @@ func createService(t *testing.T, cluster *libcluster.Cluster) (libservice.Servic
 	client := node.GetClient()
 
 	serviceOpts := &libservice.ServiceOpts{
-		Name: libservice.StaticServerServiceName,
-		ID:   "static-server",
+		Name:     libservice.StaticServerServiceName,
+		ID:       "static-server",
+		HTTPPort: 8080,
+		GRPCPort: 8079,
 	}
-	_, serverService, err := libservice.CreateAndRegisterStaticServerAndSidecar(node, serviceOpts)
+	_, serverConnectProxy, err := libservice.CreateAndRegisterStaticServerAndSidecar(node, serviceOpts)
 	libassert.CatalogServiceExists(t, client, "static-server")
 	require.NoError(t, err)
 
 	serviceOptsV1 := &libservice.ServiceOpts{
-		Name: libservice.StaticServerServiceName,
-		ID:   "static-server-v1",
-		Meta: map[string]string{"version": "v1"},
+		Name:     libservice.StaticServerServiceName,
+		ID:       "static-server-v1",
+		Meta:     map[string]string{"version": "v1"},
+		HTTPPort: 8081,
+		GRPCPort: 8078,
 	}
-	_, serverServiceV1, err := libservice.CreateAndRegisterStaticServerAndSidecar(node, serviceOptsV1)
+	_, serverConnectProxyV1, err := libservice.CreateAndRegisterStaticServerAndSidecar(node, serviceOptsV1)
 	libassert.CatalogServiceExists(t, client, "static-server")
 	require.NoError(t, err)
 
 	serviceOptsV2 := &libservice.ServiceOpts{
-		Name: libservice.StaticServerServiceName,
-		ID:   "static-server-v2",
-		Meta: map[string]string{"version": "v2"},
+		Name:     libservice.StaticServerServiceName,
+		ID:       "static-server-v2",
+		Meta:     map[string]string{"version": "v2"},
+		HTTPPort: 8082,
+		GRPCPort: 8077,
 	}
-	_, serverServiceV2, err := libservice.CreateAndRegisterStaticServerAndSidecar(node, serviceOptsV2)
+	_, serverConnectProxyV2, err := libservice.CreateAndRegisterStaticServerAndSidecar(node, serviceOptsV2)
 	libassert.CatalogServiceExists(t, client, "static-server")
 	require.NoError(t, err)
 
 	// Create a client proxy instance with the server as an upstream
-	clientService, err := libservice.CreateAndRegisterStaticClientSidecar(node, "", false)
+	clientConnectProxy, err := libservice.CreateAndRegisterStaticClientSidecar(node, "", false)
 	require.NoError(t, err)
 	libassert.CatalogServiceExists(t, client, fmt.Sprintf("%s-sidecar-proxy", libservice.StaticClientServiceName))
 
-	return serverService, serverServiceV1, serverServiceV2, clientService
+	return serverConnectProxy, serverConnectProxyV1, serverConnectProxyV2, clientConnectProxy
 }
