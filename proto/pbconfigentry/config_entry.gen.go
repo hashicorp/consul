@@ -184,6 +184,7 @@ func ConditionToStructs(s *Condition, t *structs.Condition) {
 	if s == nil {
 		return
 	}
+	t.Type = s.Type
 	t.Status = s.Status
 	t.Reason = s.Reason
 	t.Message = s.Message
@@ -198,6 +199,7 @@ func ConditionFromStructs(t *structs.Condition, s *Condition) {
 	if s == nil {
 		return
 	}
+	s.Type = t.Type
 	s.Status = t.Status
 	s.Reason = t.Reason
 	s.Message = t.Message

@@ -45,4 +45,6 @@ deep-copy \
   -type ServiceRouteMatch \
   -type Upstream \
   -type UpstreamConfiguration \
+  -type Status \
+  -type BoundAPIGatewayConfigEntry \
   ./
