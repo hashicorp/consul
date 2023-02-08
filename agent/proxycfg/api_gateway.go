@@ -55,21 +55,24 @@ func (h *handlerAPIGateway) initialize(ctx context.Context) (ConfigSnapshot, err
 		return snap, err
 	}
 
+	snap.APIGateway.Listeners = make(map[string]structs.APIGatewayListener)
+	snap.APIGateway.BoundListeners = make(map[string]structs.BoundAPIGatewayListener)
 	snap.APIGateway.HTTPRoutes = watch.NewMap[structs.ResourceReference, *structs.HTTPRouteConfigEntry]()
 	snap.APIGateway.TCPRoutes = watch.NewMap[structs.ResourceReference, *structs.TCPRouteConfigEntry]()
 	snap.APIGateway.Certificates = watch.NewMap[structs.ResourceReference, *structs.InlineCertificateConfigEntry]()
 
-	snap.APIGateway.WatchedDiscoveryChains = make(map[UpstreamID]context.CancelFunc)
+
+	// These need to be initialized here but are set by handlerUpstreams
 	snap.APIGateway.DiscoveryChain = make(map[UpstreamID]*structs.CompiledDiscoveryChain)
-	snap.APIGateway.WatchedUpstreams = make(map[UpstreamID]map[string]context.CancelFunc)
-	snap.APIGateway.WatchedUpstreamEndpoints = make(map[UpstreamID]map[string]structs.CheckServiceNodes)
-	snap.APIGateway.WatchedGateways = make(map[UpstreamID]map[string]context.CancelFunc)
-	snap.APIGateway.WatchedGatewayEndpoints = make(map[UpstreamID]map[string]structs.CheckServiceNodes)
-	snap.APIGateway.Listeners = make(map[string]structs.APIGatewayListener)
-	snap.APIGateway.BoundListeners = make(map[string]structs.BoundAPIGatewayListener)
-	snap.APIGateway.UpstreamPeerTrustBundles = watch.NewMap[string, *pbpeering.PeeringTrustBundle]()
 	snap.APIGateway.PeerUpstreamEndpoints = watch.NewMap[UpstreamID, structs.CheckServiceNodes]()
 	snap.APIGateway.PeerUpstreamEndpointsUseHostnames = make(map[UpstreamID]struct{})
+	snap.APIGateway.UpstreamPeerTrustBundles = watch.NewMap[string, *pbpeering.PeeringTrustBundle]()
+	snap.APIGateway.WatchedDiscoveryChains = make(map[UpstreamID]context.CancelFunc)
+	snap.APIGateway.WatchedGateways = make(map[UpstreamID]map[string]context.CancelFunc)
+	snap.APIGateway.WatchedGatewayEndpoints = make(map[UpstreamID]map[string]structs.CheckServiceNodes)
+	snap.APIGateway.WatchedUpstreams = make(map[UpstreamID]map[string]context.CancelFunc)
+	snap.APIGateway.WatchedUpstreamEndpoints = make(map[UpstreamID]map[string]structs.CheckServiceNodes)
+
 	return snap, nil
 }
 
