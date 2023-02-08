@@ -142,7 +142,6 @@ func (s *Server) ResolveIdentityFromToken(token string) (bool, structs.ACLIdenti
 	if !s.InPrimaryDatacenter() && !s.config.ACLTokenReplication {
 		return false, nil, nil
 	}
-
 	index, aclToken, err := s.fsm.State().ACLTokenGetBySecret(nil, token, nil)
 	if err != nil {
 		return true, nil, err
