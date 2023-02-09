@@ -18,8 +18,8 @@ import (
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 )
 
-// gatewayContainer
-type gatewayContainer struct {
+// GatewayContainer
+type GatewayContainer struct {
 	ctx         context.Context
 	container   testcontainers.Container
 	ip          string
@@ -28,21 +28,21 @@ type gatewayContainer struct {
 	serviceName string
 }
 
-var _ Service = (*gatewayContainer)(nil)
+var _ Service = (*GatewayContainer)(nil)
 
-func (g gatewayContainer) Exec(ctx context.Context, cmd []string) (int, io.Reader, error) {
+func (g GatewayContainer) Exec(ctx context.Context, cmd []string) (int, io.Reader, error) {
 	return g.container.Exec(ctx, cmd)
 }
 
-func (g gatewayContainer) Export(partition, peer string, client *api.Client) error {
+func (g GatewayContainer) Export(partition, peer string, client *api.Client) error {
 	return fmt.Errorf("gatewayContainer export unimplemented")
 }
 
-func (g gatewayContainer) GetAddr() (string, int) {
+func (g GatewayContainer) GetAddr() (string, int) {
 	return g.ip, g.port
 }
 
-func (g gatewayContainer) GetLogs() (string, error) {
+func (g GatewayContainer) GetLogs() (string, error) {
 	rc, err := g.container.Logs(context.Background())
 	if err != nil {
 		return "", fmt.Errorf("could not get logs for gateway service %s: %w", g.GetServiceName(), err)
@@ -56,7 +56,7 @@ func (g gatewayContainer) GetLogs() (string, error) {
 	return string(out), nil
 }
 
-func (g gatewayContainer) GetName() string {
+func (g GatewayContainer) GetName() string {
 	name, err := g.container.Name(g.ctx)
 	if err != nil {
 		return ""
@@ -64,26 +64,26 @@ func (g gatewayContainer) GetName() string {
 	return name
 }
 
-func (g gatewayContainer) GetServiceName() string {
+func (g GatewayContainer) GetServiceName() string {
 	return g.serviceName
 }
 
-func (g gatewayContainer) Start() error {
+func (g GatewayContainer) Start() error {
 	if g.container == nil {
 		return fmt.Errorf("container has not been initialized")
 	}
 	return g.container.Start(context.Background())
 }
 
-func (c gatewayContainer) Terminate() error {
+func (c GatewayContainer) Terminate() error {
 	return cluster.TerminateContainer(c.ctx, c.container, true)
 }
 
-func (g gatewayContainer) GetAdminAddr() (string, int) {
+func (g GatewayContainer) GetAdminAddr() (string, int) {
 	return "localhost", g.adminPort
 }
 
-func (g gatewayContainer) Restart() error {
+func (g GatewayContainer) Restart() error {
 	_, err := g.container.State(g.ctx)
 	if err != nil {
 		return fmt.Errorf("error get gateway state %s", err)
@@ -100,7 +100,7 @@ func (g gatewayContainer) Restart() error {
 	return nil
 }
 
-func (g gatewayContainer) GetStatus() (string, error) {
+func (g GatewayContainer) GetStatus() (string, error) {
 	state, err := g.container.State(g.ctx)
 	return state.Status, err
 }
@@ -190,7 +190,7 @@ func NewGatewayService(ctx context.Context, name string, kind string, node libcl
 		return nil, err
 	}
 
-	out := &gatewayContainer{
+	out := &GatewayContainer{
 		ctx:         ctx,
 		container:   info.Container,
 		ip:          info.IP,

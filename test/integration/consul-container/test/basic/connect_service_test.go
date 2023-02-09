@@ -27,7 +27,9 @@ func TestBasicConnectService(t *testing.T) {
 
 	clientService := createServices(t, cluster)
 	_, port := clientService.GetAddr()
-	_, adminPort := clientService.GetAdminAddr()
+	clientSidecar, ok := clientService.(*libservice.ConnectContainer)
+	require.True(t, ok)
+	_, adminPort := clientSidecar.GetExternalAdminAddr()
 
 	libassert.AssertUpstreamEndpointStatus(t, adminPort, "static-server.default", "HEALTHY", 1)
 	libassert.GetEnvoyListenerTCPFilters(t, adminPort)
