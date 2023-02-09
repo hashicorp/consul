@@ -7,7 +7,7 @@ kind = "api-gateway"
 name = "api-gateway"
 listeners = [
   {
-    port     = 9999
+    port = 9999
     protocol = "tcp"
   }
 ]
@@ -18,11 +18,12 @@ kind = "tcp-route"
 name = "api-gateway-route"
 services = [
   {
-    name               = "s1"
+    name = "s1"
   }
 ]
 parents = [
   {
+    kind = "api-gateway"
     name = "api-gateway"
   }
 ]

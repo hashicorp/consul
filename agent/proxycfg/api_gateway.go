@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/proxycfg/internal/watch"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/proto/pbpeering"
@@ -225,7 +226,7 @@ func (h *handlerAPIGateway) handleGatewayConfigUpdate(ctx context.Context, u Upd
 		return fmt.Errorf("invalid type for config entry: %T", resp.Entry)
 	}
 
-	return nil
+	return h.watchIngressLeafCert(ctx, snap)
 }
 
 // handleInlineCertConfigUpdate stores the certificate for the gateway
@@ -416,11 +417,83 @@ func (h *handlerAPIGateway) handleRouteConfigUpdate(ctx context.Context, u Updat
 //
 // TODO This would probably be more generally useful as a helper in the structs pkg
 func (h *handlerAPIGateway) referenceIsForListener(ref structs.ResourceReference, listener structs.APIGatewayListener, snap *ConfigSnapshot) bool {
-	if ref.Kind != snap.APIGateway.GatewayConfig.Kind {
+	if ref.Kind != structs.APIGateway && ref.Kind != "" {
 		return false
 	}
 	if ref.Name != snap.APIGateway.GatewayConfig.Name {
 		return false
 	}
 	return ref.SectionName == "" || ref.SectionName == listener.Name
+}
+
+func (h *handlerAPIGateway) watchIngressLeafCert(ctx context.Context, snap *ConfigSnapshot) error {
+	// Note that we DON'T test for TLS.enabled because we need a leaf cert for the
+	// gateway even without TLS to use as a client cert.
+	if !snap.APIGateway.GatewayConfigLoaded {
+		return nil
+	}
+
+	// Watch the leaf cert
+	if snap.APIGateway.LeafCertWatchCancel != nil {
+		snap.APIGateway.LeafCertWatchCancel()
+	}
+	ctx, cancel := context.WithCancel(ctx)
+	err := h.dataSources.LeafCertificate.Notify(ctx, &cachetype.ConnectCALeafRequest{
+		Datacenter:     h.source.Datacenter,
+		Token:          h.token,
+		Service:        h.service,
+		DNSSAN:         h.generateIngressDNSSANs(snap),
+		EnterpriseMeta: h.proxyID.EnterpriseMeta,
+	}, leafWatchID, h.ch)
+	if err != nil {
+		cancel()
+		return err
+	}
+	snap.APIGateway.LeafCertWatchCancel = cancel
+
+	return nil
+}
+
+func (h *handlerAPIGateway) generateIngressDNSSANs(snap *ConfigSnapshot) []string {
+	// Update our leaf cert watch with wildcard entries for our DNS domains as
+	// well as any configured custom hostnames from the service. Note that in the
+	// case that only a subset of listeners are TLS-enabled, we still load DNS
+	// SANs for all upstreams. We could limit it to only those that are reachable
+	// from the enabled listeners but that adds a lot of complication and they are
+	// already wildcards anyway. It's simpler to have one certificate for the
+	// whole proxy that works for any possible upstream we might need than try to
+	// be more selective when we are already using wildcard DNS names!
+	if !connectTLSServingEnabled(snap) {
+		return nil
+	}
+
+	var dnsNames []string
+	namespaces := make(map[string]struct{})
+	for _, upstreams := range snap.APIGateway.Upstreams {
+		for _, u := range upstreams {
+			namespaces[u.DestinationNamespace] = struct{}{}
+		}
+	}
+
+	// TODO(partitions): How should these be updated for partitions?
+	for ns := range namespaces {
+		// The default namespace is special cased in DNS resolution, so special
+		// case it here.
+		if ns == structs.IntentionDefaultNamespace {
+			ns = ""
+		} else {
+			ns = ns + "."
+		}
+
+		dnsNames = append(dnsNames, fmt.Sprintf("*.ingress.%s%s", ns, h.dnsConfig.Domain))
+		dnsNames = append(dnsNames, fmt.Sprintf("*.ingress.%s%s.%s", ns, h.source.Datacenter, h.dnsConfig.Domain))
+		if h.dnsConfig.AltDomain != "" {
+			dnsNames = append(dnsNames, fmt.Sprintf("*.ingress.%s%s", ns, h.dnsConfig.AltDomain))
+			dnsNames = append(dnsNames, fmt.Sprintf("*.ingress.%s%s.%s", ns, h.source.Datacenter, h.dnsConfig.AltDomain))
+		}
+	}
+
+	dnsNames = append(dnsNames, snap.APIGateway.Hosts...)
+
+	return dnsNames
 }
