@@ -52,7 +52,7 @@ func NewTroubleshoot(envoyIP *net.IPAddr, envoyPort string) (*Troubleshoot, erro
 	}, nil
 }
 
-func (t *Troubleshoot) RunAllTests(envoyID string) (validate.Messages, error) {
+func (t *Troubleshoot) RunAllTests(upstreamEnvoyID, upstreamIP string) (validate.Messages, error) {
 	var allTestMessages validate.Messages
 
 	// Get all info from proxy to set up validations.
@@ -91,7 +91,7 @@ func (t *Troubleshoot) RunAllTests(envoyID string) (validate.Messages, error) {
 	// }
 
 	// Validate listeners, routes, clusters, endpoints.
-	messages = Validate(indexedResources, envoyID, "", true, t.envoyClusters)
+	messages = Validate(indexedResources, upstreamEnvoyID, upstreamIP, true, t.envoyClusters)
 	allTestMessages = append(allTestMessages, messages...)
 	if errors := messages.Errors(); len(errors) == 0 {
 		msg := validate.Message{
