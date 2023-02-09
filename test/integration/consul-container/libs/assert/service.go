@@ -3,6 +3,8 @@ package assert
 import (
 	"fmt"
 	"io"
+	"net/http"
+	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -13,6 +15,7 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	libservice "github.com/hashicorp/consul/test/integration/consul-container/libs/service"
+	"github.com/stretchr/testify/assert"
 )
 
 const (
@@ -87,6 +90,30 @@ func ServiceLogContains(t *testing.T, service libservice.Service, target string)
 	logs, err := service.GetLogs()
 	require.NoError(t, err)
 	return strings.Contains(logs, target)
+}
+
+// AssertFortioName asserts that the fortio service replying at urlbase/debug
+// has a `FORTIO_NAME` env variable set. This validates that the client is sending
+// traffic to the right envoy proxy.
+//
+// It retries with timeout defaultHTTPTimeout and wait defaultHTTPWait.
+func AssertFortioName(t *testing.T, urlbase string, name string) {
+	t.Helper()
+	var fortioNameRE = regexp.MustCompile(("\nFORTIO_NAME=(.+)\n"))
+	var body []byte
+	retry.RunWith(&retry.Timer{Timeout: defaultHTTPTimeout, Wait: defaultHTTPWait}, t, func(r *retry.R) {
+		resp, err := http.Get(fmt.Sprintf("%s/debug?env=dump", urlbase))
+		if err != nil {
+			r.Error(err)
+			return
+		}
+		defer resp.Body.Close()
+		body, err = io.ReadAll(resp.Body)
+		require.NoError(t, err)
+	})
+	m := fortioNameRE.FindStringSubmatch(string(body))
+	require.GreaterOrEqual(t, len(m), 2)
+	assert.Equal(t, name, m[1])
 }
 
 // AssertContainerState validates service container status

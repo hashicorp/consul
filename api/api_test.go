@@ -50,6 +50,19 @@ func makeACLClient(t *testing.T) (*Client, *testutil.TestServer) {
 	})
 }
 
+func makeNonBootstrappedACLClient(t *testing.T) (*Client, *testutil.TestServer) {
+	return makeClientWithConfig(t,
+		func(clientConfig *Config) {
+			clientConfig.Token = "root"
+		},
+		func(serverConfig *testutil.TestServerConfig) {
+			serverConfig.PrimaryDatacenter = "dc1"
+			serverConfig.ACL.Enabled = true
+			serverConfig.ACL.DefaultPolicy = "deny"
+			serverConfig.Bootstrap = true
+		})
+}
+
 func makeClientWithCA(t *testing.T) (*Client, *testutil.TestServer) {
 	return makeClientWithConfig(t,
 		func(c *Config) {
