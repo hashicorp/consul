@@ -37,6 +37,11 @@ const (
 	// This service will ingress connections based of configuration defined in
 	// the ingress-gateway config entry.
 	ServiceKindIngressGateway ServiceKind = "ingress-gateway"
+
+	// ServiceKindAPIGateway is an API Gateway for the Connect feature.
+	// This service will ingress connections based of configuration defined in
+	// the api-gateway config entry.
+	ServiceKindAPIGateway ServiceKind = "api-gateway"
 )
 
 // UpstreamDestType is the type of upstream discovery mechanism.
