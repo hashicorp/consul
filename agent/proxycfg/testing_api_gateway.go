@@ -8,14 +8,13 @@ import (
 
 func TestConfigSnapshotAPIGateway(
 	t testing.T,
-	protocol string,
 	variation string,
 	nsFn func(ns *structs.NodeService),
 	configFn func(entry *structs.APIGatewayConfigEntry, boundEntry *structs.BoundAPIGatewayConfigEntry),
 	extraUpdates []UpdateEvent,
 	additionalEntries ...structs.ConfigEntry,
 ) *ConfigSnapshot {
-	roots, _ := TestCerts(t)
+	roots, placeholderLeaf := TestCerts(t)
 
 	entry := &structs.APIGatewayConfigEntry{
 		Kind: structs.APIGateway,
@@ -34,6 +33,10 @@ func TestConfigSnapshotAPIGateway(
 		{
 			CorrelationID: rootsWatchID,
 			Result:        roots,
+		},
+		{
+			CorrelationID: leafWatchID,
+			Result:        placeholderLeaf,
 		},
 		{
 			CorrelationID: gatewayConfigWatchID,
