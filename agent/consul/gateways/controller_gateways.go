@@ -11,7 +11,6 @@ import (
 	"github.com/hashicorp/go-memdb"
 
 	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/agent/configentry"
 	"github.com/hashicorp/consul/agent/consul/controller"
 	"github.com/hashicorp/consul/agent/consul/discoverychain"
 	"github.com/hashicorp/consul/agent/consul/fsm"
@@ -130,7 +129,7 @@ func (r *apiGatewayReconciler) cleanupBoundGateway(_ context.Context, req contro
 	resource := requestToResourceRef(req)
 	resource.Kind = structs.APIGateway
 
-	for _, modifiedRoute := range RemoveGateway(resource, routes...) {
+	for _, modifiedRoute := range removeGateway(resource, routes...) {
 		routeLogger := routeLogger(logger, modifiedRoute)
 		routeLogger.Debug("persisting route status")
 		if err := r.updater.Update(modifiedRoute); err != nil {
@@ -236,7 +235,7 @@ func (r *apiGatewayReconciler) reconcileGateway(_ context.Context, req controlle
 	updatedRoutes := []structs.ControlledConfigEntry{}
 	for _, route := range routes {
 		routeUpdater := structs.NewStatusUpdater(route)
-		_, boundRefs, bindErrors := BindRoutesToGateways([]*gatewayMeta{meta}, route)
+		_, boundRefs, bindErrors := bindRoutesToGateways([]*gatewayMeta{meta}, route)
 
 		// unset the old gateway binding in case it's stale
 		for _, parent := range route.GetParents() {
@@ -309,7 +308,7 @@ func (r *apiGatewayReconciler) cleanupRoute(_ context.Context, req controller.Re
 		return err
 	}
 
-	for _, modifiedGateway := range RemoveRoute(requestToResourceRef(req), meta...) {
+	for _, modifiedGateway := range removeRoute(requestToResourceRef(req), meta...) {
 		gatewayLogger := gatewayLogger(logger, modifiedGateway.BoundGateway)
 		gatewayLogger.Debug("persisting bound gateway state")
 		if err := r.updater.Update(modifiedGateway.BoundGateway); err != nil {
@@ -448,7 +447,7 @@ func (r *apiGatewayReconciler) reconcileRoute(_ context.Context, req controller.
 		// we return early, but need to make sure we're removed from all referencing
 		// gateways and our status is updated properly
 		updated := []*structs.BoundAPIGatewayConfigEntry{}
-		for _, modifiedGateway := range RemoveRoute(requestToResourceRef(req), meta...) {
+		for _, modifiedGateway := range removeRoute(requestToResourceRef(req), meta...) {
 			updated = append(updated, modifiedGateway.BoundGateway)
 		}
 		return finalize(updated)
@@ -456,7 +455,7 @@ func (r *apiGatewayReconciler) reconcileRoute(_ context.Context, req controller.
 
 	// the route is valid, attempt to bind it to all gateways
 	r.logger.Debug("binding routes to gateway")
-	modifiedGateways, boundRefs, bindErrors := BindRoutesToGateways(meta, route)
+	modifiedGateways, boundRefs, bindErrors := bindRoutesToGateways(meta, route)
 
 	// set the status of the references that are bound
 	for _, ref := range boundRefs {
@@ -583,83 +582,6 @@ func routeRequestLogger(logger hclog.Logger, request controller.Request) hclog.L
 func routeLogger(logger hclog.Logger, route structs.ConfigEntry) hclog.Logger {
 	meta := route.GetEnterpriseMeta()
 	return logger.With("route.kind", route.GetKind(), "route.name", route.GetName(), "route.namespace", meta.NamespaceOrDefault(), "route.partition", meta.PartitionOrDefault())
-}
-
-// referenceSet stores an O(1) accessible set of ResourceReference objects.
-type referenceSet = map[structs.ResourceReference]any
-
-// gatewayRefs maps a gateway kind/name to a set of resource references.
-type gatewayRefs = map[configentry.KindName][]structs.ResourceReference
-
-// BindRoutesToGateways takes a slice of bound API gateways and a variadic number of routes.
-// It iterates over the parent references for each route. These parents are gateways the
-// route should be bound to. If the parent matches a bound gateway, the route is bound to the
-// gateway. Otherwise, the route is unbound from the gateway if it was previously bound.
-//
-// The function returns a list of references to the modified BoundAPIGatewayConfigEntry objects,
-// a map of resource references to errors that occurred when they were attempted to be
-// bound to a gateway.
-func BindRoutesToGateways(gateways []*gatewayMeta, routes ...structs.BoundRoute) ([]*structs.BoundAPIGatewayConfigEntry, []structs.ResourceReference, map[structs.ResourceReference]error) {
-	boundRefs := []structs.ResourceReference{}
-	modified := make([]*structs.BoundAPIGatewayConfigEntry, 0, len(gateways))
-
-	// errored stores the errors from events where a resource reference failed to bind to a gateway.
-	errored := make(map[structs.ResourceReference]error)
-
-	for _, route := range routes {
-		// Iterate over all BoundAPIGateway config entries and try to bind them to the route if they are a parent.
-		for _, gateway := range gateways {
-			didUpdate, bound, errors := gateway.updateRouteBinding(route)
-
-			if didUpdate {
-				modified = append(modified, gateway.BoundGateway)
-			}
-
-			for ref, err := range errors {
-				errored[ref] = err
-			}
-
-			boundRefs = append(boundRefs, bound...)
-		}
-	}
-
-	return modified, boundRefs, errored
-}
-
-// RemoveGateway sets the route's status appropriately when the gateway that it's
-// attempting to bind to does not exist
-func RemoveGateway(gateway structs.ResourceReference, entries ...structs.BoundRoute) []structs.ControlledConfigEntry {
-	conditions := newGatewayConditionGenerator()
-	modified := []structs.ControlledConfigEntry{}
-
-	for _, route := range entries {
-		updater := structs.NewStatusUpdater(route)
-
-		for _, parent := range route.GetParents() {
-			if parent.Kind == gateway.Kind && parent.Name == gateway.Name && parent.EnterpriseMeta.IsSame(&gateway.EnterpriseMeta) {
-				updater.SetCondition(conditions.gatewayNotFound(parent))
-			}
-		}
-
-		if toUpdate, shouldUpdate := updater.UpdateEntry(); shouldUpdate {
-			modified = append(modified, toUpdate)
-		}
-	}
-
-	return modified
-}
-
-// RemoveRoute unbinds the route from the given gateways, returning the list of gateways that were modified.
-func RemoveRoute(route structs.ResourceReference, entries ...*gatewayMeta) []*gatewayMeta {
-	modified := []*gatewayMeta{}
-
-	for _, entry := range entries {
-		if entry.unbindRoute(route) {
-			modified = append(modified, entry)
-		}
-	}
-
-	return modified
 }
 
 // gatewayMeta embeds both a BoundAPIGateway and its corresponding APIGateway.
@@ -834,15 +756,6 @@ func (g *gatewayMeta) unbindRoute(route structs.ResourceReference) bool {
 	}
 
 	return didUnbind
-}
-
-func (g *gatewayMeta) boundListenerByName(name string) (int, *structs.BoundAPIGatewayListener) {
-	for i, listener := range g.BoundGateway.Listeners {
-		if listener.Name == name {
-			return i, &listener
-		}
-	}
-	return -1, nil
 }
 
 func (g *gatewayMeta) eachListener(fn func(listener *structs.APIGatewayListener, bound *structs.BoundAPIGatewayListener) error) error {
@@ -1078,6 +991,77 @@ func (g *gatewayConditionGenerator) gatewayNotFound(ref structs.ResourceReferenc
 		Message:            "gateway was not found",
 		LastTransitionTime: g.now,
 	}
+}
+
+// bindRoutesToGateways takes a slice of bound API gateways and a variadic number of routes.
+// It iterates over the parent references for each route. These parents are gateways the
+// route should be bound to. If the parent matches a bound gateway, the route is bound to the
+// gateway. Otherwise, the route is unbound from the gateway if it was previously bound.
+//
+// The function returns a list of references to the modified BoundAPIGatewayConfigEntry objects,
+// a map of resource references to errors that occurred when they were attempted to be
+// bound to a gateway.
+func bindRoutesToGateways(gateways []*gatewayMeta, routes ...structs.BoundRoute) ([]*structs.BoundAPIGatewayConfigEntry, []structs.ResourceReference, map[structs.ResourceReference]error) {
+	boundRefs := []structs.ResourceReference{}
+	modified := make([]*structs.BoundAPIGatewayConfigEntry, 0, len(gateways))
+
+	// errored stores the errors from events where a resource reference failed to bind to a gateway.
+	errored := make(map[structs.ResourceReference]error)
+
+	for _, route := range routes {
+		// Iterate over all BoundAPIGateway config entries and try to bind them to the route if they are a parent.
+		for _, gateway := range gateways {
+			didUpdate, bound, errors := gateway.updateRouteBinding(route)
+
+			if didUpdate {
+				modified = append(modified, gateway.BoundGateway)
+			}
+
+			for ref, err := range errors {
+				errored[ref] = err
+			}
+
+			boundRefs = append(boundRefs, bound...)
+		}
+	}
+
+	return modified, boundRefs, errored
+}
+
+// removeGateway sets the route's status appropriately when the gateway that it's
+// attempting to bind to does not exist
+func removeGateway(gateway structs.ResourceReference, entries ...structs.BoundRoute) []structs.ControlledConfigEntry {
+	conditions := newGatewayConditionGenerator()
+	modified := []structs.ControlledConfigEntry{}
+
+	for _, route := range entries {
+		updater := structs.NewStatusUpdater(route)
+
+		for _, parent := range route.GetParents() {
+			if parent.Kind == gateway.Kind && parent.Name == gateway.Name && parent.EnterpriseMeta.IsSame(&gateway.EnterpriseMeta) {
+				updater.SetCondition(conditions.gatewayNotFound(parent))
+			}
+		}
+
+		if toUpdate, shouldUpdate := updater.UpdateEntry(); shouldUpdate {
+			modified = append(modified, toUpdate)
+		}
+	}
+
+	return modified
+}
+
+// removeRoute unbinds the route from the given gateways, returning the list of gateways that were modified.
+func removeRoute(route structs.ResourceReference, entries ...*gatewayMeta) []*gatewayMeta {
+	modified := []*gatewayMeta{}
+
+	for _, entry := range entries {
+		if entry.unbindRoute(route) {
+			modified = append(modified, entry)
+		}
+	}
+
+	return modified
 }
 
 func requestToResourceRef(req controller.Request) structs.ResourceReference {
