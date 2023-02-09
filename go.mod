@@ -17,6 +17,7 @@ exclude (
 
 require (
 	github.com/NYTimes/gziphandler v1.0.1
+	github.com/aliyun/alibaba-cloud-sdk-go v1.62.156
 	github.com/armon/circbuf v0.0.0-20150827004946-bbbad097214e
 	github.com/armon/go-metrics v0.3.10
 	github.com/armon/go-radix v1.0.0
@@ -47,7 +48,7 @@ require (
 	github.com/hashicorp/go-cleanhttp v0.5.2
 	github.com/hashicorp/go-connlimit v0.3.0
 	github.com/hashicorp/go-discover v0.0.0-20220714221025-1c234a67149a
-	github.com/hashicorp/go-hclog v1.2.1
+	github.com/hashicorp/go-hclog v1.4.0
 	github.com/hashicorp/go-immutable-radix v1.3.1
 	github.com/hashicorp/go-memdb v1.3.4
 	github.com/hashicorp/go-multierror v1.1.1
@@ -55,7 +56,7 @@ require (
 	github.com/hashicorp/go-secure-stdlib/awsutil v0.1.6
 	github.com/hashicorp/go-sockaddr v1.0.2
 	github.com/hashicorp/go-syslog v1.0.0
-	github.com/hashicorp/go-uuid v1.0.2
+	github.com/hashicorp/go-uuid v1.0.3
 	github.com/hashicorp/go-version v1.2.1
 	github.com/hashicorp/golang-lru v0.5.4
 	github.com/hashicorp/hcl v1.0.0
@@ -68,9 +69,10 @@ require (
 	github.com/hashicorp/raft-boltdb/v2 v2.2.2
 	github.com/hashicorp/raft-wal v0.2.4
 	github.com/hashicorp/serf v0.10.1
-	github.com/hashicorp/vault/api v1.8.2
+	github.com/hashicorp/vault-plugin-auth-alicloud v0.14.0
+	github.com/hashicorp/vault/api v1.8.3
 	github.com/hashicorp/vault/api/auth/gcp v0.3.0
-	github.com/hashicorp/vault/sdk v0.6.0
+	github.com/hashicorp/vault/sdk v0.7.0
 	github.com/hashicorp/yamux v0.0.0-20211028200310-0bc27b27de87
 	github.com/imdario/mergo v0.3.13
 	github.com/kr/text v0.2.0
@@ -195,7 +197,7 @@ require (
 	github.com/nicolai86/scaleway-sdk v1.10.2-0.20180628010248-798f60e20bb2 // indirect
 	github.com/oklog/run v1.0.0 // indirect
 	github.com/oklog/ulid v1.3.1 // indirect
-	github.com/opentracing/opentracing-go v1.2.0 // indirect
+	github.com/opentracing/opentracing-go v1.2.1-0.20220228012449-10b1cf09e00b // indirect
 	github.com/packethost/packngo v0.1.1-0.20180711074735-b9cb5096f54c // indirect
 	github.com/pierrec/lz4 v2.5.2+incompatible // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
@@ -232,6 +234,7 @@ require (
 	google.golang.org/api v0.57.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
+	gopkg.in/ini.v1 v1.66.2 // indirect
 	gopkg.in/resty.v1 v1.12.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
