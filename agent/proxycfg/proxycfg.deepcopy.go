@@ -228,30 +228,6 @@ func (o *configSnapshotAPIGateway) DeepCopy() *configSnapshotAPIGateway {
 		cp.TLSConfig.CipherSuites = make([]types.TLSCipherSuite, len(o.TLSConfig.CipherSuites))
 		copy(cp.TLSConfig.CipherSuites, o.TLSConfig.CipherSuites)
 	}
-	if o.APIGatewayConfigEntry != nil {
-		cp.APIGatewayConfigEntry = new(structs.APIGatewayConfigEntry)
-		*cp.APIGatewayConfigEntry = *o.APIGatewayConfigEntry
-		if o.APIGatewayConfigEntry.Listeners != nil {
-			cp.APIGatewayConfigEntry.Listeners = make([]structs.APIGatewayListener, len(o.APIGatewayConfigEntry.Listeners))
-			copy(cp.APIGatewayConfigEntry.Listeners, o.APIGatewayConfigEntry.Listeners)
-			for i4 := range o.APIGatewayConfigEntry.Listeners {
-				{
-					retV := o.APIGatewayConfigEntry.Listeners[i4].DeepCopy()
-					cp.APIGatewayConfigEntry.Listeners[i4] = *retV
-				}
-			}
-		}
-		{
-			retV := o.APIGatewayConfigEntry.Status.DeepCopy()
-			cp.APIGatewayConfigEntry.Status = *retV
-		}
-		if o.APIGatewayConfigEntry.Meta != nil {
-			cp.APIGatewayConfigEntry.Meta = make(map[string]string, len(o.APIGatewayConfigEntry.Meta))
-			for k4, v4 := range o.APIGatewayConfigEntry.Meta {
-				cp.APIGatewayConfigEntry.Meta[k4] = v4
-			}
-		}
-	}
 	if o.GatewayConfig != nil {
 		cp.GatewayConfig = new(structs.APIGatewayConfigEntry)
 		*cp.GatewayConfig = *o.GatewayConfig

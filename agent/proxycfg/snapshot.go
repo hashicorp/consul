@@ -646,8 +646,6 @@ type configSnapshotAPIGateway struct {
 
 	TLSConfig structs.GatewayTLSConfig
 
-	APIGatewayConfigEntry *structs.APIGatewayConfigEntry
-
 	// GatewayConfigLoaded is used to determine if we have received the initial
 	// api-gateway config entry yet.
 	GatewayConfigLoaded bool
