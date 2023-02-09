@@ -71,3 +71,4 @@ func TestPolicyDeleteCommand(t *testing.T) {
 		&api.QueryOptions{Token: "root"},
 	)
 	assert.EqualError(t, err, "Unexpected response code: 404 (Requested policy does not exist: ACL not found)")
+}

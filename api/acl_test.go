@@ -293,7 +293,6 @@ func TestAPI_ACLBootstrap(t *testing.T) {
 	t.Parallel()
 	c, s := makeNonBootstrappedACLClient(t, "allow")
 
-	acl := c.ACL()
 	s.WaitForLeader(t)
 	// not bootstrapped, default allow
 	mems, err := c.Agent().Members(false)
@@ -302,7 +301,7 @@ func TestAPI_ACLBootstrap(t *testing.T) {
 
 	s.Stop()
 	c, s = makeNonBootstrappedACLClient(t, "deny")
-	acl = c.ACL()
+	acl := c.ACL()
 	s.WaitForLeader(t)
 	//not bootstrapped, default deny
 	_, _, err = acl.TokenList(nil)

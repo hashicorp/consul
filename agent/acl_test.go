@@ -37,7 +37,7 @@ type TestACLAgent struct {
 
 // NewTestACLAgent does just enough so that all the code within agent/acl.go can work
 // Basically it needs a local state for some of the vet* functions, a logger and a delegate.
-// The key is that we are the delegate so we can control the ResolveTokenSecret responses
+// The key is that we are the delegate so we can control the ResolveToken responses
 func NewTestACLAgent(t *testing.T, name string, hcl string, resolveAuthz authzResolver, resolveIdent identResolver) *TestACLAgent {
 	t.Helper()
 
@@ -89,9 +89,9 @@ func NewTestACLAgent(t *testing.T, name string, hcl string, resolveAuthz authzRe
 	return a
 }
 
-func (a *TestACLAgent) ResolveTokenSecret(secretID string) (acl.Authorizer, error) {
+func (a *TestACLAgent) ResolveToken(secretID string) (acl.Authorizer, error) {
 	if a.resolveAuthzFn == nil {
-		return nil, fmt.Errorf("ResolveTokenSecret call is unexpected - no authz resolver callback set")
+		return nil, fmt.Errorf("ResolveToken call is unexpected - no authz resolver callback set")
 	}
 
 	_, authz, err := a.resolveAuthzFn(secretID)
@@ -99,7 +99,7 @@ func (a *TestACLAgent) ResolveTokenSecret(secretID string) (acl.Authorizer, erro
 }
 
 func (a *TestACLAgent) ResolveTokenAndDefaultMeta(secretID string, entMeta *acl.EnterpriseMeta, authzContext *acl.AuthorizerContext) (resolver.Result, error) {
-	authz, err := a.ResolveTokenSecret(secretID)
+	authz, err := a.ResolveToken(secretID)
 	if err != nil {
 		return resolver.Result{}, err
 	}
