@@ -805,6 +805,16 @@ message HTTPQueryMatch {
 // name=Structs
 message HTTPFilters {
   repeated HTTPHeaderFilter Headers = 1;
+  repeated URLRewrite URLRewrites = 2;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.URLRewrite
+// output=config_entry.gen.go
+// name=Structs
+message URLRewrite {
+  string Path = 1;
 }
 
 // mog annotation:
