@@ -67,7 +67,7 @@
     "@ember/test-helpers": "^2.1.4",
     "@glimmer/component": "^1.0.3",
     "@glimmer/tracking": "^1.0.3",
-    "@hashicorp/design-system-components": "^1.0.4",
+    "@hashicorp/design-system-components": "^1.6.0",
     "@hashicorp/design-system-tokens": "^1.0.0",
     "@hashicorp/ember-cli-api-double": "^4.0.0",
     "@hashicorp/ember-flight-icons": "^3.0.0",
