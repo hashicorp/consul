@@ -329,6 +329,10 @@ func (o *HTTPRouteConfigEntry) DeepCopy() *HTTPRouteConfigEntry {
 					}
 				}
 			}
+			if o.Rules[i2].Filters.URLRewrites != nil {
+				cp.Rules[i2].Filters.URLRewrites = make([]URLRewrite, len(o.Rules[i2].Filters.URLRewrites))
+				copy(cp.Rules[i2].Filters.URLRewrites, o.Rules[i2].Filters.URLRewrites)
+			}
 			if o.Rules[i2].Matches != nil {
 				cp.Rules[i2].Matches = make([]HTTPMatch, len(o.Rules[i2].Matches))
 				copy(cp.Rules[i2].Matches, o.Rules[i2].Matches)
@@ -368,6 +372,10 @@ func (o *HTTPRouteConfigEntry) DeepCopy() *HTTPRouteConfigEntry {
 								}
 							}
 						}
+					}
+					if o.Rules[i2].Services[i4].Filters.URLRewrites != nil {
+						cp.Rules[i2].Services[i4].Filters.URLRewrites = make([]URLRewrite, len(o.Rules[i2].Services[i4].Filters.URLRewrites))
+						copy(cp.Rules[i2].Services[i4].Filters.URLRewrites, o.Rules[i2].Services[i4].Filters.URLRewrites)
 					}
 				}
 			}
