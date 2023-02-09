@@ -583,7 +583,7 @@ spec:
       enterprise: true,
       description:
         'Specifies the namespace to which the configuration entry will apply. This must match the namespace in which the gateway is registered.' +
-        ' If omitted, the namespace will be inherited from [the request](/api-docs/config#ns)' +
+        ' If omitted, the namespace will be inherited from [the request](/consul/api-docs/config#ns)' +
         ' or will default to the `default` namespace.',
       yaml: false,
     },
@@ -593,7 +593,7 @@ spec:
       enterprise: true,
       description:
         'Specifies the admin partition to which the configuration entry will apply. This must match the partition in which the gateway is registered.' +
-        ' If omitted, the partition will be inherited from [the request](/api-docs/config)' +
+        ' If omitted, the partition will be inherited from [the request](/consul/api-docs/config)' +
         ' or will default to the `default` partition.',
       yaml: false,
     },
@@ -614,7 +614,7 @@ spec:
         {
           name: 'namespace',
           description:
-            'If running Consul Open Source, the namespace is ignored (see [Kubernetes Namespaces in Consul OSS](/docs/k8s/crds#consul-oss)). If running Consul Enterprise see [Kubernetes Namespaces in Consul Enterprise](/docs/k8s/crds#consul-enterprise) for more details.',
+            'If running Consul Open Source, the namespace is ignored (see [Kubernetes Namespaces in Consul OSS](/consul/docs/k8s/crds#consul-oss)). If running Consul Enterprise see [Kubernetes Namespaces in Consul Enterprise](/consul/docs/k8s/crds#consul-enterprise) for more details.',
         },
       ],
       hcl: false,
