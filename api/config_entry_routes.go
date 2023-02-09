@@ -41,8 +41,8 @@ type TCPRouteConfigEntry struct {
 func (a *TCPRouteConfigEntry) GetKind() string            { return TCPRoute }
 func (a *TCPRouteConfigEntry) GetName() string            { return a.Name }
 func (a *TCPRouteConfigEntry) GetPartition() string       { return a.Partition }
-func (a *TCPRouteConfigEntry) GetNamespace() string       { return a.GetNamespace() }
-func (a *TCPRouteConfigEntry) GetMeta() map[string]string { return a.GetMeta() }
+func (a *TCPRouteConfigEntry) GetNamespace() string       { return a.Namespace }
+func (a *TCPRouteConfigEntry) GetMeta() map[string]string { return a.Meta }
 func (a *TCPRouteConfigEntry) GetCreateIndex() uint64     { return a.CreateIndex }
 func (a *TCPRouteConfigEntry) GetModifyIndex() uint64     { return a.ModifyIndex }
 
