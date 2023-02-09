@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/proxycfg/internal/watch"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/proto/pbpeering"
@@ -225,7 +226,7 @@ func (h *handlerAPIGateway) handleGatewayConfigUpdate(ctx context.Context, u Upd
 		return fmt.Errorf("invalid type for config entry: %T", resp.Entry)
 	}
 
-	return nil
+	return h.watchIngressLeafCert(ctx, snap)
 }
 
 // handleInlineCertConfigUpdate stores the certificate for the gateway
@@ -416,11 +417,38 @@ func (h *handlerAPIGateway) handleRouteConfigUpdate(ctx context.Context, u Updat
 //
 // TODO This would probably be more generally useful as a helper in the structs pkg
 func (h *handlerAPIGateway) referenceIsForListener(ref structs.ResourceReference, listener structs.APIGatewayListener, snap *ConfigSnapshot) bool {
-	if ref.Kind != snap.APIGateway.GatewayConfig.Kind {
+	if ref.Kind != structs.APIGateway && ref.Kind != "" {
 		return false
 	}
 	if ref.Name != snap.APIGateway.GatewayConfig.Name {
 		return false
 	}
 	return ref.SectionName == "" || ref.SectionName == listener.Name
+}
+
+func (h *handlerAPIGateway) watchIngressLeafCert(ctx context.Context, snap *ConfigSnapshot) error {
+	// Note that we DON'T test for TLS.enabled because we need a leaf cert for the
+	// gateway even without TLS to use as a client cert.
+	if !snap.APIGateway.GatewayConfigLoaded {
+		return nil
+	}
+
+	// Watch the leaf cert
+	if snap.APIGateway.LeafCertWatchCancel != nil {
+		snap.APIGateway.LeafCertWatchCancel()
+	}
+	ctx, cancel := context.WithCancel(ctx)
+	err := h.dataSources.LeafCertificate.Notify(ctx, &cachetype.ConnectCALeafRequest{
+		Datacenter:     h.source.Datacenter,
+		Token:          h.token,
+		Service:        h.service,
+		EnterpriseMeta: h.proxyID.EnterpriseMeta,
+	}, leafWatchID, h.ch)
+	if err != nil {
+		cancel()
+		return err
+	}
+	snap.APIGateway.LeafCertWatchCancel = cancel
+
+	return nil
 }

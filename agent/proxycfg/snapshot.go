@@ -678,6 +678,10 @@ type configSnapshotAPIGateway struct {
 	TCPRoutes    watch.Map[structs.ResourceReference, *structs.TCPRouteConfigEntry]
 	Certificates watch.Map[structs.ResourceReference, *structs.InlineCertificateConfigEntry]
 
+	// LeafCertWatchCancel is a CancelFunc to use when refreshing this gateway's
+	// leaf cert watch with different parameters.
+	LeafCertWatchCancel context.CancelFunc
+
 	// Listeners is the original listener config from the api-gateway config
 	// entry to save us trying to pass fields through Upstreams
 	Listeners map[string]structs.APIGatewayListener
@@ -733,6 +737,7 @@ func (c *configSnapshotAPIGateway) ToIngress(datacenter string) (configSnapshotI
 	upstreams.DiscoveryChain = synthesizedChains
 
 	return configSnapshotIngressGateway{
+		Upstreams:               c.Upstreams,
 		ConfigSnapshotUpstreams: upstreams,
 		GatewayConfigLoaded:     true,
 		Listeners:               ingressListeners,
@@ -928,6 +933,7 @@ func (s *ConfigSnapshot) Valid() bool {
 	case structs.ServiceKindAPIGateway:
 		// TODO Is this the proper set of things to validate?
 		return s.Roots != nil &&
+			s.APIGateway.Leaf != nil &&
 			s.APIGateway.GatewayConfigLoaded &&
 			s.APIGateway.BoundGatewayConfigLoaded &&
 			s.APIGateway.AreHostsSet &&
