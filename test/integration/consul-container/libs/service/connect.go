@@ -20,13 +20,14 @@ import (
 
 // ConnectContainer
 type ConnectContainer struct {
-	ctx              context.Context
-	container        testcontainers.Container
-	ip               string
-	appPort          int
-	adminPort        int
-	mappedPublicPort int
-	serviceName      string
+	ctx               context.Context
+	container         testcontainers.Container
+	ip                string
+	appPort           int
+	externalAdminPort int
+	internalAdminPort int
+	mappedPublicPort  int
+	serviceName       string
 }
 
 var _ Service = (*ConnectContainer)(nil)
@@ -101,8 +102,12 @@ func (g ConnectContainer) Terminate() error {
 	return cluster.TerminateContainer(g.ctx, g.container, true)
 }
 
-func (g ConnectContainer) GetAdminAddr() (string, int) {
-	return "localhost", g.adminPort
+func (g ConnectContainer) GetInternalAdminAddr() (string, int) {
+	return "localhost", g.internalAdminPort
+}
+
+func (g ConnectContainer) GetExternalAdminAddr() (string, int) {
+	return "localhost", g.externalAdminPort
 }
 
 func (g ConnectContainer) GetStatus() (string, error) {
@@ -137,7 +142,7 @@ func NewConnectService(ctx context.Context, sidecarServiceName string, serviceNa
 	}
 	dockerfileCtx.BuildArgs = buildargs
 
-	adminPort, err := node.ClaimAdminPort()
+	internalAdminPort, err := node.ClaimAdminPort()
 	if err != nil {
 		return nil, err
 	}
@@ -150,7 +155,7 @@ func NewConnectService(ctx context.Context, sidecarServiceName string, serviceNa
 		Cmd: []string{
 			"consul", "connect", "envoy",
 			"-sidecar-for", serviceName,
-			"-admin-bind", fmt.Sprintf("0.0.0.0:%d", adminPort),
+			"-admin-bind", fmt.Sprintf("0.0.0.0:%d", internalAdminPort),
 			"--",
 			"--log-level", envoyLogLevel,
 		},
@@ -186,7 +191,7 @@ func NewConnectService(ctx context.Context, sidecarServiceName string, serviceNa
 
 	var (
 		appPortStr   = strconv.Itoa(serviceBindPort)
-		adminPortStr = strconv.Itoa(adminPort)
+		adminPortStr = strconv.Itoa(internalAdminPort)
 	)
 
 	info, err := cluster.LaunchContainerOnNode(ctx, node, req, []string{appPortStr, adminPortStr})
@@ -195,18 +200,19 @@ func NewConnectService(ctx context.Context, sidecarServiceName string, serviceNa
 	}
 
 	out := &ConnectContainer{
-		ctx:         ctx,
-		container:   info.Container,
-		ip:          info.IP,
-		appPort:     info.MappedPorts[appPortStr].Int(),
-		adminPort:   info.MappedPorts[adminPortStr].Int(),
-		serviceName: sidecarServiceName,
+		ctx:               ctx,
+		container:         info.Container,
+		ip:                info.IP,
+		appPort:           info.MappedPorts[appPortStr].Int(),
+		externalAdminPort: info.MappedPorts[adminPortStr].Int(),
+		internalAdminPort: internalAdminPort,
+		serviceName:       sidecarServiceName,
 	}
 
 	fmt.Printf("NewConnectService: name %s, mapped App Port %d, service bind port %d\n",
 		serviceName, out.appPort, serviceBindPort)
 	fmt.Printf("NewConnectService sidecar: name %s, mapped admin port %d, admin port %d\n",
-		sidecarServiceName, out.adminPort, adminPort)
+		sidecarServiceName, out.externalAdminPort, internalAdminPort)
 
 	return out, nil
 }

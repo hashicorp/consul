@@ -11,9 +11,10 @@ import (
 	"github.com/stretchr/testify/require"
 	"io"
 	"testing"
+	"time"
 )
 
-func TestTroubleshootUpstream(t *testing.T) {
+func TestTroubleshootUpstream_Success(t *testing.T) {
 	t.Parallel()
 
 	cluster, _, _ := topology.NewPeeringCluster(t, 1, &libcluster.BuildOptions{
@@ -25,8 +26,10 @@ func TestTroubleshootUpstream(t *testing.T) {
 
 	clientSidecar, ok := clientService.(*libservice.ConnectContainer)
 	require.True(t, ok)
-	ip, port := clientSidecar.GetAdminAddr()
-	_, outputReader, err := clientSidecar.Exec(context.Background(), []string{"consul", "troubleshoot", "upstreams", "-envoy-admin-endpoint", fmt.Sprintf("%s:%v", ip, port)})
+	_, port := clientSidecar.GetInternalAdminAddr()
+	// wait for envoy
+	time.Sleep(5 * time.Second)
+	_, outputReader, err := clientSidecar.Exec(context.Background(), []string{"consul", "troubleshoot", "upstreams", "-envoy-admin-endpoint", fmt.Sprintf("localhost:%v", port)})
 	buf, err := io.ReadAll(outputReader)
 	require.NoError(t, err)
 	require.Contains(t, string(buf), libservice.StaticServerServiceName)

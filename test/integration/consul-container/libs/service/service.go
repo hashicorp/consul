@@ -13,7 +13,6 @@ type Service interface {
 	Exec(ctx context.Context, cmd []string) (int, io.Reader, error)
 	Export(partition, peer string, client *api.Client) error
 	GetAddr() (string, int)
-	GetAdminAddr() (string, int)
 	GetLogs() (string, error)
 	GetName() string
 	GetServiceName() string
