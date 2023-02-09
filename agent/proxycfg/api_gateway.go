@@ -450,10 +450,7 @@ func (h *handlerAPIGateway) watchIngressLeafCert(ctx context.Context, snap *Conf
 		Datacenter:     h.source.Datacenter,
 		Token:          h.token,
 		Service:        h.service,
-<<<<<<< HEAD
-=======
 		DNSSAN:         h.generateIngressDNSSANs(snap),
->>>>>>> fb7a841732 (Simple API Gateway e2e test for tcp routes)
 		EnterpriseMeta: h.proxyID.EnterpriseMeta,
 	}, leafWatchID, h.ch)
 	if err != nil {
@@ -464,8 +461,6 @@ func (h *handlerAPIGateway) watchIngressLeafCert(ctx context.Context, snap *Conf
 
 	return nil
 }
-<<<<<<< HEAD
-=======
 
 func (h *handlerAPIGateway) generateIngressDNSSANs(snap *ConfigSnapshot) []string {
 	// Update our leaf cert watch with wildcard entries for our DNS domains as
