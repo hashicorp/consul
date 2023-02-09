@@ -741,7 +741,7 @@ func (c *configSnapshotAPIGateway) ToIngress(datacenter string) (configSnapshotI
 
 func (c *configSnapshotAPIGateway) synthesizeChains(datacenter string, protocol structs.APIGatewayListenerProtocol, boundListener structs.BoundAPIGatewayListener) ([]structs.IngressService, *structs.CompiledDiscoveryChain, error) {
 	chains := []*structs.CompiledDiscoveryChain{}
-	synthesizer := discoverychain.NewGatewayChainSynthesizer(datacenter, c.APIGatewayConfigEntry)
+	synthesizer := discoverychain.NewGatewayChainSynthesizer(datacenter, c.GatewayConfig)
 	for _, routeRef := range boundListener.Routes {
 		switch routeRef.Kind {
 		case structs.HTTPRoute:
@@ -769,7 +769,7 @@ func (c *configSnapshotAPIGateway) synthesizeChains(datacenter string, protocol 
 				}
 			}
 		default:
-			continue
+			return nil, nil, fmt.Errorf("unknown route kind %q", routeRef.Kind)
 		}
 	}
 
