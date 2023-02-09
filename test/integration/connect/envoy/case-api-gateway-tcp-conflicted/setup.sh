@@ -38,6 +38,7 @@ services = [
 ]
 parents = [
   {
+    kind = "api-gateway"
     name = "api-gateway"
   }
 ]
