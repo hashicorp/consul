@@ -884,7 +884,7 @@ func TestBindRoutesToGateways(t *testing.T) {
 					Name:        "Gateway",
 					Kind:        structs.APIGateway,
 					SectionName: "Non-existent Listener",
-				}: fmt.Errorf("failed to bind route TCP Route to gateway Gateway: no valid listener has name 'Non-existent Listener' and uses tcp protocol"),
+				}: fmt.Errorf("failed to bind route TCP Route to gateway Gateway with listener 'Non-existent Listener'"),
 			},
 		},
 		"Already bound TCP Route": {
@@ -932,8 +932,8 @@ func TestBindRoutesToGateways(t *testing.T) {
 
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
-			for _, gateway := range tc.gateways {
-				gateway.initialize()
+			for i := range tc.gateways {
+				tc.gateways[i].initialize()
 			}
 
 			actualBoundAPIGateways, _, referenceErrors := BindRoutesToGateways(tc.gateways, tc.routes...)

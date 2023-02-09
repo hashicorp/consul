@@ -208,11 +208,11 @@ func TestAPIGatewayController(t *testing.T) {
 					Status: structs.Status{
 						Conditions: []structs.Condition{
 							conditions.routeAccepted(),
-							conditions.routeUnbound(structs.ResourceReference{
+							conditions.gatewayNotFound(structs.ResourceReference{
 								Kind:           structs.APIGateway,
 								Name:           "gateway",
 								EnterpriseMeta: *defaultMeta,
-							}, errors.New("invalid reference to missing parent")),
+							}),
 						},
 					},
 				},
@@ -262,11 +262,11 @@ func TestAPIGatewayController(t *testing.T) {
 					Status: structs.Status{
 						Conditions: []structs.Condition{
 							conditions.routeAccepted(),
-							conditions.routeUnbound(structs.ResourceReference{
+							conditions.gatewayNotFound(structs.ResourceReference{
 								Kind:           structs.APIGateway,
 								Name:           "gateway",
 								EnterpriseMeta: *defaultMeta,
-							}, errors.New("invalid reference to missing parent")),
+							}),
 						},
 					},
 				},
@@ -395,11 +395,11 @@ func TestAPIGatewayController(t *testing.T) {
 					Status: structs.Status{
 						Conditions: []structs.Condition{
 							conditions.routeAccepted(),
-							conditions.routeUnbound(structs.ResourceReference{
+							conditions.gatewayNotFound(structs.ResourceReference{
 								Kind:           structs.APIGateway,
 								Name:           "gateway",
 								EnterpriseMeta: *defaultMeta,
-							}, errors.New("invalid reference to missing parent")),
+							}),
 						},
 					},
 				},
@@ -578,7 +578,7 @@ func TestAPIGatewayController(t *testing.T) {
 								Kind:           structs.APIGateway,
 								Name:           "gateway",
 								EnterpriseMeta: *defaultMeta,
-							}, errors.New("failed to bind route tcp-route to gateway gateway: no valid listener has name '' and uses tcp protocol")),
+							}, errors.New("failed to bind route tcp-route to gateway gateway with listener ''")),
 						},
 					},
 				},
@@ -972,7 +972,7 @@ func TestAPIGatewayController(t *testing.T) {
 								Kind:           structs.APIGateway,
 								Name:           "gateway",
 								EnterpriseMeta: *defaultMeta,
-							}, errors.New("failed to bind route tcp-route to gateway gateway: no valid listener has name '' and uses tcp protocol")),
+							}, errors.New("failed to bind route tcp-route to gateway gateway with listener ''")),
 						},
 					},
 				},
@@ -1448,7 +1448,7 @@ func TestAPIGatewayController(t *testing.T) {
 							conditions.routeUnbound(structs.ResourceReference{
 								Kind: structs.APIGateway,
 								Name: "gateway",
-							}, errors.New("failed to bind route tcp-route to gateway gateway: no valid listener has name '' and uses tcp protocol")),
+							}, errors.New("failed to bind route tcp-route to gateway gateway with listener ''")),
 						},
 					},
 				},

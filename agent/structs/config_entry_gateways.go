@@ -1086,10 +1086,6 @@ func (l BoundAPIGatewayListener) IsSame(other BoundAPIGatewayListener) bool {
 // and protocol. Be sure to check both of these before attempting
 // to bind a route to the listener.
 func (l *BoundAPIGatewayListener) BindRoute(routeRef ResourceReference) bool {
-	if l == nil {
-		return false
-	}
-
 	// If the listener has no routes, create a new slice of routes with the given route.
 	if l.Routes == nil {
 		l.Routes = []ResourceReference{routeRef}

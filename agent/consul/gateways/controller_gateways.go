@@ -468,6 +468,20 @@ func (r *apiGatewayReconciler) reconcileRoute(_ context.Context, req controller.
 		updater.SetCondition(conditions.routeUnbound(ref, err))
 	}
 
+	// set any refs that haven't been bound or explicitly errored
+PARENT_LOOP:
+	for _, ref := range route.GetParents() {
+		for _, boundRef := range boundRefs {
+			if ref.IsSame(&boundRef) {
+				continue PARENT_LOOP
+			}
+		}
+		if _, ok := bindErrors[ref]; ok {
+			continue PARENT_LOOP
+		}
+		updater.SetCondition(conditions.gatewayNotFound(ref))
+	}
+
 	return finalize(modifiedGateways)
 }
 
@@ -593,68 +607,23 @@ func BindRoutesToGateways(gateways []*gatewayMeta, routes ...structs.BoundRoute)
 	errored := make(map[structs.ResourceReference]error)
 
 	for _, route := range routes {
-		parentRefs, gatewayRefs := getReferences(route)
-		routeRef := structs.ResourceReference{
-			Kind:           route.GetKind(),
-			Name:           route.GetName(),
-			EnterpriseMeta: *route.GetEnterpriseMeta(),
-		}
-
 		// Iterate over all BoundAPIGateway config entries and try to bind them to the route if they are a parent.
 		for _, gateway := range gateways {
-			references, routeReferencesGateway := gatewayRefs[configentry.NewKindNameForEntry(gateway.BoundGateway)]
+			didUpdate, bound, errors := gateway.updateRouteBinding(route)
 
-			if routeReferencesGateway {
-				didUpdate, errors := gateway.updateRouteBinding(references, route)
-
-				if didUpdate {
-					modified = append(modified, gateway.BoundGateway)
-				}
-
-				for ref, err := range errors {
-					errored[ref] = err
-				}
-
-				for _, ref := range references {
-					delete(parentRefs, ref)
-
-					// this ref successfully bound, add it to the set that we'll update the
-					// status for
-					if _, found := errored[ref]; !found {
-						boundRefs = append(boundRefs, references...)
-					}
-				}
-
-				continue
-			}
-
-			if gateway.unbindRoute(routeRef) {
+			if didUpdate {
 				modified = append(modified, gateway.BoundGateway)
 			}
-		}
 
-		// Add all references that aren't bound at this point to the error set.
-		for reference := range parentRefs {
-			errored[reference] = errors.New("invalid reference to missing parent")
+			for ref, err := range errors {
+				errored[ref] = err
+			}
+
+			boundRefs = append(boundRefs, bound...)
 		}
 	}
 
 	return modified, boundRefs, errored
-}
-
-// getReferences returns a set of all the resource references for a given route as well as
-// a map of gateway kind/name to a list of resource references for that gateway.
-func getReferences(route structs.BoundRoute) (referenceSet, gatewayRefs) {
-	parentRefs := make(referenceSet)
-	gatewayRefs := make(gatewayRefs)
-
-	for _, ref := range route.GetParents() {
-		parentRefs[ref] = struct{}{}
-		kindName := configentry.NewKindName(structs.BoundAPIGateway, ref.Name, pointerTo(ref.EnterpriseMeta))
-		gatewayRefs[kindName] = append(gatewayRefs[kindName], ref)
-	}
-
-	return parentRefs, gatewayRefs
 }
 
 // RemoveGateway sets the route's status appropriately when the gateway that it's
@@ -749,47 +718,78 @@ func getAllGatewayMeta(store *state.Store) ([]*gatewayMeta, error) {
 // If the reference is not valid or the route's protocol does not match the
 // targeted listener's protocol, a mapping of parent references to associated
 // errors is returned.
-func (g *gatewayMeta) updateRouteBinding(refs []structs.ResourceReference, route structs.BoundRoute) (bool, map[structs.ResourceReference]error) {
-	if g.BoundGateway == nil || g.Gateway == nil {
-		return false, nil
+func (g *gatewayMeta) updateRouteBinding(route structs.BoundRoute) (bool, []structs.ResourceReference, map[structs.ResourceReference]error) {
+	errors := make(map[structs.ResourceReference]error)
+
+	boundRefs := []structs.ResourceReference{}
+	listenerUnbound := make(map[string]bool, len(g.boundListeners))
+	listenerBound := make(map[string]bool, len(g.boundListeners))
+
+	routeRef := structs.ResourceReference{
+		Kind:           route.GetKind(),
+		Name:           route.GetName(),
+		EnterpriseMeta: *route.GetEnterpriseMeta(),
+	}
+
+	// first attempt to unbind all of the routes from the listeners in case they're
+	// stale
+	g.eachListener(func(listener *structs.APIGatewayListener, bound *structs.BoundAPIGatewayListener) error {
+		listenerUnbound[listener.Name] = bound.UnbindRoute(routeRef)
+		return nil
+	})
+
+	// now try and bind all of the route's current refs
+	for _, ref := range route.GetParents() {
+		if !g.shouldBindRoute(ref) {
+			continue
+		}
+
+		if len(g.boundListeners) == 0 {
+			errors[ref] = fmt.Errorf("route cannot bind because gateway has no listeners")
+			continue
+		}
+
+		// try to bind to all listeners
+		refDidBind := false
+		g.eachListener(func(listener *structs.APIGatewayListener, bound *structs.BoundAPIGatewayListener) error {
+			didBind, err := g.bindRoute(listener, bound, route, ref)
+			if err != nil {
+				errors[ref] = err
+			}
+			if didBind {
+				refDidBind = true
+				listenerBound[listener.Name] = true
+			}
+			return nil
+		})
+
+		// double check that the wildcard ref actually bound to something
+		if !refDidBind && errors[ref] == nil {
+			errors[ref] = fmt.Errorf("failed to bind route %s to gateway %s with listener '%s'", route.GetName(), g.Gateway.Name, ref.SectionName)
+		}
+		if refDidBind {
+			boundRefs = append(boundRefs, ref)
+		}
 	}
 
 	didUpdate := false
-	errors := make(map[structs.ResourceReference]error)
-
-	if len(g.BoundGateway.Listeners) == 0 {
-		for _, ref := range refs {
-			errors[ref] = fmt.Errorf("route cannot bind because gateway has no listeners")
-		}
-		return false, errors
-	}
-
-	unboundListeners := make([]bool, 0, len(g.BoundGateway.Listeners))
-	for i, listener := range g.BoundGateway.Listeners {
-		routeRef := structs.ResourceReference{
-			Kind:           route.GetKind(),
-			Name:           route.GetName(),
-			EnterpriseMeta: *route.GetEnterpriseMeta(),
-		}
-		// Unbind to handle any stale route references.
-		unboundListeners = append(unboundListeners, listener.UnbindRoute(routeRef))
-		g.BoundGateway.Listeners[i] = listener
-	}
-
-	for _, ref := range refs {
-		boundListeners, err := g.bindRoute(ref, route)
-		if err != nil {
-			errors[ref] = err
-		} else {
-			for i, didUnbind := range unboundListeners {
-				if i >= len(boundListeners) || didUnbind != boundListeners[i] {
-					didUpdate = true
-				}
-			}
+	for name, didUnbind := range listenerUnbound {
+		didBind := listenerBound[name]
+		if didBind != didUnbind {
+			didUpdate = true
+			break
 		}
 	}
 
-	return didUpdate, errors
+	return didUpdate, boundRefs, errors
+}
+
+func (g *gatewayMeta) shouldBindRoute(ref structs.ResourceReference) bool {
+	return ref.Kind == structs.APIGateway && g.Gateway.Name == ref.Name && g.Gateway.EnterpriseMeta.IsSame(&ref.EnterpriseMeta)
+}
+
+func (g *gatewayMeta) shouldBindRouteToListener(l *structs.BoundAPIGatewayListener, ref structs.ResourceReference) bool {
+	return l.Name == ref.SectionName || ref.SectionName == ""
 }
 
 // bindRoute takes a parent reference and a route and attempts to bind the route to the
@@ -803,62 +803,24 @@ func (g *gatewayMeta) updateRouteBinding(refs []structs.ResourceReference, route
 //     on the gateway. If the section name is `""`, the route will be bound to all
 //     listeners on the gateway whose protocol matches the route's protocol.
 //   - have a protocol that matches the protocol of the listener it is being bound to.
-func (g *gatewayMeta) bindRoute(ref structs.ResourceReference, route structs.BoundRoute) ([]bool, error) {
-	if ref.Kind != structs.APIGateway || g.Gateway.Name != ref.Name || !g.Gateway.EnterpriseMeta.IsSame(&ref.EnterpriseMeta) {
-		return nil, nil
+func (g *gatewayMeta) bindRoute(listener *structs.APIGatewayListener, bound *structs.BoundAPIGatewayListener, route structs.BoundRoute, ref structs.ResourceReference) (bool, error) {
+	if !g.shouldBindRouteToListener(bound, ref) {
+		return false, nil
 	}
 
-	if len(g.BoundGateway.Listeners) == 0 {
-		return nil, fmt.Errorf("route cannot bind because gateway has no listeners")
+	if listener.Protocol == route.GetProtocol() && bound.BindRoute(structs.ResourceReference{
+		Kind:           route.GetKind(),
+		Name:           route.GetName(),
+		EnterpriseMeta: *route.GetEnterpriseMeta(),
+	}) {
+		return true, nil
 	}
 
-	binding := make([]bool, 0, len(g.Gateway.Listeners))
-
-	err := g.eachListener(func(listener *structs.APIGatewayListener, bound *structs.BoundAPIGatewayListener) error {
-		if listener.Name != ref.SectionName && ref.SectionName != "" {
-			binding = append(binding, false)
-			return nil
-		}
-
-		if listener.Protocol == route.GetProtocol() {
-			routeRef := structs.ResourceReference{
-				Kind:           route.GetKind(),
-				Name:           route.GetName(),
-				EnterpriseMeta: *route.GetEnterpriseMeta(),
-			}
-
-			if bound.BindRoute(routeRef) {
-				binding = append(binding, true)
-				return nil
-			}
-
-			binding = append(binding, false)
-			return nil
-		}
-
-		if ref.SectionName != "" {
-			// Failure to bind to a specific listener is an error
-			return fmt.Errorf("failed to bind route %s to gateway %s: listener %s is not a %s listener", route.GetName(), g.Gateway.Name, listener.Name, route.GetProtocol())
-		}
-		return nil
-	})
-
-	if err != nil {
-		return nil, err
+	if ref.SectionName != "" {
+		return false, fmt.Errorf("failed to bind route %s to gateway %s: listener %s is not a %s listener", route.GetName(), g.Gateway.Name, bound.Name, route.GetProtocol())
 	}
 
-	didBind := false
-	for _, bound := range binding {
-		if bound {
-			didBind = true
-		}
-	}
-
-	if !didBind {
-		return nil, fmt.Errorf("failed to bind route %s to gateway %s: no valid listener has name '%s' and uses %s protocol", route.GetName(), g.Gateway.Name, ref.SectionName, route.GetProtocol())
-	}
-
-	return binding, nil
+	return false, nil
 }
 
 // unbindRoute takes a route and unbinds it from all of the listeners on a gateway.
