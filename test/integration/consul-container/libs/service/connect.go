@@ -31,6 +31,10 @@ type ConnectContainer struct {
 
 var _ Service = (*ConnectContainer)(nil)
 
+func (g ConnectContainer) Exec(ctx context.Context, cmd []string) (int, io.Reader, error) {
+	return g.container.Exec(ctx, cmd)
+}
+
 func (g ConnectContainer) Export(partition, peer string, client *api.Client) error {
 	return fmt.Errorf("ConnectContainer export unimplemented")
 }
