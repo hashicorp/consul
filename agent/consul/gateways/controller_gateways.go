@@ -24,12 +24,16 @@ var (
 	errInvalidProtocol     = errors.New("route protocol does not match targeted service protocol")
 )
 
+// Updater is a thin wrapper around a set of callbacks used for updating
+// and deleting config entries via raft operations.
 type Updater struct {
 	UpdateWithStatus func(entry structs.ControlledConfigEntry) error
 	Update           func(entry structs.ConfigEntry) error
 	Delete           func(entry structs.ConfigEntry) error
 }
 
+// apiGatewayReconciler is the monolithic reconciler used for reconciling
+// all of our routes and gateways into bound gateway state.
 type apiGatewayReconciler struct {
 	fsm        *fsm.FSM
 	logger     hclog.Logger
@@ -37,6 +41,9 @@ type apiGatewayReconciler struct {
 	controller controller.Controller
 }
 
+// Reconcile is the main reconciliation function for the gateway reconciler, it
+// delegates each reconciliation request to functions designated for a
+// particular type of config entry.
 func (r *apiGatewayReconciler) Reconcile(ctx context.Context, req controller.Request) error {
 	// We do this in a single threaded way to avoid race conditions around setting
 	// shared state. In our current out-of-repo code, this is handled via a global
@@ -58,6 +65,9 @@ func (r *apiGatewayReconciler) Reconcile(ctx context.Context, req controller.Req
 	}
 }
 
+// reconcileEntry converts the controller request into a config entry that we then pass
+// along to either a cleanup function if the entry no longer exists (it's been deleted),
+// or a reconciler if the entry has been updated or created.
 func reconcileEntry[T structs.ControlledConfigEntry](store *state.Store, logger hclog.Logger, ctx context.Context, req controller.Request, reconciler func(ctx context.Context, req controller.Request, store *state.Store, entry T) error, cleaner func(ctx context.Context, req controller.Request, store *state.Store) error) error {
 	_, entry, err := store.ConfigEntry(nil, req.Kind, req.Name, req.Meta)
 	if err != nil {
@@ -167,6 +177,9 @@ func (r *apiGatewayReconciler) reconcileBoundGateway(_ context.Context, req cont
 	return nil
 }
 
+// cleanupGateway deletes the associated bound gateway state with the config entry, route
+// cleanup occurs when the bound gateway is re-reconciled or on the next reconciliation
+// pass for the route.
 func (r *apiGatewayReconciler) cleanupGateway(_ context.Context, req controller.Request, store *state.Store) error {
 	logger := gatewayRequestLogger(r.logger, req)
 
@@ -188,6 +201,12 @@ func (r *apiGatewayReconciler) cleanupGateway(_ context.Context, req controller.
 	return nil
 }
 
+// reconcileGateway attempts to initialize or fetch the associated bound
+// gateway state, fetch all route references, validate the existence of any
+// referenced certificates, and then update the bound gateway with certificate
+// references and add or remove any routes that reference or previously
+// referenced this gateway. It then persists any status updates for the gateway,
+// the modified routes, and updates the bound gateway.
 func (r *apiGatewayReconciler) reconcileGateway(_ context.Context, req controller.Request, store *state.Store, gateway *structs.APIGatewayConfigEntry) error {
 	conditions := newGatewayConditionGenerator()
 
@@ -235,7 +254,7 @@ func (r *apiGatewayReconciler) reconcileGateway(_ context.Context, req controlle
 	updatedRoutes := []structs.ControlledConfigEntry{}
 	for _, route := range routes {
 		routeUpdater := structs.NewStatusUpdater(route)
-		_, boundRefs, bindErrors := bindRoutesToGateways([]*gatewayMeta{meta}, route)
+		_, boundRefs, bindErrors := bindRoutesToGateways(route, meta)
 
 		// unset the old gateway binding in case it's stale
 		for _, parent := range route.GetParents() {
@@ -296,6 +315,8 @@ func (r *apiGatewayReconciler) reconcileGateway(_ context.Context, req controlle
 	return nil
 }
 
+// cleanupRoute fetches all gateways and removes any existing reference to
+// the route we're reconciling from them.
 func (r *apiGatewayReconciler) cleanupRoute(_ context.Context, req controller.Request, store *state.Store) error {
 	logger := routeRequestLogger(r.logger, req)
 
@@ -322,7 +343,13 @@ func (r *apiGatewayReconciler) cleanupRoute(_ context.Context, req controller.Re
 	return nil
 }
 
-// Reconcile reconciles Route config entries.
+// reconcileRoute attempts to validate a route against its referenced service
+// discovery chain, it also fetches all gateways, and attempts to either remove
+// the route being reconciled from gateways containing either stale references
+// when this route no longer references them, or add the route to gateways that
+// it now references. It then updates any necessary route statuses, checks for
+// gateways that now have route conflicts, and updates all statuses and states
+// as necessary.
 func (r *apiGatewayReconciler) reconcileRoute(_ context.Context, req controller.Request, store *state.Store, route structs.BoundRoute) error {
 	conditions := newGatewayConditionGenerator()
 
@@ -455,7 +482,7 @@ func (r *apiGatewayReconciler) reconcileRoute(_ context.Context, req controller.
 
 	// the route is valid, attempt to bind it to all gateways
 	r.logger.Debug("binding routes to gateway")
-	modifiedGateways, boundRefs, bindErrors := bindRoutesToGateways(meta, route)
+	modifiedGateways, boundRefs, bindErrors := bindRoutesToGateways(route, meta...)
 
 	// set the status of the references that are bound
 	for _, ref := range boundRefs {
@@ -484,14 +511,17 @@ PARENT_LOOP:
 	return finalize(modifiedGateways)
 }
 
+// reconcileHTTPRoute is a thin wrapper around recnocileRoute for a HTTPRoutes
 func (r *apiGatewayReconciler) reconcileHTTPRoute(ctx context.Context, req controller.Request, store *state.Store, route *structs.HTTPRouteConfigEntry) error {
 	return r.reconcileRoute(ctx, req, store, route)
 }
 
+// reconcileTCPRoute is a thin wrapper around recnocileRoute for a TCPRoutes
 func (r *apiGatewayReconciler) reconcileTCPRoute(ctx context.Context, req controller.Request, store *state.Store, route *structs.TCPRouteConfigEntry) error {
 	return r.reconcileRoute(ctx, req, store, route)
 }
 
+// NewAPIGatewayController initializes a controller that reconciles all APIGateway objects
 func NewAPIGatewayController(fsm *fsm.FSM, publisher state.EventPublisher, updater *Updater, logger hclog.Logger) controller.Controller {
 	reconciler := &apiGatewayReconciler{
 		fsm:     fsm,
@@ -526,68 +556,12 @@ func NewAPIGatewayController(fsm *fsm.FSM, publisher state.EventPublisher, updat
 		})
 }
 
-func retrieveAllRoutesFromStore(store *state.Store) ([]structs.BoundRoute, error) {
-	_, httpRoutes, err := store.ConfigEntriesByKind(nil, structs.HTTPRoute, acl.WildcardEnterpriseMeta())
-	if err != nil {
-		return nil, err
-	}
-
-	_, tcpRoutes, err := store.ConfigEntriesByKind(nil, structs.TCPRoute, acl.WildcardEnterpriseMeta())
-	if err != nil {
-		return nil, err
-	}
-
-	routes := make([]structs.BoundRoute, 0, len(tcpRoutes)+len(httpRoutes))
-
-	for _, route := range httpRoutes {
-		routes = append(routes, route.(*structs.HTTPRouteConfigEntry))
-	}
-
-	for _, route := range tcpRoutes {
-		routes = append(routes, route.(*structs.TCPRouteConfigEntry))
-	}
-
-	return routes, nil
-}
-
-func pointerTo[T any](value T) *T {
-	return &value
-}
-
-func requestLogger(logger hclog.Logger, request controller.Request) hclog.Logger {
-	meta := request.Meta
-	return logger.With("kind", request.Kind, "name", request.Name, "namespace", meta.NamespaceOrDefault(), "partition", meta.PartitionOrDefault())
-}
-
-func certificateRequestLogger(logger hclog.Logger, request controller.Request) hclog.Logger {
-	meta := request.Meta
-	return logger.With("inline-certificate", request.Name, "namespace", meta.NamespaceOrDefault(), "partition", meta.PartitionOrDefault())
-}
-
-func gatewayRequestLogger(logger hclog.Logger, request controller.Request) hclog.Logger {
-	meta := request.Meta
-	return logger.With("gateway", request.Name, "namespace", meta.NamespaceOrDefault(), "partition", meta.PartitionOrDefault())
-}
-
-func gatewayLogger(logger hclog.Logger, gateway structs.ConfigEntry) hclog.Logger {
-	meta := gateway.GetEnterpriseMeta()
-	return logger.With("gateway.name", gateway.GetName(), "gateway.namespace", meta.NamespaceOrDefault(), "gateway.partition", meta.PartitionOrDefault())
-}
-
-func routeRequestLogger(logger hclog.Logger, request controller.Request) hclog.Logger {
-	meta := request.Meta
-	return logger.With("kind", request.Kind, "route", request.Name, "namespace", meta.NamespaceOrDefault(), "partition", meta.PartitionOrDefault())
-}
-
-func routeLogger(logger hclog.Logger, route structs.ConfigEntry) hclog.Logger {
-	meta := route.GetEnterpriseMeta()
-	return logger.With("route.kind", route.GetKind(), "route.name", route.GetName(), "route.namespace", meta.NamespaceOrDefault(), "route.partition", meta.PartitionOrDefault())
-}
-
 // gatewayMeta embeds both a BoundAPIGateway and its corresponding APIGateway.
-// This is used when binding routes to a gateway to ensure that a route's protocol (e.g. http)
-// matches the protocol of the listener it wants to bind to. The binding modifies the
-// "bound" gateway, but relies on the "gateway" to determine the protocol of the listener.
+// This is used for binding routes to a gateway, because the binding logic
+// requires correlation between fields on a gateway and a route, while persisting
+// the state onto the corresponding subfields of a BoundAPIGateway. For example,
+// when binding we need to validate that a route's protocol (e.g. http)
+// matches the protocol of the listener it wants to bind to.
 type gatewayMeta struct {
 	// BoundGateway is the bound-api-gateway config entry for a given gateway.
 	BoundGateway *structs.BoundAPIGatewayConfigEntry
@@ -633,13 +607,14 @@ func getAllGatewayMeta(store *state.Store) ([]*gatewayMeta, error) {
 	return meta, nil
 }
 
-// updateRouteBinding takes a parent resource reference and a BoundRoute and
-// modifies the listeners on the BoundAPIGateway config entry in GatewayMeta
-// to reflect the binding of the route to the gateway.
+// updateRouteBinding takes a BoundRoute and modifies the listeners on the
+// BoundAPIGateway config entry in GatewayMeta to reflect the binding of the
+// route to the gateway.
 //
-// If the reference is not valid or the route's protocol does not match the
-// targeted listener's protocol, a mapping of parent references to associated
-// errors is returned.
+// The return values correspond to:
+// 1. whether the underlying BoundAPIGateway was actually modified
+// 2. what references from the BoundRoute actually bound to the Gateway successfully
+// 3. any errors that occurred while attempting to bind a particular reference to the Gateway
 func (g *gatewayMeta) updateRouteBinding(route structs.BoundRoute) (bool, []structs.ResourceReference, map[structs.ResourceReference]error) {
 	errors := make(map[structs.ResourceReference]error)
 
@@ -706,25 +681,21 @@ func (g *gatewayMeta) updateRouteBinding(route structs.BoundRoute) (bool, []stru
 	return didUpdate, boundRefs, errors
 }
 
+// shouldBindRoute returns whether a Route's parent reference references the Gateway
+// that we wrap.
 func (g *gatewayMeta) shouldBindRoute(ref structs.ResourceReference) bool {
 	return ref.Kind == structs.APIGateway && g.Gateway.Name == ref.Name && g.Gateway.EnterpriseMeta.IsSame(&ref.EnterpriseMeta)
 }
 
+// shouldBindRouteToListener returns whether a Route's parent reference should attempt
+// to bind to the given listener because it is either explicitly named or the Route
+// is attempting to wildcard bind to the listener.
 func (g *gatewayMeta) shouldBindRouteToListener(l *structs.BoundAPIGatewayListener, ref structs.ResourceReference) bool {
 	return l.Name == ref.SectionName || ref.SectionName == ""
 }
 
-// bindRoute takes a parent reference and a route and attempts to bind the route to the
-// bound gateway in the gatewayMeta struct. It returns true if the route was bound and
-// false if it was not. If the route fails to bind, an error is returned.
-//
-// Binding logic binds a route to one or more listeners on the Bound gateway.
-// For a route to successfully bind it must:
-//   - have a parent reference to the gateway
-//   - have a parent reference with a section name matching the name of a listener
-//     on the gateway. If the section name is `""`, the route will be bound to all
-//     listeners on the gateway whose protocol matches the route's protocol.
-//   - have a protocol that matches the protocol of the listener it is being bound to.
+// bindRoute takes a particular listener that a Route is attempting to bind to with a given reference
+// and returns whether the Route successfully bound to the listener or if it errored in the process.
 func (g *gatewayMeta) bindRoute(listener *structs.APIGatewayListener, bound *structs.BoundAPIGatewayListener, route structs.BoundRoute, ref structs.ResourceReference) (bool, error) {
 	if !g.shouldBindRouteToListener(bound, ref) {
 		return false, nil
@@ -758,6 +729,9 @@ func (g *gatewayMeta) unbindRoute(route structs.ResourceReference) bool {
 	return didUnbind
 }
 
+// eachListener iterates over all of the listeners for our underlying Gateway, it takes
+// a callback function that can return an error, if an error is returned it halts execution
+// and immediately returns the error.
 func (g *gatewayMeta) eachListener(fn func(listener *structs.APIGatewayListener, bound *structs.BoundAPIGatewayListener) error) error {
 	for name, listener := range g.listeners {
 		if err := fn(listener, g.boundListeners[name]); err != nil {
@@ -825,6 +799,7 @@ func (g *gatewayMeta) setConflicts(updater *structs.StatusUpdater) {
 	})
 }
 
+// initialize sets up the listener maps that we use for quickly indexing the listeners in our binding logic
 func (g *gatewayMeta) initialize() *gatewayMeta {
 	// set up the maps for fast access
 	g.boundListeners = make(map[string]*structs.BoundAPIGatewayListener, len(g.BoundGateway.Listeners))
@@ -838,6 +813,7 @@ func (g *gatewayMeta) initialize() *gatewayMeta {
 	return g
 }
 
+// newGatewayMeta returns an object that wraps the given APIGateway and BoundAPIGateway
 func newGatewayMeta(gateway *structs.APIGatewayConfigEntry, bound structs.ConfigEntry) *gatewayMeta {
 	var b *structs.BoundAPIGatewayConfigEntry
 	if bound == nil {
@@ -867,16 +843,22 @@ func newGatewayMeta(gateway *structs.APIGatewayConfigEntry, bound structs.Config
 	}).initialize()
 }
 
+// gatewayConditionGenerator is a simple struct used for isolating
+// the status conditions that we generate for our components
 type gatewayConditionGenerator struct {
 	now *time.Time
 }
 
+// newGatewayConditionGenerator initializes a status conditions generator
 func newGatewayConditionGenerator() *gatewayConditionGenerator {
 	return &gatewayConditionGenerator{
 		now: pointerTo(time.Now().UTC()),
 	}
 }
 
+// invalidCertificate returns a condition used when a gateway references a
+// certificate that does not exist. It takes a ref used to scope the condition
+// to a given APIGateway listener.
 func (g *gatewayConditionGenerator) invalidCertificate(ref structs.ResourceReference, err error) structs.Condition {
 	return structs.Condition{
 		Type:               "Accepted",
@@ -888,6 +870,8 @@ func (g *gatewayConditionGenerator) invalidCertificate(ref structs.ResourceRefer
 	}
 }
 
+// invalidCertificates is used to set the overall condition of the APIGateway
+// to invalid due to missing certificates that it references.
 func (g *gatewayConditionGenerator) invalidCertificates() structs.Condition {
 	return structs.Condition{
 		Type:               "Accepted",
@@ -898,6 +882,7 @@ func (g *gatewayConditionGenerator) invalidCertificates() structs.Condition {
 	}
 }
 
+// gatewayAccepted marks the APIGateway as valid.
 func (g *gatewayConditionGenerator) gatewayAccepted() structs.Condition {
 	return structs.Condition{
 		Type:               "Accepted",
@@ -908,6 +893,7 @@ func (g *gatewayConditionGenerator) gatewayAccepted() structs.Condition {
 	}
 }
 
+// routeBound marks a Route as bound to the referenced APIGateway
 func (g *gatewayConditionGenerator) routeBound(ref structs.ResourceReference) structs.Condition {
 	return structs.Condition{
 		Type:               "Bound",
@@ -919,6 +905,7 @@ func (g *gatewayConditionGenerator) routeBound(ref structs.ResourceReference) st
 	}
 }
 
+// routeAccepted marks the Route as valid
 func (g *gatewayConditionGenerator) routeAccepted() structs.Condition {
 	return structs.Condition{
 		Type:               "Accepted",
@@ -929,6 +916,7 @@ func (g *gatewayConditionGenerator) routeAccepted() structs.Condition {
 	}
 }
 
+// routeUnbound marks the route as having failed to bind to the referenced APIGateway
 func (g *gatewayConditionGenerator) routeUnbound(ref structs.ResourceReference, err error) structs.Condition {
 	return structs.Condition{
 		Type:               "Bound",
@@ -940,6 +928,8 @@ func (g *gatewayConditionGenerator) routeUnbound(ref structs.ResourceReference, 
 	}
 }
 
+// routeInvalidDiscoveryChain marks the route as invalid due to an error while validating its referenced
+// discovery chian
 func (g *gatewayConditionGenerator) routeInvalidDiscoveryChain(err error) structs.Condition {
 	return structs.Condition{
 		Type:               "Accepted",
@@ -950,6 +940,7 @@ func (g *gatewayConditionGenerator) routeInvalidDiscoveryChain(err error) struct
 	}
 }
 
+// routeNoUpstreams marks the route as invalid because it has no upstreams that it targets
 func (g *gatewayConditionGenerator) routeNoUpstreams() structs.Condition {
 	return structs.Condition{
 		Type:               "Accepted",
@@ -960,6 +951,8 @@ func (g *gatewayConditionGenerator) routeNoUpstreams() structs.Condition {
 	}
 }
 
+// gatewayListenerConflicts marks an APIGateway listener as having bound routes that conflict with each other
+// and make the listener, therefore invalid
 func (g *gatewayConditionGenerator) gatewayListenerConflicts(ref structs.ResourceReference) structs.Condition {
 	return structs.Condition{
 		Type:               "Conflicted",
@@ -971,6 +964,8 @@ func (g *gatewayConditionGenerator) gatewayListenerConflicts(ref structs.Resourc
 	}
 }
 
+// gatewayListenerNoConflicts marks an APIGateway listener as having no conflicts within its
+// bound routes
 func (g *gatewayConditionGenerator) gatewayListenerNoConflicts(ref structs.ResourceReference) structs.Condition {
 	return structs.Condition{
 		Type:               "Conflicted",
@@ -982,6 +977,8 @@ func (g *gatewayConditionGenerator) gatewayListenerNoConflicts(ref structs.Resou
 	}
 }
 
+// gatewayNotFound marks a Route as having failed to bind to a referenced APIGateway due to
+// the Gateway not existing (or having not been reconciled yet)
 func (g *gatewayConditionGenerator) gatewayNotFound(ref structs.ResourceReference) structs.Condition {
 	return structs.Condition{
 		Type:               "Bound",
@@ -993,36 +990,35 @@ func (g *gatewayConditionGenerator) gatewayNotFound(ref structs.ResourceReferenc
 	}
 }
 
-// bindRoutesToGateways takes a slice of bound API gateways and a variadic number of routes.
-// It iterates over the parent references for each route. These parents are gateways the
+// bindRoutesToGateways takes a route variadic number of gateways.
+// It iterates over the parent references for the route. These parents are gateways the
 // route should be bound to. If the parent matches a bound gateway, the route is bound to the
 // gateway. Otherwise, the route is unbound from the gateway if it was previously bound.
 //
 // The function returns a list of references to the modified BoundAPIGatewayConfigEntry objects,
+// a list of parent references on the route that were successfully used to bind the route, and
 // a map of resource references to errors that occurred when they were attempted to be
 // bound to a gateway.
-func bindRoutesToGateways(gateways []*gatewayMeta, routes ...structs.BoundRoute) ([]*structs.BoundAPIGatewayConfigEntry, []structs.ResourceReference, map[structs.ResourceReference]error) {
+func bindRoutesToGateways(route structs.BoundRoute, gateways ...*gatewayMeta) ([]*structs.BoundAPIGatewayConfigEntry, []structs.ResourceReference, map[structs.ResourceReference]error) {
 	boundRefs := []structs.ResourceReference{}
 	modified := make([]*structs.BoundAPIGatewayConfigEntry, 0, len(gateways))
 
 	// errored stores the errors from events where a resource reference failed to bind to a gateway.
 	errored := make(map[structs.ResourceReference]error)
 
-	for _, route := range routes {
-		// Iterate over all BoundAPIGateway config entries and try to bind them to the route if they are a parent.
-		for _, gateway := range gateways {
-			didUpdate, bound, errors := gateway.updateRouteBinding(route)
+	// Iterate over all BoundAPIGateway config entries and try to bind them to the route if they are a parent.
+	for _, gateway := range gateways {
+		didUpdate, bound, errors := gateway.updateRouteBinding(route)
 
-			if didUpdate {
-				modified = append(modified, gateway.BoundGateway)
-			}
-
-			for ref, err := range errors {
-				errored[ref] = err
-			}
-
-			boundRefs = append(boundRefs, bound...)
+		if didUpdate {
+			modified = append(modified, gateway.BoundGateway)
 		}
+
+		for ref, err := range errors {
+			errored[ref] = err
+		}
+
+		boundRefs = append(boundRefs, bound...)
 	}
 
 	return modified, boundRefs, errored
@@ -1064,6 +1060,7 @@ func removeRoute(route structs.ResourceReference, entries ...*gatewayMeta) []*ga
 	return modified
 }
 
+// requestToResourceRef constructs a resource reference from the given controller request
 func requestToResourceRef(req controller.Request) structs.ResourceReference {
 	ref := structs.ResourceReference{
 		Kind: req.Kind,
@@ -1075,4 +1072,74 @@ func requestToResourceRef(req controller.Request) structs.ResourceReference {
 	}
 
 	return ref
+}
+
+// retrieveAllRoutesFromStore retrieves all HTTP and TCP routes from the given store
+func retrieveAllRoutesFromStore(store *state.Store) ([]structs.BoundRoute, error) {
+	_, httpRoutes, err := store.ConfigEntriesByKind(nil, structs.HTTPRoute, acl.WildcardEnterpriseMeta())
+	if err != nil {
+		return nil, err
+	}
+
+	_, tcpRoutes, err := store.ConfigEntriesByKind(nil, structs.TCPRoute, acl.WildcardEnterpriseMeta())
+	if err != nil {
+		return nil, err
+	}
+
+	routes := make([]structs.BoundRoute, 0, len(tcpRoutes)+len(httpRoutes))
+
+	for _, route := range httpRoutes {
+		routes = append(routes, route.(*structs.HTTPRouteConfigEntry))
+	}
+
+	for _, route := range tcpRoutes {
+		routes = append(routes, route.(*structs.TCPRouteConfigEntry))
+	}
+
+	return routes, nil
+}
+
+// pointerTo returns a pointer to the value passed as an argument
+func pointerTo[T any](value T) *T {
+	return &value
+}
+
+// requestLogger returns a logger that adds some request-specific fields to the given logger
+func requestLogger(logger hclog.Logger, request controller.Request) hclog.Logger {
+	meta := request.Meta
+	return logger.With("kind", request.Kind, "name", request.Name, "namespace", meta.NamespaceOrDefault(), "partition", meta.PartitionOrDefault())
+}
+
+// certificateRequestLogger returns a logger that adds some certificate-specific fields to the given logger
+func certificateRequestLogger(logger hclog.Logger, request controller.Request) hclog.Logger {
+	meta := request.Meta
+	return logger.With("inline-certificate", request.Name, "namespace", meta.NamespaceOrDefault(), "partition", meta.PartitionOrDefault())
+}
+
+// gatewayRequestLogger returns a logger that adds some gateway-specific fields to the given logger
+func gatewayRequestLogger(logger hclog.Logger, request controller.Request) hclog.Logger {
+	meta := request.Meta
+	return logger.With("gateway", request.Name, "namespace", meta.NamespaceOrDefault(), "partition", meta.PartitionOrDefault())
+}
+
+// gatewayLogger returns a logger that adds some gateway-specific fields to the given logger,
+// it should be used when logging info about a gateway resource being modified from a non-gateway
+// reconciliation funciton
+func gatewayLogger(logger hclog.Logger, gateway structs.ConfigEntry) hclog.Logger {
+	meta := gateway.GetEnterpriseMeta()
+	return logger.With("gateway.name", gateway.GetName(), "gateway.namespace", meta.NamespaceOrDefault(), "gateway.partition", meta.PartitionOrDefault())
+}
+
+// routeRequestLogger returns a logger that adds some route-specific fields to the given logger
+func routeRequestLogger(logger hclog.Logger, request controller.Request) hclog.Logger {
+	meta := request.Meta
+	return logger.With("kind", request.Kind, "route", request.Name, "namespace", meta.NamespaceOrDefault(), "partition", meta.PartitionOrDefault())
+}
+
+// routeLogger returns a logger that adds some route-specific fields to the given logger,
+// it should be used when logging info about a route resource being modified from a non-route
+// reconciliation funciton
+func routeLogger(logger hclog.Logger, route structs.ConfigEntry) hclog.Logger {
+	meta := route.GetEnterpriseMeta()
+	return logger.With("route.kind", route.GetKind(), "route.name", route.GetName(), "route.namespace", meta.NamespaceOrDefault(), "route.partition", meta.PartitionOrDefault())
 }

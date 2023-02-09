@@ -1314,9 +1314,24 @@ func TestBindRoutesToGateways(t *testing.T) {
 				tc.gateways[i].initialize()
 			}
 
-			actualBoundAPIGateways, _, referenceErrors := bindRoutesToGateways(tc.gateways, tc.routes...)
+			actualBoundAPIGatewaysMap := make(map[string]*structs.BoundAPIGatewayConfigEntry)
+			referenceErrors := make(map[structs.ResourceReference]error)
+			for _, route := range tc.routes {
+				bound, _, errs := bindRoutesToGateways(route, tc.gateways...)
+				for ref, err := range errs {
+					referenceErrors[ref] = err
+				}
+				for _, g := range bound {
+					actualBoundAPIGatewaysMap[g.Name] = g
+				}
+			}
 
-			require.Equal(t, tc.expectedBoundAPIGateways, actualBoundAPIGateways)
+			actualBoundAPIGateways := []*structs.BoundAPIGatewayConfigEntry{}
+			for _, g := range actualBoundAPIGatewaysMap {
+				actualBoundAPIGateways = append(actualBoundAPIGateways, g)
+			}
+
+			require.ElementsMatch(t, tc.expectedBoundAPIGateways, actualBoundAPIGateways)
 			require.Equal(t, tc.expectedReferenceErrors, referenceErrors)
 		})
 	}
