@@ -3,6 +3,7 @@ package gateways
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"testing"
 	"time"
@@ -18,6 +19,7 @@ import (
 )
 
 func TestAPIGatewayController(t *testing.T) {
+	conditions := newConditionGenerator()
 	defaultMeta := acl.DefaultEnterpriseMeta()
 	for name, tc := range map[string]struct {
 		requests       []controller.Request
@@ -44,12 +46,9 @@ func TestAPIGatewayController(t *testing.T) {
 					Name:           "gateway",
 					EnterpriseMeta: *defaultMeta,
 					Status: structs.Status{
-						Conditions: []structs.Condition{{
-							Type:    "Accepted",
-							Status:  "True",
-							Reason:  "Accepted",
-							Message: "gateway is valid",
-						}},
+						Conditions: []structs.Condition{
+							conditions.gatewayAccepted(),
+						},
 					},
 				},
 				&structs.BoundAPIGatewayConfigEntry{
@@ -78,12 +77,9 @@ func TestAPIGatewayController(t *testing.T) {
 					Name:           "tcp-route",
 					EnterpriseMeta: *defaultMeta,
 					Status: structs.Status{
-						Conditions: []structs.Condition{{
-							Type:    "Accepted",
-							Status:  "False",
-							Reason:  "NoUpstreamServicesTargeted",
-							Message: "route must target at least one upstream service",
-						}},
+						Conditions: []structs.Condition{
+							conditions.routeNoUpstreams(),
+						},
 					},
 				},
 			},
@@ -107,12 +103,9 @@ func TestAPIGatewayController(t *testing.T) {
 					Name:           "http-route",
 					EnterpriseMeta: *defaultMeta,
 					Status: structs.Status{
-						Conditions: []structs.Condition{{
-							Type:    "Accepted",
-							Status:  "False",
-							Reason:  "NoUpstreamServicesTargeted",
-							Message: "route must target at least one upstream service",
-						}},
+						Conditions: []structs.Condition{
+							conditions.routeNoUpstreams(),
+						},
 					},
 				},
 			},
@@ -139,12 +132,9 @@ func TestAPIGatewayController(t *testing.T) {
 					Name:           "tcp-route",
 					EnterpriseMeta: *defaultMeta,
 					Status: structs.Status{
-						Conditions: []structs.Condition{{
-							Type:    "Accepted",
-							Status:  "False",
-							Reason:  "InvalidDiscoveryChain",
-							Message: "service does not exist",
-						}},
+						Conditions: []structs.Condition{
+							conditions.routeInvalidDiscoveryChain(errServiceDoesNotExist),
+						},
 					},
 				},
 			},
@@ -177,12 +167,9 @@ func TestAPIGatewayController(t *testing.T) {
 					Name:           "tcp-route",
 					EnterpriseMeta: *defaultMeta,
 					Status: structs.Status{
-						Conditions: []structs.Condition{{
-							Type:    "Accepted",
-							Status:  "False",
-							Reason:  "InvalidDiscoveryChain",
-							Message: "route protocol does not match targeted service protocol",
-						}},
+						Conditions: []structs.Condition{
+							conditions.routeInvalidDiscoveryChain(errInvalidProtocol),
+						},
 					},
 				},
 			},
@@ -219,22 +206,14 @@ func TestAPIGatewayController(t *testing.T) {
 					Name:           "tcp-route",
 					EnterpriseMeta: *defaultMeta,
 					Status: structs.Status{
-						Conditions: []structs.Condition{{
-							Type:    "Accepted",
-							Status:  "True",
-							Reason:  "Accepted",
-							Message: "route is valid",
-						}, {
-							Type:   "Bound",
-							Status: "False",
-							Reason: "FailedToBind",
-							Resource: &structs.ResourceReference{
+						Conditions: []structs.Condition{
+							conditions.routeAccepted(),
+							conditions.routeUnbound(structs.ResourceReference{
 								Kind:           structs.APIGateway,
 								Name:           "gateway",
 								EnterpriseMeta: *defaultMeta,
-							},
-							Message: "invalid reference to missing parent",
-						}},
+							}, errors.New("invalid reference to missing parent")),
+						},
 					},
 				},
 			},
@@ -281,22 +260,14 @@ func TestAPIGatewayController(t *testing.T) {
 					Name:           "tcp-route",
 					EnterpriseMeta: *defaultMeta,
 					Status: structs.Status{
-						Conditions: []structs.Condition{{
-							Type:    "Accepted",
-							Status:  "True",
-							Reason:  "Accepted",
-							Message: "route is valid",
-						}, {
-							Type:   "Bound",
-							Status: "False",
-							Reason: "FailedToBind",
-							Resource: &structs.ResourceReference{
+						Conditions: []structs.Condition{
+							conditions.routeAccepted(),
+							conditions.routeUnbound(structs.ResourceReference{
 								Kind:           structs.APIGateway,
 								Name:           "gateway",
 								EnterpriseMeta: *defaultMeta,
-							},
-							Message: "invalid reference to missing parent",
-						}},
+							}, errors.New("invalid reference to missing parent")),
+						},
 					},
 				},
 			},
@@ -353,22 +324,14 @@ func TestAPIGatewayController(t *testing.T) {
 					Name:           "tcp-route",
 					EnterpriseMeta: *defaultMeta,
 					Status: structs.Status{
-						Conditions: []structs.Condition{{
-							Type:    "Accepted",
-							Status:  "True",
-							Reason:  "Accepted",
-							Message: "route is valid",
-						}, {
-							Type:   "Bound",
-							Status: "False",
-							Reason: "FailedToBind",
-							Resource: &structs.ResourceReference{
+						Conditions: []structs.Condition{
+							conditions.routeAccepted(),
+							conditions.routeUnbound(structs.ResourceReference{
 								Kind:           structs.APIGateway,
 								Name:           "gateway",
 								EnterpriseMeta: *defaultMeta,
-							},
-							Message: "route cannot bind because gateway has no listeners",
-						}},
+							}, errors.New("route cannot bind because gateway has no listeners")),
+						},
 					},
 				},
 			},
@@ -430,22 +393,14 @@ func TestAPIGatewayController(t *testing.T) {
 					Name:           "tcp-route",
 					EnterpriseMeta: *defaultMeta,
 					Status: structs.Status{
-						Conditions: []structs.Condition{{
-							Type:    "Accepted",
-							Status:  "True",
-							Reason:  "Accepted",
-							Message: "route is valid",
-						}, {
-							Type:   "Bound",
-							Status: "False",
-							Reason: "FailedToBind",
-							Resource: &structs.ResourceReference{
+						Conditions: []structs.Condition{
+							conditions.routeAccepted(),
+							conditions.routeUnbound(structs.ResourceReference{
 								Kind:           structs.APIGateway,
 								Name:           "gateway",
 								EnterpriseMeta: *defaultMeta,
-							},
-							Message: "invalid reference to missing parent",
-						}},
+							}, errors.New("invalid reference to missing parent")),
+						},
 					},
 				},
 			},
@@ -514,23 +469,15 @@ func TestAPIGatewayController(t *testing.T) {
 					Name:           "gateway",
 					EnterpriseMeta: *defaultMeta,
 					Status: structs.Status{
-						Conditions: []structs.Condition{{
-							Type:    "Accepted",
-							Status:  "True",
-							Reason:  "Accepted",
-							Message: "gateway is valid",
-						}, {
-							Type:   "Conflicted",
-							Status: "False",
-							Reason: "NoConflict",
-							Resource: &structs.ResourceReference{
+						Conditions: []structs.Condition{
+							conditions.gatewayAccepted(),
+							conditions.gatewayListenerNoConflicts(structs.ResourceReference{
 								Kind:           structs.APIGateway,
 								Name:           "gateway",
 								EnterpriseMeta: *defaultMeta,
 								SectionName:    "listener",
-							},
-							Message: "listener has no route conflicts",
-						}},
+							}),
+						},
 					},
 				},
 				&structs.TCPRouteConfigEntry{
@@ -538,22 +485,14 @@ func TestAPIGatewayController(t *testing.T) {
 					Name:           "tcp-route",
 					EnterpriseMeta: *defaultMeta,
 					Status: structs.Status{
-						Conditions: []structs.Condition{{
-							Type:    "Accepted",
-							Status:  "True",
-							Reason:  "Accepted",
-							Message: "route is valid",
-						}, {
-							Type:   "Bound",
-							Status: "True",
-							Reason: "Bound",
-							Resource: &structs.ResourceReference{
+						Conditions: []structs.Condition{
+							conditions.routeAccepted(),
+							conditions.routeBound(structs.ResourceReference{
 								Kind:           structs.APIGateway,
 								Name:           "gateway",
 								EnterpriseMeta: *defaultMeta,
-							},
-							Message: "successfully bound route",
-						}},
+							}),
+						},
 					},
 				},
 			},
@@ -617,23 +556,15 @@ func TestAPIGatewayController(t *testing.T) {
 					Name:           "gateway",
 					EnterpriseMeta: *defaultMeta,
 					Status: structs.Status{
-						Conditions: []structs.Condition{{
-							Type:    "Accepted",
-							Status:  "True",
-							Reason:  "Accepted",
-							Message: "gateway is valid",
-						}, {
-							Type:   "Conflicted",
-							Status: "False",
-							Reason: "NoConflict",
-							Resource: &structs.ResourceReference{
+						Conditions: []structs.Condition{
+							conditions.gatewayAccepted(),
+							conditions.gatewayListenerNoConflicts(structs.ResourceReference{
 								Kind:           structs.APIGateway,
 								Name:           "gateway",
 								EnterpriseMeta: *defaultMeta,
 								SectionName:    "listener",
-							},
-							Message: "listener has no route conflicts",
-						}},
+							}),
+						},
 					},
 				},
 				&structs.TCPRouteConfigEntry{
@@ -641,22 +572,14 @@ func TestAPIGatewayController(t *testing.T) {
 					Name:           "tcp-route",
 					EnterpriseMeta: *defaultMeta,
 					Status: structs.Status{
-						Conditions: []structs.Condition{{
-							Type:    "Accepted",
-							Status:  "True",
-							Reason:  "Accepted",
-							Message: "route is valid",
-						}, {
-							Type:   "Bound",
-							Status: "False",
-							Reason: "FailedToBind",
-							Resource: &structs.ResourceReference{
+						Conditions: []structs.Condition{
+							conditions.routeAccepted(),
+							conditions.routeUnbound(structs.ResourceReference{
 								Kind:           structs.APIGateway,
 								Name:           "gateway",
 								EnterpriseMeta: *defaultMeta,
-							},
-							Message: "failed to bind route tcp-route to gateway gateway: no valid listener has name '' and uses tcp protocol",
-						}},
+							}, errors.New("failed to bind route tcp-route to gateway gateway: no valid listener has name '' and uses tcp protocol")),
+						},
 					},
 				},
 			},
@@ -746,23 +669,15 @@ func TestAPIGatewayController(t *testing.T) {
 					Name:           "gateway",
 					EnterpriseMeta: *defaultMeta,
 					Status: structs.Status{
-						Conditions: []structs.Condition{{
-							Type:    "Accepted",
-							Status:  "True",
-							Reason:  "Accepted",
-							Message: "gateway is valid",
-						}, {
-							Type:   "Conflicted",
-							Status: "True",
-							Reason: "RouteConflict",
-							Resource: &structs.ResourceReference{
+						Conditions: []structs.Condition{
+							conditions.gatewayAccepted(),
+							conditions.gatewayListenerConflicts(structs.ResourceReference{
 								Kind:           structs.APIGateway,
 								Name:           "gateway",
 								EnterpriseMeta: *defaultMeta,
 								SectionName:    "listener",
-							},
-							Message: "TCP-based listeners currently only support binding a single route",
-						}},
+							}),
+						},
 					},
 				},
 				&structs.TCPRouteConfigEntry{
@@ -770,22 +685,14 @@ func TestAPIGatewayController(t *testing.T) {
 					Name:           "tcp-route-one",
 					EnterpriseMeta: *defaultMeta,
 					Status: structs.Status{
-						Conditions: []structs.Condition{{
-							Type:    "Accepted",
-							Status:  "True",
-							Reason:  "Accepted",
-							Message: "route is valid",
-						}, {
-							Type:   "Bound",
-							Status: "True",
-							Reason: "Bound",
-							Resource: &structs.ResourceReference{
+						Conditions: []structs.Condition{
+							conditions.routeAccepted(),
+							conditions.routeBound(structs.ResourceReference{
 								Kind:           structs.APIGateway,
 								Name:           "gateway",
 								EnterpriseMeta: *defaultMeta,
-							},
-							Message: "successfully bound route",
-						}},
+							}),
+						},
 					},
 				},
 				&structs.TCPRouteConfigEntry{
@@ -793,22 +700,14 @@ func TestAPIGatewayController(t *testing.T) {
 					Name:           "tcp-route-two",
 					EnterpriseMeta: *defaultMeta,
 					Status: structs.Status{
-						Conditions: []structs.Condition{{
-							Type:    "Accepted",
-							Status:  "True",
-							Reason:  "Accepted",
-							Message: "route is valid",
-						}, {
-							Type:   "Bound",
-							Status: "True",
-							Reason: "Bound",
-							Resource: &structs.ResourceReference{
+						Conditions: []structs.Condition{
+							conditions.routeAccepted(),
+							conditions.routeBound(structs.ResourceReference{
 								Kind:           structs.APIGateway,
 								Name:           "gateway",
 								EnterpriseMeta: *defaultMeta,
-							},
-							Message: "successfully bound route",
-						}},
+							}),
+						},
 					},
 				},
 			},
@@ -903,23 +802,15 @@ func TestAPIGatewayController(t *testing.T) {
 					Name:           "gateway",
 					EnterpriseMeta: *defaultMeta,
 					Status: structs.Status{
-						Conditions: []structs.Condition{{
-							Type:    "Accepted",
-							Status:  "True",
-							Reason:  "Accepted",
-							Message: "gateway is valid",
-						}, {
-							Type:   "Conflicted",
-							Status: "False",
-							Reason: "NoConflict",
-							Resource: &structs.ResourceReference{
+						Conditions: []structs.Condition{
+							conditions.gatewayAccepted(),
+							conditions.gatewayListenerNoConflicts(structs.ResourceReference{
 								Kind:           structs.APIGateway,
 								Name:           "gateway",
 								EnterpriseMeta: *defaultMeta,
 								SectionName:    "listener",
-							},
-							Message: "listener has no route conflicts",
-						}},
+							}),
+						},
 					},
 				},
 				&structs.HTTPRouteConfigEntry{
@@ -927,22 +818,14 @@ func TestAPIGatewayController(t *testing.T) {
 					Name:           "http-route-one",
 					EnterpriseMeta: *defaultMeta,
 					Status: structs.Status{
-						Conditions: []structs.Condition{{
-							Type:    "Accepted",
-							Status:  "True",
-							Reason:  "Accepted",
-							Message: "route is valid",
-						}, {
-							Type:   "Bound",
-							Status: "True",
-							Reason: "Bound",
-							Resource: &structs.ResourceReference{
+						Conditions: []structs.Condition{
+							conditions.routeAccepted(),
+							conditions.routeBound(structs.ResourceReference{
 								Kind:           structs.APIGateway,
 								Name:           "gateway",
 								EnterpriseMeta: *defaultMeta,
-							},
-							Message: "successfully bound route",
-						}},
+							}),
+						},
 					},
 				},
 				&structs.HTTPRouteConfigEntry{
@@ -950,22 +833,14 @@ func TestAPIGatewayController(t *testing.T) {
 					Name:           "http-route-two",
 					EnterpriseMeta: *defaultMeta,
 					Status: structs.Status{
-						Conditions: []structs.Condition{{
-							Type:    "Accepted",
-							Status:  "True",
-							Reason:  "Accepted",
-							Message: "route is valid",
-						}, {
-							Type:   "Bound",
-							Status: "True",
-							Reason: "Bound",
-							Resource: &structs.ResourceReference{
+						Conditions: []structs.Condition{
+							conditions.routeAccepted(),
+							conditions.routeBound(structs.ResourceReference{
 								Kind:           structs.APIGateway,
 								Name:           "gateway",
 								EnterpriseMeta: *defaultMeta,
-							},
-							Message: "successfully bound route",
-						}},
+							}),
+						},
 					},
 				},
 			},
@@ -1060,23 +935,15 @@ func TestAPIGatewayController(t *testing.T) {
 					Name:           "gateway",
 					EnterpriseMeta: *defaultMeta,
 					Status: structs.Status{
-						Conditions: []structs.Condition{{
-							Type:    "Accepted",
-							Status:  "True",
-							Reason:  "Accepted",
-							Message: "gateway is valid",
-						}, {
-							Type:   "Conflicted",
-							Status: "False",
-							Reason: "NoConflict",
-							Resource: &structs.ResourceReference{
+						Conditions: []structs.Condition{
+							conditions.gatewayAccepted(),
+							conditions.gatewayListenerNoConflicts(structs.ResourceReference{
 								Kind:           structs.APIGateway,
 								Name:           "gateway",
 								EnterpriseMeta: *defaultMeta,
 								SectionName:    "listener",
-							},
-							Message: "listener has no route conflicts",
-						}},
+							}),
+						},
 					},
 				},
 				&structs.HTTPRouteConfigEntry{
@@ -1084,22 +951,14 @@ func TestAPIGatewayController(t *testing.T) {
 					Name:           "http-route",
 					EnterpriseMeta: *defaultMeta,
 					Status: structs.Status{
-						Conditions: []structs.Condition{{
-							Type:    "Accepted",
-							Status:  "True",
-							Reason:  "Accepted",
-							Message: "route is valid",
-						}, {
-							Type:   "Bound",
-							Status: "True",
-							Reason: "Bound",
-							Resource: &structs.ResourceReference{
+						Conditions: []structs.Condition{
+							conditions.routeAccepted(),
+							conditions.routeBound(structs.ResourceReference{
 								Kind:           structs.APIGateway,
 								Name:           "gateway",
 								EnterpriseMeta: *defaultMeta,
-							},
-							Message: "successfully bound route",
-						}},
+							}),
+						},
 					},
 				},
 				&structs.TCPRouteConfigEntry{
@@ -1107,22 +966,14 @@ func TestAPIGatewayController(t *testing.T) {
 					Name:           "tcp-route",
 					EnterpriseMeta: *defaultMeta,
 					Status: structs.Status{
-						Conditions: []structs.Condition{{
-							Type:    "Accepted",
-							Status:  "True",
-							Reason:  "Accepted",
-							Message: "route is valid",
-						}, {
-							Type:   "Bound",
-							Status: "False",
-							Reason: "FailedToBind",
-							Resource: &structs.ResourceReference{
+						Conditions: []structs.Condition{
+							conditions.routeAccepted(),
+							conditions.routeUnbound(structs.ResourceReference{
 								Kind:           structs.APIGateway,
 								Name:           "gateway",
 								EnterpriseMeta: *defaultMeta,
-							},
-							Message: "failed to bind route tcp-route to gateway gateway: no valid listener has name '' and uses tcp protocol",
-						}},
+							}, errors.New("failed to bind route tcp-route to gateway gateway: no valid listener has name '' and uses tcp protocol")),
+						},
 					},
 				},
 			},
@@ -1228,32 +1079,19 @@ func TestAPIGatewayController(t *testing.T) {
 					Name:           "gateway",
 					EnterpriseMeta: *defaultMeta,
 					Status: structs.Status{
-						Conditions: []structs.Condition{{
-							Type:    "Accepted",
-							Status:  "True",
-							Reason:  "Accepted",
-							Message: "gateway is valid",
-						}, {
-							Type:   "Conflicted",
-							Status: "False",
-							Reason: "NoConflict",
-							Resource: &structs.ResourceReference{
+						Conditions: []structs.Condition{
+							conditions.gatewayAccepted(),
+							conditions.gatewayListenerNoConflicts(structs.ResourceReference{
 								Kind:        structs.APIGateway,
 								Name:        "gateway",
 								SectionName: "http-listener",
-							},
-							Message: "listener has no route conflicts",
-						}, {
-							Type:   "Conflicted",
-							Status: "False",
-							Reason: "NoConflict",
-							Resource: &structs.ResourceReference{
+							}),
+							conditions.gatewayListenerNoConflicts(structs.ResourceReference{
 								Kind:        structs.APIGateway,
 								Name:        "gateway",
 								SectionName: "tcp-listener",
-							},
-							Message: "listener has no route conflicts",
-						}},
+							}),
+						},
 					},
 				},
 				&structs.HTTPRouteConfigEntry{
@@ -1261,22 +1099,14 @@ func TestAPIGatewayController(t *testing.T) {
 					Name:           "http-route",
 					EnterpriseMeta: *defaultMeta,
 					Status: structs.Status{
-						Conditions: []structs.Condition{{
-							Type:    "Accepted",
-							Status:  "True",
-							Reason:  "Accepted",
-							Message: "route is valid",
-						}, {
-							Type:   "Bound",
-							Status: "True",
-							Reason: "Bound",
-							Resource: &structs.ResourceReference{
+						Conditions: []structs.Condition{
+							conditions.routeAccepted(),
+							conditions.routeBound(structs.ResourceReference{
 								Kind:           structs.APIGateway,
 								Name:           "gateway",
 								EnterpriseMeta: *defaultMeta,
-							},
-							Message: "successfully bound route",
-						}},
+							}),
+						},
 					},
 				},
 				&structs.TCPRouteConfigEntry{
@@ -1284,22 +1114,14 @@ func TestAPIGatewayController(t *testing.T) {
 					Name:           "tcp-route",
 					EnterpriseMeta: *defaultMeta,
 					Status: structs.Status{
-						Conditions: []structs.Condition{{
-							Type:    "Accepted",
-							Status:  "True",
-							Reason:  "Accepted",
-							Message: "route is valid",
-						}, {
-							Type:   "Bound",
-							Status: "True",
-							Reason: "Bound",
-							Resource: &structs.ResourceReference{
+						Conditions: []structs.Condition{
+							conditions.routeAccepted(),
+							conditions.routeBound(structs.ResourceReference{
 								Kind:           structs.APIGateway,
 								Name:           "gateway",
 								EnterpriseMeta: *defaultMeta,
-							},
-							Message: "successfully bound route",
-						}},
+							}),
+						},
 					},
 				},
 			},
@@ -1319,22 +1141,14 @@ func TestAPIGatewayController(t *testing.T) {
 						Name: "tcp-upstream",
 					}},
 					Status: structs.Status{
-						Conditions: []structs.Condition{{
-							Type:    "Accepted",
-							Status:  "True",
-							Reason:  "Accepted",
-							Message: "route is valid",
-						}, {
-							Type:   "Bound",
-							Status: "True",
-							Reason: "Bound",
-							Resource: &structs.ResourceReference{
+						Conditions: []structs.Condition{
+							conditions.routeAccepted(),
+							conditions.routeBound(structs.ResourceReference{
 								Kind:           structs.APIGateway,
 								Name:           "gateway",
 								EnterpriseMeta: *defaultMeta,
-							},
-							Message: "successfully bound route",
-						}},
+							}),
+						},
 					},
 				},
 				&structs.ServiceConfigEntry{
@@ -1381,18 +1195,25 @@ func TestAPIGatewayController(t *testing.T) {
 					Kind:           structs.APIGateway,
 					Name:           "gateway",
 					EnterpriseMeta: *defaultMeta,
+					Status: structs.Status{
+						Conditions: []structs.Condition{
+							conditions.gatewayListenerNoConflicts(structs.ResourceReference{
+								Kind:           structs.APIGateway,
+								Name:           "gateway",
+								SectionName:    "tcp-listener",
+								EnterpriseMeta: *defaultMeta,
+							}),
+						},
+					},
 				},
 				&structs.TCPRouteConfigEntry{
 					Kind:           structs.TCPRoute,
 					Name:           "tcp-route",
 					EnterpriseMeta: *defaultMeta,
 					Status: structs.Status{
-						Conditions: []structs.Condition{{
-							Type:    "Accepted",
-							Status:  "True",
-							Reason:  "Accepted",
-							Message: "route is valid",
-						}},
+						Conditions: []structs.Condition{
+							conditions.routeAccepted(),
+						},
 					},
 				},
 			},
@@ -1409,22 +1230,14 @@ func TestAPIGatewayController(t *testing.T) {
 					Name:           "tcp-route",
 					EnterpriseMeta: *defaultMeta,
 					Status: structs.Status{
-						Conditions: []structs.Condition{{
-							Type:    "Accepted",
-							Status:  "True",
-							Reason:  "Accepted",
-							Message: "route is valid",
-						}, {
-							Type:   "Bound",
-							Status: "True",
-							Reason: "Bound",
-							Resource: &structs.ResourceReference{
+						Conditions: []structs.Condition{
+							conditions.routeAccepted(),
+							conditions.routeBound(structs.ResourceReference{
 								Kind:           structs.APIGateway,
 								Name:           "gateway",
 								EnterpriseMeta: *defaultMeta,
-							},
-							Message: "successfully bound route",
-						}},
+							}),
+						},
 					},
 				},
 				&structs.ServiceConfigEntry{
@@ -1471,18 +1284,25 @@ func TestAPIGatewayController(t *testing.T) {
 					Kind:           structs.APIGateway,
 					Name:           "gateway",
 					EnterpriseMeta: *defaultMeta,
+					Status: structs.Status{
+						Conditions: []structs.Condition{
+							conditions.gatewayListenerNoConflicts(structs.ResourceReference{
+								Kind:           structs.APIGateway,
+								Name:           "gateway",
+								SectionName:    "tcp-listener",
+								EnterpriseMeta: *defaultMeta,
+							}),
+						},
+					},
 				},
 				&structs.TCPRouteConfigEntry{
 					Kind:           structs.TCPRoute,
 					Name:           "tcp-route",
 					EnterpriseMeta: *defaultMeta,
 					Status: structs.Status{
-						Conditions: []structs.Condition{{
-							Type:    "Accepted",
-							Status:  "False",
-							Reason:  "NoUpstreamServicesTargeted",
-							Message: "route must target at least one upstream service",
-						}},
+						Conditions: []structs.Condition{
+							conditions.routeNoUpstreams(),
+						},
 					},
 				},
 			},
@@ -1508,22 +1328,14 @@ func TestAPIGatewayController(t *testing.T) {
 						EnterpriseMeta: *defaultMeta,
 					}},
 					Status: structs.Status{
-						Conditions: []structs.Condition{{
-							Type:    "Accepted",
-							Status:  "True",
-							Reason:  "Accepted",
-							Message: "route is valid",
-						}, {
-							Type:   "Bound",
-							Status: "True",
-							Reason: "Bound",
-							Resource: &structs.ResourceReference{
+						Conditions: []structs.Condition{
+							conditions.routeAccepted(),
+							conditions.routeBound(structs.ResourceReference{
 								Kind:           structs.APIGateway,
 								Name:           "gateway",
 								EnterpriseMeta: *defaultMeta,
-							},
-							Message: "successfully bound route",
-						}},
+							}),
+						},
 					},
 				},
 				&structs.HTTPRouteConfigEntry{
@@ -1542,20 +1354,13 @@ func TestAPIGatewayController(t *testing.T) {
 						EnterpriseMeta: *defaultMeta,
 					}},
 					Status: structs.Status{
-						Conditions: []structs.Condition{{
-							Type:    "Accepted",
-							Status:  "True",
-							Reason:  "Accepted",
-							Message: "route is valid",
-						}, {
-							Type:   "Bound",
-							Status: "False",
-							Reason: "NotBound",
-							Resource: &structs.ResourceReference{
+						Conditions: []structs.Condition{
+							conditions.routeAccepted(),
+							conditions.routeUnbound(structs.ResourceReference{
 								Kind: structs.APIGateway,
 								Name: "gateway",
-							},
-						}},
+							}, errors.New("foo")),
+						},
 					},
 				},
 				&structs.ServiceConfigEntry{
@@ -1580,22 +1385,14 @@ func TestAPIGatewayController(t *testing.T) {
 						Port:     80,
 					}},
 					Status: structs.Status{
-						Conditions: []structs.Condition{{
-							Type:    "Accepted",
-							Status:  "True",
-							Reason:  "Accepted",
-							Message: "gateway is valid",
-						}, {
-							Type:   "Conflicted",
-							Status: "False",
-							Reason: "NoConflict",
-							Resource: &structs.ResourceReference{
+						Conditions: []structs.Condition{
+							conditions.gatewayAccepted(),
+							conditions.gatewayListenerNoConflicts(structs.ResourceReference{
 								Kind:        structs.APIGateway,
 								Name:        "gateway",
 								SectionName: "tcp-listener",
-							},
-							Message: "listener has no route conflicts",
-						}},
+							}),
+						},
 					},
 				},
 				&structs.BoundAPIGatewayConfigEntry{
@@ -1631,22 +1428,14 @@ func TestAPIGatewayController(t *testing.T) {
 					Name:           "gateway",
 					EnterpriseMeta: *defaultMeta,
 					Status: structs.Status{
-						Conditions: []structs.Condition{{
-							Type:    "Accepted",
-							Status:  "True",
-							Reason:  "Accepted",
-							Message: "gateway is valid",
-						}, {
-							Type:   "Conflicted",
-							Status: "False",
-							Reason: "NoConflict",
-							Resource: &structs.ResourceReference{
+						Conditions: []structs.Condition{
+							conditions.gatewayAccepted(),
+							conditions.gatewayListenerNoConflicts(structs.ResourceReference{
 								Kind:        structs.APIGateway,
 								Name:        "gateway",
 								SectionName: "http-listener",
-							},
-							Message: "listener has no route conflicts",
-						}},
+							}),
+						},
 					},
 				},
 				&structs.TCPRouteConfigEntry{
@@ -1654,21 +1443,13 @@ func TestAPIGatewayController(t *testing.T) {
 					Name:           "tcp-route",
 					EnterpriseMeta: *defaultMeta,
 					Status: structs.Status{
-						Conditions: []structs.Condition{{
-							Type:    "Accepted",
-							Status:  "True",
-							Reason:  "Accepted",
-							Message: "route is valid",
-						}, {
-							Type:    "Bound",
-							Status:  "False",
-							Reason:  "FailedToBind",
-							Message: "failed to bind route tcp-route to gateway gateway: no valid listener has name '' and uses tcp protocol",
-							Resource: &structs.ResourceReference{
+						Conditions: []structs.Condition{
+							conditions.routeAccepted(),
+							conditions.routeUnbound(structs.ResourceReference{
 								Kind: structs.APIGateway,
 								Name: "gateway",
-							},
-						}},
+							}, errors.New("failed to bind route tcp-route to gateway gateway: no valid listener has name '' and uses tcp protocol")),
+						},
 					},
 				},
 				&structs.HTTPRouteConfigEntry{
@@ -1676,21 +1457,13 @@ func TestAPIGatewayController(t *testing.T) {
 					Name:           "http-route",
 					EnterpriseMeta: *defaultMeta,
 					Status: structs.Status{
-						Conditions: []structs.Condition{{
-							Type:    "Accepted",
-							Status:  "True",
-							Reason:  "Accepted",
-							Message: "route is valid",
-						}, {
-							Type:    "Bound",
-							Status:  "True",
-							Reason:  "Bound",
-							Message: "successfully bound route",
-							Resource: &structs.ResourceReference{
+						Conditions: []structs.Condition{
+							conditions.routeAccepted(),
+							conditions.routeBound(structs.ResourceReference{
 								Kind: structs.APIGateway,
 								Name: "gateway",
-							},
-						}},
+							}),
+						},
 					},
 				},
 			},
@@ -1720,22 +1493,14 @@ func TestAPIGatewayController(t *testing.T) {
 						EnterpriseMeta: *defaultMeta,
 					}},
 					Status: structs.Status{
-						Conditions: []structs.Condition{{
-							Type:    "Accepted",
-							Status:  "True",
-							Reason:  "Accepted",
-							Message: "route is valid",
-						}, {
-							Type:   "Bound",
-							Status: "True",
-							Reason: "Bound",
-							Resource: &structs.ResourceReference{
+						Conditions: []structs.Condition{
+							conditions.routeAccepted(),
+							conditions.routeBound(structs.ResourceReference{
 								Kind:           structs.APIGateway,
 								Name:           "gateway",
 								EnterpriseMeta: *defaultMeta,
-							},
-							Message: "successfully bound route",
-						}},
+							}),
+						},
 					},
 				},
 				&structs.ServiceConfigEntry{
@@ -1764,21 +1529,13 @@ func TestAPIGatewayController(t *testing.T) {
 					Name:           "tcp-route",
 					EnterpriseMeta: *defaultMeta,
 					Status: structs.Status{
-						Conditions: []structs.Condition{{
-							Type:    "Accepted",
-							Status:  "True",
-							Reason:  "Accepted",
-							Message: "route is valid",
-						}, {
-							Type:    "Bound",
-							Status:  "False",
-							Reason:  "GatewayNotFound",
-							Message: "gateway was not found",
-							Resource: &structs.ResourceReference{
+						Conditions: []structs.Condition{
+							conditions.routeAccepted(),
+							conditions.gatewayNotFound(structs.ResourceReference{
 								Kind: structs.APIGateway,
 								Name: "gateway",
-							},
-						}},
+							}),
+						},
 					},
 				},
 			},
@@ -1813,22 +1570,14 @@ func TestAPIGatewayController(t *testing.T) {
 						Protocol: structs.ListenerProtocolTCP,
 					}},
 					Status: structs.Status{
-						Conditions: []structs.Condition{{
-							Type:    "Accepted",
-							Status:  "True",
-							Reason:  "Accepted",
-							Message: "gateway is valid",
-						}, {
-							Type:   "Conflicted",
-							Status: "False",
-							Reason: "NoConflict",
-							Resource: &structs.ResourceReference{
+						Conditions: []structs.Condition{
+							conditions.gatewayAccepted(),
+							conditions.gatewayListenerNoConflicts(structs.ResourceReference{
 								Kind:        structs.APIGateway,
 								Name:        "gateway",
 								SectionName: "tcp-listener",
-							},
-							Message: "listener has no route conflicts",
-						}},
+							}),
+						},
 					},
 				},
 			},
@@ -1847,22 +1596,14 @@ func TestAPIGatewayController(t *testing.T) {
 					Name:           "gateway",
 					EnterpriseMeta: *defaultMeta,
 					Status: structs.Status{
-						Conditions: []structs.Condition{{
-							Type:    "Accepted",
-							Status:  "True",
-							Reason:  "Accepted",
-							Message: "gateway is valid",
-						}, {
-							Type:   "Conflicted",
-							Status: "False",
-							Reason: "NoConflict",
-							Resource: &structs.ResourceReference{
+						Conditions: []structs.Condition{
+							conditions.gatewayAccepted(),
+							conditions.gatewayListenerNoConflicts(structs.ResourceReference{
 								Kind:        structs.APIGateway,
 								Name:        "gateway",
 								SectionName: "tcp-listener",
-							},
-							Message: "listener has no route conflicts",
-						}},
+							}),
+						},
 					},
 				},
 			},
@@ -1900,20 +1641,13 @@ func TestAPIGatewayController(t *testing.T) {
 						Name: "gateway",
 					}},
 					Status: structs.Status{
-						Conditions: []structs.Condition{{
-							Type:    "Accepted",
-							Status:  "True",
-							Reason:  "Accepted",
-							Message: "route is valid",
-						}, {
-							Type:   "Bound",
-							Status: "True",
-							Reason: "Bound",
-							Resource: &structs.ResourceReference{
+						Conditions: []structs.Condition{
+							conditions.routeAccepted(),
+							conditions.routeBound(structs.ResourceReference{
 								Kind: structs.APIGateway,
 								Name: "gateway",
-							},
-						}},
+							}),
+						},
 					},
 				},
 			},
@@ -1923,21 +1657,13 @@ func TestAPIGatewayController(t *testing.T) {
 					Name:           "tcp-route",
 					EnterpriseMeta: *defaultMeta,
 					Status: structs.Status{
-						Conditions: []structs.Condition{{
-							Type:    "Accepted",
-							Status:  "True",
-							Reason:  "Accepted",
-							Message: "route is valid",
-						}, {
-							Type:    "Bound",
-							Status:  "False",
-							Reason:  "GatewayNotFound",
-							Message: "gateway was not found",
-							Resource: &structs.ResourceReference{
+						Conditions: []structs.Condition{
+							conditions.routeAccepted(),
+							conditions.gatewayNotFound(structs.ResourceReference{
 								Kind: structs.APIGateway,
 								Name: "gateway",
-							},
-						}},
+							}),
+						},
 					},
 				},
 			},
@@ -1981,31 +1707,18 @@ func TestAPIGatewayController(t *testing.T) {
 						},
 					}},
 					Status: structs.Status{
-						Conditions: []structs.Condition{{
-							Type:    "Accepted",
-							Status:  "False",
-							Reason:  "InvalidCertificate",
-							Message: "certificate not found",
-							Resource: &structs.ResourceReference{
+						Conditions: []structs.Condition{
+							conditions.invalidCertificate(structs.ResourceReference{
 								Kind: structs.InlineCertificate,
 								Name: "certificate",
-							},
-						}, {
-							Type:    "Accepted",
-							Status:  "False",
-							Reason:  "InvalidCertificates",
-							Message: "gateway references invalid certificates",
-						}, {
-							Type:    "Conflicted",
-							Status:  "False",
-							Reason:  "NoConflict",
-							Message: "listener has no route conflicts",
-							Resource: &structs.ResourceReference{
+							}, errors.New("certificate not found")),
+							conditions.invalidCertificates(),
+							conditions.gatewayListenerNoConflicts(structs.ResourceReference{
 								Kind:        structs.APIGateway,
 								Name:        "gateway",
 								SectionName: "http-listener",
-							},
-						}},
+							}),
+						},
 					},
 				},
 				&structs.BoundAPIGatewayConfigEntry{
@@ -2062,23 +1775,15 @@ func TestAPIGatewayController(t *testing.T) {
 						},
 					}},
 					Status: structs.Status{
-						Conditions: []structs.Condition{{
-							Type:    "Accepted",
-							Status:  "True",
-							Reason:  "Accepted",
-							Message: "gateway is valid",
-						}, {
-							Type:    "Conflicted",
-							Status:  "False",
-							Reason:  "NoConflict",
-							Message: "listener has no route conflicts",
-							Resource: &structs.ResourceReference{
+						Conditions: []structs.Condition{
+							conditions.gatewayAccepted(),
+							conditions.gatewayListenerNoConflicts(structs.ResourceReference{
 								Kind:        structs.APIGateway,
 								Name:        "gateway",
 								SectionName: "http-listener",
-							},
+							}),
 						},
-						}},
+					},
 				},
 				&structs.BoundAPIGatewayConfigEntry{
 					Kind:           structs.BoundAPIGateway,
@@ -2112,31 +1817,18 @@ func TestAPIGatewayController(t *testing.T) {
 						},
 					}},
 					Status: structs.Status{
-						Conditions: []structs.Condition{{
-							Type:    "Accepted",
-							Status:  "False",
-							Reason:  "InvalidCertificate",
-							Message: "certificate not found",
-							Resource: &structs.ResourceReference{
+						Conditions: []structs.Condition{
+							conditions.invalidCertificate(structs.ResourceReference{
 								Kind: structs.InlineCertificate,
 								Name: "certificate",
-							},
-						}, {
-							Type:    "Accepted",
-							Status:  "False",
-							Reason:  "InvalidCertificates",
-							Message: "gateway references invalid certificates",
-						}, {
-							Type:    "Conflicted",
-							Status:  "False",
-							Reason:  "NoConflict",
-							Message: "listener has no route conflicts",
-							Resource: &structs.ResourceReference{
+							}, errors.New("certificate not found")),
+							conditions.invalidCertificates(),
+							conditions.gatewayListenerNoConflicts(structs.ResourceReference{
 								Kind:        structs.APIGateway,
 								Name:        "gateway",
 								SectionName: "http-listener",
-							},
-						}},
+							}),
+						},
 					},
 				},
 				&structs.InlineCertificateConfigEntry{
@@ -2161,23 +1853,15 @@ func TestAPIGatewayController(t *testing.T) {
 						},
 					}},
 					Status: structs.Status{
-						Conditions: []structs.Condition{{
-							Type:    "Accepted",
-							Status:  "True",
-							Reason:  "Accepted",
-							Message: "gateway is valid",
-						}, {
-							Type:    "Conflicted",
-							Status:  "False",
-							Reason:  "NoConflict",
-							Message: "listener has no route conflicts",
-							Resource: &structs.ResourceReference{
+						Conditions: []structs.Condition{
+							conditions.gatewayAccepted(),
+							conditions.gatewayListenerNoConflicts(structs.ResourceReference{
 								Kind:        structs.APIGateway,
 								Name:        "gateway",
 								SectionName: "http-listener",
-							},
+							}),
 						},
-						}},
+					},
 				},
 				&structs.BoundAPIGatewayConfigEntry{
 					Kind:           structs.BoundAPIGateway,
@@ -2358,7 +2042,7 @@ func TestAPIGatewayController(t *testing.T) {
 							require.NoError(t, err)
 							ppExpected, err := json.MarshalIndent(expected, "", "  ")
 							require.NoError(t, err)
-							require.False(t, stateIsDirty(bound, expected.(*structs.BoundAPIGatewayConfigEntry)), fmt.Sprintf("api bound states do not match: %+v != %+v", string(ppActual), string(ppExpected)))
+							require.True(t, bound.IsSame(expected.(*structs.BoundAPIGatewayConfigEntry)), fmt.Sprintf("api bound states do not match: %+v != %+v", string(ppActual), string(ppExpected)))
 						}
 						found = true
 						break

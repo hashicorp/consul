@@ -915,6 +915,34 @@ type BoundAPIGatewayConfigEntry struct {
 	RaftIndex
 }
 
+func (e *BoundAPIGatewayConfigEntry) IsSame(other *BoundAPIGatewayConfigEntry) bool {
+	listeners := map[string]BoundAPIGatewayListener{}
+	for _, listener := range e.Listeners {
+		listeners[listener.Name] = listener
+	}
+
+	otherListeners := map[string]BoundAPIGatewayListener{}
+	for _, listener := range other.Listeners {
+		otherListeners[listener.Name] = listener
+	}
+
+	if len(listeners) != len(otherListeners) {
+		return false
+	}
+
+	for name, listener := range listeners {
+		otherListener, found := otherListeners[name]
+		if !found {
+			return false
+		}
+		if !listener.IsSame(otherListener) {
+			return false
+		}
+	}
+
+	return true
+}
+
 // IsInitializedForGateway returns whether or not this bound api gateway is initialized with the given api gateway
 // including having corresponding listener entries for the gateway.
 func (e *BoundAPIGatewayConfigEntry) IsInitializedForGateway(gateway *APIGatewayConfigEntry) bool {
