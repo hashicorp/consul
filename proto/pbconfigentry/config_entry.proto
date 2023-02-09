@@ -33,6 +33,10 @@ message ConfigEntry {
     IngressGateway IngressGateway = 7;
     ServiceIntentions ServiceIntentions = 8;
     ServiceDefaults ServiceDefaults = 9;
+    APIGateway APIGateway = 10;
+    BoundAPIGateway BoundAPIGateway = 11;
+    TCPRoute TCPRoute = 12;
+    HTTPRoute HTTPRoute = 13;
   }
 }
 
