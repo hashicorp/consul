@@ -289,6 +289,28 @@ func prepTokenPoliciesInPartition(t *testing.T, acl *ACL, partition string) (pol
 	return
 }
 
+func TestAPI_ACLBootstrap(t *testing.T) {
+	t.Parallel()
+	c, s := makeNonBootstrappedACLClient(t)
+	defer s.Stop()
+
+	acl := c.ACL()
+	s.WaitForLeader(t)
+
+	// not bootstrapped
+	_, _, err := acl.TokenList(nil)
+	require.EqualError(t, err, "Unexpected response code: 403 (ACL system must be bootstrapped before making any requests that require authorization: ACL not found)")
+	// bootstrap
+	mgmtTok, _, err := acl.Bootstrap()
+	require.NoError(t, err)
+	// bootstrapped
+	acl.c.config.Token = mgmtTok.SecretID
+	toks, _, err := acl.TokenList(nil)
+	require.NoError(t, err)
+	// management and anonymous should be only tokens
+	require.Len(t, toks, 2)
+}
+
 func TestAPI_ACLToken_CreateReadDelete(t *testing.T) {
 	t.Parallel()
 	c, s := makeACLClient(t)
