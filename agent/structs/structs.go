@@ -1575,7 +1575,7 @@ func (s *NodeService) ValidateForAgent() error {
 	// Gateway validation
 	if s.IsGateway() {
 		// Non-ingress gateways must have a port
-		if s.Port == 0 && s.Kind != ServiceKindIngressGateway {
+		if s.Port == 0 && s.Kind != ServiceKindIngressGateway && s.Kind != ServiceKindAPIGateway {
 			result = multierror.Append(result, fmt.Errorf("Port must be non-zero for a %s", s.Kind))
 		}
 

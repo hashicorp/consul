@@ -49,6 +49,38 @@ func ConfigEntryToStructs(s *ConfigEntry) structs.ConfigEntry {
 		pbcommon.RaftIndexToStructs(s.RaftIndex, &target.RaftIndex)
 		pbcommon.EnterpriseMetaToStructs(s.EnterpriseMeta, &target.EnterpriseMeta)
 		return &target
+	case Kind_KindAPIGateway:
+		var target structs.APIGatewayConfigEntry
+		target.Name = s.Name
+
+		APIGatewayToStructs(s.GetAPIGateway(), &target)
+		pbcommon.RaftIndexToStructs(s.RaftIndex, &target.RaftIndex)
+		pbcommon.EnterpriseMetaToStructs(s.EnterpriseMeta, &target.EnterpriseMeta)
+		return &target
+	case Kind_KindBoundAPIGateway:
+		var target structs.BoundAPIGatewayConfigEntry
+		target.Name = s.Name
+
+		BoundAPIGatewayToStructs(s.GetBoundAPIGateway(), &target)
+		pbcommon.RaftIndexToStructs(s.RaftIndex, &target.RaftIndex)
+		pbcommon.EnterpriseMetaToStructs(s.EnterpriseMeta, &target.EnterpriseMeta)
+		return &target
+	case Kind_KindTCPRoute:
+		var target structs.TCPRouteConfigEntry
+		target.Name = s.Name
+
+		TCPRouteToStructs(s.GetTCPRoute(), &target)
+		pbcommon.RaftIndexToStructs(s.RaftIndex, &target.RaftIndex)
+		pbcommon.EnterpriseMetaToStructs(s.EnterpriseMeta, &target.EnterpriseMeta)
+		return &target
+	case Kind_KindHTTPRoute:
+		var target structs.HTTPRouteConfigEntry
+		target.Name = s.Name
+
+		HTTPRouteToStructs(s.GetHTTPRoute(), &target)
+		pbcommon.RaftIndexToStructs(s.RaftIndex, &target.RaftIndex)
+		pbcommon.EnterpriseMetaToStructs(s.EnterpriseMeta, &target.EnterpriseMeta)
+		return &target
 	case Kind_KindServiceDefaults:
 		var target structs.ServiceConfigEntry
 		target.Name = s.Name
@@ -112,6 +144,38 @@ func ConfigEntryFromStructs(s structs.ConfigEntry) *ConfigEntry {
 		configEntry.Kind = Kind_KindServiceDefaults
 		configEntry.Entry = &ConfigEntry_ServiceDefaults{
 			ServiceDefaults: &serviceDefaults,
+		}
+	case *structs.APIGatewayConfigEntry:
+		var apiGateway APIGateway
+		APIGatewayFromStructs(v, &apiGateway)
+
+		configEntry.Kind = Kind_KindAPIGateway
+		configEntry.Entry = &ConfigEntry_APIGateway{
+			APIGateway: &apiGateway,
+		}
+	case *structs.BoundAPIGatewayConfigEntry:
+		var apiGateway BoundAPIGateway
+		BoundAPIGatewayFromStructs(v, &apiGateway)
+
+		configEntry.Kind = Kind_KindBoundAPIGateway
+		configEntry.Entry = &ConfigEntry_BoundAPIGateway{
+			BoundAPIGateway: &apiGateway,
+		}
+	case *structs.TCPRouteConfigEntry:
+		var route TCPRoute
+		TCPRouteFromStructs(v, &route)
+
+		configEntry.Kind = Kind_KindTCPRoute
+		configEntry.Entry = &ConfigEntry_TCPRoute{
+			TCPRoute: &route,
+		}
+	case *structs.HTTPRouteConfigEntry:
+		var route HTTPRoute
+		HTTPRouteFromStructs(v, &route)
+
+		configEntry.Kind = Kind_KindHTTPRoute
+		configEntry.Entry = &ConfigEntry_HTTPRoute{
+			HTTPRoute: &route,
 		}
 	default:
 		panic(fmt.Sprintf("unable to convert %T to proto", s))
