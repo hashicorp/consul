@@ -190,7 +190,7 @@ func (r *apiGatewayReconciler) cleanupGateway(_ context.Context, req controller.
 }
 
 func (r *apiGatewayReconciler) reconcileGateway(_ context.Context, req controller.Request, store *state.Store, gateway *structs.APIGatewayConfigEntry) error {
-	conditions := newConditionGenerator()
+	conditions := newGatewayConditionGenerator()
 
 	logger := gatewayRequestLogger(r.logger, req)
 
@@ -214,8 +214,7 @@ func (r *apiGatewayReconciler) reconcileGateway(_ context.Context, req controlle
 		logger.Error("error retrieving bound api gateway", "error", err)
 		return err
 	}
-
-	meta := ensureInitializedMeta(gateway, bound)
+	meta := newGatewayMeta(gateway, bound)
 
 	certificateErrors, err := meta.checkCertificates(store)
 	if err != nil {
@@ -326,7 +325,7 @@ func (r *apiGatewayReconciler) cleanupRoute(_ context.Context, req controller.Re
 
 // Reconcile reconciles Route config entries.
 func (r *apiGatewayReconciler) reconcileRoute(_ context.Context, req controller.Request, store *state.Store, route structs.BoundRoute) error {
-	conditions := newConditionGenerator()
+	conditions := newGatewayConditionGenerator()
 
 	logger := routeRequestLogger(r.logger, req)
 
@@ -661,7 +660,7 @@ func getReferences(route structs.BoundRoute) (referenceSet, gatewayRefs) {
 // RemoveGateway sets the route's status appropriately when the gateway that it's
 // attempting to bind to does not exist
 func RemoveGateway(gateway structs.ResourceReference, entries ...structs.BoundRoute) []structs.ControlledConfigEntry {
-	conditions := newConditionGenerator()
+	conditions := newGatewayConditionGenerator()
 	modified := []structs.ControlledConfigEntry{}
 
 	for _, route := range entries {
@@ -703,6 +702,14 @@ type gatewayMeta struct {
 	BoundGateway *structs.BoundAPIGatewayConfigEntry
 	// Gateway is the api-gateway config entry for the gateway.
 	Gateway *structs.APIGatewayConfigEntry
+	// listeners is a map of gateway listeners by name for fast access
+	// the map values are pointers so that we can update them directly
+	// and have the changes propagate back to the container gateways.
+	listeners map[string]*structs.APIGatewayListener
+	// boundListeners is a map of gateway listeners by name for fast access
+	// the map values are pointers so that we can update them directly
+	// and have the changes propagate back to the container gateways.
+	boundListeners map[string]*structs.BoundAPIGatewayListener
 }
 
 // getAllGatewayMeta returns a pre-constructed list of all valid gateway and state
@@ -724,10 +731,10 @@ func getAllGatewayMeta(store *state.Store) ([]*gatewayMeta, error) {
 		for _, g := range gateways {
 			gateway := g.(*structs.APIGatewayConfigEntry)
 			if bound.IsInitializedForGateway(gateway) {
-				meta = append(meta, &gatewayMeta{
+				meta = append(meta, (&gatewayMeta{
 					BoundGateway: bound,
 					Gateway:      gateway,
-				})
+				}).initialize())
 				break
 			}
 		}
@@ -797,10 +804,6 @@ func (g *gatewayMeta) updateRouteBinding(refs []structs.ResourceReference, route
 //     listeners on the gateway whose protocol matches the route's protocol.
 //   - have a protocol that matches the protocol of the listener it is being bound to.
 func (g *gatewayMeta) bindRoute(ref structs.ResourceReference, route structs.BoundRoute) ([]bool, error) {
-	if g.BoundGateway == nil || g.Gateway == nil {
-		return nil, fmt.Errorf("gateway cannot be found")
-	}
-
 	if ref.Kind != structs.APIGateway || g.Gateway.Name != ref.Name || !g.Gateway.EnterpriseMeta.IsSame(&ref.EnterpriseMeta) {
 		return nil, nil
 	}
@@ -810,11 +813,11 @@ func (g *gatewayMeta) bindRoute(ref structs.ResourceReference, route structs.Bou
 	}
 
 	binding := make([]bool, 0, len(g.Gateway.Listeners))
-	for _, listener := range g.Gateway.Listeners {
-		// A route with a section name of "" is bound to all listeners on the gateway.
+
+	err := g.eachListener(func(listener *structs.APIGatewayListener, bound *structs.BoundAPIGatewayListener) error {
 		if listener.Name != ref.SectionName && ref.SectionName != "" {
 			binding = append(binding, false)
-			continue
+			return nil
 		}
 
 		if listener.Protocol == route.GetProtocol() {
@@ -823,17 +826,25 @@ func (g *gatewayMeta) bindRoute(ref structs.ResourceReference, route structs.Bou
 				Name:           route.GetName(),
 				EnterpriseMeta: *route.GetEnterpriseMeta(),
 			}
-			i, boundListener := g.boundListenerByName(listener.Name)
-			if boundListener != nil && boundListener.BindRoute(routeRef) {
+
+			if bound.BindRoute(routeRef) {
 				binding = append(binding, true)
-				g.BoundGateway.Listeners[i] = *boundListener
-			} else {
-				binding = append(binding, false)
+				return nil
 			}
-		} else if ref.SectionName != "" {
-			// Failure to bind to a specific listener is an error
-			return nil, fmt.Errorf("failed to bind route %s to gateway %s: listener %s is not a %s listener", route.GetName(), g.Gateway.Name, listener.Name, route.GetProtocol())
+
+			binding = append(binding, false)
+			return nil
 		}
+
+		if ref.SectionName != "" {
+			// Failure to bind to a specific listener is an error
+			return fmt.Errorf("failed to bind route %s to gateway %s: listener %s is not a %s listener", route.GetName(), g.Gateway.Name, listener.Name, route.GetProtocol())
+		}
+		return nil
+	})
+
+	if err != nil {
+		return nil, err
 	}
 
 	didBind := false
@@ -853,15 +864,10 @@ func (g *gatewayMeta) bindRoute(ref structs.ResourceReference, route structs.Bou
 // unbindRoute takes a route and unbinds it from all of the listeners on a gateway.
 // It returns true if the route was unbound and false if it was not.
 func (g *gatewayMeta) unbindRoute(route structs.ResourceReference) bool {
-	if g.BoundGateway == nil {
-		return false
-	}
-
 	didUnbind := false
-	for i, listener := range g.BoundGateway.Listeners {
+	for _, listener := range g.boundListeners {
 		if listener.UnbindRoute(route) {
 			didUnbind = true
-			g.BoundGateway.Listeners[i] = listener
 		}
 	}
 
@@ -877,16 +883,25 @@ func (g *gatewayMeta) boundListenerByName(name string) (int, *structs.BoundAPIGa
 	return -1, nil
 }
 
+func (g *gatewayMeta) eachListener(fn func(listener *structs.APIGatewayListener, bound *structs.BoundAPIGatewayListener) error) error {
+	for name, listener := range g.listeners {
+		if err := fn(listener, g.boundListeners[name]); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // checkCertificates verifies that all certificates referenced by the listeners on the gateway
 // exist and collects them onto the bound gateway
 func (g *gatewayMeta) checkCertificates(store *state.Store) (map[structs.ResourceReference]error, error) {
 	certificateErrors := map[structs.ResourceReference]error{}
-	for i, listener := range g.Gateway.Listeners {
-		bound := g.BoundGateway.Listeners[i]
+
+	err := g.eachListener(func(listener *structs.APIGatewayListener, bound *structs.BoundAPIGatewayListener) error {
 		for _, ref := range listener.TLS.Certificates {
 			_, certificate, err := store.ConfigEntry(nil, ref.Kind, ref.Name, &ref.EnterpriseMeta)
 			if err != nil {
-				return nil, err
+				return err
 			}
 			if certificate == nil {
 				certificateErrors[ref] = errors.New("certificate not found")
@@ -894,6 +909,11 @@ func (g *gatewayMeta) checkCertificates(store *state.Store) (map[structs.Resourc
 				bound.Certificates = append(bound.Certificates, ref)
 			}
 		}
+		return nil
+	})
+
+	if err != nil {
+		return nil, err
 	}
 	return certificateErrors, nil
 }
@@ -909,29 +929,41 @@ func (g *gatewayMeta) checkConflicts() (structs.ControlledConfigEntry, bool) {
 // setConflicts ensures that no TCP listener has more than the one allowed route and
 // assigns an appropriate status
 func (g *gatewayMeta) setConflicts(updater *structs.StatusUpdater) {
-	conditions := newConditionGenerator()
+	conditions := newGatewayConditionGenerator()
 
-	for i, listener := range g.BoundGateway.Listeners {
+	g.eachListener(func(listener *structs.APIGatewayListener, bound *structs.BoundAPIGatewayListener) error {
 		ref := structs.ResourceReference{
 			Kind:           structs.APIGateway,
 			Name:           g.Gateway.Name,
 			SectionName:    listener.Name,
 			EnterpriseMeta: g.Gateway.EnterpriseMeta,
 		}
-
-		protocol := g.Gateway.Listeners[i].Protocol
-		switch protocol {
+		switch listener.Protocol {
 		case structs.ListenerProtocolTCP:
-			if len(listener.Routes) > 1 {
+			if len(bound.Routes) > 1 {
 				updater.SetCondition(conditions.gatewayListenerConflicts(ref))
-				continue
+				return nil
 			}
 		}
 		updater.SetCondition(conditions.gatewayListenerNoConflicts(ref))
-	}
+		return nil
+	})
 }
 
-func ensureInitializedMeta(gateway *structs.APIGatewayConfigEntry, bound structs.ConfigEntry) *gatewayMeta {
+func (g *gatewayMeta) initialize() *gatewayMeta {
+	// set up the maps for fast access
+	g.boundListeners = make(map[string]*structs.BoundAPIGatewayListener, len(g.BoundGateway.Listeners))
+	for i, listener := range g.BoundGateway.Listeners {
+		g.boundListeners[listener.Name] = &g.BoundGateway.Listeners[i]
+	}
+	g.listeners = make(map[string]*structs.APIGatewayListener, len(g.Gateway.Listeners))
+	for i, listener := range g.Gateway.Listeners {
+		g.listeners[listener.Name] = &g.Gateway.Listeners[i]
+	}
+	return g
+}
+
+func newGatewayMeta(gateway *structs.APIGatewayConfigEntry, bound structs.ConfigEntry) *gatewayMeta {
 	var b *structs.BoundAPIGatewayConfigEntry
 	if bound == nil {
 		b = &structs.BoundAPIGatewayConfigEntry{
@@ -954,23 +986,23 @@ func ensureInitializedMeta(gateway *structs.APIGatewayConfigEntry, bound structs
 
 	b.Listeners = listeners
 
-	return &gatewayMeta{
+	return (&gatewayMeta{
 		BoundGateway: b,
 		Gateway:      gateway,
-	}
+	}).initialize()
 }
 
-type conditionGenerator struct {
+type gatewayConditionGenerator struct {
 	now *time.Time
 }
 
-func newConditionGenerator() *conditionGenerator {
-	return &conditionGenerator{
+func newGatewayConditionGenerator() *gatewayConditionGenerator {
+	return &gatewayConditionGenerator{
 		now: pointerTo(time.Now().UTC()),
 	}
 }
 
-func (g *conditionGenerator) invalidCertificate(ref structs.ResourceReference, err error) structs.Condition {
+func (g *gatewayConditionGenerator) invalidCertificate(ref structs.ResourceReference, err error) structs.Condition {
 	return structs.Condition{
 		Type:               "Accepted",
 		Status:             "False",
@@ -981,7 +1013,7 @@ func (g *conditionGenerator) invalidCertificate(ref structs.ResourceReference, e
 	}
 }
 
-func (g *conditionGenerator) invalidCertificates() structs.Condition {
+func (g *gatewayConditionGenerator) invalidCertificates() structs.Condition {
 	return structs.Condition{
 		Type:               "Accepted",
 		Status:             "False",
@@ -991,7 +1023,7 @@ func (g *conditionGenerator) invalidCertificates() structs.Condition {
 	}
 }
 
-func (g *conditionGenerator) gatewayAccepted() structs.Condition {
+func (g *gatewayConditionGenerator) gatewayAccepted() structs.Condition {
 	return structs.Condition{
 		Type:               "Accepted",
 		Status:             "True",
@@ -1001,7 +1033,7 @@ func (g *conditionGenerator) gatewayAccepted() structs.Condition {
 	}
 }
 
-func (g *conditionGenerator) routeBound(ref structs.ResourceReference) structs.Condition {
+func (g *gatewayConditionGenerator) routeBound(ref structs.ResourceReference) structs.Condition {
 	return structs.Condition{
 		Type:               "Bound",
 		Status:             "True",
@@ -1012,7 +1044,7 @@ func (g *conditionGenerator) routeBound(ref structs.ResourceReference) structs.C
 	}
 }
 
-func (g *conditionGenerator) routeAccepted() structs.Condition {
+func (g *gatewayConditionGenerator) routeAccepted() structs.Condition {
 	return structs.Condition{
 		Type:               "Accepted",
 		Status:             "True",
@@ -1022,7 +1054,7 @@ func (g *conditionGenerator) routeAccepted() structs.Condition {
 	}
 }
 
-func (g *conditionGenerator) routeUnbound(ref structs.ResourceReference, err error) structs.Condition {
+func (g *gatewayConditionGenerator) routeUnbound(ref structs.ResourceReference, err error) structs.Condition {
 	return structs.Condition{
 		Type:               "Bound",
 		Status:             "False",
@@ -1033,7 +1065,7 @@ func (g *conditionGenerator) routeUnbound(ref structs.ResourceReference, err err
 	}
 }
 
-func (g *conditionGenerator) routeInvalidDiscoveryChain(err error) structs.Condition {
+func (g *gatewayConditionGenerator) routeInvalidDiscoveryChain(err error) structs.Condition {
 	return structs.Condition{
 		Type:               "Accepted",
 		Status:             "False",
@@ -1043,7 +1075,7 @@ func (g *conditionGenerator) routeInvalidDiscoveryChain(err error) structs.Condi
 	}
 }
 
-func (g *conditionGenerator) routeNoUpstreams() structs.Condition {
+func (g *gatewayConditionGenerator) routeNoUpstreams() structs.Condition {
 	return structs.Condition{
 		Type:               "Accepted",
 		Status:             "False",
@@ -1053,7 +1085,7 @@ func (g *conditionGenerator) routeNoUpstreams() structs.Condition {
 	}
 }
 
-func (g *conditionGenerator) gatewayListenerConflicts(ref structs.ResourceReference) structs.Condition {
+func (g *gatewayConditionGenerator) gatewayListenerConflicts(ref structs.ResourceReference) structs.Condition {
 	return structs.Condition{
 		Type:               "Conflicted",
 		Status:             "True",
@@ -1064,7 +1096,7 @@ func (g *conditionGenerator) gatewayListenerConflicts(ref structs.ResourceRefere
 	}
 }
 
-func (g *conditionGenerator) gatewayListenerNoConflicts(ref structs.ResourceReference) structs.Condition {
+func (g *gatewayConditionGenerator) gatewayListenerNoConflicts(ref structs.ResourceReference) structs.Condition {
 	return structs.Condition{
 		Type:               "Conflicted",
 		Status:             "False",
@@ -1075,7 +1107,7 @@ func (g *conditionGenerator) gatewayListenerNoConflicts(ref structs.ResourceRefe
 	}
 }
 
-func (g *conditionGenerator) gatewayNotFound(ref structs.ResourceReference) structs.Condition {
+func (g *gatewayConditionGenerator) gatewayNotFound(ref structs.ResourceReference) structs.Condition {
 	return structs.Condition{
 		Type:               "Bound",
 		Status:             "False",

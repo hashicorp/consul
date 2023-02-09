@@ -19,7 +19,7 @@ import (
 )
 
 func TestAPIGatewayController(t *testing.T) {
-	conditions := newConditionGenerator()
+	conditions := newGatewayConditionGenerator()
 	defaultMeta := acl.DefaultEnterpriseMeta()
 	for name, tc := range map[string]struct {
 		requests       []controller.Request
@@ -1791,6 +1791,11 @@ func TestAPIGatewayController(t *testing.T) {
 					EnterpriseMeta: *defaultMeta,
 					Listeners: []structs.BoundAPIGatewayListener{{
 						Name: "http-listener",
+						Certificates: []structs.ResourceReference{{
+							Kind:           structs.InlineCertificate,
+							Name:           "certificate",
+							EnterpriseMeta: *defaultMeta,
+						}},
 					}},
 				},
 			},
@@ -1869,6 +1874,11 @@ func TestAPIGatewayController(t *testing.T) {
 					EnterpriseMeta: *defaultMeta,
 					Listeners: []structs.BoundAPIGatewayListener{{
 						Name: "http-listener",
+						Certificates: []structs.ResourceReference{{
+							Kind:           structs.InlineCertificate,
+							Name:           "certificate",
+							EnterpriseMeta: *defaultMeta,
+						}},
 					}},
 				},
 			},

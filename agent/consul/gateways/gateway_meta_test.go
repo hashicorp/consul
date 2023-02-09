@@ -299,7 +299,7 @@ func TestBoundAPIGatewayBindRoute(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			ref := tc.route.GetParents()[0]
 
-			actualDidBind, actualErr := tc.gateway.bindRoute(ref, tc.route)
+			actualDidBind, actualErr := (&tc.gateway).initialize().bindRoute(ref, tc.route)
 
 			require.Equal(t, tc.expectedDidBind, actualDidBind)
 			require.Equal(t, tc.expectedErr, actualErr)
@@ -334,6 +334,7 @@ func TestBoundAPIGatewayUnbindRoute(t *testing.T) {
 						},
 					},
 				},
+				Gateway: &structs.APIGatewayConfigEntry{},
 			},
 			route: &structs.TCPRouteConfigEntry{
 				Kind: structs.TCPRoute,
@@ -367,7 +368,7 @@ func TestBoundAPIGatewayUnbindRoute(t *testing.T) {
 				Name:           tc.route.GetName(),
 				EnterpriseMeta: *tc.route.GetEnterpriseMeta(),
 			}
-			actualDidUnbind := tc.gateway.unbindRoute(routeRef)
+			actualDidUnbind := (&tc.gateway).initialize().unbindRoute(routeRef)
 
 			require.Equal(t, tc.expectedDidUnbind, actualDidUnbind)
 			require.Equal(t, tc.expectedGateway.Listeners, tc.gateway.BoundGateway.Listeners)

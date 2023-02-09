@@ -932,6 +932,10 @@ func TestBindRoutesToGateways(t *testing.T) {
 
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
+			for _, gateway := range tc.gateways {
+				gateway.initialize()
+			}
+
 			actualBoundAPIGateways, _, referenceErrors := BindRoutesToGateways(tc.gateways, tc.routes...)
 
 			require.Equal(t, tc.expectedBoundAPIGateways, actualBoundAPIGateways)
