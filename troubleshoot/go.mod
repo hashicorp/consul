@@ -13,10 +13,8 @@ exclude (
 
 require (
 	github.com/envoyproxy/go-control-plane v0.10.2-0.20220325020618-49ff273808a1
-	github.com/hashicorp/consul/api v1.18.0
-	github.com/hashicorp/consul/envoyextensions v0.0.0-00010101000000-000000000000
-	github.com/hashicorp/go-multierror v1.1.1
-	github.com/pkg/errors v0.9.1
+	github.com/hashicorp/consul/api v1.10.1-0.20230209203402-db2bd404bf72
+	github.com/hashicorp/consul/envoyextensions v0.0.0-20230209212012-3b9c56956132
 	github.com/stretchr/testify v1.8.0
 	google.golang.org/protobuf v1.28.1
 )
@@ -36,6 +34,7 @@ require (
 	github.com/hashicorp/go-hclog v1.2.1 // indirect
 	github.com/hashicorp/go-immutable-radix v1.3.1 // indirect
 	github.com/hashicorp/go-msgpack v0.5.5 // indirect
+	github.com/hashicorp/go-multierror v1.1.1 // indirect
 	github.com/hashicorp/go-rootcerts v1.0.2 // indirect
 	github.com/hashicorp/go-version v1.2.1 // indirect
 	github.com/hashicorp/golang-lru v0.5.4 // indirect
