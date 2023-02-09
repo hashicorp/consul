@@ -55,7 +55,9 @@ message MeshConfig {
 // target=github.com/hashicorp/consul/agent/structs.TransparentProxyMeshConfig
 // output=config_entry.gen.go
 // name=Structs
-message TransparentProxyMeshConfig { bool MeshDestinationsOnly = 1; }
+message TransparentProxyMeshConfig {
+  bool MeshDestinationsOnly = 1;
+}
 
 // mog annotation:
 //
@@ -86,14 +88,18 @@ message MeshDirectionalTLSConfig {
 // target=github.com/hashicorp/consul/agent/structs.MeshHTTPConfig
 // output=config_entry.gen.go
 // name=Structs
-message MeshHTTPConfig { bool SanitizeXForwardedClientCert = 1; }
+message MeshHTTPConfig {
+  bool SanitizeXForwardedClientCert = 1;
+}
 
 // mog annotation:
 //
 // target=github.com/hashicorp/consul/agent/structs.PeeringMeshConfig
 // output=config_entry.gen.go
 // name=Structs
-message PeeringMeshConfig { bool PeerThroughMeshGateways = 1; }
+message PeeringMeshConfig {
+  bool PeerThroughMeshGateways = 1;
+}
 
 // mog annotation:
 //
@@ -190,7 +196,9 @@ message RingHashConfig {
 // target=github.com/hashicorp/consul/agent/structs.LeastRequestConfig
 // output=config_entry.gen.go
 // name=Structs
-message LeastRequestConfig { uint32 ChoiceCount = 1; }
+message LeastRequestConfig {
+  uint32 ChoiceCount = 1;
+}
 
 // mog annotation:
 //
@@ -306,7 +314,9 @@ message IngressService {
 // target=github.com/hashicorp/consul/agent/structs.GatewayServiceTLSConfig
 // output=config_entry.gen.go
 // name=Structs
-message GatewayServiceTLSConfig { GatewayTLSSDSConfig SDS = 1; }
+message GatewayServiceTLSConfig {
+  GatewayTLSSDSConfig SDS = 1;
+}
 
 // mog annotation:
 //
@@ -343,8 +353,7 @@ message SourceIntention {
   // mog: func-to=int func-from=int32
   int32 Precedence = 4;
   string LegacyID = 5;
-  // mog: func-to=intentionSourceTypeToStructs
-  // func-from=intentionSourceTypeFromStructs
+  // mog: func-to=intentionSourceTypeToStructs func-from=intentionSourceTypeFromStructs
   IntentionSourceType Type = 6;
   string Description = 7;
   map<string, string> LegacyMeta = 8;
@@ -546,8 +555,7 @@ message PassiveHealthCheck {
   // mog: func-to=structs.DurationFromProto func-from=structs.DurationToProto
   google.protobuf.Duration Interval = 1;
   uint32 MaxFailures = 2;
-  // mog: target=EnforcingConsecutive5xx func-to=pointerToUint32FromUint32
-  // func-from=uint32FromPointerToUint32
+  // mog: target=EnforcingConsecutive5xx func-to=pointerToUint32FromUint32 func-from=uint32FromPointerToUint32
   uint32 EnforcingConsecutive5xx = 3;
 }
 
@@ -579,7 +587,9 @@ message APIGateway {
 // target=github.com/hashicorp/consul/agent/structs.Status
 // output=config_entry.gen.go
 // name=Structs
-message Status { repeated Condition Conditions = 1; }
+message Status {
+  repeated Condition Conditions = 1;
+}
 
 // mog annotation:
 //
@@ -611,8 +621,7 @@ message APIGatewayListener {
   string Hostname = 2;
   // mog: func-to=int func-from=int32
   int32 Port = 3;
-  // mog: func-to=apiGatewayProtocolToStructs
-  // func-from=apiGatewayProtocolFromStructs
+  // mog: func-to=apiGatewayProtocolToStructs func-from=apiGatewayProtocolFromStructs
   APIGatewayListenerProtocol Protocol = 4;
   APIGatewayTLSConfiguration TLS = 5;
 }
@@ -800,7 +809,9 @@ message HTTPFilters {
 // target=github.com/hashicorp/consul/agent/structs.URLRewrite
 // output=config_entry.gen.go
 // name=Structs
-message URLRewrite { string Path = 1; }
+message URLRewrite {
+  string Path = 1;
+}
 
 // mog annotation:
 //

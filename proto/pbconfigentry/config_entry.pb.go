@@ -2561,8 +2561,7 @@ type SourceIntention struct {
 	// mog: func-to=int func-from=int32
 	Precedence int32  `protobuf:"varint,4,opt,name=Precedence,proto3" json:"Precedence,omitempty"`
 	LegacyID   string `protobuf:"bytes,5,opt,name=LegacyID,proto3" json:"LegacyID,omitempty"`
-	// mog: func-to=intentionSourceTypeToStructs
-	// func-from=intentionSourceTypeFromStructs
+	// mog: func-to=intentionSourceTypeToStructs func-from=intentionSourceTypeFromStructs
 	Type        IntentionSourceType `protobuf:"varint,6,opt,name=Type,proto3,enum=hashicorp.consul.internal.configentry.IntentionSourceType" json:"Type,omitempty"`
 	Description string              `protobuf:"bytes,7,opt,name=Description,proto3" json:"Description,omitempty"`
 	LegacyMeta  map[string]string   `protobuf:"bytes,8,rep,name=LegacyMeta,proto3" json:"LegacyMeta,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
@@ -3636,8 +3635,7 @@ type PassiveHealthCheck struct {
 	// mog: func-to=structs.DurationFromProto func-from=structs.DurationToProto
 	Interval    *durationpb.Duration `protobuf:"bytes,1,opt,name=Interval,proto3" json:"Interval,omitempty"`
 	MaxFailures uint32               `protobuf:"varint,2,opt,name=MaxFailures,proto3" json:"MaxFailures,omitempty"`
-	// mog: target=EnforcingConsecutive5xx func-to=pointerToUint32FromUint32
-	// func-from=uint32FromPointerToUint32
+	// mog: target=EnforcingConsecutive5xx func-to=pointerToUint32FromUint32 func-from=uint32FromPointerToUint32
 	EnforcingConsecutive5Xx uint32 `protobuf:"varint,3,opt,name=EnforcingConsecutive5xx,proto3" json:"EnforcingConsecutive5xx,omitempty"`
 }
 
@@ -3983,8 +3981,7 @@ type APIGatewayListener struct {
 	Hostname string `protobuf:"bytes,2,opt,name=Hostname,proto3" json:"Hostname,omitempty"`
 	// mog: func-to=int func-from=int32
 	Port int32 `protobuf:"varint,3,opt,name=Port,proto3" json:"Port,omitempty"`
-	// mog: func-to=apiGatewayProtocolToStructs
-	// func-from=apiGatewayProtocolFromStructs
+	// mog: func-to=apiGatewayProtocolToStructs func-from=apiGatewayProtocolFromStructs
 	Protocol APIGatewayListenerProtocol  `protobuf:"varint,4,opt,name=Protocol,proto3,enum=hashicorp.consul.internal.configentry.APIGatewayListenerProtocol" json:"Protocol,omitempty"`
 	TLS      *APIGatewayTLSConfiguration `protobuf:"bytes,5,opt,name=TLS,proto3" json:"TLS,omitempty"`
 }

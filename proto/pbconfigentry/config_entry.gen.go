@@ -61,7 +61,7 @@ func APIGatewayListenerFromStructs(t *structs.APIGatewayListener, s *APIGatewayL
 	s.Name = t.Name
 	s.Hostname = t.Hostname
 	s.Port = int32(t.Port)
-	s.Protocol = (t.Protocol)
+	s.Protocol = apiGatewayProtocolFromStructs(t.Protocol)
 	{
 		var x APIGatewayTLSConfiguration
 		APIGatewayTLSConfigurationFromStructs(&t.TLS, &x)
@@ -1170,7 +1170,7 @@ func PassiveHealthCheckFromStructs(t *structs.PassiveHealthCheck, s *PassiveHeal
 	}
 	s.Interval = structs.DurationToProto(t.Interval)
 	s.MaxFailures = t.MaxFailures
-	s.EnforcingConsecutive5Xx = (t.EnforcingConsecutive5xx)
+	s.EnforcingConsecutive5Xx = uint32FromPointerToUint32(t.EnforcingConsecutive5xx)
 }
 func PeeringMeshConfigToStructs(s *PeeringMeshConfig, t *structs.PeeringMeshConfig) {
 	if s == nil {
@@ -1538,7 +1538,7 @@ func SourceIntentionFromStructs(t *structs.SourceIntention, s *SourceIntention) 
 	}
 	s.Precedence = int32(t.Precedence)
 	s.LegacyID = t.LegacyID
-	s.Type = (t.Type)
+	s.Type = intentionSourceTypeFromStructs(t.Type)
 	s.Description = t.Description
 	s.LegacyMeta = t.LegacyMeta
 	s.LegacyCreateTime = timeFromStructs(t.LegacyCreateTime)
