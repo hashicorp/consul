@@ -5,7 +5,6 @@ import (
 	"fmt"
 	envoy_admin_v3 "github.com/envoyproxy/go-control-plane/envoy/admin/v3"
 	"github.com/hashicorp/consul/troubleshoot/validate"
-	"strings"
 )
 
 type statsJson struct {
@@ -17,39 +16,42 @@ type simpleMetric struct {
 	Name  string `json:"name,omitempty"`
 }
 
-func (t *Troubleshoot) troubleshootStats(upstreamEnvoyID string) (validate.Messages, error) {
+func (t *Troubleshoot) troubleshootStats() (validate.Messages, error) {
 
 	statMessages := validate.Messages{}
-	envoyId := strings.Split(upstreamEnvoyID, "?")
 
-	rejectionStats, err := t.getEnvoyStats(envoyId[0] + ".*update_rejected")
+	rejectionStats, err := t.getEnvoyStats("update_rejected")
 	if err != nil {
 		return nil, fmt.Errorf("could not get config rejection stats from envoy admin API: %w", err)
 	}
 
+	totalConfigRejections := 0
 	for _, rs := range rejectionStats {
 		if rs.Value != 0 {
-			msg := validate.Message{
-				Success: true,
-				Message: fmt.Sprintf("Upstream has %v rejected configurations", rs.Value),
-			}
-			statMessages = append(statMessages, msg)
+			totalConfigRejections += int(rs.Value)
 		}
 	}
 
-	connectionFailureStats, err := t.getEnvoyStats(envoyId[0] + ".*upstream_cx_connect_fail")
+	statMessages = append(statMessages, validate.Message{
+		Success: true,
+		Message: fmt.Sprintf("Envoy has %v rejected configurations", totalConfigRejections),
+	})
+
+	connectionFailureStats, err := t.getEnvoyStats("upstream_cx_connect_fail")
 	if err != nil {
 		return nil, fmt.Errorf("could not get connection failure stats from envoy admin API: %w", err)
 	}
+
+	totalCxFailures := 0
 	for _, cfs := range connectionFailureStats {
 		if cfs.Value != 0 {
-			msg := validate.Message{
-				Success: true,
-				Message: fmt.Sprintf("upstream has %v connection failure(s).", cfs.Value),
-			}
-			statMessages = append(statMessages, msg)
+			totalCxFailures += int(cfs.Value)
 		}
 	}
+	statMessages = append(statMessages, validate.Message{
+		Success: true,
+		Message: fmt.Sprintf("Envoy has detected %v connection failure(s).", totalCxFailures),
+	})
 	return statMessages, nil
 }
 

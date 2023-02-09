@@ -85,7 +85,7 @@ func (t *Troubleshoot) RunAllTests(upstreamEnvoyID, upstreamIP string) (validate
 	}
 
 	// getStats usage example
-	messages, err = t.troubleshootStats(upstreamEnvoyID)
+	messages, err = t.troubleshootStats()
 	if err != nil {
 		return nil, fmt.Errorf("unable to get stats: %w", err)
 	}
