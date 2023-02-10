@@ -15,6 +15,8 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/serf/serf"
+
+	goretry "github.com/avast/retry-go"
 	"github.com/stretchr/testify/require"
 	"github.com/teris-io/shortid"
 	"github.com/testcontainers/testcontainers-go"
@@ -34,9 +36,13 @@ type Cluster struct {
 	Network     testcontainers.Network
 	NetworkName string
 	ScratchDir  string
+
+	ACLEnabled     bool
+	TokenBootstrap string
 }
 
 type TestingT interface {
+	Logf(format string, args ...any)
 	Cleanup(f func())
 }
 
@@ -87,6 +93,7 @@ func New(t TestingT, configs []Config) (*Cluster, error) {
 		Network:     network,
 		NetworkName: name,
 		ScratchDir:  scratchDir,
+		ACLEnabled:  configs[0].ACLEnabled,
 	}
 	t.Cleanup(func() {
 		_ = cluster.Terminate()
@@ -110,7 +117,7 @@ func (c *Cluster) AddN(conf Config, count int, join bool) error {
 // Add starts an agent with the given configuration and joins it with the existing cluster
 func (c *Cluster) Add(configs []Config, serfJoin bool) (xe error) {
 	if c.Index == 0 && !serfJoin {
-		return fmt.Errorf("The first call to Cluster.Add must have serfJoin=true")
+		return fmt.Errorf("the first call to Cluster.Add must have serfJoin=true")
 	}
 
 	var agents []Agent
@@ -127,8 +134,7 @@ func (c *Cluster) Add(configs []Config, serfJoin bool) (xe error) {
 		n, err := NewConsulContainer(
 			context.Background(),
 			conf,
-			c.NetworkName,
-			c.Index,
+			c,
 		)
 		if err != nil {
 			return fmt.Errorf("could not add container index %d: %w", idx, err)
@@ -163,6 +169,40 @@ func (c *Cluster) join(agents []Agent, skipSerfJoin bool) error {
 	}
 
 	if len(c.Agents) == 0 {
+		// if acl enabled, generate the bootstrap tokens at the first agent
+		if c.ACLEnabled {
+			var (
+				output string
+				err    error
+			)
+			// retry since agent needs to start the ACL system
+			err = goretry.Do(
+				func() error {
+					output, err = agents[0].Exec(context.Background(), []string{"consul", "acl", "bootstrap"})
+					if err != nil {
+						return err
+					}
+					return nil
+				},
+				goretry.Delay(time.Second*1),
+			)
+			if err != nil {
+				return fmt.Errorf("error generating the bootstrap token, %s", err)
+			}
+			c.TokenBootstrap, err = extractSecretIDFrom(output)
+			if err != nil {
+				return err
+			}
+			fmt.Println("Cluster bootstrap token:", c.TokenBootstrap)
+
+			// The first node's default client needs to be updated after bootstrap token
+			// is created
+			_, err = agents[0].NewClient(c.TokenBootstrap, true)
+			if err != nil {
+				return fmt.Errorf("error updating the first node's client, %s", err)
+			}
+		}
+
 		// Join the rest to the first.
 		c.Agents = append(c.Agents, agents[0])
 		return c.join(agents[1:], skipSerfJoin)
@@ -173,14 +213,34 @@ func (c *Cluster) join(agents []Agent, skipSerfJoin bool) error {
 
 	for _, n := range agents {
 		if !skipSerfJoin {
-			err := n.GetClient().Agent().Join(joinAddr, false)
+			// retry in case the agent token is updated at the agent
+			err := goretry.Do(
+				func() error {
+					err := n.GetClient().Agent().Join(joinAddr, false)
+					if err != nil {
+						return fmt.Errorf("could not join agent %s to %s: %w", n.GetName(), joinAddr, err)
+					}
+					return nil
+				},
+			)
 			if err != nil {
-				return fmt.Errorf("could not join agent %s to %s: %w", n.GetName(), joinAddr, err)
+				return err
 			}
 		}
 		c.Agents = append(c.Agents, n)
 	}
 	return nil
+}
+
+func (c *Cluster) CreateAgentToken(datacenter string, agentName string) (string, error) {
+	output, err := c.Agents[0].Exec(context.Background(), []string{"consul", "acl", "token", "create", "-description", "\"agent token\"",
+		"-token", c.TokenBootstrap,
+		"-node-identity", fmt.Sprintf("%s:%s", agentName, datacenter)})
+	if err != nil {
+		return "", fmt.Errorf("after retry, error generating agent token, %s", err)
+	}
+	secretID, err := extractSecretIDFrom(output)
+	return secretID, err
 }
 
 // Remove instructs the agent to leave the cluster then removes it
@@ -221,13 +281,16 @@ func (c *Cluster) Remove(n Agent) error {
 //
 // This lets us have tests that assert that an upgrade will fail.
 func (c *Cluster) StandardUpgrade(t *testing.T, ctx context.Context, targetVersion string) error {
+	var err error
 	// We take a snapshot, but note that we currently do nothing with it.
-	execCode, err := c.Agents[0].Exec(context.Background(), []string{"consul", "snapshot", "save", "backup.snap"})
-	if execCode != 0 {
-		return fmt.Errorf("error taking snapshot of the cluster, returned code %d", execCode)
+	if c.ACLEnabled {
+		_, err = c.Agents[0].Exec(context.Background(), []string{"consul", "snapshot", "save",
+			"-token", c.TokenBootstrap, "backup.snap"})
+	} else {
+		_, err = c.Agents[0].Exec(context.Background(), []string{"consul", "snapshot", "save", "backup.snap"})
 	}
 	if err != nil {
-		return err
+		return fmt.Errorf("error taking the snapshot: %s", err)
 	}
 
 	// Upgrade individual agent to the target version in the following order
@@ -249,7 +312,7 @@ func (c *Cluster) StandardUpgrade(t *testing.T, ctx context.Context, targetVersi
 	}
 	t.Logf("The number of followers = %d", len(followers))
 
-	upgradeFn := func(agent Agent, clientFactory func() *api.Client) error {
+	upgradeFn := func(agent Agent, clientFactory func() (*api.Client, error)) error {
 		config := agent.GetConfig()
 		config.Version = targetVersion
 
@@ -278,10 +341,14 @@ func (c *Cluster) StandardUpgrade(t *testing.T, ctx context.Context, targetVersi
 			return err
 		}
 
-		client := clientFactory()
+		client, err := clientFactory()
+		if err != nil {
+			return err
+		}
 
-		// wait until the agent rejoin
+		// wait until the agent rejoin and leader is elected
 		WaitForMembers(t, client, len(c.Agents))
+		WaitForLeader(t, c, client)
 
 		return nil
 	}
@@ -289,22 +356,42 @@ func (c *Cluster) StandardUpgrade(t *testing.T, ctx context.Context, targetVersi
 	for _, agent := range followers {
 		t.Logf("Upgrade follower: %s", agent.GetName())
 
-		if err := upgradeFn(agent, leader.GetClient); err != nil {
+		err := upgradeFn(agent, func() (*api.Client, error) {
+			return leader.GetClient(), nil
+		})
+		if err != nil {
 			return fmt.Errorf("error upgrading follower %q: %w", agent.GetName(), err)
 		}
 	}
 
-	t.Logf("Upgrade leader: %s", leader.GetName())
-	err = upgradeFn(leader, func() *api.Client {
+	t.Logf("Upgrade leader: %s", leader.GetAgentName())
+	err = upgradeFn(leader, func() (*api.Client, error) {
 		if len(followers) > 0 {
-			return followers[0].GetClient()
+			return followers[0].GetClient(), nil
 		}
-		return c.APIClient(0)
+		return leader.GetClient(), nil
 	})
 	if err != nil {
 		return fmt.Errorf("error upgrading leader %q: %w", leader.GetName(), err)
 	}
 
+	clientAgents := c.Clients()
+	for _, agent := range clientAgents {
+		t.Logf("Upgrade client agent: %s", agent.GetName())
+
+		err = upgradeFn(agent, func() (*api.Client, error) {
+			leader, err = c.Leader()
+			if err != nil {
+				return nil, err
+			}
+			return leader.GetClient(), nil
+		})
+		if err != nil {
+			return fmt.Errorf("error upgrading client agent %q: %w", agent.GetName(), err)
+		}
+	}
+
+	t.Log("Update completed\n")
 	return nil
 }
 
@@ -496,4 +583,30 @@ func WaitForMembers(t *testing.T, client *api.Client, expectN int) {
 		require.NoError(r, err)
 		require.Equal(r, expectN, activeMembers)
 	})
+}
+
+func (c *Cluster) ConfigEntryWrite(entry api.ConfigEntry) error {
+	client, _ := c.GetClient(nil, true)
+
+	entries := client.ConfigEntries()
+	written := false
+	written, _, err := entries.Set(entry, nil)
+	if err != nil {
+		return fmt.Errorf("error set config entry: %v", err)
+	}
+	if !written {
+		return fmt.Errorf("config entry not updated: %s/%s", entry.GetKind(), entry.GetName())
+	}
+	return err
+}
+
+func extractSecretIDFrom(tokenOutput string) (string, error) {
+	lines := strings.Split(tokenOutput, "\n")
+	for _, line := range lines {
+		if strings.Contains(line, "SecretID") {
+			secretIDtoken := strings.Split(line, ":")
+			return strings.TrimSpace(secretIDtoken[1]), nil
+		}
+	}
+	return "", fmt.Errorf("can't found secretID in token")
 }

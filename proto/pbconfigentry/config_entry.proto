@@ -3,7 +3,6 @@ syntax = "proto3";
 package hashicorp.consul.internal.configentry;
 
 import "google/protobuf/duration.proto";
-import "google/protobuf/struct.proto";
 import "google/protobuf/timestamp.proto";
 import "proto/pbcommon/common.proto";
 
@@ -34,6 +33,10 @@ message ConfigEntry {
     IngressGateway IngressGateway = 7;
     ServiceIntentions ServiceIntentions = 8;
     ServiceDefaults ServiceDefaults = 9;
+    APIGateway APIGateway = 10;
+    BoundAPIGateway BoundAPIGateway = 11;
+    TCPRoute TCPRoute = 12;
+    HTTPRoute HTTPRoute = 13;
   }
 }
 
@@ -439,7 +442,8 @@ message ServiceDefaults {
   int32 LocalRequestTimeoutMs = 11;
   string BalanceInboundConnections = 12;
   map<string, string> Meta = 13;
-  repeated EnvoyExtension EnvoyExtensions = 14;
+  // mog: func-to=EnvoyExtensionsToStructs func-from=EnvoyExtensionsFromStructs
+  repeated hashicorp.consul.internal.common.EnvoyExtension EnvoyExtensions = 14;
 }
 
 enum ProxyMode {
@@ -457,18 +461,6 @@ message TransparentProxyConfig {
   // mog: func-to=int func-from=int32
   int32 OutboundListenerPort = 1;
   bool DialedDirectly = 2;
-}
-
-// mog annotation:
-//
-// target=github.com/hashicorp/consul/agent/structs.EnvoyExtension
-// output=config_entry.gen.go
-// name=Structs
-message EnvoyExtension {
-  string Name = 1;
-  bool Required = 2;
-  // mog: func-to=EnvoyExtensionArgumentsToStructs func-from=EnvoyExtensionArgumentsFromStructs
-  google.protobuf.Value Arguments = 3;
 }
 
 // mog annotation:
@@ -541,6 +533,7 @@ message UpstreamConfig {
   PassiveHealthCheck PassiveHealthCheck = 8;
   MeshGatewayConfig MeshGateway = 9;
   string BalanceOutboundConnections = 10;
+  string Peer = 11;
 }
 
 // mog annotation:
@@ -608,12 +601,13 @@ message Status {
 // output=config_entry.gen.go
 // name=Structs
 message Condition {
-  string Status = 1;
-  string Reason = 2;
-  string Message = 3;
-  ResourceReference Resource = 4;
+  string Type = 1;
+  string Status = 2;
+  string Reason = 3;
+  string Message = 4;
+  ResourceReference Resource = 5;
   // mog: func-to=timeToStructs func-from=timeFromStructs
-  google.protobuf.Timestamp LastTransitionTime = 5;
+  google.protobuf.Timestamp LastTransitionTime = 6;
 }
 
 enum APIGatewayListenerProtocol {
@@ -706,6 +700,146 @@ message InlineCertificate {
 // ignore-fields=Kind,Name,RaftIndex,EnterpriseMeta
 message HTTPRoute {
   map<string, string> Meta = 1;
+  repeated ResourceReference Parents = 2;
+  repeated HTTPRouteRule Rules = 3;
+  repeated string Hostnames = 4;
+  Status Status = 5;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.HTTPRouteRule
+// output=config_entry.gen.go
+// name=Structs
+message HTTPRouteRule {
+  HTTPFilters Filters = 1;
+  repeated HTTPMatch Matches = 2;
+  repeated HTTPService Services = 3;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.HTTPMatch
+// output=config_entry.gen.go
+// name=Structs
+message HTTPMatch {
+  repeated HTTPHeaderMatch Headers = 1;
+  // mog: func-to=httpMatchMethodToStructs func-from=httpMatchMethodFromStructs
+  HTTPMatchMethod Method = 2;
+  HTTPPathMatch Path = 3;
+  repeated HTTPQueryMatch Query = 4;
+}
+
+enum HTTPMatchMethod {
+  HTTPMatchMethodAll = 0;
+  HTTPMatchMethodConnect = 1;
+  HTTPMatchMethodDelete = 2;
+  HTTPMatchMethodGet = 3;
+  HTTPMatchMethodHead = 4;
+  HTTPMatchMethodOptions = 5;
+  HTTPMatchMethodPatch = 6;
+  HTTPMatchMethodPost = 7;
+  HTTPMatchMethodPut = 8;
+  HTTPMatchMethodTrace = 9;
+}
+
+enum HTTPHeaderMatchType {
+  HTTPHeaderMatchExact = 0;
+  HTTPHeaderMatchPrefix = 1;
+  HTTPHeaderMatchPresent = 2;
+  HTTPHeaderMatchRegularExpression = 3;
+  HTTPHeaderMatchSuffix = 4;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.HTTPHeaderMatch
+// output=config_entry.gen.go
+// name=Structs
+message HTTPHeaderMatch {
+  // mog: func-to=httpHeaderMatchToStructs func-from=httpHeaderMatchFromStructs
+  HTTPHeaderMatchType Match = 1;
+  string Name = 2;
+  string Value = 3;
+}
+
+enum HTTPPathMatchType {
+  HTTPPathMatchExact = 0;
+  HTTPPathMatchPrefix = 1;
+  HTTPPathMatchRegularExpression = 3;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.HTTPPathMatch
+// output=config_entry.gen.go
+// name=Structs
+message HTTPPathMatch {
+  // mog: func-to=httpPathMatchToStructs func-from=httpPathMatchFromStructs
+  HTTPPathMatchType Match = 1;
+  string Value = 2;
+}
+
+enum HTTPQueryMatchType {
+  HTTPQueryMatchExact = 0;
+  HTTPQueryMatchPresent = 1;
+  HTTPQueryMatchRegularExpression = 3;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.HTTPQueryMatch
+// output=config_entry.gen.go
+// name=Structs
+message HTTPQueryMatch {
+  // mog: func-to=httpQueryMatchToStructs func-from=httpQueryMatchFromStructs
+  HTTPQueryMatchType Match = 1;
+  string Name = 2;
+  string Value = 3;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.HTTPFilters
+// output=config_entry.gen.go
+// name=Structs
+message HTTPFilters {
+  repeated HTTPHeaderFilter Headers = 1;
+  repeated URLRewrite URLRewrites = 2;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.URLRewrite
+// output=config_entry.gen.go
+// name=Structs
+message URLRewrite {
+  string Path = 1;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.HTTPHeaderFilter
+// output=config_entry.gen.go
+// name=Structs
+message HTTPHeaderFilter {
+  map<string, string> Add = 1;
+  repeated string Remove = 2;
+  map<string, string> Set = 3;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.HTTPService
+// output=config_entry.gen.go
+// name=Structs
+message HTTPService {
+  string Name = 1;
+  // mog: func-to=int func-from=int32
+  int32 Weight = 2;
+  HTTPFilters Filters = 3;
+  // mog: func-to=enterpriseMetaToStructs func-from=enterpriseMetaFromStructs
+  common.EnterpriseMeta EnterpriseMeta = 4;
 }
 
 // mog annotation:

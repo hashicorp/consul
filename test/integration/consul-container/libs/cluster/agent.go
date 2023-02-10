@@ -3,8 +3,9 @@ package cluster
 import (
 	"context"
 
-	"github.com/hashicorp/consul/api"
 	"github.com/testcontainers/testcontainers-go"
+
+	"github.com/hashicorp/consul/api"
 
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 )
@@ -13,18 +14,20 @@ import (
 type Agent interface {
 	GetIP() string
 	GetClient() *api.Client
+	NewClient(string, bool) (*api.Client, error)
 	GetName() string
+	GetAgentName() string
 	GetPod() testcontainers.Container
-	ClaimAdminPort() int
+	ClaimAdminPort() (int, error)
 	GetConfig() Config
 	GetInfo() AgentInfo
 	GetDatacenter() string
 	IsServer() bool
 	RegisterTermination(func() error)
 	Terminate() error
-	TerminateAndRetainPod() error
+	TerminateAndRetainPod(bool) error
 	Upgrade(ctx context.Context, config Config) error
-	Exec(ctx context.Context, cmd []string) (int, error)
+	Exec(ctx context.Context, cmd []string) (string, error)
 	DataDir() string
 }
 
@@ -45,6 +48,8 @@ type Config struct {
 	// service defaults
 	UseAPIWithTLS  bool // TODO
 	UseGRPCWithTLS bool
+
+	ACLEnabled bool
 }
 
 func (c *Config) DockerImage() string {

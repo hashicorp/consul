@@ -1059,7 +1059,7 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 				},
 				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 			}
-			return ensureConfigEntryTxn(tx, tx.Index, configEntry)
+			return ensureConfigEntryTxn(tx, tx.Index, false, configEntry)
 		},
 		WantEvents: []stream.Event{},
 	})
@@ -1081,7 +1081,7 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 				},
 				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 			}
-			return ensureConfigEntryTxn(tx, tx.Index, configEntry)
+			return ensureConfigEntryTxn(tx, tx.Index, false, configEntry)
 		},
 		Mutate: func(s *Store, tx *txn) error {
 			if err := s.ensureRegistrationTxn(
@@ -1146,7 +1146,7 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 				},
 				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 			}
-			err := ensureConfigEntryTxn(tx, tx.Index, configEntry)
+			err := ensureConfigEntryTxn(tx, tx.Index, false, configEntry)
 			if err != nil {
 				return err
 			}
@@ -1210,7 +1210,7 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 				},
 				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 			}
-			return ensureConfigEntryTxn(tx, tx.Index, configEntry)
+			return ensureConfigEntryTxn(tx, tx.Index, false, configEntry)
 		},
 		WantEvents: []stream.Event{
 			testServiceHealthEvent(t,
@@ -1249,7 +1249,7 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 				},
 				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 			}
-			err := ensureConfigEntryTxn(tx, tx.Index, configEntry)
+			err := ensureConfigEntryTxn(tx, tx.Index, false, configEntry)
 			if err != nil {
 				return err
 			}
@@ -1272,7 +1272,7 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 				},
 				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 			}
-			return ensureConfigEntryTxn(tx, tx.Index, configEntry)
+			return ensureConfigEntryTxn(tx, tx.Index, false, configEntry)
 		},
 		WantEvents: []stream.Event{
 			testServiceHealthEvent(t,
@@ -1315,7 +1315,7 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 				},
 				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 			}
-			err := ensureConfigEntryTxn(tx, tx.Index, configEntry)
+			err := ensureConfigEntryTxn(tx, tx.Index, false, configEntry)
 			if err != nil {
 				return err
 			}
@@ -1334,7 +1334,7 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 				},
 				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 			}
-			return ensureConfigEntryTxn(tx, tx.Index, configEntry)
+			return ensureConfigEntryTxn(tx, tx.Index, false, configEntry)
 		},
 		WantEvents: []stream.Event{
 			testServiceHealthEvent(t,
@@ -1377,7 +1377,7 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 			if err != nil {
 				return err
 			}
-			return ensureConfigEntryTxn(tx, tx.Index, configEntry)
+			return ensureConfigEntryTxn(tx, tx.Index, false, configEntry)
 		},
 		Mutate: func(s *Store, tx *txn) error {
 			configEntry := &structs.TerminatingGatewayConfigEntry{
@@ -1392,7 +1392,7 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 				},
 				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 			}
-			return ensureConfigEntryTxn(tx, tx.Index, configEntry)
+			return ensureConfigEntryTxn(tx, tx.Index, false, configEntry)
 		},
 		WantEvents: []stream.Event{
 			testServiceHealthDeregistrationEvent(t,
@@ -1420,7 +1420,7 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 				},
 				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 			}
-			err := ensureConfigEntryTxn(tx, tx.Index, configEntry)
+			err := ensureConfigEntryTxn(tx, tx.Index, false, configEntry)
 			if err != nil {
 				return err
 			}
@@ -1462,7 +1462,7 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 				},
 				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 			}
-			err := ensureConfigEntryTxn(tx, tx.Index, configEntry)
+			err := ensureConfigEntryTxn(tx, tx.Index, false, configEntry)
 			if err != nil {
 				return err
 			}
@@ -1502,7 +1502,7 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 				},
 				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 			}
-			err := ensureConfigEntryTxn(tx, tx.Index, configEntry)
+			err := ensureConfigEntryTxn(tx, tx.Index, false, configEntry)
 			if err != nil {
 				return err
 			}
@@ -1552,7 +1552,7 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 				},
 				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 			}
-			err = ensureConfigEntryTxn(tx, tx.Index, configEntry)
+			err = ensureConfigEntryTxn(tx, tx.Index, false, configEntry)
 			if err != nil {
 				return err
 			}
@@ -1567,7 +1567,7 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 				},
 				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 			}
-			return ensureConfigEntryTxn(tx, tx.Index, configEntry)
+			return ensureConfigEntryTxn(tx, tx.Index, false, configEntry)
 		},
 		Mutate: func(s *Store, tx *txn) error {
 			rename := func(req *structs.RegisterRequest) error {
@@ -1623,7 +1623,7 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 				},
 				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 			}
-			err := ensureConfigEntryTxn(tx, tx.Index, configEntry)
+			err := ensureConfigEntryTxn(tx, tx.Index, false, configEntry)
 			if err != nil {
 				return err
 			}
@@ -1664,7 +1664,7 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 				},
 				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 			}
-			err := ensureConfigEntryTxn(tx, tx.Index, configEntry)
+			err := ensureConfigEntryTxn(tx, tx.Index, false, configEntry)
 			if err != nil {
 				return err
 			}
@@ -1677,7 +1677,7 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 				Name:        "destination1",
 				Destination: &structs.DestinationConfig{Port: 9000, Addresses: []string{"kafka.test.com"}},
 			}
-			return ensureConfigEntryTxn(tx, tx.Index, configEntryDest)
+			return ensureConfigEntryTxn(tx, tx.Index, false, configEntryDest)
 		},
 		WantEvents: []stream.Event{
 			testServiceHealthDeregistrationEvent(t,
@@ -1710,7 +1710,7 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 				},
 				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 			}
-			err := ensureConfigEntryTxn(tx, tx.Index, configEntry)
+			err := ensureConfigEntryTxn(tx, tx.Index, false, configEntry)
 			if err != nil {
 				return err
 			}
@@ -1723,7 +1723,7 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 				Name:        "destination1",
 				Destination: &structs.DestinationConfig{Port: 9000, Addresses: []string{"kafka.test.com"}},
 			}
-			return ensureConfigEntryTxn(tx, tx.Index, configEntryDest)
+			return ensureConfigEntryTxn(tx, tx.Index, false, configEntryDest)
 		},
 		WantEvents: []stream.Event{
 			testServiceHealthEvent(t,

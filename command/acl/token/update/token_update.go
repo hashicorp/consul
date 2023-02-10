@@ -25,7 +25,7 @@ type cmd struct {
 	http  *flags.HTTPFlags
 	help  string
 
-	tokenID            string
+	tokenAccessorID    string
 	policyIDs          []string
 	policyNames        []string
 	roleIDs            []string
@@ -38,8 +38,9 @@ type cmd struct {
 	mergeServiceIdents bool
 	mergeNodeIdents    bool
 	showMeta           bool
-	upgradeLegacy      bool
 	format             string
+
+	tokenID string // DEPRECATED
 }
 
 func (c *cmd) init() {
@@ -54,7 +55,7 @@ func (c *cmd) init() {
 		"with the existing service identities")
 	c.flags.BoolVar(&c.mergeNodeIdents, "merge-node-identities", false, "Merge the new node identities "+
 		"with the existing node identities")
-	c.flags.StringVar(&c.tokenID, "id", "", "The Accessor ID of the token to update. "+
+	c.flags.StringVar(&c.tokenAccessorID, "accessor-id", "", "The Accessor ID of the token to update. "+
 		"It may be specified as a unique ID prefix but will error if the prefix "+
 		"matches multiple token Accessor IDs")
 	c.flags.StringVar(&c.description, "description", "", "A description of the token")
@@ -72,11 +73,6 @@ func (c *cmd) init() {
 	c.flags.Var((*flags.AppendSliceValue)(&c.nodeIdents), "node-identity", "Name of a "+
 		"node identity to use for this token. May be specified multiple times. Format is "+
 		"NODENAME:DATACENTER")
-	c.flags.BoolVar(&c.upgradeLegacy, "upgrade-legacy", false, "Add new polices "+
-		"to a legacy token replacing all existing rules. This will cause the legacy "+
-		"token to behave exactly like a new token but keep the same Secret.\n"+
-		"WARNING: you must ensure that the new policy or policies specified grant "+
-		"equivalent or appropriate access for the existing clients using this token.")
 	c.flags.StringVar(
 		&c.format,
 		"format",
@@ -89,6 +85,10 @@ func (c *cmd) init() {
 	flags.Merge(c.flags, c.http.ServerFlags())
 	flags.Merge(c.flags, c.http.MultiTenancyFlags())
 	c.help = flags.Usage(help, c.flags)
+
+	// Deprecations
+	c.flags.StringVar(&c.tokenID, "id", "",
+		"DEPRECATED. Use -accessor-id instead.")
 }
 
 func (c *cmd) Run(args []string) int {
@@ -96,9 +96,15 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	if c.tokenID == "" {
-		c.UI.Error(fmt.Sprintf("Cannot update a token without specifying the -id parameter"))
-		return 1
+	tokenAccessor := c.tokenAccessorID
+	if tokenAccessor == "" {
+		if c.tokenID == "" {
+			c.UI.Error("Cannot update a token without specifying the -accessor-id parameter")
+			return 1
+		} else {
+			tokenAccessor = c.tokenID
+			c.UI.Warn("Use the -accessor-id parameter to specify token by Accessor ID")
+		}
 	}
 
 	client, err := c.http.APIClient()
@@ -107,28 +113,16 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	tokenID, err := acl.GetTokenIDFromPartial(client, c.tokenID)
+	tok, err := acl.GetTokenAccessorIDFromPartial(client, tokenAccessor)
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error determining token ID: %v", err))
 		return 1
 	}
 
-	t, _, err := client.ACL().TokenRead(tokenID, nil)
+	t, _, err := client.ACL().TokenRead(tok, nil)
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error when retrieving current token: %v", err))
 		return 1
-	}
-
-	if c.upgradeLegacy {
-		if t.Rules == "" {
-			// This is just for convenience it should actually be harmless to allow it
-			// to go through anyway.
-			c.UI.Error(fmt.Sprintf("Can't use -upgrade-legacy on a non-legacy token"))
-			return 1
-		}
-		// Reset the rules to nothing forcing this to be updated as a non-legacy
-		// token but with same secret.
-		t.Rules = ""
 	}
 
 	if c.description != "" {
@@ -303,7 +297,7 @@ func (c *cmd) Run(args []string) int {
 
 	t, _, err = client.ACL().TokenUpdate(t, nil)
 	if err != nil {
-		c.UI.Error(fmt.Sprintf("Failed to update token %s: %v", tokenID, err))
+		c.UI.Error(fmt.Sprintf("Failed to update token %s: %v", tok, err))
 		return 1
 	}
 
@@ -342,11 +336,11 @@ Usage: consul acl token update [options]
 
     Update a token description and take the policies from the existing token:
 
-        $ consul acl token update -id abcd -description "replication" -merge-policies
+        $ consul acl token update -accessor-id abcd -description "replication" -merge-policies
 
     Update all editable fields of the token:
 
-        $ consul acl token update -id abcd \
+        $ consul acl token update -accessor-id abcd \
                                   -description "replication" \
                                   -policy-name "token-replication" \
                                   -role-name "db-updater"

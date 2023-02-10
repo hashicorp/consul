@@ -214,13 +214,16 @@ func TestACLEndpoint_TokenRead(t *testing.T) {
 			resp := structs.ACLTokenResponse{}
 
 			retry.Run(t, func(r *retry.R) {
-				require.NoError(r, aclEp.TokenRead(&req, &resp))
+				time.Sleep(200 * time.Millisecond)
+				err := aclEp.TokenRead(&req, &resp)
+				require.Error(r, err)
+				require.ErrorContains(t, err, "ACL not found")
 				require.Nil(r, resp.Token)
 			})
 		})
 	})
 
-	t.Run("nil when token does not exist", func(t *testing.T) {
+	t.Run("error when token does not exist", func(t *testing.T) {
 		fakeID, err := uuid.GenerateUUID()
 		require.NoError(t, err)
 
@@ -235,7 +238,8 @@ func TestACLEndpoint_TokenRead(t *testing.T) {
 
 		err = aclEp.TokenRead(&req, &resp)
 		require.Nil(t, resp.Token)
-		require.NoError(t, err)
+		require.Error(t, err)
+		require.ErrorContains(t, err, acl.ErrNotFound.Error())
 	})
 
 	t.Run("validates ID format", func(t *testing.T) {
@@ -483,7 +487,6 @@ func TestACLEndpoint_TokenClone(t *testing.T) {
 		require.Equal(t, t1.Roles, t2.Roles)
 		require.Equal(t, t1.ServiceIdentities, t2.ServiceIdentities)
 		require.Equal(t, t1.NodeIdentities, t2.NodeIdentities)
-		require.Equal(t, t1.Rules, t2.Rules)
 		require.Equal(t, t1.Local, t2.Local)
 		require.NotEqual(t, t1.AccessorID, t2.AccessorID)
 		require.NotEqual(t, t1.SecretID, t2.SecretID)
@@ -508,7 +511,7 @@ func TestACLEndpoint_TokenClone(t *testing.T) {
 
 		err = endpoint.TokenClone(&req, &t2)
 		require.Error(t, err)
-		require.Equal(t, acl.ErrNotFound, err)
+		require.ErrorContains(t, err, "token is expired")
 	})
 }
 
@@ -527,7 +530,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 
 	a := ACL{srv: srv}
 
-	var tokenID string
+	var accessorID string
 
 	t.Run("Create it", func(t *testing.T) {
 		req := structs.ACLTokenSetRequest{
@@ -564,7 +567,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 		require.Equal(t, "foo", token.NodeIdentities[0].NodeName)
 		require.Equal(t, "dc1", token.NodeIdentities[0].Datacenter)
 
-		tokenID = token.AccessorID
+		accessorID = token.AccessorID
 	})
 
 	t.Run("Update it", func(t *testing.T) {
@@ -572,7 +575,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 			Datacenter: "dc1",
 			ACLToken: structs.ACLToken{
 				Description: "new-description",
-				AccessorID:  tokenID,
+				AccessorID:  accessorID,
 			},
 			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 		}
@@ -1086,7 +1089,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 		require.Equal(t, token.AccessorID, resp.AccessorID)
 		requireTimeEquals(t, &expectExpTime, resp.ExpirationTime)
 
-		tokenID = token.AccessorID
+		accessorID = token.AccessorID
 	})
 
 	var expTime time.Time
@@ -1119,7 +1122,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 		require.Equal(t, token.AccessorID, resp.AccessorID)
 		requireTimeEquals(t, &expTime, resp.ExpirationTime)
 
-		tokenID = token.AccessorID
+		accessorID = token.AccessorID
 	})
 
 	// do not insert another test at this point: these tests need to be serial
@@ -1129,7 +1132,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 			Datacenter: "dc1",
 			ACLToken: structs.ACLToken{
 				Description:    "new-description",
-				AccessorID:     tokenID,
+				AccessorID:     accessorID,
 				ExpirationTime: timePointer(expTime.Add(-1 * time.Second)),
 			},
 			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
@@ -1148,7 +1151,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 			Datacenter: "dc1",
 			ACLToken: structs.ACLToken{
 				Description: "new-description-1",
-				AccessorID:  tokenID,
+				AccessorID:  accessorID,
 			},
 			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 		}
@@ -1175,7 +1178,7 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 			Datacenter: "dc1",
 			ACLToken: structs.ACLToken{
 				Description:    "new-description-2",
-				AccessorID:     tokenID,
+				AccessorID:     accessorID,
 				ExpirationTime: &expTime,
 			},
 			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
@@ -1648,7 +1651,8 @@ func TestACLEndpoint_TokenDelete(t *testing.T) {
 
 		// Make sure the token is gone
 		tokenResp, err = retrieveTestToken(codec, TestDefaultInitialManagementToken, "dc1", testToken.AccessorID)
-		require.NoError(t, err)
+		require.Error(t, err)
+		require.ErrorContains(t, err, acl.ErrNotFound.Error())
 		require.Nil(t, tokenResp.Token)
 	})
 
@@ -1663,7 +1667,8 @@ func TestACLEndpoint_TokenDelete(t *testing.T) {
 
 		// Make sure the token is not listable (filtered due to expiry)
 		tokenResp, err := retrieveTestToken(codec, TestDefaultInitialManagementToken, "dc1", expiringToken.AccessorID)
-		require.NoError(t, err)
+		require.Error(t, err)
+		require.ErrorContains(t, err, "token has expired")
 		require.Nil(t, tokenResp.Token)
 
 		// Now try to delete it (this should work).
@@ -1680,7 +1685,8 @@ func TestACLEndpoint_TokenDelete(t *testing.T) {
 
 		// Make sure the token is still gone (this time it's actually gone)
 		tokenResp, err = retrieveTestToken(codec, TestDefaultInitialManagementToken, "dc1", expiringToken.AccessorID)
-		require.NoError(t, err)
+		require.Error(t, err)
+		require.ErrorContains(t, err, acl.ErrNotFound.Error())
 		require.Nil(t, tokenResp.Token)
 	})
 
@@ -1698,8 +1704,9 @@ func TestACLEndpoint_TokenDelete(t *testing.T) {
 
 		// Make sure the token is gone
 		tokenResp, err := retrieveTestToken(codec, TestDefaultInitialManagementToken, "dc1", existingToken.AccessorID)
+		require.Error(t, err)
+		require.ErrorContains(t, err, acl.ErrNotFound.Error())
 		require.Nil(t, tokenResp.Token)
-		require.NoError(t, err)
 	})
 
 	t.Run("can't delete itself", func(t *testing.T) {
@@ -1740,12 +1747,14 @@ func TestACLEndpoint_TokenDelete(t *testing.T) {
 		var resp string
 
 		err = acl1.TokenDelete(&req, &resp)
-		require.NoError(t, err)
+		require.Error(t, err)
+		require.ErrorIs(t, err, acl.ErrNotFound)
 
 		// token should be nil
 		tokenResp, err := retrieveTestToken(codec, TestDefaultInitialManagementToken, "dc1", existingToken.AccessorID)
 		require.Nil(t, tokenResp.Token)
-		require.NoError(t, err)
+		require.Error(t, err)
+		require.ErrorContains(t, err, acl.ErrNotFound.Error())
 	})
 
 	t.Run("don't segfault when attempting to delete non existent token in secondary dc", func(t *testing.T) {
@@ -1761,12 +1770,14 @@ func TestACLEndpoint_TokenDelete(t *testing.T) {
 		var resp string
 
 		err = acl2.TokenDelete(&req, &resp)
-		require.NoError(t, err)
+		require.Error(t, err)
+		require.ErrorContains(t, err, acl.ErrNotFound.Error())
 
 		// token should be nil
 		tokenResp, err := retrieveTestToken(codec2, TestDefaultInitialManagementToken, "dc1", existingToken.AccessorID)
 		require.Nil(t, tokenResp.Token)
-		require.NoError(t, err)
+		require.Error(t, err)
+		require.ErrorContains(t, err, acl.ErrNotFound.Error())
 	})
 }
 
@@ -3308,7 +3319,8 @@ func TestACLEndpoint_AuthMethodDelete(t *testing.T) {
 
 		var ignored bool
 		err = aclEp.AuthMethodDelete(&req, &ignored)
-		require.NoError(t, err)
+		require.Error(t, err)
+		require.ErrorContains(t, err, acl.ErrNotFound.Error())
 	})
 }
 
@@ -3414,7 +3426,8 @@ func TestACLEndpoint_AuthMethodDelete_RuleAndTokenCascade(t *testing.T) {
 	}
 	for _, id := range []string{i1_t1.AccessorID, i1_t2.AccessorID} {
 		tokResp, err := retrieveTestToken(codec, TestDefaultInitialManagementToken, "dc1", id)
-		require.NoError(t, err)
+		require.Error(t, err)
+		require.ErrorContains(t, err, acl.ErrNotFound.Error())
 		require.Nil(t, tokResp.Token)
 	}
 
@@ -3775,7 +3788,8 @@ func TestACLEndpoint_BindingRuleDelete(t *testing.T) {
 
 		var ignored bool
 		err = aclEp.BindingRuleDelete(&req, &ignored)
-		require.NoError(t, err)
+		require.Error(t, err)
+		require.ErrorContains(t, err, acl.ErrNotFound.Error())
 	})
 }
 
@@ -4198,7 +4212,8 @@ func TestACLEndpoint_SecureIntroEndpoints_OnlyCreateLocalData(t *testing.T) {
 		require.Equal(t, "web2", resp2.Token.ServiceIdentities[0].ServiceName)
 		// absent in dc1
 		resp2, err = retrieveTestToken(codec1, TestDefaultInitialManagementToken, "dc1", remoteToken.AccessorID)
-		require.NoError(t, err)
+		require.Error(t, err)
+		require.ErrorContains(t, err, acl.ErrNotFound.Error())
 		require.Nil(t, resp2.Token)
 	})
 
@@ -4257,7 +4272,8 @@ func TestACLEndpoint_SecureIntroEndpoints_OnlyCreateLocalData(t *testing.T) {
 		require.Equal(t, "web1", resp2.Token.ServiceIdentities[0].ServiceName)
 		// absent in dc2
 		resp2, err = retrieveTestToken(codec2, TestDefaultInitialManagementToken, "dc2", primaryToken.AccessorID)
-		require.NoError(t, err)
+		require.Error(t, err)
+		require.ErrorContains(t, err, acl.ErrNotFound.Error())
 		require.Nil(t, resp2.Token)
 	})
 
@@ -4275,11 +4291,13 @@ func TestACLEndpoint_SecureIntroEndpoints_OnlyCreateLocalData(t *testing.T) {
 
 		// absent in dc2
 		resp2, err := retrieveTestToken(codec2, TestDefaultInitialManagementToken, "dc2", remoteToken.AccessorID)
-		require.NoError(t, err)
+		require.Error(t, err)
+		require.ErrorContains(t, err, acl.ErrNotFound.Error())
 		require.Nil(t, resp2.Token)
 		// absent in dc1
 		resp2, err = retrieveTestToken(codec1, TestDefaultInitialManagementToken, "dc1", remoteToken.AccessorID)
-		require.NoError(t, err)
+		require.Error(t, err)
+		require.ErrorContains(t, err, acl.ErrNotFound.Error())
 		require.Nil(t, resp2.Token)
 	})
 
@@ -4300,7 +4318,8 @@ func TestACLEndpoint_SecureIntroEndpoints_OnlyCreateLocalData(t *testing.T) {
 		require.Equal(t, "web1", resp2.Token.ServiceIdentities[0].ServiceName)
 		// absent in dc2
 		resp2, err = retrieveTestToken(codec2, TestDefaultInitialManagementToken, "dc2", primaryToken.AccessorID)
-		require.NoError(t, err)
+		require.Error(t, err)
+		require.ErrorContains(t, err, acl.ErrNotFound.Error())
 		require.Nil(t, resp2.Token)
 	})
 
@@ -5459,11 +5478,7 @@ func retrieveTestToken(codec rpc.ClientCodec, initialManagementToken string, dat
 
 	err := msgpackrpc.CallWithCodec(codec, "ACL.TokenRead", &arg, &out)
 
-	if err != nil {
-		return nil, err
-	}
-
-	return &out, nil
+	return &out, err
 }
 
 func deleteTestToken(codec rpc.ClientCodec, initialManagementToken string, datacenter string, tokenAccessor string) error {

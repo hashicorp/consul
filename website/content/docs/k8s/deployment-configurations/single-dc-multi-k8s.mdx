@@ -7,7 +7,7 @@ description: >-
 
 # Deploy Single Consul Datacenter Across Multiple Kubernetes Clusters
 
-~> **Note:** When running Consul across multiple Kubernetes clusters, we recommend using [admin partitions](/docs/enterprise/admin-partitions) for production environments. This Consul Enterprise feature allows you to accommodate multiple tenants without resource collisions when administering a cluster at scale. Admin partitions also enable you to run Consul on Kubernetes clusters across a non-flat network.
+~> **Note:** When running Consul across multiple Kubernetes clusters, we recommend using [admin partitions](/consul/docs/enterprise/admin-partitions) for production environments. This Consul Enterprise feature allows you to accommodate multiple tenants without resource collisions when administering a cluster at scale. Admin partitions also enable you to run Consul on Kubernetes clusters across a non-flat network.
 
 This page describes deploying a single Consul datacenter in multiple Kubernetes clusters,
 with servers running in one cluster and only Consul on Kubernetes components in the rest of the clusters.
@@ -172,7 +172,7 @@ $ helm install ${HELM_RELEASE_CONSUL} --values cluster2-values.yaml hashicorp/co
 
 ## Verifying the Consul Service Mesh works
 
-~> When Transparent proxy is enabled, services in one Kubernetes cluster that need to communicate with a service in another Kubernetes cluster must have an explicit upstream configured through the ["consul.hashicorp.com/connect-service-upstreams"](/docs/k8s/annotations-and-labels#consul-hashicorp-com-connect-service-upstreams) annotation.
+~> When Transparent proxy is enabled, services in one Kubernetes cluster that need to communicate with a service in another Kubernetes cluster must have an explicit upstream configured through the ["consul.hashicorp.com/connect-service-upstreams"](/consul/docs/k8s/annotations-and-labels#consul-hashicorp-com-connect-service-upstreams) annotation.
 
 Now that the Consul cluster spanning across multiple k8s clusters is up and running, deploy two services in separate k8s clusters and verify that they can connect to each other.
 

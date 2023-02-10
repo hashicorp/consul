@@ -1293,7 +1293,12 @@ func (l *State) deleteService(key structs.ServiceID) error {
 		return fmt.Errorf("ServiceID missing")
 	}
 
-	st := l.aclTokenForServiceSync(key, l.tokens.AgentToken)
+	// Always use the agent token to delete without trying the service token.
+	// This works because the agent token really must have node:write
+	// permission and node:write allows deregistration of services/checks on
+	// that node. Because the service token may have been deleted, using the
+	// agent token without fallback logic is a bit faster, simpler, and safer.
+	st := l.tokens.AgentToken()
 	req := structs.DeregisterRequest{
 		Datacenter:     l.config.Datacenter,
 		Node:           l.config.NodeName,
@@ -1344,7 +1349,9 @@ func (l *State) deleteCheck(key structs.CheckID) error {
 		return fmt.Errorf("CheckID missing")
 	}
 
-	ct := l.aclTokenForCheckSync(key, l.tokens.AgentToken)
+	// Always use the agent token for deletion. Refer to deleteService() for
+	// an explanation.
+	ct := l.tokens.AgentToken()
 	req := structs.DeregisterRequest{
 		Datacenter:     l.config.Datacenter,
 		Node:           l.config.NodeName,

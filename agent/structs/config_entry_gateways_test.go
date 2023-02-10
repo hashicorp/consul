@@ -1341,3 +1341,183 @@ func TestBoundAPIGateway(t *testing.T) {
 	}
 	testConfigEntryNormalizeAndValidate(t, cases)
 }
+
+func TestListenerBindRoute(t *testing.T) {
+	cases := map[string]struct {
+		listener         BoundAPIGatewayListener
+		route            BoundRoute
+		expectedListener BoundAPIGatewayListener
+		expectedDidBind  bool
+	}{
+		"Listener has no routes": {
+			listener: BoundAPIGatewayListener{},
+			route: &TCPRouteConfigEntry{
+				Kind: TCPRoute,
+				Name: "Test Route",
+			},
+			expectedListener: BoundAPIGatewayListener{
+				Routes: []ResourceReference{
+					{
+						Kind: TCPRoute,
+						Name: "Test Route",
+					},
+				},
+			},
+			expectedDidBind: true,
+		},
+		"Listener to update existing route": {
+			listener: BoundAPIGatewayListener{
+				Routes: []ResourceReference{
+					{
+						Kind: TCPRoute,
+						Name: "Test Route 1",
+					},
+					{
+						Kind: TCPRoute,
+						Name: "Test Route 2",
+					},
+					{
+						Kind: TCPRoute,
+						Name: "Test Route 3",
+					},
+				},
+			},
+			route: &TCPRouteConfigEntry{
+				Kind: TCPRoute,
+				Name: "Test Route 2",
+			},
+			expectedListener: BoundAPIGatewayListener{
+				Routes: []ResourceReference{
+					{
+						Kind: TCPRoute,
+						Name: "Test Route 1",
+					},
+					{
+						Kind: TCPRoute,
+						Name: "Test Route 2",
+					},
+					{
+						Kind: TCPRoute,
+						Name: "Test Route 3",
+					},
+				},
+			},
+			expectedDidBind: true,
+		},
+		"Listener appends new route": {
+			listener: BoundAPIGatewayListener{
+				Routes: []ResourceReference{
+					{
+						Kind: TCPRoute,
+						Name: "Test Route 1",
+					},
+					{
+						Kind: TCPRoute,
+						Name: "Test Route 2",
+					},
+				},
+			},
+			route: &TCPRouteConfigEntry{
+				Kind: TCPRoute,
+				Name: "Test Route 3",
+			},
+			expectedListener: BoundAPIGatewayListener{
+				Routes: []ResourceReference{
+					{
+						Kind: TCPRoute,
+						Name: "Test Route 1",
+					},
+					{
+						Kind: TCPRoute,
+						Name: "Test Route 2",
+					},
+					{
+						Kind: TCPRoute,
+						Name: "Test Route 3",
+					},
+				},
+			},
+			expectedDidBind: true,
+		},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			routeRef := ResourceReference{
+				Kind:           tc.route.GetKind(),
+				Name:           tc.route.GetName(),
+				EnterpriseMeta: *tc.route.GetEnterpriseMeta(),
+			}
+			actualDidBind := tc.listener.BindRoute(routeRef)
+			require.Equal(t, tc.expectedDidBind, actualDidBind)
+			require.Equal(t, tc.expectedListener.Routes, tc.listener.Routes)
+		})
+	}
+}
+
+func TestListenerUnbindRoute(t *testing.T) {
+	cases := map[string]struct {
+		listener          BoundAPIGatewayListener
+		route             BoundRoute
+		expectedListener  BoundAPIGatewayListener
+		expectedDidUnbind bool
+	}{
+		"Listener has no routes": {
+			listener: BoundAPIGatewayListener{},
+			route: &TCPRouteConfigEntry{
+				Kind: TCPRoute,
+				Name: "Test Route",
+			},
+			expectedListener:  BoundAPIGatewayListener{},
+			expectedDidUnbind: false,
+		},
+		"Listener to remove existing route": {
+			listener: BoundAPIGatewayListener{
+				Routes: []ResourceReference{
+					{
+						Kind: TCPRoute,
+						Name: "Test Route 1",
+					},
+					{
+						Kind: TCPRoute,
+						Name: "Test Route 2",
+					},
+					{
+						Kind: TCPRoute,
+						Name: "Test Route 3",
+					},
+				},
+			},
+			route: &TCPRouteConfigEntry{
+				Kind: TCPRoute,
+				Name: "Test Route 2",
+			},
+			expectedListener: BoundAPIGatewayListener{
+				Routes: []ResourceReference{
+					{
+						Kind: TCPRoute,
+						Name: "Test Route 1",
+					},
+					{
+						Kind: TCPRoute,
+						Name: "Test Route 3",
+					},
+				},
+			},
+			expectedDidUnbind: true,
+		},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			routeRef := ResourceReference{
+				Kind:           tc.route.GetKind(),
+				Name:           tc.route.GetName(),
+				EnterpriseMeta: *tc.route.GetEnterpriseMeta(),
+			}
+			actualDidUnbind := tc.listener.UnbindRoute(routeRef)
+			require.Equal(t, tc.expectedDidUnbind, actualDidUnbind)
+			require.Equal(t, tc.expectedListener.Routes, tc.listener.Routes)
+		})
+	}
+}

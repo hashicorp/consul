@@ -49,7 +49,7 @@ steps:
   install-gotestsum: &install-gotestsum
     name: install gotestsum
     environment:
-      GOTESTSUM_RELEASE: 1.6.4
+      GOTESTSUM_RELEASE: 1.9.0
     command: |
       ARCH=`uname -m`
       if [[ "$ARCH" == "aarch64" ]]; then
@@ -190,6 +190,14 @@ jobs:
       - run: go install github.com/reillywatson/enumcover/cmd/enumcover@master && enumcover ./...
       - run: *notify-slack-failure
 
+  lint-container-test-deps:
+    docker:
+      - image: *GOLANG_IMAGE
+    steps:
+      - checkout
+      - run: make lint-container-test-deps
+      - run: *notify-slack-failure
+
   lint:
     description: "Run golangci-lint"
     parameters:
@@ -220,6 +228,14 @@ jobs:
       - run:
           name: lint sdk
           working_directory: sdk
+          command: *lintcmd
+      - run:
+          name: lint envoyextensions
+          working_directory: envoyextensions
+          command: *lintcmd
+      - run:
+          name: lint troubleshoot
+          working_directory: troubleshoot
           command: *lintcmd
       - run:
           name: lint container tests
@@ -715,7 +731,7 @@ jobs:
       - checkout
       - add_ssh_keys: # needs a key to push updated static asset commit back to github
           fingerprints:
-            - "fc:55:84:15:0a:1d:c8:e9:06:d0:e8:9c:7b:a9:b7:31"
+            - "94:03:9e:8b:24:7f:36:60:00:30:b8:32:ed:e7:59:10"
       - attach_workspace:
           at: .
       - run:
@@ -861,12 +877,16 @@ jobs:
             cd ./test/integration/consul-container
             docker run --rm consul:local consul version
             gotestsum \
+              --raw-command \
               --format=short-verbose \
               --debug \
               --rerun-fails=3 \
               --packages="./..." \
               -- \
+              go test \
+              -p=4 \
               -timeout=30m \
+              -json \
               ./... \
               --target-image consul \
               --target-version local \
@@ -1076,6 +1096,7 @@ workflows:
       - check-generated-protobuf: *filter-ignore-non-go-branches
       - check-generated-deep-copy: *filter-ignore-non-go-branches
       - lint-enums: *filter-ignore-non-go-branches
+      - lint-container-test-deps: *filter-ignore-non-go-branches
       - lint-consul-retry: *filter-ignore-non-go-branches
       - lint: *filter-ignore-non-go-branches
       - lint:
@@ -1086,6 +1107,18 @@ workflows:
       - dev-build: *filter-ignore-non-go-branches
       - go-test:
           requires: [dev-build]
+      - go-test-lib:
+          name: "go-test-envoyextensions"
+          path: envoyextensions
+          go-version: "1.19"
+          requires: [dev-build]
+          <<: *filter-ignore-non-go-branches
+      - go-test-lib:
+          name: "go-test-troubleshoot"
+          path: troubleshoot
+          go-version: "1.19"
+          requires: [dev-build]
+          <<: *filter-ignore-non-go-branches
       - go-test-lib:
           name: "go-test-api go1.18"
           path: api

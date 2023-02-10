@@ -8,6 +8,8 @@ import (
 
 	envoy_discovery_v3 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 
+	"github.com/hashicorp/consul/envoyextensions/xdscommon"
+
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
 	"github.com/hashicorp/go-hclog"
@@ -20,7 +22,6 @@ import (
 	"github.com/hashicorp/consul/agent/grpc-external/limiter"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/agent/xds/xdscommon"
 )
 
 var (
@@ -52,9 +53,6 @@ var (
 type ADSStream = envoy_discovery_v3.AggregatedDiscoveryService_StreamAggregatedResourcesServer
 
 const (
-	// OutboundListenerName is the name we give the outbound Envoy listener when transparent proxy mode is enabled.
-	OutboundListenerName = "outbound_listener"
-
 	// LocalAgentClusterName is the name we give the local agent "cluster" in
 	// Envoy config. Note that all cluster names may collide with service names
 	// since we want cluster names and service names to match to enable nice
@@ -159,14 +157,14 @@ func NewServer(
 	nodeName string,
 	logger hclog.Logger,
 	cfgMgr ProxyConfigSource,
-	resolveToken ACLResolverFunc,
+	resolveTokenSecret ACLResolverFunc,
 	cfgFetcher ConfigFetcher,
 ) *Server {
 	return &Server{
 		NodeName:           nodeName,
 		Logger:             logger,
 		CfgSrc:             cfgMgr,
-		ResolveToken:       resolveToken,
+		ResolveToken:       resolveTokenSecret,
 		CfgFetcher:         cfgFetcher,
 		AuthCheckFrequency: DefaultAuthCheckFrequency,
 		activeStreams:      &activeStreamCounters{},
@@ -231,7 +229,7 @@ func (s *Server) authorize(ctx context.Context, cfgSnap *proxycfg.ConfigSnapshot
 		if err := authz.ToAllowAuthorizer().ServiceWriteAllowed(cfgSnap.Proxy.DestinationServiceName, &authzContext); err != nil {
 			return status.Errorf(codes.PermissionDenied, err.Error())
 		}
-	case structs.ServiceKindMeshGateway, structs.ServiceKindTerminatingGateway, structs.ServiceKindIngressGateway:
+	case structs.ServiceKindMeshGateway, structs.ServiceKindTerminatingGateway, structs.ServiceKindIngressGateway, structs.ServiceKindAPIGateway:
 		cfgSnap.ProxyID.EnterpriseMeta.FillAuthzContext(&authzContext)
 		if err := authz.ToAllowAuthorizer().ServiceWriteAllowed(cfgSnap.Service, &authzContext); err != nil {
 			return status.Errorf(codes.PermissionDenied, err.Error())

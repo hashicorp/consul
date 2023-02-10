@@ -105,8 +105,7 @@ struct they have their own struct called `Config` in `agent/consul/config.go`.
  - [ ] Do all of the steps in [Adding a Simple Config
    Field For Client Agents](#adding-a-simple-config-field-for-client-agents).
  - [ ] Add the new field to Config struct in `agent/consul/config.go`
- - [ ] Add code to set the values from the `RuntimeConfig` in the confusingly
-   named `consulConfig` method in `agent/agent.go`
+ - [ ] Add code to set the values from the `RuntimeConfig` in `newConsulConfig` method in `agent/agent.go`
  - [ ] **If needed**, add a test to `agent_test.go` if there is some non-trivial
    behavior in the code you added in the previous step. We tend not to test
    simple assignments from one to the other since these are typically caught by

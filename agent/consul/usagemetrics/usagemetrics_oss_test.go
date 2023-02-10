@@ -178,6 +178,13 @@ var baseCases = map[string]testCase{
 					{Name: "kind", Value: "connect-native"},
 				},
 			},
+			"consul.usage.test.state.billable_service_instances;datacenter=dc1": {
+				Name:  "consul.usage.test.state.billable_service_instances",
+				Value: 0,
+				Labels: []metrics.Label{
+					{Name: "datacenter", Value: "dc1"},
+				},
+			},
 			// --- kv ---
 			"consul.usage.test.consul.state.kv_entries;datacenter=dc1": { // Legacy
 				Name:   "consul.usage.test.consul.state.kv_entries",
@@ -596,6 +603,13 @@ var baseCases = map[string]testCase{
 				Labels: []metrics.Label{
 					{Name: "datacenter", Value: "dc1"},
 					{Name: "kind", Value: "connect-native"},
+				},
+			},
+			"consul.usage.test.state.billable_service_instances;datacenter=dc1": {
+				Name:  "consul.usage.test.state.billable_service_instances",
+				Value: 0,
+				Labels: []metrics.Label{
+					{Name: "datacenter", Value: "dc1"},
 				},
 			},
 			// --- kv ---
@@ -1174,6 +1188,13 @@ func TestUsageReporter_emitServiceUsage_OSS(t *testing.T) {
 		Labels: []metrics.Label{
 			{Name: "datacenter", Value: "dc1"},
 			{Name: "kind", Value: "connect-native"},
+		},
+	}
+	nodesAndSvcsCase.expectedGauges["consul.usage.test.state.billable_service_instances;datacenter=dc1"] = metrics.GaugeValue{
+		Name:  "consul.usage.test.state.billable_service_instances",
+		Value: 3,
+		Labels: []metrics.Label{
+			{Name: "datacenter", Value: "dc1"},
 		},
 	}
 	nodesAndSvcsCase.expectedGauges["consul.usage.test.consul.state.config_entries;datacenter=dc1;kind=ingress-gateway"] = metrics.GaugeValue{ // Legacy

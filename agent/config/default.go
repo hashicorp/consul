@@ -140,7 +140,12 @@ func DefaultSource() Source {
 		raft_snapshot_threshold = ` + strconv.Itoa(int(cfg.RaftConfig.SnapshotThreshold)) + `
 		raft_snapshot_interval =  "` + cfg.RaftConfig.SnapshotInterval.String() + `"
 		raft_trailing_logs = ` + strconv.Itoa(int(cfg.RaftConfig.TrailingLogs)) + `
-
+		raft_logstore {
+			backend = "boltdb"
+			wal {
+				segment_size_mb = 64
+			}
+		}
 		xds {
 			update_max_per_second = 250
 		}

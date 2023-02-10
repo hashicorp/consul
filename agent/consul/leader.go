@@ -334,6 +334,10 @@ func (s *Server) establishLeadership(ctx context.Context) error {
 
 	s.setConsistentReadReady()
 
+	if s.config.LogStoreConfig.Verification.Enabled {
+		s.startLogVerification(ctx)
+	}
+
 	s.logger.Debug("successfully established leadership", "duration", time.Since(start))
 	return nil
 }
@@ -341,6 +345,9 @@ func (s *Server) establishLeadership(ctx context.Context) error {
 // revokeLeadership is invoked once we step down as leader.
 // This is used to cleanup any state that may be specific to a leader.
 func (s *Server) revokeLeadership() {
+
+	s.stopLogVerification()
+
 	// Disable the tombstone GC, since it is only useful as a leader
 	s.tombstoneGC.SetEnabled(false)
 
@@ -363,8 +370,6 @@ func (s *Server) revokeLeadership() {
 	s.stopConnectLeader()
 
 	s.stopACLTokenReaping()
-
-	s.stopACLUpgrade()
 
 	s.resetConsistentReadReady()
 
@@ -415,7 +420,6 @@ func (s *Server) initializeACLs(ctx context.Context) error {
 				Name:           "global-management",
 				Description:    "Builtin Policy that grants unlimited access",
 				Rules:          structs.ACLPolicyGlobalManagement,
-				Syntax:         acl.SyntaxCurrent,
 				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 			}
 			if policy != nil {
@@ -502,50 +506,24 @@ func (s *Server) initializeACLs(ctx context.Context) error {
 		}
 
 		// Insert the anonymous token if it does not exist.
-		state := s.fsm.State()
-		_, token, err := state.ACLTokenGetBySecret(nil, anonymousToken, nil)
-		if err != nil {
-			return fmt.Errorf("failed to get anonymous token: %v", err)
+		if err := s.InsertAnonymousToken(); err != nil {
+			return err
 		}
-		// Ignoring expiration times to avoid an insertion collision.
-		if token == nil {
-			token = &structs.ACLToken{
-				AccessorID:     acl.AnonymousTokenID,
-				SecretID:       anonymousToken,
-				Description:    "Anonymous Token",
-				CreateTime:     time.Now(),
-				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
-			}
-			token.SetHash(true)
-
-			req := structs.ACLTokenBatchSetRequest{
-				Tokens: structs.ACLTokens{token},
-				CAS:    false,
-			}
-			_, err := s.raftApply(structs.ACLTokenSetRequestType, &req)
-			if err != nil {
-				return fmt.Errorf("failed to create anonymous token: %v", err)
-			}
-			s.logger.Info("Created ACL anonymous token from configuration")
-		}
-
-		// Generate or rotate the server management token on leadership transitions.
-		// This token is used by Consul servers for authn/authz when making
-		// requests to themselves through public APIs such as the agent cache.
-		// It is stored as system metadata because it is internally
-		// managed and users are not meant to see it or interact with it.
-		secretID, err := lib.GenerateUUID(nil)
-		if err != nil {
-			return fmt.Errorf("failed to generate the secret ID for the server management token: %w", err)
-		}
-		if err := s.setSystemMetadataKey(structs.ServerManagementTokenAccessorID, secretID); err != nil {
-			return fmt.Errorf("failed to persist server management token: %w", err)
-		}
-
-		// launch the upgrade go routine to generate accessors for everything
-		s.startACLUpgrade(ctx)
 	} else {
 		s.startACLReplication(ctx)
+	}
+
+	// Generate or rotate the server management token on leadership transitions.
+	// This token is used by Consul servers for authn/authz when making
+	// requests to themselves through public APIs such as the agent cache.
+	// It is stored as system metadata because it is internally
+	// managed and users are not meant to see it or interact with it.
+	secretID, err := lib.GenerateUUID(nil)
+	if err != nil {
+		return fmt.Errorf("failed to generate the secret ID for the server management token: %w", err)
+	}
+	if err := s.setSystemMetadataKey(structs.ServerManagementTokenAccessorID, secretID); err != nil {
+		return fmt.Errorf("failed to persist server management token: %w", err)
 	}
 
 	s.startACLTokenReaping(ctx)
@@ -553,98 +531,34 @@ func (s *Server) initializeACLs(ctx context.Context) error {
 	return nil
 }
 
-// legacyACLTokenUpgrade runs a single time to upgrade any tokens that may
-// have been created immediately before the Consul upgrade, or any legacy tokens
-// from a restored snapshot.
-// TODO(ACL-Legacy-Compat): remove in phase 2
-func (s *Server) legacyACLTokenUpgrade(ctx context.Context) error {
-	// aclUpgradeRateLimit is the number of batch upgrade requests per second allowed.
-	const aclUpgradeRateLimit rate.Limit = 1.0
-
-	// aclUpgradeBatchSize controls how many tokens we look at during each round of upgrading. Individual raft logs
-	// will be further capped using the aclBatchUpsertSize. This limit just prevents us from creating a single slice
-	// with all tokens in it.
-	const aclUpgradeBatchSize = 128
-
-	limiter := rate.NewLimiter(aclUpgradeRateLimit, int(aclUpgradeRateLimit))
-	for {
-		if err := limiter.Wait(ctx); err != nil {
-			return err
-		}
-
-		// actually run the upgrade here
-		state := s.fsm.State()
-		tokens, _, err := state.ACLTokenListUpgradeable(aclUpgradeBatchSize)
-		if err != nil {
-			s.logger.Warn("encountered an error while searching for tokens without accessor ids", "error", err)
-		}
-		// No need to check expiration time here, as that only exists for v2 tokens.
-
-		if len(tokens) == 0 {
-			// No new legacy tokens can be created, so we can exit
-			s.stopACLUpgrade() // required to prevent goroutine leak, according to TestAgentLeaks_Server
-			return nil
-		}
-
-		var newTokens structs.ACLTokens
-		for _, token := range tokens {
-			// This should be entirely unnecessary but is just a small safeguard against changing accessor IDs
-			if token.AccessorID != "" {
-				continue
-			}
-
-			newToken := *token
-			if token.SecretID == anonymousToken {
-				newToken.AccessorID = acl.AnonymousTokenID
-			} else {
-				accessor, err := lib.GenerateUUID(s.checkTokenUUID)
-				if err != nil {
-					s.logger.Warn("failed to generate accessor during token auto-upgrade", "error", err)
-					continue
-				}
-				newToken.AccessorID = accessor
-			}
-
-			// Assign the global-management policy to legacy management tokens
-			if len(newToken.Policies) == 0 &&
-				len(newToken.ServiceIdentities) == 0 &&
-				len(newToken.NodeIdentities) == 0 &&
-				len(newToken.Roles) == 0 &&
-				newToken.Type == "management" {
-				newToken.Policies = append(newToken.Policies, structs.ACLTokenPolicyLink{ID: structs.ACLPolicyGlobalManagementID})
-			}
-
-			// need to copy these as we are going to do a CAS operation.
-			newToken.CreateIndex = token.CreateIndex
-			newToken.ModifyIndex = token.ModifyIndex
-
-			newToken.SetHash(true)
-
-			newTokens = append(newTokens, &newToken)
-		}
-
-		req := &structs.ACLTokenBatchSetRequest{Tokens: newTokens, CAS: true}
-
-		_, err = s.raftApply(structs.ACLTokenSetRequestType, req)
-		if err != nil {
-			s.logger.Error("failed to apply acl token upgrade batch", "error", err)
-		}
+func (s *Server) InsertAnonymousToken() error {
+	state := s.fsm.State()
+	_, token, err := state.ACLTokenGetBySecret(nil, anonymousToken, nil)
+	if err != nil {
+		return fmt.Errorf("failed to get anonymous token: %v", err)
 	}
-}
+	// Ignoring expiration times to avoid an insertion collision.
+	if token == nil {
+		token = &structs.ACLToken{
+			AccessorID:     acl.AnonymousTokenID,
+			SecretID:       anonymousToken,
+			Description:    "Anonymous Token",
+			CreateTime:     time.Now(),
+			EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+		}
+		token.SetHash(true)
 
-// TODO(ACL-Legacy-Compat): remove in phase 2. Keeping it for now so that we
-// can upgrade any tokens created immediately before the upgrade happens.
-func (s *Server) startACLUpgrade(ctx context.Context) {
-	if s.config.PrimaryDatacenter != s.config.Datacenter {
-		// token upgrades should only run in the primary
-		return
+		req := structs.ACLTokenBatchSetRequest{
+			Tokens: structs.ACLTokens{token},
+			CAS:    false,
+		}
+		_, err := s.raftApply(structs.ACLTokenSetRequestType, &req)
+		if err != nil {
+			return fmt.Errorf("failed to create anonymous token: %v", err)
+		}
+		s.logger.Info("Created ACL anonymous token from configuration")
 	}
-
-	s.leaderRoutineManager.Start(ctx, aclUpgradeRoutineName, s.legacyACLTokenUpgrade)
-}
-
-func (s *Server) stopACLUpgrade() {
-	s.leaderRoutineManager.Stop(aclUpgradeRoutineName)
+	return nil
 }
 
 func (s *Server) startACLReplication(ctx context.Context) {

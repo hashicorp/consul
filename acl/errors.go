@@ -96,9 +96,7 @@ func (e PermissionDeniedError) Error() string {
 		return message.String()
 	}
 
-	if e.Accessor == "" {
-		message.WriteString(": provided token")
-	} else if e.Accessor == AnonymousTokenID {
+	if e.Accessor == AnonymousTokenID {
 		message.WriteString(": anonymous token")
 	} else {
 		fmt.Fprintf(&message, ": token with AccessorID '%s'", e.Accessor)
@@ -141,4 +139,11 @@ func extractAccessorID(authz interface{}) string {
 		accessor = v
 	}
 	return accessor
+}
+
+func ACLResourceNotExistError(resourceType string, entMeta EnterpriseMeta) error {
+	if ns := entMeta.NamespaceOrEmpty(); ns != "" {
+		return fmt.Errorf("Requested %s not found in namespace %s: %w", resourceType, ns, ErrNotFound)
+	}
+	return fmt.Errorf("Requested %s does not exist: %w", resourceType, ErrNotFound)
 }

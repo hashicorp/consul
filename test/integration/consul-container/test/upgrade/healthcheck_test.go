@@ -4,15 +4,17 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/api"
 	"github.com/stretchr/testify/require"
 
+	"github.com/hashicorp/consul/api"
 	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 )
 
 // Test health check GRPC call using Target Servers and Latest GA Clients
 func TestTargetServersWithLatestGAClients(t *testing.T) {
+	t.Parallel()
+
 	const (
 		numServers = 3
 		numClients = 1
@@ -50,11 +52,15 @@ func TestTargetServersWithLatestGAClients(t *testing.T) {
 
 // Test health check GRPC call using Mixed (majority latest) Servers and Latest GA Clients
 func TestMixedServersMajorityLatestGAClient(t *testing.T) {
+	t.Parallel()
+
 	testMixedServersGAClient(t, false)
 }
 
 // Test health check GRPC call using Mixed (majority target) Servers and Latest GA Clients
 func TestMixedServersMajorityTargetGAClient(t *testing.T) {
+	t.Parallel()
+
 	testMixedServersGAClient(t, true)
 }
 

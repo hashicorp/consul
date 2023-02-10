@@ -18,11 +18,11 @@ Cluster peering is a process that allows Consul clusters to communicate with eac
 1. Export services between clusters.
 1. Create intentions to authorize services for peers.
 
-This process establishes cluster peering between two [admin partitions](/docs/enterprise/admin-partitions). Deployments without an Enterprise license can still use cluster peering because every datacenter automatically includes a `default` partition.
+This process establishes cluster peering between two [admin partitions](/consul/docs/enterprise/admin-partitions). Deployments without an Enterprise license can still use cluster peering because every datacenter automatically includes a `default` partition.
 
-For detailed instructions on establishing cluster peering connections, refer to [Create and Manage Peering Connections](/docs/connect/cluster-peering/create-manage-peering).
+For detailed instructions on establishing cluster peering connections, refer to [Create and Manage Peering Connections](/consul/docs/connect/cluster-peering/create-manage-peering).
 
-> To learn how to peer clusters and connect services across peers in AWS Elastic Kubernetes Service (EKS) environments, complete the [Consul Cluster Peering on Kubernetes tutorial](https://learn.hashicorp.com/tutorials/consul/cluster-peering-aws?utm_source=docs).
+> To learn how to peer clusters and connect services across peers in AWS Elastic Kubernetes Service (EKS) environments, complete the [Consul Cluster Peering on Kubernetes tutorial](/consul/tutorials/developer-mesh/cluster-peering-aws?utm_source=docs).
 
 ### Differences between WAN federation and cluster peering
 
@@ -47,6 +47,6 @@ Regardless of whether you connect your clusters through WAN federation or cluste
 Consider the following technical constraints:
 
 - Services with node, instance, and check definitions totaling more than 8MB cannot be exported to a peer.
-- Two admin partitions in the same datacenter cannot be peered. Use [`exported-services`](/docs/connect/config-entries/exported-services#exporting-services-to-peered-clusters) directly.
-- The `consul intention` CLI command is not supported. To manage intentions that specify services in peered clusters, use [configuration entries](/docs/connect/config-entries/service-intentions).
+- Two admin partitions in the same datacenter cannot be peered. Use [`exported-services`](/consul/docs/connect/config-entries/exported-services#exporting-services-to-peered-clusters) directly.
+- The `consul intention` CLI command is not supported. To manage intentions that specify services in peered clusters, use [configuration entries](/consul/docs/connect/config-entries/service-intentions).
 - Accessing key/value stores across peers is not supported.

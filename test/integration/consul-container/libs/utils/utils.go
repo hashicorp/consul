@@ -3,6 +3,7 @@ package utils
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/itchyny/gojq"
 	"github.com/teris-io/shortid"
@@ -17,6 +18,7 @@ func RandName(name string) string {
 	if err != nil {
 		return ""
 	}
+	id = strings.ToLower(id)
 	return name + "-" + id
 }
 
