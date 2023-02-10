@@ -29,8 +29,19 @@ type exampleContainer struct {
 
 var _ Service = (*exampleContainer)(nil)
 
-func (g exampleContainer) Exec(ctx context.Context, cmd []string) (int, io.Reader, error) {
-	return g.container.Exec(ctx, cmd)
+func (g exampleContainer) Exec(ctx context.Context, cmd []string) (string, error) {
+	exitCode, reader, err := g.container.Exec(ctx, cmd)
+	if err != nil {
+		return "", fmt.Errorf("exec with error %s", err)
+	}
+	if exitCode != 0 {
+		return "", fmt.Errorf("exec with exit code %d", exitCode)
+	}
+	buf, err := io.ReadAll(reader)
+	if err != nil {
+		return "", fmt.Errorf("error reading from exec output: %w", err)
+	}
+	return string(buf), nil
 }
 
 func (g exampleContainer) Export(partition, peerName string, client *api.Client) error {
