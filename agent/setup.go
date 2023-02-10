@@ -55,11 +55,18 @@ type BaseDeps struct {
 
 type ConfigLoader func(source config.Source) (config.LoadResult, error)
 
-func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer, providedLogger hclog.InterceptLogger) (BaseDeps, error) {
+func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer, providedLogger hclog.InterceptLogger) (BaseDeps, func(), error) {
+	var balancerBuilder *balancer.Builder
+	cleanup := func() {
+		if balancerBuilder != nil {
+			balancerBuilder.Deregister()
+		}
+	}
+
 	d := BaseDeps{}
 	result, err := configLoader(nil)
 	if err != nil {
-		return d, err
+		return d, cleanup, err
 	}
 	d.WatchedFiles = result.WatchedFiles
 	cfg := result.RuntimeConfig
@@ -71,7 +78,7 @@ func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer, providedLogger hcl
 	} else {
 		d.Logger, err = logging.Setup(logConf, logOut)
 		if err != nil {
-			return d, err
+			return d, cleanup, err
 		}
 	}
 
@@ -85,7 +92,7 @@ func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer, providedLogger hcl
 
 	cfg.NodeID, err = newNodeIDFromConfig(cfg, d.Logger)
 	if err != nil {
-		return d, fmt.Errorf("failed to setup node ID: %w", err)
+		return d, cleanup, fmt.Errorf("failed to setup node ID: %w", err)
 	}
 
 	isServer := result.RuntimeConfig.ServerMode
@@ -96,12 +103,12 @@ func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer, providedLogger hcl
 
 	d.MetricsConfig, err = lib.InitTelemetry(cfg.Telemetry, d.Logger)
 	if err != nil {
-		return d, fmt.Errorf("failed to initialize telemetry: %w", err)
+		return d, cleanup, fmt.Errorf("failed to initialize telemetry: %w", err)
 	}
 
 	d.TLSConfigurator, err = tlsutil.NewConfigurator(cfg.TLS, d.Logger)
 	if err != nil {
-		return d, err
+		return d, cleanup, err
 	}
 
 	d.RuntimeConfig = cfg
@@ -121,9 +128,7 @@ func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer, providedLogger hcl
 	})
 	resolver.Register(resolverBuilder)
 
-	balancerBuilder := balancer.NewBuilder(
-		// Balancer name doesn't really matter, we set it to the resolver authority
-		// to keep it unique for tests.
+	balancerBuilder = balancer.NewBuilder(
 		resolverBuilder.Authority(),
 		d.Logger.Named("grpc.balancer"),
 	)
@@ -137,7 +142,6 @@ func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer, providedLogger hcl
 		UseTLSForDC:           d.TLSConfigurator.UseTLS,
 		DialingFromServer:     cfg.ServerMode,
 		DialingFromDatacenter: cfg.Datacenter,
-		BalancerBuilder:       balancerBuilder,
 	})
 	d.LeaderForwarder = resolverBuilder
 
@@ -152,7 +156,7 @@ func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer, providedLogger hcl
 	// must also be passed to auto-config
 	d, err = initEnterpriseBaseDeps(d, cfg)
 	if err != nil {
-		return d, err
+		return d, cleanup, err
 	}
 
 	acConf := autoconf.Config{
@@ -168,7 +172,7 @@ func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer, providedLogger hcl
 
 	d.AutoConfig, err = autoconf.New(acConf)
 	if err != nil {
-		return d, err
+		return d, cleanup, err
 	}
 
 	d.NewRequestRecorderFunc = middleware.NewRequestRecorder
@@ -180,11 +184,11 @@ func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer, providedLogger hcl
 	if cfg.IsCloudEnabled() {
 		d.HCP, err = hcp.NewDeps(cfg.Cloud, d.Logger)
 		if err != nil {
-			return d, err
+			return d, cleanup, err
 		}
 	}
 
-	return d, nil
+	return d, cleanup, nil
 }
 
 // grpcLogInitOnce because the test suite will call NewBaseDeps in many tests and

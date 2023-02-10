@@ -72,7 +72,8 @@ func NewTestACLAgent(t *testing.T, name string, hcl string, resolveAuthz authzRe
 		}
 		return result, err
 	}
-	bd, err := NewBaseDeps(loader, logBuffer, logger)
+	bd, cleanup, err := NewBaseDeps(loader, logBuffer, logger)
+	t.Cleanup(cleanup)
 	require.NoError(t, err)
 
 	bd.MetricsConfig = &lib.MetricsConfig{
