@@ -705,6 +705,11 @@ func (c *configSnapshotAPIGateway) ToIngress(datacenter string) (configSnapshotI
 			continue
 		}
 
+		if !c.GatewayConfig.ListenerIsReady(name) {
+			// skip any listeners that might be in an invalid state
+			continue
+		}
+
 		ingressListener := structs.IngressListener{
 			Port:     listener.Port,
 			Protocol: string(listener.Protocol),

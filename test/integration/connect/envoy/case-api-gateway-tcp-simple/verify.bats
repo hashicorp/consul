@@ -6,6 +6,11 @@ load helpers
   retry_default curl -f -s localhost:20000/stats -o /dev/null
 }
 
+@test "api gateway should have be accepted and not conflicted" {
+  assert_config_entry_status Accepted True Accepted primary api-gateway api-gateway
+  assert_config_entry_status Conflicted False NoConflict primary api-gateway api-gateway
+}
+
 @test "api gateway should have healthy endpoints for s1" {
   assert_upstream_has_endpoints_in_status 127.0.0.1:20000 s1 HEALTHY 1
 }

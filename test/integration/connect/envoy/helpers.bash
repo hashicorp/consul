@@ -318,6 +318,16 @@ function get_envoy_metrics {
   get_all_envoy_metrics $HOSTPORT | grep "$METRICS"
 }
 
+function get_upstream_endpoint {
+  local HOSTPORT=$1
+  local CLUSTER_NAME=$2
+  run curl -s -f "http://${HOSTPORT}/clusters?format=json"
+  [ "$status" -eq 0 ]
+  echo "$output" | jq --raw-output "
+.cluster_statuses[]
+| select(.name|startswith(\"${CLUSTER_NAME}\"))"
+}
+
 function get_upstream_endpoint_in_status_count {
   local HOSTPORT=$1
   local CLUSTER_NAME=$2
@@ -341,6 +351,14 @@ function assert_upstream_has_endpoints_in_status_once {
   GOT_COUNT=$(get_upstream_endpoint_in_status_count $HOSTPORT $CLUSTER_NAME $HEALTH_STATUS)
 
   [ "$GOT_COUNT" -eq $EXPECT_COUNT ]
+}
+
+function assert_upstream_missing {
+  local HOSTPORT=$1
+  local CLUSTER_NAME=$2
+  run retry_default get_upstream_endpoint $HOSTPORT $CLUSTER_NAME
+  echo "OUTPUT: $output $status"
+  [ "" == "$output" ]
 }
 
 function assert_upstream_has_endpoints_in_status {
@@ -759,6 +777,21 @@ function upsert_config_entry {
   local BODY="$2"
 
   echo "$BODY" | docker_consul "$DC" config write -
+}
+
+function assert_config_entry_status {
+  local TYPE="$1"
+  local STATUS="$2"
+  local REASON="$3"
+  local DC="$4"
+  local KIND="$5"
+  local NAME="$6"
+  local NS=${7:-}
+  local AP=${8:-}
+  local PEER=${9:-}
+
+  status=$(curl -s -f "consul-${DC}-client:8500/v1/config/${KIND}/${NAME}?passing&ns=${NS}&partition=${AP}&peer=${PEER}" | jq ".Status.Conditions[] | select(.Type == \"$TYPE\" and .Status == \"$STATUS\" and .Reason == \"$REASON\")")
+  [ -n "$status" ]
 }
 
 function delete_config_entry {
