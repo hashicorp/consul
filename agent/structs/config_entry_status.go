@@ -1,6 +1,7 @@
 package structs
 
 import (
+	"fmt"
 	"sort"
 	"time"
 
@@ -22,6 +23,10 @@ type ResourceReference struct {
 	SectionName string
 
 	acl.EnterpriseMeta
+}
+
+func (r *ResourceReference) String() string {
+	return fmt.Sprintf("%s:%s/%s/%s/%s", r.Kind, r.PartitionOrDefault(), r.NamespaceOrDefault(), r.Name, r.SectionName)
 }
 
 func (r *ResourceReference) IsSame(other *ResourceReference) bool {
