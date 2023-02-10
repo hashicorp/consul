@@ -73,6 +73,7 @@ func TestAPIGatewaySnapshotToIngressGatewaySnapshot(t *testing.T) {
 				},
 				Listeners: map[IngressListenerKey]structs.IngressListener{},
 				Defaults:  structs.IngressServiceConfig{},
+				Upstreams: map[IngressListenerKey]structs.Upstreams{},
 			},
 		},
 	}
