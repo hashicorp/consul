@@ -716,13 +716,13 @@ func TestVaultCAProvider_AliCloudAuthClient(t *testing.T) {
 
 	for name, c := range cases {
 		t.Run(name, func(t *testing.T) {
-			auth := NewAliCloudAuthClient(c.authMethod)
-			require.NotNil(t, auth)
-			encodedData, err := auth.LoginDataGen(c.authMethod)
+			auth, err := NewAliCloudAuthClient(c.authMethod)
 			if c.expErr != nil {
 				require.Equal(t, err, c.expErr)
 				return
 			}
+			require.NotNil(t, auth)
+			encodedData, err := auth.LoginDataGen(c.authMethod)
 			require.NoError(t, err)
 
 			// identity_request_headers (json encoded headers)

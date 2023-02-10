@@ -8,21 +8,22 @@ import (
 	"github.com/hashicorp/vault-plugin-auth-alicloud/tools"
 )
 
-func NewAliCloudAuthClient(authMethod *structs.VaultAuthMethod) *VaultAuthClient {
+func NewAliCloudAuthClient(authMethod *structs.VaultAuthMethod) (*VaultAuthClient, error) {
+	if _, ok := authMethod.Params["role"].(string); !ok {
+		return nil, fmt.Errorf("role is required for AliCloud login")
+	}
+	if _, ok := authMethod.Params["region"].(string); !ok {
+		return nil, fmt.Errorf("region is required for AliCloud login")
+	}
 	client := NewVaultAPIAuthClient(authMethod, "")
 	client.LoginDataGen = AliLoginDataGen
-	return client
+	return client, nil
 }
 
 func AliLoginDataGen(authMethod *structs.VaultAuthMethod) (map[string]any, error) {
-	role, ok := authMethod.Params["role"].(string)
-	if !ok {
-		return nil, fmt.Errorf("role is required for AliCloud login")
-	}
-	region, ok := authMethod.Params["region"].(string)
-	if !ok {
-		return nil, fmt.Errorf("region is required for AliCloud login")
-	}
+	// validity of these params is checked above in New..
+	role := authMethod.Params["role"].(string)
+	region := authMethod.Params["region"].(string)
 	// Credentials can be provided either explicitly via env vars,
 	// or we will try to derive them from instance metadata.
 	credentialChain := []providers.Provider{

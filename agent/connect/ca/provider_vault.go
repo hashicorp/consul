@@ -947,7 +947,7 @@ func configureVaultAuthMethod(authMethod *structs.VaultAuthMethod) (VaultAuthent
 	case VaultAuthMethodTypeAppRole:
 		return NewAppRoleAuthClient(authMethod)
 	case VaultAuthMethodTypeAliCloud:
-		return NewAliCloudAuthClient(authMethod), nil
+		return NewAliCloudAuthClient(authMethod)
 	case VaultAuthMethodTypeKubernetes:
 		return NewK8sAuthClient(authMethod)
 	// These auth methods require a username for the login API path.
