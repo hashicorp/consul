@@ -648,7 +648,7 @@ func (u upstreamIDSet) add(uid UpstreamID) {
 
 type routeUpstreamSet map[structs.ResourceReference]upstreamIDSet
 
-func (r routeUpstreamSet) has(uid UpstreamID) bool {
+func (r routeUpstreamSet) hasUpstream(uid UpstreamID) bool {
 	for _, set := range r {
 		if _, ok := set[uid]; ok {
 			return true

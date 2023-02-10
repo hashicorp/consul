@@ -395,7 +395,7 @@ func (h *handlerAPIGateway) handleRouteConfigUpdate(ctx context.Context, u Updat
 
 	// Stop watching any upstreams and discovery chains that have become irrelevant
 	for upstreamID, cancelDiscoChain := range snap.APIGateway.WatchedDiscoveryChains {
-		if snap.APIGateway.UpstreamsSet.has(upstreamID) {
+		if snap.APIGateway.UpstreamsSet.hasUpstream(upstreamID) {
 			continue
 		}
 
