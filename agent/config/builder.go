@@ -1045,7 +1045,7 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		RPCMaxBurst:                       intVal(c.Limits.RPCMaxBurst),
 		RPCMaxConnsPerClient:              intVal(c.Limits.RPCMaxConnsPerClient),
 		RPCProtocol:                       intVal(c.RPCProtocol),
-		RPCRateLimit:                      rate.Limit(float64Val(c.Limits.RPCRate)),
+		RPCRateLimit:                      limitVal(c.Limits.RPCRate),
 		RPCConfig:                         consul.RPCConfig{EnableStreaming: boolValWithDefault(c.RPC.EnableStreaming, serverMode)},
 		RaftProtocol:                      intVal(c.RaftProtocol),
 		RaftSnapshotThreshold:             intVal(c.RaftSnapshotThreshold),
