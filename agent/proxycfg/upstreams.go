@@ -64,7 +64,7 @@ func (s *handlerUpstreams) handleUpdateUpstreams(ctx context.Context, u UpdateEv
 
 		switch snap.Kind {
 		case structs.ServiceKindAPIGateway:
-			if _, ok := snap.APIGateway.UpstreamsSet[uid]; !ok {
+			if !snap.APIGateway.UpstreamsSet.hasUpstream(uid) {
 				// Discovery chain is not associated with a known explicit or implicit upstream so it is purged/skipped.
 				// The associated watch was likely cancelled.
 				delete(upstreamsSnapshot.DiscoveryChain, uid)
