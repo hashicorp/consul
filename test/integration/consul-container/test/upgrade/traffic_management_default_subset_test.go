@@ -79,22 +79,10 @@ func TestTrafficManagement_ServiceWithSubsets(t *testing.T) {
 		serverConnectProxy, serverConnectProxyV1, serverConnectProxyV2, clientConnectProxy := createService(t, cluster)
 
 		_, port := clientConnectProxy.GetAddr()
-
-		clientSidecar, ok := clientConnectProxy.(*libservice.ConnectContainer)
-		require.True(t, ok)
-		_, adminPort := clientSidecar.GetExternalAdminAddr()
-
-		serverSidecar, ok := serverConnectProxy.(*libservice.ConnectContainer)
-		require.True(t, ok)
-		_, serverAdminPort := serverSidecar.GetExternalAdminAddr()
-
-		serverV1Sidecar, ok := serverConnectProxyV1.(*libservice.ConnectContainer)
-		require.True(t, ok)
-		_, serverAdminPortV1 := serverV1Sidecar.GetExternalAdminAddr()
-
-		serverV2Sidecar, ok := serverConnectProxyV2.(*libservice.ConnectContainer)
-		require.True(t, ok)
-		_, serverAdminPortV2 := serverV2Sidecar.GetExternalAdminAddr()
+		_, adminPort := clientConnectProxy.GetAdminAddr()
+		_, serverAdminPort := serverConnectProxy.GetAdminAddr()
+		_, serverAdminPortV1 := serverConnectProxyV1.GetAdminAddr()
+		_, serverAdminPortV2 := serverConnectProxyV2.GetAdminAddr()
 
 		// validate client and proxy is up and running
 		libassert.AssertContainerState(t, clientConnectProxy, "running")

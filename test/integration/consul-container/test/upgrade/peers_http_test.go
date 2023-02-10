@@ -49,9 +49,7 @@ func TestPeering_UpgradeToTarget_fromLatest(t *testing.T) {
 		acceptingClient, err := acceptingCluster.GetClient(nil, false)
 		require.NoError(t, err)
 
-		gatewayProxy, ok := dialing.Gateway.(*libservice.GatewayContainer)
-		require.True(t, ok)
-		_, gatewayAdminPort := gatewayProxy.GetAdminAddr()
+		_, gatewayAdminPort := dialing.Gateway.GetAdminAddr()
 
 		// Upgrade the accepting cluster and assert peering is still ACTIVE
 		require.NoError(t, acceptingCluster.StandardUpgrade(t, context.Background(), tc.targetVersion))
@@ -78,7 +76,7 @@ func TestPeering_UpgradeToTarget_fromLatest(t *testing.T) {
 		clientSidecarService, err := libservice.CreateAndRegisterStaticClientSidecar(dialingCluster.Servers()[0], libtopology.DialingPeerName, true)
 		require.NoError(t, err)
 		_, port := clientSidecarService.GetAddr()
-		_, adminPort := clientSidecarService.GetExternalAdminAddr()
+		_, adminPort := clientSidecarService.GetAdminAddr()
 		require.NoError(t, clientSidecarService.Restart())
 		libassert.AssertUpstreamEndpointStatus(t, adminPort, fmt.Sprintf("static-server.default.%s.external", libtopology.DialingPeerName), "HEALTHY", 1)
 		libassert.HTTPServiceEchoes(t, "localhost", port, "")

@@ -68,9 +68,7 @@ func TestPeering_Upgrade_ControlPlane_MGW(t *testing.T) {
 		require.NoError(t, err)
 
 		// Verify control plane endpoints and traffic in gateway
-		gatewayProxy, ok := dialing.Gateway.(*libservice.GatewayContainer)
-		require.True(t, ok)
-		_, gatewayAdminPort := gatewayProxy.GetAdminAddr()
+		_, gatewayAdminPort := dialing.Gateway.GetAdminAddr()
 		libassert.AssertUpstreamEndpointStatus(t, gatewayAdminPort, "server.dc1.peering", "HEALTHY", 1)
 		libassert.AssertUpstreamEndpointStatus(t, gatewayAdminPort, "server.dc2.peering", "HEALTHY", 1)
 		libassert.AssertEnvoyMetricAtLeast(t, gatewayAdminPort,
@@ -108,7 +106,7 @@ func TestPeering_Upgrade_ControlPlane_MGW(t *testing.T) {
 		clientSidecarService, err := libservice.CreateAndRegisterStaticClientSidecar(dialingCluster.Servers()[0], libtopology.DialingPeerName, true)
 		require.NoError(t, err)
 		_, port := clientSidecarService.GetAddr()
-		_, adminPort := clientSidecarService.GetExternalAdminAddr()
+		_, adminPort := clientSidecarService.GetAdminAddr()
 		require.NoError(t, clientSidecarService.Restart())
 		libassert.AssertUpstreamEndpointStatus(t, adminPort, fmt.Sprintf("static-server.default.%s.external", libtopology.DialingPeerName), "HEALTHY", 1)
 		libassert.HTTPServiceEchoes(t, "localhost", port, "")

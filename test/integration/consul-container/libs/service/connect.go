@@ -106,7 +106,8 @@ func (g ConnectContainer) GetInternalAdminAddr() (string, int) {
 	return "localhost", g.internalAdminPort
 }
 
-func (g ConnectContainer) GetExternalAdminAddr() (string, int) {
+// GetAdminAddr returns the external admin port
+func (g ConnectContainer) GetAdminAddr() (string, int) {
 	return "localhost", g.externalAdminPort
 }
 

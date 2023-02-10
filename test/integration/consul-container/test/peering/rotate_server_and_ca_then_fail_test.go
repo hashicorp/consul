@@ -192,7 +192,7 @@ func verifySidecarHasTwoRootCAs(t *testing.T, sidecar libservice.Service) {
 	connectContainer, ok := sidecar.(*libservice.ConnectContainer)
 	require.True(t, ok)
 
-	_, adminPort := connectContainer.GetExternalAdminAddr()
+	_, adminPort := connectContainer.GetAdminAddr()
 
 	failer := func() *retry.Timer {
 		return &retry.Timer{Timeout: 30 * time.Second, Wait: 1 * time.Second}

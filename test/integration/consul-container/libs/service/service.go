@@ -13,6 +13,8 @@ type Service interface {
 	// Export a service to the peering cluster
 	Export(partition, peer string, client *api.Client) error
 	GetAddr() (string, int)
+	// GetAdminAddr returns the external admin address
+	GetAdminAddr() (string, int)
 	GetLogs() (string, error)
 	GetName() string
 	GetServiceName() string

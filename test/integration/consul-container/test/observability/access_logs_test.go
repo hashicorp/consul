@@ -79,7 +79,7 @@ func TestAccessLogs(t *testing.T) {
 	// Validate Logs on the Admin Interface
 	serverSidecar, ok := serverService.(*libservice.ConnectContainer)
 	require.True(t, ok)
-	ip, port := serverSidecar.GetExternalAdminAddr()
+	ip, port := serverSidecar.GetAdminAddr()
 
 	httpClient := cleanhttp.DefaultClient()
 	url := fmt.Sprintf("http://%s:%d/clusters?fruit=bananas", ip, port)

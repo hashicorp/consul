@@ -105,7 +105,7 @@ func BasicPeeringTwoClustersSetup(
 		require.NoError(t, err)
 	}
 
-	_, adminPort := clientSidecarService.GetExternalAdminAddr()
+	_, adminPort := clientSidecarService.GetAdminAddr()
 	libassert.AssertUpstreamEndpointStatus(t, adminPort, fmt.Sprintf("static-server.default.%s.external", DialingPeerName), "HEALTHY", 1)
 	_, port := clientSidecarService.GetAddr()
 	libassert.HTTPServiceEchoes(t, "localhost", port, "")
