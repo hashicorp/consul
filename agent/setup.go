@@ -53,22 +53,17 @@ type BaseDeps struct {
 	Cache         *cache.Cache
 	ViewStore     *submatview.Store
 	WatchedFiles  []string
+
+	deregisterBalancer, deregisterResolver func()
 }
 
 type ConfigLoader func(source config.Source) (config.LoadResult, error)
 
-func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer, providedLogger hclog.InterceptLogger) (BaseDeps, func(), error) {
-	var balancerBuilder *balancer.Builder
-	cleanup := func() {
-		if balancerBuilder != nil {
-			balancerBuilder.Deregister()
-		}
-	}
-
+func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer, providedLogger hclog.InterceptLogger) (BaseDeps, error) {
 	d := BaseDeps{}
 	result, err := configLoader(nil)
 	if err != nil {
-		return d, cleanup, err
+		return d, err
 	}
 	d.WatchedFiles = result.WatchedFiles
 	cfg := result.RuntimeConfig
@@ -80,7 +75,7 @@ func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer, providedLogger hcl
 	} else {
 		d.Logger, err = logging.Setup(logConf, logOut)
 		if err != nil {
-			return d, cleanup, err
+			return d, err
 		}
 	}
 
@@ -94,7 +89,7 @@ func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer, providedLogger hcl
 
 	cfg.NodeID, err = newNodeIDFromConfig(cfg, d.Logger)
 	if err != nil {
-		return d, cleanup, fmt.Errorf("failed to setup node ID: %w", err)
+		return d, fmt.Errorf("failed to setup node ID: %w", err)
 	}
 
 	isServer := result.RuntimeConfig.ServerMode
@@ -105,12 +100,12 @@ func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer, providedLogger hcl
 
 	d.MetricsConfig, err = lib.InitTelemetry(cfg.Telemetry, d.Logger)
 	if err != nil {
-		return d, cleanup, fmt.Errorf("failed to initialize telemetry: %w", err)
+		return d, fmt.Errorf("failed to initialize telemetry: %w", err)
 	}
 
 	d.TLSConfigurator, err = tlsutil.NewConfigurator(cfg.TLS, d.Logger)
 	if err != nil {
-		return d, cleanup, err
+		return d, err
 	}
 
 	d.RuntimeConfig = cfg
@@ -136,12 +131,16 @@ func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer, providedLogger hcl
 		Authority: cfg.Datacenter + "." + string(cfg.NodeID),
 	})
 	resolver.Register(resolverBuilder)
+	d.deregisterResolver = func() {
+		resolver.Deregister(resolverBuilder.Authority())
+	}
 
-	balancerBuilder = balancer.NewBuilder(
+	balancerBuilder := balancer.NewBuilder(
 		resolverBuilder.Authority(),
 		d.Logger.Named("grpc.balancer"),
 	)
 	balancerBuilder.Register()
+	d.deregisterBalancer = balancerBuilder.Deregister
 
 	d.GRPCConnPool = grpcInt.NewClientConnPool(grpcInt.ClientConnPoolConfig{
 		Servers:               resolverBuilder,
@@ -165,7 +164,7 @@ func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer, providedLogger hcl
 	// must also be passed to auto-config
 	d, err = initEnterpriseBaseDeps(d, cfg)
 	if err != nil {
-		return d, cleanup, err
+		return d, err
 	}
 
 	acConf := autoconf.Config{
@@ -181,7 +180,7 @@ func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer, providedLogger hcl
 
 	d.AutoConfig, err = autoconf.New(acConf)
 	if err != nil {
-		return d, cleanup, err
+		return d, err
 	}
 
 	d.NewRequestRecorderFunc = middleware.NewRequestRecorder
@@ -193,11 +192,25 @@ func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer, providedLogger hcl
 	if cfg.IsCloudEnabled() {
 		d.HCP, err = hcp.NewDeps(cfg.Cloud, d.Logger)
 		if err != nil {
-			return d, cleanup, err
+			return d, err
 		}
 	}
 
-	return d, cleanup, nil
+	return d, nil
+}
+
+// Close cleans up any state and goroutines associated to bd's members not
+// handled by something else (e.g. the agent stop channel).
+func (bd BaseDeps) Close() {
+	bd.AutoConfig.Stop()
+	bd.MetricsConfig.Cancel()
+
+	if fn := bd.deregisterBalancer; fn != nil {
+		fn()
+	}
+	if fn := bd.deregisterResolver; fn != nil {
+		fn()
+	}
 }
 
 // grpcLogInitOnce because the test suite will call NewBaseDeps in many tests and

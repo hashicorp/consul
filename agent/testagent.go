@@ -217,8 +217,7 @@ func (a *TestAgent) Start(t *testing.T) error {
 		}
 		return result, err
 	}
-	bd, cleanup, err := NewBaseDeps(loader, logOutput, logger)
-	t.Cleanup(cleanup)
+	bd, err := NewBaseDeps(loader, logOutput, logger)
 	if err != nil {
 		return fmt.Errorf("failed to create base deps: %w", err)
 	}
