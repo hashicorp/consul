@@ -1165,7 +1165,7 @@ func TestRPC_LocalTokenStrippedOnForward_GRPC(t *testing.T) {
 
 	var conn *grpc.ClientConn
 	{
-		client, resolverBuilder, balancerBuilder := newClientWithGRPCPlumbing(t, func(c *Config) {
+		client, resolverBuilder := newClientWithGRPCPlumbing(t, func(c *Config) {
 			c.Datacenter = "dc2"
 			c.PrimaryDatacenter = "dc1"
 			c.RPCConfig.EnableStreaming = true

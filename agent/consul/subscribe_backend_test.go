@@ -39,7 +39,7 @@ func TestSubscribeBackend_IntegrationWithServer_TLSEnabled(t *testing.T) {
 	require.NoError(t, err)
 	defer server.Shutdown()
 
-	client, resolverBuilder, balancerBuilder := newClientWithGRPCPlumbing(t, configureTLS, clientConfigVerifyOutgoing)
+	client, resolverBuilder := newClientWithGRPCPlumbing(t, configureTLS, clientConfigVerifyOutgoing)
 
 	// Try to join
 	testrpc.WaitForLeader(t, server.RPC, "dc1")
@@ -189,7 +189,7 @@ func TestSubscribeBackend_IntegrationWithServer_TLSReload(t *testing.T) {
 	defer server.Shutdown()
 
 	// Set up a client with valid certs and verify_outgoing = true
-	client, resolverBuilder, balancerBuilder := newClientWithGRPCPlumbing(t, configureTLS, clientConfigVerifyOutgoing)
+	client, resolverBuilder := newClientWithGRPCPlumbing(t, configureTLS, clientConfigVerifyOutgoing)
 
 	testrpc.WaitForLeader(t, server.RPC, "dc1")
 
@@ -281,7 +281,7 @@ func TestSubscribeBackend_IntegrationWithServer_DeliversAllMessages(t *testing.T
 	codec := rpcClient(t, server)
 	defer codec.Close()
 
-	client, resolverBuilder, balancerBuilder := newClientWithGRPCPlumbing(t)
+	client, resolverBuilder := newClientWithGRPCPlumbing(t)
 
 	// Try to join
 	testrpc.WaitForLeader(t, server.RPC, "dc1")
@@ -372,7 +372,7 @@ func TestSubscribeBackend_IntegrationWithServer_DeliversAllMessages(t *testing.T
 		"at least some of the subscribers should have received non-snapshot updates")
 }
 
-func newClientWithGRPCPlumbing(t *testing.T, ops ...func(*Config)) (*Client, *resolver.ServerResolverBuilder, *balancer.Builder) {
+func newClientWithGRPCPlumbing(t *testing.T, ops ...func(*Config)) (*Client, *resolver.ServerResolverBuilder) {
 	_, config := testClientConfig(t)
 	for _, op := range ops {
 		op(config)
@@ -406,7 +406,7 @@ func newClientWithGRPCPlumbing(t *testing.T, ops ...func(*Config)) (*Client, *re
 	t.Cleanup(func() {
 		client.Shutdown()
 	})
-	return client, resolverBuilder, balancerBuilder
+	return client, resolverBuilder
 }
 
 type testLogger interface {

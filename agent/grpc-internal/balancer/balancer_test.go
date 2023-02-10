@@ -42,7 +42,7 @@ func TestBalancer(t *testing.T) {
 		balancerBuilder.Register()
 		t.Cleanup(balancerBuilder.Deregister)
 
-		conn := dial(t, target, balancerBuilder)
+		conn := dial(t, target)
 		client := testservice.NewSimpleClient(conn)
 
 		var serverName string
@@ -87,7 +87,7 @@ func TestBalancer(t *testing.T) {
 		balancerBuilder.Register()
 		t.Cleanup(balancerBuilder.Deregister)
 
-		conn := dial(t, target, balancerBuilder)
+		conn := dial(t, target)
 		client := testservice.NewSimpleClient(conn)
 
 		// Figure out which server we're talking to now, and which we should switch to.
@@ -142,7 +142,7 @@ func TestBalancer(t *testing.T) {
 			})
 		}
 
-		conn := dial(t, target, balancerBuilder)
+		conn := dial(t, target)
 		client := testservice.NewSimpleClient(conn)
 
 		// Figure out which server we're talking to now.
@@ -188,7 +188,7 @@ func TestBalancer(t *testing.T) {
 		balancerBuilder.Register()
 		t.Cleanup(balancerBuilder.Deregister)
 
-		conn := dial(t, target, balancerBuilder)
+		conn := dial(t, target)
 		client := testservice.NewSimpleClient(conn)
 
 		// Figure out which server we're talking to now.
@@ -318,7 +318,7 @@ func (s *server) Something(context.Context, *testservice.Req) (*testservice.Resp
 	return &testservice.Resp{ServerName: s.name}, nil
 }
 
-func dial(t *testing.T, target string, builder *Builder) *grpc.ClientConn {
+func dial(t *testing.T, target string) *grpc.ClientConn {
 	conn, err := grpc.Dial(
 		target,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
