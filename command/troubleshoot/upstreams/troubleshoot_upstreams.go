@@ -5,10 +5,12 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"strconv"
+	"strings"
 
+	"github.com/hashicorp/consul/command/cli"
 	"github.com/hashicorp/consul/command/flags"
 	troubleshoot "github.com/hashicorp/consul/troubleshoot/proxy"
-	"github.com/mitchellh/cli"
 )
 
 func New(ui cli.Ui) *cmd {
@@ -81,9 +83,11 @@ func (c *cmd) Run(args []string) int {
 	}
 
 	c.UI.Output(fmt.Sprintf("\n==> Upstream IPs (transparent proxy only) (%v)", len(upstreamIPs)))
+	tbl := cli.NewTable("IPs ", "Virtual ", "Cluster Names")
 	for _, u := range upstreamIPs {
-		c.UI.Output(fmt.Sprintf("%+v   %v   %+v", u.IPs, u.IsVirtual, u.ClusterNames))
+		tbl.AddRow([]string{formatIPs(u.IPs), strconv.FormatBool(u.IsVirtual), formatClusterNames(u.ClusterNames)}, []string{})
 	}
+	c.UI.Table(tbl)
 
 	c.UI.Output("\nIf you don't see your upstream address or cluster for a transparent proxy upstream:")
 	c.UI.Output("- Check intentions: Tproxy upstreams are configured based on intentions, make sure you " +
@@ -114,3 +118,15 @@ Usage: consul troubleshoot upstreams [options]
     $ consul troubleshoot upstreams
 `
 )
+
+func formatIPs(ips []string) string {
+	return strings.Join(ips, ", ")
+}
+
+func formatClusterNames(names map[string]struct{}) string {
+	var out []string
+	for k := range names {
+		out = append(out, k)
+	}
+	return strings.Join(out, ", ")
+}

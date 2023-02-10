@@ -250,10 +250,10 @@ func (h *handlerAPIGateway) handleInlineCertConfigUpdate(_ context.Context, u Up
 		return fmt.Errorf("invalid type for config entry: %T", resp.Entry)
 	}
 
-	// TODO Consider if unset SectionName and acl.EnterpriseMeta could trip us up
 	ref := structs.ResourceReference{
-		Kind: cfg.GetKind(),
-		Name: cfg.GetName(),
+		Kind:           cfg.GetKind(),
+		Name:           cfg.GetName(),
+		EnterpriseMeta: *cfg.GetEnterpriseMeta(),
 	}
 
 	snap.APIGateway.Certificates.Set(ref, cfg)
@@ -271,10 +271,10 @@ func (h *handlerAPIGateway) handleRouteConfigUpdate(ctx context.Context, u Updat
 		return nil
 	}
 
-	// TODO Consider if unset SectionName and acl.EnterpriseMeta could trip us up
 	ref := structs.ResourceReference{
-		Kind: resp.Entry.GetKind(),
-		Name: resp.Entry.GetName(),
+		Kind:           resp.Entry.GetKind(),
+		Name:           resp.Entry.GetName(),
+		EnterpriseMeta: *resp.Entry.GetEnterpriseMeta(),
 	}
 
 	seenUpstreamIDs := make(upstreamIDSet)
@@ -395,7 +395,7 @@ func (h *handlerAPIGateway) handleRouteConfigUpdate(ctx context.Context, u Updat
 
 	// Stop watching any upstreams and discovery chains that have become irrelevant
 	for upstreamID, cancelDiscoChain := range snap.APIGateway.WatchedDiscoveryChains {
-		if snap.APIGateway.UpstreamsSet.has(upstreamID) {
+		if snap.APIGateway.UpstreamsSet.hasUpstream(upstreamID) {
 			continue
 		}
 
