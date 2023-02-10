@@ -14,6 +14,8 @@ import (
 // gateway from its configuration and multiple other discovery chains.
 type GatewayChainSynthesizer struct {
 	datacenter        string
+	trustDomain       string
+	suffix            string
 	gateway           *structs.APIGatewayConfigEntry
 	matchesByHostname map[string][]hostnameMatch
 	tcpRoutes         []structs.TCPRouteConfigEntry
@@ -27,9 +29,11 @@ type hostnameMatch struct {
 
 // NewGatewayChainSynthesizer creates a new GatewayChainSynthesizer for the
 // given gateway and datacenter.
-func NewGatewayChainSynthesizer(datacenter string, gateway *structs.APIGatewayConfigEntry) *GatewayChainSynthesizer {
+func NewGatewayChainSynthesizer(datacenter, trustDomain, suffix string, gateway *structs.APIGatewayConfigEntry) *GatewayChainSynthesizer {
 	return &GatewayChainSynthesizer{
 		datacenter:        datacenter,
+		trustDomain:       trustDomain,
+		suffix:            suffix,
 		gateway:           gateway,
 		matchesByHostname: map[string][]hostnameMatch{},
 	}
@@ -45,7 +49,13 @@ func (l *GatewayChainSynthesizer) AddTCPRoute(route structs.TCPRouteConfigEntry)
 // single hostname can be specified in multiple routes. Routing for a given
 // hostname must behave based on the aggregate of all rules that apply to it.
 func (l *GatewayChainSynthesizer) AddHTTPRoute(route structs.HTTPRouteConfigEntry) {
-	for _, host := range route.Hostnames {
+	hostnames := route.Hostnames
+	if len(route.Hostnames) == 0 {
+		// add a wildcard if there are no explicit hostnames set
+		hostnames = append(hostnames, "*")
+	}
+
+	for _, host := range hostnames {
 		matches, ok := l.matchesByHostname[host]
 		if !ok {
 			matches = []hostnameMatch{}
@@ -86,41 +96,48 @@ func (l *GatewayChainSynthesizer) AddHTTPRoute(route structs.HTTPRouteConfigEntr
 // This is currently used to help API gateways masquarade as ingress gateways
 // by providing a set of virtual config entries that change the routing behavior
 // to upstreams referenced in the given HTTPRoutes or TCPRoutes.
-func (l *GatewayChainSynthesizer) Synthesize(chains ...*structs.CompiledDiscoveryChain) ([]structs.IngressService, *structs.CompiledDiscoveryChain, error) {
+func (l *GatewayChainSynthesizer) Synthesize(chains ...*structs.CompiledDiscoveryChain) ([]structs.IngressService, []*structs.CompiledDiscoveryChain, error) {
 	if len(chains) == 0 {
 		return nil, nil, fmt.Errorf("must provide at least one compiled discovery chain")
 	}
 
-	services, entries := l.synthesizeEntries()
+	services, set := l.synthesizeEntries()
 
-	if entries.IsEmpty() {
+	if len(set) == 0 {
 		// we can't actually compile a discovery chain, i.e. we're using a TCPRoute-based listener, instead, just return the ingresses
-		// and the first pre-compiled discovery chain
-		return services, chains[0], nil
+		// and the pre-compiled discovery chains
+		return services, chains, nil
 	}
 
-	compiled, err := Compile(CompileRequest{
-		ServiceName:          l.gateway.Name,
-		EvaluateInNamespace:  l.gateway.NamespaceOrDefault(),
-		EvaluateInPartition:  l.gateway.PartitionOrDefault(),
-		EvaluateInDatacenter: l.datacenter,
-		Entries:              entries,
-	})
-	if err != nil {
-		return nil, nil, err
-	}
+	compiledChains := make([]*structs.CompiledDiscoveryChain, 0, len(set))
+	for i, service := range services {
+		entries := set[i]
 
-	for _, c := range chains {
-		for id, target := range c.Targets {
-			compiled.Targets[id] = target
+		compiled, err := Compile(CompileRequest{
+			ServiceName:           service.Name,
+			EvaluateInNamespace:   service.NamespaceOrDefault(),
+			EvaluateInPartition:   service.PartitionOrDefault(),
+			EvaluateInDatacenter:  l.datacenter,
+			EvaluateInTrustDomain: l.trustDomain,
+			Entries:               entries,
+		})
+
+		if err != nil {
+			return nil, nil, err
 		}
-		for id, node := range c.Nodes {
-			compiled.Nodes[id] = node
+		for _, c := range chains {
+			for id, target := range c.Targets {
+				compiled.Targets[id] = target
+			}
+			for id, node := range c.Nodes {
+				compiled.Nodes[id] = node
+			}
+			compiled.EnvoyExtensions = append(compiled.EnvoyExtensions, c.EnvoyExtensions...)
 		}
-		compiled.EnvoyExtensions = append(compiled.EnvoyExtensions, c.EnvoyExtensions...)
+		compiledChains = append(compiledChains, compiled)
 	}
 
-	return services, compiled, nil
+	return services, compiledChains, nil
 }
 
 // consolidateHTTPRoutes combines all rules into the shortest possible list of routes
@@ -132,7 +149,7 @@ func (l *GatewayChainSynthesizer) consolidateHTTPRoutes() []structs.HTTPRouteCon
 		// Create route for this hostname
 		route := structs.HTTPRouteConfigEntry{
 			Kind:           structs.HTTPRoute,
-			Name:           fmt.Sprintf("%s-%s", l.gateway.Name, hostsKey(hostname)),
+			Name:           fmt.Sprintf("%s-%s-%s", l.gateway.Name, l.suffix, hostsKey(hostname)),
 			Hostnames:      []string{hostname},
 			Rules:          make([]structs.HTTPRouteRule, 0, len(rules)),
 			Meta:           l.gateway.Meta,
@@ -170,16 +187,18 @@ func hostsKey(hosts ...string) string {
 	return strconv.FormatUint(uint64(hostsHash.Sum32()), 16)
 }
 
-func (l *GatewayChainSynthesizer) synthesizeEntries() ([]structs.IngressService, *configentry.DiscoveryChainSet) {
+func (l *GatewayChainSynthesizer) synthesizeEntries() ([]structs.IngressService, []*configentry.DiscoveryChainSet) {
 	services := []structs.IngressService{}
-	entries := configentry.NewDiscoveryChainSet()
+	entries := []*configentry.DiscoveryChainSet{}
 
 	for _, route := range l.consolidateHTTPRoutes() {
+		entrySet := configentry.NewDiscoveryChainSet()
 		ingress, router, splitters, defaults := synthesizeHTTPRouteDiscoveryChain(route)
-		entries.AddRouters(router)
-		entries.AddSplitters(splitters...)
-		entries.AddServices(defaults...)
+		entrySet.AddRouters(router)
+		entrySet.AddSplitters(splitters...)
+		entrySet.AddServices(defaults...)
 		services = append(services, ingress)
+		entries = append(entries, entrySet)
 	}
 
 	for _, route := range l.tcpRoutes {

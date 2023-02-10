@@ -68,6 +68,8 @@ func TestAPIGatewaySnapshotToIngressGatewaySnapshot(t *testing.T) {
 				ConfigSnapshotUpstreams: ConfigSnapshotUpstreams{
 					PeerUpstreamEndpoints:    watch.NewMap[UpstreamID, structs.CheckServiceNodes](),
 					WatchedLocalGWEndpoints:  watch.NewMap[string, structs.CheckServiceNodes](),
+					WatchedGatewayEndpoints:  map[UpstreamID]map[string]structs.CheckServiceNodes{},
+					WatchedUpstreamEndpoints: map[UpstreamID]map[string]structs.CheckServiceNodes{},
 					UpstreamPeerTrustBundles: watch.NewMap[string, *pbpeering.PeeringTrustBundle](),
 					DiscoveryChain:           map[UpstreamID]*structs.CompiledDiscoveryChain{},
 				},
