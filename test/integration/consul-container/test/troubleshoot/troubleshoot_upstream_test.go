@@ -28,6 +28,7 @@ func TestTroubleshootUpstream_Success(t *testing.T) {
 	// wait for envoy
 	time.Sleep(5 * time.Second)
 	_, outputReader, err := clientSidecar.Exec(context.Background(), []string{"consul", "troubleshoot", "upstreams", "-envoy-admin-endpoint", fmt.Sprintf("localhost:%v", port)})
+	require.NoError(t, err)
 	buf, err := io.ReadAll(outputReader)
 	require.NoError(t, err)
 	require.Contains(t, string(buf), libservice.StaticServerServiceName)
