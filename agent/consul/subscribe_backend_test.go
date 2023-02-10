@@ -71,7 +71,6 @@ func TestSubscribeBackend_IntegrationWithServer_TLSEnabled(t *testing.T) {
 			UseTLSForDC:           client.tlsConfigurator.UseTLS,
 			DialingFromServer:     true,
 			DialingFromDatacenter: "dc1",
-			BalancerBuilder:       balancerBuilder,
 		})
 		conn, err := pool.ClientConn("dc1")
 		require.NoError(t, err)
@@ -116,7 +115,6 @@ func TestSubscribeBackend_IntegrationWithServer_TLSEnabled(t *testing.T) {
 			UseTLSForDC:           client.tlsConfigurator.UseTLS,
 			DialingFromServer:     true,
 			DialingFromDatacenter: "dc1",
-			BalancerBuilder:       balancerBuilder,
 		})
 		conn, err := pool.ClientConn("dc1")
 		require.NoError(t, err)
@@ -204,7 +202,6 @@ func TestSubscribeBackend_IntegrationWithServer_TLSReload(t *testing.T) {
 		UseTLSForDC:           client.tlsConfigurator.UseTLS,
 		DialingFromServer:     true,
 		DialingFromDatacenter: "dc1",
-		BalancerBuilder:       balancerBuilder,
 	})
 	conn, err := pool.ClientConn("dc1")
 	require.NoError(t, err)
@@ -346,7 +343,6 @@ func TestSubscribeBackend_IntegrationWithServer_DeliversAllMessages(t *testing.T
 		UseTLSForDC:           client.tlsConfigurator.UseTLS,
 		DialingFromServer:     true,
 		DialingFromDatacenter: "dc1",
-		BalancerBuilder:       balancerBuilder,
 	})
 	conn, err := pool.ClientConn("dc1")
 	require.NoError(t, err)
@@ -395,6 +391,7 @@ func newClientWithGRPCPlumbing(t *testing.T, ops ...func(*Config)) (*Client, *re
 
 	balancerBuilder := balancer.NewBuilder(resolverBuilder.Authority(), testutil.Logger(t))
 	balancerBuilder.Register()
+	t.Cleanup(balancerBuilder.Deregister)
 
 	deps := newDefaultDeps(t, config)
 	deps.Router = router.NewRouter(

@@ -21,6 +21,8 @@ import (
 	"google.golang.org/grpc/stats"
 	"google.golang.org/grpc/status"
 
+	"github.com/hashicorp/go-uuid"
+
 	"github.com/hashicorp/consul/agent/grpc-middleware/testutil/testservice"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
@@ -34,10 +36,11 @@ func TestBalancer(t *testing.T) {
 		server1 := runServer(t, "server1")
 		server2 := runServer(t, "server2")
 
-		target, _ := stubResolver(t, server1, server2)
+		target, authority, _ := stubResolver(t, server1, server2)
 
-		balancerBuilder := NewBuilder(t.Name(), testutil.Logger(t))
+		balancerBuilder := NewBuilder(authority, testutil.Logger(t))
 		balancerBuilder.Register()
+		t.Cleanup(balancerBuilder.Deregister)
 
 		conn := dial(t, target, balancerBuilder)
 		client := testservice.NewSimpleClient(conn)
@@ -78,10 +81,11 @@ func TestBalancer(t *testing.T) {
 		server1 := runServer(t, "server1")
 		server2 := runServer(t, "server2")
 
-		target, _ := stubResolver(t, server1, server2)
+		target, authority, _ := stubResolver(t, server1, server2)
 
-		balancerBuilder := NewBuilder(t.Name(), testutil.Logger(t))
+		balancerBuilder := NewBuilder(authority, testutil.Logger(t))
 		balancerBuilder.Register()
+		t.Cleanup(balancerBuilder.Deregister)
 
 		conn := dial(t, target, balancerBuilder)
 		client := testservice.NewSimpleClient(conn)
@@ -123,10 +127,11 @@ func TestBalancer(t *testing.T) {
 		server1 := runServer(t, "server1")
 		server2 := runServer(t, "server2")
 
-		target, _ := stubResolver(t, server1, server2)
+		target, authority, _ := stubResolver(t, server1, server2)
 
-		balancerBuilder := NewBuilder(t.Name(), testutil.Logger(t))
+		balancerBuilder := NewBuilder(authority, testutil.Logger(t))
 		balancerBuilder.Register()
+		t.Cleanup(balancerBuilder.Deregister)
 
 		// Provide a custom prioritizer that causes Rebalance to choose whichever
 		// server didn't get our first request.
@@ -177,10 +182,11 @@ func TestBalancer(t *testing.T) {
 		server1 := runServer(t, "server1")
 		server2 := runServer(t, "server2")
 
-		target, res := stubResolver(t, server1, server2)
+		target, authority, res := stubResolver(t, server1, server2)
 
-		balancerBuilder := NewBuilder(t.Name(), testutil.Logger(t))
+		balancerBuilder := NewBuilder(authority, testutil.Logger(t))
 		balancerBuilder.Register()
+		t.Cleanup(balancerBuilder.Deregister)
 
 		conn := dial(t, target, balancerBuilder)
 		client := testservice.NewSimpleClient(conn)
@@ -233,7 +239,7 @@ func TestBalancer(t *testing.T) {
 	})
 }
 
-func stubResolver(t *testing.T, servers ...*server) (string, *manual.Resolver) {
+func stubResolver(t *testing.T, servers ...*server) (string, string, *manual.Resolver) {
 	t.Helper()
 
 	addresses := make([]resolver.Address, len(servers))
@@ -249,7 +255,10 @@ func stubResolver(t *testing.T, servers ...*server) (string, *manual.Resolver) {
 	resolver.Register(r)
 	t.Cleanup(func() { resolver.UnregisterForTesting(scheme) })
 
-	return fmt.Sprintf("%s://", scheme), r
+	authority, err := uuid.GenerateUUID()
+	require.NoError(t, err)
+
+	return fmt.Sprintf("%s://%s", scheme, authority), authority, r
 }
 
 func runServer(t *testing.T, name string) *server {
@@ -314,7 +323,7 @@ func dial(t *testing.T, target string, builder *Builder) *grpc.ClientConn {
 		target,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithDefaultServiceConfig(
-			fmt.Sprintf(`{"loadBalancingConfig":[{"%s":{}}]}`, builder.Name()),
+			fmt.Sprintf(`{"loadBalancingConfig":[{"%s":{}}]}`, BuilderName),
 		),
 	)
 	t.Cleanup(func() {

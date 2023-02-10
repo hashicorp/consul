@@ -526,9 +526,13 @@ func newDefaultDeps(t *testing.T, c *Config) Deps {
 
 	resolverBuilder := resolver.NewServerResolverBuilder(newTestResolverConfig(t, c.NodeName+"-"+c.Datacenter, c.Datacenter, "server"))
 	resolver.Register(resolverBuilder)
+	t.Cleanup(func() {
+		resolver.Deregister(resolverBuilder.Authority())
+	})
 
 	balancerBuilder := balancer.NewBuilder(resolverBuilder.Authority(), testutil.Logger(t))
 	balancerBuilder.Register()
+	t.Cleanup(balancerBuilder.Deregister)
 
 	r := router.NewRouter(
 		logger,
@@ -563,7 +567,6 @@ func newDefaultDeps(t *testing.T, c *Config) Deps {
 			UseTLSForDC:           tls.UseTLS,
 			DialingFromServer:     true,
 			DialingFromDatacenter: c.Datacenter,
-			BalancerBuilder:       balancerBuilder,
 		}),
 		LeaderForwarder:          resolverBuilder,
 		NewRequestRecorderFunc:   middleware.NewRequestRecorder,

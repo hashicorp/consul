@@ -1177,7 +1177,6 @@ func TestRPC_LocalTokenStrippedOnForward_GRPC(t *testing.T) {
 			Servers:               resolverBuilder,
 			DialingFromServer:     false,
 			DialingFromDatacenter: "dc2",
-			BalancerBuilder:       balancerBuilder,
 		})
 
 		conn, err = pool.ClientConn("dc2")
