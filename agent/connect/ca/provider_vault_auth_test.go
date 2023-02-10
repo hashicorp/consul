@@ -9,9 +9,78 @@ import (
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/go-secure-stdlib/awsutil"
+	cf "github.com/hashicorp/vault-plugin-auth-cf"
+	"github.com/hashicorp/vault-plugin-auth-cf/testing/certificates"
 	"github.com/hashicorp/vault/api/auth/gcp"
 	"github.com/stretchr/testify/require"
 )
+
+func TestVaultCAProvider_CFAuthClient(t *testing.T) {
+	testCerts, err := certificates.Generate("a", "b", "c", "d", "10.10.10.10")
+	require.NoError(t, err)
+	defer testCerts.Close()
+
+	setEnvVars := func() func() {
+		os.Setenv(cf.EnvVarInstanceCertificate, testCerts.PathToInstanceCertificate)
+		os.Setenv(cf.EnvVarInstanceKey, testCerts.PathToInstanceKey)
+		return func() {
+			os.Unsetenv(cf.EnvVarInstanceCertificate)
+			os.Unsetenv(cf.EnvVarInstanceKey)
+		}
+	}
+	noop := func() func() { return func() {} }
+	cases := map[string]struct {
+		authMethod *structs.VaultAuthMethod
+		setup      func() func() // returns cleanup
+		expErr     error
+	}{
+		"base-case": {
+			authMethod: &structs.VaultAuthMethod{
+				Type:   "cf",
+				Params: map[string]interface{}{"role": "test-role"},
+			},
+			setup: setEnvVars,
+		},
+		"no-role": {
+			authMethod: &structs.VaultAuthMethod{
+				Type:   "cf",
+				Params: map[string]interface{}{},
+			},
+			setup:  noop,
+			expErr: fmt.Errorf("missing 'role' value"),
+		},
+		"no-cert": {
+			authMethod: &structs.VaultAuthMethod{
+				Type:   "cf",
+				Params: map[string]interface{}{"role": "test-role"},
+			},
+			setup: noop,
+			expErr: fmt.Errorf("missing environment value: %q",
+				cf.EnvVarInstanceCertificate),
+		},
+	}
+
+	for name, c := range cases {
+		t.Run(name, func(t *testing.T) {
+			defer c.setup()()
+			auth, err := NewCFAuthClient(c.authMethod)
+			if c.expErr != nil {
+				require.Equal(t, err, c.expErr)
+				return
+			}
+			require.NoError(t, err)
+			require.NotNil(t, auth)
+
+			encodedData, err := auth.LoginDataGen(c.authMethod)
+			require.NoError(t, err)
+			require.NotNil(t, encodedData)
+
+			require.Contains(t, encodedData, "cf_instance_cert")
+			require.Contains(t, encodedData, "signature")
+			require.Subset(t, encodedData, map[string]any{"role": "test-role"})
+		})
+	}
+}
 
 func TestVaultCAProvider_GCPAuthClient(t *testing.T) {
 	cases := map[string]struct {
