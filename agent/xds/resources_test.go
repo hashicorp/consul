@@ -9,6 +9,8 @@ import (
 	envoy_endpoint_v3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	envoy_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
+	envoy_tls_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
+
 	"github.com/hashicorp/consul/agent/xds/testcommon"
 	"github.com/hashicorp/consul/envoyextensions/xdscommon"
 
@@ -25,6 +27,7 @@ var testTypeUrlToPrettyName = map[string]string{
 	xdscommon.RouteType:    "routes",
 	xdscommon.ClusterType:  "clusters",
 	xdscommon.EndpointType: "endpoints",
+	xdscommon.SecretType:   "secrets",
 }
 
 type goldenTestCase struct {
@@ -60,7 +63,7 @@ func TestAllResourcesFromSnapshot(t *testing.T) {
 
 		// We need to replace the TLS certs with deterministic ones to make golden
 		// files workable. Note we don't update these otherwise they'd change
-		// golder files for every test case and so not be any use!
+		// golden files for every test case and so not be any use!
 		testcommon.SetupTLSRootsAndLeaf(t, snap)
 
 		if tt.setup != nil {
@@ -82,6 +85,7 @@ func TestAllResourcesFromSnapshot(t *testing.T) {
 			xdscommon.RouteType,
 			xdscommon.ClusterType,
 			xdscommon.EndpointType,
+			xdscommon.SecretType,
 		}
 		require.Len(t, resources, len(typeUrls))
 
@@ -101,6 +105,8 @@ func TestAllResourcesFromSnapshot(t *testing.T) {
 						return items[i].(*envoy_cluster_v3.Cluster).Name < items[j].(*envoy_cluster_v3.Cluster).Name
 					case xdscommon.EndpointType:
 						return items[i].(*envoy_endpoint_v3.ClusterLoadAssignment).ClusterName < items[j].(*envoy_endpoint_v3.ClusterLoadAssignment).ClusterName
+					case xdscommon.SecretType:
+						return items[i].(*envoy_tls_v3.Secret).Name < items[j].(*envoy_tls_v3.Secret).Name
 					default:
 						panic("not possible")
 					}
