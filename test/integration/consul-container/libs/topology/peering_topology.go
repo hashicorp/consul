@@ -43,7 +43,7 @@ func BasicPeeringTwoClustersSetup(
 	consulVersion string,
 ) (*BuiltCluster, *BuiltCluster) {
 	// acceptingCluster, acceptingCtx, acceptingClient := NewPeeringCluster(t, "dc1", 3, consulVersion, true)
-	acceptingCluster, acceptingCtx, acceptingClient := NewPeeringCluster(t, 1, &libcluster.BuildOptions{
+	acceptingCluster, acceptingCtx, acceptingClient := NewPeeringCluster(t, 3, &libcluster.BuildOptions{
 		Datacenter:           "dc1",
 		ConsulVersion:        consulVersion,
 		InjectAutoEncryption: true,
