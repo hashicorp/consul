@@ -6,9 +6,9 @@ import (
 	"net"
 	"os"
 
+	"github.com/hashicorp/consul/command/cli"
 	"github.com/hashicorp/consul/command/flags"
 	troubleshoot "github.com/hashicorp/consul/troubleshoot/proxy"
-	"github.com/mitchellh/cli"
 )
 
 func New(ui cli.Ui) *cmd {
@@ -86,13 +86,14 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
+	c.UI.HeaderOutput("Validation")
 	for _, o := range messages {
 		if o.Success {
-			c.UI.Output(o.Message)
+			c.UI.SuccessOutput(o.Message)
 		} else {
-			c.UI.Error(o.Message)
+			c.UI.ErrorOutput(o.Message)
 			if o.PossibleActions != "" {
-				c.UI.Output(o.PossibleActions)
+				c.UI.UnchangedOutput(o.PossibleActions)
 			}
 		}
 	}
