@@ -10,6 +10,8 @@ module(`Integration | Service | coordinate`, function (hooks) {
   setupTest(hooks);
 
   test('findAllByDatacenter returns the correct data for list endpoint', function (assert) {
+    assert.expect(1);
+
     const subject = this.owner.lookup('service:repository/coordinate');
 
     subject.store.serializerFor('coordinate').timestamp = function () {
@@ -53,6 +55,7 @@ module(`Integration | Service | coordinate`, function (hooks) {
   });
   test('findAllByNode calls findAllByDatacenter with the correct arguments', function (assert) {
     assert.expect(3);
+
     const datacenter = 'dc-1';
     const conf = {
       cursor: 1,

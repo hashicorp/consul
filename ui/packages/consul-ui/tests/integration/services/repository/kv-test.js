@@ -13,6 +13,8 @@ module(`Integration | Service | kv`, function (hooks) {
   const partition = 'default';
   [undefinedNspace, 'team-1', undefined].forEach((nspace) => {
     test(`findAllBySlug returns the correct data for list endpoint when nspace is ${nspace}`, function (assert) {
+      assert.expect(2);
+
       const subject = this.owner.lookup('service:repository/kv');
 
       subject.store.serializerFor('kv').timestamp = function () {
@@ -58,6 +60,8 @@ module(`Integration | Service | kv`, function (hooks) {
       );
     });
     test(`findBySlug returns the correct data for item endpoint when nspace is ${nspace}`, function (assert) {
+      assert.expect(2);
+
       const subject = this.owner.lookup('service:repository/kv');
 
       return repo(

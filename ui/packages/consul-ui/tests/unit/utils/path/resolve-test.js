@@ -3,6 +3,7 @@ import { module, test } from 'qunit';
 
 module('Unit | Utility | path/resolve', function () {
   test('it resolves paths', function (assert) {
+    assert.expect(9);
     [
       {
         from: 'dc/intentions/create',

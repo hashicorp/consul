@@ -5,8 +5,8 @@ import sinon from 'sinon';
 module('Unit | Utility | dom/create listeners', function () {
   test('it has add and remove methods', function (assert) {
     const listeners = createListeners();
-    assert.ok(typeof listeners.add === 'function');
-    assert.ok(typeof listeners.remove === 'function');
+    assert.strictEqual(typeof listeners.add, 'function');
+    assert.strictEqual(typeof listeners.remove, 'function');
   });
   test('add returns a remove function', function (assert) {
     const listeners = createListeners();
@@ -16,7 +16,7 @@ module('Unit | Utility | dom/create listeners', function () {
       },
       'click'
     );
-    assert.ok(typeof remove === 'function');
+    assert.strictEqual(typeof remove, 'function');
   });
   test('remove returns an array of removed handlers (the return of a saved remove)', function (assert) {
     // just use true here to prove that it's what gets returned
