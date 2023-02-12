@@ -29,6 +29,7 @@ module('Integration | Adapter | auth-method', function (hooks) {
     });
   });
   test('requestForQueryRecord returns the correct body', function (assert) {
+    assert.expect(2);
     return nspaceRunner(
       (adapter, serializer, client) => {
         const request = client.body.bind(client);

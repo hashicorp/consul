@@ -60,6 +60,7 @@ module(`Integration | Service | policy`, function (hooks) {
       );
     });
     test(`findBySlug returns the correct data for item endpoint when the nspace is ${nspace}`, function (assert) {
+      assert.expect(2);
       const subject = this.owner.lookup('service:repository/policy');
       return repo(
         'Policy',

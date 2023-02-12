@@ -59,6 +59,8 @@ module('Unit | Search | Predicate | intention', function () {
     assert.equal(actual.length, 2);
   });
   test("* items are found by searching anything in 'All Services (*)'", function (assert) {
+    assert.expect(6);
+
     const actual = new ExactSearch(
       [
         {

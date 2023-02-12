@@ -12,13 +12,13 @@ module('Integration | Component | auth-profile', function (hooks) {
 
     await render(hbs`<AuthProfile />`);
 
-    assert.ok(this.element.textContent.indexOf('AccessorID') !== -1);
+    assert.notStrictEqual(this.element.textContent.indexOf('AccessorID'), -1);
 
     // Template block usage:
     await render(hbs`
       <AuthProfile></AuthProfile>
     `);
 
-    assert.ok(this.element.textContent.indexOf('AccessorID') !== -1);
+    assert.notStrictEqual(this.element.textContent.indexOf('AccessorID'), -1);
   });
 });

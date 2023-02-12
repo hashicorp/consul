@@ -2,7 +2,6 @@ package proxycfg
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"sort"
 	"strings"
@@ -641,6 +640,55 @@ func (c *configSnapshotMeshGateway) isEmptyPeering() bool {
 		!c.PeeringTrustBundlesSet
 }
 
+type upstreamIDSet map[UpstreamID]struct{}
+
+func (u upstreamIDSet) add(uid UpstreamID) {
+	u[uid] = struct{}{}
+}
+
+type routeUpstreamSet map[structs.ResourceReference]upstreamIDSet
+
+func (r routeUpstreamSet) hasUpstream(uid UpstreamID) bool {
+	for _, set := range r {
+		if _, ok := set[uid]; ok {
+			return true
+		}
+	}
+	return false
+}
+
+func (r routeUpstreamSet) set(route structs.ResourceReference, set upstreamIDSet) {
+	r[route] = set
+}
+
+func (r routeUpstreamSet) delete(route structs.ResourceReference) {
+	delete(r, route)
+}
+
+type listenerUpstreamMap map[APIGatewayListenerKey]structs.Upstreams
+type listenerRouteUpstreams map[structs.ResourceReference]listenerUpstreamMap
+
+func (l listenerRouteUpstreams) set(route structs.ResourceReference, listener APIGatewayListenerKey, upstreams structs.Upstreams) {
+	if _, ok := l[route]; !ok {
+		l[route] = make(listenerUpstreamMap)
+	}
+	l[route][listener] = upstreams
+}
+
+func (l listenerRouteUpstreams) delete(route structs.ResourceReference) {
+	delete(l, route)
+}
+
+func (l listenerRouteUpstreams) toUpstreams() map[IngressListenerKey]structs.Upstreams {
+	listeners := make(map[IngressListenerKey]structs.Upstreams, len(l))
+	for _, listenerMap := range l {
+		for listener, set := range listenerMap {
+			listeners[listener] = append(listeners[listener], set...)
+		}
+	}
+	return listeners
+}
+
 type configSnapshotAPIGateway struct {
 	ConfigSnapshotUpstreams
 
@@ -669,10 +717,10 @@ type configSnapshotAPIGateway struct {
 	// the GatewayServices RPC to retrieve them.
 	// TODO Determine if this is updated "for free" or not. If not, we might need
 	//   to do some work to populate it in handlerAPIGateway
-	Upstreams map[IngressListenerKey]structs.Upstreams
+	Upstreams listenerRouteUpstreams
 
 	// UpstreamsSet is the unique set of UpstreamID the gateway routes to.
-	UpstreamsSet map[UpstreamID]struct{}
+	UpstreamsSet routeUpstreamSet
 
 	HTTPRoutes   watch.Map[structs.ResourceReference, *structs.HTTPRouteConfigEntry]
 	TCPRoutes    watch.Map[structs.ResourceReference, *structs.TCPRouteConfigEntry]
@@ -733,17 +781,18 @@ func (c *configSnapshotAPIGateway) ToIngress(datacenter string) (configSnapshotI
 		}
 		ingressListener.TLS = tls
 
-		ingressListeners[IngressListenerKey{
+		key := IngressListenerKey{
 			Port:     listener.Port,
 			Protocol: string(listener.Protocol),
-		}] = ingressListener
+		}
+		ingressListeners[key] = ingressListener
 	}
-	upstreams := c.DeepCopy().ConfigSnapshotUpstreams
-	upstreams.DiscoveryChain = synthesizedChains
+	snapshotUpstreams := c.DeepCopy().ConfigSnapshotUpstreams
+	snapshotUpstreams.DiscoveryChain = synthesizedChains
 
 	return configSnapshotIngressGateway{
-		Upstreams:               c.Upstreams,
-		ConfigSnapshotUpstreams: upstreams,
+		Upstreams:               c.Upstreams.toUpstreams(),
+		ConfigSnapshotUpstreams: snapshotUpstreams,
 		GatewayConfigLoaded:     true,
 		Listeners:               ingressListeners,
 	}, nil
@@ -784,7 +833,7 @@ func (c *configSnapshotAPIGateway) synthesizeChains(datacenter string, protocol 
 	}
 
 	if len(chains) == 0 {
-		return nil, nil, errors.New("could not synthesize discovery chain")
+		return nil, nil, nil
 	}
 
 	return synthesizer.Synthesize(chains...)
