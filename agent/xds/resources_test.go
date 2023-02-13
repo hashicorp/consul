@@ -171,6 +171,7 @@ func TestAllResourcesFromSnapshot(t *testing.T) {
 	tests = append(tests, getMeshGatewayPeeringGoldenTestCases()...)
 	tests = append(tests, getTrafficControlPeeringGoldenTestCases()...)
 	tests = append(tests, getEnterpriseGoldenTestCases()...)
+	tests = append(tests, getAPIGatewayGoldenTestCases()...)
 
 	latestEnvoyVersion := xdscommon.EnvoyVersions[0]
 	for _, envoyVersion := range xdscommon.EnvoyVersions {
@@ -258,6 +259,17 @@ func getTrafficControlPeeringGoldenTestCases() []goldenTestCase {
 			name: "connect-proxy-with-chain-and-redirect-to-cluster-peer",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "redirect-to-cluster-peer", nil, nil)
+			},
+		},
+	}
+}
+
+func getAPIGatewayGoldenTestCases() []goldenTestCase {
+	return []goldenTestCase{
+		{
+			name:"api-gateway-with-tcp-route-and-inline-certificate",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotAPIGateway(t)
 			},
 		},
 	}
