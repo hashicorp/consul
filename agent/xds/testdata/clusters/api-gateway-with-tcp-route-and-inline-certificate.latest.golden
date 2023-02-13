@@ -1,0 +1,55 @@
+{
+  "versionInfo": "00000001",
+  "resources": [
+    {
+      "@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
+      "name": "my-tcp-service.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+      "altStatName": "my-tcp-service.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+      "type": "EDS",
+      "edsClusterConfig": {
+        "edsConfig": {
+          "ads": {},
+          "resourceApiVersion": "V3"
+        }
+      },
+      "connectTimeout": "5s",
+      "circuitBreakers": {},
+      "outlierDetection": {},
+      "commonLbConfig": {
+        "healthyPanicThreshold": {}
+      },
+      "transportSocket": {
+        "name": "tls",
+        "typedConfig": {
+          "@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext",
+          "commonTlsContext": {
+            "tlsParams": {},
+            "tlsCertificates": [
+              {
+                "certificateChain": {
+                  "inlineString": "-----BEGIN CERTIFICATE-----\nMIICBjCCAaugAwIBAgIIHm2Ne79HM58wCgYIKoZIzj0EAwIwFjEUMBIGA1UEAxML\nVGVzdCBDQSA5NDMwHhcNMjMwMjEzMTk1NzI2WhcNMzMwMjEwMTk1NzI2WjAAMFkw\nEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEAawh2wC9ZhCtUed7oCpIsAZkXimQhgrJ\nVo5sVUcnN2Q2qCb3oZxsGF5rtdgID5AP9llsCHQRCvxrRhfOoMApFqOB+DCB9TAO\nBgNVHQ8BAf8EBAMCA7gwHQYDVR0lBBYwFAYIKwYBBQUHAwIGCCsGAQUFBwMBMAwG\nA1UdEwEB/wQCMAAwKQYDVR0OBCIEIEsxvBvrDLKHFHlFm6HzaNgGYZ0lSRw085oL\n11VVN5r/MCsGA1UdIwQkMCKAIIz1Q3Mkg4ls2U5Ye4l0U0VrSh4TLjIixSIoCaKy\nyv3hMF4GA1UdEQEB/wRUMFKCAIZOc3BpZmZlOi8vMTExMTExMTEtMjIyMi0zMzMz\nLTQ0NDQtNTU1NTU1NTU1NTU1LmNvbnN1bC9ucy9kZWZhdWx0L2RjL2RjMS9zdmMv\nd2ViMAoGCCqGSM49BAMCA0kAMEYCIQC2DzWWs710/sCL9fz68JoAHBNof/t6Kzxy\nWQoVdSTNzAIhAMiEGoHeFJubTrA4ArrYfZetFTucN8bZQT7Kwd9y1BaL\n-----END CERTIFICATE-----\n"
+                },
+                "privateKey": {
+                  "inlineString": "-----BEGIN EC PRIVATE KEY-----\nMHcCAQEEIAOQb7PQqvdj8o0x/mk5WN8gvM0QrWY6Da1JhpKMUEcpoAoGCCqGSM49\nAwEHoUQDQgAEAawh2wC9ZhCtUed7oCpIsAZkXimQhgrJVo5sVUcnN2Q2qCb3oZxs\nGF5rtdgID5AP9llsCHQRCvxrRhfOoMApFg==\n-----END EC PRIVATE KEY-----\n"
+                }
+              }
+            ],
+            "validationContext": {
+              "trustedCa": {
+                "inlineString": "-----BEGIN CERTIFICATE-----\nMIICXDCCAgKgAwIBAgIICpZq70Z9LyUwCgYIKoZIzj0EAwIwFDESMBAGA1UEAxMJ\nVGVzdCBDQSAyMB4XDTE5MDMyMjEzNTgyNloXDTI5MDMyMjEzNTgyNlowFDESMBAG\nA1UEAxMJVGVzdCBDQSAyMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEIhywH1gx\nAsMwuF3ukAI5YL2jFxH6Usnma1HFSfVyxbXX1/uoZEYrj8yCAtdU2yoHETyd+Zx2\nThhRLP79pYegCaOCATwwggE4MA4GA1UdDwEB/wQEAwIBhjAPBgNVHRMBAf8EBTAD\nAQH/MGgGA1UdDgRhBF9kMToxMToxMTphYzoyYTpiYTo5NzpiMjozZjphYzo3Yjpi\nZDpkYTpiZTpiMTo4YTpmYzo5YTpiYTpiNTpiYzo4MzplNzo1ZTo0MTo2ZjpmMjo3\nMzo5NTo1ODowYzpkYjBqBgNVHSMEYzBhgF9kMToxMToxMTphYzoyYTpiYTo5Nzpi\nMjozZjphYzo3YjpiZDpkYTpiZTpiMTo4YTpmYzo5YTpiYTpiNTpiYzo4MzplNzo1\nZTo0MTo2ZjpmMjo3Mzo5NTo1ODowYzpkYjA/BgNVHREEODA2hjRzcGlmZmU6Ly8x\nMTExMTExMS0yMjIyLTMzMzMtNDQ0NC01NTU1NTU1NTU1NTUuY29uc3VsMAoGCCqG\nSM49BAMCA0gAMEUCICOY0i246rQHJt8o8Oya0D5PLL1FnmsQmQqIGCi31RwnAiEA\noR5f6Ku+cig2Il8T8LJujOp2/2A72QcHZA57B13y+8o=\n-----END CERTIFICATE-----\n"
+              },
+              "matchSubjectAltNames": [
+                {
+                  "exact": "spiffe://11111111-2222-3333-4444-555555555555.consul/ns/default/dc/dc1/svc/my-tcp-service"
+                }
+              ]
+            }
+          },
+          "sni": "my-tcp-service.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
+        }
+      }
+    }
+  ],
+  "typeUrl": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
+  "nonce": "00000001"
+}
