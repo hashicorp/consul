@@ -166,7 +166,7 @@ func NewConnectService(ctx context.Context, sidecarServiceName string, serviceID
 		Name:           containerName,
 		Cmd: []string{
 			"consul", "connect", "envoy",
-			"-sidecar-for", serviceName,
+			"-sidecar-for", serviceID,
 			"-admin-bind", fmt.Sprintf("0.0.0.0:%d", internalAdminPort),
 			"--",
 			"--log-level", envoyLogLevel,
