@@ -4,6 +4,22 @@ package pbcommon
 
 import "github.com/hashicorp/consul/agent/structs"
 
+func EnvoyExtensionToStructs(s *EnvoyExtension, t *structs.EnvoyExtension) {
+	if s == nil {
+		return
+	}
+	t.Name = s.Name
+	t.Required = s.Required
+	t.Arguments = ProtobufTypesStructToMapStringInterface(s.Arguments)
+}
+func EnvoyExtensionFromStructs(t *structs.EnvoyExtension, s *EnvoyExtension) {
+	if s == nil {
+		return
+	}
+	s.Name = t.Name
+	s.Required = t.Required
+	s.Arguments = MapStringInterfaceToProtobufTypesStruct(t.Arguments)
+}
 func QueryMetaToStructs(s *QueryMeta, t *structs.QueryMeta) {
 	if s == nil {
 		return

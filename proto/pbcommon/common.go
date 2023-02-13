@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/agent/structs"
+	durationpb "google.golang.org/protobuf/types/known/durationpb"
 )
 
 // IsRead is always true for QueryOption
@@ -36,7 +37,7 @@ func (q *QueryOptions) SetMinQueryIndex(minQueryIndex uint64) {
 
 // SetMaxQueryTime is needed to implement the structs.QueryOptionsCompat interface
 func (q *QueryOptions) SetMaxQueryTime(maxQueryTime time.Duration) {
-	q.MaxQueryTime = structs.DurationToProto(maxQueryTime)
+	q.MaxQueryTime = durationpb.New(maxQueryTime)
 }
 
 // SetAllowStale is needed to implement the structs.QueryOptionsCompat interface
@@ -56,12 +57,12 @@ func (q *QueryOptions) SetUseCache(useCache bool) {
 
 // SetMaxStaleDuration is needed to implement the structs.QueryOptionsCompat interface
 func (q *QueryOptions) SetMaxStaleDuration(maxStaleDuration time.Duration) {
-	q.MaxStaleDuration = structs.DurationToProto(maxStaleDuration)
+	q.MaxStaleDuration = durationpb.New(maxStaleDuration)
 }
 
 // SetMaxAge is needed to implement the structs.QueryOptionsCompat interface
 func (q *QueryOptions) SetMaxAge(maxAge time.Duration) {
-	q.MaxAge = structs.DurationToProto(maxAge)
+	q.MaxAge = durationpb.New(maxAge)
 }
 
 // SetMustRevalidate is needed to implement the structs.QueryOptionsCompat interface
@@ -71,7 +72,7 @@ func (q *QueryOptions) SetMustRevalidate(mustRevalidate bool) {
 
 // SetStaleIfError is needed to implement the structs.QueryOptionsCompat interface
 func (q *QueryOptions) SetStaleIfError(staleIfError time.Duration) {
-	q.StaleIfError = structs.DurationToProto(staleIfError)
+	q.StaleIfError = durationpb.New(staleIfError)
 }
 
 func (q *QueryOptions) HasTimedOut(start time.Time, rpcHoldTimeout, maxQueryTime, defaultQueryTime time.Duration) (bool, error) {
@@ -82,7 +83,7 @@ func (q *QueryOptions) HasTimedOut(start time.Time, rpcHoldTimeout, maxQueryTime
 
 // BlockingTimeout implements pool.BlockableQuery
 func (q *QueryOptions) BlockingTimeout(maxQueryTime, defaultQueryTime time.Duration) time.Duration {
-	maxTime := structs.DurationFromProto(q.MaxQueryTime)
+	maxTime := q.MaxQueryTime.AsDuration()
 	o := structs.QueryOptions{
 		MaxQueryTime:  maxTime,
 		MinQueryIndex: q.MinQueryIndex,
@@ -157,7 +158,7 @@ func (td *TargetDatacenter) RequestDatacenter() string {
 
 // SetLastContact is needed to implement the structs.QueryMetaCompat interface
 func (q *QueryMeta) SetLastContact(lastContact time.Duration) {
-	q.LastContact = structs.DurationToProto(lastContact)
+	q.LastContact = durationpb.New(lastContact)
 }
 
 // SetKnownLeader is needed to implement the structs.QueryMetaCompat interface

@@ -3,11 +3,12 @@ package xds
 import (
 	"fmt"
 
-	"github.com/golang/protobuf/proto"
 	"github.com/hashicorp/go-hclog"
+	"google.golang.org/protobuf/proto"
+
+	"github.com/hashicorp/consul/envoyextensions/xdscommon"
 
 	"github.com/hashicorp/consul/agent/proxycfg"
-	"github.com/hashicorp/consul/agent/xds/xdscommon"
 )
 
 // ResourceGenerator is associated with a single gRPC stream and creates xDS
@@ -17,10 +18,10 @@ type ResourceGenerator struct {
 	CfgFetcher     ConfigFetcher
 	IncrementalXDS bool
 
-	ProxyFeatures supportedProxyFeatures
+	ProxyFeatures xdscommon.SupportedProxyFeatures
 }
 
-func newResourceGenerator(
+func NewResourceGenerator(
 	logger hclog.Logger,
 	cfgFetcher ConfigFetcher,
 	incrementalXDS bool,
@@ -32,8 +33,9 @@ func newResourceGenerator(
 	}
 }
 
-func (g *ResourceGenerator) allResourcesFromSnapshot(cfgSnap *proxycfg.ConfigSnapshot) (map[string][]proto.Message, error) {
+func (g *ResourceGenerator) AllResourcesFromSnapshot(cfgSnap *proxycfg.ConfigSnapshot) (map[string][]proto.Message, error) {
 	all := make(map[string][]proto.Message)
+	// TODO Add xdscommon.SecretType
 	for _, typeUrl := range []string{xdscommon.ListenerType, xdscommon.RouteType, xdscommon.ClusterType, xdscommon.EndpointType} {
 		res, err := g.resourcesFromSnapshot(typeUrl, cfgSnap)
 		if err != nil {
@@ -54,6 +56,8 @@ func (g *ResourceGenerator) resourcesFromSnapshot(typeUrl string, cfgSnap *proxy
 		return g.clustersFromSnapshot(cfgSnap)
 	case xdscommon.EndpointType:
 		return g.endpointsFromSnapshot(cfgSnap)
+	case xdscommon.SecretType:
+		return g.secretsFromSnapshot(cfgSnap)
 	default:
 		return nil, fmt.Errorf("unknown typeUrl: %s", typeUrl)
 	}

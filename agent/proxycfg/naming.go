@@ -180,3 +180,11 @@ func UpstreamsToMap(us structs.Upstreams) map[UpstreamID]*structs.Upstream {
 	}
 	return upstreamMap
 }
+
+func NewWildcardUID(entMeta *acl.EnterpriseMeta) UpstreamID {
+	wildcardSID := structs.NewServiceID(
+		structs.WildcardSpecifier,
+		entMeta.WithWildcardNamespace(),
+	)
+	return NewUpstreamIDFromServiceID(wildcardSID)
+}

@@ -3,13 +3,18 @@ package service
 import (
 	"context"
 	"fmt"
+	"io"
+	"path/filepath"
+	"strconv"
 	"time"
 
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
 
 	"github.com/hashicorp/consul/api"
-	libnode "github.com/hashicorp/consul/test/integration/consul-container/libs/agent"
+
+	"github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
+	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 )
 
@@ -19,8 +24,32 @@ type gatewayContainer struct {
 	container   testcontainers.Container
 	ip          string
 	port        int
-	req         testcontainers.ContainerRequest
+	adminPort   int
 	serviceName string
+}
+
+var _ Service = (*gatewayContainer)(nil)
+
+func (g gatewayContainer) Export(partition, peer string, client *api.Client) error {
+	return fmt.Errorf("gatewayContainer export unimplemented")
+}
+
+func (g gatewayContainer) GetAddr() (string, int) {
+	return g.ip, g.port
+}
+
+func (g gatewayContainer) GetLogs() (string, error) {
+	rc, err := g.container.Logs(context.Background())
+	if err != nil {
+		return "", fmt.Errorf("could not get logs for gateway service %s: %w", g.GetServiceName(), err)
+	}
+	defer rc.Close()
+
+	out, err := io.ReadAll(rc)
+	if err != nil {
+		return "", fmt.Errorf("could not read from logs for gateway service %s: %w", g.GetServiceName(), err)
+	}
+	return string(out), nil
 }
 
 func (g gatewayContainer) GetName() string {
@@ -31,8 +60,8 @@ func (g gatewayContainer) GetName() string {
 	return name
 }
 
-func (g gatewayContainer) GetAddr() (string, int) {
-	return g.ip, g.port
+func (g gatewayContainer) GetServiceName() string {
+	return g.serviceName
 }
 
 func (g gatewayContainer) Start() error {
@@ -42,43 +71,50 @@ func (g gatewayContainer) Start() error {
 	return g.container.Start(context.Background())
 }
 
-// Terminate attempts to terminate the container. On failure, an error will be
-// returned and the reaper process (RYUK) will handle cleanup.
 func (c gatewayContainer) Terminate() error {
-	if c.container == nil {
-		return nil
+	return cluster.TerminateContainer(c.ctx, c.container, true)
+}
+
+func (g gatewayContainer) GetAdminAddr() (string, int) {
+	return "localhost", g.adminPort
+}
+
+func (g gatewayContainer) Restart() error {
+	_, err := g.container.State(g.ctx)
+	if err != nil {
+		return fmt.Errorf("error get gateway state %s", err)
 	}
 
-	var err error
-	if *utils.FollowLog {
-		err = c.container.StopLogProducer()
-		if err1 := c.container.Terminate(c.ctx); err == nil {
-			err = err1
-		}
-	} else {
-		err = c.container.Terminate(c.ctx)
+	err = g.container.Stop(g.ctx, nil)
+	if err != nil {
+		return fmt.Errorf("error stop gateway %s", err)
+	}
+	err = g.container.Start(g.ctx)
+	if err != nil {
+		return fmt.Errorf("error start gateway %s", err)
+	}
+	return nil
+}
+
+func (g gatewayContainer) GetStatus() (string, error) {
+	state, err := g.container.State(g.ctx)
+	return state.Status, err
+}
+
+func NewGatewayService(ctx context.Context, name string, kind string, node libcluster.Agent) (Service, error) {
+	nodeConfig := node.GetConfig()
+	if nodeConfig.ScratchDir == "" {
+		return nil, fmt.Errorf("node ScratchDir is required")
 	}
 
-	c.container = nil
-
-	return err
-}
-
-func (g gatewayContainer) Export(partition, peer string, client *api.Client) error {
-	return fmt.Errorf("gatewayContainer export unimplemented")
-}
-
-func (g gatewayContainer) GetServiceName() string {
-	return g.serviceName
-}
-
-func NewGatewayService(ctx context.Context, name string, kind string, node libnode.Agent) (Service, error) {
 	namePrefix := fmt.Sprintf("%s-service-gateway-%s", node.GetDatacenter(), name)
 	containerName := utils.RandName(namePrefix)
 
 	envoyVersion := getEnvoyVersion()
+	agentConfig := node.GetConfig()
 	buildargs := map[string]*string{
 		"ENVOY_VERSION": utils.StringToPointer(envoyVersion),
+		"CONSUL_IMAGE":  utils.StringToPointer(agentConfig.DockerImage()),
 	}
 
 	dockerfileCtx, err := getDevContainerDockerfile()
@@ -87,7 +123,10 @@ func NewGatewayService(ctx context.Context, name string, kind string, node libno
 	}
 	dockerfileCtx.BuildArgs = buildargs
 
-	nodeIP, _ := node.GetAddr()
+	adminPort, err := node.ClaimAdminPort()
+	if err != nil {
+		return nil, err
+	}
 
 	req := testcontainers.ContainerRequest{
 		FromDockerfile: dockerfileCtx,
@@ -100,45 +139,61 @@ func NewGatewayService(ctx context.Context, name string, kind string, node libno
 			"-register",
 			"-service", name,
 			"-address", "{{ GetInterfaceIP \"eth0\" }}:8443",
-			fmt.Sprintf("-grpc-addr=%s:%d", nodeIP, 8502),
-			"-admin-bind", "0.0.0.0:19000",
+			"-admin-bind", fmt.Sprintf("0.0.0.0:%d", adminPort),
 			"--",
-			"--log-level", envoyLogLevel},
-		Env: map[string]string{"CONSUL_HTTP_ADDR": fmt.Sprintf("%s:%d", nodeIP, 8500)},
-		ExposedPorts: []string{
-			"8443/tcp",  // Envoy Gateway Listener
-			"19000/tcp", // Envoy Admin Port
+			"--log-level", envoyLogLevel,
 		},
+		Env: make(map[string]string),
 	}
-	container, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
-		ContainerRequest: req,
-		Started:          true,
+
+	nodeInfo := node.GetInfo()
+	if nodeInfo.UseTLSForAPI || nodeInfo.UseTLSForGRPC {
+		req.Mounts = append(req.Mounts, testcontainers.ContainerMount{
+			Source: testcontainers.DockerBindMountSource{
+				// See cluster.NewConsulContainer for this info
+				HostPath: filepath.Join(nodeConfig.ScratchDir, "ca.pem"),
+			},
+			Target:   "/ca.pem",
+			ReadOnly: true,
+		})
+	}
+
+	if nodeInfo.UseTLSForAPI {
+		req.Env["CONSUL_HTTP_ADDR"] = fmt.Sprintf("https://127.0.0.1:%d", 8501)
+		req.Env["CONSUL_HTTP_SSL"] = "1"
+		req.Env["CONSUL_CACERT"] = "/ca.pem"
+	} else {
+		req.Env["CONSUL_HTTP_ADDR"] = fmt.Sprintf("http://127.0.0.1:%d", 8500)
+	}
+
+	if nodeInfo.UseTLSForGRPC {
+		req.Env["CONSUL_GRPC_ADDR"] = fmt.Sprintf("https://127.0.0.1:%d", 8503)
+		req.Env["CONSUL_GRPC_CACERT"] = "/ca.pem"
+	} else {
+		req.Env["CONSUL_GRPC_ADDR"] = fmt.Sprintf("http://127.0.0.1:%d", 8502)
+	}
+
+	var (
+		portStr      = "8443"
+		adminPortStr = strconv.Itoa(adminPort)
+	)
+
+	info, err := cluster.LaunchContainerOnNode(ctx, node, req, []string{
+		portStr,
+		adminPortStr,
 	})
 	if err != nil {
 		return nil, err
 	}
-	ip, err := container.ContainerIP(ctx)
-	if err != nil {
-		return nil, err
-	}
-	mappedPort, err := container.MappedPort(ctx, "8443")
-	if err != nil {
-		return nil, err
+
+	out := &gatewayContainer{
+		ctx:         ctx,
+		container:   info.Container,
+		ip:          info.IP,
+		port:        info.MappedPorts[portStr].Int(),
+		adminPort:   info.MappedPorts[adminPortStr].Int(),
+		serviceName: name,
 	}
 
-	if *utils.FollowLog {
-		if err := container.StartLogProducer(ctx); err != nil {
-			return nil, err
-		}
-		container.FollowOutput(&LogConsumer{
-			Prefix: containerName,
-		})
-	}
-
-	terminate := func() error {
-		return container.Terminate(context.Background())
-	}
-	node.RegisterTermination(terminate)
-
-	return &gatewayContainer{container: container, ip: ip, port: mappedPort.Int(), serviceName: name}, nil
+	return out, nil
 }

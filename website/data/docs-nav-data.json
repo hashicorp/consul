@@ -125,6 +125,10 @@
       {
         "title": "Network Coordinates",
         "path": "architecture/coordinates"
+      },
+      {
+        "title": "Consul at Scale",
+        "path": "architecture/scale"
       }
     ]
   },
@@ -442,6 +446,10 @@
             "path": "connect/observability"
           },
           {
+            "title": "Access Logs",
+            "path": "connect/observability/access-logs"
+          },
+          {
             "title": "UI Visualization",
             "path": "connect/observability/ui-visualization"
           }
@@ -647,14 +655,6 @@
           {
             "title": "Rules Reference",
             "path": "security/acl/acl-rules"
-          },
-          {
-            "title": "Legacy Mode",
-            "path": "security/acl/acl-legacy"
-          },
-          {
-            "title": "Token Migration",
-            "path": "security/acl/acl-migrate-tokens"
           },
           {
             "title": "ACLs in Federated Datacenters",
@@ -1251,7 +1251,7 @@
       },
       {
         "title": "Network Segments",
-        "routes":[
+        "routes": [
           {
             "title": "Network Segments Overview",
             "path": "enterprise/network-segments/network-segments-overview"
@@ -1319,8 +1319,8 @@
             "path": "api-gateway/usage/usage"
           },
           {
-          "title": "Reroute HTTP Requests",
-          "path": "api-gateway/usage/reroute-http-requests"
+            "title": "Reroute HTTP Requests",
+            "path": "api-gateway/usage/reroute-http-requests"
           },
           {
             "title": "Route Traffic to Peered Services",
@@ -1329,8 +1329,7 @@
           {
             "title": "Error Messages",
             "path": "api-gateway/usage/errors"
-          }              
-              
+          }
         ]
       },
       {

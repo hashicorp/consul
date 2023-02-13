@@ -8,6 +8,8 @@ module('Integration | Service | topology', function (hooks) {
   const id = 'slug';
   const kind = '';
   test('findBySlug returns the correct data for item endpoint', function (assert) {
+    assert.expect(2);
+
     return repo(
       'Service',
       'findBySlug',

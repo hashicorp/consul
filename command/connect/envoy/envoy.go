@@ -11,18 +11,22 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-version"
 	"github.com/mitchellh/cli"
 	"github.com/mitchellh/mapstructure"
+	"google.golang.org/protobuf/encoding/protojson"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/xds"
-	"github.com/hashicorp/consul/agent/xds/proxysupport"
-	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/agent/xds/accesslogs"
 	proxyCmd "github.com/hashicorp/consul/command/connect/proxy"
 	"github.com/hashicorp/consul/command/flags"
+	"github.com/hashicorp/consul/envoyextensions/xdscommon"
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/tlsutil"
-	"github.com/hashicorp/go-version"
 )
 
 func New(ui cli.Ui) *cmd {
@@ -39,6 +43,7 @@ type cmd struct {
 	http   *flags.HTTPFlags
 	help   string
 	client *api.Client
+	logger hclog.Logger
 
 	// flags
 	meshGateway              bool
@@ -62,6 +67,7 @@ type cmd struct {
 	prometheusCertFile       string
 	prometheusKeyFile        string
 	ignoreEnvoyCompatibility bool
+	enableLogging            bool
 
 	// mesh gateway registration information
 	register           bool
@@ -72,6 +78,9 @@ type cmd struct {
 	exposeServers      bool
 	omitDeprecatedTags bool
 
+	envoyReadyBindAddress string
+	envoyReadyBindPort    int
+
 	gatewaySvcName string
 	gatewayKind    api.ServiceKind
 
@@ -80,9 +89,10 @@ type cmd struct {
 
 const meshGatewayVal = "mesh"
 
-var defaultEnvoyVersion = proxysupport.EnvoyVersions[0]
+var defaultEnvoyVersion = xdscommon.EnvoyVersions[0]
 
 var supportedGateways = map[string]api.ServiceKind{
+	"api":         api.ServiceKindAPIGateway,
 	"mesh":        api.ServiceKindMeshGateway,
 	"terminating": api.ServiceKindTerminatingGateway,
 	"ingress":     api.ServiceKindIngressGateway,
@@ -115,9 +125,7 @@ func (c *cmd) init() {
 			"$PATH. Ignored if -bootstrap is used.")
 
 	c.flags.StringVar(&c.adminAccessLogPath, "admin-access-log-path", DefaultAdminAccessLogPath,
-		fmt.Sprintf("The path to write the access log for the administration server. If no access "+
-			"log is desired specify %q. By default it will use %q.",
-			DefaultAdminAccessLogPath, DefaultAdminAccessLogPath))
+		"DEPRECATED: use proxy-defaults.accessLogs to set Envoy access logs.")
 
 	c.flags.StringVar(&c.adminBind, "admin-bind", "localhost:19000",
 		"The address:port to start envoy's admin server on. Envoy requires this "+
@@ -159,6 +167,11 @@ func (c *cmd) init() {
 
 	c.flags.Var(&c.lanAddress, "address",
 		"LAN address to advertise in the gateway service registration")
+
+	c.flags.StringVar(&c.envoyReadyBindAddress, "envoy-ready-bind-address", "",
+		"The address on which Envoy's readiness probe is available.")
+	c.flags.IntVar(&c.envoyReadyBindPort, "envoy-ready-bind-port", 0,
+		"The port on which Envoy's readiness probe is available.")
 
 	c.flags.Var(&c.wanAddress, "wan-address",
 		"WAN address to advertise in the gateway service registration. For ingress gateways, "+
@@ -211,6 +224,9 @@ func (c *cmd) init() {
 		"If set to `true`, this flag ignores the Envoy version compatibility check. We recommend setting this "+
 			"flag to `false` to ensure compatibility with Envoy and prevent potential issues. "+
 			"Default is `false`.")
+
+	c.flags.BoolVar(&c.enableLogging, "enable-config-gen-logging", false,
+		"Output debug log messages during config generation")
 
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
@@ -272,11 +288,18 @@ func (c *cmd) Run(args []string) int {
 		c.UI.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
 		return 1
 	}
+
 	// TODO: refactor
 	return c.run(c.flags.Args())
 }
 
 func (c *cmd) run(args []string) int {
+	opts := hclog.LoggerOptions{Level: hclog.Off}
+	if c.enableLogging {
+		opts.Level = hclog.Debug
+	}
+	c.logger = hclog.New(&opts)
+	c.logger.Debug("Starting Envoy config generation")
 
 	if c.nodeName != "" && c.proxyID == "" {
 		c.UI.Error("'-node-name' requires '-proxy-id'")
@@ -308,7 +331,7 @@ func (c *cmd) run(args []string) int {
 	if c.gateway != "" {
 		kind, ok := supportedGateways[c.gateway]
 		if !ok {
-			c.UI.Error("Gateway must be one of: terminating, mesh, or ingress")
+			c.UI.Error("Gateway must be one of: api, terminating, mesh, or ingress")
 			return 1
 		}
 		c.gatewayKind = kind
@@ -341,6 +364,7 @@ func (c *cmd) run(args []string) int {
 			c.proxyID = c.gatewaySvcName
 
 		}
+		c.logger.Debug("Set Proxy ID", "proxy-id", c.proxyID)
 	}
 	if c.proxyID == "" {
 		c.UI.Error("No proxy ID specified. One of -proxy-id, -sidecar-for, or -gateway is " +
@@ -434,6 +458,7 @@ func (c *cmd) run(args []string) int {
 			c.UI.Error(fmt.Sprintf("Error registering service %q: %s", svc.Name, err))
 			return 1
 		}
+		c.logger.Debug("Proxy registration complete")
 
 		if !c.bootstrap {
 			// We need stdout to be reserved exclusively for the JSON blob, so
@@ -442,7 +467,13 @@ func (c *cmd) run(args []string) int {
 		}
 	}
 
+	if c.adminAccessLogPath != DefaultAdminAccessLogPath {
+		c.UI.Warn("-admin-access-log-path is deprecated and will be removed in a future version of Consul. " +
+			"Configure access logging with proxy-defaults.accessLogs.")
+	}
+
 	// Generate config
+	c.logger.Debug("Generating bootstrap config")
 	bootstrapJson, err := c.generateConfig()
 	if err != nil {
 		c.UI.Error(err.Error())
@@ -451,11 +482,13 @@ func (c *cmd) run(args []string) int {
 
 	if c.bootstrap {
 		// Just output it and we are done
+		c.logger.Debug("Outputting bootstrap config")
 		c.UI.Output(string(bootstrapJson))
 		return 0
 	}
 
 	// Find Envoy binary
+	c.logger.Debug("Finding envoy binary")
 	binary, err := c.findBinary()
 	if err != nil {
 		c.UI.Error("Couldn't find envoy binary: " + err.Error())
@@ -470,7 +503,7 @@ func (c *cmd) run(args []string) int {
 			return 1
 		}
 
-		ok, err := checkEnvoyVersionCompatibility(v, proxysupport.UnsupportedEnvoyVersions)
+		ok, err := checkEnvoyVersionCompatibility(v, xdscommon.UnsupportedEnvoyVersions)
 
 		if err != nil {
 			c.UI.Warn("There was an error checking the compatibility of the envoy version: " + err.Error())
@@ -483,6 +516,7 @@ func (c *cmd) run(args []string) int {
 		}
 	}
 
+	c.logger.Debug("Executing envoy binary")
 	err = execEnvoy(binary, nil, args, bootstrapJson)
 	if err == errUnsupportedOS {
 		c.UI.Error("Directly running Envoy is only supported on linux and macOS " +
@@ -521,8 +555,12 @@ func (c *cmd) templateArgs() (*BootstrapTplArgs, error) {
 		return nil, err
 	}
 
-	if err := checkDial(xdsAddr, c.dialFunc); err != nil {
-		return nil, fmt.Errorf("error dialing xDS address: %w", err)
+	// Bootstrapping should not attempt to dial the address, since the template
+	// may be generated and passed to another host (Nomad is one example).
+	if !c.bootstrap {
+		if err := checkDial(xdsAddr, c.dialFunc); err != nil {
+			c.UI.Warn("There was an error dialing the xDS address: " + err.Error())
+		}
 	}
 
 	adminAddr, adminPort, err := net.SplitHostPort(c.adminBind)
@@ -600,8 +638,19 @@ func (c *cmd) generateConfig() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+	c.logger.Debug("Generated template args")
 
 	var bsCfg BootstrapConfig
+
+	// Make a call to an arbitrary ACL endpoint. If we get back an ErrNotFound
+	// (meaning ACLs are enabled) check that the token is not empty.
+	if _, _, err := c.client.ACL().TokenReadSelf(
+		&api.QueryOptions{Token: args.Token},
+	); acl.IsErrNotFound(err) {
+		if args.Token == "" {
+			c.UI.Warn("No ACL token was provided to Envoy. Because the ACL system is enabled, pass a suitable ACL token for this service to Envoy to avoid potential communication failure.")
+		}
+	}
 
 	// Fetch any customization from the registration
 	var svcProxyConfig *api.AgentServiceConnectProxyConfig
@@ -637,6 +686,7 @@ func (c *cmd) generateConfig() ([]byte, error) {
 		datacenter = svcList.Node.Datacenter
 		c.gatewayKind = svcList.Services[0].Kind
 	}
+	c.logger.Debug("Fetched registration info")
 	if svcProxyConfig == nil {
 		return nil, errors.New("service is not a Connect proxy or gateway")
 	}
@@ -669,6 +719,11 @@ func (c *cmd) generateConfig() ([]byte, error) {
 		args.Datacenter = datacenter
 	}
 
+	if err := generateAccessLogs(c, args); err != nil {
+		return nil, err
+	}
+	c.logger.Debug("Generated access logs")
+
 	// Setup ready listener for ingress gateway to pass healthcheck
 	if c.gatewayKind == api.ServiceKindIngressGateway {
 		lanAddr := c.lanAddress.String()
@@ -678,6 +733,10 @@ func (c *cmd) generateConfig() ([]byte, error) {
 			lanAddr = "127.0.0.1" + lanAddr
 		}
 		bsCfg.ReadyBindAddr = lanAddr
+	}
+
+	if c.envoyReadyBindAddress != "" && c.envoyReadyBindPort != 0 {
+		bsCfg.ReadyBindAddr = fmt.Sprintf("%s:%d", c.envoyReadyBindAddress, c.envoyReadyBindPort)
 	}
 
 	if !c.disableCentralConfig {
@@ -690,7 +749,57 @@ func (c *cmd) generateConfig() ([]byte, error) {
 	return bsCfg.GenerateJSON(args, c.omitDeprecatedTags)
 }
 
-// TODO: make method a function
+// generateAccessLogs checks if there is any access log customization from proxy-defaults.
+// If available, access log parameters are marshaled to JSON and added to the bootstrap template args.
+func generateAccessLogs(c *cmd, args *BootstrapTplArgs) error {
+	configEntry, _, err := c.client.ConfigEntries().Get(api.ProxyDefaults, api.ProxyConfigGlobal, &api.QueryOptions{}) // Always assume the default partition
+
+	// We don't necessarily want to fail here if there isn't a proxy-defaults defined or if there
+	// is a server error.
+	var statusE api.StatusError
+	if err != nil && !errors.As(err, &statusE) {
+		return fmt.Errorf("failed fetch proxy-defaults: %w", err)
+	}
+
+	if configEntry != nil {
+		proxyDefaults, ok := configEntry.(*api.ProxyConfigEntry)
+		if !ok {
+			return fmt.Errorf("config entry %s is not a valid proxy-default", configEntry.GetName())
+		}
+
+		if proxyDefaults.AccessLogs != nil {
+			AccessLogsConfig := &structs.AccessLogsConfig{
+				Enabled:             proxyDefaults.AccessLogs.Enabled,
+				DisableListenerLogs: false,
+				Type:                structs.LogSinkType(proxyDefaults.AccessLogs.Type),
+				JSONFormat:          proxyDefaults.AccessLogs.JSONFormat,
+				TextFormat:          proxyDefaults.AccessLogs.TextFormat,
+				Path:                proxyDefaults.AccessLogs.Path,
+			}
+			envoyLoggers, err := accesslogs.MakeAccessLogs(AccessLogsConfig, false)
+			if err != nil {
+				return fmt.Errorf("failure generating Envoy access log configuration: %w", err)
+			}
+
+			// Convert individual proto messages to JSON here
+			args.AdminAccessLogConfig = make([]string, 0, len(envoyLoggers))
+
+			for _, msg := range envoyLoggers {
+				logConfig, err := protojson.Marshal(msg)
+				if err != nil {
+					return fmt.Errorf("could not marshal Envoy access log configuration: %w", err)
+				}
+				args.AdminAccessLogConfig = append(args.AdminAccessLogConfig, string(logConfig))
+			}
+		}
+
+		if proxyDefaults.AccessLogs != nil && c.adminAccessLogPath != DefaultAdminAccessLogPath {
+			c.UI.Warn("-admin-access-log-path and proxy-defaults.accessLogs both specify Envoy access log configuration. Ignoring the deprecated -admin-access-log-path flag.")
+		}
+	}
+	return nil
+}
+
 func (c *cmd) xdsAddress() (GRPC, error) {
 	g := GRPC{}
 
@@ -730,6 +839,10 @@ func (c *cmd) xdsAddress() (GRPC, error) {
 	if grpcAddr := strings.TrimPrefix(addr, "unix://"); grpcAddr != addr {
 		// Path to unix socket
 		g.AgentSocket = grpcAddr
+		// Configure unix sockets to encrypt traffic whenever a certificate is explicitly defined.
+		if c.grpcCAFile != "" || c.grpcCAPath != "" {
+			g.AgentTLS = true
+		}
 	} else {
 		// Parse as host:port with option http prefix
 		grpcAddr = strings.TrimPrefix(addr, "http://")
@@ -873,7 +986,7 @@ func checkEnvoyVersionCompatibility(envoyVersion string, unsupportedList []strin
 	var cs strings.Builder
 
 	// Add one to the max minor version so that we accept all patches
-	splitS := strings.Split(proxysupport.GetMaxEnvoyMinorVersion(), ".")
+	splitS := strings.Split(xdscommon.GetMaxEnvoyMinorVersion(), ".")
 	minor, err := strconv.Atoi(splitS[1])
 	if err != nil {
 		return false, err
@@ -882,7 +995,7 @@ func checkEnvoyVersionCompatibility(envoyVersion string, unsupportedList []strin
 	maxSupported := fmt.Sprintf("%s.%d", splitS[0], minor)
 
 	// Build the constraint string, make sure that we are less than but not equal to maxSupported since we added 1
-	cs.WriteString(fmt.Sprintf(">= %s, < %s", proxysupport.GetMinEnvoyMinorVersion(), maxSupported))
+	cs.WriteString(fmt.Sprintf(">= %s, < %s", xdscommon.GetMinEnvoyMinorVersion(), maxSupported))
 	for _, s := range unsupportedList {
 		cs.WriteString(fmt.Sprintf(", != %s", s))
 	}

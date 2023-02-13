@@ -17,8 +17,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/hashicorp/consul/proto/pboperator"
-
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
 	"github.com/hashicorp/go-connlimit"
@@ -66,6 +64,7 @@ import (
 	"github.com/hashicorp/consul/lib/mutex"
 	"github.com/hashicorp/consul/lib/routine"
 	"github.com/hashicorp/consul/logging"
+	"github.com/hashicorp/consul/proto/pboperator"
 	"github.com/hashicorp/consul/proto/pbpeering"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
@@ -603,7 +602,12 @@ func (a *Agent) Start(ctx context.Context) error {
 	// Setup either the client or the server.
 	if c.ServerMode {
 		serverLogger := a.baseDeps.Logger.NamedIntercept(logging.ConsulServer)
-		incomingRPCLimiter := consul.ConfiguredIncomingRPCLimiter(serverLogger, consulCfg)
+
+		incomingRPCLimiter := consul.ConfiguredIncomingRPCLimiter(
+			&lib.StopChannelContext{StopCh: a.shutdownCh},
+			serverLogger,
+			consulCfg,
+		)
 
 		a.externalGRPCServer = external.NewServer(
 			a.logger.Named("grpc.external"),
@@ -851,6 +855,7 @@ func (a *Agent) listenAndServeGRPC() error {
 			Manager:           a.proxyConfig,
 			GetStore:          func() catalogproxycfg.Store { return server.FSM().State() },
 			Logger:            a.proxyConfig.Logger.Named("server-catalog"),
+			SessionLimiter:    a.baseDeps.XDSStreamLimiter,
 		})
 		go func() {
 			<-a.shutdownCh
@@ -866,7 +871,6 @@ func (a *Agent) listenAndServeGRPC() error {
 			return a.delegate.ResolveTokenAndDefaultMeta(id, nil, nil)
 		},
 		a,
-		a.baseDeps.XDSStreamLimiter,
 	)
 	a.xdsServer.Register(a.externalGRPCServer)
 
@@ -1475,7 +1479,7 @@ func newConsulConfig(runtimeCfg *config.RuntimeConfig, logger hclog.Logger) (*co
 	}
 
 	cfg.ConfigEntryBootstrap = runtimeCfg.ConfigEntryBootstrap
-	cfg.RaftBoltDBConfig = runtimeCfg.RaftBoltDBConfig
+	cfg.LogStoreConfig = runtimeCfg.RaftLogStoreConfig
 
 	// Duplicate our own serf config once to make sure that the duplication
 	// function does not drift.
@@ -1951,12 +1955,10 @@ OUTER:
 					WriteRequest:   structs.WriteRequest{Token: agentToken},
 				}
 				var reply struct{}
-				// todo(kit) port all of these logger calls to hclog w/ loglevel configuration
-				// todo(kit) handle acl.ErrNotFound cases here in the future
 				if err := a.RPC(context.Background(), "Coordinate.Update", &req, &reply); err != nil {
 					if acl.IsErrPermissionDenied(err) {
 						accessorID := a.aclAccessorID(agentToken)
-						a.logger.Warn("Coordinate update blocked by ACLs", "accessorID", accessorID)
+						a.logger.Warn("Coordinate update blocked by ACLs", "accessorID", acl.AliasIfAnonymousToken(accessorID))
 					} else {
 						a.logger.Error("Coordinate update error", "error", err)
 					}
@@ -2204,7 +2206,9 @@ func (a *Agent) readPersistedServiceConfigs() (map[structs.ServiceID]*structs.Se
 			}
 		}
 
-		if !acl.EqualPartitions(a.AgentEnterpriseMeta().PartitionOrDefault(), p.PartitionOrDefault()) {
+		if acl.EqualPartitions("", p.PartitionOrEmpty()) {
+			p.OverridePartition(a.AgentEnterpriseMeta().PartitionOrDefault())
+		} else if !acl.EqualPartitions(a.AgentEnterpriseMeta().PartitionOrDefault(), p.PartitionOrDefault()) {
 			a.logger.Info("Purging service config file in wrong partition",
 				"file", file,
 				"partition", p.PartitionOrDefault(),
@@ -2433,7 +2437,7 @@ func (a *Agent) addServiceInternal(req addServiceInternalRequest) error {
 		}
 	}
 
-	err := a.State.AddServiceWithChecks(service, checks, req.token)
+	err := a.State.AddServiceWithChecks(service, checks, req.token, req.Source == ConfigSourceLocal)
 	if err != nil {
 		a.cleanupRegistration(cleanupServices, cleanupChecks)
 		return err
@@ -2769,7 +2773,7 @@ func (a *Agent) addCheckLocked(check *structs.HealthCheck, chkType *structs.Chec
 	}
 
 	// Add to the local state for anti-entropy
-	err = a.State.AddCheck(check, token)
+	err = a.State.AddCheck(check, token, source == ConfigSourceLocal)
 	if err != nil {
 		return err
 	}
@@ -3550,6 +3554,11 @@ func (a *Agent) loadServices(conf *config.RuntimeConfig, snap map[structs.CheckI
 
 	// Register the services from config
 	for _, service := range conf.Services {
+		// Default service partition to the same as agent
+		if service.EnterpriseMeta.PartitionOrEmpty() == "" {
+			service.EnterpriseMeta.OverridePartition(a.AgentEnterpriseMeta().PartitionOrDefault())
+		}
+
 		ns := service.NodeService()
 		chkTypes, err := service.CheckTypes()
 		if err != nil {
@@ -3659,7 +3668,11 @@ func (a *Agent) loadServices(conf *config.RuntimeConfig, snap map[structs.CheckI
 			}
 		}
 
-		if !acl.EqualPartitions(a.AgentEnterpriseMeta().PartitionOrDefault(), p.Service.PartitionOrDefault()) {
+		if acl.EqualPartitions("", p.Service.PartitionOrEmpty()) {
+			// NOTE: in case loading a service with empty partition (e.g., OSS -> ENT),
+			// we always default the service partition to the agent's partition.
+			p.Service.OverridePartition(a.AgentEnterpriseMeta().PartitionOrDefault())
+		} else if !acl.EqualPartitions(a.AgentEnterpriseMeta().PartitionOrDefault(), p.Service.PartitionOrDefault()) {
 			a.logger.Info("Purging service file in wrong partition",
 				"file", file,
 				"partition", p.Service.EnterpriseMeta.PartitionOrDefault(),

@@ -4,7 +4,7 @@
 package pbcommon
 
 import (
-	"github.com/golang/protobuf/proto"
+	"google.golang.org/protobuf/proto"
 )
 
 // MarshalBinary implements encoding.BinaryMarshaler
@@ -74,5 +74,15 @@ func (msg *EnterpriseMeta) MarshalBinary() ([]byte, error) {
 
 // UnmarshalBinary implements encoding.BinaryUnmarshaler
 func (msg *EnterpriseMeta) UnmarshalBinary(b []byte) error {
+	return proto.Unmarshal(b, msg)
+}
+
+// MarshalBinary implements encoding.BinaryMarshaler
+func (msg *EnvoyExtension) MarshalBinary() ([]byte, error) {
+	return proto.Marshal(msg)
+}
+
+// UnmarshalBinary implements encoding.BinaryUnmarshaler
+func (msg *EnvoyExtension) UnmarshalBinary(b []byte) error {
 	return proto.Unmarshal(b, msg)
 }

@@ -206,6 +206,10 @@ type QueryOptions struct {
 	// This can be used to ensure a full service definition is returned in the response
 	// especially when the service might not be written into the catalog that way.
 	MergeCentralConfig bool
+
+	// Global is used to request information from all datacenters. Currently only
+	// used for operator usage requests.
+	Global bool
 }
 
 func (o *QueryOptions) Context() context.Context {
@@ -894,6 +898,9 @@ func (r *request) setQueryOptions(q *QueryOptions) {
 	}
 	if q.MergeCentralConfig {
 		r.params.Set("merge-central-config", "")
+	}
+	if q.Global {
+		r.params.Set("global", "")
 	}
 
 	r.ctx = q.ctx

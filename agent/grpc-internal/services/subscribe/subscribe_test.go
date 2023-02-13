@@ -8,7 +8,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/golang/protobuf/ptypes/duration"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-uuid"
@@ -17,6 +16,7 @@ import (
 	gogrpc "google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/durationpb"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/rate"
@@ -268,10 +268,10 @@ func TestServer_Subscribe_IntegrationWithBackend(t *testing.T) {
 								RaftIndex:      raftIndex(ids, "update", "update"),
 								EnterpriseMeta: pbcommon.DefaultEnterpriseMeta,
 								Definition: &pbservice.HealthCheckDefinition{
-									Interval:                       &duration.Duration{},
-									Timeout:                        &duration.Duration{},
-									DeregisterCriticalServiceAfter: &duration.Duration{},
-									TTL:                            &duration.Duration{},
+									Interval:                       &durationpb.Duration{},
+									Timeout:                        &durationpb.Duration{},
+									DeregisterCriticalServiceAfter: &durationpb.Duration{},
+									TTL:                            &durationpb.Duration{},
 								},
 							},
 						},
@@ -654,10 +654,10 @@ func TestServer_Subscribe_IntegrationWithBackend_ForwardToDC(t *testing.T) {
 								RaftIndex:      raftIndex(ids, "update", "update"),
 								EnterpriseMeta: pbcommon.DefaultEnterpriseMeta,
 								Definition: &pbservice.HealthCheckDefinition{
-									Interval:                       &duration.Duration{},
-									Timeout:                        &duration.Duration{},
-									DeregisterCriticalServiceAfter: &duration.Duration{},
-									TTL:                            &duration.Duration{},
+									Interval:                       &durationpb.Duration{},
+									Timeout:                        &durationpb.Duration{},
+									DeregisterCriticalServiceAfter: &durationpb.Duration{},
+									TTL:                            &durationpb.Duration{},
 								},
 							},
 						},
@@ -692,7 +692,7 @@ node "node1" {
 }
 `
 		cfg := &acl.Config{WildcardName: structs.WildcardSpecifier}
-		authorizer, err := acl.NewAuthorizerFromRules(rules, acl.SyntaxCurrent, cfg, nil)
+		authorizer, err := acl.NewAuthorizerFromRules(rules, cfg, nil)
 		require.NoError(t, err)
 		authorizer = acl.NewChainedAuthorizer([]acl.Authorizer{authorizer, acl.DenyAll()})
 		require.Equal(t, acl.Deny, authorizer.NodeRead("denied", nil))
@@ -896,7 +896,7 @@ node "node1" {
 	policy = "write"
 }
 `
-		authorizer, err := acl.NewAuthorizerFromRules(rules, acl.SyntaxCurrent, &acl.Config{WildcardName: structs.WildcardSpecifier}, nil)
+		authorizer, err := acl.NewAuthorizerFromRules(rules, &acl.Config{WildcardName: structs.WildcardSpecifier}, nil)
 		require.NoError(t, err)
 		authorizer = acl.NewChainedAuthorizer([]acl.Authorizer{authorizer, acl.DenyAll()})
 		require.Equal(t, acl.Deny, authorizer.NodeRead("denied", nil))
@@ -945,7 +945,6 @@ node "node1" {
 		aclToken := &structs.ACLToken{
 			AccessorID: tokenID,
 			SecretID:   token,
-			Rules:      "",
 		}
 		require.NoError(t, backend.store.ACLTokenSet(ids.Next("update"), aclToken))
 

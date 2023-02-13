@@ -20,6 +20,8 @@ plugins:
       - require_unimplemented_servers=false
   - name: go-binary
     out: .
+    opt:
+      - paths=source_relative
   - name: consul-rate-limit
     out: .
     opt:

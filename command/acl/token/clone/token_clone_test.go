@@ -17,7 +17,6 @@ import (
 )
 
 func parseCloneOutput(t *testing.T, output string) *api.ACLToken {
-	// This will only work for non-legacy tokens
 	re := regexp.MustCompile("AccessorID:       ([a-zA-Z0-9\\-]{36})\n" +
 		"SecretID:         ([a-zA-Z0-9\\-]{36})\n" +
 		"(?:Partition:        default\n)?" +
@@ -101,7 +100,7 @@ func TestTokenCloneCommand_Pretty(t *testing.T) {
 
 		args := []string{
 			"-http-addr=" + a.HTTPAddr(),
-			"-id=" + token.AccessorID,
+			"-accessor-id=" + token.AccessorID,
 			"-token=root",
 			"-description=test cloned",
 		}
@@ -137,7 +136,7 @@ func TestTokenCloneCommand_Pretty(t *testing.T) {
 
 		args := []string{
 			"-http-addr=" + a.HTTPAddr(),
-			"-id=" + token.AccessorID,
+			"-accessor-id=" + token.AccessorID,
 			"-token=root",
 		}
 
@@ -208,7 +207,7 @@ func TestTokenCloneCommand_JSON(t *testing.T) {
 
 		args := []string{
 			"-http-addr=" + a.HTTPAddr(),
-			"-id=" + token.AccessorID,
+			"-accessor-id=" + token.AccessorID,
 			"-token=root",
 			"-description=test cloned",
 			"-format=json",
@@ -231,7 +230,7 @@ func TestTokenCloneCommand_JSON(t *testing.T) {
 
 		args := []string{
 			"-http-addr=" + a.HTTPAddr(),
-			"-id=" + token.AccessorID,
+			"-accessor-id=" + token.AccessorID,
 			"-token=root",
 			"-format=json",
 		}

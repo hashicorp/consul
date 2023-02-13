@@ -1,11 +1,11 @@
 package basic
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 
-	libagent "github.com/hashicorp/consul/test/integration/consul-container/libs/agent"
 	libassert "github.com/hashicorp/consul/test/integration/consul-container/libs/assert"
 	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
 	libservice "github.com/hashicorp/consul/test/integration/consul-container/libs/service"
@@ -22,40 +22,42 @@ import (
 //   - Create an example static-client sidecar, then register both the service and sidecar with Consul
 //   - Make sure a call to the client sidecar local bind port returns a response from the upstream, static-server
 func TestBasicConnectService(t *testing.T) {
+	t.Parallel()
 	cluster := createCluster(t)
-	defer terminate(t, cluster)
 
 	clientService := createServices(t, cluster)
 	_, port := clientService.GetAddr()
+	_, adminPort := clientService.GetAdminAddr()
 
-	libassert.HTTPServiceEchoes(t, "localhost", port)
+	libassert.AssertUpstreamEndpointStatus(t, adminPort, "static-server.default", "HEALTHY", 1)
+	libassert.GetEnvoyListenerTCPFilters(t, adminPort)
+
+	libassert.AssertContainerState(t, clientService, "running")
+	libassert.HTTPServiceEchoes(t, "localhost", port, "")
+	libassert.AssertFortioName(t, fmt.Sprintf("http://localhost:%d", port), "static-server")
 }
 
-func terminate(t *testing.T, cluster *libcluster.Cluster) {
-	err := cluster.Terminate()
-	require.NoError(t, err)
-}
-
-// createCluster
 func createCluster(t *testing.T) *libcluster.Cluster {
-	opts := libagent.BuildOptions{
+	opts := libcluster.BuildOptions{
 		InjectAutoEncryption:   true,
 		InjectGossipEncryption: true,
+		// TODO: fix the test to not need the service/envoy stack to use :8500
+		AllowHTTPAnyway: true,
 	}
-	ctx, err := libagent.NewBuildContext(opts)
-	require.NoError(t, err)
+	ctx := libcluster.NewBuildContext(t, opts)
 
-	conf, err := libagent.NewConfigBuilder(ctx).ToAgentConfig()
-	require.NoError(t, err)
+	conf := libcluster.NewConfigBuilder(ctx).
+		ToAgentConfig(t)
 	t.Logf("Cluster config:\n%s", conf.JSON)
 
-	configs := []libagent.Config{*conf}
+	configs := []libcluster.Config{*conf}
 
-	cluster, err := libcluster.New(configs)
+	cluster, err := libcluster.New(t, configs)
 	require.NoError(t, err)
 
-	client, err := cluster.GetClient(nil, true)
-	require.NoError(t, err)
+	node := cluster.Agents[0]
+	client := node.GetClient()
+
 	libcluster.WaitForLeader(t, cluster, client)
 	libcluster.WaitForMembers(t, client, 1)
 
@@ -70,13 +72,20 @@ func createCluster(t *testing.T) *libcluster.Cluster {
 func createServices(t *testing.T, cluster *libcluster.Cluster) libservice.Service {
 	node := cluster.Agents[0]
 	client := node.GetClient()
+	// Create a service and proxy instance
+	serviceOpts := &libservice.ServiceOpts{
+		Name:     libservice.StaticServerServiceName,
+		ID:       "static-server",
+		HTTPPort: 8080,
+		GRPCPort: 8079,
+	}
 
 	// Create a service and proxy instance
-	_, _, err := libservice.CreateAndRegisterStaticServerAndSidecar(node)
+	_, _, err := libservice.CreateAndRegisterStaticServerAndSidecar(node, serviceOpts)
 	require.NoError(t, err)
 
 	libassert.CatalogServiceExists(t, client, "static-server-sidecar-proxy")
-	libassert.CatalogServiceExists(t, client, "static-server")
+	libassert.CatalogServiceExists(t, client, libservice.StaticServerServiceName)
 
 	// Create a client proxy instance with the server as an upstream
 	clientConnectProxy, err := libservice.CreateAndRegisterStaticClientSidecar(node, "", false)

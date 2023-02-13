@@ -18,6 +18,8 @@ module('Integration | Serializer | role', function (hooks) {
   const partition = 'default';
   [undefinedNspace, 'team-1', undefined].forEach((nspace) => {
     test(`respondForQuery returns the correct data for list endpoint when nspace is ${nspace}`, function (assert) {
+      assert.expect(1);
+
       const serializer = this.owner.lookup('serializer:role');
       const request = {
         url: `/v1/acl/roles?dc=${dc}${typeof nspace !== 'undefined' ? `&ns=${nspace}` : ``}${
@@ -56,6 +58,8 @@ module('Integration | Serializer | role', function (hooks) {
       });
     });
     test(`respondForQueryRecord returns the correct data for item endpoint when nspace is ${nspace}`, function (assert) {
+      assert.expect(1);
+
       const serializer = this.owner.lookup('serializer:role');
       const request = {
         url: `/v1/acl/role/${id}?dc=${dc}${typeof nspace !== 'undefined' ? `&ns=${nspace}` : ``}${

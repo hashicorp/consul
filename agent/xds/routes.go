@@ -12,7 +12,7 @@ import (
 	envoy_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	envoy_matcher_v3 "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
 
-	"github.com/golang/protobuf/proto"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/durationpb"
 
 	"github.com/hashicorp/consul/agent/connect"
@@ -31,6 +31,14 @@ func (s *ResourceGenerator) routesFromSnapshot(cfgSnap *proxycfg.ConfigSnapshot)
 	case structs.ServiceKindConnectProxy:
 		return s.routesForConnectProxy(cfgSnap)
 	case structs.ServiceKindIngressGateway:
+		return s.routesForIngressGateway(cfgSnap)
+	case structs.ServiceKindAPIGateway:
+		// TODO Find a cleaner solution, can't currently pass unexported property types
+		var err error
+		cfgSnap.IngressGateway, err = cfgSnap.APIGateway.ToIngress(cfgSnap.Datacenter)
+		if err != nil {
+			return nil, err
+		}
 		return s.routesForIngressGateway(cfgSnap)
 	case structs.ServiceKindTerminatingGateway:
 		return s.routesForTerminatingGateway(cfgSnap)
@@ -435,7 +443,7 @@ func findIngressServiceMatchingUpstream(l structs.IngressListener, u structs.Ups
 	// only one IngressService for each unique name although originally that
 	// wasn't checked as it didn't matter. Assume there is only one now
 	// though!
-	wantSID := u.DestinationID()
+	wantSID := u.DestinationID().ServiceName.ToServiceID()
 	var foundSameNSWildcard *structs.IngressService
 	for _, s := range l.Services {
 		sid := structs.NewServiceID(s.Name, &s.EnterpriseMeta)

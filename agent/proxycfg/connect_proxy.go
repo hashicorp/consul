@@ -197,7 +197,7 @@ func (s *handlerConnectProxy) initialize(ctx context.Context) (ConfigSnapshot, e
 
 		case "":
 			if u.DestinationPeer != "" {
-				err := s.setupWatchesForPeeredUpstream(ctx, snap.ConnectProxy, NewUpstreamID(&u), u.MeshGateway.Mode, dc)
+				err := s.setupWatchesForPeeredUpstream(ctx, snap.ConnectProxy, NewUpstreamID(&u), dc)
 				if err != nil {
 					return snap, fmt.Errorf("failed to setup watches for peered upstream %q: %w", uid.String(), err)
 				}
@@ -231,7 +231,6 @@ func (s *handlerConnectProxy) setupWatchesForPeeredUpstream(
 	ctx context.Context,
 	snapConnectProxy configSnapshotConnectProxy,
 	uid UpstreamID,
-	mgwMode structs.MeshGatewayMode,
 	dc string,
 ) error {
 	s.logger.Trace("initializing watch of peered upstream", "upstream", uid)
@@ -272,14 +271,10 @@ func (s *handlerConnectProxy) setupWatchesForPeeredUpstream(
 		snapConnectProxy.UpstreamPeerTrustBundles.InitWatch(uid.Peer, cancel)
 	}
 
-	// If a peered upstream is set to local mesh gw mode,
-	// set up a watch for them.
-	if mgwMode == structs.MeshGatewayModeLocal {
-		up := &handlerUpstreams{handlerState: s.handlerState}
-		up.setupWatchForLocalGWEndpoints(ctx, &snapConnectProxy.ConfigSnapshotUpstreams)
-	} else if mgwMode == structs.MeshGatewayModeNone {
-		s.logger.Warn(fmt.Sprintf("invalid mesh gateway mode 'none', defaulting to 'remote' for %q", uid))
-	}
+	// Always watch local GW endpoints for peer upstreams so that we don't have to worry about
+	// the timing on whether the wildcard upstream config was fetched yet.
+	up := &handlerUpstreams{handlerState: s.handlerState}
+	up.setupWatchForLocalGWEndpoints(ctx, &snapConnectProxy.ConfigSnapshotUpstreams)
 	return nil
 }
 
@@ -329,7 +324,7 @@ func (s *handlerConnectProxy) handleUpdate(ctx context.Context, u UpdateEvent, s
 			}
 			seenUpstreams[uid] = struct{}{}
 
-			err := s.setupWatchesForPeeredUpstream(ctx, snap.ConnectProxy, uid, s.proxyCfg.MeshGateway.Mode, s.source.Datacenter)
+			err := s.setupWatchesForPeeredUpstream(ctx, snap.ConnectProxy, uid, s.source.Datacenter)
 			if err != nil {
 				return fmt.Errorf("failed to setup watches for peered upstream %q: %w", uid.String(), err)
 			}
@@ -402,8 +397,7 @@ func (s *handlerConnectProxy) handleUpdate(ctx context.Context, u UpdateEvent, s
 				// Use the centralized upstream defaults if they exist and there isn't specific configuration for this upstream
 				// This is only relevant to upstreams from intentions because for explicit upstreams the defaulting is handled
 				// by the ResolveServiceConfig endpoint.
-				wildcardSID := structs.NewServiceID(structs.WildcardSpecifier, s.proxyID.WithWildcardNamespace())
-				wildcardUID := NewUpstreamIDFromServiceID(wildcardSID)
+				wildcardUID := NewWildcardUID(&s.proxyID.EnterpriseMeta)
 				defaults, ok := snap.ConnectProxy.UpstreamConfig[wildcardUID]
 				if ok {
 					u = defaults

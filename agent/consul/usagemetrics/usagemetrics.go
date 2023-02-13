@@ -88,6 +88,10 @@ var Gauges = []prometheus.GaugeDefinition{
 		Name: []string{"state", "config_entries"},
 		Help: "Measures the current number of unique configuration entries registered with Consul, labeled by Kind. It is only emitted by Consul servers. Added in v1.10.4.",
 	},
+	{
+		Name: []string{"state", "billable_service_instances"},
+		Help: "Total number of billable service instances in the local datacenter.",
+	},
 }
 
 type getMembersFunc func() []serf.Member

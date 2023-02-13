@@ -37,8 +37,8 @@ import (
 //   - https://github.com/grpc/grpc/blob/master/doc/service_config.md
 //   - https://github.com/grpc/grpc-proto/blob/master/grpc/service_config/service_config.proto
 //
-// TODO(boxofrad): we can use the rate limit annotations to figure out which
-// methods are reads (and therefore safe to retry whatever the status code).
+// TODO: these are hard-coded for now
+// but we're working on generating them automatically from the protobuf files
 const grpcServiceConfig = `
 {
 	"loadBalancingConfig": [{"%s":{}}],
@@ -51,6 +51,79 @@ const grpcServiceConfig = `
 				"InitialBackoff": "1s",
 				"MaxBackoff": "5s",
 				"RetryableStatusCodes": ["RESOURCE_EXHAUSTED"]
+			}
+		},
+		{
+			"name": [
+				{
+					"service": "hashicorp.consul.connectca.ConnectCAService",
+					"method": "WatchRoots"
+				},
+				{
+					"service": "hashicorp.consul.dataplane.DataplaneService",
+					"method": "GetEnvoyBootstrapParams"
+				},
+				{
+					"service": "hashicorp.consul.dataplane.DataplaneService",
+					"method": "GetSupportedDataplaneFeatures"
+				},
+				{
+					"service": "hashicorp.consul.dns.DNSService",
+					"method": "Query"
+				},
+				{
+					"service": "hashicorp.consul.internal.peering.PeeringService",
+					"method": "PeeringList"
+				},
+				{
+					"service": "hashicorp.consul.internal.peering.PeeringService",
+					"method": "PeeringRead"
+				},
+				{
+					"service": "hashicorp.consul.internal.peering.PeeringService",
+					"method": "TrustBundleListByService"
+				},
+				{
+					"service": "hashicorp.consul.internal.peering.PeeringService",
+					"method": "TrustBundleRead"
+				},
+				{
+					"service": "hashicorp.consul.internal.peerstream.PeerStreamService",
+					"method": "StreamResources"
+				},
+				{
+					"service": "hashicorp.consul.serverdiscovery.ServerDiscoveryService",
+					"method": "WatchServers"
+				},
+				{
+					"service": "subscribe.StateChangeSubscription",
+					"method": "Subscribe"
+				},
+				{
+					"service": "partition.PartitionService",
+					"method": "List"
+				},
+				{
+					"service": "partition.PartitionService",
+					"method": "Read"
+				}
+			],
+			"retryPolicy": {
+				"MaxAttempts": 5,
+				"BackoffMultiplier": 2,
+				"InitialBackoff": "1s",
+				"MaxBackoff": "5s",
+				"RetryableStatusCodes": [
+					"CANCELLED",
+					"UNKNOWN",
+					"DEADLINE_EXCEEDED",
+					"RESOURCE_EXHAUSTED",
+					"FAILED_PRECONDITION",
+					"ABORTED",
+					"OUT_OF_RANGE",
+					"INTERNAL",
+					"UNAVAILABLE"
+				]
 			}
 		}
 	]

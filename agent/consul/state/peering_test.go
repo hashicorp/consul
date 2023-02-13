@@ -6,6 +6,7 @@ import (
 
 	"github.com/hashicorp/go-memdb"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/connect"
@@ -980,7 +981,7 @@ func TestStore_Peering_Watch(t *testing.T) {
 				ID:        testFooPeerID,
 				Name:      "foo",
 				State:     pbpeering.PeeringState_DELETING,
-				DeletedAt: structs.TimeToProto(time.Now()),
+				DeletedAt: timestamppb.New(time.Now()),
 			},
 		})
 		require.NoError(t, err)
@@ -1007,7 +1008,7 @@ func TestStore_Peering_Watch(t *testing.T) {
 			ID:        testBarPeerID,
 			Name:      "bar",
 			State:     pbpeering.PeeringState_DELETING,
-			DeletedAt: structs.TimeToProto(time.Now()),
+			DeletedAt: timestamppb.New(time.Now()),
 		},
 		})
 		require.NoError(t, err)
@@ -1109,7 +1110,7 @@ func TestStore_PeeringList_Watch(t *testing.T) {
 				ID:        testFooPeerID,
 				Name:      "foo",
 				State:     pbpeering.PeeringState_DELETING,
-				DeletedAt: structs.TimeToProto(time.Now()),
+				DeletedAt: timestamppb.New(time.Now()),
 				Partition: structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
 			},
 		}))
@@ -1402,7 +1403,7 @@ func TestStore_PeeringWrite(t *testing.T) {
 					Name:                "baz",
 					State:               pbpeering.PeeringState_DELETING,
 					PeerServerAddresses: []string{"localhost:8502"},
-					DeletedAt:           structs.TimeToProto(testTime),
+					DeletedAt:           timestamppb.New(testTime),
 					Partition:           structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
 				},
 			},
@@ -1411,7 +1412,7 @@ func TestStore_PeeringWrite(t *testing.T) {
 					ID:        testBazPeerID,
 					Name:      "baz",
 					State:     pbpeering.PeeringState_DELETING,
-					DeletedAt: structs.TimeToProto(testTime),
+					DeletedAt: timestamppb.New(testTime),
 					Remote: &pbpeering.RemoteInfo{
 						Partition:  "part1",
 						Datacenter: "datacenter1",
@@ -1428,7 +1429,7 @@ func TestStore_PeeringWrite(t *testing.T) {
 					Name:                "baz",
 					State:               pbpeering.PeeringState_DELETING,
 					PeerServerAddresses: []string{"localhost:8502"},
-					DeletedAt:           structs.TimeToProto(time.Now()),
+					DeletedAt:           timestamppb.New(time.Now()),
 					Partition:           structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
 				},
 			},
@@ -1438,7 +1439,7 @@ func TestStore_PeeringWrite(t *testing.T) {
 					Name: "baz",
 					// Still marked as deleting at the original testTime
 					State:     pbpeering.PeeringState_DELETING,
-					DeletedAt: structs.TimeToProto(testTime),
+					DeletedAt: timestamppb.New(testTime),
 					Remote: &pbpeering.RemoteInfo{
 						Partition:  "part1",
 						Datacenter: "datacenter1",
@@ -1501,7 +1502,7 @@ func TestStore_PeeringWrite(t *testing.T) {
 					Name:                "foo",
 					PeerServerAddresses: []string{"localhost:8502"},
 					State:               pbpeering.PeeringState_DELETING,
-					DeletedAt:           structs.TimeToProto(time.Now()),
+					DeletedAt:           timestamppb.New(time.Now()),
 					Partition:           structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
 				},
 			},
@@ -1533,7 +1534,7 @@ func TestStore_PeeringDelete(t *testing.T) {
 				ID:        testFooPeerID,
 				Name:      "foo",
 				State:     pbpeering.PeeringState_DELETING,
-				DeletedAt: structs.TimeToProto(time.Now()),
+				DeletedAt: timestamppb.New(time.Now()),
 			},
 		}))
 
@@ -2206,7 +2207,7 @@ func TestStateStore_PeeringsForService(t *testing.T) {
 					ID:        tp.peering.ID,
 					Name:      tp.peering.Name,
 					State:     pbpeering.PeeringState_DELETING,
-					DeletedAt: structs.TimeToProto(time.Now()),
+					DeletedAt: timestamppb.New(time.Now()),
 				}
 				require.NoError(t, s.PeeringWrite(lastIdx, &pbpeering.PeeringWriteRequest{Peering: &copied}))
 			}
@@ -2649,7 +2650,7 @@ func TestStore_TrustBundleListByService(t *testing.T) {
 				ID:        peerID1,
 				Name:      "peer1",
 				State:     pbpeering.PeeringState_DELETING,
-				DeletedAt: structs.TimeToProto(time.Now()),
+				DeletedAt: timestamppb.New(time.Now()),
 			},
 		}))
 
@@ -2689,7 +2690,7 @@ func TestStateStore_Peering_ListDeleted(t *testing.T) {
 			Name:        "foo",
 			Partition:   acl.DefaultPartitionName,
 			ID:          testFooPeerID,
-			DeletedAt:   structs.TimeToProto(time.Now()),
+			DeletedAt:   timestamppb.New(time.Now()),
 			CreateIndex: 1,
 			ModifyIndex: 1,
 		})
@@ -2708,7 +2709,7 @@ func TestStateStore_Peering_ListDeleted(t *testing.T) {
 			Name:        "baz",
 			Partition:   acl.DefaultPartitionName,
 			ID:          testBazPeerID,
-			DeletedAt:   structs.TimeToProto(time.Now()),
+			DeletedAt:   timestamppb.New(time.Now()),
 			CreateIndex: 3,
 			ModifyIndex: 3,
 		})

@@ -114,6 +114,6 @@ func TestServerPeeringList_ACLEnforcement(t *testing.T) {
 		require.NoError(t, err)
 
 		err = getEventError(t, eventCh)
-		require.Contains(t, err.Error(), "provided token lacks permission 'peering:read'")
+		require.Contains(t, err.Error(), "token with AccessorID '' lacks permission 'peering:read'")
 	})
 }
