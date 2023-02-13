@@ -156,6 +156,22 @@ func (h *handlerAPIGateway) handleGatewayConfigUpdate(ctx context.Context, u Upd
 		for _, listener := range gwConf.Listeners {
 			snap.APIGateway.BoundListeners[listener.Name] = listener
 
+			// Subscribe to changes in each attached inline-certificate config entry
+			for _, ref := range listener.Certificates {
+				if ref.Kind != structs.InlineCertificate {
+					return fmt.Errorf("unexpected certificate kind on gateway: %s", ref.Kind)
+				}
+
+				seenRefs[ref] = struct{}{}
+
+				ctx, cancel := context.WithCancel(ctx)
+				snap.APIGateway.Certificates.InitWatch(ref, cancel)
+				err := h.subscribeToConfigEntry(ctx, ref.Kind, ref.Name, inlineCertificateConfigWatchID)
+				if err != nil {
+					return err
+				}
+			}
+
 			// Subscribe to changes in each attached x-route config entry
 			for _, ref := range listener.Routes {
 				seenRefs[ref] = struct{}{}
