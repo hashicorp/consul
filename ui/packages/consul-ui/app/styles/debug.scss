@@ -11,9 +11,6 @@
 @import 'consul-ui/components/inline-alert/debug';
 @import 'consul-ui/components/definition-table/debug';
 
-.theme-dark {
-  @extend %theme-dark;
-}
 %debug-grid {
   display: flex;
   flex-wrap: wrap;
@@ -55,12 +52,10 @@
   height: 40px;
 }
 #docfy-demo-preview-color0 {
-  @extend %theme-light;
   background-color: var(--token-color-surface-primary);
 }
 #docfy-demo-preview-color1 {
   background-color: var(--token-color-hashicorp-brand);
-  @extend %theme-dark;
 }
 
 [id^='docfy-demo-preview-typography'] {

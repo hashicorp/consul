@@ -6,7 +6,7 @@
 }
 %menu-panel-header + ul {
   border-top: var(--decor-border-100);
-  border-color: rgb(var(--tone-border, var(--token-color-palette-neutral-300)));
+  border-color: var(--token-form--base-border-color-default);
 }
 /* if the first item is a separator and it */
 /* contains text don't add a line */

@@ -38,7 +38,7 @@
   color: var(--token-color-palette-neutral-300);
 }
 %main-nav-vertical-action-active {
-  background-color: rgb(var(--token-color-palette-neutral-300));
+  background-color: var(--token-color-palette-neutral-600);
   border-color: var(--token-color-hashicorp-brand);
 }
 %main-nav-vertical [aria-label]::before {
@@ -55,12 +55,33 @@
 
   font-weight: inherit;
 
-  background-color: var(--token-color-surface-strong);
-  color: var(--token-color-hashicorp-brand);
+  background-color: var(--token-color-foreground-strong);
+  color: var(--token-color-palette-neutral-300);
 }
+
+%main-nav-vertical-popover-menu-trigger:hover,
+%main-nav-vertical-popover-menu-trigger:focus {
+  color: var(--token-color-palette-neutral-300);
+  background-color: var(--token-color-foreground-strong);
+}
+
+%main-nav-vertical ul[role='menu'] li a[role='menuitem'] {
+  color: var(--token-color-palette-neutral-300);
+  background-color: var(--token-color-foreground-strong);
+}
+
+%main-nav-vertical ul[role='menu']li a[role='menuitem']:hover {
+  background-color: var(--token-color-palette-neutral-600);
+}
+
 %main-nav-vertical-popover-menu-trigger[aria-expanded='true'] {
   border-bottom-left-radius: var(--decor-radius-000);
   border-bottom-right-radius: var(--decor-radius-000);
+}
+
+%panel,
+%panel-separator {
+  border-color: var(--token-color-foreground-faint);
 }
 %main-nav-vertical-popover-menu-trigger::after {
   @extend %with-chevron-down-mask, %as-pseudo;
@@ -75,4 +96,6 @@
   border-top-left-radius: var(--decor-radius-000);
   border-top-right-radius: var(--decor-radius-000);
   border-top: var(--decor-border-000);
+  color: var(--token-color-palette-neutral-300);
+  background-color: var(--token-color-foreground-strong);
 }
