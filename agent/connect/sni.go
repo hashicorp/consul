@@ -65,6 +65,39 @@ func ServiceSNI(service string, subset string, namespace string, partition strin
 	}
 }
 
+func dotSplitLast(s string, n int) string {
+	tokens := strings.SplitN(s, ".", n)
+	if len(tokens) != n {
+		return ""
+	}
+	return tokens[n-1]
+}
+
+func TrustDomainForTarget(target structs.DiscoveryTarget) string {
+	if target.External {
+		return ""
+	}
+
+	switch target.Partition {
+	case "default":
+		if target.ServiceSubset == "" {
+			// service, namespace, datacenter, internal, trustDomain
+			return dotSplitLast(target.SNI, 5)
+		} else {
+			// subset, service, namespace, datacenter, internal, trustDomain
+			return dotSplitLast(target.SNI, 6)
+		}
+	default:
+		if target.ServiceSubset == "" {
+			// service, namespace, partition, datacenter, internalVersion, trustDomain
+			return dotSplitLast(target.SNI, 6)
+		} else {
+			// subset, service, namespace, partition, datacenter, internalVersion, trustDomain
+			return dotSplitLast(target.SNI, 7)
+		}
+	}
+}
+
 func PeeredServiceSNI(service, namespace, partition, peerName, trustDomain string) string {
 	if peerName == "" {
 		panic("peer name is a requirement for this function and does not make sense without it")
