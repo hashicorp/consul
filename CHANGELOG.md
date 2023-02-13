@@ -1,3 +1,64 @@
+## 1.14.4 (January 26, 2023)
+
+BREAKING CHANGES:
+
+* connect: Fix configuration merging for transparent proxy upstreams. Proxy-defaults and service-defaults config entries were not correctly merged for implicit upstreams in transparent proxy mode and would result in some configuration not being applied. To avoid issues when upgrading, ensure that any proxy-defaults or service-defaults have correct configuration for upstreams, since all fields will now be properly used to configure proxies. [[GH-16000](https://github.com/hashicorp/consul/issues/16000)]
+* peering: Newly created peering connections must use only lowercase characters in the `name` field. Existing peerings with uppercase characters will not be modified, but they may encounter issues in various circumstances. To maintain forward compatibility and avoid issues, it is recommended to destroy and re-create any invalid peering connections so that they do not have a name containing uppercase characters. [[GH-15697](https://github.com/hashicorp/consul/issues/15697)]
+
+FEATURES:
+
+* connect: add flags `envoy-ready-bind-port` and `envoy-ready-bind-address` to the `consul connect envoy` command that allows configuration of readiness probe on proxy for any service kind. [[GH-16015](https://github.com/hashicorp/consul/issues/16015)]
+* deps: update to latest go-discover to provide ECS auto-discover capabilities. [[GH-13782](https://github.com/hashicorp/consul/issues/13782)]
+
+IMPROVEMENTS:
+
+* acl: relax permissions on the `WatchServers`, `WatchRoots` and `GetSupportedDataplaneFeatures` gRPC endpoints to accept *any* valid ACL token [[GH-15346](https://github.com/hashicorp/consul/issues/15346)]
+* connect: Add support for ConsulResolver to specifies a filter expression [[GH-15659](https://github.com/hashicorp/consul/issues/15659)]
+* grpc: Use new balancer implementation to reduce periodic WARN logs when shuffling servers. [[GH-15701](https://github.com/hashicorp/consul/issues/15701)]
+* partition: **(Consul Enterprise only)** when loading service from on-disk config file or sending API request to agent endpoint,
+if the partition is unspecified, consul will default the partition in the request to agent's partition [[GH-16024](https://github.com/hashicorp/consul/issues/16024)]
+
+BUG FIXES:
+
+* agent: Fix assignment of error when auto-reloading cert and key file changes. [[GH-15769](https://github.com/hashicorp/consul/issues/15769)]
+* agent: Fix issue where the agent cache would incorrectly mark protobuf objects as updated. [[GH-15866](https://github.com/hashicorp/consul/issues/15866)]
+* cli: Fix issue where `consul connect envoy` was unable to configure TLS over unix-sockets to gRPC. [[GH-15913](https://github.com/hashicorp/consul/issues/15913)]
+* connect: **(Consul Enterprise only)** Fix issue where upstream configuration from proxy-defaults and service-defaults was not properly merged. This could occur when a mixture of empty-strings and "default" were used for the namespace or partition fields.
+* connect: Fix issue where service-resolver protocol checks incorrectly errored for failover peer targets. [[GH-15833](https://github.com/hashicorp/consul/issues/15833)]
+* connect: Fix issue where watches on upstream failover peer targets did not always query the correct data. [[GH-15865](https://github.com/hashicorp/consul/issues/15865)]
+* xds: fix bug where sessions for locally-managed services could fail with "this server has too many xDS streams open" [[GH-15789](https://github.com/hashicorp/consul/issues/15789)]
+
+## 1.13.6 (January 26, 2023)
+
+FEATURES:
+
+* connect: add flags `envoy-ready-bind-port` and `envoy-ready-bind-address` to the `consul connect envoy` command that allows configuration of readiness probe on proxy for any service kind. [[GH-16015](https://github.com/hashicorp/consul/issues/16015)]
+* deps: update to latest go-discover to provide ECS auto-discover capabilities. [[GH-13782](https://github.com/hashicorp/consul/issues/13782)]
+
+IMPROVEMENTS:
+
+* grpc: Use new balancer implementation to reduce periodic WARN logs when shuffling servers. [[GH-15701](https://github.com/hashicorp/consul/issues/15701)]
+* partition: **(Consul Enterprise only)** when loading service from on-disk config file or sending API request to agent endpoint,
+if the partition is unspecified, consul will default the partition in the request to agent's partition [[GH-16024](https://github.com/hashicorp/consul/issues/16024)]
+
+BUG FIXES:
+
+* agent: Fix assignment of error when auto-reloading cert and key file changes. [[GH-15769](https://github.com/hashicorp/consul/issues/15769)]
+
+## 1.12.9 (January 26, 2023)
+
+FEATURES:
+
+* deps: update to latest go-discover to provide ECS auto-discover capabilities. [[GH-13782](https://github.com/hashicorp/consul/issues/13782)]
+
+IMPROVEMENTS:
+
+* grpc: Use new balancer implementation to reduce periodic WARN logs when shuffling servers. [[GH-15701](https://github.com/hashicorp/consul/issues/15701)]
+
+BUG FIXES:
+
+* agent: Fix assignment of error when auto-reloading cert and key file changes. [[GH-15769](https://github.com/hashicorp/consul/issues/15769)]
+
 ## 1.14.3 (December 13, 2022)
 
 SECURITY:

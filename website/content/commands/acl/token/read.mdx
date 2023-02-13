@@ -1,18 +1,20 @@
 ---
 layout: commands
 page_title: 'Commands: ACL Token Read'
+description: |
+  The `consul acl token read` command outputs details for an ACL token of a specified ID. 
 ---
 
 # Consul ACL Token Read
 
 Command: `consul acl token read`
 
-Corresponding HTTP API Endpoint: [\[GET\] /v1/acl/token/:AccessorID](/api-docs/acl/tokens#read-a-token)
+Corresponding HTTP API Endpoint: [\[GET\] /v1/acl/token/:AccessorID](/consul/api-docs/acl/tokens#read-a-token)
 
 The `acl token read` command reads and displays a token details.
 
-The table below shows this command's [required ACLs](/api-docs/api-structure#authentication). Configuration of
-[blocking queries](/api-docs/features/blocking) and [agent caching](/api-docs/features/caching)
+The table below shows this command's [required ACLs](/consul/api-docs/api-structure#authentication). Configuration of
+[blocking queries](/consul/api-docs/features/blocking) and [agent caching](/consul/api-docs/features/caching)
 are not supported from commands, but may be from the corresponding HTTP endpoint.
 
 | ACL Required |

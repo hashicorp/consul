@@ -211,7 +211,7 @@ func (s *Store) EnsureConfigEntry(idx uint64, conf structs.ConfigEntry) error {
 	tx := s.db.WriteTxn(idx)
 	defer tx.Abort()
 
-	if err := ensureConfigEntryTxn(tx, idx, conf); err != nil {
+	if err := ensureConfigEntryTxn(tx, idx, false, conf); err != nil {
 		return err
 	}
 
@@ -219,7 +219,7 @@ func (s *Store) EnsureConfigEntry(idx uint64, conf structs.ConfigEntry) error {
 }
 
 // ensureConfigEntryTxn upserts a config entry inside of a transaction.
-func ensureConfigEntryTxn(tx WriteTxn, idx uint64, conf structs.ConfigEntry) error {
+func ensureConfigEntryTxn(tx WriteTxn, idx uint64, statusUpdate bool, conf structs.ConfigEntry) error {
 	q := newConfigEntryQuery(conf)
 	existing, err := tx.First(tableConfigEntries, indexID, q)
 	if err != nil {
@@ -237,7 +237,18 @@ func ensureConfigEntryTxn(tx WriteTxn, idx uint64, conf structs.ConfigEntry) err
 				return err
 			}
 		}
+
+		if !statusUpdate {
+			if controlledConf, ok := conf.(structs.ControlledConfigEntry); ok {
+				controlledConf.SetStatus(existing.(structs.ControlledConfigEntry).GetStatus())
+			}
+		}
 	} else {
+		if !statusUpdate {
+			if controlledConf, ok := conf.(structs.ControlledConfigEntry); ok {
+				controlledConf.SetStatus(controlledConf.DefaultStatus())
+			}
+		}
 		raftIndex.CreateIndex = idx
 	}
 	raftIndex.ModifyIndex = idx
@@ -281,7 +292,42 @@ func (s *Store) EnsureConfigEntryCAS(idx, cidx uint64, conf structs.ConfigEntry)
 		return false, nil
 	}
 
-	if err := ensureConfigEntryTxn(tx, idx, conf); err != nil {
+	if err := ensureConfigEntryTxn(tx, idx, false, conf); err != nil {
+		return false, err
+	}
+
+	err = tx.Commit()
+	return err == nil, err
+}
+
+// EnsureConfigEntryWithStatusCAS is called to do a check-and-set upsert of a given config entry and its status.
+func (s *Store) EnsureConfigEntryWithStatusCAS(idx, cidx uint64, conf structs.ConfigEntry) (bool, error) {
+	tx := s.db.WriteTxn(idx)
+	defer tx.Abort()
+
+	// Check for existing configuration.
+	existing, err := tx.First(tableConfigEntries, indexID, newConfigEntryQuery(conf))
+	if err != nil {
+		return false, fmt.Errorf("failed configuration lookup: %s", err)
+	}
+
+	// Check if we should do the set. A ModifyIndex of 0 means that
+	// we are doing a set-if-not-exists.
+	var existingIdx structs.RaftIndex
+	if existing != nil {
+		existingIdx = *existing.(structs.ConfigEntry).GetRaftIndex()
+	}
+	if cidx == 0 && existing != nil {
+		return false, nil
+	}
+	if cidx != 0 && existing == nil {
+		return false, nil
+	}
+	if existing != nil && cidx != 0 && cidx != existingIdx.ModifyIndex {
+		return false, nil
+	}
+
+	if err := ensureConfigEntryTxn(tx, idx, true, conf); err != nil {
 		return false, err
 	}
 
@@ -416,9 +462,9 @@ func insertConfigEntryWithTxn(tx WriteTxn, idx uint64, conf structs.ConfigEntry)
 	if conf == nil {
 		return fmt.Errorf("cannot insert nil config entry")
 	}
+
 	// If the config entry is for a terminating or ingress gateway we update the memdb table
 	// that associates gateways <-> services.
-
 	if conf.GetKind() == structs.TerminatingGateway || conf.GetKind() == structs.IngressGateway {
 		err := updateGatewayServices(tx, idx, conf, conf.GetEnterpriseMeta())
 		if err != nil {
@@ -496,6 +542,11 @@ func validateProposedConfigEntryInGraph(
 	case structs.ServiceIntentions:
 	case structs.MeshConfig:
 	case structs.ExportedServices:
+	case structs.APIGateway: // TODO Consider checkGatewayClash
+	case structs.BoundAPIGateway:
+	case structs.InlineCertificate:
+	case structs.HTTPRoute:
+	case structs.TCPRoute:
 	default:
 		return fmt.Errorf("unhandled kind %q during validation of %q", kindName.Kind, kindName.Name)
 	}
@@ -1154,7 +1205,11 @@ func (s *Store) ReadResolvedServiceConfigEntries(
 			if override.Name == "" {
 				continue // skip this impossible condition
 			}
-			seenUpstreams[override.ServiceID()] = struct{}{}
+			if override.Peer != "" {
+				continue // Peer services do not have service-defaults config entries to fetch.
+			}
+			sid := override.PeeredServiceName().ServiceName.ToServiceID()
+			seenUpstreams[sid] = struct{}{}
 		}
 	}
 

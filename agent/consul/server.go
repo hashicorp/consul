@@ -23,6 +23,9 @@ import (
 	"github.com/hashicorp/raft"
 	autopilot "github.com/hashicorp/raft-autopilot"
 	raftboltdb "github.com/hashicorp/raft-boltdb/v2"
+	raftwal "github.com/hashicorp/raft-wal"
+	walmetrics "github.com/hashicorp/raft-wal/metrics"
+	"github.com/hashicorp/raft-wal/verifier"
 	"github.com/hashicorp/serf/serf"
 	"go.etcd.io/bbolt"
 	"golang.org/x/time/rate"
@@ -49,6 +52,7 @@ import (
 	agentgrpc "github.com/hashicorp/consul/agent/grpc-internal"
 	"github.com/hashicorp/consul/agent/grpc-internal/services/subscribe"
 	"github.com/hashicorp/consul/agent/hcp"
+	logdrop "github.com/hashicorp/consul/agent/log-drop"
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/pool"
 	"github.com/hashicorp/consul/agent/router"
@@ -117,10 +121,10 @@ const (
 	aclRoleReplicationRoutineName         = "ACL role replication"
 	aclTokenReplicationRoutineName        = "ACL token replication"
 	aclTokenReapingRoutineName            = "acl token reaping"
-	aclUpgradeRoutineName                 = "legacy ACL token upgrade"
 	caRootPruningRoutineName              = "CA root pruning"
 	caRootMetricRoutineName               = "CA root expiration metric"
 	caSigningMetricRoutineName            = "CA signing expiration metric"
+	configEntryControllersRoutineName     = "config entry controllers"
 	configReplicationRoutineName          = "config entry replication"
 	federationStateReplicationRoutineName = "federation state replication"
 	federationStateAntiEntropyRoutineName = "federation state anti-entropy"
@@ -133,6 +137,7 @@ const (
 	peeringStreamsRoutineName             = "streaming peering resources"
 	peeringDeletionRoutineName            = "peering deferred deletion"
 	peeringStreamsMetricsRoutineName      = "metrics for streaming peering resources"
+	raftLogVerifierRoutineName            = "raft log verifier"
 )
 
 var (
@@ -143,6 +148,13 @@ const (
 	PoolKindPartition = "partition"
 	PoolKindSegment   = "segment"
 )
+
+// raftStore combines LogStore and io.Closer since we need both but have
+// multiple LogStore implementations that need closing too.
+type raftStore interface {
+	raft.LogStore
+	io.Closer
+}
 
 const requestLimitsBurstMultiplier = 10
 
@@ -227,7 +239,7 @@ type Server struct {
 	// the state directly.
 	raft          *raft.Raft
 	raftLayer     *RaftLayer
-	raftStore     *raftboltdb.BoltStore
+	raftStore     raftStore
 	raftTransport *raft.NetworkTransport
 	raftInmem     *raft.InmemStore
 
@@ -469,13 +481,13 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server, incom
 		incomingRPCLimiter:      incomingRPCLimiter,
 	}
 
+	incomingRPCLimiter.Register(s)
+
 	s.hcpManager = hcp.NewManager(hcp.ManagerConfig{
 		Client:   flat.HCP.Client,
 		StatusFn: s.hcpServerStatus(flat),
 		Logger:   logger.Named("hcp_manager"),
 	})
-
-	s.incomingRPCLimiter.Run(&lib.StopChannelContext{StopCh: s.shutdownCh})
 
 	var recorder *middleware.RequestRecorder
 	if flat.NewRequestRecorderFunc != nil {
@@ -487,15 +499,19 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server, incom
 		return nil, fmt.Errorf("cannot initialize server with a nil RPC request recorder")
 	}
 
-	if flat.GetNetRPCInterceptorFunc == nil {
-		s.rpcServer = rpc.NewServer()
-		s.insecureRPCServer = rpc.NewServer()
-	} else {
-		s.rpcServer = rpc.NewServerWithOpts(rpc.WithServerServiceCallInterceptor(flat.GetNetRPCInterceptorFunc(recorder)))
-		s.insecureRPCServer = rpc.NewServerWithOpts(rpc.WithServerServiceCallInterceptor(flat.GetNetRPCInterceptorFunc(recorder)))
+	rpcServerOpts := []func(*rpc.Server){
+		rpc.WithPreBodyInterceptor(middleware.GetNetRPCRateLimitingInterceptor(s.incomingRPCLimiter, middleware.NewPanicHandler(s.logger))),
 	}
 
+	if flat.GetNetRPCInterceptorFunc != nil {
+		rpcServerOpts = append(rpcServerOpts, rpc.WithServerServiceCallInterceptor(flat.GetNetRPCInterceptorFunc(recorder)))
+	}
+
+	s.rpcServer = rpc.NewServerWithOpts(rpcServerOpts...)
+	s.insecureRPCServer = rpc.NewServerWithOpts(rpcServerOpts...)
+
 	s.rpcRecorder = recorder
+	s.incomingRPCLimiter.Run(&lib.StopChannelContext{StopCh: s.shutdownCh})
 
 	go s.publisher.Run(&lib.StopChannelContext{StopCh: s.shutdownCh})
 
@@ -959,24 +975,68 @@ func (s *Server) setupRaft() error {
 			return err
 		}
 
-		// Create the backend raft store for logs and stable storage.
-		store, err := raftboltdb.New(raftboltdb.Options{
-			BoltOptions: &bbolt.Options{
-				NoFreelistSync: s.config.RaftBoltDBConfig.NoFreelistSync,
-			},
-			Path: filepath.Join(path, "raft.db"),
-		})
+		boltDBFile := filepath.Join(path, "raft.db")
+		boltFileExists, err := fileExists(boltDBFile)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed trying to see if raft.db exists not sure how to continue: %w", err)
 		}
-		s.raftStore = store
-		stable = store
 
-		// start publishing boltdb metrics
-		go store.RunMetrics(&lib.StopChannelContext{StopCh: s.shutdownCh}, 0)
+		// Only use WAL if there is no existing raft.db, even if it's enabled.
+		if s.config.LogStoreConfig.Backend == LogStoreBackendWAL && !boltFileExists {
+			walDir := filepath.Join(path, "wal")
+			if err := os.MkdirAll(walDir, 0755); err != nil {
+				return err
+			}
+
+			mc := walmetrics.NewGoMetricsCollector([]string{"raft", "wal"}, nil, nil)
+
+			wal, err := raftwal.Open(walDir,
+				raftwal.WithSegmentSize(s.config.LogStoreConfig.WAL.SegmentSize),
+				raftwal.WithMetricsCollector(mc),
+			)
+			if err != nil {
+				return fmt.Errorf("fail to open write-ahead-log: %w", err)
+			}
+
+			s.raftStore = wal
+			log = wal
+			stable = wal
+		} else {
+			if s.config.LogStoreConfig.Backend == LogStoreBackendWAL {
+				// User configured the new storage, but still has old raft.db. Warn
+				// them!
+				s.logger.Warn("BoltDB file raft.db found, IGNORING raft_logstore.backend which is set to 'wal'")
+			}
+
+			// Create the backend raft store for logs and stable storage.
+			store, err := raftboltdb.New(raftboltdb.Options{
+				BoltOptions: &bbolt.Options{
+					NoFreelistSync: s.config.LogStoreConfig.BoltDB.NoFreelistSync,
+				},
+				Path: boltDBFile,
+			})
+			if err != nil {
+				return err
+			}
+			s.raftStore = store
+			log = store
+			stable = store
+
+			// start publishing boltdb metrics
+			go store.RunMetrics(&lib.StopChannelContext{StopCh: s.shutdownCh}, 0)
+		}
+
+		// See if log verification is enabled
+		if s.config.LogStoreConfig.Verification.Enabled {
+			mc := walmetrics.NewGoMetricsCollector([]string{"raft", "logstore", "verifier"}, nil, nil)
+			reportFn := makeLogVerifyReportFn(s.logger.Named("raft.logstore.verifier"))
+			verifier := verifier.NewLogStore(log, isLogVerifyCheckpoint, reportFn, mc)
+			s.raftStore = verifier
+			log = verifier
+		}
 
 		// Wrap the store in a LogCache to improve performance.
-		cacheStore, err := raft.NewLogCache(raftLogCacheSize, store)
+		cacheStore, err := raft.NewLogCache(raftLogCacheSize, log)
 		if err != nil {
 			return err
 		}
@@ -1842,7 +1902,21 @@ func (s *Server) hcpServerStatus(deps Deps) hcp.StatusCallback {
 	}
 }
 
-func ConfiguredIncomingRPCLimiter(serverLogger hclog.InterceptLogger, consulCfg *Config) *rpcRate.Handler {
+func fileExists(name string) (bool, error) {
+	_, err := os.Stat(name)
+	if err == nil {
+		// File exists!
+		return true, nil
+	}
+	if errors.Is(err, os.ErrNotExist) {
+		return false, nil
+	}
+	// We hit some other error trying to stat the file which leaves us in an
+	// unknown state so we can't proceed.
+	return false, err
+}
+
+func ConfiguredIncomingRPCLimiter(ctx context.Context, serverLogger hclog.InterceptLogger, consulCfg *Config) *rpcRate.Handler {
 	mlCfg := &multilimiter.Config{ReconcileCheckLimit: 30 * time.Second, ReconcileCheckInterval: time.Second}
 	limitsConfig := &RequestLimits{
 		Mode:      rpcRate.RequestLimitsModeFromNameWithDefault(consulCfg.RequestLimitsMode),
@@ -1850,14 +1924,15 @@ func ConfiguredIncomingRPCLimiter(serverLogger hclog.InterceptLogger, consulCfg 
 		WriteRate: consulCfg.RequestLimitsWriteRate,
 	}
 
+	sink := logdrop.NewLogDropSink(ctx, 100, serverLogger.Named("rpc-rate-limit"), func(l logdrop.Log) {
+		metrics.IncrCounter([]string{"rpc", "rate_limit", "log_dropped"}, 1)
+	})
+	logger := hclog.NewInterceptLogger(&hclog.LoggerOptions{Output: io.Discard})
+	logger.RegisterSink(sink)
+
 	rateLimiterConfig := convertConsulConfigToRateLimitHandlerConfig(*limitsConfig, mlCfg)
 
-	incomingRPCLimiter := rpcRate.NewHandler(
-		*rateLimiterConfig,
-		serverLogger.Named("rpc-rate-limit"),
-	)
-
-	return incomingRPCLimiter
+	return rpcRate.NewHandler(*rateLimiterConfig, logger)
 }
 
 func convertConsulConfigToRateLimitHandlerConfig(limitsConfig RequestLimits, multilimiterConfig *multilimiter.Config) *rpcRate.HandlerConfig {

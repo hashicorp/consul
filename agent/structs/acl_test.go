@@ -67,7 +67,6 @@ func TestStructs_ACLServiceIdentity_SyntheticPolicy(t *testing.T) {
 			}
 
 			expect := &ACLPolicy{
-				Syntax:      acl.SyntaxCurrent,
 				Datacenters: test.datacenters,
 				Rules:       test.expectRules,
 			}
@@ -215,7 +214,6 @@ func TestStructs_ACLToken_Stub(t *testing.T) {
 		require.Equal(t, token.Hash, stub.Hash)
 		require.Equal(t, token.CreateIndex, stub.CreateIndex)
 		require.Equal(t, token.ModifyIndex, stub.ModifyIndex)
-		require.False(t, stub.Legacy)
 	})
 }
 
@@ -403,7 +401,6 @@ func TestStructs_ACLPolicies_resolveWithCache(t *testing.T) {
 			Name:        "policy1",
 			Description: "policy1",
 			Rules:       `node_prefix "" { policy = "read" }`,
-			Syntax:      acl.SyntaxCurrent,
 			RaftIndex: RaftIndex{
 				CreateIndex: 1,
 				ModifyIndex: 2,
@@ -414,7 +411,6 @@ func TestStructs_ACLPolicies_resolveWithCache(t *testing.T) {
 			Name:        "policy2",
 			Description: "policy2",
 			Rules:       `agent_prefix "" { policy = "read" }`,
-			Syntax:      acl.SyntaxCurrent,
 			RaftIndex: RaftIndex{
 				CreateIndex: 3,
 				ModifyIndex: 4,
@@ -425,7 +421,6 @@ func TestStructs_ACLPolicies_resolveWithCache(t *testing.T) {
 			Name:        "policy3",
 			Description: "policy3",
 			Rules:       `key_prefix "" { policy = "read" }`,
-			Syntax:      acl.SyntaxCurrent,
 			RaftIndex: RaftIndex{
 				CreateIndex: 5,
 				ModifyIndex: 6,
@@ -436,7 +431,6 @@ func TestStructs_ACLPolicies_resolveWithCache(t *testing.T) {
 			Name:        "policy4",
 			Description: "policy4",
 			Rules:       `service_prefix "" { policy = "read" }`,
-			Syntax:      acl.SyntaxCurrent,
 			RaftIndex: RaftIndex{
 				CreateIndex: 7,
 				ModifyIndex: 8,
@@ -493,7 +487,6 @@ func TestStructs_ACLPolicies_Compile(t *testing.T) {
 			Name:        "policy1",
 			Description: "policy1",
 			Rules:       `node_prefix "" { policy = "read" }`,
-			Syntax:      acl.SyntaxCurrent,
 			RaftIndex: RaftIndex{
 				CreateIndex: 1,
 				ModifyIndex: 2,
@@ -504,7 +497,6 @@ func TestStructs_ACLPolicies_Compile(t *testing.T) {
 			Name:        "policy2",
 			Description: "policy2",
 			Rules:       `agent_prefix "" { policy = "read" }`,
-			Syntax:      acl.SyntaxCurrent,
 			RaftIndex: RaftIndex{
 				CreateIndex: 3,
 				ModifyIndex: 4,
@@ -515,7 +507,6 @@ func TestStructs_ACLPolicies_Compile(t *testing.T) {
 			Name:        "policy3",
 			Description: "policy3",
 			Rules:       `key_prefix "" { policy = "read" }`,
-			Syntax:      acl.SyntaxCurrent,
 			RaftIndex: RaftIndex{
 				CreateIndex: 5,
 				ModifyIndex: 6,
@@ -526,7 +517,6 @@ func TestStructs_ACLPolicies_Compile(t *testing.T) {
 			Name:        "policy4",
 			Description: "policy4",
 			Rules:       `service_prefix "" { policy = "read" }`,
-			Syntax:      acl.SyntaxCurrent,
 			RaftIndex: RaftIndex{
 				CreateIndex: 7,
 				ModifyIndex: 8,

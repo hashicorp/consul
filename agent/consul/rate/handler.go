@@ -9,8 +9,10 @@ import (
 	"reflect"
 	"sync/atomic"
 
-	"github.com/hashicorp/consul/agent/consul/multilimiter"
+	"github.com/armon/go-metrics"
 	"github.com/hashicorp/go-hclog"
+
+	"github.com/hashicorp/consul/agent/consul/multilimiter"
 )
 
 var (
@@ -18,14 +20,14 @@ var (
 	// rate limit was exhausted, but may succeed on a different server.
 	//
 	// Results in a RESOURCE_EXHAUSTED or "429 Too Many Requests" response.
-	ErrRetryElsewhere = errors.New("rate limit exceeded, try a different server")
+	ErrRetryElsewhere = errors.New("rate limit exceeded, try again later or against a different server")
 
 	// ErrRetryLater indicates that the operation was not allowed because the rate
 	// limit was exhausted, and trying a different server won't help (e.g. because
 	// the operation can only be performed on the leader).
 	//
 	// Results in an UNAVAILABLE or "503 Service Unavailable" response.
-	ErrRetryLater = errors.New("rate limit exceeded, try again later")
+	ErrRetryLater = errors.New("rate limit exceeded for operation that can only be performed by the leader, try again later")
 )
 
 // Mode determines the action that will be taken when a rate limit has been
@@ -104,11 +106,12 @@ type Operation struct {
 	Type OperationType
 }
 
-//go:generate mockery --name RequestLimitsHandler --inpackage --filename mock_RequestLimitsHandler_test.go
+//go:generate mockery --name RequestLimitsHandler --inpackage
 type RequestLimitsHandler interface {
 	Run(ctx context.Context)
 	Allow(op Operation) error
 	UpdateConfig(cfg HandlerConfig)
+	Register(leaderStatusProvider LeaderStatusProvider)
 }
 
 // Handler enforces rate limits for incoming RPCs.
@@ -118,8 +121,6 @@ type Handler struct {
 
 	limiter multilimiter.RateLimiter
 
-	// TODO: replace this with the real logger.
-	// https://github.com/hashicorp/consul/pull/15822
 	logger hclog.Logger
 }
 
@@ -204,16 +205,30 @@ func (h *Handler) Allow(op Operation) error {
 			continue
 		}
 
-		// TODO: metrics.
-		// TODO: is this the correct log-level?
+		// TODO(NET-1382): is this the correct log-level?
 
 		enforced := l.mode == ModeEnforcing
-		h.logger.Trace("RPC exceeded allowed rate limit",
+		h.logger.Debug("RPC exceeded allowed rate limit",
 			"rpc", op.Name,
-			"source_addr", op.SourceAddr.String(),
+			"source_addr", op.SourceAddr,
 			"limit_type", l.desc,
 			"limit_enforced", enforced,
 		)
+
+		metrics.IncrCounterWithLabels([]string{"rpc", "rate_limit", "exceeded"}, 1, []metrics.Label{
+			{
+				Name:  "limit_type",
+				Value: l.desc,
+			},
+			{
+				Name:  "op",
+				Value: op.Name,
+			},
+			{
+				Name:  "mode",
+				Value: l.mode.String(),
+			},
+		})
 
 		if enforced {
 			if h.leaderStatusProvider.IsLeader() && op.Type == OperationTypeWrite {
@@ -310,3 +325,5 @@ func (nullRequestLimitsHandler) Allow(Operation) error { return nil }
 func (nullRequestLimitsHandler) Run(ctx context.Context) {}
 
 func (nullRequestLimitsHandler) UpdateConfig(cfg HandlerConfig) {}
+
+func (nullRequestLimitsHandler) Register(leaderStatusProvider LeaderStatusProvider) {}

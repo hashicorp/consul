@@ -6,8 +6,8 @@ import (
 	envoy_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	"google.golang.org/protobuf/types/known/durationpb"
 
-	"github.com/golang/protobuf/ptypes/wrappers"
 	"github.com/mitchellh/mapstructure"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib/decode"
@@ -190,15 +190,15 @@ func ToOutlierDetection(p *structs.PassiveHealthCheck, override *structs.Passive
 			od.Interval = durationpb.New(p.Interval)
 		}
 		if p.MaxFailures != 0 {
-			od.Consecutive_5Xx = &wrappers.UInt32Value{Value: p.MaxFailures}
+			od.Consecutive_5Xx = &wrapperspb.UInt32Value{Value: p.MaxFailures}
 		}
 
 		if p.EnforcingConsecutive5xx != nil {
 			// NOTE: EnforcingConsecutive5xx must be great than 0 for ingress-gateway
 			if *p.EnforcingConsecutive5xx != 0 {
-				od.EnforcingConsecutive_5Xx = &wrappers.UInt32Value{Value: *p.EnforcingConsecutive5xx}
+				od.EnforcingConsecutive_5Xx = &wrapperspb.UInt32Value{Value: *p.EnforcingConsecutive5xx}
 			} else if allowZero {
-				od.EnforcingConsecutive_5Xx = &wrappers.UInt32Value{Value: *p.EnforcingConsecutive5xx}
+				od.EnforcingConsecutive_5Xx = &wrapperspb.UInt32Value{Value: *p.EnforcingConsecutive5xx}
 			}
 		}
 	}
@@ -212,15 +212,15 @@ func ToOutlierDetection(p *structs.PassiveHealthCheck, override *structs.Passive
 		od.Interval = durationpb.New(override.Interval)
 	}
 	if override.MaxFailures != 0 {
-		od.Consecutive_5Xx = &wrappers.UInt32Value{Value: override.MaxFailures}
+		od.Consecutive_5Xx = &wrapperspb.UInt32Value{Value: override.MaxFailures}
 	}
 
 	if override.EnforcingConsecutive5xx != nil {
 		// NOTE: EnforcingConsecutive5xx must be great than 0 for ingress-gateway
 		if *override.EnforcingConsecutive5xx != 0 {
-			od.EnforcingConsecutive_5Xx = &wrappers.UInt32Value{Value: *override.EnforcingConsecutive5xx}
+			od.EnforcingConsecutive_5Xx = &wrapperspb.UInt32Value{Value: *override.EnforcingConsecutive5xx}
 		} else if allowZero {
-			od.EnforcingConsecutive_5Xx = &wrappers.UInt32Value{Value: *override.EnforcingConsecutive5xx}
+			od.EnforcingConsecutive_5Xx = &wrapperspb.UInt32Value{Value: *override.EnforcingConsecutive5xx}
 		}
 	}
 

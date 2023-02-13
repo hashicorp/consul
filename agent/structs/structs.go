@@ -14,12 +14,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/golang/protobuf/proto"
-	"github.com/golang/protobuf/ptypes/duration"
-	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/serf/coordinate"
 	"github.com/mitchellh/hashstructure"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
@@ -85,6 +83,7 @@ const (
 	PeeringTrustBundleWriteType                 = 38
 	PeeringTrustBundleDeleteType                = 39
 	PeeringSecretsWriteType                     = 40
+	RaftLogVerifierCheckpoint                   = 41 // Only used for log verifier, no-op on FSM.
 )
 
 const (
@@ -151,6 +150,7 @@ var requestTypeStrings = map[MessageType]string{
 	PeeringTrustBundleWriteType:     "PeeringTrustBundle",
 	PeeringTrustBundleDeleteType:    "PeeringTrustBundleDelete",
 	PeeringSecretsWriteType:         "PeeringSecret",
+	RaftLogVerifierCheckpoint:       "RaftLogVerifierCheckpoint",
 }
 
 const (
@@ -627,6 +627,12 @@ func (r *DCSpecificRequest) CacheInfo() cache.RequestInfo {
 
 func (r *DCSpecificRequest) CacheMinIndex() uint64 {
 	return r.QueryOptions.MinQueryIndex
+}
+
+type OperatorUsageRequest struct {
+	DCSpecificRequest
+
+	Global bool
 }
 
 type ServiceDumpRequest struct {
@@ -1187,7 +1193,8 @@ func (k ServiceKind) IsProxy() bool {
 	case ServiceKindConnectProxy,
 		ServiceKindMeshGateway,
 		ServiceKindTerminatingGateway,
-		ServiceKindIngressGateway:
+		ServiceKindIngressGateway,
+		ServiceKindAPIGateway:
 		return true
 	}
 	return false
@@ -1200,26 +1207,31 @@ const (
 	// default to the typical service.
 	ServiceKindTypical ServiceKind = ""
 
-	// ServiceKindConnectProxy is a proxy for the Connect feature. This
+	// ServiceKindConnectProxy is a proxy for the Consul Service Mesh. This
 	// service proxies another service within Consul and speaks the connect
 	// protocol.
 	ServiceKindConnectProxy ServiceKind = "connect-proxy"
 
-	// ServiceKindMeshGateway is a Mesh Gateway for the Connect feature. This
-	// service will proxy connections based off the SNI header set by other
+	// ServiceKindMeshGateway is a Mesh Gateway for the Consul Service Mesh.
+	// This service will proxy connections based off the SNI header set by other
 	// connect proxies
 	ServiceKindMeshGateway ServiceKind = "mesh-gateway"
 
-	// ServiceKindTerminatingGateway is a Terminating Gateway for the Connect
-	// feature. This service will proxy connections to services outside the mesh.
+	// ServiceKindTerminatingGateway is a Terminating Gateway for the Consul Service
+	// Mesh feature. This service will proxy connections to services outside the mesh.
 	ServiceKindTerminatingGateway ServiceKind = "terminating-gateway"
 
-	// ServiceKindIngressGateway is an Ingress Gateway for the Connect feature.
+	// ServiceKindIngressGateway is an Ingress Gateway for the Consul Service Mesh.
 	// This service allows external traffic to enter the mesh based on
 	// centralized configuration.
 	ServiceKindIngressGateway ServiceKind = "ingress-gateway"
 
-	// ServiceKindDestination is a Destination  for the Connect feature.
+	// ServiceKindAPIGateway is an API Gateway for the Consul Service Mesh.
+	// This service allows external traffic to enter the mesh based on
+	// centralized configuration.
+	ServiceKindAPIGateway ServiceKind = "api-gateway"
+
+	// ServiceKindDestination is a Destination  for the Consul Service Mesh feature.
 	// This service allows external traffic to exit the mesh through a terminating gateway
 	// based on centralized configuration.
 	ServiceKindDestination ServiceKind = "destination"
@@ -1418,7 +1430,8 @@ func (s *NodeService) IsSidecarProxy() bool {
 func (s *NodeService) IsGateway() bool {
 	return s.Kind == ServiceKindMeshGateway ||
 		s.Kind == ServiceKindTerminatingGateway ||
-		s.Kind == ServiceKindIngressGateway
+		s.Kind == ServiceKindIngressGateway ||
+		s.Kind == ServiceKindAPIGateway
 }
 
 // Validate validates the node service configuration.
@@ -1562,7 +1575,7 @@ func (s *NodeService) ValidateForAgent() error {
 	// Gateway validation
 	if s.IsGateway() {
 		// Non-ingress gateways must have a port
-		if s.Port == 0 && s.Kind != ServiceKindIngressGateway {
+		if s.Port == 0 && s.Kind != ServiceKindIngressGateway && s.Kind != ServiceKindAPIGateway {
 			result = multierror.Append(result, fmt.Errorf("Port must be non-zero for a %s", s.Kind))
 		}
 
@@ -2240,10 +2253,29 @@ type IndexedServices struct {
 	QueryMeta
 }
 
+type Usage struct {
+	Usage map[string]ServiceUsage
+
+	QueryMeta
+}
+
+// ServiceUsage contains all of the usage data related to services
+type ServiceUsage struct {
+	Services                 int
+	ServiceInstances         int
+	ConnectServiceInstances  map[string]int
+	BillableServiceInstances int
+	EnterpriseServiceUsage
+}
+
 // PeeredServiceName is a basic tuple of ServiceName and peer
 type PeeredServiceName struct {
 	ServiceName ServiceName
 	Peer        string
+}
+
+func (psn PeeredServiceName) String() string {
+	return fmt.Sprintf("%v:%v", psn.ServiceName.String(), psn.Peer)
 }
 
 type ServiceName struct {
@@ -2854,11 +2886,12 @@ func EncodeProtoInterface(t MessageType, message interface{}) ([]byte, error) {
 }
 
 func EncodeProto(t MessageType, pb proto.Message) ([]byte, error) {
-	data := make([]byte, proto.Size(pb)+1)
-	data[0] = uint8(t)
+	data := make([]byte, 0, proto.Size(pb)+1)
+	data = append(data, uint8(t))
 
-	buf := proto.NewBuffer(data[1:1])
-	if err := buf.Marshal(pb); err != nil {
+	var err error
+	data, err = proto.MarshalOptions{}.MarshalAppend(data, pb)
+	if err != nil {
 		return nil, err
 	}
 
@@ -2957,24 +2990,28 @@ func (m MessageType) String() string {
 
 }
 
-func DurationToProto(d time.Duration) *duration.Duration {
+// This should only be used for conversions generated by MOG
+func DurationToProto(d time.Duration) *durationpb.Duration {
 	return durationpb.New(d)
 }
 
-func DurationFromProto(d *duration.Duration) time.Duration {
+// This should only be used for conversions generated by MOG
+func DurationFromProto(d *durationpb.Duration) time.Duration {
 	return d.AsDuration()
 }
 
-func TimeFromProto(s *timestamp.Timestamp) time.Time {
+// This should only be used for conversions generated by MOG
+func TimeFromProto(s *timestamppb.Timestamp) time.Time {
 	return s.AsTime()
 }
 
-func TimeToProto(s time.Time) *timestamp.Timestamp {
+// This should only be used for conversions generated by MOG
+func TimeToProto(s time.Time) *timestamppb.Timestamp {
 	return timestamppb.New(s)
 }
 
 // IsZeroProtoTime returns true if the time is the minimum protobuf timestamp
 // (the Unix epoch).
-func IsZeroProtoTime(t *timestamp.Timestamp) bool {
+func IsZeroProtoTime(t *timestamppb.Timestamp) bool {
 	return t.Seconds == 0 && t.Nanos == 0
 }

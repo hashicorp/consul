@@ -27,9 +27,15 @@ type BootstrapTplArgs struct {
 	// TLS is enabled.
 	AgentCAPEM string
 
+	// AdminAccessLogConfig string representations of Envoy access log
+	// configurations for the admin interface.
+	AdminAccessLogConfig []string
+
 	// AdminAccessLogPath The path to write the access log for the
 	// administration server. If no access log is desired specify
-	// "/dev/null". By default it will use "/dev/null".
+	// "/dev/null". By default it will use "/dev/null". Will be overriden by
+	// AdminAccessLogConfig.
+	// DEPRECATED: use AdminAccessLogConfig
 	AdminAccessLogPath string
 
 	// AdminBindAddress is the address the Envoy admin server should bind to.
@@ -151,7 +157,16 @@ type GRPC struct {
 // config.
 const bootstrapTemplate = `{
   "admin": {
+	{{- if (not .AdminAccessLogConfig) }}
     "access_log_path": "{{ .AdminAccessLogPath }}",
+	{{- end}}
+	{{- if .AdminAccessLogConfig }}
+    "access_log": [
+	{{- range $index, $element := .AdminAccessLogConfig}}
+        {{if $index}},{{end}}
+        {{$element}}
+    {{end}}],
+	{{- end}}
     "address": {
       "socket_address": {
         "address": "{{ .AdminBindAddress }}",

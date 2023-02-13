@@ -21,6 +21,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/grpc-external/limiter"
 	grpc "github.com/hashicorp/consul/agent/grpc-internal"
+	"github.com/hashicorp/consul/agent/grpc-internal/balancer"
 	"github.com/hashicorp/consul/agent/grpc-internal/resolver"
 	"github.com/hashicorp/consul/agent/pool"
 	"github.com/hashicorp/consul/agent/router"
@@ -519,9 +520,18 @@ func newDefaultDeps(t *testing.T, c *Config) Deps {
 	tls, err := tlsutil.NewConfigurator(c.TLSConfig, logger)
 	require.NoError(t, err, "failed to create tls configuration")
 
-	builder := resolver.NewServerResolverBuilder(newTestResolverConfig(t, c.NodeName+"-"+c.Datacenter))
-	r := router.NewRouter(logger, c.Datacenter, fmt.Sprintf("%s.%s", c.NodeName, c.Datacenter), builder)
-	resolver.Register(builder)
+	resolverBuilder := resolver.NewServerResolverBuilder(newTestResolverConfig(t, c.NodeName+"-"+c.Datacenter))
+	resolver.Register(resolverBuilder)
+
+	balancerBuilder := balancer.NewBuilder(resolverBuilder.Authority(), testutil.Logger(t))
+	balancerBuilder.Register()
+
+	r := router.NewRouter(
+		logger,
+		c.Datacenter,
+		fmt.Sprintf("%s.%s", c.NodeName, c.Datacenter),
+		grpc.NewTracker(resolverBuilder, balancerBuilder),
+	)
 
 	connPool := &pool.ConnPool{
 		Server:           false,
@@ -544,13 +554,14 @@ func newDefaultDeps(t *testing.T, c *Config) Deps {
 		Router:          r,
 		ConnPool:        connPool,
 		GRPCConnPool: grpc.NewClientConnPool(grpc.ClientConnPoolConfig{
-			Servers:               builder,
+			Servers:               resolverBuilder,
 			TLSWrapper:            grpc.TLSWrapper(tls.OutgoingRPCWrapper()),
 			UseTLSForDC:           tls.UseTLS,
 			DialingFromServer:     true,
 			DialingFromDatacenter: c.Datacenter,
+			BalancerBuilder:       balancerBuilder,
 		}),
-		LeaderForwarder:          builder,
+		LeaderForwarder:          resolverBuilder,
 		NewRequestRecorderFunc:   middleware.NewRequestRecorder,
 		GetNetRPCInterceptorFunc: middleware.GetNetRPCInterceptor,
 		EnterpriseDeps:           newDefaultDepsEnterprise(t, logger, c),

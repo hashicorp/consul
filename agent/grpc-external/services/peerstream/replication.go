@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/golang/protobuf/proto"
 	"google.golang.org/genproto/googleapis/rpc/code"
+	"google.golang.org/protobuf/proto"
 	newproto "google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
 

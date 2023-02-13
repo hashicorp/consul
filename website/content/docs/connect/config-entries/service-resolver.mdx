@@ -20,7 +20,7 @@ and discovery terminates.
 ## Interaction with other Config Entries
 
 - Service resolver config entries are a component of [L7 Traffic
-  Management](/docs/connect/l7-traffic).
+  Management](/consul/docs/connect/l7-traffic).
 
 ## UI
 
@@ -429,7 +429,7 @@ spec:
         {
           name: 'namespace',
           description:
-            'If running Consul Open Source, the namespace is ignored (see [Kubernetes Namespaces in Consul OSS](/docs/k8s/crds#consul-oss)). If running Consul Enterprise see [Kubernetes Namespaces in Consul Enterprise](/docs/k8s/crds#consul-enterprise) for more details.',
+            'If running Consul Open Source, the namespace is ignored (see [Kubernetes Namespaces in Consul OSS](/consul/docs/k8s/crds#consul-oss)). If running Consul Enterprise see [Kubernetes Namespaces in Consul Enterprise](/consul/docs/k8s/crds#consul-enterprise) for more details.',
         },
       ],
       hcl: false,
@@ -438,7 +438,7 @@ spec:
       name: 'ConnectTimeout',
       type: 'duration: 0s',
       description:
-        'The timeout for establishing new network connections to this service.',
+        'The timeout for establishing new network connections to this service. The default unit of time is `ns`.',
     },
     {
       name: 'DefaultSubset',
@@ -455,9 +455,9 @@ spec:
         {
           name: 'Filter',
           type: 'string: ""',
-          description: `The [filter expression](/consul/api-docs/features/filtering) to be used for selecting
-                            instances of the requested service. If empty, all healthy instances are
-                            returned. This expression can filter on the same selectors as the
+          description: `The filter expression for selecting instances of the 
+                            requested service. If empty, all healthy instances are returned. 
+                            This expression can filter on the same selectors as the
                             [Health API endpoint](/consul/api-docs/health#filtering-2).`,
         },
         {
@@ -531,7 +531,7 @@ spec:
           type: 'string: ""',
           description:
               `Specifies the destination cluster peer to resolve the target service name from.
-                  Ensure that [intentions are defined](/docs/connect/cluster-peering/create-manage-peering#authorize-services-for-peers)
+                  Ensure that [intentions are defined](/consul/docs/connect/cluster-peering/create-manage-peering#authorize-services-for-peers)
                   on the peered cluster to allow the source service to access this redirect target service as an upstream. When
                   the peer name is specified, Consul uses Envoy's outlier detection to determine
                   the health of the redirect target based on whether communication attempts to the
@@ -640,7 +640,7 @@ spec:
               type: 'string: ""',
               description:
               `Specifies the destination cluster peer to resolve the target service name from.
-                  Ensure that [intentions are defined](/docs/connect/cluster-peering/create-manage-peering#authorize-services-for-peers)
+                  Ensure that [intentions are defined](/consul/docs/connect/cluster-peering/create-manage-peering#authorize-services-for-peers)
                   on the peered cluster to allow the source service to access this failover target service as an upstream.
                   When the peer name is specified, Consul uses Envoy's outlier detection
                   to determine the health of the failover target based on
@@ -789,7 +789,7 @@ referenced by their names throughout the other configuration entry kinds.
 
 ## ACLs
 
-Configuration entries may be protected by [ACLs](/docs/security/acl).
+Configuration entries may be protected by [ACLs](/consul/docs/security/acl).
 
 Reading a `service-resolver` config entry requires `service:read` on the resource.
 

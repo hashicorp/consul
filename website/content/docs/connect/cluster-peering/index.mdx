@@ -57,6 +57,6 @@ Consider the following technical constraints:
 
 - Peer names can only contain lowercase characters.
 - Services with node, instance, and check definitions totaling more than 8MB cannot be exported to a peer.
-- Two admin partitions in the same datacenter cannot be peered. You can use [`exported-services`](/docs/connect/config-entries/exported-services#exporting-services-to-peered-clusters) directly instead.
-- The `consul intention` CLI command is not supported. To manage intentions that specify services in peered clusters, use [configuration entries](/docs/connect/config-entries/service-intentions).
+- Two admin partitions in the same datacenter cannot be peered. Use [`exported-services`](/consul/docs/connect/config-entries/exported-services#exporting-services-to-peered-clusters) directly.
+- The `consul intention` CLI command is not supported. To manage intentions that specify services in peered clusters, use [configuration entries](/consul/docs/connect/config-entries/service-intentions).
 - Accessing key/value stores across peers is not supported.

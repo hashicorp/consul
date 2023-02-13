@@ -58,7 +58,7 @@ func (s *Server) serveRoots(
 	serverStream pbconnectca.ConnectCAService_WatchRootsServer,
 	logger hclog.Logger,
 ) (uint64, error) {
-	if err := s.authorize(token); err != nil {
+	if err := external.RequireAnyValidACLToken(s.ACLResolver, token); err != nil {
 		return 0, err
 	}
 

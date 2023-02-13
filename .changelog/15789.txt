@@ -1,0 +1,3 @@
+```release-note:bug
+xds: fix bug where sessions for locally-managed services could fail with "this server has too many xDS streams open"
+```

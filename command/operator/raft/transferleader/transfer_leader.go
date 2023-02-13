@@ -27,7 +27,7 @@ func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
 	c.http = &flags.HTTPFlags{}
 	c.flags.StringVar(&c.id, "id", "",
-		"The ID to remove from the Raft configuration.")
+		"The ID of the node to transfer leadership to.")
 	flags.Merge(c.flags, c.http.ClientFlags())
 	flags.Merge(c.flags, c.http.ServerFlags())
 	c.help = flags.Usage(help, c.flags)

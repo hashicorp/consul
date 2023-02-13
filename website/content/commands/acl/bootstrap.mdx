@@ -1,21 +1,23 @@
 ---
 layout: commands
 page_title: 'Commands: ACL Bootstrap'
+description: >-
+  The `consul acl bootstrap` command generates a new token with unlimited privileges to use for management purposes and outputs the token's details.
 ---
 
 # Consul ACL Bootstrap
 
 Command: `consul acl bootstrap`
 
-Corresponding HTTP API Endpoint: [\[PUT\] /v1/acl/bootstrap](/api-docs/acl#bootstrap-acls)
+Corresponding HTTP API Endpoint: [\[PUT\] /v1/acl/bootstrap](/consul/api-docs/acl#bootstrap-acls)
 
-The `acl bootstrap` command will request Consul to generate a new token with unlimited privileges to use
-for management purposes and output its details. This can only be done once and afterwards bootstrapping
+The `acl bootstrap` command  generates a new token with unlimited privileges to use
+for management purposes and outputs the token's details. Optionally, you can provide a Secret ID to use instead of generating a completely new token. You can create this bootstrapping token only once and afterwards bootstrapping
 will be disabled. If all tokens are lost and you need to bootstrap again you can follow the bootstrap
-[reset procedure](https://learn.hashicorp.com/consul/security-networking/acl-troubleshooting?utm_source=docs).
+[reset procedure](/consul/tutorials/security/access-control-troubleshoot).
 
-The table below shows this command's [required ACLs](/api-docs/api-structure#authentication). Configuration of
-[blocking queries](/api-docs/features/blocking) and [agent caching](/api-docs/features/caching)
+The table below shows this command's [required ACLs](/consul/api-docs/api-structure#authentication). Configuration of
+[blocking queries](/consul/api-docs/features/blocking) and [agent caching](/consul/api-docs/features/caching)
 are not supported from commands, but may be from the corresponding HTTP endpoint.
 
 | ACL Required |
@@ -24,7 +26,10 @@ are not supported from commands, but may be from the corresponding HTTP endpoint
 
 ## Usage
 
-Usage: `consul acl bootstrap [options]`
+Usage: `consul acl bootstrap [options] [FILE]`
+
+If a file is supplied (or `-` for standard input), the new token's Secret ID is read from the file.
+Otherwise, Consul creates a new one.
 
 #### Command Options
 

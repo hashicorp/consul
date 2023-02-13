@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/golang/protobuf/proto"
 	"github.com/hashicorp/go-hclog"
+	"google.golang.org/protobuf/proto"
 
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/structs"
@@ -166,15 +166,15 @@ func (p *pendingPayload) Add(id string, correlationID string, raw interface{}) e
 
 func hashProtobuf(res proto.Message) (string, error) {
 	h := sha256.New()
-	buffer := proto.NewBuffer(nil)
-	buffer.SetDeterministic(true)
+	marshaller := proto.MarshalOptions{
+		Deterministic: true,
+	}
 
-	err := buffer.Marshal(res)
+	data, err := marshaller.Marshal(res)
 	if err != nil {
 		return "", err
 	}
-	h.Write(buffer.Bytes())
-	buffer.Reset()
+	h.Write(data)
 
 	return hex.EncodeToString(h.Sum(nil)), nil
 }

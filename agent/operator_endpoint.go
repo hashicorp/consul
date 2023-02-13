@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/armon/go-metrics"
 	external "github.com/hashicorp/consul/agent/grpc-external"
 	"github.com/hashicorp/consul/proto/pboperator"
 
@@ -363,6 +364,43 @@ func (s *HTTPHandlers) OperatorAutopilotState(resp http.ResponseWriter, req *htt
 	}
 
 	out := autopilotToAPIState(&reply)
+	return out, nil
+}
+
+func (s *HTTPHandlers) OperatorUsage(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	metrics.IncrCounterWithLabels([]string{"client", "api", "operator_usage"}, 1,
+		s.nodeMetricsLabels())
+
+	var args structs.OperatorUsageRequest
+
+	if err := s.parseEntMetaNoWildcard(req, &args.EnterpriseMeta); err != nil {
+		return nil, err
+	}
+	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
+		return nil, nil
+	}
+	if _, ok := req.URL.Query()["global"]; ok {
+		args.Global = true
+	}
+
+	// Make the RPC request
+	var out structs.Usage
+	defer setMeta(resp, &out.QueryMeta)
+RETRY_ONCE:
+	err := s.agent.RPC(req.Context(), "Operator.Usage", &args, &out)
+	if err != nil {
+		metrics.IncrCounterWithLabels([]string{"client", "rpc", "error", "operator_usage"}, 1,
+			s.nodeMetricsLabels())
+		return nil, err
+	}
+	if args.QueryOptions.AllowStale && args.MaxStaleDuration > 0 && args.MaxStaleDuration < out.LastContact {
+		args.AllowStale = false
+		args.MaxStaleDuration = 0
+		goto RETRY_ONCE
+	}
+	out.ConsistencyLevel = args.QueryOptions.ConsistencyLevel()
+	metrics.IncrCounterWithLabels([]string{"client", "api", "success", "operator_usage"}, 1,
+		s.nodeMetricsLabels())
 	return out, nil
 }
 

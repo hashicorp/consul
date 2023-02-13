@@ -57,9 +57,6 @@ func TestTokenUpdateCommand(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	// We fetch the legacy token later to give server time to async background
-	// upgrade it.
-
 	run := func(t *testing.T, args []string) *api.ACLToken {
 		ui := cli.NewMockUi()
 		cmd := New(ui)
@@ -77,7 +74,7 @@ func TestTokenUpdateCommand(t *testing.T) {
 	t.Run("node-identity", func(t *testing.T) {
 		token := run(t, []string{
 			"-http-addr=" + a.HTTPAddr(),
-			"-id=" + token.AccessorID,
+			"-accessor-id=" + token.AccessorID,
 			"-token=root",
 			"-node-identity=foo:bar",
 			"-description=test token",
@@ -91,7 +88,7 @@ func TestTokenUpdateCommand(t *testing.T) {
 	t.Run("node-identity-merge", func(t *testing.T) {
 		token := run(t, []string{
 			"-http-addr=" + a.HTTPAddr(),
-			"-id=" + token.AccessorID,
+			"-accessor-id=" + token.AccessorID,
 			"-token=root",
 			"-node-identity=bar:baz",
 			"-description=test token",
@@ -116,7 +113,7 @@ func TestTokenUpdateCommand(t *testing.T) {
 	t.Run("policy-name", func(t *testing.T) {
 		token := run(t, []string{
 			"-http-addr=" + a.HTTPAddr(),
-			"-id=" + token.AccessorID,
+			"-accessor-id=" + token.AccessorID,
 			"-token=root",
 			"-policy-name=" + policy.Name,
 			"-description=test token",
@@ -129,7 +126,7 @@ func TestTokenUpdateCommand(t *testing.T) {
 	t.Run("policy-id", func(t *testing.T) {
 		token := run(t, []string{
 			"-http-addr=" + a.HTTPAddr(),
-			"-id=" + token.AccessorID,
+			"-accessor-id=" + token.AccessorID,
 			"-token=root",
 			"-policy-id=" + policy.ID,
 			"-description=test token",
@@ -142,7 +139,7 @@ func TestTokenUpdateCommand(t *testing.T) {
 	t.Run("merge-description", func(t *testing.T) {
 		token := run(t, []string{
 			"-http-addr=" + a.HTTPAddr(),
-			"-id=" + token.AccessorID,
+			"-accessor-id=" + token.AccessorID,
 			"-token=root",
 			"-policy-name=" + policy.Name,
 		})
@@ -192,7 +189,7 @@ func TestTokenUpdateCommand_JSON(t *testing.T) {
 		cmd := New(ui)
 		args := []string{
 			"-http-addr=" + a.HTTPAddr(),
-			"-id=" + token.AccessorID,
+			"-accessor-id=" + token.AccessorID,
 			"-token=root",
 			"-policy-name=" + policy.Name,
 			"-description=test token",

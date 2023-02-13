@@ -7,10 +7,10 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/golang/protobuf/jsonpb"
-	"github.com/golang/protobuf/proto"
 	"github.com/hashicorp/go-version"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 )
 
 // update allows golden files to be updated based on the current output.
@@ -123,20 +123,12 @@ func golden(t *testing.T, name, subname, latestSubname, got string) string {
 	return string(expected)
 }
 
-func loadTestResource(t *testing.T, name string) string {
-	t.Helper()
-
-	expected, err := os.ReadFile(filepath.Join("testdata", name+".golden"))
-	require.NoError(t, err)
-	return string(expected)
-}
-
 func protoToJSON(t *testing.T, pb proto.Message) string {
 	t.Helper()
-	m := jsonpb.Marshaler{
+	m := protojson.MarshalOptions{
 		Indent: "  ",
 	}
-	gotJSON, err := m.MarshalToString(pb)
+	gotJSON, err := m.Marshal(pb)
 	require.NoError(t, err)
-	return gotJSON
+	return string(gotJSON)
 }

@@ -28,6 +28,7 @@ import (
 	external "github.com/hashicorp/consul/agent/grpc-external"
 	"github.com/hashicorp/consul/agent/grpc-external/limiter"
 	grpc "github.com/hashicorp/consul/agent/grpc-internal"
+	"github.com/hashicorp/consul/agent/grpc-internal/balancer"
 	"github.com/hashicorp/consul/agent/grpc-internal/resolver"
 	agentmiddleware "github.com/hashicorp/consul/agent/grpc-middleware"
 	"github.com/hashicorp/consul/agent/pool"
@@ -84,7 +85,7 @@ func TestPeeringService_GenerateToken(t *testing.T) {
 
 	// TODO(peering): for more failure cases, consider using a table test
 	// check meta tags
-	reqE := pbpeering.GenerateTokenRequest{PeerName: "peerB", Meta: generateTooManyMetaKeys()}
+	reqE := pbpeering.GenerateTokenRequest{PeerName: "peer-b", Meta: generateTooManyMetaKeys()}
 	_, errE := client.GenerateToken(ctx, &reqE)
 	require.EqualError(t, errE, "rpc error: code = Unknown desc = meta tags failed validation: Node metadata cannot contain more than 64 key/value pairs")
 
@@ -94,7 +95,7 @@ func TestPeeringService_GenerateToken(t *testing.T) {
 	)
 	testutil.RunStep(t, "peering token is generated with data", func(t *testing.T) {
 		req := pbpeering.GenerateTokenRequest{
-			PeerName: "peerB",
+			PeerName: "peer-b",
 			Meta:     map[string]string{"foo": "bar"},
 		}
 		resp, err := client.GenerateToken(ctx, &req)
@@ -134,7 +135,7 @@ func TestPeeringService_GenerateToken(t *testing.T) {
 		peers[0].CreateIndex = 0
 
 		expect := &pbpeering.Peering{
-			Name:      "peerB",
+			Name:      "peer-b",
 			Partition: acl.DefaultPartitionName,
 			ID:        peerID,
 			State:     pbpeering.PeeringState_PENDING,
@@ -152,7 +153,7 @@ func TestPeeringService_GenerateToken(t *testing.T) {
 	})
 
 	testutil.RunStep(t, "re-generating a peering token re-generates the secret", func(t *testing.T) {
-		req := pbpeering.GenerateTokenRequest{PeerName: "peerB", Meta: map[string]string{"foo": "bar"}}
+		req := pbpeering.GenerateTokenRequest{PeerName: "peer-b", Meta: map[string]string{"foo": "bar"}}
 		resp, err := client.GenerateToken(ctx, &req)
 		require.NoError(t, err)
 
@@ -196,7 +197,7 @@ func TestPeeringService_GenerateTokenExternalAddress(t *testing.T) {
 
 	externalAddresses := []string{"32.1.2.3:8502"}
 	// happy path
-	req := pbpeering.GenerateTokenRequest{PeerName: "peerB", Meta: map[string]string{"foo": "bar"}, ServerExternalAddresses: externalAddresses}
+	req := pbpeering.GenerateTokenRequest{PeerName: "peer-b", Meta: map[string]string{"foo": "bar"}, ServerExternalAddresses: externalAddresses}
 	resp, err := client.GenerateToken(ctx, &req)
 	require.NoError(t, err)
 
@@ -395,7 +396,7 @@ func TestPeeringService_Establish_serverNameConflict(t *testing.T) {
 	base64Token := base64.StdEncoding.EncodeToString(jsonToken)
 
 	establishReq := &pbpeering.EstablishRequest{
-		PeerName:     "peerTwo",
+		PeerName:     "peer-two",
 		PeeringToken: base64Token,
 	}
 
@@ -1303,7 +1304,7 @@ func TestPeeringService_validatePeer(t *testing.T) {
 	t.Cleanup(cancel)
 
 	testutil.RunStep(t, "generate a token", func(t *testing.T) {
-		req := pbpeering.GenerateTokenRequest{PeerName: "peerB"}
+		req := pbpeering.GenerateTokenRequest{PeerName: "peer-b"}
 		resp, err := client1.GenerateToken(ctx, &req)
 		require.NoError(t, err)
 		require.NotEmpty(t, resp)
@@ -1324,7 +1325,7 @@ func TestPeeringService_validatePeer(t *testing.T) {
 
 	testutil.RunStep(t, "send an establish request for a different peer name", func(t *testing.T) {
 		resp, err := client1.Establish(ctx, &pbpeering.EstablishRequest{
-			PeerName:     "peerC",
+			PeerName:     "peer-c",
 			PeeringToken: s2Token,
 		})
 		require.NoError(t, err)
@@ -1332,24 +1333,24 @@ func TestPeeringService_validatePeer(t *testing.T) {
 	})
 
 	testutil.RunStep(t, "attempt to generate token with the same name used as dialer", func(t *testing.T) {
-		req := pbpeering.GenerateTokenRequest{PeerName: "peerC"}
+		req := pbpeering.GenerateTokenRequest{PeerName: "peer-c"}
 		resp, err := client1.GenerateToken(ctx, &req)
 
 		require.Error(t, err)
 		require.Contains(t, err.Error(),
-			"cannot create peering with name: \"peerC\"; there is already an established peering")
+			"cannot create peering with name: \"peer-c\"; there is already an established peering")
 		require.Nil(t, resp)
 	})
 
 	testutil.RunStep(t, "attempt to establish the with the same name used as acceptor", func(t *testing.T) {
 		resp, err := client1.Establish(ctx, &pbpeering.EstablishRequest{
-			PeerName:     "peerB",
+			PeerName:     "peer-b",
 			PeeringToken: s2Token,
 		})
 
 		require.Error(t, err)
 		require.Contains(t, err.Error(),
-			"cannot create peering with name: \"peerB\"; there is an existing peering expecting to be dialed")
+			"cannot create peering with name: \"peer-b\"; there is an existing peering expecting to be dialed")
 		require.Nil(t, resp)
 	})
 }
@@ -1692,6 +1693,9 @@ func newDefaultDeps(t *testing.T, c *consul.Config) consul.Deps {
 		Datacenter:      c.Datacenter,
 	}
 
+	balancerBuilder := balancer.NewBuilder(t.Name(), testutil.Logger(t))
+	balancerBuilder.Register()
+
 	return consul.Deps{
 		EventPublisher:  stream.NewEventPublisher(10 * time.Second),
 		Logger:          logger,
@@ -1705,6 +1709,7 @@ func newDefaultDeps(t *testing.T, c *consul.Config) consul.Deps {
 			UseTLSForDC:           tls.UseTLS,
 			DialingFromServer:     true,
 			DialingFromDatacenter: c.Datacenter,
+			BalancerBuilder:       balancerBuilder,
 		}),
 		LeaderForwarder:          builder,
 		EnterpriseDeps:           newDefaultDepsEnterprise(t, logger, c),
@@ -1724,28 +1729,24 @@ func upsertTestACLs(t *testing.T, store *state.Store) {
 	)
 	policies := structs.ACLPolicies{
 		{
-			ID:     testPolicyPeeringReadID,
-			Name:   "peering-read",
-			Rules:  `peering = "read"`,
-			Syntax: acl.SyntaxCurrent,
+			ID:    testPolicyPeeringReadID,
+			Name:  "peering-read",
+			Rules: `peering = "read"`,
 		},
 		{
-			ID:     testPolicyPeeringWriteID,
-			Name:   "peering-write",
-			Rules:  `peering = "write"`,
-			Syntax: acl.SyntaxCurrent,
+			ID:    testPolicyPeeringWriteID,
+			Name:  "peering-write",
+			Rules: `peering = "write"`,
 		},
 		{
-			ID:     testPolicyServiceReadID,
-			Name:   "service-read",
-			Rules:  `service "api" { policy = "read" }`,
-			Syntax: acl.SyntaxCurrent,
+			ID:    testPolicyServiceReadID,
+			Name:  "service-read",
+			Rules: `service "api" { policy = "read" }`,
 		},
 		{
-			ID:     testPolicyServiceWriteID,
-			Name:   "service-write",
-			Rules:  `service "api" { policy = "write" }`,
-			Syntax: acl.SyntaxCurrent,
+			ID:    testPolicyServiceWriteID,
+			Name:  "service-write",
+			Rules: `service "api" { policy = "write" }`,
 		},
 	}
 	require.NoError(t, store.ACLPolicyBatchSet(100, policies))

@@ -25,11 +25,13 @@ func addEnterpriseServiceUsage(map[string]int, map[structs.ServiceName]uniqueSer
 
 func addEnterpriseConnectServiceInstanceUsage(map[string]int, *structs.ServiceNode, int) {}
 
+func addEnterpriseBillableServiceInstanceUsage(map[string]int, *structs.ServiceNode, int) {}
+
 func addEnterpriseKVUsage(map[string]int, memdb.Change) {}
 
 func addEnterpriseConfigEntryUsage(map[string]int, memdb.Change) {}
 
-func compileEnterpriseServiceUsage(ws memdb.WatchSet, tx ReadTxn, usage ServiceUsage) (ServiceUsage, error) {
+func compileEnterpriseServiceUsage(ws memdb.WatchSet, tx ReadTxn, usage structs.ServiceUsage) (structs.ServiceUsage, error) {
 	return usage, nil
 }
 

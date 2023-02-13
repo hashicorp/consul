@@ -65,7 +65,7 @@ load helpers
   echo "PUB = $PUB"
   echo "UPS = $UPS"
 
-  [ "$PUB" = "envoy.filters.http.rbac,envoy.filters.http.router" ]
+  [ "$PUB" = "envoy.filters.http.rbac,envoy.filters.http.header_to_metadata,envoy.filters.http.router" ]
   [ "$UPS" = "envoy.filters.http.router" ]
 }
 
@@ -85,5 +85,5 @@ load helpers
   echo "HTTP_FILTERS = $HTTP_FILTERS"
   echo "PUB = $PUB"
 
-  [ "$PUB" = "envoy.filters.http.rbac,envoy.filters.http.router" ]
+  [ "$PUB" = "envoy.filters.http.rbac,envoy.filters.http.header_to_metadata,envoy.filters.http.router" ]
 }

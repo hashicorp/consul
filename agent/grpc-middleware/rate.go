@@ -17,7 +17,7 @@ import (
 // ServerRateLimiterMiddleware implements a ServerInHandle function to perform
 // RPC rate limiting at the cheapest possible point (before the full request has
 // been decoded).
-func ServerRateLimiterMiddleware(limiter rate.RequestLimitsHandler, panicHandler recovery.RecoveryHandlerFunc) tap.ServerInHandle {
+func ServerRateLimiterMiddleware(limiter rate.RequestLimitsHandler, panicHandler recovery.RecoveryHandlerFunc, logger Logger) tap.ServerInHandle {
 	return func(ctx context.Context, info *tap.Info) (_ context.Context, retErr error) {
 		// This function is called before unary and stream RPC interceptors, so we
 		// must handle our own panics here.
@@ -38,10 +38,16 @@ func ServerRateLimiterMiddleware(limiter rate.RequestLimitsHandler, panicHandler
 			return ctx, status.Error(codes.Internal, "gRPC rate limit middleware unable to read peer")
 		}
 
+		operationType, ok := rpcRateLimitSpecs[info.FullMethodName]
+		if !ok {
+			logger.Warn("failed to determine which rate limit to apply to RPC", "rpc", info.FullMethodName)
+			return ctx, nil
+		}
+
 		err := limiter.Allow(rate.Operation{
 			Name:       info.FullMethodName,
 			SourceAddr: peer.Addr,
-			// TODO: add operation type from https://github.com/hashicorp/consul/pull/15564
+			Type:       operationType,
 		})
 
 		switch {

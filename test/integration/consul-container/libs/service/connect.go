@@ -3,24 +3,75 @@ package service
 import (
 	"context"
 	"fmt"
+	"io"
+	"path/filepath"
+	"strconv"
 	"time"
 
-	"github.com/docker/go-connections/nat"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
 
-	libnode "github.com/hashicorp/consul/test/integration/consul-container/libs/agent"
+	"github.com/hashicorp/consul/api"
+
+	"github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
+	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 )
 
 // ConnectContainer
 type ConnectContainer struct {
-	ctx       context.Context
-	container testcontainers.Container
-	ip        string
-	appPort   int
-	adminPort int
-	req       testcontainers.ContainerRequest
+	ctx              context.Context
+	container        testcontainers.Container
+	ip               string
+	appPort          int
+	adminPort        int
+	mappedPublicPort int
+	serviceName      string
+}
+
+var _ Service = (*ConnectContainer)(nil)
+
+func (g ConnectContainer) Export(partition, peer string, client *api.Client) error {
+	return fmt.Errorf("ConnectContainer export unimplemented")
+}
+
+func (g ConnectContainer) GetAddr() (string, int) {
+	return g.ip, g.appPort
+}
+
+func (g ConnectContainer) Restart() error {
+	_, err := g.GetStatus()
+	if err != nil {
+		return fmt.Errorf("error fetching sidecar container state %s", err)
+	}
+
+	fmt.Printf("Stopping container: %s\n", g.GetName())
+	err = g.container.Stop(g.ctx, nil)
+
+	if err != nil {
+		return fmt.Errorf("error stopping sidecar container %s", err)
+	}
+
+	fmt.Printf("Starting container: %s\n", g.GetName())
+	err = g.container.Start(g.ctx)
+	if err != nil {
+		return fmt.Errorf("error starting sidecar container %s", err)
+	}
+	return nil
+}
+
+func (g ConnectContainer) GetLogs() (string, error) {
+	rc, err := g.container.Logs(context.Background())
+	if err != nil {
+		return "", fmt.Errorf("could not get logs for connect service %s: %w", g.GetServiceName(), err)
+	}
+	defer rc.Close()
+
+	out, err := io.ReadAll(rc)
+	if err != nil {
+		return "", fmt.Errorf("could not read from logs for connect service %s: %w", g.GetServiceName(), err)
+	}
+	return string(out), nil
 }
 
 func (g ConnectContainer) GetName() string {
@@ -31,50 +82,49 @@ func (g ConnectContainer) GetName() string {
 	return name
 }
 
-func (g ConnectContainer) GetAddr() (string, int) {
-	return g.ip, g.appPort
+func (g ConnectContainer) GetServiceName() string {
+	return g.serviceName
 }
 
 func (g ConnectContainer) Start() error {
 	if g.container == nil {
 		return fmt.Errorf("container has not been initialized")
 	}
-	return g.container.Start(context.Background())
+	return g.container.Start(g.ctx)
+}
+
+func (g ConnectContainer) Terminate() error {
+	return cluster.TerminateContainer(g.ctx, g.container, true)
 }
 
 func (g ConnectContainer) GetAdminAddr() (string, int) {
 	return "localhost", g.adminPort
 }
 
-// Terminate attempts to terminate the container. On failure, an error will be
-// returned and the reaper process (RYUK) will handle cleanup.
-func (c ConnectContainer) Terminate() error {
-	if c.container == nil {
-		return nil
-	}
-
-	var err error
-	if *utils.FollowLog {
-		err := c.container.StopLogProducer()
-		if err1 := c.container.Terminate(c.ctx); err == nil {
-			err = err1
-		}
-	} else {
-		err = c.container.Terminate(c.ctx)
-	}
-
-	c.container = nil
-
-	return err
+func (g ConnectContainer) GetStatus() (string, error) {
+	state, err := g.container.State(g.ctx)
+	return state.Status, err
 }
 
-func NewConnectService(ctx context.Context, name string, serviceName string, serviceBindPort int, node libnode.Agent) (*ConnectContainer, error) {
-	namePrefix := fmt.Sprintf("%s-service-connect-%s", node.GetDatacenter(), name)
+// NewConnectService returns a container that runs envoy sidecar, launched by
+// "consul connect envoy", for service name (serviceName) on the specified
+// node. The container exposes port serviceBindPort and envoy admin port
+// (19000) by mapping them onto host ports. The container's name has a prefix
+// combining datacenter and name.
+func NewConnectService(ctx context.Context, sidecarServiceName string, serviceName string, serviceBindPort int, node libcluster.Agent) (*ConnectContainer, error) {
+	nodeConfig := node.GetConfig()
+	if nodeConfig.ScratchDir == "" {
+		return nil, fmt.Errorf("node ScratchDir is required")
+	}
+
+	namePrefix := fmt.Sprintf("%s-service-connect-%s", node.GetDatacenter(), sidecarServiceName)
 	containerName := utils.RandName(namePrefix)
 
 	envoyVersion := getEnvoyVersion()
+	agentConfig := node.GetConfig()
 	buildargs := map[string]*string{
 		"ENVOY_VERSION": utils.StringToPointer(envoyVersion),
+		"CONSUL_IMAGE":  utils.StringToPointer(agentConfig.DockerImage()),
 	}
 
 	dockerfileCtx, err := getDevContainerDockerfile()
@@ -83,7 +133,10 @@ func NewConnectService(ctx context.Context, name string, serviceName string, ser
 	}
 	dockerfileCtx.BuildArgs = buildargs
 
-	nodeIP, _ := node.GetAddr()
+	adminPort, err := node.ClaimAdminPort()
+	if err != nil {
+		return nil, err
+	}
 
 	req := testcontainers.ContainerRequest{
 		FromDockerfile: dockerfileCtx,
@@ -93,58 +146,63 @@ func NewConnectService(ctx context.Context, name string, serviceName string, ser
 		Cmd: []string{
 			"consul", "connect", "envoy",
 			"-sidecar-for", serviceName,
-			"-service", name,
-			"-admin-bind", "0.0.0.0:19000",
-			"-grpc-addr", fmt.Sprintf("%s:8502", nodeIP),
-			"-http-addr", fmt.Sprintf("%s:8500", nodeIP),
+			"-admin-bind", fmt.Sprintf("0.0.0.0:%d", adminPort),
 			"--",
-			"--log-level", envoyLogLevel},
-		ExposedPorts: []string{
-			fmt.Sprintf("%d/tcp", serviceBindPort), // Envoy Listener
-			"19000/tcp",                            // Envoy Admin Port
+			"--log-level", envoyLogLevel,
 		},
-	}
-	container, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
-		ContainerRequest: req,
-		Started:          true,
-	})
-	if err != nil {
-		return nil, err
+		Env: make(map[string]string),
 	}
 
-	ip, err := container.ContainerIP(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	mappedAppPort, err := container.MappedPort(ctx, nat.Port(fmt.Sprintf("%d", serviceBindPort)))
-	if err != nil {
-		return nil, err
-	}
-	mappedAdminPort, err := container.MappedPort(ctx, nat.Port(fmt.Sprintf("%d", 19000)))
-	if err != nil {
-		return nil, err
-	}
-
-	if *utils.FollowLog {
-		if err := container.StartLogProducer(ctx); err != nil {
-			return nil, err
-		}
-		container.FollowOutput(&LogConsumer{
-			Prefix: containerName,
+	nodeInfo := node.GetInfo()
+	if nodeInfo.UseTLSForAPI || nodeInfo.UseTLSForGRPC {
+		req.Mounts = append(req.Mounts, testcontainers.ContainerMount{
+			Source: testcontainers.DockerBindMountSource{
+				// See cluster.NewConsulContainer for this info
+				HostPath: filepath.Join(nodeConfig.ScratchDir, "ca.pem"),
+			},
+			Target:   "/ca.pem",
+			ReadOnly: true,
 		})
 	}
 
-	// Register the termination function the agent so the containers can stop together
-	terminate := func() error {
-		return container.Terminate(context.Background())
+	if nodeInfo.UseTLSForAPI {
+		req.Env["CONSUL_HTTP_ADDR"] = fmt.Sprintf("https://127.0.0.1:%d", 8501)
+		req.Env["CONSUL_HTTP_SSL"] = "1"
+		req.Env["CONSUL_CACERT"] = "/ca.pem"
+	} else {
+		req.Env["CONSUL_HTTP_ADDR"] = fmt.Sprintf("http://127.0.0.1:%d", 8500)
 	}
-	node.RegisterTermination(terminate)
 
-	return &ConnectContainer{
-		container: container,
-		ip:        ip,
-		appPort:   mappedAppPort.Int(),
-		adminPort: mappedAdminPort.Int(),
-	}, nil
+	if nodeInfo.UseTLSForGRPC {
+		req.Env["CONSUL_GRPC_ADDR"] = fmt.Sprintf("https://127.0.0.1:%d", 8503)
+		req.Env["CONSUL_GRPC_CACERT"] = "/ca.pem"
+	} else {
+		req.Env["CONSUL_GRPC_ADDR"] = fmt.Sprintf("http://127.0.0.1:%d", 8502)
+	}
+
+	var (
+		appPortStr   = strconv.Itoa(serviceBindPort)
+		adminPortStr = strconv.Itoa(adminPort)
+	)
+
+	info, err := cluster.LaunchContainerOnNode(ctx, node, req, []string{appPortStr, adminPortStr})
+	if err != nil {
+		return nil, err
+	}
+
+	out := &ConnectContainer{
+		ctx:         ctx,
+		container:   info.Container,
+		ip:          info.IP,
+		appPort:     info.MappedPorts[appPortStr].Int(),
+		adminPort:   info.MappedPorts[adminPortStr].Int(),
+		serviceName: sidecarServiceName,
+	}
+
+	fmt.Printf("NewConnectService: name %s, mapped App Port %d, service bind port %d\n",
+		serviceName, out.appPort, serviceBindPort)
+	fmt.Printf("NewConnectService sidecar: name %s, mapped admin port %d, admin port %d\n",
+		sidecarServiceName, out.adminPort, adminPort)
+
+	return out, nil
 }

@@ -23,7 +23,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/golang/protobuf/jsonpb"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/google/tcpproxy"
@@ -37,6 +36,7 @@ import (
 	"golang.org/x/sync/errgroup"
 	"golang.org/x/time/rate"
 	"google.golang.org/grpc"
+	"google.golang.org/protobuf/encoding/protojson"
 	"gopkg.in/square/go-jose.v2/jwt"
 
 	"github.com/hashicorp/consul/agent/cache"
@@ -5290,13 +5290,12 @@ func TestAutoConfig_Integration(t *testing.T) {
 		// check that the on disk certs match expectations
 		data, err := os.ReadFile(filepath.Join(client.DataDir, "auto-config.json"))
 		require.NoError(r, err)
-		rdr := strings.NewReader(string(data))
 
 		var resp pbautoconf.AutoConfigResponse
-		pbUnmarshaler := &jsonpb.Unmarshaler{
-			AllowUnknownFields: false,
+		pbUnmarshaler := &protojson.UnmarshalOptions{
+			DiscardUnknown: false,
 		}
-		require.NoError(r, pbUnmarshaler.Unmarshal(rdr, &resp), "data: %s", data)
+		require.NoError(r, pbUnmarshaler.Unmarshal(data, &resp), "data: %s", data)
 
 		actual, err := tls.X509KeyPair([]byte(resp.Certificate.CertPEM), []byte(resp.Certificate.PrivateKeyPEM))
 		require.NoError(r, err)

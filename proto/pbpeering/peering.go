@@ -7,10 +7,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/golang/protobuf/ptypes/timestamp"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
@@ -299,19 +299,19 @@ func NewEstablishRequestFromAPI(req *api.PeeringEstablishRequest) *EstablishRequ
 	return t
 }
 
-func TimePtrFromProto(s *timestamp.Timestamp) *time.Time {
+func TimePtrFromProto(s *timestamppb.Timestamp) *time.Time {
 	if s == nil {
 		return nil
 	}
-	t := structs.TimeFromProto(s)
+	t := s.AsTime()
 	return &t
 }
 
-func TimePtrToProto(s *time.Time) *timestamp.Timestamp {
+func TimePtrToProto(s *time.Time) *timestamppb.Timestamp {
 	if s == nil {
 		return nil
 	}
-	return structs.TimeToProto(*s)
+	return timestamppb.New(*s)
 }
 
 // DeepCopy returns a copy of the PeeringTrustBundle that can be passed around

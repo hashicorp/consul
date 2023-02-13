@@ -8,9 +8,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/golang/protobuf/proto"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
+	"google.golang.org/protobuf/proto"
 
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/lib/retry"

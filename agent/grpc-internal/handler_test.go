@@ -38,6 +38,7 @@ func TestHandler_PanicRecoveryInterceptor(t *testing.T) {
 		UseTLSForDC:           useTLSForDcAlwaysTrue,
 		DialingFromServer:     true,
 		DialingFromDatacenter: "dc1",
+		BalancerBuilder:       balancerBuilder(t, res.Authority()),
 	})
 
 	conn, err := pool.ClientConn("dc1")

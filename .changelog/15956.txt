@@ -1,0 +1,3 @@
+```release-note:breaking-change
+connect: Add `peer` field to service-defaults upstream overrides. The addition of this field makes it possible to apply upstream overrides only to peer services. Prior to this change, overrides would be applied based on matching the `namespace` and `name` fields only, which means users could not have different configuration for local versus peer services. With this change, peer upstreams are only affected if the `peer` field matches the destination peer name.
+```

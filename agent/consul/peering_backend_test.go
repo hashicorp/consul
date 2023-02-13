@@ -8,6 +8,7 @@ import (
 	"time"
 
 	gogrpc "google.golang.org/grpc"
+	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/stretchr/testify/require"
 
@@ -394,7 +395,7 @@ func TestPeeringBackend_GetDialAddresses(t *testing.T) {
 
 						// Mark as deleted
 						State:     pbpeering.PeeringState_DELETING,
-						DeletedAt: structs.TimeToProto(time.Now()),
+						DeletedAt: timestamppb.New(time.Now()),
 					},
 				}))
 			},

@@ -3,6 +3,7 @@ syntax = "proto3";
 package hashicorp.consul.internal.common;
 
 import "google/protobuf/duration.proto";
+import "google/protobuf/struct.proto";
 
 // RaftIndex is used to track the index used while creating
 // or modifying a given struct type.
@@ -169,4 +170,16 @@ message EnterpriseMeta {
   string Namespace = 1;
   // Partition in which the entity exists.
   string Partition = 2;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.EnvoyExtension
+// output=common.gen.go
+// name=Structs
+message EnvoyExtension {
+  string Name = 1;
+  bool Required = 2;
+  // mog: func-to=ProtobufTypesStructToMapStringInterface func-from=MapStringInterfaceToProtobufTypesStruct
+  google.protobuf.Struct Arguments = 3;
 }

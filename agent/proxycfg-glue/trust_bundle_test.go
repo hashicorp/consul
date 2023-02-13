@@ -124,7 +124,7 @@ func TestServerTrustBundle_ACLEnforcement(t *testing.T) {
 		require.NoError(t, err)
 
 		err = getEventError(t, eventCh)
-		require.Contains(t, err.Error(), "provided token lacks permission 'service:write' on \"any service\"")
+		require.Contains(t, err.Error(), "token with AccessorID '' lacks permission 'service:write' on \"any service\"")
 	})
 }
 
@@ -324,7 +324,7 @@ func TestServerTrustBundleList_ACLEnforcement(t *testing.T) {
 			require.NoError(t, err)
 
 			err = getEventError(t, eventCh)
-			require.Contains(t, err.Error(), "provided token lacks permission 'service:write' on \"web\"")
+			require.Contains(t, err.Error(), "token with AccessorID '' lacks permission 'service:write' on \"web\"")
 		})
 	})
 
@@ -391,7 +391,7 @@ func TestServerTrustBundleList_ACLEnforcement(t *testing.T) {
 			require.NoError(t, err)
 
 			err = getEventError(t, eventCh)
-			require.Contains(t, err.Error(), "provided token lacks permission 'service:write'")
+			require.Contains(t, err.Error(), "token with AccessorID '' lacks permission 'service:write'")
 		})
 	})
 }

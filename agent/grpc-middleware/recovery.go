@@ -32,4 +32,5 @@ func NewPanicHandler(logger Logger) recovery.RecoveryHandlerFunc {
 
 type Logger interface {
 	Error(string, ...interface{})
+	Warn(string, ...interface{})
 }

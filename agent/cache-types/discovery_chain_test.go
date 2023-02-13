@@ -4,11 +4,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/consul/discoverychain"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/stretchr/testify/mock"
-	"github.com/stretchr/testify/require"
 )
 
 func TestCompiledDiscoveryChain(t *testing.T) {
@@ -21,14 +22,14 @@ func TestCompiledDiscoveryChain(t *testing.T) {
 	// Expect the proper RPC call. This also sets the expected value
 	// since that is return-by-pointer in the arguments.
 	var resp *structs.DiscoveryChainResponse
-	rpc.On("RPC", "DiscoveryChain.Get", mock.Anything, mock.Anything).Return(nil).
+	rpc.On("RPC", mock.Anything, "DiscoveryChain.Get", mock.Anything, mock.Anything).Return(nil).
 		Run(func(args mock.Arguments) {
-			req := args.Get(1).(*structs.DiscoveryChainRequest)
+			req := args.Get(2).(*structs.DiscoveryChainRequest)
 			require.Equal(t, uint64(24), req.QueryOptions.MinQueryIndex)
 			require.Equal(t, 1*time.Second, req.QueryOptions.MaxQueryTime)
 			require.True(t, req.AllowStale)
 
-			reply := args.Get(2).(*structs.DiscoveryChainResponse)
+			reply := args.Get(3).(*structs.DiscoveryChainResponse)
 			reply.Chain = chain
 			reply.QueryMeta.Index = 48
 			resp = reply

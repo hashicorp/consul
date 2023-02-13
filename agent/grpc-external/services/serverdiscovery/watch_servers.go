@@ -8,7 +8,6 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/autopilotevents"
 	"github.com/hashicorp/consul/agent/consul/stream"
 	external "github.com/hashicorp/consul/agent/grpc-external"
@@ -46,7 +45,7 @@ func (s *Server) WatchServers(req *pbserverdiscovery.WatchServersRequest, server
 }
 
 func (s *Server) serveReadyServers(token string, index uint64, req *pbserverdiscovery.WatchServersRequest, serverStream pbserverdiscovery.ServerDiscoveryService_WatchServersServer, logger hclog.Logger) (uint64, error) {
-	if err := s.authorize(token); err != nil {
+	if err := external.RequireAnyValidACLToken(s.ACLResolver, token); err != nil {
 		return 0, err
 	}
 
@@ -103,21 +102,6 @@ func (s *Server) serveReadyServers(token string, index uint64, req *pbserverdisc
 			return index, err
 		}
 	}
-}
-
-func (s *Server) authorize(token string) error {
-	// Require the given ACL token to have `service:write` on any service (in any
-	// partition and namespace).
-	var authzContext acl.AuthorizerContext
-	entMeta := structs.WildcardEnterpriseMetaInPartition(structs.WildcardSpecifier)
-	authz, err := s.ACLResolver.ResolveTokenAndDefaultMeta(token, entMeta, &authzContext)
-	if err != nil {
-		return status.Error(codes.Unauthenticated, err.Error())
-	}
-	if err := authz.ToAllowAuthorizer().ServiceWriteAnyAllowed(&authzContext); err != nil {
-		return status.Error(codes.PermissionDenied, err.Error())
-	}
-	return nil
 }
 
 func eventToResponse(req *pbserverdiscovery.WatchServersRequest, event stream.Event) (*pbserverdiscovery.WatchServersResponse, error) {

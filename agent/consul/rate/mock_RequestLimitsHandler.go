@@ -37,6 +37,11 @@ func (_m *MockRequestLimitsHandler) UpdateConfig(cfg HandlerConfig) {
 	_m.Called(cfg)
 }
 
+// Register provides a mock function with given fields: leaderStatusProvider
+func (_m *MockRequestLimitsHandler) Register(leaderStatusProvider LeaderStatusProvider) {
+	_m.Called(leaderStatusProvider)
+}
+
 type mockConstructorTestingTNewMockRequestLimitsHandler interface {
 	mock.TestingT
 	Cleanup(func())

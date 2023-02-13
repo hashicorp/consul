@@ -44,10 +44,6 @@
         "path": "acl/tokens"
       },
       {
-        "title": "Legacy Tokens",
-        "path": "acl/legacy"
-      },
-      {
         "title": "Policies",
         "path": "acl/policies"
       },

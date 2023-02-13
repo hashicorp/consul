@@ -8,8 +8,9 @@ import (
 	envoy_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoy_endpoint_v3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
-	"github.com/golang/protobuf/proto"
+	"github.com/hashicorp/consul/envoyextensions/xdscommon"
 	"github.com/hashicorp/go-bexpr"
+	"google.golang.org/protobuf/proto"
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/proxycfg"
@@ -36,6 +37,14 @@ func (s *ResourceGenerator) endpointsFromSnapshot(cfgSnap *proxycfg.ConfigSnapsh
 		return s.endpointsFromSnapshotMeshGateway(cfgSnap)
 	case structs.ServiceKindIngressGateway:
 		return s.endpointsFromSnapshotIngressGateway(cfgSnap)
+	case structs.ServiceKindAPIGateway:
+		// TODO Find a cleaner solution, can't currently pass unexported property types
+		var err error
+		cfgSnap.IngressGateway, err = cfgSnap.APIGateway.ToIngress(cfgSnap.Datacenter)
+		if err != nil {
+			return nil, err
+		}
+		return s.endpointsFromSnapshotIngressGateway(cfgSnap)
 	default:
 		return nil, fmt.Errorf("Invalid service kind: %v", cfgSnap.Kind)
 	}
@@ -50,18 +59,10 @@ func (s *ResourceGenerator) endpointsFromSnapshotConnectProxy(cfgSnap *proxycfg.
 			cfgSnap.ConnectProxy.PeerUpstreamEndpoints.Len()+
 			len(cfgSnap.ConnectProxy.WatchedUpstreamEndpoints))
 
-	getUpstream := func(uid proxycfg.UpstreamID) (*structs.Upstream, bool) {
-		upstream := cfgSnap.ConnectProxy.UpstreamConfig[uid]
-
-		explicit := upstream.HasLocalPortOrSocket()
-		implicit := cfgSnap.ConnectProxy.IsImplicitUpstream(uid)
-		return upstream, !implicit && !explicit
-	}
-
 	// NOTE: Any time we skip a chain below we MUST also skip that discovery chain in clusters.go
 	// so that the sets of endpoints generated matches the sets of clusters.
 	for uid, chain := range cfgSnap.ConnectProxy.DiscoveryChain {
-		upstream, skip := getUpstream(uid)
+		upstream, skip := cfgSnap.ConnectProxy.GetUpstream(uid, &cfgSnap.ProxyID.EnterpriseMeta)
 		if skip {
 			// Discovery chain is not associated with a known explicit or implicit upstream so it is skipped.
 			continue
@@ -92,7 +93,7 @@ func (s *ResourceGenerator) endpointsFromSnapshotConnectProxy(cfgSnap *proxycfg.
 	// upstream in clusters.go so that the sets of endpoints generated matches
 	// the sets of clusters.
 	for _, uid := range cfgSnap.ConnectProxy.PeeredUpstreamIDs() {
-		upstream, skip := getUpstream(uid)
+		upstream, skip := cfgSnap.ConnectProxy.GetUpstream(uid, &cfgSnap.ProxyID.EnterpriseMeta)
 		if skip {
 			// Discovery chain is not associated with a known explicit or implicit upstream so it is skipped.
 			continue
@@ -555,6 +556,10 @@ func (s *ResourceGenerator) makeUpstreamLoadAssignmentForPeerService(
 		return la, err
 	}
 
+	if upstreamGatewayMode == structs.MeshGatewayModeNone {
+		s.Logger.Warn(fmt.Sprintf("invalid mesh gateway mode 'none', defaulting to 'remote' for %q", uid))
+	}
+
 	// If an upstream is configured with local mesh gw mode, we make a load assignment
 	// from the gateway endpoints instead of those of the upstreams.
 	if upstreamGatewayMode == structs.MeshGatewayModeLocal {
@@ -651,7 +656,7 @@ func (s *ResourceGenerator) endpointsFromDiscoveryChain(
 	}
 
 	mgwMode := structs.MeshGatewayModeDefault
-	if upstream := cfgSnap.ConnectProxy.UpstreamConfig[uid]; upstream != nil {
+	if upstream, _ := cfgSnap.ConnectProxy.GetUpstream(uid, &cfgSnap.ProxyID.EnterpriseMeta); upstream != nil {
 		mgwMode = upstream.MeshGateway.Mode
 	}
 
@@ -786,7 +791,7 @@ func (s *ResourceGenerator) makeExportedUpstreamEndpointsForMeshGateway(cfgSnap 
 			return nil, err
 		}
 		for _, endpoints := range clusterEndpoints {
-			clusterName := getResourceName(endpoints)
+			clusterName := xdscommon.GetResourceName(endpoints)
 			if _, ok := populatedExportedClusters[clusterName]; ok {
 				continue
 			}

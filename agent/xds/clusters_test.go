@@ -8,15 +8,15 @@ import (
 	"text/template"
 
 	envoy_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
+	"github.com/hashicorp/consul/agent/xds/testcommon"
 
-	"github.com/golang/protobuf/ptypes/wrappers"
 	testinf "github.com/mitchellh/go-testing-interface"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/agent/xds/proxysupport"
-	"github.com/hashicorp/consul/agent/xds/xdscommon"
+	"github.com/hashicorp/consul/envoyextensions/xdscommon"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/types"
 )
@@ -767,9 +767,9 @@ func TestClustersFromSnapshot(t *testing.T) {
 		},
 	}
 
-	latestEnvoyVersion := proxysupport.EnvoyVersions[0]
-	for _, envoyVersion := range proxysupport.EnvoyVersions {
-		sf, err := determineSupportedProxyFeaturesFromString(envoyVersion)
+	latestEnvoyVersion := xdscommon.EnvoyVersions[0]
+	for _, envoyVersion := range xdscommon.EnvoyVersions {
+		sf, err := xdscommon.DetermineSupportedProxyFeaturesFromString(envoyVersion)
 		require.NoError(t, err)
 		t.Run("envoy-"+envoyVersion, func(t *testing.T) {
 			for _, tt := range tests {
@@ -780,10 +780,10 @@ func TestClustersFromSnapshot(t *testing.T) {
 					// We need to replace the TLS certs with deterministic ones to make golden
 					// files workable. Note we don't update these otherwise they'd change
 					// golder files for every test case and so not be any use!
-					setupTLSRootsAndLeaf(t, snap)
+					testcommon.SetupTLSRootsAndLeaf(t, snap)
 
 					// Need server just for logger dependency
-					g := newResourceGenerator(testutil.Logger(t), nil, false)
+					g := NewResourceGenerator(testutil.Logger(t), nil, false)
 					g.ProxyFeatures = sf
 
 					clusters, err := g.clustersFromSnapshot(snap)
@@ -861,25 +861,6 @@ func customAppClusterJSON(t testinf.T, opts customClusterJSONOptions) string {
 	return buf.String()
 }
 
-func setupTLSRootsAndLeaf(t *testing.T, snap *proxycfg.ConfigSnapshot) {
-	if snap.Leaf() != nil {
-		switch snap.Kind {
-		case structs.ServiceKindConnectProxy:
-			snap.ConnectProxy.Leaf.CertPEM = loadTestResource(t, "test-leaf-cert")
-			snap.ConnectProxy.Leaf.PrivateKeyPEM = loadTestResource(t, "test-leaf-key")
-		case structs.ServiceKindIngressGateway:
-			snap.IngressGateway.Leaf.CertPEM = loadTestResource(t, "test-leaf-cert")
-			snap.IngressGateway.Leaf.PrivateKeyPEM = loadTestResource(t, "test-leaf-key")
-		case structs.ServiceKindMeshGateway:
-			snap.MeshGateway.Leaf.CertPEM = loadTestResource(t, "test-leaf-cert")
-			snap.MeshGateway.Leaf.PrivateKeyPEM = loadTestResource(t, "test-leaf-key")
-		}
-	}
-	if snap.Roots != nil {
-		snap.Roots.Roots[0].RootCert = loadTestResource(t, "test-root-cert")
-	}
-}
-
 func TestEnvoyLBConfig_InjectToCluster(t *testing.T) {
 	var tests = []struct {
 		name     string
@@ -927,8 +908,8 @@ func TestEnvoyLBConfig_InjectToCluster(t *testing.T) {
 				LbPolicy: envoy_cluster_v3.Cluster_RING_HASH,
 				LbConfig: &envoy_cluster_v3.Cluster_RingHashLbConfig_{
 					RingHashLbConfig: &envoy_cluster_v3.Cluster_RingHashLbConfig{
-						MinimumRingSize: &wrappers.UInt64Value{Value: 3},
-						MaximumRingSize: &wrappers.UInt64Value{Value: 7},
+						MinimumRingSize: &wrapperspb.UInt64Value{Value: 3},
+						MaximumRingSize: &wrapperspb.UInt64Value{Value: 7},
 					},
 				},
 			},
@@ -945,7 +926,7 @@ func TestEnvoyLBConfig_InjectToCluster(t *testing.T) {
 				LbPolicy: envoy_cluster_v3.Cluster_LEAST_REQUEST,
 				LbConfig: &envoy_cluster_v3.Cluster_LeastRequestLbConfig_{
 					LeastRequestLbConfig: &envoy_cluster_v3.Cluster_LeastRequestLbConfig{
-						ChoiceCount: &wrappers.UInt32Value{Value: 3},
+						ChoiceCount: &wrapperspb.UInt32Value{Value: 3},
 					},
 				},
 			},

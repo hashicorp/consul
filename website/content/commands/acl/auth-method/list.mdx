@@ -1,18 +1,20 @@
 ---
 layout: commands
 page_title: 'Commands: ACL Auth Method List'
+description: |
+  The `consul acl auth-method list` command outputs a list of active auth methods.
 ---
 
 # Consul ACL Auth Method List
 
 Command: `consul acl auth-method list`
 
-Corresponding HTTP API Endpoint: [\[GET\] /v1/acl/auth-methods](/api-docs/acl/auth-methods#list-auth-methods)
+Corresponding HTTP API Endpoint: [\[GET\] /v1/acl/auth-methods](/consul/api-docs/acl/auth-methods#list-auth-methods)
 
 The `acl auth-method list` command lists all auth methods. By default it will not show metadata.
 
-The table below shows this command's [required ACLs](/api-docs/api-structure#authentication). Configuration of
-[blocking queries](/api-docs/features/blocking) and [agent caching](/api-docs/features/caching)
+The table below shows this command's [required ACLs](/consul/api-docs/api-structure#authentication). Configuration of
+[blocking queries](/consul/api-docs/features/blocking) and [agent caching](/consul/api-docs/features/caching)
 are not supported from commands, but may be from the corresponding HTTP endpoint.
 
 | ACL Required |

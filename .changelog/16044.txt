@@ -1,0 +1,3 @@
+```release-note:deprecation
+cli: The `-id` flag on acl token operations has been changed to `-accessor-id` for clarity in documentation. The `-id` flag will continue to work, but operators should use `-accessor-id` in the future.
+```

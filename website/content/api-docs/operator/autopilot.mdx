@@ -13,7 +13,7 @@ The `/operator/autopilot` endpoints allow for automatic operator-friendly
 management of Consul servers including cleanup of dead servers, monitoring
 the state of the Raft cluster, and stable server introduction.
 
-Please check the [Autopilot tutorial](https://learn.hashicorp.com/tutorials/consul/autopilot-datacenter-operations) for more details.
+Please check the [Autopilot tutorial](/consul/tutorials/datacenter-operations/autopilot-datacenter-operations) for more details.
 
 ## Read Configuration
 
@@ -24,16 +24,16 @@ This endpoint retrieves its latest Autopilot configuration.
 | `GET`  | `/operator/autopilot/configuration` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api-docs/features/blocking),
-[consistency modes](/api-docs/features/consistency),
-[agent caching](/api-docs/features/caching), and
-[required ACLs](/api-docs/api-structure#authentication).
+[blocking queries](/consul/api-docs/features/blocking),
+[consistency modes](/consul/api-docs/features/consistency),
+[agent caching](/consul/api-docs/features/caching), and
+[required ACLs](/consul/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required    |
 | ---------------- | ----------------- | ------------- | --------------- |
 | `NO`             | `none`            | `none`        | `operator:read` |
 
-The corresponding CLI command is [`consul operator autopilot get-config`](/commands/operator/autopilot#get-config).
+The corresponding CLI command is [`consul operator autopilot get-config`](/consul/commands/operator/autopilot#get-config).
 
 ### Query Parameters
 
@@ -68,7 +68,7 @@ $ curl \
 ```
 
 For more information about the Autopilot configuration options, see the
-[agent configuration section](/docs/agent/config/config-files#autopilot).
+[agent configuration section](/consul/docs/agent/config/config-files#autopilot).
 
 ## Update Configuration
 
@@ -79,16 +79,16 @@ This endpoint updates the Autopilot configuration of the cluster.
 | `PUT`  | `/operator/autopilot/configuration` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api-docs/features/blocking),
-[consistency modes](/api-docs/features/consistency),
-[agent caching](/api-docs/features/caching), and
-[required ACLs](/api-docs/api-structure#authentication).
+[blocking queries](/consul/api-docs/features/blocking),
+[consistency modes](/consul/api-docs/features/consistency),
+[agent caching](/consul/api-docs/features/caching), and
+[required ACLs](/consul/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required     |
 | ---------------- | ----------------- | ------------- | ---------------- |
 | `NO`             | `none`            | `none`        | `operator:write` |
 
-The corresponding CLI command is [`consul operator autopilot set-config`](/commands/operator/autopilot#set-config).
+The corresponding CLI command is [`consul operator autopilot set-config`](/consul/commands/operator/autopilot#set-config).
 
 ### Query Parameters
 
@@ -159,10 +159,10 @@ This endpoint queries the health of the autopilot status.
 | `GET`  | `/operator/autopilot/health` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api-docs/features/blocking),
-[consistency modes](/api-docs/features/consistency),
-[agent caching](/api-docs/features/caching), and
-[required ACLs](/api-docs/api-structure#authentication).
+[blocking queries](/consul/api-docs/features/blocking),
+[consistency modes](/consul/api-docs/features/consistency),
+[agent caching](/consul/api-docs/features/caching), and
+[required ACLs](/consul/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required    |
 | ---------------- | ----------------- | ------------- | --------------- |
@@ -263,16 +263,16 @@ This endpoint queries the health of the autopilot status.
 | `GET`  | `/operator/autopilot/state` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api-docs/features/blocking),
-[consistency modes](/api-docs/features/consistency),
-[agent caching](/api-docs/features/caching), and
-[required ACLs](/api-docs/api-structure#authentication).
+[blocking queries](/consul/api-docs/features/blocking),
+[consistency modes](/consul/api-docs/features/consistency),
+[agent caching](/consul/api-docs/features/caching), and
+[required ACLs](/consul/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required    |
 | ---------------- | ----------------- | ------------- | --------------- |
 | `NO`             | `none`            | `none`        | `operator:read` |
 
-The corresponding CLI command is [`consul operator autopilot state`](/commands/operator/autopilot#state).
+The corresponding CLI command is [`consul operator autopilot state`](/consul/commands/operator/autopilot#state).
 
 ### Query Parameters
 
@@ -327,7 +327,7 @@ $ curl \
 - `OptimisticFailuretolerance` <EnterpriseAlert inline /> is the maximum number
   of servers that could fail in the right order over the right period of time
   without causing an outage. This value is only useful when using the [Redundancy
-  Zones feature](/docs/enterprise/redundancy) with autopilot.
+  Zones feature](/consul/docs/enterprise/redundancy) with autopilot.
 
 - `Servers` is a mapping of server ID to an object holding detailed information about that server.
   The format of the detailed info is documented in its own section.
