@@ -6,9 +6,9 @@ import (
 	"net"
 	"os"
 
+	"github.com/hashicorp/consul/command/cli"
 	"github.com/hashicorp/consul/command/flags"
 	troubleshoot "github.com/hashicorp/consul/troubleshoot/proxy"
-	"github.com/mitchellh/cli"
 )
 
 func New(ui cli.Ui) *cmd {
@@ -24,20 +24,22 @@ type cmd struct {
 	help  string
 
 	// flags
-	upstream  string
-	adminBind string
+	upstreamEnvoyID    string
+	upstreamIP         string
+	envoyAdminEndpoint string
 }
 
 func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
 
-	c.flags.StringVar(&c.upstream, "upstream", os.Getenv("TROUBLESHOOT_UPSTREAM"), "The upstream service that receives the communication. ")
+	c.flags.StringVar(&c.upstreamEnvoyID, "upstream-envoy-id", os.Getenv("UPSTREAM_ENVOY_ID"), "The envoy identifier of the upstream service that receives the communication. (explicit upstreams only)")
+	c.flags.StringVar(&c.upstreamIP, "upstream-ip", os.Getenv("UPSTREAM_IP"), "The IP address of the upstream service that receives the communication. (transparent proxy only) ")
 
-	defaultAdminBind := "localhost:19000"
-	if adminBind := os.Getenv("ADMIN_BIND"); adminBind != "" {
-		defaultAdminBind = adminBind
+	defaultEnvoyAdminEndpoint := "localhost:19000"
+	if envoyAdminEndpoint := os.Getenv("ENVOY_ADMIN_ENDPOINT"); envoyAdminEndpoint != "" {
+		defaultEnvoyAdminEndpoint = envoyAdminEndpoint
 	}
-	c.flags.StringVar(&c.adminBind, "admin-bind", defaultAdminBind, "The address:port that envoy's admin endpoint is on.")
+	c.flags.StringVar(&c.envoyAdminEndpoint, "envoy-admin-endpoint", defaultEnvoyAdminEndpoint, "The address:port that envoy's admin endpoint is on.")
 
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
@@ -52,12 +54,13 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	if c.upstream == "" {
-		c.UI.Error("-upstream envoy identifier is required")
+	if c.upstreamEnvoyID == "" && c.upstreamIP == "" {
+		c.UI.Error("-upstream-envoy-id OR -upstream-ip is required.")
+		c.UI.Error("Please run `consul troubleshoot upstreams` to find the corresponding upstream.")
 		return 1
 	}
 
-	adminAddr, adminPort, err := net.SplitHostPort(c.adminBind)
+	adminAddr, adminPort, err := net.SplitHostPort(c.envoyAdminEndpoint)
 	if err != nil {
 		c.UI.Error("Invalid Envoy Admin endpoint: " + err.Error())
 		return 1
@@ -67,7 +70,8 @@ func (c *cmd) Run(args []string) int {
 	// localhost here.
 	adminBindIP, err := net.ResolveIPAddr("ip", adminAddr)
 	if err != nil {
-		c.UI.Error("Failed to resolve admin bind address: " + err.Error())
+		c.UI.Error("Failed to resolve Envoy admin endpoint: " + err.Error())
+		c.UI.Error("Please make sure Envoy's Admin API is enabled.")
 		return 1
 	}
 
@@ -76,14 +80,22 @@ func (c *cmd) Run(args []string) int {
 		c.UI.Error("error generating troubleshoot client: " + err.Error())
 		return 1
 	}
-	output, err := t.RunAllTests(c.upstream)
+	messages, err := t.RunAllTests(c.upstreamEnvoyID, c.upstreamIP)
 	if err != nil {
 		c.UI.Error("error running the tests: " + err.Error())
 		return 1
 	}
 
-	for _, o := range output {
-		c.UI.Output(o)
+	c.UI.HeaderOutput("Validation")
+	for _, o := range messages {
+		if o.Success {
+			c.UI.SuccessOutput(o.Message)
+		} else {
+			c.UI.ErrorOutput(o.Message)
+			if o.PossibleActions != "" {
+				c.UI.UnchangedOutput(o.PossibleActions)
+			}
+		}
 	}
 	return 0
 }
@@ -104,9 +116,12 @@ Usage: consul troubleshoot proxy [options]
   Connects to local envoy proxy and troubleshoots service mesh communication issues.
   Requires an upstream service envoy identifier.
   Examples:
-    $ consul troubleshoot proxy -upstream foo
+    (explicit upstreams only)
+      $ consul troubleshoot proxy -upstream-envoy-id foo
+    (transparent proxy only)
+      $ consul troubleshoot proxy -upstream-ip <IP>
  
-    where 'foo' is the upstream envoy ID which 
+    where 'foo' is the upstream envoy identifier which 
     can be obtained by running:
     $ consul troubleshoot upstreams [options]
 `

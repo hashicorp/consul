@@ -83,6 +83,7 @@ const (
 	PeeringTrustBundleWriteType                 = 38
 	PeeringTrustBundleDeleteType                = 39
 	PeeringSecretsWriteType                     = 40
+	RaftLogVerifierCheckpoint                   = 41 // Only used for log verifier, no-op on FSM.
 )
 
 const (
@@ -149,6 +150,7 @@ var requestTypeStrings = map[MessageType]string{
 	PeeringTrustBundleWriteType:     "PeeringTrustBundle",
 	PeeringTrustBundleDeleteType:    "PeeringTrustBundleDelete",
 	PeeringSecretsWriteType:         "PeeringSecret",
+	RaftLogVerifierCheckpoint:       "RaftLogVerifierCheckpoint",
 }
 
 const (
@@ -625,6 +627,12 @@ func (r *DCSpecificRequest) CacheInfo() cache.RequestInfo {
 
 func (r *DCSpecificRequest) CacheMinIndex() uint64 {
 	return r.QueryOptions.MinQueryIndex
+}
+
+type OperatorUsageRequest struct {
+	DCSpecificRequest
+
+	Global bool
 }
 
 type ServiceDumpRequest struct {
@@ -1185,7 +1193,8 @@ func (k ServiceKind) IsProxy() bool {
 	case ServiceKindConnectProxy,
 		ServiceKindMeshGateway,
 		ServiceKindTerminatingGateway,
-		ServiceKindIngressGateway:
+		ServiceKindIngressGateway,
+		ServiceKindAPIGateway:
 		return true
 	}
 	return false
@@ -1198,26 +1207,31 @@ const (
 	// default to the typical service.
 	ServiceKindTypical ServiceKind = ""
 
-	// ServiceKindConnectProxy is a proxy for the Connect feature. This
+	// ServiceKindConnectProxy is a proxy for the Consul Service Mesh. This
 	// service proxies another service within Consul and speaks the connect
 	// protocol.
 	ServiceKindConnectProxy ServiceKind = "connect-proxy"
 
-	// ServiceKindMeshGateway is a Mesh Gateway for the Connect feature. This
-	// service will proxy connections based off the SNI header set by other
+	// ServiceKindMeshGateway is a Mesh Gateway for the Consul Service Mesh.
+	// This service will proxy connections based off the SNI header set by other
 	// connect proxies
 	ServiceKindMeshGateway ServiceKind = "mesh-gateway"
 
-	// ServiceKindTerminatingGateway is a Terminating Gateway for the Connect
-	// feature. This service will proxy connections to services outside the mesh.
+	// ServiceKindTerminatingGateway is a Terminating Gateway for the Consul Service
+	// Mesh feature. This service will proxy connections to services outside the mesh.
 	ServiceKindTerminatingGateway ServiceKind = "terminating-gateway"
 
-	// ServiceKindIngressGateway is an Ingress Gateway for the Connect feature.
+	// ServiceKindIngressGateway is an Ingress Gateway for the Consul Service Mesh.
 	// This service allows external traffic to enter the mesh based on
 	// centralized configuration.
 	ServiceKindIngressGateway ServiceKind = "ingress-gateway"
 
-	// ServiceKindDestination is a Destination  for the Connect feature.
+	// ServiceKindAPIGateway is an API Gateway for the Consul Service Mesh.
+	// This service allows external traffic to enter the mesh based on
+	// centralized configuration.
+	ServiceKindAPIGateway ServiceKind = "api-gateway"
+
+	// ServiceKindDestination is a Destination  for the Consul Service Mesh feature.
 	// This service allows external traffic to exit the mesh through a terminating gateway
 	// based on centralized configuration.
 	ServiceKindDestination ServiceKind = "destination"
@@ -1416,7 +1430,8 @@ func (s *NodeService) IsSidecarProxy() bool {
 func (s *NodeService) IsGateway() bool {
 	return s.Kind == ServiceKindMeshGateway ||
 		s.Kind == ServiceKindTerminatingGateway ||
-		s.Kind == ServiceKindIngressGateway
+		s.Kind == ServiceKindIngressGateway ||
+		s.Kind == ServiceKindAPIGateway
 }
 
 // Validate validates the node service configuration.
@@ -1560,7 +1575,7 @@ func (s *NodeService) ValidateForAgent() error {
 	// Gateway validation
 	if s.IsGateway() {
 		// Non-ingress gateways must have a port
-		if s.Port == 0 && s.Kind != ServiceKindIngressGateway {
+		if s.Port == 0 && s.Kind != ServiceKindIngressGateway && s.Kind != ServiceKindAPIGateway {
 			result = multierror.Append(result, fmt.Errorf("Port must be non-zero for a %s", s.Kind))
 		}
 
@@ -2236,6 +2251,21 @@ type IndexedServices struct {
 	// this is needed to be able to properly filter the list based on ACLs
 	acl.EnterpriseMeta
 	QueryMeta
+}
+
+type Usage struct {
+	Usage map[string]ServiceUsage
+
+	QueryMeta
+}
+
+// ServiceUsage contains all of the usage data related to services
+type ServiceUsage struct {
+	Services                 int
+	ServiceInstances         int
+	ConnectServiceInstances  map[string]int
+	BillableServiceInstances int
+	EnterpriseServiceUsage
 }
 
 // PeeredServiceName is a basic tuple of ServiceName and peer

@@ -33,6 +33,10 @@ message ConfigEntry {
     IngressGateway IngressGateway = 7;
     ServiceIntentions ServiceIntentions = 8;
     ServiceDefaults ServiceDefaults = 9;
+    APIGateway APIGateway = 10;
+    BoundAPIGateway BoundAPIGateway = 11;
+    TCPRoute TCPRoute = 12;
+    HTTPRoute HTTPRoute = 13;
   }
 }
 
@@ -597,12 +601,13 @@ message Status {
 // output=config_entry.gen.go
 // name=Structs
 message Condition {
-  string Status = 1;
-  string Reason = 2;
-  string Message = 3;
-  ResourceReference Resource = 4;
+  string Type = 1;
+  string Status = 2;
+  string Reason = 3;
+  string Message = 4;
+  ResourceReference Resource = 5;
   // mog: func-to=timeToStructs func-from=timeFromStructs
-  google.protobuf.Timestamp LastTransitionTime = 5;
+  google.protobuf.Timestamp LastTransitionTime = 6;
 }
 
 enum APIGatewayListenerProtocol {
@@ -800,6 +805,16 @@ message HTTPQueryMatch {
 // name=Structs
 message HTTPFilters {
   repeated HTTPHeaderFilter Headers = 1;
+  repeated URLRewrite URLRewrites = 2;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.URLRewrite
+// output=config_entry.gen.go
+// name=Structs
+message URLRewrite {
+  string Path = 1;
 }
 
 // mog annotation:

@@ -9,9 +9,10 @@ import (
 // BoundRoute indicates a route that has parent gateways which
 // can be accessed by calling the GetParents associated function.
 type BoundRoute interface {
-	ConfigEntry
+	ControlledConfigEntry
 	GetParents() []ResourceReference
 	GetProtocol() APIGatewayListenerProtocol
+	GetServiceNames() []ServiceName
 }
 
 // HTTPRouteConfigEntry manages the configuration for a HTTP route
@@ -39,6 +40,24 @@ type HTTPRouteConfigEntry struct {
 	RaftIndex
 }
 
+func (e *HTTPRouteConfigEntry) GetServices() []HTTPService {
+	targets := []HTTPService{}
+	for _, rule := range e.Rules {
+		for _, service := range rule.Services {
+			targets = append(targets, service)
+		}
+	}
+	return targets
+}
+
+func (e *HTTPRouteConfigEntry) GetServiceNames() []ServiceName {
+	services := []ServiceName{}
+	for _, service := range e.GetServices() {
+		services = append(services, NewServiceName(service.Name, &service.EnterpriseMeta))
+	}
+	return services
+}
+
 func (e *HTTPRouteConfigEntry) GetKind() string {
 	return HTTPRoute
 }
@@ -54,8 +73,7 @@ func (e *HTTPRouteConfigEntry) GetParents() []ResourceReference {
 	if e == nil {
 		return []ResourceReference{}
 	}
-	// TODO HTTP Route should have "parents". Andrew will implement this in his work.
-	return []ResourceReference{}
+	return e.Parents
 }
 
 func (e *HTTPRouteConfigEntry) GetProtocol() APIGatewayListenerProtocol {
@@ -188,7 +206,8 @@ type HTTPQueryMatch struct {
 // HTTPFilters specifies a list of filters used to modify a request
 // before it is routed to an upstream.
 type HTTPFilters struct {
-	Headers []HTTPHeaderFilter
+	Headers     []HTTPHeaderFilter
+	URLRewrites []URLRewrite
 }
 
 // HTTPHeaderFilter specifies how HTTP headers should be modified.
@@ -196,6 +215,10 @@ type HTTPHeaderFilter struct {
 	Add    map[string]string
 	Remove []string
 	Set    map[string]string
+}
+
+type URLRewrite struct {
+	Path string
 }
 
 // HTTPRouteRule specifies the routing rules used to determine what upstream
@@ -224,6 +247,10 @@ type HTTPService struct {
 	Filters HTTPFilters
 
 	acl.EnterpriseMeta
+}
+
+func (s HTTPService) ServiceName() ServiceName {
+	return NewServiceName(s.Name, &s.EnterpriseMeta)
 }
 
 var _ ControlledConfigEntry = (*HTTPRouteConfigEntry)(nil)
@@ -262,6 +289,18 @@ type TCPRouteConfigEntry struct {
 	Status             Status
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	RaftIndex
+}
+
+func (e *TCPRouteConfigEntry) GetServices() []TCPService {
+	return e.Services
+}
+
+func (e *TCPRouteConfigEntry) GetServiceNames() []ServiceName {
+	services := []ServiceName{}
+	for _, service := range e.Services {
+		services = append(services, NewServiceName(service.Name, &service.EnterpriseMeta))
+	}
+	return services
 }
 
 func (e *TCPRouteConfigEntry) GetKind() string {
@@ -367,4 +406,8 @@ type TCPService struct {
 	Weight int
 
 	acl.EnterpriseMeta
+}
+
+func (s TCPService) ServiceName() ServiceName {
+	return NewServiceName(s.Name, &s.EnterpriseMeta)
 }

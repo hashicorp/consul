@@ -40,6 +40,8 @@ type ConfigEntryStatus struct {
 // multiple other resources may have different statuses with
 // respect to each of those resources.
 type Condition struct {
+	// Type is a value from a bounded set of types that an object might have
+	Type string
 	// Status is a value from a bounded set of statuses that an object might have
 	Status string
 	// Reason is a value from a bounded set of reasons for a given status

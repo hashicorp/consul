@@ -514,8 +514,13 @@ func newContainerRequest(config Config, opts containerOpts) (podRequest, consulR
 
 			"8443/tcp", // Envoy Gateway Listener
 
-			"8079/tcp", // Envoy App Listener
-			"8080/tcp", // Envoy App Listener
+			"8079/tcp", // Envoy App Listener - grpc port used by static-server
+			"8078/tcp", // Envoy App Listener - grpc port used by static-server-v1
+			"8077/tcp", // Envoy App Listener - grpc port used by static-server-v2
+
+			"8080/tcp", // Envoy App Listener - http port used by static-server
+			"8081/tcp", // Envoy App Listener - http port used by static-server-v1
+			"8082/tcp", // Envoy App Listener - http port used by static-server-v2
 			"9998/tcp", // Envoy App Listener
 			"9999/tcp", // Envoy App Listener
 		},

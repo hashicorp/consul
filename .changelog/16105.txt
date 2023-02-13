@@ -1,0 +1,11 @@
+```release-note:breaking-change
+acl errors: Delete and get requests now return descriptive errors when the specified resource cannot be found. Other ACL request errors provide more information about when a resource is missing. Add error for when the ACL system has not been bootstrapped.
+1. Delete Token/Policy/AuthMethod/Role/BindingRule endpoints now return 404 when the resource cannot be found.
+  - New error formats: "Requested * does not exist: ACL not found", "* not found in namespace $NAMESPACE: ACL not found"
+3. Read Token/Policy/Role endpoints now return 404 when the resource cannot be found.
+  - New error format: "Cannot find * to delete"
+4. Logout now returns a 401 error when the supplied token cannot be found
+  - New error format: "Supplied token does not exist"
+5. Token Self endpoint now returns 404 when the token cannot be found.
+  - New error format: "Supplied token does not exist"
+```

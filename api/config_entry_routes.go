@@ -38,45 +38,13 @@ type TCPRouteConfigEntry struct {
 	Namespace string `json:",omitempty"`
 }
 
-func (a *TCPRouteConfigEntry) GetKind() string {
-	return TCPRoute
-}
-
-func (a *TCPRouteConfigEntry) GetName() string {
-	if a != nil {
-		return ""
-	}
-	return a.Name
-}
-
-func (a *TCPRouteConfigEntry) GetPartition() string {
-	if a != nil {
-		return ""
-	}
-	return a.Partition
-}
-
-func (a *TCPRouteConfigEntry) GetNamespace() string {
-	if a != nil {
-		return ""
-	}
-	return a.GetNamespace()
-}
-
-func (a *TCPRouteConfigEntry) GetMeta() map[string]string {
-	if a != nil {
-		return nil
-	}
-	return a.GetMeta()
-}
-
-func (a *TCPRouteConfigEntry) GetCreateIndex() uint64 {
-	return a.CreateIndex
-}
-
-func (a *TCPRouteConfigEntry) GetModifyIndex() uint64 {
-	return a.ModifyIndex
-}
+func (a *TCPRouteConfigEntry) GetKind() string            { return TCPRoute }
+func (a *TCPRouteConfigEntry) GetName() string            { return a.Name }
+func (a *TCPRouteConfigEntry) GetPartition() string       { return a.Partition }
+func (a *TCPRouteConfigEntry) GetNamespace() string       { return a.Namespace }
+func (a *TCPRouteConfigEntry) GetMeta() map[string]string { return a.Meta }
+func (a *TCPRouteConfigEntry) GetCreateIndex() uint64     { return a.CreateIndex }
+func (a *TCPRouteConfigEntry) GetModifyIndex() uint64     { return a.ModifyIndex }
 
 // TCPService is a service reference for a TCPRoute
 type TCPService struct {
@@ -121,6 +89,9 @@ type HTTPRouteConfigEntry struct {
 	// Namespace is the namespace the config entry is associated with.
 	// Namespacing is a Consul Enterprise feature.
 	Namespace string `json:",omitempty"`
+
+	// Status is the asynchronous status which an HTTPRoute propagates to the user.
+	Status ConfigEntryStatus
 }
 
 func (r *HTTPRouteConfigEntry) GetKind() string            { return HTTPRoute }

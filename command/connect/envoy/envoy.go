@@ -92,6 +92,7 @@ const meshGatewayVal = "mesh"
 var defaultEnvoyVersion = xdscommon.EnvoyVersions[0]
 
 var supportedGateways = map[string]api.ServiceKind{
+	"api":         api.ServiceKindAPIGateway,
 	"mesh":        api.ServiceKindMeshGateway,
 	"terminating": api.ServiceKindTerminatingGateway,
 	"ingress":     api.ServiceKindIngressGateway,
@@ -330,7 +331,7 @@ func (c *cmd) run(args []string) int {
 	if c.gateway != "" {
 		kind, ok := supportedGateways[c.gateway]
 		if !ok {
-			c.UI.Error("Gateway must be one of: terminating, mesh, or ingress")
+			c.UI.Error("Gateway must be one of: api, terminating, mesh, or ingress")
 			return 1
 		}
 		c.gatewayKind = kind

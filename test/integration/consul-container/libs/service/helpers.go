@@ -16,9 +16,11 @@ const (
 )
 
 type ServiceOpts struct {
-	Name string
-	ID   string
-	Meta map[string]string
+	Name     string
+	ID       string
+	Meta     map[string]string
+	HTTPPort int
+	GRPCPort int
 }
 
 func CreateAndRegisterStaticServerAndSidecar(node libcluster.Agent, serviceOpts *ServiceOpts) (Service, Service, error) {
@@ -32,7 +34,7 @@ func CreateAndRegisterStaticServerAndSidecar(node libcluster.Agent, serviceOpts 
 	req := &api.AgentServiceRegistration{
 		Name: serviceOpts.Name,
 		ID:   serviceOpts.ID,
-		Port: 8080,
+		Port: serviceOpts.HTTPPort,
 		Connect: &api.AgentServiceConnect{
 			SidecarService: &api.AgentServiceRegistration{
 				Proxy: &api.AgentServiceConnectProxyConfig{},
@@ -40,7 +42,7 @@ func CreateAndRegisterStaticServerAndSidecar(node libcluster.Agent, serviceOpts 
 		},
 		Check: &api.AgentServiceCheck{
 			Name:     "Static Server Listening",
-			TCP:      fmt.Sprintf("127.0.0.1:%d", 8080),
+			TCP:      fmt.Sprintf("127.0.0.1:%d", serviceOpts.HTTPPort),
 			Interval: "10s",
 			Status:   api.HealthPassing,
 		},
@@ -52,7 +54,7 @@ func CreateAndRegisterStaticServerAndSidecar(node libcluster.Agent, serviceOpts 
 	}
 
 	// Create a service and proxy instance
-	serverService, err := NewExampleService(context.Background(), StaticServerServiceName, 8080, 8079, node)
+	serverService, err := NewExampleService(context.Background(), serviceOpts.ID, serviceOpts.HTTPPort, serviceOpts.GRPCPort, node)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -60,7 +62,7 @@ func CreateAndRegisterStaticServerAndSidecar(node libcluster.Agent, serviceOpts 
 		_ = serverService.Terminate()
 	})
 
-	serverConnectProxy, err := NewConnectService(context.Background(), fmt.Sprintf("%s-sidecar", StaticServerServiceName), serviceOpts.ID, 8080, node) // bindPort not used
+	serverConnectProxy, err := NewConnectService(context.Background(), fmt.Sprintf("%s-sidecar", StaticServerServiceName), serviceOpts.ID, serviceOpts.HTTPPort, node) // bindPort not used
 	if err != nil {
 		return nil, nil, err
 	}

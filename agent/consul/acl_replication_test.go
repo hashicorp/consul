@@ -754,8 +754,8 @@ func TestACLReplication_TokensRedacted(t *testing.T) {
 			QueryOptions: structs.QueryOptions{Token: aclfilter.RedactedToken},
 		}
 		err := s2.RPC(context.Background(), "ACL.TokenRead", &req, &tokenResp)
-		// its not an error for the secret to not be found.
-		require.NoError(r, err)
+		require.Error(r, err)
+		require.ErrorContains(r, err, "token does not exist")
 		require.Nil(r, tokenResp.Token)
 
 		var status structs.ACLReplicationStatus
