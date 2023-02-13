@@ -13,7 +13,7 @@ The following list outlines field hierarchy, language-specific data types, and r
 
 <Tabs>
 
-<Tab heading="HCL" group="hcl">
+<Tab heading="HCL and JSON" group="hcl" group="json">
 
 - [`Kind`](#kind): string | required
 - [`Name`](#name): string | required
@@ -71,7 +71,7 @@ This section provides details about the fields you can configure in a `service-s
 
 <Tab heading="HCL" group="hcl">
 
-### `Kind`` 
+### `Kind` 
 
 Specifies the type of configuration entry to implement. 
 
@@ -132,15 +132,15 @@ Defines how much traffic to send to sets of service instances during a traffic s
 - Default: None
 - Required: Required for defining service splits
 - Data type: Array of objects that can contain the following fields:
-  - [`Splits.Weight`](#splits-weight): The sum of weights for a set of service instances must add up to 100. 
-  - [`Splits.Service`](#splits-service): This field is required to direct split traffic   
-  - [`Splits.ServiceSubset`](#splits-servicesubset)
-  - [`Splits.Namespace`](#splits-namespace) <Enterprise inline/>
-  - [`Splits.Partition`](#splits-partition) <Enterprise inline/>
-  - [`Splits.RequestHeaders`](#splits-requestheaders) 
-  - [`Splits.ResponseHeaders`](#splits-responseheaders)  
+  - `Weight`: The sum of weights for a set of service instances must add up to 100. 
+  - `Service`: This field is required to direct split traffic   
+  - `ServiceSubset`
+  - `Namespace` <Enterprise inline/>
+  - `Partition` <Enterprise inline/>
+  - `RequestHeaders`
+  - `ResponseHeaders`  
 
-### `Splits.Weight`
+### `Splits[].Weight`
 
 Specifies the percentage of traffic sent to the set of service instances specified in the [`Service`, `service`](#service-service) field. Each weight must be a floating integer between `0` and `100`. The smallest representable value is `.01`. The sum of weights across all splits must add up to `100`.
 
@@ -150,7 +150,7 @@ Specifies the percentage of traffic sent to the set of service instances specifi
 - Required: Required for defining service splits
 - Data type: Floating integer from `.01` to `100`
 
-### `Splits.Service`
+### `Splits[].Service`
 
 Specifies the name of the service to resolve.
 
@@ -160,7 +160,7 @@ Specifies the name of the service to resolve.
 - Required: optional
 - Data type: String
 
-### `Splits.ServiceSubset`
+### `Splits[].ServiceSubset`
 
 Specifies a subset of the service to resolve. This field overrides the `DefaultSubset`. 
 
@@ -170,7 +170,7 @@ Specifies a subset of the service to resolve. This field overrides the `DefaultS
 - Required: optional
 - Data type: String
 
-### `Splits.Namespace` <EnterpriseAlert inline />
+### `Splits[].Namespace` <EnterpriseAlert inline />
 
 Specifies which [namespace](/consul/docs/enterprise/namespaces) to use in the FQDN when resolving the service. 
 
@@ -180,7 +180,7 @@ Specifies which [namespace](/consul/docs/enterprise/namespaces) to use in the FQ
 - Required: optional
 - Data type: String
 
-### `Splits.Partition` <EnterpriseAlert inline />
+### `Splits[].Partition` <EnterpriseAlert inline />
 
 Specifies which [admin partition](/consul/docs/enterprise/admin-partitions) to use in the FQDN when resolving the service. 
 
@@ -190,7 +190,7 @@ Specifies which [admin partition](/consul/docs/enterprise/admin-partitions) to u
 - Required: optional
 - Data type: String
 
-### `Splits.RequestHeaders`
+### `Splits[].RequestHeaders`
 
 Specifies a set of HTTP-specific header modification rules that apply to requests routed to the split. You cannot configure request headers if the listener protocol is set to `tcp`. Refer to [Set HTTP Headers](#set-http-headers) for an example configuration. 
 
@@ -216,7 +216,7 @@ The following table describes how to configure values for request headers:
 For `Add` and `Set`, if the service is configured to use Envoy as the proxy, the value may contain variable placeholders, for example, `%DOWNSTREAM_REMOTE_ADDRESS%` to interpolate dynamic metadata into the value added.
 
 
-### `Splits.ResponseHeaders` 
+### `Splits[].ResponseHeaders` 
 
 Specifies a set of HTTP-specific header modification rules that apply to responses from the split. You cannot configure request headers if the listener protocol is set to `tcp`. Refer to [Set HTTP Headers](#set-http-headers) for an example configuration.
 
@@ -311,15 +311,15 @@ Defines how much traffic to send to sets of service instances during a traffic s
 - Default: None
 - Required: Required for defining service splits
 - Data type: Array of objects that can contain the following fields:
-  - [`spec.splits.weight`](#spec-splits-weight): The sum of weights for a set of service instances must add up to 100. 
-  - [`spec.splits.service`](#spec-splits-service): This field is required to direct split traffic   
-  - [`spec.splits.serviceSubset`](#spec-splits-servicesubset)
-  - [`spec.splits.namespace`](#spec-splits-namespace) <Enterprise inline/>
-  - [`spec.splits.partition`](#spec-splits-partition) <Enterprise inline/>
-  - [`spec.splits.requestHeaders`](#spec-splits-requestheaders) 
-  - [`spec.splits.responseHeaders`](#spec-splits-responseheaders)  
+  - `weight`: The sum of weights for a set of service instances must add up to 100. 
+  - `service`: This field is required to direct split traffic   
+  - `serviceSubset`
+  - `namespace` <Enterprise inline/>
+  - `partition` <Enterprise inline/>
+  - `requestHeaders` 
+  - `responseHeaders`  
 
-### `spec.splits.weight`
+### `spec.splits[].weight`
 
 Specifies the percentage of traffic sent to the set of service instances specified in the [`spec.splits.service`](#spec-splits-service) field. Each weight must be a floating integer between `0` and `100`. The smallest representable value is `.01`. The sum of weights across all splits must add up to `100`.
 
@@ -329,7 +329,7 @@ Specifies the percentage of traffic sent to the set of service instances specifi
 - Required: Required for defining service splits
 - Data type: Floating integer from `.01` to `100`
 
-### `spec.splits.service`
+### `spec.splits[].service`
 
 Specifies the name of the service to resolve.
 
@@ -339,7 +339,7 @@ Specifies the name of the service to resolve.
 - Required: optional
 - Data type: String
 
-### `spec.splits.serviceSubset`
+### `spec.splits[].serviceSubset`
 
 Specifies a subset of the service to resolve. This field overrides the `DefaultSubset`. 
 
@@ -349,7 +349,7 @@ Specifies a subset of the service to resolve. This field overrides the `DefaultS
 - Required: optional
 - Data type: String
 
-### `spec.splits.namespace` <EnterpriseAlert inline />
+### `spec.splits[].namespace` <EnterpriseAlert inline />
 
 Specifies which [namespace](/consul/docs/enterprise/namespaces) to use in the FQDN when resolving the service. 
 
@@ -359,7 +359,7 @@ Specifies which [namespace](/consul/docs/enterprise/namespaces) to use in the FQ
 - Required: optional
 - Data type: String
 
-### `spec.splits.partition` <EnterpriseAlert inline />
+### `spec.splits[].partition` <EnterpriseAlert inline />
 Specifies the [admin partition](consul/docs/enterprise/admin-partitions) to apply the configuration entry.
 
 #### Values
@@ -369,7 +369,7 @@ Specifies the [admin partition](consul/docs/enterprise/admin-partitions) to appl
 - Data type: String
 
 
-### `spec.splits.partition` <EnterpriseAlert inline />
+### `spec.splits[].partition` <EnterpriseAlert inline />
 
 Specifies which [admin partition](/consul/docs/enterprise/admin-partitions) to use in the FQDN when resolving the service. 
 
@@ -380,7 +380,7 @@ Specifies which [admin partition](/consul/docs/enterprise/admin-partitions) to u
 - Data type: String
 
 
-### `spec.splits.requestHeaders`
+### `spec.splits[].requestHeaders`
 
 Specifies a set of HTTP-specific header modification rules that apply to requests routed to the split. You cannot configure request headers if the listener protocol is set to `tcp`. Refer to [Set HTTP Headers](#set-http-headers) for an example configuration. 
 
@@ -405,7 +405,7 @@ The following table describes how to configure values for request headers:
 
 For `add` and `set`, if the service is configured to use Envoy as the proxy, the value may contain variable placeholders, for example, `%DOWNSTREAM_REMOTE_ADDRESS%` to interpolate dynamic metadata into the value added.
 
-### `spec.splits.responseHeaders`
+### `spec.splits[].responseHeaders`
 
 Specifies a set of HTTP-specific header modification rules that apply to responses from the split. You cannot configure request headers if the listener protocol is set to `tcp`. Refer to [Set HTTP Headers](#set-http-headers) for an example configuration.
 
@@ -488,6 +488,58 @@ Splits = [                               ## list    | required
 
 </Tab>
 
+<Tab heading="JSON" group="json">
+
+```json
+{
+  "Kind" : "service-splitter",           ## string  | required
+  "Name" : "config-entry-name",          ## string  | required
+  "Namespace" : "main",                  ## string
+  "Partition" : "partition",             ## string 
+  "Meta" : {                             ## map
+    "_key_" : "_value_"            
+  },
+  "Splits" : [                           ## list    | required
+    {                                    ## map     
+      "Weight" : 90,                     ## number  | required
+      "Service" : "service",             ## string     
+      "ServiceSubset" : "v1",            ## string
+      "Namespace" : "target-namespace",  ## string
+      "Partition" : "target-partition",  ## string
+      "RequestHeaders" : {               ## map
+        "Set" : {
+          "X-Web-Version": "from-v1"
+          }
+      },
+      "ResponseHeaders" : {              ## map
+        "Set" : {
+          "X-Web-Version": "to-v1"
+          }
+      }
+    },
+    {
+      "Weight" : 10,            
+      "Service" : "service",    
+      "ServiceSubset" : "v2",          
+      "Namespace" : "target-namespace",  
+      "Partition" : "target-partition",  
+      "RequestHeaders" : {
+        "Set" : {
+          "X-Web-Version": "from-v2"
+          }
+      },
+      "ResponseHeaders" : {
+        "Set" : {
+          "X-Web-Version": "to-v2"
+        }
+      }
+    }
+  ]
+}
+```
+
+</Tab>
+
 <Tab heading="YAML" group="yaml">
 
 ```yaml
@@ -551,23 +603,6 @@ Splits = [
 
 </Tab>
 
-<Tab heading="YAML" group="yaml">
-
-```yaml
-apiVersion: consul.hashicorp.com/v1alpha1
-kind: ServiceSplitter
-metadata:
-  name: web
-spec:
-  splits:
-    - weight: 90
-      serviceSubset: v1
-    - weight: 10
-      serviceSubset: v2
-```
-
-</Tab>
-
 <Tab heading="JSON" group="json">
 
 ```json
@@ -585,6 +620,23 @@ spec:
     }
   ]
 }
+```
+
+</Tab>
+
+<Tab heading="YAML" group="yaml">
+
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ServiceSplitter
+metadata:
+  name: web
+spec:
+  splits:
+    - weight: 90
+      serviceSubset: v1
+    - weight: 10
+      serviceSubset: v2
 ```
 
 </Tab>
@@ -616,23 +668,6 @@ Splits = [
 
 </Tab>
 
-<Tab heading="YAML" group="yaml">
-
-```yaml
-apiVersion: consul.hashicorp.com/v1alpha1
-kind: ServiceSplitter
-metadata:
-  name: web
-spec:
-  splits:
-    - weight: 50
-      # will default to service with same name as config entry ("web")
-    - weight: 50
-      service: web-rewrite
-```
-
-</Tab>
-
 <Tab heading="JSON" group="json">
 
 ```json
@@ -649,6 +684,23 @@ spec:
     }
   ]
 }
+```
+
+</Tab>
+
+<Tab heading="YAML" group="yaml">
+
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ServiceSplitter
+metadata:
+  name: web
+spec:
+  splits:
+    - weight: 50
+      # will default to service with same name as config entry ("web")
+    - weight: 50
+      service: web-rewrite
 ```
 
 </Tab>
@@ -691,29 +743,6 @@ Splits = [
 
 </Tab>
 
-<Tab heading="YAML" group="yaml">
-
-```yaml
-apiVersion: consul.hashicorp.com/v1alpha1
-kind: ServiceSplitter
-metadata:
-  name: web
-spec:
-  splits:
-    - weight: 90
-      serviceSubset: v1
-      responseHeaders:
-        set:
-          x-web-version: v1
-    - weight: 10
-      serviceSubset: v2
-      responseHeaders:
-        set:
-          x-web-version: v2
-```
-
-</Tab>
-
 <Tab heading="JSON" group="json">
 
 ```json
@@ -741,6 +770,31 @@ spec:
     }
   ]
 }
+```
+
+</Tab>
+
+
+
+<Tab heading="YAML" group="yaml">
+
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ServiceSplitter
+metadata:
+  name: web
+spec:
+  splits:
+    - weight: 90
+      serviceSubset: v1
+      responseHeaders:
+        set:
+          x-web-version: v1
+    - weight: 10
+      serviceSubset: v2
+      responseHeaders:
+        set:
+          x-web-version: v2
 ```
 
 </Tab>
