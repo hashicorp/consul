@@ -11,8 +11,9 @@ import (
 )
 
 const (
-	StaticServerServiceName = "static-server"
-	StaticClientServiceName = "static-client"
+	StaticServerServiceName  = "static-server"
+	StaticServer2ServiceName = "static-server-2"
+	StaticClientServiceName  = "static-client"
 )
 
 type ServiceOpts struct {
@@ -62,7 +63,7 @@ func CreateAndRegisterStaticServerAndSidecar(node libcluster.Agent, serviceOpts 
 		_ = serverService.Terminate()
 	})
 
-	serverConnectProxy, err := NewConnectService(context.Background(), fmt.Sprintf("%s-sidecar", StaticServerServiceName), serviceOpts.ID, serviceOpts.HTTPPort, node) // bindPort not used
+	serverConnectProxy, err := NewConnectService(context.Background(), fmt.Sprintf("%s-sidecar", serviceOpts.ID), serviceOpts.ID, serviceOpts.HTTPPort, node) // bindPort not used
 	if err != nil {
 		return nil, nil, err
 	}

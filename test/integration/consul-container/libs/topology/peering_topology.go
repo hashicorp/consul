@@ -24,7 +24,7 @@ type BuiltCluster struct {
 	Cluster   *libcluster.Cluster
 	Context   *libcluster.BuildContext
 	Service   libservice.Service
-	Container *libservice.ConnectContainer
+	Container libservice.Service
 	Gateway   libservice.Service
 }
 
@@ -59,7 +59,7 @@ func BasicPeeringTwoClustersSetup(
 	// libassert.PeeringExports(t, acceptingClient, acceptingPeerName, 1)
 
 	// Register an static-server service in acceptingCluster and export to dialing cluster
-	var serverSidecarService libservice.Service
+	var serverService, serverSidecarService libservice.Service
 	var acceptingClusterGateway libservice.Service
 	{
 		clientNode := acceptingCluster.Clients()[0]
@@ -74,13 +74,13 @@ func BasicPeeringTwoClustersSetup(
 			HTTPPort: 8080,
 			GRPCPort: 8079,
 		}
-		serverSidecarService, _, err := libservice.CreateAndRegisterStaticServerAndSidecar(clientNode, &serviceOpts)
+		serverService, serverSidecarService, err = libservice.CreateAndRegisterStaticServerAndSidecar(clientNode, &serviceOpts)
 		require.NoError(t, err)
 
 		libassert.CatalogServiceExists(t, acceptingClient, libservice.StaticServerServiceName)
 		libassert.CatalogServiceExists(t, acceptingClient, "static-server-sidecar-proxy")
 
-		require.NoError(t, serverSidecarService.Export("default", AcceptingPeerName, acceptingClient))
+		require.NoError(t, serverService.Export("default", AcceptingPeerName, acceptingClient))
 
 		// Create the mesh gateway for dataplane traffic
 		acceptingClusterGateway, err = libservice.NewGatewayService(context.Background(), "mesh", "mesh", clientNode)
@@ -115,7 +115,7 @@ func BasicPeeringTwoClustersSetup(
 			Cluster:   acceptingCluster,
 			Context:   acceptingCtx,
 			Service:   serverSidecarService,
-			Container: nil,
+			Container: serverSidecarService,
 			Gateway:   acceptingClusterGateway,
 		},
 		&BuiltCluster{
@@ -182,6 +182,7 @@ func NewDialingCluster(
 // NewPeeringCluster creates a cluster with peering enabled. It also creates
 // and registers a mesh-gateway at the client agent. The API client returned is
 // pointed at the client agent.
+// - proxy-defaults.protocol = tcp
 func NewPeeringCluster(
 	t *testing.T,
 	numServers int,
