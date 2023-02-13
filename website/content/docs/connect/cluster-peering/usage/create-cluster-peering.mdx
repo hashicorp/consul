@@ -5,16 +5,16 @@ description: >-
   Generate a peering token to establish communication, export services, and authorize requests for cluster peering connections. Learn how to create, list, read, check, and delete peering connections.
 ---
 
-# Establish Cluster Peering Connections
+# Establish cluster peering connections
 
-A peering token enables cluster peering between different datacenters. After you generate a peering token, you can use it to establish a connection between clusters. Then you can export services and create intentions so that peered clusters can call those services.
+This page details the process for establishing a cluster peering connection between services with Consul. Establishing a cluster peering connection consists of the following steps:
 
-The process to create a peering connection is a sequence with multiple steps:
+1. Create a peering token in one cluster.
+1. Use the peering token to establish peering with a second cluster.
+1. Export services between clusters.
+1. Create intentions to authorize services for peers.
 
-1. Create a peering token
-1. Establish a connection between clusters
-1. Export services between clusters
-1. Authorize services for peers
+Cluster peering cannot be establish until all four steps are complete.
 
 ## Requirements
 
@@ -135,7 +135,7 @@ If you need to re-establish a connection, you must generate a new peering token.
 
 ### Export services between clusters
 
-After you establish a connection between the clusters, you need to create a configuration entry that defines the services that are available for other clusters. Consul uses this configuration entry to advertise service information and support service mesh connections across clusters.
+After you establish a connection between the clusters, you need to create an `exported-services` configuration entry that defines the services that are available for other clusters. Consul uses this configuration entry to advertise service information and support service mesh connections across clusters.
 
 First, create a configuration entry and specify the `Kind` as `"exported-services"`.
 

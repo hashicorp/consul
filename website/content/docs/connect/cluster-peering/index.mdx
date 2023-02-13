@@ -7,16 +7,14 @@ description: >-
 
 # Cluster Peering Overview
 
-This topic provides an overview of cluster peering, which creates a connection between two or more independent clusters so that services deployed to different partitions or datacenters can communicate.
+This topic provides an overview of cluster peering, which is a process that connects two or more independent clusters so that services deployed to different partitions or datacenters can communicate.
 
-Cluster peering enables connections between different clouds or runtime environments when general interconnectivity between all services in all clusters is not feasible. The process to establish a cluster peering connection consists of the following steps:
+Cluster peering is enabled in Consul by default. Establishing a cluster peering connection is a process that consists of the following steps:
 
 1. Create a peering token in one cluster.
 1. Use the peering token to establish peering with a second cluster.
 1. Export services between clusters.
 1. Create intentions to authorize services for peers.
-
-The `exported-services` configuration entry enables services registered in two different [admin partitions](/docs/enterprise/admin-partitions) running in the same datacenter to communicate. Cluster peering combines an `exported-services` configuration entry with a shared peering token and a mesh gateway, enabling services to communicate securely with upstreams registered in different datacenters. Although deployments require an Enterprise license to use multiple admin partitions in a single datacenter, cluster peering is not restricted to Enterprise users because every datacenter automatically includes a `default` partition.
 
 You can generate peering tokens and initiate connections on any available agent using either the API, CLI, or the Consul UI. The UI does not support exporting services between clusters or authorizing services for peers. If you use the HTTP API, refer to the [`/peering` endpoint reference](/consul/api-docs/peering). If you use the CLI, refer to the [`peering` command reference](/consul/commands/peering).
 
@@ -31,7 +29,30 @@ You can find specific cluster peering configuration and usage information in the
 
 > To learn how to peer clusters and connect services across peers in AWS Elastic Kubernetes Service (EKS) environments, complete the [Consul Cluster Peering on Kubernetes tutorial](/consul/tutorials/developer-mesh/cluster-peering-aws).
 
-## Cluster peering and WAN federation comparison
+## Background
+
+Consul supports cluster peering connections between _[admin partitions](/consul/docs/enterprise/admin-partitions) in different datacenters_. Deployments without an Enterprise license can still use cluster peering because every datacenter automatically includes a default partition. Meanwhile, _admin partitions in the same datacenter_ do not require cluster peering connections because you can export services between them without generating or exchanging a peering token.
+
+The following diagram describes Consul's cluster peering architecture. The `default` partition in the first datacenter has a cluster peering connection with the `web` partition in the second datacenter.
+
+![Diagram of cluster peering with admin partitions](/img/cluster-peering-diagram.png)
+
+Cluster peering leverages several components of Consul's architecture to enforce secure communication between services:
+
+- Peering token
+- Mesh gateway
+- Exported services
+- Service intentions
+
+A _peering token_ contains an embedded secret that you can share to securely establish communication between datacenters. Similar to the [gossip encryption key](/consul/docs/security/encryption#gossip-encryption) that is used to initiate LAN gossip when bootstrapping a datacenter, sharing this token between datacenters enables server agents to recognize authorized requests.
+
+A _mesh gateway_ encrypts outgoing traffic, decrypts incoming traffic, and directs traffic to healthy services. Consul's service mesh features must be enabled in order to use mesh gateways. Unlike the peering token, which is shared between datacenters, mesh gateways support the specific admin partitions they are deployed on.
+
+An _exported service_ is a service with specific upstreams that are explicitly defined in an `exported-services` configuration entry. Exporting services enables services registered in two different [admin partitions](/docs/enterprise/admin-partitions) to communicate.
+
+A _service intention_ establishes secure service-to-service communication in a service mesh. Intentions enable identity-based access between services by exchanging TLS certificates, which the service's sidecar proxy verifies upon each request.
+
+### Cluster peering and WAN federation comparison
 
 WAN federation and cluster peering are different ways to connect services through mesh gateways so that they can communicate across datacenters. WAN federation connects multiple datacenters to make them function as if they were a single cluster, while cluster peering treats each datacenter as a separate cluster. As a result, WAN federation requires a primary datacenter to maintain and replicate global states such as ACLs and configuration entries, but cluster peering does not.
 
@@ -51,7 +72,7 @@ Regardless of whether you connect your clusters through WAN federation or cluste
 | Shares key/value stores                            |    &#9989;     |    &#10060;     |
 | Can replicate ACL tokens, policies, and roles      |    &#9989;     |    &#10060;     |
 
-## Technical Constraints
+## Technical constraints
 
 Consider the following technical constraints:
 
