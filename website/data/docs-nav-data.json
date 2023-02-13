@@ -526,16 +526,33 @@
         "title": "Cluster Peering",
         "routes": [
           {
-            "title": "What is Cluster Peering?",
+            "title": "Overview",
             "path": "connect/cluster-peering"
           },
           {
-            "title": "Create and Manage Peering Connections",
-            "path": "connect/cluster-peering/create-manage-peering"
+            "title": "Configuration Reference",
+            "path": "connect/cluster-peering/configuration"
           },
           {
-            "title": "Cluster Peering on Kubernetes",
-            "path": "connect/cluster-peering/k8s"
+            "title": "Usage",
+            "routes": [
+              {
+                "title": "Create peering connections",
+                "path": "connect/cluster-peering/usage/create-cluster-peering"
+              },
+              {
+                "title": "Manage peering connections",
+                "path": "connect/cluster-peering/usage/manage-connections"
+              },
+              {
+                "title": "Traffic management between peers",
+                "path": "connect/cluster-peering/usage/peering-traffic-management"
+              },
+              {
+                "title": "Cluster peering on Kubernetes",
+                "path": "connect/cluster-peering/usage/k8s"
+              }
+            ]
           }
         ]
       },
