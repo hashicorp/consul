@@ -477,9 +477,11 @@ func (h *handlerAPIGateway) generateIngressDNSSANs(snap *ConfigSnapshot) []strin
 
 	var dnsNames []string
 	namespaces := make(map[string]struct{})
-	for _, upstreams := range snap.APIGateway.Upstreams {
-		for _, u := range upstreams {
-			namespaces[u.DestinationNamespace] = struct{}{}
+	for _, listenerUpstreams := range snap.APIGateway.Upstreams {
+		for _, lu := range listenerUpstreams {
+			for _, u := range lu {
+				namespaces[u.DestinationNamespace] = struct{}{}
+			}
 		}
 	}
 
