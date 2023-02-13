@@ -11,12 +11,12 @@ This topic provides an overview of cluster peering, which is a process that conn
 
 Cluster peering is enabled in Consul by default. You can use the API, the CLI, or the Consul UI for most cluster peering operations. However, be aware that the UI does not support exporting services between clusters or creating service intentions, both of which are required steps for establishing new cluster peering connections.
 
-If you use the HTTP API, refer to the [`/peering/` endpoint reference](/consul/api-docs/peering). If you use the CLI, refer to the [`peering` command reference](/consul/commands/peering).
-
-<Tip> 
+<Tip title="Looking for specific guidance?"> 
 
 You can find specific cluster peering configuration and usage information in the following topics:
 
+- If you use the HTTP API, refer to the [`/peering/` endpoint reference](/consul/api-docs/peering).
+- If you use the CLI, refer to the [`peering` command reference](/consul/commands/peering).
 - To review configuration requirements for gateways, sidecars, exported services, and ACLs, refer to [Cluster peering configuration](/docs/consul/cluster-peering/configuration).
 - To create new cluster peering connections, refer to [Establish cluster peering connections](/docs/connect/cluster-peering/create-manage-peering).
 - To manage or delete existing cluster peering connections, refer to [Manage cluster peering connections](/consul/docs/cluster-peering/usage/manage-connections).
