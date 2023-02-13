@@ -374,7 +374,6 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 			c2.Services = append(c2.Services, *c2.Service)
 			c2.Service = nil
 		}
-
 		c = Merge(c, c2)
 	}
 
@@ -955,8 +954,8 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		Bootstrap:                 boolVal(c.Bootstrap),
 		BootstrapExpect:           intVal(c.BootstrapExpect),
 		Cache: cache.Options{
-			EntryFetchRate: rate.Limit(
-				float64ValWithDefault(c.Cache.EntryFetchRate, float64(cache.DefaultEntryFetchRate)),
+			EntryFetchRate: limitValWithDefault(
+				c.Cache.EntryFetchRate, float64(cache.DefaultEntryFetchRate),
 			),
 			EntryFetchMaxBurst: intValWithDefault(
 				c.Cache.EntryFetchMaxBurst, cache.DefaultEntryFetchMaxBurst,
@@ -1046,12 +1045,13 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		RPCMaxBurst:                       intVal(c.Limits.RPCMaxBurst),
 		RPCMaxConnsPerClient:              intVal(c.Limits.RPCMaxConnsPerClient),
 		RPCProtocol:                       intVal(c.RPCProtocol),
-		RPCRateLimit:                      rate.Limit(float64Val(c.Limits.RPCRate)),
+		RPCRateLimit:                      limitVal(c.Limits.RPCRate),
 		RPCConfig:                         consul.RPCConfig{EnableStreaming: boolValWithDefault(c.RPC.EnableStreaming, serverMode)},
 		RaftProtocol:                      intVal(c.RaftProtocol),
 		RaftSnapshotThreshold:             intVal(c.RaftSnapshotThreshold),
 		RaftSnapshotInterval:              b.durationVal("raft_snapshot_interval", c.RaftSnapshotInterval),
 		RaftTrailingLogs:                  intVal(c.RaftTrailingLogs),
+		RaftLogStoreConfig:                b.raftLogStoreConfigVal(&c.RaftLogStore),
 		ReconnectTimeoutLAN:               b.durationVal("reconnect_timeout", c.ReconnectTimeoutLAN),
 		ReconnectTimeoutWAN:               b.durationVal("reconnect_timeout_wan", c.ReconnectTimeoutWAN),
 		RejoinAfterLeave:                  boolVal(c.RejoinAfterLeave),
@@ -1089,7 +1089,7 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		UnixSocketMode:                    stringVal(c.UnixSocket.Mode),
 		UnixSocketUser:                    stringVal(c.UnixSocket.User),
 		Watches:                           c.Watches,
-		XDSUpdateRateLimit:                rate.Limit(float64Val(c.XDS.UpdateMaxPerSecond)),
+		XDSUpdateRateLimit:                limitVal(c.XDS.UpdateMaxPerSecond),
 		AutoReloadConfigCoalesceInterval:  1 * time.Second,
 	}
 
@@ -1109,10 +1109,6 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 	}
 
 	rt.UseStreamingBackend = boolValWithDefault(c.UseStreamingBackend, true)
-
-	if c.RaftBoltDBConfig != nil {
-		rt.RaftBoltDBConfig = *c.RaftBoltDBConfig
-	}
 
 	if rt.Cache.EntryFetchMaxBurst <= 0 {
 		return RuntimeConfig{}, fmt.Errorf("cache.entry_fetch_max_burst must be strictly positive, was: %v", rt.Cache.EntryFetchMaxBurst)
@@ -1383,6 +1379,19 @@ func (b *builder) validate(rt RuntimeConfig) error {
 			return fmt.Errorf("CRITICAL: Deprecated data folder found at %q!\n"+
 				"Consul will refuse to boot with this directory present.\n"+
 				"See https://www.consul.io/docs/upgrade-specific.html for more information.", mdbPath)
+		}
+
+		// Raft LogStore validation
+		if rt.RaftLogStoreConfig.Backend != consul.LogStoreBackendBoltDB &&
+			rt.RaftLogStoreConfig.Backend != consul.LogStoreBackendWAL {
+			return fmt.Errorf("raft_logstore.backend must be one of '%s' or '%s'",
+				consul.LogStoreBackendBoltDB, consul.LogStoreBackendWAL)
+		}
+		if rt.RaftLogStoreConfig.WAL.SegmentSize < 1024*1024 {
+			return fmt.Errorf("raft_logstore.wal.segment_size_mb cannot be less than 1MB")
+		}
+		if rt.RaftLogStoreConfig.WAL.SegmentSize > 1024*1024*1024 {
+			return fmt.Errorf("raft_logstore.wal.segment_size_mb cannot be greater than 1024 (1GiB)")
 		}
 	}
 
@@ -1706,6 +1715,8 @@ func (b *builder) serviceKindVal(v *string) structs.ServiceKind {
 		return structs.ServiceKindTerminatingGateway
 	case string(structs.ServiceKindIngressGateway):
 		return structs.ServiceKindIngressGateway
+	case string(structs.ServiceKindAPIGateway):
+		return structs.ServiceKindAPIGateway
 	default:
 		return structs.ServiceKindTypical
 	}
@@ -2021,6 +2032,11 @@ func limitVal(v *float64) rate.Limit {
 	}
 
 	return rate.Limit(f)
+}
+
+func limitValWithDefault(v *float64, defaultVal float64) rate.Limit {
+	f := float64ValWithDefault(v, defaultVal)
+	return limitVal(&f)
 }
 
 func (b *builder) cidrsVal(name string, v []string) (nets []*net.IPNet) {
@@ -2706,4 +2722,20 @@ func (b *builder) parsePrefixFilter(telemetry *Telemetry) ([]string, []string) {
 	}
 
 	return telemetryAllowedPrefixes, telemetryBlockedPrefixes
+}
+
+func (b *builder) raftLogStoreConfigVal(raw *RaftLogStoreRaw) consul.RaftLogStoreConfig {
+	var cfg consul.RaftLogStoreConfig
+	if raw != nil {
+		cfg.Backend = stringValWithDefault(raw.Backend, consul.LogStoreBackendBoltDB)
+		cfg.DisableLogCache = boolVal(raw.DisableLogCache)
+
+		cfg.Verification.Enabled = boolVal(raw.Verification.Enabled)
+		cfg.Verification.Interval = b.durationVal("raft_logstore.verification.interval", raw.Verification.Interval)
+
+		cfg.BoltDB.NoFreelistSync = boolVal(raw.BoltDBConfig.NoFreelistSync)
+
+		cfg.WAL.SegmentSize = intVal(raw.WALConfig.SegmentSizeMB) * 1024 * 1024
+	}
+	return cfg
 }

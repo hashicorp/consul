@@ -460,32 +460,12 @@ func (c *ConfigEntry) ResolveServiceConfig(args *structs.ServiceConfigRequest, r
 		&args.QueryOptions,
 		&reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
-			var (
-				upstreamIDs     = args.UpstreamIDs
-				legacyUpstreams = false
-			)
-
-			// The request is considered legacy if the deprecated args.Upstream was used
-			if len(upstreamIDs) == 0 && len(args.Upstreams) > 0 {
-				legacyUpstreams = true
-
-				upstreamIDs = make([]structs.ServiceID, 0)
-				for _, upstream := range args.Upstreams {
-					// Before Consul namespaces were released, the Upstreams
-					// provided to the endpoint did not contain the namespace.
-					// Because of this we attach the enterprise meta of the
-					// request, which will just be the default namespace.
-					sid := structs.NewServiceID(upstream, &args.EnterpriseMeta)
-					upstreamIDs = append(upstreamIDs, sid)
-				}
-			}
-
 			// Fetch all relevant config entries.
 			index, entries, err := state.ReadResolvedServiceConfigEntries(
 				ws,
 				args.Name,
 				&args.EnterpriseMeta,
-				upstreamIDs,
+				args.GetLocalUpstreamIDs(),
 				args.Mode,
 			)
 			if err != nil {
@@ -513,8 +493,6 @@ func (c *ConfigEntry) ResolveServiceConfig(args *structs.ServiceConfigRequest, r
 
 			thisReply, err := configentry.ComputeResolvedServiceConfig(
 				args,
-				upstreamIDs,
-				legacyUpstreams,
 				entries,
 				c.logger,
 			)

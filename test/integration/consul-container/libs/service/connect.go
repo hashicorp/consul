@@ -40,7 +40,24 @@ func (g ConnectContainer) GetAddr() (string, int) {
 }
 
 func (g ConnectContainer) Restart() error {
-	return fmt.Errorf("Restart Unimplemented by ConnectContainer")
+	_, err := g.GetStatus()
+	if err != nil {
+		return fmt.Errorf("error fetching sidecar container state %s", err)
+	}
+
+	fmt.Printf("Stopping container: %s\n", g.GetName())
+	err = g.container.Stop(g.ctx, nil)
+
+	if err != nil {
+		return fmt.Errorf("error stopping sidecar container %s", err)
+	}
+
+	fmt.Printf("Starting container: %s\n", g.GetName())
+	err = g.container.Start(g.ctx)
+	if err != nil {
+		return fmt.Errorf("error starting sidecar container %s", err)
+	}
+	return nil
 }
 
 func (g ConnectContainer) GetLogs() (string, error) {
@@ -73,15 +90,20 @@ func (g ConnectContainer) Start() error {
 	if g.container == nil {
 		return fmt.Errorf("container has not been initialized")
 	}
-	return g.container.Start(context.Background())
+	return g.container.Start(g.ctx)
 }
 
-func (c ConnectContainer) Terminate() error {
-	return cluster.TerminateContainer(c.ctx, c.container, true)
+func (g ConnectContainer) Terminate() error {
+	return cluster.TerminateContainer(g.ctx, g.container, true)
 }
 
 func (g ConnectContainer) GetAdminAddr() (string, int) {
 	return "localhost", g.adminPort
+}
+
+func (g ConnectContainer) GetStatus() (string, error) {
+	state, err := g.container.State(g.ctx)
+	return state.Status, err
 }
 
 // NewConnectService returns a container that runs envoy sidecar, launched by
@@ -89,7 +111,7 @@ func (g ConnectContainer) GetAdminAddr() (string, int) {
 // node. The container exposes port serviceBindPort and envoy admin port
 // (19000) by mapping them onto host ports. The container's name has a prefix
 // combining datacenter and name.
-func NewConnectService(ctx context.Context, sidecarServiceName string, serviceName string, serviceBindPort int, node libcluster.Agent) (*ConnectContainer, error) {
+func NewConnectService(ctx context.Context, sidecarServiceName string, serviceID string, serviceBindPort int, node libcluster.Agent) (*ConnectContainer, error) {
 	nodeConfig := node.GetConfig()
 	if nodeConfig.ScratchDir == "" {
 		return nil, fmt.Errorf("node ScratchDir is required")
@@ -123,7 +145,7 @@ func NewConnectService(ctx context.Context, sidecarServiceName string, serviceNa
 		Name:           containerName,
 		Cmd: []string{
 			"consul", "connect", "envoy",
-			"-sidecar-for", serviceName,
+			"-sidecar-for", serviceID,
 			"-admin-bind", fmt.Sprintf("0.0.0.0:%d", adminPort),
 			"--",
 			"--log-level", envoyLogLevel,
@@ -178,7 +200,7 @@ func NewConnectService(ctx context.Context, sidecarServiceName string, serviceNa
 	}
 
 	fmt.Printf("NewConnectService: name %s, mapped App Port %d, service bind port %d\n",
-		serviceName, out.appPort, serviceBindPort)
+		serviceID, out.appPort, serviceBindPort)
 	fmt.Printf("NewConnectService sidecar: name %s, mapped admin port %d, admin port %d\n",
 		sidecarServiceName, out.adminPort, adminPort)
 

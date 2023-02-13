@@ -80,20 +80,28 @@ func (g gatewayContainer) GetAdminAddr() (string, int) {
 }
 
 func (g gatewayContainer) Restart() error {
-	_, err := g.container.State(context.Background())
+	_, err := g.container.State(g.ctx)
 	if err != nil {
 		return fmt.Errorf("error get gateway state %s", err)
 	}
 
-	err = g.container.Stop(context.Background(), nil)
+	fmt.Printf("Stopping container: %s\n", g.GetName())
+	err = g.container.Stop(g.ctx, nil)
 	if err != nil {
 		return fmt.Errorf("error stop gateway %s", err)
 	}
-	err = g.container.Start(context.Background())
+
+	fmt.Printf("Starting container: %s\n", g.GetName())
+	err = g.container.Start(g.ctx)
 	if err != nil {
 		return fmt.Errorf("error start gateway %s", err)
 	}
 	return nil
+}
+
+func (g gatewayContainer) GetStatus() (string, error) {
+	state, err := g.container.State(g.ctx)
+	return state.Status, err
 }
 
 func NewGatewayService(ctx context.Context, name string, kind string, node libcluster.Agent) (Service, error) {

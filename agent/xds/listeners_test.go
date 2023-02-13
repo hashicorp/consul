@@ -7,6 +7,7 @@ import (
 	"testing"
 	"text/template"
 
+	"github.com/hashicorp/consul/agent/xds/testcommon"
 	"github.com/stretchr/testify/assert"
 
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
@@ -15,8 +16,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/agent/xds/proxysupport"
-	"github.com/hashicorp/consul/agent/xds/xdscommon"
+	"github.com/hashicorp/consul/envoyextensions/xdscommon"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/types"
 )
@@ -888,9 +888,9 @@ func TestListenersFromSnapshot(t *testing.T) {
 		},
 	}
 
-	latestEnvoyVersion := proxysupport.EnvoyVersions[0]
-	for _, envoyVersion := range proxysupport.EnvoyVersions {
-		sf, err := determineSupportedProxyFeaturesFromString(envoyVersion)
+	latestEnvoyVersion := xdscommon.EnvoyVersions[0]
+	for _, envoyVersion := range xdscommon.EnvoyVersions {
+		sf, err := xdscommon.DetermineSupportedProxyFeaturesFromString(envoyVersion)
 		require.NoError(t, err)
 		t.Run("envoy-"+envoyVersion, func(t *testing.T) {
 			for _, tt := range tests {
@@ -904,14 +904,14 @@ func TestListenersFromSnapshot(t *testing.T) {
 					// We need to replace the TLS certs with deterministic ones to make golden
 					// files workable. Note we don't update these otherwise they'd change
 					// golder files for every test case and so not be any use!
-					setupTLSRootsAndLeaf(t, snap)
+					testcommon.SetupTLSRootsAndLeaf(t, snap)
 
 					if tt.setup != nil {
 						tt.setup(snap)
 					}
 
 					// Need server just for logger dependency
-					g := newResourceGenerator(testutil.Logger(t), nil, false)
+					g := NewResourceGenerator(testutil.Logger(t), nil, false)
 					g.ProxyFeatures = sf
 					if tt.generatorSetup != nil {
 						tt.generatorSetup(g)

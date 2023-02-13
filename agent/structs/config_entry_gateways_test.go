@@ -1443,7 +1443,12 @@ func TestListenerBindRoute(t *testing.T) {
 
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
-			actualDidBind := tc.listener.BindRoute(tc.route)
+			routeRef := ResourceReference{
+				Kind:           tc.route.GetKind(),
+				Name:           tc.route.GetName(),
+				EnterpriseMeta: *tc.route.GetEnterpriseMeta(),
+			}
+			actualDidBind := tc.listener.BindRoute(routeRef)
 			require.Equal(t, tc.expectedDidBind, actualDidBind)
 			require.Equal(t, tc.expectedListener.Routes, tc.listener.Routes)
 		})
@@ -1505,7 +1510,12 @@ func TestListenerUnbindRoute(t *testing.T) {
 
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
-			actualDidUnbind := tc.listener.UnbindRoute(tc.route)
+			routeRef := ResourceReference{
+				Kind:           tc.route.GetKind(),
+				Name:           tc.route.GetName(),
+				EnterpriseMeta: *tc.route.GetEnterpriseMeta(),
+			}
+			actualDidUnbind := tc.listener.UnbindRoute(routeRef)
 			require.Equal(t, tc.expectedDidUnbind, actualDidUnbind)
 			require.Equal(t, tc.expectedListener.Routes, tc.listener.Routes)
 		})

@@ -45,7 +45,10 @@ func TestAccessLogs(t *testing.T) {
 		t.Skip()
 	}
 
-	cluster, _, _ := topology.NewPeeringCluster(t, "dc1", 1, "")
+	cluster, _, _ := topology.NewPeeringCluster(t, 1, &libcluster.BuildOptions{
+		Datacenter:           "dc1",
+		InjectAutoEncryption: true,
+	})
 
 	// Turn on access logs. Do this before starting the sidecars so that they inherit the configuration
 	// for their admin interface
@@ -67,6 +70,7 @@ func TestAccessLogs(t *testing.T) {
 	// Validate Custom JSON
 	require.Eventually(t, func() bool {
 		libassert.HTTPServiceEchoes(t, "localhost", port, "banana")
+		libassert.AssertFortioName(t, fmt.Sprintf("http://localhost:%d", port), "static-server")
 		client := libassert.ServiceLogContains(t, clientService, "\"banana_path\":\"/banana\"")
 		server := libassert.ServiceLogContains(t, serverService, "\"banana_path\":\"/banana\"")
 		return client && server
@@ -108,6 +112,7 @@ func TestAccessLogs(t *testing.T) {
 	_, port = clientService.GetAddr()
 	require.Eventually(t, func() bool {
 		libassert.HTTPServiceEchoes(t, "localhost", port, "orange")
+		libassert.AssertFortioName(t, fmt.Sprintf("http://localhost:%d", port), "static-server")
 		client := libassert.ServiceLogContains(t, clientService, "Orange you glad I didn't say banana: /orange, -")
 		server := libassert.ServiceLogContains(t, serverService, "Orange you glad I didn't say banana: /orange, -")
 		return client && server
@@ -133,7 +138,15 @@ func createServices(t *testing.T, cluster *libcluster.Cluster) (libservice.Servi
 	require.True(t, ok, "did not write HTTP service-default")
 
 	// Create a service and proxy instance
-	_, serverConnectProxy, err := libservice.CreateAndRegisterStaticServerAndSidecar(node)
+	serviceOpts := &libservice.ServiceOpts{
+		Name:     libservice.StaticServerServiceName,
+		ID:       "static-server",
+		HTTPPort: 8080,
+		GRPCPort: 8079,
+	}
+
+	// Create a service and proxy instance
+	_, serverConnectProxy, err := libservice.CreateAndRegisterStaticServerAndSidecar(node, serviceOpts)
 	require.NoError(t, err)
 
 	libassert.CatalogServiceExists(t, client, fmt.Sprintf("%s-sidecar-proxy", libservice.StaticServerServiceName))
