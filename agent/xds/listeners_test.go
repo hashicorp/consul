@@ -540,7 +540,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 			},
 		},
 		{
-			name: "api-gateway-tcp-listeners",
+			name: "api-gateway-tcp-listener",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotAPIGateway(t, "default", nil, func(entry *structs.APIGatewayConfigEntry, bound *structs.BoundAPIGatewayConfigEntry) {
 					entry.Listeners = []structs.APIGatewayListener{
@@ -555,6 +555,34 @@ func TestListenersFromSnapshot(t *testing.T) {
 							Name: "listener",
 						},
 					}
+				}, nil)
+			},
+		},
+		{
+			name: "api-gateway-tcp-listener-with-tcp-route",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotAPIGateway(t, "default", nil, func(entry *structs.APIGatewayConfigEntry, bound *structs.BoundAPIGatewayConfigEntry) {
+					entry.Listeners = []structs.APIGatewayListener{
+						{
+							Name:     "listener",
+							Protocol: structs.ListenerProtocolTCP,
+							Port:     8080,
+						},
+					}
+					bound.Listeners = []structs.BoundAPIGatewayListener{
+						{
+							Name: "listener",
+							Routes: []structs.ResourceReference{
+								{
+									Name: "tcp-route",
+								},
+							},
+						},
+					}
+
+					//tcpRoute := structs.TCPRouteConfigEntry{
+					//	Name: "tcp-route",
+					//}
 				}, nil)
 			},
 		},
