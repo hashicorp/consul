@@ -142,8 +142,8 @@ func TestPeering_UpgradeToTarget_fromLatest(t *testing.T) {
 
 		require.NoError(t, dialing.Container.Restart())
 		libassert.HTTPServiceEchoes(t, "localhost", staticClientPort, "")
-		// require.NoError(t, accepting.Container.Restart())
-		// libassert.HTTPServiceEchoes(t, "localhost", staticClientPort, "")
+		require.NoError(t, accepting.Container.Restart())
+		libassert.HTTPServiceEchoes(t, "localhost", staticClientPort, "")
 
 		clientSidecarService, err := libservice.CreateAndRegisterStaticClientSidecar(dialingCluster.Servers()[0], libtopology.DialingPeerName, true)
 		require.NoError(t, err)
