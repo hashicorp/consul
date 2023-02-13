@@ -220,12 +220,6 @@ func (c *cmd) init() {
 	flags.Merge(c.flags, c.http.ClientFlags())
 	flags.Merge(c.flags, c.http.MultiTenancyFlags())
 	c.help = flags.Usage(help, c.flags)
-
-	opts := hclog.LoggerOptions{Level: hclog.Off}
-	if c.enableLogging {
-		opts.Level = hclog.Debug
-	}
-	c.logger = hclog.New(&opts)
 }
 
 // canBindInternal is here mainly so we can unit test this with a constant net.Addr list
@@ -278,13 +272,18 @@ func (c *cmd) Run(args []string) int {
 		c.UI.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
 		return 1
 	}
-	c.logger.Debug("Initialized API client")
 
 	// TODO: refactor
 	return c.run(c.flags.Args())
 }
 
 func (c *cmd) run(args []string) int {
+	opts := hclog.LoggerOptions{Level: hclog.Off}
+	if c.enableLogging {
+		opts.Level = hclog.Debug
+	}
+	c.logger = hclog.New(&opts)
+	c.logger.Debug("Starting Envoy config generation")
 
 	if c.nodeName != "" && c.proxyID == "" {
 		c.UI.Error("'-node-name' requires '-proxy-id'")

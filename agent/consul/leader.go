@@ -529,23 +529,23 @@ func (s *Server) initializeACLs(ctx context.Context) error {
 			s.logger.Info("Created ACL anonymous token from configuration")
 		}
 
-		// Generate or rotate the server management token on leadership transitions.
-		// This token is used by Consul servers for authn/authz when making
-		// requests to themselves through public APIs such as the agent cache.
-		// It is stored as system metadata because it is internally
-		// managed and users are not meant to see it or interact with it.
-		secretID, err := lib.GenerateUUID(nil)
-		if err != nil {
-			return fmt.Errorf("failed to generate the secret ID for the server management token: %w", err)
-		}
-		if err := s.setSystemMetadataKey(structs.ServerManagementTokenAccessorID, secretID); err != nil {
-			return fmt.Errorf("failed to persist server management token: %w", err)
-		}
-
 		// launch the upgrade go routine to generate accessors for everything
 		s.startACLUpgrade(ctx)
 	} else {
 		s.startACLReplication(ctx)
+	}
+
+	// Generate or rotate the server management token on leadership transitions.
+	// This token is used by Consul servers for authn/authz when making
+	// requests to themselves through public APIs such as the agent cache.
+	// It is stored as system metadata because it is internally
+	// managed and users are not meant to see it or interact with it.
+	secretID, err := lib.GenerateUUID(nil)
+	if err != nil {
+		return fmt.Errorf("failed to generate the secret ID for the server management token: %w", err)
+	}
+	if err := s.setSystemMetadataKey(structs.ServerManagementTokenAccessorID, secretID); err != nil {
+		return fmt.Errorf("failed to persist server management token: %w", err)
 	}
 
 	s.startACLTokenReaping(ctx)
