@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/proxycfg/internal/watch"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/proto/pbpeering"
@@ -60,6 +61,9 @@ func (h *handlerAPIGateway) initialize(ctx context.Context) (ConfigSnapshot, err
 	snap.APIGateway.HTTPRoutes = watch.NewMap[structs.ResourceReference, *structs.HTTPRouteConfigEntry]()
 	snap.APIGateway.TCPRoutes = watch.NewMap[structs.ResourceReference, *structs.TCPRouteConfigEntry]()
 	snap.APIGateway.Certificates = watch.NewMap[structs.ResourceReference, *structs.InlineCertificateConfigEntry]()
+
+	snap.APIGateway.Upstreams = make(listenerRouteUpstreams)
+	snap.APIGateway.UpstreamsSet = make(routeUpstreamSet)
 
 	// These need to be initialized here but are set by handlerUpstreams
 	snap.APIGateway.DiscoveryChain = make(map[UpstreamID]*structs.CompiledDiscoveryChain)
@@ -191,6 +195,8 @@ func (h *handlerAPIGateway) handleGatewayConfigUpdate(ctx context.Context, u Upd
 		// Unsubscribe from any config entries that are no longer attached
 		snap.APIGateway.HTTPRoutes.ForEachKey(func(ref structs.ResourceReference) bool {
 			if _, ok := seenRefs[ref]; !ok {
+				snap.APIGateway.Upstreams.delete(ref)
+				snap.APIGateway.UpstreamsSet.delete(ref)
 				snap.APIGateway.HTTPRoutes.CancelWatch(ref)
 			}
 			return true
@@ -198,6 +204,8 @@ func (h *handlerAPIGateway) handleGatewayConfigUpdate(ctx context.Context, u Upd
 
 		snap.APIGateway.TCPRoutes.ForEachKey(func(ref structs.ResourceReference) bool {
 			if _, ok := seenRefs[ref]; !ok {
+				snap.APIGateway.Upstreams.delete(ref)
+				snap.APIGateway.UpstreamsSet.delete(ref)
 				snap.APIGateway.TCPRoutes.CancelWatch(ref)
 			}
 			return true
@@ -225,7 +233,7 @@ func (h *handlerAPIGateway) handleGatewayConfigUpdate(ctx context.Context, u Upd
 		return fmt.Errorf("invalid type for config entry: %T", resp.Entry)
 	}
 
-	return nil
+	return h.watchIngressLeafCert(ctx, snap)
 }
 
 // handleInlineCertConfigUpdate stores the certificate for the gateway
@@ -242,10 +250,10 @@ func (h *handlerAPIGateway) handleInlineCertConfigUpdate(_ context.Context, u Up
 		return fmt.Errorf("invalid type for config entry: %T", resp.Entry)
 	}
 
-	// TODO Consider if unset SectionName and acl.EnterpriseMeta could trip us up
 	ref := structs.ResourceReference{
-		Kind: cfg.GetKind(),
-		Name: cfg.GetName(),
+		Kind:           cfg.GetKind(),
+		Name:           cfg.GetName(),
+		EnterpriseMeta: *cfg.GetEnterpriseMeta(),
 	}
 
 	snap.APIGateway.Certificates.Set(ref, cfg)
@@ -263,13 +271,13 @@ func (h *handlerAPIGateway) handleRouteConfigUpdate(ctx context.Context, u Updat
 		return nil
 	}
 
-	// TODO Consider if unset SectionName and acl.EnterpriseMeta could trip us up
 	ref := structs.ResourceReference{
-		Kind: resp.Entry.GetKind(),
-		Name: resp.Entry.GetName(),
+		Kind:           resp.Entry.GetKind(),
+		Name:           resp.Entry.GetName(),
+		EnterpriseMeta: *resp.Entry.GetEnterpriseMeta(),
 	}
 
-	seenUpstreamIDs := make(map[UpstreamID]struct{})
+	seenUpstreamIDs := make(upstreamIDSet)
 	upstreams := make(map[APIGatewayListenerKey]structs.Upstreams)
 
 	switch route := resp.Entry.(type) {
@@ -330,7 +338,7 @@ func (h *handlerAPIGateway) handleRouteConfigUpdate(ctx context.Context, u Updat
 
 		for _, service := range route.Services {
 			upstreamID := NewUpstreamIDFromServiceName(service.ServiceName())
-			seenUpstreamIDs[upstreamID] = struct{}{}
+			seenUpstreamIDs.add(upstreamID)
 
 			// For each listener, check if this route should bind and, if so, create an upstream.
 			for _, listener := range snap.APIGateway.Listeners {
@@ -350,7 +358,6 @@ func (h *handlerAPIGateway) handleRouteConfigUpdate(ctx context.Context, u Updat
 					DestinationNamespace: service.NamespaceOrDefault(),
 					DestinationPartition: service.PartitionOrDefault(),
 					LocalBindPort:        listener.Port,
-					//IngressHosts:         g.Hosts,
 					// Pass the protocol that was configured on the ingress listener in order
 					// to force that protocol on the Envoy listener.
 					Config: map[string]interface{}{
@@ -379,14 +386,16 @@ func (h *handlerAPIGateway) handleRouteConfigUpdate(ctx context.Context, u Updat
 		return fmt.Errorf("invalid type for config entry: %T", resp.Entry)
 	}
 
-	snap.APIGateway.Upstreams = upstreams
-	snap.APIGateway.UpstreamsSet = seenUpstreamIDs
+	for listener, set := range upstreams {
+		snap.APIGateway.Upstreams.set(ref, listener, set)
+	}
+	snap.APIGateway.UpstreamsSet.set(ref, seenUpstreamIDs)
 	//snap.APIGateway.Hosts = TODO
 	snap.APIGateway.AreHostsSet = true
 
 	// Stop watching any upstreams and discovery chains that have become irrelevant
 	for upstreamID, cancelDiscoChain := range snap.APIGateway.WatchedDiscoveryChains {
-		if _, ok := seenUpstreamIDs[upstreamID]; ok {
+		if snap.APIGateway.UpstreamsSet.hasUpstream(upstreamID) {
 			continue
 		}
 
@@ -416,11 +425,38 @@ func (h *handlerAPIGateway) handleRouteConfigUpdate(ctx context.Context, u Updat
 //
 // TODO This would probably be more generally useful as a helper in the structs pkg
 func (h *handlerAPIGateway) referenceIsForListener(ref structs.ResourceReference, listener structs.APIGatewayListener, snap *ConfigSnapshot) bool {
-	if ref.Kind != snap.APIGateway.GatewayConfig.Kind {
+	if ref.Kind != structs.APIGateway && ref.Kind != "" {
 		return false
 	}
 	if ref.Name != snap.APIGateway.GatewayConfig.Name {
 		return false
 	}
 	return ref.SectionName == "" || ref.SectionName == listener.Name
+}
+
+func (h *handlerAPIGateway) watchIngressLeafCert(ctx context.Context, snap *ConfigSnapshot) error {
+	// Note that we DON'T test for TLS.enabled because we need a leaf cert for the
+	// gateway even without TLS to use as a client cert.
+	if !snap.APIGateway.GatewayConfigLoaded {
+		return nil
+	}
+
+	// Watch the leaf cert
+	if snap.APIGateway.LeafCertWatchCancel != nil {
+		snap.APIGateway.LeafCertWatchCancel()
+	}
+	ctx, cancel := context.WithCancel(ctx)
+	err := h.dataSources.LeafCertificate.Notify(ctx, &cachetype.ConnectCALeafRequest{
+		Datacenter:     h.source.Datacenter,
+		Token:          h.token,
+		Service:        h.service,
+		EnterpriseMeta: h.proxyID.EnterpriseMeta,
+	}, leafWatchID, h.ch)
+	if err != nil {
+		cancel()
+		return err
+	}
+	snap.APIGateway.LeafCertWatchCancel = cancel
+
+	return nil
 }

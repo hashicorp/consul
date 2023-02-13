@@ -364,6 +364,14 @@ func HTTPFiltersToStructs(s *HTTPFilters, t *structs.HTTPFilters) {
 			}
 		}
 	}
+	{
+		t.URLRewrites = make([]structs.URLRewrite, len(s.URLRewrites))
+		for i := range s.URLRewrites {
+			if s.URLRewrites[i] != nil {
+				URLRewriteToStructs(s.URLRewrites[i], &t.URLRewrites[i])
+			}
+		}
+	}
 }
 func HTTPFiltersFromStructs(t *structs.HTTPFilters, s *HTTPFilters) {
 	if s == nil {
@@ -376,6 +384,16 @@ func HTTPFiltersFromStructs(t *structs.HTTPFilters, s *HTTPFilters) {
 				var x HTTPHeaderFilter
 				HTTPHeaderFilterFromStructs(&t.Headers[i], &x)
 				s.Headers[i] = &x
+			}
+		}
+	}
+	{
+		s.URLRewrites = make([]*URLRewrite, len(t.URLRewrites))
+		for i := range t.URLRewrites {
+			{
+				var x URLRewrite
+				URLRewriteFromStructs(&t.URLRewrites[i], &x)
+				s.URLRewrites[i] = &x
 			}
 		}
 	}
@@ -1653,6 +1671,18 @@ func TransparentProxyMeshConfigFromStructs(t *structs.TransparentProxyMeshConfig
 		return
 	}
 	s.MeshDestinationsOnly = t.MeshDestinationsOnly
+}
+func URLRewriteToStructs(s *URLRewrite, t *structs.URLRewrite) {
+	if s == nil {
+		return
+	}
+	t.Path = s.Path
+}
+func URLRewriteFromStructs(t *structs.URLRewrite, s *URLRewrite) {
+	if s == nil {
+		return
+	}
+	s.Path = t.Path
 }
 func UpstreamConfigToStructs(s *UpstreamConfig, t *structs.UpstreamConfig) {
 	if s == nil {

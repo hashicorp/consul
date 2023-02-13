@@ -506,51 +506,58 @@ func (s *Server) initializeACLs(ctx context.Context) error {
 		}
 
 		// Insert the anonymous token if it does not exist.
-		state := s.fsm.State()
-		_, token, err := state.ACLTokenGetBySecret(nil, anonymousToken, nil)
-		if err != nil {
-			return fmt.Errorf("failed to get anonymous token: %v", err)
-		}
-		// Ignoring expiration times to avoid an insertion collision.
-		if token == nil {
-			token = &structs.ACLToken{
-				AccessorID:     acl.AnonymousTokenID,
-				SecretID:       anonymousToken,
-				Description:    "Anonymous Token",
-				CreateTime:     time.Now(),
-				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
-			}
-			token.SetHash(true)
-
-			req := structs.ACLTokenBatchSetRequest{
-				Tokens: structs.ACLTokens{token},
-				CAS:    false,
-			}
-			_, err := s.raftApply(structs.ACLTokenSetRequestType, &req)
-			if err != nil {
-				return fmt.Errorf("failed to create anonymous token: %v", err)
-			}
-			s.logger.Info("Created ACL anonymous token from configuration")
-		}
-
-		// Generate or rotate the server management token on leadership transitions.
-		// This token is used by Consul servers for authn/authz when making
-		// requests to themselves through public APIs such as the agent cache.
-		// It is stored as system metadata because it is internally
-		// managed and users are not meant to see it or interact with it.
-		secretID, err := lib.GenerateUUID(nil)
-		if err != nil {
-			return fmt.Errorf("failed to generate the secret ID for the server management token: %w", err)
-		}
-		if err := s.setSystemMetadataKey(structs.ServerManagementTokenAccessorID, secretID); err != nil {
-			return fmt.Errorf("failed to persist server management token: %w", err)
+		if err := s.InsertAnonymousToken(); err != nil {
+			return err
 		}
 	} else {
 		s.startACLReplication(ctx)
 	}
 
+	// Generate or rotate the server management token on leadership transitions.
+	// This token is used by Consul servers for authn/authz when making
+	// requests to themselves through public APIs such as the agent cache.
+	// It is stored as system metadata because it is internally
+	// managed and users are not meant to see it or interact with it.
+	secretID, err := lib.GenerateUUID(nil)
+	if err != nil {
+		return fmt.Errorf("failed to generate the secret ID for the server management token: %w", err)
+	}
+	if err := s.setSystemMetadataKey(structs.ServerManagementTokenAccessorID, secretID); err != nil {
+		return fmt.Errorf("failed to persist server management token: %w", err)
+	}
+
 	s.startACLTokenReaping(ctx)
 
+	return nil
+}
+
+func (s *Server) InsertAnonymousToken() error {
+	state := s.fsm.State()
+	_, token, err := state.ACLTokenGetBySecret(nil, anonymousToken, nil)
+	if err != nil {
+		return fmt.Errorf("failed to get anonymous token: %v", err)
+	}
+	// Ignoring expiration times to avoid an insertion collision.
+	if token == nil {
+		token = &structs.ACLToken{
+			AccessorID:     acl.AnonymousTokenID,
+			SecretID:       anonymousToken,
+			Description:    "Anonymous Token",
+			CreateTime:     time.Now(),
+			EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+		}
+		token.SetHash(true)
+
+		req := structs.ACLTokenBatchSetRequest{
+			Tokens: structs.ACLTokens{token},
+			CAS:    false,
+		}
+		_, err := s.raftApply(structs.ACLTokenSetRequestType, &req)
+		if err != nil {
+			return fmt.Errorf("failed to create anonymous token: %v", err)
+		}
+		s.logger.Info("Created ACL anonymous token from configuration")
+	}
 	return nil
 }
 

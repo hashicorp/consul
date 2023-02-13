@@ -123,11 +123,11 @@ main {
   }
   %main-nav-horizontal-toggle:checked ~ footer,
   %main-nav-horizontal-toggle:checked + header > div > nav:first-of-type {
-    left: calc(var(--chrome-width, 300px) * -1);
+    left: calc(var(--chrome-width, 280px) * -1);
   }
   %main-nav-horizontal-toggle ~ main .notifications,
   %main-nav-horizontal-toggle ~ main {
-    margin-left: var(--chrome-width, 300px);
+    margin-left: var(--chrome-width, 280px);
   }
   %main-nav-horizontal-toggle:checked ~ main .notifications,
   %main-nav-horizontal-toggle:checked ~ main {
@@ -144,7 +144,7 @@ main {
   }
   %main-nav-horizontal-toggle ~ footer,
   %main-nav-horizontal-toggle + header > div > nav:first-of-type {
-    left: calc(var(--chrome-width, 300px) * -1);
+    left: calc(var(--chrome-width, 280px) * -1);
   }
   %main-nav-horizontal-toggle ~ main .notifications,
   %main-nav-horizontal-toggle ~ main {

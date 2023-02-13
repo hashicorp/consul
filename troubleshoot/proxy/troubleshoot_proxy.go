@@ -85,10 +85,11 @@ func (t *Troubleshoot) RunAllTests(upstreamEnvoyID, upstreamIP string) (validate
 	}
 
 	// getStats usage example
-	// rejectionStats, err := t.getEnvoyStats("update_rejected")
-	// if err != nil {
-	// 	resultErr = multierror.Append(resultErr, err)
-	// }
+	messages, err = t.troubleshootStats()
+	if err != nil {
+		return nil, fmt.Errorf("unable to get stats: %w", err)
+	}
+	allTestMessages = append(allTestMessages, messages...)
 
 	// Validate listeners, routes, clusters, endpoints.
 	messages = Validate(indexedResources, upstreamEnvoyID, upstreamIP, true, t.envoyClusters)

@@ -7,7 +7,7 @@ kind = "api-gateway"
 name = "api-gateway"
 listeners = [
   {
-    port     = 9999
+    port = 9999
     protocol = "tcp"
   }
 ]
@@ -15,10 +15,25 @@ listeners = [
 
 upsert_config_entry primary '
 kind = "tcp-route"
-name = "api-gateway-route"
+name = "api-gateway-route-1"
 services = [
   {
-    name               = "s1"
+    name = "s1"
+  }
+]
+parents = [
+  {
+    name = "api-gateway"
+  }
+]
+'
+
+upsert_config_entry primary '
+kind = "tcp-route"
+name = "api-gateway-route-2"
+services = [
+  {
+    name = "s2"
   }
 ]
 parents = [

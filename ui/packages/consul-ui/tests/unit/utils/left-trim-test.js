@@ -3,6 +3,8 @@ import leftTrim from 'consul-ui/utils/left-trim';
 
 module('Unit | Utility | left trim', function () {
   test('it trims characters from the left hand side', function (assert) {
+    assert.expect(8);
+
     [
       {
         args: ['/a/folder/here', '/'],

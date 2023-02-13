@@ -260,26 +260,40 @@ func (o *configSnapshotAPIGateway) DeepCopy() *configSnapshotAPIGateway {
 		copy(cp.Hosts, o.Hosts)
 	}
 	if o.Upstreams != nil {
-		cp.Upstreams = make(map[IngressListenerKey]structs.Upstreams, len(o.Upstreams))
+		cp.Upstreams = make(map[structs.ResourceReference]listenerUpstreamMap, len(o.Upstreams))
 		for k2, v2 := range o.Upstreams {
-			var cp_Upstreams_v2 structs.Upstreams
+			var cp_Upstreams_v2 listenerUpstreamMap
 			if v2 != nil {
-				cp_Upstreams_v2 = make([]structs.Upstream, len(v2))
-				copy(cp_Upstreams_v2, v2)
-				for i3 := range v2 {
-					{
-						retV := v2[i3].DeepCopy()
-						cp_Upstreams_v2[i3] = *retV
+				cp_Upstreams_v2 = make(map[IngressListenerKey]structs.Upstreams, len(v2))
+				for k3, v3 := range v2 {
+					var cp_Upstreams_v2_v3 structs.Upstreams
+					if v3 != nil {
+						cp_Upstreams_v2_v3 = make([]structs.Upstream, len(v3))
+						copy(cp_Upstreams_v2_v3, v3)
+						for i4 := range v3 {
+							{
+								retV := v3[i4].DeepCopy()
+								cp_Upstreams_v2_v3[i4] = *retV
+							}
+						}
 					}
+					cp_Upstreams_v2[k3] = cp_Upstreams_v2_v3
 				}
 			}
 			cp.Upstreams[k2] = cp_Upstreams_v2
 		}
 	}
 	if o.UpstreamsSet != nil {
-		cp.UpstreamsSet = make(map[UpstreamID]struct{}, len(o.UpstreamsSet))
+		cp.UpstreamsSet = make(map[structs.ResourceReference]upstreamIDSet, len(o.UpstreamsSet))
 		for k2, v2 := range o.UpstreamsSet {
-			cp.UpstreamsSet[k2] = v2
+			var cp_UpstreamsSet_v2 upstreamIDSet
+			if v2 != nil {
+				cp_UpstreamsSet_v2 = make(map[UpstreamID]struct{}, len(v2))
+				for k3, v3 := range v2 {
+					cp_UpstreamsSet_v2[k3] = v3
+				}
+			}
+			cp.UpstreamsSet[k2] = cp_UpstreamsSet_v2
 		}
 	}
 	cp.HTTPRoutes = o.HTTPRoutes.DeepCopy()

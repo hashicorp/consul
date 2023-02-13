@@ -7,6 +7,8 @@ import (
 	"strings"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/connect"
+	"github.com/hashicorp/consul/agent/consul/discoverychain"
 	"github.com/hashicorp/consul/agent/proxycfg/internal/watch"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
@@ -639,6 +641,55 @@ func (c *configSnapshotMeshGateway) isEmptyPeering() bool {
 		!c.PeeringTrustBundlesSet
 }
 
+type upstreamIDSet map[UpstreamID]struct{}
+
+func (u upstreamIDSet) add(uid UpstreamID) {
+	u[uid] = struct{}{}
+}
+
+type routeUpstreamSet map[structs.ResourceReference]upstreamIDSet
+
+func (r routeUpstreamSet) hasUpstream(uid UpstreamID) bool {
+	for _, set := range r {
+		if _, ok := set[uid]; ok {
+			return true
+		}
+	}
+	return false
+}
+
+func (r routeUpstreamSet) set(route structs.ResourceReference, set upstreamIDSet) {
+	r[route] = set
+}
+
+func (r routeUpstreamSet) delete(route structs.ResourceReference) {
+	delete(r, route)
+}
+
+type listenerUpstreamMap map[APIGatewayListenerKey]structs.Upstreams
+type listenerRouteUpstreams map[structs.ResourceReference]listenerUpstreamMap
+
+func (l listenerRouteUpstreams) set(route structs.ResourceReference, listener APIGatewayListenerKey, upstreams structs.Upstreams) {
+	if _, ok := l[route]; !ok {
+		l[route] = make(listenerUpstreamMap)
+	}
+	l[route][listener] = upstreams
+}
+
+func (l listenerRouteUpstreams) delete(route structs.ResourceReference) {
+	delete(l, route)
+}
+
+func (l listenerRouteUpstreams) toUpstreams() map[IngressListenerKey]structs.Upstreams {
+	listeners := make(map[IngressListenerKey]structs.Upstreams, len(l))
+	for _, listenerMap := range l {
+		for listener, set := range listenerMap {
+			listeners[listener] = append(listeners[listener], set...)
+		}
+	}
+	return listeners
+}
+
 type configSnapshotAPIGateway struct {
 	ConfigSnapshotUpstreams
 
@@ -667,14 +718,18 @@ type configSnapshotAPIGateway struct {
 	// the GatewayServices RPC to retrieve them.
 	// TODO Determine if this is updated "for free" or not. If not, we might need
 	//   to do some work to populate it in handlerAPIGateway
-	Upstreams map[IngressListenerKey]structs.Upstreams
+	Upstreams listenerRouteUpstreams
 
 	// UpstreamsSet is the unique set of UpstreamID the gateway routes to.
-	UpstreamsSet map[UpstreamID]struct{}
+	UpstreamsSet routeUpstreamSet
 
 	HTTPRoutes   watch.Map[structs.ResourceReference, *structs.HTTPRouteConfigEntry]
 	TCPRoutes    watch.Map[structs.ResourceReference, *structs.TCPRouteConfigEntry]
 	Certificates watch.Map[structs.ResourceReference, *structs.InlineCertificateConfigEntry]
+
+	// LeafCertWatchCancel is a CancelFunc to use when refreshing this gateway's
+	// leaf cert watch with different parameters.
+	LeafCertWatchCancel context.CancelFunc
 
 	// Listeners is the original listener config from the api-gateway config
 	// entry to save us trying to pass fields through Upstreams
@@ -688,14 +743,171 @@ type configSnapshotAPIGateway struct {
 // Consul API Gateway into Consul core.
 //
 // FUTURE: Remove when API gateways have custom snapshot generation
-func (c *configSnapshotAPIGateway) ToIngress() configSnapshotIngressGateway {
+func (c *configSnapshotAPIGateway) ToIngress(datacenter string) (configSnapshotIngressGateway, error) {
+	// Convert API Gateway Listeners to Ingress Listeners.
+	ingressListeners := make(map[IngressListenerKey]structs.IngressListener, len(c.Listeners))
+	ingressUpstreams := make(map[IngressListenerKey]structs.Upstreams, len(c.Listeners))
+	synthesizedChains := map[UpstreamID]*structs.CompiledDiscoveryChain{}
+	watchedUpstreamEndpoints := make(map[UpstreamID]map[string]structs.CheckServiceNodes)
+	watchedGatewayEndpoints := make(map[UpstreamID]map[string]structs.CheckServiceNodes)
+
+	for name, listener := range c.Listeners {
+		boundListener, ok := c.BoundListeners[name]
+		if !ok {
+			// Skip any listeners that don't have a bound listener. Once the bound listener is created, this will be run again.
+			continue
+		}
+
+		if !c.GatewayConfig.ListenerIsReady(name) {
+			// skip any listeners that might be in an invalid state
+			continue
+		}
+
+		ingressListener := structs.IngressListener{
+			Port:     listener.Port,
+			Protocol: string(listener.Protocol),
+		}
+
+		// Create a synthesized discovery chain for each service.
+		services, upstreams, compiled, err := c.synthesizeChains(datacenter, listener.Protocol, listener.Port, listener.Name, boundListener)
+		if err != nil {
+			return configSnapshotIngressGateway{}, err
+		}
+
+		if len(upstreams) == 0 {
+			// skip if we can't construct any upstreams
+			continue
+		}
+
+		ingressListener.Services = services
+		for i, service := range services {
+			id := NewUpstreamIDFromServiceName(structs.NewServiceName(service.Name, &service.EnterpriseMeta))
+			upstreamEndpoints := make(map[string]structs.CheckServiceNodes)
+			gatewayEndpoints := make(map[string]structs.CheckServiceNodes)
+
+			// add the watched endpoints and gateway endpoints under the new upstream
+			for _, endpoints := range c.WatchedUpstreamEndpoints {
+				for targetID, endpoint := range endpoints {
+					upstreamEndpoints[targetID] = endpoint
+				}
+			}
+			for _, endpoints := range c.WatchedGatewayEndpoints {
+				for targetID, endpoint := range endpoints {
+					gatewayEndpoints[targetID] = endpoint
+				}
+			}
+
+			synthesizedChains[id] = compiled[i]
+			watchedUpstreamEndpoints[id] = upstreamEndpoints
+			watchedGatewayEndpoints[id] = gatewayEndpoints
+		}
+
+		// Configure TLS for the ingress listener
+		tls, err := c.toIngressTLS()
+		if err != nil {
+			return configSnapshotIngressGateway{}, err
+		}
+		ingressListener.TLS = tls
+
+		key := IngressListenerKey{
+			Port:     listener.Port,
+			Protocol: string(listener.Protocol),
+		}
+		ingressListeners[key] = ingressListener
+		ingressUpstreams[key] = upstreams
+	}
+
+	snapshotUpstreams := c.DeepCopy().ConfigSnapshotUpstreams
+	snapshotUpstreams.DiscoveryChain = synthesizedChains
+	snapshotUpstreams.WatchedUpstreamEndpoints = watchedUpstreamEndpoints
+	snapshotUpstreams.WatchedGatewayEndpoints = watchedGatewayEndpoints
 
 	return configSnapshotIngressGateway{
-		ConfigSnapshotUpstreams: c.ConfigSnapshotUpstreams,
-		// TODO Build from c.Listeners
-		// Listeners:
-		Defaults: structs.IngressServiceConfig{},
+		Upstreams:               ingressUpstreams,
+		ConfigSnapshotUpstreams: snapshotUpstreams,
+		GatewayConfigLoaded:     true,
+		Listeners:               ingressListeners,
+	}, nil
+}
+
+func (c *configSnapshotAPIGateway) synthesizeChains(datacenter string, protocol structs.APIGatewayListenerProtocol, port int, name string, boundListener structs.BoundAPIGatewayListener) ([]structs.IngressService, structs.Upstreams, []*structs.CompiledDiscoveryChain, error) {
+	chains := []*structs.CompiledDiscoveryChain{}
+	trustDomain := ""
+
+DOMAIN_LOOP:
+	for _, chain := range c.DiscoveryChain {
+		for _, target := range chain.Targets {
+			if !target.External {
+				trustDomain = connect.TrustDomainForTarget(*target)
+				if trustDomain != "" {
+					break DOMAIN_LOOP
+				}
+			}
+		}
 	}
+
+	synthesizer := discoverychain.NewGatewayChainSynthesizer(datacenter, trustDomain, name, c.GatewayConfig)
+	for _, routeRef := range boundListener.Routes {
+		switch routeRef.Kind {
+		case structs.HTTPRoute:
+			route, ok := c.HTTPRoutes.Get(routeRef)
+			if !ok || protocol != structs.ListenerProtocolHTTP {
+				continue
+			}
+			synthesizer.AddHTTPRoute(*route)
+			for _, service := range route.GetServices() {
+				id := NewUpstreamIDFromServiceName(structs.NewServiceName(service.Name, &service.EnterpriseMeta))
+				if chain := c.DiscoveryChain[id]; chain != nil {
+					chains = append(chains, chain)
+				}
+			}
+		case structs.TCPRoute:
+			route, ok := c.TCPRoutes.Get(routeRef)
+			if !ok || protocol != structs.ListenerProtocolTCP {
+				continue
+			}
+			synthesizer.AddTCPRoute(*route)
+			for _, service := range route.GetServices() {
+				id := NewUpstreamIDFromServiceName(structs.NewServiceName(service.Name, &service.EnterpriseMeta))
+				if chain := c.DiscoveryChain[id]; chain != nil {
+					chains = append(chains, chain)
+				}
+			}
+		default:
+			return nil, nil, nil, fmt.Errorf("unknown route kind %q", routeRef.Kind)
+		}
+	}
+
+	if len(chains) == 0 {
+		return nil, nil, nil, nil
+	}
+
+	services, compiled, err := synthesizer.Synthesize(chains...)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	// reconstruct the upstreams
+	upstreams := make([]structs.Upstream, 0, len(services))
+	for _, service := range services {
+		upstreams = append(upstreams, structs.Upstream{
+			DestinationName:      service.Name,
+			DestinationNamespace: service.NamespaceOrDefault(),
+			DestinationPartition: service.PartitionOrDefault(),
+			IngressHosts:         service.Hosts,
+			LocalBindPort:        port,
+			Config: map[string]interface{}{
+				"protocol": string(protocol),
+			},
+		})
+	}
+
+	return services, upstreams, compiled, err
+}
+
+func (c *configSnapshotAPIGateway) toIngressTLS() (*structs.GatewayTLSConfig, error) {
+	// TODO (t-eckert) this is dependent on future SDS work.
+	return &structs.GatewayTLSConfig{}, nil
 }
 
 type configSnapshotIngressGateway struct {
@@ -841,6 +1053,7 @@ func (s *ConfigSnapshot) Valid() bool {
 	case structs.ServiceKindAPIGateway:
 		// TODO Is this the proper set of things to validate?
 		return s.Roots != nil &&
+			s.APIGateway.Leaf != nil &&
 			s.APIGateway.GatewayConfigLoaded &&
 			s.APIGateway.BoundGatewayConfigLoaded &&
 			s.APIGateway.AreHostsSet &&

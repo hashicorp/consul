@@ -8,10 +8,6 @@ replace (
 	github.com/hashicorp/consul/proto-public => ./proto-public
 	github.com/hashicorp/consul/sdk => ./sdk
 	github.com/hashicorp/consul/troubleshoot => ./troubleshoot
-	// pinning this x/time version because consul-k8s acceptance tests fail
-	// with client rate limiting issues with newer versions of this package.
-	// This is tracked in NET-2284
-	golang.org/x/time => golang.org/x/time v0.0.0-20200630173020-3af7569d3a1e
 )
 
 exclude (
@@ -29,6 +25,7 @@ require (
 	github.com/coreos/go-oidc v2.1.0+incompatible
 	github.com/docker/go-connections v0.3.0
 	github.com/envoyproxy/go-control-plane v0.10.2-0.20220325020618-49ff273808a1
+	github.com/fatih/color v1.13.0
 	github.com/fsnotify/fsnotify v1.5.1
 	github.com/go-openapi/runtime v0.24.1
 	github.com/go-openapi/strfmt v0.21.3
@@ -41,7 +38,7 @@ require (
 	github.com/hashicorp/consul-awsauth v0.0.0-20220713182709-05ac1c5c2706
 	github.com/hashicorp/consul-net-rpc v0.0.0-20221205195236-156cfab66a69
 	github.com/hashicorp/consul/api v1.18.0
-	github.com/hashicorp/consul/envoyextensions v0.0.0-00010101000000-000000000000
+	github.com/hashicorp/consul/envoyextensions v0.0.0-20230209212012-3b9c56956132
 	github.com/hashicorp/consul/proto-public v0.2.1
 	github.com/hashicorp/consul/sdk v0.13.0
 	github.com/hashicorp/consul/troubleshoot v0.0.0-00010101000000-000000000000
@@ -86,6 +83,7 @@ require (
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/mitchellh/pointerstructure v1.2.1
 	github.com/mitchellh/reflectwalk v1.0.2
+	github.com/olekukonko/tablewriter v0.0.4
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.14.0
@@ -100,7 +98,7 @@ require (
 	golang.org/x/oauth2 v0.0.0-20220909003341-f21342109be1
 	golang.org/x/sync v0.0.0-20220722155255-886fb9371eb4
 	golang.org/x/sys v0.3.0
-	golang.org/x/time v0.1.0
+	golang.org/x/time v0.3.0
 	google.golang.org/genproto v0.0.0-20220921223823-23cae91e6737
 	google.golang.org/grpc v1.49.0
 	google.golang.org/protobuf v1.28.1
@@ -147,7 +145,6 @@ require (
 	github.com/digitalocean/godo v1.10.0 // indirect
 	github.com/dimchansky/utfbom v1.1.0 // indirect
 	github.com/envoyproxy/protoc-gen-validate v0.1.0 // indirect
-	github.com/fatih/color v1.13.0 // indirect
 	github.com/form3tech-oss/jwt-go v3.2.2+incompatible // indirect
 	github.com/go-ole/go-ole v1.2.6 // indirect
 	github.com/go-openapi/analysis v0.21.2 // indirect
@@ -189,6 +186,7 @@ require (
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/mattn/go-colorable v0.1.12 // indirect
 	github.com/mattn/go-isatty v0.0.14 // indirect
+	github.com/mattn/go-runewidth v0.0.7 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.1 // indirect
 	github.com/mitchellh/colorstring v0.0.0-20190213212951-d06e56a500db // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect

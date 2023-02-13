@@ -568,6 +568,16 @@ func (msg *HTTPFilters) UnmarshalBinary(b []byte) error {
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler
+func (msg *URLRewrite) MarshalBinary() ([]byte, error) {
+	return proto.Marshal(msg)
+}
+
+// UnmarshalBinary implements encoding.BinaryUnmarshaler
+func (msg *URLRewrite) UnmarshalBinary(b []byte) error {
+	return proto.Unmarshal(b, msg)
+}
+
+// MarshalBinary implements encoding.BinaryMarshaler
 func (msg *HTTPHeaderFilter) MarshalBinary() ([]byte, error) {
 	return proto.Marshal(msg)
 }

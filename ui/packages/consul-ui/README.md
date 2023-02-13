@@ -187,3 +187,11 @@ $ EMBER_EXAM_PARALLEL=true ./node_modules/.bin/ember exam --split <num> --parall
 ```
 
 More ways to split tests can be found in the [ember-exam README.md](https://github.com/trentmwillis/ember-exam/blob/master/README.md).
+
+### Vercel Deploys
+
+A Vercel preview deploy Github action triggers after each pushed change in a pull request. Vercel checks if there was changes within the UI folder in the last commit. If there are no changes the build is cancelled. If the build proceeds it will include a link to the preview deploy in your PRs feed.
+
+If you were to push changes to the UI folder and then immediately follow it up with a change to something outside of the UI folder, the lastest Vercel build will be ignored. Because of this, the preview link will not get posted to the PR feed even if the original Vercel build completes. If that is the case, you may browse the Vercel deploys for the original build.
+
+Another scenario to watch for is when you rebase a series of commits, but the last commit is outside of the UI folder. Doing this will not trigger a new Vercel deploy as the last commit doesn't have any changes in the UI folder.
