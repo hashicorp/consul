@@ -26,6 +26,6 @@
 /**/
 
 /* menu-panels in the main navigation are treated slightly differently */
-%main-nav-horizontal label + div {
+%main-nav-horizontal .disclosure-menu button + * {
   @extend %main-nav-horizontal-menu-panel;
 }

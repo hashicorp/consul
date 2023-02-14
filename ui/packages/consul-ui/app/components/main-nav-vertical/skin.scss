@@ -26,8 +26,10 @@
 %main-nav-vertical li:not([role='separator']) > span {
   color: var(--token-color-palette-neutral-300);
 }
-%main-nav-vertical [role='separator'] {
+%main-nav-vertical [role='separator'],
+%main-nav-vertical-hoisted [role='separator'] {
   color: var(--token-color-foreground-faint);
+  background-color: var(--token-color-foreground-strong);
 }
 %main-nav-vertical-action {
   color: var(--token-color-palette-neutral-300);
@@ -98,4 +100,8 @@
   border-top: var(--decor-border-000);
   color: var(--token-color-palette-neutral-300);
   background-color: var(--token-color-foreground-strong);
+}
+
+%main-nav-vertical-hoisted ul[role='menu'] {
+  background-color: var(--token-color-hashicorp-brand);
 }

@@ -7,6 +7,8 @@
       padding: 8px 12px;
       border-bottom: 1px solid var(--token-color-foreground-disabled);
       max-width: fit-content;
+      background-color: var(--token-color-hashicorp-brand);
+      color: var(--token-color-palette-neutral-300);
     }
   }
   nav .dcs li.is-primary span,

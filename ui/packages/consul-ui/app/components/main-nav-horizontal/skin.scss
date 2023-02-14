@@ -13,6 +13,17 @@
   transform: scaleY(-100%);
 }
 
+%main-nav-horizontal-menu-panel,
+%main-nav-horizontal-menu-panel > ul[role='menu'],
+%main-nav-horizontal-menu-panel > ul[role='menu'] > li > [role='menuitem'] {
+  background-color: var(--token-color-hashicorp-brand);
+  color: var(--token-color-palette-neutral-300);
+}
+
+%main-nav-horizontal-menu-panel > ul[role='menu'] > li > [role='menuitem']:hover {
+  background-color: var(--token-color-palette-neutral-600);
+}
+
 %main-nav-horizontal-toggle {
   display: none;
 }
