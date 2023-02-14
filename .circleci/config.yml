@@ -21,7 +21,7 @@ references:
     GIT_COMMITTER_NAME: circleci-consul
     S3_ARTIFACT_BUCKET: consul-dev-artifacts-v2
     BASH_ENV: .circleci/bash_env.sh
-    GO_VERSION: 1.19.4
+    GO_VERSION: 1.20.1
   envoy-versions: &supported_envoy_versions
     - &default_envoy_version "1.22.7"
     - "1.23.4"
@@ -39,7 +39,7 @@ references:
   images:
     # When updating the Go version, remember to also update the versions in the
     # workflows section for go-test-lib jobs.
-    go: &GOLANG_IMAGE docker.mirror.hashicorp.services/cimg/go:1.19.4
+    go: &GOLANG_IMAGE docker.mirror.hashicorp.services/cimg/go:1.20.1
     ember: &EMBER_IMAGE docker.mirror.hashicorp.services/circleci/node:14-browsers
     ubuntu: &UBUNTU_CI_IMAGE ubuntu-2004:202201-02
   cache:
@@ -613,7 +613,7 @@ jobs:
       - run: *notify-slack-failure
   nomad-integration-test: &NOMAD_TESTS
     docker:
-      - image: docker.mirror.hashicorp.services/cimg/go:1.19
+      - image: docker.mirror.hashicorp.services/cimg/go:1.20
     parameters:
       nomad-version:
         type: enum
@@ -1110,34 +1110,34 @@ workflows:
       - go-test-lib:
           name: "go-test-envoyextensions"
           path: envoyextensions
-          go-version: "1.19"
+          go-version: "1.20"
           requires: [dev-build]
           <<: *filter-ignore-non-go-branches
       - go-test-lib:
           name: "go-test-troubleshoot"
           path: troubleshoot
-          go-version: "1.19"
+          go-version: "1.20"
           requires: [dev-build]
           <<: *filter-ignore-non-go-branches
-      - go-test-lib:
-          name: "go-test-api go1.18"
-          path: api
-          go-version: "1.18"
-          requires: [dev-build]
       - go-test-lib:
           name: "go-test-api go1.19"
           path: api
           go-version: "1.19"
           requires: [dev-build]
       - go-test-lib:
-          name: "go-test-sdk go1.18"
-          path: sdk
-          go-version: "1.18"
-          <<: *filter-ignore-non-go-branches
+          name: "go-test-api go1.20"
+          path: api
+          go-version: "1.20"
+          requires: [dev-build]
       - go-test-lib:
           name: "go-test-sdk go1.19"
           path: sdk
           go-version: "1.19"
+          <<: *filter-ignore-non-go-branches
+      - go-test-lib:
+          name: "go-test-sdk go1.20"
+          path: sdk
+          go-version: "1.20"
           <<: *filter-ignore-non-go-branches
       - go-test-race: *filter-ignore-non-go-branches
       - go-test-32bit: *filter-ignore-non-go-branches
