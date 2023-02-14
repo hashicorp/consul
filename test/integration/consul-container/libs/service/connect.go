@@ -20,16 +20,32 @@ import (
 
 // ConnectContainer
 type ConnectContainer struct {
-	ctx              context.Context
-	container        testcontainers.Container
-	ip               string
-	appPort          int
-	adminPort        int
-	mappedPublicPort int
-	serviceName      string
+	ctx               context.Context
+	container         testcontainers.Container
+	ip                string
+	appPort           int
+	externalAdminPort int
+	internalAdminPort int
+	mappedPublicPort  int
+	serviceName       string
 }
 
 var _ Service = (*ConnectContainer)(nil)
+
+func (g ConnectContainer) Exec(ctx context.Context, cmd []string) (string, error) {
+	exitCode, reader, err := g.container.Exec(ctx, cmd)
+	if err != nil {
+		return "", fmt.Errorf("exec with error %s", err)
+	}
+	if exitCode != 0 {
+		return "", fmt.Errorf("exec with exit code %d", exitCode)
+	}
+	buf, err := io.ReadAll(reader)
+	if err != nil {
+		return "", fmt.Errorf("error reading from exec output: %w", err)
+	}
+	return string(buf), nil
+}
 
 func (g ConnectContainer) Export(partition, peer string, client *api.Client) error {
 	return fmt.Errorf("ConnectContainer export unimplemented")
@@ -97,8 +113,13 @@ func (g ConnectContainer) Terminate() error {
 	return cluster.TerminateContainer(g.ctx, g.container, true)
 }
 
+func (g ConnectContainer) GetInternalAdminAddr() (string, int) {
+	return "localhost", g.internalAdminPort
+}
+
+// GetAdminAddr returns the external admin port
 func (g ConnectContainer) GetAdminAddr() (string, int) {
-	return "localhost", g.adminPort
+	return "localhost", g.externalAdminPort
 }
 
 func (g ConnectContainer) GetStatus() (string, error) {
@@ -133,7 +154,7 @@ func NewConnectService(ctx context.Context, sidecarServiceName string, serviceID
 	}
 	dockerfileCtx.BuildArgs = buildargs
 
-	adminPort, err := node.ClaimAdminPort()
+	internalAdminPort, err := node.ClaimAdminPort()
 	if err != nil {
 		return nil, err
 	}
@@ -146,7 +167,7 @@ func NewConnectService(ctx context.Context, sidecarServiceName string, serviceID
 		Cmd: []string{
 			"consul", "connect", "envoy",
 			"-sidecar-for", serviceID,
-			"-admin-bind", fmt.Sprintf("0.0.0.0:%d", adminPort),
+			"-admin-bind", fmt.Sprintf("0.0.0.0:%d", internalAdminPort),
 			"--",
 			"--log-level", envoyLogLevel,
 		},
@@ -182,7 +203,7 @@ func NewConnectService(ctx context.Context, sidecarServiceName string, serviceID
 
 	var (
 		appPortStr   = strconv.Itoa(serviceBindPort)
-		adminPortStr = strconv.Itoa(adminPort)
+		adminPortStr = strconv.Itoa(internalAdminPort)
 	)
 
 	info, err := cluster.LaunchContainerOnNode(ctx, node, req, []string{appPortStr, adminPortStr})
@@ -191,18 +212,19 @@ func NewConnectService(ctx context.Context, sidecarServiceName string, serviceID
 	}
 
 	out := &ConnectContainer{
-		ctx:         ctx,
-		container:   info.Container,
-		ip:          info.IP,
-		appPort:     info.MappedPorts[appPortStr].Int(),
-		adminPort:   info.MappedPorts[adminPortStr].Int(),
-		serviceName: sidecarServiceName,
+		ctx:               ctx,
+		container:         info.Container,
+		ip:                info.IP,
+		appPort:           info.MappedPorts[appPortStr].Int(),
+		externalAdminPort: info.MappedPorts[adminPortStr].Int(),
+		internalAdminPort: internalAdminPort,
+		serviceName:       sidecarServiceName,
 	}
 
 	fmt.Printf("NewConnectService: name %s, mapped App Port %d, service bind port %d\n",
 		serviceID, out.appPort, serviceBindPort)
 	fmt.Printf("NewConnectService sidecar: name %s, mapped admin port %d, admin port %d\n",
-		sidecarServiceName, out.adminPort, adminPort)
+		sidecarServiceName, out.externalAdminPort, internalAdminPort)
 
 	return out, nil
 }
