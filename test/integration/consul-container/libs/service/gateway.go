@@ -85,10 +85,13 @@ func (g gatewayContainer) Restart() error {
 		return fmt.Errorf("error get gateway state %s", err)
 	}
 
+	fmt.Printf("Stopping container: %s\n", g.GetName())
 	err = g.container.Stop(g.ctx, nil)
 	if err != nil {
 		return fmt.Errorf("error stop gateway %s", err)
 	}
+
+	fmt.Printf("Starting container: %s\n", g.GetName())
 	err = g.container.Start(g.ctx)
 	if err != nil {
 		return fmt.Errorf("error start gateway %s", err)

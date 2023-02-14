@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/discoverychain"
 	"github.com/hashicorp/consul/agent/proxycfg/internal/watch"
 	"github.com/hashicorp/consul/agent/structs"
@@ -745,7 +746,11 @@ type configSnapshotAPIGateway struct {
 func (c *configSnapshotAPIGateway) ToIngress(datacenter string) (configSnapshotIngressGateway, error) {
 	// Convert API Gateway Listeners to Ingress Listeners.
 	ingressListeners := make(map[IngressListenerKey]structs.IngressListener, len(c.Listeners))
+	ingressUpstreams := make(map[IngressListenerKey]structs.Upstreams, len(c.Listeners))
 	synthesizedChains := map[UpstreamID]*structs.CompiledDiscoveryChain{}
+	watchedUpstreamEndpoints := make(map[UpstreamID]map[string]structs.CheckServiceNodes)
+	watchedGatewayEndpoints := make(map[UpstreamID]map[string]structs.CheckServiceNodes)
+
 	for name, listener := range c.Listeners {
 		boundListener, ok := c.BoundListeners[name]
 		if !ok {
@@ -764,14 +769,37 @@ func (c *configSnapshotAPIGateway) ToIngress(datacenter string) (configSnapshotI
 		}
 
 		// Create a synthesized discovery chain for each service.
-		services, compiled, err := c.synthesizeChains(datacenter, listener.Protocol, boundListener)
+		services, upstreams, compiled, err := c.synthesizeChains(datacenter, listener.Protocol, listener.Port, listener.Name, boundListener)
 		if err != nil {
 			return configSnapshotIngressGateway{}, err
 		}
+
+		if len(upstreams) == 0 {
+			// skip if we can't construct any upstreams
+			continue
+		}
+
 		ingressListener.Services = services
-		for _, service := range services {
+		for i, service := range services {
 			id := NewUpstreamIDFromServiceName(structs.NewServiceName(service.Name, &service.EnterpriseMeta))
-			synthesizedChains[id] = compiled
+			upstreamEndpoints := make(map[string]structs.CheckServiceNodes)
+			gatewayEndpoints := make(map[string]structs.CheckServiceNodes)
+
+			// add the watched endpoints and gateway endpoints under the new upstream
+			for _, endpoints := range c.WatchedUpstreamEndpoints {
+				for targetID, endpoint := range endpoints {
+					upstreamEndpoints[targetID] = endpoint
+				}
+			}
+			for _, endpoints := range c.WatchedGatewayEndpoints {
+				for targetID, endpoint := range endpoints {
+					gatewayEndpoints[targetID] = endpoint
+				}
+			}
+
+			synthesizedChains[id] = compiled[i]
+			watchedUpstreamEndpoints[id] = upstreamEndpoints
+			watchedGatewayEndpoints[id] = gatewayEndpoints
 		}
 
 		// Configure TLS for the ingress listener
@@ -786,21 +814,39 @@ func (c *configSnapshotAPIGateway) ToIngress(datacenter string) (configSnapshotI
 			Protocol: string(listener.Protocol),
 		}
 		ingressListeners[key] = ingressListener
+		ingressUpstreams[key] = upstreams
 	}
+
 	snapshotUpstreams := c.DeepCopy().ConfigSnapshotUpstreams
 	snapshotUpstreams.DiscoveryChain = synthesizedChains
+	snapshotUpstreams.WatchedUpstreamEndpoints = watchedUpstreamEndpoints
+	snapshotUpstreams.WatchedGatewayEndpoints = watchedGatewayEndpoints
 
 	return configSnapshotIngressGateway{
-		Upstreams:               c.Upstreams.toUpstreams(),
+		Upstreams:               ingressUpstreams,
 		ConfigSnapshotUpstreams: snapshotUpstreams,
 		GatewayConfigLoaded:     true,
 		Listeners:               ingressListeners,
 	}, nil
 }
 
-func (c *configSnapshotAPIGateway) synthesizeChains(datacenter string, protocol structs.APIGatewayListenerProtocol, boundListener structs.BoundAPIGatewayListener) ([]structs.IngressService, *structs.CompiledDiscoveryChain, error) {
+func (c *configSnapshotAPIGateway) synthesizeChains(datacenter string, protocol structs.APIGatewayListenerProtocol, port int, name string, boundListener structs.BoundAPIGatewayListener) ([]structs.IngressService, structs.Upstreams, []*structs.CompiledDiscoveryChain, error) {
 	chains := []*structs.CompiledDiscoveryChain{}
-	synthesizer := discoverychain.NewGatewayChainSynthesizer(datacenter, c.GatewayConfig)
+	trustDomain := ""
+
+DOMAIN_LOOP:
+	for _, chain := range c.DiscoveryChain {
+		for _, target := range chain.Targets {
+			if !target.External {
+				trustDomain = connect.TrustDomainForTarget(*target)
+				if trustDomain != "" {
+					break DOMAIN_LOOP
+				}
+			}
+		}
+	}
+
+	synthesizer := discoverychain.NewGatewayChainSynthesizer(datacenter, trustDomain, name, c.GatewayConfig)
 	for _, routeRef := range boundListener.Routes {
 		switch routeRef.Kind {
 		case structs.HTTPRoute:
@@ -828,15 +874,35 @@ func (c *configSnapshotAPIGateway) synthesizeChains(datacenter string, protocol 
 				}
 			}
 		default:
-			return nil, nil, fmt.Errorf("unknown route kind %q", routeRef.Kind)
+			return nil, nil, nil, fmt.Errorf("unknown route kind %q", routeRef.Kind)
 		}
 	}
 
 	if len(chains) == 0 {
-		return nil, nil, nil
+		return nil, nil, nil, nil
 	}
 
-	return synthesizer.Synthesize(chains...)
+	services, compiled, err := synthesizer.Synthesize(chains...)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	// reconstruct the upstreams
+	upstreams := make([]structs.Upstream, 0, len(services))
+	for _, service := range services {
+		upstreams = append(upstreams, structs.Upstream{
+			DestinationName:      service.Name,
+			DestinationNamespace: service.NamespaceOrDefault(),
+			DestinationPartition: service.PartitionOrDefault(),
+			IngressHosts:         service.Hosts,
+			LocalBindPort:        port,
+			Config: map[string]interface{}{
+				"protocol": string(protocol),
+			},
+		})
+	}
+
+	return services, upstreams, compiled, err
 }
 
 func (c *configSnapshotAPIGateway) toIngressTLS() (*structs.GatewayTLSConfig, error) {

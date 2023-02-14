@@ -4646,6 +4646,8 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.RequestLimitsWriteRate = rate.Inf
 			rt.SegmentLimit = 64
 			rt.XDSUpdateRateLimit = 250
+			rt.RPCRateLimit = rate.Inf
+			rt.RPCMaxBurst = 1000
 		},
 	})
 

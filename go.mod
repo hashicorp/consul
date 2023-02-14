@@ -8,10 +8,6 @@ replace (
 	github.com/hashicorp/consul/proto-public => ./proto-public
 	github.com/hashicorp/consul/sdk => ./sdk
 	github.com/hashicorp/consul/troubleshoot => ./troubleshoot
-	// pinning this x/time version because consul-k8s acceptance tests fail
-	// with client rate limiting issues with newer versions of this package.
-	// This is tracked in NET-2284
-	golang.org/x/time => golang.org/x/time v0.0.0-20200630173020-3af7569d3a1e
 )
 
 exclude (
@@ -102,7 +98,7 @@ require (
 	golang.org/x/oauth2 v0.0.0-20220909003341-f21342109be1
 	golang.org/x/sync v0.0.0-20220722155255-886fb9371eb4
 	golang.org/x/sys v0.3.0
-	golang.org/x/time v0.1.0
+	golang.org/x/time v0.3.0
 	google.golang.org/genproto v0.0.0-20220921223823-23cae91e6737
 	google.golang.org/grpc v1.49.0
 	google.golang.org/protobuf v1.28.1

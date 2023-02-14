@@ -98,23 +98,26 @@ func AssertEnvoyMetricAtMost(t *testing.T, adminPort int, prefix, metric string,
 }
 
 func processMetrics(metrics []string, prefix, metric string, condition func(v int) bool) error {
+	var err error
 	for _, line := range metrics {
 		if strings.Contains(line, prefix) &&
 			strings.Contains(line, metric) {
-
+			var value int
 			metric := strings.Split(line, ":")
 
-			v, err := strconv.Atoi(strings.TrimSpace(metric[1]))
+			value, err = strconv.Atoi(strings.TrimSpace(metric[1]))
 			if err != nil {
 				return fmt.Errorf("err parse metric value %s: %s", metric[1], err)
 			}
 
-			if condition(v) {
+			if condition(value) {
 				return nil
+			} else {
+				return fmt.Errorf("metric value doesn's satisfy condition: %d", value)
 			}
 		}
 	}
-	return fmt.Errorf("error processing stats")
+	return fmt.Errorf("error metric %s %s not found", prefix, metric)
 }
 
 // AssertEnvoyMetricAtLeast assert the filered metric by prefix and metric is <= count

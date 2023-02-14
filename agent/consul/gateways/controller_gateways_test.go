@@ -181,6 +181,7 @@ func TestBoundAPIGatewayBindRoute(t *testing.T) {
 				Name: "Route",
 				Parents: []structs.ResourceReference{
 					{
+						Kind:        "Foo",
 						Name:        "Gateway",
 						SectionName: "Listener",
 					},
