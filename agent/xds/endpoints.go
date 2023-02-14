@@ -449,7 +449,9 @@ func (s *ResourceGenerator) makeEndpointsForOutgoingPeeredServices(
 			la := makeLoadAssignment(
 				clusterName,
 				groups,
-				cfgSnap.Locality,
+				// Use an empty key here so that it never matches. This will force the mesh gateway to always
+				// reference the remote mesh gateway's wan addr.
+				proxycfg.GatewayKey{},
 			)
 			resources = append(resources, la)
 		}

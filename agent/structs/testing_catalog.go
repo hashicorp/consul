@@ -55,11 +55,13 @@ func TestNodeServiceWithName(t testing.T, name string) *NodeService {
 
 const peerTrustDomain = "1c053652-8512-4373-90cf-5a7f6263a994.consul"
 
-func TestCheckNodeServiceWithNameInPeer(t testing.T, name, peer, ip string, useHostname bool) CheckServiceNode {
+func TestCheckNodeServiceWithNameInPeer(t testing.T, name, dc, peer, ip string, useHostname bool) CheckServiceNode {
 	service := &NodeService{
-		Kind:     ServiceKindTypical,
-		Service:  name,
-		Port:     8080,
+		Kind:    ServiceKindTypical,
+		Service: name,
+		// We should not see this port number appear in most xds golden tests,
+		// because the WAN addr should typically be used.
+		Port:     9090,
 		PeerName: peer,
 		Connect: ServiceConnect{
 			PeerMeta: &PeeringServiceMeta{
@@ -70,6 +72,13 @@ func TestCheckNodeServiceWithNameInPeer(t testing.T, name, peer, ip string, useH
 					"spiffe://" + peerTrustDomain + "/ns/default/dc/" + peer + "-dc/svc/" + name,
 				},
 				Protocol: "tcp",
+			},
+		},
+		// This value should typically be seen in golden file output, since this is a peered service.
+		TaggedAddresses: map[string]ServiceAddress{
+			TaggedAddressWAN: {
+				Address: ip,
+				Port:    8080,
 			},
 		},
 	}
@@ -89,10 +98,12 @@ func TestCheckNodeServiceWithNameInPeer(t testing.T, name, peer, ip string, useH
 
 	return CheckServiceNode{
 		Node: &Node{
-			ID:         "test1",
-			Node:       "test1",
-			Address:    ip,
-			Datacenter: "cloud-dc",
+			ID:   "test1",
+			Node: "test1",
+			// We should not see this address appear in most xds golden tests,
+			// because the WAN addr should typically be used.
+			Address:    "1.23.45.67",
+			Datacenter: dc,
 		},
 		Service: service,
 	}
