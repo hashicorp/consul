@@ -1,6 +1,7 @@
 package instances
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/hashicorp/consul/agent"
@@ -36,15 +37,40 @@ func TestUsageInstancesCommand(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	ui := cli.NewMockUi()
-	c := New(ui)
-	args := []string{
-		"-http-addr=" + a.HTTPAddr(),
+	cases := []struct {
+		name      string
+		extraArgs []string
+		output    string
+		err       error
+	}{
+		{
+			name:   "basic output",
+			output: "Billable Service Instances Total: 2",
+		},
+		{
+			name:      "billable and connect flags together are invalid",
+			extraArgs: []string{"-billable", "-connect"},
+			err:       errors.New("Cannot specify both -billable and -connect"),
+		},
 	}
-	code := c.Run(args)
-	if code != 0 {
-		t.Fatalf("bad exit code %d: %s", code, ui.ErrorWriter.String())
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			ui := cli.NewMockUi()
+			c := New(ui)
+			args := []string{
+				"-http-addr=" + a.HTTPAddr(),
+			}
+			args = append(args, tc.extraArgs...)
+
+			code := c.Run(args)
+			if tc.err != nil {
+				require.Equal(t, 1, code)
+				require.Contains(t, ui.ErrorWriter.String(), tc.err.Error())
+			} else {
+				require.Equal(t, 0, code)
+				require.Contains(t, ui.OutputWriter.String(), tc.output)
+			}
+		})
 	}
-	output := ui.OutputWriter.String()
-	require.Contains(t, output, "Billable Service Instances Total: 2")
 }

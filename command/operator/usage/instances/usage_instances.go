@@ -33,8 +33,10 @@ type cmd struct {
 
 func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
-	c.flags.BoolVar(&c.onlyBillable, "billable", false, "Display only billable service info.")
-	c.flags.BoolVar(&c.onlyConnect, "connect", false, "Display only Connect service info.")
+	c.flags.BoolVar(&c.onlyBillable, "billable", false, "Display only billable service info. "+
+		"Cannot be used with -connect.")
+	c.flags.BoolVar(&c.onlyConnect, "connect", false, "Display only Connect service info."+
+		"Cannot be used with -billable.")
 	c.flags.BoolVar(&c.allDatacenters, "all-datacenters", false, "Display service counts from "+
 		"all datacenters.")
 
@@ -51,6 +53,11 @@ func (c *cmd) Run(args []string) int {
 
 	if l := len(c.flags.Args()); l > 0 {
 		c.UI.Error(fmt.Sprintf("Too many arguments (expected 0, got %d)", l))
+		return 1
+	}
+
+	if c.onlyBillable && c.onlyConnect {
+		c.UI.Error("Cannot specify both -billable and -connect flags")
 		return 1
 	}
 
@@ -219,22 +226,22 @@ func (c *cmd) Help() string {
 const (
 	synopsis = "Display service instance usage information"
 	help     = `
-Usage: consul usage instances [options]
+Usage: consul operator usage instances [options]
 
   Retrieves usage information about the number of services registered in a given
   datacenter. By default, the datacenter of the local agent is queried.
 
   To retrieve the service usage data:
 
-      $ consul usage instances
+      $ consul operator usage instances
 
   To show only billable service instance counts:
 
-      $ consul usage instances -billable
+      $ consul operator usage instances -billable
 
   To show only connect service instance counts:
 
-      $ consul usage instances -connect
+      $ consul operator usage instances -connect
 
   For a full list of options and examples, please see the Consul documentation.
 `
