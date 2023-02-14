@@ -7,70 +7,89 @@ description: >-
 
 # Establish cluster peering connections
 
-This page details the process for establishing a cluster peering connection between services with Consul. Establishing a cluster peering connection consists of the following steps:
+This page details the process for establishing a cluster peering connection between services deployed to different datacenters. The overall process consists of the following steps:
 
 1. Create a peering token in one cluster.
 1. Use the peering token to establish peering with a second cluster.
 1. Export services between clusters.
 1. Create intentions to authorize services for peers.
 
-Cluster peering cannot be establish until all four steps are complete.
+Cluster peering between services cannot be established until all four steps are complete.
 
 ## Requirements
+
+To establish a cluster peering connection, your deployments must meet several requirements. For additional guidance on required configuration values, refer to the [cluster peering configuration reference](/consul/docs/connect/cluster-peering/configuration).
+
+<Tabs>
+<Tab title="VMs and on-prem" group="api" group="cli" group="ui">
 
 You must meet the following requirements to use cluster peering:
 
 - Consul v1.13 or higher
+- Services hosted in admin partitions on separate datacenters
+- A mesh gateway deployed to each admin partition with a cluster peering connection
 
-### Mesh gateway requirements
+If you need to make services available to an admin partition in the same datacenter, do not use cluster peering. Instead, use the [`exported-services` configuration entry](/consul/docs/connect/config-entries/exported-services) to make service upstreams available to other admin partitions in a single datacenter.
 
-Mesh gateways are required for you to route service mesh traffic between partitions with cluster peering connections. Consider the following requirements when using mesh gateways for cluster peering:
+</Tab>
 
-- A cluster requires a registered mesh gateway in order to export services to peers.
-- For Enterprise, this mesh gateway must also be registered in the same partition as the exported services and their `exported-services` configuration entry.
-- To use the `local` mesh gateway mode, you must register a mesh gateway in the importing cluster.
+<Tab title="Kubernetes" group="k8s">
+
+You must meet the following requirements to use Consul's cluster peering features with Kubernetes:
+
+- Consul v1.14 or higher
+- Consul on Kubernetes v1.0.0 or higher
+- At least two Kubernetes clusters
+
+If you are setting up cluster peering for the first time and need additional guidance to get started, refer to [before you start cluster peering on Kubernetes]().
+
+In Consul on Kubernetes, peers identify each other using the `metadata.name` values you establish when creating the `PeeringAcceptor` and `PeeringDialer` CRDs. For additional information about the CRDs used for cluster peering, refer to [Cluster peering on Kubernetes](/consul/docs/connect/cluster-peering/usage/k8s).
+
+</Tab>
+</Tabs>
   
 ## Create a peering token
 
 To begin the cluster peering process, generate a peering token in one of your clusters. The other cluster uses this token to establish the peering connection.
 
-Every time you generate a peering token, a single-use establishment secret is embedded in the token. Because regenerating a peering token invalidates the previously generated secret, you must use the most recently created token to establish peering connections.
+Every time you generate a peering token, a single-use secret for establishing the secret is embedded in the token. Because regenerating a peering token invalidates the previously generated secret, you must use the most recently created token to establish peering connections.
 
 <Tabs>
-<Tab heading="Consul API" group="api">
+<Tab title="Consul API" group="api">
 
-In `cluster-01`, use the [`/peering/token` endpoint](/api-docs/peering#generate-a-peering-token) to issue a request for a peering token.
+1. In `cluster-01`, use the [`/peering/token` endpoint](/api-docs/peering#generate-a-peering-token) to issue a request for a peering token.
 
-```shell-session
-$ curl --request POST --data '{"Peer":"cluster-02"}' --url http://localhost:8500/v1/peering/token
-```
+  ```shell-session
+  $ curl --request POST --data '{"Peer":"cluster-02"}' --url http://localhost:8500/v1/peering/token
+  ```
 
-The CLI outputs the peering token, which is a base64-encoded string containing the token details.
+  The CLI outputs the peering token, which is a base64-encoded string containing the token details.
 
-Create a JSON file that contains the first cluster's name and the peering token.
+1. Create a JSON file that contains the first cluster's name and the peering token.
 
-<CodeBlockConfig filename="peering_token.json" hideClipboard>
+  <CodeBlockConfig filename="peering_token.json" hideClipboard>
 
-```json
-{
+  ```json
+  {
     "Peer": "cluster-01",
     "PeeringToken": "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhZG1pbiIsImF1ZCI6IlNvbHIifQ.5T7L_L1MPfQ_5FjKGa1fTPqrzwK4bNSM812nW6oyjb8"
-}
-```
+  }
+  ```
 
 </CodeBlockConfig>
 </Tab>
 
 <Tab heading="Consul CLI" group="cli">
 
-In `cluster-01`, use the [`consul peering generate-token` command](/commands/peering/generate-token) to issue a request for a peering token.
+1. In `cluster-01`, use the [`consul peering generate-token` command](/commands/peering/generate-token) to issue a request for a peering token.
 
-```shell-session
-$ consul peering generate-token -name cluster-02
-```
+  ```shell-session
+  $ consul peering generate-token -name cluster-02
+  ```
 
-The CLI outputs the peering token, which is a base64-encoded string containing the token details.
-Save this value to a file or clipboard to be used in the next step on `cluster-02`.
+  The CLI outputs the peering token, which is a base64-encoded string containing the token details.
+
+1. Save this value to a file or clipboard to use in the next step on `cluster-02`.
 
 </Tab>
 
@@ -83,20 +102,55 @@ Save this value to a file or clipboard to be used in the next step on `cluster-0
 1. Copy the token before you proceed. You cannot view it again after leaving this screen. If you lose your token, you must generate a new one.
 
 </Tab>
+
+<Tab heading="Kubernetes" group="k8s">
+
+1. In `cluster-01`, create the `PeeringAcceptor` custom resource.
+
+  <CodeBlockConfig filename="acceptor.yaml">
+
+  ```yaml
+    apiVersion: consul.hashicorp.com/v1alpha1
+    kind: PeeringAcceptor
+    metadata:
+      name: cluster-02 ## The name of the peer you want to connect to
+    spec:
+      peer:
+        secret:
+          name: "peering-token"
+          key: "data"
+          backend: "kubernetes"
+    ```
+
+  </CodeBlockConfig>
+
+1. Apply the `PeeringAcceptor` resource to the first cluster.
+
+    ```shell-session
+    $ kubectl --context $CLUSTER1_CONTEXT apply --filename acceptor.yaml
+    ````
+
+1. Save your peering token so that you can export it to the other cluster.
+
+    ```shell-session
+    $ kubectl --context $CLUSTER1_CONTEXT get secret peering-token --output yaml > peering-token.yaml
+    ```
+
+</Tab>
 </Tabs>
 
-### Establish a connection between clusters
+## Establish a connection between clusters
 
 Next, use the peering token to establish a secure connection between the clusters.
 
 <Tabs>
 <Tab heading="Consul API" group="api">
 
-In one of the client agents in "cluster-02," use `peering_token.json` and the [`/peering/establish` endpoint](/api-docs/peering#establish-a-peering-connection) to establish the peering connection. This endpoint does not generate an output unless there is an error.
+1. In one of the client agents in "cluster-02," use `peering_token.json` and the [`/peering/establish` endpoint](/api-docs/peering#establish-a-peering-connection) to establish the peering connection. This endpoint does not generate an output unless there is an error.
 
-```shell-session
-$ curl --request POST --data @peering_token.json http://127.0.0.1:8500/v1/peering/establish
-```
+  ```shell-session
+  $ curl --request POST --data @peering_token.json http://127.0.0.1:8500/v1/peering/establish
+  ```
 
 When you connect server agents through cluster peering, their default behavior is to peer to the `default` partition. To establish peering connections for other partitions through server agents, you must add the `Partition` field to `peering_token.json` and specify the partitions you want to peer. For additional configuration information, refer to [Cluster Peering - HTTP API](/api-docs/peering).
 
@@ -106,20 +160,16 @@ You can dial the `peering/establish` endpoint once per peering token. Peering to
 
 <Tab heading="Consul CLI" group="cli">
 
-In one of the client agents in "cluster-02," issue the [`consul peering establish` command](/commands/peering/establish) and specify the token generated in the previous step. The command establishes the peering connection.
-The commands prints "Successfully established peering connection with cluster-01" after the connection is established.
+1. In one of the client agents deployed to "cluster-02," issue the [`consul peering establish` command](/commands/peering/establish) and specify the token generated in the previous step. 
 
-```shell-session
-$ consul peering establish -name cluster-01 -peering-token token-from-generate
-```
+  ```shell-session
+  $ consul peering establish -name cluster-01 -peering-token token-from-generate
+  "Successfully established peering connection with cluster-01"
+  ```
 
-When you connect server agents through cluster peering, they peer their default partitions.
-To establish peering connections for other partitions through server agents, you must add the `-partition` flag to the `establish` command and specify the partitions you want to peer.
-For additional configuration information, refer to [`consul peering establish` command](/commands/peering/establish) .
+When you connect server agents through cluster peering, they peer their default partitions. To establish peering connections for other partitions through server agents, you must add the `-partition` flag to the `establish` command and specify the partitions you want to peer. For additional configuration information, refer to [`consul peering establish` command](/commands/peering/establish).
 
-You can run the `peering establish` command once per peering token.
-Peering tokens cannot be reused after being used to establish a connection.
-If you need to re-establish a connection, you must generate a new peering token.
+You can run the `peering establish` command once per peering token. Peering tokens cannot be reused after being used to establish a connection. If you need to re-establish a connection, you must generate a new peering token.
 
 </Tab>
 
@@ -131,9 +181,44 @@ If you need to re-establish a connection, you must generate a new peering token.
 1. Click **Add peer**.
 
 </Tab>
+
+<Tab heading="Kubernetes" group="k8s">
+
+1. Apply the peering token to the second cluster.
+
+    ```shell-session
+    $ kubectl --context $CLUSTER2_CONTEXT apply --filename peering-token.yaml
+    ```
+
+1. In `cluster-02`, create the `PeeringDialer` custom resource.
+
+  <CodeBlockConfig filename="dialer.yaml">
+
+  ```yaml
+    apiVersion: consul.hashicorp.com/v1alpha1
+    kind: PeeringDialer
+    metadata:
+      name: cluster-01 ## The name of the peer you want to connect to
+    spec:
+      peer:
+        secret:
+          name: "peering-token"
+          key: "data"
+          backend: "kubernetes"
+    ```
+
+  </CodeBlockConfig>
+
+1. Apply the `PeeringDialer` resource to the second cluster.
+
+    ```shell-session
+    $ kubectl --context $CLUSTER2_CONTEXT apply --filename dialer.yaml
+    ```
+
+</Tab>
 </Tabs>
 
-### Export services between clusters
+## Export services between clusters
 
 After you establish a connection between the clusters, you need to create an `exported-services` configuration entry that defines the services that are available for other clusters. Consul uses this configuration entry to advertise service information and support service mesh connections across clusters.
 
