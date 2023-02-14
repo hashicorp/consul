@@ -39,6 +39,7 @@ type cmd struct {
 	showMeta       bool
 	format         string
 	testStdin      io.Reader
+	appendRules    bool
 }
 
 func (c *cmd) init() {
@@ -58,6 +59,8 @@ func (c *cmd) init() {
 	c.flags.BoolVar(&c.noMerge, "no-merge", false, "Do not merge the current policy "+
 		"information with what is provided to the command. Instead overwrite all fields "+
 		"with the exception of the policy ID which is immutable.")
+	c.flags.BoolVar(&c.appendRules, "append-rules", false, "Do not override the current policy's rules, "+
+		"information provided is appended to the existing rules.")
 	c.flags.StringVar(
 		&c.format,
 		"format",
@@ -148,7 +151,12 @@ func (c *cmd) Run(args []string) int {
 			updated.Description = c.description
 		}
 		if c.rulesSet {
-			updated.Rules = rules
+			if c.appendRules {
+				updated.Rules = rules + p.Rules
+			} else {
+				c.UI.Warn("Completely overriding rules, use `-append-rules` in case you want to append rules rather completely overriding them.")
+				updated.Rules = rules
+			}
 		}
 		if c.datacenters != nil {
 			updated.Datacenters = c.datacenters
