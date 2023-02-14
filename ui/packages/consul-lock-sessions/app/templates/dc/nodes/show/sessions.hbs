@@ -85,21 +85,25 @@ as |route|>
               </BlockSlot>
 
                 <BlockSlot @name="actions">
-                  <li class="docs-link">
-                    <Action
+                  <li>
+                    <Hds::Button
+                      @text='Documentation on Lock Sessions'
                       @href="{{env 'CONSUL_DOCS_URL'}}/internals/sessions.html"
-                      @external={{true}}
-                    >
-                      Documentation on Lock Sessions
-                    </Action>
+                      @color='tertiary'
+                      @icon='docs-link'
+                      @iconPosition='trailing'
+                      @size='small'
+                    />
                   </li>
-                  <li class="learn-link">
-                    <Action
-                      @href="{{env 'CONSUL_DOCS_LEARN_URL'}}/tutorials/consul/distributed-semaphore"
-                      @external={{true}}
-                    >
-                      Take the tutorial
-                    </Action>
+                  <li>
+                    <Hds::Button
+                      @text='Take the tutorial'
+                      @href='{{env 'CONSUL_DOCS_LEARN_URL'}}/tutorials/consul/distributed-semaphore'
+                      @color='tertiary'
+                      @icon='learn-link'
+                      @iconPosition='trailing'
+                      @size='small'
+                    />
                   </li>
                 </BlockSlot>
 

@@ -99,27 +99,29 @@
                       }}
                     </BlockSlot>
                     <BlockSlot @name="actions">
-                      <li class="docs-link">
-                        <a
-                          href="{{env
+                      <li>
+                        <Hds::Button
+                          @text='Documentation on Peers'
+                          @href="{{env
                             'CONSUL_DOCS_URL'
                           }}/connect/cluster-peering"
-                          rel="noopener noreferrer"
-                          target="_blank"
-                        >
-                          Documentation on Peers
-                        </a>
+                          @color='tertiary'
+                          @icon='docs-link'
+                          @iconPosition='trailing'
+                          @size='small'
+                        />
                       </li>
-                      <li class="learn-link">
-                        <a
-                          href="{{env
+                      <li>
+                        <Hds::Button
+                          @text='Take the tutorial'
+                          @href="{{env
                             'CONSUL_DOCS_URL'
                           }}/connect/cluster-peering/create-manage-peering"
-                          rel="noopener noreferrer"
-                          target="_blank"
-                        >
-                          Take the tutorial
-                        </a>
+                          @color='tertiary'
+                          @icon='learn-link'
+                          @iconPosition='trailing'
+                          @size='small'
+                        />
                       </li>
                     </BlockSlot>
                   </EmptyState>

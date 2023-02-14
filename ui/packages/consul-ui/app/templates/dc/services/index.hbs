@@ -118,21 +118,25 @@ as |sort filters items partition nspace|}}
                 }}
               </BlockSlot>
               <BlockSlot @name="actions">
-                <li class="docs-link">
-                  <Action
+                <li>
+                  <Hds::Button
+                    @text='Documentation on Services'
                     @href="{{env 'CONSUL_DOCS_URL'}}/commands/services"
-                    @external={{true}}
-                  >
-                    Documentation on Services
-                  </Action>
+                    @color='tertiary'
+                    @icon='docs-link'
+                    @iconPosition='trailing'
+                    @size='small'
+                  />
                 </li>
-                <li class="learn-link">
-                  <Action
+                <li>
+                  <Hds::Button
+                    @text='Take the tutorial'
                     @href="{{env 'CONSUL_DOCS_LEARN_URL'}}/consul/getting-started/services"
-                    @external={{true}}
-                  >
-                    Take the tutorial
-                  </Action>
+                    @color='tertiary'
+                    @icon='learn-link'
+                    @iconPosition='trailing'
+                    @size='small'
+                  />
                 </li>
               </BlockSlot>
             </EmptyState>
