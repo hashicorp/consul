@@ -462,9 +462,9 @@ func insertConfigEntryWithTxn(tx WriteTxn, idx uint64, conf structs.ConfigEntry)
 	if conf == nil {
 		return fmt.Errorf("cannot insert nil config entry")
 	}
+
 	// If the config entry is for a terminating or ingress gateway we update the memdb table
 	// that associates gateways <-> services.
-
 	if conf.GetKind() == structs.TerminatingGateway || conf.GetKind() == structs.IngressGateway {
 		err := updateGatewayServices(tx, idx, conf, conf.GetEnterpriseMeta())
 		if err != nil {
@@ -1205,7 +1205,11 @@ func (s *Store) ReadResolvedServiceConfigEntries(
 			if override.Name == "" {
 				continue // skip this impossible condition
 			}
-			seenUpstreams[override.ServiceID()] = struct{}{}
+			if override.Peer != "" {
+				continue // Peer services do not have service-defaults config entries to fetch.
+			}
+			sid := override.PeeredServiceName().ServiceName.ToServiceID()
+			seenUpstreams[sid] = struct{}{}
 		}
 	}
 

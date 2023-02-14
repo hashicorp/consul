@@ -91,7 +91,7 @@ func disableLegacyIntentions(t *testing.T, store *state.Store) {
 }
 
 func policyAuthorizer(t *testing.T, policyHCL string) acl.Authorizer {
-	policy, err := acl.NewPolicyFromSource(policyHCL, acl.SyntaxCurrent, nil, nil)
+	policy, err := acl.NewPolicyFromSource(policyHCL, nil, nil)
 	require.NoError(t, err)
 
 	authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)

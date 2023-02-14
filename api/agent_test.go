@@ -2017,7 +2017,7 @@ func TestMemberACLMode(t *testing.T) {
 		},
 		"legacy": {
 			tagValue:     "2",
-			expectedMode: ACLModeLegacy,
+			expectedMode: ACLModeUnknown,
 		},
 		"unknown-3": {
 			tagValue:     "3",

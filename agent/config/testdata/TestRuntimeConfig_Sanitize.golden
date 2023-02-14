@@ -16,9 +16,9 @@
     "ACLTokens": {
         "ACLAgentRecoveryToken": "hidden",
         "ACLAgentToken": "hidden",
+        "ACLConfigFileRegistrationToken": "hidden",
         "ACLDefaultToken": "hidden",
         "ACLReplicationToken": "hidden",
-        "ACLConfigFileRegistrationToken": "hidden",
         "DataDir": "",
         "EnablePersistence": false,
         "EnterpriseConfig": {}
@@ -268,8 +268,19 @@
     "RPCMaxConnsPerClient": 0,
     "RPCProtocol": 0,
     "RPCRateLimit": 0,
-    "RaftBoltDBConfig": {
-        "NoFreelistSync": false
+    "RaftLogStoreConfig": {
+        "Backend": "",
+        "BoltDB": {
+            "NoFreelistSync": false
+        },
+        "DisableLogCache": false,
+        "Verification": {
+            "Enabled": false,
+            "Interval": "0s"
+        },
+        "WAL": {
+            "SegmentSize": 0
+        }
     },
     "RaftProtocol": 3,
     "RaftSnapshotInterval": "0s",

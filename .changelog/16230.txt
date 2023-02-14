@@ -1,0 +1,3 @@
+```release-note:bug
+peering: Fix issue where secondary wan-federated datacenters could not be used as peering acceptors.
+```

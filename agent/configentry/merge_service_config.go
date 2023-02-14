@@ -27,7 +27,7 @@ func MergeNodeServiceWithCentralConfig(
 	logger hclog.Logger) (uint64, *structs.NodeService, error) {
 
 	serviceName := ns.Service
-	var upstreams []structs.ServiceID
+	var upstreams []structs.PeeredServiceName
 	if ns.IsSidecarProxy() {
 		// This is a sidecar proxy, ignore the proxy service's config since we are
 		// managed by the target service config.
@@ -37,19 +37,24 @@ func MergeNodeServiceWithCentralConfig(
 		// so we can learn about their configs.
 		for _, us := range ns.Proxy.Upstreams {
 			if us.DestinationType == "" || us.DestinationType == structs.UpstreamDestTypeService {
-				sid := us.DestinationID()
-				sid.EnterpriseMeta.Merge(&ns.EnterpriseMeta)
-				upstreams = append(upstreams, sid)
+				psn := us.DestinationID()
+				if psn.Peer == "" {
+					psn.ServiceName.EnterpriseMeta.Merge(&ns.EnterpriseMeta)
+				} else {
+					// Peer services should not have their namespace overwritten.
+					psn.ServiceName.EnterpriseMeta.OverridePartition(ns.EnterpriseMeta.PartitionOrDefault())
+				}
+				upstreams = append(upstreams, psn)
 			}
 		}
 	}
 
 	configReq := &structs.ServiceConfigRequest{
-		Name:           serviceName,
-		MeshGateway:    ns.Proxy.MeshGateway,
-		Mode:           ns.Proxy.Mode,
-		UpstreamIDs:    upstreams,
-		EnterpriseMeta: ns.EnterpriseMeta,
+		Name:                 serviceName,
+		MeshGateway:          ns.Proxy.MeshGateway,
+		Mode:                 ns.Proxy.Mode,
+		UpstreamServiceNames: upstreams,
+		EnterpriseMeta:       ns.EnterpriseMeta,
 	}
 
 	// prefer using this vs directly calling the ConfigEntry.ResolveServiceConfig RPC
@@ -59,7 +64,7 @@ func MergeNodeServiceWithCentralConfig(
 		ws,
 		configReq.Name,
 		&configReq.EnterpriseMeta,
-		upstreams,
+		configReq.GetLocalUpstreamIDs(),
 		configReq.Mode,
 	)
 	if err != nil {
@@ -69,8 +74,6 @@ func MergeNodeServiceWithCentralConfig(
 
 	defaults, err := ComputeResolvedServiceConfig(
 		configReq,
-		upstreams,
-		false,
 		configEntries,
 		logger,
 	)
@@ -149,28 +152,53 @@ func MergeServiceConfig(defaults *structs.ServiceConfigResponse, service *struct
 	}
 
 	// remoteUpstreams contains synthetic Upstreams generated from central config (service-defaults.UpstreamConfigs).
-	remoteUpstreams := make(map[structs.ServiceID]structs.Upstream)
+	remoteUpstreams := make(map[structs.PeeredServiceName]structs.Upstream)
 
-	for _, us := range defaults.UpstreamIDConfigs {
-		parsed, err := structs.ParseUpstreamConfigNoDefaults(us.Config)
-		if err != nil {
-			return nil, fmt.Errorf("failed to parse upstream config map for %s: %v", us.Upstream.String(), err)
+	if len(defaults.UpstreamIDConfigs) > 0 {
+		// Handle legacy upstreams. This should be removed in Consul 1.16.
+		for _, us := range defaults.UpstreamIDConfigs {
+			parsed, err := structs.ParseUpstreamConfigNoDefaults(us.Config)
+			if err != nil {
+				return nil, fmt.Errorf("failed to parse upstream config map for %s: %v", us.Upstream.String(), err)
+			}
+			psn := structs.PeeredServiceName{
+				Peer:        "",
+				ServiceName: structs.NewServiceName(us.Upstream.ID, &us.Upstream.EnterpriseMeta),
+			}
+
+			remoteUpstreams[psn] = structs.Upstream{
+				DestinationNamespace: us.Upstream.NamespaceOrDefault(),
+				DestinationPartition: us.Upstream.PartitionOrDefault(),
+				DestinationName:      us.Upstream.ID,
+				DestinationPeer:      "",
+				Config:               us.Config,
+				MeshGateway:          parsed.MeshGateway,
+				CentrallyConfigured:  true,
+			}
 		}
+	} else {
+		for _, us := range defaults.UpstreamConfigs {
+			parsed, err := structs.ParseUpstreamConfigNoDefaults(us.Config)
+			if err != nil {
+				return nil, fmt.Errorf("failed to parse upstream config map for %s: %v", us.Upstream.String(), err)
+			}
 
-		remoteUpstreams[us.Upstream] = structs.Upstream{
-			DestinationNamespace: us.Upstream.NamespaceOrDefault(),
-			DestinationPartition: us.Upstream.PartitionOrDefault(),
-			DestinationName:      us.Upstream.ID,
-			Config:               us.Config,
-			MeshGateway:          parsed.MeshGateway,
-			CentrallyConfigured:  true,
+			remoteUpstreams[us.Upstream] = structs.Upstream{
+				DestinationNamespace: us.Upstream.ServiceName.NamespaceOrDefault(),
+				DestinationPartition: us.Upstream.ServiceName.PartitionOrDefault(),
+				DestinationName:      us.Upstream.ServiceName.Name,
+				DestinationPeer:      us.Upstream.Peer,
+				Config:               us.Config,
+				MeshGateway:          parsed.MeshGateway,
+				CentrallyConfigured:  true,
+			}
 		}
 	}
 
 	// localUpstreams stores the upstreams seen from the local registration so that we can merge in the synthetic entries.
 	// In transparent proxy mode ns.Proxy.Upstreams will likely be empty because users do not need to define upstreams explicitly.
 	// So to store upstream-specific flags from central config, we add entries to ns.Proxy.Upstreams with those values.
-	localUpstreams := make(map[structs.ServiceID]struct{})
+	localUpstreams := make(map[structs.PeeredServiceName]struct{})
 
 	// Merge upstream defaults into the local registration
 	for i := range ns.Proxy.Upstreams {
@@ -179,9 +207,10 @@ func MergeServiceConfig(defaults *structs.ServiceConfigResponse, service *struct
 		if us.DestinationType != "" && us.DestinationType != structs.UpstreamDestTypeService {
 			continue
 		}
-		localUpstreams[us.DestinationID()] = struct{}{}
 
-		remoteCfg, ok := remoteUpstreams[us.DestinationID()]
+		uid := us.DestinationID()
+		localUpstreams[uid] = struct{}{}
+		remoteCfg, ok := remoteUpstreams[uid]
 		if !ok {
 			// No config defaults to merge
 			continue

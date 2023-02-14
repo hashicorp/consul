@@ -699,9 +699,11 @@ spec:
     },
     {
       name: 'NumRetries',
-      type: 'int: 0',
-      description:
-        'The number of times to retry the request when a retryable result occurs.',
+      type: 'int: 1',
+      description: {
+        hcl: 'The number of times to retry the request when a retryable result occurs. You cannot set the value to `0`. To disable retries, unset all other retry settings (`RetryOnConnectFailure`, `RetryOn`, `RetryOnStatusCodes`)',
+        yaml: 'The number of times to retry the request when a retryable result occurs. You cannot set the value to `0`. To disable retries, unset all other retry settings (`retryOnConnectFailure`, `retryOn`, `retryOnStatusCodes`)',
+      }
     },
     {
       name: 'RetryOnConnectFailure',

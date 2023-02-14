@@ -10,8 +10,9 @@ import (
 	"sync/atomic"
 
 	"github.com/armon/go-metrics"
-	"github.com/hashicorp/consul/agent/consul/multilimiter"
 	"github.com/hashicorp/go-hclog"
+
+	"github.com/hashicorp/consul/agent/consul/multilimiter"
 )
 
 var (
@@ -207,14 +208,14 @@ func (h *Handler) Allow(op Operation) error {
 		// TODO(NET-1382): is this the correct log-level?
 
 		enforced := l.mode == ModeEnforcing
-		h.logger.Warn("RPC exceeded allowed rate limit",
+		h.logger.Debug("RPC exceeded allowed rate limit",
 			"rpc", op.Name,
 			"source_addr", op.SourceAddr,
 			"limit_type", l.desc,
 			"limit_enforced", enforced,
 		)
 
-		metrics.IncrCounterWithLabels([]string{"consul", "rate_limit"}, 1, []metrics.Label{
+		metrics.IncrCounterWithLabels([]string{"rpc", "rate_limit", "exceeded"}, 1, []metrics.Label{
 			{
 				Name:  "limit_type",
 				Value: l.desc,

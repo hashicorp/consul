@@ -113,7 +113,6 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 		},
 		CreateTime: time.Now(),
 		Local:      false,
-		Type:       "management",
 	}
 	require.NoError(t, fsm.state.ACLBootstrap(10, 0, token))
 

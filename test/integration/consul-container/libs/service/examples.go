@@ -29,6 +29,21 @@ type exampleContainer struct {
 
 var _ Service = (*exampleContainer)(nil)
 
+func (g exampleContainer) Exec(ctx context.Context, cmd []string) (string, error) {
+	exitCode, reader, err := g.container.Exec(ctx, cmd)
+	if err != nil {
+		return "", fmt.Errorf("exec with error %s", err)
+	}
+	if exitCode != 0 {
+		return "", fmt.Errorf("exec with exit code %d", exitCode)
+	}
+	buf, err := io.ReadAll(reader)
+	if err != nil {
+		return "", fmt.Errorf("error reading from exec output: %w", err)
+	}
+	return string(buf), nil
+}
+
 func (g exampleContainer) Export(partition, peerName string, client *api.Client) error {
 	config := &api.ExportedServicesConfigEntry{
 		Name: partition,
@@ -54,7 +69,7 @@ func (g exampleContainer) Restart() error {
 }
 
 func (g exampleContainer) GetLogs() (string, error) {
-	rc, err := g.container.Logs(context.Background())
+	rc, err := g.container.Logs(g.ctx)
 	if err != nil {
 		return "", fmt.Errorf("could not get logs for example service %s: %w", g.GetServiceName(), err)
 	}
@@ -88,6 +103,11 @@ func (g exampleContainer) Start() error {
 
 func (c exampleContainer) Terminate() error {
 	return cluster.TerminateContainer(c.ctx, c.container, true)
+}
+
+func (c exampleContainer) GetStatus() (string, error) {
+	state, err := c.container.State(c.ctx)
+	return state.Status, err
 }
 
 func NewExampleService(ctx context.Context, name string, httpPort int, grpcPort int, node libcluster.Agent) (Service, error) {

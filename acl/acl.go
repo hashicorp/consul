@@ -6,8 +6,9 @@ const (
 	// AnonymousTokenID is the AccessorID of the anonymous token.
 	// When logging or displaying to users, use acl.AliasIfAnonymousToken
 	// to convert this to AnonymousTokenAlias.
-	AnonymousTokenID    = "00000000-0000-0000-0000-000000000002"
-	AnonymousTokenAlias = "anonymous token"
+	AnonymousTokenID     = "00000000-0000-0000-0000-000000000002"
+	AnonymousTokenAlias  = "anonymous token"
+	AnonymousTokenSecret = "anonymous"
 )
 
 // Config encapsulates all of the generic configuration parameters used for

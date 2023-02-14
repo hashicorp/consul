@@ -8,6 +8,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/grpc-external/limiter"
+	"github.com/hashicorp/consul/envoyextensions/xdscommon"
 
 	envoy_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
@@ -158,7 +159,7 @@ type testServerScenario struct {
 
 func newTestServerDeltaScenario(
 	t *testing.T,
-	resolveToken ACLResolverFunc,
+	resolveTokenSecret ACLResolverFunc,
 	proxyID string,
 	token string,
 	authCheckFrequency time.Duration,
@@ -184,7 +185,7 @@ func newTestServerDeltaScenario(
 		"node-123",
 		testutil.Logger(t),
 		mgr,
-		resolveToken,
+		resolveTokenSecret,
 		nil, /*cfgFetcher ConfigFetcher*/
 	)
 	if authCheckFrequency > 0 {
@@ -371,7 +372,7 @@ func makeTestResource(t *testing.T, raw interface{}) *envoy_discovery_v3.Resourc
 		require.NoError(t, err)
 
 		return &envoy_discovery_v3.Resource{
-			Name:     getResourceName(res),
+			Name:     xdscommon.GetResourceName(res),
 			Version:  mustHashResource(t, res),
 			Resource: any,
 		}

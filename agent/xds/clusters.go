@@ -25,7 +25,7 @@ import (
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/agent/xds/xdscommon"
+	"github.com/hashicorp/consul/envoyextensions/xdscommon"
 	"github.com/hashicorp/consul/proto/pbpeering"
 )
 
@@ -56,6 +56,18 @@ func (s *ResourceGenerator) clustersFromSnapshot(cfgSnap *proxycfg.ConfigSnapsho
 		}
 		return res, nil
 	case structs.ServiceKindIngressGateway:
+		res, err := s.clustersFromSnapshotIngressGateway(cfgSnap)
+		if err != nil {
+			return nil, err
+		}
+		return res, nil
+	case structs.ServiceKindAPIGateway:
+		// TODO Find a cleaner solution, can't currently pass unexported property types
+		var err error
+		cfgSnap.IngressGateway, err = cfgSnap.APIGateway.ToIngress(cfgSnap.Datacenter)
+		if err != nil {
+			return nil, err
+		}
 		res, err := s.clustersFromSnapshotIngressGateway(cfgSnap)
 		if err != nil {
 			return nil, err

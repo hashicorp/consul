@@ -3,6 +3,8 @@ import keyToArray from 'consul-ui/utils/keyToArray';
 
 module('Unit | Utils | keyToArray', function () {
   test('it splits a string by a separator, unless the string is the separator', function (assert) {
+    assert.expect(4);
+
     [
       {
         test: '/',

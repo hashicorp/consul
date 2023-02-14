@@ -39,6 +39,8 @@ type BuildContext struct {
 	certVolume   string
 	caCert       string
 	tlsCertIndex int // keeps track of the certificates issued for naming purposes
+
+	aclEnabled bool
 }
 
 func (c *BuildContext) DockerImage() string {
@@ -84,6 +86,9 @@ type BuildOptions struct {
 	// UseGRPCWithTLS ensures that any accesses for external gRPC use the
 	// grpc_tls port. By default it will not.
 	UseGRPCWithTLS bool
+
+	// ACLEnabled configures acl in agent configuration
+	ACLEnabled bool
 }
 
 func NewBuildContext(t *testing.T, opts BuildOptions) *BuildContext {
@@ -97,6 +102,7 @@ func NewBuildContext(t *testing.T, opts BuildOptions) *BuildContext {
 		allowHTTPAnyway:        opts.AllowHTTPAnyway,
 		useAPIWithTLS:          opts.UseAPIWithTLS,
 		useGRPCWithTLS:         opts.UseGRPCWithTLS,
+		aclEnabled:             opts.ACLEnabled,
 	}
 
 	if ctx.consulImageName == "" {
@@ -190,6 +196,12 @@ func NewConfigBuilder(ctx *BuildContext) *Builder {
 		b.conf.Set("ports.grpc_tls", 8503)
 	}
 
+	if ctx.aclEnabled {
+		b.conf.Set("acl.enabled", true)
+		b.conf.Set("acl.default_policy", "deny")
+		b.conf.Set("acl.enable_token_persistence", true)
+	}
+
 	return b
 }
 
@@ -238,6 +250,13 @@ func (b *Builder) RetryJoin(names ...string) *Builder {
 	return b
 }
 
+func (b *Builder) EnableACL() *Builder {
+	b.conf.Set("acl.enabled", true)
+	b.conf.Set("acl.default_policy", "deny")
+	b.conf.Set("acl.enable_token_persistence", true)
+	return b
+}
+
 func (b *Builder) Telemetry(statSite string) *Builder {
 	b.conf.Set("telemetry.statsite_address", statSite)
 	return b
@@ -268,6 +287,8 @@ func (b *Builder) ToAgentConfig(t *testing.T) *Config {
 
 		UseAPIWithTLS:  b.context.useAPIWithTLS,
 		UseGRPCWithTLS: b.context.useGRPCWithTLS,
+
+		ACLEnabled: b.context.aclEnabled,
 	}
 }
 

@@ -39,7 +39,7 @@ import (
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/xds/accesslogs"
-	"github.com/hashicorp/consul/agent/xds/xdscommon"
+	"github.com/hashicorp/consul/envoyextensions/xdscommon"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/lib/stringslice"
 	"github.com/hashicorp/consul/proto/pbpeering"
@@ -58,11 +58,10 @@ func (s *ResourceGenerator) listenersFromSnapshot(cfgSnap *proxycfg.ConfigSnapsh
 	switch cfgSnap.Kind {
 	case structs.ServiceKindConnectProxy:
 		return s.listenersFromSnapshotConnectProxy(cfgSnap)
-	case structs.ServiceKindTerminatingGateway:
-		return s.listenersFromSnapshotGateway(cfgSnap)
-	case structs.ServiceKindMeshGateway:
-		return s.listenersFromSnapshotGateway(cfgSnap)
-	case structs.ServiceKindIngressGateway:
+	case structs.ServiceKindTerminatingGateway,
+		structs.ServiceKindMeshGateway,
+		structs.ServiceKindIngressGateway,
+		structs.ServiceKindAPIGateway:
 		return s.listenersFromSnapshotGateway(cfgSnap)
 	default:
 		return nil, fmt.Errorf("Invalid service kind: %v", cfgSnap.Kind)
@@ -849,6 +848,18 @@ func (s *ResourceGenerator) listenersFromSnapshotGateway(cfgSnap *proxycfg.Confi
 			if err != nil {
 				return nil, err
 			}
+		case structs.ServiceKindAPIGateway:
+			// TODO Find a cleaner solution, can't currently pass unexported property types
+			var err error
+			cfgSnap.IngressGateway, err = cfgSnap.APIGateway.ToIngress(cfgSnap.Datacenter)
+			if err != nil {
+				return nil, err
+			}
+			listeners, err := s.makeIngressGatewayListeners(a.Address, cfgSnap)
+			if err != nil {
+				return nil, err
+			}
+			resources = append(resources, listeners...)
 		case structs.ServiceKindIngressGateway:
 			listeners, err := s.makeIngressGatewayListeners(a.Address, cfgSnap)
 			if err != nil {
