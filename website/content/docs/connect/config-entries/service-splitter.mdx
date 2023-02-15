@@ -1,32 +1,19 @@
 --- 
-<<<<<<< HEAD
-Page_title: Service Splitter | Configuration Reference
-Description: 
-=======
 layout: docs
 page_title: Service Splitter Configuration Entry Reference
 description: >- 
   Service splitter configuration entries are L7 traffic management tools for redirecting requests for a service to 
   multiple instances. Learn how to write `service-splitter` config entries in HCL or YAML with a specification 
   reference, configuration model, a complete example, and example code by use case.
->>>>>>> c5e729e865 (Docs/reformat service splitters conf entry (#16264))
 ---
 
 # Service Splitter Configuration Reference
 
-<<<<<<< HEAD
-This topic describes how to configure service splitter configuration entries. Configure and apply service splitters to redirect a percentage of incoming traffic requests for a specific service.
-
-## Configuration model
-
-The following list outlines field hierarchy, language-specific data types, and requirements in a service splitter configuration entry. Click on a property name to view details about the configuration.
-=======
 This reference page describes the structure and contents of service splitter configuration entries. Configure and apply service splitters to redirect a percentage of incoming traffic requests for a service to one or more specific service instances.
 
 ## Configuration model
 
 The following list outlines field hierarchy, language-specific data types, and requirements in a service splitter configuration entry. Click on a property name to view additional details, including default values.
->>>>>>> c5e729e865 (Docs/reformat service splitters conf entry (#16264))
 
 <Tabs>
 
@@ -93,44 +80,6 @@ Kind      = "service-splitter"           ## string  | required
 Name      = "config-entry-name"          ## string  | required
 Namespace = "main"                       ## string
 Partition = "partition"                  ## string 
-<<<<<<< HEAD
-Meta      = {                            ## map
-  key     = "value"            
-  }
-Splits = [                               ## list    | required
-  {                                      ## map     
-    Weight        = 90                   ## number  | required
-    Service       = "service"            ## string     
-    ServiceSubset = "v1"                 ## string
-    Namespace     = "target-namespace"   ## string
-    Partition     = "target-partition"   ## string
-    RequestHeaders {                     ## map
-      Set {
-        "X-Web-Version": "from-v1"
-          }
-     }
-    ResponseHeaders {                    ## map
-      Set {
-        "X-Web-Version": "to-v1"
-          }
-    }
-  },
-  {
-    Weight        = 10            
-    Service       = "service"    
-    ServiceSubset = "v2"          
-    Namespace     = "target-namespace"  
-    Partition     = "target-partition"  
-    RequestHeaders {
-      Set {
-        "X-Web-Version": "from-v2"
-          }
-     }
-    ResponseHeaders {
-      Set {
-        "X-Web-Version": "to-v2"
-  },
-=======
 Meta = {                                 ## map
   key = "value"
 }
@@ -169,7 +118,6 @@ Splits = [                               ## list    | required
       }
     }
   }
->>>>>>> c5e729e865 (Docs/reformat service splitters conf entry (#16264))
 ]
 ```
 
@@ -267,11 +215,7 @@ spec:
 
 ## Specification
 
-<<<<<<< HEAD
-This section provides details about the fields you can configure in the sservice splitter configuration entry.
-=======
 This section provides details about the fields you can configure in the service splitter configuration entry.
->>>>>>> c5e729e865 (Docs/reformat service splitters conf entry (#16264))
 
 <Tabs>
 
@@ -284,19 +228,6 @@ Specifies the type of configuration entry to implement.
 #### Values
 
 - Default: none
-<<<<<<< HEAD
-- This field is required
-- Data type: String value that must be set to `service-splitter` in HCL or `serviceSplitter` in YAML. 
-
-### `Name`
-
-Specifies a name for the configuration entry. The name is metadata that you can use to reference the configuration entry when performing operations, such as reading or writing configuration entry configuration entry settings. 
-
-#### Values
-
-- Default: Name of the node 
-- This field is required
-=======
 - This field is required.
 - Data type: String value that must be set to `service-splitter`. 
 
@@ -308,7 +239,6 @@ Specifies a name for the configuration entry. The name is metadata that you can 
 
 - Default: Defaults to the name of the node after writing the entry to the Consul server.
 - This field is required.
->>>>>>> c5e729e865 (Docs/reformat service splitters conf entry (#16264))
 - Data type: String
 
 
@@ -322,12 +252,8 @@ Specifies the [namespace](/consul/docs/enterprise/namespaces) to apply the confi
 - Data type: String
 
 ### `Partition` <EnterpriseAlert inline />
-<<<<<<< HEAD
-Specifies the [admin partition](consul/docs/enterprise/admin-partitions) to apply the configuration entry.
-=======
 
 Specifies the [admin partition](/consul/docs/enterprise/admin-partitions) to apply the configuration entry.
->>>>>>> c5e729e865 (Docs/reformat service splitters conf entry (#16264))
 
 #### Values
 
@@ -352,17 +278,10 @@ Defines how much traffic to send to sets of service instances during a traffic s
 #### Values 
 
 - Default: None
-<<<<<<< HEAD
-- This field is required for defining service splits
-- Data type: list of objects that can contain the following fields:
-  - `Weight`: The sum of weights for a set of service instances must add up to 100. 
-  - `Service`: This field is required to direct split traffic   
-=======
 - This field is required.
 - Data type: list of objects that can contain the following fields:
   - `Weight`: The sum of weights for a set of service instances must add up to 100. 
   - `Service`: This field is required.   
->>>>>>> c5e729e865 (Docs/reformat service splitters conf entry (#16264))
   - `ServiceSubset`
   - `Namespace` <Enterprise inline/>
   - `Partition` <Enterprise inline/>
@@ -376,13 +295,8 @@ Specifies the percentage of traffic sent to the set of service instances specifi
 #### Values
 
 - Default: `null`
-<<<<<<< HEAD
-- This field is required for defining service splits
-- Data type: Floating integer from `.01` to `100`
-=======
 - This field is required.
 - Data type: Floating number from `.01` to `100`.
->>>>>>> c5e729e865 (Docs/reformat service splitters conf entry (#16264))
 
 ### `Splits[].Service`
 
@@ -390,22 +304,14 @@ Specifies the name of the service to resolve.
 
 #### Values
 
-<<<<<<< HEAD
-- Default: The service matching the configuration entry [`Name`](#name) field.
-=======
 - Default: Inherits the value of the [`Name`](#name) field. 
->>>>>>> c5e729e865 (Docs/reformat service splitters conf entry (#16264))
 - Data type: String
 
 ### `Splits[].ServiceSubset`
 
-<<<<<<< HEAD
-Specifies a subset of the service to resolve. This field overrides the `DefaultSubset`. 
-=======
 Specifies a subset of the service to resolve. A service subset assigns a name to a specific subset of discoverable service instances within a datacenter, such as `version2` or `canary`. All services have an unnamed default subset that returns all healthy instances. 
 
 You can define service subsets in a [service resolver configuration entry](/consul/docs/connect/config-entries/service-resolver), which are referenced by their names throughout the other configuration entries. This field overrides the default subset value in the service resolver configuration entry.   
->>>>>>> c5e729e865 (Docs/reformat service splitters conf entry (#16264))
 
 #### Values
 
@@ -414,28 +320,16 @@ You can define service subsets in a [service resolver configuration entry](/cons
 
 ### `Splits[].Namespace` <EnterpriseAlert inline />
 
-<<<<<<< HEAD
-Specifies which [namespace](/consul/docs/enterprise/namespaces) to use in the FQDN when resolving the service. 
-
-#### Values
-
-- Default: The namespace specified in the top-level configuration entry.
-=======
 Specifies the [namespace](/consul/docs/enterprise/namespaces) to use in the FQDN when resolving the service. 
 
 #### Values
 
 - Default: Inherits the value of [`Namespace`](#Namespace) from the top-level of the configuration entry.
->>>>>>> c5e729e865 (Docs/reformat service splitters conf entry (#16264))
 - Data type: String
 
 ### `Splits[].Partition` <EnterpriseAlert inline />
 
-<<<<<<< HEAD
-Specifies which [admin partition](/consul/docs/enterprise/admin-partitions) to use in the FQDN when resolving the service. 
-=======
 Specifies the [admin partition](/consul/docs/enterprise/admin-partitions) to use in the FQDN when resolving the service. 
->>>>>>> c5e729e865 (Docs/reformat service splitters conf entry (#16264))
 
 #### Values
 
@@ -444,11 +338,7 @@ Specifies the [admin partition](/consul/docs/enterprise/admin-partitions) to use
 
 ### `Splits[].RequestHeaders`
 
-<<<<<<< HEAD
-Specifies a set of HTTP-specific header modification rules that apply to requests routed to the split. You cannot configure request headers if the listener protocol is set to `tcp`. Refer to [Set HTTP Headers](#set-http-headers) for an example configuration. 
-=======
 Specifies a set of HTTP-specific header modification rules applied to requests routed with the service split. You cannot configure request headers if the listener protocol is set to `tcp`. Refer to [Set HTTP Headers](#set-http-headers) for an example configuration. 
->>>>>>> c5e729e865 (Docs/reformat service splitters conf entry (#16264))
 
 #### Values
 
@@ -468,20 +358,12 @@ The following table describes how to configure values for request headers:
 
 #### Use variable placeholders
 
-<<<<<<< HEAD
-For `Add` and `Set`, if the service is configured to use Envoy as the proxy, the value may contain variable placeholders, for example, `%DOWNSTREAM_REMOTE_ADDRESS%` to interpolate dynamic metadata into the value added.
-=======
 For `Add` and `Set`, if the service is configured to use Envoy as the proxy, the value may contain variables to interpolate dynamic metadata into the value. For example, using the variable `%DOWNSTREAM_REMOTE_ADDRESS%` in your configuration entry allows you to pass a value that is generated when the split occurs.
->>>>>>> c5e729e865 (Docs/reformat service splitters conf entry (#16264))
 
 
 ### `Splits[].ResponseHeaders` 
 
-<<<<<<< HEAD
-Specifies a set of HTTP-specific header modification rules that apply to responses from the split. You cannot configure request headers if the listener protocol is set to `tcp`. Refer to [Set HTTP Headers](#set-http-headers) for an example configuration.
-=======
 Specifies a set of HTTP-specific header modification rules applied to responses routed with the service split. You cannot configure request headers if the listener protocol is set to `tcp`. Refer to [Set HTTP Headers](#set-http-headers) for an example configuration.
->>>>>>> c5e729e865 (Docs/reformat service splitters conf entry (#16264))
 
 #### Values
 
@@ -501,11 +383,7 @@ The following table describes how to configure values for response headers:
 
 #### Use variable placeholders
 
-<<<<<<< HEAD
-For `Add` and `Set`, if the service is configured to use Envoy as the proxy, the value may contain variable placeholders, for example, `%DOWNSTREAM_REMOTE_ADDRESS%` to interpolate dynamic metadata into the value added. 
-=======
 For `Add` and `Set`, if the service is configured to use Envoy as the proxy, the value may contain variables to interpolate dynamic metadata into the value. For example, using the variable `%DOWNSTREAM_REMOTE_ADDRESS%` in your configuration entry allows you to pass a value that is generated when the split occurs.
->>>>>>> c5e729e865 (Docs/reformat service splitters conf entry (#16264))
 
 </Tab>
 
@@ -522,19 +400,6 @@ Specifies the type of configuration entry to implement.
 #### Values
 
 - Default: none
-<<<<<<< HEAD
-- This field is required
-- Data type: String value that must be set to `serviceSplitter` in YAML. 
-
-### `metadata.name`
-
-Specifies a name for the configuration entry. The name is metadata that you can use to reference the configuration entry when performing operations, such as reading or writing configuration entry configuration entry settings. 
-
-#### Values
-
-- Default: Name of the node 
-- This field is required
-=======
 - This field is required.
 - Data type: String value that must be set to `serviceSplitter`. 
 
@@ -546,7 +411,6 @@ Specifies a name for the configuration entry. The name is metadata that you can 
 
 - Default: Inherits name from the host node 
 - This field is required.
->>>>>>> c5e729e865 (Docs/reformat service splitters conf entry (#16264))
 - Data type: String
 
 
@@ -566,11 +430,7 @@ Kubernetes-only field that contains all of the configurations for service splitt
 #### Values
 
 - Default: none 
-<<<<<<< HEAD
-- This field is required 
-=======
 - This field is required.
->>>>>>> c5e729e865 (Docs/reformat service splitters conf entry (#16264))
 - Data type: Object containing [`spec.splits`](#spec-splits) configuration 
 
 ### `spec.meta`
@@ -591,17 +451,10 @@ Defines how much traffic to send to sets of service instances during a traffic s
 #### Values 
 
 - Default: None
-<<<<<<< HEAD
-- This field is required for defining service splits
-- Data type: list of objects that can contain the following fields:
-  - `weight`: The sum of weights for a set of service instances must add up to 100. 
-  - `service`: This field is required to direct split traffic   
-=======
 - This field is required.
 - Data type: list of objects that can contain the following fields:
   - `weight`: The sum of weights for a set of service instances. The total defined value must add up to 100. 
   - `service`: This field is required.  
->>>>>>> c5e729e865 (Docs/reformat service splitters conf entry (#16264))
   - `serviceSubset`
   - `namespace` <Enterprise inline/>
   - `partition` <Enterprise inline/>
@@ -615,11 +468,7 @@ Specifies the percentage of traffic sent to the set of service instances specifi
 #### Values
 
 - Default: `null`
-<<<<<<< HEAD
-- This field is required for defining service splits
-=======
 - This field is required.
->>>>>>> c5e729e865 (Docs/reformat service splitters conf entry (#16264))
 - Data type: Floating integer from `.01` to `100`
 
 ### `spec.splits[].service`
@@ -637,20 +486,12 @@ Specifies a subset of the service to resolve. This field overrides the `DefaultS
 
 #### Values
 
-<<<<<<< HEAD
-- Default: If empty, the `split` uses the default subset. 
-=======
 - Default: Inherits the name of the default subset. 
->>>>>>> c5e729e865 (Docs/reformat service splitters conf entry (#16264))
 - Data type: String
 
 ### `spec.splits[].namespace` <EnterpriseAlert inline />
 
-<<<<<<< HEAD
-Specifies which [namespace](/consul/docs/enterprise/namespaces) to use for resolving the service. 
-=======
 Specifies the [namespace](/consul/docs/enterprise/namespaces) to use when resolving the service. 
->>>>>>> c5e729e865 (Docs/reformat service splitters conf entry (#16264))
 
 #### Values
 
@@ -663,17 +504,6 @@ Specifies which [admin partition](/consul/docs/enterprise/admin-partitions) to u
 
 #### Values
 
-<<<<<<< HEAD
-- Default: By default, the `service-splitter` uses the [admin partition specified in the top-level configuration entry](#spec-partition).
-- Data type: String
-
-
-### `spec.splits[].requestHeaders`
-
-Specifies a set of HTTP-specific header modification rules that apply to requests routed to the split. You cannot configure request headers if the listener protocol is set to `tcp`. Refer to [Set HTTP Headers](#set-http-headers) for an example configuration. 
-
- #### Values
-=======
 - Default: `default`
 - Data type: String
 
@@ -682,7 +512,6 @@ Specifies a set of HTTP-specific header modification rules that apply to request
 Specifies a set of HTTP-specific header modification rules applied to requests routed with the service split. You cannot configure request headers if the listener protocol is set to `tcp`. Refer to [Set HTTP Headers](#set-http-headers) for an example configuration. 
 
 #### Values
->>>>>>> c5e729e865 (Docs/reformat service splitters conf entry (#16264))
 
 - Default: None
 - Values: Object containing one or more fields that define header modification rules
@@ -700,15 +529,6 @@ The following table describes how to configure values for request headers:
 
 #### Use variable placeholders
 
-<<<<<<< HEAD
-For `add` and `set`, if the service is configured to use Envoy as the proxy, the value may contain variable placeholders, for example, `%DOWNSTREAM_REMOTE_ADDRESS%` to interpolate dynamic metadata into the value added.
-
-### `spec.splits[].responseHeaders`
-
-Specifies a set of HTTP-specific header modification rules that apply to responses from the split. You cannot configure request headers if the listener protocol is set to `tcp`. Refer to [Set HTTP Headers](#set-http-headers) for an example configuration.
-
- #### Values
-=======
 For `add` and `set`, if the service is configured to use Envoy as the proxy, the value may contain variables to interpolate dynamic metadata into the value. For example, using the variable `%DOWNSTREAM_REMOTE_ADDRESS%` in your configuration entry allows you to pass a value that is generated when the split occurs.
 
 ### `spec.splits[].responseHeaders`
@@ -716,7 +536,6 @@ For `add` and `set`, if the service is configured to use Envoy as the proxy, the
 Specifies a set of HTTP-specific header modification rules applied to responses routed with the service split. You cannot configure request headers if the listener protocol is set to `tcp`. Refer to [Set HTTP Headers](#set-http-headers) for an example configuration.
 
 #### Values
->>>>>>> c5e729e865 (Docs/reformat service splitters conf entry (#16264))
 
 - Default: None
 - Values: Object containing one or more fields that define header modification rules
@@ -734,11 +553,7 @@ The following table describes how to configure values for response headers:
 
 #### Use variable placeholders
 
-<<<<<<< HEAD
-For `add` and `set`, if the service is configured to use Envoy as the proxy, the value may contain variable placeholders, for example, `%DOWNSTREAM_REMOTE_ADDRESS%` to interpolate dynamic metadata into the value added. 
-=======
 For `add` and `set`, if the service is configured to use Envoy as the proxy, the value may contain variables to interpolate dynamic metadata into the value. For example, using the variable `%DOWNSTREAM_REMOTE_ADDRESS%` in your configuration entry allows you to pass a value that is generated when the split occurs.
->>>>>>> c5e729e865 (Docs/reformat service splitters conf entry (#16264))
 
 </Tab>
 
@@ -746,11 +561,7 @@ For `add` and `set`, if the service is configured to use Envoy as the proxy, the
 
 ## Examples
 
-<<<<<<< HEAD
-The examples in this section demonstrate common configurations for `service-splitter` configuration entries. 
-=======
 The following examples demonstrate common service splitter configuration patterns for specific use cases. 
->>>>>>> c5e729e865 (Docs/reformat service splitters conf entry (#16264))
 
 ### Two subsets of same service
 
@@ -872,11 +683,7 @@ metadata:
 spec:
   splits:
     - weight: 50
-<<<<<<< HEAD
-      # will default to service with same name as config entry ("web")
-=======
       # defaults to the service with same name as the configuration entry ("web")
->>>>>>> c5e729e865 (Docs/reformat service splitters conf entry (#16264))
     - weight: 50
       service: web-rewrite
 ```
