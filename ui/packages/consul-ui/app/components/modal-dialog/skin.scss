@@ -15,7 +15,8 @@
   margin-right: 3px;
 }
 %modal-dialog-overlay {
-  background-color: rgb(var(--token-color-surface-interactive) / 90%);
+  background-color: var(--token-color-surface-interactive);
+  opacity: 0.9;
 }
 %modal-window {
   box-shadow: var(--token-elevation-overlay-box-shadow);
