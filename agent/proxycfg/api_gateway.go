@@ -451,7 +451,6 @@ func (h *handlerAPIGateway) watchIngressLeafCert(ctx context.Context, snap *Conf
 		Datacenter:     h.source.Datacenter,
 		Token:          h.token,
 		Service:        h.service,
-		DNSSAN:         h.generateIngressDNSSANs(snap),
 		EnterpriseMeta: h.proxyID.EnterpriseMeta,
 	}, leafWatchID, h.ch)
 	if err != nil {
@@ -461,50 +460,4 @@ func (h *handlerAPIGateway) watchIngressLeafCert(ctx context.Context, snap *Conf
 	snap.APIGateway.LeafCertWatchCancel = cancel
 
 	return nil
-}
-
-func (h *handlerAPIGateway) generateIngressDNSSANs(snap *ConfigSnapshot) []string {
-	// Update our leaf cert watch with wildcard entries for our DNS domains as
-	// well as any configured custom hostnames from the service. Note that in the
-	// case that only a subset of listeners are TLS-enabled, we still load DNS
-	// SANs for all upstreams. We could limit it to only those that are reachable
-	// from the enabled listeners but that adds a lot of complication and they are
-	// already wildcards anyway. It's simpler to have one certificate for the
-	// whole proxy that works for any possible upstream we might need than try to
-	// be more selective when we are already using wildcard DNS names!
-	if !connectTLSServingEnabled(snap) {
-		return nil
-	}
-
-	var dnsNames []string
-	namespaces := make(map[string]struct{})
-	for _, listenerUpstreams := range snap.APIGateway.Upstreams {
-		for _, lu := range listenerUpstreams {
-			for _, u := range lu {
-				namespaces[u.DestinationNamespace] = struct{}{}
-			}
-		}
-	}
-
-	// TODO(partitions): How should these be updated for partitions?
-	for ns := range namespaces {
-		// The default namespace is special cased in DNS resolution, so special
-		// case it here.
-		if ns == structs.IntentionDefaultNamespace {
-			ns = ""
-		} else {
-			ns = ns + "."
-		}
-
-		dnsNames = append(dnsNames, fmt.Sprintf("*.ingress.%s%s", ns, h.dnsConfig.Domain))
-		dnsNames = append(dnsNames, fmt.Sprintf("*.ingress.%s%s.%s", ns, h.source.Datacenter, h.dnsConfig.Domain))
-		if h.dnsConfig.AltDomain != "" {
-			dnsNames = append(dnsNames, fmt.Sprintf("*.ingress.%s%s", ns, h.dnsConfig.AltDomain))
-			dnsNames = append(dnsNames, fmt.Sprintf("*.ingress.%s%s.%s", ns, h.source.Datacenter, h.dnsConfig.AltDomain))
-		}
-	}
-
-	dnsNames = append(dnsNames, snap.APIGateway.Hosts...)
-
-	return dnsNames
 }
