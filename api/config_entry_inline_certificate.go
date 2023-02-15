@@ -12,7 +12,7 @@ type InlineCertificateConfigEntry struct {
 	// Certificate is the public certificate component of an x509 key pair encoded in raw PEM format.
 	Certificate string
 	// PrivateKey is the private key component of an x509 key pair encoded in raw PEM format.
-	PrivateKey string
+	PrivateKey string `alias:"private_key"`
 
 	Meta map[string]string `json:",omitempty"`
 
