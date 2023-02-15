@@ -1,6 +1,9 @@
 package proxycfg
 
 import (
+	"fmt"
+	"github.com/hashicorp/consul/agent/connect"
+	"github.com/hashicorp/consul/agent/consul/discoverychain"
 	"github.com/mitchellh/go-testing-interface"
 
 	"github.com/hashicorp/consul/agent/structs"
@@ -11,6 +14,7 @@ func TestConfigSnapshotAPIGateway(
 	variation string,
 	nsFn func(ns *structs.NodeService),
 	configFn func(entry *structs.APIGatewayConfigEntry, boundEntry *structs.BoundAPIGatewayConfigEntry),
+	routes []structs.BoundRoute,
 	extraUpdates []UpdateEvent,
 	additionalEntries ...structs.ConfigEntry,
 ) *ConfigSnapshot {
@@ -52,8 +56,44 @@ func TestConfigSnapshotAPIGateway(
 		},
 	}
 
+	for _, route := range routes {
+		// Add the watch event for the route.
+		watch := UpdateEvent{
+			CorrelationID: routeConfigWatchID,
+			Result: &structs.ConfigEntryResponse{
+				Entry: route,
+			},
+		}
+		baseEvents = append(baseEvents, watch)
+
+		// Add the watch event for the discovery chain.
+		entries := []structs.ConfigEntry{
+			&structs.ProxyConfigEntry{
+				Kind: structs.ProxyDefaults,
+				Name: structs.ProxyConfigGlobal,
+				Config: map[string]interface{}{
+					"protocol": route.GetProtocol(),
+				},
+			},
+			&structs.ServiceResolverConfigEntry{
+				Kind: structs.ServiceResolver,
+				Name: "api-gateway",
+			},
+		}
+
+		// Add a discovery chain watch event for each service.
+		for _, serviceName := range route.GetServiceNames() {
+			discoChain := UpdateEvent{
+				CorrelationID: fmt.Sprintf("discovery-chain:%s", UpstreamIDString("", "", serviceName.Name, &serviceName.EnterpriseMeta, "")),
+				Result: &structs.DiscoveryChainResponse{
+					Chain: discoverychain.TestCompileConfigEntries(t, serviceName.Name, "default", "default", "dc1", connect.TestClusterID+".consul", nil, entries...),
+				},
+			}
+			baseEvents = append(baseEvents, discoChain)
+		}
+	}
+
 	upstreams := structs.TestUpstreams(t)
-	upstreams = structs.Upstreams{upstreams[0]} // just keep 'db'
 
 	baseEvents = testSpliceEvents(baseEvents, setupTestVariationConfigEntriesAndSnapshot(
 		t, variation, upstreams, additionalEntries...,
