@@ -86,6 +86,13 @@ func (g gatewayContainer) Start() error {
 	return g.container.Start(context.Background())
 }
 
+func (g gatewayContainer) Stop() error {
+	if g.container == nil {
+		return fmt.Errorf("container has not been initialized")
+	}
+	return g.container.Stop(context.Background(), nil)
+}
+
 func (c gatewayContainer) Terminate() error {
 	return cluster.TerminateContainer(c.ctx, c.container, true)
 }

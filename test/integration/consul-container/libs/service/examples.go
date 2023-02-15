@@ -101,6 +101,13 @@ func (g exampleContainer) Start() error {
 	return g.container.Start(context.Background())
 }
 
+func (g exampleContainer) Stop() error {
+	if g.container == nil {
+		return fmt.Errorf("container has not been initialized")
+	}
+	return g.container.Stop(context.Background(), nil)
+}
+
 func (c exampleContainer) Terminate() error {
 	return cluster.TerminateContainer(c.ctx, c.container, true)
 }
