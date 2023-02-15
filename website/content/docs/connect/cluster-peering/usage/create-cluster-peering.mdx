@@ -7,55 +7,44 @@ description: >-
 
 # Establish cluster peering connections
 
-This page details the process for establishing a cluster peering connection between services deployed to different datacenters. The overall process consists of the following steps:
+This page details the process for establishing a cluster peering connection between services deployed to different datacenters. You can interact with Consul's cluster peering features using the HTTP API, the CLI, the UI, or the Kubernetes controller. While the specific steps vary slightly for each, the overall process for establishing a cluster peering connection consists of the following steps:
 
 1. Create a peering token in one cluster.
 1. Use the peering token to establish peering with a second cluster.
 1. Export services between clusters.
 1. Create intentions to authorize services for peers.
 
-Cluster peering between services cannot be established until all four steps are complete.
+Cluster peering between services cannot be established until all four steps are complete. 
+
+<Tabs>
+<Tab heading="Consul API" group="api">
 
 ## Requirements
 
 To establish a cluster peering connection, your deployments must meet several requirements. For additional guidance on required configuration values, refer to the [cluster peering configuration reference](/consul/docs/connect/cluster-peering/configuration).
 
-<Tabs>
-<Tab title="VMs and on-prem" group="api" group="cli" group="ui">
+### VMs and on-prem deployment requirements
 
 You must meet the following requirements to use cluster peering:
 
 - Consul v1.13 or higher
 - Services hosted in admin partitions on separate datacenters
-- A mesh gateway deployed to each admin partition with a cluster peering connection
 
 If you need to make services available to an admin partition in the same datacenter, do not use cluster peering. Instead, use the [`exported-services` configuration entry](/consul/docs/connect/config-entries/exported-services) to make service upstreams available to other admin partitions in a single datacenter.
 
-</Tab>
+### Mesh gateway requirements
 
-<Tab title="Kubernetes" group="k8s">
+Mesh gateways are required for all cluster peering connections. Consider the following architectural requirements when creating mesh gateways:
 
-You must meet the following requirements to use Consul's cluster peering features with Kubernetes:
+- A registered mesh gateway is required in order to export services to peers.
+- For Enterprise, the mesh gateway that exports services must be registered in the same partition as the exported services and their `exported-services` configuration entry.
+- To use the `local` mesh gateway mode, you must register a mesh gateway in the importing cluster.
 
-- Consul v1.14 or higher
-- Consul on Kubernetes v1.0.0 or higher
-- At least two Kubernetes clusters
-
-If you are setting up cluster peering for the first time and need additional guidance to get started, refer to [before you start cluster peering on Kubernetes]().
-
-In Consul on Kubernetes, peers identify each other using the `metadata.name` values you establish when creating the `PeeringAcceptor` and `PeeringDialer` CRDs. For additional information about the CRDs used for cluster peering, refer to [Cluster peering on Kubernetes](/consul/docs/connect/cluster-peering/usage/k8s).
-
-</Tab>
-</Tabs>
-  
 ## Create a peering token
 
 To begin the cluster peering process, generate a peering token in one of your clusters. The other cluster uses this token to establish the peering connection.
 
 Every time you generate a peering token, a single-use secret for establishing the secret is embedded in the token. Because regenerating a peering token invalidates the previously generated secret, you must use the most recently created token to establish peering connections.
-
-<Tabs>
-<Tab title="Consul API" group="api">
 
 1. In `cluster-01`, use the [`/peering/token` endpoint](/api-docs/peering#generate-a-peering-token) to issue a request for a peering token.
 
@@ -76,75 +65,11 @@ Every time you generate a peering token, a single-use secret for establishing th
   }
   ```
 
-</CodeBlockConfig>
-</Tab>
-
-<Tab heading="Consul CLI" group="cli">
-
-1. In `cluster-01`, use the [`consul peering generate-token` command](/commands/peering/generate-token) to issue a request for a peering token.
-
-  ```shell-session
-  $ consul peering generate-token -name cluster-02
-  ```
-
-  The CLI outputs the peering token, which is a base64-encoded string containing the token details.
-
-1. Save this value to a file or clipboard to use in the next step on `cluster-02`.
-
-</Tab>
-
-<Tab heading="Consul UI" group="ui">
-
-1. In the Consul UI for the datacenter associated with `cluster-01`, click **Peers**.
-1. Click **Add peer connection**.
-1. In the **Generate token** tab, enter `cluster-02` in the **Name of peer** field.
-1. Click the **Generate token** button.
-1. Copy the token before you proceed. You cannot view it again after leaving this screen. If you lose your token, you must generate a new one.
-
-</Tab>
-
-<Tab heading="Kubernetes" group="k8s">
-
-1. In `cluster-01`, create the `PeeringAcceptor` custom resource.
-
-  <CodeBlockConfig filename="acceptor.yaml">
-
-  ```yaml
-    apiVersion: consul.hashicorp.com/v1alpha1
-    kind: PeeringAcceptor
-    metadata:
-      name: cluster-02 ## The name of the peer you want to connect to
-    spec:
-      peer:
-        secret:
-          name: "peering-token"
-          key: "data"
-          backend: "kubernetes"
-    ```
-
   </CodeBlockConfig>
-
-1. Apply the `PeeringAcceptor` resource to the first cluster.
-
-    ```shell-session
-    $ kubectl --context $CLUSTER1_CONTEXT apply --filename acceptor.yaml
-    ````
-
-1. Save your peering token so that you can export it to the other cluster.
-
-    ```shell-session
-    $ kubectl --context $CLUSTER1_CONTEXT get secret peering-token --output yaml > peering-token.yaml
-    ```
-
-</Tab>
-</Tabs>
 
 ## Establish a connection between clusters
 
 Next, use the peering token to establish a secure connection between the clusters.
-
-<Tabs>
-<Tab heading="Consul API" group="api">
 
 1. In one of the client agents in "cluster-02," use `peering_token.json` and the [`/peering/establish` endpoint](/api-docs/peering#establish-a-peering-connection) to establish the peering connection. This endpoint does not generate an output unless there is an error.
 
@@ -156,11 +81,144 @@ When you connect server agents through cluster peering, their default behavior i
 
 You can dial the `peering/establish` endpoint once per peering token. Peering tokens cannot be reused after being used to establish a connection. If you need to re-establish a connection, you must generate a new peering token.
 
+## Export services between clusters
+
+<Note title="CLI required">
+
+You must use the Consul CLI when exporting services on VM or on-prem deployments. The Consul API does not natively support the `exported-services` configuration entry.
+
+</Note>
+
+After you establish a connection between the clusters, you need to create an `exported-services` configuration entry that defines the services that are available for other clusters. Consul uses this configuration entry to advertise service information and support service mesh connections across clusters.
+
+1. Create a configuration entry and specify the `Kind` as `"exported-services"`.
+
+  <CodeBlockConfig filename="peering-config.hcl" hideClipboard>
+
+  ```hcl
+  Kind = "exported-services"
+  Name = "default"
+  Services = [
+    {
+      ## The name and namespace of the service to export.
+      Name      = "service-name"
+      Namespace = "default"
+
+      ## The list of peer clusters to export the service to.
+      Consumers = [
+        {
+          ## The peer name to reference in config is the one set
+          ## during the peering process.
+          Peer = "cluster-02"
+        }
+      ]
+    }
+  ]
+  ```
+
+  </CodeBlockConfig>
+
+1. Add the configuration entry to your cluster.
+
+  ```shell-session
+  $ consul config write peering-config.hcl
+  ```
+
+Before you proceed, wait for the clusters to sync and make services available to their peers. To check the peered cluster status, [issue an endpoint query](#check-peered-cluster-status).
+
+## Authorize services for peers
+
+Before you can call services from peered clusters, you must set service intentions that authorize those clusters to use specific services. Consul prevents services from being exported to unauthorized clusters.
+
+1. Create a configuration entry and specify the `Kind` as `"service-intentions"`. Declare the service on "cluster-02" that can access the service in "cluster-01." The following example sets service intentions so that "frontend-service" can access "backend-service."
+
+  <CodeBlockConfig filename="peering-intentions.hcl" hideClipboard>
+
+  ```hcl
+  Kind      = "service-intentions"
+  Name      = "backend-service"
+
+  Sources = [
+    {
+      Name   = "frontend-service"
+      Peer   = "cluster-02"
+      Action = "allow"
+    }
+  ]
+  ```
+
+  </CodeBlockConfig>
+
+  If the peer's name is not specified in `Peer`, then Consul assumes that the service is in the local cluster.
+
+1. Add the configuration entry to your cluster.
+
+  ```shell-session
+  $ curl --request PUT --data @peering-intentions.hcl http://127.0.0.1:8500/v1/config
+  ```
+
+### Authorize Service Reads with ACLs
+
+If ACLs are enabled on a Consul cluster, sidecar proxies that access exported services as an upstream must have an ACL token that grants read access.
+
+Read access to all imported services is granted using either of the following rules associated with an ACL token:
+
+- `service:write` permissions for any service in the sidecar's partition.
+- `service:read` and `node:read` for all services and nodes, respectively, in sidecar's namespace and partition.
+  
+For Consul Enterprise, access is granted to all imported services in the service's partition. These permissions are satisfied when using a [service identity](/docs/security/acl/acl-roles#service-identities).
+
+Example rule files can be found in [Reading servers](/docs/connect/config-entries/exported-services#reading-services) in the `exported-services` config entry documentation.
+
+For additional information about how to configure and use ACLs, refer to [ACLs system overview](/docs/security/acl).
+
 </Tab>
 
 <Tab heading="Consul CLI" group="cli">
 
-1. In one of the client agents deployed to "cluster-02," issue the [`consul peering establish` command](/commands/peering/establish) and specify the token generated in the previous step. 
+## Requirements
+
+To establish a cluster peering connection, your deployments must meet several requirements. For additional guidance on required configuration values, refer to the [cluster peering configuration reference](/consul/docs/connect/cluster-peering/configuration).
+
+### VMs and on-prem deployment requirements
+
+You must meet the following requirements to use cluster peering:
+
+- Consul v1.13 or higher
+- Services hosted in admin partitions on separate datacenters
+
+If you need to make services available to an admin partition in the same datacenter, do not use cluster peering. Instead, use the [`exported-services` configuration entry](/consul/docs/connect/config-entries/exported-services) to make service upstreams available to other admin partitions in a single datacenter.
+
+### Mesh gateway requirements
+
+Mesh gateways are required for all cluster peering connections. Consider the following architectural requirements when creating mesh gateways:
+
+- A registered mesh gateway is required in order to export services to peers.
+- For Enterprise, the mesh gateway that exports services must be registered in the same partition as the exported services and their `exported-services` configuration entry.
+- To use the `local` mesh gateway mode, you must register a mesh gateway in the importing cluster.
+
+## Create a peering token
+
+To begin the cluster peering process, generate a peering token in one of your clusters. The other cluster uses this token to establish the peering connection.
+
+Every time you generate a peering token, a single-use secret for establishing the secret is embedded in the token. Because regenerating a peering token invalidates the previously generated secret, you must use the most recently created token to establish peering connections.
+
+
+1. In `cluster-01`, use the [`consul peering generate-token` command](/commands/peering/generate-token) to issue a request for a peering token.
+
+  ```shell-session
+  $ consul peering generate-token -name cluster-02
+  ```
+
+  The CLI outputs the peering token, which is a base64-encoded string containing the token details.
+
+1. Save this value to a file or clipboard to use in the next step on `cluster-02`.
+
+## Establish a connection between clusters
+
+Next, use the peering token to establish a secure connection between the clusters.
+
+1. In one of the client agents deployed to "cluster-02," issue the [`consul peering establish` command](/commands/peering/establish) and specify the token generated in the previous step.
 
   ```shell-session
   $ consul peering establish -name cluster-01 -peering-token token-from-generate
@@ -171,93 +229,189 @@ When you connect server agents through cluster peering, they peer their default 
 
 You can run the `peering establish` command once per peering token. Peering tokens cannot be reused after being used to establish a connection. If you need to re-establish a connection, you must generate a new peering token.
 
+## Export services between clusters
+
+After you establish a connection between the clusters, you need to create an `exported-services` configuration entry that defines the services that are available for other clusters. Consul uses this configuration entry to advertise service information and support service mesh connections across clusters.
+
+1. Create a configuration entry and specify the `Kind` as `"exported-services"`.
+
+  <CodeBlockConfig filename="peering-config.hcl" hideClipboard>
+
+  ```hcl
+  Kind = "exported-services"
+  Name = "default"
+  Services = [
+    {
+      ## The name and namespace of the service to export.
+      Name      = "service-name"
+      Namespace = "default"
+
+      ## The list of peer clusters to export the service to.
+      Consumers = [
+        {
+          ## The peer name to reference in config is the one set
+          ## during the peering process.
+          Peer = "cluster-02"
+        }
+      ]
+    }
+  ]
+  ```
+
+  </CodeBlockConfig>
+
+1. Add the configuration entry to your cluster.
+
+  ```shell-session
+  $ consul config write peering-config.hcl
+  ```
+
+Before you proceed, wait for the clusters to sync and make services available to their peers. To check the peered cluster status, [issue an endpoint query](#check-peered-cluster-status).
+
+## Authorize services for peers
+
+Before you can call services from peered clusters, you must set service intentions that authorize those clusters to use specific services. Consul prevents services from being exported to unauthorized clusters.
+
+1. Create a configuration entry and specify the `Kind` as `"service-intentions"`. Declare the service on "cluster-02" that can access the service in "cluster-01." The following example sets service intentions so that "frontend-service" can access "backend-service."
+
+  <CodeBlockConfig filename="peering-intentions.hcl" hideClipboard>
+
+  ```hcl
+  Kind      = "service-intentions"
+  Name      = "backend-service"
+
+  Sources = [
+    {
+      Name   = "frontend-service"
+      Peer   = "cluster-02"
+      Action = "allow"
+    }
+  ]
+  ```
+
+  </CodeBlockConfig>
+
+  If the peer's name is not specified in `Peer`, then Consul assumes that the service is in the local cluster.
+
+1. Add the configuration entry to your cluster.
+
+  ```shell-session
+  $ consul config write peering-intentions.hcl
+  ```
+
+### Authorize Service Reads with ACLs
+
+If ACLs are enabled on a Consul cluster, sidecar proxies that access exported services as an upstream must have an ACL token that grants read access.
+
+Read access to all imported services is granted using either of the following rules associated with an ACL token:
+
+- `service:write` permissions for any service in the sidecar's partition.
+- `service:read` and `node:read` for all services and nodes, respectively, in sidecar's namespace and partition.
+  
+For Consul Enterprise, access is granted to all imported services in the service's partition. These permissions are satisfied when using a [service identity](/docs/security/acl/acl-roles#service-identities).
+
+Example rule files can be found in [Reading servers](/docs/connect/config-entries/exported-services#reading-services) in the `exported-services` config entry documentation.
+
+For additional information about how to configure and use ACLs, refer to [ACLs system overview](/docs/security/acl).
+
 </Tab>
 
 <Tab heading="Consul UI" group="ui">
+
+## Requirements
+
+To establish a cluster peering connection, your deployments must meet several requirements. For additional guidance on required configuration values, refer to the [cluster peering configuration reference](/consul/docs/connect/cluster-peering/configuration).
+
+### VMs and on-prem deployment requirements
+
+You must meet the following requirements to use cluster peering:
+
+- Consul v1.13 or higher
+- Services hosted in admin partitions on separate datacenters
+
+If you need to make services available to an admin partition in the same datacenter, do not use cluster peering. Instead, use the [`exported-services` configuration entry](/consul/docs/connect/config-entries/exported-services) to make service upstreams available to other admin partitions in a single datacenter.
+
+### Mesh gateway requirements
+
+Mesh gateways are required for all cluster peering connections. Consider the following architectural requirements when creating mesh gateways:
+
+- A registered mesh gateway is required in order to export services to peers.
+- For Enterprise, the mesh gateway that exports services must be registered in the same partition as the exported services and their `exported-services` configuration entry.
+- To use the `local` mesh gateway mode, you must register a mesh gateway in the importing cluster.
+
+## Create a peering token
+
+To begin the cluster peering process, generate a peering token in one of your clusters. The other cluster uses this token to establish the peering connection.
+
+Every time you generate a peering token, a single-use secret for establishing the secret is embedded in the token. Because regenerating a peering token invalidates the previously generated secret, you must use the most recently created token to establish peering connections.
+
+1. In the Consul UI for the datacenter associated with `cluster-01`, click **Peers**.
+1. Click **Add peer connection**.
+1. In the **Generate token** tab, enter `cluster-02` in the **Name of peer** field.
+1. Click the **Generate token** button.
+1. Copy the token before you proceed. You cannot view it again after leaving this screen. If you lose your token, you must generate a new one.
+
+## Establish a connection between clusters
+
+Next, use the peering token to establish a secure connection between the clusters.
 
 1. In the Consul UI for the datacenter associated with `cluster 02`, click **Peers** and then **Add peer connection**.
 1. Click **Establish peering**.
 1. In the **Name of peer** field, enter `cluster-01`. Then paste the peering token in the **Token** field.
 1. Click **Add peer**.
 
-</Tab>
-
-<Tab heading="Kubernetes" group="k8s">
-
-1. Apply the peering token to the second cluster.
-
-    ```shell-session
-    $ kubectl --context $CLUSTER2_CONTEXT apply --filename peering-token.yaml
-    ```
-
-1. In `cluster-02`, create the `PeeringDialer` custom resource.
-
-  <CodeBlockConfig filename="dialer.yaml">
-
-  ```yaml
-    apiVersion: consul.hashicorp.com/v1alpha1
-    kind: PeeringDialer
-    metadata:
-      name: cluster-01 ## The name of the peer you want to connect to
-    spec:
-      peer:
-        secret:
-          name: "peering-token"
-          key: "data"
-          backend: "kubernetes"
-    ```
-
-  </CodeBlockConfig>
-
-1. Apply the `PeeringDialer` resource to the second cluster.
-
-    ```shell-session
-    $ kubectl --context $CLUSTER2_CONTEXT apply --filename dialer.yaml
-    ```
-
-</Tab>
-</Tabs>
-
 ## Export services between clusters
+
+<Note title="CLI required">
+
+You must use the Consul CLI when exporting services on VM or on-prem deployments. The Consul UI does not support interactions with configuration entries.
+
+</Note>
 
 After you establish a connection between the clusters, you need to create an `exported-services` configuration entry that defines the services that are available for other clusters. Consul uses this configuration entry to advertise service information and support service mesh connections across clusters.
 
-First, create a configuration entry and specify the `Kind` as `"exported-services"`.
+1. Create a configuration entry and specify the `Kind` as `"exported-services"`.
 
-<CodeBlockConfig filename="peering-config.hcl" hideClipboard>
+  <CodeBlockConfig filename="peering-config.hcl" hideClipboard>
 
-```hcl
-Kind = "exported-services"
-Name = "default"
-Services = [
-  {
-    ## The name and namespace of the service to export.
-    Name      = "service-name"
-    Namespace = "default"
+  ```hcl
+  Kind = "exported-services"
+  Name = "default"
+  Services = [
+    {
+      ## The name and namespace of the service to export.
+      Name      = "service-name"
+      Namespace = "default"
 
-    ## The list of peer clusters to export the service to.
-    Consumers = [
-      {
-        ## The peer name to reference in config is the one set
-        ## during the peering process.
-        Peer = "cluster-02"
-      }
-    ]
-  }
-]
-```
+      ## The list of peer clusters to export the service to.
+      Consumers = [
+        {
+          ## The peer name to reference in config is the one set
+          ## during the peering process.
+          Peer = "cluster-02"
+        }
+      ]
+    }
+  ]
+  ```
 
-</CodeBlockConfig>
+  </CodeBlockConfig>
 
-Then, add the configuration entry to your cluster.
+1. Add the configuration entry to your cluster.
 
-```shell-session
-$ consul config write peering-config.hcl
-```
+  ```shell-session
+  $ consul config write peering-config.hcl
+  ```
 
-Before you proceed, wait for the clusters to sync and make services available to their peers. You can issue an endpoint query to [check the peered cluster status](#check-peered-cluster-status).
+Before you proceed, wait for the clusters to sync and make services available to their peers. To check the peered cluster status, [issue an endpoint query](#check-peered-cluster-status).
 
-### Authorize services for peers
+## Authorize services for peers
+
+<Note title="CLI required">
+
+We recommend using the Consul CLI to create and add service intentions to deployments with cluster peering connections. The Consul UI supports intentions for local clusters only.
+
+</Note>
 
 Before you can call services from peered clusters, you must set service intentions that authorize those clusters to use specific services. Consul prevents services from being exported to unauthorized clusters.
 
@@ -290,13 +444,406 @@ $ consul config write peering-intentions.hcl
 
 ### Authorize Service Reads with ACLs
 
-If ACLs are enabled on a Consul cluster, sidecar proxies that access exported services as an upstream must have an ACL token that grants read access. 
+If ACLs are enabled on a Consul cluster, sidecar proxies that access exported services as an upstream must have an ACL token that grants read access.
+
 Read access to all imported services is granted using either of the following rules associated with an ACL token:
+
 - `service:write` permissions for any service in the sidecar's partition.
 - `service:read` and `node:read` for all services and nodes, respectively, in sidecar's namespace and partition.
-For Consul Enterprise, access is granted to all imported services in the service's partition.
-These permissions are satisfied when using a [service identity](/docs/security/acl/acl-roles#service-identities). 
+  
+For Consul Enterprise, access is granted to all imported services in the service's partition. These permissions are satisfied when using a [service identity](/docs/security/acl/acl-roles#service-identities).
 
-Example rule files can be found in [Reading Servers](/docs/connect/config-entries/exported-services#reading-services) in the `exported-services` config entry documentation.
+Example rule files can be found in [Reading servers](/docs/connect/config-entries/exported-services#reading-services) in the `exported-services` config entry documentation.
 
-Refer to [ACLs System Overview](/docs/security/acl) for more information on ACLs and their setup.
+For additional information about how to configure and use ACLs, refer to [ACLs system overview](/docs/security/acl).
+
+</Tab>
+
+<Tab heading="Kubernetes" group="k8s">
+
+## Requirements
+
+To establish a cluster peering connection, your deployments must meet several requirements. For additional guidance on required configuration values, refer to the [cluster peering configuration reference](/consul/docs/connect/cluster-peering/configuration).
+
+### Kubernetes deployment requirements
+
+You must meet the following requirements to use Consul's cluster peering features with Kubernetes:
+
+- Consul v1.14 or higher
+- Consul on Kubernetes v1.0.0 or higher
+- At least two Kubernetes clusters
+
+If you are setting up cluster peering for the first time and need additional guidance to get started, refer to [before you start cluster peering on Kubernetes]().
+
+In Consul on Kubernetes, peers identify each other using the `metadata.name` values you establish when creating the `PeeringAcceptor` and `PeeringDialer` CRDs. For additional information about the CRDs used for cluster peering, refer to [Cluster peering on Kubernetes](/consul/docs/connect/cluster-peering/usage/k8s).
+
+### Mesh gateway requirements
+
+Mesh gateways are required for all cluster peering connections. Consider the following architectural requirements when creating mesh gateways:
+
+- A registered mesh gateway is required in order to export services to peers.
+- For Enterprise, the mesh gateway that exports services must be registered in the same partition as the exported services and their `exported-services` configuration entry.
+- To use the `local` mesh gateway mode, you must register a mesh gateway in the importing cluster.
+
+## Create a peering token
+
+To begin the cluster peering process, generate a peering token in one of your clusters. The other cluster uses this token to establish the peering connection.
+
+Every time you generate a peering token, a single-use secret for establishing the secret is embedded in the token. Because regenerating a peering token invalidates the previously generated secret, you must use the most recently created token to establish peering connections.
+
+1. In `cluster-01`, create the `PeeringAcceptor` custom resource.
+
+  <CodeBlockConfig filename="acceptor.yaml">
+
+  ```yaml
+    apiVersion: consul.hashicorp.com/v1alpha1
+    kind: PeeringAcceptor
+    metadata:
+      name: cluster-02 ## The name of the peer you want to connect to
+    spec:
+      peer:
+        secret:
+          name: "peering-token"
+          key: "data"
+          backend: "kubernetes"
+    ```
+
+  </CodeBlockConfig>
+
+1. Apply the `PeeringAcceptor` resource to the first cluster.
+
+    ```shell-session
+    $ kubectl --context $CLUSTER1_CONTEXT apply --filename acceptor.yaml
+    ````
+
+1. Save your peering token so that you can export it to the other cluster.
+
+    ```shell-session
+    $ kubectl --context $CLUSTER1_CONTEXT get secret peering-token --output yaml > peering-token.yaml
+    ```
+
+## Establish a connection between clusters
+
+Next, use the peering token to establish a secure connection between the clusters.
+
+1. Apply the peering token to the second cluster.
+
+    ```shell-session
+    $ kubectl --context $CLUSTER2_CONTEXT apply --filename peering-token.yaml
+    ```
+
+1. In `cluster-02`, create the `PeeringDialer` custom resource.
+
+  <CodeBlockConfig filename="dialer.yaml">
+
+  ```yaml
+    apiVersion: consul.hashicorp.com/v1alpha1
+    kind: PeeringDialer
+    metadata:
+      name: cluster-01 ## The name of the peer you want to connect to
+    spec:
+      peer:
+        secret:
+          name: "peering-token"
+          key: "data"
+          backend: "kubernetes"
+    ```
+
+  </CodeBlockConfig>
+
+1. Apply the `PeeringDialer` resource to the second cluster.
+
+    ```shell-session
+    $ kubectl --context $CLUSTER2_CONTEXT apply --filename dialer.yaml
+    ```
+
+### Configure the mesh gateway mode for traffic between services
+
+In Kubernetes deployments, you can configure mesh gateways to use `local` mode so that a service dialing a service in a remote peer dials the remote mesh gateway instead of the local mesh gateway. To configure the mesh gateway mode so that this traffic always leaves through the local mesh gateway, you can use the `ProxyDefaults` CRD.
+
+1. In `cluster-01` apply the following `ProxyDefaults` CRD to configure the mesh gateway mode.
+
+    <CodeBlockConfig filename="proxy-defaults.yaml">
+
+    ```yaml
+    apiVersion: consul.hashicorp.com/v1alpha1
+    kind: ProxyDefaults
+    metadata:
+      name: global
+    spec:
+      meshGateway:
+        mode: local
+    ```
+
+    </CodeBlockConfig>
+    
+    ```shell-session
+    $  kubectl --context $CLUSTER1_CONTEXT apply -f proxy-defaults.yaml 
+    ```
+
+1. In `cluster-02` apply the following `ProxyDefaults` CRD to configure the mesh gateway mode.
+
+    <CodeBlockConfig filename="proxy-defaults.yaml">
+
+    ```yaml
+    apiVersion: consul.hashicorp.com/v1alpha1
+    kind: ProxyDefaults
+    metadata:
+      name: global
+    spec:
+      meshGateway:
+        mode: local
+    ```
+
+    </CodeBlockConfig>
+    
+    ```shell-session
+    $  kubectl --context $CLUSTER2_CONTEXT apply -f proxy-defaults.yaml 
+    ```
+
+## Export services between clusters
+
+The examples described in this section demonstrate how to export a service named `backend`. You should change instances of `backend` in the example code to the name of the service you want to export.
+
+1. For the service in `cluster-02` that you want to export, add the `"consul.hashicorp.com/connect-inject": "true"` annotation to your service's pods prior to deploying. The annotation allows the workload to join the mesh. It is highlighted in the following example:
+
+    <CodeBlockConfig filename="backend.yaml" highlight="37">
+
+    ```yaml
+    # Service to expose backend
+    apiVersion: v1
+    kind: Service
+    metadata:
+      name: backend
+    spec:
+      selector:
+        app: backend
+      ports:
+      - name: http
+        protocol: TCP
+        port: 80
+        targetPort: 9090
+    ---
+    apiVersion: v1
+    kind: ServiceAccount
+    metadata:
+      name: backend
+    ---
+    # Deployment for backend
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: backend
+      labels:
+        app: backend
+    spec:
+      replicas: 1
+      selector:
+        matchLabels:
+          app: backend
+      template:
+        metadata:
+          labels:
+            app: backend
+          annotations:
+            "consul.hashicorp.com/connect-inject": "true"
+        spec:
+          serviceAccountName: backend
+          containers:
+          - name: backend
+            image: nicholasjackson/fake-service:v0.22.4
+            ports:
+            - containerPort: 9090
+            env:
+            - name: "LISTEN_ADDR"
+              value: "0.0.0.0:9090"
+            - name: "NAME"
+              value: "backend"
+            - name: "MESSAGE"
+              value: "Response from backend"
+    ```
+
+    </CodeBlockConfig>
+
+1. Deploy the `backend` service to the second cluster.
+
+   ```shell-session
+   $ kubectl --context $CLUSTER2_CONTEXT apply --filename backend.yaml
+   ```
+
+1. In `cluster-02`, create an `ExportedServices` custom resource.
+
+    <CodeBlockConfig filename="exported-service.yaml">
+
+    ```yaml
+    apiVersion: consul.hashicorp.com/v1alpha1
+    kind: ExportedServices
+    metadata:
+      name: default ## The name of the partition containing the service
+    spec:
+      services:
+        - name: backend ## The name of the service you want to export
+          consumers:
+          - peer: cluster-01 ## The name of the peer that receives the service
+    ```
+
+    </CodeBlockConfig>
+
+1. Apply the `ExportedServices` resource to the second cluster.
+
+    ```shell-session
+    $ kubectl --context $CLUSTER2_CONTEXT apply --filename exported-service.yaml
+    ```
+
+### Authorize services for peers
+
+1. Create service intentions for the second cluster.
+
+    <CodeBlockConfig filename="intention.yaml">
+
+    ```yaml
+    apiVersion: consul.hashicorp.com/v1alpha1
+    kind: ServiceIntentions
+    metadata:
+      name: backend-deny
+    spec:
+      destination:
+        name: backend
+      sources:
+       - name: "*"
+         action: deny
+       - name: frontend
+         action: allow
+         peer: cluster-01 ## The peer of the source service
+    ```
+
+    </CodeBlockConfig>
+
+1. Apply the intentions to the second cluster.
+
+    <CodeBlockConfig>
+
+    ```shell-session
+    $ kubectl --context $CLUSTER2_CONTEXT apply --filename intention.yaml
+    ```
+
+    </CodeBlockConfig>
+
+1. Add the `"consul.hashicorp.com/connect-inject": "true"` annotation to your service's pods before deploying the workload so that the services in `cluster-01` can dial `backend` in `cluster-02`. To dial the upstream service from an application, configure the application so that that requests are sent to the correct DNS name as specified in [Service Virtual IP Lookups](/consul/docs/discovery/dns#service-virtual-ip-lookups). In the following example, the annotation that allows the workload to join the mesh and the configuration provided to the workload that enables the workload to dial the upstream service using the correct DNS name is highlighted. [Service Virtual IP Lookups for Consul Enterprise](/consul/docs/discovery/dns#service-virtual-ip-lookups-for-consul-enterprise) details how you would similarly format a DNS name including partitions and namespaces.
+
+    <CodeBlockConfig filename="frontend.yaml" highlight="36,51">
+
+    ```yaml
+    # Service to expose frontend
+    apiVersion: v1
+    kind: Service
+    metadata:
+      name: frontend
+    spec:
+      selector:
+        app: frontend
+      ports:
+      - name: http
+        protocol: TCP
+        port: 9090
+        targetPort: 9090
+    ---
+    apiVersion: v1
+    kind: ServiceAccount
+    metadata:
+      name: frontend
+    ---
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: frontend
+      labels:
+        app: frontend
+    spec:
+      replicas: 1
+      selector:
+        matchLabels:
+          app: frontend
+      template:
+        metadata:
+          labels:
+            app: frontend
+          annotations:
+            "consul.hashicorp.com/connect-inject": "true"
+        spec:
+          serviceAccountName: frontend
+          containers:
+          - name: frontend
+            image: nicholasjackson/fake-service:v0.22.4
+            securityContext:
+              capabilities:
+                add: ["NET_ADMIN"]
+            ports:
+            - containerPort: 9090
+            env:
+            - name: "LISTEN_ADDR"
+              value: "0.0.0.0:9090"
+            - name: "UPSTREAM_URIS"
+              value: "http://backend.virtual.cluster-02.consul"
+            - name: "NAME"
+              value: "frontend"
+            - name: "MESSAGE"
+              value: "Hello World"
+            - name: "HTTP_CLIENT_KEEP_ALIVES"
+              value: "false"
+    ```
+
+    </CodeBlockConfig>
+
+1. Apply the service file to the first cluster.
+
+    ```shell-session
+    $ kubectl --context $CLUSTER1_CONTEXT apply --filename frontend.yaml
+    ```
+
+1. Run the following command in `frontend` and then check the output to confirm that you peered your clusters successfully.
+
+    <CodeBlockConfig highlight="31">
+
+    ```shell-session
+    $ kubectl --context $CLUSTER1_CONTEXT exec -it $(kubectl --context $CLUSTER1_CONTEXT get pod -l app=frontend -o name) -- curl localhost:9090
+
+    {
+      "name": "frontend",
+      "uri": "/",
+      "type": "HTTP",
+      "ip_addresses": [
+        "10.16.2.11"
+      ],
+      "start_time": "2022-08-26T23:40:01.167199",
+      "end_time": "2022-08-26T23:40:01.226951",
+      "duration": "59.752279ms",
+      "body": "Hello World",
+      "upstream_calls": {
+        "http://backend.virtual.cluster-02.consul": {
+          "name": "backend",
+          "uri": "http://backend.virtual.cluster-02.consul",
+          "type": "HTTP",
+          "ip_addresses": [
+            "10.32.2.10"
+          ],
+          "start_time": "2022-08-26T23:40:01.223503",
+          "end_time": "2022-08-26T23:40:01.224653",
+          "duration": "1.149666ms",
+          "headers": {
+            "Content-Length": "266",
+            "Content-Type": "text/plain; charset=utf-8",
+            "Date": "Fri, 26 Aug 2022 23:40:01 GMT"
+          },
+          "body": "Response from backend",
+          "code": 200
+        }
+      },
+      "code": 200
+    }
+    ```
+
+     </CodeBlockConfig>
+
+</Tab>
+</Tabs>
