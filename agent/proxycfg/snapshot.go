@@ -803,7 +803,7 @@ func (c *configSnapshotAPIGateway) ToIngress(datacenter string) (configSnapshotI
 		}
 
 		// Configure TLS for the ingress listener
-		tls, err := c.toIngressTLS()
+		tls, err := c.toIngressTLS(listener)
 		if err != nil {
 			return configSnapshotIngressGateway{}, err
 		}
@@ -905,9 +905,24 @@ DOMAIN_LOOP:
 	return services, upstreams, compiled, err
 }
 
-func (c *configSnapshotAPIGateway) toIngressTLS() (*structs.GatewayTLSConfig, error) {
-	// TODO (t-eckert) this is dependent on future SDS work.
-	return &structs.GatewayTLSConfig{}, nil
+func (c *configSnapshotAPIGateway) toIngressTLS(listener structs.APIGatewayListener) (*structs.GatewayTLSConfig, error) {
+	// TODO How do we handle multiple listener.TLS.Certificates?
+	var sds *structs.GatewayTLSSDSConfig
+	if len(listener.TLS.Certificates) > 0 {
+		sds = &structs.GatewayTLSSDSConfig{
+			ClusterName:  "local_agent",
+			CertResource: listener.TLS.Certificates[0].String(),
+		}
+	}
+
+	return &structs.GatewayTLSConfig{
+		Enabled:       true,
+		UseADS:        true,
+		SDS:           sds,
+		TLSMinVersion: listener.TLS.MinVersion,
+		TLSMaxVersion: listener.TLS.MaxVersion,
+		CipherSuites:  listener.TLS.CipherSuites,
+	}, nil
 }
 
 type configSnapshotIngressGateway struct {
