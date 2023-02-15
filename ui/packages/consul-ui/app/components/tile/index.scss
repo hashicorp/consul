@@ -27,7 +27,7 @@
     var(--token-color-consul-surface) 0%,
     var(--token-color-consul-border) 100%
   );
-  border-color: rgb(var(--token-color-hashicorp-brand) / 10%);
+  border-color: var(--token-color-border-faint);
 }
 %with-leader-tile::after {
   --icon-name: icon-star-fill;
