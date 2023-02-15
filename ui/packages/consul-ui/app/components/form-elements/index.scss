@@ -1,6 +1,7 @@
 @import './skin';
 @import './layout';
-%form h2 {
+%form h2,
+.modal-dialog-body h2 {
   @extend %h200;
 }
 /* TODO: This is positioning the element */
@@ -67,6 +68,8 @@ span.label {
 %main-content .type-text {
   @extend %form-element;
 }
+%main-content .type-select > span,
+%main-content .type-password > span,
 %main-content label.type-text > span {
   line-height: 2.2em;
 }

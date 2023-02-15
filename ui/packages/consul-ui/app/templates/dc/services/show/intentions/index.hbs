@@ -44,7 +44,11 @@ as |route|>
     <div class="tab-section">
   {{#if (can 'create intention for service' item=item.Service)}}
         <Portal @target="app-view-actions">
-          <a data-test-create href={{href-to 'dc.services.show.intentions.create'}} class="type-create">Create</a>
+          <Hds::Button
+            @text='Create'
+            @route='dc.services.show.intentions.create'
+            data-test-create
+          />
         </Portal>
   {{/if}}
   {{#if (gt items.length 0) }}
