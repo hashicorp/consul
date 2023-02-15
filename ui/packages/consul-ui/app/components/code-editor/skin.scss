@@ -81,7 +81,7 @@ $syntax-dark-gray: #535f73;
   .CodeMirror-line::-moz-selection,
   .CodeMirror-line > span::-moz-selection,
   .CodeMirror-line > span > span::-moz-selection {
-    background: rgb(var(--token-color-surface-interactive) / 10%);
+    background: var(--token-color-surface-interactive);
   }
 
   span.cm-comment {
