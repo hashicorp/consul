@@ -81,6 +81,14 @@ func ConfigEntryToStructs(s *ConfigEntry) structs.ConfigEntry {
 		pbcommon.RaftIndexToStructs(s.RaftIndex, &target.RaftIndex)
 		pbcommon.EnterpriseMetaToStructs(s.EnterpriseMeta, &target.EnterpriseMeta)
 		return &target
+	case Kind_KindInlineCertificate:
+		var target structs.InlineCertificateConfigEntry
+		target.Name = s.Name
+
+		InlineCertificateToStructs(s.GetInlineCertificate(), &target)
+		pbcommon.RaftIndexToStructs(s.RaftIndex, &target.RaftIndex)
+		pbcommon.EnterpriseMetaToStructs(s.EnterpriseMeta, &target.EnterpriseMeta)
+		return &target
 	case Kind_KindServiceDefaults:
 		var target structs.ServiceConfigEntry
 		target.Name = s.Name
@@ -176,6 +184,14 @@ func ConfigEntryFromStructs(s structs.ConfigEntry) *ConfigEntry {
 		configEntry.Kind = Kind_KindHTTPRoute
 		configEntry.Entry = &ConfigEntry_HTTPRoute{
 			HTTPRoute: &route,
+		}
+	case *structs.InlineCertificateConfigEntry:
+		var cert InlineCertificate
+		InlineCertificateFromStructs(v, &cert)
+
+		configEntry.Kind = Kind_KindInlineCertificate
+		configEntry.Entry = &ConfigEntry_InlineCertificate{
+			InlineCertificate: &cert,
 		}
 	default:
 		panic(fmt.Sprintf("unable to convert %T to proto", s))
