@@ -15,7 +15,7 @@ Cluster peering is enabled in Consul by default. For specific information about 
 
 - [HTTP API reference: `/peering/` endpoint](/consul/api-docs/peering)
 - [CLI reference: `peering` command](/consul/commands/peering).
-- [Cluster peering configuration reference](/docs/consul/cluster-peering/configuration)
+- [Cluster peering technical specifications](/docs/consul/cluster-peering/configuration)
 
 **Usage information:**
 
@@ -26,7 +26,6 @@ Cluster peering is enabled in Consul by default. For specific information about 
 **Runtime-specific information:**
 
 - [Cluster peering on Kubernetes](/consul/docs/cluster-peering/usage/k8s)
-- [Cluster peering on HCP Consul](/hcp/docs/consul/usage/cluster-peering)
 
 **Tutorials:**
 
@@ -49,7 +48,7 @@ Cluster peering leverages several components of Consul's architecture to enforce
 - An _exported service_ communicates with downstreams deployed in other admin partitions. They are explicitly defined in an [`exported-services` configuration entry](/consul/docs/connect/config-entries/exported-services).
 - A _service intention_ secures [service-to-service communication in a service mesh](/consul/docs/connect/intentions). Intentions enable identity-based access between services by exchanging TLS certificates, which the service's sidecar proxy verifies upon each request.
 
-## Compared to WAN federation
+## Compared with WAN federation
 
 WAN federation and cluster peering are different ways to connect services through mesh gateways so that they can communicate across datacenters. WAN federation connects multiple datacenters to make them function as if they were a single cluster, while cluster peering treats each datacenter as a separate cluster. As a result, WAN federation requires a primary datacenter to maintain and replicate global states such as ACLs and configuration entries, but cluster peering does not.
 
@@ -71,7 +70,7 @@ Regardless of whether you connect your clusters through WAN federation or cluste
 
 ## Troubleshooting
 
-If you experience errors when using Consul's cluster peering features, refer to the following list technical constraints.
+If you experience errors when using Consul's cluster peering features, refer to the following list of technical constraints.
 
 - Peer names can only contain lowercase characters.
 - Services with node, instance, and check definitions totaling more than 8MB cannot be exported to a peer.
