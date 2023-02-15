@@ -1,17 +1,24 @@
 ---
 layout: docs
-page_title: Cluster Peering Configuration
-description: >-
-  
+page_title: Cluster Peering Technical Specifications 
+description: >- 
+  Cluster peering connections in Consul interact with mesh gateways, sidecar proxies, exported services, and ACLs. Learn about the configuration requirements for these components.
 ---
 
-# Cluster Peering Configuration
+# Cluster peering technical specifications
 
-This topic provides an overview of the configuration options when creating cluster peering. Use these parameters to enable service-to-service traffic between clusters with cluster peering connections.
+This topic describes the technical specifications associated using cluster peering in your deployments. These specifications include required Consul components and their configurations.
+
+To use Consul's cluster peering features in a secure deployment, verify that the following components are configured:
+  
+- [Mesh gateways](#mesh-gateway-requirements)
+- [Sidecar proxies](#sidecar-proxy-requirements)
+- [Exported services](#exported-service-requirements)
+- [ACLs](#acl-requirements)
 
 ## Prerequisites
 
-To configure mesh gateways for cluster peering, make sure your Consul environment meets the following requirements:
+Make sure your Consul environment meets the following requirements:
 
 - Consul v1.14 or higher.
 - A local Consul agent is required to manage mesh gateway configuration.
@@ -21,36 +28,48 @@ To configure mesh gateways for cluster peering, make sure your Consul environmen
 
 Configure the following settings to register and use the mesh gateway as a service in Consul.
 
-### Gateway registration
+### Mesh gateway requirements
 
-- Specify `mesh-gateway` in the `kind` field to register the gateway with Consul.
-- Define the `Proxy.Config` settings using opaque parameters compatible with your proxy. For Envoy, refer to the [Gateway Options](/consul/docs/connect/proxies/envoy#gateway-options) and [Escape-hatch Overrides](/consul/docs/connect/proxies/envoy#escape-hatch-overrides) documentation for additional configuration information.
+Mesh gateways are required for routing service mesh traffic between partitions with cluster peering connections. Consider the following general requirements for mesh gateways when using cluster peering:
 
-Alternatively, you can also use the CLI to spin up and register a gateway in Consul. For additional information, refer to the [`consul connect envoy` command](/consul/commands/connect/envoy#mesh-gateways).
+- A cluster requires a registered mesh gateway in order to export services to peers.
+- For Enterprise, this mesh gateway must also be registered in the same partition as the exported services and their `exported-services` configuration entry.
+- To use the `local` mesh gateway mode, you must register a mesh gateway in the importing cluster.
 
-### Sidecar registration
+In addition, these particular fields may require your attention:
+
+- Define the `Proxy.Config` settings using opaque parameters compatible with your proxy. For Envoy, refer to the [Gateway options](/consul/docs/connect/proxies/envoy#gateway-options) and [Escape-hatch Overrides](/consul/docs/connect/proxies/envoy#escape-hatch-overrides) documentation for additional configuration information.
+
+#### Mesh gateway modes
+
+By default, all cluster peering connections use mesh gateways in [remote mode](/consul/docs/connect/gateways/mesh-gateway/service-to-service-traffic-wan-datacenters#remote). Be aware of these additional requirements when changing a mesh gateway's mode.
+
+- For mesh gateways that connect peered clusters, you can set the `mode` as either `remote` or `local`.
+- The `none` mode is invalid for mesh gateways with cluster peering connections.
+
+Refer to [mesh gateway modes](/consul/docs/connect/gateways/mesh-gateway#modes) for more information.
+
+### Sidecar proxy requirements
+
+The Envoy proxies that function as sidecars in your service mesh require configuration in order to properly route traffic to peers. Sidecar proxies are defined in the [service definition](/consul/docs/discovery/services).
 
 - Configure the `proxy.upstreams` parameters to route traffic to the correct service, namespace, and peer. Refer to the [`upstreams` documentation](/consul/docs/connect/registration/service-registration#upstream-configuration-reference) for details.
-- The service `proxy.upstreams.destination_name` is always required.
-- The `proxy.upstreams.destination_peer` must be configured to enable cross-cluster traffic.
+- The `proxy.upstreams.destination_name` parameter is always required.
+- The `proxy.upstreams.destination_peer` parameter must be configured to enable cross-cluster traffic.
 - The `proxy.upstream/destination_namespace` configuration is only necessary if the destination service is in a non-default namespace.
 
-### Service exports
+### Exported service requirements
 
-- Include the `exported-services` configuration entry to enable Consul to export services contained in a cluster to one or more additional clusters. For additional information, refer to the [Exported Services documentation](/consul/docs/connect/config-entries/exported-services).
+The `exported-services` configuration entry is required in order for services to communicate across partitions with cluster peering connections.
 
-### ACL configuration
+Basic guidance on using the `exported-services` configuration entry is included in [Establish cluster peering connections](/consul/docs/connect/cluster-peering/usage/create-cluster-peering).
 
-If ACLs are enabled, you must add a token granting `service:write` for the gateway's service name and `service:read` for all services in the Enterprise admin partition or OSS datacenter to the gateway's service definition.
+Refer to the [`exported-services` configuration entry reference](/consul/docs/connect/config-entries/exported-services) for more information.
 
-These permissions authorize the token to route communications for other Consul service mesh services.
+### ACL requirements
 
-You must also grant `mesh:write` to mesh gateways routing peering traffic in the data plane.
+If ACLs are enabled, you must add tokens to grant the following permissions:
 
-This permission allows a leaf certificate to be issued for mesh gateways to terminate TLS sessions for HTTP requests.
-
-### Modes
-
-Modes are configurable as either `remote` or `local` for mesh gateways that connect peered clusters. 
-The `none` setting is invalid for mesh gateways in peered clusters and will be ignored by the gateway.
-By default, all proxies connecting to peered clusters use mesh gateways in [remote mode](/consul/docs/connect/gateways/mesh-gateway/service-to-service-traffic-wan-datacenters#remote).
+- Grant `service:write` permissions to services that define mesh gateways in their server definition.
+- Grant `service:read` permissions for all services on the partition.
+- Grant `mesh:write` permissions to the mesh gateways that participate in cluster peering connections. This permission allows a leaf certificate to be issued for mesh gateways to terminate TLS sessions for HTTP requests.

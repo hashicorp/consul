@@ -526,22 +526,22 @@
             "path": "connect/cluster-peering"
           },
           {
-            "title": "Configuration Reference",
+            "title": "Technical Specifications",
             "path": "connect/cluster-peering/configuration"
           },
           {
             "title": "Usage",
             "routes": [
               {
-                "title": "Create peering connections",
+                "title": "Establish cluster peering connections",
                 "path": "connect/cluster-peering/usage/create-cluster-peering"
               },
               {
-                "title": "Manage peering connections",
+                "title": "Manage cluster peering connections",
                 "path": "connect/cluster-peering/usage/manage-connections"
               },
               {
-                "title": "Traffic management between peers",
+                "title": "Manage L7 traffic with cluster peering",
                 "path": "connect/cluster-peering/usage/peering-traffic-management"
               },
               {
