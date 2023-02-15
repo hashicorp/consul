@@ -878,7 +878,7 @@ DOMAIN_LOOP:
 		}
 	}
 
-	if len(boundListener.Routes) == 0 {
+	if len(chains) == 0 {
 		return nil, nil, nil, nil
 	}
 
