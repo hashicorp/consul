@@ -20,6 +20,7 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
+	"github.com/hashicorp/consul/agent/hcp/telemetry"
 	"github.com/hashicorp/go-connlimit"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
@@ -786,6 +787,7 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server, incom
 
 	// Now we are setup, configure the HCP manager
 	go s.hcpManager.Run(&lib.StopChannelContext{StopCh: shutdownCh})
+	telemetry.NewReporter(telemetry.DefaultConfig())
 
 	err = s.runEnterpriseRateLimiterConfigEntryController()
 	if err != nil {

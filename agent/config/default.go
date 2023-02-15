@@ -138,6 +138,7 @@ func DefaultSource() Source {
 			metrics_prefix = "consul"
 			filter_default = true
 			prefix_filter = []
+			prometheus_retention_time = "30s"
 			retry_failed_connection = true
 		}
 		raft_snapshot_threshold = ` + strconv.Itoa(int(cfg.RaftConfig.SnapshotThreshold)) + `
