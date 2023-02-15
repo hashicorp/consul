@@ -831,10 +831,6 @@ func (c *configSnapshotAPIGateway) ToIngress(datacenter string) (configSnapshotI
 }
 
 func (c *configSnapshotAPIGateway) synthesizeChains(datacenter string, protocol structs.APIGatewayListenerProtocol, port int, name string, boundListener structs.BoundAPIGatewayListener) ([]structs.IngressService, structs.Upstreams, []*structs.CompiledDiscoveryChain, error) {
-	if len(boundListener.Routes) == 0 {
-		return nil, nil, nil, nil
-	}
-
 	chains := []*structs.CompiledDiscoveryChain{}
 	trustDomain := ""
 
@@ -880,6 +876,10 @@ DOMAIN_LOOP:
 		default:
 			return nil, nil, nil, fmt.Errorf("unknown route kind %q", routeRef.Kind)
 		}
+	}
+
+	if len(boundListener.Routes) == 0 {
+		return nil, nil, nil, nil
 	}
 
 	services, compiled, err := synthesizer.Synthesize(chains...)
