@@ -17,13 +17,15 @@
     {{#yield-slot name='trigger'}}
       {{yield}}
     {{else}}
-      <label
-        class="type-dialog"
+      <Hds::Button
+        @text='Create new policy'
+        @size='small'
+        @color='tertiary'
+        @icon='plus'
+        class='type-dialog'
         data-test-policy-create
         {{on "click" (action this.openModal)}}
-      >
-        <span>Create new policy</span>
-      </label>
+      />
       {{!TODO: potentially call trigger something else}}
       {{!the modal has to go here so that if you provide a slot to trigger it doesn't get rendered}}
       <ModalDialog

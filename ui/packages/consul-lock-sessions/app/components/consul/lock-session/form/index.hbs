@@ -47,11 +47,14 @@
             <dd>{{@item.ID}}</dd>
             <dt>Node</dt>
             <dd>
-                <a
-                  href={{href-to 'dc.nodes.show' @item.Node}}
-                >
-                  {{@item.Node}}
-                </a>
+              <Hds::Button
+                @text={{@item.Node}}
+                @icon='git-commit'
+                @href={{href-to 'dc.nodes.show' @item.Node}}
+                @isHrefExternal={{false}}
+                @size='small'
+                @color='tertiary'
+              />
             </dd>
             <dt>Delay</dt>
             <dd>{{duration-from @item.LockDelay}}</dd>

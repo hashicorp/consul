@@ -137,11 +137,28 @@ as |item|}}
                 {{compute (fn route.t 'documentation.title')}}
               </h3>
             </header>
-            {{compute (fn route.t 'documentation.body'
-              (hash
-                htmlSafe=true
-              )
-            )}}
+
+                <Hds::Button
+                  @text={{compute (fn route.t 'documentation.links.license-expiration.text')}}
+                  @href='{{CONSUL_DOCS_URL}}{{compute (fn route.t 'documentation.links.license-expiration.link')}}'
+                  @color='tertiary'
+                  @icon='docs-link'
+                />
+
+                <Hds::Button
+                  @text={{compute (fn route.t 'documentation.links.renewing-license.text')}}
+                  @href='{{CONSUL_DOCS_URL}}{{compute (fn route.t 'documentation.links.renewing-license.link')}}'
+                  @color='tertiary'
+                  @icon='docs-link'
+                />
+
+                <Hds::Button
+                  @text={{compute (fn route.t 'documentation.links.applying-new-license.text')}}
+                  @href='{{CONSUL_DOCS_URL}}{{compute (fn route.t 'documentation.links.applying-new-license.link')}}'
+                  @color='tertiary'
+                  @icon='docs-link'
+                />
+
           </aside>
 
         </section>

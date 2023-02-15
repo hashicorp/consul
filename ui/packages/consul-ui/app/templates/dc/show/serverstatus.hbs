@@ -87,12 +87,16 @@ as |item|}}
           >
 
             <header>
-              {{compute (fn route.t 'tolerance.link' (hash
-                htmlSafe=true
-              ))}}
               <h2>
                 {{compute (fn route.t 'tolerance.header')}}
               </h2>
+              <Hds::Button
+                @text={{compute (fn route.t 'tolerance.link-text')}}
+                @href='{{CONSUL_DOCS_URL}}{{compute (fn route.t 'tolerance.link')}}'
+                @color='tertiary'
+                @icon='docs-link'
+                @iconPosition='trailing'
+              />
             </header>
 
             <section

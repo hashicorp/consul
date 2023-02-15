@@ -35,7 +35,6 @@ pre code,
   @extend %p1;
 }
 %empty-state-anchor,
-.type-dialog,
 %table td p,
 %table td,
 %healthcheck-output dl > dd,
@@ -66,8 +65,7 @@ pre code,
 
 /*TODO: See if we can collapse these into a */
 /* strong %p3 */
-%form-element-label,
-%button {
+%form-element-label {
   font-weight: var(--typo-weight-semibold);
 }
 %route-card section dt,
