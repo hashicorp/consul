@@ -718,7 +718,8 @@ func TestVaultCAProvider_AliCloudAuthClient(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			auth, err := NewAliCloudAuthClient(c.authMethod)
 			if c.expErr != nil {
-				require.Equal(t, err, c.expErr)
+				require.Error(t, err)
+				require.EqualError(t, c.expErr, err.Error())
 				return
 			}
 			require.NotNil(t, auth)
