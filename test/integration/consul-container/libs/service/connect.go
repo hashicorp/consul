@@ -109,6 +109,13 @@ func (g ConnectContainer) Start() error {
 	return g.container.Start(g.ctx)
 }
 
+func (g ConnectContainer) Stop() error {
+	if g.container == nil {
+		return fmt.Errorf("container has not been initialized")
+	}
+	return g.container.Stop(context.Background(), nil)
+}
+
 func (g ConnectContainer) Terminate() error {
 	return cluster.TerminateContainer(g.ctx, g.container, true)
 }
