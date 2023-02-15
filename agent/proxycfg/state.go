@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net"
 	"reflect"
+	"runtime/debug"
 	"sync/atomic"
 	"time"
 
@@ -298,6 +299,21 @@ func newConfigSnapshotFromServiceInstance(s serviceInstance, config stateConfig)
 }
 
 func (s *state) run(ctx context.Context, snap *ConfigSnapshot) {
+	// Add a recover here so than any panics do not make their way up
+	// into the server / agent.
+	defer func() {
+		if r := recover(); r != nil {
+			s.logger.Error("unexpected panic while running proxycfg",
+				"node", s.serviceInstance.proxyID.NodeName,
+				"service", s.serviceInstance.proxyID.ServiceID,
+				"message", r,
+				"stacktrace", string(debug.Stack()))
+		}
+	}()
+	s.unsafeRun(ctx, snap)
+}
+
+func (s *state) unsafeRun(ctx context.Context, snap *ConfigSnapshot) {
 	// Close the channel we return from Watch when we stop so consumers can stop
 	// watching and clean up their goroutines. It's important we do this here and
 	// not in Close since this routine sends on this chan and so might panic if it
