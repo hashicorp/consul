@@ -8,8 +8,7 @@
 }
 %list-row-intent {
   border-color: var(--token-color-surface-interactive-active);
-  /*TODO: This should use a shared/CSS prop shadow*/
-  box-shadow: 0 2px 4px rgb(var(--black) / 10%);
+  box-shadow: var(--token-elevation-high-box-shadow);
   border-top-color: transparent;
   cursor: pointer;
 }

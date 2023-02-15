@@ -26,6 +26,6 @@ export default (css) => css`
   }
   .panel,
   .panel-separator {
-    border-color: rgb(var(--tone-border));
+    border-color: var(--tone-border);
   }
 `;

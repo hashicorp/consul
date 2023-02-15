@@ -11,8 +11,8 @@
     color: var(--token-color-foreground-success);
   }
   &.pending {
-    background: rgb(var(--tone-strawberry-050));
-    color: rgb(var(--tone-strawberry-500));
+    background: var(--token-color-consul-surface);
+    color: var(--token-color-consul-brand);
   }
   &.establishing {
     background: var(--token-color-surface-action);
