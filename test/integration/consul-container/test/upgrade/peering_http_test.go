@@ -99,7 +99,7 @@ func TestPeering_UpgradeToTarget_fromLatest(t *testing.T) {
 	}
 
 	run := func(t *testing.T, tc testcase) {
-		accepting, dialing := libtopology.BasicPeeringTwoClustersSetup(t, tc.oldversion)
+		accepting, dialing := libtopology.BasicPeeringTwoClustersSetup(t, tc.oldversion, false)
 		var (
 			acceptingCluster = accepting.Cluster
 			dialingCluster   = dialing.Cluster
