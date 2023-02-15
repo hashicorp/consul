@@ -3,9 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
-
 	"github.com/hashicorp/consul/api"
-
 	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 )

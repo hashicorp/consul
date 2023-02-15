@@ -3,70 +3,66 @@ package troubleshoot
 import (
 	"context"
 	"fmt"
-	"github.com/hashicorp/consul/api"
-	libassert "github.com/hashicorp/consul/test/integration/consul-container/libs/assert"
+	"github.com/stretchr/testify/assert"
+	"strings"
+	"testing"
+	"time"
+
+	"github.com/stretchr/testify/require"
+
 	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
 	libservice "github.com/hashicorp/consul/test/integration/consul-container/libs/service"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/topology"
-	"github.com/stretchr/testify/require"
-	"io"
-	"testing"
 )
 
-func TestTroubleshootUpstream(t *testing.T) {
+func TestTroubleshootProxy(t *testing.T) {
 	t.Parallel()
-
 	cluster, _, _ := topology.NewPeeringCluster(t, 1, &libcluster.BuildOptions{
 		Datacenter:           "dc1",
 		InjectAutoEncryption: true,
 	})
 
-	_, clientService := createServices(t, cluster)
+	serverService, clientService := topology.CreateServices(t, cluster)
 
 	clientSidecar, ok := clientService.(*libservice.ConnectContainer)
 	require.True(t, ok)
-	ip, port := clientSidecar.GetAdminAddr()
-	_, outputReader, err := clientSidecar.Exec(context.Background(), []string{"consul", "troubleshoot", "upstreams", "-envoy-admin-endpoint", fmt.Sprintf("%s:%v", ip, port)})
-	buf, err := io.ReadAll(outputReader)
-	require.NoError(t, err)
-	require.Contains(t, string(buf), libservice.StaticServerServiceName)
-}
+	_, clientAdminPort := clientSidecar.GetInternalAdminAddr()
 
-func createServices(t *testing.T, cluster *libcluster.Cluster) (libservice.Service, libservice.Service) {
-	node := cluster.Agents[0]
-	client := node.GetClient()
+	t.Run("upstream exists and is healthy", func(t *testing.T) {
+		require.Eventually(t, func() bool {
+			output, err := clientSidecar.Exec(context.Background(),
+				[]string{"consul", "troubleshoot", "upstreams",
+					"-envoy-admin-endpoint", fmt.Sprintf("localhost:%v", clientAdminPort)})
+			require.NoError(t, err)
+			upstreamExists := assert.Contains(t, output, libservice.StaticServerServiceName)
 
-	// Register service as HTTP
-	serviceDefault := &api.ServiceConfigEntry{
-		Kind:     api.ServiceDefaults,
-		Name:     libservice.StaticServerServiceName,
-		Protocol: "http",
-	}
+			output, err = clientSidecar.Exec(context.Background(), []string{"consul", "troubleshoot", "proxy",
+				"-envoy-admin-endpoint", fmt.Sprintf("localhost:%v", clientAdminPort),
+				"-upstream-envoy-id", libservice.StaticServerServiceName})
+			require.NoError(t, err)
+			certsValid := strings.Contains(output, "certificates are valid")
+			listenersExist := strings.Contains(output, fmt.Sprintf("listener for upstream \"%s\" found", libservice.StaticServerServiceName))
+			routesExist := strings.Contains(output, fmt.Sprintf("route for upstream \"%s\" found", libservice.StaticServerServiceName))
+			healthyEndpoints := strings.Contains(output, "✓ healthy endpoints for cluster")
+			return upstreamExists && certsValid && listenersExist && routesExist && healthyEndpoints
+		}, 60*time.Second, 10*time.Second)
+	})
 
-	ok, _, err := client.ConfigEntries().Set(serviceDefault, nil)
-	require.NoError(t, err, "error writing HTTP service-default")
-	require.True(t, ok, "did not write HTTP service-default")
+	t.Run("terminate upstream and check if client sees it as unhealthy", func(t *testing.T) {
+		err := serverService.Terminate()
+		require.NoError(t, err)
 
-	// Create a service and proxy instance
-	serviceOpts := &libservice.ServiceOpts{
-		Name:     libservice.StaticServerServiceName,
-		ID:       "static-server",
-		HTTPPort: 8080,
-		GRPCPort: 8079,
-	}
+		require.Eventually(t, func() bool {
+			output, err := clientSidecar.Exec(context.Background(), []string{"consul", "troubleshoot", "proxy",
+				"-envoy-admin-endpoint", fmt.Sprintf("localhost:%v", clientAdminPort),
+				"-upstream-envoy-id", libservice.StaticServerServiceName})
+			require.NoError(t, err)
 
-	// Create a service and proxy instance
-	_, serverConnectProxy, err := libservice.CreateAndRegisterStaticServerAndSidecar(node, serviceOpts)
-	require.NoError(t, err)
-
-	libassert.CatalogServiceExists(t, client, fmt.Sprintf("%s-sidecar-proxy", libservice.StaticServerServiceName))
-	libassert.CatalogServiceExists(t, client, libservice.StaticServerServiceName)
-
-	// Create a client proxy instance with the server as an upstream
-	clientConnectProxy, err := libservice.CreateAndRegisterStaticClientSidecar(node, "", false)
-	require.NoError(t, err)
-
-	libassert.CatalogServiceExists(t, client, fmt.Sprintf("%s-sidecar-proxy", libservice.StaticClientServiceName))
-
-	return serverConnectProxy, clientConnectProxy
+			certsValid := strings.Contains(output, "certificates are valid")
+			listenersExist := strings.Contains(output, fmt.Sprintf("listener for upstream \"%s\" found", libservice.StaticServerServiceName))
+			routesExist := strings.Contains(output, fmt.Sprintf("route for upstream \"%s\" found", libservice.StaticServerServiceName))
+			endpointUnhealthy := strings.Contains(output, "no healthy endpoints for cluster")
+			return certsValid && listenersExist && routesExist && endpointUnhealthy
+		}, 60*time.Second, 10*time.Second)
+	})
 }
