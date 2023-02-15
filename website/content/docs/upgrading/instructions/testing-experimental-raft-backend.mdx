@@ -1,0 +1,420 @@
+---
+layout: docs
+page_title: Testing the Experimental WAL LogStore Backend
+description: >-
+  Consul 1.15 introduced a new experimental storage backend option. Learn how to
+  configure and test it out in a safe way.
+---
+
+# Testing the Experimental WAL LogStore Backend
+
+## Introduction
+
+Consul 1.15 introduced a new experimental storage backend. This guide explains
+how to configure it and test it out safely. The new backend is called `wal` in
+configuration.
+
+WAL is a acronym for "Write-Ahead Log". We called it this because it implements
+a traditional log with rotating, append-only log files. The current `LogStore`
+uses BoltDB which is a copy-on-write BTree which is less optimized for
+append-only workloads.
+
+~> The `wal` backend is considered **experimental** in Consul 1.15. Please test
+it safely in pre-production first and verify on a subset of servers in
+production using this guide before fully enabling it on all servers.
+
+## Why build a new backend?
+
+The WAL backend has been written to resolve some long-standing issues with the
+current BoltDB backend. The existing BoltDB log store has worked reliably for
+most users for years, however it is not the most efficient way to store
+append-only logs to disk since it was designed as a full key-value database. It
+was an expedient option when our raft library was first written and always
+assumed we'd replace it with something more purpose-built.
+
+Importantly, a BoltDB database is a single file that only ever grows. Deleting
+the oldest logs which we do regularly when we've made a new snapshots of the
+state, leaves free space in the file that needs to be tracked to be re-used on
+future writes. By contrast a simple segmented log can just delete the oldest log
+files from disk. With BoltDB uses as a log, sudden burst of writes say three
+times larger than the normal volume can suddenly cause the file to grow to about
+several times it's steady-state size. After the next snapshot is taken, and the
+oldest logs truncated again, the file is left as mostly empty space. Tracking
+this free space requires writing extra metadata proportional to the amount of
+free pages to disk with every write and so after such a burst, write latencies
+tend to increase - in some cases dramatically causing serious performance
+degradation to the cluster.
+
+Even if this has never happened to a catastrophic degree in a cluster, the fact
+that it's a risk has meant that Consul has erred on the side of never letting
+too many logs accumulate in the LogStore. Significantly larger BoltDB files are
+somewhat slower in general because it's a tree and so still has log(N) work to
+do n every write. But out user's experience showed that the larger the file, the
+more likely it is to have a large freelist or suddenly form one after a burst of
+writes. For this reason, the default options for how frequently we make a full
+snapshot and truncate the logs, and for how many logs we keep around have always
+been aggressively set towards keeping BoltDB small rather than using disk IO the
+most efficiently.
+
+Other reliability issues such as [followers being unable to catch
+up](/consul/docs/agent/telemetry#raft-replication-capacity-issues) also stem
+from this need to carefully balance the size of the BoltDB log store against how
+long snapshots take to restore - there is a simple solution to that issue if
+letting logs grow much larger to ensure recovery didn't have a potentially
+catastrophic impact on the cluster's write performance.
+
+While not every user will experience a huge difference in performance, the WAL
+backend avoids these performance concerns entirely. It is more performant when
+directly measured due to solving a simpler storage problem than BoltDB was
+designed for. For example it can commit a single log entry with on fsync instead
+of two, and tends to write 2-3x fewer bytes to the disk to do it. The real
+benefit though is that retaining more logs won't impact write performance at all
+and so reducing disk IO with slower snapshots or keeping logs around to catch up
+slower followers are all possible.
+
+## Why try it out?
+
+The new WAL backend has been tested thoroughly during development:
+ * Every component in the WAL like [metadata
+   management](https://github.com/hashicorp/raft-wal/blob/main/types/meta.go),
+   [log file
+   encoding](https://github.com/hashicorp/raft-wal/blob/main/types/segment.go)
+   to actual [file-system
+   interaction](https://github.com/hashicorp/raft-wal/blob/main/types/vfs.go)
+   was abstracted so unit tests can simulate all sorts of difficult-to-reproduce
+   disk failures.
+ * We [used
+   ALICE](https://github.com/hashicorp/raft-wal/blob/main/alice/README.md), to
+   exhaustively simulate thousands of possible crash failure scenarios and test
+   that WAL correctly recovered from each.
+ * We ran hundreds of tests over a few weeks in a performance testing cluster
+   with checksum verification enabled and detected zero cases of data loss or
+   corruption. We plan to continue testing this continuously over the next few
+   months too before making it the default backend.
+
+However, we are well aware of both how complex and how critical disk-persistence
+is for our user's data.
+
+Our hope is that we will have many users at all degrees of scale try WAL in
+their environments after upgrading to 1.15 and report success or failure back so
+we have increased confidence before we make it the default for new clusters.
+
+This guide describes how to safely try and verify it without risking the
+availability of your cluster should there be a latent data-loss issue
+discovered.
+
+## Requirements
+
+- All servers in the Datacenter should be upgraded to Consul 1.15 using the
+  [standard upgrade procedure](/consul/docs/upgrading/general-process) and
+  the [1.15 upgrade notes](/consul/docs/upgrading/upgrade-specific#consul-1-15-x).
+- You need a Consul cluster with at least 3 nodes to safely test the new
+  backend without downtime.
+
+## Assumptions
+
+This guide makes the following assumptions:
+
+- You have taken a snapshot prior to testing in case things don't go to plan.
+- You have the ability to monitor Consul server metrics and logs, and ideally
+  set an alert on specific log events occurring.
+- We assume that you will try this in a pre-production environment first and
+  leave it running for a few days or weeks to gain confidence before attempting
+  it in production.
+
+## Risks
+
+Although we are describing a way to test this that limits risk as far as
+possible, there still are potential risks it's important to know:
+
+ - If WAL is enabled on a server and is found to corrupt data in some way. That
+   server's data can't be recovered. The server will need to be restarted with
+   an empty data directory and reload it's state from the leader.
+ - It's possible that WAL might corrupt data or otherwise have a bug that causes
+   the server to panic and crash. It may even not be able to restart if the same
+   bug occurs when it reads from the logs on startup. In this case as above the
+   server would need to be restarted with WAL disabled and an empty data
+   directory.
+ - It's _possible_ though unlikely that if WAL corrupted data, clients might
+   read corrupted data from that server. For example invalid IP addresses or
+   have tokens fail to match. This is unlikely even if there is a WAL corruption
+   bug hit because replication typically takes place using in-memory cached
+   objects rather than reads from disk. The issue would be fixed by restoring
+   the server.
+ - If you enable a server to use WAL using Consul OSS or on a voting server with
+   Consul Enterprise, it's _possible_ that the WAL could cause corruption of
+   that server's state (with the caveats above) _and then_ become the leader and
+   replicate that corruption to all other servers. In this scenario only a
+   restore from backup would recover a completely un-corrupt state.
+   - If you test on a non-voting server in Enterprise, this can't happen.
+
+## Procedure to enable WAL on one server
+
+**1. Enable log verification (new in 1.15).**
+
+This needs to be enabled on any voting server in Enterprise and all servers in
+OSS since it is the leader that writes verification checkpoints.
+
+On each voting server add the following to the server's configuration file:
+
+```hcl
+raft_logstore {
+  verification {
+    enabled = true
+    interval = "60s"
+  }
+}
+```
+
+You'll need to restart each server in turn for that to take effect (`consul
+reload` is not sufficient). Wait for each one to become a healthy voter again
+using `consul operator raft list-peers` before moving on to the next. This can
+take a few minutes if the snapshot is large.
+
+You should now see log entries on the servers every minute that look like this:
+
+```
+2023-01-31T14:44:31.174Z [INFO]  agent.server.raft.logstore.verifier: verification checksum OK: elapsed=488.463268ms leaderChecksum=f15db83976f2328c rangeEnd=357802 rangeStart=298132 readChecksum=f15db83976f2328c
+```
+
+
+**2. Select a server to enable WAL on.**
+
+As noted in [Risks](#risks), Consul Enterprise users should select a non-voting
+server at first. For Consul OSS users, or Enterprise users who don't have
+non-voting servers, select one of the follower servers.
+
+You can find the current state of the servers by running.
+
+```shell-session
+$ consul operator raft list-peers
+```
+
+We'll refer to this server as the "target" server from now on.
+
+
+**3. Stop the target server gracefully**
+
+For example using `systemctl stop consul` if using systemd.
+
+~> If you have any configuration management automation like Chef or Puppet that
+might interfere with this process, they must be disabled until the process is
+complete.
+
+
+**4. Remove the data directory from the target server.**
+
+Moving rather than deleting is less destructive in case of command errors. Once
+the server has restarted though, the data in the old dir should not be used for
+recovery and will eventually need to be removed entirely.
+
+Replace `/data-dir` with whatever is set in `data_dir` in your configuration
+file.
+
+```shell-session
+$ mv /data-dir/raft /data-dir/raft.bak
+```
+
+
+**5. Update the target server's configuration.**
+
+Add the following to the target server's configuration file:
+
+```hcl
+raft_logstore {
+  backend = "wal"
+  verification {
+    enabled = true
+    interval = "60s"
+  }
+}
+```
+
+**6. Start the target server.**
+
+For example with `systemctl start consul` if using systemd.
+
+**7. Monitor target server raft metrics and logs.**
+
+See the section below on [monitoring WAL tests](#monitoring-wal-tests).
+
+We suggest you leave the cluster in this configuration for days or weeks,
+assuming that you see no negative metrics or verification errors in logs to
+increase confidence in the WAL under varying workloads and during routine server
+restarts etc.
+
+~> If you disabled Chef, Puppet or similar earlier, you may want to consider
+enabling it again while the test runs. Ensure that it will not "fix" the Consul
+configuration file and remove the different backend though.
+
+**Next Steps.**
+
+ * If you see any verification errors, performance anomalies or other suspicious
+behavior from the target server during the test, you should follow [the
+procedure to revert back to BoltDB](#procedure-to-revert-to-boltdb).
+
+ * If you see no errors and would like to expand the test further, you can repeat
+the above procedure on another target server. We suggest waiting a while after
+each and slowly rolling out. Once the majority of your servers are using WAL any
+bugs not yet found could result in cluster unavailability.
+
+ * If you wish to permanently enable `wal` on all servers, you'll need to follow
+the above steps on each one. Even if `backend = "wal"` is set in logs, servers
+will continue to use BoltDB if they find an existing raft.db file in the data
+dir.
+
+~> When switching backend, you must always remove the _whole raft directory_
+not just the `raft.db` file or `wal` directory since the log must always be
+consistent with the snapshots to avoid undefined behavior or data loss.
+
+## Procedure to revert to BoltDB
+
+To revert a server that is using `wal` to using BoltDB, the steps are
+essentially the same as the procedure above.
+
+**1. Stop the target server gracefully**
+
+For example using `systemctl stop consul` if using systemd.
+
+~> If you have any configuration management automation like Chef or Puppet that
+might interfere with this process, they must be disabled until the process is
+complete.
+
+
+**2. Remove the data directory from the target server.**
+
+Moving rather than deleting is less destructive in case of command errors. Once
+the server has restarted though, the data in the old dir should not be used for
+recovery and will eventually need to be removed entirely.
+
+Replace `/data-dir` with whatever is set in `data_dir` in your configuration
+file.
+
+```shell-session
+$ mv /data-dir/raft /data-dir/raft.bak
+```
+
+
+**3. Update the target server's configuration.**
+
+Modify the `backend` in the target server's configuration file:
+
+```hcl
+raft_logstore {
+  backend = "boltdb"
+  verification {
+    enabled = true
+    interval = "60s"
+  }
+}
+```
+
+**4. Start the target server.**
+
+For example with `systemctl start consul` if using systemd.
+
+**5. Watch for the server to become a healthy voter again.**
+
+```shell-session
+$ consul operator raft list-peers
+```
+
+**6. If necessary, cleanup any `raft.bak` directories.**
+
+```shell-session
+$ rm /data-dir/raft.bak
+```
+
+## Monitoring
+
+Throughout the testing period, it's important to monitor the cluster and
+especially the target server for signals that the WAL is not performing properly
+or is behaving incorrectly.
+
+### Monitor for checksum failures
+
+If the log store verification fails on any server (whether it's running BoltDB
+or WAL backed), that is an **unrecoverable error**. It will look something like
+this in the logs:
+
+#### Read Failures: Disk Corruption
+
+```
+2022-11-15T22:41:23.546Z [ERROR]  agent.raft.logstore: verification checksum FAILED: storage corruption rangeStart=1234 rangeEnd=3456 leaderChecksum=0xc1... readChecksum=0x45...
+```
+This indicates that the server read back different data to what it wrote to disk
+which signals corruption in the storage backend or filesystem.
+
+For convenience we also increment a metric
+`consul.raft.logstore.verifier.read_checksum_failures` when this occurs.
+
+#### Write Failures: In-flight Corruption
+
+It's also possible that you might see a different kind of checksum error:
+
+```
+2022-11-15T22:41:23.546Z [ERROR]  agent.raft.logstore: verification checksum FAILED: in-flight corruption rangeStart=1234 rangeEnd=3456 leaderChecksum=0xc1... followerWriteChecksum=0x45...
+```
+
+This indicates that the checksum on the follower didn't match the leader when it
+_wrote_ the logs which implies that the corruption happened in the network or
+software and not the log store. This likely doesn't indicate an issue with the
+storage backend but should be handled the same way.
+
+For convenience we also increment a metric
+`consul.raft.logstore.verifier.write_checksum_failures` when this occurs.
+
+#### Handling Checksum Failures
+
+If either type of corruption is detected, the only safe way to handle it is to
+follow the [revert to BoltDB procedure](#procedure-to-revert-to-boltdb). If the
+server is already using BoltDB, the same is true although this is likely to
+indicate a latent bug in BoltDB or a bug in our verification code that needs to
+be investigated.
+
+Please report all verification failures via a [GitHub
+issue](https://github.com/hashicorp/consul/issues/new?assignees=&labels=&template=bug_report.md&title=WAL:%20Checksum%20Failure).
+
+It would really help us if you can include:
+ - Details of your server cluster configuration and hardware
+ - Logs around the failure message
+ - Context for how long they have been running the configuration
+ - Any metrics or description of the workload you have, e.g. how many raft
+   commits per second as well as the performance metrics described below
+
+~> We recommend setting up an alert on Consul server logs containing
+`verification checksum FAILED` or on the
+`consul.raft.logstore.verifier.{read|write}_checksum_failures` metrics. The
+sooner a corrupt server is handled, the lower the chance of any of the
+[potential risks](#risks) causing problems in your cluster.
+
+### Performance Metrics
+
+The key performance metrics to watch are:
+
+* `consul.raft.commitTime` measures the time to commit new writes on a quorum of
+  servers. It should be the same or lower after deploying WAL. Even if WAL is
+  faster for your workload and hardware, it may not be reflected in commitTime
+  until enough followers are using it that the leader doesn't have to wait for a
+  slower one (one in a cluster of three, two in a cluster of five etc.).
+
+* `consul.raft.rpc.appendEntries.storeLogs` measures the time spent persisting
+  logs to disk on each _follower_. It should be the same or lower for
+  WAL-enabled followers.
+
+* `consul.raft.replication.appendEntries.rpc` measures the time taken for each
+  `AppendEntries` RPC from the leader's perspective. If this is significantly
+  higher than `consul.raft.rpc.appendEntries` on the follower, it indicates a
+  known queuing issue in our raft library that will be fixed soon and is
+  essentially unrelated to the backend. The follower(s) with WAL enabled should
+  not be slower than the others. You can work out which follower each metric is
+  for by matching the `peer_id` label value to the server IDs listed by `consul
+  operator raft list-peers`.
+
+* `consul.raft.compactLogs` measures the time take to truncate the logs after a
+  snapshot. WAL-enabled servers should not be slower than BoltDB ones.
+
+* `consul.raft.leader.dispatchLog` measures the time spent persisting logs to
+  disk on the _leader_. It is only relevant if a WAL-enabled server becomes a
+  leader. It should be the same or lower than before when the leader was using
+  BoltDB.

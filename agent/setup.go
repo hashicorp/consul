@@ -9,6 +9,8 @@ import (
 
 	"github.com/armon/go-metrics/prometheus"
 	"github.com/hashicorp/go-hclog"
+	wal "github.com/hashicorp/raft-wal"
+	"github.com/hashicorp/raft-wal/verifier"
 	"google.golang.org/grpc/grpclog"
 
 	autoconf "github.com/hashicorp/consul/agent/auto-config"
@@ -270,6 +272,22 @@ func getPrometheusDefs(cfg lib.TelemetryConfig, isServer bool) ([]prometheus.Gau
 			consul.LeaderPeeringMetrics,
 			xdscapacity.StatsGauges,
 		)
+
+		verifierGauges := make([]prometheus.GaugeDefinition, 0)
+		for _, d := range verifier.MetricDefinitions.Gauges {
+			verifierGauges = append(verifierGauges, prometheus.GaugeDefinition{
+				Name: []string{"raft", "logstore", "verifier", d.Name},
+				Help: d.Desc,
+			})
+		}
+		walGauges := make([]prometheus.GaugeDefinition, 0)
+		for _, d := range wal.MetricDefinitions.Gauges {
+			walGauges = append(walGauges, prometheus.GaugeDefinition{
+				Name: []string{"raft", "wal", d.Name},
+				Help: d.Desc,
+			})
+		}
+		gauges = append(gauges, verifierGauges, walGauges)
 	}
 
 	// Flatten definitions
@@ -316,6 +334,29 @@ func getPrometheusDefs(cfg lib.TelemetryConfig, isServer bool) ([]prometheus.Gau
 		raftCounters,
 		rate.Counters,
 	}
+
+	// For some unknown reason, we seem to add the raft counters above without
+	// checking if this is a server like we do above for some of the summaries
+	// above. We should probably fix that but I want to not change behavior right
+	// now. If we are a server, add summaries for WAL and verifier metrics.
+	if isServer {
+		verifierCounters := make([]prometheus.CounterDefinition, 0)
+		for _, d := range verifier.MetricDefinitions.Counters {
+			verifierCounters = append(verifierCounters, prometheus.CounterDefinition{
+				Name: []string{"raft", "logstore", "verifier", d.Name},
+				Help: d.Desc,
+			})
+		}
+		walCounters := make([]prometheus.CounterDefinition, 0)
+		for _, d := range wal.MetricDefinitions.Counters {
+			walCounters = append(walCounters, prometheus.CounterDefinition{
+				Name: []string{"raft", "wal", d.Name},
+				Help: d.Desc,
+			})
+		}
+		counters = append(counters, verifierCounters, walCounters)
+	}
+
 	// Flatten definitions
 	// NOTE(kit): Do we actually want to create a set here so we can ensure definition names are unique?
 	var counterDefs []prometheus.CounterDefinition

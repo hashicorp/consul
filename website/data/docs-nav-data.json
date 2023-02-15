@@ -294,6 +294,10 @@
           {
             "title": "Upgrading to Latest 1.10.x",
             "path": "upgrading/instructions/upgrade-to-1-10-x"
+          },
+          {
+            "title": "Consul 1.15: Experimental WAL LogStore",
+            "path": "upgrading/instructions/testing-experimental-raft-backend"
           }
         ]
       }
