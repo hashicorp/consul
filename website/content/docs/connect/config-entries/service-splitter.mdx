@@ -1,6 +1,6 @@
 --- 
 Page_title: Service Splitter | Configuration Reference
-Description: 
+Description: Service splitter config entries are L7 traffic management tools that enable Consul to redirect parts of incoming traffic requests for a specific service. 
 ---
 
 # Service Splitter Configuration Reference
@@ -209,7 +209,7 @@ spec:
 
 ## Specification
 
-This section provides details about the fields you can configure in the sservice splitter configuration entry.
+This section provides details about the fields you can configure in the service splitter configuration entry.
 
 <Tabs>
 
@@ -503,7 +503,7 @@ Specifies which [admin partition](/consul/docs/enterprise/admin-partitions) to u
 
 Specifies a set of HTTP-specific header modification rules that apply to requests routed to the split. You cannot configure request headers if the listener protocol is set to `tcp`. Refer to [Set HTTP Headers](#set-http-headers) for an example configuration. 
 
- #### Values
+#### Values
 
 - Default: None
 - Values: Object containing one or more fields that define header modification rules
@@ -527,7 +527,7 @@ For `add` and `set`, if the service is configured to use Envoy as the proxy, the
 
 Specifies a set of HTTP-specific header modification rules that apply to responses from the split. You cannot configure request headers if the listener protocol is set to `tcp`. Refer to [Set HTTP Headers](#set-http-headers) for an example configuration.
 
- #### Values
+#### Values
 
 - Default: None
 - Values: Object containing one or more fields that define header modification rules
