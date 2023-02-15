@@ -24,11 +24,7 @@ Make sure your Consul environment meets the following requirements:
 - A local Consul agent is required to manage mesh gateway configuration.
 - Use [Envoy proxies](/consul/docs/connect/proxies/envoy). Envoy is the only proxy with mesh gateway capabilities in Consul.
 
-## Configuration
-
-Configure the following settings to register and use the mesh gateway as a service in Consul.
-
-### Mesh gateway requirements
+## Mesh gateway requirements
 
 Mesh gateways are required for routing service mesh traffic between partitions with cluster peering connections. Consider the following general requirements for mesh gateways when using cluster peering:
 
@@ -40,7 +36,7 @@ In addition, these particular fields may require your attention:
 
 - Define the `Proxy.Config` settings using opaque parameters compatible with your proxy. For Envoy, refer to the [Gateway options](/consul/docs/connect/proxies/envoy#gateway-options) and [Escape-hatch Overrides](/consul/docs/connect/proxies/envoy#escape-hatch-overrides) documentation for additional configuration information.
 
-#### Mesh gateway modes
+### Mesh gateway modes
 
 By default, all cluster peering connections use mesh gateways in [remote mode](/consul/docs/connect/gateways/mesh-gateway/service-to-service-traffic-wan-datacenters#remote). Be aware of these additional requirements when changing a mesh gateway's mode.
 
@@ -49,7 +45,7 @@ By default, all cluster peering connections use mesh gateways in [remote mode](/
 
 Refer to [mesh gateway modes](/consul/docs/connect/gateways/mesh-gateway#modes) for more information.
 
-### Sidecar proxy requirements
+## Sidecar proxy requirements
 
 The Envoy proxies that function as sidecars in your service mesh require configuration in order to properly route traffic to peers. Sidecar proxies are defined in the [service definition](/consul/docs/discovery/services).
 
@@ -58,7 +54,7 @@ The Envoy proxies that function as sidecars in your service mesh require configu
 - The `proxy.upstreams.destination_peer` parameter must be configured to enable cross-cluster traffic.
 - The `proxy.upstream/destination_namespace` configuration is only necessary if the destination service is in a non-default namespace.
 
-### Exported service requirements
+## Exported service requirements
 
 The `exported-services` configuration entry is required in order for services to communicate across partitions with cluster peering connections.
 
@@ -66,7 +62,7 @@ Basic guidance on using the `exported-services` configuration entry is included 
 
 Refer to the [`exported-services` configuration entry reference](/consul/docs/connect/config-entries/exported-services) for more information.
 
-### ACL requirements
+## ACL requirements
 
 If ACLs are enabled, you must add tokens to grant the following permissions:
 
