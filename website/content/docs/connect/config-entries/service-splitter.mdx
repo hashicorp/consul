@@ -76,42 +76,44 @@ Kind      = "service-splitter"           ## string  | required
 Name      = "config-entry-name"          ## string  | required
 Namespace = "main"                       ## string
 Partition = "partition"                  ## string 
-Meta      = {                            ## map
-  key     = "value"            
-  }
+Meta = {                                 ## map
+  key = "value"
+}
 Splits = [                               ## list    | required
-  {                                      ## map     
+  {                                      ## map
     Weight        = 90                   ## number  | required
-    Service       = "service"            ## string     
+    Service       = "service"            ## string
     ServiceSubset = "v1"                 ## string
     Namespace     = "target-namespace"   ## string
     Partition     = "target-partition"   ## string
-    RequestHeaders {                     ## map
-      Set {
-        "X-Web-Version": "from-v1"
-          }
-     }
-    ResponseHeaders {                    ## map
-      Set {
-        "X-Web-Version": "to-v1"
-          }
+    RequestHeaders = {                   ## map
+      Set = {
+        "X-Web-Version" : "from-v1"
+      }
+    }
+    ResponseHeaders = {                  ## map
+      Set = {
+        "X-Web-Version" : "to-v1"
+      }
     }
   },
   {
-    Weight        = 10            
-    Service       = "service"    
-    ServiceSubset = "v2"          
-    Namespace     = "target-namespace"  
-    Partition     = "target-partition"  
-    RequestHeaders {
-      Set {
-        "X-Web-Version": "from-v2"
-          }
-     }
-    ResponseHeaders {
-      Set {
-        "X-Web-Version": "to-v2"
-  },
+    Weight        = 10
+    Service       = "service"
+    ServiceSubset = "v2"
+    Namespace     = "target-namespace"
+    Partition     = "target-partition"
+    RequestHeaders = {
+      Set = {
+        "X-Web-Version" : "from-v2"
+      }
+    }
+    ResponseHeaders = {
+      Set = {
+        "X-Web-Version" : "to-v2"
+      }
+    }
+  }
 ]
 ```
 
