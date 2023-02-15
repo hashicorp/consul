@@ -226,6 +226,8 @@ func resolveListenerTLSConfig(gatewayTLSCfg *structs.GatewayTLSConfig, listenerC
 	}
 
 	if listenerCfg.TLS != nil {
+		mergedCfg.UseADS = listenerCfg.TLS.UseADS
+		
 		if listenerCfg.TLS.TLSMinVersion != types.TLSVersionUnspecified {
 			mergedCfg.TLSMinVersion = listenerCfg.TLS.TLSMinVersion
 		}
@@ -384,9 +386,17 @@ func makeTLSParametersFromGatewayTLSConfig(tlsCfg structs.GatewayTLSConfig) *env
 }
 
 func makeCommonTLSContextFromGatewayTLSConfig(tlsCfg structs.GatewayTLSConfig) *envoy_tls_v3.CommonTlsContext {
+
+	var secretConfigs []*envoy_tls_v3.SdsSecretConfig
+	if tlsCfg.UseADS {
+		secretConfigs = makeTLSCertificateSdsSecretConfigsFromSDSUsingADS(*tlsCfg.SDS)
+	} else {
+		secretConfigs = makeTLSCertificateSdsSecretConfigsFromSDS(*tlsCfg.SDS)
+	}
+
 	return &envoy_tls_v3.CommonTlsContext{
 		TlsParams:                      makeTLSParametersFromGatewayTLSConfig(tlsCfg),
-		TlsCertificateSdsSecretConfigs: makeTLSCertificateSdsSecretConfigsFromSDS(*tlsCfg.SDS),
+		TlsCertificateSdsSecretConfigs: secretConfigs,
 	}
 }
 
@@ -396,6 +406,22 @@ func makeCommonTLSContextFromGatewayServiceTLSConfig(tlsCfg structs.GatewayServi
 		TlsCertificateSdsSecretConfigs: makeTLSCertificateSdsSecretConfigsFromSDS(*tlsCfg.SDS),
 	}
 }
+
+func makeTLSCertificateSdsSecretConfigsFromSDSUsingADS(sdsCfg structs.GatewayTLSSDSConfig) []*envoy_tls_v3.SdsSecretConfig {
+	return []*envoy_tls_v3.SdsSecretConfig{
+		{
+			Name: sdsCfg.CertResource,
+			SdsConfig: &envoy_core_v3.ConfigSource{
+				ConfigSourceSpecifier: &envoy_core_v3.ConfigSource_Ads{
+					Ads: &envoy_core_v3.AggregatedConfigSource{},
+				},
+				ResourceApiVersion: envoy_core_v3.ApiVersion_V3,
+			},
+		},
+	}
+}
+
+
 func makeTLSCertificateSdsSecretConfigsFromSDS(sdsCfg structs.GatewayTLSSDSConfig) []*envoy_tls_v3.SdsSecretConfig {
 	return []*envoy_tls_v3.SdsSecretConfig{
 		{
