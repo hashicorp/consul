@@ -24,7 +24,7 @@
   color: var(--token-color-foreground-faint);
 }
 %main-nav-vertical li:not([role='separator']) > span {
-  color: var(--token-color-palette-neutral-300);
+  color: var(--token-color-palette-neutral-500);
 }
 %main-nav-vertical [role='separator'],
 %main-nav-vertical-hoisted [role='separator'] {
@@ -81,10 +81,13 @@
   border-bottom-right-radius: var(--decor-radius-000);
 }
 
-%panel,
-%panel-separator {
+%main-nav-horizontal %panel,
+%main-nav-horizontal %panel-separator,
+%main-nav-vertical %panel,
+%main-nav-vertical %panel-separator {
   border-color: var(--token-color-foreground-faint);
 }
+
 %main-nav-vertical-popover-menu-trigger::after {
   @extend %with-chevron-down-mask, %as-pseudo;
   width: 16px;
