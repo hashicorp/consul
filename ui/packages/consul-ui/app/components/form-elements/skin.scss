@@ -1,7 +1,7 @@
 %form-element-text-input {
   -moz-appearance: none;
   -webkit-appearance: none;
-  box-shadow: inset var(--decor-elevation-100);
+  box-shadow: var(--token-surface-inset-box-shadow);
   border-radius: var(--decor-radius-100);
   border: var(--decor-border-100);
   outline: none;

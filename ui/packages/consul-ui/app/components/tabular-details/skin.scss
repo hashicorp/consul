@@ -8,7 +8,7 @@
 %tabular-detail {
   border: 1px solid var(--token-color-palette-neutral-300);
   border-radius: var(--decor-radius-100);
-  box-shadow: var(--decor-elevation-600);
+  box-shadow: var(--token-surface-high-box-shadow);
   margin-bottom: 20px;
 }
 %tabular-detail::before,

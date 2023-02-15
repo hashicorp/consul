@@ -9,7 +9,7 @@
 %expanded-single-select input[type='radio']:checked + *,
 %expanded-single-select input[type='radio']:hover + *,
 %expanded-single-select input[type='radio']:focus + * {
-  box-shadow: var(--decor-elevation-300);
+  box-shadow: var(--token-elevation-high-box-shadow);
 }
 %expanded-single-select input[type='radio']:checked + *,
 %expanded-single-select input[type='radio']:hover + *,

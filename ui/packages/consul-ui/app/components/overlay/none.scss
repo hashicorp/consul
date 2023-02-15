@@ -28,7 +28,7 @@
   & {
     background-color: var(--token-color-surface-primary);
     border-radius: var(--decor-radius-100);
-    box-shadow: var(--decor-elevation-400);
+    box-shadow: var(--token-surface-mid-box-shadow);
   }
   .tippy-arrow {
     @extend %overlay-tail;

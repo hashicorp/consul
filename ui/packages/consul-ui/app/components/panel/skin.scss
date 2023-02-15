@@ -2,7 +2,7 @@
   --tone-border: var(--token-color-palette-neutral-300);
   border: var(--decor-border-100);
   border-radius: var(--decor-radius-200);
-  box-shadow: var(--decor-elevation-600);
+  box-shadow: var(--token-surface-high-box-shadow);
 }
 %panel-separator {
   border-top: var(--decor-border-100);

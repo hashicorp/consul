@@ -31,7 +31,7 @@ table.consul-metadata-list tbody tr:hover {
   padding: 0;
 }
 %table tbody tr:hover {
-  box-shadow: var(--decor-elevation-300);
+  box-shadow: var(--token-elevation-high-box-shadow);
 }
 
 %table td.folder::before {

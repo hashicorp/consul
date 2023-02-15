@@ -18,7 +18,7 @@
   background-color: rgb(var(--token-color-surface-interactive) / 90%);
 }
 %modal-window {
-  box-shadow: var(--decor-elevation-800);
+  box-shadow: var(--token-elevation-overlay-box-shadow);
 }
 %modal-window {
   /*%frame-gray-000*/

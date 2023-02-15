@@ -14,7 +14,7 @@ export default (css) => css`
     --tone-border: var(--token-color-palette-neutral-300);
     border: var(--decor-border-100);
     border-radius: var(--decor-radius-200);
-    box-shadow: var(--decor-elevation-600);
+    box-shadow: var(--token-surface-high-box-shadow);
   }
   .panel-separator {
     border: 0;

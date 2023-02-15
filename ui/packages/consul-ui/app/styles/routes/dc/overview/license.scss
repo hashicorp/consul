@@ -41,7 +41,7 @@ section[data-route='dc.show.license'] {
 
 %license-route-learn-more {
   @extend %panel;
-  box-shadow: var(--decor-elevation-000);
+  box-shadow: none;
   padding: var(--padding-y) var(--padding-x);
   width: 40%;
   min-width: 413px;

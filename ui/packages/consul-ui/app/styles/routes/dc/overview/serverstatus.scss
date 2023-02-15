@@ -20,7 +20,7 @@ section[data-route='dc.show.serverstatus'] {
 
 %server-failure-tolerance {
   @extend %panel;
-  box-shadow: var(--decor-elevation-000);
+  box-shadow: none;
   padding: var(--padding-y) var(--padding-x);
   max-width: 770px;
   display: flex;

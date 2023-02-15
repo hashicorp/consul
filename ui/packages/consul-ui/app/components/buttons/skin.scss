@@ -16,7 +16,7 @@
   @extend %button;
   border-width: 1px;
   border-radius: var(--decor-radius-100);
-  box-shadow: var(--decor-elevation-300);
+  box-shadow: var(--token-elevation-high-box-shadow);
 }
 /**/
 %secondary-button:hover:not(:disabled):not(:active),
