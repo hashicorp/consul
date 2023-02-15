@@ -8,9 +8,14 @@ as |notice|>
   </notice.Body>
   <notice.Footer>
     <p>
-      <a href="{{env 'CONSUL_DOCS_URL'}}/connect/intentions" target="_blank" rel="noopener noreferrer">
-        {{t "components.consul.intention.notice.permissions.footer"}}
-      </a>
+      <Hds::Button
+        @text={{t "components.consul.intention.notice.permissions.footer"}}
+        @href="{{env 'CONSUL_DOCS_URL'}}/connect/intentions"
+        @color="tertiary"
+        @icon="docs-link"
+        @iconPosition="trailing"
+        @size="small"
+      />
     </p>
   </notice.Footer>
 </Notice>

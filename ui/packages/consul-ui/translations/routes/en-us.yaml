@@ -256,10 +256,9 @@ dc:
             <p>
               The upstreams listed on this page have been defined in a proxy registration. There may be more upstreams, though, as "transparent" mode is enabled on this proxy.
             </p>
-          footer: |
-            <p>
-              <a href="{CONSUL_DOCS_URL}/connect/transparent-proxy" target="_blank" rel="noopener noreferrer">Read the documentation
-            </p>
+          footer:
+            link: "/connect/transparent-proxy"
+            text: Read the documentation
         empty: |
           <p>
             This Service Instance has no Upstreams{items, select,

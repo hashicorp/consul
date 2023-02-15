@@ -58,9 +58,16 @@ as |route|>
             }}
           </notice.Body>
           <notice.Footer>
-            {{t "routes.dc.services.instance.upstreams.tproxy-mode.footer"
-              htmlSafe=true
-            }}
+            <p>
+              <Hbs::Button
+                @text={{t "routes.dc.services.instance.upstreams.tproxy-mode.footer.text"}}
+                @href='{{CONSUL_DOCS_URL}}{{t "routes.dc.services.instance.upstreams.tproxy-mode.footer.link"}}'
+                @color="tertiary"
+                @icon="docs-link"
+                @iconPosition="trailing"
+                @size="small"
+              />
+            </p>
           </notice.Footer>
         </Notice>
       {{/if}}
