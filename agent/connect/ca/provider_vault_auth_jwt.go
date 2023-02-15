@@ -21,6 +21,7 @@ func NewJwtAuthClient(authMethod *structs.VaultAuthMethod) (*VaultAuthClient, er
 	// So we only require the token file path if the token string isn't
 	// present.
 	needTokenPath := true
+	// support legacy setup that allows directly passing the `jwt`
 	if _, ok := hasJWT(params); ok {
 		needTokenPath = false
 	}
@@ -40,6 +41,7 @@ func JwtLoginDataGen(authMethod *structs.VaultAuthMethod) (map[string]any, error
 	params := authMethod.Params
 	role := params["role"].(string)
 
+	// support legacy setup that allows directly passing the `jwt`
 	if jwt, ok := hasJWT(params); ok {
 		return map[string]any{
 			"role": role,
@@ -60,6 +62,9 @@ func JwtLoginDataGen(authMethod *structs.VaultAuthMethod) (map[string]any, error
 	}, nil
 }
 
+// Note the `jwt` can be passed directly in the authMethod as the it's Params
+// is a freeform map in the config where they could hardcode it.
+// See comment on configureVaultAuthMethod (in ./provider_vault.go) for more.
 func hasJWT(params map[string]any) (string, bool) {
 	if jwt, ok := params["jwt"].(string); ok && strings.TrimSpace(jwt) != "" {
 		return jwt, true
