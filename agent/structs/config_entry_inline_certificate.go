@@ -29,17 +29,14 @@ type InlineCertificateConfigEntry struct {
 	RaftIndex
 }
 
-func (e *InlineCertificateConfigEntry) GetKind() string {
-	return InlineCertificate
+func (e *InlineCertificateConfigEntry) GetKind() string            { return InlineCertificate }
+func (e *InlineCertificateConfigEntry) GetName() string            { return e.Name }
+func (e *InlineCertificateConfigEntry) Normalize() error           { return nil }
+func (e *InlineCertificateConfigEntry) GetMeta() map[string]string { return e.Meta }
+func (e *InlineCertificateConfigEntry) GetEnterpriseMeta() *acl.EnterpriseMeta {
+	return &e.EnterpriseMeta
 }
-
-func (e *InlineCertificateConfigEntry) GetName() string {
-	return e.Name
-}
-
-func (e *InlineCertificateConfigEntry) Normalize() error {
-	return nil
-}
+func (e *InlineCertificateConfigEntry) GetRaftIndex() *RaftIndex { return &e.RaftIndex }
 
 func (e *InlineCertificateConfigEntry) Validate() error {
 	privateKeyBlock, _ := pem.Decode([]byte(e.PrivateKey))
@@ -77,25 +74,4 @@ func (e *InlineCertificateConfigEntry) CanWrite(authz acl.Authorizer) error {
 	var authzContext acl.AuthorizerContext
 	e.FillAuthzContext(&authzContext)
 	return authz.ToAllowAuthorizer().MeshWriteAllowed(&authzContext)
-}
-
-func (e *InlineCertificateConfigEntry) GetMeta() map[string]string {
-	if e == nil {
-		return nil
-	}
-	return e.Meta
-}
-
-func (e *InlineCertificateConfigEntry) GetEnterpriseMeta() *acl.EnterpriseMeta {
-	if e == nil {
-		return nil
-	}
-	return &e.EnterpriseMeta
-}
-
-func (e *InlineCertificateConfigEntry) GetRaftIndex() *RaftIndex {
-	if e == nil {
-		return &RaftIndex{}
-	}
-	return &e.RaftIndex
 }

@@ -37,6 +37,7 @@ message ConfigEntry {
     BoundAPIGateway BoundAPIGateway = 11;
     TCPRoute TCPRoute = 12;
     HTTPRoute HTTPRoute = 13;
+    InlineCertificate InlineCertificate = 14;
   }
 }
 
