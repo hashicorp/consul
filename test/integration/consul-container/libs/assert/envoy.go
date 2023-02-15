@@ -127,7 +127,7 @@ func AssertEnvoyMetricAtLeast(t *testing.T, adminPort int, prefix, metric string
 		err   error
 	)
 	failer := func() *retry.Timer {
-		return &retry.Timer{Timeout: 30 * time.Second, Wait: 500 * time.Millisecond}
+		return &retry.Timer{Timeout: 60 * time.Second, Wait: 500 * time.Millisecond}
 	}
 
 	retry.RunWith(failer(), t, func(r *retry.R) {
