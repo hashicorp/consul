@@ -65,7 +65,8 @@ func TestVaultCAProvider_CFAuthClient(t *testing.T) {
 			defer c.setup()()
 			auth, err := NewCFAuthClient(c.authMethod)
 			if c.expErr != nil {
-				require.Equal(t, err, c.expErr)
+				require.Error(t, err)
+				require.EqualError(t, c.expErr, err.Error())
 				return
 			}
 			require.NoError(t, err)
