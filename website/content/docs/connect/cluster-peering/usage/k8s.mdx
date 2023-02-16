@@ -84,9 +84,9 @@ Refer to the following example CRDs:
   </CodeBlockConfig>
   </CodeTabs>
 
-## Guidance for first time users
+## Guidance for new users
 
-If you are using cluster peering for the first time, the following sections contain steps to configure environmental variables, update the Helm chart, and install the updated Helm chart on each cluster with Consul on Kubernetes.
+If you are new to using cluster peering, the following sections contain steps to configure environmental variables, update the Helm chart, and install the updated Helm chart on each cluster with Consul on Kubernetes.
 
 ### Assign cluster IDs to environmental variables
 
@@ -241,7 +241,7 @@ To recreate or reset the peering connection, you need to generate a new peering 
 
 ## Traffic management between peers
 
-As of Consul v1.14, you can use [dynamic traffic management](/consul/docs/connect/l7-traffic) to configure your service mesh so that services automatically failover and redirect between peers.
+You can use [dynamic traffic management](/consul/docs/connect/l7-traffic) to configure your service mesh so that services automatically failover and redirect between peers.
 
 To configure automatic service failovers and redirect, edit the `ServiceResolver` CRD so that traffic resolves to a backup service instance on a peer. The following example updates the `ServiceResolver` CRD in `cluster-01` so that Consul redirects traffic intended for the `frontend` service to a backup instance in `cluster-02` when it detects multiple connection failures to the primary instance.
 
@@ -263,3 +263,5 @@ spec:
 ```
 
 </CodeBlockConfig>
+
+For additional information, refer to [L7 traffic management for cluster peering](/consul/docs/connect/cluster-peering/usage/peering-traffic-management).
