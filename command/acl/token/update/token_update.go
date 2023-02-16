@@ -31,26 +31,27 @@ type cmd struct {
 	policyNames        []string
 	addPolicyNames     []string
 	roleIDs            []string
+	addRoleIDs         []string
 	roleNames          []string
+	addRoleNames       []string
 	serviceIdents      []string
 	nodeIdents         []string
 	description        string
-	mergeRoles         bool
 	mergeServiceIdents bool
 	mergeNodeIdents    bool
 	showMeta           bool
 	format             string
 
-	mergePolicies bool   // DEPRECATED
-	tokenID       string // DEPRECATED
+	// DEPRECATED
+	mergeRoles    bool
+	mergePolicies bool
+	tokenID       string
 }
 
 func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
 	c.flags.BoolVar(&c.showMeta, "meta", false, "Indicates that token metadata such "+
 		"as the content hash and raft indices should be shown for each entry")
-	c.flags.BoolVar(&c.mergeRoles, "merge-roles", false, "Merge the new roles "+
-		"with the existing roles")
 	c.flags.BoolVar(&c.mergeServiceIdents, "merge-service-identities", false, "Merge the new service identities "+
 		"with the existing service identities")
 	c.flags.BoolVar(&c.mergeNodeIdents, "merge-node-identities", false, "Merge the new node identities "+
@@ -71,6 +72,10 @@ func (c *cmd) init() {
 		"role to use for this token. May be specified multiple times")
 	c.flags.Var((*flags.AppendSliceValue)(&c.roleNames), "role-name", "Name of a "+
 		"role to use for this token. May be specified multiple times")
+	c.flags.Var((*flags.AppendSliceValue)(&c.addRoleIDs), "add-role-id", "ID of a "+
+		"role to add to this token. Appends this role to existing roles. May be specified multiple times")
+	c.flags.Var((*flags.AppendSliceValue)(&c.addRoleNames), "add-role-name", "Name of a "+
+		"role to add to this token. Appends this role to existing roles. May be specified multiple times")
 	c.flags.Var((*flags.AppendSliceValue)(&c.serviceIdents), "service-identity", "Name of a "+
 		"service identity to use for this token. May be specified multiple times. Format is "+
 		"the SERVICENAME or SERVICENAME:DATACENTER1,DATACENTER2,...")
@@ -94,6 +99,8 @@ func (c *cmd) init() {
 	c.flags.StringVar(&c.tokenID, "id", "", "DEPRECATED. Use -accessor-id instead.")
 	c.flags.BoolVar(&c.mergePolicies, "merge-policies", false, "Deprecated. Merge the new policies "+
 		"with the existing policies. Use -add-policy-id or -add-policy-name instead.")
+	c.flags.BoolVar(&c.mergeRoles, "merge-roles", false, "Deprecated. Merge the new roles "+
+		"with the existing roles. Use -add-role-id or -add-role-name instead.")
 }
 
 func (c *cmd) Run(args []string) int {
@@ -236,6 +243,9 @@ func (c *cmd) Run(args []string) int {
 	}
 
 	if c.mergeRoles {
+		c.UI.Warn("merge-roles is deprecated and will be removed in future consul version. " +
+			"This is being replaced by `add-role-name` and `add-role-id`.")
+
 		for _, roleName := range c.roleNames {
 			found := false
 			for _, link := range t.Roles {
@@ -272,7 +282,33 @@ func (c *cmd) Run(args []string) int {
 			}
 		}
 	} else {
-		t.Roles = nil
+		hasAddRoleFields := len(c.addRoleNames) > 0 || len(c.addRoleIDs) > 0
+		hasRoleFields := len(c.roleIDs) > 0 || len(c.roleNames) > 0
+
+		if hasRoleFields && hasAddRoleFields {
+			c.UI.Error("Cannot specified both add-role-id/add-role-name and role-id/role-name")
+			return 1
+		}
+
+		if hasAddRoleFields {
+			for _, roleName := range c.addRoleNames {
+				// We could resolve names to IDs here but there isn't any reason why its would be better
+				// than allowing the agent to do it.
+				t.Roles = append(t.Roles, &api.ACLTokenRoleLink{Name: roleName})
+			}
+
+			for _, roleID := range c.addRoleIDs {
+				roleID, err := acl.GetRoleIDFromPartial(client, roleID)
+				if err != nil {
+					c.UI.Error(fmt.Sprintf("Error resolving role ID %s: %v", roleID, err))
+					return 1
+				}
+				t.Roles = append(t.Roles, &api.ACLTokenRoleLink{ID: roleID})
+			}
+		} else {
+			// c.UI.Warn("Overwriting policies with new specified policies")
+			t.Roles = nil
+		}
 
 		for _, roleName := range c.roleNames {
 			// We could resolve names to IDs here but there isn't any reason why its would be better
