@@ -566,7 +566,7 @@ Before you can call services from peered clusters, you must set service intentio
 <Tabs>
 <Tab heading="HTTP API" group="api">
 
-1. Create a configuration entry and specify the `Kind` as `"service-intentions"`. Declare the service on "cluster-02" that can access the service in "cluster-01." The following example sets service intentions so that "frontend-service" can access "backend-service."
+1. Create a configuration entry and specify the `Kind` as `"service-intentions"`. Declare the service on "cluster-02" that can access the service in "cluster-01." In the following example, the service intentions configuration entry authorizes the `backend-service` to communicate with the `frontend-service` that is hosted on remote peer `cluster-02`:
 
   <CodeBlockConfig filename="peering-intentions.hcl" hideClipboard>
 
@@ -597,7 +597,7 @@ Before you can call services from peered clusters, you must set service intentio
 
 <Tab heading="Consul CLI" group="cli">
 
-1. Create a configuration entry and specify the `Kind` as `"service-intentions"`. Declare the service on "cluster-02" that can access the service in "cluster-01." The following example sets service intentions so that "frontend-service" can access "backend-service."
+1. Create a configuration entry and specify the `Kind` as `"service-intentions"`. Declare the service on "cluster-02" that can access the service in "cluster-01." In the following example, the service intentions configuration entry authorizes the `backend-service` to communicate with the `frontend-service` that is hosted on remote peer `cluster-02`:
 
   <CodeBlockConfig filename="peering-intentions.hcl" hideClipboard>
 
@@ -636,7 +636,7 @@ We recommend using the Consul CLI to create and add service intentions to deploy
 
 Before you can call services from peered clusters, you must set service intentions that authorize those clusters to use specific services. Consul prevents services from being exported to unauthorized clusters.
 
-First, create a configuration entry and specify the `Kind` as `"service-intentions"`. Declare the service on "cluster-02" that can access the service in "cluster-01." The following example sets service intentions so that "frontend-service" can access "backend-service."
+First, create a configuration entry and specify the `Kind` as `"service-intentions"`. Declare the service on "cluster-02" that can access the service in "cluster-01." In the following example, the service intentions configuration entry authorizes the `backend-service` to communicate with the `frontend-service` that is hosted on remote peer `cluster-02`:
 
 <CodeBlockConfig filename="peering-intentions.hcl" hideClipboard>
 
@@ -666,8 +666,6 @@ $ consul config write peering-intentions.hcl
 </Tab>
 
 <Tab heading="Kubernetes" group="k8s">
-
-### Authorize services for peers
 
 1. Create service intentions for the second cluster. The name of the peer should match the name set in the `PeeringDialer` CRD.
 
