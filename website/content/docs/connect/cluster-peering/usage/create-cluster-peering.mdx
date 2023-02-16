@@ -169,7 +169,7 @@ Every time you generate a peering token, a single-use secret for establishing th
 
 <Tab heading="Kubernetes" grou="k8s">
 
-1. In `cluster-01`, create the `PeeringAcceptor` custom resource.
+1. In `cluster-01`, create the `PeeringAcceptor` custom resource. To ensure cluster peering connections are secure, the `metadata.name` field cannot be duplicated. Refer to the peer by a specific name.
 
   <CodeBlockConfig filename="acceptor.yaml">
 
@@ -254,7 +254,7 @@ You can run the `peering establish` command once per peering token. Peering toke
     $ kubectl --context $CLUSTER2_CONTEXT apply --filename peering-token.yaml
     ```
 
-1. In `cluster-02`, create the `PeeringDialer` custom resource.
+1. In `cluster-02`, create the `PeeringDialer` custom resource. To ensure cluster peering connections are secure, the `metadata.name` field cannot be duplicated. Refer to the peer by a specific name.
 
   <CodeBlockConfig filename="dialer.yaml">
 
@@ -328,7 +328,9 @@ In Kubernetes deployments, you can configure mesh gateways to use `local` mode s
 
 ## Export services between clusters
 
-After you establish a connection between the clusters, you need to create an `exported-services` configuration entry that defines the services that are available for other clusters. Consul uses this configuration entry to advertise service information and support service mesh connections across clusters.
+After you establish a connection between the clusters, you need to create an `exported-services` configuration entry that defines the services that are available for other clusters. Consul uses this configuration entry to advertise service information and support service mesh connections across clusters. 
+
+An `exported-services` configuration entry makes services available to another admin partition. While it can target admin partitions either locally or remotely. cluster peering always exports services to remote partitions. Refer to [exported service consumers](/consul/docs/connect/config-entries/exported-services#consumers-1) for more information.
 
 <Tabs>
 <Tab heading="HTTP API" group="api">
@@ -462,7 +464,7 @@ Before you proceed, wait for the clusters to sync and make services available to
 
 </Tab>
 
-<Tab heading="Kubernetes" grou="k8s">
+<Tab heading="Kubernetes" group="k8s">
 
 1. For the service in `cluster-02` that you want to export, add the `"consul.hashicorp.com/connect-inject": "true"` annotation to your service's pods prior to deploying. The annotation allows the workload to join the mesh. It is highlighted in the following example:
 
@@ -530,7 +532,7 @@ Before you proceed, wait for the clusters to sync and make services available to
    $ kubectl --context $CLUSTER2_CONTEXT apply --filename backend.yaml
    ```
 
-1. In `cluster-02`, create an `ExportedServices` custom resource.
+1. In `cluster-02`, create an `ExportedServices` custom resource. The name of the peer that consumes the service should be identical to the name set in the `PeeringDialer` CRD.
 
     <CodeBlockConfig filename="exported-service.yaml">
 
@@ -663,11 +665,11 @@ $ consul config write peering-intentions.hcl
 
 </Tab>
 
-<Tab heading="Kubernetes" grou="k8s">
+<Tab heading="Kubernetes" group="k8s">
 
 ### Authorize services for peers
 
-1. Create service intentions for the second cluster.
+1. Create service intentions for the second cluster. The name of the peer should match the name set in the `PeeringDialer` CRD.
 
     <CodeBlockConfig filename="intention.yaml">
 
