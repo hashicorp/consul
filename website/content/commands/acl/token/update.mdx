@@ -36,7 +36,10 @@ Usage: `consul acl token update [options]`
 - `merge-node-identities` - Merge the new node identities with the existing node
   identities.
 
-- `-merge-policies` - Merge the new policies with the existing policies.
+- `-merge-policies` - Deprecated. Merge the new policies with the existing policies.
+
+~> This is deprecated and will be removed in future consul version. Use `add-policy-id` or `add-policy-name`
+instead.
 
 - `-merge-roles` - Merge the new roles with the existing roles.
 
@@ -49,9 +52,16 @@ Usage: `consul acl token update [options]`
   be specified multiple times. Format is `NODENAME:DATACENTER`. Added in Consul
   1.8.1.
 
-- `-policy-id=<value>` - ID of a policy to use for this token. May be specified multiple times.
+- `-policy-id=<value>` - ID of a policy to use for this token. Overwrites existing policies. May be specified multiple times.
 
-- `-policy-name=<value>` - Name of a policy to use for this token. May be specified multiple times.
+- `-policy-name=<value>` - Name of a policy to use for this token. Overwrites existing policies. May be specified multiple times.
+
+~> `-policy-id` and `-policy-name` will completely overwrite existing policies. Use `-add-policy-id` or `-add-policy-name` if you
+are trying to append more policies to your existing token policies.
+
+- `add-policy-id=<value>` - ID of policy to be added for this token. Added to existing policies. May be specified multiple times.
+
+- `-add-policy-name=<value>` - Name of a policy to be added for this token. Added to existing policies. May be specified multiple times.
 
 - `-role-id=<value>` - ID of a role to use for this token. May be specified multiple times.
 
