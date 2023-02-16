@@ -684,7 +684,7 @@ func (g *gatewayMeta) updateRouteBinding(route structs.BoundRoute) (bool, []stru
 // shouldBindRoute returns whether a Route's parent reference references the Gateway
 // that we wrap.
 func (g *gatewayMeta) shouldBindRoute(ref structs.ResourceReference) bool {
-	return ref.Kind == structs.APIGateway && g.Gateway.Name == ref.Name && g.Gateway.EnterpriseMeta.IsSame(&ref.EnterpriseMeta)
+	return (ref.Kind == structs.APIGateway || ref.Kind == "") && g.Gateway.Name == ref.Name && g.Gateway.EnterpriseMeta.IsSame(&ref.EnterpriseMeta)
 }
 
 // shouldBindRouteToListener returns whether a Route's parent reference should attempt

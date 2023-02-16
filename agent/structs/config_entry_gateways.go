@@ -713,6 +713,25 @@ type APIGatewayConfigEntry struct {
 	RaftIndex
 }
 
+func (e *APIGatewayConfigEntry) ListenerIsReady(name string) bool {
+	for _, condition := range e.Status.Conditions {
+		if !condition.Resource.IsSame(&ResourceReference{
+			Kind:           APIGateway,
+			SectionName:    name,
+			Name:           e.Name,
+			EnterpriseMeta: e.EnterpriseMeta,
+		}) {
+			continue
+		}
+
+		if condition.Type == "Conflicted" && condition.Status == "True" {
+			return false
+		}
+	}
+
+	return true
+}
+
 func (e *APIGatewayConfigEntry) GetKind() string {
 	return APIGateway
 }

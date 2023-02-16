@@ -1,17 +1,18 @@
 package troubleshoot
 
 import (
-	"io"
-	"os"
-	"testing"
-
+	envoy_admin_v3 "github.com/envoyproxy/go-control-plane/envoy/admin/v3"
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
+	"io"
+	"os"
+	"testing"
 )
 
 func TestGetUpstreamIPsFromFilterChain(t *testing.T) {
-	file, err := os.Open("testdata/listeners.json")
+	file, err := os.Open("testdata/upstreams/config.json")
 	require.NoError(t, err)
 	jsonBytes, err := io.ReadAll(file)
 	require.NoError(t, err)
@@ -37,17 +38,47 @@ func TestGetUpstreamIPsFromFilterChain(t *testing.T) {
 				"foo.default.dc1.internal.dc1.consul": {},
 			},
 		},
+		{
+			IPs: []string{
+				"10.4.6.160",
+				"240.0.0.3",
+			},
+			IsVirtual: true,
+			ClusterNames: map[string]struct{}{
+				"backend.default.dc1.internal.domain.consul":  {},
+				"backend2.default.dc1.internal.domain.consul": {},
+			},
+		},
 	}
 
-	var listener envoy_listener_v3.Listener
+	var upstreamIPs []UpstreamIP
+	cfgDump := &envoy_admin_v3.ConfigDump{}
 	unmarshal := &protojson.UnmarshalOptions{
 		DiscardUnknown: true,
 	}
-	err = unmarshal.Unmarshal(jsonBytes, &listener)
+	err = unmarshal.Unmarshal(jsonBytes, cfgDump)
 	require.NoError(t, err)
 
-	upstream_ips, err := getUpstreamIPsFromFilterChain(listener.GetFilterChains())
-	require.NoError(t, err)
+	for _, cfg := range cfgDump.Configs {
+		switch cfg.TypeUrl {
+		case listeners:
+			lcd := &envoy_admin_v3.ListenersConfigDump{}
 
-	require.Equal(t, expected, upstream_ips)
+			err := proto.Unmarshal(cfg.GetValue(), lcd)
+			require.NoError(t, err)
+
+			for _, listener := range lcd.GetDynamicListeners() {
+				l := &envoy_listener_v3.Listener{}
+				err = proto.Unmarshal(listener.GetActiveState().GetListener().GetValue(), l)
+				require.NoError(t, err)
+
+				upstreamIPs, err = getUpstreamIPsFromFilterChain(l.GetFilterChains(), cfgDump)
+				require.NoError(t, err)
+
+			}
+		}
+	}
+
+	require.NoError(t, err)
+	require.Equal(t, expected, upstreamIPs)
 }

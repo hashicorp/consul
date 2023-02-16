@@ -10,6 +10,7 @@ module('Integration | Adapter | intention', function (hooks) {
   const id =
     'SourcePartition:SourceNS:SourceName:DestinationPartition:DestinationNS:DestinationName';
   test('requestForQuery returns the correct url', function (assert) {
+    assert.expect(2);
     return nspaceRunner(
       (adapter, serializer, client) => {
         const request = client.body.bind(client);

@@ -30,6 +30,21 @@ type gatewayContainer struct {
 
 var _ Service = (*gatewayContainer)(nil)
 
+func (g gatewayContainer) Exec(ctx context.Context, cmd []string) (string, error) {
+	exitCode, reader, err := g.container.Exec(ctx, cmd)
+	if err != nil {
+		return "", fmt.Errorf("exec with error %s", err)
+	}
+	if exitCode != 0 {
+		return "", fmt.Errorf("exec with exit code %d", exitCode)
+	}
+	buf, err := io.ReadAll(reader)
+	if err != nil {
+		return "", fmt.Errorf("error reading from exec output: %w", err)
+	}
+	return string(buf), nil
+}
+
 func (g gatewayContainer) Export(partition, peer string, client *api.Client) error {
 	return fmt.Errorf("gatewayContainer export unimplemented")
 }
@@ -71,6 +86,13 @@ func (g gatewayContainer) Start() error {
 	return g.container.Start(context.Background())
 }
 
+func (g gatewayContainer) Stop() error {
+	if g.container == nil {
+		return fmt.Errorf("container has not been initialized")
+	}
+	return g.container.Stop(context.Background(), nil)
+}
+
 func (c gatewayContainer) Terminate() error {
 	return cluster.TerminateContainer(c.ctx, c.container, true)
 }
@@ -85,10 +107,13 @@ func (g gatewayContainer) Restart() error {
 		return fmt.Errorf("error get gateway state %s", err)
 	}
 
+	fmt.Printf("Stopping container: %s\n", g.GetName())
 	err = g.container.Stop(g.ctx, nil)
 	if err != nil {
 		return fmt.Errorf("error stop gateway %s", err)
 	}
+
+	fmt.Printf("Starting container: %s\n", g.GetName())
 	err = g.container.Start(g.ctx)
 	if err != nil {
 		return fmt.Errorf("error start gateway %s", err)

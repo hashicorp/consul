@@ -14,9 +14,14 @@ import (
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 )
 
-// TestPeering_UpgradeToTarget_fromLatest checks peering status after dialing cluster
-// and accepting cluster upgrade
-func TestPeering_UpgradeToTarget_fromLatest(t *testing.T) {
+// TestPeering_Upgrade_ControlPlane_MGW verifies the peering control plane traffic go through the mesh gateway
+// PeerThroughMeshGateways can be inheritted by the upgraded cluster.
+//
+// 1. Create the basic peering topology of one dialing cluster and one accepting cluster
+// 2. Set PeerThroughMeshGateways = true
+// 3. Upgrade both clusters
+// 4. Verify the peering is re-established through mesh gateway
+func TestPeering_Upgrade_ControlPlane_MGW(t *testing.T) {
 	t.Parallel()
 
 	type testcase struct {
@@ -37,7 +42,7 @@ func TestPeering_UpgradeToTarget_fromLatest(t *testing.T) {
 	}
 
 	run := func(t *testing.T, tc testcase) {
-		accepting, dialing := libtopology.BasicPeeringTwoClustersSetup(t, tc.oldversion)
+		accepting, dialing := libtopology.BasicPeeringTwoClustersSetup(t, tc.oldversion, true)
 		var (
 			acceptingCluster = accepting.Cluster
 			dialingCluster   = dialing.Cluster
@@ -49,7 +54,16 @@ func TestPeering_UpgradeToTarget_fromLatest(t *testing.T) {
 		acceptingClient, err := acceptingCluster.GetClient(nil, false)
 		require.NoError(t, err)
 
+		// Verify control plane endpoints and traffic in gateway
 		_, gatewayAdminPort := dialing.Gateway.GetAdminAddr()
+		libassert.AssertUpstreamEndpointStatus(t, gatewayAdminPort, "server.dc1.peering", "HEALTHY", 1)
+		libassert.AssertUpstreamEndpointStatus(t, gatewayAdminPort, "server.dc2.peering", "HEALTHY", 1)
+		libassert.AssertEnvoyMetricAtLeast(t, gatewayAdminPort,
+			"cluster.static-server.default.default.accepting-to-dialer.external",
+			"upstream_cx_total", 1)
+		libassert.AssertEnvoyMetricAtLeast(t, gatewayAdminPort,
+			"cluster.server.dc1.peering",
+			"upstream_cx_total", 1)
 
 		// Upgrade the accepting cluster and assert peering is still ACTIVE
 		require.NoError(t, acceptingCluster.StandardUpgrade(t, context.Background(), tc.targetVersion))
@@ -61,17 +75,25 @@ func TestPeering_UpgradeToTarget_fromLatest(t *testing.T) {
 		libassert.PeeringStatus(t, dialingClient, libtopology.DialingPeerName, api.PeeringStateActive)
 
 		// POST upgrade validation
+		//  - Restarted mesh gateway can receive consul generated configuration
+		//  - control plane traffic is through mesh gateway
 		//  - Register a new static-client service in dialing cluster and
 		//  - set upstream to static-server service in peered cluster
 
-		// Restart the gateway & proxy sidecar
+		// Stop the accepting gateway and restart dialing gateway
+		// to force peering control plane traffic through dialing mesh gateway
+		require.NoError(t, accepting.Gateway.Stop())
 		require.NoError(t, dialing.Gateway.Restart())
-		require.NoError(t, dialing.Container.Restart())
 
-		// Restarted gateway should not have any measurement on data plane traffic
+		// Restarted dialing gateway should not have any measurement on data plane traffic
 		libassert.AssertEnvoyMetricAtMost(t, gatewayAdminPort,
 			"cluster.static-server.default.default.accepting-to-dialer.external",
 			"upstream_cx_total", 0)
+		// control plane metrics should be observed
+		libassert.AssertEnvoyMetricAtLeast(t, gatewayAdminPort,
+			"cluster.server.dc1.peering",
+			"upstream_cx_total", 1)
+		require.NoError(t, accepting.Gateway.Start())
 
 		clientSidecarService, err := libservice.CreateAndRegisterStaticClientSidecar(dialingCluster.Servers()[0], libtopology.DialingPeerName, true)
 		require.NoError(t, err)

@@ -44,7 +44,7 @@ func synthesizeHTTPRouteDiscoveryChain(route structs.HTTPRouteConfigEntry) (stru
 	splitters := []*structs.ServiceSplitterConfigEntry{}
 	defaults := []*structs.ServiceConfigEntry{}
 
-	router, splits := httpRouteToDiscoveryChain(route)
+	router, splits, upstreamDefaults := httpRouteToDiscoveryChain(route)
 	serviceDefault := httpServiceDefault(router, meta)
 	defaults = append(defaults, serviceDefault)
 	for _, split := range splits {
@@ -53,6 +53,7 @@ func synthesizeHTTPRouteDiscoveryChain(route structs.HTTPRouteConfigEntry) (stru
 			defaults = append(defaults, httpServiceDefault(split, meta))
 		}
 	}
+	defaults = append(defaults, upstreamDefaults...)
 
 	ingress := structs.IngressService{
 		Name:           router.Name,
@@ -64,7 +65,7 @@ func synthesizeHTTPRouteDiscoveryChain(route structs.HTTPRouteConfigEntry) (stru
 	return ingress, router, splitters, defaults
 }
 
-func httpRouteToDiscoveryChain(route structs.HTTPRouteConfigEntry) (*structs.ServiceRouterConfigEntry, []*structs.ServiceSplitterConfigEntry) {
+func httpRouteToDiscoveryChain(route structs.HTTPRouteConfigEntry) (*structs.ServiceRouterConfigEntry, []*structs.ServiceSplitterConfigEntry, []*structs.ServiceConfigEntry) {
 	router := &structs.ServiceRouterConfigEntry{
 		Kind:           structs.ServiceRouter,
 		Name:           route.GetName(),
@@ -72,6 +73,7 @@ func httpRouteToDiscoveryChain(route structs.HTTPRouteConfigEntry) (*structs.Ser
 		EnterpriseMeta: route.EnterpriseMeta,
 	}
 	var splitters []*structs.ServiceSplitterConfigEntry
+	var defaults []*structs.ServiceConfigEntry
 
 	for idx, rule := range route.Rules {
 		modifier := httpRouteFiltersToServiceRouteHeaderModifier(rule.Filters.Headers)
@@ -96,6 +98,15 @@ func httpRouteToDiscoveryChain(route structs.HTTPRouteConfigEntry) (*structs.Ser
 			destination.Partition = service.PartitionOrDefault()
 			destination.PrefixRewrite = servicePrefixRewrite
 			destination.RequestHeaders = modifier
+
+			// since we have already validated the protocol elsewhere, we
+			// create a new service defaults here to make sure we pass validation
+			defaults = append(defaults, &structs.ServiceConfigEntry{
+				Kind:           structs.ServiceDefaults,
+				Name:           service.Name,
+				Protocol:       "http",
+				EnterpriseMeta: service.EnterpriseMeta,
+			})
 		} else {
 			// create a virtual service to split
 			destination.Service = fmt.Sprintf("%s-%d", route.GetName(), idx)
@@ -133,6 +144,15 @@ func httpRouteToDiscoveryChain(route structs.HTTPRouteConfigEntry) (*structs.Ser
 				split.Namespace = service.NamespaceOrDefault()
 				split.Partition = service.PartitionOrDefault()
 				splitter.Splits = append(splitter.Splits, split)
+
+				// since we have already validated the protocol elsewhere, we
+				// create a new service defaults here to make sure we pass validation
+				defaults = append(defaults, &structs.ServiceConfigEntry{
+					Kind:           structs.ServiceDefaults,
+					Name:           service.Name,
+					Protocol:       "http",
+					EnterpriseMeta: service.EnterpriseMeta,
+				})
 			}
 			if len(splitter.Splits) > 0 {
 				splitters = append(splitters, splitter)
@@ -153,7 +173,7 @@ func httpRouteToDiscoveryChain(route structs.HTTPRouteConfigEntry) (*structs.Ser
 		}
 	}
 
-	return router, splitters
+	return router, splitters, defaults
 }
 
 func httpRouteFiltersToDestinationPrefixRewrite(rewrites []structs.URLRewrite) string {

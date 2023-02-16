@@ -1,12 +1,14 @@
 package troubleshoot
 
 import (
+	"fmt"
 	envoy_admin_v3 "github.com/envoyproxy/go-control-plane/envoy/admin/v3"
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
+	envoy_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	envoy_resource_v3 "github.com/envoyproxy/go-control-plane/pkg/resource/v3"
+	"google.golang.org/protobuf/proto"
 
 	"github.com/hashicorp/consul/envoyextensions/extensioncommon"
-	"google.golang.org/protobuf/proto"
 )
 
 type UpstreamIP struct {
@@ -49,7 +51,7 @@ func (t *Troubleshoot) GetUpstreams() ([]string, []UpstreamIP, error) {
 						return nil, nil, err
 					}
 
-					upstream_ips, err = getUpstreamIPsFromFilterChain(l.GetFilterChains())
+					upstream_ips, err = getUpstreamIPsFromFilterChain(l.GetFilterChains(), t.envoyConfigDump)
 					if err != nil {
 						return nil, nil, err
 					}
@@ -60,7 +62,9 @@ func (t *Troubleshoot) GetUpstreams() ([]string, []UpstreamIP, error) {
 	return upstream_envoy_ids, upstream_ips, nil
 }
 
-func getUpstreamIPsFromFilterChain(filterChains []*envoy_listener_v3.FilterChain) ([]UpstreamIP, error) {
+func getUpstreamIPsFromFilterChain(filterChains []*envoy_listener_v3.FilterChain,
+	cfgDump *envoy_admin_v3.ConfigDump) ([]UpstreamIP, error) {
+	var err error
 	if filterChains == nil {
 		return []UpstreamIP{}, nil
 	}
@@ -71,7 +75,6 @@ func getUpstreamIPsFromFilterChain(filterChains []*envoy_listener_v3.FilterChain
 		if fc.GetFilters() == nil {
 			continue
 		}
-
 		if fc.GetFilterChainMatch() == nil {
 			continue
 		}
@@ -94,13 +97,22 @@ func getUpstreamIPsFromFilterChain(filterChains []*envoy_listener_v3.FilterChain
 			}
 
 			clusterNames := map[string]struct{}{}
-
 			if config := envoy_resource_v3.GetHTTPConnectionManager(filter); config != nil {
 				isVirtual = true
-
 				cfg := config.GetRouteConfig()
 
-				clusterNames = extensioncommon.RouteClusterNames(cfg)
+				if cfg != nil {
+					clusterNames = extensioncommon.RouteClusterNames(cfg)
+				} else {
+					// If there are no route configs, look for RDS.
+					routeName := config.GetRds().GetRouteConfigName()
+					if routeName != "" {
+						clusterNames, err = getClustersFromRoutes(routeName, cfgDump)
+						if err != nil {
+							return nil, fmt.Errorf("error in getting clusters for route %q: %w", routeName, err)
+						}
+					}
+				}
 			}
 			if config := extensioncommon.GetTCPProxy(filter); config != nil {
 				if config.GetCluster() != "" {
@@ -117,4 +129,33 @@ func getUpstreamIPsFromFilterChain(filterChains []*envoy_listener_v3.FilterChain
 	}
 
 	return upstreamIPs, nil
+}
+
+func getClustersFromRoutes(routeName string, cfgDump *envoy_admin_v3.ConfigDump) (map[string]struct{}, error) {
+
+	for _, cfg := range cfgDump.Configs {
+		switch cfg.TypeUrl {
+		case routes:
+			rcd := &envoy_admin_v3.RoutesConfigDump{}
+
+			err := proto.Unmarshal(cfg.GetValue(), rcd)
+			if err != nil {
+				return nil, err
+			}
+
+			for _, route := range rcd.GetDynamicRouteConfigs() {
+
+				routeConfig := &envoy_route_v3.RouteConfiguration{}
+				err = proto.Unmarshal(route.GetRouteConfig().GetValue(), routeConfig)
+				if err != nil {
+					return nil, err
+				}
+
+				if routeConfig.GetName() == routeName {
+					return extensioncommon.RouteClusterNames(routeConfig), nil
+				}
+			}
+		}
+	}
+	return nil, nil
 }
