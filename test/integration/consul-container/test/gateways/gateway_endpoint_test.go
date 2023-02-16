@@ -1,6 +1,7 @@
 package gateways_test
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"fmt"
@@ -11,8 +12,9 @@ import (
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"os/exec"
-	"strings"
+	"net/http"
+	"os"
+	"strconv"
 	"testing"
 	"time"
 )
@@ -34,7 +36,7 @@ func TestAPIGatewayCreate(t *testing.T) {
 		Name: "api-gateway",
 		Listeners: []api.APIGatewayListener{
 			{
-				Port:     9999,
+				Port:     8443,
 				Protocol: "tcp",
 			},
 		},
@@ -62,23 +64,25 @@ func TestAPIGatewayCreate(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Create a client proxy instance with the server as an upstream
-	clientConnectProxy := createServices(t, cluster)
+	clientConnectProxy, gatewayService := createServices(t, cluster)
 	fmt.Println(clientConnectProxy)
-	agentUrl, err := cluster.Agents[0].GetPod().PortEndpoint(context.Background(), "8500", "http")
-	cmdStr := "consul connect envoy -gateway api -register -service api-gateway -proxy-id api-gateway -http-addr " + agentUrl
 
-	c := strings.Split(cmdStr, " ")
-	t.Log("------------\n\n\n")
-	cmd := exec.Command(c[0], c[1:]...)
-	out := bytes.NewBufferString("")
-	stdErr := bytes.NewBufferString("")
-	cmd.Stdout = out
-	cmd.Stderr = stdErr
-	err = cmd.Run()
-	t.Log(out)
-	t.Log(stdErr)
-	t.Log("------------\n\n\n")
-	assert.NoError(t, err)
+	//how to exec into the consul CLI
+	//agentUrl, err := cluster.Agents[0].GetPod().PortEndpoint(context.Background(), "8500", "http")
+	//cmdStr := "consul connect envoy -gateway api -register -service api-gateway -proxy-id api-gateway -http-addr " + agentUrl
+	//
+	//c := strings.Split(cmdStr, " ")
+	//t.Log("------------\n\n\n")
+	//cmd := exec.Command(c[0], c[1:]...)
+	//out := bytes.NewBufferString("")
+	//stdErr := bytes.NewBufferString("")
+	//cmd.Stdout = out
+	//cmd.Stderr = stdErr
+	//err = cmd.Run()
+	//t.Log(out)
+	//t.Log(stdErr)
+	//t.Log("------------\n\n\n")
+	//assert.NoError(t, err)
 
 	//TODO this can and should be broken up more effectively, this is just proof of concept
 	//check statuses
@@ -122,9 +126,31 @@ func TestAPIGatewayCreate(t *testing.T) {
 		t.Log(g)
 	}
 
-	for {
+	t.Log(gatewayService.GetAddr())
+	assert.NoError(t, err)
+	fmt.Println(gatewayService)
 
+	ip, port := gatewayService.GetAddr()
+	t.Log("ip:", ip)
+	stdOut := bufio.NewWriter(os.Stdout)
+	stdOut.Write([]byte(ip + "\n"))
+	stdOut.Write([]byte(strconv.Itoa(port)))
+	stdOut.Flush()
+	resp, err := http.Get(fmt.Sprintf("http://%s:%d", ip, port))
+	t.Log(resp, err)
+	assert.NoError(t, err)
+
+	buf := bytes.NewBufferString("abcdefg")
+	resp, err = http.Post(fmt.Sprintf("http://%s:%d", ip, port), "text/plain", buf)
+	t.Log(resp, err)
+
+	for {
 	}
+	//t.Log(gatewayService.Restart())
+	//t.Log(gatewayService.GetStatus())
+	//t.Log(gatewayService.GetLogs())
+
+	t.Fail()
 
 }
 
@@ -174,10 +200,12 @@ func createCluster(t *testing.T) *libcluster.Cluster {
 	require.NoError(t, err)
 	require.True(t, ok)
 
+	require.NoError(t, err)
+
 	return cluster
 }
 
-func createServices(t *testing.T, cluster *libcluster.Cluster) libservice.Service {
+func createServices(t *testing.T, cluster *libcluster.Cluster) (libservice.Service, libservice.Service) {
 	node := cluster.Agents[0]
 	client := node.GetClient()
 	// Create a service and proxy instance
@@ -201,5 +229,9 @@ func createServices(t *testing.T, cluster *libcluster.Cluster) libservice.Servic
 
 	libassert.CatalogServiceExists(t, client, "static-client-sidecar-proxy")
 
-	return clientConnectProxy
+	gatewayService, err := libservice.NewGatewayService(context.Background(), "api-gateway", "api", cluster.Agents[0])
+	libassert.CatalogServiceExists(t, client, "api-gateway")
+	require.NoError(t, err)
+
+	return clientConnectProxy, gatewayService
 }
