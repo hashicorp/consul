@@ -123,8 +123,6 @@ type GatewayTLSConfig struct {
 	// Indicates that TLS should be enabled for this gateway or listener
 	Enabled bool
 
-	UseADS bool
-
 	// SDS allows configuring TLS certificate from an SDS service.
 	SDS *GatewayTLSSDSConfig `json:",omitempty"`
 
