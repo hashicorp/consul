@@ -201,10 +201,7 @@ func (c *cmd) Run(args []string) int {
 			return 1
 		}
 
-		if !hasAddPolicyFields {
-			// c.UI.Warn("Overwriting policies with new specified policies")
-			t.Policies = nil
-		} else {
+		if hasAddPolicyFields {
 			for _, addedPolicyName := range c.addPolicyNames {
 				t.Policies = append(t.Policies, &api.ACLTokenPolicyLink{Name: addedPolicyName})
 			}
@@ -217,6 +214,9 @@ func (c *cmd) Run(args []string) int {
 				}
 				t.Policies = append(t.Policies, &api.ACLTokenPolicyLink{ID: policyID})
 			}
+		} else {
+			// c.UI.Warn("Overwriting policies with new specified policies")
+			t.Policies = nil
 		}
 
 		for _, policyName := range c.policyNames {
