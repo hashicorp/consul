@@ -13,6 +13,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/types"
 )
 
@@ -25,7 +26,12 @@ func (s *ResourceGenerator) makeIngressGatewayListeners(address string, cfgSnap 
 			return nil, fmt.Errorf("no listener config found for listener on proto/port %s/%d", listenerKey.Protocol, listenerKey.Port)
 		}
 
-		tlsContext, err := makeDownstreamTLSContextFromSnapshotListenerConfig(cfgSnap, listenerCfg)
+		var certs []structs.InlineCertificateConfigEntry
+		if cfgSnap.APIGateway.ListenerCertificates != nil {
+			certs = cfgSnap.APIGateway.ListenerCertificates[listenerKey]
+		}
+
+		tlsContext, err := makeDownstreamTLSContextFromSnapshotListenerConfig(cfgSnap, listenerCfg, certs)
 		if err != nil {
 			return nil, err
 		}
@@ -160,10 +166,10 @@ func (s *ResourceGenerator) makeIngressGatewayListeners(address string, cfgSnap 
 	return resources, nil
 }
 
-func makeDownstreamTLSContextFromSnapshotListenerConfig(cfgSnap *proxycfg.ConfigSnapshot, listenerCfg structs.IngressListener) (*envoy_tls_v3.DownstreamTlsContext, error) {
+func makeDownstreamTLSContextFromSnapshotListenerConfig(cfgSnap *proxycfg.ConfigSnapshot, listenerCfg structs.IngressListener, certs []structs.InlineCertificateConfigEntry) (*envoy_tls_v3.DownstreamTlsContext, error) {
 	var downstreamContext *envoy_tls_v3.DownstreamTlsContext
 
-	tlsContext, err := makeCommonTLSContextFromSnapshotListenerConfig(cfgSnap, listenerCfg)
+	tlsContext, err := makeCommonTLSContextFromSnapshotListenerConfig(cfgSnap, listenerCfg, certs)
 	if err != nil {
 		return nil, err
 	}
@@ -181,7 +187,7 @@ func makeDownstreamTLSContextFromSnapshotListenerConfig(cfgSnap *proxycfg.Config
 	return downstreamContext, nil
 }
 
-func makeCommonTLSContextFromSnapshotListenerConfig(cfgSnap *proxycfg.ConfigSnapshot, listenerCfg structs.IngressListener) (*envoy_tls_v3.CommonTlsContext, error) {
+func makeCommonTLSContextFromSnapshotListenerConfig(cfgSnap *proxycfg.ConfigSnapshot, listenerCfg structs.IngressListener, certs []structs.InlineCertificateConfigEntry) (*envoy_tls_v3.CommonTlsContext, error) {
 	var tlsContext *envoy_tls_v3.CommonTlsContext
 
 	// Enable connect TLS if it is enabled at the Gateway or specific listener
@@ -197,6 +203,10 @@ func makeCommonTLSContextFromSnapshotListenerConfig(cfgSnap *proxycfg.ConfigSnap
 	tlsCfg, err := resolveListenerTLSConfig(&gatewayTLSCfg, listenerCfg)
 	if err != nil {
 		return nil, err
+	}
+
+	if len(certs) != 0 {
+		return makeInlineTLSContextFromGatewayTLSConfig(*tlsCfg, certs), nil
 	}
 
 	if tlsCfg.SDS != nil {
@@ -226,8 +236,6 @@ func resolveListenerTLSConfig(gatewayTLSCfg *structs.GatewayTLSConfig, listenerC
 	}
 
 	if listenerCfg.TLS != nil {
-		mergedCfg.UseADS = listenerCfg.TLS.UseADS
-		
 		if listenerCfg.TLS.TLSMinVersion != types.TLSVersionUnspecified {
 			mergedCfg.TLSMinVersion = listenerCfg.TLS.TLSMinVersion
 		}
@@ -385,18 +393,33 @@ func makeTLSParametersFromGatewayTLSConfig(tlsCfg structs.GatewayTLSConfig) *env
 	return makeTLSParametersFromTLSConfig(tlsCfg.TLSMinVersion, tlsCfg.TLSMaxVersion, tlsCfg.CipherSuites)
 }
 
-func makeCommonTLSContextFromGatewayTLSConfig(tlsCfg structs.GatewayTLSConfig) *envoy_tls_v3.CommonTlsContext {
-
-	var secretConfigs []*envoy_tls_v3.SdsSecretConfig
-	if tlsCfg.UseADS {
-		secretConfigs = makeTLSCertificateSdsSecretConfigsFromSDSUsingADS(*tlsCfg.SDS)
-	} else {
-		secretConfigs = makeTLSCertificateSdsSecretConfigsFromSDS(*tlsCfg.SDS)
+func makeInlineTLSContextFromGatewayTLSConfig(tlsCfg structs.GatewayTLSConfig, certs []structs.InlineCertificateConfigEntry) *envoy_tls_v3.CommonTlsContext {
+	tlsParams := makeTLSParametersFromGatewayTLSConfig(tlsCfg)
+	tlsCerts := []*envoy_tls_v3.TlsCertificate{}
+	for _, cert := range certs {
+		tlsCerts = append(tlsCerts, &envoy_tls_v3.TlsCertificate{
+			CertificateChain: &envoy_core_v3.DataSource{
+				Specifier: &envoy_core_v3.DataSource_InlineString{
+					InlineString: lib.EnsureTrailingNewline(cert.Certificate),
+				},
+			},
+			PrivateKey: &envoy_core_v3.DataSource{
+				Specifier: &envoy_core_v3.DataSource_InlineString{
+					InlineString: lib.EnsureTrailingNewline(cert.PrivateKey),
+				},
+			},
+		})
 	}
+	return &envoy_tls_v3.CommonTlsContext{
+		TlsParams:       tlsParams,
+		TlsCertificates: tlsCerts,
+	}
+}
 
+func makeCommonTLSContextFromGatewayTLSConfig(tlsCfg structs.GatewayTLSConfig) *envoy_tls_v3.CommonTlsContext {
 	return &envoy_tls_v3.CommonTlsContext{
 		TlsParams:                      makeTLSParametersFromGatewayTLSConfig(tlsCfg),
-		TlsCertificateSdsSecretConfigs: secretConfigs,
+		TlsCertificateSdsSecretConfigs: makeTLSCertificateSdsSecretConfigsFromSDS(*tlsCfg.SDS),
 	}
 }
 
@@ -420,7 +443,6 @@ func makeTLSCertificateSdsSecretConfigsFromSDSUsingADS(sdsCfg structs.GatewayTLS
 		},
 	}
 }
-
 
 func makeTLSCertificateSdsSecretConfigsFromSDS(sdsCfg structs.GatewayTLSSDSConfig) []*envoy_tls_v3.SdsSecretConfig {
 	return []*envoy_tls_v3.SdsSecretConfig{
