@@ -529,6 +529,23 @@
     ]
   },
   {
+    "title": "troubleshoot",
+    "routes": [
+      {
+        "title": "Overview",
+        "path": "troubleshoot"
+      },
+      {
+        "title": "upstreams",
+        "path": "troubleshoot/upstreams"
+      },
+      {
+        "title": "proxy",
+        "path": "troubleshoot/proxy"
+      }
+    ]
+  },
+  {
     "title": "validate",
     "path": "validate"
   },
