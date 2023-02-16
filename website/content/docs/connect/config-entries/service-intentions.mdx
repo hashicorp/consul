@@ -337,7 +337,7 @@ spec:
 
 ### Cluster peering
 
-When using cluster peering connections, intentions secure your deployments with authorized service-to-service communication between remote datacenters. In the following example, the `backend-service` is authorized to communicate with the `frontend-service` on remote peer `cluster-02`:
+When using cluster peering connections, intentions secure your deployments with authorized service-to-service communication between remote datacenters. In the following example, the service intentions configuration entry authorizes the `backend-service` to communicate with the `frontend-service` that is hosted on remote peer `cluster-02`:
 
 <CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
 
@@ -384,6 +384,7 @@ When using cluster peering connections, intentions secure your deployments with 
     ]
   }
   ```
+  
 ## Available Fields
 
 <ConfigEntryReference
