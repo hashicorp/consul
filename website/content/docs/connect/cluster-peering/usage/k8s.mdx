@@ -86,7 +86,7 @@ Refer to the following example CRDs:
 
 ## Guidance for new users
 
-If you are new to using cluster peering, the following sections contain steps to configure environmental variables, update the Helm chart, and install the updated Helm chart on each cluster with Consul on Kubernetes.
+If you are new to cluster peering on Consul, the following sections contain steps to help you set up environmental variables, update the Helm chart, and install the updated Helm chart on each cluster with Consul on Kubernetes.
 
 ### Assign cluster IDs to environmental variables
 
@@ -168,42 +168,6 @@ Mesh gateways are required for cluster peering connections. To add mesh gateways
     $  kubectl --context $CLUSTER2_CONTEXT apply -f mesh.yaml 
     ```
 
-## End a peering connection
-
-To end a peering connection, delete both the `PeeringAcceptor` and `PeeringDialer` resources.
-
-1. Delete the `PeeringDialer` resource from the second cluster.
-
-  ```shell-session
-  $ kubectl --context $CLUSTER2_CONTEXT delete --filename dialer.yaml
-  ```
-
-1. Delete the `PeeringAcceptor` resource from the first cluster.
-
-  ```shell-session
-  $ kubectl --context $CLUSTER1_CONTEXT delete --filename acceptor.yaml
-  ````
-
-1. Confirm that you deleted your peering connection in `cluster-01` by querying the the `/health` HTTP endpoint. The peered services should no longer appear.
-
-    1. Exec into the server pod for the first cluster.
-
-      ```shell-session
-      $ kubectl exec -it consul-server-0 --context $CLUSTER1_CONTEXT -- /bin/sh
-      ```
-
-    1. If you've enabled ACLs, export an ACL token to access the `/health` HTP endpoint for services. The bootstrap token may be used if an ACL token is not already provisioned.
-
-      ```shell-session
-      $ export CONSUL_HTTP_TOKEN=<INSERT BOOTSTRAP ACL TOKEN>
-      ```
-
-    1. Query the the `/health` HTTP endpoint. The peered services should no longer appear.
-
-     ```shell-session
-     $ curl "localhost:8500/v1/health/connect/backend?peer=cluster-02"
-     ```
-
 ## Recreate or reset a peering connection
 
 To recreate or reset the peering connection, you need to generate a new peering token from the cluster where you created the `PeeringAcceptor`.
@@ -239,7 +203,7 @@ To recreate or reset the peering connection, you need to generate a new peering 
 
 ~> **Note:** The only way to create or set a new peering token is to manually adjust the value of the annotation `consul.hashicorp.com/peering-version`. Creating a new token causes the previous token to expire.
 
-## Traffic management between peers
+## L7 traffic management between peers on Kubernetes
 
 You can use [dynamic traffic management](/consul/docs/connect/l7-traffic) to configure your service mesh so that services automatically failover and redirect between peers.
 
