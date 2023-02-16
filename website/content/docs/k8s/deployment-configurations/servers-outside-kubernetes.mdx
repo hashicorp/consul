@@ -14,9 +14,7 @@ The below `values.yaml` file shows how to configure the Helm chart to install
 Consul so that it joins an existing Consul server cluster.
 
 The `global.enabled` value first disables all chart components by default
-so that each component is opt-in. This allows us to _only_ setup the client
-agents. We then opt-in to the client agents by setting `client.enabled` to
-`true`.
+so that each component is opt-in.
 
 Next, configure `externalServers` to point it to Consul servers.
 The `externalServers.hosts` value must be provided and should be set to a DNS, an IP,
