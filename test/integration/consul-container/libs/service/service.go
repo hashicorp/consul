@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+
 	"github.com/hashicorp/consul/api"
 )
 
@@ -12,6 +13,7 @@ type Service interface {
 	// Export a service to the peering cluster
 	Export(partition, peer string, client *api.Client) error
 	GetAddr() (string, int)
+	GetPort(port int) int
 	// GetAdminAddr returns the external admin address
 	GetAdminAddr() (string, int)
 	GetLogs() (string, error)
