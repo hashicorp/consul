@@ -1,0 +1,3 @@
+```release-note:feature
+connect: provides tools to troubleshoot Consul's service mesh configuration and network issues.
+```
