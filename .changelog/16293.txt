@@ -1,0 +1,3 @@
+```release-note:feature
+cli: added `consul troubleshoot upstreams` and `consul troubleshoot proxy` commands for debugging service to service communication.
+```
