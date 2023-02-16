@@ -3,10 +3,11 @@ package troubleshoot
 import (
 	"context"
 	"fmt"
-	"github.com/stretchr/testify/assert"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 
 	"github.com/stretchr/testify/require"
 
@@ -40,10 +41,10 @@ func TestTroubleshootProxy(t *testing.T) {
 				"-envoy-admin-endpoint", fmt.Sprintf("localhost:%v", clientAdminPort),
 				"-upstream-envoy-id", libservice.StaticServerServiceName})
 			require.NoError(t, err)
-			certsValid := strings.Contains(output, "certificates are valid")
-			listenersExist := strings.Contains(output, fmt.Sprintf("listener for upstream \"%s\" found", libservice.StaticServerServiceName))
-			routesExist := strings.Contains(output, fmt.Sprintf("route for upstream \"%s\" found", libservice.StaticServerServiceName))
-			healthyEndpoints := strings.Contains(output, "✓ healthy endpoints for cluster")
+			certsValid := strings.Contains(output, "Certificates are valid")
+			listenersExist := strings.Contains(output, fmt.Sprintf("Listener for upstream \"%s\" found", libservice.StaticServerServiceName))
+			routesExist := strings.Contains(output, fmt.Sprintf("Route for upstream \"%s\" found", libservice.StaticServerServiceName))
+			healthyEndpoints := strings.Contains(output, "Healthy endpoints for cluster")
 			return upstreamExists && certsValid && listenersExist && routesExist && healthyEndpoints
 		}, 60*time.Second, 10*time.Second)
 	})
@@ -58,10 +59,10 @@ func TestTroubleshootProxy(t *testing.T) {
 				"-upstream-envoy-id", libservice.StaticServerServiceName})
 			require.NoError(t, err)
 
-			certsValid := strings.Contains(output, "certificates are valid")
-			listenersExist := strings.Contains(output, fmt.Sprintf("listener for upstream \"%s\" found", libservice.StaticServerServiceName))
-			routesExist := strings.Contains(output, fmt.Sprintf("route for upstream \"%s\" found", libservice.StaticServerServiceName))
-			endpointUnhealthy := strings.Contains(output, "no healthy endpoints for cluster")
+			certsValid := strings.Contains(output, "Certificates are valid")
+			listenersExist := strings.Contains(output, fmt.Sprintf("Listener for upstream \"%s\" found", libservice.StaticServerServiceName))
+			routesExist := strings.Contains(output, fmt.Sprintf("Route for upstream \"%s\" found", libservice.StaticServerServiceName))
+			endpointUnhealthy := strings.Contains(output, "No healthy endpoints for cluster")
 			return certsValid && listenersExist && routesExist && endpointUnhealthy
 		}, 60*time.Second, 10*time.Second)
 	})
