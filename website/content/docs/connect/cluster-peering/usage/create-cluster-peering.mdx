@@ -20,7 +20,7 @@ For more information about using Kubernetes with cluster peering, including requ
 
 ## Requirements
 
-To establish a cluster peering connection, your deployments must meet several requirements. For additional guidance on required configuration values, refer to the [cluster peering configuration reference](/consul/docs/connect/cluster-peering/configuration).
+To establish a cluster peering connection, your deployments must meet several requirements. For additional guidance on required configuration, refer to the [cluster peering technical specifications](/consul/docs/connect/cluster-peering/configuration).
 
 <Tabs>
 <Tab heading="HTTP API" group="api">
@@ -820,7 +820,7 @@ $ consul config write peering-intentions.hcl
 </Tab>
 </Tabs>
 
-### Authorize Service Reads with ACLs
+### Authorize service reads with ACLs
 
 If ACLs are enabled on a Consul cluster, sidecar proxies that access exported services as an upstream must have an ACL token that grants read access.
 
@@ -829,8 +829,8 @@ Read access to all imported services is granted using either of the following ru
 - `service:write` permissions for any service in the sidecar's partition.
 - `service:read` and `node:read` for all services and nodes, respectively, in sidecar's namespace and partition.
   
-For Consul Enterprise, access is granted to all imported services in the service's partition. These permissions are satisfied when using a [service identity](/docs/security/acl/acl-roles#service-identities).
+For Consul Enterprise, the permissions apply to all imported services in the service's partition. These permissions are satisfied when using a [service identity](/docs/security/acl/acl-roles#service-identities).
 
-Example rule files can be found in [Reading servers](/docs/connect/config-entries/exported-services#reading-services) in the `exported-services` config entry documentation.
+Refer to [Reading servers](/docs/connect/config-entries/exported-services#reading-services) in the `exported-services` configuration entry documentation for example rules.
 
 For additional information about how to configure and use ACLs, refer to [ACLs system overview](/docs/security/acl).
