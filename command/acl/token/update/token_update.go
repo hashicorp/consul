@@ -27,28 +27,28 @@ type cmd struct {
 
 	tokenAccessorID    string
 	policyIDs          []string
+	addPolicyIDs       []string
 	policyNames        []string
+	addPolicyNames     []string
 	roleIDs            []string
 	roleNames          []string
 	serviceIdents      []string
 	nodeIdents         []string
 	description        string
-	mergePolicies      bool
 	mergeRoles         bool
 	mergeServiceIdents bool
 	mergeNodeIdents    bool
 	showMeta           bool
 	format             string
 
-	tokenID string // DEPRECATED
+	mergePolicies bool   // DEPRECATED
+	tokenID       string // DEPRECATED
 }
 
 func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
 	c.flags.BoolVar(&c.showMeta, "meta", false, "Indicates that token metadata such "+
 		"as the content hash and raft indices should be shown for each entry")
-	c.flags.BoolVar(&c.mergePolicies, "merge-policies", false, "Merge the new policies "+
-		"with the existing policies")
 	c.flags.BoolVar(&c.mergeRoles, "merge-roles", false, "Merge the new roles "+
 		"with the existing roles")
 	c.flags.BoolVar(&c.mergeServiceIdents, "merge-service-identities", false, "Merge the new service identities "+
@@ -61,8 +61,12 @@ func (c *cmd) init() {
 	c.flags.StringVar(&c.description, "description", "", "A description of the token")
 	c.flags.Var((*flags.AppendSliceValue)(&c.policyIDs), "policy-id", "ID of a "+
 		"policy to use for this token. May be specified multiple times")
+	c.flags.Var((*flags.AppendSliceValue)(&c.addPolicyIDs), "add-policy-id", "ID of a "+
+		"policy to use for this token. Appends this policy to existing policies. May be specified multiple times")
 	c.flags.Var((*flags.AppendSliceValue)(&c.policyNames), "policy-name", "Name of a "+
 		"policy to use for this token. May be specified multiple times")
+	c.flags.Var((*flags.AppendSliceValue)(&c.addPolicyNames), "add-policy-name", "Name of a "+
+		"policy to use for this token. Appends this policy to existing policies. May be specified multiple times")
 	c.flags.Var((*flags.AppendSliceValue)(&c.roleIDs), "role-id", "ID of a "+
 		"role to use for this token. May be specified multiple times")
 	c.flags.Var((*flags.AppendSliceValue)(&c.roleNames), "role-name", "Name of a "+
@@ -87,8 +91,9 @@ func (c *cmd) init() {
 	c.help = flags.Usage(help, c.flags)
 
 	// Deprecations
-	c.flags.StringVar(&c.tokenID, "id", "",
-		"DEPRECATED. Use -accessor-id instead.")
+	c.flags.StringVar(&c.tokenID, "id", "", "DEPRECATED. Use -accessor-id instead.")
+	c.flags.BoolVar(&c.mergePolicies, "merge-policies", false, "Deprecated. Merge the new policies "+
+		"with the existing policies. Use -add-policy-id or -add-policy-name instead.")
 }
 
 func (c *cmd) Run(args []string) int {
@@ -148,6 +153,9 @@ func (c *cmd) Run(args []string) int {
 	}
 
 	if c.mergePolicies {
+		c.UI.Warn("merge-policies is deprecated and will be removed in future consul version. " +
+			"This is being replaced by `add-policy-name` and `add-policy-id`.")
+
 		for _, policyName := range c.policyNames {
 			found := false
 			for _, link := range t.Policies {
@@ -184,7 +192,32 @@ func (c *cmd) Run(args []string) int {
 			}
 		}
 	} else {
-		t.Policies = nil
+
+		hasAddPolicyFields := len(c.addPolicyNames) > 0 || len(c.addPolicyIDs) > 0
+		hasPolicyFields := len(c.policyIDs) > 0 || len(c.policyNames) > 0
+
+		if hasPolicyFields && hasAddPolicyFields {
+			c.UI.Error("Cannot specified both add-policy-id/add-policy-name and policy-id/policy-name")
+			return 1
+		}
+
+		if !hasAddPolicyFields {
+			// c.UI.Warn("Overwriting policies with new specified policies")
+			t.Policies = nil
+		} else {
+			for _, addedPolicyName := range c.addPolicyNames {
+				t.Policies = append(t.Policies, &api.ACLTokenPolicyLink{Name: addedPolicyName})
+			}
+
+			for _, addedPolicyId := range c.addPolicyIDs {
+				policyID, err := acl.GetPolicyIDFromPartial(client, addedPolicyId)
+				if err != nil {
+					c.UI.Error(fmt.Sprintf("Error resolving policy ID %s: %v", policyID, err))
+					return 1
+				}
+				t.Policies = append(t.Policies, &api.ACLTokenPolicyLink{ID: policyID})
+			}
+		}
 
 		for _, policyName := range c.policyNames {
 			// We could resolve names to IDs here but there isn't any reason why its would be better
