@@ -42,10 +42,11 @@ func TestTroubleshootProxy(t *testing.T) {
 				"-upstream-envoy-id", libservice.StaticServerServiceName})
 			require.NoError(t, err)
 			certsValid := strings.Contains(output, "Certificates are valid")
+			noRejectedConfig := strings.Contains(output, "Envoy has 0 rejected configurations")
+			noConnFailure := strings.Contains(output, "Envoy has detected 0 connection failure(s)")
 			listenersExist := strings.Contains(output, fmt.Sprintf("Listener for upstream \"%s\" found", libservice.StaticServerServiceName))
-			routesExist := strings.Contains(output, fmt.Sprintf("Route for upstream \"%s\" found", libservice.StaticServerServiceName))
 			healthyEndpoints := strings.Contains(output, "Healthy endpoints for cluster")
-			return upstreamExists && certsValid && listenersExist && routesExist && healthyEndpoints
+			return upstreamExists && certsValid && listenersExist && noRejectedConfig && noConnFailure && healthyEndpoints
 		}, 60*time.Second, 10*time.Second)
 	})
 
@@ -60,10 +61,11 @@ func TestTroubleshootProxy(t *testing.T) {
 			require.NoError(t, err)
 
 			certsValid := strings.Contains(output, "Certificates are valid")
+			noRejectedConfig := strings.Contains(output, "Envoy has 0 rejected configurations")
+			noConnFailure := strings.Contains(output, "Envoy has detected 0 connection failure(s)")
 			listenersExist := strings.Contains(output, fmt.Sprintf("Listener for upstream \"%s\" found", libservice.StaticServerServiceName))
-			routesExist := strings.Contains(output, fmt.Sprintf("Route for upstream \"%s\" found", libservice.StaticServerServiceName))
 			endpointUnhealthy := strings.Contains(output, "No healthy endpoints for cluster")
-			return certsValid && listenersExist && routesExist && endpointUnhealthy
+			return certsValid && listenersExist && noRejectedConfig && noConnFailure && endpointUnhealthy
 		}, 60*time.Second, 10*time.Second)
 	})
 }
