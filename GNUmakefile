@@ -495,12 +495,11 @@ proto-format: proto-tools
 
 .PHONY: proto-lint
 proto-lint: proto-tools
-	@buf lint --config proto/buf.yaml --path proto
-	@buf lint --config proto-public/buf.yaml --path proto-public
+	@buf lint 
 	@for fn in $$(find proto -name '*.proto'); do \
-		if [[ "$$fn" = "proto/pbsubscribe/subscribe.proto" ]]; then \
+		if [[ "$$fn" = "proto/private/pbsubscribe/subscribe.proto" ]]; then \
 			continue ; \
-		elif [[ "$$fn" = "proto/pbpartition/partition.proto" ]]; then \
+		elif [[ "$$fn" = "proto/private/pbpartition/partition.proto" ]]; then \
 			continue ; \
 		fi ; \
 		pkg=$$(grep "^package " "$$fn" | sed 's/^package \(.*\);/\1/'); \
