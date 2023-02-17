@@ -79,6 +79,7 @@ func (e *HTTPRouteConfigEntry) Normalize() error {
 	for i, parent := range e.Parents {
 		if parent.Kind == "" {
 			parent.Kind = APIGateway
+			parent.EnterpriseMeta.Normalize()
 			e.Parents[i] = parent
 		}
 	}
@@ -87,10 +88,20 @@ func (e *HTTPRouteConfigEntry) Normalize() error {
 		for j, match := range rule.Matches {
 			rule.Matches[j] = normalizeHTTPMatch(match)
 		}
+
+		for j, service := range rule.Services {
+			rule.Services[j] = normalizeHTTPService(service)
+		}
 		e.Rules[i] = rule
 	}
 
 	return nil
+}
+
+func normalizeHTTPService(service HTTPService) HTTPService {
+	service.EnterpriseMeta.Normalize()
+
+	return service
 }
 
 func normalizeHTTPMatch(match HTTPMatch) HTTPMatch {
@@ -494,9 +505,16 @@ func (e *TCPRouteConfigEntry) Normalize() error {
 	for i, parent := range e.Parents {
 		if parent.Kind == "" {
 			parent.Kind = APIGateway
+			parent.EnterpriseMeta.Normalize()
 			e.Parents[i] = parent
 		}
 	}
+
+	for i, service := range e.Services {
+		service.EnterpriseMeta.Normalize()
+		e.Services[i] = service
+	}
+
 	return nil
 }
 
