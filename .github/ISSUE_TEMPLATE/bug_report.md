@@ -21,7 +21,7 @@ Steps to reproduce this issue, eg:
 ### Consul info for both Client and Server
 
 
-<!---  Please provide both `consul info` and agent HCL config for both client and servers. Take careful steps to remove any sensitive information from config files that include secrets such as Gossip keys. --->
+<!---  Please provide both `consul info` and agent HCL config for both client and servers to help us better diagnose the issue. Take careful steps to remove any sensitive information from config files that include secrets such as Gossip keys. --->
 
 <details>
   <summary>Client info</summary>
