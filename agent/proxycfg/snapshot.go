@@ -774,7 +774,7 @@ func (c *configSnapshotAPIGateway) ToIngress(datacenter string) (configSnapshotI
 		}
 
 		// Create a synthesized discovery chain for each service.
-		services, upstreams, compiled, err := c.synthesizeChains(datacenter, listener.Protocol, listener.Port, listener.Name, boundListener)
+		services, upstreams, compiled, err := c.synthesizeChains(datacenter, listener, boundListener)
 		if err != nil {
 			return configSnapshotIngressGateway{}, err
 		}
@@ -836,7 +836,7 @@ func (c *configSnapshotAPIGateway) ToIngress(datacenter string) (configSnapshotI
 	}, nil
 }
 
-func (c *configSnapshotAPIGateway) synthesizeChains(datacenter string, protocol structs.APIGatewayListenerProtocol, port int, name string, boundListener structs.BoundAPIGatewayListener) ([]structs.IngressService, structs.Upstreams, []*structs.CompiledDiscoveryChain, error) {
+func (c *configSnapshotAPIGateway) synthesizeChains(datacenter string, listener structs.APIGatewayListener, boundListener structs.BoundAPIGatewayListener) ([]structs.IngressService, structs.Upstreams, []*structs.CompiledDiscoveryChain, error) {
 	chains := []*structs.CompiledDiscoveryChain{}
 	trustDomain := ""
 
@@ -852,12 +852,13 @@ DOMAIN_LOOP:
 		}
 	}
 
-	synthesizer := discoverychain.NewGatewayChainSynthesizer(datacenter, trustDomain, name, c.GatewayConfig)
+	synthesizer := discoverychain.NewGatewayChainSynthesizer(datacenter, trustDomain, listener.Name, c.GatewayConfig)
+	synthesizer.SetHostname(listener.GetHostname())
 	for _, routeRef := range boundListener.Routes {
 		switch routeRef.Kind {
 		case structs.HTTPRoute:
 			route, ok := c.HTTPRoutes.Get(routeRef)
-			if !ok || protocol != structs.ListenerProtocolHTTP {
+			if !ok || listener.Protocol != structs.ListenerProtocolHTTP {
 				continue
 			}
 			synthesizer.AddHTTPRoute(*route)
@@ -869,7 +870,7 @@ DOMAIN_LOOP:
 			}
 		case structs.TCPRoute:
 			route, ok := c.TCPRoutes.Get(routeRef)
-			if !ok || protocol != structs.ListenerProtocolTCP {
+			if !ok || listener.Protocol != structs.ListenerProtocolTCP {
 				continue
 			}
 			synthesizer.AddTCPRoute(*route)
@@ -901,9 +902,9 @@ DOMAIN_LOOP:
 			DestinationNamespace: service.NamespaceOrDefault(),
 			DestinationPartition: service.PartitionOrDefault(),
 			IngressHosts:         service.Hosts,
-			LocalBindPort:        port,
+			LocalBindPort:        listener.Port,
 			Config: map[string]interface{}{
-				"protocol": string(protocol),
+				"protocol": string(listener.Protocol),
 			},
 		})
 	}

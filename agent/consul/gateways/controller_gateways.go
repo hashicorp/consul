@@ -701,6 +701,14 @@ func (g *gatewayMeta) bindRoute(listener *structs.APIGatewayListener, bound *str
 		return false, nil
 	}
 
+	if route, ok := route.(*structs.HTTPRouteConfigEntry); ok {
+		// check our hostnames
+		hostnames := route.FilteredHostnames(listener.GetHostname())
+		if len(hostnames) == 0 {
+			return false, fmt.Errorf("failed to bind route to gateway %s: listener %s is does not have any hostnames that match the route", route.GetName(), g.Gateway.Name)
+		}
+	}
+
 	if listener.Protocol == route.GetProtocol() && bound.BindRoute(structs.ResourceReference{
 		Kind:           route.GetKind(),
 		Name:           route.GetName(),
