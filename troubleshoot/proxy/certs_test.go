@@ -21,13 +21,13 @@ func TestValidateCerts(t *testing.T) {
 	}{
 		"cert is nil": {
 			certs:         nil,
-			expectedError: "certificate object is nil in the proxy configuration",
+			expectedError: "Certificate object is nil in the proxy configuration",
 		},
 		"no certificates": {
 			certs: &envoy_admin_v3.Certificates{
 				Certificates: []*envoy_admin_v3.Certificate{},
 			},
-			expectedError: "no certificates found",
+			expectedError: "No certificates found",
 		},
 		"ca expired": {
 			certs: &envoy_admin_v3.Certificates{
@@ -41,7 +41,7 @@ func TestValidateCerts(t *testing.T) {
 					},
 				},
 			},
-			expectedError: "ca certificate is expired",
+			expectedError: "CA certificate is expired",
 		},
 		"cert expired": {
 			certs: &envoy_admin_v3.Certificates{
@@ -55,7 +55,7 @@ func TestValidateCerts(t *testing.T) {
 					},
 				},
 			},
-			expectedError: "certificate chain is expired",
+			expectedError: "Certificate chain is expired",
 		},
 	}
 
@@ -67,7 +67,9 @@ func TestValidateCerts(t *testing.T) {
 			var outputErrors string
 			for _, msgError := range messages.Errors() {
 				outputErrors += msgError.Message
-				outputErrors += msgError.PossibleActions
+				for _, action := range msgError.PossibleActions {
+					outputErrors += action
+				}
 			}
 			if tc.expectedError == "" {
 				require.True(t, messages.Success())
