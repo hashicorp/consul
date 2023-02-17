@@ -734,6 +734,8 @@ type configSnapshotAPIGateway struct {
 	// Listeners is the original listener config from the api-gateway config
 	// entry to save us trying to pass fields through Upstreams
 	Listeners map[string]structs.APIGatewayListener
+	// this acts as an intermediary for inlining certificates
+	ListenerCertificates map[IngressListenerKey][]structs.InlineCertificateConfigEntry
 
 	BoundListeners map[string]structs.BoundAPIGatewayListener
 }
@@ -750,6 +752,9 @@ func (c *configSnapshotAPIGateway) ToIngress(datacenter string) (configSnapshotI
 	synthesizedChains := map[UpstreamID]*structs.CompiledDiscoveryChain{}
 	watchedUpstreamEndpoints := make(map[UpstreamID]map[string]structs.CheckServiceNodes)
 	watchedGatewayEndpoints := make(map[UpstreamID]map[string]structs.CheckServiceNodes)
+
+	// reset the cached certificates
+	c.ListenerCertificates = make(map[IngressListenerKey][]structs.InlineCertificateConfigEntry)
 
 	for name, listener := range c.Listeners {
 		boundListener, ok := c.BoundListeners[name]
@@ -802,17 +807,18 @@ func (c *configSnapshotAPIGateway) ToIngress(datacenter string) (configSnapshotI
 			watchedGatewayEndpoints[id] = gatewayEndpoints
 		}
 
-		// Configure TLS for the ingress listener
-		tls, err := c.toIngressTLS()
-		if err != nil {
-			return configSnapshotIngressGateway{}, err
-		}
-		ingressListener.TLS = tls
-
 		key := IngressListenerKey{
 			Port:     listener.Port,
 			Protocol: string(listener.Protocol),
 		}
+
+		// Configure TLS for the ingress listener
+		tls, err := c.toIngressTLS(key, listener, boundListener)
+		if err != nil {
+			return configSnapshotIngressGateway{}, err
+		}
+
+		ingressListener.TLS = tls
 		ingressListeners[key] = ingressListener
 		ingressUpstreams[key] = upstreams
 	}
@@ -905,9 +911,25 @@ DOMAIN_LOOP:
 	return services, upstreams, compiled, err
 }
 
-func (c *configSnapshotAPIGateway) toIngressTLS() (*structs.GatewayTLSConfig, error) {
-	// TODO (t-eckert) this is dependent on future SDS work.
-	return &structs.GatewayTLSConfig{}, nil
+func (c *configSnapshotAPIGateway) toIngressTLS(key IngressListenerKey, listener structs.APIGatewayListener, bound structs.BoundAPIGatewayListener) (*structs.GatewayTLSConfig, error) {
+	if len(listener.TLS.Certificates) == 0 {
+		return nil, nil
+	}
+
+	for _, certRef := range bound.Certificates {
+		cert, ok := c.Certificates.Get(certRef)
+		if !ok {
+			continue
+		}
+		c.ListenerCertificates[key] = append(c.ListenerCertificates[key], *cert)
+	}
+
+	return &structs.GatewayTLSConfig{
+		Enabled:       true,
+		TLSMinVersion: listener.TLS.MinVersion,
+		TLSMaxVersion: listener.TLS.MaxVersion,
+		CipherSuites:  listener.TLS.CipherSuites,
+	}, nil
 }
 
 type configSnapshotIngressGateway struct {
