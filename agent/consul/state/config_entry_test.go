@@ -903,7 +903,7 @@ func TestStore_Service_TerminatingGateway_Kind_Service_Wildcard(t *testing.T) {
 }
 
 func TestStore_ConfigEntry_GraphValidation(t *testing.T) {
-	ensureConfigEntry := func(s *Store, idx uint64, entry structs.ConfigEntry) error {
+	ensureConfigEntry := func(s *Store, entry structs.ConfigEntry) error {
 		if err := entry.Normalize(); err != nil {
 			return err
 		}
@@ -926,7 +926,7 @@ func TestStore_ConfigEntry_GraphValidation(t *testing.T) {
 	run := func(t *testing.T, tc tcase) {
 		s := testConfigStateStore(t)
 		for _, entry := range tc.entries {
-			require.NoError(t, ensureConfigEntry(s, 0, entry))
+			require.NoError(t, ensureConfigEntry(s, entry))
 		}
 
 		nOps := 0
@@ -941,7 +941,7 @@ func TestStore_ConfigEntry_GraphValidation(t *testing.T) {
 		var err error
 		switch {
 		case tc.opAdd != nil:
-			err = ensureConfigEntry(s, 0, tc.opAdd)
+			err = ensureConfigEntry(s, tc.opAdd)
 		case tc.opDelete != EMPTY_KN:
 			kn := tc.opDelete
 			err = s.DeleteConfigEntry(0, kn.Kind, kn.Name, &kn.EnterpriseMeta)

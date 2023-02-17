@@ -895,7 +895,7 @@ func TestPeeringService_TrustBundleRead(t *testing.T) {
 	client := pbpeering.NewPeeringServiceClient(srv.ClientConn(t))
 
 	var lastIdx uint64 = 1
-	_ = setupTestPeering(t, store, "my-peering", lastIdx)
+	setupTestPeering(t, store, "my-peering", lastIdx)
 
 	bundle := &pbpeering.PeeringTrustBundle{
 		TrustDomain: "peer1.com",
@@ -927,7 +927,7 @@ func TestPeeringService_TrustBundleRead_ACLEnforcement(t *testing.T) {
 	upsertTestACLs(t, s.Server.FSM().State())
 
 	// Insert peering and trust bundle directly to state store.
-	_ = setupTestPeering(t, store, "my-peering", 10)
+	setupTestPeering(t, store, "my-peering", 10)
 
 	bundle := &pbpeering.PeeringTrustBundle{
 		TrustDomain: "peer1.com",
@@ -1567,7 +1567,7 @@ func upsertTestACLs(t *testing.T, store *state.Store) {
 	require.NoError(t, store.ACLTokenBatchSet(101, tokens, state.ACLTokenSetOptions{}))
 }
 
-func setupTestPeering(t *testing.T, store *state.Store, name string, index uint64) string {
+func setupTestPeering(t *testing.T, store *state.Store, name string, index uint64) {
 	t.Helper()
 	err := store.PeeringWrite(index, &pbpeering.PeeringWriteRequest{
 		Peering: &pbpeering.Peering{
@@ -1580,8 +1580,6 @@ func setupTestPeering(t *testing.T, store *state.Store, name string, index uint6
 	_, p, err := store.PeeringRead(nil, state.Query{Value: name})
 	require.NoError(t, err)
 	require.NotNil(t, p)
-
-	return p.ID
 }
 
 func testUUID(t *testing.T) string {

@@ -34,7 +34,7 @@ func TestSubscriptionManager_RegisterDeregister(t *testing.T) {
 	defer cancel()
 
 	// Create a peering
-	_, id := backend.ensurePeering(t, "my-peering")
+	id := backend.ensurePeering(t, "my-peering")
 	partition := acl.DefaultEnterpriseMeta().PartitionOrEmpty()
 
 	// Only configure a tracker for catalog events.
@@ -448,7 +448,7 @@ func TestSubscriptionManager_InitialSnapshot(t *testing.T) {
 	defer cancel()
 
 	// Create a peering
-	_, id := backend.ensurePeering(t, "my-peering")
+	id := backend.ensurePeering(t, "my-peering")
 	partition := acl.DefaultEnterpriseMeta().PartitionOrEmpty()
 
 	// Only configure a tracker for catalog events.
@@ -581,7 +581,7 @@ func TestSubscriptionManager_CARoots(t *testing.T) {
 	defer cancel()
 
 	// Create a peering
-	_, id := backend.ensurePeering(t, "my-peering")
+	id := backend.ensurePeering(t, "my-peering")
 	partition := acl.DefaultEnterpriseMeta().PartitionOrEmpty()
 
 	// Only configure a tracker for CA roots events.
@@ -638,7 +638,7 @@ func TestSubscriptionManager_ServerAddrs(t *testing.T) {
 	t.Cleanup(cancel)
 
 	// Create a peering
-	_, id := backend.ensurePeering(t, "my-peering")
+	id := backend.ensurePeering(t, "my-peering")
 	partition := acl.DefaultEnterpriseMeta().PartitionOrEmpty()
 
 	payload := autopilotevents.EventPayloadReadyServers{
@@ -893,18 +893,18 @@ func newTestSubscriptionBackend(t *testing.T) *testSubscriptionBackend {
 	return backend
 }
 
-func (b *testSubscriptionBackend) ensurePeering(t *testing.T, name string) (uint64, string) {
+func (b *testSubscriptionBackend) ensurePeering(t *testing.T, name string) string {
 	b.lastIdx++
-	return b.lastIdx, setupTestPeering(t, b.store, name, b.lastIdx)
+	return setupTestPeering(t, b.store, name, b.lastIdx)
 }
 
-func (b *testSubscriptionBackend) ensureConfigEntry(t *testing.T, entry structs.ConfigEntry) uint64 {
+func (b *testSubscriptionBackend) ensureConfigEntry(t *testing.T, entry structs.ConfigEntry) {
 	require.NoError(t, entry.Normalize())
 	require.NoError(t, entry.Validate())
 
 	b.lastIdx++
 	require.NoError(t, b.store.EnsureConfigEntry(b.lastIdx, entry))
-	return b.lastIdx
+	return
 }
 
 func (b *testSubscriptionBackend) deleteConfigEntry(t *testing.T, kind, name string) uint64 {
@@ -913,28 +913,28 @@ func (b *testSubscriptionBackend) deleteConfigEntry(t *testing.T, kind, name str
 	return b.lastIdx
 }
 
-func (b *testSubscriptionBackend) ensureNode(t *testing.T, node *structs.Node) uint64 {
+func (b *testSubscriptionBackend) ensureNode(t *testing.T, node *structs.Node) {
 	b.lastIdx++
 	require.NoError(t, b.store.EnsureNode(b.lastIdx, node))
-	return b.lastIdx
+	return
 }
 
-func (b *testSubscriptionBackend) ensureService(t *testing.T, node string, svc *structs.NodeService) uint64 {
+func (b *testSubscriptionBackend) ensureService(t *testing.T, node string, svc *structs.NodeService) {
 	b.lastIdx++
 	require.NoError(t, b.store.EnsureService(b.lastIdx, node, svc))
-	return b.lastIdx
+	return
 }
 
-func (b *testSubscriptionBackend) ensureCheck(t *testing.T, hc *structs.HealthCheck) uint64 {
+func (b *testSubscriptionBackend) ensureCheck(t *testing.T, hc *structs.HealthCheck) {
 	b.lastIdx++
 	require.NoError(t, b.store.EnsureCheck(b.lastIdx, hc))
-	return b.lastIdx
+	return
 }
 
-func (b *testSubscriptionBackend) deleteService(t *testing.T, nodeName, serviceID string) uint64 {
+func (b *testSubscriptionBackend) deleteService(t *testing.T, nodeName, serviceID string) {
 	b.lastIdx++
 	require.NoError(t, b.store.DeleteService(b.lastIdx, nodeName, serviceID, nil, ""))
-	return b.lastIdx
+	return
 }
 
 func (b *testSubscriptionBackend) ensureCAConfig(t *testing.T, config *structs.CAConfiguration) uint64 {

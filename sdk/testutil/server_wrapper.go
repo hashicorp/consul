@@ -11,8 +11,8 @@ type WrappedServer struct {
 //
 // For example, the following code snippets are equivalent.
 //
-//   server.JoinLAN(t, "1.2.3.4")
-//   server.Wrap(t).JoinLAN("1.2.3.4")
+//	server.JoinLAN(t, "1.2.3.4")
+//	server.Wrap(t).JoinLAN("1.2.3.4")
 //
 // This is useful when you are calling multiple functions and save the wrapped
 // value as another variable to reduce the inclusion of "t".

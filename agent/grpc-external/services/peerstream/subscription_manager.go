@@ -140,7 +140,7 @@ func (m *subscriptionManager) handleEvent(ctx context.Context, state *subscripti
 		pending := &pendingPayload{}
 		m.syncNormalServices(ctx, state, pending, evt.Services)
 		if m.config.ConnectEnabled {
-			m.syncDiscoveryChains(ctx, state, pending, evt.ListAllDiscoveryChains())
+			m.syncDiscoveryChains(state, pending, evt.ListAllDiscoveryChains())
 		}
 		state.sendPendingEvents(ctx, m.logger, pending)
 
@@ -248,7 +248,7 @@ func (m *subscriptionManager) handleEvent(ctx context.Context, state *subscripti
 		if state.exportList != nil {
 			// Trigger public events for all synthetic discovery chain replies.
 			for chainName, info := range state.connectServices {
-				m.emitEventForDiscoveryChain(ctx, state, pending, chainName, info)
+				m.emitEventForDiscoveryChain(state, pending, chainName, info)
 			}
 		}
 
@@ -482,12 +482,7 @@ func (m *subscriptionManager) syncNormalServices(
 	}
 }
 
-func (m *subscriptionManager) syncDiscoveryChains(
-	ctx context.Context,
-	state *subscriptionState,
-	pending *pendingPayload,
-	chainsByName map[structs.ServiceName]structs.ExportedDiscoveryChainInfo,
-) {
+func (m *subscriptionManager) syncDiscoveryChains(state *subscriptionState, pending *pendingPayload, chainsByName map[structs.ServiceName]structs.ExportedDiscoveryChainInfo) {
 	// if it was newly added, then try to emit an UPDATE event
 	for chainName, info := range chainsByName {
 		if oldInfo, ok := state.connectServices[chainName]; ok && info.Equal(oldInfo) {
@@ -496,7 +491,7 @@ func (m *subscriptionManager) syncDiscoveryChains(
 
 		state.connectServices[chainName] = info
 
-		m.emitEventForDiscoveryChain(ctx, state, pending, chainName, info)
+		m.emitEventForDiscoveryChain(state, pending, chainName, info)
 	}
 
 	// if it was dropped, try to emit an DELETE event
@@ -523,13 +518,7 @@ func (m *subscriptionManager) syncDiscoveryChains(
 	}
 }
 
-func (m *subscriptionManager) emitEventForDiscoveryChain(
-	ctx context.Context,
-	state *subscriptionState,
-	pending *pendingPayload,
-	chainName structs.ServiceName,
-	info structs.ExportedDiscoveryChainInfo,
-) {
+func (m *subscriptionManager) emitEventForDiscoveryChain(state *subscriptionState, pending *pendingPayload, chainName structs.ServiceName, info structs.ExportedDiscoveryChainInfo) {
 	if _, ok := state.connectServices[chainName]; !ok {
 		return // not found
 	}
