@@ -3,6 +3,7 @@ package structs
 import (
 	"testing"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/stretchr/testify/require"
 )
 
@@ -36,8 +37,9 @@ func TestTCPRoute(t *testing.T) {
 			normalizeOnly: true,
 			check: func(t *testing.T, entry ConfigEntry) {
 				expectedParent := ResourceReference{
-					Kind: APIGateway,
-					Name: "gateway",
+					Kind:           APIGateway,
+					Name:           "gateway",
+					EnterpriseMeta: *acl.DefaultEnterpriseMeta(),
 				}
 				route := entry.(*TCPRouteConfigEntry)
 				require.Len(t, route.Parents, 1)
@@ -74,8 +76,9 @@ func TestHTTPRoute(t *testing.T) {
 			normalizeOnly: true,
 			check: func(t *testing.T, entry ConfigEntry) {
 				expectedParent := ResourceReference{
-					Kind: APIGateway,
-					Name: "gateway",
+					Kind:           APIGateway,
+					Name:           "gateway",
+					EnterpriseMeta: *acl.DefaultEnterpriseMeta(),
 				}
 				route := entry.(*HTTPRouteConfigEntry)
 				require.Len(t, route.Parents, 1)
