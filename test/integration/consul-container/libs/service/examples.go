@@ -68,6 +68,10 @@ func (g exampleContainer) GetAddrs() (string, []int) {
 	return "", nil
 }
 
+func (g exampleContainer) GetPort(port int) int {
+	return 0
+}
+
 func (g exampleContainer) Restart() error {
 	return fmt.Errorf("Restart Unimplemented by ConnectContainer")
 }
