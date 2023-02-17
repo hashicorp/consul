@@ -8,6 +8,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/miekg/dns"
 )
 
 // InlineCertificateConfigEntry manages the configuration for an inline certificate
@@ -39,6 +40,10 @@ func (e *InlineCertificateConfigEntry) GetEnterpriseMeta() *acl.EnterpriseMeta {
 func (e *InlineCertificateConfigEntry) GetRaftIndex() *RaftIndex { return &e.RaftIndex }
 
 func (e *InlineCertificateConfigEntry) Validate() error {
+	if err := validateConfigEntryMeta(e.Meta); err != nil {
+		return err
+	}
+
 	privateKeyBlock, _ := pem.Decode([]byte(e.PrivateKey))
 	if privateKeyBlock == nil {
 		return errors.New("failed to parse private key PEM")
@@ -59,6 +64,18 @@ func (e *InlineCertificateConfigEntry) Validate() error {
 	_, err = tls.X509KeyPair([]byte(e.Certificate), []byte(e.PrivateKey))
 	if err != nil {
 		return err
+	}
+
+	// validate that each host referenced in the CN, DNSSans, and IPSans
+	// are valid hostnames
+	hosts, err := e.Hosts()
+	if err != nil {
+		return err
+	}
+	for _, host := range hosts {
+		if _, ok := dns.IsDomainName(host); !ok {
+			return fmt.Errorf("host %q must be a valid DNS hostname", host)
+		}
 	}
 
 	return nil

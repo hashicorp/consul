@@ -713,6 +713,18 @@ type APIGatewayConfigEntry struct {
 	RaftIndex
 }
 
+func (e *APIGatewayConfigEntry) GetKind() string                        { return APIGateway }
+func (e *APIGatewayConfigEntry) GetName() string                        { return e.Name }
+func (e *APIGatewayConfigEntry) GetMeta() map[string]string             { return e.Meta }
+func (e *APIGatewayConfigEntry) GetRaftIndex() *RaftIndex               { return &e.RaftIndex }
+func (e *APIGatewayConfigEntry) GetEnterpriseMeta() *acl.EnterpriseMeta { return &e.EnterpriseMeta }
+
+var _ ControlledConfigEntry = (*APIGatewayConfigEntry)(nil)
+
+func (e *APIGatewayConfigEntry) GetStatus() Status       { return e.Status }
+func (e *APIGatewayConfigEntry) SetStatus(status Status) { e.Status = status }
+func (e *APIGatewayConfigEntry) DefaultStatus() Status   { return Status{} }
+
 func (e *APIGatewayConfigEntry) ListenerIsReady(name string) bool {
 	for _, condition := range e.Status.Conditions {
 		if !condition.Resource.IsSame(&ResourceReference{
@@ -732,34 +744,28 @@ func (e *APIGatewayConfigEntry) ListenerIsReady(name string) bool {
 	return true
 }
 
-func (e *APIGatewayConfigEntry) GetKind() string {
-	return APIGateway
-}
-
-func (e *APIGatewayConfigEntry) GetName() string {
-	if e == nil {
-		return ""
-	}
-	return e.Name
-}
-
-func (e *APIGatewayConfigEntry) GetMeta() map[string]string {
-	if e == nil {
-		return nil
-	}
-	return e.Meta
-}
-
 func (e *APIGatewayConfigEntry) Normalize() error {
 	for i, listener := range e.Listeners {
 		protocol := strings.ToLower(string(listener.Protocol))
 		listener.Protocol = APIGatewayListenerProtocol(protocol)
 		e.Listeners[i] = listener
+
+		for i, cert := range listener.TLS.Certificates {
+			if cert.Kind == "" {
+				cert.Kind = InlineCertificate
+			}
+			listener.TLS.Certificates[i] = cert
+		}
 	}
+
 	return nil
 }
 
 func (e *APIGatewayConfigEntry) Validate() error {
+	if err := validateConfigEntryMeta(e.Meta); err != nil {
+		return err
+	}
+
 	if err := e.validateListenerNames(); err != nil {
 		return err
 	}
@@ -841,34 +847,6 @@ func (e *APIGatewayConfigEntry) CanWrite(authz acl.Authorizer) error {
 	var authzContext acl.AuthorizerContext
 	e.FillAuthzContext(&authzContext)
 	return authz.ToAllowAuthorizer().MeshWriteAllowed(&authzContext)
-}
-
-func (e *APIGatewayConfigEntry) GetRaftIndex() *RaftIndex {
-	if e == nil {
-		return &RaftIndex{}
-	}
-	return &e.RaftIndex
-}
-
-func (e *APIGatewayConfigEntry) GetEnterpriseMeta() *acl.EnterpriseMeta {
-	if e == nil {
-		return nil
-	}
-	return &e.EnterpriseMeta
-}
-
-var _ ControlledConfigEntry = (*APIGatewayConfigEntry)(nil)
-
-func (e *APIGatewayConfigEntry) GetStatus() Status {
-	return e.Status
-}
-
-func (e *APIGatewayConfigEntry) SetStatus(status Status) {
-	e.Status = status
-}
-
-func (e *APIGatewayConfigEntry) DefaultStatus() Status {
-	return Status{}
 }
 
 // APIGatewayListenerProtocol is the protocol that an APIGateway listener uses
@@ -991,27 +969,10 @@ func (e *BoundAPIGatewayConfigEntry) IsInitializedForGateway(gateway *APIGateway
 	return true
 }
 
-func (e *BoundAPIGatewayConfigEntry) GetKind() string {
-	return BoundAPIGateway
-}
-
-func (e *BoundAPIGatewayConfigEntry) GetName() string {
-	if e == nil {
-		return ""
-	}
-	return e.Name
-}
-
-func (e *BoundAPIGatewayConfigEntry) GetMeta() map[string]string {
-	if e == nil {
-		return nil
-	}
-	return e.Meta
-}
-
-func (e *BoundAPIGatewayConfigEntry) Normalize() error {
-	return nil
-}
+func (e *BoundAPIGatewayConfigEntry) GetKind() string            { return BoundAPIGateway }
+func (e *BoundAPIGatewayConfigEntry) GetName() string            { return e.Name }
+func (e *BoundAPIGatewayConfigEntry) GetMeta() map[string]string { return e.Meta }
+func (e *BoundAPIGatewayConfigEntry) Normalize() error           { return nil }
 
 func (e *BoundAPIGatewayConfigEntry) Validate() error {
 	allowedCertificateKinds := map[string]bool{

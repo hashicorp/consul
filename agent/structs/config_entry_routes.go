@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/miekg/dns"
 )
 
 // BoundRoute indicates a route that has parent gateways which
@@ -41,15 +42,22 @@ type HTTPRouteConfigEntry struct {
 	RaftIndex
 }
 
-func (e *HTTPRouteConfigEntry) GetServices() []HTTPService {
-	targets := []HTTPService{}
-	for _, rule := range e.Rules {
-		for _, service := range rule.Services {
-			targets = append(targets, service)
-		}
-	}
-	return targets
-}
+func (e *HTTPRouteConfigEntry) GetKind() string                        { return HTTPRoute }
+func (e *HTTPRouteConfigEntry) GetName() string                        { return e.Name }
+func (e *HTTPRouteConfigEntry) GetMeta() map[string]string             { return e.Meta }
+func (e *HTTPRouteConfigEntry) GetEnterpriseMeta() *acl.EnterpriseMeta { return &e.EnterpriseMeta }
+func (e *HTTPRouteConfigEntry) GetRaftIndex() *RaftIndex               { return &e.RaftIndex }
+
+var _ ControlledConfigEntry = (*HTTPRouteConfigEntry)(nil)
+
+func (e *HTTPRouteConfigEntry) GetStatus() Status       { return e.Status }
+func (e *HTTPRouteConfigEntry) SetStatus(status Status) { e.Status = status }
+func (e *HTTPRouteConfigEntry) DefaultStatus() Status   { return Status{} }
+
+var _ BoundRoute = (*HTTPRouteConfigEntry)(nil)
+
+func (e *HTTPRouteConfigEntry) GetParents() []ResourceReference         { return e.Parents }
+func (e *HTTPRouteConfigEntry) GetProtocol() APIGatewayListenerProtocol { return ListenerProtocolHTTP }
 
 func (e *HTTPRouteConfigEntry) GetServiceNames() []ServiceName {
 	services := []ServiceName{}
@@ -59,34 +67,207 @@ func (e *HTTPRouteConfigEntry) GetServiceNames() []ServiceName {
 	return services
 }
 
-func (e *HTTPRouteConfigEntry) GetKind() string {
-	return HTTPRoute
-}
-
-func (e *HTTPRouteConfigEntry) GetName() string {
-	if e == nil {
-		return ""
+func (e *HTTPRouteConfigEntry) GetServices() []HTTPService {
+	targets := []HTTPService{}
+	for _, rule := range e.Rules {
+		targets = append(targets, rule.Services...)
 	}
-	return e.Name
-}
-
-func (e *HTTPRouteConfigEntry) GetParents() []ResourceReference {
-	if e == nil {
-		return []ResourceReference{}
-	}
-	return e.Parents
-}
-
-func (e *HTTPRouteConfigEntry) GetProtocol() APIGatewayListenerProtocol {
-	return ListenerProtocolHTTP
+	return targets
 }
 
 func (e *HTTPRouteConfigEntry) Normalize() error {
+	for i, parent := range e.Parents {
+		if parent.Kind == "" {
+			parent.Kind = APIGateway
+			e.Parents[i] = parent
+		}
+	}
+
+	for i, rule := range e.Rules {
+		for j, match := range rule.Matches {
+			rule.Matches[j] = normalizeHTTPMatch(match)
+		}
+		e.Rules[i] = rule
+	}
+
 	return nil
 }
 
+func normalizeHTTPMatch(match HTTPMatch) HTTPMatch {
+	method := string(match.Method)
+	method = strings.ToUpper(method)
+	match.Method = HTTPMatchMethod(method)
+
+	pathMatch := match.Path.Match
+	if string(pathMatch) == "" {
+		match.Path.Match = HTTPPathMatchPrefix
+		match.Path.Value = "/"
+	}
+
+	return match
+}
+
 func (e *HTTPRouteConfigEntry) Validate() error {
+	for _, host := range e.Hostnames {
+		// validate that each host referenced in a valid dns name and has
+		// no wildcards in it
+		if _, ok := dns.IsDomainName(host); !ok {
+			return fmt.Errorf("host %q must be a valid DNS hostname", host)
+		}
+
+		if strings.ContainsRune(host, '*') {
+			return fmt.Errorf("host %q must not be a wildcard", host)
+		}
+	}
+
+	validParentKinds := map[string]bool{
+		APIGateway: true,
+	}
+
+	for _, parent := range e.Parents {
+		if !validParentKinds[parent.Kind] {
+			return fmt.Errorf("unsupported parent kind: %q, must be 'api-gateway'", parent.Kind)
+		}
+	}
+
+	if err := validateConfigEntryMeta(e.Meta); err != nil {
+		return err
+	}
+
+	for i, rule := range e.Rules {
+		if err := validateRule(rule); err != nil {
+			return fmt.Errorf("Rule[%d], %w", i, err)
+		}
+	}
+
 	return nil
+}
+
+func validateRule(rule HTTPRouteRule) error {
+	if err := validateFilters(rule.Filters); err != nil {
+		return err
+	}
+
+	for i, match := range rule.Matches {
+		if err := validateMatch(match); err != nil {
+			return fmt.Errorf("Match[%d], %w", i, err)
+		}
+	}
+
+	for i, service := range rule.Services {
+		if err := validateHTTPService(service); err != nil {
+			return fmt.Errorf("Service[%d], %w", i, err)
+		}
+	}
+
+	return nil
+}
+
+func validateMatch(match HTTPMatch) error {
+	if match.Method != HTTPMatchMethodAll {
+		if !isValidHTTPMethod(string(match.Method)) {
+			return fmt.Errorf("Method contains an invalid method %q", match.Method)
+		}
+	}
+
+	for i, query := range match.Query {
+		if err := validateHTTPQueryMatch(query); err != nil {
+			return fmt.Errorf("Query[%d], %w", i, err)
+		}
+	}
+
+	for i, header := range match.Headers {
+		if err := validateHTTPHeaderMatch(header); err != nil {
+			return fmt.Errorf("Headers[%d], %w", i, err)
+		}
+	}
+
+	if err := validateHTTPPathMatch(match.Path); err != nil {
+		return fmt.Errorf("Path, %w", err)
+	}
+
+	return nil
+}
+
+func validateHTTPService(service HTTPService) error {
+	return validateFilters(service.Filters)
+}
+
+func validateFilters(filter HTTPFilters) error {
+	for i, header := range filter.Headers {
+		if err := validateHeaderFilter(header); err != nil {
+			return fmt.Errorf("HTTPFilters, Headers[%d], %w", i, err)
+		}
+	}
+
+	for i, rewrite := range filter.URLRewrites {
+		if err := validateURLRewrite(rewrite); err != nil {
+			return fmt.Errorf("HTTPFilters, URLRewrite[%d], %w", i, err)
+		}
+	}
+
+	return nil
+}
+
+func validateURLRewrite(rewrite URLRewrite) error {
+	// TODO: we don't really have validation of the actual params
+	// passed as "PrefixRewrite" in our discoverychain config
+	// entries, figure out if we should have something here
+	return nil
+}
+
+func validateHeaderFilter(filter HTTPHeaderFilter) error {
+	// TODO: we don't really have validation of the values
+	// passed as header modifiers in our current discoverychain
+	// config entries, figure out if we need to
+	return nil
+}
+
+func validateHTTPQueryMatch(query HTTPQueryMatch) error {
+	if query.Name == "" {
+		return fmt.Errorf("missing required Name field")
+	}
+
+	switch query.Match {
+	case HTTPQueryMatchExact,
+		HTTPQueryMatchPresent,
+		HTTPQueryMatchRegularExpression:
+		return nil
+	default:
+		return fmt.Errorf("match type should be one of present, exact, or regex")
+	}
+}
+
+func validateHTTPHeaderMatch(header HTTPHeaderMatch) error {
+	if header.Name == "" {
+		return fmt.Errorf("missing required Name field")
+	}
+
+	switch header.Match {
+	case HTTPHeaderMatchExact,
+		HTTPHeaderMatchPrefix,
+		HTTPHeaderMatchRegularExpression,
+		HTTPHeaderMatchSuffix,
+		HTTPHeaderMatchPresent:
+		return nil
+	default:
+		return fmt.Errorf("match type should be one of present, exact, prefix, suffix, or regex")
+	}
+}
+
+func validateHTTPPathMatch(path HTTPPathMatch) error {
+	switch path.Match {
+	case HTTPPathMatchExact,
+		HTTPPathMatchPrefix:
+		if !strings.HasPrefix(path.Value, "/") {
+			return fmt.Errorf("%s type match doesn't start with '/': %q", path.Match, path.Value)
+		}
+		fallthrough
+	case HTTPPathMatchRegularExpression:
+		return nil
+	default:
+		return fmt.Errorf("match type should be one of exact, prefix, or regex")
+	}
 }
 
 func (e *HTTPRouteConfigEntry) CanRead(authz acl.Authorizer) error {
@@ -99,27 +280,6 @@ func (e *HTTPRouteConfigEntry) CanWrite(authz acl.Authorizer) error {
 	var authzContext acl.AuthorizerContext
 	e.FillAuthzContext(&authzContext)
 	return authz.ToAllowAuthorizer().MeshWriteAllowed(&authzContext)
-}
-
-func (e *HTTPRouteConfigEntry) GetMeta() map[string]string {
-	if e == nil {
-		return nil
-	}
-	return e.Meta
-}
-
-func (e *HTTPRouteConfigEntry) GetEnterpriseMeta() *acl.EnterpriseMeta {
-	if e == nil {
-		return nil
-	}
-	return &e.EnterpriseMeta
-}
-
-func (e *HTTPRouteConfigEntry) GetRaftIndex() *RaftIndex {
-	if e == nil {
-		return &RaftIndex{}
-	}
-	return &e.RaftIndex
 }
 
 func (e *HTTPRouteConfigEntry) FilteredHostnames(listenerHostname string) []string {
@@ -279,20 +439,6 @@ func (s HTTPService) ServiceName() ServiceName {
 	return NewServiceName(s.Name, &s.EnterpriseMeta)
 }
 
-var _ ControlledConfigEntry = (*HTTPRouteConfigEntry)(nil)
-
-func (e *HTTPRouteConfigEntry) GetStatus() Status {
-	return e.Status
-}
-
-func (e *HTTPRouteConfigEntry) SetStatus(status Status) {
-	e.Status = status
-}
-
-func (e *HTTPRouteConfigEntry) DefaultStatus() Status {
-	return Status{}
-}
-
 // TCPRouteConfigEntry manages the configuration for a TCP route
 // with the given name.
 type TCPRouteConfigEntry struct {
@@ -317,9 +463,22 @@ type TCPRouteConfigEntry struct {
 	RaftIndex
 }
 
-func (e *TCPRouteConfigEntry) GetServices() []TCPService {
-	return e.Services
-}
+func (e *TCPRouteConfigEntry) GetKind() string                        { return TCPRoute }
+func (e *TCPRouteConfigEntry) GetName() string                        { return e.Name }
+func (e *TCPRouteConfigEntry) GetMeta() map[string]string             { return e.Meta }
+func (e *TCPRouteConfigEntry) GetRaftIndex() *RaftIndex               { return &e.RaftIndex }
+func (e *TCPRouteConfigEntry) GetEnterpriseMeta() *acl.EnterpriseMeta { return &e.EnterpriseMeta }
+
+var _ ControlledConfigEntry = (*TCPRouteConfigEntry)(nil)
+
+func (e *TCPRouteConfigEntry) GetStatus() Status       { return e.Status }
+func (e *TCPRouteConfigEntry) SetStatus(status Status) { e.Status = status }
+func (e *TCPRouteConfigEntry) DefaultStatus() Status   { return Status{} }
+
+var _ BoundRoute = (*TCPRouteConfigEntry)(nil)
+
+func (e *TCPRouteConfigEntry) GetParents() []ResourceReference         { return e.Parents }
+func (e *TCPRouteConfigEntry) GetProtocol() APIGatewayListenerProtocol { return ListenerProtocolTCP }
 
 func (e *TCPRouteConfigEntry) GetServiceNames() []ServiceName {
 	services := []ServiceName{}
@@ -329,34 +488,7 @@ func (e *TCPRouteConfigEntry) GetServiceNames() []ServiceName {
 	return services
 }
 
-func (e *TCPRouteConfigEntry) GetKind() string {
-	return TCPRoute
-}
-
-func (e *TCPRouteConfigEntry) GetName() string {
-	if e == nil {
-		return ""
-	}
-	return e.Name
-}
-
-func (e *TCPRouteConfigEntry) GetParents() []ResourceReference {
-	if e == nil {
-		return []ResourceReference{}
-	}
-	return e.Parents
-}
-
-func (e *TCPRouteConfigEntry) GetProtocol() APIGatewayListenerProtocol {
-	return ListenerProtocolTCP
-}
-
-func (e *TCPRouteConfigEntry) GetMeta() map[string]string {
-	if e == nil {
-		return nil
-	}
-	return e.Meta
-}
+func (e *TCPRouteConfigEntry) GetServices() []TCPService { return e.Services }
 
 func (e *TCPRouteConfigEntry) Normalize() error {
 	for i, parent := range e.Parents {
@@ -381,6 +513,11 @@ func (e *TCPRouteConfigEntry) Validate() error {
 			return fmt.Errorf("unsupported parent kind: %q, must be 'api-gateway'", parent.Kind)
 		}
 	}
+
+	if err := validateConfigEntryMeta(e.Meta); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -394,34 +531,6 @@ func (e *TCPRouteConfigEntry) CanWrite(authz acl.Authorizer) error {
 	var authzContext acl.AuthorizerContext
 	e.FillAuthzContext(&authzContext)
 	return authz.ToAllowAuthorizer().MeshWriteAllowed(&authzContext)
-}
-
-func (e *TCPRouteConfigEntry) GetRaftIndex() *RaftIndex {
-	if e == nil {
-		return &RaftIndex{}
-	}
-	return &e.RaftIndex
-}
-
-func (e *TCPRouteConfigEntry) GetEnterpriseMeta() *acl.EnterpriseMeta {
-	if e == nil {
-		return nil
-	}
-	return &e.EnterpriseMeta
-}
-
-var _ ControlledConfigEntry = (*TCPRouteConfigEntry)(nil)
-
-func (e *TCPRouteConfigEntry) GetStatus() Status {
-	return e.Status
-}
-
-func (e *TCPRouteConfigEntry) SetStatus(status Status) {
-	e.Status = status
-}
-
-func (e *TCPRouteConfigEntry) DefaultStatus() Status {
-	return Status{}
 }
 
 // TCPService is a service reference for a TCPRoute
