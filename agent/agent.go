@@ -1051,7 +1051,8 @@ func (a *Agent) listenHTTP() ([]apiServer, error) {
 		for _, l := range listeners {
 			var tlscfg *tls.Config
 			_, isTCP := l.(*tcpKeepAliveListener)
-			if isTCP && proto == "https" {
+			isUnix := l.Addr().Network() == "unix"
+			if (isTCP || isUnix) && proto == "https" {
 				tlscfg = a.tlsConfigurator.IncomingHTTPSConfig()
 				l = tls.NewListener(l, tlscfg)
 			}
