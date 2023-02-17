@@ -10,7 +10,7 @@ import (
 	fuzz "github.com/google/gofuzz"
 	"github.com/hashicorp/consul/agent/proxycfg/internal/watch"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/proto/pbpeering"
+	"github.com/hashicorp/consul/proto/private/pbpeering"
 	"github.com/stretchr/testify/require"
 )
 

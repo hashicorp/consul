@@ -4,8 +4,8 @@ syntax = "proto3";
 
 package hashicorp.consul.dataplane;
 
+import "annotations/ratelimit/ratelimit.proto";
 import "google/protobuf/struct.proto";
-import "proto-public/annotations/ratelimit/ratelimit.proto";
 
 message GetSupportedDataplaneFeaturesRequest {}
 
@@ -89,14 +89,10 @@ message GetEnvoyBootstrapParamsResponse {
 
 service DataplaneService {
   rpc GetSupportedDataplaneFeatures(GetSupportedDataplaneFeaturesRequest) returns (GetSupportedDataplaneFeaturesResponse) {
-    option (hashicorp.consul.internal.ratelimit.spec) = {
-      operation_type: OPERATION_TYPE_READ,
-    };
+    option (hashicorp.consul.internal.ratelimit.spec) = {operation_type: OPERATION_TYPE_READ};
   }
 
   rpc GetEnvoyBootstrapParams(GetEnvoyBootstrapParamsRequest) returns (GetEnvoyBootstrapParamsResponse) {
-    option (hashicorp.consul.internal.ratelimit.spec) = {
-      operation_type: OPERATION_TYPE_READ,
-    };
+    option (hashicorp.consul.internal.ratelimit.spec) = {operation_type: OPERATION_TYPE_READ};
   }
 }
