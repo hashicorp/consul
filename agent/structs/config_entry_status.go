@@ -125,12 +125,6 @@ type Condition struct {
 	LastTransitionTime *time.Time
 }
 
-// RouteConditionType is a type of condition for a route.
-type RouteConditionType string
-
-// GatewayConditionType is a type of condition for a route.
-type GatewayConditionType string
-
 // ConditionStatus is a bounded set of statuses that an object might have
 type ConditionStatus string
 
@@ -140,11 +134,159 @@ const (
 	ConditionStatusUnknown ConditionStatus = "Unknown"
 )
 
-// RouteConditionReason is a reason for a route condition.
-type RouteConditionReason string
+// GatewayConditionType is a type of condition for a route.
+type GatewayConditionType string
 
 // GatewayConditionReason is a reason for a route condition.
 type GatewayConditionReason string
+
+const (
+	// This condition is true when the controller managing the Gateway is
+	// syntactically and semantically valid enough to produce some configuration
+	// in the underlying data plane. This does not indicate whether or not the
+	// configuration has been propagated to the data plane.
+	//
+	// Possible reasons for this condition to be True are:
+	//
+	// * "Accepted"
+	//
+	// Possible reasons for this condition to be False are:
+	//
+	// * "Invalid"
+	//
+	// Possible reasons for this condition to be Unknown are:
+	//
+	// * "Pending"
+	//
+	GatewayConditionAccepted GatewayConditionType = "Accepted"
+
+	// This reason is used with the "Accepted" condition when the condition is
+	// True.
+	GatewayReasonAccepted GatewayConditionReason = "Accepted"
+
+	// This reason is used with the "Accepted" condition when the Gateway is
+	// syntactically or semantically invalid.
+	GatewayReasonInvalid GatewayConditionReason = "Invalid"
+
+	// This reason is used with the "Accepted" and "ListenersConfigured"
+	// conditions when the status is "Unknown" and no controller has reconciled
+	// the Gateway.
+	GatewayReasonPending GatewayConditionReason = "Pending"
+
+	// This condition indicates that the controller was able to resolve
+	// all specification requirements for all Gateway Listeners. If a Listener is
+	// conflicted, its network port should not be configured on any network
+	// elements. Even if a Listener is syntactically and semantically valid,
+	// the controller may not able to configure it on the underlying Gateway
+	// infrastructure. When setting this condition to False, a ResourceReference to
+	// the misconfigured Listener should be provided.
+
+	//
+	// Possible reasons for this condition to be True are:
+	//
+	// * "ListenersConfigured"
+	//
+	// Possible reasons for this condition to be False are:
+	//
+	// * "ListenerHostnameConflict"
+	// * "ListenerProtocolConflict"
+	// * "ListenerPortUnavailable"
+	// * "ListenerUnsupportedProtocol"
+	// * "ListenerUnsupportedAddress"
+	//
+	// Possible reasons for this condition to be Unknown are:
+	//
+	// * "Pending"
+	//
+	GatewayConditionListenersConfigured GatewayConditionType = "ListenersConfigured"
+
+	// This reason is used with the "ListenersConfigured" condition when the
+	// condition is True.
+	GatewayReasonListenersConfigured GatewayConditionReason = "ListenersConfigured"
+
+	// This reason is used with the "ListenersConfigured" condition when
+	// the Listener conflicts with hostnames in other Listeners. For
+	// example, this reason would be used when multiple Listeners on
+	// the same port use `example.com` in the hostname field.
+	GatewayListenerReasonHostnameConflict GatewayConditionReason = "ListenerHostnameConflict"
+
+	// This reason is used with the "ListenersConfigured" condition when
+	// multiple Listeners are specified with the same Listener port
+	// number, but have conflicting protocol specifications.
+	GatewayListenerReasonProtocolConflict GatewayConditionReason = "ListenerProtocolConflict"
+
+	// This reason is used with the "ListenersConfigured" condition when the Listener
+	// requests a port that cannot be used on the Gateway. This reason could be
+	// used in a number of instances, including:
+	//
+	// * The port is already in use.
+	// * The port is not supported by the implementation.
+	GatewayListenerReasonPortUnavailable GatewayConditionReason = "ListenerPortUnavailable"
+
+	// This reason is used with the "ListenersConfigured" condition when the
+	// Listener could not be attached to be Gateway because its
+	// protocol type is not supported.
+	GatewayListenerReasonUnsupportedProtocol GatewayConditionReason = "ListenerUnsupportedProtocol"
+
+	// This reason is used with the "ListenersConfigured" condition when a
+	// Listener could not be attached to the Gateway because the requested address
+	// is not supported. This reason could be used in a number of instances,
+	// including:
+	//
+	// * The address is already in use.
+	// * The type of address is not supported by the implementation.
+	GatewayListenerReasonUnsupportedAddress GatewayConditionReason = "ListenerUnsupportedAddress"
+
+	// This condition indicates whether the controller was able to
+	// resolve all the object references for the Gateway. When setting this
+	// condition to False, a ResourceReference to the misconfigured Listener should
+	// be provided.
+	//
+	// Possible reasons for this condition to be true are:
+	//
+	// * "ResolvedRefs"
+	//
+	// Possible reasons for this condition to be False are:
+	//
+	// * "InvalidCertificateRef"
+	// * "InvalidRouteKinds"
+	// * "RefNotPermitted"
+	//
+	GatewayConditionResolvedRefs GatewayConditionType = "ResolvedRefs"
+
+	// This reason is used with the "ResolvedRefs" condition when the condition
+	// is true.
+	GatewayReasonResolvedRefs GatewayConditionReason = "ResolvedRefs"
+
+	// This reason is used with the "ResolvedRefs" condition when a
+	// Listener has a TLS configuration with at least one TLS CertificateRef
+	// that is invalid or does not exist.
+	// A CertificateRef is considered invalid when it refers to a nonexistent
+	// or unsupported resource or kind, or when the data within that resource
+	// is malformed.
+	// This reason must be used only when the reference is allowed, either by
+	// referencing an object in the same namespace as the Gateway, or when
+	// a cross-namespace reference has been explicitly allowed by a ReferenceGrant.
+	// If the reference is not allowed, the reason RefNotPermitted must be used
+	// instead.
+	GatewayListenerReasonInvalidCertificateRef GatewayConditionReason = "InvalidCertificateRef"
+
+	// This reason is used with the "ResolvedRefs" condition when an invalid or
+	// unsupported Route kind is specified by a Listener.
+	GatewayListenerReasonInvalidRouteKinds GatewayConditionReason = "InvalidRouteKinds"
+
+	// This reason is used with the "ResolvedRefs" condition when a
+	// Listener has a TLS configuration that references an object in another
+	// namespace, where the object in the other namespace does not have a
+	// ReferenceGrant explicitly allowing the reference.
+	GatewayListenerReasonRefNotPermitted GatewayConditionReason = "RefNotPermitted"
+)
+
+// RouteConditionType is a type of condition for a route.
+type RouteConditionType string
+
+// RouteConditionReason is a reason for a route condition.
+type RouteConditionReason string
 
 const (
 	// This condition indicates whether the route has been accepted or rejected
@@ -301,6 +443,83 @@ func (u *StatusUpdater) UpdateEntry() (ControlledConfigEntry, bool) {
 	}
 	u.entry.SetStatus(u.status)
 	return u.entry, true
+}
+
+// NewGatewayCondition is a helper to build allowable Conditions for a Route config entry
+func NewGatewayCondition(name GatewayConditionType, status ConditionStatus, reason GatewayConditionReason, message string) Condition {
+	if err := checkGatewayConditionReason(name, status, reason); err != nil {
+		panic(err)
+	}
+
+	return Condition{
+		Type:               string(name),
+		Status:             status,
+		Reason:             string(reason),
+		Message:            message,
+		LastTransitionTime: pointerTo(time.Now().UTC()),
+	}
+}
+
+func checkGatewayConditionReason(name GatewayConditionType, status ConditionStatus, reason GatewayConditionReason) error {
+	if err := checkConditionStatus(status); err != nil {
+		return err
+	}
+
+	gatewayConditionReasons := map[GatewayConditionType]map[ConditionStatus][]GatewayConditionReason{
+		GatewayConditionAccepted: {
+			ConditionStatusTrue: {
+				GatewayReasonAccepted,
+			},
+			ConditionStatusFalse: {
+				GatewayReasonInvalid,
+			},
+			ConditionStatusUnknown: {
+				GatewayReasonPending,
+			},
+		},
+		GatewayConditionListenersConfigured: {
+			ConditionStatusTrue: {
+				GatewayReasonListenersConfigured,
+			},
+			ConditionStatusFalse: {
+				GatewayListenerReasonHostnameConflict,
+				GatewayListenerReasonProtocolConflict,
+				GatewayListenerReasonPortUnavailable,
+				GatewayListenerReasonUnsupportedProtocol,
+				GatewayListenerReasonUnsupportedAddress,
+			},
+			ConditionStatusUnknown: {
+				GatewayReasonPending,
+			},
+		},
+		GatewayConditionResolvedRefs: {
+			ConditionStatusTrue: {
+				GatewayReasonResolvedRefs,
+			},
+			ConditionStatusFalse: {
+				GatewayListenerReasonInvalidCertificateRef,
+				GatewayListenerReasonInvalidRouteKinds,
+				GatewayListenerReasonRefNotPermitted,
+			},
+			ConditionStatusUnknown: {},
+		},
+	}
+
+	reasons, ok := gatewayConditionReasons[name]
+	if !ok {
+		return fmt.Errorf("unrecognized GatewayConditionType %s", name)
+	}
+
+	reasonsForStatus, ok := reasons[status]
+	if !ok {
+		return fmt.Errorf("unrecognized ConditionStatus %s", name)
+	}
+
+	if !slices.Contains(reasonsForStatus, reason) {
+		return fmt.Errorf("gateway condition reason %s not allowed for gateway condition type %s with status %s", reason, name, status)
+	}
+
+	return nil
 }
 
 // NewRouteCondition is a helper to build allowable Conditions for a Route config entry
