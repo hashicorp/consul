@@ -1,6 +1,6 @@
 module github.com/hashicorp/consul/envoyextensions
 
-go 1.20
+go 1.19
 
 replace github.com/hashicorp/consul/api => ../api
 
