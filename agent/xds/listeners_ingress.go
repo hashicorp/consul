@@ -100,6 +100,7 @@ func (s *ResourceGenerator) makeIngressGatewayListeners(address string, cfgSnap 
 			}
 
 			if isAPIGatewayWithTLS {
+				// construct SNI filter chains
 				l.FilterChains, err = makeInlineOverrideFilterChains(cfgSnap, cfgSnap.IngressGateway.TLSConfig, listenerKey, listenerFilterOpts{
 					useRDS:     useRDS,
 					protocol:   listenerKey.Protocol,
@@ -112,6 +113,12 @@ func (s *ResourceGenerator) makeIngressGatewayListeners(address string, cfgSnap 
 				if err != nil {
 					return nil, err
 				}
+				// add the tls inspector to do SNI introspection
+				tlsInspector, err := makeTLSInspectorListenerFilter()
+				if err != nil {
+					return nil, err
+				}
+				l.ListenerFilters = []*envoy_listener_v3.ListenerFilter{tlsInspector}
 			}
 
 			resources = append(resources, l)
@@ -434,6 +441,8 @@ func makeInlineOverrideFilterChains(cfgSnap *proxycfg.ConfigSnapshot,
 			return err
 		}
 
+		// Configure alpn protocols on TLSContext
+		tlsContext.AlpnProtocols = getAlpnProtocols(listenerCfg.Protocol)
 		transportSocket, err := makeDownstreamTLSTransportSocket(&envoy_tls_v3.DownstreamTlsContext{
 			CommonTlsContext:         tlsContext,
 			RequireClientCertificate: &wrapperspb.BoolValue{Value: false},
@@ -473,11 +482,6 @@ func makeInlineOverrideFilterChains(cfgSnap *proxycfg.ConfigSnapshot,
 				allCertHosts[host] = struct{}{}
 			}
 		}
-		// make allCertHosts contain only certs that we
-		// should bind for a particular cert
-		for host := range overlappingHosts {
-			delete(allCertHosts, host)
-		}
 	}
 
 	for _, cert := range certs {
@@ -505,13 +509,7 @@ func makeInlineOverrideFilterChains(cfgSnap *proxycfg.ConfigSnapshot,
 			}
 		}
 
-		tlsContext := makeInlineTLSContextFromGatewayTLSConfig(tlsCfg, cert)
-		if multipleCerts {
-			// Configure alpn protocols on TLSContext
-			tlsContext.AlpnProtocols = getAlpnProtocols(listenerCfg.Protocol)
-		}
-
-		if err := constructChain(cert.Name, hosts, tlsContext); err != nil {
+		if err := constructChain(cert.Name, hosts, makeInlineTLSContextFromGatewayTLSConfig(tlsCfg, cert)); err != nil {
 			return nil, err
 		}
 	}
