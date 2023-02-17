@@ -4,6 +4,7 @@ import (
 	"errors"
 	"strconv"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -1057,6 +1058,15 @@ func TestServer_DeltaAggregatedResources_v3_ACLEnforcement(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			var stopped bool
+			var lock sync.RWMutex
+
+			defer func() {
+				lock.Lock()
+				stopped = true
+				lock.Unlock()
+			}()
+
 			aclResolve := func(id string) (acl.Authorizer, error) {
 				if !tt.defaultDeny {
 					// Allow all
@@ -1066,6 +1076,14 @@ func TestServer_DeltaAggregatedResources_v3_ACLEnforcement(t *testing.T) {
 					// No token and defaultDeny is denied
 					return acl.RootAuthorizer("deny"), nil
 				}
+
+				lock.RLock()
+				defer lock.RUnlock()
+
+				if stopped {
+					return acl.DenyAll().ToAllowAuthorizer(), nil
+				}
+
 				// Ensure the correct token was passed
 				require.Equal(t, tt.token, id)
 				// Parse the ACL and enforce it
