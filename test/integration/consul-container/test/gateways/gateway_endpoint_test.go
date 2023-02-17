@@ -1,10 +1,7 @@
 package gateways_test
 
 import (
-	"bufio"
-	"bytes"
 	"context"
-	"fmt"
 	"github.com/hashicorp/consul/api"
 	libassert "github.com/hashicorp/consul/test/integration/consul-container/libs/assert"
 	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
@@ -12,11 +9,7 @@ import (
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"net/http"
-	"os"
-	"strconv"
 	"testing"
-	"time"
 )
 
 func TestAPIGatewayCreate(t *testing.T) {
@@ -26,7 +19,9 @@ func TestAPIGatewayCreate(t *testing.T) {
 
 	t.Parallel()
 
-	cluster := createCluster(t)
+	listenerPortOne := 6000
+
+	cluster := createCluster(t, listenerPortOne)
 
 	client := cluster.APIClient(0)
 
@@ -36,7 +31,7 @@ func TestAPIGatewayCreate(t *testing.T) {
 		Name: "api-gateway",
 		Listeners: []api.APIGatewayListener{
 			{
-				Port:     8443,
+				Port:     listenerPortOne,
 				Protocol: "tcp",
 			},
 		},
@@ -64,8 +59,7 @@ func TestAPIGatewayCreate(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Create a client proxy instance with the server as an upstream
-	clientConnectProxy, gatewayService := createServices(t, cluster)
-	fmt.Println(clientConnectProxy)
+	_, gatewayService := createServices(t, cluster, listenerPortOne)
 
 	//how to exec into the consul CLI
 	//agentUrl, err := cluster.Agents[0].GetPod().PortEndpoint(context.Background(), "8500", "http")
@@ -93,65 +87,16 @@ func TestAPIGatewayCreate(t *testing.T) {
 		//check status
 		entry, _, err := client.ConfigEntries().Get("api-gateway", "api-gateway", nil)
 		assert.NoError(t, err)
-		t.Log(entry)
 		apiEntry := entry.(*api.APIGatewayConfigEntry)
-		t.Log(apiEntry.Status)
 		gatewayReady = isAccepted(apiEntry.Status.Conditions)
 
 		e, _, err := client.ConfigEntries().Get("tcp-route", "api-gateway-route", nil)
 		assert.NoError(t, err)
-		t.Log(entry)
 		routeEntry := e.(*api.TCPRouteConfigEntry)
-		t.Log(routeEntry.Status)
 		routeReady = isBound(routeEntry.Status.Conditions)
-		//this doesn't seem to actually do anything
-		time.Sleep(10 * time.Second)
 	}
 
-	agentServices, err := client.Agent().Services()
-	assert.NoError(t, err)
-	for _, s := range agentServices {
-		t.Log(s)
-	}
-
-	services, _, err := client.Catalog().Services(nil)
-	assert.NoError(t, err)
-	for key, s := range services {
-		t.Log(key, s)
-	}
-
-	gateways, _, err := client.Catalog().GatewayServices("api-gateway", nil)
-	assert.NoError(t, err)
-	for _, g := range gateways {
-		t.Log(g)
-	}
-
-	t.Log(gatewayService.GetAddr())
-	assert.NoError(t, err)
-	fmt.Println(gatewayService)
-
-	ip, port := gatewayService.GetAddr()
-	t.Log("ip:", ip)
-	stdOut := bufio.NewWriter(os.Stdout)
-	stdOut.Write([]byte(ip + "\n"))
-	stdOut.Write([]byte(strconv.Itoa(port)))
-	stdOut.Flush()
-	resp, err := http.Get(fmt.Sprintf("http://%s:%d", ip, port))
-	t.Log(resp, err)
-	assert.NoError(t, err)
-
-	buf := bytes.NewBufferString("abcdefg")
-	resp, err = http.Post(fmt.Sprintf("http://%s:%d", ip, port), "text/plain", buf)
-	t.Log(resp, err)
-
-	for {
-	}
-	//t.Log(gatewayService.Restart())
-	//t.Log(gatewayService.GetStatus())
-	//t.Log(gatewayService.GetLogs())
-
-	t.Fail()
-
+	libassert.HTTPServiceEchoes(t, "localhost", gatewayService.GetPort(listenerPortOne), "")
 }
 
 func isAccepted(conditions []api.Condition) bool {
@@ -172,7 +117,7 @@ func conditionStatusIsValue(typeName string, statusValue string, conditions []ap
 }
 
 // TODO this code is just copy pasted from elsewhere, it is likely we will need to modify it some
-func createCluster(t *testing.T) *libcluster.Cluster {
+func createCluster(t *testing.T, ports ...int) *libcluster.Cluster {
 	opts := libcluster.BuildOptions{
 		InjectAutoEncryption:   true,
 		InjectGossipEncryption: true,
@@ -186,7 +131,7 @@ func createCluster(t *testing.T) *libcluster.Cluster {
 
 	configs := []libcluster.Config{*conf}
 
-	cluster, err := libcluster.New(t, configs)
+	cluster, err := libcluster.New(t, configs, ports...)
 	require.NoError(t, err)
 
 	node := cluster.Agents[0]
@@ -205,7 +150,7 @@ func createCluster(t *testing.T) *libcluster.Cluster {
 	return cluster
 }
 
-func createServices(t *testing.T, cluster *libcluster.Cluster) (libservice.Service, libservice.Service) {
+func createServices(t *testing.T, cluster *libcluster.Cluster, ports ...int) (libservice.Service, libservice.Service) {
 	node := cluster.Agents[0]
 	client := node.GetClient()
 	// Create a service and proxy instance
@@ -226,12 +171,11 @@ func createServices(t *testing.T, cluster *libcluster.Cluster) (libservice.Servi
 	// Create a client proxy instance with the server as an upstream
 	clientConnectProxy, err := libservice.CreateAndRegisterStaticClientSidecar(node, "", false)
 	require.NoError(t, err)
-
 	libassert.CatalogServiceExists(t, client, "static-client-sidecar-proxy")
 
-	gatewayService, err := libservice.NewGatewayService(context.Background(), "api-gateway", "api", cluster.Agents[0])
-	libassert.CatalogServiceExists(t, client, "api-gateway")
+	gatewayService, err := libservice.NewGatewayService(context.Background(), "api-gateway", "api", cluster.Agents[0], ports...)
 	require.NoError(t, err)
+	libassert.CatalogServiceExists(t, client, "api-gateway")
 
 	return clientConnectProxy, gatewayService
 }
