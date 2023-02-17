@@ -64,6 +64,30 @@ func (e *InlineCertificateConfigEntry) Validate() error {
 	return nil
 }
 
+func (e *InlineCertificateConfigEntry) Hosts() ([]string, error) {
+	certificateBlock, _ := pem.Decode([]byte(e.Certificate))
+	if certificateBlock == nil {
+		return nil, errors.New("failed to parse certificate PEM")
+	}
+
+	certificate, err := x509.ParseCertificate(certificateBlock.Bytes)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse certificate: %w", err)
+	}
+
+	hosts := []string{certificate.Subject.CommonName}
+
+	for _, name := range certificate.DNSNames {
+		hosts = append(hosts, name)
+	}
+
+	for _, ip := range certificate.IPAddresses {
+		hosts = append(hosts, ip.String())
+	}
+
+	return hosts, nil
+}
+
 func (e *InlineCertificateConfigEntry) CanRead(authz acl.Authorizer) error {
 	var authzContext acl.AuthorizerContext
 	e.FillAuthzContext(&authzContext)

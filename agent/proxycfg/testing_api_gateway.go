@@ -2,6 +2,7 @@ package proxycfg
 
 import (
 	"fmt"
+
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/discoverychain"
 	"github.com/mitchellh/go-testing-interface"
@@ -15,6 +16,7 @@ func TestConfigSnapshotAPIGateway(
 	nsFn func(ns *structs.NodeService),
 	configFn func(entry *structs.APIGatewayConfigEntry, boundEntry *structs.BoundAPIGatewayConfigEntry),
 	routes []structs.BoundRoute,
+	certificates []structs.InlineCertificateConfigEntry,
 	extraUpdates []UpdateEvent,
 	additionalEntries ...structs.ConfigEntry,
 ) *ConfigSnapshot {
@@ -91,6 +93,16 @@ func TestConfigSnapshotAPIGateway(
 			}
 			baseEvents = append(baseEvents, discoChain)
 		}
+	}
+
+	for _, certificate := range certificates {
+		inlineCertificate := certificate
+		baseEvents = append(baseEvents, UpdateEvent{
+			CorrelationID: inlineCertificateConfigWatchID,
+			Result: &structs.ConfigEntryResponse{
+				Entry: &inlineCertificate,
+			},
+		})
 	}
 
 	upstreams := structs.TestUpstreams(t)

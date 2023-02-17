@@ -530,7 +530,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 		{
 			name: "api-gateway",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotAPIGateway(t, "default", nil, nil, nil, nil)
+				return proxycfg.TestConfigSnapshotAPIGateway(t, "default", nil, nil, nil, nil, nil)
 			},
 		},
 		{
@@ -555,7 +555,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 							Name: "listener",
 						},
 					}
-				}, nil, nil)
+				}, nil, nil, nil)
 			},
 		},
 		{
@@ -595,7 +595,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 							{Name: "tcp-service"},
 						},
 					},
-				}, nil)
+				}, nil, nil)
 			},
 		},
 		{
@@ -615,7 +615,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 							Routes: []structs.ResourceReference{},
 						},
 					}
-				}, nil, nil)
+				}, nil, nil, nil)
 			},
 		},
 		{
@@ -658,7 +658,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 							},
 						},
 					},
-				}, nil)
+				}, nil, nil)
 			},
 		},
 		{
@@ -697,7 +697,6 @@ func TestListenersFromSnapshot(t *testing.T) {
 							},
 						},
 					}
-
 				}, []structs.BoundRoute{
 					&structs.TCPRouteConfigEntry{
 						Name: "tcp-route",
@@ -729,7 +728,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 							},
 						},
 					},
-				}, nil)
+				}, nil, nil)
 			},
 		},
 		{
