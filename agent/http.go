@@ -314,7 +314,8 @@ func (s *HTTPHandlers) nodeName() string {
 // results in:
 //
 // /v1/acl/clone/foo?token=bar -> /v1/acl/clone/<hidden>?token=bar
-//                                ^---- $1 ----^^- $2 -^^-- $3 --^
+//
+//	^---- $1 ----^^- $2 -^^-- $3 --^
 //
 // And then the loop that looks for parameters called "token" does the last
 // step to get to the final redacted form.

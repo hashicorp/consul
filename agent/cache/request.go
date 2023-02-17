@@ -8,6 +8,7 @@ import (
 //
 // This interface is typically implemented by request structures in
 // the agent/structs package.
+//
 //go:generate mockery --name Request --inpackage
 type Request interface {
 	// CacheInfo returns information used for caching this request.

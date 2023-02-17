@@ -27,7 +27,6 @@ import (
 //
 //   - POST /apis/authentication.k8s.io/v1/tokenreviews
 //   - GET  /api/v1/namespaces/<NAMESPACE>/serviceaccounts/<NAME>
-//
 type TestAPIServer struct {
 	srv    *httptest.Server
 	caCert string

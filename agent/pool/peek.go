@@ -18,8 +18,8 @@ import (
 // The TLS record layer governs the very first byte. The available options start
 // at 20 as per:
 //
-//  - v1.2: https://tools.ietf.org/html/rfc5246#appendix-A.1
-//  - v1.3: https://tools.ietf.org/html/rfc8446#appendix-B.1
+//   - v1.2: https://tools.ietf.org/html/rfc5246#appendix-A.1
+//   - v1.3: https://tools.ietf.org/html/rfc8446#appendix-B.1
 //
 // Note: this indicates that '0' is 'invalid'. Given that we only care about
 // the first byte of a long-lived connection this is irrelevant, since you must

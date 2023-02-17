@@ -63,7 +63,6 @@ func IsErrPermissionDenied(err error) bool {
 
 // Arguably this should be some sort of union type.
 // The usage of Cause and the rest of the fields is entirely disjoint.
-//
 type PermissionDeniedError struct {
 	Cause string
 

@@ -83,6 +83,7 @@ type ReplicationMessage struct {
 	unknownFields protoimpl.UnknownFields
 
 	// Types that are assignable to Payload:
+	//
 	//	*ReplicationMessage_Open_
 	//	*ReplicationMessage_Request_
 	//	*ReplicationMessage_Response_
