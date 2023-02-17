@@ -1,0 +1,25 @@
+---
+language: node_js
+node_js:
+  - "12"
+
+dist: xenial
+
+addons:
+  chrome: stable
+
+cache:
+  directories:
+    - $HOME/.npm
+
+env:
+  global:
+    # See https://git.io/vdao3 for details.
+    - JOBS=1
+
+branches:
+  only:
+    - master
+
+script:
+  - npm test
