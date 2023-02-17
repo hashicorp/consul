@@ -307,31 +307,6 @@ func (e *HTTPRouteConfigEntry) FilteredHostnames(listenerHostname string) []stri
 	return hostnames
 }
 
-func (e *HTTPRouteConfigEntry) FilteredHostnames(listenerHostname string) []string {
-	if len(e.Hostnames) == 0 {
-		// we have no hostnames specified here, so treat it like a wildcard
-		return []string{listenerHostname}
-	}
-
-	wildcardHostname := strings.ContainsRune(listenerHostname, '*') || listenerHostname == "*"
-	listenerHostname = strings.TrimPrefix(strings.TrimPrefix(listenerHostname, "*"), ".")
-
-	hostnames := []string{}
-	for _, hostname := range e.Hostnames {
-		if wildcardHostname {
-			if strings.HasSuffix(hostname, listenerHostname) {
-				hostnames = append(hostnames, hostname)
-			}
-			continue
-		}
-
-		if hostname == listenerHostname {
-			hostnames = append(hostnames, hostname)
-		}
-	}
-	return hostnames
-}
-
 // HTTPMatch specifies the criteria that should be
 // used in determining whether or not a request should
 // be routed to a given set of services.
