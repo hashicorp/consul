@@ -85,6 +85,8 @@ type TestEnvoy struct {
 	EnvoyVersion string
 
 	deltaStream *TestADSDeltaStream // Incremental v3
+
+	closed bool
 }
 
 // NewTestEnvoy creates a TestEnvoy instance.
@@ -225,13 +227,9 @@ func (e *TestEnvoy) Close() error {
 	defer e.mu.Unlock()
 
 	// unblock the recv chans to simulate recv errors when client disconnects
-	if e.deltaStream != nil && e.deltaStream.recvCh != nil {
+	if !e.closed && e.deltaStream.recvCh != nil {
 		close(e.deltaStream.recvCh)
-		// TODO: This is causing a bunch of panics in testing code due to inflight
-		// requests attempting to grab a context from a stream that's nil. Added
-		// some defensive code in the xDS handler, but really, this should get fixed
-		// so we no longer have a data-race
-		e.deltaStream = nil
+		e.closed = true
 	}
 	if e.cancel != nil {
 		e.cancel()
