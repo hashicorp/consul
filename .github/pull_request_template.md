@@ -1,10 +1,6 @@
 ### Description
 
-<!--
-
-Please describe why you're making this change, in plain English.
-
--->
+<!-- Please describe why you're making this change, in plain English. -->
 
 ### Testing & Reproduction steps
 

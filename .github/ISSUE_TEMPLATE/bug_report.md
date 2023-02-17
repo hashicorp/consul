@@ -4,25 +4,18 @@ about: You're experiencing an issue with Consul that is different than the docum
 
 ---
 
-<!-- 
-
-When filing a bug, please include the following headings if possible. Any example text in this template can be deleted.
-
+<!-- When filing a bug, please include the following headings if possible. Any example text in this template can be deleted.
 -->
 
 #### Overview of the Issue
 
-<!-- 
-
-Please provide a paragraph or two about the issue you're experiencing.
-
--->
+<!-- Please provide a paragraph or two about the issue you're experiencing. -->
 
 ---
 
 #### Reproduction Steps
 
-<!-- Please provide steps to reproduce the bug, without any details it would 
+<!-- Please provide steps to reproduce the bug, without any details it would be hard to troubleshoot: 
 
 Steps to reproduce this issue, eg:
 
@@ -65,18 +58,8 @@ Server agent HCL config
 
 ### Operating system and Environment details
 
-<!-- 
-
-OS, Architecture, and any other information you can provide about the environment.
-
--->
+<!--  OS, Architecture, and any other information you can provide about the environment. -->
 
 ### Log Fragments
 
-<!-- 
-
-Please provide log file excerpts using the finest log level possible (i.e. DEBUG, TRACE). 
-
--->
-
-Include appropriate Client or Server log fragments. If the log is longer than a few dozen lines, please include the URL to the [gist](https://gist.github.com/) of the log instead of posting it in the issue. Use `-log-level=TRACE` on the client and server to capture the maximum log detail.
+<!-- Include appropriate Client or Server log fragments. If the log is longer than a few dozen lines, please include the URL to the [gist](https://gist.github.com/) of the log instead of posting it in the issue. Use `-log-level=TRACE` on the client and server to capture the maximum log detail. -->
