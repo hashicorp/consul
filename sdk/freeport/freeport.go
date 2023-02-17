@@ -114,7 +114,6 @@ func initialize() {
 		panic("freeport: block size too big or too many blocks requested")
 	}
 
-	rand.Seed(time.Now().UnixNano())
 	firstPort, lockLn = alloc()
 
 	condNotEmpty = sync.NewCond(&mu)

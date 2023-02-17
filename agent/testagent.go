@@ -6,7 +6,6 @@ import (
 	"crypto/x509"
 	"fmt"
 	"io"
-	"math/rand"
 	"net"
 	"net/http/httptest"
 	"path/filepath"
@@ -31,10 +30,6 @@ import (
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/tlsutil"
 )
-
-func init() {
-	rand.Seed(time.Now().UnixNano()) // seed random number generator
-}
 
 // TestAgent encapsulates an Agent with a default configuration and
 // startup procedure suitable for testing. It panics if there are errors
