@@ -55,7 +55,7 @@ func TestValidateUpstreams(t *testing.T) {
 				delete(ir.Index[xdscommon.ListenerType], listenerName)
 				return ir
 			},
-			err: "no listener for upstream \"db\"",
+			err: "No listener for upstream \"db\"",
 		},
 		{
 			name: "tcp-missing-cluster",
@@ -66,7 +66,7 @@ func TestValidateUpstreams(t *testing.T) {
 				delete(ir.Index[xdscommon.ClusterType], sni)
 				return ir
 			},
-			err: "no cluster \"db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul\" for upstream \"db\"",
+			err: "No cluster \"db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul\" for upstream \"db\"",
 		},
 		{
 			name: "http-success",
@@ -124,7 +124,7 @@ func TestValidateUpstreams(t *testing.T) {
 				delete(ir.Index[xdscommon.RouteType], "db")
 				return ir
 			},
-			err: "no route for upstream \"db\"",
+			err: "No route for upstream \"db\"",
 		},
 		{
 			name: "redirect",
@@ -170,7 +170,7 @@ func TestValidateUpstreams(t *testing.T) {
 				delete(ir.Index[xdscommon.ClusterType], sni)
 				return ir
 			},
-			err: "no cluster \"google.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul\" for upstream \"240.0.0.1\"",
+			err: "No cluster \"google.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul\" for upstream \"240.0.0.1\"",
 		},
 		{
 			name: "tproxy-http-redirect-success",
@@ -230,7 +230,9 @@ func TestValidateUpstreams(t *testing.T) {
 			var outputErrors string
 			for _, msgError := range messages.Errors() {
 				outputErrors += msgError.Message
-				outputErrors += msgError.PossibleActions
+				for _, action := range msgError.PossibleActions {
+					outputErrors += action
+				}
 			}
 			if len(tt.err) == 0 {
 				require.True(t, messages.Success())
