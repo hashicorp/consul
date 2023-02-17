@@ -13,7 +13,6 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/proto/pbacl"
 )
 
@@ -3570,7 +3569,6 @@ func TestStateStore_ACLPolicies_Snapshot_Restore(t *testing.T) {
 }
 
 func TestTokenPoliciesIndex(t *testing.T) {
-	lib.SeedMathRand()
 
 	idIndex := &memdb.IndexSchema{
 		Name:         "id",
