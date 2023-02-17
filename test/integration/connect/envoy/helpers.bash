@@ -155,8 +155,7 @@ function assert_cert_has_cn {
   CERT=$(openssl s_client -connect $HOSTPORT -servername $SERVER_NAME -showcerts </dev/null 2>/dev/null)
 
   echo "WANT CN: ${CN} (SNI: ${SERVER_NAME})"
-  echo "GOT CN:"
-  # echo "$CERT" | grep  -A 1 -Eo "Acceptable client certificate CA names"
+  echo "GOT CERT:"
   echo "$CERT"
 
   echo "$CERT" | grep "CN = ${CN}"
