@@ -15,7 +15,7 @@ var (
 	now = time.Now
 )
 
-//LogFile is used to setup a file based logger that also performs log rotation
+// LogFile is used to setup a file based logger that also performs log rotation
 type LogFile struct {
 	//Name of the log file
 	fileName string

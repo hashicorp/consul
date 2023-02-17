@@ -262,10 +262,12 @@ func (c *ConnectCALeaf) rootWatcher(ctx context.Context) {
 //
 // Somewhat arbitrarily the current strategy looks like this:
 //
-//          0                              60%             90%
-//   Issued [------------------------------|===============|!!!!!] Expires
+//	       0                              60%             90%
+//	Issued [------------------------------|===============|!!!!!] Expires
+//
 // 72h TTL: 0                             ~43h            ~65h
-//  1h TTL: 0                              36m             54m
+//
+//	1h TTL: 0                              36m             54m
 //
 // Where |===| is the soft renewal period where we jitter for the first attempt
 // and |!!!| is the danger zone where we just try immediately.

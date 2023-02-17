@@ -650,7 +650,7 @@ func validateProposedConfigEntryInServiceGraph(
 
 		entry := newEntry.(*structs.ExportedServicesConfigEntry)
 
-		_, serviceList, err := listServicesExportedToAnyPeerByConfigEntry(nil, tx, entry, nil)
+		serviceList, err := listServicesExportedToAnyPeerByConfigEntry(nil, tx, entry, nil)
 		if err != nil {
 			return err
 		}

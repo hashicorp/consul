@@ -225,7 +225,7 @@ func (ac *AutoConfig) introToken() (string, error) {
 
 // recordInitialConfiguration is responsible for recording the AutoConfigResponse from
 // the AutoConfig.InitialConfiguration RPC. It is an all-in-one function to do the following
-//   * update the Agent token in the token store
+//   - update the Agent token in the token store
 func (ac *AutoConfig) recordInitialConfiguration(resp *pbautoconf.AutoConfigResponse) error {
 	ac.autoConfigResponse = resp
 

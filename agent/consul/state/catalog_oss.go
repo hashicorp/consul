@@ -54,8 +54,8 @@ func catalogUpdateNodeIndexes(tx WriteTxn, idx uint64, nodeName string, _ *acl.E
 
 // catalogUpdateServicesIndexes upserts the max index for the entire services table with varying levels
 // of granularity (no-op if `idx` is lower than what exists for that index key):
-// 	- all services
-// 	- all services in a specified peer (including internal)
+//   - all services
+//   - all services in a specified peer (including internal)
 func catalogUpdateServicesIndexes(tx WriteTxn, idx uint64, _ *acl.EnterpriseMeta, peerName string) error {
 	// overall services index for snapshot
 	if err := indexUpdateMaxTxn(tx, idx, tableServices); err != nil {
@@ -72,8 +72,8 @@ func catalogUpdateServicesIndexes(tx WriteTxn, idx uint64, _ *acl.EnterpriseMeta
 
 // catalogUpdateServiceKindIndexes upserts the max index for the ServiceKind with varying levels
 // of granularity (no-op if `idx` is lower than what exists for that index key):
-// 	- all services of ServiceKind
-// 	- all services of ServiceKind in a specified peer (including internal)
+//   - all services of ServiceKind
+//   - all services of ServiceKind in a specified peer (including internal)
 func catalogUpdateServiceKindIndexes(tx WriteTxn, idx uint64, kind structs.ServiceKind, _ *acl.EnterpriseMeta, peerName string) error {
 	base := "service_kind." + kind.Normalized()
 	// service-kind index

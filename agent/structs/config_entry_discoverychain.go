@@ -1175,9 +1175,8 @@ type ServiceResolverRedirect struct {
 
 // There are some restrictions on what is allowed in here:
 //
-// - Service, ServiceSubset, Namespace, and Datacenters cannot all be
-//   empty at once.
-//
+//   - Service, ServiceSubset, Namespace, and Datacenters cannot all be
+//     empty at once.
 type ServiceResolverFailover struct {
 	// Service is the service to resolve instead of the default as the failover
 	// group of instances (optional).

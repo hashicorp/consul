@@ -65,6 +65,7 @@ func configIntentionsConvertToList(iter memdb.ResultIterator, _ *acl.EnterpriseM
 // found in a list of exported-services config entries. For OSS, namespace is not considered, so a match is one of:
 //   - the service name matches
 //   - the service name is a wildcard
+//
 // This value can be used to filter exported-services config entries for a given service name.
 func getExportedServicesMatchServiceNames(serviceName string, entMeta *acl.EnterpriseMeta) []structs.ServiceName {
 	return []structs.ServiceName{

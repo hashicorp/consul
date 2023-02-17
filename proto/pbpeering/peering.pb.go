@@ -107,6 +107,7 @@ type SecretsWriteRequest struct {
 	// PeerID is the local UUID of the peering this request applies to.
 	PeerID string `protobuf:"bytes,1,opt,name=PeerID,proto3" json:"PeerID,omitempty"`
 	// Types that are assignable to Request:
+	//
 	//	*SecretsWriteRequest_GenerateToken
 	//	*SecretsWriteRequest_ExchangeSecret
 	//	*SecretsWriteRequest_PromotePending

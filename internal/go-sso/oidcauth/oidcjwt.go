@@ -63,11 +63,11 @@ func (a *Authenticator) extractClaims(allClaims map[string]interface{}) (*Claims
 // claims and claims mappings.  The referenced claims must be strings and the
 // claims mappings must be of the structure:
 //
-//   {
-//       "/some/claim/pointer": "metadata_key1",
-//       "another_claim": "metadata_key2",
-//        ...
-//   }
+//	{
+//	    "/some/claim/pointer": "metadata_key1",
+//	    "another_claim": "metadata_key2",
+//	     ...
+//	}
 func extractStringMetadata(logger hclog.Logger, allClaims map[string]interface{}, claimMappings map[string]string) (map[string]string, error) {
 	metadata := make(map[string]string)
 	for source, target := range claimMappings {
@@ -90,11 +90,11 @@ func extractStringMetadata(logger hclog.Logger, allClaims map[string]interface{}
 // of claims and claims mappings.  The referenced claims must be strings and
 // the claims mappings must be of the structure:
 //
-//   {
-//       "/some/claim/pointer": "metadata_key1",
-//       "another_claim": "metadata_key2",
-//        ...
-//   }
+//	{
+//	    "/some/claim/pointer": "metadata_key1",
+//	    "another_claim": "metadata_key2",
+//	     ...
+//	}
 func extractListMetadata(logger hclog.Logger, allClaims map[string]interface{}, listClaimMappings map[string]string) (map[string][]string, error) {
 	out := make(map[string][]string)
 	for source, target := range listClaimMappings {

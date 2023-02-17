@@ -69,11 +69,10 @@ type RegisterMonitor struct {
 //
 // This is a basic state machine with the following transitions:
 //
-//   * idle     => running, stopped
-//   * running  => stopping, stopped
-//   * stopping => stopped
-//   * stopped  => <>
-//
+//   - idle     => running, stopped
+//   - running  => stopping, stopped
+//   - stopping => stopped
+//   - stopped  => <>
 type registerRunState uint8
 
 const (

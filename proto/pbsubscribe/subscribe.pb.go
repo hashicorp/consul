@@ -320,6 +320,7 @@ type SubscribeRequest struct {
 	// receive events (e.g. health events for a particular service).
 	//
 	// Types that are assignable to Subject:
+	//
 	//	*SubscribeRequest_WildcardSubject
 	//	*SubscribeRequest_NamedSubject
 	Subject isSubscribeRequest_Subject `protobuf_oneof:"Subject"`
@@ -471,6 +472,7 @@ type Event struct {
 	// Payload is the actual event content.
 	//
 	// Types that are assignable to Payload:
+	//
 	//	*Event_EndOfSnapshot
 	//	*Event_NewSnapshotToFollow
 	//	*Event_EventBatch

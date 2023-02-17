@@ -7,12 +7,13 @@ import (
 	"strings"
 
 	"github.com/golang/protobuf/proto"
+	"github.com/hashicorp/go-memdb"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/configentry"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib/maps"
 	"github.com/hashicorp/consul/proto/pbpeering"
-	"github.com/hashicorp/go-memdb"
 )
 
 const (
@@ -909,7 +910,7 @@ func listAllExportedServices(
 		return idx, found, nil
 	}
 
-	_, services, err := listServicesExportedToAnyPeerByConfigEntry(ws, tx, export, overrides)
+	services, err := listServicesExportedToAnyPeerByConfigEntry(ws, tx, export, overrides)
 	if err != nil {
 		return 0, nil, err
 	}
@@ -920,12 +921,7 @@ func listAllExportedServices(
 	return idx, found, nil
 }
 
-func listServicesExportedToAnyPeerByConfigEntry(
-	ws memdb.WatchSet,
-	tx ReadTxn,
-	conf *structs.ExportedServicesConfigEntry,
-	overrides map[configentry.KindName]structs.ConfigEntry,
-) (uint64, []structs.ServiceName, error) {
+func listServicesExportedToAnyPeerByConfigEntry(ws memdb.WatchSet, tx ReadTxn, conf *structs.ExportedServicesConfigEntry, overrides map[configentry.KindName]structs.ConfigEntry) ([]structs.ServiceName, error) {
 	var (
 		entMeta = conf.GetEnterpriseMeta()
 		found   = make(map[structs.ServiceName]struct{})
@@ -955,7 +951,7 @@ func listServicesExportedToAnyPeerByConfigEntry(
 		if sawPeer && svc.Name == structs.WildcardSpecifier {
 			idx, discoChains, err := listDiscoveryChainNamesTxn(tx, ws, overrides, svcMeta)
 			if err != nil {
-				return 0, nil, fmt.Errorf("failed to get discovery chain names: %w", err)
+				return nil, fmt.Errorf("failed to get discovery chain names: %w", err)
 			}
 			if idx > maxIdx {
 				maxIdx = idx
@@ -970,7 +966,7 @@ func listServicesExportedToAnyPeerByConfigEntry(
 
 	structs.ServiceList(foundKeys).Sort()
 
-	return maxIdx, foundKeys, nil
+	return foundKeys, nil
 }
 
 // PeeringsForService returns the list of peerings that are associated with the service name provided in the query.

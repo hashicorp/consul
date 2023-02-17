@@ -110,17 +110,18 @@ type ACL struct {
 //
 // Q: What is the bootstrap reset index?
 // A: If you happen to lose acess to all tokens capable of ACL management you need a way
-//    to get back into your system. This allows an admin to write the current
-//    bootstrap "index" into a special file on disk to override the mechanism preventing
-//    a second token bootstrap. The index will be retrieved by a API call to /v1/acl/bootstrap
-//    When already bootstrapped this API will return the reset index necessary within
-//    the error response. Once set in the file, the bootstrap API can be used again to
-//    get a new token.
+//
+//	to get back into your system. This allows an admin to write the current
+//	bootstrap "index" into a special file on disk to override the mechanism preventing
+//	a second token bootstrap. The index will be retrieved by a API call to /v1/acl/bootstrap
+//	When already bootstrapped this API will return the reset index necessary within
+//	the error response. Once set in the file, the bootstrap API can be used again to
+//	get a new token.
 //
 // Q: Why is the reset index not in the config?
 // A: We want to be able to remove the reset index once we have used it. This prevents
-//    accidentally allowing bootstrapping yet again after a snapshot restore.
 //
+//	accidentally allowing bootstrapping yet again after a snapshot restore.
 func (a *ACL) fileBootstrapResetIndex() uint64 {
 	// Determine the file path to check
 	path := filepath.Join(a.srv.config.DataDir, aclBootstrapReset)
