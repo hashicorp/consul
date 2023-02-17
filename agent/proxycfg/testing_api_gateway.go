@@ -3,28 +3,35 @@ package proxycfg
 import (
 	"fmt"
 
-	"github.com/mitchellh/go-testing-interface"
-
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/discoverychain"
+	"github.com/mitchellh/go-testing-interface"
+
 	"github.com/hashicorp/consul/agent/structs"
 )
 
-func TestConfigSnapshotAPIGateway(t testing.T) *ConfigSnapshot {
+func TestConfigSnapshotAPIGateway(
+	t testing.T,
+	variation string,
+	nsFn func(ns *structs.NodeService),
+	configFn func(entry *structs.APIGatewayConfigEntry, boundEntry *structs.BoundAPIGatewayConfigEntry),
+	routes []structs.BoundRoute,
+	extraUpdates []UpdateEvent,
+	additionalEntries ...structs.ConfigEntry,
+) *ConfigSnapshot {
 	roots, placeholderLeaf := TestCerts(t)
 
-	entries := []structs.ConfigEntry{
-		&structs.ProxyConfigEntry{
-			Kind: structs.ProxyDefaults,
-			Name: structs.ProxyConfigGlobal,
-			Config: map[string]interface{}{
-				"protocol": "tcp",
-			},
-		},
-		&structs.ServiceResolverConfigEntry{
-			Kind:           structs.ServiceResolver,
-			Name:           "api-gateway",
-		},
+	entry := &structs.APIGatewayConfigEntry{
+		Kind: structs.APIGateway,
+		Name: "api-gateway",
+	}
+	boundEntry := &structs.BoundAPIGatewayConfigEntry{
+		Kind: structs.BoundAPIGateway,
+		Name: "api-gateway",
+	}
+
+	if configFn != nil {
+		configFn(entry, boundEntry)
 	}
 
 	baseEvents := []UpdateEvent{
@@ -39,87 +46,92 @@ func TestConfigSnapshotAPIGateway(t testing.T) *ConfigSnapshot {
 		{
 			CorrelationID: gatewayConfigWatchID,
 			Result: &structs.ConfigEntryResponse{
-				Entry: &structs.APIGatewayConfigEntry{
-					Kind: structs.APIGateway,
-					Name: "api-gateway",
-					Listeners: []structs.APIGatewayListener{
-						{
-							Name:     "",
-							Hostname: "",
-							Port:     8080,
-							Protocol: structs.ListenerProtocolTCP,
-							TLS: structs.APIGatewayTLSConfiguration{
-								Certificates: []structs.ResourceReference{
-									{
-										Kind: structs.InlineCertificate,
-										Name: "my-inline-certificate",
-									},
-								},
-							},
-						},
-					},
-				},
+				Entry: entry,
 			},
 		},
 		{
 			CorrelationID: gatewayConfigWatchID,
 			Result: &structs.ConfigEntryResponse{
-				Entry: &structs.BoundAPIGatewayConfigEntry{
-					Kind: structs.BoundAPIGateway,
-					Name: "api-gateway",
-					Listeners: []structs.BoundAPIGatewayListener{
-						{
-							Name: "",
-							Certificates: []structs.ResourceReference{
-								{
-									Kind: structs.InlineCertificate,
-									Name: "my-inline-certificate",
-								},
-							},
-							Routes: []structs.ResourceReference{
-								{
-									Kind: structs.TCPRoute,
-									Name: "my-tcp-route",
-								},
-							},
-						},
-					},
-				},
+				Entry: boundEntry,
 			},
 		},
-		{
+	}
+
+	for _, route := range routes {
+		// Add the watch event for the route.
+		watch := UpdateEvent{
 			CorrelationID: routeConfigWatchID,
 			Result: &structs.ConfigEntryResponse{
-				Entry: &structs.TCPRouteConfigEntry{
-					Kind: structs.TCPRoute,
-					Name: "my-tcp-route",
-					Parents: []structs.ResourceReference{
-						{
-							Kind: structs.APIGateway,
-							Name: "api-gateway",
-						},
-					},
-					Services: []structs.TCPService{
-						{Name: "my-tcp-service"},
-					},
+				Entry: route,
+			},
+		}
+		baseEvents = append(baseEvents, watch)
+
+		// Add the watch event for the discovery chain.
+		entries := []structs.ConfigEntry{
+			&structs.ProxyConfigEntry{
+				Kind: structs.ProxyDefaults,
+				Name: structs.ProxyConfigGlobal,
+				Config: map[string]interface{}{
+					"protocol": route.GetProtocol(),
 				},
 			},
+			&structs.ServiceResolverConfigEntry{
+				Kind: structs.ServiceResolver,
+				Name: "api-gateway",
+			},
+		}
+
+		// Add a discovery chain watch event for each service.
+		for _, serviceName := range route.GetServiceNames() {
+			discoChain := UpdateEvent{
+				CorrelationID: fmt.Sprintf("discovery-chain:%s", UpstreamIDString("", "", serviceName.Name, &serviceName.EnterpriseMeta, "")),
+				Result: &structs.DiscoveryChainResponse{
+					Chain: discoverychain.TestCompileConfigEntries(t, serviceName.Name, "default", "default", "dc1", connect.TestClusterID+".consul", nil, entries...),
+				},
+			}
+			baseEvents = append(baseEvents, discoChain)
+		}
+	}
+
+	upstreams := structs.TestUpstreams(t)
+
+	baseEvents = testSpliceEvents(baseEvents, setupTestVariationConfigEntriesAndSnapshot(
+		t, variation, upstreams, additionalEntries...,
+	))
+
+	return testConfigSnapshotFixture(t, &structs.NodeService{
+		Kind:            structs.ServiceKindAPIGateway,
+		Service:         "api-gateway",
+		Address:         "1.2.3.4",
+		Meta:            nil,
+		TaggedAddresses: nil,
+	}, nsFn, nil, testSpliceEvents(baseEvents, extraUpdates))
+}
+
+// TestConfigSnapshotAPIGateway_NilConfigEntry is used to test when
+// the update event for the config entry returns nil
+// since this always happens on the first watch if it doesn't exist.
+func TestConfigSnapshotAPIGateway_NilConfigEntry(
+	t testing.T,
+) *ConfigSnapshot {
+	roots, _ := TestCerts(t)
+
+	baseEvents := []UpdateEvent{
+		{
+			CorrelationID: rootsWatchID,
+			Result:        roots,
 		},
 		{
-			CorrelationID: inlineCertificateConfigWatchID,
+			CorrelationID: gatewayConfigWatchID,
 			Result: &structs.ConfigEntryResponse{
-				Entry: &structs.InlineCertificateConfigEntry{
-					Kind:        structs.InlineCertificate,
-					Name:        "my-inline-certificate",
-					Certificate: "certificate",
-					PrivateKey:  "private key",
-				},
+				Entry: nil, // The first watch on a config entry will return nil if the config entry doesn't exist.
 			},
 		},
 		{
-			CorrelationID: fmt.Sprintf("discovery-chain:%s", UpstreamIDString("","","my-tcp-service",nil, "")),
-			Result: &structs.DiscoveryChainResponse{
-				Chain: discoverychain.TestCompileConfigEntries(t,"my-tcp-service","default","default","dc1", connect.TestClusterID+".consul",nil,entries...),
+			CorrelationID: gatewayConfigWatchID,
+			Result: &structs.ConfigEntryResponse{
+				Entry: nil, // The first watch on a config entry will return nil if the config entry doesn't exist.
 			},
 		},
 	}
@@ -127,7 +139,6 @@ func TestConfigSnapshotAPIGateway(t testing.T) *ConfigSnapshot {
 	return testConfigSnapshotFixture(t, &structs.NodeService{
 		Kind:            structs.ServiceKindAPIGateway,
 		Service:         "api-gateway",
-		Port:            9999,
 		Address:         "1.2.3.4",
 		Meta:            nil,
 		TaggedAddresses: nil,
