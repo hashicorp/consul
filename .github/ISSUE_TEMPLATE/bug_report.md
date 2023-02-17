@@ -20,11 +20,18 @@ Steps to reproduce this issue, eg:
 
 ### Consul info for both Client and Server
 
+
+<!---  Please provide both `consul info` and agent HCL config for both client and servers to help us better diagnose the issue. Take careful steps to remove any sensitive information from config files that include secrets such as Gossip keys. --->
+
 <details>
   <summary>Client info</summary>
 
 ```
-output from client 'consul info' command here
+Output from client 'consul info' command here
+```
+
+```
+Client agent HCL config
 ```
 
 </details>
@@ -33,7 +40,11 @@ output from client 'consul info' command here
   <summary>Server info</summary>
 
 ```
-output from server 'consul info' command here
+Output from server 'consul info' command here
+```
+
+```
+Server agent HCL config
 ```
 
 </details>
