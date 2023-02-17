@@ -62,7 +62,6 @@ Server agent HCL config
 
 ### Log Fragments
 
-<!-- Include appropriate Client or Server log fragments. If the log is longer than a few dozen lines, please include the URL to the [gist](https://gist.github.com/) of the log instead of posting it in the issue. Use `-log-level=TRACE` on the client and server to capture the maximum log detail.
-Please provide log file excerpts using the finest log level possible (i.e. DEBUG, TRACE). 
+<!-- Include appropriate Client or Server log fragments. If the log is longer than a few dozen lines, please include the URL to the [gist](https://gist.github.com/) of the log instead of posting it in the issue. Use `-log-level=TRACE` on the client and server to capture the maximum log detail.EBUG, TRACE). 
 
 -->
