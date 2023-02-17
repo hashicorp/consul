@@ -1059,7 +1059,7 @@ func TestServer_DeltaAggregatedResources_v3_ACLEnforcement(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var stopped bool
-			var lock sync.RWMutex
+			lock := &sync.RWMutex{}
 
 			defer func() {
 				lock.Lock()
