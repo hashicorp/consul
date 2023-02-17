@@ -47,6 +47,13 @@ type ADSDeltaStream = envoy_discovery_v3.AggregatedDiscoveryService_DeltaAggrega
 
 // DeltaAggregatedResources implements envoy_discovery_v3.AggregatedDiscoveryServiceServer
 func (s *Server) DeltaAggregatedResources(stream ADSDeltaStream) error {
+	// this guard is mainly for our tests where we sometimes nil out the
+	// server stream, any use of the stream after we nil it causes
+	// pretty much all of the below code to panic.
+	if stream == nil {
+		return nil
+	}
+
 	defer s.activeStreams.Increment(stream.Context())()
 
 	// a channel for receiving incoming requests
