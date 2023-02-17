@@ -754,6 +754,8 @@ func (e *APIGatewayConfigEntry) Normalize() error {
 			if cert.Kind == "" {
 				cert.Kind = InlineCertificate
 			}
+			cert.EnterpriseMeta.Normalize()
+
 			listener.TLS.Certificates[i] = cert
 		}
 	}
@@ -972,7 +974,23 @@ func (e *BoundAPIGatewayConfigEntry) IsInitializedForGateway(gateway *APIGateway
 func (e *BoundAPIGatewayConfigEntry) GetKind() string            { return BoundAPIGateway }
 func (e *BoundAPIGatewayConfigEntry) GetName() string            { return e.Name }
 func (e *BoundAPIGatewayConfigEntry) GetMeta() map[string]string { return e.Meta }
-func (e *BoundAPIGatewayConfigEntry) Normalize() error           { return nil }
+func (e *BoundAPIGatewayConfigEntry) Normalize() error {
+	for i, listener := range e.Listeners {
+		for j, route := range listener.Routes {
+			route.EnterpriseMeta.Normalize()
+
+			listener.Routes[j] = route
+		}
+		for j, cert := range listener.Certificates {
+			cert.EnterpriseMeta.Normalize()
+
+			listener.Certificates[j] = cert
+		}
+
+		e.Listeners[i] = listener
+	}
+	return nil
+}
 
 func (e *BoundAPIGatewayConfigEntry) Validate() error {
 	allowedCertificateKinds := map[string]bool{
@@ -1109,8 +1127,6 @@ func (l *BoundAPIGatewayListener) UnbindRoute(route ResourceReference) bool {
 	return false
 }
 
-func (e *BoundAPIGatewayConfigEntry) GetStatus() Status {
-	return Status{}
-}
+func (e *BoundAPIGatewayConfigEntry) GetStatus() Status       { return Status{} }
 func (e *BoundAPIGatewayConfigEntry) SetStatus(status Status) {}
 func (e *BoundAPIGatewayConfigEntry) DefaultStatus() Status   { return Status{} }
