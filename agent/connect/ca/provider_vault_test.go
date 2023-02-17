@@ -107,7 +107,7 @@ func TestVaultCAProvider_configureVaultAuthMethod(t *testing.T) {
 		"alicloud":    {expLoginPath: "auth/alicloud/login"},
 		"approle":     {expLoginPath: "auth/approle/login"},
 		"aws":         {expLoginPath: "auth/aws/login", params: map[string]interface{}{"type": "iam"}, hasLDG: true},
-		"azure":       {expLoginPath: "auth/azure/login"},
+		"azure":       {expLoginPath: "auth/azure/login", params: map[string]interface{}{"role": "test-role", "resource": "test-resource"}, hasLDG: true},
 		"cf":          {expLoginPath: "auth/cf/login"},
 		"github":      {expLoginPath: "auth/github/login"},
 		"gcp":         {expLoginPath: "auth/gcp/login", params: map[string]interface{}{"type": "iam", "role": "test-role"}},
