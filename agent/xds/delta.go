@@ -466,20 +466,21 @@ func (s *Server) applyEnvoyExtensions(resources *xdscommon.IndexedResources, cfg
 	return nil
 }
 
+// https://www.envoyproxy.io/docs/envoy/latest/api-docs/xds_protocol#eventual-consistency-considerations
 var xDSUpdateOrder = []xDSUpdateOperation{
-	// TODO Update comments
+	// 1. SDS updates (if any) can be pushed here with no harm.
 	{TypeUrl: xdscommon.SecretType, Upsert: true},
-	// 1. CDS updates (if any) must always be pushed first.
+	// 2. CDS updates (if any) must always be pushed before the following types.
 	{TypeUrl: xdscommon.ClusterType, Upsert: true},
-	// 2. EDS updates (if any) must arrive after CDS updates for the respective clusters.
+	// 3. EDS updates (if any) must arrive after CDS updates for the respective clusters.
 	{TypeUrl: xdscommon.EndpointType, Upsert: true},
-	// 3. LDS updates must arrive after corresponding CDS/EDS updates.
+	// 4. LDS updates must arrive after corresponding CDS/EDS updates.
 	{TypeUrl: xdscommon.ListenerType, Upsert: true, Remove: true},
-	// 4. RDS updates related to the newly added listeners must arrive after CDS/EDS/LDS updates.
+	// 5. RDS updates related to the newly added listeners must arrive after CDS/EDS/LDS updates.
 	{TypeUrl: xdscommon.RouteType, Upsert: true, Remove: true},
-	// 5. (NOT IMPLEMENTED YET IN CONSUL) VHDS updates (if any) related to the newly added RouteConfigurations must arrive after RDS updates.
+	// 6. (NOT IMPLEMENTED YET IN CONSUL) VHDS updates (if any) related to the newly added RouteConfigurations must arrive after RDS updates.
 	// {},
-	// 6. Stale CDS clusters, related EDS endpoints (ones no longer being referenced) and SDS secrets can then be removed.
+	// 7. Stale CDS clusters, related EDS endpoints (ones no longer being referenced) and SDS secrets can then be removed.
 	{TypeUrl: xdscommon.ClusterType, Remove: true},
 	{TypeUrl: xdscommon.EndpointType, Remove: true},
 	{TypeUrl: xdscommon.SecretType, Remove: true},
