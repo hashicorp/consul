@@ -459,6 +459,7 @@ func TestGatewayChainSynthesizer_AddHTTPRoute(t *testing.T) {
 
 			gatewayChainSynthesizer := NewGatewayChainSynthesizer(datacenter, "domain", "suffix", gateway)
 
+			gatewayChainSynthesizer.SetHostname("*")
 			gatewayChainSynthesizer.AddHTTPRoute(tc.route)
 
 			require.Equal(t, tc.expectedMatchesByHostname, gatewayChainSynthesizer.matchesByHostname)
@@ -621,6 +622,8 @@ func TestGatewayChainSynthesizer_Synthesize(t *testing.T) {
 
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
+			tc.synthesizer.SetHostname("*")
+
 			for _, tcpRoute := range tc.tcpRoutes {
 				tc.synthesizer.AddTCPRoute(*tcpRoute)
 			}

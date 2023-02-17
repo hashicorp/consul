@@ -897,6 +897,13 @@ type APIGatewayListener struct {
 	TLS APIGatewayTLSConfiguration
 }
 
+func (l APIGatewayListener) GetHostname() string {
+	if l.Hostname != "" {
+		return l.Hostname
+	}
+	return "*"
+}
+
 // APIGatewayTLSConfiguration specifies the configuration of a listener’s
 // TLS settings.
 type APIGatewayTLSConfiguration struct {
