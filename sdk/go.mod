@@ -1,6 +1,6 @@
 module github.com/hashicorp/consul/sdk
 
-go 1.18
+go 1.20
 
 require (
 	github.com/hashicorp/go-cleanhttp v0.5.1
