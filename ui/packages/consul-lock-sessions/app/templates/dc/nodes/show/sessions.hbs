@@ -86,20 +86,18 @@ as |route|>
 
                 <BlockSlot @name="actions">
                   <li>
-                    <Hds::Button
+                    <Hds::Link::Standalone
                       @text='Documentation on Lock Sessions'
                       @href="{{env 'CONSUL_DOCS_URL'}}/internals/sessions.html"
-                      @color='tertiary'
                       @icon='docs-link'
                       @iconPosition='trailing'
                       @size='small'
                     />
                   </li>
                   <li>
-                    <Hds::Button
+                    <Hds::Link::Standalone
                       @text='Take the tutorial'
                       @href='{{env 'CONSUL_DOCS_LEARN_URL'}}/tutorials/consul/distributed-semaphore'
-                      @color='tertiary'
                       @icon='learn-link'
                       @iconPosition='trailing'
                       @size='small'

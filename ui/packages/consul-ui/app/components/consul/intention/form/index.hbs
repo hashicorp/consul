@@ -228,9 +228,12 @@ as |item readonly|}}
           </p>
         </notice.Body>
         <notice.Footer>
-          <p>
-            <a href="{{env 'CONSUL_DOCS_URL'}}/k8s/crds" target="_blank" rel="noopener noreferrer">Learn more about CRDs</a>
-          </p>
+          <Hds::Link::Standalone
+            @text='Learn more about CRDs'
+            @href="{{env 'CONSUL_DOCS_URL'}}/k8s/crds"
+            @icon='docs-link'
+            @iconPosition='trailing'
+          />
         </notice.Footer>
       </Notice>
     {{/if}}

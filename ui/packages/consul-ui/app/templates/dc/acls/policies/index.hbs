@@ -116,20 +116,18 @@ as |route|>
               </BlockSlot>
               <BlockSlot @name="actions">
                 <li>
-                  <Hds::Button
+                  <Hds::Link::Standalone
                     @text='Documentation on policies'
                     @href="{{env 'CONSUL_DOCS_URL'}}/commands/acl/policy"
-                    @color='tertiary'
                     @icon='docs-link'
                     @iconPosition='trailing'
                     @size='small'
                   />
                 </li>
                 <li>
-                  <Hds::Button
+                  <Hds::Link::Standalone
                     @text='Take the tutorial'
                     @href="{{env 'CONSUL_LEARN_URL'}}/consul/security-networking/managing-acl-policies"
-                    @color='tertiary'
                     @icon='learn-link'
                     @iconPosition='trailing'
                     @size='small'

@@ -122,20 +122,18 @@ as |route|>
               </BlockSlot>
               <BlockSlot @name="actions">
                 <li>
-                  <Hds::Button
+                  <Hds::Link::Standalone
                     @text='Documentation on namespaces'
                     @href="{{env 'CONSUL_DOCS_URL'}}/commands/namespace"
-                    @color='tertiary'
                     @icon='docs-link'
                     @iconPosition='trailing'
                     @size='small'
                   />
                 </li>
                 <li>
-                  <Hds::Button
+                  <Hds::Link::Standalone
                     @text='Read the guide'
                     @href="{{env 'CONSUL_DOCS_LEARN_URL'}}/consul/namespaces/secure-namespaces"
-                    @color='tertiary'
                     @icon='learn-link'
                     @iconPosition='trailing'
                     @size='small'

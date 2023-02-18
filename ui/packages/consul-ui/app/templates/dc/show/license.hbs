@@ -137,28 +137,23 @@ as |item|}}
                 {{compute (fn route.t 'documentation.title')}}
               </h3>
             </header>
-
-                <Hds::Button
-                  @text={{compute (fn route.t 'documentation.links.license-expiration.text')}}
-                  @href='{{CONSUL_DOCS_URL}}{{compute (fn route.t 'documentation.links.license-expiration.link')}}'
-                  @color='tertiary'
-                  @icon='docs-link'
-                />
-
-                <Hds::Button
-                  @text={{compute (fn route.t 'documentation.links.renewing-license.text')}}
-                  @href='{{CONSUL_DOCS_URL}}{{compute (fn route.t 'documentation.links.renewing-license.link')}}'
-                  @color='tertiary'
-                  @icon='docs-link'
-                />
-
-                <Hds::Button
-                  @text={{compute (fn route.t 'documentation.links.applying-new-license.text')}}
-                  @href='{{CONSUL_DOCS_URL}}{{compute (fn route.t 'documentation.links.applying-new-license.link')}}'
-                  @color='tertiary'
-                  @icon='docs-link'
-                />
-
+            <div class="flex gap-1.5 flex-col">
+              <Hds::Link::Standalone
+                @text={{compute (fn route.t 'documentation.links.license-expiration.text')}}
+                @href='{{concat (env 'CONSUL_DOCS_URL') (compute (fn route.t 'documentation.links.license-expiration.link'))}}'
+                @icon='docs-link'
+              />
+              <Hds::Link::Standalone
+                @text={{compute (fn route.t 'documentation.links.renewing-license.text')}}
+                @href='{{concat (env 'CONSUL_DOCS_URL') (compute (fn route.t 'documentation.links.renewing-license.link'))}}'
+                @icon='docs-link'
+              />
+              <Hds::Link::Standalone
+                @text={{compute (fn route.t 'documentation.links.applying-new-license.text')}}
+                @href='{{concat (env 'CONSUL_DOCS_URL') (compute (fn route.t 'documentation.links.applying-new-license.link'))}}'
+                @icon='docs-link'
+              />
+            </div>
           </aside>
 
         </section>

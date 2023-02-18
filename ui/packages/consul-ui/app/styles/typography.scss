@@ -65,7 +65,8 @@ pre code,
 
 /*TODO: See if we can collapse these into a */
 /* strong %p3 */
-%form-element-label {
+%form-element-label,
+%button {
   font-weight: var(--typo-weight-semibold);
 }
 %route-card section dt,

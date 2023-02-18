@@ -16,20 +16,18 @@
       </BlockSlot>
       <BlockSlot @name="actions">
         <li>
-          <Hds::Button
+          <Hds::Link::Standalone
             @text='Read the documentation'
             @href="{{env 'CONSUL_DOCS_URL'}}/acl/index.html"
-            @color='tertiary'
             @icon='docs-link'
             @iconPosition='trailing'
             @size='small'
           />
         </li>
         <li>
-          <Hds::Button
+          <Hds::Link::Standalone
             @text='Follow the guide'
             @href="{{env 'CONSUL_DOCS_LEARN_URL'}}/consul/security-networking/production-acls"
-            @color='tertiary'
             @icon='learn-link'
             @iconPosition='trailing'
             @size='small'

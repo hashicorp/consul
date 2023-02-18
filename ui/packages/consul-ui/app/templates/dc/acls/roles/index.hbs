@@ -108,20 +108,18 @@ as |route|>
               </BlockSlot>
               <BlockSlot @name="actions">
                 <li>
-                  <Hds::Button
+                  <Hds::Link::Standalone
                     @text='Documentation on roles'
                     @href="{{env 'CONSUL_DOCS_URL'}}/commands/acl/role"
-                    @color='tertiary'
                     @icon='docs-link'
                     @iconPosition='trailing'
                     @size='small'
                   />
                 </li>
                 <li>
-                  <Hds::Button
+                  <Hds::Link::Standalone
                     @text='Read the API Docs'
                     @href="{{env 'CONSUL_DOCS_API_URL'}}/acl/roles.html"
-                    @color='tertiary'
                     @icon='learn-link'
                     @iconPosition='trailing'
                     @size='small'

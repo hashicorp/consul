@@ -59,10 +59,9 @@ as |route|>
           </notice.Body>
           <notice.Footer>
             <p>
-              <Hbs::Button
+              <Hds::Link::Standalone
                 @text={{t "routes.dc.services.instance.upstreams.tproxy-mode.footer.text"}}
-                @href='{{CONSUL_DOCS_URL}}{{t "routes.dc.services.instance.upstreams.tproxy-mode.footer.link"}}'
-                @color="tertiary"
+                @href='{{concat (env 'CONSUL_DOCS_URL') (t "routes.dc.services.instance.upstreams.tproxy-mode.footer.link")}}'
                 @icon="docs-link"
                 @iconPosition="trailing"
                 @size="small"

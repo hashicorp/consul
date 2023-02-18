@@ -219,20 +219,18 @@
       </BlockSlot>
       <BlockSlot @name="actions">
         <li>
-          <Hds::Button
+          <Hds::Link::Standalone
             @text='Documentation'
             @href="{{env 'CONSUL_DOCS_URL'}}/commands/intention"
-            @color='tertiary'
             @icon='docs-link'
             @iconPosition='trailing'
             @size='small'
           />
         </li>
         <li>
-          <Hds::Button
+          <Hds::Link::Standalone
             @text='Read the guide'
             @href="{{env 'CONSUL_DOCS_LEARN_URL'}}/consul/getting-started/connect"
-            @color='tertiary'
             @icon='learn-link'
             @iconPosition='trailing'
             @size='small'

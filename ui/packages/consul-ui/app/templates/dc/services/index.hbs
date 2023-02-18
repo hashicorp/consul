@@ -119,20 +119,18 @@ as |sort filters items partition nspace|}}
               </BlockSlot>
               <BlockSlot @name="actions">
                 <li>
-                  <Hds::Button
+                  <Hds::Link::Standalone
                     @text='Documentation on Services'
                     @href="{{env 'CONSUL_DOCS_URL'}}/commands/services"
-                    @color='tertiary'
                     @icon='docs-link'
                     @iconPosition='trailing'
                     @size='small'
                   />
                 </li>
                 <li>
-                  <Hds::Button
+                  <Hds::Link::Standalone
                     @text='Take the tutorial'
                     @href="{{env 'CONSUL_DOCS_LEARN_URL'}}/consul/getting-started/services"
-                    @color='tertiary'
                     @icon='learn-link'
                     @iconPosition='trailing'
                     @size='small'
