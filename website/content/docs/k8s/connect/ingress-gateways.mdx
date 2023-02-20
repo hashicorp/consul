@@ -62,6 +62,12 @@ Ensure you have the latest consul-helm chart and install Consul via helm using t
 [guide](/docs/k8s/installation/install#installing-consul) while being sure to provide the yaml configuration
 as previously discussed.
 
+### Example of deploying the above values file:
+
+helm install consul -f values.yaml hashicorp/consul --version 1.0.4 --wait --debug
+
+
+
 ## Configuring the gateway
 
 Now that Consul has been installed with ingress gateways enabled,
