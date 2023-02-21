@@ -152,18 +152,13 @@ func createService(t *testing.T, cluster *libcluster.Cluster, serviceOpts *libse
 	// Create a service and proxy instance
 
 	// Create a service and proxy instance
-	_, _, err := libservice.CreateAndRegisterStaticServerAndSidecar(node, serviceOpts)
-	require.NoError(t, err)
+	service, _, err := libservice.CreateAndRegisterStaticServerAndSidecar(node, serviceOpts)
+	assert.NoError(t, err)
 
 	libassert.CatalogServiceExists(t, client, serviceOpts.Name+"-sidecar-proxy")
 	libassert.CatalogServiceExists(t, client, serviceOpts.Name)
 
-	// Create a client proxy instance with the server as an upstream
-	//TODO this is always going to be named static-client-sidecar-proxy and I don't know if that matters
-	clientConnectProxy, err := libservice.CreateAndRegisterStaticClientSidecar(node, "", false)
-	require.NoError(t, err)
-	libassert.CatalogServiceExists(t, client, "static-client-sidecar-proxy")
-	return clientConnectProxy
+	return service
 
 }
 func createServices(t *testing.T, cluster *libcluster.Cluster, ports ...int) (libservice.Service, libservice.Service) {
