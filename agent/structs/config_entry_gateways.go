@@ -2,6 +2,7 @@ package structs
 
 import (
 	"fmt"
+	"regexp"
 	"sort"
 	"strings"
 
@@ -778,9 +779,14 @@ func (e *APIGatewayConfigEntry) Validate() error {
 	return e.validateListeners()
 }
 
+var listenerNameRegex = regexp.MustCompile(`^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$`)
+
 func (e *APIGatewayConfigEntry) validateListenerNames() error {
 	listeners := make(map[string]struct{})
 	for _, listener := range e.Listeners {
+		if len(listener.Name) < 1 || !listenerNameRegex.MatchString(listener.Name) {
+			return fmt.Errorf("listener name %q is invalid, must be at least 1 character and contain only letters, numbers, or dashes", listener.Name)
+		}
 		if _, found := listeners[listener.Name]; found {
 			return fmt.Errorf("found multiple listeners with the name %q", listener.Name)
 		}
@@ -861,9 +867,8 @@ const (
 
 // APIGatewayListener represents an individual listener for an APIGateway
 type APIGatewayListener struct {
-	// Name is the optional name of the listener in a given gateway. This is
-	// optional but must be unique within a gateway; therefore, if a gateway
-	// has more than a single listener, all but one must specify a Name.
+	// Name is the name of the listener in a given gateway. This must be
+	// unique within a gateway.
 	Name string
 	// Hostname is the host name that a listener should be bound to. If
 	// unspecified, the listener accepts requests for all hostnames.

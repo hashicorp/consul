@@ -1143,12 +1143,40 @@ func TestAPIGateway_Listeners(t *testing.T) {
 			},
 			validateErr: "multiple listeners with the name",
 		},
+		"empty listener name": {
+			entry: &APIGatewayConfigEntry{
+				Kind: "api-gateway",
+				Name: "api-gw-one",
+				Listeners: []APIGatewayListener{
+					{
+						Port:     80,
+						Protocol: "tcp",
+					},
+				},
+			},
+			validateErr: "listener name \"\" is invalid, must be at least 1 character and contain only letters, numbers, or dashes",
+		},
+		"invalid listener name": {
+			entry: &APIGatewayConfigEntry{
+				Kind: "api-gateway",
+				Name: "api-gw-one",
+				Listeners: []APIGatewayListener{
+					{
+						Port:     80,
+						Protocol: "tcp",
+						Name:     "/",
+					},
+				},
+			},
+			validateErr: "listener name \"/\" is invalid, must be at least 1 character and contain only letters, numbers, or dashes",
+		},
 		"merged listener protocol conflict": {
 			entry: &APIGatewayConfigEntry{
 				Kind: "api-gateway",
 				Name: "api-gw-two",
 				Listeners: []APIGatewayListener{
 					{
+						Name:     "listener-one",
 						Port:     80,
 						Protocol: ListenerProtocolHTTP,
 					},
@@ -1167,6 +1195,7 @@ func TestAPIGateway_Listeners(t *testing.T) {
 				Name: "api-gw-three",
 				Listeners: []APIGatewayListener{
 					{
+						Name:     "listener",
 						Port:     80,
 						Hostname: "host.one",
 					},
@@ -1185,6 +1214,7 @@ func TestAPIGateway_Listeners(t *testing.T) {
 				Name: "api-gw-four",
 				Listeners: []APIGatewayListener{
 					{
+						Name:     "listener",
 						Port:     80,
 						Hostname: "host.one",
 						Protocol: APIGatewayListenerProtocol("UDP"),
@@ -1199,6 +1229,7 @@ func TestAPIGateway_Listeners(t *testing.T) {
 				Name: "api-gw-five",
 				Listeners: []APIGatewayListener{
 					{
+						Name:     "listener",
 						Port:     80,
 						Hostname: "host.one",
 						Protocol: APIGatewayListenerProtocol("tcp"),
@@ -1213,6 +1244,7 @@ func TestAPIGateway_Listeners(t *testing.T) {
 				Name: "api-gw-six",
 				Listeners: []APIGatewayListener{
 					{
+						Name:     "listener",
 						Port:     -1,
 						Protocol: APIGatewayListenerProtocol("tcp"),
 					},
@@ -1226,6 +1258,7 @@ func TestAPIGateway_Listeners(t *testing.T) {
 				Name: "api-gw-seven",
 				Listeners: []APIGatewayListener{
 					{
+						Name:     "listener",
 						Port:     80,
 						Hostname: "*.*.host.one",
 						Protocol: APIGatewayListenerProtocol("http"),
@@ -1240,6 +1273,7 @@ func TestAPIGateway_Listeners(t *testing.T) {
 				Name: "api-gw-eight",
 				Listeners: []APIGatewayListener{
 					{
+						Name:     "listener",
 						Port:     80,
 						Hostname: "host.one",
 						Protocol: APIGatewayListenerProtocol("http"),
@@ -1259,6 +1293,7 @@ func TestAPIGateway_Listeners(t *testing.T) {
 				Name: "api-gw-nine",
 				Listeners: []APIGatewayListener{
 					{
+						Name:     "listener",
 						Port:     80,
 						Hostname: "host.one",
 						Protocol: APIGatewayListenerProtocol("http"),
