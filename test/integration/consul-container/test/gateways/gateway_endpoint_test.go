@@ -1,4 +1,4 @@
-package gateways_test
+package gateways
 
 import (
 	"context"
@@ -11,6 +11,10 @@ import (
 	"github.com/stretchr/testify/require"
 	"testing"
 )
+
+func TestGateway(t *testing.T) {
+
+}
 
 func TestAPIGatewayCreate(t *testing.T) {
 	if testing.Short() {
@@ -150,6 +154,26 @@ func createCluster(t *testing.T, ports ...int) *libcluster.Cluster {
 	return cluster
 }
 
+func createService(t *testing.T, cluster *libcluster.Cluster, serviceOpts *libservice.ServiceOpts, ports ...int) libservice.Service {
+	node := cluster.Agents[0]
+	client := node.GetClient()
+	// Create a service and proxy instance
+
+	// Create a service and proxy instance
+	_, _, err := libservice.CreateAndRegisterStaticServerAndSidecar(node, serviceOpts)
+	require.NoError(t, err)
+
+	libassert.CatalogServiceExists(t, client, serviceOpts.Name+"-sidecar-proxy")
+	libassert.CatalogServiceExists(t, client, serviceOpts.Name)
+
+	// Create a client proxy instance with the server as an upstream
+	//TODO this is always going to be named static-client-sidecar-proxy and I don't know if that matters
+	clientConnectProxy, err := libservice.CreateAndRegisterStaticClientSidecar(node, "", false)
+	require.NoError(t, err)
+	libassert.CatalogServiceExists(t, client, "static-client-sidecar-proxy")
+	return clientConnectProxy
+
+}
 func createServices(t *testing.T, cluster *libcluster.Cluster, ports ...int) (libservice.Service, libservice.Service) {
 	node := cluster.Agents[0]
 	client := node.GetClient()
@@ -161,17 +185,7 @@ func createServices(t *testing.T, cluster *libcluster.Cluster, ports ...int) (li
 		GRPCPort: 8079,
 	}
 
-	// Create a service and proxy instance
-	_, _, err := libservice.CreateAndRegisterStaticServerAndSidecar(node, serviceOpts)
-	require.NoError(t, err)
-
-	libassert.CatalogServiceExists(t, client, "static-server-sidecar-proxy")
-	libassert.CatalogServiceExists(t, client, libservice.StaticServerServiceName)
-
-	// Create a client proxy instance with the server as an upstream
-	clientConnectProxy, err := libservice.CreateAndRegisterStaticClientSidecar(node, "", false)
-	require.NoError(t, err)
-	libassert.CatalogServiceExists(t, client, "static-client-sidecar-proxy")
+	clientConnectProxy := createService(t, cluster, serviceOpts, ports...)
 
 	gatewayService, err := libservice.NewGatewayService(context.Background(), "api-gateway", "api", cluster.Agents[0], ports...)
 	require.NoError(t, err)
