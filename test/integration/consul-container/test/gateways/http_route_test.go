@@ -14,42 +14,6 @@ import (
 	"time"
 )
 
-// import (
-//
-//	"context"
-//	"crypto/tls"
-//	"encoding/json"
-//	"fmt"
-//	"io"
-//	"net"
-//	"net/http"
-//	"os"
-//	"strings"
-//	"testing"
-//	"time"
-//
-//	"github.com/hashicorp/consul/api"
-//	"github.com/stretchr/testify/assert"
-//	"github.com/stretchr/testify/require"
-//	"golang.org/x/exp/slices"
-//	apps "k8s.io/api/apps/v1"
-//	core "k8s.io/api/core/v1"
-//	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
-//	"sigs.k8s.io/e2e-framework/klient/k8s/resources"
-//	"sigs.k8s.io/e2e-framework/pkg/env"
-//	"sigs.k8s.io/e2e-framework/pkg/envconf"
-//	"sigs.k8s.io/e2e-framework/pkg/features"
-//	gwv1alpha2 "sigs.k8s.io/gateway-api/apis/v1alpha2"
-//	gwv1beta1 "sigs.k8s.io/gateway-api/apis/v1beta1"
-//
-//	"github.com/hashicorp/consul-api-gateway/internal/k8s"
-//	rstatus "github.com/hashicorp/consul-api-gateway/internal/k8s/reconciler/status"
-//	"github.com/hashicorp/consul-api-gateway/internal/testing/e2e"
-//	apigwv1alpha1 "github.com/hashicorp/consul-api-gateway/pkg/apis/v1alpha1"
-//	"math/rand"
-//
-// )
-// )
 func getNamespace() string {
 	return ""
 }
@@ -101,6 +65,18 @@ func TestHTTPRouteFlattening(t *testing.T) {
 	path2 := "/v2"
 
 	//write config entries
+	proxyDefaults := &api.ProxyConfigEntry{
+		Kind:      api.ProxyDefaults,
+		Name:      api.ProxyConfigGlobal,
+		Namespace: namespace,
+		Config: map[string]interface{}{
+			"protocol": "http",
+		},
+	}
+
+	_, _, err := client.ConfigEntries().Set(proxyDefaults, nil)
+	assert.NoError(t, err)
+
 	apiGateway := &api.APIGatewayConfigEntry{
 		Kind: "api-gateway",
 		Name: gatewayName,
@@ -118,8 +94,9 @@ func TestHTTPRouteFlattening(t *testing.T) {
 		Name: routeOneName,
 		Parents: []api.ResourceReference{
 			{
-				Kind: api.HTTPRoute,
-				Name: gatewayName,
+				Kind:      api.APIGateway,
+				Name:      gatewayName,
+				Namespace: namespace,
 			},
 		},
 		Hostnames: []string{
@@ -152,13 +129,13 @@ func TestHTTPRouteFlattening(t *testing.T) {
 		Name: routeTwoName,
 		Parents: []api.ResourceReference{
 			{
-				Kind: api.HTTPRoute,
-				Name: gatewayName,
+				Kind:      api.APIGateway,
+				Name:      gatewayName,
+				Namespace: namespace,
 			},
 		},
 		Hostnames: []string{
 			"test.foo",
-			"test.example",
 		},
 		Namespace: namespace,
 		Rules: []api.HTTPRouteRule{
@@ -181,7 +158,7 @@ func TestHTTPRouteFlattening(t *testing.T) {
 		},
 	}
 
-	_, _, err := client.ConfigEntries().Set(apiGateway, nil)
+	_, _, err = client.ConfigEntries().Set(apiGateway, nil)
 	assert.NoError(t, err)
 	_, _, err = client.ConfigEntries().Set(routeOne, nil)
 	assert.NoError(t, err)
@@ -201,6 +178,7 @@ func TestHTTPRouteFlattening(t *testing.T) {
 			return false
 		}
 		apiEntry := entry.(*api.APIGatewayConfigEntry)
+		t.Log(entry)
 		return isAccepted(apiEntry.Status.Conditions)
 	}, time.Second*10, time.Second*1)
 
@@ -228,8 +206,27 @@ func TestHTTPRouteFlattening(t *testing.T) {
 	}, time.Second*10, time.Second*1)
 
 	//gateway resolves
-	//libassert.HTTPServiceEchoes(t, "localhost", gatewayService.GetPort(listenerPort), path1)
-	//libassert.HTTPServiceEchoes(t, "localhost", gatewayService.GetPort(listenerPort), path2)
+	libassert.HTTPServiceEchoes(t, "localhost", gatewayService.GetPort(listenerPort), "", map[string]string{
+		"Host": "test.foo",
+		"x-v2": "v2",
+	})
+
+	for {
+	}
+
+	//libassert.HTTPServiceEchoes(t, "localhost", gatewayService.GetPort(listenerPort), "v2")
+	//checkRoute(t,
+	//	gatewayService.GetPort(listenerPort),
+	//	"/v2/test",
+	//	http.StatusOK,
+	//	"service2",
+	//	"POST",
+	//	map[string]string{
+	//		"Host": "test.foo",
+	//		"x-v2": "v2",
+	//	},
+	//	"service two not routable in allotted time",
+	//)
 	fmt.Println(gatewayService)
 
 	//
