@@ -1,0 +1,8 @@
+```release-note:deprecation
+cli: Deprecate the `-merge-policies` and `-merge-roles` flags from the `consul token update` command in favour of: `-add-policy-id`, `-add-policy-name`, `-add-role-name`, and `-add-role-id`.
+```
+
+```release-note:improvement
+cli: added `-add-policy-id`, `-add-policy-name`, `-add-role-name`, and `-add-role-id` flags to the `consul token update` command.
+These flags will allow updates to token's policies/roles without having to override them completely.  
+```
