@@ -211,9 +211,6 @@ func TestHTTPRouteFlattening(t *testing.T) {
 		"x-v2": "v2",
 	})
 
-	for {
-	}
-
 	//libassert.HTTPServiceEchoes(t, "localhost", gatewayService.GetPort(listenerPort), "v2")
 	//checkRoute(t,
 	//	gatewayService.GetPort(listenerPort),
