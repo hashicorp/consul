@@ -38,10 +38,13 @@ Usage: `consul acl token update [options]`
 
 - `-merge-policies` - Deprecated. Merge the new policies with the existing policies.
 
-~> This is deprecated and will be removed in future consul version. Use `add-policy-id` or `add-policy-name`
+~> This is deprecated and will be removed in future Consul version. Use `add-policy-id` or `add-policy-name`
 instead.
 
-- `-merge-roles` - Merge the new roles with the existing roles.
+- `-merge-roles` - Deprecated. Merge the new roles with the existing roles.
+
+~> This is deprecated and will be removed in future Consul version. Use `add-role-id` or `add-role-name`
+instead.
 
 - `-merge-service-identities` - Merge the new service identities with the existing service identities.
 
@@ -56,16 +59,21 @@ instead.
 
 - `-policy-name=<value>` - Name of a policy to use for this token. Overwrites existing policies. May be specified multiple times.
 
-~> `-policy-id` and `-policy-name` will completely overwrite existing policies. Use `-add-policy-id` or `-add-policy-name` if you
-are trying to append more policies to your existing token policies.
+~> `-policy-id` and `-policy-name` will completely overwrite existing token policies. Use `-add-policy-id` or `-add-policy-name` to retain existing policies.
 
-- `-add-policy-id=<value>` - ID of policy to be added for this token. Added to existing policies. May be specified multiple times.
+- `-add-policy-id=<value>` - ID of policy to be added for this token. The token retains existing policies. May be specified multiple times.
 
-- `-add-policy-name=<value>` - Name of a policy to be added for this token. Added to existing policies. May be specified multiple times.
+- `-add-policy-name=<value>` - Name of a policy to be added for this token. The token retains existing policies. May be specified multiple times.
 
-- `-role-id=<value>` - ID of a role to use for this token. May be specified multiple times.
+- `-role-id=<value>` - ID of a role to use for this token. Overwrites existing roles. May be specified multiple times.
 
-- `-role-name=<value>` - Name of a role to use for this token. May be specified multiple times.
+- `-role-name=<value>` - Name of a role to use for this token. Overwrites existing roles. May be specified multiple times.
+
+~> `-role-id` and `-role-name` will completely overwrite existing policies. Use `-add-role-id` or `-add-role-name` to retain the existing roles.
+
+- `-add-role-id=<value>` - ID of a role to add to this token. The token retains existing roles. May be specified multiple times.
+
+- `-add-role-name=<value>` - Name of a role to add to this token. The token retains existing roles. May be specified multiple times.
 
 - `-service-identity=<value>` - Name of a service identity to use for this
   token. May be specified multiple times. Format is the `SERVICENAME` or
