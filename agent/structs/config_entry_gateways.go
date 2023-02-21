@@ -2,6 +2,7 @@ package structs
 
 import (
 	"fmt"
+	"regexp"
 	"sort"
 	"strings"
 
@@ -778,9 +779,14 @@ func (e *APIGatewayConfigEntry) Validate() error {
 	return e.validateListeners()
 }
 
+var listenerNameRegex = regexp.MustCompile(`^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$`)
+
 func (e *APIGatewayConfigEntry) validateListenerNames() error {
 	listeners := make(map[string]struct{})
 	for _, listener := range e.Listeners {
+		if len(listener.Name) < 1 || !listenerNameRegex.MatchString(listener.Name) {
+			return fmt.Errorf("listener name %q is invalid, must be at least 1 character and contain only letters, numbers, or dashes", listener.Name)
+		}
 		if _, found := listeners[listener.Name]; found {
 			return fmt.Errorf("found multiple listeners with the name %q", listener.Name)
 		}
