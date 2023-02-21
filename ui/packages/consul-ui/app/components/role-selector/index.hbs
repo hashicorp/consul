@@ -76,7 +76,7 @@ as |modal|>
           type='reset'
           @color='secondary'
           disabled={{if item.isSaving 'disabled'}}
-          {{action (queue (action close) (action 'reset'))}}
+          {{on 'click' (action (queue (action close) (action 'reset')))}}
         />
 
       {{else}}
@@ -92,7 +92,7 @@ as |modal|>
           type='reset'
           @color='secondary'
           disabled={{if policy.isSaving 'disabled'}}
-          {{action (mut state) 'role'}}
+          {{on 'click ' (action (mut state) 'role')}}
         />
       {{/if}}
     </Hds::ButtonSet>

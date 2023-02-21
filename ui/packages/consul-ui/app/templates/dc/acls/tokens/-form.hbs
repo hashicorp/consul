@@ -12,7 +12,7 @@
         <Hds::Button
           @text='Save'
           type='submit'
-          {{ action 'create' item}}
+          {{ on 'click' (route-action 'create' item)}}
           disabled={{if (or (and (token/is-legacy item) item.isPristine) item.isInvalid) 'disabled'}}
         />
       {{ else }}
@@ -20,7 +20,7 @@
           <Hds::Button
             @text='Save'
             type='submit'
-            {{ action 'update' item}}
+            {{ on 'click' (route-action 'update' item)}}
             disabled={{if item.isInvalid 'disabled'}}
           />
         {{/if}}

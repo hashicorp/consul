@@ -62,7 +62,7 @@
               type="reset"
               @color="secondary"
               disabled={{if item.isSaving 'disabled'}}
-              {{action (queue (action close) (action 'reset'))}}
+              {{on 'click' (action (queue (action close) (action 'reset')))}}
               @text='Cancel'
             />
           </Hds::ButtonSet>
