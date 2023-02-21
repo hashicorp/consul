@@ -215,7 +215,6 @@ func (c *cmd) Run(args []string) int {
 			policyIDs = c.policyIDs
 			policyNames = c.policyNames
 			t.Policies = nil
-			// c.UI.Warn("Overwriting policies with new specified policies")
 		}
 
 		for _, policyName := range policyNames {
@@ -288,7 +287,6 @@ func (c *cmd) Run(args []string) int {
 		if hasRoleFields {
 			roleNames = c.roleNames
 			roleIDs = c.roleIDs
-			// c.UI.Warn("Overwriting policies with new specified policies")
 			t.Roles = nil
 		}
 

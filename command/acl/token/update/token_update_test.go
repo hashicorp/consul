@@ -122,6 +122,19 @@ func TestTokenUpdateCommand(t *testing.T) {
 		require.Len(t, token.Policies, 1)
 	})
 
+	// update with add-policy-name
+	t.Run("add-policy-name", func(t *testing.T) {
+		token := run(t, []string{
+			"-http-addr=" + a.HTTPAddr(),
+			"-accessor-id=" + token.AccessorID,
+			"-token=root",
+			"-add-policy-name=" + policy.Name,
+			"-description=test token",
+		})
+
+		require.Len(t, token.Policies, 1)
+	})
+
 	// update with policy by id
 	t.Run("policy-id", func(t *testing.T) {
 		token := run(t, []string{
@@ -129,6 +142,19 @@ func TestTokenUpdateCommand(t *testing.T) {
 			"-accessor-id=" + token.AccessorID,
 			"-token=root",
 			"-policy-id=" + policy.ID,
+			"-description=test token",
+		})
+
+		require.Len(t, token.Policies, 1)
+	})
+
+	// update with add-policy-id
+	t.Run("add-policy-id", func(t *testing.T) {
+		token := run(t, []string{
+			"-http-addr=" + a.HTTPAddr(),
+			"-accessor-id=" + token.AccessorID,
+			"-token=root",
+			"-add-policy-id=" + policy.ID,
 			"-description=test token",
 		})
 
