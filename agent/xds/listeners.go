@@ -2328,6 +2328,9 @@ func makeHTTPInspectorListenerFilter() (*envoy_listener_v3.ListenerFilter, error
 }
 
 func makeSNIFilterChainMatch(sniMatches ...string) *envoy_listener_v3.FilterChainMatch {
+	if sniMatches == nil {
+		return nil
+	}
 	return &envoy_listener_v3.FilterChainMatch{
 		ServerNames: sniMatches,
 	}

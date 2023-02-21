@@ -8,6 +8,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/miekg/dns"
 )
 
 // InlineCertificateConfigEntry manages the configuration for an inline certificate
@@ -39,6 +40,10 @@ func (e *InlineCertificateConfigEntry) GetEnterpriseMeta() *acl.EnterpriseMeta {
 func (e *InlineCertificateConfigEntry) GetRaftIndex() *RaftIndex { return &e.RaftIndex }
 
 func (e *InlineCertificateConfigEntry) Validate() error {
+	if err := validateConfigEntryMeta(e.Meta); err != nil {
+		return err
+	}
+
 	privateKeyBlock, _ := pem.Decode([]byte(e.PrivateKey))
 	if privateKeyBlock == nil {
 		return errors.New("failed to parse private key PEM")
@@ -61,7 +66,43 @@ func (e *InlineCertificateConfigEntry) Validate() error {
 		return err
 	}
 
+	// validate that each host referenced in the CN, DNSSans, and IPSans
+	// are valid hostnames
+	hosts, err := e.Hosts()
+	if err != nil {
+		return err
+	}
+	for _, host := range hosts {
+		if _, ok := dns.IsDomainName(host); !ok {
+			return fmt.Errorf("host %q must be a valid DNS hostname", host)
+		}
+	}
+
 	return nil
+}
+
+func (e *InlineCertificateConfigEntry) Hosts() ([]string, error) {
+	certificateBlock, _ := pem.Decode([]byte(e.Certificate))
+	if certificateBlock == nil {
+		return nil, errors.New("failed to parse certificate PEM")
+	}
+
+	certificate, err := x509.ParseCertificate(certificateBlock.Bytes)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse certificate: %w", err)
+	}
+
+	hosts := []string{certificate.Subject.CommonName}
+
+	for _, name := range certificate.DNSNames {
+		hosts = append(hosts, name)
+	}
+
+	for _, ip := range certificate.IPAddresses {
+		hosts = append(hosts, ip.String())
+	}
+
+	return hosts, nil
 }
 
 func (e *InlineCertificateConfigEntry) CanRead(authz acl.Authorizer) error {

@@ -2,6 +2,7 @@ package troubleshoot
 
 import (
 	"fmt"
+
 	envoy_admin_v3 "github.com/envoyproxy/go-control-plane/envoy/admin/v3"
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	envoy_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
@@ -29,7 +30,7 @@ func (t *Troubleshoot) GetUpstreams() ([]string, []UpstreamIP, error) {
 
 	for _, cfg := range t.envoyConfigDump.Configs {
 		switch cfg.TypeUrl {
-		case listeners:
+		case listenersType:
 			lcd := &envoy_admin_v3.ListenersConfigDump{}
 
 			err := proto.Unmarshal(cfg.GetValue(), lcd)
@@ -135,7 +136,7 @@ func getClustersFromRoutes(routeName string, cfgDump *envoy_admin_v3.ConfigDump)
 
 	for _, cfg := range cfgDump.Configs {
 		switch cfg.TypeUrl {
-		case routes:
+		case routesType:
 			rcd := &envoy_admin_v3.RoutesConfigDump{}
 
 			err := proto.Unmarshal(cfg.GetValue(), rcd)

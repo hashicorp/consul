@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/netip"
+	"net/url"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -140,6 +141,95 @@ func TestHTTPServer_UnixSocket_FileExists(t *testing.T) {
 	}
 }
 
+func TestHTTPSServer_UnixSocket(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+	if runtime.GOOS == "windows" {
+		t.SkipNow()
+	}
+
+	tempDir := testutil.TempDir(t, "consul")
+	socket := filepath.Join(tempDir, "test.sock")
+
+	a := StartTestAgent(t, TestAgent{
+		UseHTTPS: true,
+		HCL: `
+			addresses {
+				https = "unix://` + socket + `"
+			}
+			unix_sockets {
+				mode = "0777"
+			}
+			tls {
+				defaults {
+					  ca_file = "../test/client_certs/rootca.crt"
+					  cert_file = "../test/client_certs/server.crt"
+					  key_file = "../test/client_certs/server.key"
+				}
+		  	}
+		`,
+	})
+	defer a.Shutdown()
+
+	// Ensure the socket was created
+	if _, err := os.Stat(socket); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Ensure the mode was set properly
+	fi, err := os.Stat(socket)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if fi.Mode().String() != "Srwxrwxrwx" {
+		t.Fatalf("bad permissions: %s", fi.Mode())
+	}
+
+	// Make an HTTP/2-enabled client, using the API helpers to set
+	// up TLS to be as normal as possible for Consul.
+	tlscfg := &api.TLSConfig{
+		Address:  "consul.test",
+		KeyFile:  "../test/client_certs/client.key",
+		CertFile: "../test/client_certs/client.crt",
+		CAFile:   "../test/client_certs/rootca.crt",
+	}
+	tlsccfg, err := api.SetupTLSConfig(tlscfg)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	transport := api.DefaultConfig().Transport
+	transport.TLSHandshakeTimeout = 30 * time.Second
+	transport.TLSClientConfig = tlsccfg
+	if err := http2.ConfigureTransport(transport); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	transport.DialContext = func(_ context.Context, _, _ string) (net.Conn, error) {
+		return net.Dial("unix", socket)
+	}
+	client := &http.Client{Transport: transport}
+
+	u, err := url.Parse("https://unix" + socket)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	u.Path = "/v1/agent/self"
+	u.Scheme = "https"
+	resp, err := client.Get(u.String())
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	defer resp.Body.Close()
+
+	if body, err := io.ReadAll(resp.Body); err != nil || len(body) == 0 {
+		t.Fatalf("bad: %s %v", body, err)
+	} else if !strings.Contains(string(body), "NodeName") {
+		t.Fatalf("NodeName not found in results: %s", string(body))
+	}
+}
+
 func TestSetupHTTPServer_HTTP2(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
@@ -151,9 +241,13 @@ func TestSetupHTTPServer_HTTP2(t *testing.T) {
 	a := StartTestAgent(t, TestAgent{
 		UseHTTPS: true,
 		HCL: `
-			key_file = "../test/client_certs/server.key"
-			cert_file = "../test/client_certs/server.crt"
-			ca_file = "../test/client_certs/rootca.crt"
+			tls {
+				defaults {
+				  ca_file = "../test/client_certs/rootca.crt"
+				  cert_file = "../test/client_certs/server.crt"
+				  key_file = "../test/client_certs/server.key"
+				}
+		  	}
 		`,
 	})
 	defer a.Shutdown()
