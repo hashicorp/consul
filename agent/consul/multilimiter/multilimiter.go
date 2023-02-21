@@ -148,10 +148,9 @@ func (m *MultiLimiter) Allow(e LimitedEntity) bool {
 
 	if ok {
 		c, ok := configs.Get(p)
-		if !ok {
-			return true
+		if ok && c != nil {
+			config = c.(*LimiterConfig)
 		}
-		config = c.(*LimiterConfig)
 	}
 
 	limiter := &Limiter{limiter: rate.NewLimiter(config.Rate, config.Burst)}
