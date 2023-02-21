@@ -62,8 +62,7 @@ func (i ExportedDiscoveryChainInfo) Equal(o ExportedDiscoveryChainInfo) bool {
 	return true
 }
 
-// ListAllDiscoveryChains returns all discovery chains (union of Services and
-// DiscoChains).
+// ListAllDiscoveryChains returns all discovery chains (union of Services and DiscoChains).
 func (list *ExportedServiceList) ListAllDiscoveryChains() map[ServiceName]ExportedDiscoveryChainInfo {
 	chainsByName := make(map[ServiceName]ExportedDiscoveryChainInfo)
 	if list == nil {

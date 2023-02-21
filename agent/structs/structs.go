@@ -1235,6 +1235,12 @@ const (
 	// This service allows external traffic to exit the mesh through a terminating gateway
 	// based on centralized configuration.
 	ServiceKindDestination ServiceKind = "destination"
+
+	// ServiceKindConnectEnabled is used to indicate whether a service is either
+	// connect-native or if the service has a corresponding sidecar. It is used for
+	// internal query purposes and should not be exposed to users as a valid Kind
+	// option.
+	ServiceKindConnectEnabled ServiceKind = "connect-enabled"
 )
 
 // Type to hold a address and port of a service
