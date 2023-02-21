@@ -268,9 +268,8 @@ func (g *APIGatewayConfigEntry) GetModifyIndex() uint64     { return g.ModifyInd
 
 // APIGatewayListener represents an individual listener for an APIGateway
 type APIGatewayListener struct {
-	// Name is the optional name of the listener in a given gateway. This is
-	// optional, however, it must be unique. Therefore, if a gateway has more
-	// than a single listener, all but one must specify a Name.
+	// Name is the name of the listener in a given gateway. This must be
+	// unique within a gateway.
 	Name string
 	// Hostname is the host name that a listener should be bound to, if
 	// unspecified, the listener accepts requests for all hostnames.

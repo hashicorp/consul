@@ -9,6 +9,7 @@ listeners = [
   {
     port = 9999
     protocol = "tcp"
+    name = "listener"
   }
 ]
 '
