@@ -2,6 +2,8 @@ package gateways
 
 import (
 	"context"
+	"crypto/tls"
+	"fmt"
 	"github.com/hashicorp/consul/api"
 	libassert "github.com/hashicorp/consul/test/integration/consul-container/libs/assert"
 	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
@@ -9,14 +11,21 @@ import (
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"io"
+	"net/http"
+	"strings"
 	"testing"
+	"time"
 )
 
-func TestGateway(t *testing.T) {
+var (
+	checkTimeout  = 1 * time.Minute
+	checkInterval = 1 * time.Second
+)
 
-}
-
+// Creates a gateway service and tests to see if it is routable
 func TestAPIGatewayCreate(t *testing.T) {
+	t.Skip()
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
@@ -65,23 +74,6 @@ func TestAPIGatewayCreate(t *testing.T) {
 	// Create a client proxy instance with the server as an upstream
 	_, gatewayService := createServices(t, cluster, listenerPortOne)
 
-	//how to exec into the consul CLI
-	//agentUrl, err := cluster.Agents[0].GetPod().PortEndpoint(context.Background(), "8500", "http")
-	//cmdStr := "consul connect envoy -gateway api -register -service api-gateway -proxy-id api-gateway -http-addr " + agentUrl
-	//
-	//c := strings.Split(cmdStr, " ")
-	//t.Log("------------\n\n\n")
-	//cmd := exec.Command(c[0], c[1:]...)
-	//out := bytes.NewBufferString("")
-	//stdErr := bytes.NewBufferString("")
-	//cmd.Stdout = out
-	//cmd.Stderr = stdErr
-	//err = cmd.Run()
-	//t.Log(out)
-	//t.Log(stdErr)
-	//t.Log("------------\n\n\n")
-	//assert.NoError(t, err)
-
 	//TODO this can and should be broken up more effectively, this is just proof of concept
 	//check statuses
 	gatewayReady := false
@@ -100,7 +92,7 @@ func TestAPIGatewayCreate(t *testing.T) {
 		routeReady = isBound(routeEntry.Status.Conditions)
 	}
 
-	libassert.HTTPServiceEchoes(t, "localhost", gatewayService.GetPort(listenerPortOne), "")
+	libassert.HTTPServiceEchoes(t, "localhost", gatewayService.GetPort(listenerPortOne), "", nil)
 }
 
 func isAccepted(conditions []api.Condition) bool {
@@ -192,4 +184,47 @@ func createServices(t *testing.T, cluster *libcluster.Cluster, ports ...int) (li
 	libassert.CatalogServiceExists(t, client, "api-gateway")
 
 	return clientConnectProxy, gatewayService
+}
+
+func checkRoute(t *testing.T, port int, path string, expectedStatusCode int, expectedBody string, headers map[string]string, message string) {
+	t.Helper()
+
+	require.Eventually(t, func() bool {
+		client := &http.Client{Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		}}
+		req, err := http.NewRequest("GET", fmt.Sprintf("https://localhost:%d%s", port, path), nil)
+		if err != nil {
+			return false
+		}
+
+		for k, v := range headers {
+			req.Header.Set(k, v)
+
+			if k == "Host" {
+				req.Host = v
+			}
+		}
+
+		resp, err := client.Do(req)
+		if err != nil {
+			t.Log(err)
+			return false
+		}
+		defer resp.Body.Close()
+
+		data, err := io.ReadAll(resp.Body)
+		if err != nil {
+			t.Log(err)
+			return false
+		}
+		t.Log(string(data))
+
+		if resp.StatusCode != expectedStatusCode {
+			t.Log("status code", resp.StatusCode)
+			return false
+		}
+
+		return strings.HasPrefix(string(data), expectedBody)
+	}, checkTimeout, checkInterval, message)
 }

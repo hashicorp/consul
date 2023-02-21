@@ -132,7 +132,7 @@ func BasicPeeringTwoClustersSetup(
 	_, adminPort := clientSidecarService.GetAdminAddr()
 	libassert.AssertUpstreamEndpointStatus(t, adminPort, fmt.Sprintf("static-server.default.%s.external", DialingPeerName), "HEALTHY", 1)
 	_, port := clientSidecarService.GetAddr()
-	libassert.HTTPServiceEchoes(t, "localhost", port, "")
+	libassert.HTTPServiceEchoes(t, "localhost", port, "", nil)
 	libassert.AssertFortioName(t, fmt.Sprintf("http://localhost:%d", port), "static-server")
 
 	return &BuiltCluster{

@@ -33,7 +33,7 @@ func TestBasicConnectService(t *testing.T) {
 	libassert.GetEnvoyListenerTCPFilters(t, adminPort)
 
 	libassert.AssertContainerState(t, clientService, "running")
-	libassert.HTTPServiceEchoes(t, "localhost", port, "")
+	libassert.HTTPServiceEchoes(t, "localhost", port, "", nil)
 	libassert.AssertFortioName(t, fmt.Sprintf("http://localhost:%d", port), "static-server")
 }
 
