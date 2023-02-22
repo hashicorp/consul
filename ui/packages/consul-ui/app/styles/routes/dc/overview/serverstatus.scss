@@ -28,16 +28,16 @@ section[data-route='dc.show.serverstatus'] {
 }
 %server-failure-tolerance > header {
   width: 100%;
-  padding-bottom: 0.500rem; /* 8px */
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 0.5rem; /* 8px */
   margin-bottom: 1rem; /* 16px */
   border-bottom: var(--decor-border-100);
   border-color: rgb(var(--tone-border));
 }
-%server-failure-tolerance > header a {
-  float: right;
-  margin-top: 4px;
-  font-weight: var(--typo-weight-semibold);
-}
+
 %server-failure-tolerance header em {
   @extend %pill-200;
   font-size: 0.812rem; /* 13px */
@@ -45,7 +45,6 @@ section[data-route='dc.show.serverstatus'] {
 
   text-transform: uppercase;
   font-style: normal;
-
 }
 %server-failure-tolerance > section {
   width: 50%;
@@ -68,10 +67,10 @@ section[data-route='dc.show.serverstatus'] {
   --icon-size: icon-800;
   --icon-color: rgb(var(--tone-orange-400));
   content: '';
-  margin-right: 0.500rem; /* 8px */
+  margin-right: 0.5rem; /* 8px */
 }
 %server-failure-tolerance section:first-of-type dl {
-  padding-right: 1.500rem; /* 24px */
+  padding-right: 1.5rem; /* 24px */
 }
 %server-failure-tolerance dt {
   @extend %p2;
@@ -97,7 +96,6 @@ section[data-route='dc.show.serverstatus'] {
   margin-top: 18px;
   margin-bottom: 18px;
 }
-
 
 %redundancy-zones h3 {
   @extend %h300;
@@ -136,4 +134,3 @@ section[data-route='dc.show.serverstatus'] {
   vertical-align: revert;
   background-color: var(--transparent);
 }
-
