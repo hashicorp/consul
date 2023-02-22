@@ -106,8 +106,13 @@ func (g gatewayContainer) GetAdminAddr() (string, int) {
 	return "localhost", g.adminPort
 }
 
-func (g gatewayContainer) GetPort(port int) int {
-	return g.portMappings[port]
+func (g gatewayContainer) GetPort(port int) (int, error) {
+	p, ok := g.portMappings[port]
+	if !ok {
+		return 0, fmt.Errorf("port does not exist")
+	}
+	return p, nil
+
 }
 
 func (g gatewayContainer) Restart() error {

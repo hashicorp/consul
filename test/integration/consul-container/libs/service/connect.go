@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"path/filepath"
@@ -58,8 +59,8 @@ func (g ConnectContainer) GetAddrs() (string, []int) {
 	return g.ip, g.appPort
 }
 
-func (g ConnectContainer) GetPort(port int) int {
-	return 0
+func (g ConnectContainer) GetPort(port int) (int, error) {
+	return 0, errors.New("not implemented")
 }
 
 func (g ConnectContainer) Restart() error {
