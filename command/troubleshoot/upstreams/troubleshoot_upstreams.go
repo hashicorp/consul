@@ -77,7 +77,7 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	c.UI.HeaderOutput(fmt.Sprintf("Upstreams (explicit upstreams only) (%v)\n", len(envoyIDs)))
+	c.UI.HeaderOutput(fmt.Sprintf("Upstreams (explicit upstreams only) (%v)", len(envoyIDs)))
 	for _, u := range envoyIDs {
 		c.UI.UnchangedOutput(u)
 	}
