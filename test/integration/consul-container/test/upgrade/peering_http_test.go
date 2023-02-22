@@ -21,10 +21,15 @@ func TestPeering_UpgradeToTarget_fromLatest(t *testing.T) {
 	t.Parallel()
 
 	type testcase struct {
-		oldversion     string
-		targetVersion  string
-		name           string
-		create         func(*cluster.Cluster) (libservice.Service, error)
+		oldversion    string
+		targetVersion string
+		name          string
+		// create creates addtional resources in peered clusters depending on cases, e.g., static-client,
+		// static server, and config-entries. It returns the proxy services, an assertation function to
+		// be called to verify the resources.
+		create func(*cluster.Cluster, *cluster.Cluster) (libservice.Service, libservice.Service, func(), error)
+		// extraAssertion adds additional assertion function to the common resources across cases.
+		// common resources includes static-client in dialing cluster, and static-server in accepting cluster.
 		extraAssertion func(int)
 	}
 	tcs := []testcase{
@@ -38,8 +43,8 @@ func TestPeering_UpgradeToTarget_fromLatest(t *testing.T) {
 			oldversion:    "1.14",
 			targetVersion: utils.TargetVersion,
 			name:          "basic",
-			create: func(c *cluster.Cluster) (libservice.Service, error) {
-				return nil, nil
+			create: func(accepting *cluster.Cluster, dialing *cluster.Cluster) (libservice.Service, libservice.Service, func(), error) {
+				return nil, nil, func() {}, nil
 			},
 			extraAssertion: func(clientUpstreamPort int) {},
 		},
@@ -49,7 +54,8 @@ func TestPeering_UpgradeToTarget_fromLatest(t *testing.T) {
 			name:          "http_router",
 			// Create a second static-service at the client agent of accepting cluster and
 			// a service-router that routes /static-server-2 to static-server-2
-			create: func(c *cluster.Cluster) (libservice.Service, error) {
+			create: func(accepting *cluster.Cluster, dialing *cluster.Cluster) (libservice.Service, libservice.Service, func(), error) {
+				c := accepting
 				serviceOpts := &libservice.ServiceOpts{
 					Name:     libservice.StaticServer2ServiceName,
 					ID:       "static-server-2",
@@ -60,7 +66,7 @@ func TestPeering_UpgradeToTarget_fromLatest(t *testing.T) {
 				_, serverConnectProxy, err := libservice.CreateAndRegisterStaticServerAndSidecar(c.Clients()[0], serviceOpts)
 				libassert.CatalogServiceExists(t, c.Clients()[0].GetClient(), libservice.StaticServer2ServiceName)
 				if err != nil {
-					return nil, err
+					return nil, nil, nil, err
 				}
 				err = c.ConfigEntryWrite(&api.ProxyConfigEntry{
 					Kind: api.ProxyDefaults,
@@ -70,7 +76,7 @@ func TestPeering_UpgradeToTarget_fromLatest(t *testing.T) {
 					},
 				})
 				if err != nil {
-					return nil, err
+					return nil, nil, nil, err
 				}
 				routerConfigEntry := &api.ServiceRouterConfigEntry{
 					Kind: api.ServiceRouter,
@@ -90,11 +96,126 @@ func TestPeering_UpgradeToTarget_fromLatest(t *testing.T) {
 					},
 				}
 				err = c.ConfigEntryWrite(routerConfigEntry)
-				return serverConnectProxy, err
+				return serverConnectProxy, nil, func() {}, err
 			},
 			extraAssertion: func(clientUpstreamPort int) {
 				libassert.AssertFortioName(t, fmt.Sprintf("http://localhost:%d/static-server-2", clientUpstreamPort), "static-server-2")
 			},
+		},
+		{
+			oldversion:    "1.14",
+			targetVersion: utils.TargetVersion,
+			name:          "http splitter and resolver",
+			// In addtional to the basic topology, this case provisions the following
+			// services in the dialing cluster:
+			//
+			// - a new static-client at server_0 that has two upstreams: split-static-server (5000)
+			//   and peer-static-server (5001)
+			// - a local static-server service at client_0
+			// - service-splitter named split-static-server w/ 2 services: "local-static-server" and
+			//   "peer-static-server".
+			// - service-resolved named local-static-server
+			// - service-resolved named peer-static-server
+			create: func(accepting *cluster.Cluster, dialing *cluster.Cluster) (libservice.Service, libservice.Service, func(), error) {
+				err := dialing.ConfigEntryWrite(&api.ProxyConfigEntry{
+					Kind: api.ProxyDefaults,
+					Name: "global",
+					Config: map[string]interface{}{
+						"protocol": "http",
+					},
+				})
+				if err != nil {
+					return nil, nil, nil, err
+				}
+
+				clientConnectProxy, err := createAndRegisterStaticClientSidecarWithSplittingUpstreams(dialing)
+				if err != nil {
+					return nil, nil, nil, fmt.Errorf("error creating client connect proxy in cluster %s", dialing.NetworkName)
+				}
+
+				// make a resolver for service peer-static-server
+				resolverConfigEntry := &api.ServiceResolverConfigEntry{
+					Kind: api.ServiceResolver,
+					Name: "peer-static-server",
+					Redirect: &api.ServiceResolverRedirect{
+						Service: libservice.StaticServerServiceName,
+						Peer:    libtopology.DialingPeerName,
+					},
+				}
+				err = dialing.ConfigEntryWrite(resolverConfigEntry)
+				if err != nil {
+					return nil, nil, nil, fmt.Errorf("error writing resolver config entry for %s", resolverConfigEntry.Name)
+				}
+
+				// make a splitter for service split-static-server
+				splitter := &api.ServiceSplitterConfigEntry{
+					Kind: api.ServiceSplitter,
+					Name: "split-static-server",
+					Splits: []api.ServiceSplit{
+						{
+							Weight:  50,
+							Service: "local-static-server",
+							ResponseHeaders: &api.HTTPHeaderModifiers{
+								Set: map[string]string{
+									"x-test-split": "local",
+								},
+							},
+						},
+						{
+							Weight:  50,
+							Service: "peer-static-server",
+							ResponseHeaders: &api.HTTPHeaderModifiers{
+								Set: map[string]string{
+									"x-test-split": "peer",
+								},
+							},
+						},
+					},
+				}
+				err = dialing.ConfigEntryWrite(splitter)
+				if err != nil {
+					return nil, nil, nil, fmt.Errorf("error writing splitter config entry for %s", splitter.Name)
+				}
+
+				// make a resolver for service local-static-server
+				resolverConfigEntry = &api.ServiceResolverConfigEntry{
+					Kind: api.ServiceResolver,
+					Name: "local-static-server",
+					Redirect: &api.ServiceResolverRedirect{
+						Service: libservice.StaticServerServiceName,
+					},
+				}
+				err = dialing.ConfigEntryWrite(resolverConfigEntry)
+				if err != nil {
+					return nil, nil, nil, fmt.Errorf("error writing resolver config entry for %s", resolverConfigEntry.Name)
+				}
+
+				// Make a static-server in dialing cluster
+				serviceOpts := &libservice.ServiceOpts{
+					Name:     libservice.StaticServerServiceName,
+					ID:       "static-server",
+					HTTPPort: 8081,
+					GRPCPort: 8078,
+				}
+				_, serverConnectProxy, err := libservice.CreateAndRegisterStaticServerAndSidecar(dialing.Clients()[0], serviceOpts)
+				libassert.CatalogServiceExists(t, dialing.Clients()[0].GetClient(), libservice.StaticServerServiceName)
+				if err != nil {
+					return nil, nil, nil, err
+				}
+
+				_, appPorts := clientConnectProxy.GetAddrs()
+				assertionFn := func() {
+					libassert.HTTPServiceEchoesResHeader(t, "localhost", appPorts[0], "", map[string]string{
+						"X-Test-Split": "local",
+					})
+					libassert.HTTPServiceEchoesResHeader(t, "localhost", appPorts[0], "", map[string]string{
+						"X-Test-Split": "peer",
+					})
+					libassert.HTTPServiceEchoes(t, "localhost", appPorts[0], "")
+				}
+				return serverConnectProxy, clientConnectProxy, assertionFn, nil
+			},
+			extraAssertion: func(clientUpstreamPort int) {},
 		},
 	}
 
@@ -115,7 +236,7 @@ func TestPeering_UpgradeToTarget_fromLatest(t *testing.T) {
 		_, staticClientPort := dialing.Container.GetAddr()
 
 		_, appPort := dialing.Container.GetAddr()
-		_, err = tc.create(acceptingCluster)
+		_, secondClientProxy, assertionAdditionalResources, err := tc.create(acceptingCluster, dialingCluster)
 		require.NoError(t, err)
 		tc.extraAssertion(appPort)
 
@@ -145,6 +266,12 @@ func TestPeering_UpgradeToTarget_fromLatest(t *testing.T) {
 		require.NoError(t, accepting.Container.Restart())
 		libassert.HTTPServiceEchoes(t, "localhost", staticClientPort, "")
 
+		// restart the secondClientProxy if exist
+		if secondClientProxy != nil {
+			require.NoError(t, secondClientProxy.Restart())
+		}
+		assertionAdditionalResources()
+
 		clientSidecarService, err := libservice.CreateAndRegisterStaticClientSidecar(dialingCluster.Servers()[0], libtopology.DialingPeerName, true)
 		require.NoError(t, err)
 		_, port := clientSidecarService.GetAddr()
@@ -164,4 +291,65 @@ func TestPeering_UpgradeToTarget_fromLatest(t *testing.T) {
 			})
 		// time.Sleep(3 * time.Second)
 	}
+}
+
+// createAndRegisterStaticClientSidecarWithSplittingUpstreams creates a static-client-1 that
+// has two upstreams: split-static-server (5000) and peer-static-server (5001)
+func createAndRegisterStaticClientSidecarWithSplittingUpstreams(c *cluster.Cluster) (*libservice.ConnectContainer, error) {
+	// Do some trickery to ensure that partial completion is correctly torn
+	// down, but successful execution is not.
+	var deferClean utils.ResettableDefer
+	defer deferClean.Execute()
+
+	node := c.Servers()[0]
+	mgwMode := api.MeshGatewayModeLocal
+
+	// Register the static-client service and sidecar first to prevent race with sidecar
+	// trying to get xDS before it's ready
+	req := &api.AgentServiceRegistration{
+		Name: libservice.StaticClientServiceName,
+		Port: 8080,
+		Connect: &api.AgentServiceConnect{
+			SidecarService: &api.AgentServiceRegistration{
+				Proxy: &api.AgentServiceConnectProxyConfig{
+					Upstreams: []api.Upstream{
+						{
+							DestinationName:  "split-static-server",
+							LocalBindAddress: "0.0.0.0",
+							LocalBindPort:    cluster.ServiceUpstreamLocalBindPort,
+							MeshGateway: api.MeshGatewayConfig{
+								Mode: mgwMode,
+							},
+						},
+						{
+							DestinationName:  "peer-static-server",
+							LocalBindAddress: "0.0.0.0",
+							LocalBindPort:    cluster.ServiceUpstreamLocalBindPort2,
+							MeshGateway: api.MeshGatewayConfig{
+								Mode: mgwMode,
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	if err := node.GetClient().Agent().ServiceRegister(req); err != nil {
+		return nil, err
+	}
+
+	// Create a service and proxy instance
+	clientConnectProxy, err := libservice.NewConnectService(context.Background(), fmt.Sprintf("%s-sidecar", libservice.StaticClientServiceName), libservice.StaticClientServiceName, []int{cluster.ServiceUpstreamLocalBindPort, cluster.ServiceUpstreamLocalBindPort2}, node)
+	if err != nil {
+		return nil, err
+	}
+	deferClean.Add(func() {
+		_ = clientConnectProxy.Terminate()
+	})
+
+	// disable cleanup functions now that we have an object with a Terminate() function
+	deferClean.Reset()
+
+	return clientConnectProxy, nil
 }
