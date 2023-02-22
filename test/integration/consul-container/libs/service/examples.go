@@ -68,8 +68,8 @@ func (g exampleContainer) GetAddrs() (string, []int) {
 	return "", nil
 }
 
-func (g exampleContainer) GetPort(port int) int {
-	return 0
+func (g exampleContainer) GetPort(port int) (int, error) {
+	return 0, nil
 }
 
 func (g exampleContainer) Restart() error {
