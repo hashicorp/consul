@@ -86,8 +86,7 @@ Listeners = [
 	}
 ]
 ```
-
-Refer to [API Gateway Configuration Reference](/connect/gateways/api-gateway/configuration/api-gateway) for
+Refer to [API Gateway Configuration Reference](/consul/docs/connect/gateways/api-gateway/configuration/api-gateway) for
 information about all configuration fields.
 
 Gateways and routes are eventually-consistent objects that provide feedback
@@ -186,8 +185,8 @@ Create this configuration by saving it to a file called `my-http-route.hcl` and 
 $ consul config write my-http-route.hcl
 ```
 
-Refer to [HTTP Route Configuration Entry Reference](/connect/gateways/api-gateway/configuration/http-route)
-and [TCP Route Configuration Entry Reference](/connect/gateways/api-gateway/configuration/tcp-route) for details about route configurations.
+Refer to [HTTP Route Configuration Entry Reference](/consul/docs/connect/gateways/api-gateway/configuration/http-route)
+and [TCP Route Configuration Entry Reference](/consul/docs/connect/gateways/api-gateway/configuration/tcp-route) for details about route configurations.
 
 ## Adding a TLS Certificate
 
@@ -203,7 +202,7 @@ Certificate = <<EOF
 -----END CERTIFICATE-----
 EOF
 
-PrivateKey = << EOF
+PrivateKey = <<EOF
 -----BEGIN RSA PRIVATE KEY-----
 ...
 -----END RSA PRIVATE KEY-----
