@@ -16,7 +16,7 @@ This page details the process for establishing a cluster peering connection betw
 
 Cluster peering between services cannot be established until all four steps are complete.
 
-For more information about using Kubernetes with cluster peering, including required Helm values, required CRDs, and other configuration options, refer to [cluster peering on Kubernetes](/consul/docs/connect/cluster-peering/usage/k8s)
+For more information about using Kubernetes with cluster peering, including required Helm values, required CRDs, and other configuration options, refer to [cluster peering on Kubernetes] (/consul/docs/connect/cluster-peering/usage/k8s) for additional information.
 
 ## Requirements
 
@@ -29,7 +29,7 @@ To establish a cluster peering connection, your deployments must meet several re
 
 You must meet the following requirements to use cluster peering:
 
-- Consul v1.13 or higher
+- Consul v1.14.1 or higher
 - Services hosted in admin partitions on separate datacenters
 
 If you need to make services available to an admin partition in the same datacenter, do not use cluster peering. Instead, use the [`exported-services` configuration entry](/consul/docs/connect/config-entries/exported-services) to make service upstreams available to other admin partitions in a single datacenter.
@@ -48,7 +48,7 @@ Mesh gateways are required for all cluster peering connections. Consider the fol
 
 You must meet the following requirements to use cluster peering:
 
-- Consul v1.13 or higher
+- Consul v1.14.1 or higher
 - Services hosted in admin partitions on separate datacenters
 
 If you need to make services available to an admin partition in the same datacenter, do not use cluster peering. Instead, use the [`exported-services` configuration entry](/consul/docs/connect/config-entries/exported-services) to make service upstreams available to other admin partitions in a single datacenter.
@@ -67,7 +67,7 @@ Mesh gateways are required for all cluster peering connections. Consider the fol
 
 You must meet the following requirements to use cluster peering:
 
-- Consul v1.13 or higher
+- Consul v1.14.1 or higher
 - Services hosted in admin partitions on separate datacenters
 
 If you need to make services available to an admin partition in the same datacenter, do not use cluster peering. Instead, use the [`exported-services` configuration entry](/consul/docs/connect/config-entries/exported-services) to make service upstreams available to other admin partitions in a single datacenter.
@@ -88,7 +88,7 @@ Mesh gateways are required for all cluster peering connections. Consider the fol
 
 You must meet the following requirements to use Consul's cluster peering features with Kubernetes:
 
-- Consul v1.14 or higher
+- Consul v1.14.1 or higher
 - Consul on Kubernetes v1.0.0 or higher
 - At least two Kubernetes clusters
 
@@ -167,7 +167,7 @@ Every time you generate a peering token, a single-use secret for establishing th
 
 </Tab>
 
-<Tab heading="Kubernetes" grou="k8s">
+<Tab heading="Kubernetes" group="k8s">
 
 1. In `cluster-01`, create the `PeeringAcceptor` custom resource. To ensure cluster peering connections are secure, the `metadata.name` field cannot be duplicated. Refer to the peer by a specific name.
 
@@ -330,7 +330,7 @@ In Kubernetes deployments, you can configure mesh gateways to use `local` mode s
 
 After you establish a connection between the clusters, you need to create an `exported-services` configuration entry that defines the services that are available for other clusters. Consul uses this configuration entry to advertise service information and support service mesh connections across clusters. 
 
-An `exported-services` configuration entry makes services available to another admin partition. While it can target admin partitions either locally or remotely. cluster peering always exports services to remote partitions. Refer to [exported service consumers](/consul/docs/connect/config-entries/exported-services#consumers-1) for more information.
+An `exported-services` configuration entry makes services available to another admin partition. While it can target admin partitions either locally or remotely. Clusters peers always export services to remote partitions. Refer to [exported service consumers](/consul/docs/connect/config-entries/exported-services#consumers-1) for more information.
 
 <Tabs>
 <Tab heading="HTTP API" group="api">
