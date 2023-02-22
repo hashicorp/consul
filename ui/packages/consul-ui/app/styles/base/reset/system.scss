@@ -1,8 +1,10 @@
 a {
   text-decoration: none;
 }
-td, th,
-span, strong {
+td,
+th,
+span,
+strong {
   color: inherit;
 }
 /* %typo-body */
@@ -19,9 +21,7 @@ html {
 hr {
   background-color: rgb(var(--tone-gray-200));
 }
-button {
-  background-color: var(--transparent);
-}
+
 html {
   font-size: var(--typo-size-000);
 }
@@ -30,7 +30,6 @@ body {
   line-height: 1.5;
 }
 body,
-button,
 input,
 select,
 textarea {
@@ -69,7 +68,9 @@ html {
 html {
   box-sizing: border-box;
 }
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   box-sizing: inherit;
 }
 fieldset {
@@ -85,8 +86,8 @@ hr {
   border: none;
   display: block;
 }
-input[type="checkbox"],
-input[type="radio"] {
+input[type='checkbox'],
+input[type='radio'] {
   vertical-align: baseline;
 }
 td,

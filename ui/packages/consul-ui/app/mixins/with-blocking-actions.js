@@ -75,7 +75,9 @@ export default Mixin.create({
       // do the same as an update, or override
       return this.afterUpdate(...arguments);
     },
-    create: function (item) {
+    create: function (item, event) {
+      event.preventDefault();
+
       return this.feedback.execute(
         () => {
           return this.repo.persist(item).then((item) => {
@@ -88,7 +90,9 @@ export default Mixin.create({
         }
       );
     },
-    update: function (item) {
+    update: function (item, event) {
+      event.preventDefault();
+
       return this.feedback.execute(
         () => {
           return this.repo.persist(item).then(() => {

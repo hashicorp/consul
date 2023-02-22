@@ -15,7 +15,13 @@ as |notice|>
   </notice.Body>
   <notice.Footer>
     <p>
-      <a href="{{env 'CONSUL_DOCS_URL'}}/k8s/crds" target="_blank" rel="noopener noreferrer">Learn more about CRDs</a>
+      <Hds::Link::Standalone
+        @href="{{env 'CONSUL_DOCS_URL'}}/k8s/crds"
+        @text='Learn more about CRDs'
+        @icon="docs-link"
+        @iconPosition="trailing"
+        @size="small"
+      />
     </p>
   </notice.Footer>
 </Notice>

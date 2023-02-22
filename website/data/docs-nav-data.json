@@ -735,6 +735,23 @@
         ]
       },
       {
+        "title": "Limit Traffic Rates",
+        "routes": [
+          {
+            "title": "Overview",
+            "path": "agent/limits"
+          },
+          {
+            "title": "Initialize Rate Limit Settings",
+            "path": "agent/limits/init-rate-limits"
+          },
+          {
+            "title": "Set Global Traffic Rate Limits",
+            "path": "agent/limits/set-global-traffic-rate-limits"
+          }
+        ]
+      },
+      {
         "title": "Configuration Entries",
         "path": "agent/config-entries"
       },

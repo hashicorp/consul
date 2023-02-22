@@ -20,8 +20,7 @@
   @extend %app-view-content;
 }
 
-%app-view-actions a,
-%app-view-actions button {
+%app-view-actions a {
   @extend %button-compact;
 }
 
