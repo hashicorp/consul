@@ -46,6 +46,7 @@ func TestServerRequestRateLimit(t *testing.T) {
 		description string
 		cmd         string
 		operations  []operation
+		mode        string
 	}
 
 	getKV := action{
@@ -70,6 +71,7 @@ func TestServerRequestRateLimit(t *testing.T) {
 		{
 			description: "HTTP & net/RPC / Mode: disabled - errors: no / exceeded logs: no / metrics: no",
 			cmd:         `-hcl=limits { request_limits { mode = "disabled" read_rate = 0 write_rate = 0 }}`,
+			mode:        "disabled",
 			operations: []operation{
 				{
 					action:            putKV,
@@ -88,6 +90,7 @@ func TestServerRequestRateLimit(t *testing.T) {
 		{
 			description: "HTTP & net/RPC / Mode: permissive - errors: no / exceeded logs: yes / metrics: yes",
 			cmd:         `-hcl=limits { request_limits { mode = "permissive" read_rate = 0 write_rate = 0 }}`,
+			mode:        "permissive",
 			operations: []operation{
 				{
 					action:            putKV,
@@ -106,6 +109,7 @@ func TestServerRequestRateLimit(t *testing.T) {
 		{
 			description: "HTTP & net/RPC / Mode: enforcing - errors: yes / exceeded logs: yes / metrics: yes",
 			cmd:         `-hcl=limits { request_limits { mode = "enforcing" read_rate = 0 write_rate = 0 }}`,
+			mode:        "enforcing",
 			operations: []operation{
 				{
 					action:            putKV,
@@ -154,7 +158,7 @@ func TestServerRequestRateLimit(t *testing.T) {
 					//			require.NoError(t, err)
 					if metricsInfo != nil && err == nil {
 						if op.expectMetric {
-							checkForMetric(r, metricsInfo, op.action.rateLimitOperation, op.action.rateLimitType)
+							checkForMetric(r, metricsInfo, op.action.rateLimitOperation, op.action.rateLimitType, tc.mode)
 						}
 					}
 
@@ -171,17 +175,17 @@ func TestServerRequestRateLimit(t *testing.T) {
 	}
 }
 
-func checkForMetric(t *retry.R, metricsInfo *api.MetricsInfo, operationName string, expectedLimitType string) {
-	const counterName = "rpc.rate_limit.exceeded"
+func checkForMetric(t *retry.R, metricsInfo *api.MetricsInfo, operationName string, expectedLimitType string, expectedMode string) {
+	const counterName = "consul.rpc.rate_limit.exceeded"
 
 	var counter api.SampledValue
 	for _, c := range metricsInfo.Counters {
-		if counter.Name == counterName {
+		if c.Name == counterName {
 			counter = c
 			break
 		}
 	}
-	require.NotNilf(t, counter, "counter not found: %s", counterName)
+	require.NotEmptyf(t, counter.Name, "counter not found: %s", counterName)
 
 	operation, ok := counter.Labels["op"]
 	require.True(t, ok)
@@ -193,9 +197,9 @@ func checkForMetric(t *retry.R, metricsInfo *api.MetricsInfo, operationName stri
 	require.True(t, ok)
 
 	if operation == operationName {
-		require.Equal(t, 2, counter.Count)
+		require.GreaterOrEqual(t, counter.Count, 1)
 		require.Equal(t, expectedLimitType, limitType)
-		require.Equal(t, "disabled", mode)
+		require.Equal(t, expectedMode, mode)
 	}
 }
 

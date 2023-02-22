@@ -1,6 +1,7 @@
 package structs
 
 import (
+	"fmt"
 	"sort"
 	"time"
 
@@ -24,6 +25,10 @@ type ResourceReference struct {
 	acl.EnterpriseMeta
 }
 
+func (r *ResourceReference) String() string {
+	return fmt.Sprintf("%s:%s/%s/%s/%s", r.Kind, r.PartitionOrDefault(), r.NamespaceOrDefault(), r.Name, r.SectionName)
+}
+
 func (r *ResourceReference) IsSame(other *ResourceReference) bool {
 	if r == nil && other == nil {
 		return true
@@ -43,6 +48,16 @@ type Status struct {
 	// Conditions is the set of condition objects associated with
 	// a ConfigEntry status.
 	Conditions []Condition
+}
+
+func (s *Status) MatchesConditionStatus(condition Condition) bool {
+	for _, c := range s.Conditions {
+		if c.IsCondition(&condition) &&
+			c.Status == condition.Status {
+			return true
+		}
+	}
+	return false
 }
 
 func (s Status) SameConditions(other Status) bool {

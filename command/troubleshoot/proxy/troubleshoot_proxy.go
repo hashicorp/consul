@@ -127,7 +127,7 @@ Usage: consul troubleshoot proxy [options]
     (transparent proxy only)
       $ consul troubleshoot proxy -upstream-ip 240.0.0.1
  
-    where 'foo' is the upstream envoy identifier and '240.0.0.1' is an upstream ip which 
+    where 'foo' is the upstream envoy identifier and '240.0.0.1' is an upstream ip which
     can be obtained by running:
     $ consul troubleshoot upstreams [options]
 `

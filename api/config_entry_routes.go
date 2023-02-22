@@ -49,9 +49,6 @@ func (a *TCPRouteConfigEntry) GetModifyIndex() uint64     { return a.ModifyIndex
 // TCPService is a service reference for a TCPRoute
 type TCPService struct {
 	Name string
-	// Weight specifies the proportion of requests forwarded to the referenced service.
-	// This is computed as weight/(sum of all weights in the list of services).
-	Weight int
 
 	// Partition is the partition the config entry is associated with.
 	// Partitioning is a Consul Enterprise feature.
@@ -195,8 +192,8 @@ type HTTPQueryMatch struct {
 // HTTPFilters specifies a list of filters used to modify a request
 // before it is routed to an upstream.
 type HTTPFilters struct {
-	Headers     []HTTPHeaderFilter
-	URLRewrites []URLRewrite
+	Headers    []HTTPHeaderFilter
+	URLRewrite *URLRewrite
 }
 
 // HTTPHeaderFilter specifies how HTTP headers should be modified.

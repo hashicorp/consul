@@ -33,9 +33,8 @@ const (
 )
 
 const (
-	BuiltinAWSLambdaExtension      string = "builtin/aws/lambda"
-	BuiltinLuaExtension            string = "builtin/lua"
-	BuiltinLocalRatelimitExtension string = "builtin/http/localratelimit"
+	BuiltinAWSLambdaExtension string = "builtin/aws/lambda"
+	BuiltinLuaExtension       string = "builtin/lua"
 )
 
 type ConfigEntry interface {

@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	awslambda "github.com/hashicorp/consul/agent/envoyextensions/builtin/aws-lambda"
-	"github.com/hashicorp/consul/agent/envoyextensions/builtin/http/localratelimit"
 	"github.com/hashicorp/consul/agent/envoyextensions/builtin/lua"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/envoyextensions/extensioncommon"
@@ -14,9 +13,8 @@ import (
 type extensionConstructor func(api.EnvoyExtension) (extensioncommon.EnvoyExtender, error)
 
 var extensionConstructors = map[string]extensionConstructor{
-	api.BuiltinLuaExtension:            lua.Constructor,
-	api.BuiltinAWSLambdaExtension:      awslambda.Constructor,
-	api.BuiltinLocalRatelimitExtension: localratelimit.Constructor,
+	api.BuiltinLuaExtension:       lua.Constructor,
+	api.BuiltinAWSLambdaExtension: awslambda.Constructor,
 }
 
 // ConstructExtension attempts to lookup and build an extension from the registry with the
