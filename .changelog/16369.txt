@@ -1,0 +1,3 @@
+```release-note:feature
+**API Gateway (Beta)** This version adds support for API Gateway on VMs. API Gateway provides a highly-configurable ingress for requests coming into a Consul network. For more information, refer to the [API Gateway](https://developer.hashicorp.com/consul/docs/connect/gateways/api-gateway) documentation.
+```
