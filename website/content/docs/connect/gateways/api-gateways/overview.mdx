@@ -1,0 +1,22 @@
+–––
+layout: docs
+page_title: API Gateways Overview
+description: API gateways are objects in Consul that enable ingress requests to services in your service mesh. Learn about API gateways for VMs in this overview.
+–––
+
+# API Gateway Overview
+
+API gateway provides a highly configurable ingress for requests into a Consul
+network. Configuration of this ingress is done across multiple related
+configuration entries. The API gateway itself provides an endpoint for requests
+to enter the network. The Gateway can be configured with listeners that expose
+ports on the endpoint for ingress. HTTP and TCP route configuration entries can
+be attached to these listeners to control how requests are routed to services in
+the network. TLS Certificates can also be attached to gateways to encrypt
+requests between the user and the gateway endpoint.
+
+Because they are separately configured, these configuration entries may be
+easily reused. Routes and certificates may be attached to multiple gateways. API
+gateways are supported for both Virtual Machines and
+[Kubernetes](/consul/docs/api-gateway).
+
