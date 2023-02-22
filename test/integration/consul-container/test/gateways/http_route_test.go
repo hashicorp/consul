@@ -223,7 +223,8 @@ func TestHTTPRouteFlattening(t *testing.T) {
 	//gateway resolves routes
 
 	ip := "localhost"
-	gatewayPort := gatewayService.GetPort(listenerPort)
+	gatewayPort, err := gatewayService.GetPort(listenerPort)
+	assert.NoError(t, err)
 
 	//route 2 with headers
 
@@ -237,23 +238,23 @@ func TestHTTPRouteFlattening(t *testing.T) {
 	}, checkOptions{statusCode: service2ResponseCode, testName: "service2 just path match"})
 
 	////v1 path with the header
-	checkRoute(t, ip, gatewayService.GetPort(listenerPort), "check", map[string]string{
+	checkRoute(t, ip, gatewayPort, "check", map[string]string{
 		"Host": "test.foo",
 		"x-v2": "v2",
 	}, checkOptions{statusCode: service2ResponseCode, testName: "service2 just header match"})
 
-	checkRoute(t, ip, gatewayService.GetPort(listenerPort), "v2/path/value", map[string]string{
+	checkRoute(t, ip, gatewayPort, "v2/path/value", map[string]string{
 		"Host": "test.foo",
 		"x-v2": "v2",
 	}, checkOptions{statusCode: service2ResponseCode, testName: "service2 v2 with path"})
 
 	//hit service 1 by hitting root path
-	checkRoute(t, ip, gatewayService.GetPort(listenerPort), "", map[string]string{
+	checkRoute(t, ip, gatewayPort, "", map[string]string{
 		"Host": "test.foo",
 	}, checkOptions{debug: false, statusCode: service1ResponseCode, testName: "service1 root prefix"})
 
 	//hit service 1 by hitting v2 path with v1 hostname
-	checkRoute(t, ip, gatewayService.GetPort(listenerPort), "v2", map[string]string{
+	checkRoute(t, ip, gatewayPort, "v2", map[string]string{
 		"Host": "test.example",
 	}, checkOptions{debug: false, statusCode: service1ResponseCode, testName: "service1, v2 path with v2 hostname"})
 
