@@ -1,0 +1,163 @@
+– – –
+layout: docs
+page_title: API Gateways on Virtual Machines
+description: Learn how to configure and Consul API gateways and gateway routes on virtual machines so that you can enable ingress requests to services in your service mesh in VM environments.
+– – –
+
+# API Gateways on Virtual Machines
+
+This topic describes how to deploy Consul API gateways to networks that operate in virtual machine (VMs) environments. If you want to implement an API gateway in a Kubernetes environment, refer to [API Gateway for Kubernetes](/consul/docs/api-gateway).
+## Introduction
+
+API gateways enable external network clients to access applications and services running in a Consul datacenter. This type of network traffic is commonly referred to as _north-south_ network traffic because it refers to the flow of data into and out of a specific environment. API gateways can also forward requests from clients to specific destinations based on path or request protocol.
+
+API gateways solve the following primary use cases:
+
+Control access at the point of entry: Set the protocols of external connection requests and secure inbound connections with TLS certificates from trusted providers, such as Verisign and Let's Encrypt.
+Simplify traffic management: Load balance requests across services and route traffic to the appropriate service by matching one or more criteria, such as hostname, path, header presence or value, and HTTP method.
+
+The following steps describe the general workflow for deploying a Consul API gateway to a VM environment:
+
+Create an API gateway configuration entry. The configuration entry includes listener configurations and TLS certificates.
+Deploy the API gateway configuration entry to create the listeners.
+Create and deploy routes to bind to the gateway
+
+Refer to [API Gateway for Kubernetes](/consul/docs/api-gateway) for information about using Consul API gateway on Kubernetes.
+
+## Requirements
+The following requirements must be satisfied to use API gateways on VMs:
+
+Consul 1.15 or later
+A Consul cluster with service mesh enabled. Refer to [`connect`](/consul/docs/agent/config/config-files#connect)
+Network connectivity between the machine deploying the API gateway and a Consul cluster agent or server.
+
+If ACLs are enabled, you must present a token with the following permissions to configure Consul and deploy API gateways:
+
+`mesh: read`
+`mesh: write`
+
+Refer [Mesh Rules](/consul/docs/security/acl/acl-rules#mesh-rules) for additional information about configuring policies that enable you to interact with Consul API gateway configurations.
+## Create the API gateway configuration
+Create an API gateway configuration that defines listeners and TLS certificates in the mesh. In the following example, the API gateway specifies an HTTP listener on port `8080` that routes can use to connect external traffic to services in the mesh.
+
+
+Kind = "api-gateway"
+Name = "my-gateway"
+
+// Each listener configures a port which can be used to access the Consul cluster
+Listeners = [
+	{
+		Port = 8080
+		Name = "my-http-listener"
+		Protocol = "http"
+		TLS = {
+			Certificates = [
+				{
+					Kind = "inline-certificate"
+					Name = "my-certificate"
+				}
+			]
+		}
+	}
+]
+
+Refer to [API Gateway Configuration Reference](#) for information about all configuration fields.
+
+Gateways and routes are eventually-consistent objects that provide feedback about their current state through a series of status conditions. As a result, you must manually check the route status to determine if the route successfully bound to the gateway.
+
+## Deploy the API gateway
+
+Use the `consul config write` command to implement the API gateway configuration entries. The following command applies the configuration entry for the main gateway object:
+
+```shell-session
+$ consul config write gateways.hcl
+```
+
+
+Run the following command to deploy an API gateway instance.
+
+```shell-session
+$ consul connect envoy -gateway api -register -service my-api-gateway
+```
+
+The command directs Consul to configure Envoy as an API Gateway.
+
+## Route requests
+Define route configurations and bind them to listeners configured on the gateway so that Consul can route incoming requests to services in the mesh. Create HTTP or TCP routes by setting the `Kind` parameter to `http-route` or `tcp-route` and configuring rules that define request traffic flows.
+
+The following example routes requests from the listener on the API gateway at port `8080` to services in Consul based on the path of the request. When an incoming request starts at path `/`, Consul forwards 90 percent of the requests to the `ui.service.dc1.consul` service and 10 percent to `experimental-ui.service.dc1.consul`. Consul also forwards requests starting with `/api` to `api.service.dc1.consul`.
+
+Kind = "http-route"
+Name = "my-http-route"
+
+// Rules define how requests will be routed
+Rules = [
+	// Send all requests to UI services with 10% going to the "experimental" UI
+	{
+		Matches = [
+			{
+				Path = {
+Match = "prefix"
+Value = "/"
+}
+			}
+		]
+		Services = [
+			{
+				Name = "ui.service.dc1.consul"
+				Weight = 90
+			},
+			{
+				Name = "experimental-ui.service.dc1.consul"
+				Weight = 10
+			}
+		]
+},
+// Send all requests that start with the path `/api` to the API service
+{
+Matches = [
+{
+Path = {
+Match = "prefix"
+Value = "/api"
+}
+}
+]
+Services = [
+	{
+		// Omitting "Weight" will send all requests to this service.
+		Name = "api.service.dc1.consul"
+	}
+]
+}
+]
+
+Parents = [
+	{
+		Kind = "api-gateway"
+		Name = "my-gateway"
+		SectionName = "my-http-listener"
+	}
+]
+
+Create this configuration by saving it to a file called `my-http-route.hcl` and using the command
+
+``` shell-session
+$ consul config write my-http-route.hcl
+```
+
+Refer to [HTTP Route Configuration Entry Reference]() and [TCP Route Configuration Entry Reference]() for details about route configurations.
+## Adding a TLS Certificate
+Define an `inline-certificate` with a name matching the name in the API Gateway Listener configuration to bind it to that listener. In the above example, the name of the `inline-certificate` is `my-certificate`. The Inline Certificate configuration takes a public certificate and private key in plaintext.
+
+Kind = "inline-certificate"
+Name = "my-certificate"
+Certificate = "<public certificate>"
+PrivateKey = "<private key>"
+
+Create this configuration by saving it to a file called `my-certificate.hcl` and using the command
+
+``` shell-session
+$ consul config write my-certificate.hcl
+```
+
