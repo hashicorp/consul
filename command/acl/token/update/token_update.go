@@ -27,13 +27,13 @@ type cmd struct {
 
 	tokenAccessorID    string
 	policyIDs          []string
-	addPolicyIDs       []string
+	appendPolicyIDs    []string
 	policyNames        []string
-	addPolicyNames     []string
+	appendPolicyNames  []string
 	roleIDs            []string
-	addRoleIDs         []string
+	appendRoleIDs      []string
 	roleNames          []string
-	addRoleNames       []string
+	appendRoleNames    []string
 	serviceIdents      []string
 	nodeIdents         []string
 	description        string
@@ -61,20 +61,20 @@ func (c *cmd) init() {
 		"matches multiple token Accessor IDs")
 	c.flags.StringVar(&c.description, "description", "", "A description of the token")
 	c.flags.Var((*flags.AppendSliceValue)(&c.policyIDs), "policy-id", "ID of a "+
-		"policy to use for this token. May be specified multiple times")
-	c.flags.Var((*flags.AppendSliceValue)(&c.addPolicyIDs), "add-policy-id", "ID of a "+
+		"policy to use for this token. Overwrites existing policies. May be specified multiple times")
+	c.flags.Var((*flags.AppendSliceValue)(&c.appendPolicyIDs), "append-policy-id", "ID of a "+
 		"policy to use for this token. The token retains existing policies. May be specified multiple times")
 	c.flags.Var((*flags.AppendSliceValue)(&c.policyNames), "policy-name", "Name of a "+
-		"policy to use for this token. May be specified multiple times")
-	c.flags.Var((*flags.AppendSliceValue)(&c.addPolicyNames), "add-policy-name", "Name of a "+
+		"policy to use for this token. Overwrites existing policies. May be specified multiple times")
+	c.flags.Var((*flags.AppendSliceValue)(&c.appendPolicyNames), "append-policy-name", "Name of a "+
 		"policy to add to this token. The token retains existing policies. May be specified multiple times")
 	c.flags.Var((*flags.AppendSliceValue)(&c.roleIDs), "role-id", "ID of a "+
-		"role to use for this token. May be specified multiple times")
+		"role to use for this token. Overwrites existing roles. May be specified multiple times")
 	c.flags.Var((*flags.AppendSliceValue)(&c.roleNames), "role-name", "Name of a "+
-		"role to use for this token. May be specified multiple times")
-	c.flags.Var((*flags.AppendSliceValue)(&c.addRoleIDs), "add-role-id", "ID of a "+
+		"role to use for this token. Overwrites existing rolees. May be specified multiple times")
+	c.flags.Var((*flags.AppendSliceValue)(&c.appendRoleIDs), "append-role-id", "ID of a "+
 		"role to add to this token. The token retains existing roles. May be specified multiple times")
-	c.flags.Var((*flags.AppendSliceValue)(&c.addRoleNames), "add-role-name", "Name of a "+
+	c.flags.Var((*flags.AppendSliceValue)(&c.appendRoleNames), "append-role-name", "Name of a "+
 		"role to add to this token. The token retains existing roles. May be specified multiple times")
 	c.flags.Var((*flags.AppendSliceValue)(&c.serviceIdents), "service-identity", "Name of a "+
 		"service identity to use for this token. May be specified multiple times. Format is "+
@@ -98,9 +98,9 @@ func (c *cmd) init() {
 	// Deprecations
 	c.flags.StringVar(&c.tokenID, "id", "", "DEPRECATED. Use -accessor-id instead.")
 	c.flags.BoolVar(&c.mergePolicies, "merge-policies", false, "DEPRECATED. "+
-		"Use -add-policy-id or -add-policy-name instead.")
+		"Use -append-policy-id or -append-policy-name instead.")
 	c.flags.BoolVar(&c.mergeRoles, "merge-roles", false, "DEPRECATED. "+
-		"Use -add-role-id or -add-role-name instead.")
+		"Use -append-role-id or -append-role-name instead.")
 }
 
 func (c *cmd) Run(args []string) int {
@@ -160,8 +160,8 @@ func (c *cmd) Run(args []string) int {
 	}
 
 	if c.mergePolicies {
-		c.UI.Warn("merge-policies is deprecated and will be removed in future Consul version. " +
-			"Use `add-policy-name` and `add-policy-id` instead.")
+		c.UI.Warn("merge-policies is deprecated and will be removed in a future Consul version. " +
+			"Use `append-policy-name` or `append-policy-id` instead.")
 
 		for _, policyName := range c.policyNames {
 			found := false
@@ -200,16 +200,18 @@ func (c *cmd) Run(args []string) int {
 		}
 	} else {
 
-		hasAddPolicyFields := len(c.addPolicyNames) > 0 || len(c.addPolicyIDs) > 0
+		hasAddPolicyFields := len(c.appendPolicyNames) > 0 || len(c.appendPolicyIDs) > 0
 		hasPolicyFields := len(c.policyIDs) > 0 || len(c.policyNames) > 0
 
 		if hasPolicyFields && hasAddPolicyFields {
-			c.UI.Error("Cannot specify both add-policy-id/add-policy-name and policy-id/policy-name")
+			c.UI.Error("Cannot combine the use of policy-id/policy-name flags with append- variants. " +
+				"To set or overwrite existing policies, use -policy-id or -policy-name. " +
+				"To append to existing policies, use -append-policy-id or -append-policy-name.")
 			return 1
 		}
 
-		policyIDs := c.addPolicyIDs
-		policyNames := c.addPolicyNames
+		policyIDs := c.appendPolicyIDs
+		policyNames := c.appendPolicyNames
 
 		if hasPolicyFields {
 			policyIDs = c.policyIDs
@@ -234,8 +236,8 @@ func (c *cmd) Run(args []string) int {
 	}
 
 	if c.mergeRoles {
-		c.UI.Warn("merge-roles is deprecated and will be removed in future Consul version. " +
-			"Use `add-role-name` and `add-role-id` instead.")
+		c.UI.Warn("merge-roles is deprecated and will be removed in a future Consul version. " +
+			"Use `append-role-name` or `append-role-id` instead.")
 
 		for _, roleName := range c.roleNames {
 			found := false
@@ -273,16 +275,18 @@ func (c *cmd) Run(args []string) int {
 			}
 		}
 	} else {
-		hasAddRoleFields := len(c.addRoleNames) > 0 || len(c.addRoleIDs) > 0
+		hasAddRoleFields := len(c.appendRoleNames) > 0 || len(c.appendRoleIDs) > 0
 		hasRoleFields := len(c.roleIDs) > 0 || len(c.roleNames) > 0
 
 		if hasRoleFields && hasAddRoleFields {
-			c.UI.Error("Cannot specify both add-role-id/add-role-name and role-id/role-name")
+			c.UI.Error("Cannot combine the use of role-id/role-name flags with append- variants. " +
+				"To set or overwrite existing roles, use -role-id or -role-name. " +
+				"To append to existing roles, use -append-role-id or -append-role-name.")
 			return 1
 		}
 
-		roleNames := c.addRoleNames
-		roleIDs := c.addRoleIDs
+		roleNames := c.appendRoleNames
+		roleIDs := c.appendRoleIDs
 
 		if hasRoleFields {
 			roleNames = c.roleNames
