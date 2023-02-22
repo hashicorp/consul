@@ -26,7 +26,7 @@ Subcommands:
 
 Corresponding HTTP API Endpoint: [\[GET\] /v1/operator/usage](/consul/api-docs/operator/usage#operator-usage)
 
-Retrieves usage information about the number of services registered in a given
+This command retrieves usage information about the number of services registered in a given
 datacenter. By default, the datacenter of the local agent is queried.
 
 The table below shows this command's [required ACLs](/consul/api-docs/api-structure#authentication). Configuration of
@@ -42,6 +42,7 @@ Usage: `consul operator usage instances`
 The output looks like this:
 
 ```text
+$ consul operator usage instances
 Billable Service Instances Total: 3
 dc1 Billable Service Instances: 3
 
@@ -61,6 +62,7 @@ terminating-gateway      0
 With the `-all-datacenters` flag:
 
 ```text
+$ consul operator usage instances -all-datacenters
 Billable Service Instances Total: 4
 dc1 Billable Service Instances: 3
 dc2 Billable Service Instances: 1

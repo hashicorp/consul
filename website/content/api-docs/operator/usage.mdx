@@ -7,7 +7,7 @@ description: |-
   datacenter.
 ---
 
-# Operator Usage HTTP API
+# Usage Operator HTTP API
 
 The `/operator/usage` endpoint returns usage information about the number of
 services, service instances and Connect-enabled service instances by datacenter.
@@ -30,11 +30,11 @@ The corresponding CLI command is [`consul operator usage instances`](/consul/com
 
 ### Query Parameters
 
-- `global` `(bool: false)` - If present, will return usage information for all
-  known datacenters. By default, only the local datacenter's usage information
-  is returned.
+- `global` `(bool: false)` - If present, usage information for all
+  known datacenters will be returned. By default, only the local datacenter's
+  usage information is returned.
 
-- `stale` `(bool: false)` - If the cluster does not currently have a leader an
+- `stale` `(bool: false)` - If the cluster does not currently have a leader, an
   error will be returned. You can use the `?stale` query parameter to read the
   Raft configuration from any of the Consul servers.
 
@@ -47,85 +47,88 @@ $ curl \
 
 ### Sample Response
 
+<Tabs>
+<Tab heading="OSS">
 ```json
 {
-   "Usage":{
-      "dc1":{
-         "Services":1,
-         "ServiceInstances":1,
-         "ConnectServiceInstances":{
-            "connect-native":0,
-            "connect-proxy":0,
-            "ingress-gateway":0,
-            "mesh-gateway":0,
-            "terminating-gateway":0
-         },
-         "BillableServiceInstances":0
-      }
-   },
-   "Index":13,
-   "LastContact":0,
-   "KnownLeader":true,
-   "ConsistencyLevel":"leader",
-   "NotModified":false,
-   "Backend":0,
-   "ResultsFilteredByACLs":false
+  "Usage": {
+    "dc1": {
+      "Services": 1,
+      "ServiceInstances": 1,
+      "ConnectServiceInstances": {
+        "connect-native": 0,
+        "connect-proxy": 0,
+        "ingress-gateway": 0,
+        "mesh-gateway": 0,
+        "terminating-gateway": 0
+      },
+      "BillableServiceInstances": 0
+    }
+  },
+  "Index": 13,
+  "LastContact": 0,
+  "KnownLeader": true,
+  "ConsistencyLevel": "leader",
+  "NotModified": false,
+  "Backend": 0,
+  "ResultsFilteredByACLs": false
 }
 ```
-
-### Sample Response (Enterprise)
-
+</Tab>
+<Tab heading="Enterprise">
 ```json
 {
-   "Usage":{
-      "dc1":{
-         "Services":1,
-         "ServiceInstances":1,
-         "ConnectServiceInstances":{
-            "connect-native":0,
-            "connect-proxy":0,
-            "ingress-gateway":0,
-            "mesh-gateway":0,
-            "terminating-gateway":0
-         },
-         "BillableServiceInstances":0,
-         "PartitionNamespaceServices":{
-            "default":{
-               "default":1
-            }
-         },
-         "PartitionNamespaceServiceInstances":{
-            "default":{
-               "default":1
-            }
-         },
-         "PartitionNamespaceBillableServiceInstances":{
-            "default":{
-               "default":1
-            }
-         },
-         "PartitionNamespaceConnectServiceInstances":{
-            "default":{
-               "default":{
-                  "connect-native":0,
-                  "connect-proxy":0,
-                  "ingress-gateway":0,
-                  "mesh-gateway":0,
-                  "terminating-gateway":0
-               }
-            }
-         }
+  "Usage": {
+    "dc1": {
+      "Services": 1,
+      "ServiceInstances": 1,
+      "ConnectServiceInstances": {
+        "connect-native": 0,
+        "connect-proxy": 0,
+        "ingress-gateway": 0,
+        "mesh-gateway": 0,
+        "terminating-gateway": 0
+      },
+      "BillableServiceInstances": 0,
+      "PartitionNamespaceServices": {
+        "default": {
+          "default": 1
+        }
+      },
+      "PartitionNamespaceServiceInstances": {
+        "default": {
+          "default": 1
+        }
+      },
+      "PartitionNamespaceBillableServiceInstances": {
+        "default": {
+          "default": 1
+        }
+      },
+      "PartitionNamespaceConnectServiceInstances": {
+        "default": {
+          "default": {
+            "connect-native": 0,
+            "connect-proxy": 0,
+            "ingress-gateway": 0,
+            "mesh-gateway": 0,
+            "terminating-gateway": 0
+          }
+        }
       }
-   },
-   "Index":13,
-   "LastContact":0,
-   "KnownLeader":true,
-   "ConsistencyLevel":"leader",
-   "NotModified":false,
-   "Backend":0,
-   "ResultsFilteredByACLs":false
+    }
+  },
+  "Index": 13,
+  "LastContact": 0,
+  "KnownLeader": true,
+  "ConsistencyLevel": "leader",
+  "NotModified": false,
+  "Backend": 0,
+  "ResultsFilteredByACLs": false
 }
 ```
+</Tab>
+</Tabs>
 
 - `Services` is the total number of unique service names registered in the
   datacenter.
