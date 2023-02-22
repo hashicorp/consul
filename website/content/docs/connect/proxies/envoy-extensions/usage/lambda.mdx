@@ -15,13 +15,11 @@ You can only enable the Lambda extension through `service-defaults`. This is bec
 
 The LambdaEnvoy extension has the following arguments:
 
-
 | Arguments            | Description                                                                                      |
 | -------------------- | ------------------------------------------------------------------------------------------------ |
 | `ARN`                | Specifies the [AWS ARN](https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html) for the service's Lambda. |
 | `InvocationMode`     | Determines if Consul configures the Lambda to be invoked using the synchronous or asynchronous [invocation mode](https://docs.aws.amazon.com/lambda/latest/operatorguide/invocation-modes.html). |
 | `PayloadPassthrough` | Determines if the body Envoy receives is converted to JSON or directly passed to Lambda.         |
-
 
 Be aware  that unlike [manual lambda registration](/consul/docs/lambda/registration/manual#supported-meta-fields), region is  inferred from the ARN when specified through an Envoy extension.
 
@@ -55,6 +53,7 @@ EnvoyExtensions {
 ```
 
 </CodeBlockConfig>
+</Tab>
 <Tab heading="JSON" group="json">
 <CodeBlockConfig filename="lambda-envoy-extension.json">
 
