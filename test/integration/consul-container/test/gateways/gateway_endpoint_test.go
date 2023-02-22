@@ -80,8 +80,8 @@ func TestAPIGatewayCreate(t *testing.T) {
 	gatewayReady := false
 	routeReady := false
 
-	for !gatewayReady || !routeReady {
-		//check status
+	//make sure the gateway/route come online
+	require.Eventually(t, func() bool {
 		entry, _, err := client.ConfigEntries().Get("api-gateway", "api-gateway", nil)
 		assert.NoError(t, err)
 		apiEntry := entry.(*api.APIGatewayConfigEntry)
@@ -91,7 +91,9 @@ func TestAPIGatewayCreate(t *testing.T) {
 		assert.NoError(t, err)
 		routeEntry := e.(*api.TCPRouteConfigEntry)
 		routeReady = isBound(routeEntry.Status.Conditions)
-	}
+
+		return gatewayReady && routeReady
+	}, time.Second*10, time.Second*1)
 
 	libassert.HTTPServiceEchoes(t, "localhost", gatewayService.GetPort(listenerPortOne), "")
 }
@@ -232,7 +234,7 @@ func checkRoute(t *testing.T, ip string, port int, path string, headers map[stri
 
 		assert.Equal(t, expected.statusCode, res.StatusCode)
 		if expected.statusCode != res.StatusCode {
-			r.Fatal("unexpecged response code returned")
+			r.Fatal("unexpected response code returned")
 		}
 
 		//if debug is expected, debug should be in the response body
