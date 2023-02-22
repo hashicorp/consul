@@ -14,7 +14,7 @@ in a Kubernetes environment, refer to [API Gateway for Kubernetes](/consul/docs/
 
 API gateways enable external network clients to access applications and services
 running in a Consul datacenter. This type of network traffic is commonly
-referred to as _north-south_ network traffic because it refers to the flow of
+called _north-south_ network traffic because it refers to the flow of
 data into and out of a specific environment. API gateways can also forward
 requests from clients to specific destinations based on path or request
 protocol.
@@ -32,9 +32,9 @@ The following steps describe the general workflow for deploying a Consul API
 gateway to a VM environment:
 
 1. Create an API gateway configuration entry. The configuration entry includes
-   listener configurations and TLS certificates.
+   listener configurations and references to TLS certificates.
 2. Deploy the API gateway configuration entry to create the listeners.
-3. Create and deploy routes to bind to the gateway
+3. Create and deploy routes to bind to the gateway.
 
 Refer to [API Gateway for Kubernetes](/consul/docs/api-gateway) for information
 about using Consul API gateway on Kubernetes.
@@ -46,7 +46,7 @@ The following requirements must be satisfied to use API gateways on VMs:
 - Consul 1.15 or later
 - A Consul cluster with Service Mesh enabled. Refer to [`connect`](/consul/docs/agent/config/config-files#connect)
 - Network connectivity between the machine deploying the API Gateway and a
-  Consul cluster agent or server.
+  Consul cluster agent or server
 
 If ACLs are enabled, you must present a token with the following permissions to
 configure Consul and deploy API gateways:
@@ -62,7 +62,7 @@ with Consul API gateway configurations.
 
 Create an API gateway configuration that defines listeners and TLS certificates
 in the mesh. In the following example, the API gateway specifies an HTTP
-listener on port `8080` that routes can use to connect external traffic to
+listener on port `8443` that routes can use to connect external traffic to
 services in the mesh.
 
 ```hcl
@@ -72,7 +72,7 @@ Name = "my-gateway"
 // Each listener configures a port which can be used to access the Consul cluster
 Listeners = [
 	{
-		Port = 8080
+		Port = 8443
 		Name = "my-http-listener"
 		Protocol = "http"
 		TLS = {
@@ -87,13 +87,19 @@ Listeners = [
 ]
 ```
 
-Refer to [API Gateway Configuration Reference](#) for information about all configuration fields.
+Refer to [API Gateway Configuration Reference](/connect/gateways/api-gateway/configuration/api-gateway) for
+information about all configuration fields.
 
-Gateways and routes are eventually-consistent objects that provide feedback about their current state through a series of status conditions. As a result, you must manually check the route status to determine if the route successfully bound to the gateway.
+Gateways and routes are eventually-consistent objects that provide feedback
+about their current state through a series of status conditions. As a result,
+you must manually check the route status to determine if the route successfully
+bound to the gateway.
 
 ## Deploy the API gateway
 
-Use the `consul config write` command to implement the API gateway configuration entries. The following command applies the configuration entry for the main gateway object:
+Use the `consul config write` command to implement the API gateway
+configuration entries. The following command applies the configuration entry
+for the main gateway object:
 
 ```shell-session
 $ consul config write gateways.hcl
@@ -109,9 +115,16 @@ The command directs Consul to configure Envoy as an API Gateway.
 
 ## Route requests
 
-Define route configurations and bind them to listeners configured on the gateway so that Consul can route incoming requests to services in the mesh. Create HTTP or TCP routes by setting the `Kind` parameter to `http-route` or `tcp-route` and configuring rules that define request traffic flows.
+Define route configurations and bind them to listeners configured on the
+gateway so that Consul can route incoming requests to services in the mesh.
+Create HTTP or TCP routes by setting the `Kind` parameter to `http-route` or
+`tcp-route` and configuring rules that define request traffic flows.
 
-The following example routes requests from the listener on the API gateway at port `8080` to services in Consul based on the path of the request. When an incoming request starts at path `/`, Consul forwards 90 percent of the requests to the `ui.service.dc1.consul` service and 10 percent to `experimental-ui.service.dc1.consul`. Consul also forwards requests starting with `/api` to `api.service.dc1.consul`.
+The following example routes requests from the listener on the API gateway at
+port `8443` to services in Consul based on the path of the request. When an
+incoming request starts at path `/`, Consul forwards 90 percent of the requests
+to the `ui` service and 10 percent to `experimental-ui`. Consul also forwards
+requests starting with `/api` to `api`.
 
 ```hcl
 Kind = "http-route"
@@ -131,11 +144,11 @@ Rules = [
     ]
     Services = [
       {
-        Name = "ui.service.dc1.consul"
+        Name = "ui"
         Weight = 90
       },
       {
-        Name = "experimental-ui.service.dc1.consul"
+        Name = "experimental-ui"
         Weight = 10
       }
     ]
@@ -152,8 +165,7 @@ Rules = [
     ]
     Services = [
       {
-        // Omitting "Weight" will send all requests to this service.
-        Name = "api.service.dc1.consul"
+        Name = "api"
       }
     ]
   }
@@ -174,7 +186,8 @@ Create this configuration by saving it to a file called `my-http-route.hcl` and 
 $ consul config write my-http-route.hcl
 ```
 
-Refer to [HTTP Route Configuration Entry Reference]() and [TCP Route Configuration Entry Reference]() for details about route configurations.
+Refer to [HTTP Route Configuration Entry Reference](/connect/gateways/api-gateway/configuration/http-route)
+and [TCP Route Configuration Entry Reference](/connect/gateways/api-gateway/configuration/tcp-route) for details about route configurations.
 
 ## Adding a TLS Certificate
 
@@ -183,8 +196,18 @@ Define an `inline-certificate` with a name matching the name in the API Gateway 
 ```hcl
 Kind = "inline-certificate"
 Name = "my-certificate"
-Certificate = "<public certificate>"
-PrivateKey = "<private key>"
+
+Certificate = <<EOF
+-----BEGIN CERTIFICATE-----
+...
+-----END CERTIFICATE-----
+EOF
+
+PrivateKey = << EOF
+-----BEGIN RSA PRIVATE KEY-----
+...
+-----END RSA PRIVATE KEY-----
+EOF
 ```
 
 Create this configuration by saving it to a file called `my-certificate.hcl` and using the command
