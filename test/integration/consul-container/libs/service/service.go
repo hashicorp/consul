@@ -19,6 +19,7 @@ type Service interface {
 	GetName() string
 	GetServiceName() string
 	Start() (err error)
+	Stop() (err error)
 	Terminate() error
 	Restart() error
 	GetStatus() (string, error)
