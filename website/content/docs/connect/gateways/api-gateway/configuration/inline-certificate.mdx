@@ -12,6 +12,19 @@ information about configuring API gateways in Kubernetes environments.
 
 ## Configuration model
 
+The following list outlines field hierarchy, language-specific data types, and
+requirements in an `inline-certificate` configuration entry. Click on a property name
+to view additional details, including default values.
+
+- [`Kind`](#kind): string | must be `"inline-certificate"`
+- [`Name`](#name): string | no default
+- [`Certificate`](#certificate): string | no default
+- [`PrivateKey`](#privatekey): string | no default
+
+## Complete configuration
+
+When every field is defined, an `inline-certificate` configuration entry has the following form:
+
 <CodeTabs>
 
 ``` HCL
