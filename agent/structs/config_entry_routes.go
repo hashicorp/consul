@@ -79,9 +79,9 @@ func (e *HTTPRouteConfigEntry) Normalize() error {
 	for i, parent := range e.Parents {
 		if parent.Kind == "" {
 			parent.Kind = APIGateway
-			parent.EnterpriseMeta.Normalize()
-			e.Parents[i] = parent
 		}
+		parent.EnterpriseMeta.Normalize()
+		e.Parents[i] = parent
 	}
 
 	for i, rule := range e.Rules {
@@ -505,9 +505,9 @@ func (e *TCPRouteConfigEntry) Normalize() error {
 	for i, parent := range e.Parents {
 		if parent.Kind == "" {
 			parent.Kind = APIGateway
-			parent.EnterpriseMeta.Normalize()
-			e.Parents[i] = parent
 		}
+		parent.EnterpriseMeta.Normalize()
+		e.Parents[i] = parent
 	}
 
 	for i, service := range e.Services {
