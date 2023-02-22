@@ -3,18 +3,21 @@ layout: docs
 page_title: Set a Global Limit on Traffic Rates
 description: Use global rate limits to prevent excessive rates of requests to Consul servers.
 ---
-# Set a Global Limit on Traffic Rates
+
+# Set a global limit on traffic rates
 
 This topic describes how to configure rate limits for RPC and gRPC traffic to the Consul server. 
 
 ## Introduction 
-Rate limits apply to each Consul server separately and are intended to limit the number of read requests or write requests to the server on the RPC and internal gRPC endpoints.
 
-Because all requests coming to a Consul server eventually perform an RPC or an internal gRPC request, these limits also apply to other user interfaces, such as the HTTP API interface, the CLI, and the external gRPC endpoint for services in the Consul service mesh.
+Rate limits apply to each Consul server separately and limit the number of read requests or write requests to the server on the RPC and internal gRPC endpoints.
+
+Because all requests coming to a Consul server eventually perform an RPC or an internal gRPC request, global rate limits apply to Consul's user interfaces, such as the HTTP API interface, the CLI, and the external gRPC endpoint for services in the service mesh.
 
 Refer to [Initialize Rate Limit Settings]() for additional information about right-sizing your gRPC request configurations. 
 
 ## Set a global rate limit for a Consul server   
+
 Configure the following settings in your Consul server configuration to limit the RPC and gRPC traffic rates.
 
 - Set the rate limiter [`mode`](/consul/docs/agent/config/config-files#mode-1)
@@ -51,9 +54,10 @@ limits = {
 </CodeTabs>
 
 ## Access rate limit logs 
-Consul prints a log line for each rate limit request. The log provides the information necessary for identifying the source of the request and the configured limit. Consul prints the log `DEBUG` log level and can drop the log to avoid affecting the server health. Dropping a log line increments the `rpc.rate_limit.log_dropped` metric.
 
-The following example log shows that RPC request from `127.0.0.1:53562` to `KVS.Apply` exceeded the limit:
+Consul prints a log line for each rate limit request. The log includes information to identify the source of the request and the server's configured limit. Consul prints to `DEBUG` log level, and can be configured to drop log lines to avoid affecting the server health. Dropping a log line increments the `rpc.rate_limit.log_dropped` metric.
+
+The following example log shows that RPC request from `127.0.0.1:53562` to `KVS.Apply` exceeded the rate limit:
 
 <CodeBlockConfig hideClipboard>
 
@@ -65,13 +69,16 @@ limit_type=global/write limit_enforced=false
 </CodeBlockConfig>
 
 ## Review rate limit metrics
+
 Consul captures the following metrics associated with rate limits:
 
 - Type of limit
 - Operation
 - Rate limit mode
 
-Call the `agent/metrics` API endpoint to view the metrics associated with rate limits. Refer to [View Metrics](/consul/api-docs/agent#view-metrics) for API usage information. In the following example, Consul dropped a call to the `consul` service because it exceeded the limit by one call:
+Call the `agent/metrics` API endpoint to view the metrics associated with rate limits. Refer to [View Metrics](/consul/api-docs/agent#view-metrics) for API usage information. 
+
+In the following example, Consul dropped a call to the `consul` service because it exceeded the limit by one call:
 
 ```shell-session
 $ curl http://127.0.0.1:8500/v1/agent/metrics

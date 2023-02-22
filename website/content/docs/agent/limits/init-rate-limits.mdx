@@ -1,20 +1,20 @@
 ---
 layout: docs
 page_title: Initialize Rate Limit Settings
-description: Learn how to determins regular and peak loads in your network so that you can set the initial global rate limit configurations.
+description: Learn how to determine regular and peak loads in your network so that you can set the initial global rate limit configurations.
 ---
 
-# Initialize Rate Limit Settings
+# Initialize rate limit settings
 
-In order to set limits for traffic, you must first understand regular and peak loads in your network. We recommend completing the following steps to benchmark request rates in your environment so that you can implement limits appropriate for your applications.
+Because each network has different needs and application, you need to find out what the regular and peak loads in your network are before you set traffic limits. We recommend completing the following steps to benchmark request rates in your environment so that you can implement limits appropriate for your applications.
 
-1. Specify a global rate limit with arbitrary values in the agent configuration file based on the following conditions:
+1. In the agent configuration file, specify a global rate limit with arbitrary values based on the following conditions:
 
     - Environment where Consul servers are running 
     - Number of servers and the projected load
     - Existing metrics expressing requests per second
 
-1. Set the `mode` to `permissive`. In the following example, Consul agents are allowed up to 1000 reads and 500 writes per second:
+1. Set the `mode` to `permissive`. In the following example, the configuration allows up to 1000 reads and 500 writes per second for each Consul agent:
 
     ```hcl
     request_limits { 
@@ -29,4 +29,4 @@ In order to set limits for traffic, you must first understand regular and peak l
     - `rpc.rate_limit.exceeded.read`
     - `rpc.rate_limit.exceeded.write`
 
-1. If the limits are not reached, set the `mode` configuration to `enforcing`. Otherwise adjust and iterate limits.
+1. If the limits are not reached, set the `mode` configuration to `enforcing`. Otherwise, continue to adjust and iterate until you find your network's unique limits.
