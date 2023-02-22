@@ -58,9 +58,15 @@ as |route|>
             }}
           </notice.Body>
           <notice.Footer>
-            {{t "routes.dc.services.instance.upstreams.tproxy-mode.footer"
-              htmlSafe=true
-            }}
+            <p>
+              <Hds::Link::Standalone
+                @text={{t "routes.dc.services.instance.upstreams.tproxy-mode.footer.text"}}
+                @href='{{concat (env 'CONSUL_DOCS_URL') (t "routes.dc.services.instance.upstreams.tproxy-mode.footer.link")}}'
+                @icon="docs-link"
+                @iconPosition="trailing"
+                @size="small"
+              />
+            </p>
           </notice.Footer>
         </Notice>
       {{/if}}

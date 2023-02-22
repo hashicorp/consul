@@ -425,6 +425,10 @@
       {
         "title": "raft",
         "path": "operator/raft"
+      },
+      {
+        "title": "usage",
+        "path": "operator/usage"
       }
     ]
   },

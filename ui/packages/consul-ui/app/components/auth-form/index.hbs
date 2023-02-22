@@ -109,9 +109,11 @@
                   </State>
                 </label>
               </fieldset>
-              <Action @type='submit' disabled={{state-matches state 'loading'}}>
-                Log in
-              </Action>
+              <Hds::Button
+                type='submit'
+                @text='Log in'
+                disabled={{state-matches state 'loading'}}
+              />
             </form>
           </TabState>
 
