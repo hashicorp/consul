@@ -5,7 +5,7 @@ description: >-
   To establish a cluster peering connection on Kubernetes, generate a peering token to establish communication. Then export services and authorize requests with service intentions. 
 ---
 
-# Establish cluster peering connections
+# Establish cluster peering connections on Kubernetes
 
 This page details the process for establishing a cluster peering connection between services in a Consul on Kubernetes deployment.
 
@@ -26,7 +26,7 @@ You must meet the following requirements to use Consul's cluster peering feature
 - Consul on Kubernetes v1.0.0 or higher
 - At least two Kubernetes clusters
 
-In Consul on Kubernetes, peers identify each other using the `metadata.name` values you establish when creating the `PeeringAcceptor` and `PeeringDialer` CRDs. For additional information about the CRDs used for cluster peering, refer to [Cluster peering on Kubernetes technical specifications](/consul/docs/k8s/connect/cluster-peering/k8s-tech-specs).
+In Consul on Kubernetes, peers identify each other using the `metadata.name` values you establish when creating the `PeeringAcceptor` and `PeeringDialer` CRDs. For additional information about requirements for cluster peering on Kubernetes deployments, refer to [Cluster peering on Kubernetes technical specifications](/consul/docs/k8s/connect/cluster-peering/k8s-tech-specs).
 
 ### Assign cluster IDs to environmental variables
 
@@ -61,14 +61,6 @@ To use cluster peering with Consul on Kubernetes deployments, update the Helm ch
   $ export HELM_RELEASE_NAME=cluster-02
   $ helm install ${HELM_RELEASE_NAME} hashicorp/consul --create-namespace --namespace consul --version "1.0.1" --values values.yaml --set global.datacenter=dc2 --kube-context $CLUSTER2_CONTEXT
   ```
-
-## Mesh gateway requirements
-
-Mesh gateways are required for all cluster peering connections. Consider the following architectural requirements when creating mesh gateways:
-
-- A registered mesh gateway is required in order to export services to peers.
-- For Enterprise, the mesh gateway that exports services must be registered in the same partition as the exported services and their `exported-services` configuration entry.
-- To use the `local` mesh gateway mode, you must register a mesh gateway in the importing cluster.
 
 ### Configure the mesh gateway mode for traffic between services
 
@@ -143,7 +135,7 @@ Every time you generate a peering token, a single-use secret for establishing th
 
     ```shell-session
     $ kubectl --context $CLUSTER1_CONTEXT apply --filename acceptor.yaml
-    ````
+    ```
 
 1. Save your peering token so that you can export it to the other cluster.
 

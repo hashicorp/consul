@@ -7,13 +7,13 @@ description: >-
 
 # Manage L7 traffic with cluster peering on Kubernetes
 
-This usage topic describes how to configure the [`service-resolver` configuration entry](/docs/connect/config-entries/) to set up and manage L7 traffic between services that have an existing cluster peering connection in Consul on Kubernetes deployments.
+This usage topic describes how to configure the `service-resolver` custom resource definition (CRD) to set up and manage L7 traffic between services that have an existing cluster peering connection in Consul on Kubernetes deployments.
 
 ## Service resolvers for redirects and failover
 
 When you use cluster peering to connect datacenters through their admin partitions, you can use [dynamic traffic management](/consul/docs/connect/l7-traffic) to configure your service mesh so that services automatically forward traffic to services hosted on peer clusters.
 
-However, the `service-splitter` and `service-router` configuration entry kinds do not natively support directly targeting a service instance hosted on a peer. Before you can split or route traffic to a service on a peer, you must define the service hosted on the peer as an upstream service by configuring a failover in the `service-resolver` configuration entry. Then, you can set up a redirect in a second service resolver to interact with the peer service by name.
+However, the `service-splitter` and `service-router` CRDs do not natively support directly targeting a service instance hosted on a peer. Before you can split or route traffic to a service on a peer, you must define the service hosted on the peer as an upstream service by configuring a failover in a `service-resolver` CRD. Then, you can set up a redirect in a second service resolver to interact with the peer service by name.
 
 For more information about formatting, updating, and managing configuration entries in Consul, refer to [How to use configuration entries](/consul/docs/agent/config-entries).
 
@@ -21,9 +21,9 @@ For more information about formatting, updating, and managing configuration entr
 
 To configure L7 traffic management behavior in deployments with cluster peering connections, complete the following steps in order:
 
-1. Define the peer cluster as a failover target in the service resolver configuration. Then apply the configuration.
+1. Define the peer cluster as a failover target in the service resolver configuration. 
 
-  The following example updates the [`service-resolver` configuration entry](/docs/connect/config-entries/) in `cluster-01` so that Consul redirects traffic intended for the `frontend` service to a backup instance in peer `cluster-02` when it detects multiple connection failures.
+  The following example updates the [`service-resolver` CRD](/docs/connect/config-entries/) in `cluster-01` so that Consul redirects traffic intended for the `frontend` service to a backup instance in peer `cluster-02` when it detects multiple connection failures.
 
   <CodeBlockConfig title="failover-resolver.yaml">
 
@@ -44,9 +44,15 @@ To configure L7 traffic management behavior in deployments with cluster peering 
 
   </CodeBlockConfig>
 
-1. Define the desired behavior in `service-splitter` or `service-router` configuration entry. Then apply the configuration.
+1. Apply the resource to the local cluster.
 
-  The following example splits traffic evenly between `frontend` and `frontend-peer` services by defining the desired behavior locally:
+    ```shell-session
+    $ kubectl apply --filename failover-resolver.yaml
+    ```
+
+1. Define the desired behavior in `service-splitter` or `service-router` CRD.
+
+  The following example splits traffic evenly between `frontend` and `frontend-peer`:
 
   <CodeBlockConfig title="splitter.yaml">
 
@@ -63,9 +69,15 @@ To configure L7 traffic management behavior in deployments with cluster peering 
         service: frontend-peer
   ```
 
-  </CodeBlockCOnfig>
+  </CodeBlockConfig>
 
-1. Create a second `service-resolver` configuration entry on the local cluster that resolves the name of the peer service you used when splitting or routing the traffic. Then apply the configuration.
+1. Apply the resource to the local cluster.
+
+    ```shell-session
+    $ kubectl apply --filename splitter.yaml
+    ```
+
+1. Create a second `service-resolver` configuration entry on the local cluster that resolves the name of the peer service you used when splitting or routing the traffic.
 
   The following example uses the name `frontend-peer` to define a redirect targeting the `frontend` service on the peer `cluster-02`:
 
@@ -83,3 +95,9 @@ To configure L7 traffic management behavior in deployments with cluster peering 
   ```
 
 </CodeBlockConfig>
+
+1. Apply the resource to the local cluster.
+
+    ```shell-session
+    $ kubectl apply --filename peer-resolver.yaml
+    ```

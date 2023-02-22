@@ -9,7 +9,7 @@ description: >-
 
 This reference topic describes the technical specifications associated with using cluster peering in your Kubernetes deployments. These specifications include [required Helm values](#helm-requirements) and [required custom resource definitions (CRDs)](#crd-requirements), as well as required Consul components and their configurations.
 
-For cluster peering requirements in other runtimes, refer to [cluster peering technical specifications](/consul/docs/connect/cluster-peering/tech-specs).
+For cluster peering requirements in non-Kubernetes deployments, refer to [cluster peering technical specifications](/consul/docs/connect/cluster-peering/tech-specs).
 
 ## Helm requirements
 
@@ -66,7 +66,7 @@ Refer to the following example CRDs:
 
   </CodeBlockConfig>
 
-   <CodeBlockConfig filename="dialer.yaml">
+  <CodeBlockConfig filename="dialer.yaml">
 
   ```yaml
     apiVersion: consul.hashicorp.com/v1alpha1
@@ -88,14 +88,13 @@ Refer to the following example CRDs:
 
 To use cluster peering features, make sure your Consul environment meets the following prerequisites:
 
-- Consul v1.14 or higher.
-- A local Consul agent is required to manage mesh gateway configuration.
-- Use [Envoy proxies](/consul/docs/connect/proxies/envoy). Envoy is the only proxy with mesh gateway capabilities in Consul.
+- Consul v1.14 or higher
+- Consul on Kubernetes v1.0.0 or higher
+- At least two Kubernetes clusters
 
 In addition, the following service mesh components are required in order to establish cluster peering connections:
   
 - [Mesh gateways](#mesh-gateway-requirements)
-- [Sidecar proxies](#sidecar-proxy-requirements)
 - [Exported services](#exported-service-requirements)
 - [ACLs](#acl-requirements)
 
@@ -164,20 +163,9 @@ Mesh gateways are required for cluster peering connections. Complete the followi
     $  kubectl --context $CLUSTER2_CONTEXT apply -f mesh.yaml 
     ```
 
-## Sidecar proxy requirements
-
-The Envoy proxies that function as sidecars in your service mesh require configuration in order to properly route traffic to peers. Sidecar proxies are defined in the [service definition](/consul/docs/discovery/services).
-
-- Configure the `proxy.upstreams` parameters to route traffic to the correct service, namespace, and peer. Refer to the [`upstreams` documentation](/consul/docs/connect/registration/service-registration#upstream-configuration-reference) for details.
-- The `proxy.upstreams.destination_name` parameter is always required.
-- The `proxy.upstreams.destination_peer` parameter must be configured to enable cross-cluster traffic.
-- The `proxy.upstream/destination_namespace` configuration is only necessary if the destination service is in a non-default namespace.
-
 ## Exported service requirements
 
-The `exported-services` configuration entry is required in order for services to communicate across partitions with cluster peering connections.
-
-Basic guidance on using the `exported-services` configuration entry is included in [Establish cluster peering connections](/consul/docs/connect/cluster-peering/usage/create-cluster-peering).
+The `exported-services` CRD is required in order for services to communicate across partitions with cluster peering connections.
 
 Refer to the [`exported-services` configuration entry reference](/consul/docs/connect/config-entries/exported-services) for more information.
 
