@@ -90,9 +90,9 @@ func TestHTTPRouteFlattening(t *testing.T) {
 		Name: gatewayName,
 		Listeners: []api.APIGatewayListener{
 			{
+				Name:     "listener",
 				Port:     listenerPort,
 				Protocol: "http",
-				Hostname: "test.foo",
 			},
 		},
 	}
@@ -237,11 +237,10 @@ func TestHTTPRouteFlattening(t *testing.T) {
 	}, checkOptions{statusCode: service2ResponseCode, testName: "service2 just path match"})
 
 	////v1 path with the header
-	//TODO this test case was validated manually but does not want to work here with golang runners for whatever reason
-	//checkRoute(t, ip, gatewayService.GetPort(listenerPort), "check", map[string]string{
-	//	"Host": "test.foo",
-	//	"x-v2": "v2",
-	//}, checkOptions{statusCode: service2ResponseCode, testName: "service2 just header match"})
+	checkRoute(t, ip, gatewayService.GetPort(listenerPort), "check", map[string]string{
+		"Host": "test.foo",
+		"x-v2": "v2",
+	}, checkOptions{statusCode: service2ResponseCode, testName: "service2 just header match"})
 
 	checkRoute(t, ip, gatewayService.GetPort(listenerPort), "v2/path/value", map[string]string{
 		"Host": "test.foo",
