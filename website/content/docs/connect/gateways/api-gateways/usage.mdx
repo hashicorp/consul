@@ -1,44 +1,69 @@
-– – –
+–––
 layout: docs
 page_title: API Gateways on Virtual Machines
 description: Learn how to configure and Consul API gateways and gateway routes on virtual machines so that you can enable ingress requests to services in your service mesh in VM environments.
-– – –
+–––
 
 # API Gateways on Virtual Machines
 
-This topic describes how to deploy Consul API gateways to networks that operate in virtual machine (VMs) environments. If you want to implement an API gateway in a Kubernetes environment, refer to [API Gateway for Kubernetes](/consul/docs/api-gateway).
+This topic describes how to deploy Consul API gateways to networks that operate
+in virtual machine (VMs) environments. If you want to implement an API gateway
+in a Kubernetes environment, refer to [API Gateway for Kubernetes](/consul/docs/api-gateway).
+
 ## Introduction
 
-API gateways enable external network clients to access applications and services running in a Consul datacenter. This type of network traffic is commonly referred to as _north-south_ network traffic because it refers to the flow of data into and out of a specific environment. API gateways can also forward requests from clients to specific destinations based on path or request protocol.
+API gateways enable external network clients to access applications and services
+running in a Consul datacenter. This type of network traffic is commonly
+referred to as _north-south_ network traffic because it refers to the flow of
+data into and out of a specific environment. API gateways can also forward
+requests from clients to specific destinations based on path or request
+protocol.
 
 API gateways solve the following primary use cases:
 
-Control access at the point of entry: Set the protocols of external connection requests and secure inbound connections with TLS certificates from trusted providers, such as Verisign and Let's Encrypt.
-Simplify traffic management: Load balance requests across services and route traffic to the appropriate service by matching one or more criteria, such as hostname, path, header presence or value, and HTTP method.
+- Control access at the point of entry: Set the protocols of external connection
+  requests and secure inbound connections with TLS certificates from trusted
+  providers, such as Verisign and Let's Encrypt.
+- Simplify traffic management: Load balance requests across services and route
+  traffic to the appropriate service by matching one or more criteria, such as
+  hostname, path, header presence or value, and HTTP method.
 
-The following steps describe the general workflow for deploying a Consul API gateway to a VM environment:
+The following steps describe the general workflow for deploying a Consul API
+gateway to a VM environment:
 
-Create an API gateway configuration entry. The configuration entry includes listener configurations and TLS certificates.
-Deploy the API gateway configuration entry to create the listeners.
-Create and deploy routes to bind to the gateway
+1. Create an API gateway configuration entry. The configuration entry includes
+   listener configurations and TLS certificates.
+2. Deploy the API gateway configuration entry to create the listeners.
+3. Create and deploy routes to bind to the gateway
 
-Refer to [API Gateway for Kubernetes](/consul/docs/api-gateway) for information about using Consul API gateway on Kubernetes.
+Refer to [API Gateway for Kubernetes](/consul/docs/api-gateway) for information
+about using Consul API gateway on Kubernetes.
 
 ## Requirements
+
 The following requirements must be satisfied to use API gateways on VMs:
 
-Consul 1.15 or later
-A Consul cluster with service mesh enabled. Refer to [`connect`](/consul/docs/agent/config/config-files#connect)
-Network connectivity between the machine deploying the API gateway and a Consul cluster agent or server.
+- Consul 1.15 or later
+- A Consul cluster with Service Mesh enabled. Refer to [`connect`](/consul/docs/agent/config/config-files#connect)
+- Network connectivity between the machine deploying the API Gateway and a
+  Consul cluster agent or server.
 
-If ACLs are enabled, you must present a token with the following permissions to configure Consul and deploy API gateways:
+If ACLs are enabled, you must present a token with the following permissions to
+configure Consul and deploy API gateways:
 
-`mesh: read`
-`mesh: write`
+- `mesh: read`
+- `mesh: write`
 
-Refer [Mesh Rules](/consul/docs/security/acl/acl-rules#mesh-rules) for additional information about configuring policies that enable you to interact with Consul API gateway configurations.
+Refer [Mesh Rules](/consul/docs/security/acl/acl-rules#mesh-rules) for
+additional information about configuring policies that enable you to interact
+with Consul API gateway configurations.
+
 ## Create the API gateway configuration
-Create an API gateway configuration that defines listeners and TLS certificates in the mesh. In the following example, the API gateway specifies an HTTP listener on port `8080` that routes can use to connect external traffic to services in the mesh.
+
+Create an API gateway configuration that defines listeners and TLS certificates
+in the mesh. In the following example, the API gateway specifies an HTTP
+listener on port `8080` that routes can use to connect external traffic to
+services in the mesh.
 
 
 Kind = "api-gateway"
