@@ -1,0 +1,3 @@
+```release-note:improvement
+docker: Bump base image to Alpine 3.17. 
+```
