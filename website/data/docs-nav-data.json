@@ -395,6 +395,28 @@
             "path": "connect/proxies/envoy"
           },
           {
+            "title": "Envoy Extensions",
+            "routes": [
+              {
+                "title": "Overview",
+                "path": "connect/proxies/envoy-extensions"
+              },
+              {
+                "title": "Usage",
+                "routes": [
+                  {
+                    "title": "Run Lua scripts in Envoy proxies",
+                    "path": "connect/proxies/envoy-extensions/usage/lua"
+                  },
+                  {
+                    "title": "Invoke Lambda functions in Envoy proxies",
+                    "path": "connect/proxies/envoy-extensions/usage/lambda"
+                  }
+                ]
+              }
+            ]
+          },
+          {
             "title": "Built-in Proxy",
             "path": "connect/proxies/built-in"
           },
