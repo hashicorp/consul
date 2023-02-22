@@ -16,17 +16,15 @@ The following list outlines field hierarchy, language-specific data types, and
 requirements in an `tcp-route` configuration entry. Click on a property name to
 view additional details, including default values.
 
-```
-[`Kind`](#kind): string | must be `tcp-route`
-[`Name`](#name): string | no default
-[`Services`](#rules-services): list | no default
+- [`Kind`](#kind): string | must be `"tcp-route"`
+- [`Name`](#name): string | no default
+- [`Services`](#rules-services): list | no default
   - [`Name`](#rules-services-name): string | no default
   - [`Weight`](#rules-services-weight): number | `1`
-[`Parents`](#parents): list | no default
-  - [`Kind`](#parents-kind): string | must be `api-gateway`
+- [`Parents`](#parents): list | no default
+  - [`Kind`](#parents-kind): string | must be `"api-gateway"`
   - [`Name`](#parents-name): string | no default
   - [`SectionName`](#parents-sectionname): string | no default
-```
 
 
 ## Complete configuration
@@ -86,29 +84,33 @@ Meta = {
 
 ## Specification
 
-This section provides details about the fields you can configure in the `tcp-route` configuration entry.
+This section provides details about the fields you can configure in the
+`tcp-route` configuration entry.
 
 ### `Kind`
 
-Specifies the type of configuration entry to implement. This must be set to `tcp-route`.
+Specifies the type of configuration entry to implement. This must be set to
+`"tcp-route"`.
 
 #### Values
 
 - Default: none
 - This field is required.
-- Data type: String value that must be set to`tcp-route`.
+- Data type: string value that must be set to`tcp-route`.
 
 ### `Name`
 
-Specifies a name for the configuration entry. The name is metadata that you can use to reference the configuration entry when performing Consul operations, such as applying a configuration entry to a specific cluster.
+Specifies a name for the configuration entry. The name is metadata that you can
+use to reference the configuration entry when performing Consul operations,
+such as applying a configuration entry to a specific cluster.
 
 #### Values
 
 - Default: Defaults to the name of the node after writing the entry to the Consul server.
 - This field is required.
-- Data type: String
+- Data type: string
 
-### `Parents[]`
+### `Parents`
 
 Specifies the list of gateways that the route is bound to.
 
@@ -117,13 +119,14 @@ Specifies the list of gateways that the route is bound to.
 - Default: none
 - This field is not required.
 - Data type: List of map. Each member of the list contains the following fields:
-  `Kind`
-  `Name`
-  `SectionName`
+  - `Kind`
+  - `Name`
+  - `SectionName`
 
-### `Parents[].Kind`
+### `Parents.Kind`
 
-Specifies the type of resource to bind to. This field is required and must be set to `api-gateway`
+Specifies the type of resource to bind to. This field is required and must be
+set to `"api-gateway"`
 
 #### Values
 
@@ -131,7 +134,7 @@ Specifies the type of resource to bind to. This field is required and must be se
 - This field is required.
 - Data type: string
 
-### `Parents[].Name`
+### `Parents.Name`
 
 Specifies the name of the api-gateway to bind to.
 
@@ -141,9 +144,10 @@ Specifies the name of the api-gateway to bind to.
 - This field is required.
 - Data type: string
 
-### `Parents[].SectionName`
+### `Parents.SectionName`
 
-Specifies the name of the listener on the api-gateway. If left empty, this will bind this route to all listeners on the parent gateway
+Specifies the name of the listener on the api-gateway. If left empty, this will
+bind this route to *all listeners* on the parent gateway
 
 #### Values
 
@@ -151,18 +155,19 @@ Specifies the name of the listener on the api-gateway. If left empty, this will 
 - This field is not required.
 - Data type: string
 
-### `Services[]`
+### `Services`
 
-Specifies a TCP-based service the API gateway should route incoming requests to. You can only specify one service.
+Specifies a TCP-based service the API gateway should route incoming requests
+to. You can only specify one service.
 
 #### Values
 
 - Default: none
 - This field is not required.
 - Data type: List of map. Each member of the list contains the following fields:
-  `Name`
+  - `Name`
 
-### `Services[].Name`
+### `Services.Name`
 
 Specifies the list of TCP-based services this should route to. Currently, this must specify at maximum one service.
 
