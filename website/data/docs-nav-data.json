@@ -193,7 +193,7 @@
         ]
       },
       {
-        "title": "Consul API Gateway",
+        "title": "API Gateway for Kubernetes",
         "routes": [
           {
             "title": "v0.5.x",
@@ -1293,7 +1293,7 @@
     "divider": true
   },
   {
-    "title": "Consul API Gateway",
+    "title": "API Gateway for Kubernetes",
     "routes": [
       {
         "title": "Overview",
@@ -1315,7 +1315,7 @@
         "title": "Usage",
         "routes": [
           {
-            "title": "Basic Usage",
+            "title": "Deploy",
             "path": "api-gateway/usage/usage"
           },
           {
