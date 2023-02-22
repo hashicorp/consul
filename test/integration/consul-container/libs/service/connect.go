@@ -14,7 +14,6 @@ import (
 	"github.com/hashicorp/consul/api"
 
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
-	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 )
 
@@ -23,7 +22,7 @@ type ConnectContainer struct {
 	ctx               context.Context
 	container         testcontainers.Container
 	ip                string
-	appPort           int
+	appPort           []int
 	externalAdminPort int
 	internalAdminPort int
 	mappedPublicPort  int
@@ -52,6 +51,10 @@ func (g ConnectContainer) Export(partition, peer string, client *api.Client) err
 }
 
 func (g ConnectContainer) GetAddr() (string, int) {
+	return g.ip, g.appPort[0]
+}
+
+func (g ConnectContainer) GetAddrs() (string, []int) {
 	return g.ip, g.appPort
 }
 
@@ -139,7 +142,7 @@ func (g ConnectContainer) GetStatus() (string, error) {
 // node. The container exposes port serviceBindPort and envoy admin port
 // (19000) by mapping them onto host ports. The container's name has a prefix
 // combining datacenter and name.
-func NewConnectService(ctx context.Context, sidecarServiceName string, serviceID string, serviceBindPort int, node libcluster.Agent) (*ConnectContainer, error) {
+func NewConnectService(ctx context.Context, sidecarServiceName string, serviceID string, serviceBindPorts []int, node cluster.Agent) (*ConnectContainer, error) {
 	nodeConfig := node.GetConfig()
 	if nodeConfig.ScratchDir == "" {
 		return nil, fmt.Errorf("node ScratchDir is required")
@@ -209,11 +212,19 @@ func NewConnectService(ctx context.Context, sidecarServiceName string, serviceID
 	}
 
 	var (
-		appPortStr   = strconv.Itoa(serviceBindPort)
+		appPortStrs  []string
 		adminPortStr = strconv.Itoa(internalAdminPort)
 	)
 
-	info, err := cluster.LaunchContainerOnNode(ctx, node, req, []string{appPortStr, adminPortStr})
+	for _, port := range serviceBindPorts {
+		appPortStrs = append(appPortStrs, strconv.Itoa(port))
+	}
+
+	// expose the app ports and the envoy adminPortStr on the agent container
+	exposedPorts := make([]string, len(appPortStrs))
+	copy(exposedPorts, appPortStrs)
+	exposedPorts = append(exposedPorts, adminPortStr)
+	info, err := cluster.LaunchContainerOnNode(ctx, node, req, exposedPorts)
 	if err != nil {
 		return nil, err
 	}
@@ -222,14 +233,17 @@ func NewConnectService(ctx context.Context, sidecarServiceName string, serviceID
 		ctx:               ctx,
 		container:         info.Container,
 		ip:                info.IP,
-		appPort:           info.MappedPorts[appPortStr].Int(),
 		externalAdminPort: info.MappedPorts[adminPortStr].Int(),
 		internalAdminPort: internalAdminPort,
 		serviceName:       sidecarServiceName,
 	}
 
-	fmt.Printf("NewConnectService: name %s, mapped App Port %d, service bind port %d\n",
-		serviceID, out.appPort, serviceBindPort)
+	for _, port := range appPortStrs {
+		out.appPort = append(out.appPort, info.MappedPorts[port].Int())
+	}
+
+	fmt.Printf("NewConnectService: name %s, mapped App Port %d, service bind port %v\n",
+		serviceID, out.appPort, serviceBindPorts)
 	fmt.Printf("NewConnectService sidecar: name %s, mapped admin port %d, admin port %d\n",
 		sidecarServiceName, out.externalAdminPort, internalAdminPort)
 

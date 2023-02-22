@@ -806,7 +806,7 @@ message HTTPQueryMatch {
 // name=Structs
 message HTTPFilters {
   repeated HTTPHeaderFilter Headers = 1;
-  repeated URLRewrite URLRewrites = 2;
+  URLRewrite URLRewrite = 2;
 }
 
 // mog annotation:
@@ -863,8 +863,6 @@ message TCPRoute {
 // name=Structs
 message TCPService {
   string Name = 1;
-  // mog: func-to=int func-from=int32
-  int32 Weight = 2;
   // mog: func-to=enterpriseMetaToStructs func-from=enterpriseMetaFromStructs
-  common.EnterpriseMeta EnterpriseMeta = 4;
+  common.EnterpriseMeta EnterpriseMeta = 2;
 }

@@ -3,6 +3,7 @@ package discoverychain
 import (
 	"testing"
 
+	"github.com/hashicorp/consul/agent/configentry"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/stretchr/testify/require"
 )
@@ -637,6 +638,259 @@ func TestGatewayChainSynthesizer_Synthesize(t *testing.T) {
 			require.NoError(t, err)
 			require.Equal(t, tc.expectedIngressServices, ingressServices)
 			require.Equal(t, tc.expectedDiscoveryChains, discoveryChains)
+		})
+	}
+}
+
+func TestGatewayChainSynthesizer_ComplexChain(t *testing.T) {
+	t.Parallel()
+
+	cases := map[string]struct {
+		synthesizer            *GatewayChainSynthesizer
+		route                  *structs.HTTPRouteConfigEntry
+		entries                []structs.ConfigEntry
+		expectedDiscoveryChain *structs.CompiledDiscoveryChain
+	}{
+		"HTTP-Route with nested splitters": {
+			synthesizer: NewGatewayChainSynthesizer("dc1", "domain", "suffix", &structs.APIGatewayConfigEntry{
+				Kind: structs.APIGateway,
+				Name: "gateway",
+			}),
+			route: &structs.HTTPRouteConfigEntry{
+				Kind: structs.HTTPRoute,
+				Name: "test",
+				Rules: []structs.HTTPRouteRule{{
+					Services: []structs.HTTPService{{
+						Name: "splitter-one",
+					}},
+				}},
+			},
+			entries: []structs.ConfigEntry{
+				&structs.ServiceSplitterConfigEntry{
+					Kind: structs.ServiceSplitter,
+					Name: "splitter-one",
+					Splits: []structs.ServiceSplit{{
+						Service: "service-one",
+						Weight:  50,
+					}, {
+						Service: "splitter-two",
+						Weight:  50,
+					}},
+				},
+				&structs.ServiceSplitterConfigEntry{
+					Kind: structs.ServiceSplitter,
+					Name: "splitter-two",
+					Splits: []structs.ServiceSplit{{
+						Service: "service-two",
+						Weight:  50,
+					}, {
+						Service: "service-three",
+						Weight:  50,
+					}},
+				},
+				&structs.ProxyConfigEntry{
+					Kind: structs.ProxyConfigGlobal,
+					Name: "global",
+					Config: map[string]interface{}{
+						"protocol": "http",
+					},
+				},
+			},
+			expectedDiscoveryChain: &structs.CompiledDiscoveryChain{
+				ServiceName: "gateway-suffix-9b9265b",
+				Namespace:   "default",
+				Partition:   "default",
+				Datacenter:  "dc1",
+				Protocol:    "http",
+				StartNode:   "router:gateway-suffix-9b9265b.default.default",
+				Nodes: map[string]*structs.DiscoveryGraphNode{
+					"resolver:gateway-suffix-9b9265b.default.default.dc1": {
+						Type: "resolver",
+						Name: "gateway-suffix-9b9265b.default.default.dc1",
+						Resolver: &structs.DiscoveryResolver{
+							Target:         "gateway-suffix-9b9265b.default.default.dc1",
+							Default:        true,
+							ConnectTimeout: 5000000000,
+						},
+					},
+					"resolver:service-one.default.default.dc1": {
+						Type: "resolver",
+						Name: "service-one.default.default.dc1",
+						Resolver: &structs.DiscoveryResolver{
+							Target:         "service-one.default.default.dc1",
+							Default:        true,
+							ConnectTimeout: 5000000000,
+						},
+					},
+					"resolver:service-three.default.default.dc1": {
+						Type: "resolver",
+						Name: "service-three.default.default.dc1",
+						Resolver: &structs.DiscoveryResolver{
+							Target:         "service-three.default.default.dc1",
+							Default:        true,
+							ConnectTimeout: 5000000000,
+						},
+					},
+					"resolver:service-two.default.default.dc1": {
+						Type: "resolver",
+						Name: "service-two.default.default.dc1",
+						Resolver: &structs.DiscoveryResolver{
+							Target:         "service-two.default.default.dc1",
+							Default:        true,
+							ConnectTimeout: 5000000000,
+						},
+					},
+					"resolver:splitter-one.default.default.dc1": {
+						Type: "resolver",
+						Name: "splitter-one.default.default.dc1",
+						Resolver: &structs.DiscoveryResolver{
+							Target:         "splitter-one.default.default.dc1",
+							Default:        true,
+							ConnectTimeout: 5000000000,
+						},
+					},
+					"router:gateway-suffix-9b9265b.default.default": {
+						Type: "router",
+						Name: "gateway-suffix-9b9265b.default.default",
+						Routes: []*structs.DiscoveryRoute{{
+							Definition: &structs.ServiceRoute{
+								Match: &structs.ServiceRouteMatch{
+									HTTP: &structs.ServiceRouteHTTPMatch{
+										PathPrefix: "/",
+									},
+								},
+								Destination: &structs.ServiceRouteDestination{
+									Service:   "splitter-one",
+									Partition: "default",
+									Namespace: "default",
+									RequestHeaders: &structs.HTTPHeaderModifiers{
+										Add: make(map[string]string),
+										Set: make(map[string]string),
+									},
+								},
+							},
+							NextNode: "splitter:splitter-one.default.default",
+						}, {
+							Definition: &structs.ServiceRoute{
+								Match: &structs.ServiceRouteMatch{
+									HTTP: &structs.ServiceRouteHTTPMatch{
+										PathPrefix: "/",
+									},
+								},
+								Destination: &structs.ServiceRouteDestination{
+									Service:   "gateway-suffix-9b9265b",
+									Partition: "default",
+									Namespace: "default",
+								},
+							},
+							NextNode: "resolver:gateway-suffix-9b9265b.default.default.dc1",
+						}},
+					},
+					"splitter:splitter-one.default.default": {
+						Type: structs.DiscoveryGraphNodeTypeSplitter,
+						Name: "splitter-one.default.default",
+						Splits: []*structs.DiscoverySplit{{
+							Definition: &structs.ServiceSplit{
+								Weight:  50,
+								Service: "service-one",
+							},
+							Weight:   50,
+							NextNode: "resolver:service-one.default.default.dc1",
+						}, {
+							Definition: &structs.ServiceSplit{
+								Weight:  50,
+								Service: "service-two",
+							},
+							Weight:   25,
+							NextNode: "resolver:service-two.default.default.dc1",
+						}, {
+							Definition: &structs.ServiceSplit{
+								Weight:  50,
+								Service: "service-three",
+							},
+							Weight:   25,
+							NextNode: "resolver:service-three.default.default.dc1",
+						}},
+					},
+				}, Targets: map[string]*structs.DiscoveryTarget{
+					"gateway-suffix-9b9265b.default.default.dc1": {
+						ID:             "gateway-suffix-9b9265b.default.default.dc1",
+						Service:        "gateway-suffix-9b9265b",
+						Datacenter:     "dc1",
+						Partition:      "default",
+						Namespace:      "default",
+						ConnectTimeout: 5000000000,
+						SNI:            "gateway-suffix-9b9265b.default.dc1.internal.domain",
+						Name:           "gateway-suffix-9b9265b.default.dc1.internal.domain",
+					},
+					"service-one.default.default.dc1": {
+						ID:             "service-one.default.default.dc1",
+						Service:        "service-one",
+						Datacenter:     "dc1",
+						Partition:      "default",
+						Namespace:      "default",
+						ConnectTimeout: 5000000000,
+						SNI:            "service-one.default.dc1.internal.domain",
+						Name:           "service-one.default.dc1.internal.domain",
+					},
+					"service-three.default.default.dc1": {
+						ID:             "service-three.default.default.dc1",
+						Service:        "service-three",
+						Datacenter:     "dc1",
+						Partition:      "default",
+						Namespace:      "default",
+						ConnectTimeout: 5000000000,
+						SNI:            "service-three.default.dc1.internal.domain",
+						Name:           "service-three.default.dc1.internal.domain",
+					},
+					"service-two.default.default.dc1": {
+						ID:             "service-two.default.default.dc1",
+						Service:        "service-two",
+						Datacenter:     "dc1",
+						Partition:      "default",
+						Namespace:      "default",
+						ConnectTimeout: 5000000000,
+						SNI:            "service-two.default.dc1.internal.domain",
+						Name:           "service-two.default.dc1.internal.domain",
+					},
+					"splitter-one.default.default.dc1": {
+						ID:             "splitter-one.default.default.dc1",
+						Service:        "splitter-one",
+						Datacenter:     "dc1",
+						Partition:      "default",
+						Namespace:      "default",
+						ConnectTimeout: 5000000000,
+						SNI:            "splitter-one.default.dc1.internal.domain",
+						Name:           "splitter-one.default.dc1.internal.domain",
+					},
+				}},
+		},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			service := tc.entries[0]
+			entries := configentry.NewDiscoveryChainSet()
+			entries.AddEntries(tc.entries...)
+			compiled, err := Compile(CompileRequest{
+				ServiceName:           service.GetName(),
+				EvaluateInNamespace:   service.GetEnterpriseMeta().NamespaceOrDefault(),
+				EvaluateInPartition:   service.GetEnterpriseMeta().PartitionOrDefault(),
+				EvaluateInDatacenter:  "dc1",
+				EvaluateInTrustDomain: "domain",
+				Entries:               entries,
+			})
+			require.NoError(t, err)
+
+			tc.synthesizer.SetHostname("*")
+			tc.synthesizer.AddHTTPRoute(*tc.route)
+
+			chains := []*structs.CompiledDiscoveryChain{compiled}
+			_, discoveryChains, err := tc.synthesizer.Synthesize(chains...)
+
+			require.NoError(t, err)
+			require.Len(t, discoveryChains, 1)
+			require.Equal(t, tc.expectedDiscoveryChain, discoveryChains[0])
 		})
 	}
 }
