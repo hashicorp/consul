@@ -14,8 +14,8 @@ EnvoyExtensions = [
       MaxTokens = 1,
       TokensPerFill = 1,
       FillInterval = 120,
-      FilterEnabled = 100,
-      FilterEnforced = 100,
+      FilterEnabledPercent = 100,
+      FilterEnforcedPercent = 100,
     }
   }
 ]
@@ -33,8 +33,8 @@ EnvoyExtensions = [
       MaxTokens = 1,
       TokensPerFill = 1,
       FillInterval = 120,
-      FilterEnabled = 100,
-      FilterEnforced = 100,
+      FilterEnabledPercent = 100,
+      FilterEnforcedPercent = 100,
     }
   }
 ]

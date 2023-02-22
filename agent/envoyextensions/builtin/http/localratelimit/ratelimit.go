@@ -31,8 +31,8 @@ type ratelimit struct {
 	FillInterval  *int
 
 	// Percent of requests to be rate limited
-	FilterEnabled  *uint32
-	FilterEnforced *uint32
+	FilterEnabledPercent  *uint32
+	FilterEnforcedPercent *uint32
 }
 
 var _ extensioncommon.BasicExtension = (*ratelimit)(nil)
@@ -109,7 +109,7 @@ func (p ratelimit) PatchCluster(_ *extensioncommon.RuntimeConfig, c *envoy_clust
 	return c, false, nil
 }
 
-// PatchFilter inserts a http local rate_limit filter at the head of
+// PatchFilter inserts a http local rate_limit filter to
 // envoy.filters.network.http_connection_manager filters
 func (p ratelimit) PatchFilter(_ *extensioncommon.RuntimeConfig, filter *envoy_listener_v3.Filter) (*envoy_listener_v3.Filter, bool, error) {
 	if filter.Name != "envoy.filters.network.http_connection_manager" {
@@ -140,20 +140,20 @@ func (p ratelimit) PatchFilter(_ *extensioncommon.RuntimeConfig, filter *envoy_l
 	}
 
 	var FilterEnabledDefault *envoy_core_v3.RuntimeFractionalPercent
-	if p.FilterEnabled != nil {
+	if p.FilterEnabledPercent != nil {
 		FilterEnabledDefault = &envoy_core_v3.RuntimeFractionalPercent{
 			DefaultValue: &envoy_type_v3.FractionalPercent{
-				Numerator:   *p.FilterEnabled,
+				Numerator:   *p.FilterEnabledPercent,
 				Denominator: envoy_type_v3.FractionalPercent_HUNDRED,
 			},
 		}
 	}
 
 	var FilterEnforcedDefault *envoy_core_v3.RuntimeFractionalPercent
-	if p.FilterEnforced != nil {
+	if p.FilterEnforcedPercent != nil {
 		FilterEnforcedDefault = &envoy_core_v3.RuntimeFractionalPercent{
 			DefaultValue: &envoy_type_v3.FractionalPercent{
-				Numerator:   *p.FilterEnforced,
+				Numerator:   *p.FilterEnforcedPercent,
 				Denominator: envoy_type_v3.FractionalPercent_HUNDRED,
 			},
 		}
@@ -175,10 +175,19 @@ func (p ratelimit) PatchFilter(_ *extensioncommon.RuntimeConfig, filter *envoy_l
 
 	changedFilters := make([]*envoy_http_v3.HttpFilter, 0, len(config.HttpFilters)+1)
 
-	// The ratelimitHttpFilter is inserted as the first element of the http
-	// filter chain.
-	changedFilters = append(changedFilters, ratelimitHttpFilter)
-	changedFilters = append(changedFilters, config.HttpFilters...)
+	// The ratelimitHttpFilter is inserted after the http.rbac filter
+	// if http.rbac doesn't exit, it is inserted at the head
+	inserted := false
+	for _, filter := range config.HttpFilters {
+		changedFilters = append(changedFilters, filter)
+		if filter.Name == "envoy.filters.http.rbac" {
+			changedFilters = append(changedFilters, ratelimitHttpFilter)
+			inserted = true
+		}
+	}
+	if !inserted {
+		changedFilters = append(changedFilters, ratelimitHttpFilter)
+	}
 	config.HttpFilters = changedFilters
 
 	newFilter, err := makeFilter("envoy.filters.network.http_connection_manager", config)

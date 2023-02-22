@@ -217,12 +217,12 @@ end`,
 						{
 							Name: api.BuiltinLocalRatelimitExtension,
 							Arguments: map[string]interface{}{
-								"ProxyType":      "connect-proxy",
-								"MaxTokens":      3,
-								"TokensPerFill":  2,
-								"FillInterval":   10,
-								"FilterEnabled":  100,
-								"FilterEnforced": 100,
+								"ProxyType":             "connect-proxy",
+								"MaxTokens":             3,
+								"TokensPerFill":         2,
+								"FillInterval":          10,
+								"FilterEnabledPercent":  100,
+								"FilterEnforcedPercent": 100,
 							},
 						},
 					}
