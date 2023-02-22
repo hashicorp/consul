@@ -15,12 +15,8 @@ var _ RateLimiter = &MultiLimiter{}
 
 const separator = "♣"
 
-func makeKey(keys ...[]byte) KeyType {
+func Key(keys ...[]byte) KeyType {
 	return bytes.Join(keys, []byte(separator))
-}
-
-func Key(prefix, key []byte) KeyType {
-	return makeKey(prefix, key)
 }
 
 // RateLimiter is the interface implemented by MultiLimiter
@@ -131,19 +127,9 @@ func (m *MultiLimiter) Run(ctx context.Context) {
 
 }
 
-func splitKey(key []byte) ([]byte, []byte) {
-
-	ret := bytes.SplitN(key, []byte(separator), 2)
-	if len(ret) != 2 {
-		return []byte(""), []byte("")
-	}
-	return ret[0], ret[1]
-}
-
 // Allow should be called by a request processor to check if the current request is Limited
 // The request processor should provide a LimitedEntity that implement the right Key()
 func (m *MultiLimiter) Allow(e LimitedEntity) bool {
-	prefix, _ := splitKey(e.Key())
 	limiters := m.limiters.Load()
 	l, ok := limiters.Get(e.Key())
 	now := time.Now()
@@ -157,14 +143,16 @@ func (m *MultiLimiter) Allow(e LimitedEntity) bool {
 	}
 
 	configs := m.limitersConfigs.Load()
-	c, okP := configs.Get(prefix)
-	var config = &m.defaultConfig.Load().LimiterConfig
-	if okP {
-		prefixConfig := c.(*LimiterConfig)
-		if prefixConfig != nil {
-			config = prefixConfig
+	config := &m.defaultConfig.Load().LimiterConfig
+	p, _, ok := configs.Root().LongestPrefix(e.Key())
+
+	if ok {
+		c, ok := configs.Get(p)
+		if ok && c != nil {
+			config = c.(*LimiterConfig)
 		}
 	}
+
 	limiter := &Limiter{limiter: rate.NewLimiter(config.Rate, config.Burst)}
 	limiter.lastAccess.Store(unixNow)
 	m.limiterCh <- &limiterWithKey{l: limiter, k: e.Key(), t: now}
@@ -182,7 +170,6 @@ type tickerWrapper struct {
 func (t tickerWrapper) Ticker() <-chan time.Time {
 	return t.ticker.C
 }
-
 func (m *MultiLimiter) reconcile(ctx context.Context, waiter ticker, txn *radix.Txn, reconcileCheckLimit time.Duration) *radix.Txn {
 	select {
 	case <-waiter.Ticker():
@@ -223,8 +210,11 @@ func (m *MultiLimiter) reconcileConfig(txn *radix.Txn) {
 
 		// find the prefix for the leaf and check if the defaultConfig is up-to-date
 		// it's possible that the prefix is equal to the key
-		prefix, _ := splitKey(k)
-		v, ok := m.limitersConfigs.Load().Get(prefix)
+		p, _, ok := m.limitersConfigs.Load().Root().LongestPrefix(k)
+		if !ok {
+			continue
+		}
+		v, ok := m.limitersConfigs.Load().Get(p)
 		if v == nil || !ok {
 			continue
 		}
