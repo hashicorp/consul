@@ -805,6 +805,10 @@
       {
         "title": "FAQ",
         "path": "troubleshoot/faq"
+      },
+      {
+        "title": "Service-to-Service Troubleshooting",
+        "path": "troubleshoot/troubleshoot-services"
       }
     ]
   },
