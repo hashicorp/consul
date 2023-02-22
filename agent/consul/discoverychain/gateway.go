@@ -5,6 +5,7 @@ import (
 	"hash/crc32"
 	"sort"
 	"strconv"
+	"strings"
 
 	"github.com/hashicorp/consul/agent/configentry"
 	"github.com/hashicorp/consul/agent/structs"
@@ -126,6 +127,23 @@ func (l *GatewayChainSynthesizer) Synthesize(chains ...*structs.CompiledDiscover
 		if err != nil {
 			return nil, nil, err
 		}
+
+		// fix up the nodes for the terminal targets to either be a splitter or resolver if there is no splitter present
+		for name, node := range compiled.Nodes {
+			switch node.Type {
+			// we should only have these two types
+			case structs.DiscoveryGraphNodeTypeRouter:
+				for i, route := range node.Routes {
+					node.Routes[i].NextNode = targetForResolverNode(route.NextNode, chains)
+				}
+			case structs.DiscoveryGraphNodeTypeSplitter:
+				for i, split := range node.Splits {
+					node.Splits[i].NextNode = targetForResolverNode(split.NextNode, chains)
+				}
+			}
+			compiled.Nodes[name] = node
+		}
+
 		for _, c := range chains {
 			for id, target := range c.Targets {
 				compiled.Targets[id] = target
@@ -175,6 +193,27 @@ func (l *GatewayChainSynthesizer) consolidateHTTPRoutes() []structs.HTTPRouteCon
 	}
 
 	return routes
+}
+
+func targetForResolverNode(nodeName string, chains []*structs.CompiledDiscoveryChain) string {
+	resolverPrefix := structs.DiscoveryGraphNodeTypeResolver + ":"
+	splitterPrefix := structs.DiscoveryGraphNodeTypeSplitter + ":"
+
+	if !strings.HasPrefix(nodeName, resolverPrefix) {
+		return nodeName
+	}
+
+	splitterName := splitterPrefix + strings.TrimPrefix(nodeName, resolverPrefix)
+
+	for _, c := range chains {
+		for name, node := range c.Nodes {
+			if node.IsSplitter() && strings.HasPrefix(splitterName, name) {
+				return name
+			}
+		}
+	}
+
+	return nodeName
 }
 
 func hostsKey(hosts ...string) string {
