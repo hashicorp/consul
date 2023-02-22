@@ -95,7 +95,9 @@ func TestAPIGatewayCreate(t *testing.T) {
 		return gatewayReady && routeReady
 	}, time.Second*10, time.Second*1)
 
-	libassert.HTTPServiceEchoes(t, "localhost", gatewayService.GetPort(listenerPortOne), "")
+	port, err := gatewayService.GetPort(listenerPortOne)
+	assert.NoError(t, err)
+	libassert.HTTPServiceEchoes(t, "localhost", port, "")
 }
 
 func isAccepted(conditions []api.Condition) bool {
