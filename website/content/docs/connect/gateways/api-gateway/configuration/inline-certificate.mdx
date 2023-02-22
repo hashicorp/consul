@@ -55,17 +55,19 @@ Specifies the type of configuration entry to implement.
 
 - Default: none
 - This field is required.
-- Data type: String value that must equal “inline-certificate”
+- Data type: string that must equal `"inline-certificate"`
 
 ### `Name`
 
-Specifies a name for the configuration entry. The name is metadata that you can use to reference the configuration entry when performing Consul operations, such as applying a configuration entry to a specific cluster.
+Specifies a name for the configuration entry. The name is metadata that you can
+use to reference the configuration entry when performing Consul operations, such
+as applying a configuration entry to a specific cluster.
 
 #### Values
 
 - Default: none
 - This field is required.
-- Data type: String
+- Data type: string
 
 ### `Certificate`
 
@@ -75,7 +77,7 @@ Specifies the inline public certificate to use for TLS.
 
 - Default: none
 - This field is required.
-- Data type: String value of the public certificate
+- Data type: string value of the public certificate
 
 ### `PrivateKey`
 
@@ -85,5 +87,5 @@ Specifies the inline private key to use for TLS.
 
 - Default: none
 - This field is required.
-- Data type: String value of the private key
+- Data type: string value of the private key
 
