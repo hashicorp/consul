@@ -8841,10 +8841,10 @@ ember-copy@2.0.1:
   dependencies:
     ember-cli-babel "^7.22.1"
 
-ember-data-model-fragments@5.0.0-beta.8:
-  version "5.0.0-beta.8"
-  resolved "https://registry.yarnpkg.com/ember-data-model-fragments/-/ember-data-model-fragments-5.0.0-beta.8.tgz#d29e0f59a8ba0157fd9d616d50b3faec731bbeac"
-  integrity sha512-vOt2UXyhsWoZXCB9XAUqAobdRLr3ydUG6L36Rd7Qsg/1kj0jApQIEJS4qfA+xlBgirKEJ322PZqlBOv8zQSS8w==
+ember-data-model-fragments@^5.0.0:
+  version "5.0.0"
+  resolved "https://registry.yarnpkg.com/ember-data-model-fragments/-/ember-data-model-fragments-5.0.0.tgz#ae3148ac9e2f2660485a89e91e75eb292a4c61f3"
+  integrity sha512-QqHaUWYVmS/f91wqnS3favkBCH0mZblLmJ8ePqKeEK+1rcbuASmIj56HHiMz3ySy6YfzrCNTKPxDhBdA3lXi/w==
   dependencies:
     broccoli-file-creator "^2.1.1"
     broccoli-merge-trees "^3.0.0"
