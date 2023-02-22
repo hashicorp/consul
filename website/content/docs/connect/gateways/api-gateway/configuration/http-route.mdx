@@ -1,14 +1,21 @@
+---
+layout: docs
+page_title: HTTP Route Configuration
+description: Learn how to configure an HTTP Route bound to an API Gateway on VMs.
+---
+
 # HTTP Route Configuration Reference
+
 This topic provides reference information for the gateway routes configuration entry. Refer to [Consul API Gateway Configuration Overview]() for information about configuring API gateways in Kubernetes environments.
 
 ## Configuration model
+
 The following list outlines field hierarchy, language-specific data types, and requirements in an `http-route` configuration entry. Click on a property name to view additional details, including default values.
 
-```
-[`Kind`](#kind): string | must be `http-route`
-[`Name`](#name): string | no default
-[`Meta`](#meta): map | no default
-[`Rules`](#rules): list | no default
+- [`Kind`](#kind): string | must be `http-route`
+- [`Name`](#name): string | no default
+- [`Meta`](#meta): map | no default
+- [`Rules`](#rules): list | no default
 - [`Filters`](#rules-filters): map | no default
   - [`Headers`](#rules-filters-headers): list | no default
     - [`Add`](#rules-filters-headers): map | no default
@@ -23,11 +30,10 @@ The following list outlines field hierarchy, language-specific data types, and r
 - [`Services`](#rules-services): list | no default
   - [`Name`](#rules-services-name): string | no default
   - [`Weight`](#rules-services-weight): number | `1`
-[`Parents`](#parents): list | no default
+- [`Parents`](#parents): list | no default
   - [`Kind`](#parents-kind): string | must be `api-gateway`
   - [`Name`](#parents-name): string | no default
   - [`SectionName`](#parents-sectionname): string | no default
-```
 
 ## Complete configuration
 When every field is defined, an `http-route` configuration entry has the following form:
