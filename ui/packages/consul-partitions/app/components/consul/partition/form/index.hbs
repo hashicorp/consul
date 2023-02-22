@@ -103,7 +103,7 @@ as |State Guard ChartAction dispatch state|>
         @text='Cancel'
         type='reset'
         @color='secondary'
-        {{on 'click' (if @oncancel (fn @oncancel item) (fn @onsubmit item))}}
+        {{on 'click' (if @oncancel (fn (optional @oncancel item)) (fn (optional @onsubmit item)))}}
       />
 
 {{#if (and (not (is "new partition" item=item)) (can "delete partition" item=item))}}
