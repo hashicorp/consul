@@ -493,30 +493,30 @@
             "routes": [
               {
                 "title": "Overview",
-                "path": "connect/gateways/api-gateways/overview"
+                "path": "connect/gateways/api-gateway/overview"
               },
               {
                 "title": "Usage",
-                "path": "connect/gateways/api-gateways/usage"
+                "path": "connect/gateways/api-gateway/usage"
               },
               {
                 "title": "Configuration",
                 "routes": [
                   {
                     "title": "API Gateway",
-                    "path": "connect/gateways/api-gateways/configuration/api-gateway"
+                    "path": "connect/gateways/api-gateway/configuration/api-gateway"
                   },
                   {
                     "title": "HTTP Route",
-                    "path": "connect/gateways/api-gateways/configuration/http-route"
+                    "path": "connect/gateways/api-gateway/configuration/http-route"
                   },
                   {
                     "title": "TCP Route",
-                    "path": "connect/gateways/api-gateways/configuration/tcp-route"
+                    "path": "connect/gateways/api-gateway/configuration/tcp-route"
                   },
                   {
                     "title": "Inline Certificate",
-                    "path": "connect/gateways/api-gateways/configuration/inline-certificate"
+                    "path": "connect/gateways/api-gateway/configuration/inline-certificate"
                   }
                 ]
               }
