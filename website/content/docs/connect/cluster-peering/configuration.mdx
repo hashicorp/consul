@@ -9,22 +9,22 @@ description: >-
 
 This reference topic describes the technical specifications associated with using cluster peering in your deployments. These specifications include required Consul components and their configurations.
 
-To use Consul's cluster peering features in a secure deployment, verify that the following components are configured:
+## Requirements
+
+To use cluster peering features, make sure your Consul environment meets the following prerequisites:
+
+- Consul v1.14 or higher.
+- A local Consul agent is required to manage mesh gateway configuration.
+- Use [Envoy proxies](/consul/docs/connect/proxies/envoy). Envoy is the only proxy with mesh gateway capabilities in Consul.
+
+In addition, the following service mesh components are required in order to establish cluster peering connections:
   
 - [Mesh gateways](#mesh-gateway-requirements)
 - [Sidecar proxies](#sidecar-proxy-requirements)
 - [Exported services](#exported-service-requirements)
 - [ACLs](#acl-requirements)
 
-## Prerequisites
-
-Make sure your Consul environment meets the following requirements:
-
-- Consul v1.14 or higher.
-- A local Consul agent is required to manage mesh gateway configuration.
-- Use [Envoy proxies](/consul/docs/connect/proxies/envoy). Envoy is the only proxy with mesh gateway capabilities in Consul.
-
-## Mesh gateway requirements
+### Mesh gateway requirements
 
 Mesh gateways are required for routing service mesh traffic between partitions with cluster peering connections. Consider the following general requirements for mesh gateways when using cluster peering:
 
@@ -32,11 +32,9 @@ Mesh gateways are required for routing service mesh traffic between partitions w
 - For Enterprise, this mesh gateway must also be registered in the same partition as the exported services and their `exported-services` configuration entry.
 - To use the `local` mesh gateway mode, you must register a mesh gateway in the importing cluster.
 
-In addition, these particular fields may require your attention:
+In addition, you must define the `Proxy.Config` settings using opaque parameters compatible with your proxy. Refer to the [Gateway options](/consul/docs/connect/proxies/envoy#gateway-options) and [Escape-hatch Overrides](/consul/docs/connect/proxies/envoy#escape-hatch-overrides) documentation for additional Envoy proxy configuration information.
 
-- Define the `Proxy.Config` settings using opaque parameters compatible with your proxy. For Envoy, refer to the [Gateway options](/consul/docs/connect/proxies/envoy#gateway-options) and [Escape-hatch Overrides](/consul/docs/connect/proxies/envoy#escape-hatch-overrides) documentation for additional configuration information.
-
-### Mesh gateway modes
+#### Mesh gateway modes
 
 By default, all cluster peering connections use mesh gateways in [remote mode](/consul/docs/connect/gateways/mesh-gateway/service-to-service-traffic-wan-datacenters#remote). Be aware of these additional requirements when changing a mesh gateway's mode.
 
