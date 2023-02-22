@@ -38,6 +38,7 @@ to view additional details, including default values.
   - [`SectionName`](#parents-sectionname): string | no default
 
 ## Complete configuration
+
 When every field is defined, an `http-route` configuration entry has the following form:
 
 <CodeTabs>
@@ -254,18 +255,21 @@ Specifies the type of configuration entry to implement. For HTTP routes, this mu
 
 - Default: none
 - This field is required.
-- Data type: String value that must be set to`http-route`.
+- Data type: string value that must be set to `"http-route"`.
 
 ### `Name`
-Specifies a name for the configuration entry. The name is metadata that you can use to reference the configuration entry when performing Consul operations, such as applying a configuration entry to a specific cluster.
+
+Specifies a name for the configuration entry. The name is metadata that you can
+use to reference the configuration entry when performing Consul operations,
+such as applying a configuration entry to a specific cluster.
 
 #### Values
 
 - Default: Defaults to the name of the node after writing the entry to the Consul server.
 - This field is required.
-- Data type: String
+- Data type: string
 
-### `Parents[]`
+### `Parents`
 
 Specifies the list of gateways that this route should be bound to.
 
@@ -274,19 +278,20 @@ Specifies the list of gateways that this route should be bound to.
 - Default: none
 - This field is not required.
 - Data type: List of map. Each member of the list contains the following fields:
-  `Kind`
-  `Name`
-  `SectionName`
+  - `Kind`
+  - `Name`
+  - `SectionName`
 
-### `Parents[].Kind`
+### `Parents.Kind`
 
-Specifies the type of resource to bind to. This field is required and must be set to `api-gateway`
+Specifies the type of resource to bind to. This field is required and must be
+set to `"api-gateway"`
 
 #### Values
 
 - Default: none
 - This field is required.
-- Data type: string value set to `api-gateway`
+- Data type: string value set to `"api-gateway"`
 
 ### `Parents.Name`
 
@@ -300,7 +305,8 @@ Specifies the name of the api-gateway to bind to.
 
 ### `Parents.SectionName`
 
-Specifies the name of the listener on the api-gateway. If left empty, this will bind this route to all listeners on the parent gateway
+Specifies the name of the listener to bind to on the `api-gateway`. If left
+empty, this will bind this route to *all listeners* on the parent gateway
 
 #### Values
 
@@ -317,11 +323,11 @@ Specifies the list of HTTP-based routing rules that this route should use for co
 - Default:
 - This field is not required.
 - Data type: List of maps. Each member of the list contains the following fields:
-  `Filters`
-  `Matches`
-  `Services`
+  - `Filters`
+  - `Matches`
+  - `Services`
 
-### `Rules[].Filters`
+### `Rules.Filters`
 
 Specifies the list of HTTP-based filters used to modify a request prior to routing it to the upstream service
 
@@ -330,10 +336,10 @@ Specifies the list of HTTP-based filters used to modify a request prior to routi
 - Default: none
 - This field is not required.
 - Data type: Map that contains the following fields:
-  `Headers`
-  `UrlRewrite`
+  - `Headers`
+  - `UrlRewrite`
 
-### `Rules[].Filters.Headers[]`
+### `Rules.Filters.Headers`
 
 Defines operations to perform on matching request headers when an incoming request matches the `Rules.Matches` configuration.
 
@@ -347,15 +353,16 @@ This field contains the following configuration objects:
 | `add` | Configure this field to append the request header with a new value. It specifies the name of an HTTP header to append and the value(s) to add. You can specify the following configurations: <ul><li>`name`: Required string that specifies the name of the HTTP header to append.</li><li>`value`: Required string that specifies the value of the HTTP header to add.</li></ul> | List of maps |
 | `remove` | Configure this field to specify an array of header names to remove from the request header. | List of strings |
 
-### `Rules[].Filters.URLRewrite`
+### `Rules.Filters.URLRewrite`
 
 Specifies rule for rewriting the URL of incoming requests when an incoming request matches the `Rules.Matches` configuration.
+
 #### Values
 
 - Default: none
--  This field is a map that contains a `path` field.
+- This field is a map that contains a `Path` field.
 
-### Rules[].Filters.URLRewrite.Path
+### Rules.Filters.URLRewrite.Path
 
 Specifies a path that determines how Consul API Gateway rewrites a URL path (refer to [Reroute HTTP requests](/consul/docs/api-gateway/usage#reroute-http-requests) for additional information).
 
@@ -368,21 +375,23 @@ The following table describes the parameters for `path`:
 | `replacePrefixMatch` | Specifies a value that replaces the path prefix for incoming HTTP requests. The operation only affects the path prefix. The rest of the path is unchanged. | String |
 | `type` | Specifies the type of replacement to use for the URL path. You can specify the following values: <ul><li>`ReplacePrefixMatch`: Replaces the matched prefix of the URL path (default). </li></ul> | String |
 
-### `Rules[].Matches[]`
+### `Rules.Matches`
 
-Specifies the matching criteria used in the routing table. If an incoming request matches the given HTTPMatch configuration, then traffic is routed to services specified in the [`Rules.Services`](#rules-services) field.
+Specifies the matching criteria used in the routing table. If an incoming
+request matches the given HTTPMatch configuration, then traffic is routed to
+services specified in the [`Rules.Services`](#rules-services) field.
 
 #### Values
 
 - Default: none
 - This field is not required.
 - Data type: List of map. Each member of the list contains the following fields:
-  `Headers`
-  `Method`
-  `Path`
-  `Query`
+  - `Headers`
+  - `Method`
+  - `Path`
+  - `Query`
 
-### `Rules[].Matches[].Headers[]`
+### `Rules.Matches.Headers`
 
 Specifies how a match is done on a request’s headers
 
@@ -391,13 +400,13 @@ Specifies how a match is done on a request’s headers
 - Default: none
 - This field is not required.
 - Data type: List of map that contains the following fields:
-  `Match`
-  `Name`
-  `Value`
+  - `Match`
+  - `Name`
+  - `Value`
 
-### `Rules[].Matches[].Headers[].Match`
+### `Rules.Matches.Headers.Match`
 
-Specifies type of match for headers, `exact`, `prefix`, or `regex`
+Specifies type of match for headers: `"exact"`, `"prefix"`, or `"regex"`.
 
 #### Values
 
@@ -405,7 +414,7 @@ Specifies type of match for headers, `exact`, `prefix`, or `regex`
 - This field is not required.
 - Data type: string
 
-### `Rules[].Matches[].Headers[].Name`
+### `Rules.Matches.Headers.Name`
 
 Specifies the name of the header to match on
 
@@ -415,7 +424,7 @@ Specifies the name of the header to match on
 - This field is not required.
 - Data type: string
 
-### `Rules[].Matches[].Headers[].Value`
+### `Rules.Matches.Headers.Value`
 
 Specifies the value of the header to match on
 
@@ -425,7 +434,7 @@ Specifies the value of the header to match on
 - This field is not required.
 - Data type: string
 
-### `Rules[].Matches[].Method`
+### `Rules.Matches.Method`
 
 Specifies the http method to match on
 
@@ -435,31 +444,21 @@ Specifies the http method to match on
 - This field is not required.
 - Data type: string
 
-### `Rules[].Matches[].Path`
+### `Rules.Matches.Path`
 
-Specifies the http method to match on
+Specifies the http method to match on.
 
 #### Values
 
 - Default: none
 - This field is not required.
 - Data type: map which contains the following fields
-  `Match`
-  `Value`
+  - `Match`
+  - `Value`
 
-### `Rules[].Matches[].Path.Match`
+### `Rules.Matches.Path.Match`
 
-Specifies type of match for the path, `exact`, `prefix`, or `regex`
-
-#### Values
-
-- Default: none
-- This field is not required.
-- Data type: string
-
-### `Rules[].Matches[].Path.Value`
-
-Specifies the value of the path to match on
+Specifies type of match for the path: `"exact"`, `"prefix"`, or `"regex"`.
 
 #### Values
 
@@ -467,32 +466,32 @@ Specifies the value of the path to match on
 - This field is not required.
 - Data type: string
 
-### `Rules[].Matches[].Query[]`
+### `Rules.Matches.Path.Value`
 
-Specifies how a match is done on a request’s query parameters
+Specifies the value of the path to match on.
+
+#### Values
+
+- Default: none
+- This field is not required.
+- Data type: string
+
+### `Rules.Matches.Query`
+
+Specifies how a match is done on a request’s query parameters.
 
 #### Values
 
 - Default: none
 - This field is not required.
 - Data type: List of map that contains the following fields:
-  `Match`
-  `Name`
-  `Value`
+  - `Match`
+  - `Name`
+  - `Value`
 
-### `Rules[].Matches[].Query[].Match`
+### `Rules.Matches.Query.Match`
 
-Specifies type of match for query parameters, `exact`, `present`, or `regex`
-
-#### Values
-
-- Default: none
-- This field is not required.
-- Data type: string
-
-### `Rules[].Matches[].Query[].Name`
-
-Specifies the name of the query parameter to match on
+Specifies type of match for query parameters: `"exact"`, `"prefix"`, or `"regex"`.
 
 #### Values
 
@@ -500,9 +499,9 @@ Specifies the name of the query parameter to match on
 - This field is not required.
 - Data type: string
 
-### `Rules[].Matches[].Query[].Value`
+### `Rules.Matches.Query.Name`
 
-Specifies the value of the query parameter to match on
+Specifies the name of the query parameter to match on.
 
 #### Values
 
@@ -510,19 +509,30 @@ Specifies the value of the query parameter to match on
 - This field is not required.
 - Data type: string
 
-### `Rules[].Services[]`
+### `Rules.Matches.Query.Value`
 
-Specifies the service that the API gateway routes incoming requests to when the requests match the `Rules.Matches` configuration.
+Specifies the value of the query parameter to match on.
+
+#### Values
+
+- Default: none
+- This field is not required.
+- Data type: string
+
+### `Rules.Services`
+
+Specifies the service that the API gateway routes incoming requests to when the
+requests match the `Rules.Matches` configuration.
 
 #### Values
 
 - Default: none
 - This field contains a list of maps. Each member of the list contains the following fields:
-  `Name`
-  `Weight`
-  `Filters`
+  - `Name`
+  - `Weight`
+  - `Filters`
 
-### `Rules[].Services[].Name`
+### `Rules.Services.Name`
 
 Specifies the name of an HTTP-based service this should route to.
 
@@ -531,9 +541,15 @@ Specifies the name of an HTTP-based service this should route to.
 - Default: none
 - This field is not required.
 - Data type: string
-### `Rules[].Services[].Weight`
 
-Specifies the proportion of requests forwarded to the specified service. The proportion is determined by dividing the value of the weight by the sum of all weights in the service list. For non-zero values, there may be some deviation from the exact proportion depending on the precision an implementation supports. Weight is not a percentage and the sum of weights does not need to equal 100.
+### `Rules.Services.Weight`
+
+Specifies the proportion of requests forwarded to the specified service. The
+proportion is determined by dividing the value of the weight by the sum of all
+weights in the service list. For non-zero values, there may be some deviation
+from the exact proportion depending on the precision an implementation
+supports. Weight is not a percentage and the sum of weights does not need to
+equal 100.
 
 #### Values
 
@@ -541,21 +557,22 @@ Specifies the proportion of requests forwarded to the specified service. The pro
 - This field is not required.
 - Data type: int
 
-### `Rules[].Services[].Filters`
+### `Rules.Services.Filters`
 
-Specifies the list of HTTP-based filters used to modify a request prior to routing it to this upstream service
+Specifies the list of HTTP-based filters used to modify a request prior to
+routing it to this upstream service
 
 #### Values
 
 - Default: none
 - This field is not required.
 - Data type: Map that contains the following fields:
-  `Headers`
-  `UrlRewrite`
+  - `Headers`
+  - `UrlRewrite`
 
-### `Rules[].Services[].Filters.Headers[]`
+### `Rules.Services.Filters.Headers`
 
-Defines operations to perform on matching request headers
+Defines operations to perform on matching request headers.
 
 #### Values
 
@@ -567,7 +584,7 @@ This field contains the following configuration objects:
 | `add` | Configure this field to append the request header with a new value. It specifies the name of an HTTP header to append and the value(s) to add. You can specify the following configurations: <ul><li>`name`: Required string that specifies the name of the HTTP header to append.</li><li>`value`: Required string that specifies the value of the HTTP header to add.</li></ul> | List of maps |
 | `remove` | Configure this field to specify an array of header names to remove from the request header. | List of strings |
 
-### `Rules[].Services[].Filters.URLRewrite`
+### `Rules.Services.Filters.URLRewrite`
 
 Specifies rule for rewriting the URL of incoming requests.
 
@@ -575,7 +592,7 @@ Specifies rule for rewriting the URL of incoming requests.
 
 - Default: none
 - This field is not required
-- This field is a map that contains a `path` field.
+- This field is a map that contains a `Path` field.
 
 ### `Meta`
 
