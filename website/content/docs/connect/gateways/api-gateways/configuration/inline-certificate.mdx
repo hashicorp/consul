@@ -1,51 +1,66 @@
 # Inline Certificate Configuration Reference
-This topic provides reference information for the gateway inline certificate configuration entry. Refer to [Consul API Gateway Configuration Overview]() for information about configuring API gateways in Kubernetes environments.
+
+This topic provides reference information for the gateway inline certificate
+configuration entry. Refer to [Consul API Gateway Configuration Overview]() for
+information about configuring API gateways in Kubernetes environments.
 
 ## Configuration model
 
-// HCL
+``` HCL
 Kind = "inline-certificate"
 Name = "<name of certificate>"
 Certificate = "<public certificate>"
 PrivateKey = "<private key>"
+```
 
-// JSON
+``` JSON
 {
 	"kind": "inline-certificate",
 	"name": "<name of certificate>",
-	"certificate: "<public certificate>",
+	"certificate": "<public certificate>",
 	"privateKey": "<private key>"
 }
+```
 
 ## Specification
+
 ### `Kind`
+
 Specifies the type of configuration entry to implement.
 
 #### Values
-Default: none
-This field is required.
-Data type: String value that must equal “inline-certificate”
+
+- Default: none
+- This field is required.
+- Data type: String value that must equal “inline-certificate”
+
 ### `Name`
+
 Specifies a name for the configuration entry. The name is metadata that you can use to reference the configuration entry when performing Consul operations, such as applying a configuration entry to a specific cluster.
 
 #### Values
-Default: none
-This field is required.
-Data type: String
+
+- Default: none
+- This field is required.
+- Data type: String
 
 ### `Certificate`
+
 Specifies the inline public certificate to use for TLS.
 
 #### Values
-Default: none
-This field is required.
-Data type: String value of the public certificate
+
+- Default: none
+- This field is required.
+- Data type: String value of the public certificate
 
 ### `PrivateKey`
+
 Specifies the inline private key to use for TLS.
 
 #### Values
-Default: none
-This field is required.
-Data type: String value of the private key
+
+- Default: none
+- This field is required.
+- Data type: String value of the private key
 
