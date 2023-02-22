@@ -1,3 +1,9 @@
+---
+layout: docs
+page_title: API Gateway Configuration Entry Reference
+description: Learn how to configure a Consul API Gateway on VMs.
+---
+
 # API Gateway Configuration Entry Reference
 
 This topic provides reference information for the API gateway configuration entry that you can deploy to networks in virtual machine (VM) environments. For reference information about configuring Consul API gateways on Kubernetes, refer to [Gateway Resource Configuration](/consul/docs/api-gateway/configuration/gateway).
@@ -10,7 +16,6 @@ A gateway is a type of network infrastructure that determines how service traffi
 
 The following list outlines field hierarchy, language-specific data types, and requirements in an `api-gateway` configuration entry. Click on a property name to view additional details, including default values.
 
-```
 `Kind`: string | must be `api-gateway`
 `Name`: string | no default
 `Meta`: map | no default
@@ -25,7 +30,6 @@ The following list outlines field hierarchy, language-specific data types, and r
   `Certificates`: list of objects | no default
     `Kind`: string | must be `inline-certificate`
     `Name`: string | no default
-```
 
 ## Complete configuration
 
