@@ -1,9 +1,14 @@
 # TCP Route Configuration Reference
-This topic provides reference information for the gateway routes configuration entry. Refer to [Consul API Gateway Configuration Overview]() for information about configuring API gateways in Kubernetes environments.
+
+This topic provides reference information for the gateway routes configuration
+entry. Refer to [Consul API Gateway Configuration Overview]() for information
+about configuring API gateways in Kubernetes environments.
 
 ## Configuration model
 
-The following list outlines field hierarchy, language-specific data types, and requirements in an `tcp-route` configuration entry. Click on a property name to view additional details, including default values.
+The following list outlines field hierarchy, language-specific data types, and
+requirements in an `tcp-route` configuration entry. Click on a property name to
+view additional details, including default values.
 
 ```
 [`Kind`](#kind): string | must be `tcp-route`
@@ -21,6 +26,8 @@ The following list outlines field hierarchy, language-specific data types, and r
 ## Complete configuration
 
 When every field is defined, a `tcp-route` configuration entry has the following form:
+
+<CodeTabs>
 
 ``` HCL
 Kind = "tcp-route"
@@ -68,6 +75,8 @@ Meta = {
   ]
 }
 ```
+
+</CodeTabs>
 
 ## Specification
 
