@@ -176,10 +176,10 @@ func httpRouteToDiscoveryChain(route structs.HTTPRouteConfigEntry) (*structs.Ser
 }
 
 func httpRouteFiltersToDestinationPrefixRewrite(rewrite *structs.URLRewrite) string {
-	if rewrite != nil && rewrite.Path != "" {
-		return rewrite.Path
+	if rewrite == nil {
+		return ""
 	}
-	return ""
+	return rewrite.Path
 }
 
 // httpRouteFiltersToServiceRouteHeaderModifier will consolidate a list of HTTP filters
