@@ -35,7 +35,7 @@
   @extend %frame-border-000;
   background-color: var(--token-color-surface-strong);
   border-color: var(--token-color-foreground-faint);
-  color: var(--token-color-foreground-faint);
+  color: var(--token-color-foreground-primary);
 }
 /* button active */
 %frame-gray-700 {

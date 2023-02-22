@@ -11,11 +11,11 @@
   font-size: var(--typo-size-600);
 }
 %pill-allow {
-  color: var(--token-color-palette-green-400);
+  color: var(--token-color-foreground-success-on-surface);
   background-color: var(--token-color-border-success);
 }
 %pill-deny {
-  color: var(--token-color-foreground-critical-high-contrast);
+  color: var(--token-color-foreground-critical-on-surface);
   background-color: var(--token-color-border-critical);
 }
 %pill-l7 {

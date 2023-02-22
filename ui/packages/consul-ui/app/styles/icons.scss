@@ -35,12 +35,12 @@
 %with-allow-300,
 %with-allow-500 {
   --icon-name: icon-arrow-right;
-  --icon-color: var(--token-color-foreground-success);
+  --icon-color: var(--token-color-foreground-success-on-surface);
 }
 %with-deny-300,
 %with-deny-500 {
   --icon-name: icon-skip;
-  --icon-color: var(--token-color-foreground-critical);
+  --icon-color: var(--token-color-foreground-critical-on-surface);
 }
 %with-l7-300,
 %with-l7-500 {

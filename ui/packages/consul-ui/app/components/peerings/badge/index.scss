@@ -23,8 +23,8 @@
     color: var(--token-color-foreground-critical);
   }
   &.deleting {
-    background: var(--token-color-vault-gradient-faint-start);
-    color: var(--token-color-vault-foreground);
+    background: var(--token-color-surface-warning);
+    color: var(--token-color-foreground-warning-on-surface);
   }
   &.terminated {
     background: var(--token-color-surface-interactive-active);

@@ -58,15 +58,15 @@
   --icon-color: var(--token-color-palette-neutral-600);
 }
 %pill-terminated {
-  background-color: var(token-color-palette-neutral-200);
+  background-color: var(--token-color-palette-neutral-200);
   color: var(--token-color-palette-neutral-600);
 }
 
 %pill-deleting::before {
   --icon-name: icon-loading;
-  --icon-color: var(--token-color-palette-green-400);
+  --icon-color: var(--token-color-foreground-warning-on-surface);
 }
 %pill-deleting {
-  background-color: var(--token-color-palette-amber-50);
-  color: var(--token-color-vault-brand);
+  background-color: var(--token-color-surface-warning);
+  color: var(--token-color-foreground-warning-on-surface);
 }
