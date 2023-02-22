@@ -13,7 +13,7 @@ Feature: dc / kvs / deleting: Deleting items with confirmations, success and err
     ---
     And I click actions on the kvs
     And I click delete on the kvs
-    And I click confirmDelete on the kvs
+    And I click confirmInlineDelete on the kvs
     Then a DELETE request was made to "/v1/kv/key-name?dc=datacenter&ns=@!namespace"
     And "[data-notification]" has the "notification-delete" class
     And "[data-notification]" has the "success" class
