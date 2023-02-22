@@ -18,7 +18,7 @@ import (
 	"gotest.tools/assert"
 )
 
-// TestTrafficManagement_Upgrade Summary
+// TestTrafficManagement_ServiceResolverDefaultSubset Summary
 // This test starts up 3 servers and 1 client in the same datacenter.
 //
 // Steps:
@@ -26,7 +26,7 @@ import (
 //   - Create one static-server and 2 subsets and 1 client and sidecar, then register them with Consul
 //   - Validate static-server and 2 subsets are and proxy admin endpoint is healthy - 3 instances
 //   - Validate static servers proxy listeners should be up and have right certs
-func TestTrafficManagement_ServiceWithSubsets(t *testing.T) {
+func TestTrafficManagement_ServiceResolverDefaultSubset(t *testing.T) {
 	t.Parallel()
 
 	var responseFormat = map[string]string{"format": "json"}
@@ -151,8 +151,8 @@ func createService(t *testing.T, cluster *libcluster.Cluster) (libservice.Servic
 		GRPCPort: 8079,
 	}
 	_, serverConnectProxy, err := libservice.CreateAndRegisterStaticServerAndSidecar(node, serviceOpts)
-	libassert.CatalogServiceExists(t, client, "static-server")
 	require.NoError(t, err)
+	libassert.CatalogServiceExists(t, client, "static-server")
 
 	serviceOptsV1 := &libservice.ServiceOpts{
 		Name:     libservice.StaticServerServiceName,
@@ -162,8 +162,8 @@ func createService(t *testing.T, cluster *libcluster.Cluster) (libservice.Servic
 		GRPCPort: 8078,
 	}
 	_, serverConnectProxyV1, err := libservice.CreateAndRegisterStaticServerAndSidecar(node, serviceOptsV1)
-	libassert.CatalogServiceExists(t, client, "static-server")
 	require.NoError(t, err)
+	libassert.CatalogServiceExists(t, client, "static-server")
 
 	serviceOptsV2 := &libservice.ServiceOpts{
 		Name:     libservice.StaticServerServiceName,
@@ -173,8 +173,8 @@ func createService(t *testing.T, cluster *libcluster.Cluster) (libservice.Servic
 		GRPCPort: 8077,
 	}
 	_, serverConnectProxyV2, err := libservice.CreateAndRegisterStaticServerAndSidecar(node, serviceOptsV2)
-	libassert.CatalogServiceExists(t, client, "static-server")
 	require.NoError(t, err)
+	libassert.CatalogServiceExists(t, client, "static-server")
 
 	// Create a client proxy instance with the server as an upstream
 	clientConnectProxy, err := libservice.CreateAndRegisterStaticClientSidecar(node, "", false)

@@ -64,10 +64,11 @@ func TestPeering_UpgradeToTarget_fromLatest(t *testing.T) {
 					GRPCPort: 8078,
 				}
 				_, serverConnectProxy, err := libservice.CreateAndRegisterStaticServerAndSidecar(c.Clients()[0], serviceOpts)
-				libassert.CatalogServiceExists(t, c.Clients()[0].GetClient(), libservice.StaticServer2ServiceName)
 				if err != nil {
 					return nil, nil, nil, err
 				}
+				libassert.CatalogServiceExists(t, c.Clients()[0].GetClient(), libservice.StaticServer2ServiceName)
+
 				err = c.ConfigEntryWrite(&api.ProxyConfigEntry{
 					Kind: api.ProxyDefaults,
 					Name: "global",
