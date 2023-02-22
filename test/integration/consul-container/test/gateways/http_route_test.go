@@ -48,13 +48,16 @@ func TestHTTPRouteFlattening(t *testing.T) {
 		ID:       "service1",
 		HTTPPort: 8080,
 		GRPCPort: 8079,
-	})
+	}, nil)
 	serviceTwo := createService(t, cluster, &libservice.ServiceOpts{
 		Name:     "service2",
 		ID:       "service2",
-		HTTPPort: 8080,
-		GRPCPort: 8079,
-	})
+		HTTPPort: 8081,
+		GRPCPort: 8082,
+	}, []string{
+		"-echo-debug-path", "/debug",
+	},
+	)
 
 	//TODO this should only matter in consul enterprise I believe?
 	namespace := getNamespace()
@@ -153,6 +156,13 @@ func TestHTTPRouteFlattening(t *testing.T) {
 							Value: path2,
 						},
 					},
+					{
+						Headers: []api.HTTPHeaderMatch{{
+							Match: api.HTTPHeaderMatchExact,
+							Name:  "x-v2",
+							Value: "v2",
+						}},
+					},
 				},
 			},
 		},
@@ -205,61 +215,34 @@ func TestHTTPRouteFlattening(t *testing.T) {
 		return isBound(apiEntry.Status.Conditions)
 	}, time.Second*10, time.Second*1)
 
-	//gateway resolves
-	libassert.HTTPServiceEchoes(t, "localhost", gatewayService.GetPort(listenerPort), "", map[string]string{
+	//gateway resolves routes
+
+	ip := "localhost"
+
+	//route 2 with headers
+
+	//Same path with and without header
+	checkRoute(t, ip, gatewayService.GetPort(listenerPort), "debug", map[string]string{
 		"Host": "test.foo",
 		"x-v2": "v2",
-	})
+	}, checkOptions{debug: true, statusCode: 200})
+	checkRoute(t, ip, gatewayService.GetPort(listenerPort), "debug", map[string]string{
+		"Host": "test.foo",
+	}, checkOptions{statusCode: 200})
 
-	//libassert.HTTPServiceEchoes(t, "localhost", gatewayService.GetPort(listenerPort), "v2")
-	//checkRoute(t,
-	//	gatewayService.GetPort(listenerPort),
-	//	"/v2/test",
-	//	http.StatusOK,
-	//	"service2",
-	//	"POST",
-	//	map[string]string{
-	//		"Host": "test.foo",
-	//		"x-v2": "v2",
-	//	},
-	//	"service two not routable in allotted time",
-	//)
-	fmt.Println(gatewayService)
+	checkRoute(t, ip, gatewayService.GetPort(listenerPort), "v2", map[string]string{
+		"Host": "test.foo",
+		"x-v2": "v2",
+	}, checkOptions{statusCode: 200})
 
-	//
-	//			checkRoute(t, checkPort, "/v2/test", httpResponse{
-	//				StatusCode: http.StatusOK,
-	//				Body:       serviceTwo.Name,
-	//			}, map[string]string{
-	//				"Host": "test.foo",
-	//				"x-v2": "v2",
-	//			}, "service two not routable in allotted time")
-	//			checkRoute(t, checkPort, "/v2/test", httpResponse{
-	//				StatusCode: http.StatusOK,
-	//				Body:       serviceTwo.Name,
-	//			}, map[string]string{
-	//				"Host": "test.foo",
-	//			}, "service two not routable in allotted time")
-	//			checkRoute(t, checkPort, "/", httpResponse{
-	//				StatusCode: http.StatusOK,
-	//				Body:       serviceTwo.Name,
-	//			}, map[string]string{
-	//				"Host": "test.foo",
-	//				"x-v2": "v2",
-	//			}, "service two with headers is not routable in allotted time")
-	//			checkRoute(t, checkPort, "/", httpResponse{
-	//				StatusCode: http.StatusOK,
-	//				Body:       serviceOne.Name,
-	//			}, map[string]string{
-	//				"Host": "test.foo",
-	//			}, "service one not routable in allotted time")
-	//			checkRoute(t, checkPort, "/v2/test", httpResponse{
-	//				StatusCode: http.StatusOK,
-	//				Body:       serviceOne.Name,
-	//			}, map[string]string{
-	//				"Host": "test.example",
-	//			}, "service one not routable in allotted time")
-	//
-	//			err = resources.Delete(ctx, gw)
-	//			require.NoError(t, err)
+	//hit service 1 by hitting path
+	checkRoute(t, ip, gatewayService.GetPort(listenerPort), "", map[string]string{
+		"Host": "test.foo",
+	}, checkOptions{debug: false, statusCode: 200})
+
+	//hit service 1 by hitting v2 path with v1 hostname
+	checkRoute(t, ip, gatewayService.GetPort(listenerPort), "v2", map[string]string{
+		"Host": "test.example",
+	}, checkOptions{debug: false, statusCode: 200})
+
 }

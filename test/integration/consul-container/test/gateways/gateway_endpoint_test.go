@@ -2,13 +2,14 @@ package gateways
 
 import (
 	"context"
-	"crypto/tls"
 	"fmt"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 	libassert "github.com/hashicorp/consul/test/integration/consul-container/libs/assert"
 	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
 	libservice "github.com/hashicorp/consul/test/integration/consul-container/libs/service"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
+	"github.com/hashicorp/go-cleanhttp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"io"
@@ -92,7 +93,7 @@ func TestAPIGatewayCreate(t *testing.T) {
 		routeReady = isBound(routeEntry.Status.Conditions)
 	}
 
-	libassert.HTTPServiceEchoes(t, "localhost", gatewayService.GetPort(listenerPortOne), "", nil)
+	libassert.HTTPServiceEchoes(t, "localhost", gatewayService.GetPort(listenerPortOne), "")
 }
 
 func isAccepted(conditions []api.Condition) bool {
@@ -146,13 +147,13 @@ func createCluster(t *testing.T, ports ...int) *libcluster.Cluster {
 	return cluster
 }
 
-func createService(t *testing.T, cluster *libcluster.Cluster, serviceOpts *libservice.ServiceOpts, ports ...int) libservice.Service {
+func createService(t *testing.T, cluster *libcluster.Cluster, serviceOpts *libservice.ServiceOpts, containerArgs []string, ports ...int) libservice.Service {
 	node := cluster.Agents[0]
 	client := node.GetClient()
 	// Create a service and proxy instance
 
 	// Create a service and proxy instance
-	service, _, err := libservice.CreateAndRegisterStaticServerAndSidecar(node, serviceOpts)
+	service, _, err := libservice.CreateAndRegisterStaticServerAndSidecar(node, serviceOpts, containerArgs...)
 	assert.NoError(t, err)
 
 	libassert.CatalogServiceExists(t, client, serviceOpts.Name+"-sidecar-proxy")
@@ -172,7 +173,7 @@ func createServices(t *testing.T, cluster *libcluster.Cluster, ports ...int) (li
 		GRPCPort: 8079,
 	}
 
-	clientConnectProxy := createService(t, cluster, serviceOpts, ports...)
+	clientConnectProxy := createService(t, cluster, serviceOpts, nil, ports...)
 
 	gatewayService, err := libservice.NewGatewayService(context.Background(), "api-gateway", "api", cluster.Agents[0], ports...)
 	require.NoError(t, err)
@@ -181,17 +182,34 @@ func createServices(t *testing.T, cluster *libcluster.Cluster, ports ...int) (li
 	return clientConnectProxy, gatewayService
 }
 
-func checkRoute(t *testing.T, port int, path string, expectedStatusCode int, expectedBody string, headers map[string]string, message string) {
-	t.Helper()
+// checkRoute, customized version of libassert.RouteEchos to allow for headers/distinguishing between the server instances
 
-	require.Eventually(t, func() bool {
-		client := &http.Client{Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-		}}
-		req, err := http.NewRequest("GET", fmt.Sprintf("https://localhost:%d%s", port, path), nil)
-		if err != nil {
-			return false
-		}
+type checkOptions struct {
+	debug      bool
+	statusCode int
+	testName   string
+}
+
+func checkRoute(t *testing.T, ip string, port int, path string, headers map[string]string, expected checkOptions) {
+	const phrase = "hello"
+
+	failer := func() *retry.Timer {
+		return &retry.Timer{Timeout: time.Second * 60, Wait: time.Second * 60}
+	}
+
+	client := cleanhttp.DefaultClient()
+	url := fmt.Sprintf("http://%s:%d", ip, port)
+
+	if path != "" {
+		url += "/" + path
+	}
+
+	retry.RunWith(failer(), t, func(r *retry.R) {
+		t.Logf("making call to %s", url)
+		reader := strings.NewReader(phrase)
+		req, err := http.NewRequest("POST", url, reader)
+		assert.NoError(t, err)
+		headers["content-type"] = "text/plain"
 
 		for k, v := range headers {
 			req.Header.Set(k, v)
@@ -200,26 +218,32 @@ func checkRoute(t *testing.T, port int, path string, expectedStatusCode int, exp
 				req.Host = v
 			}
 		}
-
-		resp, err := client.Do(req)
+		res, err := client.Do(req)
 		if err != nil {
 			t.Log(err)
-			return false
+			r.Fatal("could not make call to service ", url)
 		}
-		defer resp.Body.Close()
+		defer res.Body.Close()
 
-		data, err := io.ReadAll(resp.Body)
+		body, err := io.ReadAll(res.Body)
 		if err != nil {
-			t.Log(err)
-			return false
-		}
-		t.Log(string(data))
-
-		if resp.StatusCode != expectedStatusCode {
-			t.Log("status code", resp.StatusCode)
-			return false
+			r.Fatal("could not read response body ", url)
 		}
 
-		return strings.HasPrefix(string(data), expectedBody)
-	}, checkTimeout, checkInterval, message)
+		assert.Equal(t, expected.statusCode, res.StatusCode)
+		if expected.statusCode != res.StatusCode {
+			r.Fatal("unexpecged response code returned")
+		}
+
+		//if debug is expected, debug should be in the response body
+		assert.Equal(t, expected.debug, strings.Contains(string(body), "debug"))
+		if expected.statusCode != res.StatusCode {
+			r.Fatal("unexpected response body returned")
+		}
+
+		if !strings.Contains(string(body), phrase) {
+			r.Fatal("received an incorrect response ", string(body))
+		}
+
+	})
 }
