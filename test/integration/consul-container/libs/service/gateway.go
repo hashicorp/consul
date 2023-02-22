@@ -53,6 +53,10 @@ func (g gatewayContainer) GetAddr() (string, int) {
 	return g.ip, g.port
 }
 
+func (g gatewayContainer) GetAddrs() (string, []int) {
+	return "", nil
+}
+
 func (g gatewayContainer) GetLogs() (string, error) {
 	rc, err := g.container.Logs(context.Background())
 	if err != nil {

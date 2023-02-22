@@ -26,8 +26,9 @@ const bootLogLine = "Consul agent running"
 const disableRYUKEnv = "TESTCONTAINERS_RYUK_DISABLED"
 
 // Exposed ports info
-const MaxEnvoyOnNode = 10                 // the max number of Envoy sidecar can run along with the agent, base is 19000
-const ServiceUpstreamLocalBindPort = 5000 // local bind Port of service's upstream
+const MaxEnvoyOnNode = 10                  // the max number of Envoy sidecar can run along with the agent, base is 19000
+const ServiceUpstreamLocalBindPort = 5000  // local bind Port of service's upstream
+const ServiceUpstreamLocalBindPort2 = 5001 // local bind Port of service's upstream, for services with 2 upstreams
 
 // consulContainerNode implements the Agent interface by running a Consul agent
 // in a container.
@@ -530,6 +531,7 @@ func newContainerRequest(config Config, opts containerOpts) (podRequest, consulR
 
 	// Envoy upstream listener
 	pod.ExposedPorts = append(pod.ExposedPorts, fmt.Sprintf("%d/tcp", ServiceUpstreamLocalBindPort))
+	pod.ExposedPorts = append(pod.ExposedPorts, fmt.Sprintf("%d/tcp", ServiceUpstreamLocalBindPort2))
 
 	// Reserve the exposed ports for Envoy admin port, e.g., 19000 - 19009
 	basePort := 19000
