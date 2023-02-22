@@ -484,6 +484,40 @@
             "path": "connect/gateways"
           },
           {
+            "title": "API Gateways",
+            "routes": [
+              {
+                "title": "Overview",
+                "path": "connect/gateways/api-gateways/overview"
+              },
+              {
+                "title": "Usage",
+                "path": "connect/gateways/api-gateways/usage"
+              },
+              {
+                "title": "Configuration",
+                "routes": [
+                  {
+                    "title": "API Gateway",
+                    "path": "connect/gateways/api-gateways/configuration/api-gateway"
+                  },
+                  {
+                    "title": "HTTP Route",
+                    "path": "connect/gateways/api-gateways/configuration/http-route"
+                  },
+                  {
+                    "title": "TCP Route",
+                    "path": "connect/gateways/api-gateways/configuration/tcp-route"
+                  },
+                  {
+                    "title": "Inline Certificate",
+                    "path": "connect/gateways/api-gateways/configuration/inline-certificate"
+                  }
+                ]
+              }
+            ]
+          },
+          {
             "title": "Mesh Gateways",
             "routes": [
               {
@@ -805,7 +839,6 @@
         "title": "Architecture",
         "path": "k8s/architecture"
       },
-
       {
         "title": "Installation",
         "routes": [
