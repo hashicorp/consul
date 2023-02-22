@@ -58,6 +58,7 @@ func TestTrafficManagement_ServiceResolverDefaultSubset(t *testing.T) {
 			buildOpts.InjectAutoEncryption = false
 		}
 		cluster, _, _ := topology.NewPeeringCluster(t, 1, buildOpts)
+		node := cluster.Agents[0]
 
 		// Register service resolver
 		serviceResolver := &api.ServiceResolverConfigEntry{
@@ -126,6 +127,9 @@ func TestTrafficManagement_ServiceResolverDefaultSubset(t *testing.T) {
 		libassert.AssertEnvoyPresentsCertURI(t, serverAdminPort, "static-server")
 		libassert.AssertEnvoyPresentsCertURI(t, serverAdminPortV1, "static-server")
 		libassert.AssertEnvoyPresentsCertURI(t, serverAdminPortV2, "static-server")
+
+		// assert static-server proxies should be healthy
+		libassert.AssertServiceHasHealthyInstances(t, node, libservice.StaticServerServiceName, true, 3)
 
 		// static-client upstream should connect to static-server-v2 because the default subset value is to v2 set in the service resolver
 		libassert.AssertFortioName(t, fmt.Sprintf("http://localhost:%d", port), "static-server-v2")
