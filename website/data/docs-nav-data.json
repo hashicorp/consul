@@ -493,7 +493,7 @@
             "routes": [
               {
                 "title": "Overview",
-                "path": "connect/gateways/api-gateway/overview"
+                "path": "connect/gateways/api-gateway"
               },
               {
                 "title": "Usage",
