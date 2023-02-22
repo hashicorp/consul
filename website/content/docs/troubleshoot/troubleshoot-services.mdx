@@ -55,26 +55,28 @@ Using the service-to-service troubleshooting tool is a two-step process:
 
 In deployments without transparent proxies, the identifier is the _Envoy ID for the upstream service’s sidecar proxy_. If you use transparent proxies, the identifier is the _upstream service’s IP address_. For more information about using transparent proxies, refer to [Enable transparent proxy mode](/consul/docs/connect/transparent-proxy).
 
-### VMs
+### Troubleshoot on VMs
 
 To troubleshoot service-to-service communication issues in deployments that use VMs or bare-metal servers:
 
 1. Run the `consul troubleshoot upstreams` command to retrieve the upstream information for the service that is experiencing communication failures. Depending on your network’s configuration, the upstream information is either an Envoy ID or an IP address.
 
-  ```shell-session
+```shell-session
   $ consul troubleshoot upstreams
+
   ==> Upstreams (explicit upstreams only) (0)
   ==> Upstreams IPs (transparent proxy only) (1)
   [10.4.6.160 240.0.0.3] true map[backend.default.dc1.internal.e08fa6d6-e91e-dfe0-f6e1-ba097a828e31.consul backend2.default.dc1.internal.e08fa6d6-e91e-dfe0-f6e1-ba097a828e31.consul]
   If you cannot find the upstream address or cluster for a transparent proxy upstream:
   - Check intentions: Tproxy upstreams are configured based on intentions. Make sure you have configured intentions to allow traffic to your upstream.
   - To check that the right cluster is being dialed, run a DNS lookup for the upstream you are dialing. For example, run `dig backend.svc.consul` to return the IP address for the `backend` service. If the address you get from that is missing from the upstream IPs, it means that your proxy may be misconfigured.
-  ```
+```
 
 1. Run the `consul troubleshoot proxy` command and specify the  Envoy ID or IP address with the `-upstream-ip` flag to identify the proxy you want to perform the troubleshooting process on. The following example uses the upstream IP to validate communication with the upstream service `backend`:
   
-  ```shell-session
+```shell-session
   $ consul troubleshoot proxy -upstream-ip 10.4.6.160
+
   ==> Validation
    ✓ Certificates are valid
    ✓ Envoy has 0 rejected configurations
@@ -95,26 +97,28 @@ In the example, troubleshooting upstream communication reveals that the `backend
 
 The output from the troubleshooting process identifies service instances according to their [Consul DNS address](/consul/docs/discovery/dns#standard-lookup). Use the DNS information for failing services to diagnose the specific issues affecting the service instance.
 
-### Kubernetes
+### Troubleshoot on Kubernetes
 
 To troubleshoot service-to-service communication issues in deployments that use Kubernetes, retrieve the upstream information for the pod that is experiencing communication failures and use the upstream information to identify the proxy you want to perform the troubleshooting process on.
 
 1. Run the `consul-k8s troubleshoot upstreams` command and specify the pod ID with the `-pod` flag to retrieve upstream information. Depending on your network’s configuration, the upstream information is either an Envoy ID or an IP address. The following example displays all transparent proxy upstreams in Consul service mesh from the given pod.
 
-  ```shell-session
+```shell-session
   $ consul-k8s troubleshoot upstreams -pod frontend-767ccfc8f9-6f6gx
+
   ==> Upstreams (explicit upstreams only) (0)
   ==> Upstreams IPs (transparent proxy only) (1)
   [10.4.6.160 240.0.0.3] true map[backend.default.dc1.internal.e08fa6d6-e91e-dfe0-f6e1-ba097a828e31.consul backend2.default.dc1.internal.e08fa6d6-e91e-dfe0-f6e1-ba097a828e31.consul]
   If you cannot find the upstream address or cluster for a transparent proxy upstream:
   - Check intentions: Tproxy upstreams are configured based on intentions. Make sure you have configured intentions to allow traffic to your upstream.
   - To check that the right cluster is being dialed, run a DNS lookup for the upstream you are dialing. For example, run `dig backend.svc.consul` to return the IP address for the `backend` service. If the address you get from that is missing from the upstream IPs, it means that your proxy may be misconfigured.
-  ```
+```
 
 1. Run the `consul-k8s troubleshoot proxy` command and specify the pod ID and upstream IP address to identify the proxy you want to troubleshoot. The following example uses the upstream IP to validate communication with the upstream service `backend`:
 
 ```shell-session
   $ consul-k8s troubleshoot proxy -pod frontend-767ccfc8f9-6f6gx -upstream-ip 10.4.6.160
+
   ==> Validation
    ✓ certificates are valid
    ✓ Envoy has 0 rejected configurations
@@ -125,7 +129,7 @@ To troubleshoot service-to-service communication issues in deployments that use 
    ✓ healthy endpoints for cluster "backend.default.dc1.internal.e08fa6d6-e91e-dfe0-f6e1-ba097a828e31.consul" for upstream "backend" found
    ✓ cluster "backend2.default.dc1.internal..consul" for upstream "backend" found
    ! no healthy endpoints for cluster "backend2.default.dc1.internal.e08fa6d6-e91e-dfe0-f6e1-ba097a828e31.consul" for upstream "backend" found
-  ```
+```
 
 In the example, troubleshooting upstream communication reveals that the `backend` service has two clusters in datacenter `dc1`. One of the clusters returns healthy endpoints, but Consul cannot detect healthy endpoints for the second cluster.
 
