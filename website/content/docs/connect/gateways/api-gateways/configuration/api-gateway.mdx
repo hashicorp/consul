@@ -1,0 +1,219 @@
+# API Gateway Configuration Entry Reference
+This topic provides reference information for the API gateway configuration entry that you can deploy to networks in virtual machine (VM) environments. For reference information about configuring Consul API gateways on Kubernetes, refer to [Gateway Resource Configuration](/consul/docs/api-gateway/configuration/gateway).
+
+## Introduction
+A gateway is a type of network infrastructure that determines how service traffic should be handled. Gateways contain one or more listeners that bind to a set of hosts and ports. An HTTP Route or TCP Route can then attach to a gateway listener to direct traffic from the gateway to a service.
+
+## Configuration model
+The following list outlines field hierarchy, language-specific data types, and requirements in an `api-gateway` configuration entry. Click on a property name to view additional details, including default values.
+
+`Kind`: string | must be `api-gateway`
+`Name`: string | no default
+`Meta`: map | no default
+`Listeners`: list of objects | no default
+`Port`: number | node port number
+`Name`: string | node name
+`Protocol`: string | `tcp`
+`TLS`: map | none
+`TLSMinVersion`: string | no default
+`TLSMaxVersion`: string | no default
+`CipherSuites`:  list of strings | Envoy default cipher suites
+`Certificates`: list of objects | no default
+`Kind`: string | must be `inline-certificate`
+`Name`: string | no default
+## Complete configuration
+When every field is defined, an `api-gateway` configuration entry has the following form:
+// HCL
+Kind = "api-gateway"
+Name = "<name of api gateway>"
+
+Meta = {
+<any key> = "<any value>"
+}
+
+Listeners = [
+{
+Port = <external service port>
+Name = "<unique name for this listener>"
+Protocol = "<protocol used by external service>"
+TLS = {
+	Certificates = [
+	{
+Kind: "inline-certificate",
+Name: "<name of inline-certificate>"
+}
+]
+CipherSuites = [
+	"<cipher suite>"
+]
+	MaxVersion = "<version of TLS>"
+	MinVersion = "<version of TLS>"
+    		}
+  	}
+]
+
+// JSON
+{
+	"kind": "api-gateway",
+	"name": "<name of api gateway>",
+	"meta": {
+		"<any key>": "<any value>"
+	},
+	"listeners": [
+		{
+			"port": <external service port>,
+			"name": "<unique name for this listener>",
+			"protocol": "<protocol used by external service>",
+			"tls": {
+				"certificates": [
+					{
+						"kind": "inline-certificate",
+						"name": "<name of inline-certificate>"
+}
+				],
+				"cipherSuites": [
+"<cipher suite>"
+],
+				"maxVersion": "<version of TLS>",
+				"minVersion": "<version of TLS>"
+			}
+}
+]
+}
+## Specification
+This section provides details about the fields you can configure in the `api-gateway` configuration entry.
+### `Kind`
+Specifies the type of configuration entry to implement. This must be `api-gateway`.
+
+#### Values
+Default: none
+This field is required.
+Data type: String value that must be set to `api-gateway`.
+
+### `Name`
+Specifies a name for the configuration entry. The name is metadata that you can use to reference the configuration entry when performing Consul operations, such as applying a configuration entry to a specific cluster.
+
+#### Values
+Default: none
+This field is required.
+Data type: String
+
+### `Meta`
+Specifies an arbitrary set of key-value pairs to associate with the gateway.
+
+#### Values
+Default: none
+Data type: map containing one or more keys and string values.
+
+### `Listeners`
+Specifies a list of listeners that gateway should set up. Listeners are uniquely identified by their port number.
+
+#### Values
+Default: none
+This field is required.
+Data type: List of maps. Each member of the list contains the following fields:
+`Name`
+`Hostname`
+`Port`
+`Protocol`
+`TLS`
+
+### `Listeners.Name`
+Specifies the unique name for the listener. This field accepts letters, numbers and hyphens.
+#### Values
+Default: none
+This field is required.
+Data type: string
+
+### `Listeners.Hostname`
+Specifies the hostname that the listener receives traffic on.
+#### Values
+Default: none
+This field is optional.
+Data type: string
+
+### `Listeners.Port`
+Specifies the port number that the listener receives traffic on.
+#### Values
+Default: `0`
+This field is required.
+Data type: integer
+
+### `Listeners.Protocol`
+Specifies the protocol associated with the listener.
+
+#### Values
+Default: none
+This field is required.
+The data type is one of the following string values:
+`tcp`
+`http`
+
+### `Listeners.TLS`
+Specifies the TLS configurations for the listener.
+
+#### Values
+Default: none
+Map that contains the following fields:
+`Certificates`
+`MaxVersion`
+`MinVersion`
+`CipherSuites`
+
+### `Listeners.TLS.Certificates`
+The list of references to inline-certificates that the listener uses for TLS termination.
+
+#### Values
+Default: None
+Data type: List of maps. Each member of the list has the following fields:
+`Kind`
+`Name`
+
+### `Listeners.TLS.Certificates.Kind`
+The list of references to inline-certificates that the listener uses for TLS termination.
+
+#### Values
+Default: None
+This field is required and must be set to “inline-certificate”.
+Data type: String
+
+### `Listeners.TLS.Certificates.Name`
+The list of references to inline-certificates that the listener uses for TLS termination.
+
+#### Values
+Default: None
+This field is required.
+Data type: String
+
+### `Listeners.TLS.MaxVersion`
+Specifies the maximum TLS version supported for the listener.
+
+#### Values
+Default depends on the version of Envoy:
+Envoy 1.22.0 and later default to `TLSv1_2`
+Older versions of Envoy default to `TLSv1_0`
+Data type is one of the following string values:
+`TLS_AUTO`
+`TLSv1_0`
+`TLSv1_1`
+`TLSv1_2`
+`TLSv1_3`
+
+### `Listeners.TLS.MinVersion`
+Specifies the minimum TLS version supported for the listener.
+#### Values
+Default: none
+Data type is one of the following string values:
+`TLS_AUTO`
+`TLSv1_0`
+`TLSv1_1`
+`TLSv1_2`
+`TLSv1_3`
+
+### `Listeners.TLS.CipherSuites`
+Specifies a list of cipher suites that the listener supports when negotiating connections using TLS 1.2 or older.
+
+#### Values
+Defaults to the ciphers supported by the version of Envoy in use. Refer to the [Envoy documentation](https://www.envoyproxy.io/docs/envoy/latest/api-v3/extensions/transport_sockets/tls/v3/common.proto#envoy-v3-api-field-extensions-transport-sockets-tls-v3-tlsparameters-cipher-suites) for details.
+Data type: List of string values. Refer to the [Consul repository](https://github.com/hashicorp/consul/blob/v1.11.2/types/tls.go#L154-L169) for a list of supported ciphers.
+
