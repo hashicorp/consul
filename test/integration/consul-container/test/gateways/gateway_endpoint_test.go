@@ -151,7 +151,7 @@ func createCluster(t *testing.T, ports ...int) *libcluster.Cluster {
 	return cluster
 }
 
-func createService(t *testing.T, cluster *libcluster.Cluster, serviceOpts *libservice.ServiceOpts, containerArgs []string, ports ...int) libservice.Service {
+func createService(t *testing.T, cluster *libcluster.Cluster, serviceOpts *libservice.ServiceOpts, containerArgs []string) libservice.Service {
 	node := cluster.Agents[0]
 	client := node.GetClient()
 	// Create a service and proxy instance
@@ -177,7 +177,7 @@ func createServices(t *testing.T, cluster *libcluster.Cluster, ports ...int) (li
 		GRPCPort: 8079,
 	}
 
-	clientConnectProxy := createService(t, cluster, serviceOpts, nil, ports...)
+	clientConnectProxy := createService(t, cluster, serviceOpts, nil)
 
 	gatewayService, err := libservice.NewGatewayService(context.Background(), "api-gateway", "api", cluster.Agents[0], ports...)
 	require.NoError(t, err)
