@@ -36,7 +36,7 @@ about using Consul API gateway on Kubernetes.
 The following requirements must be satisfied to use API gateways on VMs:
 
 - Consul 1.15 or later
-- A Consul cluster with Service Mesh enabled. Refer to [`connect`](/consul/docs/agent/config/config-files#connect)
+- A Consul cluster with service mesh enabled. Refer to [`connect`](/consul/docs/agent/config/config-files#connect)
 - Network connectivity between the machine deploying the API Gateway and a
   Consul cluster agent or server
 
@@ -103,7 +103,7 @@ Run the following command to deploy an API gateway instance:
 $ consul connect envoy -gateway api -register -service my-api-gateway
 ```
 
-The command directs Consul to configure Envoy as an API Gateway.
+The command directs Consul to configure Envoy as an API gateway.
 
 ## Route requests
 
