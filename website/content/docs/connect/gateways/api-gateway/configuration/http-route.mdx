@@ -388,7 +388,7 @@ services specified in the [`Rules.Services`](#rules-services) field.
 
 ### `Rules[].Matches[].Headers[]`
 
-Specifies how a match is done on a request’s headers
+Specifies rules for matching incoming request headers. You can specify multiple rules in a list, as well as multiple lists of rules. If all rules in a single list are satisfied, then the route forwards the request to the appropriate service defined in the [`Rules.Services`](#rules-services) configuration. You can create multiple `Header[]` lists to create a range of matching criteria. If at least one list of matching rules are satisfied, then the route forwards the request to the appropriate service defined in the [`Rules.Services`](#rules-services) configuration. 
 
 #### Values
 
