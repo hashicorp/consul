@@ -23,43 +23,44 @@ The overall process for enabling the WAL LogStore backend for one server consist
 
 ## Requirements
 
-- All servers in the Datacenter should be upgraded to Consul 1.15 using the [standard upgrade procedure](/consul/docs/upgrading/general-process) and the [1.15 upgrade notes](/consul/docs/upgrading/upgrade-specific#consul-1-15-x).
-- You need a Consul cluster with at least 3 nodes to safely test the new backend without downtime.
+- Consul 1.15 or later is required for all servers in the datacenter. Refer to the [standard upgrade procedure](/consul/docs/upgrading/general-process) and the [1.15 upgrade notes](/consul/docs/upgrading/upgrade-specific#consul-1-15-x) for additional information.
+- A Consul cluster with at least three nodes are required to safely test the WAL backend without downtime.
 
-In addition, we recommend:
+We recommend taking the following additional measures:
 
-- Taking a snapshot prior to testing in case things don't go to plan.
-- Monitoring Consul server metrics and logs, and setting an alert on specific log events occurring.
-- Enabling WAL in a pre-production environment and leave it running for a period of time (few days or weeks) before enabling it in production.
+- Take a snapshot prior to testing.
+- Monitor Consul server metrics and logs and sett an alert on specific log events that occur when WAL is enabled.
+- Enable WAL in a pre-production environment and run it for a several days before enabling it in production.
 
 ## Risks
 
-Although this document describes configuring and testing the WAL backend in a way that limits risk, there still are potential risks:
+The likelihood of the following potential risks is low to very low:
 
- - If WAL is enabled on a server and is found to corrupt data in some way. That server's data can't be recovered. The server will need to be restarted with an empty data directory and reload it's state from the leader.
- - It's possible that WAL might corrupt data or otherwise have a bug that causes the server to panic and crash. It may even not be able to restart if the same bug occurs when it reads from the logs on startup. In this case as above the server would need to be restarted with WAL disabled and an empty data directory.
- - It's _possible_ though unlikely that if WAL corrupted data, clients might read corrupted data from that server. For example invalid IP addresses or have tokens fail to match. This is unlikely even if there is a WAL corruption bug hit because replication typically takes place using in-memory cached objects rather than reads from disk. The issue would be fixed by restoring the server.
- - If you enable a server to use WAL using Consul OSS or on a voting server with Consul Enterprise, it's _possible_ that the WAL could cause corruption of that server's state (with the caveats above) _and then_ become the leader and replicate that corruption to all other servers. In this scenario only a restore from backup would recover a completely un-corrupt state. - If you test on a non-voting server in Enterprise, this can't happen.
+ - If WAL corrupts data on a Consul server agent, the server data cannot be recovered. Restart the server with an empty data directory and reload its state from the leader to resolve the issue.
+ - WAL may corrupt data or contain a defect that causes the server to panic and crash. WAL may not restart if the defect is recurs when WAL reads from the logs on startup. Restart the server with an empty data directory and reload its state from the leader to resolve the issue.
+ - Clients may read corrupted data from the Consul server, such as invalid IP addresses or unmatching tokens, if WAL corrupts data. This is unlikely even if a recuring defect cause WAL to corrupt data because replication uses objects cached in memory rather than reads from disk. Restore the server to resolve the issue.
+ - If you enable a Consul OSS server to use WAL or enable WAL on a voting server with Consul Enterprise, WAL may corrupt the server's state, become the leader, and replicate the corrupted state to all other servers. In this scenario only a restore from backup would recover a completely un-corrupt state. Test WAL on a non-voting server in Enterprise to preven this scenario.
 
 
 ## Enable log verification
 
-You must enable log verification on any voting server in Enterprise and all servers in OSS since the leader writes verification checkpoints.
+You must enable log verification on any voting server in Enterprise and all servers in OSS becaise the leader writes verification checkpoints.
 
-On each voting server, add the following to the server's configuration file:
+1. On each voting server, add the following to the server's configuration file:
 
-```hcl
-raft_logstore {
-  verification {
-    enabled = true
-    interval = "60s"
+  ```hcl
+  raft_logstore {
+    verification {
+      enabled = true
+      interval = "60s"
+    }
   }
-}
-```
+  ```
 
-Restart each server to apply the changes (`consul reload` is not sufficient). Wait for each one to become a healthy voter again using `consul operator raft list-peers` before moving on to the next. This can take a few minutes if the snapshot is large.
+1. Restart each server to apply the changes. The `consul reload` is not sufficient to apply `raft_logstore` configuration changes. 
+1. Run the `consul operator raft list-peers` command to wait for each server to become a healthy voter before moving on to the next. This may take a few minutes for large snapshots. 
 
-Your log entries on the servers be similar to the following:
+Whenc omplete, log entries for the servers should resemble the following status:
 
 ```log hideClipboard
 2023-01-31T14:44:31.174Z [INFO]  agent.server.raft.logstore.verifier: verification checksum OK: elapsed=488.463268ms leaderChecksum=f15db83976f2328c rangeEnd=357802 rangeStart=298132 readChecksum=f15db83976f2328c
@@ -67,9 +68,9 @@ Your log entries on the servers be similar to the following:
 
 ## Select target server to enable WAL
 
-If you are using Consul OSS or Consul Enterprise without non-voting servers, select one of the follower servers. As noted in [Risks](#risks), Consul Enterprise users with non-voting servers should select a non-voting server at first. 
+If you are using Consul OSS or Consul Enterprise without non-voting servers, select a follower server to enable WAL. As noted in [Risks](#risks), Consul Enterprise users with non-voting servers should first select a non-voting server. 
 
-Retrieve the current state of the servers by running the following:
+Retrieve the current state of the servers by running the following command:
 
 ```shell-session
 $ consul operator raft list-peers
@@ -84,21 +85,21 @@ run the following command:
 $ systemctl stop consul
 ```
 
-If you have any configuration management automation that might interfere with this process (for example, Chef or Puppet), you must disable them until you have completely enabled WAL as a storage backend.
+If your environment uses configuration management automation that might interfere with this process, such as Chef or Puppet, you must disable them until you have completely enabled WAL as a storage backend.
 
 ## Remove data directory from target server
 
-Temporarily moving the data directory to a different location is less destructive than deleting it. We recommend doing this in case you unsuccessfully enable WAL. However, once you restart the server, you should not use the old data directory (`/data-dir/raft.bak`) for recovery, and will eventually need to delete it.
+Temporarily moving the data directory to a different location is less destructive than deleting it. We recommend doing this in case you unsuccessfully enable WAL. Do not use the old data directory (`/data-dir/raft.bak`) for recovery after restarting the server. We recommend eventually deleting the old directory.
 
-Move the data directory. Replace `/data-dir` the value you have specified in your configuration file.
+The following example moves the data atfrom `/data-dir` in the configuration file to `/temp/data-dir`.
 
 ```shell-session
-$ mv /data-dir/raft /data-dir/raft.bak
+$ mv /data-dir/raft /temp/data-dir/raft.bak
 ```
 
-When switching backend, you must always remove the _whole raft directory_ not just the `raft.db` file or `wal` directory since the log must always be consistent with the snapshots to avoid undefined behavior or data loss.
+When switching backend, you must always remove the _whole raft directory_ not just the `raft.db` file or `wal` directory. This is bedause the log must always be consistent with the snapshots to avoid undefined behavior or data loss.
 
-## Update target server's configuration
+## Update target server configuration
 
 Add the following to the target server's configuration file:
 
@@ -128,16 +129,16 @@ $ consul operator raft list-peers
 
 ## Monitor target server Raft metrics and logs
 
-See the section below on [monitoring WAL tests](/consul/docs/agent/wal-logstore/monitoring).
+Refer to [Monitor Raft metrics and logs for WAL](/consul/docs/agent/wal-logstore/monitoring) for details.
 
-We recommend you leave the cluster in this configuration for days or weeks, assuming that you see no negative metrics or verification errors in logs to increase confidence in the WAL under varying workloads and during routine server restarts etc.
+We recommend leaving the cluster in the test configuration for several days or weeks. If you do not record negative metrics or verification errors in logs, then you should have more confidence that WAL operates corerctly under varying workloads and during routine server restarts.
 
-If you disabled Chef, Puppet or similar earlier, you may want to consider enabling it again while the test runs. Ensure that it will not "fix" the Consul configuration file and remove the different backend though.
+If you disabled configuration management automation, consider reenabling it during the testing phase. Monitor the automation so that you can verify that it does not fix the Consul configuration file and remove the different backend.
 
 ## Next steps
 
 - If you see any verification errors, performance anomalies or other suspicious behavior from the target server during the test, you should follow [the procedure to revert back to BoltDB](/consul/docs/agent/wal-logstore/revert-to-boltdb).
 
-- If you see no errors and would like to expand the test further, you can repeat the above procedure on another target server. We suggest waiting a while after each and slowly rolling out. Once the majority of your servers are using WAL any bugs not yet found could result in cluster unavailability.
+- If you do not see errors and would like to expand the test further, you can repeat the above procedure on another target server. We suggest waiting after each test expansion and slowly rolling WAL out to other parts of your environment. Once the majority of your servers are using WAL, any bugs not yet discovered may result in cluster unavailability.
 
-- If you wish to permanently enable `wal` on all servers, you'll need to follow the above steps on each one. Even if `backend = "wal"` is set in logs, servers will continue to use BoltDB if they find an existing raft.db file in the data dir.
+- If you wish to permanently enable `wal` on all servers, repeat the steps described in this topic for each server. Even if `backend = "wal"` is set in logs, servers continue to use BoltDB if they find an existing raft.db file in the data dir.
