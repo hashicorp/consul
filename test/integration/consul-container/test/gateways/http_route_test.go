@@ -37,6 +37,8 @@ func TestHTTPRouteFlattening(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
+
 	//infrastructure set up
 	listenerPort := 6000
 	//create cluster
