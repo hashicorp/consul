@@ -317,6 +317,15 @@ Specifies the Enterprise [admin partition](/consul/docs/enterprise/admin-partiti
 - Default: `"default"` in Enterprise
 - Data type: string
 
+### `Meta`
+
+Specifies an arbitrary set of key-value pairs to associate with the route.
+
+#### Values
+
+- Default: none
+- Data type: map containing one or more keys and string values.
+
 ### `Parents[]`
 
 Specifies the list of gateways that this route should be bound to.
@@ -669,12 +678,3 @@ Specifies the Enterprise [admin partition](/consul/docs/enterprise/admin-partiti
 
 - Default: `"default"` in Enterprise
 - Data type: string
-
-### `Meta`
-
-Specifies an arbitrary set of key-value pairs to associate with the route.
-
-#### Values
-
-- Default: none
-- Data type: map containing one or more keys and string values.

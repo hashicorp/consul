@@ -20,6 +20,7 @@ view additional details, including default values.
 - [`Name`](#name): string | no default
 - [`Namespace`](#namespace): string | no default <EnterpriseAlert inline />
 - [`Partition`](#partition): string | no default <EnterpriseAlert inline />
+- [`Meta`](#meta): map | no default
 - [`Services`](#services): list | no default
   - [`Name`](#services-name): string | no default
   - [`Namespace`](#services-namespace): string | no default <EnterpriseAlert inline />
@@ -144,6 +145,15 @@ Specifies the Enterprise [admin partition](/consul/docs/enterprise/admin-partiti
 - Default: `"default"` in Enterprise
 - Data type: string
 
+### `Meta`
+
+Specifies an arbitrary set of key-value pairs to associate with the gateway.
+
+#### Values
+
+- Default: none
+- Data type: map containing one or more keys and string values.
+
 ### `Services`
 
 Specifies a TCP-based service the API gateway should route incoming requests
@@ -243,12 +253,3 @@ Specifies the name of the listener defined in the [`api-gateway` configuration](
 
 - Default: `""`
 - Data type: string
-
-### `Meta`
-
-Specifies an arbitrary set of key-value pairs to associate with the route.
-
-#### Values
-
-- Default: none
-- Data type: map containing one or more keys and string values.

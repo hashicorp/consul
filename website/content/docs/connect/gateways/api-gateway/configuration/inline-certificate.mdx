@@ -19,6 +19,7 @@ to view additional details, including default values.
 - [`Name`](#name): string | no default
 - [`Namespace`](#namespace): string | no default <EnterpriseAlert inline />
 - [`Partition`](#partition): string | no default <EnterpriseAlert inline />
+- [`Meta`](#meta): map | no default
 - [`Certificate`](#certificate): string | no default
 - [`PrivateKey`](#privatekey): string | no default
 
@@ -77,6 +78,33 @@ as applying a configuration entry to a specific cluster.
 - Default: none
 - This field is required.
 - Data type: string
+
+### `Namespace` <EnterpriseAlert inline />
+
+Specifies the Enterprise [namespace](/consul/docs/enterprise/namespaces) to apply to the configuration entry.
+
+#### Values
+
+- Default: `"default"` in Enterprise
+- Data type: string
+
+### `Partition` <EnterpriseAlert inline />
+
+Specifies the Enterprise [admin partition](/consul/docs/enterprise/admin-partitions) to apply to the config entry.
+
+#### Values
+
+- Default: `"default"` in Enterprise
+- Data type: string
+
+### `Meta`
+
+Specifies an arbitrary set of key-value pairs to associate with the gateway.
+
+#### Values
+
+- Default: none
+- Data type: map containing one or more keys and string values.
 
 ### `Certificate`
 
