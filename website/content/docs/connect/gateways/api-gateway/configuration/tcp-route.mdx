@@ -4,10 +4,10 @@ page_title: TCP Route Configuration Reference
 description: Learn how to configure a TCP Route, bound to an API Gateway on VMs.
 ---
 
-# TCP Route Configuration Reference
+# TCP route configuration Reference
 
 This topic provides reference information for the gateway routes configuration
-entry. Refer to [Consul API Gateway Configuration Overview]() for information
+entry. Refer to [Route Resource Configuration](/consul/docs/api-gateway/configuration/routes) for information
 about configuring API gateways in Kubernetes environments.
 
 ## Configuration model
@@ -18,8 +18,8 @@ view additional details, including default values.
 
 - [`Kind`](#kind): string | must be `"tcp-route"`
 - [`Name`](#name): string | no default
-- [`Services`](#rules-services): list | no default
-  - [`Name`](#rules-services-name): string | no default
+- [`Services`](#services): list | no default
+  - [`Name`](#services-name): string | no default
 - [`Parents`](#parents): list | no default
   - [`Kind`](#parents-kind): string | must be `"api-gateway"`
   - [`Name`](#parents-name): string | no default
@@ -144,12 +144,11 @@ Specifies the name of the api-gateway to bind to.
 
 ### `Parents.SectionName`
 
-Specifies the name of the listener on the api-gateway. If left empty, this will
-bind this route to *all listeners* on the parent gateway
+Specifies the name of the listener defined in the [`api-gateway` configuration](/consul/docs/connect/gateways/api-gateway/configuration/api-gateway) that the route binds to. If the field is configured to an empty string, the route binds to all listeners on the parent gateway.
 
 #### Values
 
-- Default: ""
+- Default: `""`
 - Data type: string
 
 ### `Services`
@@ -160,12 +159,12 @@ to. You can only specify one service.
 #### Values
 
 - Default: none
-- Data type: List of map. Each member of the list contains the following fields:
+- The data type is a list of maps. Each member of the list contains the following fields:
   - `Name`
 
 ### `Services.Name`
 
-Specifies the list of TCP-based services this should route to. Currently, this must specify at maximum one service.
+Specifies the list of TCP-based services this should route to. You can specify a maximum of one service.
 
 #### Values
 
