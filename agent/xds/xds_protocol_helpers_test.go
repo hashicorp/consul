@@ -166,9 +166,6 @@ func newTestServerDeltaScenario(
 ) *testServerScenario {
 	mgr := newTestManager(t)
 	envoy := NewTestEnvoy(t, proxyID, token)
-	t.Cleanup(func() {
-		envoy.Close()
-	})
 
 	sink := metrics.NewInmemSink(1*time.Minute, 1*time.Minute)
 	cfg := metrics.DefaultConfig("consul.xds.test")
@@ -177,6 +174,7 @@ func newTestServerDeltaScenario(
 	metrics.NewGlobal(cfg, sink)
 
 	t.Cleanup(func() {
+		envoy.Close()
 		sink := &metrics.BlackholeSink{}
 		metrics.NewGlobal(cfg, sink)
 	})
