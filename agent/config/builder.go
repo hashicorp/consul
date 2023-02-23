@@ -954,8 +954,8 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		Bootstrap:                 boolVal(c.Bootstrap),
 		BootstrapExpect:           intVal(c.BootstrapExpect),
 		Cache: cache.Options{
-			EntryFetchRate: rate.Limit(
-				float64ValWithDefault(c.Cache.EntryFetchRate, float64(cache.DefaultEntryFetchRate)),
+			EntryFetchRate: limitValWithDefault(
+				c.Cache.EntryFetchRate, float64(cache.DefaultEntryFetchRate),
 			),
 			EntryFetchMaxBurst: intValWithDefault(
 				c.Cache.EntryFetchMaxBurst, cache.DefaultEntryFetchMaxBurst,
@@ -1045,7 +1045,7 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		RPCMaxBurst:                       intVal(c.Limits.RPCMaxBurst),
 		RPCMaxConnsPerClient:              intVal(c.Limits.RPCMaxConnsPerClient),
 		RPCProtocol:                       intVal(c.RPCProtocol),
-		RPCRateLimit:                      rate.Limit(float64Val(c.Limits.RPCRate)),
+		RPCRateLimit:                      limitVal(c.Limits.RPCRate),
 		RPCConfig:                         consul.RPCConfig{EnableStreaming: boolValWithDefault(c.RPC.EnableStreaming, serverMode)},
 		RaftProtocol:                      intVal(c.RaftProtocol),
 		RaftSnapshotThreshold:             intVal(c.RaftSnapshotThreshold),
@@ -1089,7 +1089,7 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		UnixSocketMode:                    stringVal(c.UnixSocket.Mode),
 		UnixSocketUser:                    stringVal(c.UnixSocket.User),
 		Watches:                           c.Watches,
-		XDSUpdateRateLimit:                rate.Limit(float64Val(c.XDS.UpdateMaxPerSecond)),
+		XDSUpdateRateLimit:                limitVal(c.XDS.UpdateMaxPerSecond),
 		AutoReloadConfigCoalesceInterval:  1 * time.Second,
 	}
 
@@ -2032,6 +2032,11 @@ func limitVal(v *float64) rate.Limit {
 	}
 
 	return rate.Limit(f)
+}
+
+func limitValWithDefault(v *float64, defaultVal float64) rate.Limit {
+	f := float64ValWithDefault(v, defaultVal)
+	return limitVal(&f)
 }
 
 func (b *builder) cidrsVal(name string, v []string) (nets []*net.IPNet) {

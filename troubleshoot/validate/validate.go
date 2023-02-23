@@ -110,7 +110,7 @@ type Messages []Message
 type Message struct {
 	Success         bool
 	Message         string
-	PossibleActions string
+	PossibleActions []string
 }
 
 func (m Messages) Success() bool {
@@ -137,6 +137,18 @@ func (m Messages) Errors() Messages {
 // GetMessages returns the error based only on Validate's state.
 func (v *Validate) GetMessages(validateEndpoints bool, endpointValidator EndpointValidator, clusters *envoy_admin_v3.Clusters) Messages {
 	var messages Messages
+	missingXDSActions := []string{
+		"Check that your upstream service is registered with Consul",
+		"Make sure your upstream exists by running the `consul[-k8s] troubleshoot upstreams` command",
+		"If you are using transparent proxy for this upstream, ensure you have set up allow intentions to the upstream",
+		"Check the logs of the Consul agent configuring the local proxy to ensure XDS resources were sent by Consul",
+	}
+	missingEndpointsActions := []string{
+		"Check that your upstream service is healthy and running",
+		"Check that your upstream service is registered with Consul",
+		"Check that the upstream proxy is healthy and running",
+		"If you are explicitly configuring upstreams, ensure the name of the upstream is correct",
+	}
 
 	var upstream string
 	upstream = v.envoyID
@@ -145,19 +157,25 @@ func (v *Validate) GetMessages(validateEndpoints bool, endpointValidator Endpoin
 	}
 
 	if !v.listener {
-		messages = append(messages, Message{Message: fmt.Sprintf("no listener for upstream %q", upstream)})
+		messages = append(messages, Message{
+			Message:         fmt.Sprintf("No listener for upstream %q", upstream),
+			PossibleActions: missingXDSActions,
+		})
 	} else {
 		messages = append(messages, Message{
-			Message: fmt.Sprintf("listener for upstream %q found", upstream),
+			Message: fmt.Sprintf("Listener for upstream %q found", upstream),
 			Success: true,
 		})
 	}
 
 	if v.usesRDS && !v.route {
-		messages = append(messages, Message{Message: fmt.Sprintf("no route for upstream %q", upstream)})
-	} else {
 		messages = append(messages, Message{
-			Message: fmt.Sprintf("route for upstream %q found", upstream),
+			Message:         fmt.Sprintf("No route for upstream %q", upstream),
+			PossibleActions: missingXDSActions,
+		})
+	} else if v.route {
+		messages = append(messages, Message{
+			Message: fmt.Sprintf("Route for upstream %q found", upstream),
 			Success: true,
 		})
 	}
@@ -173,11 +191,14 @@ func (v *Validate) GetMessages(validateEndpoints bool, endpointValidator Endpoin
 
 		_, ok := v.snis[sni]
 		if !ok || !resource.cluster {
-			messages = append(messages, Message{Message: fmt.Sprintf("no cluster %q for upstream %q", sni, upstream)})
+			messages = append(messages, Message{
+				Message:         fmt.Sprintf("No cluster %q for upstream %q", sni, upstream),
+				PossibleActions: missingXDSActions,
+			})
 			continue
 		} else {
 			messages = append(messages, Message{
-				Message: fmt.Sprintf("cluster %q for upstream %q found", sni, upstream),
+				Message: fmt.Sprintf("Cluster %q for upstream %q found", sni, upstream),
 				Success: true,
 			})
 		}
@@ -186,7 +207,7 @@ func (v *Validate) GetMessages(validateEndpoints bool, endpointValidator Endpoin
 		// validation.
 		if strings.Contains(sni, "passthrough~") {
 			messages = append(messages, Message{
-				Message: fmt.Sprintf("cluster %q is a passthrough cluster, skipping endpoint healthiness check", sni),
+				Message: fmt.Sprintf("Cluster %q is a passthrough cluster, skipping endpoint healthiness check", sni),
 				Success: true,
 			})
 			continue
@@ -206,10 +227,13 @@ func (v *Validate) GetMessages(validateEndpoints bool, endpointValidator Endpoin
 					}
 				}
 				if !oneClusterHasEndpoints {
-					messages = append(messages, Message{Message: fmt.Sprintf("no healthy endpoints for aggregate cluster %q for upstream %q", sni, upstream)})
+					messages = append(messages, Message{
+						Message:         fmt.Sprintf("No healthy endpoints for aggregate cluster %q for upstream %q", sni, upstream),
+						PossibleActions: missingEndpointsActions,
+					})
 				} else {
 					messages = append(messages, Message{
-						Message: fmt.Sprintf("healthy endpoints for aggregate cluster %q for upstream %q", sni, upstream),
+						Message: fmt.Sprintf("Healthy endpoints for aggregate cluster %q for upstream %q found", sni, upstream),
 						Success: true,
 					})
 				}
@@ -218,11 +242,12 @@ func (v *Validate) GetMessages(validateEndpoints bool, endpointValidator Endpoin
 				endpointValidator(resource, sni, clusters)
 				if (resource.usesEDS && !resource.loadAssignment) || resource.endpoints == 0 {
 					messages = append(messages, Message{
-						Message: fmt.Sprintf("no healthy endpoints for cluster %q for upstream %q", sni, upstream),
+						Message:         fmt.Sprintf("No healthy endpoints for cluster %q for upstream %q", sni, upstream),
+						PossibleActions: missingEndpointsActions,
 					})
 				} else {
 					messages = append(messages, Message{
-						Message: fmt.Sprintf("healthy endpoints for cluster %q for upstream %q", sni, upstream),
+						Message: fmt.Sprintf("Healthy endpoints for cluster %q for upstream %q found", sni, upstream),
 						Success: true,
 					})
 				}
@@ -235,7 +260,7 @@ func (v *Validate) GetMessages(validateEndpoints bool, endpointValidator Endpoin
 	}
 
 	if numRequiredResources == 0 {
-		messages = append(messages, Message{Message: fmt.Sprintf("no clusters found on route or listener")})
+		messages = append(messages, Message{Message: fmt.Sprintf("No clusters found on route or listener")})
 	}
 
 	return messages

@@ -53,11 +53,3 @@ section[data-route='dc.show.license'] {
 %license-route-learn-more header {
   margin-bottom: 1rem; /* 16px */
 }
-%license-route-learn-more li {
-  margin-bottom: 0.25rem; /* 4px */
-}
-%license-route-learn-more a::before {
-  --icon-name: icon-docs-link;
-  content: '';
-  margin-right: 0.375rem; /* 6px */
-}

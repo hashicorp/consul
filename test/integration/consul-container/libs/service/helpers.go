@@ -5,15 +5,24 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/consul/api"
-
 	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 )
 
 const (
-	StaticServerServiceName = "static-server"
-	StaticClientServiceName = "static-client"
+	StaticServerServiceName  = "static-server"
+	StaticServer2ServiceName = "static-server-2"
+	StaticClientServiceName  = "static-client"
 )
+
+type Checks struct {
+	Name string
+	TTL  string
+}
+
+type SidecarService struct {
+	Port int
+}
 
 type ServiceOpts struct {
 	Name     string
@@ -21,14 +30,45 @@ type ServiceOpts struct {
 	Meta     map[string]string
 	HTTPPort int
 	GRPCPort int
+	Checks   Checks
+	Connect  SidecarService
 }
 
-func CreateAndRegisterStaticServerAndSidecar(node libcluster.Agent, serviceOpts *ServiceOpts) (Service, Service, error) {
+// createAndRegisterStaticServerAndSidecar register the services and launch static-server containers
+func createAndRegisterStaticServerAndSidecar(node libcluster.Agent, grpcPort int, svc *api.AgentServiceRegistration) (Service, Service, error) {
 	// Do some trickery to ensure that partial completion is correctly torn
 	// down, but successful execution is not.
 	var deferClean utils.ResettableDefer
 	defer deferClean.Execute()
 
+	if err := node.GetClient().Agent().ServiceRegister(svc); err != nil {
+		return nil, nil, err
+	}
+
+	// Create a service and proxy instance
+	serverService, err := NewExampleService(context.Background(), svc.ID, svc.Port, grpcPort, node)
+	if err != nil {
+		return nil, nil, err
+	}
+	deferClean.Add(func() {
+		_ = serverService.Terminate()
+	})
+
+	serverConnectProxy, err := NewConnectService(context.Background(), fmt.Sprintf("%s-sidecar", svc.ID), svc.ID, []int{svc.Port}, node) // bindPort not used
+	if err != nil {
+		return nil, nil, err
+	}
+	deferClean.Add(func() {
+		_ = serverConnectProxy.Terminate()
+	})
+
+	// disable cleanup functions now that we have an object with a Terminate() function
+	deferClean.Reset()
+
+	return serverService, serverConnectProxy, nil
+}
+
+func CreateAndRegisterStaticServerAndSidecar(node libcluster.Agent, serviceOpts *ServiceOpts) (Service, Service, error) {
 	// Register the static-server service and sidecar first to prevent race with sidecar
 	// trying to get xDS before it's ready
 	req := &api.AgentServiceRegistration{
@@ -48,32 +88,32 @@ func CreateAndRegisterStaticServerAndSidecar(node libcluster.Agent, serviceOpts 
 		},
 		Meta: serviceOpts.Meta,
 	}
+	return createAndRegisterStaticServerAndSidecar(node, serviceOpts.GRPCPort, req)
+}
 
-	if err := node.GetClient().Agent().ServiceRegister(req); err != nil {
-		return nil, nil, err
+func CreateAndRegisterStaticServerAndSidecarWithChecks(node libcluster.Agent, serviceOpts *ServiceOpts) (Service, Service, error) {
+	// Register the static-server service and sidecar first to prevent race with sidecar
+	// trying to get xDS before it's ready
+	req := &api.AgentServiceRegistration{
+		Name: serviceOpts.Name,
+		ID:   serviceOpts.ID,
+		Port: serviceOpts.HTTPPort,
+		Connect: &api.AgentServiceConnect{
+			SidecarService: &api.AgentServiceRegistration{
+				Proxy: &api.AgentServiceConnectProxyConfig{},
+				Port:  serviceOpts.Connect.Port,
+			},
+		},
+		Checks: api.AgentServiceChecks{
+			{
+				Name: serviceOpts.Checks.Name,
+				TTL:  serviceOpts.Checks.TTL,
+			},
+		},
+		Meta: serviceOpts.Meta,
 	}
 
-	// Create a service and proxy instance
-	serverService, err := NewExampleService(context.Background(), serviceOpts.ID, serviceOpts.HTTPPort, serviceOpts.GRPCPort, node)
-	if err != nil {
-		return nil, nil, err
-	}
-	deferClean.Add(func() {
-		_ = serverService.Terminate()
-	})
-
-	serverConnectProxy, err := NewConnectService(context.Background(), fmt.Sprintf("%s-sidecar", StaticServerServiceName), serviceOpts.ID, serviceOpts.HTTPPort, node) // bindPort not used
-	if err != nil {
-		return nil, nil, err
-	}
-	deferClean.Add(func() {
-		_ = serverConnectProxy.Terminate()
-	})
-
-	// disable cleanup functions now that we have an object with a Terminate() function
-	deferClean.Reset()
-
-	return serverService, serverConnectProxy, nil
+	return createAndRegisterStaticServerAndSidecar(node, serviceOpts.GRPCPort, req)
 }
 
 func CreateAndRegisterStaticClientSidecar(
@@ -118,7 +158,7 @@ func CreateAndRegisterStaticClientSidecar(
 	}
 
 	// Create a service and proxy instance
-	clientConnectProxy, err := NewConnectService(context.Background(), fmt.Sprintf("%s-sidecar", StaticClientServiceName), StaticClientServiceName, libcluster.ServiceUpstreamLocalBindPort, node)
+	clientConnectProxy, err := NewConnectService(context.Background(), fmt.Sprintf("%s-sidecar", StaticClientServiceName), StaticClientServiceName, []int{libcluster.ServiceUpstreamLocalBindPort}, node)
 	if err != nil {
 		return nil, err
 	}

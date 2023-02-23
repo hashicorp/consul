@@ -10,7 +10,7 @@ import (
 	fuzz "github.com/google/gofuzz"
 	"github.com/hashicorp/consul/agent/proxycfg/internal/watch"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/proto/pbpeering"
+	"github.com/hashicorp/consul/proto/private/pbpeering"
 	"github.com/stretchr/testify/require"
 )
 
@@ -68,6 +68,8 @@ func TestAPIGatewaySnapshotToIngressGatewaySnapshot(t *testing.T) {
 				ConfigSnapshotUpstreams: ConfigSnapshotUpstreams{
 					PeerUpstreamEndpoints:    watch.NewMap[UpstreamID, structs.CheckServiceNodes](),
 					WatchedLocalGWEndpoints:  watch.NewMap[string, structs.CheckServiceNodes](),
+					WatchedGatewayEndpoints:  map[UpstreamID]map[string]structs.CheckServiceNodes{},
+					WatchedUpstreamEndpoints: map[UpstreamID]map[string]structs.CheckServiceNodes{},
 					UpstreamPeerTrustBundles: watch.NewMap[string, *pbpeering.PeeringTrustBundle](),
 					DiscoveryChain:           map[UpstreamID]*structs.CompiledDiscoveryChain{},
 				},

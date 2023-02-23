@@ -35,8 +35,7 @@ func NewResourceGenerator(
 
 func (g *ResourceGenerator) AllResourcesFromSnapshot(cfgSnap *proxycfg.ConfigSnapshot) (map[string][]proto.Message, error) {
 	all := make(map[string][]proto.Message)
-	// TODO Add xdscommon.SecretType
-	for _, typeUrl := range []string{xdscommon.ListenerType, xdscommon.RouteType, xdscommon.ClusterType, xdscommon.EndpointType} {
+	for _, typeUrl := range []string{xdscommon.ListenerType, xdscommon.RouteType, xdscommon.ClusterType, xdscommon.EndpointType, xdscommon.SecretType} {
 		res, err := g.resourcesFromSnapshot(typeUrl, cfgSnap)
 		if err != nil {
 			return nil, fmt.Errorf("failed to generate xDS resources for %q: %v", typeUrl, err)

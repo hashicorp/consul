@@ -33,6 +33,7 @@ You can use the following commands with `consul-k8s`.
       - [`proxy list`](#proxy-list): List all Pods running proxies managed by Consul.
       - [`proxy read`](#proxy-read): Inspect the Envoy configuration for a given Pod.
   - [`status`](#status): Check the status of a Consul installation on Kubernetes.
+  - [`troubleshoot`](#troubleshoot): Troubleshoot Consul service mesh and networking issues from a given pod.
   - [`uninstall`](#uninstall): Uninstall Consul deployment.
   - [`upgrade`](#upgrade): Upgrade Consul on Kubernetes from an existing installation.
   - [`version`](#version): Print the version of the Consul on Kubernetes CLI.
@@ -489,6 +490,106 @@ $ consul-k8s status
  ✓ Consul servers healthy (1/1)
  ✓ Consul clients healthy (3/3)
 ```
+
+### `troubleshoot`
+
+The `troubleshoot` command exposes two subcommands for troubleshooting Consul
+service mesh and network issues from a given pod.
+
+- [`troubleshoot upstreams`](#troubleshoot-upstreams): List all Envoy upstreams in Consul service mesh from the given pod.
+- [`troubleshoot proxy`](#troubleshoot-proxy): Troubleshoot Consul service mesh configuration and network issues between the given pod and the given upstream.
+
+### `troubleshoot upstreams`
+
+```shell-session
+$ consul-k8s troubleshoot upstreams -pod <pod> <OPTIONS>
+```
+
+| Flag                                 | Description                                           | Default                                                                                                                |
+| ------------------------------------ | ----------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| <nobr>`-namespace`, `-n`</nobr>      | `String` The Kubernetes namespace to list proxies in. | Current [kubeconfig](https://kubernetes.io/docs/concepts/configuration/organize-cluster-access-kubeconfig/) namespace. |
+| <nobr>`-envoy-admin-endpoint`</nobr> | `String` Envoy sidecar address and port               | `127.0.0.1:19000`                                                                                                      |
+
+#### Example Commands
+
+The following example displays all transparent proxy upstreams in Consul service mesh from the given pod.
+
+  ```shell-session
+  $ consul-k8s troubleshoot upstreams -pod frontend-767ccfc8f9-6f6gx
+
+  ==> Upstreams (explicit upstreams only) (0)
+
+  ==> Upstreams IPs (transparent proxy only) (1)
+  [10.4.6.160 240.0.0.3] true map[backend.default.dc1.internal.e08fa6d6-e91e-dfe0-f6e1-ba097a828e31.consul backend2.default.dc1.internal.e08fa6d6-e91e-dfe0-f6e1-ba097a828e31.consul]
+
+  If you cannot find the upstream address or cluster for a transparent proxy upstream:
+  - Check intentions: Tproxy upstreams are configured based on intentions. Make sure you have configured intentions to allow traffic to your upstream.
+  - To check that the right cluster is being dialed, run a DNS lookup for the upstream you are dialing. For example, run `dig backend.svc.consul` to return the IP address for the `backend` service. If the address you get from that is missing from the upstream IPs, it means that your proxy may be misconfigured.
+  ```
+
+The following example displays all explicit upstreams from the given pod in the Consul service mesh.
+
+  ```shell-session
+  $ consul-k8s troubleshoot upstreams -pod client-767ccfc8f9-6f6gx
+
+  ==> Upstreams (explicit upstreams only) (1)
+  server
+  counting
+
+  ==> Upstreams IPs (transparent proxy only) (0)
+
+  If you cannot find the upstream address or cluster for a transparent proxy upstream:
+  - Check intentions: Tproxy upstreams are configured based on intentions. Make sure you have configured intentions to allow traffic to your upstream.
+  - To check that the right cluster is being dialed, run a DNS lookup for the upstream you are dialing. For example, run `dig backend.svc.consul` to return the IP address for the `backend` service. If the address you get from that is missing from the upstream IPs, it means that your proxy may be misconfigured.
+  ```
+
+### `troubleshoot proxy`
+
+```shell-session
+$ consul-k8s troubleshoot proxy -pod <pod> -upstream-ip <ip> <OPTIONS>
+$ consul-k8s troubleshoot proxy -pod <pod> -upstream-envoy-id <envoy-id> <OPTIONS>
+```
+
+| Flag                                 | Description                                           | Default                                                                                                                |
+| ------------------------------------ | ----------------------------------------------------------| ---------------------------------------------------------------------------------------------------------------------- |
+| <nobr>`-namespace`, `-n`</nobr>      | `String` The Kubernetes namespace to list proxies in.     | Current [kubeconfig](https://kubernetes.io/docs/concepts/configuration/organize-cluster-access-kubeconfig/) namespace. |
+| <nobr>`-envoy-admin-endpoint`</nobr> | `String` Envoy sidecar address and port                   | `127.0.0.1:19000`                                                                                                               |
+| <nobr>`-upstream-ip`</nobr>          | `String` The IP address of the upstream transparent proxy |                                                                                                                |
+| <nobr>`-upstream-envoy-id`</nobr>    | `String` The Envoy identifier of the upstream             |                                                                                                                |
+
+#### Example Commands
+
+The following example troubleshoots the Consul service mesh configuration and network issues between the given pod and the given upstream IP.
+
+  ```shell-session
+  $ consul-k8s troubleshoot proxy -pod frontend-767ccfc8f9-6f6gx -upstream-ip 10.4.6.160
+
+  ==> Validation
+   ✓ certificates are valid
+   ✓ Envoy has 0 rejected configurations
+   ✓ Envoy has detected 0 connection failure(s)
+   ✓ listener for upstream "backend" found
+   ✓ route for upstream "backend" found
+   ✓ cluster "backend.default.dc1.internal..consul" for upstream "backend" found
+   ✓ healthy endpoints for cluster "backend.default.dc1.internal.e08fa6d6-e91e-dfe0-f6e1-ba097a828e31.consul" for upstream "backend" found
+   ✓ cluster "backend2.default.dc1.internal..consul" for upstream "backend" found
+   ! no healthy endpoints for cluster "backend2.default.dc1.internal.e08fa6d6-e91e-dfe0-f6e1-ba097a828e31.consul" for upstream "backend" found
+  ```
+
+The following example troubleshoots the Consul service mesh configuration and network issues between the given pod and the given upstream.
+
+  ```shell-session
+  $ consul-k8s troubleshoot proxy -pod frontend-767ccfc8f9-6f6gx -upstream-envoy-id db
+
+  ==> Validation
+   ✓ certificates are valid
+   ✓ Envoy has 0 rejected configurations
+   ✓ Envoy has detected 0 connection failure(s)
+   ! no listener for upstream "db" found
+   ! no route for upstream "backend" found
+   ! no cluster "db.default.dc1.internal.e08fa6d6-e91e-dfe0-f6e1-ba097a828e31.consul" for upstream "db" found
+   ! no healthy endpoints for cluster "db.default.dc1.internal.e08fa6d6-e91e-dfe0-f6e1-ba097a828e31.consul" for upstream "db" found
+  ```
 
 ### `uninstall`
 

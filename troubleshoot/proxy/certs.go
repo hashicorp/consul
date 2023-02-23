@@ -18,7 +18,10 @@ func (t *Troubleshoot) validateCerts(certs *envoy_admin_v3.Certificates) validat
 	if certs == nil {
 		msg := validate.Message{
 			Success: false,
-			Message: "certificate object is nil in the proxy configuration",
+			Message: "Certificate object is nil in the proxy configuration",
+			PossibleActions: []string{
+				"Check the logs of the Consul agent configuring the local proxy and ensure XDS updates are being sent to the proxy",
+			},
 		}
 		return []validate.Message{msg}
 	}
@@ -26,7 +29,10 @@ func (t *Troubleshoot) validateCerts(certs *envoy_admin_v3.Certificates) validat
 	if len(certs.GetCertificates()) == 0 {
 		msg := validate.Message{
 			Success: false,
-			Message: "no certificates found",
+			Message: "No certificates found",
+			PossibleActions: []string{
+				"Check the logs of the Consul agent configuring the local proxy and ensure XDS updates are being sent to the proxy",
+			},
 		}
 		return []validate.Message{msg}
 	}
@@ -36,7 +42,10 @@ func (t *Troubleshoot) validateCerts(certs *envoy_admin_v3.Certificates) validat
 			if now.After(cacert.GetExpirationTime().AsTime()) {
 				msg := validate.Message{
 					Success: false,
-					Message: "ca certificate is expired",
+					Message: "CA certificate is expired",
+					PossibleActions: []string{
+						"Check the logs of the Consul agent configuring the local proxy and ensure XDS updates are being sent to the proxy",
+					},
 				}
 				certMessages = append(certMessages, msg)
 			}
@@ -46,7 +55,10 @@ func (t *Troubleshoot) validateCerts(certs *envoy_admin_v3.Certificates) validat
 			if now.After(cc.GetExpirationTime().AsTime()) {
 				msg := validate.Message{
 					Success: false,
-					Message: "certificate chain is expired",
+					Message: "Certificate chain is expired",
+					PossibleActions: []string{
+						"Check the logs of the Consul agent configuring the local proxy and ensure XDS updates are being sent to the proxy",
+					},
 				}
 				certMessages = append(certMessages, msg)
 			}

@@ -19,7 +19,7 @@ import (
 )
 
 const (
-	defaultHTTPTimeout = 100 * time.Second
+	defaultHTTPTimeout = 120 * time.Second
 	defaultHTTPWait    = defaultWait
 )
 
@@ -49,9 +49,17 @@ func CatalogNodeExists(t *testing.T, c *api.Client, nodeName string) {
 	})
 }
 
+func HTTPServiceEchoes(t *testing.T, ip string, port int, path string) {
+	doHTTPServiceEchoes(t, ip, port, path, nil)
+}
+
+func HTTPServiceEchoesResHeader(t *testing.T, ip string, port int, path string, expectedResHeader map[string]string) {
+	doHTTPServiceEchoes(t, ip, port, path, expectedResHeader)
+}
+
 // HTTPServiceEchoes verifies that a post to the given ip/port combination returns the data
 // in the response body. Optional path can be provided to differentiate requests.
-func HTTPServiceEchoes(t *testing.T, ip string, port int, path string) {
+func doHTTPServiceEchoes(t *testing.T, ip string, port int, path string, expectedResHeader map[string]string) {
 	const phrase = "hello"
 
 	failer := func() *retry.Timer {
@@ -82,6 +90,24 @@ func HTTPServiceEchoes(t *testing.T, ip string, port int, path string) {
 		if !strings.Contains(string(body), phrase) {
 			r.Fatal("received an incorrect response ", string(body))
 		}
+
+		for k, v := range expectedResHeader {
+			if headerValues, ok := res.Header[k]; !ok {
+				r.Fatal("expected header not found", k)
+			} else {
+				found := false
+				for _, value := range headerValues {
+					if value == v {
+						found = true
+						break
+					}
+				}
+
+				if !found {
+					r.Fatalf("header %s value not match want %s got %s ", k, v, headerValues)
+				}
+			}
+		}
 	})
 }
 
@@ -100,20 +126,36 @@ func ServiceLogContains(t *testing.T, service libservice.Service, target string)
 func AssertFortioName(t *testing.T, urlbase string, name string) {
 	t.Helper()
 	var fortioNameRE = regexp.MustCompile(("\nFORTIO_NAME=(.+)\n"))
-	var body []byte
+	client := &http.Client{
+		Transport: &http.Transport{
+			DisableKeepAlives: true,
+		},
+	}
 	retry.RunWith(&retry.Timer{Timeout: defaultHTTPTimeout, Wait: defaultHTTPWait}, t, func(r *retry.R) {
-		resp, err := http.Get(fmt.Sprintf("%s/debug?env=dump", urlbase))
+		fullurl := fmt.Sprintf("%s/debug?env=dump", urlbase)
+		t.Logf("making call to %s", fullurl)
+		req, err := http.NewRequest("GET", fullurl, nil)
+		if err != nil {
+			r.Fatal("could not make request to service ", fullurl)
+		}
+
+		resp, err := client.Do(req)
+		if err != nil {
+			r.Fatal("could not make call to service ", fullurl)
+		}
+		defer resp.Body.Close()
+
+		body, err := io.ReadAll(resp.Body)
 		if err != nil {
 			r.Error(err)
 			return
 		}
-		defer resp.Body.Close()
-		body, err = io.ReadAll(resp.Body)
-		require.NoError(t, err)
+
+		m := fortioNameRE.FindStringSubmatch(string(body))
+		require.GreaterOrEqual(r, len(m), 2)
+		t.Logf("got response from server name %s", m[1])
+		assert.Equal(r, name, m[1])
 	})
-	m := fortioNameRE.FindStringSubmatch(string(body))
-	require.GreaterOrEqual(t, len(m), 2)
-	assert.Equal(t, name, m[1])
 }
 
 // AssertContainerState validates service container status

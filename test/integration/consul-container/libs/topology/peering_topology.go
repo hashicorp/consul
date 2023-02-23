@@ -24,7 +24,7 @@ type BuiltCluster struct {
 	Cluster   *libcluster.Cluster
 	Context   *libcluster.BuildContext
 	Service   libservice.Service
-	Container *libservice.ConnectContainer
+	Container libservice.Service
 	Gateway   libservice.Service
 }
 
@@ -41,6 +41,7 @@ type BuiltCluster struct {
 func BasicPeeringTwoClustersSetup(
 	t *testing.T,
 	consulVersion string,
+	peeringThroughMeshgateway bool,
 ) (*BuiltCluster, *BuiltCluster) {
 	// acceptingCluster, acceptingCtx, acceptingClient := NewPeeringCluster(t, "dc1", 3, consulVersion, true)
 	acceptingCluster, acceptingCtx, acceptingClient := NewPeeringCluster(t, 3, &libcluster.BuildOptions{
@@ -53,14 +54,45 @@ func BasicPeeringTwoClustersSetup(
 		ConsulVersion:        consulVersion,
 		InjectAutoEncryption: true,
 	})
+
+	// Create the mesh gateway for dataplane traffic and peering control plane traffic (if enabled)
+	acceptingClusterGateway, err := libservice.NewGatewayService(context.Background(), "mesh", "mesh", acceptingCluster.Clients()[0])
+	require.NoError(t, err)
+	dialingClusterGateway, err := libservice.NewGatewayService(context.Background(), "mesh", "mesh", dialingCluster.Clients()[0])
+	require.NoError(t, err)
+
+	// Enable peering control plane traffic through mesh gateway
+	if peeringThroughMeshgateway {
+		req := &api.MeshConfigEntry{
+			Peering: &api.PeeringMeshConfig{
+				PeerThroughMeshGateways: true,
+			},
+		}
+		configCluster := func(cli *api.Client) error {
+			libassert.CatalogServiceExists(t, cli, "mesh")
+			ok, _, err := cli.ConfigEntries().Set(req, &api.WriteOptions{})
+			if !ok {
+				return fmt.Errorf("config entry is not set")
+			}
+
+			if err != nil {
+				return fmt.Errorf("error writing config entry: %s", err)
+			}
+			return nil
+		}
+		err = configCluster(dialingClient)
+		require.NoError(t, err)
+		err = configCluster(acceptingClient)
+		require.NoError(t, err)
+	}
+
 	require.NoError(t, dialingCluster.PeerWithCluster(acceptingClient, AcceptingPeerName, DialingPeerName))
 
 	libassert.PeeringStatus(t, acceptingClient, AcceptingPeerName, api.PeeringStateActive)
 	// libassert.PeeringExports(t, acceptingClient, acceptingPeerName, 1)
 
 	// Register an static-server service in acceptingCluster and export to dialing cluster
-	var serverSidecarService libservice.Service
-	var acceptingClusterGateway libservice.Service
+	var serverService, serverSidecarService libservice.Service
 	{
 		clientNode := acceptingCluster.Clients()[0]
 
@@ -74,22 +106,17 @@ func BasicPeeringTwoClustersSetup(
 			HTTPPort: 8080,
 			GRPCPort: 8079,
 		}
-		serverSidecarService, _, err := libservice.CreateAndRegisterStaticServerAndSidecar(clientNode, &serviceOpts)
+		serverService, serverSidecarService, err = libservice.CreateAndRegisterStaticServerAndSidecar(clientNode, &serviceOpts)
 		require.NoError(t, err)
 
 		libassert.CatalogServiceExists(t, acceptingClient, libservice.StaticServerServiceName)
 		libassert.CatalogServiceExists(t, acceptingClient, "static-server-sidecar-proxy")
 
-		require.NoError(t, serverSidecarService.Export("default", AcceptingPeerName, acceptingClient))
-
-		// Create the mesh gateway for dataplane traffic
-		acceptingClusterGateway, err = libservice.NewGatewayService(context.Background(), "mesh", "mesh", clientNode)
-		require.NoError(t, err)
+		require.NoError(t, serverService.Export("default", AcceptingPeerName, acceptingClient))
 	}
 
 	// Register an static-client service in dialing cluster and set upstream to static-server service
 	var clientSidecarService *libservice.ConnectContainer
-	var dialingClusterGateway libservice.Service
 	{
 		clientNode := dialingCluster.Clients()[0]
 
@@ -100,9 +127,6 @@ func BasicPeeringTwoClustersSetup(
 
 		libassert.CatalogServiceExists(t, dialingClient, "static-client-sidecar-proxy")
 
-		// Create the mesh gateway for dataplane traffic
-		dialingClusterGateway, err = libservice.NewGatewayService(context.Background(), "mesh", "mesh", clientNode)
-		require.NoError(t, err)
 	}
 
 	_, adminPort := clientSidecarService.GetAdminAddr()
@@ -115,7 +139,7 @@ func BasicPeeringTwoClustersSetup(
 			Cluster:   acceptingCluster,
 			Context:   acceptingCtx,
 			Service:   serverSidecarService,
-			Container: nil,
+			Container: serverSidecarService,
 			Gateway:   acceptingClusterGateway,
 		},
 		&BuiltCluster{
@@ -182,6 +206,7 @@ func NewDialingCluster(
 // NewPeeringCluster creates a cluster with peering enabled. It also creates
 // and registers a mesh-gateway at the client agent. The API client returned is
 // pointed at the client agent.
+// - proxy-defaults.protocol = tcp
 func NewPeeringCluster(
 	t *testing.T,
 	numServers int,

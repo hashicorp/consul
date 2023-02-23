@@ -193,7 +193,7 @@
         ]
       },
       {
-        "title": "Consul API Gateway",
+        "title": "API Gateway for Kubernetes",
         "routes": [
           {
             "title": "v0.5.x",
@@ -740,6 +740,23 @@
           {
             "title": "Configuration Reference",
             "path": "agent/config/config-files"
+          }
+        ]
+      },
+      {
+        "title": "Limit Traffic Rates",
+        "routes": [
+          {
+            "title": "Overview",
+            "path": "agent/limits"
+          },
+          {
+            "title": "Initialize Rate Limit Settings",
+            "path": "agent/limits/init-rate-limits"
+          },
+          {
+            "title": "Set Global Traffic Rate Limits",
+            "path": "agent/limits/set-global-traffic-rate-limits"
           }
         ]
       },
@@ -1332,7 +1349,7 @@
     "divider": true
   },
   {
-    "title": "Consul API Gateway",
+    "title": "API Gateway for Kubernetes",
     "routes": [
       {
         "title": "Overview",
@@ -1354,7 +1371,7 @@
         "title": "Usage",
         "routes": [
           {
-            "title": "Basic Usage",
+            "title": "Deploy",
             "path": "api-gateway/usage/usage"
           },
           {

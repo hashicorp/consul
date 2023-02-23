@@ -1,0 +1,32 @@
+{
+  "versionInfo":  "00000001",
+  "resources":  [
+    {
+      "@type":  "type.googleapis.com/envoy.config.listener.v3.Listener",
+      "name":  "tcp-service:1.2.3.4:8080",
+      "address":  {
+        "socketAddress":  {
+          "address":  "1.2.3.4",
+          "portValue":  8080
+        }
+      },
+      "filterChains":  [
+        {
+          "filters":  [
+            {
+              "name":  "envoy.filters.network.tcp_proxy",
+              "typedConfig":  {
+                "@type":  "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
+                "statPrefix":  "upstream.tcp-service.default.default.dc1",
+                "cluster":  "tcp-service.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
+              }
+            }
+          ]
+        }
+      ],
+      "trafficDirection":  "OUTBOUND"
+    }
+  ],
+  "typeUrl":  "type.googleapis.com/envoy.config.listener.v3.Listener",
+  "nonce":  "00000001"
+}
