@@ -342,6 +342,42 @@
             "path": "connect/config-entries"
           },
           {
+            "title": "API Gateway",
+            "href": "/consul/docs/connect/gateways/api-gateway/configuration/api-gateway",
+            "badge": {
+              "text": "BETA",
+              "type": "outlined",
+              "color": "neutral"
+            }
+          },
+          {
+            "title": "HTTP Route",
+            "href": "/consul/docs/connect/gateways/api-gateway/configuration/http-route",
+            "badge": {
+              "text": "BETA",
+              "type": "outlined",
+              "color": "neutral"
+            }
+          },
+          {
+            "title": "TCP Route",
+            "href": "/consul/docs/connect/gateways/api-gateway/configuration/tcp-route",
+            "badge": {
+              "text": "BETA",
+              "type": "outlined",
+              "color": "neutral"
+            }
+          },
+          {
+            "title": "Inline Certificate",
+            "href": "/consul/docs/connect/gateways/api-gateway/configuration/inline-certificate",
+            "badge": {
+              "text": "BETA",
+              "type": "outlined",
+              "color": "neutral"
+            }
+          },
+          {
             "title": "Ingress Gateway",
             "path": "connect/config-entries/ingress-gateway"
           },
@@ -393,6 +429,28 @@
           {
             "title": "Envoy",
             "path": "connect/proxies/envoy"
+          },
+          {
+            "title": "Envoy Extensions",
+            "routes": [
+              {
+                "title": "Overview",
+                "path": "connect/proxies/envoy-extensions"
+              },
+              {
+                "title": "Usage",
+                "routes": [
+                  {
+                    "title": "Run Lua scripts in Envoy proxies",
+                    "path": "connect/proxies/envoy-extensions/usage/lua"
+                  },
+                  {
+                    "title": "Invoke Lambda functions in Envoy proxies",
+                    "path": "connect/proxies/envoy-extensions/usage/lambda"
+                  }
+                ]
+              }
+            ]
           },
           {
             "title": "Built-in Proxy",
@@ -484,6 +542,45 @@
             "path": "connect/gateways"
           },
           {
+            "title": "API Gateways",
+            "badge": {
+              "text": "BETA",
+              "type": "outlined",
+              "color": "neutral"
+            },
+            "routes": [
+              {
+                "title": "Overview",
+                "path": "connect/gateways/api-gateway"
+              },
+              {
+                "title": "Usage",
+                "path": "connect/gateways/api-gateway/usage"
+              },
+              {
+                "title": "Configuration",
+                "routes": [
+                  {
+                    "title": "API Gateway",
+                    "path": "connect/gateways/api-gateway/configuration/api-gateway"
+                  },
+                  {
+                    "title": "HTTP Route",
+                    "path": "connect/gateways/api-gateway/configuration/http-route"
+                  },
+                  {
+                    "title": "TCP Route",
+                    "path": "connect/gateways/api-gateway/configuration/tcp-route"
+                  },
+                  {
+                    "title": "Inline Certificate",
+                    "path": "connect/gateways/api-gateway/configuration/inline-certificate"
+                  }
+                ]
+              }
+            ]
+          },
+          {
             "title": "Mesh Gateways",
             "routes": [
               {
@@ -505,10 +602,6 @@
               {
                 "title": "Enabling Peering Control Plane Traffic",
                 "path": "connect/gateways/mesh-gateway/peering-via-mesh-gateways"
-              },
-              {
-                "title": "Enabling Service-to-service Traffic Across Peered Clusters",
-                "path": "connect/gateways/mesh-gateway/service-to-service-traffic-peers"
               }
             ]
           },
@@ -526,16 +619,29 @@
         "title": "Cluster Peering",
         "routes": [
           {
-            "title": "What is Cluster Peering?",
+            "title": "Overview",
             "path": "connect/cluster-peering"
           },
           {
-            "title": "Create and Manage Peering Connections",
-            "path": "connect/cluster-peering/create-manage-peering"
+            "title": "Technical Specifications",
+            "path": "connect/cluster-peering/tech-specs"
           },
           {
-            "title": "Cluster Peering on Kubernetes",
-            "path": "connect/cluster-peering/k8s"
+            "title": "Usage",
+            "routes": [
+              {
+                "title": "Establish Cluster Peering Connections",
+                "path": "connect/cluster-peering/usage/establish-cluster-peering"
+              },
+              {
+                "title": "Manage Cluster Peering Connections",
+                "path": "connect/cluster-peering/usage/manage-connections"
+              },
+              {
+                "title": "Manage L7 Traffic With Cluster Peering",
+                "path": "connect/cluster-peering/usage/peering-traffic-management"
+              }
+            ]
           }
         ]
       },
@@ -799,6 +905,10 @@
     "title": "Troubleshoot",
     "routes": [
       {
+        "title": "Service-to-Service Troubleshooting",
+        "path": "troubleshoot/troubleshoot-services"
+      },
+      {
         "title": "Common Error Messages",
         "path": "troubleshoot/common-errors"
       },
@@ -822,7 +932,6 @@
         "title": "Architecture",
         "path": "k8s/architecture"
       },
-
       {
         "title": "Installation",
         "routes": [
@@ -979,6 +1088,36 @@
           {
             "title": "Admin Partitions",
             "href": "/docs/enterprise/admin-partitions"
+          },
+          {
+            "title": "Cluster Peering",
+            "routes": [
+              {
+                "title": "Overview",
+                "href": "/docs/connect/cluster-peering"
+              },
+              {
+                "title": "Technical Specifications",
+                "path": "k8s/connect/cluster-peering/tech-specs"
+              },
+              {
+                "title": "Usage",
+                "routes": [
+                  {
+                    "title": "Establish Cluster Peering Connections",
+                    "path": "k8s/connect/cluster-peering/usage/establish-peering"
+                  },
+                  {
+                    "title": "Manage Cluster Peering Connections",
+                    "path": "k8s/connect/cluster-peering/usage/manage-peering"
+                  },
+                  {
+                    "title": "Manage L7 Traffic With Cluster Peering",
+                    "path": "k8s/connect/cluster-peering/usage/l7-traffic"
+                  }
+                ]
+              }
+            ]
           },
           {
             "title": "Transparent Proxy",
