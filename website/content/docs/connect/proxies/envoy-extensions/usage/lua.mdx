@@ -7,9 +7,9 @@ description: >-
 
 # Run Lua scripts in Envoy proxy
 
-The Lua Envoy extension enables the HTTP Lua filter in your Consul Envoy proxies, letting you run Lua scripts when requests and responses pass through Consul-generated Envoy resources.
+The Lua Envoy extension enables the [HTTP Lua filter](https://www.envoyproxy.io/docs/envoy/latest/configuration/http/http_filters/lua_filter) in your Consul Envoy proxies, letting you run Lua scripts when requests and responses pass through Consul-generated Envoy resources.
 
-Envoy filters support setting and getting dynamic metadata, allowing a filter to share state information with subsequent filters. To set dynamic metadata, configure the HTTP Lua Filter. Users can call `streamInfo:dynamicMetadata()` from Lua scripts to get the request's dynamic metadata. 
+Envoy filters support setting and getting dynamic metadata, allowing a filter to share state information with subsequent filters. To set dynamic metadata, configure the HTTP Lua filter. Users can call `streamInfo:dynamicMetadata()` from Lua scripts to get the request's dynamic metadata. 
 
 ## Configuration specifications
 
@@ -35,7 +35,7 @@ To use Envoy extensions, you must configure and apply a `proxy-defaults` or `ser
 - When you configure Envoy extensions on `proxy-defaults`, they apply to every service.
 - When you configure Envoy extensions on `service-defaults`, they apply to a specific service.
 
-Consul applies Envoy extensions configured in `proxy-defaults`before it applies extensions in `service-defaults`. As a result, the Envoy extension configuration in `service-defaults` may  override configurations in `proxy-defaults`.
+Consul applies Envoy extensions configured in `proxy-defaults` before it applies extensions in `service-defaults`. As a result, the Envoy extension configuration in `service-defaults` may  override configurations in `proxy-defaults`.
 
 The following example configures the Lua Envoy extension on every service by using the `proxy-defaults`.
 
@@ -122,7 +122,7 @@ end
 
 For a full list of parameters for `EnvoyExtensions`, refer to the [`service-defaults`](/consul/docs/connect/config-entries/service-defaults#envoyextensions) and [`proxy-defaults`](/consul/docs/connect/config-entries/proxy-defaults#envoyextensions) configuration entries reference documentation.
 
-~> **Note:** Although you can apply Envoy extensions to `service-defaults`, this may have unintended consequences so we recommend using `proxy-defaults` in most cases.
+!> **Warning:** Applying `EnvoyExtensions` to `ProxyDefaults` may produce unintended consequences. We recommend enabling `EnvoyExtensions` with `ServiceDefaults` in most cases.
 
 Refer to [Configuration specification](#configuration-specification) section to find a full list of arguments for the Lua Envoy extension.
 
