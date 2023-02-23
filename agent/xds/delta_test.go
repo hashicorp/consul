@@ -10,7 +10,6 @@ import (
 
 	"github.com/armon/go-metrics"
 	envoy_discovery_v3 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
-
 	"github.com/stretchr/testify/require"
 	rpcstatus "google.golang.org/genproto/googleapis/rpc/status"
 	"google.golang.org/grpc/codes"
@@ -1059,19 +1058,23 @@ func TestServer_DeltaAggregatedResources_v3_ACLEnforcement(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			// aclResolve may be called in a goroutine even after a
+			// testcase tt returns. Capture the variable as tc so the
+			// values don't swap in the next iteration.
+			tc := tt
 			aclResolve := func(id string) (acl.Authorizer, error) {
-				if !tt.defaultDeny {
+				if !tc.defaultDeny {
 					// Allow all
 					return acl.RootAuthorizer("allow"), nil
 				}
-				if tt.acl == "" {
+				if tc.acl == "" {
 					// No token and defaultDeny is denied
 					return acl.RootAuthorizer("deny"), nil
 				}
 				// Ensure the correct token was passed
-				require.Equal(t, tt.token, id)
+				require.Equal(t, tc.token, id)
 				// Parse the ACL and enforce it
-				policy, err := acl.NewPolicyFromSource(tt.acl, nil, nil)
+				policy, err := acl.NewPolicyFromSource(tc.acl, nil, nil)
 				require.NoError(t, err)
 				return acl.NewPolicyAuthorizerWithDefaults(acl.RootAuthorizer("deny"), []*acl.Policy{policy}, nil)
 			}
