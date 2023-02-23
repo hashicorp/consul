@@ -342,6 +342,42 @@
             "path": "connect/config-entries"
           },
           {
+            "title": "API Gateway",
+            "href": "/consul/docs/connect/gateways/api-gateway/configuration/api-gateway",
+            "badge": {
+              "text": "BETA",
+              "type": "outlined",
+              "color": "neutral"
+            }
+          },
+          {
+            "title": "HTTP Route",
+            "href": "/consul/docs/connect/gateways/api-gateway/configuration/http-route",
+            "badge": {
+              "text": "BETA",
+              "type": "outlined",
+              "color": "neutral"
+            }
+          },
+          {
+            "title": "TCP Route",
+            "href": "/consul/docs/connect/gateways/api-gateway/configuration/tcp-route",
+            "badge": {
+              "text": "BETA",
+              "type": "outlined",
+              "color": "neutral"
+            }
+          },
+          {
+            "title": "Inline Certificate",
+            "href": "/consul/docs/connect/gateways/api-gateway/configuration/inline-certificate",
+            "badge": {
+              "text": "BETA",
+              "type": "outlined",
+              "color": "neutral"
+            }
+          },
+          {
             "title": "Ingress Gateway",
             "path": "connect/config-entries/ingress-gateway"
           },
@@ -504,6 +540,45 @@
           {
             "title": "Overview",
             "path": "connect/gateways"
+          },
+          {
+            "title": "API Gateways",
+            "badge": {
+              "text": "BETA",
+              "type": "outlined",
+              "color": "neutral"
+            },
+            "routes": [
+              {
+                "title": "Overview",
+                "path": "connect/gateways/api-gateway"
+              },
+              {
+                "title": "Usage",
+                "path": "connect/gateways/api-gateway/usage"
+              },
+              {
+                "title": "Configuration",
+                "routes": [
+                  {
+                    "title": "API Gateway",
+                    "path": "connect/gateways/api-gateway/configuration/api-gateway"
+                  },
+                  {
+                    "title": "HTTP Route",
+                    "path": "connect/gateways/api-gateway/configuration/http-route"
+                  },
+                  {
+                    "title": "TCP Route",
+                    "path": "connect/gateways/api-gateway/configuration/tcp-route"
+                  },
+                  {
+                    "title": "Inline Certificate",
+                    "path": "connect/gateways/api-gateway/configuration/inline-certificate"
+                  }
+                ]
+              }
+            ]
           },
           {
             "title": "Mesh Gateways",
@@ -857,7 +932,6 @@
         "title": "Architecture",
         "path": "k8s/architecture"
       },
-
       {
         "title": "Installation",
         "routes": [
