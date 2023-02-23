@@ -821,6 +821,10 @@
     "title": "Troubleshoot",
     "routes": [
       {
+        "title": "Service-to-Service Troubleshooting",
+        "path": "troubleshoot/troubleshoot-services"
+      },
+      {
         "title": "Common Error Messages",
         "path": "troubleshoot/common-errors"
       },
