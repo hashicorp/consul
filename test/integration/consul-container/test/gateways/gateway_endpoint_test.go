@@ -155,8 +155,6 @@ func createService(t *testing.T, cluster *libcluster.Cluster, serviceOpts *libse
 	node := cluster.Agents[0]
 	client := node.GetClient()
 	// Create a service and proxy instance
-
-	// Create a service and proxy instance
 	service, _, err := libservice.CreateAndRegisterStaticServerAndSidecar(node, serviceOpts, containerArgs...)
 	assert.NoError(t, err)
 
