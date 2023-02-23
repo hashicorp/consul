@@ -276,7 +276,6 @@ Specifies the list of gateways that this route should be bound to.
 #### Values
 
 - Default: none
-- This field is not required.
 - Data type: List of map. Each member of the list contains the following fields:
   - `Kind`
   - `Name`
@@ -311,7 +310,6 @@ empty, this will bind this route to *all listeners* on the parent gateway
 #### Values
 
 - Default: ""
-- This field is not required.
 - Data type: string
 
 ### `Rules`
@@ -321,7 +319,6 @@ Specifies the list of HTTP-based routing rules that this route should use for co
 #### Values
 
 - Default:
-- This field is not required.
 - Data type: List of maps. Each member of the list contains the following fields:
   - `Filters`
   - `Matches`
@@ -334,7 +331,6 @@ Specifies the list of HTTP-based filters used to modify a request prior to routi
 #### Values
 
 - Default: none
-- This field is not required.
 - Data type: Map that contains the following fields:
   - `Headers`
   - `UrlRewrite`
@@ -384,7 +380,6 @@ services specified in the [`Rules.Services`](#rules-services) field.
 #### Values
 
 - Default: none
-- This field is not required.
 - Data type: List of map. Each member of the list contains the following fields:
   - `Headers`
   - `Method`
@@ -398,7 +393,6 @@ Specifies how a match is done on a request’s headers
 #### Values
 
 - Default: none
-- This field is not required.
 - Data type: List of map that contains the following fields:
   - `Match`
   - `Name`
@@ -411,7 +405,6 @@ Specifies type of match for headers: `"exact"`, `"prefix"`, or `"regex"`.
 #### Values
 
 - Default: none
-- This field is not required.
 - Data type: string
 
 ### `Rules.Matches.Headers.Name`
@@ -421,7 +414,6 @@ Specifies the name of the header to match on
 #### Values
 
 - Default: none
-- This field is not required.
 - Data type: string
 
 ### `Rules.Matches.Headers.Value`
@@ -431,7 +423,6 @@ Specifies the value of the header to match on
 #### Values
 
 - Default: none
-- This field is not required.
 - Data type: string
 
 ### `Rules.Matches.Method`
@@ -441,7 +432,6 @@ Specifies the http method to match on
 #### Values
 
 - Default: none
-- This field is not required.
 - Data type: string
 
 ### `Rules.Matches.Path`
@@ -451,7 +441,6 @@ Specifies the http method to match on.
 #### Values
 
 - Default: none
-- This field is not required.
 - Data type: map which contains the following fields
   - `Match`
   - `Value`
@@ -463,7 +452,6 @@ Specifies type of match for the path: `"exact"`, `"prefix"`, or `"regex"`.
 #### Values
 
 - Default: none
-- This field is not required.
 - Data type: string
 
 ### `Rules.Matches.Path.Value`
@@ -473,7 +461,6 @@ Specifies the value of the path to match on.
 #### Values
 
 - Default: none
-- This field is not required.
 - Data type: string
 
 ### `Rules.Matches.Query`
@@ -483,7 +470,6 @@ Specifies how a match is done on a request’s query parameters.
 #### Values
 
 - Default: none
-- This field is not required.
 - Data type: List of map that contains the following fields:
   - `Match`
   - `Name`
@@ -496,7 +482,6 @@ Specifies type of match for query parameters: `"exact"`, `"prefix"`, or `"regex"
 #### Values
 
 - Default: none
-- This field is not required.
 - Data type: string
 
 ### `Rules.Matches.Query.Name`
@@ -506,7 +491,6 @@ Specifies the name of the query parameter to match on.
 #### Values
 
 - Default: none
-- This field is not required.
 - Data type: string
 
 ### `Rules.Matches.Query.Value`
@@ -516,7 +500,6 @@ Specifies the value of the query parameter to match on.
 #### Values
 
 - Default: none
-- This field is not required.
 - Data type: string
 
 ### `Rules.Services`
@@ -539,7 +522,6 @@ Specifies the name of an HTTP-based service this should route to.
 #### Values
 
 - Default: none
-- This field is not required.
 - Data type: string
 
 ### `Rules.Services.Weight`
@@ -554,7 +536,6 @@ equal 100.
 #### Values
 
 - Default: none
-- This field is not required.
 - Data type: int
 
 ### `Rules.Services.Filters`
@@ -565,7 +546,6 @@ routing it to this upstream service
 #### Values
 
 - Default: none
-- This field is not required.
 - Data type: Map that contains the following fields:
   - `Headers`
   - `UrlRewrite`
