@@ -35,7 +35,7 @@ To use Envoy extensions, you must configure and apply a `proxy-defaults` or `ser
 - When you configure Envoy extensions on `proxy-defaults`, they apply to every service.
 - When you configure Envoy extensions on `service-defaults`, they apply to a specific service.
 
-Consul applies Envoy extensions configured in `proxy-defaults`before it applies extensions in `service-defaults`. As a result, the Envoy extension configuration in `service-defaults` may  override configurations in `proxy-defaults`.
+Consul applies Envoy extensions configured in `proxy-defaults` before it applies extensions in `service-defaults`. As a result, the Envoy extension configuration in `service-defaults` may  override configurations in `proxy-defaults`.
 
 The following example configures the Lua Envoy extension on every service by using the `proxy-defaults`.
 
