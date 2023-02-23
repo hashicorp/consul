@@ -42,43 +42,43 @@ Kind = "tcp-route"
 Name = "<name of the route>"
 
 Meta = {
-  "<any key>" = "<any value>"
+	"<any key>" = "<any value>"
 }
 
 Parents = [
-  {
-    Kind = "api-gateway"
-    Name = "<name of the api-gateway to bind to>"
-    SectionName = "<listener on the api-gateway to bind to>"
-  }
+	{
+		Kind = "api-gateway"
+		Name = "<name of the api-gateway to bind to>"
+		SectionName = "<listener on the api-gateway to bind to>"
+	}
 ]
 
 Services = [
-  {
-    Name = "<name of service>"
-  }
+	{
+		Name = "<name of service>"
+	}
 ]
 ```
 
 ```JSON
 {
-  "kind": "tcp-route",
-  "name": "name of the route",
-  "parents": [
-    {
-      "Kind": "api-gateway",
-      "Name": "name of the api-gateway to bind to",
-      "SectionName": "listener on the api-gateway to bind to"
-    }
-  ],
-  "services": [
-    {
-      "Name": "name of service"
-    }
-  ],
-  "meta": {
-    "any key": "any value"
-  }
+	"Kind": "tcp-route",
+	"Name": "name of the route",
+	"Parents": [
+		{
+			"Kind": "api-gateway",
+			"Name": "name of the api-gateway to bind to",
+			"SectionName": "listener on the api-gateway to bind to"
+		}
+	],
+	"Services": [
+		{
+			"Name": "name of service"
+		}
+	],
+	"Meta": {
+		"any key": "any value"
+	}
 }
 ```
 

@@ -71,85 +71,85 @@ Kind = "http-route"
 Name = "<name of the route>"
 
 Meta = {
-  "<any key>" = "<any value>"
+	"<any key>" = "<any value>"
 }
 
 Parents = [
-  {
-    Kind        = "api-gateway"
-    Name        = "<name of the api-gateway to bind to>"
-    SectionName = "<optional name of a specific listener on the api-gateway to bind to>"
-  }
+	{
+		Kind        = "api-gateway"
+		Name        = "<name of the api-gateway to bind to>"
+		SectionName = "<optional name of a specific listener on the api-gateway to bind to>"
+	}
 ]
 
 Rules = [
-  {
-    Filters = {
-      Headers = [
-        {
-          Add = {
-            "<name of header to add>" = "<value of header to add>"
-          }
-          Remove = [
-            "<name of header to remove from request>"
-          ]
-          Set = {
-            "<name of header to set>" = "<value of header to set>"
-          }
-        }
-      ]
-      URLRewrite = {
-        Path = "<path to rewrite request to>"
-      }
-    }
-    Matches = [
-      {
-        Headers = [
-          {
-            Match = "<type of match: exact, prefix or regex>"
-            Name = "<name of header to match on>"
-            Value = "<value of header to match on>"
-          }
-        ]
-        Method = "<method type to match on>"
-        Path = {
-          Match = "<type of match: exact, prefix or regex>"
-          Value = "<value to match on>"
-        }
-        Query = [
-          {
-            Match = "<type of match: exact, present or regex>"
-            Name = "<name of query parameter to match on>"
-            Value = "<value of query parameter to match on>"
-          }
-        ]
-      }
-    ]
-    Services = [
-      {
-        Name   = "<name of Consul service to route to>"
-        Weight = "<number proportional to other weights>"
-        Filters = {
-          Headers = [
-            {
-              Add = {
-                "<name of header to add>" = "<value of header to add>"
-              }
-              Remove = [
-                "<name of header to remove from request>"
-              ]
-              Set = {
-                "<name of header to set>" = "<value of header to set>"
-              }
-            }
-          ]
-          URLRewrite = {
-            Path = "<path to rewrite request to>"
-          }
-        }
-      }
-    ]
-  }
+	{
+		Filters = {
+			Headers = [
+				{
+					Add = {
+						"<name of header to add>" = "<value of header to add>"
+					}
+					Remove = [
+						"<name of header to remove from request>"
+					]
+					Set = {
+						"<name of header to set>" = "<value of header to set>"
+					}
+				}
+			]
+			URLRewrite = {
+				Path = "<path to rewrite request to>"
+			}
+		}
+		Matches = [
+			{
+				Headers = [
+					{
+						Match = "<type of match: exact, prefix or regex>"
+						Name = "<name of header to match on>"
+						Value = "<value of header to match on>"
+					}
+				]
+				Method = "<method type to match on>"
+				Path = {
+					Match = "<type of match: exact, prefix or regex>"
+					Value = "<value to match on>"
+				}
+				Query = [
+					{
+						Match = "<type of match: exact, present or regex>"
+						Name = "<name of query parameter to match on>"
+						Value = "<value of query parameter to match on>"
+					}
+				]
+			}
+		]
+		Services = [
+			{
+				Name   = "<name of Consul service to route to>"
+				Weight = "<number proportional to other weights>"
+				Filters = {
+					Headers = [
+						{
+							Add = {
+								"<name of header to add>" = "<value of header to add>"
+							}
+							Remove = [
+								"<name of header to remove from request>"
+							]
+							Set = {
+								"<name of header to set>" = "<value of header to set>"
+							}
+						}
+					]
+					URLRewrite = {
+						Path = "<path to rewrite request to>"
+					}
+				}
+			}
+		]
+	}
 ]
 
 Hostnames = ["<hostnames for which this HTTPRoute should respond to requests>"]
@@ -157,104 +157,104 @@ Hostnames = ["<hostnames for which this HTTPRoute should respond to requests>"]
 
 ```json
 {
-  "Kind": "http-route",
-  "Name": "name of the route",
-  "Parents": [
-    {
-      "Kind": "api-gateway",
-      "Name": "name of the api-gateway to bind to",
-      "SectionName": "optional name of a specific listener on the api-gateway to bind to"
-    }
-  ],
-  "Rules": [
-    {
-      "Filters": [
-        {
-          "Headers": [
-            {
-              "Add": [
-                {
-                  "name of header to add": "value of header to add"
-                }
-              ],
-              "Remove": ["header to remove from request"],
-              "Set": [
-                {
-                  "name of header to set": "value of header to set"
-                }
-              ]
-            }
-          ],
-          "URLRewrite": [
-            {
-              "Path": "path to rewrite request to"
-            }
-          ]
-        }
-      ],
-      "Matches": [
-        {
-          "Headers": [
-            {
-              "Match": "type of match: exact, prefix or regex",
-              "Name": "name of header to match on",
-              "Value": "value of header to match on"
-            }
-          ],
-          "Method": "method type to match on",
-          "Path": [
-            {
-              "Match": "type of match: exact, prefix or regex",
-              "Value": "value to match on"
-            }
-          ],
-          "Query": [
-            {
-              "Match": "type of match: exact, present or regex",
-              "Name": "name of query parameter to match on",
-              "Value": "value of query parameter to match on"
-            }
-          ]
-        }
-      ],
-      "Services": [
-        {
-          "Filters": [
-            {
-              "Headers": [
-                {
-                  "Add": [
-                    {
-                      "name of header to add": "value of header to add"
-                    }
-                  ],
-                  "Remove": ["header to remove from request"],
-                  "Set": [
-                    {
-                      "name of header to set": "value of header to set"
-                    }
-                  ]
-                }
-              ],
-              "URLRewrite": [
-                {
-                  "Path": "path to rewrite request to"
-                }
-              ]
-            }
-          ],
-          "Name": "name of Consul service to route to",
-          "Weight": "number proportional to other weights"
-        }
-      ]
-    }
-  ],
-  "Hostnames": [
-    "hostnames for which this HTTPRoute should respond to requests"
-  ],
-  "Meta": {
-    "any key": "any value"
-  }
+	"Kind": "http-route",
+	"Name": "name of the route",
+	"Meta": {
+		"any key": "any value"
+	},
+	"Parents": [
+		{
+			"Kind": "api-gateway",
+			"Name": "name of the api-gateway to bind to",
+			"SectionName": "optional name of a specific listener on the api-gateway to bind to"
+		}
+	],
+	"Rules": [
+		{
+			"Filters": [
+				{
+					"Headers": [
+						{
+							"Add": [
+								{
+									"name of header to add": "value of header to add"
+								}
+							],
+							"Remove": ["header to remove from request"],
+							"Set": [
+								{
+									"name of header to set": "value of header to set"
+								}
+							]
+						}
+					],
+					"URLRewrite": [
+						{
+							"Path": "path to rewrite request to"
+						}
+					]
+				}
+			],
+			"Matches": [
+				{
+					"Headers": [
+						{
+							"Match": "type of match: exact, prefix or regex",
+							"Name": "name of header to match on",
+							"Value": "value of header to match on"
+						}
+					],
+					"Method": "method type to match on",
+					"Path": [
+						{
+							"Match": "type of match: exact, prefix or regex",
+							"Value": "value to match on"
+						}
+					],
+					"Query": [
+						{
+							"Match": "type of match: exact, present or regex",
+							"Name": "name of query parameter to match on",
+							"Value": "value of query parameter to match on"
+						}
+					]
+				}
+			],
+			"Services": [
+				{
+					"Filters": [
+						{
+							"Headers": [
+								{
+									"Add": [
+										{
+											"name of header to add": "value of header to add"
+										}
+									],
+									"Remove": ["header to remove from request"],
+									"Set": [
+										{
+											"name of header to set": "value of header to set"
+										}
+									]
+								}
+							],
+							"URLRewrite": [
+								{
+									"Path": "path to rewrite request to"
+								}
+							]
+						}
+					],
+					"Name": "name of Consul service to route to",
+					"Weight": "number proportional to other weights"
+				}
+			]
+		}
+	],
+	"Hostnames": [
+		"hostnames for which this HTTPRoute should respond to requests"
+	]
 }
 ```
 

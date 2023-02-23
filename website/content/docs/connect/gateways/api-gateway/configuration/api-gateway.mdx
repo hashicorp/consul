@@ -47,58 +47,58 @@ Kind = "api-gateway"
 Name = "<name of api gateway>"
 
 Meta = {
-  <any key> = "<any value>"
+	<any key> = "<any value>"
 }
 
 Listeners = [
-  {
-    Port = <external service port>
-    Name = "<unique name for this listener>"
-    Protocol = "<protocol used by external service>"
-    TLS = {
-      Certificates = [
-        {
-          Kind = "inline-certificate"
-          Name = "<name of inline-certificate>"
-        }
-      ]
-      CipherSuites = [
-        "<cipher suite>"
-      ]
-      MaxVersion = "<version of TLS>"
-      MinVersion = "<version of TLS>"
-    }
-  }
+	{
+		Port = <external service port>
+		Name = "<unique name for this listener>"
+		Protocol = "<protocol used by external service>"
+		TLS = {
+			Certificates = [
+				{
+					Kind = "inline-certificate"
+					Name = "<name of inline-certificate>"
+				}
+			]
+			CipherSuites = [
+				"<cipher suite>"
+			]
+			MaxVersion = "<version of TLS>"
+			MinVersion = "<version of TLS>"
+		}
+	}
 ]
 ```
 
 ```json
 {
-  "kind": "api-gateway",
-  "name": "<name of api gateway>",
-  "meta": {
-    "<any key>": "<any value>"
-  },
-  "listeners": [
-    {
-      "port": <external service port>,
-      "name": "<unique name for this listener>",
-      "protocol": "<protocol used by external service>",
-      "tls": {
-        "certificates": [
-          {
-          "kind": "inline-certificate",
-          "name": "<name of inline-certificate>"
-          }
-        ],
-        "cipherSuites": [
-          "<cipher suite>"
-        ],
-        "maxVersion": "<version of TLS>",
-        "minVersion": "<version of TLS>"
-      }
-    }
-  ]
+	"kind": "api-gateway",
+	"name": "<name of api gateway>",
+	"meta": {
+		"<any key>": "<any value>"
+	},
+	"listeners": [
+		{
+			"port": <external service port>,
+			"name": "<unique name for this listener>",
+			"protocol": "<protocol used by external service>",
+			"tls": {
+				"certificates": [
+					{
+					"kind": "inline-certificate",
+					"name": "<name of inline-certificate>"
+					}
+				],
+				"cipherSuites": [
+					"<cipher suite>"
+				],
+				"maxVersion": "<version of TLS>",
+				"minVersion": "<version of TLS>"
+			}
+		}
+	]
 }
 ```
 
