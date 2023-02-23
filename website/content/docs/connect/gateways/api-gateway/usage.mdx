@@ -12,13 +12,13 @@ in a Kubernetes environment, refer to [API Gateway for Kubernetes](/consul/docs/
 
 ## Introduction
 
-Consul API gateways provide a configurable ingress points for requests into a Consul network. Usethe following configuration entries to set up API gateways: 
+Consul API gateways provide a configurable ingress points for requests into a Consul network. Usethe following configuration entries to set up API gateways:
 
-- [API gateway](/consul/docs/connect/gateways/api-gateway/configuration/api-gateway): Provides an endpoint for requests to enter the network. Define listeners that expose ports on the endpoint for ingress. 
-- [HTTP routes](/consul/docs/connect/gateways/api-gateway/configuration/http-route) and [TCP routes](/consul/docs/connect/gateways/api-gateway/configuration/tcp-route): The routes attach to listeners defined in the gateway and control how requests route to services in the network. 
+- [API gateway](/consul/docs/connect/gateways/api-gateway/configuration/api-gateway): Provides an endpoint for requests to enter the network. Define listeners that expose ports on the endpoint for ingress.
+- [HTTP routes](/consul/docs/connect/gateways/api-gateway/configuration/http-route) and [TCP routes](/consul/docs/connect/gateways/api-gateway/configuration/tcp-route): The routes attach to listeners defined in the gateway and control how requests route to services in the network.
 - [Inline certificates](/consul/docs/connect/gateways/api-gateway/configuration/inline-certificate): Makes TLS certificates available to gateways so that requests between the user and the gateway endpoint are encrypted.
 
-You can configure and reuse configuration entries separately. You can define and attach routes and inline certificates to multiple gateways. 
+You can configure and reuse configuration entries separately. You can define and attach routes and inline certificates to multiple gateways.
 
 The following steps describe the general workflow for deploying a Consul API
 gateway to a VM environment:
@@ -78,6 +78,7 @@ Listeners = [
 	}
 ]
 ```
+
 Refer to [API Gateway Configuration Reference](/consul/docs/connect/gateways/api-gateway/configuration/api-gateway) for
 information about all configuration fields.
 
@@ -184,7 +185,7 @@ and [TCP Route Configuration Entry Reference](/consul/docs/connect/gateways/api-
 
 Define an [`inline-certificate` configuration entry](/consul/docs/connect/gateways/api-gateway/configuration/inline-certificate) with a name matching the name in the [API gateway listener configuration](/consul/docs/connect/gateways/api-gateway/configuration/api-gateway#listeners) to bind the certificate to that listener.  The inline certificate configuration entry takes a public certificate and private key in plaintext.
 
-The following example defines a certificate named `my-certificate`. API gateway configurations that specify `inline-certificate` in the `Certificate.Kind` field and `my-certificate` in the `Certificate.Name` field are able to use the certificate. 
+The following example defines a certificate named `my-certificate`. API gateway configurations that specify `inline-certificate` in the `Certificate.Kind` field and `my-certificate` in the `Certificate.Name` field are able to use the certificate.
 
 ```hcl
 Kind = "inline-certificate"
