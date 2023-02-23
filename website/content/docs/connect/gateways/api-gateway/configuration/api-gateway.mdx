@@ -24,12 +24,12 @@ The following list outlines field hierarchy, language-specific data types, and r
   - [`Name`](#listeners-name): string | node name
   - [`Protocol`](#listeners-protocol): string | `"tcp"`
   - [`TLS`](#listeners-tls): map | none
-  - [`TLSMinVersion`](#listeners-tlsminversion): string | no default
-  - [`TLSMaxVersion`](#listeners-tlsmaxversion): string | no default
-  - [`CipherSuites`](#listeners-ciphersuite):  list of strings | Envoy default cipher suites
-  - [`Certificates`](#listeners-certificates): list of objects | no default
-    - [`Kind`](#listeners-certificates-kind): string | must be `"inline-certificate"`
-    - [`Name`](#listeners-certificates-name): string | no default
+    - [`MinVersion`](#listeners-tls-minversion): string | no default
+    - [`MaxVersion`](#listeners-tls-maxversion): string | no default
+    - [`CipherSuites`](#listeners-tls-ciphersuite):  list of strings | Envoy default cipher suites
+    - [`Certificates`](#listeners-tls-certificates): list of objects | no default
+      - [`Kind`](#listeners-tls-certificates-kind): string | must be `"inline-certificate"`
+      - [`Name`](#listeners-tls-certificates-name): string | no default
 
 ## Complete configuration
 
@@ -136,7 +136,7 @@ Specifies an arbitrary set of key-value pairs to associate with the gateway.
 - Default: none
 - Data type: map containing one or more keys and string values.
 
-### `Listeners`
+### `Listeners[]`
 
 Specifies a list of listeners that gateway should set up. Listeners are
 uniquely identified by their port number.
@@ -252,7 +252,7 @@ Specifies the maximum TLS version supported for the listener.
   - `TLSv1_2`
   - `TLSv1_3`
 
-### `Listeners.TLS.MinVersion`
+### `Listeners[].TLS.MinVersion`
 
 Specifies the minimum TLS version supported for the listener.
 
