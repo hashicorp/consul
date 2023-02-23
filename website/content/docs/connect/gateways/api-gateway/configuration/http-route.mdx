@@ -45,7 +45,6 @@ When every field is defined, an `http-route` configuration entry has the followi
 
 ``` hcl
 Kind = "http-route"
-
 Name = "<name of the route>"
 
 Parents = [
@@ -65,7 +64,7 @@ Rules = [
             "<name of header to add>" = "<value of header to add>"
           }
           Remove = [
-            "<header to remove from request>"
+            "<name of header to remove from request>"
           ]
           Set = {
             "<name of header to set>" = "<value of header to set>"
@@ -110,7 +109,7 @@ Rules = [
                 "<name of header to add>" = "<value of header to add>"
               }
               Remove = [
-                "<header to remove from request>"
+                "<name of header to remove from request>"
               ]
               Set = {
                 "<name of header to set>" = "<value of header to set>"
@@ -118,7 +117,7 @@ Rules = [
             }
           ]
           URLRewrite = {
-            Path : "<path to rewrite request to>"
+            Path = "<path to rewrite request to>"
           }
         }
       }
