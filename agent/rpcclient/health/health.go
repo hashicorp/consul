@@ -8,7 +8,7 @@ import (
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/submatview"
-	"github.com/hashicorp/consul/proto/pbsubscribe"
+	"github.com/hashicorp/consul/proto/private/pbsubscribe"
 )
 
 // Client provides access to service health data.

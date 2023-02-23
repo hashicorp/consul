@@ -64,7 +64,7 @@ import (
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/lib/routine"
 	"github.com/hashicorp/consul/logging"
-	"github.com/hashicorp/consul/proto/pbsubscribe"
+	"github.com/hashicorp/consul/proto/private/pbsubscribe"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
 	cslversion "github.com/hashicorp/consul/version"

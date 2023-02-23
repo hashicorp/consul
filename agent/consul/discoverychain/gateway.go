@@ -5,6 +5,7 @@ import (
 	"hash/crc32"
 	"sort"
 	"strconv"
+	"strings"
 
 	"github.com/hashicorp/consul/agent/configentry"
 	"github.com/hashicorp/consul/agent/structs"
@@ -17,6 +18,7 @@ type GatewayChainSynthesizer struct {
 	trustDomain       string
 	suffix            string
 	gateway           *structs.APIGatewayConfigEntry
+	hostname          string
 	matchesByHostname map[string][]hostnameMatch
 	tcpRoutes         []structs.TCPRouteConfigEntry
 }
@@ -44,17 +46,17 @@ func (l *GatewayChainSynthesizer) AddTCPRoute(route structs.TCPRouteConfigEntry)
 	l.tcpRoutes = append(l.tcpRoutes, route)
 }
 
+// SetHostname sets the base hostname for a listener that this is being synthesized for
+func (l *GatewayChainSynthesizer) SetHostname(hostname string) {
+	l.hostname = hostname
+}
+
 // AddHTTPRoute takes a new route and flattens its rule matches out per hostname.
 // This is required since a single route can specify multiple hostnames, and a
 // single hostname can be specified in multiple routes. Routing for a given
 // hostname must behave based on the aggregate of all rules that apply to it.
 func (l *GatewayChainSynthesizer) AddHTTPRoute(route structs.HTTPRouteConfigEntry) {
-	hostnames := route.Hostnames
-	if len(route.Hostnames) == 0 {
-		// add a wildcard if there are no explicit hostnames set
-		hostnames = append(hostnames, "*")
-	}
-
+	hostnames := route.FilteredHostnames(l.hostname)
 	for _, host := range hostnames {
 		matches, ok := l.matchesByHostname[host]
 		if !ok {
@@ -125,6 +127,23 @@ func (l *GatewayChainSynthesizer) Synthesize(chains ...*structs.CompiledDiscover
 		if err != nil {
 			return nil, nil, err
 		}
+
+		// fix up the nodes for the terminal targets to either be a splitter or resolver if there is no splitter present
+		for name, node := range compiled.Nodes {
+			switch node.Type {
+			// we should only have these two types
+			case structs.DiscoveryGraphNodeTypeRouter:
+				for i, route := range node.Routes {
+					node.Routes[i].NextNode = targetForResolverNode(route.NextNode, chains)
+				}
+			case structs.DiscoveryGraphNodeTypeSplitter:
+				for i, split := range node.Splits {
+					node.Splits[i].NextNode = targetForResolverNode(split.NextNode, chains)
+				}
+			}
+			compiled.Nodes[name] = node
+		}
+
 		for _, c := range chains {
 			for id, target := range c.Targets {
 				compiled.Targets[id] = target
@@ -174,6 +193,27 @@ func (l *GatewayChainSynthesizer) consolidateHTTPRoutes() []structs.HTTPRouteCon
 	}
 
 	return routes
+}
+
+func targetForResolverNode(nodeName string, chains []*structs.CompiledDiscoveryChain) string {
+	resolverPrefix := structs.DiscoveryGraphNodeTypeResolver + ":"
+	splitterPrefix := structs.DiscoveryGraphNodeTypeSplitter + ":"
+
+	if !strings.HasPrefix(nodeName, resolverPrefix) {
+		return nodeName
+	}
+
+	splitterName := splitterPrefix + strings.TrimPrefix(nodeName, resolverPrefix)
+
+	for _, c := range chains {
+		for name, node := range c.Nodes {
+			if node.IsSplitter() && strings.HasPrefix(splitterName, name) {
+				return name
+			}
+		}
+	}
+
+	return nodeName
 }
 
 func hostsKey(hosts ...string) string {

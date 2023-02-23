@@ -21,8 +21,8 @@ import (
 	external "github.com/hashicorp/consul/agent/grpc-external"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
-	"github.com/hashicorp/consul/proto/pbpeering"
-	"github.com/hashicorp/consul/proto/pbpeerstream"
+	"github.com/hashicorp/consul/proto/private/pbpeering"
+	"github.com/hashicorp/consul/proto/private/pbpeerstream"
 )
 
 type BidirectionalStream interface {

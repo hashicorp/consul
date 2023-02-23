@@ -138,9 +138,18 @@ as |sort filters parent items|}}
       <BlockSlot @name="actions">
 {{#if (can 'create kvs')}}
     {{#if (not-eq parent.Key '/') }}
-          <a data-test-create href="{{href-to 'dc.kv.create' parent.Key}}" class="type-create">Create</a>
+      <Hds::Button
+        @text='Create'
+        @isHrefExternal={{false}}
+        @href="{{href-to 'dc.kv.create' parent.Key}}"
+        data-test-create
+      />
     {{else}}
-          <a data-test-create href="{{href-to 'dc.kv.root-create'}}" class="type-create">Create</a>
+      <Hds::Button
+        @text='Create'
+        @route='dc.kv.root-create'
+        data-test-create
+      />
     {{/if}}
 {{/if}}
       </BlockSlot>
@@ -191,11 +200,23 @@ as |sort filters parent items|}}
                     }}
                   </BlockSlot>
                   <BlockSlot @name="actions">
-                    <li class="docs-link">
-                      <a href="{{env 'CONSUL_DOCS_URL'}}/agent/kv" rel="noopener noreferrer" target="_blank">Documentation on K/V</a>
+                    <li>
+                      <Hds::Link::Standalone
+                        @text='Documentation on K/V'
+                        @href="{{env 'CONSUL_DOCS_URL'}}/agent/kv"
+                        @icon='docs-link'
+                        @iconPosition='trailing'
+                        @size='small'
+                      />
                     </li>
-                    <li class="learn-link">
-                      <a href="{{env 'CONSUL_DOCS_LEARN_URL'}}/consul/getting-started/kv" rel="noopener noreferrer" target="_blank">Take the tutorial</a>
+                    <li>
+                      <Hds::Link::Standalone
+                        @text='Take the tutorial'
+                        @href="{{env 'CONSUL_DOCS_LEARN_URL'}}/consul/getting-started/kv"
+                        @icon='learn-link'
+                        @iconPosition='trailing'
+                        @size='small'
+                      />
                     </li>
                   </BlockSlot>
                 </EmptyState>

@@ -8,6 +8,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/miekg/dns"
 )
 
 // InlineCertificateConfigEntry manages the configuration for an inline certificate
@@ -29,19 +30,20 @@ type InlineCertificateConfigEntry struct {
 	RaftIndex
 }
 
-func (e *InlineCertificateConfigEntry) GetKind() string {
-	return InlineCertificate
+func (e *InlineCertificateConfigEntry) GetKind() string            { return InlineCertificate }
+func (e *InlineCertificateConfigEntry) GetName() string            { return e.Name }
+func (e *InlineCertificateConfigEntry) Normalize() error           { return nil }
+func (e *InlineCertificateConfigEntry) GetMeta() map[string]string { return e.Meta }
+func (e *InlineCertificateConfigEntry) GetEnterpriseMeta() *acl.EnterpriseMeta {
+	return &e.EnterpriseMeta
 }
-
-func (e *InlineCertificateConfigEntry) GetName() string {
-	return e.Name
-}
-
-func (e *InlineCertificateConfigEntry) Normalize() error {
-	return nil
-}
+func (e *InlineCertificateConfigEntry) GetRaftIndex() *RaftIndex { return &e.RaftIndex }
 
 func (e *InlineCertificateConfigEntry) Validate() error {
+	if err := validateConfigEntryMeta(e.Meta); err != nil {
+		return err
+	}
+
 	privateKeyBlock, _ := pem.Decode([]byte(e.PrivateKey))
 	if privateKeyBlock == nil {
 		return errors.New("failed to parse private key PEM")
@@ -64,7 +66,43 @@ func (e *InlineCertificateConfigEntry) Validate() error {
 		return err
 	}
 
+	// validate that each host referenced in the CN, DNSSans, and IPSans
+	// are valid hostnames
+	hosts, err := e.Hosts()
+	if err != nil {
+		return err
+	}
+	for _, host := range hosts {
+		if _, ok := dns.IsDomainName(host); !ok {
+			return fmt.Errorf("host %q must be a valid DNS hostname", host)
+		}
+	}
+
 	return nil
+}
+
+func (e *InlineCertificateConfigEntry) Hosts() ([]string, error) {
+	certificateBlock, _ := pem.Decode([]byte(e.Certificate))
+	if certificateBlock == nil {
+		return nil, errors.New("failed to parse certificate PEM")
+	}
+
+	certificate, err := x509.ParseCertificate(certificateBlock.Bytes)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse certificate: %w", err)
+	}
+
+	hosts := []string{certificate.Subject.CommonName}
+
+	for _, name := range certificate.DNSNames {
+		hosts = append(hosts, name)
+	}
+
+	for _, ip := range certificate.IPAddresses {
+		hosts = append(hosts, ip.String())
+	}
+
+	return hosts, nil
 }
 
 func (e *InlineCertificateConfigEntry) CanRead(authz acl.Authorizer) error {
@@ -77,25 +115,4 @@ func (e *InlineCertificateConfigEntry) CanWrite(authz acl.Authorizer) error {
 	var authzContext acl.AuthorizerContext
 	e.FillAuthzContext(&authzContext)
 	return authz.ToAllowAuthorizer().MeshWriteAllowed(&authzContext)
-}
-
-func (e *InlineCertificateConfigEntry) GetMeta() map[string]string {
-	if e == nil {
-		return nil
-	}
-	return e.Meta
-}
-
-func (e *InlineCertificateConfigEntry) GetEnterpriseMeta() *acl.EnterpriseMeta {
-	if e == nil {
-		return nil
-	}
-	return &e.EnterpriseMeta
-}
-
-func (e *InlineCertificateConfigEntry) GetRaftIndex() *RaftIndex {
-	if e == nil {
-		return &RaftIndex{}
-	}
-	return &e.RaftIndex
 }

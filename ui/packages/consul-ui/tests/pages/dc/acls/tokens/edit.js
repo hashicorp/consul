@@ -13,7 +13,7 @@ export default function (
     ...cancelable({}, 'main form > div'),
     ...deletable({}, 'main form > div'),
     use: clickable('[data-test-use]'),
-    confirmUse: clickable('button.type-delete'),
+    confirmUse: clickable('[data-test-confirm-use]'),
     clone: clickable('[data-test-clone]'),
     policies: policySelector(),
     roles: roleSelector(),

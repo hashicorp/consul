@@ -47,6 +47,7 @@ parents = [
   {
     name = "api-gateway"
     sectionName = "listener-two"
+    kind = "api-gateway"
   }
 ]
 '

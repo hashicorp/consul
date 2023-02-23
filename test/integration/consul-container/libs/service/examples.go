@@ -64,6 +64,10 @@ func (g exampleContainer) GetAddr() (string, int) {
 	return g.ip, g.httpPort
 }
 
+func (g exampleContainer) GetAddrs() (string, []int) {
+	return "", nil
+}
+
 func (g exampleContainer) Restart() error {
 	return fmt.Errorf("Restart Unimplemented by ConnectContainer")
 }
@@ -99,6 +103,13 @@ func (g exampleContainer) Start() error {
 		return fmt.Errorf("container has not been initialized")
 	}
 	return g.container.Start(context.Background())
+}
+
+func (g exampleContainer) Stop() error {
+	if g.container == nil {
+		return fmt.Errorf("container has not been initialized")
+	}
+	return g.container.Stop(context.Background(), nil)
 }
 
 func (c exampleContainer) Terminate() error {

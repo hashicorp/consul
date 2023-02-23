@@ -53,6 +53,10 @@ func (g gatewayContainer) GetAddr() (string, int) {
 	return g.ip, g.port
 }
 
+func (g gatewayContainer) GetAddrs() (string, []int) {
+	return "", nil
+}
+
 func (g gatewayContainer) GetLogs() (string, error) {
 	rc, err := g.container.Logs(context.Background())
 	if err != nil {
@@ -84,6 +88,13 @@ func (g gatewayContainer) Start() error {
 		return fmt.Errorf("container has not been initialized")
 	}
 	return g.container.Start(context.Background())
+}
+
+func (g gatewayContainer) Stop() error {
+	if g.container == nil {
+		return fmt.Errorf("container has not been initialized")
+	}
+	return g.container.Stop(context.Background(), nil)
 }
 
 func (c gatewayContainer) Terminate() error {

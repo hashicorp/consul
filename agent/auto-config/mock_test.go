@@ -15,7 +15,7 @@ import (
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
-	"github.com/hashicorp/consul/proto/pbautoconf"
+	"github.com/hashicorp/consul/proto/private/pbautoconf"
 	"github.com/hashicorp/consul/sdk/testutil"
 )
 

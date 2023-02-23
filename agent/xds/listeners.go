@@ -42,7 +42,7 @@ import (
 	"github.com/hashicorp/consul/envoyextensions/xdscommon"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/lib/stringslice"
-	"github.com/hashicorp/consul/proto/pbpeering"
+	"github.com/hashicorp/consul/proto/private/pbpeering"
 	"github.com/hashicorp/consul/sdk/iptables"
 	"github.com/hashicorp/consul/types"
 )
@@ -2328,6 +2328,9 @@ func makeHTTPInspectorListenerFilter() (*envoy_listener_v3.ListenerFilter, error
 }
 
 func makeSNIFilterChainMatch(sniMatches ...string) *envoy_listener_v3.FilterChainMatch {
+	if sniMatches == nil {
+		return nil
+	}
 	return &envoy_listener_v3.FilterChainMatch{
 		ServerNames: sniMatches,
 	}

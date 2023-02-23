@@ -8,7 +8,7 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/proto/pbacl"
+	"github.com/hashicorp/consul/proto/private/pbacl"
 )
 
 // ACLTokens is used when saving a snapshot

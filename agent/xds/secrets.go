@@ -21,18 +21,10 @@ func (s *ResourceGenerator) secretsFromSnapshot(cfgSnap *proxycfg.ConfigSnapshot
 	case structs.ServiceKindConnectProxy,
 		structs.ServiceKindTerminatingGateway,
 		structs.ServiceKindMeshGateway,
-		structs.ServiceKindIngressGateway:
+		structs.ServiceKindIngressGateway,
+		structs.ServiceKindAPIGateway:
 		return nil, nil
-	// Only API gateways utilize secrets
-	case structs.ServiceKindAPIGateway:
-		return s.secretsFromSnapshotAPIGateway(cfgSnap)
 	default:
 		return nil, fmt.Errorf("Invalid service kind: %v", cfgSnap.Kind)
 	}
-}
-
-func (s *ResourceGenerator) secretsFromSnapshotAPIGateway(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
-	var res []proto.Message
-	// TODO
-	return res, nil
 }

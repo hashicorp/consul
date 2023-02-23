@@ -147,6 +147,20 @@ function assert_cert_signed_by_ca {
   echo "$CERT" | grep 'Verify return code: 0 (ok)'
 }
 
+function assert_cert_has_cn {
+  local HOSTPORT=$1
+  local CN=$2
+  local SERVER_NAME=${3:-$CN}
+
+  CERT=$(openssl s_client -connect $HOSTPORT -servername $SERVER_NAME -showcerts </dev/null 2>/dev/null)
+
+  echo "WANT CN: ${CN} (SNI: ${SERVER_NAME})"
+  echo "GOT CERT:"
+  echo "$CERT"
+
+  echo "$CERT" | grep "CN = ${CN}"
+}
+
 function assert_envoy_version {
   local ADMINPORT=$1
   run retry_default curl -f -s localhost:$ADMINPORT/server_info
@@ -570,7 +584,7 @@ function docker_consul_for_proxy_bootstrap {
 function docker_wget {
   local DC=$1
   shift 1
-  docker run --rm --network container:envoy_consul-${DC}_1 docker.mirror.hashicorp.services/alpine:3.9 wget "$@"
+  docker run --rm --network container:envoy_consul-${DC}_1 docker.mirror.hashicorp.services/alpine:3.17 wget "$@"
 }
 
 function docker_curl {
