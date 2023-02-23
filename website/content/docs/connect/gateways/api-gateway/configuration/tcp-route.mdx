@@ -31,7 +31,6 @@ view additional details, including default values.
   - [`Namespace`](#parents-namespace): string | no default <EnterpriseAlert inline />
   - [`Partition`](#parents-partition): string | no default <EnterpriseAlert inline />
   - [`SectionName`](#parents-sectionname): string | no default
-- [`Meta`](#meta): map | no default
 
 ## Complete configuration
 
@@ -163,9 +162,9 @@ to. You can only specify one service.
 
 - Default: none
 - The data type is a list of maps. Each member of the list contains the following fields:
-  - `Name`
-  - `Namespace` <EnterpriseAlert inline />
-  - `Partition` <EnterpriseAlert inline />
+  - [`Name`](#services-name)
+  - [`Namespace`](#services-namespace) <EnterpriseAlert inline />
+  - [`Partition`](#services-partition) <EnterpriseAlert inline />
 
 ### `Services.Name`
 
@@ -202,9 +201,11 @@ Specifies the list of gateways that the route is bound to.
 
 - Default: none
 - Data type: List of map. Each member of the list contains the following fields:
-  - `Kind`
-  - `Name`
-  - `SectionName`
+  - [`Kind`](#parents-kind)
+  - [`Name`](#parents-name)
+  - [`Namespace`](#parents-namespace) <EnterpriseAlert inline />
+  - [`Partition`](#parents-partition) <EnterpriseAlert inline />
+  - [`SectionName`](#parents-sectionname)
 
 ### `Parents.Kind`
 
