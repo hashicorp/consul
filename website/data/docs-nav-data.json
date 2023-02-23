@@ -294,10 +294,6 @@
           {
             "title": "Upgrading to Latest 1.10.x",
             "path": "upgrading/instructions/upgrade-to-1-10-x"
-          },
-          {
-            "title": "Consul 1.15: Experimental WAL LogStore",
-            "path": "upgrading/instructions/testing-experimental-raft-backend"
           }
         ]
       }
@@ -771,6 +767,27 @@
         "title": "RPC",
         "path": "agent/rpc",
         "hidden": true
+      },
+      {
+        "title": "Experimental WAL LogStore",
+        "routes": [
+          {
+            "title": "Overview",
+            "path": "agent/wal-logstore"
+          },
+          {
+            "title": "Enable WAL LogStore backend",
+            "path": "agent/wal-logstore/enable"
+          },
+          {
+            "title": "Monitor Raft metrics and logs for WAL",
+            "path": "agent/wal-logstore/monitoring"
+          },
+          {
+            "title": "Revert to BoltDB",
+            "path": "agent/wal-logstore/revert-to-boltdb"
+          }
+        ]
       }
     ]
   },

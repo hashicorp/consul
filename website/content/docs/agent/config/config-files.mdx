@@ -1587,10 +1587,10 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
 ## Raft Parameters
 
 - `raft_boltdb` ((#raft_boltdb)) **These fields are deprecated in Consul 1.15.0.
-  See the [`raft_logstore`](#raft_logstore) instead.** This is a nested
+  Use [`raft_logstore`](#raft_logstore) instead.** This is a nested
   object that allows configuring options for Raft's BoltDB based log store.
 
-  - `NoFreelistSync` **This field is deprecated in Consul 1.15.0. See the
+  - `NoFreelistSync` **This field is deprecated in Consul 1.15.0. Use the
     [`raft_logstore.boltdb.no_freelist_sync`](#raft_logstore_boltdb_no_freelist_sync) field
     instead.** Setting this to `true` will disable syncing the BoltDB freelist
     to disk within the raft.db file. Not syncing the freelist to disk will
@@ -1603,12 +1603,12 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
   logs and crucial Raft state on disk during writes. This was added in Consul
   1.15.
 
-  - `backend` ((#raft_logstore_backend)) This allows selection of which storage
+  - `backend` ((#raft_logstore_backend)) Specifies which storage
     engine to use to persist logs. Valid options are `boltdb` or `wal`. Default
-    is `boltdb`. As of Consul 1.15, `wal` is a new and experimental backend that
-    should be used with caution. See [our experimental WAL backend testing
-    guide](/consul/docs/upgrading/instructions/testing-experimental-raft-backend)
-    to learn how to safely evaluate it for your workload.
+    is `boltdb`. The `wal` option specifies an experimental backend that 
+    should be used with caution. Refer to 
+    [Experimental WAL LogStore backend](/consul/docs/agent/wal-logstore) 
+    for more information.
 
   - `disable_log_cache` ((#raft_logstore_disable_log_cache)) This allows
     disabling of the in-memory cache of recent logs. This exists mostly for
@@ -1637,47 +1637,45 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
     on that server. The only correct response is to stop the server, remove its
     data directory, and restart so it can be caught back up with a correct
     server again. Please report verification failures including details about
-    your hardware and workload via GitHub issues. See [our experimental WAL
-    backend testing
-    guide](/consul/docs/upgrading/instructions/testing-experimental-raft-backend)
-    for more details on using these to evaluate a new backend.
+    your hardware and workload via GitHub issues. Refer to 
+    [Experimental WAL LogStore backend](/consul/docs/agent/wal-logstore) 
+    for more information.
 
-    - `enabled` ((#raft_logstore_verification_enabled)) - Setting this to `true`
-    will enable log verification checkpoints to be written (if leader) and
-    verified on this server.
+    - `enabled` ((#raft_logstore_verification_enabled)) - Set to `true` to
+    allow this Consul server to write and verify log verification checkpoints 
+    when it is elected leader.
 
-    - `interval` ((#raft_logstore_verification_interval)) - The time interval
-      between checkpoints. There is no default so both `enabled` and `interval`
-      must be set explicitly to correctly enable. An interval of `30s` to `5m`
-      is most likely to be useful. The performance overhead should not be
-      significant at any level above a few seconds, it's mostly useful to
+    - `interval` ((#raft_logstore_verification_interval)) - Specifies the time 
+      interval between checkpoints. There is no default value. You must 
+      configure the `interval` and set [`enabled`](#raft_logstore_verification_enabled) 
+      to `true` to correctly enable intervals. We recommend using an interval 
+      between `30s` and `5m`. The performance overhead is insignificant if the 
+      interval is set to `5m` or less. We recommend setting an interval to
       control how frequently the report logs appear for human observation.
 
-  - `boltdb` ((#raft_logstore_boltdb)) - This is a nested object that allows
-  configuring options for Raft's `boltdb` backend. It has no effect if the
-  `backend` is not `boltdb`.
+  - `boltdb` ((#raft_logstore_boltdb)) - Object that configures options for 
+    Raft's `boltdb` backend. It has no effect if the `backend` is not `boltdb`.
 
-    - `no_freelist_sync` ((#raft_logstore_boltdb_no_freelist_sync)) - Setting this
-    to `true` will disable syncing the BoltDB freelist to disk within the
-    raft.db file. Not syncing the freelist to disk will reduce disk IO required
-    for write operations at the expense of potentially increasing start up time
-    due to needing to scan the db to discover where the free space resides
+    - `no_freelist_sync` ((#raft_logstore_boltdb_no_freelist_sync)) - Set to 
+    `true` to disable storing BoltDB freelist to disk within the
+    `raft.db` file. Disabling freelist syncs reduces the disk IO required
+    for write operations, but could potentially increase start up time
+    because Consul must scan the database to find free space
     within the file.
 
-  - `wal` ((#raft_logstore_wal)) - This is a nested object that allows
-    configuring the `wal` backend. See [our experimental WAL backend testing
-    guide](/consul/docs/upgrading/instructions/testing-experimental-raft-backend)
-    for more details on safely evaluating this backend.
+  - - `wal` ((#raft_logstore_wal)) - Object that configures the `wal` backend. 
+    Refer to [Experimental WAL LogStore backend](/consul/docs/agent/wal-logstore) 
+    for more information.
 
-    - `segment_size_mb` ((#raft_logstore_wal_segment_size_mb)) - This is an
-      integer representing the target size (in MB) for each segment file before
-      rolling to a new segment. The default is 64 and should be suitable for
-      almost all deployments. A smaller value may use less disk space since
-      it can be reclaimed by deleting old segments sooner at the expense of
-      performing a more costly operation to safely rotate to a new file more
-      frequently which could impact tail latencies. Larger values are unlikely
-      to improve performance significantly. This is mostly exposed for
-      performance testing purposes.
+    - `segment_size_mb` ((#raft_logstore_wal_segment_size_mb)) - Integer value 
+      that represents the target size in MB for each segment file before
+      rolling to a new segment. The default is `64` and is suitable for
+      most deployments. A smaller value may use less disk space because you 
+      can reclaim space by deleting old segments sooner, but a smaller segment 
+      may affect performance because safely rotating to a new file more
+      frequently could impact tail latencies. Larger values are unlikely
+      to improve performance significantly. We recommend using this 
+      configuration for performance testing purposes.
 
 - `raft_protocol` ((#raft_protocol)) Equivalent to the [`-raft-protocol`
   command-line flag](/consul/docs/agent/config/cli-flags#_raft_protocol).

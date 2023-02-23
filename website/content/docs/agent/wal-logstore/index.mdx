@@ -1,0 +1,58 @@
+---
+layout: docs
+page_title: WAL LogStore Backend Overview
+description: >-
+  Consul 1.15 introduced a new experimental storage backend option. Learn how to
+  configure and test it out in a safe way.
+---
+
+# Experimental WAL LogStore backend overview
+
+This topic provides an overview of the experimental WAL (write-ahead log) LogStore backend.
+
+!> **Upgrade warning:** The WAL LogStore backend is experimental.
+
+## Introduction
+
+Consul ships with an experimental storage backend called write-ahead log (WAL).
+
+WAL implements a traditional log with rotating, append-only log files. The current `LogStore` uses BoltDB, which is a copy-on-write BTree, which is less optimized for append-only workloads. 
+
+### WAL versus BoldDB
+
+The WAL backend has been written to resolve some long-standing issues with the current BoltDB backend. The existing BoltDB log store has worked reliably for most users for years, however it is not the most efficient way to store append-only logs to disk since it was designed as a full key-value database. It was an expedient option when our raft library was first written and always assumed we'd replace it with something more purpose-built.
+
+Importantly, a BoltDB database is a single file that only ever grows. Deleting the oldest logs which we do regularly when we've made a new snapshots of the state, leaves free space in the file that needs to be tracked to be re-used on future writes. By contrast a simple segmented log can just delete the oldest log files from disk. When BoltDB is used as a log backend, sudden burst of writes at a rate 2-3x higher than the normal volume, can suddenly cause the log file to grow to several times it's steady-state size. After the next snapshot is taken, and the oldest logs truncated again, the file is left as mostly empty space. Tracking this free space requires writing extra metadata proportional to the amount of free pages to disk with every write and so after such a burst, write latencies tend to increase - in some cases dramatically causing serious performance degradation to the cluster.
+
+Even if this has never happened to a catastrophic degree in a cluster, Consul was tuned to avoid for too many logs to accumulate in the LogStore, in order to reduce/mitigate the risk. Significantly larger BoltDB files are somewhat slower in general because it's a tree and so still has log(N) work to do `n` every write. But out user's experience showed that the larger the file, the more likely it is to have a large freelist or suddenly form one after a burst of writes. For this reason, the default options for how frequently we make a full snapshot and truncate the logs, and for how many logs we keep around have always been aggressively set towards keeping BoltDB small rather than using disk IO the most efficiently.
+
+Other reliability issues such as [followers being unable to catch
+up](/consul/docs/agent/telemetry#raft-replication-capacity-issues) also stem
+from this need to carefully balance the size of the BoltDB log store against how
+long snapshots take to restore - there is a simple solution to that issue if
+letting logs grow much larger to ensure recovery didn't have a potentially
+catastrophic impact on the cluster's write performance.
+
+While not every user will experience a huge difference in performance, the WAL
+backend avoids these performance concerns entirely. It is more performant when
+directly measured due to solving a simpler storage problem than BoltDB was
+designed for. For example, it can commit a single log entry with one `fsync` instead
+of two, and tends to write 2-3x fewer bytes to the disk to do it. The real
+benefit though is that retaining more logs won't impact write performance at all
+and so strategies for reducing disk IO with slower snapshots or for keeping logs around to permit slower followers to catch up with cluster state, are all possible.
+
+## Benefits
+
+The new WAL backend has been tested thoroughly during development:
+
+- Every component in the WAL like [metadata management](https://github.com/hashicorp/raft-wal/blob/main/types/meta.go), [log file encoding](https://github.com/hashicorp/raft-wal/blob/main/types/segment.go) to actual [file-system interaction](https://github.com/hashicorp/raft-wal/blob/main/types/vfs.go) was abstracted so unit tests can simulate all sorts of difficult-to-reproduce disk failures.
+ 
+- We [used ALICE](https://github.com/hashicorp/raft-wal/blob/main/alice/README.md) to exhaustively simulate thousands of possible crash failure scenarios and test that WAL correctly recovered from each.
+
+- We ran hundreds of tests over a few weeks in a performance testing cluster with checksum verification enabled and detected zero cases of data loss or corruption. We plan to continue testing this continuously over the next few months too before making it the default backend.
+
+However, we are well aware of both how complex and how critical disk-persistence is for our user's data.
+
+Our hope is that we will have many users at all degrees of scale try WAL in their environments after upgrading to 1.15 and report success or failure back so we have increased confidence before we make it the default for new clusters.
+
+This guide describes how to safely try and verify it without risking the availability of your cluster should there be a latent data-loss issue discovered.

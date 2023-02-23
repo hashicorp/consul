@@ -1,0 +1,86 @@
+---
+layout: docs
+page_title: Monitor Raft metrics and logs for WAL
+description: >-
+  Consul 1.15 introduced a new experimental storage backend option. Learn how to
+  configure and test it out in a safe way.
+---
+
+# Monitor Raft metrics and logs for WAL
+
+Throughout the testing period, it's important to monitor the cluster and especially the target server for signals that the WAL is not performing properly or is behaving incorrectly.
+
+!> **Upgrade warning:** The WAL LogStore backend is experimental.
+
+## Monitor for checksum failures
+
+If the log store verification fails on any server (whether it's running BoltDB or WAL backed), that is an **unrecoverable error**. It will look something like this in the logs:
+
+### Read Failures: Disk Corruption
+
+```log hideClipboard
+2022-11-15T22:41:23.546Z [ERROR]  agent.raft.logstore: verification checksum FAILED: storage corruption rangeStart=1234 rangeEnd=3456 leaderChecksum=0xc1... readChecksum=0x45...
+```
+
+This indicates that the server read back different data to what it wrote to disk which signals corruption in the storage backend or filesystem.
+
+For convenience, we also increment a metric `consul.raft.logstore.verifier.read_checksum_failures` when this occurs.
+
+### Write Failures: In-flight Corruption
+
+It's also possible that you might see a different kind of checksum error:
+
+```log hideClipboard
+2022-11-15T22:41:23.546Z [ERROR]  agent.raft.logstore: verification checksum FAILED: in-flight corruption rangeStart=1234 rangeEnd=3456 leaderChecksum=0xc1... followerWriteChecksum=0x45...
+```
+
+This indicates that the checksum on the follower didn't match the leader when it _wrote_ the logs which implies that the corruption happened in the network or software and not the log store. This likely doesn't indicate an issue with the storage backend but should be handled the same way.
+
+For convenience, we also increment a metric `consul.raft.logstore.verifier.write_checksum_failures` when this occurs.
+
+### Handling Checksum Failures
+
+If either type of corruption is detected, the only safe way to handle it is to follow the [revert to BoltDB procedure](/consul/docs/agent/wal-logstore/revert-to-boltdb). If the server is already using BoltDB, the same is true although this is likely to indicate a latent bug in BoltDB or a bug in our verification code that needs to be investigated.
+
+Please report all verification failures via a [GitHub
+issue](https://github.com/hashicorp/consul/issues/new?assignees=&labels=&template=bug_report.md&title=WAL:%20Checksum%20Failure).
+
+In your report, include the following:
+ - Details of your server cluster configuration and hardware
+ - Logs around the failure message
+ - Context for how long they have been running the configuration
+ - Any metrics or description of the workload you have, e.g. how many raft
+   commits per second as well as the performance metrics described below
+
+We recommend setting up an alert on Consul server logs containing `verification checksum FAILED` or on the `consul.raft.logstore.verifier.{read|write}_checksum_failures` metrics. The sooner a corrupt server is handled, the lower the chance of any of the [potential risks](/consul/docs/agent/wal-logstore/enable#risks) causing problems in your cluster.
+
+## Performance Metrics
+
+The key performance metrics to watch are:
+
+- `consul.raft.commitTime` measures the time to commit new writes on a quorum of
+  servers. It should be the same or lower after deploying WAL. Even if WAL is
+  faster for your workload and hardware, it may not be reflected in commitTime
+  until enough followers are using it that the leader doesn't have to wait for a
+  slower one (one in a cluster of three, two in a cluster of five etc.).
+
+- `consul.raft.rpc.appendEntries.storeLogs` measures the time spent persisting
+  logs to disk on each _follower_. It should be the same or lower for
+  WAL-enabled followers.
+
+- `consul.raft.replication.appendEntries.rpc` measures the time taken for each
+  `AppendEntries` RPC from the leader's perspective. If this is significantly
+  higher than `consul.raft.rpc.appendEntries` on the follower, it indicates a
+  known queuing issue in our raft library that will be fixed soon and is
+  essentially unrelated to the backend. The follower(s) with WAL enabled should
+  not be slower than the others. You can work out which follower each metric is
+  for by matching the `peer_id` label value to the server IDs listed by `consul
+  operator raft list-peers`.
+
+- `consul.raft.compactLogs` measures the time take to truncate the logs after a
+  snapshot. WAL-enabled servers should not be slower than BoltDB ones.
+
+- `consul.raft.leader.dispatchLog` measures the time spent persisting logs to
+  disk on the _leader_. It is only relevant if a WAL-enabled server becomes a
+  leader. It should be the same or lower than before when the leader was using
+  BoltDB.
