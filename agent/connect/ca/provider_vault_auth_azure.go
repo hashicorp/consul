@@ -2,7 +2,7 @@ package ca
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"strings"
 
@@ -140,7 +140,7 @@ func getMetadataInfo(endpoint string, query map[string]string) ([]byte, error) {
 	}
 
 	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, fmt.Errorf("error reading metadata from %s: %w", endpoint, err)
 	}

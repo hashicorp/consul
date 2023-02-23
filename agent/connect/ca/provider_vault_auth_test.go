@@ -328,7 +328,7 @@ func TestVaultCAProvider_AzureAuthClient(t *testing.T) {
 				t.Errorf("unexpected testing URL: %s", url)
 			}
 		}))
-	_ = msi
+
 	origIn, origId := instanceEndpoint, identityEndpoint
 	instanceEndpoint = msi.URL + "/metadata/instance"
 	identityEndpoint = msi.URL + "/metadata/identity/oauth2/token"
