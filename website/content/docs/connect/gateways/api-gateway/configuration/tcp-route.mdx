@@ -6,7 +6,7 @@ description: Learn how to configure a TCP Route, bound to an API Gateway on VMs.
 
 # TCP route configuration Reference
 
-This topic provides reference information for the gateway routes configuration
+This topic provides reference information for the gateway TCP routes configuration
 entry. Refer to [Route Resource Configuration](/consul/docs/api-gateway/configuration/routes) for information
 about configuring API gateways in Kubernetes environments.
 
@@ -137,7 +137,7 @@ Specifies the Enterprise [namespace](/consul/docs/enterprise/namespaces) to appl
 
 ### `Partition` <EnterpriseAlert inline />
 
-Specifies the Enterprise [admin partition](/consul/docs/enterprise/admin-partitions) to apply to the config entry.
+Specifies the Enterprise [admin partition](/consul/docs/enterprise/admin-partitions) to apply to the configuration entry.
 
 #### Values
 
@@ -155,7 +155,7 @@ Specifies an arbitrary set of key-value pairs to associate with the gateway.
 
 ### `Services`
 
-Specifies a TCP-based service the API gateway should route incoming requests
+Specifies a TCP-based service the API gateway routes incoming requests
 to. You can only specify one service.
 
 #### Values
@@ -168,7 +168,7 @@ to. You can only specify one service.
 
 ### `Services.Name`
 
-Specifies the list of TCP-based services this should route to. You can specify a maximum of one service.
+Specifies the list of TCP-based services to route to. You can specify a maximum of one service.
 
 #### Values
 
@@ -177,7 +177,7 @@ Specifies the list of TCP-based services this should route to. You can specify a
 
 ### `Services.Namespace` <EnterpriseAlert inline />
 
-Specifies the Enterprise [namespace](/consul/docs/enterprise/namespaces) where the service can be found.
+Specifies the Enterprise [namespace](/consul/docs/enterprise/namespaces) where the service is located.
 
 #### Values
 
@@ -186,7 +186,7 @@ Specifies the Enterprise [namespace](/consul/docs/enterprise/namespaces) where t
 
 ### `Services.Partition` <EnterpriseAlert inline />
 
-Specifies the Enterprise [admin partition](/consul/docs/enterprise/admin-partitions) where the service can be found.
+Specifies the Enterprise [admin partition](/consul/docs/enterprise/admin-partitions) where the service is located.
 
 #### Values
 
@@ -220,7 +220,7 @@ set to `"api-gateway"`
 
 ### `Parents.Name`
 
-Specifies the name of the api-gateway to bind to.
+Specifies the name of the API gateway to bind to.
 
 #### Values
 
@@ -230,7 +230,7 @@ Specifies the name of the api-gateway to bind to.
 
 ### `Parents.Namespace` <EnterpriseAlert inline />
 
-Specifies the Enterprise [namespace](/consul/docs/enterprise/namespaces) where the parent can be found.
+Specifies the Enterprise [namespace](/consul/docs/enterprise/namespaces) where the parent is located.
 
 #### Values
 
@@ -239,7 +239,7 @@ Specifies the Enterprise [namespace](/consul/docs/enterprise/namespaces) where t
 
 ### `Parents.Partition` <EnterpriseAlert inline />
 
-Specifies the Enterprise [admin partition](/consul/docs/enterprise/admin-partitions) where the parent can be found.
+Specifies the Enterprise [admin partition](/consul/docs/enterprise/admin-partitions) where the parent is located.
 
 #### Values
 
