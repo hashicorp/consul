@@ -45,10 +45,8 @@ When every field is defined, an `api-gateway` configuration entry has the follow
 ```hcl
 Kind = "api-gateway"
 Name = "<name of api gateway>"
-
-Meta = {
-	<any key> = "<any value>"
-}
+Namespace = "<enterprise: namespace of the gateway>"
+Partition = "<enterprise: partition of the gateway>"
 
 Listeners = [
 	{
@@ -56,20 +54,26 @@ Listeners = [
 		Name = "<unique name for this listener>"
 		Protocol = "<protocol used by external service>"
 		TLS = {
+			MaxVersion = "<version of TLS>"
+			MinVersion = "<version of TLS>"
+			CipherSuites = [
+				"<cipher suite>"
+			]
 			Certificates = [
 				{
 					Kind = "inline-certificate"
 					Name = "<name of inline-certificate>"
+          Namespace = "<enterprise: namespace of the certificate>"
+          Partition = "<enterprise: partition of the certificate>"
 				}
 			]
-			CipherSuites = [
-				"<cipher suite>"
-			]
-			MaxVersion = "<version of TLS>"
-			MinVersion = "<version of TLS>"
 		}
 	}
 ]
+
+Meta = {
+	<any key> = "<any value>"
+}
 ```
 
 ```json
