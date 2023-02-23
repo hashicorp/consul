@@ -163,22 +163,22 @@ Rules = [
 ```json
 {
   "Kind": "http-route",
-  "Name": "name of the route",
-  "Namespace": "enterprise: namespace of the route",
-  "Partition": "enterprise: partition of the route",
+  "Name": "<name of the route>",
+  "Namespace": "<enterprise: namespace of the route>",
+  "Partition": "<enterprise: partition of the route>",
   "Meta": {
-    "any key": "any value"
+    "<any key>": "<any value>"
   },
   "Hostnames": [
-    "hostnames for which this HTTPRoute should respond to requests"
+    "<hostnames for which this HTTPRoute should respond to requests>"
   ],
   "Parents": [
     {
       "Kind": "api-gateway",
-      "Name": "name of the api-gateway to bind to",
-      "Namespace": "enterprise: namespace of the route",
-      "Partition": "enterprise: partition of the route",
-      "SectionName": "optional name of a specific listener on the api-gateway to bind to"
+      "Name": "<name of the api-gateway to bind to>",
+      "Namespace": "<enterprise: namespace of the route>",
+      "Partition": "<enterprise: partition of the route>",
+      "SectionName": "<optional name of a specific listener on the api-gateway to bind to>"
     }
   ],
   "Rules": [
@@ -189,20 +189,20 @@ Rules = [
             {
               "Add": [
                 {
-                  "name of header to add": "value of header to add"
+                  "<name of header to add>": "<value of header to add>"
                 }
               ],
-              "Remove": ["header to remove from request"],
+              "Remove": ["<header to remove from request>"],
               "Set": [
                 {
-                  "name of header to set": "value of header to set"
+                  "<name of header to set>": "<value of header to set>"
                 }
               ]
             }
           ],
           "URLRewrite": [
             {
-              "Path": "path to rewrite request to"
+              "Path": "<path to rewrite request to>"
             }
           ]
         }
@@ -211,53 +211,53 @@ Rules = [
         {
           "Headers": [
             {
-              "Match": "type of match: exact, prefix or regex",
-              "Name": "name of header to match on",
-              "Value": "value of header to match on"
+              "Match": "<type of match: exact, prefix or regex>",
+              "Name": "<name of header to match on>",
+              "Value": "<value of header to match on>"
             }
           ],
-          "Method": "method type to match on",
+          "Method": "<method type to match on>",
           "Path": [
             {
-              "Match": "type of match: exact, prefix or regex",
-              "Value": "value to match on"
+              "Match": "<type of match: exact, prefix or regex>",
+              "Value": "<value to match on>"
             }
           ],
           "Query": [
             {
-              "Match": "type of match: exact, present or regex",
-              "Name": "name of query parameter to match on",
-              "Value": "value of query parameter to match on"
+              "Match": "<type of match: exact, present or regex>",
+              "Name": "<name of query parameter to match on>",
+              "Value": "<value of query parameter to match on>"
             }
           ]
         }
       ],
       "Services": [
         {
-          "Name": "name of Consul service to route to",
-          "Namespace": "enterprise: namespace of the route",
-          "Partition": "enterprise: partition of the route",
-          "Weight": "number proportional to other weights",
+          "Name": "<name of Consul service to route to>",
+          "Namespace": "<enterprise: namespace of the route>",
+          "Partition": "<enterprise: partition of the route>",
+          "Weight": "<number proportional to other weights>",
           "Filters": [
             {
               "Headers": [
                 {
                   "Add": [
                     {
-                      "name of header to add": "value of header to add"
+                      "<name of header to add": "<value of header to add>"
                     }
                   ],
-                  "Remove": ["header to remove from request"],
+                  "Remove": ["<header to remove from request>"],
                   "Set": [
                     {
-                      "name of header to set": "value of header to set"
+                      "<name of header to set": "<value of header to set>"
                     }
                   ]
                 }
               ],
               "URLRewrite": [
                 {
-                  "Path": "path to rewrite request to"
+                  "Path": "<path to rewrite request to>"
                 }
               ]
             }
