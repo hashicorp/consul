@@ -81,21 +81,21 @@ Listeners = [
 	},
 	"listeners": [
 		{
-			"port": <external service port>,
-			"name": "<unique name for this listener>",
-			"protocol": "<protocol used by external service>",
-			"tls": {
-				"certificates": [
+			"Port": <external service port>,
+			"Name": "<unique name for this listener>",
+			"Protocol": "<protocol used by external service>",
+			"TLS": {
+				"Certificates": [
 					{
-					"kind": "inline-certificate",
-					"name": "<name of inline-certificate>"
+						"Kind": "inline-certificate",
+						"Name": "<name of inline-certificate>"
 					}
 				],
-				"cipherSuites": [
+				"CipherSuites": [
 					"<cipher suite>"
 				],
-				"maxVersion": "<version of TLS>",
-				"minVersion": "<version of TLS>"
+				"MaxVersion": "<version of TLS>",
+				"MinVersion": "<version of TLS>"
 			}
 		}
 	]
