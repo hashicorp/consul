@@ -140,14 +140,23 @@ such as applying a configuration entry to a specific cluster.
 - This field is required.
 - Data type: string
 
-### `Meta`
+### `Namespace` <EnterpriseAlert inline />
 
-Specifies an arbitrary set of key-value pairs to associate with the gateway.
+Specifies the Enterprise [namespace](/consul/docs/enterprise/namespaces) to apply to the configuration entry.
 
 #### Values
 
-- Default: none
-- Data type: map containing one or more keys and string values.
+- Default: `"default"` in Enterprise
+- Data type: string
+
+### `Partition` <EnterpriseAlert inline />
+
+Specifies the Enterprise [admin partition](/consul/docs/enterprise/admin-partitions) to apply to the config entry.
+
+#### Values
+
+- Default: `"default"` in Enterprise
+- Data type: string
 
 ### `Listeners[]`
 
@@ -249,6 +258,24 @@ The list of references to inline certificates that the listener uses for TLS ter
 - This field is required.
 - Data type: string
 
+### `Listeners[].TLS.Certificates[].Namespace` <EnterpriseAlert inline />
+
+Specifies the Enterprise [namespace](/consul/docs/enterprise/namespaces) where the certificate can be found.
+
+#### Values
+
+- Default: `"default"` in Enterprise
+- Data type: string
+
+### `Listeners[].TLS.Certificates[].Partition` <EnterpriseAlert inline />
+
+Specifies the Enterprise [admin partition](/consul/docs/enterprise/admin-partitions) where the certificate can be found.
+
+#### Values
+
+- Default: `"default"` in Enterprise
+- Data type: string
+
 ### `Listeners[].TLS.MaxVersion`
 
 Specifies the maximum TLS version supported for the listener.
@@ -291,3 +318,12 @@ Specifies a list of cipher suites that the listener supports when negotiating co
 - Data type: List of string values. Refer to the
   [Consul repository](https://github.com/hashicorp/consul/blob/v1.11.2/types/tls.go#L154-L169)
   for a list of supported ciphers.
+
+### `Meta`
+
+Specifies an arbitrary set of key-value pairs to associate with the gateway.
+
+#### Values
+
+- Default: none
+- Data type: map containing one or more keys and string values.
