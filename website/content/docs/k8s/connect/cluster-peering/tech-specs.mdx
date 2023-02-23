@@ -11,30 +11,46 @@ This reference topic describes the technical specifications associated with usin
 
 For cluster peering requirements in non-Kubernetes deployments, refer to [cluster peering technical specifications](/consul/docs/connect/cluster-peering/tech-specs).
 
+## General Requirements
+
+To use cluster peering features, make sure your Consul environment meets the following prerequisites:
+
+- Consul v1.14 or higher
+- Consul on Kubernetes v1.0.0 or higher
+- At least two Kubernetes clusters
+
+In addition, the following service mesh components are required in order to establish cluster peering connections:
+
+- [Helm](#helm-requirements)
+- [Custom resource definitions (CRD)](#crd-requirements)
+- [Mesh gateways](#mesh-gateway-requirements)
+- [Exported services](#exported-service-requirements)
+- [ACLs](#acl-requirements)
+
 ## Helm requirements
 
- Mesh gateways are required when establishig cluster peering connections. The following values must be set in the Helm chart to enable mesh gateways:
+ Mesh gateways are required when establishing cluster peering connections. The following values must be set in the Helm chart to enable mesh gateways:
 
 - [`global.tls.enabled = true`](/consul/docs/k8s/helm#v-global-tls-enabled)
 - [`meshGateway.enabled = true`](/consul/docs/k8s/helm#v-meshgateway-enabled)
 
 Refer to the following example Helm configuration:
 
-  <CodeBlockConfig filename="values.yaml">
+<CodeBlockConfig filename="values.yaml">
 
-  ```yaml
-    global:
-      name: consul
-      image: "hashicorp/consul:1.14.1"
-      peering:
-        enabled: true
-      tls:
-        enabled: true
-    meshGateway:
-      enabled: true
-  ```
+```yaml
+global:
+  name: consul
+  image: "hashicorp/consul:1.14.1"
+  peering:
+    enabled: true
+  tls:
+    enabled: true
+meshGateway:
+  enabled: true
+```
 
-  </CodeBlockConfig>
+</CodeBlockConfig>
 
 After mesh gateways are enabled in the Helm chart, you can separately [configure Mesh CRDs](#mesh-gateway-configuration-for-kubernetes).
 
@@ -49,56 +65,42 @@ Refer to the following example CRDs:
 
 <CodeTabs tabs={[ "PeeringAcceptor", "PeeringDialer" ]}>
 
-  <CodeBlockConfig filename="acceptor.yaml">
+<CodeBlockConfig filename="acceptor.yaml">
 
-  ```yaml
-    apiVersion: consul.hashicorp.com/v1alpha1
-    kind: PeeringAcceptor
-    metadata:
-      name: cluster-02 ## The name of the peer you want to connect to
-    spec:
-      peer:
-        secret:
-          name: "peering-token"
-          key: "data"
-          backend: "kubernetes"
-  ```
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: PeeringAcceptor
+metadata:
+  name: cluster-02 ## The name of the peer you want to connect to
+spec:
+  peer:
+    secret:
+      name: "peering-token"
+      key: "data"
+      backend: "kubernetes"
+```
 
-  </CodeBlockConfig>
+</CodeBlockConfig>
 
-  <CodeBlockConfig filename="dialer.yaml">
+<CodeBlockConfig filename="dialer.yaml">
 
-  ```yaml
-    apiVersion: consul.hashicorp.com/v1alpha1
-    kind: PeeringDialer
-    metadata:
-      name: cluster-01 ## The name of the peer you want to connect to
-    spec:
-      peer:
-        secret:
-          name: "peering-token"
-          key: "data"
-          backend: "kubernetes"
-  ```
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: PeeringDialer
+metadata:
+  name: cluster-01 ## The name of the peer you want to connect to
+spec:
+  peer:
+    secret:
+      name: "peering-token"
+      key: "data"
+      backend: "kubernetes"
+```
 
-  </CodeBlockConfig>
-  </CodeTabs>
+</CodeBlockConfig>
+</CodeTabs>
 
-## General Requirements
-
-To use cluster peering features, make sure your Consul environment meets the following prerequisites:
-
-- Consul v1.14 or higher
-- Consul on Kubernetes v1.0.0 or higher
-- At least two Kubernetes clusters
-
-In addition, the following service mesh components are required in order to establish cluster peering connections:
-  
-- [Mesh gateways](#mesh-gateway-requirements)
-- [Exported services](#exported-service-requirements)
-- [ACLs](#acl-requirements)
-
-### Mesh gateway requirements
+## Mesh gateway requirements
 
 Mesh gateways are required for routing service mesh traffic between partitions with cluster peering connections. Consider the following general requirements for mesh gateways when using cluster peering:
 
@@ -108,7 +110,7 @@ Mesh gateways are required for routing service mesh traffic between partitions w
 
 In addition, you must define the `Proxy.Config` settings using opaque parameters compatible with your proxy. Refer to the [Gateway options](/consul/docs/connect/proxies/envoy#gateway-options) and [Escape-hatch Overrides](/consul/docs/connect/proxies/envoy#escape-hatch-overrides) documentation for additional Envoy proxy configuration information.
 
-#### Mesh gateway modes
+### Mesh gateway modes
 
 By default, all cluster peering connections use mesh gateways in [remote mode](/consul/docs/connect/gateways/mesh-gateway/service-to-service-traffic-wan-datacenters#remote). Be aware of these additional requirements when changing a mesh gateway's mode.
 
@@ -117,57 +119,57 @@ By default, all cluster peering connections use mesh gateways in [remote mode](/
 
 Refer to [mesh gateway modes](/consul/docs/connect/gateways/mesh-gateway#modes) for more information.
 
-#### Mesh gateway configuration for Kubernetes
+### Mesh gateway configuration for Kubernetes
 
 Mesh gateways are required for cluster peering connections. Complete the following steps to add mesh gateways to your deployment so that you can establish cluster peering connections:
 
 1. In `cluster-01` create the `Mesh` custom resource with `peeringThroughMeshGateways` set to `true`.
 
-    <CodeBlockConfig filename="mesh.yaml">
+  <CodeBlockConfig filename="mesh.yaml">
 
-    ```yaml
-    apiVersion: consul.hashicorp.com/v1alpha1
-    kind: Mesh
-    metadata:
-      name: mesh
-    spec:
-      peering:
-        peerThroughMeshGateways: true
-    ```
+  ```yaml
+  apiVersion: consul.hashicorp.com/v1alpha1
+  kind: Mesh
+  metadata:
+    name: mesh
+  spec:
+    peering:
+      peerThroughMeshGateways: true
+  ```
 
-    </CodeBlockConfig>
+  </CodeBlockConfig>
 
-1. Apply the mesh gateway to `cluster-01`.
+1. Apply the mesh gateway to `cluster-01`. Replace `CLUSTER1_CONTEXT` to target the first Consul cluster.
 
-    ```shell-session
-    $  kubectl --context $CLUSTER1_CONTEXT apply -f mesh.yaml 
-    ```
+  ```shell-session
+  $ kubectl --context $CLUSTER1_CONTEXT apply -f mesh.yaml 
+  ```
 
-1. Repeat the process to create and apply a mesh gateway with cluster peering enabled to `cluster-02`:
+1. Repeat the process to create and apply a mesh gateway with cluster peering enabled to `cluster-02`. Replace `CLUSTER2_CONTEXT` to target the second Consul cluster.
 
-    <CodeBlockConfig filename="mesh.yaml">
+  <CodeBlockConfig filename="mesh.yaml">
 
-    ```yaml
-    apiVersion: consul.hashicorp.com/v1alpha1
-    kind: Mesh
-    metadata:
-      name: mesh
-    spec:
-      peering:
-        peerThroughMeshGateways: true
-    ```
+  ```yaml
+  apiVersion: consul.hashicorp.com/v1alpha1
+  kind: Mesh
+  metadata:
+    name: mesh
+  spec:
+    peering:
+      peerThroughMeshGateways: true
+  ```
 
-    </CodeBlockConfig>
+  </CodeBlockConfig>
 
-    ```shell-session
-    $  kubectl --context $CLUSTER2_CONTEXT apply -f mesh.yaml 
-    ```
+  ```shell-session
+  $  kubectl --context $CLUSTER2_CONTEXT apply -f mesh.yaml 
+  ```
 
 ## Exported service requirements
 
 The `exported-services` CRD is required in order for services to communicate across partitions with cluster peering connections.
 
-Refer to the [`exported-services` configuration entry reference](/consul/docs/connect/config-entries/exported-services) for more information.
+Refer to the [`exported-services`](/consul/docs/connect/config-entries/exported-services) configuration entry reference for more information.
 
 ## ACL requirements
 
