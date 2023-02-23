@@ -343,19 +343,39 @@
           },
           {
             "title": "API Gateway",
-            "href": "/consul/docs/connect/gateways/api-gateway/configuration/api-gateway"
+            "href": "/consul/docs/connect/gateways/api-gateway/configuration/api-gateway",
+            "badge": {
+              "text": "BETA",
+              "type": "outlined",
+              "color": "neutral"
+            }
           },
           {
             "title": "HTTP Route",
-            "href": "/consul/docs/connect/gateways/api-gateway/configuration/http-route"
+            "href": "/consul/docs/connect/gateways/api-gateway/configuration/http-route",
+            "badge": {
+              "text": "BETA",
+              "type": "outlined",
+              "color": "neutral"
+            }
           },
           {
             "title": "TCP Route",
-            "href": "/consul/docs/connect/gateways/api-gateway/configuration/tcp-route"
+            "href": "/consul/docs/connect/gateways/api-gateway/configuration/tcp-route",
+            "badge": {
+              "text": "BETA",
+              "type": "outlined",
+              "color": "neutral"
+            }
           },
           {
             "title": "Inline Certificate",
-            "href": "/consul/docs/connect/gateways/api-gateway/configuration/inline-certificate"
+            "href": "/consul/docs/connect/gateways/api-gateway/configuration/inline-certificate",
+            "badge": {
+              "text": "BETA",
+              "type": "outlined",
+              "color": "neutral"
+            }
           },
           {
             "title": "Ingress Gateway",
