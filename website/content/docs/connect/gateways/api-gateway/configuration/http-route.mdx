@@ -4,9 +4,9 @@ page_title: HTTP Route Configuration
 description: Learn how to configure an HTTP Route bound to an API Gateway on VMs.
 ---
 
-# HTTP Route Configuration Reference
+# HTTP route configuration reference
 
-This topic provides reference information for the gateway routes configuration entry. Refer to [Consul API Gateway Configuration Overview]() for information about configuring API gateways in Kubernetes environments.
+This topic provides reference information for the gateway routes configuration entry. Refer to [Route Resource Configuration](/consul/docs/api-gateway/configuration/routes) for information about configuring API gateway routes in Kubernetes environments.
 
 ## Configuration model
 
@@ -269,7 +269,7 @@ such as applying a configuration entry to a specific cluster.
 - This field is required.
 - Data type: string
 
-### `Parents`
+### `Parents[]`
 
 Specifies the list of gateways that this route should be bound to.
 
@@ -282,7 +282,7 @@ Specifies the list of gateways that this route should be bound to.
   - `Name`
   - `SectionName`
 
-### `Parents.Kind`
+### `Parents[].Kind`
 
 Specifies the type of resource to bind to. This field is required and must be
 set to `"api-gateway"`
@@ -293,7 +293,7 @@ set to `"api-gateway"`
 - This field is required.
 - Data type: string value set to `"api-gateway"`
 
-### `Parents.Name`
+### `Parents[].Name`
 
 Specifies the name of the api-gateway to bind to.
 
@@ -303,7 +303,7 @@ Specifies the name of the api-gateway to bind to.
 - This field is required.
 - Data type: string
 
-### `Parents.SectionName`
+### `Parents[].SectionName`
 
 Specifies the name of the listener to bind to on the `api-gateway`. If left
 empty, this will bind this route to *all listeners* on the parent gateway
@@ -314,7 +314,7 @@ empty, this will bind this route to *all listeners* on the parent gateway
 - This field is not required.
 - Data type: string
 
-### `Rules`
+### `Rules[]`
 
 Specifies the list of HTTP-based routing rules that this route should use for constructing a route table.
 
@@ -327,7 +327,7 @@ Specifies the list of HTTP-based routing rules that this route should use for co
   - `Matches`
   - `Services`
 
-### `Rules.Filters`
+### `Rules[].Filters`
 
 Specifies the list of HTTP-based filters used to modify a request prior to routing it to the upstream service
 
@@ -339,7 +339,7 @@ Specifies the list of HTTP-based filters used to modify a request prior to routi
   - `Headers`
   - `UrlRewrite`
 
-### `Rules.Filters.Headers`
+### `Rules[].Filters.Headers[]`
 
 Defines operations to perform on matching request headers when an incoming request matches the `Rules.Matches` configuration.
 
@@ -353,7 +353,7 @@ This field contains the following configuration objects:
 | `add` | Configure this field to append the request header with a new value. It specifies the name of an HTTP header to append and the value(s) to add. You can specify the following configurations: <ul><li>`name`: Required string that specifies the name of the HTTP header to append.</li><li>`value`: Required string that specifies the value of the HTTP header to add.</li></ul> | List of maps |
 | `remove` | Configure this field to specify an array of header names to remove from the request header. | List of strings |
 
-### `Rules.Filters.URLRewrite`
+### `Rules[].Filters.URLRewrite`
 
 Specifies rule for rewriting the URL of incoming requests when an incoming request matches the `Rules.Matches` configuration.
 
@@ -362,7 +362,7 @@ Specifies rule for rewriting the URL of incoming requests when an incoming reque
 - Default: none
 - This field is a map that contains a `Path` field.
 
-### Rules.Filters.URLRewrite.Path
+### Rules[].Filters.URLRewrite.Path
 
 Specifies a path that determines how Consul API Gateway rewrites a URL path (refer to [Reroute HTTP requests](/consul/docs/api-gateway/usage#reroute-http-requests) for additional information).
 
@@ -375,7 +375,7 @@ The following table describes the parameters for `path`:
 | `replacePrefixMatch` | Specifies a value that replaces the path prefix for incoming HTTP requests. The operation only affects the path prefix. The rest of the path is unchanged. | String |
 | `type` | Specifies the type of replacement to use for the URL path. You can specify the following values: <ul><li>`ReplacePrefixMatch`: Replaces the matched prefix of the URL path (default). </li></ul> | String |
 
-### `Rules.Matches`
+### `Rules[].Matches[]`
 
 Specifies the matching criteria used in the routing table. If an incoming
 request matches the given HTTPMatch configuration, then traffic is routed to
@@ -391,7 +391,7 @@ services specified in the [`Rules.Services`](#rules-services) field.
   - `Path`
   - `Query`
 
-### `Rules.Matches.Headers`
+### `Rules[].Matches[].Headers[]`
 
 Specifies how a match is done on a request’s headers
 
@@ -434,15 +434,23 @@ Specifies the value of the header to match on
 - This field is not required.
 - Data type: string
 
-### `Rules.Matches.Method`
+### `Rules[].Matches[].Method`
 
-Specifies the http method to match on
+Specifies a list of strings that define matches based on HTTP request method.
 
 #### Values
 
-- Default: none
-- This field is not required.
-- Data type: string
+Specify one of the following string values:
+
+* `HEAD`
+* `POST`
+* `PUT`
+* `PATCH`
+* `GET`
+* `DELETE`
+* `OPTIONS`
+* `TRACE`
+* `CONNECT`
 
 ### `Rules.Matches.Path`
 
@@ -451,7 +459,6 @@ Specifies the http method to match on.
 #### Values
 
 - Default: none
-- This field is not required.
 - Data type: map which contains the following fields
   - `Match`
   - `Value`
@@ -476,7 +483,7 @@ Specifies the value of the path to match on.
 - This field is not required.
 - Data type: string
 
-### `Rules.Matches.Query`
+### `Rules[].Matches[].Query[]`
 
 Specifies how a match is done on a request’s query parameters.
 

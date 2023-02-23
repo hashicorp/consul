@@ -4,7 +4,7 @@ page_title: API Gateway Configuration Entry Reference
 description: Learn how to configure a Consul API Gateway on VMs.
 ---
 
-# API Gateway Configuration Entry Reference
+# API gateway configuration entry reference
 
 This topic provides reference information for the API gateway configuration entry that you can deploy to networks in virtual machine (VM) environments. For reference information about configuring Consul API gateways on Kubernetes, refer to [Gateway Resource Configuration](/consul/docs/api-gateway/configuration/gateway).
 
@@ -152,7 +152,7 @@ uniquely identified by their port number.
   - `Protocol`
   - `TLS`
 
-### `Listeners.Name`
+### `Listeners[].Name`
 
 Specifies the unique name for the listener. This field accepts letters, numbers and hyphens.
 
@@ -162,7 +162,7 @@ Specifies the unique name for the listener. This field accepts letters, numbers 
 - This field is required.
 - Data type: string
 
-### `Listeners.Hostname`
+### `Listeners[].Hostname`
 
 Specifies the hostname that the listener receives traffic on.
 
@@ -172,7 +172,7 @@ Specifies the hostname that the listener receives traffic on.
 - This field is optional.
 - Data type: string
 
-### `Listeners.Port`
+### `Listeners[].Port`
 
 Specifies the port number that the listener receives traffic on.
 
@@ -182,7 +182,7 @@ Specifies the port number that the listener receives traffic on.
 - This field is required.
 - Data type: integer
 
-### `Listeners.Protocol`
+### `Listeners[].Protocol`
 
 Specifies the protocol associated with the listener.
 
@@ -192,7 +192,7 @@ Specifies the protocol associated with the listener.
 - This field is required.
 - The data type is one of the following string values: `"tcp"` or `"http"`.
 
-### `Listeners.TLS`
+### `Listeners[].TLS`
 
 Specifies the TLS configurations for the listener.
 
@@ -205,7 +205,7 @@ Specifies the TLS configurations for the listener.
   - `MinVersion`
   - `CipherSuites`
 
-### `Listeners.TLS.Certificates`
+### `Listeners[].TLS.Certificates[]`
 
 The list of references to inline certificates that the listener uses for TLS termination.
 
@@ -216,17 +216,17 @@ The list of references to inline certificates that the listener uses for TLS ter
   - `Kind`
   - `Name`
 
-### `Listeners.TLS.Certificates.Kind`
+### `Listeners[].TLS.Certificates[].Kind`
 
 The list of references to inline-certificates that the listener uses for TLS termination.
 
 #### Values
 
 - Default: None
-- This field is required and must be set to “inline-certificate”.
+- This field is required and must be set to `"inline-certificate"`.
 - Data type: string
 
-### `Listeners.TLS.Certificates.Name`
+### `Listeners[].TLS.Certificates[].Name`
 
 The list of references to inline certificates that the listener uses for TLS termination.
 
@@ -236,15 +236,15 @@ The list of references to inline certificates that the listener uses for TLS ter
 - This field is required.
 - Data type: string
 
-### `Listeners.TLS.MaxVersion`
+### `Listeners[].TLS.MaxVersion`
 
 Specifies the maximum TLS version supported for the listener.
 
 #### Values
 
 - Default depends on the version of Envoy:
-  Envoy 1.22.0 and later default to `TLSv1_2`
-  Older versions of Envoy default to `TLSv1_0`
+  - Envoy 1.22.0 and later default to `TLSv1_2`
+  - Older versions of Envoy default to `TLSv1_0`
 - Data type is one of the following string values:
   - `TLS_AUTO`
   - `TLSv1_0`
@@ -266,7 +266,7 @@ Specifies the minimum TLS version supported for the listener.
   - `TLSv1_2`
   - `TLSv1_3`
 
-### `Listeners.TLS.CipherSuites`
+### `Listeners[].TLS.CipherSuites[]`
 
 Specifies a list of cipher suites that the listener supports when negotiating connections using TLS 1.2 or older.
 
