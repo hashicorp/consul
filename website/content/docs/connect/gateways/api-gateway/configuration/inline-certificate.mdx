@@ -17,6 +17,8 @@ to view additional details, including default values.
 
 - [`Kind`](#kind): string | must be `"inline-certificate"`
 - [`Name`](#name): string | no default
+- [`Namespace`](#namespace): string | no default <EnterpriseAlert inline />
+- [`Partition`](#partition): string | no default <EnterpriseAlert inline />
 - [`Certificate`](#certificate): string | no default
 - [`PrivateKey`](#privatekey): string | no default
 
@@ -26,14 +28,14 @@ When every field is defined, an `inline-certificate` configuration entry has the
 
 <CodeTabs>
 
-``` HCL
+```HCL
 Kind = "inline-certificate"
 Name = "<name of certificate>"
 Certificate = "<public certificate>"
 PrivateKey = "<private key>"
 ```
 
-``` JSON
+```JSON
 {
 	"kind": "inline-certificate",
 	"name": "<name of certificate>",
@@ -87,4 +89,3 @@ Specifies the inline private key to use for TLS.
 - Default: none
 - This field is required.
 - Data type: string value of the private key
-

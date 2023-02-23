@@ -18,13 +18,18 @@ view additional details, including default values.
 
 - [`Kind`](#kind): string | must be `"tcp-route"`
 - [`Name`](#name): string | no default
+- [`Namespace`](#namespace): string | no default <EnterpriseAlert inline />
+- [`Partition`](#partition): string | no default <EnterpriseAlert inline />
 - [`Services`](#services): list | no default
   - [`Name`](#services-name): string | no default
+  - [`Namespace`](#services-namespace): string | no default <EnterpriseAlert inline />
+  - [`Partition`](#services-partition): string | no default <EnterpriseAlert inline />
 - [`Parents`](#parents): list | no default
   - [`Kind`](#parents-kind): string | must be `"api-gateway"`
   - [`Name`](#parents-name): string | no default
+  - [`Namespace`](#parents-namespace): string | no default <EnterpriseAlert inline />
+  - [`Partition`](#parents-partition): string | no default <EnterpriseAlert inline />
   - [`SectionName`](#parents-sectionname): string | no default
-
 
 ## Complete configuration
 
@@ -32,7 +37,7 @@ When every field is defined, a `tcp-route` configuration entry has the following
 
 <CodeTabs>
 
-``` HCL
+```HCL
 Kind = "tcp-route"
 Name = "<name of the route>"
 
@@ -55,7 +60,7 @@ Meta = {
 }
 ```
 
-``` JSON
+```JSON
 {
   "kind": "tcp-route",
   "name": "name of the route",
@@ -179,4 +184,3 @@ Specifies an arbitrary set of key-value pairs to associate with the route.
 
 - Default: none
 - Data type: map containing one or more keys and string values.
-
