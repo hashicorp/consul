@@ -31,6 +31,11 @@ When every field is defined, an `inline-certificate` configuration entry has the
 ```HCL
 Kind = "inline-certificate"
 Name = "<name of certificate>"
+
+Meta = {
+  "<any key>" = "<any value>"
+}
+
 Certificate = "<public certificate>"
 PrivateKey = "<private key>"
 ```
@@ -39,6 +44,9 @@ PrivateKey = "<private key>"
 {
 	"kind": "inline-certificate",
 	"name": "<name of certificate>",
+	"meta": {
+    "any key": "any value"
+  }
 	"certificate": "<public certificate>",
 	"privateKey": "<private key>"
 }

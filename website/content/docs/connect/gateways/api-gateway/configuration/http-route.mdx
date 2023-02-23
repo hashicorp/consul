@@ -70,6 +70,10 @@ When every field is defined, an `http-route` configuration entry has the followi
 Kind = "http-route"
 Name = "<name of the route>"
 
+Meta = {
+  "<any key>" = "<any value>"
+}
+
 Parents = [
   {
     Kind        = "api-gateway"
@@ -149,9 +153,6 @@ Rules = [
 ]
 
 Hostnames = ["<hostnames for which this HTTPRoute should respond to requests>"]
-Meta = {
-  "<any key>" = "<any value>"
-}
 ```
 
 ```json
@@ -251,12 +252,9 @@ Meta = {
   "Hostnames": [
     "hostnames for which this HTTPRoute should respond to requests"
   ],
-
-  "Meta": [
-    {
-      "any key": "any value"
-    }
-  ]
+  "Meta": {
+    "any key": "any value"
+  }
 }
 ```
 

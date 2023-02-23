@@ -41,6 +41,10 @@ When every field is defined, a `tcp-route` configuration entry has the following
 Kind = "tcp-route"
 Name = "<name of the route>"
 
+Meta = {
+  "<any key>" = "<any value>"
+}
+
 Parents = [
   {
     Kind = "api-gateway"
@@ -54,10 +58,6 @@ Services = [
     Name = "<name of service>"
   }
 ]
-
-Meta = {
-  "<any key>" = "<any value>"
-}
 ```
 
 ```JSON
@@ -76,11 +76,9 @@ Meta = {
       "Name": "name of service"
     }
   ],
-  "meta": [
-    {
-      "any key": "any value"
-    }
-  ]
+  "meta": {
+    "any key": "any value"
+  }
 }
 ```
 
