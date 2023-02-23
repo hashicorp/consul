@@ -10,7 +10,7 @@ import (
 
 	"github.com/armon/go-metrics"
 	envoy_discovery_v3 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
-	"github.com/hashicorp/consul/api"
+
 	"github.com/stretchr/testify/require"
 	rpcstatus "google.golang.org/genproto/googleapis/rpc/status"
 	"google.golang.org/grpc/codes"
@@ -21,8 +21,10 @@ import (
 	"github.com/hashicorp/consul/agent/grpc-external/limiter"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/envoyextensions/xdscommon"
 	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/version"
 )
 
@@ -1095,13 +1097,15 @@ func TestServer_DeltaAggregatedResources_v3_ACLEnforcement(t *testing.T) {
 
 			// If there is no token, check that we increment the gauge
 			if tt.token == "" {
-				data := scenario.sink.Data()
-				require.Len(t, data, 1)
+				retry.Run(t, func(r *retry.R) {
+					data := scenario.sink.Data()
+					require.Len(r, data, 1)
 
-				item := data[0]
-				val, ok := item.Gauges["consul.xds.test.xds.server.streamsUnauthenticated"]
-				require.True(t, ok)
-				require.Equal(t, float32(1), val.Value)
+					item := data[0]
+					val, ok := item.Gauges["consul.xds.test.xds.server.streamsUnauthenticated"]
+					require.True(r, ok)
+					require.Equal(r, float32(1), val.Value)
+				})
 			}
 
 			if !tt.wantDenied {
@@ -1138,13 +1142,15 @@ func TestServer_DeltaAggregatedResources_v3_ACLEnforcement(t *testing.T) {
 
 			// If there is no token, check that we decrement the gauge
 			if tt.token == "" {
-				data := scenario.sink.Data()
-				require.Len(t, data, 1)
+				retry.Run(t, func(r *retry.R) {
+					data := scenario.sink.Data()
+					require.Len(r, data, 1)
 
-				item := data[0]
-				val, ok := item.Gauges["consul.xds.test.xds.server.streamsUnauthenticated"]
-				require.True(t, ok)
-				require.Equal(t, float32(0), val.Value)
+					item := data[0]
+					val, ok := item.Gauges["consul.xds.test.xds.server.streamsUnauthenticated"]
+					require.True(r, ok)
+					require.Equal(r, float32(0), val.Value)
+				})
 			}
 		})
 	}
