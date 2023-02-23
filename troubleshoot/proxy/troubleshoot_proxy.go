@@ -5,17 +5,9 @@ import (
 	"net"
 
 	envoy_admin_v3 "github.com/envoyproxy/go-control-plane/envoy/admin/v3"
-	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/go-multierror"
-	"google.golang.org/protobuf/proto"
-)
 
-const (
-	listeners string = "type.googleapis.com/envoy.admin.v3.ListenersConfigDump"
-	clusters  string = "type.googleapis.com/envoy.admin.v3.ClustersConfigDump"
-	routes    string = "type.googleapis.com/envoy.admin.v3.RoutesConfigDump"
-	endpoints string = "type.googleapis.com/envoy.admin.v3.EndpointsConfigDump"
-	bootstrap string = "type.googleapis.com/envoy.admin.v3.BootstrapConfigDump"
+	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/troubleshoot/validate"
 )
 
 type Troubleshoot struct {
@@ -39,6 +31,11 @@ func NewTroubleshoot(envoyIP *net.IPAddr, envoyPort string) (*Troubleshoot, erro
 	if err != nil {
 		return nil, err
 	}
+
+	if envoyIP == nil {
+		return nil, fmt.Errorf("envoy address is empty")
+	}
+
 	return &Troubleshoot{
 		client:         c,
 		envoyAddr:      *envoyIP,
@@ -46,77 +43,55 @@ func NewTroubleshoot(envoyIP *net.IPAddr, envoyPort string) (*Troubleshoot, erro
 	}, nil
 }
 
-func (t *Troubleshoot) RunAllTests(envoyID string) ([]string, error) {
-	var resultErr error
-	var output []string
+func (t *Troubleshoot) RunAllTests(upstreamEnvoyID, upstreamIP string) (validate.Messages, error) {
+	var allTestMessages validate.Messages
 
-	// Validate certs
+	// Get all info from proxy to set up validations.
+	err := t.GetEnvoyConfigDump()
+	if err != nil {
+		return nil, fmt.Errorf("unable to get Envoy config dump: cannot connect to Envoy: %w", err)
+	}
+	err = t.getEnvoyClusters()
+	if err != nil {
+		return nil, fmt.Errorf("unable to get Envoy clusters: cannot connect to Envoy: %w", err)
+	}
 	certs, err := t.getEnvoyCerts()
 	if err != nil {
-		resultErr = multierror.Append(resultErr, fmt.Errorf("unable to get certs: %w", err))
+		return nil, fmt.Errorf("unable to get Envoy certificates: cannot connect to Envoy: %w", err)
+	}
+	indexedResources, err := ProxyConfigDumpToIndexedResources(t.envoyConfigDump)
+	if err != nil {
+		return nil, fmt.Errorf("unable to index Envoy resources: %w", err)
 	}
 
-	if certs != nil && len(certs.GetCertificates()) != 0 {
-		err = t.validateCerts(certs)
-		if err != nil {
-			resultErr = multierror.Append(resultErr, fmt.Errorf("unable to validate certs: %w", err))
-		} else {
-			output = append(output, "certs are valid")
+	// Validate certs.
+	messages := t.validateCerts(certs)
+	allTestMessages = append(allTestMessages, messages...)
+	if errors := messages.Errors(); len(errors) == 0 {
+		msg := validate.Message{
+			Success: true,
+			Message: "Certificates are valid",
 		}
-
-	} else {
-		resultErr = multierror.Append(resultErr, fmt.Errorf("no certificate found"))
-
+		allTestMessages = append(allTestMessages, msg)
 	}
 
 	// getStats usage example
-	// rejectionStats, err := t.getEnvoyStats("update_rejected")
-	// if err != nil {
-	// 	resultErr = multierror.Append(resultErr, err)
-	// }
-
-	// Validate listeners, routes, clusters, endpoints
-	t.GetEnvoyConfigDump()
-	t.getEnvoyClusters()
-
-	indexedResources, err := ProxyConfigDumpToIndexedResources(t.envoyConfigDump)
+	messages, err = t.troubleshootStats()
 	if err != nil {
-		resultErr = multierror.Append(resultErr, fmt.Errorf("unable to index resources: %v", err))
+		return nil, fmt.Errorf("unable to get stats: %w", err)
 	}
+	allTestMessages = append(allTestMessages, messages...)
 
-	err = Validate(indexedResources, envoyID, "", true, t.envoyClusters)
-	if err != nil {
-		resultErr = multierror.Append(resultErr, fmt.Errorf("unable to validate proxy config: %v", err))
-	}
-	return output, resultErr
-}
-
-func (t *Troubleshoot) GetUpstreams() ([]string, error) {
-
-	upstreams := []string{}
-
-	err := t.GetEnvoyConfigDump()
-	if err != nil {
-		return nil, err
-	}
-
-	for _, cfg := range t.envoyConfigDump.Configs {
-		switch cfg.TypeUrl {
-		case listeners:
-			lcd := &envoy_admin_v3.ListenersConfigDump{}
-
-			err := proto.Unmarshal(cfg.GetValue(), lcd)
-			if err != nil {
-				return nil, err
-			}
-
-			for _, listener := range lcd.GetDynamicListeners() {
-				upstream := envoyID(listener.Name)
-				if upstream != "" && upstream != "public_listener" {
-					upstreams = append(upstreams, upstream)
-				}
-			}
+	// Validate listeners, routes, clusters, endpoints.
+	messages = Validate(indexedResources, upstreamEnvoyID, upstreamIP, true, t.envoyClusters)
+	allTestMessages = append(allTestMessages, messages...)
+	if errors := messages.Errors(); len(errors) == 0 {
+		msg := validate.Message{
+			Success: true,
+			Message: "Upstream resources are valid",
 		}
+		allTestMessages = append(allTestMessages, msg)
 	}
-	return upstreams, nil
+
+	return allTestMessages, nil
 }

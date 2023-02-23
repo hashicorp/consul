@@ -4,6 +4,8 @@ import { module, test } from 'qunit';
 module('Unit | Utility | dom/event-target/rsvp', function () {
   // Replace this with your real tests.
   test('it has EventTarget methods', function (assert) {
+    assert.expect(4);
+
     const result = domEventTargetRsvp;
     assert.equal(typeof result, 'function');
     ['addEventListener', 'removeEventListener', 'dispatchEvent'].forEach(function (item) {

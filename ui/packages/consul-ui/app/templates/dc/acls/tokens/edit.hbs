@@ -52,23 +52,46 @@ as |dc partition nspace item create|}}
       </BlockSlot>
       <BlockSlot @name="actions">
   {{#if (not create)}}
+    <Hds::ButtonSet>
     {{#if (not-eq item.AccessorID token.AccessorID)}}
         <ConfirmationDialog @message="Are you sure you want to use this ACL token?">
           <BlockSlot @name="action" as |confirm|>
-              <button data-test-use type="button" {{ action confirm 'use' item }}>Use</button>
+            <Hds::Button
+              @text='Use'
+              @color='secondary'
+              data-test-use
+              {{ action confirm 'use' item }}
+            />
           </BlockSlot>
           <BlockSlot @name="dialog" as |execute cancel message|>
             <p>
                 {{message}}
             </p>
-            <button type="button" class="type-delete" {{action execute}}>Confirm Use</button>
-            <button type="button" class="type-cancel" {{action cancel}}>Cancel</button>
+            <Hds::ButtonSet>
+              <Hds::Button
+                @text='Confirm Use'
+                @color='critical'
+                data-test-confirm-use
+                {{action execute}}
+              />
+              <Hds::Button
+                @text='Cancel'
+                @color='secondary'
+                {{action cancel}}
+              />
+            </Hds::ButtonSet>
           </BlockSlot>
         </ConfirmationDialog>
     {{/if}}
     {{#if (can "duplicate token" item=item)}}
-        <button data-test-clone type="button" {{ action "clone" item }}>Duplicate</button>
+      <Hds::Button
+        @text='Duplicate'
+        @color='secondary'
+        data-test-clone
+        {{ action "clone" item }}
+      />
     {{/if}}
+    </Hds::ButtonSet>
   {{/if}}
       </BlockSlot>
       <BlockSlot @name="content">

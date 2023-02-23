@@ -64,8 +64,8 @@ import (
 	"github.com/hashicorp/consul/lib/mutex"
 	"github.com/hashicorp/consul/lib/routine"
 	"github.com/hashicorp/consul/logging"
-	"github.com/hashicorp/consul/proto/pboperator"
-	"github.com/hashicorp/consul/proto/pbpeering"
+	"github.com/hashicorp/consul/proto/private/pboperator"
+	"github.com/hashicorp/consul/proto/private/pbpeering"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
 )
@@ -1051,7 +1051,8 @@ func (a *Agent) listenHTTP() ([]apiServer, error) {
 		for _, l := range listeners {
 			var tlscfg *tls.Config
 			_, isTCP := l.(*tcpKeepAliveListener)
-			if isTCP && proto == "https" {
+			isUnix := l.Addr().Network() == "unix"
+			if (isTCP || isUnix) && proto == "https" {
 				tlscfg = a.tlsConfigurator.IncomingHTTPSConfig()
 				l = tls.NewListener(l, tlscfg)
 			}
@@ -1479,7 +1480,7 @@ func newConsulConfig(runtimeCfg *config.RuntimeConfig, logger hclog.Logger) (*co
 	}
 
 	cfg.ConfigEntryBootstrap = runtimeCfg.ConfigEntryBootstrap
-	cfg.RaftBoltDBConfig = runtimeCfg.RaftBoltDBConfig
+	cfg.LogStoreConfig = runtimeCfg.RaftLogStoreConfig
 
 	// Duplicate our own serf config once to make sure that the duplication
 	// function does not drift.

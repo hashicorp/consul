@@ -5,54 +5,48 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/consul/api"
-
 	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 )
 
 const (
-	StaticServerServiceName = "static-server"
-	StaticClientServiceName = "static-client"
+	StaticServerServiceName  = "static-server"
+	StaticServer2ServiceName = "static-server-2"
+	StaticClientServiceName  = "static-client"
 )
 
-type ServiceOpts struct {
+type Checks struct {
 	Name string
-	ID   string
-	Meta map[string]string
+	TTL  string
 }
 
-func CreateAndRegisterStaticServerAndSidecar(node libcluster.Agent, serviceOpts *ServiceOpts) (Service, Service, error) {
+type SidecarService struct {
+	Port int
+}
+
+type ServiceOpts struct {
+	Name     string
+	ID       string
+	Meta     map[string]string
+	HTTPPort int
+	GRPCPort int
+	Checks   Checks
+	Connect  SidecarService
+}
+
+// createAndRegisterStaticServerAndSidecar register the services and launch static-server containers
+func createAndRegisterStaticServerAndSidecar(node libcluster.Agent, grpcPort int, svc *api.AgentServiceRegistration) (Service, Service, error) {
 	// Do some trickery to ensure that partial completion is correctly torn
 	// down, but successful execution is not.
 	var deferClean utils.ResettableDefer
 	defer deferClean.Execute()
 
-	// Register the static-server service and sidecar first to prevent race with sidecar
-	// trying to get xDS before it's ready
-	req := &api.AgentServiceRegistration{
-		Name: serviceOpts.Name,
-		ID:   serviceOpts.ID,
-		Port: 8080,
-		Connect: &api.AgentServiceConnect{
-			SidecarService: &api.AgentServiceRegistration{
-				Proxy: &api.AgentServiceConnectProxyConfig{},
-			},
-		},
-		Check: &api.AgentServiceCheck{
-			Name:     "Static Server Listening",
-			TCP:      fmt.Sprintf("127.0.0.1:%d", 8080),
-			Interval: "10s",
-			Status:   api.HealthPassing,
-		},
-		Meta: serviceOpts.Meta,
-	}
-
-	if err := node.GetClient().Agent().ServiceRegister(req); err != nil {
+	if err := node.GetClient().Agent().ServiceRegister(svc); err != nil {
 		return nil, nil, err
 	}
 
 	// Create a service and proxy instance
-	serverService, err := NewExampleService(context.Background(), StaticServerServiceName, 8080, 8079, node)
+	serverService, err := NewExampleService(context.Background(), svc.ID, svc.Port, grpcPort, node)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -60,7 +54,7 @@ func CreateAndRegisterStaticServerAndSidecar(node libcluster.Agent, serviceOpts 
 		_ = serverService.Terminate()
 	})
 
-	serverConnectProxy, err := NewConnectService(context.Background(), fmt.Sprintf("%s-sidecar", StaticServerServiceName), serviceOpts.ID, 8080, node) // bindPort not used
+	serverConnectProxy, err := NewConnectService(context.Background(), fmt.Sprintf("%s-sidecar", svc.ID), svc.ID, []int{svc.Port}, node) // bindPort not used
 	if err != nil {
 		return nil, nil, err
 	}
@@ -72,6 +66,54 @@ func CreateAndRegisterStaticServerAndSidecar(node libcluster.Agent, serviceOpts 
 	deferClean.Reset()
 
 	return serverService, serverConnectProxy, nil
+}
+
+func CreateAndRegisterStaticServerAndSidecar(node libcluster.Agent, serviceOpts *ServiceOpts) (Service, Service, error) {
+	// Register the static-server service and sidecar first to prevent race with sidecar
+	// trying to get xDS before it's ready
+	req := &api.AgentServiceRegistration{
+		Name: serviceOpts.Name,
+		ID:   serviceOpts.ID,
+		Port: serviceOpts.HTTPPort,
+		Connect: &api.AgentServiceConnect{
+			SidecarService: &api.AgentServiceRegistration{
+				Proxy: &api.AgentServiceConnectProxyConfig{},
+			},
+		},
+		Check: &api.AgentServiceCheck{
+			Name:     "Static Server Listening",
+			TCP:      fmt.Sprintf("127.0.0.1:%d", serviceOpts.HTTPPort),
+			Interval: "10s",
+			Status:   api.HealthPassing,
+		},
+		Meta: serviceOpts.Meta,
+	}
+	return createAndRegisterStaticServerAndSidecar(node, serviceOpts.GRPCPort, req)
+}
+
+func CreateAndRegisterStaticServerAndSidecarWithChecks(node libcluster.Agent, serviceOpts *ServiceOpts) (Service, Service, error) {
+	// Register the static-server service and sidecar first to prevent race with sidecar
+	// trying to get xDS before it's ready
+	req := &api.AgentServiceRegistration{
+		Name: serviceOpts.Name,
+		ID:   serviceOpts.ID,
+		Port: serviceOpts.HTTPPort,
+		Connect: &api.AgentServiceConnect{
+			SidecarService: &api.AgentServiceRegistration{
+				Proxy: &api.AgentServiceConnectProxyConfig{},
+				Port:  serviceOpts.Connect.Port,
+			},
+		},
+		Checks: api.AgentServiceChecks{
+			{
+				Name: serviceOpts.Checks.Name,
+				TTL:  serviceOpts.Checks.TTL,
+			},
+		},
+		Meta: serviceOpts.Meta,
+	}
+
+	return createAndRegisterStaticServerAndSidecar(node, serviceOpts.GRPCPort, req)
 }
 
 func CreateAndRegisterStaticClientSidecar(
@@ -116,7 +158,7 @@ func CreateAndRegisterStaticClientSidecar(
 	}
 
 	// Create a service and proxy instance
-	clientConnectProxy, err := NewConnectService(context.Background(), fmt.Sprintf("%s-sidecar", StaticClientServiceName), StaticClientServiceName, libcluster.ServiceUpstreamLocalBindPort, node)
+	clientConnectProxy, err := NewConnectService(context.Background(), fmt.Sprintf("%s-sidecar", StaticClientServiceName), StaticClientServiceName, []int{libcluster.ServiceUpstreamLocalBindPort}, node)
 	if err != nil {
 		return nil, err
 	}

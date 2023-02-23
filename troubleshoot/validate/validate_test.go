@@ -63,7 +63,7 @@ func TestErrors(t *testing.T) {
 				r.loadAssignment = true
 				r.endpoints = 1
 			},
-			err: "no clusters found on route or listener",
+			err: "No clusters found on route or listener",
 		},
 		"no healthy endpoints": {
 			validate: func() *Validate {
@@ -86,7 +86,7 @@ func TestErrors(t *testing.T) {
 			endpointValidator: func(r *resource, s string, clusters *envoy_admin_v3.Clusters) {
 				r.loadAssignment = true
 			},
-			err: "zero healthy endpoints",
+			err: "No healthy endpoints for cluster \"db-sni\" for upstream \"db\"",
 		},
 		"success: aggregate cluster with one target with endpoints": {
 			validate: func() *Validate {
@@ -169,21 +169,50 @@ func TestErrors(t *testing.T) {
 				r.loadAssignment = true
 				r.endpoints = 0
 			},
-			err: "zero healthy endpoints for aggregate cluster",
+			err: "No healthy endpoints for aggregate cluster \"db-sni\" for upstream \"db\"",
+		},
+		"success: passthrough cluster doesn't error even though there are zero endpoints": {
+			validate: func() *Validate {
+				return &Validate{
+					envoyID: "db",
+					snis: map[string]struct{}{
+						"passthrough~db-sni": {},
+					},
+					listener: true,
+					usesRDS:  true,
+					route:    true,
+					resources: map[string]*resource{
+						"passthrough~db-sni": {
+							required: true,
+							cluster:  true,
+						},
+					},
+				}
+			},
+			endpointValidator: func(r *resource, s string, clusters *envoy_admin_v3.Clusters) {
+				r.loadAssignment = true
+			},
 		},
 	}
 
 	for n, tc := range cases {
 		t.Run(n, func(t *testing.T) {
 			v := tc.validate()
-			err := v.Errors(true, tc.endpointValidator, nil)
+			messages := v.GetMessages(true, tc.endpointValidator, nil)
 
-			if len(tc.err) == 0 {
-				require.NoError(t, err)
-			} else {
-				require.Error(t, err)
-				require.Contains(t, err.Error(), tc.err)
+			var outputErrors string
+			for _, msgError := range messages.Errors() {
+				outputErrors += msgError.Message
+				for _, action := range msgError.PossibleActions {
+					outputErrors += action
+				}
 			}
+			if tc.err == "" {
+				require.True(t, messages.Success())
+			} else {
+				require.Contains(t, outputErrors, tc.err)
+			}
+
 		})
 	}
 

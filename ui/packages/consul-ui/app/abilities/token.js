@@ -1,6 +1,7 @@
 import BaseAbility from './base';
 import { inject as service } from '@ember/service';
 
+import { isLegacy } from 'consul-ui/helpers/token/is-legacy';
 import { isAnonymous } from 'consul-ui/helpers/token/is-anonymous';
 
 export default class TokenAbility extends BaseAbility {
@@ -27,6 +28,6 @@ export default class TokenAbility extends BaseAbility {
   }
 
   get canDuplicate() {
-    return this.env.var('CONSUL_ACLS_ENABLED') && super.canWrite;
+    return this.env.var('CONSUL_ACLS_ENABLED') && !isLegacy([this.item]) && super.canWrite;
   }
 }

@@ -129,19 +129,24 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 	// Configure handlers for each type of request we currently care about.
 	handlers := map[string]*xDSDeltaType{
 		xdscommon.ListenerType: newDeltaType(generator, stream, xdscommon.ListenerType, func(kind structs.ServiceKind) bool {
-			return cfgSnap.Kind == structs.ServiceKindIngressGateway
+			// Ingress and API gateways are allowed to inform LDS of no listeners.
+			return cfgSnap.Kind == structs.ServiceKindIngressGateway ||
+				cfgSnap.Kind == structs.ServiceKindAPIGateway
 		}),
 		xdscommon.RouteType: newDeltaType(generator, stream, xdscommon.RouteType, func(kind structs.ServiceKind) bool {
-			return cfgSnap.Kind == structs.ServiceKindIngressGateway
+			// Ingress and API gateways are allowed to inform RDS of no routes.
+			return cfgSnap.Kind == structs.ServiceKindIngressGateway ||
+				cfgSnap.Kind == structs.ServiceKindAPIGateway
 		}),
 		xdscommon.ClusterType: newDeltaType(generator, stream, xdscommon.ClusterType, func(kind structs.ServiceKind) bool {
-			// Mesh, Ingress, and Terminating gateways are allowed to inform CDS of
-			// no clusters.
+			// Mesh, Ingress, API and Terminating gateways are allowed to inform CDS of no clusters.
 			return cfgSnap.Kind == structs.ServiceKindMeshGateway ||
 				cfgSnap.Kind == structs.ServiceKindTerminatingGateway ||
-				cfgSnap.Kind == structs.ServiceKindIngressGateway
+				cfgSnap.Kind == structs.ServiceKindIngressGateway ||
+				cfgSnap.Kind == structs.ServiceKindAPIGateway
 		}),
 		xdscommon.EndpointType: newDeltaType(generator, stream, xdscommon.EndpointType, nil),
+		xdscommon.SecretType:   newDeltaType(generator, stream, xdscommon.SecretType, nil), // TODO allowEmptyFn
 	}
 
 	// Endpoints are stored within a Cluster (and Routes
@@ -332,7 +337,7 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 
 			generator.Logger.Trace("Got initial config snapshot")
 
-			// Lets actually process the config we just got or we'll mis responding
+			// Let's actually process the config we just got, or we'll miss responding
 			fallthrough
 		case stateDeltaRunning:
 			// Check ACLs on every Discovery{Request,Response}.
@@ -461,20 +466,24 @@ func (s *Server) applyEnvoyExtensions(resources *xdscommon.IndexedResources, cfg
 	return nil
 }
 
+// https://www.envoyproxy.io/docs/envoy/latest/api-docs/xds_protocol#eventual-consistency-considerations
 var xDSUpdateOrder = []xDSUpdateOperation{
-	// 1. CDS updates (if any) must always be pushed first.
+	// 1. SDS updates (if any) can be pushed here with no harm.
+	{TypeUrl: xdscommon.SecretType, Upsert: true},
+	// 2. CDS updates (if any) must always be pushed before the following types.
 	{TypeUrl: xdscommon.ClusterType, Upsert: true},
-	// 2. EDS updates (if any) must arrive after CDS updates for the respective clusters.
+	// 3. EDS updates (if any) must arrive after CDS updates for the respective clusters.
 	{TypeUrl: xdscommon.EndpointType, Upsert: true},
-	// 3. LDS updates must arrive after corresponding CDS/EDS updates.
+	// 4. LDS updates must arrive after corresponding CDS/EDS updates.
 	{TypeUrl: xdscommon.ListenerType, Upsert: true, Remove: true},
-	// 4. RDS updates related to the newly added listeners must arrive after CDS/EDS/LDS updates.
+	// 5. RDS updates related to the newly added listeners must arrive after CDS/EDS/LDS updates.
 	{TypeUrl: xdscommon.RouteType, Upsert: true, Remove: true},
-	// 5. (NOT IMPLEMENTED YET IN CONSUL) VHDS updates (if any) related to the newly added RouteConfigurations must arrive after RDS updates.
+	// 6. (NOT IMPLEMENTED YET IN CONSUL) VHDS updates (if any) related to the newly added RouteConfigurations must arrive after RDS updates.
 	// {},
-	// 6. Stale CDS clusters and related EDS endpoints (ones no longer being referenced) can then be removed.
+	// 7. Stale CDS clusters, related EDS endpoints (ones no longer being referenced) and SDS secrets can then be removed.
 	{TypeUrl: xdscommon.ClusterType, Remove: true},
 	{TypeUrl: xdscommon.EndpointType, Remove: true},
+	{TypeUrl: xdscommon.SecretType, Remove: true},
 	// xDS updates can be pushed independently if no new
 	// clusters/routes/listeners are added or if it’s acceptable to
 	// temporarily drop traffic during updates. Note that in case of

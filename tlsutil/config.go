@@ -16,7 +16,7 @@ import (
 	"github.com/hashicorp/go-multierror"
 
 	"github.com/hashicorp/consul/logging"
-	"github.com/hashicorp/consul/proto/pbconfig"
+	"github.com/hashicorp/consul/proto/private/pbconfig"
 	"github.com/hashicorp/consul/types"
 )
 

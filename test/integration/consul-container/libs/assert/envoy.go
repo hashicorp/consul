@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/sdk/testutil/retry"
+	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/stretchr/testify/assert"
@@ -70,7 +71,11 @@ func AssertUpstreamEndpointStatus(t *testing.T, adminPort int, clusterName, heal
 		filter := fmt.Sprintf(`.cluster_statuses[] | select(.name|contains("%s")) | [.host_statuses[].health_status.eds_health_status] | [select(.[] == "%s")] | length`, clusterName, healthStatus)
 		results, err := utils.JQFilter(clusters, filter)
 		require.NoErrorf(r, err, "could not found cluster name %s", clusterName)
-		require.Equal(r, count, len(results))
+
+		resultToString := strings.Join(results, " ")
+		result, err := strconv.Atoi(resultToString)
+		assert.NoError(r, err)
+		require.Equal(r, count, result)
 	})
 }
 
@@ -98,23 +103,26 @@ func AssertEnvoyMetricAtMost(t *testing.T, adminPort int, prefix, metric string,
 }
 
 func processMetrics(metrics []string, prefix, metric string, condition func(v int) bool) error {
+	var err error
 	for _, line := range metrics {
 		if strings.Contains(line, prefix) &&
 			strings.Contains(line, metric) {
-
+			var value int
 			metric := strings.Split(line, ":")
 
-			v, err := strconv.Atoi(strings.TrimSpace(metric[1]))
+			value, err = strconv.Atoi(strings.TrimSpace(metric[1]))
 			if err != nil {
 				return fmt.Errorf("err parse metric value %s: %s", metric[1], err)
 			}
 
-			if condition(v) {
+			if condition(value) {
 				return nil
+			} else {
+				return fmt.Errorf("metric value doesn's satisfy condition: %d", value)
 			}
 		}
 	}
-	return fmt.Errorf("error processing stats")
+	return fmt.Errorf("error metric %s %s not found", prefix, metric)
 }
 
 // AssertEnvoyMetricAtLeast assert the filered metric by prefix and metric is <= count
@@ -124,7 +132,7 @@ func AssertEnvoyMetricAtLeast(t *testing.T, adminPort int, prefix, metric string
 		err   error
 	)
 	failer := func() *retry.Timer {
-		return &retry.Timer{Timeout: 30 * time.Second, Wait: 500 * time.Millisecond}
+		return &retry.Timer{Timeout: 60 * time.Second, Wait: 500 * time.Millisecond}
 	}
 
 	retry.RunWith(failer(), t, func(r *retry.R) {
@@ -247,4 +255,15 @@ func GetEnvoyOutput(port int, path string, query map[string]string) (string, int
 func sanitizeResult(s string) []string {
 	result := strings.Split(strings.ReplaceAll(s, `,`, " "), " ")
 	return append(result[:0], result[1:]...)
+}
+
+// AssertServiceHasHealthyInstances asserts the number of instances of service equals count for a given service.
+// https://developer.hashicorp.com/consul/docs/connect/config-entries/service-resolver#onlypassing
+func AssertServiceHasHealthyInstances(t *testing.T, node libcluster.Agent, service string, onlypassing bool, count int) {
+	services, _, err := node.GetClient().Health().Service(service, "", onlypassing, nil)
+	require.NoError(t, err)
+	for _, v := range services {
+		fmt.Printf("%s service status: %s\n", v.Service.ID, v.Checks.AggregatedStatus())
+	}
+	require.Equal(t, count, len(services))
 }

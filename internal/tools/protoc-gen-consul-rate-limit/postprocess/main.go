@@ -7,6 +7,7 @@ import (
 	"flag"
 	"fmt"
 	"go/format"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"sort"
@@ -83,6 +84,7 @@ func run(inputPaths []string, outputPath string) error {
 // enterpriseFileName adds the _ent filename suffix before the extension.
 //
 // Example:
+//
 //	enterpriseFileName("bar/baz/foo.gen.go") => "bar/baz/foo_ent.gen.go"
 func enterpriseFileName(filename string) string {
 	fileName := filepath.Base(filename)
@@ -113,24 +115,34 @@ func (s spec) GoOperationType() string {
 
 func collectSpecs(inputPaths []string) ([]spec, []spec, error) {
 	var specs []spec
+	var specFiles []string
 	for _, protoPath := range inputPaths {
-		specFiles, err := filepath.Glob(filepath.Join(protoPath, "*", ".ratelimit.tmp"))
-		if err != nil {
-			return nil, nil, fmt.Errorf("failed to glob directory: %s - %s", protoPath, err)
-		}
-
-		for _, file := range specFiles {
-			b, err := os.ReadFile(file)
+		err := filepath.WalkDir(protoPath, func(path string, info fs.DirEntry, err error) error {
 			if err != nil {
-				return nil, nil, fmt.Errorf("failed to read ratelimit file: %w", err)
+				return err
+			}
+			if info.Name() == ".ratelimit.tmp" {
+				specFiles = append(specFiles, path)
 			}
 
-			var fileSpecs []spec
-			if err := json.Unmarshal(b, &fileSpecs); err != nil {
-				return nil, nil, fmt.Errorf("failed to unmarshal ratelimit file %s - %w", file, err)
-			}
-			specs = append(specs, fileSpecs...)
+			return nil
+		})
+		if err != nil {
+			return nil, nil, fmt.Errorf("failed to walk directory: %s - %w", protoPath, err)
 		}
+	}
+
+	for _, file := range specFiles {
+		b, err := os.ReadFile(file)
+		if err != nil {
+			return nil, nil, fmt.Errorf("failed to read ratelimit file: %w", err)
+		}
+
+		var fileSpecs []spec
+		if err := json.Unmarshal(b, &fileSpecs); err != nil {
+			return nil, nil, fmt.Errorf("failed to unmarshal ratelimit file %s - %w", file, err)
+		}
+		specs = append(specs, fileSpecs...)
 	}
 
 	sort.Slice(specs, func(a, b int) bool {

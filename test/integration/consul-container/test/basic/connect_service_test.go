@@ -1,6 +1,7 @@
 package basic
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -40,6 +41,7 @@ func TestBasicConnectService(t *testing.T) {
 
 	libassert.AssertContainerState(t, clientService, "running")
 	libassert.HTTPServiceEchoes(t, "localhost", port, "")
+	libassert.AssertFortioName(t, fmt.Sprintf("http://localhost:%d", port), "static-server")
 }
 
 func createServices(t *testing.T, cluster *libcluster.Cluster) libservice.Service {
@@ -47,8 +49,10 @@ func createServices(t *testing.T, cluster *libcluster.Cluster) libservice.Servic
 	client := node.GetClient()
 	// Create a service and proxy instance
 	serviceOpts := &libservice.ServiceOpts{
-		Name: libservice.StaticServerServiceName,
-		ID:   "static-server",
+		Name:     libservice.StaticServerServiceName,
+		ID:       "static-server",
+		HTTPPort: 8080,
+		GRPCPort: 8079,
 	}
 
 	// Create a service and proxy instance

@@ -10,7 +10,6 @@ import (
 
 	"github.com/armon/go-metrics"
 	envoy_discovery_v3 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
-	"github.com/hashicorp/consul/api"
 	"github.com/stretchr/testify/require"
 	rpcstatus "google.golang.org/genproto/googleapis/rpc/status"
 	"google.golang.org/grpc/codes"
@@ -21,8 +20,10 @@ import (
 	"github.com/hashicorp/consul/agent/grpc-external/limiter"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/envoyextensions/xdscommon"
 	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/version"
 )
 
@@ -1057,19 +1058,23 @@ func TestServer_DeltaAggregatedResources_v3_ACLEnforcement(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			// aclResolve may be called in a goroutine even after a
+			// testcase tt returns. Capture the variable as tc so the
+			// values don't swap in the next iteration.
+			tc := tt
 			aclResolve := func(id string) (acl.Authorizer, error) {
-				if !tt.defaultDeny {
+				if !tc.defaultDeny {
 					// Allow all
 					return acl.RootAuthorizer("allow"), nil
 				}
-				if tt.acl == "" {
+				if tc.acl == "" {
 					// No token and defaultDeny is denied
 					return acl.RootAuthorizer("deny"), nil
 				}
 				// Ensure the correct token was passed
-				require.Equal(t, tt.token, id)
+				require.Equal(t, tc.token, id)
 				// Parse the ACL and enforce it
-				policy, err := acl.NewPolicyFromSource(tt.acl, nil, nil)
+				policy, err := acl.NewPolicyFromSource(tc.acl, nil, nil)
 				require.NoError(t, err)
 				return acl.NewPolicyAuthorizerWithDefaults(acl.RootAuthorizer("deny"), []*acl.Policy{policy}, nil)
 			}
@@ -1095,13 +1100,15 @@ func TestServer_DeltaAggregatedResources_v3_ACLEnforcement(t *testing.T) {
 
 			// If there is no token, check that we increment the gauge
 			if tt.token == "" {
-				data := scenario.sink.Data()
-				require.Len(t, data, 1)
+				retry.Run(t, func(r *retry.R) {
+					data := scenario.sink.Data()
+					require.Len(r, data, 1)
 
-				item := data[0]
-				val, ok := item.Gauges["consul.xds.test.xds.server.streamsUnauthenticated"]
-				require.True(t, ok)
-				require.Equal(t, float32(1), val.Value)
+					item := data[0]
+					val, ok := item.Gauges["consul.xds.test.xds.server.streamsUnauthenticated"]
+					require.True(r, ok)
+					require.Equal(r, float32(1), val.Value)
+				})
 			}
 
 			if !tt.wantDenied {
@@ -1138,13 +1145,15 @@ func TestServer_DeltaAggregatedResources_v3_ACLEnforcement(t *testing.T) {
 
 			// If there is no token, check that we decrement the gauge
 			if tt.token == "" {
-				data := scenario.sink.Data()
-				require.Len(t, data, 1)
+				retry.Run(t, func(r *retry.R) {
+					data := scenario.sink.Data()
+					require.Len(r, data, 1)
 
-				item := data[0]
-				val, ok := item.Gauges["consul.xds.test.xds.server.streamsUnauthenticated"]
-				require.True(t, ok)
-				require.Equal(t, float32(0), val.Value)
+					item := data[0]
+					val, ok := item.Gauges["consul.xds.test.xds.server.streamsUnauthenticated"]
+					require.True(r, ok)
+					require.Equal(r, float32(0), val.Value)
+				})
 			}
 		})
 	}

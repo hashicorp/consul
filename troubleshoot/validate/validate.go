@@ -2,6 +2,7 @@ package validate
 
 import (
 	"fmt"
+	"strings"
 
 	envoy_admin_v3 "github.com/envoyproxy/go-control-plane/envoy/admin/v3"
 	envoy_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
@@ -11,7 +12,6 @@ import (
 	envoy_aggregate_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/clusters/aggregate/v3"
 	envoy_resource_v3 "github.com/envoyproxy/go-control-plane/pkg/resource/v3"
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/go-multierror"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
 
@@ -25,6 +25,10 @@ const builtinValidateExtension = "builtin/proxy/validate"
 type Validate struct {
 	// envoyID is an argument to the Validate plugin and identifies which listener to begin the validation with.
 	envoyID string
+
+	// vip is an argument to the Validate plugin and identifies which transparent proxy listener to begin the validation
+	// with.
+	vip string
 
 	// snis is all of the upstream SNIs for this proxy. It is set via ExtensionConfiguration.
 	snis map[string]struct{}
@@ -93,6 +97,7 @@ func MakeValidate(ext extensioncommon.RuntimeConfig) (extensioncommon.BasicExten
 	if mainEnvoyID == "" && vip == "" {
 		return nil, fmt.Errorf("envoyID or virtual IP is required")
 	}
+	plugin.vip = vip
 	plugin.envoyID = mainEnvoyID
 	plugin.snis = snis
 	plugin.resources = make(map[string]*resource)
@@ -100,15 +105,79 @@ func MakeValidate(ext extensioncommon.RuntimeConfig) (extensioncommon.BasicExten
 	return &plugin, resultErr
 }
 
-// Errors returns the error based only on Validate's state.
-func (v *Validate) Errors(validateEndpoints bool, endpointValidator EndpointValidator, clusters *envoy_admin_v3.Clusters) error {
-	var resultErr error
+type Messages []Message
+
+type Message struct {
+	Success         bool
+	Message         string
+	PossibleActions []string
+}
+
+func (m Messages) Success() bool {
+	for _, message := range m {
+		if !message.Success {
+			return false
+		}
+	}
+
+	return true
+}
+
+func (m Messages) Errors() Messages {
+	var errors Messages
+	for _, message := range m {
+		if !message.Success {
+			errors = append(errors, message)
+		}
+	}
+
+	return errors
+}
+
+// GetMessages returns the error based only on Validate's state.
+func (v *Validate) GetMessages(validateEndpoints bool, endpointValidator EndpointValidator, clusters *envoy_admin_v3.Clusters) Messages {
+	var messages Messages
+	missingXDSActions := []string{
+		"Check that your upstream service is registered with Consul",
+		"Make sure your upstream exists by running the `consul[-k8s] troubleshoot upstreams` command",
+		"If you are using transparent proxy for this upstream, ensure you have set up allow intentions to the upstream",
+		"Check the logs of the Consul agent configuring the local proxy to ensure XDS resources were sent by Consul",
+	}
+	missingEndpointsActions := []string{
+		"Check that your upstream service is healthy and running",
+		"Check that your upstream service is registered with Consul",
+		"Check that the upstream proxy is healthy and running",
+		"If you are explicitly configuring upstreams, ensure the name of the upstream is correct",
+	}
+
+	var upstream string
+	upstream = v.envoyID
+	if v.envoyID == "" {
+		upstream = v.vip
+	}
+
 	if !v.listener {
-		resultErr = multierror.Append(resultErr, fmt.Errorf("no listener"))
+		messages = append(messages, Message{
+			Message:         fmt.Sprintf("No listener for upstream %q", upstream),
+			PossibleActions: missingXDSActions,
+		})
+	} else {
+		messages = append(messages, Message{
+			Message: fmt.Sprintf("Listener for upstream %q found", upstream),
+			Success: true,
+		})
 	}
 
 	if v.usesRDS && !v.route {
-		resultErr = multierror.Append(resultErr, fmt.Errorf("no route"))
+		messages = append(messages, Message{
+			Message:         fmt.Sprintf("No route for upstream %q", upstream),
+			PossibleActions: missingXDSActions,
+		})
+	} else if v.route {
+		messages = append(messages, Message{
+			Message: fmt.Sprintf("Route for upstream %q found", upstream),
+			Success: true,
+		})
 	}
 
 	numRequiredResources := 0
@@ -122,7 +191,25 @@ func (v *Validate) Errors(validateEndpoints bool, endpointValidator EndpointVali
 
 		_, ok := v.snis[sni]
 		if !ok || !resource.cluster {
-			resultErr = multierror.Append(resultErr, fmt.Errorf("no cluster for sni %s", sni))
+			messages = append(messages, Message{
+				Message:         fmt.Sprintf("No cluster %q for upstream %q", sni, upstream),
+				PossibleActions: missingXDSActions,
+			})
+			continue
+		} else {
+			messages = append(messages, Message{
+				Message: fmt.Sprintf("Cluster %q for upstream %q found", sni, upstream),
+				Success: true,
+			})
+		}
+
+		// If the resource is a passthrough cluster, it will not have endpoints, so we need to skip the endpoint
+		// validation.
+		if strings.Contains(sni, "passthrough~") {
+			messages = append(messages, Message{
+				Message: fmt.Sprintf("Cluster %q is a passthrough cluster, skipping endpoint healthiness check", sni),
+				Success: true,
+			})
 			continue
 		}
 
@@ -140,16 +227,29 @@ func (v *Validate) Errors(validateEndpoints bool, endpointValidator EndpointVali
 					}
 				}
 				if !oneClusterHasEndpoints {
-					resultErr = multierror.Append(resultErr, fmt.Errorf("zero healthy endpoints for aggregate cluster %s", sni))
+					messages = append(messages, Message{
+						Message:         fmt.Sprintf("No healthy endpoints for aggregate cluster %q for upstream %q", sni, upstream),
+						PossibleActions: missingEndpointsActions,
+					})
+				} else {
+					messages = append(messages, Message{
+						Message: fmt.Sprintf("Healthy endpoints for aggregate cluster %q for upstream %q found", sni, upstream),
+						Success: true,
+					})
 				}
 			} else if resource.parentCluster == "" {
 				// Top-level non-aggregate cluster case: check for load assignment and healthy endpoints.
 				endpointValidator(resource, sni, clusters)
-				if resource.usesEDS && !resource.loadAssignment {
-					resultErr = multierror.Append(resultErr, fmt.Errorf("no cluster load assignment for cluster %s", sni))
-				}
-				if resource.endpoints == 0 {
-					resultErr = multierror.Append(resultErr, fmt.Errorf("zero healthy endpoints for cluster %s", sni))
+				if (resource.usesEDS && !resource.loadAssignment) || resource.endpoints == 0 {
+					messages = append(messages, Message{
+						Message:         fmt.Sprintf("No healthy endpoints for cluster %q for upstream %q", sni, upstream),
+						PossibleActions: missingEndpointsActions,
+					})
+				} else {
+					messages = append(messages, Message{
+						Message: fmt.Sprintf("Healthy endpoints for cluster %q for upstream %q found", sni, upstream),
+						Success: true,
+					})
 				}
 			} else {
 				// Child cluster case: skip, since it'll be verified by the parent aggregate cluster.
@@ -160,10 +260,10 @@ func (v *Validate) Errors(validateEndpoints bool, endpointValidator EndpointVali
 	}
 
 	if numRequiredResources == 0 {
-		resultErr = multierror.Append(resultErr, fmt.Errorf("no clusters found on route or listener"))
+		messages = append(messages, Message{Message: fmt.Sprintf("No clusters found on route or listener")})
 	}
 
-	return resultErr
+	return messages
 }
 
 // DoEndpointValidation implements the EndpointVerifier function type.

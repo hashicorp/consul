@@ -11,6 +11,8 @@ module(`Integration | Service | node`, function (hooks) {
   setupTest(hooks);
 
   test('findByDatacenter returns the correct data for list endpoint', function (assert) {
+    assert.expect(200);
+
     const subject = this.owner.lookup('service:repository/node');
     subject.store.serializerFor('node').timestamp = function () {
       return now;
@@ -41,6 +43,8 @@ module(`Integration | Service | node`, function (hooks) {
     );
   });
   test('findBySlug returns the correct data for item endpoint', function (assert) {
+    assert.expect(2);
+
     const subject = this.owner.lookup('service:repository/node');
 
     return repo(

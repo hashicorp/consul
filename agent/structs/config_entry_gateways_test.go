@@ -1143,12 +1143,40 @@ func TestAPIGateway_Listeners(t *testing.T) {
 			},
 			validateErr: "multiple listeners with the name",
 		},
+		"empty listener name": {
+			entry: &APIGatewayConfigEntry{
+				Kind: "api-gateway",
+				Name: "api-gw-one",
+				Listeners: []APIGatewayListener{
+					{
+						Port:     80,
+						Protocol: "tcp",
+					},
+				},
+			},
+			validateErr: "listener name \"\" is invalid, must be at least 1 character and contain only letters, numbers, or dashes",
+		},
+		"invalid listener name": {
+			entry: &APIGatewayConfigEntry{
+				Kind: "api-gateway",
+				Name: "api-gw-one",
+				Listeners: []APIGatewayListener{
+					{
+						Port:     80,
+						Protocol: "tcp",
+						Name:     "/",
+					},
+				},
+			},
+			validateErr: "listener name \"/\" is invalid, must be at least 1 character and contain only letters, numbers, or dashes",
+		},
 		"merged listener protocol conflict": {
 			entry: &APIGatewayConfigEntry{
 				Kind: "api-gateway",
 				Name: "api-gw-two",
 				Listeners: []APIGatewayListener{
 					{
+						Name:     "listener-one",
 						Port:     80,
 						Protocol: ListenerProtocolHTTP,
 					},
@@ -1167,6 +1195,7 @@ func TestAPIGateway_Listeners(t *testing.T) {
 				Name: "api-gw-three",
 				Listeners: []APIGatewayListener{
 					{
+						Name:     "listener",
 						Port:     80,
 						Hostname: "host.one",
 					},
@@ -1185,6 +1214,7 @@ func TestAPIGateway_Listeners(t *testing.T) {
 				Name: "api-gw-four",
 				Listeners: []APIGatewayListener{
 					{
+						Name:     "listener",
 						Port:     80,
 						Hostname: "host.one",
 						Protocol: APIGatewayListenerProtocol("UDP"),
@@ -1199,6 +1229,7 @@ func TestAPIGateway_Listeners(t *testing.T) {
 				Name: "api-gw-five",
 				Listeners: []APIGatewayListener{
 					{
+						Name:     "listener",
 						Port:     80,
 						Hostname: "host.one",
 						Protocol: APIGatewayListenerProtocol("tcp"),
@@ -1213,6 +1244,7 @@ func TestAPIGateway_Listeners(t *testing.T) {
 				Name: "api-gw-six",
 				Listeners: []APIGatewayListener{
 					{
+						Name:     "listener",
 						Port:     -1,
 						Protocol: APIGatewayListenerProtocol("tcp"),
 					},
@@ -1226,6 +1258,7 @@ func TestAPIGateway_Listeners(t *testing.T) {
 				Name: "api-gw-seven",
 				Listeners: []APIGatewayListener{
 					{
+						Name:     "listener",
 						Port:     80,
 						Hostname: "*.*.host.one",
 						Protocol: APIGatewayListenerProtocol("http"),
@@ -1240,6 +1273,7 @@ func TestAPIGateway_Listeners(t *testing.T) {
 				Name: "api-gw-eight",
 				Listeners: []APIGatewayListener{
 					{
+						Name:     "listener",
 						Port:     80,
 						Hostname: "host.one",
 						Protocol: APIGatewayListenerProtocol("http"),
@@ -1259,6 +1293,7 @@ func TestAPIGateway_Listeners(t *testing.T) {
 				Name: "api-gw-nine",
 				Listeners: []APIGatewayListener{
 					{
+						Name:     "listener",
 						Port:     80,
 						Hostname: "host.one",
 						Protocol: APIGatewayListenerProtocol("http"),
@@ -1443,7 +1478,12 @@ func TestListenerBindRoute(t *testing.T) {
 
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
-			actualDidBind := tc.listener.BindRoute(tc.route)
+			routeRef := ResourceReference{
+				Kind:           tc.route.GetKind(),
+				Name:           tc.route.GetName(),
+				EnterpriseMeta: *tc.route.GetEnterpriseMeta(),
+			}
+			actualDidBind := tc.listener.BindRoute(routeRef)
 			require.Equal(t, tc.expectedDidBind, actualDidBind)
 			require.Equal(t, tc.expectedListener.Routes, tc.listener.Routes)
 		})
@@ -1505,7 +1545,12 @@ func TestListenerUnbindRoute(t *testing.T) {
 
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
-			actualDidUnbind := tc.listener.UnbindRoute(tc.route)
+			routeRef := ResourceReference{
+				Kind:           tc.route.GetKind(),
+				Name:           tc.route.GetName(),
+				EnterpriseMeta: *tc.route.GetEnterpriseMeta(),
+			}
+			actualDidUnbind := tc.listener.UnbindRoute(routeRef)
 			require.Equal(t, tc.expectedDidUnbind, actualDidUnbind)
 			require.Equal(t, tc.expectedListener.Routes, tc.listener.Routes)
 		})
