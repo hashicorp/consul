@@ -26,7 +26,7 @@ func TestBasicConnectService(t *testing.T) {
 	buildOptions := &libcluster.BuildOptions{
 		InjectAutoEncryption:   true,
 		InjectGossipEncryption: true,
-		// TODO: fix the test to not need the service/envoy stack to use :8500
+		// TODO(rb): fix the test to not need the service/envoy stack to use :8500
 		AllowHTTPAnyway: true,
 	}
 	cluster := test.CreateCluster(t, "", nil, buildOptions, true)
