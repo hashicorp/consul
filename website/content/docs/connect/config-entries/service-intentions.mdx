@@ -335,6 +335,57 @@ spec:
 ```
 </CodeTabs>
 
+### Cluster peering
+
+When using cluster peering connections, intentions secure your deployments with authorized service-to-service communication between remote datacenters. In the following example, the service intentions configuration entry authorizes the `backend-service` to communicate with the `frontend-service` that is hosted on remote peer `cluster-02`:
+
+<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
+
+  ```hcl
+  Kind      = "service-intentions"
+  Name      = "backend-service"
+
+  Sources = [
+    {
+      Name   = "frontend-service"
+      Peer   = "cluster-02"
+      Action = "allow"
+    }
+  ]
+  ```
+
+  ```yaml
+      ```yaml
+    apiVersion: consul.hashicorp.com/v1alpha1
+    kind: ServiceIntentions
+    metadata:
+      name: backend-deny
+    spec:
+      destination:
+        name: backend
+      sources:
+       - name: "*"
+         action: deny
+       - name: frontend
+         action: allow
+         peer: cluster-01 ## The peer of the source service
+  ```
+
+  ```json
+  {
+  "Kind": "service-intentions",
+  "Name": "backend-service",
+  "Sources": [
+    {
+      "Name": "frontend-service",
+      "Peer": "cluster-02",
+      "Action": "allow"
+      }
+    ]
+  }
+  ```
+</CodeTabs>
+
 ## Available Fields
 
 <ConfigEntryReference
