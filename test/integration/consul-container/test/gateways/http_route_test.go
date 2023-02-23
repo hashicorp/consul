@@ -2,6 +2,7 @@ package gateways
 
 import (
 	"context"
+	"crypto/rand"
 	"encoding/hex"
 	"fmt"
 	"github.com/hashicorp/consul/api"
@@ -9,7 +10,6 @@ import (
 	libservice "github.com/hashicorp/consul/test/integration/consul-container/libs/service"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"math/rand"
 	"testing"
 	"time"
 )
@@ -27,7 +27,6 @@ func randomName(prefix string, n int) string {
 	if len(prefix) >= n {
 		return prefix
 	}
-	rand.Seed(time.Now().UnixNano())
 	p := make([]byte, n)
 	rand.Read(p)
 	return fmt.Sprintf("%s-%s", prefix, hex.EncodeToString(p))[:n]
