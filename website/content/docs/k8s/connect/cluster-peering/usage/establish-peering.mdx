@@ -18,6 +18,8 @@ The overall process for establishing a cluster peering connection consists of th
 
 Cluster peering between services cannot be established until all four steps are complete.
 
+For general guidance for establishing cluster peering connections, refer to [Establish cluster peering connections](/consul/docs/connect/cluster-peering/usage/establish-peering).
+
 ## Prerequisites
 
 You must meet the following requirements to use Consul's cluster peering features with Kubernetes:
@@ -34,15 +36,15 @@ After you provision a Kubernetes cluster and set up your kubeconfig file to mana
 
 1. Get the context names for your Kubernetes clusters using one of these methods:
 
-    - Run the `kubectl config current-context` command to get the context for the cluster you are currently in.
-    - Run the `kubectl config get-contexts` command to get all configured contexts in your kubeconfig file.
+  - Run the `kubectl config current-context` command to get the context for the cluster you are currently in.
+  - Run the `kubectl config get-contexts` command to get all configured contexts in your kubeconfig file.
   
 1. Use the `kubectl` command to export the Kubernetes context names and then set them to variables. For more information on how to use kubeconfig and contexts, refer to the [Kubernetes docs on configuring access to multiple clusters](https://kubernetes.io/docs/tasks/access-application-cluster/configure-access-multiple-clusters/).
 
-    ```shell-session
-    $ export CLUSTER1_CONTEXT=<CONTEXT for first Kubernetes cluster>
-    $ export CLUSTER2_CONTEXT=<CONTEXT for second Kubernetes cluster>
-    ```
+  ```shell-session
+  $ export CLUSTER1_CONTEXT=<CONTEXT for first Kubernetes cluster>
+  $ export CLUSTER2_CONTEXT=<CONTEXT for second Kubernetes cluster>
+  ```
 
 ### Update the Helm chart
 
@@ -51,15 +53,21 @@ To use cluster peering with Consul on Kubernetes deployments, update the Helm ch
 1. In `cluster-01`, run the following commands:
 
   ```shell-session
-    $ export HELM_RELEASE_NAME=cluster-01
-    $ helm install ${HELM_RELEASE_NAME} hashicorp/consul --create-namespace --namespace consul --version "1.0.1" --values values.yaml --set global.datacenter=dc1 --kube-context $CLUSTER1_CONTEXT
+  $ export HELM_RELEASE_NAME1=cluster-01
+  ```
+
+  ```shell-session
+  $ helm install ${HELM_RELEASE_NAME1} hashicorp/consul --create-namespace --namespace consul --version "1.0.1" --values values.yaml --set global.datacenter=dc1 --kube-context $CLUSTER1_CONTEXT
   ```
 
 1. In `cluster-02`, run the following commands:
 
   ```shell-session
-  $ export HELM_RELEASE_NAME=cluster-02
-  $ helm install ${HELM_RELEASE_NAME} hashicorp/consul --create-namespace --namespace consul --version "1.0.1" --values values.yaml --set global.datacenter=dc2 --kube-context $CLUSTER2_CONTEXT
+  $ export HELM_RELEASE_NAME2=cluster-02
+  ```
+
+  ```shell-session
+  $ helm install ${HELM_RELEASE_NAME2} hashicorp/consul --create-namespace --namespace consul --version "1.0.1" --values values.yaml --set global.datacenter=dc2 --kube-context $CLUSTER2_CONTEXT
   ```
 
 ### Configure the mesh gateway mode for traffic between services
@@ -81,9 +89,9 @@ In Kubernetes deployments, you can configure mesh gateways to use `local` mode s
   ```
 
   </CodeBlockConfig>
-    
+
   ```shell-session
-  $  kubectl --context $CLUSTER1_CONTEXT apply -f proxy-defaults.yaml 
+  $ kubectl --context $CLUSTER1_CONTEXT apply -f proxy-defaults.yaml 
   ```
 
 1. In `cluster-02` apply the following `ProxyDefaults` CRD to configure the mesh gateway mode.
@@ -101,9 +109,9 @@ In Kubernetes deployments, you can configure mesh gateways to use `local` mode s
   ```
 
   </CodeBlockConfig>
-    
+
   ```shell-session
-  $  kubectl --context $CLUSTER2_CONTEXT apply -f proxy-defaults.yaml 
+  $ kubectl --context $CLUSTER2_CONTEXT apply -f proxy-defaults.yaml 
   ```
 
 ## Create a peering token
@@ -117,17 +125,17 @@ Every time you generate a peering token, a single-use secret for establishing th
   <CodeBlockConfig filename="acceptor.yaml">
 
   ```yaml
-    apiVersion: consul.hashicorp.com/v1alpha1
-    kind: PeeringAcceptor
-    metadata:
-      name: cluster-02 ## The name of the peer you want to connect to
-    spec:
-      peer:
-        secret:
-          name: "peering-token"
-          key: "data"
-          backend: "kubernetes"
-    ```
+  apiVersion: consul.hashicorp.com/v1alpha1
+  kind: PeeringAcceptor
+  metadata:
+    name: cluster-02 ## The name of the peer you want to connect to
+  spec:
+    peer:
+      secret:
+        name: "peering-token"
+        key: "data"
+        backend: "kubernetes"
+  ```
 
   </CodeBlockConfig>
 
@@ -158,16 +166,16 @@ Next, use the peering token to establish a secure connection between the cluster
   <CodeBlockConfig filename="dialer.yaml">
 
   ```yaml
-    apiVersion: consul.hashicorp.com/v1alpha1
-    kind: PeeringDialer
-    metadata:
-      name: cluster-01 ## The name of the peer you want to connect to
-    spec:
-      peer:
-        secret:
-          name: "peering-token"
-          key: "data"
-          backend: "kubernetes"
+  apiVersion: consul.hashicorp.com/v1alpha1
+  kind: PeeringDialer
+  metadata:
+    name: cluster-01 ## The name of the peer you want to connect to
+  spec:
+    peer:
+      secret:
+        name: "peering-token"
+        key: "data"
+        backend: "kubernetes"
     ```
 
   </CodeBlockConfig>
@@ -385,11 +393,13 @@ Before you can call services from peered clusters, you must set service intentio
 
 1. Run the following command in `frontend` and then check the output to confirm that you peered your clusters successfully.
 
-    <CodeBlockConfig highlight="31">
-
     ```shell-session
     $ kubectl --context $CLUSTER1_CONTEXT exec -it $(kubectl --context $CLUSTER1_CONTEXT get pod -l app=frontend -o name) -- curl localhost:9090
+    ```
 
+    <CodeBlockConfig highlight="29" hideClipboard>
+
+    ```json
     {
       "name": "frontend",
       "uri": "/",
@@ -425,7 +435,7 @@ Before you can call services from peered clusters, you must set service intentio
     }
     ```
 
-     </CodeBlockConfig>
+  </CodeBlockConfig>
 
 ### Authorize service reads with ACLs
 

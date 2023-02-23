@@ -11,30 +11,32 @@ This usage topic describes how to manage cluster peering connections on Kubernet
 
 After you establish a cluster peering connection, you can get a list of all active peering connections, read a specific peering connection's information, and delete peering connections.
 
+For general guidance for managing cluster peering connections, refer to [Manage L7 traffic with cluster peering](/consul/docs/connect/cluster-peering/usage/peering-traffic-management).
+
 ## Reset a peering connection
 
 To reset the cluster peering connection, you need to generate a new peering token from the cluster where you created the `PeeringAcceptor` CRD. The only way to create or set a new peering token is to manually adjust the value of the annotation `consul.hashicorp.com/peering-version`. Creating a new token causes the previous token to expire.
 
 1. In the `PeeringAcceptor` CRD, add the annotation `consul.hashicorp.com/peering-version`. If the annotation already exists, update its value to a higher version.
 
-    <CodeBlockConfig filename="acceptor.yml" highlight="6" hideClipboard>
+  <CodeBlockConfig filename="acceptor.yml" highlight="6" hideClipboard>
 
-    ```yaml
-    apiVersion: consul.hashicorp.com/v1alpha1
-    kind: PeeringAcceptor
-    metadata:
-      name: cluster-02
-      annotations:
-        consul.hashicorp.com/peering-version: "1" ## The peering version you want to set, must be in quotes
-    spec:
-      peer:
-        secret:
-          name: "peering-token"
-          key: "data"
-          backend: "kubernetes"
-    ```
+  ```yaml
+  apiVersion: consul.hashicorp.com/v1alpha1
+  kind: PeeringAcceptor
+  metadata:
+    name: cluster-02
+    annotations:
+      consul.hashicorp.com/peering-version: "1" ## The peering version you want to set, must be in quotes
+  spec:
+    peer:
+      secret:
+        name: "peering-token"
+        key: "data"
+        backend: "kubernetes"
+  ```
 
-    </CodeBlockConfig>
+  </CodeBlockConfig>
 
 1. After updating `PeeringAcceptor`, repeat all of the steps to [establish a new peering connection](/consul/docs/k8s/connect/cluster-peering/usage/establish-peering).
 
