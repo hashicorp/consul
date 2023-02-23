@@ -18,24 +18,47 @@ to view additional details, including default values.
 - [`Name`](#name): string | no default
 - [`Meta`](#meta): map | no default
 - [`Rules`](#rules): list | no default
-- [`Filters`](#rules-filters): map | no default
-  - [`Headers`](#rules-filters-headers): list | no default
-    - [`Add`](#rules-filters-headers): map | no default
-    - [`Remove`](#rules-filters-headers): list | no default
-    - [`Set`](#rules-filters-headers): map | no default
-  - [`URLRewrite`](#rules-filters-urlrewrite): map | no default
-    - [`Path`](#rules-urlrewrite-path): string | no default
-- [`Matches`](#rules-matches): list | no default
-  - [`Path`](#rules-matches-path): map | no default
-    - [`Match`](#rules-matches-path): string | no default
-    - [`Value`](#rules-matches-path): string | no default
-- [`Services`](#rules-services): list | no default
-  - [`Name`](#rules-services-name): string | no default
-  - [`Weight`](#rules-services-weight): number | `1`
+  - [`Filters`](#rules-filters): map | no default
+    - [`Headers`](#rules-filters-headers): list | no default
+      - [`Add`](#rules-filters-headers-add): map | no default
+      - [`Remove`](#rules-filters-headers-remove): list | no default
+      - [`Set`](#rules-filters-headers-set): map | no default
+    - [`URLRewrite`](#rules-filters-urlrewrite): map | no default
+      - [`Path`](#rules-urlrewrite-path): string | no default
+  - [`Matches`](#rules-matches): list | no default
+    - [`Headers`](#rules-matches-headers): list | no default
+      - [`Match`](#rules-matches-headers-match): string | no default
+      - [`Name`](#rules-matches-headers-name): string | no default
+      - [`Value`](#rules-matches-headers-value): string | no default
+    - [`Method`](#rules-matches-method): string | no default
+    - [`Path`](#rules-matches-path): map | no default
+      - [`Match`](#rules-matches-path-match): string | no default
+      - [`Value`](#rules-matches-path-value): string | no default
+    - [`Query`](#rules-matches-query): list | no default
+      - [`Match`](#rules-matches-query-match): string | no default
+      - [`Name`](#rules-matches-query-name): string | no default
+      - [`Value`](#rules-matches-query-value): string | no default
+  - [`Services`](#rules-services): list | no default
+    - [`Name`](#rules-services-name): string | no default
+    - [`Weight`](#rules-services-weight): number | `1`
+    - [`Filters`](#rules-filters): map | no default
+      - [`Headers`](#rules-filters-headers): list | no default
+        - [`Add`](#rules-filters-headers-add): map | no default
+        - [`Remove`](#rules-filters-headers-remove): list | no default
+        - [`Set`](#rules-filters-headers-set): map | no default
+    - [`URLRewrite`](#rules-filters-urlrewrite): map | no default
+      - [`Path`](#rules-urlrewrite-path): string | no default
+    - [`Namespace`](#rules-namespace): string <EnterpriseAlert inline />
+    - [`Partition`](#partition): string <EnterpriseAlert inline />
 - [`Parents`](#parents): list | no default
   - [`Kind`](#parents-kind): string | must be `api-gateway`
   - [`Name`](#parents-name): string | no default
   - [`SectionName`](#parents-sectionname): string | no default
+  - [`Namespace`](#parents-namespace): string <EnterpriseAlert inline />
+- [`Partition`](#parents-partition): string <EnterpriseAlert inline />
+- [`Hostnames`](#hostnames): list | no default
+- [`Namespace`](#namespace): string <EnterpriseAlert inline />
+- [`Partition`](#partition): string <EnterpriseAlert inline />
 
 ## Complete configuration
 
@@ -387,7 +410,7 @@ services specified in the [`Rules.Services`](#rules-services) field.
 
 ### `Rules[].Matches[].Headers[]`
 
-Specifies rules for matching incoming request headers. You can specify multiple rules in a list, as well as multiple lists of rules. If all rules in a single list are satisfied, then the route forwards the request to the appropriate service defined in the [`Rules.Services`](#rules-services) configuration. You can create multiple `Header[]` lists to create a range of matching criteria. If at least one list of matching rules are satisfied, then the route forwards the request to the appropriate service defined in the [`Rules.Services`](#rules-services) configuration. 
+Specifies rules for matching incoming request headers. You can specify multiple rules in a list, as well as multiple lists of rules. If all rules in a single list are satisfied, then the route forwards the request to the appropriate service defined in the [`Rules.Services`](#rules-services) configuration. You can create multiple `Header[]` lists to create a range of matching criteria. If at least one list of matching rules are satisfied, then the route forwards the request to the appropriate service defined in the [`Rules.Services`](#rules-services) configuration.
 
 #### Values
 
