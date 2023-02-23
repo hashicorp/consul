@@ -75,7 +75,6 @@ func TestAPIGatewayCreate(t *testing.T) {
 	// Create a client proxy instance with the server as an upstream
 	_, gatewayService := createServices(t, cluster, listenerPortOne)
 
-	//TODO this can and should be broken up more effectively, this is just proof of concept
 	//check statuses
 	gatewayReady := false
 	routeReady := false
