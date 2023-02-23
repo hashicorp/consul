@@ -20,6 +20,7 @@ The following list outlines field hierarchy, language-specific data types, and r
 - [`Name`](#name): string | no default
 - [`Namespace`](#namespace): string | no default <EnterpriseAlert inline />
 - [`Partition`](#partition): string | no default <EnterpriseAlert inline />
+- [`Meta`](#meta): map | no default
 - [`Listeners`](#listeners): list of objects | no default
   - [`Port`](#listeners-port): number | no default
   - [`Name`](#listeners-name): string | no default
@@ -34,7 +35,6 @@ The following list outlines field hierarchy, language-specific data types, and r
       - [`Name`](#listeners-tls-certificates-name): string | no default
       - [`Namespace`](#listeners-tls-certificates-namespace): string | no default <EnterpriseAlert inline />
       - [`Partition`](#listeners-tls-certificates-partition): string | no default <EnterpriseAlert inline />
-- [`Meta`](#meta): map | no default
 
 ## Complete configuration
 
@@ -47,6 +47,10 @@ Kind = "api-gateway"
 Name = "<name of api gateway>"
 Namespace = "<enterprise: namespace of the gateway>"
 Partition = "<enterprise: partition of the gateway>"
+
+Meta = {
+	<any key> = "<any value>"
+}
 
 Listeners = [
 	{
@@ -63,25 +67,24 @@ Listeners = [
 				{
 					Kind = "inline-certificate"
 					Name = "<name of inline-certificate>"
-          Namespace = "<enterprise: namespace of the certificate>"
-          Partition = "<enterprise: partition of the certificate>"
+					Namespace = "<enterprise: namespace of the certificate>"
+					Partition = "<enterprise: partition of the certificate>"
 				}
 			]
 		}
 	}
 ]
-
-Meta = {
-	<any key> = "<any value>"
-}
 ```
 
 ```json
 {
 	"Kind": "api-gateway",
 	"Name": "<name of api gateway>",
-  "Namespace": "<enterprise: namespace of the gateway>",
-  "Partition": "<enterprise: partition of the gateway>",
+	"Namespace": "<enterprise: namespace of the gateway>",
+	"Partition": "<enterprise: partition of the gateway>",
+	"Meta": {
+		"<any key>": "<any value>"
+	}
 	"Listeners": [
 		{
 			"Port": <external service port>,
@@ -97,16 +100,13 @@ Meta = {
 					{
 						"Kind": "inline-certificate",
 						"Name": "<name of inline-certificate>",
-            "Namespace": "<enterprise: namespace of the certificate>",
-            "Partition": "<enterprise: partition of the certificate>"
+						"Namespace": "<enterprise: namespace of the certificate>",
+						"Partition": "<enterprise: partition of the certificate>"
 					}
 				]
 			}
 		}
 	],
-	"Meta": {
-		"<any key>": "<any value>"
-	}
 }
 ```
 
@@ -158,6 +158,15 @@ Specifies the Enterprise [admin partition](/consul/docs/enterprise/admin-partiti
 - Default: `"default"` in Enterprise
 - Data type: string
 
+### `Meta`
+
+Specifies an arbitrary set of key-value pairs to associate with the gateway.
+
+#### Values
+
+- Default: none
+- Data type: map containing one or more keys and string values.
+
 ### `Listeners[]`
 
 Specifies a list of listeners that gateway should set up. Listeners are
@@ -168,11 +177,11 @@ uniquely identified by their port number.
 - Default: none
 - This field is required.
 - Data type: List of maps. Each member of the list contains the following fields:
-  - `Name`
-  - `Hostname`
-  - `Port`
-  - `Protocol`
-  - `TLS`
+  - [`Name`](#listeners-name)
+  - [`Hostname`](#listeners-hostname)
+  - [`Port`](#listeners-port)
+  - [`Protocol`](#listeners-protocol)
+  - [`TLS`](#listeners-tls)
 
 ### `Listeners[].Name`
 
@@ -222,10 +231,10 @@ Specifies the TLS configurations for the listener.
 
 - Default: none
 - Map that contains the following fields:
-  - `Certificates`
-  - `MaxVersion`
-  - `MinVersion`
-  - `CipherSuites`
+  - [`Certificates`](#listeners-tls-certificates)
+  - [`MaxVersion`](#listeners-tls-maxversion)
+  - [`MinVersion`](#listeners-tls-minversion)
+  - [`CipherSuites`](#listeners-tls-ciphersuites)
 
 ### `Listeners[].TLS.Certificates[]`
 
@@ -235,8 +244,10 @@ The list of references to inline certificates that the listener uses for TLS ter
 
 - Default: None
 - Data type: List of maps. Each member of the list has the following fields:
-  - `Kind`
-  - `Name`
+  - [`Kind`](#listeners-tls-certificates-kind)
+  - [`Name`](#listeners-tls-certificates-name)
+  - [`Namespace`](#listeners-tls-certificates-namespace) <EnterpriseAlert inline />
+  - [`Partition`](#listeners-tls-certificates-partition) <EnterpriseAlert inline />
 
 ### `Listeners[].TLS.Certificates[].Kind`
 
@@ -318,12 +329,3 @@ Specifies a list of cipher suites that the listener supports when negotiating co
 - Data type: List of string values. Refer to the
   [Consul repository](https://github.com/hashicorp/consul/blob/v1.11.2/types/tls.go#L154-L169)
   for a list of supported ciphers.
-
-### `Meta`
-
-Specifies an arbitrary set of key-value pairs to associate with the gateway.
-
-#### Values
-
-- Default: none
-- Data type: map containing one or more keys and string values.
