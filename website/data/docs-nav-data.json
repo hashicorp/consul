@@ -342,6 +342,22 @@
             "path": "connect/config-entries"
           },
           {
+            "title": "API Gateway",
+            "href": "/consul/docs/connect/gateways/api-gateway/configuration/api-gateway"
+          },
+          {
+            "title": "HTTP Route",
+            "href": "/consul/docs/connect/gateways/api-gateway/configuration/http-route"
+          },
+          {
+            "title": "TCP Route",
+            "href": "/consul/docs/connect/gateways/api-gateway/configuration/tcp-route"
+          },
+          {
+            "title": "Inline Certificate",
+            "href": "/consul/docs/connect/gateways/api-gateway/configuration/inline-certificate"
+          },
+          {
             "title": "Ingress Gateway",
             "path": "connect/config-entries/ingress-gateway"
           },
