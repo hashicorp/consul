@@ -83,10 +83,10 @@ github.com/google/go-cmp v0.5.8/go.mod h1:17dUlkBOakJ0+DkrSSNjCkIjxS6bF9zb3elmeN
 github.com/google/gofuzz v1.0.0/go.mod h1:dBl0BpW6vV/+mYPU4Po3pmUjxk6FQPldtuIdl/M65Eg=
 github.com/google/uuid v1.1.2/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
 github.com/grpc-ecosystem/grpc-gateway v1.16.0/go.mod h1:BDjrQk3hbvj6Nolgz8mAMFbcEtjT1g+wF4CSlocrBnw=
-github.com/hashicorp/consul/api v1.19.0 h1:RgSTZUZ+h97qEzZmHAoRiouSFpSHjcV0S8PLws6ECWU=
-github.com/hashicorp/consul/api v1.19.0/go.mod h1:jAt316eYgWGNLJtxkMQrcqRpuDE/kFJdqkEFwRXFv8U=
-github.com/hashicorp/consul/envoyextensions v0.1.0 h1:Upoubmydqi7FvZllL854U1Xq21jDh6VMa+mC8d6UYCM=
-github.com/hashicorp/consul/envoyextensions v0.1.0/go.mod h1:z0/n2ZECD5jmKbpROshK7N3ZuR3x+e6EYfbidgInqTg=
+github.com/hashicorp/consul/api v1.19.1 h1:GLeK1WD4VIRvt4wRhQKHFudztEkRb8pDs+uRiJgNwes=
+github.com/hashicorp/consul/api v1.19.1/go.mod h1:jAt316eYgWGNLJtxkMQrcqRpuDE/kFJdqkEFwRXFv8U=
+github.com/hashicorp/consul/envoyextensions v0.1.1 h1:tkeKsuKtDT6fSFni0GwZpSsrueuICIHe/jCrT8k/tJc=
+github.com/hashicorp/consul/envoyextensions v0.1.1/go.mod h1:w/aroSgF9LR0ZKGYIW+yoykYQf+iKYiG57toTGE2KOs=
 github.com/hashicorp/consul/sdk v0.13.1 h1:EygWVWWMczTzXGpO93awkHFzfUka6hLYJ0qhETd+6lY=
 github.com/hashicorp/errwrap v1.0.0/go.mod h1:YH+1FKiLXxHSkmPseP+kNlulaMuP3n2brvKWEqk/Jc4=
 github.com/hashicorp/errwrap v1.1.0 h1:OxrOeh75EUXMY8TBjag2fzXGZ40LB6IKw45YeGUDY2I=
