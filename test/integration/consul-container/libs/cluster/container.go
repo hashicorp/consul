@@ -493,7 +493,7 @@ func startContainer(ctx context.Context, req testcontainers.ContainerRequest) (t
 	})
 }
 
-const pauseImage = "k8s.gcr.io/pause:3.3"
+const pauseImage = "registry.k8s.io/pause:3.3"
 
 type containerOpts struct {
 	configFile        string
@@ -522,10 +522,12 @@ func newContainerRequest(config Config, opts containerOpts, ports ...int) (podRe
 			"8079/tcp", // Envoy App Listener - grpc port used by static-server
 			"8078/tcp", // Envoy App Listener - grpc port used by static-server-v1
 			"8077/tcp", // Envoy App Listener - grpc port used by static-server-v2
+			"8076/tcp", // Envoy App Listener - grpc port used by static-server-v3
 
 			"8080/tcp", // Envoy App Listener - http port used by static-server
 			"8081/tcp", // Envoy App Listener - http port used by static-server-v1
 			"8082/tcp", // Envoy App Listener - http port used by static-server-v2
+			"8083/tcp", // Envoy App Listener - http port used by static-server-v3
 			"9998/tcp", // Envoy App Listener
 			"9999/tcp", // Envoy App Listener
 		},
