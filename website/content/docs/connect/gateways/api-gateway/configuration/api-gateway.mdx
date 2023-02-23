@@ -49,64 +49,64 @@ Namespace = "<enterprise: namespace of the gateway>"
 Partition = "<enterprise: partition of the gateway>"
 
 Meta = {
-	<any key> = "<any value>"
+  <any key> = "<any value>"
 }
 
 Listeners = [
-	{
-		Port = <external service port>
-		Name = "<unique name for this listener>"
-		Protocol = "<protocol used by external service>"
-		TLS = {
-			MaxVersion = "<version of TLS>"
-			MinVersion = "<version of TLS>"
-			CipherSuites = [
-				"<cipher suite>"
-			]
-			Certificates = [
-				{
-					Kind = "inline-certificate"
-					Name = "<name of inline-certificate>"
-					Namespace = "<enterprise: namespace of the certificate>"
-					Partition = "<enterprise: partition of the certificate>"
-				}
-			]
-		}
-	}
+  {
+    Port = <external service port>
+    Name = "<unique name for this listener>"
+    Protocol = "<protocol used by external service>"
+    TLS = {
+      MaxVersion = "<version of TLS>"
+      MinVersion = "<version of TLS>"
+      CipherSuites = [
+        "<cipher suite>"
+      ]
+      Certificates = [
+        {
+          Kind = "inline-certificate"
+          Name = "<name of inline-certificate>"
+          Namespace = "<enterprise: namespace of the certificate>"
+          Partition = "<enterprise: partition of the certificate>"
+        }
+      ]
+    }
+  }
 ]
 ```
 
 ```json
 {
-	"Kind": "api-gateway",
-	"Name": "<name of api gateway>",
-	"Namespace": "<enterprise: namespace of the gateway>",
-	"Partition": "<enterprise: partition of the gateway>",
-	"Meta": {
-		"<any key>": "<any value>"
-	},
-	"Listeners": [
-		{
-			"Name": "<unique name for this listener>",
-			"Port": <external service port>,
-			"Protocol": "<protocol used by external service>",
-			"TLS": {
-				"MaxVersion": "<version of TLS>",
-				"MinVersion": "<version of TLS>",
-				"CipherSuites": [
-					"<cipher suite>"
-				],
-				"Certificates": [
-					{
-						"Kind": "inline-certificate",
-						"Name": "<name of inline-certificate>",
-						"Namespace": "<enterprise: namespace of the certificate>",
-						"Partition": "<enterprise: partition of the certificate>"
-					}
-				]
-			}
-		}
-	]
+  "Kind": "api-gateway",
+  "Name": "<name of api gateway>",
+  "Namespace": "<enterprise: namespace of the gateway>",
+  "Partition": "<enterprise: partition of the gateway>",
+  "Meta": {
+    "<any key>": "<any value>"
+  },
+  "Listeners": [
+    {
+      "Name": "<unique name for this listener>",
+      "Port": <external service port>,
+      "Protocol": "<protocol used by external service>",
+      "TLS": {
+        "MaxVersion": "<version of TLS>",
+        "MinVersion": "<version of TLS>",
+        "CipherSuites": [
+          "<cipher suite>"
+        ],
+        "Certificates": [
+          {
+            "Kind": "inline-certificate",
+            "Name": "<name of inline-certificate>",
+            "Namespace": "<enterprise: namespace of the certificate>",
+            "Partition": "<enterprise: partition of the certificate>"
+          }
+        ]
+      }
+    }
+  ]
 }
 ```
 

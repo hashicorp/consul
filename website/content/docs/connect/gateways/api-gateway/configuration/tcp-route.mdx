@@ -44,6 +44,10 @@ Name = "<name of the route>"
 Namespace = "<enterprise: namespace of the route>"
 Partition = "<enterprise: partition of the route>"
 
+Meta = {
+  "<any key>" = "<any value>"
+}
+
 Services = [
   {
     Name = "<name of service>"
@@ -54,45 +58,41 @@ Services = [
 
 
 Parents = [
-	{
-		Kind = "api-gateway"
-		Name = "<name of the api-gateway to bind to>"
+  {
+    Kind = "api-gateway"
+    Name = "<name of the api-gateway to bind to>"
     Namespace = "<enterprise: namespace of the parent>"
     Partition = "<enterprise: partition of the parent>"
-		SectionName = "<listener on the api-gateway to bind to>"
-	}
+    SectionName = "<listener on the api-gateway to bind to>"
+  }
 ]
-
-Meta = {
-	"<any key>" = "<any value>"
-}
 ```
 
 ```JSON
 {
-	"Kind": "tcp-route",
-	"Name": "name of the route",
-  "Namespace": "enterprise: namespace of the route",
-  "Partition": "enterprise: partition of the route",
-	"Services": [
-		{
-			"Name": "name of service"
-      "Namespace": "enterprise: namespace of the service",
-      "Partition": "enterprise: partition of the service",
-		}
-	],
-	"Parents": [
-		{
-			"Kind": "api-gateway",
-			"Name": "name of the api-gateway to bind to",
-      "Namespace": "enterprise: namespace of the parent",
-      "Partition": "enterprise: partition of the parent",
-			"SectionName": "listener on the api-gateway to bind to"
-		}
-	],
-	"Meta": {
-		"any key": "any value"
-	}
+  "Kind": "tcp-route",
+  "Name": "<name of the route>",
+  "Namespace": "<enterprise: namespace of the route>",
+  "Partition": "<enterprise: partition of the route>",
+  "Meta": {
+    "<any key>": "<any value>"
+  },
+  "Services": [
+    {
+      "Name": "<name of service>"
+      "Namespace": "<enterprise: namespace of the service>",
+      "Partition": "<enterprise: partition of the service>",
+    }
+  ],
+  "Parents": [
+    {
+      "Kind": "api-gateway",
+      "Name": "<name of the api-gateway to bind to>",
+      "Namespace": "<enterprise: namespace of the parent>",
+      "Partition": "<enterprise: partition of the parent>",
+      "SectionName": "<listener on the api-gateway to bind to>"
+    }
+  ]
 }
 ```
 
