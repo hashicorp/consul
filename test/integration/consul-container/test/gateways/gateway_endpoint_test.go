@@ -248,3 +248,36 @@ func checkRoute(t *testing.T, ip string, port int, path string, headers map[stri
 
 	})
 }
+
+func checkRouteError(t *testing.T, ip string, port int, path string, headers map[string]string, expected string) {
+	failer := func() *retry.Timer {
+		return &retry.Timer{Timeout: time.Second * 60, Wait: time.Second * 60}
+	}
+
+	client := cleanhttp.DefaultClient()
+	url := fmt.Sprintf("http://%s:%d", ip, port)
+
+	if path != "" {
+		url += "/" + path
+	}
+
+	retry.RunWith(failer(), t, func(r *retry.R) {
+		t.Logf("making call to %s", url)
+		req, err := http.NewRequest("GET", url, nil)
+		assert.NoError(t, err)
+
+		for k, v := range headers {
+			req.Header.Set(k, v)
+
+			if k == "Host" {
+				req.Host = v
+			}
+		}
+		_, err = client.Do(req)
+		assert.Error(t, err)
+
+		if expected != "" {
+			assert.ErrorContains(t, err, expected)
+		}
+	})
+}
