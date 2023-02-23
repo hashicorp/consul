@@ -11,14 +11,13 @@ import (
 	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
 	libservice "github.com/hashicorp/consul/test/integration/consul-container/libs/service"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/topology"
-	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 	libutils "github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 	"github.com/hashicorp/go-version"
 	"github.com/stretchr/testify/require"
 	"gotest.tools/assert"
 )
 
-// TestTrafficManagement_Upgrade Summary
+// TestTrafficManagement_ServiceResolverDefaultSubset Summary
 // This test starts up 3 servers and 1 client in the same datacenter.
 //
 // Steps:
@@ -26,7 +25,7 @@ import (
 //   - Create one static-server and 2 subsets and 1 client and sidecar, then register them with Consul
 //   - Validate static-server and 2 subsets are and proxy admin endpoint is healthy - 3 instances
 //   - Validate static servers proxy listeners should be up and have right certs
-func TestTrafficManagement_ServiceWithSubsets(t *testing.T) {
+func TestTrafficManagement_ServiceResolverDefaultSubset(t *testing.T) {
 	t.Parallel()
 
 	var responseFormat = map[string]string{"format": "json"}
@@ -38,11 +37,11 @@ func TestTrafficManagement_ServiceWithSubsets(t *testing.T) {
 	tcs := []testcase{
 		{
 			oldversion:    "1.13",
-			targetVersion: utils.TargetVersion,
+			targetVersion: libutils.TargetVersion,
 		},
 		{
 			oldversion:    "1.14",
-			targetVersion: utils.TargetVersion,
+			targetVersion: libutils.TargetVersion,
 		},
 	}
 
@@ -58,6 +57,7 @@ func TestTrafficManagement_ServiceWithSubsets(t *testing.T) {
 			buildOpts.InjectAutoEncryption = false
 		}
 		cluster, _, _ := topology.NewPeeringCluster(t, 1, buildOpts)
+		node := cluster.Agents[0]
 
 		// Register service resolver
 		serviceResolver := &api.ServiceResolverConfigEntry{
@@ -127,6 +127,9 @@ func TestTrafficManagement_ServiceWithSubsets(t *testing.T) {
 		libassert.AssertEnvoyPresentsCertURI(t, serverAdminPortV1, "static-server")
 		libassert.AssertEnvoyPresentsCertURI(t, serverAdminPortV2, "static-server")
 
+		// assert static-server proxies should be healthy
+		libassert.AssertServiceHasHealthyInstances(t, node, libservice.StaticServerServiceName, true, 3)
+
 		// static-client upstream should connect to static-server-v2 because the default subset value is to v2 set in the service resolver
 		libassert.AssertFortioName(t, fmt.Sprintf("http://localhost:%d", port), "static-server-v2")
 	}
@@ -151,8 +154,8 @@ func createService(t *testing.T, cluster *libcluster.Cluster) (libservice.Servic
 		GRPCPort: 8079,
 	}
 	_, serverConnectProxy, err := libservice.CreateAndRegisterStaticServerAndSidecar(node, serviceOpts)
-	libassert.CatalogServiceExists(t, client, "static-server")
 	require.NoError(t, err)
+	libassert.CatalogServiceExists(t, client, "static-server")
 
 	serviceOptsV1 := &libservice.ServiceOpts{
 		Name:     libservice.StaticServerServiceName,
@@ -162,8 +165,8 @@ func createService(t *testing.T, cluster *libcluster.Cluster) (libservice.Servic
 		GRPCPort: 8078,
 	}
 	_, serverConnectProxyV1, err := libservice.CreateAndRegisterStaticServerAndSidecar(node, serviceOptsV1)
-	libassert.CatalogServiceExists(t, client, "static-server")
 	require.NoError(t, err)
+	libassert.CatalogServiceExists(t, client, "static-server")
 
 	serviceOptsV2 := &libservice.ServiceOpts{
 		Name:     libservice.StaticServerServiceName,
@@ -173,8 +176,8 @@ func createService(t *testing.T, cluster *libcluster.Cluster) (libservice.Servic
 		GRPCPort: 8077,
 	}
 	_, serverConnectProxyV2, err := libservice.CreateAndRegisterStaticServerAndSidecar(node, serviceOptsV2)
-	libassert.CatalogServiceExists(t, client, "static-server")
 	require.NoError(t, err)
+	libassert.CatalogServiceExists(t, client, "static-server")
 
 	// Create a client proxy instance with the server as an upstream
 	clientConnectProxy, err := libservice.CreateAndRegisterStaticClientSidecar(node, "", false)

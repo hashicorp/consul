@@ -49,9 +49,17 @@ func CatalogNodeExists(t *testing.T, c *api.Client, nodeName string) {
 	})
 }
 
+func HTTPServiceEchoes(t *testing.T, ip string, port int, path string) {
+	doHTTPServiceEchoes(t, ip, port, path, nil)
+}
+
+func HTTPServiceEchoesResHeader(t *testing.T, ip string, port int, path string, expectedResHeader map[string]string) {
+	doHTTPServiceEchoes(t, ip, port, path, expectedResHeader)
+}
+
 // HTTPServiceEchoes verifies that a post to the given ip/port combination returns the data
 // in the response body. Optional path can be provided to differentiate requests.
-func HTTPServiceEchoes(t *testing.T, ip string, port int, path string) {
+func doHTTPServiceEchoes(t *testing.T, ip string, port int, path string, expectedResHeader map[string]string) {
 	const phrase = "hello"
 
 	failer := func() *retry.Timer {
@@ -81,6 +89,24 @@ func HTTPServiceEchoes(t *testing.T, ip string, port int, path string) {
 
 		if !strings.Contains(string(body), phrase) {
 			r.Fatal("received an incorrect response ", string(body))
+		}
+
+		for k, v := range expectedResHeader {
+			if headerValues, ok := res.Header[k]; !ok {
+				r.Fatal("expected header not found", k)
+			} else {
+				found := false
+				for _, value := range headerValues {
+					if value == v {
+						found = true
+						break
+					}
+				}
+
+				if !found {
+					r.Fatalf("header %s value not match want %s got %s ", k, v, headerValues)
+				}
+			}
 		}
 	})
 }

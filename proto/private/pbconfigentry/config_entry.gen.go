@@ -364,13 +364,10 @@ func HTTPFiltersToStructs(s *HTTPFilters, t *structs.HTTPFilters) {
 			}
 		}
 	}
-	{
-		t.URLRewrites = make([]structs.URLRewrite, len(s.URLRewrites))
-		for i := range s.URLRewrites {
-			if s.URLRewrites[i] != nil {
-				URLRewriteToStructs(s.URLRewrites[i], &t.URLRewrites[i])
-			}
-		}
+	if s.URLRewrite != nil {
+		var x structs.URLRewrite
+		URLRewriteToStructs(s.URLRewrite, &x)
+		t.URLRewrite = &x
 	}
 }
 func HTTPFiltersFromStructs(t *structs.HTTPFilters, s *HTTPFilters) {
@@ -387,15 +384,10 @@ func HTTPFiltersFromStructs(t *structs.HTTPFilters, s *HTTPFilters) {
 			}
 		}
 	}
-	{
-		s.URLRewrites = make([]*URLRewrite, len(t.URLRewrites))
-		for i := range t.URLRewrites {
-			{
-				var x URLRewrite
-				URLRewriteFromStructs(&t.URLRewrites[i], &x)
-				s.URLRewrites[i] = &x
-			}
-		}
+	if t.URLRewrite != nil {
+		var x URLRewrite
+		URLRewriteFromStructs(t.URLRewrite, &x)
+		s.URLRewrite = &x
 	}
 }
 func HTTPHeaderFilterToStructs(s *HTTPHeaderFilter, t *structs.HTTPHeaderFilter) {
@@ -1635,7 +1627,6 @@ func TCPServiceToStructs(s *TCPService, t *structs.TCPService) {
 		return
 	}
 	t.Name = s.Name
-	t.Weight = int(s.Weight)
 	t.EnterpriseMeta = enterpriseMetaToStructs(s.EnterpriseMeta)
 }
 func TCPServiceFromStructs(t *structs.TCPService, s *TCPService) {
@@ -1643,7 +1634,6 @@ func TCPServiceFromStructs(t *structs.TCPService, s *TCPService) {
 		return
 	}
 	s.Name = t.Name
-	s.Weight = int32(t.Weight)
 	s.EnterpriseMeta = enterpriseMetaFromStructs(t.EnterpriseMeta)
 }
 func TransparentProxyConfigToStructs(s *TransparentProxyConfig, t *structs.TransparentProxyConfig) {

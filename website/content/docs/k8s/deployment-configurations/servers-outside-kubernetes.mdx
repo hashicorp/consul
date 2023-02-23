@@ -1,11 +1,11 @@
 ---
 layout: docs
-page_title: Join External Servers to Consul on Kubernetes
+page_title: Join Kubernetes Clusters to external Consul Servers
 description: >-
-  Client agents that run on Kubernetes pods can join existing clusters whose server agents run outside of k8s. Learn how to expose gossip ports and bootstrap ACLs by configuring the Helm chart.
+  Kubernetes clusters can be joined to existing Consul clusters in a much simpler way with the introduction of Consul Dataplane. Learn how to add Kubernetes Clusters into an existing Consul cluster and bootstrap ACLs by configuring the Helm chart.
 ---
 
-# Join External Servers to Consul on Kubernetes
+# Join Kubernetes Clusters to external Consul Servers
 
 If you have a Consul cluster already running, you can configure your
 Consul on Kubernetes installation to join this existing cluster.
@@ -14,9 +14,7 @@ The below `values.yaml` file shows how to configure the Helm chart to install
 Consul so that it joins an existing Consul server cluster.
 
 The `global.enabled` value first disables all chart components by default
-so that each component is opt-in. This allows us to _only_ setup the client
-agents. We then opt-in to the client agents by setting `client.enabled` to
-`true`.
+so that each component is opt-in.
 
 Next, configure `externalServers` to point it to Consul servers.
 The `externalServers.hosts` value must be provided and should be set to a DNS, an IP,
@@ -37,8 +35,10 @@ externalServers:
 
 </CodeBlockConfig>
 
- **Note:** To join Consul on Kubernetes to an existing Consul server cluster running outside of Kubernetes,
-refer to [Consul servers outside of Kubernetes](/consul/docs/k8s/deployment-configurations/servers-outside-kubernetes).
+With the introduction of [Consul Dataplane](/consul/docs/connect/dataplane#what-is-consul-dataplane), Consul installation on Kubernetes is simplified by removing the Consul Client agents.
+This requires the Helm installation and rest of the consul-k8s components installed on Kubernetes to talk to Consul Servers directly on various ports.
+Before starting the installation, ensure that the Consul Servers are configured to have the gRPC port enabled `8502/tcp` using the [`ports.grpc = 8502`](/consul/docs/agent/config/config-files#grpc) configuration option.
+
 
 ## Configuring TLS
 
@@ -68,7 +68,7 @@ externalServers:
 </CodeBlockConfig>
 
 If your HTTPS port is different from Consul's default `8501`, you must also set
-`externalServers.httpsPort`.
+`externalServers.httpsPort`. If the Consul servers are not running TLS enabled, use this config to set the HTTP port the servers are configured with (default `8500`).
 
 ## Configuring ACLs
 

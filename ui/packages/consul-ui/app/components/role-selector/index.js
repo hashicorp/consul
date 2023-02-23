@@ -42,5 +42,11 @@ export default ChildSelectorComponent.extend({
           this._super(...arguments);
       }
     },
+    triggerStateCheckboxChange() {
+      //Triggers click event on checkbox
+      //The function has to be added to change the logic from <label for=''> to Hds::Button
+      let element = document.getElementById(`${this.name}_state_policy`);
+      element && element.dispatchEvent(new Event('change'));
+    },
   },
 });

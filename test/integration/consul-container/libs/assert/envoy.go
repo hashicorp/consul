@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/sdk/testutil/retry"
+	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/stretchr/testify/assert"
@@ -70,7 +71,11 @@ func AssertUpstreamEndpointStatus(t *testing.T, adminPort int, clusterName, heal
 		filter := fmt.Sprintf(`.cluster_statuses[] | select(.name|contains("%s")) | [.host_statuses[].health_status.eds_health_status] | [select(.[] == "%s")] | length`, clusterName, healthStatus)
 		results, err := utils.JQFilter(clusters, filter)
 		require.NoErrorf(r, err, "could not found cluster name %s", clusterName)
-		require.Equal(r, count, len(results))
+
+		resultToString := strings.Join(results, " ")
+		result, err := strconv.Atoi(resultToString)
+		assert.NoError(r, err)
+		require.Equal(r, count, result)
 	})
 }
 
@@ -250,4 +255,15 @@ func GetEnvoyOutput(port int, path string, query map[string]string) (string, int
 func sanitizeResult(s string) []string {
 	result := strings.Split(strings.ReplaceAll(s, `,`, " "), " ")
 	return append(result[:0], result[1:]...)
+}
+
+// AssertServiceHasHealthyInstances asserts the number of instances of service equals count for a given service.
+// https://developer.hashicorp.com/consul/docs/connect/config-entries/service-resolver#onlypassing
+func AssertServiceHasHealthyInstances(t *testing.T, node libcluster.Agent, service string, onlypassing bool, count int) {
+	services, _, err := node.GetClient().Health().Service(service, "", onlypassing, nil)
+	require.NoError(t, err)
+	for _, v := range services {
+		fmt.Printf("%s service status: %s\n", v.Service.ID, v.Checks.AggregatedStatus())
+	}
+	require.Equal(t, count, len(services))
 }

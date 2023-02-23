@@ -143,7 +143,7 @@ func (m *subscriptionManager) handleEvent(ctx context.Context, state *subscripti
 		pending := &pendingPayload{}
 		m.syncNormalServices(ctx, state, evt.Services)
 		if m.config.ConnectEnabled {
-			m.syncDiscoveryChains(state, pending, evt.ListAllDiscoveryChains())
+			m.syncDiscoveryChains(state, pending, evt.DiscoChains)
 		}
 
 		err := pending.Add(

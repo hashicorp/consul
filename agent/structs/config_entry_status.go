@@ -50,6 +50,16 @@ type Status struct {
 	Conditions []Condition
 }
 
+func (s *Status) MatchesConditionStatus(condition Condition) bool {
+	for _, c := range s.Conditions {
+		if c.IsCondition(&condition) &&
+			c.Status == condition.Status {
+			return true
+		}
+	}
+	return false
+}
+
 func (s Status) SameConditions(other Status) bool {
 	if len(s.Conditions) != len(other.Conditions) {
 		return false
