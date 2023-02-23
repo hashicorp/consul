@@ -336,7 +336,7 @@ Specifies the list of gateways that this route should be bound to.
   - `Kind`
   - `Name`
   - `Namespace` <EnterpriseAlert inline />
-  - `Partition <EnterpriseAlert inline />
+  - `Partition` <EnterpriseAlert inline />
   - `SectionName`
 
 ### `Parents[].Kind`
@@ -371,7 +371,7 @@ Specifies the Enterprise [namespace](/consul/docs/enterprise/namespaces) to appl
 
 ### `Parents[].Partition` <EnterpriseAlert inline />
 
-Specifies the Enterprise [admin partition](/consul/docs/enterprise/admin-partitions) to apply to the config entry.
+Specifies the Enterprise [admin partition](/consul/docs/enterprise/admin-partitions) to apply to the configuration entry.
 
 #### Values
 
@@ -381,7 +381,7 @@ Specifies the Enterprise [admin partition](/consul/docs/enterprise/admin-partiti
 ### `Parents[].SectionName`
 
 Specifies the name of the listener to bind to on the `api-gateway`. If left
-empty, this will bind this route to _all listeners_ on the parent gateway
+empty, this route binds to _all listeners_ on the parent gateway.
 
 #### Values
 
@@ -390,7 +390,7 @@ empty, this will bind this route to _all listeners_ on the parent gateway
 
 ### `Rules[]`
 
-Specifies the list of HTTP-based routing rules that this route should use for constructing a route table.
+Specifies the list of HTTP-based routing rules that this route uses to construct a route table.
 
 #### Values
 
@@ -402,7 +402,7 @@ Specifies the list of HTTP-based routing rules that this route should use for co
 
 ### `Rules[].Filters`
 
-Specifies the list of HTTP-based filters used to modify a request prior to routing it to the upstream service
+Specifies the list of HTTP-based filters used to modify a request prior to routing it to the upstream service.
 
 #### Values
 
@@ -422,7 +422,7 @@ This field contains the following configuration objects:
 | Parameter | Description                                                                                                                                                                                                                                                                                                                                                                                                                                  | Type            |
 | --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------- |
 | `set`     | Configure this field to rewrite the HTTP request header. It specifies the name of an HTTP header to overwrite and the new value to set. Any existing values associated with the header name are overwritten. You can specify the following configurations: <ul><li>`name`: Required string that specifies the name of the HTTP header to set.</li><li>`value`: Required string that specifies the value of the HTTP header to set.</li></ul> | List of maps    |
-| `add`     | Configure this field to append the request header with a new value. It specifies the name of an HTTP header to append and the value(s) to add. You can specify the following configurations: <ul><li>`name`: Required string that specifies the name of the HTTP header to append.</li><li>`value`: Required string that specifies the value of the HTTP header to add.</li></ul>                                                            | List of maps    |
+| `add`     | Configure this field to append the request header with a new value. It specifies the name of an HTTP header to append and the values to add. You can specify the following configurations: <ul><li>`name`: Required string that specifies the name of the HTTP header to append.</li><li>`value`: Required string that specifies the value of the HTTP header to add.</li></ul>                                                            | List of maps    |
 | `remove`  | Configure this field to specify an array of header names to remove from the request header.                                                                                                                                                                                                                                                                                                                                                  | List of strings |
 
 ### `Rules[].Filters.URLRewrite`
@@ -436,7 +436,7 @@ Specifies rule for rewriting the URL of incoming requests when an incoming reque
 
 ### Rules[].Filters.URLRewrite.Path
 
-Specifies a path that determines how Consul API Gateway rewrites a URL path (refer to [Reroute HTTP requests](/consul/docs/api-gateway/usage#reroute-http-requests) for additional information).
+Specifies a path that determines how Consul API Gateway rewrites a URL path. Refer to [Reroute HTTP requests](/consul/docs/api-gateway/usage#reroute-http-requests) for additional information.
 
 #### Values
 
@@ -449,14 +449,14 @@ The following table describes the parameters for `path`:
 
 ### `Rules[].Matches[]`
 
-Specifies the matching criteria used in the routing table. If an incoming
-request matches the given HTTPMatch configuration, then traffic is routed to
+Specifies the matching criteria used in the routing table. When an incoming
+request matches the given HTTPMatch configuration, traffic routes to
 services specified in the [`Rules.Services`](#rules-services) field.
 
 #### Values
 
 - Default: none
-- Data type: List of map. Each member of the list contains the following fields:
+- Data type: List containing maps. Each member of the list contains the following fields:
   - `Headers`
   - `Method`
   - `Path`
@@ -464,12 +464,12 @@ services specified in the [`Rules.Services`](#rules-services) field.
 
 ### `Rules[].Matches[].Headers[]`
 
-Specifies rules for matching incoming request headers. You can specify multiple rules in a list, as well as multiple lists of rules. If all rules in a single list are satisfied, then the route forwards the request to the appropriate service defined in the [`Rules.Services`](#rules-services) configuration. You can create multiple `Header[]` lists to create a range of matching criteria. If at least one list of matching rules are satisfied, then the route forwards the request to the appropriate service defined in the [`Rules.Services`](#rules-services) configuration.
+Specifies rules for matching incoming request headers. You can specify multiple rules in a list, as well as multiple lists of rules. If all rules in a single list are satisfied, then the route forwards the request to the appropriate service defined in the [`Rules.Services`](#rules-services) configuration. You can create multiple `Header[]` lists to create a range of matching criteria. When at least one list of matching rules are satisfied, the route forwards the request to the appropriate service defined in the [`Rules.Services`](#rules-services) configuration.
 
 #### Values
 
 - Default: none
-- Data type: List of map that contains the following fields:
+- Data type: List containing maps with the following fields:
   - `Match`
   - `Name`
   - `Value`
@@ -485,7 +485,7 @@ Specifies type of match for headers: `"exact"`, `"prefix"`, or `"regex"`.
 
 ### `Rules.Matches.Headers.Name`
 
-Specifies the name of the header to match on
+Specifies the name of the header to match.
 
 #### Values
 
@@ -494,7 +494,7 @@ Specifies the name of the header to match on
 
 ### `Rules[].Matches.Headers.Value`
 
-Specifies the value of the header to match on
+Specifies the value of the header to match.
 
 #### Values
 
@@ -521,12 +521,12 @@ Specify one of the following string values:
 
 ### `Rules[].Matches[].Path`
 
-Specifies the http method to match on.
+Specifies the HTTP method to match.
 
 #### Values
 
 - Default: none
-- Data type: map which contains the following fields
+- Data type: map containing the following fields:
   - `Match`
   - `Value`
 
@@ -541,7 +541,7 @@ Specifies type of match for the path: `"exact"`, `"prefix"`, or `"regex"`.
 
 ### `Rules[].Matches[].Path.Value`
 
-Specifies the value of the path to match on.
+Specifies the value of the path to match.
 
 #### Values
 
@@ -550,7 +550,7 @@ Specifies the value of the path to match on.
 
 ### `Rules[].Matches[].Query[]`
 
-Specifies how a match is done on a request’s query parameters.
+Specifies how a match is completed on a request’s query parameters.
 
 #### Values
 
@@ -571,7 +571,7 @@ Specifies type of match for query parameters: `"exact"`, `"prefix"`, or `"regex"
 
 ### `Rules[].Matches[].Query[].Name`
 
-Specifies the name of the query parameter to match on.
+Specifies the name of the query parameter to match.
 
 #### Values
 
@@ -580,7 +580,7 @@ Specifies the name of the query parameter to match on.
 
 ### `Rules[].Matches[].Query[].Value`
 
-Specifies the value of the query parameter to match on.
+Specifies the value of the query parameter to match.
 
 #### Values
 
@@ -604,7 +604,7 @@ requests match the `Rules.Matches` configuration.
 
 ### `Rules[].Services[].Name`
 
-Specifies the name of an HTTP-based service this should route to.
+Specifies the name of an HTTP-based service to route to.
 
 #### Values
 
@@ -641,12 +641,12 @@ equal 100.
 #### Values
 
 - Default: none
-- Data type: int
+- Data type: integer
 
 ### `Rules[].Services[].Filters`
 
 Specifies the list of HTTP-based filters used to modify a request prior to
-routing it to this upstream service
+routing it to this upstream service.
 
 #### Values
 
@@ -666,7 +666,7 @@ This field contains the following configuration objects:
 | Parameter | Description                                                                                                                                                                                                                                                                                                                                                                                                                                  | Type            |
 | --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------- |
 | `set`     | Configure this field to rewrite the HTTP request header. It specifies the name of an HTTP header to overwrite and the new value to set. Any existing values associated with the header name are overwritten. You can specify the following configurations: <ul><li>`name`: Required string that specifies the name of the HTTP header to set.</li><li>`value`: Required string that specifies the value of the HTTP header to set.</li></ul> | List of maps    |
-| `add`     | Configure this field to append the request header with a new value. It specifies the name of an HTTP header to append and the value(s) to add. You can specify the following configurations: <ul><li>`name`: Required string that specifies the name of the HTTP header to append.</li><li>`value`: Required string that specifies the value of the HTTP header to add.</li></ul>                                                            | List of maps    |
+| `add`     | Configure this field to append the request header with a new value. It specifies the name of an HTTP header to append and the values to add. You can specify the following configurations: <ul><li>`name`: Required string that specifies the name of the HTTP header to append.</li><li>`value`: Required string that specifies the value of the HTTP header to add.</li></ul>                                                            | List of maps    |
 | `remove`  | Configure this field to specify an array of header names to remove from the request header.                                                                                                                                                                                                                                                                                                                                                  | List of strings |
 
 ### `Rules[].Services[].Filters.URLRewrite`
