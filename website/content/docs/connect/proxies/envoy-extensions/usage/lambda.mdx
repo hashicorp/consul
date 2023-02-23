@@ -7,13 +7,13 @@ description: >-
 
 # Invoke Lambda functions in Envoy proxy
 
-The Lambda Envoy extension configures outbound traffic on upstream dependencies allowing mesh services to properly invoke AWS Lambda Functions. Lambda functions appear in the catalog as any other Consul service.
+The Lambda Envoy extension configures outbound traffic on upstream dependencies allowing mesh services to properly invoke AWS Lambda functions. Lambda functions appear in the catalog as any other Consul service.
 
 You can only enable the Lambda extension through `service-defaults`. This is because the Consul uses the `service-defaults` configuration entry name as the catalog name for the Lambda functions.
 
 ## Specification
 
-The LambdaEnvoy extension has the following arguments:
+The Lambda Envoy extension has the following arguments:
 
 | Arguments            | Description                                                                                      |
 | -------------------- | ------------------------------------------------------------------------------------------------ |
@@ -32,9 +32,9 @@ There are two steps to configure the Lambda Envoy extension:
 
 ### Configure `EnvoyExtensions`
 
-To use the Lambda Envoy extension, you must configure and apply a `service-defaults` configuration entry. The name of this entry will be used as the Consul service name for the Lambdas in the catalog. Downstream services will use this name to invoke the Lambda.
+To use the Lambda Envoy extension, you must configure and apply a `service-defaults` configuration entry. Consul uses the name of the entry as the Consul service name for the Lambdas in the catalog. Downstream services also use the name to invoke the Lambda.
 
-The following example configures the Lambda Envoy extension to create a service “`lambda` in the mesh that can invoke the associated Lambda function.
+The following example configures the Lambda Envoy extension to create a service named `lambda` in the mesh that can invoke the associated Lambda function.
 
 <Tabs>
 <Tab heading="HCL" group="hcl">
@@ -98,7 +98,7 @@ spec:
 
 For a full list of parameters for `EnvoyExtensions`, refer to the [`service-defaults`](/consul/docs/connect/config-entries/service-defaults#envoyextensions) and [`proxy-defaults`](/consul/docs/connect/config-entries/proxy-defaults#envoyextensions) configuration entries reference documentation. 
 
-~> **Warning:** You can only enable the Lambda extension through `service-defaults`.
+~> **Note:** You can only enable the Lambda extension through `service-defaults`.
 
 Refer to [Configuration specification](#configuration-specification) section to find a full list of arguments for the Lambda Envoy extension.
 

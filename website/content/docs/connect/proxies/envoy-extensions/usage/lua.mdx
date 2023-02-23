@@ -9,7 +9,7 @@ description: >-
 
 The Lua Envoy extension enables the [HTTP Lua filter](https://www.envoyproxy.io/docs/envoy/latest/configuration/http/http_filters/lua_filter) in your Consul Envoy proxies, letting you run Lua scripts when requests and responses pass through Consul-generated Envoy resources.
 
-Envoy filters support setting and getting dynamic metadata, allowing a filter to share state information with subsequent filters. To set dynamic metadata, configure the HTTP Lua Filter. Users can call `streamInfo:dynamicMetadata()` from Lua scripts to get the request's dynamic metadata. 
+Envoy filters support setting and getting dynamic metadata, allowing a filter to share state information with subsequent filters. To set dynamic metadata, configure the HTTP Lua filter. Users can call `streamInfo:dynamicMetadata()` from Lua scripts to get the request's dynamic metadata. 
 
 ## Configuration specifications
 
@@ -122,7 +122,7 @@ end
 
 For a full list of parameters for `EnvoyExtensions`, refer to the [`service-defaults`](/consul/docs/connect/config-entries/service-defaults#envoyextensions) and [`proxy-defaults`](/consul/docs/connect/config-entries/proxy-defaults#envoyextensions) configuration entries reference documentation.
 
-~> **Note:** Although you can apply `EnvoyExtensions` to `ProxyDefaults`, this may have unintended consequences. We recommend enabling `EnvoyExtensions` with `ServiceDefaults` in most cases.
+!> **Warning:** Applying `EnvoyExtensions` to `ProxyDefaults` may produce unintended consequences. We recommend enabling `EnvoyExtensions` with `ServiceDefaults` in most cases.
 
 Refer to [Configuration specification](#configuration-specification) section to find a full list of arguments for the Lua Envoy extension.
 
