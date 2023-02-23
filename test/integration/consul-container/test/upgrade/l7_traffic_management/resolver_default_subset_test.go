@@ -11,7 +11,6 @@ import (
 	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
 	libservice "github.com/hashicorp/consul/test/integration/consul-container/libs/service"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/topology"
-	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 	libutils "github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 	"github.com/hashicorp/go-version"
 	"github.com/stretchr/testify/require"
@@ -38,11 +37,11 @@ func TestTrafficManagement_ServiceResolverDefaultSubset(t *testing.T) {
 	tcs := []testcase{
 		{
 			oldversion:    "1.13",
-			targetVersion: utils.TargetVersion,
+			targetVersion: libutils.TargetVersion,
 		},
 		{
 			oldversion:    "1.14",
-			targetVersion: utils.TargetVersion,
+			targetVersion: libutils.TargetVersion,
 		},
 	}
 
