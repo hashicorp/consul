@@ -844,12 +844,22 @@ func TestStreamResources_Server_ServiceUpdates(t *testing.T) {
 		Node:    &structs.Node{Node: "foo", Address: "10.0.0.1"},
 		Service: &structs.NodeService{ID: "mysql-1", Service: "mysql", Port: 5000},
 	}
+	mysqlSidecar := &structs.NodeService{
+		Kind:    structs.ServiceKindConnectProxy,
+		Service: "mysql-sidecar-proxy",
+		Proxy: structs.ConnectProxyConfig{
+			DestinationServiceName: "mysql",
+		},
+	}
 
 	lastIdx++
 	require.NoError(t, store.EnsureNode(lastIdx, mysql.Node))
 
 	lastIdx++
 	require.NoError(t, store.EnsureService(lastIdx, "foo", mysql.Service))
+
+	lastIdx++
+	require.NoError(t, store.EnsureService(lastIdx, "foo", mysqlSidecar))
 
 	mongoSvcDefaults := &structs.ServiceConfigEntry{
 		Kind:     structs.ServiceDefaults,
@@ -869,6 +879,24 @@ func TestStreamResources_Server_ServiceUpdates(t *testing.T) {
 		mysqlSN      = structs.NewServiceName("mysql", nil).String()
 		mysqlProxySN = structs.NewServiceName("mysql-sidecar-proxy", nil).String()
 	)
+
+	testutil.RunStep(t, "initial stream data is received", func(t *testing.T) {
+		expectReplEvents(t, client,
+			func(t *testing.T, msg *pbpeerstream.ReplicationMessage) {
+				require.Equal(t, pbpeerstream.TypeURLPeeringTrustBundle, msg.GetResponse().ResourceURL)
+				// Roots tested in TestStreamResources_Server_CARootUpdates
+			},
+			func(t *testing.T, msg *pbpeerstream.ReplicationMessage) {
+				require.Equal(t, pbpeerstream.TypeURLExportedServiceList, msg.GetResponse().ResourceURL)
+				require.Equal(t, subExportedServiceList, msg.GetResponse().ResourceID)
+				require.Equal(t, pbpeerstream.Operation_OPERATION_UPSERT, msg.GetResponse().Operation)
+
+				var exportedServices pbpeerstream.ExportedServiceList
+				require.NoError(t, msg.GetResponse().Resource.UnmarshalTo(&exportedServices))
+				require.ElementsMatch(t, []string{}, exportedServices.Services)
+			},
+		)
+	})
 
 	testutil.RunStep(t, "exporting mysql leads to an UPSERT event", func(t *testing.T) {
 		entry := &structs.ExportedServicesConfigEntry{
@@ -896,23 +924,9 @@ func TestStreamResources_Server_ServiceUpdates(t *testing.T) {
 
 		expectReplEvents(t, client,
 			func(t *testing.T, msg *pbpeerstream.ReplicationMessage) {
-				require.Equal(t, pbpeerstream.TypeURLPeeringTrustBundle, msg.GetResponse().ResourceURL)
-				// Roots tested in TestStreamResources_Server_CARootUpdates
-			},
-			func(t *testing.T, msg *pbpeerstream.ReplicationMessage) {
 				// no mongo instances exist
 				require.Equal(t, pbpeerstream.TypeURLExportedService, msg.GetResponse().ResourceURL)
 				require.Equal(t, mongoSN, msg.GetResponse().ResourceID)
-				require.Equal(t, pbpeerstream.Operation_OPERATION_UPSERT, msg.GetResponse().Operation)
-
-				var nodes pbpeerstream.ExportedService
-				require.NoError(t, msg.GetResponse().Resource.UnmarshalTo(&nodes))
-				require.Len(t, nodes.Nodes, 0)
-			},
-			func(t *testing.T, msg *pbpeerstream.ReplicationMessage) {
-				// proxies can't export because no mesh gateway exists yet
-				require.Equal(t, pbpeerstream.TypeURLExportedService, msg.GetResponse().ResourceURL)
-				require.Equal(t, mongoProxySN, msg.GetResponse().ResourceID)
 				require.Equal(t, pbpeerstream.Operation_OPERATION_UPSERT, msg.GetResponse().Operation)
 
 				var nodes pbpeerstream.ExportedService
@@ -937,17 +951,6 @@ func TestStreamResources_Server_ServiceUpdates(t *testing.T) {
 				var nodes pbpeerstream.ExportedService
 				require.NoError(t, msg.GetResponse().Resource.UnmarshalTo(&nodes))
 				require.Len(t, nodes.Nodes, 0)
-			},
-			// This event happens because this is the first test case and there are
-			// no exported services when replication is initially set up.
-			func(t *testing.T, msg *pbpeerstream.ReplicationMessage) {
-				require.Equal(t, pbpeerstream.TypeURLExportedServiceList, msg.GetResponse().ResourceURL)
-				require.Equal(t, subExportedServiceList, msg.GetResponse().ResourceID)
-				require.Equal(t, pbpeerstream.Operation_OPERATION_UPSERT, msg.GetResponse().Operation)
-
-				var exportedServices pbpeerstream.ExportedServiceList
-				require.NoError(t, msg.GetResponse().Resource.UnmarshalTo(&exportedServices))
-				require.ElementsMatch(t, []string{}, exportedServices.Services)
 			},
 			func(t *testing.T, msg *pbpeerstream.ReplicationMessage) {
 				require.Equal(t, pbpeerstream.TypeURLExportedServiceList, msg.GetResponse().ResourceURL)
@@ -978,23 +981,6 @@ func TestStreamResources_Server_ServiceUpdates(t *testing.T) {
 		expectReplEvents(t, client,
 			func(t *testing.T, msg *pbpeerstream.ReplicationMessage) {
 				require.Equal(t, pbpeerstream.TypeURLExportedService, msg.GetResponse().ResourceURL)
-				require.Equal(t, mongoProxySN, msg.GetResponse().ResourceID)
-				require.Equal(t, pbpeerstream.Operation_OPERATION_UPSERT, msg.GetResponse().Operation)
-
-				var nodes pbpeerstream.ExportedService
-				require.NoError(t, msg.GetResponse().Resource.UnmarshalTo(&nodes))
-				require.Len(t, nodes.Nodes, 1)
-
-				pm := nodes.Nodes[0].Service.Connect.PeerMeta
-				require.Equal(t, "grpc", pm.Protocol)
-				spiffeIDs := []string{
-					"spiffe://11111111-2222-3333-4444-555555555555.consul/ns/default/dc/dc1/svc/mongo",
-					"spiffe://11111111-2222-3333-4444-555555555555.consul/gateway/mesh/dc/dc1",
-				}
-				require.Equal(t, spiffeIDs, pm.SpiffeID)
-			},
-			func(t *testing.T, msg *pbpeerstream.ReplicationMessage) {
-				require.Equal(t, pbpeerstream.TypeURLExportedService, msg.GetResponse().ResourceURL)
 				require.Equal(t, mysqlProxySN, msg.GetResponse().ResourceID)
 				require.Equal(t, pbpeerstream.Operation_OPERATION_UPSERT, msg.GetResponse().Operation)
 
@@ -1006,6 +992,33 @@ func TestStreamResources_Server_ServiceUpdates(t *testing.T) {
 				require.Equal(t, "tcp", pm.Protocol)
 				spiffeIDs := []string{
 					"spiffe://11111111-2222-3333-4444-555555555555.consul/ns/default/dc/dc1/svc/mysql",
+					"spiffe://11111111-2222-3333-4444-555555555555.consul/gateway/mesh/dc/dc1",
+				}
+				require.Equal(t, spiffeIDs, pm.SpiffeID)
+			},
+		)
+	})
+
+	testutil.RunStep(t, "register service resolver to send proxy updates", func(t *testing.T) {
+		lastIdx++
+		require.NoError(t, store.EnsureConfigEntry(lastIdx, &structs.ServiceResolverConfigEntry{
+			Kind: structs.ServiceResolver,
+			Name: "mongo",
+		}))
+		expectReplEvents(t, client,
+			func(t *testing.T, msg *pbpeerstream.ReplicationMessage) {
+				require.Equal(t, pbpeerstream.TypeURLExportedService, msg.GetResponse().ResourceURL)
+				require.Equal(t, mongoProxySN, msg.GetResponse().ResourceID)
+				require.Equal(t, pbpeerstream.Operation_OPERATION_UPSERT, msg.GetResponse().Operation)
+
+				var nodes pbpeerstream.ExportedService
+				require.NoError(t, msg.GetResponse().Resource.UnmarshalTo(&nodes))
+				require.Len(t, nodes.Nodes, 1)
+
+				pm := nodes.Nodes[0].Service.Connect.PeerMeta
+				require.Equal(t, "grpc", pm.Protocol)
+				spiffeIDs := []string{
+					"spiffe://11111111-2222-3333-4444-555555555555.consul/ns/default/dc/dc1/svc/mongo",
 					"spiffe://11111111-2222-3333-4444-555555555555.consul/gateway/mesh/dc/dc1",
 				}
 				require.Equal(t, spiffeIDs, pm.SpiffeID)
