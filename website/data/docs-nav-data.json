@@ -527,10 +527,6 @@
               {
                 "title": "Enabling Peering Control Plane Traffic",
                 "path": "connect/gateways/mesh-gateway/peering-via-mesh-gateways"
-              },
-              {
-                "title": "Enabling Service-to-service Traffic Across Peered Clusters",
-                "path": "connect/gateways/mesh-gateway/service-to-service-traffic-peers"
               }
             ]
           },
@@ -548,16 +544,29 @@
         "title": "Cluster Peering",
         "routes": [
           {
-            "title": "What is Cluster Peering?",
+            "title": "Overview",
             "path": "connect/cluster-peering"
           },
           {
-            "title": "Create and Manage Peering Connections",
-            "path": "connect/cluster-peering/create-manage-peering"
+            "title": "Technical Specifications",
+            "path": "connect/cluster-peering/tech-specs"
           },
           {
-            "title": "Cluster Peering on Kubernetes",
-            "path": "connect/cluster-peering/k8s"
+            "title": "Usage",
+            "routes": [
+              {
+                "title": "Establish Cluster Peering Connections",
+                "path": "connect/cluster-peering/usage/establish-cluster-peering"
+              },
+              {
+                "title": "Manage Cluster Peering Connections",
+                "path": "connect/cluster-peering/usage/manage-connections"
+              },
+              {
+                "title": "Manage L7 Traffic With Cluster Peering",
+                "path": "connect/cluster-peering/usage/peering-traffic-management"
+              }
+            ]
           }
         ]
       },
@@ -1005,6 +1014,36 @@
           {
             "title": "Admin Partitions",
             "href": "/docs/enterprise/admin-partitions"
+          },
+          {
+            "title": "Cluster Peering",
+            "routes": [
+              {
+                "title": "Overview",
+                "href": "/docs/connect/cluster-peering"
+              },
+              {
+                "title": "Technical Specifications",
+                "path": "k8s/connect/cluster-peering/tech-specs"
+              },
+              {
+                "title": "Usage",
+                "routes": [
+                  {
+                    "title": "Establish Cluster Peering Connections",
+                    "path": "k8s/connect/cluster-peering/usage/establish-peering"
+                  },
+                  {
+                    "title": "Manage Cluster Peering Connections",
+                    "path": "k8s/connect/cluster-peering/usage/manage-peering"
+                  },
+                  {
+                    "title": "Manage L7 Traffic With Cluster Peering",
+                    "path": "k8s/connect/cluster-peering/usage/l7-traffic"
+                  }
+                ]
+              }
+            ]
           },
           {
             "title": "Transparent Proxy",
