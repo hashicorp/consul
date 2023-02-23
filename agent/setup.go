@@ -9,6 +9,8 @@ import (
 
 	"github.com/armon/go-metrics/prometheus"
 	"github.com/hashicorp/go-hclog"
+	wal "github.com/hashicorp/raft-wal"
+	"github.com/hashicorp/raft-wal/verifier"
 	"google.golang.org/grpc/grpclog"
 
 	autoconf "github.com/hashicorp/consul/agent/auto-config"
@@ -89,7 +91,7 @@ func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer, providedLogger hcl
 	}
 
 	isServer := result.RuntimeConfig.ServerMode
-	gauges, counters, summaries := getPrometheusDefs(cfg.Telemetry, isServer)
+	gauges, counters, summaries := getPrometheusDefs(cfg, isServer)
 	cfg.Telemetry.PrometheusOpts.GaugeDefinitions = gauges
 	cfg.Telemetry.PrometheusOpts.CounterDefinitions = counters
 	cfg.Telemetry.PrometheusOpts.SummaryDefinitions = summaries
@@ -226,7 +228,7 @@ func newConnPool(config *config.RuntimeConfig, logger hclog.Logger, tls *tlsutil
 
 // getPrometheusDefs reaches into every slice of prometheus defs we've defined in each part of the agent, and appends
 // all of our slices into one nice slice of definitions per metric type for the Consul agent to pass to go-metrics.
-func getPrometheusDefs(cfg lib.TelemetryConfig, isServer bool) ([]prometheus.GaugeDefinition, []prometheus.CounterDefinition, []prometheus.SummaryDefinition) {
+func getPrometheusDefs(cfg *config.RuntimeConfig, isServer bool) ([]prometheus.GaugeDefinition, []prometheus.CounterDefinition, []prometheus.SummaryDefinition) {
 	// TODO: "raft..." metrics come from the raft lib and we should migrate these to a telemetry
 	//  package within. In the mean time, we're going to define a few here because they're key to monitoring Consul.
 	raftGauges := []prometheus.GaugeDefinition{
@@ -272,6 +274,29 @@ func getPrometheusDefs(cfg lib.TelemetryConfig, isServer bool) ([]prometheus.Gau
 		)
 	}
 
+	if isServer && cfg.RaftLogStoreConfig.Verification.Enabled {
+		verifierGauges := make([]prometheus.GaugeDefinition, 0)
+		for _, d := range verifier.MetricDefinitions.Gauges {
+			verifierGauges = append(verifierGauges, prometheus.GaugeDefinition{
+				Name: []string{"raft", "logstore", "verifier", d.Name},
+				Help: d.Desc,
+			})
+		}
+		gauges = append(gauges, verifierGauges)
+	}
+
+	if isServer && cfg.RaftLogStoreConfig.Backend == consul.LogStoreBackendWAL {
+
+		walGauges := make([]prometheus.GaugeDefinition, 0)
+		for _, d := range wal.MetricDefinitions.Gauges {
+			walGauges = append(walGauges, prometheus.GaugeDefinition{
+				Name: []string{"raft", "wal", d.Name},
+				Help: d.Desc,
+			})
+		}
+		gauges = append(gauges, walGauges)
+	}
+
 	// Flatten definitions
 	// NOTE(kit): Do we actually want to create a set here so we can ensure definition names are unique?
 	var gaugeDefs []prometheus.GaugeDefinition
@@ -280,7 +305,7 @@ func getPrometheusDefs(cfg lib.TelemetryConfig, isServer bool) ([]prometheus.Gau
 		// TODO(kit): Prepending the service to each definition should be handled by go-metrics
 		var withService []prometheus.GaugeDefinition
 		for _, gauge := range g {
-			gauge.Name = append([]string{cfg.MetricsPrefix}, gauge.Name...)
+			gauge.Name = append([]string{cfg.Telemetry.MetricsPrefix}, gauge.Name...)
 			withService = append(withService, gauge)
 		}
 		gaugeDefs = append(gaugeDefs, withService...)
@@ -316,6 +341,32 @@ func getPrometheusDefs(cfg lib.TelemetryConfig, isServer bool) ([]prometheus.Gau
 		raftCounters,
 		rate.Counters,
 	}
+
+	// For some unknown reason, we seem to add the raft counters above without
+	// checking if this is a server like we do above for some of the summaries
+	// above. We should probably fix that but I want to not change behavior right
+	// now. If we are a server, add summaries for WAL and verifier metrics.
+	if isServer && cfg.RaftLogStoreConfig.Verification.Enabled {
+		verifierCounters := make([]prometheus.CounterDefinition, 0)
+		for _, d := range verifier.MetricDefinitions.Counters {
+			verifierCounters = append(verifierCounters, prometheus.CounterDefinition{
+				Name: []string{"raft", "logstore", "verifier", d.Name},
+				Help: d.Desc,
+			})
+		}
+		counters = append(counters, verifierCounters)
+	}
+	if isServer && cfg.RaftLogStoreConfig.Backend == consul.LogStoreBackendWAL {
+		walCounters := make([]prometheus.CounterDefinition, 0)
+		for _, d := range wal.MetricDefinitions.Counters {
+			walCounters = append(walCounters, prometheus.CounterDefinition{
+				Name: []string{"raft", "wal", d.Name},
+				Help: d.Desc,
+			})
+		}
+		counters = append(counters, walCounters)
+	}
+
 	// Flatten definitions
 	// NOTE(kit): Do we actually want to create a set here so we can ensure definition names are unique?
 	var counterDefs []prometheus.CounterDefinition
@@ -323,7 +374,7 @@ func getPrometheusDefs(cfg lib.TelemetryConfig, isServer bool) ([]prometheus.Gau
 		// TODO(kit): Prepending the service to each definition should be handled by go-metrics
 		var withService []prometheus.CounterDefinition
 		for _, counter := range c {
-			counter.Name = append([]string{cfg.MetricsPrefix}, counter.Name...)
+			counter.Name = append([]string{cfg.Telemetry.MetricsPrefix}, counter.Name...)
 			withService = append(withService, counter)
 		}
 		counterDefs = append(counterDefs, withService...)
@@ -377,7 +428,7 @@ func getPrometheusDefs(cfg lib.TelemetryConfig, isServer bool) ([]prometheus.Gau
 		// TODO(kit): Prepending the service to each definition should be handled by go-metrics
 		var withService []prometheus.SummaryDefinition
 		for _, summary := range s {
-			summary.Name = append([]string{cfg.MetricsPrefix}, summary.Name...)
+			summary.Name = append([]string{cfg.Telemetry.MetricsPrefix}, summary.Name...)
 			withService = append(withService, summary)
 		}
 		summaryDefs = append(summaryDefs, withService...)
