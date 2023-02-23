@@ -4,7 +4,7 @@ export default function (visitable, submitable, deletable, cancelable, clickable
       deletable({
         visit: visitable(['/:dc/acls/:acl', '/:dc/acls/create']),
         use: clickable('[data-test-use]'),
-        confirmUse: clickable('button.type-delete'),
+        confirmUse: clickable('[data-test-confirm-use]'),
       })
     ),
     'main'

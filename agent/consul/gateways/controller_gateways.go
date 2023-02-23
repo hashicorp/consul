@@ -409,7 +409,6 @@ func (r *apiGatewayReconciler) reconcileRoute(_ context.Context, req controller.
 	}
 
 	var triggerOnce sync.Once
-	validTargets := true
 	for _, service := range route.GetServiceNames() {
 		_, chainSet, err := store.ReadDiscoveryChainConfigEntries(ws, service.Name, pointerTo(service.EnterpriseMeta))
 		if err != nil {
@@ -422,11 +421,6 @@ func (r *apiGatewayReconciler) reconcileRoute(_ context.Context, req controller.
 			r.controller.AddTrigger(req, ws.WatchCtx)
 		})
 
-		if chainSet.IsEmpty() {
-			updater.SetCondition(conditions.routeInvalidDiscoveryChain(errServiceDoesNotExist))
-			continue
-		}
-
 		// make sure that we can actually compile a discovery chain based on this route
 		// the main check is to make sure that all of the protocols align
 		chain, err := discoverychain.Compile(discoverychain.CompileRequest{
@@ -438,28 +432,16 @@ func (r *apiGatewayReconciler) reconcileRoute(_ context.Context, req controller.
 			Entries:               chainSet,
 		})
 		if err != nil {
-			// we only really need to return the first error for an invalid
-			// discovery chain, but we still want to set watches on everything in the
-			// store
-			if validTargets {
-				updater.SetCondition(conditions.routeInvalidDiscoveryChain(err))
-				validTargets = false
-			}
+			updater.SetCondition(conditions.routeInvalidDiscoveryChain(err))
 			continue
 		}
 
 		if chain.Protocol != string(route.GetProtocol()) {
-			if validTargets {
-				updater.SetCondition(conditions.routeInvalidDiscoveryChain(errInvalidProtocol))
-				validTargets = false
-			}
+			updater.SetCondition(conditions.routeInvalidDiscoveryChain(errInvalidProtocol))
 			continue
 		}
 
-		// this makes sure we don't override an already set status
-		if validTargets {
-			updater.SetCondition(conditions.routeAccepted())
-		}
+		updater.SetCondition(conditions.routeAccepted())
 	}
 
 	// if we have no upstream targets, then set the route as invalid
@@ -467,17 +449,6 @@ func (r *apiGatewayReconciler) reconcileRoute(_ context.Context, req controller.
 	// we'll do it here too just in case
 	if len(route.GetServiceNames()) == 0 {
 		updater.SetCondition(conditions.routeNoUpstreams())
-		validTargets = false
-	}
-
-	if !validTargets {
-		// we return early, but need to make sure we're removed from all referencing
-		// gateways and our status is updated properly
-		updated := []*structs.BoundAPIGatewayConfigEntry{}
-		for _, modifiedGateway := range removeRoute(requestToResourceRef(req), meta...) {
-			updated = append(updated, modifiedGateway.BoundGateway)
-		}
-		return finalize(updated)
 	}
 
 	// the route is valid, attempt to bind it to all gateways
@@ -575,6 +546,8 @@ type gatewayMeta struct {
 	// the map values are pointers so that we can update them directly
 	// and have the changes propagate back to the container gateways.
 	boundListeners map[string]*structs.BoundAPIGatewayListener
+
+	generator *gatewayConditionGenerator
 }
 
 // getAllGatewayMeta returns a pre-constructed list of all valid gateway and state
@@ -701,11 +674,22 @@ func (g *gatewayMeta) bindRoute(listener *structs.APIGatewayListener, bound *str
 		return false, nil
 	}
 
+	// check to make sure we're not binding to an invalid gateway
+	if !g.Gateway.Status.MatchesConditionStatus(g.generator.gatewayAccepted()) {
+		return false, fmt.Errorf("failed to bind route to gateway %s: gateway has not been accepted", g.Gateway.Name)
+	}
+
+	// check to make sure we're not binding to an invalid route
+	status := route.GetStatus()
+	if !status.MatchesConditionStatus(g.generator.routeAccepted()) {
+		return false, fmt.Errorf("failed to bind route to gateway %s: route has not been accepted", g.Gateway.Name)
+	}
+
 	if route, ok := route.(*structs.HTTPRouteConfigEntry); ok {
 		// check our hostnames
 		hostnames := route.FilteredHostnames(listener.GetHostname())
 		if len(hostnames) == 0 {
-			return false, fmt.Errorf("failed to bind route to gateway %s: listener %s is does not have any hostnames that match the route", route.GetName(), g.Gateway.Name)
+			return false, fmt.Errorf("failed to bind route to gateway %s: listener %s is does not have any hostnames that match the route", g.Gateway.Name, listener.Name)
 		}
 	}
 
@@ -809,6 +793,8 @@ func (g *gatewayMeta) setConflicts(updater *structs.StatusUpdater) {
 
 // initialize sets up the listener maps that we use for quickly indexing the listeners in our binding logic
 func (g *gatewayMeta) initialize() *gatewayMeta {
+	g.generator = newGatewayConditionGenerator()
+
 	// set up the maps for fast access
 	g.boundListeners = make(map[string]*structs.BoundAPIGatewayListener, len(g.BoundGateway.Listeners))
 	for i, listener := range g.BoundGateway.Listeners {
