@@ -22,8 +22,8 @@ The following list outlines field hierarchy, language-specific data types, and r
 - [`Partition`](#partition): string | no default <EnterpriseAlert inline />
 - [`Meta`](#meta): map | no default
 - [`Listeners`](#listeners): list of objects | no default
-  - [`Port`](#listeners-port): number | no default
   - [`Name`](#listeners-name): string | no default
+  - [`Port`](#listeners-port): number | no default
   - [`Hostname`](#listeners-hostname): string | `"*"`
   - [`Protocol`](#listeners-protocol): string | `"tcp"`
   - [`TLS`](#listeners-tls): map | none
@@ -87,8 +87,8 @@ Listeners = [
 	}
 	"Listeners": [
 		{
-			"Port": <external service port>,
 			"Name": "<unique name for this listener>",
+			"Port": <external service port>,
 			"Protocol": "<protocol used by external service>",
 			"TLS": {
 				"MaxVersion": "<version of TLS>",
@@ -178,8 +178,8 @@ uniquely identified by their port number.
 - This field is required.
 - Data type: List of maps. Each member of the list contains the following fields:
   - [`Name`](#listeners-name)
-  - [`Hostname`](#listeners-hostname)
   - [`Port`](#listeners-port)
+  - [`Hostname`](#listeners-hostname)
   - [`Protocol`](#listeners-protocol)
   - [`TLS`](#listeners-tls)
 
@@ -193,16 +193,6 @@ Specifies the unique name for the listener. This field accepts letters, numbers 
 - This field is required.
 - Data type: string
 
-### `Listeners[].Hostname`
-
-Specifies the hostname that the listener receives traffic on.
-
-#### Values
-
-- Default: none
-- This field is optional.
-- Data type: string
-
 ### `Listeners[].Port`
 
 Specifies the port number that the listener receives traffic on.
@@ -212,6 +202,16 @@ Specifies the port number that the listener receives traffic on.
 - Default: `0`
 - This field is required.
 - Data type: integer
+
+### `Listeners[].Hostname`
+
+Specifies the hostname that the listener receives traffic on.
+
+#### Values
+
+- Default: `"*"`
+- This field is optional.
+- Data type: string
 
 ### `Listeners[].Protocol`
 
@@ -235,6 +235,49 @@ Specifies the TLS configurations for the listener.
   - [`MaxVersion`](#listeners-tls-maxversion)
   - [`MinVersion`](#listeners-tls-minversion)
   - [`CipherSuites`](#listeners-tls-ciphersuites)
+
+### `Listeners[].TLS.MaxVersion`
+
+Specifies the maximum TLS version supported for the listener.
+
+#### Values
+
+- Default depends on the version of Envoy:
+  - Envoy 1.22.0 and later default to `TLSv1_2`
+  - Older versions of Envoy default to `TLSv1_0`
+- Data type is one of the following string values:
+  - `TLS_AUTO`
+  - `TLSv1_0`
+  - `TLSv1_1`
+  - `TLSv1_2`
+  - `TLSv1_3`
+
+### `Listeners[].TLS.MinVersion`
+
+Specifies the minimum TLS version supported for the listener.
+
+#### Values
+
+- Default: none
+- Data type is one of the following string values:
+  - `TLS_AUTO`
+  - `TLSv1_0`
+  - `TLSv1_1`
+  - `TLSv1_2`
+  - `TLSv1_3`
+
+### `Listeners[].TLS.CipherSuites[]`
+
+Specifies a list of cipher suites that the listener supports when negotiating connections using TLS 1.2 or older.
+
+#### Values
+
+- Defaults to the ciphers supported by the version of Envoy in use. Refer to the
+  [Envoy documentation](https://www.envoyproxy.io/docs/envoy/latest/api-v3/extensions/transport_sockets/tls/v3/common.proto#envoy-v3-api-field-extensions-transport-sockets-tls-v3-tlsparameters-cipher-suites)
+  for details.
+- Data type: List of string values. Refer to the
+  [Consul repository](https://github.com/hashicorp/consul/blob/v1.11.2/types/tls.go#L154-L169)
+  for a list of supported ciphers.
 
 ### `Listeners[].TLS.Certificates[]`
 
@@ -286,46 +329,3 @@ Specifies the Enterprise [admin partition](/consul/docs/enterprise/admin-partiti
 
 - Default: `"default"` in Enterprise
 - Data type: string
-
-### `Listeners[].TLS.MaxVersion`
-
-Specifies the maximum TLS version supported for the listener.
-
-#### Values
-
-- Default depends on the version of Envoy:
-  - Envoy 1.22.0 and later default to `TLSv1_2`
-  - Older versions of Envoy default to `TLSv1_0`
-- Data type is one of the following string values:
-  - `TLS_AUTO`
-  - `TLSv1_0`
-  - `TLSv1_1`
-  - `TLSv1_2`
-  - `TLSv1_3`
-
-### `Listeners[].TLS.MinVersion`
-
-Specifies the minimum TLS version supported for the listener.
-
-#### Values
-
-- Default: none
-- Data type is one of the following string values:
-  - `TLS_AUTO`
-  - `TLSv1_0`
-  - `TLSv1_1`
-  - `TLSv1_2`
-  - `TLSv1_3`
-
-### `Listeners[].TLS.CipherSuites[]`
-
-Specifies a list of cipher suites that the listener supports when negotiating connections using TLS 1.2 or older.
-
-#### Values
-
-- Defaults to the ciphers supported by the version of Envoy in use. Refer to the
-  [Envoy documentation](https://www.envoyproxy.io/docs/envoy/latest/api-v3/extensions/transport_sockets/tls/v3/common.proto#envoy-v3-api-field-extensions-transport-sockets-tls-v3-tlsparameters-cipher-suites)
-  for details.
-- Data type: List of string values. Refer to the
-  [Consul repository](https://github.com/hashicorp/consul/blob/v1.11.2/types/tls.go#L154-L169)
-  for a list of supported ciphers.
