@@ -20,7 +20,6 @@ The following list outlines field hierarchy, language-specific data types, and r
 - [`Name`](#name): string | no default
 - [`Namespace`](#namespace): string | no default <EnterpriseAlert inline />
 - [`Partition`](#partition): string | no default <EnterpriseAlert inline />
-- [`Meta`](#meta): map | no default
 - [`Listeners`](#listeners): list of objects | no default
   - [`Port`](#listeners-port): number | no default
   - [`Name`](#listeners-name): string | no default
@@ -35,6 +34,7 @@ The following list outlines field hierarchy, language-specific data types, and r
       - [`Name`](#listeners-tls-certificates-name): string | no default
       - [`Namespace`](#listeners-tls-certificates-namespace): string | no default <EnterpriseAlert inline />
       - [`Partition`](#listeners-tls-certificates-partition): string | no default <EnterpriseAlert inline />
+- [`Meta`](#meta): map | no default
 
 ## Complete configuration
 
@@ -80,29 +80,33 @@ Meta = {
 {
 	"Kind": "api-gateway",
 	"Name": "<name of api gateway>",
-	"Meta": {
-		"<any key>": "<any value>"
-	},
+  "Namespace": "<enterprise: namespace of the gateway>",
+  "Partition": "<enterprise: partition of the gateway>",
 	"Listeners": [
 		{
 			"Port": <external service port>,
 			"Name": "<unique name for this listener>",
 			"Protocol": "<protocol used by external service>",
 			"TLS": {
-				"Certificates": [
-					{
-						"Kind": "inline-certificate",
-						"Name": "<name of inline-certificate>"
-					}
-				],
+				"MaxVersion": "<version of TLS>",
+				"MinVersion": "<version of TLS>",
 				"CipherSuites": [
 					"<cipher suite>"
 				],
-				"MaxVersion": "<version of TLS>",
-				"MinVersion": "<version of TLS>"
+				"Certificates": [
+					{
+						"Kind": "inline-certificate",
+						"Name": "<name of inline-certificate>",
+            "Namespace": "<enterprise: namespace of the certificate>",
+            "Partition": "<enterprise: partition of the certificate>"
+					}
+				]
 			}
 		}
-	]
+	],
+	"Meta": {
+		"<any key>": "<any value>"
+	}
 }
 ```
 
