@@ -69,7 +69,8 @@ When every field is defined, an `http-route` configuration entry has the followi
 ```hcl
 Kind = "http-route"
 Name = "<name of the route>"
-
+Namespace = "<enterprise: namespace of the service>"
+Partition = "<enterprise: partition of the service>"
 Meta = {
 	"<any key>" = "<any value>"
 }
@@ -79,6 +80,8 @@ Parents = [
 		Kind        = "api-gateway"
 		Name        = "<name of the api-gateway to bind to>"
 		SectionName = "<optional name of a specific listener on the api-gateway to bind to>"
+    Namespace = "<enterprise: namespace of the service>"
+    Partition = "<enterprise: partition of the service>"
 	}
 ]
 
@@ -128,6 +131,8 @@ Rules = [
 		Services = [
 			{
 				Name   = "<name of Consul service to route to>"
+        Namespace = "<enterprise: namespace of the service>"
+        Partition = "<enterprise: partition of the service>"
 				Weight = "<number proportional to other weights>"
 				Filters = {
 					Headers = [
@@ -147,6 +152,8 @@ Rules = [
 						Path = "<path to rewrite request to>"
 					}
 				}
+        Namespace = "<enterprise: namespace of the service>"
+        Partition = "<enterprise: partition of the service>"
 			}
 		]
 	}
@@ -162,11 +169,15 @@ Hostnames = ["<hostnames for which this HTTPRoute should respond to requests>"]
 	"Meta": {
 		"any key": "any value"
 	},
+  "Namespace": "enterprise: namespace of the route",
+  "Partition": "enterprise: partition of the route",
 	"Parents": [
 		{
 			"Kind": "api-gateway",
 			"Name": "name of the api-gateway to bind to",
 			"SectionName": "optional name of a specific listener on the api-gateway to bind to"
+      "Namespace": "enterprise: namespace of the route",
+      "Partition": "enterprise: partition of the route",
 		}
 	],
 	"Rules": [
@@ -247,7 +258,9 @@ Hostnames = ["<hostnames for which this HTTPRoute should respond to requests>"]
 						}
 					],
 					"Name": "name of Consul service to route to",
-					"Weight": "number proportional to other weights"
+					"Weight": "number proportional to other weights",
+          "Namespace": "enterprise: namespace of the route",
+          "Partition": "enterprise: partition of the route",
 				}
 			]
 		}
@@ -286,6 +299,24 @@ such as applying a configuration entry to a specific cluster.
 - This field is required.
 - Data type: string
 
+### `Namespace` <EnterpriseAlert inline />
+
+Specifies the Enterprise [namespace](/consul/docs/enterprise/namespaces) to apply to the configuration entry.
+
+#### Values
+
+- Default: `"default"` in Enterprise
+- Data type: string
+
+### `Partition` <EnterpriseAlert inline />
+
+Specifies the Enterprise [admin partition](/consul/docs/enterprise/admin-partitions) to apply to the config entry.
+
+#### Values
+
+- Default: `"default"` in Enterprise
+- Data type: string
+
 ### `Parents[]`
 
 Specifies the list of gateways that this route should be bound to.
@@ -296,6 +327,8 @@ Specifies the list of gateways that this route should be bound to.
 - Data type: List of map. Each member of the list contains the following fields:
   - `Kind`
   - `Name`
+  - `Namespace` <EnterpriseAlert inline />
+  - `Partition <EnterpriseAlert inline />
   - `SectionName`
 
 ### `Parents[].Kind`
@@ -317,6 +350,24 @@ Specifies the name of the api-gateway to bind to.
 
 - Default: none
 - This field is required.
+- Data type: string
+
+### `Parents[].Namespace` <EnterpriseAlert inline />
+
+Specifies the Enterprise [namespace](/consul/docs/enterprise/namespaces) to apply to the configuration entry.
+
+#### Values
+
+- Default: `"default"` in Enterprise
+- Data type: string
+
+### `Parents[].Partition` <EnterpriseAlert inline />
+
+Specifies the Enterprise [admin partition](/consul/docs/enterprise/admin-partitions) to apply to the config entry.
+
+#### Values
+
+- Default: `"default"` in Enterprise
 - Data type: string
 
 ### `Parents[].SectionName`
@@ -433,7 +484,7 @@ Specifies the name of the header to match on
 - Default: none
 - Data type: string
 
-### `Rules.Matches.Headers.Value`
+### `Rules[].Matches.Headers.Value`
 
 Specifies the value of the header to match on
 
@@ -471,7 +522,7 @@ Specifies the http method to match on.
   - `Match`
   - `Value`
 
-### `Rules.Matches.Path.Match`
+### `Rules[].Matches[].Path.Match`
 
 Specifies type of match for the path: `"exact"`, `"prefix"`, or `"regex"`.
 
@@ -480,7 +531,7 @@ Specifies type of match for the path: `"exact"`, `"prefix"`, or `"regex"`.
 - Default: none
 - Data type: string
 
-### `Rules.Matches.Path.Value`
+### `Rules[].Matches[].Path.Value`
 
 Specifies the value of the path to match on.
 
@@ -501,7 +552,7 @@ Specifies how a match is done on a request’s query parameters.
   - `Name`
   - `Value`
 
-### `Rules.Matches.Query.Match`
+### `Rules[].Matches[].Query[].Match`
 
 Specifies type of match for query parameters: `"exact"`, `"prefix"`, or `"regex"`.
 
@@ -510,7 +561,7 @@ Specifies type of match for query parameters: `"exact"`, `"prefix"`, or `"regex"
 - Default: none
 - Data type: string
 
-### `Rules.Matches.Query.Name`
+### `Rules[].Matches[].Query[].Name`
 
 Specifies the name of the query parameter to match on.
 
@@ -519,7 +570,7 @@ Specifies the name of the query parameter to match on.
 - Default: none
 - Data type: string
 
-### `Rules.Matches.Query.Value`
+### `Rules[].Matches[].Query[].Value`
 
 Specifies the value of the query parameter to match on.
 
@@ -528,7 +579,7 @@ Specifies the value of the query parameter to match on.
 - Default: none
 - Data type: string
 
-### `Rules.Services`
+### `Rules[].Services[]`
 
 Specifies the service that the API gateway routes incoming requests to when the
 requests match the `Rules.Matches` configuration.
@@ -540,8 +591,10 @@ requests match the `Rules.Matches` configuration.
   - `Name`
   - `Weight`
   - `Filters`
+  - `Namespace` <EnterpriseAlert inline />
+  - `Partition` <EnterpriseAlert inline />
 
-### `Rules.Services.Name`
+### `Rules[].Services[].Name`
 
 Specifies the name of an HTTP-based service this should route to.
 
@@ -550,7 +603,7 @@ Specifies the name of an HTTP-based service this should route to.
 - Default: none
 - Data type: string
 
-### `Rules.Services.Weight`
+### `Rules[].Services[].Weight`
 
 Specifies the proportion of requests forwarded to the specified service. The
 proportion is determined by dividing the value of the weight by the sum of all
@@ -564,7 +617,7 @@ equal 100.
 - Default: none
 - Data type: int
 
-### `Rules.Services.Filters`
+### `Rules[].Services[].Filters`
 
 Specifies the list of HTTP-based filters used to modify a request prior to
 routing it to this upstream service
@@ -576,7 +629,7 @@ routing it to this upstream service
   - `Headers`
   - `UrlRewrite`
 
-### `Rules.Services.Filters.Headers`
+### `Rules[].Services[].Filters.Headers[]`
 
 Defines operations to perform on matching request headers.
 
@@ -590,7 +643,7 @@ This field contains the following configuration objects:
 | `add`     | Configure this field to append the request header with a new value. It specifies the name of an HTTP header to append and the value(s) to add. You can specify the following configurations: <ul><li>`name`: Required string that specifies the name of the HTTP header to append.</li><li>`value`: Required string that specifies the value of the HTTP header to add.</li></ul>                                                            | List of maps    |
 | `remove`  | Configure this field to specify an array of header names to remove from the request header.                                                                                                                                                                                                                                                                                                                                                  | List of strings |
 
-### `Rules.Services.Filters.URLRewrite`
+### `Rules[].Services[].Filters.URLRewrite`
 
 Specifies rule for rewriting the URL of incoming requests.
 
@@ -598,6 +651,24 @@ Specifies rule for rewriting the URL of incoming requests.
 
 - Default: none
 - This field is a map that contains a `Path` field.
+
+### `Rules[].Services[].Namespace` <EnterpriseAlert inline />
+
+Specifies the Enterprise [namespace](/consul/docs/enterprise/namespaces) to apply to the configuration entry.
+
+#### Values
+
+- Default: `"default"` in Enterprise
+- Data type: string
+
+### `Rules[].Services.Partition` <EnterpriseAlert inline />
+
+Specifies the Enterprise [admin partition](/consul/docs/enterprise/admin-partitions) to apply to the config entry.
+
+#### Values
+
+- Default: `"default"` in Enterprise
+- Data type: string
 
 ### `Meta`
 
