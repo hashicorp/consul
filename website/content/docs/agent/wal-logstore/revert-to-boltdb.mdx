@@ -9,7 +9,7 @@ description: >-
 
 This topic describes revert your Consul storage backend from the experimental WAL LogStorage backend to the default BoltDB.
 
-The overall process for reverting to BoltDB consists of the following steps. You will need to repeat these steps for all Consul servers. Notice this is very similar to enabling WAL.
+The overall process for reverting to BoltDB consists of the following steps. Repeat the steps for all Consul servers that you need to revrt.
 
 1. Select target server.
 1. Stop target server gracefully.
@@ -19,9 +19,9 @@ The overall process for reverting to BoltDB consists of the following steps. You
 
 ## Select target server
 
-If you are using Consul OSS or Consul Enterprise without non-voting servers, select one of the follower servers. As noted in [Risks](/consul/docs/agent/wal-logstore/enable#risks), Consul Enterprise users with non-voting servers should select a non-voting server at first.
+If you are using Consul OSS or Consul Enterprise without non-voting servers, select one of the follower servers. As noted in [Risks](/consul/docs/agent/wal-logstore/enable#risks), Consul Enterprise users with non-voting servers should begin the procedure with a non-voting server.
 
-Retrieve the current state of the servers by running the following:
+Run the following command to retrieve the current state of the servers:
 
 ```shell-session
 $ consul operator raft list-peers
@@ -36,21 +36,19 @@ run the following command:
 $ systemctl stop consul
 ```
 
-If you have any configuration management automation that might interfere with this process (for example, Chef or Puppet), you must disable them until you have completely enabled WAL 
-as a storage backend.
-
+If your environment uses configuration management automation that might interfere with this process, such as Chef or Puppet, you must disable them until you have completely revereted the storage backend.
 
 ## Remove data directory from target server
 
-Temporarily moving the data directory to a different location is less destructive than deleting it. We recommend doing this in case you unsuccessfully enable WAL. However, once you restart the server, you should not use the old data directory (`/data-dir/raft.bak`) for recovery, and will eventually need to delete it.
+Temporarily moving the data directory to a different location is less destructive than deleting it. We recommend doing this in case you unsuccessfully enable WAL. Do not use the old data directory (`/data-dir/raft.bak`) for recovery after restarting the server. We recommend eventually deleting the old directory.
 
-Move the data directory. Replace `/data-dir` the value you have specified in your configuration file.
+The following example moves the data atfrom `/data-dir` in the configuration file to `/temp/data-dir`.
 
 ```shell-session
-$ mv /data-dir/raft /data-dir/raft.bak
+$ mv /data-dir/raft /temp/data-dir/raft.bak
 ```
 
-When switching backend, you must always remove the _whole raft directory_ not just the `raft.db` file or `wal` directory since the log must always be consistent with the snapshots to avoid undefined behavior or data loss.
+When switching backend, you must always remove the _whole raft directory_ not just the `raft.db` file or `wal` directory. This is because the log must always be consistent with the snapshots to avoid undefined behavior or data loss.
 
 ## Update target server's configuration
 
