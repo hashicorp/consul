@@ -19,6 +19,13 @@ to view additional details, including default values.
 - [`Namespace`](#namespace): string | no default <EnterpriseAlert inline />
 - [`Partition`](#partition): string | no default <EnterpriseAlert inline />
 - [`Meta`](#meta): map | no default
+- [`Hostnames`](#hostnames): list | no default
+- [`Parents`](#parents): list | no default
+  - [`Kind`](#parents-kind): string | must be `api-gateway`
+  - [`Name`](#parents-name): string | no default
+  - [`Namespace`](#parents-namespace): string | no default <EnterpriseAlert inline />
+  - [`Partition`](#parents-partition): string | no default <EnterpriseAlert inline />
+  - [`SectionName`](#parents-sectionname): string | no default
 - [`Rules`](#rules): list | no default
   - [`Filters`](#rules-filters): map | no default
     - [`Headers`](#rules-filters-headers): list | no default
@@ -52,13 +59,7 @@ to view additional details, including default values.
         - [`Set`](#rules-services-filters-headers-set): map | no default
       - [`URLRewrite`](#rules-services-filters-urlrewrite): map | no default
         - [`Path`](#rules-services-filters-urlrewrite-path): string | no default
-- [`Parents`](#parents): list | no default
-  - [`Kind`](#parents-kind): string | must be `api-gateway`
-  - [`Name`](#parents-name): string | no default
-  - [`Namespace`](#parents-namespace): string | no default <EnterpriseAlert inline />
-  - [`Partition`](#parents-partition): string | no default <EnterpriseAlert inline />
-  - [`SectionName`](#parents-sectionname): string | no default
-- [`Hostnames`](#hostnames): list | no default
+
 
 ## Complete configuration
 
@@ -74,15 +75,16 @@ Partition = "<enterprise: partition of the service>"
 Meta = {
 	"<any key>" = "<any value>"
 }
+Hostnames = ["<hostnames for which this HTTPRoute should respond to requests>"]
 
 Parents = [
 	{
 		Kind        = "api-gateway"
 		Name        = "<name of the api-gateway to bind to>"
-		SectionName = "<optional name of a specific listener on the api-gateway to bind to>"
     Namespace = "<enterprise: namespace of the service>"
     Partition = "<enterprise: partition of the service>"
-	}
+    SectionName = "<optional name of a specific listener on the api-gateway to bind to>"
+  }
 ]
 
 Rules = [
@@ -152,122 +154,119 @@ Rules = [
 						Path = "<path to rewrite request to>"
 					}
 				}
-        Namespace = "<enterprise: namespace of the service>"
-        Partition = "<enterprise: partition of the service>"
 			}
 		]
 	}
 ]
 
-Hostnames = ["<hostnames for which this HTTPRoute should respond to requests>"]
 ```
 
 ```json
 {
-	"Kind": "http-route",
-	"Name": "name of the route",
-	"Meta": {
-		"any key": "any value"
-	},
+  "Kind": "http-route",
+  "Name": "name of the route",
   "Namespace": "enterprise: namespace of the route",
   "Partition": "enterprise: partition of the route",
-	"Parents": [
-		{
-			"Kind": "api-gateway",
-			"Name": "name of the api-gateway to bind to",
-			"SectionName": "optional name of a specific listener on the api-gateway to bind to"
+  "Meta": {
+    "any key": "any value"
+  },
+  "Hostnames": [
+    "hostnames for which this HTTPRoute should respond to requests"
+  ],
+  "Parents": [
+    {
+      "Kind": "api-gateway",
+      "Name": "name of the api-gateway to bind to",
       "Namespace": "enterprise: namespace of the route",
       "Partition": "enterprise: partition of the route",
-		}
-	],
-	"Rules": [
-		{
-			"Filters": [
-				{
-					"Headers": [
-						{
-							"Add": [
-								{
-									"name of header to add": "value of header to add"
-								}
-							],
-							"Remove": ["header to remove from request"],
-							"Set": [
-								{
-									"name of header to set": "value of header to set"
-								}
-							]
-						}
-					],
-					"URLRewrite": [
-						{
-							"Path": "path to rewrite request to"
-						}
-					]
-				}
-			],
-			"Matches": [
-				{
-					"Headers": [
-						{
-							"Match": "type of match: exact, prefix or regex",
-							"Name": "name of header to match on",
-							"Value": "value of header to match on"
-						}
-					],
-					"Method": "method type to match on",
-					"Path": [
-						{
-							"Match": "type of match: exact, prefix or regex",
-							"Value": "value to match on"
-						}
-					],
-					"Query": [
-						{
-							"Match": "type of match: exact, present or regex",
-							"Name": "name of query parameter to match on",
-							"Value": "value of query parameter to match on"
-						}
-					]
-				}
-			],
-			"Services": [
-				{
-					"Filters": [
-						{
-							"Headers": [
-								{
-									"Add": [
-										{
-											"name of header to add": "value of header to add"
-										}
-									],
-									"Remove": ["header to remove from request"],
-									"Set": [
-										{
-											"name of header to set": "value of header to set"
-										}
-									]
-								}
-							],
-							"URLRewrite": [
-								{
-									"Path": "path to rewrite request to"
-								}
-							]
-						}
-					],
-					"Name": "name of Consul service to route to",
-					"Weight": "number proportional to other weights",
+      "SectionName": "optional name of a specific listener on the api-gateway to bind to"
+    }
+  ],
+  "Rules": [
+    {
+      "Filters": [
+        {
+          "Headers": [
+            {
+              "Add": [
+                {
+                  "name of header to add": "value of header to add"
+                }
+              ],
+              "Remove": ["header to remove from request"],
+              "Set": [
+              {
+                "name of header to set": "value of header to set"
+              }
+              ]
+            }
+          ],
+          "URLRewrite": [
+            {
+              "Path": "path to rewrite request to"
+            }
+          ]
+        }
+      ],
+      "Matches": [
+        {
+          "Headers": [
+            {
+              "Match": "type of match: exact, prefix or regex",
+              "Name": "name of header to match on",
+              "Value": "value of header to match on"
+            }
+          ],
+          "Method": "method type to match on",
+          "Path": [
+            {
+              "Match": "type of match: exact, prefix or regex",
+              "Value": "value to match on"
+            }
+          ],
+          "Query": [
+            {
+              "Match": "type of match: exact, present or regex",
+              "Name": "name of query parameter to match on",
+              "Value": "value of query parameter to match on"
+            }
+          ]
+        }
+      ],
+      "Services": [
+        {
+          "Name": "name of Consul service to route to",
           "Namespace": "enterprise: namespace of the route",
           "Partition": "enterprise: partition of the route",
-				}
-			]
-		}
-	],
-	"Hostnames": [
-		"hostnames for which this HTTPRoute should respond to requests"
-	]
+          "Weight": "number proportional to other weights",
+          "Filters": [
+            {
+              "Headers": [
+                {
+                  "Add": [
+                    {
+                      "name of header to add": "value of header to add"
+                    }
+                  ],
+                  "Remove": ["header to remove from request"],
+                  "Set": [
+                    {
+                      "name of header to set": "value of header to set"
+                    }
+                  ]
+                }
+              ],
+              "URLRewrite": [
+                {
+                  "Path": "path to rewrite request to"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
 }
 ```
 
@@ -612,6 +611,24 @@ Specifies the name of an HTTP-based service this should route to.
 - Default: none
 - Data type: string
 
+### `Rules[].Services[].Namespace` <EnterpriseAlert inline />
+
+Specifies the Enterprise [namespace](/consul/docs/enterprise/namespaces) to apply to the configuration entry.
+
+#### Values
+
+- Default: `"default"` in Enterprise
+- Data type: string
+
+### `Rules[].Services.Partition` <EnterpriseAlert inline />
+
+Specifies the Enterprise [admin partition](/consul/docs/enterprise/admin-partitions) to apply to the config entry.
+
+#### Values
+
+- Default: `"default"` in Enterprise
+- Data type: string
+
 ### `Rules[].Services[].Weight`
 
 Specifies the proportion of requests forwarded to the specified service. The
@@ -660,21 +677,3 @@ Specifies rule for rewriting the URL of incoming requests.
 
 - Default: none
 - This field is a map that contains a `Path` field.
-
-### `Rules[].Services[].Namespace` <EnterpriseAlert inline />
-
-Specifies the Enterprise [namespace](/consul/docs/enterprise/namespaces) to apply to the configuration entry.
-
-#### Values
-
-- Default: `"default"` in Enterprise
-- Data type: string
-
-### `Rules[].Services.Partition` <EnterpriseAlert inline />
-
-Specifies the Enterprise [admin partition](/consul/docs/enterprise/admin-partitions) to apply to the config entry.
-
-#### Values
-
-- Default: `"default"` in Enterprise
-- Data type: string
