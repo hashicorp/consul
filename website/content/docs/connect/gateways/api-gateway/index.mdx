@@ -6,16 +6,23 @@ description: API gateways are objects in Consul that enable ingress requests to 
 
 # API Gateway Overview
 
-API Gateway provides a highly configurable ingress for requests into a Consul
-network. Configuration of this ingress is done across multiple related
-configuration entries. The API gateway itself provides an endpoint for requests
-to enter the network. The Gateway can be configured with listeners that expose
-ports on the endpoint for ingress. HTTP and TCP route configuration entries can
-be attached to these listeners to control how requests are routed to services in
-the network. TLS Certificates can also be attached to gateways to encrypt
-requests between the user and the gateway endpoint.
+API gateways enable external network clients to access applications and services
+running in a Consul datacenter. This type of network traffic is commonly
+called _north-south_ network traffic because it refers to the flow of
+data into and out of a specific environment. API gateways can also forward
+requests from clients to specific destinations based on path or request
+protocol.
 
-Because they are separately configured, these configuration entries may be
-easily reused. Routes and certificates may be attached to multiple gateways. API
-gateways are supported for both Virtual Machines and
-[Kubernetes](/consul/docs/api-gateway).
+API gateways solve the following primary use cases:
+
+- Control access at the point of entry: Set the protocols of external connection
+  requests and secure inbound connections with TLS certificates from trusted
+  providers, such as Verisign and Let's Encrypt.
+- Simplify traffic management: Load balance requests across services and route
+  traffic to the appropriate service by matching one or more criteria, such as
+  hostname, path, header presence or value, and HTTP method.
+
+Consul supports API
+gateways for virtual machines and Kubernetes networks. Refer to the following documentation for next steps:
+- [API Gateways on VMs](/consul/docs/connect/gateways/api-gateway/usage/index)
+- [API Gateways for Kubernetes](/consul/docs/api-gateway).

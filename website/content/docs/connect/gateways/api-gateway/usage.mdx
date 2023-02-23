@@ -11,23 +11,12 @@ in virtual machine (VMs) environments. If you want to implement an API gateway
 in a Kubernetes environment, refer to [API Gateway for Kubernetes](/consul/docs/api-gateway).
 
 ## Introduction
+Consul API gateways provide a configurable ingress points for requests into a Consul network. Configure the following configuration entries to set up API gateways: 
+- [API gateway](/consul/docs/connect/gateways/api-gateway/configuration/api-gateway): Provides an endpoint for requests to enter the network. Define listeners that expose ports on the endpoint for ingress. 
+- [HTTP routes](/consul/docs/connect/gateways/api-gateway/configuration/http-route) and [TCP routes](/consul/docs/connect/gateways/api-gateway/configuration/tcp-route): The routes attach to listeners defined in the gateway and control how requests route to services in the network. 
+- [Inline certificates](/consul/docs/connect/gateways/api-gateway/configuration/inline-certificate): Makes TLS certificates available to gateways so that requests between the user and the gateway endpoint are encrypted.
 
-API gateways enable external network clients to access applications and services
-running in a Consul datacenter. This type of network traffic is commonly
-called _north-south_ network traffic because it refers to the flow of
-data into and out of a specific environment. API gateways can also forward
-requests from clients to specific destinations based on path or request
-protocol.
-
-API gateways solve the following primary use cases:
-
-- Control access at the point of entry: Set the protocols of external connection
-  requests and secure inbound connections with TLS certificates from trusted
-  providers, such as Verisign and Let's Encrypt.
-- Simplify traffic management: Load balance requests across services and route
-  traffic to the appropriate service by matching one or more criteria, such as
-  hostname, path, header presence or value, and HTTP method.
-
+You can configure and reuse configuration entries separately. You can define and attach routes and inline certificates to multiple gateways. 
 The following steps describe the general workflow for deploying a Consul API
 gateway to a VM environment:
 
