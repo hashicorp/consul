@@ -147,7 +147,7 @@ func TestHTTPRouteFlattening(t *testing.T) {
 		},
 		Namespace: namespace,
 		Rules: []api.HTTPRouteRule{
-			api.HTTPRouteRule{
+			{
 				Services: []api.HTTPService{
 					{
 						Name:      serviceTwo.GetServiceName(),
@@ -155,13 +155,13 @@ func TestHTTPRouteFlattening(t *testing.T) {
 					},
 				},
 				Matches: []api.HTTPMatch{
-					api.HTTPMatch{
+					{
 						Path: api.HTTPPathMatch{
 							Match: api.HTTPPathMatchPrefix,
 							Value: path2,
 						},
 					},
-					api.HTTPMatch{
+					{
 						Headers: []api.HTTPHeaderMatch{{
 							Match: api.HTTPHeaderMatchExact,
 							Name:  "x-v2",
