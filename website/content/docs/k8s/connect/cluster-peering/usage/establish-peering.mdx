@@ -26,7 +26,7 @@ You must meet the following requirements to use Consul's cluster peering feature
 - Consul on Kubernetes v1.0.0 or higher
 - At least two Kubernetes clusters
 
-In Consul on Kubernetes, peers identify each other using the `metadata.name` values you establish when creating the `PeeringAcceptor` and `PeeringDialer` CRDs. For additional information about requirements for cluster peering on Kubernetes deployments, refer to [Cluster peering on Kubernetes technical specifications](/consul/docs/k8s/connect/cluster-peering/k8s-tech-specs).
+In Consul on Kubernetes, peers identify each other using the `metadata.name` values you establish when creating the `PeeringAcceptor` and `PeeringDialer` CRDs. For additional information about requirements for cluster peering on Kubernetes deployments, refer to [Cluster peering on Kubernetes technical specifications](/consul/docs/k8s/connect/cluster-peering/tech-specs).
 
 ### Assign cluster IDs to environmental variables
 
@@ -46,7 +46,7 @@ After you provision a Kubernetes cluster and set up your kubeconfig file to mana
 
 ### Update the Helm chart
 
-To use cluster peering with Consul on Kubernetes deployments, update the Helm chart with [the required values](/consul/docs/k8s/connect/cluster-peering/k8s-tech-specs#helm-requirements). After updating the Helm chart, you can use the `consul-k8s` CLI to apply `values.yaml` to each cluster.
+To use cluster peering with Consul on Kubernetes deployments, update the Helm chart with [the required values](/consul/docs/k8s/connect/cluster-peering/tech-specs#helm-requirements). After updating the Helm chart, you can use the `consul-k8s` CLI to apply `values.yaml` to each cluster.
 
 1. In `cluster-01`, run the following commands:
 

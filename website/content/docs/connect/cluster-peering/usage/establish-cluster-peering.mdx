@@ -7,7 +7,7 @@ description: >-
 
 # Establish cluster peering connections
 
-This page details the process for establishing a cluster peering connection between services deployed to different datacenters. You can interact with Consul's cluster peering features using the HTTP API, the CLI, or the UI. The overall process for establishing a cluster peering connection consists of the following steps:
+This page details the process for establishing a cluster peering connection between services deployed to different datacenters. You can interact with Consul's cluster peering features using the CLI, the HTTP API, or the UI. The overall process for establishing a cluster peering connection consists of the following steps:
 
 1. Create a peering token in one cluster.
 1. Use the peering token to establish peering with a second cluster.
@@ -15,6 +15,8 @@ This page details the process for establishing a cluster peering connection betw
 1. Create intentions to authorize services for peers.
 
 Cluster peering between services cannot be established until all four steps are complete.
+
+For Kubernetes-specific guidance for establishing cluster peering connections, refer to [Establish cluster peering connections on Kubernetes](/consul/docs/k8s/connect/cluster-peering/usage/establish-peering).
 
 ## Requirements
 
@@ -40,6 +42,19 @@ To begin the cluster peering process, generate a peering token in one of your cl
 Every time you generate a peering token, a single-use secret for establishing the secret is embedded in the token. Because regenerating a peering token invalidates the previously generated secret, you must use the most recently created token to establish peering connections.
 
 <Tabs>
+<Tab heading="Consul CLI" group="cli">
+
+1. In `cluster-01`, use the [`consul peering generate-token` command](/consul/commands/peering/generate-token) to issue a request for a peering token.
+
+  ```shell-session
+  $ consul peering generate-token -name cluster-02
+  ```
+
+  The CLI outputs the peering token, which is a base64-encoded string containing the token details.
+
+1. Save this value to a file or clipboard to use in the next step on `cluster-02`.
+
+</Tab>
 <Tab heading="HTTP API" group="api">
 
 1. In `cluster-01`, use the [`/peering/token` endpoint](/consul/api-docs/peering#generate-a-peering-token) to issue a request for a peering token.
@@ -64,21 +79,6 @@ Every time you generate a peering token, a single-use secret for establishing th
   </CodeBlockConfig>
 
 </Tab>
-
-<Tab heading="Consul CLI" group="cli">
-
-1. In `cluster-01`, use the [`consul peering generate-token` command](/consul/commands/peering/generate-token) to issue a request for a peering token.
-
-  ```shell-session
-  $ consul peering generate-token -name cluster-02
-  ```
-
-  The CLI outputs the peering token, which is a base64-encoded string containing the token details.
-
-1. Save this value to a file or clipboard to use in the next step on `cluster-02`.
-
-</Tab>
-
 <Tab heading="Consul UI" group="ui">
 
 To begin the cluster peering process, generate a peering token in one of your clusters. The other cluster uses this token to establish the peering connection.
@@ -99,20 +99,6 @@ Every time you generate a peering token, a single-use secret for establishing th
 Next, use the peering token to establish a secure connection between the clusters.
 
 <Tabs>
-<Tab heading="HTTP API" group="api">
-
-1. In one of the client agents in "cluster-02," use `peering_token.json` and the [`/peering/establish` endpoint](/consul/api-docs/peering#establish-a-peering-connection) to establish the peering connection. This endpoint does not generate an output unless there is an error.
-
-  ```shell-session
-  $ curl --request POST --data @peering_token.json http://127.0.0.1:8500/v1/peering/establish
-  ```
-
-When you connect server agents through cluster peering, their default behavior is to peer to the `default` partition. To establish peering connections for other partitions through server agents, you must add the `Partition` field to `peering_token.json` and specify the partitions you want to peer. For additional configuration information, refer to [Cluster Peering - HTTP API](/consul/api-docs/peering).
-
-You can dial the `peering/establish` endpoint once per peering token. Peering tokens cannot be reused after being used to establish a connection. If you need to re-establish a connection, you must generate a new peering token.
-
-</Tab>
-
 <Tab heading="Consul CLI" group="cli">
 
 1. In one of the client agents deployed to "cluster-02," issue the [`consul peering establish` command](/consul/commands/peering/establish) and specify the token generated in the previous step.
@@ -125,6 +111,19 @@ You can dial the `peering/establish` endpoint once per peering token. Peering to
 When you connect server agents through cluster peering, they peer their default partitions. To establish peering connections for other partitions through server agents, you must add the `-partition` flag to the `establish` command and specify the partitions you want to peer. For additional configuration information, refer to [`consul peering establish` command](/consul/commands/peering/establish).
 
 You can run the `peering establish` command once per peering token. Peering tokens cannot be reused after being used to establish a connection. If you need to re-establish a connection, you must generate a new peering token.
+
+</Tab>
+<Tab heading="HTTP API" group="api">
+
+1. In one of the client agents in "cluster-02," use `peering_token.json` and the [`/peering/establish` endpoint](/consul/api-docs/peering#establish-a-peering-connection) to establish the peering connection. This endpoint does not generate an output unless there is an error.
+
+  ```shell-session
+  $ curl --request POST --data @peering_token.json http://127.0.0.1:8500/v1/peering/establish
+  ```
+
+When you connect server agents through cluster peering, their default behavior is to peer to the `default` partition. To establish peering connections for other partitions through server agents, you must add the `Partition` field to `peering_token.json` and specify the partitions you want to peer. For additional configuration information, refer to [Cluster Peering - HTTP API](/consul/api-docs/peering).
+
+You can dial the `peering/establish` endpoint once per peering token. Peering tokens cannot be reused after being used to establish a connection. If you need to re-establish a connection, you must generate a new peering token.
 
 </Tab>
 
@@ -194,37 +193,6 @@ Before you can call services from peered clusters, you must set service intentio
 You must use the HTTP API or the Consul CLI to complete this step. The Consul UI supports intentions for local clusters only.
 
 <Tabs>
-<Tab heading="HTTP API" group="api">
-
-1. Create a configuration entry and specify the `Kind` as `"service-intentions"`. Declare the service on "cluster-02" that can access the service in "cluster-01." In the following example, the service intentions configuration entry authorizes the `backend-service` to communicate with the `frontend-service` that is hosted on remote peer `cluster-02`:
-
-  <CodeBlockConfig filename="peering-intentions.hcl" hideClipboard>
-
-  ```hcl
-  Kind      = "service-intentions"
-  Name      = "backend-service"
-
-  Sources = [
-    {
-      Name   = "frontend-service"
-      Peer   = "cluster-02"
-      Action = "allow"
-    }
-  ]
-  ```
-
-  </CodeBlockConfig>
-
-  If the peer's name is not specified in `Peer`, then Consul assumes that the service is in the local cluster.
-
-1. Add the configuration entry to your cluster.
-
-  ```shell-session
-  $ curl --request PUT --data @peering-intentions.hcl http://127.0.0.1:8500/v1/config
-  ```
-
-</Tab>
-
 <Tab heading="Consul CLI" group="cli">
 
 1. Create a configuration entry and specify the `Kind` as `"service-intentions"`. Declare the service on "cluster-02" that can access the service in "cluster-01." In the following example, the service intentions configuration entry authorizes the `backend-service` to communicate with the `frontend-service` that is hosted on remote peer `cluster-02`:
@@ -252,6 +220,36 @@ You must use the HTTP API or the Consul CLI to complete this step. The Consul UI
 
   ```shell-session
   $ consul config write peering-intentions.hcl
+  ```
+
+</Tab>
+<Tab heading="HTTP API" group="api">
+
+1. Create a configuration entry and specify the `Kind` as `"service-intentions"`. Declare the service on "cluster-02" that can access the service in "cluster-01." In the following example, the service intentions configuration entry authorizes the `backend-service` to communicate with the `frontend-service` that is hosted on remote peer `cluster-02`:
+
+  <CodeBlockConfig filename="peering-intentions.hcl" hideClipboard>
+
+  ```hcl
+  Kind      = "service-intentions"
+  Name      = "backend-service"
+
+  Sources = [
+    {
+      Name   = "frontend-service"
+      Peer   = "cluster-02"
+      Action = "allow"
+    }
+  ]
+  ```
+
+  </CodeBlockConfig>
+
+  If the peer's name is not specified in `Peer`, then Consul assumes that the service is in the local cluster.
+
+1. Add the configuration entry to your cluster.
+
+  ```shell-session
+  $ curl --request PUT --data @peering-intentions.hcl http://127.0.0.1:8500/v1/config
   ```
 
 </Tab>

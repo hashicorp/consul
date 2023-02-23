@@ -9,6 +9,8 @@ description: >-
 
 This usage topic describes how to configure and apply the [`service-resolver` configuration entry](/consul/docs/connect/config-entries/service-resolver) to set up redirects and failovers between services that have an existing cluster peering connection.
 
+For Kubernetes-specific guidance for managing L7 traffic with cluster peering, refer to [Manage L7 traffic with cluster peering on Kubernetes](/consul/docs/k8s/connect/cluster-peering/usage/l7-traffic).
+
 ## Service resolvers for redirects and failover
 
 When you use cluster peering to connect datacenters through their admin partitions, you can use [dynamic traffic management](/consul/docs/connect/l7-traffic) to configure your service mesh so that services automatically forward traffic to services hosted on peer clusters.
@@ -25,7 +27,7 @@ To configure L7 traffic management behavior in deployments with cluster peering 
 
   The following examples update the [`service-resolver` configuration entry](/consul/docs/connect/config-entries/service-resolver) in `cluster-01` so that Consul redirects traffic intended for the `frontend` service to a backup instance in peer `cluster-02` when it detects multiple connection failures.
 
-  <CodeTabs tabs={[ "HCL", "YAML", "JSON" ]}>
+  <CodeTabs tabs={[ "HCL", "JSON", "YAML" ]}>
 
   ```hcl
   Kind           = "service-resolver"
@@ -38,21 +40,6 @@ To configure L7 traffic management behavior in deployments with cluster peering 
       ]   
     }
   }
-  ```
-
-  ```yaml
-  apiVersion: consul.hashicorp.com/v1alpha1
-  kind: ServiceResolver
-  metadata:
-    name: frontend
-  spec:
-    connectTimeout: 15s
-    failover:
-      '*':
-        targets:
-          - peer: 'cluster-02'
-            service: 'frontend'
-            namespace: 'default'
   ```
 
   ```json
@@ -74,13 +61,28 @@ To configure L7 traffic management behavior in deployments with cluster peering 
   }
   ```
 
+  ```yaml
+  apiVersion: consul.hashicorp.com/v1alpha1
+  kind: ServiceResolver
+  metadata:
+    name: frontend
+  spec:
+    connectTimeout: 15s
+    failover:
+      '*':
+        targets:
+          - peer: 'cluster-02'
+            service: 'frontend'
+            namespace: 'default'
+  ```
+
   </CodeTabs>
 
 1. Define the desired behavior in `service-splitter` or `service-router` configuration entries.
 
   The following example splits traffic evenly between `frontend` services hosted on peers by defining the desired behavior locally:
 
-  <CodeTabs tabs={[ "HCL", "YAML", "JSON" ]}>
+  <CodeTabs tabs={[ "HCL", "JSON", "YAML" ]}>
 
   ```hcl
   Kind = "service-splitter"
@@ -95,19 +97,6 @@ To configure L7 traffic management behavior in deployments with cluster peering 
       Service = "frontend-peer"
     },
   ]
-  ```
-
-  ```yaml
-  apiVersion: consul.hashicorp.com/v1alpha1
-  kind: ServiceSplitter
-  metadata:
-    name: frontend
-  spec:
-    splits:
-      - weight: 50
-        ## defaults to service with same name as configuration entry ("frontend")
-      - weight: 50
-        service: frontend-peer
   ```
 
   ```json
@@ -126,11 +115,24 @@ To configure L7 traffic management behavior in deployments with cluster peering 
   }
   ```
 
+  ```yaml
+  apiVersion: consul.hashicorp.com/v1alpha1
+  kind: ServiceSplitter
+  metadata:
+    name: frontend
+  spec:
+    splits:
+      - weight: 50
+        ## defaults to service with same name as configuration entry ("frontend")
+      - weight: 50
+        service: frontend-peer
+  ```
+
   </CodeTabs>
 
 1. Create a local `service-resolver` configuration entry named `frontend-peer` and define a redirect targeting the peer and its service:
 
-  <CodeTabs tabs={[ "HCL", "YAML", "JSON" ]}>
+  <CodeTabs tabs={[ "HCL", "JSON", "YAML" ]}>
 
   ```hcl
   Kind           = "service-resolver"
@@ -138,6 +140,17 @@ To configure L7 traffic management behavior in deployments with cluster peering 
   Redirect {
     Service = frontend
     Peer = "cluster-02"
+  }
+  ```
+
+  ```json
+  {
+    "Kind": "service-resolver",
+    "Name": "frontend-peer",
+    "Redirect": {
+      "Service": "frontend",
+      "Peer": "cluster-02"
+    }
   }
   ```
 
@@ -150,17 +163,6 @@ To configure L7 traffic management behavior in deployments with cluster peering 
     redirect:
       peer: 'cluster-02'
       service: 'frontend'
-  ```
-
-  ```json
-  {
-    "Kind": "service-resolver",
-    "Name": "frontend-peer",
-    "Redirect": {
-      "Service": "frontend",
-      "Peer": "cluster-02"
-    }
-  }
   ```
 
   </CodeTabs>

@@ -981,22 +981,22 @@
               },
               {
                 "title": "Technical Specifications",
-                "path": "k8s/connect/cluster-peering/k8s-tech-specs"
+                "path": "k8s/connect/cluster-peering/tech-specs"
               },
               {
                 "title": "Usage",
                 "routes": [
                   {
                     "title": "Establish Cluster Peering Connections",
-                    "path": "k8s/connect/cluster-peering/usage/k8s-establish-peering"
+                    "path": "k8s/connect/cluster-peering/usage/establish-peering"
                   },
                   {
                     "title": "Manage Cluster Peering Connections",
-                    "path": "k8s/connect/cluster-peering/usage/k8s-manage-peering"
+                    "path": "k8s/connect/cluster-peering/usage/manage-peering"
                   },
                   {
                     "title": "Manage L7 Traffic With Cluster Peering",
-                    "path": "k8s/connect/cluster-peering/usage/k8s-l7-traffic"
+                    "path": "k8s/connect/cluster-peering/usage/l7-traffic"
                   }
                 ]
               }
