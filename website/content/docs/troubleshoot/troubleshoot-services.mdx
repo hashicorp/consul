@@ -97,6 +97,8 @@ In the example, troubleshooting upstream communication reveals that the `backend
 
 The output from the troubleshooting process identifies service instances according to their [Consul DNS address](/consul/docs/discovery/dns#standard-lookup). Use the DNS information for failing services to diagnose the specific issues affecting the service instance.
 
+For more information, refer to the [`consul troubleshoot` CLI documentation](/consul/commands/troubleshoot).
+
 ### Troubleshoot on Kubernetes
 
 To troubleshoot service-to-service communication issues in deployments that use Kubernetes, retrieve the upstream information for the pod that is experiencing communication failures and use the upstream information to identify the proxy you want to perform the troubleshooting process on.
