@@ -60,7 +60,6 @@ to view additional details, including default values.
       - [`URLRewrite`](#rules-services-filters-urlrewrite): map | no default
         - [`Path`](#rules-services-filters-urlrewrite-path): string | no default
 
-
 ## Complete configuration
 
 When every field is defined, an `http-route` configuration entry has the following form:
@@ -73,90 +72,90 @@ Name = "<name of the route>"
 Namespace = "<enterprise: namespace of the service>"
 Partition = "<enterprise: partition of the service>"
 Meta = {
-	"<any key>" = "<any value>"
+  "<any key>" = "<any value>"
 }
 Hostnames = ["<hostnames for which this HTTPRoute should respond to requests>"]
 
 Parents = [
-	{
-		Kind        = "api-gateway"
-		Name        = "<name of the api-gateway to bind to>"
-		Namespace = "<enterprise: namespace of the service>"
-		Partition = "<enterprise: partition of the service>"
-		SectionName = "<optional name of a specific listener on the api-gateway to bind to>"
+  {
+    Kind        = "api-gateway"
+    Name        = "<name of the api-gateway to bind to>"
+    Namespace = "<enterprise: namespace of the service>"
+    Partition = "<enterprise: partition of the service>"
+    SectionName = "<optional name of a specific listener on the api-gateway to bind to>"
   }
 ]
 
 Rules = [
-	{
-		Filters = {
-			Headers = [
-				{
-					Add = {
-						"<name of header to add>" = "<value of header to add>"
-					}
-					Remove = [
-						"<name of header to remove from request>"
-					]
-					Set = {
-						"<name of header to set>" = "<value of header to set>"
-					}
-				}
-			]
-			URLRewrite = {
-				Path = "<path to rewrite request to>"
-			}
-		}
-		Matches = [
-			{
-				Headers = [
-					{
-						Match = "<type of match: exact, prefix or regex>"
-						Name = "<name of header to match on>"
-						Value = "<value of header to match on>"
-					}
-				]
-				Method = "<method type to match on>"
-				Path = {
-					Match = "<type of match: exact, prefix or regex>"
-					Value = "<value to match on>"
-				}
-				Query = [
-					{
-						Match = "<type of match: exact, present or regex>"
-						Name = "<name of query parameter to match on>"
-						Value = "<value of query parameter to match on>"
-					}
-				]
-			}
-		]
-		Services = [
-			{
-				Name   = "<name of Consul service to route to>"
-				Namespace = "<enterprise: namespace of the service>"
-				Partition = "<enterprise: partition of the service>"
-				Weight = "<number proportional to other weights>"
-				Filters = {
-					Headers = [
-						{
-							Add = {
-								"<name of header to add>" = "<value of header to add>"
-							}
-							Remove = [
-								"<name of header to remove from request>"
-							]
-							Set = {
-								"<name of header to set>" = "<value of header to set>"
-							}
-						}
-					]
-					URLRewrite = {
-						Path = "<path to rewrite request to>"
-					}
-				}
-			}
-		]
-	}
+  {
+    Filters = {
+      Headers = [
+        {
+          Add = {
+            "<name of header to add>" = "<value of header to add>"
+          }
+          Remove = [
+            "<name of header to remove from request>"
+          ]
+          Set = {
+            "<name of header to set>" = "<value of header to set>"
+          }
+        }
+      ]
+      URLRewrite = {
+        Path = "<path to rewrite request to>"
+      }
+    }
+    Matches = [
+      {
+        Headers = [
+          {
+            Match = "<type of match: exact, prefix or regex>"
+            Name = "<name of header to match on>"
+            Value = "<value of header to match on>"
+          }
+        ]
+        Method = "<method type to match on>"
+        Path = {
+          Match = "<type of match: exact, prefix or regex>"
+          Value = "<value to match on>"
+        }
+        Query = [
+          {
+            Match = "<type of match: exact, present or regex>"
+            Name = "<name of query parameter to match on>"
+            Value = "<value of query parameter to match on>"
+          }
+        ]
+      }
+    ]
+    Services = [
+      {
+        Name   = "<name of Consul service to route to>"
+        Namespace = "<enterprise: namespace of the service>"
+        Partition = "<enterprise: partition of the service>"
+        Weight = "<number proportional to other weights>"
+        Filters = {
+          Headers = [
+            {
+              Add = {
+                "<name of header to add>" = "<value of header to add>"
+              }
+              Remove = [
+                "<name of header to remove from request>"
+              ]
+              Set = {
+                "<name of header to set>" = "<value of header to set>"
+              }
+            }
+          ]
+          URLRewrite = {
+            Path = "<path to rewrite request to>"
+          }
+        }
+      }
+    ]
+  }
 ]
 
 ```
@@ -195,9 +194,9 @@ Rules = [
               ],
               "Remove": ["header to remove from request"],
               "Set": [
-              {
-                "name of header to set": "value of header to set"
-              }
+                {
+                  "name of header to set": "value of header to set"
+                }
               ]
             }
           ],
@@ -422,7 +421,7 @@ This field contains the following configuration objects:
 | Parameter | Description                                                                                                                                                                                                                                                                                                                                                                                                                                  | Type            |
 | --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------- |
 | `set`     | Configure this field to rewrite the HTTP request header. It specifies the name of an HTTP header to overwrite and the new value to set. Any existing values associated with the header name are overwritten. You can specify the following configurations: <ul><li>`name`: Required string that specifies the name of the HTTP header to set.</li><li>`value`: Required string that specifies the value of the HTTP header to set.</li></ul> | List of maps    |
-| `add`     | Configure this field to append the request header with a new value. It specifies the name of an HTTP header to append and the values to add. You can specify the following configurations: <ul><li>`name`: Required string that specifies the name of the HTTP header to append.</li><li>`value`: Required string that specifies the value of the HTTP header to add.</li></ul>                                                            | List of maps    |
+| `add`     | Configure this field to append the request header with a new value. It specifies the name of an HTTP header to append and the values to add. You can specify the following configurations: <ul><li>`name`: Required string that specifies the name of the HTTP header to append.</li><li>`value`: Required string that specifies the value of the HTTP header to add.</li></ul>                                                              | List of maps    |
 | `remove`  | Configure this field to specify an array of header names to remove from the request header.                                                                                                                                                                                                                                                                                                                                                  | List of strings |
 
 ### `Rules[].Filters.URLRewrite`
@@ -666,7 +665,7 @@ This field contains the following configuration objects:
 | Parameter | Description                                                                                                                                                                                                                                                                                                                                                                                                                                  | Type            |
 | --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------- |
 | `set`     | Configure this field to rewrite the HTTP request header. It specifies the name of an HTTP header to overwrite and the new value to set. Any existing values associated with the header name are overwritten. You can specify the following configurations: <ul><li>`name`: Required string that specifies the name of the HTTP header to set.</li><li>`value`: Required string that specifies the value of the HTTP header to set.</li></ul> | List of maps    |
-| `add`     | Configure this field to append the request header with a new value. It specifies the name of an HTTP header to append and the values to add. You can specify the following configurations: <ul><li>`name`: Required string that specifies the name of the HTTP header to append.</li><li>`value`: Required string that specifies the value of the HTTP header to add.</li></ul>                                                            | List of maps    |
+| `add`     | Configure this field to append the request header with a new value. It specifies the name of an HTTP header to append and the values to add. You can specify the following configurations: <ul><li>`name`: Required string that specifies the name of the HTTP header to append.</li><li>`value`: Required string that specifies the value of the HTTP header to add.</li></ul>                                                              | List of maps    |
 | `remove`  | Configure this field to specify an array of header names to remove from the request header.                                                                                                                                                                                                                                                                                                                                                  | List of strings |
 
 ### `Rules[].Services[].Filters.URLRewrite`
