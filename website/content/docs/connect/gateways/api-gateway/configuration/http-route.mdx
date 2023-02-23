@@ -81,9 +81,9 @@ Parents = [
 	{
 		Kind        = "api-gateway"
 		Name        = "<name of the api-gateway to bind to>"
-    Namespace = "<enterprise: namespace of the service>"
-    Partition = "<enterprise: partition of the service>"
-    SectionName = "<optional name of a specific listener on the api-gateway to bind to>"
+		Namespace = "<enterprise: namespace of the service>"
+		Partition = "<enterprise: partition of the service>"
+		SectionName = "<optional name of a specific listener on the api-gateway to bind to>"
   }
 ]
 
@@ -133,8 +133,8 @@ Rules = [
 		Services = [
 			{
 				Name   = "<name of Consul service to route to>"
-        Namespace = "<enterprise: namespace of the service>"
-        Partition = "<enterprise: partition of the service>"
+				Namespace = "<enterprise: namespace of the service>"
+				Partition = "<enterprise: partition of the service>"
 				Weight = "<number proportional to other weights>"
 				Filters = {
 					Headers = [
