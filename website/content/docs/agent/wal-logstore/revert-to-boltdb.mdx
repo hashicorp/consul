@@ -29,7 +29,7 @@ $ consul operator raft list-peers
 
 ## Stop target server gracefully
 
-Stop the target server gracefully. For example, if you are using `systemcmd`, 
+Stop the target server gracefully. For example, if you are using `systemd`, 
 run the following command:
 
 ```shell-session
@@ -42,10 +42,10 @@ If your environment uses configuration management automation that might interfer
 
 Temporarily moving the data directory to a different location is less destructive than deleting it. We recommend doing this in case you unsuccessfully enable WAL. Do not use the old data directory (`/data-dir/raft.bak`) for recovery after restarting the server. We recommend eventually deleting the old directory.
 
-The following example moves the data atfrom `/data-dir` in the configuration file to `/temp/data-dir`.
+The following example assumes the `data_dir` in the server's configuration is `/data-dir` and renames it to `/data-dir.bak`.
 
 ```shell-session
-$ mv /data-dir/raft /temp/data-dir/raft.bak
+$ mv /data-dir/raft /data-dir/raft.bak
 ```
 
 When switching backend, you must always remove the _whole raft directory_ not just the `raft.db` file or `wal` directory. This is because the log must always be consistent with the snapshots to avoid undefined behavior or data loss.
@@ -66,7 +66,7 @@ raft_logstore {
 
 ## Start target server
 
-Start the target server. For example, if you are using `systemcmd`, run the following command:
+Start the target server. For example, if you are using `systemd`, run the following command:
 
 ```shell-session
 $ systemctl start consul
