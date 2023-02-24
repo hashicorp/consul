@@ -16,6 +16,7 @@ import (
 	"golang.org/x/time/rate"
 
 	"github.com/hashicorp/consul/acl"
+	rpcRate "github.com/hashicorp/consul/agent/consul/rate"
 	"github.com/hashicorp/consul/agent/pool"
 	"github.com/hashicorp/consul/agent/router"
 	"github.com/hashicorp/consul/agent/structs"
@@ -296,7 +297,16 @@ TRY:
 
 	// Use the zero value for RPCInfo if the request doesn't implement RPCInfo
 	info, _ := args.(structs.RPCInfo)
-	if retry := canRetry(info, rpcErr, firstCheck, c.config); !retry {
+	retryableMessages := []error{
+		// If we are chunking and it doesn't seem to have completed, try again.
+		ErrChunkingResubmit,
+
+		// These rate limit errors are returned before the handler is called, so are
+		// safe to retry.
+		rpcRate.ErrRetryElsewhere,
+	}
+
+	if retry := canRetry(info, rpcErr, firstCheck, c.config, retryableMessages); !retry {
 		c.logger.Error("RPC failed to server",
 			"method", method,
 			"server", server.Addr,

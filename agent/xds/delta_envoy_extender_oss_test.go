@@ -12,6 +12,7 @@ import (
 	envoy_endpoint_v3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	envoy_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
+	"github.com/hashicorp/consul/agent/xds/testcommon"
 	testinf "github.com/mitchellh/go-testing-interface"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/proto"
@@ -186,11 +187,33 @@ end`,
 				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "register-to-terminating-gateway", nil, nil, makeLambdaServiceDefaults(false))
 			},
 		},
+		{
+			name: "lambda-and-lua-connect-proxy",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				nsFunc := func(ns *structs.NodeService) {
+					ns.Proxy.Config["protocol"] = "http"
+					ns.Proxy.EnvoyExtensions = []structs.EnvoyExtension{
+						{
+							Name: api.BuiltinLuaExtension,
+							Arguments: map[string]interface{}{
+								"ProxyType": "connect-proxy",
+								"Listener":  "inbound",
+								"Script": `
+function envoy_on_request(request_handle)
+  request_handle:headers():add("test", "test")
+end`,
+							},
+						},
+					}
+				}
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", nsFunc, nil, makeLambdaServiceDefaults(true))
+			},
+		},
 	}
 
 	latestEnvoyVersion := proxysupport.EnvoyVersions[0]
 	for _, envoyVersion := range proxysupport.EnvoyVersions {
-		sf, err := determineSupportedProxyFeaturesFromString(envoyVersion)
+		sf, err := xdscommon.DetermineSupportedProxyFeaturesFromString(envoyVersion)
 		require.NoError(t, err)
 		t.Run("envoy-"+envoyVersion, func(t *testing.T) {
 			for _, tt := range tests {
@@ -201,15 +224,15 @@ end`,
 					// We need to replace the TLS certs with deterministic ones to make golden
 					// files workable. Note we don't update these otherwise they'd change
 					// golden files for every test case and so not be any use!
-					setupTLSRootsAndLeaf(t, snap)
+					testcommon.SetupTLSRootsAndLeaf(t, snap)
 
-					g := newResourceGenerator(testutil.Logger(t), nil, false)
+					g := NewResourceGenerator(testutil.Logger(t), nil, false)
 					g.ProxyFeatures = sf
 
-					res, err := g.allResourcesFromSnapshot(snap)
+					res, err := g.AllResourcesFromSnapshot(snap)
 					require.NoError(t, err)
 
-					indexedResources := indexResources(g.Logger, res)
+					indexedResources := xdscommon.IndexResources(g.Logger, res)
 					cfgs := extensionruntime.GetRuntimeConfigurations(snap)
 					for _, extensions := range cfgs {
 						for _, ext := range extensions {

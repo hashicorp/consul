@@ -11,14 +11,10 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
-	envoy_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	envoy_config_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
-	envoy_endpoint_v3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
-	envoy_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	envoy_discovery_v3 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 
-	"github.com/hashicorp/go-hclog"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
@@ -121,7 +117,7 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 		currentVersions = make(map[string]map[string]string)
 	)
 
-	generator := newResourceGenerator(
+	generator := NewResourceGenerator(
 		s.Logger.Named(logging.XDS).With("xdsVersion", "v3"),
 		s.CfgFetcher,
 		true,
@@ -206,7 +202,7 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 			if node == nil && req.Node != nil {
 				node = req.Node
 				var err error
-				generator.ProxyFeatures, err = determineSupportedProxyFeatures(req.Node)
+				generator.ProxyFeatures, err = xdscommon.DetermineSupportedProxyFeatures(req.Node)
 				if err != nil {
 					return status.Errorf(codes.InvalidArgument, err.Error())
 				}
@@ -239,13 +235,13 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 			}
 			cfgSnap = cs
 
-			newRes, err := generator.allResourcesFromSnapshot(cfgSnap)
+			newRes, err := generator.AllResourcesFromSnapshot(cfgSnap)
 			if err != nil {
 				return status.Errorf(codes.Unavailable, "failed to generate all xDS resources from the snapshot: %v", err)
 			}
 
 			// index and hash the xDS structures
-			newResourceMap := indexResources(generator.Logger, newRes)
+			newResourceMap := xdscommon.IndexResources(generator.Logger, newRes)
 
 			if s.ResourceMapMutateFn != nil {
 				s.ResourceMapMutateFn(newResourceMap)
@@ -592,7 +588,7 @@ func newDeltaType(
 // Recv handles new discovery requests from envoy.
 //
 // Returns true the first time a type receives a request.
-func (t *xDSDeltaType) Recv(req *envoy_discovery_v3.DeltaDiscoveryRequest, sf supportedProxyFeatures) deltaRecvResponse {
+func (t *xDSDeltaType) Recv(req *envoy_discovery_v3.DeltaDiscoveryRequest, sf xdscommon.SupportedProxyFeatures) deltaRecvResponse {
 	if t == nil {
 		return deltaRecvUnknownType // not something we care about
 	}
@@ -985,39 +981,6 @@ func populateChildIndexMap(resourceMap *xdscommon.IndexedResources) error {
 	}
 
 	return nil
-}
-
-func indexResources(logger hclog.Logger, resources map[string][]proto.Message) *xdscommon.IndexedResources {
-	data := xdscommon.EmptyIndexedResources()
-
-	for typeURL, typeRes := range resources {
-		for _, res := range typeRes {
-			name := getResourceName(res)
-			if name == "" {
-				logger.Warn("skipping unexpected xDS type found in delta snapshot", "typeURL", typeURL)
-			} else {
-				data.Index[typeURL][name] = res
-			}
-		}
-	}
-
-	return data
-}
-
-func getResourceName(res proto.Message) string {
-	// NOTE: this only covers types that we currently care about for LDS/RDS/CDS/EDS
-	switch x := res.(type) {
-	case *envoy_listener_v3.Listener: // LDS
-		return x.Name
-	case *envoy_route_v3.RouteConfiguration: // RDS
-		return x.Name
-	case *envoy_cluster_v3.Cluster: // CDS
-		return x.Name
-	case *envoy_endpoint_v3.ClusterLoadAssignment: // EDS
-		return x.ClusterName
-	default:
-		return ""
-	}
 }
 
 func hashResourceMap(resources map[string]proto.Message) (map[string]string, error) {

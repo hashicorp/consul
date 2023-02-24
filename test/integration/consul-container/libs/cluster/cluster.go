@@ -522,3 +522,18 @@ func WaitForMembers(t *testing.T, client *api.Client, expectN int) {
 		require.Equal(r, expectN, activeMembers)
 	})
 }
+
+func (c *Cluster) ConfigEntryWrite(entry api.ConfigEntry) error {
+	client, _ := c.GetClient(nil, true)
+
+	entries := client.ConfigEntries()
+	written := false
+	written, _, err := entries.Set(entry, nil)
+	if err != nil {
+		return fmt.Errorf("error set config entry: %v", err)
+	}
+	if !written {
+		return fmt.Errorf("config entry not updated: %s/%s", entry.GetKind(), entry.GetName())
+	}
+	return err
+}

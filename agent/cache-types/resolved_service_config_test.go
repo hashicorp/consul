@@ -4,11 +4,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/mock"
-	"github.com/stretchr/testify/require"
-
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 )
 
 func TestResolvedServiceConfig(t *testing.T) {
@@ -31,9 +31,14 @@ func TestResolvedServiceConfig(t *testing.T) {
 			reply.ProxyConfig = map[string]interface{}{
 				"protocol": "http",
 			}
-			reply.UpstreamConfigs = map[string]map[string]interface{}{
-				"s2": {
-					"protocol": "http",
+			reply.UpstreamConfigs = structs.OpaqueUpstreamConfigs{
+				{
+					Upstream: structs.PeeredServiceName{
+						ServiceName: structs.NewServiceName("a", acl.DefaultEnterpriseMeta()),
+					},
+					Config: map[string]interface{}{
+						"protocol": "http",
+					},
 				},
 			}
 

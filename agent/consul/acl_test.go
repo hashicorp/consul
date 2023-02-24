@@ -213,7 +213,6 @@ func testPolicyForID(policyID string) (bool, *structs.ACLPolicy, error) {
 			Name:        "acl-ro",
 			Description: "acl-ro",
 			Rules:       `acl = "read"`,
-			Syntax:      acl.SyntaxCurrent,
 			RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 2},
 		}
 		p.SetHash(false)
@@ -224,7 +223,6 @@ func testPolicyForID(policyID string) (bool, *structs.ACLPolicy, error) {
 			Name:        "acl-wr",
 			Description: "acl-wr",
 			Rules:       `acl = "write"`,
-			Syntax:      acl.SyntaxCurrent,
 			RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 2},
 		}
 		p.SetHash(false)
@@ -235,7 +233,6 @@ func testPolicyForID(policyID string) (bool, *structs.ACLPolicy, error) {
 			Name:        "service-ro",
 			Description: "service-ro",
 			Rules:       `service_prefix "" { policy = "read" }`,
-			Syntax:      acl.SyntaxCurrent,
 			RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 2},
 		}
 		p.SetHash(false)
@@ -246,7 +243,6 @@ func testPolicyForID(policyID string) (bool, *structs.ACLPolicy, error) {
 			Name:        "service-wr",
 			Description: "service-wr",
 			Rules:       `service_prefix "" { policy = "write" }`,
-			Syntax:      acl.SyntaxCurrent,
 			RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 2},
 		}
 		p.SetHash(false)
@@ -257,7 +253,6 @@ func testPolicyForID(policyID string) (bool, *structs.ACLPolicy, error) {
 			Name:        "node-wr",
 			Description: "node-wr",
 			Rules:       `node_prefix "" { policy = "write"}`,
-			Syntax:      acl.SyntaxCurrent,
 			Datacenters: []string{"dc1"},
 			RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 2},
 		}
@@ -269,7 +264,6 @@ func testPolicyForID(policyID string) (bool, *structs.ACLPolicy, error) {
 			Name:        "dc2-key-wr",
 			Description: "dc2-key-wr",
 			Rules:       `key_prefix "" { policy = "write"}`,
-			Syntax:      acl.SyntaxCurrent,
 			Datacenters: []string{"dc2"},
 			RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 2},
 		}
@@ -1699,7 +1693,6 @@ func testACLResolver_variousTokens(t *testing.T, delegate *ACLResolverTestDelega
 				Name:        "acl-ro",
 				Description: "acl-ro",
 				Rules:       `acl = "read"`,
-				Syntax:      acl.SyntaxCurrent,
 				RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 2},
 			},
 		})
@@ -1733,7 +1726,6 @@ func testACLResolver_variousTokens(t *testing.T, delegate *ACLResolverTestDelega
 				Name:        "acl-ro",
 				Description: "acl-ro",
 				Rules:       `acl = "read"`,
-				Syntax:      acl.SyntaxCurrent,
 				RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 2},
 			},
 		})
@@ -1768,7 +1760,6 @@ func testACLResolver_variousTokens(t *testing.T, delegate *ACLResolverTestDelega
 				Name:        "acl-ro",
 				Description: "acl-ro",
 				Rules:       `acl = "read"`,
-				Syntax:      acl.SyntaxCurrent,
 				RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 2},
 			},
 		})
@@ -1793,7 +1784,6 @@ func testACLResolver_variousTokens(t *testing.T, delegate *ACLResolverTestDelega
 				Name:        "node-wr",
 				Description: "node-wr",
 				Rules:       `node_prefix "" { policy = "write"}`,
-				Syntax:      acl.SyntaxCurrent,
 				Datacenters: []string{"dc1"},
 				RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 2},
 			},
@@ -1802,7 +1792,6 @@ func testACLResolver_variousTokens(t *testing.T, delegate *ACLResolverTestDelega
 				Name:        "dc2-key-wr",
 				Description: "dc2-key-wr",
 				Rules:       `key_prefix "" { policy = "write"}`,
-				Syntax:      acl.SyntaxCurrent,
 				Datacenters: []string{"dc2"},
 				RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 2},
 			},
@@ -1836,7 +1825,6 @@ func testACLResolver_variousTokens(t *testing.T, delegate *ACLResolverTestDelega
 				Name:        "node-wr",
 				Description: "node-wr",
 				Rules:       `node_prefix "" { policy = "write"}`,
-				Syntax:      acl.SyntaxCurrent,
 				Datacenters: []string{"dc1"},
 				RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 2},
 			},
@@ -1845,7 +1833,6 @@ func testACLResolver_variousTokens(t *testing.T, delegate *ACLResolverTestDelega
 				Name:        "dc2-key-wr",
 				Description: "dc2-key-wr",
 				Rules:       `key_prefix "" { policy = "write"}`,
-				Syntax:      acl.SyntaxCurrent,
 				Datacenters: []string{"dc2"},
 				RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 2},
 			},
@@ -1874,7 +1861,6 @@ func testACLResolver_variousTokens(t *testing.T, delegate *ACLResolverTestDelega
 				Name:        "node-wr",
 				Description: "node-wr",
 				Rules:       `node_prefix "" { policy = "write"}`,
-				Syntax:      acl.SyntaxCurrent,
 				Datacenters: []string{"dc1"},
 				RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 2},
 			},
@@ -1883,7 +1869,6 @@ func testACLResolver_variousTokens(t *testing.T, delegate *ACLResolverTestDelega
 				Name:        "dc2-key-wr",
 				Description: "dc2-key-wr",
 				Rules:       `key_prefix "" { policy = "write"}`,
-				Syntax:      acl.SyntaxCurrent,
 				Datacenters: []string{"dc2"},
 				RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 2},
 			},
@@ -1901,7 +1886,6 @@ func testACLResolver_variousTokens(t *testing.T, delegate *ACLResolverTestDelega
 				Name:        "service-ro",
 				Description: "service-ro",
 				Rules:       `service_prefix "" { policy = "read" }`,
-				Syntax:      acl.SyntaxCurrent,
 				RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 2},
 			},
 		})
@@ -2072,7 +2056,6 @@ func testACLResolver_variousTokens(t *testing.T, delegate *ACLResolverTestDelega
 				Name:        "node-wr",
 				Description: "node-wr",
 				Rules:       `node_prefix "" { policy = "write"}`,
-				Syntax:      acl.SyntaxCurrent,
 				Datacenters: []string{"dc1"},
 				RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 2},
 			},
@@ -2098,7 +2081,6 @@ func testACLResolver_variousTokens(t *testing.T, delegate *ACLResolverTestDelega
 				Name:        "ixn-write",
 				Description: "ixn-write",
 				Rules:       `service_prefix "" { policy = "write" intentions = "write" }`,
-				Syntax:      acl.SyntaxCurrent,
 				RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 2},
 			},
 		})

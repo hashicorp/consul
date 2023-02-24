@@ -9,6 +9,8 @@ import (
 	envoy_endpoint_v3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	envoy_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
+	"github.com/hashicorp/consul/agent/xds/testcommon"
+	"github.com/hashicorp/consul/agent/xds/xdscommon"
 
 	testinf "github.com/mitchellh/go-testing-interface"
 	"github.com/stretchr/testify/require"
@@ -16,7 +18,6 @@ import (
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/xds/proxysupport"
-	"github.com/hashicorp/consul/agent/xds/xdscommon"
 	"github.com/hashicorp/consul/sdk/testutil"
 )
 
@@ -47,7 +48,7 @@ func TestAllResourcesFromSnapshot(t *testing.T) {
 
 	run := func(
 		t *testing.T,
-		sf supportedProxyFeatures,
+		sf xdscommon.SupportedProxyFeatures,
 		envoyVersion string,
 		latestEnvoyVersion string,
 		tt testcase,
@@ -61,20 +62,20 @@ func TestAllResourcesFromSnapshot(t *testing.T) {
 		// We need to replace the TLS certs with deterministic ones to make golden
 		// files workable. Note we don't update these otherwise they'd change
 		// golder files for every test case and so not be any use!
-		setupTLSRootsAndLeaf(t, snap)
+		testcommon.SetupTLSRootsAndLeaf(t, snap)
 
 		if tt.setup != nil {
 			tt.setup(snap)
 		}
 
 		// Need server just for logger dependency
-		g := newResourceGenerator(testutil.Logger(t), nil, false)
+		g := NewResourceGenerator(testutil.Logger(t), nil, false)
 		g.ProxyFeatures = sf
 		if tt.generatorSetup != nil {
 			tt.generatorSetup(g)
 		}
 
-		resources, err := g.allResourcesFromSnapshot(snap)
+		resources, err := g.AllResourcesFromSnapshot(snap)
 		require.NoError(t, err)
 
 		typeUrls := []string{
@@ -168,7 +169,7 @@ func TestAllResourcesFromSnapshot(t *testing.T) {
 
 	latestEnvoyVersion := proxysupport.EnvoyVersions[0]
 	for _, envoyVersion := range proxysupport.EnvoyVersions {
-		sf, err := determineSupportedProxyFeaturesFromString(envoyVersion)
+		sf, err := xdscommon.DetermineSupportedProxyFeaturesFromString(envoyVersion)
 		require.NoError(t, err)
 		t.Run("envoy-"+envoyVersion, func(t *testing.T) {
 			for _, tt := range tests {

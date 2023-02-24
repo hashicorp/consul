@@ -123,14 +123,6 @@ func golden(t *testing.T, name, subname, latestSubname, got string) string {
 	return string(expected)
 }
 
-func loadTestResource(t *testing.T, name string) string {
-	t.Helper()
-
-	expected, err := os.ReadFile(filepath.Join("testdata", name+".golden"))
-	require.NoError(t, err)
-	return string(expected)
-}
-
 func protoToJSON(t *testing.T, pb proto.Message) string {
 	t.Helper()
 	m := protojson.MarshalOptions{
