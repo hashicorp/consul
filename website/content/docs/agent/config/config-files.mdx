@@ -1650,14 +1650,13 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
       configure the `interval` and set [`enabled`](#raft_logstore_verification_enabled) 
       to `true` to correctly enable intervals. We recommend using an interval 
       between `30s` and `5m`. The performance overhead is insignificant if the 
-      interval is set to `5m` or less. We recommend setting an interval to
-      control how frequently the report logs appear for human observation.
+      interval is set to `5m` or less.
 
   - `boltdb` ((#raft_logstore_boltdb)) - Object that configures options for 
     Raft's `boltdb` backend. It has no effect if the `backend` is not `boltdb`.
 
     - `no_freelist_sync` ((#raft_logstore_boltdb_no_freelist_sync)) - Set to 
-    `true` to disable storing BoltDB freelist to disk within the
+    `true` to disable storing BoltDB's freelist to disk within the
     `raft.db` file. Disabling freelist syncs reduces the disk IO required
     for write operations, but could potentially increase start up time
     because Consul must scan the database to find free space
