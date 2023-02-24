@@ -7,7 +7,9 @@ description: >-
 
 # Enable the experimental WAL LogStore backend
 
-This topic describes how to safely configure and test the WAL backend in your Consul deployment. The following steps describe the general process for enabling the WAL `LogStore` backend for a single server. Repeat the steps for each Consul server.
+This topic describes how to safely configure and test the WAL backend in your Consul deployment. 
+
+The overall process for enabling the WAL LogStore backend for one server consists of the following steps. We recommend only enabling on a single server at first in production environments. If you eventually choose to expand the test to further servers, you will need to repeat these steps for each one.
 
 1. Enable log verification.
 1. Select target server to enable WAL.
@@ -17,7 +19,7 @@ This topic describes how to safely configure and test the WAL backend in your Co
 1. Start the target server.
 1. Monitor target server raft metrics and logs. 
 
-!> **Upgrade warning:** The WAL LogStore backend is experimental.
+!> **Experimental feature:** The WAL LogStore backend is experimental.
 
 ## Requirements
 

@@ -11,21 +11,10 @@ This topic describes how to revert your Consul storage backend from the experime
 
 The overall process for reverting to BoltDB consists of the following steps. Repeat the steps for all Consul servers that you need to revert.
 
-1. Select target server.
 1. Stop target server gracefully.
 1. Remove data directory from target server.
 1. Update target server's configuration.
 1. Start target server.
-
-## Select target server
-
-If you are using Consul OSS or Consul Enterprise without non-voting servers, select one of the follower servers. As noted in [Risks](/consul/docs/agent/wal-logstore/enable#risks), Consul Enterprise users with non-voting servers should begin the procedure with a non-voting server.
-
-Run the following command to retrieve the current state of the servers:
-
-```shell-session
-$ consul operator raft list-peers
-```
 
 ## Stop target server gracefully
 
@@ -42,10 +31,10 @@ If your environment uses configuration management automation that might interfer
 
 Temporarily moving the data directory to a different location is less destructive than deleting it. We recommend doing this in case you unsuccessfully enable WAL. Do not use the old data directory (`/data-dir/raft.bak`) for recovery after restarting the server. We recommend eventually deleting the old directory.
 
-The following example assumes the `data_dir` in the server's configuration is `/data-dir` and renames it to `/data-dir.bak`.
+The following example assumes the `data_dir` in the server's configuration is `/data-dir` and renames it to `/data-dir.wal.bak`.
 
 ```shell-session
-$ mv /data-dir/raft /data-dir/raft.bak
+$ mv /data-dir/raft /data-dir/raft.wal.bak
 ```
 
 When switching backend, you must always remove the _whole raft directory_ not just the `raft.db` file or `wal` directory. This is because the log must always be consistent with the snapshots to avoid undefined behavior or data loss.

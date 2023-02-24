@@ -9,7 +9,7 @@ description: >-
 
 This topic provides an overview of the experimental WAL (write-ahead log) LogStore backend. 
 
-!> **Upgrade warning:** The WAL LogStore backend is experimental.
+!> **Experimental feature:** The WAL LogStore backend is experimental.
 
 ## WAL versus BoltDB
 
@@ -23,7 +23,7 @@ A burst of writes at double or triple the normal volume can suddenly cause the l
 
 To track the free space, Consul must write extra metadata to disk with every write. The metadata is proportional to the amount of free pages, so after a large burst write latencies tend to increase. In some cases, the latencies cause serious performance degradation to the cluster.
 
-To mitigate risks associated with sudden bursts of log data, Consul prevents too many logs from accumulating in the `LogStore`. Significantly larger BoltDB files are generally slower to process because the file is structured as a tree. As a result, Consul must iterate through the log for each write. 
+To mitigate risks associated with sudden bursts of log data, Consul tries to limit lots of logs from accumulating in the LogStore. Significantly larger BoltDB files are slower to append to because the tree is deeper and freelist larger. For this reason, Consul's default options associated with snapshots, truncating logs, and keeping the log history have been aggressively set toward keeping BoltDB small rather than using disk IO optimally. 
 
 But the larger the file, the more likely it is to have a large freelist or suddenly form one after a burst of writes. For this reason, the many of Consul's default options asssociated with snapshots, truncating logs, and keeping the log history aggressively keep BoltDT small rather than uisng disk IO more efficiently. 
 
@@ -31,10 +31,7 @@ Other reliability issues, such as [raft replication capacity issues](/consul/doc
 
 ### WAL approaches storage issues differently
 
-Although some users may not experience a significant difference in performance, the WAL backend avoids performance concerns associated with BoltDB. When directly measured, WAL is more performant than BoltDB because it solves a simpler storage problem than BoltDB was designed to solve. For example, WAL can commit a single log entry with one `fsync` instead
-of two and tends to write two to three fewer bytes to the disk to commit the `fsync`. 
-
-The primary benefit is that retaining more logs does not affect write performance. As a result, strategies for reducing disk IO with slower snapshots or for keeping logs to permit slower followers to catch up with cluster state are all possible.
+When directly measured, WAL is more performant than BoltDB because it solves a simpler storage problem. Despite this, some users may not notice a significant performance improvement from the upgrade with the same configuration and workload. In this case, the benefit of WAL is that retaining more logs does not affect write performance. As a result, strategies for reducing disk IO with slower snapshots or for keeping logs to permit slower followers to catch up with cluster state are all possible, increasing the reliability of the deployment.
 
 ## WAL quality assurance
 
