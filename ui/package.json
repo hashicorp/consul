@@ -23,6 +23,6 @@
     "ember-basic-dropdown": "3.0.21"
   },
   "engines": {
-    "node": "12.* || 14.* || >= 16"
+    "node": ">=14 <=16"
   }
 }
