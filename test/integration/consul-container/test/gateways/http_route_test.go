@@ -221,12 +221,9 @@ func TestHTTPRouteFlattening(t *testing.T) {
 	}, time.Second*10, time.Second*1)
 
 	//gateway resolves routes
-
 	ip := "localhost"
 	gatewayPort, err := gatewayService.GetPort(listenerPort)
 	assert.NoError(t, err)
-
-	//route 2 with headers
 
 	//Same v2 path with and without header
 	checkRoute(t, ip, gatewayPort, "v2", map[string]string{
