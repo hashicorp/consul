@@ -125,27 +125,21 @@ func TestTrafficManagement_ServiceResolverSubsetRedirect(t *testing.T) {
 func (s *registeredServices) validateAgentServices(t *testing.T) (func(), func()) {
 	var (
 		responseFormat = map[string]string{"format": "json"}
-		servicePort    = make(map[string]int)
 		proxyRestartFn func()
 		assertionFn    func()
 	)
-
-	for serviceName, proxies := range s.services {
-		for _, proxy := range proxies {
-			_, adminPort := proxy.GetAdminAddr()
-			servicePort[serviceName] = adminPort
-		}
-	}
-
+	// validate services proxy admin is up
 	assertionFn = func() {
-		// validate services proxy admin is up
-		for serviceName, adminPort := range servicePort {
-			_, statusCode, err := libassert.GetEnvoyOutput(adminPort, "stats", responseFormat)
-			require.NoError(t, err)
-			assert.Equal(t, http.StatusOK, statusCode, fmt.Sprintf("%s cannot be reached %v", serviceName, statusCode))
+		for serviceName, proxies := range s.services {
+			for _, proxy := range proxies {
+				_, adminPort := proxy.GetAdminAddr()
+				_, statusCode, err := libassert.GetEnvoyOutput(adminPort, "stats", responseFormat)
+				require.NoError(t, err)
+				assert.Equal(t, http.StatusOK, statusCode, fmt.Sprintf("%s cannot be reached %v", serviceName, statusCode))
 
-			// certs are valid
-			libassert.AssertEnvoyPresentsCertURI(t, adminPort, serviceName)
+				// certs are valid
+				libassert.AssertEnvoyPresentsCertURI(t, adminPort, serviceName)
+			}
 		}
 	}
 
