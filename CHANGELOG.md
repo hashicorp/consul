@@ -2,15 +2,15 @@
 
 BREAKING CHANGES:
 
-* acl errors: Delete and get requests now return descriptive errors when the specified resource cannot be found. Other ACL request errors provide more information about when a resource is missing. Add error for when the ACL system has not been bootstrapped.
-1. Delete Token/Policy/AuthMethod/Role/BindingRule endpoints now return 404 when the resource cannot be found.
-  - New error formats: "Requested * does not exist: ACL not found", "* not found in namespace $NAMESPACE: ACL not found"
-3. Read Token/Policy/Role endpoints now return 404 when the resource cannot be found.
-  - New error format: "Cannot find * to delete"
-4. Logout now returns a 401 error when the supplied token cannot be found
-  - New error format: "Supplied token does not exist"
-5. Token Self endpoint now returns 404 when the token cannot be found.
-  - New error format: "Supplied token does not exist" [[GH-16105](https://github.com/hashicorp/consul/issues/16105)]
+* acl errors: Delete and get requests now return descriptive errors when the specified resource cannot be found. Other ACL request errors provide more information about when a resource is missing. Add error for when the ACL system has not been bootstrapped. 
+  + Delete Token/Policy/AuthMethod/Role/BindingRule endpoints now return 404 when the resource cannot be found.
+    - New error formats: "Requested * does not exist: ACL not found", "* not found in namespace $NAMESPACE: ACL not found"
+  + Read Token/Policy/Role endpoints now return 404 when the resource cannot be found.
+    - New error format: "Cannot find * to delete"
+  + Logout now returns a 401 error when the supplied token cannot be found
+    - New error format: "Supplied token does not exist"
+  + Token Self endpoint now returns 404 when the token cannot be found.
+    - New error format: "Supplied token does not exist" [[GH-16105](https://github.com/hashicorp/consul/issues/16105)]
 * acl: remove all acl migration functionality and references to the legacy acl system. [[GH-15947](https://github.com/hashicorp/consul/issues/15947)]
 * acl: remove all functionality and references for legacy acl policies. [[GH-15922](https://github.com/hashicorp/consul/issues/15922)]
 * config: Deprecate `-join`, `-join-wan`, `start_join`, and `start_join_wan`.
