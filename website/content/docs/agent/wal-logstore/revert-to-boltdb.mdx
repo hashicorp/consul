@@ -7,9 +7,9 @@ description: >-
 
 # Revert storage backend to BoltDB from WAL 
 
-This topic describes revert your Consul storage backend from the experimental WAL LogStorage backend to the default BoltDB.
+This topic describes how to revert your Consul storage backend from the experimental WAL LogStore backend to the default BoltDB.
 
-The overall process for reverting to BoltDB consists of the following steps. Repeat the steps for all Consul servers that you need to revrt.
+The overall process for reverting to BoltDB consists of the following steps. Repeat the steps for all Consul servers that you need to revert.
 
 1. Select target server.
 1. Stop target server gracefully.
@@ -80,7 +80,7 @@ $ consul operator raft list-peers
 
 ### Clean up old data directories
 
-If necessary, cleanup any `raft.bak` directories. Replace `/data-dir` the value you have specified in your configuration file.
+If necessary, cleanup any `raft.wal.bak` directories. Replace `/data-dir` with the value you have specified in your configuration file.
 
 ```shell-session
 $ rm /data-dir/raft.bak

@@ -13,7 +13,7 @@ This topic describes how to monitor Raft metrics and logs if you are testing the
 
 ## Monitor for checksum failures
 
-Log store verification failures on any server, regardless of whether you are running the BoltDB or WAL backed, are unrecoverable error. Consul may report the following errors.
+Log store verification failures on any server, regardless of whether you are running the BoltDB or WAL backed, are unrecoverable errors. Consul may report the following errors in logs.
 
 ### Read failures: Disk Corruption
 
@@ -21,25 +21,25 @@ Log store verification failures on any server, regardless of whether you are run
 2022-11-15T22:41:23.546Z [ERROR]  agent.raft.logstore: verification checksum FAILED: storage corruption rangeStart=1234 rangeEnd=3456 leaderChecksum=0xc1... readChecksum=0x45...
 ```
 
-This indicates that the server read back data that is different from what it wrote to disk, which signals corruption in the storage backend or filesystem.
+This indicates that the server read back data that is different from what it wrote to disk. This indicates corruption in the storage backend or filesystem.
 
 For convenience, we also increment a metric `consul.raft.logstore.verifier.read_checksum_failures` when this occurs.
 
 ### Write failures: In-flight Corruption
 
-The following error indicates that the checksum on the follower did not match the leader when the leader _wrote_ the logs. The error implies that the corruption happened in the network or software and not the log store:
+The following error indicates that the checksum on the follower did not match the leader when the follower received the logs. The error implies that the corruption happened in the network or software and not the log store:
 
 ```log hideClipboard
 2022-11-15T22:41:23.546Z [ERROR]  agent.raft.logstore: verification checksum FAILED: in-flight corruption rangeStart=1234 rangeEnd=3456 leaderChecksum=0xc1... followerWriteChecksum=0x45...
 ```
 
-It is unlikely that this error indicates an issue with the storage backend, but you should take steps to resolve it.
+It is unlikely that this error indicates an issue with the storage backend, but you should take the same steps to resolve and report it.
 
 The `consul.raft.logstore.verifier.write_checksum_failures` increments when this error occurs.
 
 ## Resolve checksum failures
 
-If either type of corruption is detected, complete the instruction for [reverting to BoltDB](/consul/docs/agent/wal-logstore/revert-to-boltdb). If the server already uses BoltDB, the errors likely idicate a latent bug in BoltDB or a bug in the verification code, but you should still follow the revert instructions. 
+If either type of corruption is detected, complete the instructions for [reverting to BoltDB](/consul/docs/agent/wal-logstore/revert-to-boltdb). If the server already uses BoltDB, the errors likely indicate a latent bug in BoltDB or a bug in the verification code, but you should still follow the revert instructions. 
 
 Report all verification failures as a [GitHub
 issue](https://github.com/hashicorp/consul/issues/new?assignees=&labels=&template=bug_report.md&title=WAL:%20Checksum%20Failure).

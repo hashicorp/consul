@@ -27,7 +27,7 @@ This topic describes how to safely configure and test the WAL backend in your Co
 We recommend taking the following additional measures:
 
 - Take a snapshot prior to testing.
-- Monitor Consul server metrics and logs and sett an alert on specific log events that occur when WAL is enabled.
+- Monitor Consul server metrics and logs and set an alert on specific log events that occur when WAL is enabled. Refer to [Monitor Raft metrics and logs for WAL](/consul/docs/agent/wal-logstore/monitoring) for more information.
 - Enable WAL in a pre-production environment and run it for a several days before enabling it in production.
 
 ## Risks

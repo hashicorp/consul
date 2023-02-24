@@ -27,7 +27,7 @@ To mitigate risks associated with sudden bursts of log data, Consul prevents too
 
 But the larger the file, the more likely it is to have a large freelist or suddenly form one after a burst of writes. For this reason, the many of Consul's default options asssociated with snapshots, truncating logs, and keeping the log history aggressively keep BoltDT small rather than uisng disk IO more efficiently. 
 
-Other reliability issues, such as [raft replication capacity issues](/consul/docs/agent/telemetry#raft-replication-capacity-issues), are also related to balancing the size of the BoltDB log store and length of snapshots. 
+Other reliability issues, such as [raft replication capacity issues](/consul/docs/agent/telemetry#raft-replication-capacity-issues), are much simpler to solve without the performance concerns caused by storing more logs in BoltDB. 
 
 ### WAL approaches storage issues differently
 
@@ -40,7 +40,7 @@ The primary benefit is that retaining more logs does not affect write performanc
 
 The WAL backend has been tested thoroughly during development:
 
-- Every component in the WAL, such as [metadata management](https://github.com/hashicorp/raft-wal/blob/main/types/meta.go), [log file encoding](https://github.com/hashicorp/raft-wal/blob/main/types/segment.go) to actual [file-system interaction](https://github.com/hashicorp/raft-wal/blob/main/types/vfs.go) were abstracted so unit tests can simulate difficult-to-reproduce disk failures.
+- Every component in the WAL, such as [metadata management](https://github.com/hashicorp/raft-wal/blob/main/types/meta.go), [log file encoding](https://github.com/hashicorp/raft-wal/blob/main/types/segment.go) to actual [file-system interaction](https://github.com/hashicorp/raft-wal/blob/main/types/vfs.go) are abstracted so unit tests can simulate difficult-to-reproduce disk failures.
  
 - We used the [application-level intelligent crash explorer (ALICE)](https://github.com/hashicorp/raft-wal/blob/main/alice/README.md) to exhaustively simulate thousands of possible crash failure scenarios. WAL correctly recovered from all scenarios.
 
@@ -48,4 +48,4 @@ The WAL backend has been tested thoroughly during development:
 
 We are aware of how complex and critical disk-persistence is for your data.
 
-Our goal is that many users at all degrees of scale try WAL in their environments after upgrading to 1.15 or later and report success or failure so that we can confidently replace BoltDB before as the default for new clusters.
+We hope that many users at different scales will try WAL in their environments after upgrading to 1.15 or later and report success or failure so that we can confidently replace BoltDB as the default for new clusters in a future release.
