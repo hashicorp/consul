@@ -33,7 +33,7 @@ func TestNewMultiLimiter(t *testing.T) {
 func TestRateLimiterUpdate(t *testing.T) {
 	c := Config{LimiterConfig: LimiterConfig{Rate: 0.1}, ReconcileCheckLimit: 1 * time.Hour, ReconcileCheckInterval: 10 * time.Millisecond}
 	m := NewMultiLimiter(c)
-	key := makeKey([]byte("test"))
+	key := Key([]byte("test"))
 
 	//Allow a key
 	m.Allow(Limited{key: key})
@@ -77,7 +77,7 @@ func TestRateLimiterCleanup(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	m.Run(ctx)
-	key := makeKey([]byte("test"))
+	key := Key([]byte("test"))
 	m.Allow(Limited{key: key})
 	retry.RunWith(&retry.Timer{Wait: 100 * time.Millisecond, Timeout: 2 * time.Second}, t, func(r *retry.R) {
 		l := m.limiters.Load()
@@ -279,6 +279,53 @@ func TestRateLimiterUpdateConfig(t *testing.T) {
 		limiter := l.(*Limiter)
 		require.True(t, c1.isApplied(limiter.limiter))
 	})
+	t.Run("Allow an IP with prefix and check prefix config is applied to new keys under that prefix", func(t *testing.T) {
+		c := Config{LimiterConfig: LimiterConfig{Rate: 0.1}, ReconcileCheckLimit: 100 * time.Millisecond, ReconcileCheckInterval: 10 * time.Millisecond}
+		m := NewMultiLimiter(c)
+		require.Equal(t, *m.defaultConfig.Load(), c)
+		c1 := LimiterConfig{Rate: 3}
+		prefix := Key([]byte("ip.ratelimit"), []byte("127.0"))
+		m.UpdateConfig(c1, prefix)
+		ip := Key([]byte("ip.ratelimit"), []byte("127.0.0.1"))
+		m.Allow(ipLimited{key: ip})
+		storeLimiter(m)
+		load := m.limiters.Load()
+		l, ok := load.Get(ip)
+		require.True(t, ok)
+		require.NotNil(t, l)
+		limiter := l.(*Limiter)
+		require.True(t, c1.isApplied(limiter.limiter))
+	})
+
+	t.Run("Allow an IP with 2 prefixes and check prefix config is applied to new keys under that prefix", func(t *testing.T) {
+		c := Config{LimiterConfig: LimiterConfig{Rate: 0.1}, ReconcileCheckLimit: 100 * time.Millisecond, ReconcileCheckInterval: 10 * time.Millisecond}
+		m := NewMultiLimiter(c)
+		require.Equal(t, *m.defaultConfig.Load(), c)
+		c1 := LimiterConfig{Rate: 3}
+		prefix := Key([]byte("ip.ratelimit"), []byte("127.0"))
+		m.UpdateConfig(c1, prefix)
+		prefix = Key([]byte("ip.ratelimit"), []byte("127.0.0"))
+		c2 := LimiterConfig{Rate: 6}
+		m.UpdateConfig(c2, prefix)
+		ip := Key([]byte("ip.ratelimit"), []byte("127.0.0.1"))
+		m.Allow(ipLimited{key: ip})
+		storeLimiter(m)
+		load := m.limiters.Load()
+		l, ok := load.Get(ip)
+		require.True(t, ok)
+		require.NotNil(t, l)
+		limiter := l.(*Limiter)
+		require.True(t, c2.isApplied(limiter.limiter))
+		ip = Key([]byte("ip.ratelimit"), []byte("127.0.1.1"))
+		m.Allow(ipLimited{key: ip})
+		storeLimiter(m)
+		load = m.limiters.Load()
+		l, ok = load.Get(ip)
+		require.True(t, ok)
+		require.NotNil(t, l)
+		limiter = l.(*Limiter)
+		require.True(t, c1.isApplied(limiter.limiter))
+	})
 
 	t.Run("Allow an IP with prefix and check after it's cleaned new Allow would give it the right defaultConfig", func(t *testing.T) {
 		c := Config{LimiterConfig: LimiterConfig{Rate: 0.1}, ReconcileCheckLimit: 100 * time.Millisecond, ReconcileCheckInterval: 10 * time.Millisecond}
@@ -304,10 +351,10 @@ func FuzzSingleConfig(f *testing.F) {
 	c := Config{LimiterConfig: LimiterConfig{Rate: 0.1}, ReconcileCheckLimit: 100 * time.Millisecond, ReconcileCheckInterval: 10 * time.Millisecond}
 	m := NewMultiLimiter(c)
 	require.Equal(f, *m.defaultConfig.Load(), c)
-	f.Add(makeKey(randIP()))
-	f.Add(makeKey(randIP(), randIP()))
-	f.Add(makeKey(randIP(), randIP(), randIP()))
-	f.Add(makeKey(randIP(), randIP(), randIP(), randIP()))
+	f.Add(Key(randIP()))
+	f.Add(Key(randIP(), randIP()))
+	f.Add(Key(randIP(), randIP(), randIP()))
+	f.Add(Key(randIP(), randIP(), randIP(), randIP()))
 	f.Fuzz(func(t *testing.T, ff []byte) {
 		m.Allow(Limited{key: ff})
 		storeLimiter(m)
@@ -317,9 +364,9 @@ func FuzzSingleConfig(f *testing.F) {
 }
 
 func FuzzSplitKey(f *testing.F) {
-	f.Add(makeKey(randIP(), randIP()))
-	f.Add(makeKey(randIP(), randIP(), randIP()))
-	f.Add(makeKey(randIP(), randIP(), randIP(), randIP()))
+	f.Add(Key(randIP(), randIP()))
+	f.Add(Key(randIP(), randIP(), randIP()))
+	f.Add(Key(randIP(), randIP(), randIP(), randIP()))
 	f.Add([]byte(""))
 	f.Fuzz(func(t *testing.T, ff []byte) {
 		prefix, suffix := splitKey(ff)
@@ -342,7 +389,7 @@ func checkLimiter(t require.TestingT, ff []byte, Tree *radix.Txn) {
 
 func FuzzUpdateConfig(f *testing.F) {
 
-	f.Add(bytes.Join([][]byte{[]byte(""), makeKey(randIP()), makeKey(randIP(), randIP()), makeKey(randIP(), randIP(), randIP()), makeKey(randIP(), randIP(), randIP(), randIP())}, []byte(",")))
+	f.Add(bytes.Join([][]byte{[]byte(""), Key(randIP()), Key(randIP(), randIP()), Key(randIP(), randIP(), randIP()), Key(randIP(), randIP(), randIP(), randIP())}, []byte(",")))
 	f.Fuzz(func(t *testing.T, ff []byte) {
 		cm := Config{LimiterConfig: LimiterConfig{Rate: 0.1}, ReconcileCheckLimit: 1 * time.Millisecond, ReconcileCheckInterval: 1 * time.Millisecond}
 		m := NewMultiLimiter(cm)
@@ -508,4 +555,13 @@ type mockTicker struct {
 
 func (m *mockTicker) Ticker() <-chan time.Time {
 	return m.tickerCh
+}
+
+func splitKey(key []byte) ([]byte, []byte) {
+
+	ret := bytes.SplitN(key, []byte(separator), 2)
+	if len(ret) != 2 {
+		return []byte(""), []byte("")
+	}
+	return ret[0], ret[1]
 }

@@ -62,12 +62,12 @@ func makeLogVerifyReportFn(logger hclog.Logger) verifier.ReportFn {
 			if r.WrittenSum > 0 && r.WrittenSum != r.ExpectedSum {
 				// The failure occurred before the follower wrote to the log so it
 				// must be corrupted in flight from the leader!
-				l2.Info("verification checksum FAILED: in-flight corruption",
+				l2.Error("verification checksum FAILED: in-flight corruption",
 					"followerWriteChecksum", fmt.Sprintf("%08x", r.WrittenSum),
 					"readChecksum", fmt.Sprintf("%08x", r.ReadSum),
 				)
 			} else {
-				l2.Info("verification checksum FAILED: storage corruption",
+				l2.Error("verification checksum FAILED: storage corruption",
 					"followerWriteChecksum", fmt.Sprintf("%08x", r.WrittenSum),
 					"readChecksum", fmt.Sprintf("%08x", r.ReadSum),
 				)

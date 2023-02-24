@@ -79,18 +79,29 @@ func (e *HTTPRouteConfigEntry) Normalize() error {
 	for i, parent := range e.Parents {
 		if parent.Kind == "" {
 			parent.Kind = APIGateway
-			e.Parents[i] = parent
 		}
+		parent.EnterpriseMeta.Normalize()
+		e.Parents[i] = parent
 	}
 
 	for i, rule := range e.Rules {
 		for j, match := range rule.Matches {
 			rule.Matches[j] = normalizeHTTPMatch(match)
 		}
+
+		for j, service := range rule.Services {
+			rule.Services[j] = normalizeHTTPService(service)
+		}
 		e.Rules[i] = rule
 	}
 
 	return nil
+}
+
+func normalizeHTTPService(service HTTPService) HTTPService {
+	service.EnterpriseMeta.Normalize()
+
+	return service
 }
 
 func normalizeHTTPMatch(match HTTPMatch) HTTPMatch {
@@ -200,16 +211,14 @@ func validateFilters(filter HTTPFilters) error {
 		}
 	}
 
-	for i, rewrite := range filter.URLRewrites {
-		if err := validateURLRewrite(rewrite); err != nil {
-			return fmt.Errorf("HTTPFilters, URLRewrite[%d], %w", i, err)
-		}
+	if err := validateURLRewrite(filter.URLRewrite); err != nil {
+		return fmt.Errorf("HTTPFilters, URLRewrite, %w", err)
 	}
 
 	return nil
 }
 
-func validateURLRewrite(rewrite URLRewrite) error {
+func validateURLRewrite(rewrite *URLRewrite) error {
 	// TODO: we don't really have validation of the actual params
 	// passed as "PrefixRewrite" in our discoverychain config
 	// entries, figure out if we should have something here
@@ -392,8 +401,8 @@ type HTTPQueryMatch struct {
 // HTTPFilters specifies a list of filters used to modify a request
 // before it is routed to an upstream.
 type HTTPFilters struct {
-	Headers     []HTTPHeaderFilter
-	URLRewrites []URLRewrite
+	Headers    []HTTPHeaderFilter
+	URLRewrite *URLRewrite
 }
 
 // HTTPHeaderFilter specifies how HTTP headers should be modified.
@@ -494,9 +503,16 @@ func (e *TCPRouteConfigEntry) Normalize() error {
 	for i, parent := range e.Parents {
 		if parent.Kind == "" {
 			parent.Kind = APIGateway
-			e.Parents[i] = parent
 		}
+		parent.EnterpriseMeta.Normalize()
+		e.Parents[i] = parent
 	}
+
+	for i, service := range e.Services {
+		service.EnterpriseMeta.Normalize()
+		e.Services[i] = service
+	}
+
 	return nil
 }
 
@@ -536,9 +552,6 @@ func (e *TCPRouteConfigEntry) CanWrite(authz acl.Authorizer) error {
 // TCPService is a service reference for a TCPRoute
 type TCPService struct {
 	Name string
-	// Weight specifies the proportion of requests forwarded to the referenced service.
-	// This is computed as weight/(sum of all weights in the list of services).
-	Weight int
 
 	acl.EnterpriseMeta
 }

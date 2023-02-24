@@ -1,6 +1,7 @@
 package xds
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"os"
@@ -8,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/go-version"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
@@ -83,12 +85,16 @@ func golden(t *testing.T, name, subname, latestSubname, got string) string {
 
 	golden := filepath.Join("testdata", name+suffix)
 
-	// Always load the latest golden file if configured to do so.
-	latestExpected := ""
-	if latestSubname != "" && subname != latestSubname {
-		latestGolden := filepath.Join("testdata", fmt.Sprintf("%s.%s.golden", name, latestSubname))
-		raw, err := os.ReadFile(latestGolden)
-		require.NoError(t, err, "%q %q %q", name, subname, latestSubname)
+	var latestGoldenPath, latestExpected string
+	isLatest := subname == latestSubname
+	// Include latestSubname in the latest golden path if it exists.
+	if latestSubname == "" {
+		latestGoldenPath = filepath.Join("testdata", fmt.Sprintf("%s.golden", name))
+	} else {
+		latestGoldenPath = filepath.Join("testdata", fmt.Sprintf("%s.%s.golden", name, latestSubname))
+	}
+
+	if raw, err := os.ReadFile(latestGoldenPath); err == nil {
 		latestExpected = string(raw)
 	}
 
@@ -97,8 +103,14 @@ func golden(t *testing.T, name, subname, latestSubname, got string) string {
 	//
 	// To trim down PRs, we only create per-version golden files if they differ
 	// from the latest version.
+
 	if *update && got != "" {
-		if latestExpected == got {
+		var gotInterface, latestExpectedInterface interface{}
+		json.Unmarshal([]byte(got), &gotInterface)
+		json.Unmarshal([]byte(latestExpected), &latestExpectedInterface)
+
+		// Remove non-latest golden files if they are the same as the latest one.
+		if !isLatest && assert.ObjectsAreEqualValues(gotInterface, latestExpectedInterface) {
 			// In update mode we erase a golden file if it is identical to
 			// the golden file corresponding to the latest version of
 			// envoy.
@@ -109,7 +121,12 @@ func golden(t *testing.T, name, subname, latestSubname, got string) string {
 			return got
 		}
 
-		require.NoError(t, os.WriteFile(golden, []byte(got), 0644))
+		// We use require.JSONEq to compare values and ObjectsAreEqualValues is used
+		// internally by that function to compare the string JSON values. This only
+		// writes updates the golden file when they actually change.
+		if !assert.ObjectsAreEqualValues(gotInterface, latestExpectedInterface) {
+			require.NoError(t, os.WriteFile(golden, []byte(got), 0644))
+		}
 		return got
 	}
 

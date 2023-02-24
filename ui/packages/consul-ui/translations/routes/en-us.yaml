@@ -5,8 +5,8 @@ dc:
       title: Server status
       unassigned: Unassigned Zones
       tolerance:
-        link: |
-          <a href="{CONSUL_DOCS_URL}/architecture/improving-consul-resilience#strategies-to-increase-fault-tolerance" target="_blank" rel="noopener noreferrer">Learn how to improve fault tolerance</a>
+        link-text: Learn how to improve fault tolerance
+        link: /architecture/improving-consul-resilience#strategies-to-increase-fault-tolerance
         header: Server fault tolerance
         immediate:
           header: Immediate
@@ -34,25 +34,16 @@ dc:
             </p>
       documentation:
         title: Learn More
-        body: |
-          <ul>
-            <li>
-              <a href="{CONSUL_DOCS_URL}/enterprise/license/faq#q-is-there-a-grace-period-when-licenses-expire" target="_blank" rel="noopener noreferrer">
-                License expiration
-              </a>
-            </li>
-            <li>
-              <a href="{CONSUL_DOCS_URL}/enterprise/license/faq#q-how-can-i-renew-a-license" target="_blank" rel="noopener noreferrer">
-                Renewing a license
-              </a>
-            </li>
-            <li>
-              <a href="{CONSUL_DOCS_LEARN_URL}/tutorials/nomad/hashicorp-enterprise-license?in=consul/enterprise" target="_blank" rel="noopener noreferrer">
-                Applying a new license
-              </a>
-            </li>
-          </ul>
-
+        links:
+          license-expiration:
+            text: License expiration
+            link: '/enterprise/license/faq#q-is-there-a-grace-period-when-licenses-expire'
+          renewing-license:
+            text: Renewing a license
+            link: '/enterprise/license/faq#q-how-can-i-renew-a-license'
+          applying-new-license:
+            text: Applying a new license
+            link: '/tutorials/nomad/hashicorp-enterprise-license?in=consul/enterprise'
   nodes:
     index:
       agentless:
@@ -265,10 +256,9 @@ dc:
             <p>
               The upstreams listed on this page have been defined in a proxy registration. There may be more upstreams, though, as "transparent" mode is enabled on this proxy.
             </p>
-          footer: |
-            <p>
-              <a href="{CONSUL_DOCS_URL}/connect/transparent-proxy" target="_blank" rel="noopener noreferrer">Read the documentation
-            </p>
+          footer:
+            link: "/connect/transparent-proxy"
+            text: Read the documentation
         empty: |
           <p>
             This Service Instance has no Upstreams{items, select,

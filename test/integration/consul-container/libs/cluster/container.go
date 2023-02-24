@@ -26,8 +26,9 @@ const bootLogLine = "Consul agent running"
 const disableRYUKEnv = "TESTCONTAINERS_RYUK_DISABLED"
 
 // Exposed ports info
-const MaxEnvoyOnNode = 10                 // the max number of Envoy sidecar can run along with the agent, base is 19000
-const ServiceUpstreamLocalBindPort = 5000 // local bind Port of service's upstream
+const MaxEnvoyOnNode = 10                  // the max number of Envoy sidecar can run along with the agent, base is 19000
+const ServiceUpstreamLocalBindPort = 5000  // local bind Port of service's upstream
+const ServiceUpstreamLocalBindPort2 = 5001 // local bind Port of service's upstream, for services with 2 upstreams
 
 // consulContainerNode implements the Agent interface by running a Consul agent
 // in a container.
@@ -72,7 +73,7 @@ func (c *consulContainerNode) ClaimAdminPort() (int, error) {
 }
 
 // NewConsulContainer starts a Consul agent in a container with the given config.
-func NewConsulContainer(ctx context.Context, config Config, cluster *Cluster) (Agent, error) {
+func NewConsulContainer(ctx context.Context, config Config, cluster *Cluster, ports ...int) (Agent, error) {
 	network := cluster.NetworkName
 	index := cluster.Index
 	if config.ScratchDir == "" {
@@ -127,7 +128,7 @@ func NewConsulContainer(ctx context.Context, config Config, cluster *Cluster) (A
 		addtionalNetworks: []string{"bridge", network},
 		hostname:          fmt.Sprintf("agent-%d", index),
 	}
-	podReq, consulReq := newContainerRequest(config, opts)
+	podReq, consulReq := newContainerRequest(config, opts, ports...)
 
 	// Do some trickery to ensure that partial completion is correctly torn
 	// down, but successful execution is not.
@@ -288,6 +289,10 @@ func NewConsulContainer(ctx context.Context, config Config, cluster *Cluster) (A
 	deferClean.Reset()
 
 	return node, nil
+}
+
+func (c *consulContainerNode) GetNetwork() string {
+	return c.network
 }
 
 func (c *consulContainerNode) GetName() string {
@@ -488,7 +493,7 @@ func startContainer(ctx context.Context, req testcontainers.ContainerRequest) (t
 	})
 }
 
-const pauseImage = "k8s.gcr.io/pause:3.3"
+const pauseImage = "registry.k8s.io/pause:3.3"
 
 type containerOpts struct {
 	configFile        string
@@ -500,7 +505,7 @@ type containerOpts struct {
 	addtionalNetworks []string
 }
 
-func newContainerRequest(config Config, opts containerOpts) (podRequest, consulRequest testcontainers.ContainerRequest) {
+func newContainerRequest(config Config, opts containerOpts, ports ...int) (podRequest, consulRequest testcontainers.ContainerRequest) {
 	skipReaper := isRYUKDisabled()
 
 	pod := testcontainers.ContainerRequest{
@@ -517,10 +522,12 @@ func newContainerRequest(config Config, opts containerOpts) (podRequest, consulR
 			"8079/tcp", // Envoy App Listener - grpc port used by static-server
 			"8078/tcp", // Envoy App Listener - grpc port used by static-server-v1
 			"8077/tcp", // Envoy App Listener - grpc port used by static-server-v2
+			"8076/tcp", // Envoy App Listener - grpc port used by static-server-v3
 
 			"8080/tcp", // Envoy App Listener - http port used by static-server
 			"8081/tcp", // Envoy App Listener - http port used by static-server-v1
 			"8082/tcp", // Envoy App Listener - http port used by static-server-v2
+			"8083/tcp", // Envoy App Listener - http port used by static-server-v3
 			"9998/tcp", // Envoy App Listener
 			"9999/tcp", // Envoy App Listener
 		},
@@ -530,11 +537,16 @@ func newContainerRequest(config Config, opts containerOpts) (podRequest, consulR
 
 	// Envoy upstream listener
 	pod.ExposedPorts = append(pod.ExposedPorts, fmt.Sprintf("%d/tcp", ServiceUpstreamLocalBindPort))
+	pod.ExposedPorts = append(pod.ExposedPorts, fmt.Sprintf("%d/tcp", ServiceUpstreamLocalBindPort2))
 
 	// Reserve the exposed ports for Envoy admin port, e.g., 19000 - 19009
 	basePort := 19000
 	for i := 0; i < MaxEnvoyOnNode; i++ {
 		pod.ExposedPorts = append(pod.ExposedPorts, fmt.Sprintf("%d/tcp", basePort+i))
+	}
+
+	for _, port := range ports {
+		pod.ExposedPorts = append(pod.ExposedPorts, fmt.Sprintf("%d/tcp", port))
 	}
 
 	// For handshakes like auto-encrypt, it can take 10's of seconds for the agent to become "ready".

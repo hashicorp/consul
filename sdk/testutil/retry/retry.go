@@ -5,10 +5,17 @@
 //	func TestX(t *testing.T) {
 //	    retry.Run(t, func(r *retry.R) {
 //	        if err := foo(); err != nil {
-//	            r.Fatal("f: ", err)
+//				r.Errorf("foo: %s", err)
+//				return
 //	        }
 //	    })
 //	}
+//
+// Run uses the DefaultFailer, which is a Timer with a Timeout of 7s,
+// and a Wait of 25ms. To customize, use RunWith.
+//
+// WARNING: unlike *testing.T, *retry.R#Fatal and FailNow *do not*
+// fail the test function entirely, only the current run the retry func
 package retry
 
 import (
@@ -31,8 +38,16 @@ type Failer interface {
 }
 
 // R provides context for the retryer.
+//
+// Logs from Logf, (Error|Fatal)(f) are gathered in an internal buffer
+// and printed only if the retryer fails. Printed logs are deduped and
+// prefixed with source code line numbers
 type R struct {
-	fail   bool
+	// fail is set by FailNow and (Fatal|Error)(f). It indicates the pass
+	// did not succeed, and should be retried
+	fail bool
+	// done is set by Stop. It indicates the entire run was a failure,
+	// and triggers t.FailNow()
 	done   bool
 	output []string
 }
@@ -43,33 +58,55 @@ func (r *R) Logf(format string, args ...interface{}) {
 
 func (r *R) Helper() {}
 
-var runFailed = struct{}{}
+// runFailed is a sentinel value to indicate that the func itself
+// didn't panic, rather that `FailNow` was called.
+type runFailed struct{}
 
+// FailNow stops run execution. It is roughly equivalent to:
+//
+//	r.Error("")
+//	return
+//
+// inside the function being run.
 func (r *R) FailNow() {
 	r.fail = true
-	panic(runFailed)
+	panic(runFailed{})
 }
 
+// Fatal is equivalent to r.Logf(args) followed by r.FailNow(), i.e. the run
+// function should be exited. Retries on the next run are allowed. Fatal is
+// equivalent to
+//
+//	r.Error(args)
+//	return
+//
+// inside the function being run.
 func (r *R) Fatal(args ...interface{}) {
 	r.log(fmt.Sprint(args...))
 	r.FailNow()
 }
 
+// Fatalf is like Fatal but allows a format string
 func (r *R) Fatalf(format string, args ...interface{}) {
 	r.log(fmt.Sprintf(format, args...))
 	r.FailNow()
 }
 
+// Error indicates the current run encountered an error and should be retried.
+// It *does not* stop execution of the rest of the run function.
 func (r *R) Error(args ...interface{}) {
 	r.log(fmt.Sprint(args...))
 	r.fail = true
 }
 
+// Errorf is like Error but allows a format string
 func (r *R) Errorf(format string, args ...interface{}) {
 	r.log(fmt.Sprintf(format, args...))
 	r.fail = true
 }
 
+// If err is non-nil, equivalent to r.Fatal(err.Error()) followed by
+// r.FailNow(). Otherwise a no-op.
 func (r *R) Check(err error) {
 	if err != nil {
 		r.log(err.Error())
@@ -81,7 +118,8 @@ func (r *R) log(s string) {
 	r.output = append(r.output, decorate(s))
 }
 
-// Stop retrying, and fail the test with the specified error.
+// Stop retrying, and fail the test, logging the specified error.
+// Does not stop execution, so return should be called after.
 func (r *R) Stop(err error) {
 	r.log(err.Error())
 	r.done = true
@@ -142,9 +180,11 @@ func run(r Retryer, t Failer, f func(r *R)) {
 	}
 
 	for r.Continue() {
+		// run f(rr), but if recover yields a runFailed value, we know
+		// FailNow was called.
 		func() {
 			defer func() {
-				if p := recover(); p != nil && p != runFailed {
+				if p := recover(); p != nil && p != (runFailed{}) {
 					panic(p)
 				}
 			}()
@@ -163,7 +203,8 @@ func run(r Retryer, t Failer, f func(r *R)) {
 	fail()
 }
 
-// DefaultFailer provides default retry.Run() behavior for unit tests.
+// DefaultFailer provides default retry.Run() behavior for unit tests, namely
+// 7s timeout with a wait of 25ms
 func DefaultFailer() *Timer {
 	return &Timer{Timeout: 7 * time.Second, Wait: 25 * time.Millisecond}
 }
@@ -213,6 +254,7 @@ type Timer struct {
 	Wait    time.Duration
 
 	// stop is the timeout deadline.
+	// TODO: Next()?
 	// Set on the first invocation of Next().
 	stop time.Time
 }

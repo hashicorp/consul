@@ -59,7 +59,11 @@ as |route|>
       </BlockSlot>
       <BlockSlot @name="actions">
   {{#if (can "create tokens")}}
-          <a data-test-create href="{{href-to 'dc.acls.tokens.create'}}" class="type-create">Create</a>
+    <Hds::Button
+      @text='Create'
+      @route='dc.acls.tokens.create'
+      data-test-create
+    />
   {{/if}}
       </BlockSlot>
       <BlockSlot @name="toolbar">
