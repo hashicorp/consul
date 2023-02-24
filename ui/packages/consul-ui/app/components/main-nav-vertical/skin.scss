@@ -24,11 +24,11 @@
   color: var(--token-color-foreground-faint);
 }
 %main-nav-vertical li:not([role='separator']) > span {
-  color: var(--token-color-palette-neutral-500);
+  color: var(--token-color-palette-neutral-300);
 }
 %main-nav-vertical [role='separator'],
 %main-nav-vertical-hoisted [role='separator'] {
-  color: var(--token-color-foreground-faint);
+  color: var(--token-color-palette-neutral-400);
   background-color: var(--token-color-foreground-strong);
 }
 %main-nav-vertical-action {
@@ -37,14 +37,14 @@
 %main-nav-vertical-item,
 %main-nav-vertical-action-intent,
 %main-nav-vertical-action-active {
-  color: var(--token-color-palette-neutral-300);
+  color: var(--token-color-palette-neutral-0);
 }
 %main-nav-vertical-action-active {
-  background-color: var(--token-color-palette-neutral-600);
-  border-color: var(--token-color-hashicorp-brand);
+  background-color: var(--token-color-palette-neutral-500);
+  border-color: var(--token-color-palette-neutral-0);
 }
 %main-nav-vertical [aria-label]::before {
-  color: var(--token-color-foreground-faint);
+  color: var(--token-color-palette-neutral-400);
   content: attr(aria-label);
   display: block;
   margin-top: -0.5rem;
@@ -58,7 +58,7 @@
   font-weight: inherit;
 
   background-color: var(--token-color-foreground-strong);
-  color: var(--token-color-palette-neutral-300);
+  color: var(--token-color-palette-neutral-200);
 }
 
 %main-nav-vertical-popover-menu-trigger:hover,
