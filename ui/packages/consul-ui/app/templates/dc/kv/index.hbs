@@ -137,7 +137,7 @@ as |sort filters parent items|}}
       </BlockSlot>
       <BlockSlot @name="actions">
 {{#if (can 'create kvs')}}
-    {{#if (not-eq parent.Key '/') }}
+    {{#if (and parent.Key (not-eq parent.Key '/')) }}
       <Hds::Button
         @text='Create'
         @isHrefExternal={{false}}

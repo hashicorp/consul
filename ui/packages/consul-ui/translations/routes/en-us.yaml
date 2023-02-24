@@ -274,11 +274,13 @@ dc:
             body: Your current ACL settings allow all services to connect to each other. Either create a deny intention between all services, or set your default ACL policy to deny to improve your security posture and make this topology view reflect the actual upstreams and downstreams of this service.
             footer:
               link-text: Create a wildcard deny Intention
+              icon: plus
           wildcard-intention:
             header: Restrict which services can connect
             body: There is currently a wildcard Intention that allows all services to connect to each other. Change the action of that Intention to deny to improve your security posture and have this topology view reflect the actual upstreams and downstreams of this service.
             footer:
               link-text: Edit wildcard intentions
+              icon: edit
           not-defined-intention:
             header: Add upstream to allow traffic
             body: An Intention was defined that allows traffic between services, but those services are unable to communicate. Define an explicit upstream in the service definition or enable transparent proxy to fix this.
@@ -302,6 +304,7 @@ dc:
             body: There is an upstream registered for this service, but that upstream cannot receive traffic without creating an allow intention.
             footer:
               link-text: Edit Intentions
+              icon: edit
       intentions:
         index:
           empty:

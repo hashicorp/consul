@@ -93,6 +93,10 @@ as |nspace dc items topology|}}
                                             (hash
                                               prop=prop
                                             ))}}
+                          @icon={{compute (fn route.t 'notice.${prop}.footer.icon'
+                                            (hash
+                                              prop=prop
+                                            ))}}
                         />
                       {{else}}
                         <A.Link::Standalone
