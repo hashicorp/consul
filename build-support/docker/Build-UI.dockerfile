@@ -1,4 +1,4 @@
-FROM docker.mirror.hashicorp.services/circleci/node:14-browsers
+FROM docker.mirror.hashicorp.services/circleci/node:16-browsers
 
 USER root
 
