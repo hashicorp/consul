@@ -7,17 +7,15 @@ description: >-
 
 # Enable the experimental WAL LogStore backend
 
-This topic describes how to safely configure and test the WAL backend in your Consul deployment.
-
-The overall process for enabling the WAL LogStore backend for one server consists of the following steps. You will need to repeat these steps for all Consul servers.
+This topic describes how to safely configure and test the WAL backend in your Consul deployment. The following steps describe the general process for enabling the WAL `LogStore` backend for a single server. Repeat the steps for each Consul server.
 
 1. Enable log verification.
 1. Select target server to enable WAL.
 1. Stop target server gracefully.
 1. Remove data directory from target server.
 1. Update target server's configuration.
-1. Start target server.
-1. Monitor target server raft metrics and logs.
+1. Start the target server.
+1. Monitor target server raft metrics and logs. 
 
 !> **Upgrade warning:** The WAL LogStore backend is experimental.
 
@@ -44,7 +42,7 @@ The likelihood of the following potential risks is low to very low:
 
 ## Enable log verification
 
-You must enable log verification on any voting server in Enterprise and all servers in OSS becaise the leader writes verification checkpoints.
+You must enable log verification on any voting server in Enterprise and all servers in OSS because the leader writes verification checkpoints.
 
 1. On each voting server, add the following to the server's configuration file:
 
@@ -57,10 +55,10 @@ You must enable log verification on any voting server in Enterprise and all serv
   }
   ```
 
-1. Restart each server to apply the changes. The `consul reload` is not sufficient to apply `raft_logstore` configuration changes. 
+1. Restart the server to apply the changes. The `consul reload` is not sufficient to apply `raft_logstore` configuration changes. 
 1. Run the `consul operator raft list-peers` command to wait for each server to become a healthy voter before moving on to the next. This may take a few minutes for large snapshots. 
 
-Whenc omplete, log entries for the servers should resemble the following status:
+When complete, log entries for the servers should resemble the following status:
 
 ```log hideClipboard
 2023-01-31T14:44:31.174Z [INFO]  agent.server.raft.logstore.verifier: verification checksum OK: elapsed=488.463268ms leaderChecksum=f15db83976f2328c rangeEnd=357802 rangeStart=298132 readChecksum=f15db83976f2328c
@@ -139,6 +137,6 @@ If you disabled configuration management automation, consider reenabling it duri
 
 - If you see any verification errors, performance anomalies or other suspicious behavior from the target server during the test, you should follow [the procedure to revert back to BoltDB](/consul/docs/agent/wal-logstore/revert-to-boltdb).
 
-- If you do not see errors and would like to expand the test further, you can repeat the above procedure on another target server. We suggest waiting after each test expansion and slowly rolling WAL out to other parts of your environment. Once the majority of your servers are using WAL, any bugs not yet discovered may result in cluster unavailability.
+- If you do not see errors and would like to expand the test further, you can repeat the above procedure on another target server. We suggest waiting after each test expansion and slowly rolling WAL out to other parts of your environment. Once the majority of your servers use WAL, any bugs not yet discovered may result in cluster unavailability.
 
-- If you wish to permanently enable `wal` on all servers, repeat the steps described in this topic for each server. Even if `backend = "wal"` is set in logs, servers continue to use BoltDB if they find an existing raft.db file in the data dir.
+- If you wish to permanently enable WAL on all servers, repeat the steps described in this topic for each server. Even if `backend = "wal"` is set in logs, servers continue to use BoltDB if they find an existing raft.db file in the data directory.

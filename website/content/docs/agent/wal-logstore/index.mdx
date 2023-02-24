@@ -2,8 +2,7 @@
 layout: docs
 page_title: WAL LogStore Backend Overview
 description: >-
-  Consul 1.15 introduced a new experimental storage backend option. Learn how to
-  configure and test it out in a safe way.
+  The experimental WAL (write-ahead log) LogStore backend shipped in Consul 1.15 is intended to replace the BoltDB backend, improving performance and log storage issues.
 ---
 
 # Experimental WAL LogStore backend overview
@@ -16,16 +15,26 @@ This topic provides an overview of the experimental WAL (write-ahead log) LogSto
 
 WAL implements a traditional log with rotating, append-only log files. WAL resolves many issues with the existing `LogStore` provided by the BoltDB backend. The BoltDB `LogStore` is a copy-on-write BTree, which is not optimized for append-only workloads. 
 
+### BoltDB storage scalability issues
+
 The existing BoltDB log store inefficiently stores append-only logs to disk because it was designed as a full key-value database. It is a single file that only ever grows. Deleting the oldest logs, which Consul does regularly when it makes new snapshots of the state, leaves free space in the file. The free space must be tracked so that Consul can reuse it on future writes. By contrast, a simple segmented log can delete the oldest log files from disk. 
 
-When BoltDB is used as a log backend, a sudden burst of writes at a rate two to three times higher than the normal volume can suddenly cause the log file to grow to several times its steady-state size. After Consul takes the next snapshot and truncates the oldest logs, the resulting file is mostly empty space. To track the free space, Consul must write extra metadata to disk with every write. The metadata is proportional to the amount of free pages, so after a large burst write latencies tend to increase. In some cases, the latencies cause serious performance degradation to the cluster.
+A burst of writes at double or triple the normal volume can suddenly cause the log file to grow to several times its steady-state size. After Consul takes the next snapshot and truncates the oldest logs, the resulting file is mostly empty space. 
 
-To mitigate risks associated with sudden bursts of log data, Consul prevents too many logs from accumulating in the LogStore. Significantly larger BoltDB files are generally slower to process because the file is structured as a tree. As a result, Consul must iterate through the log for each write. But the larger the file, the more likely it is to have a large freelist or suddenly form one after a burst of writes. For this reason, the many of Consul's default options asssociated with snapshots, truncating logs, and keeping the log history have been aggressively set toward keeping BoltDT small rather than uisng disk IO more efficiently. 
+To track the free space, Consul must write extra metadata to disk with every write. The metadata is proportional to the amount of free pages, so after a large burst write latencies tend to increase. In some cases, the latencies cause serious performance degradation to the cluster.
+
+To mitigate risks associated with sudden bursts of log data, Consul prevents too many logs from accumulating in the `LogStore`. Significantly larger BoltDB files are generally slower to process because the file is structured as a tree. As a result, Consul must iterate through the log for each write. 
+
+But the larger the file, the more likely it is to have a large freelist or suddenly form one after a burst of writes. For this reason, the many of Consul's default options asssociated with snapshots, truncating logs, and keeping the log history aggressively keep BoltDT small rather than uisng disk IO more efficiently. 
 
 Other reliability issues, such as [raft replication capacity issues](/consul/docs/agent/telemetry#raft-replication-capacity-issues), are also related to balancing the size of the BoltDB log store and length of snapshots. 
 
+### WAL approaches storage issues differently
+
 Although some users may not experience a significant difference in performance, the WAL backend avoids performance concerns associated with BoltDB. When directly measured, WAL is more performant than BoltDB because it solves a simpler storage problem than BoltDB was designed to solve. For example, WAL can commit a single log entry with one `fsync` instead
-of two and tends to write two to three fewer bytes to the disk to commit the `fsync`. The primary benefit is that retaining more logs does not affect write performance. As a result, strategies for reducing disk IO with slower snapshots or for keeping logs to permit slower followers to catch up with cluster state are all possible.
+of two and tends to write two to three fewer bytes to the disk to commit the `fsync`. 
+
+The primary benefit is that retaining more logs does not affect write performance. As a result, strategies for reducing disk IO with slower snapshots or for keeping logs to permit slower followers to catch up with cluster state are all possible.
 
 ## WAL quality assurance
 
