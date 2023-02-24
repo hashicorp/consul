@@ -26,7 +26,7 @@ Because each network has different needs and application, you need to find out w
 
 1. Observe the logs and metrics for your application's typical cycle, such as a 24 hour period. Refer to [`log_file`](/consul/docs/agent/config/config-files#log_file) for information about where to retrieve logs. Call the [`/agent/metrics`](/consul/api-docs/agent#view-metrics) HTTP API endpoint and check the data for the following metrics:  
 
-    - `rpc.rate_limit.exceeded.read`
-    - `rpc.rate_limit.exceeded.write`
+    - `rpc.rate_limit.exceeded` with value `global/read` for label `limit_type`
+    - `rpc.rate_limit.exceeded` with value `global/write` for label `limit_type`
 
 1. If the limits are not reached, set the `mode` configuration to `enforcing`. Otherwise, continue to adjust and iterate until you find your network's unique limits.
