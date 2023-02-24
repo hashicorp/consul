@@ -1,14 +1,15 @@
 package troubleshoot
 
 import (
+	"io"
+	"os"
+	"testing"
+
 	envoy_admin_v3 "github.com/envoyproxy/go-control-plane/envoy/admin/v3"
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
-	"io"
-	"os"
-	"testing"
 )
 
 func TestGetUpstreamIPsFromFilterChain(t *testing.T) {
@@ -61,7 +62,7 @@ func TestGetUpstreamIPsFromFilterChain(t *testing.T) {
 
 	for _, cfg := range cfgDump.Configs {
 		switch cfg.TypeUrl {
-		case listeners:
+		case listenersType:
 			lcd := &envoy_admin_v3.ListenersConfigDump{}
 
 			err := proto.Unmarshal(cfg.GetValue(), lcd)

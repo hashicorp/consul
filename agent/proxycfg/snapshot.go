@@ -12,7 +12,7 @@ import (
 	"github.com/hashicorp/consul/agent/proxycfg/internal/watch"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
-	"github.com/hashicorp/consul/proto/pbpeering"
+	"github.com/hashicorp/consul/proto/private/pbpeering"
 )
 
 // TODO(ingress): Can we think of a better for this bag of data?
@@ -734,6 +734,8 @@ type configSnapshotAPIGateway struct {
 	// Listeners is the original listener config from the api-gateway config
 	// entry to save us trying to pass fields through Upstreams
 	Listeners map[string]structs.APIGatewayListener
+	// this acts as an intermediary for inlining certificates
+	ListenerCertificates map[IngressListenerKey][]structs.InlineCertificateConfigEntry
 
 	BoundListeners map[string]structs.BoundAPIGatewayListener
 }
@@ -750,6 +752,9 @@ func (c *configSnapshotAPIGateway) ToIngress(datacenter string) (configSnapshotI
 	synthesizedChains := map[UpstreamID]*structs.CompiledDiscoveryChain{}
 	watchedUpstreamEndpoints := make(map[UpstreamID]map[string]structs.CheckServiceNodes)
 	watchedGatewayEndpoints := make(map[UpstreamID]map[string]structs.CheckServiceNodes)
+
+	// reset the cached certificates
+	c.ListenerCertificates = make(map[IngressListenerKey][]structs.InlineCertificateConfigEntry)
 
 	for name, listener := range c.Listeners {
 		boundListener, ok := c.BoundListeners[name]
@@ -769,7 +774,7 @@ func (c *configSnapshotAPIGateway) ToIngress(datacenter string) (configSnapshotI
 		}
 
 		// Create a synthesized discovery chain for each service.
-		services, upstreams, compiled, err := c.synthesizeChains(datacenter, listener.Protocol, listener.Port, listener.Name, boundListener)
+		services, upstreams, compiled, err := c.synthesizeChains(datacenter, listener, boundListener)
 		if err != nil {
 			return configSnapshotIngressGateway{}, err
 		}
@@ -802,17 +807,18 @@ func (c *configSnapshotAPIGateway) ToIngress(datacenter string) (configSnapshotI
 			watchedGatewayEndpoints[id] = gatewayEndpoints
 		}
 
-		// Configure TLS for the ingress listener
-		tls, err := c.toIngressTLS()
-		if err != nil {
-			return configSnapshotIngressGateway{}, err
-		}
-		ingressListener.TLS = tls
-
 		key := IngressListenerKey{
 			Port:     listener.Port,
 			Protocol: string(listener.Protocol),
 		}
+
+		// Configure TLS for the ingress listener
+		tls, err := c.toIngressTLS(key, listener, boundListener)
+		if err != nil {
+			return configSnapshotIngressGateway{}, err
+		}
+
+		ingressListener.TLS = tls
 		ingressListeners[key] = ingressListener
 		ingressUpstreams[key] = upstreams
 	}
@@ -830,7 +836,7 @@ func (c *configSnapshotAPIGateway) ToIngress(datacenter string) (configSnapshotI
 	}, nil
 }
 
-func (c *configSnapshotAPIGateway) synthesizeChains(datacenter string, protocol structs.APIGatewayListenerProtocol, port int, name string, boundListener structs.BoundAPIGatewayListener) ([]structs.IngressService, structs.Upstreams, []*structs.CompiledDiscoveryChain, error) {
+func (c *configSnapshotAPIGateway) synthesizeChains(datacenter string, listener structs.APIGatewayListener, boundListener structs.BoundAPIGatewayListener) ([]structs.IngressService, structs.Upstreams, []*structs.CompiledDiscoveryChain, error) {
 	chains := []*structs.CompiledDiscoveryChain{}
 	trustDomain := ""
 
@@ -846,12 +852,13 @@ DOMAIN_LOOP:
 		}
 	}
 
-	synthesizer := discoverychain.NewGatewayChainSynthesizer(datacenter, trustDomain, name, c.GatewayConfig)
+	synthesizer := discoverychain.NewGatewayChainSynthesizer(datacenter, trustDomain, listener.Name, c.GatewayConfig)
+	synthesizer.SetHostname(listener.GetHostname())
 	for _, routeRef := range boundListener.Routes {
 		switch routeRef.Kind {
 		case structs.HTTPRoute:
 			route, ok := c.HTTPRoutes.Get(routeRef)
-			if !ok || protocol != structs.ListenerProtocolHTTP {
+			if !ok || listener.Protocol != structs.ListenerProtocolHTTP {
 				continue
 			}
 			synthesizer.AddHTTPRoute(*route)
@@ -863,7 +870,7 @@ DOMAIN_LOOP:
 			}
 		case structs.TCPRoute:
 			route, ok := c.TCPRoutes.Get(routeRef)
-			if !ok || protocol != structs.ListenerProtocolTCP {
+			if !ok || listener.Protocol != structs.ListenerProtocolTCP {
 				continue
 			}
 			synthesizer.AddTCPRoute(*route)
@@ -895,9 +902,9 @@ DOMAIN_LOOP:
 			DestinationNamespace: service.NamespaceOrDefault(),
 			DestinationPartition: service.PartitionOrDefault(),
 			IngressHosts:         service.Hosts,
-			LocalBindPort:        port,
+			LocalBindPort:        listener.Port,
 			Config: map[string]interface{}{
-				"protocol": string(protocol),
+				"protocol": string(listener.Protocol),
 			},
 		})
 	}
@@ -905,9 +912,25 @@ DOMAIN_LOOP:
 	return services, upstreams, compiled, err
 }
 
-func (c *configSnapshotAPIGateway) toIngressTLS() (*structs.GatewayTLSConfig, error) {
-	// TODO (t-eckert) this is dependent on future SDS work.
-	return &structs.GatewayTLSConfig{}, nil
+func (c *configSnapshotAPIGateway) toIngressTLS(key IngressListenerKey, listener structs.APIGatewayListener, bound structs.BoundAPIGatewayListener) (*structs.GatewayTLSConfig, error) {
+	if len(listener.TLS.Certificates) == 0 {
+		return nil, nil
+	}
+
+	for _, certRef := range bound.Certificates {
+		cert, ok := c.Certificates.Get(certRef)
+		if !ok {
+			continue
+		}
+		c.ListenerCertificates[key] = append(c.ListenerCertificates[key], *cert)
+	}
+
+	return &structs.GatewayTLSConfig{
+		Enabled:       true,
+		TLSMinVersion: listener.TLS.MinVersion,
+		TLSMaxVersion: listener.TLS.MaxVersion,
+		CipherSuites:  listener.TLS.CipherSuites,
+	}, nil
 }
 
 type configSnapshotIngressGateway struct {

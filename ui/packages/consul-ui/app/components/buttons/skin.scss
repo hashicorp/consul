@@ -11,27 +11,12 @@
   cursor: default;
   box-shadow: none;
 }
-%primary-button,
 %secondary-button,
 %dangerous-button {
   @extend %button;
   border-width: 1px;
   border-radius: var(--decor-radius-100);
   box-shadow: var(--decor-elevation-300);
-}
-/* color */
-%primary-button {
-  @extend %frame-blue-800;
-}
-%primary-button:hover:not(:disabled):not(:active),
-%primary-button:focus {
-  @extend %frame-blue-700;
-}
-%primary-button:disabled {
-  @extend %frame-blue-600;
-}
-%primary-button:hover:active {
-  @extend %frame-blue-900;
 }
 /**/
 %secondary-button:hover:not(:disabled):not(:active),

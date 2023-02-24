@@ -4,9 +4,13 @@
       <h3>
         {{t 'routes.dc.nodes.index.agentless.notice.header'}}
       </h3>
-      <button type='button' aria-label='Dismiss notice' {{on 'click' this.dismissAgentlessNotice}}>
-        <FlightIcon @name='x' />
-      </button>
+      <Hds::Button
+        @color='secondary'
+        @text='Dismiss notice'
+        {{on 'click' this.dismissAgentlessNotice}}
+        @icon='x'
+        @isIconOnly={{true}}
+      />
     </notice.Header>
     <notice.Body>
       <p>
@@ -14,15 +18,12 @@
       </p>
     </notice.Body>
     <notice.Footer>
-      <p class='docs-link'>
-        <a
-          href='{{env "CONSUL_DOCS_DEVELOPER_URL"}}/connect/dataplane'
-          target='_blank'
-          rel='noopener noreferrer'
-        >
-          {{t 'routes.dc.nodes.index.agentless.notice.footer'}}
-        </a>
-      </p>
+      <Hds::Button
+        @color='tertiary'
+        @href='{{env "CONSUL_DOCS_DEVELOPER_URL"}}/connect/dataplane'
+        @text={{t 'routes.dc.nodes.index.agentless.notice.footer'}}
+        @icon='docs-link'
+      />
     </notice.Footer>
   </Notice>
 {{/if}}

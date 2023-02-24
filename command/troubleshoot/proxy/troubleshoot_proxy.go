@@ -77,12 +77,12 @@ func (c *cmd) Run(args []string) int {
 
 	t, err := troubleshoot.NewTroubleshoot(adminBindIP, adminPort)
 	if err != nil {
-		c.UI.Error("error generating troubleshoot client: " + err.Error())
+		c.UI.Error("Error generating troubleshoot client: " + err.Error())
 		return 1
 	}
 	messages, err := t.RunAllTests(c.upstreamEnvoyID, c.upstreamIP)
 	if err != nil {
-		c.UI.Error("error running the tests: " + err.Error())
+		c.UI.Error("Error running the tests: " + err.Error())
 		return 1
 	}
 
@@ -92,10 +92,15 @@ func (c *cmd) Run(args []string) int {
 			c.UI.SuccessOutput(o.Message)
 		} else {
 			c.UI.ErrorOutput(o.Message)
-			if o.PossibleActions != "" {
-				c.UI.UnchangedOutput(o.PossibleActions)
+			for _, action := range o.PossibleActions {
+				c.UI.UnchangedOutput("-> " + action)
 			}
 		}
+	}
+	if messages.Success() {
+		c.UI.UnchangedOutput("If you are still experiencing issues, you can:")
+		c.UI.UnchangedOutput("-> Check intentions to ensure the upstream allows traffic from this source")
+		c.UI.UnchangedOutput("-> If using transparent proxy, ensure DNS resolution is to the same IP you have verified here")
 	}
 	return 0
 }
@@ -114,14 +119,15 @@ const (
 Usage: consul troubleshoot proxy [options]
   
   Connects to local envoy proxy and troubleshoots service mesh communication issues.
-  Requires an upstream service envoy identifier.
+  Requires an upstream service identifier. When debugging explicitly configured upstreams,
+  use -upstream-envoy-id, when debugging transparent proxy upstreams use -upstream-ip.
   Examples:
     (explicit upstreams only)
       $ consul troubleshoot proxy -upstream-envoy-id foo
     (transparent proxy only)
-      $ consul troubleshoot proxy -upstream-ip <IP>
+      $ consul troubleshoot proxy -upstream-ip 240.0.0.1
  
-    where 'foo' is the upstream envoy identifier which 
+    where 'foo' is the upstream envoy identifier and '240.0.0.1' is an upstream ip which
     can be obtained by running:
     $ consul troubleshoot upstreams [options]
 `

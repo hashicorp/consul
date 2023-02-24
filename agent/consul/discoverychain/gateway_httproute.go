@@ -77,15 +77,14 @@ func httpRouteToDiscoveryChain(route structs.HTTPRouteConfigEntry) (*structs.Ser
 
 	for idx, rule := range route.Rules {
 		modifier := httpRouteFiltersToServiceRouteHeaderModifier(rule.Filters.Headers)
-		prefixRewrite := httpRouteFiltersToDestinationPrefixRewrite(rule.Filters.URLRewrites)
+		prefixRewrite := httpRouteFiltersToDestinationPrefixRewrite(rule.Filters.URLRewrite)
 
 		var destination structs.ServiceRouteDestination
 		if len(rule.Services) == 1 {
-			// TODO open question: is there a use case where someone might want to set the rewrite to ""?
 			service := rule.Services[0]
 
-			servicePrefixRewrite := httpRouteFiltersToDestinationPrefixRewrite(service.Filters.URLRewrites)
-			if servicePrefixRewrite == "" {
+			servicePrefixRewrite := httpRouteFiltersToDestinationPrefixRewrite(service.Filters.URLRewrite)
+			if service.Filters.URLRewrite == nil {
 				servicePrefixRewrite = prefixRewrite
 			}
 			serviceModifier := httpRouteFiltersToServiceRouteHeaderModifier(service.Filters.Headers)
@@ -176,13 +175,11 @@ func httpRouteToDiscoveryChain(route structs.HTTPRouteConfigEntry) (*structs.Ser
 	return router, splitters, defaults
 }
 
-func httpRouteFiltersToDestinationPrefixRewrite(rewrites []structs.URLRewrite) string {
-	for _, rewrite := range rewrites {
-		if rewrite.Path != "" {
-			return rewrite.Path
-		}
+func httpRouteFiltersToDestinationPrefixRewrite(rewrite *structs.URLRewrite) string {
+	if rewrite == nil {
+		return ""
 	}
-	return ""
+	return rewrite.Path
 }
 
 // httpRouteFiltersToServiceRouteHeaderModifier will consolidate a list of HTTP filters
