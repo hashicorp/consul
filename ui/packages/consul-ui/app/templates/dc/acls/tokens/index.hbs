@@ -82,7 +82,11 @@ as |route|>
     {{#if (token/is-legacy items)}}
       <Hds::Alert @type='inline' class='mb-3 mt-3' as |A|>
         <A.Title>Update</A.Title>
-        <A.Description data-test-notification-update>We have upgraded our ACL System to allow the creation of reusable policies that can be applied to tokens. Read more about the changes and how to upgrade legacy tokens in our <Hds::Link::Inline @href="{{env 'CONSUL_DOCS_URL'}}/guides/acl-migrate-tokens.html">documentation</Hds::Link::Inline>.</A.Description>
+        <A.Description data-test-notification-update>We have upgraded our ACL System to allow the creation of reusable policies that can be applied to tokens. Read more about the changes and how to upgrade legacy tokens.</A.Description>
+        <A.Link::Standalone @text='Learn more'
+                            @href="{{env 'CONSUL_DOCS_URL'}}/guides/acl-migrate-tokens.html"
+                            @icon='docs-link'
+                            @iconPosition='trailing' />
       </Hds::Alert>
     {{/if}}
         <DataCollection

@@ -98,7 +98,11 @@ as |dc partition nspace item create|}}
           {{#if (token/is-legacy item)}}
             <Hds::Alert @type='inline' class='mb-6' as |A|>
               <A.Title>Update</A.Title>
-              <A.Description>We have upgraded our ACL system by allowing you to create reusable policies which you can then apply to tokens. Don't worry, even though this token was written in the old style, it is still valid. However, we do recommend upgrading your old tokens to the new style. Learn how in our <Hds::Link::Inline @href="{{env 'CONSUL_DOCS_URL'}}/guides/acl-migrate-tokens.html">documentation</Hds::Link::Inline>.</A.Description>
+              <A.Description>We have upgraded our ACL system by allowing you to create reusable policies which you can then apply to tokens. Don't worry, even though this token was written in the old style, it is still valid. However, we do recommend upgrading your old tokens to the new style.</A.Description>
+              <A.Link::Standalone @text='Learn more'
+                                  @href="{{env 'CONSUL_DOCS_URL'}}/guides/acl-migrate-tokens.html"
+                                  @icon='docs-link'
+                                  @iconPosition='trailing' />
             </Hds::Alert>
           {{/if}}
   {{#if (not create) }}

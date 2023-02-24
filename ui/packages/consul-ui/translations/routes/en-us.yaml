@@ -273,56 +273,35 @@ dc:
             header: Restrict which services can connect
             body: Your current ACL settings allow all services to connect to each other. Either create a deny intention between all services, or set your default ACL policy to deny to improve your security posture and make this topology view reflect the actual upstreams and downstreams of this service.
             footer:
-              link: '{route_intentions}'
               link-text: Create a wildcard deny Intention
-              icon: plus
-              icon-position: leading
-              isExternal: ''
           wildcard-intention:
             header: Restrict which services can connect
             body: There is currently a wildcard Intention that allows all services to connect to each other. Change the action of that Intention to deny to improve your security posture and have this topology view reflect the actual upstreams and downstreams of this service.
             footer:
-              link: '{route_intentions}'
               link-text: Edit wildcard intentions
-              icon: edit
-              icon-position: leading
-              isExternal: ''
           not-defined-intention:
             header: Add upstream to allow traffic
             body: An Intention was defined that allows traffic between services, but those services are unable to communicate. Define an explicit upstream in the service definition or enable transparent proxy to fix this.
             footer:
               link: '{CONSUL_DOCS_URL}/connect/registration/service-registration#upstreams'
               link-text: Learn how to add upstreams
-              icon: docs-link
-              icon-position: trailing
-              isExternal: 'yes'
           no-dependencies:
             header: No dependencies
             body: The service you are viewing currently has no dependencies. You will only see metrics for the current service until dependencies are added.
             footer:
               link: '{CONSUL_DOCS_URL}/connect/registration/service-registration#upstream-configuration-reference'
               link-text: Read the documentation
-              icon: docs-link
-              icon-position: trailing
-              isExternal: 'yes'
           acls-disabled:
             header: Restrict which services can connect
             body: Your current ACL settings allow all services to connect to each other. Either create a deny intention between all services, or enable ACLs and set your default ACL policy to deny to improve your security posture and make this topology view reflect the actual upstreams and downstreams of this service.
             footer:
               link: '{ CONSUL_DOCS_URL }/security/acl/acl-system#configuring-acls'
               link-text: Read the documentation
-              icon: docs-link
-              icon-position: trailing
-              isExternal: 'yes'
           no-intentions:
             header: Add Intention to allow traffic
             body: There is an upstream registered for this service, but that upstream cannot receive traffic without creating an allow intention.
             footer:
-              link: '{route_intentions}'
               link-text: Edit Intentions
-              icon: edit
-              icon-position: leading
-              isExternal: ''
       intentions:
         index:
           empty:

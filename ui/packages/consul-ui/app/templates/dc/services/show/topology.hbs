@@ -84,29 +84,30 @@ as |nspace dc items topology|}}
                       </A.Description>
                     {{/if}}
                     {{#if (and disclosure.expanded (not-eq prop 'filtered-by-acls'))}}
-                      <A.Link::Standalone
-                        @text={{compute (fn route.t 'notice.${prop}.footer.link-text'
-                                          (hash
-                                            prop=prop
-                                          ))}}
-                        @href={{compute (fn route.t 'notice.${prop}.footer.link'
-                                          (hash
-                                            prop=prop
-                                            route_intentions=(href-to 'dc.services.show.intentions')
-                                          ))}}
-                        @icon={{compute (fn route.t 'notice.${prop}.footer.icon'
-                                          (hash
-                                            prop=prop
-                                          ))}}
-                        @iconPosition={{compute (fn route.t 'notice.${prop}.footer.icon-position'
-                                          (hash
-                                            prop=prop
-                                          ))}}
-                        @isHrefExternal={{if (compute (fn route.t 'notice.${prop}.footer.isExternal'
-                                                  (hash
-                                                    prop=prop
-                                                  ))) true false}}
-                      />
+                      {{#if (includes prop (array 'wildcard-intention' 'default-allow' 'no-intentions'))}}
+                        <A.Button
+                          @color='secondary'
+                          @size='small'
+                          @route='dc.services.show.intentions'
+                          @text={{compute (fn route.t 'notice.${prop}.footer.link-text'
+                                            (hash
+                                              prop=prop
+                                            ))}}
+                        />
+                      {{else}}
+                        <A.Link::Standalone
+                          @text={{compute (fn route.t 'notice.${prop}.footer.link-text'
+                                            (hash
+                                              prop=prop
+                                            ))}}
+                          @href={{compute (fn route.t 'notice.${prop}.footer.link'
+                                            (hash
+                                              prop=prop
+                                            ))}}
+                          @icon='docs-link'
+                          @iconPosition='trailing'
+                        />
+                      {{/if}}
                     {{/if}}
                   </Hds::Alert>
                 </disclosure.Details>
