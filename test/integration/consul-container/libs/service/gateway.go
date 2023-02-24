@@ -20,12 +20,13 @@ import (
 
 // gatewayContainer
 type gatewayContainer struct {
-	ctx         context.Context
-	container   testcontainers.Container
-	ip          string
-	port        int
-	adminPort   int
-	serviceName string
+	ctx          context.Context
+	container    testcontainers.Container
+	ip           string
+	port         int
+	adminPort    int
+	serviceName  string
+	portMappings map[int]int
 }
 
 var _ Service = (*gatewayContainer)(nil)
@@ -105,6 +106,15 @@ func (g gatewayContainer) GetAdminAddr() (string, int) {
 	return "localhost", g.adminPort
 }
 
+func (g gatewayContainer) GetPort(port int) (int, error) {
+	p, ok := g.portMappings[port]
+	if !ok {
+		return 0, fmt.Errorf("port does not exist")
+	}
+	return p, nil
+
+}
+
 func (g gatewayContainer) Restart() error {
 	_, err := g.container.State(g.ctx)
 	if err != nil {
@@ -130,7 +140,7 @@ func (g gatewayContainer) GetStatus() (string, error) {
 	return state.Status, err
 }
 
-func NewGatewayService(ctx context.Context, name string, kind string, node libcluster.Agent) (Service, error) {
+func NewGatewayService(ctx context.Context, name string, kind string, node libcluster.Agent, ports ...int) (Service, error) {
 	nodeConfig := node.GetConfig()
 	if nodeConfig.ScratchDir == "" {
 		return nil, fmt.Errorf("node ScratchDir is required")
@@ -207,21 +217,33 @@ func NewGatewayService(ctx context.Context, name string, kind string, node libcl
 		adminPortStr = strconv.Itoa(adminPort)
 	)
 
-	info, err := cluster.LaunchContainerOnNode(ctx, node, req, []string{
+	extraPorts := []string{}
+	for _, port := range ports {
+		extraPorts = append(extraPorts, strconv.Itoa(port))
+	}
+
+	info, err := cluster.LaunchContainerOnNode(ctx, node, req, append(
+		extraPorts,
 		portStr,
 		adminPortStr,
-	})
+	))
 	if err != nil {
 		return nil, err
 	}
 
+	portMappings := make(map[int]int)
+	for _, port := range ports {
+		portMappings[port] = info.MappedPorts[strconv.Itoa(port)].Int()
+	}
+
 	out := &gatewayContainer{
-		ctx:         ctx,
-		container:   info.Container,
-		ip:          info.IP,
-		port:        info.MappedPorts[portStr].Int(),
-		adminPort:   info.MappedPorts[adminPortStr].Int(),
-		serviceName: name,
+		ctx:          ctx,
+		container:    info.Container,
+		ip:           info.IP,
+		port:         info.MappedPorts[portStr].Int(),
+		adminPort:    info.MappedPorts[adminPortStr].Int(),
+		serviceName:  name,
+		portMappings: portMappings,
 	}
 
 	return out, nil

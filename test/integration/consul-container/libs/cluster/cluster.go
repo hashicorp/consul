@@ -63,10 +63,10 @@ func NewN(t TestingT, conf Config, count int) (*Cluster, error) {
 //
 // The provided TestingT is used to register a cleanup function to terminate
 // the cluster.
-func New(t TestingT, configs []Config) (*Cluster, error) {
+func New(t TestingT, configs []Config, ports ...int) (*Cluster, error) {
 	id, err := shortid.Generate()
 	if err != nil {
-		return nil, fmt.Errorf("could not cluster id: %w", err)
+		return nil, fmt.Errorf("could not generate cluster id: %w", err)
 	}
 
 	name := fmt.Sprintf("consul-int-cluster-%s", id)
@@ -99,7 +99,7 @@ func New(t TestingT, configs []Config) (*Cluster, error) {
 		_ = cluster.Terminate()
 	})
 
-	if err := cluster.Add(configs, true); err != nil {
+	if err := cluster.Add(configs, true, ports...); err != nil {
 		return nil, fmt.Errorf("could not start or join all agents: %w", err)
 	}
 
@@ -114,8 +114,8 @@ func (c *Cluster) AddN(conf Config, count int, join bool) error {
 	return c.Add(configs, join)
 }
 
-// Add starts an agent with the given configuration and joins it with the existing cluster
-func (c *Cluster) Add(configs []Config, serfJoin bool) (xe error) {
+// Add starts agents with the given configurations and joins them to the existing cluster
+func (c *Cluster) Add(configs []Config, serfJoin bool, ports ...int) (xe error) {
 	if c.Index == 0 && !serfJoin {
 		return fmt.Errorf("the first call to Cluster.Add must have serfJoin=true")
 	}
@@ -135,6 +135,7 @@ func (c *Cluster) Add(configs []Config, serfJoin bool) (xe error) {
 			context.Background(),
 			conf,
 			c,
+			ports...,
 		)
 		if err != nil {
 			return fmt.Errorf("could not add container index %d: %w", idx, err)
@@ -160,9 +161,11 @@ func (c *Cluster) Add(configs []Config, serfJoin bool) (xe error) {
 func (c *Cluster) Join(agents []Agent) error {
 	return c.join(agents, false)
 }
+
 func (c *Cluster) JoinExternally(agents []Agent) error {
 	return c.join(agents, true)
 }
+
 func (c *Cluster) join(agents []Agent, skipSerfJoin bool) error {
 	if len(agents) == 0 {
 		return nil // no change

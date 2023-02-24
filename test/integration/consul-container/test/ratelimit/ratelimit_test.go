@@ -7,11 +7,11 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-	"github.com/testcontainers/testcontainers-go"
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
+	"github.com/hashicorp/consul/test/integration/consul-container/test"
 )
 
 const (
@@ -25,7 +25,7 @@ const (
 //   - read_rate - returns 429 - was blocked and returns retryable error
 //   - write_rate - returns 503 - was blocked and is not retryable
 //   - on each
-//     - fires metrics forexceeding
+//     - fires metrics for exceeding
 //     - logs for exceeding
 
 func TestServerRequestRateLimit(t *testing.T) {
@@ -69,7 +69,7 @@ func TestServerRequestRateLimit(t *testing.T) {
 	testCases := []testCase{
 		// HTTP & net/RPC
 		{
-			description: "HTTP & net/RPC / Mode: disabled - errors: no / exceeded logs: no / metrics: no",
+			description: "HTTP & net-RPC | Mode: disabled - errors: no | exceeded logs: no | metrics: no",
 			cmd:         `-hcl=limits { request_limits { mode = "disabled" read_rate = 0 write_rate = 0 }}`,
 			mode:        "disabled",
 			operations: []operation{
@@ -88,7 +88,7 @@ func TestServerRequestRateLimit(t *testing.T) {
 			},
 		},
 		{
-			description: "HTTP & net/RPC / Mode: permissive - errors: no / exceeded logs: yes / metrics: yes",
+			description: "HTTP & net-RPC | Mode: permissive - errors: no | exceeded logs: yes | metrics: yes",
 			cmd:         `-hcl=limits { request_limits { mode = "permissive" read_rate = 0 write_rate = 0 }}`,
 			mode:        "permissive",
 			operations: []operation{
@@ -107,7 +107,7 @@ func TestServerRequestRateLimit(t *testing.T) {
 			},
 		},
 		{
-			description: "HTTP & net/RPC / Mode: enforcing - errors: yes / exceeded logs: yes / metrics: yes",
+			description: "HTTP & net-RPC | Mode: enforcing - errors: yes | exceeded logs: yes | metrics: yes",
 			cmd:         `-hcl=limits { request_limits { mode = "enforcing" read_rate = 0 write_rate = 0 }}`,
 			mode:        "enforcing",
 			operations: []operation{
@@ -128,8 +128,8 @@ func TestServerRequestRateLimit(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.description, func(t *testing.T) {
-			logConsumer := &TestLogConsumer{}
-			cluster := createCluster(t, tc.cmd, logConsumer)
+			logConsumer := &test.TestLogConsumer{}
+			cluster := test.CreateCluster(t, tc.cmd, logConsumer, nil, false)
 			defer terminate(t, cluster)
 
 			client, err := cluster.GetClient(nil, true)
@@ -217,45 +217,4 @@ func checkLogsForMessage(t *retry.R, logs []string, msg string, operationName st
 func terminate(t *testing.T, cluster *libcluster.Cluster) {
 	err := cluster.Terminate()
 	require.NoError(t, err)
-}
-
-type TestLogConsumer struct {
-	Msgs []string
-}
-
-func (g *TestLogConsumer) Accept(l testcontainers.Log) {
-	g.Msgs = append(g.Msgs, string(l.Content))
-}
-
-// createCluster
-func createCluster(t *testing.T, cmd string, logConsumer *TestLogConsumer) *libcluster.Cluster {
-	opts := libcluster.BuildOptions{
-		InjectAutoEncryption:   true,
-		InjectGossipEncryption: true,
-	}
-	ctx := libcluster.NewBuildContext(t, opts)
-
-	conf := libcluster.NewConfigBuilder(ctx).ToAgentConfig(t)
-	conf.LogConsumer = logConsumer
-
-	t.Logf("Cluster config:\n%s", conf.JSON)
-
-	parsedConfigs := []libcluster.Config{*conf}
-
-	cfgs := []libcluster.Config{}
-	for _, cfg := range parsedConfigs {
-		// add command
-		cfg.Cmd = append(cfg.Cmd, cmd)
-		cfgs = append(cfgs, cfg)
-	}
-	cluster, err := libcluster.New(t, cfgs)
-	require.NoError(t, err)
-
-	client, err := cluster.GetClient(nil, true)
-
-	require.NoError(t, err)
-	libcluster.WaitForLeader(t, cluster, client)
-	libcluster.WaitForMembers(t, client, 1)
-
-	return cluster
 }
