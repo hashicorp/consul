@@ -35,7 +35,7 @@ type ServiceOpts struct {
 }
 
 // createAndRegisterStaticServerAndSidecar register the services and launch static-server containers
-func createAndRegisterStaticServerAndSidecar(node libcluster.Agent, grpcPort int, svc *api.AgentServiceRegistration) (Service, Service, error) {
+func createAndRegisterStaticServerAndSidecar(node libcluster.Agent, grpcPort int, svc *api.AgentServiceRegistration, containerArgs ...string) (Service, Service, error) {
 	// Do some trickery to ensure that partial completion is correctly torn
 	// down, but successful execution is not.
 	var deferClean utils.ResettableDefer
@@ -46,7 +46,7 @@ func createAndRegisterStaticServerAndSidecar(node libcluster.Agent, grpcPort int
 	}
 
 	// Create a service and proxy instance
-	serverService, err := NewExampleService(context.Background(), svc.ID, svc.Port, grpcPort, node)
+	serverService, err := NewExampleService(context.Background(), svc.ID, svc.Port, grpcPort, node, containerArgs...)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -68,7 +68,7 @@ func createAndRegisterStaticServerAndSidecar(node libcluster.Agent, grpcPort int
 	return serverService, serverConnectProxy, nil
 }
 
-func CreateAndRegisterStaticServerAndSidecar(node libcluster.Agent, serviceOpts *ServiceOpts) (Service, Service, error) {
+func CreateAndRegisterStaticServerAndSidecar(node libcluster.Agent, serviceOpts *ServiceOpts, containerArgs ...string) (Service, Service, error) {
 	// Register the static-server service and sidecar first to prevent race with sidecar
 	// trying to get xDS before it's ready
 	req := &api.AgentServiceRegistration{
@@ -88,7 +88,7 @@ func CreateAndRegisterStaticServerAndSidecar(node libcluster.Agent, serviceOpts 
 		},
 		Meta: serviceOpts.Meta,
 	}
-	return createAndRegisterStaticServerAndSidecar(node, serviceOpts.GRPCPort, req)
+	return createAndRegisterStaticServerAndSidecar(node, serviceOpts.GRPCPort, req, containerArgs...)
 }
 
 func CreateAndRegisterStaticServerAndSidecarWithChecks(node libcluster.Agent, serviceOpts *ServiceOpts) (Service, Service, error) {
