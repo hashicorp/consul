@@ -76,6 +76,7 @@ func TestCheck(t *testing.T) {
 		target    string
 		timeout   time.Duration
 		tlsConfig *tls.Config
+		header    map[string][]string
 	}
 	tests := []struct {
 		name    string
@@ -83,19 +84,19 @@ func TestCheck(t *testing.T) {
 		healthy bool
 	}{
 		// successes
-		{"should pass for healthy server", args{server, time.Second, nil}, true},
-		{"should pass for healthy service", args{svcHealthy, time.Second, nil}, true},
+		{"should pass for healthy server", args{server, time.Second, nil, map[string][]string{}}, true},
+		{"should pass for healthy service", args{svcHealthy, time.Second, nil, map[string][]string{}}, true},
 
 		// failures
-		{"should fail for unhealthy service", args{svcUnhealthy, time.Second, nil}, false},
-		{"should fail for missing service", args{svcMissing, time.Second, nil}, false},
-		{"should timeout for healthy service", args{server, time.Nanosecond, nil}, false},
-		{"should fail if probe is secure, but server is not", args{server, time.Second, &tls.Config{}}, false},
+		{"should fail for unhealthy service", args{svcUnhealthy, time.Second, nil, map[string][]string{}}, false},
+		{"should fail for missing service", args{svcMissing, time.Second, nil, map[string][]string{}}, false},
+		{"should timeout for healthy service", args{server, time.Nanosecond, nil, map[string][]string{}}, false},
+		{"should fail if probe is secure, but server is not", args{server, time.Second, &tls.Config{}, map[string][]string{}}, false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			probe := NewGrpcHealthProbe(tt.args.target, tt.args.timeout, tt.args.tlsConfig)
-			actualError := probe.Check(tt.args.target)
+			actualError := probe.Check(tt.args.target, tt.args.header)
 			actuallyHealthy := actualError == nil
 			if tt.healthy != actuallyHealthy {
 				t.Errorf("FAIL: %s. Expected healthy %t, but err == %v", tt.name, tt.healthy, actualError)
@@ -123,6 +124,9 @@ func TestGRPC_Proxied(t *testing.T) {
 		Logger:        logger,
 		ProxyGRPC:     server,
 		StatusHandler: statusHandler,
+		Header: map[string][]string{
+			"user-agent": {"consul"},
+		},
 	}
 	check.Start()
 	defer check.Stop()
@@ -157,6 +161,9 @@ func TestGRPC_NotProxied(t *testing.T) {
 		Logger:        logger,
 		ProxyGRPC:     "",
 		StatusHandler: statusHandler,
+		Header: map[string][]string{
+			"user-agent": {"consul"},
+		},
 	}
 	check.Start()
 	defer check.Stop()

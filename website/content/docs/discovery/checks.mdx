@@ -48,7 +48,6 @@ There are several types of checks:
 - [`Alias`](#alias-check) - These checks alias the health state of another registered
   node or service.
 
-
 ## Registering a health check
 
 There are three ways to register a service with health checks:
@@ -485,6 +484,9 @@ check = {
   grpc = "127.0.0.1:12345"
   grpc_use_tls = true
   interval = "10s"
+  metadata = {
+     key = ["value"]
+  }
 }
 ```
 
@@ -495,7 +497,8 @@ check = {
     "name": "Service health status",
     "grpc": "127.0.0.1:12345",
     "grpc_use_tls": true,
-    "interval": "10s"
+    "interval": "10s",
+    "metadata": { "key": ["value"] }
   }
 }
 ```

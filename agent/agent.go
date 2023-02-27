@@ -3000,6 +3000,7 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 				Logger:          a.logger,
 				TLSClientConfig: tlsClientConfig,
 				StatusHandler:   statusHandler,
+				Header:          chkType.Header,
 			}
 
 			if proxy != nil && proxy.Proxy.Expose.Checks {
