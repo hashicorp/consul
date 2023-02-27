@@ -129,7 +129,9 @@ func TestPeering_UpgradeToTarget_fromLatest(t *testing.T) {
 					return nil, nil, nil, err
 				}
 
-				clientConnectProxy, err := createAndRegisterStaticClientSidecarWithSplittingUpstreams(dialing)
+				clientConnectProxy, err := createAndRegisterStaticClientSidecarWith2Upstreams(dialing,
+					[]string{"split-static-server", "peer-static-server"},
+				)
 				if err != nil {
 					return nil, nil, nil, fmt.Errorf("error creating client connect proxy in cluster %s", dialing.NetworkName)
 				}
@@ -218,6 +220,100 @@ func TestPeering_UpgradeToTarget_fromLatest(t *testing.T) {
 			},
 			extraAssertion: func(clientUpstreamPort int) {},
 		},
+		{
+			oldversion:    "1.14",
+			targetVersion: utils.TargetVersion,
+			name:          "http resolver and failover",
+			// Verify resolver and failover can direct traffic to server in peered cluster
+			// In addtional to the basic topology, this case provisions the following
+			// services in the dialing cluster:
+			//
+			// - a new static-client at server_0 that has two upstreams: static-server (5000)
+			//   and peer-static-server (5001)
+			// - a local static-server service at client_0
+			// - service-resolved named static-server with failover to static-server in accepting cluster
+			// - service-resolved named peer-static-server to static-server in accepting cluster
+			create: func(accepting *cluster.Cluster, dialing *cluster.Cluster) (libservice.Service, libservice.Service, func(), error) {
+				err := dialing.ConfigEntryWrite(&api.ProxyConfigEntry{
+					Kind: api.ProxyDefaults,
+					Name: "global",
+					Config: map[string]interface{}{
+						"protocol": "http",
+					},
+				})
+				if err != nil {
+					return nil, nil, nil, err
+				}
+
+				clientConnectProxy, err := createAndRegisterStaticClientSidecarWith2Upstreams(dialing,
+					[]string{"static-server", "peer-static-server"},
+				)
+				if err != nil {
+					return nil, nil, nil, fmt.Errorf("error creating client connect proxy in cluster %s", dialing.NetworkName)
+				}
+
+				// make a resolver for service peer-static-server
+				resolverConfigEntry := &api.ServiceResolverConfigEntry{
+					Kind: api.ServiceResolver,
+					Name: "peer-static-server",
+					Redirect: &api.ServiceResolverRedirect{
+						Service: libservice.StaticServerServiceName,
+						Peer:    libtopology.DialingPeerName,
+					},
+				}
+				err = dialing.ConfigEntryWrite(resolverConfigEntry)
+				if err != nil {
+					return nil, nil, nil, fmt.Errorf("error writing resolver config entry for %s", resolverConfigEntry.Name)
+				}
+
+				// make a resolver for service static-server
+				resolverConfigEntry = &api.ServiceResolverConfigEntry{
+					Kind: api.ServiceResolver,
+					Name: "static-server",
+					Failover: map[string]api.ServiceResolverFailover{
+						"*": {
+							Targets: []api.ServiceResolverFailoverTarget{
+								{
+									Peer: libtopology.DialingPeerName,
+								},
+							},
+						},
+					},
+				}
+				err = dialing.ConfigEntryWrite(resolverConfigEntry)
+				if err != nil {
+					return nil, nil, nil, fmt.Errorf("error writing resolver config entry for %s", resolverConfigEntry.Name)
+				}
+
+				// Make a static-server in dialing cluster
+				serviceOpts := &libservice.ServiceOpts{
+					Name:     libservice.StaticServerServiceName,
+					ID:       "static-server-dialing",
+					HTTPPort: 8081,
+					GRPCPort: 8078,
+				}
+				_, serverConnectProxy, err := libservice.CreateAndRegisterStaticServerAndSidecar(dialing.Clients()[0], serviceOpts)
+				libassert.CatalogServiceExists(t, dialing.Clients()[0].GetClient(), libservice.StaticServerServiceName)
+				if err != nil {
+					return nil, nil, nil, err
+				}
+
+				_, appPorts := clientConnectProxy.GetAddrs()
+				assertionFn := func() {
+					// assert traffic can fail-over to static-server in peered cluster and restor to local static-server
+					libassert.AssertFortioName(t, fmt.Sprintf("http://localhost:%d", appPorts[0]), "static-server-dialing")
+					require.NoError(t, serverConnectProxy.Stop())
+					libassert.AssertFortioName(t, fmt.Sprintf("http://localhost:%d", appPorts[0]), "static-server")
+					require.NoError(t, serverConnectProxy.Start())
+					libassert.AssertFortioName(t, fmt.Sprintf("http://localhost:%d", appPorts[0]), "static-server-dialing")
+
+					// assert peer-static-server resolves to static-server in peered cluster
+					libassert.AssertFortioName(t, fmt.Sprintf("http://localhost:%d", appPorts[1]), "static-server")
+				}
+				return serverConnectProxy, clientConnectProxy, assertionFn, nil
+			},
+			extraAssertion: func(clientUpstreamPort int) {},
+		},
 	}
 
 	run := func(t *testing.T, tc testcase) {
@@ -239,6 +335,7 @@ func TestPeering_UpgradeToTarget_fromLatest(t *testing.T) {
 		_, appPort := dialing.Container.GetAddr()
 		_, secondClientProxy, assertionAdditionalResources, err := tc.create(acceptingCluster, dialingCluster)
 		require.NoError(t, err)
+		assertionAdditionalResources()
 		tc.extraAssertion(appPort)
 
 		// Upgrade the accepting cluster and assert peering is still ACTIVE
@@ -294,9 +391,10 @@ func TestPeering_UpgradeToTarget_fromLatest(t *testing.T) {
 	}
 }
 
-// createAndRegisterStaticClientSidecarWithSplittingUpstreams creates a static-client-1 that
-// has two upstreams: split-static-server (5000) and peer-static-server (5001)
-func createAndRegisterStaticClientSidecarWithSplittingUpstreams(c *cluster.Cluster) (*libservice.ConnectContainer, error) {
+// createAndRegisterStaticClientSidecarWith2Upstreams creates a static-client that
+// has two upstreams connecting to destinationNames: local bind addresses are 5000
+// and 5001.
+func createAndRegisterStaticClientSidecarWith2Upstreams(c *cluster.Cluster, destinationNames []string) (*libservice.ConnectContainer, error) {
 	// Do some trickery to ensure that partial completion is correctly torn
 	// down, but successful execution is not.
 	var deferClean utils.ResettableDefer
@@ -315,7 +413,7 @@ func createAndRegisterStaticClientSidecarWithSplittingUpstreams(c *cluster.Clust
 				Proxy: &api.AgentServiceConnectProxyConfig{
 					Upstreams: []api.Upstream{
 						{
-							DestinationName:  "split-static-server",
+							DestinationName:  destinationNames[0],
 							LocalBindAddress: "0.0.0.0",
 							LocalBindPort:    cluster.ServiceUpstreamLocalBindPort,
 							MeshGateway: api.MeshGatewayConfig{
@@ -323,7 +421,7 @@ func createAndRegisterStaticClientSidecarWithSplittingUpstreams(c *cluster.Clust
 							},
 						},
 						{
-							DestinationName:  "peer-static-server",
+							DestinationName:  destinationNames[1],
 							LocalBindAddress: "0.0.0.0",
 							LocalBindPort:    cluster.ServiceUpstreamLocalBindPort2,
 							MeshGateway: api.MeshGatewayConfig{
