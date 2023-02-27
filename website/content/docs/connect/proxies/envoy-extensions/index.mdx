@@ -1,0 +1,32 @@
+---
+layout: docs
+page_title: Envoy Extensions
+description: >-
+  Learn how Envoy extensions enables you to add support for additional Envoy features without modifying the Consul codebase. 
+---
+
+# Envoy extensions overview
+
+This topic provides an overview of Envoy extensions in Consul service mesh deployments. You can modify Consul-generated Envoy resources to add additional functionality without modifying the Consul codebase.
+
+## Introduction
+
+Consul supports two methods for modifying Envoy behavior. You can either modify the Envoy resources Consul generates through [escape hatches](/consul/docs/connect/proxies/envoy#escape-hatch-overrides) or configure your services to use Envoy extensions using the `EnvoyExtension` parameter. Implementing escape hatches requires rewriting the Envoy resources so that they are compatible with Consul, a task that also requires understanding how Consul names Envoy resources and enforces intentions.
+
+Instead of modifying Consul code, you can configure your services to use Envoy extensions through the `EnvoyExtensions` field. This field is definable in [`proxy-defaults`](/consul/docs/connect/config-entries/proxy-defaults#envoyextensions) and [`service-defaults`](/consul/docs/connect/config-entries/service-defaults#envoyextensions) configuration entries.
+
+
+## Supported extensions
+
+Envoy extensions enable additional service mesh functionality in Consul by changing how the sidecar proxies behave. Extensions invoke custom code when traffic passes through an Envoy proxy. Consul supports the following extensions:
+
+- Lua
+- Lambda
+
+### Lua
+
+The `lua` Envoy extension enables HTTP Lua filters in your Consul Envoy proxies. It allows you to run Lua scripts during Envoy requests and responses from Consul-generated Envoy resources. Refer to the [`lua`](/consul/docs/proxies/envoy-extensions/usage/lua) documentation for more information.
+
+### Lambda
+
+The `lambda` Envoy extension enables services to make requests to AWS Lambda functions through the mesh as if they are a normal part of the Consul catalog. Refer to the [`lambda`](/consul/docs/proxies/envoy-extensions/usage/lambda) documentation for more information.

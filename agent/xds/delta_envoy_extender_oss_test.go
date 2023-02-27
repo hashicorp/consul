@@ -21,9 +21,8 @@ import (
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/xds/extensionruntime"
-	"github.com/hashicorp/consul/agent/xds/proxysupport"
-	"github.com/hashicorp/consul/agent/xds/xdscommon"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/envoyextensions/xdscommon"
 	"github.com/hashicorp/consul/sdk/testutil"
 )
 
@@ -209,10 +208,31 @@ end`,
 				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", nsFunc, nil, makeLambdaServiceDefaults(true))
 			},
 		},
+		{
+			name: "http-local-ratelimit-applyto-filter",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
+					ns.Proxy.Config["protocol"] = "http"
+					ns.Proxy.EnvoyExtensions = []structs.EnvoyExtension{
+						{
+							Name: api.BuiltinLocalRatelimitExtension,
+							Arguments: map[string]interface{}{
+								"ProxyType":      "connect-proxy",
+								"MaxTokens":      3,
+								"TokensPerFill":  2,
+								"FillInterval":   10,
+								"FilterEnabled":  100,
+								"FilterEnforced": 100,
+							},
+						},
+					}
+				}, nil)
+			},
+		},
 	}
 
-	latestEnvoyVersion := proxysupport.EnvoyVersions[0]
-	for _, envoyVersion := range proxysupport.EnvoyVersions {
+	latestEnvoyVersion := xdscommon.EnvoyVersions[0]
+	for _, envoyVersion := range xdscommon.EnvoyVersions {
 		sf, err := xdscommon.DetermineSupportedProxyFeaturesFromString(envoyVersion)
 		require.NoError(t, err)
 		t.Run("envoy-"+envoyVersion, func(t *testing.T) {

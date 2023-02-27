@@ -12,13 +12,12 @@ import (
 	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoy_discovery_v3 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 	envoy_type_v3 "github.com/envoyproxy/go-control-plane/envoy/type/v3"
+	"github.com/hashicorp/consul/envoyextensions/xdscommon"
 
 	"github.com/mitchellh/go-testing-interface"
-	status "google.golang.org/genproto/googleapis/rpc/status"
+	"google.golang.org/genproto/googleapis/rpc/status"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
-
-	"github.com/hashicorp/consul/agent/xds/proxysupport"
 )
 
 // TestADSDeltaStream mocks
@@ -86,6 +85,8 @@ type TestEnvoy struct {
 	EnvoyVersion string
 
 	deltaStream *TestADSDeltaStream // Incremental v3
+
+	closed bool
 }
 
 // NewTestEnvoy creates a TestEnvoy instance.
@@ -186,7 +187,7 @@ func (e *TestEnvoy) sendDeltaReq(
 
 	stringVersion := e.EnvoyVersion
 	if stringVersion == "" {
-		stringVersion = proxysupport.EnvoyVersions[0]
+		stringVersion = xdscommon.EnvoyVersions[0]
 	}
 
 	ev, valid := stringToEnvoyVersion(stringVersion)
@@ -226,9 +227,9 @@ func (e *TestEnvoy) Close() error {
 	defer e.mu.Unlock()
 
 	// unblock the recv chans to simulate recv errors when client disconnects
-	if e.deltaStream != nil && e.deltaStream.recvCh != nil {
+	if !e.closed && e.deltaStream.recvCh != nil {
 		close(e.deltaStream.recvCh)
-		e.deltaStream = nil
+		e.closed = true
 	}
 	if e.cancel != nil {
 		e.cancel()

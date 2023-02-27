@@ -1,0 +1,121 @@
+---
+layout: docs
+page_title: Manage Cluster Peering Connections on Kubernetes
+description: >-
+  Learn how to list, read, and delete cluster peering connections using Consul on Kubernetes. You can also reset cluster peering connections on k8s deployments.
+---
+
+# Manage cluster peering connections on Kubernetes
+
+This usage topic describes how to manage cluster peering connections on Kubernetes deployments.
+
+After you establish a cluster peering connection, you can get a list of all active peering connections, read a specific peering connection's information, and delete peering connections.
+
+For general guidance for managing cluster peering connections, refer to [Manage L7 traffic with cluster peering](/consul/docs/connect/cluster-peering/usage/peering-traffic-management).
+
+## Reset a peering connection
+
+To reset the cluster peering connection, you need to generate a new peering token from the cluster where you created the `PeeringAcceptor` CRD. The only way to create or set a new peering token is to manually adjust the value of the annotation `consul.hashicorp.com/peering-version`. Creating a new token causes the previous token to expire.
+
+1. In the `PeeringAcceptor` CRD, add the annotation `consul.hashicorp.com/peering-version`. If the annotation already exists, update its value to a higher version.
+
+  <CodeBlockConfig filename="acceptor.yml" highlight="6" hideClipboard>
+
+  ```yaml
+  apiVersion: consul.hashicorp.com/v1alpha1
+  kind: PeeringAcceptor
+  metadata:
+    name: cluster-02
+    annotations:
+      consul.hashicorp.com/peering-version: "1" ## The peering version you want to set, must be in quotes
+  spec:
+    peer:
+      secret:
+        name: "peering-token"
+        key: "data"
+        backend: "kubernetes"
+  ```
+
+  </CodeBlockConfig>
+
+1. After updating `PeeringAcceptor`, repeat all of the steps to [establish a new peering connection](/consul/docs/k8s/connect/cluster-peering/usage/establish-peering).
+
+## List all peering connections
+
+In Consul on Kubernetes deployments, you can list all active peering connections in a cluster using the Consul CLI.
+
+1. If necessary, [configure your CLI to interact with the Consul cluster](/consul/tutorials/get-started-kubernetes/kubernetes-gs-deploy#configure-your-cli-to-interact-with-consul-cluster).
+
+1. Run the [`consul peering list` CLI command](/consul/commands/peering/list).
+
+  ```shell-session
+  $ consul peering list
+  Name        State    Imported Svcs  Exported Svcs  Meta
+  cluster-02  ACTIVE   0              2              env=production
+  cluster-03  PENDING  0              0
+  ```
+
+## Read a peering connection
+
+In Consul on Kubernetes deployments, you can get information about individual peering connections between clusters using the Consul CLI.
+
+1. If necessary, [configure your CLI to interact with the Consul cluster](/consul/tutorials/get-started-kubernetes/kubernetes-gs-deploy#configure-your-cli-to-interact-with-consul-cluster).
+
+1. Run the [`consul peering read` CLI command](/consul/commands/peering/read).
+
+  ```shell-session
+  $ consul peering read -name cluster-02
+  Name:         cluster-02
+  ID:           3b001063-8079-b1a6-764c-738af5a39a97
+  State:        ACTIVE
+  Meta:
+    env=production
+
+  Peer ID:               e83a315c-027e-bcb1-7c0c-a46650904a05
+  Peer Server Name:      server.dc1.consul
+  Peer CA Pems:          0
+  Peer Server Addresses:
+    10.0.0.1:8300
+
+  Imported Services: 0
+  Exported Services: 2
+
+  Create Index: 89
+  Modify Index: 89
+  ```
+
+## Delete peering connections
+
+To end a peering connection in Kubernetes deployments, delete both the `PeeringAcceptor` and `PeeringDialer` resources.
+
+1. Delete the `PeeringDialer` resource from the second cluster.
+
+  ```shell-session
+  $ kubectl --context $CLUSTER2_CONTEXT delete --filename dialer.yaml
+  ```
+
+1. Delete the `PeeringAcceptor` resource from the first cluster.
+
+  ```shell-session
+  $ kubectl --context $CLUSTER1_CONTEXT delete --filename acceptor.yaml
+  ````
+
+To confirm that you deleted your peering connection in `cluster-01`, query the the `/health` HTTP endpoint:
+
+1. Exec into the server pod for the first cluster.
+
+  ```shell-session
+  $ kubectl exec -it consul-server-0 --context $CLUSTER1_CONTEXT -- /bin/sh
+  ```
+
+1. If you've enabled ACLs, export an ACL token to access the `/health` HTP endpoint for services. The bootstrap token may be used if an ACL token is not already provisioned.
+
+  ```shell-session
+  $ export CONSUL_HTTP_TOKEN=<INSERT BOOTSTRAP ACL TOKEN>
+  ```
+
+1. Query the the `/health` HTTP endpoint. Peered services with deleted connections should no longe appear.
+
+  ```shell-session
+  $ curl "localhost:8500/v1/health/connect/backend?peer=cluster-02"
+  ```

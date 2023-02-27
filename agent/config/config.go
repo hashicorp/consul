@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/hashicorp/consul/agent/consul"
-
 	"github.com/hashicorp/hcl"
 	"github.com/mitchellh/mapstructure"
 
@@ -250,7 +248,7 @@ type Config struct {
 
 	RPC RPC `mapstructure:"rpc" json:"-"`
 
-	RaftBoltDBConfig *consul.RaftBoltDBConfig `mapstructure:"raft_boltdb" json:"-"`
+	RaftLogStore RaftLogStoreRaw `mapstructure:"raft_logstore" json:"raft_logstore,omitempty"`
 
 	// UseStreamingBackend instead of blocking queries for service health and
 	// any other endpoints which support streaming.
@@ -920,4 +918,28 @@ type Peering struct {
 
 type XDS struct {
 	UpdateMaxPerSecond *float64 `mapstructure:"update_max_per_second"`
+}
+
+type RaftLogStoreRaw struct {
+	Backend         *string `mapstructure:"backend" json:"backend,omitempty"`
+	DisableLogCache *bool   `mapstructure:"disable_log_cache" json:"disable_log_cache,omitempty"`
+
+	Verification RaftLogStoreVerificationRaw `mapstructure:"verification" json:"verification,omitempty"`
+
+	BoltDBConfig RaftBoltDBConfigRaw `mapstructure:"boltdb" json:"boltdb,omitempty"`
+
+	WALConfig RaftWALConfigRaw `mapstructure:"wal" json:"wal,omitempty"`
+}
+
+type RaftLogStoreVerificationRaw struct {
+	Enabled  *bool   `mapstructure:"enabled" json:"enabled,omitempty"`
+	Interval *string `mapstructure:"interval" json:"interval,omitempty"`
+}
+
+type RaftBoltDBConfigRaw struct {
+	NoFreelistSync *bool `mapstructure:"no_freelist_sync" json:"no_freelist_sync,omitempty"`
+}
+
+type RaftWALConfigRaw struct {
+	SegmentSizeMB *int `mapstructure:"segment_size_mb" json:"segment_size_mb,omitempty"`
 }

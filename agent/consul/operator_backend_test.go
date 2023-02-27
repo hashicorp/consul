@@ -2,14 +2,15 @@ package consul
 
 import (
 	"context"
+	"testing"
+	"time"
+
 	"github.com/hashicorp/consul/acl"
 	external "github.com/hashicorp/consul/agent/grpc-external"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/proto/pboperator"
+	"github.com/hashicorp/consul/proto/private/pboperator"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"google.golang.org/grpc/credentials/insecure"
-	"testing"
-	"time"
 
 	"github.com/stretchr/testify/require"
 	gogrpc "google.golang.org/grpc"
@@ -124,8 +125,7 @@ func TestOperatorBackend_TransferLeaderWithACL(t *testing.T) {
 		require.Nil(t, reply)
 		time.Sleep(1 * time.Second)
 		testrpc.WaitForLeader(t, s1.RPC, "dc1")
-		retry.Run(t, func(r *retry.R) {
-			time.Sleep(1 * time.Second)
+		retry.RunWith(&retry.Timer{Wait: time.Second, Timeout: 3 * time.Second}, t, func(r *retry.R) {
 			afterLeader, _ := s1.raft.LeaderWithID()
 			require.NotEmpty(r, afterLeader)
 			if afterLeader != beforeLeader {
@@ -151,8 +151,7 @@ func TestOperatorBackend_TransferLeaderWithACL(t *testing.T) {
 		require.True(t, acl.IsErrPermissionDenied(err))
 		require.Nil(t, reply)
 		testrpc.WaitForLeader(t, s1.RPC, "dc1")
-		retry.Run(t, func(r *retry.R) {
-			time.Sleep(1 * time.Second)
+		retry.RunWith(&retry.Timer{Wait: time.Second, Timeout: 3 * time.Second}, t, func(r *retry.R) {
 			afterLeader, _ := s1.raft.LeaderWithID()
 			require.NotEmpty(r, afterLeader)
 			if afterLeader != beforeLeader {
@@ -176,8 +175,7 @@ func TestOperatorBackend_TransferLeaderWithACL(t *testing.T) {
 		require.True(t, reply.Success)
 		time.Sleep(1 * time.Second)
 		testrpc.WaitForLeader(t, s1.RPC, "dc1")
-		retry.Run(t, func(r *retry.R) {
-			time.Sleep(1 * time.Second)
+		retry.RunWith(&retry.Timer{Wait: 2 * time.Second, Timeout: 6 * time.Second}, t, func(r *retry.R) {
 			afterLeader, _ := s1.raft.LeaderWithID()
 			require.NotEmpty(r, afterLeader)
 			if afterLeader == beforeLeader {

@@ -8664,7 +8664,7 @@ func TestStateStore_EnsureService_ServiceNames(t *testing.T) {
 		},
 	}
 
-	var idx uint64
+	var idx, connectEnabledIdx uint64
 	testRegisterNode(t, s, idx, "node1")
 
 	for _, svc := range services {
@@ -8678,7 +8678,28 @@ func TestStateStore_EnsureService_ServiceNames(t *testing.T) {
 		require.Len(t, gotNames, 1)
 		require.Equal(t, svc.CompoundServiceName(), gotNames[0].Service)
 		require.Equal(t, svc.Kind, gotNames[0].Kind)
+		if svc.Kind == structs.ServiceKindConnectProxy {
+			connectEnabledIdx = idx
+		}
 	}
+
+	// A ConnectEnabled service should exist if a corresponding ConnectProxy or ConnectNative service exists.
+	verifyConnectEnabled := func(expectIdx uint64) {
+		gotIdx, gotNames, err := s.ServiceNamesOfKind(nil, structs.ServiceKindConnectEnabled)
+		require.NoError(t, err)
+		require.Equal(t, expectIdx, gotIdx)
+		require.Equal(t, []*KindServiceName{
+			{
+				Kind:    structs.ServiceKindConnectEnabled,
+				Service: structs.NewServiceName("foo", entMeta),
+				RaftIndex: structs.RaftIndex{
+					CreateIndex: connectEnabledIdx,
+					ModifyIndex: connectEnabledIdx,
+				},
+			},
+		}, gotNames)
+	}
+	verifyConnectEnabled(connectEnabledIdx)
 
 	// Register another ingress gateway and there should be two names under the kind index
 	newIngress := structs.NodeService{
@@ -8749,6 +8770,38 @@ func TestStateStore_EnsureService_ServiceNames(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, idx, gotIdx)
 	require.Empty(t, got)
+
+	// A ConnectEnabled entry should not be removed until all corresponding services are removed.
+	{
+		verifyConnectEnabled(connectEnabledIdx)
+		// Add a connect-native service.
+		idx++
+		require.NoError(t, s.EnsureService(idx, "node1", &structs.NodeService{
+			Kind:           structs.ServiceKindTypical,
+			ID:             "foo",
+			Service:        "foo",
+			Address:        "5.5.5.5",
+			Port:           5555,
+			EnterpriseMeta: *entMeta,
+			Connect: structs.ServiceConnect{
+				Native: true,
+			},
+		}))
+		verifyConnectEnabled(connectEnabledIdx)
+
+		// Delete the proxy. This should not clean up the entry, because we still have a
+		// connect-native service registered.
+		idx++
+		require.NoError(t, s.DeleteService(idx, "node1", "connect-proxy", entMeta, ""))
+		verifyConnectEnabled(connectEnabledIdx)
+
+		// Remove the connect-native service to clear out the connect-enabled entry.
+		require.NoError(t, s.DeleteService(idx, "node1", "foo", entMeta, ""))
+		gotIdx, gotNames, err := s.ServiceNamesOfKind(nil, structs.ServiceKindConnectEnabled)
+		require.NoError(t, err)
+		require.Equal(t, idx, gotIdx)
+		require.Empty(t, gotNames)
+	}
 }
 
 func assertMaxIndexes(t *testing.T, tx ReadTxn, expect map[string]uint64, skip ...string) {

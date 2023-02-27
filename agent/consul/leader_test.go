@@ -1310,6 +1310,51 @@ func TestLeader_ACL_Initialization(t *testing.T) {
 	}
 }
 
+func TestLeader_ACL_Initialization_SecondaryDC(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.Bootstrap = true
+		c.Datacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
+		c.ACLsEnabled = true
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
+
+	dir2, s2 := testServerWithConfig(t, func(c *Config) {
+		c.Bootstrap = true
+		c.Datacenter = "dc2"
+		c.PrimaryDatacenter = "dc1"
+		c.ACLsEnabled = true
+	})
+	defer os.RemoveAll(dir2)
+	defer s2.Shutdown()
+	testrpc.WaitForTestAgent(t, s2.RPC, "dc2")
+
+	// Check dc1's management token
+	serverToken1, err := s1.getSystemMetadata(structs.ServerManagementTokenAccessorID)
+	require.NoError(t, err)
+	require.NotEmpty(t, serverToken1)
+	_, err = uuid.ParseUUID(serverToken1)
+	require.NoError(t, err)
+
+	// Check dc2's management token
+	serverToken2, err := s2.getSystemMetadata(structs.ServerManagementTokenAccessorID)
+	require.NoError(t, err)
+	require.NotEmpty(t, serverToken2)
+	_, err = uuid.ParseUUID(serverToken2)
+	require.NoError(t, err)
+
+	// Ensure the tokens were not replicated between clusters.
+	require.NotEqual(t, serverToken1, serverToken2)
+}
+
 func TestLeader_ACLUpgrade_IsStickyEvenIfSerfTagsRegress(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")

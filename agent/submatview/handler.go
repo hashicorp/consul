@@ -1,7 +1,7 @@
 package submatview
 
 import (
-	"github.com/hashicorp/consul/proto/pbsubscribe"
+	"github.com/hashicorp/consul/proto/private/pbsubscribe"
 )
 
 // eventHandler is a function which performs some operation on the received

@@ -4,11 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strconv"
 	"time"
 
+	goretry "github.com/avast/retry-go"
 	dockercontainer "github.com/docker/docker/api/types/container"
 	"github.com/hashicorp/go-multierror"
 	"github.com/pkg/errors"
@@ -24,8 +26,9 @@ const bootLogLine = "Consul agent running"
 const disableRYUKEnv = "TESTCONTAINERS_RYUK_DISABLED"
 
 // Exposed ports info
-const MaxEnvoyOnNode = 10                 // the max number of Envoy sidecar can run along with the agent, base is 19000
-const ServiceUpstreamLocalBindPort = 5000 // local bind Port of service's upstream
+const MaxEnvoyOnNode = 10                  // the max number of Envoy sidecar can run along with the agent, base is 19000
+const ServiceUpstreamLocalBindPort = 5000  // local bind Port of service's upstream
+const ServiceUpstreamLocalBindPort2 = 5001 // local bind Port of service's upstream, for services with 2 upstreams
 
 // consulContainerNode implements the Agent interface by running a Consul agent
 // in a container.
@@ -70,7 +73,9 @@ func (c *consulContainerNode) ClaimAdminPort() (int, error) {
 }
 
 // NewConsulContainer starts a Consul agent in a container with the given config.
-func NewConsulContainer(ctx context.Context, config Config, network string, index int) (Agent, error) {
+func NewConsulContainer(ctx context.Context, config Config, cluster *Cluster) (Agent, error) {
+	network := cluster.NetworkName
+	index := cluster.Index
 	if config.ScratchDir == "" {
 		return nil, fmt.Errorf("ScratchDir is required")
 	}
@@ -241,6 +246,9 @@ func NewConsulContainer(ctx context.Context, config Config, network string, inde
 			apiConfig.TLSConfig.CAFile = clientCACertFile
 		}
 
+		if cluster.TokenBootstrap != "" {
+			apiConfig.Token = cluster.TokenBootstrap
+		}
 		apiClient, err := api.NewClient(apiConfig)
 		if err != nil {
 			return nil, err
@@ -249,6 +257,32 @@ func NewConsulContainer(ctx context.Context, config Config, network string, inde
 		node.client = apiClient
 		node.clientAddr = clientAddr
 		node.clientCACertFile = clientCACertFile
+	}
+
+	// Inject node token if ACL is enabled and the bootstrap token is generated
+	if cluster.TokenBootstrap != "" && cluster.ACLEnabled {
+		agentToken, err := cluster.CreateAgentToken(pc.Datacenter, name)
+		if err != nil {
+			return nil, err
+		}
+		cmd := []string{"consul", "acl", "set-agent-token",
+			"-token", cluster.TokenBootstrap,
+			"agent", agentToken}
+
+		// retry in case agent has not fully initialized
+		err = goretry.Do(
+			func() error {
+				_, err := node.Exec(context.Background(), cmd)
+				if err != nil {
+					return fmt.Errorf("error setting the agent token, error %s", err)
+				}
+				return nil
+			},
+			goretry.Delay(time.Second*1),
+		)
+		if err != nil {
+			return nil, fmt.Errorf("error setting agent token: %s", err)
+		}
 	}
 
 	// disable cleanup functions now that we have an object with a Terminate() function
@@ -268,6 +302,10 @@ func (c *consulContainerNode) GetName() string {
 	return name
 }
 
+func (c *consulContainerNode) GetAgentName() string {
+	return c.name
+}
+
 func (c *consulContainerNode) GetConfig() Config {
 	return c.config.Clone()
 }
@@ -283,6 +321,29 @@ func (c *consulContainerNode) IsServer() bool {
 // GetClient returns an API client that can be used to communicate with the Agent.
 func (c *consulContainerNode) GetClient() *api.Client {
 	return c.client
+}
+
+// NewClient returns an API client by making a new one based on the provided token
+// - updateDefault: if true update the default client
+func (c *consulContainerNode) NewClient(token string, updateDefault bool) (*api.Client, error) {
+	apiConfig := api.DefaultConfig()
+	apiConfig.Address = c.clientAddr
+	if c.clientCACertFile != "" {
+		apiConfig.TLSConfig.CAFile = c.clientCACertFile
+	}
+
+	if token != "" {
+		apiConfig.Token = token
+	}
+	apiClient, err := api.NewClient(apiConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	if updateDefault {
+		c.client = apiClient
+	}
+	return apiClient, nil
 }
 
 func (c *consulContainerNode) GetAPIAddrInfo() (addr, caCert string) {
@@ -301,9 +362,21 @@ func (c *consulContainerNode) RegisterTermination(f func() error) {
 	c.terminateFuncs = append(c.terminateFuncs, f)
 }
 
-func (c *consulContainerNode) Exec(ctx context.Context, cmd []string) (int, error) {
-	exit, _, err := c.container.Exec(ctx, cmd)
-	return exit, err
+func (c *consulContainerNode) Exec(ctx context.Context, cmd []string) (string, error) {
+	exitcode, reader, err := c.container.Exec(ctx, cmd)
+	if exitcode != 0 {
+		return "", fmt.Errorf("exec with exit code %d", exitcode)
+	}
+	if err != nil {
+		return "", fmt.Errorf("exec with error %s", err)
+	}
+
+	buf, err := io.ReadAll(reader)
+	if err != nil {
+		return "", fmt.Errorf("error reading from exe output: %s", err)
+	}
+
+	return string(buf), err
 }
 
 func (c *consulContainerNode) Upgrade(ctx context.Context, config Config) error {
@@ -416,7 +489,7 @@ func startContainer(ctx context.Context, req testcontainers.ContainerRequest) (t
 	})
 }
 
-const pauseImage = "k8s.gcr.io/pause:3.3"
+const pauseImage = "registry.k8s.io/pause:3.3"
 
 type containerOpts struct {
 	configFile        string
@@ -442,8 +515,15 @@ func newContainerRequest(config Config, opts containerOpts) (podRequest, consulR
 
 			"8443/tcp", // Envoy Gateway Listener
 
-			"8079/tcp", // Envoy App Listener
-			"8080/tcp", // Envoy App Listener
+			"8079/tcp", // Envoy App Listener - grpc port used by static-server
+			"8078/tcp", // Envoy App Listener - grpc port used by static-server-v1
+			"8077/tcp", // Envoy App Listener - grpc port used by static-server-v2
+			"8076/tcp", // Envoy App Listener - grpc port used by static-server-v3
+
+			"8080/tcp", // Envoy App Listener - http port used by static-server
+			"8081/tcp", // Envoy App Listener - http port used by static-server-v1
+			"8082/tcp", // Envoy App Listener - http port used by static-server-v2
+			"8083/tcp", // Envoy App Listener - http port used by static-server-v3
 			"9998/tcp", // Envoy App Listener
 			"9999/tcp", // Envoy App Listener
 		},
@@ -453,6 +533,7 @@ func newContainerRequest(config Config, opts containerOpts) (podRequest, consulR
 
 	// Envoy upstream listener
 	pod.ExposedPorts = append(pod.ExposedPorts, fmt.Sprintf("%d/tcp", ServiceUpstreamLocalBindPort))
+	pod.ExposedPorts = append(pod.ExposedPorts, fmt.Sprintf("%d/tcp", ServiceUpstreamLocalBindPort2))
 
 	// Reserve the exposed ports for Envoy admin port, e.g., 19000 - 19009
 	basePort := 19000

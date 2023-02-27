@@ -16,7 +16,7 @@ import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/proto/pbpeering"
+	"github.com/hashicorp/consul/proto/private/pbpeering"
 	"github.com/hashicorp/consul/sdk/testutil"
 )
 
@@ -176,6 +176,13 @@ var baseCases = map[string]testCase{
 				Labels: []metrics.Label{
 					{Name: "datacenter", Value: "dc1"},
 					{Name: "kind", Value: "connect-native"},
+				},
+			},
+			"consul.usage.test.state.billable_service_instances;datacenter=dc1": {
+				Name:  "consul.usage.test.state.billable_service_instances",
+				Value: 0,
+				Labels: []metrics.Label{
+					{Name: "datacenter", Value: "dc1"},
 				},
 			},
 			// --- kv ---
@@ -596,6 +603,13 @@ var baseCases = map[string]testCase{
 				Labels: []metrics.Label{
 					{Name: "datacenter", Value: "dc1"},
 					{Name: "kind", Value: "connect-native"},
+				},
+			},
+			"consul.usage.test.state.billable_service_instances;datacenter=dc1": {
+				Name:  "consul.usage.test.state.billable_service_instances",
+				Value: 0,
+				Labels: []metrics.Label{
+					{Name: "datacenter", Value: "dc1"},
 				},
 			},
 			// --- kv ---
@@ -1174,6 +1188,13 @@ func TestUsageReporter_emitServiceUsage_OSS(t *testing.T) {
 		Labels: []metrics.Label{
 			{Name: "datacenter", Value: "dc1"},
 			{Name: "kind", Value: "connect-native"},
+		},
+	}
+	nodesAndSvcsCase.expectedGauges["consul.usage.test.state.billable_service_instances;datacenter=dc1"] = metrics.GaugeValue{
+		Name:  "consul.usage.test.state.billable_service_instances",
+		Value: 3,
+		Labels: []metrics.Label{
+			{Name: "datacenter", Value: "dc1"},
 		},
 	}
 	nodesAndSvcsCase.expectedGauges["consul.usage.test.consul.state.config_entries;datacenter=dc1;kind=ingress-gateway"] = metrics.GaugeValue{ // Legacy

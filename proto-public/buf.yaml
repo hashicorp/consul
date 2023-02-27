@@ -1,4 +1,5 @@
 version: v1
+name: buf.build/hashicorp/consul
 lint:
   use:
     - DEFAULT

@@ -39,7 +39,7 @@ import (
 	tokenStore "github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
-	"github.com/hashicorp/consul/proto/pbsubscribe"
+	"github.com/hashicorp/consul/proto/private/pbsubscribe"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
@@ -1610,6 +1610,60 @@ func TestRPC_AuthorizeRaftRPC(t *testing.T) {
 			setupCert:   setupConnectCACert("server.dc1.consul"),
 			conn:        useNativeTLS,
 			expectError: true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			run(t, tc)
+		})
+	}
+}
+
+func TestGetWaitTime(t *testing.T) {
+	type testCase struct {
+		name           string
+		RPCHoldTimeout time.Duration
+		expected       time.Duration
+		retryCount     int
+	}
+	config := DefaultConfig()
+
+	run := func(t *testing.T, tc testCase) {
+		config.RPCHoldTimeout = tc.RPCHoldTimeout
+		require.Equal(t, tc.expected, getWaitTime(config.RPCHoldTimeout, tc.retryCount))
+	}
+
+	var testCases = []testCase{
+		{
+			name:           "init backoff small",
+			RPCHoldTimeout: 7 * time.Millisecond,
+			retryCount:     1,
+			expected:       1 * time.Millisecond,
+		},
+		{
+			name:           "first attempt",
+			RPCHoldTimeout: 7 * time.Second,
+			retryCount:     1,
+			expected:       437 * time.Millisecond,
+		},
+		{
+			name:           "second attempt",
+			RPCHoldTimeout: 7 * time.Second,
+			retryCount:     2,
+			expected:       874 * time.Millisecond,
+		},
+		{
+			name:           "third attempt",
+			RPCHoldTimeout: 7 * time.Second,
+			retryCount:     3,
+			expected:       1748 * time.Millisecond,
+		},
+		{
+			name:           "fourth attempt",
+			RPCHoldTimeout: 7 * time.Second,
+			retryCount:     4,
+			expected:       3496 * time.Millisecond,
 		},
 	}
 

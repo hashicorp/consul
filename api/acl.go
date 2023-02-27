@@ -746,14 +746,14 @@ func (a *ACL) TokenUpdate(token *ACLToken, q *WriteOptions) (*ACLToken, *WriteMe
 
 // TokenClone will create a new token with the same policies and locality as the original
 // token but will have its own auto-generated AccessorID and SecretID as well having the
-// description passed to this function. The tokenID parameter must be a valid Accessor ID
+// description passed to this function. The accessorID parameter must be a valid Accessor ID
 // of an existing token.
-func (a *ACL) TokenClone(tokenID string, description string, q *WriteOptions) (*ACLToken, *WriteMeta, error) {
-	if tokenID == "" {
-		return nil, nil, fmt.Errorf("Must specify a tokenID for Token Cloning")
+func (a *ACL) TokenClone(accessorID string, description string, q *WriteOptions) (*ACLToken, *WriteMeta, error) {
+	if accessorID == "" {
+		return nil, nil, fmt.Errorf("Must specify a token AccessorID for Token Cloning")
 	}
 
-	r := a.c.newRequest("PUT", "/v1/acl/token/"+tokenID+"/clone")
+	r := a.c.newRequest("PUT", "/v1/acl/token/"+accessorID+"/clone")
 	r.setWriteOptions(q)
 	r.obj = struct{ Description string }{description}
 	rtt, resp, err := a.c.doRequest(r)
@@ -773,10 +773,10 @@ func (a *ACL) TokenClone(tokenID string, description string, q *WriteOptions) (*
 	return &out, wm, nil
 }
 
-// TokenDelete removes a single ACL token. The tokenID parameter must be a valid
+// TokenDelete removes a single ACL token. The accessorID parameter must be a valid
 // Accessor ID of an existing token.
-func (a *ACL) TokenDelete(tokenID string, q *WriteOptions) (*WriteMeta, error) {
-	r := a.c.newRequest("DELETE", "/v1/acl/token/"+tokenID)
+func (a *ACL) TokenDelete(accessorID string, q *WriteOptions) (*WriteMeta, error) {
+	r := a.c.newRequest("DELETE", "/v1/acl/token/"+accessorID)
 	r.setWriteOptions(q)
 	rtt, resp, err := a.c.doRequest(r)
 	if err != nil {
@@ -791,10 +791,10 @@ func (a *ACL) TokenDelete(tokenID string, q *WriteOptions) (*WriteMeta, error) {
 	return wm, nil
 }
 
-// TokenRead retrieves the full token details. The tokenID parameter must be a valid
+// TokenRead retrieves the full token details. The accessorID parameter must be a valid
 // Accessor ID of an existing token.
-func (a *ACL) TokenRead(tokenID string, q *QueryOptions) (*ACLToken, *QueryMeta, error) {
-	r := a.c.newRequest("GET", "/v1/acl/token/"+tokenID)
+func (a *ACL) TokenRead(accessorID string, q *QueryOptions) (*ACLToken, *QueryMeta, error) {
+	r := a.c.newRequest("GET", "/v1/acl/token/"+accessorID)
 	r.setQueryOptions(q)
 	rtt, resp, err := a.c.doRequest(r)
 	if err != nil {
@@ -817,9 +817,9 @@ func (a *ACL) TokenRead(tokenID string, q *QueryOptions) (*ACLToken, *QueryMeta,
 }
 
 // TokenReadExpanded retrieves the full token details, as well as the contents of any policies affecting the token.
-// The tokenID parameter must be a valid Accessor ID of an existing token.
-func (a *ACL) TokenReadExpanded(tokenID string, q *QueryOptions) (*ACLTokenExpanded, *QueryMeta, error) {
-	r := a.c.newRequest("GET", "/v1/acl/token/"+tokenID)
+// The accessorID parameter must be a valid Accessor ID of an existing token.
+func (a *ACL) TokenReadExpanded(accessorID string, q *QueryOptions) (*ACLTokenExpanded, *QueryMeta, error) {
+	r := a.c.newRequest("GET", "/v1/acl/token/"+accessorID)
 	r.setQueryOptions(q)
 	r.params.Set("expanded", "true")
 	rtt, resp, err := a.c.doRequest(r)

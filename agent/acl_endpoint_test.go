@@ -1845,7 +1845,7 @@ func TestACL_LoginProcedure_HTTP(t *testing.T) {
 			resp := httptest.NewRecorder()
 			_, err := a.srv.ACLTokenCRUD(resp, req)
 			require.Error(t, err)
-			require.True(t, acl.IsErrNotFound(err), err.Error())
+			require.ErrorContains(t, err, acl.ErrNotFound.Error())
 		})
 	})
 }
@@ -2010,7 +2010,7 @@ func TestACLEndpoint_LoginLogout_jwt(t *testing.T) {
 				// make the request
 				_, err = a.srv.ACLTokenCRUD(resp, req)
 				require.Error(t, err)
-				require.Equal(t, acl.ErrNotFound, err)
+				require.ErrorContains(t, err, acl.ErrNotFound.Error())
 			})
 		})
 	}

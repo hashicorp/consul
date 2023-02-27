@@ -8,7 +8,7 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/proto/pbacl"
+	"github.com/hashicorp/consul/proto/private/pbacl"
 )
 
 // ACLTokens is used when saving a snapshot
@@ -765,8 +765,8 @@ func (s *Store) ACLTokenBatchDelete(idx uint64, tokenIDs []string) error {
 	tx := s.db.WriteTxn(idx)
 	defer tx.Abort()
 
-	for _, tokenID := range tokenIDs {
-		if err := aclTokenDeleteTxn(tx, idx, tokenID, indexAccessor, nil); err != nil {
+	for _, accessorID := range tokenIDs {
+		if err := aclTokenDeleteTxn(tx, idx, accessorID, indexAccessor, nil); err != nil {
 			return err
 		}
 	}

@@ -900,12 +900,17 @@ func ensureServiceTxn(tx WriteTxn, idx uint64, node string, preserveIndexes bool
 			return fmt.Errorf("failed updating gateway mapping: %s", err)
 		}
 
+		if svc.PeerName == "" && sn.Name != "" {
+			if err := upsertKindServiceName(tx, idx, structs.ServiceKindConnectEnabled, sn); err != nil {
+				return fmt.Errorf("failed to persist service name as connect-enabled: %v", err)
+			}
+		}
+
+		// Update the virtual IP for the service
 		supported, err := virtualIPsSupported(tx, nil)
 		if err != nil {
 			return err
 		}
-
-		// Update the virtual IP for the service
 		if supported {
 			psn := structs.PeeredServiceName{Peer: svc.PeerName, ServiceName: sn}
 			vip, err := assignServiceVirtualIP(tx, idx, psn)
@@ -1962,6 +1967,24 @@ func (s *Store) deleteServiceTxn(tx WriteTxn, idx uint64, nodeName, serviceID st
 		}
 	} else {
 		return fmt.Errorf("Could not find any service %s: %s", svc.ServiceName, err)
+	}
+
+	// Cleanup ConnectEnabled for this service if none exist.
+	if svc.PeerName == "" && (svc.ServiceKind == structs.ServiceKindConnectProxy || svc.ServiceConnect.Native) {
+		service := svc.ServiceName
+		if svc.ServiceKind == structs.ServiceKindConnectProxy {
+			service = svc.ServiceProxy.DestinationServiceName
+		}
+		sn := structs.ServiceName{Name: service, EnterpriseMeta: svc.EnterpriseMeta}
+		connectEnabled, err := serviceHasConnectEnabledInstances(tx, sn.Name, &sn.EnterpriseMeta)
+		if err != nil {
+			return fmt.Errorf("failed to search for connect instances for service %q: %w", sn.Name, err)
+		}
+		if !connectEnabled {
+			if err := cleanupKindServiceName(tx, idx, sn, structs.ServiceKindConnectEnabled); err != nil {
+				return fmt.Errorf("failed to cleanup connect-enabled service name: %v", err)
+			}
+		}
 	}
 
 	if svc.PeerName == "" {
@@ -3729,6 +3752,27 @@ func serviceHasConnectInstances(tx WriteTxn, serviceName string, entMeta *acl.En
 	}
 
 	return hasConnectInstance, hasNonConnectInstance, nil
+}
+
+// serviceHasConnectEnabledInstances returns whether the given service name
+// has a corresponding connect-proxy or connect-native instance.
+// This function is mostly a clone of `serviceHasConnectInstances`, but it has
+// an early return to improve performance and returns true if at least one
+// connect-native instance exists.
+func serviceHasConnectEnabledInstances(tx WriteTxn, serviceName string, entMeta *acl.EnterpriseMeta) (bool, error) {
+	query := Query{
+		Value:          serviceName,
+		EnterpriseMeta: *entMeta,
+	}
+
+	svc, err := tx.First(tableServices, indexConnect, query)
+	if err != nil {
+		return false, fmt.Errorf("failed service lookup: %w", err)
+	}
+	if svc != nil {
+		return true, nil
+	}
+	return false, nil
 }
 
 // updateGatewayService associates services with gateways after an eligible event

@@ -8,7 +8,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/grpc-external/limiter"
-	"github.com/hashicorp/consul/agent/xds/xdscommon"
+	"github.com/hashicorp/consul/envoyextensions/xdscommon"
 
 	envoy_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
@@ -159,16 +159,13 @@ type testServerScenario struct {
 
 func newTestServerDeltaScenario(
 	t *testing.T,
-	resolveToken ACLResolverFunc,
+	resolveTokenSecret ACLResolverFunc,
 	proxyID string,
 	token string,
 	authCheckFrequency time.Duration,
 ) *testServerScenario {
 	mgr := newTestManager(t)
 	envoy := NewTestEnvoy(t, proxyID, token)
-	t.Cleanup(func() {
-		envoy.Close()
-	})
 
 	sink := metrics.NewInmemSink(1*time.Minute, 1*time.Minute)
 	cfg := metrics.DefaultConfig("consul.xds.test")
@@ -177,6 +174,7 @@ func newTestServerDeltaScenario(
 	metrics.NewGlobal(cfg, sink)
 
 	t.Cleanup(func() {
+		envoy.Close()
 		sink := &metrics.BlackholeSink{}
 		metrics.NewGlobal(cfg, sink)
 	})
@@ -185,7 +183,7 @@ func newTestServerDeltaScenario(
 		"node-123",
 		testutil.Logger(t),
 		mgr,
-		resolveToken,
+		resolveTokenSecret,
 		nil, /*cfgFetcher ConfigFetcher*/
 	)
 	if authCheckFrequency > 0 {
