@@ -11,12 +11,12 @@
   font-size: var(--typo-size-600);
 }
 %pill-allow {
-  color: rgb(var(--tone-green-800));
-  background-color: rgb(var(--tone-green-100));
+  color: var(--token-color-foreground-success-on-surface);
+  background-color: var(--token-color-border-success);
 }
 %pill-deny {
-  color: rgb(var(--tone-red-800));
-  background-color: rgb(var(--tone-red-100));
+  color: var(--token-color-foreground-critical-on-surface);
+  background-color: var(--token-color-border-critical);
 }
 %pill-l7 {
   @extend %frame-gray-900;

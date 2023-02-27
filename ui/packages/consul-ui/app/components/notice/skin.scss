@@ -1,7 +1,7 @@
 %notice {
   border-radius: var(--decor-radius-100);
   border: var(--decor-border-100);
-  color: rgb(var(--tone-gray-999));
+  color: var(--token-color-hashicorp-brand);
 }
 %notice::before {
   @extend %as-pseudo;
@@ -21,57 +21,57 @@
   @extend %notice;
 }
 %notice-success {
-  background-color: rgb(var(--tone-green-050));
-  border-color: rgb(var(--tone-green-500));
+  background-color: var(--token-color-surface-success);
+  border-color: var(--token-color-foreground-success);
 }
 %notice-success header * {
-  color: rgb(var(--tone-green-800));
+  color: var(--token-color-palette-green-400);
 }
 %notice-info {
-  border-color: rgb(var(--tone-blue-100));
-  background-color: rgb(var(--tone-blue-010));
+  border-color: var(--token-color-border-action);
+  background-color: var(--token-color-surface-action);
 }
 %notice-info header * {
-  color: rgb(var(--tone-blue-700));
+  color: var(--token-color-foreground-action-active);
 }
 %notice-highlight {
-  background-color: rgb(var(--tone-gray-050));
-  border-color: rgb(var(--tone-gray-300));
+  background-color: var(--token-color-surface-strong);
+  border-color: var(--token-color-palette-neutral-300);
 }
 %notice-info header * {
-  color: rgb(var(--tone-blue-700));
+  color: var(--token-color-foreground-action-active);
 }
 %notice-warning {
-  border-color: rgb(var(--tone-yellow-100));
-  background-color: rgb(var(--tone-yellow-050));
+  border-color: var(--token-color-vault-border);
+  background-color: var(--token-color-vault-gradient-faint-start);
 }
 %notice-warning header * {
-  color: rgb(var(--tone-yellow-800));
+  color: var(--token-color-vault-foreground);
 }
 %notice-error {
-  background-color: rgb(var(--tone-red-050));
-  border-color: rgb(var(--tone-red-500));
+  background-color: var(--token-color-surface-critical);
+  border-color: var(--token-color-foreground-critical);
 }
 %notice-error header * {
-  color: rgb(var(--tone-red-500));
+  color: var(--token-color-foreground-critical);
 }
 %notice-success::before {
   @extend %with-check-circle-fill-mask;
-  color: rgb(var(--tone-green-500));
+  color: var(--token-color-foreground-success);
 }
 %notice-info::before {
   @extend %with-info-circle-fill-mask;
-  color: rgb(var(--tone-blue-500));
+  color: var(--token-color-foreground-action);
 }
 %notice-highlight::before {
   @extend %with-star-fill-mask;
-  color: rgb(var(--tone-yellow-500));
+  color: var(--token-color-vault-brand);
 }
 %notice-warning::before {
   @extend %with-alert-triangle-mask;
-  color: rgb(var(--tone-orange-500));
+  color: var(--token-color-foreground-warning);
 }
 %notice-error::before {
   @extend %with-cancel-square-fill-mask;
-  color: rgb(var(--tone-red-500));
+  color: var(--token-color-foreground-critical);
 }

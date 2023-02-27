@@ -13,7 +13,7 @@ section[data-route='dc.show.license'] {
 }
 
 %license-validity p {
-  color: rgb(var(--tone-gray-700));
+  color: var(--token-color-foreground-faint);
 }
 %license-validity dl {
   @extend %horizontal-kv-list;
@@ -28,20 +28,20 @@ section[data-route='dc.show.license'] {
 }
 %license-validity dl .expired::before {
   --icon-name: icon-x-circle;
-  --icon-color: rgb(var(--red-500));
+  --icon-color: var(--token-color-foreground-critical);
 }
 %license-validity dl .warning::before {
   --icon-name: icon-alert-circle;
-  --icon-color: rgb(var(--orange-500));
+  --icon-color: var(--token-color-foreground-warning);
 }
 %license-validity dl .valid:not(.warning)::before {
   --icon-name: icon-check-circle;
-  --icon-color: rgb(var(--green-500));
+  --icon-color: var(--token-color-foreground-success);
 }
 
 %license-route-learn-more {
   @extend %panel;
-  box-shadow: var(--decor-elevation-000);
+  box-shadow: none;
   padding: var(--padding-y) var(--padding-x);
   width: 40%;
   min-width: 413px;
