@@ -431,6 +431,28 @@
             "path": "connect/proxies/envoy"
           },
           {
+            "title": "Envoy Extensions",
+            "routes": [
+              {
+                "title": "Overview",
+                "path": "connect/proxies/envoy-extensions"
+              },
+              {
+                "title": "Usage",
+                "routes": [
+                  {
+                    "title": "Run Lua scripts in Envoy proxies",
+                    "path": "connect/proxies/envoy-extensions/usage/lua"
+                  },
+                  {
+                    "title": "Invoke Lambda functions in Envoy proxies",
+                    "path": "connect/proxies/envoy-extensions/usage/lambda"
+                  }
+                ]
+              }
+            ]
+          },
+          {
             "title": "Built-in Proxy",
             "path": "connect/proxies/built-in"
           },
@@ -851,6 +873,27 @@
         "title": "RPC",
         "path": "agent/rpc",
         "hidden": true
+      },
+      {
+        "title": "Experimental WAL LogStore",
+        "routes": [
+          {
+            "title": "Overview",
+            "path": "agent/wal-logstore"
+          },
+          {
+            "title": "Enable WAL LogStore backend",
+            "path": "agent/wal-logstore/enable"
+          },
+          {
+            "title": "Monitor Raft metrics and logs for WAL",
+            "path": "agent/wal-logstore/monitoring"
+          },
+          {
+            "title": "Revert to BoltDB",
+            "path": "agent/wal-logstore/revert-to-boltdb"
+          }
+        ]
       }
     ]
   },
