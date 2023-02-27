@@ -1,3 +1,85 @@
+## 1.15.0 (February 23, 2023)
+
+BREAKING CHANGES:
+
+* acl errors: Delete and get requests now return descriptive errors when the specified resource cannot be found. Other ACL request errors provide more information about when a resource is missing. Add error for when the ACL system has not been bootstrapped. 
+  + Delete Token/Policy/AuthMethod/Role/BindingRule endpoints now return 404 when the resource cannot be found.
+    - New error formats: "Requested * does not exist: ACL not found", "* not found in namespace $NAMESPACE: ACL not found"
+  + Read Token/Policy/Role endpoints now return 404 when the resource cannot be found.
+    - New error format: "Cannot find * to delete"
+  + Logout now returns a 401 error when the supplied token cannot be found
+    - New error format: "Supplied token does not exist"
+  + Token Self endpoint now returns 404 when the token cannot be found.
+    - New error format: "Supplied token does not exist" [[GH-16105](https://github.com/hashicorp/consul/issues/16105)]
+* acl: remove all acl migration functionality and references to the legacy acl system. [[GH-15947](https://github.com/hashicorp/consul/issues/15947)]
+* acl: remove all functionality and references for legacy acl policies. [[GH-15922](https://github.com/hashicorp/consul/issues/15922)]
+* config: Deprecate `-join`, `-join-wan`, `start_join`, and `start_join_wan`.
+These options are now aliases of `-retry-join`, `-retry-join-wan`, `retry_join`, and `retry_join_wan`, respectively. [[GH-15598](https://github.com/hashicorp/consul/issues/15598)]
+* connect: Add `peer` field to service-defaults upstream overrides. The addition of this field makes it possible to apply upstream overrides only to peer services. Prior to this change, overrides would be applied based on matching the `namespace` and `name` fields only, which means users could not have different configuration for local versus peer services. With this change, peer upstreams are only affected if the `peer` field matches the destination peer name. [[GH-15956](https://github.com/hashicorp/consul/issues/15956)]
+* connect: Consul will now error and exit when using the `consul connect envoy` command if the Envoy version is incompatible. To ignore this check use flag `--ignore-envoy-compatibility` [[GH-15818](https://github.com/hashicorp/consul/issues/15818)]
+* extensions: Refactor Lambda integration to get configured with the Envoy extensions field on service-defaults configuration entries. [[GH-15817](https://github.com/hashicorp/consul/issues/15817)]
+* ingress-gateway: upstream cluster will have empty outlier_detection if passive health check is unspecified [[GH-15614](https://github.com/hashicorp/consul/issues/15614)]
+* xds: Remove the `connect.enable_serverless_plugin` agent configuration option. Now 
+Lambda integration is enabled by default. [[GH-15710](https://github.com/hashicorp/consul/issues/15710)]
+
+SECURITY:
+
+* Upgrade to use Go 1.20.1. 
+This resolves vulnerabilities [CVE-2022-41724](https://go.dev/issue/58001) in `crypto/tls` and [CVE-2022-41723](https://go.dev/issue/57855) in `net/http`. [[GH-16263](https://github.com/hashicorp/consul/issues/16263)]
+
+FEATURES:
+
+* **API Gateway (Beta)** This version adds support for API gateway on VMs. API gateway provides a highly-configurable ingress for requests coming into a Consul network. For more information, refer to the [API gateway](https://developer.hashicorp.com/consul/docs/connect/gateways/api-gateway) documentation. [[GH-16369](https://github.com/hashicorp/consul/issues/16369)]
+* acl: Add new `acl.tokens.config_file_registration` config field which specifies the token used
+to register services and checks that are defined in config files. [[GH-15828](https://github.com/hashicorp/consul/issues/15828)]
+* acl: anonymous token is logged as 'anonymous token' instead of its accessor ID [[GH-15884](https://github.com/hashicorp/consul/issues/15884)]
+* cli: adds new CLI commands `consul troubleshoot upstreams` and `consul troubleshoot proxy` to troubleshoot Consul's service mesh configuration and network issues. [[GH-16284](https://github.com/hashicorp/consul/issues/16284)]
+* command: Adds the `operator usage instances` subcommand for displaying total services, connect service instances and billable service instances in the local datacenter or globally. [[GH-16205](https://github.com/hashicorp/consul/issues/16205)]
+* config-entry(ingress-gateway): support outlier detection (passive health check) for upstream cluster [[GH-15614](https://github.com/hashicorp/consul/issues/15614)]
+* connect: adds support for Envoy [access logging](https://developer.hashicorp.com/consul/docs/connect/observability/access-logs). Access logging can be enabled using the [`proxy-defaults`](https://developer.hashicorp.com/consul/docs/connect/config-entries/proxy-defaults#accesslogs) config entry. [[GH-15864](https://github.com/hashicorp/consul/issues/15864)]
+* xds: Add a built-in Envoy extension that inserts Lua HTTP filters. [[GH-15906](https://github.com/hashicorp/consul/issues/15906)]
+* xds: Insert originator service identity into Envoy's dynamic metadata under the `consul` namespace. [[GH-15906](https://github.com/hashicorp/consul/issues/15906)]
+
+IMPROVEMENTS:
+
+* connect: for early awareness of Envoy incompatibilities, when using the `consul connect envoy` command the Envoy version will now be checked for compatibility. If incompatible Consul will error and exit. [[GH-15818](https://github.com/hashicorp/consul/issues/15818)]
+* grpc: client agents will switch server on error, and automatically retry on `RESOURCE_EXHAUSTED` responses [[GH-15892](https://github.com/hashicorp/consul/issues/15892)]
+* raft: add an operator api endpoint and a command to initiate raft leadership transfer. [[GH-14132](https://github.com/hashicorp/consul/issues/14132)]
+* acl: Added option to allow for an operator-generated bootstrap token to be passed to the `acl bootstrap` command. [[GH-14437](https://github.com/hashicorp/consul/issues/14437)]
+* agent: Give better error when client specifies wrong datacenter when auto-encrypt is enabled. [[GH-14832](https://github.com/hashicorp/consul/issues/14832)]
+* api: updated the go module directive to 1.18. [[GH-15297](https://github.com/hashicorp/consul/issues/15297)]
+* ca: support Vault agent auto-auth config for Vault CA provider using AWS/GCP authentication. [[GH-15970](https://github.com/hashicorp/consul/issues/15970)]
+* cli: always use name "global" for proxy-defaults config entries [[GH-14833](https://github.com/hashicorp/consul/issues/14833)]
+* cli: connect envoy command errors if grpc ports are not open [[GH-15794](https://github.com/hashicorp/consul/issues/15794)]
+* client: add support for RemoveEmptyTags in Prepared Queries templates. [[GH-14244](https://github.com/hashicorp/consul/issues/14244)]
+* connect: Warn if ACLs are enabled but a token is not provided to envoy [[GH-15967](https://github.com/hashicorp/consul/issues/15967)]
+* container: Upgrade container image to use to Alpine 3.17. [[GH-16358](https://github.com/hashicorp/consul/issues/16358)]
+* dns: support RFC 2782 SRV lookups for prepared queries using format `_<query id or name>._tcp.query[.<datacenter>].<domain>`. [[GH-14465](https://github.com/hashicorp/consul/issues/14465)]
+* ingress-gateways: Don't log error when gateway is registered without a config entry [[GH-15001](https://github.com/hashicorp/consul/issues/15001)]
+* licensing: **(Enterprise Only)** Consul Enterprise non-terminating production licenses do not degrade or terminate Consul upon expiration. They will only fail when trying to upgrade to a newer version of Consul. Evaluation licenses still terminate.
+* raft: Added experimental `wal` backend for log storage. [[GH-16176](https://github.com/hashicorp/consul/issues/16176)]
+* sdk: updated the go module directive to 1.18. [[GH-15297](https://github.com/hashicorp/consul/issues/15297)]
+* telemetry: Added a `consul.xds.server.streamsUnauthenticated` metric to track 
+the number of active xDS streams handled by the server that are unauthenticated
+because ACLs are not enabled or ACL tokens were missing. [[GH-15967](https://github.com/hashicorp/consul/issues/15967)]
+* ui: Update sidebar width to 280px [[GH-16204](https://github.com/hashicorp/consul/issues/16204)]
+* ui: update Ember version to 3.27; [[GH-16227](https://github.com/hashicorp/consul/issues/16227)]
+
+DEPRECATIONS:
+
+* acl: Deprecate the `token` query parameter and warn when it is used for authentication. [[GH-16009](https://github.com/hashicorp/consul/issues/16009)]
+* cli: The `-id` flag on acl token operations has been changed to `-accessor-id` for clarity in documentation. The `-id` flag will continue to work, but operators should use `-accessor-id` in the future. [[GH-16044](https://github.com/hashicorp/consul/issues/16044)]
+
+BUG FIXES:
+
+* agent configuration: Fix issue of using unix socket when https is used. [[GH-16301](https://github.com/hashicorp/consul/issues/16301)]
+* cache: refactor agent cache fetching to prevent unnecessary fetches on error [[GH-14956](https://github.com/hashicorp/consul/issues/14956)]
+* cli: fatal error if config file does not have HCL or JSON extension, instead of warn and skip [[GH-15107](https://github.com/hashicorp/consul/issues/15107)]
+* cli: fix ACL token processing unexpected precedence [[GH-15274](https://github.com/hashicorp/consul/issues/15274)]
+* peering: Fix bug where services were incorrectly imported as connect-enabled. [[GH-16339](https://github.com/hashicorp/consul/issues/16339)]
+* peering: Fix issue where mesh gateways would use the wrong address when contacting a remote peer with the same datacenter name. [[GH-16257](https://github.com/hashicorp/consul/issues/16257)]
+* peering: Fix issue where secondary wan-federated datacenters could not be used as peering acceptors. [[GH-16230](https://github.com/hashicorp/consul/issues/16230)]
+
 ## 1.14.4 (January 26, 2023)
 
 BREAKING CHANGES:

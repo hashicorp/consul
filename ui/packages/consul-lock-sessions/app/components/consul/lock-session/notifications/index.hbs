@@ -34,14 +34,12 @@
     </Notice>
   {{/if}}
 {{else if (eq @type 'kv')}}
-  <Notice
-    @type="warning"
-    data-test-session-warning
-  as |notice|>
-    <notice.Body>
-      <p>
-        <strong>Warning.</strong> This KV has a lock session. You can edit KV's with lock sessions, but we recommend doing so with care, or not doing so at all. It may negatively impact the active node it's associated with. See below for more details on the Lock Session and see <a href="{{env 'CONSUL_DOCS_URL'}}/internals/sessions.html" target="_blank" rel="noopener noreferrer">our documentation</a> for more information.
-      </p>
-    </notice.Body>
-  </Notice>
+  <Hds::Alert @type='inline' @color='warning' class='mb-3' data-test-session-warning as |A|>
+    <A.Title>Warning</A.Title>
+    <A.Description>This KV has a lock session. You can edit KV's with lock sessions, but we recommend doing so with care, or not doing so at all. It may negatively impact the active node it's associated with. See below for more details on the Lock Session.</A.Description>
+    <A.Link::Standalone @text='Learn more'
+                        @href="{{env 'CONSUL_DOCS_URL'}}/internals/sessions.html"
+                        @icon='docs-link'
+                        @iconPosition='trailing' />
+  </Hds::Alert>
 {{/if}}

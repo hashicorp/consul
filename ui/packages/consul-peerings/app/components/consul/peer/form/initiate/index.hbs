@@ -14,14 +14,10 @@
     as |writer|
   >
     <BlockSlot @name="error" as |after error|>
-      <Notice @type="error" role="alert" as |notice|>
-        <notice.Body>
-          <p>
-            <strong>Error</strong><br />
-            {{error.message}}
-          </p>
-        </notice.Body>
-      </Notice>
+      <Hds::Alert @type='critical' class='mb-3 mt-2' as |A|>
+        <A.Title>Error</A.Title>
+        <A.Description>{{error.message}}</A.Description>
+      </Hds::Alert>
     </BlockSlot>
     <BlockSlot @name="content">
       {{#let (unique-id) as |id|}}
