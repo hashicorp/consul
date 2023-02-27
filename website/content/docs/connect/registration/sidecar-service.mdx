@@ -15,7 +15,7 @@ They may be on the same VM or running as a separate container in the same networ
 
 Add the `connect.sidecar_service` block to your service definition file and specify the parameters to configure sidecar proxy behavior. The `sidecar_service` block is a service definition that can contain most regular service definition fields. Refer to [Limitations](#limitations) for information about unsupported service definition fields for sidecar proxies. 
 
-Consul treats sidecar proxyt service definitions as a root-level service definition. All fields are optional in nested
+Consul treats sidecar proxy service definitions as a root-level service definition. All fields are optional in nested
 definitions, which default to opinionated settings that are intended to reduce burden of setting up a sidecar proxy.
 
 ## Minimal Example
