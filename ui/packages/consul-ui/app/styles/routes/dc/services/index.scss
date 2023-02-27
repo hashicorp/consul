@@ -24,7 +24,7 @@ html[data-route^='dc.services.instance'] .tab-section section:not(:last-child) {
 }
 html[data-route^='dc.services.instance'] .tab-nav,
 html[data-route^='dc.services.instance'] .tab-section section:not(:last-child) {
-  border-color: rgb(var(--tone-gray-200));
+  border-color: var(--token-color-surface-interactive-active);
 }
 html[data-route^='dc.services.instance'] .tab-section section:not(:last-child) {
   padding-bottom: 24px;

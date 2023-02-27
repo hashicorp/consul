@@ -56,7 +56,7 @@
   overflow-x: visible !important;
 }
 .consul-intention-permission-list > ul {
-  border-top: 1px solid rgb(var(--tone-gray-200));
+  border-top: 1px solid var(--token-color-surface-interactive-active);
 }
 .consul-service-instance-list .port dt,
 .consul-service-instance-list .port dt::before {
@@ -108,5 +108,5 @@
 %composite-row-header .policy-management dd::before,
 %composite-row-detail .policy-management::before {
   @extend %with-star-fill-mask, %as-pseudo;
-  --icon-color: rgb(var(--tone-brand-600));
+  --icon-color: var(--token-color-consul-brand);
 }

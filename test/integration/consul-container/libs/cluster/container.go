@@ -73,7 +73,7 @@ func (c *consulContainerNode) ClaimAdminPort() (int, error) {
 }
 
 // NewConsulContainer starts a Consul agent in a container with the given config.
-func NewConsulContainer(ctx context.Context, config Config, cluster *Cluster) (Agent, error) {
+func NewConsulContainer(ctx context.Context, config Config, cluster *Cluster, ports ...int) (Agent, error) {
 	network := cluster.NetworkName
 	index := cluster.Index
 	if config.ScratchDir == "" {
@@ -128,7 +128,7 @@ func NewConsulContainer(ctx context.Context, config Config, cluster *Cluster) (A
 		addtionalNetworks: []string{"bridge", network},
 		hostname:          fmt.Sprintf("agent-%d", index),
 	}
-	podReq, consulReq := newContainerRequest(config, opts)
+	podReq, consulReq := newContainerRequest(config, opts, ports...)
 
 	// Do some trickery to ensure that partial completion is correctly torn
 	// down, but successful execution is not.
@@ -289,6 +289,10 @@ func NewConsulContainer(ctx context.Context, config Config, cluster *Cluster) (A
 	deferClean.Reset()
 
 	return node, nil
+}
+
+func (c *consulContainerNode) GetNetwork() string {
+	return c.network
 }
 
 func (c *consulContainerNode) GetName() string {
@@ -501,7 +505,7 @@ type containerOpts struct {
 	addtionalNetworks []string
 }
 
-func newContainerRequest(config Config, opts containerOpts) (podRequest, consulRequest testcontainers.ContainerRequest) {
+func newContainerRequest(config Config, opts containerOpts, ports ...int) (podRequest, consulRequest testcontainers.ContainerRequest) {
 	skipReaper := isRYUKDisabled()
 
 	pod := testcontainers.ContainerRequest{
@@ -539,6 +543,10 @@ func newContainerRequest(config Config, opts containerOpts) (podRequest, consulR
 	basePort := 19000
 	for i := 0; i < MaxEnvoyOnNode; i++ {
 		pod.ExposedPorts = append(pod.ExposedPorts, fmt.Sprintf("%d/tcp", basePort+i))
+	}
+
+	for _, port := range ports {
+		pod.ExposedPorts = append(pod.ExposedPorts, fmt.Sprintf("%d/tcp", port))
 	}
 
 	// For handshakes like auto-encrypt, it can take 10's of seconds for the agent to become "ready".

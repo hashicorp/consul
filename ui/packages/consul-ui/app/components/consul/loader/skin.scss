@@ -1,5 +1,5 @@
 %loader circle {
-  fill: rgb(var(--tone-brand-100));
+  fill: var(--token-color-consul-gradient-faint-stop);
 }
 %loader circle {
   animation: loader-animation 1.5s infinite ease-in-out;

@@ -68,6 +68,10 @@ func (g exampleContainer) GetAddrs() (string, []int) {
 	return "", nil
 }
 
+func (g exampleContainer) GetPort(port int) (int, error) {
+	return 0, nil
+}
+
 func (g exampleContainer) Restart() error {
 	return fmt.Errorf("Restart Unimplemented by ConnectContainer")
 }
@@ -121,7 +125,7 @@ func (c exampleContainer) GetStatus() (string, error) {
 	return state.Status, err
 }
 
-func NewExampleService(ctx context.Context, name string, httpPort int, grpcPort int, node libcluster.Agent) (Service, error) {
+func NewExampleService(ctx context.Context, name string, httpPort int, grpcPort int, node libcluster.Agent, containerArgs ...string) (Service, error) {
 	namePrefix := fmt.Sprintf("%s-service-example-%s", node.GetDatacenter(), name)
 	containerName := utils.RandName(namePrefix)
 
@@ -135,18 +139,22 @@ func NewExampleService(ctx context.Context, name string, httpPort int, grpcPort 
 		grpcPortStr = strconv.Itoa(grpcPort)
 	)
 
+	command := []string{
+		"server",
+		"-http-port", httpPortStr,
+		"-grpc-port", grpcPortStr,
+		"-redirect-port", "-disabled",
+	}
+
+	command = append(command, containerArgs...)
+
 	req := testcontainers.ContainerRequest{
 		Image:      hashicorpDockerProxy + "/fortio/fortio",
 		WaitingFor: wait.ForLog("").WithStartupTimeout(10 * time.Second),
 		AutoRemove: false,
 		Name:       containerName,
-		Cmd: []string{
-			"server",
-			"-http-port", httpPortStr,
-			"-grpc-port", grpcPortStr,
-			"-redirect-port", "-disabled",
-		},
-		Env: map[string]string{"FORTIO_NAME": name},
+		Cmd:        command,
+		Env:        map[string]string{"FORTIO_NAME": name},
 	}
 
 	info, err := cluster.LaunchContainerOnNode(ctx, node, req, []string{httpPortStr, grpcPortStr})

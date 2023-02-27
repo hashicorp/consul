@@ -75,6 +75,7 @@ html[data-route='dc.services.index'] .consul-service-list ul,
 .consul-role-list ul,
 .consul-policy-list ul,
 .consul-token-list ul,
+.consul-peer-list ul,
 .consul-auth-method-list ul {
   @extend %list-after-filter-bar;
 }

@@ -19,9 +19,9 @@
     position: relative;
   }
   ol::before {
-    content: '';
+    content: "";
     border-left: var(--decor-border-100);
-    border-color: rgb(var(--tone-gray-300));
+    border-color: var(--token-color-palette-neutral-300);
     height: 100%;
     position: absolute;
     left: 2rem;
@@ -38,7 +38,7 @@
   li::before {
     --icon-name: icon-hexagon;
     --icon-size: icon-600;
-    content: '';
+    content: "";
     position: absolute;
     z-index: 2;
   }
@@ -48,7 +48,7 @@
     top: 0px;
     font-size: 14px;
     font-weight: var(--typo-weight-bold);
-    background-color: rgb(var(--tone-gray-000));
+    background-color: var(--token-color-palette-neutral-0);
     z-index: 1;
     text-align: center;
   }
