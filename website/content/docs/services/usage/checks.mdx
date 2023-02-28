@@ -30,7 +30,7 @@ If your network runs in a Kubernetes environment, you can sync service health in
 
 ### Registration
 
-After defining health checks, you must register the service containing the checks with Consul. Refer to [Register Services and Health Checks]() for additional information. If the service is already registered, you can reload the service configuration file to implement your health check. Refer to [Reload](/consul/commands/reload) for additional information.
+After defining health checks, you must register the service containing the checks with Consul. Refer to [Register Services and Health Checks](/consul/docs/services/usage/register-services-checks) for additional information. If the service is already registered, you can reload the service configuration file to implement your health check. Refer to [Reload](/consul/commands/reload) for additional information.
 
 ## Define multiple checks
 
@@ -244,7 +244,7 @@ Responses larger than 4KB are truncated. The HTTP response determines the status
 ## TCP checks
 TCP checks establish connections to the specified IPs or hosts. If the check successfully establishes a connection, the service status is reported as `success`. If the IP or host does not accept the connection, the service status is reported as `critical`. We recommend TCP checks over [script checks](#script-checks)  that use netcat or another external process to check a socket operation. 
 
-### Configuration
+### TCP check configuration
 Add a `tcp` field to the `check` block in your service definition file and specify the address, including port number, for the check to call. All other fields are optional. Refer to [Health Checks Configuration Reference](/consul/docs/services/configuration/health-checks-configuration) for information about all health check configurations. 
 
 In the following example, a TCP check named `SSH TCP on port 22` attempts to connect to `localhost:22` every 10 seconds:
@@ -563,7 +563,7 @@ For aliased services on the same agent, the check monitors the local state witho
 ### ACLs
 For the blocking query, the alias check presents the ACL token set on the actual service or the token configured in the check definition. If neither are available, the alias check falls back to the default ACL token set for the agent. Refer to [`acl.tokens.default`](/consul/docs/agent/config/config-files#acl_tokens_default) for additional information about the default ACL token.
 
-### Configuration
+### Alias checks configuration
 Add an `alias_service` field to the `check` block in your service definition file and specify the name of the service or node to alias. All other fields are optional. Refer to [Health Checks Configuration Reference](/consul/docs/services/configuration/checks-configuration-reference] for information about all health check configurations.
 
 In the following example, an alias check with the ID `web-alias` reports the health state of the `web` service:
