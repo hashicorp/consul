@@ -138,7 +138,7 @@ func createCluster(t *testing.T, ports ...int) *libcluster.Cluster {
 
 func createGateway(gatewayName string, protocol string, listenerPort int) *api.APIGatewayConfigEntry {
 	return &api.APIGatewayConfigEntry{
-		Kind: "api-gateway",
+		Kind: api.APIGateway,
 		Name: gatewayName,
 		Listeners: []api.APIGatewayListener{
 			{
