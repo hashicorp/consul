@@ -62,7 +62,7 @@ func JwtLoginDataGen(authMethod *structs.VaultAuthMethod) (map[string]any, error
 	}, nil
 }
 
-// Note the `jwt` can be passed directly in the authMethod as the it's Params
+// Note: the `jwt` can be passed directly in the authMethod as Params
 // is a freeform map in the config where they could hardcode it.
 // See comment on configureVaultAuthMethod (in ./provider_vault.go) for more.
 func hasJWT(params map[string]any) (string, bool) {
