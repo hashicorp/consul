@@ -51,7 +51,7 @@ func TestAPIGatewayCreate(t *testing.T) {
 		},
 	}
 	_, _, err := client.ConfigEntries().Set(apiGateway, nil)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	tcpRoute := &api.TCPRouteConfigEntry{
 		Kind: "tcp-route",
@@ -70,32 +70,18 @@ func TestAPIGatewayCreate(t *testing.T) {
 	}
 
 	_, _, err = client.ConfigEntries().Set(tcpRoute, nil)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	// Create a client proxy instance with the server as an upstream
 	_, gatewayService := createServices(t, cluster, listenerPortOne)
 
-	//check statuses
-	gatewayReady := false
-	routeReady := false
-
 	//make sure the gateway/route come online
-	require.Eventually(t, func() bool {
-		entry, _, err := client.ConfigEntries().Get("api-gateway", "api-gateway", nil)
-		assert.NoError(t, err)
-		apiEntry := entry.(*api.APIGatewayConfigEntry)
-		gatewayReady = isAccepted(apiEntry.Status.Conditions)
-
-		e, _, err := client.ConfigEntries().Get("tcp-route", "api-gateway-route", nil)
-		assert.NoError(t, err)
-		routeEntry := e.(*api.TCPRouteConfigEntry)
-		routeReady = isBound(routeEntry.Status.Conditions)
-
-		return gatewayReady && routeReady
-	}, time.Second*10, time.Second*1)
+	//make sure config entries have been properly created
+	checkGatewayConfigEntry(t, client, "api-gateway", "")
+	checkTCPRouteConfigEntry(t, client, "api-gateway-route", "")
 
 	port, err := gatewayService.GetPort(listenerPortOne)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	libassert.HTTPServiceEchoes(t, "localhost", port, "")
 }
 
@@ -150,12 +136,64 @@ func createCluster(t *testing.T, ports ...int) *libcluster.Cluster {
 	return cluster
 }
 
+func createGateway(gatewayName string, protocol string, listenerPort int) *api.APIGatewayConfigEntry {
+	return &api.APIGatewayConfigEntry{
+		Kind: api.APIGateway,
+		Name: gatewayName,
+		Listeners: []api.APIGatewayListener{
+			{
+				Name:     "listener",
+				Port:     listenerPort,
+				Protocol: protocol,
+			},
+		},
+	}
+}
+
+func checkGatewayConfigEntry(t *testing.T, client *api.Client, gatewayName string, namespace string) {
+	require.Eventually(t, func() bool {
+		entry, _, err := client.ConfigEntries().Get(api.APIGateway, gatewayName, &api.QueryOptions{Namespace: namespace})
+		require.NoError(t, err)
+		if entry == nil {
+			return false
+		}
+		apiEntry := entry.(*api.APIGatewayConfigEntry)
+		return isAccepted(apiEntry.Status.Conditions)
+	}, time.Second*10, time.Second*1)
+}
+
+func checkHTTPRouteConfigEntry(t *testing.T, client *api.Client, routeName string, namespace string) {
+	require.Eventually(t, func() bool {
+		entry, _, err := client.ConfigEntries().Get(api.HTTPRoute, routeName, &api.QueryOptions{Namespace: namespace})
+		require.NoError(t, err)
+		if entry == nil {
+			return false
+		}
+
+		apiEntry := entry.(*api.HTTPRouteConfigEntry)
+		return isBound(apiEntry.Status.Conditions)
+	}, time.Second*10, time.Second*1)
+}
+
+func checkTCPRouteConfigEntry(t *testing.T, client *api.Client, routeName string, namespace string) {
+	require.Eventually(t, func() bool {
+		entry, _, err := client.ConfigEntries().Get(api.TCPRoute, routeName, &api.QueryOptions{Namespace: namespace})
+		require.NoError(t, err)
+		if entry == nil {
+			return false
+		}
+
+		apiEntry := entry.(*api.TCPRouteConfigEntry)
+		return isBound(apiEntry.Status.Conditions)
+	}, time.Second*10, time.Second*1)
+}
+
 func createService(t *testing.T, cluster *libcluster.Cluster, serviceOpts *libservice.ServiceOpts, containerArgs []string) libservice.Service {
 	node := cluster.Agents[0]
 	client := node.GetClient()
 	// Create a service and proxy instance
 	service, _, err := libservice.CreateAndRegisterStaticServerAndSidecar(node, serviceOpts, containerArgs...)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	libassert.CatalogServiceExists(t, client, serviceOpts.Name+"-sidecar-proxy")
 	libassert.CatalogServiceExists(t, client, serviceOpts.Name)
@@ -183,15 +221,18 @@ func createServices(t *testing.T, cluster *libcluster.Cluster, ports ...int) (li
 	return clientConnectProxy, gatewayService
 }
 
-// checkRoute, customized version of libassert.RouteEchos to allow for headers/distinguishing between the server instances
-
 type checkOptions struct {
 	debug      bool
 	statusCode int
 	testName   string
 }
 
-func checkRoute(t *testing.T, ip string, port int, path string, headers map[string]string, expected checkOptions) {
+// checkRoute, customized version of libassert.RouteEchos to allow for headers/distinguishing between the server instances
+func checkRoute(t *testing.T, port int, path string, headers map[string]string, expected checkOptions) {
+	ip := "localhost"
+	if expected.testName != "" {
+		t.Log("running " + expected.testName)
+	}
 	const phrase = "hello"
 
 	failer := func() *retry.Timer {
@@ -199,17 +240,15 @@ func checkRoute(t *testing.T, ip string, port int, path string, headers map[stri
 	}
 
 	client := cleanhttp.DefaultClient()
-	url := fmt.Sprintf("http://%s:%d", ip, port)
 
-	if path != "" {
-		url += "/" + path
-	}
+	path = strings.TrimPrefix(path, "/")
+	url := fmt.Sprintf("http://%s:%d/%s", ip, port, path)
 
 	retry.RunWith(failer(), t, func(r *retry.R) {
 		t.Logf("making call to %s", url)
 		reader := strings.NewReader(phrase)
 		req, err := http.NewRequest("POST", url, reader)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		headers["content-type"] = "text/plain"
 
 		for k, v := range headers {
