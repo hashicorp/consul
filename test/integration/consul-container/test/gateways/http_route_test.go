@@ -256,3 +256,213 @@ func TestHTTPRouteFlattening(t *testing.T) {
 	}, checkOptions{debug: false, statusCode: service1ResponseCode, testName: "service1, v2 path with v2 hostname"})
 
 }
+
+func TestHTTPRouteParentRefChange(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+	t.Parallel()
+
+	// infrastructure set up
+	address := "localhost"
+
+	listenerOnePort := 6000
+	listenerTwoPort := 6001
+
+	// create cluster and service
+	cluster := createCluster(t, listenerOnePort, listenerTwoPort)
+	client := cluster.Agents[0].GetClient()
+	service := createService(t, cluster, &libservice.ServiceOpts{
+		Name:     "service",
+		ID:       "service",
+		HTTPPort: 8080,
+		GRPCPort: 8079,
+	}, []string{})
+
+	// getNamespace() should always return an empty string in Consul OSS
+	namespace := getNamespace()
+	gatewayOneName := randomName("gw1", 16)
+	gatewayTwoName := randomName("gw2", 16)
+	routeName := randomName("route", 16)
+
+	// write config entries
+	proxyDefaults := &api.ProxyConfigEntry{
+		Kind:      api.ProxyDefaults,
+		Name:      api.ProxyConfigGlobal,
+		Namespace: namespace,
+		Config: map[string]interface{}{
+			"protocol": "http",
+		},
+	}
+	_, _, err := client.ConfigEntries().Set(proxyDefaults, nil)
+	assert.NoError(t, err)
+
+	// create gateway config entry
+	gatewayOne := &api.APIGatewayConfigEntry{
+		Kind: "api-gateway",
+		Name: gatewayOneName,
+		Listeners: []api.APIGatewayListener{
+			{
+				Name:     "listener",
+				Port:     listenerOnePort,
+				Protocol: "http",
+				Hostname: "test.foo",
+			},
+		},
+	}
+	_, _, err = client.ConfigEntries().Set(gatewayOne, nil)
+	assert.NoError(t, err)
+	require.Eventually(t, func() bool {
+		entry, _, err := client.ConfigEntries().Get(api.APIGateway, gatewayOneName, &api.QueryOptions{Namespace: namespace})
+		assert.NoError(t, err)
+		if entry == nil {
+			return false
+		}
+		apiEntry := entry.(*api.APIGatewayConfigEntry)
+		t.Log(entry)
+		return isAccepted(apiEntry.Status.Conditions)
+	}, time.Second*10, time.Second*1)
+
+	// create gateway service
+	gatewayOneService, err := libservice.NewGatewayService(context.Background(), gatewayOneName, "api", cluster.Agents[0], listenerOnePort)
+	require.NoError(t, err)
+	libassert.CatalogServiceExists(t, client, gatewayOneName)
+
+	// create gateway config entry
+	gatewayTwo := &api.APIGatewayConfigEntry{
+		Kind: "api-gateway",
+		Name: gatewayTwoName,
+		Listeners: []api.APIGatewayListener{
+			{
+				Name:     "listener",
+				Port:     listenerTwoPort,
+				Protocol: "http",
+				Hostname: "test.example",
+			},
+		},
+	}
+	_, _, err = client.ConfigEntries().Set(gatewayTwo, nil)
+	assert.NoError(t, err)
+	require.Eventually(t, func() bool {
+		entry, _, err := client.ConfigEntries().Get(api.APIGateway, gatewayTwoName, &api.QueryOptions{Namespace: namespace})
+		assert.NoError(t, err)
+		if entry == nil {
+			return false
+		}
+		apiEntry := entry.(*api.APIGatewayConfigEntry)
+		t.Log(entry)
+		return isAccepted(apiEntry.Status.Conditions)
+	}, time.Second*10, time.Second*1)
+
+	// create gateway service
+	gatewayTwoService, err := libservice.NewGatewayService(context.Background(), gatewayTwoName, "api", cluster.Agents[0], listenerTwoPort)
+	require.NoError(t, err)
+	libassert.CatalogServiceExists(t, client, gatewayTwoName)
+
+	// create route to service, targeting first gateway
+	route := &api.HTTPRouteConfigEntry{
+		Kind: api.HTTPRoute,
+		Name: routeName,
+		Parents: []api.ResourceReference{
+			{
+				Kind:      api.APIGateway,
+				Name:      gatewayOneName,
+				Namespace: namespace,
+			},
+		},
+		Hostnames: []string{
+			"test.foo",
+			"test.example",
+		},
+		Namespace: namespace,
+		Rules: []api.HTTPRouteRule{
+			{
+				Services: []api.HTTPService{
+					{
+						Name:      service.GetServiceName(),
+						Namespace: namespace,
+					},
+				},
+				Matches: []api.HTTPMatch{
+					{
+						Path: api.HTTPPathMatch{
+							Match: api.HTTPPathMatchPrefix,
+							Value: "/",
+						},
+					},
+				},
+			},
+		},
+	}
+	_, _, err = client.ConfigEntries().Set(route, nil)
+	assert.NoError(t, err)
+	require.Eventually(t, func() bool {
+		entry, _, err := client.ConfigEntries().Get(api.HTTPRoute, routeName, &api.QueryOptions{Namespace: namespace})
+		assert.NoError(t, err)
+		if entry == nil {
+			return false
+		}
+
+		apiEntry := entry.(*api.HTTPRouteConfigEntry)
+		t.Log(entry)
+
+		// check if bound only to correct gateway
+		return len(apiEntry.Parents) == 1 &&
+			apiEntry.Parents[0].Name == gatewayOneName &&
+			isBound(apiEntry.Status.Conditions)
+	}, time.Second*10, time.Second*1)
+
+	// fetch gateway listener ports
+	gatewayOnePort, err := gatewayOneService.GetPort(listenerOnePort)
+	assert.NoError(t, err)
+	gatewayTwoPort, err := gatewayTwoService.GetPort(listenerTwoPort)
+	assert.NoError(t, err)
+
+	// hit service by requesting root path
+	// TODO: testName field in checkOptions struct looked to be unused, is it needed?
+	checkRoute(t, address, gatewayOnePort, "", map[string]string{
+		"Host": "test.foo",
+	}, checkOptions{debug: false, statusCode: 200})
+
+	// check that second gateway does not resolve service
+	checkRouteError(t, address, gatewayTwoPort, "", map[string]string{
+		"Host": "test.example",
+	}, "")
+
+	// swtich route target to second gateway
+	route.Parents = []api.ResourceReference{
+		{
+			Kind:      api.APIGateway,
+			Name:      gatewayTwoName,
+			Namespace: namespace,
+		},
+	}
+	_, _, err = client.ConfigEntries().Set(route, nil)
+	assert.NoError(t, err)
+	require.Eventually(t, func() bool {
+		entry, _, err := client.ConfigEntries().Get(api.HTTPRoute, routeName, &api.QueryOptions{Namespace: namespace})
+		assert.NoError(t, err)
+		if entry == nil {
+			return false
+		}
+
+		apiEntry := entry.(*api.HTTPRouteConfigEntry)
+		t.Log(apiEntry)
+		t.Log(fmt.Sprintf("%#v", apiEntry))
+
+		// check if bound only to correct gateway
+		return len(apiEntry.Parents) == 1 &&
+			apiEntry.Parents[0].Name == gatewayTwoName &&
+			isBound(apiEntry.Status.Conditions)
+	}, time.Second*10, time.Second*1)
+
+	// hit service by requesting root path on other gateway with different hostname
+	checkRoute(t, address, gatewayTwoPort, "", map[string]string{
+		"Host": "test.example",
+	}, checkOptions{debug: false, statusCode: 200})
+
+	// check that first gateway has stopped resolving service
+	checkRouteError(t, address, gatewayOnePort, "", map[string]string{
+		"Host": "test.foo",
+	}, "")
+}
