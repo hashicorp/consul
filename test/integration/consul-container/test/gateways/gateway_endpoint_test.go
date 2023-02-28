@@ -3,25 +3,22 @@ package gateways
 import (
 	"context"
 	"fmt"
+	"io"
+	"net/http"
+	"strings"
+	"testing"
+	"time"
+
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	libassert "github.com/hashicorp/consul/test/integration/consul-container/libs/assert"
 	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
 	libservice "github.com/hashicorp/consul/test/integration/consul-container/libs/service"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
+	"github.com/hashicorp/consul/test/integration/consul-container/test"
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"io"
-	"net/http"
-	"strings"
-	"testing"
-	"time"
-)
-
-var (
-	checkTimeout  = 1 * time.Minute
-	checkInterval = 1 * time.Second
 )
 
 // Creates a gateway service and tests to see if it is routable
@@ -32,33 +29,38 @@ func TestAPIGatewayCreate(t *testing.T) {
 	}
 
 	t.Parallel()
-
 	listenerPortOne := 6000
 
-	cluster := createCluster(t, listenerPortOne)
-
+	buildOpts := &libcluster.BuildOptions{
+		Datacenter:             "dc1",
+		InjectAutoEncryption:   true,
+		InjectGossipEncryption: true,
+		AllowHTTPAnyway:        true,
+	}
+	cluster := test.CreateCluster(t, "", nil, buildOpts, true, listenerPortOne)
 	client := cluster.APIClient(0)
 
-	//setup
+	// add api gateway config
 	apiGateway := &api.APIGatewayConfigEntry{
-		Kind: "api-gateway",
+		Kind: api.APIGateway,
 		Name: "api-gateway",
 		Listeners: []api.APIGatewayListener{
 			{
+				Name:     "listener",
 				Port:     listenerPortOne,
 				Protocol: "tcp",
 			},
 		},
 	}
-	_, _, err := client.ConfigEntries().Set(apiGateway, nil)
-	require.NoError(t, err)
+
+	require.NoError(t, cluster.ConfigEntryWrite(apiGateway))
 
 	tcpRoute := &api.TCPRouteConfigEntry{
-		Kind: "tcp-route",
+		Kind: api.TCPRoute,
 		Name: "api-gateway-route",
 		Parents: []api.ResourceReference{
 			{
-				Kind: "api-gateway",
+				Kind: api.APIGateway,
 				Name: "api-gateway",
 			},
 		},
@@ -69,8 +71,7 @@ func TestAPIGatewayCreate(t *testing.T) {
 		},
 	}
 
-	_, _, err = client.ConfigEntries().Set(tcpRoute, nil)
-	require.NoError(t, err)
+	require.NoError(t, cluster.ConfigEntryWrite(tcpRoute))
 
 	// Create a client proxy instance with the server as an upstream
 	_, gatewayService := createServices(t, cluster, listenerPortOne)
@@ -195,8 +196,8 @@ func createService(t *testing.T, cluster *libcluster.Cluster, serviceOpts *libse
 	service, _, err := libservice.CreateAndRegisterStaticServerAndSidecar(node, serviceOpts, containerArgs...)
 	require.NoError(t, err)
 
-	libassert.CatalogServiceExists(t, client, serviceOpts.Name+"-sidecar-proxy")
-	libassert.CatalogServiceExists(t, client, serviceOpts.Name)
+	libassert.CatalogServiceExists(t, client, serviceOpts.Name+"-sidecar-proxy", nil)
+	libassert.CatalogServiceExists(t, client, serviceOpts.Name, nil)
 
 	return service
 
@@ -216,7 +217,7 @@ func createServices(t *testing.T, cluster *libcluster.Cluster, ports ...int) (li
 
 	gatewayService, err := libservice.NewGatewayService(context.Background(), "api-gateway", "api", cluster.Agents[0], ports...)
 	require.NoError(t, err)
-	libassert.CatalogServiceExists(t, client, "api-gateway")
+	libassert.CatalogServiceExists(t, client, "api-gateway", nil)
 
 	return clientConnectProxy, gatewayService
 }

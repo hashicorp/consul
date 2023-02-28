@@ -69,7 +69,7 @@ func BasicPeeringTwoClustersSetup(
 			},
 		}
 		configCluster := func(cli *api.Client) error {
-			libassert.CatalogServiceExists(t, cli, "mesh")
+			libassert.CatalogServiceExists(t, cli, "mesh", nil)
 			ok, _, err := cli.ConfigEntries().Set(req, &api.WriteOptions{})
 			if !ok {
 				return fmt.Errorf("config entry is not set")
@@ -109,8 +109,8 @@ func BasicPeeringTwoClustersSetup(
 		serverService, serverSidecarService, err = libservice.CreateAndRegisterStaticServerAndSidecar(clientNode, &serviceOpts)
 		require.NoError(t, err)
 
-		libassert.CatalogServiceExists(t, acceptingClient, libservice.StaticServerServiceName)
-		libassert.CatalogServiceExists(t, acceptingClient, "static-server-sidecar-proxy")
+		libassert.CatalogServiceExists(t, acceptingClient, libservice.StaticServerServiceName, nil)
+		libassert.CatalogServiceExists(t, acceptingClient, "static-server-sidecar-proxy", nil)
 
 		require.NoError(t, serverService.Export("default", AcceptingPeerName, acceptingClient))
 	}
@@ -125,7 +125,7 @@ func BasicPeeringTwoClustersSetup(
 		clientSidecarService, err = libservice.CreateAndRegisterStaticClientSidecar(clientNode, DialingPeerName, true)
 		require.NoError(t, err)
 
-		libassert.CatalogServiceExists(t, dialingClient, "static-client-sidecar-proxy")
+		libassert.CatalogServiceExists(t, dialingClient, "static-client-sidecar-proxy", nil)
 
 	}
 
@@ -133,7 +133,7 @@ func BasicPeeringTwoClustersSetup(
 	libassert.AssertUpstreamEndpointStatus(t, adminPort, fmt.Sprintf("static-server.default.%s.external", DialingPeerName), "HEALTHY", 1)
 	_, port := clientSidecarService.GetAddr()
 	libassert.HTTPServiceEchoes(t, "localhost", port, "")
-	libassert.AssertFortioName(t, fmt.Sprintf("http://localhost:%d", port), "static-server", "")
+	libassert.AssertFortioName(t, fmt.Sprintf("http://localhost:%d", port), libservice.StaticServerServiceName, "")
 
 	return &BuiltCluster{
 			Cluster:   acceptingCluster,
@@ -198,7 +198,7 @@ func NewDialingCluster(
 	clientProxyService, err := libservice.CreateAndRegisterStaticClientSidecar(node, dialingPeerName, true)
 	require.NoError(t, err)
 
-	libassert.CatalogServiceExists(t, client, "static-client-sidecar-proxy")
+	libassert.CatalogServiceExists(t, client, "static-client-sidecar-proxy", nil)
 
 	return cluster, client, clientProxyService
 }

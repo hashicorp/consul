@@ -24,7 +24,9 @@ func CreateCluster(
 	cmd string,
 	logConsumer *TestLogConsumer,
 	buildOptions *libcluster.BuildOptions,
-	applyDefaultProxySettings bool) *libcluster.Cluster {
+	applyDefaultProxySettings bool,
+	ports ...int,
+) *libcluster.Cluster {
 
 	// optional
 	if buildOptions == nil {
@@ -49,12 +51,12 @@ func CreateCluster(
 		conf.Cmd = append(conf.Cmd, cmd)
 	}
 
-	cluster, err := libcluster.New(t, []libcluster.Config{*conf})
+	cluster, err := libcluster.New(t, []libcluster.Config{*conf}, ports...)
 	require.NoError(t, err)
 
-	client, err := cluster.GetClient(nil, true)
+	node := cluster.Agents[0]
+	client := node.GetClient()
 
-	require.NoError(t, err)
 	libcluster.WaitForLeader(t, cluster, client)
 	libcluster.WaitForMembers(t, client, 1)
 
