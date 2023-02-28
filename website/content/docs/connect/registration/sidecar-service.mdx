@@ -11,13 +11,7 @@ This topic describes how to declare a proxy as a _sidecar_ proxy.
 Sidecar proxies run on the same node as the single service instance that they handle traffic for. 
 They may be on the same VM or running as a separate container in the same network namespace.
 
-<<<<<<< HEAD
-To simplify the configuration experience when deploying a sidecar for a service
-instance, Consul 1.3 introduced a new field in the Connect block of the [service
-definition](/docs/discovery/services).
-=======
 ## Configuration
->>>>>>> 23e247d765 (Docs/services refactor docs day 122022 (#16103))
 
 Add the `connect.sidecar_service` block to your service definition file and specify the parameters to configure sidecar proxy behavior. The `sidecar_service` block is a service definition that can contain most regular service definition fields. Refer to [Limitations](#limitations) for information about unsupported service definition fields for sidecar proxies. 
 
