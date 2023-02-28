@@ -461,20 +461,18 @@ $ consul-k8s proxy log <PODNAME> <OPTIONS>
 The command takes a required value, `<PODNAME>`. This should be the full name
 of a Kubernetes Pod. If a Pod is running more than one Envoy proxy managed by
 Consul, as in the [Multiport configuration](/consul/docs/k8s/connect#kubernetes-pods-with-multiple-ports),
-configuration for all proxies in the Pod will be displayed.
+the terminal displays configuration information for all proxies in the pod.
 
 The following options are available.
 
-| Flag                               | Description                                                                                                                                                                                                                                                               | Default                                                                                                                |
-| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| <nobr>`-namespace`, `-n`</nobr>    | `String` The namespace where the target Pod can be found.                                                                                                                                                                                                                 | Current [kubeconfig](https://kubernetes.io/docs/concepts/configuration/organize-cluster-access-kubeconfig/) namespace. |
-| <nobr>`-update-level`, `-u`</nobr> | `String` Update the level for the logger. Can be either `-update-level <LEVEL>` to change all loggers to a specific level, or a comma delineated list of loggers with level can be passed like `-update-level grpc:warning,http:info` to only modify specific loggers.    | none                                                                                                                   |
-| <nobr>`-reset`, `-r`</nobr>        | `String` Reset the log levels for all loggers back to the default of `info`                                                                                                                                                                                               | `info`                                                                                                                 |
+| Flag                               | Description                                                                                                                                                                                                                                                                                                              | Default                                                                                                                |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------- |
+| <nobr>`-namespace`, `-n`</nobr>    | `String` Specifies the namespace containing the target Pod.                                                                                                                                                                                                                                                              | Current [kubeconfig](https://kubernetes.io/docs/concepts/configuration/organize-cluster-access-kubeconfig/) namespace. |
+| <nobr>`-update-level`, `-u`</nobr> | `String`  Specifies the logger (optional) and the level to update. <p>Use the following format to configure the same level for loggers: `-update-level <LEVEL>`.</p> <p>You can also specify a comma-delineated list to configure levels for specific loggers, for example: `-update-level grpc:warning,http:info`.</p>  | none                                                                                                                   |
+| <nobr>`-reset`, `-r`</nobr>        | `String` Reset the log levels for all loggers back to the default of `info`                                                                                                                                                                                                                                              | `info`                                                                                                                 |
 
 #### Example commands
-
-Get the log levels for all loggers of an Envoy proxy in a given pod.
-`server-697458b9f8-4vr29`.
+In the following example, Consul returns the log levels for all of an Envoy proxy's loggers in a pod with the ID `server-697458b9f8-4vr29`:
 
 ```shell-session
 $ consul-k8s proxy log server-697458b9f8-4vr29
@@ -541,9 +539,9 @@ file                            info
 pool                            info
 ```
 
-Update the log levels for all loggers of an Envoy proxy in a given pod.
+The following command updates the log levels for all loggers of an Envoy proxy to `warning`.
 ```shell-session
-$ consul-k8s proxy log server-697458b9f8-4vr29 -u warning
+$ consul-k8s proxy log server-697458b9f8-4vr29 -update-level warning
 Envoy log configuration for server-697458b9f8-4vr29 in namespace default:
 
 ==> Log Levels for server-697458b9f8-4vr29
@@ -606,10 +604,9 @@ quic_stream                     warning
 testing                         warning
 websocket                       warning
 ```
-
-Update the log levels for specific loggers of an Envoy proxy in a given pod.
+The following command updates the `grpc` log level to `error`, the `http` log level to `critical`, and the `runtime` log level to `debug` for pod ID `server-697458b9f8-4vr29`
 ```shell-session
-$ consul-k8s proxy log server-697458b9f8-4vr29 -u grpc:error,http:critical,runtime:debug
+$ consul-k8s proxy log server-697458b9f8-4vr29 -update-level grpc:error,http:critical,runtime:debug
 Envoy log configuration for server-697458b9f8-4vr29 in namespace default:
 
 ==> Log Levels for server-697458b9f8-4vr29
@@ -672,8 +669,7 @@ secret                          info
 admin                           info
 dubbo                           info
 ```
-
-Reset the log levels for all loggers of an Envoy proxy in a given pod back to the default level of `info`.
+The following command resets the log levels for all loggers of an Envoy proxy in pod `server-697458b9f8-4vr29` to the default level of `info`.
 ```shell-session
 $ consul-k8s proxy log server-697458b9f8-4vr29 -r
 Envoy log configuration for server-697458b9f8-4vr29 in namespace default:
