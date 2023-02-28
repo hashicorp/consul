@@ -266,7 +266,6 @@ func TestHTTPRouteParentRefChange(t *testing.T) {
 	// infrastructure set up
 	address := "localhost"
 
-	// TODO: could/should we somehow pick these randomly?
 	listenerOnePort := 6000
 	listenerTwoPort := 6001
 
