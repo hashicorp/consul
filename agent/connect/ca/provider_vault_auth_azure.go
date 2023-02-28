@@ -15,7 +15,10 @@ func NewAzureAuthClient(authMethod *structs.VaultAuthMethod) (*VaultAuthClient, 
 	params := authMethod.Params
 	authClient := NewVaultAPIAuthClient(authMethod, "")
 	// check for login data already in params (for backwards compability)
-	if legacyCheck(params) {
+	legacyKeys := []string{
+		"vm_name", "vmss_name", "resource_group_name", "subscription_id", "jwt",
+	}
+	if legacyCheck(params, legacyKeys...) {
 		return authClient, nil
 	}
 
@@ -40,7 +43,7 @@ var ( // use variables so we can change these in tests
 )
 
 type instanceData struct {
-	Compute
+	Compute Compute
 }
 type Compute struct {
 	Name              string
@@ -98,20 +101,6 @@ func AzureLoginDataGen(authMethod *structs.VaultAuthMethod) (map[string]any, err
 	}
 
 	return data, nil
-}
-
-// Checks to see if all the parameters needed to login have been hardcoded in the
-// auth-method's config Parameters field.
-func legacyCheck(params map[string]any) bool {
-	expectedKeys := []string{
-		"role", "vm_name", "vmss_name", "resource_group_name", "subscription_id", "jwt",
-	}
-	for _, key := range expectedKeys {
-		if v, ok := params[key]; !ok || v == "" {
-			return false
-		}
-	}
-	return true
 }
 
 func getMetadataInfo(endpoint string, query map[string]string) ([]byte, error) {
