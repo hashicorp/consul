@@ -45,7 +45,7 @@ Consul supports **four major Envoy releases** at the beginning of each major Con
 
 ### Envoy and Consul Dataplane
 
-The Consul dataplane was introduced in Consul v1.14 as a way to manage Envoy proxies without the use of Consul clients. Each new minor version of Consul is released with a new minor version of Consul dataplane, which packages both Envoy and the `consul-dataplane` binary in a single container image. For backwards compatability reasons, each new minor version of Consul will also support the previous minor version of Consul dataplane to allow for seamless upgrades. In addition, each minor version of Consul will support the next minor version of Consul dataplane to allow for extended dataplane support via newer versions of Envoy.  
+The Consul dataplane component was introduced in Consul v1.14 as a way to manage Envoy proxies without the use of Consul clients. Each new minor version of Consul is released with a new minor version of Consul dataplane, which packages both Envoy and the `consul-dataplane` binary in a single container image. For backwards compatability reasons, each new minor version of Consul will also support the previous minor version of Consul dataplane to allow for seamless upgrades. In addition, each minor version of Consul will support the next minor version of Consul dataplane to allow for extended dataplane support via newer versions of Envoy.  
 
 | Consul Version      | Consul Dataplane Version (Bundled Envoy Version)  |
 | ------------------- | ------------------------------------------------- |
