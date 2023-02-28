@@ -125,10 +125,10 @@ func (c *Cluster) Add(configs []Config, serfJoin bool, ports ...int) (xe error) 
 		// Each agent gets it's own area in the cluster scratch.
 		conf.ScratchDir = filepath.Join(c.ScratchDir, strconv.Itoa(c.Index))
 		if err := os.MkdirAll(conf.ScratchDir, 0777); err != nil {
-			return err
+			return fmt.Errorf("container %d: %w", idx, err)
 		}
 		if err := os.Chmod(conf.ScratchDir, 0777); err != nil {
-			return err
+			return fmt.Errorf("container %d: %w", idx, err)
 		}
 
 		n, err := NewConsulContainer(
@@ -138,7 +138,7 @@ func (c *Cluster) Add(configs []Config, serfJoin bool, ports ...int) (xe error) 
 			ports...,
 		)
 		if err != nil {
-			return fmt.Errorf("could not add container index %d: %w", idx, err)
+			return fmt.Errorf("container %d: %w", idx, err)
 		}
 		agents = append(agents, n)
 		c.Index++
