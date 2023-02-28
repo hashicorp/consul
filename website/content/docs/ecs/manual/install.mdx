@@ -373,11 +373,11 @@ configuration to a shared volume.
 
 ### `CONSUL_ECS_CONFIG_JSON`
 
-Configuration is passed to the `consul-ecs` binary in JSON format using the `CONSUL_ECS_CONFIG_JSON` environment variable.
+Consul uses the `CONSUL_ECS_CONFIG_JSON` environment variable to passed configurations to the `consul-ecs` binary in JSON format.
 
-The following is an example of the configuration that might be used for a service named `example-client-app` with one upstream
-service name `example-server-app`. The `proxy` and `service` blocks include information used by `consul-ecs-mesh-init` to perform
-[service registration](/consul/docs/discovery/services) with Consul during task startup. The same configuration format is used for
+The following example configures a service named `example-client-app` with one upstream
+service name `example-server-app`. The `proxy` and `service` blocks include information used by `consul-ecs-mesh-init` to register the service with Consul during task start up.
+The same configuration format is used for
 the `consul-ecs-health-sync` container.
 
 ```json
@@ -409,7 +409,7 @@ the `consul-ecs-health-sync` container.
 | `proxy.upstreams`      | list    | The upstream services that your application calls over the service mesh, if any. The `destinationName` and `localBindPort` fields are required. |
 | `service.name`         | string  | The name used to register this service into the Consul service catalog.                                                                         |
 | `service.port`         | integer | The port your application listens on. Set to `0` if your application does not listen on any port.                                               |
-| `service.checks`       | list    | Consul [checks](/consul/docs/discovery/checks) to include so that Consul can run health checks against your application.                               |
+| `service.checks`       | list    | Consul [checks](/consul/docs/services/usage/checks) to include so that Consul can run health checks against your application.                               |
 
 See the [Configuration Reference](/consul/docs/ecs/configuration-reference) for a complete reference of fields.
 

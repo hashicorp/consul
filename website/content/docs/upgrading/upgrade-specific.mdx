@@ -990,11 +990,9 @@ config files loaded by Consul, even when using the
 [`-config-file`](/consul/docs/agent/config/cli-flags#_config_file) argument to specify a
 file directly.
 
-#### Service Definition Parameter Case changed
+#### Use Snake Case for Service Definition Parameters
 
-All config file formats now require snake_case fields, so all CamelCased parameter
-names should be changed before upgrading.
-See [Service Definition Parameter Case](/consul/docs/discovery/services#service-definition-parameter-case) documentation for details.
+Snake case, which is a convention that uses underscores between words in a configuration key, is required for all configuration file formats. Change any camel cased parameter to snake case equivalents before upgrading.
 
 #### Deprecated Options Have Been Removed
 
