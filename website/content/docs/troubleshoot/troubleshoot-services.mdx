@@ -13,7 +13,7 @@ For more information, refer to the [`consul troubleshoot` CLI documentation](/co
 
 ## Introduction
 
-When communication between upstream and downstream services in a service mesh fails, you can diagnose the cause manually with one or more of Consul’s built-in features, including [health check queries](/consul/docs/discovery/checks), [the UI topology view](/consul/docs/connect/observability/ui-visualization), and [agent telemetry metrics](/consul/docs/agent/telemetry#metrics-reference).
+When communication between upstream and downstream services in a service mesh fails, you can diagnose the cause manually with one or more of Consul’s built-in features, including [health check queries](/consul/docs/services/usage/checks), [the UI topology view](/consul/docs/connect/observability/ui-visualization), and [agent telemetry metrics](/consul/docs/agent/telemetry#metrics-reference).
 
 The `consul troubleshoot` command performs several checks in sequence that enable you to discover issues that impede service-to-service communication. The process systematically queries the [Envoy administration interface API](https://www.envoyproxy.io/docs/envoy/latest/operations/admin) and the Consul API to determine the cause of the communication failure.
 
@@ -100,7 +100,7 @@ In the example output, troubleshooting upstream communication reveals that the `
   ! No healthy endpoints for cluster "backend2.default.dc1.internal.e08fa6d6-e91e-dfe0-f6e1-ba097a828e31.consul" for upstream "backend" found
 ```
 
-The output from the troubleshooting process identifies service instances according to their [Consul DNS address](/consul/docs/discovery/dns#standard-lookup). Use the DNS information for failing services to diagnose the specific issues affecting the service instance.
+The output from the troubleshooting process identifies service instances according to their [Consul DNS address](/consul/docs/services/discovery/dns-static-lookups#standard-lookup). Use the DNS information for failing services to diagnose the specific issues affecting the service instance.
 
 For more information, refer to the [`consul troubleshoot` CLI documentation](/consul/commands/troubleshoot).
 

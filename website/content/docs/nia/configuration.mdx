@@ -197,7 +197,7 @@ Service registration requires that the [Consul token](/consul/docs/nia/configura
 | `default_check.enabled` | Optional | boolean | Enables CTS to create the default health check. | `true` |
 | `default_check.address` | Optional | string | The address to use for the default HTTP health check. Needs to include the scheme (`http`/`https`) and the port, if applicable. | `http://localhost:<port>` or `https://localhost:<port>`. Determined from the [port configuration](/consul/docs/nia/configuration#port) and whether [TLS is enabled](/consul/docs/nia/configuration#enabled-2) on the CTS API. |
 
-The default health check is an [HTTP check](/consul/docs/discovery/checks#http-interval) that calls the [Health API](/consul/docs/nia/api/health). The following table describes the values CTS sets for this default check, corresponding to the [Consul register check API](/consul/api-docs/agent/check#register-check). If an option is not listed in this table, then CTS is using the default value.
+The default health check is an [HTTP check](/consul/docs/services/usage/checks#http-checks) that calls the [Health API](/consul/docs/nia/api/health). The following table describes the values CTS sets for this default check, corresponding to the [Consul register check API](/consul/api-docs/agent/check#register-check). If an option is not listed in this table, then CTS is using the default value.
 
 | Parameter | Value |
 | --------- | ----- |

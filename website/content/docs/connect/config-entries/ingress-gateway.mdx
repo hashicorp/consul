@@ -172,10 +172,9 @@ gateway:
 - All services with the same
   [protocol](/consul/docs/connect/config-entries/ingress-gateway#protocol) as the
   listener will be routable.
-- The ingress gateway will route traffic based on the host/authority header,
-  expecting a value matching `<service-name>.ingress.*`, or if using namespaces,
-  `<service-name>.ingress.<namespace>.*`. This matches the [Consul DNS
-  ingress subdomain](/consul/docs/discovery/dns#ingress-service-lookups).
+- The ingress gateway routes traffic based on the host or authority header and expects a value matching either `<service-name>.ingress.*` or 
+  `<service-name>.ingress.<namespace>.*`. The query matches the [Consul DNS
+  ingress subdomain](/consul/docs/services/discovery/dns-static-lookups#ingress-service-lookups).
 
 A wildcard specifier cannot be set on a listener of protocol `tcp`.
 
