@@ -218,6 +218,23 @@ func AssertEnvoyPresentsCertURI(t *testing.T, port int, serviceName string) {
 	}
 }
 
+// AssertEnvoyRunning assert the envoy is running by querying its stats page
+func AssertEnvoyRunning(t *testing.T, port int) {
+	var (
+		err error
+	)
+	failer := func() *retry.Timer {
+		return &retry.Timer{Timeout: 10 * time.Second, Wait: 500 * time.Millisecond}
+	}
+
+	retry.RunWith(failer(), t, func(r *retry.R) {
+		_, _, err = GetEnvoyOutput(port, "stats", nil)
+		if err != nil {
+			r.Fatal("could not fetch envoy stats")
+		}
+	})
+}
+
 func GetEnvoyOutput(port int, path string, query map[string]string) (string, int, error) {
 	client := cleanhttp.DefaultClient()
 	var u url.URL
@@ -260,10 +277,16 @@ func sanitizeResult(s string) []string {
 // AssertServiceHasHealthyInstances asserts the number of instances of service equals count for a given service.
 // https://developer.hashicorp.com/consul/docs/connect/config-entries/service-resolver#onlypassing
 func AssertServiceHasHealthyInstances(t *testing.T, node libcluster.Agent, service string, onlypassing bool, count int) {
-	services, _, err := node.GetClient().Health().Service(service, "", onlypassing, nil)
-	require.NoError(t, err)
-	for _, v := range services {
-		fmt.Printf("%s service status: %s\n", v.Service.ID, v.Checks.AggregatedStatus())
+	failer := func() *retry.Timer {
+		return &retry.Timer{Timeout: 10 * time.Second, Wait: 500 * time.Millisecond}
 	}
-	require.Equal(t, count, len(services))
+
+	retry.RunWith(failer(), t, func(r *retry.R) {
+		services, _, err := node.GetClient().Health().Service(service, "", onlypassing, nil)
+		require.NoError(r, err)
+		for _, v := range services {
+			fmt.Printf("%s service status: %s\n", v.Service.ID, v.Checks.AggregatedStatus())
+		}
+		require.Equal(r, count, len(services))
+	})
 }

@@ -1252,8 +1252,8 @@ func TestStreamResources_Server_DisconnectsOnHeartbeatTimeout(t *testing.T) {
 	})
 
 	testutil.RunStep(t, "stream is disconnected due to heartbeat timeout", func(t *testing.T) {
-		disconnectTime := ptr(it.FutureNow(1))
 		retry.Run(t, func(r *retry.R) {
+			disconnectTime := ptr(it.StaticNow())
 			status, ok := srv.StreamStatus(testPeerID)
 			require.True(r, ok)
 			require.False(r, status.Connected)
@@ -1423,7 +1423,7 @@ func makeClient(t *testing.T, srv *testServer, peerID string) *MockClient {
 		},
 	}))
 
-	// Receive a services and roots subscription request pair from server
+	// Receive ExportedService, ExportedServiceList, and PeeringTrustBundle subscription requests from server
 	receivedSub1, err := client.Recv()
 	require.NoError(t, err)
 	receivedSub2, err := client.Recv()

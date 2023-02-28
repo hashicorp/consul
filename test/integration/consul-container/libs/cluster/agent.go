@@ -22,6 +22,7 @@ type Agent interface {
 	GetConfig() Config
 	GetInfo() AgentInfo
 	GetDatacenter() string
+	GetNetwork() string
 	IsServer() bool
 	RegisterTermination(func() error)
 	Terminate() error

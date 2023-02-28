@@ -351,7 +351,8 @@ spec:
     {
       name: 'EnvoyExtensions',
       type: 'array<EnvoyExtension>: []',
-      description: `A list of extensions to modify Envoy proxy configuration.`,
+      description: `A list of extensions to modify Envoy proxy configuration.<br><br>
+        Applying \`EnvoyExtensions\` to \`ProxyDefaults\` may produce unintended consequences. We recommend enabling \`EnvoyExtensions\` with [\`ServiceDefaults\`](/consul/docs/connect/config-entries/service-defaults#envoyextensions) in most cases.`,
       children: [
         {
           name: 'Name',
