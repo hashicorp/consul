@@ -45,7 +45,7 @@ func TestAccessLogs(t *testing.T) {
 		t.Skip()
 	}
 
-	cluster, _, _ := topology.NewPeeringCluster(t, 1, &libcluster.BuildOptions{
+	cluster, _, _ := topology.NewPeeringCluster(t, 1, 1, &libcluster.BuildOptions{
 		Datacenter:           "dc1",
 		InjectAutoEncryption: true,
 	})
@@ -70,7 +70,7 @@ func TestAccessLogs(t *testing.T) {
 	// Validate Custom JSON
 	require.Eventually(t, func() bool {
 		libassert.HTTPServiceEchoes(t, "localhost", port, "banana")
-		libassert.AssertFortioName(t, fmt.Sprintf("http://localhost:%d", port), "static-server")
+		libassert.AssertFortioName(t, fmt.Sprintf("http://localhost:%d", port), "static-server", "")
 		client := libassert.ServiceLogContains(t, clientService, "\"banana_path\":\"/banana\"")
 		server := libassert.ServiceLogContains(t, serverService, "\"banana_path\":\"/banana\"")
 		return client && server
@@ -112,7 +112,7 @@ func TestAccessLogs(t *testing.T) {
 	_, port = clientService.GetAddr()
 	require.Eventually(t, func() bool {
 		libassert.HTTPServiceEchoes(t, "localhost", port, "orange")
-		libassert.AssertFortioName(t, fmt.Sprintf("http://localhost:%d", port), "static-server")
+		libassert.AssertFortioName(t, fmt.Sprintf("http://localhost:%d", port), "static-server", "")
 		client := libassert.ServiceLogContains(t, clientService, "Orange you glad I didn't say banana: /orange, -")
 		server := libassert.ServiceLogContains(t, serverService, "Orange you glad I didn't say banana: /orange, -")
 		return client && server
