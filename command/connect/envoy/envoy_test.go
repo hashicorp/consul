@@ -196,6 +196,37 @@ func TestGenerateConfig(t *testing.T) {
 			},
 		},
 		{
+			Name:  "hcp-metrics",
+			Flags: []string{"-proxy-id", "test-proxy"},
+			ProxyConfig: map[string]interface{}{
+				"envoy_hcp_metrics_bind_port": 3000,
+			},
+			WantArgs: BootstrapTplArgs{
+				ProxyCluster: "test-proxy",
+				ProxyID:      "test-proxy",
+				// We don't know this til after the lookup so it will be empty in the
+				// initial args call we are testing here.
+				ProxySourceService: "",
+				GRPC: GRPC{
+					AgentAddress: "127.0.0.1",
+					AgentPort:    "8502",
+				},
+				AdminAccessLogPath:    "/dev/null",
+				AdminBindAddress:      "127.0.0.1",
+				AdminBindPort:         "19000",
+				LocalAgentClusterName: xds.LocalAgentClusterName,
+				PrometheusScrapePath:  "/metrics",
+			},
+		},
+		{
+			Name:  "hcp-metrics-invalid-port",
+			Flags: []string{"-proxy-id", "test-proxy"},
+			ProxyConfig: map[string]interface{}{
+				"envoy_hcp_metrics_bind_port": 80000,
+			},
+			WantErr: "failed parsing Proxy.Config: invalid envoy_hcp_metrics_bind_port: 80000",
+		},
+		{
 			Name: "prometheus-metrics",
 			Flags: []string{"-proxy-id", "test-proxy",
 				"-prometheus-backend-port", "20100", "-prometheus-scrape-path", "/scrape-path"},
