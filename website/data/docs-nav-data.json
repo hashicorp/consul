@@ -335,7 +335,7 @@
         ]
       },
       {
-        "title": "Service discovery",
+        "title": "Discover services with DNS",
         "routes": [
           {
             "title": "Overview",
