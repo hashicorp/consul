@@ -44,10 +44,10 @@
             </li>
       {{/let}}
       {{#let (from-entries (array
-          (array 'ingress-gateway' '/connect/ingress-gateway')
-          (array 'terminating-gateway' '/connect/terminating-gateway')
+          (array 'ingress-gateway' '/connect/gateways/ingress-gateway')
+          (array 'terminating-gateway' '/connect/gateways/terminating-gateway')
           (array 'api-gateway' '/connect/gateways/api-gateway')
-          (array 'mesh-gateway' '/connect/mesh-gateway')
+          (array 'mesh-gateway' '/connect/gateways/mesh-gateway')
         )
       ) as |link|}}
             <li role="none" class="docs-link">
