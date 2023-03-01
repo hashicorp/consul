@@ -432,14 +432,11 @@ func TestVaultCAProvider_AzureAuthClient(t *testing.T) {
 func TestVaultCAProvider_JwtAuthClient(t *testing.T) {
 	tokenF, err := os.CreateTemp("", "token-path")
 	require.NoError(t, err)
+	defer func() { os.Remove(tokenF.Name()) }()
 	_, err = tokenF.WriteString("test-token")
 	require.NoError(t, err)
 	err = tokenF.Close()
 	require.NoError(t, err)
-
-	defer func() {
-		os.Remove(tokenF.Name())
-	}()
 
 	cases := map[string]struct {
 		authMethod *structs.VaultAuthMethod
