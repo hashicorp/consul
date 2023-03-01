@@ -314,43 +314,43 @@
     "title": "Services",
     "routes": [
       {
-        "title": "Services Overview",
+        "title": "Overview",
         "path": "services/services"
       },
       {
-        "title": "Define and Register",
+        "title": "Usage",
         "routes": [
           {
-            "title": "Define Services",
+            "title": "Define services",
             "path": "services/usage/define-services"
           },
           {
-            "title": "Define Health Checks",
+            "title": "Define health checks",
             "path": "services/usage/checks"
           },
           {
-            "title": "Register Services and Health Checks",
+            "title": "Register services and health checks",
             "path": "services/usage/register-services-checks"
           }
         ]
       },
       {
-        "title": "Service Discovery",
+        "title": "Discover services with DNS",
         "routes": [
           {
-            "title": "DNS Usage Overview",
+            "title": "Overview",
             "path": "services/discovery/dns-overview"
           },
           {
-            "title": "Configure Consul DNS Behavior",
+            "title": "Configure DNS behavior",
             "path": "services/discovery/dns-configuration"
           },
           {
-            "title": "Perform Static DNS Lookups",
+            "title": "Perform static DNS lookups",
             "path": "services/discovery/dns-static-lookups"
           },
           {
-            "title": "Enable Dynamic DNS Lookups",
+            "title": "Enable dynamic DNS lookups",
             "path": "services/discovery/dns-dynamic-lookups"
           }
         ]
@@ -359,19 +359,19 @@
         "title": "Configuration",
         "routes": [
           {
-            "title": "Services Configuration Overview",
+            "title": "Overview",
             "path": "services/configuration/services-configuration-overview"
           },
           {
-            "title": "Services Configuration Reference",
+            "title": "Services",
             "path": "services/configuration/services-configuration-reference"
           },
           {
-            "title": "Health Checks Configuration Reference",
+            "title": "Health checks",
             "path": "services/configuration/checks-configuration-reference"
           },
           {
-            "title": "Service Defaults Configuration Reference",
+            "title": "Service defaults",
             "href": "connect/config-entries/service-defaults"
           }
         ]
