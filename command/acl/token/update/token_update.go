@@ -71,7 +71,7 @@ func (c *cmd) init() {
 	c.flags.Var((*flags.AppendSliceValue)(&c.roleIDs), "role-id", "ID of a "+
 		"role to use for this token. Overwrites existing roles. May be specified multiple times")
 	c.flags.Var((*flags.AppendSliceValue)(&c.roleNames), "role-name", "Name of a "+
-		"role to use for this token. Overwrites existing rolees. May be specified multiple times")
+		"role to use for this token. Overwrites existing roles. May be specified multiple times")
 	c.flags.Var((*flags.AppendSliceValue)(&c.appendRoleIDs), "append-role-id", "ID of a "+
 		"role to add to this token. The token retains existing roles. May be specified multiple times")
 	c.flags.Var((*flags.AppendSliceValue)(&c.appendRoleNames), "append-role-name", "Name of a "+
