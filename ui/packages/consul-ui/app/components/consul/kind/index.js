@@ -14,9 +14,6 @@ export default Component.extend({
   tagName: '',
   Name: computed('item.Kind', function () {
     const name = normalizedGatewayLabels[this.item.Kind];
-    if (name !== '') {
-      return name;
-    }
-    return titleize(humanize(this.item.Kind));
+    return name ? name : titleize(humanize(this.item.Kind));
   }),
 });
