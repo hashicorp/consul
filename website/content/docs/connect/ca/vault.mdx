@@ -101,7 +101,7 @@ The key after the slash refers to the corresponding option name in the agent con
 
    - `Params`/`params` (`map: nil`) - The parameters to configure the auth method. The configuration parameters needed will depend on which auth type you are using. Please refer to the Vault Agent auto-auth method documentation for details on their configuration options: [AppRole](/vault/docs/agent/autoauth/methods/approle#configuration), [AWS](/vault/docs/agent/autoauth/methods/aws#configuration), [Azure](/vault/docs/agent/autoauth/methods/azure#configuration), [GCP](/vault/docs/agent/autoauth/methods/gcp#configuration), [JWT](/vault/docs/agent/autoauth/methods/jwt#configuration), [Kubernetes](/vault/docs/agent/autoauth/methods/kubernetes#configuration).
 
-   ~> **Note:** Only the authentication related fields are supported, not the optional management fields. E.g. JWT's `path` and `role` are supported but not its `remove_jwt_after_reading` field.
+   Only the authentication related fields (for example, JWT's `path` and `role`) are supported. The optional management fields (for example: `remove_jwt_after_reading`) are not supported.
 
 - `RootPKIPath` / `root_pki_path` (`string: <required>`) - The path to
   a PKI secrets engine for the root certificate.
