@@ -76,8 +76,8 @@ The following issues are known to exist in the v1.15.0 release:
   
   The workaround to resolve this issue until Consul 1.15.1 would be to run the client agents with the new `ingore-envoy-compatiblity` flag: 
   
-  ```log hideClipboard
-  consul connect envoy --ignore-envoy-compatibility`
+  ```shell-session
+  $ consul connect envoy --ignore-envoy-compatibility
   ```
 
 - For v1.15.0, there is a known issue where `consul acl token read -self` requires an `-accessor-id`. This is resolved in the uppcoming Consul v1.15.1 patch release.
