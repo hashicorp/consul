@@ -2113,6 +2113,51 @@ func TestDecodeConfigEntry(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "rate-limit",
+			snake: `
+				kind = "rate-limit"
+				name = "foo"
+				meta {
+					"foo" = "bar"
+					"gir" = "zim"
+				}
+				readrate = 500.0
+				writerate = 500.0
+				acl {
+					readrate = 50.0
+					writerate = 10.0
+				}
+			`,
+			camel: `
+				Kind = "rate-limit"
+				Name = "foo"
+				Meta {
+					"foo" = "bar"
+					"gir" = "zim"
+				}
+				ReadRate = 500.0
+				WriteRate = 500.0
+				ACL {
+					ReadRate = 50.0
+					WriteRate = 10.0
+				}
+			`,
+			expect: &RateLimitConfigEntry{
+				Kind: "rate-limit",
+				Name: "foo",
+				Meta: map[string]string{
+					"foo": "bar",
+					"gir": "zim",
+				},
+				ReadRate:  500.0,
+				WriteRate: 500.0,
+				ACL: readWriteRatesConfig{
+					ReadRate:  50.0,
+					WriteRate: 10.0,
+				},
+			},
+		},
 	} {
 		tc := tc
 

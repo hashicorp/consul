@@ -40,6 +40,7 @@ const (
 	InlineCertificate  string = "inline-certificate"
 	HTTPRoute          string = "http-route"
 	TCPRoute           string = "tcp-route"
+	RateLimitConfig    string = "rate-limit"
 
 	ProxyConfigGlobal string = "global"
 	MeshConfigMesh    string = "mesh"
@@ -686,6 +687,8 @@ func MakeConfigEntry(kind, name string) (ConfigEntry, error) {
 		return &HTTPRouteConfigEntry{Name: name}, nil
 	case TCPRoute:
 		return &TCPRouteConfigEntry{Name: name}, nil
+	case RateLimitConfig:
+		return &RateLimitConfigEntry{Name: name}, nil
 	default:
 		return nil, fmt.Errorf("invalid config entry kind: %s", kind)
 	}
