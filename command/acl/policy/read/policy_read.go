@@ -93,7 +93,7 @@ func (c *cmd) Run(args []string) int {
 	}
 
 	if pol == nil {
-		c.UI.Error(fmt.Sprintf("Error not found policy %s", c.policyName))
+		c.UI.Error(fmt.Sprintf("Error policy not found: %s", c.policyName))
 		return 1
 	}
 
