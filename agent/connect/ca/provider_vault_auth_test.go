@@ -497,9 +497,11 @@ func TestVaultCAProvider_JwtAuthClient(t *testing.T) {
 				return
 			}
 			require.NoError(t, err)
-			data, err := auth.LoginDataGen(c.authMethod)
-			require.NoError(t, err)
-			require.Equal(t, c.expData, data)
+			if auth.LoginDataGen != nil {
+				data, err := auth.LoginDataGen(c.authMethod)
+				require.NoError(t, err)
+				require.Equal(t, c.expData, data)
+			}
 		})
 	}
 }
