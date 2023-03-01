@@ -190,6 +190,13 @@ func TestTokenUpdateCommandWithAppend(t *testing.T) {
 	)
 	require.NoError(t, policyErr)
 
+	//third policy
+	thirdPolicy, _, policyErr := client.ACL().PolicyCreate(
+		&api.ACLPolicy{Name: "third-policy"},
+		&api.WriteOptions{Token: "root"},
+	)
+	require.NoError(t, policyErr)
+
 	run := func(t *testing.T, args []string) *api.ACLToken {
 		ui := cli.NewMockUi()
 		cmd := New(ui)
@@ -222,11 +229,11 @@ func TestTokenUpdateCommandWithAppend(t *testing.T) {
 			"-http-addr=" + a.HTTPAddr(),
 			"-accessor-id=" + token.AccessorID,
 			"-token=root",
-			"-append-policy-id=" + secondPolicy.ID,
+			"-append-policy-id=" + thirdPolicy.ID,
 			"-description=test token",
 		})
 
-		require.Len(t, token.Policies, 2)
+		require.Len(t, token.Policies, 3)
 	})
 }
 
