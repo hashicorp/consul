@@ -744,6 +744,10 @@ func (c *cmd) generateConfig() ([]byte, error) {
 		if err := mapstructure.WeakDecode(svcProxyConfig.Config, &bsCfg); err != nil {
 			return nil, fmt.Errorf("failed parsing Proxy.Config: %s", err)
 		}
+
+		if bsCfg.HCPMetricsBindPort < 0 || bsCfg.HCPMetricsBindPort > 65535 {
+			return nil, fmt.Errorf("failed parsing Proxy.Config: invalid envoy_hcp_metrics_bind_port: %d", bsCfg.HCPMetricsBindPort)
+		}
 	}
 
 	return bsCfg.GenerateJSON(args, c.omitDeprecatedTags)

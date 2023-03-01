@@ -75,6 +75,9 @@ Usage: `consul connect envoy [options] [-- pass-through options]`
   In cases where either assumption is violated this flag will prevent the
   command attempting to resolve config from the local agent.
 
+- `envoy_hcp_metrics_bind_port` - By setting this port, Envoy will be configured to
+  send metrics to an HCP collector. By default, this is disabled.
+
 - `-envoy-ready-bind-address` - By default the proxy does not have a readiness probe
   configured on it. This flag in conjunction with the `envoy-ready-bind-port` flag
   configures where the envoy readiness probe is configured on the proxy. A `/ready` HTTP

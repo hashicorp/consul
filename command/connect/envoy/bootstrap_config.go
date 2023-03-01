@@ -49,6 +49,11 @@ type BootstrapConfig struct {
 	// stats_config.stats_tags can be made by overriding envoy_stats_config_json.
 	StatsTags []string `mapstructure:"envoy_stats_tags"`
 
+	// HCPMetricsBindPort is an int that configures a local listener port
+	// where Envoy will forward metrics. These metrics get pushed to the HCP Metrics
+	// collector to show service mesh metrics on HCP.
+	HCPMetricsBindPort int `mapstructure:"envoy_hcp_metrics_bind_port"`
+
 	// PrometheusBindAddr configures an <ip>:<port> on which the Envoy will listen
 	// and expose a single /metrics HTTP endpoint for Prometheus to scrape. It
 	// does this by proxying that URL to the internal admin server's prometheus
@@ -238,6 +243,11 @@ func (c *BootstrapConfig) ConfigureArgs(args *BootstrapTplArgs, omitDeprecatedTa
 		args.StatsFlushInterval = c.StatsFlushInterval
 	}
 
+	// Setup HCP Metrics if needed. This MUST happen after the Static*JSON is set above
+	if c.HCPMetricsBindPort != 0 {
+		appendHCPMetricsConfig(args, c.HCPMetricsBindPort)
+	}
+
 	return nil
 }
 
@@ -271,7 +281,7 @@ func (c *BootstrapConfig) generateStatsSinks(args *BootstrapTplArgs) error {
 	}
 
 	if len(stats_sinks) > 0 {
-		args.StatsSinksJSON = "[\n" + strings.Join(stats_sinks, ",\n") + "\n]"
+		args.StatsSinksJSON = strings.Join(stats_sinks, ",\n")
 	}
 	return nil
 }
@@ -794,6 +804,52 @@ func (c *BootstrapConfig) generateListenerConfig(args *BootstrapTplArgs, bindAdd
 	args.StaticSecretsJSON += secretsJSON
 
 	return nil
+}
+
+func appendHCPMetricsConfig(args *BootstrapTplArgs, hcpMetricsBindPort int) {
+	if args.StatsSinksJSON != "" {
+		args.StatsSinksJSON += ",\n"
+	}
+	args.StatsSinksJSON += `{
+		"name": "envoy.stat_sinks.metrics_service",
+		"typed_config": {
+		  "@type": "type.googleapis.com/envoy.config.metrics.v3.MetricsServiceConfig",
+		  "transport_api_version": "V3",
+		  "grpc_service": {
+			"envoy_grpc": {
+			  "cluster_name": "hcp_metrics_collector"
+			}
+		  }
+		}
+	  }`
+
+	if args.StaticClustersJSON != "" {
+		args.StaticClustersJSON += ",\n"
+	}
+	args.StaticClustersJSON += fmt.Sprintf(`{
+		"name": "hcp_metrics_collector",
+		"type": "STATIC",
+		"http2_protocol_options": {},
+		"loadAssignment": {
+		  "clusterName": "hcp_metrics_collector",
+		  "endpoints": [
+			{
+			  "lbEndpoints": [
+				{
+				  "endpoint": {
+					"address": {
+					  "socket_address": {
+						"address": "127.0.0.1",
+						"port_value": %d
+					  }
+					}
+				  }
+				}
+			  ]
+			}
+		  ]
+		}
+	  }`, hcpMetricsBindPort)
 }
 
 func containsSelfAdminCluster(clustersJSON string) (bool, error) {

@@ -557,13 +557,59 @@ func TestBootstrapConfig_ConfigureArgs(t *testing.T) {
 			},
 			wantArgs: BootstrapTplArgs{
 				StatsConfigJSON: defaultStatsConfigJSON,
-				StatsSinksJSON: `[{
+				StatsSinksJSON: `{
 					"name": "envoy.custom_exciting_sink",
 					"config": {
 						"foo": "bar"
 					}
-				}]`,
+				}`,
 			},
+		},
+		{
+			name: "hcp-metrics-sink",
+			input: BootstrapConfig{
+				HCPMetricsBindPort: 3000,
+			},
+			wantArgs: BootstrapTplArgs{
+				StatsConfigJSON: defaultStatsConfigJSON,
+				StatsSinksJSON: `{
+					"name": "envoy.stat_sinks.metrics_service",
+					"typed_config": {
+					  "@type": "type.googleapis.com/envoy.config.metrics.v3.MetricsServiceConfig",
+					  "transport_api_version": "V3",
+					  "grpc_service": {
+						"envoy_grpc": {
+						  "cluster_name": "hcp_metrics_collector"
+						}
+					  }
+					}
+				  }`,
+				StaticClustersJSON: `{
+					"name": "hcp_metrics_collector",
+					"type": "STATIC",
+					"http2_protocol_options": {},
+					"loadAssignment": {
+					  "clusterName": "hcp_metrics_collector",
+					  "endpoints": [
+						{
+						  "lbEndpoints": [
+							{
+							  "endpoint": {
+								"address": {
+								  "socket_address": {
+									"address": "127.0.0.1",
+									"port_value": 3000
+								  }
+								}
+							  }
+							}
+						  ]
+						}
+					  ]
+					}
+				  }`,
+			},
+			wantErr: false,
 		},
 		{
 			name: "simple-statsd-sink",
@@ -572,7 +618,7 @@ func TestBootstrapConfig_ConfigureArgs(t *testing.T) {
 			},
 			wantArgs: BootstrapTplArgs{
 				StatsConfigJSON: defaultStatsConfigJSON,
-				StatsSinksJSON: `[{
+				StatsSinksJSON: `{
 					"name": "envoy.stat_sinks.statsd",
 					"typedConfig": {
 						"@type": "type.googleapis.com/envoy.config.metrics.v3.StatsdSink",
@@ -583,7 +629,7 @@ func TestBootstrapConfig_ConfigureArgs(t *testing.T) {
 							}
 						}
 					}
-				}]`,
+				}`,
 			},
 			wantErr: false,
 		},
@@ -600,7 +646,7 @@ func TestBootstrapConfig_ConfigureArgs(t *testing.T) {
 			},
 			wantArgs: BootstrapTplArgs{
 				StatsConfigJSON: defaultStatsConfigJSON,
-				StatsSinksJSON: `[{
+				StatsSinksJSON: `{
 					"name": "envoy.stat_sinks.statsd",
 					"typedConfig": {
 						"@type": "type.googleapis.com/envoy.config.metrics.v3.StatsdSink",
@@ -617,7 +663,7 @@ func TestBootstrapConfig_ConfigureArgs(t *testing.T) {
 					"config": {
 						"foo": "bar"
 					}
-				}]`,
+				}`,
 			},
 			wantErr: false,
 		},
@@ -629,7 +675,7 @@ func TestBootstrapConfig_ConfigureArgs(t *testing.T) {
 			env: []string{"MY_STATSD_URL=udp://127.0.0.1:9125"},
 			wantArgs: BootstrapTplArgs{
 				StatsConfigJSON: defaultStatsConfigJSON,
-				StatsSinksJSON: `[{
+				StatsSinksJSON: `{
 					"name": "envoy.stat_sinks.statsd",
 					"typedConfig": {
 						"@type": "type.googleapis.com/envoy.config.metrics.v3.StatsdSink",
@@ -640,7 +686,7 @@ func TestBootstrapConfig_ConfigureArgs(t *testing.T) {
 							}
 						}
 					}
-				}]`,
+				}`,
 			},
 			wantErr: false,
 		},
@@ -652,7 +698,7 @@ func TestBootstrapConfig_ConfigureArgs(t *testing.T) {
 			env: []string{"HOST_IP=127.0.0.1"},
 			wantArgs: BootstrapTplArgs{
 				StatsConfigJSON: defaultStatsConfigJSON,
-				StatsSinksJSON: `[{
+				StatsSinksJSON: `{
 					"name": "envoy.stat_sinks.statsd",
 					"typedConfig": {
 						"@type": "type.googleapis.com/envoy.config.metrics.v3.StatsdSink",
@@ -663,7 +709,7 @@ func TestBootstrapConfig_ConfigureArgs(t *testing.T) {
 							}
 						}
 					}
-				}]`,
+				}`,
 			},
 			wantErr: false,
 		},
@@ -685,7 +731,7 @@ func TestBootstrapConfig_ConfigureArgs(t *testing.T) {
 			},
 			wantArgs: BootstrapTplArgs{
 				StatsConfigJSON: defaultStatsConfigJSON,
-				StatsSinksJSON: `[{
+				StatsSinksJSON: `{
 					"name": "envoy.stat_sinks.dog_statsd",
 					"typedConfig": {
 						"@type": "type.googleapis.com/envoy.config.metrics.v3.DogStatsdSink",
@@ -696,7 +742,7 @@ func TestBootstrapConfig_ConfigureArgs(t *testing.T) {
 							}
 						}
 					}
-				}]`,
+				}`,
 			},
 			wantErr: false,
 		},
@@ -707,7 +753,7 @@ func TestBootstrapConfig_ConfigureArgs(t *testing.T) {
 			},
 			wantArgs: BootstrapTplArgs{
 				StatsConfigJSON: defaultStatsConfigJSON,
-				StatsSinksJSON: `[{
+				StatsSinksJSON: `{
 					"name": "envoy.stat_sinks.dog_statsd",
 					"typedConfig": {
 						"@type": "type.googleapis.com/envoy.config.metrics.v3.DogStatsdSink",
@@ -717,7 +763,7 @@ func TestBootstrapConfig_ConfigureArgs(t *testing.T) {
 							}
 						}
 					}
-				}]`,
+				}`,
 			},
 			wantErr: false,
 		},
@@ -730,7 +776,7 @@ func TestBootstrapConfig_ConfigureArgs(t *testing.T) {
 			env: []string{"MY_STATSD_URL=udp://127.0.0.1:9125"},
 			wantArgs: BootstrapTplArgs{
 				StatsConfigJSON: defaultStatsConfigJSON,
-				StatsSinksJSON: `[{
+				StatsSinksJSON: `{
 					"name": "envoy.stat_sinks.dog_statsd",
 					"typedConfig": {
 						"@type": "type.googleapis.com/envoy.config.metrics.v3.DogStatsdSink",
@@ -741,7 +787,7 @@ func TestBootstrapConfig_ConfigureArgs(t *testing.T) {
 							}
 						}
 					}
-				}]`,
+				}`,
 			},
 			wantErr: false,
 		},
