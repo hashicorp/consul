@@ -2,6 +2,7 @@ package local
 
 import (
 	"context"
+	"time"
 
 	"github.com/hashicorp/go-hclog"
 
@@ -50,12 +51,15 @@ func Sync(ctx context.Context, cfg SyncConfig) {
 	cfg.State.Notify(stateCh)
 	defer cfg.State.StopNotify(stateCh)
 
+	const resyncFrequency = 30 * time.Second
+
 	for {
 		sync(cfg)
 
 		select {
 		case <-stateCh:
 			// Wait for a state change.
+		case <-time.After(resyncFrequency):
 		case <-ctx.Done():
 			return
 		}
