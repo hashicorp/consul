@@ -27,7 +27,7 @@ Refer to [Service-to-service troubleshooting overview](/consul/docs/troubleshoot
 
 ## What's Changed
 
-- ACL errors have now been ehanced to return descriptive errors when the specified resource cannot be found. Other ACL request errors provide more information about when a resource is missing. Add error for when the ACL system has not been bootstrapped.
+- ACL errors have now been ehanced to return descriptive errors when the specified resource cannot be found. Other ACL request errors provide more information about when a resource is missing. In addition, errors are now gracefully thrown when interacting with the ACL system before the ACL system been bootstrapped.
   - The Delete Token/Policy/AuthMethod/Role/BindingRule endpoints now return 404 when the resource cannot be found. The new error format is as follows:
 
     ```log hideClipboard
