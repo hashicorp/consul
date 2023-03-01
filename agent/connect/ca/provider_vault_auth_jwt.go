@@ -17,14 +17,14 @@ func NewJwtAuthClient(authMethod *structs.VaultAuthMethod) (*VaultAuthClient, er
 	}
 
 	authClient := NewVaultAPIAuthClient(authMethod, "")
-	// The path is required for the auto-auth config, but this auth provider
-	// seems to be used for jwt based auth by directly passing the jwt token.
-	// So we only require the token file path if the token string isn't
-	// present.
 	if legacyCheck(params, "jwt") {
 		return authClient, nil
 	}
 
+	// The path is required for the auto-auth config, but this auth provider
+	// seems to be used for jwt based auth by directly passing the jwt token.
+	// So we only require the token file path if the token string isn't
+	// present.
 	tokenPath, ok := params["path"].(string)
 	if !ok || strings.TrimSpace(tokenPath) == "" {
 		return nil, fmt.Errorf("missing 'path' value")
