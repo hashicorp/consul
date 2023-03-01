@@ -100,7 +100,7 @@ func TestPeering_UpgradeToTarget_fromLatest(t *testing.T) {
 				return serverConnectProxy, nil, func() {}, err
 			},
 			extraAssertion: func(clientUpstreamPort int) {
-				libassert.AssertFortioName(t, fmt.Sprintf("http://localhost:%d/static-server-2", clientUpstreamPort), "static-server-2")
+				libassert.AssertFortioName(t, fmt.Sprintf("http://localhost:%d/static-server-2", clientUpstreamPort), "static-server-2", "")
 			},
 		},
 		{
@@ -301,14 +301,14 @@ func TestPeering_UpgradeToTarget_fromLatest(t *testing.T) {
 				_, appPorts := clientConnectProxy.GetAddrs()
 				assertionFn := func() {
 					// assert traffic can fail-over to static-server in peered cluster and restor to local static-server
-					libassert.AssertFortioName(t, fmt.Sprintf("http://localhost:%d", appPorts[0]), "static-server-dialing")
+					libassert.AssertFortioName(t, fmt.Sprintf("http://localhost:%d", appPorts[0]), "static-server-dialing", "")
 					require.NoError(t, serverConnectProxy.Stop())
-					libassert.AssertFortioName(t, fmt.Sprintf("http://localhost:%d", appPorts[0]), "static-server")
+					libassert.AssertFortioName(t, fmt.Sprintf("http://localhost:%d", appPorts[0]), "static-server", "")
 					require.NoError(t, serverConnectProxy.Start())
-					libassert.AssertFortioName(t, fmt.Sprintf("http://localhost:%d", appPorts[0]), "static-server-dialing")
+					libassert.AssertFortioName(t, fmt.Sprintf("http://localhost:%d", appPorts[0]), "static-server-dialing", "")
 
 					// assert peer-static-server resolves to static-server in peered cluster
-					libassert.AssertFortioName(t, fmt.Sprintf("http://localhost:%d", appPorts[1]), "static-server")
+					libassert.AssertFortioName(t, fmt.Sprintf("http://localhost:%d", appPorts[1]), "static-server", "")
 				}
 				return serverConnectProxy, clientConnectProxy, assertionFn, nil
 			},
@@ -376,7 +376,7 @@ func TestPeering_UpgradeToTarget_fromLatest(t *testing.T) {
 		_, adminPort := clientSidecarService.GetAdminAddr()
 		libassert.AssertUpstreamEndpointStatus(t, adminPort, fmt.Sprintf("static-server.default.%s.external", libtopology.DialingPeerName), "HEALTHY", 1)
 		libassert.HTTPServiceEchoes(t, "localhost", port, "")
-		libassert.AssertFortioName(t, fmt.Sprintf("http://localhost:%d", port), "static-server")
+		libassert.AssertFortioName(t, fmt.Sprintf("http://localhost:%d", port), "static-server", "")
 
 		// TODO: restart static-server-2's sidecar
 		tc.extraAssertion(appPort)
