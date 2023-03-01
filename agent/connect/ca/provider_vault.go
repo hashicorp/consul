@@ -931,6 +931,8 @@ func configureVaultAuthMethod(authMethod *structs.VaultAuthMethod) (VaultAuthent
 	switch authMethod.Type {
 	case VaultAuthMethodTypeAWS:
 		return NewAWSAuthClient(authMethod), nil
+	case VaultAuthMethodTypeAzure:
+		return NewAzureAuthClient(authMethod)
 	case VaultAuthMethodTypeGCP:
 		return NewGCPAuthClient(authMethod)
 	case VaultAuthMethodTypeKubernetes:
@@ -968,7 +970,6 @@ func configureVaultAuthMethod(authMethod *structs.VaultAuthMethod) (VaultAuthent
 	// The rest of the auth methods use auth/<auth method path> login API path.
 	case VaultAuthMethodTypeAliCloud,
 		VaultAuthMethodTypeAppRole,
-		VaultAuthMethodTypeAzure,
 		VaultAuthMethodTypeCloudFoundry,
 		VaultAuthMethodTypeGitHub,
 		VaultAuthMethodTypeJWT,

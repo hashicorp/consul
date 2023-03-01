@@ -1,7 +1,10 @@
 package ca
 
 import (
+	"encoding/json"
 	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"strconv"
 	"testing"
@@ -10,6 +13,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/go-secure-stdlib/awsutil"
 	"github.com/hashicorp/vault/api/auth/gcp"
+	"github.com/hashicorp/vault/sdk/helper/jsonutil"
 	"github.com/stretchr/testify/require"
 )
 
@@ -297,6 +301,129 @@ func TestVaultCAProvider_AWSLoginDataGenerator(t *testing.T) {
 				val, exists := loginData[key]
 				require.True(t, exists, "missing expected key: %s", key)
 				require.NotEmpty(t, val, "expected non-empty value for key: %s", key)
+			}
+		})
+	}
+}
+
+func TestVaultCAProvider_AzureAuthClient(t *testing.T) {
+	instance := instanceData{Compute: Compute{
+		Name: "a", ResourceGroupName: "b", SubscriptionID: "c", VMScaleSetName: "d",
+	}}
+	instanceJSON, err := json.Marshal(instance)
+	require.NoError(t, err)
+	identity := identityData{AccessToken: "a-jwt-token"}
+	identityJSON, err := json.Marshal(identity)
+	require.NoError(t, err)
+
+	msi := httptest.NewServer(http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			url := r.URL.Path
+			switch url {
+			case "/metadata/instance":
+				w.Write(instanceJSON)
+			case "/metadata/identity/oauth2/token":
+				w.Write(identityJSON)
+			default:
+				t.Errorf("unexpected testing URL: %s", url)
+			}
+		}))
+
+	origIn, origId := instanceEndpoint, identityEndpoint
+	instanceEndpoint = msi.URL + "/metadata/instance"
+	identityEndpoint = msi.URL + "/metadata/identity/oauth2/token"
+	defer func() {
+		instanceEndpoint, identityEndpoint = origIn, origId
+	}()
+
+	t.Run("get-metadata-instance-info", func(t *testing.T) {
+		md, err := getMetadataInfo(instanceEndpoint, nil)
+		require.NoError(t, err)
+		var testInstance instanceData
+		err = jsonutil.DecodeJSON(md, &testInstance)
+		require.NoError(t, err)
+		require.Equal(t, testInstance, instance)
+	})
+
+	t.Run("get-metadata-identity-info", func(t *testing.T) {
+		md, err := getMetadataInfo(identityEndpoint, nil)
+		require.NoError(t, err)
+		var testIdentity identityData
+		err = jsonutil.DecodeJSON(md, &testIdentity)
+		require.NoError(t, err)
+		require.Equal(t, testIdentity, identity)
+	})
+
+	cases := map[string]struct {
+		authMethod *structs.VaultAuthMethod
+		expData    map[string]any
+		expErr     error
+	}{
+		"legacy-case": {
+			authMethod: &structs.VaultAuthMethod{
+				Type: "azure",
+				Params: map[string]interface{}{
+					"role":                "a",
+					"vm_name":             "b",
+					"vmss_name":           "c",
+					"resource_group_name": "d",
+					"subscription_id":     "e",
+					"jwt":                 "f",
+				},
+			},
+			expData: map[string]any{
+				"role":                "a",
+				"vm_name":             "b",
+				"vmss_name":           "c",
+				"resource_group_name": "d",
+				"subscription_id":     "e",
+				"jwt":                 "f",
+			},
+		},
+		"base-case": {
+			authMethod: &structs.VaultAuthMethod{
+				Type: "azure",
+				Params: map[string]interface{}{
+					"role":     "a-role",
+					"resource": "b-resource",
+				},
+			},
+			expData: map[string]any{
+				"role": "a-role",
+				"jwt":  "a-jwt-token",
+			},
+		},
+		"no-role": {
+			authMethod: &structs.VaultAuthMethod{
+				Type: "azure",
+				Params: map[string]interface{}{
+					"resource": "b-resource",
+				},
+			},
+			expErr: fmt.Errorf("missing 'role' value"),
+		},
+		"no-resource": {
+			authMethod: &structs.VaultAuthMethod{
+				Type: "azure",
+				Params: map[string]interface{}{
+					"role": "a-role",
+				},
+			},
+			expErr: fmt.Errorf("missing 'resource' value"),
+		},
+	}
+	for name, c := range cases {
+		t.Run(name, func(t *testing.T) {
+			auth, err := NewAzureAuthClient(c.authMethod)
+			if c.expErr != nil {
+				require.EqualError(t, err, c.expErr.Error())
+				return
+			}
+			require.NoError(t, err)
+			if auth.LoginDataGen != nil {
+				data, err := auth.LoginDataGen(c.authMethod)
+				require.NoError(t, err)
+				require.Subset(t, data, c.expData)
 			}
 		})
 	}
