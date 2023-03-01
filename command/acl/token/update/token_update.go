@@ -27,30 +27,31 @@ type cmd struct {
 
 	tokenAccessorID    string
 	policyIDs          []string
+	appendPolicyIDs    []string
 	policyNames        []string
+	appendPolicyNames  []string
 	roleIDs            []string
+	appendRoleIDs      []string
 	roleNames          []string
+	appendRoleNames    []string
 	serviceIdents      []string
 	nodeIdents         []string
 	description        string
-	mergePolicies      bool
-	mergeRoles         bool
 	mergeServiceIdents bool
 	mergeNodeIdents    bool
 	showMeta           bool
 	format             string
 
-	tokenID string // DEPRECATED
+	// DEPRECATED
+	mergeRoles    bool
+	mergePolicies bool
+	tokenID       string
 }
 
 func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
 	c.flags.BoolVar(&c.showMeta, "meta", false, "Indicates that token metadata such "+
 		"as the content hash and raft indices should be shown for each entry")
-	c.flags.BoolVar(&c.mergePolicies, "merge-policies", false, "Merge the new policies "+
-		"with the existing policies")
-	c.flags.BoolVar(&c.mergeRoles, "merge-roles", false, "Merge the new roles "+
-		"with the existing roles")
 	c.flags.BoolVar(&c.mergeServiceIdents, "merge-service-identities", false, "Merge the new service identities "+
 		"with the existing service identities")
 	c.flags.BoolVar(&c.mergeNodeIdents, "merge-node-identities", false, "Merge the new node identities "+
@@ -60,13 +61,21 @@ func (c *cmd) init() {
 		"matches multiple token Accessor IDs")
 	c.flags.StringVar(&c.description, "description", "", "A description of the token")
 	c.flags.Var((*flags.AppendSliceValue)(&c.policyIDs), "policy-id", "ID of a "+
-		"policy to use for this token. May be specified multiple times")
+		"policy to use for this token. Overwrites existing policies. May be specified multiple times")
+	c.flags.Var((*flags.AppendSliceValue)(&c.appendPolicyIDs), "append-policy-id", "ID of a "+
+		"policy to use for this token. The token retains existing policies. May be specified multiple times")
 	c.flags.Var((*flags.AppendSliceValue)(&c.policyNames), "policy-name", "Name of a "+
-		"policy to use for this token. May be specified multiple times")
+		"policy to use for this token. Overwrites existing policies. May be specified multiple times")
+	c.flags.Var((*flags.AppendSliceValue)(&c.appendPolicyNames), "append-policy-name", "Name of a "+
+		"policy to add to this token. The token retains existing policies. May be specified multiple times")
 	c.flags.Var((*flags.AppendSliceValue)(&c.roleIDs), "role-id", "ID of a "+
-		"role to use for this token. May be specified multiple times")
+		"role to use for this token. Overwrites existing roles. May be specified multiple times")
 	c.flags.Var((*flags.AppendSliceValue)(&c.roleNames), "role-name", "Name of a "+
-		"role to use for this token. May be specified multiple times")
+		"role to use for this token. Overwrites existing roles. May be specified multiple times")
+	c.flags.Var((*flags.AppendSliceValue)(&c.appendRoleIDs), "append-role-id", "ID of a "+
+		"role to add to this token. The token retains existing roles. May be specified multiple times")
+	c.flags.Var((*flags.AppendSliceValue)(&c.appendRoleNames), "append-role-name", "Name of a "+
+		"role to add to this token. The token retains existing roles. May be specified multiple times")
 	c.flags.Var((*flags.AppendSliceValue)(&c.serviceIdents), "service-identity", "Name of a "+
 		"service identity to use for this token. May be specified multiple times. Format is "+
 		"the SERVICENAME or SERVICENAME:DATACENTER1,DATACENTER2,...")
@@ -87,8 +96,11 @@ func (c *cmd) init() {
 	c.help = flags.Usage(help, c.flags)
 
 	// Deprecations
-	c.flags.StringVar(&c.tokenID, "id", "",
-		"DEPRECATED. Use -accessor-id instead.")
+	c.flags.StringVar(&c.tokenID, "id", "", "DEPRECATED. Use -accessor-id instead.")
+	c.flags.BoolVar(&c.mergePolicies, "merge-policies", false, "DEPRECATED. "+
+		"Use -append-policy-id or -append-policy-name instead.")
+	c.flags.BoolVar(&c.mergeRoles, "merge-roles", false, "DEPRECATED. "+
+		"Use -append-role-id or -append-role-name instead.")
 }
 
 func (c *cmd) Run(args []string) int {
@@ -148,6 +160,9 @@ func (c *cmd) Run(args []string) int {
 	}
 
 	if c.mergePolicies {
+		c.UI.Warn("merge-policies is deprecated and will be removed in a future Consul version. " +
+			"Use `append-policy-name` or `append-policy-id` instead.")
+
 		for _, policyName := range c.policyNames {
 			found := false
 			for _, link := range t.Policies {
@@ -184,15 +199,33 @@ func (c *cmd) Run(args []string) int {
 			}
 		}
 	} else {
-		t.Policies = nil
 
-		for _, policyName := range c.policyNames {
+		hasAddPolicyFields := len(c.appendPolicyNames) > 0 || len(c.appendPolicyIDs) > 0
+		hasPolicyFields := len(c.policyIDs) > 0 || len(c.policyNames) > 0
+
+		if hasPolicyFields && hasAddPolicyFields {
+			c.UI.Error("Cannot combine the use of policy-id/policy-name flags with append- variants. " +
+				"To set or overwrite existing policies, use -policy-id or -policy-name. " +
+				"To append to existing policies, use -append-policy-id or -append-policy-name.")
+			return 1
+		}
+
+		policyIDs := c.appendPolicyIDs
+		policyNames := c.appendPolicyNames
+
+		if hasPolicyFields {
+			policyIDs = c.policyIDs
+			policyNames = c.policyNames
+			t.Policies = nil
+		}
+
+		for _, policyName := range policyNames {
 			// We could resolve names to IDs here but there isn't any reason why its would be better
 			// than allowing the agent to do it.
 			t.Policies = append(t.Policies, &api.ACLTokenPolicyLink{Name: policyName})
 		}
 
-		for _, policyID := range c.policyIDs {
+		for _, policyID := range policyIDs {
 			policyID, err := acl.GetPolicyIDFromPartial(client, policyID)
 			if err != nil {
 				c.UI.Error(fmt.Sprintf("Error resolving policy ID %s: %v", policyID, err))
@@ -203,6 +236,9 @@ func (c *cmd) Run(args []string) int {
 	}
 
 	if c.mergeRoles {
+		c.UI.Warn("merge-roles is deprecated and will be removed in a future Consul version. " +
+			"Use `append-role-name` or `append-role-id` instead.")
+
 		for _, roleName := range c.roleNames {
 			found := false
 			for _, link := range t.Roles {
@@ -239,15 +275,32 @@ func (c *cmd) Run(args []string) int {
 			}
 		}
 	} else {
-		t.Roles = nil
+		hasAddRoleFields := len(c.appendRoleNames) > 0 || len(c.appendRoleIDs) > 0
+		hasRoleFields := len(c.roleIDs) > 0 || len(c.roleNames) > 0
 
-		for _, roleName := range c.roleNames {
+		if hasRoleFields && hasAddRoleFields {
+			c.UI.Error("Cannot combine the use of role-id/role-name flags with append- variants. " +
+				"To set or overwrite existing roles, use -role-id or -role-name. " +
+				"To append to existing roles, use -append-role-id or -append-role-name.")
+			return 1
+		}
+
+		roleNames := c.appendRoleNames
+		roleIDs := c.appendRoleIDs
+
+		if hasRoleFields {
+			roleNames = c.roleNames
+			roleIDs = c.roleIDs
+			t.Roles = nil
+		}
+
+		for _, roleName := range roleNames {
 			// We could resolve names to IDs here but there isn't any reason why its would be better
 			// than allowing the agent to do it.
 			t.Roles = append(t.Roles, &api.ACLTokenRoleLink{Name: roleName})
 		}
 
-		for _, roleID := range c.roleIDs {
+		for _, roleID := range roleIDs {
 			roleID, err := acl.GetRoleIDFromPartial(client, roleID)
 			if err != nil {
 				c.UI.Error(fmt.Sprintf("Error resolving role ID %s: %v", roleID, err))

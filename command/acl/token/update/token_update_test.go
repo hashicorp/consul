@@ -148,6 +148,95 @@ func TestTokenUpdateCommand(t *testing.T) {
 	})
 }
 
+func TestTokenUpdateCommandWithAppend(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+
+	a := agent.NewTestAgent(t, `
+	primary_datacenter = "dc1"
+	acl {
+		enabled = true
+		tokens {
+			initial_management = "root"
+		}
+	}`)
+
+	defer a.Shutdown()
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
+
+	// Create a policy
+	client := a.Client()
+
+	policy, _, err := client.ACL().PolicyCreate(
+		&api.ACLPolicy{Name: "test-policy"},
+		&api.WriteOptions{Token: "root"},
+	)
+	require.NoError(t, err)
+
+	// create a token
+	token, _, err := client.ACL().TokenCreate(
+		&api.ACLToken{Description: "test", Policies: []*api.ACLTokenPolicyLink{{Name: policy.Name}}},
+		&api.WriteOptions{Token: "root"},
+	)
+	require.NoError(t, err)
+
+	//secondary policy
+	secondPolicy, _, policyErr := client.ACL().PolicyCreate(
+		&api.ACLPolicy{Name: "secondary-policy"},
+		&api.WriteOptions{Token: "root"},
+	)
+	require.NoError(t, policyErr)
+
+	//third policy
+	thirdPolicy, _, policyErr := client.ACL().PolicyCreate(
+		&api.ACLPolicy{Name: "third-policy"},
+		&api.WriteOptions{Token: "root"},
+	)
+	require.NoError(t, policyErr)
+
+	run := func(t *testing.T, args []string) *api.ACLToken {
+		ui := cli.NewMockUi()
+		cmd := New(ui)
+
+		code := cmd.Run(append(args, "-format=json"))
+		require.Equal(t, 0, code)
+		require.Empty(t, ui.ErrorWriter.String())
+
+		var token api.ACLToken
+		require.NoError(t, json.Unmarshal(ui.OutputWriter.Bytes(), &token))
+		return &token
+	}
+
+	// update with append-policy-name
+	t.Run("append-policy-name", func(t *testing.T) {
+		token := run(t, []string{
+			"-http-addr=" + a.HTTPAddr(),
+			"-accessor-id=" + token.AccessorID,
+			"-token=root",
+			"-append-policy-name=" + secondPolicy.Name,
+			"-description=test token",
+		})
+
+		require.Len(t, token.Policies, 2)
+	})
+
+	// update with append-policy-id
+	t.Run("append-policy-id", func(t *testing.T) {
+		token := run(t, []string{
+			"-http-addr=" + a.HTTPAddr(),
+			"-accessor-id=" + token.AccessorID,
+			"-token=root",
+			"-append-policy-id=" + thirdPolicy.ID,
+			"-description=test token",
+		})
+
+		require.Len(t, token.Policies, 3)
+	})
+}
+
 func TestTokenUpdateCommand_JSON(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
