@@ -36,12 +36,24 @@ Refer to [Service-to-service troubleshooting overview](/consul/docs/troubleshoot
     Requested * does not exist: ACL not found", "* not found in namespace $NAMESPACE: ACL not found`
     ```
 
-  - The Read Token/Policy/Role endpoints now return 404 when the resource cannot be found.
-    - The new error format is as follows: `Cannot find * to delete`
-  - The Logout endpoint now returns a 401 error when the supplied token cannot be found.
-    - The new error format is as follows: `Supplied token does not exist`
-  - The Token Self endpoint now returns 404 when the token cannot be found.
-    - The new error format is as follows: `Supplied token does not exist`
+  - The Read Token/Policy/Role endpoints now return 404 when the resource cannot be found. The new error format is as follows: 
+    
+    ```log hideClipboard
+    Cannot find * to delete
+    ```
+    
+  - The Logout endpoint now returns a 401 error when the supplied token cannot be found. The new error format is as follows: 
+    
+    ```log hideClipboard
+    Supplied token does not exist
+    ```
+    
+  - The Token Self endpoint now returns 404 when the token cannot be found. The new error format is as follows: 
+   
+    ```log hideClipboard
+    Supplied token does not exist
+    ```
+    
 - Consul v1.15.0 formally removes all uses of legacy ACLs and ACL policies from Consul. The legacy ACL system was deprecated in Consul v1.4.0 and removed in Consul v1.11.0. The documentation for the new ACL system can be found [here](/consul/docs/v1.14.x/security/acl). For information on how to migrate to the new ACL System, please read the [Migrate Legacy ACL Tokens tutorial](/consul/tutorials/security-operations/access-control-token-migration).
 - The following agent flags are now deprecated: `-join`, `-join-wan`, `start_join`, and `start_join_wan`. These options are now aliases of `-retry-join`, `-retry-join-wan`, `retry_join`, and `retry_join_wan`, respectively. 
 - A `peer` field has been added to ServiceDefaults upstream overrides to make it possible to apply upstream overrides only to peer services. Prior to this change, overrides would be applied based on matching the namespace and name fields only, which means users could not have different configuration for local versus peer services. With this change, peer upstreams are only affected if the peer field matches the destination peer name. 
