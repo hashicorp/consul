@@ -41,7 +41,7 @@ Refer to [Service-to-service troubleshooting overview](https://developer.hashico
 - The following agent flags are now deprecated: `-join`, `-join-wan`, `start_join`, and `start_join_wan`. These options are now aliases of `-retry-join`, `-retry-join-wan`, `retry_join`, and `retry_join_wan`, respectively. 
 - A peer field has been added to ServiceDefaults upstream overrides to make it possible to apply upstream overrides only to peer services. Prior to this change, overrides would be applied based on matching the namespace and name fields only, which means users could not have different configuration for local versus peer services. With this change, peer upstreams are only affected if the peer field matches the destination peer name. 
 - If you run the `consul connect envoy` command with an incompatible Envoy version, Consul will now error and exit. To ignore this check, use flag `--ignore-envoy-compatibility`.
-- Ingress Gateway upstream clusters will have empty outlier_detection if passive health check is unspecified.
+- Ingress Gateway upstream clusters will have empty `outlier_detection` if passive health check is unspecified.
 
 ## Upgrading
 
