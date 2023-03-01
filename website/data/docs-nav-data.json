@@ -303,19 +303,70 @@
     "divider": true
   },
   {
-    "title": "Service Discovery",
+    "title": "Services",
     "routes": [
       {
-        "title": "Register Services - Service Definitions",
-        "path": "discovery/services"
+        "title": "Services Overview",
+        "path": "services/services"
       },
       {
-        "title": "Find Services - DNS Interface",
-        "path": "discovery/dns"
+        "title": "Define and Register",
+        "routes": [
+          {
+            "title": "Define Services",
+            "path": "services/usage/define-services"
+          },
+          {
+            "title": "Define Health Checks",
+            "path": "services/usage/checks"
+          },
+          {
+            "title": "Register Services and Health Checks",
+            "path": "services/usage/register-services-checks"
+          }
+        ]
       },
       {
-        "title": "Monitor Services - Check Definitions",
-        "path": "discovery/checks"
+        "title": "Service Discovery",
+        "routes": [
+          {
+            "title": "DNS Usage Overview",
+            "path": "services/discovery/dns-overview"
+          },
+          {
+            "title": "Configure Consul DNS Behavior",
+            "path": "services/discovery/dns-configuration"
+          },
+          {
+            "title": "Perform Static DNS Lookups",
+            "path": "services/discovery/dns-static-lookups"
+          },
+          {
+            "title": "Enable Dynamic DNS Lookups",
+            "path": "services/discovery/dns-dynamic-lookups"
+          }
+        ]
+      },
+      {
+        "title": "Configuration",
+        "routes": [
+          {
+            "title": "Services Configuration Overview",
+            "path": "services/configuration/services-configuration-overview"
+          },
+          {
+            "title": "Services Configuration Reference",
+            "path": "services/configuration/services-configuration-reference"
+          },
+          {
+            "title": "Health Checks Configuration Reference",
+            "path": "services/configuration/checks-configuration-reference"
+          },
+          {
+            "title": "Service Defaults Configuration Reference",
+            "href": "connect/config-entries/service-defaults"
+          }
+        ]
       }
     ]
   },
@@ -459,11 +510,6 @@
           {
             "title": "Proxy Integration",
             "path": "connect/proxies/integrate"
-          },
-          {
-            "title": "Managed (Deprecated)",
-            "path": "connect/proxies/managed-deprecated",
-            "hidden": true
           }
         ]
       },

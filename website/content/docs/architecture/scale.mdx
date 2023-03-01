@@ -236,7 +236,7 @@ Several factors influence Consul performance at scale when used primarily for it
 - Rate of catalog updates, which is affected by the following events:
     - A service instance’s health check status changes
     - A service instance’s node loses connectivity to Consul servers
-    - The contents of the [service definition file](/consul/docs/discovery/services#service-definition) changes
+    - The contents of the [service definition file](/consul/docs/services/configuration/services-configuration-reference) changes
     - Service instances are registered or deregistered
     - Orchestrators such as Kubernetes or Nomad move a service to a new node
 
@@ -280,4 +280,8 @@ At scale, using Consul as a backend for Vault results in increased memory and CP
 
 In situations where Consul handles large amounts of data and has high write throughput, we recommend adding monitoring for the [capacity and health of raft replication on servers](/consul/docs/agent/telemetry#raft-replication-capacity-issues). If the server experiences heavy load when the size of its stored data is large enough, a follower may be unable to catch up on replication and become a voter after restarting. This situation occurs when the time it takes for a server to restore from disk takes longer than it takes for the leader to write a new snapshot and truncate its logs. Refer to [Raft snapshots](#raft-snapshots) for more information.
 
+<<<<<<< HEAD
 Vault v1.4 and higher provides [integrated storage](/vault/docs/concepts/integrated-storage) as its recommended storage option. If you currently use Consul as a storage backend for Vault, we recommend switching to integrated storage. For a comparison between Vault's integrated storage and Consul as a backend for Vault, refer to [storage backends in the Vault documentation](/vault/docs/configuration/storage#integrated-storage-vs-consul-as-vault-storage). For detailed guidance on migrating the Vault backend from Consul to Vault's integrated storage, refer to the [storage migration tutorial](/vault/docs/configuration/storage#integrated-storage-vs-consul-as-vault-storage). Integrated storage improves resiliency by preventing a Consul outage from also affecting Vault functionality.
+=======
+Vault v1.4 and higher provides [integrated storage](/vault/docs/concepts/integrated-storage) as its recommended storage option. If you currently use Consul as a storage backend for Vault, we recommend switching to integrated storage. For a comparison between Vault's integrated storage and Consul as a backend for Vault, refer to [storage backends in the Vault documentation](/vault/docs/configuration/storage#integrated-storage-vs-consul-as-vault-storage). For detailed guidance on migrating the Vault backend from Consul to Vault's integrated storage, refer to the [storage migration tutorial](/vault/docs/configuration/storage#integrated-storage-vs-consul-as-vault-storage). Integrated storage improves resiliency by preventing a Consul outage from also affecting Vault functionality.
+>>>>>>> main

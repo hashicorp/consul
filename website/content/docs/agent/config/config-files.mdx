@@ -7,6 +7,10 @@ description: >-
 
 # Agents Configuration File Reference ((#configuration_files))
 
+This topic describes the parameters for configuring Consul agents. For information about how to start Consul agents, refer to [Starting the Consul Agent](/consul/docs/agent#starting-the-consul-agent). 
+
+## Overview
+
 You can create one or more files to configure the Consul agent on startup. We recommend
 grouping similar configurations into separate files, such as ACL parameters, to make it
 easier to manage configuration changes. Using external files may be easier than
@@ -17,13 +21,6 @@ The configuration files are formatted as HCL or JSON. JSON formatted configs are
 easily readable and editable by both humans and computers. JSON formatted
 configuration consists of a single JSON object with multiple configuration keys
 specified within it.
-
-Configuration files are used for more than just setting up the agent.
-They are also used to provide check and service definitions that
-announce the availability of system servers to the rest of the cluster.
-These definitions are documented separately under [check configuration](/consul/docs/discovery/checks) and
-[service configuration](/consul/docs/discovery/services) respectively. Service and check
-definitions support being updated during a reload.
 
 <CodeTabs heading="Example Configuration File">
 
@@ -66,15 +63,27 @@ telemetry {
 
 </CodeTabs>
 
-# Configuration Key Reference ((#config_key_reference))
+### Time-to-live values 
 
--> **Note:** All the TTL values described below are parsed by Go's `time` package, and have the following
-[formatting specification](https://golang.org/pkg/time/#ParseDuration): "A
-duration string is a possibly signed sequence of decimal numbers, each with
-optional fraction and a unit suffix, such as '300ms', '-1.5h' or '2h45m'.
-Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
+Consul uses the Go `time` package to parse all time-to-live (TTL) values used in Consul agent configuration files. Specify integer and float values as a string and include one or more of the following units of time:
 
-## General
+- `ns`
+- `us` 
+- `µs` 
+- `ms`
+- `s` 
+- `m`
+- `h`
+
+Examples: 
+
+- `'300ms'` 
+- `'1.5h'` 
+- `'2h45m'`
+
+Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDuration) for additional information. 
+
+## General parameters
 
 - `addresses` - This is a nested object that allows setting
   bind addresses. In Consul 1.0 and later these can be set to a space-separated list
@@ -914,10 +923,9 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
     - `agent_master` ((#acl_tokens_agent_master)) **Renamed in Consul 1.11 to
       [`acl.tokens.agent_recovery`](#acl_tokens_agent_recovery).**
 
-    - `config_file_service_registration` ((#acl_tokens_config_file_service_registration)) - The ACL
-      token this agent uses to register services and checks from [service
-      definitions](/consul/docs/discovery/services) and [check definitions](/consul/docs/discovery/checks) found
-      in configuration files or in configuration fragments passed to the agent using the `-hcl`
+    - `config_file_service_registration` ((#acl_tokens_config_file_service_registration)) - Specifies the ACL
+      token the agent uses to register services and checks from [service](/consul/docs/services/usage/define-services) and [check](/consul/docs/usage/checks) definitions 
+      specified in configuration files or fragments passed to the agent using the `-hcl`
       flag.
 
       If the `token` field is defined in the service or check definition, then that token is used to
@@ -1367,7 +1375,7 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
     of `1ns` instead of 0.
 
   - `prefer_namespace` ((#dns_prefer_namespace)) <EnterpriseAlert inline /> **Deprecated in Consul 1.11.
-    Use the [canonical DNS format for enterprise service lookups](/consul/docs/discovery/dns#service-lookups-for-consul-enterprise) instead.** -
+    Use the [canonical DNS format for enterprise service lookups](/consul/docs/services/discovery/dns-static-lookups#service-lookups-for-consul-enterprise) instead.** -
     When set to `true`, in a DNS query for a service, a single label between the domain
     and the `service` label is treated as a namespace name instead of a datacenter.
     When set to `false`, the default, the behavior is the same as non-Enterprise
