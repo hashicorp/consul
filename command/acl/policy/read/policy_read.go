@@ -92,6 +92,11 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
+	if pol == nil {
+		c.UI.Error(fmt.Sprintf("Error policy not found: %s", c.policyName))
+		return 1
+	}
+
 	formatter, err := policy.NewFormatter(c.format, c.showMeta)
 	if err != nil {
 		c.UI.Error(err.Error())

@@ -82,6 +82,17 @@ func TestPolicyReadCommand(t *testing.T) {
 	output = ui.OutputWriter.String()
 	assert.Contains(t, output, fmt.Sprintf("test-policy"))
 	assert.Contains(t, output, policy.ID)
+
+	// Test querying non-existent policy
+	argsName = []string{
+		"-http-addr=" + a.HTTPAddr(),
+		"-token=root",
+		"-name=test-policy-not-exist",
+	}
+
+	cmd = New(ui)
+	code = cmd.Run(argsName)
+	assert.Equal(t, code, 1)
 }
 
 func TestPolicyReadCommand_JSON(t *testing.T) {
