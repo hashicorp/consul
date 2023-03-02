@@ -428,3 +428,77 @@ func TestVaultCAProvider_AzureAuthClient(t *testing.T) {
 		})
 	}
 }
+
+func TestVaultCAProvider_JwtAuthClient(t *testing.T) {
+	tokenF, err := os.CreateTemp("", "token-path")
+	require.NoError(t, err)
+	defer func() { os.Remove(tokenF.Name()) }()
+	_, err = tokenF.WriteString("test-token")
+	require.NoError(t, err)
+	err = tokenF.Close()
+	require.NoError(t, err)
+
+	cases := map[string]struct {
+		authMethod *structs.VaultAuthMethod
+		expData    map[string]any
+		expErr     error
+	}{
+		"base-case": {
+			authMethod: &structs.VaultAuthMethod{
+				Type: "jwt",
+				Params: map[string]any{
+					"role": "test-role",
+					"path": tokenF.Name(),
+				},
+			},
+			expData: map[string]any{
+				"role": "test-role",
+				"jwt":  "test-token",
+			},
+		},
+		"no-role": {
+			authMethod: &structs.VaultAuthMethod{
+				Type:   "jwt",
+				Params: map[string]any{},
+			},
+			expErr: fmt.Errorf("missing 'role' value"),
+		},
+		"no-path": {
+			authMethod: &structs.VaultAuthMethod{
+				Type: "jwt",
+				Params: map[string]any{
+					"role": "test-role",
+				},
+			},
+			expErr: fmt.Errorf("missing 'path' value"),
+		},
+		"no-path-but-jwt": {
+			authMethod: &structs.VaultAuthMethod{
+				Type: "jwt",
+				Params: map[string]any{
+					"role": "test-role",
+					"jwt":  "test-jwt",
+				},
+			},
+			expData: map[string]any{
+				"role": "test-role",
+				"jwt":  "test-jwt",
+			},
+		},
+	}
+	for name, c := range cases {
+		t.Run(name, func(t *testing.T) {
+			auth, err := NewJwtAuthClient(c.authMethod)
+			if c.expErr != nil {
+				require.EqualError(t, c.expErr, err.Error())
+				return
+			}
+			require.NoError(t, err)
+			if auth.LoginDataGen != nil {
+				data, err := auth.LoginDataGen(c.authMethod)
+				require.NoError(t, err)
+				require.Equal(t, c.expData, data)
+			}
+		})
+	}
+}
