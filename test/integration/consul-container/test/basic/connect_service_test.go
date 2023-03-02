@@ -24,14 +24,18 @@ import (
 func TestBasicConnectService(t *testing.T) {
 	t.Parallel()
 
-	buildOptions := &libcluster.BuildOptions{
-		Datacenter:             "dc1",
-		InjectAutoEncryption:   true,
-		InjectGossipEncryption: true,
-		// TODO(rb): fix the test to not need the service/envoy stack to use :8500
-		AllowHTTPAnyway: true,
-	}
-	cluster, _, _ := topology.NewPeeringCluster(t, 1, 1, buildOptions)
+	cluster, _, _ := topology.NewCluster(t, &topology.ClusterConfig{
+		NumServers:                1,
+		NumClients:                1,
+		ApplyDefaultProxySettings: true,
+		BuildOpts: &libcluster.BuildOptions{
+			Datacenter:             "dc1",
+			InjectAutoEncryption:   true,
+			InjectGossipEncryption: true,
+			// TODO(rb): fix the test to not need the service/envoy stack to use :8500
+			AllowHTTPAnyway: true,
+		},
+	})
 
 	clientService := createServices(t, cluster)
 	_, port := clientService.GetAddr()

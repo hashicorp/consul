@@ -335,7 +335,12 @@ func TestTrafficManagement_ServiceResolver(t *testing.T) {
 		if oldVersionTmp.LessThan(libutils.Version_1_14) {
 			buildOpts.InjectAutoEncryption = false
 		}
-		cluster, _, _ := topology.NewPeeringCluster(t, 1, 1, buildOpts)
+		cluster, _, _ := topology.NewCluster(t, &topology.ClusterConfig{
+			NumServers:                1,
+			NumClients:                1,
+			BuildOpts:                 buildOpts,
+			ApplyDefaultProxySettings: true,
+		})
 		node := cluster.Agents[0]
 		client := node.GetClient()
 

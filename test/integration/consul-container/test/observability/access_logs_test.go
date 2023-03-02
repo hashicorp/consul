@@ -45,9 +45,14 @@ func TestAccessLogs(t *testing.T) {
 		t.Skip()
 	}
 
-	cluster, _, _ := topology.NewPeeringCluster(t, 1, 1, &libcluster.BuildOptions{
-		Datacenter:           "dc1",
-		InjectAutoEncryption: true,
+	cluster, _, _ := topology.NewCluster(t, &topology.ClusterConfig{
+		NumServers:                1,
+		NumClients:                1,
+		ApplyDefaultProxySettings: true,
+		BuildOpts: &libcluster.BuildOptions{
+			Datacenter:           "dc1",
+			InjectAutoEncryption: true,
+		},
 	})
 
 	// Turn on access logs. Do this before starting the sidecars so that they inherit the configuration

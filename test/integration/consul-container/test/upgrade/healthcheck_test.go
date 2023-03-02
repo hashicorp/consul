@@ -1,6 +1,7 @@
 package upgrade
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -9,6 +10,7 @@ import (
 	"github.com/hashicorp/consul/api"
 	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
 	libservice "github.com/hashicorp/consul/test/integration/consul-container/libs/service"
+	libtopology "github.com/hashicorp/consul/test/integration/consul-container/libs/topology"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 )
 
@@ -21,9 +23,22 @@ func TestTargetServersWithLatestGAClients(t *testing.T) {
 		numClients = 1
 	)
 
-	cluster := serversCluster(t, numServers, utils.TargetImageName, utils.TargetVersion)
+	clusterConfig := &libtopology.ClusterConfig{
+		NumServers: numServers,
+		NumClients: numClients,
+		BuildOpts: &libcluster.BuildOptions{
+			Datacenter:    "dc1",
+			ConsulVersion: utils.TargetVersion,
+		},
+		ApplyDefaultProxySettings: true,
+	}
 
-	libservice.ClientsCreate(t, numClients, utils.LatestImageName, utils.LatestVersion, cluster)
+	cluster, _, _ := libtopology.NewCluster(t, clusterConfig)
+
+	// change the version of Client agent to latest version
+	config := cluster.Agents[3].GetConfig()
+	config.Version = utils.LatestVersion
+	cluster.Agents[3].Upgrade(context.Background(), config)
 
 	client := cluster.APIClient(0)
 
