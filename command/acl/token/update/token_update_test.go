@@ -178,7 +178,15 @@ func TestTokenUpdateCommandWithAppend(t *testing.T) {
 
 	// create a token
 	token, _, err := client.ACL().TokenCreate(
-		&api.ACLToken{Description: "test", Policies: []*api.ACLTokenPolicyLink{{Name: policy.Name}}},
+		&api.ACLToken{Description: "test",
+			Policies: []*api.ACLTokenPolicyLink{{Name: policy.Name}},
+			NodeIdentities: []*api.ACLNodeIdentity{
+				{
+					NodeName:   "first-node",
+					Datacenter: "middleearth-southwest",
+				},
+			},
+		},
 		&api.WriteOptions{Token: "root"},
 	)
 	require.NoError(t, err)
@@ -234,6 +242,23 @@ func TestTokenUpdateCommandWithAppend(t *testing.T) {
 		})
 
 		require.Len(t, token.Policies, 3)
+	})
+
+	// update with append-node-identity
+	t.Run("append-node-identity", func(t *testing.T) {
+		require.Len(t, token.NodeIdentities, 1)
+
+		token := run(t, []string{
+			"-http-addr=" + a.HTTPAddr(),
+			"-accessor-id=" + token.AccessorID,
+			"-token=root",
+			"-append-node-identity=foo:bar",
+			"-description=test token",
+		})
+
+		require.Len(t, token.NodeIdentities, 2)
+		require.Equal(t, "foo", token.NodeIdentities[1].NodeName)
+		require.Equal(t, "bar", token.NodeIdentities[1].Datacenter)
 	})
 }
 
