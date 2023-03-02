@@ -24,7 +24,7 @@ const (
 	MeshConfig         string = "mesh"
 	ExportedServices   string = "exported-services"
 	SamenessGroup      string = "sameness-group"
-	RateLimitConfig    string = "rate-limit"
+	RateLimitIPConfig  string = "rate-limit-ip"
 
 	ProxyConfigGlobal string = "global"
 	MeshConfigMesh    string = "mesh"

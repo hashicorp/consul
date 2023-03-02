@@ -2114,9 +2114,9 @@ func TestDecodeConfigEntry(t *testing.T) {
 			},
 		},
 		{
-			name: "rate-limit",
+			name: "rate-limit-ip",
 			snake: `
-				kind = "rate-limit"
+				kind = "rate-limit-ip"
 				name = "foo"
 				meta {
 					"foo" = "bar"
@@ -2130,7 +2130,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 				}
 			`,
 			camel: `
-				Kind = "rate-limit"
+				Kind = "rate-limit-ip"
 				Name = "foo"
 				Meta {
 					"foo" = "bar"
@@ -2143,8 +2143,8 @@ func TestDecodeConfigEntry(t *testing.T) {
 					WriteRate = 10.0
 				}
 			`,
-			expect: &RateLimitConfigEntry{
-				Kind: "rate-limit",
+			expect: &RateLimitIPConfigEntry{
+				Kind: "rate-limit-ip",
 				Name: "foo",
 				Meta: map[string]string{
 					"foo": "bar",

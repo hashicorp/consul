@@ -5,7 +5,7 @@ type readWriteRatesConfig struct {
 	WriteRate float32
 }
 
-type RateLimitConfigEntry struct {
+type RateLimitIPConfigEntry struct {
 	// Kind of the config entry. This will be set to structs.RateLimitConfig
 	Kind string
 	// what is the name used for
@@ -51,30 +51,30 @@ type RateLimitConfigEntry struct {
 	ModifyIndex uint64
 }
 
-func (r *RateLimitConfigEntry) GetKind() string {
-	return RateLimitConfig
+func (r *RateLimitIPConfigEntry) GetKind() string {
+	return RateLimitIPConfig
 }
-func (r *RateLimitConfigEntry) GetName() string {
+func (r *RateLimitIPConfigEntry) GetName() string {
 	if r == nil {
 		return ""
 	}
 	return r.Name
 }
-func (r *RateLimitConfigEntry) GetPartition() string {
+func (r *RateLimitIPConfigEntry) GetPartition() string {
 	return r.Partition
 }
-func (r *RateLimitConfigEntry) GetNamespace() string {
+func (r *RateLimitIPConfigEntry) GetNamespace() string {
 	return r.Namespace
 }
-func (r *RateLimitConfigEntry) GetMeta() map[string]string {
+func (r *RateLimitIPConfigEntry) GetMeta() map[string]string {
 	if r == nil {
 		return nil
 	}
 	return r.Meta
 }
-func (r *RateLimitConfigEntry) GetCreateIndex() uint64 {
+func (r *RateLimitIPConfigEntry) GetCreateIndex() uint64 {
 	return r.CreateIndex
 }
-func (r *RateLimitConfigEntry) GetModifyIndex() uint64 {
+func (r *RateLimitIPConfigEntry) GetModifyIndex() uint64 {
 	return r.ModifyIndex
 }
