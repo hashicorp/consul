@@ -14,8 +14,8 @@ import (
 	libassert "github.com/hashicorp/consul/test/integration/consul-container/libs/assert"
 	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
 	libservice "github.com/hashicorp/consul/test/integration/consul-container/libs/service"
+	libtopology "github.com/hashicorp/consul/test/integration/consul-container/libs/topology"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
-	"github.com/hashicorp/consul/test/integration/consul-container/test"
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -31,13 +31,20 @@ func TestAPIGatewayCreate(t *testing.T) {
 	t.Parallel()
 	listenerPortOne := 6000
 
-	buildOpts := &libcluster.BuildOptions{
-		Datacenter:             "dc1",
-		InjectAutoEncryption:   true,
-		InjectGossipEncryption: true,
-		AllowHTTPAnyway:        true,
+	clusterConfig := &libtopology.ClusterConfig{
+		NumServers: 1,
+		NumClients: 1,
+		BuildOpts: &libcluster.BuildOptions{
+			Datacenter:             "dc1",
+			InjectAutoEncryption:   true,
+			InjectGossipEncryption: true,
+			AllowHTTPAnyway:        true,
+		},
+		Ports:                     []int{listenerPortOne},
+		ApplyDefaultProxySettings: true,
 	}
-	cluster := test.CreateCluster(t, "", nil, buildOpts, true, listenerPortOne)
+
+	cluster, _, _ := libtopology.NewCluster(t, clusterConfig)
 	client := cluster.APIClient(0)
 
 	// add api gateway config

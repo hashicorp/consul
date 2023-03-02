@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/testcontainers/testcontainers-go"
 
 	"github.com/hashicorp/consul/api"
 
@@ -43,16 +44,26 @@ func BasicPeeringTwoClustersSetup(
 	consulVersion string,
 	peeringThroughMeshgateway bool,
 ) (*BuiltCluster, *BuiltCluster) {
-	// acceptingCluster, acceptingCtx, acceptingClient := NewPeeringCluster(t, "dc1", 3, consulVersion, true)
-	acceptingCluster, acceptingCtx, acceptingClient := NewPeeringCluster(t, 3, 1, &libcluster.BuildOptions{
-		Datacenter:           "dc1",
-		ConsulVersion:        consulVersion,
-		InjectAutoEncryption: true,
+	acceptingCluster, acceptingCtx, acceptingClient := NewCluster(t, &ClusterConfig{
+		NumServers: 3,
+		NumClients: 1,
+		BuildOpts: &libcluster.BuildOptions{
+			Datacenter:           "dc1",
+			ConsulVersion:        consulVersion,
+			InjectAutoEncryption: true,
+		},
+		ApplyDefaultProxySettings: true,
 	})
-	dialingCluster, dialingCtx, dialingClient := NewPeeringCluster(t, 1, 1, &libcluster.BuildOptions{
-		Datacenter:           "dc2",
-		ConsulVersion:        consulVersion,
-		InjectAutoEncryption: true,
+
+	dialingCluster, dialingCtx, dialingClient := NewCluster(t, &ClusterConfig{
+		NumServers: 1,
+		NumClients: 1,
+		BuildOpts: &libcluster.BuildOptions{
+			Datacenter:           "dc2",
+			ConsulVersion:        consulVersion,
+			InjectAutoEncryption: true,
+		},
+		ApplyDefaultProxySettings: true,
 	})
 
 	// Create the mesh gateway for dataplane traffic and peering control plane traffic (if enabled)
@@ -151,92 +162,68 @@ func BasicPeeringTwoClustersSetup(
 		}
 }
 
-// NewDialingCluster creates a cluster for peering with a single dev agent
-// TODO: note: formerly called CreatingPeeringClusterAndSetup
-//
-// Deprecated: use NewPeeringCluster mostly
-func NewDialingCluster(
-	t *testing.T,
-	version string,
-	dialingPeerName string,
-) (*libcluster.Cluster, *api.Client, libservice.Service) {
-	t.Helper()
-	t.Logf("creating the dialing cluster")
-
-	opts := libcluster.BuildOptions{
-		Datacenter:             "dc2",
-		InjectAutoEncryption:   true,
-		InjectGossipEncryption: true,
-		AllowHTTPAnyway:        true,
-		ConsulVersion:          version,
-	}
-	ctx := libcluster.NewBuildContext(t, opts)
-
-	conf := libcluster.NewConfigBuilder(ctx).
-		Peering(true).
-		ToAgentConfig(t)
-	t.Logf("dc2 server config: \n%s", conf.JSON)
-
-	cluster, err := libcluster.NewN(t, *conf, 1)
-	require.NoError(t, err)
-
-	node := cluster.Agents[0]
-	client := node.GetClient()
-	libcluster.WaitForLeader(t, cluster, client)
-	libcluster.WaitForMembers(t, client, 1)
-
-	// Default Proxy Settings
-	ok, err := utils.ApplyDefaultProxySettings(client)
-	require.NoError(t, err)
-	require.True(t, ok)
-
-	// Create the mesh gateway for dataplane traffic
-	_, err = libservice.NewGatewayService(context.Background(), "mesh", "mesh", node)
-	require.NoError(t, err)
-
-	// Create a service and proxy instance
-	clientProxyService, err := libservice.CreateAndRegisterStaticClientSidecar(node, dialingPeerName, true)
-	require.NoError(t, err)
-
-	libassert.CatalogServiceExists(t, client, "static-client-sidecar-proxy", nil)
-
-	return cluster, client, clientProxyService
+type ClusterConfig struct {
+	NumServers                int
+	NumClients                int
+	ApplyDefaultProxySettings bool
+	BuildOpts                 *libcluster.BuildOptions
+	Cmd                       string
+	LogConsumer               *TestLogConsumer
+	Ports                     []int
 }
 
-// NewPeeringCluster creates a cluster with peering enabled. It also creates
+// NewCluster creates a cluster with peering enabled. It also creates
 // and registers a mesh-gateway at the client agent. The API client returned is
 // pointed at the client agent.
 // - proxy-defaults.protocol = tcp
-func NewPeeringCluster(
+func NewCluster(
 	t *testing.T,
-	numServers int,
-	numClients int,
-	buildOpts *libcluster.BuildOptions,
+	config *ClusterConfig,
 ) (*libcluster.Cluster, *libcluster.BuildContext, *api.Client) {
-	require.NotEmpty(t, buildOpts.Datacenter)
-	require.True(t, numServers > 0)
+	var (
+		cluster *libcluster.Cluster
+		err     error
+	)
+	require.NotEmpty(t, config.BuildOpts.Datacenter)
+	require.True(t, config.NumServers > 0)
 
 	opts := libcluster.BuildOptions{
-		Datacenter:             buildOpts.Datacenter,
-		InjectAutoEncryption:   buildOpts.InjectAutoEncryption,
+		Datacenter:             config.BuildOpts.Datacenter,
+		InjectAutoEncryption:   config.BuildOpts.InjectAutoEncryption,
 		InjectGossipEncryption: true,
 		AllowHTTPAnyway:        true,
-		ConsulVersion:          buildOpts.ConsulVersion,
-		ACLEnabled:             buildOpts.ACLEnabled,
+		ConsulVersion:          config.BuildOpts.ConsulVersion,
+		ACLEnabled:             config.BuildOpts.ACLEnabled,
 	}
 	ctx := libcluster.NewBuildContext(t, opts)
 
 	serverConf := libcluster.NewConfigBuilder(ctx).
-		Bootstrap(numServers).
+		Bootstrap(config.NumServers).
 		Peering(true).
 		ToAgentConfig(t)
 	t.Logf("%s server config: \n%s", opts.Datacenter, serverConf.JSON)
 
-	cluster, err := libcluster.NewN(t, *serverConf, numServers)
+	// optional
+	if config.LogConsumer != nil {
+		serverConf.LogConsumer = config.LogConsumer
+	}
+
+	t.Logf("Cluster config:\n%s", serverConf.JSON)
+
+	// optional custom cmd
+	if config.Cmd != "" {
+		serverConf.Cmd = append(serverConf.Cmd, config.Cmd)
+	}
+
+	if config.Ports != nil {
+		cluster, err = libcluster.New(t, []libcluster.Config{*serverConf}, config.Ports...)
+	} else {
+		cluster, err = libcluster.NewN(t, *serverConf, config.NumServers)
+	}
 	require.NoError(t, err)
 
 	var retryJoin []string
-	for i := 0; i < numServers; i++ {
+	for i := 0; i < config.NumServers; i++ {
 		retryJoin = append(retryJoin, fmt.Sprintf("agent-%d", i))
 	}
 
@@ -248,18 +235,33 @@ func NewPeeringCluster(
 	clientConf := configbuiilder.ToAgentConfig(t)
 	t.Logf("%s client config: \n%s", opts.Datacenter, clientConf.JSON)
 
-	require.NoError(t, cluster.AddN(*clientConf, numClients, true))
+	require.NoError(t, cluster.AddN(*clientConf, config.NumClients, true))
 
 	// Use the client agent as the HTTP endpoint since we will not rotate it in many tests.
-	clientNode := cluster.Agents[numServers]
-	client := clientNode.GetClient()
+	var client *api.Client
+	if config.NumClients > 0 {
+		clientNode := cluster.Agents[config.NumServers]
+		client = clientNode.GetClient()
+	} else {
+		client = cluster.Agents[0].GetClient()
+	}
 	libcluster.WaitForLeader(t, cluster, client)
-	libcluster.WaitForMembers(t, client, numServers+numClients)
+	libcluster.WaitForMembers(t, client, config.NumServers+config.NumClients)
 
 	// Default Proxy Settings
-	ok, err := utils.ApplyDefaultProxySettings(client)
-	require.NoError(t, err)
-	require.True(t, ok)
+	if config.ApplyDefaultProxySettings {
+		ok, err := utils.ApplyDefaultProxySettings(client)
+		require.NoError(t, err)
+		require.True(t, ok)
+	}
 
 	return cluster, ctx, client
+}
+
+type TestLogConsumer struct {
+	Msgs []string
+}
+
+func (g *TestLogConsumer) Accept(l testcontainers.Log) {
+	g.Msgs = append(g.Msgs, string(l.Content))
 }
