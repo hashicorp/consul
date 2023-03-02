@@ -963,6 +963,7 @@ RESOLVE_AGAIN:
 			Default:        resolver.IsDefault(),
 			Target:         target.ID,
 			ConnectTimeout: connectTimeout,
+			RequestTimeout: resolver.RequestTimeout,
 		},
 		LoadBalancer: resolver.LoadBalancer,
 	}
