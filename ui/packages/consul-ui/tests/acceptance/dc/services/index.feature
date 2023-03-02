@@ -71,7 +71,7 @@ Feature: dc / services / index: List Services
     ---
   Scenario: Viewing the service list page with gateways
     Given 1 datacenter model with the value "dc-1"
-    And 3 service models from yaml
+    And 4 service models from yaml
     ---
       - Name: Service-0-proxy
         Kind: 'connect-proxy'
