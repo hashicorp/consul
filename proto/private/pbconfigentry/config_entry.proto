@@ -160,6 +160,16 @@ message ServiceResolverFailover {
   string Namespace = 3;
   repeated string Datacenters = 4;
   repeated ServiceResolverFailoverTarget Targets = 5;
+  ServiceResolverFailoverPolicy Policy = 6;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.ServiceResolverFailoverPolicy
+// output=config_entry.gen.go
+// name=Structs
+message ServiceResolverFailoverPolicy {
+  string Mode = 1;
 }
 
 // mog annotation:

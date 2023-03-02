@@ -177,6 +177,10 @@ func (o *DiscoveryFailover) DeepCopy() *DiscoveryFailover {
 		cp.Targets = make([]string, len(o.Targets))
 		copy(cp.Targets, o.Targets)
 	}
+	if o.Policy != nil {
+		cp.Policy = new(ServiceResolverFailoverPolicy)
+		*cp.Policy = *o.Policy
+	}
 	return &cp
 }
 
@@ -893,6 +897,10 @@ func (o *ServiceResolverFailover) DeepCopy() *ServiceResolverFailover {
 	if o.Targets != nil {
 		cp.Targets = make([]ServiceResolverFailoverTarget, len(o.Targets))
 		copy(cp.Targets, o.Targets)
+	}
+	if o.Policy != nil {
+		cp.Policy = new(ServiceResolverFailoverPolicy)
+		*cp.Policy = *o.Policy
 	}
 	return &cp
 }

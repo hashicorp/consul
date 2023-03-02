@@ -1410,6 +1410,11 @@ func ServiceResolverFailoverToStructs(s *ServiceResolverFailover, t *structs.Ser
 			}
 		}
 	}
+	if s.Policy != nil {
+		var x structs.ServiceResolverFailoverPolicy
+		ServiceResolverFailoverPolicyToStructs(s.Policy, &x)
+		t.Policy = &x
+	}
 }
 func ServiceResolverFailoverFromStructs(t *structs.ServiceResolverFailover, s *ServiceResolverFailover) {
 	if s == nil {
@@ -1429,6 +1434,23 @@ func ServiceResolverFailoverFromStructs(t *structs.ServiceResolverFailover, s *S
 			}
 		}
 	}
+	if t.Policy != nil {
+		var x ServiceResolverFailoverPolicy
+		ServiceResolverFailoverPolicyFromStructs(t.Policy, &x)
+		s.Policy = &x
+	}
+}
+func ServiceResolverFailoverPolicyToStructs(s *ServiceResolverFailoverPolicy, t *structs.ServiceResolverFailoverPolicy) {
+	if s == nil {
+		return
+	}
+	t.Mode = s.Mode
+}
+func ServiceResolverFailoverPolicyFromStructs(t *structs.ServiceResolverFailoverPolicy, s *ServiceResolverFailoverPolicy) {
+	if s == nil {
+		return
+	}
+	s.Mode = t.Mode
 }
 func ServiceResolverFailoverTargetToStructs(s *ServiceResolverFailoverTarget, t *structs.ServiceResolverFailoverTarget) {
 	if s == nil {

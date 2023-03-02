@@ -178,7 +178,8 @@ type DiscoverySplit struct {
 
 // compiled form of ServiceResolverFailover
 type DiscoveryFailover struct {
-	Targets []string `json:",omitempty"`
+	Targets []string                       `json:",omitempty"`
+	Policy  *ServiceResolverFailoverPolicy `json:",omitempty"`
 }
 
 // DiscoveryTarget represents all of the inputs necessary to use a resolver
