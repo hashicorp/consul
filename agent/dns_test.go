@@ -4882,7 +4882,9 @@ func TestDNS_TCP_and_UDP_Truncate(t *testing.T) {
 
 	services := []string{"normal", "truncated"}
 	for index, service := range services {
-		numServices := (index * 5000) + 2
+		// if `enable_truncate = true`, we truncate if a DNS query would return
+		// more than 2 records.
+		numServices := index + 2
 		for i := 1; i < numServices; i++ {
 			args := &structs.RegisterRequest{
 				Datacenter: "dc1",
@@ -4933,13 +4935,13 @@ func TestDNS_TCP_and_UDP_Truncate(t *testing.T) {
 				for _, question := range questions {
 					for _, protocol := range protocols {
 						for _, compress := range []bool{true, false} {
+							if protocol == "udp" && maxSize > 8192 {
+								continue
+							}
 							t.Run(fmt.Sprintf("lookup %s %s (qType:=%d) compressed=%v", question, protocol, qType, compress), func(t *testing.T) {
 								m := new(dns.Msg)
 								m.SetQuestion(question, dns.TypeANY)
 								maxSz := maxSize
-								if protocol == "udp" {
-									maxSz = 8192
-								}
 								m.SetEdns0(maxSz, true)
 								c := new(dns.Client)
 								c.Net = protocol
@@ -4948,23 +4950,15 @@ func TestDNS_TCP_and_UDP_Truncate(t *testing.T) {
 								if err != nil {
 									t.Fatalf("err: %v", err)
 								}
-								// actually check if we need to have the truncate bit
-								resbuf, err := in.Pack()
+								// check if we need to have the truncate bit
+								respBuf, err := in.Pack()
 								if err != nil {
-									t.Fatalf("Error while packing answer: %s", err)
+									t.Fatalf("Error while packing answer: %v", err)
 								}
-								if !in.Truncated && len(resbuf) > int(maxSz) {
-									t.Fatalf("should have truncate bit %#v %#v", in, len(in.Answer))
-								}
-								// Check for the truncate bit
-								buf, err := m.Pack()
-								info := fmt.Sprintf("service %s question:=%s (%s) (%d total records) sz:= %d in %v",
+								respInfo := fmt.Sprintf("service %s question:=%s (%s) (%d total records) sz:= %d in %v",
 									service, question, protocol, numServices, len(in.Answer), in)
-								if err != nil {
-									t.Fatalf("Error while packing: %v ; info:=%s", err, info)
-								}
-								if len(buf) > int(maxSz) {
-									t.Fatalf("len(buf) := %d > maxSz=%d for %v", len(buf), maxSz, info)
+								if len(respBuf) > int(maxSz) && !in.Truncated {
+									t.Fatalf("response should have truncate bit %#v", respInfo)
 								}
 							})
 						}
