@@ -345,7 +345,6 @@ func configureSinks(cfg TelemetryConfig, memSink metrics.MetricSink) (metrics.Fa
 	addSink(statsdSink)
 	addSink(dogstatdSink)
 	addSink(circonusSink)
-	addSink(circonusSink)
 	addSink(prometheusSink)
 
 	if len(sinks) > 0 {
