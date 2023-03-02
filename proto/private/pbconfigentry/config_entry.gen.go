@@ -1343,6 +1343,7 @@ func ServiceResolverToStructs(s *ServiceResolver, t *structs.ServiceResolverConf
 		}
 	}
 	t.ConnectTimeout = structs.DurationFromProto(s.ConnectTimeout)
+	t.RequestTimeout = structs.DurationFromProto(s.RequestTimeout)
 	if s.LoadBalancer != nil {
 		var x structs.LoadBalancer
 		LoadBalancerToStructs(s.LoadBalancer, &x)
@@ -1385,6 +1386,7 @@ func ServiceResolverFromStructs(t *structs.ServiceResolverConfigEntry, s *Servic
 		}
 	}
 	s.ConnectTimeout = structs.DurationToProto(t.ConnectTimeout)
+	s.RequestTimeout = structs.DurationToProto(t.RequestTimeout)
 	if t.LoadBalancer != nil {
 		var x LoadBalancer
 		LoadBalancerFromStructs(t.LoadBalancer, &x)
