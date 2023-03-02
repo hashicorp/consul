@@ -210,7 +210,7 @@ func (s *ResourceGenerator) makeRoutes(
 	if resolver.LoadBalancer != nil {
 		lb = resolver.LoadBalancer
 	}
-	route, err := makeNamedDefaultRouteWithLB(clusterName, lb, resolver.ConnectTimeout, autoHostRewrite)
+	route, err := makeNamedDefaultRouteWithLB(clusterName, lb, resolver.RequestTimeout, autoHostRewrite)
 	if err != nil {
 		s.Logger.Error("failed to make route", "cluster", clusterName, "error", err)
 		return nil, err
@@ -220,7 +220,7 @@ func (s *ResourceGenerator) makeRoutes(
 	// If there is a service-resolver for this service then also setup routes for each subset
 	for name := range resolver.Subsets {
 		clusterName = connect.ServiceSNI(svc.Name, name, svc.NamespaceOrDefault(), svc.PartitionOrDefault(), cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
-		route, err := makeNamedDefaultRouteWithLB(clusterName, lb, resolver.ConnectTimeout, true)
+		route, err := makeNamedDefaultRouteWithLB(clusterName, lb, resolver.RequestTimeout, true)
 		if err != nil {
 			s.Logger.Error("failed to make route", "cluster", clusterName, "error", err)
 			return nil, err
@@ -634,8 +634,8 @@ func makeUpstreamRouteForDiscoveryChain(
 			return nil, fmt.Errorf("failed to apply load balancer configuration to route action: %v", err)
 		}
 
-		if startNode.Resolver.ConnectTimeout > 0 {
-			routeAction.Route.Timeout = durationpb.New(startNode.Resolver.ConnectTimeout)
+		if startNode.Resolver.RequestTimeout > 0 {
+			routeAction.Route.Timeout = durationpb.New(startNode.Resolver.RequestTimeout)
 		}
 		defaultRoute := &envoy_route_v3.Route{
 			Match:  makeDefaultRouteMatch(),
