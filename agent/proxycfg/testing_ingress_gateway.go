@@ -700,11 +700,13 @@ func TestConfigSnapshotIngress_HTTPMultipleServices(t testing.T) *ConfigSnapshot
 			Kind:           structs.ServiceResolver,
 			Name:           "foo",
 			ConnectTimeout: 22 * time.Second,
+			RequestTimeout: 22 * time.Second,
 		},
 		&structs.ServiceResolverConfigEntry{
 			Kind:           structs.ServiceResolver,
 			Name:           "bar",
 			ConnectTimeout: 22 * time.Second,
+			RequestTimeout: 22 * time.Second,
 		},
 	}
 
@@ -855,11 +857,13 @@ func TestConfigSnapshotIngress_GRPCMultipleServices(t testing.T) *ConfigSnapshot
 			Kind:           structs.ServiceResolver,
 			Name:           "foo",
 			ConnectTimeout: 22 * time.Second,
+			RequestTimeout: 22 * time.Second,
 		},
 		&structs.ServiceResolverConfigEntry{
 			Kind:           structs.ServiceResolver,
 			Name:           "bar",
 			ConnectTimeout: 22 * time.Second,
+			RequestTimeout: 22 * time.Second,
 		},
 	}
 
@@ -1213,12 +1217,14 @@ func TestConfigSnapshotIngressGatewayWithChain(
 				Name:           "web",
 				EnterpriseMeta: *webEntMeta,
 				ConnectTimeout: 22 * time.Second,
+				RequestTimeout: 22 * time.Second,
 			},
 			&structs.ServiceResolverConfigEntry{
 				Kind:           structs.ServiceResolver,
 				Name:           "foo",
 				EnterpriseMeta: *fooEntMeta,
 				ConnectTimeout: 22 * time.Second,
+				RequestTimeout: 22 * time.Second,
 			},
 		}
 
