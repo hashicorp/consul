@@ -9,7 +9,7 @@ import (
 	libassert "github.com/hashicorp/consul/test/integration/consul-container/libs/assert"
 	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
 	libservice "github.com/hashicorp/consul/test/integration/consul-container/libs/service"
-	"github.com/hashicorp/consul/test/integration/consul-container/test"
+	"github.com/hashicorp/consul/test/integration/consul-container/libs/topology"
 )
 
 // TestBasicConnectService Summary
@@ -25,12 +25,13 @@ func TestBasicConnectService(t *testing.T) {
 	t.Parallel()
 
 	buildOptions := &libcluster.BuildOptions{
+		Datacenter:             "dc1",
 		InjectAutoEncryption:   true,
 		InjectGossipEncryption: true,
 		// TODO(rb): fix the test to not need the service/envoy stack to use :8500
 		AllowHTTPAnyway: true,
 	}
-	cluster := test.CreateCluster(t, "", nil, buildOptions, true)
+	cluster, _, _ := topology.NewPeeringCluster(t, 1, 1, buildOptions)
 
 	clientService := createServices(t, cluster)
 	_, port := clientService.GetAddr()
@@ -59,14 +60,14 @@ func createServices(t *testing.T, cluster *libcluster.Cluster) libservice.Servic
 	_, _, err := libservice.CreateAndRegisterStaticServerAndSidecar(node, serviceOpts)
 	require.NoError(t, err)
 
-	libassert.CatalogServiceExists(t, client, "static-server-sidecar-proxy")
-	libassert.CatalogServiceExists(t, client, libservice.StaticServerServiceName)
+	libassert.CatalogServiceExists(t, client, "static-server-sidecar-proxy", nil)
+	libassert.CatalogServiceExists(t, client, libservice.StaticServerServiceName, nil)
 
 	// Create a client proxy instance with the server as an upstream
 	clientConnectProxy, err := libservice.CreateAndRegisterStaticClientSidecar(node, "", false)
 	require.NoError(t, err)
 
-	libassert.CatalogServiceExists(t, client, "static-client-sidecar-proxy")
+	libassert.CatalogServiceExists(t, client, "static-client-sidecar-proxy", nil)
 
 	return clientConnectProxy
 }

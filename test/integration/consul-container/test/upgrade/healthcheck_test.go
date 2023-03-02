@@ -8,6 +8,7 @@ import (
 
 	"github.com/hashicorp/consul/api"
 	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
+	libservice "github.com/hashicorp/consul/test/integration/consul-container/libs/service"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 )
 
@@ -22,7 +23,7 @@ func TestTargetServersWithLatestGAClients(t *testing.T) {
 
 	cluster := serversCluster(t, numServers, utils.TargetImageName, utils.TargetVersion)
 
-	clientsCreate(t, numClients, utils.LatestImageName, utils.LatestVersion, cluster)
+	libservice.ClientsCreate(t, numClients, utils.LatestImageName, utils.LatestVersion, cluster)
 
 	client := cluster.APIClient(0)
 
@@ -30,9 +31,9 @@ func TestTargetServersWithLatestGAClients(t *testing.T) {
 	libcluster.WaitForMembers(t, client, 4)
 
 	const serviceName = "api"
-	index := serviceCreate(t, client, serviceName)
+	index := libservice.ServiceCreate(t, client, serviceName)
 
-	ch, errCh := serviceHealthBlockingQuery(client, serviceName, index)
+	ch, errCh := libservice.ServiceHealthBlockingQuery(client, serviceName, index)
 	require.NoError(t, client.Agent().ServiceRegister(
 		&api.AgentServiceRegistration{Name: serviceName, Port: 9998},
 	))
@@ -120,7 +121,7 @@ func testMixedServersGAClient(t *testing.T, majorityIsTarget bool) {
 	cluster, err := libcluster.New(t, configs)
 	require.NoError(t, err)
 
-	clientsCreate(t, numClients, utils.LatestImageName, utils.LatestVersion, cluster)
+	libservice.ClientsCreate(t, numClients, utils.LatestImageName, utils.LatestVersion, cluster)
 
 	client := cluster.APIClient(0)
 
@@ -128,9 +129,9 @@ func testMixedServersGAClient(t *testing.T, majorityIsTarget bool) {
 	libcluster.WaitForMembers(t, client, 4) // TODO(rb): why 4?
 
 	const serviceName = "api"
-	index := serviceCreate(t, client, serviceName)
+	index := libservice.ServiceCreate(t, client, serviceName)
 
-	ch, errCh := serviceHealthBlockingQuery(client, serviceName, index)
+	ch, errCh := libservice.ServiceHealthBlockingQuery(client, serviceName, index)
 	require.NoError(t, client.Agent().ServiceRegister(
 		&api.AgentServiceRegistration{Name: serviceName, Port: 9998},
 	))
@@ -146,4 +147,25 @@ func testMixedServersGAClient(t *testing.T, majorityIsTarget bool) {
 	case <-timer.C:
 		t.Fatalf("test timeout")
 	}
+}
+
+func serversCluster(t *testing.T, numServers int, image, version string) *libcluster.Cluster {
+	opts := libcluster.BuildOptions{
+		ConsulImageName: image,
+		ConsulVersion:   version,
+	}
+	ctx := libcluster.NewBuildContext(t, opts)
+
+	conf := libcluster.NewConfigBuilder(ctx).
+		Bootstrap(numServers).
+		ToAgentConfig(t)
+	t.Logf("Cluster server config:\n%s", conf.JSON)
+
+	cluster, err := libcluster.NewN(t, *conf, numServers)
+	require.NoError(t, err)
+
+	libcluster.WaitForLeader(t, cluster, nil)
+	libcluster.WaitForMembers(t, cluster.APIClient(0), numServers)
+
+	return cluster
 }

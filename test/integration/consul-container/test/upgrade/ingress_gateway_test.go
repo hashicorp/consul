@@ -170,7 +170,7 @@ func TestIngressGateway_UpgradeToTarget_fromLatest(t *testing.T) {
 			},
 		)
 		require.NoError(t, err)
-		libassert.CatalogServiceExists(t, client, nameS1)
+		libassert.CatalogServiceExists(t, client, nameS1, nil)
 
 		// create s2
 		_, _, err = libservice.CreateAndRegisterStaticServerAndSidecar(
@@ -183,7 +183,7 @@ func TestIngressGateway_UpgradeToTarget_fromLatest(t *testing.T) {
 			},
 		)
 		require.NoError(t, err)
-		libassert.CatalogServiceExists(t, client, nameS2)
+		libassert.CatalogServiceExists(t, client, nameS2, nil)
 
 		// checks
 		// TODO: other checks from verify.bats
