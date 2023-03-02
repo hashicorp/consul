@@ -6,13 +6,11 @@ type readWriteRatesConfig struct {
 }
 
 type RateLimitIPConfigEntry struct {
-	// Kind of the config entry. This will be set to structs.RateLimitConfig
+	// Kind of the config entry. This will be set to structs.RateLimitIPConfig
 	Kind string
-	// what is the name used for
 	Name string
 	Mode string // {permissive, enforcing, disabled}
 
-	// what is this
 	Meta map[string]string `json:",omitempty"`
 	// overall limits
 	ReadRate  float32
