@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"os"
 	"strings"
 	"sync"
 	"time"
@@ -922,6 +921,14 @@ func vaultLogin(client *vaultapi.Client, authMethod *structs.VaultAuthMethod) (*
 	return resp, nil
 }
 
+// Note the authMethod's parameters (Params) is populated from a freeform map
+// in the configuration where they could hardcode values to be passed directly
+// to the `auth/*/login` endpoint. Each auth method's authentication code
+// needs to handle two cases:
+// - The legacy case (which should be deprecated) where the user has
+// hardcoded login values directly (eg. a `jwt` string)
+// - The case where they use the configuration option used in the
+// vault agent's auth methods.
 func configureVaultAuthMethod(authMethod *structs.VaultAuthMethod) (VaultAuthenticator, error) {
 	if authMethod.MountPath == "" {
 		authMethod.MountPath = authMethod.Type
@@ -938,17 +945,7 @@ func configureVaultAuthMethod(authMethod *structs.VaultAuthMethod) (VaultAuthent
 	case VaultAuthMethodTypeJWT:
 		return NewJwtAuthClient(authMethod)
 	case VaultAuthMethodTypeKubernetes:
-		// For the Kubernetes Auth method, we will try to read the JWT token
-		// from the default service account file location if jwt was not provided.
-		if jwt, ok := authMethod.Params["jwt"]; !ok || jwt == "" {
-			serviceAccountToken, err := os.ReadFile(defaultK8SServiceAccountTokenPath)
-			if err != nil {
-				return nil, err
-			}
-
-			authMethod.Params["jwt"] = string(serviceAccountToken)
-		}
-		return NewVaultAPIAuthClient(authMethod, loginPath), nil
+		return NewK8sAuthClient(authMethod)
 	// These auth methods require a username for the login API path.
 	case VaultAuthMethodTypeLDAP, VaultAuthMethodTypeUserpass, VaultAuthMethodTypeOkta, VaultAuthMethodTypeRadius:
 		// Get username from the params.

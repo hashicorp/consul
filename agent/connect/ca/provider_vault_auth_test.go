@@ -502,3 +502,69 @@ func TestVaultCAProvider_JwtAuthClient(t *testing.T) {
 		})
 	}
 }
+
+func TestVaultCAProvider_K8sAuthClient(t *testing.T) {
+	tokenF, err := os.CreateTemp("", "token-path")
+	require.NoError(t, err)
+	defer func() { os.Remove(tokenF.Name()) }()
+	_, err = tokenF.WriteString("test-token")
+	require.NoError(t, err)
+	err = tokenF.Close()
+	require.NoError(t, err)
+
+	cases := map[string]struct {
+		authMethod *structs.VaultAuthMethod
+		expData    map[string]any
+		expErr     error
+	}{
+		"base-case": {
+			authMethod: &structs.VaultAuthMethod{
+				Type: "kubernetes",
+				Params: map[string]any{
+					"role":       "test-role",
+					"token_path": tokenF.Name(),
+				},
+			},
+			expData: map[string]any{
+				"role": "test-role",
+				"jwt":  "test-token",
+			},
+		},
+		"legacy-case": {
+			authMethod: &structs.VaultAuthMethod{
+				Type: "kubernetes",
+				Params: map[string]any{
+					"role": "test-role",
+					"jwt":  "test-token",
+				},
+			},
+			expData: map[string]any{
+				"role": "test-role",
+				"jwt":  "test-token",
+			},
+		},
+		"no-role": {
+			authMethod: &structs.VaultAuthMethod{
+				Type:   "kubernetes",
+				Params: map[string]any{},
+			},
+			expErr: fmt.Errorf("missing 'role' value"),
+		},
+	}
+	for name, c := range cases {
+		t.Run(name, func(t *testing.T) {
+			auth, err := NewK8sAuthClient(c.authMethod)
+			if c.expErr != nil {
+				require.Error(t, err)
+				require.EqualError(t, c.expErr, err.Error())
+				return
+			}
+			require.NoError(t, err)
+			if auth.LoginDataGen != nil {
+				data, err := auth.LoginDataGen(c.authMethod)
+				require.NoError(t, err)
+				require.Equal(t, c.expData, data)
+			}
+		})
+	}
+}
