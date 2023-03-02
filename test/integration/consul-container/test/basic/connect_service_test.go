@@ -41,7 +41,7 @@ func TestBasicConnectService(t *testing.T) {
 
 	libassert.AssertContainerState(t, clientService, "running")
 	libassert.HTTPServiceEchoes(t, "localhost", port, "")
-	libassert.AssertFortioName(t, fmt.Sprintf("http://localhost:%d", port), "static-server")
+	libassert.AssertFortioName(t, fmt.Sprintf("http://localhost:%d", port), "static-server", "")
 }
 
 func createServices(t *testing.T, cluster *libcluster.Cluster) libservice.Service {

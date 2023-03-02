@@ -44,12 +44,12 @@ func BasicPeeringTwoClustersSetup(
 	peeringThroughMeshgateway bool,
 ) (*BuiltCluster, *BuiltCluster) {
 	// acceptingCluster, acceptingCtx, acceptingClient := NewPeeringCluster(t, "dc1", 3, consulVersion, true)
-	acceptingCluster, acceptingCtx, acceptingClient := NewPeeringCluster(t, 3, &libcluster.BuildOptions{
+	acceptingCluster, acceptingCtx, acceptingClient := NewPeeringCluster(t, 3, 1, &libcluster.BuildOptions{
 		Datacenter:           "dc1",
 		ConsulVersion:        consulVersion,
 		InjectAutoEncryption: true,
 	})
-	dialingCluster, dialingCtx, dialingClient := NewPeeringCluster(t, 1, &libcluster.BuildOptions{
+	dialingCluster, dialingCtx, dialingClient := NewPeeringCluster(t, 1, 1, &libcluster.BuildOptions{
 		Datacenter:           "dc2",
 		ConsulVersion:        consulVersion,
 		InjectAutoEncryption: true,
@@ -133,7 +133,7 @@ func BasicPeeringTwoClustersSetup(
 	libassert.AssertUpstreamEndpointStatus(t, adminPort, fmt.Sprintf("static-server.default.%s.external", DialingPeerName), "HEALTHY", 1)
 	_, port := clientSidecarService.GetAddr()
 	libassert.HTTPServiceEchoes(t, "localhost", port, "")
-	libassert.AssertFortioName(t, fmt.Sprintf("http://localhost:%d", port), "static-server")
+	libassert.AssertFortioName(t, fmt.Sprintf("http://localhost:%d", port), "static-server", "")
 
 	return &BuiltCluster{
 			Cluster:   acceptingCluster,
@@ -210,6 +210,7 @@ func NewDialingCluster(
 func NewPeeringCluster(
 	t *testing.T,
 	numServers int,
+	numClients int,
 	buildOpts *libcluster.BuildOptions,
 ) (*libcluster.Cluster, *libcluster.BuildContext, *api.Client) {
 	require.NotEmpty(t, buildOpts.Datacenter)
@@ -239,7 +240,7 @@ func NewPeeringCluster(
 		retryJoin = append(retryJoin, fmt.Sprintf("agent-%d", i))
 	}
 
-	// Add a stable client to register the service
+	// Add numClients static clients to register the service
 	configbuiilder := libcluster.NewConfigBuilder(ctx).
 		Client().
 		Peering(true).
@@ -247,13 +248,13 @@ func NewPeeringCluster(
 	clientConf := configbuiilder.ToAgentConfig(t)
 	t.Logf("%s client config: \n%s", opts.Datacenter, clientConf.JSON)
 
-	require.NoError(t, cluster.AddN(*clientConf, 1, true))
+	require.NoError(t, cluster.AddN(*clientConf, numClients, true))
 
 	// Use the client agent as the HTTP endpoint since we will not rotate it in many tests.
 	clientNode := cluster.Agents[numServers]
 	client := clientNode.GetClient()
 	libcluster.WaitForLeader(t, cluster, client)
-	libcluster.WaitForMembers(t, client, numServers+1)
+	libcluster.WaitForMembers(t, client, numServers+numClients)
 
 	// Default Proxy Settings
 	ok, err := utils.ApplyDefaultProxySettings(client)

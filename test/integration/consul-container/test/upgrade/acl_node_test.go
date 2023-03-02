@@ -36,7 +36,7 @@ func TestACL_Upgrade_Node_Token(t *testing.T) {
 
 	run := func(t *testing.T, tc testcase) {
 		// NOTE: Disable auto.encrypt due to its conflict with ACL token during bootstrap
-		cluster, _, _ := libtopology.NewPeeringCluster(t, 1, &libcluster.BuildOptions{
+		cluster, _, _ := libtopology.NewPeeringCluster(t, 1, 1, &libcluster.BuildOptions{
 			Datacenter:           "dc1",
 			ConsulVersion:        tc.oldversion,
 			InjectAutoEncryption: false,
