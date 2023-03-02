@@ -1696,50 +1696,65 @@ func TestCheckEnvoyVersionCompatibility(t *testing.T) {
 		name            string
 		envoyVersion    string
 		unsupportedList []string
-		expectedSupport bool
+		expectedCompat  envoyCompat
 		isErrorExpected bool
 	}{
 		{
 			name:            "supported-using-proxy-support-defined",
 			envoyVersion:    xdscommon.EnvoyVersions[1],
 			unsupportedList: xdscommon.UnsupportedEnvoyVersions,
-			expectedSupport: true,
+			expectedCompat: envoyCompat{
+				isCompatible: true,
+			},
 		},
 		{
 			name:            "supported-at-max",
 			envoyVersion:    xdscommon.GetMaxEnvoyMinorVersion(),
 			unsupportedList: xdscommon.UnsupportedEnvoyVersions,
-			expectedSupport: true,
+			expectedCompat: envoyCompat{
+				isCompatible: true,
+			},
 		},
 		{
 			name:            "supported-patch-higher",
 			envoyVersion:    addNPatchVersion(xdscommon.EnvoyVersions[0], 1),
 			unsupportedList: xdscommon.UnsupportedEnvoyVersions,
-			expectedSupport: true,
+			expectedCompat: envoyCompat{
+				isCompatible: true,
+			},
 		},
 		{
 			name:            "not-supported-minor-higher",
 			envoyVersion:    addNMinorVersion(xdscommon.EnvoyVersions[0], 1),
 			unsupportedList: xdscommon.UnsupportedEnvoyVersions,
-			expectedSupport: false,
+			expectedCompat: envoyCompat{
+				isCompatible:        false,
+				versionIncompatible: replacePatchVersionWithX(addNMinorVersion(xdscommon.EnvoyVersions[0], 1)),
+			},
 		},
 		{
 			name:            "not-supported-minor-lower",
 			envoyVersion:    addNMinorVersion(xdscommon.EnvoyVersions[len(xdscommon.EnvoyVersions)-1], -1),
 			unsupportedList: xdscommon.UnsupportedEnvoyVersions,
-			expectedSupport: false,
+			expectedCompat: envoyCompat{
+				isCompatible:        false,
+				versionIncompatible: replacePatchVersionWithX(addNMinorVersion(xdscommon.EnvoyVersions[len(xdscommon.EnvoyVersions)-1], -1)),
+			},
 		},
 		{
 			name:            "not-supported-explicitly-unsupported-version",
 			envoyVersion:    addNPatchVersion(xdscommon.EnvoyVersions[0], 1),
 			unsupportedList: []string{"1.23.1", addNPatchVersion(xdscommon.EnvoyVersions[0], 1)},
-			expectedSupport: false,
+			expectedCompat: envoyCompat{
+				isCompatible:        false,
+				versionIncompatible: addNPatchVersion(xdscommon.EnvoyVersions[0], 1),
+			},
 		},
 		{
 			name:            "error-bad-input",
 			envoyVersion:    "1.abc.3",
 			unsupportedList: xdscommon.UnsupportedEnvoyVersions,
-			expectedSupport: false,
+			expectedCompat:  envoyCompat{},
 			isErrorExpected: true,
 		},
 	}
@@ -1752,7 +1767,7 @@ func TestCheckEnvoyVersionCompatibility(t *testing.T) {
 			} else {
 				assert.NoError(t, err)
 			}
-			assert.Equal(t, tc.expectedSupport, actual)
+			assert.Equal(t, tc.expectedCompat, actual)
 		})
 	}
 }
