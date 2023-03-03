@@ -54,7 +54,7 @@ instead.
 - `-meta` - Indicates that token metadata such as the content hash and Raft indices should be
   shown for each entry.
 
-- `-node-identity=<value>` - Name of a node identity to use for this role. May
+- `-node-identity=<value>` - Name of a node identity to use for this role. Overwrites existing node identity. May
   be specified multiple times. Format is `NODENAME:DATACENTER`. Added in Consul
   1.8.1.
 
@@ -82,7 +82,7 @@ instead.
 - `-append-role-name=<value>` - Name of a role to add to this token. The token retains existing roles. May be specified multiple times.
 
 - `-service-identity=<value>` - Name of a service identity to use for this
-  token. May be specified multiple times. Format is the `SERVICENAME` or
+  token. Overwrites existing service identities. May be specified multiple times. Format is the `SERVICENAME` or
   `SERVICENAME:DATACENTER1,DATACENTER2,...`
 
 - `-append-service-identity=<value>` - Name of a service identity to add to this
