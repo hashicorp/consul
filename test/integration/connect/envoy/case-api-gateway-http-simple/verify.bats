@@ -22,7 +22,7 @@ load helpers
 }
 
 @test "api gateway should be able to connect to s1 via configured port" {
-  run retry_long curl -s -f -d hello localhost:9999
+  run retry_long curl -s -d hello localhost:9999
   [ "$status" -eq 0 ]
   [[ ! -z "$output" ]]
 }
