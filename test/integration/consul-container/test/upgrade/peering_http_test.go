@@ -122,7 +122,7 @@ func TestPeering_UpgradeToTarget_fromLatest(t *testing.T) {
 				}
 
 				clientConnectProxy, err := createAndRegisterStaticClientSidecarWith2Upstreams(dialing,
-					[]string{"split-static-server", "peer-static-server"},
+					[]string{"split-static-server", "peer-static-server"}, true,
 				)
 				if err != nil {
 					return nil, nil, nil, fmt.Errorf("error creating client connect proxy in cluster %s", dialing.NetworkName)
@@ -236,7 +236,7 @@ func TestPeering_UpgradeToTarget_fromLatest(t *testing.T) {
 				}
 
 				clientConnectProxy, err := createAndRegisterStaticClientSidecarWith2Upstreams(dialing,
-					[]string{libservice.StaticServerServiceName, "peer-static-server"},
+					[]string{libservice.StaticServerServiceName, "peer-static-server"}, true,
 				)
 				if err != nil {
 					return nil, nil, nil, fmt.Errorf("error creating client connect proxy in cluster %s", dialing.NetworkName)
@@ -385,7 +385,8 @@ func TestPeering_UpgradeToTarget_fromLatest(t *testing.T) {
 // createAndRegisterStaticClientSidecarWith2Upstreams creates a static-client that
 // has two upstreams connecting to destinationNames: local bind addresses are 5000
 // and 5001.
-func createAndRegisterStaticClientSidecarWith2Upstreams(c *cluster.Cluster, destinationNames []string) (*libservice.ConnectContainer, error) {
+// - crossCluster: true if upstream is in another cluster
+func createAndRegisterStaticClientSidecarWith2Upstreams(c *cluster.Cluster, destinationNames []string, crossCluster bool) (*libservice.ConnectContainer, error) {
 	// Do some trickery to ensure that partial completion is correctly torn
 	// down, but successful execution is not.
 	var deferClean utils.ResettableDefer
@@ -407,22 +408,24 @@ func createAndRegisterStaticClientSidecarWith2Upstreams(c *cluster.Cluster, dest
 							DestinationName:  destinationNames[0],
 							LocalBindAddress: "0.0.0.0",
 							LocalBindPort:    cluster.ServiceUpstreamLocalBindPort,
-							MeshGateway: api.MeshGatewayConfig{
-								Mode: mgwMode,
-							},
 						},
 						{
 							DestinationName:  destinationNames[1],
 							LocalBindAddress: "0.0.0.0",
 							LocalBindPort:    cluster.ServiceUpstreamLocalBindPort2,
-							MeshGateway: api.MeshGatewayConfig{
-								Mode: mgwMode,
-							},
 						},
 					},
 				},
 			},
 		},
+	}
+
+	if crossCluster {
+		for _, upstream := range req.Connect.SidecarService.Proxy.Upstreams {
+			upstream.MeshGateway = api.MeshGatewayConfig{
+				Mode: mgwMode,
+			}
+		}
 	}
 
 	if err := node.GetClient().Agent().ServiceRegister(req); err != nil {

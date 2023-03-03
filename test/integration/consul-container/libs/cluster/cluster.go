@@ -315,6 +315,16 @@ func (c *Cluster) StandardUpgrade(t *testing.T, ctx context.Context, targetVersi
 	}
 	t.Logf("The number of followers = %d", len(followers))
 
+	// NOTE: we only assert the number of agents in default partition
+	// TODO: add partition to the cluster struct to assert partition size
+	clusterSize := 0
+	for _, agent := range c.Agents {
+		if agent.GetPartition() == "" || agent.GetPartition() == "default" {
+			clusterSize++
+		}
+	}
+	t.Logf("The number of agents in default partition = %d", clusterSize)
+
 	upgradeFn := func(agent Agent, clientFactory func() (*api.Client, error)) error {
 		config := agent.GetConfig()
 		config.Version = targetVersion
@@ -349,8 +359,10 @@ func (c *Cluster) StandardUpgrade(t *testing.T, ctx context.Context, targetVersi
 			return err
 		}
 
-		// wait until the agent rejoin and leader is elected
-		WaitForMembers(t, client, len(c.Agents))
+		// wait until the agent rejoin and leader is elected; skip non-default agent
+		if agent.GetPartition() == "" || agent.GetPartition() == "default" {
+			WaitForMembers(t, client, clusterSize)
+		}
 		WaitForLeader(t, c, client)
 
 		return nil
@@ -478,7 +490,23 @@ func (c *Cluster) Servers() []Agent {
 	return servers
 }
 
-// Clients returns the handle to client agents
+// Clients returns the handle to client agents in provided partition
+func (c *Cluster) ClientsInPartition(partition string) []Agent {
+	var clients []Agent
+
+	for _, n := range c.Agents {
+		if n.IsServer() {
+			continue
+		}
+
+		if n.GetPartition() == partition {
+			clients = append(clients, n)
+		}
+	}
+	return clients
+}
+
+// Clients returns the handle to client agents in all partitions
 func (c *Cluster) Clients() []Agent {
 	var clients []Agent
 
