@@ -159,7 +159,7 @@ func (c *cmd) Run(args []string) int {
 	hasServiceFields := len(c.serviceIdents) > 0
 	parsedServiceIdents, err := acl.ExtractServiceIdentities(c.serviceIdents)
 	if hasAppendServiceFields {
-		parsedServiceIdents, err = acl.ExtractServiceIdentities(c.serviceIdents)
+		parsedServiceIdents, err = acl.ExtractServiceIdentities(c.appendServiceIdents)
 	}
 
 	if hasAppendServiceFields && hasServiceFields {
