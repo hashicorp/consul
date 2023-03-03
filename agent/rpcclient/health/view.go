@@ -50,10 +50,10 @@ func NewHealthView(req structs.ServiceSpecificRequest) (*HealthView, error) {
 		return nil, err
 	}
 	return &HealthView{
-		state:  make(map[string]structs.CheckServiceNode),
-		filter: fe,
-		name:   req.ServiceName,
-		kind:   req.ServiceKind,
+		state:   make(map[string]structs.CheckServiceNode),
+		filter:  fe,
+		connect: req.Connect,
+		kind:    req.ServiceKind,
 	}, nil
 }
 
@@ -63,10 +63,10 @@ func NewHealthView(req structs.ServiceSpecificRequest) (*HealthView, error) {
 // (IndexedCheckServiceNodes) and update it in place for each event - that
 // involves re-sorting each time etc. though.
 type HealthView struct {
-	name   string
-	kind   structs.ServiceKind
-	state  map[string]structs.CheckServiceNode
-	filter filterEvaluator
+	connect bool
+	kind    structs.ServiceKind
+	state   map[string]structs.CheckServiceNode
+	filter  filterEvaluator
 }
 
 // Update implements View
@@ -112,14 +112,8 @@ func (s *HealthView) Update(events []*pbsubscribe.Event) error {
 }
 
 func (s *HealthView) skipFilter(csn *structs.CheckServiceNode) bool {
-	// we only do this for services that need to be routed through a gateway
-	if s.kind != "" {
-		return false
-	}
-	if s.name != csn.Service.Service && csn.Service.Kind == structs.ServiceKindTerminatingGateway {
-		return true
-	}
-	return false
+	// we only do this for connect-enabled services that need to be routed through a terminating gateway
+	return s.kind == "" && s.connect && csn.Service.Kind == structs.ServiceKindTerminatingGateway
 }
 
 type filterEvaluator interface {
