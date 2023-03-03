@@ -362,12 +362,13 @@ type ProxyConfigEntry struct {
 	Kind             string
 	Name             string
 	Config           map[string]interface{}
-	Mode             ProxyMode              `json:",omitempty"`
-	TransparentProxy TransparentProxyConfig `json:",omitempty" alias:"transparent_proxy"`
-	MeshGateway      MeshGatewayConfig      `json:",omitempty" alias:"mesh_gateway"`
-	Expose           ExposeConfig           `json:",omitempty"`
-	AccessLogs       AccessLogsConfig       `json:",omitempty" alias:"access_logs"`
-	EnvoyExtensions  EnvoyExtensions        `json:",omitempty" alias:"envoy_extensions"`
+	Mode             ProxyMode                      `json:",omitempty"`
+	TransparentProxy TransparentProxyConfig         `json:",omitempty" alias:"transparent_proxy"`
+	MeshGateway      MeshGatewayConfig              `json:",omitempty" alias:"mesh_gateway"`
+	Expose           ExposeConfig                   `json:",omitempty"`
+	AccessLogs       AccessLogsConfig               `json:",omitempty" alias:"access_logs"`
+	EnvoyExtensions  EnvoyExtensions                `json:",omitempty" alias:"envoy_extensions"`
+	FailoverPolicy   *ServiceResolverFailoverPolicy `json:",omitempty" alias:"failover_policy"`
 
 	Meta               map[string]string `json:",omitempty"`
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
@@ -432,6 +433,10 @@ func (e *ProxyConfigEntry) Validate() error {
 
 	if err := envoyextensions.ValidateExtensions(e.EnvoyExtensions.ToAPI()); err != nil {
 		return err
+	}
+
+	if !e.FailoverPolicy.isValid() {
+		return fmt.Errorf("Failover policy must be one of '', 'default', or 'order-by-locality'")
 	}
 
 	return e.validateEnterpriseMeta()

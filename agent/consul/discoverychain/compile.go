@@ -1110,6 +1110,15 @@ RESOLVE_AGAIN:
 			df := &structs.DiscoveryFailover{}
 			node.Resolver.Failover = df
 
+			if failover.Policy == nil || failover.Policy.Mode == "" {
+				proxyDefault := c.entries.GetProxyDefaults(targetID.PartitionOrDefault())
+				if proxyDefault != nil {
+					df.Policy = proxyDefault.FailoverPolicy
+				}
+			} else {
+				df.Policy = failover.Policy
+			}
+
 			// Take care of doing any redirects or configuration loading
 			// related to targets by cheating a bit and recursing into
 			// ourselves.
