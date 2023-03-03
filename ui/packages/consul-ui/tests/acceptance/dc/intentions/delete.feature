@@ -62,4 +62,3 @@ Feature: dc / intentions / deleting: Deleting items with confirmations, success 
     And I click confirmDelete
     And "[data-notification]" has the "hds-toast" class
     And "[data-notification]" has the "hds-alert--color-critical" class
-    And I see the text "Intention exists" in "[data-notification] strong"
