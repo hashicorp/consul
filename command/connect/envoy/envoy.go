@@ -886,9 +886,12 @@ func (c *cmd) lookupXDSPort() (int, string, error) {
 
 	var resp response
 	if err := mapstructure.Decode(self, &resp); err == nil {
-		if resp.XDS.Ports.TLS <= 0 && resp.XDS.Ports.Plaintext <= 0 {
-			return 0, "", fmt.Errorf("agent has grpc disabled")
-		}
+		// When we get rid of the 1.10 compatibility code below we can uncomment
+		// this check:
+		//
+		// if resp.XDS.Ports.TLS <= 0 && resp.XDS.Ports.Plaintext <= 0 {
+		// 	return 0, "", fmt.Errorf("agent has grpc disabled")
+		// }
 		if resp.XDS.Ports.TLS > 0 {
 			return resp.XDS.Ports.TLS, "https://", nil
 		}
@@ -897,9 +900,12 @@ func (c *cmd) lookupXDSPort() (int, string, error) {
 		}
 	}
 
-	// If above TLS and Plaintext ports are both 0, fallback to
-	// old API for the case where a new consul CLI is being used
-	// with an older API version.
+	// If above TLS and Plaintext ports are both 0, it could mean
+	// gRPC is disabled on the agent or we are using an older API.
+	// In either case, fallback to reading from the DebugConfig.
+	//
+	// Next major version we should get rid of this below code.
+	// It exists for compatibility reasons for 1.10 and below.
 	cfg, ok := self["DebugConfig"]
 	if !ok {
 		return 0, "", fmt.Errorf("unexpected agent response: no debug config")
@@ -911,6 +917,12 @@ func (c *cmd) lookupXDSPort() (int, string, error) {
 	portN, ok := port.(float64)
 	if !ok {
 		return 0, "", fmt.Errorf("invalid grpc port in agent response")
+	}
+
+	// This works for both <1.10 and later but we should prefer
+	// reading from resp.XDS instead.
+	if portN < 0 {
+		return 0, "", fmt.Errorf("agent has grpc disabled")
 	}
 
 	return int(portN), "", nil
