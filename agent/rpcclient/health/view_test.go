@@ -944,7 +944,8 @@ func TestNewFilterEvaluator(t *testing.T) {
 
 func TestHealthView_SkipFilteringTerminatingGateways(t *testing.T) {
 	view, err := NewHealthView(structs.ServiceSpecificRequest{
-		ServiceName: "web",
+		ServiceName: "name",
+		Connect:     true,
 		QueryOptions: structs.QueryOptions{
 			Filter: "Service.Meta.version == \"v1\"",
 		},
@@ -959,7 +960,7 @@ func TestHealthView_SkipFilteringTerminatingGateways(t *testing.T) {
 				CheckServiceNode: &pbservice.CheckServiceNode{
 					Service: &pbservice.NodeService{
 						Kind:    structs.TerminatingGateway,
-						Service: "gateway",
+						Service: "name",
 						Address: "127.0.0.1",
 						Port:    8443,
 					},
