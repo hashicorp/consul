@@ -361,6 +361,39 @@ function get_upstream_endpoint {
 | select(.name|startswith(\"${CLUSTER_NAME}\"))"
 }
 
+function get_upstream_endpoint_port {
+  local HOSTPORT=$1
+  local CLUSTER_NAME=$2
+  local PORT_VALUE=$3
+  run curl -s -f "http://${HOSTPORT}/clusters?format=json"
+  [ "$status" -eq 0 ]
+  echo "$output" | jq --raw-output "
+.cluster_statuses[]
+| select(.name|startswith(\"${CLUSTER_NAME}\"))
+| [.host_statuses[].address.socket_address.port_value]
+| [select(.[] == ${PORT_VALUE})]
+| length"
+}
+
+function assert_upstream_has_endpoint_port_once {
+  local HOSTPORT=$1
+  local CLUSTER_NAME=$2
+  local PORT_VALUE=$3
+
+  GOT_COUNT=$(get_upstream_endpoint_port $HOSTPORT $CLUSTER_NAME $PORT_VALUE)
+
+  [ "$GOT_COUNT" -eq 1 ]
+}
+
+function assert_upstream_has_endpoint_port {
+  local HOSTPORT=$1
+  local CLUSTER_NAME=$2
+  local PORT_VALUE=$3
+
+  run retry_long assert_upstream_has_endpoint_port_once $HOSTPORT $CLUSTER_NAME $PORT_VALUE
+  [ "$status" -eq 0 ]
+}
+
 function get_upstream_endpoint_in_status_count {
   local HOSTPORT=$1
   local CLUSTER_NAME=$2
@@ -383,15 +416,27 @@ function assert_upstream_has_endpoints_in_status_once {
 
   GOT_COUNT=$(get_upstream_endpoint_in_status_count $HOSTPORT $CLUSTER_NAME $HEALTH_STATUS)
 
+  echo "GOT: $GOT_COUNT"
   [ "$GOT_COUNT" -eq $EXPECT_COUNT ]
+}
+
+function assert_upstream_missing_once {
+  local HOSTPORT=$1
+  local CLUSTER_NAME=$2
+  
+  run get_upstream_endpoint $HOSTPORT $CLUSTER_NAME
+  [ "$status" -eq 0 ]
+  echo "$output"
+  [ "" == "$output" ]
 }
 
 function assert_upstream_missing {
   local HOSTPORT=$1
   local CLUSTER_NAME=$2
-  run retry_default get_upstream_endpoint $HOSTPORT $CLUSTER_NAME
+  run retry_long assert_upstream_missing_once $HOSTPORT $CLUSTER_NAME
   echo "OUTPUT: $output $status"
-  [ "" == "$output" ]
+
+  [ "$status" -eq 0 ]
 }
 
 function assert_upstream_has_endpoints_in_status {
@@ -400,6 +445,8 @@ function assert_upstream_has_endpoints_in_status {
   local HEALTH_STATUS=$3
   local EXPECT_COUNT=$4
   run retry_long assert_upstream_has_endpoints_in_status_once $HOSTPORT $CLUSTER_NAME $HEALTH_STATUS $EXPECT_COUNT
+  echo "$output"
+
   [ "$status" -eq 0 ]
 }
 

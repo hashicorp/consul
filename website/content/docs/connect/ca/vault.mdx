@@ -94,17 +94,14 @@ The key after the slash refers to the corresponding option name in the agent con
   on how to configure individual auth methods. If auth method is provided, Consul will obtain
   a new token from Vault when the token can no longer be renewed.
 
-   - `Type`/ `type` (`string: ""`) - The type of Vault auth method.
+   - `Type`/ `type` (`string: ""`) - The type of Vault auth method. Valid options are "approle", "aws", "azure", "gcp", "jwt" and "kubernetes".
 
    - `MountPath`/ `mount_path` (`string: <AuthMethod.Type>`) - The mount path of the auth method.
       If not provided the auth method type will be used as the mount path.
 
-   - `Params`/`params` (`map: nil`) - The parameters to configure the auth method. Please see
-    [Vault Auth Methods](/vault/docs/auth) for information on how to configure the
-    auth method you wish to use. If using the Kubernetes auth method,
-    Consul will read the service account token from the
-    default mount path `/var/run/secrets/kubernetes.io/serviceaccount/token` if the `jwt` parameter
-    is not provided.
+   - `Params`/`params` (`map: nil`) - The parameters to configure the auth method. The configuration parameters needed will depend on which auth type you are using. Please refer to the Vault Agent auto-auth method documentation for details on their configuration options: [AppRole](/vault/docs/agent/autoauth/methods/approle#configuration), [AWS](/vault/docs/agent/autoauth/methods/aws#configuration), [Azure](/vault/docs/agent/autoauth/methods/azure#configuration), [GCP](/vault/docs/agent/autoauth/methods/gcp#configuration), [JWT](/vault/docs/agent/autoauth/methods/jwt#configuration), [Kubernetes](/vault/docs/agent/autoauth/methods/kubernetes#configuration).
+
+   Only the authentication related fields (for example, JWT's `path` and `role`) are supported. The optional management fields (for example: `remove_jwt_after_reading`) are not supported.
 
 - `RootPKIPath` / `root_pki_path` (`string: <required>`) - The path to
   a PKI secrets engine for the root certificate.

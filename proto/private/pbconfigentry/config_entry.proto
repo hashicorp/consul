@@ -121,6 +121,8 @@ message ServiceResolver {
   google.protobuf.Duration ConnectTimeout = 5;
   LoadBalancer LoadBalancer = 6;
   map<string, string> Meta = 7;
+  // mog: func-to=structs.DurationFromProto func-from=structs.DurationToProto
+  google.protobuf.Duration RequestTimeout = 8;
 }
 
 // mog annotation:
@@ -158,6 +160,16 @@ message ServiceResolverFailover {
   string Namespace = 3;
   repeated string Datacenters = 4;
   repeated ServiceResolverFailoverTarget Targets = 5;
+  ServiceResolverFailoverPolicy Policy = 6;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.ServiceResolverFailoverPolicy
+// output=config_entry.gen.go
+// name=Structs
+message ServiceResolverFailoverPolicy {
+  string Mode = 1;
 }
 
 // mog annotation:

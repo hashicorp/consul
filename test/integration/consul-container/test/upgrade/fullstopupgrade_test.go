@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
+	libservice "github.com/hashicorp/consul/test/integration/consul-container/libs/service"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 )
 
@@ -67,9 +68,9 @@ func TestStandardUpgradeToTarget_fromLatest(t *testing.T) {
 
 		// Create a service to be stored in the snapshot
 		const serviceName = "api"
-		index := serviceCreate(t, client, serviceName)
+		index := libservice.ServiceCreate(t, client, serviceName)
 
-		ch, errCh := serviceHealthBlockingQuery(client, serviceName, index)
+		ch, errCh := libservice.ServiceHealthBlockingQuery(client, serviceName, index)
 		require.NoError(t, client.Agent().ServiceRegister(
 			&api.AgentServiceRegistration{Name: serviceName, Port: 9998},
 		))
@@ -111,6 +112,5 @@ func TestStandardUpgradeToTarget_fromLatest(t *testing.T) {
 			func(t *testing.T) {
 				run(t, tc)
 			})
-		// time.Sleep(5 * time.Second)
 	}
 }

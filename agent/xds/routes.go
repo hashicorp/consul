@@ -218,7 +218,7 @@ func (s *ResourceGenerator) makeRoutes(
 	if resolver.LoadBalancer != nil {
 		lb = resolver.LoadBalancer
 	}
-	route, err := makeNamedDefaultRouteWithLB(clusterName, lb, autoHostRewrite)
+	route, err := makeNamedDefaultRouteWithLB(clusterName, lb, resolver.RequestTimeout, autoHostRewrite)
 	if err != nil {
 		s.Logger.Error("failed to make route", "cluster", clusterName, "error", err)
 		return nil, err
@@ -228,7 +228,7 @@ func (s *ResourceGenerator) makeRoutes(
 	// If there is a service-resolver for this service then also setup routes for each subset
 	for name := range resolver.Subsets {
 		clusterName = connect.ServiceSNI(svc.Name, name, svc.NamespaceOrDefault(), svc.PartitionOrDefault(), cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
-		route, err := makeNamedDefaultRouteWithLB(clusterName, lb, true)
+		route, err := makeNamedDefaultRouteWithLB(clusterName, lb, resolver.RequestTimeout, true)
 		if err != nil {
 			s.Logger.Error("failed to make route", "cluster", clusterName, "error", err)
 			return nil, err
@@ -282,7 +282,7 @@ func (s *ResourceGenerator) routesForMeshGateway(cfgSnap *proxycfg.ConfigSnapsho
 	return resources, nil
 }
 
-func makeNamedDefaultRouteWithLB(clusterName string, lb *structs.LoadBalancer, autoHostRewrite bool) (*envoy_route_v3.RouteConfiguration, error) {
+func makeNamedDefaultRouteWithLB(clusterName string, lb *structs.LoadBalancer, timeout time.Duration, autoHostRewrite bool) (*envoy_route_v3.RouteConfiguration, error) {
 	action := makeRouteActionFromName(clusterName)
 
 	if err := injectLBToRouteAction(lb, action.Route); err != nil {
@@ -294,6 +294,10 @@ func makeNamedDefaultRouteWithLB(clusterName string, lb *structs.LoadBalancer, a
 		action.Route.HostRewriteSpecifier = &envoy_route_v3.RouteAction_AutoHostRewrite{
 			AutoHostRewrite: makeBoolValue(true),
 		}
+	}
+
+	if timeout != 0 {
+		action.Route.Timeout = durationpb.New(timeout)
 	}
 
 	return &envoy_route_v3.RouteConfiguration{
@@ -637,6 +641,9 @@ func (s *ResourceGenerator) makeUpstreamRouteForDiscoveryChain(
 			return nil, fmt.Errorf("failed to apply load balancer configuration to route action: %v", err)
 		}
 
+		if startNode.Resolver.RequestTimeout > 0 {
+			routeAction.Route.Timeout = durationpb.New(startNode.Resolver.RequestTimeout)
+		}
 		defaultRoute := &envoy_route_v3.Route{
 			Match:  makeDefaultRouteMatch(),
 			Action: routeAction,

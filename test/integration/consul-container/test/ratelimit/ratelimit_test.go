@@ -11,7 +11,7 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
-	"github.com/hashicorp/consul/test/integration/consul-container/test"
+	libtopology "github.com/hashicorp/consul/test/integration/consul-container/libs/topology"
 )
 
 const (
@@ -128,8 +128,20 @@ func TestServerRequestRateLimit(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.description, func(t *testing.T) {
-			logConsumer := &test.TestLogConsumer{}
-			cluster := test.CreateCluster(t, tc.cmd, logConsumer, nil, false)
+			clusterConfig := &libtopology.ClusterConfig{
+				NumServers:  1,
+				NumClients:  0,
+				Cmd:         tc.cmd,
+				LogConsumer: &libtopology.TestLogConsumer{},
+				BuildOpts: &libcluster.BuildOptions{
+					Datacenter:             "dc1",
+					InjectAutoEncryption:   true,
+					InjectGossipEncryption: true,
+				},
+				ApplyDefaultProxySettings: false,
+			}
+
+			cluster, _, _ := libtopology.NewCluster(t, clusterConfig)
 			defer terminate(t, cluster)
 
 			client, err := cluster.GetClient(nil, true)
@@ -137,7 +149,7 @@ func TestServerRequestRateLimit(t *testing.T) {
 
 			// perform actions and validate returned errors to client
 			for _, op := range tc.operations {
-				err = op.action.function(client)
+				err := op.action.function(client)
 				if len(op.expectedErrorMsg) > 0 {
 					require.Error(t, err)
 					require.Equal(t, op.expectedErrorMsg, err.Error())
@@ -165,7 +177,7 @@ func TestServerRequestRateLimit(t *testing.T) {
 					// validate logs
 					// putting this last as there are cases where logs
 					// were not present in consumer when assertion was made.
-					checkLogsForMessage(r, logConsumer.Msgs,
+					checkLogsForMessage(r, clusterConfig.LogConsumer.Msgs,
 						fmt.Sprintf("[DEBUG] agent.server.rpc-rate-limit: RPC exceeded allowed rate limit: rpc=%s", op.action.rateLimitOperation),
 						op.action.rateLimitOperation, "exceeded", op.expectExceededLog)
 
