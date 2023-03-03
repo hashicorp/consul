@@ -24,9 +24,9 @@ const (
 )
 
 // CatalogServiceExists verifies the service name exists in the Consul catalog
-func CatalogServiceExists(t *testing.T, c *api.Client, svc string) {
+func CatalogServiceExists(t *testing.T, c *api.Client, svc string, opts *api.QueryOptions) {
 	retry.Run(t, func(r *retry.R) {
-		services, _, err := c.Catalog().Service(svc, "", nil)
+		services, _, err := c.Catalog().Service(svc, "", opts)
 		if err != nil {
 			r.Fatal("error reading service data")
 		}

@@ -7,7 +7,9 @@ import (
 	"fmt"
 	"github.com/hashicorp/consul/api"
 	libassert "github.com/hashicorp/consul/test/integration/consul-container/libs/assert"
+	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
 	libservice "github.com/hashicorp/consul/test/integration/consul-container/libs/service"
+	libtopology "github.com/hashicorp/consul/test/integration/consul-container/libs/topology"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"testing"
@@ -40,9 +42,23 @@ func TestHTTPRouteFlattening(t *testing.T) {
 
 	//infrastructure set up
 	listenerPort := 6000
-	//create cluster
-	cluster := createCluster(t, listenerPort)
+
+	clusterConfig := &libtopology.ClusterConfig{
+		NumServers: 1,
+		NumClients: 1,
+		BuildOpts: &libcluster.BuildOptions{
+			Datacenter:             "dc1",
+			InjectAutoEncryption:   true,
+			InjectGossipEncryption: true,
+			AllowHTTPAnyway:        true,
+		},
+		Ports:                     []int{listenerPort},
+		ApplyDefaultProxySettings: true,
+	}
+
+	cluster, _, _ := libtopology.NewCluster(t, clusterConfig)
 	client := cluster.Agents[0].GetClient()
+
 	service1ResponseCode := 200
 	service2ResponseCode := 418
 	serviceOne := createService(t, cluster, &libservice.ServiceOpts{
@@ -82,8 +98,7 @@ func TestHTTPRouteFlattening(t *testing.T) {
 		},
 	}
 
-	_, _, err := client.ConfigEntries().Set(proxyDefaults, nil)
-	require.NoError(t, err)
+	require.NoError(t, cluster.ConfigEntryWrite(proxyDefaults))
 
 	apiGateway := &api.APIGatewayConfigEntry{
 		Kind: "api-gateway",
@@ -173,17 +188,14 @@ func TestHTTPRouteFlattening(t *testing.T) {
 		},
 	}
 
-	_, _, err = client.ConfigEntries().Set(apiGateway, nil)
-	require.NoError(t, err)
-	_, _, err = client.ConfigEntries().Set(routeOne, nil)
-	require.NoError(t, err)
-	_, _, err = client.ConfigEntries().Set(routeTwo, nil)
-	require.NoError(t, err)
+	require.NoError(t, cluster.ConfigEntryWrite(apiGateway))
+	require.NoError(t, cluster.ConfigEntryWrite(routeOne))
+	require.NoError(t, cluster.ConfigEntryWrite(routeTwo))
 
 	//create gateway service
 	gatewayService, err := libservice.NewGatewayService(context.Background(), gatewayName, "api", cluster.Agents[0], listenerPort)
 	require.NoError(t, err)
-	libassert.CatalogServiceExists(t, client, gatewayName)
+	libassert.CatalogServiceExists(t, client, gatewayName, nil)
 
 	//make sure config entries have been properly created
 	checkGatewayConfigEntry(t, client, gatewayName, namespace)
@@ -284,8 +296,7 @@ func TestHTTPRoutePathRewrite(t *testing.T) {
 		},
 	}
 
-	_, _, err := client.ConfigEntries().Set(proxyDefaults, nil)
-	require.NoError(t, err)
+	require.NoError(t, cluster.ConfigEntryWrite(proxyDefaults))
 
 	apiGateway := createGateway(gatewayName, "http", listenerPort)
 
@@ -367,17 +378,14 @@ func TestHTTPRoutePathRewrite(t *testing.T) {
 		},
 	}
 
-	_, _, err = client.ConfigEntries().Set(apiGateway, nil)
-	require.NoError(t, err)
-	_, _, err = client.ConfigEntries().Set(fooRoute, nil)
-	require.NoError(t, err)
-	_, _, err = client.ConfigEntries().Set(barRoute, nil)
-	require.NoError(t, err)
+	require.NoError(t, cluster.ConfigEntryWrite(apiGateway))
+	require.NoError(t, cluster.ConfigEntryWrite(fooRoute))
+	require.NoError(t, cluster.ConfigEntryWrite(barRoute))
 
 	//create gateway service
 	gatewayService, err := libservice.NewGatewayService(context.Background(), gatewayName, "api", cluster.Agents[0], listenerPort)
 	require.NoError(t, err)
-	libassert.CatalogServiceExists(t, client, gatewayName)
+	libassert.CatalogServiceExists(t, client, gatewayName, nil)
 
 	//make sure config entries have been properly created
 	checkGatewayConfigEntry(t, client, gatewayName, namespace)
@@ -450,8 +458,8 @@ func TestHTTPRouteParentRefChange(t *testing.T) {
 			"protocol": "http",
 		},
 	}
-	_, _, err := client.ConfigEntries().Set(proxyDefaults, nil)
-	assert.NoError(t, err)
+
+	require.NoError(t, cluster.ConfigEntryWrite(proxyDefaults))
 
 	// create gateway config entry
 	gatewayOne := &api.APIGatewayConfigEntry{
@@ -466,8 +474,7 @@ func TestHTTPRouteParentRefChange(t *testing.T) {
 			},
 		},
 	}
-	_, _, err = client.ConfigEntries().Set(gatewayOne, nil)
-	assert.NoError(t, err)
+	require.NoError(t, cluster.ConfigEntryWrite(gatewayOne))
 	require.Eventually(t, func() bool {
 		entry, _, err := client.ConfigEntries().Get(api.APIGateway, gatewayOneName, &api.QueryOptions{Namespace: namespace})
 		assert.NoError(t, err)
@@ -482,7 +489,7 @@ func TestHTTPRouteParentRefChange(t *testing.T) {
 	// create gateway service
 	gatewayOneService, err := libservice.NewGatewayService(context.Background(), gatewayOneName, "api", cluster.Agents[0], listenerOnePort)
 	require.NoError(t, err)
-	libassert.CatalogServiceExists(t, client, gatewayOneName)
+	libassert.CatalogServiceExists(t, client, gatewayOneName, nil)
 
 	// create gateway config entry
 	gatewayTwo := &api.APIGatewayConfigEntry{
@@ -497,8 +504,9 @@ func TestHTTPRouteParentRefChange(t *testing.T) {
 			},
 		},
 	}
-	_, _, err = client.ConfigEntries().Set(gatewayTwo, nil)
-	assert.NoError(t, err)
+
+	require.NoError(t, cluster.ConfigEntryWrite(gatewayTwo))
+
 	require.Eventually(t, func() bool {
 		entry, _, err := client.ConfigEntries().Get(api.APIGateway, gatewayTwoName, &api.QueryOptions{Namespace: namespace})
 		assert.NoError(t, err)
@@ -513,7 +521,7 @@ func TestHTTPRouteParentRefChange(t *testing.T) {
 	// create gateway service
 	gatewayTwoService, err := libservice.NewGatewayService(context.Background(), gatewayTwoName, "api", cluster.Agents[0], listenerTwoPort)
 	require.NoError(t, err)
-	libassert.CatalogServiceExists(t, client, gatewayTwoName)
+	libassert.CatalogServiceExists(t, client, gatewayTwoName, nil)
 
 	// create route to service, targeting first gateway
 	route := &api.HTTPRouteConfigEntry{
@@ -550,8 +558,9 @@ func TestHTTPRouteParentRefChange(t *testing.T) {
 			},
 		},
 	}
-	_, _, err = client.ConfigEntries().Set(route, nil)
-	assert.NoError(t, err)
+
+	require.NoError(t, cluster.ConfigEntryWrite(route))
+
 	require.Eventually(t, func() bool {
 		entry, _, err := client.ConfigEntries().Get(api.HTTPRoute, routeName, &api.QueryOptions{Namespace: namespace})
 		assert.NoError(t, err)
@@ -593,8 +602,8 @@ func TestHTTPRouteParentRefChange(t *testing.T) {
 			Namespace: namespace,
 		},
 	}
-	_, _, err = client.ConfigEntries().Set(route, nil)
-	assert.NoError(t, err)
+
+	require.NoError(t, cluster.ConfigEntryWrite(route))
 	require.Eventually(t, func() bool {
 		entry, _, err := client.ConfigEntries().Get(api.HTTPRoute, routeName, &api.QueryOptions{Namespace: namespace})
 		assert.NoError(t, err)

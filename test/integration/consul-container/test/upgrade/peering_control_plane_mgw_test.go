@@ -102,7 +102,7 @@ func TestPeering_Upgrade_ControlPlane_MGW(t *testing.T) {
 		require.NoError(t, clientSidecarService.Restart())
 		libassert.AssertUpstreamEndpointStatus(t, adminPort, fmt.Sprintf("static-server.default.%s.external", libtopology.DialingPeerName), "HEALTHY", 1)
 		libassert.HTTPServiceEchoes(t, "localhost", port, "")
-		libassert.AssertFortioName(t, fmt.Sprintf("http://localhost:%d", port), "static-server", "")
+		libassert.AssertFortioName(t, fmt.Sprintf("http://localhost:%d", port), libservice.StaticServerServiceName, "")
 	}
 
 	for _, tc := range tcs {
@@ -110,6 +110,5 @@ func TestPeering_Upgrade_ControlPlane_MGW(t *testing.T) {
 			func(t *testing.T) {
 				run(t, tc)
 			})
-		// time.Sleep(3 * time.Second)
 	}
 }

@@ -182,6 +182,7 @@ func TestConfigSnapshotMeshGateway(t testing.T, variant string, nsFn func(ns *st
 						Kind:           structs.ServiceResolver,
 						Name:           "bar",
 						ConnectTimeout: 10 * time.Second,
+						RequestTimeout: 10 * time.Second,
 						Subsets: map[string]structs.ServiceResolverSubset{
 							"v1": {
 								Filter: "Service.Meta.Version == 1",
@@ -687,6 +688,7 @@ func TestConfigSnapshotPeeredMeshGateway(t testing.T, variant string, nsFn func(
 				Kind:           structs.ServiceResolver,
 				Name:           "db",
 				ConnectTimeout: 33 * time.Second,
+				RequestTimeout: 33 * time.Second,
 			},
 			&structs.ServiceResolverConfigEntry{
 				Kind: structs.ServiceResolver,

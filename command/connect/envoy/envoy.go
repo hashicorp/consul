@@ -503,15 +503,15 @@ func (c *cmd) run(args []string) int {
 			return 1
 		}
 
-		ok, err := checkEnvoyVersionCompatibility(v, xdscommon.UnsupportedEnvoyVersions)
+		ec, err := checkEnvoyVersionCompatibility(v, xdscommon.UnsupportedEnvoyVersions)
 
 		if err != nil {
 			c.UI.Warn("There was an error checking the compatibility of the envoy version: " + err.Error())
-		} else if !ok {
+		} else if !ec.isCompatible {
 			c.UI.Error(fmt.Sprintf("Envoy version %s is not supported. If there is a reason you need to use "+
 				"this version of envoy use the ignore-envoy-compatibility flag. Using an unsupported version of Envoy "+
 				"is not recommended and your experience may vary. For more information on compatibility "+
-				"see https://developer.hashicorp.com/consul/docs/connect/proxies/envoy#envoy-and-consul-client-agent", v))
+				"see https://developer.hashicorp.com/consul/docs/connect/proxies/envoy#envoy-and-consul-client-agent", ec.versionIncompatible))
 			return 1
 		}
 	}
@@ -976,34 +976,73 @@ Usage: consul connect envoy [options] [-- pass-through options]
 `
 )
 
-func checkEnvoyVersionCompatibility(envoyVersion string, unsupportedList []string) (bool, error) {
-	// Now compare the versions to the list of supported versions
+type envoyCompat struct {
+	isCompatible        bool
+	versionIncompatible string
+}
+
+func checkEnvoyVersionCompatibility(envoyVersion string, unsupportedList []string) (envoyCompat, error) {
 	v, err := version.NewVersion(envoyVersion)
 	if err != nil {
-		return false, err
+		return envoyCompat{}, err
 	}
 
 	var cs strings.Builder
 
-	// Add one to the max minor version so that we accept all patches
+	// If there is a list of unsupported versions, build the constraint string,
+	// this will detect exactly unsupported versions
+	if len(unsupportedList) > 0 {
+		for i, s := range unsupportedList {
+			if i == 0 {
+				cs.WriteString(fmt.Sprintf("!= %s", s))
+			} else {
+				cs.WriteString(fmt.Sprintf(", != %s", s))
+			}
+		}
+
+		constraints, err := version.NewConstraint(cs.String())
+		if err != nil {
+			return envoyCompat{}, err
+		}
+
+		if c := constraints.Check(v); !c {
+			return envoyCompat{
+				isCompatible:        c,
+				versionIncompatible: envoyVersion,
+			}, nil
+		}
+	}
+
+	// Next build the constraint string using the bounds, make sure that we are less than but not equal to
+	// maxSupported since we will add 1. Need to add one to the max minor version so that we accept all patches
 	splitS := strings.Split(xdscommon.GetMaxEnvoyMinorVersion(), ".")
 	minor, err := strconv.Atoi(splitS[1])
 	if err != nil {
-		return false, err
+		return envoyCompat{}, err
 	}
 	minor++
 	maxSupported := fmt.Sprintf("%s.%d", splitS[0], minor)
 
-	// Build the constraint string, make sure that we are less than but not equal to maxSupported since we added 1
+	cs.Reset()
 	cs.WriteString(fmt.Sprintf(">= %s, < %s", xdscommon.GetMinEnvoyMinorVersion(), maxSupported))
-	for _, s := range unsupportedList {
-		cs.WriteString(fmt.Sprintf(", != %s", s))
-	}
-
 	constraints, err := version.NewConstraint(cs.String())
 	if err != nil {
-		return false, err
+		return envoyCompat{}, err
 	}
 
-	return constraints.Check(v), nil
+	if c := constraints.Check(v); !c {
+		return envoyCompat{
+			isCompatible:        c,
+			versionIncompatible: replacePatchVersionWithX(envoyVersion),
+		}, nil
+	}
+
+	return envoyCompat{isCompatible: true}, nil
+}
+
+func replacePatchVersionWithX(version string) string {
+	// Strip off the patch and append x to convey that the constraint is on the minor version and not the patch
+	// itself
+	a := strings.Split(version, ".")
+	return fmt.Sprintf("%s.%s.x", a[0], a[1])
 }

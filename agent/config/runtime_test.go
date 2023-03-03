@@ -5995,12 +5995,13 @@ func TestLoad_FullConfig(t *testing.T) {
 	nodeEntMeta := structs.NodeEnterpriseMetaInDefaultPartition()
 	expected := &RuntimeConfig{
 		// non-user configurable values
-		AEInterval:                 time.Minute,
-		CheckDeregisterIntervalMin: time.Minute,
-		CheckReapInterval:          30 * time.Second,
-		SegmentNameLimit:           64,
-		SyncCoordinateIntervalMin:  15 * time.Second,
-		SyncCoordinateRateTarget:   64,
+		AEInterval:                     time.Minute,
+		CheckDeregisterIntervalMin:     time.Minute,
+		CheckReapInterval:              30 * time.Second,
+		SegmentNameLimit:               64,
+		SyncCoordinateIntervalMin:      15 * time.Second,
+		SyncCoordinateRateTarget:       64,
+		LocalProxyConfigResyncInterval: 30 * time.Second,
 
 		Revision:          "JNtPSav3",
 		Version:           "R909Hblt",
