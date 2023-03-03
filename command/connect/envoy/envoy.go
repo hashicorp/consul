@@ -11,7 +11,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-version"
 	"github.com/mitchellh/cli"
@@ -22,6 +21,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/xds"
 	"github.com/hashicorp/consul/agent/xds/accesslogs"
+	"github.com/hashicorp/consul/api"
 	proxyCmd "github.com/hashicorp/consul/command/connect/proxy"
 	"github.com/hashicorp/consul/command/flags"
 	"github.com/hashicorp/consul/envoyextensions/xdscommon"
@@ -810,8 +810,7 @@ func (c *cmd) xdsAddress() (GRPC, error) {
 		port, protocol, err := c.lookupXDSPort()
 		if err != nil {
 			if strings.Contains(err.Error(), "Permission denied") {
-				// Token did not have agent:read. Log and proceed with defaults.
-				c.UI.Info(fmt.Sprintf("Could not query /v1/agent/self for xDS ports: %s", err))
+				// Token did not have agent:read. Suppress and proceed with defaults.
 			} else {
 				// If not a permission denied error, gRPC is explicitly disabled
 				// or something went fatally wrong.
@@ -822,7 +821,7 @@ func (c *cmd) xdsAddress() (GRPC, error) {
 			// This is the dev mode default and recommended production setting if
 			// enabled.
 			port = 8502
-			c.UI.Info("-grpc-addr not provided and unable to discover a gRPC address for xDS. Defaulting to localhost:8502")
+			c.UI.Warn("-grpc-addr not provided and unable to discover a gRPC address for xDS. Defaulting to localhost:8502")
 		}
 		addr = fmt.Sprintf("%vlocalhost:%v", protocol, port)
 	}
@@ -887,7 +886,7 @@ func (c *cmd) lookupXDSPort() (int, string, error) {
 
 	var resp response
 	if err := mapstructure.Decode(self, &resp); err == nil {
-		if resp.XDS.Ports.TLS < 0 && resp.XDS.Ports.Plaintext < 0 {
+		if resp.XDS.Ports.TLS <= 0 && resp.XDS.Ports.Plaintext <= 0 {
 			return 0, "", fmt.Errorf("agent has grpc disabled")
 		}
 		if resp.XDS.Ports.TLS > 0 {
