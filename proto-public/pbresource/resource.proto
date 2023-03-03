@@ -4,7 +4,6 @@ package hashicorp.consul.resource;
 
 import "annotations/ratelimit/ratelimit.proto";
 import "google/protobuf/any.proto";
-import "google/protobuf/empty.proto";
 
 message Type {
   string group = 1;
@@ -39,7 +38,7 @@ message Resource {
 
 message WatchEvent {
   enum Operation {
-    OPERATION_UNSET = 0;
+    OPERATION_UNSPECIFIED = 0;
     OPERATION_UPSERT = 1;
     OPERATION_DELETE = 2;
   }
@@ -57,7 +56,7 @@ service ResourceService {
     option (hashicorp.consul.internal.ratelimit.spec) = {operation_type: OPERATION_TYPE_WRITE};
   }
 
-  rpc WriteStatus(WriteStatusRequest) returns (WriteResponse) {
+  rpc WriteStatus(WriteStatusRequest) returns (WriteStatusResponse) {
     option (hashicorp.consul.internal.ratelimit.spec) = {operation_type: OPERATION_TYPE_WRITE};
   }
 
@@ -65,7 +64,7 @@ service ResourceService {
     option (hashicorp.consul.internal.ratelimit.spec) = {operation_type: OPERATION_TYPE_READ};
   }
 
-  rpc Delete(DeleteRequest) returns (google.protobuf.Empty) {
+  rpc Delete(DeleteRequest) returns (DeleteResponse) {
     option (hashicorp.consul.internal.ratelimit.spec) = {operation_type: OPERATION_TYPE_WRITE};
   }
 
@@ -75,7 +74,7 @@ service ResourceService {
 }
 
 enum Condition {
-  CONDITION_UNSET = 0;
+  CONDITION_UNSPECIFIED = 0;
   CONDITION_ACCEPTED = 1;
   CONDITION_INVALID = 2;
   CONDITION_PERSISTENT_FAILURE = 3;
@@ -107,6 +106,10 @@ message WriteResponse {
   Resource resource = 1;
 }
 
+message WriteStatusResponse {
+  Resource resource = 1;
+}
+
 message WriteStatusRequest {
   ID id = 1;
   string version = 2;
@@ -121,13 +124,15 @@ message DeleteRequest {
   string version = 2;
 }
 
+message DeleteResponse {}
+
 message WatchRequest {
   ID id = 1;
 }
 
 message WatchResponse {
   enum Operation {
-    OPERATION_UNSET = 0;
+    OPERATION_UNSPECIFIED = 0;
     OPERATION_UPSERT = 1;
     OPERATION_DELETE = 2;
   }

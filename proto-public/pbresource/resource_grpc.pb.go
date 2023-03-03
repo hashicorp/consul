@@ -11,7 +11,6 @@ import (
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
-	emptypb "google.golang.org/protobuf/types/known/emptypb"
 )
 
 // This is a compile-time assertion to ensure that this generated file
@@ -25,9 +24,9 @@ const _ = grpc.SupportPackageIsVersion7
 type ResourceServiceClient interface {
 	Read(ctx context.Context, in *ReadRequest, opts ...grpc.CallOption) (*ReadResponse, error)
 	Write(ctx context.Context, in *WriteRequest, opts ...grpc.CallOption) (*WriteResponse, error)
-	WriteStatus(ctx context.Context, in *WriteStatusRequest, opts ...grpc.CallOption) (*WriteResponse, error)
+	WriteStatus(ctx context.Context, in *WriteStatusRequest, opts ...grpc.CallOption) (*WriteStatusResponse, error)
 	List(ctx context.Context, in *ListRequest, opts ...grpc.CallOption) (*ListResponse, error)
-	Delete(ctx context.Context, in *DeleteRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	Delete(ctx context.Context, in *DeleteRequest, opts ...grpc.CallOption) (*DeleteResponse, error)
 	Watch(ctx context.Context, in *WatchRequest, opts ...grpc.CallOption) (ResourceService_WatchClient, error)
 }
 
@@ -57,8 +56,8 @@ func (c *resourceServiceClient) Write(ctx context.Context, in *WriteRequest, opt
 	return out, nil
 }
 
-func (c *resourceServiceClient) WriteStatus(ctx context.Context, in *WriteStatusRequest, opts ...grpc.CallOption) (*WriteResponse, error) {
-	out := new(WriteResponse)
+func (c *resourceServiceClient) WriteStatus(ctx context.Context, in *WriteStatusRequest, opts ...grpc.CallOption) (*WriteStatusResponse, error) {
+	out := new(WriteStatusResponse)
 	err := c.cc.Invoke(ctx, "/hashicorp.consul.resource.ResourceService/WriteStatus", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -75,8 +74,8 @@ func (c *resourceServiceClient) List(ctx context.Context, in *ListRequest, opts 
 	return out, nil
 }
 
-func (c *resourceServiceClient) Delete(ctx context.Context, in *DeleteRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
-	out := new(emptypb.Empty)
+func (c *resourceServiceClient) Delete(ctx context.Context, in *DeleteRequest, opts ...grpc.CallOption) (*DeleteResponse, error) {
+	out := new(DeleteResponse)
 	err := c.cc.Invoke(ctx, "/hashicorp.consul.resource.ResourceService/Delete", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -122,9 +121,9 @@ func (x *resourceServiceWatchClient) Recv() (*WatchResponse, error) {
 type ResourceServiceServer interface {
 	Read(context.Context, *ReadRequest) (*ReadResponse, error)
 	Write(context.Context, *WriteRequest) (*WriteResponse, error)
-	WriteStatus(context.Context, *WriteStatusRequest) (*WriteResponse, error)
+	WriteStatus(context.Context, *WriteStatusRequest) (*WriteStatusResponse, error)
 	List(context.Context, *ListRequest) (*ListResponse, error)
-	Delete(context.Context, *DeleteRequest) (*emptypb.Empty, error)
+	Delete(context.Context, *DeleteRequest) (*DeleteResponse, error)
 	Watch(*WatchRequest, ResourceService_WatchServer) error
 }
 
@@ -138,13 +137,13 @@ func (UnimplementedResourceServiceServer) Read(context.Context, *ReadRequest) (*
 func (UnimplementedResourceServiceServer) Write(context.Context, *WriteRequest) (*WriteResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Write not implemented")
 }
-func (UnimplementedResourceServiceServer) WriteStatus(context.Context, *WriteStatusRequest) (*WriteResponse, error) {
+func (UnimplementedResourceServiceServer) WriteStatus(context.Context, *WriteStatusRequest) (*WriteStatusResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method WriteStatus not implemented")
 }
 func (UnimplementedResourceServiceServer) List(context.Context, *ListRequest) (*ListResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method List not implemented")
 }
-func (UnimplementedResourceServiceServer) Delete(context.Context, *DeleteRequest) (*emptypb.Empty, error) {
+func (UnimplementedResourceServiceServer) Delete(context.Context, *DeleteRequest) (*DeleteResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Delete not implemented")
 }
 func (UnimplementedResourceServiceServer) Watch(*WatchRequest, ResourceService_WatchServer) error {

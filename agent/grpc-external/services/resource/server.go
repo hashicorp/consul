@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"google.golang.org/grpc"
-	"google.golang.org/protobuf/types/known/emptypb"
 
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
@@ -34,7 +33,7 @@ func (s *Server) Write(ctx context.Context, req *pbresource.WriteRequest) (*pbre
 	return nil, nil
 }
 
-func (s *Server) WriteStatus(ctx context.Context, req *pbresource.WriteStatusRequest) (*pbresource.WriteResponse, error) {
+func (s *Server) WriteStatus(ctx context.Context, req *pbresource.WriteStatusRequest) (*pbresource.WriteStatusResponse, error) {
 	return nil, nil
 }
 
@@ -42,7 +41,7 @@ func (s *Server) List(ctx context.Context, req *pbresource.ListRequest) (*pbreso
 	return nil, nil
 }
 
-func (s *Server) Delete(ctx context.Context, req *pbresource.DeleteRequest) (*emptypb.Empty, error) {
+func (s *Server) Delete(ctx context.Context, req *pbresource.DeleteRequest) (*pbresource.DeleteResponse, error) {
 	return nil, nil
 }
 
