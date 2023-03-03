@@ -122,21 +122,6 @@ func TestAgent_local_proxycfg(t *testing.T) {
 		}
 	}
 
-	/*
-		// Register a global proxy and service config
-		testApplyConfigEntries(t, a,
-			&structs.ProxyConfigEntry{
-				Config: map[string]interface{}{
-					"foo": 1,
-				},
-			},
-			&structs.ServiceConfigEntry{
-				Kind:     structs.ServiceDefaults,
-				Name:     "redis",
-				Protocol: "tcp",
-			},
-		)
-	*/
 
 }
 
