@@ -62,8 +62,8 @@ Feature: dc / services / intentions / create: Intention Create per Service
         Action: deny
     ---
     Then the url should be /datacenter/services/db/intentions
-    And "[data-notification]" has the "notification-update" class
-    And "[data-notification]" has the "success" class
+    And "[data-notification]" has the "hds-toast" class
+    And "[data-notification]" has the "hds-alert--color-success" class
   @notNamespaceable
   Scenario: with namespaces disabled
     Given 1 datacenter model with the value "datacenter"
@@ -104,5 +104,5 @@ Feature: dc / services / intentions / create: Intention Create per Service
         Action: deny
     ---
     Then the url should be /datacenter/services/db/intentions
-    And "[data-notification]" has the "notification-update" class
-    And "[data-notification]" has the "success" class
+    And "[data-notification]" has the "hds-toast" class
+    And "[data-notification]" has the "hds-alert--color-success" class
