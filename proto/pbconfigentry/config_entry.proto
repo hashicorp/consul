@@ -121,6 +121,8 @@ message ServiceResolver {
   google.protobuf.Duration ConnectTimeout = 5;
   LoadBalancer LoadBalancer = 6;
   map<string, string> Meta = 7;
+  // mog: func-to=structs.DurationFromProto func-from=structs.DurationToProto
+  google.protobuf.Duration RequestTimeout = 8;
 }
 
 // mog annotation:

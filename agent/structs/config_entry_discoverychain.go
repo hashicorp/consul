@@ -857,6 +857,11 @@ type ServiceResolverConfigEntry struct {
 	// to this service.
 	ConnectTimeout time.Duration `json:",omitempty" alias:"connect_timeout"`
 
+	// RequestTimeout is the timeout for an HTTP request to complete before
+	// the connection is automatically terminated. If unspecified, defaults
+	// to 15 seconds.
+	RequestTimeout time.Duration `json:",omitempty" alias:"request_timeout"`
+
 	// LoadBalancer determines the load balancing policy and configuration for services
 	// issuing requests to this upstream service.
 	LoadBalancer *LoadBalancer `json:",omitempty" alias:"load_balancer"`
@@ -870,13 +875,18 @@ func (e *ServiceResolverConfigEntry) MarshalJSON() ([]byte, error) {
 	type Alias ServiceResolverConfigEntry
 	exported := &struct {
 		ConnectTimeout string `json:",omitempty"`
+		RequestTimeout string `json:",omitempty"`
 		*Alias
 	}{
 		ConnectTimeout: e.ConnectTimeout.String(),
+		RequestTimeout: e.RequestTimeout.String(),
 		Alias:          (*Alias)(e),
 	}
 	if e.ConnectTimeout == 0 {
 		exported.ConnectTimeout = ""
+	}
+	if e.RequestTimeout == 0 {
+		exported.RequestTimeout = ""
 	}
 
 	return json.Marshal(exported)
@@ -886,6 +896,7 @@ func (e *ServiceResolverConfigEntry) UnmarshalJSON(data []byte) error {
 	type Alias ServiceResolverConfigEntry
 	aux := &struct {
 		ConnectTimeout string
+		RequestTimeout string
 		*Alias
 	}{
 		Alias: (*Alias)(e),
@@ -896,6 +907,11 @@ func (e *ServiceResolverConfigEntry) UnmarshalJSON(data []byte) error {
 	var err error
 	if aux.ConnectTimeout != "" {
 		if e.ConnectTimeout, err = time.ParseDuration(aux.ConnectTimeout); err != nil {
+			return err
+		}
+	}
+	if aux.RequestTimeout != "" {
+		if e.RequestTimeout, err = time.ParseDuration(aux.RequestTimeout); err != nil {
 			return err
 		}
 	}
@@ -919,6 +935,7 @@ func (e *ServiceResolverConfigEntry) IsDefault() bool {
 		e.Redirect == nil &&
 		len(e.Failover) == 0 &&
 		e.ConnectTimeout == 0 &&
+		e.RequestTimeout == 0 &&
 		e.LoadBalancer == nil
 }
 
@@ -1115,6 +1132,10 @@ func (e *ServiceResolverConfigEntry) Validate() error {
 
 	if e.ConnectTimeout < 0 {
 		return fmt.Errorf("Bad ConnectTimeout '%s', must be >= 0", e.ConnectTimeout)
+	}
+
+	if e.RequestTimeout < 0 {
+		return fmt.Errorf("Bad RequestTimeout '%s', must be >= 0", e.RequestTimeout)
 	}
 
 	if e.LoadBalancer != nil {
