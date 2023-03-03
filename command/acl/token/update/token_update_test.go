@@ -52,19 +52,7 @@ func TestTokenUpdateCommand(t *testing.T) {
 
 	// create a token
 	token, _, err := client.ACL().TokenCreate(
-		&api.ACLToken{Description: "test",
-			NodeIdentities: []*api.ACLNodeIdentity{
-				{
-					NodeName:   "first-node",
-					Datacenter: "middleearth-southwest",
-				},
-			},
-			ServiceIdentities: []*api.ACLServiceIdentity{
-				{
-					ServiceName: "fake-service",
-				},
-			},
-		},
+		&api.ACLToken{Description: "test"},
 		&api.WriteOptions{Token: "root"},
 	)
 	require.NoError(t, err)
@@ -149,8 +137,6 @@ func TestTokenUpdateCommand(t *testing.T) {
 
 	// update with service-identity
 	t.Run("service-identity", func(t *testing.T) {
-		require.Len(t, token.ServiceIdentities, 1)
-
 		token := run(t, []string{
 			"-http-addr=" + a.HTTPAddr(),
 			"-accessor-id=" + token.AccessorID,
@@ -210,13 +196,8 @@ func TestTokenUpdateCommandWithAppend(t *testing.T) {
 			Policies: []*api.ACLTokenPolicyLink{{Name: policy.Name}},
 			NodeIdentities: []*api.ACLNodeIdentity{
 				{
-					NodeName:   "first-node",
-					Datacenter: "middleearth-southwest",
-				},
-			},
-			ServiceIdentities: []*api.ACLServiceIdentity{
-				{
-					ServiceName: "fake-service",
+					NodeName:   "test-node",
+					Datacenter: "eastsomewhere",
 				},
 			},
 		},
@@ -292,22 +273,6 @@ func TestTokenUpdateCommandWithAppend(t *testing.T) {
 		require.Len(t, token.NodeIdentities, 2)
 		require.Equal(t, "foo", token.NodeIdentities[1].NodeName)
 		require.Equal(t, "bar", token.NodeIdentities[1].Datacenter)
-	})
-
-	// update with append-service-identity
-	t.Run("append-service-identity", func(t *testing.T) {
-		require.Len(t, token.ServiceIdentities, 1)
-
-		token := run(t, []string{
-			"-http-addr=" + a.HTTPAddr(),
-			"-accessor-id=" + token.AccessorID,
-			"-token=root",
-			"-append-service-identity=service:datapalace",
-			"-description=test token",
-		})
-
-		require.Len(t, token.ServiceIdentities, 2)
-		require.Equal(t, "service", token.ServiceIdentities[1].ServiceName)
 	})
 }
 
