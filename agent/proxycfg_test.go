@@ -122,7 +122,6 @@ func TestAgent_local_proxycfg(t *testing.T) {
 		}
 	}
 
-
 }
 
 func testWriteToken(t *testing.T, a *TestAgent, tok *api.ACLToken) string {
