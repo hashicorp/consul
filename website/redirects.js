@@ -13,7 +13,7 @@ module.exports = [
   },
   {
     source: '/consul/docs/connect/cluster-peering/k8s',
-    destination: '/consul/docs/k8s/connect/cluster-peering/k8s-tech-specs',
+    destination: '/consul/docs/k8s/connect/cluster-peering/tech-specs',
     permanent: true,
   },
 ]
