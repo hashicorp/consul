@@ -221,6 +221,7 @@ func (r *DiscoveryResolver) UnmarshalJSON(data []byte) error {
 // compiled form of ServiceResolverFailover
 type DiscoveryFailover struct {
 	Targets []string
+	Policy  ServiceResolverFailoverPolicy `json:",omitempty"`
 }
 
 // DiscoveryTarget represents all of the inputs necessary to use a resolver

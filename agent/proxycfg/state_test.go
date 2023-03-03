@@ -2094,6 +2094,28 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 					},
 				},
 				{
+					requiredWatches: map[string]verifyWatchRequest{
+						"service-resolver:" + db.String(): genVerifyResolverWatch("db", "dc1", structs.ServiceResolver),
+					},
+					events: []UpdateEvent{
+						{
+							CorrelationID: "service-resolver:" + db.String(),
+							Result: &structs.ConfigEntryResponse{
+								Entry: nil,
+							},
+							Err: nil,
+						},
+					},
+					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
+						require.True(t, snap.Valid(), "gateway with service list is valid")
+						// Finally ensure we cleaned up the resolver
+						require.Equal(t, []structs.ServiceName{db}, snap.TerminatingGateway.ValidServices())
+
+						require.False(t, snap.TerminatingGateway.ServiceResolversSet[db])
+						require.Nil(t, snap.TerminatingGateway.ServiceResolvers[db])
+					},
+				},
+				{
 					events: []UpdateEvent{
 						{
 							CorrelationID: gatewayServicesWatchID,

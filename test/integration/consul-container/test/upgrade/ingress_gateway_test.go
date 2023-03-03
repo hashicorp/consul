@@ -49,10 +49,15 @@ func TestIngressGateway_UpgradeToTarget_fromLatest(t *testing.T) {
 	run := func(t *testing.T, oldVersion, targetVersion string) {
 		// setup
 		// TODO? we don't need a peering cluster, so maybe this is overkill
-		cluster, _, client := topology.NewPeeringCluster(t, 1, 2, &libcluster.BuildOptions{
-			Datacenter:    "dc1",
-			ConsulVersion: oldVersion,
-			// TODO? InjectAutoEncryption: true,
+		cluster, _, client := topology.NewCluster(t, &topology.ClusterConfig{
+			NumServers: 1,
+			NumClients: 2,
+			BuildOpts: &libcluster.BuildOptions{
+				Datacenter:    "dc1",
+				ConsulVersion: oldVersion,
+				// TODO? InjectAutoEncryption: true,
+			},
+			ApplyDefaultProxySettings: true,
 		})
 
 		// upsert config entry making http default protocol for global
@@ -170,7 +175,7 @@ func TestIngressGateway_UpgradeToTarget_fromLatest(t *testing.T) {
 			},
 		)
 		require.NoError(t, err)
-		libassert.CatalogServiceExists(t, client, nameS1)
+		libassert.CatalogServiceExists(t, client, nameS1, nil)
 
 		// create s2
 		_, _, err = libservice.CreateAndRegisterStaticServerAndSidecar(
@@ -183,7 +188,7 @@ func TestIngressGateway_UpgradeToTarget_fromLatest(t *testing.T) {
 			},
 		)
 		require.NoError(t, err)
-		libassert.CatalogServiceExists(t, client, nameS2)
+		libassert.CatalogServiceExists(t, client, nameS2, nil)
 
 		// checks
 		// TODO: other checks from verify.bats

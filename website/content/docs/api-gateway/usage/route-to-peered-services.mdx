@@ -12,8 +12,8 @@ This topic describes how to configure Consul API Gateway to route traffic to ser
 1. Consul 1.14 or later
 1. Verify that the [requirements](/consul/docs/api-gateway/tech-specs) have been met.
 1. Verify that the Consul API Gateway CRDs and controller have been installed and applied. Refer to [Installation](/consul/docs/api-gateway/install) for details.
-1. A peering connection must already be established between Consul clusters. Refer to [Cluster Peering on Kubernetes](/consul/docs/connect/cluster-peering/k8s) for instructions.
-1. The Consul service that you want to route traffic to must be exported to the cluster containing your `Gateway`. Refer to [Cluster Peering on Kubernetes](/consul/docs/connect/cluster-peering/k8s) for instructions.
+1. A peering connection must already be established between Consul clusters. Refer to [Cluster Peering on Kubernetes](/consul/docs/k8s/connect/cluster-peering/tech-specs) for instructions.
+1. The Consul service that you want to route traffic to must be exported to the cluster containing your `Gateway`. Refer to [Cluster Peering on Kubernetes](/consul/docs/k8s/connect/cluster-peering/tech-specs) for instructions.
 1. A `ServiceResolver` for the Consul service you want to route traffic to must be created in the cluster that contains your `Gateway`. Refer to [Service Resolver Configuration Entry](/consul/docs/connect/config-entries/service-resolver) for instructions.
 
 ## Configuration

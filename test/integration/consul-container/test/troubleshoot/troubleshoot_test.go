@@ -18,9 +18,14 @@ import (
 
 func TestTroubleshootProxy(t *testing.T) {
 	t.Parallel()
-	cluster, _, _ := topology.NewPeeringCluster(t, 1, 1, &libcluster.BuildOptions{
-		Datacenter:           "dc1",
-		InjectAutoEncryption: true,
+	cluster, _, _ := topology.NewCluster(t, &topology.ClusterConfig{
+		NumServers: 1,
+		NumClients: 1,
+		BuildOpts: &libcluster.BuildOptions{
+			Datacenter:           "dc1",
+			InjectAutoEncryption: true,
+		},
+		ApplyDefaultProxySettings: true,
 	})
 
 	serverService, clientService := topology.CreateServices(t, cluster)

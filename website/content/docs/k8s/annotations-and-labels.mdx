@@ -75,7 +75,7 @@ The following Kubernetes resource annotations could be used on a pod to control 
 
     - Unlabeled:
        Use the unlabeled annotation format to specify a service name, Consul Enterprise namespaces and partitions, and
-       datacenters. To use [cluster peering](/consul/docs/connect/cluster-peering/k8s) with upstreams, use the following
+       datacenters. To use [cluster peering](/consul/docs/k8s/connect/cluster-peering/tech-specs) with upstreams, use the following
        labeled format.
       - Service name: Place the service name at the beginning of the annotation to specify the upstream service. You can
       also append the datacenter where the service is deployed (optional).
@@ -98,7 +98,7 @@ The following Kubernetes resource annotations could be used on a pod to control 
       - Admin partitions (requires Consul Enterprise 1.11+): Upstream services may be running in a different
         partition. You must specify the namespace when specifying a partition. Place the partition name after the namespace. If you specify the name of the datacenter (optional), it must be the local datacenter. Communicating across partitions using this method is only supported within a
         datacenter. For cross partition communication across datacenters, refer to [cluster
-        peering](/consul/docs/connect/cluster-peering/k8s).
+        peering](/consul/docs/k8s/connect/cluster-peering/tech-specs).
         ```yaml
         annotations:
           "consul.hashicorp.com/connect-service-upstreams":"[service-name].[service-namespace].[service-partition]:[port]:[optional datacenter]"

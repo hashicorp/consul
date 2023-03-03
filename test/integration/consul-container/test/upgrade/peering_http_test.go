@@ -67,7 +67,7 @@ func TestPeering_UpgradeToTarget_fromLatest(t *testing.T) {
 				if err != nil {
 					return nil, nil, nil, err
 				}
-				libassert.CatalogServiceExists(t, c.Clients()[0].GetClient(), libservice.StaticServer2ServiceName)
+				libassert.CatalogServiceExists(t, c.Clients()[0].GetClient(), libservice.StaticServer2ServiceName, nil)
 
 				err = c.ConfigEntryWrite(&api.ProxyConfigEntry{
 					Kind: api.ProxyDefaults,
@@ -201,7 +201,7 @@ func TestPeering_UpgradeToTarget_fromLatest(t *testing.T) {
 					GRPCPort: 8078,
 				}
 				_, serverConnectProxy, err := libservice.CreateAndRegisterStaticServerAndSidecar(dialing.Clients()[0], serviceOpts)
-				libassert.CatalogServiceExists(t, dialing.Clients()[0].GetClient(), libservice.StaticServerServiceName)
+				libassert.CatalogServiceExists(t, dialing.Clients()[0].GetClient(), libservice.StaticServerServiceName, nil)
 				if err != nil {
 					return nil, nil, nil, err
 				}
@@ -246,7 +246,7 @@ func TestPeering_UpgradeToTarget_fromLatest(t *testing.T) {
 				}
 
 				clientConnectProxy, err := createAndRegisterStaticClientSidecarWith2Upstreams(dialing,
-					[]string{"static-server", "peer-static-server"},
+					[]string{libservice.StaticServerServiceName, "peer-static-server"},
 				)
 				if err != nil {
 					return nil, nil, nil, fmt.Errorf("error creating client connect proxy in cluster %s", dialing.NetworkName)
@@ -269,7 +269,7 @@ func TestPeering_UpgradeToTarget_fromLatest(t *testing.T) {
 				// make a resolver for service static-server
 				resolverConfigEntry = &api.ServiceResolverConfigEntry{
 					Kind: api.ServiceResolver,
-					Name: "static-server",
+					Name: libservice.StaticServerServiceName,
 					Failover: map[string]api.ServiceResolverFailover{
 						"*": {
 							Targets: []api.ServiceResolverFailoverTarget{
@@ -293,7 +293,7 @@ func TestPeering_UpgradeToTarget_fromLatest(t *testing.T) {
 					GRPCPort: 8078,
 				}
 				_, serverConnectProxy, err := libservice.CreateAndRegisterStaticServerAndSidecar(dialing.Clients()[0], serviceOpts)
-				libassert.CatalogServiceExists(t, dialing.Clients()[0].GetClient(), libservice.StaticServerServiceName)
+				libassert.CatalogServiceExists(t, dialing.Clients()[0].GetClient(), libservice.StaticServerServiceName, nil)
 				if err != nil {
 					return nil, nil, nil, err
 				}
@@ -303,12 +303,12 @@ func TestPeering_UpgradeToTarget_fromLatest(t *testing.T) {
 					// assert traffic can fail-over to static-server in peered cluster and restor to local static-server
 					libassert.AssertFortioName(t, fmt.Sprintf("http://localhost:%d", appPorts[0]), "static-server-dialing", "")
 					require.NoError(t, serverConnectProxy.Stop())
-					libassert.AssertFortioName(t, fmt.Sprintf("http://localhost:%d", appPorts[0]), "static-server", "")
+					libassert.AssertFortioName(t, fmt.Sprintf("http://localhost:%d", appPorts[0]), libservice.StaticServerServiceName, "")
 					require.NoError(t, serverConnectProxy.Start())
 					libassert.AssertFortioName(t, fmt.Sprintf("http://localhost:%d", appPorts[0]), "static-server-dialing", "")
 
 					// assert peer-static-server resolves to static-server in peered cluster
-					libassert.AssertFortioName(t, fmt.Sprintf("http://localhost:%d", appPorts[1]), "static-server", "")
+					libassert.AssertFortioName(t, fmt.Sprintf("http://localhost:%d", appPorts[1]), libservice.StaticServerServiceName, "")
 				}
 				return serverConnectProxy, clientConnectProxy, assertionFn, nil
 			},
@@ -376,7 +376,7 @@ func TestPeering_UpgradeToTarget_fromLatest(t *testing.T) {
 		_, adminPort := clientSidecarService.GetAdminAddr()
 		libassert.AssertUpstreamEndpointStatus(t, adminPort, fmt.Sprintf("static-server.default.%s.external", libtopology.DialingPeerName), "HEALTHY", 1)
 		libassert.HTTPServiceEchoes(t, "localhost", port, "")
-		libassert.AssertFortioName(t, fmt.Sprintf("http://localhost:%d", port), "static-server", "")
+		libassert.AssertFortioName(t, fmt.Sprintf("http://localhost:%d", port), libservice.StaticServerServiceName, "")
 
 		// TODO: restart static-server-2's sidecar
 		tc.extraAssertion(appPort)
