@@ -234,6 +234,10 @@
     "LeaveDrainTime": "0s",
     "LeaveOnTerm": false,
     "LocalProxyConfigResyncInterval": "0s",
+    "Locality": {
+        "Region": "us-west-1",
+        "Zone": "us-west-1a"
+    },
     "Logging": {
         "EnableSyslog": false,
         "LogFilePath": "",

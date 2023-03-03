@@ -3021,3 +3021,12 @@ func TimeToProto(s time.Time) *timestamppb.Timestamp {
 func IsZeroProtoTime(t *timestamppb.Timestamp) bool {
 	return t.Seconds == 0 && t.Nanos == 0
 }
+
+// Locality identifies where a given entity is running.
+type Locality struct {
+	// Region is region the zone belongs to.
+	Region string `json:",omitempty"`
+
+	// Zone is the zone the entity is running in.
+	Zone string `json:",omitempty"`
+}
