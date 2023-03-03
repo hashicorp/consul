@@ -57,13 +57,19 @@ func Sync(ctx context.Context, cfg SyncConfig) {
 	cfg.State.Notify(stateCh)
 	defer cfg.State.StopNotify(stateCh)
 
+	var resyncCh <-chan time.Time
 	for {
 		sync(cfg)
+
+		if resyncCh == nil && cfg.ResyncFrequency > 0 {
+			resyncCh = time.After(cfg.ResyncFrequency)
+		}
 
 		select {
 		case <-stateCh:
 			// Wait for a state change.
 		case <-time.After(cfg.ResyncFrequency):
+			resyncCh = nil
 		case <-ctx.Done():
 			return
 		}
