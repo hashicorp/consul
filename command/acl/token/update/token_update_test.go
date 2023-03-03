@@ -109,6 +109,22 @@ func TestTokenUpdateCommand(t *testing.T) {
 		require.ElementsMatch(t, expected, token.NodeIdentities)
 	})
 
+	// update with append-node-identity
+	t.Run("append-node-identity", func(t *testing.T) {
+
+		token := run(t, []string{
+			"-http-addr=" + a.HTTPAddr(),
+			"-accessor-id=" + token.AccessorID,
+			"-token=root",
+			"-append-node-identity=third:node",
+			"-description=test token",
+		})
+
+		require.Len(t, token.NodeIdentities, 3)
+		require.Equal(t, "third", token.NodeIdentities[2].NodeName)
+		require.Equal(t, "node", token.NodeIdentities[2].Datacenter)
+	})
+
 	// update with policy by name
 	t.Run("policy-name", func(t *testing.T) {
 		token := run(t, []string{
@@ -147,6 +163,19 @@ func TestTokenUpdateCommand(t *testing.T) {
 
 		require.Len(t, token.ServiceIdentities, 1)
 		require.Equal(t, "service", token.ServiceIdentities[0].ServiceName)
+	})
+
+	// update with append-service-identity
+	t.Run("append-service-identity", func(t *testing.T) {
+		token := run(t, []string{
+			"-http-addr=" + a.HTTPAddr(),
+			"-accessor-id=" + token.AccessorID,
+			"-token=root",
+			"-append-service-identity=web",
+			"-description=test token",
+		})
+		require.Len(t, token.ServiceIdentities, 2)
+		require.Equal(t, "web", token.ServiceIdentities[1].ServiceName)
 	})
 
 	// update with no description shouldn't delete the current description
@@ -192,15 +221,7 @@ func TestTokenUpdateCommandWithAppend(t *testing.T) {
 
 	// create a token
 	token, _, err := client.ACL().TokenCreate(
-		&api.ACLToken{Description: "test",
-			Policies: []*api.ACLTokenPolicyLink{{Name: policy.Name}},
-			NodeIdentities: []*api.ACLNodeIdentity{
-				{
-					NodeName:   "test-node",
-					Datacenter: "eastsomewhere",
-				},
-			},
-		},
+		&api.ACLToken{Description: "test", Policies: []*api.ACLTokenPolicyLink{{Name: policy.Name}}},
 		&api.WriteOptions{Token: "root"},
 	)
 	require.NoError(t, err)
@@ -256,23 +277,6 @@ func TestTokenUpdateCommandWithAppend(t *testing.T) {
 		})
 
 		require.Len(t, token.Policies, 3)
-	})
-
-	// update with append-node-identity
-	t.Run("append-node-identity", func(t *testing.T) {
-		require.Len(t, token.NodeIdentities, 1)
-
-		token := run(t, []string{
-			"-http-addr=" + a.HTTPAddr(),
-			"-accessor-id=" + token.AccessorID,
-			"-token=root",
-			"-append-node-identity=foo:bar",
-			"-description=test token",
-		})
-
-		require.Len(t, token.NodeIdentities, 2)
-		require.Equal(t, "foo", token.NodeIdentities[1].NodeName)
-		require.Equal(t, "bar", token.NodeIdentities[1].Datacenter)
 	})
 }
 
