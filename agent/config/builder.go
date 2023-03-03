@@ -1091,6 +1091,7 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		Watches:                           c.Watches,
 		XDSUpdateRateLimit:                limitVal(c.XDS.UpdateMaxPerSecond),
 		AutoReloadConfigCoalesceInterval:  1 * time.Second,
+		LocalProxyConfigResyncInterval:    30 * time.Second,
 	}
 
 	rt.TLS, err = b.buildTLSConfig(rt, c.TLS)
