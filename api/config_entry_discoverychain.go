@@ -167,6 +167,7 @@ type ServiceResolverConfigEntry struct {
 	Redirect       *ServiceResolverRedirect           `json:",omitempty"`
 	Failover       map[string]ServiceResolverFailover `json:",omitempty"`
 	ConnectTimeout time.Duration                      `json:",omitempty" alias:"connect_timeout"`
+	RequestTimeout time.Duration                      `json:",omitempty" alias:"request_timeout"`
 
 	// LoadBalancer determines the load balancing policy and configuration for services
 	// issuing requests to this upstream service.

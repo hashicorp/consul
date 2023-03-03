@@ -116,6 +116,7 @@ func (s *DiscoveryGraphNode) MapKey() string {
 type DiscoveryResolver struct {
 	Default        bool               `json:",omitempty"`
 	ConnectTimeout time.Duration      `json:",omitempty"`
+	RequestTimeout time.Duration      `json:",omitempty"`
 	Target         string             `json:",omitempty"`
 	Failover       *DiscoveryFailover `json:",omitempty"`
 }
