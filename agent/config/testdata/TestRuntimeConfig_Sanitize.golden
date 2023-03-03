@@ -233,6 +233,7 @@
     "KVMaxValueSize": 1234567800000000,
     "LeaveDrainTime": "0s",
     "LeaveOnTerm": false,
+    "LocalProxyConfigResyncInterval": "0s",
     "Logging": {
         "EnableSyslog": false,
         "LogFilePath": "",
