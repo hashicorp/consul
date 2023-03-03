@@ -102,7 +102,7 @@
             {{t 'common.consul.service'}}
           </Option>
           <Optgroup @label={{t 'common.consul.gateway'}}>
-            {{#each (array 'ingress-gateway' 'terminating-gateway' 'mesh-gateway') as |kind|}}
+            {{#each (array 'api-gateway' 'ingress-gateway' 'terminating-gateway' 'mesh-gateway') as |kind|}}
               <Option @value={{kind}} @selected={{includes kind @filter.kind.value}}>
                 {{t (concat 'common.consul.' kind)}}
               </Option>
