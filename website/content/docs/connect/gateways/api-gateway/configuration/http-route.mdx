@@ -630,7 +630,8 @@ Specifies the Enterprise [admin partition](/consul/docs/enterprise/admin-partiti
 
 ### `Rules[].Services[].Weight`
 
-Specifies the proportion of requests forwarded to the specified service. The
+Specifies the proportion of requests forwarded to the specified service. If no weight is specified, or if the specified
+weight is set to less than or equal to `0`, the weight is normalized to `1`. The
 proportion is determined by dividing the value of the weight by the sum of all
 weights in the service list. For non-zero values, there may be some deviation
 from the exact proportion depending on the precision an implementation
