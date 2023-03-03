@@ -26,25 +26,31 @@ func (s *Server) Register(grpcServer *grpc.Server) {
 }
 
 func (s *Server) Read(ctx context.Context, req *pbresource.ReadRequest) (*pbresource.ReadResponse, error) {
-	return nil, nil
+	// TODO
+	return &pbresource.ReadResponse{}, nil
 }
 
 func (s *Server) Write(ctx context.Context, req *pbresource.WriteRequest) (*pbresource.WriteResponse, error) {
-	return nil, nil
+	// TODO
+	return &pbresource.WriteResponse{}, nil
 }
 
 func (s *Server) WriteStatus(ctx context.Context, req *pbresource.WriteStatusRequest) (*pbresource.WriteStatusResponse, error) {
-	return nil, nil
+	// TODO
+	return &pbresource.WriteStatusResponse{}, nil
 }
 
 func (s *Server) List(ctx context.Context, req *pbresource.ListRequest) (*pbresource.ListResponse, error) {
-	return nil, nil
+	// TODO
+	return &pbresource.ListResponse{}, nil
 }
 
 func (s *Server) Delete(ctx context.Context, req *pbresource.DeleteRequest) (*pbresource.DeleteResponse, error) {
-	return nil, nil
+	// TODO
+	return &pbresource.DeleteResponse{}, nil
 }
 
 func (s *Server) Watch(req *pbresource.WatchRequest, ws pbresource.ResourceService_WatchServer) error {
+	// TODO
 	return nil
 }
