@@ -12,6 +12,8 @@ import (
 	"github.com/hashicorp/consul/agent/token"
 )
 
+const resyncFrequency = 30 * time.Second
+
 const source proxycfg.ProxySource = "local"
 
 // SyncConfig contains the dependencies required by Sync.
@@ -31,6 +33,10 @@ type SyncConfig struct {
 
 	// Logger will be used to write log messages.
 	Logger hclog.Logger
+
+	// ResyncFrequency is how often to do a resync and recreate any terminated
+	// watches.
+	ResyncFrequency time.Duration
 }
 
 // Sync watches the agent's local state and registers/deregisters services with
@@ -51,15 +57,13 @@ func Sync(ctx context.Context, cfg SyncConfig) {
 	cfg.State.Notify(stateCh)
 	defer cfg.State.StopNotify(stateCh)
 
-	const resyncFrequency = 30 * time.Second
-
 	for {
 		sync(cfg)
 
 		select {
 		case <-stateCh:
 			// Wait for a state change.
-		case <-time.After(resyncFrequency):
+		case <-time.After(cfg.ResyncFrequency):
 		case <-ctx.Done():
 			return
 		}

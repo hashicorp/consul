@@ -721,11 +721,12 @@ func (a *Agent) Start(ctx context.Context) error {
 	go localproxycfg.Sync(
 		&lib.StopChannelContext{StopCh: a.shutdownCh},
 		localproxycfg.SyncConfig{
-			Manager:  a.proxyConfig,
-			State:    a.State,
-			Logger:   a.proxyConfig.Logger.Named("agent-state"),
-			Tokens:   a.baseDeps.Tokens,
-			NodeName: a.config.NodeName,
+			Manager:         a.proxyConfig,
+			State:           a.State,
+			Logger:          a.proxyConfig.Logger.Named("agent-state"),
+			Tokens:          a.baseDeps.Tokens,
+			NodeName:        a.config.NodeName,
+			ResyncFrequency: a.config.LocalProxyConfigResyncInterval,
 		},
 	)
 
