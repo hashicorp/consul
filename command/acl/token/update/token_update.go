@@ -157,11 +157,6 @@ func (c *cmd) Run(args []string) int {
 
 	hasAppendServiceFields := len(c.appendServiceIdents) > 0
 	hasServiceFields := len(c.serviceIdents) > 0
-	parsedServiceIdents, err := acl.ExtractServiceIdentities(c.serviceIdents)
-	if hasAppendServiceFields {
-		parsedServiceIdents, err = acl.ExtractServiceIdentities(c.appendServiceIdents)
-	}
-
 	if hasAppendServiceFields && hasServiceFields {
 		c.UI.Error("Cannot combine the use of service-identity flag with append-service-identity. " +
 			"To set or overwrite existing service identities, use -service-identity. " +
@@ -169,6 +164,10 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
+	parsedServiceIdents, err := acl.ExtractServiceIdentities(c.serviceIdents)
+	if hasAppendServiceFields {
+		parsedServiceIdents, err = acl.ExtractServiceIdentities(c.appendServiceIdents)
+	}
 	if err != nil {
 		c.UI.Error(err.Error())
 		return 1
