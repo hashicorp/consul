@@ -856,6 +856,7 @@ func (s *ResourceGenerator) makeRouteActionForSplitter(
 	forMeshGateway bool,
 ) (*envoy_route_v3.Route_Route, error) {
 	clusters := make([]*envoy_route_v3.WeightedCluster_ClusterWeight, 0, len(splits))
+	totalWeight := 0
 	for _, split := range splits {
 		nextNode := chain.Nodes[split.NextNode]
 
@@ -871,8 +872,10 @@ func (s *ResourceGenerator) makeRouteActionForSplitter(
 
 		// The smallest representable weight is 1/10000 or .01% but envoy
 		// deals with integers so scale everything up by 100x.
+		weight := int(split.Weight * 100)
+		totalWeight += weight
 		cw := &envoy_route_v3.WeightedCluster_ClusterWeight{
-			Weight: makeUint32Value(int(split.Weight * 100)),
+			Weight: makeUint32Value(weight),
 			Name:   clusterName,
 		}
 		if err := injectHeaderManipToWeightedCluster(split.Definition, cw); err != nil {
@@ -884,6 +887,12 @@ func (s *ResourceGenerator) makeRouteActionForSplitter(
 
 	if len(clusters) <= 0 {
 		return nil, fmt.Errorf("number of clusters in splitter must be > 0; got %d", len(clusters))
+	}
+
+	if 10000 < totalWeight {
+		clusters[0].Weight.Value += uint32(totalWeight - 10000)
+	} else {
+		clusters[0].Weight.Value += uint32(10000 - totalWeight)
 	}
 
 	return &envoy_route_v3.Route_Route{
