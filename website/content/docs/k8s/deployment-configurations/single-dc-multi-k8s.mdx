@@ -162,7 +162,7 @@ NAME                 TYPE       CLUSTER-IP    EXTERNAL-IP   PORT(S)         AGE
 cluster1-consul-ui   NodePort   10.0.240.80   <none>        443:31557/TCP   40h
 ```
 
-The `grpcPort: 30014` refers to the grpc nodePort set in the first cluster.
+The `grpcPort: 30014` configuration refers to the gRPC port number specified in the `NodePort` configuration in the first cluster.
 
 Set the `externalServer.tlsServerName` to `server.dc1.consul`. This the DNS SAN
 (Subject Alternative Name) that is present in the Consul server's certificate.
