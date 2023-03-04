@@ -76,8 +76,7 @@ The UI's service type is set to be `NodePort`.
 This is needed to connect to servers from another cluster without using the pod IPs of the servers,
 which are likely going to change.
 
-The other services, especially grpc is also set to be `NodePort` with a random nodePort. Here, it chose 30014.
-This is needed to discover the consul servers using gRPC when connecting from another cluster.
+Other services are exposed as `NodePort` services and configured with random port numbers. In this example, the `grpc` port is set to `30014`, which enables services to discover Consul servers using gRPC when connecting from another cluster.
 
 To deploy, first generate the Gossip encryption key and save it as a Kubernetes secret.
 
