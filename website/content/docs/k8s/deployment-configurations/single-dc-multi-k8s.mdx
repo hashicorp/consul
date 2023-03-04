@@ -136,7 +136,7 @@ externalServers:
   hosts: ["10.0.0.4"]
   # The node port of the UI's NodePort service or the load balancer port.
   httpsPort: 31557
-  # The GRPC port of the Consul servers(first cluster).
+  # Matches the gRPC port of the Consul servers in the first cluster.
   grpcPort: 30014
   tlsServerName: server.dc1.consul
   # The address of the kube API server of this Kubernetes cluster
