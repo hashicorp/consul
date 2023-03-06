@@ -140,6 +140,7 @@ func (c *Cluster) Add(configs []Config, serfJoin bool, ports ...int) (xe error) 
 		if err != nil {
 			return fmt.Errorf("container %d: %w", idx, err)
 		}
+
 		agents = append(agents, n)
 		c.Index++
 	}

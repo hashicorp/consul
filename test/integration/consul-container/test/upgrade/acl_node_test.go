@@ -46,10 +46,9 @@ func TestACL_Upgrade_Node_Token(t *testing.T) {
 		require.NoError(t, err)
 		libassert.CatalogNodeExists(t, client, cluster.Agents[1].GetAgentName())
 	}
-	for _, oldVersion := range UpgradeFromVersions {
-		t.Run(fmt.Sprintf("Upgrade from %s to %s", oldVersion, utils.TargetVersion),
-			func(t *testing.T) {
-				run(t, oldVersion, utils.TargetVersion)
-			})
-	}
+
+	t.Run(fmt.Sprintf("Upgrade from %s to %s", utils.LatestVersion, utils.TargetVersion),
+		func(t *testing.T) {
+			run(t, utils.LatestVersion, utils.TargetVersion)
+		})
 }

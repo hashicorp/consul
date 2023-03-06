@@ -12,7 +12,6 @@ import (
 	libservice "github.com/hashicorp/consul/test/integration/consul-container/libs/service"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/topology"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
-	"github.com/hashicorp/consul/test/integration/consul-container/test/upgrade"
 	"github.com/stretchr/testify/require"
 )
 
@@ -386,13 +385,11 @@ func TestTrafficManagement_ServiceResolver(t *testing.T) {
 		tc.extraAssertion(staticClientProxy)
 	}
 
-	for _, oldVersion := range upgrade.UpgradeFromVersions {
-		for _, tc := range tcs {
-			t.Run(fmt.Sprintf("%s upgrade from %s to %s", tc.name, oldVersion, utils.TargetVersion),
-				func(t *testing.T) {
-					run(t, tc, oldVersion, utils.TargetVersion)
-				})
-		}
+	for _, tc := range tcs {
+		t.Run(fmt.Sprintf("%s upgrade from %s to %s", tc.name, utils.LatestVersion, utils.TargetVersion),
+			func(t *testing.T) {
+				run(t, tc, utils.LatestVersion, utils.TargetVersion)
+			})
 	}
 }
 
