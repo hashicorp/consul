@@ -17,6 +17,7 @@ type Agent interface {
 	NewClient(string, bool) (*api.Client, error)
 	GetName() string
 	GetAgentName() string
+	GetPartition() string
 	GetPod() testcontainers.Container
 	ClaimAdminPort() (int, error)
 	GetConfig() Config

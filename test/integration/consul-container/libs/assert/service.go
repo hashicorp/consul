@@ -128,11 +128,7 @@ func ServiceLogContains(t *testing.T, service libservice.Service, target string)
 func AssertFortioName(t *testing.T, urlbase string, name string, reqHost string) {
 	t.Helper()
 	var fortioNameRE = regexp.MustCompile(("\nFORTIO_NAME=(.+)\n"))
-	client := &http.Client{
-		Transport: &http.Transport{
-			DisableKeepAlives: true,
-		},
-	}
+	client := cleanhttp.DefaultClient()
 	retry.RunWith(&retry.Timer{Timeout: defaultHTTPTimeout, Wait: defaultHTTPWait}, t, func(r *retry.R) {
 		fullurl := fmt.Sprintf("%s/debug?env=dump", urlbase)
 		req, err := http.NewRequest("GET", fullurl, nil)
