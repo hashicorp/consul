@@ -50,13 +50,6 @@ func TestTokenUpdateCommand(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	// create a token
-	token, _, err := client.ACL().TokenCreate(
-		&api.ACLToken{Description: "test"},
-		&api.WriteOptions{Token: "root"},
-	)
-	require.NoError(t, err)
-
 	run := func(t *testing.T, args []string) *api.ACLToken {
 		ui := cli.NewMockUi()
 		cmd := New(ui)
@@ -72,7 +65,14 @@ func TestTokenUpdateCommand(t *testing.T) {
 
 	// update with node identity
 	t.Run("node-identity", func(t *testing.T) {
-		token := run(t, []string{
+		// create a token
+		token, _, err := client.ACL().TokenCreate(
+			&api.ACLToken{Description: "test"},
+			&api.WriteOptions{Token: "root"},
+		)
+		require.NoError(t, err)
+
+		responseToken := run(t, []string{
 			"-http-addr=" + a.HTTPAddr(),
 			"-accessor-id=" + token.AccessorID,
 			"-token=root",
@@ -80,13 +80,23 @@ func TestTokenUpdateCommand(t *testing.T) {
 			"-description=test token",
 		})
 
-		require.Len(t, token.NodeIdentities, 1)
-		require.Equal(t, "foo", token.NodeIdentities[0].NodeName)
-		require.Equal(t, "bar", token.NodeIdentities[0].Datacenter)
+		require.Len(t, responseToken.NodeIdentities, 1)
+		require.Equal(t, "foo", responseToken.NodeIdentities[0].NodeName)
+		require.Equal(t, "bar", responseToken.NodeIdentities[0].Datacenter)
 	})
 
 	t.Run("node-identity-merge", func(t *testing.T) {
-		token := run(t, []string{
+		// create a token
+		token, _, err := client.ACL().TokenCreate(
+			&api.ACLToken{
+				Description:    "test",
+				NodeIdentities: []*api.ACLNodeIdentity{{NodeName: "foo", Datacenter: "bar"}},
+			},
+			&api.WriteOptions{Token: "root"},
+		)
+		require.NoError(t, err)
+
+		responseToken := run(t, []string{
 			"-http-addr=" + a.HTTPAddr(),
 			"-accessor-id=" + token.AccessorID,
 			"-token=root",
@@ -95,7 +105,7 @@ func TestTokenUpdateCommand(t *testing.T) {
 			"-merge-node-identities",
 		})
 
-		require.Len(t, token.NodeIdentities, 2)
+		require.Len(t, responseToken.NodeIdentities, 2)
 		expected := []*api.ACLNodeIdentity{
 			{
 				NodeName:   "foo",
@@ -106,12 +116,19 @@ func TestTokenUpdateCommand(t *testing.T) {
 				Datacenter: "baz",
 			},
 		}
-		require.ElementsMatch(t, expected, token.NodeIdentities)
+		require.ElementsMatch(t, expected, responseToken.NodeIdentities)
 	})
 
 	// update with policy by name
 	t.Run("policy-name", func(t *testing.T) {
-		token := run(t, []string{
+		// create a token
+		token, _, err := client.ACL().TokenCreate(
+			&api.ACLToken{Description: "test"},
+			&api.WriteOptions{Token: "root"},
+		)
+		require.NoError(t, err)
+
+		responseToken := run(t, []string{
 			"-http-addr=" + a.HTTPAddr(),
 			"-accessor-id=" + token.AccessorID,
 			"-token=root",
@@ -119,12 +136,19 @@ func TestTokenUpdateCommand(t *testing.T) {
 			"-description=test token",
 		})
 
-		require.Len(t, token.Policies, 1)
+		require.Len(t, responseToken.Policies, 1)
 	})
 
 	// update with policy by id
 	t.Run("policy-id", func(t *testing.T) {
-		token := run(t, []string{
+		// create a token
+		token, _, err := client.ACL().TokenCreate(
+			&api.ACLToken{Description: "test"},
+			&api.WriteOptions{Token: "root"},
+		)
+		require.NoError(t, err)
+
+		responseToken := run(t, []string{
 			"-http-addr=" + a.HTTPAddr(),
 			"-accessor-id=" + token.AccessorID,
 			"-token=root",
@@ -132,12 +156,19 @@ func TestTokenUpdateCommand(t *testing.T) {
 			"-description=test token",
 		})
 
-		require.Len(t, token.Policies, 1)
+		require.Len(t, responseToken.Policies, 1)
 	})
 
 	// update with service-identity
 	t.Run("service-identity", func(t *testing.T) {
-		token := run(t, []string{
+		// create a token
+		token, _, err := client.ACL().TokenCreate(
+			&api.ACLToken{Description: "test"},
+			&api.WriteOptions{Token: "root"},
+		)
+		require.NoError(t, err)
+
+		responseToken := run(t, []string{
 			"-http-addr=" + a.HTTPAddr(),
 			"-accessor-id=" + token.AccessorID,
 			"-token=root",
@@ -145,20 +176,27 @@ func TestTokenUpdateCommand(t *testing.T) {
 			"-description=test token",
 		})
 
-		require.Len(t, token.ServiceIdentities, 1)
-		require.Equal(t, "service", token.ServiceIdentities[0].ServiceName)
+		require.Len(t, responseToken.ServiceIdentities, 1)
+		require.Equal(t, "service", responseToken.ServiceIdentities[0].ServiceName)
 	})
 
 	// update with no description shouldn't delete the current description
 	t.Run("merge-description", func(t *testing.T) {
-		token := run(t, []string{
+		// create a token
+		token, _, err := client.ACL().TokenCreate(
+			&api.ACLToken{Description: "test token"},
+			&api.WriteOptions{Token: "root"},
+		)
+		require.NoError(t, err)
+
+		responseToken := run(t, []string{
 			"-http-addr=" + a.HTTPAddr(),
 			"-accessor-id=" + token.AccessorID,
 			"-token=root",
 			"-policy-name=" + policy.Name,
 		})
 
-		require.Equal(t, "test token", token.Description)
+		require.Equal(t, "test token", responseToken.Description)
 	})
 }
 
