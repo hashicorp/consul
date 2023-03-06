@@ -11,9 +11,8 @@ import (
 	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
 	libservice "github.com/hashicorp/consul/test/integration/consul-container/libs/service"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/topology"
-	libutils "github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
-	upgrade "github.com/hashicorp/consul/test/integration/consul-container/test/upgrade"
-	"github.com/hashicorp/go-version"
+	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
+	"github.com/hashicorp/consul/test/integration/consul-container/test/upgrade"
 	"github.com/stretchr/testify/require"
 )
 
@@ -330,11 +329,7 @@ func TestTrafficManagement_ServiceResolver(t *testing.T) {
 			Datacenter:           "dc1",
 			InjectAutoEncryption: true,
 		}
-		// If version < 1.14 disable AutoEncryption
-		oldVersionTmp, _ := version.NewVersion(oldVersion)
-		if oldVersionTmp.LessThan(libutils.Version_1_14) {
-			buildOpts.InjectAutoEncryption = false
-		}
+
 		cluster, _, _ := topology.NewCluster(t, &topology.ClusterConfig{
 			NumServers:                1,
 			NumClients:                1,
@@ -391,12 +386,11 @@ func TestTrafficManagement_ServiceResolver(t *testing.T) {
 		tc.extraAssertion(staticClientProxy)
 	}
 
-	targetVersion := libutils.TargetVersion
 	for _, oldVersion := range upgrade.UpgradeFromVersions {
 		for _, tc := range tcs {
-			t.Run(fmt.Sprintf("%s upgrade from %s to %s", tc.name, oldVersion, targetVersion),
+			t.Run(fmt.Sprintf("%s upgrade from %s to %s", tc.name, oldVersion, utils.TargetVersion),
 				func(t *testing.T) {
-					run(t, tc, oldVersion, targetVersion)
+					run(t, tc, oldVersion, utils.TargetVersion)
 				})
 		}
 	}

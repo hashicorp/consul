@@ -21,9 +21,7 @@ func TestPeering_UpgradeToTarget_fromLatest(t *testing.T) {
 	t.Parallel()
 
 	type testcase struct {
-		oldversion    string
-		targetVersion string
-		name          string
+		name string
 		// create creates addtional resources in peered clusters depending on cases, e.g., static-client,
 		// static server, and config-entries. It returns the proxy services, an assertation function to
 		// be called to verify the resources.
@@ -40,18 +38,14 @@ func TestPeering_UpgradeToTarget_fromLatest(t *testing.T) {
 		// 	targetVersion: *utils.TargetVersion,
 		// },
 		{
-			oldversion:    "1.14",
-			targetVersion: utils.TargetVersion,
-			name:          "basic",
+			name: "basic",
 			create: func(accepting *cluster.Cluster, dialing *cluster.Cluster) (libservice.Service, libservice.Service, func(), error) {
 				return nil, nil, func() {}, nil
 			},
 			extraAssertion: func(clientUpstreamPort int) {},
 		},
 		{
-			oldversion:    "1.14",
-			targetVersion: utils.TargetVersion,
-			name:          "http_router",
+			name: "http_router",
 			// Create a second static-service at the client agent of accepting cluster and
 			// a service-router that routes /static-server-2 to static-server-2
 			create: func(accepting *cluster.Cluster, dialing *cluster.Cluster) (libservice.Service, libservice.Service, func(), error) {
@@ -104,9 +98,7 @@ func TestPeering_UpgradeToTarget_fromLatest(t *testing.T) {
 			},
 		},
 		{
-			oldversion:    "1.14",
-			targetVersion: utils.TargetVersion,
-			name:          "http splitter and resolver",
+			name: "http splitter and resolver",
 			// In addtional to the basic topology, this case provisions the following
 			// services in the dialing cluster:
 			//
@@ -221,9 +213,7 @@ func TestPeering_UpgradeToTarget_fromLatest(t *testing.T) {
 			extraAssertion: func(clientUpstreamPort int) {},
 		},
 		{
-			oldversion:    "1.14",
-			targetVersion: utils.TargetVersion,
-			name:          "http resolver and failover",
+			name: "http resolver and failover",
 			// Verify resolver and failover can direct traffic to server in peered cluster
 			// In addtional to the basic topology, this case provisions the following
 			// services in the dialing cluster:
@@ -316,8 +306,8 @@ func TestPeering_UpgradeToTarget_fromLatest(t *testing.T) {
 		},
 	}
 
-	run := func(t *testing.T, tc testcase) {
-		accepting, dialing := libtopology.BasicPeeringTwoClustersSetup(t, tc.oldversion, false)
+	run := func(t *testing.T, tc testcase, oldVersion, targetVersion string) {
+		accepting, dialing := libtopology.BasicPeeringTwoClustersSetup(t, oldVersion, false)
 		var (
 			acceptingCluster = accepting.Cluster
 			dialingCluster   = dialing.Cluster
@@ -339,11 +329,11 @@ func TestPeering_UpgradeToTarget_fromLatest(t *testing.T) {
 		tc.extraAssertion(appPort)
 
 		// Upgrade the accepting cluster and assert peering is still ACTIVE
-		require.NoError(t, acceptingCluster.StandardUpgrade(t, context.Background(), tc.targetVersion))
+		require.NoError(t, acceptingCluster.StandardUpgrade(t, context.Background(), targetVersion))
 		libassert.PeeringStatus(t, acceptingClient, libtopology.AcceptingPeerName, api.PeeringStateActive)
 		libassert.PeeringStatus(t, dialingClient, libtopology.DialingPeerName, api.PeeringStateActive)
 
-		require.NoError(t, dialingCluster.StandardUpgrade(t, context.Background(), tc.targetVersion))
+		require.NoError(t, dialingCluster.StandardUpgrade(t, context.Background(), targetVersion))
 		libassert.PeeringStatus(t, acceptingClient, libtopology.AcceptingPeerName, api.PeeringStateActive)
 		libassert.PeeringStatus(t, dialingClient, libtopology.DialingPeerName, api.PeeringStateActive)
 
@@ -382,12 +372,13 @@ func TestPeering_UpgradeToTarget_fromLatest(t *testing.T) {
 		tc.extraAssertion(appPort)
 	}
 
-	for _, tc := range tcs {
-		t.Run(fmt.Sprintf("%s upgrade from %s to %s", tc.name, tc.oldversion, tc.targetVersion),
-			func(t *testing.T) {
-				run(t, tc)
-			})
-		// time.Sleep(3 * time.Second)
+	for _, oldVersion := range UpgradeFromVersions {
+		for _, tc := range tcs {
+			t.Run(fmt.Sprintf("%s upgrade from %s to %s", tc.name, oldVersion, utils.TargetVersion),
+				func(t *testing.T) {
+					run(t, tc, oldVersion, utils.TargetVersion)
+				})
+		}
 	}
 }
 

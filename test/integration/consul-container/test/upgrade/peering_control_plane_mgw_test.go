@@ -24,25 +24,8 @@ import (
 func TestPeering_Upgrade_ControlPlane_MGW(t *testing.T) {
 	t.Parallel()
 
-	type testcase struct {
-		oldversion    string
-		targetVersion string
-	}
-	tcs := []testcase{
-		// {
-		//  TODO: API changed from 1.13 to 1.14 in , PeerName to Peer
-		//  exportConfigEntry
-		// 	oldversion:    "1.13",
-		// 	targetVersion: *utils.TargetVersion,
-		// },
-		{
-			oldversion:    "1.14",
-			targetVersion: utils.TargetVersion,
-		},
-	}
-
-	run := func(t *testing.T, tc testcase) {
-		accepting, dialing := libtopology.BasicPeeringTwoClustersSetup(t, tc.oldversion, true)
+	run := func(t *testing.T, oldVersion, targetVersion string) {
+		accepting, dialing := libtopology.BasicPeeringTwoClustersSetup(t, oldVersion, true)
 		var (
 			acceptingCluster = accepting.Cluster
 			dialingCluster   = dialing.Cluster
@@ -66,11 +49,11 @@ func TestPeering_Upgrade_ControlPlane_MGW(t *testing.T) {
 			"upstream_cx_total", 1)
 
 		// Upgrade the accepting cluster and assert peering is still ACTIVE
-		require.NoError(t, acceptingCluster.StandardUpgrade(t, context.Background(), tc.targetVersion))
+		require.NoError(t, acceptingCluster.StandardUpgrade(t, context.Background(), targetVersion))
 		libassert.PeeringStatus(t, acceptingClient, libtopology.AcceptingPeerName, api.PeeringStateActive)
 		libassert.PeeringStatus(t, dialingClient, libtopology.DialingPeerName, api.PeeringStateActive)
 
-		require.NoError(t, dialingCluster.StandardUpgrade(t, context.Background(), tc.targetVersion))
+		require.NoError(t, dialingCluster.StandardUpgrade(t, context.Background(), targetVersion))
 		libassert.PeeringStatus(t, acceptingClient, libtopology.AcceptingPeerName, api.PeeringStateActive)
 		libassert.PeeringStatus(t, dialingClient, libtopology.DialingPeerName, api.PeeringStateActive)
 
@@ -105,10 +88,10 @@ func TestPeering_Upgrade_ControlPlane_MGW(t *testing.T) {
 		libassert.AssertFortioName(t, fmt.Sprintf("http://localhost:%d", port), libservice.StaticServerServiceName, "")
 	}
 
-	for _, tc := range tcs {
-		t.Run(fmt.Sprintf("upgrade from %s to %s", tc.oldversion, tc.targetVersion),
+	for _, oldVersion := range UpgradeFromVersions {
+		t.Run(fmt.Sprintf("Upgrade from %s to %s", oldVersion, utils.TargetVersion),
 			func(t *testing.T) {
-				run(t, tc)
+				run(t, oldVersion, utils.TargetVersion)
 			})
 	}
 }

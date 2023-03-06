@@ -1,3 +1,3 @@
 package upgrade
 
-var UpgradeFromVersions = []string{"1.13", "1.14"}
+var UpgradeFromVersions = []string{"1.14", "1.15"}

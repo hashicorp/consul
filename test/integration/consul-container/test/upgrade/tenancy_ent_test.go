@@ -133,17 +133,23 @@ func testLatestGAServersWithCurrentClients_TenancyCRUD(
 	)
 
 	// Create initial cluster
-	cluster := serversCluster(t, numServers, utils.LatestImageName, utils.LatestVersion)
-	libservice.ClientsCreate(t, numClients, utils.LatestImageName, utils.LatestVersion, cluster)
+	cluster, _, _ := libtopology.NewCluster(t, &libtopology.ClusterConfig{
+		NumServers: numServers,
+		NumClients: numClients,
+		BuildOpts: &libcluster.BuildOptions{
+			Datacenter:      "dc1",
+			ConsulImageName: utils.LatestImageName,
+			ConsulVersion:   utils.LatestVersion,
+		},
+		ApplyDefaultProxySettings: true,
+	})
 
 	client := cluster.APIClient(0)
 	libcluster.WaitForLeader(t, cluster, client)
 	libcluster.WaitForMembers(t, client, 5)
 
 	testutil.RunStep(t, "Create "+tenancyName, func(t *testing.T) {
-		fmt.Println("!!!!!!!")
 		createFn(t, client)
-		fmt.Println("!!!!DONE!!!!")
 	})
 
 	ctx := context.Background()
@@ -238,9 +244,16 @@ func testLatestGAServersWithCurrentClients_TenancyCRUD(
 	}
 
 	// Create a fresh cluster from scratch
-	cluster2 := serversCluster(t, numServers, utils.TargetImageName, utils.TargetVersion)
-	libservice.ClientsCreate(t, numClients, utils.LatestImageName, utils.LatestVersion, cluster2)
-
+	cluster2, _, _ := libtopology.NewCluster(t, &libtopology.ClusterConfig{
+		NumServers: numServers,
+		NumClients: numClients,
+		BuildOpts: &libcluster.BuildOptions{
+			Datacenter:      "dc1",
+			ConsulImageName: utils.LatestImageName,
+			ConsulVersion:   utils.LatestVersion,
+		},
+		ApplyDefaultProxySettings: true,
+	})
 	client2 := cluster2.APIClient(0)
 
 	testutil.RunStep(t, "Restore saved snapshot", func(t *testing.T) {
