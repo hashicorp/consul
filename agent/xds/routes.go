@@ -896,10 +896,11 @@ func (s *ResourceGenerator) makeRouteActionForSplitter(
 		return nil, fmt.Errorf("number of clusters in splitter must be > 0; got %d", len(clusters))
 	}
 
-	if 10000 < totalWeight {
-		clusters[0].Weight.Value += uint32(totalWeight - 10000)
+	envoyWeightScale := 10000
+	if envoyWeightScale < totalWeight {
+		clusters[0].Weight.Value += uint32(totalWeight - envoyWeightScale)
 	} else {
-		clusters[0].Weight.Value += uint32(10000 - totalWeight)
+		clusters[0].Weight.Value += uint32(envoyWeightScale - totalWeight)
 	}
 
 	return &envoy_route_v3.Route_Route{
@@ -907,7 +908,7 @@ func (s *ResourceGenerator) makeRouteActionForSplitter(
 			ClusterSpecifier: &envoy_route_v3.RouteAction_WeightedClusters{
 				WeightedClusters: &envoy_route_v3.WeightedCluster{
 					Clusters:    clusters,
-					TotalWeight: makeUint32Value(10000), // scaled up 100%
+					TotalWeight: makeUint32Value(envoyWeightScale), // scaled up 100%
 				},
 			},
 		},
