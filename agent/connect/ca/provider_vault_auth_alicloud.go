@@ -12,7 +12,7 @@ func NewAliCloudAuthClient(authMethod *structs.VaultAuthMethod) (*VaultAuthClien
 	if r, ok := authMethod.Params["role"].(string); !ok || r == "" {
 		return nil, fmt.Errorf("role is required for AliCloud login")
 	}
-	if _, ok := authMethod.Params["region"].(string); !ok {
+	if r, ok := authMethod.Params["region"].(string); !ok || r == "" {
 		return nil, fmt.Errorf("region is required for AliCloud login")
 	}
 	client := NewVaultAPIAuthClient(authMethod, "")
