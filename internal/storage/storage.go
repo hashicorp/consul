@@ -18,12 +18,12 @@ var (
 
 	// ErrConflict indicates that the attempted write failed because of a version
 	// or UID mismatch.
-	ErrConflict = errors.New("CAS operation failed with conflict")
+	ErrConflict = errors.New("operation failed because of a Version or Uid mismatch")
 
 	// ErrInconsistent indicates that the attempted write or consistent read could
 	// not be achieved because of a consistency or availability issue (e.g. loss of
 	// quorum, or when interacting with a Raft follower).
-	ErrInconsistent = errors.New("cannot satisfy required consistency")
+	ErrInconsistent = errors.New("cannot satisfy consistency requirements")
 )
 
 // Backend provides the low-level storage substrate for resources. It can be
