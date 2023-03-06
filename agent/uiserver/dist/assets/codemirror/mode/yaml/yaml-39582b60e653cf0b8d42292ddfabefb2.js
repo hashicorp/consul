@@ -194,44 +194,44 @@ var i=ve(e,n)
 if("function"!=typeof t)return i
 for(var r=0,o=i.length;r<o;r+=1)t(i[r])},load:function(e,t){var n=ve(e,t)
 if(0!==n.length){if(1===n.length)return n[0]
-throw new o("expected a single document in the stream, but found more")}}},we=Object.prototype.toString,Ce=Object.prototype.hasOwnProperty,xe={0:"\\0",7:"\\a",8:"\\b",9:"\\t",10:"\\n",11:"\\v",12:"\\f",13:"\\r",27:"\\e",34:'\\"',92:"\\\\",133:"\\N",160:"\\_",8232:"\\L",8233:"\\P"},Ie=["y","Y","yes","Yes","YES","on","On","ON","n","N","no","No","NO","off","Off","OFF"],Se=/^[-+]?[0-9_]+(?::[0-9_]+)+(?:\.[0-9_]*)?$/
-function Oe(e){var t,i,r
+throw new o("expected a single document in the stream, but found more")}}},we=Object.prototype.toString,Ce=Object.prototype.hasOwnProperty,xe=65279,Ie={0:"\\0",7:"\\a",8:"\\b",9:"\\t",10:"\\n",11:"\\v",12:"\\f",13:"\\r",27:"\\e",34:'\\"',92:"\\\\",133:"\\N",160:"\\_",8232:"\\L",8233:"\\P"},Se=["y","Y","yes","Yes","YES","on","On","ON","n","N","no","No","NO","off","Off","OFF"],Oe=/^[-+]?[0-9_]+(?::[0-9_]+)+(?:\.[0-9_]*)?$/
+function je(e){var t,i,r
 if(t=e.toString(16).toUpperCase(),e<=255)i="x",r=2
 else if(e<=65535)i="u",r=4
 else{if(!(e<=4294967295))throw new o("code point within a string may not be greater than 0xFFFFFFFF")
-i="U",r=8}return"\\"+i+n.repeat("0",r-t.length)+t}function je(e){this.schema=e.schema||Y,this.indent=Math.max(1,e.indent||2),this.noArrayIndent=e.noArrayIndent||!1,this.skipInvalid=e.skipInvalid||!1,this.flowLevel=n.isNothing(e.flowLevel)?-1:e.flowLevel,this.styleMap=function(e,t){var n,i,r,o,a,l,c
+i="U",r=8}return"\\"+i+n.repeat("0",r-t.length)+t}function Te(e){this.schema=e.schema||Y,this.indent=Math.max(1,e.indent||2),this.noArrayIndent=e.noArrayIndent||!1,this.skipInvalid=e.skipInvalid||!1,this.flowLevel=n.isNothing(e.flowLevel)?-1:e.flowLevel,this.styleMap=function(e,t){var n,i,r,o,a,l,c
 if(null===t)return{}
 for(n={},r=0,o=(i=Object.keys(t)).length;r<o;r+=1)a=i[r],l=String(t[a]),"!!"===a.slice(0,2)&&(a="tag:yaml.org,2002:"+a.slice(2)),(c=e.compiledTypeMap.fallback[a])&&Ce.call(c.styleAliases,l)&&(l=c.styleAliases[l]),n[a]=l
-return n}(this.schema,e.styles||null),this.sortKeys=e.sortKeys||!1,this.lineWidth=e.lineWidth||80,this.noRefs=e.noRefs||!1,this.noCompatMode=e.noCompatMode||!1,this.condenseFlow=e.condenseFlow||!1,this.quotingType='"'===e.quotingType?2:1,this.forceQuotes=e.forceQuotes||!1,this.replacer="function"==typeof e.replacer?e.replacer:null,this.implicitTypes=this.schema.compiledImplicit,this.explicitTypes=this.schema.compiledExplicit,this.tag=null,this.result="",this.duplicates=[],this.usedDuplicates=null}function Te(e,t){for(var i,r=n.repeat(" ",t),o=0,a=-1,l="",c=e.length;o<c;)-1===(a=e.indexOf("\n",o))?(i=e.slice(o),o=c):(i=e.slice(o,a+1),o=a+1),i.length&&"\n"!==i&&(l+=r),l+=i
-return l}function Ee(e,t){return"\n"+n.repeat(" ",e.indent*t)}function Me(e){return 32===e||9===e}function Le(e){return 32<=e&&e<=126||161<=e&&e<=55295&&8232!==e&&8233!==e||57344<=e&&e<=65533&&65279!==e||65536<=e&&e<=1114111}function Ne(e){return Le(e)&&65279!==e&&13!==e&&10!==e}function Fe(e,t,n){var i=Ne(e),r=i&&!Me(e)
-return(n?i:i&&44!==e&&91!==e&&93!==e&&123!==e&&125!==e)&&35!==e&&!(58===t&&!r)||Ne(t)&&!Me(t)&&35===e||58===t&&r}function _e(e,t){var n,i=e.charCodeAt(t)
-return i>=55296&&i<=56319&&t+1<e.length&&(n=e.charCodeAt(t+1))>=56320&&n<=57343?1024*(i-55296)+n-56320+65536:i}function De(e){return/^\n* /.test(e)}function Ue(e,t,n,i,r,o,a,l){var c,s,u=0,p=null,f=!1,d=!1,h=-1!==i,m=-1,g=Le(s=_e(e,0))&&65279!==s&&!Me(s)&&45!==s&&63!==s&&58!==s&&44!==s&&91!==s&&93!==s&&123!==s&&125!==s&&35!==s&&38!==s&&42!==s&&33!==s&&124!==s&&61!==s&&62!==s&&39!==s&&34!==s&&37!==s&&64!==s&&96!==s&&function(e){return!Me(e)&&58!==e}(_e(e,e.length-1))
-if(t||a)for(c=0;c<e.length;u>=65536?c+=2:c++){if(!Le(u=_e(e,c)))return 5
-g=g&&Fe(u,p,l),p=u}else{for(c=0;c<e.length;u>=65536?c+=2:c++){if(10===(u=_e(e,c)))f=!0,h&&(d=d||c-m-1>i&&" "!==e[m+1],m=c)
-else if(!Le(u))return 5
-g=g&&Fe(u,p,l),p=u}d=d||h&&c-m-1>i&&" "!==e[m+1]}return f||d?n>9&&De(e)?5:a?2===o?5:2:d?4:3:!g||a||r(e)?2===o?5:2:1}function qe(e,t,n,i,r){e.dump=function(){if(0===t.length)return 2===e.quotingType?'""':"''"
-if(!e.noCompatMode&&(-1!==Ie.indexOf(t)||Se.test(t)))return 2===e.quotingType?'"'+t+'"':"'"+t+"'"
+return n}(this.schema,e.styles||null),this.sortKeys=e.sortKeys||!1,this.lineWidth=e.lineWidth||80,this.noRefs=e.noRefs||!1,this.noCompatMode=e.noCompatMode||!1,this.condenseFlow=e.condenseFlow||!1,this.quotingType='"'===e.quotingType?2:1,this.forceQuotes=e.forceQuotes||!1,this.replacer="function"==typeof e.replacer?e.replacer:null,this.implicitTypes=this.schema.compiledImplicit,this.explicitTypes=this.schema.compiledExplicit,this.tag=null,this.result="",this.duplicates=[],this.usedDuplicates=null}function Ee(e,t){for(var i,r=n.repeat(" ",t),o=0,a=-1,l="",c=e.length;o<c;)-1===(a=e.indexOf("\n",o))?(i=e.slice(o),o=c):(i=e.slice(o,a+1),o=a+1),i.length&&"\n"!==i&&(l+=r),l+=i
+return l}function Me(e,t){return"\n"+n.repeat(" ",e.indent*t)}function Le(e){return 32===e||9===e}function Ne(e){return 32<=e&&e<=126||161<=e&&e<=55295&&8232!==e&&8233!==e||57344<=e&&e<=65533&&e!==xe||65536<=e&&e<=1114111}function Fe(e){return Ne(e)&&e!==xe&&13!==e&&10!==e}function _e(e,t,n){var i=Fe(e),r=i&&!Le(e)
+return(n?i:i&&44!==e&&91!==e&&93!==e&&123!==e&&125!==e)&&35!==e&&!(58===t&&!r)||Fe(t)&&!Le(t)&&35===e||58===t&&r}function De(e,t){var n,i=e.charCodeAt(t)
+return i>=55296&&i<=56319&&t+1<e.length&&(n=e.charCodeAt(t+1))>=56320&&n<=57343?1024*(i-55296)+n-56320+65536:i}function Ue(e){return/^\n* /.test(e)}function qe(e,t,n,i,r,o,a,l){var c,s,u=0,p=null,f=!1,d=!1,h=-1!==i,m=-1,g=Ne(s=De(e,0))&&s!==xe&&!Le(s)&&45!==s&&63!==s&&58!==s&&44!==s&&91!==s&&93!==s&&123!==s&&125!==s&&35!==s&&38!==s&&42!==s&&33!==s&&124!==s&&61!==s&&62!==s&&39!==s&&34!==s&&37!==s&&64!==s&&96!==s&&function(e){return!Le(e)&&58!==e}(De(e,e.length-1))
+if(t||a)for(c=0;c<e.length;u>=65536?c+=2:c++){if(!Ne(u=De(e,c)))return 5
+g=g&&_e(u,p,l),p=u}else{for(c=0;c<e.length;u>=65536?c+=2:c++){if(10===(u=De(e,c)))f=!0,h&&(d=d||c-m-1>i&&" "!==e[m+1],m=c)
+else if(!Ne(u))return 5
+g=g&&_e(u,p,l),p=u}d=d||h&&c-m-1>i&&" "!==e[m+1]}return f||d?n>9&&Ue(e)?5:a?2===o?5:2:d?4:3:!g||a||r(e)?2===o?5:2:1}function Ye(e,t,n,i,r){e.dump=function(){if(0===t.length)return 2===e.quotingType?'""':"''"
+if(!e.noCompatMode&&(-1!==Se.indexOf(t)||Oe.test(t)))return 2===e.quotingType?'"'+t+'"':"'"+t+"'"
 var a=e.indent*Math.max(1,n),l=-1===e.lineWidth?-1:Math.max(Math.min(e.lineWidth,40),e.lineWidth-a),c=i||e.flowLevel>-1&&n>=e.flowLevel
-switch(Ue(t,c,e.indent,l,(function(t){return function(e,t){var n,i
+switch(qe(t,c,e.indent,l,(function(t){return function(e,t){var n,i
 for(n=0,i=e.implicitTypes.length;n<i;n+=1)if(e.implicitTypes[n].resolve(t))return!0
 return!1}(e,t)}),e.quotingType,e.forceQuotes&&!i,r)){case 1:return t
 case 2:return"'"+t.replace(/'/g,"''")+"'"
-case 3:return"|"+Ye(t,e.indent)+Pe(Te(t,a))
-case 4:return">"+Ye(t,e.indent)+Pe(Te(function(e,t){var n,i,r=/(\n+)([^\n]*)/g,o=(l=e.indexOf("\n"),l=-1!==l?l:e.length,r.lastIndex=l,Re(e.slice(0,l),t)),a="\n"===e[0]||" "===e[0]
+case 3:return"|"+Pe(t,e.indent)+Re(Ee(t,a))
+case 4:return">"+Pe(t,e.indent)+Re(Ee(function(e,t){var n,i,r=/(\n+)([^\n]*)/g,o=(l=e.indexOf("\n"),l=-1!==l?l:e.length,r.lastIndex=l,$e(e.slice(0,l),t)),a="\n"===e[0]||" "===e[0]
 var l
 for(;i=r.exec(e);){var c=i[1],s=i[2]
-n=" "===s[0],o+=c+(a||n||""===s?"":"\n")+Re(s,t),a=n}return o}(t,l),a))
-case 5:return'"'+function(e){for(var t,n="",i=0,r=0;r<e.length;i>=65536?r+=2:r++)i=_e(e,r),!(t=xe[i])&&Le(i)?(n+=e[r],i>=65536&&(n+=e[r+1])):n+=t||Oe(i)
+n=" "===s[0],o+=c+(a||n||""===s?"":"\n")+$e(s,t),a=n}return o}(t,l),a))
+case 5:return'"'+function(e){for(var t,n="",i=0,r=0;r<e.length;i>=65536?r+=2:r++)i=De(e,r),!(t=Ie[i])&&Ne(i)?(n+=e[r],i>=65536&&(n+=e[r+1])):n+=t||je(i)
 return n}(t)+'"'
-default:throw new o("impossible error: invalid scalar style")}}()}function Ye(e,t){var n=De(e)?String(t):"",i="\n"===e[e.length-1]
-return n+(i&&("\n"===e[e.length-2]||"\n"===e)?"+":i?"":"-")+"\n"}function Pe(e){return"\n"===e[e.length-1]?e.slice(0,-1):e}function Re(e,t){if(""===e||" "===e[0])return e
+default:throw new o("impossible error: invalid scalar style")}}()}function Pe(e,t){var n=Ue(e)?String(t):"",i="\n"===e[e.length-1]
+return n+(i&&("\n"===e[e.length-2]||"\n"===e)?"+":i?"":"-")+"\n"}function Re(e){return"\n"===e[e.length-1]?e.slice(0,-1):e}function $e(e,t){if(""===e||" "===e[0])return e
 for(var n,i,r=/ [^ ]/g,o=0,a=0,l=0,c="";n=r.exec(e);)(l=n.index)-o>t&&(i=a>o?a:l,c+="\n"+e.slice(o,i),o=i+1),a=l
-return c+="\n",e.length-o>t&&a>o?c+=e.slice(o,a)+"\n"+e.slice(a+1):c+=e.slice(o),c.slice(1)}function $e(e,t,n,i){var r,o,a,l="",c=e.tag
-for(r=0,o=n.length;r<o;r+=1)a=n[r],e.replacer&&(a=e.replacer.call(n,String(r),a)),(Ke(e,t+1,a,!0,!0,!1,!0)||void 0===a&&Ke(e,t+1,null,!0,!0,!1,!0))&&(i&&""===l||(l+=Ee(e,t)),e.dump&&10===e.dump.charCodeAt(0)?l+="-":l+="- ",l+=e.dump)
-e.tag=c,e.dump=l||"[]"}function Be(e,t,n){var i,r,a,l,c,s
+return c+="\n",e.length-o>t&&a>o?c+=e.slice(o,a)+"\n"+e.slice(a+1):c+=e.slice(o),c.slice(1)}function Be(e,t,n,i){var r,o,a,l="",c=e.tag
+for(r=0,o=n.length;r<o;r+=1)a=n[r],e.replacer&&(a=e.replacer.call(n,String(r),a)),(We(e,t+1,a,!0,!0,!1,!0)||void 0===a&&We(e,t+1,null,!0,!0,!1,!0))&&(i&&""===l||(l+=Me(e,t)),e.dump&&10===e.dump.charCodeAt(0)?l+="-":l+="- ",l+=e.dump)
+e.tag=c,e.dump=l||"[]"}function Ke(e,t,n){var i,r,a,l,c,s
 for(a=0,l=(r=n?e.explicitTypes:e.implicitTypes).length;a<l;a+=1)if(((c=r[a]).instanceOf||c.predicate)&&(!c.instanceOf||"object"==typeof t&&t instanceof c.instanceOf)&&(!c.predicate||c.predicate(t))){if(n?c.multi&&c.representName?e.tag=c.representName(t):e.tag=c.tag:e.tag="?",c.represent){if(s=e.styleMap[c.tag]||c.defaultStyle,"[object Function]"===we.call(c.represent))i=c.represent(t,s)
 else{if(!Ce.call(c.represent,s))throw new o("!<"+c.tag+'> tag resolver accepts not "'+s+'" style')
-i=c.represent[s](t,s)}e.dump=i}return!0}return!1}function Ke(e,t,n,i,r,a,l){e.tag=null,e.dump=n,Be(e,n,!1)||Be(e,n,!0)
+i=c.represent[s](t,s)}e.dump=i}return!0}return!1}function We(e,t,n,i,r,a,l){e.tag=null,e.dump=n,Ke(e,n,!1)||Ke(e,n,!0)
 var c,s=we.call(e.dump),u=i
 i&&(i=e.flowLevel<0||e.flowLevel>t)
 var p,f,d="[object Object]"===s||"[object Array]"===s
@@ -240,25 +240,25 @@ else{if(d&&f&&!e.usedDuplicates[p]&&(e.usedDuplicates[p]=!0),"[object Object]"==
 if(!0===e.sortKeys)d.sort()
 else if("function"==typeof e.sortKeys)d.sort(e.sortKeys)
 else if(e.sortKeys)throw new o("sortKeys must be a boolean or a function")
-for(r=0,a=d.length;r<a;r+=1)u="",i&&""===p||(u+=Ee(e,t)),c=n[l=d[r]],e.replacer&&(c=e.replacer.call(n,l,c)),Ke(e,t+1,l,!0,!0,!0)&&((s=null!==e.tag&&"?"!==e.tag||e.dump&&e.dump.length>1024)&&(e.dump&&10===e.dump.charCodeAt(0)?u+="?":u+="? "),u+=e.dump,s&&(u+=Ee(e,t)),Ke(e,t+1,c,!0,s)&&(e.dump&&10===e.dump.charCodeAt(0)?u+=":":u+=": ",p+=u+=e.dump))
+for(r=0,a=d.length;r<a;r+=1)u="",i&&""===p||(u+=Me(e,t)),c=n[l=d[r]],e.replacer&&(c=e.replacer.call(n,l,c)),We(e,t+1,l,!0,!0,!0)&&((s=null!==e.tag&&"?"!==e.tag||e.dump&&e.dump.length>1024)&&(e.dump&&10===e.dump.charCodeAt(0)?u+="?":u+="? "),u+=e.dump,s&&(u+=Me(e,t)),We(e,t+1,c,!0,s)&&(e.dump&&10===e.dump.charCodeAt(0)?u+=":":u+=": ",p+=u+=e.dump))
 e.tag=f,e.dump=p||"{}"}(e,t,e.dump,r),f&&(e.dump="&ref_"+p+e.dump)):(function(e,t,n){var i,r,o,a,l,c="",s=e.tag,u=Object.keys(n)
-for(i=0,r=u.length;i<r;i+=1)l="",""!==c&&(l+=", "),e.condenseFlow&&(l+='"'),a=n[o=u[i]],e.replacer&&(a=e.replacer.call(n,o,a)),Ke(e,t,o,!1,!1)&&(e.dump.length>1024&&(l+="? "),l+=e.dump+(e.condenseFlow?'"':"")+":"+(e.condenseFlow?"":" "),Ke(e,t,a,!1,!1)&&(c+=l+=e.dump))
+for(i=0,r=u.length;i<r;i+=1)l="",""!==c&&(l+=", "),e.condenseFlow&&(l+='"'),a=n[o=u[i]],e.replacer&&(a=e.replacer.call(n,o,a)),We(e,t,o,!1,!1)&&(e.dump.length>1024&&(l+="? "),l+=e.dump+(e.condenseFlow?'"':"")+":"+(e.condenseFlow?"":" "),We(e,t,a,!1,!1)&&(c+=l+=e.dump))
 e.tag=s,e.dump="{"+c+"}"}(e,t,e.dump),f&&(e.dump="&ref_"+p+" "+e.dump))
-else if("[object Array]"===s)i&&0!==e.dump.length?(e.noArrayIndent&&!l&&t>0?$e(e,t-1,e.dump,r):$e(e,t,e.dump,r),f&&(e.dump="&ref_"+p+e.dump)):(function(e,t,n){var i,r,o,a="",l=e.tag
-for(i=0,r=n.length;i<r;i+=1)o=n[i],e.replacer&&(o=e.replacer.call(n,String(i),o)),(Ke(e,t,o,!1,!1)||void 0===o&&Ke(e,t,null,!1,!1))&&(""!==a&&(a+=","+(e.condenseFlow?"":" ")),a+=e.dump)
+else if("[object Array]"===s)i&&0!==e.dump.length?(e.noArrayIndent&&!l&&t>0?Be(e,t-1,e.dump,r):Be(e,t,e.dump,r),f&&(e.dump="&ref_"+p+e.dump)):(function(e,t,n){var i,r,o,a="",l=e.tag
+for(i=0,r=n.length;i<r;i+=1)o=n[i],e.replacer&&(o=e.replacer.call(n,String(i),o)),(We(e,t,o,!1,!1)||void 0===o&&We(e,t,null,!1,!1))&&(""!==a&&(a+=","+(e.condenseFlow?"":" ")),a+=e.dump)
 e.tag=l,e.dump="["+a+"]"}(e,t,e.dump),f&&(e.dump="&ref_"+p+" "+e.dump))
 else{if("[object String]"!==s){if("[object Undefined]"===s)return!1
 if(e.skipInvalid)return!1
-throw new o("unacceptable kind of an object to dump "+s)}"?"!==e.tag&&qe(e,e.dump,t,a,u)}null!==e.tag&&"?"!==e.tag&&(c=encodeURI("!"===e.tag[0]?e.tag.slice(1):e.tag).replace(/!/g,"%21"),c="!"===e.tag[0]?"!"+c:"tag:yaml.org,2002:"===c.slice(0,18)?"!!"+c.slice(18):"!<"+c+">",e.dump=c+" "+e.dump)}return!0}function We(e,t){var n,i,r=[],o=[]
-for(function e(t,n,i){var r,o,a
-if(null!==t&&"object"==typeof t)if(-1!==(o=n.indexOf(t)))-1===i.indexOf(o)&&i.push(o)
-else if(n.push(t),Array.isArray(t))for(o=0,a=t.length;o<a;o+=1)e(t[o],n,i)
-else for(r=Object.keys(t),o=0,a=r.length;o<a;o+=1)e(t[r[o]],n,i)}(e,r,o),n=0,i=o.length;n<i;n+=1)t.duplicates.push(r[o[n]])
-t.usedDuplicates=new Array(i)}function He(e,t){return function(){throw new Error("Function yaml."+e+" is removed in js-yaml 4. Use yaml."+t+" instead, which is now safe by default.")}}var Ge=p,Ve=h,Ze=m,ze=x,Je=I,Qe=Y,Xe=ke.load,et=ke.loadAll,tt={dump:function(e,t){var n=new je(t=t||{})
-n.noRefs||We(e,n)
+throw new o("unacceptable kind of an object to dump "+s)}"?"!==e.tag&&Ye(e,e.dump,t,a,u)}null!==e.tag&&"?"!==e.tag&&(c=encodeURI("!"===e.tag[0]?e.tag.slice(1):e.tag).replace(/!/g,"%21"),c="!"===e.tag[0]?"!"+c:"tag:yaml.org,2002:"===c.slice(0,18)?"!!"+c.slice(18):"!<"+c+">",e.dump=c+" "+e.dump)}return!0}function He(e,t){var n,i,r=[],o=[]
+for(Ge(e,r,o),n=0,i=o.length;n<i;n+=1)t.duplicates.push(r[o[n]])
+t.usedDuplicates=new Array(i)}function Ge(e,t,n){var i,r,o
+if(null!==e&&"object"==typeof e)if(-1!==(r=t.indexOf(e)))-1===n.indexOf(r)&&n.push(r)
+else if(t.push(e),Array.isArray(e))for(r=0,o=e.length;r<o;r+=1)Ge(e[r],t,n)
+else for(r=0,o=(i=Object.keys(e)).length;r<o;r+=1)Ge(e[i[r]],t,n)}function Ve(e,t){return function(){throw new Error("Function yaml."+e+" is removed in js-yaml 4. Use yaml."+t+" instead, which is now safe by default.")}}var Ze=p,ze=h,Je=m,Qe=x,Xe=I,et=Y,tt=ke.load,nt=ke.loadAll,it={dump:function(e,t){var n=new Te(t=t||{})
+n.noRefs||He(e,n)
 var i=e
-return n.replacer&&(i=n.replacer.call({"":i},"",i)),Ke(n,0,i,!0,!0)?n.dump+"\n":""}}.dump,nt=o,it=He("safeLoad","load"),rt=He("safeLoadAll","loadAll"),ot=He("safeDump","dump"),at={Type:Ge,Schema:Ve,FAILSAFE_SCHEMA:Ze,JSON_SCHEMA:ze,CORE_SCHEMA:Je,DEFAULT_SCHEMA:Qe,load:Xe,loadAll:et,dump:tt,YAMLException:nt,safeLoad:it,safeLoadAll:rt,safeDump:ot}
-e.CORE_SCHEMA=Je,e.DEFAULT_SCHEMA=Qe,e.FAILSAFE_SCHEMA=Ze,e.JSON_SCHEMA=ze,e.Schema=Ve,e.Type=Ge,e.YAMLException=nt,e.default=at,e.dump=tt,e.load=Xe,e.loadAll=et,e.safeDump=ot,e.safeLoad=it,e.safeLoadAll=rt,Object.defineProperty(e,"__esModule",{value:!0})})),function(e){"object"==typeof exports&&"object"==typeof module?e(require("../../lib/codemirror")):"function"==typeof define&&define.amd?define(["../../lib/codemirror"],e):e(CodeMirror)}((function(e){"use strict"
+return n.replacer&&(i=n.replacer.call({"":i},"",i)),We(n,0,i,!0,!0)?n.dump+"\n":""}}.dump,rt=o,ot=Ve("safeLoad","load"),at=Ve("safeLoadAll","loadAll"),lt=Ve("safeDump","dump"),ct={Type:Ze,Schema:ze,FAILSAFE_SCHEMA:Je,JSON_SCHEMA:Qe,CORE_SCHEMA:Xe,DEFAULT_SCHEMA:et,load:tt,loadAll:nt,dump:it,YAMLException:rt,safeLoad:ot,safeLoadAll:at,safeDump:lt}
+e.CORE_SCHEMA=Xe,e.DEFAULT_SCHEMA=et,e.FAILSAFE_SCHEMA=Je,e.JSON_SCHEMA=Qe,e.Schema=ze,e.Type=Ze,e.YAMLException=rt,e.default=ct,e.dump=it,e.load=tt,e.loadAll=nt,e.safeDump=lt,e.safeLoad=ot,e.safeLoadAll=at,Object.defineProperty(e,"__esModule",{value:!0})})),function(e){"object"==typeof exports&&"object"==typeof module?e(require("../../lib/codemirror")):"function"==typeof define&&define.amd?define(["../../lib/codemirror"],e):e(CodeMirror)}((function(e){"use strict"
 e.defineMode("yaml",(function(){var e=new RegExp("\\b(("+["true","false","on","off","yes","no"].join(")|(")+"))$","i")
 return{token:function(t,n){var i=t.peek(),r=n.escaped
 if(n.escaped=!1,"#"==i&&(0==t.pos||/\s/.test(t.string.charAt(t.pos-1))))return t.skipToEnd(),"comment"
