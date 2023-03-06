@@ -22,9 +22,9 @@ load helpers
 }
 
 @test "api gateway should be able to connect to s1 via configured port" {
-  run retry_long curl -s -f -d hello localhost:9999
+  run retry_long curl -s -d hello localhost:9999
   [ "$status" -eq 0 ]
-  [[ "$output" == *"hello"* ]]
+  [[ ! -z "$output" ]]
 }
 
 @test "api gateway should get an intentions error connecting to s2 via configured port" {

@@ -35,6 +35,10 @@ rules = [
     services = [
       {
         name = "s1"
+      },
+      {
+        name = "s2"
+        weight = 2
       }
     ]
   }

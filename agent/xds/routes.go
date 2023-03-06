@@ -218,7 +218,7 @@ func (s *ResourceGenerator) makeRoutes(
 	if resolver.LoadBalancer != nil {
 		lb = resolver.LoadBalancer
 	}
-	route, err := makeNamedDefaultRouteWithLB(clusterName, lb, autoHostRewrite)
+	route, err := makeNamedDefaultRouteWithLB(clusterName, lb, resolver.RequestTimeout, autoHostRewrite)
 	if err != nil {
 		s.Logger.Error("failed to make route", "cluster", clusterName, "error", err)
 		return nil, err
@@ -228,7 +228,7 @@ func (s *ResourceGenerator) makeRoutes(
 	// If there is a service-resolver for this service then also setup routes for each subset
 	for name := range resolver.Subsets {
 		clusterName = connect.ServiceSNI(svc.Name, name, svc.NamespaceOrDefault(), svc.PartitionOrDefault(), cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
-		route, err := makeNamedDefaultRouteWithLB(clusterName, lb, true)
+		route, err := makeNamedDefaultRouteWithLB(clusterName, lb, resolver.RequestTimeout, true)
 		if err != nil {
 			s.Logger.Error("failed to make route", "cluster", clusterName, "error", err)
 			return nil, err
@@ -282,7 +282,7 @@ func (s *ResourceGenerator) routesForMeshGateway(cfgSnap *proxycfg.ConfigSnapsho
 	return resources, nil
 }
 
-func makeNamedDefaultRouteWithLB(clusterName string, lb *structs.LoadBalancer, autoHostRewrite bool) (*envoy_route_v3.RouteConfiguration, error) {
+func makeNamedDefaultRouteWithLB(clusterName string, lb *structs.LoadBalancer, timeout time.Duration, autoHostRewrite bool) (*envoy_route_v3.RouteConfiguration, error) {
 	action := makeRouteActionFromName(clusterName)
 
 	if err := injectLBToRouteAction(lb, action.Route); err != nil {
@@ -294,6 +294,10 @@ func makeNamedDefaultRouteWithLB(clusterName string, lb *structs.LoadBalancer, a
 		action.Route.HostRewriteSpecifier = &envoy_route_v3.RouteAction_AutoHostRewrite{
 			AutoHostRewrite: makeBoolValue(true),
 		}
+	}
+
+	if timeout != 0 {
+		action.Route.Timeout = durationpb.New(timeout)
 	}
 
 	return &envoy_route_v3.RouteConfiguration{
@@ -637,6 +641,9 @@ func (s *ResourceGenerator) makeUpstreamRouteForDiscoveryChain(
 			return nil, fmt.Errorf("failed to apply load balancer configuration to route action: %v", err)
 		}
 
+		if startNode.Resolver.RequestTimeout > 0 {
+			routeAction.Route.Timeout = durationpb.New(startNode.Resolver.RequestTimeout)
+		}
 		defaultRoute := &envoy_route_v3.Route{
 			Match:  makeDefaultRouteMatch(),
 			Action: routeAction,
@@ -856,6 +863,7 @@ func (s *ResourceGenerator) makeRouteActionForSplitter(
 	forMeshGateway bool,
 ) (*envoy_route_v3.Route_Route, error) {
 	clusters := make([]*envoy_route_v3.WeightedCluster_ClusterWeight, 0, len(splits))
+	totalWeight := 0
 	for _, split := range splits {
 		nextNode := chain.Nodes[split.NextNode]
 
@@ -871,8 +879,10 @@ func (s *ResourceGenerator) makeRouteActionForSplitter(
 
 		// The smallest representable weight is 1/10000 or .01% but envoy
 		// deals with integers so scale everything up by 100x.
+		weight := int(split.Weight * 100)
+		totalWeight += weight
 		cw := &envoy_route_v3.WeightedCluster_ClusterWeight{
-			Weight: makeUint32Value(int(split.Weight * 100)),
+			Weight: makeUint32Value(weight),
 			Name:   clusterName,
 		}
 		if err := injectHeaderManipToWeightedCluster(split.Definition, cw); err != nil {
@@ -886,12 +896,19 @@ func (s *ResourceGenerator) makeRouteActionForSplitter(
 		return nil, fmt.Errorf("number of clusters in splitter must be > 0; got %d", len(clusters))
 	}
 
+	envoyWeightScale := 10000
+	if envoyWeightScale < totalWeight {
+		clusters[0].Weight.Value += uint32(totalWeight - envoyWeightScale)
+	} else {
+		clusters[0].Weight.Value += uint32(envoyWeightScale - totalWeight)
+	}
+
 	return &envoy_route_v3.Route_Route{
 		Route: &envoy_route_v3.RouteAction{
 			ClusterSpecifier: &envoy_route_v3.RouteAction_WeightedClusters{
 				WeightedClusters: &envoy_route_v3.WeightedCluster{
 					Clusters:    clusters,
-					TotalWeight: makeUint32Value(10000), // scaled up 100%
+					TotalWeight: makeUint32Value(envoyWeightScale), // scaled up 100%
 				},
 			},
 		},

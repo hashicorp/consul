@@ -9,10 +9,9 @@ description: The /query endpoints manage and execute prepared queries in Consul.
 The `/query` endpoints create, update, destroy, and execute prepared queries.
 
 Prepared queries allow you to register a complex service query and then execute
-it later via its ID or name to get a set of healthy nodes that provide a given
-service. This is particularly useful in combination with Consul's
-[DNS Interface](/consul/docs/discovery/dns#prepared-query-lookups) as it allows for much richer queries than
-would be possible given the limited entry points exposed by DNS.
+it later by specifying the query ID or name. Consul returns a set of healthy nodes that provide a given
+service. Refer to 
+[Enable Dynamic DNS Queries](/consul/docs/services/discovery/dns-dynamic-lookups) for additional information.
 
 Check the [Geo Failover tutorial](/consul/tutorials/developer-discovery/automate-geo-failover) for details and
 examples for using prepared queries to implement geo failover for services.

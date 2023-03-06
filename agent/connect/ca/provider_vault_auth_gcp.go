@@ -16,7 +16,7 @@ func NewGCPAuthClient(authMethod *structs.VaultAuthMethod) (VaultAuthenticator, 
 	// perform a direct request to the login API with the config that is provided.
 	// This supports the  Vault CA config in a backwards compatible way so that we don't
 	// break existing configurations.
-	if containsVaultLoginParams(authMethod, "jwt") {
+	if legacyCheck(authMethod.Params, "jwt") {
 		return NewVaultAPIAuthClient(authMethod, ""), nil
 	}
 

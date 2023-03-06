@@ -3,7 +3,7 @@
 
 package e2e
 
-import "github.com/hashicorp/consul/proto/private/pbcommon"
+import "github.com/hashicorp/consul/proto/pbcommon"
 
 // @consul-rpc-glue: WriteRequest,TargetDatacenter
 type ExampleWriteRequest struct {

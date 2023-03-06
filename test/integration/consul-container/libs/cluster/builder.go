@@ -245,6 +245,11 @@ func (b *Builder) Peering(enable bool) *Builder {
 	return b
 }
 
+func (b *Builder) Partition(name string) *Builder {
+	b.conf.Set("partition", name)
+	return b
+}
+
 func (b *Builder) RetryJoin(names ...string) *Builder {
 	b.conf.Set("retry_join", names)
 	return b

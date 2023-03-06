@@ -1475,6 +1475,10 @@ type RuntimeConfig struct {
 	// AutoReloadConfigCoalesceInterval Coalesce Interval for auto reload config
 	AutoReloadConfigCoalesceInterval time.Duration
 
+	// LocalProxyConfigResyncInterval is not a user-configurable value and exists
+	// here so that tests can use a smaller value.
+	LocalProxyConfigResyncInterval time.Duration
+
 	EnterpriseRuntimeConfig
 }
 

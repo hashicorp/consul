@@ -54,7 +54,7 @@ Details on the steps are below:
 
 - **Service discovery** - This is normal service discovery using Consul,
   a static IP, or any other mechanism. If you're using Consul DNS, the
-  [`<service>.connect`](/consul/docs/discovery/dns#connect-capable-service-lookups)
+  [`<service>.connect`](/consul/docs/services/discovery/dns-static-lookups#service-mesh-enabled-service-lookups)
   syntax to find Connect-capable endpoints for a service. After service
   discovery, choose one address from the list of **service addresses**.
 
@@ -94,7 +94,7 @@ Details on the steps are below:
     HTTP) aware it can safely enforce intentions per _request_ instead of the
     coarser per _connection_ model.
 
-## Updating Certificates and Certificate Roots
+## Update certificates and certificate roots
 
 The leaf certificate and CA roots can be updated at any time and the
 natively integrated application must react to this relatively quickly
@@ -129,14 +129,14 @@ Some language libraries such as the
 [Go library](/consul/docs/connect/native/go) automatically handle updating
 and locally caching the certificates.
 
-## Service Registration
+## Service registration
 
 Connect-native applications must tell Consul that they support Connect
 natively. This enables the service to be returned as part of service
-discovery for Connect-capable services, used by other Connect-native applications
+discovery for service mesh-capable services used by other Connect-native applications
 and client [proxies](/consul/docs/connect/proxies).
 
-This can be specified directly in the [service definition](/consul/docs/discovery/services):
+You can enable native service mesh support directly in the [service definition](/consul/docs/services/configuration/services-configuration-reference#connect) by configuring the `connect` block. In the following example, the `redis` service is configured to support service mesh natively:
 
 ```json
 {

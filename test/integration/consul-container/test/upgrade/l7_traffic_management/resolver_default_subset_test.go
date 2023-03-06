@@ -11,9 +11,8 @@ import (
 	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
 	libservice "github.com/hashicorp/consul/test/integration/consul-container/libs/service"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/topology"
-	libutils "github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
-	upgrade "github.com/hashicorp/consul/test/integration/consul-container/test/upgrade"
-	"github.com/hashicorp/go-version"
+	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
+	"github.com/hashicorp/consul/test/integration/consul-container/test/upgrade"
 	"github.com/stretchr/testify/require"
 )
 
@@ -67,7 +66,7 @@ func TestTrafficManagement_ServiceResolver(t *testing.T) {
 				}
 				_, serverConnectProxyV2, err := libservice.CreateAndRegisterStaticServerAndSidecar(node, serviceOptsV2)
 				require.NoError(t, err)
-				libassert.CatalogServiceExists(t, client, "static-server")
+				libassert.CatalogServiceExists(t, client, libservice.StaticServerServiceName, nil)
 
 				// TODO: verify the number of instance of static-server is 3
 				libassert.AssertServiceHasHealthyInstances(t, node, libservice.StaticServerServiceName, true, 3)
@@ -104,8 +103,8 @@ func TestTrafficManagement_ServiceResolver(t *testing.T) {
 					libassert.AssertEnvoyRunning(t, serverAdminPortV1)
 					libassert.AssertEnvoyRunning(t, serverAdminPortV2)
 
-					libassert.AssertEnvoyPresentsCertURI(t, serverAdminPortV1, "static-server")
-					libassert.AssertEnvoyPresentsCertURI(t, serverAdminPortV2, "static-server")
+					libassert.AssertEnvoyPresentsCertURI(t, serverAdminPortV1, libservice.StaticServerServiceName)
+					libassert.AssertEnvoyPresentsCertURI(t, serverAdminPortV2, libservice.StaticServerServiceName)
 
 					libassert.AssertUpstreamEndpointStatus(t, adminPort, "v2.static-server.default", "HEALTHY", 1)
 
@@ -121,7 +120,7 @@ func TestTrafficManagement_ServiceResolver(t *testing.T) {
 				libassert.AssertUpstreamEndpointStatus(t, adminPort, "v2.static-server.default", "HEALTHY", 1)
 
 				// static-client upstream should connect to static-server-v2 because the default subset value is to v2 set in the service resolver
-				libassert.AssertFortioName(t, fmt.Sprintf("http://localhost:%d", port), "static-server-v2")
+				libassert.AssertFortioName(t, fmt.Sprintf("http://localhost:%d", port), "static-server-v2", "")
 			},
 		},
 		{
@@ -182,7 +181,7 @@ func TestTrafficManagement_ServiceResolver(t *testing.T) {
 					libassert.AssertServiceHasHealthyInstances(t, node, libservice.StaticServerServiceName, true, 1)
 
 					libassert.AssertEnvoyRunning(t, serverAdminPortV1)
-					libassert.AssertEnvoyPresentsCertURI(t, serverAdminPortV1, "static-server")
+					libassert.AssertEnvoyPresentsCertURI(t, serverAdminPortV1, libservice.StaticServerServiceName)
 
 					// assert static-server proxies should be healthy
 					libassert.AssertServiceHasHealthyInstances(t, node, libservice.StaticServerServiceName, true, 1)
@@ -194,7 +193,7 @@ func TestTrafficManagement_ServiceResolver(t *testing.T) {
 					libassert.AssertUpstreamEndpointStatus(t, adminPort, "test.static-server.default", "UNHEALTHY", 1)
 
 					// static-client upstream should connect to static-server since it is passing
-					libassert.AssertFortioName(t, fmt.Sprintf("http://localhost:%d", port), libservice.StaticServerServiceName)
+					libassert.AssertFortioName(t, fmt.Sprintf("http://localhost:%d", port), libservice.StaticServerServiceName, "")
 
 					// ###########################
 					// ## with onlypassing=false
@@ -235,7 +234,7 @@ func TestTrafficManagement_ServiceResolver(t *testing.T) {
 				}
 				_, server2ConnectProxy, err := libservice.CreateAndRegisterStaticServerAndSidecar(node, serviceOpts2)
 				require.NoError(t, err)
-				libassert.CatalogServiceExists(t, client, libservice.StaticServer2ServiceName)
+				libassert.CatalogServiceExists(t, client, libservice.StaticServer2ServiceName, nil)
 
 				serviceOptsV1 := &libservice.ServiceOpts{
 					Name:     libservice.StaticServer2ServiceName,
@@ -256,7 +255,7 @@ func TestTrafficManagement_ServiceResolver(t *testing.T) {
 				}
 				_, server2ConnectProxyV2, err := libservice.CreateAndRegisterStaticServerAndSidecar(node, serviceOptsV2)
 				require.NoError(t, err)
-				libassert.CatalogServiceExists(t, client, libservice.StaticServer2ServiceName)
+				libassert.CatalogServiceExists(t, client, libservice.StaticServer2ServiceName, nil)
 
 				// Register static-server service resolver
 				serviceResolver := &api.ServiceResolverConfigEntry{
@@ -318,7 +317,7 @@ func TestTrafficManagement_ServiceResolver(t *testing.T) {
 				_, appPort := clientConnectProxy.GetAddr()
 				_, adminPort := clientConnectProxy.GetAdminAddr()
 
-				libassert.AssertFortioName(t, fmt.Sprintf("http://localhost:%d", appPort), "static-server-2-v2")
+				libassert.AssertFortioName(t, fmt.Sprintf("http://localhost:%d", appPort), "static-server-2-v2", "")
 				libassert.AssertUpstreamEndpointStatus(t, adminPort, "v2.static-server-2.default", "HEALTHY", 1)
 			},
 		},
@@ -330,19 +329,20 @@ func TestTrafficManagement_ServiceResolver(t *testing.T) {
 			Datacenter:           "dc1",
 			InjectAutoEncryption: true,
 		}
-		// If version < 1.14 disable AutoEncryption
-		oldVersionTmp, _ := version.NewVersion(oldVersion)
-		if oldVersionTmp.LessThan(libutils.Version_1_14) {
-			buildOpts.InjectAutoEncryption = false
-		}
-		cluster, _, _ := topology.NewPeeringCluster(t, 1, buildOpts)
+
+		cluster, _, _ := topology.NewCluster(t, &topology.ClusterConfig{
+			NumServers:                1,
+			NumClients:                1,
+			BuildOpts:                 buildOpts,
+			ApplyDefaultProxySettings: true,
+		})
 		node := cluster.Agents[0]
 		client := node.GetClient()
 
 		staticClientProxy, staticServerProxy, err := createStaticClientAndServer(cluster)
 		require.NoError(t, err)
-		libassert.CatalogServiceExists(t, client, libservice.StaticServerServiceName)
-		libassert.CatalogServiceExists(t, client, fmt.Sprintf("%s-sidecar-proxy", libservice.StaticClientServiceName))
+		libassert.CatalogServiceExists(t, client, libservice.StaticServerServiceName, nil)
+		libassert.CatalogServiceExists(t, client, fmt.Sprintf("%s-sidecar-proxy", libservice.StaticClientServiceName), nil)
 
 		err = cluster.ConfigEntryWrite(&api.ProxyConfigEntry{
 			Kind: api.ProxyDefaults,
@@ -386,12 +386,11 @@ func TestTrafficManagement_ServiceResolver(t *testing.T) {
 		tc.extraAssertion(staticClientProxy)
 	}
 
-	targetVersion := libutils.TargetVersion
 	for _, oldVersion := range upgrade.UpgradeFromVersions {
 		for _, tc := range tcs {
-			t.Run(fmt.Sprintf("%s upgrade from %s to %s", tc.name, oldVersion, targetVersion),
+			t.Run(fmt.Sprintf("%s upgrade from %s to %s", tc.name, oldVersion, utils.TargetVersion),
 				func(t *testing.T) {
-					run(t, tc, oldVersion, targetVersion)
+					run(t, tc, oldVersion, utils.TargetVersion)
 				})
 		}
 	}
