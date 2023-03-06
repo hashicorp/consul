@@ -22,6 +22,13 @@ func TestTokenUpdateCommand_noTabs(t *testing.T) {
 	}
 }
 
+func create_token(t *testing.T, client *api.Client, aclToken *api.ACLToken, writeOptions *api.WriteOptions) *api.ACLToken {
+	token, _, err := client.ACL().TokenCreate(aclToken, writeOptions)
+	require.NoError(t, err)
+
+	return token
+}
+
 func TestTokenUpdateCommand(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
@@ -65,12 +72,7 @@ func TestTokenUpdateCommand(t *testing.T) {
 
 	// update with node identity
 	t.Run("node-identity", func(t *testing.T) {
-		// create a token
-		token, _, err := client.ACL().TokenCreate(
-			&api.ACLToken{Description: "test"},
-			&api.WriteOptions{Token: "root"},
-		)
-		require.NoError(t, err)
+		token := create_token(t, client, &api.ACLToken{Description: "test"}, &api.WriteOptions{Token: "root"})
 
 		responseToken := run(t, []string{
 			"-http-addr=" + a.HTTPAddr(),
@@ -86,15 +88,11 @@ func TestTokenUpdateCommand(t *testing.T) {
 	})
 
 	t.Run("node-identity-merge", func(t *testing.T) {
-		// create a token
-		token, _, err := client.ACL().TokenCreate(
-			&api.ACLToken{
-				Description:    "test",
-				NodeIdentities: []*api.ACLNodeIdentity{{NodeName: "foo", Datacenter: "bar"}},
-			},
+		token := create_token(t,
+			client,
+			&api.ACLToken{Description: "test", NodeIdentities: []*api.ACLNodeIdentity{{NodeName: "foo", Datacenter: "bar"}}},
 			&api.WriteOptions{Token: "root"},
 		)
-		require.NoError(t, err)
 
 		responseToken := run(t, []string{
 			"-http-addr=" + a.HTTPAddr(),
@@ -121,12 +119,7 @@ func TestTokenUpdateCommand(t *testing.T) {
 
 	// update with policy by name
 	t.Run("policy-name", func(t *testing.T) {
-		// create a token
-		token, _, err := client.ACL().TokenCreate(
-			&api.ACLToken{Description: "test"},
-			&api.WriteOptions{Token: "root"},
-		)
-		require.NoError(t, err)
+		token := create_token(t, client, &api.ACLToken{Description: "test"}, &api.WriteOptions{Token: "root"})
 
 		responseToken := run(t, []string{
 			"-http-addr=" + a.HTTPAddr(),
@@ -141,12 +134,7 @@ func TestTokenUpdateCommand(t *testing.T) {
 
 	// update with policy by id
 	t.Run("policy-id", func(t *testing.T) {
-		// create a token
-		token, _, err := client.ACL().TokenCreate(
-			&api.ACLToken{Description: "test"},
-			&api.WriteOptions{Token: "root"},
-		)
-		require.NoError(t, err)
+		token := create_token(t, client, &api.ACLToken{Description: "test"}, &api.WriteOptions{Token: "root"})
 
 		responseToken := run(t, []string{
 			"-http-addr=" + a.HTTPAddr(),
@@ -161,12 +149,7 @@ func TestTokenUpdateCommand(t *testing.T) {
 
 	// update with service-identity
 	t.Run("service-identity", func(t *testing.T) {
-		// create a token
-		token, _, err := client.ACL().TokenCreate(
-			&api.ACLToken{Description: "test"},
-			&api.WriteOptions{Token: "root"},
-		)
-		require.NoError(t, err)
+		token := create_token(t, client, &api.ACLToken{Description: "test"}, &api.WriteOptions{Token: "root"})
 
 		responseToken := run(t, []string{
 			"-http-addr=" + a.HTTPAddr(),
@@ -182,12 +165,7 @@ func TestTokenUpdateCommand(t *testing.T) {
 
 	// update with no description shouldn't delete the current description
 	t.Run("merge-description", func(t *testing.T) {
-		// create a token
-		token, _, err := client.ACL().TokenCreate(
-			&api.ACLToken{Description: "test token"},
-			&api.WriteOptions{Token: "root"},
-		)
-		require.NoError(t, err)
+		token := create_token(t, client, &api.ACLToken{Description: "test token"}, &api.WriteOptions{Token: "root"})
 
 		responseToken := run(t, []string{
 			"-http-addr=" + a.HTTPAddr(),
@@ -250,12 +228,10 @@ func TestTokenUpdateCommandWithAppend(t *testing.T) {
 
 	// update with append-policy-name
 	t.Run("append-policy-name", func(t *testing.T) {
-		// create a token
-		token, _, err := client.ACL().TokenCreate(
+		token := create_token(t, client,
 			&api.ACLToken{Description: "test", Policies: []*api.ACLTokenPolicyLink{{Name: policy.Name}}},
 			&api.WriteOptions{Token: "root"},
 		)
-		require.NoError(t, err)
 
 		responseToken := run(t, []string{
 			"-http-addr=" + a.HTTPAddr(),
@@ -270,12 +246,10 @@ func TestTokenUpdateCommandWithAppend(t *testing.T) {
 
 	// update with append-policy-id
 	t.Run("append-policy-id", func(t *testing.T) {
-		// create a token
-		token, _, err := client.ACL().TokenCreate(
+		token := create_token(t, client,
 			&api.ACLToken{Description: "test", Policies: []*api.ACLTokenPolicyLink{{Name: policy.Name}}},
 			&api.WriteOptions{Token: "root"},
 		)
-		require.NoError(t, err)
 
 		responseToken := run(t, []string{
 			"-http-addr=" + a.HTTPAddr(),
@@ -290,8 +264,7 @@ func TestTokenUpdateCommandWithAppend(t *testing.T) {
 
 	// update with append-node-identity
 	t.Run("append-node-identity", func(t *testing.T) {
-		// create a token
-		token, _, err := client.ACL().TokenCreate(
+		token := create_token(t, client,
 			&api.ACLToken{
 				Description:    "test",
 				Policies:       []*api.ACLTokenPolicyLink{{Name: policy.Name}},
@@ -299,7 +272,6 @@ func TestTokenUpdateCommandWithAppend(t *testing.T) {
 			},
 			&api.WriteOptions{Token: "root"},
 		)
-		require.NoError(t, err)
 
 		responseToken := run(t, []string{
 			"-http-addr=" + a.HTTPAddr(),
@@ -316,8 +288,7 @@ func TestTokenUpdateCommandWithAppend(t *testing.T) {
 
 	// update with append-service-identity
 	t.Run("append-service-identity", func(t *testing.T) {
-		// create a token
-		token, _, err := client.ACL().TokenCreate(
+		token := create_token(t, client,
 			&api.ACLToken{
 				Description:       "test",
 				Policies:          []*api.ACLTokenPolicyLink{{Name: policy.Name}},
@@ -325,7 +296,6 @@ func TestTokenUpdateCommandWithAppend(t *testing.T) {
 			},
 			&api.WriteOptions{Token: "root"},
 		)
-		require.NoError(t, err)
 
 		responseToken := run(t, []string{
 			"-http-addr=" + a.HTTPAddr(),
@@ -334,6 +304,7 @@ func TestTokenUpdateCommandWithAppend(t *testing.T) {
 			"-append-service-identity=web",
 			"-description=test token",
 		})
+
 		require.Len(t, responseToken.ServiceIdentities, 2)
 		require.Equal(t, "web", responseToken.ServiceIdentities[1].ServiceName)
 	})
@@ -369,12 +340,7 @@ func TestTokenUpdateCommand_JSON(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	// create a token
-	token, _, err := client.ACL().TokenCreate(
-		&api.ACLToken{Description: "test"},
-		&api.WriteOptions{Token: "root"},
-	)
-	require.NoError(t, err)
+	token := create_token(t, client, &api.ACLToken{Description: "test"}, &api.WriteOptions{Token: "root"})
 
 	t.Run("update with policy by name", func(t *testing.T) {
 		cmd := New(ui)
