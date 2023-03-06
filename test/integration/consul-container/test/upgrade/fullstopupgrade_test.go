@@ -15,37 +15,42 @@ import (
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 )
 
+type testcase struct {
+	oldVersion    string
+	targetVersion string
+	expectErr     bool
+}
+
+var (
+	tcs []testcase
+)
+
 // Test upgrade a cluster of latest version to the target version
 func TestStandardUpgradeToTarget_fromLatest(t *testing.T) {
 	t.Parallel()
 
-	type testcase struct {
-		oldversion    string
-		targetVersion string
-		expectErr     bool
-	}
-	tcs := []testcase{
-		// Use the case of "1.12.3" ==> "1.13.0" to verify the test can
-		// catch the upgrade bug found in snapshot of 1.13.0
-		{
-			oldversion:    "1.12.3",
+	tcs = append(tcs,
+		testcase{
+			// Use the case of "1.12.3" ==> "1.13.0" to verify the test can
+			// catch the upgrade bug found in snapshot of 1.13.0
+			oldVersion:    "1.12.3",
 			targetVersion: "1.13.0",
 			expectErr:     true,
 		},
-		{
-			oldversion:    "1.13",
+	)
+
+	for _, oldVersion := range UpgradeFromVersions {
+		tcs = append(tcs, testcase{
+			oldVersion:    oldVersion,
 			targetVersion: utils.TargetVersion,
 		},
-		{
-			oldversion:    "1.14",
-			targetVersion: utils.TargetVersion,
-		},
+		)
 	}
 
 	run := func(t *testing.T, tc testcase) {
 		configCtx := libcluster.NewBuildContext(t, libcluster.BuildOptions{
 			ConsulImageName: utils.TargetImageName,
-			ConsulVersion:   tc.oldversion,
+			ConsulVersion:   tc.oldVersion,
 		})
 
 		const (
@@ -56,7 +61,7 @@ func TestStandardUpgradeToTarget_fromLatest(t *testing.T) {
 			Bootstrap(numServers).
 			ToAgentConfig(t)
 		t.Logf("Cluster config:\n%s", serverConf.JSON)
-		require.Equal(t, tc.oldversion, serverConf.Version) // TODO: remove
+		require.Equal(t, tc.oldVersion, serverConf.Version) // TODO: remove
 
 		cluster, err := libcluster.NewN(t, *serverConf, numServers)
 		require.NoError(t, err)
@@ -90,6 +95,7 @@ func TestStandardUpgradeToTarget_fromLatest(t *testing.T) {
 		// upgrade the cluster to the Target version
 		t.Logf("initiating standard upgrade to version=%q", tc.targetVersion)
 		err = cluster.StandardUpgrade(t, context.Background(), tc.targetVersion)
+
 		if !tc.expectErr {
 			require.NoError(t, err)
 			libcluster.WaitForLeader(t, cluster, client)
@@ -108,9 +114,10 @@ func TestStandardUpgradeToTarget_fromLatest(t *testing.T) {
 	}
 
 	for _, tc := range tcs {
-		t.Run(fmt.Sprintf("upgrade from %s to %s", tc.oldversion, tc.targetVersion),
+		t.Run(fmt.Sprintf("upgrade from %s to %s", tc.oldVersion, tc.targetVersion),
 			func(t *testing.T) {
 				run(t, tc)
 			})
+		time.Sleep(1 * time.Second)
 	}
 }

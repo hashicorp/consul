@@ -163,24 +163,3 @@ func testMixedServersGAClient(t *testing.T, majorityIsTarget bool) {
 		t.Fatalf("test timeout")
 	}
 }
-
-func serversCluster(t *testing.T, numServers int, image, version string) *libcluster.Cluster {
-	opts := libcluster.BuildOptions{
-		ConsulImageName: image,
-		ConsulVersion:   version,
-	}
-	ctx := libcluster.NewBuildContext(t, opts)
-
-	conf := libcluster.NewConfigBuilder(ctx).
-		Bootstrap(numServers).
-		ToAgentConfig(t)
-	t.Logf("Cluster server config:\n%s", conf.JSON)
-
-	cluster, err := libcluster.NewN(t, *conf, numServers)
-	require.NoError(t, err)
-
-	libcluster.WaitForLeader(t, cluster, nil)
-	libcluster.WaitForMembers(t, cluster.APIClient(0), numServers)
-
-	return cluster
-}
