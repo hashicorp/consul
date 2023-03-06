@@ -109,6 +109,22 @@ func TestTokenUpdateCommand(t *testing.T) {
 		require.ElementsMatch(t, expected, token.NodeIdentities)
 	})
 
+	// update with append-node-identity
+	t.Run("append-node-identity", func(t *testing.T) {
+
+		token := run(t, []string{
+			"-http-addr=" + a.HTTPAddr(),
+			"-accessor-id=" + token.AccessorID,
+			"-token=root",
+			"-append-node-identity=third:node",
+			"-description=test token",
+		})
+
+		require.Len(t, token.NodeIdentities, 3)
+		require.Equal(t, "third", token.NodeIdentities[2].NodeName)
+		require.Equal(t, "node", token.NodeIdentities[2].Datacenter)
+	})
+
 	// update with policy by name
 	t.Run("policy-name", func(t *testing.T) {
 		token := run(t, []string{
@@ -133,6 +149,33 @@ func TestTokenUpdateCommand(t *testing.T) {
 		})
 
 		require.Len(t, token.Policies, 1)
+	})
+
+	// update with service-identity
+	t.Run("service-identity", func(t *testing.T) {
+		token := run(t, []string{
+			"-http-addr=" + a.HTTPAddr(),
+			"-accessor-id=" + token.AccessorID,
+			"-token=root",
+			"-service-identity=service:datapalace",
+			"-description=test token",
+		})
+
+		require.Len(t, token.ServiceIdentities, 1)
+		require.Equal(t, "service", token.ServiceIdentities[0].ServiceName)
+	})
+
+	// update with append-service-identity
+	t.Run("append-service-identity", func(t *testing.T) {
+		token := run(t, []string{
+			"-http-addr=" + a.HTTPAddr(),
+			"-accessor-id=" + token.AccessorID,
+			"-token=root",
+			"-append-service-identity=web",
+			"-description=test token",
+		})
+		require.Len(t, token.ServiceIdentities, 2)
+		require.Equal(t, "web", token.ServiceIdentities[1].ServiceName)
 	})
 
 	// update with no description shouldn't delete the current description

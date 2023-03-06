@@ -33,8 +33,9 @@ Usage: `consul acl token update [options]`
 - `-id=<string>` - The Accessor ID of the token to read. It may be specified as a
   unique ID prefix but will error if the prefix matches multiple token Accessor IDs
 
-- `merge-node-identities` - Merge the new node identities with the existing node
+- `-merge-node-identities` - Deprecated. Merge the new node identities with the existing node
   identities.
+~> This is deprecated and will be removed in a future Consul version. Use `append-node-identity` instead.
 
 - `-merge-policies` - Deprecated. Merge the new policies with the existing policies.
 
@@ -46,14 +47,19 @@ instead.
 ~> This is deprecated and will be removed in a future Consul version. Use `append-role-id` or `append-role-name`
 instead.
 
-- `-merge-service-identities` - Merge the new service identities with the existing service identities.
+- `-merge-service-identities` - Deprecated. Merge the new service identities with the existing service identities.
+
+~> This is deprecated and will be removed in a future Consul version. Use `append-service-identity` instead.
 
 - `-meta` - Indicates that token metadata such as the content hash and Raft indices should be
   shown for each entry.
 
-- `-node-identity=<value>` - Name of a node identity to use for this role. May
+- `-node-identity=<value>` - Name of a node identity to use for this role. Overwrites existing node identity. May
   be specified multiple times. Format is `NODENAME:DATACENTER`. Added in Consul
   1.8.1.
+
+- `-append-node-identity=<value>` - Name of a node identity to add to this role. May
+  be specified multiple times. The token retains existing node identities. Format is `NODENAME:DATACENTER`.
 
 - `-policy-id=<value>` - ID of a policy to use for this token. Overwrites existing policies. May be specified multiple times.
 
@@ -76,8 +82,12 @@ instead.
 - `-append-role-name=<value>` - Name of a role to add to this token. The token retains existing roles. May be specified multiple times.
 
 - `-service-identity=<value>` - Name of a service identity to use for this
-  token. May be specified multiple times. Format is the `SERVICENAME` or
+  token. Overwrites existing service identities. May be specified multiple times. Format is the `SERVICENAME` or
   `SERVICENAME:DATACENTER1,DATACENTER2,...`
+
+- `-append-service-identity=<value>` - Name of a service identity to add to this
+  token. May be specified multiple times. The token retains existing service identities.
+  Format is the `SERVICENAME` or `SERVICENAME:DATACENTER1,DATACENTER2,...`
 
 - `-format={pretty|json}` - Command output format. The default value is `pretty`.
 
