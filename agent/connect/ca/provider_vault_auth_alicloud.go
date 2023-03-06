@@ -9,7 +9,7 @@ import (
 )
 
 func NewAliCloudAuthClient(authMethod *structs.VaultAuthMethod) (*VaultAuthClient, error) {
-	if _, ok := authMethod.Params["role"].(string); !ok {
+	if r, ok := authMethod.Params["role"].(string); !ok || r == "" {
 		return nil, fmt.Errorf("role is required for AliCloud login")
 	}
 	if _, ok := authMethod.Params["region"].(string); !ok {
