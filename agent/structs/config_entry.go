@@ -654,7 +654,7 @@ func (c *ConfigEntryRequest) UnmarshalBinary(data []byte) error {
 }
 
 func MakeConfigEntry(kind, name string) (ConfigEntry, error) {
-	if configEntry := makeConfigEntryEnt(kind, name); configEntry != nil {
+	if configEntry := makeEnterpriseConfigEntry(kind, name); configEntry != nil {
 		return configEntry, nil
 	}
 	switch kind {
