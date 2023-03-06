@@ -1,0 +1,47 @@
+syntax = "proto3";
+
+package hashicorp.consul.resource;
+
+import "google/protobuf/any.proto";
+
+message Type {
+  string group = 1;
+  string group_version = 2;
+  string kind = 3;
+}
+
+message Tenancy {
+  string partition = 1;
+  string namespace = 2;
+  string peer_name = 3;
+}
+
+message ID {
+  string uid = 1;
+  string name = 2;
+  Type type = 3;
+  Tenancy tenancy = 4;
+}
+
+message Resource {
+  ID id = 1;
+  ID owner = 2;
+  string version = 3;
+  string generation = 4;
+
+  map<string, string> metadata = 5;
+  reserved 6; // status
+
+  google.protobuf.Any data = 7;
+}
+
+message WatchEvent {
+  enum Operation {
+    OPERATION_UNSPECIFIED = 0;
+    OPERATION_UPSERT = 1;
+    OPERATION_DELETE = 2;
+  }
+
+  Operation operation = 1;
+  Resource resource = 2;
+}
