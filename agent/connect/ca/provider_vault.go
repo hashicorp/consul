@@ -946,6 +946,8 @@ func configureVaultAuthMethod(authMethod *structs.VaultAuthMethod) (VaultAuthent
 		return NewJwtAuthClient(authMethod)
 	case VaultAuthMethodTypeAppRole:
 		return NewAppRoleAuthClient(authMethod)
+	case VaultAuthMethodTypeAliCloud:
+		return NewAliCloudAuthClient(authMethod)
 	case VaultAuthMethodTypeKubernetes:
 		return NewK8sAuthClient(authMethod)
 	// These auth methods require a username for the login API path.
@@ -969,8 +971,7 @@ func configureVaultAuthMethod(authMethod *structs.VaultAuthMethod) (VaultAuthent
 		return nil, fmt.Errorf("'token' auth method is not supported via auth method configuration; " +
 			"please provide the token with the 'token' parameter in the CA configuration")
 	// The rest of the auth methods use auth/<auth method path> login API path.
-	case VaultAuthMethodTypeAliCloud,
-		VaultAuthMethodTypeCloudFoundry,
+	case VaultAuthMethodTypeCloudFoundry,
 		VaultAuthMethodTypeGitHub,
 		VaultAuthMethodTypeKerberos,
 		VaultAuthMethodTypeTLS:
