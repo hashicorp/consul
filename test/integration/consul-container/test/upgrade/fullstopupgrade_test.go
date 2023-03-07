@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	goretry "github.com/avast/retry-go"
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/api"
@@ -75,22 +76,33 @@ func TestStandardUpgradeToTarget_fromLatest(t *testing.T) {
 		const serviceName = "api"
 		index := libservice.ServiceCreate(t, client, serviceName)
 
-		ch, errCh := libservice.ServiceHealthBlockingQuery(client, serviceName, index)
 		require.NoError(t, client.Agent().ServiceRegister(
 			&api.AgentServiceRegistration{Name: serviceName, Port: 9998},
 		))
-
-		timer := time.NewTimer(3 * time.Second)
-		select {
-		case err := <-errCh:
-			require.NoError(t, err)
-		case service := <-ch:
-			require.Len(t, service, 1)
-			require.Equal(t, serviceName, service[0].Service.Service)
-			require.Equal(t, 9998, service[0].Service.Port)
-		case <-timer.C:
-			t.Fatalf("test timeout")
-		}
+		err = goretry.Do(
+			func() error {
+				ch, errCh := libservice.ServiceHealthBlockingQuery(client, serviceName, index)
+				select {
+				case err := <-errCh:
+					require.NoError(t, err)
+				case service := <-ch:
+					index = service[0].Service.ModifyIndex
+					if len(service) != 1 {
+						return fmt.Errorf("service is %d, want 1", len(service))
+					}
+					if serviceName != service[0].Service.Service {
+						return fmt.Errorf("service name is %s, want %s", service[0].Service.Service, serviceName)
+					}
+					if service[0].Service.Port != 9998 {
+						return fmt.Errorf("service is %d, want 9998", service[0].Service.Port)
+					}
+				}
+				return nil
+			},
+			goretry.Attempts(5),
+			goretry.Delay(time.Second),
+		)
+		require.NoError(t, err)
 
 		// upgrade the cluster to the Target version
 		t.Logf("initiating standard upgrade to version=%q", tc.targetVersion)
