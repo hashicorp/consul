@@ -49,10 +49,10 @@ type BootstrapConfig struct {
 	// stats_config.stats_tags can be made by overriding envoy_stats_config_json.
 	StatsTags []string `mapstructure:"envoy_stats_tags"`
 
-	// HCPMetricsBindPort is an int that configures a local listener port
-	// where Envoy will forward metrics. These metrics get pushed to the HCP Metrics
-	// collector to show service mesh metrics on HCP.
-	HCPMetricsBindPort int `mapstructure:"envoy_hcp_metrics_bind_port"`
+	// HCPMetricsBindSocketDir is a string that configures the directory for a
+	// unix socket where Envoy will forward metrics. These metrics get pushed to
+	// the HCP Metrics collector to show service mesh metrics on HCP.
+	HCPMetricsBindSocketDir string `mapstructure:"envoy_hcp_metrics_bind_socket_dir"`
 
 	// PrometheusBindAddr configures an <ip>:<port> on which the Envoy will listen
 	// and expose a single /metrics HTTP endpoint for Prometheus to scrape. It
@@ -244,8 +244,8 @@ func (c *BootstrapConfig) ConfigureArgs(args *BootstrapTplArgs, omitDeprecatedTa
 	}
 
 	// Setup HCP Metrics if needed. This MUST happen after the Static*JSON is set above
-	if c.HCPMetricsBindPort != 0 {
-		appendHCPMetricsConfig(args, c.HCPMetricsBindPort)
+	if c.HCPMetricsBindSocketDir != "" {
+		appendHCPMetricsConfig(args, c.HCPMetricsBindSocketDir)
 	}
 
 	return nil
@@ -806,7 +806,19 @@ func (c *BootstrapConfig) generateListenerConfig(args *BootstrapTplArgs, bindAdd
 	return nil
 }
 
-func appendHCPMetricsConfig(args *BootstrapTplArgs, hcpMetricsBindPort int) {
+// appendHCPMetricsConfig generates config to enable a socket at path: <hcpMetricsBindSocketDir>/<namespace>_<proxy_id>.sock
+// or <hcpMetricsBindSocketDir>/<proxy_id>.sock, if namespace is empty.
+func appendHCPMetricsConfig(args *BootstrapTplArgs, hcpMetricsBindSocketDir string) {
+	dir := hcpMetricsBindSocketDir
+	if !strings.HasSuffix(dir, "/") {
+		dir += "/"
+	}
+
+	path := fmt.Sprintf("%s%s.sock", dir, args.ProxyID)
+	if args.Namespace != "" {
+		path = fmt.Sprintf("%s%s_%s.sock", dir, args.Namespace, args.ProxyID)
+	}
+
 	if args.StatsSinksJSON != "" {
 		args.StatsSinksJSON += ",\n"
 	}
@@ -838,9 +850,8 @@ func appendHCPMetricsConfig(args *BootstrapTplArgs, hcpMetricsBindPort int) {
 				{
 				  "endpoint": {
 					"address": {
-					  "socket_address": {
-						"address": "127.0.0.1",
-						"port_value": %d
+					  "pipe": {
+						"path": "%s"
 					  }
 					}
 				  }
@@ -849,7 +860,7 @@ func appendHCPMetricsConfig(args *BootstrapTplArgs, hcpMetricsBindPort int) {
 			}
 		  ]
 		}
-	  }`, hcpMetricsBindPort)
+	  }`, path)
 }
 
 func containsSelfAdminCluster(clustersJSON string) (bool, error) {
