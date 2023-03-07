@@ -2577,20 +2577,49 @@ func TestStateStore_DeleteService(t *testing.T) {
 	testRegisterService(t, s, 2, "node1", "service1")
 	testRegisterCheck(t, s, 3, "node1", "service1", "check1", api.HealthPassing)
 
-	// Delete the service.
-	ws := memdb.NewWatchSet()
-	_, _, err := s.NodeServices(ws, "node1", nil, "")
+	// register a node with a service on a cluster peer.
+	testRegisterNodeOpts(t, s, 4, "node1", func(n *structs.Node) error {
+		n.PeerName = "cluster-01"
+		return nil
+	})
+	testRegisterServiceOpts(t, s, 5, "node1", "service1", func(service *structs.NodeService) {
+		service.PeerName = "cluster-01"
+	})
+
+	wsPeer := memdb.NewWatchSet()
+	_, ns, err := s.NodeServices(wsPeer, "node1", nil, "cluster-01")
+	require.Len(t, ns.Services, 1)
 	require.NoError(t, err)
-	if err := s.DeleteService(4, "node1", "service1", nil, ""); err != nil {
-		t.Fatalf("err: %s", err)
+
+	ws := memdb.NewWatchSet()
+	_, ns, err = s.NodeServices(ws, "node1", nil, "")
+	require.Len(t, ns.Services, 1)
+	require.NoError(t, err)
+
+	{
+		// Delete the peered service.
+		err = s.DeleteService(6, "node1", "service1", nil, "cluster-01")
+		require.NoError(t, err)
+		require.True(t, watchFired(wsPeer))
+		_, kindServiceNames, err := s.ServiceNamesOfKind(nil, structs.ServiceKindTypical)
+		require.NoError(t, err)
+		require.Len(t, kindServiceNames, 1)
+		require.Equal(t, "service1", kindServiceNames[0].Service.Name)
 	}
-	if !watchFired(ws) {
-		t.Fatalf("bad")
+
+	{
+		// Delete the service.
+		err = s.DeleteService(6, "node1", "service1", nil, "")
+		require.NoError(t, err)
+		require.True(t, watchFired(ws))
+		_, kindServiceNames, err := s.ServiceNamesOfKind(nil, structs.ServiceKindTypical)
+		require.NoError(t, err)
+		require.Len(t, kindServiceNames, 0)
 	}
 
 	// Service doesn't exist.
 	ws = memdb.NewWatchSet()
-	_, ns, err := s.NodeServices(ws, "node1", nil, "")
+	_, ns, err = s.NodeServices(ws, "node1", nil, "")
 	if err != nil || ns == nil || len(ns.Services) != 0 {
 		t.Fatalf("bad: %#v (err: %#v)", ns, err)
 	}
@@ -2605,15 +2634,15 @@ func TestStateStore_DeleteService(t *testing.T) {
 	}
 
 	// Index tables were updated.
-	assert.Equal(t, uint64(4), catalogChecksMaxIndex(tx, nil, ""))
-	assert.Equal(t, uint64(4), catalogServicesMaxIndex(tx, nil, ""))
+	assert.Equal(t, uint64(6), catalogChecksMaxIndex(tx, nil, ""))
+	assert.Equal(t, uint64(6), catalogServicesMaxIndex(tx, nil, ""))
 
 	// Deleting a nonexistent service should be idempotent and not return an
 	// error, nor fire a watch.
-	if err := s.DeleteService(5, "node1", "service1", nil, ""); err != nil {
+	if err := s.DeleteService(6, "node1", "service1", nil, ""); err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	assert.Equal(t, uint64(4), catalogServicesMaxIndex(tx, nil, ""))
+	assert.Equal(t, uint64(6), catalogServicesMaxIndex(tx, nil, ""))
 	if watchFired(ws) {
 		t.Fatalf("bad")
 	}
