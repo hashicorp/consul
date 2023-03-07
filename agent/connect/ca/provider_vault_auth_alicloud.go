@@ -9,10 +9,18 @@ import (
 )
 
 func NewAliCloudAuthClient(authMethod *structs.VaultAuthMethod) (*VaultAuthClient, error) {
-	if r, ok := authMethod.Params["role"].(string); !ok || r == "" {
+	params := authMethod.Params
+	authClient := NewVaultAPIAuthClient(authMethod, "")
+	// check for login data already in params (for backwards compability)
+	legacyKeys := []string{"access_key", "secret_key", "access_token"}
+	if legacyCheck(params, legacyKeys...) {
+		return authClient, nil
+	}
+
+	if r, ok := params["role"].(string); !ok || r == "" {
 		return nil, fmt.Errorf("role is required for AliCloud login")
 	}
-	if r, ok := authMethod.Params["region"].(string); !ok || r == "" {
+	if r, ok := params["region"].(string); !ok || r == "" {
 		return nil, fmt.Errorf("region is required for AliCloud login")
 	}
 	client := NewVaultAPIAuthClient(authMethod, "")

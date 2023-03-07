@@ -712,6 +712,16 @@ func TestVaultCAProvider_AliCloudAuthClient(t *testing.T) {
 			},
 			expErr: fmt.Errorf("region is required for AliCloud login"),
 		},
+		"legacy-case": {
+			authMethod: &structs.VaultAuthMethod{
+				Type: VaultAuthMethodTypeAliCloud,
+				Params: map[string]interface{}{
+					"access_key":   "test-key",
+					"access_token": "test-token",
+					"secret_key":   "test-secret-key",
+				},
+			},
+		},
 	}
 
 	for name, c := range cases {
@@ -723,30 +733,33 @@ func TestVaultCAProvider_AliCloudAuthClient(t *testing.T) {
 				return
 			}
 			require.NotNil(t, auth)
-			encodedData, err := auth.LoginDataGen(c.authMethod)
-			require.NoError(t, err)
 
-			// identity_request_headers (json encoded headers)
-			rawheaders, err := base64.StdEncoding.DecodeString(
-				encodedData["identity_request_headers"].(string))
-			require.NoError(t, err)
-			headers := string(rawheaders)
-			require.Contains(t, headers, "User-Agent")
-			require.Contains(t, headers, "AlibabaCloud")
-			require.Contains(t, headers, "Content-Type")
-			require.Contains(t, headers, "x-acs-action")
-			require.Contains(t, headers, "GetCallerIdentity")
+			if auth.LoginDataGen != nil {
+				encodedData, err := auth.LoginDataGen(c.authMethod)
+				require.NoError(t, err)
 
-			// identity_request_url (w/ query params)
-			rawurl, err := base64.StdEncoding.DecodeString(
-				encodedData["identity_request_url"].(string))
-			require.NoError(t, err)
-			requrl, err := url.Parse(string(rawurl))
-			require.NoError(t, err)
+				// identity_request_headers (json encoded headers)
+				rawheaders, err := base64.StdEncoding.DecodeString(
+					encodedData["identity_request_headers"].(string))
+				require.NoError(t, err)
+				headers := string(rawheaders)
+				require.Contains(t, headers, "User-Agent")
+				require.Contains(t, headers, "AlibabaCloud")
+				require.Contains(t, headers, "Content-Type")
+				require.Contains(t, headers, "x-acs-action")
+				require.Contains(t, headers, "GetCallerIdentity")
 
-			queries := requrl.Query()
-			require.Subset(t, queries, c.expQry, "query missing fields")
-			require.Equal(t, requrl.Hostname(), "sts.test-region.aliyuncs.com")
+				// identity_request_url (w/ query params)
+				rawurl, err := base64.StdEncoding.DecodeString(
+					encodedData["identity_request_url"].(string))
+				require.NoError(t, err)
+				requrl, err := url.Parse(string(rawurl))
+				require.NoError(t, err)
+
+				queries := requrl.Query()
+				require.Subset(t, queries, c.expQry, "query missing fields")
+				require.Equal(t, requrl.Hostname(), "sts.test-region.aliyuncs.com")
+			}
 		})
 	}
 }
