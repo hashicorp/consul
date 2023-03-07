@@ -935,13 +935,13 @@ jobs:
             environment:
               <<: *ENVIRONMENT
         - run: *install-gotestsum
-        - run: docker build -t hashicorp/consul-enterprise:local -f ./build-support/docker/Consul-Dev.dockerfile .
+        - run: docker build -t consul:local -f ./build-support/docker/Consul-Dev.dockerfile .
         - run:
             name: Upgrade Integration Tests
             command: |
               mkdir -p /tmp/test-results/
               cd ./test/integration/consul-container
-              docker run --rm hashicorp/consul-enterprise:local consul version
+              docker run --rm consul:local consul version
               gotestsum \
                 --raw-command \
                 --format=short-verbose \
