@@ -12,13 +12,13 @@ module('Integration | Component | delete confirmation', function (hooks) {
 
     await render(hbs`{{delete-confirmation}}`);
 
-    assert.dom('.type-delete').exists({ count: 1 });
+    assert.dom('[data-test-delete]').exists({ count: 1 });
 
     // Template block usage:
     await render(hbs`
       {{#delete-confirmation}}{{/delete-confirmation}}
     `);
 
-    assert.dom('.type-delete').exists({ count: 1 });
+    assert.dom('[data-test-delete]').exists({ count: 1 });
   });
 });

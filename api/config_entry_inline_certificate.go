@@ -12,7 +12,7 @@ type InlineCertificateConfigEntry struct {
 	// Certificate is the public certificate component of an x509 key pair encoded in raw PEM format.
 	Certificate string
 	// PrivateKey is the private key component of an x509 key pair encoded in raw PEM format.
-	PrivateKey string
+	PrivateKey string `alias:"private_key"`
 
 	Meta map[string]string `json:",omitempty"`
 
@@ -34,42 +34,10 @@ type InlineCertificateConfigEntry struct {
 	Namespace string `json:",omitempty"`
 }
 
-func (a *InlineCertificateConfigEntry) GetKind() string {
-	return InlineCertificate
-}
-
-func (a *InlineCertificateConfigEntry) GetName() string {
-	if a != nil {
-		return ""
-	}
-	return a.Name
-}
-
-func (a *InlineCertificateConfigEntry) GetPartition() string {
-	if a != nil {
-		return ""
-	}
-	return a.Partition
-}
-
-func (a *InlineCertificateConfigEntry) GetNamespace() string {
-	if a != nil {
-		return ""
-	}
-	return a.GetNamespace()
-}
-
-func (a *InlineCertificateConfigEntry) GetMeta() map[string]string {
-	if a != nil {
-		return nil
-	}
-	return a.GetMeta()
-}
-
-func (a *InlineCertificateConfigEntry) GetCreateIndex() uint64 {
-	return a.CreateIndex
-}
-
-func (a *InlineCertificateConfigEntry) GetModifyIndex() uint64 {
-	return a.ModifyIndex
-}
+func (a *InlineCertificateConfigEntry) GetKind() string            { return InlineCertificate }
+func (a *InlineCertificateConfigEntry) GetName() string            { return a.Name }
+func (a *InlineCertificateConfigEntry) GetPartition() string       { return a.Partition }
+func (a *InlineCertificateConfigEntry) GetNamespace() string       { return a.Namespace }
+func (a *InlineCertificateConfigEntry) GetMeta() map[string]string { return a.Meta }
+func (a *InlineCertificateConfigEntry) GetCreateIndex() uint64     { return a.CreateIndex }
+func (a *InlineCertificateConfigEntry) GetModifyIndex() uint64     { return a.ModifyIndex }

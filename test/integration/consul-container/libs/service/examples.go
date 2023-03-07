@@ -29,6 +29,21 @@ type exampleContainer struct {
 
 var _ Service = (*exampleContainer)(nil)
 
+func (g exampleContainer) Exec(ctx context.Context, cmd []string) (string, error) {
+	exitCode, reader, err := g.container.Exec(ctx, cmd)
+	if err != nil {
+		return "", fmt.Errorf("exec with error %s", err)
+	}
+	if exitCode != 0 {
+		return "", fmt.Errorf("exec with exit code %d", exitCode)
+	}
+	buf, err := io.ReadAll(reader)
+	if err != nil {
+		return "", fmt.Errorf("error reading from exec output: %w", err)
+	}
+	return string(buf), nil
+}
+
 func (g exampleContainer) Export(partition, peerName string, client *api.Client) error {
 	config := &api.ExportedServicesConfigEntry{
 		Name: partition,
@@ -47,6 +62,14 @@ func (g exampleContainer) Export(partition, peerName string, client *api.Client)
 
 func (g exampleContainer) GetAddr() (string, int) {
 	return g.ip, g.httpPort
+}
+
+func (g exampleContainer) GetAddrs() (string, []int) {
+	return "", nil
+}
+
+func (g exampleContainer) GetPort(port int) (int, error) {
+	return 0, nil
 }
 
 func (g exampleContainer) Restart() error {
@@ -86,6 +109,13 @@ func (g exampleContainer) Start() error {
 	return g.container.Start(context.Background())
 }
 
+func (g exampleContainer) Stop() error {
+	if g.container == nil {
+		return fmt.Errorf("container has not been initialized")
+	}
+	return g.container.Stop(context.Background(), nil)
+}
+
 func (c exampleContainer) Terminate() error {
 	return cluster.TerminateContainer(c.ctx, c.container, true)
 }
@@ -95,7 +125,7 @@ func (c exampleContainer) GetStatus() (string, error) {
 	return state.Status, err
 }
 
-func NewExampleService(ctx context.Context, name string, httpPort int, grpcPort int, node libcluster.Agent) (Service, error) {
+func NewExampleService(ctx context.Context, name string, httpPort int, grpcPort int, node libcluster.Agent, containerArgs ...string) (Service, error) {
 	namePrefix := fmt.Sprintf("%s-service-example-%s", node.GetDatacenter(), name)
 	containerName := utils.RandName(namePrefix)
 
@@ -109,18 +139,22 @@ func NewExampleService(ctx context.Context, name string, httpPort int, grpcPort 
 		grpcPortStr = strconv.Itoa(grpcPort)
 	)
 
+	command := []string{
+		"server",
+		"-http-port", httpPortStr,
+		"-grpc-port", grpcPortStr,
+		"-redirect-port", "-disabled",
+	}
+
+	command = append(command, containerArgs...)
+
 	req := testcontainers.ContainerRequest{
 		Image:      hashicorpDockerProxy + "/fortio/fortio",
 		WaitingFor: wait.ForLog("").WithStartupTimeout(10 * time.Second),
 		AutoRemove: false,
 		Name:       containerName,
-		Cmd: []string{
-			"server",
-			"-http-port", httpPortStr,
-			"-grpc-port", grpcPortStr,
-			"-redirect-port", "-disabled",
-		},
-		Env: map[string]string{"FORTIO_NAME": name},
+		Cmd:        command,
+		Env:        map[string]string{"FORTIO_NAME": name},
 	}
 
 	info, err := cluster.LaunchContainerOnNode(ctx, node, req, []string{httpPortStr, grpcPortStr})

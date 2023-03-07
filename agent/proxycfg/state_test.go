@@ -15,8 +15,8 @@ import (
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/consul/discoverychain"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/proto/pbpeering"
-	"github.com/hashicorp/consul/proto/prototest"
+	"github.com/hashicorp/consul/proto/private/pbpeering"
+	"github.com/hashicorp/consul/proto/private/prototest"
 	"github.com/hashicorp/consul/sdk/testutil"
 )
 
@@ -2091,6 +2091,28 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 
 						require.Len(t, snap.TerminatingGateway.ServiceResolvers, 1)
 						require.Equal(t, dbResolver.Entry, snap.TerminatingGateway.ServiceResolvers[db])
+					},
+				},
+				{
+					requiredWatches: map[string]verifyWatchRequest{
+						"service-resolver:" + db.String(): genVerifyResolverWatch("db", "dc1", structs.ServiceResolver),
+					},
+					events: []UpdateEvent{
+						{
+							CorrelationID: "service-resolver:" + db.String(),
+							Result: &structs.ConfigEntryResponse{
+								Entry: nil,
+							},
+							Err: nil,
+						},
+					},
+					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
+						require.True(t, snap.Valid(), "gateway with service list is valid")
+						// Finally ensure we cleaned up the resolver
+						require.Equal(t, []structs.ServiceName{db}, snap.TerminatingGateway.ValidServices())
+
+						require.False(t, snap.TerminatingGateway.ServiceResolversSet[db])
+						require.Nil(t, snap.TerminatingGateway.ServiceResolvers[db])
 					},
 				},
 				{

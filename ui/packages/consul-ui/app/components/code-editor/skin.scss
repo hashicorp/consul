@@ -21,7 +21,7 @@ $syntax-dark-gray: #535f73;
   --syntax-dark-gray: #{$syntax-dark-gray};
 
   --syntax-gutter-grey: #2a2f36;
-  --syntax-yellow: rgb(var(--tone-yellow-500));
+  --syntax-yellow: var(--token-color-vault-brand);
 }
 .CodeMirror {
   max-width: 1260px;
@@ -46,7 +46,7 @@ $syntax-dark-gray: #535f73;
 .cm-s-hashi {
   &.CodeMirror {
     width: 100%;
-    background-color: rgb(var(--tone-gray-999)) !important;
+    background-color: var(--token-color-hashicorp-brand) !important;
     color: #cfd2d1 !important;
     border: none;
     font-family: var(--typo-family-mono);
@@ -81,7 +81,7 @@ $syntax-dark-gray: #535f73;
   .CodeMirror-line::-moz-selection,
   .CodeMirror-line > span::-moz-selection,
   .CodeMirror-line > span > span::-moz-selection {
-    background: rgb(var(--tone-gray-000) / 10%);
+    background: var(--token-color-surface-interactive);
   }
 
   span.cm-comment {
@@ -158,7 +158,7 @@ $syntax-dark-gray: #535f73;
 
   .CodeMirror-matchingbracket {
     text-decoration: underline;
-    color: rgb(var(--tone-gray-000)) !important;
+    color: var(--token-color-surface-primary) !important;
   }
 }
 
@@ -182,7 +182,7 @@ $syntax-dark-gray: #535f73;
     }
 
     span.cm-property {
-      color: rgb(var(--tone-gray-000));
+      color: var(--token-color-surface-primary);
     }
 
     span.cm-variable-2 {
@@ -193,32 +193,32 @@ $syntax-dark-gray: #535f73;
 
 %code-editor {
   .toolbar-container {
-    background: rgb(var(--tone-gray-050));
+    background: var(--token-color-surface-strong);
     background: linear-gradient(
       180deg,
-      rgb(var(--tone-gray-050)) 50%,
-      rgb(var(--tone-gray-150)) 100%
+      var(--token-color-surface-strong) 50%,
+      var(--token-color-surface-interactive-active) 100%
     );
-    border: 1px solid rgb(var(--tone-gray-150));
-    border-bottom-color: rgb(var(--tone-gray-600));
-    border-top-color: rgb(var(--tone-gray-400));
+    border: 1px solid var(--token-color-surface-interactive-active);
+    border-bottom-color: var(--token-color-foreground-faint);
+    border-top-color: var(--token-color-foreground-disabled);
 
     .toolbar {
       .title {
-        color: rgb(var(--tone-gray-900));
+        color: var(--token-color-foreground-strong);
         font-size: 14px;
         font-weight: 700;
       }
       .toolbar-separator {
-        border-right: 1px solid rgb(var(--tone-gray-300));
+        border-right: 1px solid var(--token-color-palette-neutral-300);
       }
     }
     .ember-power-select-trigger {
-      background-color: rgb(var(--tone-gray-000));
-      color: rgb(var(--tone-gray-999));
+      background-color: var(--token-color-surface-primary);
+      color: var(--token-color-hashicorp-brand);
       border-radius: var(--decor-radius-100);
       border: var(--decor-border-100);
-      border-color: rgb(var(--tone-gray-700));
+      border-color: var(--token-color-foreground-faint);
     }
   }
 }

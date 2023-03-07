@@ -11,9 +11,6 @@
 @import 'consul-ui/components/inline-alert/debug';
 @import 'consul-ui/components/definition-table/debug';
 
-.theme-dark {
-  @extend %theme-dark;
-}
 %debug-grid {
   display: flex;
   flex-wrap: wrap;
@@ -43,7 +40,7 @@
 [id^='docfy-demo-preview-typography'] figure,
 [id^='docfy-demo-preview-icons'] figure {
   border: var(--decor-border-100);
-  border-color: rgb(var(--tone-gray-300));
+  border-color: var(--token-color-palette-neutral-300);
   height: 80px;
 }
 
@@ -55,12 +52,10 @@
   height: 40px;
 }
 #docfy-demo-preview-color0 {
-  @extend %theme-light;
-  background-color: rgb(var(--white));
+  background-color: var(--token-color-surface-primary);
 }
 #docfy-demo-preview-color1 {
-  background-color: rgb(var(--black));
-  @extend %theme-dark;
+  background-color: var(--token-color-hashicorp-brand);
 }
 
 [id^='docfy-demo-preview-typography'] {
@@ -140,7 +135,7 @@ html.with-route-announcer .route-title {
 }
 .docs {
   & {
-    background-color: rgb(var(--tone-gray-000));
+    background-color: var(--token-color-surface-primary);
   }
   .tabular-collection,
   .list-collection {
@@ -235,7 +230,7 @@ html.with-route-announcer .route-title {
         border-top: 1px solid;
         border-left: 1px solid;
         border-right: 1px solid;
-        border-color: rgb(var(--tone-gray-200));
+        border-color: var(--token-color-surface-interactive-active);
         padding: 1rem;
         margin-bottom: 0;
       }
@@ -248,19 +243,19 @@ html.with-route-announcer .route-title {
       }
       figcaption {
         margin-bottom: 0.5rem;
-        color: rgb(var(--tone-gray-400));
+        color: var(--token-color-foreground-disabled);
         font-style: italic;
       }
       figcaption code {
         @extend %inline-code;
       }
       figure > [type='text'] {
-        border: 1px solid rgb(var(--tone-gray-999));
+        border: 1px solid var(--token-color-hashicorp-brand);
         width: 100%;
         padding: 0.5rem;
       }
       figure > select {
-        border: 1px solid rgb(var(--tone-gray-999));
+        border: 1px solid var(--token-color-hashicorp-brand);
         padding: 0.5rem;
       }
     }

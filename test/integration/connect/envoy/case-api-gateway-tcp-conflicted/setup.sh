@@ -9,6 +9,7 @@ listeners = [
   {
     port = 9999
     protocol = "tcp"
+    name = "listener"
   }
 ]
 '
@@ -38,6 +39,7 @@ services = [
 ]
 parents = [
   {
+    kind = "api-gateway"
     name = "api-gateway"
   }
 ]

@@ -17,11 +17,13 @@ type Agent interface {
 	NewClient(string, bool) (*api.Client, error)
 	GetName() string
 	GetAgentName() string
+	GetPartition() string
 	GetPod() testcontainers.Container
 	ClaimAdminPort() (int, error)
 	GetConfig() Config
 	GetInfo() AgentInfo
 	GetDatacenter() string
+	GetNetwork() string
 	IsServer() bool
 	RegisterTermination(func() error)
 	Terminate() error

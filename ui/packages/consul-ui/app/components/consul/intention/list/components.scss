@@ -15,13 +15,4 @@
   td.intent- strong {
     @extend %pill-l7;
   }
-  .notice.allow {
-    @extend %notice-success;
-  }
-  .notice.deny {
-    @extend %notice-error;
-  }
-  .notice.permissions {
-    @extend %notice-info;
-  }
 }

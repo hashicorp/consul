@@ -46,6 +46,25 @@ function retry_long {
   retry 30 1 "$@"
 }
 
+# assert_upstream_message asserts both the returned code
+# and message from upstream service
+function assert_upstream_message {
+  local HOSTPORT=$1
+  run curl -s -d hello localhost:$HOSTPORT
+
+  if [ "$status" -ne 0 ]; then
+    echo "Command failed"
+    return 1
+  fi
+
+  if (echo $output | grep 'hello'); then
+    return 0
+  fi
+
+  echo "expected message not found in $output"
+  return 1
+}
+
 function is_set {
   # Arguments:
   #   $1 - string value to check its truthiness
@@ -126,6 +145,20 @@ function assert_cert_signed_by_ca {
   echo "$CERT"
 
   echo "$CERT" | grep 'Verify return code: 0 (ok)'
+}
+
+function assert_cert_has_cn {
+  local HOSTPORT=$1
+  local CN=$2
+  local SERVER_NAME=${3:-$CN}
+
+  CERT=$(openssl s_client -connect $HOSTPORT -servername $SERVER_NAME -showcerts </dev/null 2>/dev/null)
+
+  echo "WANT CN: ${CN} (SNI: ${SERVER_NAME})"
+  echo "GOT CERT:"
+  echo "$CERT"
+
+  echo "$CERT" | grep "CN = ${CN}"
 }
 
 function assert_envoy_version {
@@ -328,6 +361,39 @@ function get_upstream_endpoint {
 | select(.name|startswith(\"${CLUSTER_NAME}\"))"
 }
 
+function get_upstream_endpoint_port {
+  local HOSTPORT=$1
+  local CLUSTER_NAME=$2
+  local PORT_VALUE=$3
+  run curl -s -f "http://${HOSTPORT}/clusters?format=json"
+  [ "$status" -eq 0 ]
+  echo "$output" | jq --raw-output "
+.cluster_statuses[]
+| select(.name|startswith(\"${CLUSTER_NAME}\"))
+| [.host_statuses[].address.socket_address.port_value]
+| [select(.[] == ${PORT_VALUE})]
+| length"
+}
+
+function assert_upstream_has_endpoint_port_once {
+  local HOSTPORT=$1
+  local CLUSTER_NAME=$2
+  local PORT_VALUE=$3
+
+  GOT_COUNT=$(get_upstream_endpoint_port $HOSTPORT $CLUSTER_NAME $PORT_VALUE)
+
+  [ "$GOT_COUNT" -eq 1 ]
+}
+
+function assert_upstream_has_endpoint_port {
+  local HOSTPORT=$1
+  local CLUSTER_NAME=$2
+  local PORT_VALUE=$3
+
+  run retry_long assert_upstream_has_endpoint_port_once $HOSTPORT $CLUSTER_NAME $PORT_VALUE
+  [ "$status" -eq 0 ]
+}
+
 function get_upstream_endpoint_in_status_count {
   local HOSTPORT=$1
   local CLUSTER_NAME=$2
@@ -350,15 +416,27 @@ function assert_upstream_has_endpoints_in_status_once {
 
   GOT_COUNT=$(get_upstream_endpoint_in_status_count $HOSTPORT $CLUSTER_NAME $HEALTH_STATUS)
 
+  echo "GOT: $GOT_COUNT"
   [ "$GOT_COUNT" -eq $EXPECT_COUNT ]
+}
+
+function assert_upstream_missing_once {
+  local HOSTPORT=$1
+  local CLUSTER_NAME=$2
+  
+  run get_upstream_endpoint $HOSTPORT $CLUSTER_NAME
+  [ "$status" -eq 0 ]
+  echo "$output"
+  [ "" == "$output" ]
 }
 
 function assert_upstream_missing {
   local HOSTPORT=$1
   local CLUSTER_NAME=$2
-  run retry_default get_upstream_endpoint $HOSTPORT $CLUSTER_NAME
+  run retry_long assert_upstream_missing_once $HOSTPORT $CLUSTER_NAME
   echo "OUTPUT: $output $status"
-  [ "" == "$output" ]
+
+  [ "$status" -eq 0 ]
 }
 
 function assert_upstream_has_endpoints_in_status {
@@ -367,6 +445,8 @@ function assert_upstream_has_endpoints_in_status {
   local HEALTH_STATUS=$3
   local EXPECT_COUNT=$4
   run retry_long assert_upstream_has_endpoints_in_status_once $HOSTPORT $CLUSTER_NAME $HEALTH_STATUS $EXPECT_COUNT
+  echo "$output"
+
   [ "$status" -eq 0 ]
 }
 
@@ -551,7 +631,7 @@ function docker_consul_for_proxy_bootstrap {
 function docker_wget {
   local DC=$1
   shift 1
-  docker run --rm --network container:envoy_consul-${DC}_1 docker.mirror.hashicorp.services/alpine:3.9 wget "$@"
+  docker run --rm --network container:envoy_consul-${DC}_1 docker.mirror.hashicorp.services/alpine:3.17 wget "$@"
 }
 
 function docker_curl {

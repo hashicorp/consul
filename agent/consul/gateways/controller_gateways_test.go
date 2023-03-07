@@ -49,6 +49,11 @@ func TestBoundAPIGatewayBindRoute(t *testing.T) {
 							Protocol: structs.ListenerProtocolTCP,
 						},
 					},
+					Status: structs.Status{
+						Conditions: []structs.Condition{
+							newGatewayConditionGenerator().gatewayAccepted(),
+						},
+					},
 				},
 			},
 			route: &structs.TCPRouteConfigEntry{
@@ -59,6 +64,11 @@ func TestBoundAPIGatewayBindRoute(t *testing.T) {
 						Kind:        structs.APIGateway,
 						Name:        "Gateway",
 						SectionName: "Listener",
+					},
+				},
+				Status: structs.Status{
+					Conditions: []structs.Condition{
+						newGatewayConditionGenerator().routeAccepted(),
 					},
 				},
 			},
@@ -116,6 +126,11 @@ func TestBoundAPIGatewayBindRoute(t *testing.T) {
 							Protocol: structs.ListenerProtocolTCP,
 						},
 					},
+					Status: structs.Status{
+						Conditions: []structs.Condition{
+							newGatewayConditionGenerator().gatewayAccepted(),
+						},
+					},
 				},
 			},
 			route: &structs.TCPRouteConfigEntry{
@@ -125,6 +140,11 @@ func TestBoundAPIGatewayBindRoute(t *testing.T) {
 					{
 						Kind: structs.APIGateway,
 						Name: "Gateway",
+					},
+				},
+				Status: structs.Status{
+					Conditions: []structs.Condition{
+						newGatewayConditionGenerator().routeAccepted(),
 					},
 				},
 			},
@@ -181,6 +201,7 @@ func TestBoundAPIGatewayBindRoute(t *testing.T) {
 				Name: "Route",
 				Parents: []structs.ResourceReference{
 					{
+						Kind:        "Foo",
 						Name:        "Gateway",
 						SectionName: "Listener",
 					},
@@ -416,6 +437,11 @@ func TestBindRoutesToGateways(t *testing.T) {
 								Protocol: structs.ListenerProtocolTCP,
 							},
 						},
+						Status: structs.Status{
+							Conditions: []structs.Condition{
+								newGatewayConditionGenerator().gatewayAccepted(),
+							},
+						},
 					},
 				},
 			},
@@ -428,6 +454,11 @@ func TestBindRoutesToGateways(t *testing.T) {
 							Name:        "Gateway",
 							Kind:        structs.APIGateway,
 							SectionName: "Listener",
+						},
+					},
+					Status: structs.Status{
+						Conditions: []structs.Condition{
+							newGatewayConditionGenerator().routeAccepted(),
 						},
 					},
 				},
@@ -520,6 +551,11 @@ func TestBindRoutesToGateways(t *testing.T) {
 								Protocol: structs.ListenerProtocolTCP,
 							},
 						},
+						Status: structs.Status{
+							Conditions: []structs.Condition{
+								newGatewayConditionGenerator().gatewayAccepted(),
+							},
+						},
 					},
 				},
 				{
@@ -540,6 +576,11 @@ func TestBindRoutesToGateways(t *testing.T) {
 								Protocol: structs.ListenerProtocolTCP,
 							},
 						},
+						Status: structs.Status{
+							Conditions: []structs.Condition{
+								newGatewayConditionGenerator().gatewayAccepted(),
+							},
+						},
 					},
 				},
 			},
@@ -557,6 +598,11 @@ func TestBindRoutesToGateways(t *testing.T) {
 							Name:        "Gateway 2",
 							Kind:        structs.APIGateway,
 							SectionName: "Listener",
+						},
+					},
+					Status: structs.Status{
+						Conditions: []structs.Condition{
+							newGatewayConditionGenerator().routeAccepted(),
 						},
 					},
 				},
@@ -623,6 +669,11 @@ func TestBindRoutesToGateways(t *testing.T) {
 								Protocol: structs.ListenerProtocolTCP,
 							},
 						},
+						Status: structs.Status{
+							Conditions: []structs.Condition{
+								newGatewayConditionGenerator().gatewayAccepted(),
+							},
+						},
 					},
 				},
 			},
@@ -635,6 +686,11 @@ func TestBindRoutesToGateways(t *testing.T) {
 							Name:        "Gateway",
 							Kind:        structs.APIGateway,
 							SectionName: "Listener 2",
+						},
+					},
+					Status: structs.Status{
+						Conditions: []structs.Condition{
+							newGatewayConditionGenerator().routeAccepted(),
 						},
 					},
 				},
@@ -690,6 +746,11 @@ func TestBindRoutesToGateways(t *testing.T) {
 								Protocol: structs.ListenerProtocolTCP,
 							},
 						},
+						Status: structs.Status{
+							Conditions: []structs.Condition{
+								newGatewayConditionGenerator().gatewayAccepted(),
+							},
+						},
 					},
 				},
 			},
@@ -702,6 +763,11 @@ func TestBindRoutesToGateways(t *testing.T) {
 							Name:        "Gateway",
 							Kind:        structs.APIGateway,
 							SectionName: "",
+						},
+					},
+					Status: structs.Status{
+						Conditions: []structs.Condition{
+							newGatewayConditionGenerator().routeAccepted(),
 						},
 					},
 				},
@@ -769,6 +835,11 @@ func TestBindRoutesToGateways(t *testing.T) {
 								Protocol: structs.ListenerProtocolTCP,
 							},
 						},
+						Status: structs.Status{
+							Conditions: []structs.Condition{
+								newGatewayConditionGenerator().gatewayAccepted(),
+							},
+						},
 					},
 				},
 			},
@@ -781,6 +852,11 @@ func TestBindRoutesToGateways(t *testing.T) {
 							Name:        "Gateway",
 							Kind:        structs.APIGateway,
 							SectionName: "",
+						},
+					},
+					Status: structs.Status{
+						Conditions: []structs.Condition{
+							newGatewayConditionGenerator().routeAccepted(),
 						},
 					},
 				},
@@ -842,6 +918,11 @@ func TestBindRoutesToGateways(t *testing.T) {
 								Protocol: structs.ListenerProtocolTCP,
 							},
 						},
+						Status: structs.Status{
+							Conditions: []structs.Condition{
+								newGatewayConditionGenerator().gatewayAccepted(),
+							},
+						},
 					},
 				},
 				{
@@ -870,6 +951,11 @@ func TestBindRoutesToGateways(t *testing.T) {
 								Protocol: structs.ListenerProtocolTCP,
 							},
 						},
+						Status: structs.Status{
+							Conditions: []structs.Condition{
+								newGatewayConditionGenerator().gatewayAccepted(),
+							},
+						},
 					},
 				},
 			},
@@ -887,6 +973,11 @@ func TestBindRoutesToGateways(t *testing.T) {
 							Name:        "Gateway 2",
 							Kind:        structs.APIGateway,
 							SectionName: "Listener 2",
+						},
+					},
+					Status: structs.Status{
+						Conditions: []structs.Condition{
+							newGatewayConditionGenerator().routeAccepted(),
 						},
 					},
 				},
@@ -967,6 +1058,11 @@ func TestBindRoutesToGateways(t *testing.T) {
 								Protocol: structs.ListenerProtocolTCP,
 							},
 						},
+						Status: structs.Status{
+							Conditions: []structs.Condition{
+								newGatewayConditionGenerator().gatewayAccepted(),
+							},
+						},
 					},
 				},
 			},
@@ -979,6 +1075,11 @@ func TestBindRoutesToGateways(t *testing.T) {
 							Name:        "Gateway",
 							Kind:        structs.APIGateway,
 							SectionName: "Listener 2",
+						},
+					},
+					Status: structs.Status{
+						Conditions: []structs.Condition{
+							newGatewayConditionGenerator().routeAccepted(),
 						},
 					},
 				},
@@ -1026,6 +1127,11 @@ func TestBindRoutesToGateways(t *testing.T) {
 								Protocol: structs.ListenerProtocolTCP,
 							},
 						},
+						Status: structs.Status{
+							Conditions: []structs.Condition{
+								newGatewayConditionGenerator().gatewayAccepted(),
+							},
+						},
 					},
 				},
 				{
@@ -1046,6 +1152,11 @@ func TestBindRoutesToGateways(t *testing.T) {
 								Protocol: structs.ListenerProtocolTCP,
 							},
 						},
+						Status: structs.Status{
+							Conditions: []structs.Condition{
+								newGatewayConditionGenerator().gatewayAccepted(),
+							},
+						},
 					},
 				},
 			},
@@ -1060,6 +1171,11 @@ func TestBindRoutesToGateways(t *testing.T) {
 							SectionName: "Listener 1",
 						},
 					},
+					Status: structs.Status{
+						Conditions: []structs.Condition{
+							newGatewayConditionGenerator().routeAccepted(),
+						},
+					},
 				},
 				&structs.TCPRouteConfigEntry{
 					Name: "TCP Route 2",
@@ -1069,6 +1185,11 @@ func TestBindRoutesToGateways(t *testing.T) {
 							Name:        "Gateway 2",
 							Kind:        structs.APIGateway,
 							SectionName: "Listener 2",
+						},
+					},
+					Status: structs.Status{
+						Conditions: []structs.Condition{
+							newGatewayConditionGenerator().routeAccepted(),
 						},
 					},
 				},
@@ -1127,6 +1248,11 @@ func TestBindRoutesToGateways(t *testing.T) {
 								Protocol: structs.ListenerProtocolHTTP,
 							},
 						},
+						Status: structs.Status{
+							Conditions: []structs.Condition{
+								newGatewayConditionGenerator().gatewayAccepted(),
+							},
+						},
 					},
 				},
 			},
@@ -1139,6 +1265,11 @@ func TestBindRoutesToGateways(t *testing.T) {
 							Name:        "Gateway",
 							Kind:        structs.APIGateway,
 							SectionName: "Listener",
+						},
+					},
+					Status: structs.Status{
+						Conditions: []structs.Condition{
+							newGatewayConditionGenerator().routeAccepted(),
 						},
 					},
 				},
@@ -1180,6 +1311,11 @@ func TestBindRoutesToGateways(t *testing.T) {
 								Protocol: structs.ListenerProtocolTCP,
 							},
 						},
+						Status: structs.Status{
+							Conditions: []structs.Condition{
+								newGatewayConditionGenerator().gatewayAccepted(),
+							},
+						},
 					},
 				},
 			},
@@ -1192,6 +1328,11 @@ func TestBindRoutesToGateways(t *testing.T) {
 							Name:        "Gateway",
 							Kind:        structs.APIGateway,
 							SectionName: "",
+						},
+					},
+					Status: structs.Status{
+						Conditions: []structs.Condition{
+							newGatewayConditionGenerator().routeAccepted(),
 						},
 					},
 				},
@@ -1288,6 +1429,11 @@ func TestBindRoutesToGateways(t *testing.T) {
 								Protocol: structs.ListenerProtocolTCP,
 							},
 						},
+						Status: structs.Status{
+							Conditions: []structs.Condition{
+								newGatewayConditionGenerator().gatewayAccepted(),
+							},
+						},
 					},
 				},
 			},
@@ -1299,6 +1445,11 @@ func TestBindRoutesToGateways(t *testing.T) {
 						{
 							Name: "Gateway",
 							Kind: structs.APIGateway,
+						},
+					},
+					Status: structs.Status{
+						Conditions: []structs.Condition{
+							newGatewayConditionGenerator().routeAccepted(),
 						},
 					},
 				},
@@ -1429,7 +1580,7 @@ func TestAPIGatewayController(t *testing.T) {
 				},
 			},
 		},
-		"tcp-route-no-gateways-invalid-targets": {
+		"tcp-route-not-accepted-bind": {
 			requests: []controller.Request{{
 				Kind: structs.TCPRoute,
 				Name: "tcp-route",
@@ -1443,6 +1594,27 @@ func TestAPIGatewayController(t *testing.T) {
 					Services: []structs.TCPService{{
 						Name: "tcp-upstream",
 					}},
+					Parents: []structs.ResourceReference{{
+						Name:           "api-gateway",
+						EnterpriseMeta: *defaultMeta,
+					}},
+				},
+				&structs.APIGatewayConfigEntry{
+					Kind:           structs.APIGateway,
+					Name:           "api-gateway",
+					EnterpriseMeta: *defaultMeta,
+					Listeners: []structs.APIGatewayListener{{
+						Name: "listener",
+						Port: 80,
+					}},
+				},
+				&structs.BoundAPIGatewayConfigEntry{
+					Kind:           structs.BoundAPIGateway,
+					Name:           "api-gateway",
+					EnterpriseMeta: *defaultMeta,
+					Listeners: []structs.BoundAPIGatewayListener{{
+						Name: "listener",
+					}},
 				},
 			},
 			finalEntries: []structs.ConfigEntry{
@@ -1452,9 +1624,40 @@ func TestAPIGatewayController(t *testing.T) {
 					EnterpriseMeta: *defaultMeta,
 					Status: structs.Status{
 						Conditions: []structs.Condition{
-							conditions.routeInvalidDiscoveryChain(errServiceDoesNotExist),
+							conditions.routeAccepted(),
+							conditions.routeUnbound(structs.ResourceReference{
+								Name:           "api-gateway",
+								EnterpriseMeta: *defaultMeta,
+							}, errors.New("failed to bind route to gateway api-gateway: gateway has not been accepted")),
 						},
 					},
+				},
+				&structs.APIGatewayConfigEntry{
+					Kind:           structs.APIGateway,
+					Name:           "api-gateway",
+					EnterpriseMeta: *defaultMeta,
+					Listeners: []structs.APIGatewayListener{{
+						Name: "listener",
+						Port: 80,
+					}},
+					Status: structs.Status{
+						Conditions: []structs.Condition{
+							conditions.gatewayListenerNoConflicts(structs.ResourceReference{
+								Kind:           structs.APIGateway,
+								Name:           "api-gateway",
+								SectionName:    "listener",
+								EnterpriseMeta: *defaultMeta,
+							}),
+						},
+					},
+				},
+				&structs.BoundAPIGatewayConfigEntry{
+					Kind:           structs.BoundAPIGateway,
+					Name:           "api-gateway",
+					EnterpriseMeta: *defaultMeta,
+					Listeners: []structs.BoundAPIGatewayListener{{
+						Name: "listener",
+					}},
 				},
 			},
 		},
@@ -1747,6 +1950,11 @@ func TestAPIGatewayController(t *testing.T) {
 						Name:           "gateway",
 						EnterpriseMeta: *defaultMeta,
 					}},
+					Status: structs.Status{
+						Conditions: []structs.Condition{
+							newGatewayConditionGenerator().routeAccepted(),
+						},
+					},
 				},
 				&structs.ServiceConfigEntry{
 					Kind:           structs.ServiceDefaults,
@@ -1762,6 +1970,11 @@ func TestAPIGatewayController(t *testing.T) {
 						Protocol: structs.ListenerProtocolTCP,
 						Port:     22,
 					}},
+					Status: structs.Status{
+						Conditions: []structs.Condition{
+							newGatewayConditionGenerator().gatewayAccepted(),
+						},
+					},
 				},
 				&structs.BoundAPIGatewayConfigEntry{
 					Kind:           structs.BoundAPIGateway,
@@ -1839,6 +2052,11 @@ func TestAPIGatewayController(t *testing.T) {
 						Name:           "gateway",
 						EnterpriseMeta: *defaultMeta,
 					}},
+					Status: structs.Status{
+						Conditions: []structs.Condition{
+							newGatewayConditionGenerator().routeAccepted(),
+						},
+					},
 				},
 				&structs.ServiceConfigEntry{
 					Kind:           structs.ServiceDefaults,
@@ -1930,6 +2148,11 @@ func TestAPIGatewayController(t *testing.T) {
 						Name:           "gateway",
 						EnterpriseMeta: *defaultMeta,
 					}},
+					Status: structs.Status{
+						Conditions: []structs.Condition{
+							newGatewayConditionGenerator().routeAccepted(),
+						},
+					},
 				},
 				&structs.TCPRouteConfigEntry{
 					Kind:           structs.TCPRoute,
@@ -1943,6 +2166,11 @@ func TestAPIGatewayController(t *testing.T) {
 						Name:           "gateway",
 						EnterpriseMeta: *defaultMeta,
 					}},
+					Status: structs.Status{
+						Conditions: []structs.Condition{
+							newGatewayConditionGenerator().routeAccepted(),
+						},
+					},
 				},
 				&structs.ServiceConfigEntry{
 					Kind:           structs.ServiceDefaults,
@@ -2060,6 +2288,11 @@ func TestAPIGatewayController(t *testing.T) {
 						Name:           "gateway",
 						EnterpriseMeta: *defaultMeta,
 					}},
+					Status: structs.Status{
+						Conditions: []structs.Condition{
+							newGatewayConditionGenerator().routeAccepted(),
+						},
+					},
 				},
 				&structs.HTTPRouteConfigEntry{
 					Kind:           structs.HTTPRoute,
@@ -2075,6 +2308,11 @@ func TestAPIGatewayController(t *testing.T) {
 						Name:           "gateway",
 						EnterpriseMeta: *defaultMeta,
 					}},
+					Status: structs.Status{
+						Conditions: []structs.Condition{
+							newGatewayConditionGenerator().routeAccepted(),
+						},
+					},
 				},
 				&structs.ServiceConfigEntry{
 					Kind:           structs.ServiceDefaults,
@@ -2172,6 +2410,14 @@ func TestAPIGatewayController(t *testing.T) {
 			}, {
 				Kind: structs.TCPRoute,
 				Name: "tcp-route",
+				Meta: acl.DefaultEnterpriseMeta(),
+			}, {
+				Kind: structs.TCPRoute,
+				Name: "tcp-route",
+				Meta: acl.DefaultEnterpriseMeta(),
+			}, {
+				Kind: structs.HTTPRoute,
+				Name: "http-route",
 				Meta: acl.DefaultEnterpriseMeta(),
 			}, {
 				Kind: structs.HTTPRoute,
@@ -2326,6 +2572,11 @@ func TestAPIGatewayController(t *testing.T) {
 						Name:           "gateway",
 						EnterpriseMeta: *defaultMeta,
 					}},
+					Status: structs.Status{
+						Conditions: []structs.Condition{
+							newGatewayConditionGenerator().routeAccepted(),
+						},
+					},
 				},
 				&structs.TCPRouteConfigEntry{
 					Kind:           structs.TCPRoute,
@@ -2339,6 +2590,11 @@ func TestAPIGatewayController(t *testing.T) {
 						Name:           "gateway",
 						EnterpriseMeta: *defaultMeta,
 					}},
+					Status: structs.Status{
+						Conditions: []structs.Condition{
+							newGatewayConditionGenerator().routeAccepted(),
+						},
+					},
 				},
 				&structs.ServiceConfigEntry{
 					Kind:           structs.ServiceDefaults,

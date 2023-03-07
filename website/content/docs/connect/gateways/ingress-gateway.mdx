@@ -20,7 +20,7 @@ to a set of backing
 [services](/consul/docs/connect/config-entries/ingress-gateway#services).
 
 To enable easier service discovery, a new Consul [DNS
-subdomain](/consul/docs/discovery/dns#ingress-service-lookups) is provided, on
+subdomain](/consul/docs/services/discovery/dns-static-lookups#ingress-service-lookups) is provided, on
 `<service>.ingress.<domain>`.
 
 For listeners with a
@@ -29,7 +29,7 @@ For listeners with a
 case, the ingress gateway relies on host/authority headers to decide the
 service that should receive the traffic. The host used to match traffic
 defaults to the [Consul DNS ingress
-subdomain](/consul/docs/discovery/dns#ingress-service-lookups), but can be changed using
+subdomain](/consul/docs/services/discovery/dns-static-lookups#ingress-service-lookups), but can be changed using
 the [hosts](/consul/docs/connect/config-entries/ingress-gateway#hosts) field.
 
 ![Ingress Gateway Architecture](/img/ingress-gateways.png)

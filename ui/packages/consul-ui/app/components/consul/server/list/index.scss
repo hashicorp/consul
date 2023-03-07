@@ -9,6 +9,6 @@
 }
 
 %consul-server-list a:hover div {
-  box-shadow: var(--decor-elevation-800);
-  --tone-border: var(--tone-gray-500);
+  box-shadow: var(--token-elevation-overlay-box-shadow);
+  --tone-border: var(--token-color-foreground-faint);
 }

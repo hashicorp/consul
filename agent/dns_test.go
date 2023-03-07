@@ -16,6 +16,7 @@ import (
 	"github.com/hashicorp/serf/coordinate"
 	"github.com/miekg/dns"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/sync/errgroup"
 
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/consul"
@@ -4883,21 +4884,26 @@ func TestDNS_TCP_and_UDP_Truncate(t *testing.T) {
 	services := []string{"normal", "truncated"}
 	for index, service := range services {
 		numServices := (index * 5000) + 2
+		var eg errgroup.Group
 		for i := 1; i < numServices; i++ {
-			args := &structs.RegisterRequest{
-				Datacenter: "dc1",
-				Node:       fmt.Sprintf("%s-%d.acme.com", service, i),
-				Address:    fmt.Sprintf("127.%d.%d.%d", 0, (i / 255), i%255),
-				Service: &structs.NodeService{
-					Service: service,
-					Port:    8000,
-				},
-			}
+			j := i
+			eg.Go(func() error {
+				args := &structs.RegisterRequest{
+					Datacenter: "dc1",
+					Node:       fmt.Sprintf("%s-%d.acme.com", service, j),
+					Address:    fmt.Sprintf("127.%d.%d.%d", 0, (j / 255), j%255),
+					Service: &structs.NodeService{
+						Service: service,
+						Port:    8000,
+					},
+				}
 
-			var out struct{}
-			if err := a.RPC(context.Background(), "Catalog.Register", args, &out); err != nil {
-				t.Fatalf("err: %v", err)
-			}
+				var out struct{}
+				return a.RPC(context.Background(), "Catalog.Register", args, &out)
+			})
+		}
+		if err := eg.Wait(); err != nil {
+			t.Fatalf("error registering: %v", err)
 		}
 
 		// Register an equivalent prepared query.

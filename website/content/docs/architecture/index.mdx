@@ -55,7 +55,7 @@ You can also run Consul with an alternate service mesh configuration that deploy
 
 ## LAN gossip pool
 
-Client and server agents participate in a LAN gossip pool so that they can distribute and perform node [health checks](/consul/docs/discovery/checks). Agents in the pool propagate the health check information across the cluster. Agent gossip communication occurs on port `8301` using UDP. Agent gossip falls back to TCP if UDP is not available. Refer to [Gossip Protocol](/consul/docs/architecture/gossip) for additional information. 
+Client and server agents participate in a LAN gossip pool so that they can distribute and perform node [health checks](/consul/docs/services/usage/checks). Agents in the pool propagate the health check information across the cluster. Agent gossip communication occurs on port `8301` using UDP. Agent gossip falls back to TCP if UDP is not available. Refer to [Gossip Protocol](/consul/docs/architecture/gossip) for additional information. 
 
 The following simplified diagram shows the interactions between servers and clients.
 

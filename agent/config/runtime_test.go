@@ -33,7 +33,7 @@ import (
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logging"
-	"github.com/hashicorp/consul/proto/prototest"
+	"github.com/hashicorp/consul/proto/private/prototest"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
@@ -4646,6 +4646,8 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.RequestLimitsWriteRate = rate.Inf
 			rt.SegmentLimit = 64
 			rt.XDSUpdateRateLimit = 250
+			rt.RPCRateLimit = rate.Inf
+			rt.RPCMaxBurst = 1000
 		},
 	})
 
@@ -5993,12 +5995,13 @@ func TestLoad_FullConfig(t *testing.T) {
 	nodeEntMeta := structs.NodeEnterpriseMetaInDefaultPartition()
 	expected := &RuntimeConfig{
 		// non-user configurable values
-		AEInterval:                 time.Minute,
-		CheckDeregisterIntervalMin: time.Minute,
-		CheckReapInterval:          30 * time.Second,
-		SegmentNameLimit:           64,
-		SyncCoordinateIntervalMin:  15 * time.Second,
-		SyncCoordinateRateTarget:   64,
+		AEInterval:                     time.Minute,
+		CheckDeregisterIntervalMin:     time.Minute,
+		CheckReapInterval:              30 * time.Second,
+		SegmentNameLimit:               64,
+		SyncCoordinateIntervalMin:      15 * time.Second,
+		SyncCoordinateRateTarget:       64,
+		LocalProxyConfigResyncInterval: 30 * time.Second,
 
 		Revision:          "JNtPSav3",
 		Version:           "R909Hblt",

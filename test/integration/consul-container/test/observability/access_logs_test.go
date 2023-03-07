@@ -45,9 +45,14 @@ func TestAccessLogs(t *testing.T) {
 		t.Skip()
 	}
 
-	cluster, _, _ := topology.NewPeeringCluster(t, 1, &libcluster.BuildOptions{
-		Datacenter:           "dc1",
-		InjectAutoEncryption: true,
+	cluster, _, _ := topology.NewCluster(t, &topology.ClusterConfig{
+		NumServers:                1,
+		NumClients:                1,
+		ApplyDefaultProxySettings: true,
+		BuildOpts: &libcluster.BuildOptions{
+			Datacenter:           "dc1",
+			InjectAutoEncryption: true,
+		},
 	})
 
 	// Turn on access logs. Do this before starting the sidecars so that they inherit the configuration
@@ -64,13 +69,13 @@ func TestAccessLogs(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, set)
 
-	serverService, clientService := createServices(t, cluster)
+	serverService, clientService := topology.CreateServices(t, cluster)
 	_, port := clientService.GetAddr()
 
 	// Validate Custom JSON
 	require.Eventually(t, func() bool {
 		libassert.HTTPServiceEchoes(t, "localhost", port, "banana")
-		libassert.AssertFortioName(t, fmt.Sprintf("http://localhost:%d", port), "static-server")
+		libassert.AssertFortioName(t, fmt.Sprintf("http://localhost:%d", port), libservice.StaticServerServiceName, "")
 		client := libassert.ServiceLogContains(t, clientService, "\"banana_path\":\"/banana\"")
 		server := libassert.ServiceLogContains(t, serverService, "\"banana_path\":\"/banana\"")
 		return client && server
@@ -112,7 +117,7 @@ func TestAccessLogs(t *testing.T) {
 	_, port = clientService.GetAddr()
 	require.Eventually(t, func() bool {
 		libassert.HTTPServiceEchoes(t, "localhost", port, "orange")
-		libassert.AssertFortioName(t, fmt.Sprintf("http://localhost:%d", port), "static-server")
+		libassert.AssertFortioName(t, fmt.Sprintf("http://localhost:%d", port), libservice.StaticServerServiceName, "")
 		client := libassert.ServiceLogContains(t, clientService, "Orange you glad I didn't say banana: /orange, -")
 		server := libassert.ServiceLogContains(t, serverService, "Orange you glad I didn't say banana: /orange, -")
 		return client && server
@@ -120,43 +125,4 @@ func TestAccessLogs(t *testing.T) {
 
 	// TODO: add a test to check that connections without a matching filter chain are NOT logged
 
-}
-
-func createServices(t *testing.T, cluster *libcluster.Cluster) (libservice.Service, libservice.Service) {
-	node := cluster.Agents[0]
-	client := node.GetClient()
-
-	// Register service as HTTP
-	serviceDefault := &api.ServiceConfigEntry{
-		Kind:     api.ServiceDefaults,
-		Name:     libservice.StaticServerServiceName,
-		Protocol: "http",
-	}
-
-	ok, _, err := client.ConfigEntries().Set(serviceDefault, nil)
-	require.NoError(t, err, "error writing HTTP service-default")
-	require.True(t, ok, "did not write HTTP service-default")
-
-	// Create a service and proxy instance
-	serviceOpts := &libservice.ServiceOpts{
-		Name:     libservice.StaticServerServiceName,
-		ID:       "static-server",
-		HTTPPort: 8080,
-		GRPCPort: 8079,
-	}
-
-	// Create a service and proxy instance
-	_, serverConnectProxy, err := libservice.CreateAndRegisterStaticServerAndSidecar(node, serviceOpts)
-	require.NoError(t, err)
-
-	libassert.CatalogServiceExists(t, client, fmt.Sprintf("%s-sidecar-proxy", libservice.StaticServerServiceName))
-	libassert.CatalogServiceExists(t, client, libservice.StaticServerServiceName)
-
-	// Create a client proxy instance with the server as an upstream
-	clientConnectProxy, err := libservice.CreateAndRegisterStaticClientSidecar(node, "", false)
-	require.NoError(t, err)
-
-	libassert.CatalogServiceExists(t, client, fmt.Sprintf("%s-sidecar-proxy", libservice.StaticClientServiceName))
-
-	return serverConnectProxy, clientConnectProxy
 }

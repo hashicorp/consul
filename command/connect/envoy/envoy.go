@@ -11,7 +11,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-version"
 	"github.com/mitchellh/cli"
@@ -22,6 +21,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/xds"
 	"github.com/hashicorp/consul/agent/xds/accesslogs"
+	"github.com/hashicorp/consul/api"
 	proxyCmd "github.com/hashicorp/consul/command/connect/proxy"
 	"github.com/hashicorp/consul/command/flags"
 	"github.com/hashicorp/consul/envoyextensions/xdscommon"
@@ -503,15 +503,15 @@ func (c *cmd) run(args []string) int {
 			return 1
 		}
 
-		ok, err := checkEnvoyVersionCompatibility(v, xdscommon.UnsupportedEnvoyVersions)
+		ec, err := checkEnvoyVersionCompatibility(v, xdscommon.UnsupportedEnvoyVersions)
 
 		if err != nil {
 			c.UI.Warn("There was an error checking the compatibility of the envoy version: " + err.Error())
-		} else if !ok {
+		} else if !ec.isCompatible {
 			c.UI.Error(fmt.Sprintf("Envoy version %s is not supported. If there is a reason you need to use "+
 				"this version of envoy use the ignore-envoy-compatibility flag. Using an unsupported version of Envoy "+
 				"is not recommended and your experience may vary. For more information on compatibility "+
-				"see https://developer.hashicorp.com/consul/docs/connect/proxies/envoy#envoy-and-consul-client-agent", v))
+				"see https://developer.hashicorp.com/consul/docs/connect/proxies/envoy#envoy-and-consul-client-agent", ec.versionIncompatible))
 			return 1
 		}
 	}
@@ -810,8 +810,7 @@ func (c *cmd) xdsAddress() (GRPC, error) {
 		port, protocol, err := c.lookupXDSPort()
 		if err != nil {
 			if strings.Contains(err.Error(), "Permission denied") {
-				// Token did not have agent:read. Log and proceed with defaults.
-				c.UI.Info(fmt.Sprintf("Could not query /v1/agent/self for xDS ports: %s", err))
+				// Token did not have agent:read. Suppress and proceed with defaults.
 			} else {
 				// If not a permission denied error, gRPC is explicitly disabled
 				// or something went fatally wrong.
@@ -822,7 +821,7 @@ func (c *cmd) xdsAddress() (GRPC, error) {
 			// This is the dev mode default and recommended production setting if
 			// enabled.
 			port = 8502
-			c.UI.Info("-grpc-addr not provided and unable to discover a gRPC address for xDS. Defaulting to localhost:8502")
+			c.UI.Warn("-grpc-addr not provided and unable to discover a gRPC address for xDS. Defaulting to localhost:8502")
 		}
 		addr = fmt.Sprintf("%vlocalhost:%v", protocol, port)
 	}
@@ -887,9 +886,12 @@ func (c *cmd) lookupXDSPort() (int, string, error) {
 
 	var resp response
 	if err := mapstructure.Decode(self, &resp); err == nil {
-		if resp.XDS.Ports.TLS < 0 && resp.XDS.Ports.Plaintext < 0 {
-			return 0, "", fmt.Errorf("agent has grpc disabled")
-		}
+		// When we get rid of the 1.10 compatibility code below we can uncomment
+		// this check:
+		//
+		// if resp.XDS.Ports.TLS <= 0 && resp.XDS.Ports.Plaintext <= 0 {
+		// 	return 0, "", fmt.Errorf("agent has grpc disabled")
+		// }
 		if resp.XDS.Ports.TLS > 0 {
 			return resp.XDS.Ports.TLS, "https://", nil
 		}
@@ -898,9 +900,12 @@ func (c *cmd) lookupXDSPort() (int, string, error) {
 		}
 	}
 
-	// If above TLS and Plaintext ports are both 0, fallback to
-	// old API for the case where a new consul CLI is being used
-	// with an older API version.
+	// If above TLS and Plaintext ports are both 0, it could mean
+	// gRPC is disabled on the agent or we are using an older API.
+	// In either case, fallback to reading from the DebugConfig.
+	//
+	// Next major version we should get rid of this below code.
+	// It exists for compatibility reasons for 1.10 and below.
 	cfg, ok := self["DebugConfig"]
 	if !ok {
 		return 0, "", fmt.Errorf("unexpected agent response: no debug config")
@@ -912,6 +917,12 @@ func (c *cmd) lookupXDSPort() (int, string, error) {
 	portN, ok := port.(float64)
 	if !ok {
 		return 0, "", fmt.Errorf("invalid grpc port in agent response")
+	}
+
+	// This works for both <1.10 and later but we should prefer
+	// reading from resp.XDS instead.
+	if portN < 0 {
+		return 0, "", fmt.Errorf("agent has grpc disabled")
 	}
 
 	return int(portN), "", nil
@@ -976,34 +987,73 @@ Usage: consul connect envoy [options] [-- pass-through options]
 `
 )
 
-func checkEnvoyVersionCompatibility(envoyVersion string, unsupportedList []string) (bool, error) {
-	// Now compare the versions to the list of supported versions
+type envoyCompat struct {
+	isCompatible        bool
+	versionIncompatible string
+}
+
+func checkEnvoyVersionCompatibility(envoyVersion string, unsupportedList []string) (envoyCompat, error) {
 	v, err := version.NewVersion(envoyVersion)
 	if err != nil {
-		return false, err
+		return envoyCompat{}, err
 	}
 
 	var cs strings.Builder
 
-	// Add one to the max minor version so that we accept all patches
+	// If there is a list of unsupported versions, build the constraint string,
+	// this will detect exactly unsupported versions
+	if len(unsupportedList) > 0 {
+		for i, s := range unsupportedList {
+			if i == 0 {
+				cs.WriteString(fmt.Sprintf("!= %s", s))
+			} else {
+				cs.WriteString(fmt.Sprintf(", != %s", s))
+			}
+		}
+
+		constraints, err := version.NewConstraint(cs.String())
+		if err != nil {
+			return envoyCompat{}, err
+		}
+
+		if c := constraints.Check(v); !c {
+			return envoyCompat{
+				isCompatible:        c,
+				versionIncompatible: envoyVersion,
+			}, nil
+		}
+	}
+
+	// Next build the constraint string using the bounds, make sure that we are less than but not equal to
+	// maxSupported since we will add 1. Need to add one to the max minor version so that we accept all patches
 	splitS := strings.Split(xdscommon.GetMaxEnvoyMinorVersion(), ".")
 	minor, err := strconv.Atoi(splitS[1])
 	if err != nil {
-		return false, err
+		return envoyCompat{}, err
 	}
 	minor++
 	maxSupported := fmt.Sprintf("%s.%d", splitS[0], minor)
 
-	// Build the constraint string, make sure that we are less than but not equal to maxSupported since we added 1
+	cs.Reset()
 	cs.WriteString(fmt.Sprintf(">= %s, < %s", xdscommon.GetMinEnvoyMinorVersion(), maxSupported))
-	for _, s := range unsupportedList {
-		cs.WriteString(fmt.Sprintf(", != %s", s))
-	}
-
 	constraints, err := version.NewConstraint(cs.String())
 	if err != nil {
-		return false, err
+		return envoyCompat{}, err
 	}
 
-	return constraints.Check(v), nil
+	if c := constraints.Check(v); !c {
+		return envoyCompat{
+			isCompatible:        c,
+			versionIncompatible: replacePatchVersionWithX(envoyVersion),
+		}, nil
+	}
+
+	return envoyCompat{isCompatible: true}, nil
+}
+
+func replacePatchVersionWithX(version string) string {
+	// Strip off the patch and append x to convey that the constraint is on the minor version and not the patch
+	// itself
+	a := strings.Split(version, ".")
+	return fmt.Sprintf("%s.%s.x", a[0], a[1])
 }

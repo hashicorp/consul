@@ -63,10 +63,10 @@ func NewN(t TestingT, conf Config, count int) (*Cluster, error) {
 //
 // The provided TestingT is used to register a cleanup function to terminate
 // the cluster.
-func New(t TestingT, configs []Config) (*Cluster, error) {
+func New(t TestingT, configs []Config, ports ...int) (*Cluster, error) {
 	id, err := shortid.Generate()
 	if err != nil {
-		return nil, fmt.Errorf("could not cluster id: %w", err)
+		return nil, fmt.Errorf("could not generate cluster id: %w", err)
 	}
 
 	name := fmt.Sprintf("consul-int-cluster-%s", id)
@@ -99,7 +99,7 @@ func New(t TestingT, configs []Config) (*Cluster, error) {
 		_ = cluster.Terminate()
 	})
 
-	if err := cluster.Add(configs, true); err != nil {
+	if err := cluster.Add(configs, true, ports...); err != nil {
 		return nil, fmt.Errorf("could not start or join all agents: %w", err)
 	}
 
@@ -114,8 +114,8 @@ func (c *Cluster) AddN(conf Config, count int, join bool) error {
 	return c.Add(configs, join)
 }
 
-// Add starts an agent with the given configuration and joins it with the existing cluster
-func (c *Cluster) Add(configs []Config, serfJoin bool) (xe error) {
+// Add starts agents with the given configurations and joins them to the existing cluster
+func (c *Cluster) Add(configs []Config, serfJoin bool, ports ...int) (xe error) {
 	if c.Index == 0 && !serfJoin {
 		return fmt.Errorf("the first call to Cluster.Add must have serfJoin=true")
 	}
@@ -125,19 +125,20 @@ func (c *Cluster) Add(configs []Config, serfJoin bool) (xe error) {
 		// Each agent gets it's own area in the cluster scratch.
 		conf.ScratchDir = filepath.Join(c.ScratchDir, strconv.Itoa(c.Index))
 		if err := os.MkdirAll(conf.ScratchDir, 0777); err != nil {
-			return err
+			return fmt.Errorf("container %d: %w", idx, err)
 		}
 		if err := os.Chmod(conf.ScratchDir, 0777); err != nil {
-			return err
+			return fmt.Errorf("container %d: %w", idx, err)
 		}
 
 		n, err := NewConsulContainer(
 			context.Background(),
 			conf,
 			c,
+			ports...,
 		)
 		if err != nil {
-			return fmt.Errorf("could not add container index %d: %w", idx, err)
+			return fmt.Errorf("container %d: %w", idx, err)
 		}
 		agents = append(agents, n)
 		c.Index++
@@ -160,9 +161,11 @@ func (c *Cluster) Add(configs []Config, serfJoin bool) (xe error) {
 func (c *Cluster) Join(agents []Agent) error {
 	return c.join(agents, false)
 }
+
 func (c *Cluster) JoinExternally(agents []Agent) error {
 	return c.join(agents, true)
 }
+
 func (c *Cluster) join(agents []Agent, skipSerfJoin bool) error {
 	if len(agents) == 0 {
 		return nil // no change
@@ -312,6 +315,16 @@ func (c *Cluster) StandardUpgrade(t *testing.T, ctx context.Context, targetVersi
 	}
 	t.Logf("The number of followers = %d", len(followers))
 
+	// NOTE: we only assert the number of agents in default partition
+	// TODO: add partition to the cluster struct to assert partition size
+	clusterSize := 0
+	for _, agent := range c.Agents {
+		if agent.GetPartition() == "" || agent.GetPartition() == "default" {
+			clusterSize++
+		}
+	}
+	t.Logf("The number of agents in default partition = %d", clusterSize)
+
 	upgradeFn := func(agent Agent, clientFactory func() (*api.Client, error)) error {
 		config := agent.GetConfig()
 		config.Version = targetVersion
@@ -346,8 +359,10 @@ func (c *Cluster) StandardUpgrade(t *testing.T, ctx context.Context, targetVersi
 			return err
 		}
 
-		// wait until the agent rejoin and leader is elected
-		WaitForMembers(t, client, len(c.Agents))
+		// wait until the agent rejoin and leader is elected; skip non-default agent
+		if agent.GetPartition() == "" || agent.GetPartition() == "default" {
+			WaitForMembers(t, client, clusterSize)
+		}
 		WaitForLeader(t, c, client)
 
 		return nil
@@ -475,7 +490,23 @@ func (c *Cluster) Servers() []Agent {
 	return servers
 }
 
-// Clients returns the handle to client agents
+// Clients returns the handle to client agents in provided partition
+func (c *Cluster) ClientsInPartition(partition string) []Agent {
+	var clients []Agent
+
+	for _, n := range c.Agents {
+		if n.IsServer() {
+			continue
+		}
+
+		if n.GetPartition() == partition {
+			clients = append(clients, n)
+		}
+	}
+	return clients
+}
+
+// Clients returns the handle to client agents in all partitions
 func (c *Cluster) Clients() []Agent {
 	var clients []Agent
 
@@ -596,6 +627,20 @@ func (c *Cluster) ConfigEntryWrite(entry api.ConfigEntry) error {
 	}
 	if !written {
 		return fmt.Errorf("config entry not updated: %s/%s", entry.GetKind(), entry.GetName())
+	}
+	return err
+}
+
+func (c *Cluster) ConfigEntryDelete(entry api.ConfigEntry) error {
+	client, err := c.GetClient(nil, true)
+	if err != nil {
+		return err
+	}
+
+	entries := client.ConfigEntries()
+	_, err = entries.Delete(entry.GetKind(), entry.GetName(), nil)
+	if err != nil {
+		return fmt.Errorf("error deleting config entry: %v", err)
 	}
 	return err
 }

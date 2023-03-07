@@ -50,7 +50,7 @@ import (
 func TestPeering_RotateServerAndCAThenFail_(t *testing.T) {
 	t.Parallel()
 
-	accepting, dialing := libtopology.BasicPeeringTwoClustersSetup(t, utils.TargetVersion)
+	accepting, dialing := libtopology.BasicPeeringTwoClustersSetup(t, utils.TargetVersion, false)
 	var (
 		acceptingCluster     = accepting.Cluster
 		dialingCluster       = dialing.Cluster
@@ -94,7 +94,7 @@ func TestPeering_RotateServerAndCAThenFail_(t *testing.T) {
 
 		_, port := clientSidecarService.GetAddr()
 		libassert.HTTPServiceEchoes(t, "localhost", port, "")
-		libassert.AssertFortioName(t, fmt.Sprintf("http://localhost:%d", port), "static-server")
+		libassert.AssertFortioName(t, fmt.Sprintf("http://localhost:%d", port), libservice.StaticServerServiceName, "")
 	}
 
 	testutil.RunStep(t, "rotate exporting cluster's root CA", func(t *testing.T) {
@@ -144,7 +144,7 @@ func TestPeering_RotateServerAndCAThenFail_(t *testing.T) {
 		// Connectivity should still be contained
 		_, port := clientSidecarService.GetAddr()
 		libassert.HTTPServiceEchoes(t, "localhost", port, "")
-		libassert.AssertFortioName(t, fmt.Sprintf("http://localhost:%d", port), "static-server")
+		libassert.AssertFortioName(t, fmt.Sprintf("http://localhost:%d", port), libservice.StaticServerServiceName, "")
 
 		verifySidecarHasTwoRootCAs(t, clientSidecarService)
 	})
@@ -166,7 +166,7 @@ func TestPeering_RotateServerAndCAThenFail_(t *testing.T) {
 
 		_, port := clientSidecarService.GetAddr()
 		libassert.HTTPServiceEchoes(t, "localhost", port, "")
-		libassert.AssertFortioName(t, fmt.Sprintf("http://localhost:%d", port), "static-server")
+		libassert.AssertFortioName(t, fmt.Sprintf("http://localhost:%d", port), libservice.StaticServerServiceName, "")
 	})
 }
 

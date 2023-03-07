@@ -24,56 +24,29 @@ as |item|}}
 
     <BlockSlot @name="disconnected" as |after|>
       {{#if (eq loader.error.status "404")}}
-        <Notice
+        <Hds::Toast @color='warning'
           {{notification
             sticky=true
-          }}
-          class="notification-update"
-          @type="warning"
-        as |notice|>
-          <notice.Header>
-            <strong>Warning!</strong>
-          </notice.Header>
-          <notice.Body>
-            <p>
-              This service has been deregistered and no longer exists in the catalog.
-            </p>
-          </notice.Body>
-        </Notice>
+          }} as |T|>
+          <T.Title>Warning!</T.Title>
+          <T.Description>This service has been deregistered and no longer exists in the catalog.</T.Description>
+        </Hds::Toast>
       {{else if (eq loader.error.status "403")}}
-        <Notice
+        <Hds::Toast @color='critical'
           {{notification
             sticky=true
-          }}
-          class="notification-update"
-          @type="error"
-        as |notice|>
-          <notice.Header>
-            <strong>Error!</strong>
-          </notice.Header>
-          <notice.Body>
-            <p>
-              You no longer have access to this service
-            </p>
-          </notice.Body>
-        </Notice>
+          }} as |T|>
+          <T.Title>Error!</T.Title>
+          <T.Description>You no longer have access to this service.</T.Description>
+        </Hds::Toast>
       {{else}}
-        <Notice
+        <Hds::Toast @color='warning'
           {{notification
             sticky=true
-          }}
-          class="notification-update"
-          @type="warning"
-        as |notice|>
-          <notice.Header>
-            <strong>Warning!</strong>
-          </notice.Header>
-          <notice.Body>
-            <p>
-              An error was returned whilst loading this data, refresh to try again.
-            </p>
-          </notice.Body>
-        </Notice>
+          }} as |T|>
+          <T.Title>Warning!</T.Title>
+          <T.Description>An error was returned whilst loading this data, refresh to try again.</T.Description>
+        </Hds::Toast>
       {{/if}}
     </BlockSlot>
 
@@ -137,11 +110,23 @@ as |item|}}
                 {{compute (fn route.t 'documentation.title')}}
               </h3>
             </header>
-            {{compute (fn route.t 'documentation.body'
-              (hash
-                htmlSafe=true
-              )
-            )}}
+            <div class="flex gap-1.5 flex-col">
+              <Hds::Link::Standalone
+                @text={{compute (fn route.t 'documentation.links.license-expiration.text')}}
+                @href='{{concat (env 'CONSUL_DOCS_URL') (compute (fn route.t 'documentation.links.license-expiration.link'))}}'
+                @icon='docs-link'
+              />
+              <Hds::Link::Standalone
+                @text={{compute (fn route.t 'documentation.links.renewing-license.text')}}
+                @href='{{concat (env 'CONSUL_DOCS_URL') (compute (fn route.t 'documentation.links.renewing-license.link'))}}'
+                @icon='docs-link'
+              />
+              <Hds::Link::Standalone
+                @text={{compute (fn route.t 'documentation.links.applying-new-license.text')}}
+                @href='{{concat (env 'CONSUL_DOCS_URL') (compute (fn route.t 'documentation.links.applying-new-license.link'))}}'
+                @icon='docs-link'
+              />
+            </div>
           </aside>
 
         </section>

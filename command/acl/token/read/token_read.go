@@ -67,17 +67,6 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	tokenAccessor := c.tokenAccessorID
-	if tokenAccessor == "" {
-		if c.tokenID == "" {
-			c.UI.Error("Must specify the -accessor-id parameter")
-			return 1
-		} else {
-			tokenAccessor = c.tokenID
-			c.UI.Warn("Use the -accessor-id parameter to specify token by Accessor ID")
-		}
-	}
-
 	client, err := c.http.APIClient()
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
@@ -87,6 +76,17 @@ func (c *cmd) Run(args []string) int {
 	var t *api.ACLToken
 	var expanded *api.ACLTokenExpanded
 	if !c.self {
+		tokenAccessor := c.tokenAccessorID
+		if tokenAccessor == "" {
+			if c.tokenID == "" {
+				c.UI.Error("Must specify the -accessor-id parameter")
+				return 1
+			} else {
+				tokenAccessor = c.tokenID
+				c.UI.Warn("Use the -accessor-id parameter to specify token by Accessor ID")
+			}
+		}
+
 		tok, err := acl.GetTokenAccessorIDFromPartial(client, tokenAccessor)
 		if err != nil {
 			c.UI.Error(fmt.Sprintf("Error determining token ID: %v", err))

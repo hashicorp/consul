@@ -32,6 +32,7 @@ consul:
   ingress-gateway: Ingress Gateway
   terminating-gateway: Terminating Gateway
   mesh-gateway: Mesh Gateway
+  api-gateway: API Gateway
   status: Health Status
   service.meta: Service Meta
   node.meta: Node Meta

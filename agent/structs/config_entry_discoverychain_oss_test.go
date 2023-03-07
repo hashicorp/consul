@@ -73,6 +73,17 @@ func TestServiceResolverConfigEntry_OSS(t *testing.T) {
 			validateErr: `Bad Failover["*"]: Setting Namespace requires Consul Enterprise`,
 		},
 		{
+			name: "setting failover Namespace on OSS",
+			entry: &ServiceResolverConfigEntry{
+				Kind: ServiceResolver,
+				Name: "test",
+				Failover: map[string]ServiceResolverFailover{
+					"*": {Service: "s1", Policy: &ServiceResolverFailoverPolicy{Mode: "something"}},
+				},
+			},
+			validateErr: `Bad Failover["*"]: Setting failover policies requires Consul Enterprise`,
+		},
+		{
 			name: "setting redirect Namespace on OSS",
 			entry: &ServiceResolverConfigEntry{
 				Kind: ServiceResolver,

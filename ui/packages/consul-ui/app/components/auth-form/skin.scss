@@ -1,5 +1,5 @@
 %auth-form em {
   @extend %p3;
-  color: rgb(var(--tone-gray-500));
+  color: var(--token-color-foreground-faint);
   font-style: normal;
 }

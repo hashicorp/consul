@@ -88,3 +88,17 @@ func (req *DiscoveryChainRequest) GetEnterpriseMeta() *acl.EnterpriseMeta {
 func (req *DiscoveryChainRequest) WithEnterpriseMeta(_ *acl.EnterpriseMeta) {
 	// do nothing
 }
+
+// ValidateEnterprise validates that enterprise fields are only set
+// with enterprise binaries.
+func (f *ServiceResolverFailoverPolicy) ValidateEnterprise() error {
+	if f == nil {
+		return nil
+	}
+
+	if f.Mode != "" {
+		return fmt.Errorf("Setting failover policies requires Consul Enterprise")
+	}
+
+	return nil
+}
