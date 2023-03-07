@@ -4,5 +4,6 @@
 export REQUIRED_SERVICES="
 s1 s1-sidecar-proxy
 s2-v1
+s3 s3-sidecar-proxy
 terminating-gateway-primary
 "
