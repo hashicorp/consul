@@ -441,6 +441,12 @@ spec:
         'The timeout for establishing new network connections to this service. The default unit of time is `ns`.',
     },
     {
+      name: 'RequestTimeout',
+      type: 'duration: 0s',
+      description:
+        'The timeout for receiving an HTTP response from this service before the connection is terminated. If unspecified or 0, the default of 15s is used. The default unit of time is `ns`.',
+    },
+    {
       name: 'DefaultSubset',
       type: 'string: ""',
       description:

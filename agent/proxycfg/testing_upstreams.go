@@ -242,6 +242,7 @@ func setupTestVariationDiscoveryChain(
 				Kind:           structs.ServiceResolver,
 				Name:           "db",
 				ConnectTimeout: 33 * time.Second,
+				RequestTimeout: 33 * time.Second,
 			},
 		)
 	case "external-sni":
@@ -255,6 +256,7 @@ func setupTestVariationDiscoveryChain(
 				Kind:           structs.ServiceResolver,
 				Name:           "db",
 				ConnectTimeout: 33 * time.Second,
+				RequestTimeout: 33 * time.Second,
 			},
 		)
 	case "failover":
@@ -263,6 +265,7 @@ func setupTestVariationDiscoveryChain(
 				Kind:           structs.ServiceResolver,
 				Name:           "db",
 				ConnectTimeout: 33 * time.Second,
+				RequestTimeout: 33 * time.Second,
 				Failover: map[string]structs.ServiceResolverFailover{
 					"*": {
 						Service: "fail",
@@ -285,6 +288,7 @@ func setupTestVariationDiscoveryChain(
 				Kind:           structs.ServiceResolver,
 				Name:           "db",
 				ConnectTimeout: 33 * time.Second,
+				RequestTimeout: 33 * time.Second,
 				Failover: map[string]structs.ServiceResolverFailover{
 					"*": {
 						Datacenters: []string{"dc2"},
@@ -298,6 +302,7 @@ func setupTestVariationDiscoveryChain(
 				Kind:           structs.ServiceResolver,
 				Name:           "db",
 				ConnectTimeout: 33 * time.Second,
+				RequestTimeout: 33 * time.Second,
 				Failover: map[string]structs.ServiceResolverFailover{
 					"*": {
 						Targets: []structs.ServiceResolverFailoverTarget{
@@ -313,6 +318,7 @@ func setupTestVariationDiscoveryChain(
 				Kind:           structs.ServiceResolver,
 				Name:           "db",
 				ConnectTimeout: 33 * time.Second,
+				RequestTimeout: 33 * time.Second,
 				Redirect: &structs.ServiceResolverRedirect{
 					Peer: "cluster-01",
 				},
@@ -333,6 +339,7 @@ func setupTestVariationDiscoveryChain(
 				Kind:           structs.ServiceResolver,
 				Name:           "db",
 				ConnectTimeout: 33 * time.Second,
+				RequestTimeout: 33 * time.Second,
 				Failover: map[string]structs.ServiceResolverFailover{
 					"*": {
 						Datacenters: []string{"dc2", "dc3"},
@@ -355,6 +362,7 @@ func setupTestVariationDiscoveryChain(
 				Kind:           structs.ServiceResolver,
 				Name:           "db",
 				ConnectTimeout: 33 * time.Second,
+				RequestTimeout: 33 * time.Second,
 				Failover: map[string]structs.ServiceResolverFailover{
 					"*": {
 						Datacenters: []string{"dc2"},
@@ -377,6 +385,7 @@ func setupTestVariationDiscoveryChain(
 				Kind:           structs.ServiceResolver,
 				Name:           "db",
 				ConnectTimeout: 33 * time.Second,
+				RequestTimeout: 33 * time.Second,
 				Failover: map[string]structs.ServiceResolverFailover{
 					"*": {
 						Datacenters: []string{"dc2", "dc3"},
@@ -438,6 +447,7 @@ func setupTestVariationDiscoveryChain(
 				Kind:           structs.ServiceResolver,
 				Name:           "db",
 				ConnectTimeout: 33 * time.Second,
+				RequestTimeout: 33 * time.Second,
 			},
 			&structs.ProxyConfigEntry{
 				Kind: structs.ProxyDefaults,
@@ -489,6 +499,7 @@ func setupTestVariationDiscoveryChain(
 				Kind:           structs.ServiceResolver,
 				Name:           "db",
 				ConnectTimeout: 33 * time.Second,
+				RequestTimeout: 33 * time.Second,
 			},
 			&structs.ProxyConfigEntry{
 				Kind: structs.ProxyDefaults,
@@ -520,6 +531,7 @@ func setupTestVariationDiscoveryChain(
 				Kind:           structs.ServiceResolver,
 				Name:           "db",
 				ConnectTimeout: 33 * time.Second,
+				RequestTimeout: 33 * time.Second,
 			},
 			&structs.ProxyConfigEntry{
 				Kind: structs.ProxyDefaults,
