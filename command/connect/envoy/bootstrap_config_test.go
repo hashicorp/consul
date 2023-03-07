@@ -567,10 +567,16 @@ func TestBootstrapConfig_ConfigureArgs(t *testing.T) {
 		},
 		{
 			name: "hcp-metrics-sink",
+			baseArgs: BootstrapTplArgs{
+				ProxyID:   "web-sidecar-proxy",
+				Namespace: "default",
+			},
 			input: BootstrapConfig{
-				HCPMetricsBindPort: 3000,
+				HCPMetricsBindSocketDir: "/tmp/consul/hcp-metrics",
 			},
 			wantArgs: BootstrapTplArgs{
+				ProxyID:         "web-sidecar-proxy",
+				Namespace:       "default",
 				StatsConfigJSON: defaultStatsConfigJSON,
 				StatsSinksJSON: `{
 					"name": "envoy.stat_sinks.metrics_service",
@@ -596,9 +602,8 @@ func TestBootstrapConfig_ConfigureArgs(t *testing.T) {
 							{
 							  "endpoint": {
 								"address": {
-								  "socket_address": {
-									"address": "127.0.0.1",
-									"port_value": 3000
+								  "pipe": {
+									"path": "/tmp/consul/hcp-metrics/default_web-sidecar-proxy.sock"
 								  }
 								}
 							  }
@@ -1582,6 +1587,241 @@ func TestConsulTagSpecifiers(t *testing.T) {
 
 			assert.Equal(t, tc.expect, got)
 			assert.Equal(t, tc.expectNoDeprecated, gotNoDeprecated)
+		})
+	}
+}
+
+func TestAppendHCPMetrics(t *testing.T) {
+	tests := map[string]struct {
+		inputArgs     *BootstrapTplArgs
+		bindSocketDir string
+		wantArgs      *BootstrapTplArgs
+	}{
+		"dir-without-trailing-slash": {
+			inputArgs: &BootstrapTplArgs{
+				Namespace: "default",
+				ProxyID:   "web-sidecar-proxy",
+			},
+			bindSocketDir: "/tmp/consul/hcp-metrics",
+			wantArgs: &BootstrapTplArgs{
+				Namespace: "default",
+				ProxyID:   "web-sidecar-proxy",
+				StatsSinksJSON: `{
+					"name": "envoy.stat_sinks.metrics_service",
+					"typed_config": {
+					  "@type": "type.googleapis.com/envoy.config.metrics.v3.MetricsServiceConfig",
+					  "transport_api_version": "V3",
+					  "grpc_service": {
+						"envoy_grpc": {
+						  "cluster_name": "hcp_metrics_collector"
+						}
+					  }
+					}
+				  }`,
+				StaticClustersJSON: `{
+					"name": "hcp_metrics_collector",
+					"type": "STATIC",
+					"http2_protocol_options": {},
+					"loadAssignment": {
+					  "clusterName": "hcp_metrics_collector",
+					  "endpoints": [
+						{
+						  "lbEndpoints": [
+							{
+							  "endpoint": {
+								"address": {
+								  "pipe": {
+									"path": "/tmp/consul/hcp-metrics/default_web-sidecar-proxy.sock"
+								  }
+								}
+							  }
+							}
+						  ]
+						}
+					  ]
+					}
+				  }`,
+			},
+		},
+		"dir-with-trailing-slash": {
+			inputArgs: &BootstrapTplArgs{
+				Namespace: "default",
+				ProxyID:   "web-sidecar-proxy",
+			},
+			bindSocketDir: "/tmp/consul/hcp-metrics",
+			wantArgs: &BootstrapTplArgs{
+				Namespace: "default",
+				ProxyID:   "web-sidecar-proxy",
+				StatsSinksJSON: `{
+					"name": "envoy.stat_sinks.metrics_service",
+					"typed_config": {
+					  "@type": "type.googleapis.com/envoy.config.metrics.v3.MetricsServiceConfig",
+					  "transport_api_version": "V3",
+					  "grpc_service": {
+						"envoy_grpc": {
+						  "cluster_name": "hcp_metrics_collector"
+						}
+					  }
+					}
+				  }`,
+				StaticClustersJSON: `{
+					"name": "hcp_metrics_collector",
+					"type": "STATIC",
+					"http2_protocol_options": {},
+					"loadAssignment": {
+					  "clusterName": "hcp_metrics_collector",
+					  "endpoints": [
+						{
+						  "lbEndpoints": [
+							{
+							  "endpoint": {
+								"address": {
+								  "pipe": {
+									"path": "/tmp/consul/hcp-metrics/default_web-sidecar-proxy.sock"
+								  }
+								}
+							  }
+							}
+						  ]
+						}
+					  ]
+					}
+				  }`,
+			},
+		},
+		"path-without-namespace": {
+			inputArgs: &BootstrapTplArgs{
+				ProxyID: "web-sidecar-proxy",
+			},
+			bindSocketDir: "/tmp/consul/hcp-metrics",
+			wantArgs: &BootstrapTplArgs{
+				Namespace: "default",
+				ProxyID:   "web-sidecar-proxy",
+				StatsSinksJSON: `{
+					"name": "envoy.stat_sinks.metrics_service",
+					"typed_config": {
+					  "@type": "type.googleapis.com/envoy.config.metrics.v3.MetricsServiceConfig",
+					  "transport_api_version": "V3",
+					  "grpc_service": {
+						"envoy_grpc": {
+						  "cluster_name": "hcp_metrics_collector"
+						}
+					  }
+					}
+				  }`,
+				StaticClustersJSON: `{
+					"name": "hcp_metrics_collector",
+					"type": "STATIC",
+					"http2_protocol_options": {},
+					"loadAssignment": {
+					  "clusterName": "hcp_metrics_collector",
+					  "endpoints": [
+						{
+						  "lbEndpoints": [
+							{
+							  "endpoint": {
+								"address": {
+								  "pipe": {
+									"path": "/tmp/consul/hcp-metrics/web-sidecar-proxy.sock"
+								  }
+								}
+							  }
+							}
+						  ]
+						}
+					  ]
+					}
+				  }`,
+			},
+		},
+		"append-clusters-and-stats-sink": {
+			inputArgs: &BootstrapTplArgs{
+				Namespace: "default",
+				ProxyID:   "web-sidecar-proxy",
+				StatsSinksJSON: `{
+					"name": "envoy.stat_sinks.statsd",
+					"typedConfig": {
+						"@type": "type.googleapis.com/envoy.config.metrics.v3.StatsdSink",
+						"address": {
+							"socket_address": {
+								"address": "127.0.0.1",
+								"port_value": 9125
+							}
+						}
+					}
+				}`,
+				StaticClustersJSON: expectedSelfAdminCluster,
+			},
+			bindSocketDir: "/tmp/consul/hcp-metrics",
+			wantArgs: &BootstrapTplArgs{
+				Namespace: "default",
+				ProxyID:   "web-sidecar-proxy",
+				StatsSinksJSON: `{
+					"name": "envoy.stat_sinks.statsd",
+					"typedConfig": {
+						"@type": "type.googleapis.com/envoy.config.metrics.v3.StatsdSink",
+						"address": {
+							"socket_address": {
+								"address": "127.0.0.1",
+								"port_value": 9125
+							}
+						}
+					}
+				},{
+					"name": "envoy.stat_sinks.metrics_service",
+					"typed_config": {
+					  "@type": "type.googleapis.com/envoy.config.metrics.v3.MetricsServiceConfig",
+					  "transport_api_version": "V3",
+					  "grpc_service": {
+						"envoy_grpc": {
+						  "cluster_name": "hcp_metrics_collector"
+						}
+					  }
+					}
+				  }`,
+				StaticClustersJSON: expectedSelfAdminCluster + `,
+				{
+					"name": "hcp_metrics_collector",
+					"type": "STATIC",
+					"http2_protocol_options": {},
+					"loadAssignment": {
+					  "clusterName": "hcp_metrics_collector",
+					  "endpoints": [
+						{
+						  "lbEndpoints": [
+							{
+							  "endpoint": {
+								"address": {
+								  "pipe": {
+									"path": "/tmp/consul/hcp-metrics/default_web-sidecar-proxy.sock"
+								  }
+								}
+							  }
+							}
+						  ]
+						}
+					  ]
+					}
+				  }`,
+			},
+		},
+	}
+
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			appendHCPMetricsConfig(tt.inputArgs, tt.bindSocketDir)
+
+			// Some of our JSON strings are comma separated objects to be
+			// insertedinto an array which is not valid JSON on it's own so wrap
+			// them all in an array. For simple values this is still valid JSON
+			// too.
+			wantStatsSink := "[" + tt.wantArgs.StatsSinksJSON + "]"
+			gotStatsSink := "[" + tt.inputArgs.StatsSinksJSON + "]"
+			require.JSONEq(t, wantStatsSink, gotStatsSink, "field StatsSinksJSON should be equivalent JSON")
+
+			wantClusters := "[" + tt.wantArgs.StaticClustersJSON + "]"
+			gotClusters := "[" + tt.inputArgs.StaticClustersJSON + "]"
+			require.JSONEq(t, wantClusters, gotClusters, "field StaticClustersJSON should be equivalent JSON")
 		})
 	}
 }
