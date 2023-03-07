@@ -385,6 +385,7 @@ func (s *Server) establishStream(ctx context.Context,
 					Remote: &pbpeering.RemoteInfo{
 						Partition:  peer.Partition,
 						Datacenter: s.config.Datacenter,
+						Locality:   pbpeering.LocalityFromStruct(s.config.Locality),
 					},
 				},
 			},

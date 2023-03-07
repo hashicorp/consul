@@ -186,6 +186,7 @@ type Config struct {
 	LeaveOnTerm                      *bool               `mapstructure:"leave_on_terminate" json:"leave_on_terminate,omitempty"`
 	LicensePath                      *string             `mapstructure:"license_path" json:"license_path,omitempty"`
 	Limits                           Limits              `mapstructure:"limits" json:"-"`
+	Locality                         Locality            `mapstructure:"locality" json:"-"`
 	LogLevel                         *string             `mapstructure:"log_level" json:"log_level,omitempty"`
 	LogJSON                          *bool               `mapstructure:"log_json" json:"log_json,omitempty"`
 	LogFile                          *string             `mapstructure:"log_file" json:"log_file,omitempty"`
@@ -309,6 +310,15 @@ type GossipWANConfig struct {
 	ProbeTimeout   *string `mapstructure:"probe_timeout"`
 	SuspicionMult  *int    `mapstructure:"suspicion_mult"`
 	RetransmitMult *int    `mapstructure:"retransmit_mult"`
+}
+
+// Locality identifies where a given entity is running.
+type Locality struct {
+	// Region is region the zone belongs to.
+	Region *string `mapstructure:"region"`
+
+	// Zone is the zone the entity is running in.
+	Zone *string `mapstructure:"zone"`
 }
 
 type Consul struct {

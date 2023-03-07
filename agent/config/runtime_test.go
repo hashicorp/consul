@@ -7092,6 +7092,7 @@ func TestRuntimeConfig_Sanitize(t *testing.T) {
 				},
 			},
 		},
+		Locality: Locality{Region: strPtr("us-west-1"), Zone: strPtr("us-west-1a")},
 	}
 
 	b, err := json.MarshalIndent(rt.Sanitized(), "", "    ")
