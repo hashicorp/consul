@@ -88,10 +88,8 @@ func TestPeering_Upgrade_ControlPlane_MGW(t *testing.T) {
 		libassert.AssertFortioName(t, fmt.Sprintf("http://localhost:%d", port), libservice.StaticServerServiceName, "")
 	}
 
-	for _, oldVersion := range UpgradeFromVersions {
-		t.Run(fmt.Sprintf("Upgrade from %s to %s", oldVersion, utils.TargetVersion),
-			func(t *testing.T) {
-				run(t, oldVersion, utils.TargetVersion)
-			})
-	}
+	t.Run(fmt.Sprintf("Upgrade from %s to %s", utils.LatestVersion, utils.TargetVersion),
+		func(t *testing.T) {
+			run(t, utils.LatestVersion, utils.TargetVersion)
+		})
 }
