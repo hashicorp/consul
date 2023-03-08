@@ -10,38 +10,62 @@ import "private/pbcommon/common.proto";
 // between disparate Consul clusters.
 service PeeringService {
   rpc GenerateToken(GenerateTokenRequest) returns (GenerateTokenResponse) {
-    option (hashicorp.consul.internal.ratelimit.spec) = {operation_type: OPERATION_TYPE_WRITE};
+    option (hashicorp.consul.internal.ratelimit.spec) = {
+      operation_type: OPERATION_TYPE_WRITE,
+      operation_category: OPERATION_CATEGORY_PEERING
+    };
   }
 
   rpc Establish(EstablishRequest) returns (EstablishResponse) {
-    option (hashicorp.consul.internal.ratelimit.spec) = {operation_type: OPERATION_TYPE_WRITE};
+    option (hashicorp.consul.internal.ratelimit.spec) = {
+      operation_type: OPERATION_TYPE_WRITE,
+      operation_category: OPERATION_CATEGORY_PEERING
+    };
   }
 
   rpc PeeringRead(PeeringReadRequest) returns (PeeringReadResponse) {
-    option (hashicorp.consul.internal.ratelimit.spec) = {operation_type: OPERATION_TYPE_READ};
+    option (hashicorp.consul.internal.ratelimit.spec) = {
+      operation_type: OPERATION_TYPE_READ,
+      operation_category: OPERATION_CATEGORY_PEERING
+    };
   }
 
   rpc PeeringList(PeeringListRequest) returns (PeeringListResponse) {
-    option (hashicorp.consul.internal.ratelimit.spec) = {operation_type: OPERATION_TYPE_READ};
+    option (hashicorp.consul.internal.ratelimit.spec) = {
+      operation_type: OPERATION_TYPE_READ,
+      operation_category: OPERATION_CATEGORY_PEERING
+    };
   }
 
   rpc PeeringDelete(PeeringDeleteRequest) returns (PeeringDeleteResponse) {
-    option (hashicorp.consul.internal.ratelimit.spec) = {operation_type: OPERATION_TYPE_WRITE};
+    option (hashicorp.consul.internal.ratelimit.spec) = {
+      operation_type: OPERATION_TYPE_WRITE,
+      operation_category: OPERATION_CATEGORY_PEERING
+    };
   }
 
   // TODO(peering): As of writing, this method is only used in tests to set up Peerings in the state store.
   // Consider removing if we can find another way to populate state store in peering_endpoint_test.go
   rpc PeeringWrite(PeeringWriteRequest) returns (PeeringWriteResponse) {
-    option (hashicorp.consul.internal.ratelimit.spec) = {operation_type: OPERATION_TYPE_WRITE};
+    option (hashicorp.consul.internal.ratelimit.spec) = {
+      operation_type: OPERATION_TYPE_WRITE,
+      operation_category: OPERATION_CATEGORY_PEERING
+    };
   }
 
   // TODO(peering): Rename this to PeeredServiceRoots? or something like that?
   rpc TrustBundleListByService(TrustBundleListByServiceRequest) returns (TrustBundleListByServiceResponse) {
-    option (hashicorp.consul.internal.ratelimit.spec) = {operation_type: OPERATION_TYPE_READ};
+    option (hashicorp.consul.internal.ratelimit.spec) = {
+      operation_type: OPERATION_TYPE_READ,
+      operation_category: OPERATION_CATEGORY_PEERING
+    };
   }
 
   rpc TrustBundleRead(TrustBundleReadRequest) returns (TrustBundleReadResponse) {
-    option (hashicorp.consul.internal.ratelimit.spec) = {operation_type: OPERATION_TYPE_READ};
+    option (hashicorp.consul.internal.ratelimit.spec) = {
+      operation_type: OPERATION_TYPE_READ,
+      operation_category: OPERATION_CATEGORY_PEERING
+    };
   }
 }
 
