@@ -40,7 +40,8 @@ const (
 	InlineCertificate  string = "inline-certificate"
 	HTTPRoute          string = "http-route"
 	TCPRoute           string = "tcp-route"
-	RateLimitIPConfig  string = "rate-limit-ip"
+	// TODO: decide if we want to highlight 'ip' keyword in the name of RateLimitIPConfig
+	RateLimitIPConfig string = "control-plane-request-limit"
 
 	ProxyConfigGlobal string = "global"
 	MeshConfigMesh    string = "mesh"
