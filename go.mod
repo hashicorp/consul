@@ -38,11 +38,11 @@ require (
 	github.com/grpc-ecosystem/go-grpc-middleware v1.0.1-0.20190118093823-f849b5445de4
 	github.com/hashicorp/consul-awsauth v0.0.0-20220713182709-05ac1c5c2706
 	github.com/hashicorp/consul-net-rpc v0.0.0-20221205195236-156cfab66a69
-	github.com/hashicorp/consul/api v1.18.0
-	github.com/hashicorp/consul/envoyextensions v0.0.0-20230209212012-3b9c56956132
+	github.com/hashicorp/consul/api v1.20.0
+	github.com/hashicorp/consul/envoyextensions v0.1.2
 	github.com/hashicorp/consul/proto-public v0.2.1
-	github.com/hashicorp/consul/sdk v0.13.0
-	github.com/hashicorp/consul/troubleshoot v0.0.0-00010101000000-000000000000
+	github.com/hashicorp/consul/sdk v0.13.1
+	github.com/hashicorp/consul/troubleshoot v0.1.2
 	github.com/hashicorp/go-bexpr v0.1.2
 	github.com/hashicorp/go-checkpoint v0.5.0
 	github.com/hashicorp/go-cleanhttp v0.5.2
