@@ -153,28 +153,43 @@ func doHCPBootstrap(ctx context.Context, rc *config.RuntimeConfig, ui UI) (strin
 	}
 
 	dataDir := rc.DataDir
+
 	shouldPersist := true
 	if dataDir == "" {
-		// Agent in dev mode, we still need somewhere to persist the certs
-		// temporarily though to be able to start up at all since we don't support
-		// inline certs right now. Use temp dir
-		tmp, err := os.MkdirTemp(os.TempDir(), "consul-dev-")
-		if err != nil {
-			return "", fmt.Errorf("failed to create temp dir for certificates: %w", err)
-		}
+			// Agent in dev mode, we still need somewhere to persist the certs
+			// temporarily though to be able to start up at all since we don't support
+			// inline certs right now. Use temp dir
+			tmp, err := os.MkdirTemp(os.TempDir(), "consul-dev-")
+			if err != nil {
+				return "", fmt.Errorf("failed to create temp dir for certificates: %w", err)
+			}
 		dataDir = tmp
 		shouldPersist = false
 	}
-
-	// Persist the TLS cert files from the response since we need to refer to them
-	// as disk files either way.
-	if err := persistTLSCerts(dataDir, bsCfg); err != nil {
-		return "", fmt.Errorf("failed to persist TLS certificates to dir %q: %w", dataDir, err)
-	}
-	// Update the config JSON to include those TLS cert files
-	cfgJSON, err := injectTLSCerts(dataDir, bsCfg.ConsulConfig)
+	var cfgJSON string
+	newCluster, err := isNewCluster(dataDir)
 	if err != nil {
-		return "", fmt.Errorf("failed to inject TLS Certs into bootstrap config: %w", err)
+
+	}
+	if newCluster {
+		// Persist the TLS cert files from the response since we need to refer to them
+		// as disk files either way.
+		if err := persistTLSCerts(dataDir, bsCfg); err != nil {
+			return "", fmt.Errorf("failed to persist TLS certificates to dir %q: %w", dataDir, err)
+		}
+		// Update the config JSON to include those TLS cert files
+		cfgJSON, err = injectTLSCerts(dataDir, bsCfg.ConsulConfig)
+		if err != nil {
+			return "", fmt.Errorf("failed to inject TLS Certs into bootstrap config: %w", err)
+		}
+	} else {
+		// only keep the bootstrap configuration we need for linking an existing cluster:
+		//   * cloud stanza
+		//   * acl initial management token
+		//   * http config header
+		//
+		// since tls is not applied automatically, the certs should not be persisted
+		cfgJSON = "SUBSET"
 	}
 
 	// Persist the final config we need to add for restarts. Assuming this wasn't
@@ -301,4 +316,23 @@ func loadPersistedBootstrapConfig(rc *config.RuntimeConfig, ui UI) (string, bool
 	// it's all valid just in case the local config was really old and has
 	// deprecated fields or something?
 	return jsonStr, true
+}
+
+func isNewCluster(dataDir string) (bool, error) {
+	// empty dataDir indicates agent in dev-mode, nothing is persisted
+	if dataDir == "" {
+		return true, nil
+	}
+
+	// check if data-dir/existing-cluster-marker exists
+	filename := filepath.Join(dataDir, "existing-cluster-marker")
+	_, err := os.Stat(filename)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return true, nil
+		} else {
+			return false, err
+		}
+	}
+	return false, nil
 }
