@@ -10,6 +10,7 @@ import (
 	"strings"
 	"text/template"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/api"
 )
 
@@ -814,10 +815,9 @@ func appendHCPMetricsConfig(args *BootstrapTplArgs, hcpMetricsBindSocketDir stri
 		dir += "/"
 	}
 
-	path := fmt.Sprintf("%s%s.sock", dir, args.ProxyID)
-	if args.Namespace != "" {
-		path = fmt.Sprintf("%s%s_%s.sock", dir, args.Namespace, args.ProxyID)
-	}
+	// Normalize namespace to "default". This ensures we match the namespace behaviour in proxycfg package,
+	// where a dynamic listener will be created at the same socket path via xDS.
+	path := fmt.Sprintf("%s%s_%s.sock", dir, acl.NamespaceOrDefault(args.Namespace), args.ProxyID)
 
 	if args.StatsSinksJSON != "" {
 		args.StatsSinksJSON += ",\n"
