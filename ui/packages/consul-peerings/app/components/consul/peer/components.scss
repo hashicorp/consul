@@ -13,8 +13,7 @@
 %pill-failing,
 %pill-terminated,
 %pill-deleting {
-  font-weight: var(--typo-weight-medium);
-  font-size: var(--typo-size-700);
+  @extend %body-200-medium;
 }
 
 %pill-pending::before {

@@ -5,7 +5,7 @@
   @extend %with-leader-tile;
 }
 %consul-server-card .name + dd {
-  @extend %h300;
+  @extend %display-300-semibold;
   color: var(--token-color-hashicorp-brand);
   animation-name: typo-truncate;
 }

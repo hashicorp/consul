@@ -6,7 +6,7 @@
   border-bottom: none;
 }
 %empty-state-header {
-  @extend %h200;
+  @extend %display-400-semibold;
 }
 /* Icons */
 %empty-state header::before {

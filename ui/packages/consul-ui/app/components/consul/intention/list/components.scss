@@ -15,4 +15,7 @@
   td.intent- strong {
     @extend %pill-l7;
   }
+  td.permissions {
+    @extend %body-100-regular;
+  }
 }

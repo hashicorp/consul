@@ -1,6 +1,6 @@
 body,
 %form-element-text-input {
-  @extend %typo-body;
+  @extend %body-200-regular;
 }
 %radio-card header,
 fieldset > header,
@@ -9,48 +9,40 @@ fieldset > header,
 %table caption,
 %tbody-th,
 %form-element > span {
-  @extend %h400;
+  @extend %display-100-semibold;
 }
 %definition-table dt {
-  line-height: var(--typo-lead-700);
+  line-height: var(--token-typography-body-300-line-height);
 }
 %internal-button,
 %breadcrumbs li > *,
 %tab-nav {
-  @extend %h500;
+  @extend %body-200-medium;
 }
 %healthcheck-output dt,
-%table th,
-%table td strong,
-%sliding-toggle label span {
-  @extend %h600;
-}
-
-pre code,
-%notice,
-%notice p,
-%flash-message p,
-%filter-bar input,
-%tab-section p {
-  @extend %p1;
-}
-%empty-state-anchor,
 %table td p,
 %table td,
-%healthcheck-output dl > dd,
+%sliding-toggle label span {
+  @extend %body-200-semibold;
+}
+
+%filter-bar input,
+%tab-section p {
+  @extend %body-200-regular;
+}
+%empty-state-anchor,
 %form-element-label,
 %stats-card header a span,
 %footer,
 %app-view h1 span.kind-proxy {
-  @extend %p2;
+  @extend %body-100-regular;
 }
 %empty-state-subheader,
 %empty-state p,
-%button,
 %main-content p,
 %form-element-note,
 %form-element-error > strong {
-  @extend %p3;
+  @extend %body-100-regular;
 }
 %main-content p code {
   @extend %inline-code;
@@ -59,20 +51,15 @@ pre code,
 %radio-group label {
   line-height: var(--typo-lead-200);
 }
-%tab-nav {
-  letter-spacing: 0.03em;
-}
 
-/*TODO: See if we can collapse these into a */
-/* strong %p3 */
 %form-element-label,
 %button {
-  font-weight: var(--typo-weight-semibold);
+  @extend %body-200-semibold;
 }
 %route-card section dt,
 %route-card header:not(.short) dd,
 %splitter-card > header {
-  font-weight: var(--typo-weight-bold);
+  @extend .hds-font-weight-bold;
 }
 /**/
 
@@ -82,9 +69,8 @@ pre code,
 %pill,
 %form-element > strong,
 %tbody-th em,
-%app-view h1 em,
 %route-card header dt {
-  font-weight: var(--typo-weight-normal);
+  @extend .hds-font-weight-regular;
 }
 
 %form-element-note,
@@ -96,8 +82,7 @@ pre code,
 
 /* composite row */
 %composite-row-header {
-  font-size: var(--typo-size-450);
-  font-weight: var(--typo-weight-medium);
+  @extend %display-300-medium;
 }
 %composite-row-header *:not(button) {
   font-size: inherit;
@@ -105,14 +90,24 @@ pre code,
 }
 /**/
 
-/* TODO: We have nothing else with a 500 */
-/* either make this the biggest %p or don't use it */
 %app-view h1 em {
-  font-size: var(--typo-size-500);
+  @extend %body-200-medium;
 }
 /*TODO: This should go in reset, and probably needs select etc adding  */
 @media (max-width: 420px) and (-webkit-min-device-pixel-ratio: 0) {
   input {
     font-size: 16px !important;
   }
+}
+%healthcheck-output dl > dd {
+  @extend %body-200-regular;
+}
+
+h1 {
+  @extend %display-500-bold;
+}
+
+%healthcheck-output pre code,
+pre code {
+  @extend %code-200-regular;
 }
