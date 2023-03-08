@@ -967,7 +967,6 @@ jobs:
               COMPOSE_INTERACTIVE_NO_CLI: 1
               # tput complains if this isn't set to something.
               TERM: ansi
-              GOTAGS: "consulent" #GO TAGS for enterprise integration tests
         - store_test_results:
             path: *TEST_RESULTS_DIR
         - store_artifacts:

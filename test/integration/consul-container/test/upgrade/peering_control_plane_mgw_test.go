@@ -12,7 +12,6 @@ import (
 	libservice "github.com/hashicorp/consul/test/integration/consul-container/libs/service"
 	libtopology "github.com/hashicorp/consul/test/integration/consul-container/libs/topology"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
-	"github.com/hashicorp/go-version"
 )
 
 // TestPeering_Upgrade_ControlPlane_MGW verifies the peering control plane traffic go through the mesh gateway
@@ -87,12 +86,6 @@ func TestPeering_Upgrade_ControlPlane_MGW(t *testing.T) {
 		libassert.AssertUpstreamEndpointStatus(t, adminPort, fmt.Sprintf("static-server.default.%s.external", libtopology.DialingPeerName), "HEALTHY", 1)
 		libassert.HTTPServiceEchoes(t, "localhost", port, "")
 		libassert.AssertFortioName(t, fmt.Sprintf("http://localhost:%d", port), libservice.StaticServerServiceName, "")
-	}
-
-	fromVersion, err := version.NewVersion(utils.LatestVersion)
-	require.NoError(t, err)
-	if fromVersion.LessThan(utils.Version_1_14) {
-		return
 	}
 
 	t.Run(fmt.Sprintf("Upgrade from %s to %s", utils.LatestVersion, utils.TargetVersion),

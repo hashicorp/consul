@@ -13,7 +13,6 @@ import (
 	libservice "github.com/hashicorp/consul/test/integration/consul-container/libs/service"
 	libtopology "github.com/hashicorp/consul/test/integration/consul-container/libs/topology"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
-	"github.com/hashicorp/go-version"
 )
 
 // TestPeering_UpgradeToTarget_fromLatest checks peering status after dialing cluster
@@ -375,14 +374,6 @@ func TestPeering_UpgradeToTarget_fromLatest(t *testing.T) {
 	}
 
 	for _, tc := range tcs {
-		//  TODO: SKIP upgrade test of peering for version 1.13 sinceAPI
-		//  changed from 1.13 to 1.14 in , PeerName to Peer in
-		//  exportConfigEntry
-		fromVersion, err := version.NewVersion(utils.LatestVersion)
-		require.NoError(t, err)
-		if fromVersion.LessThan(utils.Version_1_14) {
-			continue
-		}
 		t.Run(fmt.Sprintf("%s upgrade from %s to %s", tc.name, utils.LatestVersion, utils.TargetVersion),
 			func(t *testing.T) {
 				run(t, tc, utils.LatestVersion, utils.TargetVersion)
