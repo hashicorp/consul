@@ -568,15 +568,13 @@ func TestBootstrapConfig_ConfigureArgs(t *testing.T) {
 		{
 			name: "hcp-metrics-sink",
 			baseArgs: BootstrapTplArgs{
-				ProxyID:   "web-sidecar-proxy",
-				Namespace: "default",
+				ProxyID: "web-sidecar-proxy",
 			},
 			input: BootstrapConfig{
 				HCPMetricsBindSocketDir: "/tmp/consul/hcp-metrics",
 			},
 			wantArgs: BootstrapTplArgs{
 				ProxyID:         "web-sidecar-proxy",
-				Namespace:       "default",
 				StatsConfigJSON: defaultStatsConfigJSON,
 				StatsSinksJSON: `{
 					"name": "envoy.stat_sinks.metrics_service",
@@ -1599,13 +1597,11 @@ func TestAppendHCPMetrics(t *testing.T) {
 	}{
 		"dir-without-trailing-slash": {
 			inputArgs: &BootstrapTplArgs{
-				Namespace: "default",
-				ProxyID:   "web-sidecar-proxy",
+				ProxyID: "web-sidecar-proxy",
 			},
 			bindSocketDir: "/tmp/consul/hcp-metrics",
 			wantArgs: &BootstrapTplArgs{
-				Namespace: "default",
-				ProxyID:   "web-sidecar-proxy",
+				ProxyID: "web-sidecar-proxy",
 				StatsSinksJSON: `{
 					"name": "envoy.stat_sinks.metrics_service",
 					"typed_config": {
@@ -1645,13 +1641,11 @@ func TestAppendHCPMetrics(t *testing.T) {
 		},
 		"dir-with-trailing-slash": {
 			inputArgs: &BootstrapTplArgs{
-				Namespace: "default",
-				ProxyID:   "web-sidecar-proxy",
+				ProxyID: "web-sidecar-proxy",
 			},
 			bindSocketDir: "/tmp/consul/hcp-metrics",
 			wantArgs: &BootstrapTplArgs{
-				Namespace: "default",
-				ProxyID:   "web-sidecar-proxy",
+				ProxyID: "web-sidecar-proxy",
 				StatsSinksJSON: `{
 					"name": "envoy.stat_sinks.metrics_service",
 					"typed_config": {
@@ -1689,55 +1683,9 @@ func TestAppendHCPMetrics(t *testing.T) {
 				  }`,
 			},
 		},
-		"path-without-namespace": {
-			inputArgs: &BootstrapTplArgs{
-				ProxyID: "web-sidecar-proxy",
-			},
-			bindSocketDir: "/tmp/consul/hcp-metrics",
-			wantArgs: &BootstrapTplArgs{
-				Namespace: "default",
-				ProxyID:   "web-sidecar-proxy",
-				StatsSinksJSON: `{
-					"name": "envoy.stat_sinks.metrics_service",
-					"typed_config": {
-					  "@type": "type.googleapis.com/envoy.config.metrics.v3.MetricsServiceConfig",
-					  "transport_api_version": "V3",
-					  "grpc_service": {
-						"envoy_grpc": {
-						  "cluster_name": "hcp_metrics_collector"
-						}
-					  }
-					}
-				  }`,
-				StaticClustersJSON: `{
-					"name": "hcp_metrics_collector",
-					"type": "STATIC",
-					"http2_protocol_options": {},
-					"loadAssignment": {
-					  "clusterName": "hcp_metrics_collector",
-					  "endpoints": [
-						{
-						  "lbEndpoints": [
-							{
-							  "endpoint": {
-								"address": {
-								  "pipe": {
-									"path": "/tmp/consul/hcp-metrics/web-sidecar-proxy.sock"
-								  }
-								}
-							  }
-							}
-						  ]
-						}
-					  ]
-					}
-				  }`,
-			},
-		},
 		"append-clusters-and-stats-sink": {
 			inputArgs: &BootstrapTplArgs{
-				Namespace: "default",
-				ProxyID:   "web-sidecar-proxy",
+				ProxyID: "web-sidecar-proxy",
 				StatsSinksJSON: `{
 					"name": "envoy.stat_sinks.statsd",
 					"typedConfig": {
@@ -1754,8 +1702,7 @@ func TestAppendHCPMetrics(t *testing.T) {
 			},
 			bindSocketDir: "/tmp/consul/hcp-metrics",
 			wantArgs: &BootstrapTplArgs{
-				Namespace: "default",
-				ProxyID:   "web-sidecar-proxy",
+				ProxyID: "web-sidecar-proxy",
 				StatsSinksJSON: `{
 					"name": "envoy.stat_sinks.statsd",
 					"typedConfig": {

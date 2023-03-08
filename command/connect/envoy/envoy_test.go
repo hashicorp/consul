@@ -197,14 +197,13 @@ func TestGenerateConfig(t *testing.T) {
 		},
 		{
 			Name:  "hcp-metrics",
-			Flags: []string{"-proxy-id", "test-proxy", "-namespace", "default"},
+			Flags: []string{"-proxy-id", "test-proxy"},
 			ProxyConfig: map[string]interface{}{
 				"envoy_hcp_metrics_bind_socket_dir": "/tmp/consul/hcp-metrics",
 			},
 			WantArgs: BootstrapTplArgs{
 				ProxyCluster: "test-proxy",
 				ProxyID:      "test-proxy",
-				Namespace:    "default",
 				// We don't know this til after the lookup so it will be empty in the
 				// initial args call we are testing here.
 				ProxySourceService: "",
