@@ -86,8 +86,9 @@ func TestAPIGatewayCreate(t *testing.T) {
 	// make sure the gateway/route come online
 	// make sure config entries have been properly created
 	namespace := getNamespace()
-	checkGatewayConfigEntry(t, client, "api-gateway", namespace)
-	checkTCPRouteConfigEntry(t, client, "api-gateway-route", namespace)
+	partition := getPartition()
+	checkGatewayConfigEntry(t, client, "api-gateway", namespace, partition)
+	checkTCPRouteConfigEntry(t, client, "api-gateway-route", namespace, partition)
 
 	port, err := gatewayService.GetPort(listenerPortOne)
 	require.NoError(t, err)
@@ -159,9 +160,9 @@ func createGateway(gatewayName string, protocol string, listenerPort int) *api.A
 	}
 }
 
-func checkGatewayConfigEntry(t *testing.T, client *api.Client, gatewayName string, namespace string) {
+func checkGatewayConfigEntry(t *testing.T, client *api.Client, gatewayName, namespace, partition string) {
 	require.Eventually(t, func() bool {
-		entry, _, err := client.ConfigEntries().Get(api.APIGateway, gatewayName, &api.QueryOptions{Namespace: namespace})
+		entry, _, err := client.ConfigEntries().Get(api.APIGateway, gatewayName, &api.QueryOptions{Namespace: namespace, Partition: partition})
 		require.NoError(t, err)
 		if entry == nil {
 			return false
@@ -171,9 +172,9 @@ func checkGatewayConfigEntry(t *testing.T, client *api.Client, gatewayName strin
 	}, time.Second*10, time.Second*1)
 }
 
-func checkHTTPRouteConfigEntry(t *testing.T, client *api.Client, routeName string, namespace string) {
+func checkHTTPRouteConfigEntry(t *testing.T, client *api.Client, routeName, namespace, partition string) {
 	require.Eventually(t, func() bool {
-		entry, _, err := client.ConfigEntries().Get(api.HTTPRoute, routeName, &api.QueryOptions{Namespace: namespace})
+		entry, _, err := client.ConfigEntries().Get(api.HTTPRoute, routeName, &api.QueryOptions{Namespace: namespace, Partition: partition})
 		require.NoError(t, err)
 		if entry == nil {
 			return false
@@ -184,9 +185,9 @@ func checkHTTPRouteConfigEntry(t *testing.T, client *api.Client, routeName strin
 	}, time.Second*10, time.Second*1)
 }
 
-func checkTCPRouteConfigEntry(t *testing.T, client *api.Client, routeName string, namespace string) {
+func checkTCPRouteConfigEntry(t *testing.T, client *api.Client, routeName, namespace, partition string) {
 	require.Eventually(t, func() bool {
-		entry, _, err := client.ConfigEntries().Get(api.TCPRoute, routeName, &api.QueryOptions{Namespace: namespace})
+		entry, _, err := client.ConfigEntries().Get(api.TCPRoute, routeName, &api.QueryOptions{Namespace: namespace, Partition: partition})
 		require.NoError(t, err)
 		if entry == nil {
 			return false

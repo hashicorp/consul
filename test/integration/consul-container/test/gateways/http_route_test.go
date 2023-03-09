@@ -79,17 +79,19 @@ func TestHTTPRouteFlattening(t *testing.T) {
 	)
 
 	namespace := getNamespace()
+	partition := getPartition()
 	gatewayName := randomName("gw", 16)
 	routeOneName := randomName("route", 16)
 	routeTwoName := randomName("route", 16)
 	path1 := "/"
 	path2 := "/v2"
 
-	//write config entries
+	// write config entries
 	proxyDefaults := &api.ProxyConfigEntry{
 		Kind:      api.ProxyDefaults,
 		Name:      api.ProxyConfigGlobal,
 		Namespace: namespace,
+		Partition: partition,
 		Config: map[string]interface{}{
 			"protocol": "http",
 		},
@@ -117,6 +119,7 @@ func TestHTTPRouteFlattening(t *testing.T) {
 				Kind:      api.APIGateway,
 				Name:      gatewayName,
 				Namespace: namespace,
+				Partition: partition,
 			},
 		},
 		Hostnames: []string{
@@ -124,12 +127,14 @@ func TestHTTPRouteFlattening(t *testing.T) {
 			"test.example",
 		},
 		Namespace: namespace,
+		Partition: partition,
 		Rules: []api.HTTPRouteRule{
 			{
 				Services: []api.HTTPService{
 					{
 						Name:      serviceOne.GetServiceName(),
 						Namespace: namespace,
+						Partition: partition,
 					},
 				},
 				Matches: []api.HTTPMatch{
@@ -152,18 +157,21 @@ func TestHTTPRouteFlattening(t *testing.T) {
 				Kind:      api.APIGateway,
 				Name:      gatewayName,
 				Namespace: namespace,
+				Partition: partition,
 			},
 		},
 		Hostnames: []string{
 			"test.foo",
 		},
 		Namespace: namespace,
+		Partition: partition,
 		Rules: []api.HTTPRouteRule{
 			{
 				Services: []api.HTTPService{
 					{
 						Name:      serviceTwo.GetServiceName(),
 						Namespace: namespace,
+						Partition: partition,
 					},
 				},
 				Matches: []api.HTTPMatch{
@@ -277,17 +285,19 @@ func TestHTTPRoutePathRewrite(t *testing.T) {
 	)
 
 	namespace := getNamespace()
+	partition := getPartition()
 	gatewayName := randomName("gw", 16)
 	invalidRouteName := randomName("route", 16)
 	validRouteName := randomName("route", 16)
 	fooUnrewritten := "/foo"
 	barUnrewritten := "/bar"
 
-	//write config entries
+	// write config entries
 	proxyDefaults := &api.ProxyConfigEntry{
 		Kind:      api.ProxyDefaults,
 		Name:      api.ProxyConfigGlobal,
 		Namespace: namespace,
+		Partition: partition,
 		Config: map[string]interface{}{
 			"protocol": "http",
 		},
@@ -305,12 +315,14 @@ func TestHTTPRoutePathRewrite(t *testing.T) {
 				Kind:      api.APIGateway,
 				Name:      gatewayName,
 				Namespace: namespace,
+				Partition: partition,
 			},
 		},
 		Hostnames: []string{
 			"test.foo",
 		},
 		Namespace: namespace,
+		Partition: partition,
 		Rules: []api.HTTPRouteRule{
 			{
 				Filters: api.HTTPFilters{
@@ -322,6 +334,7 @@ func TestHTTPRoutePathRewrite(t *testing.T) {
 					{
 						Name:      fooService.GetServiceName(),
 						Namespace: namespace,
+						Partition: partition,
 					},
 				},
 				Matches: []api.HTTPMatch{
@@ -344,12 +357,14 @@ func TestHTTPRoutePathRewrite(t *testing.T) {
 				Kind:      api.APIGateway,
 				Name:      gatewayName,
 				Namespace: namespace,
+				Partition: partition,
 			},
 		},
 		Hostnames: []string{
 			"test.foo",
 		},
 		Namespace: namespace,
+		Partition: partition,
 		Rules: []api.HTTPRouteRule{
 			{
 				Filters: api.HTTPFilters{
@@ -361,6 +376,7 @@ func TestHTTPRoutePathRewrite(t *testing.T) {
 					{
 						Name:      barService.GetServiceName(),
 						Namespace: namespace,
+						Partition: partition,
 					},
 				},
 				Matches: []api.HTTPMatch{
@@ -442,6 +458,7 @@ func TestHTTPRouteParentRefChange(t *testing.T) {
 
 	// getNamespace() should always return an empty string in Consul OSS
 	namespace := getNamespace()
+	partition := getPartition()
 	gatewayOneName := randomName("gw1", 16)
 	gatewayTwoName := randomName("gw2", 16)
 	routeName := randomName("route", 16)
@@ -451,6 +468,7 @@ func TestHTTPRouteParentRefChange(t *testing.T) {
 		Kind:      api.ProxyDefaults,
 		Name:      api.ProxyConfigGlobal,
 		Namespace: namespace,
+		Partition: partition,
 		Config: map[string]interface{}{
 			"protocol": "http",
 		},
@@ -473,7 +491,7 @@ func TestHTTPRouteParentRefChange(t *testing.T) {
 	}
 	require.NoError(t, cluster.ConfigEntryWrite(gatewayOne))
 	require.Eventually(t, func() bool {
-		entry, _, err := client.ConfigEntries().Get(api.APIGateway, gatewayOneName, &api.QueryOptions{Namespace: namespace})
+		entry, _, err := client.ConfigEntries().Get(api.APIGateway, gatewayOneName, &api.QueryOptions{Namespace: namespace, Partition: partition})
 		assert.NoError(t, err)
 		if entry == nil {
 			return false
@@ -505,7 +523,7 @@ func TestHTTPRouteParentRefChange(t *testing.T) {
 	require.NoError(t, cluster.ConfigEntryWrite(gatewayTwo))
 
 	require.Eventually(t, func() bool {
-		entry, _, err := client.ConfigEntries().Get(api.APIGateway, gatewayTwoName, &api.QueryOptions{Namespace: namespace})
+		entry, _, err := client.ConfigEntries().Get(api.APIGateway, gatewayTwoName, &api.QueryOptions{Namespace: namespace, Partition: partition})
 		assert.NoError(t, err)
 		if entry == nil {
 			return false
@@ -529,6 +547,7 @@ func TestHTTPRouteParentRefChange(t *testing.T) {
 				Kind:      api.APIGateway,
 				Name:      gatewayOneName,
 				Namespace: namespace,
+				Partition: partition,
 			},
 		},
 		Hostnames: []string{
@@ -536,12 +555,14 @@ func TestHTTPRouteParentRefChange(t *testing.T) {
 			"test.example",
 		},
 		Namespace: namespace,
+		Partition: partition,
 		Rules: []api.HTTPRouteRule{
 			{
 				Services: []api.HTTPService{
 					{
 						Name:      service.GetServiceName(),
 						Namespace: namespace,
+						Partition: partition,
 					},
 				},
 				Matches: []api.HTTPMatch{
@@ -559,7 +580,7 @@ func TestHTTPRouteParentRefChange(t *testing.T) {
 	require.NoError(t, cluster.ConfigEntryWrite(route))
 
 	require.Eventually(t, func() bool {
-		entry, _, err := client.ConfigEntries().Get(api.HTTPRoute, routeName, &api.QueryOptions{Namespace: namespace})
+		entry, _, err := client.ConfigEntries().Get(api.HTTPRoute, routeName, &api.QueryOptions{Namespace: namespace, Partition: partition})
 		assert.NoError(t, err)
 		if entry == nil {
 			return false
@@ -597,12 +618,13 @@ func TestHTTPRouteParentRefChange(t *testing.T) {
 			Kind:      api.APIGateway,
 			Name:      gatewayTwoName,
 			Namespace: namespace,
+			Partition: partition,
 		},
 	}
 
 	require.NoError(t, cluster.ConfigEntryWrite(route))
 	require.Eventually(t, func() bool {
-		entry, _, err := client.ConfigEntries().Get(api.HTTPRoute, routeName, &api.QueryOptions{Namespace: namespace})
+		entry, _, err := client.ConfigEntries().Get(api.HTTPRoute, routeName, &api.QueryOptions{Namespace: namespace, Partition: partition})
 		assert.NoError(t, err)
 		if entry == nil {
 			return false
