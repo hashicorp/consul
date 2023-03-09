@@ -890,10 +890,13 @@ func (c *CAManager) primaryUpdateRootCA(newProvider ca.Provider, args *structs.C
 	// TODO: https://github.com/hashicorp/consul/issues/12386
 	intermediate, err := newProvider.ActiveIntermediate()
 	if err != nil {
-		return err
+		return fmt.Errorf("error fetching active intermediate: %w", err)
 	}
 	if intermediate == "" {
-		return fmt.Errorf("no active intermediate")
+		intermediate, err = newProvider.GenerateIntermediate()
+		if err != nil {
+			return fmt.Errorf("error generating intermediate: %w", err)
+		}
 	}
 	if intermediate != newRootPEM {
 		if err := setLeafSigningCert(newActiveRoot, intermediate); err != nil {
