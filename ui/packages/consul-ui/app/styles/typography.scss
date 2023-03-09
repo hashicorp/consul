@@ -4,12 +4,14 @@ body,
 }
 %radio-card header,
 fieldset > header,
-%main-nav-horizontal-action,
 %definition-table dt,
 %table caption,
 %tbody-th,
 %form-element > span {
   @extend %display-100-semibold;
+}
+%main-nav-horizontal-action {
+  @extend %body-200-medium;
 }
 %definition-table dt {
   line-height: var(--token-typography-body-300-line-height);

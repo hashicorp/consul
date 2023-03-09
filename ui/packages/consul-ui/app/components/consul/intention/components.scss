@@ -6,7 +6,8 @@
 %pill-allow,
 %pill-deny,
 %pill-l7 {
-  @extend %body-200-regular;
+  font-weight: var(--token-typography-font-weight-regular);
+  font-size: var(--token-typography-body-200-font-size);
   display: inline-block;
 }
 %pill-allow {
