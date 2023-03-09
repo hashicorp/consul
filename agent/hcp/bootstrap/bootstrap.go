@@ -22,11 +22,12 @@ import (
 )
 
 const (
-	caFileName     = "server-tls-cas.pem"
-	certFileName   = "server-tls-cert.pem"
-	keyFileName    = "server-tls-key.pem"
-	configFileName = "server-config.json"
-	subDir         = "hcp-config"
+	caFileName              = "server-tls-cas.pem"
+	certFileName            = "server-tls-cert.pem"
+	keyFileName             = "server-tls-key.pem"
+	configFileName          = "server-config.json"
+	subDir                  = "hcp-config"
+	ExistingClusterFileName = "existing-cluster-marker"
 )
 
 type ConfigLoader func(source config.Source) (config.LoadResult, error)
@@ -156,20 +157,20 @@ func doHCPBootstrap(ctx context.Context, rc *config.RuntimeConfig, ui UI) (strin
 
 	shouldPersist := true
 	if dataDir == "" {
-			// Agent in dev mode, we still need somewhere to persist the certs
-			// temporarily though to be able to start up at all since we don't support
-			// inline certs right now. Use temp dir
-			tmp, err := os.MkdirTemp(os.TempDir(), "consul-dev-")
-			if err != nil {
-				return "", fmt.Errorf("failed to create temp dir for certificates: %w", err)
-			}
+		// Agent in dev mode, we still need somewhere to persist the certs
+		// temporarily though to be able to start up at all since we don't support
+		// inline certs right now. Use temp dir
+		tmp, err := os.MkdirTemp(os.TempDir(), "consul-dev-")
+		if err != nil {
+			return "", fmt.Errorf("failed to create temp dir for certificates: %w", err)
+		}
 		dataDir = tmp
 		shouldPersist = false
 	}
 	var cfgJSON string
 	newCluster, err := isNewCluster(dataDir)
 	if err != nil {
-
+		return "", fmt.Errorf("failed to determine if cluster is new: %w", err)
 	}
 	if newCluster {
 		// Persist the TLS cert files from the response since we need to refer to them
@@ -325,7 +326,7 @@ func isNewCluster(dataDir string) (bool, error) {
 	}
 
 	// check if data-dir/existing-cluster-marker exists
-	filename := filepath.Join(dataDir, "existing-cluster-marker")
+	filename := filepath.Join(dataDir, ExistingClusterFileName)
 	_, err := os.Stat(filename)
 	if err != nil {
 		if os.IsNotExist(err) {

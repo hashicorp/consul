@@ -44,6 +44,7 @@ import (
 	external "github.com/hashicorp/consul/agent/grpc-external"
 	grpcDNS "github.com/hashicorp/consul/agent/grpc-external/services/dns"
 	middleware "github.com/hashicorp/consul/agent/grpc-middleware"
+	hcpbootstrap "github.com/hashicorp/consul/agent/hcp/bootstrap"
 	"github.com/hashicorp/consul/agent/hcp/scada"
 	libscada "github.com/hashicorp/consul/agent/hcp/scada"
 	"github.com/hashicorp/consul/agent/local"
@@ -450,6 +451,10 @@ func New(bd BaseDeps) (*Agent, error) {
 		cache:           bd.Cache,
 		routineManager:  routine.NewManager(bd.Logger),
 		scadaProvider:   bd.HCP.Provider,
+	}
+
+	if err := createExistingClusterMarker(a.config.DataDir); err != nil {
+		return nil, err
 	}
 
 	// TODO: create rpcClientHealth in BaseDeps once NetRPC is available without Agent
@@ -4546,4 +4551,8 @@ func defaultIfEmpty(val, defaultVal string) string {
 		return val
 	}
 	return defaultVal
+}
+
+func createExistingClusterMarker(dataDir string) error {
+	return os.WriteFile(filepath.Join(dataDir, hcpbootstrap.ExistingClusterFileName), nil, 0600)
 }
