@@ -1138,7 +1138,7 @@ func (sn *ServiceNode) CompoundServiceID() ServiceID {
 	}
 }
 
-func (sn *ServiceNode) CompoundServiceName() ServiceName {
+func (sn *ServiceNode) CompoundServiceName() PeeredServiceName {
 	name := sn.ServiceName
 	if name == "" {
 		name = sn.ServiceID
@@ -1148,10 +1148,14 @@ func (sn *ServiceNode) CompoundServiceName() ServiceName {
 	entMeta := sn.EnterpriseMeta
 	entMeta.Normalize()
 
-	return ServiceName{
-		Name:           name,
-		EnterpriseMeta: entMeta,
+	return PeeredServiceName{
+		ServiceName: ServiceName{
+			Name:           name,
+			EnterpriseMeta: entMeta,
+		},
+		Peer: sn.PeerName,
 	}
+
 }
 
 // Weights represent the weight used by DNS for a given status
@@ -2215,6 +2219,10 @@ type IndexedServices struct {
 type PeeredServiceName struct {
 	ServiceName ServiceName
 	Peer        string
+}
+
+func (psn PeeredServiceName) String() string {
+	return fmt.Sprintf("%v:%v", psn.ServiceName.String(), psn.Peer)
 }
 
 type ServiceName struct {

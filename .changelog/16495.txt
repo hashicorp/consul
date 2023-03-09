@@ -1,0 +1,3 @@
+```release-note:improvement
+mesh: Add ServiceResolver RequestTimeout for route timeouts to make request timeouts configurable
+```
