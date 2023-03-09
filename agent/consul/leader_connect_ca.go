@@ -272,7 +272,7 @@ func newCARoot(pemValue, provider, clusterID string) (*structs.CARoot, error) {
 		ExternalTrustDomain: clusterID,
 		NotBefore:           primaryCert.NotBefore,
 		NotAfter:            primaryCert.NotAfter,
-		RootCert:            pemValue,
+		RootCert:            lib.EnsureTrailingNewline(pemValue),
 		PrivateKeyType:      keyType,
 		PrivateKeyBits:      keyBits,
 		Active:              true,
