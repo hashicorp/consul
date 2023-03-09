@@ -871,6 +871,36 @@ type ServiceResolverConfigEntry struct {
 	RaftIndex
 }
 
+func (e *ServiceResolverConfigEntry) RelatedPeers() []string {
+	peers := make(map[string]struct{})
+
+	if r := e.Redirect; r != nil && r.Peer != "" {
+		peers[r.Peer] = struct{}{}
+	}
+
+	if e.Failover != nil {
+		for _, f := range e.Failover {
+			for _, t := range f.Targets {
+				if t.Peer != "" {
+					peers[t.Peer] = struct{}{}
+				}
+			}
+		}
+	}
+
+	if len(peers) == 0 {
+		return nil
+	}
+
+	out := make([]string, 0, len(peers))
+	for svc := range peers {
+		out = append(out, svc)
+	}
+	sort.Strings(out)
+
+	return out
+}
+
 func (e *ServiceResolverConfigEntry) MarshalJSON() ([]byte, error) {
 	type Alias ServiceResolverConfigEntry
 	exported := &struct {
