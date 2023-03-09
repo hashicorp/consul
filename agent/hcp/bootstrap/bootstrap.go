@@ -321,19 +321,41 @@ func loadPersistedBootstrapConfig(rc *config.RuntimeConfig, ui UI) (string, bool
 
 func isNewCluster(dataDir string) (bool, error) {
 	// empty dataDir indicates agent in dev-mode, nothing is persisted
+	// and it is always a new cluster
 	if dataDir == "" {
 		return true, nil
 	}
 
-	// check if data-dir/existing-cluster-marker exists
-	filename := filepath.Join(dataDir, ExistingClusterFileName)
+	// check if data-dir/existing-cluster-marker or data-dir/raft/raft.db exists.
+	// if none of these exist, we are sure it is a new cluster.
+  // we cannot only rely on the marker because the customer might have upgraded
+  // to the new version of Consul that creates the marker, while trying to link
+  // to CCM at the same time.
+	filesRunningCluster := [][]string{
+		{dataDir, ExistingClusterFileName},
+		{dataDir, "raft", "raft.db"},
+	}
+
+	for _, fileNames := range filesRunningCluster {
+		ok, err := fileExists(filepath.Join(fileNames...))
+		if err != nil {
+			return false, err
+		}
+		if ok {
+			return false, nil
+		}
+	}
+
+	return true, nil
+}
+
+func fileExists(filename string) (bool, error) {
 	_, err := os.Stat(filename)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return true, nil
-		} else {
-			return false, err
+			return false, nil
 		}
+		return false, err
 	}
-	return false, nil
+	return true, nil
 }
