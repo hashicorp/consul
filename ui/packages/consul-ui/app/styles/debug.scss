@@ -203,7 +203,7 @@ html.with-route-announcer .route-title {
       margin-bottom: 3em;
     }
     > table td {
-      font-weight: normal !important;
+      font-weight: var(--token-typography-font-weight-regular) !important;
       cursor: default !important;
     }
     > table td code {

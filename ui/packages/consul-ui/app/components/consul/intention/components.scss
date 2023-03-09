@@ -6,9 +6,8 @@
 %pill-allow,
 %pill-deny,
 %pill-l7 {
+  @extend %body-200-regular;
   display: inline-block;
-  font-weight: var(--typo-weight-normal);
-  font-size: var(--typo-size-600);
 }
 %pill-allow {
   color: var(--token-color-foreground-success-on-surface);

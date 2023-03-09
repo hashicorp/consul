@@ -4,10 +4,8 @@
   }
 
   .tooltip {
+    @extend %body-200-regular;
     padding: 0 0 10px;
-    font-size: 0.875em;
-    line-height: 1.5em;
-    font-weight: normal;
     border: 1px solid var(--token-color-palette-neutral-300);
     background: #fff;
     border-radius: 2px;
@@ -15,9 +13,8 @@
     box-shadow: var(--token-elevation-higher-box-shadow);
 
     .sparkline-time {
+      @extend %body-200-semibold;
       padding: 8px 10px;
-      font-weight: bold;
-      font-size: 14px;
       color: #000;
       border-bottom: 1px solid var(--token-color-surface-interactive-active);
       margin-bottom: 4px;
@@ -75,13 +72,13 @@
   }
 
   h3 {
+    @extend %display-300-semibold;
     color: var(--token-color-foreground-strong);
-    font-size: 16px;
   }
 
   .sparkline-key-content {
     dt {
-      font-weight: 600;
+      font-weight: var(--token-typography-font-weight-semibold);
     }
     dd {
       color: var(--token-color-foreground-faint);

@@ -15,7 +15,7 @@ section[data-route='dc.show.serverstatus'] {
 
 %serverstatus-route h2,
 %serverstatus-route h3 {
-  @extend %display-400-semibold;
+  @extend %display-300-semibold;
 }
 
 %server-failure-tolerance {
@@ -40,7 +40,7 @@ section[data-route='dc.show.serverstatus'] {
 
 %server-failure-tolerance header em {
   @extend %pill-200;
-  font-size: 0.812rem; /* 13px */
+  @extend %body-100-regular;
   background-color: var(--token-color-surface-interactive-active);
 
   text-transform: uppercase;
@@ -77,7 +77,7 @@ section[data-route='dc.show.serverstatus'] {
   color: var(--token-color-foreground-faint);
 }
 %server-failure-tolerance dd {
-  font-size: var(--typo-size-250);
+  @extend %display-300-semibold;
   color: var(--token-color-hashicorp-brand);
 }
 %server-failure-tolerance header span::before {

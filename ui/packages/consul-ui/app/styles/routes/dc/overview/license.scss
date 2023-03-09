@@ -17,7 +17,7 @@ section[data-route='dc.show.license'] {
 }
 %license-validity dl {
   @extend %horizontal-kv-list;
-  font-size: var(--typo-size-400);
+  @extend %body-300-regular;
 }
 %license-validity dl .expired + dd {
   @extend %visually-hidden;

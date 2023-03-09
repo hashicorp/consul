@@ -36,7 +36,6 @@
   }
 
   .peerings-badge__text {
-    font-weight: 500;
-    font-size: 13px;
+    @extend %body-100-medium;
   }
 }

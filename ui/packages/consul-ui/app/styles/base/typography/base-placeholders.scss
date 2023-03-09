@@ -58,7 +58,7 @@ $sizes: 100, 200, 300;
     font-family: var(--token-typography-font-stack-code);
     font-size: var(--token-typography-code-#{$size}-font-size);
     line-height: var(--token-typography-code-#{$size}-line-height);
-    font-weight: 400;
+    font-weight: var(--token-typography-font-weight-regular);
   }
 }
 

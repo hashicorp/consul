@@ -14,7 +14,7 @@ html[data-route^='dc.services.instance'] .app-view > header dl {
   margin-right: 50px;
 }
 html[data-route^='dc.services.instance'] .app-view > header dt {
-  font-weight: var(--typo-weight-bold);
+  font-weight: var(--token-typography-font-weight-bold);
 }
 html[data-route^='dc.services.instance'] .tab-nav {
   border-top: var(--decor-border-100);
