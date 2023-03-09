@@ -68,7 +68,7 @@
   h3::before {
     @extend %with-info-circle-fill-mask, %as-pseudo;
     margin: 2px 3px 0 0;
-    font-size: 14px;
+    font-size: var(--token-typography-body-200-font-size);
   }
 
   h3 {
