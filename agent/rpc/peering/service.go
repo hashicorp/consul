@@ -87,6 +87,7 @@ type Config struct {
 	Datacenter     string
 	ConnectEnabled bool
 	PeeringEnabled bool
+	Locality       structs.Locality
 }
 
 func NewServer(cfg Config) *Server {
@@ -327,6 +328,7 @@ func (s *Server) GenerateToken(
 		Remote: structs.PeeringTokenRemote{
 			Partition:  req.PartitionOrDefault(),
 			Datacenter: s.Datacenter,
+			Locality:   s.Config.Locality,
 		},
 	}
 
@@ -445,6 +447,7 @@ func (s *Server) Establish(
 		Remote: &pbpeering.RemoteInfo{
 			Partition:  tok.Remote.Partition,
 			Datacenter: tok.Remote.Datacenter,
+			Locality:   pbpeering.LocalityFromStruct(tok.Remote.Locality),
 		},
 	}
 
