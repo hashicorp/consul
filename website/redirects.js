@@ -6,14 +6,20 @@
 
 module.exports = [
   {
-    source: '/docs/connect/cluster-peering/create-manage-peering',
+    source: '/consul/docs/connect/cluster-peering/create-manage-peering',
     destination:
-      '/docs/connect/cluster-peering/usage/establish-cluster-peering',
+      '/consul/docs/connect/cluster-peering/usage/establish-cluster-peering',
     permanent: true,
   },
   {
-    source: '/docs/connect/cluster-peering/k8s',
-    destination: '/docs/k8s/connect/cluster-peering/k8s-tech-specs',
+    source: '/consul/docs/connect/cluster-peering/usage/establish-peering',
+    destination:
+      '/consul/docs/connect/cluster-peering/usage/establish-cluster-peering',
+    permanent: true,
+  },
+  {
+    source: '/consul/docs/connect/cluster-peering/k8s',
+    destination: '/consul/docs/k8s/connect/cluster-peering/tech-specs',
     permanent: true,
   },
 ]
