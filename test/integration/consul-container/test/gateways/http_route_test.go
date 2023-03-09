@@ -78,7 +78,6 @@ func TestHTTPRouteFlattening(t *testing.T) {
 	},
 	)
 
-	//TODO this should only matter in consul enterprise I believe?
 	namespace := getNamespace()
 	gatewayName := randomName("gw", 16)
 	routeOneName := randomName("route", 16)
