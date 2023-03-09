@@ -25,37 +25,35 @@ type cmd struct {
 	http  *flags.HTTPFlags
 	help  string
 
-	tokenAccessorID    string
-	policyIDs          []string
-	appendPolicyIDs    []string
-	policyNames        []string
-	appendPolicyNames  []string
-	roleIDs            []string
-	appendRoleIDs      []string
-	roleNames          []string
-	appendRoleNames    []string
-	serviceIdents      []string
-	nodeIdents         []string
-	description        string
-	mergeServiceIdents bool
-	mergeNodeIdents    bool
-	showMeta           bool
-	format             string
+	tokenAccessorID     string
+	policyIDs           []string
+	appendPolicyIDs     []string
+	policyNames         []string
+	appendPolicyNames   []string
+	roleIDs             []string
+	appendRoleIDs       []string
+	roleNames           []string
+	appendRoleNames     []string
+	serviceIdents       []string
+	nodeIdents          []string
+	appendNodeIdents    []string
+	appendServiceIdents []string
+	description         string
+	showMeta            bool
+	format              string
 
 	// DEPRECATED
-	mergeRoles    bool
-	mergePolicies bool
-	tokenID       string
+	mergeServiceIdents bool
+	mergeNodeIdents    bool
+	mergeRoles         bool
+	mergePolicies      bool
+	tokenID            string
 }
 
 func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
 	c.flags.BoolVar(&c.showMeta, "meta", false, "Indicates that token metadata such "+
 		"as the content hash and raft indices should be shown for each entry")
-	c.flags.BoolVar(&c.mergeServiceIdents, "merge-service-identities", false, "Merge the new service identities "+
-		"with the existing service identities")
-	c.flags.BoolVar(&c.mergeNodeIdents, "merge-node-identities", false, "Merge the new node identities "+
-		"with the existing node identities")
 	c.flags.StringVar(&c.tokenAccessorID, "accessor-id", "", "The Accessor ID of the token to update. "+
 		"It may be specified as a unique ID prefix but will error if the prefix "+
 		"matches multiple token Accessor IDs")
@@ -79,9 +77,15 @@ func (c *cmd) init() {
 	c.flags.Var((*flags.AppendSliceValue)(&c.serviceIdents), "service-identity", "Name of a "+
 		"service identity to use for this token. May be specified multiple times. Format is "+
 		"the SERVICENAME or SERVICENAME:DATACENTER1,DATACENTER2,...")
+	c.flags.Var((*flags.AppendSliceValue)(&c.appendServiceIdents), "append-service-identity", "Name of a "+
+		"service identity to use for this token. This token retains existing service identities. May be specified"+
+		"multiple times. Format is the SERVICENAME or SERVICENAME:DATACENTER1,DATACENTER2,...")
 	c.flags.Var((*flags.AppendSliceValue)(&c.nodeIdents), "node-identity", "Name of a "+
 		"node identity to use for this token. May be specified multiple times. Format is "+
 		"NODENAME:DATACENTER")
+	c.flags.Var((*flags.AppendSliceValue)(&c.appendNodeIdents), "append-node-identity", "Name of a "+
+		"node identity to use for this token. This token retains existing node identities. May be "+
+		"specified multiple times. Format is NODENAME:DATACENTER")
 	c.flags.StringVar(
 		&c.format,
 		"format",
@@ -101,6 +105,10 @@ func (c *cmd) init() {
 		"Use -append-policy-id or -append-policy-name instead.")
 	c.flags.BoolVar(&c.mergeRoles, "merge-roles", false, "DEPRECATED. "+
 		"Use -append-role-id or -append-role-name instead.")
+	c.flags.BoolVar(&c.mergeServiceIdents, "merge-service-identities", false, "DEPRECATED. "+
+		"Use -append-service-identity instead.")
+	c.flags.BoolVar(&c.mergeNodeIdents, "merge-node-identities", false, "DEPRECATED. "+
+		"Use -append-node-identity instead.")
 }
 
 func (c *cmd) Run(args []string) int {
@@ -147,13 +155,38 @@ func (c *cmd) Run(args []string) int {
 		t.Description = c.description
 	}
 
+	hasAppendServiceFields := len(c.appendServiceIdents) > 0
+	hasServiceFields := len(c.serviceIdents) > 0
+	if hasAppendServiceFields && hasServiceFields {
+		c.UI.Error("Cannot combine the use of service-identity flag with append-service-identity. " +
+			"To set or overwrite existing service identities, use -service-identity. " +
+			"To append to existing service identities, use -append-service-identity.")
+		return 1
+	}
+
 	parsedServiceIdents, err := acl.ExtractServiceIdentities(c.serviceIdents)
+	if hasAppendServiceFields {
+		parsedServiceIdents, err = acl.ExtractServiceIdentities(c.appendServiceIdents)
+	}
 	if err != nil {
 		c.UI.Error(err.Error())
 		return 1
 	}
 
+	hasAppendNodeFields := len(c.appendNodeIdents) > 0
+	hasNodeFields := len(c.nodeIdents) > 0
+
+	if hasAppendNodeFields && hasNodeFields {
+		c.UI.Error("Cannot combine the use of node-identity flag with append-node-identity. " +
+			"To set or overwrite existing node identities, use -node-identity. " +
+			"To append to existing node identities, use -append-node-identity.")
+		return 1
+	}
+
 	parsedNodeIdents, err := acl.ExtractNodeIdentities(c.nodeIdents)
+	if hasAppendNodeFields {
+		parsedNodeIdents, err = acl.ExtractNodeIdentities(c.appendNodeIdents)
+	}
 	if err != nil {
 		c.UI.Error(err.Error())
 		return 1
@@ -310,7 +343,7 @@ func (c *cmd) Run(args []string) int {
 		}
 	}
 
-	if c.mergeServiceIdents {
+	if c.mergeServiceIdents || hasAppendServiceFields {
 		for _, svcid := range parsedServiceIdents {
 			found := -1
 			for i, link := range t.ServiceIdentities {
@@ -330,7 +363,7 @@ func (c *cmd) Run(args []string) int {
 		t.ServiceIdentities = parsedServiceIdents
 	}
 
-	if c.mergeNodeIdents {
+	if c.mergeNodeIdents || hasAppendNodeFields {
 		for _, nodeid := range parsedNodeIdents {
 			found := false
 			for _, link := range t.NodeIdentities {

@@ -16,7 +16,7 @@ import (
 	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
 	libservice "github.com/hashicorp/consul/test/integration/consul-container/libs/service"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/topology"
-	libutils "github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
+	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -31,20 +31,6 @@ import (
 // - performs these tests again
 func TestIngressGateway_UpgradeToTarget_fromLatest(t *testing.T) {
 	t.Parallel()
-	type testcase struct {
-		oldversion    string
-		targetVersion string
-	}
-	tcs := []testcase{
-		{
-			oldversion:    "1.13",
-			targetVersion: libutils.TargetVersion,
-		},
-		{
-			oldversion:    "1.14",
-			targetVersion: libutils.TargetVersion,
-		},
-	}
 
 	run := func(t *testing.T, oldVersion, targetVersion string) {
 		// setup
@@ -283,16 +269,13 @@ func TestIngressGateway_UpgradeToTarget_fromLatest(t *testing.T) {
 			tests(t)
 		})
 	}
-	for _, tc := range tcs {
-		// copy to avoid lint loopclosure
-		tc := tc
-		t.Run(fmt.Sprintf("upgrade from %s to %s", tc.oldversion, tc.targetVersion),
-			func(t *testing.T) {
-				t.Parallel()
-				run(t, tc.oldversion, tc.targetVersion)
-			})
-		time.Sleep(3 * time.Second)
-	}
+
+	t.Run(fmt.Sprintf("Upgrade from %s to %s", utils.LatestVersion, utils.TargetVersion),
+		func(t *testing.T) {
+			t.Parallel()
+			run(t, utils.LatestVersion, utils.TargetVersion)
+		})
+	time.Sleep(1 * time.Second)
 }
 
 func mappedHTTPGET(t *testing.T, uri string, mappedPort int, header http.Header) *http.Response {

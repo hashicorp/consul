@@ -38,6 +38,7 @@ type consulContainerNode struct {
 	container      testcontainers.Container
 	serverMode     bool
 	datacenter     string
+	partition      string
 	config         Config
 	podReq         testcontainers.ContainerRequest
 	consulReq      testcontainers.ContainerRequest
@@ -228,6 +229,7 @@ func NewConsulContainer(ctx context.Context, config Config, cluster *Cluster, po
 		container:  consulContainer,
 		serverMode: pc.Server,
 		datacenter: pc.Datacenter,
+		partition:  pc.Partition,
 		ctx:        ctx,
 		podReq:     podReq,
 		consulReq:  consulReq,
@@ -316,6 +318,10 @@ func (c *consulContainerNode) GetConfig() Config {
 
 func (c *consulContainerNode) GetDatacenter() string {
 	return c.datacenter
+}
+
+func (c *consulContainerNode) GetPartition() string {
+	return c.partition
 }
 
 func (c *consulContainerNode) IsServer() bool {
@@ -641,6 +647,7 @@ type parsedConfig struct {
 	Datacenter string      `json:"datacenter"`
 	Server     bool        `json:"server"`
 	Ports      parsedPorts `json:"ports"`
+	Partition  string      `json:"partition"`
 }
 
 type parsedPorts struct {

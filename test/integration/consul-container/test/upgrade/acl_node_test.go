@@ -19,29 +19,14 @@ import (
 func TestACL_Upgrade_Node_Token(t *testing.T) {
 	t.Parallel()
 
-	type testcase struct {
-		oldversion    string
-		targetVersion string
-	}
-	tcs := []testcase{
-		{
-			oldversion:    "1.13",
-			targetVersion: utils.TargetVersion,
-		},
-		{
-			oldversion:    "1.14",
-			targetVersion: utils.TargetVersion,
-		},
-	}
-
-	run := func(t *testing.T, tc testcase) {
+	run := func(t *testing.T, oldVersion, targetVersion string) {
 		// NOTE: Disable auto.encrypt due to its conflict with ACL token during bootstrap
 		cluster, _, _ := libtopology.NewCluster(t, &libtopology.ClusterConfig{
 			NumServers: 1,
 			NumClients: 1,
 			BuildOpts: &libcluster.BuildOptions{
 				Datacenter:           "dc1",
-				ConsulVersion:        tc.oldversion,
+				ConsulVersion:        oldVersion,
 				InjectAutoEncryption: false,
 				ACLEnabled:           true,
 			},
@@ -52,7 +37,7 @@ func TestACL_Upgrade_Node_Token(t *testing.T) {
 			cluster.Agents[1].GetAgentName())
 		require.NoError(t, err)
 
-		err = cluster.StandardUpgrade(t, context.Background(), tc.targetVersion)
+		err = cluster.StandardUpgrade(t, context.Background(), targetVersion)
 		require.NoError(t, err)
 
 		// Post upgrade validation: agent token can be used to query the node
@@ -62,10 +47,8 @@ func TestACL_Upgrade_Node_Token(t *testing.T) {
 		libassert.CatalogNodeExists(t, client, cluster.Agents[1].GetAgentName())
 	}
 
-	for _, tc := range tcs {
-		t.Run(fmt.Sprintf("upgrade from %s to %s", tc.oldversion, tc.targetVersion),
-			func(t *testing.T) {
-				run(t, tc)
-			})
-	}
+	t.Run(fmt.Sprintf("Upgrade from %s to %s", utils.LatestVersion, utils.TargetVersion),
+		func(t *testing.T) {
+			run(t, utils.LatestVersion, utils.TargetVersion)
+		})
 }

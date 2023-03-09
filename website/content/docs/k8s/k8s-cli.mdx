@@ -32,6 +32,7 @@ You can use the following commands with `consul-k8s`.
   - [`proxy`](#proxy): Inspect Envoy proxies managed by Consul.
       - [`proxy list`](#proxy-list): List all Pods running proxies managed by Consul.
       - [`proxy read`](#proxy-read): Inspect the Envoy configuration for a given Pod.
+      - [`proxy log`](#proxy-log): Inspect and modify the Envoy logging configuration for a given Pod.
   - [`status`](#status): Check the status of a Consul installation on Kubernetes.
   - [`troubleshoot`](#troubleshoot): Troubleshoot Consul service mesh and networking issues from a given pod.
   - [`uninstall`](#uninstall): Uninstall Consul deployment.
@@ -101,6 +102,7 @@ Consul in your Kubernetes Cluster.
 
 - [`proxy list`](#proxy-list): List all Pods running proxies managed by Consul.
 - [`proxy read`](#proxy-read): Inspect the Envoy configuration for a given Pod.
+- [`proxy log`](#proxy-log): Inspect and modify the Envoy logging configuration for a given Pod.
 
 ### `proxy list`
 
@@ -448,6 +450,290 @@ $ consul-k8s proxy read backend-658b679b45-d5xlb -o raw
 }
 ```
 
+### `proxy log`
+
+The `proxy log` command allows you to inspect and modify the logging configuration of Envoy proxies running on a given Pod.
+
+```shell-session
+$ consul-k8s proxy log <PODNAME> <OPTIONS>
+```
+
+The command takes a required value, `<PODNAME>`. This should be the full name
+of a Kubernetes Pod. If a Pod is running more than one Envoy proxy managed by
+Consul, as in the [Multiport configuration](/consul/docs/k8s/connect#kubernetes-pods-with-multiple-ports),
+the terminal displays configuration information for all proxies in the pod.
+
+The following options are available.
+
+| Flag                               | Description                                                                                                                                                                                                                                                                                                              | Default                                                                                                                |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------- |
+| <nobr>`-namespace`, `-n`</nobr>    | `String` Specifies the namespace containing the target Pod.                                                                                                                                                                                                                                                              | Current [kubeconfig](https://kubernetes.io/docs/concepts/configuration/organize-cluster-access-kubeconfig/) namespace. |
+| <nobr>`-update-level`, `-u`</nobr> | `String`  Specifies the logger (optional) and the level to update. <p>Use the following format to configure the same level for loggers: `-update-level <LEVEL>`.</p> <p>You can also specify a comma-delineated list to configure levels for specific loggers, for example: `-update-level grpc:warning,http:info`.</p>  | none                                                                                                                   |
+| <nobr>`-reset`, `-r`</nobr>        | `String` Reset the log levels for all loggers back to the default of `info`                                                                                                                                                                                                                                              | `info`                                                                                                                 |
+
+#### Example commands
+In the following example, Consul returns the log levels for all of an Envoy proxy's loggers in a pod with the ID `server-697458b9f8-4vr29`:
+
+```shell-session
+$ consul-k8s proxy log server-697458b9f8-4vr29
+Envoy log configuration for server-697458b9f8-4vr29 in namespace default:
+
+==> Log Levels for server-697458b9f8-4vr29
+Name                            Level
+rds                             info
+backtrace                       info
+hc                              info
+http                            info
+io                              info
+jwt                             info
+rocketmq                        info
+matcher                         info
+runtime                         info
+redis                           info
+stats                           info
+tap                             info
+alternate_protocols_cache       info
+grpc                            info
+init                            info
+quic                            info
+thrift                          info
+wasm                            info
+aws                             info
+conn_handler                    info
+ext_proc                        info
+hystrix                         info
+tracing                         info
+dns                             info
+oauth2                          info
+connection                      info
+health_checker                  info
+kafka                           info
+mongo                           info
+config                          info
+admin                           info
+forward_proxy                   info
+misc                            info
+websocket                       info
+dubbo                           info
+happy_eyeballs                  info
+main                            info
+client                          info
+lua                             info
+udp                             info
+cache_filter                    info
+filter                          info
+multi_connection                info
+quic_stream                     info
+router                          info
+http2                           info
+key_value_store                 info
+secret                          info
+testing                         info
+upstream                        info
+assert                          info
+ext_authz                       info
+rbac                            info
+decompression                   info
+envoy_bug                       info
+file                            info
+pool                            info
+```
+
+The following command updates the log levels for all loggers of an Envoy proxy to `warning`.
+```shell-session
+$ consul-k8s proxy log server-697458b9f8-4vr29 -update-level warning
+Envoy log configuration for server-697458b9f8-4vr29 in namespace default:
+
+==> Log Levels for server-697458b9f8-4vr29
+Name                            Level
+pool                            warning
+rbac                            warning
+tracing                         warning
+aws                             warning
+cache_filter                    warning
+decompression                   warning
+init                            warning
+assert                          warning
+client                          warning
+misc                            warning
+udp                             warning
+config                          warning
+hystrix                         warning
+key_value_store                 warning
+runtime                         warning
+admin                           warning
+dns                             warning
+jwt                             warning
+redis                           warning
+quic                            warning
+alternate_protocols_cache       warning
+conn_handler                    warning
+ext_proc                        warning
+http                            warning
+oauth2                          warning
+ext_authz                       warning
+http2                           warning
+kafka                           warning
+mongo                           warning
+router                          warning
+thrift                          warning
+grpc                            warning
+matcher                         warning
+hc                              warning
+multi_connection                warning
+wasm                            warning
+dubbo                           warning
+filter                          warning
+upstream                        warning
+backtrace                       warning
+connection                      warning
+io                              warning
+main                            warning
+happy_eyeballs                  warning
+rds                             warning
+tap                             warning
+envoy_bug                       warning
+rocketmq                        warning
+file                            warning
+forward_proxy                   warning
+stats                           warning
+health_checker                  warning
+lua                             warning
+secret                          warning
+quic_stream                     warning
+testing                         warning
+websocket                       warning
+```
+The following command updates the `grpc` log level to `error`, the `http` log level to `critical`, and the `runtime` log level to `debug` for pod ID `server-697458b9f8-4vr29`
+```shell-session
+$ consul-k8s proxy log server-697458b9f8-4vr29 -update-level grpc:error,http:critical,runtime:debug
+Envoy log configuration for server-697458b9f8-4vr29 in namespace default:
+
+==> Log Levels for server-697458b9f8-4vr29
+Name                            Level
+assert                          info
+dns                             info
+http                            critical
+pool                            info
+thrift                          info
+udp                             info
+grpc                            error
+hc                              info
+stats                           info
+wasm                            info
+alternate_protocols_cache       info
+ext_authz                       info
+filter                          info
+http2                           info
+key_value_store                 info
+tracing                         info
+cache_filter                    info
+quic_stream                     info
+aws                             info
+io                              info
+matcher                         info
+rbac                            info
+tap                             info
+connection                      info
+conn_handler                    info
+rocketmq                        info
+hystrix                         info
+oauth2                          info
+redis                           info
+backtrace                       info
+file                            info
+forward_proxy                   info
+kafka                           info
+config                          info
+router                          info
+runtime                         debug
+testing                         info
+happy_eyeballs                  info
+ext_proc                        info
+init                            info
+lua                             info
+health_checker                  info
+misc                            info
+envoy_bug                       info
+jwt                             info
+main                            info
+quic                            info
+upstream                        info
+websocket                       info
+client                          info
+decompression                   info
+mongo                           info
+multi_connection                info
+rds                             info
+secret                          info
+admin                           info
+dubbo                           info
+```
+The following command resets the log levels for all loggers of an Envoy proxy in pod `server-697458b9f8-4vr29` to the default level of `info`.
+```shell-session
+$ consul-k8s proxy log server-697458b9f8-4vr29 -r
+Envoy log configuration for server-697458b9f8-4vr29 in namespace default:
+
+==> Log Levels for server-697458b9f8-4vr29
+Name                            Level
+ext_proc                        info
+secret                          info
+thrift                          info
+tracing                         info
+dns                             info
+rocketmq                        info
+happy_eyeballs                  info
+hc                              info
+io                              info
+misc                            info
+conn_handler                    info
+key_value_store                 info
+rbac                            info
+hystrix                         info
+wasm                            info
+admin                           info
+cache_filter                    info
+client                          info
+health_checker                  info
+oauth2                          info
+runtime                         info
+testing                         info
+grpc                            info
+upstream                        info
+forward_proxy                   info
+matcher                         info
+pool                            info
+aws                             info
+decompression                   info
+jwt                             info
+tap                             info
+assert                          info
+redis                           info
+http                            info
+quic                            info
+rds                             info
+connection                      info
+envoy_bug                       info
+stats                           info
+alternate_protocols_cache       info
+backtrace                       info
+filter                          info
+http2                           info
+init                            info
+multi_connection                info
+quic_stream                     info
+dubbo                           info
+ext_authz                       info
+main                            info
+udp                             info
+websocket                       info
+config                          info
+mongo                           info
+router                          info
+file                            info
+kafka                           info
+lua                             info
+```
 ### `status`
 
 The `status` command provides an overall status summary of the Consul on Kubernetes installation. It also provides the configuration that was used to deploy Consul K8s and information about the health of Consul servers and clients. This command does not take in any flags.

@@ -49,6 +49,8 @@ Usage: `consul acl policy update [options] [args]`
   the value is a file path to load the rules from. `-` may also be given to
   indicate that the rules are available on stdin.
 
+~> Specifying `-rules` will overwrite existing rules.
+
 - `-valid-datacenter=<value>` - Datacenter that the policy should be valid within.
   This flag may be specified multiple times.
 

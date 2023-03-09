@@ -13,7 +13,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/consul/envoyextensions/xdscommon"
 	"github.com/mitchellh/cli"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -22,6 +21,7 @@ import (
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/agent/xds"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/envoyextensions/xdscommon"
 	"github.com/hashicorp/consul/sdk/testutil"
 )
 
@@ -123,6 +123,7 @@ type generateConfigTestCase struct {
 	NamespacesEnabled bool
 	XDSPorts          agent.GRPCPorts // used to mock an agent's configured gRPC ports. Plaintext defaults to 8502 and TLS defaults to 8503.
 	AgentSelf110      bool            // fake the agent API from versions v1.10 and earlier
+	GRPCDisabled      bool
 	WantArgs          BootstrapTplArgs
 	WantErr           string
 	WantWarn          string
@@ -146,13 +147,10 @@ func TestGenerateConfig(t *testing.T) {
 			WantErr: "'-node-name' requires '-proxy-id'",
 		},
 		{
-			Name:  "gRPC disabled",
-			Flags: []string{"-proxy-id", "test-proxy"},
-			XDSPorts: agent.GRPCPorts{
-				Plaintext: -1,
-				TLS:       -1,
-			},
-			WantErr: "agent has grpc disabled",
+			Name:         "gRPC disabled",
+			Flags:        []string{"-proxy-id", "test-proxy"},
+			GRPCDisabled: true,
+			WantErr:      "agent has grpc disabled",
 		},
 		{
 			Name:  "defaults",
@@ -1387,7 +1385,7 @@ func testMockAgent(tc generateConfigTestCase) http.HandlerFunc {
 		case strings.Contains(r.URL.Path, "/agent/service"):
 			testMockAgentProxyConfig(tc.ProxyConfig, tc.NamespacesEnabled)(w, r)
 		case strings.Contains(r.URL.Path, "/agent/self"):
-			testMockAgentSelf(tc.XDSPorts, tc.AgentSelf110)(w, r)
+			testMockAgentSelf(tc.XDSPorts, tc.AgentSelf110, tc.GRPCDisabled)(w, r)
 		case strings.Contains(r.URL.Path, "/catalog/node-services"):
 			testMockCatalogNodeServiceList()(w, r)
 		case strings.Contains(r.URL.Path, "/config/proxy-defaults/global"):
@@ -1658,7 +1656,11 @@ func TestEnvoyCommand_canBindInternal(t *testing.T) {
 
 // testMockAgentSelf returns an empty /v1/agent/self response except GRPC
 // port is filled in to match the given wantXDSPort argument.
-func testMockAgentSelf(wantXDSPorts agent.GRPCPorts, agentSelf110 bool) http.HandlerFunc {
+func testMockAgentSelf(
+	wantXDSPorts agent.GRPCPorts,
+	agentSelf110 bool,
+	grpcDisabled bool,
+) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		resp := agent.Self{
 			Config: map[string]interface{}{
@@ -1670,6 +1672,12 @@ func testMockAgentSelf(wantXDSPorts agent.GRPCPorts, agentSelf110 bool) http.Han
 			resp.DebugConfig = map[string]interface{}{
 				"GRPCPort": wantXDSPorts.Plaintext,
 			}
+		} else if grpcDisabled {
+			resp.DebugConfig = map[string]interface{}{
+				"GRPCPort": -1,
+			}
+			// the real agent does not populate XDS if grpc or
+			// grpc-tls ports are < 0
 		} else {
 			resp.XDS = &agent.XDSSelf{
 				// The deprecated Port field should default to TLS if it's available.

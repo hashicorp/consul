@@ -79,9 +79,6 @@ html[data-route='dc.services.index'] .consul-service-list ul,
 .consul-auth-method-list ul {
   @extend %list-after-filter-bar;
 }
-.notice + .consul-token-list ul {
-  border-top-width: 1px !important;
-}
 
 // TODO: This shouldn't be done here, decide the best way to do this
 // %main-decoration ? %main-skin ? %content-skin ?

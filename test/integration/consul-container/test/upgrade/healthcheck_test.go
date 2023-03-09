@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/go-version"
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/api"
@@ -17,6 +18,12 @@ import (
 // Test health check GRPC call using Target Servers and Latest GA Clients
 func TestTargetServersWithLatestGAClients(t *testing.T) {
 	t.Parallel()
+
+	fromVersion, err := version.NewVersion(utils.LatestVersion)
+	require.NoError(t, err)
+	if fromVersion.LessThan(utils.Version_1_14) {
+		return
+	}
 
 	const (
 		numServers = 3
@@ -162,25 +169,4 @@ func testMixedServersGAClient(t *testing.T, majorityIsTarget bool) {
 	case <-timer.C:
 		t.Fatalf("test timeout")
 	}
-}
-
-func serversCluster(t *testing.T, numServers int, image, version string) *libcluster.Cluster {
-	opts := libcluster.BuildOptions{
-		ConsulImageName: image,
-		ConsulVersion:   version,
-	}
-	ctx := libcluster.NewBuildContext(t, opts)
-
-	conf := libcluster.NewConfigBuilder(ctx).
-		Bootstrap(numServers).
-		ToAgentConfig(t)
-	t.Logf("Cluster server config:\n%s", conf.JSON)
-
-	cluster, err := libcluster.NewN(t, *conf, numServers)
-	require.NoError(t, err)
-
-	libcluster.WaitForLeader(t, cluster, nil)
-	libcluster.WaitForMembers(t, cluster.APIClient(0), numServers)
-
-	return cluster
 }

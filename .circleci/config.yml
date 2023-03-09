@@ -36,6 +36,9 @@ references:
     - "1.11.6"
     - "1.10.9"
     - "1.9.10"
+  consul-versions: &consul_versions
+    - "1.14"
+    - "1.15"
   images:
     # When updating the Go version, remember to also update the versions in the
     # workflows section for go-test-lib jobs.
@@ -887,7 +890,7 @@ jobs:
               -p=4 \
               -timeout=30m \
               -json \
-              ./... \
+              `go list ./... | grep -v upgrade` \
               --target-image consul \
               --target-version local \
               --latest-image consul \
@@ -905,6 +908,84 @@ jobs:
       - store_artifacts:
           path: *TEST_RESULTS_DIR
       - run: *notify-slack-failure
+
+  upgrade-integration-test:
+      machine:
+        image: *UBUNTU_CI_IMAGE
+        docker_layer_caching: true
+      parallelism: 3
+      resource_class: large
+      parameters:
+        consul-version:
+          type: enum
+          enum: *consul_versions
+      environment:
+        CONSUL_VERSION: << parameters.consul-version >>
+      steps:
+        - checkout
+        # Get go binary from workspace
+        - attach_workspace:
+            at: .
+        # Build the consul:local image from the already built binary
+        - run:
+            command: |
+              sudo rm -rf /usr/local/go
+              wget https://dl.google.com/go/go${GO_VERSION}.linux-amd64.tar.gz
+              sudo tar -C /usr/local -xzvf go${GO_VERSION}.linux-amd64.tar.gz
+            environment:
+              <<: *ENVIRONMENT
+        - run: *install-gotestsum
+        - run: docker build -t consul:local -f ./build-support/docker/Consul-Dev.dockerfile .
+        - run:
+            name: Upgrade Integration Tests
+            command: |
+              mkdir -p /tmp/test-results/
+              cd ./test/integration/consul-container
+              docker run --rm consul:local consul version
+              gotestsum \
+                --raw-command \
+                --format=short-verbose \
+                --debug \
+                --rerun-fails=3 \
+                --packages="./..." \
+                -- \
+                go test \
+                -p=4 \
+                -tags "${GOTAGS}" \
+                -timeout=30m \
+                -json \
+                ./.../upgrade/ \
+                --target-image consul \
+                --target-version local \
+                --latest-image consul \
+                --latest-version $CONSUL_VERSION
+              ls -lrt
+            environment:
+              # this is needed because of incompatibility between RYUK container and circleci
+              GOTESTSUM_JUNITFILE: /tmp/test-results/results.xml
+              GOTESTSUM_FORMAT: standard-verbose
+              COMPOSE_INTERACTIVE_NO_CLI: 1
+              # tput complains if this isn't set to something.
+              TERM: ansi
+        - store_test_results:
+            path: *TEST_RESULTS_DIR
+        - store_artifacts:
+            path: *TEST_RESULTS_DIR
+        - run: *notify-slack-failure
+
+  # Lints all *.dockerfile but don't fail at this time
+  dockerfile-lint:
+    docker:
+      - image: docker.mirror.hashicorp.services/hadolint/hadolint:latest-debian
+    steps:
+      - run: apt-get -qq update; apt-get -y install git # the hadolint container doesn't have git
+      - checkout
+      - run:
+          name: Dockefile lint
+          command: |
+            for file in $(find . -type f -name *.dockerfile); do
+              hadolint $file || true
+            done
 
   envoy-integration-test: &ENVOY_TESTS
     machine:
@@ -1210,6 +1291,13 @@ workflows:
       - compatibility-integration-test:
           requires:
             - dev-build
+      - upgrade-integration-test:
+          requires:
+            - dev-build
+          matrix:
+            parameters:
+              consul-version: *consul_versions
+              
       - noop
   frontend:
     unless: << pipeline.parameters.trigger-load-test >>
