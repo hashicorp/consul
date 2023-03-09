@@ -69,7 +69,7 @@ service ResourceService {
   }
 
   rpc Watch(WatchRequest) returns (stream WatchResponse) {
-    option (hashicorp.consul.internal.ratelimit.spec) = {operation_type: OPERATION_TYPE_WRITE};
+    option (hashicorp.consul.internal.ratelimit.spec) = {operation_type: OPERATION_TYPE_READ};
   }
 }
 
