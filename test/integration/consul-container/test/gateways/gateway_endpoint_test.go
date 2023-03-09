@@ -83,10 +83,11 @@ func TestAPIGatewayCreate(t *testing.T) {
 	// Create a client proxy instance with the server as an upstream
 	_, gatewayService := createServices(t, cluster, listenerPortOne)
 
-	//make sure the gateway/route come online
-	//make sure config entries have been properly created
-	checkGatewayConfigEntry(t, client, "api-gateway", "")
-	checkTCPRouteConfigEntry(t, client, "api-gateway-route", "")
+	// make sure the gateway/route come online
+	// make sure config entries have been properly created
+	namespace := getNamespace()
+	checkGatewayConfigEntry(t, client, "api-gateway", namespace)
+	checkTCPRouteConfigEntry(t, client, "api-gateway-route", namespace)
 
 	port, err := gatewayService.GetPort(listenerPortOne)
 	require.NoError(t, err)
