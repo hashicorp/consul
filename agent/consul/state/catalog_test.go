@@ -39,21 +39,21 @@ func TestStateStore_GetNodeID(t *testing.T) {
 
 	_, out, err := s.GetNodeID(types.NodeID("wrongId"), nil, "")
 	if err == nil || out != nil || !strings.Contains(err.Error(), "node lookup by ID failed: index error: UUID (without hyphens) must be") {
-		t.Errorf("want an error, nil value, err:=%q ; out:=%q", err.Error(), out)
+		t.Errorf("want an error, nil value, err:=%q ; out:=%+v", err.Error(), out)
 	}
 	_, out, err = s.GetNodeID(types.NodeID("0123456789abcdefghijklmnopqrstuvwxyz"), nil, "")
 	if err == nil || out != nil || !strings.Contains(err.Error(), "node lookup by ID failed: index error: invalid UUID") {
-		t.Errorf("want an error, nil value, err:=%q ; out:=%q", err, out)
+		t.Errorf("want an error, nil value, err:=%q ; out:=%+v", err, out)
 	}
 
 	_, out, err = s.GetNodeID(types.NodeID("00a916bc-a357-4a19-b886-59419fcee50Z"), nil, "")
 	if err == nil || out != nil || !strings.Contains(err.Error(), "node lookup by ID failed: index error: invalid UUID") {
-		t.Errorf("want an error, nil value, err:=%q ; out:=%q", err, out)
+		t.Errorf("want an error, nil value, err:=%q ; out:=%+v", err, out)
 	}
 
 	_, out, err = s.GetNodeID(types.NodeID("00a916bc-a357-4a19-b886-59419fcee506"), nil, "")
 	if err != nil || out != nil {
-		t.Errorf("do not want any error nor returned value, err:=%q ; out:=%q", err, out)
+		t.Errorf("do not want any error nor returned value, err:=%q ; out:=%+v", err, out)
 	}
 
 	nodeID := types.NodeID("00a916bc-a357-4a19-b886-59419fceeaaa")
@@ -219,6 +219,7 @@ func TestStateStore_EnsureRegistration(t *testing.T) {
 				TaggedAddresses: map[string]string{"hello": "world"},
 				NodeMeta:        map[string]string{"somekey": "somevalue"},
 				PeerName:        peerName,
+				Locality:        &structs.Locality{Region: "us-west-1", Zone: "us-west-1a"},
 			}
 			if f != nil {
 				f(req)
@@ -236,6 +237,7 @@ func TestStateStore_EnsureRegistration(t *testing.T) {
 				Meta:            map[string]string{"somekey": "somevalue"},
 				RaftIndex:       structs.RaftIndex{CreateIndex: 1, ModifyIndex: 1},
 				PeerName:        peerName,
+				Locality:        &structs.Locality{Region: "us-west-1", Zone: "us-west-1a"},
 			}
 
 			_, out, err := s.GetNode("node1", nil, peerName)
@@ -259,6 +261,7 @@ func TestStateStore_EnsureRegistration(t *testing.T) {
 					RaftIndex:      structs.RaftIndex{CreateIndex: 2, ModifyIndex: 2},
 					EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 					PeerName:       peerName,
+					Locality:       &structs.Locality{Region: "us-west-1", Zone: "us-west-1a"},
 				},
 			}
 
@@ -368,6 +371,7 @@ func TestStateStore_EnsureRegistration(t *testing.T) {
 					Meta:     map[string]string{strings.Repeat("a", 129): "somevalue"},
 					Tags:     []string{"primary"},
 					PeerName: peerName,
+					Locality: &structs.Locality{Region: "us-west-1", Zone: "us-west-1a"},
 				}
 			})
 			testutil.RequireErrorContains(t, s.EnsureRegistration(9, req), `Key is too long (limit: 128 characters)`)
@@ -384,6 +388,7 @@ func TestStateStore_EnsureRegistration(t *testing.T) {
 					Tags:     []string{"primary"},
 					Weights:  &structs.Weights{Passing: 1, Warning: 1},
 					PeerName: peerName,
+					Locality: &structs.Locality{Region: "us-west-1", Zone: "us-west-1a"},
 				}
 			})
 			require.NoError(t, s.EnsureRegistration(2, req))
@@ -404,6 +409,7 @@ func TestStateStore_EnsureRegistration(t *testing.T) {
 					Tags:     []string{"primary"},
 					Weights:  &structs.Weights{Passing: 1, Warning: 1},
 					PeerName: peerName,
+					Locality: &structs.Locality{Region: "us-west-1", Zone: "us-west-1a"},
 				}
 				req.Check = &structs.HealthCheck{
 					Node:     "node1",
@@ -432,6 +438,7 @@ func TestStateStore_EnsureRegistration(t *testing.T) {
 					Tags:     []string{"primary"},
 					Weights:  &structs.Weights{Passing: 1, Warning: 1},
 					PeerName: peerName,
+					Locality: &structs.Locality{Region: "us-west-1", Zone: "us-west-1a"},
 				}
 				req.Check = &structs.HealthCheck{
 					Node:     "node1",
@@ -939,7 +946,7 @@ func TestNodeRenamingNodes(t *testing.T) {
 	}
 
 	if _, node, err := s.GetNodeID(nodeID1, nil, ""); err != nil || node == nil || node.ID != nodeID1 {
-		t.Fatalf("err: %s, node:= %q", err, node)
+		t.Fatalf("err: %s, node:= %+v", err, node)
 	}
 
 	if _, node, err := s.GetNodeID(nodeID2, nil, ""); err != nil && node == nil || node.ID != nodeID2 {
@@ -1121,7 +1128,7 @@ func TestStateStore_EnsureNode(t *testing.T) {
 	_, out, err = s.GetNode("node1", nil, "")
 	require.NoError(t, err)
 	if out != nil {
-		t.Fatalf("Node should not exist anymore: %q", out)
+		t.Fatalf("Node should not exist anymore: %+v", out)
 	}
 
 	idx, out, err = s.GetNode("node1-renamed", nil, "")
@@ -1277,10 +1284,10 @@ func TestStateStore_EnsureNode(t *testing.T) {
 		t.Fatalf("[DEPRECATED] err: %s", err)
 	}
 	if out.CreateIndex != 10 {
-		t.Fatalf("[DEPRECATED] We expected to modify node previously added, but add index = %d for node %q", out.CreateIndex, out)
+		t.Fatalf("[DEPRECATED] We expected to modify node previously added, but add index = %d for node %+v", out.CreateIndex, out)
 	}
 	if out.Address != "1.1.1.66" || out.ModifyIndex != 15 {
-		t.Fatalf("[DEPRECATED] Node with newNodeID should have been updated, but was: %d with content := %q", out.CreateIndex, out)
+		t.Fatalf("[DEPRECATED] Node with newNodeID should have been updated, but was: %d with content := %+v", out.CreateIndex, out)
 	}
 }
 

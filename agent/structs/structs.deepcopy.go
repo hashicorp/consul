@@ -642,6 +642,10 @@ func (o *Node) DeepCopy() *Node {
 			cp.Meta[k2] = v2
 		}
 	}
+	if o.Locality != nil {
+		cp.Locality = new(Locality)
+		*cp.Locality = *o.Locality
+	}
 	return &cp
 }
 
@@ -667,6 +671,10 @@ func (o *NodeService) DeepCopy() *NodeService {
 	if o.Weights != nil {
 		cp.Weights = new(Weights)
 		*cp.Weights = *o.Weights
+	}
+	if o.Locality != nil {
+		cp.Locality = new(Locality)
+		*cp.Locality = *o.Locality
 	}
 	{
 		retV := o.Proxy.DeepCopy()
@@ -841,6 +849,10 @@ func (o *ServiceDefinition) DeepCopy() *ServiceDefinition {
 	if o.Weights != nil {
 		cp.Weights = new(Weights)
 		*cp.Weights = *o.Weights
+	}
+	if o.Locality != nil {
+		cp.Locality = new(Locality)
+		*cp.Locality = *o.Locality
 	}
 	if o.Proxy != nil {
 		cp.Proxy = o.Proxy.DeepCopy()
