@@ -270,17 +270,12 @@ func TestIngressGateway_UpgradeToTarget_fromLatest(t *testing.T) {
 		})
 	}
 
-	for _, oldVersion := range UpgradeFromVersions {
-		// copy to avoid lint loopclosure
-		oldVersion := oldVersion
-
-		t.Run(fmt.Sprintf("Upgrade from %s to %s", oldVersion, utils.TargetVersion),
-			func(t *testing.T) {
-				t.Parallel()
-				run(t, oldVersion, utils.TargetVersion)
-			})
-		time.Sleep(1 * time.Second)
-	}
+	t.Run(fmt.Sprintf("Upgrade from %s to %s", utils.LatestVersion, utils.TargetVersion),
+		func(t *testing.T) {
+			t.Parallel()
+			run(t, utils.LatestVersion, utils.TargetVersion)
+		})
+	time.Sleep(1 * time.Second)
 }
 
 func mappedHTTPGET(t *testing.T, uri string, mappedPort int, header http.Header) *http.Response {

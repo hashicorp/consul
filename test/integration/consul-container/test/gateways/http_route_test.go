@@ -5,20 +5,18 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
+	"testing"
+	"time"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/api"
 	libassert "github.com/hashicorp/consul/test/integration/consul-container/libs/assert"
 	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
 	libservice "github.com/hashicorp/consul/test/integration/consul-container/libs/service"
 	libtopology "github.com/hashicorp/consul/test/integration/consul-container/libs/topology"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-	"testing"
-	"time"
 )
-
-func getNamespace() string {
-	return ""
-}
 
 // randomName generates a random name of n length with the provided
 // prefix. If prefix is omitted, the then entire name is random char.
@@ -80,7 +78,6 @@ func TestHTTPRouteFlattening(t *testing.T) {
 	},
 	)
 
-	//TODO this should only matter in consul enterprise I believe?
 	namespace := getNamespace()
 	gatewayName := randomName("gw", 16)
 	routeOneName := randomName("route", 16)

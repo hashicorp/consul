@@ -22,6 +22,12 @@ var rpcRateLimitSpecs = map[string]rate.OperationType{
 	"/hashicorp.consul.internal.peering.PeeringService/TrustBundleRead":          rate.OperationTypeRead,
 	"/hashicorp.consul.internal.peerstream.PeerStreamService/ExchangeSecret":     rate.OperationTypeWrite,
 	"/hashicorp.consul.internal.peerstream.PeerStreamService/StreamResources":    rate.OperationTypeRead,
+	"/hashicorp.consul.resource.ResourceService/Delete":                          rate.OperationTypeWrite,
+	"/hashicorp.consul.resource.ResourceService/List":                            rate.OperationTypeRead,
+	"/hashicorp.consul.resource.ResourceService/Read":                            rate.OperationTypeRead,
+	"/hashicorp.consul.resource.ResourceService/Watch":                           rate.OperationTypeRead,
+	"/hashicorp.consul.resource.ResourceService/Write":                           rate.OperationTypeWrite,
+	"/hashicorp.consul.resource.ResourceService/WriteStatus":                     rate.OperationTypeWrite,
 	"/hashicorp.consul.serverdiscovery.ServerDiscoveryService/WatchServers":      rate.OperationTypeRead,
 	"/subscribe.StateChangeSubscription/Subscribe":                               rate.OperationTypeRead,
 }

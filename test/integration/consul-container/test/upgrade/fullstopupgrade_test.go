@@ -40,13 +40,11 @@ func TestStandardUpgradeToTarget_fromLatest(t *testing.T) {
 		},
 	)
 
-	for _, oldVersion := range UpgradeFromVersions {
-		tcs = append(tcs, testcase{
-			oldVersion:    oldVersion,
-			targetVersion: utils.TargetVersion,
-		},
-		)
-	}
+	tcs = append(tcs, testcase{
+		oldVersion:    utils.LatestVersion,
+		targetVersion: utils.TargetVersion,
+	},
+	)
 
 	run := func(t *testing.T, tc testcase) {
 		configCtx := libcluster.NewBuildContext(t, libcluster.BuildOptions{

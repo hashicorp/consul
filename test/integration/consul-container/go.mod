@@ -6,8 +6,8 @@ require (
 	github.com/avast/retry-go v3.0.0+incompatible
 	github.com/docker/docker v20.10.22+incompatible
 	github.com/docker/go-connections v0.4.0
-	github.com/hashicorp/consul/api v1.18.0
-	github.com/hashicorp/consul/sdk v0.13.0
+	github.com/hashicorp/consul/api v1.20.0
+	github.com/hashicorp/consul/sdk v0.13.1
 	github.com/hashicorp/go-cleanhttp v0.5.2
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/hashicorp/go-uuid v1.0.2
@@ -20,7 +20,6 @@ require (
 	github.com/teris-io/shortid v0.0.0-20220617161101-71ec9f2aa569
 	github.com/testcontainers/testcontainers-go v0.15.0
 	golang.org/x/mod v0.6.0-dev.0.20220419223038-86c51ed26bb4
-	gotest.tools v2.2.0+incompatible
 )
 
 require (
@@ -39,7 +38,6 @@ require (
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/google/btree v1.0.0 // indirect
-	github.com/google/go-cmp v0.5.9 // indirect
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-hclog v1.2.1 // indirect
