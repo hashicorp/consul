@@ -1,3 +1,23 @@
+## 1.14.5 (March 7, 2023)
+
+SECURITY:
+
+* Upgrade to use Go 1.20.1.
+This resolves vulnerabilities [CVE-2022-41724](https://go.dev/issue/58001) in `crypto/tls` and [CVE-2022-41723](https://go.dev/issue/57855) in `net/http`. [[GH-16263](https://github.com/hashicorp/consul/issues/16263)]
+
+IMPROVEMENTS:
+
+* container: Upgrade container image to use to Alpine 3.17. [[GH-16358](https://github.com/hashicorp/consul/issues/16358)]
+* mesh: Add ServiceResolver RequestTimeout for route timeouts to make request timeouts configurable [[GH-16495](https://github.com/hashicorp/consul/issues/16495)]
+
+BUG FIXES:
+
+* mesh: Fix resolution of service resolvers with subsets for external upstreams [[GH-16499](https://github.com/hashicorp/consul/issues/16499)]
+* peering: Fix bug where services were incorrectly imported as connect-enabled. [[GH-16339](https://github.com/hashicorp/consul/issues/16339)]
+* peering: Fix issue where mesh gateways would use the wrong address when contacting a remote peer with the same datacenter name. [[GH-16257](https://github.com/hashicorp/consul/issues/16257)]
+* peering: Fix issue where secondary wan-federated datacenters could not be used as peering acceptors. [[GH-16230](https://github.com/hashicorp/consul/issues/16230)]
+* proxycfg: fix a bug where terminating gateways were not cleaning up deleted service resolvers for their referenced services [[GH-16498](https://github.com/hashicorp/consul/issues/16498)]
+
 ## 1.14.4 (January 26, 2023)
 
 BREAKING CHANGES:
