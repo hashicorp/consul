@@ -262,7 +262,9 @@ const bootstrapTemplate = `{
     {{- end }}
   },
   {{- if .StatsSinksJSON }}
-  "stats_sinks": {{ .StatsSinksJSON }},
+  "stats_sinks": [
+    {{ .StatsSinksJSON }}
+  ],
   {{- end }}
   {{- if .StatsConfigJSON }}
   "stats_config": {{ .StatsConfigJSON }},
