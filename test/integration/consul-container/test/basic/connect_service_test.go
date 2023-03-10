@@ -3,6 +3,7 @@ package basic
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 
@@ -40,6 +41,8 @@ func TestBasicConnectService(t *testing.T) {
 	clientService := createServices(t, cluster)
 	_, port := clientService.GetAddr()
 	_, adminPort := clientService.GetAdminAddr()
+	time.Sleep(900 * time.Second)
+	fmt.Println(port, adminPort)
 
 	libassert.AssertUpstreamEndpointStatus(t, adminPort, "static-server.default", "HEALTHY", 1)
 	libassert.GetEnvoyListenerTCPFilters(t, adminPort)
