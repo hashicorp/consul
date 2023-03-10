@@ -82,7 +82,6 @@ The following outline shows how to format the service splitter configuration ent
 - [`metadata`](#metadata): map | no default
   - [`name`](#name): string | no default
   - [`namespace`](#namespace): string | no default | <EnterpriseAlert inline /> 
-  - [`partition`](#partition): string | no default | <EnterpriseAlert inline /> 
 - [`spec`](#spec): map | no default
   - [`protocol`](#protocol): string | default: `tcp`
   - [`balanceInboundConnections`](#balanceinboundconnections): string | no default
@@ -239,7 +238,6 @@ kind: ServiceDefaults
 metadata: 
   name: <name of the service you are configuring>
   namespace: <Consul Enterprise namespace>
-  partition: <Consul Enterprise admin partition>
 spec: 
   protocol: tcp
   balanceInboundConnnections: exact_balance
@@ -801,13 +799,6 @@ Specifies the Consul namespace that the configuration entry applies to. Refer to
 
 - Default: `default`
 - Data type: string
-
-### `metadata.partition` <Enterprise/>
-
-Specifies the name of the name of the Consul admin partition that the configuration entry applies to. Refer to [Consul Enterprise](/consul/docs/k8s/crds#consul-enterprise) for information about how Consul Enterprise on Kubernetes. Consul OSS distributions ignore the `metadata.partition` configuration.
-
-- Default: `default`
-- Data type: string  
 
 ### `spec`
 
