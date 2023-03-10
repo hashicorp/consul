@@ -7,6 +7,7 @@ import (
 	"net"
 	"net/url"
 	"os"
+	"path"
 	"strings"
 	"text/template"
 
@@ -810,14 +811,10 @@ func (c *BootstrapConfig) generateListenerConfig(args *BootstrapTplArgs, bindAdd
 // appendHCPMetricsConfig generates config to enable a socket at path: <hcpMetricsBindSocketDir>/<namespace>_<proxy_id>.sock
 // or <hcpMetricsBindSocketDir>/<proxy_id>.sock, if namespace is empty.
 func appendHCPMetricsConfig(args *BootstrapTplArgs, hcpMetricsBindSocketDir string) {
-	dir := hcpMetricsBindSocketDir
-	if !strings.HasSuffix(dir, "/") {
-		dir += "/"
-	}
-
 	// Normalize namespace to "default". This ensures we match the namespace behaviour in proxycfg package,
 	// where a dynamic listener will be created at the same socket path via xDS.
-	path := fmt.Sprintf("%s%s_%s.sock", dir, acl.NamespaceOrDefault(args.Namespace), args.ProxyID)
+	sock := fmt.Sprintf("%s_%s.sock", acl.NamespaceOrDefault(args.Namespace), args.ProxyID)
+	path := path.Join(hcpMetricsBindSocketDir, sock)
 
 	if args.StatsSinksJSON != "" {
 		args.StatsSinksJSON += ",\n"
