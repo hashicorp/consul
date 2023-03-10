@@ -11,6 +11,8 @@ This topic provides an overview of the experimental WAL (write-ahead log) LogSto
 
 !> **Experimental feature:** The WAL LogStore backend is experimental.
 
+!> **Known Issues:** Consul 1.15.0 and 1.15.1 have [known issues](#known-issues) so should not have WAL enabled in production.
+
 ## WAL versus BoltDB
 
 WAL implements a traditional log with rotating, append-only log files. WAL resolves many issues with the existing `LogStore` provided by the BoltDB backend. The BoltDB `LogStore` is a copy-on-write BTree, which is not optimized for append-only, write-heavy workloads. 
@@ -46,3 +48,11 @@ The WAL backend has been tested thoroughly during development:
 We are aware of how complex and critical disk-persistence is for your data.
 
 We hope that many users at different scales will try WAL in their environments after upgrading to 1.15 or later and report success or failure so that we can confidently replace BoltDB as the default for new clusters in a future release.
+
+## Known Issues
+
+The following issues were discovered after release of Consul 1.15.1. Fixes should be available in the next patch release.
+
+ * A follower that is disconnected for a while may be unable to catch up if it is using the WAL backend.
+ * Restoring user snapshots can break replication to WAL-enabled followers.
+ * Restoring user snapshots can cause a WAL-enabled leader to panic.
