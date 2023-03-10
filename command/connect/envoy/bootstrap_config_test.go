@@ -513,6 +513,56 @@ const (
     }
   ]
 }`
+
+	expectedStatsdSink = `{
+	"name": "envoy.stat_sinks.statsd",
+	"typedConfig": {
+		"@type": "type.googleapis.com/envoy.config.metrics.v3.StatsdSink",
+		"address": {
+			"socket_address": {
+				"address": "127.0.0.1",
+				"port_value": 9125
+			}
+		}
+	}
+}`
+
+	expectedHCPMetricsStatsSink = `{
+	"name": "envoy.stat_sinks.metrics_service",
+	"typed_config": {
+	  "@type": "type.googleapis.com/envoy.config.metrics.v3.MetricsServiceConfig",
+	  "transport_api_version": "V3",
+	  "grpc_service": {
+		"envoy_grpc": {
+		  "cluster_name": "hcp_metrics_collector"
+		}
+	  }
+	}
+  }`
+
+	expectedHCPMetricsCluster = `{
+	"name": "hcp_metrics_collector",
+	"type": "STATIC",
+	"http2_protocol_options": {},
+	"loadAssignment": {
+	  "clusterName": "hcp_metrics_collector",
+	  "endpoints": [
+		{
+		  "lbEndpoints": [
+			{
+			  "endpoint": {
+				"address": {
+				  "pipe": {
+					"path": "/tmp/consul/hcp-metrics/default_web-sidecar-proxy.sock"
+				  }
+				}
+			  }
+			}
+		  ]
+		}
+	  ]
+	}
+  }`
 )
 
 func TestBootstrapConfig_ConfigureArgs(t *testing.T) {
@@ -621,18 +671,7 @@ func TestBootstrapConfig_ConfigureArgs(t *testing.T) {
 			},
 			wantArgs: BootstrapTplArgs{
 				StatsConfigJSON: defaultStatsConfigJSON,
-				StatsSinksJSON: `{
-					"name": "envoy.stat_sinks.statsd",
-					"typedConfig": {
-						"@type": "type.googleapis.com/envoy.config.metrics.v3.StatsdSink",
-						"address": {
-							"socket_address": {
-								"address": "127.0.0.1",
-								"port_value": 9125
-							}
-						}
-					}
-				}`,
+				StatsSinksJSON:  expectedStatsdSink,
 			},
 			wantErr: false,
 		},
@@ -1601,42 +1640,9 @@ func TestAppendHCPMetrics(t *testing.T) {
 			},
 			bindSocketDir: "/tmp/consul/hcp-metrics",
 			wantArgs: &BootstrapTplArgs{
-				ProxyID: "web-sidecar-proxy",
-				StatsSinksJSON: `{
-					"name": "envoy.stat_sinks.metrics_service",
-					"typed_config": {
-					  "@type": "type.googleapis.com/envoy.config.metrics.v3.MetricsServiceConfig",
-					  "transport_api_version": "V3",
-					  "grpc_service": {
-						"envoy_grpc": {
-						  "cluster_name": "hcp_metrics_collector"
-						}
-					  }
-					}
-				  }`,
-				StaticClustersJSON: `{
-					"name": "hcp_metrics_collector",
-					"type": "STATIC",
-					"http2_protocol_options": {},
-					"loadAssignment": {
-					  "clusterName": "hcp_metrics_collector",
-					  "endpoints": [
-						{
-						  "lbEndpoints": [
-							{
-							  "endpoint": {
-								"address": {
-								  "pipe": {
-									"path": "/tmp/consul/hcp-metrics/default_web-sidecar-proxy.sock"
-								  }
-								}
-							  }
-							}
-						  ]
-						}
-					  ]
-					}
-				  }`,
+				ProxyID:            "web-sidecar-proxy",
+				StatsSinksJSON:     expectedHCPMetricsStatsSink,
+				StaticClustersJSON: expectedHCPMetricsCluster,
 			},
 		},
 		"dir-with-trailing-slash": {
@@ -1645,111 +1651,22 @@ func TestAppendHCPMetrics(t *testing.T) {
 			},
 			bindSocketDir: "/tmp/consul/hcp-metrics",
 			wantArgs: &BootstrapTplArgs{
-				ProxyID: "web-sidecar-proxy",
-				StatsSinksJSON: `{
-					"name": "envoy.stat_sinks.metrics_service",
-					"typed_config": {
-					  "@type": "type.googleapis.com/envoy.config.metrics.v3.MetricsServiceConfig",
-					  "transport_api_version": "V3",
-					  "grpc_service": {
-						"envoy_grpc": {
-						  "cluster_name": "hcp_metrics_collector"
-						}
-					  }
-					}
-				  }`,
-				StaticClustersJSON: `{
-					"name": "hcp_metrics_collector",
-					"type": "STATIC",
-					"http2_protocol_options": {},
-					"loadAssignment": {
-					  "clusterName": "hcp_metrics_collector",
-					  "endpoints": [
-						{
-						  "lbEndpoints": [
-							{
-							  "endpoint": {
-								"address": {
-								  "pipe": {
-									"path": "/tmp/consul/hcp-metrics/default_web-sidecar-proxy.sock"
-								  }
-								}
-							  }
-							}
-						  ]
-						}
-					  ]
-					}
-				  }`,
+				ProxyID:            "web-sidecar-proxy",
+				StatsSinksJSON:     expectedHCPMetricsStatsSink,
+				StaticClustersJSON: expectedHCPMetricsCluster,
 			},
 		},
 		"append-clusters-and-stats-sink": {
 			inputArgs: &BootstrapTplArgs{
-				ProxyID: "web-sidecar-proxy",
-				StatsSinksJSON: `{
-					"name": "envoy.stat_sinks.statsd",
-					"typedConfig": {
-						"@type": "type.googleapis.com/envoy.config.metrics.v3.StatsdSink",
-						"address": {
-							"socket_address": {
-								"address": "127.0.0.1",
-								"port_value": 9125
-							}
-						}
-					}
-				}`,
+				ProxyID:            "web-sidecar-proxy",
+				StatsSinksJSON:     expectedStatsdSink,
 				StaticClustersJSON: expectedSelfAdminCluster,
 			},
 			bindSocketDir: "/tmp/consul/hcp-metrics",
 			wantArgs: &BootstrapTplArgs{
-				ProxyID: "web-sidecar-proxy",
-				StatsSinksJSON: `{
-					"name": "envoy.stat_sinks.statsd",
-					"typedConfig": {
-						"@type": "type.googleapis.com/envoy.config.metrics.v3.StatsdSink",
-						"address": {
-							"socket_address": {
-								"address": "127.0.0.1",
-								"port_value": 9125
-							}
-						}
-					}
-				},{
-					"name": "envoy.stat_sinks.metrics_service",
-					"typed_config": {
-					  "@type": "type.googleapis.com/envoy.config.metrics.v3.MetricsServiceConfig",
-					  "transport_api_version": "V3",
-					  "grpc_service": {
-						"envoy_grpc": {
-						  "cluster_name": "hcp_metrics_collector"
-						}
-					  }
-					}
-				  }`,
-				StaticClustersJSON: expectedSelfAdminCluster + `,
-				{
-					"name": "hcp_metrics_collector",
-					"type": "STATIC",
-					"http2_protocol_options": {},
-					"loadAssignment": {
-					  "clusterName": "hcp_metrics_collector",
-					  "endpoints": [
-						{
-						  "lbEndpoints": [
-							{
-							  "endpoint": {
-								"address": {
-								  "pipe": {
-									"path": "/tmp/consul/hcp-metrics/default_web-sidecar-proxy.sock"
-								  }
-								}
-							  }
-							}
-						  ]
-						}
-					  ]
-					}
-				  }`,
+				ProxyID:            "web-sidecar-proxy",
+				StatsSinksJSON:     expectedStatsdSink + ",\n" + expectedHCPMetricsStatsSink,
+				StaticClustersJSON: expectedSelfAdminCluster + ",\n" + expectedHCPMetricsCluster,
 			},
 		},
 	}
