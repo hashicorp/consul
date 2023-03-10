@@ -311,7 +311,7 @@ Repeat the following steps for each datacenter in the cluster:
   1. Update the Consul on Kubernetes helm chart.
 
 ### Secrets and Policies
-1. Store the ACL Bootstrap and Replication Tokens, Gossip Encryption Key, and Root CA certificate secrets in Vault.
+1. Store the ACL bootstrap and replication tokens, gossip encryption key, and root CA certificate secrets in Vault.
 
     ```shell-session
     $ vault kv put consul/secret/gossip key="$(consul keygen)"
