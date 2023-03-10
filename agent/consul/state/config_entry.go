@@ -1293,6 +1293,7 @@ func readDiscoveryChainConfigEntriesTxn(
 		todoSplitters = make(map[structs.ServiceID]struct{})
 		todoResolvers = make(map[structs.ServiceID]struct{})
 		todoDefaults  = make(map[structs.ServiceID]struct{})
+		todoPeers     = make(map[string]struct{})
 	)
 
 	sid := structs.NewServiceID(serviceName, entMeta)
@@ -1394,6 +1395,10 @@ func readDiscoveryChainConfigEntriesTxn(
 		for _, svc := range resolver.ListRelatedServices() {
 			todoResolvers[svc] = struct{}{}
 		}
+
+		for _, peer := range resolver.RelatedPeers() {
+			todoPeers[peer] = struct{}{}
+		}
 	}
 
 	for {
@@ -1433,6 +1438,23 @@ func readDiscoveryChainConfigEntriesTxn(
 			continue
 		}
 		res.Services[svcID] = entry
+	}
+
+	peerEntMeta := structs.DefaultEnterpriseMetaInPartition(entMeta.PartitionOrDefault())
+	for peerName := range todoPeers {
+		q := Query{
+			Value:          peerName,
+			EnterpriseMeta: *peerEntMeta,
+		}
+		idx, entry, err := peeringReadTxn(tx, ws, q)
+		if err != nil {
+			return 0, nil, err
+		}
+		if idx > maxIdx {
+			maxIdx = idx
+		}
+
+		res.Peers[peerName] = entry
 	}
 
 	// Strip nils now that they are no longer necessary.

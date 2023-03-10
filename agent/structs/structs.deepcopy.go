@@ -125,6 +125,10 @@ func (o *CompiledDiscoveryChain) DeepCopy() *CompiledDiscoveryChain {
 			if v2 != nil {
 				cp_Targets_v2 = new(DiscoveryTarget)
 				*cp_Targets_v2 = *v2
+				if v2.Locality != nil {
+					cp_Targets_v2.Locality = new(Locality)
+					*cp_Targets_v2.Locality = *v2.Locality
+				}
 			}
 			cp.Targets[k2] = cp_Targets_v2
 		}
