@@ -591,6 +591,7 @@ func (s *Store) PeeringWrite(idx uint64, req *pbpeering.PeeringWriteRequest) err
 			req.Peering.Remote = &pbpeering.RemoteInfo{
 				Partition:  existing.Remote.Partition,
 				Datacenter: existing.Remote.Datacenter,
+				Locality:   existing.Remote.Locality,
 			}
 		}
 

@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/go-version"
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/api"
@@ -17,6 +18,12 @@ import (
 // Test health check GRPC call using Target Servers and Latest GA Clients
 func TestTargetServersWithLatestGAClients(t *testing.T) {
 	t.Parallel()
+
+	fromVersion, err := version.NewVersion(utils.LatestVersion)
+	require.NoError(t, err)
+	if fromVersion.LessThan(utils.Version_1_14) {
+		return
+	}
 
 	const (
 		numServers = 3
