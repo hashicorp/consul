@@ -1493,6 +1493,7 @@ func newConsulConfig(runtimeCfg *config.RuntimeConfig, logger hclog.Logger) (*co
 	cfg.RequestLimitsMode = runtimeCfg.RequestLimitsMode.String()
 	cfg.RequestLimitsReadRate = runtimeCfg.RequestLimitsReadRate
 	cfg.RequestLimitsWriteRate = runtimeCfg.RequestLimitsWriteRate
+	cfg.Locality = runtimeCfg.StructLocality()
 
 	enterpriseConsulConfig(cfg, runtimeCfg)
 	return cfg, nil

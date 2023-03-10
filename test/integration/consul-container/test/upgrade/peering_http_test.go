@@ -30,6 +30,7 @@ func TestPeering_UpgradeToTarget_fromLatest(t *testing.T) {
 		// common resources includes static-client in dialing cluster, and static-server in accepting cluster.
 		extraAssertion func(int)
 	}
+
 	tcs := []testcase{
 		// {
 		//  TODO: API changed from 1.13 to 1.14 in , PeerName to Peer
@@ -372,13 +373,11 @@ func TestPeering_UpgradeToTarget_fromLatest(t *testing.T) {
 		tc.extraAssertion(appPort)
 	}
 
-	for _, oldVersion := range UpgradeFromVersions {
-		for _, tc := range tcs {
-			t.Run(fmt.Sprintf("%s upgrade from %s to %s", tc.name, oldVersion, utils.TargetVersion),
-				func(t *testing.T) {
-					run(t, tc, oldVersion, utils.TargetVersion)
-				})
-		}
+	for _, tc := range tcs {
+		t.Run(fmt.Sprintf("%s upgrade from %s to %s", tc.name, utils.LatestVersion, utils.TargetVersion),
+			func(t *testing.T) {
+				run(t, tc, utils.LatestVersion, utils.TargetVersion)
+			})
 	}
 }
 

@@ -126,11 +126,11 @@ func updateUsage(tx WriteTxn, changes Changes) error {
 			// changed, in order to compare it with the finished memdb state.
 			// Make sure to account for the fact that services can change their names.
 			if serviceNameChanged(change) {
-				serviceNameChanges[svc.CompoundServiceName()] += 1
+				serviceNameChanges[svc.CompoundServiceName().ServiceName] += 1
 				before := change.Before.(*structs.ServiceNode)
-				serviceNameChanges[before.CompoundServiceName()] -= 1
+				serviceNameChanges[before.CompoundServiceName().ServiceName] -= 1
 			} else {
-				serviceNameChanges[svc.CompoundServiceName()] += delta
+				serviceNameChanges[svc.CompoundServiceName().ServiceName] += delta
 			}
 
 		case "kvs":

@@ -1153,7 +1153,7 @@ func (sn *ServiceNode) CompoundServiceID() ServiceID {
 	}
 }
 
-func (sn *ServiceNode) CompoundServiceName() ServiceName {
+func (sn *ServiceNode) CompoundServiceName() PeeredServiceName {
 	name := sn.ServiceName
 	if name == "" {
 		name = sn.ServiceID
@@ -1163,10 +1163,14 @@ func (sn *ServiceNode) CompoundServiceName() ServiceName {
 	entMeta := sn.EnterpriseMeta
 	entMeta.Normalize()
 
-	return ServiceName{
-		Name:           name,
-		EnterpriseMeta: entMeta,
+	return PeeredServiceName{
+		ServiceName: ServiceName{
+			Name:           name,
+			EnterpriseMeta: entMeta,
+		},
+		Peer: sn.PeerName,
 	}
+
 }
 
 // Weights represent the weight used by DNS for a given status
@@ -3020,4 +3024,13 @@ func TimeToProto(s time.Time) *timestamppb.Timestamp {
 // (the Unix epoch).
 func IsZeroProtoTime(t *timestamppb.Timestamp) bool {
 	return t.Seconds == 0 && t.Nanos == 0
+}
+
+// Locality identifies where a given entity is running.
+type Locality struct {
+	// Region is region the zone belongs to.
+	Region string `json:",omitempty"`
+
+	// Zone is the zone the entity is running in.
+	Zone string `json:",omitempty"`
 }

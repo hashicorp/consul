@@ -276,7 +276,14 @@ func (r *RemoteInfo) IsEmpty() bool {
 	if r == nil {
 		return true
 	}
-	return r.Partition == "" && r.Datacenter == ""
+	return r.Partition == "" && r.Datacenter == "" && r.Locality.IsEmpty()
+}
+
+func (l *Locality) IsEmpty() bool {
+	if l == nil {
+		return true
+	}
+	return l.Region == "" && l.Zone == ""
 }
 
 // convenience
@@ -323,4 +330,11 @@ func (o *PeeringTrustBundle) DeepCopy() *PeeringTrustBundle {
 		panic(fmt.Sprintf("failed to clone *PeeringTrustBundle, got: %T", cp))
 	}
 	return cp
+}
+
+func LocalityFromStruct(l structs.Locality) *Locality {
+	return &Locality{
+		Region: l.Region,
+		Zone:   l.Zone,
+	}
 }

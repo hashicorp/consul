@@ -1,3 +1,71 @@
+## 1.15.1 (March 7, 2023)
+
+IMPROVEMENTS:
+
+* cli: added `-append-policy-id`, `-append-policy-name`, `-append-role-name`, and `-append-role-id` flags to the `consul token update` command.
+These flags allow updates to a token's policies/roles without having to override them completely. [[GH-16288](https://github.com/hashicorp/consul/issues/16288)]
+* cli: added `-append-service-identity` and `-append-node-identity` flags to the `consul token update` command.
+These flags allow updates to a token's node identities/service identities without having to override them. [[GH-16506](https://github.com/hashicorp/consul/issues/16506)]
+* connect: Bump Envoy 1.22.5 to 1.22.7, 1.23.2 to 1.23.4, 1.24.0 to 1.24.2, add 1.25.1, remove 1.21.5 [[GH-16274](https://github.com/hashicorp/consul/issues/16274)]
+* mesh: Add ServiceResolver RequestTimeout for route timeouts to make request timeouts configurable [[GH-16495](https://github.com/hashicorp/consul/issues/16495)]
+* ui: support filtering API gateways in the ui and displaying their documentation links [[GH-16508](https://github.com/hashicorp/consul/issues/16508)]
+
+DEPRECATIONS:
+
+* cli: Deprecate the `-merge-node-identites` and `-merge-service-identities` flags from the `consul token update` command in favor of: `-append-node-identity` and `-append-service-identity`. [[GH-16506](https://github.com/hashicorp/consul/issues/16506)]
+* cli: Deprecate the `-merge-policies` and `-merge-roles` flags from the `consul token update` command in favor of: `-append-policy-id`, `-append-policy-name`, `-append-role-name`, and `-append-role-id`. [[GH-16288](https://github.com/hashicorp/consul/issues/16288)]
+
+BUG FIXES:
+
+* cli: Fixes an issue with `consul connect envoy` where a log to STDOUT could malform JSON when used with `-bootstrap`. [[GH-16530](https://github.com/hashicorp/consul/issues/16530)]
+* cli: Fixes an issue with `consul connect envoy` where grpc-disabled agents were not error-handled correctly. [[GH-16530](https://github.com/hashicorp/consul/issues/16530)]
+* cli: ensure acl token read -self works [[GH-16445](https://github.com/hashicorp/consul/issues/16445)]
+* cli: fix panic read non-existent acl policy [[GH-16485](https://github.com/hashicorp/consul/issues/16485)]
+* gateways: fix HTTPRoute bug where service weights could be less than or equal to 0 and result in a downstream envoy protocol error [[GH-16512](https://github.com/hashicorp/consul/issues/16512)]
+* gateways: fix HTTPRoute bug where services with a weight not divisible by 10000 are never registered properly [[GH-16531](https://github.com/hashicorp/consul/issues/16531)]
+* mesh: Fix resolution of service resolvers with subsets for external upstreams [[GH-16499](https://github.com/hashicorp/consul/issues/16499)]
+* proxycfg: ensure that an irrecoverable error in proxycfg closes the xds session and triggers a replacement proxycfg watcher [[GH-16497](https://github.com/hashicorp/consul/issues/16497)]
+* proxycfg: fix a bug where terminating gateways were not cleaning up deleted service resolvers for their referenced services [[GH-16498](https://github.com/hashicorp/consul/issues/16498)]
+* ui: Fix issue with lists and filters not rendering properly [[GH-16444](https://github.com/hashicorp/consul/issues/16444)]
+
+## 1.14.5 (March 7, 2023)
+
+SECURITY:
+
+* Upgrade to use Go 1.20.1.
+This resolves vulnerabilities [CVE-2022-41724](https://go.dev/issue/58001) in `crypto/tls` and [CVE-2022-41723](https://go.dev/issue/57855) in `net/http`. [[GH-16263](https://github.com/hashicorp/consul/issues/16263)]
+
+IMPROVEMENTS:
+
+* container: Upgrade container image to use to Alpine 3.17. [[GH-16358](https://github.com/hashicorp/consul/issues/16358)]
+* mesh: Add ServiceResolver RequestTimeout for route timeouts to make request timeouts configurable [[GH-16495](https://github.com/hashicorp/consul/issues/16495)]
+
+BUG FIXES:
+
+* mesh: Fix resolution of service resolvers with subsets for external upstreams [[GH-16499](https://github.com/hashicorp/consul/issues/16499)]
+* peering: Fix bug where services were incorrectly imported as connect-enabled. [[GH-16339](https://github.com/hashicorp/consul/issues/16339)]
+* peering: Fix issue where mesh gateways would use the wrong address when contacting a remote peer with the same datacenter name. [[GH-16257](https://github.com/hashicorp/consul/issues/16257)]
+* peering: Fix issue where secondary wan-federated datacenters could not be used as peering acceptors. [[GH-16230](https://github.com/hashicorp/consul/issues/16230)]
+* proxycfg: fix a bug where terminating gateways were not cleaning up deleted service resolvers for their referenced services [[GH-16498](https://github.com/hashicorp/consul/issues/16498)]
+
+## 1.13.7 (March 7, 2023)
+
+SECURITY:
+
+* Upgrade to use Go 1.19.6.
+This resolves vulnerabilities [CVE-2022-41724](https://go.dev/issue/58001) in `crypto/tls` and [CVE-2022-41723](https://go.dev/issue/57855) in `net/http`. [[GH-16299](https://github.com/hashicorp/consul/issues/16299)]
+
+IMPROVEMENTS:
+
+* xds: Removed a bottleneck in Envoy config generation. [[GH-16269](https://github.com/hashicorp/consul/issues/16269)]
+* container: Upgrade container image to use to Alpine 3.17. [[GH-16358](https://github.com/hashicorp/consul/issues/16358)]
+* mesh: Add ServiceResolver RequestTimeout for route timeouts to make request timeouts configurable [[GH-16495](https://github.com/hashicorp/consul/issues/16495)]
+
+BUG FIXES:
+
+* mesh: Fix resolution of service resolvers with subsets for external upstreams [[GH-16499](https://github.com/hashicorp/consul/issues/16499)]
+* proxycfg: fix a bug where terminating gateways were not cleaning up deleted service resolvers for their referenced services [[GH-16498](https://github.com/hashicorp/consul/issues/16498)]
+
 ## 1.15.0 (February 23, 2023)
 
 BREAKING CHANGES:
