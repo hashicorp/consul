@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/consul/agent/configentry"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/proto/private/pbpeering"
 )
 
 type CompileRequest struct {
@@ -736,6 +737,11 @@ func (c *compiler) newTarget(opts structs.DiscoveryTargetOpts) *structs.Discover
 		// Use the same representation for the name. This will NOT be overridden
 		// later.
 		t.Name = t.SNI
+	} else {
+		peer := c.entries.Peers[opts.Peer]
+		if peer != nil && peer.Remote != nil {
+			t.Locality = pbpeering.LocalityToStructs(peer.Remote.Locality)
+		}
 	}
 
 	prev, ok := c.loadedTargets[t.ID]
