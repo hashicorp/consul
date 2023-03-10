@@ -3,7 +3,6 @@ package state
 import (
 	"errors"
 	"fmt"
-	"strings"
 
 	memdb "github.com/hashicorp/go-memdb"
 
@@ -1444,7 +1443,7 @@ func readDiscoveryChainConfigEntriesTxn(
 	peerEntMeta := structs.DefaultEnterpriseMetaInPartition(entMeta.PartitionOrDefault())
 	for peerName := range todoPeers {
 		q := Query{
-			Value:          strings.ToLower(peerName),
+			Value:          peerName,
 			EnterpriseMeta: *peerEntMeta,
 		}
 		idx, entry, err := peeringReadTxn(tx, ws, q)
@@ -1453,11 +1452,6 @@ func readDiscoveryChainConfigEntriesTxn(
 		}
 		if idx > maxIdx {
 			maxIdx = idx
-		}
-
-		if entry == nil {
-			res.Peers[peerName] = nil
-			continue
 		}
 
 		res.Peers[peerName] = entry

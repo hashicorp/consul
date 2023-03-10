@@ -114,6 +114,16 @@ func (e *DiscoveryChainSet) AddProxyDefaults(entries ...*structs.ProxyConfigEntr
 	}
 }
 
+// AddPeers adds cluster peers. Convenience function for testing.
+func (e *DiscoveryChainSet) AddPeers(entries ...*pbpeering.Peering) {
+	if e.Peers == nil {
+		e.Peers = make(map[string]*pbpeering.Peering)
+	}
+	for _, entry := range entries {
+		e.Peers[entry.Name] = entry
+	}
+}
+
 // AddEntries adds generic configs. Convenience function for testing. Panics on
 // operator error.
 func (e *DiscoveryChainSet) AddEntries(entries ...structs.ConfigEntry) {

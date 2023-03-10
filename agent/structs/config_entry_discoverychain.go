@@ -18,6 +18,7 @@ import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/lib/maps"
 )
 
 const (
@@ -888,17 +889,7 @@ func (e *ServiceResolverConfigEntry) RelatedPeers() []string {
 		}
 	}
 
-	if len(peers) == 0 {
-		return nil
-	}
-
-	out := make([]string, 0, len(peers))
-	for svc := range peers {
-		out = append(out, svc)
-	}
-	sort.Strings(out)
-
-	return out
+	return maps.SliceOfKeys(peers)
 }
 
 func (e *ServiceResolverConfigEntry) MarshalJSON() ([]byte, error) {

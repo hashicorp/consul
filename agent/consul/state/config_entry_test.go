@@ -2067,7 +2067,7 @@ func TestStore_ReadDiscoveryChainConfigEntries_SubsetSplit(t *testing.T) {
 	require.Len(t, entrySet.Services, 1)
 }
 
-func TestStore_ReadDiscoveryChainConfigEntries_PeerLocality(t *testing.T) {
+func TestStore_ReadDiscoveryChainConfigEntries_FetchPeers(t *testing.T) {
 	s := testConfigStateStore(t)
 
 	entries := []structs.ConfigEntry{

@@ -737,8 +737,9 @@ func (c *compiler) newTarget(opts structs.DiscoveryTargetOpts) *structs.Discover
 		// Use the same representation for the name. This will NOT be overridden
 		// later.
 		t.Name = t.SNI
+	} else {
 		peer := c.entries.Peers[opts.Peer]
-		if peer != nil && peer.Remote != nil && peer.Remote.Locality != nil {
+		if peer != nil && peer.Remote != nil {
 			t.Locality = pbpeering.LocalityToStructs(peer.Remote.Locality)
 		}
 	}
