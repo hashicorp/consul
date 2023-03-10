@@ -7,14 +7,16 @@ import (
 	"testing"
 	"time"
 
+	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/go-hclog"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/time/rate"
 
 	"github.com/hashicorp/consul/acl"
-	cachetype "github.com/hashicorp/consul/agent/cache-types"
+
 	"github.com/hashicorp/consul/agent/consul/discoverychain"
 	"github.com/hashicorp/consul/agent/structs"
+	apimod "github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/proto/private/pbpeering"
 	"github.com/hashicorp/consul/proto/private/prototest"
 	"github.com/hashicorp/consul/sdk/testutil"
@@ -455,16 +457,18 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 
 	// Used to account for differences in OSS/ent implementations of ServiceID.String()
 	var (
-		db      = structs.NewServiceName("db", nil)
-		billing = structs.NewServiceName("billing", nil)
-		api     = structs.NewServiceName("api", nil)
-		apiA    = structs.NewServiceName("api-a", nil)
+		db           = structs.NewServiceName("db", nil)
+		billing      = structs.NewServiceName("billing", nil)
+		api          = structs.NewServiceName("api", nil)
+		apiA         = structs.NewServiceName("api-a", nil)
+		hcpCollector = structs.NewServiceName(apimod.HCPMetricsCollectorName, nil)
 
-		apiUID    = NewUpstreamIDFromServiceName(api)
-		dbUID     = NewUpstreamIDFromServiceName(db)
-		pqUID     = UpstreamIDFromString("prepared_query:query")
-		extApiUID = NewUpstreamIDFromServiceName(apiA)
-		extDBUID  = NewUpstreamIDFromServiceName(db)
+		apiUID          = NewUpstreamIDFromServiceName(api)
+		dbUID           = NewUpstreamIDFromServiceName(db)
+		pqUID           = UpstreamIDFromString("prepared_query:query")
+		extApiUID       = NewUpstreamIDFromServiceName(apiA)
+		extDBUID        = NewUpstreamIDFromServiceName(db)
+		hcpCollectorUID = NewUpstreamIDFromServiceName(hcpCollector)
 	)
 	// TODO(peering): NewUpstreamIDFromServiceName should take a PeerName
 	extApiUID.Peer = "peer-a"
@@ -3619,6 +3623,164 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						gwEp, _ := snap.ConnectProxy.WatchedLocalGWEndpoints.Get("dc1")
 						require.NotNil(t, gwEp)
 						require.Len(t, gwEp, 1)
+					},
+				},
+			},
+		},
+		"hcp-metrics": {
+			ns: structs.NodeService{
+				Kind:    structs.ServiceKindConnectProxy,
+				ID:      "web-sidecar-proxy",
+				Service: "web-sidecar-proxy",
+				Address: "10.0.1.1",
+				Port:    443,
+				Proxy: structs.ConnectProxyConfig{
+					DestinationServiceName: "web",
+					Config: map[string]interface{}{
+						"envoy_hcp_metrics_bind_socket_dir": "/tmp/consul/hcp-metrics/",
+					},
+				},
+			},
+			sourceDC: "dc1",
+			stages: []verificationStage{
+				{
+					requiredWatches: map[string]verifyWatchRequest{
+						fmt.Sprintf("discovery-chain:%s", hcpCollectorUID.String()): genVerifyDiscoveryChainWatch(&structs.DiscoveryChainRequest{
+							Name:                 hcpCollector.Name,
+							EvaluateInDatacenter: "dc1",
+							EvaluateInNamespace:  "default",
+							EvaluateInPartition:  "default",
+							Datacenter:           "dc1",
+							QueryOptions: structs.QueryOptions{
+								Token: aclToken,
+							},
+						}),
+					},
+					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
+						require.False(t, snap.Valid(), "should not be valid")
+
+						require.Len(t, snap.ConnectProxy.DiscoveryChain, 0, "%+v", snap.ConnectProxy.DiscoveryChain)
+						require.Len(t, snap.ConnectProxy.WatchedDiscoveryChains, 0, "%+v", snap.ConnectProxy.WatchedDiscoveryChains)
+						require.Len(t, snap.ConnectProxy.WatchedUpstreams, 0, "%+v", snap.ConnectProxy.WatchedUpstreams)
+						require.Len(t, snap.ConnectProxy.WatchedUpstreamEndpoints, 0, "%+v", snap.ConnectProxy.WatchedUpstreamEndpoints)
+					},
+				},
+				{
+					events: []UpdateEvent{
+						rootWatchEvent(),
+						{
+							CorrelationID: peeringTrustBundlesWatchID,
+							Result:        peerTrustBundles,
+						},
+						{
+							CorrelationID: leafWatchID,
+							Result:        issuedCert,
+							Err:           nil,
+						},
+						{
+							CorrelationID: intentionsWatchID,
+							Result:        TestIntentions(),
+							Err:           nil,
+						},
+						{
+							CorrelationID: meshConfigEntryID,
+							Result:        &structs.ConfigEntryResponse{},
+						},
+						{
+							CorrelationID: fmt.Sprintf("discovery-chain:%s", hcpCollectorUID.String()),
+							Result: &structs.DiscoveryChainResponse{
+								Chain: discoverychain.TestCompileConfigEntries(t, hcpCollector.Name, "default", "default", "dc1", "trustdomain.consul", nil),
+							},
+							Err: nil,
+						},
+					},
+					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
+						require.True(t, snap.Valid())
+						require.Equal(t, indexedRoots, snap.Roots)
+						require.Equal(t, issuedCert, snap.ConnectProxy.Leaf)
+
+						// An event was received with the HCP collector's discovery chain, which sets up some bookkeeping in the snapshot.
+						require.Len(t, snap.ConnectProxy.DiscoveryChain, 1, "%+v", snap.ConnectProxy.DiscoveryChain)
+						require.Contains(t, snap.ConnectProxy.DiscoveryChain, hcpCollectorUID)
+
+						require.Len(t, snap.ConnectProxy.WatchedUpstreams, 1, "%+v", snap.ConnectProxy.WatchedUpstreams)
+						require.Len(t, snap.ConnectProxy.WatchedUpstreamEndpoints, 1, "%+v", snap.ConnectProxy.WatchedUpstreamEndpoints)
+						require.Contains(t, snap.ConnectProxy.WatchedUpstreamEndpoints, hcpCollectorUID)
+
+						expectUpstream := structs.Upstream{
+							DestinationNamespace: "default",
+							DestinationPartition: "default",
+							DestinationName:      apimod.HCPMetricsCollectorName,
+							LocalBindSocketPath:  "/tmp/consul/hcp-metrics/default_web-sidecar-proxy.sock",
+							Config: map[string]interface{}{
+								"protocol": "grpc",
+							},
+						}
+						uid := NewUpstreamID(&expectUpstream)
+
+						require.Contains(t, snap.ConnectProxy.UpstreamConfig, uid)
+						require.Equal(t, &expectUpstream, snap.ConnectProxy.UpstreamConfig[uid])
+
+						// No endpoints have arrived yet.
+						require.Len(t, snap.ConnectProxy.WatchedUpstreamEndpoints[hcpCollectorUID], 0, "%+v", snap.ConnectProxy.WatchedUpstreamEndpoints)
+					},
+				},
+				{
+					requiredWatches: map[string]verifyWatchRequest{
+						fmt.Sprintf("upstream-target:%s.default.default.dc1:", apimod.HCPMetricsCollectorName) + hcpCollectorUID.String(): genVerifyServiceSpecificRequest(apimod.HCPMetricsCollectorName, "", "dc1", true),
+					},
+					events: []UpdateEvent{
+						{
+							CorrelationID: fmt.Sprintf("upstream-target:%s.default.default.dc1:", apimod.HCPMetricsCollectorName) + hcpCollectorUID.String(),
+							Result: &structs.IndexedCheckServiceNodes{
+								Nodes: structs.CheckServiceNodes{
+									{
+										Node: &structs.Node{
+											Node:    "node1",
+											Address: "10.0.0.1",
+										},
+										Service: &structs.NodeService{
+											ID:      apimod.HCPMetricsCollectorName,
+											Service: apimod.HCPMetricsCollectorName,
+											Port:    8080,
+										},
+									},
+								},
+							},
+							Err: nil,
+						},
+					},
+					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
+						require.True(t, snap.Valid())
+						require.Equal(t, indexedRoots, snap.Roots)
+						require.Equal(t, issuedCert, snap.ConnectProxy.Leaf)
+
+						// Discovery chain for the HCP collector should still be stored in the snapshot.
+						require.Len(t, snap.ConnectProxy.DiscoveryChain, 1, "%+v", snap.ConnectProxy.DiscoveryChain)
+						require.Contains(t, snap.ConnectProxy.DiscoveryChain, hcpCollectorUID)
+
+						require.Len(t, snap.ConnectProxy.WatchedUpstreams, 1, "%+v", snap.ConnectProxy.WatchedUpstreams)
+						require.Len(t, snap.ConnectProxy.WatchedUpstreamEndpoints, 1, "%+v", snap.ConnectProxy.WatchedUpstreamEndpoints)
+						require.Contains(t, snap.ConnectProxy.WatchedUpstreamEndpoints, hcpCollectorUID)
+
+						// An endpoint arrived for the HCP collector, so it should be present in the snapshot.
+						require.Len(t, snap.ConnectProxy.WatchedUpstreamEndpoints[hcpCollectorUID], 1, "%+v", snap.ConnectProxy.WatchedUpstreamEndpoints)
+
+						nodes := structs.CheckServiceNodes{
+							{
+								Node: &structs.Node{
+									Node:    "node1",
+									Address: "10.0.0.1",
+								},
+								Service: &structs.NodeService{
+									ID:      apimod.HCPMetricsCollectorName,
+									Service: apimod.HCPMetricsCollectorName,
+									Port:    8080,
+								},
+							},
+						}
+						target := fmt.Sprintf("%s.default.default.dc1", apimod.HCPMetricsCollectorName)
+						require.Equal(t, nodes, snap.ConnectProxy.WatchedUpstreamEndpoints[hcpCollectorUID][target])
 					},
 				},
 			},
