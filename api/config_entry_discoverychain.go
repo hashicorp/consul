@@ -243,7 +243,6 @@ type ServiceResolverFailover struct {
 	Namespace   string                          `json:",omitempty"`
 	Datacenters []string                        `json:",omitempty"`
 	Targets     []ServiceResolverFailoverTarget `json:",omitempty"`
-	Policy      *ServiceResolverFailoverPolicy  `json:",omitempty"`
 }
 
 type ServiceResolverFailoverTarget struct {
@@ -253,10 +252,6 @@ type ServiceResolverFailoverTarget struct {
 	Namespace     string `json:",omitempty"`
 	Datacenter    string `json:",omitempty"`
 	Peer          string `json:",omitempty"`
-}
-
-type ServiceResolverFailoverPolicy struct {
-	Mode string `json:",omitempty"`
 }
 
 // LoadBalancer determines the load balancing policy and configuration for services

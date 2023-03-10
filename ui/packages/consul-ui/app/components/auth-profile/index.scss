@@ -12,8 +12,8 @@
 }
 .auth-profile dt,
 .auth-profile dd {
-  color: var(--token-color-paletter-neutral-300);
+  color: rgb(var(--tone-gray-800));
 }
 .auth-profile dt span {
-  color: var(--token-color-foreground-faint);
+  color: rgb(var(--tone-gray-600));
 }

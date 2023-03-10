@@ -17,6 +17,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net"
 	"net/http"
 	"os"
@@ -72,18 +73,11 @@ type TestNetworkSegment struct {
 	Advertise string `json:"advertise"`
 }
 
-// Locality is used as the TestServerConfig's Locality.
-type Locality struct {
-	Region string `json:"region"`
-	Zone   string `json:"zone"`
-}
-
 // TestServerConfig is the main server configuration struct.
 type TestServerConfig struct {
 	NodeName            string                 `json:"node_name"`
 	NodeID              string                 `json:"node_id"`
 	NodeMeta            map[string]string      `json:"node_meta,omitempty"`
-	NodeLocality        *Locality              `json:"locality,omitempty"`
 	Performance         *TestPerformanceConfig `json:"performance,omitempty"`
 	Bootstrap           bool                   `json:"bootstrap,omitempty"`
 	Server              bool                   `json:"server,omitempty"`
@@ -273,7 +267,7 @@ func NewTestServerConfigT(t TestingTB, cb ServerConfigCallback) (*TestServer, er
 		// Use test name for tmpdir if available
 		prefix = strings.Replace(t.Name(), "/", "_", -1)
 	}
-	tmpdir, err := os.MkdirTemp("", prefix)
+	tmpdir, err := ioutil.TempDir("", prefix)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create tempdir")
 	}
@@ -297,7 +291,7 @@ func NewTestServerConfigT(t TestingTB, cb ServerConfigCallback) (*TestServer, er
 
 	t.Logf("CONFIG JSON: %s", string(b))
 	configFile := filepath.Join(tmpdir, "config.json")
-	if err := os.WriteFile(configFile, b, 0644); err != nil {
+	if err := ioutil.WriteFile(configFile, b, 0644); err != nil {
 		os.RemoveAll(tmpdir)
 		return nil, errors.Wrap(err, "failed writing config content")
 	}

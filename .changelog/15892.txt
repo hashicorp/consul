@@ -1,3 +1,0 @@
-```release-note:enhancement
-grpc: client agents will switch server on error, and automatically retry on `RESOURCE_EXHAUSTED` responses
-```

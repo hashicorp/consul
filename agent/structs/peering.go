@@ -14,7 +14,6 @@ type PeeringToken struct {
 type PeeringTokenRemote struct {
 	Partition  string
 	Datacenter string
-	Locality   *Locality
 }
 
 type IndexedExportedServiceList struct {

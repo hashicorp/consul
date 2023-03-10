@@ -10,7 +10,6 @@ deep-copy -pointer-receiver \
   -type ConfigSnapshotUpstreams \
   -type PeerServersValue \
   -type PeeringServiceValue \
-  -type configSnapshotAPIGateway \
   -type configSnapshotConnectProxy \
   -type configSnapshotIngressGateway \
   -type configSnapshotMeshGateway \

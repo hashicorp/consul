@@ -1,9 +1,8 @@
 package cert
 
 import (
-	"github.com/mitchellh/cli"
-
 	"github.com/hashicorp/consul/command/flags"
+	"github.com/mitchellh/cli"
 )
 
 func New() *cmd {
@@ -26,7 +25,7 @@ func (c *cmd) Help() string {
 
 const synopsis = `Helpers for certificates`
 const help = `
-Usage: consul tls cert <subcommand> [options]
+Usage: consul tls cert <subcommand> [options] [filename-prefix]
 
   This command has subcommands for interacting with certificates
 

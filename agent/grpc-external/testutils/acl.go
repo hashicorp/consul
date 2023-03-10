@@ -18,7 +18,7 @@ func ACLAnonymous(t *testing.T) resolver.Result {
 	return resolver.Result{
 		Authorizer: acl.DenyAll(),
 		ACLIdentity: &structs.ACLToken{
-			AccessorID: acl.AnonymousTokenID,
+			AccessorID: structs.ACLTokenAnonymousID,
 		},
 	}
 }
@@ -47,7 +47,7 @@ func ACLServiceWriteAny(t *testing.T) resolver.Result {
 		service "foo" {
 			policy = "write"
 		}
-	`, nil, nil)
+	`, acl.SyntaxCurrent, nil, nil)
 	require.NoError(t, err)
 
 	authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)

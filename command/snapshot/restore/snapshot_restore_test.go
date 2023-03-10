@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -134,7 +135,7 @@ func TestSnapshotRestoreCommand_TruncatedSnapshot(t *testing.T) {
 		require.NoError(t, err)
 		defer rc.Close()
 
-		inputData, err = io.ReadAll(rc)
+		inputData, err = ioutil.ReadAll(rc)
 		require.NoError(t, err)
 	}
 
@@ -149,7 +150,7 @@ func TestSnapshotRestoreCommand_TruncatedSnapshot(t *testing.T) {
 			c := New(ui)
 
 			file := filepath.Join(dir, "backup.tgz")
-			require.NoError(t, os.WriteFile(file, data, 0644))
+			require.NoError(t, ioutil.WriteFile(file, data, 0644))
 			args := []string{
 				"-http-addr=" + a.HTTPAddr(),
 				file,

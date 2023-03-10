@@ -4,7 +4,6 @@ syntax = "proto3";
 
 package hashicorp.consul.dataplane;
 
-import "annotations/ratelimit/ratelimit.proto";
 import "google/protobuf/struct.proto";
 
 message GetSupportedDataplaneFeaturesRequest {}
@@ -65,10 +64,6 @@ enum ServiceKind {
   // ServiceKind Ingress Gateway is an Ingress Gateway for the Connect feature.
   // This service will ingress connections into the service mesh.
   SERVICE_KIND_INGRESS_GATEWAY = 5;
-
-  // ServiceKind API Gateway is an API Gateway for the Connect feature.
-  // This service will ingress connections in to the service mesh.
-  SERVICE_KIND_API_GATEWAY = 6;
 }
 
 message GetEnvoyBootstrapParamsResponse {
@@ -84,15 +79,10 @@ message GetEnvoyBootstrapParamsResponse {
   google.protobuf.Struct config = 6;
   string node_id = 7;
   string node_name = 8;
-  repeated string access_logs = 9;
 }
 
 service DataplaneService {
-  rpc GetSupportedDataplaneFeatures(GetSupportedDataplaneFeaturesRequest) returns (GetSupportedDataplaneFeaturesResponse) {
-    option (hashicorp.consul.internal.ratelimit.spec) = {operation_type: OPERATION_TYPE_READ};
-  }
+  rpc GetSupportedDataplaneFeatures(GetSupportedDataplaneFeaturesRequest) returns (GetSupportedDataplaneFeaturesResponse) {}
 
-  rpc GetEnvoyBootstrapParams(GetEnvoyBootstrapParamsRequest) returns (GetEnvoyBootstrapParamsResponse) {
-    option (hashicorp.consul.internal.ratelimit.spec) = {operation_type: OPERATION_TYPE_READ};
-  }
+  rpc GetEnvoyBootstrapParams(GetEnvoyBootstrapParamsRequest) returns (GetEnvoyBootstrapParamsResponse) {}
 }

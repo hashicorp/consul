@@ -2,21 +2,8 @@
 
 set -euo pipefail
 
-upsert_config_entry primary '
-kind = "terminating-gateway"
-name = "terminating-gateway"
-services = [
-  {
-    name = "s4"
-  }
-]
-'
-
-upsert_config_entry primary '
-kind     = "service-defaults"
-name     = "s4"
-protocol = "http"
-'
+# wait for bootstrap to apply config entries
+wait_for_config_entry terminating-gateway terminating-gateway
 
 register_services primary
 

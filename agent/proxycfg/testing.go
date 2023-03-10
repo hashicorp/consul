@@ -3,7 +3,7 @@ package proxycfg
 import (
 	"context"
 	"fmt"
-	"os"
+	"io/ioutil"
 	"path"
 	"path/filepath"
 	"runtime"
@@ -20,7 +20,7 @@ import (
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/proto/private/pbpeering"
+	"github.com/hashicorp/consul/proto/pbpeering"
 )
 
 func TestPeerTrustBundles(t testing.T) *pbpeering.TrustBundleListByServiceResponse {
@@ -923,7 +923,7 @@ func golden(t testing.T, name string) string {
 	t.Helper()
 
 	golden := filepath.Join(projectRoot(), "../", "/xds/testdata", name+".golden")
-	expected, err := os.ReadFile(golden)
+	expected, err := ioutil.ReadFile(golden)
 	require.NoError(t, err)
 
 	return string(expected)

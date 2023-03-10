@@ -4,14 +4,13 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"fmt"
-	"io"
+	"io/ioutil"
 	"sync/atomic"
 	"testing"
 	"time"
 
 	"github.com/hashicorp/go-hclog"
 	vaultapi "github.com/hashicorp/vault/api"
-	"github.com/hashicorp/vault/api/auth/gcp"
 	vaultconst "github.com/hashicorp/vault/sdk/helper/consts"
 	"github.com/stretchr/testify/require"
 
@@ -102,18 +101,17 @@ func TestVaultCAProvider_configureVaultAuthMethod(t *testing.T) {
 		expLoginPath string
 		params       map[string]interface{}
 		expError     string
-		hasLDG       bool
 	}{
-		"alicloud":    {expLoginPath: "auth/alicloud/login", params: map[string]any{"role": "test-role", "region": "test-region"}, hasLDG: true},
-		"approle":     {expLoginPath: "auth/approle/login", params: map[string]any{"role_id_file_path": "test-path"}, hasLDG: true},
-		"aws":         {expLoginPath: "auth/aws/login", params: map[string]interface{}{"type": "iam"}, hasLDG: true},
-		"azure":       {expLoginPath: "auth/azure/login", params: map[string]interface{}{"role": "test-role", "resource": "test-resource"}, hasLDG: true},
+		"alicloud":    {expLoginPath: "auth/alicloud/login"},
+		"approle":     {expLoginPath: "auth/approle/login"},
+		"aws":         {expLoginPath: "auth/aws/login"},
+		"azure":       {expLoginPath: "auth/azure/login"},
 		"cf":          {expLoginPath: "auth/cf/login"},
 		"github":      {expLoginPath: "auth/github/login"},
-		"gcp":         {expLoginPath: "auth/gcp/login", params: map[string]interface{}{"type": "iam", "role": "test-role"}},
-		"jwt":         {expLoginPath: "auth/jwt/login", params: map[string]any{"role": "test-role", "path": "test-path"}, hasLDG: true},
+		"gcp":         {expLoginPath: "auth/gcp/login"},
+		"jwt":         {expLoginPath: "auth/jwt/login"},
 		"kerberos":    {expLoginPath: "auth/kerberos/login"},
-		"kubernetes":  {expLoginPath: "auth/kubernetes/login", params: map[string]interface{}{"role": "test-role"}, hasLDG: true},
+		"kubernetes":  {expLoginPath: "auth/kubernetes/login", params: map[string]interface{}{"jwt": "fake"}},
 		"ldap":        {expLoginPath: "auth/ldap/login/foo", params: map[string]interface{}{"username": "foo"}},
 		"oci":         {expLoginPath: "auth/oci/login/foo", params: map[string]interface{}{"role": "foo"}},
 		"okta":        {expLoginPath: "auth/okta/login/foo", params: map[string]interface{}{"username": "foo"}},
@@ -126,26 +124,15 @@ func TestVaultCAProvider_configureVaultAuthMethod(t *testing.T) {
 
 	for authMethodType, c := range cases {
 		t.Run(authMethodType, func(t *testing.T) {
-			authMethod := &structs.VaultAuthMethod{
+			loginPath, err := configureVaultAuthMethod(&structs.VaultAuthMethod{
 				Type:   authMethodType,
 				Params: c.params,
-			}
-			authIF, err := configureVaultAuthMethod(authMethod)
-			if c.expError != "" {
+			})
+			if c.expError == "" {
+				require.NoError(t, err)
+				require.Equal(t, c.expLoginPath, loginPath)
+			} else {
 				require.EqualError(t, err, c.expError)
-				return
-			}
-			require.NoError(t, err)
-			require.NotNil(t, authIF)
-
-			switch authMethodType {
-			case VaultAuthMethodTypeGCP:
-				_ = authIF.(*gcp.GCPAuth)
-			default:
-				auth := authIF.(*VaultAuthClient)
-				require.Equal(t, authMethod, auth.AuthMethod)
-				require.Equal(t, c.expLoginPath, auth.LoginPath)
-				require.Equal(t, c.hasLDG, auth.LoginDataGen != nil)
 			}
 		})
 	}
@@ -198,6 +185,7 @@ func TestVaultCAProvider_Configure(t *testing.T) {
 				"IntermediatePKIPath": "pki-intermediate/",
 			},
 			expectedValue: func(t *testing.T, v *VaultProvider) {
+
 				h := v.client.Headers()
 				require.Equal(t, "ns1", h.Get(vaultconst.NamespaceHeaderName))
 			},
@@ -274,7 +262,7 @@ func TestVaultCAProvider_RenewToken(t *testing.T) {
 	firstRenewal, err := secret.Data["last_renewal_time"].(json.Number).Int64()
 	require.NoError(t, err)
 
-	// Retry past the TTL and make sure the token has been renewed.
+	// Wait past the TTL and make sure the token has been renewed.
 	retry.Run(t, func(r *retry.R) {
 		secret, err = testVault.client.Auth().Token().Lookup(providerToken)
 		require.NoError(r, err)
@@ -305,13 +293,9 @@ func TestVaultCAProvider_RenewTokenStopWatcherOnConfigure(t *testing.T) {
 		"IntermediatePKIPath": "pki-intermediate/",
 	})
 
-	// overwrite stopWatcher to set flag on stop for testing
-	// be sure that original stopWatcher gets called to avoid goroutine leak
-	gotStopped := uint32(0)
-	realStop := provider.stopWatcher
+	var gotStopped = uint32(0)
 	provider.stopWatcher = func() {
 		atomic.StoreUint32(&gotStopped, 1)
-		realStop()
 	}
 
 	// Check the last renewal time.
@@ -372,9 +356,10 @@ func TestVaultCAProvider_Bootstrap(t *testing.T) {
 
 		cert, err := tc.certFunc(provider)
 		require.NoError(t, err)
-		resp, err := client.Logical().ReadRaw(tc.backendPath + "ca/pem")
+		req := client.NewRequest("GET", "/v1/"+tc.backendPath+"ca/pem")
+		resp, err := client.RawRequest(req)
 		require.NoError(t, err)
-		bytes, err := io.ReadAll(resp.Body)
+		bytes, err := ioutil.ReadAll(resp.Body)
 		require.NoError(t, err)
 		require.Equal(t, cert, string(bytes)+"\n")
 

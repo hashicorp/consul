@@ -421,7 +421,7 @@ func (d *DNSServer) handlePtr(resp dns.ResponseWriter, req *dns.Msg) {
 
 	// TODO: Replace ListNodes with an internal RPC that can do the filter
 	// server side to avoid transferring the entire node list.
-	if err := d.agent.RPC(context.Background(), "Catalog.ListNodes", &args, &out); err == nil {
+	if err := d.agent.RPC("Catalog.ListNodes", &args, &out); err == nil {
 		for _, n := range out.Nodes {
 			lookup := serviceLookup{
 				// Peering PTR lookups are currently not supported, so we don't
@@ -457,7 +457,7 @@ func (d *DNSServer) handlePtr(resp dns.ResponseWriter, req *dns.Msg) {
 		}
 
 		var sout structs.IndexedServiceNodes
-		if err := d.agent.RPC(context.Background(), "Catalog.ServiceNodes", &sargs, &sout); err == nil {
+		if err := d.agent.RPC("Catalog.ServiceNodes", &sargs, &sout); err == nil {
 			for _, n := range sout.ServiceNodes {
 				if n.ServiceAddress == serviceAddress {
 					ptr := &dns.PTR{
@@ -872,7 +872,7 @@ func (d *DNSServer) dispatch(remoteAddr net.Addr, req, resp *dns.Msg, maxRecursi
 		}
 
 		var out string
-		if err := d.agent.RPC(context.Background(), "Catalog.VirtualIPForService", &args, &out); err != nil {
+		if err := d.agent.RPC("Catalog.VirtualIPForService", &args, &out); err != nil {
 			return err
 		}
 		if out != "" {
@@ -946,11 +946,10 @@ func (d *DNSServer) dispatch(remoteAddr net.Addr, req, resp *dns.Msg, maxRecursi
 		return d.nodeLookup(cfg, lookup, req, resp)
 
 	case "query":
-		n := len(queryParts)
 		datacenter := d.agent.config.Datacenter
 
 		// ensure we have a query name
-		if n < 1 {
+		if len(queryParts) < 1 {
 			return invalid()
 		}
 
@@ -958,23 +957,8 @@ func (d *DNSServer) dispatch(remoteAddr net.Addr, req, resp *dns.Msg, maxRecursi
 			return invalid()
 		}
 
-		query := ""
-
-		// If the first and last DNS query parts begin with _, this is an RFC 2782 style SRV lookup.
-		// This allows for prepared query names to include "." (for backwards compatibility).
-		// Otherwise, this is a standard prepared query lookup.
-		if n >= 2 && strings.HasPrefix(queryParts[0], "_") && strings.HasPrefix(queryParts[n-1], "_") {
-			// The last DNS query part is the protocol field (ignored).
-			// All prior parts are the prepared query name or ID.
-			query = strings.Join(queryParts[:n-1], ".")
-
-			// Strip leading underscore
-			query = query[1:]
-		} else {
-			// Allow a "." in the query name, just join all the parts.
-			query = strings.Join(queryParts, ".")
-		}
-
+		// Allow a "." in the query name, just join all the parts.
+		query := strings.Join(queryParts, ".")
 		err := d.preparedQueryLookup(cfg, datacenter, query, remoteAddr, req, resp, maxRecursionLevel)
 		return ecsNotGlobalError{error: err}
 
@@ -1135,7 +1119,7 @@ RPC:
 		}
 		out = *reply
 	} else {
-		if err := d.agent.RPC(context.Background(), "Catalog.NodeServices", &args, &out); err != nil {
+		if err := d.agent.RPC("Catalog.NodeServices", &args, &out); err != nil {
 			return nil, err
 		}
 	}
@@ -1599,7 +1583,7 @@ RPC:
 
 		out = *reply
 	} else {
-		if err := d.agent.RPC(context.Background(), "PreparedQuery.Execute", &args, &out); err != nil {
+		if err := d.agent.RPC("PreparedQuery.Execute", &args, &out); err != nil {
 			return nil, err
 		}
 	}

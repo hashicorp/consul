@@ -1,7 +1,6 @@
 package cachetype
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/hashicorp/consul/agent/cache"
@@ -44,7 +43,7 @@ func (c *HealthServices) Fetch(opts cache.FetchOptions, req cache.Request) (cach
 
 	// Fetch
 	var reply structs.IndexedCheckServiceNodes
-	if err := c.RPC.RPC(context.Background(), "Health.ServiceNodes", reqReal, &reply); err != nil {
+	if err := c.RPC.RPC("Health.ServiceNodes", reqReal, &reply); err != nil {
 		return result, err
 	}
 

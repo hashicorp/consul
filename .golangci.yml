@@ -38,7 +38,7 @@ issues:
       text: 'SA1019: "github.com/golang/protobuf/ptypes" is deprecated: Well-known types have specialized functionality directly injected into the generated packages for each message type. See the deprecation notice for each function for the suggested alternative.'
 
     - linters: [staticcheck]
-      text: 'SA1019: "io/ioutil" has been deprecated since Go 1.16'
+      text: 'SA1019: "io/ioutil" has been deprecated since Go 1.19'
 
     # An argument that always receives the same value is often not a problem.
     - linters: [unparam]
@@ -83,7 +83,6 @@ linters-settings:
   forbidigo:
     # Forbid the following identifiers (list of regexp).
     forbid:
-      - '\bioutil\b(# Use io and os packages instead of ioutil)?'
       - '\brequire\.New\b(# Use package-level functions with explicit TestingT)?'
       - '\bassert\.New\b(# Use package-level functions with explicit TestingT)?'
     # Exclude godoc examples from forbidigo checks.

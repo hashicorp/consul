@@ -147,20 +147,6 @@ function assert_cert_signed_by_ca {
   echo "$CERT" | grep 'Verify return code: 0 (ok)'
 }
 
-function assert_cert_has_cn {
-  local HOSTPORT=$1
-  local CN=$2
-  local SERVER_NAME=${3:-$CN}
-
-  CERT=$(openssl s_client -connect $HOSTPORT -servername $SERVER_NAME -showcerts </dev/null 2>/dev/null)
-
-  echo "WANT CN: ${CN} (SNI: ${SERVER_NAME})"
-  echo "GOT CERT:"
-  echo "$CERT"
-
-  echo "$CERT" | grep "CN = ${CN}"
-}
-
 function assert_envoy_version {
   local ADMINPORT=$1
   run retry_default curl -f -s localhost:$ADMINPORT/server_info
@@ -850,28 +836,6 @@ function wait_for_namespace {
 
 function wait_for_config_entry {
   retry_default read_config_entry "$@" >/dev/null
-}
-
-function upsert_config_entry {
-  local DC="$1"
-  local BODY="$2"
-
-  echo "$BODY" | docker_consul "$DC" config write -
-}
-
-function assert_config_entry_status {
-  local TYPE="$1"
-  local STATUS="$2"
-  local REASON="$3"
-  local DC="$4"
-  local KIND="$5"
-  local NAME="$6"
-  local NS=${7:-}
-  local AP=${8:-}
-  local PEER=${9:-}
-
-  status=$(curl -s -f "consul-${DC}-client:8500/v1/config/${KIND}/${NAME}?passing&ns=${NS}&partition=${AP}&peer=${PEER}" | jq ".Status.Conditions[] | select(.Type == \"$TYPE\" and .Status == \"$STATUS\" and .Reason == \"$REASON\")")
-  [ -n "$status" ]
 }
 
 function delete_config_entry {

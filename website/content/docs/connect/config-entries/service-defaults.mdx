@@ -1561,16 +1561,6 @@ represents a location outside the Consul cluster. Services can dial destinations
                 'The namespace of the upstream. This should not be set to the wildcard specifier `*`.',
             },
             {
-              name: 'Peer',
-              type: 'string: ""',
-              description: 
-                `The name of the peer containing the upstream. Do not use a wildcard specifier ( \`*\`).<br><br>
-                    If the \`peer\` field is not set in any \`Overrides\` configuration, then Consul applies overrides to peered services with the same [\`name\`](/consul/docs/connect/config-entries/service-defaults#name). 
-                    This maintains backward compatibility with Consul 1.14.0. 
-                    If the \`peer\` field is specified in any override, then backward compatibility with Consul 1.14.0 is disabled. 
-                    As a result, each peered service must have a separate override configuration if desired.` ,
-            },
-            {
               name: 'Protocol',
               type: 'string: ""',
               description: `The protocol for the upstream listener.<br><br>
@@ -1582,8 +1572,6 @@ represents a location outside the Consul cluster. Services can dial destinations
                     proxy upstream config will not fully enable some
                     [L7 features](/consul/docs/connect/l7-traffic).
                     It is supported here for backwards compatibility with Consul versions prior to 1.6.0.
-                    In addition, the \`protocol\` of a peered service cannot be overriden. Any value in 
-                    this field is ignored for peered services.
                   `,
             },
             {
@@ -1696,10 +1684,10 @@ represents a location outside the Consul cluster. Services can dial destinations
                   name: 'EnforcingConsecutive5xx',
                   type: 'int: 100',
                   description: {
-                    hcl: `Measured in percent (%), the probability of a host's ejection
-                      after a passive health check detects an outlier status through consecutive 5xx.`,
-                    yaml: `Measured in percent (%), the probability of a host's ejection
-                       after a passive health check detects an outlier status through consecutive 5xx.`,
+                    hcl: `The % chance that a host will be actually ejected 
+                      when an outlier status is detected through consecutive 5xx.`,
+                    yaml: `The % chance that a host will be actually ejected 
+                      when an outlier status is detected through consecutive 5xx.`,
                   },
                 },
               ],
@@ -1847,10 +1835,10 @@ represents a location outside the Consul cluster. Services can dial destinations
                   name: 'EnforcingConsecutive5xx',
                   type: 'int: 100',
                   description: {
-                    hcl: `Measured in percent (%), the probability of a host's ejection
-                       after a passive health check detects an outlier status through consecutive 5xx.`,
-                    yaml: `Measured in percent (%), the probability of a host's ejection
-                       after a passive health check detects an outlier status through consecutive 5xx.`,
+                    hcl: `The % chance that a host will be actually ejected 
+                      when an outlier status is detected through consecutive 5xx.`,
+                    yaml: `The % chance that a host will be actually ejected 
+                      when an outlier status is detected through consecutive 5xx.`,
                   },
                 },
               ],
@@ -1959,7 +1947,7 @@ represents a location outside the Consul cluster. Services can dial destinations
           description: `If enabled, all HTTP and gRPC checks registered with the agent are exposed through Envoy.
         Envoy will expose listeners for these checks and will only accept connections originating from localhost or Consul's
         [advertise address](/consul/docs/agent/config/config-files#advertise). The port for these listeners are dynamically allocated from
-        [expose_min_port](/consul/docs/agent/config/config-files#expose_min_port) to [expose_max_port](/consul/docs/agent/config/config-files#expose_max_port).
+        [expose_min_port](/docs/agent/config/config-files#expose_min_port) to [expose_max_port](/docs/agent/config/config-files#expose_max_port).
         This flag is useful when a Consul client cannot reach registered services over localhost. One example is when running
         Consul on Kubernetes, and Consul agents run in their own pods.`,
         },

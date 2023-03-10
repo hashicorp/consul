@@ -270,8 +270,7 @@ func (c *cmd) prepare() (version string, err error) {
 	// If none are specified we will collect information from
 	// all by default
 	if len(c.capture) == 0 {
-		c.capture = make([]string, len(defaultTargets))
-		copy(c.capture, defaultTargets)
+		c.capture = defaultTargets
 	}
 
 	// If EnableDebug is not true, skip collecting pprof

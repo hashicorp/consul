@@ -5,17 +5,13 @@ description: >-
   Automated upgrades simplify the process for updating Consul. Learn how Consul can gracefully transition from existing server agents to a new set of server agents without Consul downtime.
 ---
 
-~> **Starting with Consul 1.14, and patch releases 1.13.3 and 1.12.6, Consul will disallow upgrades to new versions with a release date after license expiration**:
-   If you are looking to upgrade to a version of Consul that was released after your license expired, please be sure to renew your license before attempting an upgrade.
-
-
 # Automated Upgrades
 
 <EnterpriseAlert>
 
 This feature requires
 HashiCorp Cloud Platform (HCP) or self-managed Consul Enterprise.
-Refer to the [enterprise feature matrix](/consul/docs/enterprise#consul-enterprise-feature-availability) for additional information.
+Refer to the [enterprise feature matrix](/docs/enterprise#consul-enterprise-feature-availability) for additional information.
 
 </EnterpriseAlert>
 
@@ -25,4 +21,4 @@ currently in a cluster. When an equal amount of new server nodes are joined runn
 will be demoted to non voting members. Demotion of legacy server nodes will not occur until the voting members on the new version match.
 Once this demotion occurs, the previous versioned servers can be removed from the cluster safely.
 
-Review the [Consul operator autopilot](/consul/commands/operator/autopilot) documentation and complete the [Automated Upgrade](/consul/tutorials/datacenter-operations/autopilot-datacenter-operations#upgrade-migrations) tutorial to learn more about automated upgrades.
+Review the [Consul operator autopilot](/commands/operator/autopilot) documentation and complete the [Automated Upgrade](https://learn.hashicorp.com/tutorials/consul/autopilot-datacenter-operations#upgrade-migrations) tutorial to learn more about automated upgrades.

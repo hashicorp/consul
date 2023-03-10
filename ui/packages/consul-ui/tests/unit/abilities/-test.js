@@ -7,8 +7,6 @@ module('Unit | Ability | *', function (hooks) {
 
   // Replace this with your real tests.
   test('it exists', function (assert) {
-    assert.expect(228);
-
     const abilities = Object.keys(requirejs.entries)
       .filter((key) => key.indexOf('/abilities/') !== -1)
       .map((key) => key.split('/').pop())
@@ -57,8 +55,7 @@ module('Unit | Ability | *', function (hooks) {
               break;
             case 'kv':
               // TODO: We currently hardcode KVs to always be true
-              assert.true(ability[`can${perm}`], `Expected ${item}.can${perm} to be true`);
-              // eslint-disable-next-line qunit/no-early-return
+              assert.equal(true, ability[`can${perm}`], `Expected ${item}.can${perm} to be true`);
               return;
             case 'license':
             case 'zone':
@@ -66,7 +63,6 @@ module('Unit | Ability | *', function (hooks) {
               // License permissions also depend on NSPACES_ENABLED;
               // behavior works as expected when verified manually but test
               // fails due to this dependency. -@evrowe 2022-04-18
-              // eslint-disable-next-line qunit/no-early-return
               return;
           }
           assert.equal(

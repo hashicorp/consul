@@ -2,10 +2,10 @@ package agent
 
 import (
 	"bytes"
-	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -186,7 +186,7 @@ func loadKeyringFile(c *serf.Config) error {
 		return err
 	}
 
-	keyringData, err := os.ReadFile(c.KeyringFile)
+	keyringData, err := ioutil.ReadFile(c.KeyringFile)
 	if err != nil {
 		return err
 	}
@@ -233,7 +233,7 @@ func decodeStringKey(key string) ([]byte, error) {
 func (a *Agent) keyringProcess(args *structs.KeyringRequest) (*structs.KeyringResponses, error) {
 	var reply structs.KeyringResponses
 
-	if err := a.RPC(context.Background(), "Internal.KeyringOperation", args, &reply); err != nil {
+	if err := a.RPC("Internal.KeyringOperation", args, &reply); err != nil {
 		return &reply, err
 	}
 

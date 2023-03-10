@@ -20,7 +20,7 @@ var (
 	//go:embed VERSION
 	fullVersion string
 
-	Version, VersionPrerelease, _ = strings.Cut(strings.TrimSpace(fullVersion), "-")
+	Version, VersionPrerelease, _ = strings.Cut(fullVersion, "-")
 
 	// https://semver.org/#spec-item-10
 	VersionMetadata = ""

@@ -225,6 +225,7 @@ connect {
     }
     enable_mesh_gateway_wan_federation = false
     enabled = true
+    enable_serverless_plugin = true
 }
 gossip_lan {
     gossip_nodes    = 6
@@ -305,11 +306,6 @@ limits {
     rpc_max_conns_per_client = 2954
     kv_max_value_size = 1234567800
     txn_max_req_len = 567800000
-    request_limits {
-        mode = "permissive"
-        read_rate = 99.0
-        write_rate = 101.0
-    }
 }
 log_level = "k1zo9Spt"
 log_json = true
@@ -353,19 +349,8 @@ raft_protocol = 3
 raft_snapshot_threshold = 16384
 raft_snapshot_interval = "30s"
 raft_trailing_logs = 83749
-raft_logstore {
-    backend = "wal"
-    disable_log_cache = true
-    verification {
-        enabled = true
-        interval = "12345s"
-    }
-    boltdb {
-        no_freelist_sync = true
-    }
-    wal {
-       segment_size_mb = 15
-    }
+raft_boltdb {
+    NoFreelistSync = true
 }
 read_replica = true
 reconnect_timeout = "23739s"

@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/x509"
 	"fmt"
+	"io/ioutil"
 	"net"
 	"os"
 	"path/filepath"
@@ -22,8 +23,8 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/lib/retry"
-	"github.com/hashicorp/consul/proto/private/pbautoconf"
-	"github.com/hashicorp/consul/proto/private/pbconfig"
+	"github.com/hashicorp/consul/proto/pbautoconf"
+	"github.com/hashicorp/consul/proto/pbconfig"
 	"github.com/hashicorp/consul/sdk/testutil"
 	testretry "github.com/hashicorp/consul/sdk/testutil/retry"
 )
@@ -201,13 +202,11 @@ func setupRuntimeConfig(t *testing.T) *configLoader {
 	dataDir := testutil.TempDir(t, "auto-config")
 
 	opts := config.LoadOpts{
-		FlagValues: config.FlagValuesTarget{
-			Config: config.Config{
-				DataDir:    &dataDir,
-				Datacenter: stringPointer("dc1"),
-				NodeName:   stringPointer("autoconf"),
-				BindAddr:   stringPointer("127.0.0.1"),
-			},
+		FlagValues: config.Config{
+			DataDir:    &dataDir,
+			Datacenter: stringPointer("dc1"),
+			NodeName:   stringPointer("autoconf"),
+			BindAddr:   stringPointer("127.0.0.1"),
 		},
 	}
 	return &configLoader{opts: opts}
@@ -308,9 +307,9 @@ func TestInitialConfiguration_restored(t *testing.T) {
 		Certificate:         mustTranslateIssuedCertToProtobuf(t, cert),
 		ExtraCACertificates: extraCACerts,
 	}
-	data, err := pbMarshaler.Marshal(response)
+	data, err := pbMarshaler.MarshalToString(response)
 	require.NoError(t, err)
-	require.NoError(t, os.WriteFile(persistedFile, data, 0600))
+	require.NoError(t, ioutil.WriteFile(persistedFile, []byte(data), 0600))
 
 	// recording the initial configuration even when restoring is going to update
 	// the agent token in the token store
@@ -1140,7 +1139,7 @@ func TestIntroToken(t *testing.T) {
 
 	tokenFromFile := "8ae34d3a-8adf-446a-b236-69874597cb5b"
 	tokenFromConfig := "3ad9b572-ea42-4e47-9cd0-53a398a98abf"
-	require.NoError(t, os.WriteFile(tokenFile.Name(), []byte(tokenFromFile), 0600))
+	require.NoError(t, ioutil.WriteFile(tokenFile.Name(), []byte(tokenFromFile), 0600))
 
 	type testCase struct {
 		config *config.RuntimeConfig

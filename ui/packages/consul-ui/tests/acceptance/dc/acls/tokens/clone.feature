@@ -16,8 +16,8 @@ Feature: dc / acls / tokens / clone: Cloning an ACL token
     And I click actions on the tokens
     And I click clone on the tokens
     Then a PUT request was made to "/v1/acl/token/token/clone?dc=datacenter&ns=@!namespace"
-    And "[data-notification]" has the "hds-toast" class
-    And "[data-notification]" has the "hds-alert--color-success" class
+    Then "[data-notification]" has the "notification-clone" class
+    And "[data-notification]" has the "success" class
   Scenario: Using an ACL token from the detail page
     When I visit the token page for yaml
     ---
@@ -26,5 +26,5 @@ Feature: dc / acls / tokens / clone: Cloning an ACL token
     ---
     And I click clone
     Then the url should be /datacenter/acls/tokens
-    And "[data-notification]" has the "hds-toast" class
-    And "[data-notification]" has the "hds-alert--color-success" class
+    Then "[data-notification]" has the "notification-clone" class
+    And "[data-notification]" has the "success" class

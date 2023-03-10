@@ -16,8 +16,7 @@ func TestPermissionDeniedError(t *testing.T) {
 		return t.expected
 	}
 
-	auth1 := MockAuthorizer{}
-	auth2 := AllowAuthorizer{nil, AnonymousTokenID}
+	auth1 := mockAuthorizer{}
 
 	cases := []testCase{
 		{
@@ -30,15 +29,11 @@ func TestPermissionDeniedError(t *testing.T) {
 		},
 		{
 			err:      PermissionDeniedByACL(&auth1, nil, ResourceService, AccessRead, "foobar"),
-			expected: "Permission denied: token with AccessorID '' lacks permission 'service:read' on \"foobar\"",
+			expected: "Permission denied: provided token lacks permission 'service:read' on \"foobar\"",
 		},
 		{
 			err:      PermissionDeniedByACLUnnamed(&auth1, nil, ResourceService, AccessRead),
-			expected: "Permission denied: token with AccessorID '' lacks permission 'service:read'",
-		},
-		{
-			err:      PermissionDeniedByACLUnnamed(auth2, nil, ResourceService, AccessRead),
-			expected: "Permission denied: anonymous token lacks permission 'service:read'. The anonymous token is used implicitly when a request does not specify a token.",
+			expected: "Permission denied: provided token lacks permission 'service:read'",
 		},
 	}
 

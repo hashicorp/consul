@@ -37,7 +37,7 @@ jobs:
         id: shared-ldflags
         run: |
           T="github.com/hashicorp/consul/version"
-          echo "::set-output name=shared-ldflags::-X ${T}.GitCommit=${GITHUB_SHA::8} \
+           echo "::set-output name=shared-ldflags::-X ${T}.GitCommit=${GITHUB_SHA::8} \
           -X ${T}.GitDescribe=${{ steps.set-product-version.outputs.product-version }} \
           -X ${T}.BuildDate=${{ steps.get-product-version.outputs.product-date }} \
           "
@@ -53,6 +53,7 @@ jobs:
           echo "Product Date: ${{ needs.set-product-version.outputs.product-date }}"
           echo "Prerelease Version: ${{ needs.set-product-version.outputs.pre-version }}"
           echo "Ldflags: ${{ needs.set-product-version.outputs.shared-ldflags }}"
+
   generate-metadata-file:
     needs: set-product-version
     runs-on: ubuntu-latest
@@ -130,7 +131,7 @@ jobs:
           reproducible: report
           instructions: |-
             go build -ldflags="$GOLDFLAGS" -o "$BIN_PATH" -trimpath -buildvcs=false
-
+ 
       - name: Package
         if: ${{ matrix.goos == 'linux' }}
         uses: hashicorp/actions-packaging-linux@v1
@@ -182,7 +183,7 @@ jobs:
     name: Go ${{ matrix.go }} ${{ matrix.goos }} ${{ matrix.goarch }} build
     steps:
       - uses: actions/checkout@v3
-          
+
       - name: Setup with node and yarn
         uses: actions/setup-node@v3
         with:
@@ -201,6 +202,7 @@ jobs:
           cd ui && make && cd ..
           rm -rf agent/uiserver/dist
           mv ui/packages/consul-ui/dist agent/uiserver/
+
       - name: Go Build
         env:
           PRODUCT_VERSION: ${{ needs.set-product-version.outputs.product-version }}

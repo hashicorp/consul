@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"math"
 	"net"
 	"strings"
 	"sync/atomic"
@@ -27,7 +26,6 @@ import (
 	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
 
 	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/agent/consul/rate"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/consul/wanfed"
 	"github.com/hashicorp/consul/agent/metadata"
@@ -419,21 +417,13 @@ func (s *Server) handleConsulConn(conn net.Conn) {
 		}
 
 		if err := s.rpcServer.ServeRequest(rpcCodec); err != nil {
-			//EOF or closed are not considered as errors.
-			if err == io.EOF || strings.Contains(err.Error(), "closed") {
-				return
+			if err != io.EOF && !strings.Contains(err.Error(), "closed") {
+				s.rpcLogger().Error("RPC error",
+					"conn", logConn(conn),
+					"error", err,
+				)
+				metrics.IncrCounter([]string{"rpc", "request_error"}, 1)
 			}
-
-			metrics.IncrCounter([]string{"rpc", "request_error"}, 1)
-			// When a rate-limiting error is returned, it's already logged, so skip logging.
-			if errors.Is(err, rate.ErrRetryLater) || errors.Is(err, rate.ErrRetryElsewhere) {
-				return
-			}
-
-			s.rpcLogger().Error("RPC error",
-				"conn", logConn(conn),
-				"error", err,
-			)
 			return
 		}
 		metrics.IncrCounter([]string{"rpc", "request"}, 1)
@@ -557,23 +547,8 @@ func (c *limitedConn) Read(b []byte) (n int, err error) {
 	return c.lr.Read(b)
 }
 
-func getWaitTime(rpcHoldTimeout time.Duration, retryCount int) time.Duration {
-	const backoffMultiplier = 2.0
-
-	rpcHoldTimeoutInMilli := int(rpcHoldTimeout.Milliseconds())
-	initialBackoffInMilli := rpcHoldTimeoutInMilli / structs.JitterFraction
-
-	if initialBackoffInMilli < 1 {
-		initialBackoffInMilli = 1
-	}
-
-	waitTimeInMilli := initialBackoffInMilli * int(math.Pow(backoffMultiplier, float64(retryCount-1)))
-
-	return time.Duration(waitTimeInMilli) * time.Millisecond
-}
-
 // canRetry returns true if the request and error indicate that a retry is safe.
-func canRetry(info structs.RPCInfo, err error, start time.Time, config *Config, retryableMessages []error) bool {
+func canRetry(info structs.RPCInfo, err error, start time.Time, config *Config) bool {
 	if info != nil {
 		timedOut, timeoutError := info.HasTimedOut(start, config.RPCHoldTimeout, config.MaxQueryTime, config.DefaultQueryTime)
 		if timeoutError != nil {
@@ -595,10 +570,9 @@ func canRetry(info structs.RPCInfo, err error, start time.Time, config *Config, 
 		return true
 	}
 
-	for _, m := range retryableMessages {
-		if err != nil && strings.Contains(err.Error(), m.Error()) {
-			return true
-		}
+	// If we are chunking and it doesn't seem to have completed, try again.
+	if err != nil && strings.Contains(err.Error(), ErrChunkingResubmit.Error()) {
+		return true
 	}
 
 	// Reads are safe to retry for stream errors, such as if a server was
@@ -730,10 +704,7 @@ func (s *Server) canServeReadRequest(info structs.RPCInfo) bool {
 // See the comment for forwardRPC for more details.
 func (s *Server) forwardRequestToLeader(info structs.RPCInfo, forwardToLeader func(leader *metadata.Server) error) (handled bool, err error) {
 	firstCheck := time.Now()
-	retryCount := 0
-	previousJitter := time.Duration(0)
 CHECK_LEADER:
-	retryCount++
 	// Fail fast if we are in the process of leaving
 	select {
 	case <-s.leaveCh:
@@ -757,18 +728,9 @@ CHECK_LEADER:
 		}
 	}
 
-	retryableMessages := []error{
-		// If we are chunking and it doesn't seem to have completed, try again.
-		ErrChunkingResubmit,
-
-		rate.ErrRetryLater,
-	}
-
-	if retry := canRetry(info, rpcErr, firstCheck, s.config, retryableMessages); retry {
+	if retry := canRetry(info, rpcErr, firstCheck, s.config); retry {
 		// Gate the request until there is a leader
-		jitter := lib.RandomStaggerWithRange(previousJitter, getWaitTime(s.config.RPCHoldTimeout, retryCount))
-		previousJitter = jitter
-
+		jitter := lib.RandomStagger(s.config.RPCHoldTimeout / structs.JitterFraction)
 		select {
 		case <-time.After(jitter):
 			goto CHECK_LEADER

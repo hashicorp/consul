@@ -7,11 +7,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net"
 	"net/http"
 	"net/http/httptest"
-	"net/netip"
-	"net/url"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -28,7 +27,6 @@ import (
 	"golang.org/x/net/http2"
 
 	"github.com/hashicorp/consul/agent/config"
-	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/structs"
 	tokenStore "github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/api"
@@ -94,7 +92,7 @@ func TestHTTPServer_UnixSocket(t *testing.T) {
 	}
 	defer resp.Body.Close()
 
-	if body, err := io.ReadAll(resp.Body); err != nil || len(body) == 0 {
+	if body, err := ioutil.ReadAll(resp.Body); err != nil || len(body) == 0 {
 		t.Fatalf("bad: %s %v", body, err)
 	}
 }
@@ -113,7 +111,7 @@ func TestHTTPServer_UnixSocket_FileExists(t *testing.T) {
 	socket := filepath.Join(tempDir, "test.sock")
 
 	// Create a regular file at the socket path
-	if err := os.WriteFile(socket, []byte("hello world"), 0644); err != nil {
+	if err := ioutil.WriteFile(socket, []byte("hello world"), 0644); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 	fi, err := os.Stat(socket)
@@ -141,95 +139,6 @@ func TestHTTPServer_UnixSocket_FileExists(t *testing.T) {
 	}
 }
 
-func TestHTTPSServer_UnixSocket(t *testing.T) {
-	if testing.Short() {
-		t.Skip("too slow for testing.Short")
-	}
-
-	t.Parallel()
-	if runtime.GOOS == "windows" {
-		t.SkipNow()
-	}
-
-	tempDir := testutil.TempDir(t, "consul")
-	socket := filepath.Join(tempDir, "test.sock")
-
-	a := StartTestAgent(t, TestAgent{
-		UseHTTPS: true,
-		HCL: `
-			addresses {
-				https = "unix://` + socket + `"
-			}
-			unix_sockets {
-				mode = "0777"
-			}
-			tls {
-				defaults {
-					  ca_file = "../test/client_certs/rootca.crt"
-					  cert_file = "../test/client_certs/server.crt"
-					  key_file = "../test/client_certs/server.key"
-				}
-		  	}
-		`,
-	})
-	defer a.Shutdown()
-
-	// Ensure the socket was created
-	if _, err := os.Stat(socket); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	// Ensure the mode was set properly
-	fi, err := os.Stat(socket)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if fi.Mode().String() != "Srwxrwxrwx" {
-		t.Fatalf("bad permissions: %s", fi.Mode())
-	}
-
-	// Make an HTTP/2-enabled client, using the API helpers to set
-	// up TLS to be as normal as possible for Consul.
-	tlscfg := &api.TLSConfig{
-		Address:  "consul.test",
-		KeyFile:  "../test/client_certs/client.key",
-		CertFile: "../test/client_certs/client.crt",
-		CAFile:   "../test/client_certs/rootca.crt",
-	}
-	tlsccfg, err := api.SetupTLSConfig(tlscfg)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	transport := api.DefaultConfig().Transport
-	transport.TLSHandshakeTimeout = 30 * time.Second
-	transport.TLSClientConfig = tlsccfg
-	if err := http2.ConfigureTransport(transport); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	transport.DialContext = func(_ context.Context, _, _ string) (net.Conn, error) {
-		return net.Dial("unix", socket)
-	}
-	client := &http.Client{Transport: transport}
-
-	u, err := url.Parse("https://unix" + socket)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	u.Path = "/v1/agent/self"
-	u.Scheme = "https"
-	resp, err := client.Get(u.String())
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	defer resp.Body.Close()
-
-	if body, err := io.ReadAll(resp.Body); err != nil || len(body) == 0 {
-		t.Fatalf("bad: %s %v", body, err)
-	} else if !strings.Contains(string(body), "NodeName") {
-		t.Fatalf("NodeName not found in results: %s", string(body))
-	}
-}
-
 func TestSetupHTTPServer_HTTP2(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
@@ -241,13 +150,9 @@ func TestSetupHTTPServer_HTTP2(t *testing.T) {
 	a := StartTestAgent(t, TestAgent{
 		UseHTTPS: true,
 		HCL: `
-			tls {
-				defaults {
-				  ca_file = "../test/client_certs/rootca.crt"
-				  cert_file = "../test/client_certs/server.crt"
-				  key_file = "../test/client_certs/server.key"
-				}
-		  	}
+			key_file = "../test/client_certs/server.key"
+			cert_file = "../test/client_certs/server.crt"
+			ca_file = "../test/client_certs/rootca.crt"
 		`,
 	})
 	defer a.Shutdown()
@@ -305,7 +210,7 @@ func TestSetupHTTPServer_HTTP2(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 	defer resp.Body.Close()
-	body, err := io.ReadAll(resp.Body)
+	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -833,7 +738,7 @@ func testPrettyPrint(pretty string, t *testing.T) {
 
 	expected, _ := json.MarshalIndent(r, "", "    ")
 	expected = append(expected, "\n"...)
-	actual, err := io.ReadAll(resp.Body)
+	actual, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -1780,43 +1685,4 @@ func TestRPC_HTTPSMaxConnsPerClient(t *testing.T) {
 			assertConn(conn4, true)
 		})
 	}
-}
-
-func TestWithRemoteAddrHandler_ValidAddr(t *testing.T) {
-	expected := net.TCPAddrFromAddrPort(netip.MustParseAddrPort("1.2.3.4:8080"))
-	nextHandlerCalled := false
-
-	assertionHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		nextHandlerCalled = true
-		remoteAddr, ok := consul.RemoteAddrFromContext(r.Context())
-		if !ok || remoteAddr.String() != expected.String() {
-			t.Errorf("remote addr not present but expected %v", expected)
-		}
-	})
-
-	remoteAddrHandler := withRemoteAddrHandler(assertionHandler)
-	req := httptest.NewRequest("GET", "http://ignoreme", nil)
-	req.RemoteAddr = expected.String()
-	remoteAddrHandler.ServeHTTP(httptest.NewRecorder(), req)
-
-	assert.True(t, nextHandlerCalled, "expected next handler to be called")
-}
-
-func TestWithRemoteAddrHandler_InvalidAddr(t *testing.T) {
-	nextHandlerCalled := false
-
-	assertionHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		nextHandlerCalled = true
-		remoteAddr, ok := consul.RemoteAddrFromContext(r.Context())
-		if ok || remoteAddr != nil {
-			t.Errorf("remote addr %v present but not expected", remoteAddr)
-		}
-	})
-
-	remoteAddrHandler := withRemoteAddrHandler(assertionHandler)
-	req := httptest.NewRequest("GET", "http://ignoreme", nil)
-	req.RemoteAddr = "i.am.not.a.valid.ipaddr:port"
-	remoteAddrHandler.ServeHTTP(httptest.NewRecorder(), req)
-
-	assert.True(t, nextHandlerCalled, "expected next handler to be called")
 }

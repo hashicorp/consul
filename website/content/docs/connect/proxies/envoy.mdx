@@ -39,23 +39,25 @@ Consul supports **four major Envoy releases** at the beginning of each major Con
 
 | Consul Version      | Compatible Envoy Versions                                                          |
 | ------------------- | -----------------------------------------------------------------------------------|
-| 1.15.x              | 1.25.1, 1.24.2, 1.23.4, 1.22.5                                                     |
 | 1.14.x              | 1.24.0, 1.23.1, 1.22.5, 1.21.5                                                     |
 | 1.13.x              | 1.23.1, 1.22.5, 1.21.5, 1.20.7                                                     |
+| 1.12.x              | 1.22.5, 1.21.5, 1.20.7, 1.19.5                                                     |
+
+1. Envoy 1.20.1 and earlier are vulnerable to [CVE-2022-21654](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2022-21654) and [CVE-2022-21655](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2022-21655). Both CVEs were patched in Envoy versions 1.18.6, 1.19.3, and 1.20.2.
+Envoy 1.16.x and older releases are no longer supported (see [HCSEC-2022-07](https://discuss.hashicorp.com/t/hcsec-2022-07-consul-s-connect-service-mesh-affected-by-recent-envoy-security-releases/36332)). Consul 1.9.x clusters should be upgraded to 1.10.x and Envoy upgraded to the latest supported Envoy version for that release, 1.18.6.
 
 ### Envoy and Consul Dataplane
 
-The Consul dataplane component was introduced in Consul v1.14 as a way to manage Envoy proxies without the use of Consul clients. Each new minor version of Consul is released with a new minor version of Consul dataplane, which packages both Envoy and the `consul-dataplane` binary in a single container image. For backwards compatability reasons, each new minor version of Consul will also support the previous minor version of Consul dataplane to allow for seamless upgrades. In addition, each minor version of Consul will support the next minor version of Consul dataplane to allow for extended dataplane support via newer versions of Envoy.  
+Consul Dataplane is a feature introduced in Consul v1.14. Because each version of Consul Dataplane supports one specific version of Envoy, you must use the following versions of Consul, Consul Dataplane, and Envoy together.
 
-| Consul Version      | Consul Dataplane Version (Bundled Envoy Version)  |
-| ------------------- | ------------------------------------------------- |
-| 1.15.x              | 1.1.x (Envoy 1.25.x), 1.0.x (Envoy 1.24.x)        |
-| 1.14.x              | 1.1.x (Envoy 1.25.x), 1.0.x (Envoy 1.24.x)        |
+| Consul Version      | Consul Dataplane Version | Bundled Envoy Version  |
+| ------------------- | ------------------------ | ---------------------- |
+| 1.14.x              | 1.0.x                    | 1.24.x                 |
 
 ## Getting Started
 
 To get started with Envoy and see a working example you can follow the [Using
-Envoy with Connect](/consul/tutorials/developer-mesh/service-mesh-with-envoy-proxy?utm_source=docs) tutorial.
+Envoy with Connect](https://learn.hashicorp.com/tutorials/consul/service-mesh-with-envoy-proxy?utm_source=docs) tutorial.
 
 ## Configuration
 
@@ -194,7 +196,7 @@ The [Advanced Configuration](#advanced-configuration) section describes addition
 
 ### Bootstrap Envoy on Windows VMs
 
-> Complete the [Connect Services on Windows Workloads to Consul Service Mesh tutorial](https://consul.io/consu/tutorials/consul-windows-workloads?utm_source=docs) to learn how to deploy Consul and use its service mesh on Windows VMs.
+> Complete the [Connect Services on Windows Workloads to Consul Service Mesh tutorial](/consu/tutorials/consul-windows-workloads?utm_source=docs) to learn how to deploy Consul and use its service mesh on Windows VMs.
 
 If you are running Consul on a Windows VM, attempting to bootstrap Envoy with the `consul connect envoy` command returns the following output:
 
@@ -397,21 +399,17 @@ definition](/consul/docs/connect/registration/service-registration) or
     since HTTP/2 has many requests per connection. For this configuration to be
     respected, a L7 protocol must be defined in the `protocol` field.
 
-- `passive_health_check` - Passive health checks remove hosts from the upstream
-  cluster that are unreachable or that return errors.
+- `passive_health_check` - Passive health checks are used to remove hosts from
+  the upstream cluster which are unreachable or are returning errors.
 
-  - `interval` - The time in nanosecond between checks. Each check will cause
-    hosts which have exceeded `max_failures` to be removed from the load
-    balancer, and any hosts which have passed their ejection time to be
-    returned to the load balancer. If not specified, it uses the default value.
-    For example, 10s for Envoy proxy.
-  - `max_failures` - The number of consecutive failures that cause a host to be
-    removed from the upstream cluster. If not specified, Consul uses the proxy's
-    default value. For example, `5` for Envoy proxy.
-  -  `enforcing_consecutive_5xx` - A percentage representing the chance that a
-    host will be actually ejected when the proxy detects an outlier status
-    through consecutive errors in the 500 code range. If not specified, Consul
-    uses the proxy's default value. For example, `100` for Envoy proxy.
+  - `interval` - The time between checks. Each check will cause hosts which
+    have exceeded `max_failures` to be removed from the load balancer, and
+    any hosts which have passed their ejection time to be returned to the
+    load balancer.
+  - `max_failures` - The number of consecutive failures which cause a host to be
+    removed from the load balancer.
+  -  `enforcing_consecutive_5xx` - The % chance that a host will be actually ejected
+    when an outlier status is detected through consecutive 5xx.
 
 - `balance_outbound_connections` - Specifies the strategy for balancing outbound connections
   across Envoy worker threads. Consul service mesh Envoy integration supports the

@@ -20,7 +20,7 @@ section[data-route='dc.show.serverstatus'] {
 
 %server-failure-tolerance {
   @extend %panel;
-  box-shadow: none;
+  box-shadow: var(--decor-elevation-000);
   padding: var(--padding-y) var(--padding-x);
   max-width: 770px;
   display: flex;
@@ -28,23 +28,24 @@ section[data-route='dc.show.serverstatus'] {
 }
 %server-failure-tolerance > header {
   width: 100%;
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-  align-items: center;
-  padding-bottom: 0.5rem; /* 8px */
+  padding-bottom: 0.500rem; /* 8px */
   margin-bottom: 1rem; /* 16px */
   border-bottom: var(--decor-border-100);
-  border-color: var(--tone-border);
+  border-color: rgb(var(--tone-border));
 }
-
+%server-failure-tolerance > header a {
+  float: right;
+  margin-top: 4px;
+  font-weight: var(--typo-weight-semibold);
+}
 %server-failure-tolerance header em {
   @extend %pill-200;
   font-size: 0.812rem; /* 13px */
-  background-color: var(--token-color-surface-interactive-active);
+  background-color: rgb(var(--tone-gray-200));
 
   text-transform: uppercase;
   font-style: normal;
+
 }
 %server-failure-tolerance > section {
   width: 50%;
@@ -65,25 +66,25 @@ section[data-route='dc.show.serverstatus'] {
 %server-failure-tolerance dl.warning dd::before {
   --icon-name: icon-alert-circle;
   --icon-size: icon-800;
-  --icon-color: var(--token-color-foreground-warning);
+  --icon-color: rgb(var(--tone-orange-400));
   content: '';
-  margin-right: 0.5rem; /* 8px */
+  margin-right: 0.500rem; /* 8px */
 }
 %server-failure-tolerance section:first-of-type dl {
-  padding-right: 1.5rem; /* 24px */
+  padding-right: 1.500rem; /* 24px */
 }
 %server-failure-tolerance dt {
   @extend %p2;
-  color: var(--token-color-foreground-faint);
+  color: rgb(var(--tone-gray-700));
 }
 %server-failure-tolerance dd {
   font-size: var(--typo-size-250);
-  color: var(--token-color-hashicorp-brand);
+  color: rgb(var(--tone-gray-999));
 }
 %server-failure-tolerance header span::before {
   --icon-name: icon-info;
   --icon-size: icon-300;
-  --icon-color: var(--token-color-foreground-faint);
+  --icon-color: rgb(var(--tone-gray-500));
   vertical-align: unset;
   content: '';
 }
@@ -96,6 +97,7 @@ section[data-route='dc.show.serverstatus'] {
   margin-top: 18px;
   margin-bottom: 18px;
 }
+
 
 %redundancy-zones h3 {
   @extend %h300;
@@ -116,11 +118,11 @@ section[data-route='dc.show.serverstatus'] {
   @extend %visually-unhidden;
 }
 %redundancy-zone header dl:not(.warning) {
-  background-color: var(--token-color-surface-strong);
+  background-color: rgb(var(--tone-gray-100));
 }
 %redundancy-zone header dl.warning {
-  background-color: var(--token-color-border-warning);
-  color: var(--token-color-palette-amber-400);
+  background-color: rgb(var(--tone-orange-100));
+  color: rgb(var(--tone-orange-800));
 }
 %redundancy-zone header dl.warning::before {
   --icon-name: icon-alert-circle;
@@ -132,5 +134,6 @@ section[data-route='dc.show.serverstatus'] {
   content: ':';
   display: inline-block;
   vertical-align: revert;
-  background-color: transparent;
+  background-color: var(--transparent);
 }
+

@@ -16,7 +16,7 @@ import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/proto/private/pbpeering"
+	"github.com/hashicorp/consul/proto/pbpeering"
 	"github.com/hashicorp/consul/sdk/testutil"
 )
 
@@ -176,13 +176,6 @@ var baseCases = map[string]testCase{
 				Labels: []metrics.Label{
 					{Name: "datacenter", Value: "dc1"},
 					{Name: "kind", Value: "connect-native"},
-				},
-			},
-			"consul.usage.test.state.billable_service_instances;datacenter=dc1": {
-				Name:  "consul.usage.test.state.billable_service_instances",
-				Value: 0,
-				Labels: []metrics.Label{
-					{Name: "datacenter", Value: "dc1"},
 				},
 			},
 			// --- kv ---
@@ -357,86 +350,6 @@ var baseCases = map[string]testCase{
 					{Name: "kind", Value: "exported-services"},
 				},
 			},
-			"consul.usage.test.consul.state.config_entries;datacenter=dc1;kind=api-gateway": { // Legacy
-				Name:  "consul.usage.test.consul.state.config_entries",
-				Value: 0,
-				Labels: []metrics.Label{
-					{Name: "datacenter", Value: "dc1"},
-					{Name: "kind", Value: "api-gateway"},
-				},
-			},
-			"consul.usage.test.state.config_entries;datacenter=dc1;kind=api-gateway": {
-				Name:  "consul.usage.test.state.config_entries",
-				Value: 0,
-				Labels: []metrics.Label{
-					{Name: "datacenter", Value: "dc1"},
-					{Name: "kind", Value: "api-gateway"},
-				},
-			},
-			"consul.usage.test.consul.state.config_entries;datacenter=dc1;kind=bound-api-gateway": { // Legacy
-				Name:  "consul.usage.test.consul.state.config_entries",
-				Value: 0,
-				Labels: []metrics.Label{
-					{Name: "datacenter", Value: "dc1"},
-					{Name: "kind", Value: "bound-api-gateway"},
-				},
-			},
-			"consul.usage.test.state.config_entries;datacenter=dc1;kind=bound-api-gateway": {
-				Name:  "consul.usage.test.state.config_entries",
-				Value: 0,
-				Labels: []metrics.Label{
-					{Name: "datacenter", Value: "dc1"},
-					{Name: "kind", Value: "bound-api-gateway"},
-				},
-			},
-			"consul.usage.test.consul.state.config_entries;datacenter=dc1;kind=inline-certificate": { // Legacy
-				Name:  "consul.usage.test.consul.state.config_entries",
-				Value: 0,
-				Labels: []metrics.Label{
-					{Name: "datacenter", Value: "dc1"},
-					{Name: "kind", Value: "inline-certificate"},
-				},
-			},
-			"consul.usage.test.state.config_entries;datacenter=dc1;kind=inline-certificate": {
-				Name:  "consul.usage.test.state.config_entries",
-				Value: 0,
-				Labels: []metrics.Label{
-					{Name: "datacenter", Value: "dc1"},
-					{Name: "kind", Value: "inline-certificate"},
-				},
-			},
-			"consul.usage.test.consul.state.config_entries;datacenter=dc1;kind=http-route": { // Legacy
-				Name:  "consul.usage.test.consul.state.config_entries",
-				Value: 0,
-				Labels: []metrics.Label{
-					{Name: "datacenter", Value: "dc1"},
-					{Name: "kind", Value: "http-route"},
-				},
-			},
-			"consul.usage.test.state.config_entries;datacenter=dc1;kind=http-route": {
-				Name:  "consul.usage.test.state.config_entries",
-				Value: 0,
-				Labels: []metrics.Label{
-					{Name: "datacenter", Value: "dc1"},
-					{Name: "kind", Value: "http-route"},
-				},
-			},
-			"consul.usage.test.consul.state.config_entries;datacenter=dc1;kind=tcp-route": { // Legacy
-				Name:  "consul.usage.test.consul.state.config_entries",
-				Value: 0,
-				Labels: []metrics.Label{
-					{Name: "datacenter", Value: "dc1"},
-					{Name: "kind", Value: "tcp-route"},
-				},
-			},
-			"consul.usage.test.state.config_entries;datacenter=dc1;kind=tcp-route": {
-				Name:  "consul.usage.test.state.config_entries",
-				Value: 0,
-				Labels: []metrics.Label{
-					{Name: "datacenter", Value: "dc1"},
-					{Name: "kind", Value: "tcp-route"},
-				},
-			},
 		},
 		getMembersFunc: func() []serf.Member { return []serf.Member{} },
 	},
@@ -603,13 +516,6 @@ var baseCases = map[string]testCase{
 				Labels: []metrics.Label{
 					{Name: "datacenter", Value: "dc1"},
 					{Name: "kind", Value: "connect-native"},
-				},
-			},
-			"consul.usage.test.state.billable_service_instances;datacenter=dc1": {
-				Name:  "consul.usage.test.state.billable_service_instances",
-				Value: 0,
-				Labels: []metrics.Label{
-					{Name: "datacenter", Value: "dc1"},
 				},
 			},
 			// --- kv ---
@@ -782,86 +688,6 @@ var baseCases = map[string]testCase{
 				Labels: []metrics.Label{
 					{Name: "datacenter", Value: "dc1"},
 					{Name: "kind", Value: "exported-services"},
-				},
-			},
-			"consul.usage.test.consul.state.config_entries;datacenter=dc1;kind=api-gateway": { // Legacy
-				Name:  "consul.usage.test.consul.state.config_entries",
-				Value: 0,
-				Labels: []metrics.Label{
-					{Name: "datacenter", Value: "dc1"},
-					{Name: "kind", Value: "api-gateway"},
-				},
-			},
-			"consul.usage.test.state.config_entries;datacenter=dc1;kind=api-gateway": {
-				Name:  "consul.usage.test.state.config_entries",
-				Value: 0,
-				Labels: []metrics.Label{
-					{Name: "datacenter", Value: "dc1"},
-					{Name: "kind", Value: "api-gateway"},
-				},
-			},
-			"consul.usage.test.consul.state.config_entries;datacenter=dc1;kind=bound-api-gateway": { // Legacy
-				Name:  "consul.usage.test.consul.state.config_entries",
-				Value: 0,
-				Labels: []metrics.Label{
-					{Name: "datacenter", Value: "dc1"},
-					{Name: "kind", Value: "bound-api-gateway"},
-				},
-			},
-			"consul.usage.test.state.config_entries;datacenter=dc1;kind=bound-api-gateway": {
-				Name:  "consul.usage.test.state.config_entries",
-				Value: 0,
-				Labels: []metrics.Label{
-					{Name: "datacenter", Value: "dc1"},
-					{Name: "kind", Value: "bound-api-gateway"},
-				},
-			},
-			"consul.usage.test.consul.state.config_entries;datacenter=dc1;kind=inline-certificate": { // Legacy
-				Name:  "consul.usage.test.consul.state.config_entries",
-				Value: 0,
-				Labels: []metrics.Label{
-					{Name: "datacenter", Value: "dc1"},
-					{Name: "kind", Value: "inline-certificate"},
-				},
-			},
-			"consul.usage.test.state.config_entries;datacenter=dc1;kind=inline-certificate": {
-				Name:  "consul.usage.test.state.config_entries",
-				Value: 0,
-				Labels: []metrics.Label{
-					{Name: "datacenter", Value: "dc1"},
-					{Name: "kind", Value: "inline-certificate"},
-				},
-			},
-			"consul.usage.test.consul.state.config_entries;datacenter=dc1;kind=http-route": { // Legacy
-				Name:  "consul.usage.test.consul.state.config_entries",
-				Value: 0,
-				Labels: []metrics.Label{
-					{Name: "datacenter", Value: "dc1"},
-					{Name: "kind", Value: "http-route"},
-				},
-			},
-			"consul.usage.test.state.config_entries;datacenter=dc1;kind=http-route": {
-				Name:  "consul.usage.test.state.config_entries",
-				Value: 0,
-				Labels: []metrics.Label{
-					{Name: "datacenter", Value: "dc1"},
-					{Name: "kind", Value: "http-route"},
-				},
-			},
-			"consul.usage.test.consul.state.config_entries;datacenter=dc1;kind=tcp-route": { // Legacy
-				Name:  "consul.usage.test.consul.state.config_entries",
-				Value: 0,
-				Labels: []metrics.Label{
-					{Name: "datacenter", Value: "dc1"},
-					{Name: "kind", Value: "tcp-route"},
-				},
-			},
-			"consul.usage.test.state.config_entries;datacenter=dc1;kind=tcp-route": {
-				Name:  "consul.usage.test.state.config_entries",
-				Value: 0,
-				Labels: []metrics.Label{
-					{Name: "datacenter", Value: "dc1"},
-					{Name: "kind", Value: "tcp-route"},
 				},
 			},
 		},
@@ -1188,13 +1014,6 @@ func TestUsageReporter_emitServiceUsage_OSS(t *testing.T) {
 		Labels: []metrics.Label{
 			{Name: "datacenter", Value: "dc1"},
 			{Name: "kind", Value: "connect-native"},
-		},
-	}
-	nodesAndSvcsCase.expectedGauges["consul.usage.test.state.billable_service_instances;datacenter=dc1"] = metrics.GaugeValue{
-		Name:  "consul.usage.test.state.billable_service_instances",
-		Value: 3,
-		Labels: []metrics.Label{
-			{Name: "datacenter", Value: "dc1"},
 		},
 	}
 	nodesAndSvcsCase.expectedGauges["consul.usage.test.consul.state.config_entries;datacenter=dc1;kind=ingress-gateway"] = metrics.GaugeValue{ // Legacy

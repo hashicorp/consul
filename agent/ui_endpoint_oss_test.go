@@ -4,7 +4,6 @@
 package agent
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -77,7 +76,7 @@ func TestUIEndpoint_MetricsProxy_ACLDeny(t *testing.T) {
 			WriteRequest: structs.WriteRequest{Token: "root"},
 		}
 		var policy structs.ACLPolicy
-		require.NoError(t, a.RPC(context.Background(), "ACL.PolicySet", &req, &policy))
+		require.NoError(t, a.RPC("ACL.PolicySet", &req, &policy))
 	}
 
 	makeToken := func(t *testing.T, policyNames []string) string {
@@ -92,7 +91,7 @@ func TestUIEndpoint_MetricsProxy_ACLDeny(t *testing.T) {
 		require.Len(t, req.ACLToken.Policies, len(policyNames))
 
 		var token structs.ACLToken
-		require.NoError(t, a.RPC(context.Background(), "ACL.TokenSet", &req, &token))
+		require.NoError(t, a.RPC("ACL.TokenSet", &req, &token))
 		return token.SecretID
 	}
 

@@ -19,7 +19,6 @@ module('Integration | Serializer | token', function (hooks) {
   const partition = 'default';
   [undefinedNspace, 'team-1', undefined].forEach((nspace) => {
     test(`respondForQuery returns the correct data for list endpoint when nspace is ${nspace}`, function (assert) {
-      assert.expect(1);
       const serializer = this.owner.lookup('serializer:token');
       const request = {
         url: `/v1/acl/tokens?dc=${dc}${typeof nspace !== 'undefined' ? `&ns=${nspace}` : ``}${
@@ -58,7 +57,6 @@ module('Integration | Serializer | token', function (hooks) {
       });
     });
     test(`respondForQueryRecord returns the correct data for item endpoint when nspace is ${nspace}`, function (assert) {
-      assert.expect(1);
       const serializer = this.owner.lookup('serializer:token');
       const request = {
         url: `/v1/acl/token/${id}?dc=${dc}${typeof nspace !== 'undefined' ? `&ns=${nspace}` : ``}${

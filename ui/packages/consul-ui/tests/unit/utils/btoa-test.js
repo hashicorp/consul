@@ -3,7 +3,6 @@ import btoa from 'consul-ui/utils/btoa';
 
 module('Unit | Utils | btoa', function () {
   test('it encodes strings properly', function (assert) {
-    assert.expect(2);
     [
       {
         test: '',

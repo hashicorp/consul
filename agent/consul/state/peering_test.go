@@ -6,14 +6,12 @@ import (
 
 	"github.com/hashicorp/go-memdb"
 	"github.com/stretchr/testify/require"
-	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/proto/private/pbcommon"
-	"github.com/hashicorp/consul/proto/private/pbpeering"
-	"github.com/hashicorp/consul/proto/private/prototest"
+	"github.com/hashicorp/consul/proto/pbpeering"
+	"github.com/hashicorp/consul/proto/prototest"
 	"github.com/hashicorp/consul/sdk/testutil"
 )
 
@@ -982,7 +980,7 @@ func TestStore_Peering_Watch(t *testing.T) {
 				ID:        testFooPeerID,
 				Name:      "foo",
 				State:     pbpeering.PeeringState_DELETING,
-				DeletedAt: timestamppb.New(time.Now()),
+				DeletedAt: structs.TimeToProto(time.Now()),
 			},
 		})
 		require.NoError(t, err)
@@ -1009,7 +1007,7 @@ func TestStore_Peering_Watch(t *testing.T) {
 			ID:        testBarPeerID,
 			Name:      "bar",
 			State:     pbpeering.PeeringState_DELETING,
-			DeletedAt: timestamppb.New(time.Now()),
+			DeletedAt: structs.TimeToProto(time.Now()),
 		},
 		})
 		require.NoError(t, err)
@@ -1111,7 +1109,7 @@ func TestStore_PeeringList_Watch(t *testing.T) {
 				ID:        testFooPeerID,
 				Name:      "foo",
 				State:     pbpeering.PeeringState_DELETING,
-				DeletedAt: timestamppb.New(time.Now()),
+				DeletedAt: structs.TimeToProto(time.Now()),
 				Partition: structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
 			},
 		}))
@@ -1262,10 +1260,6 @@ func TestStore_PeeringWrite(t *testing.T) {
 					Remote: &pbpeering.RemoteInfo{
 						Partition:  "part1",
 						Datacenter: "datacenter1",
-						Locality: &pbcommon.Locality{
-							Region: "us-west-1",
-							Zone:   "us-west-1a",
-						},
 					},
 				},
 			},
@@ -1277,10 +1271,6 @@ func TestStore_PeeringWrite(t *testing.T) {
 					Remote: &pbpeering.RemoteInfo{
 						Partition:  "part1",
 						Datacenter: "datacenter1",
-						Locality: &pbcommon.Locality{
-							Region: "us-west-1",
-							Zone:   "us-west-1a",
-						},
 					},
 				},
 				secrets: &pbpeering.PeeringSecrets{
@@ -1312,10 +1302,6 @@ func TestStore_PeeringWrite(t *testing.T) {
 					Remote: &pbpeering.RemoteInfo{
 						Partition:  "part1",
 						Datacenter: "datacenter1",
-						Locality: &pbcommon.Locality{
-							Region: "us-west-1",
-							Zone:   "us-west-1a",
-						},
 					},
 				},
 				secrets: &pbpeering.PeeringSecrets{
@@ -1345,10 +1331,6 @@ func TestStore_PeeringWrite(t *testing.T) {
 					Remote: &pbpeering.RemoteInfo{
 						Partition:  "part1",
 						Datacenter: "datacenter1",
-						Locality: &pbcommon.Locality{
-							Region: "us-west-1",
-							Zone:   "us-west-1a",
-						},
 					},
 				},
 				secrets: &pbpeering.PeeringSecrets{
@@ -1378,10 +1360,6 @@ func TestStore_PeeringWrite(t *testing.T) {
 					Remote: &pbpeering.RemoteInfo{
 						Partition:  "part1",
 						Datacenter: "datacenter1",
-						Locality: &pbcommon.Locality{
-							Region: "us-west-1",
-							Zone:   "us-west-1a",
-						},
 					},
 				},
 				// Secrets for baz should have been deleted
@@ -1410,10 +1388,6 @@ func TestStore_PeeringWrite(t *testing.T) {
 					Remote: &pbpeering.RemoteInfo{
 						Partition:  "part1",
 						Datacenter: "datacenter1",
-						Locality: &pbcommon.Locality{
-							Region: "us-west-1",
-							Zone:   "us-west-1a",
-						},
 					},
 					// Meta should be unchanged.
 					Meta: nil,
@@ -1428,7 +1402,7 @@ func TestStore_PeeringWrite(t *testing.T) {
 					Name:                "baz",
 					State:               pbpeering.PeeringState_DELETING,
 					PeerServerAddresses: []string{"localhost:8502"},
-					DeletedAt:           timestamppb.New(testTime),
+					DeletedAt:           structs.TimeToProto(testTime),
 					Partition:           structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
 				},
 			},
@@ -1437,14 +1411,10 @@ func TestStore_PeeringWrite(t *testing.T) {
 					ID:        testBazPeerID,
 					Name:      "baz",
 					State:     pbpeering.PeeringState_DELETING,
-					DeletedAt: timestamppb.New(testTime),
+					DeletedAt: structs.TimeToProto(testTime),
 					Remote: &pbpeering.RemoteInfo{
 						Partition:  "part1",
 						Datacenter: "datacenter1",
-						Locality: &pbcommon.Locality{
-							Region: "us-west-1",
-							Zone:   "us-west-1a",
-						},
 					},
 				},
 				secrets: nil,
@@ -1458,7 +1428,7 @@ func TestStore_PeeringWrite(t *testing.T) {
 					Name:                "baz",
 					State:               pbpeering.PeeringState_DELETING,
 					PeerServerAddresses: []string{"localhost:8502"},
-					DeletedAt:           timestamppb.New(time.Now()),
+					DeletedAt:           structs.TimeToProto(time.Now()),
 					Partition:           structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
 				},
 			},
@@ -1468,14 +1438,10 @@ func TestStore_PeeringWrite(t *testing.T) {
 					Name: "baz",
 					// Still marked as deleting at the original testTime
 					State:     pbpeering.PeeringState_DELETING,
-					DeletedAt: timestamppb.New(testTime),
+					DeletedAt: structs.TimeToProto(testTime),
 					Remote: &pbpeering.RemoteInfo{
 						Partition:  "part1",
 						Datacenter: "datacenter1",
-						Locality: &pbcommon.Locality{
-							Region: "us-west-1",
-							Zone:   "us-west-1a",
-						},
 					},
 				},
 				// Secrets for baz should have been deleted
@@ -1502,10 +1468,6 @@ func TestStore_PeeringWrite(t *testing.T) {
 					Remote: &pbpeering.RemoteInfo{
 						Partition:  "part1",
 						Datacenter: "datacenter1",
-						Locality: &pbcommon.Locality{
-							Region: "us-west-1",
-							Zone:   "us-west-1a",
-						},
 					},
 				},
 				// Secrets for baz should have been deleted
@@ -1539,7 +1501,7 @@ func TestStore_PeeringWrite(t *testing.T) {
 					Name:                "foo",
 					PeerServerAddresses: []string{"localhost:8502"},
 					State:               pbpeering.PeeringState_DELETING,
-					DeletedAt:           timestamppb.New(time.Now()),
+					DeletedAt:           structs.TimeToProto(time.Now()),
 					Partition:           structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
 				},
 			},
@@ -1571,7 +1533,7 @@ func TestStore_PeeringDelete(t *testing.T) {
 				ID:        testFooPeerID,
 				Name:      "foo",
 				State:     pbpeering.PeeringState_DELETING,
-				DeletedAt: timestamppb.New(time.Now()),
+				DeletedAt: structs.TimeToProto(time.Now()),
 			},
 		}))
 
@@ -2336,7 +2298,7 @@ func TestStateStore_PeeringsForService(t *testing.T) {
 					ID:        tp.peering.ID,
 					Name:      tp.peering.Name,
 					State:     pbpeering.PeeringState_DELETING,
-					DeletedAt: timestamppb.New(time.Now()),
+					DeletedAt: structs.TimeToProto(time.Now()),
 				}
 				require.NoError(t, s.PeeringWrite(lastIdx, &pbpeering.PeeringWriteRequest{Peering: &copied}))
 			}
@@ -2779,7 +2741,7 @@ func TestStore_TrustBundleListByService(t *testing.T) {
 				ID:        peerID1,
 				Name:      "peer1",
 				State:     pbpeering.PeeringState_DELETING,
-				DeletedAt: timestamppb.New(time.Now()),
+				DeletedAt: structs.TimeToProto(time.Now()),
 			},
 		}))
 
@@ -2819,7 +2781,7 @@ func TestStateStore_Peering_ListDeleted(t *testing.T) {
 			Name:        "foo",
 			Partition:   acl.DefaultPartitionName,
 			ID:          testFooPeerID,
-			DeletedAt:   timestamppb.New(time.Now()),
+			DeletedAt:   structs.TimeToProto(time.Now()),
 			CreateIndex: 1,
 			ModifyIndex: 1,
 		})
@@ -2838,7 +2800,7 @@ func TestStateStore_Peering_ListDeleted(t *testing.T) {
 			Name:        "baz",
 			Partition:   acl.DefaultPartitionName,
 			ID:          testBazPeerID,
-			DeletedAt:   timestamppb.New(time.Now()),
+			DeletedAt:   structs.TimeToProto(time.Now()),
 			CreateIndex: 3,
 			ModifyIndex: 3,
 		})

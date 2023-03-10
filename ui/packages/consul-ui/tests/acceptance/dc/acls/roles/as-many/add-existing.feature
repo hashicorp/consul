@@ -46,5 +46,5 @@ Feature: dc / acls / roles / as many / add existing: Add existing
           Name: Role 2
     ---
     Then the url should be /datacenter/acls/tokens
-    And "[data-notification]" has the "hds-toast" class
-    And "[data-notification]" has the "hds-alert--color-success" class
+    And "[data-notification]" has the "notification-update" class
+    And "[data-notification]" has the "success" class

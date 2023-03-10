@@ -1,5 +1,5 @@
 %consul-intention-list td.permissions {
-  color: var(--token-color-foreground-action);
+  color: rgb(var(--tone-blue-500));
 }
 %consul-intention-list em {
   --word-spacing: 0.25rem;

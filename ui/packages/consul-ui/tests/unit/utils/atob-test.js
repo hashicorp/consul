@@ -42,7 +42,6 @@ module('Unit | Utils | atob', function () {
     });
   });
   test('it decodes strings properly', function (assert) {
-    assert.expect(2);
     [
       {
         test: '',
@@ -58,8 +57,6 @@ module('Unit | Utils | atob', function () {
     });
   });
   test('throws when passed the wrong value', function (assert) {
-    assert.expect(4);
-
     [{}, ['MTIz', 'NA=='], new Number(), 'hi'].forEach(function (item) {
       assert.throws(function () {
         atob(item);

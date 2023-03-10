@@ -45,7 +45,7 @@ module('Unit | Utility | getEnvironment', function () {
   test('it returns a function', function (assert) {
     const config = {};
     const env = getEnvironment(config, win, doc);
-    assert.strictEqual(typeof env, 'function');
+    assert.ok(typeof env === 'function');
   });
   test('it returns the correct operator value', function (assert) {
     const config = {};

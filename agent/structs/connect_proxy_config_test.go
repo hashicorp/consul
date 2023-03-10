@@ -4,9 +4,8 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/stretchr/testify/require"
-
 	"github.com/hashicorp/consul/api"
+	"github.com/stretchr/testify/require"
 )
 
 func TestConnectProxyConfig_ToAPI(t *testing.T) {
@@ -126,9 +125,6 @@ func TestConnectProxyConfig_MarshalJSON(t *testing.T) {
 				// No transparent proxy config, since proxy is set to "direct" mode.
 				// Field should be omitted from json output.
 				// TransparentProxy: TransparentProxyConfig{},
-
-				// No access logs config provided, so this should be omitted.
-				// AccessLogs: AccessLogsConfig{},
 			},
 			want: `{
 				"DestinationServiceName": "api",
@@ -174,12 +170,6 @@ func TestConnectProxyConfig_MarshalJSON(t *testing.T) {
 					DialedDirectly:       true,
 					OutboundListenerPort: 16001,
 				},
-				AccessLogs: AccessLogsConfig{
-					Enabled:             true,
-					DisableListenerLogs: true,
-					Type:                FileLogSinkType,
-					Path:                "/var/log/access.log",
-				},
 			},
 			want: `{
 				"DestinationServiceName": "billing",
@@ -199,12 +189,6 @@ func TestConnectProxyConfig_MarshalJSON(t *testing.T) {
 				},
 				"Expose": {
 					"Checks": true
-				},
-				"AccessLogs": {
-					"Enabled": true,
-					"DisableListenerLogs": true,
-  					"Type": "file",
-					"Path": "/var/log/access.log"
 				}
 			}`,
 			wantErr: false,

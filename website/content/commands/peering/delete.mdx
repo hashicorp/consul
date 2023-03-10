@@ -1,15 +1,14 @@
 ---
 layout: commands
 page_title: 'Commands: Peering Delete'
-description: |
-  The `consul peering delete` command ends a cluster peering connection with another cluster. 
+description: Learn how to use the consul peering delete command to remove a peering connection between Consul clusters.
 ---
 
 # Consul Peering Delete
 
 Command: `consul peering delete`
 
-Corresponding HTTP API Endpoint: [\[DELETE\] /v1/peering/:name](/consul/api-docs/peering#delete-a-peering-connection)
+Corresponding HTTP API Endpoint: [\[DELETE\] /v1/peering/:name](/api-docs/peering#delete-a-peering-connection)
 
 The `peering delete` removes a peering connection with another cluster.
 Consul deletes all data imported from the peer in the background.
@@ -18,7 +17,7 @@ Operators can still read the peering connections while the data is being removed
 The command adds a `DeletedAt` field to the peering connection object with the timestamp of when the peering was marked for deletion.
 You can only use a peering token to establish the connection once. If you need to reestablish a peering connection, you must generate a new token.
 
-The table below shows this command's [required ACLs](/consul/api-docs/api-structure#authentication).
+The table below shows this command's [required ACLs](/api-docs/api-structure#authentication).
 
 | ACL Required |
 | ------------ |

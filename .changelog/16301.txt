@@ -1,3 +1,0 @@
-```release-note:bug
-agent configuration: Fix issue of using unix socket when https is used.
-```

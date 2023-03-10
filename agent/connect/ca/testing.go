@@ -3,7 +3,7 @@ package ca
 import (
 	"errors"
 	"fmt"
-	"io"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"strings"
@@ -81,7 +81,7 @@ func CASigningKeyTypeCases() []CASigningKeyTypes {
 // TestConsulProvider creates a new ConsulProvider, taking care to stub out it's
 // Logger so that logging calls don't panic. If logging output is important
 func TestConsulProvider(t testing.T, d ConsulProviderStateDelegate) *ConsulProvider {
-	logger := hclog.New(&hclog.LoggerOptions{Output: io.Discard})
+	logger := hclog.New(&hclog.LoggerOptions{Output: ioutil.Discard})
 	provider := &ConsulProvider{Delegate: d, logger: logger}
 	return provider
 }
@@ -152,8 +152,8 @@ func NewTestVaultServer(t testing.T) *TestVaultServer {
 	}
 
 	cmd := exec.Command(vaultBinaryName, args...)
-	cmd.Stdout = io.Discard
-	cmd.Stderr = io.Discard
+	cmd.Stdout = ioutil.Discard
+	cmd.Stderr = ioutil.Discard
 	require.NoError(t, cmd.Start())
 
 	testVault := &TestVaultServer{

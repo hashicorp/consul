@@ -6,18 +6,20 @@ description: The /acl endpoints manage the Consul's ACL system.
 
 # ACL HTTP API
 
-The `/acl` endpoints are used to manage ACL tokens and policies in Consul, [bootstrap the ACL system](#bootstrap-acls) and [check ACL replication status](#check-acl-replication). There are additional pages for managing [tokens](/consul/api-docs/acl/tokens) and [policies](/consul/api-docs/acl/policies) with the `/acl` endpoints.
+-> **1.4.0+:** This API documentation is for Consul versions 1.4.0 and later. The documentation for the legacy ACL API is [here](/api-docs/acl/legacy).
+
+The `/acl` endpoints are used to manage ACL tokens and policies in Consul, [bootstrap the ACL system](#bootstrap-acls), [check ACL replication status](#check-acl-replication), and [translate rules](#translate-rules). There are additional pages for managing [tokens](/api-docs/acl/tokens) and [policies](/api-docs/acl/policies) with the `/acl` endpoints.
 
 For more information on how to setup ACLs, please check
-the [ACL tutorial](/consul/tutorials/security/access-control-setup-production).
+the [ACL tutorial](https://learn.hashicorp.com/tutorials/consul/access-control-setup-production).
 
 ## Bootstrap ACLs
 
 This endpoint does a special one-time bootstrap of the ACL system, making the first
-management token if the [`acl.tokens.initial_management`](/consul/docs/agent/config/config-files#acl_tokens_initial_management)
+management token if the [`acl.tokens.initial_management`](/docs/agent/config/config-files#acl_tokens_initial_management)
 configuration entry is not specified in the Consul server configuration and if the
-cluster has not been bootstrapped previously. An operator created token can be provided in the body of the request to
-bootstrap the cluster if required. The provided token should be presented in a UUID format.
+cluster has not been bootstrapped previously. This is available in Consul 0.9.1 and later,
+and requires all Consul servers to be upgraded in order to operate.
 
 This provides a mechanism to bootstrap ACLs without having any secrets present in Consul's
 configuration files.
@@ -27,16 +29,16 @@ configuration files.
 | `PUT`  | `/acl/bootstrap` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/consul/api-docs/features/blocking),
-[consistency modes](/consul/api-docs/features/consistency),
-[agent caching](/consul/api-docs/features/caching), and
-[required ACLs](/consul/api-docs/api-structure#authentication).
+[blocking queries](/api-docs/features/blocking),
+[consistency modes](/api-docs/features/consistency),
+[agent caching](/api-docs/features/caching), and
+[required ACLs](/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
 | ---------------- | ----------------- | ------------- | ------------ |
 | `NO`             | `none`            | `none`        | `none`       |
 
-The corresponding CLI command is [`consul acl bootstrap`](/consul/commands/acl/bootstrap).
+The corresponding CLI command is [`consul acl bootstrap`](/commands/acl/bootstrap).
 
 ### Sample Request
 
@@ -48,8 +50,12 @@ $ curl \
 
 ### Sample Response
 
+-> **Deprecated** - The `ID` field in the response is for legacy compatibility and is a copy of the `SecretID` field. New
+applications should ignore the `ID` field as it may be removed in a future major Consul version.
+
 ```json
 {
+  "ID": "527347d3-9653-07dc-adc0-598b8f2b0f4d",
   "AccessorID": "b5b1a918-50bc-fc46-dec2-d481359da4e3",
   "SecretID": "527347d3-9653-07dc-adc0-598b8f2b0f4d",
   "Description": "Bootstrap Token (Global Management)",
@@ -67,23 +73,6 @@ $ curl \
 }
 ```
 
-### Sample Request with provided token
-
-
-```json
-{
-  "BootstrapSecret": "2b778dd9-f5f1-6f29-b4b4-9a5fa948757a"
-}
-```
-
-```shell-session
-$ curl \
-    --request PUT \
-    --data @root-token.json \
-    http://127.0.0.1:8500/v1/acl/bootstrap
-```
-
-
 You can detect if something has interfered with the ACL bootstrapping process by
 checking the response code. A 200 response means that the bootstrap was a success, and
 a 403 means that the cluster has already been bootstrapped, at which point you should
@@ -91,7 +80,7 @@ consider the cluster in a potentially compromised state.
 
 The returned token will have unrestricted privileges to manage all details of the system.
 It can then be used to further configure the ACL system. Please check the
-[ACL tutorial](/consul/tutorials/security/access-control-setup-production) for more details.
+[ACL tutorial](https://learn.hashicorp.com/tutorials/consul/access-control-setup-production) for more details.
 
 ## Check ACL Replication
 
@@ -99,7 +88,7 @@ This endpoint returns the status of the ACL replication processes in the
 datacenter. This is intended to be used by operators or by automation checking
 to discover the health of ACL replication.
 
-Please check the [ACL Replication tutorial](/consul/tutorials/security-operations/access-control-replication-multiple-datacenters)
+Please check the [ACL Replication tutorial](https://learn.hashicorp.com/tutorials/consul/access-control-replication-multiple-datacenters)
 for more details.
 
 | Method | Path               | Produces           |
@@ -107,10 +96,10 @@ for more details.
 | `GET`  | `/acl/replication` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/consul/api-docs/features/blocking),
-[consistency modes](/consul/api-docs/features/consistency),
-[agent caching](/consul/api-docs/features/caching), and
-[required ACLs](/consul/api-docs/api-structure#authentication).
+[blocking queries](/api-docs/features/blocking),
+[consistency modes](/api-docs/features/consistency),
+[agent caching](/api-docs/features/caching), and
+[required ACLs](/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
 | ---------------- | ----------------- | ------------- | ------------ |
@@ -153,9 +142,11 @@ $ curl \
 
 - `SourceDatacenter` - The authoritative ACL datacenter that ACLs are being
   replicated from and will match the
-  [`primary_datacenter`](/consul/docs/agent/config/config-files#primary_datacenter) configuration.
+  [`primary_datacenter`](/docs/agent/config/config-files#primary_datacenter) configuration.
 
 - `ReplicationType` - The type of replication that is currently in use.
+
+  - `legacy` - (removed in Consul 1.11.0) ACL replication is in legacy mode and is replicating legacy ACL tokens.
 
   - `policies` - ACL replication is only replicating policies as token replication
     is disabled.
@@ -163,16 +154,19 @@ $ curl \
   - `tokens` - ACL replication is replicating both policies and tokens.
 
 - `ReplicatedIndex` - The last index that was successfully replicated. Which data
-  the replicated index refers to depends on the replication type. When in either
+  the replicated index refers to depends on the replication type. For `legacy`
+  replication this can be compared with the value of the `X-Consul-Index` header
+  returned by the [`/v1/acl/list`](/api-docs/acl/legacy#list-acls) endpoint to
+  determine if the replication process has gotten all available ACLs. When in either
   `tokens` or `policies` mode, this index can be compared with the value of the
-  `X-Consul-Index` header returned by the [`/v1/acl/policies`](/consul/api-docs/acl/policies#list-policies)
+  `X-Consul-Index` header returned by the [`/v1/acl/policies`](/api-docs/acl/policies#list-policies)
   endpoint to determine if the policy replication process has gotten all available
   ACL policies. Note that ACL replication is rate limited so the indexes may lag behind
   the primary datacenter.
 
 - `ReplicatedTokenIndex` - The last token index that was successfully replicated.
   This index can be compared with the value of the `X-Consul-Index` header returned
-  by the [`/v1/acl/tokens`](/consul/api-docs/acl/tokens#list-tokens) endpoint to determine
+  by the [`/v1/acl/tokens`](/api-docs/acl/tokens#list-tokens) endpoint to determine
   if the replication process has gotten all available ACL tokens. Note that ACL
   replication is rate limited so the indexes may lag behind the primary
   datacenter.
@@ -190,10 +184,98 @@ $ curl \
 - `LastErrorMessage` - The last error message produced at the time of `LastError`.
   An empty string indicates that no sync has resulted in an error.
 
+## Translate Rules
+
+-> **Deprecated** - This endpoint was removed in Consul 1.11.0.
+This endpoint was introduced in Consul 1.4.0 for migration from the previous ACL system.
+
+This endpoint translates the legacy rule syntax into the latest syntax. It is intended
+to be used by operators managing Consul's ACLs and performing legacy token to new policy
+migrations.
+
+| Method | Path                   | Produces     |
+| ------ | ---------------------- | ------------ |
+| `POST` | `/acl/rules/translate` | `text/plain` |
+
+The table below shows this endpoint's support for
+[blocking queries](/api-docs/features/blocking),
+[consistency modes](/api-docs/features/consistency),
+[agent caching](/api-docs/features/caching), and
+[required ACLs](/api-docs/api-structure#authentication).
+
+| Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
+| ---------------- | ----------------- | ------------- | ------------ |
+| `NO`             | `none`            | `none`        | `acl:read`   |
+
+The corresponding CLI command is [`consul acl translate-rules`](/commands/acl/translate-rules).
+
+### Sample Payload
+
+```hcl
+agent "" {
+   policy = "read"
+}
+```
+
+### Sample Request
+
+```shell-session
+$ curl --request POST --data @rules.hcl http://127.0.0.1:8500/v1/acl/rules/translate
+```
+
+### Sample Response
+
+```hcl
+agent_prefix "" {
+   policy = "read"
+}
+```
+
+## Translate a Legacy Token's Rules
+
+-> **Deprecated** - This endpoint was removed in Consul 1.11.0.
+This endpoint was introduced in Consul 1.4.0 for migration from the previous ACL system.
+
+This endpoint translates the legacy rules embedded within a legacy ACL into the latest
+syntax. It is intended to be used by operators managing Consul's ACLs and performing
+legacy token to new policy migrations. Note that this API requires the auto-generated
+Accessor ID of the legacy token. This ID can be retrieved using the
+[`/v1/acl/token/self`](/api-docs/acl/tokens#read-self-token) endpoint.
+
+| Method | Path                                | Produces     |
+| ------ | ----------------------------------- | ------------ |
+| `GET`  | `/acl/rules/translate/:accessor_id` | `text/plain` |
+
+The table below shows this endpoint's support for
+[blocking queries](/api-docs/features/blocking),
+[consistency modes](/api-docs/features/consistency),
+[agent caching](/api-docs/features/caching), and
+[required ACLs](/api-docs/api-structure#authentication).
+
+| Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
+| ---------------- | ----------------- | ------------- | ------------ |
+| `NO`             | `none`            | `none`        | `acl:read`   |
+
+The corresponding CLI command is [`consul acl translate-rules`](/commands/acl/translate-rules).
+
+### Sample Request
+
+```shell-session
+$ curl --request GET http://127.0.0.1:8500/v1/acl/rules/translate/4f48f7e6-9359-4890-8e67-6144a962b0a5
+```
+
+### Sample Response
+
+```hcl
+agent_prefix "" {
+   policy = "read"
+}
+```
+
 ## Login to Auth Method
 
 This endpoint was added in Consul 1.5.0 and is used to exchange an [auth
-method](/consul/docs/security/acl/auth-methods) bearer token for a newly-created
+method](/docs/security/acl/auth-methods) bearer token for a newly-created
 Consul ACL token.
 
 | Method | Path         | Produces           |
@@ -201,10 +283,10 @@ Consul ACL token.
 | `POST` | `/acl/login` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/consul/api-docs/features/blocking),
-[consistency modes](/consul/api-docs/features/consistency),
-[agent caching](/consul/api-docs/features/caching), and
-[required ACLs](/consul/api-docs/api-structure#authentication).
+[blocking queries](/api-docs/features/blocking),
+[consistency modes](/api-docs/features/consistency),
+[agent caching](/api-docs/features/caching), and
+[required ACLs](/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
 | ---------------- | ----------------- | ------------- | ------------ |
@@ -212,12 +294,12 @@ The table below shows this endpoint's support for
 
 -> **Note** - To use the login process to create tokens in any connected
 secondary datacenter, [ACL
-replication](/consul/docs/agent/config/config-files#acl_enable_token_replication) must be
+replication](/docs/agent/config/config-files#acl_enable_token_replication) must be
 enabled. Login requires the ability to create local tokens which is restricted
 to the primary datacenter and any secondary datacenters with ACL token
 replication enabled.
 
-The corresponding CLI command is [`consul login`](/consul/commands/login).
+The corresponding CLI command is [`consul login`](/commands/login).
 
 ### Query Parameters
 
@@ -296,10 +378,10 @@ with the `X-Consul-Token` header or the `token` query parameter.
 | `POST` | `/acl/logout` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/consul/api-docs/features/blocking),
-[consistency modes](/consul/api-docs/features/consistency),
-[agent caching](/consul/api-docs/features/caching), and
-[required ACLs](/consul/api-docs/api-structure#authentication).
+[blocking queries](/api-docs/features/blocking),
+[consistency modes](/api-docs/features/consistency),
+[agent caching](/api-docs/features/caching), and
+[required ACLs](/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
 | ---------------- | ----------------- | ------------- | ------------ |
@@ -308,7 +390,7 @@ The table below shows this endpoint's support for
 -> **Note** - This endpoint requires no specific privileges as it is just
 deleting a token for which you already must possess its secret.
 
-The corresponding CLI command is [`consul logout`](/consul/commands/logout).
+The corresponding CLI command is [`consul logout`](/commands/logout).
 
 ### Sample Request
 
@@ -327,17 +409,17 @@ $ curl \
 </EnterpriseAlert>
 
 This endpoint was added in Consul 1.8.0 and is used to obtain an authorization
-URL from Consul to start an [OIDC login flow](/consul/docs/security/acl/auth-methods/oidc).
+URL from Consul to start an [OIDC login flow](/docs/security/acl/auth-methods/oidc).
 
 | Method | Path                 | Produces           |
 | ------ | -------------------- | ------------------ |
 | `POST` | `/acl/oidc/auth-url` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/consul/api-docs/features/blocking),
-[consistency modes](/consul/api-docs/features/consistency),
-[agent caching](/consul/api-docs/features/caching), and
-[required ACLs](/consul/api-docs/api-structure#authentication).
+[blocking queries](/api-docs/features/blocking),
+[consistency modes](/api-docs/features/consistency),
+[agent caching](/api-docs/features/caching), and
+[required ACLs](/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
 | ---------------- | ----------------- | ------------- | ------------ |
@@ -345,7 +427,7 @@ The table below shows this endpoint's support for
 
 -> **Note** - To use the login process to create tokens in any connected
 secondary datacenter, [ACL
-replication](/consul/docs/agent/config/config-files#acl_enable_token_replication) must be
+replication](/docs/agent/config/config-files#acl_enable_token_replication) must be
 enabled. Login requires the ability to create local tokens which is restricted
 to the primary datacenter and any secondary datacenters with ACL token
 replication enabled.
@@ -358,10 +440,10 @@ replication enabled.
 ### JSON Request Body Schema
 
 - `AuthMethod` `(string: <required>)` - The name of the auth method to use for
-  login. This must be of type [`oidc`](/consul/docs/security/acl/auth-methods/oidc).
+  login. This must be of type [`oidc`](/docs/security/acl/auth-methods/oidc).
 
 - `RedirectURI` `(string: <required>)` - See [Redirect
-  URIs](/consul/docs/security/acl/auth-methods/oidc#redirect-uris) for more information.
+  URIs](/docs/security/acl/auth-methods/oidc#redirect-uris) for more information.
 
 - `ClientNonce` `(string: "")` - Optional client-provided nonce that must match
   during callback, if present.
@@ -417,10 +499,10 @@ for a newly-created Consul ACL token.
 | `POST` | `/acl/oidc/callback` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/consul/api-docs/features/blocking),
-[consistency modes](/consul/api-docs/features/consistency),
-[agent caching](/consul/api-docs/features/caching), and
-[required ACLs](/consul/api-docs/api-structure#authentication).
+[blocking queries](/api-docs/features/blocking),
+[consistency modes](/api-docs/features/consistency),
+[agent caching](/api-docs/features/caching), and
+[required ACLs](/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
 | ---------------- | ----------------- | ------------- | ------------ |
@@ -428,7 +510,7 @@ The table below shows this endpoint's support for
 
 -> **Note** - To use the login process to create tokens in any connected
 secondary datacenter, [ACL
-replication](/consul/docs/agent/config/config-files#acl_enable_token_replication) must be
+replication](/docs/agent/config/config-files#acl_enable_token_replication) must be
 enabled. Login requires the ability to create local tokens which is restricted
 to the primary datacenter and any secondary datacenters with ACL token
 replication enabled.
@@ -441,7 +523,7 @@ replication enabled.
 ### JSON Request Body Schema
 
 - `AuthMethod` `(string: <required>)` - The name of the auth method to use for
-  login. This must be of type [`oidc`](/consul/docs/security/acl/auth-methods/oidc).
+  login. This must be of type [`oidc`](/docs/security/acl/auth-methods/oidc).
 
 - `State` `(string: <required>)` - Opaque state ID that is part of the
   Authorization URL and will be included in the the redirect following

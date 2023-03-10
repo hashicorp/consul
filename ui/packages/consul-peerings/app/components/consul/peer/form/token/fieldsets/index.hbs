@@ -27,11 +27,11 @@
           </li>
         </ol>
 {{#if (not @regenerate)}}
-  <Hds::Button
-    @text='Generate another token'
-    type='reset'
-    @color='secondary'
-    {{on "click" @onclick}}
-  />
+        <Action
+          @type="reset"
+          {{on "click" @onclick}}
+        >
+          Generate another token
+        </Action>
 {{/if}}
 

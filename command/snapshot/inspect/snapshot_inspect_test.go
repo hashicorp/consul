@@ -2,7 +2,7 @@ package inspect
 
 import (
 	"flag"
-	"os"
+	"io/ioutil"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -21,11 +21,11 @@ func golden(t *testing.T, name, got string) string {
 
 	golden := filepath.Join("testdata", name+".golden")
 	if *update && got != "" {
-		err := os.WriteFile(golden, []byte(got), 0644)
+		err := ioutil.WriteFile(golden, []byte(got), 0644)
 		require.NoError(t, err)
 	}
 
-	expected, err := os.ReadFile(golden)
+	expected, err := ioutil.ReadFile(golden)
 	require.NoError(t, err)
 
 	return string(expected)

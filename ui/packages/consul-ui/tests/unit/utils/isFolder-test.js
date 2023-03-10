@@ -3,8 +3,6 @@ import isFolder from 'consul-ui/utils/isFolder';
 
 module('Unit | Utils | isFolder', function () {
   test('it detects if a string ends in a slash', function (assert) {
-    assert.expect(5);
-
     [
       {
         test: 'hello/world',

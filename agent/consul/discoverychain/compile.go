@@ -12,7 +12,6 @@ import (
 	"github.com/hashicorp/consul/agent/configentry"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/proto/private/pbpeering"
 )
 
 type CompileRequest struct {
@@ -168,12 +167,6 @@ type compiler struct {
 	//
 	// This is an OUTPUT field.
 	serviceMeta map[string]string
-
-	// envoyExtensions contains the Envoy Extensions configured through service defaults or proxy defaults config
-	// entries for this discovery chain.
-	//
-	// This is an OUTPUT field.
-	envoyExtensions []structs.EnvoyExtension
 
 	// startNode is computed inside of assembleChain()
 	//
@@ -345,7 +338,6 @@ func (c *compiler) compile() (*structs.CompiledDiscoveryChain, error) {
 		CustomizationHash: customizationHash,
 		Protocol:          c.protocol,
 		ServiceMeta:       c.serviceMeta,
-		EnvoyExtensions:   c.envoyExtensions,
 		StartNode:         c.startNode,
 		Nodes:             c.nodes,
 		Targets:           c.loadedTargets,
@@ -563,17 +555,9 @@ func (c *compiler) assembleChain() error {
 
 	sid := structs.NewServiceID(c.serviceName, c.GetEnterpriseMeta())
 
-	// Extract extensions from proxy defaults.
-	proxyDefaults := c.entries.GetProxyDefaults(c.GetEnterpriseMeta().PartitionOrDefault())
-	if proxyDefaults != nil {
-		c.envoyExtensions = proxyDefaults.EnvoyExtensions
-	}
-
-	// Extract the service meta for the service named by this discovery chain and add extensions from the service
-	// defaults.
+	// Extract the service meta for the service named by this discovery chain.
 	if serviceDefault := c.entries.GetService(sid); serviceDefault != nil {
 		c.serviceMeta = serviceDefault.GetMeta()
-		c.envoyExtensions = append(c.envoyExtensions, serviceDefault.EnvoyExtensions...)
 	}
 
 	// Check for short circuit path.
@@ -737,11 +721,6 @@ func (c *compiler) newTarget(opts structs.DiscoveryTargetOpts) *structs.Discover
 		// Use the same representation for the name. This will NOT be overridden
 		// later.
 		t.Name = t.SNI
-	} else {
-		peer := c.entries.Peers[opts.Peer]
-		if peer != nil && peer.Remote != nil {
-			t.Locality = pbpeering.LocalityToStructs(peer.Remote.Locality)
-		}
 	}
 
 	prev, ok := c.loadedTargets[t.ID]
@@ -1115,15 +1094,6 @@ RESOLVE_AGAIN:
 		if len(failoverTargets) > 0 {
 			df := &structs.DiscoveryFailover{}
 			node.Resolver.Failover = df
-
-			if failover.Policy == nil || failover.Policy.Mode == "" {
-				proxyDefault := c.entries.GetProxyDefaults(targetID.PartitionOrDefault())
-				if proxyDefault != nil {
-					df.Policy = proxyDefault.FailoverPolicy
-				}
-			} else {
-				df.Policy = failover.Policy
-			}
 
 			// Take care of doing any redirects or configuration loading
 			// related to targets by cheating a bit and recursing into

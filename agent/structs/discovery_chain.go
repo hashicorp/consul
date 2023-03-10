@@ -38,9 +38,6 @@ type CompiledDiscoveryChain struct {
 	// entry for the service named ServiceName.
 	ServiceMeta map[string]string `json:",omitempty"`
 
-	// EnvoyExtensions has a list of configurations for an extension that patches Envoy resources.
-	EnvoyExtensions []EnvoyExtension `json:",omitempty"`
-
 	// StartNode is the first key into the Nodes map that should be followed
 	// when walking the discovery chain.
 	StartNode string `json:",omitempty"`
@@ -178,8 +175,7 @@ type DiscoverySplit struct {
 
 // compiled form of ServiceResolverFailover
 type DiscoveryFailover struct {
-	Targets []string                       `json:",omitempty"`
-	Policy  *ServiceResolverFailoverPolicy `json:",omitempty"`
+	Targets []string `json:",omitempty"`
 }
 
 // DiscoveryTarget represents all of the inputs necessary to use a resolver
@@ -190,13 +186,12 @@ type DiscoveryTarget struct {
 	// chain. It should be treated as a per-compile opaque string.
 	ID string `json:",omitempty"`
 
-	Service       string    `json:",omitempty"`
-	ServiceSubset string    `json:",omitempty"`
-	Namespace     string    `json:",omitempty"`
-	Partition     string    `json:",omitempty"`
-	Datacenter    string    `json:",omitempty"`
-	Peer          string    `json:",omitempty"`
-	Locality      *Locality `json:",omitempty"`
+	Service       string `json:",omitempty"`
+	ServiceSubset string `json:",omitempty"`
+	Namespace     string `json:",omitempty"`
+	Partition     string `json:",omitempty"`
+	Datacenter    string `json:",omitempty"`
+	Peer          string `json:",omitempty"`
 
 	MeshGateway      MeshGatewayConfig      `json:",omitempty"`
 	Subset           ServiceResolverSubset  `json:",omitempty"`

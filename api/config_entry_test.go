@@ -401,13 +401,6 @@ func TestDecodeConfigEntry(t *testing.T) {
 				"TransparentProxy": {
 					"OutboundListenerPort": 808,
 					"DialedDirectly": true
-				},
-				"AccessLogs": {
-					"Enabled": true,
-					"DisableListenerLogs": true,
-					"Type": "file",
-					"Path": "/tmp/logs.txt",
-					"TextFormat": "[%START_TIME%]"
 				}
 			}
 			`,
@@ -432,13 +425,6 @@ func TestDecodeConfigEntry(t *testing.T) {
 				TransparentProxy: &TransparentProxyConfig{
 					OutboundListenerPort: 808,
 					DialedDirectly:       true,
-				},
-				AccessLogs: &AccessLogsConfig{
-					Enabled:             true,
-					DisableListenerLogs: true,
-					Type:                FileLogSinkType,
-					Path:                "/tmp/logs.txt",
-					TextFormat:          "[%START_TIME%]",
 				},
 			},
 		},

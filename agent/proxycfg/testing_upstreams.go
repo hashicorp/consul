@@ -8,7 +8,7 @@ import (
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/discoverychain"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/proto/private/pbpeering"
+	"github.com/hashicorp/consul/proto/pbpeering"
 )
 
 func setupTestVariationConfigEntriesAndSnapshot(
@@ -25,12 +25,6 @@ func setupTestVariationConfigEntriesAndSnapshot(
 
 	dbChain := setupTestVariationDiscoveryChain(t, variation, additionalEntries...)
 
-	nodes := TestUpstreamNodes(t, "db")
-	if variation == "register-to-terminating-gateway" {
-		for _, node := range nodes {
-			node.Service.Kind = structs.ServiceKindTerminatingGateway
-		}
-	}
 	events := []UpdateEvent{
 		{
 			CorrelationID: "discovery-chain:" + dbUID.String(),
@@ -41,7 +35,7 @@ func setupTestVariationConfigEntriesAndSnapshot(
 		{
 			CorrelationID: "upstream-target:" + dbChain.ID() + ":" + dbUID.String(),
 			Result: &structs.IndexedCheckServiceNodes{
-				Nodes: nodes,
+				Nodes: TestUpstreamNodes(t, "db"),
 			},
 		},
 	}
@@ -213,7 +207,6 @@ func setupTestVariationConfigEntriesAndSnapshot(
 	case "grpc-router":
 	case "chain-and-router":
 	case "lb-resolver":
-	case "register-to-terminating-gateway":
 	default:
 		t.Fatalf("unexpected variation: %q", variation)
 		return nil
@@ -236,7 +229,6 @@ func setupTestVariationDiscoveryChain(
 	switch variation {
 	case "default":
 		// no config entries
-	case "register-to-terminating-gateway":
 	case "simple-with-overrides":
 		compileSetup = func(req *discoverychain.CompileRequest) {
 			req.OverrideMeshGateway.Mode = structs.MeshGatewayModeLocal

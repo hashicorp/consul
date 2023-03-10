@@ -16,7 +16,6 @@ module('Integration | Serializer | kv', function (hooks) {
   const partition = 'default';
   [undefinedNspace, 'team-1', undefined].forEach((nspace) => {
     test(`respondForQuery returns the correct data for list endpoint when nspace is ${nspace}`, function (assert) {
-      assert.expect(1);
       const serializer = this.owner.lookup('serializer:kv');
       const request = {
         url: `/v1/kv/${id}?keys&dc=${dc}${typeof nspace !== 'undefined' ? `&ns=${nspace}` : ``}${
@@ -62,7 +61,6 @@ module('Integration | Serializer | kv', function (hooks) {
       });
     });
     test(`respondForQueryRecord returns the correct data for item endpoint when nspace is ${nspace}`, function (assert) {
-      assert.expect(1);
       const serializer = this.owner.lookup('serializer:kv');
       const request = {
         url: `/v1/kv/${id}?dc=${dc}${typeof nspace !== 'undefined' ? `&ns=${nspace}` : ``}${

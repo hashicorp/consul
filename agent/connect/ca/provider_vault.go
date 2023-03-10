@@ -6,8 +6,9 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
-	"io"
+	"io/ioutil"
 	"net/http"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -20,6 +21,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/lib/decode"
+	"github.com/hashicorp/consul/lib/retry"
 )
 
 const (
@@ -44,12 +46,14 @@ const (
 	VaultAuthMethodTypeUserpass     = "userpass"
 
 	defaultK8SServiceAccountTokenPath = "/var/run/secrets/kubernetes.io/serviceaccount/token"
+
+	retryMin    = 1 * time.Second
+	retryMax    = 5 * time.Second
+	retryJitter = 20
 )
 
-var (
-	ErrBackendNotMounted     = fmt.Errorf("backend not mounted")
-	ErrBackendNotInitialized = fmt.Errorf("backend not initialized")
-)
+var ErrBackendNotMounted = fmt.Errorf("backend not mounted")
+var ErrBackendNotInitialized = fmt.Errorf("backend not initialized")
 
 type VaultProvider struct {
 	config *structs.VaultCAProviderConfig
@@ -96,7 +100,6 @@ func vaultTLSConfig(config *structs.VaultCAProviderConfig) *vaultapi.TLSConfig {
 }
 
 // Configure sets up the provider using the given configuration.
-// Configure supports being called multiple times to re-configure the provider.
 func (v *VaultProvider) Configure(cfg ProviderConfig) error {
 	config, err := ParseVaultCAConfig(cfg.RawConfig)
 	if err != nil {
@@ -173,7 +176,6 @@ func (v *VaultProvider) Configure(cfg ProviderConfig) error {
 
 		ctx, cancel := context.WithCancel(context.Background())
 		if v.stopWatcher != nil {
-			// stop the running watcher loop if we are re-configuring
 			v.stopWatcher()
 		}
 		v.stopWatcher = cancel
@@ -223,16 +225,32 @@ func (v *VaultProvider) renewToken(ctx context.Context, watcher *vaultapi.Lifeti
 	go watcher.Start()
 	defer watcher.Stop()
 
+	// TODO: Once we've upgraded to a later version of protobuf we can upgrade to github.com/hashicorp/vault/api@1.1.1
+	// or later and rip this out.
+	retrier := retry.Waiter{
+		MinFailures: 5,
+		MinWait:     retryMin,
+		MaxWait:     retryMax,
+		Jitter:      retry.NewJitter(retryJitter),
+	}
+
 	for {
 		select {
 		case <-ctx.Done():
 			return
 
 		case err := <-watcher.DoneCh():
-			// Watcher has stopped
+			// In the event we fail to login to Vault or our token is no longer valid we can overwhelm a Vault instance
+			// with rate limit configured. We would make these requests to Vault as fast as we possibly could and start
+			// causing all client's to receive 429 response codes. To mitigate that we're sleeping 1 second or less
+			// before moving on to login again and restart the lifetime watcher. Once we can upgrade to
+			// github.com/hashicorp/vault/api@v1.1.1 or later the LifetimeWatcher _should_ perform that backoff for us.
 			if err != nil {
 				v.logger.Error("Error renewing token for Vault provider", "error", err)
 			}
+
+			// wait at least 1 second after returning from the lifetime watcher
+			retrier.Wait(ctx)
 
 			// If the watcher has exited and auth method is enabled,
 			// re-authenticate using the auth method and set up a new watcher.
@@ -241,7 +259,7 @@ func (v *VaultProvider) renewToken(ctx context.Context, watcher *vaultapi.Lifeti
 				loginResp, err := vaultLogin(v.client, v.config.AuthMethod)
 				if err != nil {
 					v.logger.Error("Error login in to Vault with %q auth method", v.config.AuthMethod.Type)
-
+					// Restart the watcher
 					go watcher.Start()
 					continue
 				}
@@ -261,10 +279,12 @@ func (v *VaultProvider) renewToken(ctx context.Context, watcher *vaultapi.Lifeti
 					continue
 				}
 			}
+			// Restart the watcher.
 
 			go watcher.Start()
 
 		case <-watcher.RenewCh():
+			retrier.Reset()
 			v.logger.Info("Successfully renewed token for Vault provider")
 		}
 	}
@@ -410,6 +430,7 @@ func (v *VaultProvider) setupIntermediatePKIPath() error {
 					"error", err,
 				)
 			}
+
 		}
 	}
 
@@ -517,7 +538,8 @@ func (v *VaultProvider) ActiveIntermediate() (string, error) {
 func (v *VaultProvider) getCA(namespace, path string) (string, error) {
 	defer v.setNamespace(namespace)()
 
-	resp, err := v.client.Logical().ReadRaw(path + "/ca/pem")
+	req := v.client.NewRequest("GET", "/v1/"+path+"/ca/pem")
+	resp, err := v.client.RawRequest(req)
 	if resp != nil {
 		defer resp.Body.Close()
 	}
@@ -528,7 +550,7 @@ func (v *VaultProvider) getCA(namespace, path string) (string, error) {
 		return "", err
 	}
 
-	bytes, err := io.ReadAll(resp.Body)
+	bytes, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return "", err
 	}
@@ -545,7 +567,8 @@ func (v *VaultProvider) getCA(namespace, path string) (string, error) {
 func (v *VaultProvider) getCAChain(namespace, path string) (string, error) {
 	defer v.setNamespace(namespace)()
 
-	resp, err := v.client.Logical().ReadRaw(path + "/ca_chain")
+	req := v.client.NewRequest("GET", "/v1/"+path+"/ca_chain")
+	resp, err := v.client.RawRequest(req)
 	if resp != nil {
 		defer resp.Body.Close()
 	}
@@ -556,7 +579,7 @@ func (v *VaultProvider) getCAChain(namespace, path string) (string, error) {
 		return "", err
 	}
 
-	raw, err := io.ReadAll(resp.Body)
+	raw, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return "", err
 	}
@@ -816,17 +839,48 @@ func (v *VaultProvider) PrimaryUsesIntermediate() {}
 // We use raw path here
 func (v *VaultProvider) mountNamespaced(namespace, path string, mountInfo *vaultapi.MountInput) error {
 	defer v.setNamespace(namespace)()
-	return v.client.Sys().Mount(path, mountInfo)
+	r := v.client.NewRequest("POST", fmt.Sprintf("/v1/sys/mounts/%s", path))
+	if err := r.SetJSONBody(mountInfo); err != nil {
+		return err
+	}
+	resp, err := v.client.RawRequest(r)
+	if resp != nil {
+		defer resp.Body.Close()
+	}
+	return err
 }
 
 func (v *VaultProvider) tuneMountNamespaced(namespace, path string, mountConfig *vaultapi.MountConfigInput) error {
 	defer v.setNamespace(namespace)()
-	return v.client.Sys().TuneMount(path, *mountConfig)
+	r := v.client.NewRequest("POST", fmt.Sprintf("/v1/sys/mounts/%s/tune", path))
+	if err := r.SetJSONBody(mountConfig); err != nil {
+		return err
+	}
+	resp, err := v.client.RawRequest(r)
+	if resp != nil {
+		defer resp.Body.Close()
+	}
+	return err
 }
 
 func (v *VaultProvider) unmountNamespaced(namespace, path string) error {
 	defer v.setNamespace(namespace)()
-	return v.client.Sys().Unmount(path)
+	r := v.client.NewRequest("DELETE", fmt.Sprintf("/v1/sys/mounts/%s", path))
+	resp, err := v.client.RawRequest(r)
+	if resp != nil {
+		defer resp.Body.Close()
+	}
+	return err
+}
+
+func makePathHelper(namespace, path string) string {
+	var fullPath string
+	if namespace != "" {
+		fullPath = fmt.Sprintf("/v1/%s/sys/mounts/%s", namespace, path)
+	} else {
+		fullPath = fmt.Sprintf("/v1/sys/mounts/%s", path)
+	}
+	return fullPath
 }
 
 func (v *VaultProvider) readNamespaced(namespace string, resource string) (*vaultapi.Secret, error) {
@@ -905,12 +959,13 @@ func ParseVaultCAConfig(raw map[string]interface{}) (*structs.VaultCAProviderCon
 }
 
 func vaultLogin(client *vaultapi.Client, authMethod *structs.VaultAuthMethod) (*vaultapi.Secret, error) {
-	vaultAuth, err := configureVaultAuthMethod(authMethod)
+	// Adapted from https://www.vaultproject.io/docs/auth/kubernetes#code-example
+	loginPath, err := configureVaultAuthMethod(authMethod)
 	if err != nil {
 		return nil, err
 	}
 
-	resp, err := vaultAuth.Login(context.Background(), client)
+	resp, err := client.Logical().Write(loginPath, authMethod.Params)
 	if err != nil {
 		return nil, err
 	}
@@ -921,62 +976,57 @@ func vaultLogin(client *vaultapi.Client, authMethod *structs.VaultAuthMethod) (*
 	return resp, nil
 }
 
-// Note the authMethod's parameters (Params) is populated from a freeform map
-// in the configuration where they could hardcode values to be passed directly
-// to the `auth/*/login` endpoint. Each auth method's authentication code
-// needs to handle two cases:
-// - The legacy case (which should be deprecated) where the user has
-// hardcoded login values directly (eg. a `jwt` string)
-// - The case where they use the configuration option used in the
-// vault agent's auth methods.
-func configureVaultAuthMethod(authMethod *structs.VaultAuthMethod) (VaultAuthenticator, error) {
+func configureVaultAuthMethod(authMethod *structs.VaultAuthMethod) (loginPath string, err error) {
 	if authMethod.MountPath == "" {
 		authMethod.MountPath = authMethod.Type
 	}
 
-	loginPath := ""
 	switch authMethod.Type {
-	case VaultAuthMethodTypeAWS:
-		return NewAWSAuthClient(authMethod), nil
-	case VaultAuthMethodTypeAzure:
-		return NewAzureAuthClient(authMethod)
-	case VaultAuthMethodTypeGCP:
-		return NewGCPAuthClient(authMethod)
-	case VaultAuthMethodTypeJWT:
-		return NewJwtAuthClient(authMethod)
-	case VaultAuthMethodTypeAppRole:
-		return NewAppRoleAuthClient(authMethod)
-	case VaultAuthMethodTypeAliCloud:
-		return NewAliCloudAuthClient(authMethod)
 	case VaultAuthMethodTypeKubernetes:
-		return NewK8sAuthClient(authMethod)
+		// For the Kubernetes Auth method, we will try to read the JWT token
+		// from the default service account file location if jwt was not provided.
+		if jwt, ok := authMethod.Params["jwt"]; !ok || jwt == "" {
+			serviceAccountToken, err := os.ReadFile(defaultK8SServiceAccountTokenPath)
+			if err != nil {
+				return "", err
+			}
+
+			authMethod.Params["jwt"] = string(serviceAccountToken)
+		}
+		loginPath = fmt.Sprintf("auth/%s/login", authMethod.MountPath)
 	// These auth methods require a username for the login API path.
 	case VaultAuthMethodTypeLDAP, VaultAuthMethodTypeUserpass, VaultAuthMethodTypeOkta, VaultAuthMethodTypeRadius:
 		// Get username from the params.
 		if username, ok := authMethod.Params["username"]; ok {
 			loginPath = fmt.Sprintf("auth/%s/login/%s", authMethod.MountPath, username)
 		} else {
-			return nil, fmt.Errorf("failed to get 'username' from auth method params")
+			return "", fmt.Errorf("failed to get 'username' from auth method params")
 		}
-		return NewVaultAPIAuthClient(authMethod, loginPath), nil
 	// This auth method requires a role for the login API path.
 	case VaultAuthMethodTypeOCI:
 		if role, ok := authMethod.Params["role"]; ok {
 			loginPath = fmt.Sprintf("auth/%s/login/%s", authMethod.MountPath, role)
 		} else {
-			return nil, fmt.Errorf("failed to get 'role' from auth method params")
+			return "", fmt.Errorf("failed to get 'role' from auth method params")
 		}
-		return NewVaultAPIAuthClient(authMethod, loginPath), nil
 	case VaultAuthMethodTypeToken:
-		return nil, fmt.Errorf("'token' auth method is not supported via auth method configuration; " +
+		return "", fmt.Errorf("'token' auth method is not supported via auth method configuration; " +
 			"please provide the token with the 'token' parameter in the CA configuration")
 	// The rest of the auth methods use auth/<auth method path> login API path.
-	case VaultAuthMethodTypeCloudFoundry,
+	case VaultAuthMethodTypeAliCloud,
+		VaultAuthMethodTypeAppRole,
+		VaultAuthMethodTypeAWS,
+		VaultAuthMethodTypeAzure,
+		VaultAuthMethodTypeCloudFoundry,
 		VaultAuthMethodTypeGitHub,
+		VaultAuthMethodTypeGCP,
+		VaultAuthMethodTypeJWT,
 		VaultAuthMethodTypeKerberos,
 		VaultAuthMethodTypeTLS:
-		return NewVaultAPIAuthClient(authMethod, loginPath), nil
+		loginPath = fmt.Sprintf("auth/%s/login", authMethod.MountPath)
 	default:
-		return nil, fmt.Errorf("auth method %q is not supported", authMethod.Type)
+		return "", fmt.Errorf("auth method %q is not supported", authMethod.Type)
 	}
+
+	return
 }

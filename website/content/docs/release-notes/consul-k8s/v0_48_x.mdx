@@ -9,7 +9,7 @@ description: >-
 
 ## Release Highlights
 
-- **Consul CNI Plugin**: This release introduces the Consul CNI Plugin for Consul on Kubernetes, to allow for configuring traffic redirection rules without escalated container privileges such as `CAP_NET_ADMIN`. Refer to [Enable the Consul CNI Plugin](/consul/docs/k8s/installation/install#enable-the-consul-cni-plugin) for more details. The Consul CNI Plugin is supported for Consul K8s 0.48.0+ and Consul 1.13.1+.
+- **Consul CNI Plugin**: This release introduces the Consul CNI Plugin for Consul on Kubernetes, to allow for configuring traffic redirection rules without escalated container privileges such as `CAP_NET_ADMIN`. Refer to [Enable the Consul CNI Plugin](/docs/k8s/installation/install#enable-the-consul-cni-plugin) for more details. The Consul CNI Plugin is supported for Consul K8s 0.48.0+ and Consul 1.13.1+.
 
 - **Kubernetes 1.24 Support**: Add support for Kubernetes 1.24 where ServiceAccounts no longer have long-term JWT tokens. [[GH-1431](https://github.com/hashicorp/consul-k8s/pull/1431)]
   
@@ -46,11 +46,11 @@ Example:
 - Kubernetes 1.19-1.24
 - Kubectl 1.19+
 - Envoy proxy support is determined by the Consul version deployed. Refer to
-  [Envoy Integration](/consul/docs/connect/proxies/envoy) for details.
+  [Envoy Integration](/docs/connect/proxies/envoy) for details.
 
 ## Upgrading
 
-For detailed information on upgrading, please refer to the [Upgrades page](/consul/docs/k8s/upgrade)
+For detailed information on upgrading, please refer to the [Upgrades page](/docs/k8s/upgrade)
 
 ## Known Issues
 The following issues are know to exist in the v0.48.0 release: 

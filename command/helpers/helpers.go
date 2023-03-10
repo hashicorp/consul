@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"time"
 
@@ -14,7 +15,7 @@ import (
 )
 
 func loadFromFile(path string) (string, error) {
-	data, err := os.ReadFile(path)
+	data, err := ioutil.ReadFile(path)
 	if err != nil {
 		return "", fmt.Errorf("Failed to read file: %v", err)
 	}

@@ -1,7 +1,6 @@
 package middleware
 
 import (
-	"net"
 	"reflect"
 	"strconv"
 	"strings"
@@ -10,7 +9,6 @@ import (
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
 	"github.com/hashicorp/consul-net-rpc/net/rpc"
-	rpcRate "github.com/hashicorp/consul/agent/consul/rate"
 	"github.com/hashicorp/go-hclog"
 )
 
@@ -157,28 +155,5 @@ func GetNetRPCInterceptor(recorder *RequestRecorder) rpc.ServerServiceCallInterc
 		err := handler()
 
 		recorder.Record(reqServiceMethod, RPCTypeNetRPC, reqStart, argv.Interface(), err != nil)
-	}
-}
-
-func GetNetRPCRateLimitingInterceptor(requestLimitsHandler rpcRate.RequestLimitsHandler, panicHandler RecoveryHandlerFunc) rpc.PreBodyInterceptor {
-
-	return func(reqServiceMethod string, sourceAddr net.Addr) (retErr error) {
-
-		defer func() {
-			if r := recover(); r != nil {
-				retErr = panicHandler(r)
-			}
-		}()
-
-		op := rpcRate.Operation{
-			Name:       reqServiceMethod,
-			SourceAddr: sourceAddr,
-			Type:       rpcRateLimitSpecs[reqServiceMethod],
-		}
-
-		// net/rpc does not provide a way to encode the nuances of the
-		// error response (retry or retry elsewhere) so the error string
-		// from the rate limiter is all that we have.
-		return requestLimitsHandler.Allow(op)
 	}
 }

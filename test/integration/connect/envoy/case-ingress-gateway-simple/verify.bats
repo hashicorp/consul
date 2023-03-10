@@ -39,23 +39,6 @@ load helpers
   [ "$MAX_REQS" = "30" ]
 }
 
-@test "s1 proxy should have been configured with outlier detection in ingress gateway" {
-  CLUSTER_THRESHOLD=$(get_envoy_cluster_config 127.0.0.1:20000 s1.default.primary | jq '.outlier_detection')
-  echo $CLUSTER_THRESHOLD
-
-  INTERVAL=$(echo $CLUSTER_THRESHOLD | jq --raw-output '.interval')
-  CONSECTIVE5xx=$(echo $CLUSTER_THRESHOLD | jq --raw-output '.consecutive_5xx')
-  ENFORCING_CONSECTIVE5xx=$(echo $CLUSTER_THRESHOLD | jq --raw-output '.enforcing_consecutive_5xx')
-
-  echo "INTERVAL = $INTERVAL"
-  echo "CONSECTIVE5xx = $CONSECTIVE5xx"
-  echo "ENFORCING_CONSECTIVE5xx = $ENFORCING_CONSECTIVE5xx"
-
-  [ "$INTERVAL" = "5s" ]
-  [ "$CONSECTIVE5xx" = null ]
-  [ "$ENFORCING_CONSECTIVE5xx" = null ]
-}
-
 @test "ingress should be able to connect to s1 via configured port" {
   run retry_default curl -s -f -d hello localhost:9999
   [ "$status" -eq 0 ]

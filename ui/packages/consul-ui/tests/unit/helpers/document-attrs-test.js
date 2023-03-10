@@ -30,9 +30,8 @@ module('Unit | Helper | document-attrs', function () {
     assert.deepEqual(actual, ['a', 'b'], 'keys are removed, leaving keys that need to remain');
     // remove first helper
     a.synchronize(root);
-    assert.strictEqual(
-      typeof attrs.get('class'),
-      'undefined',
+    assert.ok(
+      typeof attrs.get('class') === 'undefined',
       'property is completely removed once its empty'
     );
     assert.throws(() => {

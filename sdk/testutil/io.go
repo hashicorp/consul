@@ -1,6 +1,7 @@
 package testutil
 
 import (
+	"io/ioutil"
 	"os"
 	"strings"
 	"testing"
@@ -18,7 +19,7 @@ func TempDir(t testing.TB, name string) string {
 	}
 	name = t.Name() + "-" + name
 	name = strings.Replace(name, "/", "_", -1)
-	d, err := os.MkdirTemp("", name)
+	d, err := ioutil.TempDir("", name)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -44,7 +45,7 @@ func TempFile(t testing.TB, name string) *os.File {
 	}
 	name = t.Name() + "-" + name
 	name = strings.Replace(name, "/", "_", -1)
-	f, err := os.CreateTemp("", name)
+	f, err := ioutil.TempFile("", name)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}

@@ -10,9 +10,6 @@ services {
             local_bind_port = 5000
             config {
               protocol = "http"
-              passive_health_check {
-                interval = "22s"
-              }
             }
           }
         ]

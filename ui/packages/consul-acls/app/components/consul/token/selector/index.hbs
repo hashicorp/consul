@@ -64,11 +64,11 @@
             </AuthForm>
           </BlockSlot>
           <BlockSlot @name="actions">
-            <Hds::Button
-              @color='secondary'
-              @text='Continue without logging in'
-              {{on 'click' modal.close}}
-            />
+            <Action
+              {{on "click" modal.close}}
+            >
+              Continue without logging in
+            </Action>
           </BlockSlot>
         </ModalDialog>
       </:unauthorized>
@@ -106,11 +106,11 @@
             </AuthForm>
           </BlockSlot>
           <BlockSlot @name="actions">
-            <Hds::Button
-              @color='secondary'
-              @text='Continue without logging in'
+            <Action
               {{on 'click' modal.close}}
-            />
+            >
+              Continue without logging in
+            </Action>
           </BlockSlot>
         </ModalDialog>
         <Portal @target="app-before-skip-links">

@@ -206,10 +206,6 @@ type QueryOptions struct {
 	// This can be used to ensure a full service definition is returned in the response
 	// especially when the service might not be written into the catalog that way.
 	MergeCentralConfig bool
-
-	// Global is used to request information from all datacenters. Currently only
-	// used for operator usage requests.
-	Global bool
 }
 
 func (o *QueryOptions) Context() context.Context {
@@ -754,35 +750,20 @@ func NewClient(config *Config) (*Client, error) {
 	// If the TokenFile is set, always use that, even if a Token is configured.
 	// This is because when TokenFile is set it is read into the Token field.
 	// We want any derived clients to have to re-read the token file.
-	// The precedence of ACL token should be:
-	// 1. -token-file cli option
-	// 2. -token cli option
-	// 3. CONSUL_HTTP_TOKEN_FILE environment variable
-	// 4. CONSUL_HTTP_TOKEN environment variable
-	if config.TokenFile != "" && config.TokenFile != defConfig.TokenFile {
+	if config.TokenFile != "" {
 		data, err := os.ReadFile(config.TokenFile)
 		if err != nil {
-			return nil, fmt.Errorf("Error loading token file %s : %s", config.TokenFile, err)
+			return nil, fmt.Errorf("Error loading token file: %s", err)
 		}
 
 		if token := strings.TrimSpace(string(data)); token != "" {
 			config.Token = token
 		}
-	} else if config.Token != "" && defConfig.Token != config.Token {
-		// Fall through
-	} else if defConfig.TokenFile != "" {
-		data, err := os.ReadFile(defConfig.TokenFile)
-		if err != nil {
-			return nil, fmt.Errorf("Error loading token file %s : %s", defConfig.TokenFile, err)
-		}
-
-		if token := strings.TrimSpace(string(data)); token != "" {
-			config.Token = token
-			config.TokenFile = defConfig.TokenFile
-		}
-	} else {
+	}
+	if config.Token == "" {
 		config.Token = defConfig.Token
 	}
+
 	return &Client{config: *config, headers: make(http.Header)}, nil
 }
 
@@ -898,9 +879,6 @@ func (r *request) setQueryOptions(q *QueryOptions) {
 	}
 	if q.MergeCentralConfig {
 		r.params.Set("merge-central-config", "")
-	}
-	if q.Global {
-		r.params.Set("global", "")
 	}
 
 	r.ctx = q.ctx

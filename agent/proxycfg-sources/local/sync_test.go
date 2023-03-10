@@ -32,7 +32,7 @@ func TestSync(t *testing.T) {
 	state.AddServiceWithChecks(&structs.NodeService{
 		ID:   serviceID,
 		Kind: structs.ServiceKindConnectProxy,
-	}, nil, serviceToken, false)
+	}, nil, serviceToken)
 
 	cfgMgr := NewMockConfigManager(t)
 
@@ -99,7 +99,7 @@ func TestSync(t *testing.T) {
 	state.AddServiceWithChecks(&structs.NodeService{
 		ID:   serviceID,
 		Kind: structs.ServiceKindConnectProxy,
-	}, nil, "", false)
+	}, nil, "")
 
 	select {
 	case reg := <-registerCh:

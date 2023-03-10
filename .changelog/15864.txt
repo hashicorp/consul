@@ -1,3 +1,0 @@
-```release-note:feature
-connect: adds support for Envoy [access logging](https://developer.hashicorp.com/consul/docs/connect/observability/access-logs). Access logging can be enabled using the [`proxy-defaults`](https://developer.hashicorp.com/consul/docs/connect/config-entries/proxy-defaults#accesslogs) config entry.
-```

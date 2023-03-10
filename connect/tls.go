@@ -5,9 +5,9 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"net"
 	"net/url"
-	"os"
 	"strings"
 	"sync"
 
@@ -89,7 +89,7 @@ func devTLSConfigFromFiles(caFile, certFile,
 
 	roots := x509.NewCertPool()
 
-	bs, err := os.ReadFile(caFile)
+	bs, err := ioutil.ReadFile(caFile)
 	if err != nil {
 		return nil, err
 	}

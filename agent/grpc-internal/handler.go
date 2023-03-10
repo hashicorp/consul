@@ -6,12 +6,10 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
-
 	agentmiddleware "github.com/hashicorp/consul/agent/grpc-middleware"
 
 	middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	recovery "github.com/grpc-ecosystem/go-grpc-middleware/recovery"
-	"github.com/hashicorp/consul/agent/consul/rate"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/keepalive"
 )
@@ -26,7 +24,7 @@ var (
 // NewHandler returns a gRPC server that accepts connections from Handle(conn).
 // The register function will be called with the grpc.Server to register
 // gRPC services with the server.
-func NewHandler(logger Logger, addr net.Addr, register func(server *grpc.Server), metricsObj *metrics.Metrics, rateLimiter rate.RequestLimitsHandler) *Handler {
+func NewHandler(logger Logger, addr net.Addr, register func(server *grpc.Server), metricsObj *metrics.Metrics) *Handler {
 	if metricsObj == nil {
 		metricsObj = metrics.Default()
 	}
@@ -36,7 +34,6 @@ func NewHandler(logger Logger, addr net.Addr, register func(server *grpc.Server)
 	recoveryOpts := agentmiddleware.PanicHandlerMiddlewareOpts(logger)
 
 	opts := []grpc.ServerOption{
-		grpc.InTapHandle(agentmiddleware.ServerRateLimiterMiddleware(rateLimiter, agentmiddleware.NewPanicHandler(logger), logger)),
 		grpc.StatsHandler(agentmiddleware.NewStatsHandler(metricsObj, metricsLabels)),
 		middleware.WithUnaryServerChain(
 			// Add middlware interceptors to recover in case of panics.
@@ -122,7 +119,6 @@ type NoOpHandler struct {
 
 type Logger interface {
 	Error(string, ...interface{})
-	Warn(string, ...interface{})
 }
 
 func (h NoOpHandler) Handle(conn net.Conn) {
