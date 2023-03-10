@@ -77,7 +77,7 @@ func NewReporter(cfg *Config) *Reporter {
 	r := &Reporter{
 		cfg: *cfg,
 		resource: &v1resource.Resource{
-			Attributes: make([]*v1common.KeyValue, len(cfg.Labels)),
+			Attributes: make([]*v1common.KeyValue, 0),
 		},
 		logger:         cfg.Logger,
 		gatherer:       cfg.MetricsHandler,
@@ -99,7 +99,6 @@ func NewReporter(cfg *Config) *Reporter {
 			Value: &v1common.AnyValue{Value: &v1common.AnyValue_StringValue{StringValue: val}},
 		})
 	}
-
 	return r
 }
 
@@ -138,7 +137,7 @@ func (r *Reporter) gatherMetrics() {
 	}
 
 	for _, interval := range intervals {
-		if _, ok := r.batchedMetrics[interval.Interval]; ok {
+		if interval.Interval.Unix() <= r.lastIntervalExported.Unix() {
 			continue
 		}
 		r.batchedMetrics[interval.Interval] = r.goMetricsToOTLP(interval)
@@ -149,11 +148,13 @@ func (r *Reporter) gatherMetrics() {
 func (r *Reporter) flushMetrics() error {
 	metricsList := make([]*v1metrics.Metric, 0)
 	for interval, intervalMetrics := range r.batchedMetrics {
+		if interval.Unix() > r.lastIntervalExported.Unix() {
+			r.lastIntervalExported = interval
+		}
 		if len(intervalMetrics) == 0 {
 			continue
 		}
 		metricsList = append(metricsList, intervalMetrics...)
-		r.batchedMetrics[interval] = nil
 	}
 	if len(metricsList) == 0 {
 		return nil
@@ -179,6 +180,8 @@ func (r *Reporter) flushMetrics() error {
 	if err != nil {
 		return fmt.Errorf("failed to export metrics: %w", err)
 	}
+	r.batchedMetrics = make(map[time.Time][]*v1metrics.Metric)
+
 	return nil
 }
 
