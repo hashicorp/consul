@@ -18,6 +18,7 @@ import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/lib/maps"
 )
 
 const (
@@ -869,6 +870,26 @@ type ServiceResolverConfigEntry struct {
 	Meta               map[string]string `json:",omitempty"`
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	RaftIndex
+}
+
+func (e *ServiceResolverConfigEntry) RelatedPeers() []string {
+	peers := make(map[string]struct{})
+
+	if r := e.Redirect; r != nil && r.Peer != "" {
+		peers[r.Peer] = struct{}{}
+	}
+
+	if e.Failover != nil {
+		for _, f := range e.Failover {
+			for _, t := range f.Targets {
+				if t.Peer != "" {
+					peers[t.Peer] = struct{}{}
+				}
+			}
+		}
+	}
+
+	return maps.SliceOfKeys(peers)
 }
 
 func (e *ServiceResolverConfigEntry) MarshalJSON() ([]byte, error) {

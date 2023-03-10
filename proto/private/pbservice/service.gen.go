@@ -192,6 +192,7 @@ func ServiceDefinitionToStructs(s *ServiceDefinition, t *structs.ServiceDefiniti
 	t.Weights = WeightsPtrToStructs(s.Weights)
 	t.Token = s.Token
 	t.EnableTagOverride = s.EnableTagOverride
+	t.Locality = LocalityToStructs(s.Locality)
 	t.Proxy = ConnectProxyConfigPtrToStructs(s.Proxy)
 	t.EnterpriseMeta = EnterpriseMetaToStructs(s.EnterpriseMeta)
 	t.Connect = ServiceConnectPtrToStructs(s.Connect)
@@ -218,6 +219,7 @@ func ServiceDefinitionFromStructs(t *structs.ServiceDefinition, s *ServiceDefini
 	s.Weights = NewWeightsPtrFromStructs(t.Weights)
 	s.Token = t.Token
 	s.EnableTagOverride = t.EnableTagOverride
+	s.Locality = LocalityFromStructs(t.Locality)
 	s.Proxy = NewConnectProxyConfigPtrFromStructs(t.Proxy)
 	s.EnterpriseMeta = NewEnterpriseMetaFromStructs(t.EnterpriseMeta)
 	s.Connect = NewServiceConnectPtrFromStructs(t.Connect)

@@ -15,7 +15,7 @@ You must tell Consul about the services deployed to your network if you want the
 
 You can define multiple services individually using `service` blocks or group multiple services into the same `services` configuration block. Refer to [Define multiple services in a single file](#define-multiple-services-in-a-single-file) for additional information.
 
-If Consul service mesh is enabled in your network, you can use the `service-defaults` configuration entry to specify default global values for services. The configuraiton entry lets you define common service parameter, such as upstreams, namespaces, and partitions. Refer to [Define service defaults](#define-service-defaults) for additional information.
+If Consul service mesh is enabled in your network, you can use the [service defaults configuration entry](/consul/docs/connect/config-entries/service-defaults) to specify default global values for services. The configuration entry lets you define common service parameter, such as upstreams, namespaces, and partitions. Refer to [Define service defaults](#define-service-defaults) for additional information.
 
 ## Requirements
 
@@ -145,6 +145,9 @@ If Consul service mesh is enabled in your network, you can define default values
 
 Create a file for the configuration entry and specify the required fields. If you are authoring `service-defaults` in HCL or JSON, the `Kind` and `Name` fields are required. On Kubernetes, the `apiVersion`, `kind`, and `metadata.name` fields are required. Refer to [Service Defaults Reference](/consul/docs/connect/config-entries/service-defaults) for details about the configuration options.
 
+If you use Consul Enterprise, you can also specify the `Namespace` and `Partition` fields to apply the configuration to services in a specific namespace or partition. For Kubernetes environments, the configuration entry is always created in the same partition as the Kubernetes cluster.
+
+### Consul OSS example
 The following example instructs services named `counting` to send up to `512` concurrent requests to a mesh gateway: 
 
 <CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
@@ -198,6 +201,87 @@ spec:
 {
   "Kind": "service-defaults",
   "Name": "counting",
+  "UpstreamConfig": {
+    "Defaults": {
+      "MeshGateway": {
+        "Mode": "local"
+      },
+      "Limits": {
+        "MaxConnections": 512,
+        "MaxPendingRequests": 512,
+        "MaxConcurrentRequests": 512
+      }
+    },
+    "Overrides": [
+      {
+        "Name": "dashboard",
+        "MeshGateway": {
+          "Mode": "remote"
+        }
+      }
+    ]
+  }
+}
+```
+</CodeTabs>
+
+### Consul Enterprise example
+The following example instructs services named `counting` in the `prod` namespace to send up to `512` concurrent requests to a mesh gateway: 
+
+<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
+
+```hcl
+Kind = "service-defaults"
+Name = "counting"
+Namespace = "prod"
+
+UpstreamConfig = {
+  Defaults = {
+    MeshGateway = {
+      Mode = "local"
+    }
+    Limits = {
+      MaxConnections = 512
+      MaxPendingRequests = 512
+      MaxConcurrentRequests = 512
+    }
+  }
+
+  Overrides = [
+    {
+      Name = "dashboard"
+      MeshGateway = {
+        Mode = "remote"
+      }
+    }
+  ]
+}
+```
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ServiceDefaults
+metadata:
+  name: counting
+  namespace: prod
+spec:
+  upstreamConfig:
+    defaults:
+      meshGateway:
+        mode: local
+      limits:
+        maxConnections: 512
+        maxPendingRequests: 512
+        maxConcurrentRequests: 512
+    overrides:
+      - name: dashboard
+        meshGateway:
+          mode: remote
+```
+```json
+{
+  "Kind": "service-defaults",
+  "Name": "counting",
+  "Namespace" : "prod",
   "UpstreamConfig": {
     "Defaults": {
       "MeshGateway": {

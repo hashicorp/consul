@@ -2,6 +2,7 @@ package configentry
 
 import (
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/proto/private/pbpeering"
 )
 
 // DiscoveryChainSet is a wrapped set of raw cross-referenced config entries
@@ -13,6 +14,7 @@ type DiscoveryChainSet struct {
 	Splitters     map[structs.ServiceID]*structs.ServiceSplitterConfigEntry
 	Resolvers     map[structs.ServiceID]*structs.ServiceResolverConfigEntry
 	Services      map[structs.ServiceID]*structs.ServiceConfigEntry
+	Peers         map[string]*pbpeering.Peering
 	ProxyDefaults map[string]*structs.ProxyConfigEntry
 }
 
@@ -22,6 +24,7 @@ func NewDiscoveryChainSet() *DiscoveryChainSet {
 		Splitters:     make(map[structs.ServiceID]*structs.ServiceSplitterConfigEntry),
 		Resolvers:     make(map[structs.ServiceID]*structs.ServiceResolverConfigEntry),
 		Services:      make(map[structs.ServiceID]*structs.ServiceConfigEntry),
+		Peers:         make(map[string]*pbpeering.Peering),
 		ProxyDefaults: make(map[string]*structs.ProxyConfigEntry),
 	}
 }
@@ -108,6 +111,16 @@ func (e *DiscoveryChainSet) AddProxyDefaults(entries ...*structs.ProxyConfigEntr
 	}
 	for _, entry := range entries {
 		e.ProxyDefaults[entry.PartitionOrDefault()] = entry
+	}
+}
+
+// AddPeers adds cluster peers. Convenience function for testing.
+func (e *DiscoveryChainSet) AddPeers(entries ...*pbpeering.Peering) {
+	if e.Peers == nil {
+		e.Peers = make(map[string]*pbpeering.Peering)
+	}
+	for _, entry := range entries {
+		e.Peers[entry.Name] = entry
 	}
 }
 
