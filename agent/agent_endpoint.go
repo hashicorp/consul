@@ -304,6 +304,7 @@ func buildAgentService(s *structs.NodeService, dc string) api.AgentService {
 		ModifyIndex:       s.ModifyIndex,
 		Weights:           weights,
 		Datacenter:        dc,
+		Locality:          s.Locality.ToAPI(),
 	}
 
 	if as.Tags == nil {

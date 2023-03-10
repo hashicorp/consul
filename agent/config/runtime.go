@@ -796,7 +796,7 @@ type RuntimeConfig struct {
 	// hcl: leave_on_terminate = (true|false)
 	LeaveOnTerm bool
 
-	Locality Locality
+	Locality *Locality
 
 	// Logging configuration used to initialize agent logging.
 	Logging logging.Config
@@ -1715,8 +1715,12 @@ func (c *RuntimeConfig) VersionWithMetadata() string {
 	return version
 }
 
-func (c *RuntimeConfig) StructLocality() structs.Locality {
-	return structs.Locality{
+// StructLocality converts the RuntimeConfig Locality to a struct Locality.
+func (c *RuntimeConfig) StructLocality() *structs.Locality {
+	if c.Locality == nil {
+		return nil
+	}
+	return &structs.Locality{
 		Region: stringVal(c.Locality.Region),
 		Zone:   stringVal(c.Locality.Zone),
 	}

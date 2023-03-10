@@ -307,6 +307,10 @@ message ServiceDefinition {
 
   // mog: func-to=ServiceConnectPtrToStructs func-from=NewServiceConnectPtrFromStructs
   ServiceConnect Connect = 15;
+
+  // Locality identifies where the service is running.
+  // mog: func-to=LocalityToStructs func-from=LocalityFromStructs
+  common.Locality Locality = 19;
 }
 
 // Type to hold an address and port of a service

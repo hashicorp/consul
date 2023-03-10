@@ -186,7 +186,7 @@ type Config struct {
 	LeaveOnTerm                      *bool               `mapstructure:"leave_on_terminate" json:"leave_on_terminate,omitempty"`
 	LicensePath                      *string             `mapstructure:"license_path" json:"license_path,omitempty"`
 	Limits                           Limits              `mapstructure:"limits" json:"-"`
-	Locality                         Locality            `mapstructure:"locality" json:"-"`
+	Locality                         *Locality           `mapstructure:"locality" json:"-"`
 	LogLevel                         *string             `mapstructure:"log_level" json:"log_level,omitempty"`
 	LogJSON                          *bool               `mapstructure:"log_json" json:"log_json,omitempty"`
 	LogFile                          *string             `mapstructure:"log_file" json:"log_file,omitempty"`

@@ -4,6 +4,7 @@ package hashicorp.consul.internal.peering;
 
 import "annotations/ratelimit/ratelimit.proto";
 import "google/protobuf/timestamp.proto";
+import "private/pbcommon/common.proto";
 
 // PeeringService handles operations for establishing peering relationships
 // between disparate Consul clusters.
@@ -239,20 +240,8 @@ message RemoteInfo {
   string Datacenter = 2;
 
   // Locality identifies where the peer is running.
-  Locality Locality = 3;
-}
-
-// mog annotation:
-//
-// target=github.com/hashicorp/consul/api.Locality
-// output=peering.gen.go
-// name=API
-message Locality {
-  // Region is region the zone belongs to.
-  string Region = 1;
-
-  // Zone is the zone the entity is running in.
-  string Zone = 2;
+  // mog: func-to=LocalityToAPI func-from=LocalityFromAPI
+  common.Locality Locality = 3;
 }
 
 // StreamStatus represents information about an active peering stream.

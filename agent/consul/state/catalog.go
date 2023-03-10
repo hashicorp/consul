@@ -197,6 +197,7 @@ func (s *Store) ensureRegistrationTxn(tx WriteTxn, idx uint64, preserveIndexes b
 		TaggedAddresses: req.TaggedAddresses,
 		Meta:            req.NodeMeta,
 		PeerName:        req.PeerName,
+		Locality:        req.Locality,
 	}
 	if preserveIndexes {
 		node.CreateIndex = req.CreateIndex

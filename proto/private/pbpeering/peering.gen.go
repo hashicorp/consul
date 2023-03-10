@@ -62,20 +62,6 @@ func GenerateTokenResponseFromAPI(t *api.PeeringGenerateTokenResponse, s *Genera
 	}
 	s.PeeringToken = t.PeeringToken
 }
-func LocalityToAPI(s *Locality, t *api.Locality) {
-	if s == nil {
-		return
-	}
-	t.Region = s.Region
-	t.Zone = s.Zone
-}
-func LocalityFromAPI(t *api.Locality, s *Locality) {
-	if s == nil {
-		return
-	}
-	s.Region = t.Region
-	s.Zone = t.Zone
-}
 func PeeringToAPI(s *Peering, t *api.Peering) {
 	if s == nil {
 		return
@@ -126,9 +112,7 @@ func RemoteInfoToAPI(s *RemoteInfo, t *api.PeeringRemoteInfo) {
 	}
 	t.Partition = s.Partition
 	t.Datacenter = s.Datacenter
-	if s.Locality != nil {
-		LocalityToAPI(s.Locality, &t.Locality)
-	}
+	t.Locality = LocalityToAPI(s.Locality)
 }
 func RemoteInfoFromAPI(t *api.PeeringRemoteInfo, s *RemoteInfo) {
 	if s == nil {
@@ -136,9 +120,5 @@ func RemoteInfoFromAPI(t *api.PeeringRemoteInfo, s *RemoteInfo) {
 	}
 	s.Partition = t.Partition
 	s.Datacenter = t.Datacenter
-	{
-		var x Locality
-		LocalityFromAPI(&t.Locality, &x)
-		s.Locality = &x
-	}
+	s.Locality = LocalityFromAPI(t.Locality)
 }
