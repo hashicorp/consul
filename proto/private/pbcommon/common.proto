@@ -183,3 +183,16 @@ message EnvoyExtension {
   // mog: func-to=ProtobufTypesStructToMapStringInterface func-from=MapStringInterfaceToProtobufTypesStruct
   google.protobuf.Struct Arguments = 3;
 }
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.Locality
+// output=common.gen.go
+// name=Structs
+message Locality {
+  // Region is region the zone belongs to.
+  string Region = 1;
+
+  // Zone is the zone the entity is running in.
+  string Zone = 2;
+}
