@@ -3,8 +3,8 @@ import validateSometimes from 'consul-ui/validations/sometimes';
 export default {
   '*': [
     validateSometimes(validatePresence(true), function () {
-      const action = this.Action || '';
-      const permissions = this.Permissions || [];
+      const action = this.get('Action') || '';
+      const permissions = this.get('Permissions') || [];
       if (action === '' && permissions.length === 0) {
         return true;
       }
@@ -15,7 +15,7 @@ export default {
   DestinationName: [validatePresence(true), validateLength({ min: 1 })],
   Permissions: [
     validateSometimes(validateLength({ min: 1 }), function (changes, content) {
-      return !this.Action;
+      return !this.get('Action');
     }),
   ],
 };
