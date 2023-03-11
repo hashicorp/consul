@@ -4,7 +4,7 @@ import assign from 'deepmerge';
 
 const doc = document;
 
-export const services = merge.all(
+export const services = assign.all(
   [...doc.querySelectorAll(`script[data-services]`)].map(($item) =>
     JSON.parse($item.dataset[`services`])
   )
