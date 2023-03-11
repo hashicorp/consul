@@ -8,7 +8,6 @@ export default Component.extend({
   openModal() {
     this.modal?.open();
   },
-
   actions: {
     createNewLabel: function (template, term) {
       return template.replace(/{{term}}/g, term);
