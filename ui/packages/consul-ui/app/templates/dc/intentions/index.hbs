@@ -85,7 +85,7 @@ as |route|>
             )
           }}
           @type="intention"
-          @ondelete=<RefreshRoute />
+          @ondelete={{refresh-route}}
         as |writer|>
           <BlockSlot @name="content">
             <DataCollection
