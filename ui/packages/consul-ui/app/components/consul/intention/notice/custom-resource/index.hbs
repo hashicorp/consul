@@ -1,3 +1,8 @@
+{{!
+  Copyright (c) HashiCorp, Inc.
+  SPDX-License-Identifier: MPL-2.0
+}}
+
 <Hds::Alert @type='inline' @color={{or @type "neutral"}} class='mb-2 mt-2 consul-intention-notice-custom-resource' as |A|>
   <A.Title>Intention Custom Resource</A.Title>
   <A.Description>Some of your intentions are being managed through an Intention Custom Resource in your Kubernetes cluster. Those managed intentions will be view only in the UI. Any intentions created in the UI will work but will not be synced to the Custom Resource Definition (CRD) datastore.</A.Description>

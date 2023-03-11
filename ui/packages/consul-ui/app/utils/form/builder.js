@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 import { get, set } from '@ember/object';
 import { Changeset as createChangeset } from 'ember-changeset';
 import Changeset from 'consul-ui/utils/form/changeset';

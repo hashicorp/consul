@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 import { filters } from 'consul-ui/components/search-bar/utils';
 import { module, test } from 'qunit';
 
