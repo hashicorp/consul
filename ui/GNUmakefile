@@ -25,6 +25,8 @@ deps: clean
 	cd packages/consul-ui && \
 		$(MAKE) deps
 
+display-node-version:
+	node --version
 
 # Build a distribution of the UI for Vercel previews.
 # The distribution must be copied into the ui/ subfolder
@@ -35,7 +37,7 @@ deps: clean
 # Base Directory: ui
 # Build Command: make dist-vercel
 # Publish Directory: ui/dist
-dist-vercel: clean
+dist-vercel: clean display-node-version
 	mkdir -p dist/ui && \
 	cd packages/consul-ui && \
 		$(MAKE) build-staging && \

@@ -17,7 +17,7 @@ export default Component.extend({
       return !items.findBy('Name', term);
     },
     add: function (name, changeset, value) {
-      if (!(changeset.get(name) || []).includes(value) && value.isNew) {
+      if (!(changeset.get(name) || []).includes(value) && value.isPristine) {
         changeset.pushObject(name, value);
         changeset.validate();
       }

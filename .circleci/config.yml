@@ -43,7 +43,7 @@ references:
     # When updating the Go version, remember to also update the versions in the
     # workflows section for go-test-lib jobs.
     go: &GOLANG_IMAGE docker.mirror.hashicorp.services/cimg/go:1.20.1
-    ember: &EMBER_IMAGE docker.mirror.hashicorp.services/circleci/node:14-browsers
+    ember: &EMBER_IMAGE docker.mirror.hashicorp.services/circleci/node:16-browsers
     ubuntu: &UBUNTU_CI_IMAGE ubuntu-2004:202201-02
   cache:
     yarn: &YARN_CACHE_KEY consul-ui-v9-{{ checksum "ui/yarn.lock" }}

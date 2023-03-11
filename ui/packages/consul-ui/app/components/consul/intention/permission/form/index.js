@@ -42,7 +42,7 @@ export default Component.extend({
 
   changeset: computed('item', function () {
     const changeset = this.change.changesetFor(name, this.item || this.repo.create());
-    if (changeset.isNew) {
+    if (changeset.isPristine) {
       changeset.validate();
     }
     return changeset;

@@ -34,7 +34,7 @@ export default Component.extend(Slotted, {
   },
   willDestroyElement: function () {
     this._super(...arguments);
-    if (get(this, 'data.isNew')) {
+    if (get(this, 'data.isPristine')) {
       this.data.rollbackAttributes();
     }
   },
