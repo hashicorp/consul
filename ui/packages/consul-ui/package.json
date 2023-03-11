@@ -108,7 +108,7 @@
     "ember-auto-import": "^2.4.2",
     "ember-can": "^4.2.0",
     "ember-changeset-validations": "~3.15.2",
-    "ember-cli": "~3.27.0",
+    "ember-cli": "3.28.6",
     "ember-cli-app-version": "^5.0.0",
     "ember-cli-babel": "^7.26.6",
     "ember-cli-code-coverage": "^1.0.0-beta.4",
@@ -153,7 +153,7 @@
     "ember-router-helpers": "^0.4.0",
     "ember-set-helper": "^2.0.0",
     "ember-sinon-qunit": "5.0.0",
-    "ember-source": "~3.27.2",
+    "ember-source": "3.28.6",
     "ember-stargate": "^0.2.0",
     "ember-string-fns": "^1.4.0",
     "ember-test-selectors": "^5.0.0",
@@ -213,5 +213,8 @@
   },
   "volta": {
     "node": "14.20.1"
+  },
+  "dependencies": {
+    "doctoc": "^2.0.0"
   }
 }
