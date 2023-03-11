@@ -1,5 +1,4 @@
-import Model from 'ember-data/model';
-import attr from 'ember-data/attr';
+import Model, { attr } from '@ember-data/model';
 
 export const PRIMARY_KEY = 'uid';
 export const SLUG_KEY = 'Name';

@@ -2,7 +2,7 @@
 import EmberRouter from '@ember/routing/router';
 import config from './config/environment';
 import { runInDebug } from '@ember/debug';
-import merge from 'deepmerge';
+import assign from 'deepmerge';
 import { env } from 'consul-ui/env';
 import walk, { dump } from 'consul-ui/utils/routing/walk';
 

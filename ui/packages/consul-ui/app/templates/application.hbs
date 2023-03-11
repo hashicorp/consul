@@ -4,13 +4,13 @@
   <route.Announcer @title='Consul' />
   {{! Tell CSS what we have enabled }}
   {{#if (can 'use acls')}}
-    {{document-attrs class='has-acls'}}
+    <DocumentAttrs @class="has-acls" />
   {{/if}}
   {{#if (can 'use nspaces')}}
-    {{document-attrs class='has-nspaces'}}
+    <DocumentAttrs @class="has-nspaces" />
   {{/if}}
   {{#if (can 'use partitions')}}
-    {{document-attrs class='has-partitions'}}
+    <DocumentAttrs @class="has-partitions" />
   {{/if}}
 
   {{! Listen out for blocking query/client setting changes }}
@@ -23,7 +23,7 @@
   <DataSource @src={{uri 'settings://consul:theme'}} as |source|>
     {{#each-in source.data as |key value|}}
       {{#if (and value (includes key (array 'color-scheme' 'contrast')))}}
-        {{document-attrs class=(concat 'prefers-' key '-' value)}}
+        <DocumentAttrs @class={{concat "prefers-" key "-" value}} />
       {{/if}}
     {{/each-in}}
   </DataSource>

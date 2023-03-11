@@ -4,7 +4,7 @@ export default (schema) => ({
   Name: [validatePresence(true)],
   Value: [
     validateSometimes(validatePresence(true), function () {
-      return this.get('HeaderType') !== 'Present';
+      return this.HeaderType !== 'Present';
     }),
   ],
 });

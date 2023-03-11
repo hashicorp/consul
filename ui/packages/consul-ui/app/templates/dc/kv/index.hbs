@@ -143,7 +143,7 @@ as |sort filters parent items|}}
           }}
           @type="kv"
           @label="key"
-          @ondelete={{refresh-route}}
+          @ondelete=<RefreshRoute />
           as |writer|>
           <BlockSlot @name="content">
             <DataCollection

@@ -1,6 +1,6 @@
 import { runInDebug } from '@ember/debug';
 import require from 'require';
-import merge from 'deepmerge';
+import assign from 'deepmerge';
 
 const doc = document;
 
