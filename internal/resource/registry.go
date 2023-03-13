@@ -22,15 +22,19 @@ type Registration struct {
 	// In the future, we'll add hooks, the controller etc. here.
 }
 
+// Hashable key for a resource type
+type TypeKey string
+
 // Resource type registry
 type TypeRegistry struct {
-	registrations map[*pbresource.Type]Registration
+	// registrations keyed by GVK
+	registrations map[string]Registration
 	lock          sync.RWMutex
 }
 
 func NewRegistry() Registry {
 	return &TypeRegistry{
-		registrations: make(map[*pbresource.Type]Registration),
+		registrations: make(map[string]Registration),
 	}
 }
 
@@ -43,24 +47,24 @@ func (r *TypeRegistry) Register(registration Registration) {
 		panic("type field(s) cannot be empty")
 	}
 
-	if _, ok := r.registrations[registration.Type]; ok {
-		panic(fmt.Sprintf("resource type %s already registered", ToGVK(registration.Type)))
+	key := ToGVK(registration.Type)
+	if _, ok := r.registrations[key]; ok {
+		panic(fmt.Sprintf("resource type %s already registered", key))
 	}
 
-	r.registrations[registration.Type] = registration
+	r.registrations[key] = registration
 }
 
 func (r *TypeRegistry) Resolve(typ *pbresource.Type) (reg Registration, ok bool) {
 	r.lock.RLock()
 	defer r.lock.RUnlock()
 
-	if registration, ok := r.registrations[typ]; ok {
+	if registration, ok := r.registrations[ToGVK(typ)]; ok {
 		return registration, true
 	}
 	return Registration{}, false
 }
 
 func ToGVK(resourceType *pbresource.Type) string {
-	// TODO: is `/` delimiter safe?
 	return fmt.Sprintf("%s/%s/%s", resourceType.Group, resourceType.GroupVersion, resourceType.Kind)
 }
