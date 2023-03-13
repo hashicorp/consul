@@ -450,34 +450,6 @@ func testListWatch(t *testing.T, opts TestOptions) {
 	})
 }
 
-func testWatch(t *testing.T, opts TestOptions) {
-	backend := opts.NewBackend(t)
-	ctx := testContext(t)
-
-	r1 := &pbresource.Resource{
-		Id: &pbresource.ID{
-			Type:    typeAv1,
-			Tenancy: tenancyDefault,
-			Name:    "web",
-			Uid:     "a",
-		},
-		Version: "1",
-	}
-	_, err := backend.WriteCAS(ctx, r1, "")
-	require.NoError(t, err)
-
-	watch, err := backend.WatchList(ctx, storage.UnversionedTypeFrom(typeAv1), tenancyDefault, "")
-	require.NoError(t, err)
-
-	timeoutCtx, cancel := context.WithTimeout(ctx, 1*time.Second)
-	t.Cleanup(cancel)
-	event, err := watch.Next(timeoutCtx)
-	require.NoError(t, err)
-
-	require.Equal(t, pbresource.WatchEvent_OPERATION_UPSERT.String(), event.Operation.String())
-	require.Equal(t, r1, event.Resource)
-}
-
 func testOwnerReferences(t *testing.T, opts TestOptions) {
 	backend := opts.NewBackend(t)
 	ctx := testContext(t)
