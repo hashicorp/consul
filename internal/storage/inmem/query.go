@@ -12,11 +12,13 @@ import (
 // indexSeparator delimits the segments of our radix tree keys.
 const indexSeparator = "\x00"
 
-// readIndexer implements the memdb.Indexer interface (see FromArgs).
-type readIndexer struct{}
+// idIndexer implements the memdb.Indexer, memdb.SingleIndexer and
+// memdb.PrefixIndexer interfaces. It is used for indexing resources
+// by their IDs.
+type idIndexer struct{}
 
 // FromArgs constructs a radix tree key from an ID for lookup.
-func (i readIndexer) FromArgs(args ...any) ([]byte, error) {
+func (i idIndexer) FromArgs(args ...any) ([]byte, error) {
 	if l := len(args); l != 1 {
 		return nil, fmt.Errorf("expected 1 arg, got: %d", l)
 	}
@@ -24,21 +26,17 @@ func (i readIndexer) FromArgs(args ...any) ([]byte, error) {
 	if !ok {
 		return nil, fmt.Errorf("expected *pbresource.ID, got: %T", args[0])
 	}
-	return indexFromID(id), nil
+	return indexFromID(id, false), nil
 }
-
-// idIndexer implements the memdb.SingleIndexer and memdb.PrefixIndexer
-// interfaces. It is used for indexing resources by their IDs.
-type idIndexer struct{ readIndexer }
 
 // FromObject constructs a radix tree key from a Resource at write-time, or an
 // ID at delete-time.
 func (i idIndexer) FromObject(raw any) (bool, []byte, error) {
 	switch t := raw.(type) {
 	case *pbresource.ID:
-		return true, indexFromID(t), nil
+		return true, indexFromID(t, false), nil
 	case *pbresource.Resource:
-		return true, indexFromID(t.Id), nil
+		return true, indexFromID(t.Id, false), nil
 	}
 	return false, nil, fmt.Errorf("expected *pbresource.Resource or *pbresource.ID, got: %T", raw)
 }
@@ -56,9 +54,21 @@ func (i idIndexer) PrefixFromArgs(args ...any) ([]byte, error) {
 	return q.indexPrefix(), nil
 }
 
-// ownerIndexer implements the memdb.SingleIndexer interface. It is used for
-// indexing resources by their owners.
-type ownerIndexer struct{ readIndexer }
+// ownerIndexer implements the memdb.Indexer and memdb.SingleIndexer interfaces.
+// It is used for indexing resources by their owners.
+type ownerIndexer struct{}
+
+// FromArgs constructs a radix tree key from an ID for lookup.
+func (i ownerIndexer) FromArgs(args ...any) ([]byte, error) {
+	if l := len(args); l != 1 {
+		return nil, fmt.Errorf("expected 1 arg, got: %d", l)
+	}
+	id, ok := args[0].(*pbresource.ID)
+	if !ok {
+		return nil, fmt.Errorf("expected *pbresource.ID, got: %T", args[0])
+	}
+	return indexFromID(id, true), nil
+}
 
 // FromObject constructs a radix key tree from a Resource at write-time.
 func (i ownerIndexer) FromObject(raw any) (bool, []byte, error) {
@@ -69,7 +79,7 @@ func (i ownerIndexer) FromObject(raw any) (bool, []byte, error) {
 	if res.Owner == nil {
 		return false, nil, nil
 	}
-	return true, indexFromID(res.Owner), nil
+	return true, indexFromID(res.Owner, true), nil
 }
 
 func indexFromType(t storage.UnversionedType) []byte {
@@ -87,11 +97,14 @@ func indexFromTenancy(t *pbresource.Tenancy) []byte {
 	return b.Bytes()
 }
 
-func indexFromID(id *pbresource.ID) []byte {
+func indexFromID(id *pbresource.ID, includeUid bool) []byte {
 	var b indexBuilder
 	b.Raw(indexFromType(storage.UnversionedTypeFrom(id.Type)))
 	b.Raw(indexFromTenancy(id.Tenancy))
 	b.String(id.Name)
+	if includeUid {
+		b.String(id.Uid)
+	}
 	return b.Bytes()
 }
 

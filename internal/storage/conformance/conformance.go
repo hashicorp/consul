@@ -524,6 +524,15 @@ func testOwnerReferences(t *testing.T, opts TestOptions) {
 	require.NoError(t, err)
 	require.ElementsMatch(t, refs, []*pbresource.ID{r1.Id, r2.Id})
 
+	t.Run("references are anchored to a specific uid", func(t *testing.T) {
+		id := clone(owner.Id)
+		id.Uid = "different"
+
+		refs, err := backend.OwnerReferences(ctx, id)
+		require.NoError(t, err)
+		require.Empty(t, refs)
+	})
+
 	t.Run("deleting the owner doesn't remove the references", func(t *testing.T) {
 		require.NoError(t, backend.DeleteCAS(ctx, owner.Id, owner.Version))
 
