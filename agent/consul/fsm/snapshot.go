@@ -6,11 +6,13 @@ import (
 
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
+	"github.com/hashicorp/go-raftchunking"
+	"github.com/hashicorp/raft"
+
 	"github.com/hashicorp/consul-net-rpc/go-msgpack/codec"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/go-raftchunking"
-	"github.com/hashicorp/raft"
+	raftstorage "github.com/hashicorp/consul/internal/storage/raft"
 )
 
 var SnapshotSummaries = []prometheus.SummaryDefinition{
@@ -24,8 +26,9 @@ var SnapshotSummaries = []prometheus.SummaryDefinition{
 // state in a way that can be accessed concurrently with operations
 // that may modify the live state.
 type snapshot struct {
-	state      *state.Snapshot
-	chunkState *raftchunking.State
+	state           *state.Snapshot
+	chunkState      *raftchunking.State
+	storageSnapshot *raftstorage.Snapshot
 }
 
 // SnapshotHeader is the first entry in our snapshot
@@ -45,6 +48,12 @@ var persisters []persister
 // init() time.
 func registerPersister(fn persister) {
 	persisters = append(persisters, fn)
+}
+
+func init() {
+	registerPersister(func(s *snapshot, sink raft.SnapshotSink, encoder *codec.Encoder) error {
+		return s.persistResources(sink, encoder)
+	})
 }
 
 // restorer is a function used to load back a snapshot of the FSM state.
@@ -103,4 +112,23 @@ func (s *snapshot) Persist(sink raft.SnapshotSink) error {
 
 func (s *snapshot) Release() {
 	s.state.Close()
+}
+
+func (s *snapshot) persistResources(sink raft.SnapshotSink, encoder *codec.Encoder) error {
+	for {
+		v, err := s.storageSnapshot.Next()
+		if err != nil {
+			return err
+		}
+		if v == nil {
+			return nil
+		}
+
+		if _, err := sink.Write([]byte{byte(structs.ResourceOperationType)}); err != nil {
+			return err
+		}
+		if err := encoder.Encode(v); err != nil {
+			return err
+		}
+	}
 }

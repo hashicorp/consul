@@ -2,6 +2,7 @@ package fsm
 
 import (
 	"bytes"
+	"context"
 	"net"
 	"testing"
 	"time"
@@ -16,6 +17,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib/stringslice"
+	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/proto/private/pbpeering"
 	"github.com/hashicorp/consul/proto/private/prototest"
 	"github.com/hashicorp/consul/sdk/testutil"
@@ -25,8 +27,18 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	t.Parallel()
 
 	logger := testutil.Logger(t)
-	fsm, err := New(nil, logger)
-	require.NoError(t, err)
+
+	handle := &testRaftHandle{}
+	storageBackend := newStorageBackend(t, handle)
+	handle.apply = func(buf []byte) (any, error) { return storageBackend.Apply(buf), nil }
+
+	fsm := NewFromDeps(Deps{
+		Logger: logger,
+		NewStateStore: func() *state.Store {
+			return state.NewStateStore(nil)
+		},
+		StorageBackend: storageBackend,
+	})
 
 	// Add some state
 	node1 := &structs.Node{
@@ -518,6 +530,27 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 		},
 	}))
 
+	// Resources
+	resource := &pbresource.Resource{
+		Id: &pbresource.ID{
+			Type: &pbresource.Type{
+				Group:        "test",
+				GroupVersion: "v1",
+				Kind:         "foo",
+			},
+			Tenancy: &pbresource.Tenancy{
+				Partition: "default",
+				PeerName:  "local",
+				Namespace: "default",
+			},
+			Name: "bar",
+			Uid:  "a",
+		},
+		Version: "1",
+	}
+	_, err = storageBackend.WriteCAS(context.Background(), resource, "")
+	require.NoError(t, err)
+
 	// Snapshot
 	snap, err := fsm.Snapshot()
 	require.NoError(t, err)
@@ -556,8 +589,15 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	require.NoError(t, encoder.Encode(&token2))
 
 	// Try to restore on a new FSM
-	fsm2, err := New(nil, logger)
-	require.NoError(t, err)
+	storageBackend2 := newStorageBackend(t, nil)
+
+	fsm2 := NewFromDeps(Deps{
+		Logger: logger,
+		NewStateStore: func() *state.Store {
+			return state.NewStateStore(nil)
+		},
+		StorageBackend: storageBackend2,
+	})
 
 	// Do a restore
 	require.NoError(t, fsm2.Restore(sink))
@@ -839,6 +879,11 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	require.Len(t, ptbRestored.RootPEMs, 1)
 	require.Equal(t, "qux certificate bundle", ptbRestored.RootPEMs[0])
 
+	// Verify resources are restored.
+	resourceRestored, err := storageBackend2.Read(context.Background(), resource.Id)
+	require.NoError(t, err)
+	prototest.AssertDeepEqual(t, resource, resourceRestored)
+
 	// Snapshot
 	snap, err = fsm2.Snapshot()
 	require.NoError(t, err)
@@ -864,8 +909,14 @@ func TestFSM_BadRestore_OSS(t *testing.T) {
 	t.Parallel()
 	// Create an FSM with some state.
 	logger := testutil.Logger(t)
-	fsm, err := New(nil, logger)
-	require.NoError(t, err)
+
+	fsm := NewFromDeps(Deps{
+		Logger: logger,
+		NewStateStore: func() *state.Store {
+			return state.NewStateStore(nil)
+		},
+		StorageBackend: newStorageBackend(t, nil),
+	})
 	fsm.state.EnsureNode(1, &structs.Node{Node: "foo", Address: "127.0.0.1"})
 	abandonCh := fsm.state.AbandonCh()
 
@@ -895,8 +946,14 @@ func TestFSM_BadSnapshot_NilCAConfig(t *testing.T) {
 
 	// Create an FSM with no config entry.
 	logger := testutil.Logger(t)
-	fsm, err := New(nil, logger)
-	require.NoError(t, err)
+
+	fsm := NewFromDeps(Deps{
+		Logger: logger,
+		NewStateStore: func() *state.Store {
+			return state.NewStateStore(nil)
+		},
+		StorageBackend: newStorageBackend(t, nil),
+	})
 
 	// Snapshot
 	snap, err := fsm.Snapshot()
@@ -909,8 +966,13 @@ func TestFSM_BadSnapshot_NilCAConfig(t *testing.T) {
 	require.NoError(t, snap.Persist(sink))
 
 	// Try to restore on a new FSM
-	fsm2, err := New(nil, logger)
-	require.NoError(t, err)
+	fsm2 := NewFromDeps(Deps{
+		Logger: logger,
+		NewStateStore: func() *state.Store {
+			return state.NewStateStore(nil)
+		},
+		StorageBackend: newStorageBackend(t, nil),
+	})
 
 	// Do a restore
 	require.NoError(t, fsm2.Restore(sink))
@@ -946,8 +1008,14 @@ func Test_restoreServiceVirtualIP(t *testing.T) {
 		dec := codec.NewDecoder(buf, structs.MsgpackHandle)
 
 		logger := testutil.Logger(t)
-		fsm, err := New(nil, logger)
-		require.NoError(t, err)
+
+		fsm := NewFromDeps(Deps{
+			Logger: logger,
+			NewStateStore: func() *state.Store {
+				return state.NewStateStore(nil)
+			},
+			StorageBackend: newStorageBackend(t, nil),
+		})
 
 		restore := fsm.State().Restore()
 

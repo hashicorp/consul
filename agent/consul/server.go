@@ -62,6 +62,7 @@ import (
 	"github.com/hashicorp/consul/agent/rpc/peering"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
+	raftstorage "github.com/hashicorp/consul/internal/storage/raft"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/lib/routine"
 	"github.com/hashicorp/consul/logging"
@@ -443,14 +444,6 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server, incom
 
 	loggers := newLoggerStore(serverLogger)
 
-	fsmDeps := fsm.Deps{
-		Logger: flat.Logger,
-		NewStateStore: func() *state.Store {
-			return state.NewStateStoreWithEventPublisher(gc, flat.EventPublisher)
-		},
-		Publisher: flat.EventPublisher,
-	}
-
 	if incomingRPCLimiter == nil {
 		incomingRPCLimiter = rpcRate.NullRequestLimitsHandler()
 	}
@@ -477,12 +470,25 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server, incom
 		shutdownCh:              shutdownCh,
 		leaderRoutineManager:    routine.NewManager(logger.Named(logging.Leader)),
 		aclAuthMethodValidators: authmethod.NewCache(),
-		fsm:                     fsm.NewFromDeps(fsmDeps),
 		publisher:               flat.EventPublisher,
 		incomingRPCLimiter:      incomingRPCLimiter,
 	}
-
 	incomingRPCLimiter.Register(s)
+
+	backend, err := raftstorage.NewBackend(&raftHandle{s})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create storage backend: %w", err)
+	}
+	go backend.Run(&lib.StopChannelContext{StopCh: shutdownCh})
+
+	s.fsm = fsm.NewFromDeps(fsm.Deps{
+		Logger: flat.Logger,
+		NewStateStore: func() *state.Store {
+			return state.NewStateStoreWithEventPublisher(gc, flat.EventPublisher)
+		},
+		Publisher:      flat.EventPublisher,
+		StorageBackend: backend,
+	})
 
 	s.hcpManager = hcp.NewManager(hcp.ManagerConfig{
 		Client:   flat.HCP.Client,
@@ -1025,11 +1031,22 @@ func (s *Server) setupRaft() error {
 				return fmt.Errorf("recovery failed to parse peers.json: %v", err)
 			}
 
+			// It's safe to pass nil as the handle argument here because we won't call
+			// the backend's data access methods (only Apply, Snapshot, and Restore).
+			backend, err := raftstorage.NewBackend(nil)
+			if err != nil {
+				return fmt.Errorf("recovery failed: %w", err)
+			}
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+			go backend.Run(ctx)
+
 			tmpFsm := fsm.NewFromDeps(fsm.Deps{
 				Logger: s.logger,
 				NewStateStore: func() *state.Store {
 					return state.NewStateStore(s.tombstoneGC)
 				},
+				StorageBackend: backend,
 			})
 			if err := raft.RecoverCluster(s.config.RaftConfig, tmpFsm,
 				log, stable, snap, trans, configuration); err != nil {
