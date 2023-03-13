@@ -146,7 +146,7 @@ func createCluster(t *testing.T, ports ...int) *libcluster.Cluster {
 	return cluster
 }
 
-func createGateway(gatewayName string, protocol string, listenerPort int) *api.APIGatewayConfigEntry {
+func createGatewayConfigEntry(gatewayName, protocol, namespace string, listenerPort int) *api.APIGatewayConfigEntry {
 	return &api.APIGatewayConfigEntry{
 		Kind: api.APIGateway,
 		Name: gatewayName,
@@ -157,6 +157,7 @@ func createGateway(gatewayName string, protocol string, listenerPort int) *api.A
 				Protocol: protocol,
 			},
 		},
+		Namespace: namespace,
 	}
 }
 
