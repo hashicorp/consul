@@ -2,6 +2,7 @@ package resource
 
 import (
 	"fmt"
+	"sync"
 
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
@@ -24,6 +25,7 @@ type Registration struct {
 // Resource type registry
 type TypeRegistry struct {
 	registrations map[*pbresource.Type]Registration
+	lock          sync.RWMutex
 }
 
 func NewRegistry() Registry {
@@ -33,6 +35,9 @@ func NewRegistry() Registry {
 }
 
 func (r *TypeRegistry) Register(registration Registration) {
+	r.lock.Lock()
+	defer r.lock.Unlock()
+
 	typ := registration.Type
 	if typ.Group == "" || typ.GroupVersion == "" || typ.Kind == "" {
 		panic("type field(s) cannot be empty")
@@ -46,6 +51,9 @@ func (r *TypeRegistry) Register(registration Registration) {
 }
 
 func (r *TypeRegistry) Resolve(typ *pbresource.Type) (reg Registration, ok bool) {
+	r.lock.RLock()
+	defer r.lock.RUnlock()
+
 	if registration, ok := r.registrations[typ]; ok {
 		return registration, true
 	}
