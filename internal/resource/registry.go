@@ -20,6 +20,7 @@ type Registration struct {
 	Type *pbresource.Type
 
 	// In the future, we'll add hooks, the controller etc. here.
+	// TODO: https://github.com/hashicorp/consul/pull/16622#discussion_r1134515909
 }
 
 // Hashable key for a resource type
