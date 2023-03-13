@@ -1174,37 +1174,53 @@ func (s *Server) setQueryMeta(m blockingQueryResponseMeta, token string) {
 	}
 }
 
-// consistentRead is used to ensure we do not perform a stale
-// read. This is done by verifying leadership before the read.
-func (s *Server) consistentRead() error {
+func (s *Server) consistentReadWithContext(ctx context.Context) error {
 	defer metrics.MeasureSince([]string{"rpc", "consistentRead"}, time.Now())
 	future := s.raft.VerifyLeader()
 	if err := future.Error(); err != nil {
 		return err // fail fast if leader verification fails
 	}
-	// poll consistent read readiness, wait for up to RPCHoldTimeout milliseconds
+
 	if s.isReadyForConsistentReads() {
 		return nil
 	}
-	jitter := lib.RandomStagger(s.config.RPCHoldTimeout / structs.JitterFraction)
-	deadline := time.Now().Add(s.config.RPCHoldTimeout)
 
-	for time.Now().Before(deadline) {
+	// Poll until the context reaches its deadline, or for RPCHoldTimeout if the
+	// context has no deadline.
+	pollFor := s.config.RPCHoldTimeout
+	if deadline, ok := ctx.Deadline(); ok {
+		pollFor = time.Until(deadline)
+	}
 
+	interval := pollFor / structs.JitterFraction
+	if interval <= 0 {
+		return structs.ErrNotReadyForConsistentReads
+	}
+
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
+
+	for {
 		select {
-		case <-time.After(jitter):
-			// Drop through and check before we loop again.
-
+		case <-ticker.C:
+			if s.isReadyForConsistentReads() {
+				return nil
+			}
+		case <-ctx.Done():
+			return structs.ErrNotReadyForConsistentReads
 		case <-s.shutdownCh:
 			return fmt.Errorf("shutdown waiting for leader")
 		}
-
-		if s.isReadyForConsistentReads() {
-			return nil
-		}
 	}
+}
 
-	return structs.ErrNotReadyForConsistentReads
+// consistentRead is used to ensure we do not perform a stale
+// read. This is done by verifying leadership before the read.
+func (s *Server) consistentRead() error {
+	ctx, cancel := context.WithTimeout(context.Background(), s.config.RPCHoldTimeout)
+	defer cancel()
+
+	return s.consistentReadWithContext(ctx)
 }
 
 // rpcQueryTimeout calculates the timeout for the query, ensures it is
