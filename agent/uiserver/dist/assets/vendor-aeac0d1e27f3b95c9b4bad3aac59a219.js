@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 window.EmberENV=function(e,t){for(var r in t)e[r]=t[r]
 return e}(window.EmberENV||{},{FEATURES:{},EXTEND_PROTOTYPES:{Date:!1},_APPLICATION_TEMPLATE_WRAPPER:!1,_DEFAULT_ASYNC_OBSERVERS:!0,_JQUERY_INTEGRATION:!1,_TEMPLATE_ONLY_GLIMMER_COMPONENTS:!0})
 var loader,define,requireModule,require,requirejs,runningTests=!1;(function(e){"use strict"
