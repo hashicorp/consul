@@ -494,6 +494,11 @@ func insertConfigEntryWithTxn(tx WriteTxn, idx uint64, conf structs.ConfigEntry)
 				return fmt.Errorf("failed to persist service name: %v", err)
 			}
 		}
+	case structs.SamenessGroup:
+		err := checkSamenessGroup(tx, conf)
+		if err != nil {
+			return err
+		}
 	}
 
 	// Insert the config entry and update the index
@@ -539,6 +544,7 @@ func validateProposedConfigEntryInGraph(
 		if err != nil {
 			return err
 		}
+	case structs.SamenessGroup:
 	case structs.ServiceIntentions:
 	case structs.MeshConfig:
 	case structs.ExportedServices:

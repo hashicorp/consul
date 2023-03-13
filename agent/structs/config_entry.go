@@ -34,6 +34,7 @@ const (
 	ServiceIntentions  string = "service-intentions"
 	MeshConfig         string = "mesh"
 	ExportedServices   string = "exported-services"
+	SamenessGroup      string = "sameness-group"
 	APIGateway         string = "api-gateway"
 	BoundAPIGateway    string = "bound-api-gateway"
 	InlineCertificate  string = "inline-certificate"
@@ -59,6 +60,7 @@ var AllConfigEntryKinds = []string{
 	ServiceIntentions,
 	MeshConfig,
 	ExportedServices,
+	SamenessGroup,
 	APIGateway,
 	BoundAPIGateway,
 	HTTPRoute,
@@ -672,6 +674,8 @@ func MakeConfigEntry(kind, name string) (ConfigEntry, error) {
 		return &MeshConfigEntry{}, nil
 	case ExportedServices:
 		return &ExportedServicesConfigEntry{Name: name}, nil
+	case SamenessGroup:
+		return &SamenessGroupConfigEntry{Name: name}, nil
 	case APIGateway:
 		return &APIGatewayConfigEntry{Name: name}, nil
 	case BoundAPIGateway:
