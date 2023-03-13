@@ -18,7 +18,9 @@ import (
 // package, but also handles reads in our Raft backend, and can be used as a
 // local cache when storing data in external systems (e.g. RDBMS, K/V stores).
 type Store struct {
-	db  *memdb.MemDB
+	mu sync.RWMutex // guards db, because Restore.Commit will replace it wholesale.
+	db *memdb.MemDB
+
 	pub *stream.EventPublisher
 
 	// eventLock is used to serialize operations that result in the publishing of
@@ -62,7 +64,8 @@ func (s *Store) Run(ctx context.Context) { s.pub.Run(ctx) }
 //
 // For more information, see the storage.Backend documentation.
 func (s *Store) Read(id *pbresource.ID) (*pbresource.Resource, error) {
-	tx := s.db.Txn(false)
+	tx := s.txn(false)
+
 	defer tx.Abort()
 
 	val, err := tx.First(tableNameResources, indexNameID, id)
@@ -98,7 +101,7 @@ func (s *Store) WriteCAS(res *pbresource.Resource, vsn string) error {
 	s.eventLock.Lock()
 	defer s.eventLock.Unlock()
 
-	tx := s.db.Txn(true)
+	tx := s.txn(true)
 	defer tx.Abort()
 
 	existing, err := tx.First(tableNameResources, indexNameID, res.Id)
@@ -147,7 +150,7 @@ func (s *Store) DeleteCAS(id *pbresource.ID, vsn string) error {
 	s.eventLock.Lock()
 	defer s.eventLock.Unlock()
 
-	tx := s.db.Txn(true)
+	tx := s.txn(true)
 	defer tx.Abort()
 
 	existing, err := tx.First(tableNameResources, indexNameID, id)
@@ -192,7 +195,7 @@ func (s *Store) DeleteCAS(id *pbresource.ID, vsn string) error {
 //
 // For more information, see the storage.Backend documentation.
 func (s *Store) List(typ storage.UnversionedType, ten *pbresource.Tenancy, namePrefix string) ([]*pbresource.Resource, error) {
-	tx := s.db.Txn(false)
+	tx := s.txn(false)
 	defer tx.Abort()
 
 	return listTxn(tx, query{typ, ten, namePrefix})
@@ -258,7 +261,7 @@ func (s *Store) WatchList(typ storage.UnversionedType, ten *pbresource.Tenancy, 
 //
 // For more information, see the storage.Backend documentation.
 func (s *Store) OwnerReferences(id *pbresource.ID) ([]*pbresource.ID, error) {
-	tx := s.db.Txn(false)
+	tx := s.txn(false)
 	defer tx.Abort()
 
 	iter, err := tx.Get(tableNameResources, indexNameOwner, id)
@@ -271,4 +274,11 @@ func (s *Store) OwnerReferences(id *pbresource.ID) ([]*pbresource.ID, error) {
 		refs = append(refs, v.(*pbresource.Resource).Id)
 	}
 	return refs, nil
+}
+
+func (s *Store) txn(write bool) *memdb.Txn {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	return s.db.Txn(write)
 }
