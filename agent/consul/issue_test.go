@@ -33,6 +33,7 @@ func TestHealthCheckRace(t *testing.T) {
 		NewStateStore: func() *state.Store {
 			return state.NewStateStore(nil)
 		},
+		StorageBackend: consulfsm.NullStorageBackend,
 	})
 	state := fsm.State()
 

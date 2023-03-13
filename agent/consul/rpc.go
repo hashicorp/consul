@@ -930,7 +930,13 @@ func (s *Server) raftApplyWithEncoder(
 	if err != nil {
 		return nil, fmt.Errorf("Failed to encode request: %v", err)
 	}
+	return s.raftApplyEncoded(t, buf)
+}
 
+// raftApplyEncoded calls raft.Apply with the encoded message. Returns the FSM
+// response along with any errors. If the FSM.Apply response is an error it will
+// be returned as the error return value with a nil response.
+func (s *Server) raftApplyEncoded(t structs.MessageType, buf []byte) (any, error) {
 	// Warn if the command is very large
 	if n := len(buf); n > raftWarnSize {
 		s.rpcLogger().Warn("Attempting to apply large raft entry", "size_in_bytes", n)

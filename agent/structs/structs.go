@@ -87,6 +87,7 @@ const (
 	PeeringTrustBundleDeleteType                = 39
 	PeeringSecretsWriteType                     = 40
 	RaftLogVerifierCheckpoint                   = 41 // Only used for log verifier, no-op on FSM.
+	ResourceOperationType                       = 42
 )
 
 const (
@@ -154,6 +155,7 @@ var requestTypeStrings = map[MessageType]string{
 	PeeringTrustBundleDeleteType:    "PeeringTrustBundleDelete",
 	PeeringSecretsWriteType:         "PeeringSecret",
 	RaftLogVerifierCheckpoint:       "RaftLogVerifierCheckpoint",
+	ResourceOperationType:           "Resource",
 }
 
 const (
