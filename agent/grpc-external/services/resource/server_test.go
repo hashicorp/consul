@@ -8,8 +8,72 @@ import (
 	"google.golang.org/grpc"
 
 	"github.com/hashicorp/consul/agent/grpc-external/testutils"
+	"github.com/hashicorp/consul/internal/storage/inmem"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
+
+func TestRead_TODO(t *testing.T) {
+	server := testServer(t)
+	client := testClient(t, server)
+	resp, err := client.Read(context.Background(), &pbresource.ReadRequest{})
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+}
+
+func TestWrite_TODO(t *testing.T) {
+	server := testServer(t)
+	client := testClient(t, server)
+	resp, err := client.Write(context.Background(), &pbresource.WriteRequest{})
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+}
+
+func TestWriteStatus_TODO(t *testing.T) {
+	server := testServer(t)
+	client := testClient(t, server)
+	resp, err := client.WriteStatus(context.Background(), &pbresource.WriteStatusRequest{})
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+}
+
+func TestList_TODO(t *testing.T) {
+	server := testServer(t)
+	client := testClient(t, server)
+	resp, err := client.List(context.Background(), &pbresource.ListRequest{})
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+}
+
+func TestDelete_TODO(t *testing.T) {
+	server := testServer(t)
+	client := testClient(t, server)
+	resp, err := client.Delete(context.Background(), &pbresource.DeleteRequest{})
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+}
+
+func TestWatch_TODO(t *testing.T) {
+	server := testServer(t)
+	client := testClient(t, server)
+	wc, err := client.Watch(context.Background(), &pbresource.WatchRequest{})
+	require.NoError(t, err)
+	require.NotNil(t, wc)
+}
+
+func testServer(t *testing.T) *Server {
+	t.Helper()
+
+	backend, err := inmem.NewBackend()
+	require.NoError(t, err)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	t.Cleanup(cancel)
+	go backend.Run(ctx)
+
+	return NewServer(Config{
+		Backend: backend,
+	})
+}
 
 func testClient(t *testing.T, server *Server) pbresource.ResourceServiceClient {
 	t.Helper()
@@ -24,52 +88,4 @@ func testClient(t *testing.T, server *Server) pbresource.ResourceServiceClient {
 	})
 
 	return pbresource.NewResourceServiceClient(conn)
-}
-
-func TestRead_TODO(t *testing.T) {
-	server := NewServer(Config{})
-	client := testClient(t, server)
-	resp, err := client.Read(context.Background(), &pbresource.ReadRequest{})
-	require.NoError(t, err)
-	require.NotNil(t, resp)
-}
-
-func TestWrite_TODO(t *testing.T) {
-	server := NewServer(Config{})
-	client := testClient(t, server)
-	resp, err := client.Write(context.Background(), &pbresource.WriteRequest{})
-	require.NoError(t, err)
-	require.NotNil(t, resp)
-}
-
-func TestWriteStatus_TODO(t *testing.T) {
-	server := NewServer(Config{})
-	client := testClient(t, server)
-	resp, err := client.WriteStatus(context.Background(), &pbresource.WriteStatusRequest{})
-	require.NoError(t, err)
-	require.NotNil(t, resp)
-}
-
-func TestList_TODO(t *testing.T) {
-	server := NewServer(Config{})
-	client := testClient(t, server)
-	resp, err := client.List(context.Background(), &pbresource.ListRequest{})
-	require.NoError(t, err)
-	require.NotNil(t, resp)
-}
-
-func TestDelete_TODO(t *testing.T) {
-	server := NewServer(Config{})
-	client := testClient(t, server)
-	resp, err := client.Delete(context.Background(), &pbresource.DeleteRequest{})
-	require.NoError(t, err)
-	require.NotNil(t, resp)
-}
-
-func TestWatch_TODO(t *testing.T) {
-	server := NewServer(Config{})
-	client := testClient(t, server)
-	wc, err := client.Watch(context.Background(), &pbresource.WatchRequest{})
-	require.NoError(t, err)
-	require.NotNil(t, wc)
 }

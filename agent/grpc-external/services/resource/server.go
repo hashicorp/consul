@@ -5,6 +5,7 @@ import (
 
 	"google.golang.org/grpc"
 
+	"github.com/hashicorp/consul/internal/storage"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
@@ -13,6 +14,8 @@ type Server struct {
 }
 
 type Config struct {
+	// Backend is the storage backend that will be used for resource persistence.
+	Backend storage.Backend
 }
 
 func NewServer(cfg Config) *Server {
