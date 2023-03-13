@@ -112,7 +112,6 @@ func (g gatewayContainer) GetPort(port int) (int, error) {
 		return 0, fmt.Errorf("port does not exist")
 	}
 	return p, nil
-
 }
 
 func (g gatewayContainer) Restart() error {
@@ -140,7 +139,7 @@ func (g gatewayContainer) GetStatus() (string, error) {
 	return state.Status, err
 }
 
-func NewGatewayService(ctx context.Context, name string, kind string, node libcluster.Agent, ports ...int) (Service, error) {
+func NewGatewayService(ctx context.Context, name, kind, namespace string, node libcluster.Agent, ports ...int) (Service, error) {
 	nodeConfig := node.GetConfig()
 	if nodeConfig.ScratchDir == "" {
 		return nil, fmt.Errorf("node ScratchDir is required")
@@ -176,6 +175,7 @@ func NewGatewayService(ctx context.Context, name string, kind string, node libcl
 			"consul", "connect", "envoy",
 			fmt.Sprintf("-gateway=%s", kind),
 			"-register",
+			"-namespace", namespace,
 			"-service", name,
 			"-address", "{{ GetInterfaceIP \"eth0\" }}:8443",
 			"-admin-bind", fmt.Sprintf("0.0.0.0:%d", adminPort),

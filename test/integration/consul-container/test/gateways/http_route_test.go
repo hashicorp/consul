@@ -106,6 +106,7 @@ func TestHTTPRouteFlattening(t *testing.T) {
 				Protocol: "http",
 			},
 		},
+		Namespace: namespace,
 	}
 
 	routeOne := &api.HTTPRouteConfigEntry{
@@ -127,8 +128,7 @@ func TestHTTPRouteFlattening(t *testing.T) {
 			{
 				Services: []api.HTTPService{
 					{
-						Name:      serviceOne.GetServiceName(),
-						Namespace: namespace,
+						Name: serviceOne.GetServiceName(),
 					},
 				},
 				Matches: []api.HTTPMatch{
@@ -161,8 +161,7 @@ func TestHTTPRouteFlattening(t *testing.T) {
 			{
 				Services: []api.HTTPService{
 					{
-						Name:      serviceTwo.GetServiceName(),
-						Namespace: namespace,
+						Name: serviceTwo.GetServiceName(),
 					},
 				},
 				Matches: []api.HTTPMatch{
@@ -189,7 +188,7 @@ func TestHTTPRouteFlattening(t *testing.T) {
 	require.NoError(t, cluster.ConfigEntryWrite(routeTwo))
 
 	// create gateway service
-	gatewayService, err := libservice.NewGatewayService(context.Background(), gatewayName, "api", cluster.Agents[0], listenerPort)
+	gatewayService, err := libservice.NewGatewayService(context.Background(), gatewayName, "api", namespace, cluster.Agents[0], listenerPort)
 	require.NoError(t, err)
 	libassert.CatalogServiceExists(t, client, gatewayName, nil)
 
@@ -233,7 +232,6 @@ func TestHTTPRouteFlattening(t *testing.T) {
 	checkRoute(t, gatewayPort, "/v2", map[string]string{
 		"Host": "test.example",
 	}, checkOptions{debug: false, statusCode: service1ResponseCode, testName: "service1, v2 path with v2 hostname"})
-
 }
 
 func TestHTTPRoutePathRewrite(t *testing.T) {
@@ -378,7 +376,7 @@ func TestHTTPRoutePathRewrite(t *testing.T) {
 	require.NoError(t, cluster.ConfigEntryWrite(barRoute))
 
 	// create gateway service
-	gatewayService, err := libservice.NewGatewayService(context.Background(), gatewayName, "api", cluster.Agents[0], listenerPort)
+	gatewayService, err := libservice.NewGatewayService(context.Background(), gatewayName, "api", "", cluster.Agents[0], listenerPort)
 	require.NoError(t, err)
 	libassert.CatalogServiceExists(t, client, gatewayName, nil)
 
@@ -413,7 +411,6 @@ func TestHTTPRoutePathRewrite(t *testing.T) {
 	checkRoute(t, gatewayPort, barUnrewritten+"/bar", map[string]string{
 		"Host": "test.foo",
 	}, checkOptions{debug: false, statusCode: barStatusCode, testName: "bar service"})
-
 }
 
 func TestHTTPRouteParentRefChange(t *testing.T) {
@@ -481,7 +478,7 @@ func TestHTTPRouteParentRefChange(t *testing.T) {
 	}, time.Second*10, time.Second*1)
 
 	// create gateway service
-	gatewayOneService, err := libservice.NewGatewayService(context.Background(), gatewayOneName, "api", cluster.Agents[0], listenerOnePort)
+	gatewayOneService, err := libservice.NewGatewayService(context.Background(), gatewayOneName, "api", "", cluster.Agents[0], listenerOnePort)
 	require.NoError(t, err)
 	libassert.CatalogServiceExists(t, client, gatewayOneName, nil)
 
@@ -513,7 +510,7 @@ func TestHTTPRouteParentRefChange(t *testing.T) {
 	}, time.Second*10, time.Second*1)
 
 	// create gateway service
-	gatewayTwoService, err := libservice.NewGatewayService(context.Background(), gatewayTwoName, "api", cluster.Agents[0], listenerTwoPort)
+	gatewayTwoService, err := libservice.NewGatewayService(context.Background(), gatewayTwoName, "api", "", cluster.Agents[0], listenerTwoPort)
 	require.NoError(t, err)
 	libassert.CatalogServiceExists(t, client, gatewayTwoName, nil)
 

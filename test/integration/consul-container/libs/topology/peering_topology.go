@@ -67,9 +67,9 @@ func BasicPeeringTwoClustersSetup(
 	})
 
 	// Create the mesh gateway for dataplane traffic and peering control plane traffic (if enabled)
-	acceptingClusterGateway, err := libservice.NewGatewayService(context.Background(), "mesh", "mesh", acceptingCluster.Clients()[0])
+	acceptingClusterGateway, err := libservice.NewGatewayService(context.Background(), "mesh", "mesh", "", acceptingCluster.Clients()[0])
 	require.NoError(t, err)
-	dialingClusterGateway, err := libservice.NewGatewayService(context.Background(), "mesh", "mesh", dialingCluster.Clients()[0])
+	dialingClusterGateway, err := libservice.NewGatewayService(context.Background(), "mesh", "mesh", "", dialingCluster.Clients()[0])
 	require.NoError(t, err)
 
 	// Enable peering control plane traffic through mesh gateway

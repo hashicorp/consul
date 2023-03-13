@@ -9,6 +9,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	libassert "github.com/hashicorp/consul/test/integration/consul-container/libs/assert"
@@ -17,8 +20,6 @@ import (
 	libtopology "github.com/hashicorp/consul/test/integration/consul-container/libs/topology"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 	"github.com/hashicorp/go-cleanhttp"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 // Creates a gateway service and tests to see if it is routable
@@ -208,8 +209,8 @@ func createService(t *testing.T, cluster *libcluster.Cluster, serviceOpts *libse
 	libassert.CatalogServiceExists(t, client, serviceOpts.Name, nil)
 
 	return service
-
 }
+
 func createServices(t *testing.T, cluster *libcluster.Cluster, ports ...int) (libservice.Service, libservice.Service) {
 	node := cluster.Agents[0]
 	client := node.GetClient()
@@ -223,7 +224,7 @@ func createServices(t *testing.T, cluster *libcluster.Cluster, ports ...int) (li
 
 	clientConnectProxy := createService(t, cluster, serviceOpts, nil)
 
-	gatewayService, err := libservice.NewGatewayService(context.Background(), "api-gateway", "api", cluster.Agents[0], ports...)
+	gatewayService, err := libservice.NewGatewayService(context.Background(), "api-gateway", "api", "", cluster.Agents[0], ports...)
 	require.NoError(t, err)
 	libassert.CatalogServiceExists(t, client, "api-gateway", nil)
 
@@ -284,7 +285,7 @@ func checkRoute(t *testing.T, port int, path string, headers map[string]string, 
 			r.Fatal("unexpected response code returned")
 		}
 
-		//if debug is expected, debug should be in the response body
+		// if debug is expected, debug should be in the response body
 		assert.Equal(t, expected.debug, strings.Contains(string(body), "debug"))
 		if expected.statusCode != res.StatusCode {
 			r.Fatal("unexpected response body returned")
@@ -293,7 +294,6 @@ func checkRoute(t *testing.T, port int, path string, headers map[string]string, 
 		if !strings.Contains(string(body), phrase) {
 			r.Fatal("received an incorrect response ", string(body))
 		}
-
 	})
 }
 
