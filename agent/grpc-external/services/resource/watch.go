@@ -15,7 +15,7 @@ func (s *Server) WatchList(req *pbresource.WatchListRequest, stream pbresource.R
 	}
 
 	unversionedType := storage.UnversionedTypeFrom(req.Type)
-	watch, err := s.backend.WatchList(
+	watch, err := s.Backend.WatchList(
 		stream.Context(),
 		unversionedType,
 		req.Tenancy,

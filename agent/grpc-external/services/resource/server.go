@@ -22,7 +22,9 @@ type Server struct {
 
 type Config struct {
 	registry Registry
-	backend  Backend
+
+	// Backend is the storage backend that will be used for resource persistence.
+	Backend Backend
 }
 
 //go:generate mockery --name Registry --inpackage

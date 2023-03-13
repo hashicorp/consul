@@ -53,7 +53,7 @@ func TestRead_GroupVersionMismatch(t *testing.T) {
 			client := testClient(t, server)
 
 			resource1 := &pbresource.Resource{Id: id1, Version: ""}
-			_, err := server.backend.WriteCAS(tc.ctx, resource1)
+			_, err := server.Backend.WriteCAS(tc.ctx, resource1)
 			require.NoError(t, err)
 
 			_, err = client.Read(tc.ctx, &pbresource.ReadRequest{Id: id2})
@@ -71,7 +71,7 @@ func TestRead_Success(t *testing.T) {
 			server.registry.Register(resource.Registration{Type: typev1})
 			client := testClient(t, server)
 			resource1 := &pbresource.Resource{Id: id1, Version: ""}
-			resource1, err := server.backend.WriteCAS(tc.ctx, resource1)
+			resource1, err := server.Backend.WriteCAS(tc.ctx, resource1)
 			require.NoError(t, err)
 
 			rsp, err := client.Read(tc.ctx, &pbresource.ReadRequest{Id: id1})
@@ -88,7 +88,7 @@ func TestRead_VerifyReadConsistencyArg(t *testing.T) {
 			mockBackend := NewMockBackend(t)
 			server := NewServer(Config{
 				registry: resource.NewRegistry(),
-				backend:  mockBackend,
+				Backend:  mockBackend,
 			})
 			server.registry.Register(resource.Registration{Type: typev1})
 			resource1 := &pbresource.Resource{Id: id1, Version: "1"}

@@ -55,7 +55,7 @@ func TestWatchList_GroupVersionMatches(t *testing.T) {
 	rspCh := handleResourceStream(t, stream)
 
 	// insert and verify upsert event received
-	r1, err := server.backend.WriteCAS(ctx, resourcev1)
+	r1, err := server.Backend.WriteCAS(ctx, resourcev1)
 	require.NoError(t, err)
 	rsp := mustGetResource(t, rspCh)
 	require.Equal(t, pbresource.WatchEvent_OPERATION_UPSERT, rsp.Operation)
@@ -63,14 +63,14 @@ func TestWatchList_GroupVersionMatches(t *testing.T) {
 
 	// update and verify upsert event received
 	r2 := clone(r1)
-	r2, err = server.backend.WriteCAS(ctx, r2)
+	r2, err = server.Backend.WriteCAS(ctx, r2)
 	require.NoError(t, err)
 	rsp = mustGetResource(t, rspCh)
 	require.Equal(t, pbresource.WatchEvent_OPERATION_UPSERT, rsp.Operation)
 	prototest.AssertDeepEqual(t, r2, rsp.Resource)
 
 	// delete and verify delete event received
-	err = server.backend.DeleteCAS(ctx, r2.Id, r2.Version)
+	err = server.Backend.DeleteCAS(ctx, r2.Id, r2.Version)
 	require.NoError(t, err)
 	rsp = mustGetResource(t, rspCh)
 	require.Equal(t, pbresource.WatchEvent_OPERATION_DELETE, rsp.Operation)
@@ -97,16 +97,16 @@ func TestWatchList_GroupVersionMismatch(t *testing.T) {
 	rspCh := handleResourceStream(t, stream)
 
 	// insert
-	r1, err := server.backend.WriteCAS(ctx, resourcev1)
+	r1, err := server.Backend.WriteCAS(ctx, resourcev1)
 	require.NoError(t, err)
 
 	// update
 	r2 := clone(r1)
-	r2, err = server.backend.WriteCAS(ctx, r2)
+	r2, err = server.Backend.WriteCAS(ctx, r2)
 	require.NoError(t, err)
 
 	// delete
-	err = server.backend.DeleteCAS(ctx, r2.Id, r2.Version)
+	err = server.Backend.DeleteCAS(ctx, r2.Id, r2.Version)
 	require.NoError(t, err)
 
 	// verify no events received

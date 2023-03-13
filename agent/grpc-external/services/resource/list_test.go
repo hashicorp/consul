@@ -70,7 +70,7 @@ func TestList_Many(t *testing.T) {
 					},
 					Version: "",
 				}
-				server.backend.WriteCAS(tc.ctx, r)
+				server.Backend.WriteCAS(tc.ctx, r)
 			}
 
 			rsp, err := client.List(tc.ctx, &pbresource.ListRequest{
@@ -90,7 +90,7 @@ func TestList_GroupVersionMismatch(t *testing.T) {
 			server := testServer(t)
 			client := testClient(t, server)
 			server.registry.Register(resource.Registration{Type: typev1})
-			server.backend.WriteCAS(tc.ctx, &pbresource.Resource{Id: id2})
+			server.Backend.WriteCAS(tc.ctx, &pbresource.Resource{Id: id2})
 
 			rsp, err := client.List(tc.ctx, &pbresource.ListRequest{
 				Type:       typev1,
@@ -110,7 +110,7 @@ func TestList_VerifyReadConsistencyArg(t *testing.T) {
 			mockBackend := NewMockBackend(t)
 			server := NewServer(Config{
 				registry: resource.NewRegistry(),
-				backend:  mockBackend,
+				Backend:  mockBackend,
 			})
 			server.registry.Register(resource.Registration{Type: typev1})
 			resource1 := &pbresource.Resource{Id: id1, Version: "1"}

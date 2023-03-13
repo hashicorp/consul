@@ -20,7 +20,7 @@ func (s *Server) Read(ctx context.Context, req *pbresource.ReadRequest) (*pbreso
 		return nil, err
 	}
 
-	resource, err := s.backend.Read(ctx, readConsistencyFrom(ctx), req.Id)
+	resource, err := s.Backend.Read(ctx, readConsistencyFrom(ctx), req.Id)
 	if err != nil {
 		if errors.Is(err, storage.ErrNotFound) {
 			return nil, status.Error(codes.NotFound, err.Error())
