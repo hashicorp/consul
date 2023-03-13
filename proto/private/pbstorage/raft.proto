@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package hashicorp.consul.internal.storage.raft;
+
+import "pbresource/resource.proto";
+
+message Request {
+  enum Op {
+    OP_UNSPECIFIED = 0;
+    OP_WRITE = 1;
+    OP_DELETE = 2;
+  }
+
+  Op op = 1;
+  string version = 2;
+
+  oneof subject {
+    hashicorp.consul.resource.Resource resource = 3;
+    hashicorp.consul.resource.ID id = 4;
+  }
+}
