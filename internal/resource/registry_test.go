@@ -20,7 +20,38 @@ func TestRegister(t *testing.T) {
 	serviceRegistration := Registration{Type: serviceType}
 	r.Register(serviceRegistration)
 
-	// registering again should panic
+	// register existing should panic
+	assertRegisterPanics(t, r.Register, serviceRegistration, "resource type mesh/v1/service already registered")
+
+	// register empty Group should panic
+	assertRegisterPanics(t, r.Register, Registration{
+		Type: &pbresource.Type{
+			Group:        "",
+			GroupVersion: "v1",
+			Kind:         "service",
+		},
+	}, "type field(s) cannot be empty")
+
+	// register empty GroupVersion should panic
+	assertRegisterPanics(t, r.Register, Registration{
+		Type: &pbresource.Type{
+			Group:        "mesh",
+			GroupVersion: "",
+			Kind:         "service",
+		},
+	}, "type field(s) cannot be empty")
+
+	// register empty Kind should panic
+	assertRegisterPanics(t, r.Register, Registration{
+		Type: &pbresource.Type{
+			Group:        "mesh",
+			GroupVersion: "v1",
+			Kind:         "",
+		},
+	}, "type field(s) cannot be empty")
+}
+
+func assertRegisterPanics(t *testing.T, registerFn func(reg Registration), registration Registration, panicString string) {
 	defer func() {
 		if r := recover(); r == nil {
 			t.Errorf("expected panic, but none occurred")
@@ -28,12 +59,13 @@ func TestRegister(t *testing.T) {
 			errstr, ok := r.(string)
 			if !ok {
 				t.Errorf("unexpected error type returned from panic")
-			} else if errstr != "resource type mesh/v1/service already registered" {
-				t.Errorf("unexpected error message: %s", errstr)
+			} else if errstr != panicString {
+				t.Errorf("expected %s error message but got: %s", panicString, errstr)
 			}
 		}
 	}()
-	r.Register(serviceRegistration)
+
+	registerFn(registration)
 }
 
 func TestResolve(t *testing.T) {

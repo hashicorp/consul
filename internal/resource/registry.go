@@ -35,7 +35,7 @@ func NewRegistry() Registry {
 func (r *TypeRegistry) Register(registration Registration) {
 	typ := registration.Type
 	if typ.Group == "" || typ.GroupVersion == "" || typ.Kind == "" {
-		panic("invalid type")
+		panic("type field(s) cannot be empty")
 	}
 
 	if _, ok := r.registrations[registration.Type]; ok {
