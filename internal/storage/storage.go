@@ -143,7 +143,7 @@ type Backend interface {
 	//
 	// # Tenancy Wildcard
 	//
-	// In order to list resources across multiple tenancy units (e.g. partitions)
+	// In order to list resources across multiple tenancy units (e.g. namespaces)
 	// pass the Wildcard sentinel value in tenancy fields.
 	//
 	// # GroupVersion
