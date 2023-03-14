@@ -443,7 +443,7 @@ type HTTPService struct {
 	// to routing it to the upstream service
 	Filters HTTPFilters
 
-	acl.EnterpriseMeta
+	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 }
 
 func (s HTTPService) ServiceName() ServiceName {
