@@ -57,33 +57,36 @@ func TestHTTPRouteFlattening(t *testing.T) {
 	cluster, _, _ := libtopology.NewCluster(t, clusterConfig)
 	client := cluster.Agents[0].GetClient()
 
-	service1ResponseCode := 200
-	service2ResponseCode := 418
-	serviceOne := createService(t, cluster, &libservice.ServiceOpts{
-		Name:     "service1",
-		ID:       "service1",
-		HTTPPort: 8080,
-		GRPCPort: 8079,
-	}, []string{
-		// customizes response code so we can distinguish between which service is responding
-		"-echo-server-default-params", fmt.Sprintf("status=%d", service1ResponseCode),
-	})
-	serviceTwo := createService(t, cluster, &libservice.ServiceOpts{
-		Name:     "service2",
-		ID:       "service2",
-		HTTPPort: 8081,
-		GRPCPort: 8082,
-	}, []string{
-		"-echo-server-default-params", fmt.Sprintf("status=%d", service2ResponseCode),
-	},
-	)
-
 	namespace := getNamespace()
 	if namespace != "" {
 		ns := &api.Namespace{Name: namespace}
 		_, _, err := client.Namespaces().Create(ns, nil)
 		assert.NoError(t, err)
 	}
+
+	service1ResponseCode := 200
+	service2ResponseCode := 418
+	serviceOne := createService(t, cluster, &libservice.ServiceOpts{
+		Name:      "service1",
+		ID:        "service1",
+		HTTPPort:  8080,
+		GRPCPort:  8079,
+		Namespace: namespace,
+	}, []string{
+		// customizes response code so we can distinguish between which service is responding
+		"-echo-server-default-params", fmt.Sprintf("status=%d", service1ResponseCode),
+	})
+	serviceTwo := createService(t, cluster, &libservice.ServiceOpts{
+		Name:      "service2",
+		ID:        "service2",
+		HTTPPort:  8081,
+		GRPCPort:  8082,
+		Namespace: namespace,
+	}, []string{
+		"-echo-server-default-params", fmt.Sprintf("status=%d", service2ResponseCode),
+	},
+	)
+
 	gatewayName := randomName("gw", 16)
 	routeOneName := randomName("route", 16)
 	routeTwoName := randomName("route", 16)
@@ -134,7 +137,8 @@ func TestHTTPRouteFlattening(t *testing.T) {
 			{
 				Services: []api.HTTPService{
 					{
-						Name: serviceOne.GetServiceName(),
+						Name:      serviceOne.GetServiceName(),
+						Namespace: namespace,
 					},
 				},
 				Matches: []api.HTTPMatch{
@@ -167,7 +171,8 @@ func TestHTTPRouteFlattening(t *testing.T) {
 			{
 				Services: []api.HTTPService{
 					{
-						Name: serviceTwo.GetServiceName(),
+						Name:      serviceTwo.GetServiceName(),
+						Namespace: namespace,
 					},
 				},
 				Matches: []api.HTTPMatch{
@@ -206,6 +211,7 @@ func TestHTTPRouteFlattening(t *testing.T) {
 	// gateway resolves routes
 	gatewayPort, err := gatewayService.GetPort(listenerPort)
 	require.NoError(t, err)
+	fmt.Println("Gateway Port: ", gatewayPort)
 
 	// Same v2 path with and without header
 	checkRoute(t, gatewayPort, "/v2", map[string]string{
@@ -254,12 +260,19 @@ func TestHTTPRoutePathRewrite(t *testing.T) {
 	barStatusCode := 201
 	fooPath := "/v1/foo"
 	barPath := "/v1/bar"
+	namespace := getNamespace()
+	if namespace != "" {
+		ns := &api.Namespace{Name: namespace}
+		_, _, err := client.Namespaces().Create(ns, nil)
+		assert.NoError(t, err)
+	}
 
 	fooService := createService(t, cluster, &libservice.ServiceOpts{
-		Name:     "foo",
-		ID:       "foo",
-		HTTPPort: 8080,
-		GRPCPort: 8081,
+		Name:      "foo",
+		ID:        "foo",
+		HTTPPort:  8080,
+		GRPCPort:  8081,
+		Namespace: namespace,
 	}, []string{
 		// customizes response code so we can distinguish between which service is responding
 		"-echo-debug-path", fooPath,
@@ -269,20 +282,15 @@ func TestHTTPRoutePathRewrite(t *testing.T) {
 		Name: "bar",
 		ID:   "bar",
 		// TODO we can potentially get conflicts if these ports are the same
-		HTTPPort: 8079,
-		GRPCPort: 8078,
+		HTTPPort:  8079,
+		GRPCPort:  8078,
+		Namespace: namespace,
 	}, []string{
 		"-echo-debug-path", barPath,
 		"-echo-server-default-params", fmt.Sprintf("status=%d", barStatusCode),
 	},
 	)
 
-	namespace := getNamespace()
-	if namespace != "" {
-		ns := &api.Namespace{Name: namespace}
-		_, _, err := client.Namespaces().Create(ns, nil)
-		assert.NoError(t, err)
-	}
 	gatewayName := randomName("gw", 16)
 	invalidRouteName := randomName("route", 16)
 	validRouteName := randomName("route", 16)
@@ -326,7 +334,8 @@ func TestHTTPRoutePathRewrite(t *testing.T) {
 				},
 				Services: []api.HTTPService{
 					{
-						Name: fooService.GetServiceName(),
+						Name:      fooService.GetServiceName(),
+						Namespace: namespace,
 					},
 				},
 				Matches: []api.HTTPMatch{
@@ -364,7 +373,8 @@ func TestHTTPRoutePathRewrite(t *testing.T) {
 				},
 				Services: []api.HTTPService{
 					{
-						Name: barService.GetServiceName(),
+						Name:      barService.GetServiceName(),
+						Namespace: namespace,
 					},
 				},
 				Matches: []api.HTTPMatch{
@@ -436,12 +446,6 @@ func TestHTTPRouteParentRefChange(t *testing.T) {
 	// create cluster and service
 	cluster := createCluster(t, listenerOnePort, listenerTwoPort)
 	client := cluster.Agents[0].GetClient()
-	service := createService(t, cluster, &libservice.ServiceOpts{
-		Name:     "service",
-		ID:       "service",
-		HTTPPort: 8080,
-		GRPCPort: 8079,
-	}, []string{})
 
 	// getNamespace() should always return an empty string in Consul OSS
 	namespace := getNamespace()
@@ -450,6 +454,15 @@ func TestHTTPRouteParentRefChange(t *testing.T) {
 		_, _, err := client.Namespaces().Create(ns, nil)
 		assert.NoError(t, err)
 	}
+
+	service := createService(t, cluster, &libservice.ServiceOpts{
+		Name:      "service",
+		ID:        "service",
+		HTTPPort:  8080,
+		GRPCPort:  8079,
+		Namespace: namespace,
+	}, []string{})
+
 	gatewayOneName := randomName("gw1", 16)
 	gatewayTwoName := randomName("gw2", 16)
 	routeName := randomName("route", 16)
@@ -550,7 +563,8 @@ func TestHTTPRouteParentRefChange(t *testing.T) {
 			{
 				Services: []api.HTTPService{
 					{
-						Name: service.GetServiceName(),
+						Name:      service.GetServiceName(),
+						Namespace: namespace,
 					},
 				},
 				Matches: []api.HTTPMatch{

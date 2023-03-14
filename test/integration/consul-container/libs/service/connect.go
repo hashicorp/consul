@@ -147,7 +147,7 @@ func (g ConnectContainer) GetStatus() (string, error) {
 // node. The container exposes port serviceBindPort and envoy admin port
 // (19000) by mapping them onto host ports. The container's name has a prefix
 // combining datacenter and name.
-func NewConnectService(ctx context.Context, sidecarServiceName string, serviceID string, serviceBindPorts []int, node cluster.Agent) (*ConnectContainer, error) {
+func NewConnectService(ctx context.Context, sidecarServiceName string, serviceID string, namespace string, serviceBindPorts []int, node cluster.Agent) (*ConnectContainer, error) {
 	nodeConfig := node.GetConfig()
 	if nodeConfig.ScratchDir == "" {
 		return nil, fmt.Errorf("node ScratchDir is required")
@@ -183,6 +183,7 @@ func NewConnectService(ctx context.Context, sidecarServiceName string, serviceID
 			"consul", "connect", "envoy",
 			"-sidecar-for", serviceID,
 			"-admin-bind", fmt.Sprintf("0.0.0.0:%d", internalAdminPort),
+			"-namespace", namespace,
 			"--",
 			"--log-level", envoyLogLevel,
 		},
