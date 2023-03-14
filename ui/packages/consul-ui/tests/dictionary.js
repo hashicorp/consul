@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 /* eslint no-control-regex: "off" */
 import Yadda from 'yadda';
 import YAML from 'js-yaml';

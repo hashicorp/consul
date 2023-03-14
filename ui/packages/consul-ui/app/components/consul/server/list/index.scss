@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 %consul-server-list ul {
   display: grid;
   grid-template-columns: repeat(4, minmax(215px, 25%));
