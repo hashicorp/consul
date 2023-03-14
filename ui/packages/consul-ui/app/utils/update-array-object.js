@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 import { get, set } from '@ember/object';
 import ObjectProxy from '@ember/object/proxy';
 export default function (items, item, prop, value) {

@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 import Adapter from './application';
 // TODO: Update to use this.formatDatacenter()
 export default class CoordinateAdapter extends Adapter {

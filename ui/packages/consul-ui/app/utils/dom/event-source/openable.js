@@ -1,4 +1,9 @@
 /**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
+/**
  * Wraps an EventSource so that you can `close` and `reopen`
  *
  * @param {Class} eventSource - EventSource class to extend from
