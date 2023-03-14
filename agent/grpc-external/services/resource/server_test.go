@@ -8,6 +8,8 @@ import (
 	"google.golang.org/grpc"
 
 	"github.com/hashicorp/consul/agent/grpc-external/testutils"
+	"github.com/hashicorp/consul/internal/resource"
+	"github.com/hashicorp/consul/internal/storage/inmem"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
@@ -26,12 +28,32 @@ func testClient(t *testing.T, server *Server) pbresource.ResourceServiceClient {
 	return pbresource.NewResourceServiceClient(conn)
 }
 
-func TestRead_TODO(t *testing.T) {
-	server := NewServer(Config{})
-	client := testClient(t, server)
-	resp, err := client.Read(context.Background(), &pbresource.ReadRequest{})
+func testServerConfig(t *testing.T) Config {
+	backend, err := inmem.NewBackend()
 	require.NoError(t, err)
-	require.NotNil(t, resp)
+	return Config{
+		registry: resource.NewRegistry(),
+		backend:  backend,
+	}
+}
+
+func TestRead_TypeNotFound(t *testing.T) {
+	server := NewServer(testServerConfig(t))
+	client := testClient(t, server)
+	_, err := client.Read(context.Background(), &pbresource.ReadRequest{
+		Id: &pbresource.ID{
+			Uid:  "abcd",
+			Name: "billing",
+			Type: &pbresource.Type{
+				Group:        "mesh",
+				GroupVersion: "v1",
+				Kind:         "service",
+			},
+		},
+	})
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "resource type mesh/v1/service not found")
+
 }
 
 func TestWrite_TODO(t *testing.T) {
