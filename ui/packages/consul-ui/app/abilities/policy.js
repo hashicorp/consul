@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 import BaseAbility from './base';
 import { inject as service } from '@ember/service';
 import { typeOf } from 'consul-ui/helpers/policy/typeof';
