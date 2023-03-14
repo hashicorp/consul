@@ -9,6 +9,8 @@ import (
 	"github.com/hashicorp/consul/agent/configentry"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/proto/private/pbcommon"
+	"github.com/hashicorp/consul/proto/private/pbpeering"
 )
 
 type compileTestCase struct {
@@ -1578,7 +1580,20 @@ func testcase_Failover_Targets() compileTestCase {
 						{Datacenter: "dc3"},
 						{Service: "new-main"},
 						{Peer: "cluster-01"},
+						{Peer: "cluster-02"},
 					},
+				},
+			},
+		},
+	)
+
+	entries.AddPeers(
+		&pbpeering.Peering{
+			Name: "cluster-01",
+			Remote: &pbpeering.RemoteInfo{
+				Locality: &pbcommon.Locality{
+					Region: "us-west-1",
+					Zone:   "us-west-1a",
 				},
 			},
 		},
@@ -1599,6 +1614,7 @@ func testcase_Failover_Targets() compileTestCase {
 							"main.default.default.dc3",
 							"new-main.default.default.dc1",
 							"main.default.default.external.cluster-01",
+							"main.default.default.external.cluster-02",
 						},
 					},
 				},
@@ -1626,6 +1642,21 @@ func testcase_Failover_Targets() compileTestCase {
 			"main.default.default.external.cluster-01": newTarget(structs.DiscoveryTargetOpts{
 				Service: "main",
 				Peer:    "cluster-01",
+			}, func(t *structs.DiscoveryTarget) {
+				t.SNI = ""
+				t.Name = ""
+				t.Datacenter = ""
+				t.MeshGateway = structs.MeshGatewayConfig{
+					Mode: structs.MeshGatewayModeRemote,
+				}
+				t.Locality = &structs.Locality{
+					Region: "us-west-1",
+					Zone:   "us-west-1a",
+				}
+			}),
+			"main.default.default.external.cluster-02": newTarget(structs.DiscoveryTargetOpts{
+				Service: "main",
+				Peer:    "cluster-02",
 			}, func(t *structs.DiscoveryTarget) {
 				t.SNI = ""
 				t.Name = ""

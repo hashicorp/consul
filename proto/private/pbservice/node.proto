@@ -41,6 +41,9 @@ message Node {
 
   // mog: func-to=RaftIndexToStructs func-from=NewRaftIndexFromStructs
   common.RaftIndex RaftIndex = 7;
+  // Locality identifies where the node is running.
+  // mog: func-to=LocalityToStructs func-from=LocalityFromStructs
+  common.Locality Locality = 10;
 }
 
 // NodeService is a service provided by a node
@@ -114,4 +117,8 @@ message NodeService {
 
   // mog: func-to=RaftIndexToStructs func-from=NewRaftIndexFromStructs
   common.RaftIndex RaftIndex = 14;
+
+  // Locality identifies where the service is running.
+  // mog: func-to=LocalityToStructs func-from=LocalityFromStructs
+  common.Locality Locality = 19;
 }

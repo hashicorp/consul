@@ -494,6 +494,11 @@ func insertConfigEntryWithTxn(tx WriteTxn, idx uint64, conf structs.ConfigEntry)
 				return fmt.Errorf("failed to persist service name: %v", err)
 			}
 		}
+	case structs.SamenessGroup:
+		err := checkSamenessGroup(tx, conf)
+		if err != nil {
+			return err
+		}
 	}
 
 	// Insert the config entry and update the index
@@ -539,6 +544,7 @@ func validateProposedConfigEntryInGraph(
 		if err != nil {
 			return err
 		}
+	case structs.SamenessGroup:
 	case structs.ServiceIntentions:
 	case structs.MeshConfig:
 	case structs.ExportedServices:
@@ -1293,6 +1299,7 @@ func readDiscoveryChainConfigEntriesTxn(
 		todoSplitters = make(map[structs.ServiceID]struct{})
 		todoResolvers = make(map[structs.ServiceID]struct{})
 		todoDefaults  = make(map[structs.ServiceID]struct{})
+		todoPeers     = make(map[string]struct{})
 	)
 
 	sid := structs.NewServiceID(serviceName, entMeta)
@@ -1394,6 +1401,10 @@ func readDiscoveryChainConfigEntriesTxn(
 		for _, svc := range resolver.ListRelatedServices() {
 			todoResolvers[svc] = struct{}{}
 		}
+
+		for _, peer := range resolver.RelatedPeers() {
+			todoPeers[peer] = struct{}{}
+		}
 	}
 
 	for {
@@ -1433,6 +1444,23 @@ func readDiscoveryChainConfigEntriesTxn(
 			continue
 		}
 		res.Services[svcID] = entry
+	}
+
+	peerEntMeta := structs.DefaultEnterpriseMetaInPartition(entMeta.PartitionOrDefault())
+	for peerName := range todoPeers {
+		q := Query{
+			Value:          peerName,
+			EnterpriseMeta: *peerEntMeta,
+		}
+		idx, entry, err := peeringReadTxn(tx, ws, q)
+		if err != nil {
+			return 0, nil, err
+		}
+		if idx > maxIdx {
+			maxIdx = idx
+		}
+
+		res.Peers[peerName] = entry
 	}
 
 	// Strip nils now that they are no longer necessary.
