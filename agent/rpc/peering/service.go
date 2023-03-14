@@ -924,9 +924,12 @@ func (s *Server) TrustBundleRead(ctx context.Context, req *pbpeering.TrustBundle
 
 	defer metrics.MeasureSince([]string{"peering", "trust_bundle_read"}, time.Now())
 
+	// Having the ability to write a service in ANY (at least one) namespace should be
+	// sufficient for reading the trust bundle, which is why we use a wildcard.
+	entMeta := acl.NewEnterpriseMetaWithPartition(req.Partition, acl.WildcardName)
+	entMeta.Normalize()
 	var authzCtx acl.AuthorizerContext
-	entMeta := structs.DefaultEnterpriseMetaInPartition(req.Partition)
-	authz, err := s.Backend.ResolveTokenAndDefaultMeta(options.Token, entMeta, &authzCtx)
+	authz, err := s.Backend.ResolveTokenAndDefaultMeta(options.Token, &entMeta, &authzCtx)
 	if err != nil {
 		return nil, err
 	}
@@ -937,7 +940,7 @@ func (s *Server) TrustBundleRead(ctx context.Context, req *pbpeering.TrustBundle
 
 	idx, trustBundle, err := s.Backend.Store().PeeringTrustBundleRead(nil, state.Query{
 		Value:          req.Name,
-		EnterpriseMeta: *entMeta,
+		EnterpriseMeta: entMeta,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to read trust bundle for peer %s: %w", req.Name, err)
