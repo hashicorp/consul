@@ -184,12 +184,9 @@ func TestHTTPRouteFlattening(t *testing.T) {
 		},
 	}
 
-	_, _, err = client.ConfigEntries().Set(apiGateway, nil)
-	require.NoError(t, err)
-	_, _, err = client.ConfigEntries().Set(routeOne, nil)
-	require.NoError(t, err)
-	_, _, err = client.ConfigEntries().Set(routeTwo, nil)
-	require.NoError(t, err)
+	require.NoError(t, cluster.ConfigEntryWrite(apiGateway))
+	require.NoError(t, cluster.ConfigEntryWrite(routeOne))
+	require.NoError(t, cluster.ConfigEntryWrite(routeTwo))
 
 	// create gateway service
 	gwCfg := libservice.GatewayConfig{
@@ -219,7 +216,7 @@ func TestHTTPRouteFlattening(t *testing.T) {
 		"Host": "test.foo",
 	}, checkOptions{statusCode: service2ResponseCode, testName: "service2 just path match"})
 
-	////v1 path with the header
+	// //v1 path with the header
 	checkRoute(t, gatewayPort, "/check", map[string]string{
 		"Host": "test.foo",
 		"x-v2": "v2",
@@ -299,6 +296,8 @@ func TestHTTPRoutePathRewrite(t *testing.T) {
 		Kind:      api.ProxyDefaults,
 		Name:      api.ProxyConfigGlobal,
 		Namespace: "", // proxy-defaults can only be set in the default namespace
+		Kind:      api.ProxyDefaults,
+		Name:      api.ProxyConfigGlobal,
 		Config: map[string]interface{}{
 			"protocol": "http",
 		},
@@ -387,12 +386,9 @@ func TestHTTPRoutePathRewrite(t *testing.T) {
 		},
 	}
 
-	_, _, err = client.ConfigEntries().Set(apiGateway, nil)
-	require.NoError(t, err)
-	_, _, err = client.ConfigEntries().Set(fooRoute, nil)
-	require.NoError(t, err)
-	_, _, err = client.ConfigEntries().Set(barRoute, nil)
-	require.NoError(t, err)
+	require.NoError(t, cluster.ConfigEntryWrite(apiGateway))
+	require.NoError(t, cluster.ConfigEntryWrite(fooRoute))
+	require.NoError(t, cluster.ConfigEntryWrite(barRoute))
 
 	// create gateway service
 	gwCfg := libservice.GatewayConfig{
