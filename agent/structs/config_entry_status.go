@@ -22,7 +22,7 @@ type ResourceReference struct {
 	// unused, this should be blank.
 	SectionName string
 
-	acl.EnterpriseMeta
+	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 }
 
 func (r *ResourceReference) String() string {
