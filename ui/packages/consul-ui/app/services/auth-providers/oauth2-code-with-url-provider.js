@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 import OAuth2CodeProvider from 'torii/providers/oauth2-code';
 import { runInDebug } from '@ember/debug';
 

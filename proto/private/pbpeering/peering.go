@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/proto/private/pbcommon"
 )
 
 // RequestDatacenter implements structs.RPCInfo
@@ -279,13 +280,6 @@ func (r *RemoteInfo) IsEmpty() bool {
 	return r.Partition == "" && r.Datacenter == "" && r.Locality.IsEmpty()
 }
 
-func (l *Locality) IsEmpty() bool {
-	if l == nil {
-		return true
-	}
-	return l.Region == "" && l.Zone == ""
-}
-
 // convenience
 func NewGenerateTokenRequestFromAPI(req *api.PeeringGenerateTokenRequest) *GenerateTokenRequest {
 	if req == nil {
@@ -332,8 +326,49 @@ func (o *PeeringTrustBundle) DeepCopy() *PeeringTrustBundle {
 	return cp
 }
 
-func LocalityFromStruct(l structs.Locality) *Locality {
-	return &Locality{
+// TODO: handle this with mog
+// LocalityToStructs converts a protobuf Locality to a struct Locality.
+func LocalityToStructs(l *pbcommon.Locality) *structs.Locality {
+	if l == nil {
+		return nil
+	}
+	return &structs.Locality{
+		Region: l.Region,
+		Zone:   l.Zone,
+	}
+}
+
+// TODO: handle this with mog
+// LocalityFromStructs converts a struct Locality to a protobuf Locality.
+func LocalityFromStructs(l *structs.Locality) *pbcommon.Locality {
+	if l == nil {
+		return nil
+	}
+	return &pbcommon.Locality{
+		Region: l.Region,
+		Zone:   l.Zone,
+	}
+}
+
+// TODO: handle this with mog
+// LocalityToAPI converts a protobuf Locality to an API Locality.
+func LocalityToAPI(l *pbcommon.Locality) *api.Locality {
+	if l == nil {
+		return nil
+	}
+	return &api.Locality{
+		Region: l.Region,
+		Zone:   l.Zone,
+	}
+}
+
+// TODO: handle this with mog
+// LocalityFromProto converts an API Locality to a protobuf Locality.
+func LocalityFromAPI(l *api.Locality) *pbcommon.Locality {
+	if l == nil {
+		return nil
+	}
+	return &pbcommon.Locality{
 		Region: l.Region,
 		Zone:   l.Zone,
 	}

@@ -20,6 +20,20 @@ func EnvoyExtensionFromStructs(t *structs.EnvoyExtension, s *EnvoyExtension) {
 	s.Required = t.Required
 	s.Arguments = MapStringInterfaceToProtobufTypesStruct(t.Arguments)
 }
+func LocalityToStructs(s *Locality, t *structs.Locality) {
+	if s == nil {
+		return
+	}
+	t.Region = s.Region
+	t.Zone = s.Zone
+}
+func LocalityFromStructs(t *structs.Locality, s *Locality) {
+	if s == nil {
+		return
+	}
+	s.Region = t.Region
+	s.Zone = t.Zone
+}
 func QueryMetaToStructs(s *QueryMeta, t *structs.QueryMeta) {
 	if s == nil {
 		return

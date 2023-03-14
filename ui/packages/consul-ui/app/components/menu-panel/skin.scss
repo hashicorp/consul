@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 %menu-panel-button-selected::after {
   @extend %with-check-plain-mask, %as-pseudo;
 }

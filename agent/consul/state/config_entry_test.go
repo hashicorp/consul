@@ -9,6 +9,8 @@ import (
 
 	"github.com/hashicorp/consul/agent/configentry"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/proto/private/pbpeering"
+	"github.com/hashicorp/consul/proto/private/prototest"
 	"github.com/hashicorp/consul/sdk/testutil"
 )
 
@@ -2063,6 +2065,53 @@ func TestStore_ReadDiscoveryChainConfigEntries_SubsetSplit(t *testing.T) {
 	require.Len(t, entrySet.Splitters, 1)
 	require.Len(t, entrySet.Resolvers, 1)
 	require.Len(t, entrySet.Services, 1)
+}
+
+func TestStore_ReadDiscoveryChainConfigEntries_FetchPeers(t *testing.T) {
+	s := testConfigStateStore(t)
+
+	entries := []structs.ConfigEntry{
+		&structs.ServiceConfigEntry{
+			Kind:     structs.ServiceDefaults,
+			Name:     "main",
+			Protocol: "http",
+		},
+		&structs.ServiceResolverConfigEntry{
+			Kind: structs.ServiceResolver,
+			Name: "main",
+			Failover: map[string]structs.ServiceResolverFailover{
+				"*": {
+					Targets: []structs.ServiceResolverFailoverTarget{
+						{Peer: "cluster-01"},
+						{Peer: "cluster-02"}, // Non-existant
+					},
+				},
+			},
+		},
+	}
+
+	for _, entry := range entries {
+		require.NoError(t, s.EnsureConfigEntry(0, entry))
+	}
+
+	cluster01Peering := &pbpeering.Peering{
+		ID:   testFooPeerID,
+		Name: "cluster-01",
+	}
+	err := s.PeeringWrite(0, &pbpeering.PeeringWriteRequest{Peering: cluster01Peering})
+	require.NoError(t, err)
+
+	_, entrySet, err := s.readDiscoveryChainConfigEntries(nil, "main", nil, nil)
+	require.NoError(t, err)
+
+	require.Len(t, entrySet.Routers, 0)
+	require.Len(t, entrySet.Splitters, 0)
+	require.Len(t, entrySet.Resolvers, 1)
+	require.Len(t, entrySet.Services, 1)
+	prototest.AssertDeepEqual(t, entrySet.Peers, map[string]*pbpeering.Peering{
+		"cluster-01": cluster01Peering,
+		"cluster-02": nil,
+	})
 }
 
 // TODO(rb): add ServiceIntentions tests

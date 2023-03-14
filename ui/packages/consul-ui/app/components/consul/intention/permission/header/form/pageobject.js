@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 import { input } from 'consul-ui/tests/lib/page-object';
 import powerSelect from 'consul-ui/components/power-select/pageobject';
 

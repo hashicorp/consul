@@ -27,6 +27,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/logging"
+	"github.com/hashicorp/consul/proto/private/pbcommon"
 	"github.com/hashicorp/consul/proto/private/pbpeering"
 	"github.com/hashicorp/consul/proto/private/pbpeerstream"
 )
@@ -385,7 +386,7 @@ func (s *Server) establishStream(ctx context.Context,
 					Remote: &pbpeering.RemoteInfo{
 						Partition:  peer.Partition,
 						Datacenter: s.config.Datacenter,
-						Locality:   pbpeering.LocalityFromStruct(s.config.Locality),
+						Locality:   pbcommon.LocalityToProto(s.config.Locality),
 					},
 				},
 			},

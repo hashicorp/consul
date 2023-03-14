@@ -41,6 +41,12 @@ jobs:
           if [[ -n ${ROLE} ]]; then
             echo "Actor ${{ github.actor }} is a ${TEAM} team member"
             echo "MESSAGE=true" >> $GITHUB_OUTPUT
+          elif [[  "${{ contains(github.actor, 'hc-github-team-consul-core') }}" == "true" ]]; then 
+            echo "Actor ${{ github.actor }} is a ${TEAM} team member"
+            echo "MESSAGE=true" >> $GITHUB_OUTPUT
+          elif [[  "${{ contains(github.actor, 'dependabot') }}" == "true" ]]; then
+            echo "Actor ${{ github.actor }} is a ${TEAM} team member"
+            echo "MESSAGE=true" >> $GITHUB_OUTPUT 
           else
             echo "Actor ${{ github.actor }} is NOT a ${TEAM} team member"
             echo "MESSAGE=false" >> $GITHUB_OUTPUT

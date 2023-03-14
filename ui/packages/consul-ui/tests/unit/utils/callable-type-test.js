@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 import callableType from 'consul-ui/utils/callable-type';
 import { module, test } from 'qunit';
 

@@ -28,6 +28,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/proto/private/pbcommon"
 	"github.com/hashicorp/consul/proto/private/pbpeering"
 	"github.com/hashicorp/consul/sdk/freeport"
 	"github.com/hashicorp/consul/sdk/testutil"
@@ -661,7 +662,7 @@ func TestLeader_Peering_RemoteInfo(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	acceptorLocality := structs.Locality{
+	acceptorLocality := &structs.Locality{
 		Region: "us-west-2",
 		Zone:   "us-west-2a",
 	}
@@ -689,7 +690,7 @@ func TestLeader_Peering_RemoteInfo(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	t.Cleanup(cancel)
 
-	dialerLocality := structs.Locality{
+	dialerLocality := &structs.Locality{
 		Region: "us-west-1",
 		Zone:   "us-west-1a",
 	}
@@ -755,7 +756,7 @@ func TestLeader_Peering_RemoteInfo(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "dc1", p.Peering.Remote.Datacenter)
 	require.Contains(t, []string{"", "default"}, p.Peering.Remote.Partition)
-	require.Equal(t, pbpeering.LocalityFromStruct(acceptorLocality), p.Peering.Remote.Locality)
+	require.Equal(t, pbcommon.LocalityToProto(acceptorLocality), p.Peering.Remote.Locality)
 
 	// Retry fetching the until the peering is active in the acceptor.
 	ctx, cancel = context.WithTimeout(context.Background(), 10*time.Second)
@@ -771,7 +772,7 @@ func TestLeader_Peering_RemoteInfo(t *testing.T) {
 	require.NotNil(t, p)
 	require.Equal(t, "dc2", p.Peering.Remote.Datacenter)
 	require.Contains(t, []string{"", "default"}, p.Peering.Remote.Partition)
-	require.Equal(t, pbpeering.LocalityFromStruct(dialerLocality), p.Peering.Remote.Locality)
+	require.Equal(t, pbcommon.LocalityToProto(dialerLocality), p.Peering.Remote.Locality)
 }
 
 // Test that the dialing peer attempts to reestablish connections when the accepting peer

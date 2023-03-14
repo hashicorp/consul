@@ -72,11 +72,18 @@ type TestNetworkSegment struct {
 	Advertise string `json:"advertise"`
 }
 
+// Locality is used as the TestServerConfig's Locality.
+type Locality struct {
+	Region string `json:"region"`
+	Zone   string `json:"zone"`
+}
+
 // TestServerConfig is the main server configuration struct.
 type TestServerConfig struct {
 	NodeName            string                 `json:"node_name"`
 	NodeID              string                 `json:"node_id"`
 	NodeMeta            map[string]string      `json:"node_meta,omitempty"`
+	NodeLocality        *Locality              `json:"locality,omitempty"`
 	Performance         *TestPerformanceConfig `json:"performance,omitempty"`
 	Bootstrap           bool                   `json:"bootstrap,omitempty"`
 	Server              bool                   `json:"server,omitempty"`

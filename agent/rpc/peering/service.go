@@ -28,6 +28,7 @@ import (
 	"github.com/hashicorp/consul/agent/grpc-external/services/peerstream"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/proto/private/pbcommon"
 	"github.com/hashicorp/consul/proto/private/pbpeering"
 	"github.com/hashicorp/consul/proto/private/pbpeerstream"
 )
@@ -87,7 +88,7 @@ type Config struct {
 	Datacenter     string
 	ConnectEnabled bool
 	PeeringEnabled bool
-	Locality       structs.Locality
+	Locality       *structs.Locality
 }
 
 func NewServer(cfg Config) *Server {
@@ -447,7 +448,7 @@ func (s *Server) Establish(
 		Remote: &pbpeering.RemoteInfo{
 			Partition:  tok.Remote.Partition,
 			Datacenter: tok.Remote.Datacenter,
-			Locality:   pbpeering.LocalityFromStruct(tok.Remote.Locality),
+			Locality:   pbcommon.LocalityToProto(tok.Remote.Locality),
 		},
 	}
 

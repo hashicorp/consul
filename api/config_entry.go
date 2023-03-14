@@ -23,6 +23,7 @@ const (
 	ServiceIntentions  string = "service-intentions"
 	MeshConfig         string = "mesh"
 	ExportedServices   string = "exported-services"
+	SamenessGroup      string = "sameness-group"
 
 	ProxyConfigGlobal string = "global"
 	MeshConfigMesh    string = "mesh"
@@ -355,6 +356,8 @@ func makeConfigEntry(kind, name string) (ConfigEntry, error) {
 		return &MeshConfigEntry{}, nil
 	case ExportedServices:
 		return &ExportedServicesConfigEntry{Name: name}, nil
+	case SamenessGroup:
+		return &SamenessGroupConfigEntry{Kind: kind, Name: name}, nil
 	case APIGateway:
 		return &APIGatewayConfigEntry{Kind: kind, Name: name}, nil
 	case TCPRoute:

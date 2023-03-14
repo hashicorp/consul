@@ -88,6 +88,9 @@ spec:
 </Tab>
 
 <Tab heading="Consul Enterprise">
+
+For Kubernetes environments, the configuration entry is always created in the same partition as the Kubernetes cluster.
+
 <CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
 
 ```hcl
@@ -117,7 +120,6 @@ kind: IngressGateway
 metadata:
   name: <name for the gateway>
   namespace: <namespace containing the gateway>
-  partition: <partition containing the gateway namespace>
 
 spec:
   listeners:
