@@ -13,6 +13,7 @@ import (
 
 	"github.com/hashicorp/consul/internal/storage"
 	"github.com/hashicorp/consul/proto-public/pbresource"
+	"github.com/hashicorp/consul/proto/private/prototest"
 )
 
 type TestOptions struct {
@@ -431,6 +432,11 @@ func testListWatch(t *testing.T, opts TestOptions) {
 
 					require.Equal(t, pbresource.WatchEvent_OPERATION_UPSERT, event.Operation)
 					require.Containsf(t, tc.results, event.Resource, "resource not in expected results: %s", event.Resource.Id)
+
+					// Check that Read is sequentially consistent with Watch.
+					readRes, err := backend.Read(ctx, event.Resource.Id)
+					require.NoError(t, err)
+					prototest.AssertDeepEqual(t, event.Resource, readRes)
 				}
 
 				// Delete a random resource to check we get an event.
@@ -445,6 +451,10 @@ func testListWatch(t *testing.T, opts TestOptions) {
 
 				require.Equal(t, pbresource.WatchEvent_OPERATION_DELETE, event.Operation)
 				require.Equal(t, del, event.Resource)
+
+				// Check that Read is sequentially consistent with Watch.
+				_, err = backend.Read(ctx, del.Id)
+				require.ErrorIs(t, err, storage.ErrNotFound)
 			})
 		}
 	})

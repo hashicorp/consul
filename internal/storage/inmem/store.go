@@ -2,6 +2,7 @@ package inmem
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	"github.com/hashicorp/go-memdb"
@@ -19,6 +20,20 @@ import (
 type Store struct {
 	db  *memdb.MemDB
 	pub *stream.EventPublisher
+
+	// eventLock is used to serialize operations that result in the publishing of
+	// events (i.e. writes and deletes) to ensure correct ordering when there are
+	// concurrent writers.
+	//
+	// We cannot rely on MemDB's write lock for this, because events must be
+	// published *after* the transaction is committed to provide sequential
+	// consistency between Watch and Read calls. In other words, if we were to
+	// publish an event before the transaction was committed, there would be a
+	// small window of time where a watcher (e.g. controller) could try to Read
+	// the resource and not get the version they were notified about.
+	//
+	// Without this lock, it would be possible to publish events out-of-order.
+	eventLock sync.Mutex
 }
 
 // NewStore creates a Store.
@@ -111,6 +126,9 @@ func (s *Store) Read(id *pbresource.ID) (*pbresource.Resource, error) {
 //
 // For more information, see the storage.Backend documentation.
 func (s *Store) WriteCAS(res *pbresource.Resource, vsn string) error {
+	s.eventLock.Lock()
+	defer s.eventLock.Unlock()
+
 	tx := s.db.Txn(true)
 	defer tx.Abort()
 
@@ -159,6 +177,9 @@ func (s *Store) WriteCAS(res *pbresource.Resource, vsn string) error {
 //
 // For more information, see the storage.Backend documentation.
 func (s *Store) DeleteCAS(id *pbresource.ID, vsn string) error {
+	s.eventLock.Lock()
+	defer s.eventLock.Unlock()
+
 	tx := s.db.Txn(true)
 	defer tx.Abort()
 
