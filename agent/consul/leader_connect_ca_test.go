@@ -25,7 +25,7 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/connect"
-	ca "github.com/hashicorp/consul/agent/connect/ca"
+	"github.com/hashicorp/consul/agent/connect/ca"
 	"github.com/hashicorp/consul/agent/consul/fsm"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
@@ -612,39 +612,72 @@ func TestCAManager_UpdateConfiguration_Vault_Primary(t *testing.T) {
 	_, origRoot, err := s1.fsm.State().CARootActive(nil)
 	require.NoError(t, err)
 	require.Len(t, origRoot.IntermediateCerts, 1)
+	origRoot.CreateIndex = s1.caManager.providerRoot.CreateIndex
+	origRoot.ModifyIndex = s1.caManager.providerRoot.ModifyIndex
+	require.Equal(t, s1.caManager.providerRoot, origRoot)
 
 	cert, err := connect.ParseCert(s1.caManager.getLeafSigningCertFromRoot(origRoot))
 	require.NoError(t, err)
 	require.Equal(t, connect.HexString(cert.SubjectKeyId), origRoot.SigningKeyID)
 
-	vaultToken2 := ca.CreateVaultTokenWithAttrs(t, vault.Client(), &ca.VaultTokenAttributes{
-		RootPath:         "pki-root-2",
-		IntermediatePath: "pki-intermediate-2",
-		ConsulManaged:    true,
-	})
-
-	err = s1.caManager.UpdateConfiguration(&structs.CARequest{
-		Config: &structs.CAConfiguration{
-			Provider: "vault",
-			Config: map[string]interface{}{
-				"Address":             vault.Addr,
-				"Token":               vaultToken2,
-				"RootPKIPath":         "pki-root-2/",
-				"IntermediatePKIPath": "pki-intermediate-2/",
+	t.Run("update config without changing root", func(t *testing.T) {
+		err = s1.caManager.UpdateConfiguration(&structs.CARequest{
+			Config: &structs.CAConfiguration{
+				Provider: "vault",
+				Config: map[string]interface{}{
+					"Address":             vault.Addr,
+					"Token":               vaultToken,
+					"RootPKIPath":         "pki-root/",
+					"IntermediatePKIPath": "pki-intermediate/",
+					"CSRMaxPerSecond":     100,
+				},
 			},
-		},
+		})
+		require.NoError(t, err)
+		_, sameRoot, err := s1.fsm.State().CARootActive(nil)
+		require.NoError(t, err)
+		require.Len(t, sameRoot.IntermediateCerts, 1)
+		sameRoot.CreateIndex = s1.caManager.providerRoot.CreateIndex
+		sameRoot.ModifyIndex = s1.caManager.providerRoot.ModifyIndex
+
+		cert, err := connect.ParseCert(s1.caManager.getLeafSigningCertFromRoot(sameRoot))
+		require.NoError(t, err)
+		require.Equal(t, connect.HexString(cert.SubjectKeyId), sameRoot.SigningKeyID)
+
+		require.Equal(t, origRoot, sameRoot)
+		require.Equal(t, sameRoot, s1.caManager.providerRoot)
 	})
-	require.NoError(t, err)
 
-	_, newRoot, err := s1.fsm.State().CARootActive(nil)
-	require.NoError(t, err)
-	require.Len(t, newRoot.IntermediateCerts, 2,
-		"expected one cross-sign cert and one local leaf sign cert")
-	require.NotEqual(t, origRoot.ID, newRoot.ID)
+	t.Run("update config and change root", func(t *testing.T) {
+		vaultToken2 := ca.CreateVaultTokenWithAttrs(t, vault.Client(), &ca.VaultTokenAttributes{
+			RootPath:         "pki-root-2",
+			IntermediatePath: "pki-intermediate-2",
+			ConsulManaged:    true,
+		})
 
-	cert, err = connect.ParseCert(s1.caManager.getLeafSigningCertFromRoot(newRoot))
-	require.NoError(t, err)
-	require.Equal(t, connect.HexString(cert.SubjectKeyId), newRoot.SigningKeyID)
+		err = s1.caManager.UpdateConfiguration(&structs.CARequest{
+			Config: &structs.CAConfiguration{
+				Provider: "vault",
+				Config: map[string]interface{}{
+					"Address":             vault.Addr,
+					"Token":               vaultToken2,
+					"RootPKIPath":         "pki-root-2/",
+					"IntermediatePKIPath": "pki-intermediate-2/",
+				},
+			},
+		})
+		require.NoError(t, err)
+
+		_, newRoot, err := s1.fsm.State().CARootActive(nil)
+		require.NoError(t, err)
+		require.Len(t, newRoot.IntermediateCerts, 2,
+			"expected one cross-sign cert and one local leaf sign cert")
+		require.NotEqual(t, origRoot.ID, newRoot.ID)
+
+		cert, err = connect.ParseCert(s1.caManager.getLeafSigningCertFromRoot(newRoot))
+		require.NoError(t, err)
+		require.Equal(t, connect.HexString(cert.SubjectKeyId), newRoot.SigningKeyID)
+	})
 }
 
 func TestCAManager_Initialize_Vault_WithIntermediateAsPrimaryCA(t *testing.T) {
