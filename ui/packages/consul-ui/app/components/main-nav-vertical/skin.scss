@@ -4,7 +4,7 @@
  */
 
 %main-nav-vertical-action {
-  @extend %p1;
+  @extend %body-200-medium;
   cursor: pointer;
   border-right: var(--decor-border-400);
   border-color: transparent;
@@ -14,9 +14,8 @@
   font-size: inherit;
 }
 %main-nav-vertical [role='separator'] {
-  @extend %p3;
+  @extend %body-100-medium;
   text-transform: uppercase;
-  font-weight: var(--typo-weight-medium);
 }
 %main-nav-vertical-action-intent {
   text-decoration: underline;

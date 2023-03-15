@@ -27,25 +27,22 @@ hr {
   background-color: var(--token-color-surface-interactive-active);
 }
 html {
-  font-size: var(--typo-size-000);
+  font-size: 16px;
 }
-/* %typo-body */
-body {
-  line-height: 1.5;
-}
+
 body,
 input,
 select,
 textarea {
-  font-family: var(--typo-family-sans);
+  font-family: var(--token-typography-font-stack-text);
 }
 code,
 pre {
-  font-family: var(--typo-family-mono);
+  font-family: var(--token-typography-font-stack-code);
 }
 strong {
   font-style: inherit;
-  font-weight: var(--typo-weight-bold);
+  @extend %body-200-semibold;
 }
 html {
   text-rendering: optimizeLegibility;

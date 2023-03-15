@@ -19,9 +19,8 @@
   /* border property then the compressor removes the color */
   border-color: var(--token-color-surface-interactive-active);
   p {
+    @extend %display-300-semibold;
     padding: 12px 12px 0 12px;
-    font-size: var(--typo-size-500);
-    font-weight: var(--typo-weight-semibold);
     margin-bottom: 0 !important;
   }
   p.empty {

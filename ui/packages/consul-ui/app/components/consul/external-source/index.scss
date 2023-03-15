@@ -4,7 +4,7 @@
  */
 
 .consul-external-source {
-  @extend %pill-200, %frame-gray-600, %p1;
+  @extend %pill-200, %frame-gray-600, %body-200-regular;
 }
 
 .consul-external-source::before {

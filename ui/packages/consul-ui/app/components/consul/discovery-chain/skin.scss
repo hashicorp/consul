@@ -57,7 +57,7 @@
 }
 %chain-group > header > * {
   text-transform: uppercase;
-  @extend %p3;
+  @extend %body-100-regular;
 }
 %chain-group > header span::after {
   @extend %with-info-circle-outline-icon, %as-pseudo;

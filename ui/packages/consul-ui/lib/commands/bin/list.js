@@ -4,5 +4,4 @@
  * SPDX-License-Identifier: MPL-2.0
  */
 
-
 require('../lib/list.js')(`${process.cwd()}/tests/steps.js`);

@@ -14,7 +14,7 @@ section[data-route='dc.show.license'] {
 }
 
 %license-route h2 {
-  @extend %h200;
+  @extend %display-400-semibold;
 }
 
 %license-validity p {
@@ -22,7 +22,7 @@ section[data-route='dc.show.license'] {
 }
 %license-validity dl {
   @extend %horizontal-kv-list;
-  font-size: var(--typo-size-400);
+  @extend %body-300-regular;
 }
 %license-validity dl .expired + dd {
   @extend %visually-hidden;
@@ -53,7 +53,7 @@ section[data-route='dc.show.license'] {
   margin-top: 1rem; /* 16px */
 }
 %license-route-learn-more header > :first-child {
-  @extend %h300;
+  @extend %display-300-semibold;
 }
 %license-route-learn-more header {
   margin-bottom: 1rem; /* 16px */
