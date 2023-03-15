@@ -86,7 +86,7 @@ type Backend interface {
 	// Use ReadConsistent sparingly, and prefer Read when possible.
 	ReadConsistent(ctx context.Context, id *pbresource.ID) (*pbresource.Resource, error)
 
-	// WriteCAS performs an atomic CAS (Check-And-Set) write of a resource based
+	// WriteCAS performs an atomic CAS (Compare-And-Swap) write of a resource based
 	// on its version. The given version will be compared to what is stored, and
 	// if it does not match, ErrConflict will be returned. To create new resources,
 	// pass an empty version string.
@@ -110,7 +110,7 @@ type Backend interface {
 	// See Backend docs for more details.
 	WriteCAS(ctx context.Context, res *pbresource.Resource, version string) (*pbresource.Resource, error)
 
-	// DeleteCAS performs an atomic CAS (Check-And-Set) deletion of a resource
+	// DeleteCAS performs an atomic CAS (Compare-And-Swap) deletion of a resource
 	// based on its version. The given version will be compared to what is stored,
 	// and if it does not match, ErrConflict will be returned.
 	//

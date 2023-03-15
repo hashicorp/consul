@@ -122,7 +122,7 @@ func (s *Store) Read(id *pbresource.ID) (*pbresource.Resource, error) {
 	return res, nil
 }
 
-// WriteCAS performs an atomic Check-And-Set (CAS) write of a resource.
+// WriteCAS performs an atomic Compare-And-Swap (CAS) write of a resource.
 //
 // For more information, see the storage.Backend documentation.
 func (s *Store) WriteCAS(res *pbresource.Resource, vsn string) error {
@@ -173,7 +173,7 @@ func (s *Store) WriteCAS(res *pbresource.Resource, vsn string) error {
 	return nil
 }
 
-// DeleteCAS performs an atomic Check-And-Set (CAS) deletion of a resource.
+// DeleteCAS performs an atomic Compare-And-Swap (CAS) deletion of a resource.
 //
 // For more information, see the storage.Backend documentation.
 func (s *Store) DeleteCAS(id *pbresource.ID, vsn string) error {
