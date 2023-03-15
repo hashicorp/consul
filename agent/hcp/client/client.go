@@ -24,9 +24,16 @@ import (
 //
 //go:generate mockery --name Client --with-expecter --inpackage
 type Client interface {
+	FetchTelemetryConfig(ctx context.Context) (*TelemetryConfig, error)
 	FetchBootstrap(ctx context.Context) (*BootstrapConfig, error)
 	PushServerStatus(ctx context.Context, status *ServerStatus) error
 	DiscoverServers(ctx context.Context) ([]string, error)
+}
+
+type TelemetryConfig struct {
+	// TODO: stubbed, requires CCM protos for final design.
+	Endpoint string
+	Filters  []string
 }
 
 type BootstrapConfig struct {
@@ -76,6 +83,14 @@ func httpClient(c config.CloudConfig) (*httptransport.Runtime, error) {
 		HCPConfig:     cfg,
 		SourceChannel: "consul " + version.GetHumanVersion(),
 	})
+}
+
+// TODO: Implement this, stubbed for now until CCM protos are available.
+func (c *hcpClient) FetchTelemetryConfig(ctx context.Context) (*TelemetryConfig, error) {
+	return &TelemetryConfig{
+		Endpoint: "",
+		Filters:  []string{"raft.apply$"},
+	}, nil
 }
 
 func (c *hcpClient) FetchBootstrap(ctx context.Context) (*BootstrapConfig, error) {

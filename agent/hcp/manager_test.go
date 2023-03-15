@@ -11,12 +11,14 @@ import (
 	hcpclient "github.com/hashicorp/consul/agent/hcp/client"
 	"github.com/hashicorp/go-hclog"
 	"github.com/stretchr/testify/mock"
+
 	"github.com/stretchr/testify/require"
 	"golang.org/x/net/context"
 )
 
 func TestManager_Run(t *testing.T) {
 	client := hcpclient.NewMockClient(t)
+	client.EXPECT().FetchTelemetryConfig(mock.Anything).Return(&hcpclient.TelemetryConfig{}, nil)
 	statusF := func(ctx context.Context) (hcpclient.ServerStatus, error) {
 		return hcpclient.ServerStatus{ID: t.Name()}, nil
 	}
@@ -46,6 +48,7 @@ func TestManager_Run(t *testing.T) {
 
 func TestManager_SendUpdate(t *testing.T) {
 	client := hcpclient.NewMockClient(t)
+	client.EXPECT().FetchTelemetryConfig(mock.Anything).Return(&hcpclient.TelemetryConfig{}, nil)
 	statusF := func(ctx context.Context) (hcpclient.ServerStatus, error) {
 		return hcpclient.ServerStatus{ID: t.Name()}, nil
 	}
@@ -76,6 +79,7 @@ func TestManager_SendUpdate(t *testing.T) {
 
 func TestManager_SendUpdate_Periodic(t *testing.T) {
 	client := hcpclient.NewMockClient(t)
+	client.EXPECT().FetchTelemetryConfig(mock.Anything).Return(&hcpclient.TelemetryConfig{}, nil)
 	statusF := func(ctx context.Context) (hcpclient.ServerStatus, error) {
 		return hcpclient.ServerStatus{ID: t.Name()}, nil
 	}
