@@ -137,6 +137,7 @@ func (s *Store) WriteCAS(res *pbresource.Resource, vsn string) error {
 		return err
 	}
 
+	// Callers provide an empty version string on initial resource creation.
 	if existing == nil && vsn != "" {
 		return storage.ErrConflict
 	}
