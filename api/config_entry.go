@@ -24,6 +24,7 @@ const (
 	MeshConfig         string = "mesh"
 	ExportedServices   string = "exported-services"
 	SamenessGroup      string = "sameness-group"
+	RateLimitIPConfig  string = "control-plane-request-limit"
 
 	ProxyConfigGlobal string = "global"
 	MeshConfigMesh    string = "mesh"
@@ -366,6 +367,8 @@ func makeConfigEntry(kind, name string) (ConfigEntry, error) {
 		return &InlineCertificateConfigEntry{Kind: kind, Name: name}, nil
 	case HTTPRoute:
 		return &HTTPRouteConfigEntry{Kind: kind, Name: name}, nil
+	case RateLimitIPConfig:
+		return &RateLimitIPConfigEntry{Kind: kind, Name: name}, nil
 	default:
 		return nil, fmt.Errorf("invalid config entry kind: %s", kind)
 	}

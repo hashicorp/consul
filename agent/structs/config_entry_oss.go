@@ -44,3 +44,7 @@ func validateExportedServicesName(name string) error {
 	}
 	return nil
 }
+
+func makeEnterpriseConfigEntry(kind, name string) ConfigEntry {
+	return nil
+}
