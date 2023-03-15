@@ -38,30 +38,28 @@ func (s *Server) Read(ctx context.Context, req *pbresource.ReadRequest) (*pbreso
 	// check type exists
 	_, ok := s.registry.Resolve(req.Id.Type)
 	if !ok {
-		return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("resource type %s not found", resource.ToGVK(req.Id.Type)))
+		return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("resource type %s not registered", resource.ToGVK(req.Id.Type)))
 	}
 
+	readFn := s.backend.Read
 	if isConsistentRead(ctx) {
-		resource, err := s.backend.ReadConsistent(ctx, req.Id)
-		if err != nil {
-			return nil, err
-		}
-		return &pbresource.ReadResponse{Resource: resource}, nil
-	} else {
-		resource, err := s.backend.Read(ctx, req.Id)
-		if err == nil {
-			if err == storage.ErrNotFound {
-				return nil, status.Error(codes.NotFound, err.Error())
-			}
-
-			if _, ok := err.(storage.GroupVersionMismatchError); ok {
-				return nil, status.Error(codes.InvalidArgument, err.Error())
-			}
-
-			return nil, err
-		}
-		return &pbresource.ReadResponse{Resource: resource}, nil
+		readFn = s.backend.ReadConsistent
 	}
+
+	resource, err := readFn(ctx, req.Id)
+	if err != nil {
+
+		if err == storage.ErrNotFound {
+			return nil, status.Error(codes.NotFound, err.Error())
+		}
+
+		if _, ok := err.(storage.GroupVersionMismatchError); ok {
+			return nil, status.Error(codes.InvalidArgument, err.Error())
+		}
+
+		return nil, err
+	}
+	return &pbresource.ReadResponse{Resource: resource}, nil
 }
 
 func isConsistentRead(ctx context.Context) bool {
