@@ -57,28 +57,36 @@ func TestHTTPRouteFlattening(t *testing.T) {
 	cluster, _, _ := libtopology.NewCluster(t, clusterConfig)
 	client := cluster.Agents[0].GetClient()
 
+	namespace := getNamespace()
+	if namespace != "" {
+		ns := &api.Namespace{Name: namespace}
+		_, _, err := client.Namespaces().Create(ns, nil)
+		require.NoError(t, err)
+	}
+
 	service1ResponseCode := 200
 	service2ResponseCode := 418
 	serviceOne := createService(t, cluster, &libservice.ServiceOpts{
-		Name:     "service1",
-		ID:       "service1",
-		HTTPPort: 8080,
-		GRPCPort: 8079,
+		Name:      "service1",
+		ID:        "service1",
+		HTTPPort:  8080,
+		GRPCPort:  8079,
+		Namespace: namespace,
 	}, []string{
 		// customizes response code so we can distinguish between which service is responding
 		"-echo-server-default-params", fmt.Sprintf("status=%d", service1ResponseCode),
 	})
 	serviceTwo := createService(t, cluster, &libservice.ServiceOpts{
-		Name:     "service2",
-		ID:       "service2",
-		HTTPPort: 8081,
-		GRPCPort: 8082,
+		Name:      "service2",
+		ID:        "service2",
+		HTTPPort:  8081,
+		GRPCPort:  8082,
+		Namespace: namespace,
 	}, []string{
 		"-echo-server-default-params", fmt.Sprintf("status=%d", service2ResponseCode),
 	},
 	)
 
-	namespace := getNamespace()
 	gatewayName := randomName("gw", 16)
 	routeOneName := randomName("route", 16)
 	routeTwoName := randomName("route", 16)
@@ -87,8 +95,9 @@ func TestHTTPRouteFlattening(t *testing.T) {
 
 	// write config entries
 	proxyDefaults := &api.ProxyConfigEntry{
-		Kind: api.ProxyDefaults,
-		Name: api.ProxyConfigGlobal,
+		Kind:      api.ProxyDefaults,
+		Name:      api.ProxyConfigGlobal,
+		Namespace: "", // proxy-defaults can only be set in the default namespace
 		Config: map[string]interface{}{
 			"protocol": "http",
 		},
@@ -106,6 +115,7 @@ func TestHTTPRouteFlattening(t *testing.T) {
 				Protocol: "http",
 			},
 		},
+		Namespace: namespace,
 	}
 
 	routeOne := &api.HTTPRouteConfigEntry{
@@ -189,9 +199,14 @@ func TestHTTPRouteFlattening(t *testing.T) {
 	require.NoError(t, cluster.ConfigEntryWrite(routeTwo))
 
 	// create gateway service
-	gatewayService, err := libservice.NewGatewayService(context.Background(), gatewayName, "api", cluster.Agents[0], listenerPort)
+	gwCfg := libservice.GatewayConfig{
+		Name:      gatewayName,
+		Kind:      "api",
+		Namespace: namespace,
+	}
+	gatewayService, err := libservice.NewGatewayService(context.Background(), gwCfg, cluster.Agents[0], listenerPort)
 	require.NoError(t, err)
-	libassert.CatalogServiceExists(t, client, gatewayName, nil)
+	libassert.CatalogServiceExists(t, client, gatewayName, &api.QueryOptions{Namespace: namespace})
 
 	// make sure config entries have been properly created
 	checkGatewayConfigEntry(t, client, gatewayName, namespace)
@@ -201,8 +216,7 @@ func TestHTTPRouteFlattening(t *testing.T) {
 	// gateway resolves routes
 	gatewayPort, err := gatewayService.GetPort(listenerPort)
 	require.NoError(t, err)
-
-	// route 2 with headers
+	fmt.Println("Gateway Port: ", gatewayPort)
 
 	// Same v2 path with and without header
 	checkRoute(t, gatewayPort, "/v2", map[string]string{
@@ -233,7 +247,6 @@ func TestHTTPRouteFlattening(t *testing.T) {
 	checkRoute(t, gatewayPort, "/v2", map[string]string{
 		"Host": "test.example",
 	}, checkOptions{debug: false, statusCode: service1ResponseCode, testName: "service1, v2 path with v2 hostname"})
-
 }
 
 func TestHTTPRoutePathRewrite(t *testing.T) {
@@ -252,12 +265,19 @@ func TestHTTPRoutePathRewrite(t *testing.T) {
 	barStatusCode := 201
 	fooPath := "/v1/foo"
 	barPath := "/v1/bar"
+	namespace := getNamespace()
+	if namespace != "" {
+		ns := &api.Namespace{Name: namespace}
+		_, _, err := client.Namespaces().Create(ns, nil)
+		require.NoError(t, err)
+	}
 
 	fooService := createService(t, cluster, &libservice.ServiceOpts{
-		Name:     "foo",
-		ID:       "foo",
-		HTTPPort: 8080,
-		GRPCPort: 8081,
+		Name:      "foo",
+		ID:        "foo",
+		HTTPPort:  8080,
+		GRPCPort:  8081,
+		Namespace: namespace,
 	}, []string{
 		// customizes response code so we can distinguish between which service is responding
 		"-echo-debug-path", fooPath,
@@ -267,15 +287,15 @@ func TestHTTPRoutePathRewrite(t *testing.T) {
 		Name: "bar",
 		ID:   "bar",
 		// TODO we can potentially get conflicts if these ports are the same
-		HTTPPort: 8079,
-		GRPCPort: 8078,
+		HTTPPort:  8079,
+		GRPCPort:  8078,
+		Namespace: namespace,
 	}, []string{
 		"-echo-debug-path", barPath,
 		"-echo-server-default-params", fmt.Sprintf("status=%d", barStatusCode),
 	},
 	)
 
-	namespace := getNamespace()
 	gatewayName := randomName("gw", 16)
 	invalidRouteName := randomName("route", 16)
 	validRouteName := randomName("route", 16)
@@ -284,8 +304,9 @@ func TestHTTPRoutePathRewrite(t *testing.T) {
 
 	// write config entries
 	proxyDefaults := &api.ProxyConfigEntry{
-		Kind: api.ProxyDefaults,
-		Name: api.ProxyConfigGlobal,
+		Kind:      api.ProxyDefaults,
+		Name:      api.ProxyConfigGlobal,
+		Namespace: "", // proxy-defaults can only be set in the default namespace
 		Config: map[string]interface{}{
 			"protocol": "http",
 		},
@@ -293,7 +314,7 @@ func TestHTTPRoutePathRewrite(t *testing.T) {
 
 	require.NoError(t, cluster.ConfigEntryWrite(proxyDefaults))
 
-	apiGateway := createGateway(gatewayName, "http", listenerPort)
+	apiGateway := createGatewayConfigEntry(gatewayName, "http", namespace, listenerPort)
 
 	fooRoute := &api.HTTPRouteConfigEntry{
 		Kind: api.HTTPRoute,
@@ -378,9 +399,14 @@ func TestHTTPRoutePathRewrite(t *testing.T) {
 	require.NoError(t, cluster.ConfigEntryWrite(barRoute))
 
 	// create gateway service
-	gatewayService, err := libservice.NewGatewayService(context.Background(), gatewayName, "api", cluster.Agents[0], listenerPort)
+	gwCfg := libservice.GatewayConfig{
+		Name:      gatewayName,
+		Kind:      "api",
+		Namespace: namespace,
+	}
+	gatewayService, err := libservice.NewGatewayService(context.Background(), gwCfg, cluster.Agents[0], listenerPort)
 	require.NoError(t, err)
-	libassert.CatalogServiceExists(t, client, gatewayName, nil)
+	libassert.CatalogServiceExists(t, client, gatewayName, &api.QueryOptions{Namespace: namespace})
 
 	// make sure config entries have been properly created
 	checkGatewayConfigEntry(t, client, gatewayName, namespace)
@@ -402,7 +428,7 @@ func TestHTTPRoutePathRewrite(t *testing.T) {
 	// make sure foo is being sent to proper service
 	checkRoute(t, gatewayPort, fooUnrewritten+"/foo", map[string]string{
 		"Host": "test.foo",
-	}, checkOptions{debug: false, statusCode: fooStatusCode, testName: "foo service"})
+	}, checkOptions{debug: false, statusCode: fooStatusCode, testName: "foo service 2"})
 
 	// hit bar, making sure its been rewritten
 	checkRoute(t, gatewayPort, barUnrewritten, map[string]string{
@@ -413,7 +439,6 @@ func TestHTTPRoutePathRewrite(t *testing.T) {
 	checkRoute(t, gatewayPort, barUnrewritten+"/bar", map[string]string{
 		"Host": "test.foo",
 	}, checkOptions{debug: false, statusCode: barStatusCode, testName: "bar service"})
-
 }
 
 func TestHTTPRouteParentRefChange(t *testing.T) {
@@ -431,23 +456,32 @@ func TestHTTPRouteParentRefChange(t *testing.T) {
 	// create cluster and service
 	cluster := createCluster(t, listenerOnePort, listenerTwoPort)
 	client := cluster.Agents[0].GetClient()
-	service := createService(t, cluster, &libservice.ServiceOpts{
-		Name:     "service",
-		ID:       "service",
-		HTTPPort: 8080,
-		GRPCPort: 8079,
-	}, []string{})
 
 	// getNamespace() should always return an empty string in Consul OSS
 	namespace := getNamespace()
+	if namespace != "" {
+		ns := &api.Namespace{Name: namespace}
+		_, _, err := client.Namespaces().Create(ns, nil)
+		require.NoError(t, err)
+	}
+
+	service := createService(t, cluster, &libservice.ServiceOpts{
+		Name:      "service",
+		ID:        "service",
+		HTTPPort:  8080,
+		GRPCPort:  8079,
+		Namespace: namespace,
+	}, []string{})
+
 	gatewayOneName := randomName("gw1", 16)
 	gatewayTwoName := randomName("gw2", 16)
 	routeName := randomName("route", 16)
 
 	// write config entries
 	proxyDefaults := &api.ProxyConfigEntry{
-		Kind: api.ProxyDefaults,
-		Name: api.ProxyConfigGlobal,
+		Kind:      api.ProxyDefaults,
+		Name:      api.ProxyConfigGlobal,
+		Namespace: "", // proxy-defaults can only be set in the default namespace
 		Config: map[string]interface{}{
 			"protocol": "http",
 		},
@@ -467,6 +501,7 @@ func TestHTTPRouteParentRefChange(t *testing.T) {
 				Hostname: "test.foo",
 			},
 		},
+		Namespace: namespace,
 	}
 	require.NoError(t, cluster.ConfigEntryWrite(gatewayOne))
 	require.Eventually(t, func() bool {
@@ -481,9 +516,14 @@ func TestHTTPRouteParentRefChange(t *testing.T) {
 	}, time.Second*10, time.Second*1)
 
 	// create gateway service
-	gatewayOneService, err := libservice.NewGatewayService(context.Background(), gatewayOneName, "api", cluster.Agents[0], listenerOnePort)
+	gwOneCfg := libservice.GatewayConfig{
+		Name:      gatewayOneName,
+		Kind:      "api",
+		Namespace: namespace,
+	}
+	gatewayOneService, err := libservice.NewGatewayService(context.Background(), gwOneCfg, cluster.Agents[0], listenerOnePort)
 	require.NoError(t, err)
-	libassert.CatalogServiceExists(t, client, gatewayOneName, nil)
+	libassert.CatalogServiceExists(t, client, gatewayOneName, &api.QueryOptions{Namespace: namespace})
 
 	// create gateway config entry
 	gatewayTwo := &api.APIGatewayConfigEntry{
@@ -497,6 +537,7 @@ func TestHTTPRouteParentRefChange(t *testing.T) {
 				Hostname: "test.example",
 			},
 		},
+		Namespace: namespace,
 	}
 
 	require.NoError(t, cluster.ConfigEntryWrite(gatewayTwo))
@@ -513,9 +554,14 @@ func TestHTTPRouteParentRefChange(t *testing.T) {
 	}, time.Second*10, time.Second*1)
 
 	// create gateway service
-	gatewayTwoService, err := libservice.NewGatewayService(context.Background(), gatewayTwoName, "api", cluster.Agents[0], listenerTwoPort)
+	gwTwoCfg := libservice.GatewayConfig{
+		Name:      gatewayTwoName,
+		Kind:      "api",
+		Namespace: namespace,
+	}
+	gatewayTwoService, err := libservice.NewGatewayService(context.Background(), gwTwoCfg, cluster.Agents[0], listenerTwoPort)
 	require.NoError(t, err)
-	libassert.CatalogServiceExists(t, client, gatewayTwoName, nil)
+	libassert.CatalogServiceExists(t, client, gatewayTwoName, &api.QueryOptions{Namespace: namespace})
 
 	// create route to service, targeting first gateway
 	route := &api.HTTPRouteConfigEntry{
