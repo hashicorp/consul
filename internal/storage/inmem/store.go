@@ -165,10 +165,7 @@ func (s *Store) WriteCAS(res *pbresource.Resource, vsn string) error {
 	}
 	tx.Commit()
 
-	s.publishEvent(idx, &pbresource.WatchEvent{
-		Operation: pbresource.WatchEvent_OPERATION_UPSERT,
-		Resource:  res,
-	})
+	s.publishEvent(idx, pbresource.WatchEvent_OPERATION_UPSERT, res)
 
 	return nil
 }
@@ -215,10 +212,7 @@ func (s *Store) DeleteCAS(id *pbresource.ID, vsn string) error {
 	}
 	tx.Commit()
 
-	s.publishEvent(idx, &pbresource.WatchEvent{
-		Operation: pbresource.WatchEvent_OPERATION_DELETE,
-		Resource:  res,
-	})
+	s.publishEvent(idx, pbresource.WatchEvent_OPERATION_DELETE, res)
 
 	return nil
 }

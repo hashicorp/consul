@@ -105,9 +105,10 @@ func (s tenancySubject) String() string {
 }
 
 // publishEvent sends the event to the relevant Watches.
-func (s *Store) publishEvent(idx uint64, event *pbresource.WatchEvent) {
-	id := event.Resource.Id
+func (s *Store) publishEvent(idx uint64, op pbresource.WatchEvent_Operation, res *pbresource.Resource) {
+	id := res.Id
 	resourceType := storage.UnversionedTypeFrom(id.Type)
+	event := &pbresource.WatchEvent{Operation: op, Resource: res}
 
 	// We publish two copies of the event: one to the tenancy-specific subject and
 	// another to a wildcard subject. Ideally, we'd be able to put the type in the
