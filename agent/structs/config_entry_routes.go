@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/hashicorp/consul/acl"
 	"github.com/miekg/dns"
+
+	"github.com/hashicorp/consul/acl"
 )
 
 // BoundRoute indicates a route that has parent gateways which

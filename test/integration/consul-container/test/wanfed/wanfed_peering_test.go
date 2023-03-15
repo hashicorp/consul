@@ -4,12 +4,13 @@ import (
 	"context"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	libassert "github.com/hashicorp/consul/test/integration/consul-container/libs/assert"
 	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
 	libservice "github.com/hashicorp/consul/test/integration/consul-container/libs/service"
-	"github.com/stretchr/testify/require"
 )
 
 func TestPeering_WanFedSecondaryDC(t *testing.T) {
@@ -37,7 +38,11 @@ func TestPeering_WanFedSecondaryDC(t *testing.T) {
 
 	t.Run("secondary dc can peer to alpha dc", func(t *testing.T) {
 		// Create the gateway
-		_, err := libservice.NewGatewayService(context.Background(), "mesh", "mesh", c3.Servers()[0])
+		gwCfg := libservice.GatewayConfig{
+			Name: "mesh",
+			Kind: "mesh",
+		}
+		_, err := libservice.NewGatewayService(context.Background(), gwCfg, c3.Servers()[0])
 		require.NoError(t, err)
 
 		// Create the peering connection
