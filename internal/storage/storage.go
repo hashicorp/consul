@@ -164,8 +164,21 @@ type Backend interface {
 	// immediately, and will be followed by delta events whenever resources are
 	// written or deleted.
 	//
-	// See List docs for details about Tenancy Wildcard, GroupVersion, and
-	// Consistency.
+	// # Consistency
+	//
+	// WatchList makes no guarantees about event timeliness (e.g. an event for a
+	// write may not be received immediately), but it does guarantee that events
+	// will be emitted in the correct order.
+	//
+	// There's also a sequential consistency guarantee between Read and WatchList,
+	// such that Read will never return data that is older than the most recent
+	// event you received. Note: this guarantee holds at the (in-process) storage
+	// backend level, only. Controllers and other users of the Resource Service API
+	// must remain connected to the same Consul server process to avoid receiving
+	// events about writes that they then cannot read. In other words, it is *not*
+	// linearizable: https://jepsen.io/consistency/models/sequential
+	//
+	// See List docs for details about Tenancy Wildcard and GroupVersion.
 	WatchList(ctx context.Context, resType UnversionedType, tenancy *pbresource.Tenancy, namePrefix string) (Watch, error)
 
 	// OwnerReferences returns the IDs of resources owned by the resource with the
