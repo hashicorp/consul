@@ -33,7 +33,7 @@
   width: 140px;
 }
 %debug-grid figcaption {
-  @extend %p3;
+  @extend %body-100-regular;
   text-align: center;
 }
 [id^='docfy-demo-preview-color'] ul,
@@ -64,38 +64,36 @@
 }
 
 [id^='docfy-demo-preview-typography'] {
-  .debug-h000 {
-    @extend %h000;
-  }
+  .debug-h000,
   .debug-h100 {
-    @extend %h100;
+    @extend %display-500-bold;
   }
   .debug-h200 {
-    @extend %h200;
+    @extend %display-400-semibold;
   }
   .debug-h300 {
-    @extend %h300;
+    @extend %display-300-semibold;
   }
   .debug-h400 {
-    @extend %h400;
+    @extend %display-100-semibold;
   }
   .debug-h500 {
-    @extend %h500;
+    @extend %display-100-medium;
   }
   .debug-h600 {
-    @extend %h600;
+    @extend %display-100-medium;
   }
   .debug-p {
-    @extend %p;
+    @extend %body-200-regular;
   }
   .debug-p1 {
-    @extend %p1;
+    @extend %body-200-regular;
   }
   .debug-p2 {
-    @extend %p2;
+    @extend %body-100-regular;
   }
   .debug-p3 {
-    @extend %p3;
+    @extend %body-100-regular;
   }
 }
 
@@ -120,7 +118,7 @@ html:not(.with-data-source) .data-source-debug {
 }
 html.with-href-to [href^='console://']::before
 {
-  @extend %p3;
+  @extend %body-100-regular;
   @extend %debug-box;
   content: attr(href);
   display: inline;
@@ -192,25 +190,25 @@ html.with-route-announcer .route-title {
     }
     > h1 {
       padding-top: 20px;
-      @extend %h100;
+      @extend %display-500-bold;
     }
     > h2 {
-      @extend %h200;
+      @extend %display-400-semibold;
     }
     > h3 {
-      @extend %h300;
+      @extend %display-300-semibold;
     }
     > h4 {
-      @extend %h400;
+      @extend %display-100-semibold;
     }
     > p {
-      @extend %p1;
+      @extend %body-200-regular;
     }
     > table {
       margin-bottom: 3em;
     }
     > table td {
-      font-weight: normal !important;
+      font-weight: var(--token-typography-font-weight-regular) !important;
       cursor: default !important;
     }
     > table td code {

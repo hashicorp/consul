@@ -8,7 +8,7 @@ html[data-route^='dc.kv'] .type-toggle {
   margin-bottom: 0 !important;
 }
 html[data-route^='dc.kv.edit'] h2 {
-  @extend %h200;
+  @extend %display-400-semibold;
   border-bottom: var(--decor-border-200);
   border-color: var(--token-color-surface-interactive-active);
   padding-bottom: 0.2em;

@@ -39,12 +39,11 @@ $syntax-dark-gray: #535f73;
   overflow-x: hidden !important;
 }
 .CodeMirror-lint-tooltip {
+  @extend %code-100-regular;
   background-color: #f9f9fa;
   border: 1px solid var(--syntax-light-gray);
   border-radius: 0;
   color: lighten(#000, 13%);
-  font-family: var(--typo-family-mono);
-  font-size: 13px;
   padding: 7px 8px 9px;
 }
 
@@ -54,7 +53,7 @@ $syntax-dark-gray: #535f73;
     background-color: var(--token-color-hashicorp-brand) !important;
     color: #cfd2d1 !important;
     border: none;
-    font-family: var(--typo-family-mono);
+    font-family: var(--token-typography-font-stack-code);
     -webkit-font-smoothing: auto;
     line-height: 1.4;
   }
@@ -210,9 +209,8 @@ $syntax-dark-gray: #535f73;
 
     .toolbar {
       .title {
+        @extend %body-200-semibold;
         color: var(--token-color-foreground-strong);
-        font-size: 14px;
-        font-weight: 700;
       }
       .toolbar-separator {
         border-right: 1px solid var(--token-color-palette-neutral-300);

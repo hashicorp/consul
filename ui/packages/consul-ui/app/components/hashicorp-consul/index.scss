@@ -23,7 +23,7 @@
   nav .dcs .dc-name {
     color: var(--token-color-foreground-faint);
     padding: 3.25px 0px;
-    font-weight: var(--typo-weight-semibold);
+    font-weight: var(--token-typography-font-weight-semibold);
   }
   nav .dcs .dc-name span {
     @extend %pill-200;

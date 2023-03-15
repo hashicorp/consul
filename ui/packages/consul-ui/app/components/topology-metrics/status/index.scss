@@ -5,8 +5,7 @@
 
 .topology-metrics-status-error,
 .topology-metrics-status-loader {
-  font-weight: normal;
-  font-size: 0.875rem;
+  @extend %body-200-regular;
   color: var(--token-color-foreground-faint);
   text-align: center;
   margin: 0 auto !important;

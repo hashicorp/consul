@@ -18,7 +18,7 @@
 
         <fsm.State @matches={{array "idle" "error"}}>
           <fsm.State @matches={{"error"}}>
-            <Hds::Alert @type='critical' class='mb-3 mt-2' as |A|>
+            <Hds::Alert @color='critical' class='mb-3 mt-2' as |A|>
               <A.Title>Error</A.Title>
               <A.Description>{{fsm.state.context.error.message}}</A.Description>
             </Hds::Alert>

@@ -74,6 +74,9 @@
 %composite-row .copy-button {
   display: inline-flex;
 }
+%composite-row .copy-button button {
+  @extend %body-100-medium;
+}
 %composite-row-header .copy-button {
   margin-left: 4px;
 }

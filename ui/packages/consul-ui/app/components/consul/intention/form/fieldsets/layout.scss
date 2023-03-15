@@ -17,7 +17,7 @@
     display: inline;
   }
   .permissions > button {
-    @extend %anchor, %p2;
+    @extend %anchor, %body-100-regular;
     float: right;
   }
 }
