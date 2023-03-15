@@ -7,7 +7,7 @@
   @extend %with-check-plain-mask, %as-pseudo;
 }
 %menu-panel-header {
-  @extend %p2;
+  @extend %body-100-regular;
 }
 %menu-panel-header + ul {
   border-top: var(--decor-border-100);
@@ -19,9 +19,8 @@
   border: none;
 }
 %menu-panel-separator {
-  @extend %p3;
+  @extend %body-100-medium;
   text-transform: uppercase;
-  font-weight: var(--typo-weight-medium);
   color: var(--token-color-foreground-faint);
 }
 %menu-panel-item {

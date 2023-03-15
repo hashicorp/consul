@@ -7,7 +7,7 @@
 @import './layout';
 %form h2,
 .modal-dialog-body h2 {
-  @extend %h200;
+  @extend %display-400-semibold;
 }
 /* TODO: This is positioning the element */
 /* probably should be in a special %form class*/

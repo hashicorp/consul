@@ -48,11 +48,10 @@
     z-index: 2;
   }
   li::after {
+    @extend %body-200-semibold;
     content: counter(hexagonal-counter);
     position: absolute;
     top: 0px;
-    font-size: 14px;
-    font-weight: var(--typo-weight-bold);
     background-color: var(--token-color-palette-neutral-0);
     z-index: 1;
     text-align: center;

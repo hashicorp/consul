@@ -7,11 +7,12 @@
 %table td {
   border-bottom: var(--decor-border-100);
 }
-%table th {
+%table th,
+%tbody-th {
   border-color: var(--token-color-palette-neutral-300);
 }
 %table td {
-  border-color: var(--token-color-surface-interactive-active);
+  border-color: var(--token-color-palette-neutral-300);
   color: var(--token-color-foreground-faint);
 }
 %table th,
@@ -22,10 +23,9 @@
  * current th's to `thead th` and changing the templates
  * at whichpoint we can probably remove the %table a selector from here
  */
-%table a,
-%tbody-th {
+%table a {
   color: var(--token-color-foreground-strong);
 }
-%table td:first-child {
+%table th {
   @extend %tbody-th;
 }
