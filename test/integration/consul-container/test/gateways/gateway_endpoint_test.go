@@ -224,8 +224,12 @@ func createServices(t *testing.T, cluster *libcluster.Cluster, ports ...int) (li
 	}
 
 	clientConnectProxy := createService(t, cluster, serviceOpts, nil)
+	gwCfg := libservice.GatewayConfig{
+		Name: "api-gateway",
+		Kind: "api",
+	}
 
-	gatewayService, err := libservice.NewGatewayService(context.Background(), "api-gateway", "api", "", cluster.Agents[0], ports...)
+	gatewayService, err := libservice.NewGatewayService(context.Background(), gwCfg, cluster.Agents[0], ports...)
 	require.NoError(t, err)
 	libassert.CatalogServiceExists(t, client, "api-gateway", nil)
 

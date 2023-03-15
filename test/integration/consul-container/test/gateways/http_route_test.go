@@ -199,7 +199,12 @@ func TestHTTPRouteFlattening(t *testing.T) {
 	require.NoError(t, cluster.ConfigEntryWrite(routeTwo))
 
 	// create gateway service
-	gatewayService, err := libservice.NewGatewayService(context.Background(), gatewayName, "api", namespace, cluster.Agents[0], listenerPort)
+	gwCfg := libservice.GatewayConfig{
+		Name:      gatewayName,
+		Kind:      "api",
+		Namespace: namespace,
+	}
+	gatewayService, err := libservice.NewGatewayService(context.Background(), gwCfg, cluster.Agents[0], listenerPort)
 	require.NoError(t, err)
 	libassert.CatalogServiceExists(t, client, gatewayName, &api.QueryOptions{Namespace: namespace})
 
@@ -394,7 +399,12 @@ func TestHTTPRoutePathRewrite(t *testing.T) {
 	require.NoError(t, cluster.ConfigEntryWrite(barRoute))
 
 	// create gateway service
-	gatewayService, err := libservice.NewGatewayService(context.Background(), gatewayName, "api", namespace, cluster.Agents[0], listenerPort)
+	gwCfg := libservice.GatewayConfig{
+		Name:      gatewayName,
+		Kind:      "api",
+		Namespace: namespace,
+	}
+	gatewayService, err := libservice.NewGatewayService(context.Background(), gwCfg, cluster.Agents[0], listenerPort)
 	require.NoError(t, err)
 	libassert.CatalogServiceExists(t, client, gatewayName, &api.QueryOptions{Namespace: namespace})
 
@@ -506,7 +516,12 @@ func TestHTTPRouteParentRefChange(t *testing.T) {
 	}, time.Second*10, time.Second*1)
 
 	// create gateway service
-	gatewayOneService, err := libservice.NewGatewayService(context.Background(), gatewayOneName, "api", namespace, cluster.Agents[0], listenerOnePort)
+	gwOneCfg := libservice.GatewayConfig{
+		Name:      gatewayOneName,
+		Kind:      "api",
+		Namespace: namespace,
+	}
+	gatewayOneService, err := libservice.NewGatewayService(context.Background(), gwOneCfg, cluster.Agents[0], listenerOnePort)
 	require.NoError(t, err)
 	libassert.CatalogServiceExists(t, client, gatewayOneName, &api.QueryOptions{Namespace: namespace})
 
@@ -539,7 +554,12 @@ func TestHTTPRouteParentRefChange(t *testing.T) {
 	}, time.Second*10, time.Second*1)
 
 	// create gateway service
-	gatewayTwoService, err := libservice.NewGatewayService(context.Background(), gatewayTwoName, "api", namespace, cluster.Agents[0], listenerTwoPort)
+	gwTwoCfg := libservice.GatewayConfig{
+		Name:      gatewayTwoName,
+		Kind:      "api",
+		Namespace: namespace,
+	}
+	gatewayTwoService, err := libservice.NewGatewayService(context.Background(), gwTwoCfg, cluster.Agents[0], listenerTwoPort)
 	require.NoError(t, err)
 	libassert.CatalogServiceExists(t, client, gatewayTwoName, &api.QueryOptions{Namespace: namespace})
 

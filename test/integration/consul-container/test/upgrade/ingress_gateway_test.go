@@ -98,7 +98,11 @@ func TestIngressGateway_UpgradeToTarget_fromLatest(t *testing.T) {
 			},
 		}))
 
-		igw, err := libservice.NewGatewayService(context.Background(), nameIG, "ingress", "", cluster.Servers()[0])
+		gwCfg := libservice.GatewayConfig{
+			Name: nameIG,
+			Kind: "ingress",
+		}
+		igw, err := libservice.NewGatewayService(context.Background(), gwCfg, cluster.Servers()[0])
 		require.NoError(t, err)
 		t.Logf("created gateway: %#v", igw)
 
