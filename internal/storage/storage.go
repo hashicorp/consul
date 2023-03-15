@@ -47,6 +47,22 @@ var (
 // In order to support automatic translation between schema versions, we only
 // store a single version of a resource, and treat types with the same Group
 // and Kind, but different GroupVersions, as equivalent.
+//
+// # Read-Modify-Write Patterns
+//
+// All writes at the storage backend level are CAS (Compare-And-Swap) operations
+// where the caller must provide the resource in its entirety, along with the
+// current version string.
+//
+// Non-CAS writes should be implemented at a higher level (i.e. in the Resource
+// Service) by reading the resource, applying the user's requested modifications,
+// and writing it back. This allows us to ensure we're correctly carrying over
+// the resource's Status and Uid, without requiring support for partial update
+// or "patch" operations from external storage systems.
+//
+// In cases where there are concurrent interleaving writes made to a resource,
+// it's likely that a CAS operation will fail, so callers may need to put their
+// Read-Modify-Write cycle in a retry loop.
 type Backend interface {
 	// Read a resource using its ID.
 	//
