@@ -61,7 +61,7 @@ func TestHTTPRouteFlattening(t *testing.T) {
 	if namespace != "" {
 		ns := &api.Namespace{Name: namespace}
 		_, _, err := client.Namespaces().Create(ns, nil)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 	}
 
 	service1ResponseCode := 200
@@ -264,7 +264,7 @@ func TestHTTPRoutePathRewrite(t *testing.T) {
 	if namespace != "" {
 		ns := &api.Namespace{Name: namespace}
 		_, _, err := client.Namespaces().Create(ns, nil)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 	}
 
 	fooService := createService(t, cluster, &libservice.ServiceOpts{
@@ -452,7 +452,7 @@ func TestHTTPRouteParentRefChange(t *testing.T) {
 	if namespace != "" {
 		ns := &api.Namespace{Name: namespace}
 		_, _, err := client.Namespaces().Create(ns, nil)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 	}
 
 	service := createService(t, cluster, &libservice.ServiceOpts{
