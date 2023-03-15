@@ -143,9 +143,9 @@ func (g ConnectContainer) GetStatus() (string, error) {
 }
 
 type SidecarConfig struct {
-	SidecarServiceName string
-	ServiceID          string
-	Namespace          string
+	Name      string
+	ServiceID string
+	Namespace string
 }
 
 // NewConnectService returns a container that runs envoy sidecar, launched by
@@ -159,7 +159,7 @@ func NewConnectService(ctx context.Context, sidecarCfg SidecarConfig, serviceBin
 		return nil, fmt.Errorf("node ScratchDir is required")
 	}
 
-	namePrefix := fmt.Sprintf("%s-service-connect-%s", node.GetDatacenter(), sidecarCfg.SidecarServiceName)
+	namePrefix := fmt.Sprintf("%s-service-connect-%s", node.GetDatacenter(), sidecarCfg.Name)
 	containerName := utils.RandName(namePrefix)
 
 	envoyVersion := getEnvoyVersion()
@@ -247,7 +247,7 @@ func NewConnectService(ctx context.Context, sidecarCfg SidecarConfig, serviceBin
 		ip:                info.IP,
 		externalAdminPort: info.MappedPorts[adminPortStr].Int(),
 		internalAdminPort: internalAdminPort,
-		serviceName:       sidecarCfg.SidecarServiceName,
+		serviceName:       sidecarCfg.Name,
 	}
 
 	for _, port := range appPortStrs {
@@ -257,7 +257,7 @@ func NewConnectService(ctx context.Context, sidecarCfg SidecarConfig, serviceBin
 	fmt.Printf("NewConnectService: name %s, mapped App Port %d, service bind port %v\n",
 		sidecarCfg.ServiceID, out.appPort, serviceBindPorts)
 	fmt.Printf("NewConnectService sidecar: name %s, mapped admin port %d, admin port %d\n",
-		sidecarCfg.SidecarServiceName, out.externalAdminPort, internalAdminPort)
+		sidecarCfg.Name, out.externalAdminPort, internalAdminPort)
 
 	return out, nil
 }

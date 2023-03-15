@@ -433,8 +433,8 @@ func createAndRegisterStaticClientSidecarWith2Upstreams(c *cluster.Cluster, dest
 
 	// Create a service and proxy instance
 	sidecarCfg := libservice.SidecarConfig{
-		SidecarServiceName: fmt.Sprintf("%s-sidecar", libservice.StaticClientServiceName),
-		ServiceID:          libservice.StaticClientServiceName,
+		Name:      fmt.Sprintf("%s-sidecar", libservice.StaticClientServiceName),
+		ServiceID: libservice.StaticClientServiceName,
 	}
 
 	clientConnectProxy, err := libservice.NewConnectService(context.Background(), sidecarCfg, []int{cluster.ServiceUpstreamLocalBindPort, cluster.ServiceUpstreamLocalBindPort2}, node)

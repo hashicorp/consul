@@ -58,9 +58,9 @@ func createAndRegisterStaticServerAndSidecar(node libcluster.Agent, grpcPort int
 		_ = serverService.Terminate()
 	})
 	sidecarCfg := SidecarConfig{
-		SidecarServiceName: fmt.Sprintf("%s-sidecar", svc.ID),
-		ServiceID:          svc.ID,
-		Namespace:          svc.Namespace,
+		Name:      fmt.Sprintf("%s-sidecar", svc.ID),
+		ServiceID: svc.ID,
+		Namespace: svc.Namespace,
 	}
 	serverConnectProxy, err := NewConnectService(context.Background(), sidecarCfg, []int{svc.Port}, node) // bindPort not used
 	if err != nil {
@@ -168,8 +168,8 @@ func CreateAndRegisterStaticClientSidecar(
 
 	// Create a service and proxy instance
 	sidecarCfg := SidecarConfig{
-		SidecarServiceName: fmt.Sprintf("%s-sidecar", StaticClientServiceName),
-		ServiceID:          StaticClientServiceName,
+		Name:      fmt.Sprintf("%s-sidecar", StaticClientServiceName),
+		ServiceID: StaticClientServiceName,
 	}
 
 	clientConnectProxy, err := NewConnectService(context.Background(), sidecarCfg, []int{libcluster.ServiceUpstreamLocalBindPort}, node)
