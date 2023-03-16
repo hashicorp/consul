@@ -206,8 +206,8 @@ func createService(t *testing.T, cluster *libcluster.Cluster, serviceOpts *libse
 	service, _, err := libservice.CreateAndRegisterStaticServerAndSidecar(node, serviceOpts, containerArgs...)
 	require.NoError(t, err)
 
-	libassert.CatalogServiceExists(t, client, serviceOpts.Name+"-sidecar-proxy", nil)
-	libassert.CatalogServiceExists(t, client, serviceOpts.Name, nil)
+	libassert.CatalogServiceExists(t, client, serviceOpts.Name+"-sidecar-proxy", &api.QueryOptions{Namespace: serviceOpts.Namespace})
+	libassert.CatalogServiceExists(t, client, serviceOpts.Name, &api.QueryOptions{Namespace: serviceOpts.Namespace})
 
 	return service
 }
