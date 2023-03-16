@@ -1,0 +1,25 @@
+resource "docker_container" "{{.Node.DockerName}}-{{.Service.ID.TFString}}" {
+    name = "{{.Node.DockerName}}-{{.Service.ID.TFString}}"
+    network_mode = "container:${docker_container.{{.PodName}}.id}"
+    image        = docker_image.{{.EnvoyImageResource}}.latest
+    restart  = "on-failure"
+
+{{- range $k, $v := .Labels }}
+  labels {
+    label = "{{ $k }}"
+    value = "{{ $v }}"
+  }
+{{- end }}
+
+  volumes {
+    volume_name    = "{{.TLSVolumeName}}"
+    container_path = "/consul/config/certs"
+    read_only      = true
+  }
+
+  command = [
+{{- range .Command }}
+    "{{.}}",
+{{- end }}
+  ]
+}

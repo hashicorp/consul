@@ -1,0 +1,21 @@
+resource "docker_container" "{{.DockerNetworkName}}-squid" {
+  name     = "{{.DockerNetworkName}}-squid"
+  image = docker_image.squid.latest
+  restart  = "always"
+  dns      = ["8.8.8.8"]
+
+  ports {
+    internal = {{.InternalPort}}
+  }
+
+  networks_advanced {
+    name         = docker_network.{{.DockerNetworkName}}.name
+    ipv4_address = "{{.IPAddress}}"
+  }
+}
+
+output "squidport_{{.Name}}" {
+  value = {
+    for port in docker_container.{{.DockerNetworkName}}-squid.ports : port.internal => port.external
+  }
+}
