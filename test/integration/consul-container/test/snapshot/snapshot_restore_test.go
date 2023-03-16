@@ -79,8 +79,16 @@ func testSnapShotRestoreForLogStore(t *testing.T, logStore libcluster.LogStore) 
 
 	libcluster.WaitForLeader(t, cluster2, client2)
 
+	followers, err := cluster2.Followers()
+	require.NoError(t, err)
+	require.Len(t, followers, 2)
+
+	// use a follower api client and set `AllowStale` to true
+	// to test the follower snapshot install code path as well.
+	fc := followers[0].GetClient()
+
 	for i := 0; i < 100; i++ {
-		kv, _, err := client2.KV().Get(fmt.Sprintf("key-%d", i), &api.QueryOptions{AllowStale: true})
+		kv, _, err := fc.KV().Get(fmt.Sprintf("key-%d", i), &api.QueryOptions{AllowStale: true})
 		require.NoError(t, err)
 		require.Equal(t, kv.Key, fmt.Sprintf("key-%d", i))
 		require.Equal(t, kv.Value, []byte(fmt.Sprintf("value-%d", i)))
