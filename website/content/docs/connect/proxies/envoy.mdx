@@ -33,14 +33,16 @@ Envoy must be run with the `--max-obj-name-len` option set to `256` or greater f
 
 The following matrix describes Envoy compatibility for the currently supported **n-2 major Consul releases**. For previous Consul version compatibility please view the respective versioned docs for this page.
 
+~> **Note:** Starting on Consul v1.14, Consul dataplane was implemented to manage Envoy proxies without the use of Consul clients. This means that compatibile Envoy versions for 1.14+ will be automatically upgraded via the consul-dataplane binary. 
+
 ### Envoy and Consul Client Agent
 
 Consul supports **four major Envoy releases** at the beginning of each major Consul release. Consul maintains compatibility with Envoy patch releases for each major version so that users can benefit from bug and security fixes in Envoy. As a policy, Consul will add support for a new major versions of Envoy in a Consul major release. Support for newer versions of Envoy will not be added to existing releases.
 
 | Consul Version      | Compatible Envoy Versions                                                          |
 | ------------------- | -----------------------------------------------------------------------------------|
-| 1.15.x              | 1.25.1, 1.24.2, 1.23.4, 1.22.5                                                     |
-| 1.14.x              | 1.24.0, 1.23.1, 1.22.5, 1.21.5                                                     |
+| 1.15.x              | 1.25.x, 1.24.x, 1.23.4, 1.22.5                                                     |
+| 1.14.x              | 1.25.x, 1.24.x, 1.23.1, 1.22.5, 1.21.5                                                     |
 | 1.13.x              | 1.23.1, 1.22.5, 1.21.5, 1.20.7                                                     |
 
 ### Envoy and Consul Dataplane
