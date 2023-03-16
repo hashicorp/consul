@@ -85,9 +85,9 @@ export default class TokenAdapter extends Adapter {
 
       ${{
         Description: serialized.Description,
+        AccessorID: serialized.AccessorID,
         Policies: serialized.Policies,
         Roles: serialized.Roles,
-        AccessorID: serialized.AccessorID,
         ServiceIdentities: serialized.ServiceIdentities,
         NodeIdentities: serialized.NodeIdentities,
         Local: serialized.Local,
