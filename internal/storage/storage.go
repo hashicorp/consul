@@ -194,6 +194,9 @@ type Backend interface {
 	// events about writes that they then cannot read. In other words, it is *not*
 	// linearizable: https://jepsen.io/consistency/models/sequential
 	//
+	// There's a similar guarantee between WatchList and OwnerReferences, see the
+	// OwnerReferences docs for more information.
+	//
 	// See List docs for details about Tenancy Wildcard and GroupVersion.
 	WatchList(ctx context.Context, resType UnversionedType, tenancy *pbresource.Tenancy, namePrefix string) (Watch, error)
 
@@ -202,8 +205,17 @@ type Backend interface {
 	//
 	// # Consistency
 	//
-	// OwnerReferences makes no guarantees about consistency, and may return stale
-	// results.
+	// OwnerReferences may return stale results, but is sequentially consistent
+	// with events received from WatchList. In practice, this means that if you
+	// learn that a resource has been deleted through a watch event, the results
+	// you receive from OwnerReferences will contain all references that existed
+	// at the time the owner was deleted. It doesn't make any guarantees about
+	// references that are created *after* the owner was deleted, though, so you
+	// must either prevent that from happening (e.g. by performing a consistent
+	// read of the owner in the write-path, which has its own ordering/correctness
+	// challenges), or by calling OwnerReferences after the expected window of
+	// inconsistency (e.g. deferring cascading deletion, or doing a second pass
+	// an hour later).
 	OwnerReferences(ctx context.Context, id *pbresource.ID) ([]*pbresource.ID, error)
 }
 
