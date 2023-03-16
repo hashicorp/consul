@@ -1,7 +1,6 @@
 package structs
 
 import (
-	"errors"
 	"fmt"
 	"regexp"
 	"sort"
@@ -771,7 +770,7 @@ func (e *APIGatewayConfigEntry) Validate() error {
 	}
 
 	if len(e.Listeners) == 0 {
-		return errors.New("api gateway must have at least one listener")
+		return fmt.Errorf("api gateway must have at least one listener")
 	}
 	if err := e.validateListenerNames(); err != nil {
 		return err
@@ -830,7 +829,7 @@ func (e *APIGatewayConfigEntry) validateListeners() error {
 		}
 		if listener.Port <= 0 || listener.Port > 65535 {
 			return fmt.Errorf("listener port %d not in the range 1-65535", listener.Port)
-		}
+		}| api-gateway         | `mesh:write`   |
 		if strings.ContainsRune(strings.TrimPrefix(listener.Hostname, wildcardPrefix), '*') {
 			return fmt.Errorf("host %q is not valid, a wildcard specifier is only allowed as the left-most label", listener.Hostname)
 		}
