@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/hashicorp/consul/acl"
 	"github.com/miekg/dns"
+
+	"github.com/hashicorp/consul/acl"
 )
 
 // BoundRoute indicates a route that has parent gateways which
@@ -100,7 +101,9 @@ func (e *HTTPRouteConfigEntry) Normalize() error {
 
 func normalizeHTTPService(service HTTPService) HTTPService {
 	service.EnterpriseMeta.Normalize()
-
+	if service.Weight <= 0 {
+		service.Weight = 1
+	}
 	return service
 }
 
@@ -441,7 +444,7 @@ type HTTPService struct {
 	// to routing it to the upstream service
 	Filters HTTPFilters
 
-	acl.EnterpriseMeta
+	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 }
 
 func (s HTTPService) ServiceName() ServiceName {

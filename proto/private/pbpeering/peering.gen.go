@@ -112,6 +112,7 @@ func RemoteInfoToAPI(s *RemoteInfo, t *api.PeeringRemoteInfo) {
 	}
 	t.Partition = s.Partition
 	t.Datacenter = s.Datacenter
+	t.Locality = LocalityToAPI(s.Locality)
 }
 func RemoteInfoFromAPI(t *api.PeeringRemoteInfo, s *RemoteInfo) {
 	if s == nil {
@@ -119,4 +120,5 @@ func RemoteInfoFromAPI(t *api.PeeringRemoteInfo, s *RemoteInfo) {
 	}
 	s.Partition = t.Partition
 	s.Datacenter = t.Datacenter
+	s.Locality = LocalityFromAPI(t.Locality)
 }

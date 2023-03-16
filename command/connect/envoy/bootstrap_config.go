@@ -7,9 +7,11 @@ import (
 	"net"
 	"net/url"
 	"os"
+	"path"
 	"strings"
 	"text/template"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/api"
 )
 
@@ -48,6 +50,11 @@ type BootstrapConfig struct {
 	// name. Only exact values are supported here. Full configuration of
 	// stats_config.stats_tags can be made by overriding envoy_stats_config_json.
 	StatsTags []string `mapstructure:"envoy_stats_tags"`
+
+	// HCPMetricsBindSocketDir is a string that configures the directory for a
+	// unix socket where Envoy will forward metrics. These metrics get pushed to
+	// the HCP Metrics collector to show service mesh metrics on HCP.
+	HCPMetricsBindSocketDir string `mapstructure:"envoy_hcp_metrics_bind_socket_dir"`
 
 	// PrometheusBindAddr configures an <ip>:<port> on which the Envoy will listen
 	// and expose a single /metrics HTTP endpoint for Prometheus to scrape. It
@@ -238,6 +245,11 @@ func (c *BootstrapConfig) ConfigureArgs(args *BootstrapTplArgs, omitDeprecatedTa
 		args.StatsFlushInterval = c.StatsFlushInterval
 	}
 
+	// Setup HCP Metrics if needed. This MUST happen after the Static*JSON is set above
+	if c.HCPMetricsBindSocketDir != "" {
+		appendHCPMetricsConfig(args, c.HCPMetricsBindSocketDir)
+	}
+
 	return nil
 }
 
@@ -271,7 +283,7 @@ func (c *BootstrapConfig) generateStatsSinks(args *BootstrapTplArgs) error {
 	}
 
 	if len(stats_sinks) > 0 {
-		args.StatsSinksJSON = "[\n" + strings.Join(stats_sinks, ",\n") + "\n]"
+		args.StatsSinksJSON = strings.Join(stats_sinks, ",\n")
 	}
 	return nil
 }
@@ -794,6 +806,58 @@ func (c *BootstrapConfig) generateListenerConfig(args *BootstrapTplArgs, bindAdd
 	args.StaticSecretsJSON += secretsJSON
 
 	return nil
+}
+
+// appendHCPMetricsConfig generates config to enable a socket at path: <hcpMetricsBindSocketDir>/<namespace>_<proxy_id>.sock
+// or <hcpMetricsBindSocketDir>/<proxy_id>.sock, if namespace is empty.
+func appendHCPMetricsConfig(args *BootstrapTplArgs, hcpMetricsBindSocketDir string) {
+	// Normalize namespace to "default". This ensures we match the namespace behaviour in proxycfg package,
+	// where a dynamic listener will be created at the same socket path via xDS.
+	sock := fmt.Sprintf("%s_%s.sock", acl.NamespaceOrDefault(args.Namespace), args.ProxyID)
+	path := path.Join(hcpMetricsBindSocketDir, sock)
+
+	if args.StatsSinksJSON != "" {
+		args.StatsSinksJSON += ",\n"
+	}
+	args.StatsSinksJSON += `{
+		"name": "envoy.stat_sinks.metrics_service",
+		"typed_config": {
+		  "@type": "type.googleapis.com/envoy.config.metrics.v3.MetricsServiceConfig",
+		  "transport_api_version": "V3",
+		  "grpc_service": {
+			"envoy_grpc": {
+			  "cluster_name": "hcp_metrics_collector"
+			}
+		  }
+		}
+	  }`
+
+	if args.StaticClustersJSON != "" {
+		args.StaticClustersJSON += ",\n"
+	}
+	args.StaticClustersJSON += fmt.Sprintf(`{
+		"name": "hcp_metrics_collector",
+		"type": "STATIC",
+		"http2_protocol_options": {},
+		"loadAssignment": {
+		  "clusterName": "hcp_metrics_collector",
+		  "endpoints": [
+			{
+			  "lbEndpoints": [
+				{
+				  "endpoint": {
+					"address": {
+					  "pipe": {
+						"path": "%s"
+					  }
+					}
+				  }
+				}
+			  ]
+			}
+		  ]
+		}
+	  }`, path)
 }
 
 func containsSelfAdminCluster(clustersJSON string) (bool, error) {

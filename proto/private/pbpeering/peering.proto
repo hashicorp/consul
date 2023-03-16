@@ -4,6 +4,7 @@ package hashicorp.consul.internal.peering;
 
 import "annotations/ratelimit/ratelimit.proto";
 import "google/protobuf/timestamp.proto";
+import "private/pbcommon/common.proto";
 
 // PeeringService handles operations for establishing peering relationships
 // between disparate Consul clusters.
@@ -237,6 +238,10 @@ message RemoteInfo {
   string Partition = 1;
   // Datacenter is the remote peer's datacenter.
   string Datacenter = 2;
+
+  // Locality identifies where the peer is running.
+  // mog: func-to=LocalityToAPI func-from=LocalityFromAPI
+  common.Locality Locality = 3;
 }
 
 // StreamStatus represents information about an active peering stream.

@@ -28,6 +28,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/proto/private/pbcommon"
 	"github.com/hashicorp/consul/proto/private/pbpeering"
 	"github.com/hashicorp/consul/sdk/freeport"
 	"github.com/hashicorp/consul/sdk/testutil"
@@ -661,6 +662,11 @@ func TestLeader_Peering_RemoteInfo(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	acceptorLocality := &structs.Locality{
+		Region: "us-west-2",
+		Zone:   "us-west-2a",
+	}
+
 	ca := connect.TestCA(t, nil)
 	_, acceptingServer := testServerWithConfig(t, func(c *Config) {
 		c.NodeName = "accepting-server"
@@ -676,6 +682,7 @@ func TestLeader_Peering_RemoteInfo(t *testing.T) {
 				"RootCert":   ca.RootCert,
 			},
 		}
+		c.Locality = acceptorLocality
 	})
 	testrpc.WaitForLeader(t, acceptingServer.RPC, "dc1")
 
@@ -683,6 +690,10 @@ func TestLeader_Peering_RemoteInfo(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	t.Cleanup(cancel)
 
+	dialerLocality := &structs.Locality{
+		Region: "us-west-1",
+		Zone:   "us-west-1a",
+	}
 	conn, err := grpc.DialContext(ctx, acceptingServer.config.RPCAddr.String(),
 		grpc.WithContextDialer(newServerDialer(acceptingServer.config.RPCAddr.String())),
 		//nolint:staticcheck
@@ -705,6 +716,7 @@ func TestLeader_Peering_RemoteInfo(t *testing.T) {
 	// Ensure that the token contains the correct partition and dc
 	require.Equal(t, "dc1", token.Remote.Datacenter)
 	require.Contains(t, []string{"", "default"}, token.Remote.Partition)
+	require.Equal(t, acceptorLocality, token.Remote.Locality)
 
 	// Bring up dialingServer and store acceptingServer's token so that it attempts to dial.
 	_, dialingServer := testServerWithConfig(t, func(c *Config) {
@@ -712,6 +724,7 @@ func TestLeader_Peering_RemoteInfo(t *testing.T) {
 		c.Datacenter = "dc2"
 		c.PrimaryDatacenter = "dc2"
 		c.PeeringEnabled = true
+		c.Locality = dialerLocality
 	})
 	testrpc.WaitForLeader(t, dialingServer.RPC, "dc2")
 
@@ -743,6 +756,7 @@ func TestLeader_Peering_RemoteInfo(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "dc1", p.Peering.Remote.Datacenter)
 	require.Contains(t, []string{"", "default"}, p.Peering.Remote.Partition)
+	require.Equal(t, pbcommon.LocalityToProto(acceptorLocality), p.Peering.Remote.Locality)
 
 	// Retry fetching the until the peering is active in the acceptor.
 	ctx, cancel = context.WithTimeout(context.Background(), 10*time.Second)
@@ -758,6 +772,7 @@ func TestLeader_Peering_RemoteInfo(t *testing.T) {
 	require.NotNil(t, p)
 	require.Equal(t, "dc2", p.Peering.Remote.Datacenter)
 	require.Contains(t, []string{"", "default"}, p.Peering.Remote.Partition)
+	require.Equal(t, pbcommon.LocalityToProto(dialerLocality), p.Peering.Remote.Locality)
 }
 
 // Test that the dialing peer attempts to reestablish connections when the accepting peer

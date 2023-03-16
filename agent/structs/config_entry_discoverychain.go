@@ -18,6 +18,7 @@ import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/lib/maps"
 )
 
 const (
@@ -857,6 +858,11 @@ type ServiceResolverConfigEntry struct {
 	// to this service.
 	ConnectTimeout time.Duration `json:",omitempty" alias:"connect_timeout"`
 
+	// RequestTimeout is the timeout for an HTTP request to complete before
+	// the connection is automatically terminated. If unspecified, defaults
+	// to 15 seconds.
+	RequestTimeout time.Duration `json:",omitempty" alias:"request_timeout"`
+
 	// LoadBalancer determines the load balancing policy and configuration for services
 	// issuing requests to this upstream service.
 	LoadBalancer *LoadBalancer `json:",omitempty" alias:"load_balancer"`
@@ -866,17 +872,42 @@ type ServiceResolverConfigEntry struct {
 	RaftIndex
 }
 
+func (e *ServiceResolverConfigEntry) RelatedPeers() []string {
+	peers := make(map[string]struct{})
+
+	if r := e.Redirect; r != nil && r.Peer != "" {
+		peers[r.Peer] = struct{}{}
+	}
+
+	if e.Failover != nil {
+		for _, f := range e.Failover {
+			for _, t := range f.Targets {
+				if t.Peer != "" {
+					peers[t.Peer] = struct{}{}
+				}
+			}
+		}
+	}
+
+	return maps.SliceOfKeys(peers)
+}
+
 func (e *ServiceResolverConfigEntry) MarshalJSON() ([]byte, error) {
 	type Alias ServiceResolverConfigEntry
 	exported := &struct {
 		ConnectTimeout string `json:",omitempty"`
+		RequestTimeout string `json:",omitempty"`
 		*Alias
 	}{
 		ConnectTimeout: e.ConnectTimeout.String(),
+		RequestTimeout: e.RequestTimeout.String(),
 		Alias:          (*Alias)(e),
 	}
 	if e.ConnectTimeout == 0 {
 		exported.ConnectTimeout = ""
+	}
+	if e.RequestTimeout == 0 {
+		exported.RequestTimeout = ""
 	}
 
 	return json.Marshal(exported)
@@ -886,6 +917,7 @@ func (e *ServiceResolverConfigEntry) UnmarshalJSON(data []byte) error {
 	type Alias ServiceResolverConfigEntry
 	aux := &struct {
 		ConnectTimeout string
+		RequestTimeout string
 		*Alias
 	}{
 		Alias: (*Alias)(e),
@@ -896,6 +928,11 @@ func (e *ServiceResolverConfigEntry) UnmarshalJSON(data []byte) error {
 	var err error
 	if aux.ConnectTimeout != "" {
 		if e.ConnectTimeout, err = time.ParseDuration(aux.ConnectTimeout); err != nil {
+			return err
+		}
+	}
+	if aux.RequestTimeout != "" {
+		if e.RequestTimeout, err = time.ParseDuration(aux.RequestTimeout); err != nil {
 			return err
 		}
 	}
@@ -919,6 +956,7 @@ func (e *ServiceResolverConfigEntry) IsDefault() bool {
 		e.Redirect == nil &&
 		len(e.Failover) == 0 &&
 		e.ConnectTimeout == 0 &&
+		e.RequestTimeout == 0 &&
 		e.LoadBalancer == nil
 }
 
@@ -1062,6 +1100,14 @@ func (e *ServiceResolverConfigEntry) Validate() error {
 				return fmt.Errorf(errorPrefix + "one of Service, ServiceSubset, Namespace, Targets, or Datacenters is required")
 			}
 
+			if err := f.Policy.ValidateEnterprise(); err != nil {
+				return fmt.Errorf("Bad Failover[%q]: %s", subset, err)
+			}
+
+			if !f.Policy.isValid() {
+				return fmt.Errorf("Bad Failover[%q]: Policy must be one of '', 'default', or 'order-by-locality'", subset)
+			}
+
 			if f.ServiceSubset != "" {
 				if f.Service == "" || f.Service == e.Name {
 					if !isSubset(f.ServiceSubset) {
@@ -1115,6 +1161,10 @@ func (e *ServiceResolverConfigEntry) Validate() error {
 
 	if e.ConnectTimeout < 0 {
 		return fmt.Errorf("Bad ConnectTimeout '%s', must be >= 0", e.ConnectTimeout)
+	}
+
+	if e.RequestTimeout < 0 {
+		return fmt.Errorf("Bad RequestTimeout '%s', must be >= 0", e.RequestTimeout)
 	}
 
 	if e.LoadBalancer != nil {
@@ -1347,18 +1397,43 @@ type ServiceResolverFailover struct {
 	//
 	// This is a DESTINATION during failover.
 	Targets []ServiceResolverFailoverTarget `json:",omitempty"`
+
+	// Policy specifies the exact mechanism used for failover.
+	Policy *ServiceResolverFailoverPolicy `json:",omitempty"`
 }
 
-func (t *ServiceResolverFailover) ToDiscoveryTargetOpts() DiscoveryTargetOpts {
+type ServiceResolverFailoverPolicy struct {
+	// Mode specifies the type of failover that will be performed. Valid values are
+	// "default", "" (equivalent to "default") and "order-by-locality".
+	Mode string `json:",omitempty"`
+}
+
+func (f *ServiceResolverFailover) ToDiscoveryTargetOpts() DiscoveryTargetOpts {
 	return DiscoveryTargetOpts{
-		Service:       t.Service,
-		ServiceSubset: t.ServiceSubset,
-		Namespace:     t.Namespace,
+		Service:       f.Service,
+		ServiceSubset: f.ServiceSubset,
+		Namespace:     f.Namespace,
 	}
 }
 
 func (f *ServiceResolverFailover) isEmpty() bool {
 	return f.Service == "" && f.ServiceSubset == "" && f.Namespace == "" && len(f.Datacenters) == 0 && len(f.Targets) == 0
+}
+
+func (fp *ServiceResolverFailoverPolicy) isValid() bool {
+	if fp == nil {
+		return true
+	}
+
+	switch fp.Mode {
+	case "":
+	case "default":
+	case "order-by-locality":
+	default:
+		return false
+	}
+
+	return true
 }
 
 type ServiceResolverFailoverTarget struct {

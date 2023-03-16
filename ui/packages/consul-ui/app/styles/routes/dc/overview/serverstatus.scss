@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 section[data-route='dc.show.serverstatus'] {
   @extend %serverstatus-route;
 }
@@ -15,12 +20,12 @@ section[data-route='dc.show.serverstatus'] {
 
 %serverstatus-route h2,
 %serverstatus-route h3 {
-  @extend %h200;
+  @extend %display-300-semibold;
 }
 
 %server-failure-tolerance {
   @extend %panel;
-  box-shadow: var(--decor-elevation-000);
+  box-shadow: none;
   padding: var(--padding-y) var(--padding-x);
   max-width: 770px;
   display: flex;
@@ -35,13 +40,13 @@ section[data-route='dc.show.serverstatus'] {
   padding-bottom: 0.5rem; /* 8px */
   margin-bottom: 1rem; /* 16px */
   border-bottom: var(--decor-border-100);
-  border-color: rgb(var(--tone-border));
+  border-color: var(--tone-border);
 }
 
 %server-failure-tolerance header em {
   @extend %pill-200;
-  font-size: 0.812rem; /* 13px */
-  background-color: rgb(var(--tone-gray-200));
+  @extend %body-100-regular;
+  background-color: var(--token-color-surface-interactive-active);
 
   text-transform: uppercase;
   font-style: normal;
@@ -65,7 +70,7 @@ section[data-route='dc.show.serverstatus'] {
 %server-failure-tolerance dl.warning dd::before {
   --icon-name: icon-alert-circle;
   --icon-size: icon-800;
-  --icon-color: rgb(var(--tone-orange-400));
+  --icon-color: var(--token-color-foreground-warning);
   content: '';
   margin-right: 0.5rem; /* 8px */
 }
@@ -73,17 +78,17 @@ section[data-route='dc.show.serverstatus'] {
   padding-right: 1.5rem; /* 24px */
 }
 %server-failure-tolerance dt {
-  @extend %p2;
-  color: rgb(var(--tone-gray-700));
+  @extend %body-100-regular;
+  color: var(--token-color-foreground-faint);
 }
 %server-failure-tolerance dd {
-  font-size: var(--typo-size-250);
-  color: rgb(var(--tone-gray-999));
+  @extend %display-300-semibold;
+  color: var(--token-color-hashicorp-brand);
 }
 %server-failure-tolerance header span::before {
   --icon-name: icon-info;
   --icon-size: icon-300;
-  --icon-color: rgb(var(--tone-gray-500));
+  --icon-color: var(--token-color-foreground-faint);
   vertical-align: unset;
   content: '';
 }
@@ -98,7 +103,7 @@ section[data-route='dc.show.serverstatus'] {
 }
 
 %redundancy-zones h3 {
-  @extend %h300;
+  @extend %display-300-semibold;
 }
 %redundancy-zone header {
   display: flow-root;
@@ -116,11 +121,11 @@ section[data-route='dc.show.serverstatus'] {
   @extend %visually-unhidden;
 }
 %redundancy-zone header dl:not(.warning) {
-  background-color: rgb(var(--tone-gray-100));
+  background-color: var(--token-color-surface-strong);
 }
 %redundancy-zone header dl.warning {
-  background-color: rgb(var(--tone-orange-100));
-  color: rgb(var(--tone-orange-800));
+  background-color: var(--token-color-border-warning);
+  color: var(--token-color-palette-amber-400);
 }
 %redundancy-zone header dl.warning::before {
   --icon-name: icon-alert-circle;
@@ -132,5 +137,5 @@ section[data-route='dc.show.serverstatus'] {
   content: ':';
   display: inline-block;
   vertical-align: revert;
-  background-color: var(--transparent);
+  background-color: transparent;
 }

@@ -125,6 +125,10 @@ func (o *CompiledDiscoveryChain) DeepCopy() *CompiledDiscoveryChain {
 			if v2 != nil {
 				cp_Targets_v2 = new(DiscoveryTarget)
 				*cp_Targets_v2 = *v2
+				if v2.Locality != nil {
+					cp_Targets_v2.Locality = new(Locality)
+					*cp_Targets_v2.Locality = *v2.Locality
+				}
 			}
 			cp.Targets[k2] = cp_Targets_v2
 		}
@@ -176,6 +180,10 @@ func (o *DiscoveryFailover) DeepCopy() *DiscoveryFailover {
 	if o.Targets != nil {
 		cp.Targets = make([]string, len(o.Targets))
 		copy(cp.Targets, o.Targets)
+	}
+	if o.Policy != nil {
+		cp.Policy = new(ServiceResolverFailoverPolicy)
+		*cp.Policy = *o.Policy
 	}
 	return &cp
 }
@@ -638,6 +646,10 @@ func (o *Node) DeepCopy() *Node {
 			cp.Meta[k2] = v2
 		}
 	}
+	if o.Locality != nil {
+		cp.Locality = new(Locality)
+		*cp.Locality = *o.Locality
+	}
 	return &cp
 }
 
@@ -663,6 +675,10 @@ func (o *NodeService) DeepCopy() *NodeService {
 	if o.Weights != nil {
 		cp.Weights = new(Weights)
 		*cp.Weights = *o.Weights
+	}
+	if o.Locality != nil {
+		cp.Locality = new(Locality)
+		*cp.Locality = *o.Locality
 	}
 	{
 		retV := o.Proxy.DeepCopy()
@@ -838,6 +854,10 @@ func (o *ServiceDefinition) DeepCopy() *ServiceDefinition {
 		cp.Weights = new(Weights)
 		*cp.Weights = *o.Weights
 	}
+	if o.Locality != nil {
+		cp.Locality = new(Locality)
+		*cp.Locality = *o.Locality
+	}
 	if o.Proxy != nil {
 		cp.Proxy = o.Proxy.DeepCopy()
 	}
@@ -893,6 +913,10 @@ func (o *ServiceResolverFailover) DeepCopy() *ServiceResolverFailover {
 	if o.Targets != nil {
 		cp.Targets = make([]ServiceResolverFailoverTarget, len(o.Targets))
 		copy(cp.Targets, o.Targets)
+	}
+	if o.Policy != nil {
+		cp.Policy = new(ServiceResolverFailoverPolicy)
+		*cp.Policy = *o.Policy
 	}
 	return &cp
 }

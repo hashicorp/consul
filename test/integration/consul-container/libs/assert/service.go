@@ -24,9 +24,9 @@ const (
 )
 
 // CatalogServiceExists verifies the service name exists in the Consul catalog
-func CatalogServiceExists(t *testing.T, c *api.Client, svc string) {
+func CatalogServiceExists(t *testing.T, c *api.Client, svc string, opts *api.QueryOptions) {
 	retry.Run(t, func(r *retry.R) {
-		services, _, err := c.Catalog().Service(svc, "", nil)
+		services, _, err := c.Catalog().Service(svc, "", opts)
 		if err != nil {
 			r.Fatal("error reading service data")
 		}
@@ -122,21 +122,21 @@ func ServiceLogContains(t *testing.T, service libservice.Service, target string)
 // has a `FORTIO_NAME` env variable set. This validates that the client is sending
 // traffic to the right envoy proxy.
 //
+// If reqHost is set, the Host field of the HTTP request will be set to its value.
+//
 // It retries with timeout defaultHTTPTimeout and wait defaultHTTPWait.
-func AssertFortioName(t *testing.T, urlbase string, name string) {
+func AssertFortioName(t *testing.T, urlbase string, name string, reqHost string) {
 	t.Helper()
 	var fortioNameRE = regexp.MustCompile(("\nFORTIO_NAME=(.+)\n"))
-	client := &http.Client{
-		Transport: &http.Transport{
-			DisableKeepAlives: true,
-		},
-	}
+	client := cleanhttp.DefaultClient()
 	retry.RunWith(&retry.Timer{Timeout: defaultHTTPTimeout, Wait: defaultHTTPWait}, t, func(r *retry.R) {
 		fullurl := fmt.Sprintf("%s/debug?env=dump", urlbase)
-		t.Logf("making call to %s", fullurl)
 		req, err := http.NewRequest("GET", fullurl, nil)
 		if err != nil {
 			r.Fatal("could not make request to service ", fullurl)
+		}
+		if reqHost != "" {
+			req.Host = reqHost
 		}
 
 		resp, err := client.Do(req)

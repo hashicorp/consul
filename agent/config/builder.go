@@ -833,6 +833,7 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		// gossip configuration
 		GossipLANGossipInterval: b.durationVal("gossip_lan..gossip_interval", c.GossipLAN.GossipInterval),
 		GossipLANGossipNodes:    intVal(c.GossipLAN.GossipNodes),
+		Locality:                c.Locality,
 		GossipLANProbeInterval:  b.durationVal("gossip_lan..probe_interval", c.GossipLAN.ProbeInterval),
 		GossipLANProbeTimeout:   b.durationVal("gossip_lan..probe_timeout", c.GossipLAN.ProbeTimeout),
 		GossipLANSuspicionMult:  intVal(c.GossipLAN.SuspicionMult),
@@ -1091,6 +1092,7 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		Watches:                           c.Watches,
 		XDSUpdateRateLimit:                limitVal(c.XDS.UpdateMaxPerSecond),
 		AutoReloadConfigCoalesceInterval:  1 * time.Second,
+		LocalProxyConfigResyncInterval:    30 * time.Second,
 	}
 
 	rt.TLS, err = b.buildTLSConfig(rt, c.TLS)

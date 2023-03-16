@@ -941,3 +941,39 @@ func TestNewFilterEvaluator(t *testing.T) {
 		})
 	}
 }
+
+func TestHealthView_SkipFilteringTerminatingGateways(t *testing.T) {
+	view, err := NewHealthView(structs.ServiceSpecificRequest{
+		ServiceName: "name",
+		Connect:     true,
+		QueryOptions: structs.QueryOptions{
+			Filter: "Service.Meta.version == \"v1\"",
+		},
+	})
+	require.NoError(t, err)
+
+	err = view.Update([]*pbsubscribe.Event{{
+		Index: 1,
+		Payload: &pbsubscribe.Event_ServiceHealth{
+			ServiceHealth: &pbsubscribe.ServiceHealthUpdate{
+				Op: pbsubscribe.CatalogOp_Register,
+				CheckServiceNode: &pbservice.CheckServiceNode{
+					Service: &pbservice.NodeService{
+						Kind:    structs.TerminatingGateway,
+						Service: "name",
+						Address: "127.0.0.1",
+						Port:    8443,
+					},
+				},
+			},
+		},
+	}})
+	require.NoError(t, err)
+
+	node, ok := (view.Result(1)).(*structs.IndexedCheckServiceNodes)
+	require.True(t, ok)
+
+	require.Len(t, node.Nodes, 1)
+	require.Equal(t, "127.0.0.1", node.Nodes[0].Service.Address)
+	require.Equal(t, 8443, node.Nodes[0].Service.Port)
+}

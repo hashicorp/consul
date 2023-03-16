@@ -443,6 +443,7 @@ func testAgent_AddService(t *testing.T, extraHCL string) {
 				Tags:           []string{"tag1"},
 				Weights:        nil, // nil weights...
 				Port:           8100,
+				Locality:       &structs.Locality{Region: "us-west-1", Zone: "us-west-1a"},
 				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 			},
 			// ... should be populated to avoid "IsSame" returning true during AE.

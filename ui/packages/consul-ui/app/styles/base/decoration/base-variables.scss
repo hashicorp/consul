@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 :root {
   /* worthwhile, or confusing ? */
   --decor-radius-000: 0;
@@ -13,13 +18,4 @@
   --decor-border-200: 2px solid;
   --decor-border-300: 3px solid;
   --decor-border-400: 4px solid;
-
-  /* box-shadowing*/
-  --decor-elevation-000: none;
-  --decor-elevation-100: 0 3px 2px rgb(var(--black) / 6%);
-  --decor-elevation-200: 0 2px 4px rgb(var(--black) / 10%);
-  --decor-elevation-300: 0 5px 1px -2px rgb(var(--black) / 12%);
-  --decor-elevation-400: 0 6px 8px -2px rgb(var(--black) / 5%), 0 8px 4px -4px rgb(var(--black) / 10%);
-  --decor-elevation-600: 0 12px 5px -7px rgb(var(--black) / 8%), 0 11px 10px -3px rgb(var(--black) / 10%);
-  --decor-elevation-800: 0 16px 6px -10px rgb(var(--black) / 6%), 0 16px 16px -4px rgb(var(--black) / 20%);
 }

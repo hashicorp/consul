@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 html[data-route^='dc.acls.index'] main td strong {
   @extend %pill-500, %frame-gray-900;
   margin-right: 3px;

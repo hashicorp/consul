@@ -532,6 +532,7 @@ func LocalConfig(cfg *config.RuntimeConfig) local.Config {
 		DiscardCheckOutput:  cfg.DiscardCheckOutput,
 		NodeID:              cfg.NodeID,
 		NodeName:            cfg.NodeName,
+		NodeLocality:        cfg.StructLocality(),
 		Partition:           cfg.PartitionOrDefault(),
 		TaggedAddresses:     map[string]string{},
 	}
@@ -721,11 +722,12 @@ func (a *Agent) Start(ctx context.Context) error {
 	go localproxycfg.Sync(
 		&lib.StopChannelContext{StopCh: a.shutdownCh},
 		localproxycfg.SyncConfig{
-			Manager:  a.proxyConfig,
-			State:    a.State,
-			Logger:   a.proxyConfig.Logger.Named("agent-state"),
-			Tokens:   a.baseDeps.Tokens,
-			NodeName: a.config.NodeName,
+			Manager:         a.proxyConfig,
+			State:           a.State,
+			Logger:          a.proxyConfig.Logger.Named("agent-state"),
+			Tokens:          a.baseDeps.Tokens,
+			NodeName:        a.config.NodeName,
+			ResyncFrequency: a.config.LocalProxyConfigResyncInterval,
 		},
 	)
 
@@ -1492,6 +1494,7 @@ func newConsulConfig(runtimeCfg *config.RuntimeConfig, logger hclog.Logger) (*co
 	cfg.RequestLimitsMode = runtimeCfg.RequestLimitsMode.String()
 	cfg.RequestLimitsReadRate = runtimeCfg.RequestLimitsReadRate
 	cfg.RequestLimitsWriteRate = runtimeCfg.RequestLimitsWriteRate
+	cfg.Locality = runtimeCfg.StructLocality()
 
 	enterpriseConsulConfig(cfg, runtimeCfg)
 	return cfg, nil
@@ -1599,10 +1602,7 @@ func (a *Agent) ShutdownAgent() error {
 
 	a.stopLicenseManager()
 
-	// this would be cancelled anyways (by the closing of the shutdown ch) but
-	// this should help them to be stopped more quickly
-	a.baseDeps.AutoConfig.Stop()
-	a.baseDeps.MetricsConfig.Cancel()
+	a.baseDeps.Close()
 
 	a.stateLock.Lock()
 	defer a.stateLock.Unlock()

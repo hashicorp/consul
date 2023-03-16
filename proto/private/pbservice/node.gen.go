@@ -16,6 +16,7 @@ func NodeToStructs(s *Node, t *structs.Node) {
 	t.PeerName = s.PeerName
 	t.TaggedAddresses = s.TaggedAddresses
 	t.Meta = s.Meta
+	t.Locality = LocalityToStructs(s.Locality)
 	t.RaftIndex = RaftIndexToStructs(s.RaftIndex)
 }
 func NodeFromStructs(t *structs.Node, s *Node) {
@@ -30,6 +31,7 @@ func NodeFromStructs(t *structs.Node, s *Node) {
 	s.PeerName = t.PeerName
 	s.TaggedAddresses = t.TaggedAddresses
 	s.Meta = t.Meta
+	s.Locality = LocalityFromStructs(t.Locality)
 	s.RaftIndex = NewRaftIndexFromStructs(t.RaftIndex)
 }
 func NodeServiceToStructs(s *NodeService, t *structs.NodeService) {
@@ -47,6 +49,7 @@ func NodeServiceToStructs(s *NodeService, t *structs.NodeService) {
 	t.SocketPath = s.SocketPath
 	t.Weights = WeightsPtrToStructs(s.Weights)
 	t.EnableTagOverride = s.EnableTagOverride
+	t.Locality = LocalityToStructs(s.Locality)
 	if s.Proxy != nil {
 		ConnectProxyConfigToStructs(s.Proxy, &t.Proxy)
 	}
@@ -73,6 +76,7 @@ func NodeServiceFromStructs(t *structs.NodeService, s *NodeService) {
 	s.SocketPath = t.SocketPath
 	s.Weights = NewWeightsPtrFromStructs(t.Weights)
 	s.EnableTagOverride = t.EnableTagOverride
+	s.Locality = LocalityFromStructs(t.Locality)
 	{
 		var x ConnectProxyConfig
 		ConnectProxyConfigFromStructs(&t.Proxy, &x)

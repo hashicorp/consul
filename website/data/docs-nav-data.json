@@ -146,6 +146,10 @@
         "title": "Consul",
         "routes": [
           {
+            "title": "v1.15.x",
+            "path": "release-notes/consul/v1_15_x"
+          },
+          {
             "title": "v1.14.x",
             "path": "release-notes/consul/v1_14_x"
           },
@@ -174,6 +178,10 @@
       {
         "title": "Consul K8s",
         "routes": [
+          {
+            "title": "v1.1.x",
+            "path": "release-notes/consul-k8s/v1_1_x"
+          },
           {
             "title": "v1.0.x",
             "path": "release-notes/consul-k8s/v1_0_x"
@@ -303,19 +311,70 @@
     "divider": true
   },
   {
-    "title": "Service Discovery",
+    "title": "Services",
     "routes": [
       {
-        "title": "Register Services - Service Definitions",
-        "path": "discovery/services"
+        "title": "Overview",
+        "path": "services/services"
       },
       {
-        "title": "Find Services - DNS Interface",
-        "path": "discovery/dns"
+        "title": "Usage",
+        "routes": [
+          {
+            "title": "Define services",
+            "path": "services/usage/define-services"
+          },
+          {
+            "title": "Define health checks",
+            "path": "services/usage/checks"
+          },
+          {
+            "title": "Register services and health checks",
+            "path": "services/usage/register-services-checks"
+          }
+        ]
       },
       {
-        "title": "Monitor Services - Check Definitions",
-        "path": "discovery/checks"
+        "title": "Discover services with DNS",
+        "routes": [
+          {
+            "title": "Overview",
+            "path": "services/discovery/dns-overview"
+          },
+          {
+            "title": "Configure DNS behavior",
+            "path": "services/discovery/dns-configuration"
+          },
+          {
+            "title": "Perform static DNS lookups",
+            "path": "services/discovery/dns-static-lookups"
+          },
+          {
+            "title": "Enable dynamic DNS lookups",
+            "path": "services/discovery/dns-dynamic-lookups"
+          }
+        ]
+      },
+      {
+        "title": "Configuration",
+        "routes": [
+          {
+            "title": "Overview",
+            "path": "services/configuration/services-configuration-overview"
+          },
+          {
+            "title": "Services",
+            "path": "services/configuration/services-configuration-reference"
+          },
+          {
+            "title": "Health checks",
+            "path": "services/configuration/checks-configuration-reference"
+          },
+          {
+            "title": "Service defaults",
+            "href": "connect/config-entries/service-defaults"
+          }
+        ]
       }
     ]
   },
@@ -459,11 +518,6 @@
           {
             "title": "Proxy Integration",
             "path": "connect/proxies/integrate"
-          },
-          {
-            "title": "Managed (Deprecated)",
-            "path": "connect/proxies/managed-deprecated",
-            "hidden": true
           }
         ]
       },
@@ -873,6 +927,27 @@
         "title": "RPC",
         "path": "agent/rpc",
         "hidden": true
+      },
+      {
+        "title": "Experimental WAL LogStore",
+        "routes": [
+          {
+            "title": "Overview",
+            "path": "agent/wal-logstore"
+          },
+          {
+            "title": "Enable WAL LogStore backend",
+            "path": "agent/wal-logstore/enable"
+          },
+          {
+            "title": "Monitor Raft metrics and logs for WAL",
+            "path": "agent/wal-logstore/monitoring"
+          },
+          {
+            "title": "Revert to BoltDB",
+            "path": "agent/wal-logstore/revert-to-boltdb"
+          }
+        ]
       }
     ]
   },

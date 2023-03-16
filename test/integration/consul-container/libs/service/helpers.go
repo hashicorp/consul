@@ -3,6 +3,9 @@ package service
 import (
 	"context"
 	"fmt"
+	"testing"
+
+	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/api"
 	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
@@ -25,13 +28,14 @@ type SidecarService struct {
 }
 
 type ServiceOpts struct {
-	Name     string
-	ID       string
-	Meta     map[string]string
-	HTTPPort int
-	GRPCPort int
-	Checks   Checks
-	Connect  SidecarService
+	Name      string
+	ID        string
+	Meta      map[string]string
+	HTTPPort  int
+	GRPCPort  int
+	Checks    Checks
+	Connect   SidecarService
+	Namespace string
 }
 
 // createAndRegisterStaticServerAndSidecar register the services and launch static-server containers
@@ -53,8 +57,12 @@ func createAndRegisterStaticServerAndSidecar(node libcluster.Agent, grpcPort int
 	deferClean.Add(func() {
 		_ = serverService.Terminate()
 	})
-
-	serverConnectProxy, err := NewConnectService(context.Background(), fmt.Sprintf("%s-sidecar", svc.ID), svc.ID, []int{svc.Port}, node) // bindPort not used
+	sidecarCfg := SidecarConfig{
+		Name:      fmt.Sprintf("%s-sidecar", svc.ID),
+		ServiceID: svc.ID,
+		Namespace: svc.Namespace,
+	}
+	serverConnectProxy, err := NewConnectService(context.Background(), sidecarCfg, []int{svc.Port}, node) // bindPort not used
 	if err != nil {
 		return nil, nil, err
 	}
@@ -80,6 +88,7 @@ func CreateAndRegisterStaticServerAndSidecar(node libcluster.Agent, serviceOpts 
 				Proxy: &api.AgentServiceConnectProxyConfig{},
 			},
 		},
+		Namespace: serviceOpts.Namespace,
 		Check: &api.AgentServiceCheck{
 			Name:     "Static Server Listening",
 			TCP:      fmt.Sprintf("127.0.0.1:%d", serviceOpts.HTTPPort),
@@ -158,7 +167,12 @@ func CreateAndRegisterStaticClientSidecar(
 	}
 
 	// Create a service and proxy instance
-	clientConnectProxy, err := NewConnectService(context.Background(), fmt.Sprintf("%s-sidecar", StaticClientServiceName), StaticClientServiceName, []int{libcluster.ServiceUpstreamLocalBindPort}, node)
+	sidecarCfg := SidecarConfig{
+		Name:      fmt.Sprintf("%s-sidecar", StaticClientServiceName),
+		ServiceID: StaticClientServiceName,
+	}
+
+	clientConnectProxy, err := NewConnectService(context.Background(), sidecarCfg, []int{libcluster.ServiceUpstreamLocalBindPort}, node)
 	if err != nil {
 		return nil, err
 	}
@@ -170,4 +184,60 @@ func CreateAndRegisterStaticClientSidecar(
 	deferClean.Reset()
 
 	return clientConnectProxy, nil
+}
+
+func ClientsCreate(t *testing.T, numClients int, image, version string, cluster *libcluster.Cluster) {
+	opts := libcluster.BuildOptions{
+		ConsulImageName: image,
+		ConsulVersion:   version,
+	}
+	ctx := libcluster.NewBuildContext(t, opts)
+
+	conf := libcluster.NewConfigBuilder(ctx).
+		Client().
+		ToAgentConfig(t)
+	t.Logf("Cluster client config:\n%s", conf.JSON)
+
+	require.NoError(t, cluster.AddN(*conf, numClients, true))
+}
+
+func ServiceCreate(t *testing.T, client *api.Client, serviceName string) uint64 {
+	require.NoError(t, client.Agent().ServiceRegister(&api.AgentServiceRegistration{
+		Name: serviceName,
+		Port: 9999,
+		Connect: &api.AgentServiceConnect{
+			SidecarService: &api.AgentServiceRegistration{
+				Port: 22005,
+			},
+		},
+	}))
+
+	service, meta, err := client.Catalog().Service(serviceName, "", &api.QueryOptions{})
+	require.NoError(t, err)
+	require.Len(t, service, 1)
+	require.Equal(t, serviceName, service[0].ServiceName)
+	require.Equal(t, 9999, service[0].ServicePort)
+
+	return meta.LastIndex
+}
+
+func ServiceHealthBlockingQuery(client *api.Client, serviceName string, waitIndex uint64) (chan []*api.ServiceEntry, chan error) {
+	var (
+		ch    = make(chan []*api.ServiceEntry, 1)
+		errCh = make(chan error, 1)
+	)
+	go func() {
+		opts := &api.QueryOptions{WaitIndex: waitIndex}
+		service, q, err := client.Health().Service(serviceName, "", false, opts)
+		if err == nil && q.QueryBackend != api.QueryBackendStreaming {
+			err = fmt.Errorf("invalid backend for this test %s", q.QueryBackend)
+		}
+		if err != nil {
+			errCh <- err
+		} else {
+			ch <- service
+		}
+	}()
+
+	return ch, errCh
 }

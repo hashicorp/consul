@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 %pill-pending::before,
 %pill-establishing::before,
 %pill-active::before,
@@ -5,7 +10,7 @@
 %pill-terminated::before,
 %pill-deleting::before {
   --icon-size: icon-000;
-  content: '';
+  content: "";
 }
 %pill-pending,
 %pill-establishing,
@@ -13,64 +18,60 @@
 %pill-failing,
 %pill-terminated,
 %pill-deleting {
-  font-weight: var(--typo-weight-medium);
-  font-size: var(--typo-size-700);
+  @extend .hds-font-weight-medium;
+  font-size: var(--token-typography-body-200-font-size);
 }
 
 %pill-pending::before {
   --icon-name: icon-running;
-  --icon-color: rgb(var(--tone-gray-800));
+  --icon-color: var(--token-color-palette-neutral-600);
 }
 %pill-pending {
-  background-color: rgb(var(--tone-strawberry-050));
-  color: rgb(var(--tone-strawberry-500));
+  background-color: var(--token-color-consul-surface);
+  color: var(--token-color-consul-foreground);
 }
 
 %pill-establishing::before {
   --icon-name: icon-running;
-  --icon-color: rgb(var(--tone-gray-800));
+  --icon-color: var(--token-color-palette-neutral-600);
 }
 %pill-establishing {
-  background-color: rgb(var(--tone-blue-050));
-  color: rgb(var(--tone-blue-500));
+  background-color: var(--token-color-palette-blue-50);
+  color: var(--token-color-palette-blue-200);
 }
 
 %pill-active::before {
   --icon-name: icon-check;
-  --icon-color: rgb(var(--tone-green-800));
+  --icon-color: var(--token-color-palette-green-400);
 }
 %pill-active {
-  background-color: rgb(var(--tone-green-050));
-  color: rgb(var(--tone-green-600));
+  background-color: var(--token-color-palette-green-50);
+  color: var(--token-color-palette-green-200);
 }
 
 %pill-failing::before {
   --icon-name: icon-x;
-  --icon-color: rgb(var(--tone-red-500));
+  --icon-color: var(--token-color-palette-red-200);
 }
 %pill-failing {
-  background-color: rgb(var(--tone-red-050));
-  color: rgb(var(--tone-red-500));
+  background-color: var(--token-color-palette-red-50);
+  color: var(--token-color-palette-red-200);
 }
 
 %pill-terminated::before {
   --icon-name: icon-x-square;
-  --icon-color: rgb(var(--tone-gray-800));
+  --icon-color: var(--token-color-palette-neutral-600);
 }
 %pill-terminated {
-  background-color: rgb(var(--tone-gray-150));
-  color: rgb(var(--tone-gray-800));
+  background-color: var(--token-color-palette-neutral-200);
+  color: var(--token-color-palette-neutral-600);
 }
-
 
 %pill-deleting::before {
   --icon-name: icon-loading;
-  --icon-color: rgb(var(--tone-green-800));
+  --icon-color: var(--token-color-foreground-warning-on-surface);
 }
 %pill-deleting {
-  background-color: rgb(var(--tone-yellow-050));
-  color: rgb(var(--tone-yellow-800));
+  background-color: var(--token-color-surface-warning);
+  color: var(--token-color-foreground-warning-on-surface);
 }
-
-
-

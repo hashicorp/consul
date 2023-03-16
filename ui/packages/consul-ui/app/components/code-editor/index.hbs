@@ -1,3 +1,8 @@
+{{!
+  Copyright (c) HashiCorp, Inc.
+  SPDX-License-Identifier: MPL-2.0
+}}
+
 <div class="toolbar-container">
   <div class="toolbar">
     <label class="title">
@@ -34,4 +39,4 @@
   @options={{options}}
   @valueUpdated={{action onkeyup}}
 />
-<pre><code>{{#if (has-block "content")}}{{yield to="content"}}{{else}}{{value}}{{/if}}</code></pre>
+<pre><code>{{#if (has-block 'content')}}{{yield to='content'}}{{else}}{{value}}{{/if}}</code></pre>

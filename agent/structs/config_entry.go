@@ -34,11 +34,14 @@ const (
 	ServiceIntentions  string = "service-intentions"
 	MeshConfig         string = "mesh"
 	ExportedServices   string = "exported-services"
+	SamenessGroup      string = "sameness-group"
 	APIGateway         string = "api-gateway"
 	BoundAPIGateway    string = "bound-api-gateway"
 	InlineCertificate  string = "inline-certificate"
 	HTTPRoute          string = "http-route"
 	TCPRoute           string = "tcp-route"
+	// TODO: decide if we want to highlight 'ip' keyword in the name of RateLimitIPConfig
+	RateLimitIPConfig string = "control-plane-request-limit"
 
 	ProxyConfigGlobal string = "global"
 	MeshConfigMesh    string = "mesh"
@@ -59,6 +62,7 @@ var AllConfigEntryKinds = []string{
 	ServiceIntentions,
 	MeshConfig,
 	ExportedServices,
+	SamenessGroup,
 	APIGateway,
 	BoundAPIGateway,
 	HTTPRoute,
@@ -362,12 +366,13 @@ type ProxyConfigEntry struct {
 	Kind             string
 	Name             string
 	Config           map[string]interface{}
-	Mode             ProxyMode              `json:",omitempty"`
-	TransparentProxy TransparentProxyConfig `json:",omitempty" alias:"transparent_proxy"`
-	MeshGateway      MeshGatewayConfig      `json:",omitempty" alias:"mesh_gateway"`
-	Expose           ExposeConfig           `json:",omitempty"`
-	AccessLogs       AccessLogsConfig       `json:",omitempty" alias:"access_logs"`
-	EnvoyExtensions  EnvoyExtensions        `json:",omitempty" alias:"envoy_extensions"`
+	Mode             ProxyMode                      `json:",omitempty"`
+	TransparentProxy TransparentProxyConfig         `json:",omitempty" alias:"transparent_proxy"`
+	MeshGateway      MeshGatewayConfig              `json:",omitempty" alias:"mesh_gateway"`
+	Expose           ExposeConfig                   `json:",omitempty"`
+	AccessLogs       AccessLogsConfig               `json:",omitempty" alias:"access_logs"`
+	EnvoyExtensions  EnvoyExtensions                `json:",omitempty" alias:"envoy_extensions"`
+	FailoverPolicy   *ServiceResolverFailoverPolicy `json:",omitempty" alias:"failover_policy"`
 
 	Meta               map[string]string `json:",omitempty"`
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
@@ -432,6 +437,10 @@ func (e *ProxyConfigEntry) Validate() error {
 
 	if err := envoyextensions.ValidateExtensions(e.EnvoyExtensions.ToAPI()); err != nil {
 		return err
+	}
+
+	if !e.FailoverPolicy.isValid() {
+		return fmt.Errorf("Failover policy must be one of '', 'default', or 'order-by-locality'")
 	}
 
 	return e.validateEnterpriseMeta()
@@ -646,6 +655,9 @@ func (c *ConfigEntryRequest) UnmarshalBinary(data []byte) error {
 }
 
 func MakeConfigEntry(kind, name string) (ConfigEntry, error) {
+	if configEntry := makeEnterpriseConfigEntry(kind, name); configEntry != nil {
+		return configEntry, nil
+	}
 	switch kind {
 	case ServiceDefaults:
 		return &ServiceConfigEntry{Name: name}, nil
@@ -667,6 +679,8 @@ func MakeConfigEntry(kind, name string) (ConfigEntry, error) {
 		return &MeshConfigEntry{}, nil
 	case ExportedServices:
 		return &ExportedServicesConfigEntry{Name: name}, nil
+	case SamenessGroup:
+		return &SamenessGroupConfigEntry{Name: name}, nil
 	case APIGateway:
 		return &APIGatewayConfigEntry{Name: name}, nil
 	case BoundAPIGateway:

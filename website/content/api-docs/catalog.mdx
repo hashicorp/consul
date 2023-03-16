@@ -55,15 +55,16 @@ The table below shows this endpoint's support for
 - `NodeMeta` `(map<string|string>: nil)` - Specifies arbitrary KV metadata
   pairs for filtering purposes.
 
-- `Service` `(Service: nil)` - Specifies to register a service. If `ID` is not
-  provided, it will be defaulted to the value of the `Service.Service` property.
-  Only one service with a given `ID` may be present per node. We recommend using
-  [valid DNS labels](https://en.wikipedia.org/wiki/Hostname#Restrictions_on_valid_hostnames)
-  for service definition names for [compatibility with external DNS](/consul/docs/discovery/services#service-and-tag-names-with-dns).
-  The service `Tags`, `Address`, `Meta`, and `Port` fields are all optional. For more
-  information about these fields and the implications of setting them,
-  see the [Service - Agent API](/consul/api-docs/agent/service) page
-  as registering services differs between using this or the Services Agent endpoint.
+- `Service` `(Service: nil)` - Contains an object the specifies the service to register. The the `Service.Service` field is required. If `Service.ID` is not provided, the default is the `Service.Service`.
+  You can only specify one service with a given `ID` per node. We recommend using
+  valid DNS labels for service definition names. Refer to the Internet Engineering Task Force's [RFC 1123](https://datatracker.ietf.org/doc/html/rfc1123#page-72) for additional information. Service names that conform to standard usage ensures compatibility with external DNSs. Refer to [Services Configuration Reference](/consul/docs/services/configuration/services-configuration-reference#name) for additional information.
+  The following fields are optional: 
+    - `Tags` 
+    - `Address` 
+    - `Meta` 
+    - `Port`  
+
+  For additional information configuring services, refer to [Service - Agent API](/consul/api-docs/agent/service). The `/catalog` endpoint had different behaviors than the `/services` endpoint.
 
 - `Check` `(Check: nil)` - Specifies to register a check. The register API
   manipulates the health check entry in the Catalog, but it does not setup the
@@ -78,8 +79,7 @@ The table below shows this endpoint's support for
   treated as a service level health check, instead of a node level health
   check. The `Status` must be one of `passing`, `warning`, or `critical`.
 
-  The `Definition` field can be provided with details for a TCP or HTTP health
-  check. For more information, see the [Health Checks](/consul/docs/discovery/checks) page.
+  You can provide defaults for TCP and HTTP health checks to the `Definition` field. Refer to [Health Checks](/consul/docs/services/usage/checks) for additional information.
 
   Multiple checks can be provided by replacing `Check` with `Checks` and
   sending an array of `Check` objects.

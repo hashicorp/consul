@@ -1,27 +1,9 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 :root {
-  --color-primary: var(--tone-blue-500);
-  --color-dangerous: var(--tone-red-500);
-  --color-primary-disabled: var(--tone-blue-500);
-
-  --color-neutral: var(--tone-gray-500);
-  --color-action: var(--tone-blue-500);
-  --color-info: var(--tone-blue-500);
-  /*--color-active: var(--tone-blue-500); ?? form pre-focus*/
-  --color-success: var(--tone-green-500);
-  --color-failure: var(--tone-red-500);
-  --color-danger: var(--tone-red-500);
-  --color-warning: var(--tone-yellow-500);
-  --color-alert: var(--tone-orange-500);
-
-  /* --color-keyline-000: var(--white); */
-  /* --color-keyline-050: var(); */
-  /* --color-keyline-100: var(--gray-100); */
-  /* --color-keyline-200: var(--gray-200); */
-  /* --color-keyline-300: var(--gray-300); */
-  /* --color-keyline-400: var(--gray-400); */
-  /* --color-keyline-500: var(--gray-500); */
-  /* --color-keyline-600: var(--gray-600); */
-  /* --color-keyline-700: var(); */
-  /* --color-keyline-800: var(); */
-  /* --color-keyline-900: var(--black); */
+  --color-info: var(--token-color-foreground-action);
+  --color-alert: var(--token-color-palette-amber-200);
 }
