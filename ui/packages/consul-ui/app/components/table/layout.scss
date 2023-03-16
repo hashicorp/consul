@@ -61,7 +61,7 @@
 %table tbody td em {
   display: block;
   font-style: normal;
-  font-weight: normal;
+  font-weight: var(--token-typography-font-weight-regular);
 }
 %table tbody td em {
   color: var(--token-color-foreground-faint);

@@ -13,6 +13,9 @@ import (
 	"time"
 
 	"github.com/docker/go-connections/nat"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	libassert "github.com/hashicorp/consul/test/integration/consul-container/libs/assert"
@@ -20,8 +23,6 @@ import (
 	libservice "github.com/hashicorp/consul/test/integration/consul-container/libs/service"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/topology"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 // These tests adapt BATS-based tests from test/integration/connect/case-ingress-gateway*
@@ -100,7 +101,11 @@ func TestIngressGateway_UpgradeToTarget_fromLatest(t *testing.T) {
 			},
 		}))
 
-		igw, err := libservice.NewGatewayService(context.Background(), nameIG, "ingress", cluster.Servers()[0])
+		gwCfg := libservice.GatewayConfig{
+			Name: nameIG,
+			Kind: "ingress",
+		}
+		igw, err := libservice.NewGatewayService(context.Background(), gwCfg, cluster.Servers()[0])
 		require.NoError(t, err)
 		t.Logf("created gateway: %#v", igw)
 
@@ -229,7 +234,6 @@ func TestIngressGateway_UpgradeToTarget_fromLatest(t *testing.T) {
 					"Ingress should have set the client ip from dynamic Envoy variable")
 				assert.NotContains(t, string(body), "X-Bad-Req: true",
 					"Ingress should have removed the bad request header")
-
 			})
 			t.Run("response header manipulation", func(t *testing.T) {
 				const params = "?header=x-bad-resp:true&header=x-existing-1:original&header=x-existing-2:original"

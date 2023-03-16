@@ -20,7 +20,7 @@ section[data-route='dc.show.serverstatus'] {
 
 %serverstatus-route h2,
 %serverstatus-route h3 {
-  @extend %h200;
+  @extend %display-300-semibold;
 }
 
 %server-failure-tolerance {
@@ -45,7 +45,7 @@ section[data-route='dc.show.serverstatus'] {
 
 %server-failure-tolerance header em {
   @extend %pill-200;
-  font-size: 0.812rem; /* 13px */
+  @extend %body-100-regular;
   background-color: var(--token-color-surface-interactive-active);
 
   text-transform: uppercase;
@@ -78,11 +78,11 @@ section[data-route='dc.show.serverstatus'] {
   padding-right: 1.5rem; /* 24px */
 }
 %server-failure-tolerance dt {
-  @extend %p2;
+  @extend %body-100-regular;
   color: var(--token-color-foreground-faint);
 }
 %server-failure-tolerance dd {
-  font-size: var(--typo-size-250);
+  @extend %display-300-semibold;
   color: var(--token-color-hashicorp-brand);
 }
 %server-failure-tolerance header span::before {
@@ -103,7 +103,7 @@ section[data-route='dc.show.serverstatus'] {
 }
 
 %redundancy-zones h3 {
-  @extend %h300;
+  @extend %display-300-semibold;
 }
 %redundancy-zone header {
   display: flow-root;

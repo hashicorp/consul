@@ -6,7 +6,7 @@
 .consul-intention-permission-form {
   h2 {
     border-top: 1px solid var(--token-color-foreground-action);
-    @extend %h200;
+    @extend %display-400-semibold;
   }
   button.type-submit {
     @extend %frame-blue-300;
@@ -22,6 +22,6 @@
 
 .consul-intention-view {
   h2 {
-    @extend %h200;
+    @extend %display-400-semibold;
   }
 }
