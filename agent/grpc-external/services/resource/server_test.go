@@ -4,15 +4,17 @@ import (
 	"context"
 	"testing"
 
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/status"
 
 	"github.com/hashicorp/consul/agent/grpc-external/testutils"
 	"github.com/hashicorp/consul/internal/resource"
-	"github.com/hashicorp/consul/internal/storage/inmem"
+	"github.com/hashicorp/consul/internal/storage"
 	"github.com/hashicorp/consul/proto-public/pbresource"
-	"github.com/hashicorp/consul/proto/private/prototest"
 )
 
 func testClient(t *testing.T, server *Server) pbresource.ResourceServiceClient {
@@ -30,19 +32,12 @@ func testClient(t *testing.T, server *Server) pbresource.ResourceServiceClient {
 	return pbresource.NewResourceServiceClient(conn)
 }
 
-func testServerConfig(t *testing.T) Config {
-	backend, err := inmem.NewBackend()
-	require.NoError(t, err)
-	return Config{
-		registry: resource.NewRegistry(),
-		backend:  backend,
-	}
-}
-
 func TestRead_TypeNotFound(t *testing.T) {
-	// leave registry empty
-	server := NewServer(testServerConfig(t))
+	mockRegistry := &MockRegistry{}
+	mockRegistry.On("Resolve", mock.Anything).Return(resource.Registration{}, false)
+	server := NewServer(Config{registry: mockRegistry})
 	client := testClient(t, server)
+
 	_, err := client.Read(context.Background(), &pbresource.ReadRequest{
 		Id: &pbresource.ID{
 			Uid:  "abcd",
@@ -55,118 +50,132 @@ func TestRead_TypeNotFound(t *testing.T) {
 		},
 	})
 	require.Error(t, err)
+	require.Equal(t, codes.InvalidArgument.String(), status.Code(err).String())
 	require.Contains(t, err.Error(), "resource type mesh/v1/service not registered")
 }
 
-func TestRead_ResourceNotFound(t *testing.T) {
-	server := NewServer(testServerConfig(t))
-	client := testClient(t, server)
+type readTestCase struct {
+	readFn string
+	ctx    context.Context
+}
 
-	// prime registry with a type
-	serviceType := &pbresource.Type{Group: "mesh", GroupVersion: "v1", Kind: "service"}
-	server.registry.Register(resource.Registration{Type: serviceType})
-
-	_, err := client.Read(context.Background(), &pbresource.ReadRequest{
-		Id: &pbresource.ID{
-			Uid:     "abcd",
-			Name:    "billing",
-			Type:    serviceType,
-			Tenancy: &pbresource.Tenancy{Partition: "default", Namespace: "default", PeerName: "default"},
+func readTestCases() map[string]readTestCase {
+	return map[string]readTestCase{
+		"read": readTestCase{
+			readFn: "Read",
+			ctx:    context.Background(),
 		},
-	})
-	require.Error(t, err)
-	require.Contains(t, err.Error(), "resource not found")
+		"consistent read": readTestCase{
+			readFn: "ReadConsistent",
+			ctx: metadata.NewOutgoingContext(
+				context.Background(),
+				metadata.New(map[string]string{"x-consul-consistency-mode": "consistent"}),
+			),
+		},
+	}
+
+}
+
+func TestRead_ResourceNotFound(t *testing.T) {
+	for desc, tc := range readTestCases() {
+		t.Run(desc, func(t *testing.T) {
+			mockRegistry := &MockRegistry{}
+			mockRegistry.On("Resolve", mock.Anything).Return(resource.Registration{}, true)
+
+			mockBackend := &MockBackend{}
+			mockBackend.On(tc.readFn, mock.Anything, mock.Anything).Return(nil, storage.ErrNotFound)
+
+			server := NewServer(Config{
+				registry: mockRegistry,
+				backend:  mockBackend,
+			})
+			client := testClient(t, server)
+
+			_, err := client.Read(tc.ctx, &pbresource.ReadRequest{
+				Id: &pbresource.ID{
+					Uid:     "abcd",
+					Name:    "billing",
+					Type:    &pbresource.Type{Group: "mesh", GroupVersion: "v1", Kind: "service"},
+					Tenancy: &pbresource.Tenancy{Partition: "default", Namespace: "default", PeerName: "default"},
+				},
+			})
+			require.Error(t, err)
+			require.Equal(t, codes.NotFound.String(), status.Code(err).String())
+			require.Contains(t, err.Error(), "resource not found")
+			mockBackend.AssertCalled(t, tc.readFn, mock.Anything, mock.Anything)
+		})
+	}
 }
 
 func TestRead_GroupVersionMismatch(t *testing.T) {
-	ctx := context.Background()
-	server := NewServer(testServerConfig(t))
-	client := testClient(t, server)
+	for desc, tc := range readTestCases() {
+		t.Run(desc, func(t *testing.T) {
+			mockRegistry := &MockRegistry{}
+			mockRegistry.On("Resolve", mock.Anything).Return(resource.Registration{}, true)
 
-	// prime registry with a type
-	v1Type := &pbresource.Type{Group: "mesh", GroupVersion: "v1", Kind: "service"}
-	v2Type := &pbresource.Type{Group: "mesh", GroupVersion: "v2", Kind: "service"}
-	server.registry.Register(resource.Registration{Type: v1Type})
-	server.registry.Register(resource.Registration{Type: v2Type})
-	someTenancy := &pbresource.Tenancy{Partition: "default", Namespace: "default", PeerName: "default"}
+			mockBackend := &MockBackend{}
+			mockBackend.On(tc.readFn, mock.Anything, mock.Anything).Return(nil, storage.GroupVersionMismatchError{
+				RequestedType: &pbresource.Type{GroupVersion: "v2"},
+				Stored:        &pbresource.Resource{Id: &pbresource.ID{Type: &pbresource.Type{GroupVersion: "v1"}}},
+			})
 
-	// prime backend with a resource of GroupVersion v1
-	_, err := server.backend.WriteCAS(
-		ctx,
-		&pbresource.Resource{
-			Id: &pbresource.ID{
-				Uid:     "someUid",
-				Name:    "someName",
-				Type:    v1Type,
-				Tenancy: someTenancy,
-			},
-		},
-		"",
-	)
-	require.NoError(t, err)
+			server := NewServer(Config{
+				registry: mockRegistry,
+				backend:  mockBackend,
+			})
+			client := testClient(t, server)
 
-	// read same resource with GroupVersion v2 should fail
-	_, err = client.Read(ctx, &pbresource.ReadRequest{
-		Id: &pbresource.ID{
-			Uid:     "someUid",
-			Name:    "someName",
-			Type:    v2Type,
-			Tenancy: someTenancy,
-		},
-	})
-	require.Error(t, err)
-	// TODO: how do i stronger match on the error type instead of a string?
-	require.Contains(t, err.Error(), "InvalidArgument")
-	require.Contains(t, err.Error(), "resource was requested with GroupVersion")
+			_, err := client.Read(tc.ctx, &pbresource.ReadRequest{
+				Id: &pbresource.ID{
+					Uid:     "abcd",
+					Name:    "billing",
+					Type:    &pbresource.Type{Group: "mesh", GroupVersion: "v2", Kind: "service"},
+					Tenancy: &pbresource.Tenancy{Partition: "default", Namespace: "default", PeerName: "default"},
+				},
+			})
+			require.Error(t, err)
+			require.Equal(t, codes.InvalidArgument.String(), status.Code(err).String())
+			require.Contains(t, err.Error(), "resource was requested with GroupVersion")
+			mockBackend.AssertCalled(t, tc.readFn, mock.Anything, mock.Anything)
+		})
+	}
 }
 
 func TestRead_Success(t *testing.T) {
-	server := NewServer(testServerConfig(t))
-	client := testClient(t, server)
+	for desc, tc := range readTestCases() {
+		t.Run(desc, func(t *testing.T) {
+			mockRegistry := &MockRegistry{}
+			mockRegistry.On("Resolve", mock.Anything).Return(resource.Registration{}, true)
 
-	// init registry with a type
-	v1Type := &pbresource.Type{Group: "mesh", GroupVersion: "v1", Kind: "service"}
-	server.registry.Register(resource.Registration{Type: v1Type})
+			typ := &pbresource.Type{
+				Group:        "mesh",
+				GroupVersion: "v1",
+				Kind:         "service",
+			}
+			id := &pbresource.ID{
+				Uid:     "someUid",
+				Name:    "someName",
+				Type:    typ,
+				Tenancy: &pbresource.Tenancy{},
+			}
+			resource := &pbresource.Resource{
+				Id: id,
+			}
 
-	// init backend with a resource
-	someTenancy := &pbresource.Tenancy{Partition: "default", Namespace: "default", PeerName: "default"}
-	someId := &pbresource.ID{
-		Uid:     "someUid",
-		Name:    "someName",
-		Type:    v1Type,
-		Tenancy: someTenancy,
+			mockBackend := &MockBackend{}
+			mockBackend.On(tc.readFn, mock.Anything, mock.Anything).Return(resource, nil)
+
+			server := NewServer(Config{
+				registry: mockRegistry,
+				backend:  mockBackend,
+			})
+			client := testClient(t, server)
+
+			_, err := client.Read(tc.ctx, &pbresource.ReadRequest{Id: id})
+			require.NoError(t, err)
+			mockBackend.AssertCalled(t, tc.readFn, mock.Anything, mock.Anything)
+		})
 	}
-	expected, err := server.backend.WriteCAS(context.Background(), &pbresource.Resource{Id: someId}, "")
-	require.NoError(t, err)
-
-	// verify same resource read
-	resp, err := client.Read(context.Background(), &pbresource.ReadRequest{Id: someId})
-	require.NoError(t, err)
-	prototest.AssertDeepEqual(t, resp.Resource, expected)
-}
-
-func TestIsConsistentRead_True(t *testing.T) {
-	require.True(t, isConsistentRead(metadata.NewIncomingContext(
-		context.Background(),
-		metadata.New(map[string]string{"x-consul-consistency-mode": "consistent"}),
-	)))
-}
-
-func TestIsConsistentRead_False(t *testing.T) {
-	// no metadata
-	require.False(t, isConsistentRead(context.Background()))
-
-	// empty string
-	require.False(t, isConsistentRead(metadata.NewIncomingContext(
-		context.Background(),
-		metadata.New(map[string]string{"x-consul-consistency-mode": ""}),
-	)))
-
-	// no match string
-	require.False(t, isConsistentRead(metadata.NewIncomingContext(
-		context.Background(),
-		metadata.New(map[string]string{"x-consul-consistency-mode": "blah"}),
-	)))
 }
 
 func TestWrite_TODO(t *testing.T) {

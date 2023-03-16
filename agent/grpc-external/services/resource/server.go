@@ -19,8 +19,18 @@ type Server struct {
 }
 
 type Config struct {
-	registry resource.Registry
-	backend  storage.Backend
+	registry Registry
+	backend  Backend
+}
+
+//go:generate mockery --name Registry --inpackage
+type Registry interface {
+	Resolve(typ *pbresource.Type) (reg resource.Registration, ok bool)
+}
+
+//go:generate mockery --name Backend --inpackage
+type Backend interface {
+	storage.Backend
 }
 
 func NewServer(cfg Config) *Server {
@@ -48,15 +58,12 @@ func (s *Server) Read(ctx context.Context, req *pbresource.ReadRequest) (*pbreso
 
 	resource, err := readFn(ctx, req.Id)
 	if err != nil {
-
 		if err == storage.ErrNotFound {
 			return nil, status.Error(codes.NotFound, err.Error())
 		}
-
 		if _, ok := err.(storage.GroupVersionMismatchError); ok {
 			return nil, status.Error(codes.InvalidArgument, err.Error())
 		}
-
 		return nil, err
 	}
 	return &pbresource.ReadResponse{Resource: resource}, nil
