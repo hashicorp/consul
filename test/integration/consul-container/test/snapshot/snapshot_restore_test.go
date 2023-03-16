@@ -34,8 +34,8 @@ func testSnapShotRestoreForLogStore(t *testing.T, logStore libcluster.LogStore) 
 		NumClients: 0,
 		BuildOpts: &libcluster.BuildOptions{
 			Datacenter:      "dc1",
-			ConsulImageName: utils.LatestImageName,
-			ConsulVersion:   utils.LatestVersion,
+			ConsulImageName: utils.TargetImageName,
+			ConsulVersion:   utils.TargetVersion,
 			LogStore:        logStore,
 		},
 		ApplyDefaultProxySettings: true,
@@ -63,8 +63,8 @@ func testSnapShotRestoreForLogStore(t *testing.T, logStore libcluster.LogStore) 
 		NumClients: 0,
 		BuildOpts: &libcluster.BuildOptions{
 			Datacenter:      "dc1",
-			ConsulImageName: utils.LatestImageName,
-			ConsulVersion:   utils.LatestVersion,
+			ConsulImageName: utils.TargetImageName,
+			ConsulVersion:   utils.TargetVersion,
 			LogStore:        logStore,
 		},
 		ApplyDefaultProxySettings: true,
