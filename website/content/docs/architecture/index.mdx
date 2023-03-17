@@ -75,7 +75,13 @@ The following simplified diagram shows the interactions between servers and clie
 
 ## Cross-datacenter requests
 
-Each Consul datacenter maintains its own catalog of services and their health. By default, the information is not replicated across datacenters. WAN federation and cluster peering are two multi-datacenter deployment models that enable service connectivity across datacenters.
+Each Consul datacenter maintains its own catalog of services and their health. By default, the information is not replicated across datacenters. Cluster peering and WAN federation are two multi-datacenter deployment models that enable service connectivity across datacenters.
+
+### Cluster peering
+
+You can create peering connections between two or more independent clusters so that services deployed to different datacenters or admin partitions can communicate. An [admin partition](/consul/docs/enterprise/admin-partitions) is a feature in Consul Enterprise that enables you to define isolated network regions that use the same Consul servers. In the cluster peering model, you create a token in one of the datacenters or partitions and configure another datacenter or partition to present the token to establish the connection. 
+ 
+Refer to [What is Cluster Peering?](/consul/docs/connect/cluster-peering) for additional information.
 
 ### WAN federation
 
@@ -106,9 +112,3 @@ In the following diagram, the servers in each data center participate in a WAN g
 
 </Tab>
 </Tabs>
-
-### Cluster peering
-
-You can create peering connections between two or more independent clusters so that services deployed to different datacenters or admin partitions can communicate. An [admin partition](/consul/docs/enterprise/admin-partitions) is a feature in Consul Enterprise that enables you to define isolated network regions that use the same Consul servers. In the cluster peering model, you create a token in one of the datacenters or partitions and configure another datacenter or partition to present the token to establish the connection. 
- 
-Refer to [What is Cluster Peering?](/consul/docs/connect/cluster-peering) for additional information.
