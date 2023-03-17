@@ -31,6 +31,39 @@ var (
 	ErrInconsistent = errors.New("cannot satisfy consistency requirements")
 )
 
+// ReadConsistency is used to specify the required consistency guarantees for
+// a read operation.
+type ReadConsistency int
+
+const (
+	// EventualConsistency provides a weak set of guarantees, but is much cheaper
+	// than using StrongConsistency and therefore should be treated as the default.
+	//
+	// It guarantees [sequential consistency] between reads. That is, a read will
+	// always return results that are as up-to-date as an earlier read, provided
+	// both happen on the same Consul server. But does not make any such guarantee
+	// about writes.
+	//
+	// In other words, reads won't necessarily reflect earlier writes, even when
+	// made against the same server.
+	//
+	// Operations that don't allow the caller to specify the consistency mode will
+	// hold the same guarantees as EventualConsistency, but check the method docs
+	// for caveats.
+	//
+	// [sequential consistency]: https://jepsen.io/consistency/models/sequential
+	EventualConsistency ReadConsistency = iota
+
+	// StrongConsistency provides a very strong set of guarantees but is much more
+	// expensive, so should be used sparingly.
+	//
+	// It guarantees full [linearizability], such that a read will always return
+	// the most up-to-date version of a resource, without caveat.
+	//
+	// [linearizability]: https://jepsen.io/consistency/models/linearizable
+	StrongConsistency
+)
+
 // Backend provides the low-level storage substrate for resources. It can be
 // implemented using internal (i.e. Raft+MemDB) or external (e.g. DynamoDB)
 // storage systems.
@@ -93,19 +126,8 @@ type Backend interface {
 	//
 	// # Consistency
 	//
-	// Read makes no guarantees about consistency, and may return stale results.
-	// For stronger guarantees, use ReadConsistent.
-	Read(ctx context.Context, id *pbresource.ID) (*pbresource.Resource, error)
-
-	// ReadConsistent provides the same functionality as Read, but guarantees
-	// single-resource sequential consistency, typically by bypassing any caches
-	// and proxying the request directly to the underlying storage system.
-	//
-	// If a consistent read cannot be achieved (e.g. when interacting with a Raft
-	// follower, or quorum is lost) ErrInconsistent will be returned.
-	//
-	// Use ReadConsistent sparingly, and prefer Read when possible.
-	ReadConsistent(ctx context.Context, id *pbresource.ID) (*pbresource.Resource, error)
+	// Read supports both EventualConsistency and StrongConsistency.
+	Read(ctx context.Context, consistency ReadConsistency, id *pbresource.ID) (*pbresource.Resource, error)
 
 	// WriteCAS performs an atomic CAS (Compare-And-Swap) write of a resource based
 	// on its version. The given version will be compared to what is stored, and if

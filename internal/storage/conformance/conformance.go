@@ -31,7 +31,7 @@ type TestOptions struct {
 func Test(t *testing.T, opts TestOptions) {
 	require.NotNil(t, opts.NewBackend, "NewBackend method is required")
 
-	t.Run("Read", func(t *testing.T) { testRead(t, opts) })
+	t.Run("Read", func(t *testing.T) { testRead(t, opts, storage.EventualConsistency) })
 	t.Run("CAS Write", func(t *testing.T) { testCASWrite(t, opts) })
 	t.Run("CAS Delete", func(t *testing.T) { testCASDelete(t, opts) })
 	t.Run("OwnerReferences", func(t *testing.T) { testOwnerReferences(t, opts) })
@@ -39,7 +39,7 @@ func Test(t *testing.T, opts TestOptions) {
 	testListWatch(t, opts)
 }
 
-func testRead(t *testing.T, opts TestOptions) {
+func testRead(t *testing.T, opts TestOptions, consistency storage.ReadConsistency) {
 	ctx := testContext(t)
 	backend := opts.NewBackend(t)
 
@@ -55,7 +55,7 @@ func testRead(t *testing.T, opts TestOptions) {
 	require.NoError(t, err)
 
 	t.Run("simple", func(t *testing.T) {
-		output, err := backend.Read(ctx, res.Id)
+		output, err := backend.Read(ctx, consistency, res.Id)
 		require.NoError(t, err)
 		prototest.AssertDeepEqual(t, res, output, ignoreVersion)
 	})
@@ -64,7 +64,7 @@ func testRead(t *testing.T, opts TestOptions) {
 		id := clone(res.Id)
 		id.Uid = ""
 
-		output, err := backend.Read(ctx, id)
+		output, err := backend.Read(ctx, consistency, id)
 		require.NoError(t, err)
 		prototest.AssertDeepEqual(t, res, output, ignoreVersion)
 	})
@@ -73,7 +73,7 @@ func testRead(t *testing.T, opts TestOptions) {
 		id := clone(res.Id)
 		id.Name = "different"
 
-		_, err := backend.Read(ctx, id)
+		_, err := backend.Read(ctx, consistency, id)
 		require.ErrorIs(t, err, storage.ErrNotFound)
 	})
 
@@ -81,7 +81,7 @@ func testRead(t *testing.T, opts TestOptions) {
 		id := clone(res.Id)
 		id.Uid = "b"
 
-		_, err := backend.Read(ctx, id)
+		_, err := backend.Read(ctx, consistency, id)
 		require.ErrorIs(t, err, storage.ErrNotFound)
 	})
 
@@ -89,7 +89,7 @@ func testRead(t *testing.T, opts TestOptions) {
 		id := clone(res.Id)
 		id.Type = typeAv2
 
-		_, err := backend.Read(ctx, id)
+		_, err := backend.Read(ctx, consistency, id)
 		require.Error(t, err)
 
 		var e storage.GroupVersionMismatchError
@@ -200,7 +200,7 @@ func testCASDelete(t *testing.T, opts TestOptions) {
 
 		require.NoError(t, backend.DeleteCAS(ctx, res.Id, res.Version))
 
-		_, err = backend.Read(ctx, res.Id)
+		_, err = backend.Read(ctx, storage.EventualConsistency, res.Id)
 		require.ErrorIs(t, err, storage.ErrNotFound)
 	})
 
@@ -222,7 +222,7 @@ func testCASDelete(t *testing.T, opts TestOptions) {
 		id.Uid = "b"
 		require.NoError(t, backend.DeleteCAS(ctx, id, res.Version))
 
-		_, err = backend.Read(ctx, res.Id)
+		_, err = backend.Read(ctx, storage.EventualConsistency, res.Id)
 		require.NoError(t, err)
 	})
 }
@@ -427,13 +427,13 @@ func testListWatch(t *testing.T, opts TestOptions) {
 					prototest.AssertContainsElement(t, tc.results, event.Resource, ignoreVersion)
 
 					// Check that Read is sequentially consistent with Watch.
-					readRes, err := backend.Read(ctx, event.Resource.Id)
+					readRes, err := backend.Read(ctx, storage.EventualConsistency, event.Resource.Id)
 					require.NoError(t, err)
 					prototest.AssertDeepEqual(t, event.Resource, readRes)
 				}
 
 				// Delete a random resource to check we get an event.
-				del, err := backend.Read(ctx, tc.results[rand.Intn(len(tc.results))].Id)
+				del, err := backend.Read(ctx, storage.EventualConsistency, tc.results[rand.Intn(len(tc.results))].Id)
 				require.NoError(t, err)
 				require.NoError(t, backend.DeleteCAS(ctx, del.Id, del.Version))
 
@@ -447,7 +447,7 @@ func testListWatch(t *testing.T, opts TestOptions) {
 				prototest.AssertDeepEqual(t, del, event.Resource)
 
 				// Check that Read is sequentially consistent with Watch.
-				_, err = backend.Read(ctx, del.Id)
+				_, err = backend.Read(ctx, storage.EventualConsistency, del.Id)
 				require.ErrorIs(t, err, storage.ErrNotFound)
 			})
 		}

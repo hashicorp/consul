@@ -36,12 +36,7 @@ type Backend struct {
 func (b *Backend) Run(ctx context.Context) { b.store.Run(ctx) }
 
 // Read implements the storage.Backend interface.
-func (b *Backend) Read(_ context.Context, id *pbresource.ID) (*pbresource.Resource, error) {
-	return b.store.Read(id)
-}
-
-// ReadConsistent implements the storage.Backend interface.
-func (b *Backend) ReadConsistent(_ context.Context, id *pbresource.ID) (*pbresource.Resource, error) {
+func (b *Backend) Read(_ context.Context, _ storage.ReadConsistency, id *pbresource.ID) (*pbresource.Resource, error) {
 	return b.store.Read(id)
 }
 
