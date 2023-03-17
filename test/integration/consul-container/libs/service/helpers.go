@@ -5,10 +5,11 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/api"
 	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
-	"github.com/stretchr/testify/require"
 )
 
 const (
@@ -27,13 +28,14 @@ type SidecarService struct {
 }
 
 type ServiceOpts struct {
-	Name     string
-	ID       string
-	Meta     map[string]string
-	HTTPPort int
-	GRPCPort int
-	Checks   Checks
-	Connect  SidecarService
+	Name      string
+	ID        string
+	Meta      map[string]string
+	HTTPPort  int
+	GRPCPort  int
+	Checks    Checks
+	Connect   SidecarService
+	Namespace string
 }
 
 // createAndRegisterStaticServerAndSidecar register the services and launch static-server containers
@@ -55,8 +57,12 @@ func createAndRegisterStaticServerAndSidecar(node libcluster.Agent, grpcPort int
 	deferClean.Add(func() {
 		_ = serverService.Terminate()
 	})
-
-	serverConnectProxy, err := NewConnectService(context.Background(), fmt.Sprintf("%s-sidecar", svc.ID), svc.ID, []int{svc.Port}, node) // bindPort not used
+	sidecarCfg := SidecarConfig{
+		Name:      fmt.Sprintf("%s-sidecar", svc.ID),
+		ServiceID: svc.ID,
+		Namespace: svc.Namespace,
+	}
+	serverConnectProxy, err := NewConnectService(context.Background(), sidecarCfg, []int{svc.Port}, node) // bindPort not used
 	if err != nil {
 		return nil, nil, err
 	}
@@ -82,6 +88,7 @@ func CreateAndRegisterStaticServerAndSidecar(node libcluster.Agent, serviceOpts 
 				Proxy: &api.AgentServiceConnectProxyConfig{},
 			},
 		},
+		Namespace: serviceOpts.Namespace,
 		Check: &api.AgentServiceCheck{
 			Name:     "Static Server Listening",
 			TCP:      fmt.Sprintf("127.0.0.1:%d", serviceOpts.HTTPPort),
@@ -160,7 +167,12 @@ func CreateAndRegisterStaticClientSidecar(
 	}
 
 	// Create a service and proxy instance
-	clientConnectProxy, err := NewConnectService(context.Background(), fmt.Sprintf("%s-sidecar", StaticClientServiceName), StaticClientServiceName, []int{libcluster.ServiceUpstreamLocalBindPort}, node)
+	sidecarCfg := SidecarConfig{
+		Name:      fmt.Sprintf("%s-sidecar", StaticClientServiceName),
+		ServiceID: StaticClientServiceName,
+	}
+
+	clientConnectProxy, err := NewConnectService(context.Background(), sidecarCfg, []int{libcluster.ServiceUpstreamLocalBindPort}, node)
 	if err != nil {
 		return nil, err
 	}

@@ -1415,6 +1415,7 @@ func ServiceResolverFailoverToStructs(s *ServiceResolverFailover, t *structs.Ser
 		ServiceResolverFailoverPolicyToStructs(s.Policy, &x)
 		t.Policy = &x
 	}
+	t.SamenessGroup = s.SamenessGroup
 }
 func ServiceResolverFailoverFromStructs(t *structs.ServiceResolverFailover, s *ServiceResolverFailover) {
 	if s == nil {
@@ -1439,6 +1440,7 @@ func ServiceResolverFailoverFromStructs(t *structs.ServiceResolverFailover, s *S
 		ServiceResolverFailoverPolicyFromStructs(t.Policy, &x)
 		s.Policy = &x
 	}
+	s.SamenessGroup = t.SamenessGroup
 }
 func ServiceResolverFailoverPolicyToStructs(s *ServiceResolverFailoverPolicy, t *structs.ServiceResolverFailoverPolicy) {
 	if s == nil {
@@ -1484,6 +1486,7 @@ func ServiceResolverRedirectToStructs(s *ServiceResolverRedirect, t *structs.Ser
 	t.Partition = s.Partition
 	t.Datacenter = s.Datacenter
 	t.Peer = s.Peer
+	t.SamenessGroup = s.SamenessGroup
 }
 func ServiceResolverRedirectFromStructs(t *structs.ServiceResolverRedirect, s *ServiceResolverRedirect) {
 	if s == nil {
@@ -1495,6 +1498,7 @@ func ServiceResolverRedirectFromStructs(t *structs.ServiceResolverRedirect, s *S
 	s.Partition = t.Partition
 	s.Datacenter = t.Datacenter
 	s.Peer = t.Peer
+	s.SamenessGroup = t.SamenessGroup
 }
 func ServiceResolverSubsetToStructs(s *ServiceResolverSubset, t *structs.ServiceResolverSubset) {
 	if s == nil {

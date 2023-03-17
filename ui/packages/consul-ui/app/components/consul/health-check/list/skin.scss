@@ -20,7 +20,7 @@
   }
 }
 %healthcheck-output header > * {
-  @extend %h300;
+  @extend %display-300-semibold;
 }
 %healthcheck-output dd em {
   @extend %pill;

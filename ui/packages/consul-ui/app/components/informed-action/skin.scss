@@ -16,13 +16,13 @@
     cursor: default;
   }
   header {
-    @extend %h400;
+    @extend %display-100-semibold;
   }
   header > * {
     @extend %typo-inherit;
   }
   p {
-    @extend %p2;
+    @extend %body-100-regular;
     color: var(--token-color-hashicorp-brand);
   }
   > ul {

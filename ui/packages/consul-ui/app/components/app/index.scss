@@ -78,12 +78,11 @@ main {
   @extend %transition-pushover;
 }
 %footer {
+  @extend %body-100-regular;
   position: fixed;
   z-index: 50;
 
   color: var(--token-color-foreground-disabled);
-  font-size: var(--typo-size-800);
-
   width: 250px;
   padding-left: 25px;
 }

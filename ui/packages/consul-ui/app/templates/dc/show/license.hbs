@@ -120,16 +120,19 @@ as |item|}}
                 @text={{compute (fn route.t 'documentation.links.license-expiration.text')}}
                 @href='{{concat (env 'CONSUL_DOCS_URL') (compute (fn route.t 'documentation.links.license-expiration.link'))}}'
                 @icon='docs-link'
+                @iconPosition='trailing'
               />
               <Hds::Link::Standalone
                 @text={{compute (fn route.t 'documentation.links.renewing-license.text')}}
                 @href='{{concat (env 'CONSUL_DOCS_URL') (compute (fn route.t 'documentation.links.renewing-license.link'))}}'
                 @icon='docs-link'
+                @iconPosition='trailing'
               />
               <Hds::Link::Standalone
                 @text={{compute (fn route.t 'documentation.links.applying-new-license.text')}}
                 @href='{{concat (env 'CONSUL_DOCS_URL') (compute (fn route.t 'documentation.links.applying-new-license.link'))}}'
                 @icon='docs-link'
+                @iconPosition='trailing'
               />
             </div>
           </aside>

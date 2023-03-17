@@ -7,13 +7,13 @@
   padding: 0.9em 1em;
 }
 .auth-profile {
-  @extend %p2;
+  @extend %body-100-regular;
 }
 .auth-profile dt span {
-  font-weight: var(--typo-weight-normal);
+  font-weight: var(--token-typography-font-weight-regular);
 }
 .auth-profile dt {
-  font-weight: var(--typo-weight-bold);
+  font-weight: var(--token-typography-font-weight-bold);
 }
 .auth-profile dt,
 .auth-profile dd {

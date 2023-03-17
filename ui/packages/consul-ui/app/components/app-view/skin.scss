@@ -3,9 +3,6 @@
  * SPDX-License-Identifier: MPL-2.0
  */
 
-%app-view-title-left-container > *:first-child {
-  @extend %h100;
-}
 %app-view-title {
   border-bottom: var(--decor-border-100);
 }

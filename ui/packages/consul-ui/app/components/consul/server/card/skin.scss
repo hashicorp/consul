@@ -10,13 +10,13 @@
   @extend %with-leader-tile;
 }
 %consul-server-card .name + dd {
-  @extend %h300;
+  @extend %display-200-semibold;
   color: var(--token-color-hashicorp-brand);
   animation-name: typo-truncate;
 }
 %consul-server-card .health-status + dd {
   @extend %pill-200;
-  font-size: var(--typo-size-700);
+  @extend %body-100-regular;
 }
 %consul-server-card.voting-status-non-voter .health-status + dd {
   background-color: var(--token-color-surface-strong);
