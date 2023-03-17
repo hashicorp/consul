@@ -27,8 +27,9 @@ func NewBackend() (*Backend, error) {
 
 // Backend is a purely in-memory storage backend implementation.
 type Backend struct {
+	vsn uint64
+
 	store *Store
-	vsn   uint64
 }
 
 // Run until the given context is canceled. This method blocks, so should be
