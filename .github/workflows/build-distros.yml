@@ -1,0 +1,43 @@
+name: build-distros
+
+on:
+  pull_request:
+    branches: ["main"]
+  push:
+    branches: ["main"]
+    tags: ["*"]
+
+jobs:
+  build-386:
+    strategy:
+      matrix:
+        os: ['freebsd', 'linux', 'windows']
+    runs-on: ubuntu-22.04
+    steps:
+    - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
+    - uses: actions/setup-go@6edd4406fa81c3da01a34fa6f6343087c207a568 # pin@v3.5.0
+      with:
+        go-version-file: 'go.mod'
+    - name: Build
+      run: GOOS=${{ matrix.os }} GOARCH=386 CGO_ENABLED=0 go build
+
+  build-amd64:
+    strategy:
+      matrix:
+        os: ['darwin', 'freebsd', 'linux', 'solaris', 'windows']
+    runs-on: ubuntu-22.04
+    steps:
+    - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
+    - uses: actions/setup-go@6edd4406fa81c3da01a34fa6f6343087c207a568 # pin@v3.5.0
+      with:
+        go-version-file: 'go.mod'
+    - name: Build
+      run: GOOS=${{ matrix.os }} GOARCH=amd64 CGO_ENABLED=0 go build
+
+  build-arm:
+    runs-on: ubuntu-22.04
+    steps:
+    - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
+    - uses: actions/setup-go@6edd4406fa81c3da01a34fa6f6343087c207a568 # pin@v3.5.0
+      with:
+        go-version-file: 'go.mod'
