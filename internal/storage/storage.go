@@ -39,10 +39,9 @@ const (
 	// EventualConsistency provides a weak set of guarantees, but is much cheaper
 	// than using StrongConsistency and therefore should be treated as the default.
 	//
-	// It guarantees [sequential consistency] between reads. That is, a read will
-	// always return results that are as up-to-date as an earlier read, provided
-	// both happen on the same Consul server. But does not make any such guarantee
-	// about writes.
+	// It guarantees [monotonic reads]. That is, a read will always return results
+	// that are as up-to-date as an earlier read, provided both happen on the same
+	// Consul server. But does not make any such guarantee about writes.
 	//
 	// In other words, reads won't necessarily reflect earlier writes, even when
 	// made against the same server.
@@ -51,7 +50,7 @@ const (
 	// hold the same guarantees as EventualConsistency, but check the method docs
 	// for caveats.
 	//
-	// [sequential consistency]: https://jepsen.io/consistency/models/sequential
+	// [monotonic reads]: https://jepsen.io/consistency/models/monotonic-reads
 	EventualConsistency ReadConsistency = iota
 
 	// StrongConsistency provides a very strong set of guarantees but is much more
@@ -218,18 +217,20 @@ type Backend interface {
 	// write may not be received immediately), but it does guarantee that events
 	// will be emitted in the correct order.
 	//
-	// There's also a sequential consistency guarantee between Read and WatchList,
+	// There's also a guarantee of [monotonic reads] between Read and WatchList,
 	// such that Read will never return data that is older than the most recent
 	// event you received. Note: this guarantee holds at the (in-process) storage
 	// backend level, only. Controllers and other users of the Resource Service API
 	// must remain connected to the same Consul server process to avoid receiving
 	// events about writes that they then cannot read. In other words, it is *not*
-	// linearizable: https://jepsen.io/consistency/models/sequential
+	// linearizable.
 	//
 	// There's a similar guarantee between WatchList and OwnerReferences, see the
 	// OwnerReferences docs for more information.
 	//
 	// See List docs for details about Tenancy Wildcard and GroupVersion.
+	//
+	// [monotonic reads]: https://jepsen.io/consistency/models/monotonic-reads
 	WatchList(ctx context.Context, resType UnversionedType, tenancy *pbresource.Tenancy, namePrefix string) (Watch, error)
 
 	// OwnerReferences returns the IDs of resources owned by the resource with the
@@ -237,7 +238,7 @@ type Backend interface {
 	//
 	// # Consistency
 	//
-	// OwnerReferences may return stale results, but is sequentially consistent
+	// OwnerReferences may return stale results, but guarnantees [monotonic reads]
 	// with events received from WatchList. In practice, this means that if you
 	// learn that a resource has been deleted through a watch event, the results
 	// you receive from OwnerReferences will contain all references that existed
@@ -248,6 +249,8 @@ type Backend interface {
 	// challenges), or by calling OwnerReferences after the expected window of
 	// inconsistency (e.g. deferring cascading deletion, or doing a second pass
 	// an hour later).
+	//
+	// [montonic reads]: https://jepsen.io/consistency/models/monotonic-reads
 	OwnerReferences(ctx context.Context, id *pbresource.ID) ([]*pbresource.ID, error)
 }
 
