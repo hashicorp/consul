@@ -19,11 +19,6 @@ import (
 	"github.com/hashicorp/go-cleanhttp"
 )
 
-var (
-	checkTimeout  = 1 * time.Minute
-	checkInterval = 1 * time.Second
-)
-
 // Creates a gateway service and tests to see if it is routable
 func TestAPIGatewayCreate(t *testing.T) {
 	if testing.Short() {
@@ -55,6 +50,7 @@ func TestAPIGatewayCreate(t *testing.T) {
 		},
 	}
 
+	cluster, _, _ := libtopology.NewCluster(t, clusterConfig)
 	client := cluster.APIClient(0)
 
 	namespace := getNamespace()
@@ -71,13 +67,14 @@ func TestAPIGatewayCreate(t *testing.T) {
 		Name:      gatewayName,
 		Listeners: []api.APIGatewayListener{
 			{
+				Name:     "listener",
 				Port:     listenerPortOne,
 				Protocol: "tcp",
 			},
 		},
 	}
-	_, _, err := client.ConfigEntries().Set(apiGateway, nil)
-	require.NoError(t, err)
+
+	require.NoError(t, cluster.ConfigEntryWrite(apiGateway))
 
 	_, _, err := libservice.CreateAndRegisterStaticServerAndSidecar(cluster.Agents[0], &libservice.ServiceOpts{
 		ID:        serviceName,
@@ -107,8 +104,7 @@ func TestAPIGatewayCreate(t *testing.T) {
 		},
 	}
 
-	_, _, err = client.ConfigEntries().Set(tcpRoute, nil)
-	require.NoError(t, err)
+	require.NoError(t, cluster.ConfigEntryWrite(tcpRoute))
 
 	// Create a gateway
 	gatewayService, err := libservice.NewGatewayService(context.Background(), libservice.GatewayConfig{
@@ -254,7 +250,6 @@ func checkRoute(t *testing.T, port int, path string, headers map[string]string, 
 			t.Logf("bad status code - expected: %d, actual: %d", expected.statusCode, res.StatusCode)
 			return false
 		}
-
 		if expected.debug {
 			if !strings.Contains(string(body), "debug") {
 				t.Log("body does not contain 'debug'")
