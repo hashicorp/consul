@@ -9,28 +9,30 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/sdk/testutil/retry"
 	libassert "github.com/hashicorp/consul/test/integration/consul-container/libs/assert"
 	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
 	libservice "github.com/hashicorp/consul/test/integration/consul-container/libs/service"
 	libtopology "github.com/hashicorp/consul/test/integration/consul-container/libs/topology"
-	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 	"github.com/hashicorp/go-cleanhttp"
 )
 
 // Creates a gateway service and tests to see if it is routable
 func TestAPIGatewayCreate(t *testing.T) {
-	t.Skip()
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
 
 	t.Parallel()
+
+	gatewayName := randomName("gateway", 16)
+	routeName := randomName("route", 16)
+	serviceName := randomName("service", 16)
 	listenerPortOne := 6000
+	serviceHTTPPort := 6001
+	serviceGRPCPort := 6002
 
 	clusterConfig := &libtopology.ClusterConfig{
 		NumServers: 1,
@@ -41,17 +43,28 @@ func TestAPIGatewayCreate(t *testing.T) {
 			InjectGossipEncryption: true,
 			AllowHTTPAnyway:        true,
 		},
-		Ports:                     []int{listenerPortOne},
-		ApplyDefaultProxySettings: true,
+		Ports: []int{
+			listenerPortOne,
+			serviceHTTPPort,
+			serviceGRPCPort,
+		},
 	}
 
 	cluster, _, _ := libtopology.NewCluster(t, clusterConfig)
 	client := cluster.APIClient(0)
 
+	namespace := getNamespace()
+	if namespace != "" {
+		ns := &api.Namespace{Name: namespace}
+		_, _, err := client.Namespaces().Create(ns, nil)
+		require.NoError(t, err)
+	}
+
 	// add api gateway config
 	apiGateway := &api.APIGatewayConfigEntry{
-		Kind: api.APIGateway,
-		Name: "api-gateway",
+		Kind:      api.APIGateway,
+		Namespace: namespace,
+		Name:      gatewayName,
 		Listeners: []api.APIGatewayListener{
 			{
 				Name:     "listener",
@@ -63,32 +76,48 @@ func TestAPIGatewayCreate(t *testing.T) {
 
 	require.NoError(t, cluster.ConfigEntryWrite(apiGateway))
 
+	_, _, err := libservice.CreateAndRegisterStaticServerAndSidecar(cluster.Agents[0], &libservice.ServiceOpts{
+		ID:        serviceName,
+		Name:      serviceName,
+		Namespace: namespace,
+		HTTPPort:  serviceHTTPPort,
+		GRPCPort:  serviceGRPCPort,
+	})
+	require.NoError(t, err)
+
 	tcpRoute := &api.TCPRouteConfigEntry{
-		Kind: api.TCPRoute,
-		Name: "api-gateway-route",
+		Kind:      api.TCPRoute,
+		Name:      routeName,
+		Namespace: namespace,
 		Parents: []api.ResourceReference{
 			{
-				Kind: api.APIGateway,
-				Name: "api-gateway",
+				Kind:      api.APIGateway,
+				Namespace: namespace,
+				Name:      gatewayName,
 			},
 		},
 		Services: []api.TCPService{
 			{
-				Name: libservice.StaticServerServiceName,
+				Namespace: namespace,
+				Name:      serviceName,
 			},
 		},
 	}
 
 	require.NoError(t, cluster.ConfigEntryWrite(tcpRoute))
 
-	// Create a client proxy instance with the server as an upstream
-	_, gatewayService := createServices(t, cluster, listenerPortOne)
+	// Create a gateway
+	gatewayService, err := libservice.NewGatewayService(context.Background(), libservice.GatewayConfig{
+		Kind:      "api",
+		Namespace: namespace,
+		Name:      gatewayName,
+	}, cluster.Agents[0], listenerPortOne)
+	require.NoError(t, err)
 
 	// make sure the gateway/route come online
 	// make sure config entries have been properly created
-	namespace := getNamespace()
-	checkGatewayConfigEntry(t, client, "api-gateway", namespace)
-	checkTCPRouteConfigEntry(t, client, "api-gateway-route", namespace)
+	checkGatewayConfigEntry(t, client, gatewayName, namespace)
+	checkTCPRouteConfigEntry(t, client, routeName, namespace)
 
 	port, err := gatewayService.GetPort(listenerPortOne)
 	require.NoError(t, err)
@@ -112,72 +141,36 @@ func conditionStatusIsValue(typeName string, statusValue string, conditions []ap
 	return false
 }
 
-// TODO this code is just copy pasted from elsewhere, it is likely we will need to modify it some
-func createCluster(t *testing.T, ports ...int) *libcluster.Cluster {
-	opts := libcluster.BuildOptions{
-		InjectAutoEncryption:   true,
-		InjectGossipEncryption: true,
-		AllowHTTPAnyway:        true,
-	}
-	ctx := libcluster.NewBuildContext(t, opts)
-
-	conf := libcluster.NewConfigBuilder(ctx).
-		ToAgentConfig(t)
-	t.Logf("Cluster config:\n%s", conf.JSON)
-
-	configs := []libcluster.Config{*conf}
-
-	cluster, err := libcluster.New(t, configs, ports...)
-	require.NoError(t, err)
-
-	node := cluster.Agents[0]
-	client := node.GetClient()
-
-	libcluster.WaitForLeader(t, cluster, client)
-	libcluster.WaitForMembers(t, client, 1)
-
-	// Default Proxy Settings
-	ok, err := utils.ApplyDefaultProxySettings(client)
-	require.NoError(t, err)
-	require.True(t, ok)
-
-	require.NoError(t, err)
-
-	return cluster
-}
-
-func createGatewayConfigEntry(gatewayName, protocol, namespace string, listenerPort int) *api.APIGatewayConfigEntry {
-	return &api.APIGatewayConfigEntry{
-		Kind: api.APIGateway,
-		Name: gatewayName,
-		Listeners: []api.APIGatewayListener{
-			{
-				Name:     "listener",
-				Port:     listenerPort,
-				Protocol: protocol,
-			},
-		},
-		Namespace: namespace,
-	}
-}
-
 func checkGatewayConfigEntry(t *testing.T, client *api.Client, gatewayName string, namespace string) {
+	t.Helper()
+
 	require.Eventually(t, func() bool {
 		entry, _, err := client.ConfigEntries().Get(api.APIGateway, gatewayName, &api.QueryOptions{Namespace: namespace})
-		require.NoError(t, err)
-		if entry == nil {
+		if err != nil {
+			t.Log("error constructing request", err)
 			return false
 		}
+		if entry == nil {
+			t.Log("returned entry is nil")
+			return false
+		}
+
 		apiEntry := entry.(*api.APIGatewayConfigEntry)
 		return isAccepted(apiEntry.Status.Conditions)
 	}, time.Second*10, time.Second*1)
 }
 
 func checkHTTPRouteConfigEntry(t *testing.T, client *api.Client, routeName string, namespace string) {
+	t.Helper()
+
 	require.Eventually(t, func() bool {
 		entry, _, err := client.ConfigEntries().Get(api.HTTPRoute, routeName, &api.QueryOptions{Namespace: namespace})
-		require.NoError(t, err)
+		if err != nil {
+			t.Log("error constructing request", err)
+			return false
+		}
 		if entry == nil {
+			t.Log("returned entry is nil")
 			return false
 		}
 
@@ -187,53 +180,22 @@ func checkHTTPRouteConfigEntry(t *testing.T, client *api.Client, routeName strin
 }
 
 func checkTCPRouteConfigEntry(t *testing.T, client *api.Client, routeName string, namespace string) {
+	t.Helper()
+
 	require.Eventually(t, func() bool {
 		entry, _, err := client.ConfigEntries().Get(api.TCPRoute, routeName, &api.QueryOptions{Namespace: namespace})
-		require.NoError(t, err)
+		if err != nil {
+			t.Log("error constructing request", err)
+			return false
+		}
 		if entry == nil {
+			t.Log("returned entry is nil")
 			return false
 		}
 
 		apiEntry := entry.(*api.TCPRouteConfigEntry)
 		return isBound(apiEntry.Status.Conditions)
 	}, time.Second*10, time.Second*1)
-}
-
-func createService(t *testing.T, cluster *libcluster.Cluster, serviceOpts *libservice.ServiceOpts, containerArgs []string) libservice.Service {
-	node := cluster.Agents[0]
-	client := node.GetClient()
-	// Create a service and proxy instance
-	service, _, err := libservice.CreateAndRegisterStaticServerAndSidecar(node, serviceOpts, containerArgs...)
-	require.NoError(t, err)
-
-	libassert.CatalogServiceExists(t, client, serviceOpts.Name+"-sidecar-proxy", &api.QueryOptions{Namespace: serviceOpts.Namespace})
-	libassert.CatalogServiceExists(t, client, serviceOpts.Name, &api.QueryOptions{Namespace: serviceOpts.Namespace})
-
-	return service
-}
-
-func createServices(t *testing.T, cluster *libcluster.Cluster, ports ...int) (libservice.Service, libservice.Service) {
-	node := cluster.Agents[0]
-	client := node.GetClient()
-	// Create a service and proxy instance
-	serviceOpts := &libservice.ServiceOpts{
-		Name:     libservice.StaticServerServiceName,
-		ID:       "static-server",
-		HTTPPort: 8080,
-		GRPCPort: 8079,
-	}
-
-	clientConnectProxy := createService(t, cluster, serviceOpts, nil)
-	gwCfg := libservice.GatewayConfig{
-		Name: "api-gateway",
-		Kind: "api",
-	}
-
-	gatewayService, err := libservice.NewGatewayService(context.Background(), gwCfg, cluster.Agents[0], ports...)
-	require.NoError(t, err)
-	libassert.CatalogServiceExists(t, client, "api-gateway", nil)
-
-	return clientConnectProxy, gatewayService
 }
 
 type checkOptions struct {
@@ -244,26 +206,23 @@ type checkOptions struct {
 
 // checkRoute, customized version of libassert.RouteEchos to allow for headers/distinguishing between the server instances
 func checkRoute(t *testing.T, port int, path string, headers map[string]string, expected checkOptions) {
-	ip := "localhost"
+	t.Helper()
+
 	if expected.testName != "" {
 		t.Log("running " + expected.testName)
 	}
-	const phrase = "hello"
-
-	failer := func() *retry.Timer {
-		return &retry.Timer{Timeout: time.Second * 60, Wait: time.Second * 60}
-	}
 
 	client := cleanhttp.DefaultClient()
-
 	path = strings.TrimPrefix(path, "/")
-	url := fmt.Sprintf("http://%s:%d/%s", ip, port, path)
+	url := fmt.Sprintf("http://localhost:%d/%s", port, path)
 
-	retry.RunWith(failer(), t, func(r *retry.R) {
-		t.Logf("making call to %s", url)
-		reader := strings.NewReader(phrase)
+	require.Eventually(t, func() bool {
+		reader := strings.NewReader("hello")
 		req, err := http.NewRequest("POST", url, reader)
-		require.NoError(t, err)
+		if err != nil {
+			t.Log("error constructing request", err)
+			return false
+		}
 		headers["content-type"] = "text/plain"
 
 		for k, v := range headers {
@@ -273,39 +232,41 @@ func checkRoute(t *testing.T, port int, path string, headers map[string]string, 
 				req.Host = v
 			}
 		}
+
 		res, err := client.Do(req)
 		if err != nil {
-			t.Log(err)
-			r.Fatal("could not make call to service ", url)
+			t.Log("error sending request", err)
+			return false
 		}
 		defer res.Body.Close()
 
 		body, err := io.ReadAll(res.Body)
 		if err != nil {
-			r.Fatal("could not read response body ", url)
+			t.Log("error reading response body", err)
+			return false
 		}
 
-		assert.Equal(t, expected.statusCode, res.StatusCode)
 		if expected.statusCode != res.StatusCode {
-			r.Fatal("unexpected response code returned")
+			t.Logf("bad status code - expected: %d, actual: %d", expected.statusCode, res.StatusCode)
+			return false
+		}
+		if expected.debug {
+			if !strings.Contains(string(body), "debug") {
+				t.Log("body does not contain 'debug'")
+				return false
+			}
+		}
+		if !strings.Contains(string(body), "hello") {
+			t.Log("body does not contain 'hello'")
+			return false
 		}
 
-		// if debug is expected, debug should be in the response body
-		assert.Equal(t, expected.debug, strings.Contains(string(body), "debug"))
-		if expected.statusCode != res.StatusCode {
-			r.Fatal("unexpected response body returned")
-		}
-
-		if !strings.Contains(string(body), phrase) {
-			r.Fatal("received an incorrect response ", string(body))
-		}
-	})
+		return true
+	}, time.Second*30, time.Second*1)
 }
 
 func checkRouteError(t *testing.T, ip string, port int, path string, headers map[string]string, expected string) {
-	failer := func() *retry.Timer {
-		return &retry.Timer{Timeout: time.Second * 60, Wait: time.Second * 60}
-	}
+	t.Helper()
 
 	client := cleanhttp.DefaultClient()
 	url := fmt.Sprintf("http://%s:%d", ip, port)
@@ -314,11 +275,12 @@ func checkRouteError(t *testing.T, ip string, port int, path string, headers map
 		url += "/" + path
 	}
 
-	retry.RunWith(failer(), t, func(r *retry.R) {
-		t.Logf("making call to %s", url)
+	require.Eventually(t, func() bool {
 		req, err := http.NewRequest("GET", url, nil)
-		assert.NoError(t, err)
-
+		if err != nil {
+			t.Log("error constructing request", err)
+			return false
+		}
 		for k, v := range headers {
 			req.Header.Set(k, v)
 
@@ -327,10 +289,16 @@ func checkRouteError(t *testing.T, ip string, port int, path string, headers map
 			}
 		}
 		_, err = client.Do(req)
-		assert.Error(t, err)
-
-		if expected != "" {
-			assert.ErrorContains(t, err, expected)
+		if err == nil {
+			t.Log("client request should have errored, but didn't")
+			return false
 		}
-	})
+		if expected != "" {
+			if !strings.Contains(err.Error(), expected) {
+				t.Logf("expected %q to contain %q", err.Error(), expected)
+				return false
+			}
+		}
+		return true
+	}, time.Second*30, time.Second*1)
 }
