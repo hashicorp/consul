@@ -543,6 +543,8 @@ func newContainerRequest(config Config, opts containerOpts, ports ...int) (podRe
 			"8081/tcp", // Envoy App Listener - http port used by static-server-v1
 			"8082/tcp", // Envoy App Listener - http port used by static-server-v2
 			"8083/tcp", // Envoy App Listener - http port used by static-server-v3
+
+			"9997/tcp", // Envoy App Listener
 			"9998/tcp", // Envoy App Listener
 			"9999/tcp", // Envoy App Listener
 		},

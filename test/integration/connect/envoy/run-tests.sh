@@ -574,7 +574,7 @@ function suite_setup {
 
     # pre-build the test-sds-server container
     echo "Rebuilding 'test-sds-server' image..."
-    retry_default docker build -t test-sds-server -f Dockerfile-test-sds-server test-sds-server
+    retry_default docker build -t test-sds-server -f test-sds-server/Dockerfile test-sds-server
 }
 
 function suite_teardown {

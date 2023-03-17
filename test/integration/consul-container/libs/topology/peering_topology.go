@@ -229,6 +229,10 @@ func NewCluster(
 		cluster, err = libcluster.NewN(t, *serverConf, config.NumServers)
 	}
 	require.NoError(t, err)
+	// builder generates certs for us, so copy them back
+	if opts.InjectAutoEncryption {
+		cluster.CACert = serverConf.CACert
+	}
 
 	var retryJoin []string
 	for i := 0; i < config.NumServers; i++ {

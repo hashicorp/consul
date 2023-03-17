@@ -186,6 +186,7 @@ func NewConfigBuilder(ctx *BuildContext) *Builder {
 	b.conf.Set("connect.enabled", true)
 	b.conf.Set("log_level", "debug")
 	b.conf.Set("server", true)
+	b.conf.Set("ui_config.enabled", true)
 
 	// These are the default ports, disabling plaintext transport
 	b.conf.Set("ports.dns", 8600)

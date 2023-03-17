@@ -149,6 +149,10 @@ type GatewayConfig struct {
 }
 
 func NewGatewayService(ctx context.Context, gwCfg GatewayConfig, node libcluster.Agent, ports ...int) (Service, error) {
+	return NewGatewayServiceReg(ctx, gwCfg, node, true, ports...)
+}
+
+func NewGatewayServiceReg(ctx context.Context, gwCfg GatewayConfig, node libcluster.Agent, doRegister bool, ports ...int) (Service, error) {
 	nodeConfig := node.GetConfig()
 	if nodeConfig.ScratchDir == "" {
 		return nil, fmt.Errorf("node ScratchDir is required")
@@ -174,24 +178,29 @@ func NewGatewayService(ctx context.Context, gwCfg GatewayConfig, node libcluster
 	if err != nil {
 		return nil, err
 	}
+	cmd := []string{
+		"consul", "connect", "envoy",
+		fmt.Sprintf("-gateway=%s", gwCfg.Kind),
+		"-service", gwCfg.Name,
+		"-namespace", gwCfg.Namespace,
+		"-address", "{{ GetInterfaceIP \"eth0\" }}:8443",
+		"-admin-bind", fmt.Sprintf("0.0.0.0:%d", adminPort),
+	}
+	if doRegister {
+		cmd = append(cmd, "-register")
+	}
+	cmd = append(cmd, "--")
+	envoyArgs := []string{
+		"--log-level", envoyLogLevel,
+	}
 
 	req := testcontainers.ContainerRequest{
 		FromDockerfile: dockerfileCtx,
 		WaitingFor:     wait.ForLog("").WithStartupTimeout(10 * time.Second),
 		AutoRemove:     false,
 		Name:           containerName,
-		Cmd: []string{
-			"consul", "connect", "envoy",
-			fmt.Sprintf("-gateway=%s", gwCfg.Kind),
-			"-register",
-			"-namespace", gwCfg.Namespace,
-			"-service", gwCfg.Name,
-			"-address", "{{ GetInterfaceIP \"eth0\" }}:8443",
-			"-admin-bind", fmt.Sprintf("0.0.0.0:%d", adminPort),
-			"--",
-			"--log-level", envoyLogLevel,
-		},
-		Env: make(map[string]string),
+		Env:            make(map[string]string),
+		Cmd:            append(cmd, envoyArgs...),
 	}
 
 	nodeInfo := node.GetInfo()

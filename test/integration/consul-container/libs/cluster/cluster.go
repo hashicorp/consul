@@ -128,21 +128,34 @@ func (c *Cluster) Add(configs []Config, serfJoin bool, ports ...int) (xe error) 
 		// Each agent gets it's own area in the cluster scratch.
 		conf.ScratchDir = filepath.Join(c.ScratchDir, strconv.Itoa(c.Index))
 		if err := os.MkdirAll(conf.ScratchDir, 0777); err != nil {
-			return fmt.Errorf("container %d: %w", idx, err)
+			return fmt.Errorf("container %d making scratchDir: %w", idx, err)
 		}
 		if err := os.Chmod(conf.ScratchDir, 0777); err != nil {
-			return fmt.Errorf("container %d: %w", idx, err)
+			return fmt.Errorf("container %d perms on scratchDir: %w", idx, err)
 		}
 
-		n, err := NewConsulContainer(
-			context.Background(),
-			conf,
-			c,
-			ports...,
-		)
-		if err != nil {
-			return fmt.Errorf("container %d: %w", idx, err)
+		var n Agent
+
+		// retry creating client every ten seconds. with local development, we've found
+		// that this "port not found" error occurs when runs happen too close together
+		if err := goretry.Do(
+			func() (err error) {
+				n, err = NewConsulContainer(
+					context.Background(),
+					conf,
+					c,
+					ports...,
+				)
+				return err
+			},
+			goretry.Delay(10*time.Second),
+			goretry.RetryIf(func(err error) bool {
+				return strings.Contains(err.Error(), "port not found")
+			}),
+		); err != nil {
+			return fmt.Errorf("container %d creating: %s", idx, err)
 		}
+
 		agents = append(agents, n)
 		c.Index++
 	}
