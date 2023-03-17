@@ -36,8 +36,18 @@ jobs:
 
   build-arm:
     runs-on: ubuntu-22.04
+    env:
+      CGO_ENABLED: 1
+      GOOS: linux
     steps:
     - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
     - uses: actions/setup-go@6edd4406fa81c3da01a34fa6f6343087c207a568 # pin@v3.5.0
       with:
         go-version-file: 'go.mod'
+    - run: |
+        sudo rm -fv /etc/apt/sources.list.d/github_git-lfs.list # workaround for https://github.com/actions/runner-images/issues/1983
+        sudo apt-get update --allow-releaseinfo-change-suite --allow-releaseinfo-change-version && sudo apt-get install -y gcc-arm-linux-gnueabi gcc-arm-linux-gnueabihf gcc-aarch64-linux-gnu
+
+    - run: GOARM=5 CC=arm-linux-gnueabi-gcc GOARCH=arm go build
+    - run: GOARM=6 CC=arm-linux-gnueabihf-gcc GOARCH=arm go build
+    - run: CC=aarch64-linux-gnu-gcc GOARCH=arm64 go build
