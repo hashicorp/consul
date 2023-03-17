@@ -103,7 +103,6 @@ func TestHTTPRouteFlattening(t *testing.T) {
 		Namespace: namespace,
 		HTTPPort:  serviceTwoHTTPPort,
 		GRPCPort:  serviceTwoGRPCPort,
->>>>>>> 32fdba9b1d (Refactor and fix flaky tests)
 	},
 		// customizes response code so we can distinguish between which service is responding
 		"-echo-server-default-params", fmt.Sprintf("status=%d", serviceTwoResponseCode),
@@ -112,8 +111,8 @@ func TestHTTPRouteFlattening(t *testing.T) {
 
 	//write config entries
 	proxyDefaults := &api.ProxyConfigEntry{
-		Kind:      api.ProxyDefaults,
-		Name:      api.ProxyConfigGlobal,
+		Kind: api.ProxyDefaults,
+		Name: api.ProxyConfigGlobal,
 		Config: map[string]interface{}{
 			"protocol": "http",
 		},
