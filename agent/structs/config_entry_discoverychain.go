@@ -1053,6 +1053,12 @@ func (e *ServiceResolverConfigEntry) Validate() error {
 		}
 
 		switch {
+		case r.SamenessGroup != "" && r.ServiceSubset != "":
+			return fmt.Errorf("Redirect.SamenessGroup cannot be set with Redirect.ServiceSubset")
+		case r.SamenessGroup != "" && r.Partition != "":
+			return fmt.Errorf("Redirect.Partition cannot be set with Redirect.SamenessGroup")
+		case r.SamenessGroup != "" && r.Datacenter != "":
+			return fmt.Errorf("Redirect.SamenessGroup cannot be set with Redirect.Datacenter")
 		case r.Peer != "" && r.ServiceSubset != "":
 			return fmt.Errorf("Redirect.Peer cannot be set with Redirect.ServiceSubset")
 		case r.Peer != "" && r.Partition != "":
@@ -1113,6 +1119,17 @@ func (e *ServiceResolverConfigEntry) Validate() error {
 					if !isSubset(f.ServiceSubset) {
 						return fmt.Errorf("%sServiceSubset %q is not a valid subset of %q", errorPrefix, f.ServiceSubset, f.Service)
 					}
+				}
+			}
+
+			if f.SamenessGroup != "" {
+				switch {
+				case len(f.Datacenters) > 0:
+					return fmt.Errorf("Bad Failover[%q]: SamenessGroup cannot be set with Datacenters", subset)
+				case f.ServiceSubset != "":
+					return fmt.Errorf("Bad Failover[%q]: SamenessGroup cannot be set with ServiceSubset", subset)
+				case len(f.Targets) > 0:
+					return fmt.Errorf("Bad Failover[%q]: SamenessGroup cannot be set with Targets", subset)
 				}
 			}
 
@@ -1341,6 +1358,10 @@ type ServiceResolverRedirect struct {
 	// Peer is the name of the cluster peer to resolve the service from instead
 	// of the current one (optional).
 	Peer string `json:",omitempty"`
+
+	// SamenessGroup is the name of the sameness group to resolve the service from instead
+	// of the local partition.
+	SamenessGroup string `json:",omitempty"`
 }
 
 func (r *ServiceResolverRedirect) ToDiscoveryTargetOpts() DiscoveryTargetOpts {
@@ -1355,7 +1376,13 @@ func (r *ServiceResolverRedirect) ToDiscoveryTargetOpts() DiscoveryTargetOpts {
 }
 
 func (r *ServiceResolverRedirect) isEmpty() bool {
-	return r.Service == "" && r.ServiceSubset == "" && r.Namespace == "" && r.Partition == "" && r.Datacenter == "" && r.Peer == ""
+	return r.Service == "" &&
+		r.ServiceSubset == "" &&
+		r.Namespace == "" &&
+		r.Partition == "" &&
+		r.Datacenter == "" &&
+		r.Peer == "" &&
+		r.SamenessGroup == ""
 }
 
 // There are some restrictions on what is allowed in here:
@@ -1400,6 +1427,9 @@ type ServiceResolverFailover struct {
 
 	// Policy specifies the exact mechanism used for failover.
 	Policy *ServiceResolverFailoverPolicy `json:",omitempty"`
+
+	// SamenessGroup specifies the sameness group to failover to.
+	SamenessGroup string `json:",omitempty"`
 }
 
 type ServiceResolverFailoverPolicy struct {
