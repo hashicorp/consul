@@ -129,6 +129,9 @@ func TestAddFlags_WithParse(t *testing.T) {
 			if len(tt.expected.FlagValues.NodeMeta) == 0 {
 				tt.expected.FlagValues.NodeMeta = map[string]string{}
 			}
+			if len(tt.expected.FlagValues.LogSublevels) == 0 {
+				tt.expected.FlagValues.LogSublevels = map[string]string{}
+			}
 			require.Equal(t, tt.extra, fs.Args())
 			require.Equal(t, tt.expected, flags)
 		})
