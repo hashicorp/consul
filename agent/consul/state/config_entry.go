@@ -1297,10 +1297,11 @@ func readDiscoveryChainConfigEntriesTxn(
 	// the end of this function to indicate "no such entry".
 
 	var (
-		todoSplitters = make(map[structs.ServiceID]struct{})
-		todoResolvers = make(map[structs.ServiceID]struct{})
-		todoDefaults  = make(map[structs.ServiceID]struct{})
-		todoPeers     = make(map[string]struct{})
+		todoSplitters      = make(map[structs.ServiceID]struct{})
+		todoResolvers      = make(map[structs.ServiceID]struct{})
+		todoDefaults       = make(map[structs.ServiceID]struct{})
+		todoPeers          = make(map[string]struct{})
+		todoSamenessGroups = make(map[string]struct{})
 	)
 
 	sid := structs.NewServiceID(serviceName, entMeta)
@@ -1406,6 +1407,10 @@ func readDiscoveryChainConfigEntriesTxn(
 		for _, peer := range resolver.RelatedPeers() {
 			todoPeers[peer] = struct{}{}
 		}
+
+		for _, peer := range resolver.RelatedSamenessGroups() {
+			todoSamenessGroups[peer] = struct{}{}
+		}
 	}
 
 	for {
@@ -1448,6 +1453,26 @@ func readDiscoveryChainConfigEntriesTxn(
 	}
 
 	peerEntMeta := structs.DefaultEnterpriseMetaInPartition(entMeta.PartitionOrDefault())
+	for sg := range todoSamenessGroups {
+		idx, entry, err := getSamenessGroupConfigEntryTxn(tx, ws, sg, overrides, peerEntMeta)
+		if err != nil {
+			return 0, nil, err
+		}
+		if idx > maxIdx {
+			maxIdx = idx
+		}
+		if entry == nil {
+			continue
+		}
+
+		for _, e := range entry.Members {
+			if e.Peer != "" {
+				todoPeers[e.Peer] = struct{}{}
+			}
+		}
+		res.SamenessGroups[sg] = entry
+	}
+
 	for peerName := range todoPeers {
 		q := Query{
 			Value:          peerName,
