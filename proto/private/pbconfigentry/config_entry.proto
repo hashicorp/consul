@@ -147,6 +147,7 @@ message ServiceResolverRedirect {
   string Partition = 4;
   string Datacenter = 5;
   string Peer = 6;
+  string SamenessGroup = 7;
 }
 
 // mog annotation:
@@ -161,6 +162,7 @@ message ServiceResolverFailover {
   repeated string Datacenters = 4;
   repeated ServiceResolverFailoverTarget Targets = 5;
   ServiceResolverFailoverPolicy Policy = 6;
+  string SamenessGroup = 7;
 }
 
 // mog annotation:
