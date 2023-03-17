@@ -17,7 +17,6 @@ import (
 	libservice "github.com/hashicorp/consul/test/integration/consul-container/libs/service"
 	libtopology "github.com/hashicorp/consul/test/integration/consul-container/libs/topology"
 	"github.com/hashicorp/go-cleanhttp"
-	"github.com/stretchr/testify/require"
 )
 
 var (
