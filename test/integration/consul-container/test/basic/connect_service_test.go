@@ -34,7 +34,7 @@ func TestBasicConnectService(t *testing.T) {
 
 	libassert.AssertContainerState(t, clientService, "running")
 	libassert.HTTPServiceEchoes(t, "localhost", port, "")
-	libassert.AssertFortioName(t, fmt.Sprintf("http://localhost:%d", port), "static-server")
+	libassert.AssertFortioName(t, fmt.Sprintf("http://localhost:%d", port), "static-server", "")
 }
 
 func createCluster(t *testing.T) *libcluster.Cluster {
@@ -84,14 +84,14 @@ func createServices(t *testing.T, cluster *libcluster.Cluster) libservice.Servic
 	_, _, err := libservice.CreateAndRegisterStaticServerAndSidecar(node, serviceOpts)
 	require.NoError(t, err)
 
-	libassert.CatalogServiceExists(t, client, "static-server-sidecar-proxy")
-	libassert.CatalogServiceExists(t, client, libservice.StaticServerServiceName)
+	libassert.CatalogServiceExists(t, client, "static-server-sidecar-proxy", nil)
+	libassert.CatalogServiceExists(t, client, libservice.StaticServerServiceName, nil)
 
 	// Create a client proxy instance with the server as an upstream
 	clientConnectProxy, err := libservice.CreateAndRegisterStaticClientSidecar(node, "", false)
 	require.NoError(t, err)
 
-	libassert.CatalogServiceExists(t, client, "static-client-sidecar-proxy")
+	libassert.CatalogServiceExists(t, client, "static-client-sidecar-proxy", nil)
 
 	return clientConnectProxy
 }

@@ -37,7 +37,11 @@ func TestPeering_WanFedSecondaryDC(t *testing.T) {
 
 	t.Run("secondary dc can peer to alpha dc", func(t *testing.T) {
 		// Create the gateway
-		_, err := libservice.NewGatewayService(context.Background(), "mesh", "mesh", c3.Servers()[0])
+		gwCfg := libservice.GatewayConfig{
+			Name: "mesh",
+			Kind: "mesh",
+		}
+		_, err := libservice.NewGatewayService(context.Background(), gwCfg, c3.Servers()[0])
 		require.NoError(t, err)
 
 		// Create the peering connection
