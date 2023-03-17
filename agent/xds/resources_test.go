@@ -11,6 +11,8 @@ import (
 	envoy_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	envoy_tls_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 
+	"github.com/hashicorp/consul/agent/connect"
+	"github.com/hashicorp/consul/agent/consul/discoverychain"
 	"github.com/hashicorp/consul/agent/xds/testcommon"
 	"github.com/hashicorp/consul/envoyextensions/xdscommon"
 
@@ -175,7 +177,7 @@ func TestAllResourcesFromSnapshot(t *testing.T) {
 	tests = append(tests, getMeshGatewayPeeringGoldenTestCases()...)
 	tests = append(tests, getTrafficControlPeeringGoldenTestCases()...)
 	tests = append(tests, getEnterpriseGoldenTestCases()...)
-	tests = append(tests, getAPIGatewayGoldenTestCases()...)
+	tests = append(tests, getAPIGatewayGoldenTestCases(t)...)
 
 	latestEnvoyVersion := xdscommon.EnvoyVersions[0]
 	for _, envoyVersion := range xdscommon.EnvoyVersions {
@@ -314,7 +316,13 @@ AAJAMaoXmoYVdgXV+CPuBb2M4XCpuzLu3bcA2PXm5ipSyIgntMKwXV7r
 -----END CERTIFICATE-----`
 )
 
-func getAPIGatewayGoldenTestCases() []goldenTestCase {
+func getAPIGatewayGoldenTestCases(t *testing.T) []goldenTestCase {
+	t.Helper()
+
+	service := structs.NewServiceName("service", nil)
+	serviceUID := proxycfg.NewUpstreamIDFromServiceName(service)
+	serviceChain := discoverychain.TestCompileConfigEntries(t, "service", "default", "default", "dc1", connect.TestClusterID+".consul", nil)
+
 	return []goldenTestCase{
 		{
 			name: "api-gateway-with-tcp-route-and-inline-certificate",
@@ -360,6 +368,49 @@ func getAPIGatewayGoldenTestCases() []goldenTestCase {
 					PrivateKey:  gatewayTestPrivateKey,
 					Certificate: gatewayTestCertificate,
 				}}, nil)
+			},
+		},
+		{
+			name: "api-gateway-with-http-route-and-inline-certificate",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotAPIGateway(t, "default", nil, func(entry *structs.APIGatewayConfigEntry, bound *structs.BoundAPIGatewayConfigEntry) {
+					entry.Listeners = []structs.APIGatewayListener{
+						{
+							Name:     "listener",
+							Protocol: structs.ListenerProtocolHTTP,
+							Port:     8080,
+						},
+					}
+					bound.Listeners = []structs.BoundAPIGatewayListener{
+						{
+							Name: "listener",
+							Routes: []structs.ResourceReference{{
+								Kind: structs.HTTPRoute,
+								Name: "route",
+							}},
+						},
+					}
+				}, []structs.BoundRoute{
+					&structs.HTTPRouteConfigEntry{
+						Kind: structs.HTTPRoute,
+						Name: "route",
+						Rules: []structs.HTTPRouteRule{{
+							Services: []structs.HTTPService{{
+								Name: "service",
+							}},
+						}},
+					},
+				}, nil, []proxycfg.UpdateEvent{{
+					CorrelationID: "discovery-chain:" + serviceUID.String(),
+					Result: &structs.DiscoveryChainResponse{
+						Chain: serviceChain,
+					},
+				}, {
+					CorrelationID: "upstream-target:" + serviceChain.ID() + ":" + serviceUID.String(),
+					Result: &structs.IndexedCheckServiceNodes{
+						Nodes: proxycfg.TestUpstreamNodes(t, "service"),
+					},
+				}})
 			},
 		},
 	}
