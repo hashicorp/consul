@@ -83,6 +83,19 @@ func TestAddFlags_WithParse(t *testing.T) {
 			expected: LoadOpts{FlagValues: FlagValuesTarget{Config: Config{NodeMeta: map[string]string{"a": "b", "c": "d"}}}},
 		},
 		{
+			args: []string{`-log-sublevels`, `agent:info`, `-log-sublevels`, `agent.server:warn`},
+			expected: LoadOpts{
+				FlagValues: FlagValuesTarget{
+					Config: Config{
+						LogSublevels: map[string]string{
+							"agent":        "info",
+							"agent.server": "warn",
+						},
+					},
+				},
+			},
+		},
+		{
 			args:     []string{`-bootstrap`, `true`},
 			expected: LoadOpts{FlagValues: FlagValuesTarget{Config: Config{Bootstrap: pBool(true)}}},
 			extra:    []string{"true"},

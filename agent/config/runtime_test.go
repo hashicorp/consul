@@ -585,6 +585,21 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		},
 	})
 	run(t, testCase{
+		desc: "-log-sublevels",
+		args: []string{
+			`-log-sublevels=agent:warn`,
+			`-log-sublevels=agent.server:debug`,
+			`-data-dir=` + dataDir,
+		},
+		expected: func(rt *RuntimeConfig) {
+			rt.Logging.LogSublevels = map[string]string{
+				"agent":        "warn",
+				"agent.server": "debug",
+			}
+			rt.DataDir = dataDir
+		},
+	})
+	run(t, testCase{
 		desc: "-log-json",
 		args: []string{
 			`-log-json`,

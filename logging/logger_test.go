@@ -8,10 +8,14 @@ import (
 	"encoding/json"
 	"errors"
 	"os"
+	"strings"
 	"testing"
 
-	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/go-hclog"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/sdk/testutil"
 )
 
 func TestLogger_SetupBasic(t *testing.T) {
@@ -173,4 +177,199 @@ func TestLogger_SetupLoggerWithInValidLogPathPermission(t *testing.T) {
 	require.Error(t, err)
 	require.True(t, errors.Is(err, os.ErrPermission))
 	require.Nil(t, logger)
+}
+
+func TestLogger_SetupLoggerWithSublevels(t *testing.T) {
+	type testcase struct {
+		cfg    Config
+		assert []string
+	}
+	logDump := func(logger hclog.Logger) {
+		logger.Trace("trace")
+		logger.Debug("debug")
+		logger.Info("info")
+		logger.Warn("warn")
+		logger.Error("error")
+	}
+	run := func(t *testing.T, tc testcase) {
+		var buf bytes.Buffer
+		rootLogger, err := Setup(tc.cfg, &buf)
+		require.NoError(t, err)
+		require.NotNil(t, rootLogger)
+
+		sub1Logger := rootLogger.Named("sub1")
+		sub2Logger := rootLogger.Named("sub2")
+		sub1subALogger := sub1Logger.Named("a")
+
+		logDump(rootLogger)
+		logDump(sub1Logger)
+		logDump(sub2Logger)
+		logDump(sub1subALogger)
+
+		s := strings.TrimSpace(buf.String())
+		ss := strings.Split(s, "\n")
+
+		require.Len(t, ss, len(tc.assert))
+		for i, got := range ss {
+			assert.Contains(t, got, tc.assert[i])
+		}
+	}
+	tcs := map[string]testcase{
+		"root level info": {
+			cfg: Config{
+				Name:     "root",
+				LogLevel: "info",
+			},
+			assert: []string{
+				"root: info",
+				"root: warn",
+				"root: error",
+				"root.sub1: info",
+				"root.sub1: warn",
+				"root.sub1: error",
+				"root.sub2: info",
+				"root.sub2: warn",
+				"root.sub2: error",
+				"root.sub1.a: info",
+				"root.sub1.a: warn",
+				"root.sub1.a: error",
+			},
+		},
+		"root level info overwrite by sublevel warn": {
+			cfg: Config{
+				Name:     "root",
+				LogLevel: "info",
+				LogSublevels: map[string]string{
+					"root": "warn",
+				},
+			},
+			assert: []string{
+				"root: warn",
+				"root: error",
+				"root.sub1: warn",
+				"root.sub1: error",
+				"root.sub2: warn",
+				"root.sub2: error",
+				"root.sub1.a: warn",
+				"root.sub1.a: error",
+			},
+		},
+		"root level info overwrite by sublevel debug": {
+			cfg: Config{
+				Name:     "root",
+				LogLevel: "info",
+				LogSublevels: map[string]string{
+					"root": "debug",
+				},
+			},
+			assert: []string{
+				"root: debug", //
+				"root: info",
+				"root: warn",
+				"root: error",
+				"root.sub1: debug", //
+				"root.sub1: info",
+				"root.sub1: warn",
+				"root.sub1: error",
+				"root.sub2: debug", //
+				"root.sub2: info",
+				"root.sub2: warn",
+				"root.sub2: error",
+				"root.sub1.a: debug", //
+				"root.sub1.a: info",
+				"root.sub1.a: warn",
+				"root.sub1.a: error",
+			},
+		},
+		"root level warn sub2 trace": {
+			cfg: Config{
+				Name:     "root",
+				LogLevel: "warn",
+				LogSublevels: map[string]string{
+					"root.sub2": "trace",
+				},
+			},
+			assert: []string{
+				"root: warn",
+				"root: error",
+				"root.sub1: warn",
+				"root.sub1: error",
+				"root.sub2: trace", //
+				"root.sub2: debug", //
+				"root.sub2: info",  //
+				"root.sub2: warn",
+				"root.sub2: error",
+				"root.sub1.a: warn",
+				"root.sub1.a: error",
+			},
+		},
+		"root level warn sub2 error": {
+			cfg: Config{
+				Name:     "root",
+				LogLevel: "warn",
+				LogSublevels: map[string]string{
+					"root.sub2": "error",
+				},
+			},
+			assert: []string{
+				"root: warn",
+				"root: error",
+				"root.sub1: warn",
+				"root.sub1: error",
+				// "root.sub2: warn",
+				"root.sub2: error",
+				"root.sub1.a: warn",
+				"root.sub1.a: error",
+			},
+		},
+		"root level warn sub1a debug": {
+			cfg: Config{
+				Name:     "root",
+				LogLevel: "warn",
+				LogSublevels: map[string]string{
+					"root.sub1.a": "debug",
+				},
+			},
+			assert: []string{
+				"root: warn",
+				"root: error",
+				"root.sub1: warn",
+				"root.sub1: error",
+				"root.sub2: warn",
+				"root.sub2: error",
+				"root.sub1.a: debug", //
+				"root.sub1.a: info",  //
+				"root.sub1.a: warn",
+				"root.sub1.a: error",
+			},
+		},
+		"root level warn sub1 info sub1a debug": {
+			cfg: Config{
+				Name:     "root",
+				LogLevel: "warn",
+				LogSublevels: map[string]string{
+					"root.sub1":   "info",
+					"root.sub1.a": "debug",
+				},
+			},
+			assert: []string{
+				"root: warn",
+				"root: error",
+				"root.sub1: info", //
+				"root.sub1: warn",
+				"root.sub1: error",
+				"root.sub2: warn",
+				"root.sub2: error",
+				"root.sub1.a: debug", //
+				"root.sub1.a: info",  //
+				"root.sub1.a: warn",
+				"root.sub1.a: error",
+			},
+		},
+	}
+	for name, tc := range tcs {
+		t.Run(name, func(t *testing.T) {
+			run(t, tc)
+		})
+	}
 }
