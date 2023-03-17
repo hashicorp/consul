@@ -14,10 +14,6 @@ import (
 	"time"
 )
 
-func getNamespace() string {
-	return ""
-}
-
 // randomName generates a random name of n length with the provided
 // prefix. If prefix is omitted, the then entire name is random char.
 func randomName(prefix string, n int) string {
