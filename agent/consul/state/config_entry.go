@@ -725,6 +725,16 @@ func validateProposedConfigEntryInServiceGraph(
 		// Exported services and mesh config do not influence discovery chains.
 		return nil
 
+	case structs.SamenessGroup:
+		// Any service resolver could reference a sameness group.
+		_, entries, err := configEntriesByKindTxn(tx, nil, structs.ServiceResolver, wildcardEntMeta)
+		if err != nil {
+			return err
+		}
+		for _, entry := range entries {
+			checkChains[structs.NewServiceID(entry.GetName(), entry.GetEnterpriseMeta())] = struct{}{}
+		}
+
 	case structs.ProxyDefaults:
 		// Check anything that has a discovery chain entry. In the future we could
 		// somehow omit the ones that have a default protocol configured.
@@ -1408,8 +1418,8 @@ func readDiscoveryChainConfigEntriesTxn(
 			todoPeers[peer] = struct{}{}
 		}
 
-		for _, peer := range resolver.RelatedSamenessGroups() {
-			todoSamenessGroups[peer] = struct{}{}
+		for _, sg := range resolver.RelatedSamenessGroups() {
+			todoSamenessGroups[sg] = struct{}{}
 		}
 	}
 
