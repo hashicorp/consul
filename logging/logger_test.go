@@ -209,7 +209,7 @@ func TestLogger_SetupLoggerWithSublevels(t *testing.T) {
 		s := strings.TrimSpace(buf.String())
 		ss := strings.Split(s, "\n")
 
-		require.Len(t, ss, len(tc.assert))
+		require.Len(t, ss, len(tc.assert), "expected %d log lines, got %d", len(tc.assert), len(ss))
 		for i, got := range ss {
 			assert.Contains(t, got, tc.assert[i])
 		}
@@ -363,6 +363,21 @@ func TestLogger_SetupLoggerWithSublevels(t *testing.T) {
 				"root.sub1.a: debug", //
 				"root.sub1.a: info",  //
 				"root.sub1.a: warn",
+				"root.sub1.a: error",
+			},
+		},
+		"ensure prefix matching happens on whole names": {
+			cfg: Config{
+				Name:     "root",
+				LogLevel: "error",
+				LogSublevels: map[string]string{
+					"root.su": "info",
+				},
+			},
+			assert: []string{
+				"root: error",
+				"root.sub1: error",
+				"root.sub2: error",
 				"root.sub1.a: error",
 			},
 		},

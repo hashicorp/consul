@@ -160,7 +160,16 @@ func Setup(config Config, out io.Writer) (hclog.InterceptLogger, error) {
 			if tree == nil {
 				return sub
 			}
-			if _, level, ok := tree.Root().LongestPrefix([]byte(sub.Name())); ok {
+			if prefix, level, ok := tree.Root().LongestPrefix([]byte(sub.Name())); ok {
+				// If not an exact match, look ahead one char to determine
+				// if we are at a name boundary.
+				//
+				// Example: -log-sublevels agent.peering:trace
+				//   sublogger: 	"agent.peering-syncer" <- should not apply
+				//   sublogger:		"agent.peering.grpc"
+				if len(prefix) < len(sub.Name()) && sub.Name()[len(prefix)] != '.' {
+					return sub
+				}
 				sub.SetLevel(level)
 			}
 			return sub
