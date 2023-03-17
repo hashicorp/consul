@@ -118,7 +118,7 @@ func testCASWrite(t *testing.T, opts TestOptions) {
 		}
 
 		_, err := backend.WriteCAS(ctx, v1, "some-version")
-		require.ErrorIs(t, err, storage.ErrConflict)
+		require.ErrorIs(t, err, storage.ErrCASFailure)
 
 		_, err = backend.WriteCAS(ctx, v1, "")
 		require.NoError(t, err)
@@ -133,10 +133,10 @@ func testCASWrite(t *testing.T, opts TestOptions) {
 		v3.Version = "3"
 
 		_, err = backend.WriteCAS(ctx, v3, "")
-		require.ErrorIs(t, err, storage.ErrConflict)
+		require.ErrorIs(t, err, storage.ErrCASFailure)
 
 		_, err = backend.WriteCAS(ctx, v3, v1.Version)
-		require.ErrorIs(t, err, storage.ErrConflict)
+		require.ErrorIs(t, err, storage.ErrCASFailure)
 	})
 
 	t.Run("uid immutability", func(t *testing.T) {
@@ -165,7 +165,7 @@ func testCASWrite(t *testing.T, opts TestOptions) {
 
 		v2.Id.Uid = "b"
 		_, err = backend.WriteCAS(ctx, v2, v1.Version)
-		require.ErrorIs(t, err, storage.ErrConflict)
+		require.ErrorIs(t, err, storage.ErrWrongUid)
 
 		v2.Id.Uid = v1.Id.Uid
 		_, err = backend.WriteCAS(ctx, v2, v1.Version)
@@ -200,8 +200,8 @@ func testCASDelete(t *testing.T, opts TestOptions) {
 		_, err := backend.WriteCAS(ctx, res, "")
 		require.NoError(t, err)
 
-		require.ErrorIs(t, backend.DeleteCAS(ctx, res.Id, ""), storage.ErrConflict)
-		require.ErrorIs(t, backend.DeleteCAS(ctx, res.Id, "2"), storage.ErrConflict)
+		require.ErrorIs(t, backend.DeleteCAS(ctx, res.Id, ""), storage.ErrCASFailure)
+		require.ErrorIs(t, backend.DeleteCAS(ctx, res.Id, "2"), storage.ErrCASFailure)
 
 		require.NoError(t, backend.DeleteCAS(ctx, res.Id, res.Version))
 

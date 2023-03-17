@@ -16,9 +16,14 @@ var (
 	// ErrNotFound indicates that the resource could not be found.
 	ErrNotFound = errors.New("resource not found")
 
-	// ErrConflict indicates that the attempted write failed because of a version
-	// or UID mismatch.
-	ErrConflict = errors.New("operation failed because of a Version or Uid mismatch")
+	// ErrCASFailure indicates that the attempted write failed because the given
+	// version does not match what is currently stored.
+	ErrCASFailure = errors.New("CAS operation failed because the given version doesn't match what is stored")
+
+	// ErrWrongUid indicates that the attempted write failed because the resource's
+	// Uid doesn't match what is currently stored (e.g. the caller is trying to
+	// operate on a deleted resource with the same name).
+	ErrWrongUid = errors.New("write failed because the given uid doesn't match what is stored")
 
 	// ErrInconsistent indicates that the attempted write or consistent read could
 	// not be achieved because of a consistency or availability issue (e.g. loss of
@@ -103,8 +108,8 @@ type Backend interface {
 	ReadConsistent(ctx context.Context, id *pbresource.ID) (*pbresource.Resource, error)
 
 	// WriteCAS performs an atomic CAS (Compare-And-Swap) write of a resource based
-	// on its version. The given version will be compared to what is stored, and
-	// if it does not match, ErrConflict will be returned. To create new resources,
+	// on its version. The given version will be compared to what is stored, and if
+	// it does not match, ErrCASFailure will be returned. To create new resources,
 	// pass an empty version string.
 	//
 	// If a write cannot be performed because of a consistency or availability
@@ -114,7 +119,7 @@ type Backend interface {
 	// # UIDs
 	//
 	// UIDs are immutable, so if the given resource's Uid field doesn't match what
-	// is stored, ErrConflict will be returned.
+	// is stored, ErrWrongUid will be returned.
 	//
 	// See Backend docs for more details.
 	//
@@ -128,7 +133,7 @@ type Backend interface {
 
 	// DeleteCAS performs an atomic CAS (Compare-And-Swap) deletion of a resource
 	// based on its version. The given version will be compared to what is stored,
-	// and if it does not match, ErrConflict will be returned.
+	// and if it does not match, ErrCASFailure will be returned.
 	//
 	// If the resource does not exist (i.e. has already been deleted) no error will
 	// be returned.

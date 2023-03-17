@@ -139,7 +139,7 @@ func (s *Store) WriteCAS(res *pbresource.Resource, vsn string) error {
 
 	// Callers provide an empty version string on initial resource creation.
 	if existing == nil && vsn != "" {
-		return storage.ErrConflict
+		return storage.ErrCASFailure
 	}
 
 	if existing != nil {
@@ -147,12 +147,12 @@ func (s *Store) WriteCAS(res *pbresource.Resource, vsn string) error {
 
 		// Ensure CAS semantics.
 		if existingRes.Version != vsn {
-			return storage.ErrConflict
+			return storage.ErrCASFailure
 		}
 
 		// Uid is immutable.
 		if existingRes.Id.Uid != res.Id.Uid {
-			return storage.ErrConflict
+			return storage.ErrWrongUid
 		}
 	}
 
@@ -200,7 +200,7 @@ func (s *Store) DeleteCAS(id *pbresource.ID, vsn string) error {
 
 	// Ensure CAS semantics.
 	if vsn != res.Version {
-		return storage.ErrConflict
+		return storage.ErrCASFailure
 	}
 
 	if err := tx.Delete(tableNameResources, id); err != nil {
