@@ -198,8 +198,13 @@ type Backend interface {
 	//
 	// # Consistency
 	//
-	// List makes no guarantees about consistency, and may return stale results.
-	List(ctx context.Context, resType UnversionedType, tenancy *pbresource.Tenancy, namePrefix string) ([]*pbresource.Resource, error)
+	// Generally, List only supports EventualConsistency. However, for backward
+	// compatability with our v1 APIs, the Raft backend supports StrongConsistency
+	// for list operations.
+	//
+	// When the v1 APIs finally goes away, so will this consistency parameter, so
+	// it should not be depended on outside of the backward compatability layer.
+	List(ctx context.Context, consistency ReadConsistency, resType UnversionedType, tenancy *pbresource.Tenancy, namePrefix string) ([]*pbresource.Resource, error)
 
 	// WatchList watches resources of the given type, tenancy, and optionally
 	// matching the given name prefix. Upsert events for the current state of the

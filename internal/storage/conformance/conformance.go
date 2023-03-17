@@ -369,7 +369,7 @@ func testListWatch(t *testing.T, opts TestOptions) {
 
 		for desc, tc := range testCases {
 			t.Run(desc, func(t *testing.T) {
-				res, err := backend.List(ctx, tc.resourceType, tc.tenancy, tc.namePrefix)
+				res, err := backend.List(ctx, storage.EventualConsistency, tc.resourceType, tc.tenancy, tc.namePrefix)
 				require.NoError(t, err)
 				prototest.AssertElementsMatch(t, res, tc.results, ignoreVersion)
 			})

@@ -57,7 +57,7 @@ func (b *Backend) DeleteCAS(_ context.Context, id *pbresource.ID, version string
 }
 
 // List implements the storage.Backend interface.
-func (b *Backend) List(_ context.Context, resType storage.UnversionedType, tenancy *pbresource.Tenancy, namePrefix string) ([]*pbresource.Resource, error) {
+func (b *Backend) List(_ context.Context, _ storage.ReadConsistency, resType storage.UnversionedType, tenancy *pbresource.Tenancy, namePrefix string) ([]*pbresource.Resource, error) {
 	return b.store.List(resType, tenancy, namePrefix)
 }
 
