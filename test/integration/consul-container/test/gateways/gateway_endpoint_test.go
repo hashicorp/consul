@@ -3,8 +3,6 @@ package gateways
 import (
 	"context"
 	"fmt"
-<<<<<<< HEAD
-=======
 	"io"
 	"net/http"
 	"strings"
@@ -13,24 +11,13 @@ import (
 
 	"github.com/stretchr/testify/require"
 
->>>>>>> 32fdba9b1d (Refactor and fix flaky tests)
 	"github.com/hashicorp/consul/api"
 	libassert "github.com/hashicorp/consul/test/integration/consul-container/libs/assert"
 	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
 	libservice "github.com/hashicorp/consul/test/integration/consul-container/libs/service"
-<<<<<<< HEAD
-	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
-=======
 	libtopology "github.com/hashicorp/consul/test/integration/consul-container/libs/topology"
->>>>>>> 32fdba9b1d (Refactor and fix flaky tests)
 	"github.com/hashicorp/go-cleanhttp"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"io"
-	"net/http"
-	"strings"
-	"testing"
-	"time"
 )
 
 var (
