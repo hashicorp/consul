@@ -2,6 +2,10 @@ package inmem
 
 import (
 	"context"
+	"strconv"
+	"sync/atomic"
+
+	"google.golang.org/protobuf/proto"
 
 	"github.com/hashicorp/consul/internal/storage"
 	"github.com/hashicorp/consul/proto-public/pbresource"
@@ -18,11 +22,14 @@ func NewBackend() (*Backend, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Backend{store}, nil
+	return &Backend{store: store}, nil
 }
 
 // Backend is a purely in-memory storage backend implementation.
-type Backend struct{ store *Store }
+type Backend struct {
+	store *Store
+	vsn   uint64
+}
 
 // Run until the given context is canceled. This method blocks, so should be
 // called in a goroutine.
@@ -39,11 +46,14 @@ func (b *Backend) ReadConsistent(_ context.Context, id *pbresource.ID) (*pbresou
 }
 
 // WriteCAS implements the storage.Backend interface.
-func (b *Backend) WriteCAS(_ context.Context, res *pbresource.Resource, version string) (*pbresource.Resource, error) {
-	if err := b.store.WriteCAS(res, version); err != nil {
+func (b *Backend) WriteCAS(_ context.Context, res *pbresource.Resource) (*pbresource.Resource, error) {
+	stored := proto.Clone(res).(*pbresource.Resource)
+	stored.Version = strconv.Itoa(int(atomic.AddUint64(&b.vsn, 1)))
+
+	if err := b.store.WriteCAS(stored, res.Version); err != nil {
 		return nil, err
 	}
-	return res, nil
+	return stored, nil
 }
 
 // DeleteCAS implements the storage.Backend interface.

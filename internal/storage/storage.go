@@ -56,8 +56,8 @@ var (
 // # Read-Modify-Write Patterns
 //
 // All writes at the storage backend level are CAS (Compare-And-Swap) operations
-// where the caller must provide the resource in its entirety, along with the
-// current version string.
+// where the caller must provide the resource in its entirety, with the current
+// version string.
 //
 // Non-CAS writes should be implemented at a higher level (i.e. in the Resource
 // Service) by reading the resource, applying the user's requested modifications,
@@ -110,7 +110,7 @@ type Backend interface {
 	// WriteCAS performs an atomic CAS (Compare-And-Swap) write of a resource based
 	// on its version. The given version will be compared to what is stored, and if
 	// it does not match, ErrCASFailure will be returned. To create new resources,
-	// pass an empty version string.
+	// set version to an empty string.
 	//
 	// If a write cannot be performed because of a consistency or availability
 	// issue (e.g. when interacting with a Raft follower, or when quorum is lost)
@@ -129,7 +129,7 @@ type Backend interface {
 	// resource stored in an older form with a newer, and vice versa.
 	//
 	// See Backend docs for more details.
-	WriteCAS(ctx context.Context, res *pbresource.Resource, version string) (*pbresource.Resource, error)
+	WriteCAS(ctx context.Context, res *pbresource.Resource) (*pbresource.Resource, error)
 
 	// DeleteCAS performs an atomic CAS (Compare-And-Swap) deletion of a resource
 	// based on its version. The given version will be compared to what is stored,

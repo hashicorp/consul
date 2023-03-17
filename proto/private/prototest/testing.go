@@ -73,3 +73,17 @@ func AssertElementsMatch[V any](
 		t.Fatalf("assertion failed: slices do not have matching elements\n--- expected\n+++ actual\n%v", diff)
 	}
 }
+
+func AssertContainsElement[V any](t testing.TB, list []V, element V, opts ...cmp.Option) {
+	t.Helper()
+
+	opts = append(opts, protocmp.Transform())
+
+	for _, e := range list {
+		if cmp.Equal(e, element, opts...) {
+			return
+		}
+	}
+
+	t.Fatalf("assertion failed: list does not contain element\n--- list\n%#v\n--- element: %#v", list, element)
+}
