@@ -246,6 +246,7 @@
         "LogRotateBytes": 0,
         "LogRotateDuration": "0s",
         "LogRotateMaxFiles": 0,
+        "LogSublevels": {},
         "Name": "",
         "SyslogFacility": ""
     },
