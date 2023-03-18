@@ -2,9 +2,10 @@ package acl
 
 import (
 	"fmt"
-	"github.com/stretchr/testify/require"
 	"regexp"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func RequirePermissionDeniedError(t testing.TB, err error, authz Authorizer, _ *AuthorizerContext, resource Resource, accessLevel AccessLevel, resourceID string) {

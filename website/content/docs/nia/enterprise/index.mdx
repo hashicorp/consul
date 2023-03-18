@@ -7,24 +7,24 @@ description: >-
 
 # Consul-Terraform-Sync Enterprise
 
-Consul-Terraform-Sync (CTS) Enterprise is available with [Consul Enterprise](https://www.hashicorp.com/products/consul) and requires a Consul [license](/docs/nia/enterprise/license) to be applied.
+Consul-Terraform-Sync (CTS) Enterprise is available with [Consul Enterprise](https://www.hashicorp.com/products/consul) and requires a Consul [license](/consul/docs/nia/enterprise/license) to be applied.
 
-Enterprise features of CTS address organization complexities of collaboration, operations, scale, and governance. CTS Enterprise supports an official integration with [Terraform Cloud](https://cloud.hashicorp.com/products/terraform) and [Terraform Enterprise](https://www.terraform.io/enterprise), the self-hosted distribution, to extend insight into dynamic updates of your network infrastructure.
+Enterprise features of CTS address organization complexities of collaboration, operations, scale, and governance. CTS Enterprise supports an official integration with [Terraform Cloud](https://cloud.hashicorp.com/products/terraform) and [Terraform Enterprise](/terraform/enterprise), the self-hosted distribution, to extend insight into dynamic updates of your network infrastructure.
 
 | Features | Open Source | Enterprise |
 |----------|-------------|------------|
 | Consul Namespace | Default namespace only | Filter task triggers by any namespace |
 | Automation Driver | Terraform OSS | Terraform OSS, Terraform Cloud, or Terraform Enterprise |
-| Terraform Workspaces | Local | Local workspaces with the Terraform driver or [remote workspaces](https://www.terraform.io/cloud-docs/workspaces) with the Terraform Cloud driver |
-| Terraform Backend Options | [azurerm](https://www.terraform.io/language/settings/backends/azurerm), [consul](https://www.terraform.io/language/settings/backends/consul), [cos](https://www.terraform.io/language/settings/backends/cos), [gcs](https://www.terraform.io/language/settings/backends/gcs), [kubernetes](https://www.terraform.io/language/settings/backends/kubernetes), [local](https://www.terraform.io/language/settings/backends/local), [manta](https://www.terraform.io/language/v1.2.x/settings/backends/manta), [pg](https://www.terraform.io/language/settings/backends/pg), and [s3](https://www.terraform.io/language/settings/backends/s3) with the Terraform driver | The supported backends for CTS with the Terraform driver or Terraform Cloud with the Terraform Cloud driver |
+| Terraform Workspaces | Local | Local workspaces with the Terraform driver or [remote workspaces](/terraform/cloud-docs/workspaces) with the Terraform Cloud driver |
+| Terraform Backend Options | [azurerm](/terraform/language/settings/backends/azurerm), [consul](/terraform/language/settings/backends/consul), [cos](/terraform/language/settings/backends/cos), [gcs](/terraform/language/settings/backends/gcs), [kubernetes](/terraform/language/settings/backends/kubernetes), [local](/terraform/language/settings/backends/local), [manta](/terraform/language/v1.2.x/settings/backends/manta), [pg](/terraform/language/settings/backends/pg), and [s3](/terraform/language/settings/backends/s3) with the Terraform driver | The supported backends for CTS with the Terraform driver or Terraform Cloud with the Terraform Cloud driver |
 | Terraform Version | One Terraform version for all tasks | Optional Terraform version per task when using the Terraform Cloud driver |
 | Terraform Run Output | CTS logs | CTS logs or Terraform output organized by Terraform Cloud remote workspaces |
 | Credentials and secrets | On disk as `.tfvars` files or in shell environment | Secured variables stored in remote workspace |
-| Audit | | Terraform audit logs ([Terraform Cloud](https://www.terraform.io/cloud-docs/api-docs/audit-trails) or [Terraform Enterprise](https://www.terraform.io/enterprise/admin/infrastructure/logging)) |
-| Collaboration | | Run [history](https://www.terraform.io/cloud-docs/run/manage), [triggers](https://www.terraform.io/cloud-docs/workspaces/settings/run-triggers), and [notifications](https://www.terraform.io/cloud-docs/workspaces/settings/notifications) supported on Terraform Cloud |
-| Governance | | [Sentinel](https://www.terraform.io/cloud-docs/policy-enforcement) to enforce governance policies as code |
+| Audit | | Terraform audit logs ([Terraform Cloud](/terraform/cloud-docs/api-docs/audit-trails) or [Terraform Enterprise](/terraform/enterprise/admin/infrastructure/logging)) |
+| Collaboration | | Run [history](/terraform/cloud-docs/run/manage), [triggers](/terraform/cloud-docs/workspaces/settings/run-triggers), and [notifications](/terraform/cloud-docs/workspaces/settings/notifications) supported on Terraform Cloud |
+| Governance | | [Sentinel](/terraform/cloud-docs/policy-enforcement) to enforce governance policies as code |
 
-The [Terraform Cloud driver](/docs/nia/configuration#terraform-cloud-driver) enables CTS Enterprise to integrate with Terraform Cloud or Terraform Enterprise. The [Terraform Cloud driver](/docs/nia/network-drivers/terraform-cloud) page provides an overview of how the integration works within CTS.
+The [Terraform Cloud driver](/consul/docs/nia/configuration#terraform-cloud-driver) enables CTS Enterprise to integrate with Terraform Cloud or Terraform Enterprise. The [Terraform Cloud driver](/consul/docs/nia/network-drivers/terraform-cloud) page provides an overview of how the integration works within CTS.
 
 ## Consul Admin Partition Support
 CTS subscribes to a Consul agent. Depending on the admin partition the Consul agent is a part of and the services within the admin partition, CTS will be able to subscribe to those services and support the automation workflow. As such, admin partitions are not relevant to the CTS workflow. We recommend deploying a single CTS instance that subscribes to services/KV within a single partition and using a different CTS instance (or instances) to subscribe to services/KV in another partition.

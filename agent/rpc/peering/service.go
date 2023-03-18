@@ -16,6 +16,7 @@ import (
 	"google.golang.org/grpc/codes"
 	grpcstatus "google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/hashicorp/consul/lib/retry"
 
@@ -23,13 +24,13 @@ import (
 	"github.com/hashicorp/consul/acl/resolver"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/consul/stream"
-	"github.com/hashicorp/consul/agent/dns"
 	external "github.com/hashicorp/consul/agent/grpc-external"
 	"github.com/hashicorp/consul/agent/grpc-external/services/peerstream"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
-	"github.com/hashicorp/consul/proto/pbpeering"
-	"github.com/hashicorp/consul/proto/pbpeerstream"
+	"github.com/hashicorp/consul/proto/private/pbcommon"
+	"github.com/hashicorp/consul/proto/private/pbpeering"
+	"github.com/hashicorp/consul/proto/private/pbpeerstream"
 )
 
 var (
@@ -87,6 +88,7 @@ type Config struct {
 	Datacenter     string
 	ConnectEnabled bool
 	PeeringEnabled bool
+	Locality       *structs.Locality
 }
 
 func NewServer(cfg Config) *Server {
@@ -202,7 +204,7 @@ func (s *Server) GenerateToken(
 		return nil, grpcstatus.Error(codes.InvalidArgument, err.Error())
 	}
 	// validate prior to forwarding to the leader, this saves a network hop
-	if err := dns.ValidateLabel(req.PeerName); err != nil {
+	if err := validatePeerName(req.PeerName); err != nil {
 		return nil, fmt.Errorf("%s is not a valid peer name: %w", req.PeerName, err)
 	}
 
@@ -327,6 +329,7 @@ func (s *Server) GenerateToken(
 		Remote: structs.PeeringTokenRemote{
 			Partition:  req.PartitionOrDefault(),
 			Datacenter: s.Datacenter,
+			Locality:   s.Config.Locality,
 		},
 	}
 
@@ -350,7 +353,7 @@ func (s *Server) Establish(
 	}
 
 	// validate prior to forwarding to the leader, this saves a network hop
-	if err := dns.ValidateLabel(req.PeerName); err != nil {
+	if err := validatePeerName(req.PeerName); err != nil {
 		return nil, fmt.Errorf("%s is not a valid peer name: %w", req.PeerName, err)
 	}
 	tok, err := s.Backend.DecodeToken([]byte(req.PeeringToken))
@@ -445,6 +448,7 @@ func (s *Server) Establish(
 		Remote: &pbpeering.RemoteInfo{
 			Partition:  tok.Remote.Partition,
 			Datacenter: tok.Remote.Datacenter,
+			Locality:   pbcommon.LocalityToProto(tok.Remote.Locality),
 		},
 	}
 
@@ -879,7 +883,7 @@ func (s *Server) PeeringDelete(ctx context.Context, req *pbpeering.PeeringDelete
 			State:                 pbpeering.PeeringState_DELETING,
 			ManualServerAddresses: existing.ManualServerAddresses,
 			PeerServerAddresses:   existing.PeerServerAddresses,
-			DeletedAt:             structs.TimeToProto(time.Now().UTC()),
+			DeletedAt:             timestamppb.New(time.Now().UTC()),
 
 			// PartitionOrEmpty is used to avoid writing "default" in OSS.
 			Partition: entMeta.PartitionOrEmpty(),
@@ -920,9 +924,12 @@ func (s *Server) TrustBundleRead(ctx context.Context, req *pbpeering.TrustBundle
 
 	defer metrics.MeasureSince([]string{"peering", "trust_bundle_read"}, time.Now())
 
+	// Having the ability to write a service in ANY (at least one) namespace should be
+	// sufficient for reading the trust bundle, which is why we use a wildcard.
+	entMeta := acl.NewEnterpriseMetaWithPartition(req.Partition, acl.WildcardName)
+	entMeta.Normalize()
 	var authzCtx acl.AuthorizerContext
-	entMeta := structs.DefaultEnterpriseMetaInPartition(req.Partition)
-	authz, err := s.Backend.ResolveTokenAndDefaultMeta(options.Token, entMeta, &authzCtx)
+	authz, err := s.Backend.ResolveTokenAndDefaultMeta(options.Token, &entMeta, &authzCtx)
 	if err != nil {
 		return nil, err
 	}
@@ -933,7 +940,7 @@ func (s *Server) TrustBundleRead(ctx context.Context, req *pbpeering.TrustBundle
 
 	idx, trustBundle, err := s.Backend.Store().PeeringTrustBundleRead(nil, state.Query{
 		Value:          req.Name,
-		EnterpriseMeta: *entMeta,
+		EnterpriseMeta: entMeta,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to read trust bundle for peer %s: %w", req.Name, err)

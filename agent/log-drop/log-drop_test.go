@@ -2,37 +2,39 @@ package logdrop
 
 import (
 	"context"
-	"github.com/hashicorp/consul/sdk/testutil/retry"
+	"testing"
+	"time"
+
 	"github.com/hashicorp/go-hclog"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
-	"testing"
-	"time"
+
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 )
 
 func TestNewLogDrop(t *testing.T) {
-	mockLogger := NewMockSinkAdapter(t)
-	mockLogger.On("Accept", "test Accept", hclog.Info, "hello", []interface{}{"test", 0}).Return()
-	ld := NewLogDropSink(context.Background(), "test", 10, mockLogger, func(_ Log) {})
+	mockLogger := NewMockLogger(t)
+	mockLogger.On("Log", hclog.Info, "hello", "test", 0).Return()
+	ld := NewLogDropSink(context.Background(), 10, mockLogger, func(_ Log) {})
 	require.NotNil(t, ld)
-	ld.Accept("test Accept", hclog.Info, "hello", "test", 0)
+	ld.Accept("test Log", hclog.Info, "hello", "test", 0)
 	retry.Run(t, func(r *retry.R) {
-		mockLogger.AssertNumberOfCalls(r, "Accept", 1)
+		mockLogger.AssertNumberOfCalls(r, "Log", 1)
 	})
 
 }
 
 func TestLogDroppedWhenChannelFilled(t *testing.T) {
-	mockLogger := NewMockSinkAdapter(t)
+	mockLogger := NewMockLogger(t)
 	ctx, cancelFunc := context.WithCancel(context.Background())
 	defer cancelFunc()
 	block := make(chan interface{})
-	mockLogger.On("Accept", "test", hclog.Debug, "hello", []interface{}(nil)).Run(func(args mock.Arguments) {
+	mockLogger.On("Log", hclog.Debug, "hello").Run(func(args mock.Arguments) {
 		<-block
 	})
 
 	var called = make(chan interface{})
-	ld := NewLogDropSink(ctx, "test", 1, mockLogger, func(l Log) {
+	ld := NewLogDropSink(ctx, 1, mockLogger, func(l Log) {
 		close(called)
 	})
 	for i := 0; i < 2; i++ {
@@ -46,6 +48,6 @@ func TestLogDroppedWhenChannelFilled(t *testing.T) {
 		t.Fatal("timeout waiting for drop func to be called")
 	}
 	retry.Run(t, func(r *retry.R) {
-		mockLogger.AssertNumberOfCalls(r, "Accept", 1)
+		mockLogger.AssertNumberOfCalls(r, "Log", 1)
 	})
 }

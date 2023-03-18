@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 import Inflector from 'ember-inflector';
 import helpers from '@ember/test-helpers';
 import $ from '-jquery';

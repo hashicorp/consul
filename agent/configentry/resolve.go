@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/go-hclog"
+	"github.com/imdario/mergo"
 	"github.com/mitchellh/copystructure"
 
 	"github.com/hashicorp/consul/agent/structs"
@@ -11,8 +12,6 @@ import (
 
 func ComputeResolvedServiceConfig(
 	args *structs.ServiceConfigRequest,
-	upstreamIDs []structs.ServiceID,
-	legacyUpstreams bool,
 	entries *ResolvedServiceConfigSet,
 	logger hclog.Logger,
 ) (*structs.ServiceConfigResponse, error) {
@@ -20,11 +19,20 @@ func ComputeResolvedServiceConfig(
 
 	thisReply.MeshGateway.Mode = structs.MeshGatewayModeDefault
 
+	// Store the upstream defaults under a wildcard key so that they can be applied to
+	// upstreams that are inferred from intentions and do not have explicit upstream configuration.
+	wildcard := structs.PeeredServiceName{
+		ServiceName: structs.NewServiceName(structs.WildcardSpecifier, args.WithWildcardNamespace()),
+	}
+	wildcardUpstreamDefaults := make(map[string]interface{})
+	// resolvedConfigs stores the opaque config map for each upstream and is keyed on the upstream's ID.
+	resolvedConfigs := make(map[structs.PeeredServiceName]map[string]interface{})
+
 	// TODO(freddy) Refactor this into smaller set of state store functions
 	// Pass the WatchSet to both the service and proxy config lookups. If either is updated during the
 	// blocking query, this function will be rerun and these state store lookups will both be current.
 	// We use the default enterprise meta to look up the global proxy defaults because they are not namespaced.
-	var proxyConfGlobalProtocol string
+
 	proxyConf := entries.GetProxyDefaults(args.PartitionOrDefault())
 	if proxyConf != nil {
 		// Apply the proxy defaults to the sidecar's proxy config
@@ -32,6 +40,7 @@ func ComputeResolvedServiceConfig(
 		if err != nil {
 			return nil, fmt.Errorf("failed to copy global proxy-defaults: %v", err)
 		}
+
 		thisReply.ProxyConfig = mapCopy.(map[string]interface{})
 		thisReply.Mode = proxyConf.Mode
 		thisReply.TransparentProxy = proxyConf.TransparentProxy
@@ -40,14 +49,18 @@ func ComputeResolvedServiceConfig(
 		thisReply.EnvoyExtensions = proxyConf.EnvoyExtensions
 		thisReply.AccessLogs = proxyConf.AccessLogs
 
-		// Extract the global protocol from proxyConf for upstream configs.
-		rawProtocol := proxyConf.Config["protocol"]
-		if rawProtocol != nil {
-			var ok bool
-			proxyConfGlobalProtocol, ok = rawProtocol.(string)
-			if !ok {
-				return nil, fmt.Errorf("invalid protocol type %T", rawProtocol)
-			}
+		// Only MeshGateway and Protocol should affect upstreams.
+		// MeshGateway is strange. It's marshaled into UpstreamConfigs via the arbitrary map, but it
+		// uses concrete fields everywhere else. We always take the explicit definition here for
+		// wildcard upstreams and discard the user setting it via arbitrary map in proxy-defaults.
+		if mgw, ok := thisReply.ProxyConfig["mesh_gateway"]; ok {
+			wildcardUpstreamDefaults["mesh_gateway"] = mgw
+		}
+		if !proxyConf.MeshGateway.IsZero() {
+			wildcardUpstreamDefaults["mesh_gateway"] = proxyConf.MeshGateway
+		}
+		if protocol, ok := thisReply.ProxyConfig["protocol"]; ok {
+			wildcardUpstreamDefaults["protocol"] = protocol
 		}
 	}
 
@@ -64,6 +77,7 @@ func ComputeResolvedServiceConfig(
 		}
 		if serviceConf.MeshGateway.Mode != structs.MeshGatewayModeDefault {
 			thisReply.MeshGateway.Mode = serviceConf.MeshGateway.Mode
+			wildcardUpstreamDefaults["mesh_gateway"] = serviceConf.MeshGateway
 		}
 		if serviceConf.TransparentProxy.OutboundListenerPort != 0 {
 			thisReply.TransparentProxy.OutboundListenerPort = serviceConf.TransparentProxy.OutboundListenerPort
@@ -113,10 +127,10 @@ func ComputeResolvedServiceConfig(
 	// Upstreams can come from:
 	// - Explicitly from proxy registrations, and therefore as an argument to this RPC endpoint
 	// - Implicitly from centralized upstream config in service-defaults
-	seenUpstreams := map[structs.ServiceID]struct{}{}
+	seenUpstreams := map[structs.PeeredServiceName]struct{}{}
 
 	var (
-		noUpstreamArgs = len(upstreamIDs) == 0 && len(args.Upstreams) == 0
+		noUpstreamArgs = len(args.UpstreamServiceNames) == 0 && len(args.UpstreamIDs) == 0
 
 		// Check the args and the resolved value. If it was exclusively set via a config entry, then args.Mode
 		// will never be transparent because the service config request does not use the resolved value.
@@ -131,18 +145,25 @@ func ComputeResolvedServiceConfig(
 	}
 
 	// First store all upstreams that were provided in the request
-	for _, sid := range upstreamIDs {
-		if _, ok := seenUpstreams[sid]; !ok {
-			seenUpstreams[sid] = struct{}{}
+	for _, psn := range args.UpstreamServiceNames {
+		if _, ok := seenUpstreams[psn]; !ok {
+			seenUpstreams[psn] = struct{}{}
 		}
+	}
+	// For 1.14, service-defaults overrides would apply to peer upstreams incorrectly
+	// because the config merging logic was oblivious to the concept of a peer.
+	// We replicate this behavior on legacy calls for backwards-compatibility.
+	for _, sid := range args.UpstreamIDs {
+		psn := structs.PeeredServiceName{
+			ServiceName: structs.NewServiceName(sid.ID, &sid.EnterpriseMeta),
+		}
+		seenUpstreams[psn] = struct{}{}
 	}
 
 	// Then store upstreams inferred from service-defaults and mapify the overrides.
 	var (
-		upstreamOverrides = make(map[structs.ServiceID]*structs.UpstreamConfig)
 		upstreamDefaults  *structs.UpstreamConfig
-		// resolvedConfigs stores the opaque config map for each upstream and is keyed on the upstream's ID.
-		resolvedConfigs = make(map[structs.ServiceID]map[string]interface{})
+		upstreamOverrides = make(map[structs.PeeredServiceName]*structs.UpstreamConfig)
 	)
 	if serviceConf != nil && serviceConf.UpstreamConfig != nil {
 		for i, override := range serviceConf.UpstreamConfig.Overrides {
@@ -156,29 +177,47 @@ func ComputeResolvedServiceConfig(
 				)
 				continue // skip this impossible condition
 			}
-			seenUpstreams[override.ServiceID()] = struct{}{}
-			upstreamOverrides[override.ServiceID()] = override
+			psn := override.PeeredServiceName()
+			seenUpstreams[psn] = struct{}{}
+			upstreamOverrides[psn] = override
 		}
 		if serviceConf.UpstreamConfig.Defaults != nil {
 			upstreamDefaults = serviceConf.UpstreamConfig.Defaults
-
 			if upstreamDefaults.MeshGateway.Mode == structs.MeshGatewayModeDefault {
 				upstreamDefaults.MeshGateway.Mode = thisReply.MeshGateway.Mode
 			}
-
-			// Store the upstream defaults under a wildcard key so that they can be applied to
-			// upstreams that are inferred from intentions and do not have explicit upstream configuration.
-			cfgMap := make(map[string]interface{})
-			upstreamDefaults.MergeInto(cfgMap)
-
-			if !args.MeshGateway.IsZero() {
-				cfgMap["mesh_gateway"] = args.MeshGateway
-			}
-
-			wildcard := structs.NewServiceID(structs.WildcardSpecifier, args.WithWildcardNamespace())
-			resolvedConfigs[wildcard] = cfgMap
+			upstreamDefaults.MergeInto(wildcardUpstreamDefaults)
+			// Always add the wildcard upstream if a service-defaults default-upstream was configured.
+			resolvedConfigs[wildcard] = wildcardUpstreamDefaults
 		}
 	}
+
+	if !args.MeshGateway.IsZero() {
+		wildcardUpstreamDefaults["mesh_gateway"] = args.MeshGateway
+	}
+
+	// Add the wildcard upstream if any fields were populated (it may have been already
+	// added if a service-defaults exists). We likely could always add it without issues,
+	// but this has been existing behavior, and many unit tests would break.
+	if len(wildcardUpstreamDefaults) > 0 {
+		resolvedConfigs[wildcard] = wildcardUpstreamDefaults
+	}
+
+	// For Consul 1.14.x, service-defaults would apply to either local or peer services as long
+	// as the `name` matched. We introduce `legacyUpstreams` as a compatibility mode for:
+	//   1. old agents, that are using the deprecated UpstreamIDs api
+	//   2. Migrations to 1.15 that do not specify the "peer" field. The behavior should remain the same
+	//      until the config entries are updates.
+	//
+	// This should be remove in Consul 1.16
+	var hasPeerUpstream bool
+	for _, override := range upstreamOverrides {
+		if override.Peer != "" {
+			hasPeerUpstream = true
+			break
+		}
+	}
+	legacyUpstreams := len(args.UpstreamIDs) > 0 || !hasPeerUpstream
 
 	for upstream := range seenUpstreams {
 		resolvedCfg := make(map[string]interface{})
@@ -188,19 +227,15 @@ func ComputeResolvedServiceConfig(
 		// 2. Protocol for upstream service defined in its service-defaults (how the upstream wants to be addressed)
 		// 3. Protocol defined for the upstream in the service-defaults.(upstream_config.defaults|upstream_config.overrides) of the downstream
 		// 	  (how the downstream wants to address it)
-		protocol := proxyConfGlobalProtocol
-
-		upstreamSvcDefaults := entries.GetServiceDefaults(
-			structs.NewServiceID(upstream.ID, &upstream.EnterpriseMeta),
-		)
-		if upstreamSvcDefaults != nil {
-			if upstreamSvcDefaults.Protocol != "" {
-				protocol = upstreamSvcDefaults.Protocol
-			}
+		if err := mergo.MergeWithOverwrite(&resolvedCfg, wildcardUpstreamDefaults); err != nil {
+			return nil, fmt.Errorf("failed to merge wildcard defaults into upstream: %v", err)
 		}
 
-		if protocol != "" {
-			resolvedCfg["protocol"] = protocol
+		upstreamSvcDefaults := entries.GetServiceDefaults(upstream.ServiceName.ToServiceID())
+		if upstreamSvcDefaults != nil {
+			if upstreamSvcDefaults.Protocol != "" {
+				resolvedCfg["protocol"] = upstreamSvcDefaults.Protocol
+			}
 		}
 
 		// When dialing an upstream, the goal is to flatten the mesh gateway mode in this order
@@ -235,6 +270,16 @@ func ComputeResolvedServiceConfig(
 		}
 
 		// Merge in Overrides for the upstream (step 5).
+		// In the legacy case, overrides only match on name. We remove the peer and try to match against
+		// our map of overrides. We still want to check the full PSN in the map in case there is a specific
+		// override that applies to peers.
+		if legacyUpstreams {
+			peerlessUpstream := upstream
+			peerlessUpstream.Peer = ""
+			if upstreamOverrides[peerlessUpstream] != nil {
+				upstreamOverrides[peerlessUpstream].MergeInto(resolvedCfg)
+			}
+		}
 		if upstreamOverrides[upstream] != nil {
 			upstreamOverrides[upstream].MergeInto(resolvedCfg)
 		}
@@ -249,19 +294,19 @@ func ComputeResolvedServiceConfig(
 		return &thisReply, nil
 	}
 
-	if legacyUpstreams {
-		// For legacy upstreams we return a map that is only keyed on the string ID, since they precede namespaces
-		thisReply.UpstreamConfigs = make(map[string]map[string]interface{})
-
-		for us, conf := range resolvedConfigs {
-			thisReply.UpstreamConfigs[us.ID] = conf
-		}
-
-	} else {
-		thisReply.UpstreamIDConfigs = make(structs.OpaqueUpstreamConfigs, 0, len(resolvedConfigs))
+	if len(args.UpstreamIDs) > 0 {
+		// DEPRECATED: Remove these legacy upstreams in Consul v1.16
+		thisReply.UpstreamIDConfigs = make(structs.OpaqueUpstreamConfigsDeprecated, 0, len(resolvedConfigs))
 
 		for us, conf := range resolvedConfigs {
 			thisReply.UpstreamIDConfigs = append(thisReply.UpstreamIDConfigs,
+				structs.OpaqueUpstreamConfigDeprecated{Upstream: us.ServiceName.ToServiceID(), Config: conf})
+		}
+	} else {
+		thisReply.UpstreamConfigs = make(structs.OpaqueUpstreamConfigs, 0, len(resolvedConfigs))
+
+		for us, conf := range resolvedConfigs {
+			thisReply.UpstreamConfigs = append(thisReply.UpstreamConfigs,
 				structs.OpaqueUpstreamConfig{Upstream: us, Config: conf})
 		}
 	}

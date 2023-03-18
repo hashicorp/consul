@@ -1,6 +1,11 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 %expanded-single-select {
   border: var(--decor-border-100);
-  border-color: rgb(var(--tone-gray-300));
+  border-color: var(--token-color-palette-neutral-300);
   border-radius: var(--decor-radius-100);
 }
 %expanded-single-select label {
@@ -9,10 +14,10 @@
 %expanded-single-select input[type='radio']:checked + *,
 %expanded-single-select input[type='radio']:hover + *,
 %expanded-single-select input[type='radio']:focus + * {
-  box-shadow: var(--decor-elevation-300);
+  box-shadow: var(--token-elevation-high-box-shadow);
 }
 %expanded-single-select input[type='radio']:checked + *,
 %expanded-single-select input[type='radio']:hover + *,
 %expanded-single-select input[type='radio']:focus + * {
-  background-color: rgb(var(--tone-gray-000));
+  background-color: var(--token-color-surface-primary);
 }

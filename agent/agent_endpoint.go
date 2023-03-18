@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/consul/envoyextensions/xdscommon"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
 	"github.com/mitchellh/hashstructure"
@@ -24,7 +25,6 @@ import (
 	"github.com/hashicorp/consul/agent/debug"
 	"github.com/hashicorp/consul/agent/structs"
 	token_store "github.com/hashicorp/consul/agent/token"
-	"github.com/hashicorp/consul/agent/xds/proxysupport"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/lib"
@@ -88,7 +88,7 @@ func (s *HTTPHandlers) AgentSelf(resp http.ResponseWriter, req *http.Request) (i
 	if s.agent.xdsServer != nil {
 		xds = &XDSSelf{
 			SupportedProxies: map[string][]string{
-				"envoy": proxysupport.EnvoyVersions,
+				"envoy": xdscommon.EnvoyVersions,
 			},
 			// Prefer the TLS port. See comment on the XDSSelf struct for details.
 			Port: s.agent.config.GRPCTLSPort,
@@ -304,6 +304,7 @@ func buildAgentService(s *structs.NodeService, dc string) api.AgentService {
 		ModifyIndex:       s.ModifyIndex,
 		Weights:           weights,
 		Datacenter:        dc,
+		Locality:          s.Locality.ToAPI(),
 	}
 
 	if as.Tags == nil {
@@ -341,6 +342,7 @@ func (s *HTTPHandlers) AgentServices(resp http.ResponseWriter, req *http.Request
 	var filterExpression string
 	s.parseFilter(req, &filterExpression)
 
+	s.defaultMetaPartitionToAgent(&entMeta)
 	authz, err := s.agent.delegate.ResolveTokenAndDefaultMeta(token, &entMeta, nil)
 	if err != nil {
 		return nil, err
@@ -425,6 +427,7 @@ func (s *HTTPHandlers) AgentService(resp http.ResponseWriter, req *http.Request)
 	}
 
 	// need to resolve to default the meta
+	s.defaultMetaPartitionToAgent(&entMeta)
 	_, err := s.agent.delegate.ResolveTokenAndDefaultMeta(token, &entMeta, nil)
 	if err != nil {
 		return nil, err
@@ -498,6 +501,7 @@ func (s *HTTPHandlers) AgentChecks(resp http.ResponseWriter, req *http.Request) 
 		return nil, err
 	}
 
+	s.defaultMetaPartitionToAgent(&entMeta)
 	authz, err := s.agent.delegate.ResolveTokenAndDefaultMeta(token, &entMeta, nil)
 	if err != nil {
 		return nil, err
@@ -760,6 +764,7 @@ func (s *HTTPHandlers) AgentRegisterCheck(resp http.ResponseWriter, req *http.Re
 		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Bad check status"}
 	}
 
+	s.defaultMetaPartitionToAgent(&args.EnterpriseMeta)
 	authz, err := s.agent.delegate.ResolveTokenAndDefaultMeta(token, &args.EnterpriseMeta, nil)
 	if err != nil {
 		return nil, err
@@ -808,7 +813,9 @@ func (s *HTTPHandlers) AgentRegisterCheck(resp http.ResponseWriter, req *http.Re
 
 func (s *HTTPHandlers) AgentDeregisterCheck(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	id := strings.TrimPrefix(req.URL.Path, "/v1/agent/check/deregister/")
-	checkID := structs.NewCheckID(types.CheckID(id), nil)
+
+	entMeta := acl.NewEnterpriseMetaWithPartition(s.agent.config.PartitionOrDefault(), "")
+	checkID := structs.NewCheckID(types.CheckID(id), &entMeta)
 
 	// Get the provided token, if any, and vet against any ACL policies.
 	var token string
@@ -900,7 +907,8 @@ func (s *HTTPHandlers) AgentCheckUpdate(resp http.ResponseWriter, req *http.Requ
 }
 
 func (s *HTTPHandlers) agentCheckUpdate(resp http.ResponseWriter, req *http.Request, checkID types.CheckID, status string, output string) (interface{}, error) {
-	cid := structs.NewCheckID(checkID, nil)
+	entMeta := acl.NewEnterpriseMetaWithPartition(s.agent.config.PartitionOrDefault(), "")
+	cid := structs.NewCheckID(checkID, &entMeta)
 
 	// Get the provided token, if any, and vet against any ACL policies.
 	var token string
@@ -990,6 +998,7 @@ func (s *HTTPHandlers) AgentHealthServiceByID(resp http.ResponseWriter, req *htt
 	s.parseToken(req, &token)
 
 	// need to resolve to default the meta
+	s.defaultMetaPartitionToAgent(&entMeta)
 	var authzContext acl.AuthorizerContext
 	authz, err := s.agent.delegate.ResolveTokenAndDefaultMeta(token, &entMeta, &authzContext)
 	if err != nil {
@@ -1047,6 +1056,7 @@ func (s *HTTPHandlers) AgentHealthServiceByName(resp http.ResponseWriter, req *h
 	var token string
 	s.parseToken(req, &token)
 
+	s.defaultMetaPartitionToAgent(&entMeta)
 	// need to resolve to default the meta
 	var authzContext acl.AuthorizerContext
 	authz, err := s.agent.delegate.ResolveTokenAndDefaultMeta(token, &entMeta, &authzContext)
@@ -1124,6 +1134,7 @@ func (s *HTTPHandlers) AgentRegisterService(resp http.ResponseWriter, req *http.
 	var token string
 	s.parseToken(req, &token)
 
+	s.defaultMetaPartitionToAgent(&args.EnterpriseMeta)
 	authz, err := s.agent.delegate.ResolveTokenAndDefaultMeta(token, &args.EnterpriseMeta, nil)
 	if err != nil {
 		return nil, err
@@ -1240,7 +1251,8 @@ func (s *HTTPHandlers) AgentRegisterService(resp http.ResponseWriter, req *http.
 
 func (s *HTTPHandlers) AgentDeregisterService(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	serviceID := strings.TrimPrefix(req.URL.Path, "/v1/agent/service/deregister/")
-	sid := structs.NewServiceID(serviceID, nil)
+	entMeta := acl.NewEnterpriseMetaWithPartition(s.agent.config.PartitionOrDefault(), "")
+	sid := structs.NewServiceID(serviceID, &entMeta)
 
 	// Get the provided token, if any, and vet against any ACL policies.
 	var token string
@@ -1276,7 +1288,8 @@ func (s *HTTPHandlers) AgentDeregisterService(resp http.ResponseWriter, req *htt
 func (s *HTTPHandlers) AgentServiceMaintenance(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// Ensure we have a service ID
 	serviceID := strings.TrimPrefix(req.URL.Path, "/v1/agent/service/maintenance/")
-	sid := structs.NewServiceID(serviceID, nil)
+	entMeta := acl.NewEnterpriseMetaWithPartition(s.agent.config.PartitionOrDefault(), "")
+	sid := structs.NewServiceID(serviceID, &entMeta)
 
 	if sid.ID == "" {
 		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Missing service ID"}
@@ -1495,6 +1508,9 @@ func (s *HTTPHandlers) AgentToken(resp http.ResponseWriter, req *http.Request) (
 
 		case "acl_replication_token", "replication":
 			s.agent.tokens.UpdateReplicationToken(args.Token, token_store.TokenSourceAPI)
+
+		case "config_file_service_registration":
+			s.agent.tokens.UpdateConfigFileRegistrationToken(args.Token, token_store.TokenSourceAPI)
 
 		default:
 			return HTTPError{StatusCode: http.StatusNotFound, Reason: fmt.Sprintf("Token %q is unknown", target)}

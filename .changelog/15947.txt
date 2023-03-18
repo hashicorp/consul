@@ -1,0 +1,3 @@
+```release-note:breaking-change
+acl: remove all acl migration functionality and references to the legacy acl system.
+```

@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 /* CSS active states are partly added at the top of */
 /* components/templates/discovery-chain.hbs for reasons */
 /* the styling there almost 100% uses our CSS vars */
@@ -19,7 +24,7 @@
   transition-property: stroke;
 
   fill: none;
-  stroke: rgb(var(--tone-gray-400));
+  stroke: var(--token-color-foreground-disabled);
   stroke-width: 2;
   vector-effect: non-scaling-stroke;
 }
@@ -30,18 +35,18 @@
 }
 %chain-node,
 %chain-node a {
-  color: rgb(var(--tone-gray-900)) !important;
+  color: var(--token-color-foreground-strong) !important;
 }
 %discovery-chain-edge-active {
-  stroke: rgb(var(--tone-gray-900));
+  stroke: var(--token-color-foreground-strong);
 }
 %chain-group {
   border-radius: var(--decor-radius-100);
   border: 1px solid;
   /* TODO: If this color is combined with the above */
   /* border property then the compressor removes the color */
-  border-color: rgb(var(--tone-gray-200));
-  background-color: rgb(var(--tone-gray-100));
+  border-color: var(--token-color-surface-interactive-active);
+  background-color: var(--token-color-surface-strong);
 
   pointer-events: none;
 }
@@ -52,7 +57,7 @@
 }
 %chain-group > header > * {
   text-transform: uppercase;
-  @extend %p3;
+  @extend %body-100-regular;
 }
 %chain-group > header span::after {
   @extend %with-info-circle-outline-icon, %as-pseudo;
@@ -66,8 +71,8 @@
 }
 %chain-node-active {
   opacity: 1;
-  background-color: rgb(var(--tone-gray-000));
-  border-color: rgb(var(--tone-gray-500));
+  background-color: var(--token-color-surface-primary);
+  border-color: var(--token-color-foreground-faint);
 }
 /* TODO: More text truncation, centralize */
 %route-card header:not(.short) dd {
@@ -105,16 +110,16 @@
 /**/
 %with-chain-outlet::before {
   @extend %as-pseudo;
-  background-color: rgb(var(--tone-gray-000));
+  background-color: var(--token-color-surface-primary);
 
   border-radius: var(--decor-radius-full);
   border: 2px solid;
   /* TODO: If this color is combined with the above */
   /* border property then the compressor removes the color */
-  border-color: rgb(var(--tone-gray-400));
+  border-color: var(--token-color-foreground-disabled);
 }
 %discovery-chain circle {
   stroke-width: 2;
-  stroke: rgb(var(--tone-gray-400));
-  fill: rgb(var(--tone-gray-000));
+  stroke: var(--token-color-foreground-disabled);
+  fill: var(--token-color-surface-primary);
 }

@@ -1,36 +1,40 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 .tomography-graph {
   .background {
-    fill: rgb(var(--tone-gray-050));
+    fill: var(--token-color-surface-strong);
   }
   .axis {
     fill: none;
-    stroke: rgb(var(--tone-gray-300));
+    stroke: var(--token-color-palette-neutral-300);
     stroke-dasharray: 4 4;
   }
   .border {
     fill: none;
-    stroke: rgb(var(--tone-gray-300));
+    stroke: var(--token-color-palette-neutral-300);
   }
   .point {
-    stroke: rgb(var(--tone-gray-400));
-    fill: rgb(var(--tone-magenta-600));
+    stroke: var(--token-color-foreground-disabled);
+    fill: var(--token-color-consul-foreground);
   }
   .lines rect {
-    fill: rgb(var(--tone-magenta-600));
+    fill: var(--token-color-consul-foreground);
     stroke: transparent;
     stroke-width: 5px;
   }
   .lines rect:hover {
-    fill: rgb(var(--tone-gray-300));
+    fill: var(--token-color-palette-neutral-300);
     height: 3px;
     y: -1px;
   }
   .tick line {
-    stroke: rgb(var(--tone-gray-300));
+    stroke: var(--token-color-palette-neutral-300);
   }
   .tick text {
-    font-size: var(--typo-size-600);
     text-anchor: start;
-    color: rgb(var(--tone-gray-900));
+    color: var(--token-color-foreground-strong);
   }
 }

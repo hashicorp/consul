@@ -1,5 +1,10 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 %without-mask {
   -webkit-mask-image: none;
   mask-image: none;
-  background-color: var(--transparent) !important;
+  background-color: transparent !important;
 }

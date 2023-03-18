@@ -21,12 +21,12 @@ references:
     GIT_COMMITTER_NAME: circleci-consul
     S3_ARTIFACT_BUCKET: consul-dev-artifacts-v2
     BASH_ENV: .circleci/bash_env.sh
-    GO_VERSION: 1.19.4
+    GO_VERSION: 1.20.1
   envoy-versions: &supported_envoy_versions
-    - &default_envoy_version "1.21.5"
-    - "1.22.5"
-    - "1.23.2"
-    - "1.24.0"
+    - &default_envoy_version "1.22.7"
+    - "1.23.4"
+    - "1.24.2"
+    - "1.25.1"
   nomad-versions: &supported_nomad_versions
     - &default_nomad_version "1.3.3"
     - "1.2.10"
@@ -36,10 +36,13 @@ references:
     - "1.11.6"
     - "1.10.9"
     - "1.9.10"
+  consul-versions: &consul_versions
+    - "1.14"
+    - "1.15"
   images:
     # When updating the Go version, remember to also update the versions in the
     # workflows section for go-test-lib jobs.
-    go: &GOLANG_IMAGE docker.mirror.hashicorp.services/cimg/go:1.19.4
+    go: &GOLANG_IMAGE docker.mirror.hashicorp.services/cimg/go:1.20.1
     ember: &EMBER_IMAGE docker.mirror.hashicorp.services/circleci/node:14-browsers
     ubuntu: &UBUNTU_CI_IMAGE ubuntu-2004:202201-02
   cache:
@@ -49,7 +52,7 @@ steps:
   install-gotestsum: &install-gotestsum
     name: install gotestsum
     environment:
-      GOTESTSUM_RELEASE: 1.6.4
+      GOTESTSUM_RELEASE: 1.9.0
     command: |
       ARCH=`uname -m`
       if [[ "$ARCH" == "aarch64" ]]; then
@@ -190,6 +193,14 @@ jobs:
       - run: go install github.com/reillywatson/enumcover/cmd/enumcover@master && enumcover ./...
       - run: *notify-slack-failure
 
+  lint-container-test-deps:
+    docker:
+      - image: *GOLANG_IMAGE
+    steps:
+      - checkout
+      - run: make lint-container-test-deps
+      - run: *notify-slack-failure
+
   lint:
     description: "Run golangci-lint"
     parameters:
@@ -220,6 +231,18 @@ jobs:
       - run:
           name: lint sdk
           working_directory: sdk
+          command: *lintcmd
+      - run:
+          name: lint envoyextensions
+          working_directory: envoyextensions
+          command: *lintcmd
+      - run:
+          name: lint troubleshoot
+          working_directory: troubleshoot
+          command: *lintcmd
+      - run:
+          name: lint container tests
+          working_directory: test/integration/consul-container
           command: *lintcmd
       - run: *notify-slack-failure
 
@@ -593,7 +616,7 @@ jobs:
       - run: *notify-slack-failure
   nomad-integration-test: &NOMAD_TESTS
     docker:
-      - image: docker.mirror.hashicorp.services/cimg/go:1.19
+      - image: docker.mirror.hashicorp.services/cimg/go:1.20
     parameters:
       nomad-version:
         type: enum
@@ -711,7 +734,7 @@ jobs:
       - checkout
       - add_ssh_keys: # needs a key to push updated static asset commit back to github
           fingerprints:
-            - "fc:55:84:15:0a:1d:c8:e9:06:d0:e8:9c:7b:a9:b7:31"
+            - "94:03:9e:8b:24:7f:36:60:00:30:b8:32:ed:e7:59:10"
       - attach_workspace:
           at: .
       - run:
@@ -857,14 +880,20 @@ jobs:
             cd ./test/integration/consul-container
             docker run --rm consul:local consul version
             gotestsum \
+              --raw-command \
               --format=short-verbose \
               --debug \
               --rerun-fails=3 \
               --packages="./..." \
               -- \
+              go test \
+              -p=4 \
               -timeout=30m \
-              ./... \
+              -json \
+              `go list ./... | grep -v upgrade` \
+              --target-image consul \
               --target-version local \
+              --latest-image consul \
               --latest-version latest
             ls -lrt
           environment:
@@ -874,14 +903,89 @@ jobs:
             COMPOSE_INTERACTIVE_NO_CLI: 1
             # tput complains if this isn't set to something.
             TERM: ansi
-      - store_artifacts:
-          path: ./test/integration/consul-container/test/upgrade/workdir/logs
-          destination: container-logs
       - store_test_results:
           path: *TEST_RESULTS_DIR
       - store_artifacts:
           path: *TEST_RESULTS_DIR
       - run: *notify-slack-failure
+
+  upgrade-integration-test:
+      machine:
+        image: *UBUNTU_CI_IMAGE
+        docker_layer_caching: true
+      parallelism: 3
+      resource_class: large
+      parameters:
+        consul-version:
+          type: enum
+          enum: *consul_versions
+      environment:
+        CONSUL_VERSION: << parameters.consul-version >>
+      steps:
+        - checkout
+        # Get go binary from workspace
+        - attach_workspace:
+            at: .
+        # Build the consul:local image from the already built binary
+        - run:
+            command: |
+              sudo rm -rf /usr/local/go
+              wget https://dl.google.com/go/go${GO_VERSION}.linux-amd64.tar.gz
+              sudo tar -C /usr/local -xzvf go${GO_VERSION}.linux-amd64.tar.gz
+            environment:
+              <<: *ENVIRONMENT
+        - run: *install-gotestsum
+        - run: docker build -t consul:local -f ./build-support/docker/Consul-Dev.dockerfile .
+        - run:
+            name: Upgrade Integration Tests
+            command: |
+              mkdir -p /tmp/test-results/
+              cd ./test/integration/consul-container
+              docker run --rm consul:local consul version
+              gotestsum \
+                --raw-command \
+                --format=short-verbose \
+                --debug \
+                --rerun-fails=3 \
+                --packages="./..." \
+                -- \
+                go test \
+                -p=4 \
+                -tags "${GOTAGS}" \
+                -timeout=30m \
+                -json \
+                ./.../upgrade/ \
+                --target-image consul \
+                --target-version local \
+                --latest-image consul \
+                --latest-version $CONSUL_VERSION
+              ls -lrt
+            environment:
+              # this is needed because of incompatibility between RYUK container and circleci
+              GOTESTSUM_JUNITFILE: /tmp/test-results/results.xml
+              GOTESTSUM_FORMAT: standard-verbose
+              COMPOSE_INTERACTIVE_NO_CLI: 1
+              # tput complains if this isn't set to something.
+              TERM: ansi
+        - store_test_results:
+            path: *TEST_RESULTS_DIR
+        - store_artifacts:
+            path: *TEST_RESULTS_DIR
+        - run: *notify-slack-failure
+
+  # Lints all *.dockerfile but don't fail at this time
+  dockerfile-lint:
+    docker:
+      - image: docker.mirror.hashicorp.services/hadolint/hadolint:latest-debian
+    steps:
+      - run: apt-get -qq update; apt-get -y install git # the hadolint container doesn't have git
+      - checkout
+      - run:
+          name: Dockefile lint
+          command: |
+            for file in $(find . -type f -name *.dockerfile); do
+              hadolint $file || true
+            done
 
   envoy-integration-test: &ENVOY_TESTS
     machine:
@@ -1073,6 +1177,7 @@ workflows:
       - check-generated-protobuf: *filter-ignore-non-go-branches
       - check-generated-deep-copy: *filter-ignore-non-go-branches
       - lint-enums: *filter-ignore-non-go-branches
+      - lint-container-test-deps: *filter-ignore-non-go-branches
       - lint-consul-retry: *filter-ignore-non-go-branches
       - lint: *filter-ignore-non-go-branches
       - lint:
@@ -1084,24 +1189,36 @@ workflows:
       - go-test:
           requires: [dev-build]
       - go-test-lib:
-          name: "go-test-api go1.18"
-          path: api
-          go-version: "1.18"
+          name: "go-test-envoyextensions"
+          path: envoyextensions
+          go-version: "1.20"
           requires: [dev-build]
+          <<: *filter-ignore-non-go-branches
+      - go-test-lib:
+          name: "go-test-troubleshoot"
+          path: troubleshoot
+          go-version: "1.20"
+          requires: [dev-build]
+          <<: *filter-ignore-non-go-branches
       - go-test-lib:
           name: "go-test-api go1.19"
           path: api
           go-version: "1.19"
           requires: [dev-build]
       - go-test-lib:
-          name: "go-test-sdk go1.18"
-          path: sdk
-          go-version: "1.18"
-          <<: *filter-ignore-non-go-branches
+          name: "go-test-api go1.20"
+          path: api
+          go-version: "1.20"
+          requires: [dev-build]
       - go-test-lib:
           name: "go-test-sdk go1.19"
           path: sdk
           go-version: "1.19"
+          <<: *filter-ignore-non-go-branches
+      - go-test-lib:
+          name: "go-test-sdk go1.20"
+          path: sdk
+          go-version: "1.20"
           <<: *filter-ignore-non-go-branches
       - go-test-race: *filter-ignore-non-go-branches
       - go-test-32bit: *filter-ignore-non-go-branches
@@ -1174,6 +1291,13 @@ workflows:
       - compatibility-integration-test:
           requires:
             - dev-build
+      - upgrade-integration-test:
+          requires:
+            - dev-build
+          matrix:
+            parameters:
+              consul-version: *consul_versions
+              
       - noop
   frontend:
     unless: << pipeline.parameters.trigger-load-test >>

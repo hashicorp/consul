@@ -9,33 +9,33 @@ description: >-
 
 ~> **1.8.x and earlier:** This document only applies in Consul versions 1.8.x
 and before. If you are using version 1.9.0 or later please use the updated
-documentation [here](/docs/connect/intentions).
+documentation [here](/consul/docs/connect/intentions).
 
 Intentions define access control for services via Connect and are used
 to control which services may establish connections. Intentions can be
 managed via the API, CLI, or UI.
 
-Intentions are enforced by the [proxy](/docs/connect/proxies)
-or [natively integrated application](/docs/connect/native) on
+Intentions are enforced by the [proxy](/consul/docs/connect/proxies)
+or [natively integrated application](/consul/docs/connect/native) on
 inbound connections. After verifying the TLS client certificate, the
-[authorize API endpoint](/api-docs/agent/connect#authorize) is called which verifies the connection
+[authorize API endpoint](/consul/api-docs/agent/connect#authorize) is called which verifies the connection
 is allowed by testing the intentions. If authorize returns false the
 connection must be terminated.
 
 The default intention behavior is defined by the default [ACL
-policy](/docs/agent/config/config-files#acl_default_policy). If the default ACL policy is
+policy](/consul/docs/agent/config/config-files#acl_default_policy). If the default ACL policy is
 "allow all", then all Connect connections are allowed by default. If the
 default ACL policy is "deny all", then all Connect connections are denied by
 default.
 
 ## Intention Basics
 
-Intentions can be managed via the [API](/api-docs/connect/intentions),
-[CLI](/commands/intention), or UI. Please see the respective documentation for
+Intentions can be managed via the [API](/consul/api-docs/connect/intentions),
+[CLI](/consul/commands/intention), or UI. Please see the respective documentation for
 each for full details on options, flags, etc. Below is an example of a basic
 intention to show the basic attributes of an intention. The full data model of
 an intention can be found in the [API
-documentation](/api-docs/connect/intentions).
+documentation](/consul/api-docs/connect/intentions).
 
 ```shell-session
 $ consul intention create -deny web db
@@ -105,7 +105,7 @@ top to bottom, with larger numbers being evaluated first.
 | Exact            | `*`         | `*`                   | `*`              | 2          |
 | `*`              | `*`         | `*`                   | `*`              | 1          |
 
-The precedence value can be read from the [API](/api-docs/connect/intentions)
+The precedence value can be read from the [API](/consul/api-docs/connect/intentions)
 after an intention is created.
 Precedence cannot be manually overridden today. This is a feature that will
 be added in a later version of Consul.
@@ -124,7 +124,7 @@ the table with a `*` for either the source namespace or destination namespace ar
 
 ## Intention Management Permissions
 
-Intention management can be protected by [ACLs](/docs/security/acl).
+Intention management can be protected by [ACLs](/consul/docs/security/acl).
 Permissions for intentions are _destination-oriented_, meaning the ACLs
 for managing intentions are looked up based on the destination value
 of the intention, not the source.

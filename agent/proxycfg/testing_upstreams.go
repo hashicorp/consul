@@ -8,7 +8,7 @@ import (
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/discoverychain"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/proto/pbpeering"
+	"github.com/hashicorp/consul/proto/private/pbpeering"
 )
 
 func setupTestVariationConfigEntriesAndSnapshot(
@@ -94,7 +94,7 @@ func setupTestVariationConfigEntriesAndSnapshot(
 		events = append(events, UpdateEvent{
 			CorrelationID: "upstream-peer:db?peer=cluster-01",
 			Result: &structs.IndexedCheckServiceNodes{
-				Nodes: structs.CheckServiceNodes{structs.TestCheckNodeServiceWithNameInPeer(t, "db", "cluster-01", "10.40.1.1", false)},
+				Nodes: structs.CheckServiceNodes{structs.TestCheckNodeServiceWithNameInPeer(t, "db", "dc1", "cluster-01", "10.40.1.1", false)},
 			},
 		})
 	case "redirect-to-cluster-peer":
@@ -112,7 +112,7 @@ func setupTestVariationConfigEntriesAndSnapshot(
 		events = append(events, UpdateEvent{
 			CorrelationID: "upstream-peer:db?peer=cluster-01",
 			Result: &structs.IndexedCheckServiceNodes{
-				Nodes: structs.CheckServiceNodes{structs.TestCheckNodeServiceWithNameInPeer(t, "db", "cluster-01", "10.40.1.1", false)},
+				Nodes: structs.CheckServiceNodes{structs.TestCheckNodeServiceWithNameInPeer(t, "db", "dc2", "cluster-01", "10.40.1.1", false)},
 			},
 		})
 	case "failover-through-double-remote-gateway-triggered":
@@ -250,6 +250,7 @@ func setupTestVariationDiscoveryChain(
 				Kind:           structs.ServiceResolver,
 				Name:           "db",
 				ConnectTimeout: 33 * time.Second,
+				RequestTimeout: 33 * time.Second,
 			},
 		)
 	case "external-sni":
@@ -263,6 +264,7 @@ func setupTestVariationDiscoveryChain(
 				Kind:           structs.ServiceResolver,
 				Name:           "db",
 				ConnectTimeout: 33 * time.Second,
+				RequestTimeout: 33 * time.Second,
 			},
 		)
 	case "failover":
@@ -271,6 +273,7 @@ func setupTestVariationDiscoveryChain(
 				Kind:           structs.ServiceResolver,
 				Name:           "db",
 				ConnectTimeout: 33 * time.Second,
+				RequestTimeout: 33 * time.Second,
 				Failover: map[string]structs.ServiceResolverFailover{
 					"*": {
 						Service: "fail",
@@ -293,6 +296,7 @@ func setupTestVariationDiscoveryChain(
 				Kind:           structs.ServiceResolver,
 				Name:           "db",
 				ConnectTimeout: 33 * time.Second,
+				RequestTimeout: 33 * time.Second,
 				Failover: map[string]structs.ServiceResolverFailover{
 					"*": {
 						Datacenters: []string{"dc2"},
@@ -306,6 +310,7 @@ func setupTestVariationDiscoveryChain(
 				Kind:           structs.ServiceResolver,
 				Name:           "db",
 				ConnectTimeout: 33 * time.Second,
+				RequestTimeout: 33 * time.Second,
 				Failover: map[string]structs.ServiceResolverFailover{
 					"*": {
 						Targets: []structs.ServiceResolverFailoverTarget{
@@ -321,6 +326,7 @@ func setupTestVariationDiscoveryChain(
 				Kind:           structs.ServiceResolver,
 				Name:           "db",
 				ConnectTimeout: 33 * time.Second,
+				RequestTimeout: 33 * time.Second,
 				Redirect: &structs.ServiceResolverRedirect{
 					Peer: "cluster-01",
 				},
@@ -341,6 +347,7 @@ func setupTestVariationDiscoveryChain(
 				Kind:           structs.ServiceResolver,
 				Name:           "db",
 				ConnectTimeout: 33 * time.Second,
+				RequestTimeout: 33 * time.Second,
 				Failover: map[string]structs.ServiceResolverFailover{
 					"*": {
 						Datacenters: []string{"dc2", "dc3"},
@@ -363,6 +370,7 @@ func setupTestVariationDiscoveryChain(
 				Kind:           structs.ServiceResolver,
 				Name:           "db",
 				ConnectTimeout: 33 * time.Second,
+				RequestTimeout: 33 * time.Second,
 				Failover: map[string]structs.ServiceResolverFailover{
 					"*": {
 						Datacenters: []string{"dc2"},
@@ -385,6 +393,7 @@ func setupTestVariationDiscoveryChain(
 				Kind:           structs.ServiceResolver,
 				Name:           "db",
 				ConnectTimeout: 33 * time.Second,
+				RequestTimeout: 33 * time.Second,
 				Failover: map[string]structs.ServiceResolverFailover{
 					"*": {
 						Datacenters: []string{"dc2", "dc3"},
@@ -446,6 +455,7 @@ func setupTestVariationDiscoveryChain(
 				Kind:           structs.ServiceResolver,
 				Name:           "db",
 				ConnectTimeout: 33 * time.Second,
+				RequestTimeout: 33 * time.Second,
 			},
 			&structs.ProxyConfigEntry{
 				Kind: structs.ProxyDefaults,
@@ -497,6 +507,7 @@ func setupTestVariationDiscoveryChain(
 				Kind:           structs.ServiceResolver,
 				Name:           "db",
 				ConnectTimeout: 33 * time.Second,
+				RequestTimeout: 33 * time.Second,
 			},
 			&structs.ProxyConfigEntry{
 				Kind: structs.ProxyDefaults,
@@ -528,6 +539,7 @@ func setupTestVariationDiscoveryChain(
 				Kind:           structs.ServiceResolver,
 				Name:           "db",
 				ConnectTimeout: 33 * time.Second,
+				RequestTimeout: 33 * time.Second,
 			},
 			&structs.ProxyConfigEntry{
 				Kind: structs.ProxyDefaults,

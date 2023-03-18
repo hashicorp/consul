@@ -1,12 +1,17 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 %menu-panel-button-selected::after {
   @extend %with-check-plain-mask, %as-pseudo;
 }
 %menu-panel-header {
-  @extend %p2;
+  @extend %body-100-regular;
 }
 %menu-panel-header + ul {
   border-top: var(--decor-border-100);
-  border-color: rgb(var(--tone-border, var(--tone-gray-300)));
+  border-color: var(--token-form--base-border-color-default);
 }
 /* if the first item is a separator and it */
 /* contains text don't add a line */
@@ -14,18 +19,17 @@
   border: none;
 }
 %menu-panel-separator {
-  @extend %p3;
+  @extend %body-100-medium;
   text-transform: uppercase;
-  font-weight: var(--typo-weight-medium);
-  color: rgb(var(--tone-gray-600));
+  color: var(--token-color-foreground-faint);
 }
 %menu-panel-item {
   list-style-type: none;
 }
 %menu-panel-badge {
   @extend %pill;
-  color: rgb(var(--tone-gray-000));
-  background-color: rgb(var(--tone-gray-500));
+  color: var(--token-color-surface-primary);
+  background-color: var(--token-color-foreground-faint);
 }
 %menu-panel-body .informed-action {
   border: 0 !important;

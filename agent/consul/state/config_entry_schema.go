@@ -11,9 +11,10 @@ import (
 const (
 	tableConfigEntries = "config-entries"
 
-	indexLink              = "link"
-	indexIntentionLegacyID = "intention-legacy-id"
-	indexSource            = "intention-source"
+	indexLink                 = "link"
+	indexIntentionLegacyID    = "intention-legacy-id"
+	indexSource               = "intention-source"
+	indexSamenessGroupDefault = "sameness-group-default"
 )
 
 // configTableSchema returns a new table schema used to store global
@@ -50,6 +51,12 @@ func configTableSchema() *memdb.TableSchema {
 				Unique:       false,
 				Indexer:      &ServiceIntentionSourceIndex{},
 			},
+			indexSamenessGroupDefault: {
+				Name:         indexSamenessGroupDefault,
+				AllowMissing: true,
+				Unique:       true,
+				Indexer:      &SamenessGroupDefaultIndex{},
+			},
 		},
 	}
 }
@@ -67,6 +74,7 @@ type configEntryIndexable interface {
 }
 
 var _ configEntryIndexable = (*structs.ExportedServicesConfigEntry)(nil)
+var _ configEntryIndexable = (*structs.SamenessGroupConfigEntry)(nil)
 var _ configEntryIndexable = (*structs.IngressGatewayConfigEntry)(nil)
 var _ configEntryIndexable = (*structs.MeshConfigEntry)(nil)
 var _ configEntryIndexable = (*structs.ProxyConfigEntry)(nil)

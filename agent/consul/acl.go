@@ -41,7 +41,7 @@ var ACLSummaries = []prometheus.SummaryDefinition{
 
 // These must be kept in sync with the constants in command/agent/acl.go.
 const (
-	// anonymousToken is the token ID we re-write to if there is no token ID
+	// anonymousToken is the token SecretID we re-write to if there is no token ID
 	// provided.
 	anonymousToken = "anonymous"
 
@@ -284,7 +284,7 @@ func agentRecoveryAuthorizer(nodeName string, entMeta *acl.EnterpriseMeta, aclCo
 	node_prefix "" {
 		policy = "read"
 	}
-	`, nodeName), acl.SyntaxCurrent, &conf, entMeta.ToEnterprisePolicyMeta())
+	`, nodeName), &conf, entMeta.ToEnterprisePolicyMeta())
 	if err != nil {
 		return nil, err
 	}
@@ -718,7 +718,7 @@ func (r *ACLResolver) collectPoliciesForIdentity(identity structs.ACLIdentity, p
 			} else {
 				r.logger.Warn("policy not found for identity",
 					"policy", policyID,
-					"accessorID", accessorID,
+					"accessorID", acl.AliasIfAnonymousToken(accessorID),
 				)
 			}
 
@@ -819,7 +819,7 @@ func (r *ACLResolver) collectRolesForIdentity(identity structs.ACLIdentity, role
 				}
 				r.logger.Warn("role not found for identity",
 					"role", roleID,
-					"accessorID", accessorID,
+					"accessorID", acl.AliasIfAnonymousToken(accessorID),
 				)
 			}
 
@@ -994,34 +994,34 @@ func (r *ACLResolver) resolveLocallyManagedToken(token string) (structs.ACLIdent
 }
 
 // ResolveToken to an acl.Authorizer and structs.ACLIdentity. The acl.Authorizer
-// can be used to check permissions granted to the token, and the ACLIdentity
-// describes the token and any defaults applied to it.
-func (r *ACLResolver) ResolveToken(token string) (resolver.Result, error) {
+// can be used to check permissions granted to the token using its secret, and the
+// ACLIdentity describes the token and any defaults applied to it.
+func (r *ACLResolver) ResolveToken(tokenSecretID string) (resolver.Result, error) {
 	if !r.ACLsEnabled() {
 		return resolver.Result{Authorizer: acl.ManageAll()}, nil
 	}
 
-	if acl.RootAuthorizer(token) != nil {
+	if acl.RootAuthorizer(tokenSecretID) != nil {
 		return resolver.Result{}, acl.ErrRootDenied
 	}
 
 	// handle the anonymous token
-	if token == "" {
-		token = anonymousToken
+	if tokenSecretID == "" {
+		tokenSecretID = anonymousToken
 	}
 
-	if ident, authz, ok := r.resolveLocallyManagedToken(token); ok {
+	if ident, authz, ok := r.resolveLocallyManagedToken(tokenSecretID); ok {
 		return resolver.Result{Authorizer: authz, ACLIdentity: ident}, nil
 	}
 
 	defer metrics.MeasureSince([]string{"acl", "ResolveToken"}, time.Now())
 
-	identity, policies, err := r.resolveTokenToIdentityAndPolicies(token)
+	identity, policies, err := r.resolveTokenToIdentityAndPolicies(tokenSecretID)
 	if err != nil {
 		r.handleACLDisabledError(err)
 		if IsACLRemoteError(err) {
 			r.logger.Error("Error resolving token", "error", err)
-			ident := &missingIdentity{reason: "primary-dc-down", token: token}
+			ident := &missingIdentity{reason: "primary-dc-down", token: tokenSecretID}
 			return resolver.Result{Authorizer: r.down, ACLIdentity: ident}, nil
 		}
 
@@ -1074,11 +1074,11 @@ func (r *ACLResolver) ACLsEnabled() bool {
 }
 
 func (r *ACLResolver) ResolveTokenAndDefaultMeta(
-	token string,
+	tokenSecretID string,
 	entMeta *acl.EnterpriseMeta,
 	authzContext *acl.AuthorizerContext,
 ) (resolver.Result, error) {
-	result, err := r.ResolveToken(token)
+	result, err := r.ResolveToken(tokenSecretID)
 	if err != nil {
 		return resolver.Result{}, err
 	}
@@ -1119,9 +1119,9 @@ func filterACLWithAuthorizer(logger hclog.Logger, authorizer acl.Authorizer, sub
 // filterACL uses the ACLResolver to resolve the token in an acl.Authorizer,
 // then uses the acl.Authorizer to filter subj. Any entities in subj that are
 // not authorized for read access will be removed from subj.
-func filterACL(r *ACLResolver, token string, subj interface{}) error {
+func filterACL(r *ACLResolver, tokenSecretID string, subj interface{}) error {
 	// Get the ACL from the token
-	authorizer, err := r.ResolveToken(token)
+	authorizer, err := r.ResolveToken(tokenSecretID)
 	if err != nil {
 		return err
 	}

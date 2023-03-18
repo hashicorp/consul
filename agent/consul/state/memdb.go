@@ -6,7 +6,7 @@ import (
 	"github.com/hashicorp/go-memdb"
 
 	"github.com/hashicorp/consul/agent/consul/stream"
-	"github.com/hashicorp/consul/proto/pbsubscribe"
+	"github.com/hashicorp/consul/proto/private/pbsubscribe"
 )
 
 // ReadTxn is implemented by memdb.Txn to perform read operations.
@@ -186,6 +186,11 @@ var (
 	EventTopicServiceIntentions    = pbsubscribe.Topic_ServiceIntentions
 	EventTopicServiceDefaults      = pbsubscribe.Topic_ServiceDefaults
 	EventTopicServiceList          = pbsubscribe.Topic_ServiceList
+	EventTopicAPIGateway           = pbsubscribe.Topic_APIGateway
+	EventTopicTCPRoute             = pbsubscribe.Topic_TCPRoute
+	EventTopicHTTPRoute            = pbsubscribe.Topic_HTTPRoute
+	EventTopicInlineCertificate    = pbsubscribe.Topic_InlineCertificate
+	EventTopicBoundAPIGateway      = pbsubscribe.Topic_BoundAPIGateway
 )
 
 func processDBChanges(tx ReadTxn, changes Changes) ([]stream.Event, error) {

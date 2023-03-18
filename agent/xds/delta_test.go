@@ -2,25 +2,30 @@ package xds
 
 import (
 	"errors"
+	"strconv"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
 
+	"github.com/armon/go-metrics"
 	envoy_discovery_v3 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
-
-	"github.com/golang/protobuf/proto"
 	"github.com/stretchr/testify/require"
 	rpcstatus "google.golang.org/genproto/googleapis/rpc/status"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/grpc-external/limiter"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/agent/xds/xdscommon"
+	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/envoyextensions/xdscommon"
 	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
+	"github.com/hashicorp/consul/version"
 )
 
 // NOTE: For these tests, prefer not using xDS protobuf "factory" methods if
@@ -33,7 +38,7 @@ func TestServer_DeltaAggregatedResources_v3_BasicProtocol_TCP(t *testing.T) {
 		// Allow all
 		return acl.RootAuthorizer("manage"), nil
 	}
-	scenario := newTestServerDeltaScenario(t, aclResolve, "web-sidecar-proxy", "", 0, nil)
+	scenario := newTestServerDeltaScenario(t, aclResolve, "web-sidecar-proxy", "", 0)
 	mgr, errCh, envoy := scenario.mgr, scenario.errCh, scenario.envoy
 
 	sid := structs.NewServiceID("web-sidecar-proxy", nil)
@@ -44,7 +49,20 @@ func TestServer_DeltaAggregatedResources_v3_BasicProtocol_TCP(t *testing.T) {
 	var snap *proxycfg.ConfigSnapshot
 
 	testutil.RunStep(t, "initial setup", func(t *testing.T) {
-		snap = newTestSnapshot(t, nil, "")
+		snap = newTestSnapshot(t, nil, "", &structs.ProxyConfigEntry{
+			Kind: structs.ProxyDefaults,
+			Name: structs.ProxyConfigGlobal,
+			EnvoyExtensions: []structs.EnvoyExtension{
+				{
+					Name: api.BuiltinLuaExtension,
+					Arguments: map[string]interface{}{
+						"ProxyType": "connect-proxy",
+						"Listener":  "inbound",
+						"Script":    "x = 0",
+					},
+				},
+			},
+		})
 
 		// Send initial cluster discover. We'll assume we are testing a partial
 		// reconnect and include some initial resource versions that will be
@@ -154,6 +172,8 @@ func TestServer_DeltaAggregatedResources_v3_BasicProtocol_TCP(t *testing.T) {
 
 		// We are caught up, so there should be nothing queued to send.
 		assertDeltaChanBlocked(t, envoy.deltaStream.sendCh)
+
+		requireExtensionMetrics(t, scenario, api.BuiltinLuaExtension, sid, nil)
 	})
 
 	deleteAllButOneEndpoint := func(snap *proxycfg.ConfigSnapshot, uid proxycfg.UpstreamID, targetID string) {
@@ -232,7 +252,7 @@ func TestServer_DeltaAggregatedResources_v3_NackLoop(t *testing.T) {
 		// Allow all
 		return acl.RootAuthorizer("manage"), nil
 	}
-	scenario := newTestServerDeltaScenario(t, aclResolve, "web-sidecar-proxy", "", 0, nil)
+	scenario := newTestServerDeltaScenario(t, aclResolve, "web-sidecar-proxy", "", 0)
 	mgr, errCh, envoy := scenario.mgr, scenario.errCh, scenario.envoy
 
 	sid := structs.NewServiceID("web-sidecar-proxy", nil)
@@ -364,7 +384,7 @@ func TestServer_DeltaAggregatedResources_v3_BasicProtocol_HTTP2(t *testing.T) {
 		// Allow all
 		return acl.RootAuthorizer("manage"), nil
 	}
-	scenario := newTestServerDeltaScenario(t, aclResolve, "web-sidecar-proxy", "", 0, nil)
+	scenario := newTestServerDeltaScenario(t, aclResolve, "web-sidecar-proxy", "", 0)
 	mgr, errCh, envoy := scenario.mgr, scenario.errCh, scenario.envoy
 
 	sid := structs.NewServiceID("web-sidecar-proxy", nil)
@@ -516,7 +536,7 @@ func TestServer_DeltaAggregatedResources_v3_SlowEndpointPopulation(t *testing.T)
 		// Allow all
 		return acl.RootAuthorizer("manage"), nil
 	}
-	scenario := newTestServerDeltaScenario(t, aclResolve, "web-sidecar-proxy", "", 0, nil)
+	scenario := newTestServerDeltaScenario(t, aclResolve, "web-sidecar-proxy", "", 0)
 	server, mgr, errCh, envoy := scenario.server, scenario.mgr, scenario.errCh, scenario.envoy
 
 	// This mutateFn causes any endpoint with a name containing "geo-cache" to be
@@ -661,7 +681,7 @@ func TestServer_DeltaAggregatedResources_v3_BasicProtocol_TCP_clusterChangesImpa
 		// Allow all
 		return acl.RootAuthorizer("manage"), nil
 	}
-	scenario := newTestServerDeltaScenario(t, aclResolve, "web-sidecar-proxy", "", 0, nil)
+	scenario := newTestServerDeltaScenario(t, aclResolve, "web-sidecar-proxy", "", 0)
 	mgr, errCh, envoy := scenario.mgr, scenario.errCh, scenario.envoy
 
 	sid := structs.NewServiceID("web-sidecar-proxy", nil)
@@ -798,7 +818,7 @@ func TestServer_DeltaAggregatedResources_v3_BasicProtocol_HTTP2_RDS_listenerChan
 		// Allow all
 		return acl.RootAuthorizer("manage"), nil
 	}
-	scenario := newTestServerDeltaScenario(t, aclResolve, "web-sidecar-proxy", "", 0, nil)
+	scenario := newTestServerDeltaScenario(t, aclResolve, "web-sidecar-proxy", "", 0)
 	mgr, errCh, envoy := scenario.mgr, scenario.errCh, scenario.envoy
 
 	sid := structs.NewServiceID("web-sidecar-proxy", nil)
@@ -1039,24 +1059,45 @@ func TestServer_DeltaAggregatedResources_v3_ACLEnforcement(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			var stopped bool
+			lock := &sync.RWMutex{}
+
+			defer func() {
+				lock.Lock()
+				stopped = true
+				lock.Unlock()
+			}()
+
+			// aclResolve may be called in a goroutine even after a
+			// testcase tt returns. Capture the variable as tc so the
+			// values don't swap in the next iteration.
+			tc := tt
 			aclResolve := func(id string) (acl.Authorizer, error) {
-				if !tt.defaultDeny {
+				if !tc.defaultDeny {
 					// Allow all
 					return acl.RootAuthorizer("allow"), nil
 				}
-				if tt.acl == "" {
+				if tc.acl == "" {
 					// No token and defaultDeny is denied
 					return acl.RootAuthorizer("deny"), nil
 				}
+
+				lock.RLock()
+				defer lock.RUnlock()
+
+				if stopped {
+					return acl.DenyAll().ToAllowAuthorizer(), nil
+				}
+
 				// Ensure the correct token was passed
-				require.Equal(t, tt.token, id)
+				require.Equal(t, tc.token, id)
 				// Parse the ACL and enforce it
-				policy, err := acl.NewPolicyFromSource(tt.acl, acl.SyntaxLegacy, nil, nil)
+				policy, err := acl.NewPolicyFromSource(tc.acl, nil, nil)
 				require.NoError(t, err)
 				return acl.NewPolicyAuthorizerWithDefaults(acl.RootAuthorizer("deny"), []*acl.Policy{policy}, nil)
 			}
 
-			scenario := newTestServerDeltaScenario(t, aclResolve, "web-sidecar-proxy", tt.token, 0, nil)
+			scenario := newTestServerDeltaScenario(t, aclResolve, "web-sidecar-proxy", tt.token, 0)
 			mgr, errCh, envoy := scenario.mgr, scenario.errCh, scenario.envoy
 
 			sid := structs.NewServiceID("web-sidecar-proxy", nil)
@@ -1074,6 +1115,19 @@ func TestServer_DeltaAggregatedResources_v3_ACLEnforcement(t *testing.T) {
 			// first but it doesn't really matter and listener has a response that
 			// includes the token in the ext rbac filter so lets us test more stuff.
 			envoy.SendDeltaReq(t, xdscommon.ListenerType, nil)
+
+			// If there is no token, check that we increment the gauge
+			if tt.token == "" {
+				retry.Run(t, func(r *retry.R) {
+					data := scenario.sink.Data()
+					require.Len(r, data, 1)
+
+					item := data[0]
+					val, ok := item.Gauges["consul.xds.test.xds.server.streamsUnauthenticated"]
+					require.True(r, ok)
+					require.Equal(r, float32(1), val.Value)
+				})
+			}
 
 			if !tt.wantDenied {
 				assertDeltaResponseSent(t, envoy.deltaStream.sendCh, &envoy_discovery_v3.DeltaDiscoveryResponse{
@@ -1106,6 +1160,19 @@ func TestServer_DeltaAggregatedResources_v3_ACLEnforcement(t *testing.T) {
 			case <-time.After(50 * time.Millisecond):
 				t.Fatalf("timed out waiting for handler to finish")
 			}
+
+			// If there is no token, check that we decrement the gauge
+			if tt.token == "" {
+				retry.Run(t, func(r *retry.R) {
+					data := scenario.sink.Data()
+					require.Len(r, data, 1)
+
+					item := data[0]
+					val, ok := item.Gauges["consul.xds.test.xds.server.streamsUnauthenticated"]
+					require.True(r, ok)
+					require.Equal(r, float32(0), val.Value)
+				})
+			}
 		})
 	}
 }
@@ -1118,7 +1185,7 @@ func TestServer_DeltaAggregatedResources_v3_ACLTokenDeleted_StreamTerminatedDuri
 	aclRules := `service "web" { policy = "write" }`
 	token := "service-write-on-web"
 
-	policy, err := acl.NewPolicyFromSource(aclRules, acl.SyntaxLegacy, nil, nil)
+	policy, err := acl.NewPolicyFromSource(aclRules, nil, nil)
 	require.NoError(t, err)
 
 	var validToken atomic.Value
@@ -1133,7 +1200,6 @@ func TestServer_DeltaAggregatedResources_v3_ACLTokenDeleted_StreamTerminatedDuri
 	}
 	scenario := newTestServerDeltaScenario(t, aclResolve, "web-sidecar-proxy", token,
 		100*time.Millisecond, // Make this short.
-		nil,
 	)
 	mgr, errCh, envoy := scenario.mgr, scenario.errCh, scenario.envoy
 
@@ -1217,7 +1283,7 @@ func TestServer_DeltaAggregatedResources_v3_ACLTokenDeleted_StreamTerminatedInBa
 	aclRules := `service "web" { policy = "write" }`
 	token := "service-write-on-web"
 
-	policy, err := acl.NewPolicyFromSource(aclRules, acl.SyntaxLegacy, nil, nil)
+	policy, err := acl.NewPolicyFromSource(aclRules, nil, nil)
 	require.NoError(t, err)
 
 	var validToken atomic.Value
@@ -1232,7 +1298,6 @@ func TestServer_DeltaAggregatedResources_v3_ACLTokenDeleted_StreamTerminatedInBa
 	}
 	scenario := newTestServerDeltaScenario(t, aclResolve, "web-sidecar-proxy", token,
 		100*time.Millisecond, // Make this short.
-		nil,
 	)
 	mgr, errCh, envoy := scenario.mgr, scenario.errCh, scenario.envoy
 
@@ -1313,7 +1378,7 @@ func TestServer_DeltaAggregatedResources_v3_IngressEmptyResponse(t *testing.T) {
 		// Allow all
 		return acl.RootAuthorizer("manage"), nil
 	}
-	scenario := newTestServerDeltaScenario(t, aclResolve, "ingress-gateway", "", 0, nil)
+	scenario := newTestServerDeltaScenario(t, aclResolve, "ingress-gateway", "", 0)
 	mgr, errCh, envoy := scenario.mgr, scenario.errCh, scenario.envoy
 
 	sid := structs.NewServiceID("ingress-gateway", nil)
@@ -1368,12 +1433,13 @@ func TestServer_DeltaAggregatedResources_v3_IngressEmptyResponse(t *testing.T) {
 func TestServer_DeltaAggregatedResources_v3_CapacityReached(t *testing.T) {
 	aclResolve := func(id string) (acl.Authorizer, error) { return acl.ManageAll(), nil }
 
-	scenario := newTestServerDeltaScenario(t, aclResolve, "web-sidecar-proxy", "", 0, capacityReachedLimiter{})
+	scenario := newTestServerDeltaScenario(t, aclResolve, "web-sidecar-proxy", "", 0)
 	mgr, errCh, envoy := scenario.mgr, scenario.errCh, scenario.envoy
 
 	sid := structs.NewServiceID("web-sidecar-proxy", nil)
 
 	mgr.RegisterProxy(t, sid)
+	mgr.DrainStreams(sid)
 
 	snap := newTestSnapshot(t, nil, "")
 
@@ -1399,10 +1465,8 @@ func (capacityReachedLimiter) BeginSession() (limiter.Session, error) {
 }
 
 func TestServer_DeltaAggregatedResources_v3_StreamDrained(t *testing.T) {
-	limiter := &testLimiter{}
-
 	aclResolve := func(id string) (acl.Authorizer, error) { return acl.ManageAll(), nil }
-	scenario := newTestServerDeltaScenario(t, aclResolve, "web-sidecar-proxy", "", 0, limiter)
+	scenario := newTestServerDeltaScenario(t, aclResolve, "web-sidecar-proxy", "", 0)
 	mgr, errCh, envoy := scenario.mgr, scenario.errCh, scenario.envoy
 
 	sid := structs.NewServiceID("web-sidecar-proxy", nil)
@@ -1431,7 +1495,7 @@ func TestServer_DeltaAggregatedResources_v3_StreamDrained(t *testing.T) {
 	})
 
 	testutil.RunStep(t, "terminate limiter session", func(t *testing.T) {
-		limiter.TerminateSession()
+		mgr.DrainStreams(sid)
 
 		select {
 		case err := <-errCh:
@@ -1459,33 +1523,13 @@ func TestServer_DeltaAggregatedResources_v3_StreamDrained(t *testing.T) {
 		require.Len(t, data, 1)
 
 		item := data[0]
-		require.Len(t, item.Counters, 1)
+		require.Len(t, item.Samples, 1)
 
 		val, ok := item.Samples["consul.xds.test.xds.server.streamStart"]
 		require.True(t, ok)
 		require.Equal(t, 1, val.Count)
 	})
-
 }
-
-type testLimiter struct {
-	termCh chan struct{}
-}
-
-func (t *testLimiter) BeginSession() (limiter.Session, error) {
-	t.termCh = make(chan struct{})
-	return &testSession{termCh: t.termCh}, nil
-}
-
-func (t *testLimiter) TerminateSession() { close(t.termCh) }
-
-type testSession struct {
-	termCh chan struct{}
-}
-
-func (t *testSession) Terminated() <-chan struct{} { return t.termCh }
-
-func (*testSession) End() {}
 
 func assertDeltaChanBlocked(t *testing.T, ch chan *envoy_discovery_v3.DeltaDiscoveryResponse) {
 	t.Helper()
@@ -1521,8 +1565,44 @@ func assertDeltaResponse(t *testing.T, got, want *envoy_discovery_v3.DeltaDiscov
 func mustMakeVersionMap(t *testing.T, resources ...proto.Message) map[string]string {
 	m := make(map[string]string)
 	for _, res := range resources {
-		name := getResourceName(res)
+		name := xdscommon.GetResourceName(res)
 		m[name] = mustHashResource(t, res)
 	}
 	return m
+}
+
+func requireExtensionMetrics(
+	t *testing.T,
+	scenario *testServerScenario,
+	extName string,
+	sid structs.ServiceID,
+	err error,
+) {
+	data := scenario.sink.Data()
+	require.Len(t, data, 1)
+	item := data[0]
+
+	expectLabels := []metrics.Label{
+		{Name: "extension", Value: extName},
+		{Name: "version", Value: "builtin/" + version.Version},
+		{Name: "service", Value: sid.ID},
+		{Name: "partition", Value: sid.PartitionOrDefault()},
+		{Name: "namespace", Value: sid.NamespaceOrDefault()},
+		{Name: "error", Value: strconv.FormatBool(err != nil)},
+	}
+
+	for _, s := range []string{
+		"consul.xds.test.envoy_extension.validate_arguments;",
+		"consul.xds.test.envoy_extension.validate;",
+		"consul.xds.test.envoy_extension.extend;",
+	} {
+		foundLabel := false
+		for k, v := range item.Samples {
+			if strings.HasPrefix(k, s) {
+				foundLabel = true
+				require.ElementsMatch(t, expectLabels, v.Labels)
+			}
+		}
+		require.True(t, foundLabel)
+	}
 }

@@ -10,9 +10,9 @@ import (
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/submatview"
-	"github.com/hashicorp/consul/proto/pbcommon"
-	"github.com/hashicorp/consul/proto/pbconfigentry"
-	"github.com/hashicorp/consul/proto/pbsubscribe"
+	"github.com/hashicorp/consul/proto/private/pbcommon"
+	"github.com/hashicorp/consul/proto/private/pbconfigentry"
+	"github.com/hashicorp/consul/proto/private/pbsubscribe"
 )
 
 // CacheConfigEntry satisfies the proxycfg.ConfigEntry interface by sourcing
@@ -62,6 +62,16 @@ func newConfigEntryRequest(req *structs.ConfigEntryQuery, deps ServerDataSourceD
 		topic = pbsubscribe.Topic_IngressGateway
 	case structs.ServiceDefaults:
 		topic = pbsubscribe.Topic_ServiceDefaults
+	case structs.APIGateway:
+		topic = pbsubscribe.Topic_APIGateway
+	case structs.HTTPRoute:
+		topic = pbsubscribe.Topic_HTTPRoute
+	case structs.TCPRoute:
+		topic = pbsubscribe.Topic_TCPRoute
+	case structs.InlineCertificate:
+		topic = pbsubscribe.Topic_InlineCertificate
+	case structs.BoundAPIGateway:
+		topic = pbsubscribe.Topic_BoundAPIGateway
 	default:
 		return nil, fmt.Errorf("cannot map config entry kind: %s to a topic", req.Kind)
 	}

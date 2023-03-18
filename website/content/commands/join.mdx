@@ -12,7 +12,7 @@ description: >-
 
 Command: `consul join`
 
-Corresponding HTTP API Endpoint: [\[PUT\] /v1/agent/join/:address](/api-docs/agent#join-agent)
+Corresponding HTTP API Endpoint: [\[PUT\] /v1/agent/join/:address](/consul/api-docs/agent#join-agent)
 
 The `join` command tells a Consul agent to join an existing cluster.
 A new Consul agent may join any node in the existing cluster. After joining
@@ -22,8 +22,8 @@ state across the cluster.
 An agent which is already part of a cluster may join an agent in a different
 cluster, causing the two clusters to be merged into a single cluster.
 
-The table below shows this command's [required ACLs](/api-docs/api-structure#authentication). Configuration of
-[blocking queries](/api-docs/features/blocking) and [agent caching](/api-docs/features/caching)
+The table below shows this command's [required ACLs](/consul/api-docs/api-structure#authentication). Configuration of
+[blocking queries](/consul/api-docs/features/blocking) and [agent caching](/consul/api-docs/features/caching)
 are not supported from commands, but may be from the corresponding HTTP endpoint.
 
 | ACL Required  |

@@ -8,12 +8,12 @@ import (
 	"time"
 
 	"google.golang.org/grpc"
-	gbalancer "google.golang.org/grpc/balancer"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/keepalive"
 
 	"github.com/armon/go-metrics"
 
+	"github.com/hashicorp/consul/agent/grpc-internal/balancer"
 	agentmiddleware "github.com/hashicorp/consul/agent/grpc-middleware"
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/pool"
@@ -22,8 +22,8 @@ import (
 
 // grpcServiceConfig is provided as the default service config.
 //
-// It configures our custom balancer (via the %s directive to interpolate its
-// name) which will automatically switch servers on error.
+// It configures our custom balancer which will automatically switch servers
+// on error.
 //
 // It also enables gRPC's built-in automatic retries for RESOURCE_EXHAUSTED
 // errors *only*, as this is the status code servers will return for an
@@ -37,11 +37,11 @@ import (
 //   - https://github.com/grpc/grpc/blob/master/doc/service_config.md
 //   - https://github.com/grpc/grpc-proto/blob/master/grpc/service_config/service_config.proto
 //
-// TODO(boxofrad): we can use the rate limit annotations to figure out which
-// methods are reads (and therefore safe to retry whatever the status code).
+// TODO: these are hard-coded for now
+// but we're working on generating them automatically from the protobuf files
 const grpcServiceConfig = `
 {
-	"loadBalancingConfig": [{"%s":{}}],
+	"loadBalancingConfig": [{"` + balancer.BuilderName + `":{}}],
 	"methodConfig": [
 		{
 			"name": [{}],
@@ -52,18 +52,90 @@ const grpcServiceConfig = `
 				"MaxBackoff": "5s",
 				"RetryableStatusCodes": ["RESOURCE_EXHAUSTED"]
 			}
+		},
+		{
+			"name": [
+				{
+					"service": "hashicorp.consul.connectca.ConnectCAService",
+					"method": "WatchRoots"
+				},
+				{
+					"service": "hashicorp.consul.dataplane.DataplaneService",
+					"method": "GetEnvoyBootstrapParams"
+				},
+				{
+					"service": "hashicorp.consul.dataplane.DataplaneService",
+					"method": "GetSupportedDataplaneFeatures"
+				},
+				{
+					"service": "hashicorp.consul.dns.DNSService",
+					"method": "Query"
+				},
+				{
+					"service": "hashicorp.consul.internal.peering.PeeringService",
+					"method": "PeeringList"
+				},
+				{
+					"service": "hashicorp.consul.internal.peering.PeeringService",
+					"method": "PeeringRead"
+				},
+				{
+					"service": "hashicorp.consul.internal.peering.PeeringService",
+					"method": "TrustBundleListByService"
+				},
+				{
+					"service": "hashicorp.consul.internal.peering.PeeringService",
+					"method": "TrustBundleRead"
+				},
+				{
+					"service": "hashicorp.consul.internal.peerstream.PeerStreamService",
+					"method": "StreamResources"
+				},
+				{
+					"service": "hashicorp.consul.serverdiscovery.ServerDiscoveryService",
+					"method": "WatchServers"
+				},
+				{
+					"service": "subscribe.StateChangeSubscription",
+					"method": "Subscribe"
+				},
+				{
+					"service": "partition.PartitionService",
+					"method": "List"
+				},
+				{
+					"service": "partition.PartitionService",
+					"method": "Read"
+				}
+			],
+			"retryPolicy": {
+				"MaxAttempts": 5,
+				"BackoffMultiplier": 2,
+				"InitialBackoff": "1s",
+				"MaxBackoff": "5s",
+				"RetryableStatusCodes": [
+					"CANCELLED",
+					"UNKNOWN",
+					"DEADLINE_EXCEEDED",
+					"RESOURCE_EXHAUSTED",
+					"FAILED_PRECONDITION",
+					"ABORTED",
+					"OUT_OF_RANGE",
+					"INTERNAL",
+					"UNAVAILABLE"
+				]
+			}
 		}
 	]
 }`
 
 // ClientConnPool creates and stores a connection for each datacenter.
 type ClientConnPool struct {
-	dialer          dialer
-	servers         ServerLocator
-	gwResolverDep   gatewayResolverDep
-	conns           map[string]*grpc.ClientConn
-	connsLock       sync.Mutex
-	balancerBuilder gbalancer.Builder
+	dialer        dialer
+	servers       ServerLocator
+	gwResolverDep gatewayResolverDep
+	conns         map[string]*grpc.ClientConn
+	connsLock     sync.Mutex
 }
 
 type ServerLocator interface {
@@ -125,21 +197,14 @@ type ClientConnPoolConfig struct {
 	// DialingFromDatacenter is the datacenter of the consul agent using this
 	// pool.
 	DialingFromDatacenter string
-
-	// BalancerBuilder is a builder for the gRPC balancer that will be used.
-	BalancerBuilder gbalancer.Builder
 }
 
 // NewClientConnPool create new GRPC client pool to connect to servers using
 // GRPC over RPC.
 func NewClientConnPool(cfg ClientConnPoolConfig) *ClientConnPool {
-	if cfg.BalancerBuilder == nil {
-		panic("missing required BalancerBuilder")
-	}
 	c := &ClientConnPool{
-		servers:         cfg.Servers,
-		conns:           make(map[string]*grpc.ClientConn),
-		balancerBuilder: cfg.BalancerBuilder,
+		servers: cfg.Servers,
+		conns:   make(map[string]*grpc.ClientConn),
 	}
 	c.dialer = newDialer(cfg, &c.gwResolverDep)
 	return c
@@ -178,9 +243,7 @@ func (c *ClientConnPool) dial(datacenter string, serverType string) (*grpc.Clien
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithContextDialer(c.dialer),
 		grpc.WithStatsHandler(agentmiddleware.NewStatsHandler(metrics.Default(), metricsLabels)),
-		grpc.WithDefaultServiceConfig(
-			fmt.Sprintf(grpcServiceConfig, c.balancerBuilder.Name()),
-		),
+		grpc.WithDefaultServiceConfig(grpcServiceConfig),
 		// Keep alive parameters are based on the same default ones we used for
 		// Yamux. These are somewhat arbitrary but we did observe in scale testing
 		// that the gRPC defaults (servers send keepalives only every 2 hours,

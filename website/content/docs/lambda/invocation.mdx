@@ -19,7 +19,7 @@ You can invoke Lambda functions from the Consul service mesh through terminating
 We recommend invoking Lambda functions through terminating gateways. This method supports cross-datacenter communication, transparent
 proxies, intentions, and all other Consul service mesh features.
 
-The terminating gateway must have [the appropriate IAM permissions](/docs/lambda/registration#configure-iam-permissions-for-envoy)
+The terminating gateway must have [the appropriate IAM permissions](/consul/docs/lambda/registration#configure-iam-permissions-for-envoy)
 to invoke the function.
 
 The following diagram shows the invocation procedure:
@@ -60,7 +60,7 @@ The following diagram shows the invocation procedure:
 ## Invoke a Lambda Function
 Before you can invoke a Lambda function, register the service used to invoke
 the Lambda function and the service running in Lambda with
-Consul (refer to [registration](/docs/lambda/registration) for
+Consul (refer to [registration](/consul/docs/lambda/registration) for
 instructions). The service used to invoke the function must be deployed to the
 service mesh.
 

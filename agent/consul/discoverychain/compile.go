@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/consul/agent/configentry"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/proto/private/pbpeering"
 )
 
 type CompileRequest struct {
@@ -736,6 +737,11 @@ func (c *compiler) newTarget(opts structs.DiscoveryTargetOpts) *structs.Discover
 		// Use the same representation for the name. This will NOT be overridden
 		// later.
 		t.Name = t.SNI
+	} else {
+		peer := c.entries.Peers[opts.Peer]
+		if peer != nil && peer.Remote != nil {
+			t.Locality = pbpeering.LocalityToStructs(peer.Remote.Locality)
+		}
 	}
 
 	prev, ok := c.loadedTargets[t.ID]
@@ -978,6 +984,7 @@ RESOLVE_AGAIN:
 			Default:        resolver.IsDefault(),
 			Target:         target.ID,
 			ConnectTimeout: connectTimeout,
+			RequestTimeout: resolver.RequestTimeout,
 		},
 		LoadBalancer: resolver.LoadBalancer,
 	}
@@ -1108,6 +1115,15 @@ RESOLVE_AGAIN:
 		if len(failoverTargets) > 0 {
 			df := &structs.DiscoveryFailover{}
 			node.Resolver.Failover = df
+
+			if failover.Policy == nil || failover.Policy.Mode == "" {
+				proxyDefault := c.entries.GetProxyDefaults(targetID.PartitionOrDefault())
+				if proxyDefault != nil {
+					df.Policy = proxyDefault.FailoverPolicy
+				}
+			} else {
+				df.Policy = failover.Policy
+			}
 
 			// Take care of doing any redirects or configuration loading
 			// related to targets by cheating a bit and recursing into

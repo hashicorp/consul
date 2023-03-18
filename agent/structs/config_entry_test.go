@@ -16,6 +16,7 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
+	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/types"
 )
@@ -25,7 +26,7 @@ func TestConfigEntries_ACLs(t *testing.T) {
 	type testcase = configEntryACLTestCase
 
 	newAuthz := func(t *testing.T, src string) acl.Authorizer {
-		policy, err := acl.NewPolicyFromSource(src, acl.SyntaxCurrent, nil, nil)
+		policy, err := acl.NewPolicyFromSource(src, nil, nil)
 		require.NoError(t, err)
 
 		authorizer, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
@@ -176,6 +177,7 @@ type configEntryACLTestCase struct {
 }
 
 func testConfigEntries_ListRelatedServices_AndACLs(t *testing.T, cases []configEntryACLTestCase) {
+
 	// This test tests both of these because they are related functions.
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -296,7 +298,7 @@ func TestDecodeConfigEntry_ServiceDefaults(t *testing.T) {
 }
 
 // TestDecodeConfigEntry is the 'structs' mirror image of
-// command/config/write/config_write_test.go:TestParseConfigEntry
+// command/helpers/helpers_test.go:TestParseConfigEntry
 func TestDecodeConfigEntry(t *testing.T) {
 
 	for _, tc := range []struct {
@@ -1900,6 +1902,114 @@ func TestDecodeConfigEntry(t *testing.T) {
 			},
 		},
 		{
+			name: "api-gateway",
+			snake: `
+				kind = "api-gateway"
+				name = "foo"
+				meta {
+					"foo" = "bar"
+					"gir" = "zim"
+				}
+			`,
+			camel: `
+				Kind = "api-gateway"
+				Name = "foo"
+				Meta {
+					"foo" = "bar"
+					"gir" = "zim"
+				}
+			`,
+			expect: &APIGatewayConfigEntry{
+				Kind: "api-gateway",
+				Name: "foo",
+				Meta: map[string]string{
+					"foo": "bar",
+					"gir": "zim",
+				},
+			},
+		},
+		{
+			name: "inline-certificate",
+			snake: `
+				kind = "inline-certificate"
+				name = "foo"
+				meta {
+					"foo" = "bar"
+					"gir" = "zim"
+				}
+			`,
+			camel: `
+				Kind = "inline-certificate"
+				Name = "foo"
+				Meta {
+					"foo" = "bar"
+					"gir" = "zim"
+				}
+			`,
+			expect: &InlineCertificateConfigEntry{
+				Kind: "inline-certificate",
+				Name: "foo",
+				Meta: map[string]string{
+					"foo": "bar",
+					"gir": "zim",
+				},
+			},
+		},
+		{
+			name: "http-route",
+			snake: `
+				kind = "http-route"
+				name = "foo"
+				meta {
+					"foo" = "bar"
+					"gir" = "zim"
+				}
+			`,
+			camel: `
+				Kind = "http-route"
+				Name = "foo"
+				Meta {
+					"foo" = "bar"
+					"gir" = "zim"
+				}
+			`,
+			expect: &HTTPRouteConfigEntry{
+				Kind: "http-route",
+				Name: "foo",
+				Meta: map[string]string{
+					"foo": "bar",
+					"gir": "zim",
+				},
+			},
+		},
+		{
+			name: "tcp-route",
+			snake: `
+				kind = "tcp-route"
+				name = "foo"
+				meta {
+					"foo" = "bar"
+					"gir" = "zim"
+				}
+			`,
+			camel: `
+				Kind = "tcp-route"
+				Name = "foo"
+				Meta {
+					"foo" = "bar"
+					"gir" = "zim"
+				}
+			`,
+			expect: &TCPRouteConfigEntry{
+				Kind: "tcp-route",
+				Name: "foo",
+				Meta: map[string]string{
+					"foo": "bar",
+					"gir": "zim",
+				},
+			},
+		},
+		{
 			name: "exported-services",
 			snake: `
 				kind = "exported-services"
@@ -2032,6 +2142,14 @@ func TestDecodeConfigEntry(t *testing.T) {
 }
 
 func TestServiceConfigRequest(t *testing.T) {
+
+	makeLegacyUpstreamIDs := func(services ...string) []ServiceID {
+		u := make([]ServiceID, 0, len(services))
+		for _, s := range services {
+			u = append(u, NewServiceID(s, acl.DefaultEnterpriseMeta()))
+		}
+		return u
+	}
 	tests := []struct {
 		name     string
 		req      ServiceConfigRequest
@@ -2064,22 +2182,22 @@ func TestServiceConfigRequest(t *testing.T) {
 		{
 			name: "legacy upstreams should be different",
 			req: ServiceConfigRequest{
-				Name:      "web",
-				Upstreams: []string{"foo"},
+				Name:        "web",
+				UpstreamIDs: makeLegacyUpstreamIDs("foo"),
 			},
 			mutate: func(req *ServiceConfigRequest) {
-				req.Upstreams = []string{"foo", "bar"}
+				req.UpstreamIDs = makeLegacyUpstreamIDs("foo", "bar")
 			},
 			wantSame: false,
 		},
 		{
 			name: "legacy upstreams should not depend on order",
 			req: ServiceConfigRequest{
-				Name:      "web",
-				Upstreams: []string{"bar", "foo"},
+				Name:        "web",
+				UpstreamIDs: makeLegacyUpstreamIDs("bar", "foo"),
 			},
 			mutate: func(req *ServiceConfigRequest) {
-				req.Upstreams = []string{"foo", "bar"}
+				req.UpstreamIDs = makeLegacyUpstreamIDs("foo", "bar")
 			},
 			wantSame: true,
 		},
@@ -2144,27 +2262,35 @@ func TestServiceConfigRequest(t *testing.T) {
 }
 
 func TestServiceConfigResponse_MsgPack(t *testing.T) {
-	// TODO(banks) lib.MapWalker doesn't actually fix the map[interface{}] issue
-	// it claims to in docs yet. When it does uncomment those cases below.
 	a := ServiceConfigResponse{
 		ProxyConfig: map[string]interface{}{
 			"string": "foo",
-			// "map": map[string]interface{}{
-			// 	"baz": "bar",
-			// },
-		},
-		UpstreamConfigs: map[string]map[string]interface{}{
-			"a": {
-				"string": "aaaa",
-				// "map": map[string]interface{}{
-				// 	"baz": "aa",
-				// },
+			"map": map[string]interface{}{
+				"baz": "bar",
 			},
-			"b": {
-				"string": "bbbb",
-				// "map": map[string]interface{}{
-				// 	"baz": "bb",
-				// },
+		},
+		UpstreamConfigs: []OpaqueUpstreamConfig{
+			{
+				Upstream: PeeredServiceName{
+					ServiceName: NewServiceName("a", acl.DefaultEnterpriseMeta()),
+				},
+				Config: map[string]interface{}{
+					"string": "aaaa",
+					"map": map[string]interface{}{
+						"baz": "aa",
+					},
+				},
+			},
+			{
+				Upstream: PeeredServiceName{
+					ServiceName: NewServiceName("b", acl.DefaultEnterpriseMeta()),
+				},
+				Config: map[string]interface{}{
+					"string": "bbbb",
+					"map": map[string]interface{}{
+						"baz": "bb",
+					},
+				},
 			},
 		},
 	}
@@ -2723,16 +2849,19 @@ func TestServiceConfigEntry(t *testing.T) {
 					},
 				},
 			},
-			validateErr: `invalid EnvoyExtensions[0]: Name "not-a-builtin" is not a built-in extension`,
+			validateErr: `name "not-a-builtin" is not a built-in extension`,
 		},
-		"validate: valid extension name": {
+		"validate: valid extension": {
 			entry: &ServiceConfigEntry{
 				Kind:     ServiceDefaults,
 				Name:     "external",
 				Protocol: "http",
 				EnvoyExtensions: []EnvoyExtension{
 					{
-						Name: BuiltinAWSLambdaExtension,
+						Name: api.BuiltinAWSLambdaExtension,
+						Arguments: map[string]interface{}{
+							"ARN": "some-arn",
+						},
 					},
 				},
 			},
@@ -3063,6 +3192,25 @@ func TestProxyConfigEntry(t *testing.T) {
 			expected: &ProxyConfigEntry{
 				Name:           ProxyConfigGlobal,
 				Kind:           ProxyDefaults,
+				EnterpriseMeta: *acl.DefaultEnterpriseMeta(),
+			},
+		},
+		"proxy config has invalid failover policy": {
+			entry: &ProxyConfigEntry{
+				Name:           "global",
+				FailoverPolicy: &ServiceResolverFailoverPolicy{Mode: "bad"},
+			},
+			validateErr: `Failover policy must be one of '', 'default', or 'order-by-locality'`,
+		},
+		"proxy config with valid failover policy": {
+			entry: &ProxyConfigEntry{
+				Name:           "global",
+				FailoverPolicy: &ServiceResolverFailoverPolicy{Mode: "order-by-locality"},
+			},
+			expected: &ProxyConfigEntry{
+				Name:           ProxyConfigGlobal,
+				Kind:           ProxyDefaults,
+				FailoverPolicy: &ServiceResolverFailoverPolicy{Mode: "order-by-locality"},
 				EnterpriseMeta: *acl.DefaultEnterpriseMeta(),
 			},
 		},

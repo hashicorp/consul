@@ -41,6 +41,12 @@ jobs:
           if [[ -n ${ROLE} ]]; then
             echo "Actor ${{ github.actor }} is a ${TEAM} team member"
             echo "MESSAGE=true" >> $GITHUB_OUTPUT
+          elif [[  "${{ contains(github.actor, 'hc-github-team-consul-core') }}" == "true" ]]; then 
+            echo "Actor ${{ github.actor }} is a ${TEAM} team member"
+            echo "MESSAGE=true" >> $GITHUB_OUTPUT
+          elif [[  "${{ contains(github.actor, 'dependabot') }}" == "true" ]]; then
+            echo "Actor ${{ github.actor }} is a ${TEAM} team member"
+            echo "MESSAGE=true" >> $GITHUB_OUTPUT 
           else
             echo "Actor ${{ github.actor }} is NOT a ${TEAM} team member"
             echo "MESSAGE=false" >> $GITHUB_OUTPUT
@@ -70,7 +76,7 @@ jobs:
       - name: Search
         if: github.event.action != 'opened'
         id: search
-        uses: tomhjp/gh-action-jira-search@v0.2.1
+        uses: tomhjp/gh-action-jira-search@v0.2.2
         with:
           # cf[10089] is Issue Link (use JIRA API to retrieve)
           jql: 'issuetype = "${{ steps.set-ticket-type.outputs.TYPE }}" and cf[10089] = "${{ github.event.issue.html_url || github.event.pull_request.html_url }}"'

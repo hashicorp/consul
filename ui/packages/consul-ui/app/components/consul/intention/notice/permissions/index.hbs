@@ -1,17 +1,15 @@
-<Notice
-  @type="info"
-as |notice|>
-  <notice.Body>
-    <p>
-      {{t "components.consul.intention.notice.permissions.body"}}
-    </p>
-  </notice.Body>
-  <notice.Footer>
-    <p>
-      <a href="{{env 'CONSUL_DOCS_URL'}}/connect/intentions" target="_blank" rel="noopener noreferrer">
-        {{t "components.consul.intention.notice.permissions.footer"}}
-      </a>
-    </p>
-  </notice.Footer>
-</Notice>
+{{!
+  Copyright (c) HashiCorp, Inc.
+  SPDX-License-Identifier: MPL-2.0
+}}
 
+<Hds::Alert @type="inline" class="mb-3 mt-2" as |A|>
+  <A.Description>{{t "components.consul.intention.notice.permissions.body"}}</A.Description>
+  <A.Link::Standalone
+    @text={{t "components.consul.intention.notice.permissions.footer"}}
+    @href="{{env 'CONSUL_DOCS_URL'}}/connect/intentions"
+    @icon="docs-link"
+    @iconPosition="trailing"
+    @size="small"
+  />
+</Hds::Alert>

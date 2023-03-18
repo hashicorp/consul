@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 import { module, test } from 'qunit';
 import { setupTest } from 'ember-qunit';
 import { get } from 'consul-ui/tests/helpers/api';
@@ -12,6 +17,7 @@ module('Integration | Serializer | node', function (hooks) {
   const nspace = 'default';
   const partition = 'default';
   test('respondForQuery returns the correct data for list endpoint', function (assert) {
+    assert.expect(4);
     const store = this.owner.lookup('service:store');
     const serializer = this.owner.lookup('serializer:node');
     serializer.store = store;
@@ -46,6 +52,7 @@ module('Integration | Serializer | node', function (hooks) {
     });
   });
   test('respondForQueryRecord returns the correct data for item endpoint', function (assert) {
+    assert.expect(4);
     const store = this.owner.lookup('service:store');
     const serializer = this.owner.lookup('serializer:node');
     serializer.store = store;
@@ -81,6 +88,8 @@ module('Integration | Serializer | node', function (hooks) {
     });
   });
   test('respondForQueryLeader returns the correct data', function (assert) {
+    assert.expect(1);
+
     const serializer = this.owner.lookup('serializer:node');
     const dc = 'dc-1';
     const request = {

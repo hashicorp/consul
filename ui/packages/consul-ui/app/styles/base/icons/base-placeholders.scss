@@ -1,14 +1,11 @@
-%theme-light {
-  --theme-dark-none: ;
-  --theme-light-none: initial;
-}
-%theme-dark {
-  --theme-dark-none: initial;
-  --theme-light-none: ;
-}
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 %with-glyph-icon {
-  font-weight: var(--typo-weight-normal);
-  background-color: rgb(var(--tone-gray-100));
+  font-weight: var(--token-typography-font-weight-regular);
+  background-color: var(--token-color-surface-strong);
   visibility: visible;
   padding: 0 4px;
 }

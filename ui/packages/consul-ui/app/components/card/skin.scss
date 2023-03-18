@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 %card:hover,
 %card:focus {
   @extend %card-intent;
@@ -5,7 +10,7 @@
 %card {
   border: var(--decor-border-100);
   border-radius: var(--decor-radius-100);
-  background-color: rgb(var(--tone-gray-000) / 90%);
+  background-color: var(--token-color-surface-faint);
 }
 %card > section,
 %card > ul > li {
@@ -14,12 +19,12 @@
 %card,
 %card > section,
 %card > ul > li {
-  border-color: rgb(var(--tone-gray-200));
+  border-color: var(--token-color-surface-interactive-active);
 }
 %card ul {
   /*TODO: %list-style-none?*/
   list-style-type: none;
 }
 %card-intent {
-  box-shadow: var(--decor-elevation-400);
+  box-shadow: var(--token-surface-mid-box-shadow);
 }

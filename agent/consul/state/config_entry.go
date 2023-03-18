@@ -211,7 +211,7 @@ func (s *Store) EnsureConfigEntry(idx uint64, conf structs.ConfigEntry) error {
 	tx := s.db.WriteTxn(idx)
 	defer tx.Abort()
 
-	if err := ensureConfigEntryTxn(tx, idx, conf); err != nil {
+	if err := ensureConfigEntryTxn(tx, idx, false, conf); err != nil {
 		return err
 	}
 
@@ -219,7 +219,7 @@ func (s *Store) EnsureConfigEntry(idx uint64, conf structs.ConfigEntry) error {
 }
 
 // ensureConfigEntryTxn upserts a config entry inside of a transaction.
-func ensureConfigEntryTxn(tx WriteTxn, idx uint64, conf structs.ConfigEntry) error {
+func ensureConfigEntryTxn(tx WriteTxn, idx uint64, statusUpdate bool, conf structs.ConfigEntry) error {
 	q := newConfigEntryQuery(conf)
 	existing, err := tx.First(tableConfigEntries, indexID, q)
 	if err != nil {
@@ -237,7 +237,18 @@ func ensureConfigEntryTxn(tx WriteTxn, idx uint64, conf structs.ConfigEntry) err
 				return err
 			}
 		}
+
+		if !statusUpdate {
+			if controlledConf, ok := conf.(structs.ControlledConfigEntry); ok {
+				controlledConf.SetStatus(existing.(structs.ControlledConfigEntry).GetStatus())
+			}
+		}
 	} else {
+		if !statusUpdate {
+			if controlledConf, ok := conf.(structs.ControlledConfigEntry); ok {
+				controlledConf.SetStatus(controlledConf.DefaultStatus())
+			}
+		}
 		raftIndex.CreateIndex = idx
 	}
 	raftIndex.ModifyIndex = idx
@@ -281,7 +292,42 @@ func (s *Store) EnsureConfigEntryCAS(idx, cidx uint64, conf structs.ConfigEntry)
 		return false, nil
 	}
 
-	if err := ensureConfigEntryTxn(tx, idx, conf); err != nil {
+	if err := ensureConfigEntryTxn(tx, idx, false, conf); err != nil {
+		return false, err
+	}
+
+	err = tx.Commit()
+	return err == nil, err
+}
+
+// EnsureConfigEntryWithStatusCAS is called to do a check-and-set upsert of a given config entry and its status.
+func (s *Store) EnsureConfigEntryWithStatusCAS(idx, cidx uint64, conf structs.ConfigEntry) (bool, error) {
+	tx := s.db.WriteTxn(idx)
+	defer tx.Abort()
+
+	// Check for existing configuration.
+	existing, err := tx.First(tableConfigEntries, indexID, newConfigEntryQuery(conf))
+	if err != nil {
+		return false, fmt.Errorf("failed configuration lookup: %s", err)
+	}
+
+	// Check if we should do the set. A ModifyIndex of 0 means that
+	// we are doing a set-if-not-exists.
+	var existingIdx structs.RaftIndex
+	if existing != nil {
+		existingIdx = *existing.(structs.ConfigEntry).GetRaftIndex()
+	}
+	if cidx == 0 && existing != nil {
+		return false, nil
+	}
+	if cidx != 0 && existing == nil {
+		return false, nil
+	}
+	if existing != nil && cidx != 0 && cidx != existingIdx.ModifyIndex {
+		return false, nil
+	}
+
+	if err := ensureConfigEntryTxn(tx, idx, true, conf); err != nil {
 		return false, err
 	}
 
@@ -416,9 +462,9 @@ func insertConfigEntryWithTxn(tx WriteTxn, idx uint64, conf structs.ConfigEntry)
 	if conf == nil {
 		return fmt.Errorf("cannot insert nil config entry")
 	}
+
 	// If the config entry is for a terminating or ingress gateway we update the memdb table
 	// that associates gateways <-> services.
-
 	if conf.GetKind() == structs.TerminatingGateway || conf.GetKind() == structs.IngressGateway {
 		err := updateGatewayServices(tx, idx, conf, conf.GetEnterpriseMeta())
 		if err != nil {
@@ -447,6 +493,11 @@ func insertConfigEntryWithTxn(tx WriteTxn, idx uint64, conf structs.ConfigEntry)
 			if err := upsertKindServiceName(tx, idx, structs.ServiceKindDestination, sn); err != nil {
 				return fmt.Errorf("failed to persist service name: %v", err)
 			}
+		}
+	case structs.SamenessGroup:
+		err := checkSamenessGroup(tx, conf)
+		if err != nil {
+			return err
 		}
 	}
 
@@ -493,9 +544,16 @@ func validateProposedConfigEntryInGraph(
 		if err != nil {
 			return err
 		}
+	case structs.SamenessGroup:
 	case structs.ServiceIntentions:
 	case structs.MeshConfig:
 	case structs.ExportedServices:
+	case structs.APIGateway: // TODO Consider checkGatewayClash
+	case structs.BoundAPIGateway:
+	case structs.InlineCertificate:
+	case structs.HTTPRoute:
+	case structs.TCPRoute:
+	case structs.RateLimitIPConfig:
 	default:
 		return fmt.Errorf("unhandled kind %q during validation of %q", kindName.Kind, kindName.Name)
 	}
@@ -1154,7 +1212,11 @@ func (s *Store) ReadResolvedServiceConfigEntries(
 			if override.Name == "" {
 				continue // skip this impossible condition
 			}
-			seenUpstreams[override.ServiceID()] = struct{}{}
+			if override.Peer != "" {
+				continue // Peer services do not have service-defaults config entries to fetch.
+			}
+			sid := override.PeeredServiceName().ServiceName.ToServiceID()
+			seenUpstreams[sid] = struct{}{}
 		}
 	}
 
@@ -1235,9 +1297,11 @@ func readDiscoveryChainConfigEntriesTxn(
 	// the end of this function to indicate "no such entry".
 
 	var (
-		todoSplitters = make(map[structs.ServiceID]struct{})
-		todoResolvers = make(map[structs.ServiceID]struct{})
-		todoDefaults  = make(map[structs.ServiceID]struct{})
+		todoSplitters      = make(map[structs.ServiceID]struct{})
+		todoResolvers      = make(map[structs.ServiceID]struct{})
+		todoDefaults       = make(map[structs.ServiceID]struct{})
+		todoPeers          = make(map[string]struct{})
+		todoSamenessGroups = make(map[string]struct{})
 	)
 
 	sid := structs.NewServiceID(serviceName, entMeta)
@@ -1339,6 +1403,14 @@ func readDiscoveryChainConfigEntriesTxn(
 		for _, svc := range resolver.ListRelatedServices() {
 			todoResolvers[svc] = struct{}{}
 		}
+
+		for _, peer := range resolver.RelatedPeers() {
+			todoPeers[peer] = struct{}{}
+		}
+
+		for _, peer := range resolver.RelatedSamenessGroups() {
+			todoSamenessGroups[peer] = struct{}{}
+		}
 	}
 
 	for {
@@ -1378,6 +1450,43 @@ func readDiscoveryChainConfigEntriesTxn(
 			continue
 		}
 		res.Services[svcID] = entry
+	}
+
+	peerEntMeta := structs.DefaultEnterpriseMetaInPartition(entMeta.PartitionOrDefault())
+	for sg := range todoSamenessGroups {
+		idx, entry, err := getSamenessGroupConfigEntryTxn(tx, ws, sg, overrides, peerEntMeta)
+		if err != nil {
+			return 0, nil, err
+		}
+		if idx > maxIdx {
+			maxIdx = idx
+		}
+		if entry == nil {
+			continue
+		}
+
+		for _, e := range entry.Members {
+			if e.Peer != "" {
+				todoPeers[e.Peer] = struct{}{}
+			}
+		}
+		res.SamenessGroups[sg] = entry
+	}
+
+	for peerName := range todoPeers {
+		q := Query{
+			Value:          peerName,
+			EnterpriseMeta: *peerEntMeta,
+		}
+		idx, entry, err := peeringReadTxn(tx, ws, q)
+		if err != nil {
+			return 0, nil, err
+		}
+		if idx > maxIdx {
+			maxIdx = idx
+		}
+
+		res.Peers[peerName] = entry
 	}
 
 	// Strip nils now that they are no longer necessary.

@@ -4,12 +4,13 @@ import (
 	"bytes"
 	"context"
 	"crypto/md5"
+	"crypto/rand"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"math/rand"
+	mathrand "math/rand"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -23,7 +24,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/golang/protobuf/jsonpb"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/google/tcpproxy"
@@ -37,6 +37,7 @@ import (
 	"golang.org/x/sync/errgroup"
 	"golang.org/x/time/rate"
 	"google.golang.org/grpc"
+	"google.golang.org/protobuf/encoding/protojson"
 	"gopkg.in/square/go-jose.v2/jwt"
 
 	"github.com/hashicorp/consul/agent/cache"
@@ -53,7 +54,7 @@ import (
 	"github.com/hashicorp/consul/internal/go-sso/oidcauth/oidcauthtest"
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/lib"
-	"github.com/hashicorp/consul/proto/pbautoconf"
+	"github.com/hashicorp/consul/proto/private/pbautoconf"
 	"github.com/hashicorp/consul/sdk/freeport"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
@@ -442,6 +443,7 @@ func testAgent_AddService(t *testing.T, extraHCL string) {
 				Tags:           []string{"tag1"},
 				Weights:        nil, // nil weights...
 				Port:           8100,
+				Locality:       &structs.Locality{Region: "us-west-1", Zone: "us-west-1a"},
 				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 			},
 			// ... should be populated to avoid "IsSame" returning true during AE.
@@ -752,7 +754,7 @@ func testAgent_AddServices_AliasUpdateCheckNotReverted(t *testing.T, extraHCL st
 
 func test_createAlias(t *testing.T, agent *TestAgent, chk *structs.CheckType, expectedResult string) func(r *retry.R) {
 	t.Helper()
-	serviceNum := rand.Int()
+	serviceNum := mathrand.Int()
 	srv := &structs.NodeService{
 		Service: fmt.Sprintf("serviceAlias-%d", serviceNum),
 		Tags:    []string{"tag1"},
@@ -5290,13 +5292,12 @@ func TestAutoConfig_Integration(t *testing.T) {
 		// check that the on disk certs match expectations
 		data, err := os.ReadFile(filepath.Join(client.DataDir, "auto-config.json"))
 		require.NoError(r, err)
-		rdr := strings.NewReader(string(data))
 
 		var resp pbautoconf.AutoConfigResponse
-		pbUnmarshaler := &jsonpb.Unmarshaler{
-			AllowUnknownFields: false,
+		pbUnmarshaler := &protojson.UnmarshalOptions{
+			DiscardUnknown: false,
 		}
-		require.NoError(r, pbUnmarshaler.Unmarshal(rdr, &resp), "data: %s", data)
+		require.NoError(r, pbUnmarshaler.Unmarshal(data, &resp), "data: %s", data)
 
 		actual, err := tls.X509KeyPair([]byte(resp.Certificate.CertPEM), []byte(resp.Certificate.PrivateKeyPEM))
 		require.NoError(r, err)

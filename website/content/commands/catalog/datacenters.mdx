@@ -1,18 +1,20 @@
 ---
 layout: commands
 page_title: 'Commands: Catalog List Datacenters'
+description: >-
+  The `consul catalog datacenters` command returns a list of all known datacenters.
 ---
 
 # Consul Catalog List Datacenters
 
 Command: `consul catalog datacenters`
 
-Corresponding HTTP API Endpoint: [\[GET\] /v1/catalog/datacenters](/api-docs/catalog#list-datacenters)
+Corresponding HTTP API Endpoint: [\[GET\] /v1/catalog/datacenters](/consul/api-docs/catalog#list-datacenters)
 
 The `catalog datacenters` command prints all known datacenters.
 
-The table below shows this command's [required ACLs](/api-docs/api-structure#authentication). Configuration of
-[blocking queries](/api-docs/features/blocking) and [agent caching](/api-docs/features/caching)
+The table below shows this command's [required ACLs](/consul/api-docs/api-structure#authentication). Configuration of
+[blocking queries](/consul/api-docs/features/blocking) and [agent caching](/consul/api-docs/features/caching)
 are not supported from commands, but may be from the corresponding HTTP endpoint.
 
 | ACL Required |

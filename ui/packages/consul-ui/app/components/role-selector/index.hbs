@@ -1,3 +1,8 @@
+{{!
+  Copyright (c) HashiCorp, Inc.
+  SPDX-License-Identifier: MPL-2.0
+}}
+
 <ModalDialog
   class="role-selector"
   data-test-role-form
@@ -34,9 +39,15 @@ as |modal|>
           @items={{item.Policies}}
         >
           <BlockSlot @name="trigger">
-            <label for="{{name}}_state_policy" data-test-create-policy class="type-dialog">
-              <span>Create new policy</span>
-            </label>
+            <Hds::Button
+              @text='Create new policy'
+              @size='small'
+              @color='tertiary'
+              @icon='plus'
+              class='type-dialog'
+              data-test-create-policy
+              {{action 'triggerStateCheckboxChange'}}
+            />
           </BlockSlot>
         </PolicySelector>
 
@@ -56,27 +67,40 @@ as |modal|>
   </BlockSlot>
   <BlockSlot @name="actions" as |close|>
 
-{{#if (eq state 'role')}}
-    <button type="submit"
-      onclick={{perform this.save item items (queue (action close) (action 'reset'))}}
-      disabled={{if (or item.isSaving item.isPristine item.isInvalid) 'disabled'}}
-    >
-      {{#if item.isSaving }}
-        <div class="progress indeterminate"></div>
-      {{/if}}
-      <span>Create and apply</span>
-    </button>
-    <button type="reset" disabled={{if item.isSaving 'disabled'}} {{action (queue (action close) (action 'reset'))}}>Cancel</button>
-{{else}}
-    <button type="submit" {{action 'dispatch' 'save' (array policy item.Policies (action (mut state) 'role'))}} disabled={{if (or policy.isSaving policy.isPristine policy.isInvalid) 'disabled'}}>
-      {{#if policy.isSaving }}
-        <div class="progress indeterminate"></div>
-      {{/if}}
-      <span>Create and apply</span>
-    </button>
-    <button type="reset" disabled={{if policy.isSaving 'disabled'}} {{action (mut state) 'role'}}>Cancel</button>
-{{/if}}
+    <Hds::ButtonSet>
+      {{#if (eq state 'role')}}
+        <Hds::Button
+          type='submit'
+          @text='Create and apply'
+          @isLoading={{item.isSaving}}
+          onclick={{perform this.save item items (queue (action close) (action 'reset'))}}
+          disabled={{if (or item.isSaving item.isPristine item.isInvalid) 'disabled'}}
+        />
+        <Hds::Button
+          @text='Cancel'
+          type='reset'
+          @color='secondary'
+          disabled={{if item.isSaving 'disabled'}}
+          {{on 'click' (action (queue (action close) (action 'reset')))}}
+        />
 
+      {{else}}
+        <Hds::Button
+          type='submit'
+          @text='Create and apply'
+          @isLoading={{policy.isSaving}}
+          {{action 'dispatch' 'save' (array policy item.Policies (action (mut state) 'role'))}}
+          disabled={{if (or policy.isSaving policy.isPristine policy.isInvalid) 'disabled'}}
+        />
+        <Hds::Button
+          @text='Cancel'
+          type='reset'
+          @color='secondary'
+          disabled={{if policy.isSaving 'disabled'}}
+          {{on 'click' (action (mut state) 'role')}}
+        />
+      {{/if}}
+    </Hds::ButtonSet>
   </BlockSlot>
 </ModalDialog>
 
@@ -94,12 +118,15 @@ as |modal|>
     Apply an existing role
   </BlockSlot>
   <BlockSlot @name="create">
-    <label class="type-dialog"
+    <Hds::Button
+      @text='Create new role'
+      @size='small'
+      @color='tertiary'
+      @icon='plus'
+      class='type-dialog'
       data-test-role-create
       {{on "click" (optional this.modal.open)}}
-    >
-      <span>Create new role</span>
-    </label>
+    />
   </BlockSlot>
   <BlockSlot @name="option" as |option|>
     {{option.Name}}

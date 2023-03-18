@@ -14,12 +14,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/golang/protobuf/proto"
-	"github.com/golang/protobuf/ptypes/duration"
-	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/serf/coordinate"
 	"github.com/mitchellh/hashstructure"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
@@ -85,6 +83,7 @@ const (
 	PeeringTrustBundleWriteType                 = 38
 	PeeringTrustBundleDeleteType                = 39
 	PeeringSecretsWriteType                     = 40
+	RaftLogVerifierCheckpoint                   = 41 // Only used for log verifier, no-op on FSM.
 )
 
 const (
@@ -151,6 +150,7 @@ var requestTypeStrings = map[MessageType]string{
 	PeeringTrustBundleWriteType:     "PeeringTrustBundle",
 	PeeringTrustBundleDeleteType:    "PeeringTrustBundleDelete",
 	PeeringSecretsWriteType:         "PeeringSecret",
+	RaftLogVerifierCheckpoint:       "RaftLogVerifierCheckpoint",
 }
 
 const (
@@ -462,6 +462,7 @@ type RegisterRequest struct {
 	Service         *NodeService
 	Check           *HealthCheck
 	Checks          HealthChecks
+	Locality        *Locality
 
 	// SkipNodeUpdate can be used when a register request is intended for
 	// updating a service and/or checks, but doesn't want to overwrite any
@@ -506,7 +507,8 @@ func (r *RegisterRequest) ChangesNode(node *Node) bool {
 		r.Address != node.Address ||
 		r.Datacenter != node.Datacenter ||
 		!reflect.DeepEqual(r.TaggedAddresses, node.TaggedAddresses) ||
-		!reflect.DeepEqual(r.NodeMeta, node.Meta) {
+		!reflect.DeepEqual(r.NodeMeta, node.Meta) ||
+		!reflect.DeepEqual(r.Locality, node.Locality) {
 		return true
 	}
 
@@ -627,6 +629,12 @@ func (r *DCSpecificRequest) CacheInfo() cache.RequestInfo {
 
 func (r *DCSpecificRequest) CacheMinIndex() uint64 {
 	return r.QueryOptions.MinQueryIndex
+}
+
+type OperatorUsageRequest struct {
+	DCSpecificRequest
+
+	Global bool
 }
 
 type ServiceDumpRequest struct {
@@ -869,6 +877,7 @@ type Node struct {
 	PeerName        string `json:",omitempty"`
 	TaggedAddresses map[string]string
 	Meta            map[string]string
+	Locality        *Locality `json:",omitempty" bexpr:"-"`
 
 	RaftIndex `bexpr:"-"`
 }
@@ -1039,6 +1048,7 @@ type ServiceNode struct {
 	ServiceEnableTagOverride bool
 	ServiceProxy             ConnectProxyConfig
 	ServiceConnect           ServiceConnect
+	ServiceLocality          *Locality `bexpr:"-"`
 
 	// If not empty, PeerName represents the peer that this ServiceNode was imported from.
 	PeerName string `json:",omitempty"`
@@ -1097,6 +1107,7 @@ func (s *ServiceNode) PartialClone() *ServiceNode {
 		ServiceEnableTagOverride: s.ServiceEnableTagOverride,
 		ServiceProxy:             s.ServiceProxy,
 		ServiceConnect:           s.ServiceConnect,
+		ServiceLocality:          s.ServiceLocality,
 		RaftIndex: RaftIndex{
 			CreateIndex: s.CreateIndex,
 			ModifyIndex: s.ModifyIndex,
@@ -1124,6 +1135,7 @@ func (s *ServiceNode) ToNodeService() *NodeService {
 		Connect:           s.ServiceConnect,
 		PeerName:          s.PeerName,
 		EnterpriseMeta:    s.EnterpriseMeta,
+		Locality:          s.ServiceLocality,
 		RaftIndex: RaftIndex{
 			CreateIndex: s.CreateIndex,
 			ModifyIndex: s.ModifyIndex,
@@ -1147,7 +1159,7 @@ func (sn *ServiceNode) CompoundServiceID() ServiceID {
 	}
 }
 
-func (sn *ServiceNode) CompoundServiceName() ServiceName {
+func (sn *ServiceNode) CompoundServiceName() PeeredServiceName {
 	name := sn.ServiceName
 	if name == "" {
 		name = sn.ServiceID
@@ -1157,10 +1169,14 @@ func (sn *ServiceNode) CompoundServiceName() ServiceName {
 	entMeta := sn.EnterpriseMeta
 	entMeta.Normalize()
 
-	return ServiceName{
-		Name:           name,
-		EnterpriseMeta: entMeta,
+	return PeeredServiceName{
+		ServiceName: ServiceName{
+			Name:           name,
+			EnterpriseMeta: entMeta,
+		},
+		Peer: sn.PeerName,
 	}
+
 }
 
 // Weights represent the weight used by DNS for a given status
@@ -1187,7 +1203,8 @@ func (k ServiceKind) IsProxy() bool {
 	case ServiceKindConnectProxy,
 		ServiceKindMeshGateway,
 		ServiceKindTerminatingGateway,
-		ServiceKindIngressGateway:
+		ServiceKindIngressGateway,
+		ServiceKindAPIGateway:
 		return true
 	}
 	return false
@@ -1200,29 +1217,40 @@ const (
 	// default to the typical service.
 	ServiceKindTypical ServiceKind = ""
 
-	// ServiceKindConnectProxy is a proxy for the Connect feature. This
+	// ServiceKindConnectProxy is a proxy for the Consul Service Mesh. This
 	// service proxies another service within Consul and speaks the connect
 	// protocol.
 	ServiceKindConnectProxy ServiceKind = "connect-proxy"
 
-	// ServiceKindMeshGateway is a Mesh Gateway for the Connect feature. This
-	// service will proxy connections based off the SNI header set by other
+	// ServiceKindMeshGateway is a Mesh Gateway for the Consul Service Mesh.
+	// This service will proxy connections based off the SNI header set by other
 	// connect proxies
 	ServiceKindMeshGateway ServiceKind = "mesh-gateway"
 
-	// ServiceKindTerminatingGateway is a Terminating Gateway for the Connect
-	// feature. This service will proxy connections to services outside the mesh.
+	// ServiceKindTerminatingGateway is a Terminating Gateway for the Consul Service
+	// Mesh feature. This service will proxy connections to services outside the mesh.
 	ServiceKindTerminatingGateway ServiceKind = "terminating-gateway"
 
-	// ServiceKindIngressGateway is an Ingress Gateway for the Connect feature.
+	// ServiceKindIngressGateway is an Ingress Gateway for the Consul Service Mesh.
 	// This service allows external traffic to enter the mesh based on
 	// centralized configuration.
 	ServiceKindIngressGateway ServiceKind = "ingress-gateway"
 
-	// ServiceKindDestination is a Destination  for the Connect feature.
+	// ServiceKindAPIGateway is an API Gateway for the Consul Service Mesh.
+	// This service allows external traffic to enter the mesh based on
+	// centralized configuration.
+	ServiceKindAPIGateway ServiceKind = "api-gateway"
+
+	// ServiceKindDestination is a Destination  for the Consul Service Mesh feature.
 	// This service allows external traffic to exit the mesh through a terminating gateway
 	// based on centralized configuration.
 	ServiceKindDestination ServiceKind = "destination"
+
+	// ServiceKindConnectEnabled is used to indicate whether a service is either
+	// connect-native or if the service has a corresponding sidecar. It is used for
+	// internal query purposes and should not be exposed to users as a valid Kind
+	// option.
+	ServiceKindConnectEnabled ServiceKind = "connect-enabled"
 )
 
 // Type to hold a address and port of a service
@@ -1252,6 +1280,7 @@ type NodeService struct {
 	SocketPath        string `json:",omitempty"` // TODO This might be integrated into Address somehow, but not sure about the ergonomics. Only one of (address,port) or socketpath can be defined.
 	Weights           *Weights
 	EnableTagOverride bool
+	Locality          *Locality `json:",omitempty" bexpr:"-"`
 
 	// Proxy is the configuration set for Kind = connect-proxy. It is mandatory in
 	// that case and an error to be set for any other kind. This config is part of
@@ -1418,7 +1447,8 @@ func (s *NodeService) IsSidecarProxy() bool {
 func (s *NodeService) IsGateway() bool {
 	return s.Kind == ServiceKindMeshGateway ||
 		s.Kind == ServiceKindTerminatingGateway ||
-		s.Kind == ServiceKindIngressGateway
+		s.Kind == ServiceKindIngressGateway ||
+		s.Kind == ServiceKindAPIGateway
 }
 
 // Validate validates the node service configuration.
@@ -1562,7 +1592,7 @@ func (s *NodeService) ValidateForAgent() error {
 	// Gateway validation
 	if s.IsGateway() {
 		// Non-ingress gateways must have a port
-		if s.Port == 0 && s.Kind != ServiceKindIngressGateway {
+		if s.Port == 0 && s.Kind != ServiceKindIngressGateway && s.Kind != ServiceKindAPIGateway {
 			result = multierror.Append(result, fmt.Errorf("Port must be non-zero for a %s", s.Kind))
 		}
 
@@ -1633,6 +1663,7 @@ func (s *NodeService) IsSame(other *NodeService) bool {
 		!reflect.DeepEqual(s.TaggedAddresses, other.TaggedAddresses) ||
 		!reflect.DeepEqual(s.Weights, other.Weights) ||
 		!reflect.DeepEqual(s.Meta, other.Meta) ||
+		!reflect.DeepEqual(s.Locality, other.Locality) ||
 		s.EnableTagOverride != other.EnableTagOverride ||
 		s.Kind != other.Kind ||
 		!reflect.DeepEqual(s.Proxy, other.Proxy) ||
@@ -1708,6 +1739,7 @@ func (s *NodeService) ToServiceNode(node string) *ServiceNode {
 		ServiceEnableTagOverride: s.EnableTagOverride,
 		ServiceProxy:             s.Proxy,
 		ServiceConnect:           s.Connect,
+		ServiceLocality:          s.Locality,
 		EnterpriseMeta:           s.EnterpriseMeta,
 		PeerName:                 s.PeerName,
 		RaftIndex: RaftIndex{
@@ -2240,10 +2272,29 @@ type IndexedServices struct {
 	QueryMeta
 }
 
+type Usage struct {
+	Usage map[string]ServiceUsage
+
+	QueryMeta
+}
+
+// ServiceUsage contains all of the usage data related to services
+type ServiceUsage struct {
+	Services                 int
+	ServiceInstances         int
+	ConnectServiceInstances  map[string]int
+	BillableServiceInstances int
+	EnterpriseServiceUsage
+}
+
 // PeeredServiceName is a basic tuple of ServiceName and peer
 type PeeredServiceName struct {
 	ServiceName ServiceName
 	Peer        string
+}
+
+func (psn PeeredServiceName) String() string {
+	return fmt.Sprintf("%v:%v", psn.ServiceName.String(), psn.Peer)
 }
 
 type ServiceName struct {
@@ -2854,11 +2905,12 @@ func EncodeProtoInterface(t MessageType, message interface{}) ([]byte, error) {
 }
 
 func EncodeProto(t MessageType, pb proto.Message) ([]byte, error) {
-	data := make([]byte, proto.Size(pb)+1)
-	data[0] = uint8(t)
+	data := make([]byte, 0, proto.Size(pb)+1)
+	data = append(data, uint8(t))
 
-	buf := proto.NewBuffer(data[1:1])
-	if err := buf.Marshal(pb); err != nil {
+	var err error
+	data, err = proto.MarshalOptions{}.MarshalAppend(data, pb)
+	if err != nil {
 		return nil, err
 	}
 
@@ -2957,24 +3009,49 @@ func (m MessageType) String() string {
 
 }
 
-func DurationToProto(d time.Duration) *duration.Duration {
+// This should only be used for conversions generated by MOG
+func DurationToProto(d time.Duration) *durationpb.Duration {
 	return durationpb.New(d)
 }
 
-func DurationFromProto(d *duration.Duration) time.Duration {
+// This should only be used for conversions generated by MOG
+func DurationFromProto(d *durationpb.Duration) time.Duration {
 	return d.AsDuration()
 }
 
-func TimeFromProto(s *timestamp.Timestamp) time.Time {
+// This should only be used for conversions generated by MOG
+func TimeFromProto(s *timestamppb.Timestamp) time.Time {
 	return s.AsTime()
 }
 
-func TimeToProto(s time.Time) *timestamp.Timestamp {
+// This should only be used for conversions generated by MOG
+func TimeToProto(s time.Time) *timestamppb.Timestamp {
 	return timestamppb.New(s)
 }
 
 // IsZeroProtoTime returns true if the time is the minimum protobuf timestamp
 // (the Unix epoch).
-func IsZeroProtoTime(t *timestamp.Timestamp) bool {
+func IsZeroProtoTime(t *timestamppb.Timestamp) bool {
 	return t.Seconds == 0 && t.Nanos == 0
+}
+
+// Locality identifies where a given entity is running.
+type Locality struct {
+	// Region is region the zone belongs to.
+	Region string `json:",omitempty"`
+
+	// Zone is the zone the entity is running in.
+	Zone string `json:",omitempty"`
+}
+
+// ToAPI converts a struct Locality to an API Locality.
+func (l *Locality) ToAPI() *api.Locality {
+	if l == nil {
+		return nil
+	}
+
+	return &api.Locality{
+		Region: l.Region,
+		Zone:   l.Zone,
+	}
 }

@@ -1,9 +1,12 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 @keyframes icon-vault {
   100% {
-
     -webkit-mask-image: var(--icon-vault-color-16);
     mask-image: var(--icon-vault-color-16);
-    background-color: var(--icon-color, var(--color-vault-500, currentColor));
-
+    background-color: var(--icon-color, var(--color-vault, currentColor));
   }
 }

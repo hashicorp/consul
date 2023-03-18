@@ -1,0 +1,141 @@
+syntax = "proto3";
+
+package hashicorp.consul.resource;
+
+import "annotations/ratelimit/ratelimit.proto";
+import "google/protobuf/any.proto";
+
+message Type {
+  string group = 1;
+  string group_version = 2;
+  string kind = 3;
+}
+
+message Tenancy {
+  string partition = 1;
+  string namespace = 2;
+  string peer_name = 3;
+}
+
+message ID {
+  string uid = 1;
+  string name = 2;
+  Type type = 3;
+  Tenancy tenancy = 4;
+}
+
+message Resource {
+  ID id = 1;
+  ID owner = 2;
+  string version = 3;
+  string generation = 4;
+
+  map<string, string> metadata = 5;
+  reserved 6; // status
+
+  google.protobuf.Any data = 7;
+}
+
+message WatchEvent {
+  enum Operation {
+    OPERATION_UNSPECIFIED = 0;
+    OPERATION_UPSERT = 1;
+    OPERATION_DELETE = 2;
+  }
+
+  Operation operation = 1;
+  Resource resource = 2;
+}
+
+service ResourceService {
+  rpc Read(ReadRequest) returns (ReadResponse) {
+    option (hashicorp.consul.internal.ratelimit.spec) = {operation_type: OPERATION_TYPE_READ};
+  }
+
+  rpc Write(WriteRequest) returns (WriteResponse) {
+    option (hashicorp.consul.internal.ratelimit.spec) = {operation_type: OPERATION_TYPE_WRITE};
+  }
+
+  rpc WriteStatus(WriteStatusRequest) returns (WriteStatusResponse) {
+    option (hashicorp.consul.internal.ratelimit.spec) = {operation_type: OPERATION_TYPE_WRITE};
+  }
+
+  rpc List(ListRequest) returns (ListResponse) {
+    option (hashicorp.consul.internal.ratelimit.spec) = {operation_type: OPERATION_TYPE_READ};
+  }
+
+  rpc Delete(DeleteRequest) returns (DeleteResponse) {
+    option (hashicorp.consul.internal.ratelimit.spec) = {operation_type: OPERATION_TYPE_WRITE};
+  }
+
+  rpc Watch(WatchRequest) returns (stream WatchResponse) {
+    option (hashicorp.consul.internal.ratelimit.spec) = {operation_type: OPERATION_TYPE_READ};
+  }
+}
+
+enum Condition {
+  CONDITION_UNSPECIFIED = 0;
+  CONDITION_ACCEPTED = 1;
+  CONDITION_INVALID = 2;
+  CONDITION_PERSISTENT_FAILURE = 3;
+}
+
+message ReadRequest {
+  ID id = 1;
+}
+
+message ReadResponse {
+  Resource resource = 1;
+}
+
+message ListRequest {
+  Type type = 1;
+  Tenancy tenancy = 2;
+  string name_prefix = 3;
+}
+
+message ListResponse {
+  repeated Resource resources = 1;
+}
+
+message WriteRequest {
+  Resource resource = 1;
+}
+
+message WriteResponse {
+  Resource resource = 1;
+}
+
+message WriteStatusResponse {
+  Resource resource = 1;
+}
+
+message WriteStatusRequest {
+  ID id = 1;
+  string version = 2;
+  string key = 3;
+  Condition condition = 4;
+  string state = 5;
+  repeated string messages = 6;
+}
+
+message DeleteRequest {
+  ID id = 1;
+  string version = 2;
+}
+
+message DeleteResponse {}
+
+message WatchRequest {
+  ID id = 1;
+}
+
+message WatchResponse {
+  enum Operation {
+    OPERATION_UNSPECIFIED = 0;
+    OPERATION_UPSERT = 1;
+    OPERATION_DELETE = 2;
+  }
+  Operation operation = 1;
+  Resource resource = 2;
+}

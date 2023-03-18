@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 #docfy-demo-preview-main-nav-vertical {
   .main-nav-vertical {
     @extend %main-nav-vertical;
@@ -15,7 +20,7 @@
     /* a transform is required to mark this element as the containing block */
     /* for hoisting, otherwise the viewport is the containing block */
     transform: translate(0, 0);
-    background-color: rgb(var(--tone-gray-600));
+    background-color: var(--token-color-foreground-faint);
     padding-top: 64px;
   }
   // TODO: Reduce the need for these debug overrides

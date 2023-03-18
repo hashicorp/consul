@@ -2,6 +2,7 @@ package configentry
 
 import (
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/proto/private/pbpeering"
 )
 
 // DiscoveryChainSet is a wrapped set of raw cross-referenced config entries
@@ -9,20 +10,24 @@ import (
 //
 // None of these are defaulted.
 type DiscoveryChainSet struct {
-	Routers       map[structs.ServiceID]*structs.ServiceRouterConfigEntry
-	Splitters     map[structs.ServiceID]*structs.ServiceSplitterConfigEntry
-	Resolvers     map[structs.ServiceID]*structs.ServiceResolverConfigEntry
-	Services      map[structs.ServiceID]*structs.ServiceConfigEntry
-	ProxyDefaults map[string]*structs.ProxyConfigEntry
+	Routers        map[structs.ServiceID]*structs.ServiceRouterConfigEntry
+	Splitters      map[structs.ServiceID]*structs.ServiceSplitterConfigEntry
+	Resolvers      map[structs.ServiceID]*structs.ServiceResolverConfigEntry
+	Services       map[structs.ServiceID]*structs.ServiceConfigEntry
+	Peers          map[string]*pbpeering.Peering
+	SamenessGroups map[string]*structs.SamenessGroupConfigEntry
+	ProxyDefaults  map[string]*structs.ProxyConfigEntry
 }
 
 func NewDiscoveryChainSet() *DiscoveryChainSet {
 	return &DiscoveryChainSet{
-		Routers:       make(map[structs.ServiceID]*structs.ServiceRouterConfigEntry),
-		Splitters:     make(map[structs.ServiceID]*structs.ServiceSplitterConfigEntry),
-		Resolvers:     make(map[structs.ServiceID]*structs.ServiceResolverConfigEntry),
-		Services:      make(map[structs.ServiceID]*structs.ServiceConfigEntry),
-		ProxyDefaults: make(map[string]*structs.ProxyConfigEntry),
+		Routers:        make(map[structs.ServiceID]*structs.ServiceRouterConfigEntry),
+		Splitters:      make(map[structs.ServiceID]*structs.ServiceSplitterConfigEntry),
+		Resolvers:      make(map[structs.ServiceID]*structs.ServiceResolverConfigEntry),
+		Services:       make(map[structs.ServiceID]*structs.ServiceConfigEntry),
+		Peers:          make(map[string]*pbpeering.Peering),
+		ProxyDefaults:  make(map[string]*structs.ProxyConfigEntry),
+		SamenessGroups: make(map[string]*structs.SamenessGroupConfigEntry),
 	}
 }
 
@@ -108,6 +113,16 @@ func (e *DiscoveryChainSet) AddProxyDefaults(entries ...*structs.ProxyConfigEntr
 	}
 	for _, entry := range entries {
 		e.ProxyDefaults[entry.PartitionOrDefault()] = entry
+	}
+}
+
+// AddPeers adds cluster peers. Convenience function for testing.
+func (e *DiscoveryChainSet) AddPeers(entries ...*pbpeering.Peering) {
+	if e.Peers == nil {
+		e.Peers = make(map[string]*pbpeering.Peering)
+	}
+	for _, entry := range entries {
+		e.Peers[entry.Name] = entry
 	}
 }
 

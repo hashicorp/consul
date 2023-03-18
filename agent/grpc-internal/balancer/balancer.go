@@ -65,21 +65,25 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-// NewBuilder constructs a new Builder with the given name.
-func NewBuilder(name string, logger hclog.Logger) *Builder {
+// NewBuilder constructs a new Builder. Calling Register will add the Builder
+// to our global registry under the given "authority" such that it will be used
+// when dialing targets in the form "consul-internal://<authority>/...", this
+// allows us to add and remove balancers for different in-memory agents during
+// tests.
+func NewBuilder(authority string, logger hclog.Logger) *Builder {
 	return &Builder{
-		name:     name,
-		logger:   logger,
-		byTarget: make(map[string]*list.List),
-		shuffler: randomShuffler(),
+		authority: authority,
+		logger:    logger,
+		byTarget:  make(map[string]*list.List),
+		shuffler:  randomShuffler(),
 	}
 }
 
 // Builder implements gRPC's balancer.Builder interface to construct balancers.
 type Builder struct {
-	name     string
-	logger   hclog.Logger
-	shuffler shuffler
+	authority string
+	logger    hclog.Logger
+	shuffler  shuffler
 
 	mu       sync.Mutex
 	byTarget map[string]*list.List
@@ -129,19 +133,15 @@ func (b *Builder) removeBalancer(targetURL string, elem *list.Element) {
 	}
 }
 
-// Name implements the gRPC Balancer interface by returning its given name.
-func (b *Builder) Name() string { return b.name }
-
-// gRPC's balancer.Register method is not thread-safe, so we guard our calls
-// with a global lock (as it may be called from parallel tests).
-var registerLock sync.Mutex
-
-// Register the Builder in gRPC's global registry using its given name.
+// Register the Builder in our global registry. Users should call Deregister
+// when finished using the Builder to clean-up global state.
 func (b *Builder) Register() {
-	registerLock.Lock()
-	defer registerLock.Unlock()
+	globalRegistry.register(b.authority, b)
+}
 
-	gbalancer.Register(b)
+// Deregister the Builder from our global registry to clean up state.
+func (b *Builder) Deregister() {
+	globalRegistry.deregister(b.authority)
 }
 
 // Rebalance randomizes the priority order of servers for the given target to

@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -41,6 +42,56 @@ func TestRetryer(t *testing.T) {
 	}
 }
 
+func TestBasics(t *testing.T) {
+	t.Run("Error allows retry", func(t *testing.T) {
+		i := 0
+		Run(t, func(r *R) {
+			i++
+			t.Logf("i: %d; r: %#v", i, r)
+			if i == 1 {
+				r.Errorf("Errorf, i: %d", i)
+				return
+			}
+		})
+		assert.Equal(t, i, 2)
+	})
+
+	t.Run("Fatal returns from func, but does not fail test", func(t *testing.T) {
+		i := 0
+		gotHere := false
+		ft := &fakeT{}
+		Run(ft, func(r *R) {
+			i++
+			t.Logf("i: %d; r: %#v", i, r)
+			if i == 1 {
+				r.Fatalf("Fatalf, i: %d", i)
+				gotHere = true
+			}
+		})
+
+		assert.False(t, gotHere)
+		assert.Equal(t, i, 2)
+		// surprisingly, r.FailNow() *does not* trigger ft.FailNow()!
+		assert.Equal(t, ft.fails, 0)
+	})
+
+	t.Run("Func being run can panic with struct{}{}", func(t *testing.T) {
+		gotPanic := false
+		func() {
+			defer func() {
+				if p := recover(); p != nil {
+					gotPanic = true
+				}
+			}()
+			Run(t, func(r *R) {
+				panic(struct{}{})
+			})
+		}()
+
+		assert.True(t, gotPanic)
+	})
+}
+
 func TestRunWith(t *testing.T) {
 	t.Run("calls FailNow after exceeding retries", func(t *testing.T) {
 		ft := &fakeT{}
@@ -65,6 +116,7 @@ func TestRunWith(t *testing.T) {
 			r.Fatalf("not yet")
 		})
 
+		// TODO: these should all be assert
 		require.Equal(t, 2, iter)
 		require.Equal(t, 1, ft.fails)
 		require.Len(t, ft.out, 1)

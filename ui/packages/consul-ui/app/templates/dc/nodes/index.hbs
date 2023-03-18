@@ -1,3 +1,8 @@
+{{!
+  Copyright (c) HashiCorp, Inc.
+  SPDX-License-Identifier: MPL-2.0
+}}
+
 <Route @name={{routeName}} as |route|>
 
   <DataSource
@@ -88,25 +93,27 @@
                         }}
                       </BlockSlot>
                       <BlockSlot @name='actions'>
-                        <li class='docs-link'>
-                          <a
-                            href='{{env "CONSUL_DOCS_DEVELOPER_URL"}}/agent'
-                            rel='noopener noreferrer'
-                            target='_blank'
-                          >
-                            {{t 'routes.dc.nodes.index.empty.documentation'}}
-                          </a>
+                        <li>
+                          <Hds::Button
+                            @text={{t 'routes.dc.nodes.index.empty.documentation'}}
+                            @href='{{env "CONSUL_DOCS_DEVELOPER_URL"}}/agent'
+                            @color='tertiary'
+                            @icon='docs-link'
+                            @iconPosition='trailing'
+                            @size='small'
+                          />
                         </li>
-                        <li class='learn-link'>
-                          <a
-                            href='{{env
+                        <li>
+                          <Hds::Button
+                            @text={{t 'routes.dc.nodes.index.empty.learn'}}
+                            @href='{{env
                               "CONSUL_DOCS_LEARN_URL"
                             }}/tutorials/consul/deployment-guide?in=consul/production-deploy#configure-consul-agents'
-                            rel='noopener noreferrer'
-                            target='_blank'
-                          >
-                            {{t 'routes.dc.nodes.index.empty.learn'}}
-                          </a>
+                            @color='tertiary'
+                            @icon='learn-link'
+                            @iconPosition='trailing'
+                            @size='small'
+                          />
                         </li>
                       </BlockSlot>
                     </EmptyState>

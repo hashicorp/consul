@@ -1,7 +1,13 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 import setHelpers from 'mnemonist/set';
 
 export default {
   kind: {
+    'api-gateway': (item, value) => item.Kind === value,
     'ingress-gateway': (item, value) => item.Kind === value,
     'terminating-gateway': (item, value) => item.Kind === value,
     'mesh-gateway': (item, value) => item.Kind === value,
