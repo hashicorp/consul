@@ -1,4 +1,3 @@
-integration test to cover the use case of taking and restoring a snapshot on a consul cluster
 ```release-note:bug
-raft_logstore: Fixes a bug where restoring a snapshot with a WAL backend causes panic because raf-wal expects a monotonically increasing log index and the restore inserts a gap where no files exist.
+raft_logstore: Fixes a bug where restoring a snapshot when using the experimental WAL storage backend causes a panic.
 ```
