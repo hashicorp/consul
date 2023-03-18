@@ -213,11 +213,18 @@ func NewConfigBuilder(ctx *BuildContext) *Builder {
 		b.conf.Set("acl.default_policy", "deny")
 		b.conf.Set("acl.enable_token_persistence", true)
 	}
+
 	ls := string(ctx.logStore)
-	if ls != string(LogStore_WAL) && ls != string(LogStore_BoltDB) {
-		ls = string(LogStore_BoltDB)
+	if ls != "" && (ctx.consulVersion == "local" ||
+		semver.Compare("v"+ctx.consulVersion, "v1.15.0") >= 0) {
+		// Enable logstore backend for version after v1.15.0
+		if ls != string(LogStore_WAL) && ls != string(LogStore_BoltDB) {
+			ls = string(LogStore_BoltDB)
+		}
+		b.conf.Set("raft_logstore.backend", ls)
+	} else {
+		b.conf.Unset("raft_logstore.backend")
 	}
-	b.conf.Set("raft_logstore.backend", ls)
 
 	return b
 }
