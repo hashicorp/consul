@@ -37,7 +37,7 @@ jobs:
 
       - name: Create ticket if an issue is filed, or if PR not by a team member is opened
         if: github.event.action == 'opened'
-        uses: tomhjp/gh-action-jira-create@v0.2.0
+        uses: tomhjp/gh-action-jira-create@v0.2.1
         with:
           project: NET
           issuetype: "${{ steps.set-ticket-type.outputs.TYPE }}"
@@ -57,7 +57,7 @@ jobs:
       # Education Jira
       - name: Create ticket in Education board an issue is filed, or if PR not by a team member is opened
         if: github.event.action == 'opened' && ("${{ contains(github.event.issue.labels.*.name, 'type/docs') }}" == "true")
-        uses: tomhjp/gh-action-jira-create@v0.2.0
+        uses: tomhjp/gh-action-jira-create@v0.2.1
         with:
           project: CE
           issuetype: "Bug"
