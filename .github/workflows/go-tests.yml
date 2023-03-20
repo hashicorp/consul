@@ -5,6 +5,10 @@ on: [push]
 permissions:
   contents: read
 
+env:
+  TEST_RESULTS: /tmp/test-results # path to where test results are saved
+  GOTESTSUM_VERSION: 1.8.2
+
 jobs:
   get-go-version:
     name: "Determine Go toolchain version"
@@ -17,12 +21,16 @@ jobs:
         id: get-go-version
         # We use .go-version as our source of truth for current Go
         # version, because "goenv" can react to it automatically.
+        # run: |
+        #   echo "Building with Go $(cat .go-version)"
+        #   echo "::set-output name=go-version::$(cat .go-version)"
+        #TODO(JM) Makes the above work
         run: |
           echo "Building with Go $(cat .go-version)"
-          echo "::set-output name=go-version::$(cat .go-version)"
+          echo "::set-output name=go-version::1.20.2"
   check-go-mod:  #TODO(JM): figure out how to get around no anchors
     if: |
-        github.ref != 'stable-website' || 
+        github.ref != 'refs/heads/stable-website' || 
         !startsWith(github.ref, 'refs/heads/docs/') || 
         !startsWith(github.ref, 'refs/heads/ui/') || 
         !startsWith(github.ref, 'refs/heads/backport/docs/') || 
@@ -32,7 +40,7 @@ jobs:
 
   check-generated-protobuf:
     if: |
-        github.ref != 'stable-website' || 
+        github.ref != 'refs/heads/stable-website' || 
         !startsWith(github.ref, 'refs/heads/docs/') || 
         !startsWith(github.ref, 'refs/heads/ui/') || 
         !startsWith(github.ref, 'refs/heads/backport/docs/') || 
@@ -57,7 +65,7 @@ jobs:
   
   check-generated-deep-copy:
     if: |
-        github.ref != 'stable-website' || 
+        github.ref != 'refs/heads/stable-website' || 
         !startsWith(github.ref, 'refs/heads/docs/') || 
         !startsWith(github.ref, 'refs/heads/ui/') || 
         !startsWith(github.ref, 'refs/heads/backport/docs/') || 
@@ -77,7 +85,7 @@ jobs:
   
   lint-enums:
     if: |
-        github.ref != 'stable-website' || 
+        github.ref != 'refs/heads/stable-website' || 
         !startsWith(github.ref, 'refs/heads/docs/') || 
         !startsWith(github.ref, 'refs/heads/ui/') || 
         !startsWith(github.ref, 'refs/heads/backport/docs/') || 
@@ -92,7 +100,7 @@ jobs:
 
   lint-container-test-deps:
     if: |
-        github.ref != 'stable-website' || 
+        github.ref != 'refs/heads/stable-website' || 
         !startsWith(github.ref, 'refs/heads/docs/') || 
         !startsWith(github.ref, 'refs/heads/ui/') || 
         !startsWith(github.ref, 'refs/heads/backport/docs/') || 
@@ -107,7 +115,7 @@ jobs:
 
   lint-consul-retry:
     if: |
-        github.ref != 'stable-website' || 
+        github.ref != 'refs/heads/stable-website' || 
         !startsWith(github.ref, 'refs/heads/docs/') || 
         !startsWith(github.ref, 'refs/heads/ui/') || 
         !startsWith(github.ref, 'refs/heads/backport/docs/') || 
@@ -122,7 +130,7 @@ jobs:
 
   lint:
     if: |
-        github.ref != 'stable-website' || 
+        github.ref != 'refs/heads/stable-website' || 
         !startsWith(github.ref, 'refs/heads/docs/') || 
         !startsWith(github.ref, 'refs/heads/ui/') || 
         !startsWith(github.ref, 'refs/heads/backport/docs/') || 
@@ -132,7 +140,7 @@ jobs:
 
   lint-32bit:
     if: |
-        github.ref != 'stable-website' || 
+        github.ref != 'refs/heads/stable-website' || 
         !startsWith(github.ref, 'refs/heads/docs/') || 
         !startsWith(github.ref, 'refs/heads/ui/') || 
         !startsWith(github.ref, 'refs/heads/backport/docs/') || 
@@ -141,4 +149,99 @@ jobs:
     uses: ./.github/workflows/reusable-lint.yml
     with:
       go-arch: "386"
+
+  go-test-arm64:
+    needs: [get-go-version]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Setup go
+        uses: actions/setup-go@v3
+        with:
+          go-version: ${{ needs.get-go-version.outputs.go-version }}
+
+      - name: Setup go mod cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      - name: Install gotestsum
+        run: |
+          wget https://github.com/gotestyourself/gotestsum/releases/download/v${{env.GOTESTSUM_VERSION}}/gotestsum_${{env.GOTESTSUM_VERSION}}_linux_amd64.tar.gz
+          sudo tar -C /usr/local/bin -xzf gotestsum_${{env.GOTESTSUM_VERSION}}_linux_amd64.tar.gz
+          rm gotestsum_${{env.GOTESTSUM_VERSION}}_linux_amd64.tar.gz
+
+      - run:  mkdir -p ${{env.TEST_RESULTS}}
+      - run:  echo "$HOME/bin" >> $GITHUB_PATH
+
+      # - name: Download consul
+      #   run: |
+      #     mkdir -p $HOME/bin
+      #     container_id=$(docker create ${{env.CONSUL_OSS_DOCKER_IMAGE}})
+      #     docker cp "$container_id:/bin/consul" $HOME/bin/consul
+      #     docker rm "$container_id"
+      - name: Run go tests
+        run: |
+            PACKAGE_NAMES=$(go list ./...)
+            if [ ! -s "$report_filename" ]; then
+            
+            # if '${{ github.ref }}' == 'refs/heads/docs/' || startsWith('${{ github.ref }}', 'refs/heads/release/'); then
+            #   export GO_TEST_FLAGS="-short"
+            # fi
+            
+            # some tests expect this umask, and arm images have a different default
+            umask 0022
+
+            gotestsum \
+            --format=short-verbose \
+            --jsonfile /tmp/jsonfile/go-test-${CIRCLE_NODE_INDEX}.log \
+            --debug \
+            --rerun-fails=3 \
+            --rerun-fails-max-failures=40 \
+            --rerun-fails-report=/tmp/gotestsum-rerun-fails \
+            --packages="$PACKAGE_NAMES" \              
+            --junitfile ${{env.TEST_RESULTS}}/gotestsum-report.xml -- \
+            -tags="$GOTAGS" -p 4 \
+            ${GO_TEST_FLAGS-} \
+            -cover -coverprofile=coverage.txt
+      # TODO(JM) Figure out how to store these
+      # - store_test_results:
+      #     path: *TEST_RESULTS_DIR
+      # - store_artifacts:
+      #     path: *TEST_RESULTS_DIR
+      # - store_artifacts:
+      #     path: /tmp/jsonfile
+      # - name: "Re-run fails report"
+      #   run: |
+      #     #!/usr/bin/env bash
+      #     #
+      #     # Add a comment on the github PR if there were any rerun tests.
+      #     #
+      #     set -eu -o pipefail
+
+      #     report_filename="${1?report filename is required}"
+      #     if [ ! -s "$report_filename" ]; then
+      #         echo "gotestsum rerun report file is empty or missing"
+      #         exit 0
+      #     fi
+
+      #     function report {
+      #         echo ":repeat: gotestsum re-ran some tests in $CIRCLE_BUILD_URL"
+      #         echo
+      #         echo '```'
+      #         cat "$report_filename"
+      #         echo '```'
+      #     }
+
+      #     report
+      
+      # TODO(JM) Figure out how to do this
+      # - run: *notify-slack-failure
 
