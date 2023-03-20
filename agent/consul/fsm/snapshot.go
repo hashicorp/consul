@@ -50,12 +50,6 @@ func registerPersister(fn persister) {
 	persisters = append(persisters, fn)
 }
 
-func init() {
-	registerPersister(func(s *snapshot, sink raft.SnapshotSink, encoder *codec.Encoder) error {
-		return s.persistResources(sink, encoder)
-	})
-}
-
 // restorer is a function used to load back a snapshot of the FSM state.
 type restorer func(header *SnapshotHeader, restore *state.Restore, decoder *codec.Decoder) error
 
@@ -112,23 +106,4 @@ func (s *snapshot) Persist(sink raft.SnapshotSink) error {
 
 func (s *snapshot) Release() {
 	s.state.Close()
-}
-
-func (s *snapshot) persistResources(sink raft.SnapshotSink, encoder *codec.Encoder) error {
-	for {
-		v, err := s.storageSnapshot.Next()
-		if err != nil {
-			return err
-		}
-		if v == nil {
-			return nil
-		}
-
-		if _, err := sink.Write([]byte{byte(structs.ResourceOperationType)}); err != nil {
-			return err
-		}
-		if err := encoder.Encode(v); err != nil {
-			return err
-		}
-	}
 }

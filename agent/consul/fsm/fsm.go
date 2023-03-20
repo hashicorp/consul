@@ -42,10 +42,6 @@ func registerCommand(msg structs.MessageType, fn unboundCommand) {
 	commands[msg] = fn
 }
 
-func init() {
-	registerCommand(structs.ResourceOperationType, (*FSM).applyResourceOperation)
-}
-
 // FSM implements a finite state machine that is used
 // along with Raft to provide strong consistency. We implement
 // this outside the Server to avoid exposing this outside the package.
@@ -445,8 +441,4 @@ func (c *FSM) registerStreamSnapshotHandlers() {
 	if err != nil {
 		panic(fmt.Errorf("fatal error encountered registering streaming snapshot handlers: %w", err))
 	}
-}
-
-func (f *FSM) applyResourceOperation(buf []byte, idx uint64) any {
-	return f.deps.StorageBackend.Apply(buf, idx)
 }
