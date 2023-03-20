@@ -15,7 +15,7 @@ jobs:
   # checks that a .changelog entry is present for a PR
   changelog-check:
     # If there  a `pr/no-changelog` label we ignore this check. Also, we ignore PRs created by the bot assigned to `backport-assistant`
-    if: "! ( contains(github.event.pull_request.labels.*.name, 'pr/no-changelog') || github.event.pull_request.user.login == 'hc-github-team-consul-core' )" 
+    if: "! ( contains(github.event.pull_request.labels.*.name, 'pr/no-changelog') || github.event.pull_request.user.login == 'hc-github-team-consul-core' )"
     runs-on: ubuntu-latest
 
     steps:
@@ -34,7 +34,7 @@ jobs:
             changelog_file_path=".changelog/[_0-9]*.txt"
           fi
 
-          changelog_files=$(git --no-pager diff --name-only HEAD "$(git merge-base HEAD "origin/main")" | egrep ${changelog_file_path})
+          changelog_files=$(git --no-pager diff --name-only HEAD "$(git merge-base HEAD "origin/main")" | egrep "${changelog_file_path}")
 
           # If we do not find a file in .changelog/, we fail the check
           if [ -z "$changelog_files" ]; then
