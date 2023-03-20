@@ -1,7 +1,11 @@
 name: build-distros
 
 # TODO: enable push to all branhces?
-on: [pull_request]
+on:
+  pull_request:
+    branches: ["main"]
+  push:
+    branches: ["main"]
 
 permissions:
   contents: read
@@ -20,6 +24,9 @@ jobs:
           git status -s
           exit 1
         fi
+    - name: Notify Slack
+      if: failure()
+      run: .github/scripts/notify_slack.sh
 
   build-386:
     needs: check-go-mod
@@ -36,6 +43,9 @@ jobs:
         for os in $XC_OS; do
           GOOS="$os" GOARCH=386 CGO_ENABLED=0 go build
         done
+    - name: Notify Slack
+      if: failure()
+      run: .github/scripts/notify_slack.sh
 
   build-amd64:
     needs: check-go-mod
@@ -52,6 +62,9 @@ jobs:
         for os in $XC_OS; do
           GOOS="$os" GOARCH=amd64 CGO_ENABLED=0 go build
         done
+    - name: Notify Slack
+      if: failure()
+      run: .github/scripts/notify_slack.sh
 
   build-arm:
     needs: check-go-mod
@@ -71,3 +84,6 @@ jobs:
     - run: CC=arm-linux-gnueabi-gcc GOARCH=arm GOARM=5 go build
     - run: CC=arm-linux-gnueabihf-gcc GOARCH=arm GOARM=6 go build
     - run: CC=aarch64-linux-gnu-gcc GOARCH=arm64 go build
+    - name: Notify Slack
+      if: failure()
+      run: .github/scripts/notify_slack.sh
