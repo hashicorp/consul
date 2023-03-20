@@ -1079,7 +1079,6 @@ func (s *ConfigSnapshot) Valid() bool {
 			s.APIGateway.Leaf != nil &&
 			s.APIGateway.GatewayConfigLoaded &&
 			s.APIGateway.BoundGatewayConfigLoaded &&
-			s.APIGateway.AreHostsSet &&
 			s.APIGateway.MeshConfigSet
 	default:
 		return false
