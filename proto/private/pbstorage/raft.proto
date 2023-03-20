@@ -19,3 +19,7 @@ message Request {
     hashicorp.consul.resource.ID id = 4;
   }
 }
+
+message Response {
+  hashicorp.consul.resource.Resource resource = 1;
+}

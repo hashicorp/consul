@@ -103,7 +103,7 @@ type Deps struct {
 // StorageBackend contains the methods on the Raft resource storage backend that
 // are used by the FSM. See the internal/storage/raft package docs for more info.
 type StorageBackend interface {
-	Apply(buf []byte) any
+	Apply(buf []byte, idx uint64) any
 	Snapshot() (*raftstorage.Snapshot, error)
 	Restore() (*raftstorage.Restoration, error)
 }
@@ -114,7 +114,7 @@ var NullStorageBackend StorageBackend = nullStorageBackend{}
 
 type nullStorageBackend struct{}
 
-func (nullStorageBackend) Apply([]byte) any { return errors.New("NullStorageBackend in use") }
+func (nullStorageBackend) Apply([]byte, uint64) any { return errors.New("NullStorageBackend in use") }
 func (nullStorageBackend) Snapshot() (*raftstorage.Snapshot, error) {
 	return nil, errors.New("NullStorageBackend in use")
 }
@@ -447,6 +447,6 @@ func (c *FSM) registerStreamSnapshotHandlers() {
 	}
 }
 
-func (f *FSM) applyResourceOperation(buf []byte, _ uint64) any {
-	return f.deps.StorageBackend.Apply(buf)
+func (f *FSM) applyResourceOperation(buf []byte, idx uint64) any {
+	return f.deps.StorageBackend.Apply(buf, idx)
 }

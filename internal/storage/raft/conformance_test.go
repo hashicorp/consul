@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"math/rand"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -25,6 +26,7 @@ func TestBackend_Conformance(t *testing.T) {
 		NewBackend: func(t *testing.T) storage.Backend {
 			return newRaftCluster(t)
 		},
+		SupportsStronglyConsistentList: true,
 	})
 }
 
@@ -32,7 +34,7 @@ func newRaftCluster(t *testing.T) *raftCluster {
 	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)
 
-	leaderHandle := &leaderHandle{replCh: make(chan []byte, 10)}
+	leaderHandle := &leaderHandle{replCh: make(chan log, 10)}
 	leader, err := raft.NewBackend(leaderHandle)
 	require.NoError(t, err)
 	go leader.Run(ctx)
@@ -51,24 +53,27 @@ type raftCluster struct {
 	leader, follower *raft.Backend
 }
 
-func (c *raftCluster) Read(ctx context.Context, id *pbresource.ID) (*pbresource.Resource, error) {
-	return c.follower.Read(ctx, id)
+func (c *raftCluster) Read(ctx context.Context, consistency storage.ReadConsistency, id *pbresource.ID) (*pbresource.Resource, error) {
+	if consistency == storage.StrongConsistency {
+		return c.leader.Read(ctx, consistency, id)
+	}
+
+	return c.follower.Read(ctx, consistency, id)
 }
 
-func (c *raftCluster) ReadConsistent(ctx context.Context, id *pbresource.ID) (*pbresource.Resource, error) {
-	return c.leader.Read(ctx, id)
-}
-
-func (c *raftCluster) WriteCAS(ctx context.Context, res *pbresource.Resource, version string) (*pbresource.Resource, error) {
-	return c.leader.WriteCAS(ctx, res, version)
+func (c *raftCluster) WriteCAS(ctx context.Context, res *pbresource.Resource) (*pbresource.Resource, error) {
+	return c.leader.WriteCAS(ctx, res)
 }
 
 func (c *raftCluster) DeleteCAS(ctx context.Context, id *pbresource.ID, version string) error {
 	return c.leader.DeleteCAS(ctx, id, version)
 }
 
-func (c *raftCluster) List(ctx context.Context, resType storage.UnversionedType, tenancy *pbresource.Tenancy, namePrefix string) ([]*pbresource.Resource, error) {
-	return c.follower.List(ctx, resType, tenancy, namePrefix)
+func (c *raftCluster) List(ctx context.Context, consistency storage.ReadConsistency, resType storage.UnversionedType, tenancy *pbresource.Tenancy, namePrefix string) ([]*pbresource.Resource, error) {
+	if consistency == storage.StrongConsistency {
+		return c.leader.List(ctx, consistency, resType, tenancy, namePrefix)
+	}
+	return c.follower.List(ctx, consistency, resType, tenancy, namePrefix)
 }
 
 func (c *raftCluster) WatchList(ctx context.Context, resType storage.UnversionedType, tenancy *pbresource.Tenancy, namePrefix string) (storage.Watch, error) {
@@ -92,20 +97,28 @@ func (followerHandle) Apply([]byte) (any, error) {
 }
 
 type leaderHandle struct {
+	index   uint64
 	backend *raft.Backend
-	replCh  chan []byte
+	replCh  chan log
+}
+
+type log struct {
+	idx uint64
+	msg []byte
 }
 
 func (leaderHandle) IsLeader() bool                          { return true }
 func (leaderHandle) EnsureConsistency(context.Context) error { return nil }
 
-func (h leaderHandle) Apply(msg []byte) (any, error) {
+func (h *leaderHandle) Apply(msg []byte) (any, error) {
+	idx := atomic.AddUint64(&h.index, 1)
+
 	// Apply the operation to the leader synchronously and capture its response
 	// to return to the caller.
-	rsp := h.backend.Apply(msg)
+	rsp := h.backend.Apply(msg, idx)
 
 	// Replicate the operation to the follower asynchronously.
-	h.replCh <- msg
+	h.replCh <- log{idx, msg}
 
 	return rsp, nil
 }
@@ -122,7 +135,7 @@ func (h leaderHandle) replicate(t *testing.T, follower *raft.Backend) {
 		case <-timer.C:
 			select {
 			case l := <-h.replCh:
-				_ = follower.Apply(l)
+				_ = follower.Apply(l.msg, l.idx)
 			default:
 			}
 			timer.Reset(replicationLag())

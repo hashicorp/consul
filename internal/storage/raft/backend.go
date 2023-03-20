@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strconv"
 
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/internal/storage"
@@ -64,40 +65,28 @@ type Backend struct {
 func (b *Backend) Run(ctx context.Context) { b.store.Run(ctx) }
 
 // Read implements the storage.Backend interface.
-func (b *Backend) Read(_ context.Context, id *pbresource.ID) (*pbresource.Resource, error) {
-	return b.store.Read(id)
-}
-
-// ReadConsistent implements the storage.Backend interface. It can only be
-// called on a Raft leader.
-func (b *Backend) ReadConsistent(ctx context.Context, id *pbresource.ID) (*pbresource.Resource, error) {
-	err := b.handle.EnsureConsistency(ctx)
-	switch {
-	case errors.Is(err, structs.ErrNotReadyForConsistentReads):
-		return nil, storage.ErrInconsistent
-	case err != nil:
+func (b *Backend) Read(ctx context.Context, consistency storage.ReadConsistency, id *pbresource.ID) (*pbresource.Resource, error) {
+	if err := b.ensureConsistency(ctx, consistency); err != nil {
 		return nil, err
 	}
-
 	return b.store.Read(id)
 }
 
 // WriteCAS implements the storage.Backend interface. It can only be called on
 // a Raft leader.
-func (b *Backend) WriteCAS(_ context.Context, res *pbresource.Resource, version string) (*pbresource.Resource, error) {
+func (b *Backend) WriteCAS(_ context.Context, res *pbresource.Resource) (*pbresource.Resource, error) {
 	if !b.handle.IsLeader() {
 		return nil, storage.ErrInconsistent
 	}
 
-	err := b.roundTrip(&pbstorage.Request{
+	rsp, err := b.roundTrip(&pbstorage.Request{
 		Op:      pbstorage.Request_OP_WRITE,
 		Subject: &pbstorage.Request_Resource{Resource: res},
-		Version: version,
 	})
 	if err != nil {
 		return nil, err
 	}
-	return res, nil
+	return rsp.GetResource(), nil
 }
 
 // DeleteCAS implements the storage.Backend interface. It can only be called on
@@ -107,15 +96,19 @@ func (b *Backend) DeleteCAS(_ context.Context, id *pbresource.ID, version string
 		return storage.ErrInconsistent
 	}
 
-	return b.roundTrip(&pbstorage.Request{
+	_, err := b.roundTrip(&pbstorage.Request{
 		Op:      pbstorage.Request_OP_DELETE,
 		Subject: &pbstorage.Request_Id{Id: id},
 		Version: version,
 	})
+	return err
 }
 
 // List implements the storage.Backend interface.
-func (b *Backend) List(_ context.Context, resType storage.UnversionedType, tenancy *pbresource.Tenancy, namePrefix string) ([]*pbresource.Resource, error) {
+func (b *Backend) List(ctx context.Context, consistency storage.ReadConsistency, resType storage.UnversionedType, tenancy *pbresource.Tenancy, namePrefix string) ([]*pbresource.Resource, error) {
+	if err := b.ensureConsistency(ctx, consistency); err != nil {
+		return nil, err
+	}
 	return b.store.List(resType, tenancy, namePrefix)
 }
 
@@ -131,7 +124,7 @@ func (b *Backend) OwnerReferences(_ context.Context, id *pbresource.ID) ([]*pbre
 
 // Apply is called by the FSM with the bytes of a Raft log entry, with Consul's
 // envelope (i.e. type prefix and msgpack wrapper) stripped off.
-func (b *Backend) Apply(buf []byte) any {
+func (b *Backend) Apply(buf []byte, idx uint64) any {
 	var req pbstorage.Request
 	if err := req.UnmarshalBinary(buf); err != nil {
 		return fmt.Errorf("failed to decode request: %w", err)
@@ -139,33 +132,59 @@ func (b *Backend) Apply(buf []byte) any {
 
 	switch req.Op {
 	case pbstorage.Request_OP_WRITE:
-		return b.store.WriteCAS(req.GetResource(), req.Version)
+		res := req.GetResource()
+		oldVsn := res.Version
+		res.Version = strconv.Itoa(int(idx))
+
+		if err := b.store.WriteCAS(res, oldVsn); err != nil {
+			return err
+		}
+
+		return &pbstorage.Response{Resource: res}
 	case pbstorage.Request_OP_DELETE:
-		return b.store.DeleteCAS(req.GetId(), req.Version)
+		if err := b.store.DeleteCAS(req.GetId(), req.Version); err != nil {
+			return err
+		}
+		return &pbstorage.Response{}
 	}
 	return fmt.Errorf("unexpected op: %d", req.Op)
 }
 
 // roundTrip the given request through the Raft log and FSM.
-func (b *Backend) roundTrip(req *pbstorage.Request) error {
+func (b *Backend) roundTrip(req *pbstorage.Request) (*pbstorage.Response, error) {
 	msg, err := req.MarshalBinary()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	rsp, err := b.handle.Apply(msg)
 	if err != nil {
-		return err
-	}
-	if rsp == nil {
-		return nil
+		return nil, err
 	}
 
-	err, ok := rsp.(error)
-	if !ok {
-		return fmt.Errorf("unexpected response from Raft apply: %T", rsp)
+	switch t := rsp.(type) {
+	case *pbstorage.Response:
+		return t, nil
+	case error:
+		return nil, t
+	default:
+		return nil, fmt.Errorf("unexpected response from Raft apply: %T", rsp)
 	}
-	return err
+}
+
+func (b *Backend) ensureConsistency(ctx context.Context, consistency storage.ReadConsistency) error {
+	switch consistency {
+	case storage.EventualConsistency:
+		return nil
+	case storage.StrongConsistency:
+		err := b.handle.EnsureConsistency(ctx)
+		if errors.Is(err, structs.ErrNotReadyForConsistentReads) {
+			return storage.ErrInconsistent
+		}
+		return err
+	default:
+		return fmt.Errorf("%w: unknown consistency mode (%s)", storage.ErrInconsistent, consistency)
+	}
 }
 
 // Snapshot obtains a point-in-time snapshot of the backend's state, so that it
