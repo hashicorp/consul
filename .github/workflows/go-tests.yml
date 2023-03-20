@@ -28,7 +28,9 @@ jobs:
     - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
     #TODO(JM): figure out how to give these names
     - run: make proto-tools
+      name: Install protobuf
     - run: make proto-format
+      name: "Protobuf Format"
     - run: make --always-make proto
     - run: |
             if ! git diff --exit-code; then
@@ -36,6 +38,8 @@ jobs:
               exit 1
             fi
     - run: make proto-lint
+      name: "Protobuf Lint"
+
   check-generated-deep-copy:
     if: |
         github.ref != 'stable-website' || 
@@ -48,6 +52,7 @@ jobs:
     steps:
     - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
     - run: make codegen-tools
+      name: Install deep-copy
     - run: make --always-make deep-copy
     - run: |
         if ! git diff --exit-code; then
@@ -96,3 +101,13 @@ jobs:
     - run: go install github.com/hashicorp/lint-consul-retry@master && lint-consul-retry
     #TODO(JM) - get this from Dan
     # - run: *notify-slack-failure 
+
+  lint:
+    if: |
+        github.ref != 'stable-website' || 
+        !startsWith(github.ref, 'refs/heads/docs/') || 
+        !startsWith(github.ref, 'refs/heads/ui/') || 
+        !startsWith(github.ref, 'refs/heads/backport/docs/') || 
+        !startsWith(github.ref, 'refs/heads/backport/ui/') || 
+        !startsWith(github.ref, 'refs/heads/backport/mktg-.')
+    uses: ./.github/workflows/reusable-lint.yml

@@ -1,0 +1,44 @@
+name: reusable-lint
+
+on:
+  workflow_call:
+    inputs:
+      go-arch:
+        required: false
+        type: string
+        default: ""
+
+# Environment variables can only be used at the step level
+env:
+  GOTAGS: "" # No tags for OSS but there are for enterprise
+  GOARCH: ${{inputs.go-arch}}
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
+      - run: go env
+      - name: Install golangci-lint
+        run: make lint-tools
+      - run: go mod download
+      - name: lint
+        run: golangci-lint run --build-tags="$GOTAGS" -v
+      - name: lint api
+        working-directory: api
+        run: golangci-lint run --build-tags="$GOTAGS" -v
+      - name: lint sdk
+        working-directory: sdk
+        run: golangci-lint run --build-tags="$GOTAGS" -v
+      - name: lint envoyextensions
+        working-directory: envoyextensions
+        run: golangci-lint run --build-tags="$GOTAGS" -v
+      - name: lint troubleshoot
+        working-directory: troubleshoot
+        run: golangci-lint run --build-tags="$GOTAGS" -v
+      - name: lint container tests
+        working-directory: test/integration/consul-container
+        run: golangci-lint run --build-tags="$GOTAGS" -v
+      #TODO(JM) - get this from Dan
+      # - run: *notify-slack-failure 
