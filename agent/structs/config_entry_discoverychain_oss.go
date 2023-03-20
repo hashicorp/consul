@@ -38,6 +38,10 @@ func (redir *ServiceResolverRedirect) ValidateEnterprise() error {
 		return fmt.Errorf("Setting Namespace requires Consul Enterprise")
 	}
 
+	if redir.SamenessGroup != "" {
+		return fmt.Errorf("Setting SamenessGroup requires Consul Enterprise")
+	}
+
 	return nil
 }
 
@@ -52,6 +56,10 @@ func (failover *ServiceResolverFailover) GetEnterpriseMeta(_ *acl.EnterpriseMeta
 func (failover *ServiceResolverFailover) ValidateEnterprise() error {
 	if failover.Namespace != "" {
 		return fmt.Errorf("Setting Namespace requires Consul Enterprise")
+	}
+
+	if failover.SamenessGroup != "" {
+		return fmt.Errorf("Setting SamenessGroup requires Consul Enterprise")
 	}
 
 	return nil
@@ -100,5 +108,10 @@ func (f *ServiceResolverFailoverPolicy) ValidateEnterprise() error {
 		return fmt.Errorf("Setting failover policies requires Consul Enterprise")
 	}
 
+	return nil
+}
+
+// RelatedSamenessGroups doesn't return anything on open source.
+func (e *ServiceResolverConfigEntry) RelatedSamenessGroups() []string {
 	return nil
 }
