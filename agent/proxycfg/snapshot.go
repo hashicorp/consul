@@ -707,9 +707,6 @@ type configSnapshotAPIGateway struct {
 	BoundGatewayConfigLoaded bool
 	BoundGatewayConfig       *structs.BoundAPIGatewayConfigEntry
 
-	// Hosts is the list of extra host entries to add to our leaf cert's DNS SANs
-	Hosts []string
-
 	// LeafCertWatchCancel is a CancelFunc to use when refreshing this gateway's
 	// leaf cert watch with different parameters.
 	// LeafCertWatchCancel context.CancelFunc
