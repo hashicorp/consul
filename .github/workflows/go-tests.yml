@@ -6,8 +6,7 @@ permissions:
   contents: read
 
 jobs:
-  check-go-mod:
-    uses: ./.github/workflows/reusable-check-go-mod.yml
+  check-go-mod:  #TODO(JM): figure out how to get around no anchors
     if: |
         github.ref != 'stable-website' || 
         !startsWith(github.ref, 'refs/heads/docs/') || 
@@ -15,10 +14,19 @@ jobs:
         !startsWith(github.ref, 'refs/heads/backport/docs/') || 
         !startsWith(github.ref, 'refs/heads/backport/ui/') || 
         !startsWith(github.ref, 'refs/heads/backport/mktg-.')
+    uses: ./.github/workflows/reusable-check-go-mod.yml
   check-generated-protobuf:
+    if: |
+        github.ref != 'stable-website' || 
+        !startsWith(github.ref, 'refs/heads/docs/') || 
+        !startsWith(github.ref, 'refs/heads/ui/') || 
+        !startsWith(github.ref, 'refs/heads/backport/docs/') || 
+        !startsWith(github.ref, 'refs/heads/backport/ui/') || 
+        !startsWith(github.ref, 'refs/heads/backport/mktg-.')
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
+    #TODO(JM): figure out how to give these names
     - run: make proto-tools
     - run: make proto-format
     - run: make --always-make proto
@@ -28,3 +36,37 @@ jobs:
               exit 1
             fi
     - run: make proto-lint
+  check-generated-deep-copy:
+    if: |
+        github.ref != 'stable-website' || 
+        !startsWith(github.ref, 'refs/heads/docs/') || 
+        !startsWith(github.ref, 'refs/heads/ui/') || 
+        !startsWith(github.ref, 'refs/heads/backport/docs/') || 
+        !startsWith(github.ref, 'refs/heads/backport/ui/') || 
+        !startsWith(github.ref, 'refs/heads/backport/mktg-.')
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
+    - run: make codegen-tools
+    - run: make --always-make deep-copy
+    - run: |
+        if ! git diff --exit-code; then
+          echo "Generated code was not updated correctly"
+          exit 1
+        fi
+  lint-enums:
+    if: |
+        github.ref != 'stable-website' || 
+        !startsWith(github.ref, 'refs/heads/docs/') || 
+        !startsWith(github.ref, 'refs/heads/ui/') || 
+        !startsWith(github.ref, 'refs/heads/backport/docs/') || 
+        !startsWith(github.ref, 'refs/heads/backport/ui/') || 
+        !startsWith(github.ref, 'refs/heads/backport/mktg-.')
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
+    - run: go install github.com/reillywatson/enumcover/cmd/enumcover@master && enumcover ./...   
+    #TODO(JM) - get this from Dan
+    # - run: *notify-slack-failure 
+    
+
