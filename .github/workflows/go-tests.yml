@@ -1,0 +1,11 @@
+name: go-tests
+
+on: [push]
+  
+
+permissions:
+  contents: read
+
+jobs:
+  check-go-mod:
+    uses: ./.github/workflows/reusable-check-go-mod.yml
