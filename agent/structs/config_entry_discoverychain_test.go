@@ -410,8 +410,17 @@ func TestConfigEntries_ListRelatedServices_AndACLs(t *testing.T) {
 			},
 		},
 		{
-			name:  "api-gateway",
-			entry: &APIGatewayConfigEntry{Name: "test"},
+			name: "api-gateway",
+			entry: &APIGatewayConfigEntry{
+				Name: "test",
+				Listeners: []APIGatewayListener{
+					{
+						Name:     "test",
+						Port:     100,
+						Protocol: "http",
+					},
+				},
+			},
 			expectACLs: []testACL{
 				{
 					name:       "no-authz",
