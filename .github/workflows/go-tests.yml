@@ -10,4 +10,21 @@ jobs:
     uses: ./.github/workflows/reusable-check-go-mod.yml
     if: |
         github.ref != 'stable-website' || 
-        !startsWith(github.ref, 'refs/heads/docs/')
+        !startsWith(github.ref, 'refs/heads/docs/') || 
+        !startsWith(github.ref, 'refs/heads/ui/') || 
+        !startsWith(github.ref, 'refs/heads/backport/docs/') || 
+        !startsWith(github.ref, 'refs/heads/backport/ui/') || 
+        !startsWith(github.ref, 'refs/heads/backport/mktg-.')
+  check-generated-protobuf:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
+    - run: make proto-tools
+    - run: make proto-format
+    - run: make --always-make proto
+    - run: |
+            if ! git diff --exit-code; then
+              echo "Generated code was not updated correctly"
+              exit 1
+            fi
+    - run: make proto-lint
