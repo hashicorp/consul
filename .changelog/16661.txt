@@ -1,0 +1,3 @@
+```release-note:bug
+gateways: Fixes a bug API gateways using HTTP listeners were taking upwards of 15 seconds to get configured over xDS.
+```
