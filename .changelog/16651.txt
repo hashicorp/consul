@@ -1,0 +1,3 @@
+```release-note:bug
+gateway: **(Enterprise only)** Fix bug where namespace/partition would fail to unmarshal.
+```
