@@ -6,20 +6,20 @@ permissions:
   contents: read
 
 jobs:
-  # get-go-version:
-  #   name: "Determine Go toolchain version"
-  #   runs-on: ubuntu-latest
-  #   outputs:
-  #     go-version: ${{ steps.get-go-version.outputs.go-version }}
-  #   steps:
-  #     - uses: actions/checkout@v3
-  #     - name: Determine Go version
-  #       id: get-go-version
-  #       # We use .go-version as our source of truth for current Go
-  #       # version, because "goenv" can react to it automatically.
-  #       run: |
-  #         echo "Building with Go $(cat .go-version)"
-  #         echo "::set-output name=go-version::$(cat .go-version)"
+  get-go-version:
+    name: "Determine Go toolchain version"
+    runs-on: ubuntu-latest
+    outputs:
+      go-version: ${{ steps.get-go-version.outputs.go-version }}
+    steps:
+      - uses: actions/checkout@v3
+      - name: Determine Go version
+        id: get-go-version
+        # We use .go-version as our source of truth for current Go
+        # version, because "goenv" can react to it automatically.
+        run: |
+          echo "Building with Go $(cat .go-version)"
+          echo "::set-output name=go-version::$(cat .go-version)"
   check-go-mod:  #TODO(JM): figure out how to get around no anchors
     if: |
         github.ref != 'stable-website' || 
