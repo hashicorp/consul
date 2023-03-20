@@ -417,6 +417,6 @@ type mockLimiter struct {
 
 func (m *mockLimiter) Allow(v multilimiter.LimitedEntity) bool { return m.Called(v).Bool(0) }
 func (m *mockLimiter) Run(ctx context.Context)                 { m.Called(ctx) }
-func (m *mockLimiter) UpdateConfig(cfg multilimiter.LimiterConfig, prefix []byte) {
+func (m *mockLimiter) UpdateConfig(cfg *multilimiter.LimiterConfig, prefix []byte) {
 	m.Called(cfg, prefix)
 }
