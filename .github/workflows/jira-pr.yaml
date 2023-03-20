@@ -95,7 +95,7 @@ jobs:
 
       - name: Sync comment
         if: github.event.action == 'created' && steps.search.outputs.issue
-        uses: tomhjp/gh-action-jira-comment@v0.1.0
+        uses: tomhjp/gh-action-jira-comment@v0.2.0
         with:
           issue: ${{ steps.search.outputs.issue }}
           comment: "${{ github.actor }} ${{ github.event.review.state || 'commented' }}:\n\n${{ github.event.comment.body || github.event.review.body }}\n\n${{ github.event.comment.html_url || github.event.review.html_url }}"
