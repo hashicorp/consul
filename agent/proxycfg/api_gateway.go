@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/hashicorp/consul/acl"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/proxycfg/internal/watch"
 	"github.com/hashicorp/consul/agent/structs"
@@ -45,13 +46,13 @@ func (h *handlerAPIGateway) initialize(ctx context.Context) (ConfigSnapshot, err
 	}
 
 	// Watch the api-gateway's config entry
-	err = h.subscribeToConfigEntry(ctx, structs.APIGateway, h.service, gatewayConfigWatchID)
+	err = h.subscribeToConfigEntry(ctx, structs.APIGateway, h.service, h.proxyID.EnterpriseMeta, gatewayConfigWatchID)
 	if err != nil {
 		return snap, err
 	}
 
 	// Watch the bound-api-gateway's config entry
-	err = h.subscribeToConfigEntry(ctx, structs.BoundAPIGateway, h.service, gatewayConfigWatchID)
+	err = h.subscribeToConfigEntry(ctx, structs.BoundAPIGateway, h.service, h.proxyID.EnterpriseMeta, gatewayConfigWatchID)
 	if err != nil {
 		return snap, err
 	}
@@ -80,13 +81,13 @@ func (h *handlerAPIGateway) initialize(ctx context.Context) (ConfigSnapshot, err
 	return snap, nil
 }
 
-func (h *handlerAPIGateway) subscribeToConfigEntry(ctx context.Context, kind, name, watchID string) error {
+func (h *handlerAPIGateway) subscribeToConfigEntry(ctx context.Context, kind, name string, entMeta acl.EnterpriseMeta, watchID string) error {
 	return h.dataSources.ConfigEntry.Notify(ctx, &structs.ConfigEntryQuery{
 		Kind:           kind,
 		Name:           name,
 		Datacenter:     h.source.Datacenter,
 		QueryOptions:   structs.QueryOptions{Token: h.token},
-		EnterpriseMeta: h.proxyID.EnterpriseMeta,
+		EnterpriseMeta: entMeta,
 	}, watchID, h.ch)
 }
 
@@ -172,7 +173,7 @@ func (h *handlerAPIGateway) handleGatewayConfigUpdate(ctx context.Context, u Upd
 					return fmt.Errorf("unexpected route kind on gateway: %s", ref.Kind)
 				}
 
-				err := h.subscribeToConfigEntry(ctx, ref.Kind, ref.Name, routeConfigWatchID)
+				err := h.subscribeToConfigEntry(ctx, ref.Kind, ref.Name, ref.EnterpriseMeta, routeConfigWatchID)
 				if err != nil {
 					// TODO May want to continue
 					return err
@@ -185,7 +186,7 @@ func (h *handlerAPIGateway) handleGatewayConfigUpdate(ctx context.Context, u Upd
 				seenRefs[ref] = struct{}{}
 				snap.APIGateway.Certificates.InitWatch(ref, cancel)
 
-				err := h.subscribeToConfigEntry(ctx, ref.Kind, ref.Name, inlineCertificateConfigWatchID)
+				err := h.subscribeToConfigEntry(ctx, ref.Kind, ref.Name, ref.EnterpriseMeta, inlineCertificateConfigWatchID)
 				if err != nil {
 					// TODO May want to continue
 					return err
@@ -391,7 +392,7 @@ func (h *handlerAPIGateway) handleRouteConfigUpdate(ctx context.Context, u Updat
 		snap.APIGateway.Upstreams.set(ref, listener, set)
 	}
 	snap.APIGateway.UpstreamsSet.set(ref, seenUpstreamIDs)
-	//snap.APIGateway.Hosts = TODO
+	// snap.APIGateway.Hosts = TODO
 	snap.APIGateway.AreHostsSet = true
 
 	// Stop watching any upstreams and discovery chains that have become irrelevant
