@@ -1,6 +1,7 @@
 name: build-distros
 
-on: [push]
+# TODO: enable push to all branhces?
+on: [pull_request]
 
 permissions:
   contents: read
