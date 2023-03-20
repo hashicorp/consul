@@ -75,7 +75,7 @@ jobs:
       
       # Education Jira
       - name: Create ticket in Education board an issue is filed, or if PR not by a team member is opened
-        if: github.event.action == 'opened' && ("${{ contains(github.event.issue.labels.*.name, 'type/docs') }}" == "true")
+        if: github.event.action == 'opened' && steps.is-team-member.outputs.MESSAGE == 'false' && ("${{ contains(github.event.issue.labels.*.name, 'type/docs') }}" == "true")
         uses: tomhjp/gh-action-jira-create@v0.2.0
         with:
           project: CE
