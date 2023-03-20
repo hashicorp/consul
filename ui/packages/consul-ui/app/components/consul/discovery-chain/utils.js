@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 const getNodesByType = function (nodes = {}, type) {
   return Object.values(nodes).filter((item) => item.Type === type);
 };

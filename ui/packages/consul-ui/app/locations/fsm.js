@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 // a simple state machine that the History API happens to more or less implement
 // it should really be an EventTarget but what we need here is simple enough
 export class FSM {

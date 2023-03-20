@@ -69,7 +69,7 @@ func TestCheckNodeServiceWithNameInPeer(t testing.T, name, dc, peer, ip string, 
 					name + ".default.default." + peer + ".external." + peerTrustDomain,
 				},
 				SpiffeID: []string{
-					"spiffe://" + peerTrustDomain + "/ns/default/dc/" + peer + "-dc/svc/" + name,
+					"spiffe://" + peerTrustDomain + "/ns/default/dc/" + dc + "/svc/" + name,
 				},
 				Protocol: "tcp",
 			},

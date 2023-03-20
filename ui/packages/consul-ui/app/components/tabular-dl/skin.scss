@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 %tabular-dl {
   > dt:last-of-type,
   > dd:last-of-type {
@@ -9,7 +14,7 @@
     color: var(--token-color-hashicorp-brand) !important;
   }
   dt {
-    font-weight: var(--typo-weight-bold);
+    font-weight: var(--token-typography-font-weight-bold);
   }
   dd .copy-button button::before {
     background-color: var(--token-color-hashicorp-brand);
