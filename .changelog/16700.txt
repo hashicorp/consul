@@ -1,0 +1,3 @@
+```release-note:bug
+audit-logging: (Enterprise only) Fix a bug where `/agent/monitor` and `/agent/metrics` endpoints return a `Streaing not supported`  error when audit logs are enabled. This also fixes the delay when running `consul monitor`.
+```
