@@ -40,38 +40,7 @@ type Store struct {
 //
 // You must call Run before using the store.
 func NewStore() (*Store, error) {
-	db, err := memdb.NewMemDB(&memdb.DBSchema{
-		Tables: map[string]*memdb.TableSchema{
-			tableNameMetadata: {
-				Name: tableNameMetadata,
-				Indexes: map[string]*memdb.IndexSchema{
-					indexNameID: {
-						Name:         indexNameID,
-						AllowMissing: false,
-						Unique:       true,
-						Indexer:      &memdb.StringFieldIndex{Field: "Key"},
-					},
-				},
-			},
-			tableNameResources: {
-				Name: tableNameResources,
-				Indexes: map[string]*memdb.IndexSchema{
-					indexNameID: {
-						Name:         indexNameID,
-						AllowMissing: false,
-						Unique:       true,
-						Indexer:      idIndexer{},
-					},
-					indexNameOwner: {
-						Name:         indexNameOwner,
-						AllowMissing: true,
-						Unique:       false,
-						Indexer:      ownerIndexer{},
-					},
-				},
-			},
-		},
-	})
+	db, err := newDB()
 	if err != nil {
 		return nil, err
 	}
@@ -229,6 +198,23 @@ func (s *Store) List(typ storage.UnversionedType, ten *pbresource.Tenancy, nameP
 	return listTxn(tx, query{typ, ten, namePrefix})
 }
 
+func listTxn(tx *memdb.Txn, q query) ([]*pbresource.Resource, error) {
+	iter, err := tx.Get(tableNameResources, indexNameID+"_prefix", q)
+	if err != nil {
+		return nil, err
+	}
+
+	list := make([]*pbresource.Resource, 0)
+	for v := iter.Next(); v != nil; v = iter.Next() {
+		res := v.(*pbresource.Resource)
+
+		if q.matches(res) {
+			list = append(list, res)
+		}
+	}
+	return list, nil
+}
+
 // WatchList watches resources of the given type, tenancy, and optionally
 // matching the given name prefix.
 //
@@ -285,60 +271,4 @@ func (s *Store) OwnerReferences(id *pbresource.ID) ([]*pbresource.ID, error) {
 		refs = append(refs, v.(*pbresource.Resource).Id)
 	}
 	return refs, nil
-}
-
-const (
-	tableNameMetadata  = "metadata"
-	tableNameResources = "resources"
-
-	indexNameID    = "id"
-	indexNameOwner = "owner"
-
-	metaKeyEventIndex = "index"
-)
-
-func listTxn(tx *memdb.Txn, q query) ([]*pbresource.Resource, error) {
-	iter, err := tx.Get(tableNameResources, indexNameID+"_prefix", q)
-	if err != nil {
-		return nil, err
-	}
-
-	list := make([]*pbresource.Resource, 0)
-	for v := iter.Next(); v != nil; v = iter.Next() {
-		res := v.(*pbresource.Resource)
-
-		if q.matches(res) {
-			list = append(list, res)
-		}
-	}
-	return list, nil
-}
-
-type meta struct {
-	Key   string
-	Value any
-}
-
-func incrementEventIndex(tx *memdb.Txn) (uint64, error) {
-	idx, err := currentEventIndex(tx)
-	if err != nil {
-		return 0, err
-	}
-
-	idx++
-	if err := tx.Insert(tableNameMetadata, meta{Key: metaKeyEventIndex, Value: idx}); err != nil {
-		return 0, nil
-	}
-	return idx, nil
-}
-
-func currentEventIndex(tx *memdb.Txn) (uint64, error) {
-	v, err := tx.First(tableNameMetadata, indexNameID, metaKeyEventIndex)
-	if err != nil {
-		return 0, err
-	}
-	if v == nil {
-		return 0, nil
-	}
-	return v.(meta).Value.(uint64), nil
 }

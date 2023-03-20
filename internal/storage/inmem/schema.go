@@ -5,9 +5,56 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/hashicorp/go-memdb"
+
 	"github.com/hashicorp/consul/internal/storage"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
+
+const (
+	tableNameMetadata  = "metadata"
+	tableNameResources = "resources"
+
+	indexNameID    = "id"
+	indexNameOwner = "owner"
+
+	metaKeyEventIndex = "index"
+)
+
+func newDB() (*memdb.MemDB, error) {
+	return memdb.NewMemDB(&memdb.DBSchema{
+		Tables: map[string]*memdb.TableSchema{
+			tableNameMetadata: {
+				Name: tableNameMetadata,
+				Indexes: map[string]*memdb.IndexSchema{
+					indexNameID: {
+						Name:         indexNameID,
+						AllowMissing: false,
+						Unique:       true,
+						Indexer:      &memdb.StringFieldIndex{Field: "Key"},
+					},
+				},
+			},
+			tableNameResources: {
+				Name: tableNameResources,
+				Indexes: map[string]*memdb.IndexSchema{
+					indexNameID: {
+						Name:         indexNameID,
+						AllowMissing: false,
+						Unique:       true,
+						Indexer:      idIndexer{},
+					},
+					indexNameOwner: {
+						Name:         indexNameOwner,
+						AllowMissing: true,
+						Unique:       false,
+						Indexer:      ownerIndexer{},
+					},
+				},
+			},
+		},
+	})
+}
 
 // indexSeparator delimits the segments of our radix tree keys.
 const indexSeparator = "\x00"
