@@ -171,11 +171,27 @@ func doHCPBootstrap(ctx context.Context, rc *config.RuntimeConfig, ui UI) (strin
 	if err := persistTLSCerts(dataDir, bsCfg); err != nil {
 		return "", fmt.Errorf("failed to persist TLS certificates to dir %q: %w", dataDir, err)
 	}
-	// Update the config JSON to include those TLS cert files
-	cfgJSON, err := injectTLSCerts(dataDir, bsCfg.ConsulConfig)
-	if err != nil {
-		return "", fmt.Errorf("failed to inject TLS Certs into bootstrap config: %w", err)
+
+	// Parse just to a map for now as we only have to inject to a specific place
+	// and parsing whole Config struct is complicated...
+	var cfg map[string]interface{}
+	if err := json.Unmarshal([]byte(bsCfg.ConsulConfig), &cfg); err != nil {
+		return "", err
 	}
+
+	// Update the config to include those TLS cert files
+	injectTLSCerts(dataDir, cfg)
+
+	// ensure that the initial management token from the bootstrap Consul config
+	// does not override the initial management token in the runtime config
+	checkManagementToken(rc, cfg)
+
+	// convert the bootstrap config back into a string
+	cfgJSONBytes, err := json.Marshal(cfg)
+	if err != nil {
+		return "", err
+	}
+	cfgJSON := string(cfgJSONBytes)
 
 	// Persist the final config we need to add for restarts. Assuming this wasn't
 	// a tmp dir to start with.
@@ -229,26 +245,38 @@ func persistTLSCerts(dataDir string, bsCfg *hcp.BootstrapConfig) error {
 	return nil
 }
 
-func injectTLSCerts(dataDir string, bootstrapJSON string) (string, error) {
-	// Parse just to a map for now as we only have to inject to a specific place
-	// and parsing whole Config struct is complicated...
-	var cfg map[string]interface{}
-
-	if err := json.Unmarshal([]byte(bootstrapJSON), &cfg); err != nil {
-		return "", err
-	}
-
+func injectTLSCerts(dataDir string, cfg map[string]interface{}) {
 	// Inject TLS cert files
 	cfg["ca_file"] = filepath.Join(dataDir, subDir, caFileName)
 	cfg["cert_file"] = filepath.Join(dataDir, subDir, certFileName)
 	cfg["key_file"] = filepath.Join(dataDir, subDir, keyFileName)
+}
 
-	jsonBs, err := json.Marshal(cfg)
-	if err != nil {
-		return "", err
+func checkManagementToken(runtimeCfg *config.RuntimeConfig, bootstrapCfg map[string]interface{}) {
+	if runtimeCfg.ACLInitialManagementToken == "" {
+		// if this is empty, the token from the bootstrap will be used
+		return
 	}
 
-	return string(jsonBs), nil
+	// we're looking for acl.tokens.initial_management token from the bootstrap Consul config map
+	aclCfg, ok := bootstrapCfg["acl"].(map[string]interface{})
+	if !ok {
+		return
+	}
+
+	tokensCfg, ok := aclCfg["tokens"].(map[string]interface{})
+	if !ok {
+		return
+	}
+
+	initManagementToken, ok := tokensCfg["initial_management"].(string)
+	if !ok || initManagementToken == "" {
+		return
+	}
+
+	// if the runtime config has an initial management token, delete the
+	// one from the bootstrap Consul config so it doesn't override
+	delete(tokensCfg, "initial_management")
 }
 
 func persistBootstrapConfig(dataDir, cfgJSON string) error {
