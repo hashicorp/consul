@@ -192,8 +192,8 @@ func NewHandlerWithLimiter(
 	limiter multilimiter.RateLimiter,
 	logger hclog.Logger) *Handler {
 
-	limiter.UpdateConfig(cfg.GlobalWriteConfig, globalWrite)
-	limiter.UpdateConfig(cfg.GlobalReadConfig, globalRead)
+	limiter.UpdateConfig(&cfg.GlobalWriteConfig, globalWrite)
+	limiter.UpdateConfig(&cfg.GlobalReadConfig, globalRead)
 
 	h := &Handler{
 		cfg:     new(atomic.Pointer[HandlerConfig]),
@@ -286,10 +286,10 @@ func (h *Handler) UpdateConfig(cfg HandlerConfig) {
 		return
 	}
 	if !reflect.DeepEqual(existingCfg.GlobalWriteConfig, cfg.GlobalWriteConfig) {
-		h.limiter.UpdateConfig(cfg.GlobalWriteConfig, globalWrite)
+		h.limiter.UpdateConfig(&cfg.GlobalWriteConfig, globalWrite)
 	}
 	if !reflect.DeepEqual(existingCfg.GlobalReadConfig, cfg.GlobalReadConfig) {
-		h.limiter.UpdateConfig(cfg.GlobalReadConfig, globalRead)
+		h.limiter.UpdateConfig(&cfg.GlobalReadConfig, globalRead)
 	}
 }
 

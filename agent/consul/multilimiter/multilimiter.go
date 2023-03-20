@@ -25,7 +25,7 @@ func Key(keys ...[]byte) KeyType {
 type RateLimiter interface {
 	Run(ctx context.Context)
 	Allow(entity LimitedEntity) bool
-	UpdateConfig(c LimiterConfig, prefix []byte)
+	UpdateConfig(c *LimiterConfig, prefix []byte)
 }
 
 type limiterWithKey struct {
@@ -67,21 +67,25 @@ type LimiterConfig struct {
 
 // Config is a MultiLimiter configuration
 type Config struct {
-	LimiterConfig
 	ReconcileCheckLimit    time.Duration
 	ReconcileCheckInterval time.Duration
 }
 
 // UpdateConfig will update the MultiLimiter Config
 // which will cascade to all the Limiter(s) LimiterConfig
-func (m *MultiLimiter) UpdateConfig(c LimiterConfig, prefix []byte) {
+func (m *MultiLimiter) UpdateConfig(c *LimiterConfig, prefix []byte) {
 	m.configsLock.Lock()
 	defer m.configsLock.Unlock()
 	if prefix == nil {
 		prefix = []byte("")
 	}
 	configs := m.limitersConfigs.Load()
-	newConfigs, _, _ := configs.Insert(prefix, &c)
+	var newConfigs *radix.Tree
+	if c == nil {
+		newConfigs, _, _ = configs.Delete(prefix)
+	} else {
+		newConfigs, _, _ = configs.Insert(prefix, c)
+	}
 	m.limitersConfigs.Store(newConfigs)
 }
 
@@ -143,14 +147,16 @@ func (m *MultiLimiter) Allow(e LimitedEntity) bool {
 	}
 
 	configs := m.limitersConfigs.Load()
-	config := &m.defaultConfig.Load().LimiterConfig
+
 	p, _, ok := configs.Root().LongestPrefix(e.Key())
 
-	if ok {
-		c, ok := configs.Get(p)
-		if ok && c != nil {
-			config = c.(*LimiterConfig)
-		}
+	if !ok {
+		return true
+	}
+	var config *LimiterConfig
+	c, ok := configs.Get(p)
+	if ok && c != nil {
+		config = c.(*LimiterConfig)
 	}
 
 	limiter := &Limiter{limiter: rate.NewLimiter(config.Rate, config.Burst)}
@@ -211,7 +217,10 @@ func (m *MultiLimiter) reconcileConfig(txn *radix.Txn) {
 		// find the prefix for the leaf and check if the defaultConfig is up-to-date
 		// it's possible that the prefix is equal to the key
 		p, _, ok := m.limitersConfigs.Load().Root().LongestPrefix(k)
+
+		// no corresponding config found, need to delete it
 		if !ok {
+			txn.Delete(k)
 			continue
 		}
 		v, ok := m.limitersConfigs.Load().Get(p)
