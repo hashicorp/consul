@@ -40,7 +40,10 @@ service StateChangeSubscription {
   // because the server state was restored from a snapshot.
   // buf:lint:ignore RPC_RESPONSE_STANDARD_NAME
   rpc Subscribe(SubscribeRequest) returns (stream Event) {
-    option (hashicorp.consul.internal.ratelimit.spec) = {operation_type: OPERATION_TYPE_READ};
+    option (hashicorp.consul.internal.ratelimit.spec) = {
+      operation_type: OPERATION_TYPE_READ,
+      operation_category: OPERATION_CATEGORY_SUBSCRIBE
+    };
   }
 }
 
