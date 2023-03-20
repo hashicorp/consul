@@ -15,6 +15,7 @@ jobs:
         !startsWith(github.ref, 'refs/heads/backport/ui/') || 
         !startsWith(github.ref, 'refs/heads/backport/mktg-.')
     uses: ./.github/workflows/reusable-check-go-mod.yml
+
   check-generated-protobuf:
     if: |
         github.ref != 'stable-website' || 
@@ -39,7 +40,7 @@ jobs:
             fi
     - run: make proto-lint
       name: "Protobuf Lint"
-
+  
   check-generated-deep-copy:
     if: |
         github.ref != 'stable-website' || 
@@ -59,6 +60,7 @@ jobs:
           echo "Generated code was not updated correctly"
           exit 1
         fi
+  
   lint-enums:
     if: |
         github.ref != 'stable-website' || 
@@ -72,7 +74,8 @@ jobs:
     - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
     - run: go install github.com/reillywatson/enumcover/cmd/enumcover@master && enumcover ./...   
     #TODO(JM) - get this from Dan
-    # - run: *notify-slack-failure 
+    # - run: *notify-slack-failure
+
   lint-container-test-deps:
     if: |
         github.ref != 'stable-website' || 
@@ -86,7 +89,8 @@ jobs:
     - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
     - run: make lint-container-test-deps 
     #TODO(JM) - get this from Dan
-    # - run: *notify-slack-failure 
+    # - run: *notify-slack-failure
+
   lint-consul-retry:
     if: |
         github.ref != 'stable-website' || 
@@ -111,3 +115,15 @@ jobs:
         !startsWith(github.ref, 'refs/heads/backport/ui/') || 
         !startsWith(github.ref, 'refs/heads/backport/mktg-.')
     uses: ./.github/workflows/reusable-lint.yml
+
+  lint-32bit:
+    if: |
+        github.ref != 'stable-website' || 
+        !startsWith(github.ref, 'refs/heads/docs/') || 
+        !startsWith(github.ref, 'refs/heads/ui/') || 
+        !startsWith(github.ref, 'refs/heads/backport/docs/') || 
+        !startsWith(github.ref, 'refs/heads/backport/ui/') || 
+        !startsWith(github.ref, 'refs/heads/backport/mktg-.')
+    uses: ./.github/workflows/reusable-lint.yml
+    with:
+      go-arch: "386"
