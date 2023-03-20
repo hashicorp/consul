@@ -75,11 +75,11 @@ jobs:
       
       # Education Jira
       - name: Create ticket in Education board an issue is filed, or if PR not by a team member is opened
-        if: github.event.action == 'opened' && ("${{ contains(github.event.issue.labels.*.name, 'type/docs') }}" == "true")
+        if: github.event.action == 'opened' && steps.is-team-member.outputs.MESSAGE == 'false' && ("${{ contains(github.event.issue.labels.*.name, 'type/docs') }}" == "true")
         uses: tomhjp/gh-action-jira-create@v0.2.0
         with:
           project: CE
-          issuetype: "${{ steps.set-ticket-type.outputs.TYPE }}"
+          issuetype: "Bug"
           summary: "${{ github.event.repository.name }} [${{ steps.set-ticket-type.outputs.TYPE }} #${{ github.event.issue.number }}]: ${{ github.event.issue.title }}"
           description: "GitHub URL: ${{ github.event.issue.html_url || github.event.pull_request.html_url }}\n\n${{ github.event.issue.body || github.event.pull_request.body }}\n\n_Created in GitHub by ${{ github.actor }}._"
           # customfield_10089 is "Issue Link", customfield_10371 is "Source" (use JIRA API to retrieve)
