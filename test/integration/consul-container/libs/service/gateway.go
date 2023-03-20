@@ -112,7 +112,6 @@ func (g gatewayContainer) GetPort(port int) (int, error) {
 		return 0, fmt.Errorf("port does not exist")
 	}
 	return p, nil
-
 }
 
 func (g gatewayContainer) Restart() error {
@@ -140,13 +139,19 @@ func (g gatewayContainer) GetStatus() (string, error) {
 	return state.Status, err
 }
 
-func NewGatewayService(ctx context.Context, name string, kind string, node libcluster.Agent, ports ...int) (Service, error) {
+type GatewayConfig struct {
+	Name      string
+	Kind      string
+	Namespace string
+}
+
+func NewGatewayService(ctx context.Context, gwCfg GatewayConfig, node libcluster.Agent, ports ...int) (Service, error) {
 	nodeConfig := node.GetConfig()
 	if nodeConfig.ScratchDir == "" {
 		return nil, fmt.Errorf("node ScratchDir is required")
 	}
 
-	namePrefix := fmt.Sprintf("%s-service-gateway-%s", node.GetDatacenter(), name)
+	namePrefix := fmt.Sprintf("%s-service-gateway-%s", node.GetDatacenter(), gwCfg.Name)
 	containerName := utils.RandName(namePrefix)
 
 	envoyVersion := getEnvoyVersion()
@@ -174,9 +179,10 @@ func NewGatewayService(ctx context.Context, name string, kind string, node libcl
 		Name:           containerName,
 		Cmd: []string{
 			"consul", "connect", "envoy",
-			fmt.Sprintf("-gateway=%s", kind),
+			fmt.Sprintf("-gateway=%s", gwCfg.Kind),
 			"-register",
-			"-service", name,
+			"-namespace", gwCfg.Namespace,
+			"-service", gwCfg.Name,
 			"-address", "{{ GetInterfaceIP \"eth0\" }}:8443",
 			"-admin-bind", fmt.Sprintf("0.0.0.0:%d", adminPort),
 			"--",
@@ -242,7 +248,7 @@ func NewGatewayService(ctx context.Context, name string, kind string, node libcl
 		ip:           info.IP,
 		port:         info.MappedPorts[portStr].Int(),
 		adminPort:    info.MappedPorts[adminPortStr].Int(),
-		serviceName:  name,
+		serviceName:  gwCfg.Name,
 		portMappings: portMappings,
 	}
 
