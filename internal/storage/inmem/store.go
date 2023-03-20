@@ -26,11 +26,11 @@ type Store struct {
 	// concurrent writers.
 	//
 	// We cannot rely on MemDB's write lock for this, because events must be
-	// published *after* the transaction is committed to provide sequential
-	// consistency between Watch and Read calls. In other words, if we were to
-	// publish an event before the transaction was committed, there would be a
-	// small window of time where a watcher (e.g. controller) could try to Read
-	// the resource and not get the version they were notified about.
+	// published *after* the transaction is committed to provide monotonic reads
+	// between Watch and Read calls. In other words, if we were to publish an event
+	// before the transaction was committed, there would be a small window of time
+	// where a watcher (e.g. controller) could try to Read the resource and not get
+	// the version they were notified about.
 	//
 	// Without this lock, it would be possible to publish events out-of-order.
 	eventLock sync.Mutex
