@@ -6,6 +6,21 @@ permissions:
   contents: read
 
 jobs:
+  get-go-version:
+    name: "Determine Go toolchain version"
+    runs-on: ubuntu-latest
+    outputs:
+      go-version: ${{ steps.get-go-version.outputs.go-version }}
+    steps:
+      - uses: actions/checkout@v3
+      - name: Determine Go version
+        id: get-go-version
+        # We use .go-version as our source of truth for current Go
+        # version, because "goenv" can react to it automatically.
+        run: |
+          echo "Building with Go $(cat .go-version)"
+          echo "::set-output name=go-version::$(cat .go-version)"
+  
   check-go-mod:  #TODO(JM): figure out how to get around no anchors
     if: |
         github.ref != 'stable-website' || 
@@ -127,3 +142,98 @@ jobs:
     uses: ./.github/workflows/reusable-lint.yml
     with:
       go-arch: "386"
+
+  go-test-arm64:
+    if: |
+        github.ref != 'stable-website' || 
+        !startsWith(github.ref, 'refs/heads/docs/') || 
+        !startsWith(github.ref, 'refs/heads/ui/') || 
+        !startsWith(github.ref, 'refs/heads/backport/docs/') || 
+        !startsWith(github.ref, 'refs/heads/backport/ui/') || 
+        !startsWith(github.ref, 'refs/heads/backport/mktg-.')
+    env:
+      GOTAGS: "" # No tags for OSS but there are for enterprise
+      # GOMAXPROCS defaults to number of cores on underlying hardware, set
+      # explicitly to avoid OOM issues https://support.circleci.com/hc/en-us/articles/360034684273-common-GoLang-memory-issues
+      GOMAXPROCS: 4
+    steps:
+    - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
+    - run: |
+            sudo rm -rf /usr/local/go
+            wget https://dl.google.com/go/go${GO_VERSION}.linux-arm64.tar.gz
+            sudo tar -C /usr/local -xzvf go${GO_VERSION}.linux-arm64.tar.gz
+    - run: *install-gotestsum
+    - run: go mod download
+    - name: make dev
+      run: |
+          if [[ "$CIRCLE_BRANCH" =~ ^main$|^release/ ]]; then
+            make dev
+            mkdir -p /home/circleci/bin
+            cp ./bin/consul /home/circleci/bin/consul
+          fi
+    - run-go-test-full:
+        go_test_flags: 'if ! [[ "$CIRCLE_BRANCH" =~ ^main$|^release/ ]]; then export GO_TEST_FLAGS="-short"; fi'
+  
+  go-test:
+    needs: [get-go-version]
+    uses: ./.github/workflows/reusable-unit.yml
+    with:
+      directory: . 
+      go-version: ${{ needs.get-go-version.outputs.go-version }}
+
+  # go-test-acl:
+  #   needs: [get-go-version]
+  #   uses: ./.github/workflows/reusable-unit.yml
+  #   with:
+  #     directory: acl 
+  #     go-version: ${{ needs.get-go-version.outputs.go-version }}
+
+  # go-test-agent:
+  #   needs: [get-go-version]
+  #   uses: ./.github/workflows/reusable-unit.yml
+  #   with:
+  #     directory: agent 
+  #     go-version: ${{ needs.get-go-version.outputs.go-version }}
+
+  # go-test-api:
+  #   needs: [get-go-version]
+  #   uses: ./.github/workflows/reusable-unit.yml
+  #   with:
+  #     directory: api 
+  #     go-version: ${{ needs.get-go-version.outputs.go-version }}
+
+  # go-test-command:
+  #   needs: [get-go-version]
+  #   uses: ./.github/workflows/reusable-unit.yml
+  #   with:
+  #     directory: command 
+  #     go-version: ${{ needs.get-go-version.outputs.go-version }}
+
+  # go-test-connect:
+  #   needs: [get-go-version]
+  #   uses: ./.github/workflows/reusable-unit.yml
+  #   with:
+  #     directory: connect 
+  #     go-version: ${{ needs.get-go-version.outputs.go-version }}
+
+  # go-test-envoyextensions:
+  #   needs: [get-go-version]
+  #   uses: ./.github/workflows/reusable-unit.yml
+  #   with:
+  #     directory: envoyextensions 
+  #     go-version: ${{ needs.get-go-version.outputs.go-version }}
+
+  # go-test-internal:
+  #   needs: [get-go-version]
+  #   uses: ./.github/workflows/reusable-unit.yml
+  #   with:
+  #     directory: internal 
+  #     go-version: ${{ needs.get-go-version.outputs.go-version }}
+
+  # go-test-ipaddr:
+  #   needs: [get-go-version]
+  #   uses: ./.github/workflows/reusable-unit.yml
+  #   with:
+  #     directory: ipaddr 
+  #     go-version: ${{ needs.get-go-version.outputs.go-version }}
+

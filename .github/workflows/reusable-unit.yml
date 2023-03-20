@@ -1,0 +1,57 @@
+name: reusable-unit 
+
+on:
+  workflow_call:
+    inputs:
+      directory:
+        required: true
+        type: string
+      go-version:
+        required: true
+        type: string
+
+# Environment variables can only be used at the step level
+env:
+  TEST_RESULTS: /tmp/test-results # path to where test results are saved
+  GOTESTSUM_VERSION: 1.8.2
+
+jobs:
+  job:
+    runs-on: ubuntu-latest
+
+    steps:      
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Setup go
+        uses: actions/setup-go@v3
+        with:
+          go-version: ${{inputs.go-version}}
+
+      - name: Setup go mod cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      - name: Install gotestsum
+        run: |
+          wget https://github.com/gotestyourself/gotestsum/releases/download/v${{env.GOTESTSUM_VERSION}}/gotestsum_${{env.GOTESTSUM_VERSION}}_linux_amd64.tar.gz
+          sudo tar -C /usr/local/bin -xzf gotestsum_${{env.GOTESTSUM_VERSION}}_linux_amd64.tar.gz
+          rm gotestsum_${{env.GOTESTSUM_VERSION}}_linux_amd64.tar.gz
+
+      - run: mkdir -p ${{env.TEST_RESULTS}}
+
+      - name: go mod download
+        working-directory: ${{inputs.directory}}
+        run: go mod download
+
+      - name: Run tests 
+        working-directory: ${{inputs.directory}}
+        run: |
+          gotestsum --format=testname --junitfile ${{env.TEST_RESULTS}}/gotestsum-report.xml ./... -- -p 4
+         
