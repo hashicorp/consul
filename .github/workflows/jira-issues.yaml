@@ -64,8 +64,8 @@ jobs:
           summary: "${{ github.event.repository.name }} [${{ steps.set-ticket-type.outputs.TYPE }} #${{ github.event.issue.number }}]: ${{ github.event.issue.title }}"
           description: "GitHub URL: ${{ github.event.issue.html_url || github.event.pull_request.html_url }}\n\n${{ github.event.issue.body || github.event.pull_request.body }}\n\n_Created in GitHub by ${{ github.actor }}._"
           # customfield_10089 is "Issue Link", customfield_10371 is "Source" (use JIRA API to retrieve)
-          extraFields: '{ "components": [{ "name": "${{ github.event.repository.name }}" }],
-                          "labels": ${{ steps.set-ticket-labels.outputs.LABELS }} }'
+          extraFields: '{ "components": [{ "name": "${{ github.event.repository.name }}" }] }'
+
         env:
           JIRA_BASE_URL: ${{ secrets.JIRA_BASE_URL }}
           JIRA_USER_EMAIL: ${{ secrets.JIRA_USER_EMAIL }}
