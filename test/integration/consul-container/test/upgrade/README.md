@@ -157,10 +157,10 @@ To write tests for bugs found during upgrades, see example on how to add a testc
 ## FAQS
 
 **Q.** Are containers' ports (e.g., consul's 8500, envoy sidecar's admin port
-or local upstream port) are exposed on the docker host? \
+or local upstream port) exposed on the docker host? \
 **A.** Yes, they are exposed. However, they are exposed through a [pod container](https://github.com/hashicorp/consul/blob/57e034b74621180861226a01efeb3e9cedc74d3a/test/integration/consul-container/libs/cluster/container.go#L132).
 That is, a consul agent and the envoy proxy containers registered with the agent
-share the [same network](https://github.com/hashicorp/consul/blob/57e034b74621180861226a01efeb3e9cedc74d3a/test/integration/consul-container/libs/cluster/app.go#L23-L30) as the pod container.
+share the [same Linux network namespace (i.e., they share `localhost`)](https://github.com/hashicorp/consul/blob/57e034b74621180861226a01efeb3e9cedc74d3a/test/integration/consul-container/libs/cluster/app.go#L23-L30) as the pod container.
 The pod container use the same prefix as the consul agent in its name.
 
 **Q.** To troubleshoot, how can I send API request or consul command to the deployed cluster? \
@@ -179,7 +179,7 @@ Then in your terminal `docker ps -a | grep consul` to get the running services a
 **Q.** To troubleshoot, how can I access the envoy admin page? \
 **A.** To access envoy admin page, ensure that a cluster, services and sidecars have been created. Then get the adminPort for the client or server sidecar. See example on how to get the port above. Then navigate to a browser and go to the url `http://localhost:adminPort/`  
 
-**Q.** My test stuck with the error "could not start or join all agents: container 0: port not found"? \
+**Q.** My test is stuck with the error "could not start or join all agents: container 0: port not found"? \
 **A.** Simply re-run the tests. If the error persists, prune docker images `docker system prune`, run `make dev-docker`, then re-run tests again. 
 
 **Q.** How to clean up the resources created the upgrade test?
