@@ -198,6 +198,7 @@ func NewCluster(
 		AllowHTTPAnyway:        true,
 		ConsulVersion:          config.BuildOpts.ConsulVersion,
 		ACLEnabled:             config.BuildOpts.ACLEnabled,
+		LogStore:               config.BuildOpts.LogStore,
 	}
 	ctx := libcluster.NewBuildContext(t, opts)
 

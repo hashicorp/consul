@@ -262,6 +262,34 @@ type DiscoveryTargetOpts struct {
 	Peer          string
 }
 
+func MergeDiscoveryTargetOpts(o1 DiscoveryTargetOpts, o2 DiscoveryTargetOpts) DiscoveryTargetOpts {
+	if o2.Service != "" {
+		o1.Service = o2.Service
+	}
+
+	if o2.ServiceSubset != "" {
+		o1.ServiceSubset = o2.ServiceSubset
+	}
+
+	if o2.Namespace != "" {
+		o1.Namespace = o2.Namespace
+	}
+
+	if o2.Partition != "" {
+		o1.Partition = o2.Partition
+	}
+
+	if o2.Datacenter != "" {
+		o1.Datacenter = o2.Datacenter
+	}
+
+	if o2.Peer != "" {
+		o1.Peer = o2.Peer
+	}
+
+	return o1
+}
+
 func NewDiscoveryTarget(opts DiscoveryTargetOpts) *DiscoveryTarget {
 	t := &DiscoveryTarget{
 		Service:       opts.Service,
