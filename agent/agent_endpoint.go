@@ -11,14 +11,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hashicorp/consul/envoyextensions/xdscommon"
-	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/go-memdb"
-	"github.com/mitchellh/hashstructure"
-
 	"github.com/hashicorp/go-bexpr"
+	"github.com/hashicorp/go-hclog"
+	iradix "github.com/hashicorp/go-immutable-radix/v2"
+	"github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/serf/coordinate"
 	"github.com/hashicorp/serf/serf"
+	"github.com/mitchellh/hashstructure"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
@@ -29,6 +28,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	token_store "github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/envoyextensions/xdscommon"
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logging"
@@ -1415,6 +1415,27 @@ func (s *HTTPHandlers) AgentMonitor(resp http.ResponseWriter, req *http.Request)
 		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: fmt.Sprintf("Unknown log level: %s", logLevel)}
 	}
 
+	// Set up a prefix tree of LogSublevels so we can override
+	// log levels for named subcomponents.
+	var tree *iradix.Tree[hclog.Level]
+	if sublevels, ok := req.URL.Query()["logsublevel"]; ok && len(sublevels) > 0 {
+		tree = iradix.New[hclog.Level]()
+		for _, v := range sublevels {
+			key, level, ok := strings.Cut(v, ":")
+			if !ok {
+				return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Expected sublevel to be `<subsystem>:<log-level>` format"}
+			}
+			if !logging.ValidateLogLevel(level) {
+				return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: fmt.Sprintf("Unknown log level: %s", level)}
+			}
+			// Special case for when a user provides the root logger name (e.g. "agent").
+			if key == s.agent.logger.Name() {
+				s.agent.logger.SetLevel(logging.LevelFromString(level))
+			}
+			tree, _, _ = tree.Insert([]byte(key), logging.LevelFromString(level))
+		}
+	}
+
 	flusher, ok := resp.(http.Flusher)
 	if !ok {
 		return nil, fmt.Errorf("Streaming not supported")
@@ -1424,8 +1445,10 @@ func (s *HTTPHandlers) AgentMonitor(resp http.ResponseWriter, req *http.Request)
 		BufferSize: 512,
 		Logger:     s.agent.logger,
 		LoggerOptions: &hclog.LoggerOptions{
-			Level:      logging.LevelFromString(logLevel),
-			JSONFormat: logJSON,
+			Level:             logging.LevelFromString(logLevel),
+			JSONFormat:        logJSON,
+			SubloggerHook:     logging.MakeSubloggerHook(tree),
+			IndependentLevels: true, // required so the sublogger hook doesn't modify parent logger level
 		},
 	})
 	logsCh := monitor.Start()

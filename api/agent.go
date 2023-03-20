@@ -1231,23 +1231,42 @@ func (a *Agent) DisableNodeMaintenance() error {
 // log stream. An empty string will be sent down the given channel when there's
 // nothing left to stream, after which the caller should close the stopCh.
 func (a *Agent) Monitor(loglevel string, stopCh <-chan struct{}, q *QueryOptions) (chan string, error) {
-	return a.monitor(loglevel, false, stopCh, q)
+	return a.monitor(stopCh, MonitorOptions{LogLevel: loglevel}, q)
+}
+
+type MonitorOptions struct {
+	LogLevel string
+	LogJson  bool
+	// LogSublevel represents the log level of a
+	// subsystem in `<subsystem>:<log-level>` format.
+	LogSublevel []string
+}
+
+// MonitorWithOpts allows for customizing Monitor behavior.
+func (a *Agent) MonitorWithOpts(stopCh <-chan struct{}, opts MonitorOptions, q *QueryOptions) (chan string, error) {
+	return a.monitor(stopCh, opts, q)
 }
 
 // MonitorJSON is like Monitor except it returns logs in JSON format.
+//
+// deprecated: use MonitorWithOpts instead.
 func (a *Agent) MonitorJSON(loglevel string, stopCh <-chan struct{}, q *QueryOptions) (chan string, error) {
-	return a.monitor(loglevel, true, stopCh, q)
+	return a.monitor(stopCh, MonitorOptions{LogLevel: loglevel, LogJson: true}, q)
 }
 
-func (a *Agent) monitor(loglevel string, logJSON bool, stopCh <-chan struct{}, q *QueryOptions) (chan string, error) {
+func (a *Agent) monitor(stopCh <-chan struct{}, opts MonitorOptions, q *QueryOptions) (chan string, error) {
 	r := a.c.newRequest("GET", "/v1/agent/monitor")
 	r.setQueryOptions(q)
-	if loglevel != "" {
-		r.params.Add("loglevel", loglevel)
+	if opts.LogLevel != "" {
+		r.params.Add("loglevel", opts.LogLevel)
 	}
-	if logJSON {
+	if opts.LogJson {
 		r.params.Set("logjson", "true")
 	}
+	for _, v := range opts.LogSublevel {
+		r.params.Add("logsublevel", v)
+	}
+
 	_, resp, err := a.c.doRequest(r)
 	if err != nil {
 		return nil, err

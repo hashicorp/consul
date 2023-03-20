@@ -8,9 +8,10 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/mitchellh/cli"
+
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/flags"
-	"github.com/mitchellh/cli"
 )
 
 // cmd is a Command implementation that queries a running
@@ -27,8 +28,9 @@ type cmd struct {
 	quitting bool
 
 	// flags
-	logLevel string
-	logJSON  bool
+	logLevel     string
+	logJSON      bool
+	logSublevels []string
 }
 
 func New(ui cli.Ui, shutdownCh <-chan struct{}) *cmd {
@@ -43,40 +45,36 @@ func (c *cmd) init() {
 		"Log level of the agent.")
 	c.flags.BoolVar(&c.logJSON, "log-json", false,
 		"Output logs in JSON format.")
-
+	c.flags.Var((*flags.AppendSliceValue)(&c.logSublevels), "log-sublevels",
+		"Sets the log level of a subsystem in `<subsystem>:<log-level>` format (e.g. `agent.leader:warn`). Can be specified multiple times.")
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
 	c.help = flags.Usage(help, c.flags)
 }
 
 func (c *cmd) Run(args []string) int {
-	var logCh chan string
-	var err error
 	var client *api.Client
 
-	if err = c.flags.Parse(args); err != nil {
+	if err := c.flags.Parse(args); err != nil {
 		return 1
 	}
 
-	client, err = c.http.APIClient()
+	client, err := c.http.APIClient()
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
 		return 1
 	}
 
+	opts := api.MonitorOptions{
+		LogLevel:    c.logLevel,
+		LogJson:     c.logJSON,
+		LogSublevel: c.logSublevels,
+	}
 	eventDoneCh := make(chan struct{})
-	if c.logJSON {
-		logCh, err = client.Agent().MonitorJSON(c.logLevel, eventDoneCh, nil)
-		if err != nil {
-			c.UI.Error(fmt.Sprintf("Error starting JSON monitor: %s", err))
-			return 1
-		}
-	} else {
-		logCh, err = client.Agent().Monitor(c.logLevel, eventDoneCh, nil)
-		if err != nil {
-			c.UI.Error(fmt.Sprintf("Error starting monitor: %s", err))
-			return 1
-		}
+	logCh, err := client.Agent().MonitorWithOpts(eventDoneCh, opts, nil)
+	if err != nil {
+		c.UI.Error(fmt.Sprintf("Error starting JSON monitor: %s", err))
+		return 1
 	}
 
 	go func() {

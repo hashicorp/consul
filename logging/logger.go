@@ -152,29 +152,36 @@ func Setup(config Config, out io.Writer) (hclog.InterceptLogger, error) {
 	}
 
 	logger := hclog.NewInterceptLogger(&hclog.LoggerOptions{
-		Level:      LevelFromString(config.LogLevel),
-		Name:       config.Name,
-		Output:     io.MultiWriter(writers...),
-		JSONFormat: config.LogJSON,
-		SubloggerHook: func(sub hclog.Logger) hclog.Logger {
-			if tree == nil {
-				return sub
-			}
-			if prefix, level, ok := tree.Root().LongestPrefix([]byte(sub.Name())); ok {
-				// If not an exact match, look ahead one char to determine
-				// if we are at a name boundary.
-				//
-				// Example: -log-sublevels agent.peering:trace
-				//   sublogger: 	"agent.peering-syncer" <- should not apply
-				//   sublogger:		"agent.peering.grpc"
-				if len(prefix) < len(sub.Name()) && sub.Name()[len(prefix)] != '.' {
-					return sub
-				}
-				sub.SetLevel(level)
-			}
-			return sub
-		},
+		Level:             LevelFromString(config.LogLevel),
+		Name:              config.Name,
+		Output:            io.MultiWriter(writers...),
+		JSONFormat:        config.LogJSON,
+		SubloggerHook:     MakeSubloggerHook(tree),
 		IndependentLevels: true, // required so the sublogger hook doesn't modify parent logger level
 	})
 	return logger, nil
+}
+
+// MakeSubloggerHook takes a prefix tree of subsystem names to log levels
+// then returns a closure which sets sublogger levels to the longest prefix
+// match that exists in the tree. If tree is nil, the closure is a no-op.
+func MakeSubloggerHook(tree *iradix.Tree[hclog.Level]) func(logger hclog.Logger) hclog.Logger {
+	return func(sub hclog.Logger) hclog.Logger {
+		if tree == nil {
+			return sub
+		}
+		if prefix, level, ok := tree.Root().LongestPrefix([]byte(sub.Name())); ok {
+			// If not an exact match, look ahead one char to determine
+			// if we are at a name boundary.
+			//
+			// Example: -log-sublevels agent.peering:trace
+			//   sublogger: 	"agent.peering-syncer" <- should not apply
+			//   sublogger:		"agent.peering.grpc"
+			if len(prefix) < len(sub.Name()) && sub.Name()[len(prefix)] != '.' {
+				return sub
+			}
+			sub.SetLevel(level)
+		}
+		return sub
+	}
 }

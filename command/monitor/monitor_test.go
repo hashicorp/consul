@@ -10,8 +10,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/agent"
 	"github.com/mitchellh/cli"
+
+	"github.com/hashicorp/consul/agent"
 )
 
 func TestMonitorCommand_exitsOnSignalBeforeLinesArrive(t *testing.T) {
@@ -71,7 +72,7 @@ func TestMonitorCommand_exitsOnSignalBeforeLinesArrive(t *testing.T) {
 	}
 }
 
-func TestMonitorCommand_LogJSONValidFlag(t *testing.T) {
+func TestMonitorCommand_ValidOptions(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
@@ -84,7 +85,10 @@ func TestMonitorCommand_LogJSONValidFlag(t *testing.T) {
 
 	ui := cli.NewMockUi()
 	c := New(ui, shutdownCh)
-	args := []string{"-http-addr=" + a.HTTPAddr(), "-log-json"}
+	args := []string{"-http-addr=" + a.HTTPAddr(), "-log-json",
+		"-log-sublevels", "agent.leader:debug",
+		"-log-sublevels", "agent.grpc:warn",
+	}
 
 	// Buffer it so we don't deadlock when blocking send on shutdownCh triggers
 	// Run to return before we can select on it.

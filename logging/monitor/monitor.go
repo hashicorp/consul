@@ -7,7 +7,7 @@ import (
 	"errors"
 	"sync"
 
-	log "github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-hclog"
 )
 
 // Monitor provides a mechanism to stream logs using go-hclog
@@ -26,10 +26,10 @@ type Monitor interface {
 
 // monitor implements the Monitor interface
 type monitor struct {
-	sink log.SinkAdapter
+	sink hclog.SinkAdapter
 
 	// logger is the logger we will be monitoring
-	logger log.InterceptLogger
+	logger hclog.InterceptLogger
 
 	// logCh is a buffered chan where we send logs when streaming
 	logCh chan []byte
@@ -47,8 +47,24 @@ type monitor struct {
 
 type Config struct {
 	BufferSize    int
-	Logger        log.InterceptLogger
-	LoggerOptions *log.LoggerOptions
+	Logger        hclog.InterceptLogger
+	LoggerOptions *hclog.LoggerOptions
+}
+
+var _ hclog.SinkAdapter = (*sinkWrapper)(nil)
+
+// sinkWrapper is a shim required to use hclog.LoggerOptions.SubloggerHook.
+// Normally we would simply use hclog.NewSinkAdapter but it inherits the
+// base logger's level with no way to dynamically filter logs by subsystem.
+// Since we want to be able to monitor logs with independent sublogger levels,
+// we use this wrapper to call logger.Named (triggering the SubloggerHook)
+// on each Accept call.
+type sinkWrapper struct {
+	logger hclog.Logger
+}
+
+func (w *sinkWrapper) Accept(name string, level hclog.Level, msg string, args ...interface{}) {
+	w.logger.Named(name).Log(level, msg, args...)
 }
 
 // New creates a new Monitor. Start must be called in order to actually start
@@ -67,7 +83,7 @@ func New(cfg Config) Monitor {
 	}
 
 	cfg.LoggerOptions.Output = sw
-	sink := log.NewSinkAdapter(cfg.LoggerOptions)
+	sink := &sinkWrapper{hclog.New(cfg.LoggerOptions)}
 	sw.sink = sink
 
 	return sw
@@ -107,7 +123,7 @@ func (d *monitor) Start() <-chan []byte {
 		}
 	}()
 
-	//wait for the consumer loop to start before registering the sink to avoid filling the log channel
+	// wait for the consumer loop to start before registering the sink to avoid filling the log channel
 	wg.Wait()
 	d.logger.RegisterSink(d.sink)
 	return streamCh
