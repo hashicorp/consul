@@ -20,6 +20,13 @@ const (
 	ConsulCACertKey = "consul-agent-ca-key.pem"
 )
 
+type LogStore string
+
+const (
+	LogStore_WAL    LogStore = "wal"
+	LogStore_BoltDB LogStore = "boltdb"
+)
+
 // BuildContext provides a reusable object meant to share common configuration settings
 // between agent configuration builders.
 type BuildContext struct {
@@ -41,6 +48,7 @@ type BuildContext struct {
 	tlsCertIndex int // keeps track of the certificates issued for naming purposes
 
 	aclEnabled bool
+	logStore   LogStore
 }
 
 func (c *BuildContext) DockerImage() string {
@@ -89,6 +97,9 @@ type BuildOptions struct {
 
 	// ACLEnabled configures acl in agent configuration
 	ACLEnabled bool
+
+	//StoreLog define which LogStore to use
+	LogStore LogStore
 }
 
 func NewBuildContext(t *testing.T, opts BuildOptions) *BuildContext {
@@ -103,6 +114,7 @@ func NewBuildContext(t *testing.T, opts BuildOptions) *BuildContext {
 		useAPIWithTLS:          opts.UseAPIWithTLS,
 		useGRPCWithTLS:         opts.UseGRPCWithTLS,
 		aclEnabled:             opts.ACLEnabled,
+		logStore:               opts.LogStore,
 	}
 
 	if ctx.consulImageName == "" {
@@ -200,6 +212,18 @@ func NewConfigBuilder(ctx *BuildContext) *Builder {
 		b.conf.Set("acl.enabled", true)
 		b.conf.Set("acl.default_policy", "deny")
 		b.conf.Set("acl.enable_token_persistence", true)
+	}
+
+	ls := string(ctx.logStore)
+	if ls != "" && (ctx.consulVersion == "local" ||
+		semver.Compare("v"+ctx.consulVersion, "v1.15.0") >= 0) {
+		// Enable logstore backend for version after v1.15.0
+		if ls != string(LogStore_WAL) && ls != string(LogStore_BoltDB) {
+			ls = string(LogStore_BoltDB)
+		}
+		b.conf.Set("raft_logstore.backend", ls)
+	} else {
+		b.conf.Unset("raft_logstore.backend")
 	}
 
 	return b
