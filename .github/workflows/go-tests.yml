@@ -68,5 +68,19 @@ jobs:
     - run: go install github.com/reillywatson/enumcover/cmd/enumcover@master && enumcover ./...   
     #TODO(JM) - get this from Dan
     # - run: *notify-slack-failure 
+  lint-container-test-deps:
+    if: |
+        github.ref != 'stable-website' || 
+        !startsWith(github.ref, 'refs/heads/docs/') || 
+        !startsWith(github.ref, 'refs/heads/ui/') || 
+        !startsWith(github.ref, 'refs/heads/backport/docs/') || 
+        !startsWith(github.ref, 'refs/heads/backport/ui/') || 
+        !startsWith(github.ref, 'refs/heads/backport/mktg-.')
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
+    - run: make lint-container-test-deps 
+    #TODO(JM) - get this from Dan
+    # - run: *notify-slack-failure 
     
 
