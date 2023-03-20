@@ -59,6 +59,13 @@ func (e *DiscoveryChainSet) GetService(sid structs.ServiceID) *structs.ServiceCo
 	return nil
 }
 
+func (e *DiscoveryChainSet) GetSamenessGroup(name string) *structs.SamenessGroupConfigEntry {
+	if e.SamenessGroups != nil {
+		return e.SamenessGroups[name]
+	}
+	return nil
+}
+
 func (e *DiscoveryChainSet) GetProxyDefaults(partition string) *structs.ProxyConfigEntry {
 	if e.ProxyDefaults != nil {
 		return e.ProxyDefaults[partition]
@@ -106,6 +113,16 @@ func (e *DiscoveryChainSet) AddServices(entries ...*structs.ServiceConfigEntry) 
 	}
 }
 
+// AddSamenessGroup adds service configs. Convenience function for testing.
+func (e *DiscoveryChainSet) AddSamenessGroup(entries ...*structs.SamenessGroupConfigEntry) {
+	if e.Services == nil {
+		e.SamenessGroups = make(map[string]*structs.SamenessGroupConfigEntry)
+	}
+	for _, entry := range entries {
+		e.SamenessGroups[entry.Name] = entry
+	}
+}
+
 // AddProxyDefaults adds proxy-defaults configs. Convenience function for testing.
 func (e *DiscoveryChainSet) AddProxyDefaults(entries ...*structs.ProxyConfigEntry) {
 	if e.ProxyDefaults == nil {
@@ -139,6 +156,8 @@ func (e *DiscoveryChainSet) AddEntries(entries ...structs.ConfigEntry) {
 			e.AddResolvers(entry.(*structs.ServiceResolverConfigEntry))
 		case structs.ServiceDefaults:
 			e.AddServices(entry.(*structs.ServiceConfigEntry))
+		case structs.SamenessGroup:
+			e.AddSamenessGroup(entry.(*structs.SamenessGroupConfigEntry))
 		case structs.ProxyDefaults:
 			if entry.GetName() != structs.ProxyConfigGlobal {
 				panic("the only supported proxy-defaults name is '" + structs.ProxyConfigGlobal + "'")
