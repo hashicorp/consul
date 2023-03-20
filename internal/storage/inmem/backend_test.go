@@ -23,5 +23,6 @@ func TestBackend_Conformance(t *testing.T) {
 
 			return backend
 		},
+		SupportsStronglyConsistentList: true,
 	})
 }

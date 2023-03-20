@@ -15,23 +15,25 @@ import (
 	"github.com/hashicorp/consul/internal/storage"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/proto/private/prototest"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 )
 
 type TestOptions struct {
 	// NewBackend will be called to construct a storage.Backend to run the tests
 	// against.
 	NewBackend func(t *testing.T) storage.Backend
+
+	// SupportsStronglyConsistentList indicates whether the given storage backend
+	// supports strongly consistent list operations.
+	SupportsStronglyConsistentList bool
 }
 
 // Test runs a suite of tests against a storage.Backend implementation to check
 // it correctly implements our required behaviours.
-//
-// Note: it currently checks for stronger consistency than we actually need. We
-// will need to handle eventual consistency when we implement the Raft backend.
 func Test(t *testing.T, opts TestOptions) {
 	require.NotNil(t, opts.NewBackend, "NewBackend method is required")
 
-	t.Run("Read", func(t *testing.T) { testRead(t, opts, storage.EventualConsistency) })
+	t.Run("Read", func(t *testing.T) { testRead(t, opts) })
 	t.Run("CAS Write", func(t *testing.T) { testCASWrite(t, opts) })
 	t.Run("CAS Delete", func(t *testing.T) { testCASDelete(t, opts) })
 	t.Run("OwnerReferences", func(t *testing.T) { testOwnerReferences(t, opts) })
@@ -39,67 +41,107 @@ func Test(t *testing.T, opts TestOptions) {
 	testListWatch(t, opts)
 }
 
-func testRead(t *testing.T, opts TestOptions, consistency storage.ReadConsistency) {
+func testRead(t *testing.T, opts TestOptions) {
 	ctx := testContext(t)
-	backend := opts.NewBackend(t)
 
-	res := &pbresource.Resource{
-		Id: &pbresource.ID{
-			Type:    typeAv1,
-			Tenancy: tenancyDefault,
-			Name:    "web",
-			Uid:     "a",
-		},
+	for consistency, check := range map[storage.ReadConsistency]consistencyChecker{
+		storage.EventualConsistency: eventually,
+		storage.StrongConsistency:   immediately,
+	} {
+		t.Run(consistency.String(), func(t *testing.T) {
+			res := &pbresource.Resource{
+				Id: &pbresource.ID{
+					Type:    typeAv1,
+					Tenancy: tenancyDefault,
+					Name:    "web",
+					Uid:     "a",
+				},
+			}
+
+			t.Run("simple", func(t *testing.T) {
+				backend := opts.NewBackend(t)
+
+				_, err := backend.WriteCAS(ctx, res)
+				require.NoError(t, err)
+
+				check(t, func(t testingT) {
+					output, err := backend.Read(ctx, consistency, res.Id)
+					require.NoError(t, err)
+					prototest.AssertDeepEqual(t, res, output, ignoreVersion)
+				})
+			})
+
+			t.Run("no uid", func(t *testing.T) {
+				backend := opts.NewBackend(t)
+
+				_, err := backend.WriteCAS(ctx, res)
+				require.NoError(t, err)
+
+				id := clone(res.Id)
+				id.Uid = ""
+
+				check(t, func(t testingT) {
+					output, err := backend.Read(ctx, consistency, id)
+					require.NoError(t, err)
+					prototest.AssertDeepEqual(t, res, output, ignoreVersion)
+				})
+			})
+
+			t.Run("different id", func(t *testing.T) {
+				backend := opts.NewBackend(t)
+
+				_, err := backend.WriteCAS(ctx, res)
+				require.NoError(t, err)
+
+				id := clone(res.Id)
+				id.Name = "different"
+
+				check(t, func(t testingT) {
+					_, err := backend.Read(ctx, consistency, id)
+					require.ErrorIs(t, err, storage.ErrNotFound)
+				})
+			})
+
+			t.Run("different uid", func(t *testing.T) {
+				backend := opts.NewBackend(t)
+
+				_, err := backend.WriteCAS(ctx, res)
+				require.NoError(t, err)
+
+				id := clone(res.Id)
+				id.Uid = "b"
+
+				check(t, func(t testingT) {
+					_, err := backend.Read(ctx, consistency, id)
+					require.ErrorIs(t, err, storage.ErrNotFound)
+				})
+			})
+
+			t.Run("different GroupVersion", func(t *testing.T) {
+				backend := opts.NewBackend(t)
+
+				_, err := backend.WriteCAS(ctx, res)
+				require.NoError(t, err)
+
+				id := clone(res.Id)
+				id.Type = typeAv2
+
+				check(t, func(t testingT) {
+					_, err := backend.Read(ctx, consistency, id)
+					require.Error(t, err)
+
+					var e storage.GroupVersionMismatchError
+					if errors.As(err, &e) {
+						require.Equal(t, id.Type, e.RequestedType)
+						prototest.AssertDeepEqual(t, res, e.Stored, ignoreVersion)
+					} else {
+						t.Fatalf("expected storage.GroupVersionMismatchError, got: %T", err)
+					}
+				})
+			})
+		})
 	}
-	_, err := backend.WriteCAS(ctx, res)
-	require.NoError(t, err)
 
-	t.Run("simple", func(t *testing.T) {
-		output, err := backend.Read(ctx, consistency, res.Id)
-		require.NoError(t, err)
-		prototest.AssertDeepEqual(t, res, output, ignoreVersion)
-	})
-
-	t.Run("no uid", func(t *testing.T) {
-		id := clone(res.Id)
-		id.Uid = ""
-
-		output, err := backend.Read(ctx, consistency, id)
-		require.NoError(t, err)
-		prototest.AssertDeepEqual(t, res, output, ignoreVersion)
-	})
-
-	t.Run("different id", func(t *testing.T) {
-		id := clone(res.Id)
-		id.Name = "different"
-
-		_, err := backend.Read(ctx, consistency, id)
-		require.ErrorIs(t, err, storage.ErrNotFound)
-	})
-
-	t.Run("different uid", func(t *testing.T) {
-		id := clone(res.Id)
-		id.Uid = "b"
-
-		_, err := backend.Read(ctx, consistency, id)
-		require.ErrorIs(t, err, storage.ErrNotFound)
-	})
-
-	t.Run("different GroupVersion", func(t *testing.T) {
-		id := clone(res.Id)
-		id.Type = typeAv2
-
-		_, err := backend.Read(ctx, consistency, id)
-		require.Error(t, err)
-
-		var e storage.GroupVersionMismatchError
-		if errors.As(err, &e) {
-			require.Equal(t, id.Type, e.RequestedType)
-			prototest.AssertDeepEqual(t, res, e.Stored, ignoreVersion)
-		} else {
-			t.Fatalf("expected storage.GroupVersionMismatchError, got: %T", err)
-		}
-	})
 }
 
 func testCASWrite(t *testing.T, opts TestOptions) {
@@ -200,8 +242,10 @@ func testCASDelete(t *testing.T, opts TestOptions) {
 
 		require.NoError(t, backend.DeleteCAS(ctx, res.Id, res.Version))
 
-		_, err = backend.Read(ctx, storage.EventualConsistency, res.Id)
-		require.ErrorIs(t, err, storage.ErrNotFound)
+		eventually(t, func(t testingT) {
+			_, err = backend.Read(ctx, storage.EventualConsistency, res.Id)
+			require.ErrorIs(t, err, storage.ErrNotFound)
+		})
 	})
 
 	t.Run("uid must match", func(t *testing.T) {
@@ -222,8 +266,10 @@ func testCASDelete(t *testing.T, opts TestOptions) {
 		id.Uid = "b"
 		require.NoError(t, backend.DeleteCAS(ctx, id, res.Version))
 
-		_, err = backend.Read(ctx, storage.EventualConsistency, res.Id)
-		require.NoError(t, err)
+		eventually(t, func(t testingT) {
+			_, err = backend.Read(ctx, storage.EventualConsistency, res.Id)
+			require.NoError(t, err)
+		})
 	})
 }
 
@@ -359,19 +405,32 @@ func testListWatch(t *testing.T, opts TestOptions) {
 	}
 
 	t.Run("List", func(t *testing.T) {
-		backend := opts.NewBackend(t)
 		ctx := testContext(t)
 
-		for _, r := range seedData {
-			_, err := backend.WriteCAS(ctx, r)
-			require.NoError(t, err)
+		consistencyModes := map[storage.ReadConsistency]consistencyChecker{
+			storage.EventualConsistency: eventually,
+		}
+		if opts.SupportsStronglyConsistentList {
+			consistencyModes[storage.StrongConsistency] = immediately
 		}
 
-		for desc, tc := range testCases {
-			t.Run(desc, func(t *testing.T) {
-				res, err := backend.List(ctx, storage.EventualConsistency, tc.resourceType, tc.tenancy, tc.namePrefix)
-				require.NoError(t, err)
-				prototest.AssertElementsMatch(t, res, tc.results, ignoreVersion)
+		for consistency, check := range consistencyModes {
+			t.Run(consistency.String(), func(t *testing.T) {
+				for desc, tc := range testCases {
+					t.Run(desc, func(t *testing.T) {
+						backend := opts.NewBackend(t)
+						for _, r := range seedData {
+							_, err := backend.WriteCAS(ctx, r)
+							require.NoError(t, err)
+						}
+
+						check(t, func(t testingT) {
+							res, err := backend.List(ctx, consistency, tc.resourceType, tc.tenancy, tc.namePrefix)
+							require.NoError(t, err)
+							prototest.AssertElementsMatch(t, res, tc.results, ignoreVersion)
+						})
+					})
+				}
 			})
 		}
 	})
@@ -426,7 +485,7 @@ func testListWatch(t *testing.T, opts TestOptions) {
 					require.Equal(t, pbresource.WatchEvent_OPERATION_UPSERT, event.Operation)
 					prototest.AssertContainsElement(t, tc.results, event.Resource, ignoreVersion)
 
-					// Check that Read is sequentially consistent with Watch.
+					// Check that Read implements "monotonic reads" with Watch.
 					readRes, err := backend.Read(ctx, storage.EventualConsistency, event.Resource.Id)
 					require.NoError(t, err)
 					prototest.AssertDeepEqual(t, event.Resource, readRes)
@@ -446,7 +505,7 @@ func testListWatch(t *testing.T, opts TestOptions) {
 				require.Equal(t, pbresource.WatchEvent_OPERATION_DELETE, event.Operation)
 				prototest.AssertDeepEqual(t, del, event.Resource)
 
-				// Check that Read is sequentially consistent with Watch.
+				// Check that Read implements "monotonic reads" with Watch.
 				_, err = backend.Read(ctx, storage.EventualConsistency, del.Id)
 				require.ErrorIs(t, err, storage.ErrNotFound)
 			})
@@ -490,33 +549,41 @@ func testOwnerReferences(t *testing.T, opts TestOptions) {
 	})
 	require.NoError(t, err)
 
-	refs, err := backend.OwnerReferences(ctx, owner.Id)
-	require.NoError(t, err)
-	prototest.AssertElementsMatch(t, refs, []*pbresource.ID{r1.Id, r2.Id})
+	eventually(t, func(t testingT) {
+		refs, err := backend.OwnerReferences(ctx, owner.Id)
+		require.NoError(t, err)
+		prototest.AssertElementsMatch(t, refs, []*pbresource.ID{r1.Id, r2.Id})
+	})
 
 	t.Run("references are anchored to a specific uid", func(t *testing.T) {
 		id := clone(owner.Id)
 		id.Uid = "different"
 
-		refs, err := backend.OwnerReferences(ctx, id)
-		require.NoError(t, err)
-		require.Empty(t, refs)
+		eventually(t, func(t testingT) {
+			refs, err := backend.OwnerReferences(ctx, id)
+			require.NoError(t, err)
+			require.Empty(t, refs)
+		})
 	})
 
 	t.Run("deleting the owner doesn't remove the references", func(t *testing.T) {
 		require.NoError(t, backend.DeleteCAS(ctx, owner.Id, owner.Version))
 
-		refs, err = backend.OwnerReferences(ctx, owner.Id)
-		require.NoError(t, err)
-		prototest.AssertElementsMatch(t, refs, []*pbresource.ID{r1.Id, r2.Id})
+		eventually(t, func(t testingT) {
+			refs, err := backend.OwnerReferences(ctx, owner.Id)
+			require.NoError(t, err)
+			prototest.AssertElementsMatch(t, refs, []*pbresource.ID{r1.Id, r2.Id})
+		})
 	})
 
 	t.Run("deleting the owned resource removes its reference", func(t *testing.T) {
 		require.NoError(t, backend.DeleteCAS(ctx, r2.Id, r2.Version))
 
-		refs, err = backend.OwnerReferences(ctx, owner.Id)
-		require.NoError(t, err)
-		prototest.AssertElementsMatch(t, refs, []*pbresource.ID{r1.Id})
+		eventually(t, func(t testingT) {
+			refs, err := backend.OwnerReferences(ctx, owner.Id)
+			require.NoError(t, err)
+			prototest.AssertElementsMatch(t, refs, []*pbresource.ID{r1.Id})
+		})
 	})
 }
 
@@ -589,3 +656,20 @@ func testContext(t *testing.T) context.Context {
 }
 
 func clone[T proto.Message](v T) T { return proto.Clone(v).(T) }
+
+type testingT interface {
+	require.TestingT
+	prototest.TestingT
+}
+
+type consistencyChecker func(t *testing.T, fn func(testingT))
+
+func eventually(t *testing.T, fn func(testingT)) {
+	t.Helper()
+	retry.Run(t, func(r *retry.R) { fn(r) })
+}
+
+func immediately(t *testing.T, fn func(testingT)) {
+	t.Helper()
+	fn(t)
+}

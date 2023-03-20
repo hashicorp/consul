@@ -1,13 +1,16 @@
 package prototest
 
 import (
-	"testing"
-
 	"github.com/google/go-cmp/cmp"
 	"google.golang.org/protobuf/testing/protocmp"
 )
 
-func AssertDeepEqual(t testing.TB, x, y interface{}, opts ...cmp.Option) {
+type TestingT interface {
+	Helper()
+	Fatalf(string, ...any)
+}
+
+func AssertDeepEqual(t TestingT, x, y interface{}, opts ...cmp.Option) {
 	t.Helper()
 
 	opts = append(opts, protocmp.Transform())
@@ -24,7 +27,7 @@ func AssertDeepEqual(t testing.TB, x, y interface{}, opts ...cmp.Option) {
 //
 // prototest.AssertElementsMatch(t, [1, 3, 2, 3], [1, 3, 3, 2])
 func AssertElementsMatch[V any](
-	t testing.TB, listX, listY []V, opts ...cmp.Option,
+	t TestingT, listX, listY []V, opts ...cmp.Option,
 ) {
 	t.Helper()
 
@@ -74,7 +77,7 @@ func AssertElementsMatch[V any](
 	}
 }
 
-func AssertContainsElement[V any](t testing.TB, list []V, element V, opts ...cmp.Option) {
+func AssertContainsElement[V any](t TestingT, list []V, element V, opts ...cmp.Option) {
 	t.Helper()
 
 	opts = append(opts, protocmp.Transform())

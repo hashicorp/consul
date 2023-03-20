@@ -63,6 +63,17 @@ const (
 	StrongConsistency
 )
 
+// String implements the fmt.Stringer interface.
+func (c ReadConsistency) String() string {
+	switch c {
+	case EventualConsistency:
+		return "Eventual Consistency"
+	case StrongConsistency:
+		return "Strong Consistency"
+	}
+	panic(fmt.Sprintf("unknown ReadConsistency (%d)", c))
+}
+
 // Backend provides the low-level storage substrate for resources. It can be
 // implemented using internal (i.e. Raft+MemDB) or external (e.g. DynamoDB)
 // storage systems.
