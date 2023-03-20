@@ -8,7 +8,10 @@ import "annotations/ratelimit/ratelimit.proto";
 service OperatorService {
   //Transfer raft leadership to another node
   rpc TransferLeader(TransferLeaderRequest) returns (TransferLeaderResponse) {
-    option (hashicorp.consul.internal.ratelimit.spec) = {operation_type: OPERATION_TYPE_EXEMPT};
+    option (hashicorp.consul.internal.ratelimit.spec) = {
+      operation_type: OPERATION_TYPE_EXEMPT,
+      operation_category: OPERATION_CATEGORY_OPERATOR
+    };
   }
 }
 

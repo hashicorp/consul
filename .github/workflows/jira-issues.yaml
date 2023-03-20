@@ -37,7 +37,7 @@ jobs:
 
       - name: Create ticket if an issue is filed, or if PR not by a team member is opened
         if: github.event.action == 'opened'
-        uses: tomhjp/gh-action-jira-create@v0.2.0
+        uses: tomhjp/gh-action-jira-create@v0.2.1
         with:
           project: NET
           issuetype: "${{ steps.set-ticket-type.outputs.TYPE }}"
@@ -54,6 +54,23 @@ jobs:
           JIRA_USER_EMAIL: ${{ secrets.JIRA_USER_EMAIL }}
           JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
 
+      # Education Jira
+      - name: Create ticket in Education board an issue is filed, or if PR not by a team member is opened
+        if: github.event.action == 'opened' && ("${{ contains(github.event.issue.labels.*.name, 'type/docs') }}" == "true")
+        uses: tomhjp/gh-action-jira-create@v0.2.1
+        with:
+          project: CE
+          issuetype: "Bug"
+          summary: "${{ github.event.repository.name }} [${{ steps.set-ticket-type.outputs.TYPE }} #${{ github.event.issue.number }}]: ${{ github.event.issue.title }}"
+          description: "GitHub URL: ${{ github.event.issue.html_url || github.event.pull_request.html_url }}\n\n${{ github.event.issue.body || github.event.pull_request.body }}\n\n_Created in GitHub by ${{ github.actor }}._"
+          # customfield_10089 is "Issue Link", customfield_10371 is "Source" (use JIRA API to retrieve)
+          extraFields: '{ "components": [{ "name": "${{ github.event.repository.name }}" }] }'
+
+        env:
+          JIRA_BASE_URL: ${{ secrets.JIRA_BASE_URL }}
+          JIRA_USER_EMAIL: ${{ secrets.JIRA_USER_EMAIL }}
+          JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
+
       - name: Search
         if: github.event.action != 'opened'
         id: search
@@ -64,7 +81,7 @@ jobs:
 
       - name: Sync comment
         if: github.event.action == 'created' && steps.search.outputs.issue
-        uses: tomhjp/gh-action-jira-comment@v0.1.0
+        uses: tomhjp/gh-action-jira-comment@v0.2.0
         with:
           issue: ${{ steps.search.outputs.issue }}
           comment: "${{ github.actor }} ${{ github.event.review.state || 'commented' }}:\n\n${{ github.event.comment.body || github.event.review.body }}\n\n${{ github.event.comment.html_url || github.event.review.html_url }}"

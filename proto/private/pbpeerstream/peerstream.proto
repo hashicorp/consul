@@ -20,13 +20,19 @@ service PeerStreamService {
   // buf:lint:ignore RPC_RESPONSE_STANDARD_NAME
   // buf:lint:ignore RPC_REQUEST_RESPONSE_UNIQUE
   rpc StreamResources(stream ReplicationMessage) returns (stream ReplicationMessage) {
-    option (hashicorp.consul.internal.ratelimit.spec) = {operation_type: OPERATION_TYPE_READ};
+    option (hashicorp.consul.internal.ratelimit.spec) = {
+      operation_type: OPERATION_TYPE_READ,
+      operation_category: OPERATION_CATEGORY_PEER_STREAM
+    };
   }
 
   // ExchangeSecret is a unary RPC for exchanging the one-time establishment secret
   // for a long-lived stream secret.
   rpc ExchangeSecret(ExchangeSecretRequest) returns (ExchangeSecretResponse) {
-    option (hashicorp.consul.internal.ratelimit.spec) = {operation_type: OPERATION_TYPE_WRITE};
+    option (hashicorp.consul.internal.ratelimit.spec) = {
+      operation_type: OPERATION_TYPE_WRITE,
+      operation_category: OPERATION_CATEGORY_PEER_STREAM
+    };
   }
 }
 

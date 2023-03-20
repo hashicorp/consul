@@ -1103,7 +1103,7 @@ func (e *ServiceResolverConfigEntry) Validate() error {
 			}
 
 			if f.isEmpty() {
-				return fmt.Errorf(errorPrefix + "one of Service, ServiceSubset, Namespace, Targets, or Datacenters is required")
+				return fmt.Errorf(errorPrefix + "one of Service, ServiceSubset, Namespace, Targets, SamenessGroup, or Datacenters is required")
 			}
 
 			if err := f.Policy.ValidateEnterprise(); err != nil {
@@ -1447,7 +1447,12 @@ func (f *ServiceResolverFailover) ToDiscoveryTargetOpts() DiscoveryTargetOpts {
 }
 
 func (f *ServiceResolverFailover) isEmpty() bool {
-	return f.Service == "" && f.ServiceSubset == "" && f.Namespace == "" && len(f.Datacenters) == 0 && len(f.Targets) == 0
+	return f.Service == "" &&
+		f.ServiceSubset == "" &&
+		f.Namespace == "" &&
+		len(f.Datacenters) == 0 &&
+		len(f.Targets) == 0 &&
+		f.SamenessGroup == ""
 }
 
 func (fp *ServiceResolverFailoverPolicy) isValid() bool {
