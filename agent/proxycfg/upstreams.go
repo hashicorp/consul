@@ -447,6 +447,9 @@ func (s *handlerUpstreams) watchUpstreamTarget(ctx context.Context, snap *Config
 
 	if opts.peer != "" {
 		uid = NewUpstreamIDFromTargetID(opts.chainID)
+		// chainID has the partition stripped. However, when a target is in a cluster peer, the partition should be set
+		// to the local partition (i.e chain.Partition), since the peered target is imported into the local partition.
+		uid.OverridePartition(opts.entMeta.PartitionOrDefault())
 		correlationID = upstreamPeerWatchIDPrefix + uid.String()
 	}
 
