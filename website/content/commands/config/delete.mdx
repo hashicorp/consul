@@ -27,6 +27,7 @@ are not supported from commands, but may be from the corresponding HTTP endpoint
 
 | Config Entry Kind   | Required ACL       |
 | ------------------- | ------------------ |
+| api-gateway         | `mesh:write`       |
 | ingress-gateway     | `operator:write`   |
 | proxy-defaults      | `operator:write`   |
 | service-defaults    | `service:write`    |
@@ -45,16 +46,16 @@ Usage: `consul config delete [options]`
 - `-kind` - Specifies the kind of the config entry to read.
 
 - `-name` - Specifies the name of the config entry to delete. The name of the
-  `proxy-defaults` config entry must be `global`, and the name of the `mesh`
-  config entry must be `mesh`.
+`proxy-defaults` config entry must be `global`, and the name of the `mesh`
+config entry must be `mesh`.
 
 - `-filename` - Specifies the file describing the config entry to delete.
 
 - `-cas` - Perform a Check-And-Set operation. Specifying this value also
-  requires the -modify-index flag to be set. The default value is false.
+requires the -modify-index flag to be set. The default value is false.
 
 - `-modify-index=<int>` - Unsigned integer representing the ModifyIndex of the
-  config entry. This is used in combination with the -cas flag.
+config entry. This is used in combination with the -cas flag.
 
 #### Enterprise Options
 
