@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 /*! https://mths.be/cssescape v1.5.1 by @mathias | MIT license */
 (function(e,t){"object"==typeof exports?module.exports=t(e):"function"==typeof define&&define.amd?define([],t.bind(e,e)):t(e)})("undefined"!=typeof global?global:this,(function(e){if(e.CSS&&e.CSS.escape)return e.CSS.escape
 var t=function(e){if(0==arguments.length)throw new TypeError("`CSS.escape` requires an argument.")
