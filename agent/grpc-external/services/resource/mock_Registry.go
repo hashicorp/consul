@@ -14,6 +14,11 @@ type MockRegistry struct {
 	mock.Mock
 }
 
+// Register provides a mock function with given fields: reg
+func (_m *MockRegistry) Register(reg internalresource.Registration) {
+	_m.Called(reg)
+}
+
 // Resolve provides a mock function with given fields: typ
 func (_m *MockRegistry) Resolve(typ *pbresource.Type) (internalresource.Registration, bool) {
 	ret := _m.Called(typ)

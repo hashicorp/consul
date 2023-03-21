@@ -14,7 +14,6 @@ import (
 )
 
 func (s *Server) Read(ctx context.Context, req *pbresource.ReadRequest) (*pbresource.ReadResponse, error) {
-
 	// check type exists
 	_, ok := s.registry.Resolve(req.Id.Type)
 	if !ok {
