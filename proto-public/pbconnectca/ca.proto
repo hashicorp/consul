@@ -10,13 +10,19 @@ service ConnectCAService {
   // Connect CA roots. Current roots are sent immediately at the start of the
   // stream, and new lists will be sent whenever the roots are rotated.
   rpc WatchRoots(WatchRootsRequest) returns (stream WatchRootsResponse) {
-    option (hashicorp.consul.internal.ratelimit.spec) = {operation_type: OPERATION_TYPE_READ};
+    option (hashicorp.consul.internal.ratelimit.spec) = {
+      operation_type: OPERATION_TYPE_READ,
+      operation_category: OPERATION_CATEGORY_CONNECT_CA
+    };
   }
 
   // Sign a leaf certificate for the service or agent identified by the SPIFFE
   // ID in the given CSR's SAN.
   rpc Sign(SignRequest) returns (SignResponse) {
-    option (hashicorp.consul.internal.ratelimit.spec) = {operation_type: OPERATION_TYPE_WRITE};
+    option (hashicorp.consul.internal.ratelimit.spec) = {
+      operation_type: OPERATION_TYPE_WRITE,
+      operation_category: OPERATION_CATEGORY_CONNECT_CA
+    };
   }
 }
 

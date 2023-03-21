@@ -36,10 +36,25 @@ func TestHTTPRouteFlattening(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
+
 	t.Parallel()
 
 	// infrastructure set up
-	listenerPort := 6000
+	listenerPort := 6004
+	serviceOneHTTPPort := 6005
+	serviceOneGRPCPort := 6006
+	serviceTwoHTTPPort := 6007
+	serviceTwoGRPCPort := 6008
+
+	serviceOneName := randomName("service", 16)
+	serviceTwoName := randomName("service", 16)
+	serviceOneResponseCode := 200
+	serviceTwoResponseCode := 418
+	gatewayName := randomName("gw", 16)
+	routeOneName := randomName("route", 16)
+	routeTwoName := randomName("route", 16)
+	path1 := "/"
+	path2 := "/v2"
 
 	clusterConfig := &libtopology.ClusterConfig{
 		NumServers: 1,
@@ -50,40 +65,49 @@ func TestHTTPRouteFlattening(t *testing.T) {
 			InjectGossipEncryption: true,
 			AllowHTTPAnyway:        true,
 		},
-		Ports:                     []int{listenerPort},
+		Ports: []int{
+			listenerPort,
+			serviceOneHTTPPort,
+			serviceOneGRPCPort,
+			serviceTwoHTTPPort,
+			serviceTwoGRPCPort,
+		},
 		ApplyDefaultProxySettings: true,
 	}
 
 	cluster, _, _ := libtopology.NewCluster(t, clusterConfig)
 	client := cluster.Agents[0].GetClient()
 
-	service1ResponseCode := 200
-	service2ResponseCode := 418
-	serviceOne := createService(t, cluster, &libservice.ServiceOpts{
-		Name:     "service1",
-		ID:       "service1",
-		HTTPPort: 8080,
-		GRPCPort: 8079,
-	}, []string{
-		// customizes response code so we can distinguish between which service is responding
-		"-echo-server-default-params", fmt.Sprintf("status=%d", service1ResponseCode),
-	})
-	serviceTwo := createService(t, cluster, &libservice.ServiceOpts{
-		Name:     "service2",
-		ID:       "service2",
-		HTTPPort: 8081,
-		GRPCPort: 8082,
-	}, []string{
-		"-echo-server-default-params", fmt.Sprintf("status=%d", service2ResponseCode),
-	},
-	)
-
 	namespace := getNamespace()
-	gatewayName := randomName("gw", 16)
-	routeOneName := randomName("route", 16)
-	routeTwoName := randomName("route", 16)
-	path1 := "/"
-	path2 := "/v2"
+	if namespace != "" {
+		ns := &api.Namespace{Name: namespace}
+		_, _, err := client.Namespaces().Create(ns, nil)
+		require.NoError(t, err)
+	}
+
+	_, _, err := libservice.CreateAndRegisterStaticServerAndSidecar(cluster.Agents[0], &libservice.ServiceOpts{
+		ID:        serviceOneName,
+		Name:      serviceOneName,
+		Namespace: namespace,
+		HTTPPort:  serviceOneHTTPPort,
+		GRPCPort:  serviceOneGRPCPort,
+	},
+		// customizes response code so we can distinguish between which service is responding
+		"-echo-server-default-params", fmt.Sprintf("status=%d", serviceOneResponseCode),
+	)
+	require.NoError(t, err)
+
+	_, _, err = libservice.CreateAndRegisterStaticServerAndSidecar(cluster.Agents[0], &libservice.ServiceOpts{
+		ID:        serviceTwoName,
+		Name:      serviceTwoName,
+		Namespace: namespace,
+		HTTPPort:  serviceTwoHTTPPort,
+		GRPCPort:  serviceTwoGRPCPort,
+	},
+		// customizes response code so we can distinguish between which service is responding
+		"-echo-server-default-params", fmt.Sprintf("status=%d", serviceTwoResponseCode),
+	)
+	require.NoError(t, err)
 
 	// write config entries
 	proxyDefaults := &api.ProxyConfigEntry{
@@ -106,11 +130,13 @@ func TestHTTPRouteFlattening(t *testing.T) {
 				Protocol: "http",
 			},
 		},
+		Namespace: namespace,
 	}
 
 	routeOne := &api.HTTPRouteConfigEntry{
-		Kind: api.HTTPRoute,
-		Name: routeOneName,
+		Kind:      api.HTTPRoute,
+		Name:      routeOneName,
+		Namespace: namespace,
 		Parents: []api.ResourceReference{
 			{
 				Kind:      api.APIGateway,
@@ -122,12 +148,11 @@ func TestHTTPRouteFlattening(t *testing.T) {
 			"test.foo",
 			"test.example",
 		},
-		Namespace: namespace,
 		Rules: []api.HTTPRouteRule{
 			{
 				Services: []api.HTTPService{
 					{
-						Name:      serviceOne.GetServiceName(),
+						Name:      serviceOneName,
 						Namespace: namespace,
 					},
 				},
@@ -144,8 +169,9 @@ func TestHTTPRouteFlattening(t *testing.T) {
 	}
 
 	routeTwo := &api.HTTPRouteConfigEntry{
-		Kind: api.HTTPRoute,
-		Name: routeTwoName,
+		Kind:      api.HTTPRoute,
+		Name:      routeTwoName,
+		Namespace: namespace,
 		Parents: []api.ResourceReference{
 			{
 				Kind:      api.APIGateway,
@@ -156,12 +182,11 @@ func TestHTTPRouteFlattening(t *testing.T) {
 		Hostnames: []string{
 			"test.foo",
 		},
-		Namespace: namespace,
 		Rules: []api.HTTPRouteRule{
 			{
 				Services: []api.HTTPService{
 					{
-						Name:      serviceTwo.GetServiceName(),
+						Name:      serviceTwoName,
 						Namespace: namespace,
 					},
 				},
@@ -189,51 +214,55 @@ func TestHTTPRouteFlattening(t *testing.T) {
 	require.NoError(t, cluster.ConfigEntryWrite(routeTwo))
 
 	// create gateway service
-	gatewayService, err := libservice.NewGatewayService(context.Background(), gatewayName, "api", cluster.Agents[0], listenerPort)
+	gwCfg := libservice.GatewayConfig{
+		Name:      gatewayName,
+		Kind:      "api",
+		Namespace: namespace,
+	}
+	gatewayService, err := libservice.NewGatewayService(context.Background(), gwCfg, cluster.Agents[0], listenerPort)
 	require.NoError(t, err)
-	libassert.CatalogServiceExists(t, client, gatewayName, nil)
+	libassert.CatalogServiceExists(t, client, gatewayName, &api.QueryOptions{Namespace: namespace})
 
 	// make sure config entries have been properly created
 	checkGatewayConfigEntry(t, client, gatewayName, namespace)
+	t.Log("checking route one")
 	checkHTTPRouteConfigEntry(t, client, routeOneName, namespace)
 	checkHTTPRouteConfigEntry(t, client, routeTwoName, namespace)
 
 	// gateway resolves routes
 	gatewayPort, err := gatewayService.GetPort(listenerPort)
 	require.NoError(t, err)
-
-	// route 2 with headers
+	fmt.Println("Gateway Port: ", gatewayPort)
 
 	// Same v2 path with and without header
 	checkRoute(t, gatewayPort, "/v2", map[string]string{
 		"Host": "test.foo",
 		"x-v2": "v2",
-	}, checkOptions{statusCode: service2ResponseCode, testName: "service2 header and path"})
+	}, checkOptions{statusCode: serviceTwoResponseCode, testName: "service2 header and path"})
 	checkRoute(t, gatewayPort, "/v2", map[string]string{
 		"Host": "test.foo",
-	}, checkOptions{statusCode: service2ResponseCode, testName: "service2 just path match"})
+	}, checkOptions{statusCode: serviceTwoResponseCode, testName: "service2 just path match"})
 
 	// //v1 path with the header
 	checkRoute(t, gatewayPort, "/check", map[string]string{
 		"Host": "test.foo",
 		"x-v2": "v2",
-	}, checkOptions{statusCode: service2ResponseCode, testName: "service2 just header match"})
+	}, checkOptions{statusCode: serviceTwoResponseCode, testName: "service2 just header match"})
 
 	checkRoute(t, gatewayPort, "/v2/path/value", map[string]string{
 		"Host": "test.foo",
 		"x-v2": "v2",
-	}, checkOptions{statusCode: service2ResponseCode, testName: "service2 v2 with path"})
+	}, checkOptions{statusCode: serviceTwoResponseCode, testName: "service2 v2 with path"})
 
 	// hit service 1 by hitting root path
 	checkRoute(t, gatewayPort, "", map[string]string{
 		"Host": "test.foo",
-	}, checkOptions{debug: false, statusCode: service1ResponseCode, testName: "service1 root prefix"})
+	}, checkOptions{debug: false, statusCode: serviceOneResponseCode, testName: "service1 root prefix"})
 
 	// hit service 1 by hitting v2 path with v1 hostname
 	checkRoute(t, gatewayPort, "/v2", map[string]string{
 		"Host": "test.example",
-	}, checkOptions{debug: false, statusCode: service1ResponseCode, testName: "service1, v2 path with v2 hostname"})
-
+	}, checkOptions{debug: false, statusCode: serviceOneResponseCode, testName: "service1, v2 path with v2 hostname"})
 }
 
 func TestHTTPRoutePathRewrite(t *testing.T) {
@@ -244,48 +273,87 @@ func TestHTTPRoutePathRewrite(t *testing.T) {
 	t.Parallel()
 
 	// infrastructure set up
-	listenerPort := 6001
+	listenerPort := 6009
+	fooHTTPPort := 6010
+	fooGRPCPort := 6011
+	barHTTPPort := 6012
+	barGRPCPort := 6013
+
+	fooName := randomName("foo", 16)
+	barName := randomName("bar", 16)
+	gatewayName := randomName("gw", 16)
+	invalidRouteName := randomName("route", 16)
+	validRouteName := randomName("route", 16)
+
 	// create cluster
-	cluster := createCluster(t, listenerPort)
-	client := cluster.Agents[0].GetClient()
+	clusterConfig := &libtopology.ClusterConfig{
+		NumServers: 1,
+		NumClients: 1,
+		BuildOpts: &libcluster.BuildOptions{
+			Datacenter:             "dc1",
+			InjectAutoEncryption:   true,
+			InjectGossipEncryption: true,
+			AllowHTTPAnyway:        true,
+		},
+		Ports: []int{
+			listenerPort,
+			fooHTTPPort,
+			fooGRPCPort,
+			barHTTPPort,
+			barGRPCPort,
+		},
+		ApplyDefaultProxySettings: true,
+	}
+
+	cluster, _, _ := libtopology.NewCluster(t, clusterConfig)
+	client := cluster.APIClient(0)
+
 	fooStatusCode := 400
 	barStatusCode := 201
 	fooPath := "/v1/foo"
 	barPath := "/v1/bar"
 
-	fooService := createService(t, cluster, &libservice.ServiceOpts{
-		Name:     "foo",
-		ID:       "foo",
-		HTTPPort: 8080,
-		GRPCPort: 8081,
-	}, []string{
+	namespace := getNamespace()
+	if namespace != "" {
+		ns := &api.Namespace{Name: namespace}
+		_, _, err := client.Namespaces().Create(ns, nil)
+		require.NoError(t, err)
+	}
+
+	_, _, err := libservice.CreateAndRegisterStaticServerAndSidecar(cluster.Agents[0], &libservice.ServiceOpts{
+		ID:        fooName,
+		Name:      fooName,
+		Namespace: namespace,
+		HTTPPort:  fooHTTPPort,
+		GRPCPort:  fooGRPCPort,
+	},
 		// customizes response code so we can distinguish between which service is responding
 		"-echo-debug-path", fooPath,
 		"-echo-server-default-params", fmt.Sprintf("status=%d", fooStatusCode),
-	})
-	barService := createService(t, cluster, &libservice.ServiceOpts{
-		Name: "bar",
-		ID:   "bar",
-		// TODO we can potentially get conflicts if these ports are the same
-		HTTPPort: 8079,
-		GRPCPort: 8078,
-	}, []string{
+	)
+	require.NoError(t, err)
+
+	_, _, err = libservice.CreateAndRegisterStaticServerAndSidecar(cluster.Agents[0], &libservice.ServiceOpts{
+		ID:        barName,
+		Name:      barName,
+		Namespace: namespace,
+		HTTPPort:  barHTTPPort,
+		GRPCPort:  barGRPCPort,
+	},
+		// customizes response code so we can distinguish between which service is responding
 		"-echo-debug-path", barPath,
 		"-echo-server-default-params", fmt.Sprintf("status=%d", barStatusCode),
-	},
 	)
+	require.NoError(t, err)
 
-	namespace := getNamespace()
-	gatewayName := randomName("gw", 16)
-	invalidRouteName := randomName("route", 16)
-	validRouteName := randomName("route", 16)
 	fooUnrewritten := "/foo"
 	barUnrewritten := "/bar"
 
 	// write config entries
 	proxyDefaults := &api.ProxyConfigEntry{
-		Kind: api.ProxyDefaults,
-		Name: api.ProxyConfigGlobal,
+		Kind:      api.ProxyDefaults,
+		Name:      api.ProxyConfigGlobal,
+		Namespace: "", // proxy-defaults can only be set in the default namespace
 		Config: map[string]interface{}{
 			"protocol": "http",
 		},
@@ -293,7 +361,18 @@ func TestHTTPRoutePathRewrite(t *testing.T) {
 
 	require.NoError(t, cluster.ConfigEntryWrite(proxyDefaults))
 
-	apiGateway := createGateway(gatewayName, "http", listenerPort)
+	apiGateway := &api.APIGatewayConfigEntry{
+		Kind: api.APIGateway,
+		Name: gatewayName,
+		Listeners: []api.APIGatewayListener{
+			{
+				Name:     "listener",
+				Port:     listenerPort,
+				Protocol: "http",
+			},
+		},
+		Namespace: namespace,
+	}
 
 	fooRoute := &api.HTTPRouteConfigEntry{
 		Kind: api.HTTPRoute,
@@ -318,7 +397,7 @@ func TestHTTPRoutePathRewrite(t *testing.T) {
 				},
 				Services: []api.HTTPService{
 					{
-						Name:      fooService.GetServiceName(),
+						Name:      fooName,
 						Namespace: namespace,
 					},
 				},
@@ -357,7 +436,7 @@ func TestHTTPRoutePathRewrite(t *testing.T) {
 				},
 				Services: []api.HTTPService{
 					{
-						Name:      barService.GetServiceName(),
+						Name:      barName,
 						Namespace: namespace,
 					},
 				},
@@ -378,9 +457,14 @@ func TestHTTPRoutePathRewrite(t *testing.T) {
 	require.NoError(t, cluster.ConfigEntryWrite(barRoute))
 
 	// create gateway service
-	gatewayService, err := libservice.NewGatewayService(context.Background(), gatewayName, "api", cluster.Agents[0], listenerPort)
+	gwCfg := libservice.GatewayConfig{
+		Name:      gatewayName,
+		Kind:      "api",
+		Namespace: namespace,
+	}
+	gatewayService, err := libservice.NewGatewayService(context.Background(), gwCfg, cluster.Agents[0], listenerPort)
 	require.NoError(t, err)
-	libassert.CatalogServiceExists(t, client, gatewayName, nil)
+	libassert.CatalogServiceExists(t, client, gatewayName, &api.QueryOptions{Namespace: namespace})
 
 	// make sure config entries have been properly created
 	checkGatewayConfigEntry(t, client, gatewayName, namespace)
@@ -402,7 +486,7 @@ func TestHTTPRoutePathRewrite(t *testing.T) {
 	// make sure foo is being sent to proper service
 	checkRoute(t, gatewayPort, fooUnrewritten+"/foo", map[string]string{
 		"Host": "test.foo",
-	}, checkOptions{debug: false, statusCode: fooStatusCode, testName: "foo service"})
+	}, checkOptions{debug: false, statusCode: fooStatusCode, testName: "foo service 2"})
 
 	// hit bar, making sure its been rewritten
 	checkRoute(t, gatewayPort, barUnrewritten, map[string]string{
@@ -413,36 +497,66 @@ func TestHTTPRoutePathRewrite(t *testing.T) {
 	checkRoute(t, gatewayPort, barUnrewritten+"/bar", map[string]string{
 		"Host": "test.foo",
 	}, checkOptions{debug: false, statusCode: barStatusCode, testName: "bar service"})
-
 }
 
 func TestHTTPRouteParentRefChange(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
+
 	t.Parallel()
 
 	// infrastructure set up
 	address := "localhost"
 
-	listenerOnePort := 6000
-	listenerTwoPort := 6001
+	listenerOnePort := 6014
+	listenerTwoPort := 6015
+	serviceHTTPPort := 6016
+	serviceGRPCPort := 6017
 
-	// create cluster and service
-	cluster := createCluster(t, listenerOnePort, listenerTwoPort)
-	client := cluster.Agents[0].GetClient()
-	service := createService(t, cluster, &libservice.ServiceOpts{
-		Name:     "service",
-		ID:       "service",
-		HTTPPort: 8080,
-		GRPCPort: 8079,
-	}, []string{})
-
-	// getNamespace() should always return an empty string in Consul OSS
-	namespace := getNamespace()
+	serviceName := randomName("service", 16)
 	gatewayOneName := randomName("gw1", 16)
 	gatewayTwoName := randomName("gw2", 16)
 	routeName := randomName("route", 16)
+
+	// create cluster
+	clusterConfig := &libtopology.ClusterConfig{
+		NumServers: 1,
+		NumClients: 1,
+		BuildOpts: &libcluster.BuildOptions{
+			Datacenter:             "dc1",
+			InjectAutoEncryption:   true,
+			InjectGossipEncryption: true,
+			AllowHTTPAnyway:        true,
+		},
+		Ports: []int{
+			listenerOnePort,
+			listenerTwoPort,
+			serviceHTTPPort,
+			serviceGRPCPort,
+		},
+		ApplyDefaultProxySettings: true,
+	}
+
+	cluster, _, _ := libtopology.NewCluster(t, clusterConfig)
+	client := cluster.APIClient(0)
+
+	// getNamespace() should always return an empty string in Consul OSS
+	namespace := getNamespace()
+	if namespace != "" {
+		ns := &api.Namespace{Name: namespace}
+		_, _, err := client.Namespaces().Create(ns, nil)
+		require.NoError(t, err)
+	}
+
+	_, _, err := libservice.CreateAndRegisterStaticServerAndSidecar(cluster.Agents[0], &libservice.ServiceOpts{
+		ID:        serviceName,
+		Name:      serviceName,
+		Namespace: namespace,
+		HTTPPort:  serviceHTTPPort,
+		GRPCPort:  serviceGRPCPort,
+	})
+	require.NoError(t, err)
 
 	// write config entries
 	proxyDefaults := &api.ProxyConfigEntry{
@@ -467,23 +581,20 @@ func TestHTTPRouteParentRefChange(t *testing.T) {
 				Hostname: "test.foo",
 			},
 		},
+		Namespace: namespace,
 	}
 	require.NoError(t, cluster.ConfigEntryWrite(gatewayOne))
-	require.Eventually(t, func() bool {
-		entry, _, err := client.ConfigEntries().Get(api.APIGateway, gatewayOneName, &api.QueryOptions{Namespace: namespace})
-		assert.NoError(t, err)
-		if entry == nil {
-			return false
-		}
-		apiEntry := entry.(*api.APIGatewayConfigEntry)
-		t.Log(entry)
-		return isAccepted(apiEntry.Status.Conditions)
-	}, time.Second*10, time.Second*1)
+	checkGatewayConfigEntry(t, client, gatewayOneName, namespace)
 
 	// create gateway service
-	gatewayOneService, err := libservice.NewGatewayService(context.Background(), gatewayOneName, "api", cluster.Agents[0], listenerOnePort)
+	gwOneCfg := libservice.GatewayConfig{
+		Name:      gatewayOneName,
+		Kind:      "api",
+		Namespace: namespace,
+	}
+	gatewayOneService, err := libservice.NewGatewayService(context.Background(), gwOneCfg, cluster.Agents[0], listenerOnePort)
 	require.NoError(t, err)
-	libassert.CatalogServiceExists(t, client, gatewayOneName, nil)
+	libassert.CatalogServiceExists(t, client, gatewayOneName, &api.QueryOptions{Namespace: namespace})
 
 	// create gateway config entry
 	gatewayTwo := &api.APIGatewayConfigEntry{
@@ -497,25 +608,20 @@ func TestHTTPRouteParentRefChange(t *testing.T) {
 				Hostname: "test.example",
 			},
 		},
+		Namespace: namespace,
 	}
-
 	require.NoError(t, cluster.ConfigEntryWrite(gatewayTwo))
-
-	require.Eventually(t, func() bool {
-		entry, _, err := client.ConfigEntries().Get(api.APIGateway, gatewayTwoName, &api.QueryOptions{Namespace: namespace})
-		assert.NoError(t, err)
-		if entry == nil {
-			return false
-		}
-		apiEntry := entry.(*api.APIGatewayConfigEntry)
-		t.Log(entry)
-		return isAccepted(apiEntry.Status.Conditions)
-	}, time.Second*10, time.Second*1)
+	checkGatewayConfigEntry(t, client, gatewayTwoName, namespace)
 
 	// create gateway service
-	gatewayTwoService, err := libservice.NewGatewayService(context.Background(), gatewayTwoName, "api", cluster.Agents[0], listenerTwoPort)
+	gwTwoCfg := libservice.GatewayConfig{
+		Name:      gatewayTwoName,
+		Kind:      "api",
+		Namespace: namespace,
+	}
+	gatewayTwoService, err := libservice.NewGatewayService(context.Background(), gwTwoCfg, cluster.Agents[0], listenerTwoPort)
 	require.NoError(t, err)
-	libassert.CatalogServiceExists(t, client, gatewayTwoName, nil)
+	libassert.CatalogServiceExists(t, client, gatewayTwoName, &api.QueryOptions{Namespace: namespace})
 
 	// create route to service, targeting first gateway
 	route := &api.HTTPRouteConfigEntry{
@@ -537,7 +643,7 @@ func TestHTTPRouteParentRefChange(t *testing.T) {
 			{
 				Services: []api.HTTPService{
 					{
-						Name:      service.GetServiceName(),
+						Name:      serviceName,
 						Namespace: namespace,
 					},
 				},

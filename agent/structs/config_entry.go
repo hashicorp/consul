@@ -40,6 +40,8 @@ const (
 	InlineCertificate  string = "inline-certificate"
 	HTTPRoute          string = "http-route"
 	TCPRoute           string = "tcp-route"
+	// TODO: decide if we want to highlight 'ip' keyword in the name of RateLimitIPConfig
+	RateLimitIPConfig string = "control-plane-request-limit"
 
 	ProxyConfigGlobal string = "global"
 	MeshConfigMesh    string = "mesh"
@@ -653,6 +655,9 @@ func (c *ConfigEntryRequest) UnmarshalBinary(data []byte) error {
 }
 
 func MakeConfigEntry(kind, name string) (ConfigEntry, error) {
+	if configEntry := makeEnterpriseConfigEntry(kind, name); configEntry != nil {
+		return configEntry, nil
+	}
 	switch kind {
 	case ServiceDefaults:
 		return &ServiceConfigEntry{Name: name}, nil

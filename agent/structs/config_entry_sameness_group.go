@@ -70,3 +70,20 @@ type SamenessGroupMember struct {
 	Partition string
 	Peer      string
 }
+
+func (s *SamenessGroupConfigEntry) ToFailoverTargets() []ServiceResolverFailoverTarget {
+	if s == nil {
+		return nil
+	}
+
+	var targets []ServiceResolverFailoverTarget
+
+	for _, m := range s.Members {
+		targets = append(targets, ServiceResolverFailoverTarget{
+			Peer:      m.Peer,
+			Partition: m.Partition,
+		})
+	}
+
+	return targets
+}

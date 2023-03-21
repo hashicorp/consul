@@ -4,7 +4,7 @@
  */
 
 import Component from '@ember/component';
-import { get, set } from '@ember/object';
+import { set } from '@ember/object';
 import { inject as service } from '@ember/service';
 
 export default Component.extend({
@@ -31,7 +31,7 @@ export default Component.extend({
             set(item, 'Value', this.encoder.execute(target.value));
             break;
           case 'additional':
-            parent = get(this, 'parent');
+            parent = this.parent;
             set(item, 'Key', `${parent !== '/' ? parent : ''}${target.value}`);
             break;
           case 'json':
