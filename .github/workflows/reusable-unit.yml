@@ -41,6 +41,10 @@ jobs:
       - name: go mod download
         working-directory: ${{inputs.directory}}
         run: go mod download
+      - uses: actions/download-artifact@master
+        with:
+          name: consul-bin
+          path: $HOME/bin/consul
       - name: Run tests 
         working-directory: ${{inputs.directory}}
         run: |
