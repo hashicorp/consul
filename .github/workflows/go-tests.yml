@@ -154,17 +154,15 @@ jobs:
       - uses: actions/setup-go@6edd4406fa81c3da01a34fa6f6343087c207a568 # pin@v3.5.0
         with:
           go-version-file: 'go.mod'
-
       - name: Install gotestsum
         run: |
           wget https://github.com/gotestyourself/gotestsum/releases/download/v${{env.GOTESTSUM_VERSION}}/gotestsum_${{env.GOTESTSUM_VERSION}}_linux_amd64.tar.gz
           sudo tar -C /usr/local/bin -xzf gotestsum_${{env.GOTESTSUM_VERSION}}_linux_amd64.tar.gz
           rm gotestsum_${{env.GOTESTSUM_VERSION}}_linux_amd64.tar.gz
-
       - run: go mod download
       - name: make dev
         run: |
-        # TODO(JM)- figure out why this is only needed on these branches
+          # TODO(JM)- figure out why this is only needed on these branches
           # if [[ '${{ github.ref }}' == 'refs/heads/main' || startsWith('${{ github.ref }}', 'refs/heads/release/') ]]; then
             make dev
             mkdir -p $HOME/bin
