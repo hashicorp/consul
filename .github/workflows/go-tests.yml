@@ -19,7 +19,9 @@ jobs:
         !startsWith(github.ref, 'refs/heads/backport/ui/') || 
         !startsWith(github.ref, 'refs/heads/backport/mktg-.')
     uses: ./.github/workflows/reusable-check-go-mod.yml
-
+    - name: Notify Slack
+      if: failure()
+      run: .github/scripts/notify_slack.sh
   check-generated-protobuf:
     if: |
         github.ref != 'refs/heads/stable-website' || 
@@ -46,7 +48,9 @@ jobs:
             fi
     - run: make proto-lint
       name: "Protobuf Lint"
-  
+    - name: Notify Slack
+      if: failure()
+      run: .github/scripts/notify_slack.sh 
   check-generated-deep-copy:
     if: |
         github.ref != 'refs/heads/stable-website' || 
@@ -69,7 +73,9 @@ jobs:
           echo "Generated code was not updated correctly"
           exit 1
         fi
-  
+    - name: Notify Slack
+      if: failure()
+      run: .github/scripts/notify_slack.sh  
   lint-enums:
     if: |
         github.ref != 'refs/heads/stable-website' || 
@@ -85,8 +91,9 @@ jobs:
       with:
         go-version-file: 'go.mod'
     - run: go install github.com/reillywatson/enumcover/cmd/enumcover@master && enumcover ./...   
-    #TODO(JM) - get this from Dan
-    # - run: *notify-slack-failure
+    - name: Notify Slack
+      if: failure()
+      run: .github/scripts/notify_slack.sh
 
   lint-container-test-deps:
     if: |
@@ -103,8 +110,9 @@ jobs:
       with:
         go-version-file: 'go.mod'
     - run: make lint-container-test-deps 
-    #TODO(JM) - get this from Dan
-    # - run: *notify-slack-failure
+    - name: Notify Slack
+      if: failure()
+      run: .github/scripts/notify_slack.sh
 
   lint-consul-retry:
     if: |
@@ -121,8 +129,9 @@ jobs:
       with:
         go-version-file: 'go.mod'
     - run: go install github.com/hashicorp/lint-consul-retry@master && lint-consul-retry
-    #TODO(JM) - get this from Dan
-    # - run: *notify-slack-failure 
+    - name: Notify Slack
+      if: failure()
+      run: .github/scripts/notify_slack.sh
 
   lint:
     if: |
@@ -230,9 +239,9 @@ jobs:
       #     }
 
       #     report
-      
-      # TODO(JM) Figure out how to do this
-      # - run: *notify-slack-failure
+      - name: Notify Slack
+        if: failure()
+        run: .github/scripts/notify_slack.sh
 
   # create a development build
   dev-build:
@@ -262,8 +271,9 @@ jobs:
         with:
           name: consul-bin
           path: ./bin/consul
-      # TODO(JM) Figure out how to do this
-      # - run: *notify-slack-failure
+      - name: Notify Slack
+        if: failure()
+        run: .github/scripts/notify_slack.sh
 
   go-test:
     needs:
@@ -357,10 +367,10 @@ jobs:
       #         echo '```'
       #     }
 
-      #     report
-      
-      # TODO(JM) Figure out how to do this
-      # - run: *notify-slack-failure
+      #     report 
+      - name: Notify Slack
+        if: failure()
+        run: .github/scripts/notify_slack.sh
   go-test-envoyextensions:
     if: |
       github.ref != 'refs/heads/stable-website' || 

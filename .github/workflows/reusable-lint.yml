@@ -44,5 +44,6 @@ jobs:
       - name: lint container tests
         working-directory: test/integration/consul-container
         run: golangci-lint run --build-tags="$GOTAGS" -v
-      #TODO(JM) - get this from Dan
-      # - run: *notify-slack-failure 
+      - name: Notify Slack
+        if: failure()
+        run: .github/scripts/notify_slack.sh

@@ -51,3 +51,6 @@ jobs:
           export GOPATH=/home/runner/work/consul/consul/bin
           echo "GOPATH: $GOPATH"
           gotestsum --format=testname --junitfile ${{env.TEST_RESULTS}}/gotestsum-report.xml ./... -- -p
+      - name: Notify Slack
+        if: failure()
+        run: .github/scripts/notify_slack.sh
