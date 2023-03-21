@@ -168,10 +168,11 @@ jobs:
             mkdir -p $HOME/bin
             cp ./bin/consul $HOME/bin/consul
           # fi
-      - uses: actions/download-artifact@v2
-        with:
-          name: consul-bin
-          path: $HOME/bin/consul
+      # TODO(JM)- if not always building above, re-enable this.
+      # - uses: actions/download-artifact@v2
+      #   with:
+      #     name: consul-bin
+      #     path: $HOME/bin/consul
       - run: go mod download
       - name: go test
         run: |
