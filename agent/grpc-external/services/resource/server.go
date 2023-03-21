@@ -15,19 +15,8 @@ type Server struct {
 }
 
 type Config struct {
-	registry Registry
-	backend  Backend
-}
-
-//go:generate mockery --name Registry --inpackage
-type Registry interface {
-	resource.Registry
-	//Resolve(typ *pbresource.Type) (reg resource.Registration, ok bool)
-}
-
-//go:generate mockery --name Backend --inpackage
-type Backend interface {
-	storage.Backend
+	registry resource.Registry
+	backend  storage.Backend
 }
 
 func NewServer(cfg Config) *Server {

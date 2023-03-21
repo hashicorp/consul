@@ -6,8 +6,9 @@ import (
 
 	"github.com/hashicorp/consul/internal/resource"
 	storage "github.com/hashicorp/consul/internal/storage"
+	"github.com/hashicorp/consul/internal/storage/inmem"
 	pbresource "github.com/hashicorp/consul/proto-public/pbresource"
-	mock "github.com/stretchr/testify/mock"
+	"github.com/hashicorp/consul/proto/private/prototest"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
@@ -27,13 +28,7 @@ func TestRead_TypeNotFound(t *testing.T) {
 func TestRead_ResourceNotFound(t *testing.T) {
 	for desc, tc := range readTestCases() {
 		t.Run(desc, func(t *testing.T) {
-			mockBackend := &MockBackend{}
-			mockBackend.On("Read", mock.Anything, mock.Anything, mock.Anything).Return(nil, storage.ErrNotFound)
-
-			server := NewServer(Config{
-				registry: resource.NewRegistry(),
-				backend:  mockBackend,
-			})
+			server := testServer(t)
 			server.registry.Register(resource.Registration{Type: typev1})
 			client := testClient(t, server)
 
@@ -41,7 +36,6 @@ func TestRead_ResourceNotFound(t *testing.T) {
 			require.Error(t, err)
 			require.Equal(t, codes.NotFound.String(), status.Code(err).String())
 			require.Contains(t, err.Error(), "resource not found")
-			mockBackend.AssertCalled(t, "Read", mock.Anything, tc.consistency, mock.Anything)
 		})
 	}
 }
@@ -49,25 +43,19 @@ func TestRead_ResourceNotFound(t *testing.T) {
 func TestRead_GroupVersionMismatch(t *testing.T) {
 	for desc, tc := range readTestCases() {
 		t.Run(desc, func(t *testing.T) {
-			mockBackend := &MockBackend{}
-			mockBackend.On("Read", mock.Anything, mock.Anything, mock.Anything).Return(nil, storage.GroupVersionMismatchError{
-				RequestedType: &pbresource.Type{GroupVersion: "v2"},
-				Stored:        &pbresource.Resource{Id: &pbresource.ID{Type: &pbresource.Type{GroupVersion: "v1"}}},
-			})
-
-			server := NewServer(Config{
-				registry: resource.NewRegistry(),
-				backend:  mockBackend,
-			})
+			server := testServer(t)
 			server.registry.Register(resource.Registration{Type: typev1})
 			server.registry.Register(resource.Registration{Type: typev2})
 			client := testClient(t, server)
 
-			_, err := client.Read(tc.ctx, &pbresource.ReadRequest{Id: id2})
+			resource1 := &pbresource.Resource{Id: id1, Version: ""}
+			resource1, err := server.backend.WriteCAS(tc.ctx, resource1)
+			require.NoError(t, err)
+
+			_, err = client.Read(tc.ctx, &pbresource.ReadRequest{Id: id2})
 			require.Error(t, err)
 			require.Equal(t, codes.InvalidArgument.String(), status.Code(err).String())
 			require.Contains(t, err.Error(), "resource was requested with GroupVersion")
-			mockBackend.AssertCalled(t, "Read", mock.Anything, tc.consistency, mock.Anything)
 		})
 	}
 }
@@ -75,20 +63,16 @@ func TestRead_GroupVersionMismatch(t *testing.T) {
 func TestRead_Success(t *testing.T) {
 	for desc, tc := range readTestCases() {
 		t.Run(desc, func(t *testing.T) {
-			resource1 := &pbresource.Resource{Id: id1}
-			mockBackend := &MockBackend{}
-			mockBackend.On("Read", mock.Anything, mock.Anything, mock.Anything).Return(resource1, nil)
-
-			server := NewServer(Config{
-				registry: resource.NewRegistry(),
-				backend:  mockBackend,
-			})
+			server := testServer(t)
 			server.registry.Register(resource.Registration{Type: typev1})
 			client := testClient(t, server)
-
-			_, err := client.Read(tc.ctx, &pbresource.ReadRequest{Id: id1})
+			resource1 := &pbresource.Resource{Id: id1, Version: ""}
+			resource1, err := server.backend.WriteCAS(tc.ctx, resource1)
 			require.NoError(t, err)
-			mockBackend.AssertCalled(t, "Read", mock.Anything, tc.consistency, mock.Anything)
+
+			rsp, err := client.Read(tc.ctx, &pbresource.ReadRequest{Id: id1})
+			require.NoError(t, err)
+			prototest.AssertDeepEqual(t, resource1, rsp.Resource)
 		})
 	}
 }
@@ -115,6 +99,23 @@ func readTestCases() map[string]readTestCase {
 
 }
 
+func testServer(t *testing.T) *Server {
+	backend, err := inmem.NewBackend()
+	require.NoError(t, err)
+	ctx := testContext(t)
+	go backend.Run(ctx)
+	return NewServer(Config{
+		registry: resource.NewRegistry(),
+		backend:  backend,
+	})
+}
+
+func testContext(t *testing.T) context.Context {
+	ctx, cancel := context.WithCancel(context.Background())
+	t.Cleanup(cancel)
+	return ctx
+}
+
 var (
 	typev1 = &pbresource.Type{
 		Group:        "mesh",
@@ -132,13 +133,15 @@ var (
 		PeerName:  "local",
 	}
 	id1 = &pbresource.ID{
-		Uid:  "abcd",
-		Name: "billing",
-		Type: typev1,
+		Uid:     "abcd",
+		Name:    "billing",
+		Type:    typev1,
+		Tenancy: tenancy,
 	}
 	id2 = &pbresource.ID{
-		Uid:  "abcd",
-		Name: "billing",
-		Type: typev2,
+		Uid:     "abcd",
+		Name:    "billing",
+		Type:    typev2,
+		Tenancy: tenancy,
 	}
 )
