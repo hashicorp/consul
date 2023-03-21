@@ -468,7 +468,6 @@ jobs:
     # needs:
     # - dev-build
     runs-on: ubuntu-latest
-    steps:
     uses: hashicorp/consul/.github/workflows/reusable-unit.yml
       with:
         directory: api
