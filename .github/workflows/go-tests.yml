@@ -264,6 +264,10 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
+      - name: Setup go
+        uses: actions/setup-go@v3
+        with:
+          go-version: ${{ needs.get-go-version.outputs.go-version }}
         # TODO(JM) - figure out why this fails and if it is needed
       # # this normally runs as the first job and has nothing to attach; only used in main branch after rebuilding UI
       # - uses: actions/download-artifact@v2
