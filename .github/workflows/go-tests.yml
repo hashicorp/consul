@@ -164,11 +164,12 @@ jobs:
       - run: go mod download
       - name: make dev
         run: |
-          if [[ '${{ github.ref }}' == 'refs/heads/main' || startsWith('${{ github.ref }}', 'refs/heads/release/') ]]; then
+        # TODO(JM)- figure out why this is only needed on these branches
+          # if [[ '${{ github.ref }}' == 'refs/heads/main' || startsWith('${{ github.ref }}', 'refs/heads/release/') ]]; then
             make dev
             mkdir -p $HOME/bin
             cp ./bin/consul $HOME/bin/consul
-          fi
+          # fi
       - uses: actions/download-artifact@v2
         with:
           name: consul-bin
