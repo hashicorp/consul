@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 // package oidcauthtest exposes tools to assist in writing unit tests of OIDC
 // and JWT authentication workflows.
 //

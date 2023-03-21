@@ -1,4 +1,7 @@
 #!/bin/bash
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
 #
 # Script for bringing up an N node consul cluster
 # on the local machine on different ports.
