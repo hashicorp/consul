@@ -45,10 +45,10 @@ jobs:
         with:
           name: consul-bin
           path: ./bin/consul
-      - name: Set $PATH
-        run: export PATH=$PATH:/home/runner/work/consul/consul/bin
       - name: Run tests 
         working-directory: ${{inputs.directory}}
         run: |
+          export PATH=$PATH:/home/runner/work/consul/consul/bin
+          
           gotestsum --format=testname --junitfile ${{env.TEST_RESULTS}}/gotestsum-report.xml ./... -- -p 4
          
