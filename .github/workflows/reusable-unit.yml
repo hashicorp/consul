@@ -45,6 +45,8 @@ jobs:
         with:
           name: consul-bin
           path: ./bin/consul
+      - name: Set $PATH
+        run: export PATH=$PATH:/home/runner/work/consul/consul/bin/consul
       - name: Run tests 
         working-directory: ${{inputs.directory}}
         run: |
