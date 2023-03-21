@@ -26,7 +26,8 @@ func currentEventIndex(tx *memdb.Txn) (uint64, error) {
 		return 0, err
 	}
 	if v == nil {
-		return 0, nil
+		// 0 and 1 index are reserved for special use in the stream package.
+		return 2, nil
 	}
 	return v.(meta).Value.(uint64), nil
 }
