@@ -162,14 +162,13 @@ jobs:
           rm gotestsum_${{env.GOTESTSUM_VERSION}}_linux_amd64.tar.gz
 
       - run: go mod download
-      - run:
-          name: make dev
-          command: |
-            if [[ github.ref == 'refs/heads/main' || !startsWith(github.ref, 'refs/heads/release/') ]]; then
-              make dev
-              mkdir -p /home/circleci/bin
-              cp ./bin/consul /home/circleci/bin/consul
-            fi
+      - name: make dev
+        run: |
+          if [[ github.ref == 'refs/heads/main' || !startsWith(github.ref, 'refs/heads/release/') ]]; then
+            make dev
+            mkdir -p /home/circleci/bin
+            cp ./bin/consul /home/circleci/bin/consul
+          fi
       - uses: actions/download-artifact@v2
         with:
           name: consul-bin
