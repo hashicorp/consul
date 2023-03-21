@@ -164,7 +164,7 @@ jobs:
       - run: go mod download
       - name: make dev
         run: |
-          if [[ github.ref == 'refs/heads/main' || !startsWith(github.ref, 'refs/heads/release/') ]]; then
+          if [[ '${{ github.ref }}' == 'refs/heads/main' || startsWith('${{ github.ref }}', 'refs/heads/release/') ]]; then
             make dev
             mkdir -p /home/circleci/bin
             cp ./bin/consul /home/circleci/bin/consul
