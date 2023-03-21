@@ -11,6 +11,7 @@ import (
 	hcpclient "github.com/hashicorp/consul/agent/hcp/client"
 	"github.com/hashicorp/consul/agent/hcp/telemetry"
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/version"
 	"github.com/hashicorp/go-hclog"
 )
 
@@ -78,17 +79,38 @@ func NewManager(cfg ManagerConfig) *Manager {
 	}
 }
 
-// Run executes the Manager it's designed to be run in its own goroutine for
-// the life of a server agent. It should be run even if HCP is not configured
-// yet for servers since a config update might configure it later and
-// UpdateConfig called. It will effectively do nothing if there are no HCP
-// credentials set other than wait for some to be added.
-func (m *Manager) Run(ctx context.Context) {
-	var err error
-	m.logger.Debug("HCP manager starting")
-	m.reporter = telemetry.NewReporter(telemetry.ServerConfig(m.cfg.NodeID, m.cfg.MetricsBackend))
-	go m.reporter.Run(ctx)
+// runReporter initializes the metrics reporter by fetching configuration from CCM
+// and runs the reporter if configured.
+func (m *Manager) runReporter(ctx context.Context) {
+	// Make CCM call to obtain configuration.
+	telemetryCfg, err := m.cfg.Client.FetchTelemetryConfig(ctx)
+	if err != nil || telemetryCfg.Endpoint == "" {
+		m.logger.Error("HCP Metrics Collection failed", "error", err, "endpoint", telemetryCfg.Endpoint)
+		return
+	}
 
+	cfg := telemetry.DefaultConfig()
+	cfg.Logger = m.logger
+	cfg.Gatherer = m.cfg.MetricsBackend
+	cfg.Labels = map[string]string{
+		"service.name":        "consul-server",
+		"service.version":     version.GetHumanVersion(),
+		"service.instance.id": m.cfg.NodeID,
+	}
+	// cfg.Exporter = NewExporter(telemetryCfg.Endpoint, m.cfg.Client)
+
+	m.reporter = telemetry.NewReporter(cfg)
+
+	m.reporter.Run(ctx)
+}
+
+// Run executes the HCP Manager.
+func (m *Manager) Run(ctx context.Context) {
+	m.logger.Debug("HCP manager starting")
+
+	go m.runReporter(ctx)
+
+	var err error
 	// immediately send initial update
 	select {
 	case <-ctx.Done():
