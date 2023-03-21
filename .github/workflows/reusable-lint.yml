@@ -19,6 +19,10 @@ jobs:
 
     steps:
       - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
+      - name: Setup go
+        uses: actions/setup-go@v4
+        with:
+          go-version: ${{ env.HCP_GO_VERSION }}
       - run: go env
       - name: Install golangci-lint
         run: make lint-tools
