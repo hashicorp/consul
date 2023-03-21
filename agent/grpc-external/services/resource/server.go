@@ -5,6 +5,8 @@ import (
 
 	"google.golang.org/grpc"
 
+	"github.com/hashicorp/consul/internal/resource"
+	storage "github.com/hashicorp/consul/internal/storage"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
@@ -13,6 +15,18 @@ type Server struct {
 }
 
 type Config struct {
+	registry Registry
+	backend  Backend
+}
+
+//go:generate mockery --name Registry --inpackage
+type Registry interface {
+	Resolve(typ *pbresource.Type) (reg resource.Registration, ok bool)
+}
+
+//go:generate mockery --name Backend --inpackage
+type Backend interface {
+	storage.Backend
 }
 
 func NewServer(cfg Config) *Server {
@@ -48,9 +62,4 @@ func (s *Server) List(ctx context.Context, req *pbresource.ListRequest) (*pbreso
 func (s *Server) Delete(ctx context.Context, req *pbresource.DeleteRequest) (*pbresource.DeleteResponse, error) {
 	// TODO
 	return &pbresource.DeleteResponse{}, nil
-}
-
-func (s *Server) Watch(req *pbresource.WatchRequest, ws pbresource.ResourceService_WatchServer) error {
-	// TODO
-	return nil
 }

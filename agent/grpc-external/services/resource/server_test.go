@@ -65,11 +65,3 @@ func TestDelete_TODO(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, resp)
 }
-
-func TestWatch_TODO(t *testing.T) {
-	server := NewServer(Config{})
-	client := testClient(t, server)
-	wc, err := client.Watch(context.Background(), &pbresource.WatchRequest{})
-	require.NoError(t, err)
-	require.NotNil(t, wc)
-}
