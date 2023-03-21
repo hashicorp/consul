@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 var __ember_auto_import__;(()=>{var r,e={6760:function(r,e){window._eai_r=require,window._eai_d=define},4593:(r,e,t)=>{var o,n
 r.exports=(o=_eai_d,n=_eai_r,window.emberAutoImportDynamic=function(r){return 1===arguments.length?n("_eai_dyn_"+r):n("_eai_dynt_"+r)(Array.prototype.slice.call(arguments,1))},window.emberAutoImportSync=function(r){return n("_eai_sync_"+r)(Array.prototype.slice.call(arguments,1))},o("lodash.castarray",[],(function(){return t(5665)})),o("lodash.last",[],(function(){return t(66)})),o("lodash.omit",[],(function(){return t(9254)})),o("qunit",[],(function(){return t(3409)})),void o("yadda",[],(function(){return t(409)})))},9265:()=>{},3642:()=>{}},t={}
 function o(r){var n=t[r]
