@@ -466,8 +466,8 @@ jobs:
       !startsWith(github.ref, 'refs/heads/backport/docs/') || 
       !startsWith(github.ref, 'refs/heads/backport/ui/') || 
       !startsWith(github.ref, 'refs/heads/backport/mktg-.')
-    # needs:
-    # - dev-build
+    needs:
+    - dev-build
     uses: ./.github/workflows/reusable-unit.yml
     with:
       directory: api
