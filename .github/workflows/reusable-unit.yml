@@ -32,6 +32,8 @@ jobs:
           key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
           restore-keys: |
             ${{ runner.os }}-go-
+      - name: Update GITHUB_PATH with location of Consul binary
+        run: echo "/home/runner/work/consul/consul/bin" >> $GITHUB_PATH
       - name: Install gotestsum
         run: |
           wget https://github.com/gotestyourself/gotestsum/releases/download/v${{env.GOTESTSUM_VERSION}}/gotestsum_${{env.GOTESTSUM_VERSION}}_linux_amd64.tar.gz
@@ -45,8 +47,8 @@ jobs:
         with:
           name: consul-bin
           path: ./bin/consul
-      - name: Move consul binary to PATH location
-        run: cp ./bin/consul /usr/local/bin/consul
+      # - name: Move consul binary to PATH location
+      #   run: cp ./bin/consul /usr/local/bin/consul
       - name: Run tests 
         working-directory: ${{inputs.directory}}
         run: |
