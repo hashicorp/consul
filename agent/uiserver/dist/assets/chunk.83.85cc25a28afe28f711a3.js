@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 "use strict";(globalThis.webpackChunk_ember_auto_import_=globalThis.webpackChunk_ember_auto_import_||[]).push([[83],{7083:(e,t,o)=>{o.r(t),o.d(t,{default:()=>_})
 var i=window.CustomEvent
 function n(e,t){var o="on"+t.type.toLowerCase()
