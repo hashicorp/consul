@@ -8,26 +8,9 @@ permissions:
 env:
   TEST_RESULTS: /tmp/test-results # path to where test results are saved
   GOTESTSUM_VERSION: 1.8.2
+  HCP_GO_VERSION: 1.20.2
 
 jobs:
-  get-go-version:
-    name: "Determine Go toolchain version"
-    runs-on: ubuntu-latest
-    outputs:
-      go-version: ${{ steps.get-go-version.outputs.go-version }}
-    steps:
-      - uses: actions/checkout@v3
-      - name: Determine Go version
-        id: get-go-version
-        # We use .go-version as our source of truth for current Go
-        # version, because "goenv" can react to it automatically.
-        # run: |
-        #   echo "Building with Go $(cat .go-version)"
-        #   echo "::set-output name=go-version::$(cat .go-version)"
-        #TODO(JM) Makes the above work
-        run: |
-          echo "Building with Go $(cat .go-version)"
-          echo "::set-output name=go-version::1.20.2"
   check-go-mod:  #TODO(JM): figure out how to get around no anchors
     if: |
         github.ref != 'refs/heads/stable-website' || 
@@ -152,7 +135,6 @@ jobs:
 
   go-test-arm64:
     # TODO(JM):  Fix to run on arm64
-    needs: [get-go-version]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -161,7 +143,7 @@ jobs:
       - name: Setup go
         uses: actions/setup-go@v4
         with:
-          go-version: ${{ needs.get-go-version.outputs.go-version }}
+          go-version: ${{ env.HCP_GO_VERSION }}
 
       - name: Setup go mod cache
         uses: actions/cache@v3
@@ -268,7 +250,7 @@ jobs:
       - name: Setup go
         uses: actions/setup-go@v4
         with:
-          go-version: "${{ needs.get-go-version.outputs.go-version }}"
+          go-version: "1.20.2"
         # TODO(JM) - figure out why this fails and if it is needed
       # # this normally runs as the first job and has nothing to attach; only used in main branch after rebuilding UI
       # - uses: actions/download-artifact@v2
@@ -291,7 +273,6 @@ jobs:
   go-test:
     needs:
       - dev-build
-      - get-go-version
     runs-on: ubuntu-latest
     # TODO(JM): Combine with go-test-arm64
     steps:
@@ -301,7 +282,7 @@ jobs:
       - name: Setup go
         uses: actions/setup-go@v4
         with:
-          go-version: ${{ needs.get-go-version.outputs.go-version }}
+          go-version: ${{ env.HCP_GO_VERSION }}
 
       - name: Setup go mod cache
         uses: actions/cache@v3
