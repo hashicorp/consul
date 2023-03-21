@@ -151,6 +151,7 @@ jobs:
       go-arch: "386"
 
   go-test-arm64:
+    # TODO(JM):  Fix to run on arm64
     needs: [get-go-version]
     runs-on: ubuntu-latest
     steps:
@@ -215,10 +216,14 @@ jobs:
       # TODO(JM): Figure out how to store these
       # - store_test_results:
       #     path: *TEST_RESULTS_DIR
-      # - store_artifacts:
-      #     path: *TEST_RESULTS_DIR
-      # - store_artifacts:
-      #     path: /tmp/jsonfile
+      - uses: actions/upload-artifact@master
+        with:
+          name: consul-bin
+          path: ${{env.TEST_RESULTS}}
+      - uses: actions/upload-artifact@master
+        with:
+          name: consul-bin
+          path: /tmp/jsonfile
       # - name: "Re-run fails report"
       #   run: |
       #     #!/usr/bin/env bash
@@ -255,20 +260,21 @@ jobs:
         !startsWith(github.ref, 'refs/heads/backport/docs/') || 
         !startsWith(github.ref, 'refs/heads/backport/ui/') || 
         !startsWith(github.ref, 'refs/heads/backport/mktg-.')
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
-      # this normally runs as the first job and has nothing to attach; only used in main branch after rebuilding UI
-      - uses: actions/download-artifact@v2
-        with:
-          name: root-path
-          path: .
+        # TODO(JM) - figure out why this fails and if it is needed
+      # # this normally runs as the first job and has nothing to attach; only used in main branch after rebuilding UI
+      # - uses: actions/download-artifact@v2
+      #   with:
+      #     name: root-path
+      #     path: .
       - name: Build
         run: |
           make dev
           mkdir -p /home/circleci/go/bin
           cp ./bin/consul /home/circleci/go/bin/consul
-
       # save dev build to pass to downstream jobs
       - uses: actions/upload-artifact@master
         with:
@@ -276,3 +282,211 @@ jobs:
           path: /home/circleci/go/bin/consul
       # TODO(JM) Figure out how to do this
       # - run: *notify-slack-failure
+
+  go-test:
+    needs:
+      - dev-build
+      - get-go-version
+    runs-on: ubuntu-latest
+    # TODO(JM): Combine with go-test-arm64
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Setup go
+        uses: actions/setup-go@v3
+        with:
+          go-version: ${{ needs.get-go-version.outputs.go-version }}
+
+      - name: Setup go mod cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      - name: Install gotestsum
+        run: |
+          wget https://github.com/gotestyourself/gotestsum/releases/download/v${{env.GOTESTSUM_VERSION}}/gotestsum_${{env.GOTESTSUM_VERSION}}_linux_amd64.tar.gz
+          sudo tar -C /usr/local/bin -xzf gotestsum_${{env.GOTESTSUM_VERSION}}_linux_amd64.tar.gz
+          rm gotestsum_${{env.GOTESTSUM_VERSION}}_linux_amd64.tar.gz
+
+      - run:  mkdir -p ${{env.TEST_RESULTS}}
+      - run:  echo "$HOME/bin" >> $GITHUB_PATH
+
+      # - name: Download consul
+      #   run: |
+      #     mkdir -p $HOME/bin
+      #     container_id=$(docker create ${{env.CONSUL_OSS_DOCKER_IMAGE}})
+      #     docker cp "$container_id:/bin/consul" $HOME/bin/consul
+      #     docker rm "$container_id"
+      - name: Run go tests
+        run: |
+            PACKAGE_NAMES=$(go list ./...)
+            if [ ! -s "$report_filename" ]; then
+            
+            # TODO(JM): figure out why this erroring
+            # if '${{ github.ref }}' == 'refs/heads/docs/' || startsWith('${{ github.ref }}', 'refs/heads/release/'); then
+            #   export GO_TEST_FLAGS="-short"
+            # fi
+            
+            # some tests expect this umask, and arm images have a different default
+            umask 0022
+
+            gotestsum \
+            --format=short-verbose \
+            --jsonfile /tmp/jsonfile/go-test-${CIRCLE_NODE_INDEX}.log \
+            --debug \
+            --rerun-fails=3 \
+            --rerun-fails-max-failures=40 \
+            --rerun-fails-report=/tmp/gotestsum-rerun-fails \
+            --packages="$PACKAGE_NAMES" \              
+            --junitfile ${{env.TEST_RESULTS}}/gotestsum-report.xml -- \
+            -tags="$GOTAGS" -p 4 \
+            ${GO_TEST_FLAGS-} \
+            -cover -coverprofile=coverage.txt
+      # TODO(JM): Figure out how to store these
+      # - store_test_results:
+      #     path: *TEST_RESULTS_DIR
+      - uses: actions/upload-artifact@master
+        with:
+          name: consul-bin
+          path: ${{env.TEST_RESULTS}}
+      - uses: actions/upload-artifact@master
+        with:
+          name: consul-bin
+          path: /tmp/jsonfile
+      # - name: "Re-run fails report"
+      #   run: |
+      #     #!/usr/bin/env bash
+      #     #
+      #     # Add a comment on the github PR if there were any rerun tests.
+      #     #
+      #     set -eu -o pipefail
+
+      #     report_filename="${1?report filename is required}"
+      #     if [ ! -s "$report_filename" ]; then
+      #         echo "gotestsum rerun report file is empty or missing"
+      #         exit 0
+      #     fi
+
+      #     function report {
+      #         echo ":repeat: gotestsum re-ran some tests in $CIRCLE_BUILD_URL"
+      #         echo
+      #         echo '```'
+      #         cat "$report_filename"
+      #         echo '```'
+      #     }
+
+      #     report
+      
+      # TODO(JM) Figure out how to do this
+      # - run: *notify-slack-failure
+  go-test-envoyextensions:
+    if: |
+      github.ref != 'refs/heads/stable-website' || 
+      !startsWith(github.ref, 'refs/heads/docs/') || 
+      !startsWith(github.ref, 'refs/heads/ui/') || 
+      !startsWith(github.ref, 'refs/heads/backport/docs/') || 
+      !startsWith(github.ref, 'refs/heads/backport/ui/') || 
+      !startsWith(github.ref, 'refs/heads/backport/mktg-.')
+    needs:
+    - dev-build
+    runs-on: ubuntu-latest
+    steps:
+    - uses: ./.github/workflows/reusable-check-go-mod.yml
+      with:
+        directory: envoyextensions
+        go-version: "1.20"
+
+  go-test-troubleshoot:
+    if: |
+      github.ref != 'refs/heads/stable-website' || 
+      !startsWith(github.ref, 'refs/heads/docs/') || 
+      !startsWith(github.ref, 'refs/heads/ui/') || 
+      !startsWith(github.ref, 'refs/heads/backport/docs/') || 
+      !startsWith(github.ref, 'refs/heads/backport/ui/') || 
+      !startsWith(github.ref, 'refs/heads/backport/mktg-.')
+    needs:
+    - dev-build
+    runs-on: ubuntu-latest
+    steps:
+    - uses: ./.github/workflows/reusable-check-go-mod.yml
+      with:
+        directory: troubleshoot
+        go-version: "1.20"
+
+  go-test-api-1-19:
+    if: |
+      github.ref != 'refs/heads/stable-website' || 
+      !startsWith(github.ref, 'refs/heads/docs/') || 
+      !startsWith(github.ref, 'refs/heads/ui/') || 
+      !startsWith(github.ref, 'refs/heads/backport/docs/') || 
+      !startsWith(github.ref, 'refs/heads/backport/ui/') || 
+      !startsWith(github.ref, 'refs/heads/backport/mktg-.')
+    needs:
+    - dev-build
+    runs-on: ubuntu-latest
+    steps:
+    - uses: ./.github/workflows/reusable-check-go-mod.yml
+      with:
+        directory: api
+        go-version: "1.19"
+
+  go-test-api-1-20:
+    if: |
+      github.ref != 'refs/heads/stable-website' || 
+      !startsWith(github.ref, 'refs/heads/docs/') || 
+      !startsWith(github.ref, 'refs/heads/ui/') || 
+      !startsWith(github.ref, 'refs/heads/backport/docs/') || 
+      !startsWith(github.ref, 'refs/heads/backport/ui/') || 
+      !startsWith(github.ref, 'refs/heads/backport/mktg-.')
+    needs:
+    - dev-build
+    runs-on: ubuntu-latest
+    steps:
+    - uses: ./.github/workflows/reusable-check-go-mod.yml
+      with:
+        directory: api
+        go-version: "1.20"
+
+  go-test-sdk-1-19:
+    if: |
+      github.ref != 'refs/heads/stable-website' || 
+      !startsWith(github.ref, 'refs/heads/docs/') || 
+      !startsWith(github.ref, 'refs/heads/ui/') || 
+      !startsWith(github.ref, 'refs/heads/backport/docs/') || 
+      !startsWith(github.ref, 'refs/heads/backport/ui/') || 
+      !startsWith(github.ref, 'refs/heads/backport/mktg-.')
+    needs:
+    - dev-build
+    runs-on: ubuntu-latest
+    steps:
+    - uses: ./.github/workflows/reusable-check-go-mod.yml
+      with:
+        directory: sdk
+        go-version: "1.19"
+  go-test-sdk-1-20:
+    if: |
+      github.ref != 'refs/heads/stable-website' || 
+      !startsWith(github.ref, 'refs/heads/docs/') || 
+      !startsWith(github.ref, 'refs/heads/ui/') || 
+      !startsWith(github.ref, 'refs/heads/backport/docs/') || 
+      !startsWith(github.ref, 'refs/heads/backport/ui/') || 
+      !startsWith(github.ref, 'refs/heads/backport/mktg-.')
+    needs:
+    - dev-build
+    runs-on: ubuntu-latest
+    steps:
+    - uses: ./.github/workflows/reusable-check-go-mod.yml
+      with:
+        directory: api
+        go-version: "1.20"
+
+  noop:
+    runs-on: ubuntu-latest
+    steps:
+      - run: "echo ok"
