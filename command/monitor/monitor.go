@@ -73,7 +73,7 @@ func (c *cmd) Run(args []string) int {
 	eventDoneCh := make(chan struct{})
 	logCh, err := client.Agent().MonitorWithOpts(eventDoneCh, opts, nil)
 	if err != nil {
-		c.UI.Error(fmt.Sprintf("Error starting JSON monitor: %s", err))
+		c.UI.Error(fmt.Sprintf("Error starting monitor: %s", err))
 		return 1
 	}
 
