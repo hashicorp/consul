@@ -34,8 +34,8 @@ export default Component.extend(Slotted, {
     this._super(...arguments);
     this._cellLayout = this['cell-layout'] = new PercentageColumns(
       get(this, 'items.length'),
-      get(this, 'columns'),
-      get(this, 'cellHeight')
+      this.columns,
+      this.cellHeight
     );
     const o = this;
     this['cell-layout'].formatItemStyle = function (itemIndex) {
@@ -51,14 +51,14 @@ export default Component.extend(Slotted, {
       return {};
     }
     return {
-      height: get(this, 'height'),
+      height: this.height,
     };
   }),
   actions: {
     resize: function (e) {
       // TODO: This top part is very similar to resize in tabular-collection
       // see if it make sense to DRY out
-      const dom = get(this, 'dom');
+      const dom = this.dom;
       const $footer = dom.element('footer[role="contentinfo"]');
       if ($footer) {
         const border = 1;
@@ -74,7 +74,7 @@ export default Component.extend(Slotted, {
       return this.dom.clickFirstAnchor(e, '.list-collection > ul > li');
     },
     change: function (index, e = {}) {
-      if (e.target.checked && index !== get(this, 'checked')) {
+      if (e.target.checked && index !== this.checked) {
         set(this, 'checked', parseInt(index));
         this.$row = this.dom.closest('li', e.target);
         this.$row.style.zIndex = 1;
