@@ -32,7 +32,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
-    #TODO(JM): figure out how to give these names
+    - name: Setup go
+      uses: actions/setup-go@v4
+      with:
+        go-version: ${{ env.HCP_GO_VERSION }}
     - run: make proto-tools
       name: Install protobuf
     - run: make proto-format
@@ -57,6 +60,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
+    - name: Setup go
+      uses: actions/setup-go@v4
+      with:
+        go-version: ${{ env.HCP_GO_VERSION }}
     - run: make codegen-tools
       name: Install deep-copy
     - run: make --always-make deep-copy
@@ -77,6 +84,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
+    - name: Setup go
+      uses: actions/setup-go@v4
+      with:
+        go-version: ${{ env.HCP_GO_VERSION }}
     - run: go install github.com/reillywatson/enumcover/cmd/enumcover@master && enumcover ./...   
     #TODO(JM) - get this from Dan
     # - run: *notify-slack-failure
@@ -107,6 +118,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
+    - name: Setup go
+      uses: actions/setup-go@v4
+      with:
+        go-version: ${{ env.HCP_GO_VERSION }}
     - run: go install github.com/hashicorp/lint-consul-retry@master && lint-consul-retry
     #TODO(JM) - get this from Dan
     # - run: *notify-slack-failure 
@@ -138,7 +153,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
       
       - name: Setup go
         uses: actions/setup-go@v4
@@ -245,12 +260,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
 
       - name: Setup go
         uses: actions/setup-go@v4
         with:
-          go-version: "1.20.2"
+          go-version: ${{ env.HCP_GO_VERSION }}
         # TODO(JM) - figure out why this fails and if it is needed
       # # this normally runs as the first job and has nothing to attach; only used in main branch after rebuilding UI
       # - uses: actions/download-artifact@v2
@@ -277,7 +292,7 @@ jobs:
     # TODO(JM): Combine with go-test-arm64
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
       
       - name: Setup go
         uses: actions/setup-go@v4
