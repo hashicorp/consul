@@ -28,6 +28,7 @@ jobs:
       - run: go mod download
       - name: lint
         run: golangci-lint run --build-tags="$GOTAGS" -v
+        working-directory: ""
       - name: lint api
         working-directory: api
         run: golangci-lint run --build-tags="$GOTAGS" -v
