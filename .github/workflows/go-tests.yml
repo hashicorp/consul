@@ -467,7 +467,6 @@ jobs:
       !startsWith(github.ref, 'refs/heads/backport/mktg-.')
     # needs:
     # - dev-build
-    runs-on: ubuntu-latest
     uses: ./.github/workflows/reusable-unit.yml
     with:
       directory: api
