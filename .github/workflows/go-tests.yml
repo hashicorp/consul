@@ -468,7 +468,8 @@ jobs:
     # needs:
     # - dev-build
     runs-on: ubuntu-latest
-    uses: hashicorp/consul/.github/workflows/reusable-unit.yml
+    steps:
+    - uses: ./.github/workflows/reusable-unit.yml
       with:
         directory: api
         go-version: "1.20"
