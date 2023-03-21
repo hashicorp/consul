@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 (function(n){"use strict"
 function e(n,e,r){return e<=n&&n<=r}"undefined"!=typeof module&&module.exports&&!n["encoding-indexes"]&&(n["encoding-indexes"]=require("./encoding-indexes-50f27403be5972eae4831f5b69db1f80.js")["encoding-indexes"])
 var r=Math.floor
