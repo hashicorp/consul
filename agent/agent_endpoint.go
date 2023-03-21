@@ -1428,10 +1428,10 @@ func (s *HTTPHandlers) AgentMonitor(resp http.ResponseWriter, req *http.Request)
 			if !logging.ValidateLogLevel(level) {
 				return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: fmt.Sprintf("Unknown log level: %s", level)}
 			}
-			// Special case for when a user provides the root logger name (e.g. "agent").
-			if key == s.agent.logger.Name() {
-				s.agent.logger.SetLevel(logging.LevelFromString(level))
-			}
+			// Note for keen-eyed developers comparing this code with a similar one in logging.Setup:
+			// There is no special case required here for the root logger name because monitor.New
+			// will create a new logger to be used as a SinkAdapter for the agent logger. We must not
+			// change the agent logger level here.
 			tree, _, _ = tree.Insert([]byte(key), logging.LevelFromString(level))
 		}
 	}
