@@ -45,10 +45,10 @@ jobs:
         with:
           name: consul-bin
           path: ./bin/consul
+      - name: Move consul binary to PATH location
+        run: cp ./bin/consul /usr/local/bin/consul
       - name: Run tests 
         working-directory: ${{inputs.directory}}
         run: |
-          echo "GOPATH: $GOPATH"
-          echo "PATH: $PATH"
           gotestsum --format=testname --junitfile ${{env.TEST_RESULTS}}/gotestsum-report.xml ./... -- -p 4
          
