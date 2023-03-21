@@ -1,0 +1,58 @@
+name: frontend
+
+on:
+  push:
+    branches:
+      - main
+      - /^ui\/.*/
+      - /^backport\/ui\/.*/
+
+jobs:
+  frontend-cache:
+    runs-on: ubuntu-20.04
+    container:
+      image: docker.mirror.hashicorp.services/circleci/node:16-browsers
+
+  workspace-tests:
+    needs: frontend-cache
+    runs-on: ubuntu-20.04
+    container:
+      image: docker.mirror.hashicorp.services/circleci/node:16-browsers
+
+  node-tests:
+    needs: frontend-cache
+    runs-on: ubuntu-20.04
+    container:
+      image: docker.mirror.hashicorp.services/circleci/node:16-browsers
+
+  ember-build-oss:
+    needs: frontend-cache
+    runs-on: ubuntu-20.04
+    container:
+      image: docker.mirror.hashicorp.services/circleci/node:16-browsers
+
+  ember-build-ent:
+    needs: frontend-cache
+    runs-on: ubuntu-20.04
+    container:
+      image: docker.mirror.hashicorp.services/circleci/node:16-browsers
+
+  ember-test-oss:
+    needs: ember-build-oss
+    runs-on: ubuntu-20.04
+    container:
+      image: docker.mirror.hashicorp.services/circleci/node:16-browsers
+
+  ember-test-ent:
+    needs: ember-build-ent
+    runs-on: ubuntu-20.04
+    container:
+      image: docker.mirror.hashicorp.services/circleci/node:16-browsers
+
+  # ember-coverage in CI uses the dist/ folder to run tests so it requires
+  # either/or ent/oss to be built first
+  ember-coverage:
+    needs: ember-build-ent
+    runs-on: ubuntu-20.04
+    container:
+      image: docker.mirror.hashicorp.services/circleci/node:16-browsers
