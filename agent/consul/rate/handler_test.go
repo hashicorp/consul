@@ -296,7 +296,7 @@ func TestUpdateConfig(t *testing.T) {
 			},
 			assertFunc: func(mockRateLimiter *multilimiter.MockRateLimiter, cfg *HandlerConfig) {
 				mockRateLimiter.AssertNumberOfCalls(t, "UpdateConfig", 1)
-				mockRateLimiter.AssertCalled(t, "UpdateConfig", &cfg.GlobalReadConfig, []byte("global.read"))
+				mockRateLimiter.AssertCalled(t, "UpdateConfig", cfg.GlobalReadConfig, []byte("global.read"))
 			},
 		},
 		{
@@ -306,7 +306,7 @@ func TestUpdateConfig(t *testing.T) {
 			},
 			assertFunc: func(mockRateLimiter *multilimiter.MockRateLimiter, cfg *HandlerConfig) {
 				mockRateLimiter.AssertNumberOfCalls(t, "UpdateConfig", 1)
-				mockRateLimiter.AssertCalled(t, "UpdateConfig", &cfg.GlobalWriteConfig, []byte("global.write"))
+				mockRateLimiter.AssertCalled(t, "UpdateConfig", cfg.GlobalWriteConfig, []byte("global.write"))
 			},
 		},
 		{
