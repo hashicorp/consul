@@ -383,10 +383,12 @@ jobs:
       !startsWith(github.ref, 'refs/heads/backport/mktg-.')
     needs:
     - dev-build
-    uses: ./.github/workflows/reusable-unit.yml
-    with:
-      directory: envoyextensions
-      go-version: "1.20"
+    runs-on: ubuntu-latest
+    steps:
+    - uses: ./.github/workflows/reusable-unit.yml
+      with:
+        directory: envoyextensions
+        go-version: "1.20"
 
   go-test-troubleshoot:
     if: |
@@ -398,10 +400,12 @@ jobs:
       !startsWith(github.ref, 'refs/heads/backport/mktg-.')
     needs:
     - dev-build
-    uses: ./.github/workflows/reusable-unit.yml
-    with:
-      directory: troubleshoot
-      go-version: "1.20"
+    runs-on: ubuntu-latest
+    steps:
+    - uses: ./.github/workflows/reusable-unit.yml
+      with:
+        directory: troubleshoot
+        go-version: "1.20"
 
   go-test-api-1-19:
     if: |
@@ -413,10 +417,12 @@ jobs:
       !startsWith(github.ref, 'refs/heads/backport/mktg-.')
     needs:
     - dev-build
-    uses: ./.github/workflows/reusable-unit.yml
-    with:
-      directory: api
-      go-version: "1.19"
+    runs-on: ubuntu-latest
+    steps:
+    - uses: ./.github/workflows/reusable-unit.yml
+      with:
+        directory: api
+        go-version: "1.19"
 
   go-test-api-1-20:
     if: |
@@ -428,10 +434,12 @@ jobs:
       !startsWith(github.ref, 'refs/heads/backport/mktg-.')
     needs:
     - dev-build
-    uses: ./.github/workflows/reusable-unit.yml
-    with:
-      directory: api
-      go-version: "1.20"
+    runs-on: ubuntu-latest
+    steps:
+    - uses: ./.github/workflows/reusable-unit.yml
+      with:
+        directory: api
+        go-version: "1.20"
 
   go-test-sdk-1-19:
     if: |
@@ -441,13 +449,15 @@ jobs:
       !startsWith(github.ref, 'refs/heads/backport/docs/') || 
       !startsWith(github.ref, 'refs/heads/backport/ui/') || 
       !startsWith(github.ref, 'refs/heads/backport/mktg-.')
-    needs:
-    - dev-build
-    uses: ./.github/workflows/reusable-unit.yml
-    with:
-      directory: sdk
-      go-version: "1.19"
-
+    # needs:
+    # - dev-build
+    runs-on: ubuntu-latest
+    steps:
+    - uses: ./.github/workflows/reusable-unit.yml
+      with:
+        directory: sdk
+        go-version: "1.19"
+  
   go-test-sdk-1-20:
     if: |
       github.ref != 'refs/heads/stable-website' || 
