@@ -155,37 +155,32 @@ jobs:
         with:
           go-version-file: 'go.mod'
 
-      - name: Setup go mod cache
-        uses: actions/cache@v3
-        with:
-          path: |
-            ~/.cache/go-build
-            ~/go/pkg/mod
-          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-          restore-keys: |
-            ${{ runner.os }}-go-
-
       - name: Install gotestsum
         run: |
           wget https://github.com/gotestyourself/gotestsum/releases/download/v${{env.GOTESTSUM_VERSION}}/gotestsum_${{env.GOTESTSUM_VERSION}}_linux_amd64.tar.gz
           sudo tar -C /usr/local/bin -xzf gotestsum_${{env.GOTESTSUM_VERSION}}_linux_amd64.tar.gz
           rm gotestsum_${{env.GOTESTSUM_VERSION}}_linux_amd64.tar.gz
 
-      - run:  mkdir -p ${{env.TEST_RESULTS}}
-      - run:  echo "$HOME/bin" >> $GITHUB_PATH
-
-      # - name: Download consul
-      #   run: |
-      #     mkdir -p $HOME/bin
-      #     container_id=$(docker create ${{env.CONSUL_OSS_DOCKER_IMAGE}})
-      #     docker cp "$container_id:/bin/consul" $HOME/bin/consul
-      #     docker rm "$container_id"
-      - name: Run go tests
+      - run: go mod download
+      - run:
+          name: make dev
+          command: |
+            if [[ github.ref == 'refs/heads/main' || !startsWith(github.ref, 'refs/heads/release/') ]]; then
+              make dev
+              mkdir -p /home/circleci/bin
+              cp ./bin/consul /home/circleci/bin/consul
+            fi
+      - uses: actions/download-artifact@v2
+        with:
+          name: consul-bin
+          path: $HOME/bin
+      - run: go mod download
+      - name: go test
         run: |
             PACKAGE_NAMES=$(go list ./...)
             
             # TODO(JM): figure out why this erroring
-            # if '${{ github.ref }}' == 'refs/heads/docs/' || startsWith('${{ github.ref }}', 'refs/heads/release/'); then
+            # if [[ github.ref == 'refs/heads/main' || !startsWith(github.ref, 'refs/heads/release/') ]]; then
             #   export GO_TEST_FLAGS="-short"
             # fi
             
@@ -209,11 +204,11 @@ jobs:
       #     path: *TEST_RESULTS_DIR
       - uses: actions/upload-artifact@master
         with:
-          name: consul-bin
+          name: test-results
           path: ${{env.TEST_RESULTS}}
       - uses: actions/upload-artifact@master
         with:
-          name: consul-bin
+          name: jsonfile
           path: /tmp/jsonfile
       # - name: "Re-run fails report"
       #   run: |
@@ -266,7 +261,7 @@ jobs:
       - name: Build
         run: |
           make dev
-          mkdir -p mkdir -p $HOME/bin
+          mkdir -p $HOME/bin
           cp ./bin/consul $HOME/bin/consul
       # save dev build to pass to downstream jobs
       - uses: actions/upload-artifact@master
