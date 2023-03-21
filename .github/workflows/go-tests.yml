@@ -260,13 +260,13 @@ jobs:
       - name: Build
         run: |
           make dev
-          mkdir -p /home/circleci/go/bin
-          cp ./bin/consul /home/circleci/go/bin/consul
+          mkdir -p mkdir -p $HOME/bin
+          cp ./bin/consul $HOME/bin/consul
       # save dev build to pass to downstream jobs
       - uses: actions/upload-artifact@master
         with:
           name: consul-bin
-          path: /home/circleci/go/bin/consul
+          path: $HOME/bin/consul
       # TODO(JM) Figure out how to do this
       # - run: *notify-slack-failure
 
