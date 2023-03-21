@@ -1,3 +1,7 @@
 ```release-note:improvement
 logging: Allow setting independent log levels for subsystems using -log-sublevels
 ```
+
+```release-note:improvement
+monitor: Allow setting independent log levels for subsystems using -log-sublevels
+```
