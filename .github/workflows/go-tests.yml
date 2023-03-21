@@ -465,10 +465,11 @@ jobs:
       !startsWith(github.ref, 'refs/heads/backport/docs/') || 
       !startsWith(github.ref, 'refs/heads/backport/ui/') || 
       !startsWith(github.ref, 'refs/heads/backport/mktg-.')
-    needs:
-    - dev-build
+    # needs:
+    # - dev-build
     runs-on: ubuntu-latest
-    uses: ./.github/workflows/reusable-unit.yml
+    steps:
+    - uses: hashicorp/consul/.github/workflows/reusable-unit.yml
       with:
         directory: api
         go-version: "1.20"
