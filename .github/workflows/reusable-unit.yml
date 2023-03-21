@@ -44,7 +44,7 @@ jobs:
       - uses: actions/download-artifact@master
         with:
           name: consul-bin
-          path: $HOME/bin/consul
+          path: ./bin/consul
       - name: Run tests 
         working-directory: ${{inputs.directory}}
         run: |

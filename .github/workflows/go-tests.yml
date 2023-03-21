@@ -165,14 +165,12 @@ jobs:
           # TODO(JM)- figure out why this is only needed on these branches
           # if [[ '${{ github.ref }}' == 'refs/heads/main' || startsWith('${{ github.ref }}', 'refs/heads/release/') ]]; then
             make dev
-            mkdir -p $HOME/bin
-            cp ./bin/consul $HOME/bin/consul
           # fi
       # TODO(JM)- if not always building above, re-enable this.
       # - uses: actions/download-artifact@v2
       #   with:
       #     name: consul-bin
-      #     path: $HOME/bin/consul
+      #     path: ./bin/consul
       - run: go mod download
       - name: go test
         run: |
@@ -258,15 +256,12 @@ jobs:
       #     name: root-path
       #     path: .
       - name: Build
-        run: |
-          make dev
-          mkdir -p $HOME/bin
-          cp ./bin/consul $HOME/bin/consul
+        run: make dev
       # save dev build to pass to downstream jobs
       - uses: actions/upload-artifact@master
         with:
           name: consul-bin
-          path: $HOME/bin/consul
+          path: ./bin/consul
       # TODO(JM) Figure out how to do this
       # - run: *notify-slack-failure
 
