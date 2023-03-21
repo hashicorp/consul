@@ -166,13 +166,13 @@ jobs:
         run: |
           if [[ '${{ github.ref }}' == 'refs/heads/main' || startsWith('${{ github.ref }}', 'refs/heads/release/') ]]; then
             make dev
-            mkdir -p /home/circleci/bin
-            cp ./bin/consul /home/circleci/bin/consul
+            mkdir -p $HOME/bin
+            cp ./bin/consul $HOME/bin/consul
           fi
       - uses: actions/download-artifact@v2
         with:
           name: consul-bin
-          path: $HOME/bin
+          path: $HOME/bin/consul
       - run: go mod download
       - name: go test
         run: |
@@ -335,11 +335,11 @@ jobs:
       #     path: *TEST_RESULTS_DIR
       - uses: actions/upload-artifact@master
         with:
-          name: consul-bin
+          name: test-results
           path: ${{env.TEST_RESULTS}}
       - uses: actions/upload-artifact@master
         with:
-          name: consul-bin
+          name: jsonfile
           path: /tmp/jsonfile
       # - name: "Re-run fails report"
       #   run: |
@@ -456,7 +456,7 @@ jobs:
     - dev-build
     uses: ./.github/workflows/reusable-unit.yml
     with:
-      directory: api
+      directory: sdk
       go-version: "1.20"
 
   noop:
