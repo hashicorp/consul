@@ -45,10 +45,10 @@ jobs:
         with:
           name: consul-bin
           path: ./bin/consul
+      - name: Add location to $PATH
+        run: echo "/home/runner/work/consul/consul/bin" >> $GITHUB_PATH
       - name: Run tests 
         working-directory: ${{inputs.directory}}
         run: |
-          export PATH=$PATH:/home/runner/work/consul/consul/bin
-          
           gotestsum --format=testname --junitfile ${{env.TEST_RESULTS}}/gotestsum-report.xml ./... -- -p 4
          
