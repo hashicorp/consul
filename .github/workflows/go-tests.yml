@@ -386,7 +386,7 @@ jobs:
     - dev-build
     runs-on: ubuntu-latest
     steps:
-    - uses: ../.github/workflows/reusable-unit.yml
+    - uses: ./.github/workflows/reusable-unit.yml
       with:
         directory: envoyextensions
         go-version: "1.20"
@@ -403,7 +403,7 @@ jobs:
     - dev-build
     runs-on: ubuntu-latest
     steps:
-    - uses: ../.github/workflows/reusable-unit.yml
+    - uses: ./.github/workflows/reusable-unit.yml
       with:
         directory: troubleshoot
         go-version: "1.20"
@@ -420,7 +420,7 @@ jobs:
     - dev-build
     runs-on: ubuntu-latest
     steps:
-    - uses: ../.github/workflows/reusable-unit.yml
+    - uses: ./.github/workflows/reusable-unit.yml
       with:
         directory: api
         go-version: "1.19"
@@ -437,7 +437,7 @@ jobs:
     - dev-build
     runs-on: ubuntu-latest
     steps:
-    - uses: ../.github/workflows/reusable-unit.yml
+    - uses: ./.github/workflows/reusable-unit.yml
       with:
         directory: api
         go-version: "1.20"
@@ -454,7 +454,7 @@ jobs:
     - dev-build
     runs-on: ubuntu-latest
     steps:
-    - uses: ../.github/workflows/reusable-unit.yml
+    - uses: ./.github/workflows/reusable-unit.yml
       with:
         directory: sdk
         go-version: "1.19"
@@ -470,7 +470,7 @@ jobs:
     - dev-build
     runs-on: ubuntu-latest
     steps:
-    - uses: ../.github/workflows/reusable-unit.yml
+    - uses: ./.github/workflows/reusable-unit.yml
       with:
         directory: api
         go-version: "1.20"

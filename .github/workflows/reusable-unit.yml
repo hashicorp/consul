@@ -18,16 +18,11 @@ env:
 jobs:
   job:
     runs-on: ubuntu-latest
-
     steps:      
-      - name: Checkout code
-        uses: actions/checkout@v3
-      
-      - name: Setup go
-        uses: actions/setup-go@v4
+      - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
+      - uses: actions/setup-go@6edd4406fa81c3da01a34fa6f6343087c207a568 # pin@v3.5.0
         with:
-          go-version: ${{ env.HCP_GO_VERSION }}
-
+          go-version-file: 'go.mod'
       - name: Setup go mod cache
         uses: actions/cache@v3
         with:
@@ -37,19 +32,15 @@ jobs:
           key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
           restore-keys: |
             ${{ runner.os }}-go-
-
       - name: Install gotestsum
         run: |
           wget https://github.com/gotestyourself/gotestsum/releases/download/v${{env.GOTESTSUM_VERSION}}/gotestsum_${{env.GOTESTSUM_VERSION}}_linux_amd64.tar.gz
           sudo tar -C /usr/local/bin -xzf gotestsum_${{env.GOTESTSUM_VERSION}}_linux_amd64.tar.gz
           rm gotestsum_${{env.GOTESTSUM_VERSION}}_linux_amd64.tar.gz
-
       - run: mkdir -p ${{env.TEST_RESULTS}}
-
       - name: go mod download
         working-directory: ${{inputs.directory}}
         run: go mod download
-
       - name: Run tests 
         working-directory: ${{inputs.directory}}
         run: |
