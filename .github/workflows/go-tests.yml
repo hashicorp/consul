@@ -303,10 +303,9 @@ jobs:
       - name: Run go tests
         run: |
             PACKAGE_NAMES=$(go list ./...)
-            if [ ! -s "$report_filename" ]; then
             
             # TODO(JM): figure out why this erroring
-            # if '${{ github.ref }}' == 'refs/heads/docs/' || startsWith('${{ github.ref }}', 'refs/heads/release/'); then
+            # if [[ github.ref == 'refs/heads/main' || !startsWith(github.ref, 'refs/heads/release/') ]]; then
             #   export GO_TEST_FLAGS="-short"
             # fi
             
