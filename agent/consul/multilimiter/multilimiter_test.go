@@ -37,7 +37,7 @@ func TestRateLimiterUpdate(t *testing.T) {
 	key := Key([]byte("test"))
 
 	c1 := LimiterConfig{Rate: 10}
-	m.UpdateConfig(&c1, key)
+	m.UpdateConfig(c1, key)
 	//Allow a key
 	m.Allow(Limited{key: key})
 	storeLimiter(m)
@@ -81,7 +81,7 @@ func TestRateLimiterCleanup(t *testing.T) {
 	defer cancel()
 	m.Run(ctx)
 	key := Key([]byte("test"))
-	m.UpdateConfig(&LimiterConfig{Rate: 0.1}, key)
+	m.UpdateConfig(LimiterConfig{Rate: 0.1}, key)
 	m.Allow(Limited{key: key})
 	retry.RunWith(&retry.Timer{Wait: 100 * time.Millisecond, Timeout: 10 * time.Second}, t, func(r *retry.R) {
 		l := m.limiters.Load()
@@ -140,7 +140,7 @@ func TestRateLimiterStore(t *testing.T) {
 		ipNoPrefix2 := Key([]byte(""), []byte("127.0.0.2"))
 		c2 := LimiterConfig{Rate: 2}
 		{
-			m.UpdateConfig(&c1, ipNoPrefix1)
+			m.UpdateConfig(c1, ipNoPrefix1)
 			m.Allow(ipLimited{key: ipNoPrefix1})
 			storeLimiter(m)
 			l, ok := m.limiters.Load().Get(ipNoPrefix1)
@@ -150,7 +150,7 @@ func TestRateLimiterStore(t *testing.T) {
 			require.True(t, c1.isApplied(limiter.limiter))
 		}
 		{
-			m.UpdateConfig(&c2, ipNoPrefix2)
+			m.UpdateConfig(c2, ipNoPrefix2)
 			m.Allow(ipLimited{key: ipNoPrefix2})
 			storeLimiter(m)
 			l, ok := m.limiters.Load().Get(ipNoPrefix2)
@@ -177,7 +177,7 @@ func TestRateLimiterStore(t *testing.T) {
 		ipNoPrefix2 := Key([]byte(""), []byte("127.0.0.2"))
 		c2 := LimiterConfig{Rate: 2}
 		limiters := m.limiters.Load()
-		m.UpdateConfig(&c1, ipNoPrefix1)
+		m.UpdateConfig(c1, ipNoPrefix1)
 		m.Allow(ipLimited{key: ipNoPrefix1})
 		retry.RunWith(&retry.Timer{Wait: 1 * time.Second, Timeout: 5 * time.Second}, t, func(r *retry.R) {
 			l := m.limiters.Load()
@@ -189,7 +189,7 @@ func TestRateLimiterStore(t *testing.T) {
 		require.NotNil(t, l)
 		limiter := l.(*Limiter)
 		require.True(t, c1.isApplied(limiter.limiter))
-		m.UpdateConfig(&c2, ipNoPrefix2)
+		m.UpdateConfig(c2, ipNoPrefix2)
 		m.Allow(ipLimited{key: ipNoPrefix2})
 		retry.RunWith(&retry.Timer{Wait: 1 * time.Second, Timeout: 5 * time.Second}, t, func(r *retry.R) {
 			l := m.limiters.Load()
@@ -220,7 +220,7 @@ func TestRateLimiterUpdateConfig(t *testing.T) {
 		require.Equal(t, *m.defaultConfig.Load(), c)
 		ipNoPrefix := Key([]byte(""), []byte("127.0.0.1"))
 		c1 := LimiterConfig{Rate: 1}
-		m.UpdateConfig(&c1, ipNoPrefix)
+		m.UpdateConfig(c1, ipNoPrefix)
 		m.Allow(ipLimited{key: ipNoPrefix})
 		storeLimiter(m)
 		l, ok := m.limiters.Load().Get(ipNoPrefix)
@@ -236,7 +236,7 @@ func TestRateLimiterUpdateConfig(t *testing.T) {
 		require.Equal(t, *m.defaultConfig.Load(), c)
 		prefix := []byte(nil)
 		c1 := LimiterConfig{Rate: 1}
-		m.UpdateConfig(&c1, prefix)
+		m.UpdateConfig(c1, prefix)
 		v, ok := m.limitersConfigs.Load().Get([]byte(""))
 		require.True(t, ok)
 		require.NotNil(t, v)
@@ -251,12 +251,12 @@ func TestRateLimiterUpdateConfig(t *testing.T) {
 		prefix := []byte("namespace.write")
 		ip := Key(prefix, []byte("127.0.0.1"))
 		c1 := LimiterConfig{Rate: 1}
-		m.UpdateConfig(&c1, ip)
+		m.UpdateConfig(c1, ip)
 		m.Allow(ipLimited{key: ip})
 		storeLimiter(m)
 		ip2 := Key(prefix, []byte("127.0.0.2"))
 		c2 := LimiterConfig{Rate: 2}
-		m.UpdateConfig(&c2, ip2)
+		m.UpdateConfig(c2, ip2)
 		m.Allow(ipLimited{key: ip2})
 		l, ok := m.limiters.Load().Get(ip)
 		require.True(t, ok)
@@ -271,7 +271,7 @@ func TestRateLimiterUpdateConfig(t *testing.T) {
 		prefix := []byte("namespace.write")
 		ip := Key(prefix, []byte("127.0.0.1"))
 		c3 := LimiterConfig{Rate: 2}
-		m.UpdateConfig(&c3, prefix)
+		m.UpdateConfig(c3, prefix)
 		// call reconcileLimitedOnce to make sure the update is applied
 		m.reconcileConfig(m.limiters.Load().Txn())
 		m.Allow(ipLimited{key: ip})
@@ -288,7 +288,7 @@ func TestRateLimiterUpdateConfig(t *testing.T) {
 		require.Equal(t, *m.defaultConfig.Load(), c)
 		c1 := LimiterConfig{Rate: 3}
 		prefix := []byte("namespace.read")
-		m.UpdateConfig(&c1, prefix)
+		m.UpdateConfig(c1, prefix)
 		ip := Key(prefix, []byte("127.0.0.1"))
 		m.Allow(ipLimited{key: ip})
 		storeLimiter(m)
@@ -305,7 +305,7 @@ func TestRateLimiterUpdateConfig(t *testing.T) {
 		require.Equal(t, *m.defaultConfig.Load(), c)
 		c1 := LimiterConfig{Rate: 3}
 		prefix := []byte("namespace.read")
-		m.UpdateConfig(&c1, prefix)
+		m.UpdateConfig(c1, prefix)
 		ip := Key(prefix, []byte("127.0.0.1"))
 		m.Allow(ipLimited{key: ip})
 		storeLimiter(m)
@@ -314,7 +314,7 @@ func TestRateLimiterUpdateConfig(t *testing.T) {
 		require.NotNil(t, l)
 		limiter := l.(*Limiter)
 		require.True(t, c1.isApplied(limiter.limiter))
-		m.UpdateConfig(nil, prefix)
+		m.DeleteConfig(prefix)
 		reconcile(m)
 		_, ok = m.limiters.Load().Get(ip)
 		require.False(t, ok)
@@ -325,7 +325,7 @@ func TestRateLimiterUpdateConfig(t *testing.T) {
 		require.Equal(t, *m.defaultConfig.Load(), c)
 		c1 := LimiterConfig{Rate: 3}
 		prefix := Key([]byte("ip.ratelimit"), []byte("127.0"))
-		m.UpdateConfig(&c1, prefix)
+		m.UpdateConfig(c1, prefix)
 		ip := Key([]byte("ip.ratelimit"), []byte("127.0.0.1"))
 		m.Allow(ipLimited{key: ip})
 		storeLimiter(m)
@@ -343,10 +343,10 @@ func TestRateLimiterUpdateConfig(t *testing.T) {
 		require.Equal(t, *m.defaultConfig.Load(), c)
 		c1 := LimiterConfig{Rate: 3}
 		prefix := Key([]byte("ip.ratelimit"), []byte("127.0"))
-		m.UpdateConfig(&c1, prefix)
+		m.UpdateConfig(c1, prefix)
 		prefix = Key([]byte("ip.ratelimit"), []byte("127.0.0"))
 		c2 := LimiterConfig{Rate: 6}
-		m.UpdateConfig(&c2, prefix)
+		m.UpdateConfig(c2, prefix)
 		ip := Key([]byte("ip.ratelimit"), []byte("127.0.0.1"))
 		m.Allow(ipLimited{key: ip})
 		storeLimiter(m)
@@ -374,7 +374,7 @@ func TestRateLimiterUpdateConfig(t *testing.T) {
 		prefix := []byte("namespace.read")
 		ip := Key(prefix, []byte("127.0.0.1"))
 		c1 := LimiterConfig{Rate: 1}
-		m.UpdateConfig(&c1, prefix)
+		m.UpdateConfig(c1, prefix)
 		// call reconcileLimitedOnce to make sure the update is applied
 		reconcile(m)
 		m.Allow(ipLimited{key: ip})
@@ -400,7 +400,7 @@ func FuzzSingleConfig(f *testing.F) {
 		Burst: 123,
 	}
 	f.Fuzz(func(t *testing.T, ff []byte) {
-		m.UpdateConfig(&c1, ff)
+		m.UpdateConfig(c1, ff)
 		m.Allow(Limited{key: ff})
 		storeLimiter(m)
 		checkLimiter(t, ff, m.limiters.Load().Txn())
@@ -445,7 +445,7 @@ func FuzzUpdateConfig(f *testing.F) {
 		for _, f := range keys {
 			prefix, _ := splitKey(f)
 			c := LimiterConfig{Rate: rate.Limit(rand.Float64()), Burst: rand.Int()}
-			m.UpdateConfig(&c, prefix)
+			m.UpdateConfig(c, prefix)
 			go m.Allow(Limited{key: f})
 		}
 		m.reconcileConfig(m.limiters.Load().Txn())

@@ -27,13 +27,18 @@ func (_m *MockRateLimiter) Allow(entity LimitedEntity) bool {
 	return r0
 }
 
+// DeleteConfig provides a mock function with given fields: prefix
+func (_m *MockRateLimiter) DeleteConfig(prefix []byte) {
+	_m.Called(prefix)
+}
+
 // Run provides a mock function with given fields: ctx
 func (_m *MockRateLimiter) Run(ctx context.Context) {
 	_m.Called(ctx)
 }
 
 // UpdateConfig provides a mock function with given fields: c, prefix
-func (_m *MockRateLimiter) UpdateConfig(c *LimiterConfig, prefix []byte) {
+func (_m *MockRateLimiter) UpdateConfig(c LimiterConfig, prefix []byte) {
 	_m.Called(c, prefix)
 }
 

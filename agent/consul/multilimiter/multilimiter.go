@@ -25,7 +25,8 @@ func Key(keys ...[]byte) KeyType {
 type RateLimiter interface {
 	Run(ctx context.Context)
 	Allow(entity LimitedEntity) bool
-	UpdateConfig(c *LimiterConfig, prefix []byte)
+	UpdateConfig(c LimiterConfig, prefix []byte)
+	DeleteConfig(prefix []byte)
 }
 
 type limiterWithKey struct {
@@ -73,20 +74,14 @@ type Config struct {
 
 // UpdateConfig will update the MultiLimiter Config
 // which will cascade to all the Limiter(s) LimiterConfig
-func (m *MultiLimiter) UpdateConfig(c *LimiterConfig, prefix []byte) {
-	m.configsLock.Lock()
-	defer m.configsLock.Unlock()
-	if prefix == nil {
-		prefix = []byte("")
-	}
-	configs := m.limitersConfigs.Load()
-	var newConfigs *radix.Tree
-	if c == nil {
-		newConfigs, _, _ = configs.Delete(prefix)
-	} else {
-		newConfigs, _, _ = configs.Insert(prefix, c)
-	}
-	m.limitersConfigs.Store(newConfigs)
+func (m *MultiLimiter) UpdateConfig(c LimiterConfig, prefix []byte) {
+	m.updateConfig(&c, prefix)
+}
+
+// DeleteConfig will delete the MultiLimiter Config
+// which will cascade to all the Limiter(s) LimiterConfig
+func (m *MultiLimiter) DeleteConfig(prefix []byte) {
+	m.updateConfig(nil, prefix)
 }
 
 // NewMultiLimiter create a new MultiLimiter
@@ -163,6 +158,24 @@ func (m *MultiLimiter) Allow(e LimitedEntity) bool {
 	limiter.lastAccess.Store(unixNow)
 	m.limiterCh <- &limiterWithKey{l: limiter, k: e.Key(), t: now}
 	return limiter.limiter.Allow()
+}
+
+// UpdateConfig will update the MultiLimiter Config
+// which will cascade to all the Limiter(s) LimiterConfig
+func (m *MultiLimiter) updateConfig(c *LimiterConfig, prefix []byte) {
+	m.configsLock.Lock()
+	defer m.configsLock.Unlock()
+	if prefix == nil {
+		prefix = []byte("")
+	}
+	configs := m.limitersConfigs.Load()
+	var newConfigs *radix.Tree
+	if c == nil {
+		newConfigs, _, _ = configs.Delete(prefix)
+	} else {
+		newConfigs, _, _ = configs.Insert(prefix, c)
+	}
+	m.limitersConfigs.Store(newConfigs)
 }
 
 type ticker interface {
