@@ -21,12 +21,12 @@ func (s *Server) Read(ctx context.Context, req *pbresource.ReadRequest) (*pbreso
 		return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("resource type %s not registered", resource.ToGVK(req.Id.Type)))
 	}
 
-	readFn := s.backend.Read
+	consistency := storage.EventualConsistency
 	if isConsistentRead(ctx) {
-		readFn = s.backend.ReadConsistent
+		consistency = storage.StrongConsistency
 	}
 
-	resource, err := readFn(ctx, req.Id)
+	resource, err := s.backend.Read(ctx, consistency, req.Id)
 	if err != nil {
 		if err == storage.ErrNotFound {
 			return nil, status.Error(codes.NotFound, err.Error())

@@ -16,15 +16,63 @@ var (
 	// ErrNotFound indicates that the resource could not be found.
 	ErrNotFound = errors.New("resource not found")
 
-	// ErrConflict indicates that the attempted write failed because of a version
-	// or UID mismatch.
-	ErrConflict = errors.New("operation failed because of a Version or Uid mismatch")
+	// ErrCASFailure indicates that the attempted write failed because the given
+	// version does not match what is currently stored.
+	ErrCASFailure = errors.New("CAS operation failed because the given version doesn't match what is stored")
+
+	// ErrWrongUid indicates that the attempted write failed because the resource's
+	// Uid doesn't match what is currently stored (e.g. the caller is trying to
+	// operate on a deleted resource with the same name).
+	ErrWrongUid = errors.New("write failed because the given uid doesn't match what is stored")
 
 	// ErrInconsistent indicates that the attempted write or consistent read could
 	// not be achieved because of a consistency or availability issue (e.g. loss of
 	// quorum, or when interacting with a Raft follower).
 	ErrInconsistent = errors.New("cannot satisfy consistency requirements")
 )
+
+// ReadConsistency is used to specify the required consistency guarantees for
+// a read operation.
+type ReadConsistency int
+
+const (
+	// EventualConsistency provides a weak set of guarantees, but is much cheaper
+	// than using StrongConsistency and therefore should be treated as the default.
+	//
+	// It guarantees [monotonic reads]. That is, a read will always return results
+	// that are as up-to-date as an earlier read, provided both happen on the same
+	// Consul server. But does not make any such guarantee about writes.
+	//
+	// In other words, reads won't necessarily reflect earlier writes, even when
+	// made against the same server.
+	//
+	// Operations that don't allow the caller to specify the consistency mode will
+	// hold the same guarantees as EventualConsistency, but check the method docs
+	// for caveats.
+	//
+	// [monotonic reads]: https://jepsen.io/consistency/models/monotonic-reads
+	EventualConsistency ReadConsistency = iota
+
+	// StrongConsistency provides a very strong set of guarantees but is much more
+	// expensive, so should be used sparingly.
+	//
+	// It guarantees full [linearizability], such that a read will always return
+	// the most up-to-date version of a resource, without caveat.
+	//
+	// [linearizability]: https://jepsen.io/consistency/models/linearizable
+	StrongConsistency
+)
+
+// String implements the fmt.Stringer interface.
+func (c ReadConsistency) String() string {
+	switch c {
+	case EventualConsistency:
+		return "Eventual Consistency"
+	case StrongConsistency:
+		return "Strong Consistency"
+	}
+	panic(fmt.Sprintf("unknown ReadConsistency (%d)", c))
+}
 
 // Backend provides the low-level storage substrate for resources. It can be
 // implemented using internal (i.e. Raft+MemDB) or external (e.g. DynamoDB)
@@ -51,8 +99,8 @@ var (
 // # Read-Modify-Write Patterns
 //
 // All writes at the storage backend level are CAS (Compare-And-Swap) operations
-// where the caller must provide the resource in its entirety, along with the
-// current version string.
+// where the caller must provide the resource in its entirety, with the current
+// version string.
 //
 // Non-CAS writes should be implemented at a higher level (i.e. in the Resource
 // Service) by reading the resource, applying the user's requested modifications,
@@ -88,24 +136,13 @@ type Backend interface {
 	//
 	// # Consistency
 	//
-	// Read makes no guarantees about consistency, and may return stale results.
-	// For stronger guarantees, use ReadConsistent.
-	Read(ctx context.Context, id *pbresource.ID) (*pbresource.Resource, error)
-
-	// ReadConsistent provides the same functionality as Read, but guarantees
-	// single-resource sequential consistency, typically by bypassing any caches
-	// and proxying the request directly to the underlying storage system.
-	//
-	// If a consistent read cannot be achieved (e.g. when interacting with a Raft
-	// follower, or quorum is lost) ErrInconsistent will be returned.
-	//
-	// Use ReadConsistent sparingly, and prefer Read when possible.
-	ReadConsistent(ctx context.Context, id *pbresource.ID) (*pbresource.Resource, error)
+	// Read supports both EventualConsistency and StrongConsistency.
+	Read(ctx context.Context, consistency ReadConsistency, id *pbresource.ID) (*pbresource.Resource, error)
 
 	// WriteCAS performs an atomic CAS (Compare-And-Swap) write of a resource based
-	// on its version. The given version will be compared to what is stored, and
-	// if it does not match, ErrConflict will be returned. To create new resources,
-	// pass an empty version string.
+	// on its version. The given version will be compared to what is stored, and if
+	// it does not match, ErrCASFailure will be returned. To create new resources,
+	// set version to an empty string.
 	//
 	// If a write cannot be performed because of a consistency or availability
 	// issue (e.g. when interacting with a Raft follower, or when quorum is lost)
@@ -114,7 +151,7 @@ type Backend interface {
 	// # UIDs
 	//
 	// UIDs are immutable, so if the given resource's Uid field doesn't match what
-	// is stored, ErrConflict will be returned.
+	// is stored, ErrWrongUid will be returned.
 	//
 	// See Backend docs for more details.
 	//
@@ -124,11 +161,11 @@ type Backend interface {
 	// resource stored in an older form with a newer, and vice versa.
 	//
 	// See Backend docs for more details.
-	WriteCAS(ctx context.Context, res *pbresource.Resource, version string) (*pbresource.Resource, error)
+	WriteCAS(ctx context.Context, res *pbresource.Resource) (*pbresource.Resource, error)
 
 	// DeleteCAS performs an atomic CAS (Compare-And-Swap) deletion of a resource
 	// based on its version. The given version will be compared to what is stored,
-	// and if it does not match, ErrConflict will be returned.
+	// and if it does not match, ErrCASFailure will be returned.
 	//
 	// If the resource does not exist (i.e. has already been deleted) no error will
 	// be returned.
@@ -171,8 +208,13 @@ type Backend interface {
 	//
 	// # Consistency
 	//
-	// List makes no guarantees about consistency, and may return stale results.
-	List(ctx context.Context, resType UnversionedType, tenancy *pbresource.Tenancy, namePrefix string) ([]*pbresource.Resource, error)
+	// Generally, List only supports EventualConsistency. However, for backward
+	// compatability with our v1 APIs, the Raft backend supports StrongConsistency
+	// for list operations.
+	//
+	// When the v1 APIs finally goes away, so will this consistency parameter, so
+	// it should not be depended on outside of the backward compatability layer.
+	List(ctx context.Context, consistency ReadConsistency, resType UnversionedType, tenancy *pbresource.Tenancy, namePrefix string) ([]*pbresource.Resource, error)
 
 	// WatchList watches resources of the given type, tenancy, and optionally
 	// matching the given name prefix. Upsert events for the current state of the
@@ -186,18 +228,20 @@ type Backend interface {
 	// write may not be received immediately), but it does guarantee that events
 	// will be emitted in the correct order.
 	//
-	// There's also a sequential consistency guarantee between Read and WatchList,
+	// There's also a guarantee of [monotonic reads] between Read and WatchList,
 	// such that Read will never return data that is older than the most recent
 	// event you received. Note: this guarantee holds at the (in-process) storage
 	// backend level, only. Controllers and other users of the Resource Service API
 	// must remain connected to the same Consul server process to avoid receiving
 	// events about writes that they then cannot read. In other words, it is *not*
-	// linearizable: https://jepsen.io/consistency/models/sequential
+	// linearizable.
 	//
 	// There's a similar guarantee between WatchList and OwnerReferences, see the
 	// OwnerReferences docs for more information.
 	//
 	// See List docs for details about Tenancy Wildcard and GroupVersion.
+	//
+	// [monotonic reads]: https://jepsen.io/consistency/models/monotonic-reads
 	WatchList(ctx context.Context, resType UnversionedType, tenancy *pbresource.Tenancy, namePrefix string) (Watch, error)
 
 	// OwnerReferences returns the IDs of resources owned by the resource with the
@@ -205,7 +249,7 @@ type Backend interface {
 	//
 	// # Consistency
 	//
-	// OwnerReferences may return stale results, but is sequentially consistent
+	// OwnerReferences may return stale results, but guarnantees [monotonic reads]
 	// with events received from WatchList. In practice, this means that if you
 	// learn that a resource has been deleted through a watch event, the results
 	// you receive from OwnerReferences will contain all references that existed
@@ -216,6 +260,8 @@ type Backend interface {
 	// challenges), or by calling OwnerReferences after the expected window of
 	// inconsistency (e.g. deferring cascading deletion, or doing a second pass
 	// an hour later).
+	//
+	// [montonic reads]: https://jepsen.io/consistency/models/monotonic-reads
 	OwnerReferences(ctx context.Context, id *pbresource.ID) ([]*pbresource.ID, error)
 }
 

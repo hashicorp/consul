@@ -30,25 +30,25 @@ func (_m *MockBackend) DeleteCAS(ctx context.Context, id *pbresource.ID, version
 	return r0
 }
 
-// List provides a mock function with given fields: ctx, resType, tenancy, namePrefix
-func (_m *MockBackend) List(ctx context.Context, resType storage.UnversionedType, tenancy *pbresource.Tenancy, namePrefix string) ([]*pbresource.Resource, error) {
-	ret := _m.Called(ctx, resType, tenancy, namePrefix)
+// List provides a mock function with given fields: ctx, consistency, resType, tenancy, namePrefix
+func (_m *MockBackend) List(ctx context.Context, consistency storage.ReadConsistency, resType storage.UnversionedType, tenancy *pbresource.Tenancy, namePrefix string) ([]*pbresource.Resource, error) {
+	ret := _m.Called(ctx, consistency, resType, tenancy, namePrefix)
 
 	var r0 []*pbresource.Resource
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, storage.UnversionedType, *pbresource.Tenancy, string) ([]*pbresource.Resource, error)); ok {
-		return rf(ctx, resType, tenancy, namePrefix)
+	if rf, ok := ret.Get(0).(func(context.Context, storage.ReadConsistency, storage.UnversionedType, *pbresource.Tenancy, string) ([]*pbresource.Resource, error)); ok {
+		return rf(ctx, consistency, resType, tenancy, namePrefix)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, storage.UnversionedType, *pbresource.Tenancy, string) []*pbresource.Resource); ok {
-		r0 = rf(ctx, resType, tenancy, namePrefix)
+	if rf, ok := ret.Get(0).(func(context.Context, storage.ReadConsistency, storage.UnversionedType, *pbresource.Tenancy, string) []*pbresource.Resource); ok {
+		r0 = rf(ctx, consistency, resType, tenancy, namePrefix)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).([]*pbresource.Resource)
 		}
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context, storage.UnversionedType, *pbresource.Tenancy, string) error); ok {
-		r1 = rf(ctx, resType, tenancy, namePrefix)
+	if rf, ok := ret.Get(1).(func(context.Context, storage.ReadConsistency, storage.UnversionedType, *pbresource.Tenancy, string) error); ok {
+		r1 = rf(ctx, consistency, resType, tenancy, namePrefix)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -82,51 +82,25 @@ func (_m *MockBackend) OwnerReferences(ctx context.Context, id *pbresource.ID) (
 	return r0, r1
 }
 
-// Read provides a mock function with given fields: ctx, id
-func (_m *MockBackend) Read(ctx context.Context, id *pbresource.ID) (*pbresource.Resource, error) {
-	ret := _m.Called(ctx, id)
+// Read provides a mock function with given fields: ctx, consistency, id
+func (_m *MockBackend) Read(ctx context.Context, consistency storage.ReadConsistency, id *pbresource.ID) (*pbresource.Resource, error) {
+	ret := _m.Called(ctx, consistency, id)
 
 	var r0 *pbresource.Resource
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, *pbresource.ID) (*pbresource.Resource, error)); ok {
-		return rf(ctx, id)
+	if rf, ok := ret.Get(0).(func(context.Context, storage.ReadConsistency, *pbresource.ID) (*pbresource.Resource, error)); ok {
+		return rf(ctx, consistency, id)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, *pbresource.ID) *pbresource.Resource); ok {
-		r0 = rf(ctx, id)
+	if rf, ok := ret.Get(0).(func(context.Context, storage.ReadConsistency, *pbresource.ID) *pbresource.Resource); ok {
+		r0 = rf(ctx, consistency, id)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*pbresource.Resource)
 		}
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context, *pbresource.ID) error); ok {
-		r1 = rf(ctx, id)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// ReadConsistent provides a mock function with given fields: ctx, id
-func (_m *MockBackend) ReadConsistent(ctx context.Context, id *pbresource.ID) (*pbresource.Resource, error) {
-	ret := _m.Called(ctx, id)
-
-	var r0 *pbresource.Resource
-	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, *pbresource.ID) (*pbresource.Resource, error)); ok {
-		return rf(ctx, id)
-	}
-	if rf, ok := ret.Get(0).(func(context.Context, *pbresource.ID) *pbresource.Resource); ok {
-		r0 = rf(ctx, id)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*pbresource.Resource)
-		}
-	}
-
-	if rf, ok := ret.Get(1).(func(context.Context, *pbresource.ID) error); ok {
-		r1 = rf(ctx, id)
+	if rf, ok := ret.Get(1).(func(context.Context, storage.ReadConsistency, *pbresource.ID) error); ok {
+		r1 = rf(ctx, consistency, id)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -160,25 +134,25 @@ func (_m *MockBackend) WatchList(ctx context.Context, resType storage.Unversione
 	return r0, r1
 }
 
-// WriteCAS provides a mock function with given fields: ctx, res, version
-func (_m *MockBackend) WriteCAS(ctx context.Context, res *pbresource.Resource, version string) (*pbresource.Resource, error) {
-	ret := _m.Called(ctx, res, version)
+// WriteCAS provides a mock function with given fields: ctx, res
+func (_m *MockBackend) WriteCAS(ctx context.Context, res *pbresource.Resource) (*pbresource.Resource, error) {
+	ret := _m.Called(ctx, res)
 
 	var r0 *pbresource.Resource
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, *pbresource.Resource, string) (*pbresource.Resource, error)); ok {
-		return rf(ctx, res, version)
+	if rf, ok := ret.Get(0).(func(context.Context, *pbresource.Resource) (*pbresource.Resource, error)); ok {
+		return rf(ctx, res)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, *pbresource.Resource, string) *pbresource.Resource); ok {
-		r0 = rf(ctx, res, version)
+	if rf, ok := ret.Get(0).(func(context.Context, *pbresource.Resource) *pbresource.Resource); ok {
+		r0 = rf(ctx, res)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*pbresource.Resource)
 		}
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context, *pbresource.Resource, string) error); ok {
-		r1 = rf(ctx, res, version)
+	if rf, ok := ret.Get(1).(func(context.Context, *pbresource.Resource) error); ok {
+		r1 = rf(ctx, res)
 	} else {
 		r1 = ret.Error(1)
 	}
