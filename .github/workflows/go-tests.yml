@@ -8,7 +8,6 @@ permissions:
 env:
   TEST_RESULTS: /tmp/test-results # path to where test results are saved
   GOTESTSUM_VERSION: 1.8.2
-  HCP_GO_VERSION: 1.20.2
 
 jobs:
   check-go-mod:  #TODO(JM): figure out how to get around no anchors
@@ -32,10 +31,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
-    - name: Setup go
-      uses: actions/setup-go@v4
+    - uses: actions/setup-go@6edd4406fa81c3da01a34fa6f6343087c207a568 # pin@v3.5.0
       with:
-        go-version: ${{ env.HCP_GO_VERSION }}
+        go-version-file: 'go.mod'
     - run: make proto-tools
       name: Install protobuf
     - run: make proto-format
@@ -60,10 +58,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
-    - name: Setup go
-      uses: actions/setup-go@v4
+    - uses: actions/setup-go@6edd4406fa81c3da01a34fa6f6343087c207a568 # pin@v3.5.0
       with:
-        go-version: ${{ env.HCP_GO_VERSION }}
+        go-version-file: 'go.mod'
     - run: make codegen-tools
       name: Install deep-copy
     - run: make --always-make deep-copy
@@ -84,10 +81,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
-    - name: Setup go
-      uses: actions/setup-go@v4
+    - uses: actions/setup-go@6edd4406fa81c3da01a34fa6f6343087c207a568 # pin@v3.5.0
       with:
-        go-version: ${{ env.HCP_GO_VERSION }}
+        go-version-file: 'go.mod'
     - run: go install github.com/reillywatson/enumcover/cmd/enumcover@master && enumcover ./...   
     #TODO(JM) - get this from Dan
     # - run: *notify-slack-failure
@@ -103,6 +99,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
+    - uses: actions/setup-go@6edd4406fa81c3da01a34fa6f6343087c207a568 # pin@v3.5.0
+      with:
+        go-version-file: 'go.mod'
     - run: make lint-container-test-deps 
     #TODO(JM) - get this from Dan
     # - run: *notify-slack-failure
@@ -118,10 +117,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
-    - name: Setup go
-      uses: actions/setup-go@v4
+    - uses: actions/setup-go@6edd4406fa81c3da01a34fa6f6343087c207a568 # pin@v3.5.0
       with:
-        go-version: ${{ env.HCP_GO_VERSION }}
+        go-version-file: 'go.mod'
     - run: go install github.com/hashicorp/lint-consul-retry@master && lint-consul-retry
     #TODO(JM) - get this from Dan
     # - run: *notify-slack-failure 
@@ -152,13 +150,10 @@ jobs:
     # TODO(JM):  Fix to run on arm64
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
-      
-      - name: Setup go
-        uses: actions/setup-go@v4
+      - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
+      - uses: actions/setup-go@6edd4406fa81c3da01a34fa6f6343087c207a568 # pin@v3.5.0
         with:
-          go-version: ${{ env.HCP_GO_VERSION }}
+          go-version-file: 'go.mod'
 
       - name: Setup go mod cache
         uses: actions/cache@v3
@@ -259,13 +254,10 @@ jobs:
         !startsWith(github.ref, 'refs/heads/backport/mktg-.')
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
-
-      - name: Setup go
-        uses: actions/setup-go@v4
+      - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
+      - uses: actions/setup-go@6edd4406fa81c3da01a34fa6f6343087c207a568 # pin@v3.5.0
         with:
-          go-version: ${{ env.HCP_GO_VERSION }}
+          go-version-file: 'go.mod'
         # TODO(JM) - figure out why this fails and if it is needed
       # # this normally runs as the first job and has nothing to attach; only used in main branch after rebuilding UI
       # - uses: actions/download-artifact@v2
@@ -291,14 +283,10 @@ jobs:
     runs-on: ubuntu-latest
     # TODO(JM): Combine with go-test-arm64
     steps:
-      - name: Checkout code
-        uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
-      
-      - name: Setup go
-        uses: actions/setup-go@v4
+      - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
+      - uses: actions/setup-go@6edd4406fa81c3da01a34fa6f6343087c207a568 # pin@v3.5.0
         with:
-          go-version: ${{ env.HCP_GO_VERSION }}
-
+          go-version-file: 'go.mod'
       - name: Setup go mod cache
         uses: actions/cache@v3
         with:
