@@ -23,8 +23,6 @@ jobs:
       - uses: actions/setup-go@6edd4406fa81c3da01a34fa6f6343087c207a568 # pin@v3.5.0
         with:
           go-version-file: 'go.mod'
-      - name: Add upload/download location to $PATH
-        run: echo "/home/runner/work/consul/consul/bin" >> $GITHUB_PATH
       - name: Setup go mod cache
         uses: actions/cache@v3
         with:
@@ -50,5 +48,6 @@ jobs:
       - name: Run tests 
         working-directory: ${{inputs.directory}}
         run: |
+          export GOPATH=$GOPATH:/home/runner/work/consul/consul/bin
           gotestsum --format=testname --junitfile ${{env.TEST_RESULTS}}/gotestsum-report.xml ./... -- -p 4
          
