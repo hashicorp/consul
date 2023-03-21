@@ -11,8 +11,7 @@ const repositorySHA = function (sha = exec('git rev-parse --short HEAD')) {
 const binaryVersion = function (repositoryRoot) {
   return function (versionFileContents = read(`${repositoryRoot}/version/VERSION`)) {
     // see /scripts/dist.sh:8
-    return versionFileContents
-      .toString()
+    return versionFileContents.toString();
   };
 };
 const env = function ($) {
