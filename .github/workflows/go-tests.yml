@@ -192,6 +192,7 @@ jobs:
             PACKAGE_NAMES=$(go list ./...)
             if [ ! -s "$report_filename" ]; then
             
+            # TODO(JM): figure out why this erroring
             # if '${{ github.ref }}' == 'refs/heads/docs/' || startsWith('${{ github.ref }}', 'refs/heads/release/'); then
             #   export GO_TEST_FLAGS="-short"
             # fi
@@ -211,7 +212,7 @@ jobs:
             -tags="$GOTAGS" -p 4 \
             ${GO_TEST_FLAGS-} \
             -cover -coverprofile=coverage.txt
-      # TODO(JM) Figure out how to store these
+      # TODO(JM): Figure out how to store these
       # - store_test_results:
       #     path: *TEST_RESULTS_DIR
       # - store_artifacts:
@@ -245,3 +246,33 @@ jobs:
       # TODO(JM) Figure out how to do this
       # - run: *notify-slack-failure
 
+  # create a development build
+  dev-build:
+    if: |
+        github.ref != 'refs/heads/stable-website' || 
+        !startsWith(github.ref, 'refs/heads/docs/') || 
+        !startsWith(github.ref, 'refs/heads/ui/') || 
+        !startsWith(github.ref, 'refs/heads/backport/docs/') || 
+        !startsWith(github.ref, 'refs/heads/backport/ui/') || 
+        !startsWith(github.ref, 'refs/heads/backport/mktg-.')
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      # this normally runs as the first job and has nothing to attach; only used in main branch after rebuilding UI
+      - uses: actions/download-artifact@v2
+        with:
+          name: root-path
+          path: .
+      - name: Build
+        run: |
+          make dev
+          mkdir -p /home/circleci/go/bin
+          cp ./bin/consul /home/circleci/go/bin/consul
+
+      # save dev build to pass to downstream jobs
+      - uses: actions/upload-artifact@master
+        with:
+          name: consul-bin
+          path: /home/circleci/go/bin/consul
+      # TODO(JM) Figure out how to do this
+      # - run: *notify-slack-failure
