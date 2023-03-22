@@ -2,13 +2,6 @@ name: reusable-dev-build
 
 on:
   workflow_call:
-    inputs:
-      directory:
-        required: true
-        type: string
-      go-version:
-        required: true
-        type: string
   
 jobs:
   dev-build:
