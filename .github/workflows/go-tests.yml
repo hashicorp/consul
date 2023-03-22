@@ -117,7 +117,6 @@ jobs:
 
   go-test-arm64:
     # TODO(JM):  Fix to run on arm64
-    # runs-on: ubuntu-latest
     needs: [dev-build-arm64]
     uses: ./.github/workflows/reusable-unit.yml
     with:
@@ -209,7 +208,6 @@ jobs:
   go-test:
     needs:
       - dev-build
-    runs-on: ubuntu-latest
     uses: ./.github/workflows/reusable-unit.yml
     with:
       directory: .
