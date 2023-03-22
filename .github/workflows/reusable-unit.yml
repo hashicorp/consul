@@ -41,18 +41,20 @@ jobs:
       - name: go mod download
         working-directory: ${{inputs.directory}}
         run: go mod download
+      - name: Make directory for consul bin
+        run: mkdir ./${{inputs.directory}}/bin
       - uses: actions/download-artifact@master
         with:
           name: consul-bin
-          path: /home/runner/work/consul/consul
+          path: ./${{inputs.directory}}/bin
       - name: Display structure of downloaded files
         run: ls -R
-        working-directory: /home/runner/work/consul/consul
+        working-directory: ./${{inputs.directory}}/bin
       - name: Run tests 
         working-directory: ${{inputs.directory}}
         run: |
-          echo "Contents of ."
-          ls .
+          export GOPATH=/home/runner/work/consul/consul/${{inputs.directory}}/bin
+          echo "GOPATH: $GOPATH"
           gotestsum --format=testname --junitfile ${{env.TEST_RESULTS}}/gotestsum-report.xml ./... -- -p
       - name: Notify Slack
         if: failure()
