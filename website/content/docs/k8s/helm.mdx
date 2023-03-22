@@ -373,14 +373,20 @@ Use these links to navigate to a particular top-level stanza.
       for all Consul and consul-k8s-control-plane components.
       This requires Consul >= 1.4.
 
-    - `bootstrapToken` ((#v-global-acls-bootstraptoken)) - A Kubernetes or Vault secret containing the bootstrap token to use for
-      creating policies and tokens for all Consul and consul-k8s-control-plane components.
-      If set, we will skip ACL bootstrapping of the servers and will only
-      initialize ACLs for the Consul clients and consul-k8s-control-plane system components.
+    - `bootstrapToken` ((#v-global-acls-bootstraptoken)) - A Kubernetes or Vault secret containing the bootstrap token to use for creating policies and
+      tokens for all Consul and consul-k8s-control-plane components. If `secretName` and `secretKey`
+      are unset, a default secret name and secret key are used. If the secret is populated, then
+      we will skip ACL bootstrapping of the servers and will only initialize ACLs for the Consul
+      clients and consul-k8s-control-plane system components.
+      If the secret is empty, then we will bootstrap ACLs on the Consul servers, and write the
+      bootstrap token to this secret. If ACLs are already bootstrapped on the servers, then the
+      secret must contain the bootstrap token.
 
       - `secretName` ((#v-global-acls-bootstraptoken-secretname)) (`string: null`) - The name of the Kubernetes or Vault secret that holds the bootstrap token.
+        If unset, this defaults to `{{ global.name }}-bootstrap-acl-token`.
 
       - `secretKey` ((#v-global-acls-bootstraptoken-secretkey)) (`string: null`) - The key within the Kubernetes or Vault secret that holds the bootstrap token.
+        If unset, this defaults to `token`.
 
     - `createReplicationToken` ((#v-global-acls-createreplicationtoken)) (`boolean: false`) - If true, an ACL token will be created that can be used in secondary
       datacenters for replication. This should only be set to true in the
@@ -1718,7 +1724,19 @@ Use these links to navigate to a particular top-level stanza.
         "sample/annotation2": "bar"
       ```
 
-  - `resources` ((#v-connectinject-resources)) (`map`) - The resource settings for connect inject pods.
+  - `resources` ((#v-connectinject-resources)) (`map`) - The resource settings for connect inject pods. The defaults, are optimized for getting started worklows on developer deployments. The settings should be tweaked for production deployments.
+
+    - `requests` ((#v-connectinject-resources-requests))
+
+      - `memory` ((#v-connectinject-resources-requests-memory)) (`string: 50Mi`) - Recommended production default: 500Mi
+
+      - `cpu` ((#v-connectinject-resources-requests-cpu)) (`string: 50m`) - Recommended production default: 250m
+
+    - `limits` ((#v-connectinject-resources-limits))
+
+      - `memory` ((#v-connectinject-resources-limits-memory)) (`string: 50Mi`) - Recommended production default: 500Mi
+
+      - `cpu` ((#v-connectinject-resources-limits-cpu)) (`string: 50m`) - Recommended production default: 250m
 
   - `failurePolicy` ((#v-connectinject-failurepolicy)) (`string: Fail`) - Sets the failurePolicy for the mutating webhook. By default this will cause pods not part of the consul installation to fail scheduling while the webhook
     is offline. This prevents a pod from skipping mutation if the webhook were to be momentarily offline.
@@ -1859,17 +1877,33 @@ Use these links to navigate to a particular top-level stanza.
 
       - `requests` ((#v-connectinject-sidecarproxy-resources-requests))
 
-        - `memory` ((#v-connectinject-sidecarproxy-resources-requests-memory)) (`string: null`) - Recommended default: 100Mi
+        - `memory` ((#v-connectinject-sidecarproxy-resources-requests-memory)) (`string: null`) - Recommended production default: 100Mi
 
-        - `cpu` ((#v-connectinject-sidecarproxy-resources-requests-cpu)) (`string: null`) - Recommended default: 100m
+        - `cpu` ((#v-connectinject-sidecarproxy-resources-requests-cpu)) (`string: null`) - Recommended production default: 100m
 
       - `limits` ((#v-connectinject-sidecarproxy-resources-limits))
 
-        - `memory` ((#v-connectinject-sidecarproxy-resources-limits-memory)) (`string: null`) - Recommended default: 100Mi
+        - `memory` ((#v-connectinject-sidecarproxy-resources-limits-memory)) (`string: null`) - Recommended production default: 100Mi
 
-        - `cpu` ((#v-connectinject-sidecarproxy-resources-limits-cpu)) (`string: null`) - Recommended default: 100m
+        - `cpu` ((#v-connectinject-sidecarproxy-resources-limits-cpu)) (`string: null`) - Recommended production default: 100m
 
-  - `initContainer` ((#v-connectinject-initcontainer)) (`map`) - The resource settings for the Connect injected init container.
+  - `initContainer` ((#v-connectinject-initcontainer)) (`map`) - The resource settings for the Connect injected init container. If null, the resources
+    won't be set for the initContainer. The defaults are optimized for developer instances of 
+    Kubernetes, however they should be tweaked with the recommended defaults as shown below to speed up service registration times.
+
+    - `resources` ((#v-connectinject-initcontainer-resources))
+
+      - `requests` ((#v-connectinject-initcontainer-resources-requests))
+
+        - `memory` ((#v-connectinject-initcontainer-resources-requests-memory)) (`string: 25Mi`) - Recommended production default: 150Mi
+
+        - `cpu` ((#v-connectinject-initcontainer-resources-requests-cpu)) (`string: 50m`) - Recommended production default: 250m
+
+      - `limits` ((#v-connectinject-initcontainer-resources-limits))
+
+        - `memory` ((#v-connectinject-initcontainer-resources-limits-memory)) (`string: 150Mi`) - Recommended production default: 150Mi
+
+        - `cpu` ((#v-connectinject-initcontainer-resources-limits-cpu)) (`string: null`) - Recommended production default: 500m
 
 ### meshGateway ((#h-meshgateway))
 
@@ -2041,8 +2075,7 @@ Use these links to navigate to a particular top-level stanza.
   for a specific gateway.
   Requirements: consul >= 1.8.0
 
-  - `enabled` ((#v-ingressgateways-enabled)) (`boolean: false`) - Enable ingress gateway deployment. Requires `connectInject.enabled=true`
-    and `client.enabled=true`.
+  - `enabled` ((#v-ingressgateways-enabled)) (`boolean: false`) - Enable ingress gateway deployment. Requires `connectInject.enabled=true`.
 
   - `defaults` ((#v-ingressgateways-defaults)) - Defaults sets default values for all gateway fields. With the exception
     of annotations, defining any of these values in the `gateways` list
@@ -2171,8 +2204,7 @@ Use these links to navigate to a particular top-level stanza.
   for a specific gateway.
   Requirements: consul >= 1.8.0
 
-  - `enabled` ((#v-terminatinggateways-enabled)) (`boolean: false`) - Enable terminating gateway deployment. Requires `connectInject.enabled=true`
-    and `client.enabled=true`.
+  - `enabled` ((#v-terminatinggateways-enabled)) (`boolean: false`) - Enable terminating gateway deployment. Requires `connectInject.enabled=true`.
 
   - `defaults` ((#v-terminatinggateways-defaults)) - Defaults sets default values for all gateway fields. With the exception
     of annotations, defining any of these values in the `gateways` list
