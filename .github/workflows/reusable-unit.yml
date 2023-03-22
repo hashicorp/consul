@@ -54,7 +54,12 @@ jobs:
       - name: Run tests 
         working-directory: ${{inputs.directory}}
         run: |
-          gotestsum --format=testname --junitfile ${{env.TEST_RESULTS}}/gotestsum-report.xml ./... -- -p
+          gotestsum \
+          --format=short-verbose \
+          --jsonfile /tmp/jsonfile/go-test-sdk.log \
+          --junitfile ${{env.TEST_RESULTS}}/gotestsum-report.xml -- \
+          -tags="$GOTAGS" -cover -coverprofile=coverage.txt \
+          ./... -p
       - name: Notify Slack
         if: failure()
         run: .github/scripts/notify_slack.sh
