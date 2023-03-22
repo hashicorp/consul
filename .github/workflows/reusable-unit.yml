@@ -74,8 +74,8 @@ jobs:
             gotestsum \
               --format=short-verbose \
               --jsonfile /tmp/jsonfile/go-test-<<parameters.path>>.log \
-              --junitfile $TEST_RESULTS_DIR/gotestsum-report.xml -- \
-              -tags="$GOTAGS" -cover -coverprofile=coverage.txt \
+              --junitfile ${{env.TEST_RESULTS}}/gotestsum-report.xml -- \
+              -tags="${{env.GOTAGS}}" -cover -coverprofile=coverage.txt \
               ./...
       - uses: actions/upload-artifact@master
         with:
