@@ -1,4 +1,4 @@
-name: reusable-unit 
+name: reusable-unit-full
 
 on:
   workflow_call:
@@ -71,12 +71,28 @@ jobs:
       - name: Run tests 
         working-directory: ${{inputs.directory}}
         run: |
-            gotestsum \
-              --format=short-verbose \
-              --jsonfile /tmp/jsonfile/go-test-<<parameters.path>>.log \
-              --junitfile $TEST_RESULTS_DIR/gotestsum-report.xml -- \
-              -tags="$GOTAGS" -cover -coverprofile=coverage.txt \
-              ./...
+          PACKAGE_NAMES=$(go list -tags "$GOTAGS" ./...)
+
+          # TODO(JM): figure out why this erroring
+          # if [[ github.ref == 'refs/heads/main' || !startsWith(github.ref, 'refs/heads/release/') ]]; then
+          #   export GO_TEST_FLAGS="-short"
+          # fi
+          
+          # some tests expect this umask, and arm images have a different default
+          umask 0022
+
+          gotestsum \
+          --format=short-verbose \
+          --jsonfile /tmp/jsonfile/go-test-sdk.log \
+          --debug \
+          --rerun-fails=3 \
+          --rerun-fails-max-failures=40 \
+          --rerun-fails-report=/tmp/gotestsum-rerun-fails \
+          --packages="$PACKAGE_NAMES" \              
+          --junitfile ${{env.TEST_RESULTS}}/gotestsum-report.xml -- \
+          -tags="$GOTAGS" \
+          -cover -coverprofile=coverage.txt
+
       - uses: actions/upload-artifact@master
         with:
           name: test-results
