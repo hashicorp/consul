@@ -31,6 +31,7 @@ jobs:
           - {directory: "test/integration/consul-container"}
           - {directory: "api"}
           - {directory: "api"}
+      fail-fast: true
     name: lint ${{ matrix.directory }}
     steps:
       - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
