@@ -8,6 +8,7 @@ permissions:
 env:
   TEST_RESULTS: /tmp/test-results # path to where test results are saved
   GOTESTSUM_VERSION: 1.8.2
+  HCP_GO_VERSION: 1.20
 
 jobs:
   # set-should-go-check:
@@ -345,6 +346,20 @@ jobs:
       - name: Notify Slack
         if: failure()
         run: .github/scripts/notify_slack.sh
+  go-test-consul:
+    if: |
+      github.ref != 'refs/heads/stable-website' || 
+      !startsWith(github.ref, 'refs/heads/docs/') || 
+      !startsWith(github.ref, 'refs/heads/ui/') || 
+      !startsWith(github.ref, 'refs/heads/backport/docs/') || 
+      !startsWith(github.ref, 'refs/heads/backport/ui/') || 
+      !startsWith(github.ref, 'refs/heads/backport/mktg-.')
+    needs:
+    - dev-build
+    uses: ./.github/workflows/reusable-unit.yml
+    with:
+      directory: "."
+      go-version: ${{env.HCP_GO_VERSION}}
   go-test-envoyextensions:
     if: |
       github.ref != 'refs/heads/stable-website' || 
@@ -358,7 +373,7 @@ jobs:
     uses: ./.github/workflows/reusable-unit.yml
     with:
       directory: envoyextensions
-      go-version: "1.20"
+      go-version: ${{env.HCP_GO_VERSION}}
 
   go-test-troubleshoot:
     if: |
@@ -373,7 +388,7 @@ jobs:
     uses: ./.github/workflows/reusable-unit.yml
     with:
       directory: troubleshoot
-      go-version: "1.20"
+      go-version: ${{env.HCP_GO_VERSION}}
 
   go-test-api-1-19:
     if: |
