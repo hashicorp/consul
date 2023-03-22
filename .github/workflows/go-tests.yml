@@ -19,9 +19,27 @@ env:
   GOTESTSUM_VERSION: 1.8.2
 
 jobs:
+  setup:
+    name: Setup
+    runs-on: ubuntu-latest
+    outputs:
+      compute-standard: ${{ steps.setup-outputs.outputs.compute-standard }}
+      compute-larger: ${{ steps.setup-outputs.outputs.compute-larger }}
+      compute-arm64: ${{ steps.setup-outputs.outputs.compute-arm64 }}
+    steps:
+    - id: setup-outputs
+      name: Setup outputs
+      run: |
+          echo 'compute-standard=["custom", "linux", "small"]' >> $GITHUB_OUTPUT
+          echo 'compute-larger=["custom", "linux", "medium"]' >> $GITHUB_OUTPUT
+          echo 'compute-arm64=['self-hosted', 'ondemand', 'os=macos-arm', 'arm64']' >> $GITHUB_OUTPUT
   check-go-mod:
+    needs: 
+    - setup
     uses: ./.github/workflows/reusable-check-go-mod.yml
   check-generated-protobuf:
+    needs: 
+    - setup   
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
@@ -44,6 +62,8 @@ jobs:
       if: failure()
       run: .github/scripts/notify_slack.sh 
   check-generated-deep-copy:
+    needs: 
+    - setup   
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
@@ -62,6 +82,8 @@ jobs:
       if: failure()
       run: .github/scripts/notify_slack.sh  
   lint-enums:
+    needs: 
+    - setup   
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
@@ -74,6 +96,8 @@ jobs:
       run: .github/scripts/notify_slack.sh
 
   lint-container-test-deps:
+    needs: 
+    - setup   
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
@@ -86,6 +110,8 @@ jobs:
       run: .github/scripts/notify_slack.sh
 
   lint-consul-retry:
+    needs: 
+    - setup   
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
@@ -98,31 +124,43 @@ jobs:
       run: .github/scripts/notify_slack.sh
 
   lint:
+    needs: 
+    - setup   
     uses: ./.github/workflows/reusable-lint.yml
 
   lint-32bit:
+    needs: 
+    - setup   
     uses: ./.github/workflows/reusable-lint.yml
     with:
       go-arch: "386"
 
   # create a development build
   dev-build:
+    needs: 
+    - setup   
     uses: ./.github/workflows/reusable-dev-build.yml
 
   # create a development build for arm64
   dev-build-arm64:
+    needs: 
+    - setup   
     uses: ./.github/workflows/reusable-dev-build.yml
     with:
       uploaded-binary-name: 'consul-bin-arm64'
+      runs-on: ${{ needs.setup.outputs.compute-arm64 }}
 
   go-test-arm64:
     # TODO(JM):  Fix to run on arm64
-    needs: [dev-build-arm64]
+    needs: 
+    - setup   
+    - dev-build-arm64
     uses: ./.github/workflows/reusable-unit.yml
     with:
       directory: .
       go-version: "1.20"
       uploaded-binary-name: 'consul-bin-arm64'
+      runs-on: ${{ needs.setup.outputs.compute-arm64 }}
     # steps:
     #   - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
     #   - uses: actions/setup-go@6edd4406fa81c3da01a34fa6f6343087c207a568 # pin@v3.5.0
@@ -206,8 +244,9 @@ jobs:
     #     run: .github/scripts/notify_slack.sh
 
   go-test:
-    needs:
-      - dev-build
+    needs: 
+    - setup   
+    - dev-build
     uses: ./.github/workflows/reusable-unit.yml
     with:
       directory: .
@@ -301,7 +340,8 @@ jobs:
     #     run: .github/scripts/notify_slack.sh
 
   go-test-envoyextensions:
-    needs:
+    needs: 
+    - setup   
     - dev-build
     uses: ./.github/workflows/reusable-unit.yml
     with:
@@ -309,7 +349,8 @@ jobs:
       go-version: "1.20"
 
   go-test-troubleshoot:
-    needs:
+    needs: 
+    - setup   
     - dev-build
     uses: ./.github/workflows/reusable-unit.yml
     with:
@@ -317,7 +358,8 @@ jobs:
       go-version: "1.20"
 
   go-test-api-1-19:
-    needs:
+    needs: 
+    - setup   
     - dev-build
     uses: ./.github/workflows/reusable-unit.yml
     with:
@@ -325,7 +367,8 @@ jobs:
       go-version: "1.19"
 
   go-test-api-1-20:
-    needs:
+    needs: 
+    - setup   
     - dev-build
     uses: ./.github/workflows/reusable-unit.yml
     with:
@@ -333,7 +376,8 @@ jobs:
       go-version: "1.20"
 
   go-test-sdk-1-19:
-    needs:
+    needs: 
+    - setup   
     - dev-build
     uses: ./.github/workflows/reusable-unit.yml
     with:
@@ -341,7 +385,8 @@ jobs:
       go-version: "1.19"
 
   go-test-sdk-1-20:
-    needs:
+    needs: 
+    - setup   
     - dev-build
     uses: ./.github/workflows/reusable-unit.yml
     with:

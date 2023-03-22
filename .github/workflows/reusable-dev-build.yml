@@ -6,7 +6,12 @@ on:
       uploaded-binary-name:
         required: false
         type: string
-        default: "consul-bin"  
+        default: "consul-bin"
+      runs-on:
+        description: An expression indicating which kind of runners to use.
+        required: false
+        type: string
+        default: ubuntu-latest
 jobs:
   build:
     if: |
@@ -16,7 +21,7 @@ jobs:
         !startsWith(github.ref, 'refs/heads/backport/docs/') || 
         !startsWith(github.ref, 'refs/heads/backport/ui/') || 
         !startsWith(github.ref, 'refs/heads/backport/mktg-.')
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(inputs.runs-on) }}
     steps:
       - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
       - uses: actions/setup-go@6edd4406fa81c3da01a34fa6f6343087c207a568 # pin@v3.5.0

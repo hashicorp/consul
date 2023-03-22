@@ -7,7 +7,11 @@ on:
         required: false
         type: string
         default: ""
-
+      runs-on:
+        description: An expression indicating which kind of runners to use.
+        required: false
+        type: string
+        default: ubuntu-latest
 # Environment variables can only be used at the step level
 env:
   GOTAGS: "" # No tags for OSS but there are for enterprise
@@ -15,7 +19,7 @@ env:
 
 jobs:
   lint:
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(inputs.runs-on) }}
 
     steps:
       - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
