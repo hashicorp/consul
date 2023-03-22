@@ -33,6 +33,22 @@ jobs:
           echo 'compute-standard=["custom", "linux", "small"]' >> $GITHUB_OUTPUT
           echo 'compute-larger=["custom", "linux", "medium"]' >> $GITHUB_OUTPUT
           echo 'compute-arm64=["self-hosted", "ondemand", "os=macos-arm", "arm64"]' >> $GITHUB_OUTPUT
+
+  # create a development build
+  dev-build:
+    needs: 
+    - setup   
+    uses: ./.github/workflows/reusable-dev-build.yml
+
+  # create a development build for arm64
+  dev-build-arm64:
+    needs: 
+    - setup   
+    uses: ./.github/workflows/reusable-dev-build.yml
+    with:
+      uploaded-binary-name: 'consul-bin-arm64'
+      runs-on: ${{ needs.setup.outputs.compute-arm64 }}
+
   check-go-mod:
     needs: 
     - setup
@@ -134,21 +150,6 @@ jobs:
     uses: ./.github/workflows/reusable-lint.yml
     with:
       go-arch: "386"
-
-  # create a development build
-  dev-build:
-    needs: 
-    - setup   
-    uses: ./.github/workflows/reusable-dev-build.yml
-
-  # create a development build for arm64
-  dev-build-arm64:
-    needs: 
-    - setup   
-    uses: ./.github/workflows/reusable-dev-build.yml
-    with:
-      uploaded-binary-name: 'consul-bin-arm64'
-      runs-on: ${{ needs.setup.outputs.compute-arm64 }}
 
   go-test-arm64:
     # TODO(JM):  Fix to run on arm64
