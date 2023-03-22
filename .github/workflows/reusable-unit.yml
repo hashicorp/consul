@@ -49,7 +49,8 @@ jobs:
       - name: go mod download
         working-directory: ${{inputs.directory}}
         run: go mod download
-      - uses: actions/download-artifact@v3
+      - name: Download consul
+        uses: actions/download-artifact@v3
         with:
           name: ${{inputs.uploaded-binary-name}}
           path: /usr/local/bin
@@ -62,12 +63,27 @@ jobs:
       - name: Run tests 
         working-directory: ${{inputs.directory}}
         run: |
+          PACKAGE_NAMES=$(go list -tags "$GOTAGS" ./...)
+            
+          # TODO(JM): figure out why this erroring
+          # if [[ github.ref == 'refs/heads/main' || !startsWith(github.ref, 'refs/heads/release/') ]]; then
+          #   export GO_TEST_FLAGS="-short"
+          # fi
+          
+          # some tests expect this umask, and arm images have a different default
+          umask 0022
+
           gotestsum \
           --format=short-verbose \
           --jsonfile /tmp/jsonfile/go-test-sdk.log \
+          --debug \
+          --rerun-fails=3 \
+          --rerun-fails-max-failures=40 \
+          --rerun-fails-report=/tmp/gotestsum-rerun-fails \
+          --packages="$PACKAGE_NAMES" \              
           --junitfile ${{env.TEST_RESULTS}}/gotestsum-report.xml -- \
-          -tags="$GOTAGS" -cover -coverprofile=coverage.txt \
-          ./...
+          -tags="$GOTAGS" \
+          -cover -coverprofile=coverage.txt
       - uses: actions/upload-artifact@master
         with:
           name: test-results
@@ -76,6 +92,9 @@ jobs:
         with:
           name: jsonfile
           path: /tmp/jsonfile
+      - name: "Re-run fails report"
+        run: |
+          .github/scripts/rerun-fails-report.sh /tmp/gotestsum-rerun-fails
       - name: Notify Slack
         if: failure()
         run: .github/scripts/notify_slack.sh
