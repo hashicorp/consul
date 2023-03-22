@@ -17,7 +17,7 @@ on:
         description: An expression indicating which kind of runners to use.
         required: false
         type: string
-        default: "ubuntu-latest"
+        default: "['ubuntu-latest']"
 
 env:
   TEST_RESULTS: /tmp/test-results
