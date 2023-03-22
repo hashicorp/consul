@@ -19,9 +19,8 @@ on:
         type: string
         default: ubuntu-latest
 
-# Environment variables can only be used at the step level
 env:
-  TEST_RESULTS: /tmp/test-results # path to where test results are saved
+  TEST_RESULTS: /tmp/test-results
   GOTESTSUM_VERSION: 1.8.2
 
 jobs:

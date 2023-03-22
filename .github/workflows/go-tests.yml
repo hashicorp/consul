@@ -15,7 +15,7 @@ permissions:
   contents: read
 
 env:
-  TEST_RESULTS: /tmp/test-results # path to where test results are saved
+  TEST_RESULTS: /tmp/test-results
   GOTESTSUM_VERSION: 1.8.2
 
 jobs:
@@ -32,7 +32,7 @@ jobs:
       run: |
           echo 'compute-standard=["custom", "linux", "small"]' >> $GITHUB_OUTPUT
           echo 'compute-larger=["custom", "linux", "medium"]' >> $GITHUB_OUTPUT
-          echo 'compute-arm64=['self-hosted', 'ondemand', 'os=macos-arm', 'arm64']' >> $GITHUB_OUTPUT
+          echo 'compute-arm64=["self-hosted", "ondemand", "os=macos-arm", "arm64"]' >> $GITHUB_OUTPUT
   check-go-mod:
     needs: 
     - setup

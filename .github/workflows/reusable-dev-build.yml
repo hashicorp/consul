@@ -14,13 +14,6 @@ on:
         default: ubuntu-latest
 jobs:
   build:
-    if: |
-        github.ref != 'refs/heads/stable-website' || 
-        !startsWith(github.ref, 'refs/heads/docs/') || 
-        !startsWith(github.ref, 'refs/heads/ui/') || 
-        !startsWith(github.ref, 'refs/heads/backport/docs/') || 
-        !startsWith(github.ref, 'refs/heads/backport/ui/') || 
-        !startsWith(github.ref, 'refs/heads/backport/mktg-.')
     runs-on: ${{ fromJSON(inputs.runs-on) }}
     steps:
       - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0

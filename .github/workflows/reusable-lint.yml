@@ -12,7 +12,7 @@ on:
         required: false
         type: string
         default: ubuntu-latest
-# Environment variables can only be used at the step level
+
 env:
   GOTAGS: "" # No tags for OSS but there are for enterprise
   GOARCH: ${{inputs.go-arch}}
@@ -20,7 +20,6 @@ env:
 jobs:
   lint:
     runs-on: ${{ fromJSON(inputs.runs-on) }}
-
     steps:
       - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
       - uses: actions/setup-go@6edd4406fa81c3da01a34fa6f6343087c207a568 # pin@v3.5.0
