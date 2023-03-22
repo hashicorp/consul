@@ -99,7 +99,7 @@ func (c *resourceServiceClient) WatchList(ctx context.Context, in *WatchListRequ
 }
 
 type ResourceService_WatchListClient interface {
-	Recv() (*WatchListResponse, error)
+	Recv() (*WatchEvent, error)
 	grpc.ClientStream
 }
 
@@ -107,8 +107,8 @@ type resourceServiceWatchListClient struct {
 	grpc.ClientStream
 }
 
-func (x *resourceServiceWatchListClient) Recv() (*WatchListResponse, error) {
-	m := new(WatchListResponse)
+func (x *resourceServiceWatchListClient) Recv() (*WatchEvent, error) {
+	m := new(WatchEvent)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
@@ -260,7 +260,7 @@ func _ResourceService_WatchList_Handler(srv interface{}, stream grpc.ServerStrea
 }
 
 type ResourceService_WatchListServer interface {
-	Send(*WatchListResponse) error
+	Send(*WatchEvent) error
 	grpc.ServerStream
 }
 
@@ -268,7 +268,7 @@ type resourceServiceWatchListServer struct {
 	grpc.ServerStream
 }
 
-func (x *resourceServiceWatchListServer) Send(m *WatchListResponse) error {
+func (x *resourceServiceWatchListServer) Send(m *WatchEvent) error {
 	return x.ServerStream.SendMsg(m)
 }
 

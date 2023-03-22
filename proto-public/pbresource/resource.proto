@@ -68,7 +68,7 @@ service ResourceService {
     option (hashicorp.consul.internal.ratelimit.spec) = {operation_type: OPERATION_TYPE_WRITE};
   }
 
-  rpc WatchList(WatchListRequest) returns (stream WatchListResponse) {
+  rpc WatchList(WatchListRequest) returns (stream WatchEvent) {
     option (hashicorp.consul.internal.ratelimit.spec) = {operation_type: OPERATION_TYPE_READ};
   }
 }
@@ -130,14 +130,4 @@ message WatchListRequest {
   Type type = 1;
   Tenancy tenancy = 2;
   string name_prefix = 3;
-}
-
-message WatchListResponse {
-  enum Operation {
-    OPERATION_UNSPECIFIED = 0;
-    OPERATION_UPSERT = 1;
-    OPERATION_DELETE = 2;
-  }
-  Operation operation = 1;
-  Resource resource = 2;
 }

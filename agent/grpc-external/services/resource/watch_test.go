@@ -1,7 +1,7 @@
 package resource
 
 import (
-	context "context"
+	"context"
 	"errors"
 	"io"
 	"testing"
@@ -9,8 +9,9 @@ import (
 
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/storage/inmem"
-	pbresource "github.com/hashicorp/consul/proto-public/pbresource"
+	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/proto/private/prototest"
+
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -57,7 +58,7 @@ func TestWatchList_GroupVersionMatches(t *testing.T) {
 	r1, err := backend.WriteCAS(ctx, resourcev1)
 	require.NoError(t, err)
 	rsp := mustGetResource(t, rspCh)
-	require.Equal(t, pbresource.WatchListResponse_OPERATION_UPSERT, rsp.Operation)
+	require.Equal(t, pbresource.WatchEvent_OPERATION_UPSERT, rsp.Operation)
 	prototest.AssertDeepEqual(t, r1, rsp.Resource)
 
 	// update and verify upsert event received
@@ -65,14 +66,14 @@ func TestWatchList_GroupVersionMatches(t *testing.T) {
 	r2, err = backend.WriteCAS(ctx, r2)
 	require.NoError(t, err)
 	rsp = mustGetResource(t, rspCh)
-	require.Equal(t, pbresource.WatchListResponse_OPERATION_UPSERT, rsp.Operation)
+	require.Equal(t, pbresource.WatchEvent_OPERATION_UPSERT, rsp.Operation)
 	prototest.AssertDeepEqual(t, r2, rsp.Resource)
 
 	// delete and verify delete event received
 	err = backend.DeleteCAS(ctx, r2.Id, r2.Version)
 	require.NoError(t, err)
 	rsp = mustGetResource(t, rspCh)
-	require.Equal(t, pbresource.WatchListResponse_OPERATION_DELETE, rsp.Operation)
+	require.Equal(t, pbresource.WatchEvent_OPERATION_DELETE, rsp.Operation)
 }
 
 func TestWatchList_GroupVersionMismatch(t *testing.T) {
@@ -128,7 +129,7 @@ func mustGetNoResource(t *testing.T, ch <-chan resourceOrError) {
 	}
 }
 
-func mustGetResource(t *testing.T, ch <-chan resourceOrError) *pbresource.WatchListResponse {
+func mustGetResource(t *testing.T, ch <-chan resourceOrError) *pbresource.WatchEvent {
 	t.Helper()
 
 	select {
@@ -203,7 +204,7 @@ var (
 )
 
 type resourceOrError struct {
-	rsp *pbresource.WatchListResponse
+	rsp *pbresource.WatchEvent
 	err error
 }
 

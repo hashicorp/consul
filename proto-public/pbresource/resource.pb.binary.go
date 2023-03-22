@@ -166,13 +166,3 @@ func (msg *WatchListRequest) MarshalBinary() ([]byte, error) {
 func (msg *WatchListRequest) UnmarshalBinary(b []byte) error {
 	return proto.Unmarshal(b, msg)
 }
-
-// MarshalBinary implements encoding.BinaryMarshaler
-func (msg *WatchListResponse) MarshalBinary() ([]byte, error) {
-	return proto.Marshal(msg)
-}
-
-// UnmarshalBinary implements encoding.BinaryUnmarshaler
-func (msg *WatchListResponse) UnmarshalBinary(b []byte) error {
-	return proto.Unmarshal(b, msg)
-}

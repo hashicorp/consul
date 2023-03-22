@@ -3,23 +3,13 @@ package resource
 import (
 	"fmt"
 
-	"github.com/hashicorp/consul/internal/resource"
-	storage "github.com/hashicorp/consul/internal/storage"
-	pbresource "github.com/hashicorp/consul/proto-public/pbresource"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-)
 
-func watchListOpFrom(eventOp pbresource.WatchEvent_Operation) pbresource.WatchListResponse_Operation {
-	switch eventOp {
-	case pbresource.WatchEvent_OPERATION_UPSERT:
-		return pbresource.WatchListResponse_OPERATION_UPSERT
-	case pbresource.WatchEvent_OPERATION_DELETE:
-		return pbresource.WatchListResponse_OPERATION_DELETE
-	default:
-		panic(fmt.Sprintf("unhandled op %s", eventOp.String()))
-	}
-}
+	"github.com/hashicorp/consul/internal/resource"
+	"github.com/hashicorp/consul/internal/storage"
+	"github.com/hashicorp/consul/proto-public/pbresource"
+)
 
 func (s *Server) WatchList(req *pbresource.WatchListRequest, stream pbresource.ResourceService_WatchListServer) error {
 	// check type exists
@@ -53,12 +43,11 @@ func (s *Server) WatchList(req *pbresource.WatchListRequest, stream pbresource.R
 			continue
 		}
 
-		if err = stream.Send(&pbresource.WatchListResponse{
-			Operation: watchListOpFrom(event.Operation),
+		if err = stream.Send(&pbresource.WatchEvent{
+			Operation: event.Operation,
 			Resource:  event.Resource,
 		}); err != nil {
 			return err
 		}
 	}
-
 }
