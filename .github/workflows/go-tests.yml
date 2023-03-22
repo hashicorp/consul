@@ -359,7 +359,7 @@ jobs:
     uses: ./.github/workflows/reusable-unit.yml
     with:
       directory: "."
-      go-version: ${{env.HCP_GO_VERSION}}
+      go-version: "${{env.HCP_GO_VERSION}}"
   go-test-envoyextensions:
     if: |
       github.ref != 'refs/heads/stable-website' || 
@@ -373,7 +373,7 @@ jobs:
     uses: ./.github/workflows/reusable-unit.yml
     with:
       directory: envoyextensions
-      go-version: ${{env.HCP_GO_VERSION}}
+      go-version: "${{env.HCP_GO_VERSION}}"
 
   go-test-troubleshoot:
     if: |
@@ -388,7 +388,7 @@ jobs:
     uses: ./.github/workflows/reusable-unit.yml
     with:
       directory: troubleshoot
-      go-version: ${{env.HCP_GO_VERSION}}
+      go-version: "${{env.HCP_GO_VERSION}}"
 
   go-test-api-1-19:
     if: |
