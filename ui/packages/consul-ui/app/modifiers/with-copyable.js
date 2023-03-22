@@ -31,6 +31,7 @@ export default class WithCopyableModifier extends Modifier {
     this.source = this.clipboard
       .execute(this.element, {
         text: (_) => value,
+        container: this.element,
         ...hash.options,
       })
       .on('success', hash.success)

@@ -137,7 +137,7 @@ func TestStructsToAgentService(t *testing.T) {
 					DestinationServiceName: "web",
 					LocalServiceAddress:    "127.0.0.1",
 					LocalServicePort:       8181,
-					Upstreams:              structs.TestUpstreams(t),
+					Upstreams:              structs.TestUpstreams(t, false),
 					Mode:                   structs.ProxyModeTransparent,
 					Config: map[string]interface{}{
 						"foo": "bar",
@@ -154,7 +154,7 @@ func TestStructsToAgentService(t *testing.T) {
 					DestinationServiceName: "web",
 					LocalServiceAddress:    "127.0.0.1",
 					LocalServicePort:       8181,
-					Upstreams:              structs.TestUpstreams(t).ToAPI(),
+					Upstreams:              structs.TestUpstreams(t, false).ToAPI(),
 					Mode:                   api.ProxyModeTransparent,
 					Config: map[string]interface{}{
 						"foo": "bar",
@@ -174,7 +174,7 @@ func TestStructsToAgentService(t *testing.T) {
 					DestinationServiceName: "web",
 					LocalServiceAddress:    "127.0.0.1",
 					LocalServicePort:       8181,
-					Upstreams:              structs.TestUpstreams(t),
+					Upstreams:              structs.TestUpstreams(t, false),
 					Mode:                   structs.ProxyModeTransparent,
 					TransparentProxy: structs.TransparentProxyConfig{
 						OutboundListenerPort: 808,
@@ -201,7 +201,7 @@ func TestStructsToAgentService(t *testing.T) {
 					DestinationServiceName: "web",
 					LocalServiceAddress:    "127.0.0.1",
 					LocalServicePort:       8181,
-					Upstreams:              structs.TestUpstreams(t).ToAPI(),
+					Upstreams:              structs.TestUpstreams(t, false).ToAPI(),
 					Mode:                   api.ProxyModeTransparent,
 					TransparentProxy: &api.TransparentProxyConfig{
 						OutboundListenerPort: 808,

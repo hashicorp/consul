@@ -18,7 +18,7 @@ export default Component.extend(Slotted, {
   didReceiveAttrs: function () {
     this._super(...arguments);
     if (typeof this.items !== 'undefined') {
-      this.actions.change.apply(this, [this.items]);
+      this.send('change', this.items);
     }
   },
   didInsertElement: function () {

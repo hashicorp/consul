@@ -35,7 +35,7 @@ export default class AuthDialog extends Component {
     if (typeof prev !== 'undefined' && prev !== current) {
       type = 'use';
     }
-    this.args.onchange({ data: get(this, 'token'), type: type });
+    this.args.onchange({ data: this.token, type: type });
   }
 
   @action
