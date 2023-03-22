@@ -19,7 +19,7 @@ import (
 )
 
 func TestWatchList_TypeNotFound(t *testing.T) {
-	server := NewServer(Config{registry: resource.NewRegistry()})
+	server := testServer(t)
 	client := testClient(t, server)
 
 	stream, err := client.WatchList(context.Background(), &pbresource.WatchListRequest{
@@ -36,14 +36,10 @@ func TestWatchList_TypeNotFound(t *testing.T) {
 }
 
 func TestWatchList_GroupVersionMatches(t *testing.T) {
-	ctx := testContext(t)
-	registry := resource.NewRegistry()
-	registry.Register(resource.Registration{Type: typev1})
-	backend, err := inmem.NewBackend()
-	require.NoError(t, err)
-	go backend.Run(ctx)
-	server := NewServer(Config{registry: registry, backend: backend})
+	server := testServer(t)
 	client := testClient(t, server)
+	server.registry.Register(resource.Registration{Type: typev1})
+	ctx := context.Background()
 
 	// create a watch
 	stream, err := client.WatchList(ctx, &pbresource.WatchListRequest{
@@ -55,7 +51,7 @@ func TestWatchList_GroupVersionMatches(t *testing.T) {
 	rspCh := handleResourceStream(t, stream)
 
 	// insert and verify upsert event received
-	r1, err := backend.WriteCAS(ctx, resourcev1)
+	r1, err := server.backend.WriteCAS(ctx, resourcev1)
 	require.NoError(t, err)
 	rsp := mustGetResource(t, rspCh)
 	require.Equal(t, pbresource.WatchEvent_OPERATION_UPSERT, rsp.Operation)
@@ -63,14 +59,14 @@ func TestWatchList_GroupVersionMatches(t *testing.T) {
 
 	// update and verify upsert event received
 	r2 := clone(r1)
-	r2, err = backend.WriteCAS(ctx, r2)
+	r2, err = server.backend.WriteCAS(ctx, r2)
 	require.NoError(t, err)
 	rsp = mustGetResource(t, rspCh)
 	require.Equal(t, pbresource.WatchEvent_OPERATION_UPSERT, rsp.Operation)
 	prototest.AssertDeepEqual(t, r2, rsp.Resource)
 
 	// delete and verify delete event received
-	err = backend.DeleteCAS(ctx, r2.Id, r2.Version)
+	err = server.backend.DeleteCAS(ctx, r2.Id, r2.Version)
 	require.NoError(t, err)
 	rsp = mustGetResource(t, rspCh)
 	require.Equal(t, pbresource.WatchEvent_OPERATION_DELETE, rsp.Operation)
@@ -80,15 +76,11 @@ func TestWatchList_GroupVersionMismatch(t *testing.T) {
 	// Given a watch on typev2 that only differs from typev1 by GroupVersion
 	// When a resource of typev1 is created/updated/deleted
 	// Then no watch events should be emitted
-	registry := resource.NewRegistry()
-	registry.Register(resource.Registration{Type: typev1})
-	registry.Register(resource.Registration{Type: typev2})
-	backend, err := inmem.NewBackend()
-	require.NoError(t, err)
-	ctx := testContext(t)
-	go backend.Run(ctx)
-	server := NewServer(Config{registry: registry, backend: backend})
+	server := testServer(t)
 	client := testClient(t, server)
+	ctx := context.Background()
+	server.registry.Register(resource.Registration{Type: typev1})
+	server.registry.Register(resource.Registration{Type: typev2})
 
 	// create a watch for typev2
 	stream, err := client.WatchList(ctx, &pbresource.WatchListRequest{
@@ -100,20 +92,31 @@ func TestWatchList_GroupVersionMismatch(t *testing.T) {
 	rspCh := handleResourceStream(t, stream)
 
 	// insert
-	r1, err := backend.WriteCAS(ctx, resourcev1)
+	r1, err := server.backend.WriteCAS(ctx, resourcev1)
 	require.NoError(t, err)
 
 	// update
 	r2 := clone(r1)
-	r2, err = backend.WriteCAS(ctx, r2)
+	r2, err = server.backend.WriteCAS(ctx, r2)
 	require.NoError(t, err)
 
 	// delete
-	err = backend.DeleteCAS(ctx, r2.Id, r2.Version)
+	err = server.backend.DeleteCAS(ctx, r2.Id, r2.Version)
 	require.NoError(t, err)
 
 	// verify no events received
 	mustGetNoResource(t, rspCh)
+}
+
+func testServer(t *testing.T) *Server {
+	t.Helper()
+
+	backend, err := inmem.NewBackend()
+	require.NoError(t, err)
+	go backend.Run(testContext(t))
+
+	registry := resource.NewRegistry()
+	return NewServer(Config{registry: registry, backend: backend})
 }
 
 func mustGetNoResource(t *testing.T, ch <-chan resourceOrError) {

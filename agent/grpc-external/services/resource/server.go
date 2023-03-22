@@ -23,7 +23,7 @@ type Config struct {
 
 //go:generate mockery --name Registry --inpackage
 type Registry interface {
-	Resolve(typ *pbresource.Type) (reg resource.Registration, ok bool)
+	resource.Registry
 }
 
 //go:generate mockery --name Backend --inpackage
