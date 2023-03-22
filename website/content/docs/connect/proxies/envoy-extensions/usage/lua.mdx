@@ -164,22 +164,65 @@ In the following example, the `service-defaults` configure the Lua Envoy extensi
 ```hcl
 Kind = "service-defaults"
 Name = "myservice"
-EnvoyExtensions {
-  Name = "builtin/lua"
-  
-  Arguments = {
-    ProxyType = "connect-proxy"
-    Listener = "inbound"
-    Script = <<EOF
-function envoy_on_request(request_handle)
-  local service = request_handle:streamInfo():dynamicMetadata():get("consul")["service"]
-  request_handle:headers():add("x-consul-service", service)
-end
-EOF
+EnvoyExtensions = [
+  {
+    Name = "builtin/lua"
+    
+    Arguments = {
+      ProxyType = "connect-proxy"
+      Listener = "inbound"
+      Script = <<EOF
+  function envoy_on_request(request_handle)
+    local service = request_handle:streamInfo():dynamicMetadata():get("consul")["service"]
+    request_handle:headers():add("x-consul-service", service)
+  end
+  EOF
+    }
   }
-}
+]
 ```
 
 </CodeBlockConfig>
 
 Alternatively, you can apply the same extension configuration to [`proxy-defaults`](/consul/docs/connect/config-entries/proxy-defaults#envoyextensions) configuration entries.
+
+You can also specify multiple Lua filters through the Envoy extensions. They will not override each other.
+
+<CodeBlockConfig filename="lua-envoy-extension.json">
+
+```hcl
+Kind = "service-defaults"
+Name = "myservice"
+EnvoyExtensions = [
+  {
+    Name = "builtin/lua",
+    Arguments = {
+      ProxyType = "connect-proxy"
+      Listener = "inbound"
+      Script = <<-EOF
+function envoy_on_request(request_handle)
+  meta = request_handle:streamInfo():dynamicMetadata()
+  m = meta:get("consul")
+  request_handle:headers():add("x-consul-datacenter", m["datacenter1"])
+end
+      EOF
+    }
+  },
+  {
+    Name = "builtin/lua",
+    Arguments = {
+      ProxyType = "connect-proxy"
+      Listener = "inbound"
+      Script = <<-EOF
+function envoy_on_request(request_handle)
+  meta = request_handle:streamInfo():dynamicMetadata()
+  m = meta:get("consul")
+  request_handle:headers():add("x-consul-datacenter", m["datacenter2"])
+end
+      EOF
+    }
+  }
+]
+```
+
+</CodeBlockConfig>
