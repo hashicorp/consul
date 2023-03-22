@@ -16,7 +16,7 @@ on:
 env:
   GOTAGS: "" # No tags for OSS but there are for enterprise
   GOARCH: ${{inputs.go-arch}}
-  GOLANGCI_LINT_VERSION: 1.51
+  GOLANGCI_LINT_VERSION: v1.51
   GOLANGCI_LINT_ARGS: '--build-tags="$GOTAGS" -v'
 
 jobs:
