@@ -52,6 +52,7 @@ jobs:
           working-directory: envoyextensions
           version: ${{ env.GOLANGCI_LINT_VERSION }}
           args: ${{ env.GOLANGCI_LINT_ARGS }}
+      - name: lint troubleshoot
         uses: golangci/golangci-lint-action@08e2f20817b15149a52b5b3ebe7de50aff2ba8c5 # pin@v3.4.0
         with:
           working-directory: troubleshoot
