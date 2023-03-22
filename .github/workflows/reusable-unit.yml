@@ -53,8 +53,8 @@ jobs:
       - name: Run tests 
         working-directory: ${{inputs.directory}}
         run: |
-          export GOPATH=/home/runner/work/consul/consul/${{inputs.directory}}/bin
-          echo "GOPATH: $GOPATH"
+          export PATH=$PATH:/home/runner/work/consul/consul/${{inputs.directory}}/bin
+          echo "PATH: $PATH"
           gotestsum --format=testname --junitfile ${{env.TEST_RESULTS}}/gotestsum-report.xml ./... -- -p
       - name: Notify Slack
         if: failure()
