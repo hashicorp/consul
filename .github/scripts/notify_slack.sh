@@ -2,7 +2,7 @@
 
 set -uo pipefail
 
-# This script is used in GitHub Actions pipelines to notiffy Slack of a job failure.
+# This script is used in GitHub Actions pipelines to notify Slack of a job failure.
 
 if [[ $GITHUB_REF_NAME == "main" ]]; then
 	GITHUB_ENDPOINT="https://github.com/${GITHUB_REPOSITORY}/commit/${GITHUB_SHA}"
