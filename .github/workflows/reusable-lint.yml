@@ -41,7 +41,7 @@ jobs:
       - run: go env
       - uses: golangci/golangci-lint-action@08e2f20817b15149a52b5b3ebe7de50aff2ba8c5 # pin@v3.4.0
         with:
-          working-directory: ${{ env.directory }}
+          working-directory: ""
           version: v1.51
           args: "--build-tags="$GOTAGS" -v"
       - name: Notify Slack
