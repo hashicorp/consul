@@ -4,6 +4,8 @@ import (
 	"context"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	"github.com/hashicorp/consul/internal/resource"
 	storage "github.com/hashicorp/consul/internal/storage"
@@ -62,4 +64,15 @@ func (s *Server) List(ctx context.Context, req *pbresource.ListRequest) (*pbreso
 func (s *Server) Delete(ctx context.Context, req *pbresource.DeleteRequest) (*pbresource.DeleteResponse, error) {
 	// TODO
 	return &pbresource.DeleteResponse{}, nil
+}
+
+func (s *Server) resolveType(typ *pbresource.Type) (*resource.Registration, error) {
+	v, ok := s.registry.Resolve(typ)
+	if ok {
+		return &v, nil
+	}
+	return nil, status.Errorf(
+		codes.InvalidArgument,
+		"resource type %s not registered", resource.ToGVK(typ),
+	)
 }

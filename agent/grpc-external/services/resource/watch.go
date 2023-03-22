@@ -1,24 +1,14 @@
 package resource
 
 import (
-	"fmt"
-
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
-
-	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/storage"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
 func (s *Server) WatchList(req *pbresource.WatchListRequest, stream pbresource.ResourceService_WatchListServer) error {
 	// check type exists
-	_, ok := s.registry.Resolve(req.Type)
-	if !ok {
-		return status.Error(
-			codes.InvalidArgument,
-			fmt.Sprintf("resource type %s not registered", resource.ToGVK(req.Type)),
-		)
+	if _, err := s.resolveType(req.Type); err != nil {
+		return err
 	}
 
 	unversionedType := storage.UnversionedTypeFrom(req.Type)
