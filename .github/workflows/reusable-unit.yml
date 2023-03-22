@@ -46,7 +46,7 @@ jobs:
           name: consul-bin
           path: /usr/local/bin
       - name: Make sure consul is executable
-        run: chmod +x /usr/local/bin
+        run: sudo chmod +x /usr/local/bin/consul
       - name: Display downloaded file
         run: ls -ld consul 
         working-directory: /usr/local/bin
