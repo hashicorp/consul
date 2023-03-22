@@ -41,13 +41,13 @@ jobs:
       - name: go mod download
         working-directory: ${{inputs.directory}}
         run: go mod download
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@master
         with:
           name: consul-bin
-          path: /home/runner/go/bin
-      - name: Display structure of downloaded files - /home/runner/go
-        run: ls -R
-        working-directory: /home/runner/go/bin
+          path: /usr/local/bin
+      - name: Display structure of downloaded files
+        run: ls -R 
+        working-directory: /usr/local/bin
       - run: go env
       - name: Run tests 
         working-directory: ${{inputs.directory}}
