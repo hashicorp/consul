@@ -16,54 +16,35 @@ on:
 env:
   GOTAGS: "" # No tags for OSS but there are for enterprise
   GOARCH: ${{inputs.go-arch}}
-  GOLANGCI_LINT_VERSION: v1.51
-  GOLANGCI_LINT_ARGS: '--build-tags="$GOTAGS" -v'
 
 jobs:
   lint:
     runs-on: ${{ fromJSON(inputs.runs-on) }}
+    strategy:
+      matrix:
+        include:
+          - {directory: ""}
+          - {directory: "api"}
+          - {directory: "sdk"}
+          - {directory: "envoyextensions"}
+          - {directory: "troubleshoot"}
+          - {directory: "test/integration/consul-container"}
+          - {directory: "api"}
+          - {directory: "api"}
+
+
     steps:
       - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
       - uses: actions/setup-go@6edd4406fa81c3da01a34fa6f6343087c207a568 # pin@v3.5.0
         with:
           go-version-file: 'go.mod'
       - run: go env
-      - name: lint
+      - name: lint ${{ matrix.directory }}
         uses: golangci/golangci-lint-action@08e2f20817b15149a52b5b3ebe7de50aff2ba8c5 # pin@v3.4.0
         with:
-          working-directory: ""
-          version: ${{ env.GOLANGCI_LINT_VERSION }}
-          args: ${{ env.GOLANGCI_LINT_ARGS }}
-      - name: lint api
-        uses: golangci/golangci-lint-action@08e2f20817b15149a52b5b3ebe7de50aff2ba8c5 # pin@v3.4.0
-        with:
-          working-directory: api
-          version: ${{ env.GOLANGCI_LINT_VERSION }}
-          args: ${{ env.GOLANGCI_LINT_ARGS }}
-      - name: lint sdk
-        uses: golangci/golangci-lint-action@08e2f20817b15149a52b5b3ebe7de50aff2ba8c5 # pin@v3.4.0
-        with:
-          working-directory: sdk
-          version: ${{ env.GOLANGCI_LINT_VERSION }}
-          args: ${{ env.GOLANGCI_LINT_ARGS }}
-      - name: lint envoyextensions
-        uses: golangci/golangci-lint-action@08e2f20817b15149a52b5b3ebe7de50aff2ba8c5 # pin@v3.4.0
-        with:
-          working-directory: envoyextensions
-          version: ${{ env.GOLANGCI_LINT_VERSION }}
-          args: ${{ env.GOLANGCI_LINT_ARGS }}
-      - name: lint troubleshoot
-        uses: golangci/golangci-lint-action@08e2f20817b15149a52b5b3ebe7de50aff2ba8c5 # pin@v3.4.0
-        with:
-          working-directory: troubleshoot
-          version: ${{ env.GOLANGCI_LINT_VERSION }}
-          args: ${{ env.GOLANGCI_LINT_ARGS }}
-      - name: lint container tests
-        uses: golangci/golangci-lint-action@08e2f20817b15149a52b5b3ebe7de50aff2ba8c5 # pin@v3.4.0
-        with:
-          working-directory: test/integration/consul-container
-          version: ${{ env.GOLANGCI_LINT_VERSION }}
-          args: ${{ env.GOLANGCI_LINT_ARGS }}
+          working-directory: ${{ matrix.directory }}
+          version: v1.51
+          args: "--build-tags="$GOTAGS" -v"
       - name: Notify Slack
         if: failure()
         run: .github/scripts/notify_slack.sh
