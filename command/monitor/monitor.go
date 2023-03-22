@@ -66,9 +66,9 @@ func (c *cmd) Run(args []string) int {
 	}
 
 	opts := api.MonitorOptions{
-		LogLevel:    c.logLevel,
-		LogJson:     c.logJSON,
-		LogSublevel: c.logSublevels,
+		LogLevel:     c.logLevel,
+		LogJson:      c.logJSON,
+		LogSublevels: c.logSublevels,
 	}
 	eventDoneCh := make(chan struct{})
 	logCh, err := client.Agent().MonitorWithOpts(eventDoneCh, opts, nil)

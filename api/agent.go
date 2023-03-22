@@ -1237,9 +1237,9 @@ func (a *Agent) Monitor(loglevel string, stopCh <-chan struct{}, q *QueryOptions
 type MonitorOptions struct {
 	LogLevel string
 	LogJson  bool
-	// LogSublevel represents the log level of a
+	// LogSublevels represent the log level of a
 	// subsystem in `<subsystem>:<log-level>` format.
-	LogSublevel []string
+	LogSublevels []string
 }
 
 // MonitorWithOpts allows for customizing Monitor behavior.
@@ -1263,8 +1263,8 @@ func (a *Agent) monitor(stopCh <-chan struct{}, opts MonitorOptions, q *QueryOpt
 	if opts.LogJson {
 		r.params.Set("logjson", "true")
 	}
-	for _, v := range opts.LogSublevel {
-		r.params.Add("logsublevel", v)
+	for _, v := range opts.LogSublevels {
+		r.params.Add("logsublevels", v)
 	}
 
 	_, resp, err := a.c.doRequest(r)

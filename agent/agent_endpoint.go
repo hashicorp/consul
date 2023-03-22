@@ -1418,7 +1418,7 @@ func (s *HTTPHandlers) AgentMonitor(resp http.ResponseWriter, req *http.Request)
 	// Set up a prefix tree of LogSublevels so we can override
 	// log levels for named subcomponents.
 	var tree *iradix.Tree[hclog.Level]
-	if sublevels, ok := req.URL.Query()["logsublevel"]; ok && len(sublevels) > 0 {
+	if sublevels, ok := req.URL.Query()["logsublevels"]; ok && len(sublevels) > 0 {
 		tree = iradix.New[hclog.Level]()
 		for _, v := range sublevels {
 			key, level, ok := strings.Cut(v, ":")

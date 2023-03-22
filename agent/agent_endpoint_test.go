@@ -6116,7 +6116,7 @@ func TestAgent_Monitor(t *testing.T) {
 	})
 
 	t.Run("logsublevel invalid format", func(t *testing.T) {
-		req, _ := http.NewRequest("GET", "/v1/agent/monitor?loglevel=warn&logsublevel=debug", nil)
+		req, _ := http.NewRequest("GET", "/v1/agent/monitor?loglevel=warn&logsublevels=debug", nil)
 
 		resp := httptest.NewRecorder()
 		a.srv.h.ServeHTTP(resp, req)
@@ -6128,7 +6128,7 @@ func TestAgent_Monitor(t *testing.T) {
 
 	t.Run("logsublevel valid format", func(t *testing.T) {
 		cancelCtx, cancelFunc := context.WithCancel(context.Background())
-		req, _ := http.NewRequestWithContext(cancelCtx, "GET", "/v1/agent/monitor?loglevel=warn&logsublevel=TestAgent.http:debug", nil)
+		req, _ := http.NewRequestWithContext(cancelCtx, "GET", "/v1/agent/monitor?loglevel=warn&logsublevels=TestAgent.http:debug", nil)
 
 		resp := httptest.NewRecorder()
 		go a.srv.h.ServeHTTP(resp, req)
