@@ -56,7 +56,7 @@ jobs:
           split-total: ${{ env.total-runners }}
           split-index: ${{ matrix.runner-index }}
       - run: 'echo "This runner will execute the following tests: ${{ steps.split-tests.outputs.test-suite }}"'
-
+  
   check-go-mod:
     needs: 
     - setup
@@ -165,12 +165,21 @@ jobs:
     - setup   
     uses: ./.github/workflows/reusable-dev-build.yml
 
+  # create a development build for arm64
+  dev-build-arm64:
+    needs: 
+    - setup   
+    uses: ./.github/workflows/reusable-dev-build.yml
+    with:
+      uploaded-binary-name: 'consul-bin-arm64'
+      # runs-on: ${{ needs.setup.outputs.compute-arm64 }}
+
   go-test-arm64:
     # TODO(JM):  Fix to run on arm64
     needs: 
     - setup   
     - dev-build-arm64
-    uses: ./.github/workflows/reusable-unit-full.yml
+    uses: ./.github/workflows/reusable-unit.yml
     with:
       directory: .
       go-version: "1.20"
@@ -193,7 +202,7 @@ jobs:
     needs: 
     - setup   
     - dev-build
-    uses: ./.github/workflows/reusable-unit-full.yml
+    uses: ./.github/workflows/reusable-unit.yml
     with:
       directory: .
       go-version: "1.20"
