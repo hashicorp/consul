@@ -163,10 +163,7 @@ jobs:
     env:
       total-runners: 11
     steps:
-      - uses: actions/checkout@v2
-        with:
-          repository: eliotsykes/rspec-rails-examples
-          path: examples/
+      - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
       - uses: chaosaffe/split-tests@v1-alpha.1
         id: split-tests
         name: Split tests
