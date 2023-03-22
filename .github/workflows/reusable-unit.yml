@@ -27,7 +27,7 @@ on:
         type: string
         default: "" 
       package-names:
-        required: true
+        required: false
         type: string
         default: "[]"
 env:
