@@ -43,13 +43,13 @@ func TestValidateUpstreams(t *testing.T) {
 		{
 			name: "tcp-success",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", nil, nil)
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", false, nil, nil)
 			},
 		},
 		{
 			name: "tcp-missing-listener",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", nil, nil)
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", false, nil, nil)
 			},
 			patcher: func(ir *xdscommon.IndexedResources) *xdscommon.IndexedResources {
 				delete(ir.Index[xdscommon.ListenerType], listenerName)
@@ -60,7 +60,7 @@ func TestValidateUpstreams(t *testing.T) {
 		{
 			name: "tcp-missing-cluster",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", nil, nil)
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", false, nil, nil)
 			},
 			patcher: func(ir *xdscommon.IndexedResources) *xdscommon.IndexedResources {
 				delete(ir.Index[xdscommon.ClusterType], sni)
@@ -71,7 +71,7 @@ func TestValidateUpstreams(t *testing.T) {
 		{
 			name: "http-success",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", nil, nil, httpServiceDefaults)
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", false, nil, nil, httpServiceDefaults)
 			},
 		},
 		{
@@ -79,7 +79,7 @@ func TestValidateUpstreams(t *testing.T) {
 			// RDS, Envoy's Route Discovery Service, is only used for HTTP services with a customized discovery chain, so we
 			// need to use the test snapshot and add L7 config entries.
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", nil, []proxycfg.UpdateEvent{
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", false, nil, []proxycfg.UpdateEvent{
 					// The events ensure there are endpoints for the v1 and v2 subsets.
 					{
 						CorrelationID: "upstream-target:v1.db.default.default.dc1:" + dbUID.String(),
@@ -104,7 +104,7 @@ func TestValidateUpstreams(t *testing.T) {
 			// RDS, Envoy's Route Discovery Service, is only used for HTTP services with a customized discovery chain, so we
 			// need to use the test snapshot and add L7 config entries.
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", nil, []proxycfg.UpdateEvent{
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", false, nil, []proxycfg.UpdateEvent{
 					// The events ensure there are endpoints for the v1 and v2 subsets.
 					{
 						CorrelationID: "upstream-target:v1.db.default.default.dc1:" + dbUID.String(),
@@ -129,19 +129,19 @@ func TestValidateUpstreams(t *testing.T) {
 		{
 			name: "redirect",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "redirect-to-cluster-peer", nil, nil)
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "redirect-to-cluster-peer", false, nil, nil)
 			},
 		},
 		{
 			name: "failover",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "failover", nil, nil)
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "failover", false, nil, nil)
 			},
 		},
 		{
 			name: "failover-to-cluster-peer",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "failover-to-cluster-peer", nil, nil)
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "failover-to-cluster-peer", false, nil, nil)
 			},
 		},
 		{

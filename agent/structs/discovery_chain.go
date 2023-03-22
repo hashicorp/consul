@@ -59,7 +59,7 @@ type CompiledDiscoveryChain struct {
 // ID returns an ID that encodes the service, namespace, partition, and datacenter.
 // This ID allows us to compare a discovery chain target to the chain upstream itself.
 func (c *CompiledDiscoveryChain) ID() string {
-	return chainID(DiscoveryTargetOpts{
+	return ChainID(DiscoveryTargetOpts{
 		Service:    c.ServiceName,
 		Namespace:  c.Namespace,
 		Partition:  c.Partition,
@@ -260,6 +260,34 @@ type DiscoveryTargetOpts struct {
 	Peer          string
 }
 
+func MergeDiscoveryTargetOpts(o1 DiscoveryTargetOpts, o2 DiscoveryTargetOpts) DiscoveryTargetOpts {
+	if o2.Service != "" {
+		o1.Service = o2.Service
+	}
+
+	if o2.ServiceSubset != "" {
+		o1.ServiceSubset = o2.ServiceSubset
+	}
+
+	if o2.Namespace != "" {
+		o1.Namespace = o2.Namespace
+	}
+
+	if o2.Partition != "" {
+		o1.Partition = o2.Partition
+	}
+
+	if o2.Datacenter != "" {
+		o1.Datacenter = o2.Datacenter
+	}
+
+	if o2.Peer != "" {
+		o1.Peer = o2.Peer
+	}
+
+	return o1
+}
+
 func NewDiscoveryTarget(opts DiscoveryTargetOpts) *DiscoveryTarget {
 	t := &DiscoveryTarget{
 		Service:       opts.Service,
@@ -284,7 +312,7 @@ func (t *DiscoveryTarget) ToDiscoveryTargetOpts() DiscoveryTargetOpts {
 	}
 }
 
-func chainID(opts DiscoveryTargetOpts) string {
+func ChainID(opts DiscoveryTargetOpts) string {
 	// NOTE: this format is similar to the SNI syntax for simplicity
 	if opts.Peer != "" {
 		return fmt.Sprintf("%s.%s.default.external.%s", opts.Service, opts.Namespace, opts.Peer)
@@ -296,7 +324,7 @@ func chainID(opts DiscoveryTargetOpts) string {
 }
 
 func (t *DiscoveryTarget) setID() {
-	t.ID = chainID(t.ToDiscoveryTargetOpts())
+	t.ID = ChainID(t.ToDiscoveryTargetOpts())
 }
 
 func (t *DiscoveryTarget) String() string {
