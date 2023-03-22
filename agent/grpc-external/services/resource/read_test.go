@@ -49,7 +49,7 @@ func TestRead_GroupVersionMismatch(t *testing.T) {
 			client := testClient(t, server)
 
 			resource1 := &pbresource.Resource{Id: id1, Version: ""}
-			resource1, err := server.backend.WriteCAS(tc.ctx, resource1)
+			_, err := server.backend.WriteCAS(tc.ctx, resource1)
 			require.NoError(t, err)
 
 			_, err = client.Read(tc.ctx, &pbresource.ReadRequest{Id: id2})

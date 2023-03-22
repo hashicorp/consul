@@ -2,6 +2,7 @@ package resource
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"google.golang.org/grpc/codes"
@@ -27,10 +28,10 @@ func (s *Server) Read(ctx context.Context, req *pbresource.ReadRequest) (*pbreso
 
 	resource, err := s.backend.Read(ctx, consistency, req.Id)
 	if err != nil {
-		if err == storage.ErrNotFound {
+		if errors.Is(err, storage.ErrNotFound) {
 			return nil, status.Error(codes.NotFound, err.Error())
 		}
-		if _, ok := err.(storage.GroupVersionMismatchError); ok {
+		if errors.As(err, &storage.GroupVersionMismatchError{}) {
 			return nil, status.Error(codes.InvalidArgument, err.Error())
 		}
 		return nil, err
