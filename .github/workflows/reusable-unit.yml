@@ -48,6 +48,10 @@ jobs:
       - name: Run tests 
         working-directory: ${{inputs.directory}}
         run: |
+          echo "Contents of ./bin/consul"
+          ls ./bin/consul
+          echo "Contents of ./bin"
+          ls ./bin
           export GOPATH=/home/runner/work/consul/consul/bin/consul
           echo "GOPATH: $GOPATH"
           gotestsum --format=testname --junitfile ${{env.TEST_RESULTS}}/gotestsum-report.xml ./... -- -p

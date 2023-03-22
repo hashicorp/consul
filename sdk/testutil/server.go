@@ -262,11 +262,11 @@ type TestServer struct {
 // function returns (thus you do not need to stop it).
 // This function will call the `consul` binary in GOPATH.
 func NewTestServerConfigT(t TestingTB, cb ServerConfigCallback) (*TestServer, error) {
-	// path, err := exec.LookPath("consul")
-	// if err != nil || path == "" {
-	// 	return nil, fmt.Errorf("consul not found on $PATH - download and install " +
-	// 		"consul or skip this test")
-	// }
+	path, err := exec.LookPath("consul")
+	if err != nil || path == "" {
+		return nil, fmt.Errorf("consul not found on $PATH - download and install " +
+			"consul or skip this test")
+	}
 
 	prefix := "consul"
 	if t != nil {
