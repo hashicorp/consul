@@ -26,10 +26,15 @@ on:
         required: false
         type: string
         default: "" 
+      package-names:
+        required: true
+        type: string
+        default: "[]"
 env:
   TEST_RESULTS: /tmp/test-results
   GOTESTSUM_VERSION: 1.8.2
   GOARCH: ${{inputs.go-arch}}
+  PACKAGE_NAMES: ${{ fromJSON(inputs.package-names) }}
   
 jobs:
   go-test:
@@ -71,8 +76,10 @@ jobs:
       - name: Run tests 
         working-directory: ${{inputs.directory}}
         run: |
-          PACKAGE_NAMES=$(go list -tags "$GOTAGS" ./...)
- 
+          if [ ${#errors[@]} -eq 0 ]; then
+            PACKAGE_NAMES=$(go list -tags "$GOTAGS" ./...)
+          fi
+
           # TODO(JM): figure out why this erroring
           # if [[ github.ref == 'refs/heads/main' || !startsWith(github.ref, 'refs/heads/release/') ]]; then
           #   export GO_TEST_FLAGS="-short"
