@@ -45,6 +45,8 @@ jobs:
         working-directory: ${{ matrix.directory }}
       - name: lint-${{ matrix.directory }}
         uses: golangci/golangci-lint-action@08e2f20817b15149a52b5b3ebe7de50aff2ba8c5 # pin@v3.4.0
+        with:
+          working-directory: ${{ matrix.directory }}
       - name: Notify Slack
         if: failure()
         run: .github/scripts/notify_slack.sh
