@@ -26,7 +26,8 @@ jobs:
 
     # Install dependencies.
     - name: install yarn packages
-      run: cd ui && make deps
+      working-directory: ui
+      run: make deps
 
     - run: make test-workspace
 
@@ -35,26 +36,22 @@ jobs:
     container:
       image: docker.mirror.hashicorp.services/circleci/node:16-browsers
       options: --user root
-    defaults:
-      run:
-        working-directory: ui/packages/consul-ui
     steps:
     - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
 
     # Install dependencies.
     - name: install yarn packages
-      run: cd ui && make deps
+      working-directory: ui
+      run: make deps
 
     - run: make test-node
+      working-directory: ui/packages/consul-ui
 
   ember-build-test-oss:
     runs-on: ubuntu-20.04
     container:
       image: docker.mirror.hashicorp.services/circleci/node:16-browsers
       options: --user root
-    defaults:
-      run:
-        working-directory: ui/packages/consul-ui
     env:
       EMBER_TEST_REPORT: test-results/report-oss.xml #outputs test report for CircleCI test summary
       EMBER_TEST_PARALLEL: true #enables test parallelization with ember-exam
@@ -64,7 +61,10 @@ jobs:
 
     # Install dependencies.
     - name: install yarn packages
-      run: cd ui && make deps
+      working-directory: ui
+      run: make deps
     
-    - run: make build-ci
-    - run: node_modules/.bin/ember exam --path dist --silent -r xunit
+    - working-directory: ui/packages/consul-ui
+      run: |
+        make build-ci
+        node_modules/.bin/ember exam --path dist --silent -r xunit
