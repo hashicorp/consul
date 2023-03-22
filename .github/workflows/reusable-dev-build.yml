@@ -8,7 +8,7 @@ on:
         type: string
         default: "consul-bin"  
 jobs:
-  dev-build:
+  build:
     if: |
         github.ref != 'refs/heads/stable-website' || 
         !startsWith(github.ref, 'refs/heads/docs/') || 

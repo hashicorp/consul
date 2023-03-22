@@ -210,100 +210,98 @@ jobs:
     needs:
       - dev-build
     runs-on: ubuntu-latest
-    # TODO(JM): Combine with go-test-arm64
-    steps:
-      - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
-      - uses: actions/setup-go@6edd4406fa81c3da01a34fa6f6343087c207a568 # pin@v3.5.0
-        with:
-          go-version-file: 'go.mod'
-      - name: Setup go mod cache
-        uses: actions/cache@v3
-        with:
-          path: |
-            ~/.cache/go-build
-            ~/go/pkg/mod
-          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-          restore-keys: |
-            ${{ runner.os }}-go-
-
-      - name: Install gotestsum
-        run: |
-          wget https://github.com/gotestyourself/gotestsum/releases/download/v${{env.GOTESTSUM_VERSION}}/gotestsum_${{env.GOTESTSUM_VERSION}}_linux_amd64.tar.gz
-          sudo tar -C /usr/local/bin -xzf gotestsum_${{env.GOTESTSUM_VERSION}}_linux_amd64.tar.gz
-          rm gotestsum_${{env.GOTESTSUM_VERSION}}_linux_amd64.tar.gz
-
-      - run:  mkdir -p ${{env.TEST_RESULTS}}
-      # - name: Download consul
-      #   run: |
-      #     mkdir -p $HOME/bin
-      #     container_id=$(docker create ${{env.CONSUL_OSS_DOCKER_IMAGE}})
-      #     docker cp "$container_id:/bin/consul" $HOME/bin/consul
-      #     docker rm "$container_id"
-      - name: Run go tests
-        run: |
-            PACKAGE_NAMES=$(go list ./...)
-            
-            # TODO(JM): figure out why this erroring
-            # if [[ github.ref == 'refs/heads/main' || !startsWith(github.ref, 'refs/heads/release/') ]]; then
-            #   export GO_TEST_FLAGS="-short"
-            # fi
-            
-            # some tests expect this umask, and arm images have a different default
-            umask 0022
-
-            gotestsum \
-            --format=short-verbose \
-            --jsonfile /tmp/jsonfile/go-test-${CIRCLE_NODE_INDEX}.log \
-            --debug \
-            --rerun-fails=3 \
-            --rerun-fails-max-failures=40 \
-            --rerun-fails-report=/tmp/gotestsum-rerun-fails \
-            --packages="$PACKAGE_NAMES" \              
-            --junitfile ${{env.TEST_RESULTS}}/gotestsum-report.xml -- \
-            -tags="$GOTAGS" -p 4 \
-            ${GO_TEST_FLAGS-} \
-            -cover -coverprofile=coverage.txt
-      - uses: actions/upload-artifact@master
-        with:
-          name: test-results
-          path: ${{env.TEST_RESULTS}}
-      - uses: actions/upload-artifact@master
-        with:
-          name: jsonfile
-          path: /tmp/jsonfile
-      # - name: "Re-run fails report"
-      #   run: |
-      #     #!/usr/bin/env bash
-      #     #
-      #     # Add a comment on the github PR if there were any rerun tests.
-      #     #
-      #     set -eu -o pipefail
-
-      #     report_filename="${1?report filename is required}"
-      #     if [ ! -s "$report_filename" ]; then
-      #         echo "gotestsum rerun report file is empty or missing"
-      #         exit 0
-      #     fi
-
-      #     function report {
-      #         echo ":repeat: gotestsum re-ran some tests in $CIRCLE_BUILD_URL"
-      #         echo
-      #         echo '```'
-      #         cat "$report_filename"
-      #         echo '```'
-      #     }
-
-      #     report 
-      - name: Notify Slack
-        if: failure()
-        run: .github/scripts/notify_slack.sh
-  go-test-consul:
-    needs:
-    - dev-build
     uses: ./.github/workflows/reusable-unit.yml
     with:
-      directory: envoyextensions
+      directory: .
       go-version: "1.20"
+    # TODO(JM): Combine with go-test-arm64
+    # steps:
+    #   - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
+    #   - uses: actions/setup-go@6edd4406fa81c3da01a34fa6f6343087c207a568 # pin@v3.5.0
+    #     with:
+    #       go-version-file: 'go.mod'
+    #   - name: Setup go mod cache
+    #     uses: actions/cache@v3
+    #     with:
+    #       path: |
+    #         ~/.cache/go-build
+    #         ~/go/pkg/mod
+    #       key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+    #       restore-keys: |
+    #         ${{ runner.os }}-go-
+
+    #   - name: Install gotestsum
+    #     run: |
+    #       wget https://github.com/gotestyourself/gotestsum/releases/download/v${{env.GOTESTSUM_VERSION}}/gotestsum_${{env.GOTESTSUM_VERSION}}_linux_amd64.tar.gz
+    #       sudo tar -C /usr/local/bin -xzf gotestsum_${{env.GOTESTSUM_VERSION}}_linux_amd64.tar.gz
+    #       rm gotestsum_${{env.GOTESTSUM_VERSION}}_linux_amd64.tar.gz
+
+    #   - run:  mkdir -p ${{env.TEST_RESULTS}}
+    #   # - name: Download consul
+    #   #   run: |
+    #   #     mkdir -p $HOME/bin
+    #   #     container_id=$(docker create ${{env.CONSUL_OSS_DOCKER_IMAGE}})
+    #   #     docker cp "$container_id:/bin/consul" $HOME/bin/consul
+    #   #     docker rm "$container_id"
+    #   - name: Run go tests
+    #     run: |
+    #         PACKAGE_NAMES=$(go list ./...)
+            
+    #         # TODO(JM): figure out why this erroring
+    #         # if [[ github.ref == 'refs/heads/main' || !startsWith(github.ref, 'refs/heads/release/') ]]; then
+    #         #   export GO_TEST_FLAGS="-short"
+    #         # fi
+            
+    #         # some tests expect this umask, and arm images have a different default
+    #         umask 0022
+
+    #         gotestsum \
+    #         --format=short-verbose \
+    #         --jsonfile /tmp/jsonfile/go-test-${CIRCLE_NODE_INDEX}.log \
+    #         --debug \
+    #         --rerun-fails=3 \
+    #         --rerun-fails-max-failures=40 \
+    #         --rerun-fails-report=/tmp/gotestsum-rerun-fails \
+    #         --packages="$PACKAGE_NAMES" \              
+    #         --junitfile ${{env.TEST_RESULTS}}/gotestsum-report.xml -- \
+    #         -tags="$GOTAGS" -p 4 \
+    #         ${GO_TEST_FLAGS-} \
+    #         -cover -coverprofile=coverage.txt
+    #   - uses: actions/upload-artifact@master
+    #     with:
+    #       name: test-results
+    #       path: ${{env.TEST_RESULTS}}
+    #   - uses: actions/upload-artifact@master
+    #     with:
+    #       name: jsonfile
+    #       path: /tmp/jsonfile
+    #   # - name: "Re-run fails report"
+    #   #   run: |
+    #   #     #!/usr/bin/env bash
+    #   #     #
+    #   #     # Add a comment on the github PR if there were any rerun tests.
+    #   #     #
+    #   #     set -eu -o pipefail
+
+    #   #     report_filename="${1?report filename is required}"
+    #   #     if [ ! -s "$report_filename" ]; then
+    #   #         echo "gotestsum rerun report file is empty or missing"
+    #   #         exit 0
+    #   #     fi
+
+    #   #     function report {
+    #   #         echo ":repeat: gotestsum re-ran some tests in $CIRCLE_BUILD_URL"
+    #   #         echo
+    #   #         echo '```'
+    #   #         cat "$report_filename"
+    #   #         echo '```'
+    #   #     }
+
+    #   #     report 
+    #   - name: Notify Slack
+    #     if: failure()
+    #     run: .github/scripts/notify_slack.sh
+
   go-test-envoyextensions:
     needs:
     - dev-build
