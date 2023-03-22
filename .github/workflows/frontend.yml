@@ -21,12 +21,12 @@ jobs:
     - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
     # saves the build to a workspace to be passed to a downstream job
     - uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # pin@v3.1.2
-        with:
-          retention-days: 1
-          name: node_modules
-          path: |
-            ui/node_modules
-            ui/packages/consul-ui/node_modules
+      with:
+        retention-days: 1
+        name: node_modules
+        path: |
+          ui/node_modules
+          ui/packages/consul-ui/node_modules
 
   workspace-tests:
     needs: frontend-cache
@@ -39,8 +39,8 @@ jobs:
     steps:
     - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
     - uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # pin@v3.0.2
-        with:
-          name: node_modules
+      with:
+        name: node_modules
     - run: ls -al # debug
     - run: make test-workspace
 
@@ -55,8 +55,8 @@ jobs:
     steps:
     - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
     - uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # pin@v3.0.2
-        with:
-          name: node_modules
+      with:
+        name: node_modules
     - run: ls -al # debug
     - run: make test-node
 
@@ -75,8 +75,8 @@ jobs:
     steps:
     - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
     - uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # pin@v3.0.2
-        with:
-          name: node_modules
+      with:
+        name: node_modules
     - run: ls -al # debug
     - run: make build-ci
     - run: node_modules/.bin/ember exam --path dist --silent -r xunit
