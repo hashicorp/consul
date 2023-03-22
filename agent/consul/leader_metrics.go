@@ -119,7 +119,8 @@ func (m CertExpirationMonitor) Monitor(ctx context.Context) error {
 			return
 		}
 
-		if d < 24*time.Hour {
+		thirtyDays := 30 * (24 * time.Hour)
+		if d < thirtyDays {
 			logger.Warn("certificate will expire soon",
 				"time_to_expiry", d, "expiration", time.Now().Add(d))
 		}
