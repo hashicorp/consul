@@ -45,6 +45,9 @@ jobs:
         with:
           name: consul-bin
           path: /home/runner/work/consul/consul
+      - name: Display structure of downloaded files
+        run: ls -R
+        working-directory: /home/runner/work/consul/consul
       - name: Run tests 
         working-directory: ${{inputs.directory}}
         run: |
