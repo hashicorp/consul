@@ -19,6 +19,11 @@ type Config struct {
 	backend  storage.Backend
 }
 
+//go:generate mockery --name Backend --inpackage
+type Backend interface {
+	storage.Backend
+}
+
 func NewServer(cfg Config) *Server {
 	return &Server{cfg}
 }

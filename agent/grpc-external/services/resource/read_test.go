@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/consul/internal/storage/inmem"
 	pbresource "github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/proto/private/prototest"
+	mock "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
@@ -73,6 +74,28 @@ func TestRead_Success(t *testing.T) {
 			rsp, err := client.Read(tc.ctx, &pbresource.ReadRequest{Id: id1})
 			require.NoError(t, err)
 			prototest.AssertDeepEqual(t, resource1, rsp.Resource)
+		})
+	}
+}
+
+func TestRead_VerifyReadConsistencyArg(t *testing.T) {
+	// Uses a mockBackend instead of the inmem Backend to verify the ReadConsistency argument is set correctly.
+	for desc, tc := range readTestCases() {
+		t.Run(desc, func(t *testing.T) {
+			mockBackend := NewMockBackend(t)
+			server := NewServer(Config{
+				registry: resource.NewRegistry(),
+				backend:  mockBackend,
+			})
+			server.registry.Register(resource.Registration{Type: typev1})
+			resource1 := &pbresource.Resource{Id: id1, Version: "1"}
+			mockBackend.On("Read", mock.Anything, mock.Anything, mock.Anything).Return(resource1, nil)
+			client := testClient(t, server)
+
+			rsp, err := client.Read(tc.ctx, &pbresource.ReadRequest{Id: id1})
+			require.NoError(t, err)
+			prototest.AssertDeepEqual(t, resource1, rsp.Resource)
+			mockBackend.AssertCalled(t, "Read", mock.Anything, tc.consistency, mock.Anything)
 		})
 	}
 }
