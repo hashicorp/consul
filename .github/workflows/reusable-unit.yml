@@ -44,10 +44,10 @@ jobs:
       - uses: actions/download-artifact@master
         with:
           name: consul-bin
-          path: $HOME/go/bin
-      - name: Display structure of downloaded files - HOME/go/bin
+          path: /home/runner/go
+      - name: Display structure of downloaded files - /home/runner/go
         run: ls -R
-        working-directory: $HOME/go/bin
+        working-directory: /home/runner/go
       - name: Run tests 
         working-directory: ${{inputs.directory}}
         run: |
