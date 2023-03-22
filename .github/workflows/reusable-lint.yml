@@ -30,18 +30,20 @@ jobs:
         - "troubleshoot"
         - "test/integration/consul-container"
       fail-fast: true
+    env:
+      directory: ${{ matrix.directory}}
     name: lint ${{ matrix.directory }}
     steps:
       - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
       - uses: actions/setup-go@6edd4406fa81c3da01a34fa6f6343087c207a568 # pin@v3.5.0
         with:
           go-version-file: 'go.mod'
-      # - run: go env
-      # - uses: golangci/golangci-lint-action@08e2f20817b15149a52b5b3ebe7de50aff2ba8c5 # pin@v3.4.0
-      #   with:
-      #     working-directory: ${{ matrix.directory }}
-      #     version: v1.51
-      #     args: "--build-tags="$GOTAGS" -v"
-      # - name: Notify Slack
-      #   if: failure()
-      #   run: .github/scripts/notify_slack.sh
+      - run: go env
+      - uses: golangci/golangci-lint-action@08e2f20817b15149a52b5b3ebe7de50aff2ba8c5 # pin@v3.4.0
+        with:
+          working-directory: ${{ env.directory }}
+          version: v1.51
+          args: "--build-tags="$GOTAGS" -v"
+      - name: Notify Slack
+        if: failure()
+        run: .github/scripts/notify_slack.sh
