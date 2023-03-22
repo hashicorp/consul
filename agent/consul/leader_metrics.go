@@ -19,8 +19,10 @@ import (
 	"github.com/hashicorp/consul/logging"
 )
 
-var metricsKeyMeshRootCAExpiry = []string{"mesh", "active-root-ca", "expiry"}
-var metricsKeyMeshActiveSigningCAExpiry = []string{"mesh", "active-signing-ca", "expiry"}
+var (
+	metricsKeyMeshRootCAExpiry          = []string{"mesh", "active-root-ca", "expiry"}
+	metricsKeyMeshActiveSigningCAExpiry = []string{"mesh", "active-signing-ca", "expiry"}
+)
 
 var LeaderCertExpirationGauges = []prometheus.GaugeDefinition{
 	{
@@ -37,30 +39,30 @@ func rootCAExpiryMonitor(s *Server) CertExpirationMonitor {
 	return CertExpirationMonitor{
 		Key:    metricsKeyMeshRootCAExpiry,
 		Logger: s.logger.Named(logging.Connect),
-		Query: func() (time.Duration, error) {
+		Query: func() (time.Duration, time.Duration, error) {
 			return getRootCAExpiry(s)
 		},
 	}
 }
 
-func getRootCAExpiry(s *Server) (time.Duration, error) {
+func getRootCAExpiry(s *Server) (time.Duration, time.Duration, error) {
 	state := s.fsm.State()
 	_, root, err := state.CARootActive(nil)
 	switch {
 	case err != nil:
-		return 0, fmt.Errorf("failed to retrieve root CA: %w", err)
+		return 0, 0, fmt.Errorf("failed to retrieve root CA: %w", err)
 	case root == nil:
-		return 0, fmt.Errorf("no active root CA")
+		return 0, 0, fmt.Errorf("no active root CA")
 	}
 
-	return time.Until(root.NotAfter), nil
+	return time.Since(root.NotBefore), time.Until(root.NotAfter), nil
 }
 
 func signingCAExpiryMonitor(s *Server) CertExpirationMonitor {
 	return CertExpirationMonitor{
 		Key:    metricsKeyMeshActiveSigningCAExpiry,
 		Logger: s.logger.Named(logging.Connect),
-		Query: func() (time.Duration, error) {
+		Query: func() (time.Duration, time.Duration, error) {
 			if s.caManager.isIntermediateUsedToSignLeaf() {
 				return getActiveIntermediateExpiry(s)
 			}
@@ -69,26 +71,26 @@ func signingCAExpiryMonitor(s *Server) CertExpirationMonitor {
 	}
 }
 
-func getActiveIntermediateExpiry(s *Server) (time.Duration, error) {
+func getActiveIntermediateExpiry(s *Server) (time.Duration, time.Duration, error) {
 	state := s.fsm.State()
 	_, root, err := state.CARootActive(nil)
 	switch {
 	case err != nil:
-		return 0, fmt.Errorf("failed to retrieve root CA: %w", err)
+		return 0, 0, fmt.Errorf("failed to retrieve root CA: %w", err)
 	case root == nil:
-		return 0, fmt.Errorf("no active root CA")
+		return 0, 0, fmt.Errorf("no active root CA")
 	}
 
 	// the CA used in a secondary DC is the active intermediate,
 	// which is the last in the IntermediateCerts stack
 	if len(root.IntermediateCerts) == 0 {
-		return 0, errors.New("no intermediate available")
+		return 0, 0, errors.New("no intermediate available")
 	}
 	cert, err := connect.ParseCert(root.IntermediateCerts[len(root.IntermediateCerts)-1])
 	if err != nil {
-		return 0, err
+		return 0, 0, err
 	}
-	return time.Until(cert.NotAfter), nil
+	return time.Since(cert.NotBefore), time.Until(cert.NotAfter), nil
 }
 
 type CertExpirationMonitor struct {
@@ -101,7 +103,7 @@ type CertExpirationMonitor struct {
 	Logger hclog.Logger
 	// Query is called at each interval. It should return the duration until the
 	// certificate expires, or an error if the query failed.
-	Query func() (time.Duration, error)
+	Query func() (time.Duration, time.Duration, error)
 }
 
 const certExpirationMonitorInterval = time.Hour
@@ -113,19 +115,18 @@ func (m CertExpirationMonitor) Monitor(ctx context.Context) error {
 	logger := m.Logger.With("metric", strings.Join(m.Key, "."))
 
 	emitMetric := func() {
-		d, err := m.Query()
+		before, after, err := m.Query()
 		if err != nil {
 			logger.Warn("failed to emit certificate expiry metric", "error", err)
 			return
 		}
 
-		thirtyDays := 30 * (24 * time.Hour)
-		if d < thirtyDays {
+		if expiresSoon(before, after) {
 			logger.Warn("certificate will expire soon",
-				"time_to_expiry", d, "expiration", time.Now().Add(d))
+				"time_to_expiry", after, "expiration", time.Now().Add(after))
 		}
 
-		expiry := d / time.Second
+		expiry := after / time.Second
 		metrics.SetGaugeWithLabels(m.Key, float32(expiry), m.Labels)
 	}
 
@@ -153,4 +154,18 @@ func initLeaderMetrics() {
 	for _, g := range LeaderCertExpirationGauges {
 		metrics.SetGaugeWithLabels(g.Name, float32(math.NaN()), g.ConstLabels)
 	}
+}
+
+// shouldWarn checks to see if we are close enough to the cert expiring that we
+// should send out a WARN log message.
+// It defaults to returning true if the cert will expire within 28 days or 40%
+// of the certs total duration, whichever is shorter.
+func expiresSoon(before, after time.Duration) bool {
+	warningPeriod := 28 * (24 * time.Hour) // 28 days (default)
+	seventyDays := 70 * (24 * time.Hour)   // 28 days is 40% of 70 days
+	totalDuration := time.Duration(before + after)
+	if totalDuration < seventyDays {
+		warningPeriod = (totalDuration * 4) / 10 // 40% of total duration
+	}
+	return after < warningPeriod
 }
