@@ -1,19 +1,20 @@
 package resource
 
 import (
-	context "context"
+	"context"
 	"testing"
 
-	"github.com/hashicorp/consul/internal/resource"
-	storage "github.com/hashicorp/consul/internal/storage"
-	"github.com/hashicorp/consul/internal/storage/inmem"
-	pbresource "github.com/hashicorp/consul/proto-public/pbresource"
-	"github.com/hashicorp/consul/proto/private/prototest"
-	mock "github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
+
+	"github.com/hashicorp/consul/internal/resource"
+	"github.com/hashicorp/consul/internal/storage"
+	"github.com/hashicorp/consul/internal/storage/inmem"
+	"github.com/hashicorp/consul/proto-public/pbresource"
+	"github.com/hashicorp/consul/proto/private/prototest"
 )
 
 func TestRead_TypeNotFound(t *testing.T) {
