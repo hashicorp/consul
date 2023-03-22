@@ -18,15 +18,8 @@ To configure Consul to export services contained in a Consul Enterprise admin pa
 You can configure the settings defined in the `exported-services` configuration entry to apply to all namespaces in a Consul Enterprise admin partition.
 
 ## Requirements
+
 - **Enterprise Only**: A corresponding partition that the configuration entry can export from. For example, the `exported-services` configuration entry for a partition named `frontend` requires an existing `frontend` partition.
-
-## Usage
-
-1. Verify that your datacenter meets the conditions specified in the [Requirements](#requirements).
-1. Specify the `exported-services` configuration in the agent configuration file (see [`config_entries`](/consul/docs/agent/config/config-files#config_entries)) as described in [Configuration](#configuration).
-1. Apply the configuration using one of the following methods:
-   - Kubernetes CRD: Refer to the [Custom Resource Definitions](/consul/docs/k8s/crds) documentation for details.
-   - Issue the `consul config write` command: Refer to the [Consul Config Write](/consul/commands/config/write) documentation for details.
 
 ## Configuration
 
@@ -218,8 +211,29 @@ A asterisk wildcard (`*`) cannot be specified as the `Peer`. Added in Consul 1.1
 - `Partition`: <EnterpriseAlert inline /> Specifies an admin partition in the datacenter to export the service to.
 A asterisk wildcard (`*`) cannot be specified as the `Partition`.
 
+## Export services between partitions or clusters
+
+You can use exported services configuration entries to make local services available to services deployed on other admin partitions or clusters. To export services to another cluster, you must create and exchange a peering token before completing these steps. Refer to [establish cluster peering connections](/consul/docs/connect/cluster-peering/usage/establish-cluster-peering) for more information.
+
+On the partition or cluster where the services you want to export are currently deployed, complete the following steps:
+
+1. Create an `exported-services` configuration entry that defines the services you want to make available to another partition or cluster.
+
+    - If you use Consul on Kubernetes, create an [`ExportedServices` custom resource definition (CRD)](/consul/docs/k8s/crds) instead of a configuration entry.
+
+1. Include the following fields in your configuration:
+
+    - The name of the admin partition where the services are currently deployed.
+    - The name of the services to export.
+    - The name of the peer or partition you are exporting the services to.
+
+1. Run `consul config write <exported-services.hcl>` to add the configuration entry to your deployment. Refer to the [Consul Config Write command line documentation](/consul/commands/config/write) for more information.
+
+   - If you use Consul on Kubernetes, run `kubectl apply --filename <exported-services.yaml>`. Refer to the [Custom Resource Definition usage](/consul/docs/k8s/crds#usage) for more information.
+
 ## Examples
 
+The following example configurations demonstrate how to format exported services configuration entries and CRDs to make services available to other admin partitions and clusters in both Consul OSS and Consul Enterprise deployments.
 
 ### Exporting services to peered clusters
 
