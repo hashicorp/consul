@@ -16,8 +16,27 @@ env:
   METADATA: oss
 
 jobs:
-  set-product-version:
+  setup: # Detect oss v. ent and set runner type
+    name: Setup
     runs-on: ubuntu-latest
+    outputs:
+      runner-standard: ${{ steps.setup-outputs.outputs.runner-standard }}
+    steps:
+    - id: setup-outputs
+      name: Setup outputs
+      run: |
+        github_repository="${{ github.repository }}"
+        if [ "${github_repository##*/}" == "consul-enterprise" ] ; then
+          echo 'linux-runner-standard=["self-hosted","linux"]' >> $GITHUB_OUTPUT
+          echo 'macos-runner-standard-macos=["self-hosted","ondemand","os=macos"]' >> $GITHUB_OUTPUT
+          echo 'enterprise=1' >> $GITHUB_OUTPUT
+        else
+          echo 'linux-runner-standard=["ubuntu-latest"]' >> $GITHUB_OUTPUT
+          echo 'macos-runner-standard=["macos-latest"]' >> $GITHUB_OUTPUT
+          echo 'enterprise=' >> $GITHUB_OUTPUT
+        fi
+  set-product-version:
+    runs-on: ${{ fromJSON(needs.setup.outputs.linux-runner-standard) }}
     outputs:
       product-version: ${{ steps.set-product-version.outputs.product-version }}
       base-product-version: ${{ steps.set-product-version.outputs.base-product-version }}
@@ -46,7 +65,7 @@ jobs:
           "
   validate-outputs:
     needs: set-product-version
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(needs.setup.outputs.linux-runner-standard) }}
     steps:
       - name: Validate Outputs
         run: |
@@ -58,7 +77,7 @@ jobs:
           echo "Ldflags: ${{ needs.set-product-version.outputs.shared-ldflags }}"
   generate-metadata-file:
     needs: set-product-version
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(needs.setup.outputs.linux-runner-standard) }}
     outputs:
       filepath: ${{ steps.generate-metadata-file.outputs.filepath }}
     steps:
@@ -78,7 +97,7 @@ jobs:
 
   build:
     needs: set-product-version
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(needs.setup.outputs.linux-runner-standard) }}
     strategy:
       matrix:
         include:
@@ -174,7 +193,7 @@ jobs:
 
   build-darwin:
     needs: set-product-version
-    runs-on: macos-latest
+    runs-on: ${{ fromJSON(needs.setup.outputs.macos-runner-standard) }}
     strategy:
       matrix:
         goos: [ darwin ]
@@ -226,7 +245,7 @@ jobs:
     needs:
       - set-product-version
       - build
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(needs.setup.outputs.linux-runner-standard) }}
     strategy:
       matrix:
         arch: ["386", "amd64", "arm", "arm64"]
@@ -263,7 +282,7 @@ jobs:
     needs:
       - set-product-version
       - build
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(needs.setup.outputs.linux-runner-standard) }}
     env:
       repo: ${{github.event.repository.name}}
       version: ${{needs.set-product-version.outputs.product-version}}
@@ -283,7 +302,7 @@ jobs:
     needs:
       - set-product-version
       - build
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(needs.setup.outputs.linux-runner-standard) }}
     env:
       repo: ${{github.event.repository.name}}
       version: ${{needs.set-product-version.outputs.product-version}}
@@ -315,7 +334,7 @@ jobs:
     needs:
       - set-product-version
       - build
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(needs.setup.outputs.linux-runner-standard) }}
     strategy:
       matrix:
         arch: ["386", "amd64", "arm", "arm64"]
@@ -347,7 +366,7 @@ jobs:
     needs:
       - set-product-version
       - build-darwin
-    runs-on: macos-latest
+    runs-on: ${{ fromJSON(needs.setup.outputs.macos-runner-standard) }}
     strategy:
       fail-fast: true
     env:
@@ -373,7 +392,7 @@ jobs:
     needs:
       - build
       - set-product-version
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(needs.setup.outputs.linux-runner-standard) }}
     strategy:
       matrix:
         arch: ["i386", "amd64", "armhf", "arm64"]
@@ -410,7 +429,7 @@ jobs:
     needs:
       - build
       - set-product-version
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(needs.setup.outputs.linux-runner-standard) }}
     strategy:
       matrix:
         # TODO(eculver): re-enable when there is a smaller verification container available
