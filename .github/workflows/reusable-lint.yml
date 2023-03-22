@@ -11,7 +11,7 @@ on:
         description: An expression indicating which kind of runners to use.
         required: false
         type: string
-        default: ubuntu-latest
+        default: "ubuntu-latest"
 
 env:
   GOTAGS: "" # No tags for OSS but there are for enterprise
