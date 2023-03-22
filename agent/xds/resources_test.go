@@ -175,7 +175,7 @@ func TestAllResourcesFromSnapshot(t *testing.T) {
 	}
 	tests = append(tests, getConnectProxyTransparentProxyGoldenTestCases()...)
 	tests = append(tests, getMeshGatewayPeeringGoldenTestCases()...)
-	tests = append(tests, getTrafficControlPeeringGoldenTestCases()...)
+	tests = append(tests, getTrafficControlPeeringGoldenTestCases(false)...)
 	tests = append(tests, getEnterpriseGoldenTestCases()...)
 	tests = append(tests, getAPIGatewayGoldenTestCases(t)...)
 
@@ -253,21 +253,29 @@ func getMeshGatewayPeeringGoldenTestCases() []goldenTestCase {
 	}
 }
 
-func getTrafficControlPeeringGoldenTestCases() []goldenTestCase {
-	return []goldenTestCase{
+func getTrafficControlPeeringGoldenTestCases(enterprise bool) []goldenTestCase {
+	cases := []goldenTestCase{
 		{
 			name: "connect-proxy-with-chain-and-failover-to-cluster-peer",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "failover-to-cluster-peer", nil, nil)
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "failover-to-cluster-peer", enterprise, nil, nil)
 			},
 		},
 		{
 			name: "connect-proxy-with-chain-and-redirect-to-cluster-peer",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "redirect-to-cluster-peer", nil, nil)
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "redirect-to-cluster-peer", enterprise, nil, nil)
 			},
 		},
 	}
+
+	if enterprise {
+		for i := range cases {
+			cases[i].name = "enterprise-" + cases[i].name
+		}
+	}
+
+	return cases
 }
 
 const (
