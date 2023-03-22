@@ -36,12 +36,13 @@ jobs:
       - uses: actions/setup-go@6edd4406fa81c3da01a34fa6f6343087c207a568 # pin@v3.5.0
         with:
           go-version-file: 'go.mod'
-      - name: lint-${{ matrix.directory }}
-        uses: golangci/golangci-lint-action@08e2f20817b15149a52b5b3ebe7de50aff2ba8c5 # pin@v3.4.0
-        with:
-          version: "v1.51"
-          working-directory: "."
-          args: "--build-tags="$GOTAGS" -v"
+      - run: go env
+      - name: Install golangci-lint
+        run: make lint-tools
+      - run: go mod download
+      - name: lint
+        run: golangci-lint run --build-tags="$GOTAGS" -v
+        working-directory: ${{ matrix.directory }}
       - name: Notify Slack
         if: failure()
         run: .github/scripts/notify_slack.sh
