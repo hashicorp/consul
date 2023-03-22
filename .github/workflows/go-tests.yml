@@ -1,6 +1,15 @@
 name: go-tests
 
-on: [push]
+on: 
+  push:
+    branches-ignore:
+      - stable-website
+      - 'docs/**'
+      - 'ui/**'
+      - 'mktg-**' # Digital Team Terraform-generated branches' prefix
+      - 'backport/docs/**'
+      - 'backport/ui/**'
+      - 'backport/mktg-**'
   
 permissions:
   contents: read
@@ -10,34 +19,9 @@ env:
   GOTESTSUM_VERSION: 1.8.2
 
 jobs:
-  # set-should-go-check:
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #   - id: should-go-check
-  #     run: |
-  #       echo `SHOULD_GO_CHECK=github.ref != 'refs/heads/stable-website' || 
-  #       !startsWith(github.ref, 'refs/heads/docs/') || 
-  #       !startsWith(github.ref, 'refs/heads/ui/') || 
-  #       !startsWith(github.ref, 'refs/heads/backport/docs/') || 
-  #       !startsWith(github.ref, 'refs/heads/backport/ui/') || 
-  #       !startsWith(github.ref, 'refs/heads/backport/mktg-.')` >> $GITHUB_OUTPUT
-  check-go-mod:  #TODO(JM): figure out how to get around no anchors
-    if: |
-        github.ref != 'refs/heads/stable-website' || 
-        !startsWith(github.ref, 'refs/heads/docs/') || 
-        !startsWith(github.ref, 'refs/heads/ui/') || 
-        !startsWith(github.ref, 'refs/heads/backport/docs/') || 
-        !startsWith(github.ref, 'refs/heads/backport/ui/') || 
-        !startsWith(github.ref, 'refs/heads/backport/mktg-.')
+  check-go-mod:
     uses: ./.github/workflows/reusable-check-go-mod.yml
   check-generated-protobuf:
-    if: |
-        github.ref != 'refs/heads/stable-website' || 
-        !startsWith(github.ref, 'refs/heads/docs/') || 
-        !startsWith(github.ref, 'refs/heads/ui/') || 
-        !startsWith(github.ref, 'refs/heads/backport/docs/') || 
-        !startsWith(github.ref, 'refs/heads/backport/ui/') || 
-        !startsWith(github.ref, 'refs/heads/backport/mktg-.')
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
@@ -60,13 +44,6 @@ jobs:
       if: failure()
       run: .github/scripts/notify_slack.sh 
   check-generated-deep-copy:
-    if: |
-        github.ref != 'refs/heads/stable-website' || 
-        !startsWith(github.ref, 'refs/heads/docs/') || 
-        !startsWith(github.ref, 'refs/heads/ui/') || 
-        !startsWith(github.ref, 'refs/heads/backport/docs/') || 
-        !startsWith(github.ref, 'refs/heads/backport/ui/') || 
-        !startsWith(github.ref, 'refs/heads/backport/mktg-.')
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
@@ -85,13 +62,6 @@ jobs:
       if: failure()
       run: .github/scripts/notify_slack.sh  
   lint-enums:
-    if: |
-        github.ref != 'refs/heads/stable-website' || 
-        !startsWith(github.ref, 'refs/heads/docs/') || 
-        !startsWith(github.ref, 'refs/heads/ui/') || 
-        !startsWith(github.ref, 'refs/heads/backport/docs/') || 
-        !startsWith(github.ref, 'refs/heads/backport/ui/') || 
-        !startsWith(github.ref, 'refs/heads/backport/mktg-.')
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
@@ -104,13 +74,6 @@ jobs:
       run: .github/scripts/notify_slack.sh
 
   lint-container-test-deps:
-    if: |
-        github.ref != 'refs/heads/stable-website' || 
-        !startsWith(github.ref, 'refs/heads/docs/') || 
-        !startsWith(github.ref, 'refs/heads/ui/') || 
-        !startsWith(github.ref, 'refs/heads/backport/docs/') || 
-        !startsWith(github.ref, 'refs/heads/backport/ui/') || 
-        !startsWith(github.ref, 'refs/heads/backport/mktg-.')
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
@@ -123,13 +86,6 @@ jobs:
       run: .github/scripts/notify_slack.sh
 
   lint-consul-retry:
-    if: |
-        github.ref != 'refs/heads/stable-website' || 
-        !startsWith(github.ref, 'refs/heads/docs/') || 
-        !startsWith(github.ref, 'refs/heads/ui/') || 
-        !startsWith(github.ref, 'refs/heads/backport/docs/') || 
-        !startsWith(github.ref, 'refs/heads/backport/ui/') || 
-        !startsWith(github.ref, 'refs/heads/backport/mktg-.')
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
@@ -142,23 +98,9 @@ jobs:
       run: .github/scripts/notify_slack.sh
 
   lint:
-    if: |
-        github.ref != 'refs/heads/stable-website' || 
-        !startsWith(github.ref, 'refs/heads/docs/') || 
-        !startsWith(github.ref, 'refs/heads/ui/') || 
-        !startsWith(github.ref, 'refs/heads/backport/docs/') || 
-        !startsWith(github.ref, 'refs/heads/backport/ui/') || 
-        !startsWith(github.ref, 'refs/heads/backport/mktg-.')
     uses: ./.github/workflows/reusable-lint.yml
 
   lint-32bit:
-    if: |
-        github.ref != 'refs/heads/stable-website' || 
-        !startsWith(github.ref, 'refs/heads/docs/') || 
-        !startsWith(github.ref, 'refs/heads/ui/') || 
-        !startsWith(github.ref, 'refs/heads/backport/docs/') || 
-        !startsWith(github.ref, 'refs/heads/backport/ui/') || 
-        !startsWith(github.ref, 'refs/heads/backport/mktg-.')
     uses: ./.github/workflows/reusable-lint.yml
     with:
       go-arch: "386"
@@ -346,13 +288,6 @@ jobs:
         if: failure()
         run: .github/scripts/notify_slack.sh
   go-test-consul:
-    if: |
-      github.ref != 'refs/heads/stable-website' || 
-      !startsWith(github.ref, 'refs/heads/docs/') || 
-      !startsWith(github.ref, 'refs/heads/ui/') || 
-      !startsWith(github.ref, 'refs/heads/backport/docs/') || 
-      !startsWith(github.ref, 'refs/heads/backport/ui/') || 
-      !startsWith(github.ref, 'refs/heads/backport/mktg-.')
     needs:
     - dev-build
     uses: ./.github/workflows/reusable-unit.yml
@@ -360,13 +295,6 @@ jobs:
       directory: envoyextensions
       go-version: "1.20"
   go-test-envoyextensions:
-    if: |
-      github.ref != 'refs/heads/stable-website' || 
-      !startsWith(github.ref, 'refs/heads/docs/') || 
-      !startsWith(github.ref, 'refs/heads/ui/') || 
-      !startsWith(github.ref, 'refs/heads/backport/docs/') || 
-      !startsWith(github.ref, 'refs/heads/backport/ui/') || 
-      !startsWith(github.ref, 'refs/heads/backport/mktg-.')
     needs:
     - dev-build
     uses: ./.github/workflows/reusable-unit.yml
@@ -375,13 +303,6 @@ jobs:
       go-version: "1.20"
 
   go-test-troubleshoot:
-    if: |
-      github.ref != 'refs/heads/stable-website' || 
-      !startsWith(github.ref, 'refs/heads/docs/') || 
-      !startsWith(github.ref, 'refs/heads/ui/') || 
-      !startsWith(github.ref, 'refs/heads/backport/docs/') || 
-      !startsWith(github.ref, 'refs/heads/backport/ui/') || 
-      !startsWith(github.ref, 'refs/heads/backport/mktg-.')
     needs:
     - dev-build
     uses: ./.github/workflows/reusable-unit.yml
@@ -390,13 +311,6 @@ jobs:
       go-version: "1.20"
 
   go-test-api-1-19:
-    if: |
-      github.ref != 'refs/heads/stable-website' || 
-      !startsWith(github.ref, 'refs/heads/docs/') || 
-      !startsWith(github.ref, 'refs/heads/ui/') || 
-      !startsWith(github.ref, 'refs/heads/backport/docs/') || 
-      !startsWith(github.ref, 'refs/heads/backport/ui/') || 
-      !startsWith(github.ref, 'refs/heads/backport/mktg-.')
     needs:
     - dev-build
     uses: ./.github/workflows/reusable-unit.yml
@@ -405,13 +319,6 @@ jobs:
       go-version: "1.19"
 
   go-test-api-1-20:
-    if: |
-      github.ref != 'refs/heads/stable-website' || 
-      !startsWith(github.ref, 'refs/heads/docs/') || 
-      !startsWith(github.ref, 'refs/heads/ui/') || 
-      !startsWith(github.ref, 'refs/heads/backport/docs/') || 
-      !startsWith(github.ref, 'refs/heads/backport/ui/') || 
-      !startsWith(github.ref, 'refs/heads/backport/mktg-.')
     needs:
     - dev-build
     uses: ./.github/workflows/reusable-unit.yml
@@ -420,13 +327,6 @@ jobs:
       go-version: "1.20"
 
   go-test-sdk-1-19:
-    if: |
-      github.ref != 'refs/heads/stable-website' || 
-      !startsWith(github.ref, 'refs/heads/docs/') || 
-      !startsWith(github.ref, 'refs/heads/ui/') || 
-      !startsWith(github.ref, 'refs/heads/backport/docs/') || 
-      !startsWith(github.ref, 'refs/heads/backport/ui/') || 
-      !startsWith(github.ref, 'refs/heads/backport/mktg-.')
     needs:
     - dev-build
     uses: ./.github/workflows/reusable-unit.yml
@@ -435,13 +335,6 @@ jobs:
       go-version: "1.19"
 
   go-test-sdk-1-20:
-    if: |
-      github.ref != 'refs/heads/stable-website' || 
-      !startsWith(github.ref, 'refs/heads/docs/') || 
-      !startsWith(github.ref, 'refs/heads/ui/') || 
-      !startsWith(github.ref, 'refs/heads/backport/docs/') || 
-      !startsWith(github.ref, 'refs/heads/backport/ui/') || 
-      !startsWith(github.ref, 'refs/heads/backport/mktg-.')
     needs:
     - dev-build
     uses: ./.github/workflows/reusable-unit.yml
