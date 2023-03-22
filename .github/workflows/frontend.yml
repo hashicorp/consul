@@ -17,6 +17,7 @@ jobs:
     runs-on: ubuntu-20.04
     container:
       image: docker.mirror.hashicorp.services/circleci/node:16-browsers
+      options: --user root
     steps:
     - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
 
@@ -37,6 +38,7 @@ jobs:
     runs-on: ubuntu-20.04
     container:
       image: docker.mirror.hashicorp.services/circleci/node:16-browsers
+      options: --user root
     defaults:
       run:
         working-directory: ui
@@ -53,6 +55,7 @@ jobs:
     runs-on: ubuntu-20.04
     container:
       image: docker.mirror.hashicorp.services/circleci/node:16-browsers
+      options: --user root
     defaults:
       run:
         working-directory: ui/packages/consul-ui
@@ -69,6 +72,7 @@ jobs:
     runs-on: ubuntu-20.04
     container:
       image: docker.mirror.hashicorp.services/circleci/node:16-browsers
+      options: --user root
     defaults:
       run:
         working-directory: ui/packages/consul-ui
