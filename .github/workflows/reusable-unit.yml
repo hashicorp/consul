@@ -41,12 +41,12 @@ jobs:
       - name: go mod download
         working-directory: ${{inputs.directory}}
         run: go mod download
-      - uses: actions/download-artifact@master
+      - uses: actions/download-artifact@v3
         with:
           name: consul-bin
           path: /usr/local/bin
-      - name: Display structure of downloaded files
-        run: ls -R 
+      - name: Display downloaded file
+        run: ls -ld consul 
         working-directory: /usr/local/bin
       - run: go env
       - name: Run tests 
