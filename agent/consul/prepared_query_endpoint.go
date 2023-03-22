@@ -468,7 +468,7 @@ func (p *PreparedQuery) Execute(args *structs.PreparedQueryExecuteRequest,
 	// by the query setup.
 	if len(reply.Nodes) == 0 {
 		wrapper := &queryServerWrapper{srv: p.srv, executeRemote: p.ExecuteRemote}
-		if err := queryFailover(wrapper, query, args, reply); err != nil {
+		if err := queryFailover(wrapper, *query, args, reply); err != nil {
 			return err
 		}
 	}
@@ -707,7 +707,7 @@ func (q *queryServerWrapper) GetOtherDatacentersByDistance() ([]string, error) {
 
 // queryFailover runs an algorithm to determine which DCs to try and then calls
 // them to try to locate alternative services.
-func queryFailover(q queryServer, query *structs.PreparedQuery,
+func queryFailover(q queryServer, query structs.PreparedQuery,
 	args *structs.PreparedQueryExecuteRequest,
 	reply *structs.PreparedQueryExecuteResponse) error {
 
@@ -789,7 +789,7 @@ func queryFailover(q queryServer, query *structs.PreparedQuery,
 		// the remote query as well.
 		remote := &structs.PreparedQueryExecuteRemoteRequest{
 			Datacenter:   dc,
-			Query:        *query,
+			Query:        query,
 			Limit:        args.Limit,
 			QueryOptions: args.QueryOptions,
 			Connect:      args.Connect,
