@@ -22,15 +22,8 @@ jobs:
     runs-on: ${{ fromJSON(inputs.runs-on) }}
     strategy:
       matrix:
-        include:
-          - {directory: ""}
-          - {directory: "api"}
-          - {directory: "sdk"}
-          - {directory: "envoyextensions"}
-          - {directory: "troubleshoot"}
-          - {directory: "test/integration/consul-container"}
-          - {directory: "api"}
-          - {directory: "api"}
+        directory: ["", "api", "sdk", "envoyextensions", "troubleshoot",
+          "test/integration/consul-container"]
       fail-fast: true
     name: lint ${{ matrix.directory }}
     steps:
