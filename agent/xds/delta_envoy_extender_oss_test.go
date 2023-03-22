@@ -92,7 +92,7 @@ end`,
 		{
 			name: "lambda-connect-proxy",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", nil, nil, makeLambdaServiceDefaults(false))
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", false, nil, nil, makeLambdaServiceDefaults(false))
 			},
 		},
 		{
@@ -107,13 +107,13 @@ end`,
 		{
 			name: "lambda-connect-proxy-with-terminating-gateway-upstream",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "register-to-terminating-gateway", nil, nil, makeLambdaServiceDefaults(false))
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "register-to-terminating-gateway", false, nil, nil, makeLambdaServiceDefaults(false))
 			},
 		},
 		{
 			name: "lambda-connect-proxy-opposite-meta",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", nil, nil, makeLambdaServiceDefaults(true))
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", false, nil, nil, makeLambdaServiceDefaults(true))
 			},
 		},
 		{
@@ -129,13 +129,13 @@ end`,
 		{
 			name: "lua-outbound-applies-to-upstreams",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", nil, nil, makeLuaServiceDefaults(false))
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", false, nil, nil, makeLuaServiceDefaults(false))
 			},
 		},
 		{
 			name: "lua-inbound-doesnt-applies-to-upstreams",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", nil, nil, makeLuaServiceDefaults(true))
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", false, nil, nil, makeLuaServiceDefaults(true))
 			},
 		},
 		{
@@ -183,7 +183,7 @@ end`,
 		{
 			name: "lua-connect-proxy-with-terminating-gateway-upstream",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "register-to-terminating-gateway", nil, nil, makeLambdaServiceDefaults(false))
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "register-to-terminating-gateway", false, nil, nil, makeLambdaServiceDefaults(false))
 			},
 		},
 		{
@@ -205,7 +205,7 @@ end`,
 						},
 					}
 				}
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", nsFunc, nil, makeLambdaServiceDefaults(true))
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", false, nsFunc, nil, makeLambdaServiceDefaults(true))
 			},
 		},
 		{

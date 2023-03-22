@@ -1,3 +1,6 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
 # This workflow detects if there is a diff in the `agent/uiserver/dist` directory
 # which is used by Consul to serve its embedded UI.
 # `agent/uiserver/dist` should not be manually updated.

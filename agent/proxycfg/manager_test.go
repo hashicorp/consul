@@ -95,7 +95,7 @@ func TestManager_BasicLifecycle(t *testing.T) {
 		})
 	}
 
-	upstreams := structs.TestUpstreams(t)
+	upstreams := structs.TestUpstreams(t, false)
 	for i := range upstreams {
 		upstreams[i].DestinationNamespace = structs.IntentionDefaultNamespace
 		upstreams[i].DestinationPartition = api.PartitionDefaultName
