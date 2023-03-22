@@ -213,9 +213,6 @@ jobs:
             -tags="$GOTAGS" -p 4 \
             ${GO_TEST_FLAGS-} \
             -cover -coverprofile=coverage.txt
-      # TODO(JM): Figure out how to store these
-      # - store_test_results:
-      #     path: *TEST_RESULTS_DIR
       - uses: actions/upload-artifact@master
         with:
           name: test-results
@@ -314,9 +311,6 @@ jobs:
             -tags="$GOTAGS" -p 4 \
             ${GO_TEST_FLAGS-} \
             -cover -coverprofile=coverage.txt
-      # TODO(JM): Figure out how to store these
-      # - store_test_results:
-      #     path: *TEST_RESULTS_DIR
       - uses: actions/upload-artifact@master
         with:
           name: test-results
