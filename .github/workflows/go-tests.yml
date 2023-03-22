@@ -10,6 +10,17 @@ env:
   GOTESTSUM_VERSION: 1.8.2
 
 jobs:
+  # set-should-go-check:
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #   - id: should-go-check
+  #     run: |
+  #       echo `SHOULD_GO_CHECK=github.ref != 'refs/heads/stable-website' || 
+  #       !startsWith(github.ref, 'refs/heads/docs/') || 
+  #       !startsWith(github.ref, 'refs/heads/ui/') || 
+  #       !startsWith(github.ref, 'refs/heads/backport/docs/') || 
+  #       !startsWith(github.ref, 'refs/heads/backport/ui/') || 
+  #       !startsWith(github.ref, 'refs/heads/backport/mktg-.')` >> $GITHUB_OUTPUT
   check-go-mod:  #TODO(JM): figure out how to get around no anchors
     if: |
         github.ref != 'refs/heads/stable-website' || 

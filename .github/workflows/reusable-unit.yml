@@ -44,11 +44,12 @@ jobs:
       - uses: actions/download-artifact@master
         with:
           name: consul-bin
+          path: /home/runner/work/consul/consul
       - name: Run tests 
         working-directory: ${{inputs.directory}}
         run: |
-          echo "Contents"
-          ls -R
+          echo "Contents of ."
+          ls .
           gotestsum --format=testname --junitfile ${{env.TEST_RESULTS}}/gotestsum-report.xml ./... -- -p
       - name: Notify Slack
         if: failure()
