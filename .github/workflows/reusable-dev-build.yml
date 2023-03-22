@@ -2,7 +2,11 @@ name: reusable-dev-build
 
 on:
   workflow_call:
-  
+    inputs:
+      uploaded-binary-name:
+        required: false
+        type: string
+        default: "consul-bin"  
 jobs:
   dev-build:
     if: |
@@ -29,7 +33,7 @@ jobs:
       # save dev build to pass to downstream jobs
       - uses: actions/upload-artifact@master
         with:
-          name: consul-bin
+          name: ${{inputs.uploaded-binary-name}}
           path: ./bin/consul
       - name: Notify Slack
         if: failure()

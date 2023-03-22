@@ -9,6 +9,10 @@ on:
       go-version:
         required: true
         type: string
+      uploaded-binary-name:
+        required: false
+        type: string
+        default: "consul-bin" 
 
 # Environment variables can only be used at the step level
 env:
@@ -43,7 +47,7 @@ jobs:
         run: go mod download
       - uses: actions/download-artifact@v3
         with:
-          name: consul-bin
+          name: ${{inputs.uploaded-binary-name}}
           path: /usr/local/bin
       - name: Make sure consul is executable
         run: sudo chmod +x /usr/local/bin/consul
@@ -60,6 +64,14 @@ jobs:
           --junitfile ${{env.TEST_RESULTS}}/gotestsum-report.xml -- \
           -tags="$GOTAGS" -cover -coverprofile=coverage.txt \
           ./...
+      - uses: actions/upload-artifact@master
+        with:
+          name: test-results
+          path: ${{env.TEST_RESULTS}}
+      - uses: actions/upload-artifact@master
+        with:
+          name: jsonfile
+          path: /tmp/jsonfile
       - name: Notify Slack
         if: failure()
         run: .github/scripts/notify_slack.sh
