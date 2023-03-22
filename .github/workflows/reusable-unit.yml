@@ -9,6 +9,10 @@ on:
       go-version:
         required: true
         type: string
+      go-arch:
+        required: false
+        type: string
+        default: ""
       uploaded-binary-name:
         required: false
         type: string
@@ -18,11 +22,15 @@ on:
         required: false
         type: string
         default: "['ubuntu-latest']"
-
+      args:
+        required: false
+        type: string
+        default: "" 
 env:
   TEST_RESULTS: /tmp/test-results
   GOTESTSUM_VERSION: 1.8.2
-
+  GOARCH: ${{inputs.go-arch}}
+  
 jobs:
   go-test:
     runs-on: ${{ fromJSON(inputs.runs-on) }}
@@ -64,6 +72,8 @@ jobs:
         working-directory: ${{inputs.directory}}
         run: |
           PACKAGE_NAMES=$(go list -tags "$GOTAGS" ./...)
+
+          ARGS = "${{ inputs.args }} \"       
             
           # TODO(JM): figure out why this erroring
           # if [[ github.ref == 'refs/heads/main' || !startsWith(github.ref, 'refs/heads/release/') ]]; then
@@ -83,7 +93,9 @@ jobs:
           --packages="$PACKAGE_NAMES" \              
           --junitfile ${{env.TEST_RESULTS}}/gotestsum-report.xml -- \
           -tags="$GOTAGS" \
+          $ARGS
           -cover -coverprofile=coverage.txt
+
       - uses: actions/upload-artifact@master
         with:
           name: test-results

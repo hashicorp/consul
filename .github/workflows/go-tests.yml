@@ -193,6 +193,26 @@ jobs:
     #   #     docker cp "$container_id:/bin/consul" $HOME/bin/consul
     #   #     docker rm "$container_id"
 
+  go-test-race:
+    needs: 
+    - setup   
+    - dev-build
+    uses: ./.github/workflows/reusable-unit.yml
+    with:
+      directory: .
+      go-version: "1.20"
+      args: "-race -gcflags=all=-d=checkptr=0"
+
+  go-test-32bit:
+    needs: 
+    - setup   
+    - dev-build
+    uses: ./.github/workflows/reusable-unit.yml
+    with:
+      directory: .
+      go-version: "1.20"
+      go-arch: "386"
+
   go-test-envoyextensions:
     needs: 
     - setup   
