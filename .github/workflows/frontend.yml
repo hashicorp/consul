@@ -4,13 +4,13 @@ on:
   pull_request:
     branches:
       - main
-      - /^ui\/.*/
-      - /^backport\/ui\/.*/
+      # - /^ui\/.*/
+      # - /^backport\/ui\/.*/
   push:
     branches:
       - main
-      - /^ui\/.*/
-      - /^backport\/ui\/.*/
+      # - /^ui\/.*/
+      # - /^backport\/ui\/.*/
 
 jobs:
   frontend-cache:
