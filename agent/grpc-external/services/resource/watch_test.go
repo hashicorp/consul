@@ -19,6 +19,7 @@ import (
 )
 
 func TestWatchList_TypeNotFound(t *testing.T) {
+	t.Parallel()
 	server := testServer(t)
 	client := testClient(t, server)
 
@@ -36,6 +37,7 @@ func TestWatchList_TypeNotFound(t *testing.T) {
 }
 
 func TestWatchList_GroupVersionMatches(t *testing.T) {
+	t.Parallel()
 	server := testServer(t)
 	client := testClient(t, server)
 	server.registry.Register(resource.Registration{Type: typev1})
@@ -76,6 +78,7 @@ func TestWatchList_GroupVersionMismatch(t *testing.T) {
 	// Given a watch on typev2 that only differs from typev1 by GroupVersion
 	// When a resource of typev1 is created/updated/deleted
 	// Then no watch events should be emitted
+	t.Parallel()
 	server := testServer(t)
 	client := testClient(t, server)
 	ctx := context.Background()
@@ -126,8 +129,7 @@ func mustGetNoResource(t *testing.T, ch <-chan resourceOrError) {
 	case rsp := <-ch:
 		require.NoError(t, rsp.err)
 		require.Nil(t, rsp.rsp, "expected nil response with no error")
-	case <-time.After(1 * time.Second):
-		// Dan: Any way to do this without the annoying delay?
+	case <-time.After(250 * time.Millisecond):
 		return
 	}
 }
