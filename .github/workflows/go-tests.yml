@@ -184,7 +184,7 @@ jobs:
             make dev
           # fi
       # TODO(JM)- if not always building above, re-enable this.
-      # - uses: actions/download-artifact@v2
+      # - uses: actions/download-artifact@v3
       #   with:
       #     name: consul-bin
       #     path: ./bin/consul

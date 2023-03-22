@@ -20,7 +20,7 @@ jobs:
           go-version-file: 'go.mod'
         # TODO(JM) - figure out why this fails and if it is needed
       # # this normally runs as the first job and has nothing to attach; only used in main branch after rebuilding UI
-      # - uses: actions/download-artifact@v2
+      # - uses: actions/download-artifact@v3
       #   with:
       #     name: root-path
       #     path: .
