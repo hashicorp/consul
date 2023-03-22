@@ -12,13 +12,7 @@ test('utils.respositoryYear parses the year out correctly', function (t) {
 });
 test('utils.binaryVersion parses the version out correctly', function (t) {
   const expected = '1.9.0';
-  const actual = utils.binaryVersion()(`
-
-	Version = "1.9.0"
-
-	VersionPrerelease = "dev"
-
-`);
+  const actual = utils.binaryVersion()(`1.9.0`);
   t.equal(actual, expected, 'It parses the version correctly');
   t.end();
 });
