@@ -19,9 +19,6 @@ jobs:
         !startsWith(github.ref, 'refs/heads/backport/ui/') || 
         !startsWith(github.ref, 'refs/heads/backport/mktg-.')
     uses: ./.github/workflows/reusable-check-go-mod.yml
-    - name: Notify Slack
-      if: failure()
-      run: .github/scripts/notify_slack.sh
   check-generated-protobuf:
     if: |
         github.ref != 'refs/heads/stable-website' || 
