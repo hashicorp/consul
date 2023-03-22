@@ -172,6 +172,11 @@ jobs:
           split-total: ${{ env.total-runners }}
           split-index: ${{ matrix.runner-index }}
       - run: 'echo "This runner will execute the following tests: ${{ steps.split-tests.outputs.test-suite }}"'
+      - uses: ./.github/workflows/reusable-unit.yml
+        with:
+          directory: .
+          go-version: "1.20"
+          package-names: '${{ steps.split-tests.outputs.test-suite }}'
 
   go-test-arm64:
     # TODO(JM):  Fix to run on arm64
