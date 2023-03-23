@@ -4,6 +4,9 @@ import (
 	"context"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/status"
 
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/storage"
@@ -44,11 +47,6 @@ func (s *Server) WriteStatus(ctx context.Context, req *pbresource.WriteStatusReq
 	return &pbresource.WriteStatusResponse{}, nil
 }
 
-func (s *Server) List(ctx context.Context, req *pbresource.ListRequest) (*pbresource.ListResponse, error) {
-	// TODO
-	return &pbresource.ListResponse{}, nil
-}
-
 func (s *Server) Delete(ctx context.Context, req *pbresource.DeleteRequest) (*pbresource.DeleteResponse, error) {
 	// TODO
 	return &pbresource.DeleteResponse{}, nil
@@ -57,4 +55,32 @@ func (s *Server) Delete(ctx context.Context, req *pbresource.DeleteRequest) (*pb
 func (s *Server) Watch(req *pbresource.WatchRequest, ws pbresource.ResourceService_WatchServer) error {
 	// TODO
 	return nil
+}
+
+func (s *Server) resolveType(typ *pbresource.Type) (*resource.Registration, error) {
+	v, ok := s.registry.Resolve(typ)
+	if ok {
+		return &v, nil
+	}
+	return nil, status.Errorf(
+		codes.InvalidArgument,
+		"resource type %s not registered", resource.ToGVK(typ),
+	)
+}
+
+func readConsistencyFrom(ctx context.Context) storage.ReadConsistency {
+	md, ok := metadata.FromIncomingContext(ctx)
+	if !ok {
+		return storage.EventualConsistency
+	}
+
+	vals := md.Get("x-consul-consistency-mode")
+	if len(vals) == 0 {
+		return storage.EventualConsistency
+	}
+
+	if vals[0] == "consistent" {
+		return storage.StrongConsistency
+	}
+	return storage.EventualConsistency
 }
