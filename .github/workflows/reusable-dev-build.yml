@@ -11,7 +11,7 @@ on:
         description: An expression indicating which kind of runners to use.
         required: false
         type: string
-        default: "["custom", "linux", "large"]"
+        default: '["custom", "linux", "large"]'
 jobs:
   build:
     runs-on: ${{ fromJSON(inputs.runs-on) }}

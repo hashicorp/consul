@@ -21,7 +21,7 @@ on:
         description: An expression indicating which kind of runners to use.
         required: false
         type: string
-        default: "["custom", "linux", "large"]"
+        default: '["custom", "linux", "large"]'
       args:
         required: false
         type: string
@@ -135,7 +135,7 @@ jobs:
           path: /tmp/jsonfile
       - name: "Re-run fails report"
         run: |
-          .github/scripts/rerun-fails-report.sh /tmp/gotestsum-rerun-fails
+          .github/scripts/rerun_fails_report.sh /tmp/gotestsum-rerun-fails
       - name: Notify Slack
         if: failure()
         run: .github/scripts/notify_slack.sh
