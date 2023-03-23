@@ -408,6 +408,9 @@ func TestDecodeConfigEntry(t *testing.T) {
 					"Type": "file",
 					"Path": "/tmp/logs.txt",
 					"TextFormat": "[%START_TIME%]"
+				},
+				"FailoverPolicy": {
+					"Mode": "default"
 				}
 			}
 			`,
@@ -439,6 +442,9 @@ func TestDecodeConfigEntry(t *testing.T) {
 					Type:                FileLogSinkType,
 					Path:                "/tmp/logs.txt",
 					TextFormat:          "[%START_TIME%]",
+				},
+				FailoverPolicy: &ServiceResolverFailoverPolicy{
+					Mode: "default",
 				},
 			},
 		},
