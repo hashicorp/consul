@@ -36,27 +36,6 @@ jobs:
           echo 'compute-large=["custom", "linux", "large"]' >> $GITHUB_OUTPUT
           echo 'compute-arm64=["self-hosted", "ondemand", "os=macos-arm", "arm64"]' >> $GITHUB_OUTPUT
 
-  setup-test-packages:
-    needs: 
-    - setup   
-    runs-on: ubuntu-latest
-    name: "Runner #${{ matrix.runner-index }}: Run test suite in parallel"
-    strategy:
-      matrix:
-        runner-index: [0,1,2,3,4,5,6,7,8,9,10]
-    env:
-      total-runners: 11
-    steps:
-      - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
-      - uses: chaosaffe/split-tests@v1-alpha.1
-        id: split-tests
-        name: Split tests
-        with:
-          glob: ./**/*_test.go
-          split-total: ${{ env.total-runners }}
-          split-index: ${{ matrix.runner-index }}
-      - run: 'echo "This runner will execute the following tests: ${{ steps.split-tests.outputs.test-suite }}"'
-  
   check-go-mod:
     needs: 
     - setup
