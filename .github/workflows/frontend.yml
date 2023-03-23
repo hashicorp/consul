@@ -4,13 +4,13 @@ on:
   pull_request:
     branches:
       - main
-      # - /^ui\/.*/
-      # - /^backport\/ui\/.*/
+      - ui/**
+      - backport/**
   push:
     branches:
       - main
-      # - /^ui\/.*/
-      # - /^backport\/ui\/.*/
+      - ui/**
+      - backport/**
 
 jobs:
   workspace-tests:
@@ -47,7 +47,7 @@ jobs:
     - run: make test-node
       working-directory: ui/packages/consul-ui
 
-  ember-build-test-oss:
+  ember-build-test:
     runs-on: ubuntu-20.04
     container:
       image: docker.mirror.hashicorp.services/circleci/node:16-browsers
@@ -55,29 +55,7 @@ jobs:
     env:
       EMBER_TEST_REPORT: test-results/report-oss.xml #outputs test report for CircleCI test summary
       EMBER_TEST_PARALLEL: true #enables test parallelization with ember-exam
-      CONSUL_NSPACES_ENABLED: 0
-    steps:
-    - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
-
-    # Install dependencies.
-    - name: install yarn packages
-      working-directory: ui
-      run: make deps
-    
-    - working-directory: ui/packages/consul-ui
-      run: |
-        make build-ci
-        node_modules/.bin/ember exam --path dist --silent -r xunit
-
-  ember-build-test-ent:
-    runs-on: ubuntu-20.04
-    container:
-      image: docker.mirror.hashicorp.services/circleci/node:16-browsers
-      options: --user root
-    env:
-      EMBER_TEST_REPORT: test-results/report-oss.xml #outputs test report for CircleCI test summary
-      EMBER_TEST_PARALLEL: true #enables test parallelization with ember-exam
-      CONSUL_NSPACES_ENABLED: 1
+      CONSUL_NSPACES_ENABLED: 0 # NOTE: this should be 1 in ENT.
     steps:
     - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
 
