@@ -341,7 +341,18 @@ func (v *VaultProvider) GenerateRoot() (RootResult, error) {
 		rootChain = rootPEM
 	}
 
-	return RootResult{PEM: rootChain}, nil
+	intermediate, err := v.ActiveLeafSigningCert()
+	if err != nil {
+		return RootResult{}, fmt.Errorf("error fetching active intermediate: %w", err)
+	}
+	if intermediate == "" {
+		intermediate, err = v.GenerateLeafSigningCert()
+		if err != nil {
+			return RootResult{}, fmt.Errorf("error generating intermediate: %w", err)
+		}
+	}
+
+	return RootResult{PEM: rootChain, IntermediatePEM: intermediate}, nil
 }
 
 // GenerateIntermediateCSR creates a private key and generates a CSR

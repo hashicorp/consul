@@ -255,8 +255,8 @@ func (c *CAManager) initializeCAConfig() (*structs.CAConfiguration, error) {
 }
 
 // newCARoot returns a filled-in structs.CARoot from a raw PEM value.
-func newCARoot(pemValue, provider, clusterID string) (*structs.CARoot, error) {
-	primaryCert, err := connect.ParseCert(pemValue)
+func newCARoot(rootResult ca.RootResult, provider, clusterID string) (*structs.CARoot, error) {
+	primaryCert, err := connect.ParseCert(rootResult.PEM)
 	if err != nil {
 		return nil, err
 	}
@@ -264,7 +264,7 @@ func newCARoot(pemValue, provider, clusterID string) (*structs.CARoot, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error extracting root key info: %v", err)
 	}
-	return &structs.CARoot{
+	caRoot := &structs.CARoot{
 		ID:                  connect.CalculateCertFingerprint(primaryCert.Raw),
 		Name:                fmt.Sprintf("%s CA Primary Cert", providerPrettyName(provider)),
 		SerialNumber:        primaryCert.SerialNumber.Uint64(),
@@ -272,11 +272,18 @@ func newCARoot(pemValue, provider, clusterID string) (*structs.CARoot, error) {
 		ExternalTrustDomain: clusterID,
 		NotBefore:           primaryCert.NotBefore,
 		NotAfter:            primaryCert.NotAfter,
-		RootCert:            lib.EnsureTrailingNewline(pemValue),
+		RootCert:            lib.EnsureTrailingNewline(rootResult.PEM),
 		PrivateKeyType:      keyType,
 		PrivateKeyBits:      keyBits,
 		Active:              true,
-	}, nil
+	}
+	if rootResult.IntermediatePEM == "" {
+		return caRoot, nil
+	}
+	if err := setLeafSigningCert(caRoot, rootResult.IntermediatePEM); err != nil {
+		return nil, fmt.Errorf("error setting leaf signing cert: %w", err)
+	}
+	return caRoot, nil
 }
 
 // getCAProvider returns the currently active instance of the CA Provider,
@@ -503,39 +510,13 @@ func (c *CAManager) primaryInitialize(provider ca.Provider, conf *structs.CAConf
 		return fmt.Errorf("error generating CA root certificate: %v", err)
 	}
 
-	rootCA, err := newCARoot(root.PEM, conf.Provider, conf.ClusterID)
+	rootCA, err := newCARoot(root, conf.Provider, conf.ClusterID)
 	if err != nil {
 		return err
 	}
 
-	// TODO: https://github.com/hashicorp/consul/issues/12386
-	interPEM, err := provider.GenerateLeafSigningCert()
-	if err != nil {
-		return fmt.Errorf("error generating intermediate cert: %v", err)
-	}
-	intermediateCert, err := connect.ParseCert(interPEM)
-	if err != nil {
-		return fmt.Errorf("error getting intermediate cert: %v", err)
-	}
-
 	var rootUpdateRequired bool
-
-	// Versions prior to 1.9.3, 1.8.8, and 1.7.12 incorrectly used the primary
-	// rootCA's subjectKeyID here instead of the intermediate. For
-	// provider=consul this didn't matter since there are no intermediates in
-	// the primaryDC, but for vault it does matter.
-	expectedSigningKeyID := connect.EncodeSigningKeyID(intermediateCert.SubjectKeyId)
-	if rootCA.SigningKeyID != expectedSigningKeyID {
-		c.logger.Info("Correcting stored CARoot values",
-			"previous-signing-key", rootCA.SigningKeyID, "updated-signing-key", expectedSigningKeyID)
-		rootCA.SigningKeyID = expectedSigningKeyID
-		rootUpdateRequired = true
-	}
-
-	// Add the local leaf signing cert to the rootCA struct. This handles both
-	// upgrades of existing state, and new rootCA.
-	if c.getLeafSigningCertFromRoot(rootCA) != interPEM {
-		rootCA.IntermediateCerts = append(rootCA.IntermediateCerts, interPEM)
+	if len(rootCA.IntermediateCerts) > 0 {
 		rootUpdateRequired = true
 	}
 
@@ -890,26 +871,9 @@ func (c *CAManager) primaryUpdateRootCA(newProvider ca.Provider, args *structs.C
 	}
 
 	newRootPEM := providerRoot.PEM
-	newActiveRoot, err := newCARoot(newRootPEM, args.Config.Provider, args.Config.ClusterID)
+	newActiveRoot, err := newCARoot(providerRoot, args.Config.Provider, args.Config.ClusterID)
 	if err != nil {
 		return err
-	}
-
-	// TODO: https://github.com/hashicorp/consul/issues/12386
-	intermediate, err := newProvider.ActiveLeafSigningCert()
-	if err != nil {
-		return fmt.Errorf("error fetching active intermediate: %w", err)
-	}
-	if intermediate == "" {
-		intermediate, err = newProvider.GenerateLeafSigningCert()
-		if err != nil {
-			return fmt.Errorf("error generating intermediate: %w", err)
-		}
-	}
-	if intermediate != newRootPEM {
-		if err := setLeafSigningCert(newActiveRoot, intermediate); err != nil {
-			return err
-		}
 	}
 
 	state := c.delegate.State()

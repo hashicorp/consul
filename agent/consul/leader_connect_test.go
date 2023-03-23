@@ -1358,7 +1358,8 @@ func TestNewCARoot(t *testing.T) {
 	}
 
 	run := func(t *testing.T, tc testCase) {
-		root, err := newCARoot(tc.pem, "provider-name", "cluster-id")
+		// TODO(chrisk): Add tests using intermediate PEM
+		root, err := newCARoot(ca.RootResult{PEM: tc.pem}, "provider-name", "cluster-id")
 		if tc.expectedErr != "" {
 			testutil.RequireErrorContains(t, err, tc.expectedErr)
 			return

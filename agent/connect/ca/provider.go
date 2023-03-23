@@ -203,6 +203,10 @@ type RootResult struct {
 	// If there is only a single certificate in the bundle then it will be used
 	// as both the primary CA and the trusted CA.
 	PEM string
+
+	// IntermediatePEM is an encoded bundle of CA certificates used by providers
+	// that use an intermediate CA to sign leaf certificates.
+	IntermediatePEM string
 }
 
 // NeedsStop is an optional interface that allows a CA to define a function
