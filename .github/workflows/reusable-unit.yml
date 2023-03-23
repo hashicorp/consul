@@ -83,7 +83,8 @@ jobs:
               --junitfile ${{env.TEST_RESULTS}}/gotestsum-report.xml -- \
               -tags="${{env.GOTAGS}}" \
               -p 2 \
-              -cover -coverprofile=coverage.txt
+              -cover -coverprofile=coverage.txt \
+              ./...
       - uses: actions/upload-artifact@master
         with:
           name: test-results
