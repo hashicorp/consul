@@ -420,3 +420,6 @@ func (m *mockLimiter) Run(ctx context.Context)                 { m.Called(ctx) }
 func (m *mockLimiter) UpdateConfig(cfg multilimiter.LimiterConfig, prefix []byte) {
 	m.Called(cfg, prefix)
 }
+func (m *mockLimiter) DeleteConfig(prefix []byte) {
+	m.Called(prefix)
+}
