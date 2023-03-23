@@ -23,18 +23,18 @@ jobs:
     name: Setup
     runs-on: ubuntu-latest
     outputs:
-      compute-standard: ${{ steps.setup-outputs.outputs.compute-standard }}
+      compute-small: ${{ steps.setup-outputs.outputs.compute-small }}
       compute-medium: ${{ steps.setup-outputs.outputs.compute-medium }}
       compute-large: ${{ steps.setup-outputs.outputs.compute-medium }}
-      compute-arm64: ${{ steps.setup-outputs.outputs.compute-arm64 }}
+      compute-xl: ${{ steps.setup-outputs.outputs.compute-xl }}
     steps:
     - id: setup-outputs
       name: Setup outputs
       run: |
-          echo 'compute-standard=["custom", "linux", "small"]' >> $GITHUB_OUTPUT
+          echo 'compute-small=["custom", "linux", "small"]' >> $GITHUB_OUTPUT
           echo 'compute-medium=["custom", "linux", "medium"]' >> $GITHUB_OUTPUT
           echo 'compute-large=["custom", "linux", "large"]' >> $GITHUB_OUTPUT
-          echo 'compute-arm64=["self-hosted", "ondemand", "os=macos-arm", "arm64"]' >> $GITHUB_OUTPUT
+          echo 'compute-xl=["custom", "linux", "xl"]' >> $GITHUB_OUTPUT
 
   check-go-mod:
     needs: 
