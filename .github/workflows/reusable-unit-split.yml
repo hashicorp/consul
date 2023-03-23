@@ -36,6 +36,8 @@ env:
   GOTESTSUM_VERSION: 1.8.2
   GOARCH: ${{inputs.go-arch}}
   TOTAL_RUNNERS: ${{inputs.runner-count}}
+  MAX_RUNNER_INDEX: $((${{ inputs.runner-count }}-1))
+  MIN_RUNNER_INDEX: 0
   
 jobs:
   runner-indexes:
@@ -50,7 +52,7 @@ jobs:
     steps:
     - id: generate-index-list
       run: |
-        INDEX_LIST="$(seq 0 (${{ env.TOTAL_RUNNERS }}-1))"
+        INDEX_LIST="$(seq ${{env.MIN_RUNNER_INDEX}} ${{ env.MAX_RUNNER_INDEX }})"
         INDEX_JSON="$(jq --null-input --compact-output '. |= [inputs]' <<< "${INDEX_LIST}")"
         echo "indexes=${INDEX_JSON}" >> "${GITHUB_OUTPUT}"
   go-test:
