@@ -106,7 +106,7 @@ jobs:
       - name: Run tests 
         working-directory: ${{inputs.directory}}
         run: |
-          PACKAGE_NAMES=${{ steps.split-tests.outputs.test-suite }}
+          PACKAGE_NAMES=${{ steps.test_split.outputs.run }}
 
           # TODO(JM): figure out why this erroring
           # if [[ github.ref == 'refs/heads/main' || !startsWith(github.ref, 'refs/heads/release/') ]]; then
