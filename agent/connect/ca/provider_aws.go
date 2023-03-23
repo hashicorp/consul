@@ -542,8 +542,8 @@ func (a *AWSProvider) SetIntermediate(intermediatePEM string, rootPEM string, _ 
 	return nil
 }
 
-// ActiveIntermediate implements Provider
-func (a *AWSProvider) ActiveIntermediate() (string, error) {
+// ActiveLeafSigningCert implements Provider
+func (a *AWSProvider) ActiveLeafSigningCert() (string, error) {
 	err := a.ensureCA()
 	if err != nil {
 		return "", err
@@ -571,8 +571,8 @@ func (a *AWSProvider) ActiveIntermediate() (string, error) {
 	return a.intermediatePEM, nil
 }
 
-// GenerateIntermediate implements Provider
-func (a *AWSProvider) GenerateIntermediate() (string, error) {
+// GenerateLeafSigningCert implements Provider
+func (a *AWSProvider) GenerateLeafSigningCert() (string, error) {
 	// Like the consul provider, for now the Primary DC just gets a root and no
 	// intermediate to sign with. so just return this. Secondaries use
 	// intermediates but this method is only called during primary DC (root)
@@ -581,7 +581,7 @@ func (a *AWSProvider) GenerateIntermediate() (string, error) {
 	//
 	// TODO(banks) support user-supplied CA being a Subordinate even in the
 	// primary DC.
-	return a.ActiveIntermediate()
+	return a.ActiveLeafSigningCert()
 }
 
 // Sign implements Provider

@@ -267,13 +267,13 @@ func (m *mockCAProvider) SetIntermediate(intermediatePEM, rootPEM, _ string) err
 	m.callbackCh <- "provider/SetIntermediate"
 	return nil
 }
-func (m *mockCAProvider) ActiveIntermediate() (string, error) {
+func (m *mockCAProvider) ActiveLeafSigningCert() (string, error) {
 	if m.intermediatePem == "" {
 		return m.rootPEM, nil
 	}
 	return m.intermediatePem, nil
 }
-func (m *mockCAProvider) GenerateIntermediate() (string, error)                     { return "", nil }
+func (m *mockCAProvider) GenerateLeafSigningCert() (string, error)                  { return "", nil }
 func (m *mockCAProvider) Sign(*x509.CertificateRequest) (string, error)             { return "", nil }
 func (m *mockCAProvider) SignIntermediate(*x509.CertificateRequest) (string, error) { return "", nil }
 func (m *mockCAProvider) CrossSignCA(*x509.Certificate) (string, error)             { return "", nil }

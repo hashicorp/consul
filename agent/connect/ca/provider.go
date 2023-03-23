@@ -84,12 +84,12 @@ type Provider interface {
 	// in the Provider struct so it won't change after being returned.
 	State() (map[string]string, error)
 
-	// ActiveIntermediate returns the current signing cert used by this provider
+	// ActiveLeafSigningCert returns the current signing cert used by this provider
 	// for generating SPIFFE leaf certs. Note that this must not change except
-	// when Consul requests the change via GenerateIntermediate. Changing the
+	// when Consul requests the change via GenerateLeafSigningCert. Changing the
 	// signing cert will break Consul's assumptions about which validation paths
 	// are active.
-	ActiveIntermediate() (string, error)
+	ActiveLeafSigningCert() (string, error)
 
 	// Sign signs a leaf certificate used by Connect proxies from a CSR. The PEM
 	// returned should include only the leaf certificate as all Intermediates
@@ -135,8 +135,8 @@ type PrimaryProvider interface {
 	// the active intermediate. If multiple intermediates are needed to complete
 	// the chain from the signing certificate back to the active root, they should
 	// all by bundled here.
-	// TODO: replace with GenerateLeafSigningCert (https://github.com/hashicorp/consul/issues/12386)
-	GenerateIntermediate() (string, error)
+	// TODO: move to PrimaryUsesIntermediate
+	GenerateLeafSigningCert() (string, error)
 
 	// SignIntermediate will validate the CSR to ensure the trust domain in the
 	// URI SAN matches the local one and that basic constraints for a CA

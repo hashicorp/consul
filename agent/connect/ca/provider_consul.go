@@ -277,7 +277,7 @@ func (c *ConsulProvider) SetIntermediate(intermediatePEM, rootPEM, _ string) err
 	return nil
 }
 
-func (c *ConsulProvider) ActiveIntermediate() (string, error) {
+func (c *ConsulProvider) ActiveLeafSigningCert() (string, error) {
 	providerState, err := c.getState()
 	if err != nil {
 		return "", err
@@ -291,8 +291,8 @@ func (c *ConsulProvider) ActiveIntermediate() (string, error) {
 
 // We aren't maintaining separate root/intermediate CAs for the builtin
 // provider, so just return the root.
-func (c *ConsulProvider) GenerateIntermediate() (string, error) {
-	return c.ActiveIntermediate()
+func (c *ConsulProvider) GenerateLeafSigningCert() (string, error) {
+	return c.ActiveLeafSigningCert()
 }
 
 // Remove the state store entry for this provider instance.
@@ -351,7 +351,7 @@ func (c *ConsulProvider) Sign(csr *x509.CertificateRequest) (string, error) {
 	}
 
 	// Parse the CA cert
-	certPEM, err := c.ActiveIntermediate()
+	certPEM, err := c.ActiveLeafSigningCert()
 	if err != nil {
 		return "", err
 	}

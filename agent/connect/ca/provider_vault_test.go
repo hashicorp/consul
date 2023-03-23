@@ -242,7 +242,7 @@ func TestVaultCAProvider_SecondaryActiveIntermediate(t *testing.T) {
 		"IntermediatePKIPath": "pki-intermediate/",
 	})
 
-	cert, err := provider.ActiveIntermediate()
+	cert, err := provider.ActiveLeafSigningCert()
 	require.Empty(t, cert)
 	require.NoError(t, err)
 }
@@ -416,7 +416,7 @@ func TestVaultCAProvider_Bootstrap(t *testing.T) {
 				"RootCertTTL": "8761h",
 			},
 			certFunc: func(provider *VaultProvider) (string, error) {
-				return provider.ActiveIntermediate()
+				return provider.ActiveLeafSigningCert()
 			},
 			backendPath:         "pki-intermediate/",
 			rootCaCreation:      false,
@@ -485,7 +485,7 @@ func TestVaultCAProvider_SignLeaf(t *testing.T) {
 		rootPEM := root.PEM
 		assertCorrectKeyType(t, tc.KeyType, rootPEM)
 
-		intPEM, err := provider.ActiveIntermediate()
+		intPEM, err := provider.ActiveLeafSigningCert()
 		require.NoError(t, err)
 		assertCorrectKeyType(t, tc.KeyType, intPEM)
 
@@ -587,7 +587,7 @@ func TestVaultCAProvider_CrossSignCA(t *testing.T) {
 			require.NoError(t, err)
 			assertCorrectKeyType(t, tc.SigningKeyType, root.PEM)
 
-			intPEM, err := provider1.ActiveIntermediate()
+			intPEM, err := provider1.ActiveLeafSigningCert()
 			require.NoError(t, err)
 			assertCorrectKeyType(t, tc.SigningKeyType, intPEM)
 		})
@@ -615,7 +615,7 @@ func TestVaultCAProvider_CrossSignCA(t *testing.T) {
 			require.NoError(t, err)
 			assertCorrectKeyType(t, tc.CSRKeyType, root.PEM)
 
-			intPEM, err := provider2.ActiveIntermediate()
+			intPEM, err := provider2.ActiveLeafSigningCert()
 			require.NoError(t, err)
 			assertCorrectKeyType(t, tc.CSRKeyType, intPEM)
 
@@ -1075,7 +1075,7 @@ func TestVaultProvider_ReconfigureIntermediateTTL(t *testing.T) {
 	require.NoError(t, err)
 	_, err = provider.GenerateRoot()
 	require.NoError(t, err)
-	_, err = provider.GenerateIntermediate()
+	_, err = provider.GenerateLeafSigningCert()
 	require.NoError(t, err)
 
 	// Attempt to update the ttl without permissions for the tune endpoint - shouldn't
@@ -1124,16 +1124,16 @@ func TestVaultCAProvider_GenerateIntermediate(t *testing.T) {
 		"IntermediatePKIPath": "pki-intermediate/",
 	})
 
-	orig, err := provider.ActiveIntermediate()
+	orig, err := provider.ActiveLeafSigningCert()
 	require.NoError(t, err)
 
 	// This test was created to ensure that our calls to Vault
 	// returns a new Intermediate certificate and further calls
-	// to ActiveIntermediate return the same new cert.
-	new, err := provider.GenerateIntermediate()
+	// to ActiveLeafSigningCert return the same new cert.
+	new, err := provider.GenerateLeafSigningCert()
 	require.NoError(t, err)
 
-	newActive, err := provider.ActiveIntermediate()
+	newActive, err := provider.ActiveLeafSigningCert()
 	require.NoError(t, err)
 
 	require.Equal(t, new, newActive)
@@ -1191,7 +1191,7 @@ func TestVaultCAProvider_GenerateIntermediate_inSecondary(t *testing.T) {
 		// Give the new intermediate to provider to use.
 		require.NoError(t, provider.SetIntermediate(intermediatePEM, rootPEM, issuerID))
 
-		origIntermediate, err = provider.ActiveIntermediate()
+		origIntermediate, err = provider.ActiveLeafSigningCert()
 		require.NoError(t, err)
 	})
 
@@ -1214,8 +1214,8 @@ func TestVaultCAProvider_GenerateIntermediate_inSecondary(t *testing.T) {
 
 		// This test was created to ensure that our calls to Vault
 		// returns a new Intermediate certificate and further calls
-		// to ActiveIntermediate return the same new cert.
-		newActiveIntermediate, err := provider.ActiveIntermediate()
+		// to ActiveLeafSigningCert return the same new cert.
+		newActiveIntermediate, err := provider.ActiveLeafSigningCert()
 		require.NoError(t, err)
 
 		require.NotEqual(t, origIntermediate, newActiveIntermediate)
@@ -1357,7 +1357,7 @@ func createVaultProvider(t *testing.T, isPrimary bool, addr, token string, rawCo
 	if isPrimary {
 		_, err := provider.GenerateRoot()
 		require.NoError(t, err)
-		_, err = provider.GenerateIntermediate()
+		_, err = provider.GenerateLeafSigningCert()
 		require.NoError(t, err)
 	}
 

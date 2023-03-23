@@ -495,7 +495,7 @@ func (v *VaultProvider) SetIntermediate(intermediatePEM, rootPEM, keyId string) 
 }
 
 // ActiveIntermediate returns the current intermediate certificate.
-func (v *VaultProvider) ActiveIntermediate() (string, error) {
+func (v *VaultProvider) ActiveLeafSigningCert() (string, error) {
 	cert, err := v.getCA(v.config.IntermediatePKINamespace, v.config.IntermediatePKIPath)
 
 	// This error is expected when calling initializeSecondaryCA for the
@@ -568,7 +568,7 @@ func (v *VaultProvider) getCAChain(namespace, path string) (string, error) {
 // GenerateIntermediate mounts the configured intermediate PKI backend if
 // necessary, then generates and signs a new CA CSR using the root PKI backend
 // and updates the intermediate backend to use that new certificate.
-func (v *VaultProvider) GenerateIntermediate() (string, error) {
+func (v *VaultProvider) GenerateLeafSigningCert() (string, error) {
 	csr, keyId, err := v.generateIntermediateCSR()
 	if err != nil {
 		return "", err
@@ -604,7 +604,7 @@ func (v *VaultProvider) GenerateIntermediate() (string, error) {
 		}
 	}
 
-	return v.ActiveIntermediate()
+	return v.ActiveLeafSigningCert()
 }
 
 // setDefaultIntermediateIssuer updates the default issuer for

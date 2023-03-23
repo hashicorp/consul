@@ -52,7 +52,7 @@ func TestAWSBootstrapAndSignPrimary(t *testing.T) {
 
 			// Generate Intermediate (not actually needed for this provider for now
 			// but this simulates the calls in Server.initializeRoot).
-			interPEM, err := provider.GenerateIntermediate()
+			interPEM, err := provider.GenerateLeafSigningCert()
 			require.NoError(t, err)
 
 			// Should be the same for now
@@ -126,7 +126,7 @@ func TestAWSBootstrapAndSignSecondary(t *testing.T) {
 	testSignIntermediateCrossDC(t, p1, p2)
 
 	// Fetch intermediate from s2 now for later comparison
-	intPEM, err := p2.ActiveIntermediate()
+	intPEM, err := p2.ActiveLeafSigningCert()
 	require.NoError(t, err)
 
 	// Capture the state of the providers we've setup
@@ -152,8 +152,8 @@ func TestAWSBootstrapAndSignSecondary(t *testing.T) {
 		cfg2 := testProviderConfigPrimary(t, nil)
 		cfg2.State = p2State
 		p2 = testAWSProvider(t, cfg2)
-		// Need call ActiveIntermediate like leader would to trigger loading from PCA
-		newIntPEM, err := p2.ActiveIntermediate()
+		// Need call ActiveLeafSigningCert like leader would to trigger loading from PCA
+		newIntPEM, err := p2.ActiveLeafSigningCert()
 		require.NoError(t, err)
 
 		// Root cert should not have changed
@@ -188,8 +188,8 @@ func TestAWSBootstrapAndSignSecondary(t *testing.T) {
 		})
 		cfg1.RawConfig["ExistingARN"] = p2State[AWSStateCAARNKey]
 		p2 = testAWSProvider(t, cfg2)
-		// Need call ActiveIntermediate like leader would to trigger loading from PCA
-		newIntPEM, err := p2.ActiveIntermediate()
+		// Need call ActiveLeafSigningCert like leader would to trigger loading from PCA
+		newIntPEM, err := p2.ActiveLeafSigningCert()
 		require.NoError(t, err)
 
 		// Root cert should not have changed
@@ -221,7 +221,7 @@ func TestAWSBootstrapAndSignSecondary(t *testing.T) {
 		root, err = p1.GenerateRoot()
 		require.NoError(t, err)
 		newRootPEM = root.PEM
-		newIntPEM, err = p2.ActiveIntermediate()
+		newIntPEM, err = p2.ActiveLeafSigningCert()
 		require.NoError(t, err)
 
 		require.Equal(t, rootPEM, newRootPEM)

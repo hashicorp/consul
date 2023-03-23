@@ -12,7 +12,7 @@ import (
 	"time"
 
 	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
-	uuid "github.com/hashicorp/go-uuid"
+	"github.com/hashicorp/go-uuid"
 	"github.com/stretchr/testify/require"
 	"gotest.tools/v3/assert"
 
@@ -251,7 +251,7 @@ func TestCAManager_Initialize_Secondary(t *testing.T) {
 			retry.Run(t, func(r *retry.R) {
 				_, caRoot = getCAProviderWithLock(s1)
 				secondaryProvider, _ = getCAProviderWithLock(s2)
-				intermediatePEM, err = secondaryProvider.ActiveIntermediate()
+				intermediatePEM, err = secondaryProvider.ActiveLeafSigningCert()
 				require.NoError(r, err)
 
 				// Sanity check CA is using the correct key type
@@ -578,7 +578,7 @@ func TestConnectCA_ConfigurationSet_RootRotation_Secondary(t *testing.T) {
 
 	// Get the original intermediate
 	secondaryProvider, _ := getCAProviderWithLock(s2)
-	oldIntermediatePEM, err := secondaryProvider.ActiveIntermediate()
+	oldIntermediatePEM, err := secondaryProvider.ActiveLeafSigningCert()
 	require.NoError(t, err)
 	require.NotEmpty(t, oldIntermediatePEM)
 
@@ -631,7 +631,7 @@ func TestConnectCA_ConfigurationSet_RootRotation_Secondary(t *testing.T) {
 	// Wait for dc2's intermediate to be refreshed.
 	var intermediatePEM string
 	retry.Run(t, func(r *retry.R) {
-		intermediatePEM, err = secondaryProvider.ActiveIntermediate()
+		intermediatePEM, err = secondaryProvider.ActiveLeafSigningCert()
 		r.Check(err)
 		if intermediatePEM == oldIntermediatePEM {
 			r.Fatal("not a new intermediate")
@@ -853,7 +853,7 @@ func TestCAManager_Initialize_Vault_FixesSigningKeyID_Primary(t *testing.T) {
 		require.NotNil(r, provider)
 		require.NotNil(r, activeRoot)
 
-		activeIntermediate, err := provider.ActiveIntermediate()
+		activeIntermediate, err := provider.ActiveLeafSigningCert()
 		require.NoError(r, err)
 
 		intermediateCert, err := connect.ParseCert(activeIntermediate)
@@ -954,7 +954,7 @@ func TestCAManager_Initialize_FixesSigningKeyID_Secondary(t *testing.T) {
 		require.NotNil(r, provider)
 		require.NotNil(r, activeRoot)
 
-		activeIntermediate, err := provider.ActiveIntermediate()
+		activeIntermediate, err := provider.ActiveLeafSigningCert()
 		require.NoError(r, err)
 
 		intermediateCert, err := connect.ParseCert(activeIntermediate)
@@ -1143,13 +1143,13 @@ func TestCAManager_Initialize_SecondaryBeforePrimary(t *testing.T) {
 		require.Equal(r, roots1[0].RootCert, roots2[0].RootCert)
 
 		secondaryProvider, _ := getCAProviderWithLock(s2)
-		inter, err := secondaryProvider.ActiveIntermediate()
+		inter, err := secondaryProvider.ActiveLeafSigningCert()
 		require.NoError(r, err)
 		require.NotEmpty(r, inter, "should have valid intermediate")
 	})
 
 	secondaryProvider, _ := getCAProviderWithLock(s2)
-	intermediatePEM, err := secondaryProvider.ActiveIntermediate()
+	intermediatePEM, err := secondaryProvider.ActiveLeafSigningCert()
 	require.NoError(t, err)
 
 	_, caRoot := getCAProviderWithLock(s1)

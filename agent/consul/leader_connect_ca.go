@@ -490,7 +490,7 @@ func (c *CAManager) primaryInitialize(provider ca.Provider, conf *structs.CAConf
 	}
 
 	// TODO: https://github.com/hashicorp/consul/issues/12386
-	interPEM, err := provider.GenerateIntermediate()
+	interPEM, err := provider.GenerateLeafSigningCert()
 	if err != nil {
 		return fmt.Errorf("error generating intermediate cert: %v", err)
 	}
@@ -596,7 +596,7 @@ func (c *CAManager) getLeafSigningCertFromRoot(root *structs.CARoot) string {
 // This method should only be called while the state lock is held by setting the
 // state to non-ready.
 func (c *CAManager) secondaryInitializeIntermediateCA(provider ca.Provider, config *structs.CAConfiguration) error {
-	activeIntermediate, err := provider.ActiveIntermediate()
+	activeIntermediate, err := provider.ActiveLeafSigningCert()
 	if err != nil {
 		return err
 	}
@@ -888,12 +888,12 @@ func (c *CAManager) primaryUpdateRootCA(newProvider ca.Provider, args *structs.C
 	}
 
 	// TODO: https://github.com/hashicorp/consul/issues/12386
-	intermediate, err := newProvider.ActiveIntermediate()
+	intermediate, err := newProvider.ActiveLeafSigningCert()
 	if err != nil {
 		return fmt.Errorf("error fetching active intermediate: %w", err)
 	}
 	if intermediate == "" {
-		intermediate, err = newProvider.GenerateIntermediate()
+		intermediate, err = newProvider.GenerateLeafSigningCert()
 		if err != nil {
 			return fmt.Errorf("error generating intermediate: %w", err)
 		}
@@ -1040,7 +1040,7 @@ func (c *CAManager) primaryUpdateRootCA(newProvider ca.Provider, args *structs.C
 // It should only be called while the state lock is held by setting the state to non-ready.
 func (c *CAManager) primaryRenewIntermediate(provider ca.Provider, newActiveRoot *structs.CARoot) error {
 	// Generate and sign an intermediate cert using the root CA.
-	intermediatePEM, err := provider.GenerateIntermediate()
+	intermediatePEM, err := provider.GenerateLeafSigningCert()
 	if err != nil {
 		return fmt.Errorf("error generating new intermediate cert: %v", err)
 	}
@@ -1184,7 +1184,7 @@ func (c *CAManager) renewIntermediate(ctx context.Context, forceNow bool) error 
 		return nil
 	}
 
-	activeIntermediate, err := provider.ActiveIntermediate()
+	activeIntermediate, err := provider.ActiveLeafSigningCert()
 	if err != nil {
 		return err
 	}

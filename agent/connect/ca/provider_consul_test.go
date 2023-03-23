@@ -88,7 +88,7 @@ func TestConsulCAProvider_Bootstrap(t *testing.T) {
 	require.NoError(t, err)
 
 	// Intermediate should be the same cert.
-	inter, err := provider.ActiveIntermediate()
+	inter, err := provider.ActiveLeafSigningCert()
 	require.NoError(t, err)
 	require.Equal(t, root.PEM, inter)
 
@@ -301,7 +301,7 @@ func testCrossSignProviders(t *testing.T, provider1, provider2 Provider) {
 	requireNotEncoded(t, newRoot.SubjectKeyId)
 	requireNotEncoded(t, newRoot.AuthorityKeyId)
 
-	newInterPEM, err := provider2.ActiveIntermediate()
+	newInterPEM, err := provider2.ActiveLeafSigningCert()
 	require.NoError(t, err)
 	newIntermediate, err := connect.ParseCert(newInterPEM)
 	require.NoError(t, err)
@@ -387,7 +387,7 @@ func testCrossSignProvidersShouldFail(t *testing.T, provider1, provider2 Provide
 	requireNotEncoded(t, newRoot.SubjectKeyId)
 	requireNotEncoded(t, newRoot.AuthorityKeyId)
 
-	newInterPEM, err := provider2.ActiveIntermediate()
+	newInterPEM, err := provider2.ActiveLeafSigningCert()
 	require.NoError(t, err)
 	newIntermediate, err := connect.ParseCert(newInterPEM)
 	require.NoError(t, err)

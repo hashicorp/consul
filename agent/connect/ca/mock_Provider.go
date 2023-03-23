@@ -13,8 +13,8 @@ type MockProvider struct {
 	mock.Mock
 }
 
-// ActiveIntermediate provides a mock function with given fields:
-func (_m *MockProvider) ActiveIntermediate() (string, error) {
+// ActiveLeafSigningCert provides a mock function with given fields:
+func (_m *MockProvider) ActiveLeafSigningCert() (string, error) {
 	ret := _m.Called()
 
 	var r0 string
@@ -83,8 +83,8 @@ func (_m *MockProvider) CrossSignCA(_a0 *x509.Certificate) (string, error) {
 	return r0, r1
 }
 
-// GenerateIntermediate provides a mock function with given fields:
-func (_m *MockProvider) GenerateIntermediate() (string, error) {
+// GenerateLeafSigningCert provides a mock function with given fields:
+func (_m *MockProvider) GenerateLeafSigningCert() (string, error) {
 	ret := _m.Called()
 
 	var r0 string
