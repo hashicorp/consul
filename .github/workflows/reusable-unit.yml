@@ -73,7 +73,7 @@ jobs:
         run: |
             PACKAGE_NAMES=$(go list -tags "$GOTAGS" ./...)
             gotestsum \
-              --format=standard-verbose \
+              --format=short-verbose \
               --jsonfile /tmp/jsonfile/go-test-<<parameters.path>>.log \
               --debug \
               --rerun-fails=3 \
