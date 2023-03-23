@@ -546,6 +546,10 @@
             "path": "connect/intentions/intentions"
           },
           {
+            "title": "Create and manage service intentions",
+            "path": "connect/intentions/intentions-usage"
+          },
+          {
             "title": "Service intentions legacy mode",
             "path": "connect/intentions/intentions-legacy"
           },
