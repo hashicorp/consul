@@ -28,7 +28,7 @@ on:
         default: ""
       runner-count: 
         required: false
-        type: integer
+        type: number
         default: 1
 
 env:
