@@ -102,6 +102,9 @@ jobs:
           glob: ./**/*_test.go
           split-total: ${{ env.TOTAL_RUNNERS }}
           split-index: ${{ matrix.runner-index }}
+      - name: Contents of ${{inputs.directory}}
+        working-directory: ${{inputs.directory}}
+        run: ls -la ${{inputs.directory}}
       - name: Run tests 
         working-directory: ${{inputs.directory}}
         run: |
