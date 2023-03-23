@@ -539,12 +539,21 @@
         ]
       },
       {
-        "title": "Service-to-service permissions - Intentions",
-        "path": "connect/intentions"
-      },
-      {
-        "title": "Service-to-service permissions - Intentions (Legacy Mode)",
-        "path": "connect/intentions-legacy"
+        "title": "Service intentions",
+        "routes": [
+          {
+            "title": "Service intentions overview",
+            "path": "connect/intentions/intentions"
+          },
+          {
+            "title": "Service intentions legacy mode",
+            "path": "connect/intentions/intentions-legacy"
+          },
+          {
+            "title": "Configuration",
+            "href": "/consul/docs/connect/config-entries/service-intentions"
+          }
+        ]
       },
       {
         "title": "Transparent Proxy",
