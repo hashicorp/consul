@@ -75,7 +75,7 @@ jobs:
             gotestsum \
               --format=short-verbose \
               --jsonfile /tmp/jsonfile/go-test-<<parameters.path>>.log \
-              # --debug \
+              --debug \
               # --rerun-fails=3 \
               # --rerun-fails-max-failures=40 \
               # --rerun-fails-report=/tmp/gotestsum-rerun-fails \
