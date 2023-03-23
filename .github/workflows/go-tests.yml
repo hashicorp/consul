@@ -155,9 +155,9 @@ jobs:
 
   go-test-arm64:
     # TODO(JM):  Fix to run on arm64
-    # needs: 
-    # - setup   
-    # - dev-build-arm64
+    needs: 
+    - setup   
+    - dev-build-arm64
     uses: ./.github/workflows/reusable-unit-split.yml
     with:
       directory: .
@@ -179,9 +179,9 @@ jobs:
     #   #     path: ./bin/consul
 
   go-test:
-    # needs: 
-    # - setup   
-    # - dev-build
+    needs: 
+    - setup   
+    - dev-build
     uses: ./.github/workflows/reusable-unit-split.yml
     with:
       directory: .
