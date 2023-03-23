@@ -1,11 +1,10 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
 name: frontend
 
 on:
   pull_request:
-    branches:
-      - main
-      - ui/**
-      - backport/**
   push:
     branches:
       - main
@@ -68,3 +67,6 @@ jobs:
       run: |
         make build-ci
         node_modules/.bin/ember exam --path dist --silent -r xunit
+
+    - working-directory: ui/packages/consul-ui
+      run: make test-coverage-ci
