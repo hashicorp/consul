@@ -243,6 +243,9 @@ func (s *Server) handleConn(conn net.Conn, isTLS bool) {
 	case pool.RPCGRPC:
 		s.grpcHandler.Handle(conn)
 
+	case pool.RPCRaftForwarding:
+		s.handleRaftForwarding(conn)
+
 	default:
 		if !s.handleEnterpriseRPCConn(typ, conn, isTLS) {
 			s.rpcLogger().Error("unrecognized RPC byte",
@@ -310,6 +313,9 @@ func (s *Server) handleNativeTLS(conn net.Conn) {
 
 	case pool.ALPN_RPCGRPC:
 		s.grpcHandler.Handle(tlsConn)
+
+	case pool.ALPN_RPCRaftForwarding:
+		s.handleRaftForwarding(tlsConn)
 
 	case pool.ALPN_WANGossipPacket:
 		if err := s.handleALPN_WANGossipPacketStream(tlsConn); err != nil && err != io.EOF {
@@ -491,6 +497,19 @@ func (s *Server) handleRaftRPC(conn net.Conn) {
 
 	metrics.IncrCounter([]string{"rpc", "raft_handoff"}, 1)
 	s.raftLayer.Handoff(conn)
+}
+
+func (s *Server) handleRaftForwarding(conn net.Conn) {
+	if tlsConn, ok := conn.(*tls.Conn); ok {
+		err := s.tlsConfigurator.AuthorizeServerConn(s.config.Datacenter, tlsConn)
+		if err != nil {
+			s.rpcLogger().Warn(err.Error(), "from", conn.RemoteAddr(), "operation", "raft forwarding")
+			conn.Close()
+			return
+		}
+	}
+
+	s.raftStorageBackend.HandleConnection(conn)
 }
 
 func (s *Server) handleALPN_WANGossipPacketStream(conn net.Conn) error {

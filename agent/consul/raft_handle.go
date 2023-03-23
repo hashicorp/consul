@@ -2,7 +2,12 @@ package consul
 
 import (
 	"context"
+	"errors"
+	"net"
 
+	"google.golang.org/grpc"
+
+	"github.com/hashicorp/consul/agent/pool"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/internal/storage/raft"
 )
@@ -15,7 +20,7 @@ func (h *raftHandle) IsLeader() bool {
 	return h.s.IsLeader()
 }
 
-func (h *raftHandle) EnsureConsistency(ctx context.Context) error {
+func (h *raftHandle) EnsureStrongConsistency(ctx context.Context) error {
 	return h.s.consistentReadWithContext(ctx)
 }
 
@@ -23,6 +28,51 @@ func (h *raftHandle) Apply(msg []byte) (any, error) {
 	return h.s.raftApplyEncoded(
 		structs.ResourceOperationType,
 		append([]byte{uint8(structs.ResourceOperationType)}, msg...),
+	)
+}
+
+func (h *raftHandle) DialLeader() (*grpc.ClientConn, error) {
+	leaderAddr, _ := h.s.raft.LeaderWithID()
+	if leaderAddr == "" {
+		return nil, errors.New("leader unknown")
+	}
+
+	dc := h.s.config.Datacenter
+	tlsCfg := h.s.tlsConfigurator
+
+	return grpc.Dial(string(leaderAddr),
+		// TLS is handled in the dialer below.
+		grpc.WithInsecure(),
+
+		// This dialer negotiates a connection on the multiplexed server port using
+		// our type-byte prefix scheme (see Server.handleConn for other side of it).
+		grpc.WithContextDialer(func(ctx context.Context, addr string) (net.Conn, error) {
+			var d net.Dialer
+			conn, err := d.DialContext(ctx, "tcp", addr)
+			if err != nil {
+				return nil, err
+			}
+
+			if tlsCfg.UseTLS(dc) {
+				if _, err := conn.Write([]byte{byte(pool.RPCTLS)}); err != nil {
+					conn.Close()
+					return nil, err
+				}
+
+				tc, err := tlsCfg.OutgoingRPCWrapper()(dc, conn)
+				if err != nil {
+					conn.Close()
+					return nil, err
+				}
+				conn = tc
+			}
+
+			if _, err := conn.Write([]byte{byte(pool.RPCRaftForwarding)}); err != nil {
+				conn.Close()
+				return nil, err
+			}
+			return conn, nil
+		}),
 	)
 }
 
