@@ -50,7 +50,7 @@ jobs:
     steps:
     - id: generate-index-list
       run: |
-        INDEX_LIST="$(seq 0 $((${{ env.TOTAL_RUNNERS }}-1))"
+        INDEX_LIST="$(seq 0 (${{ env.TOTAL_RUNNERS }}-1)"
         INDEX_JSON="$(jq --null-input --compact-output '. |= [inputs]' <<< "${INDEX_LIST}")"
         echo "indexes=${INDEX_JSON}" >> "${GITHUB_OUTPUT}"
   go-test:
