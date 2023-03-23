@@ -23,7 +23,7 @@ func (fl *FilterList) Set(filters []string) error {
 	for idx, filter := range filters {
 		re, err := regexp.Compile(filter)
 		if err != nil {
-			return fmt.Errorf("compilation of filter at index %d failed: %w", idx)
+			return fmt.Errorf("compilation of filter at index %d failed: %w", idx, err)
 		}
 		compiledList[filter] = re
 	}

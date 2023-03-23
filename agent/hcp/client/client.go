@@ -88,7 +88,7 @@ func httpClient(c config.CloudConfig) (*httptransport.Runtime, error) {
 // TODO: Implement this, stubbed for now until CCM protos are available.
 func (c *hcpClient) FetchTelemetryConfig(ctx context.Context) (*TelemetryConfig, error) {
 	return &TelemetryConfig{
-		Endpoint: "",
+		Endpoint: "localhost:9090",
 		Filters:  []string{"raft.apply$"},
 	}, nil
 }

@@ -92,12 +92,18 @@ func (m *Manager) runReporter(ctx context.Context) {
 	cfg := telemetry.DefaultConfig()
 	cfg.Logger = m.logger
 	cfg.Gatherer = m.cfg.MetricsBackend
-	cfg.Labels = map[string]string{
+	labels := map[string]string{
 		"service.name":        "consul-server",
 		"service.version":     version.GetHumanVersion(),
 		"service.instance.id": m.cfg.NodeID,
 	}
-	// cfg.Exporter = NewExporter(telemetryCfg.Endpoint, m.cfg.Client)
+	exp, err := telemetry.NewMetricsExporter(ctx, labels, telemetryCfg.Endpoint, m.logger, telemetryCfg.Filters)
+	if err != nil {
+		m.logger.Error("Failed to create exporter", "error", err)
+		return
+	}
+
+	cfg.Exporter = exp
 
 	m.reporter = telemetry.NewReporter(cfg)
 
