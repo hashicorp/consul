@@ -81,7 +81,8 @@ jobs:
               --rerun-fails-report=/tmp/gotestsum-rerun-fails \
               --packages="$PACKAGE_NAMES" \
               --junitfile ${{env.TEST_RESULTS}}/gotestsum-report.xml -- \
-              -tags="${{env.GOTAGS}}" -p 2 \
+              -tags="${{env.GOTAGS}}" \
+              -p 2 \
               -cover -coverprofile=coverage.txt
       - uses: actions/upload-artifact@master
         with:
