@@ -112,7 +112,6 @@ const (
 	OperationCategoryHealth          OperationCategory = "Health"
 	OperationCategoryIntention       OperationCategory = "Intention"
 	OperationCategoryKV              OperationCategory = "KV"
-	OperationCategoryTenancy         OperationCategory = "Tenancy"
 	OperationCategoryPreparedQuery   OperationCategory = "PreparedQuery"
 	OperationCategorySession         OperationCategory = "Session"
 	OperationCategoryStatus          OperationCategory = "Status"
