@@ -75,16 +75,17 @@ jobs:
             gotestsum \
               --format=short-verbose \
               --jsonfile /tmp/jsonfile/go-test-<<parameters.path>>.log \
-              --debug \
-              --rerun-fails=3 \
-              --rerun-fails-max-failures=40 \
-              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
-              --packages="$PACKAGE_NAMES" \
+              # --debug \
+              # --rerun-fails=3 \
+              # --rerun-fails-max-failures=40 \
+              # --rerun-fails-report=/tmp/gotestsum-rerun-fails \
+              # --packages="$PACKAGE_NAMES" \
+              # -p 2 \
               --junitfile ${{env.TEST_RESULTS}}/gotestsum-report.xml -- \
               -tags="${{env.GOTAGS}}" \
-              -p 2 \
               -cover -coverprofile=coverage.txt \
               ./...
+
       - uses: actions/upload-artifact@master
         with:
           name: test-results
