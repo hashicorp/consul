@@ -74,7 +74,7 @@ jobs:
             PACKAGE_NAMES=$(go list -tags "$GOTAGS" ./...)
             gotestsum \
               --format=short-verbose \
-              --jsonfile /tmp/jsonfile/go-test-${{inputs.directory}}.log \
+              --jsonfile /tmp/jsonfile/go-test.log \
               --debug \
               --rerun-fails=3 \
               --rerun-fails-max-failures=40 \
