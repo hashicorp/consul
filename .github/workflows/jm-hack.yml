@@ -1,0 +1,51 @@
+name: go-tests
+
+on: 
+  push:
+    branches-ignore:
+      - stable-website
+      - 'docs/**'
+      - 'ui/**'
+      - 'mktg-**' # Digital Team Terraform-generated branches' prefix
+      - 'backport/docs/**'
+      - 'backport/ui/**'
+      - 'backport/mktg-**'
+  
+permissions:
+  contents: read
+
+env:
+  total-runners: 12
+
+jobs:
+runner-indexes:
+    runs-on: ubuntu-latest
+    name: Generate runner indexes
+    outputs:
+      json: ${{ steps.generate-index-list.outputs.json }}
+    steps:
+      - id: generate-index-list
+        run: |
+          MAX_INDEX=$((${{ env.total-runners }}-1))
+          INDEX_LIST=$(seq 0 ${MAX_INDEX})
+          INDEX_JSON=$(jq --null-input --compact-output '. |= [inputs]' <<< ${INDEX_LIST})
+          echo "::set-output name=json::${INDEX_JSON}"
+
+  run-parallel-tests:
+    runs-on: ubuntu-latest
+    name: "Runner #${{ matrix.runner-index }}: Run test suite in parallel"
+    needs:
+      - runner-indexes
+    strategy:
+      matrix:
+        runner-index: ${{ fromjson(needs.runner-indexes.outputs.json) }}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: chaosaffe/split-tests@v1-alpha.1
+        id: split-tests
+        name: Split tests
+        with:
+          glob: examples/spec/**/*_spec.rb
+          split-total: ${{ env.total-runners }}
+          split-index: ${{ matrix.runner-index }}
+      - run: 'echo "This runner will execute the following tests: ${{ steps.split-tests.outputs.test-suite }}"'
