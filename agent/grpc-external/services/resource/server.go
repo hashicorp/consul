@@ -52,12 +52,12 @@ func (s *Server) Watch(req *pbresource.WatchRequest, ws pbresource.ResourceServi
 	return nil
 }
 
-func (s *Server) resolveType(typ *pbresource.Type) (*resource.Registration, error) {
-	v, ok := s.registry.Resolve(typ)
+func (s *Server) resolveType(typ *pbresource.Type) error {
+	_, ok := s.registry.Resolve(typ)
 	if ok {
-		return &v, nil
+		return nil
 	}
-	return nil, status.Errorf(
+	return status.Errorf(
 		codes.InvalidArgument,
 		"resource type %s not registered", resource.ToGVK(typ),
 	)

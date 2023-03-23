@@ -8,7 +8,7 @@ import (
 )
 
 func (s *Server) List(ctx context.Context, req *pbresource.ListRequest) (*pbresource.ListResponse, error) {
-	if _, err := s.resolveType(req.Type); err != nil {
+	if err := s.resolveType(req.Type); err != nil {
 		return nil, err
 	}
 
