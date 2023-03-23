@@ -125,9 +125,19 @@ func (m CertExpirationMonitor) Monitor(ctx context.Context) error {
 		}
 
 		if expiresSoon(lifetime, notAfter) {
-			logger.Warn("certificate will expire soon",
-				"time_to_expiry", notAfter,
-				"expiration", time.Now().Add(notAfter))
+			key := strings.Join(m.Key, "")
+			rootKey := strings.Join(metricsKeyMeshRootCAExpiry, "")
+			signingKey := strings.Join(metricsKeyMeshActiveSigningCAExpiry, "")
+			switch key {
+			case rootKey:
+				logger.Warn("root certificate will expire soon",
+					"time_to_expiry", notAfter,
+					"expiration", time.Now().Add(notAfter))
+			case signingKey:
+				logger.Warn("signing (intermediate) certificate will expire soon",
+					"time_to_expiry", notAfter,
+					"expiration", time.Now().Add(notAfter))
+			}
 		}
 
 		expiry := notAfter / time.Second
