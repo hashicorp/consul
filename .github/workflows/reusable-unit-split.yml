@@ -25,21 +25,40 @@ on:
       args:
         required: false
         type: string
-        default: "" 
+        default: ""
+      runner-count: 
+        required: false
+        type: integer
+        default: 1
+
 env:
   TEST_RESULTS: /tmp/test-results
   GOTESTSUM_VERSION: 1.8.2
   GOARCH: ${{inputs.go-arch}}
+  TOTAL_RUNNERS: ${{inputs.total-runners}}
   
 jobs:
+  runner-indexes:
+    runs-on: ${{ fromJSON(inputs.runs-on) }}
+    name: Generate runner indexes
+    #
+    # This job generates a JSON Array of integers ranging from 1 to X.
+    # That array is used in the matrix section of the test-go job below.
+    #
+    outputs:
+      runner-indexes: ${{ steps.generate-index-list.outputs.indexes }}
+    steps:
+    - id: generate-index-list
+      run: |
+        INDEX_LIST="$(seq 1 ${{ env.TOTAL_RUNNERS }})"
+        INDEX_JSON="$(jq --null-input --compact-output '. |= [inputs]' <<< "${INDEX_LIST}")"
+        echo "indexes=${INDEX_JSON}" >> "${GITHUB_OUTPUT}"
   go-test:
     runs-on: ${{ fromJSON(inputs.runs-on) }}
     name: "go-test #${{ matrix.runner-index }}"
     strategy:
       matrix:
         runner-index: [0,1,2,3,4,5,6,7,8,9,10]
-    env:
-      total-runners: 11
     steps:      
       - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
       - uses: actions/setup-go@6edd4406fa81c3da01a34fa6f6343087c207a568 # pin@v3.5.0
@@ -79,7 +98,7 @@ jobs:
         name: Split tests
         with:
           glob: ${{inputs.directory}}/**/*_test.go
-          split-total: ${{ env.total-runners }}
+          split-total: ${{ env.TOTAL_RUNNERS }}
           split-index: ${{ matrix.runner-index }}
       - name: Run tests 
         working-directory: ${{inputs.directory}}
