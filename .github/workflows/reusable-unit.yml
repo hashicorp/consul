@@ -79,7 +79,7 @@ jobs:
               # --rerun-fails=3 \
               # --rerun-fails-max-failures=40 \
               # --rerun-fails-report=/tmp/gotestsum-rerun-fails \
-              # --packages="$PACKAGE_NAMES" \
+              --packages="$PACKAGE_NAMES" \
               -p 2 \
               --junitfile ${{env.TEST_RESULTS}}/gotestsum-report.xml -- \
               -tags="${{env.GOTAGS}}" \
