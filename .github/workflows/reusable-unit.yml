@@ -21,7 +21,7 @@ on:
         description: An expression indicating which kind of runners to use.
         required: false
         type: string
-        default: '["custom", "linux", "large"]'
+        default: ubuntu-latest
       args:
         required: false
         type: string
