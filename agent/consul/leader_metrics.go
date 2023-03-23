@@ -115,18 +115,19 @@ func (m CertExpirationMonitor) Monitor(ctx context.Context) error {
 	logger := m.Logger.With("metric", strings.Join(m.Key, "."))
 
 	emitMetric := func() {
-		before, after, err := m.Query()
+		notBefore, notAfter, err := m.Query()
 		if err != nil {
 			logger.Warn("failed to emit certificate expiry metric", "error", err)
 			return
 		}
 
-		if expiresSoon(before, after) {
+		if expiresSoon(notBefore, notAfter) {
 			logger.Warn("certificate will expire soon",
-				"time_to_expiry", after, "expiration", time.Now().Add(after))
+				"time_to_expiry", notAfter,
+				"expiration", time.Now().Add(notAfter))
 		}
 
-		expiry := after / time.Second
+		expiry := notAfter / time.Second
 		metrics.SetGaugeWithLabels(m.Key, float32(expiry), m.Labels)
 	}
 
@@ -156,16 +157,19 @@ func initLeaderMetrics() {
 	}
 }
 
-// shouldWarn checks to see if we are close enough to the cert expiring that we
-// should send out a WARN log message.
+// expiresSoon checks to see if we are close enough to the cert expiring that
+// we should send out a WARN log message.
 // It defaults to returning true if the cert will expire within 28 days or 40%
 // of the certs total duration, whichever is shorter.
-func expiresSoon(before, after time.Duration) bool {
-	warningPeriod := 28 * (24 * time.Hour) // 28 days (default)
-	seventyDays := 70 * (24 * time.Hour)   // 28 days is 40% of 70 days
-	totalDuration := time.Duration(before + after)
-	if totalDuration < seventyDays {
-		warningPeriod = (totalDuration * 4) / 10 // 40% of total duration
+func expiresSoon(notBefore, notAfter time.Duration) bool {
+	defaultPeriod := 28 * (24 * time.Hour) // 28 days
+	totalLife := time.Duration(notBefore + notAfter)
+	fortyPercent := (totalLife / 10) * 4 // 40% of total duration
+
+	warningPeriod := defaultPeriod
+	if fortyPercent < defaultPeriod {
+		warningPeriod = fortyPercent
 	}
-	return after < warningPeriod
+
+	return notAfter < warningPeriod
 }
