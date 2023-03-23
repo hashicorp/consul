@@ -479,6 +479,25 @@ func (c *CAManager) primaryInitialize(provider ca.Provider, conf *structs.CAConf
 	if err := provider.Configure(pCfg); err != nil {
 		return fmt.Errorf("error configuring provider: %v", err)
 	}
+
+	// If the provider has state to persist and it's changed or new then update
+	// CAConfig.
+	pState, err := provider.State()
+	if err != nil {
+		return fmt.Errorf("error getting provider state: %v", err)
+	}
+	if !reflect.DeepEqual(conf.State, pState) {
+		// Update the CAConfig in raft to persist the provider state
+		conf.State = pState
+		req := structs.CARequest{
+			Op:     structs.CAOpSetConfig,
+			Config: conf,
+		}
+		if _, err = c.delegate.ApplyCARequest(&req); err != nil {
+			return fmt.Errorf("error persisting provider state: %v", err)
+		}
+	}
+
 	root, err := provider.GenerateRoot()
 	if err != nil {
 		return fmt.Errorf("error generating CA root certificate: %v", err)
@@ -497,24 +516,6 @@ func (c *CAManager) primaryInitialize(provider ca.Provider, conf *structs.CAConf
 	intermediateCert, err := connect.ParseCert(interPEM)
 	if err != nil {
 		return fmt.Errorf("error getting intermediate cert: %v", err)
-	}
-
-	// If the provider has state to persist and it's changed or new then update
-	// CAConfig.
-	pState, err := provider.State()
-	if err != nil {
-		return fmt.Errorf("error getting provider state: %v", err)
-	}
-	if !reflect.DeepEqual(conf.State, pState) {
-		// Update the CAConfig in raft to persist the provider state
-		conf.State = pState
-		req := structs.CARequest{
-			Op:     structs.CAOpSetConfig,
-			Config: conf,
-		}
-		if _, err = c.delegate.ApplyCARequest(&req); err != nil {
-			return fmt.Errorf("error persisting provider state: %v", err)
-		}
 	}
 
 	var rootUpdateRequired bool
@@ -876,6 +877,13 @@ type ValidateConfigUpdater interface {
 }
 
 func (c *CAManager) primaryUpdateRootCA(newProvider ca.Provider, args *structs.CARequest, config *structs.CAConfiguration) error {
+	// See if the provider needs to persist any state along with the config
+	pState, err := newProvider.State()
+	if err != nil {
+		return fmt.Errorf("error getting provider state: %v", err)
+	}
+	args.Config.State = pState
+
 	providerRoot, err := newProvider.GenerateRoot()
 	if err != nil {
 		return fmt.Errorf("error generating CA root certificate: %v", err)
@@ -903,13 +911,6 @@ func (c *CAManager) primaryUpdateRootCA(newProvider ca.Provider, args *structs.C
 			return err
 		}
 	}
-
-	// See if the provider needs to persist any state along with the config
-	pState, err := newProvider.State()
-	if err != nil {
-		return fmt.Errorf("error getting provider state: %v", err)
-	}
-	args.Config.State = pState
 
 	state := c.delegate.State()
 	// Compare the new provider's root CA ID to the current one. If they
