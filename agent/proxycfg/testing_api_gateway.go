@@ -105,7 +105,7 @@ func TestConfigSnapshotAPIGateway(
 		})
 	}
 
-	upstreams := structs.TestUpstreams(t)
+	upstreams := structs.TestUpstreams(t, false)
 
 	baseEvents = testSpliceEvents(baseEvents, setupTestVariationConfigEntriesAndSnapshot(
 		t, variation, upstreams, additionalEntries...,

@@ -255,10 +255,6 @@ func (o *configSnapshotAPIGateway) DeepCopy() *configSnapshotAPIGateway {
 	if o.BoundGatewayConfig != nil {
 		cp.BoundGatewayConfig = o.BoundGatewayConfig.DeepCopy()
 	}
-	if o.Hosts != nil {
-		cp.Hosts = make([]string, len(o.Hosts))
-		copy(cp.Hosts, o.Hosts)
-	}
 	if o.Upstreams != nil {
 		cp.Upstreams = make(map[structs.ResourceReference]listenerUpstreamMap, len(o.Upstreams))
 		for k2, v2 := range o.Upstreams {

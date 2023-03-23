@@ -1,4 +1,4 @@
-// package rate implements server-side RPC rate limiting.
+// Package rate implements server-side RPC rate limiting.
 package rate
 
 import (
