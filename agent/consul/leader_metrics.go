@@ -55,7 +55,8 @@ func getRootCAExpiry(s *Server) (time.Duration, time.Duration, error) {
 		return 0, 0, fmt.Errorf("no active root CA")
 	}
 
-	return time.Since(root.NotBefore), time.Until(root.NotAfter), nil
+	lifetime := time.Since(root.NotBefore) + time.Until(root.NotAfter)
+	return lifetime, time.Until(root.NotAfter), nil
 }
 
 func signingCAExpiryMonitor(s *Server) CertExpirationMonitor {
@@ -90,7 +91,9 @@ func getActiveIntermediateExpiry(s *Server) (time.Duration, time.Duration, error
 	if err != nil {
 		return 0, 0, err
 	}
-	return time.Since(cert.NotBefore), time.Until(cert.NotAfter), nil
+
+	lifetime := time.Since(cert.NotBefore) + time.Until(cert.NotAfter)
+	return lifetime, time.Until(cert.NotAfter), nil
 }
 
 type CertExpirationMonitor struct {
@@ -115,13 +118,13 @@ func (m CertExpirationMonitor) Monitor(ctx context.Context) error {
 	logger := m.Logger.With("metric", strings.Join(m.Key, "."))
 
 	emitMetric := func() {
-		notBefore, notAfter, err := m.Query()
+		lifetime, notAfter, err := m.Query()
 		if err != nil {
 			logger.Warn("failed to emit certificate expiry metric", "error", err)
 			return
 		}
 
-		if expiresSoon(notBefore, notAfter) {
+		if expiresSoon(lifetime, notAfter) {
 			logger.Warn("certificate will expire soon",
 				"time_to_expiry", notAfter,
 				"expiration", time.Now().Add(notAfter))
@@ -161,10 +164,9 @@ func initLeaderMetrics() {
 // we should send out a WARN log message.
 // It defaults to returning true if the cert will expire within 28 days or 40%
 // of the certs total duration, whichever is shorter.
-func expiresSoon(notBefore, notAfter time.Duration) bool {
+func expiresSoon(lifetime, notAfter time.Duration) bool {
 	defaultPeriod := 28 * (24 * time.Hour) // 28 days
-	totalLife := time.Duration(notBefore + notAfter)
-	fortyPercent := (totalLife / 10) * 4 // 40% of total duration
+	fortyPercent := (lifetime / 10) * 4    // 40% of total duration
 
 	warningPeriod := defaultPeriod
 	if fortyPercent < defaultPeriod {
