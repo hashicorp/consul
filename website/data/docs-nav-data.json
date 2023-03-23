@@ -542,7 +542,7 @@
         "title": "Service intentions",
         "routes": [
           {
-            "title": "Service intentions overview",
+            "title": "Service mesh intentions overview",
             "path": "connect/intentions/intentions"
           },
           {
