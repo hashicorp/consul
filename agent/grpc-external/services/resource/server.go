@@ -47,11 +47,6 @@ func (s *Server) WriteStatus(ctx context.Context, req *pbresource.WriteStatusReq
 	return &pbresource.WriteStatusResponse{}, nil
 }
 
-func (s *Server) Delete(ctx context.Context, req *pbresource.DeleteRequest) (*pbresource.DeleteResponse, error) {
-	// TODO
-	return &pbresource.DeleteResponse{}, nil
-}
-
 func (s *Server) Watch(req *pbresource.WatchRequest, ws pbresource.ResourceService_WatchServer) error {
 	// TODO
 	return nil
