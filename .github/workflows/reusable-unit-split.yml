@@ -95,16 +95,12 @@ jobs:
         run: ls -ld consul 
         working-directory: /usr/local/bin
       - run: go env
-      - uses: chaosaffe/split-tests@v1-alpha.1
-        id: split-tests
-        name: Split tests
+      - name: Generate go test Slice
+        id: test_split
+        uses: hashicorp-forge/go-test-split-action@v1
         with:
-          glob: ./**/*_test.go
-          split-total: ${{ env.TOTAL_RUNNERS }}
-          split-index: ${{ matrix.runner-index }}
-      - name: Contents of ${{inputs.directory}}
-        working-directory: ${{inputs.directory}}
-        run: ls -la ${{inputs.directory}}
+          total: ${{ env.TOTAL_RUNNERS }}
+          index: ${{ matrix.runner-index }}
       - name: Run tests 
         working-directory: ${{inputs.directory}}
         run: |
