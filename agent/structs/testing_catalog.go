@@ -1,6 +1,9 @@
 package structs
 
 import (
+	"fmt"
+
+	"github.com/hashicorp/consul/acl"
 	"github.com/mitchellh/go-testing-interface"
 )
 
@@ -55,7 +58,14 @@ func TestNodeServiceWithName(t testing.T, name string) *NodeService {
 
 const peerTrustDomain = "1c053652-8512-4373-90cf-5a7f6263a994.consul"
 
-func TestCheckNodeServiceWithNameInPeer(t testing.T, name, dc, peer, ip string, useHostname bool) CheckServiceNode {
+func TestCheckNodeServiceWithNameInPeer(t testing.T, name, dc, peer, ip string, useHostname bool, remoteEntMeta acl.EnterpriseMeta) CheckServiceNode {
+
+	// Non-default partitions have a different spiffe format.
+	spiffe := fmt.Sprintf("spiffe://%s/ns/default/dc/%s/svc/%s", peerTrustDomain, dc, name)
+	if !remoteEntMeta.InDefaultPartition() {
+		spiffe = fmt.Sprintf("spiffe://%s/ap/%s/ns/%s/dc/%s/svc/%s",
+			peerTrustDomain, remoteEntMeta.PartitionOrDefault(), remoteEntMeta.NamespaceOrDefault(), dc, name)
+	}
 	service := &NodeService{
 		Kind:    ServiceKindTypical,
 		Service: name,
@@ -66,11 +76,10 @@ func TestCheckNodeServiceWithNameInPeer(t testing.T, name, dc, peer, ip string, 
 		Connect: ServiceConnect{
 			PeerMeta: &PeeringServiceMeta{
 				SNI: []string{
-					name + ".default.default." + peer + ".external." + peerTrustDomain,
+					fmt.Sprintf("%s.%s.%s.%s.external.%s",
+						name, remoteEntMeta.NamespaceOrDefault(), remoteEntMeta.PartitionOrDefault(), peer, peerTrustDomain),
 				},
-				SpiffeID: []string{
-					"spiffe://" + peerTrustDomain + "/ns/default/dc/" + dc + "/svc/" + name,
-				},
+				SpiffeID: []string{spiffe},
 				Protocol: "tcp",
 			},
 		},
