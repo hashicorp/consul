@@ -39,7 +39,7 @@ func TestHTTPRouteFlattening(t *testing.T) {
 	t.Parallel()
 
 	// infrastructure set up
-	listenerPort := 6000
+	listenerPort := 6004
 	serviceOneHTTPPort := 6005
 	serviceOneGRPCPort := 6006
 	serviceTwoHTTPPort := 6007
@@ -256,7 +256,7 @@ func TestHTTPRouteFlattening(t *testing.T) {
 	}, checkOptions{statusCode: serviceTwoResponseCode, testName: "service2 header and path"})
 
 	checkRoute(t, gatewayPort, "/v2", map[string]string{
-		"Host": exampleHostName,
+		"Host": fooHostName,
 	}, checkOptions{statusCode: serviceTwoResponseCode, testName: "service2 just path match"})
 
 	// //v1 path with the header
