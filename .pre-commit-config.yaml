@@ -6,11 +6,11 @@ repos:
     hooks:
     -   id: trailing-whitespace
     -   id: end-of-file-fixer
-    -   id: check-yaml
-    -   id: check-added-large-files
+    # TODO(spatel): Consider for future inclusion after verifying changes aren't disruptive
+    # -   id: check-yaml
+    # -   id: check-added-large-files
 -   repo: https://github.com/tekwizely/pre-commit-golang
     rev: v1.0.0-rc.1
     hooks:
     -   id: go-imports
-        args:
-          - "-local github.com/hashicorp/consul/"
+        args: ["-w", "-local", "github.com/hashicorp/consul/"]
