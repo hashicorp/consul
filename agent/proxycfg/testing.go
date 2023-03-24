@@ -552,7 +552,7 @@ func TestGatewayServiceGroupBarDC1(t testing.T) structs.CheckServiceNodes {
 				},
 				Proxy: structs.ConnectProxyConfig{
 					DestinationServiceName: "bar",
-					Upstreams:              structs.TestUpstreams(t),
+					Upstreams:              structs.TestUpstreams(t, false),
 				},
 			},
 		},
@@ -573,7 +573,7 @@ func TestGatewayServiceGroupBarDC1(t testing.T) structs.CheckServiceNodes {
 				},
 				Proxy: structs.ConnectProxyConfig{
 					DestinationServiceName: "bar",
-					Upstreams:              structs.TestUpstreams(t),
+					Upstreams:              structs.TestUpstreams(t, false),
 				},
 			},
 		},
@@ -594,7 +594,7 @@ func TestGatewayServiceGroupBarDC1(t testing.T) structs.CheckServiceNodes {
 				},
 				Proxy: structs.ConnectProxyConfig{
 					DestinationServiceName: "bar",
-					Upstreams:              structs.TestUpstreams(t),
+					Upstreams:              structs.TestUpstreams(t, false),
 				},
 			},
 		},
@@ -620,7 +620,7 @@ func TestGatewayServiceGroupFooDC1(t testing.T) structs.CheckServiceNodes {
 				},
 				Proxy: structs.ConnectProxyConfig{
 					DestinationServiceName: "foo",
-					Upstreams:              structs.TestUpstreams(t),
+					Upstreams:              structs.TestUpstreams(t, false),
 				},
 			},
 		},
@@ -641,7 +641,7 @@ func TestGatewayServiceGroupFooDC1(t testing.T) structs.CheckServiceNodes {
 				},
 				Proxy: structs.ConnectProxyConfig{
 					DestinationServiceName: "foo",
-					Upstreams:              structs.TestUpstreams(t),
+					Upstreams:              structs.TestUpstreams(t, false),
 				},
 			},
 		},
@@ -662,7 +662,7 @@ func TestGatewayServiceGroupFooDC1(t testing.T) structs.CheckServiceNodes {
 				},
 				Proxy: structs.ConnectProxyConfig{
 					DestinationServiceName: "foo",
-					Upstreams:              structs.TestUpstreams(t),
+					Upstreams:              structs.TestUpstreams(t, false),
 				},
 			},
 		},
@@ -683,7 +683,7 @@ func TestGatewayServiceGroupFooDC1(t testing.T) structs.CheckServiceNodes {
 				},
 				Proxy: structs.ConnectProxyConfig{
 					DestinationServiceName: "foo",
-					Upstreams:              structs.TestUpstreams(t),
+					Upstreams:              structs.TestUpstreams(t, false),
 				},
 			},
 			Checks: structs.HealthChecks{
