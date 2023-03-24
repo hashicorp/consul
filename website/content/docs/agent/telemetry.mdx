@@ -96,9 +96,15 @@ These are some metrics emitted that can help you understand the health of your c
 | `consul.mesh.active-root-ca.expiry`    | The number of seconds until the root CA expires, updated every hour.    | seconds | gauge |
 | `consul.mesh.active-signing-ca.expiry` | The number of seconds until the signing CA expires, updated every hour. | seconds | gauge |
 
-** Why they're important:** An externally managed CA, like with Vault, means that the renewal is handled outside of Consul and it will need to be monitored for expiration (and rotated as appropriate). 
+** Why they're important:** Consul Mesh requires a CA to sign all certificates
+used to connect the mesh and the mesh network ceases to work if they expire and
+become invalid. The Root is particularly important to monitor as Consul does
+not automatically rotate it.
 
-** What to look for:** You usually want to rotate your CA with time to spare, so set a watch based on when you would like it to be rotated.
+** What to look for:** The Root CA should be monitored for an approaching
+expiration, to indicate it is time to manually rotate the CA or to verify your
+automated system is working. The signing (intermediate) certificate should be
+rotated automatically by Consul but it is good to monitor it in case of issues.
 
 ### Autopilot
 
