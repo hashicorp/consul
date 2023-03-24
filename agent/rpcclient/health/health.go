@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package health
 
 import (
@@ -11,7 +8,7 @@ import (
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/submatview"
-	"github.com/hashicorp/consul/proto/private/pbsubscribe"
+	"github.com/hashicorp/consul/proto/pbsubscribe"
 )
 
 // Client provides access to service health data.
@@ -26,7 +23,7 @@ type Client struct {
 }
 
 type NetRPC interface {
-	RPC(ctx context.Context, method string, args interface{}, reply interface{}) error
+	RPC(method string, args interface{}, reply interface{}) error
 }
 
 type CacheGetter interface {
@@ -74,7 +71,7 @@ func (c *Client) ServiceNodes(
 	// TODO: DNSServer emitted a metric here, do we still need it?
 	if req.QueryOptions.AllowStale && req.QueryOptions.MaxStaleDuration > 0 && out.QueryMeta.LastContact > req.MaxStaleDuration {
 		req.AllowStale = false
-		err := c.NetRPC.RPC(context.Background(), "Health.ServiceNodes", &req, &out)
+		err := c.NetRPC.RPC("Health.ServiceNodes", &req, &out)
 		return out, cache.ResultMeta{}, err
 	}
 
@@ -87,7 +84,7 @@ func (c *Client) getServiceNodes(
 ) (structs.IndexedCheckServiceNodes, cache.ResultMeta, error) {
 	var out structs.IndexedCheckServiceNodes
 	if !req.QueryOptions.UseCache {
-		err := c.NetRPC.RPC(context.Background(), "Health.ServiceNodes", &req, &out)
+		err := c.NetRPC.RPC("Health.ServiceNodes", &req, &out)
 		return out, cache.ResultMeta{}, err
 	}
 

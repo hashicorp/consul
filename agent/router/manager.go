@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 // Package servers provides a Manager interface for Manager managed
 // metadata.Server objects.  The servers package manages servers from a Consul
 // client's perspective (i.e. a list of servers that a client talks with for

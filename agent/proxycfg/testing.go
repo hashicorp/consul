@@ -1,12 +1,9 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package proxycfg
 
 import (
 	"context"
 	"fmt"
-	"os"
+	"io/ioutil"
 	"path"
 	"path/filepath"
 	"runtime"
@@ -23,7 +20,7 @@ import (
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/proto/private/pbpeering"
+	"github.com/hashicorp/consul/proto/pbpeering"
 )
 
 func TestPeerTrustBundles(t testing.T) *pbpeering.TrustBundleListByServiceResponse {
@@ -555,7 +552,7 @@ func TestGatewayServiceGroupBarDC1(t testing.T) structs.CheckServiceNodes {
 				},
 				Proxy: structs.ConnectProxyConfig{
 					DestinationServiceName: "bar",
-					Upstreams:              structs.TestUpstreams(t, false),
+					Upstreams:              structs.TestUpstreams(t),
 				},
 			},
 		},
@@ -576,7 +573,7 @@ func TestGatewayServiceGroupBarDC1(t testing.T) structs.CheckServiceNodes {
 				},
 				Proxy: structs.ConnectProxyConfig{
 					DestinationServiceName: "bar",
-					Upstreams:              structs.TestUpstreams(t, false),
+					Upstreams:              structs.TestUpstreams(t),
 				},
 			},
 		},
@@ -597,7 +594,7 @@ func TestGatewayServiceGroupBarDC1(t testing.T) structs.CheckServiceNodes {
 				},
 				Proxy: structs.ConnectProxyConfig{
 					DestinationServiceName: "bar",
-					Upstreams:              structs.TestUpstreams(t, false),
+					Upstreams:              structs.TestUpstreams(t),
 				},
 			},
 		},
@@ -623,7 +620,7 @@ func TestGatewayServiceGroupFooDC1(t testing.T) structs.CheckServiceNodes {
 				},
 				Proxy: structs.ConnectProxyConfig{
 					DestinationServiceName: "foo",
-					Upstreams:              structs.TestUpstreams(t, false),
+					Upstreams:              structs.TestUpstreams(t),
 				},
 			},
 		},
@@ -644,7 +641,7 @@ func TestGatewayServiceGroupFooDC1(t testing.T) structs.CheckServiceNodes {
 				},
 				Proxy: structs.ConnectProxyConfig{
 					DestinationServiceName: "foo",
-					Upstreams:              structs.TestUpstreams(t, false),
+					Upstreams:              structs.TestUpstreams(t),
 				},
 			},
 		},
@@ -665,7 +662,7 @@ func TestGatewayServiceGroupFooDC1(t testing.T) structs.CheckServiceNodes {
 				},
 				Proxy: structs.ConnectProxyConfig{
 					DestinationServiceName: "foo",
-					Upstreams:              structs.TestUpstreams(t, false),
+					Upstreams:              structs.TestUpstreams(t),
 				},
 			},
 		},
@@ -686,7 +683,7 @@ func TestGatewayServiceGroupFooDC1(t testing.T) structs.CheckServiceNodes {
 				},
 				Proxy: structs.ConnectProxyConfig{
 					DestinationServiceName: "foo",
-					Upstreams:              structs.TestUpstreams(t, false),
+					Upstreams:              structs.TestUpstreams(t),
 				},
 			},
 			Checks: structs.HealthChecks{
@@ -926,7 +923,7 @@ func golden(t testing.T, name string) string {
 	t.Helper()
 
 	golden := filepath.Join(projectRoot(), "../", "/xds/testdata", name+".golden")
-	expected, err := os.ReadFile(golden)
+	expected, err := ioutil.ReadFile(golden)
 	require.NoError(t, err)
 
 	return string(expected)

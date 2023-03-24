@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 import EmberObject from '@ember/object';
 import RoleAsManyMixin from 'consul-ui/mixins/role/as-many';
 import { module, test } from 'qunit';

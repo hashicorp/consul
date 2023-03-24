@@ -1,13 +1,10 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package agent
 
 import (
 	"bytes"
 	"encoding/base64"
 	"fmt"
-	"os"
+	"io/ioutil"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -270,7 +267,7 @@ func TestAgent_InitKeyring(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	content, err := os.ReadFile(file)
+	content, err := ioutil.ReadFile(file)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -284,7 +281,7 @@ func TestAgent_InitKeyring(t *testing.T) {
 	}
 
 	// Content should still be the same
-	content, err = os.ReadFile(file)
+	content, err = ioutil.ReadFile(file)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}

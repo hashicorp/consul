@@ -1,13 +1,8 @@
-{{!
-  Copyright (c) HashiCorp, Inc.
-  SPDX-License-Identifier: MPL-2.0
-}}
-
 <Hds::Card::Container @level="base" @hasBorder={{true}} class="mt-6 mb-3">
   <div class="flex h-24 p-6 overflow-x-auto space-x-12">
     <div class="shrink-0">
       <div
-        class="mb-2 hds-typography-body-200 hds-font-weight-semibold hds-foreground-primary"
+        class="mb-2 hds-typography-body-200 hds-font-weight-semibold text-hds-foreground-primary"
       >Status</div>
       <div class="flex items-center">
         <Peerings::Badge @peering={{@peering}} />
@@ -15,15 +10,14 @@
     </div>
     <div class="shrink-0">
       <div
-        class="hds-typography-body-200 mb-2 hds-font-weight-semibold hds-foreground-primary"
+        class="mb-2 hds-typography-body-200 hds-font-weight-semibold text-hds-foreground-primary"
       >Latest heartbeat</div>
       <div class="flex items-center">
         {{#if @peering.LastHeartbeat}}
           {{#let (smart-date-format @peering.LastHeartbeat) as |smartDate|}}
             <FlightIcon
               @name="activity"
-              @color="var(--token-color-foreground-faint)"
-              class="mr-0.5"
+              class="mr-0.5 text-hds-foreground-faint fill-current"
             />
             {{#if smartDate.isNearDate}}
               <span {{tooltip smartDate.friendly}}>{{smartDate.relative}}</span>
@@ -38,7 +32,7 @@
     </div>
     <div class="shrink-0">
       <div
-        class="mb-2 hds-typography-body-200 hds-font-weight-semibold hds-foreground-primary"
+        class="mb-2 hds-typography-body-200 hds-font-weight-semibold text-hds-foregrouny-primary"
       >Latest receipt</div>
       <div class="flex items-center">
         {{#if @peering.LastReceive}}
@@ -56,7 +50,7 @@
     </div>
     <div class="shrink-0">
       <div
-        class="mb-2 hds-typography-body-200 hds-font-weight-semibold hds-foreground-primary"
+        class="mb-2 hds-typography-body-200 hds-font-weight-semibold text-hds-foreground-primary"
       >Latest send</div>
       <div class="flex items-center">
         {{#if @peering.LastSend}}

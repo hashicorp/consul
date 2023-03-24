@@ -1,3 +1,0 @@
-```release-note:breaking-change
-acl: remove all functionality and references for legacy acl policies.
-```

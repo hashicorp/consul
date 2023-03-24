@@ -1,35 +1,31 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 %list-row {
   list-style-type: none;
   border: var(--decor-border-100);
-  border-top-color: transparent;
-  border-bottom-color: var(--token-color-surface-interactive-active);
-  border-right-color: transparent;
-  border-left-color: transparent;
+  border-top-color: var(--transparent);
+  border-bottom-color: rgb(var(--tone-gray-200));
+  border-right-color: var(--transparent);
+  border-left-color: var(--transparent);
 }
 %list-row-intent {
-  border-color: var(--token-color-surface-interactive-active);
-  box-shadow: var(--token-elevation-high-box-shadow);
-  border-top-color: transparent;
+  border-color: rgb(var(--tone-gray-200));
+  /*TODO: This should use a shared/CSS prop shadow*/
+  box-shadow: 0 2px 4px rgb(var(--black) / 10%);
+  border-top-color: var(--transparent);
   cursor: pointer;
 }
 %list-row-header {
-  color: var(--token-color-hashicorp-brand);
+  color: rgb(var(--tone-gray-999));
 }
 %list-row-header * {
   color: inherit;
 }
 %list-row-detail {
-  color: var(--token-color-foreground-faint);
+  color: rgb(var(--tone-gray-500));
 }
 %list-row-detail a {
   color: inherit;
 }
 %list-row-detail a:hover {
-  color: var(--token-color-foreground-action);
+  color: rgb(var(--color-action));
   text-decoration: underline;
 }

@@ -1,18 +1,16 @@
 ---
 layout: commands
 page_title: 'Commands: Keyring'
-description: >-
-  The `consul keyring` command lists active encryption keys used for gossip pools and enables you to rotate keys for large deployments automatically. 
 ---
 
 # Consul Keyring
 
 Command: `consul keyring`
 
-Corresponding HTTP API Endpoints: [\[VARIES\] /v1/operator/keyring](/consul/api-docs/operator/keyring)
+Corresponding HTTP API Endpoints: [\[VARIES\] /v1/operator/keyring](/api-docs/operator/keyring)
 
 The `keyring` command is used to examine and modify the encryption keys used in
-Consul's [Gossip Pools](/consul/docs/architecture/gossip). It is capable of
+Consul's [Gossip Pools](/docs/architecture/gossip). It is capable of
 distributing new encryption keys to the cluster, retiring old encryption keys,
 and changing the keys used by the cluster to encrypt messages.
 
@@ -31,8 +29,8 @@ All variations of the `keyring` command return 0 if all nodes reply and there
 are no errors. If any node fails to reply or reports failure, the exit code
 will be 1.
 
-The table below shows this command's [required ACLs](/consul/api-docs/api-structure#authentication). Configuration of
-[blocking queries](/consul/api-docs/features/blocking) and [agent caching](/consul/api-docs/features/caching)
+The table below shows this command's [required ACLs](/api-docs/api-structure#authentication). Configuration of
+[blocking queries](/api-docs/features/blocking) and [agent caching](/api-docs/features/caching)
 are not supported from commands, but may be from the corresponding HTTP endpoint.
 
 | ACL Required<sup>1</sup>            |

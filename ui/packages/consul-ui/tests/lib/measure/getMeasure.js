@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 /* eslint no-console: "off" */
 const log = function (results, measurement, tags) {
   console.log(measurement, results, tags);

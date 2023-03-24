@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 import BaseAbility, { ACCESS_READ, ACCESS_WRITE } from './base';
 
 export default class ServiceInstanceAbility extends BaseAbility {

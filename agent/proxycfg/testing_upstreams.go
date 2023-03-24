@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package proxycfg
 
 import (
@@ -8,19 +5,15 @@ import (
 
 	"github.com/mitchellh/go-testing-interface"
 
-	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/agent/configentry"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/discoverychain"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/proto/private/pbcommon"
-	"github.com/hashicorp/consul/proto/private/pbpeering"
+	"github.com/hashicorp/consul/proto/pbpeering"
 )
 
 func setupTestVariationConfigEntriesAndSnapshot(
 	t testing.T,
 	variation string,
-	enterprise bool,
 	upstreams structs.Upstreams,
 	additionalEntries ...structs.ConfigEntry,
 ) []UpdateEvent {
@@ -30,14 +23,8 @@ func setupTestVariationConfigEntriesAndSnapshot(
 		dbUID = NewUpstreamID(&dbUpstream)
 	)
 
-	dbChain := setupTestVariationDiscoveryChain(t, variation, enterprise, dbUID.EnterpriseMeta, additionalEntries...)
+	dbChain := setupTestVariationDiscoveryChain(t, variation, additionalEntries...)
 
-	nodes := TestUpstreamNodes(t, "db")
-	if variation == "register-to-terminating-gateway" {
-		for _, node := range nodes {
-			node.Service.Kind = structs.ServiceKindTerminatingGateway
-		}
-	}
 	events := []UpdateEvent{
 		{
 			CorrelationID: "discovery-chain:" + dbUID.String(),
@@ -48,21 +35,9 @@ func setupTestVariationConfigEntriesAndSnapshot(
 		{
 			CorrelationID: "upstream-target:" + dbChain.ID() + ":" + dbUID.String(),
 			Result: &structs.IndexedCheckServiceNodes{
-				Nodes: nodes,
+				Nodes: TestUpstreamNodes(t, "db"),
 			},
 		},
-	}
-
-	dbOpts := structs.DiscoveryTargetOpts{
-		Service:    dbUID.Name,
-		Namespace:  dbUID.NamespaceOrDefault(),
-		Partition:  dbUID.PartitionOrDefault(),
-		Datacenter: "dc1",
-	}
-	dbChainID := structs.ChainID(dbOpts)
-	makeChainID := func(opts structs.DiscoveryTargetOpts) string {
-		finalOpts := structs.MergeDiscoveryTargetOpts(dbOpts, opts)
-		return structs.ChainID(finalOpts)
 	}
 
 	switch variation {
@@ -71,25 +46,23 @@ func setupTestVariationConfigEntriesAndSnapshot(
 	case "simple":
 	case "external-sni":
 	case "failover":
-		chainID := makeChainID(structs.DiscoveryTargetOpts{Service: "fail"})
 		events = append(events, UpdateEvent{
-			CorrelationID: "upstream-target:" + chainID + ":" + dbUID.String(),
+			CorrelationID: "upstream-target:fail.default.default.dc1:" + dbUID.String(),
 			Result: &structs.IndexedCheckServiceNodes{
 				Nodes: TestUpstreamNodesAlternate(t),
 			},
 		})
 	case "failover-through-remote-gateway-triggered":
 		events = append(events, UpdateEvent{
-			CorrelationID: "upstream-target:" + dbChainID + ":" + dbUID.String(),
+			CorrelationID: "upstream-target:db.default.default.dc1:" + dbUID.String(),
 			Result: &structs.IndexedCheckServiceNodes{
 				Nodes: TestUpstreamNodesInStatus(t, "critical"),
 			},
 		})
 		fallthrough
 	case "failover-through-remote-gateway":
-		chainID := makeChainID(structs.DiscoveryTargetOpts{Datacenter: "dc2"})
 		events = append(events, UpdateEvent{
-			CorrelationID: "upstream-target:" + chainID + ":" + dbUID.String(),
+			CorrelationID: "upstream-target:db.default.default.dc2:" + dbUID.String(),
 			Result: &structs.IndexedCheckServiceNodes{
 				Nodes: TestUpstreamNodesDC2(t),
 			},
@@ -100,66 +73,7 @@ func setupTestVariationConfigEntriesAndSnapshot(
 				Nodes: TestGatewayNodesDC2(t),
 			},
 		})
-	case "order-by-locality-failover":
-		cluster1UID := UpstreamID{
-			Name:           "db",
-			Peer:           "cluster-01",
-			EnterpriseMeta: acl.NewEnterpriseMetaWithPartition(dbUID.PartitionOrDefault(), ""),
-		}
-		cluster2UID := UpstreamID{
-			Name:           "db",
-			Peer:           "cluster-02",
-			EnterpriseMeta: acl.NewEnterpriseMetaWithPartition(dbUID.PartitionOrDefault(), ""),
-		}
-		chainID := makeChainID(structs.DiscoveryTargetOpts{Service: "db-v2"})
-		events = append(events,
-			UpdateEvent{
-				CorrelationID: "upstream-target:" + chainID + ":" + dbUID.String(),
-				Result: &structs.IndexedCheckServiceNodes{
-					Nodes: TestUpstreamNodesAlternate(t),
-				},
-			},
-			UpdateEvent{
-				CorrelationID: "peer-trust-bundle:cluster-01",
-				Result: &pbpeering.TrustBundleReadResponse{
-					Bundle: &pbpeering.PeeringTrustBundle{
-						PeerName:          "peer1",
-						TrustDomain:       "peer1.domain",
-						ExportedPartition: "peer1ap",
-						RootPEMs:          []string{"peer1-root-1"},
-					},
-				},
-			},
-			UpdateEvent{
-				CorrelationID: "peer-trust-bundle:cluster-02",
-				Result: &pbpeering.TrustBundleReadResponse{
-					Bundle: &pbpeering.PeeringTrustBundle{
-						PeerName:          "peer2",
-						TrustDomain:       "peer2.domain",
-						ExportedPartition: "peer2ap",
-						RootPEMs:          []string{"peer2-root-2"},
-					},
-				},
-			},
-			UpdateEvent{
-				CorrelationID: "upstream-peer:" + cluster1UID.String(),
-				Result: &structs.IndexedCheckServiceNodes{
-					Nodes: structs.CheckServiceNodes{structs.TestCheckNodeServiceWithNameInPeer(t, "db", "dc1", "cluster-01", "10.40.1.1", false, cluster1UID.EnterpriseMeta)},
-				},
-			},
-			UpdateEvent{
-				CorrelationID: "upstream-peer:" + cluster2UID.String(),
-				Result: &structs.IndexedCheckServiceNodes{
-					Nodes: structs.CheckServiceNodes{structs.TestCheckNodeServiceWithNameInPeer(t, "db", "dc2", "cluster-02", "10.40.1.2", false, cluster2UID.EnterpriseMeta)},
-				},
-			},
-		)
 	case "failover-to-cluster-peer":
-		uid := UpstreamID{
-			Name:           "db",
-			Peer:           "cluster-01",
-			EnterpriseMeta: acl.NewEnterpriseMetaWithPartition(dbUID.PartitionOrDefault(), ""),
-		}
 		events = append(events, UpdateEvent{
 			CorrelationID: "peer-trust-bundle:cluster-01",
 			Result: &pbpeering.TrustBundleReadResponse{
@@ -171,13 +85,10 @@ func setupTestVariationConfigEntriesAndSnapshot(
 				},
 			},
 		})
-		if enterprise {
-			uid.EnterpriseMeta = acl.NewEnterpriseMetaWithPartition(dbUID.PartitionOrDefault(), "ns9")
-		}
 		events = append(events, UpdateEvent{
-			CorrelationID: "upstream-peer:" + uid.String(),
+			CorrelationID: "upstream-peer:db?peer=cluster-01",
 			Result: &structs.IndexedCheckServiceNodes{
-				Nodes: structs.CheckServiceNodes{structs.TestCheckNodeServiceWithNameInPeer(t, "db", "dc2", "cluster-01", "10.40.1.1", false, uid.EnterpriseMeta)},
+				Nodes: structs.CheckServiceNodes{structs.TestCheckNodeServiceWithNameInPeer(t, "db", "dc1", "cluster-01", "10.40.1.1", false)},
 			},
 		})
 	case "redirect-to-cluster-peer":
@@ -192,95 +103,83 @@ func setupTestVariationConfigEntriesAndSnapshot(
 				},
 			},
 		})
-		uid := UpstreamID{
-			Name: "db",
-			Peer: "cluster-01",
-		}
-		if enterprise {
-			uid.EnterpriseMeta = acl.NewEnterpriseMetaWithPartition(dbUID.PartitionOrDefault(), "ns9")
-		}
 		events = append(events, UpdateEvent{
-			CorrelationID: "upstream-peer:" + uid.String(),
+			CorrelationID: "upstream-peer:db?peer=cluster-01",
 			Result: &structs.IndexedCheckServiceNodes{
-				Nodes: structs.CheckServiceNodes{structs.TestCheckNodeServiceWithNameInPeer(t, "db", "dc2", "cluster-01", "10.40.1.1", false, uid.EnterpriseMeta)},
+				Nodes: structs.CheckServiceNodes{structs.TestCheckNodeServiceWithNameInPeer(t, "db", "dc2", "cluster-01", "10.40.1.1", false)},
 			},
 		})
 	case "failover-through-double-remote-gateway-triggered":
-		chainID := makeChainID(structs.DiscoveryTargetOpts{Datacenter: "dc2"})
 		events = append(events, UpdateEvent{
-			CorrelationID: "upstream-target:" + dbChainID + ":" + dbUID.String(),
+			CorrelationID: "upstream-target:db.default.default.dc1:" + dbUID.String(),
 			Result: &structs.IndexedCheckServiceNodes{
 				Nodes: TestUpstreamNodesInStatus(t, "critical"),
 			},
-		},
-			UpdateEvent{
-				CorrelationID: "upstream-target:" + chainID + ":" + dbUID.String(),
-				Result: &structs.IndexedCheckServiceNodes{
-					Nodes: TestUpstreamNodesInStatusDC2(t, "critical"),
-				},
-			})
+		})
+		events = append(events, UpdateEvent{
+			CorrelationID: "upstream-target:db.default.default.dc2:" + dbUID.String(),
+			Result: &structs.IndexedCheckServiceNodes{
+				Nodes: TestUpstreamNodesInStatusDC2(t, "critical"),
+			},
+		})
 		fallthrough
 	case "failover-through-double-remote-gateway":
-		chainID := makeChainID(structs.DiscoveryTargetOpts{Datacenter: "dc3"})
 		events = append(events, UpdateEvent{
-			CorrelationID: "upstream-target:" + chainID + ":" + dbUID.String(),
+			CorrelationID: "upstream-target:db.default.default.dc3:" + dbUID.String(),
 			Result: &structs.IndexedCheckServiceNodes{
 				Nodes: TestUpstreamNodesDC2(t),
 			},
-		},
-			UpdateEvent{
-				CorrelationID: "mesh-gateway:dc2:" + dbUID.String(),
-				Result: &structs.IndexedCheckServiceNodes{
-					Nodes: TestGatewayNodesDC2(t),
-				},
+		})
+		events = append(events, UpdateEvent{
+			CorrelationID: "mesh-gateway:dc2:" + dbUID.String(),
+			Result: &structs.IndexedCheckServiceNodes{
+				Nodes: TestGatewayNodesDC2(t),
 			},
-			UpdateEvent{
-				CorrelationID: "mesh-gateway:dc3:" + dbUID.String(),
-				Result: &structs.IndexedCheckServiceNodes{
-					Nodes: TestGatewayNodesDC3(t),
-				},
-			})
+		})
+		events = append(events, UpdateEvent{
+			CorrelationID: "mesh-gateway:dc3:" + dbUID.String(),
+			Result: &structs.IndexedCheckServiceNodes{
+				Nodes: TestGatewayNodesDC3(t),
+			},
+		})
 	case "failover-through-local-gateway-triggered":
 		events = append(events, UpdateEvent{
-			CorrelationID: "upstream-target:" + dbChainID + ":" + dbUID.String(),
+			CorrelationID: "upstream-target:db.default.default.dc1:" + dbUID.String(),
 			Result: &structs.IndexedCheckServiceNodes{
 				Nodes: TestUpstreamNodesInStatus(t, "critical"),
 			},
 		})
 		fallthrough
 	case "failover-through-local-gateway":
-		chainID := makeChainID(structs.DiscoveryTargetOpts{Datacenter: "dc2"})
 		events = append(events, UpdateEvent{
-			CorrelationID: "upstream-target:" + chainID + ":" + dbUID.String(),
+			CorrelationID: "upstream-target:db.default.default.dc2:" + dbUID.String(),
 			Result: &structs.IndexedCheckServiceNodes{
 				Nodes: TestUpstreamNodesDC2(t),
 			},
-		},
-			UpdateEvent{
-				CorrelationID: "mesh-gateway:dc1:" + dbUID.String(),
-				Result: &structs.IndexedCheckServiceNodes{
-					Nodes: TestGatewayNodesDC1(t),
-				},
-			})
-	case "failover-through-double-local-gateway-triggered":
-		db2ChainID := makeChainID(structs.DiscoveryTargetOpts{Datacenter: "dc2"})
+		})
 		events = append(events, UpdateEvent{
-			CorrelationID: "upstream-target:" + dbChainID + ":" + dbUID.String(),
+			CorrelationID: "mesh-gateway:dc1:" + dbUID.String(),
+			Result: &structs.IndexedCheckServiceNodes{
+				Nodes: TestGatewayNodesDC1(t),
+			},
+		})
+	case "failover-through-double-local-gateway-triggered":
+		events = append(events, UpdateEvent{
+			CorrelationID: "upstream-target:db.default.default.dc1:" + dbUID.String(),
 			Result: &structs.IndexedCheckServiceNodes{
 				Nodes: TestUpstreamNodesInStatus(t, "critical"),
 			},
-		},
-			UpdateEvent{
-				CorrelationID: "upstream-target:" + db2ChainID + ":" + dbUID.String(),
-				Result: &structs.IndexedCheckServiceNodes{
-					Nodes: TestUpstreamNodesInStatusDC2(t, "critical"),
-				},
-			})
+		})
+		events = append(events, UpdateEvent{
+			CorrelationID: "upstream-target:db.default.default.dc2:" + dbUID.String(),
+			Result: &structs.IndexedCheckServiceNodes{
+				Nodes: TestUpstreamNodesInStatusDC2(t, "critical"),
+			},
+		})
 		fallthrough
 	case "failover-through-double-local-gateway":
-		db3ChainID := makeChainID(structs.DiscoveryTargetOpts{Datacenter: "dc3"})
 		events = append(events, UpdateEvent{
-			CorrelationID: "upstream-target:" + db3ChainID + ":" + dbUID.String(),
+			CorrelationID: "upstream-target:db.default.default.dc3:" + dbUID.String(),
 			Result: &structs.IndexedCheckServiceNodes{
 				Nodes: TestUpstreamNodesDC2(t),
 			},
@@ -292,16 +191,14 @@ func setupTestVariationConfigEntriesAndSnapshot(
 			},
 		})
 	case "splitter-with-resolver-redirect-multidc":
-		v1ChainID := makeChainID(structs.DiscoveryTargetOpts{ServiceSubset: "v1"})
-		v2ChainID := makeChainID(structs.DiscoveryTargetOpts{ServiceSubset: "v2", Datacenter: "dc2"})
 		events = append(events, UpdateEvent{
-			CorrelationID: "upstream-target:" + v1ChainID + ":" + dbUID.String(),
+			CorrelationID: "upstream-target:v1.db.default.default.dc1:" + dbUID.String(),
 			Result: &structs.IndexedCheckServiceNodes{
 				Nodes: TestUpstreamNodes(t, "db"),
 			},
 		})
 		events = append(events, UpdateEvent{
-			CorrelationID: "upstream-target:" + v2ChainID + ":" + dbUID.String(),
+			CorrelationID: "upstream-target:v2.db.default.default.dc2:" + dbUID.String(),
 			Result: &structs.IndexedCheckServiceNodes{
 				Nodes: TestUpstreamNodesDC2(t),
 			},
@@ -310,7 +207,6 @@ func setupTestVariationConfigEntriesAndSnapshot(
 	case "grpc-router":
 	case "chain-and-router":
 	case "lb-resolver":
-	case "register-to-terminating-gateway":
 	default:
 		t.Fatalf("unexpected variation: %q", variation)
 		return nil
@@ -322,13 +218,10 @@ func setupTestVariationConfigEntriesAndSnapshot(
 func setupTestVariationDiscoveryChain(
 	t testing.T,
 	variation string,
-	enterprise bool,
-	entMeta acl.EnterpriseMeta,
 	additionalEntries ...structs.ConfigEntry,
 ) *structs.CompiledDiscoveryChain {
 	// Compile a chain.
 	var (
-		peers        []*pbpeering.Peering
 		entries      []structs.ConfigEntry
 		compileSetup func(req *discoverychain.CompileRequest)
 	)
@@ -336,7 +229,6 @@ func setupTestVariationDiscoveryChain(
 	switch variation {
 	case "default":
 		// no config entries
-	case "register-to-terminating-gateway":
 	case "simple-with-overrides":
 		compileSetup = func(req *discoverychain.CompileRequest) {
 			req.OverrideMeshGateway.Mode = structs.MeshGatewayModeLocal
@@ -349,7 +241,6 @@ func setupTestVariationDiscoveryChain(
 			&structs.ServiceResolverConfigEntry{
 				Kind:           structs.ServiceResolver,
 				Name:           "db",
-				EnterpriseMeta: entMeta,
 				ConnectTimeout: 33 * time.Second,
 				RequestTimeout: 33 * time.Second,
 			},
@@ -357,15 +248,13 @@ func setupTestVariationDiscoveryChain(
 	case "external-sni":
 		entries = append(entries,
 			&structs.ServiceConfigEntry{
-				Kind:           structs.ServiceDefaults,
-				Name:           "db",
-				EnterpriseMeta: entMeta,
-				ExternalSNI:    "db.some.other.service.mesh",
+				Kind:        structs.ServiceDefaults,
+				Name:        "db",
+				ExternalSNI: "db.some.other.service.mesh",
 			},
 			&structs.ServiceResolverConfigEntry{
 				Kind:           structs.ServiceResolver,
 				Name:           "db",
-				EnterpriseMeta: entMeta,
 				ConnectTimeout: 33 * time.Second,
 				RequestTimeout: 33 * time.Second,
 			},
@@ -375,7 +264,6 @@ func setupTestVariationDiscoveryChain(
 			&structs.ServiceResolverConfigEntry{
 				Kind:           structs.ServiceResolver,
 				Name:           "db",
-				EnterpriseMeta: entMeta,
 				ConnectTimeout: 33 * time.Second,
 				RequestTimeout: 33 * time.Second,
 				Failover: map[string]structs.ServiceResolverFailover{
@@ -390,9 +278,8 @@ func setupTestVariationDiscoveryChain(
 	case "failover-through-remote-gateway":
 		entries = append(entries,
 			&structs.ServiceConfigEntry{
-				Kind:           structs.ServiceDefaults,
-				Name:           "db",
-				EnterpriseMeta: entMeta,
+				Kind: structs.ServiceDefaults,
+				Name: "db",
 				MeshGateway: structs.MeshGatewayConfig{
 					Mode: structs.MeshGatewayModeRemote,
 				},
@@ -400,7 +287,6 @@ func setupTestVariationDiscoveryChain(
 			&structs.ServiceResolverConfigEntry{
 				Kind:           structs.ServiceResolver,
 				Name:           "db",
-				EnterpriseMeta: entMeta,
 				ConnectTimeout: 33 * time.Second,
 				RequestTimeout: 33 * time.Second,
 				Failover: map[string]structs.ServiceResolverFailover{
@@ -411,87 +297,31 @@ func setupTestVariationDiscoveryChain(
 			},
 		)
 	case "failover-to-cluster-peer":
-		target := structs.ServiceResolverFailoverTarget{
-			Peer: "cluster-01",
-		}
-
-		if enterprise {
-			target.Namespace = "ns9"
-		}
-
 		entries = append(entries,
 			&structs.ServiceResolverConfigEntry{
 				Kind:           structs.ServiceResolver,
 				Name:           "db",
-				EnterpriseMeta: entMeta,
 				ConnectTimeout: 33 * time.Second,
 				RequestTimeout: 33 * time.Second,
 				Failover: map[string]structs.ServiceResolverFailover{
 					"*": {
-						Targets: []structs.ServiceResolverFailoverTarget{target},
-					},
-				},
-			},
-		)
-	case "order-by-locality-failover":
-		peers = append(peers,
-			&pbpeering.Peering{
-				Name: "cluster-01",
-				Remote: &pbpeering.RemoteInfo{
-					Locality: &pbcommon.Locality{Region: "us-west-1"},
-				},
-			},
-			&pbpeering.Peering{
-				Name: "cluster-02",
-				Remote: &pbpeering.RemoteInfo{
-					Locality: &pbcommon.Locality{Region: "us-west-2"},
-				},
-			})
-		cluster1Target := structs.ServiceResolverFailoverTarget{
-			Peer: "cluster-01",
-		}
-		cluster2Target := structs.ServiceResolverFailoverTarget{
-			Peer: "cluster-02",
-		}
-
-		entries = append(entries,
-			&structs.ServiceResolverConfigEntry{
-				Kind:           structs.ServiceResolver,
-				Name:           "db",
-				EnterpriseMeta: entMeta,
-				ConnectTimeout: 33 * time.Second,
-				RequestTimeout: 33 * time.Second,
-				Failover: map[string]structs.ServiceResolverFailover{
-					"*": {
-						Policy: &structs.ServiceResolverFailoverPolicy{
-							Mode:    "order-by-locality",
-							Regions: []string{"us-west-2", "us-west-1"},
-						},
 						Targets: []structs.ServiceResolverFailoverTarget{
-							cluster1Target,
-							cluster2Target,
-							{Service: "db-v2"},
+							{Peer: "cluster-01"},
 						},
 					},
 				},
 			},
 		)
 	case "redirect-to-cluster-peer":
-		redirect := &structs.ServiceResolverRedirect{
-			Peer: "cluster-01",
-		}
-		if enterprise {
-			redirect.Namespace = "ns9"
-		}
-
 		entries = append(entries,
 			&structs.ServiceResolverConfigEntry{
 				Kind:           structs.ServiceResolver,
 				Name:           "db",
-				EnterpriseMeta: entMeta,
 				ConnectTimeout: 33 * time.Second,
 				RequestTimeout: 33 * time.Second,
-				Redirect:       redirect,
+				Redirect: &structs.ServiceResolverRedirect{
+					Peer: "cluster-01",
+				},
 			},
 		)
 	case "failover-through-double-remote-gateway-triggered":
@@ -499,9 +329,8 @@ func setupTestVariationDiscoveryChain(
 	case "failover-through-double-remote-gateway":
 		entries = append(entries,
 			&structs.ServiceConfigEntry{
-				Kind:           structs.ServiceDefaults,
-				Name:           "db",
-				EnterpriseMeta: entMeta,
+				Kind: structs.ServiceDefaults,
+				Name: "db",
 				MeshGateway: structs.MeshGatewayConfig{
 					Mode: structs.MeshGatewayModeRemote,
 				},
@@ -509,7 +338,6 @@ func setupTestVariationDiscoveryChain(
 			&structs.ServiceResolverConfigEntry{
 				Kind:           structs.ServiceResolver,
 				Name:           "db",
-				EnterpriseMeta: entMeta,
 				ConnectTimeout: 33 * time.Second,
 				RequestTimeout: 33 * time.Second,
 				Failover: map[string]structs.ServiceResolverFailover{
@@ -524,9 +352,8 @@ func setupTestVariationDiscoveryChain(
 	case "failover-through-local-gateway":
 		entries = append(entries,
 			&structs.ServiceConfigEntry{
-				Kind:           structs.ServiceDefaults,
-				Name:           "db",
-				EnterpriseMeta: entMeta,
+				Kind: structs.ServiceDefaults,
+				Name: "db",
 				MeshGateway: structs.MeshGatewayConfig{
 					Mode: structs.MeshGatewayModeLocal,
 				},
@@ -534,7 +361,6 @@ func setupTestVariationDiscoveryChain(
 			&structs.ServiceResolverConfigEntry{
 				Kind:           structs.ServiceResolver,
 				Name:           "db",
-				EnterpriseMeta: entMeta,
 				ConnectTimeout: 33 * time.Second,
 				RequestTimeout: 33 * time.Second,
 				Failover: map[string]structs.ServiceResolverFailover{
@@ -549,9 +375,8 @@ func setupTestVariationDiscoveryChain(
 	case "failover-through-double-local-gateway":
 		entries = append(entries,
 			&structs.ServiceConfigEntry{
-				Kind:           structs.ServiceDefaults,
-				Name:           "db",
-				EnterpriseMeta: entMeta,
+				Kind: structs.ServiceDefaults,
+				Name: "db",
 				MeshGateway: structs.MeshGatewayConfig{
 					Mode: structs.MeshGatewayModeLocal,
 				},
@@ -559,7 +384,6 @@ func setupTestVariationDiscoveryChain(
 			&structs.ServiceResolverConfigEntry{
 				Kind:           structs.ServiceResolver,
 				Name:           "db",
-				EnterpriseMeta: entMeta,
 				ConnectTimeout: 33 * time.Second,
 				RequestTimeout: 33 * time.Second,
 				Failover: map[string]structs.ServiceResolverFailover{
@@ -570,29 +394,25 @@ func setupTestVariationDiscoveryChain(
 			},
 		)
 	case "splitter-with-resolver-redirect-multidc":
-		em := acl.NewEnterpriseMetaWithPartition(entMeta.PartitionOrDefault(), acl.NamespaceOrDefault(""))
 		entries = append(entries,
 			&structs.ProxyConfigEntry{
-				Kind:           structs.ProxyDefaults,
-				Name:           structs.ProxyConfigGlobal,
-				EnterpriseMeta: em,
+				Kind: structs.ProxyDefaults,
+				Name: structs.ProxyConfigGlobal,
 				Config: map[string]interface{}{
 					"protocol": "http",
 				},
 			},
 			&structs.ServiceSplitterConfigEntry{
-				Kind:           structs.ServiceResolver,
-				Name:           "db",
-				EnterpriseMeta: entMeta,
+				Kind: structs.ServiceResolver,
+				Name: "db",
 				Splits: []structs.ServiceSplit{
 					{Weight: 50, Service: "db-dc1"},
 					{Weight: 50, Service: "db-dc2"},
 				},
 			},
 			&structs.ServiceResolverConfigEntry{
-				Kind:           structs.ServiceResolver,
-				Name:           "db-dc1",
-				EnterpriseMeta: entMeta,
+				Kind: structs.ServiceResolver,
+				Name: "db-dc1",
 				Redirect: &structs.ServiceResolverRedirect{
 					Service:       "db",
 					ServiceSubset: "v1",
@@ -600,9 +420,8 @@ func setupTestVariationDiscoveryChain(
 				},
 			},
 			&structs.ServiceResolverConfigEntry{
-				Kind:           structs.ServiceResolver,
-				Name:           "db-dc2",
-				EnterpriseMeta: entMeta,
+				Kind: structs.ServiceResolver,
+				Name: "db-dc2",
 				Redirect: &structs.ServiceResolverRedirect{
 					Service:       "db",
 					ServiceSubset: "v2",
@@ -610,9 +429,8 @@ func setupTestVariationDiscoveryChain(
 				},
 			},
 			&structs.ServiceResolverConfigEntry{
-				Kind:           structs.ServiceResolver,
-				Name:           "db",
-				EnterpriseMeta: entMeta,
+				Kind: structs.ServiceResolver,
+				Name: "db",
 				Subsets: map[string]structs.ServiceResolverSubset{
 					"v1": {
 						Filter: "Service.Meta.version == v1",
@@ -628,22 +446,19 @@ func setupTestVariationDiscoveryChain(
 			&structs.ServiceResolverConfigEntry{
 				Kind:           structs.ServiceResolver,
 				Name:           "db",
-				EnterpriseMeta: entMeta,
 				ConnectTimeout: 33 * time.Second,
 				RequestTimeout: 33 * time.Second,
 			},
 			&structs.ProxyConfigEntry{
-				Kind:           structs.ProxyDefaults,
-				Name:           structs.ProxyConfigGlobal,
-				EnterpriseMeta: entMeta,
+				Kind: structs.ProxyDefaults,
+				Name: structs.ProxyConfigGlobal,
 				Config: map[string]interface{}{
 					"protocol": "http",
 				},
 			},
 			&structs.ServiceSplitterConfigEntry{
-				Kind:           structs.ServiceSplitter,
-				Name:           "db",
-				EnterpriseMeta: entMeta,
+				Kind: structs.ServiceSplitter,
+				Name: "db",
 				Splits: []structs.ServiceSplit{
 					{
 						Weight:  95.5,
@@ -683,22 +498,19 @@ func setupTestVariationDiscoveryChain(
 			&structs.ServiceResolverConfigEntry{
 				Kind:           structs.ServiceResolver,
 				Name:           "db",
-				EnterpriseMeta: entMeta,
 				ConnectTimeout: 33 * time.Second,
 				RequestTimeout: 33 * time.Second,
 			},
 			&structs.ProxyConfigEntry{
-				Kind:           structs.ProxyDefaults,
-				Name:           structs.ProxyConfigGlobal,
-				EnterpriseMeta: entMeta,
+				Kind: structs.ProxyDefaults,
+				Name: structs.ProxyConfigGlobal,
 				Config: map[string]interface{}{
 					"protocol": "grpc",
 				},
 			},
 			&structs.ServiceRouterConfigEntry{
-				Kind:           structs.ServiceRouter,
-				Name:           "db",
-				EnterpriseMeta: entMeta,
+				Kind: structs.ServiceRouter,
+				Name: "db",
 				Routes: []structs.ServiceRoute{
 					{
 						Match: &structs.ServiceRouteMatch{
@@ -718,22 +530,19 @@ func setupTestVariationDiscoveryChain(
 			&structs.ServiceResolverConfigEntry{
 				Kind:           structs.ServiceResolver,
 				Name:           "db",
-				EnterpriseMeta: entMeta,
 				ConnectTimeout: 33 * time.Second,
 				RequestTimeout: 33 * time.Second,
 			},
 			&structs.ProxyConfigEntry{
-				Kind:           structs.ProxyDefaults,
-				Name:           structs.ProxyConfigGlobal,
-				EnterpriseMeta: entMeta,
+				Kind: structs.ProxyDefaults,
+				Name: structs.ProxyConfigGlobal,
 				Config: map[string]interface{}{
 					"protocol": "http",
 				},
 			},
 			&structs.ServiceSplitterConfigEntry{
-				Kind:           structs.ServiceSplitter,
-				Name:           "split-3-ways",
-				EnterpriseMeta: entMeta,
+				Kind: structs.ServiceSplitter,
+				Name: "split-3-ways",
 				Splits: []structs.ServiceSplit{
 					{Weight: 95.5, Service: "big-side"},
 					{Weight: 4, Service: "goldilocks-side"},
@@ -741,9 +550,8 @@ func setupTestVariationDiscoveryChain(
 				},
 			},
 			&structs.ServiceRouterConfigEntry{
-				Kind:           structs.ServiceRouter,
-				Name:           "db",
-				EnterpriseMeta: entMeta,
+				Kind: structs.ServiceRouter,
+				Name: "db",
 				Routes: []structs.ServiceRoute{
 					{
 						Match: httpMatch(&structs.ServiceRouteHTTPMatch{
@@ -974,26 +782,23 @@ func setupTestVariationDiscoveryChain(
 	case "lb-resolver":
 		entries = append(entries,
 			&structs.ProxyConfigEntry{
-				Kind:           structs.ProxyDefaults,
-				Name:           structs.ProxyConfigGlobal,
-				EnterpriseMeta: entMeta,
+				Kind: structs.ProxyDefaults,
+				Name: structs.ProxyConfigGlobal,
 				Config: map[string]interface{}{
 					"protocol": "http",
 				},
 			},
 			&structs.ServiceSplitterConfigEntry{
-				Kind:           structs.ServiceSplitter,
-				Name:           "db",
-				EnterpriseMeta: entMeta,
+				Kind: structs.ServiceSplitter,
+				Name: "db",
 				Splits: []structs.ServiceSplit{
 					{Weight: 95.5, Service: "something-else"},
 					{Weight: 4.5, Service: "db"},
 				},
 			},
 			&structs.ServiceResolverConfigEntry{
-				Kind:           structs.ServiceResolver,
-				Name:           "db",
-				EnterpriseMeta: entMeta,
+				Kind: structs.ServiceResolver,
+				Name: "db",
 				LoadBalancer: &structs.LoadBalancer{
 					Policy: "ring_hash",
 					RingHashConfig: &structs.RingHashConfig{
@@ -1032,12 +837,7 @@ func setupTestVariationDiscoveryChain(
 		entries = append(entries, additionalEntries...)
 	}
 
-	set := configentry.NewDiscoveryChainSet()
-
-	set.AddEntries(entries...)
-	set.AddPeers(peers...)
-
-	return discoverychain.TestCompileConfigEntries(t, "db", entMeta.NamespaceOrDefault(), entMeta.PartitionOrDefault(), "dc1", connect.TestClusterID+".consul", compileSetup, set)
+	return discoverychain.TestCompileConfigEntries(t, "db", "default", "default", "dc1", connect.TestClusterID+".consul", compileSetup, entries...)
 }
 
 func httpMatch(http *structs.ServiceRouteHTTPMatch) *structs.ServiceRouteMatch {

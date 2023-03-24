@@ -1,15 +1,8 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 import { module, test } from 'qunit';
 import rightTrim from 'consul-ui/utils/right-trim';
 
 module('Unit | Utility | right trim', function () {
   test('it trims characters from the right hand side', function (assert) {
-    assert.expect(12);
-
     [
       {
         args: ['/a/folder/here/', '/'],

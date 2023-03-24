@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package proxycfg
 
 import (
@@ -10,7 +7,7 @@ import (
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/proxycfg/internal/watch"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/proto/private/pbpeering"
+	"github.com/hashicorp/consul/proto/pbpeering"
 )
 
 type handlerIngressGateway struct {
@@ -94,9 +91,6 @@ func (s *handlerIngressGateway) handleUpdate(ctx context.Context, u UpdateEvent,
 		resp, ok := u.Result.(*structs.ConfigEntryResponse)
 		if !ok {
 			return fmt.Errorf("invalid type for response: %T", u.Result)
-		}
-		if resp.Entry == nil {
-			return nil
 		}
 		gatewayConf, ok := resp.Entry.(*structs.IngressGatewayConfigEntry)
 		if !ok {

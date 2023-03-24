@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 @import 'ember-power-select';
 
 @import 'consul-ui/components/anchors';
@@ -71,6 +66,7 @@
 @import 'consul-ui/components/inline-code';
 @import 'consul-ui/components/overlay';
 @import 'consul-ui/components/tooltip';
+@import 'consul-ui/components/notice';
 @import 'consul-ui/components/modal-dialog';
 @import 'consul-ui/components/list-collection';
 @import 'consul-ui/components/filter-bar';

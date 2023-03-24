@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package state
 
 import (
@@ -287,7 +284,7 @@ func (s *Store) intentionMutationLegacyCreate(
 		return err
 	}
 
-	if err := ensureConfigEntryTxn(tx, idx, false, upsertEntry); err != nil {
+	if err := ensureConfigEntryTxn(tx, idx, upsertEntry); err != nil {
 		return err
 	}
 
@@ -331,7 +328,7 @@ func (s *Store) intentionMutationLegacyUpdate(
 		return err
 	}
 
-	if err := ensureConfigEntryTxn(tx, idx, false, upsertEntry); err != nil {
+	if err := ensureConfigEntryTxn(tx, idx, upsertEntry); err != nil {
 		return err
 	}
 
@@ -377,7 +374,7 @@ func (s *Store) intentionMutationDelete(
 		return err
 	}
 
-	if err := ensureConfigEntryTxn(tx, idx, false, upsertEntry); err != nil {
+	if err := ensureConfigEntryTxn(tx, idx, upsertEntry); err != nil {
 		return err
 	}
 
@@ -425,7 +422,7 @@ func (s *Store) intentionMutationLegacyDelete(
 		return err
 	}
 
-	if err := ensureConfigEntryTxn(tx, idx, false, upsertEntry); err != nil {
+	if err := ensureConfigEntryTxn(tx, idx, upsertEntry); err != nil {
 		return err
 	}
 
@@ -473,7 +470,7 @@ func (s *Store) intentionMutationUpsert(
 		return err
 	}
 
-	if err := ensureConfigEntryTxn(tx, idx, false, upsertEntry); err != nil {
+	if err := ensureConfigEntryTxn(tx, idx, upsertEntry); err != nil {
 		return err
 	}
 

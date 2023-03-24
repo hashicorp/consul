@@ -1,56 +1,30 @@
-{{!
-  Copyright (c) HashiCorp, Inc.
-  SPDX-License-Identifier: MPL-2.0
-}}
-
 <form>
-  {{#if (not (token/is-legacy item))}}
-    {{partial 'dc/acls/tokens/fieldsets'}}
-  {{else}}
-    {{partial 'dc/acls/tokens/fieldsets-legacy'}}
+{{#if (not (token/is-legacy item))}}
+  {{partial 'dc/acls/tokens/fieldsets'}}
+{{else}}
+  {{partial 'dc/acls/tokens/fieldsets-legacy'}}
+{{/if}}
+    {{!TODO: Make this into a slotted component}}
+    <div>
+{{#if (and create (can "create tokens")) }}
+  {{! new tokens can be saved without you filling anything in, old tokens remain using isPristine }}
+        <button type="submit" {{ action "create" item}} disabled={{if (or (and (token/is-legacy item) item.isPristine) item.isInvalid) 'disabled'}}>Save</button>
+{{ else }}
+  {{#if (can "write token" item=item)}}
+        <button type="submit" {{ action "update" item}} disabled={{if item.isInvalid 'disabled'}}>Save</button>
   {{/if}}
-  {{!TODO: Make this into a slotted component}}
-  <div>
-    <Hds::ButtonSet>
-      {{#if (and create (can "create tokens")) }}
-      {{! new tokens can be saved without you filling anything in, old tokens remain using isPristine }}
-        <Hds::Button
-          @text='Save'
-          type='submit'
-          {{ on 'click' (route-action 'create' item)}}
-          disabled={{if (or (and (token/is-legacy item) item.isPristine) item.isInvalid) 'disabled'}}
-        />
-      {{ else }}
-        {{#if (can "write token" item=item)}}
-          <Hds::Button
-            @text='Save'
-            type='submit'
-            {{ on 'click' (route-action 'update' item)}}
-            disabled={{if item.isInvalid 'disabled'}}
-          />
-        {{/if}}
-      {{/if}}
-      <Hds::Button
-        @text='Cancel'
-        @color='secondary'
-        type='reset'
-        {{ action "cancel" item}}
-      />
-      {{# if (and (not create) (can "delete token" item=item token=token) ) }}
+{{/if}}
+
+        <button type="reset" {{ action "cancel" item}}>Cancel</button>
+{{# if (and (not create) (can "delete token" item=item token=token) ) }}
         <ConfirmationDialog @message="Are you sure you want to delete this Token?">
-          <BlockSlot @name="action" as |confirm|>
-            <Hds::Button
-              @text='Delete'
-              @color='critical'
-              {{action confirm 'delete' item}}
-              data-test-delete
-            />
-          </BlockSlot>
-          <BlockSlot @name="dialog" as |execute cancel message|>
-            <DeleteConfirmation @message={{message}} @execute={{execute}} @cancel={{cancel}} />
-          </BlockSlot>
+            <BlockSlot @name="action" as |confirm|>
+                <button type="button" data-test-delete class="type-delete" {{action confirm 'delete' item}}>Delete</button>
+            </BlockSlot>
+            <BlockSlot @name="dialog" as |execute cancel message|>
+              <DeleteConfirmation @message={{message}} @execute={{execute}} @cancel={{cancel}} />
+            </BlockSlot>
         </ConfirmationDialog>
-      {{/if}}
-    </Hds::ButtonSet>
-  </div>
+{{/if}}
+    </div>
 </form>

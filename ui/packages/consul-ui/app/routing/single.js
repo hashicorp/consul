@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 import Route from 'consul-ui/routing/route';
 import { assert } from '@ember/debug';
 import { Promise, hash } from 'rsvp';

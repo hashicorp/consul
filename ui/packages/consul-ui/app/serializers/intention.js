@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 import Serializer from './application';
 import { inject as service } from '@ember/service';
 import { get } from '@ember/object';

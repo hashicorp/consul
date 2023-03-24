@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package health
 
 import (
@@ -174,7 +171,7 @@ type fakeNetRPC struct {
 	calls []string
 }
 
-func (f *fakeNetRPC) RPC(ctx context.Context, method string, _ interface{}, _ interface{}) error {
+func (f *fakeNetRPC) RPC(method string, _ interface{}, _ interface{}) error {
 	f.calls = append(f.calls, method)
 	return nil
 }

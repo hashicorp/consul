@@ -1,11 +1,7 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package consul
 
 import (
 	"errors"
-	"fmt"
 
 	"github.com/hashicorp/consul/agent/structs"
 )
@@ -27,13 +23,6 @@ func (a *AutoEncrypt) Sign(
 	}
 	if !a.srv.config.AutoEncryptAllowTLS {
 		return ErrAutoEncryptAllowTLSNotEnabled
-	}
-	// There's no reason to forward the AutoEncrypt.Sign RPC to a remote datacenter because its certificates
-	// won't be valid in this datacenter. If the client is requesting a different datacenter, then this is a
-	// misconfiguration, and we can give them a useful error.
-	if args.Datacenter != a.srv.config.Datacenter {
-		return fmt.Errorf("mismatched datacenter (client_dc='%s' server_dc='%s');"+
-			" check client has same datacenter set as servers", args.Datacenter, a.srv.config.Datacenter)
 	}
 	if done, err := a.srv.ForwardRPC("AutoEncrypt.Sign", args, reply); done {
 		return err

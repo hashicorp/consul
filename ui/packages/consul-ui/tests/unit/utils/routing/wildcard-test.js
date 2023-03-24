@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 import wildcard from 'consul-ui/utils/routing/wildcard';
 import { module, test } from 'qunit';
 

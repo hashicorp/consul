@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 import { module, test } from 'qunit';
 import { setupTest } from 'ember-qunit';
 import { get } from 'consul-ui/tests/helpers/api';
@@ -19,7 +14,6 @@ module('Integration | Serializer | intention', function (hooks) {
   const nspace = 'default';
   const partition = 'default';
   test('respondForQuery returns the correct data for list endpoint', function (assert) {
-    assert.expect(4);
     const serializer = this.owner.lookup('serializer:intention');
     const request = {
       url: `/v1/connect/intentions?dc=${dc}`,
@@ -59,7 +53,6 @@ module('Integration | Serializer | intention', function (hooks) {
     });
   });
   test('respondForQueryRecord returns the correct data for item endpoint', function (assert) {
-    assert.expect(4);
     const serializer = this.owner.lookup('serializer:intention');
     const request = {
       url: `/v1/connect/intentions/${id}?dc=${dc}`,

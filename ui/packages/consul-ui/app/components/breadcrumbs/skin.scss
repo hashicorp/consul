@@ -1,14 +1,9 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 %crumbs {
-  color: var(--token-color-foreground-faint);
+  color: rgb(var(--tone-gray-500));
   text-decoration: none;
 }
 %crumbs:hover {
-  color: var(--token-color-foreground-action);
+  color: rgb(var(--tone-blue-500));
   text-decoration: underline;
 }
 %crumbs::before {
@@ -16,9 +11,9 @@
 }
 %breadcrumb-milestone::before {
   @extend %with-chevron-left-mask, %as-pseudo;
-  background-color: var(--token-color-foreground-faint);
+  background-color: rgb(var(--tone-gray-500));
 }
 %breadcrumb::before {
   content: '/';
-  color: var(--token-color-foreground-faint);
+  color: rgb(var(--tone-gray-500));
 }

@@ -57,10 +57,6 @@ The following outline shows how to format the service splitter configuration ent
 - [`TransparentProxy`](#transparentproxy): map | no default
   - [`OutboundListenerPort`](#transparentproxy): integer | `15001`
   - [`DialedDirectly`](#transparentproxy  ): boolean | `false`
-- [`EnvoyExtensions`](#envoyextensions): list | no default
-  - [`Name`](#envoyextensions): string | `""`
-  - [`Required`](#envoyextensions): string | `""`
-  - [`Arguments`](#envoyextensions): map | `nil`
 - [`Destination`](#destination): map | no default
   - [`Addresses`](#destination): list | no default
   - [`Port`](#destination): integer | `0`
@@ -124,10 +120,6 @@ The following outline shows how to format the service splitter configuration ent
   - [`transparentProxy`](#transparentproxy): map | no default
     - [`outboundListenerPort`](#transparentproxy): integer | `15001`
     - [`dialedDirectly`](#transparentproxy): boolean | `false`
-  - [`envoyExtensions`](#envoyextensions): list | no default
-    - [`name`](#envoyextensions): string | `""`
-    - [`required`](#envoyextensions): string | `""`
-    - [`arguments`](#envoyextensions): map | `nil`
   - [`destination`](#destination): map | no default
     - [`addresses`](#destination): list | no default
     - [`port`](#destination): integer | `0`
@@ -136,7 +128,7 @@ The following outline shows how to format the service splitter configuration ent
   - [`localRequestTiimeoutMs`](#localrequesttimeoutms): integer | `0`
   - [`meshGateway`](#meshgateway): map | no default
     - [`mode`](#meshgateway): string | no default
-  - [`externalSNI`](#externalsni): string | no default
+  - [`externalSNI`](#externalsni): string | no defaiult
   - [`expose`](#expose): map | no default
     - [`checks`](#expose-checks): boolean | `false`
     - [`paths`](#expose-paths): list | no default
@@ -459,7 +451,7 @@ Specifies the default protocol for the service. In service mesh use cases, the `
 - [observability](/consul/docs/connect/observability)
 - [service splitter configuration entry](/consul/docs/connect/config-entries/service-splitter) 
 - [service router configuration entry](/consul/docs/connect/config-entries/service-router) 
-- [L7 intentions](/consul/docs/connect/intentions/index#l7-traffic-intentions)
+- [L7 intentions](/consul/docs/connect/intentions)
 
 You can set the global protocol for proxies in the [`proxy-defaults`](/consul/docs/connect/config-entries/proxy-defaults#default-protocol) configuration entry, but the protocol specified in the `service-defaults` configuration entry overrides the `proxy-defaults` configuration.    
 
@@ -674,7 +666,7 @@ Map that specifies a set of rules that enable Consul to remove hosts from the up
 
 ### `TransparentProxy`
 
-Controls configurations specific to proxies in transparent mode. Refer to [Transparent Proxy](/consul/docs/connect/transparent-proxy) for additional information.
+Controls configurations specific to proxies in transparent mode. Refer to [Transparent Proxy](/consul/docs/connect/transparent-proxy) for additional information.  
 
 You can configure the following parameters in the `TransparentProxy` block:
 
@@ -682,18 +674,6 @@ You can configure the following parameters in the `TransparentProxy` block:
 | ---   | ---         | ---       | ---     |
 | `OutboundListenerPort` | Specifies the port that the proxy listens on for outbound traffic. This must be the same port number where outbound application traffic is redirected. | integer | `15001` |
 | `DialedDirectly` | Enables transparent proxies to dial the proxy instance's IP address directly when set to `true`. Transparent proxies commonly dial upstreams at the `"virtual"` tagged address, which load balances across instances. Dialing individual instances can be helpful for stateful services, such as a database cluster with a leader. | boolean | `false` |
-
-### `EnvoyExtensions`
-
-List of extensions to modify Envoy proxy configuration. Refer to [Envoy Extensions](/consul/docs/connect/proxies/envoy-extensions) for additional information.  
-
-You can configure the following parameters in the `EnvoyExtensions` block:
-
-| Parameter | Description | Data type | Default |
-| ---   | ---         | ---       | ---     |
-| `Name` | Name of the extension. | string | `""` |
-| `Required` | When Required is true and the extension does not update any Envoy resources, an error is returned. Use this parameter to ensure that extensions required for secure communication are not unintentionally bypassed. | string | `""` |
-| `Arguments` | Arguments to pass to the extension executable. | map | `nil` |
 
 ### `Destination[]`
 
@@ -712,6 +692,7 @@ Specifies the maximum number of concurrent inbound connections to each service i
 
 - Default: `0`
 - Data type: integer
+
 
 ### `LocalConnectTimeoutMs`
 
@@ -831,7 +812,7 @@ Specifies the default protocol for the service. In service service mesh use case
 - [observability](/consul/docs/connect/observability)
 - [`service-splitter` configuration entry](/consul/docs/connect/config-entries/service-splitter) 
 - [`service-router` configuration entry](/consul/docs/connect/config-entries/service-router) 
-- [L7 intentions](/consul/docs/connect/intentions/index#l7-traffic-intentions)
+- [L7 intentions](/consul/docs/connect/intentions)
 
 You can set the global protocol for proxies in the [`ProxyDefaults` configuration entry](/consul/docs/connect/config-entries/proxy-defaults#default-protocol), but the protocol specified in the `ServiceDefaults` configuration entry overrides the `ProxyDefaults` configuration.    
 
@@ -1065,20 +1046,6 @@ You can configure the following parameters in the `TransparentProxy` block:
 | ---   | ---         | ---       | ---     |
 | `outboundListenerPort` | Specifies the port that the proxy listens on for outbound traffic. This must be the same port number where outbound application traffic is redirected. | integer | `15001` |
 | `dialedDirectly` | Enables transparent proxies to dial the proxy instance's IP address directly when set to `true`. Transparent proxies commonly dial upstreams at the `"virtual"` tagged address, which load balances across instances. Dialing individual instances can be helpful for stateful services, such as a database cluster with a leader. | boolean | `false` |
-
-### `spec.envoyExtensions`
-
-List of extensions to modify Envoy proxy configuration. Refer to [Envoy Extensions](/consul/docs/connect/proxies/envoy-extensions) for additional information.
-
-#### Values
-
-You can configure the following parameters in the `EnvoyExtensions` block:
-
-| Parameter | Description | Data type | Default |
-| ---   | ---         | ---       | ---     |
-| `name` | Name of the extension. | string | `""` |
-| `required` | When Required is true and the extension does not update any Envoy resources, an error is returned. Use this parameter to ensure that extensions required for secure communication are not unintentionally bypassed. | string | `""` |
-| `arguments` | Arguments to pass to the extension executable. | map | `nil` |
 
 ### `spec.destination`
 
@@ -1586,16 +1553,6 @@ represents a location outside the Consul cluster. Services can dial destinations
                 'The namespace of the upstream. This should not be set to the wildcard specifier `*`.',
             },
             {
-              name: 'Peer',
-              type: 'string: ""',
-              description: 
-                `The name of the peer containing the upstream. Do not use a wildcard specifier ( \`*\`).<br><br>
-                    If the \`peer\` field is not set in any \`Overrides\` configuration, then Consul applies overrides to peered services with the same [\`name\`](/consul/docs/connect/config-entries/service-defaults#name). 
-                    This maintains backward compatibility with Consul 1.14.0. 
-                    If the \`peer\` field is specified in any override, then backward compatibility with Consul 1.14.0 is disabled. 
-                    As a result, each peered service must have a separate override configuration if desired.` ,
-            },
-            {
               name: 'Protocol',
               type: 'string: ""',
               description: `The protocol for the upstream listener.<br><br>
@@ -1607,8 +1564,6 @@ represents a location outside the Consul cluster. Services can dial destinations
                     proxy upstream config will not fully enable some
                     [L7 features](/consul/docs/connect/l7-traffic).
                     It is supported here for backwards compatibility with Consul versions prior to 1.6.0.
-                    In addition, the \`protocol\` of a peered service cannot be overriden. Any value in 
-                    this field is ignored for peered services.
                   `,
             },
             {
@@ -1721,10 +1676,10 @@ represents a location outside the Consul cluster. Services can dial destinations
                   name: 'EnforcingConsecutive5xx',
                   type: 'int: 100',
                   description: {
-                    hcl: `Measured in percent (%), the probability of a host's ejection
-                      after a passive health check detects an outlier status through consecutive 5xx.`,
-                    yaml: `Measured in percent (%), the probability of a host's ejection
-                       after a passive health check detects an outlier status through consecutive 5xx.`,
+                    hcl: `The % chance that a host will be actually ejected 
+                      when an outlier status is detected through consecutive 5xx.`,
+                    yaml: `The % chance that a host will be actually ejected 
+                      when an outlier status is detected through consecutive 5xx.`,
                   },
                 },
               ],
@@ -1872,10 +1827,10 @@ represents a location outside the Consul cluster. Services can dial destinations
                   name: 'EnforcingConsecutive5xx',
                   type: 'int: 100',
                   description: {
-                    hcl: `Measured in percent (%), the probability of a host's ejection
-                       after a passive health check detects an outlier status through consecutive 5xx.`,
-                    yaml: `Measured in percent (%), the probability of a host's ejection
-                       after a passive health check detects an outlier status through consecutive 5xx.`,
+                    hcl: `The % chance that a host will be actually ejected 
+                      when an outlier status is detected through consecutive 5xx.`,
+                    yaml: `The % chance that a host will be actually ejected 
+                      when an outlier status is detected through consecutive 5xx.`,
                   },
                 },
               ],
@@ -1984,7 +1939,7 @@ represents a location outside the Consul cluster. Services can dial destinations
           description: `If enabled, all HTTP and gRPC checks registered with the agent are exposed through Envoy.
         Envoy will expose listeners for these checks and will only accept connections originating from localhost or Consul's
         [advertise address](/consul/docs/agent/config/config-files#advertise). The port for these listeners are dynamically allocated from
-        [expose_min_port](/consul/docs/agent/config/config-files#expose_min_port) to [expose_max_port](/consul/docs/agent/config/config-files#expose_max_port).
+        [expose_min_port](/docs/agent/config/config-files#expose_min_port) to [expose_max_port](/docs/agent/config/config-files#expose_max_port).
         This flag is useful when a Consul client cannot reach registered services over localhost. One example is when running
         Consul on Kubernetes, and Consul agents run in their own pods.`,
         },

@@ -1,12 +1,9 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package save
 
 import (
 	"crypto/rand"
 	"fmt"
-	"io"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -139,7 +136,7 @@ func TestSnapshotSaveCommand_TruncatedStream(t *testing.T) {
 		require.NoError(t, err)
 		defer rc.Close()
 
-		inputData, err = io.ReadAll(rc)
+		inputData, err = ioutil.ReadAll(rc)
 		require.NoError(t, err)
 	}
 

@@ -1,10 +1,6 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package cachetype
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/hashicorp/consul/agent/cache"
@@ -42,7 +38,7 @@ func (c *CatalogDatacenters) Fetch(opts cache.FetchOptions, req cache.Request) (
 
 	// Fetch
 	var reply []string
-	if err := c.RPC.RPC(context.Background(), "Catalog.ListDatacenters", reqReal, &reply); err != nil {
+	if err := c.RPC.RPC("Catalog.ListDatacenters", reqReal, &reply); err != nil {
 		return result, err
 	}
 

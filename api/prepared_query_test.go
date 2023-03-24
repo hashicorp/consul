@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package api
 
 import (
@@ -182,56 +179,4 @@ func TestAPI_PreparedQuery(t *testing.T) {
 	if len(defs) != 0 {
 		t.Fatalf("bad: %v", defs)
 	}
-}
-
-func TestAPI_PreparedQueryRemoveEmptyTags(t *testing.T) {
-	t.Parallel()
-	c, s := makeClient(t)
-	defer s.Stop()
-
-	def := &PreparedQueryDefinition{
-		Name: "test",
-		Service: ServiceQuery{
-			Service: "redis",
-		},
-		Template: QueryTemplate{
-			RemoveEmptyTags: false,
-		},
-	}
-
-	query := c.PreparedQuery()
-	var err error
-	def.ID, _, err = query.Create(def, nil)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	queries, _, err := query.Get(def.ID, nil)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if len(queries) != 1 {
-		t.Fatalf("wrong length: %#v", queries)
-	}
-	if queries[0].Template.RemoveEmptyTags {
-		t.Fatalf("wrong value: %v", queries[0].Template.RemoveEmptyTags)
-	}
-
-	def.Template.RemoveEmptyTags = true
-	_, err = query.Update(def, nil)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	queries, _, err = query.Get(def.ID, nil)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if len(queries) != 1 {
-		t.Fatalf("wrong length: %#v", queries)
-	}
-	if !queries[0].Template.RemoveEmptyTags {
-		t.Fatalf("wrong value: %v", queries[0].Template.RemoveEmptyTags)
-	}
-
 }

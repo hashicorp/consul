@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package consul
 
 import (
@@ -15,7 +12,6 @@ import (
 	"golang.org/x/time/rate"
 
 	"github.com/hashicorp/consul/agent/checks"
-	consulrate "github.com/hashicorp/consul/agent/consul/rate"
 	"github.com/hashicorp/consul/agent/structs"
 	libserf "github.com/hashicorp/consul/lib/serf"
 	"github.com/hashicorp/consul/tlsutil"
@@ -37,11 +33,6 @@ const (
 	// MaxRaftMultiplier is a fairly arbitrary upper bound that limits the
 	// amount of performance detuning that's possible.
 	MaxRaftMultiplier uint = 10
-
-	// LogStoreBackend* are well-known string values used to configure different
-	// log store backends.
-	LogStoreBackendBoltDB = "boltdb"
-	LogStoreBackendWAL    = "wal"
 )
 
 var (
@@ -327,25 +318,6 @@ type Config struct {
 	// CheckOutputMaxSize control the max size of output of checks
 	CheckOutputMaxSize int
 
-	// RequestLimitsMode will disable or enable rate limiting.  If not disabled, it
-	// enforces the action that will occur when RequestLimitsReadRate
-	// or RequestLimitsWriteRate is exceeded.  The default value of "disabled" will
-	// prevent any rate limiting from occuring.  A value of "enforce" will block
-	// the request from processings by returning an error.  A value of
-	// "permissive" will not block the request and will allow the request to
-	// continue processing.
-	RequestLimitsMode string
-
-	// RequestLimitsReadRate controls how frequently RPC, gRPC, and HTTP
-	// queries are allowed to happen. In any large enough time interval, rate
-	// limiter limits the rate to RequestLimitsReadRate tokens per second.
-	RequestLimitsReadRate rate.Limit
-
-	// RequestLimitsWriteRate controls how frequently RPC, gRPC, and HTTP
-	// writes are allowed to happen. In any large enough time interval, rate
-	// limiter limits the rate to RequestLimitsWriteRate tokens per second.
-	RequestLimitsWriteRate rate.Limit
-
 	// RPCHandshakeTimeout limits how long we will wait for the initial magic byte
 	// on an RPC client connection. It also governs how long we will wait for a
 	// TLS handshake when TLS is configured however the timout applies separately
@@ -432,14 +404,12 @@ type Config struct {
 
 	RPCConfig RPCConfig
 
-	LogStoreConfig RaftLogStoreConfig
+	RaftBoltDBConfig RaftBoltDBConfig
 
 	// PeeringEnabled enables cluster peering.
 	PeeringEnabled bool
 
 	PeeringTestAllowPeerRegistrations bool
-
-	Locality *structs.Locality
 
 	// Embedded Consul Enterprise specific configuration
 	*EnterpriseConfig
@@ -530,10 +500,6 @@ func DefaultConfig() *Config {
 		CoordinateUpdateMaxBatches: 5,
 
 		CheckOutputMaxSize: checks.DefaultBufSize,
-
-		RequestLimitsMode:      "disabled",
-		RequestLimitsReadRate:  rate.Inf, // ops / sec
-		RequestLimitsWriteRate: rate.Inf, // ops / sec
 
 		RPCRateLimit: rate.Inf,
 		RPCMaxBurst:  1000,
@@ -654,18 +620,9 @@ type RPCConfig struct {
 	EnableStreaming bool
 }
 
-// RequestLimits is configuration for serverrate limiting that is a part of
-// ReloadableConfig.
-type RequestLimits struct {
-	Mode      consulrate.Mode
-	ReadRate  rate.Limit
-	WriteRate rate.Limit
-}
-
 // ReloadableConfig is the configuration that is passed to ReloadConfig when
 // application config is reloaded.
 type ReloadableConfig struct {
-	RequestLimits         *RequestLimits
 	RPCClientTimeout      time.Duration
 	RPCRateLimit          rate.Limit
 	RPCMaxBurst           int
@@ -678,23 +635,6 @@ type ReloadableConfig struct {
 	ElectionTimeout       time.Duration
 }
 
-type RaftLogStoreConfig struct {
-	Backend         string
-	DisableLogCache bool
-	Verification    RaftLogStoreVerificationConfig
-	BoltDB          RaftBoltDBConfig
-	WAL             WALConfig
-}
-
-type RaftLogStoreVerificationConfig struct {
-	Enabled  bool
-	Interval time.Duration
-}
-
 type RaftBoltDBConfig struct {
 	NoFreelistSync bool
-}
-
-type WALConfig struct {
-	SegmentSize int
 }

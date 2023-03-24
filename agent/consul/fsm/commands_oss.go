@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package fsm
 
 import (
@@ -13,7 +10,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/proto/private/pbpeering"
+	"github.com/hashicorp/consul/proto/pbpeering"
 )
 
 var CommandsSummaries = []prometheus.SummaryDefinition{
@@ -565,14 +562,6 @@ func (c *FSM) applyConfigEntryOperation(buf []byte, index uint64) interface{} {
 			return err
 		}
 		return true
-	case structs.ConfigEntryUpsertWithStatusCAS:
-		defer metrics.MeasureSinceWithLabels([]string{"fsm", "config_entry", req.Entry.GetKind()}, time.Now(),
-			[]metrics.Label{{Name: "op", Value: "upsert_with_status"}})
-		updated, err := c.state.EnsureConfigEntryWithStatusCAS(index, req.Entry.GetRaftIndex().ModifyIndex, req.Entry)
-		if err != nil {
-			return err
-		}
-		return updated
 	case structs.ConfigEntryDeleteCAS:
 		defer metrics.MeasureSinceWithLabels([]string{"fsm", "config_entry", req.Entry.GetKind()}, time.Now(),
 			[]metrics.Label{{Name: "op", Value: "delete"}})

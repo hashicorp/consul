@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package fsm
 
 import (
@@ -11,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/golang/protobuf/proto"
 	"github.com/hashicorp/go-raftchunking"
 	raftchunkingtypes "github.com/hashicorp/go-raftchunking/types"
 	"github.com/hashicorp/go-uuid"
@@ -19,7 +17,6 @@ import (
 	"github.com/mitchellh/mapstructure"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"google.golang.org/protobuf/proto"
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
@@ -1347,108 +1344,6 @@ func TestFSM_ConfigEntry(t *testing.T) {
 		entry.RaftIndex.CreateIndex = 1
 		entry.RaftIndex.ModifyIndex = 1
 		require.Equal(t, entry, config)
-	}
-}
-
-func TestFSM_ConfigEntry_StatusCAS(t *testing.T) {
-	t.Parallel()
-
-	logger := testutil.Logger(t)
-	fsm, err := New(nil, logger)
-	require.NoError(t, err)
-
-	// Create a simple config entry
-	entry := &structs.APIGatewayConfigEntry{
-		Kind:           structs.APIGateway,
-		Name:           "global",
-		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
-		Status: structs.Status{
-			Conditions: []structs.Condition{{
-				Status: "Foo",
-			}},
-		}}
-
-	// Create a new request.
-	req := &structs.ConfigEntryRequest{
-		Op:    structs.ConfigEntryUpsertCAS,
-		Entry: entry,
-	}
-
-	{
-		buf, err := structs.Encode(structs.ConfigEntryRequestType, req)
-		require.NoError(t, err)
-		resp := fsm.Apply(makeLog(buf))
-		if _, ok := resp.(error); ok {
-			t.Fatalf("bad: %v", resp)
-		}
-	}
-
-	// Verify it's in the state store.
-	{
-		_, config, err := fsm.state.ConfigEntry(nil, structs.APIGateway, "global", nil)
-		require.NoError(t, err)
-		entry.RaftIndex.CreateIndex = 1
-		entry.RaftIndex.ModifyIndex = 1
-		require.Equal(t, entry.DefaultStatus(), config.(*structs.APIGatewayConfigEntry).GetStatus())
-	}
-
-	// do a status update
-	entry.Status = structs.Status{
-		Conditions: []structs.Condition{{
-			Status: "Foo",
-		}},
-	}
-	req = &structs.ConfigEntryRequest{
-		Op:    structs.ConfigEntryUpsertWithStatusCAS,
-		Entry: entry,
-	}
-
-	{
-		buf, err := structs.Encode(structs.ConfigEntryRequestType, req)
-		require.NoError(t, err)
-		resp := fsm.Apply(makeLog(buf))
-		if _, ok := resp.(error); ok {
-			t.Fatalf("bad: %v", resp)
-		}
-	}
-
-	// Verify it's in the state store.
-	{
-		_, config, err := fsm.state.ConfigEntry(nil, structs.APIGateway, "global", nil)
-		require.NoError(t, err)
-		entry.RaftIndex.ModifyIndex = 2
-		conditions := config.(*structs.APIGatewayConfigEntry).Status.Conditions
-		require.Len(t, conditions, 1)
-		require.Equal(t, "Foo", conditions[0].Status)
-	}
-
-	// attempt to change the status with a regular update and make sure it's ignored
-	entry.Status = structs.Status{
-		Conditions: []structs.Condition{{
-			Status: "Bar",
-		}},
-	}
-	req = &structs.ConfigEntryRequest{
-		Op:    structs.ConfigEntryUpsertCAS,
-		Entry: entry,
-	}
-
-	{
-		buf, err := structs.Encode(structs.ConfigEntryRequestType, req)
-		require.NoError(t, err)
-		resp := fsm.Apply(makeLog(buf))
-		if _, ok := resp.(error); ok {
-			t.Fatalf("bad: %v", resp)
-		}
-	}
-
-	// Verify it's in the state store.
-	{
-		_, config, err := fsm.state.ConfigEntry(nil, structs.APIGateway, "global", nil)
-		require.NoError(t, err)
-		conditions := config.(*structs.APIGatewayConfigEntry).Status.Conditions
-		require.Len(t, conditions, 1)
-		require.Equal(t, "Foo", conditions[0].Status)
 	}
 }
 

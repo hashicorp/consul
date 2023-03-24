@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 import config from 'consul-ui/config/environment';
 
 import apiDouble from '@hashicorp/ember-cli-api-double';

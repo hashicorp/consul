@@ -1,12 +1,7 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 %skip-links {
-  outline: 1px solid var(--token-color-surface-primary);
-  color: var(--token-color-surface-primary);
-  background-color: var(--token-color-foreground-action);
+  outline: 1px solid rgb(var(--tone-gray-000));
+  color: rgb(var(--tone-gray-000));
+  background-color: rgb(var(--tone-blue-500));
 }
 %skip-links button,
 %skip-links a {

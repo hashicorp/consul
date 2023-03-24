@@ -1,12 +1,8 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package utils
 
 import (
 	"encoding/json"
 	"fmt"
-	"strings"
 
 	"github.com/itchyny/gojq"
 	"github.com/teris-io/shortid"
@@ -14,14 +10,10 @@ import (
 
 func RandName(name string) string {
 	shortID, err := shortid.New(1, shortid.DefaultABC, 6666)
-	if err != nil {
-		return ""
-	}
 	id, err := shortID.Generate()
 	if err != nil {
 		return ""
 	}
-	id = strings.ToLower(id)
 	return name + "-" + id
 }
 

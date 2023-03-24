@@ -1,3 +1,0 @@
-```release-note:bug
-ui: Fix issue with lists and filters not rendering properly
-```
