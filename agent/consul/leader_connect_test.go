@@ -1351,21 +1351,24 @@ func TestConnectCA_ConfigurationSet_PersistsRoots(t *testing.T) {
 
 func TestNewCARoot(t *testing.T) {
 	type testCase struct {
-		name        string
-		pem         string
-		expected    *structs.CARoot
-		expectedErr string
+		name            string
+		pem             string
+		intermediatePem string
+		expected        *structs.CARoot
+		expectedErr     string
 	}
 
 	run := func(t *testing.T, tc testCase) {
-		// TODO(chrisk): Add tests using intermediate PEM
-		root, err := newCARoot(ca.RootResult{PEM: tc.pem}, "provider-name", "cluster-id")
+		root, err := newCARoot(ca.RootResult{
+			PEM:             tc.pem,
+			IntermediatePEM: tc.intermediatePem,
+		}, "provider-name", "cluster-id")
 		if tc.expectedErr != "" {
 			testutil.RequireErrorContains(t, err, tc.expectedErr)
 			return
 		}
 		require.NoError(t, err)
-		assert.DeepEqual(t, root, tc.expected)
+		assert.DeepEqual(t, tc.expected, root)
 	}
 
 	// Test certs can be generated with
@@ -1460,6 +1463,28 @@ func TestNewCARoot(t *testing.T) {
 				Active:              true,
 				PrivateKeyType:      "ec",
 				PrivateKeyBits:      256,
+			},
+		},
+		{
+			// Although the intermediate pem doesn't have pem as the issuer
+			// as in a real certificate chain, we are testing that the IntermediateCerts
+			// are being populated and that the signing key is from the intermediatePem.
+			name:            "pem with intermediate pem",
+			pem:             readTestData(t, "cert-with-rsa-4096-key.pem"),
+			intermediatePem: readTestData(t, "cert-with-ec-256-key.pem"),
+			expected: &structs.CARoot{
+				ID:                  "3a:6a:e3:e2:2d:44:85:5a:e9:44:3b:ef:d2:90:78:83:7f:61:a2:84",
+				Name:                "Provider-Name CA Primary Cert",
+				SerialNumber:        5186695743100577491,
+				SigningKeyID:        "97:4d:17:81:64:f8:b4:af:05:e8:6c:79:c5:40:3b:0e:3e:8b:c0:ae:38:51:54:8a:2f:05:db:e3:e8:e4:24:ec",
+				ExternalTrustDomain: "cluster-id",
+				NotBefore:           time.Date(2019, 10, 17, 11, 53, 15, 0, time.UTC),
+				NotAfter:            time.Date(2029, 10, 17, 11, 53, 15, 0, time.UTC),
+				RootCert:            readTestData(t, "cert-with-rsa-4096-key.pem"),
+				IntermediateCerts:   []string{readTestData(t, "cert-with-ec-256-key.pem")},
+				Active:              true,
+				PrivateKeyType:      "rsa",
+				PrivateKeyBits:      4096,
 			},
 		},
 	}
