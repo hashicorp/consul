@@ -366,6 +366,10 @@ proto-tools:
 codegen-tools:
 	@$(SHELL) $(CURDIR)/build-support/scripts/devtools.sh -codegen
 
+.PHONY: pre-commit-tools
+pre-commit-tools:
+	@$(SHELL) $(CURDIR)/build-support/scripts/devtools.sh -pre-commit
+
 .PHONY: deep-copy
 deep-copy: codegen-tools
 	@$(SHELL) $(CURDIR)/agent/structs/deep-copy.sh
@@ -376,8 +380,8 @@ deep-copy: codegen-tools
 precommit: pre-commit
 
 .PHONY: pre-commit
-pre-commit:
-	@$(SHELL) $(CURDIR)/build-support/scripts/devtools.sh -pre-commit
+pre-commit: pre-commit-tools
+	pre-commit run
 
 version:
 	@echo -n "Version:                    "

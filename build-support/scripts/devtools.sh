@@ -162,8 +162,13 @@ function codegen_install {
 }
 
 function pre_commit_install {
-    # bail if already installed
+    # if already installed make sure the hook is also installed
     if command -v "pre-commit" &>/dev/null; then
+        # Not to be confused with installing the tool, this installs
+        # the git hook locally (.git/hooks/pre-commit) which pre-commit
+        # uses as a vector to run checks on `git commit`. This hook is
+        # generated based on the local environment hence not source
+        # controlled.
         pre-commit install
         return 0
     fi
