@@ -1,4 +1,4 @@
-name: reusable-unit 
+name: reusable-unit-split
 
 on:
   workflow_call:
@@ -25,16 +25,47 @@ on:
       args:
         required: false
         type: string
-        default: "" 
+        default: ""
+      runner-count: 
+        required: false
+        type: number
+        default: 1
+
 env:
   TEST_RESULTS: /tmp/test-results
   GOTESTSUM_VERSION: 1.8.2
   GOARCH: ${{inputs.go-arch}}
+  TOTAL_RUNNERS: ${{inputs.runner-count}}
   
 jobs:
+  set-test-package-matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      package-matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # v3.3.0
+      - uses: actions/setup-go@6edd4406fa81c3da01a34fa6f6343087c207a568 # pin@v3.5.0
+        with:
+          go-version-file: 'go.mod'
+      - id: set-matrix
+        run: ./.github/scripts/set_test_package_matrix.sh ${{env.TOTAL_RUNNERS}}
+
   go-test:
     runs-on: ${{ fromJSON(inputs.runs-on) }}
-    steps:      
+    name: "go-test"
+    needs:
+      - set-test-package-matrix
+    strategy:
+      fail-fast: false
+      matrix:
+        package: ${{ fromJson(needs.set-test-package-matrix.outputs.package-matrix) }}
+    steps:   
+      - name: ulimit
+        run: |
+          echo "Soft limits"
+          ulimit -Sa
+          echo "Hard limits"
+          ulimit -Ha   
       - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
       - uses: actions/setup-go@6edd4406fa81c3da01a34fa6f6343087c207a568 # pin@v3.5.0
         with:
@@ -64,34 +95,33 @@ jobs:
           path: /usr/local/bin
       - name: Make sure consul is executable
         run: sudo chmod +x /usr/local/bin/consul
-      - name: Display downloaded file
-        run: ls -ld consul 
-        working-directory: /usr/local/bin
       - run: go env
       - name: Run tests 
         working-directory: ${{inputs.directory}}
         run: |
-            PACKAGE_NAMES=$(go list -tags "$GOTAGS" ./...)
-            
-            # TODO(JM): figure out why this erroring
-            # if [[ github.ref == 'refs/heads/main' || !startsWith(github.ref, 'refs/heads/release/') ]]; then
-            #   export GO_TEST_FLAGS="-short"
-            # fi
-            
-            # some tests expect this umask, and arm images have a different default
-            umask 0022
+          # separate the list
+          PACKAGE_NAMES="${{ join(matrix.package, ' ') }}"
+          # PACKAGE_NAMES="${{ matrix.package }}"
 
-            gotestsum \
-              --format=short-verbose \
-              --jsonfile /tmp/jsonfile/go-test.log \
-              --debug \
-              --rerun-fails=3 \
-              --rerun-fails-max-failures=40 \
-              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
-              --packages="$PACKAGE_NAMES" \
-              --junitfile ${{env.TEST_RESULTS}}/gotestsum-report.xml -- \
-              -tags="${{env.GOTAGS}}" \
-              -cover -coverprofile=coverage.txt
+          # TODO(JM): figure out why this erroring
+          # if [[ github.ref == 'refs/heads/main' || !startsWith(github.ref, 'refs/heads/release/') ]]; then
+          #   export GO_TEST_FLAGS="-short"
+          # fi
+          
+          # some tests expect this umask, and arm images have a different default
+          umask 0022
+
+          gotestsum \
+          --format=short-verbose \
+          --jsonfile /tmp/jsonfile/go-test.log \
+          --debug \
+          --rerun-fails=3 \
+          --rerun-fails-max-failures=40 \
+          --rerun-fails-report=/tmp/gotestsum-rerun-fails \
+          --packages="$PACKAGE_NAMES" \
+          --junitfile ${{env.TEST_RESULTS}}/gotestsum-report.xml -- \
+          -tags="${{env.GOTAGS}}" -p 2 \
+          -cover -coverprofile=coverage.txt
       - uses: actions/upload-artifact@master
         with:
           name: test-results
@@ -102,7 +132,7 @@ jobs:
           path: /tmp/jsonfile
       - name: "Re-run fails report"
         run: |
-          .github/scripts/rerun_fails_report.sh /tmp/gotestsum-rerun-fails
+          .github/scripts/rerun-fails-report.sh /tmp/gotestsum-rerun-fails
       - name: Notify Slack
         if: failure()
         run: .github/scripts/notify_slack.sh
