@@ -118,29 +118,29 @@ func (m CertExpirationMonitor) Monitor(ctx context.Context) error {
 	logger := m.Logger.With("metric", strings.Join(m.Key, "."))
 
 	emitMetric := func() {
-		lifetime, notAfter, err := m.Query()
+		lifetime, untilAfter, err := m.Query()
 		if err != nil {
 			logger.Warn("failed to emit certificate expiry metric", "error", err)
 			return
 		}
 
-		if expiresSoon(lifetime, notAfter) {
+		if expiresSoon(lifetime, untilAfter) {
 			key := strings.Join(m.Key, "")
 			rootKey := strings.Join(metricsKeyMeshRootCAExpiry, "")
 			signingKey := strings.Join(metricsKeyMeshActiveSigningCAExpiry, "")
 			switch key {
 			case rootKey:
 				logger.Warn("root certificate will expire soon",
-					"time_to_expiry", notAfter,
-					"expiration", time.Now().Add(notAfter))
+					"time_to_expiry", untilAfter,
+					"expiration", time.Now().Add(untilAfter))
 			case signingKey:
 				logger.Warn("signing (intermediate) certificate will expire soon",
-					"time_to_expiry", notAfter,
-					"expiration", time.Now().Add(notAfter))
+					"time_to_expiry", untilAfter,
+					"expiration", time.Now().Add(untilAfter))
 			}
 		}
 
-		expiry := notAfter / time.Second
+		expiry := untilAfter / time.Second
 		metrics.SetGaugeWithLabels(m.Key, float32(expiry), m.Labels)
 	}
 
@@ -174,7 +174,7 @@ func initLeaderMetrics() {
 // we should send out a WARN log message.
 // It defaults to returning true if the cert will expire within 28 days or 40%
 // of the certs total duration, whichever is shorter.
-func expiresSoon(lifetime, notAfter time.Duration) bool {
+func expiresSoon(lifetime, untilAfter time.Duration) bool {
 	defaultPeriod := 28 * (24 * time.Hour) // 28 days
 	fortyPercent := (lifetime / 10) * 4    // 40% of total duration
 
@@ -183,5 +183,5 @@ func expiresSoon(lifetime, notAfter time.Duration) bool {
 		warningPeriod = fortyPercent
 	}
 
-	return notAfter < warningPeriod
+	return untilAfter < warningPeriod
 }
