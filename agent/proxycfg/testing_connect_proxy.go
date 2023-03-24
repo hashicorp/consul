@@ -7,6 +7,7 @@ import (
 	"github.com/mitchellh/go-testing-interface"
 	"github.com/stretchr/testify/assert"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/discoverychain"
 	"github.com/hashicorp/consul/agent/structs"
@@ -23,7 +24,7 @@ func TestConfigSnapshot(t testing.T, nsFn func(ns *structs.NodeService), extraUp
 	assert.True(t, dbChain.Default)
 
 	var (
-		upstreams   = structs.TestUpstreams(t)
+		upstreams   = structs.TestUpstreams(t, false)
 		dbUpstream  = upstreams[0]
 		geoUpstream = upstreams[1]
 
@@ -93,19 +94,25 @@ func TestConfigSnapshot(t testing.T, nsFn func(ns *structs.NodeService), extraUp
 func TestConfigSnapshotDiscoveryChain(
 	t testing.T,
 	variation string,
+	enterprise bool,
 	nsFn func(ns *structs.NodeService),
 	extraUpdates []UpdateEvent,
 	additionalEntries ...structs.ConfigEntry,
 ) *ConfigSnapshot {
 	roots, leaf := TestCerts(t)
 
+	var entMeta acl.EnterpriseMeta
+	if enterprise {
+		entMeta = acl.NewEnterpriseMetaWithPartition("ap1", "ns1")
+	}
+
 	var (
-		upstreams   = structs.TestUpstreams(t)
+		upstreams   = structs.TestUpstreams(t, enterprise)
 		geoUpstream = upstreams[1]
 
 		geoUID = NewUpstreamID(&geoUpstream)
 
-		webSN = structs.ServiceIDString("web", nil)
+		webSN = structs.ServiceIDString("web", &entMeta)
 	)
 
 	baseEvents := testSpliceEvents([]UpdateEvent{
@@ -157,6 +164,7 @@ func TestConfigSnapshotDiscoveryChain(
 		},
 		Meta:            nil,
 		TaggedAddresses: nil,
+		EnterpriseMeta:  entMeta,
 	}, nsFn, nil, testSpliceEvents(baseEvents, extraUpdates))
 }
 
