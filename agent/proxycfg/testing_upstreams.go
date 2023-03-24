@@ -15,6 +15,7 @@ import (
 func setupTestVariationConfigEntriesAndSnapshot(
 	t testing.T,
 	variation string,
+	enterprise bool,
 	upstreams structs.Upstreams,
 	additionalEntries ...structs.ConfigEntry,
 ) []UpdateEvent {
@@ -24,7 +25,7 @@ func setupTestVariationConfigEntriesAndSnapshot(
 		dbUID = NewUpstreamID(&dbUpstream)
 	)
 
-	dbChain := setupTestVariationDiscoveryChain(t, variation, dbUID.EnterpriseMeta, additionalEntries...)
+	dbChain := setupTestVariationDiscoveryChain(t, variation, enterprise, dbUID.EnterpriseMeta, additionalEntries...)
 
 	nodes := TestUpstreamNodes(t, "db")
 	if variation == "register-to-terminating-gateway" {
@@ -106,14 +107,16 @@ func setupTestVariationConfigEntriesAndSnapshot(
 			},
 		})
 		uid := UpstreamID{
-			Name:           "db",
-			Peer:           "cluster-01",
-			EnterpriseMeta: acl.NewEnterpriseMetaWithPartition(dbUID.PartitionOrDefault(), ""),
+			Name: "db",
+			Peer: "cluster-01",
+		}
+		if enterprise {
+			uid.EnterpriseMeta = acl.NewEnterpriseMetaWithPartition(dbUID.PartitionOrDefault(), "ns9")
 		}
 		events = append(events, UpdateEvent{
 			CorrelationID: "upstream-peer:" + uid.String(),
 			Result: &structs.IndexedCheckServiceNodes{
-				Nodes: structs.CheckServiceNodes{structs.TestCheckNodeServiceWithNameInPeer(t, "db", "dc1", "cluster-01", "10.40.1.1", false)},
+				Nodes: structs.CheckServiceNodes{structs.TestCheckNodeServiceWithNameInPeer(t, "db", "dc2", "cluster-01", "10.40.1.1", false, uid.EnterpriseMeta)},
 			},
 		})
 	case "redirect-to-cluster-peer":
@@ -129,14 +132,16 @@ func setupTestVariationConfigEntriesAndSnapshot(
 			},
 		})
 		uid := UpstreamID{
-			Name:           "db",
-			Peer:           "cluster-01",
-			EnterpriseMeta: acl.NewEnterpriseMetaWithPartition(dbUID.PartitionOrDefault(), ""),
+			Name: "db",
+			Peer: "cluster-01",
+		}
+		if enterprise {
+			uid.EnterpriseMeta = acl.NewEnterpriseMetaWithPartition(dbUID.PartitionOrDefault(), "ns9")
 		}
 		events = append(events, UpdateEvent{
 			CorrelationID: "upstream-peer:" + uid.String(),
 			Result: &structs.IndexedCheckServiceNodes{
-				Nodes: structs.CheckServiceNodes{structs.TestCheckNodeServiceWithNameInPeer(t, "db", "dc2", "cluster-01", "10.40.1.1", false)},
+				Nodes: structs.CheckServiceNodes{structs.TestCheckNodeServiceWithNameInPeer(t, "db", "dc2", "cluster-01", "10.40.1.1", false, uid.EnterpriseMeta)},
 			},
 		})
 	case "failover-through-double-remote-gateway-triggered":
@@ -256,6 +261,7 @@ func setupTestVariationConfigEntriesAndSnapshot(
 func setupTestVariationDiscoveryChain(
 	t testing.T,
 	variation string,
+	enterprise bool,
 	entMeta acl.EnterpriseMeta,
 	additionalEntries ...structs.ConfigEntry,
 ) *structs.CompiledDiscoveryChain {
@@ -343,6 +349,14 @@ func setupTestVariationDiscoveryChain(
 			},
 		)
 	case "failover-to-cluster-peer":
+		target := structs.ServiceResolverFailoverTarget{
+			Peer: "cluster-01",
+		}
+
+		if enterprise {
+			target.Namespace = "ns9"
+		}
+
 		entries = append(entries,
 			&structs.ServiceResolverConfigEntry{
 				Kind:           structs.ServiceResolver,
@@ -352,14 +366,19 @@ func setupTestVariationDiscoveryChain(
 				RequestTimeout: 33 * time.Second,
 				Failover: map[string]structs.ServiceResolverFailover{
 					"*": {
-						Targets: []structs.ServiceResolverFailoverTarget{
-							{Peer: "cluster-01"},
-						},
+						Targets: []structs.ServiceResolverFailoverTarget{target},
 					},
 				},
 			},
 		)
 	case "redirect-to-cluster-peer":
+		redirect := &structs.ServiceResolverRedirect{
+			Peer: "cluster-01",
+		}
+		if enterprise {
+			redirect.Namespace = "ns9"
+		}
+
 		entries = append(entries,
 			&structs.ServiceResolverConfigEntry{
 				Kind:           structs.ServiceResolver,
@@ -367,9 +386,7 @@ func setupTestVariationDiscoveryChain(
 				EnterpriseMeta: entMeta,
 				ConnectTimeout: 33 * time.Second,
 				RequestTimeout: 33 * time.Second,
-				Redirect: &structs.ServiceResolverRedirect{
-					Peer: "cluster-01",
-				},
+				Redirect:       redirect,
 			},
 		)
 	case "failover-through-double-remote-gateway-triggered":

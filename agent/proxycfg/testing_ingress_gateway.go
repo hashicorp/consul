@@ -88,7 +88,7 @@ func TestConfigSnapshotIngressGateway(
 		upstreams = structs.Upstreams{upstreams[0]} // just keep 'db'
 
 		baseEvents = testSpliceEvents(baseEvents, setupTestVariationConfigEntriesAndSnapshot(
-			t, variation, upstreams, additionalEntries...,
+			t, variation, false, upstreams, additionalEntries...,
 		))
 	}
 

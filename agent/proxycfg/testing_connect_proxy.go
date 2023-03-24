@@ -145,7 +145,7 @@ func TestConfigSnapshotDiscoveryChain(
 			},
 		},
 	}, setupTestVariationConfigEntriesAndSnapshot(
-		t, variation, upstreams, additionalEntries...,
+		t, variation, enterprise, upstreams, additionalEntries...,
 	))
 
 	return testConfigSnapshotFixture(t, &structs.NodeService{
