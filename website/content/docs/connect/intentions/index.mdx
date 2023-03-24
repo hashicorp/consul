@@ -29,44 +29,6 @@ If the destination service uses an HTTP-based protocol, then intentions can enfo
 
 You can manually create intentions from the Consul UI, API, or CLI. You can also enable Consul to dynamically create them by defining traffic routes in service intention configuration entries. Refer to [Create and manage intentions](/consul/docs/connect/intentions/intentions-usage) for details. 
 
-### Precedence and match order
-
-Consul processes criteria configured in the service intention configuration entry to match on incoming requests and either allow or deny the request to the destination service. The match criteria may include specific HTTP headers, request methods, or other attributes. Additionally, you can use regular expressions to programmatically match attributes. Refer to [Service intention configuration entry reference](/consul/docs/connect/config-entries/service-intentions) for details.  
-
-Consul orders the matches implicitly based the following factors:
-
-- Specificity: Incoming requests that match attributes directly have the highest precedence. For example, intentions that are configured to deny traffic from services that send `POST` requests take precedence over intentions that allow traffic from methods configured with the wildcard value `*`.
-- Authorization: Consul enforces `deny` over `allow` if match criteria are weighted equally. 
-
-The following table describes the order of precedence:
-
-| Source Namespace | Source Name | Destination Namespace | Destination Name | Precedence |
-| ---------------- | ----------- | --------------------- | ---------------- | ---------- |
-| Exact            | Exact       | Exact                 | Exact            | 9          |
-| Exact            | `*`         | Exact                 | Exact            | 8          |
-| `*`              | `*`         | Exact                 | Exact            | 7          |
-| Exact            | Exact       | Exact                 | `*`              | 6          |
-| Exact            | `*`         | Exact                 | `*`              | 5          |
-| `*`              | `*`         | Exact                 | `*`              | 4          |
-| Exact            | Exact       | `*`                   | `*`              | 3          |
-| Exact            | `*`         | `*`                   | `*`              | 2          |
-| `*`              | `*`         | `*`                   | `*`              | 1          |
-
-Consul prints the precedence value to the service intentions configuration entry after it processes the matching criteria. The value is read-only. Refer to 
-[`Precedence`](/consul/docs/connect/config-entries/service-intentions#precedence) for additional information. 
-
-Namespaces are an Enterprise feature. In Consul OSS, the only allowable value for either namespace field is `"default"`. Other rows in the table are not applicable.
-
-The [intention match API](/consul/api-docs/connect/intentions#list-matching-intentions)
-should be periodically called to retrieve all relevant intentions for the
-target destination. After verifying the TLS client certificate, the cached
-intentions should be consulted for each incoming connection/request to
-determine if it should be accepted or rejected.
-
-The default intention behavior is defined by the [`default_policy`](/consul/docs/agent/config/config-files#acl_default_policy) configuration.
-If the configuration is set `allow`, then all service mesh Connect connections will be allowed by default.
-If is set to `deny`, then all connections or requests will be denied by default.
-
 ### Enforcement
 
 The [proxy](/consul/docs/connect/proxies) or [natively-integrated
@@ -89,3 +51,41 @@ Because all intention data is cached locally, authorizations for inbound connect
 ### Intention maintenance
 
 Services should periodically call the [intention match API](/consul/api-docs/connect/intentions#list-matching-intentions) to retrieve all relevant intentions for the target destination. After verifying the TLS client certificate, the cached intentions for each incoming connection or request determine if it should be accepted or rejected.
+
+## Precedence and match order
+
+Consul processes criteria defined in the service intention configuration entry to match incoming requests. When Consul finds a match, it applies the corresponding action specified in the configuration entry. The match criteria may include specific HTTP headers, request methods, or other attributes. Additionally, you can use regular expressions to programmatically match attributes. Refer to [Service intention configuration entry reference](/consul/docs/connect/config-entries/service-intentions) for details.  
+
+Consul orders the matches based the following factors:
+
+- Specificity: Incoming requests that match attributes directly have the highest precedence. For example, intentions that are configured to deny traffic from services that send `POST` requests take precedence over intentions that allow traffic from methods configured with the wildcard value `*`.
+- Authorization: Consul enforces `deny` over `allow` if match criteria are weighted equally. 
+
+The following table shows match precedence in descending order:
+
+| Precedence | Source Namespace | Source Name | Destination Namespace | Destination Name |
+| -----------| ---------------- | ------------| --------------------- | ---------------- |
+| 9          | Exact            | Exact       | Exact                 | Exact            |
+| 8          | Exact            | `*`         | Exact                 | Exact            |
+| 7          | `*`              | `*`         | Exact                 | Exact            |
+| 6          | Exact            | Exact       | Exact                 | `*`              |
+| 5          | Exact            | `*`         | Exact                 | `*`              |
+| 4          | `*`              | `*`         | Exact                 | `*`              |
+| 3          | Exact            | Exact       | `*`                   | `*`              |
+| 2          | Exact            | `*`         | `*`                   | `*`              |
+| 1          | `*`              | `*`         | `*`                   | `*`              |
+
+Consul prints the precedence value to the service intentions configuration entry after it processes the matching criteria. The value is read-only. Refer to 
+[`Precedence`](/consul/docs/connect/config-entries/service-intentions#precedence) for additional information. 
+
+Namespaces are an Enterprise feature. In Consul OSS, the only allowable value for either namespace field is `"default"`. Other rows in the table are not applicable.
+
+The [intention match API](/consul/api-docs/connect/intentions#list-matching-intentions)
+should be periodically called to retrieve all relevant intentions for the
+target destination. After verifying the TLS client certificate, the cached
+intentions should be consulted for each incoming connection/request to
+determine if it should be accepted or rejected.
+
+The default intention behavior is defined by the [`default_policy`](/consul/docs/agent/config/config-files#acl_default_policy) configuration.
+If the configuration is set `allow`, then all service mesh Connect connections will be allowed by default.
+If is set to `deny`, then all connections or requests will be denied by default.
