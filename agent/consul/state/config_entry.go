@@ -455,6 +455,15 @@ func deleteConfigEntryTxn(tx WriteTxn, idx uint64, kind, name string, entMeta *a
 		return fmt.Errorf("failed updating index: %s", err)
 	}
 
+	// If this is a resolver/router/splitter, attempt to delete the virtual IP associated
+	// with this service.
+	if kind == structs.ServiceResolver || kind == structs.ServiceRouter || kind == structs.ServiceSplitter {
+		psn := structs.PeeredServiceName{ServiceName: sn}
+		if err := freeServiceVirtualIP(tx, idx, psn, nil); err != nil {
+			return fmt.Errorf("failed to clean up virtual IP for %q: %v", psn.String(), err)
+		}
+	}
+
 	return nil
 }
 
@@ -465,14 +474,15 @@ func insertConfigEntryWithTxn(tx WriteTxn, idx uint64, conf structs.ConfigEntry)
 
 	// If the config entry is for a terminating or ingress gateway we update the memdb table
 	// that associates gateways <-> services.
-	if conf.GetKind() == structs.TerminatingGateway || conf.GetKind() == structs.IngressGateway {
+	kind := conf.GetKind()
+	if kind == structs.TerminatingGateway || kind == structs.IngressGateway {
 		err := updateGatewayServices(tx, idx, conf, conf.GetEnterpriseMeta())
 		if err != nil {
 			return fmt.Errorf("failed to associate services to gateway: %v", err)
 		}
 	}
 
-	switch conf.GetKind() {
+	switch kind {
 	case structs.ServiceDefaults:
 		if conf.(*structs.ServiceConfigEntry).Destination != nil {
 			sn := structs.ServiceName{Name: conf.GetName(), EnterpriseMeta: *conf.GetEnterpriseMeta()}
@@ -497,6 +507,15 @@ func insertConfigEntryWithTxn(tx WriteTxn, idx uint64, conf structs.ConfigEntry)
 	case structs.SamenessGroup:
 		err := checkSamenessGroup(tx, conf)
 		if err != nil {
+			return err
+		}
+	case structs.ServiceResolver:
+		fallthrough
+	case structs.ServiceRouter:
+		fallthrough
+	case structs.ServiceSplitter:
+		psn := structs.PeeredServiceName{ServiceName: structs.NewServiceName(conf.GetName(), conf.GetEnterpriseMeta())}
+		if _, err := assignServiceVirtualIP(tx, idx, psn); err != nil {
 			return err
 		}
 	}
