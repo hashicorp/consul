@@ -543,7 +543,7 @@
         "routes": [
           {
             "title": "Service mesh intentions overview",
-            "path": "connect/intentions/intentions"
+            "path": "connect/intentions"
           },
           {
             "title": "Create and manage service intentions",
