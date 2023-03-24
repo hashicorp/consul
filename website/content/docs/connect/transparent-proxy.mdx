@@ -40,7 +40,7 @@ Your network must meet the following environment and software requirements to us
 * Transparent proxy is available for Kubernetes environments.
 * Consul 1.10.0+
 * Consul Helm chart 0.32.0+. If you want to use the Consul CNI plugin to redirect traffic, Helm chart 0.48.0+ is required. Refer to [Enable the Consul CNI plugin](#enable-the-consul-cni-plugin) for additional information.
-* [Service intentions](/consul/docs/connect/intentions/intentions) must be configured to allow communication between intended services.
+* [Service intentions](/consul/docs/connect/intentions) must be configured to allow communication between intended services.
 * The `ip_tables` kernel module must be running on all worker nodes within a Kubernetes cluster. If you are using the `modprobe` Linux utility, for example, issue the following command:
 
   `$ modprobe ip_tables`

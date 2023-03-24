@@ -165,7 +165,7 @@ spec:
 By default when ACLs are enabled or when ACLs default policy is `allow`,
 Consul will automatically configure proxies with all upstreams from the same datacenter.
 When ACLs are enabled with default `deny` policy,
-you must supply an [intention](/consul/docs/connect/intentions/intentions) to tell Consul which upstream you need to talk to.
+you must supply an [intention](/consul/docs/connect/intentions) to tell Consul which upstream you need to talk to.
 
 When upstreams are specified explicitly with the
 [`consul.hashicorp.com/connect-service-upstreams` annotation](/consul/docs/k8s/annotations-and-labels#consul-hashicorp-com-connect-service-upstreams),
@@ -175,18 +175,18 @@ upstream. This is analogous to the standard Kubernetes service environment varia
 point instead to the correct local proxy port to establish connections via
 Connect.
 
-We can verify access to the static text server using `kubectl exec`.
+You can verify access to the static text server using `kubectl exec`.
 Because transparent proxy is enabled by default,
-we use Kubernetes DNS to connect to our desired upstream.
+use Kubernetes DNS to connect to your desired upstream.
 
 ```shell-session
 $ kubectl exec deploy/static-client -- curl --silent http://static-server/
 "hello world"
 ```
 
-We can control access to the server using [intentions](/consul/docs/connect/intentions/intentions).
+You can control access to the server using [intentions](/consul/docs/connect/intentions).
 If you use the Consul UI or [CLI](/consul/commands/intention/create) to
-create a deny [intention](/consul/docs/connect/intentions/intentions) between
+deny communication between
 "static-client" and "static-server", connections are immediately rejected
 without updating either of the running pods. You can then remove this
 intention to allow connections again.
@@ -536,7 +536,7 @@ There are three options available:
 
 When [transparent proxy](/consul/docs/connect/transparent-proxy) is enabled and ACLs are disabled,
 the upstreams will be configured automatically across Consul namespaces.
-When ACLs are enabled, you must configure it by specifying an [intention](/consul/docs/connect/intentions/intentions),
+When ACLs are enabled, you must configure it by specifying an [intention](/consul/docs/connect/intentions),
 allowing services across Consul namespaces to talk to each other.
 
 If you wish to specify an upstream explicitly via the `consul.hashicorp.com/connect-service-upstreams` annotation,

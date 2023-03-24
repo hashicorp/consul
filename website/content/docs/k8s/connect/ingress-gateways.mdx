@@ -153,7 +153,7 @@ If TLS is enabled, use [https://localhost:8501/ui/dc1/services/ingress-gateway/i
 
 ## Defining an Intention
 
-If ACLs are enabled (via the `global.acls.manageSystemACLs` setting), you must define an [intention](/consul/docs/connect/intentions/intentions)
+If ACLs are enabled (via the `global.acls.manageSystemACLs` setting), you must define an [intention](/consul/docs/connect/intentions)
 to allow the ingress gateway to route to the upstream services defined in the `IngressGateway` resource (in the example above the upstream service is `static-server`).
 
 To create an intention that allows the ingress gateway to route to the service `static-server`, create a [`ServiceIntentions`](/consul/docs/connect/config-entries/service-intentions)

@@ -42,7 +42,7 @@ For more information about using Envoy proxies with Consul, refer to [Envoy prox
 
 When troubleshooting service-to-service communication issues, be aware of the following constraints:
 
-- The troubleshooting tool does not check service intentions. For more information about intentions, including precedence and match order, refer to [service mesh intentions](/consul/docs/connect/intentions/intentions).
+- The troubleshooting tool does not check service intentions. For more information about intentions, including precedence and match order, refer to [service mesh intentions](/consul/docs/connect/intentions).
 - The troubleshooting tool validates one direct connection between a downstream service and an upstream service. You must run the `consul troubleshoot` command with the Envoy ID for an individual upstream service. It does support validating multiple connections simultaneously.
 - The troubleshooting tool only validates Envoy configurations for sidecar proxies. As a result, the troubleshooting tool does not validate Envoy configurations on upstream proxies such as mesh gateways and terminating gateways.
 
