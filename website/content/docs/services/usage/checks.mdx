@@ -245,7 +245,7 @@ Responses larger than 4KB are truncated. The HTTP response determines the status
 TCP checks establish connections to the specified IPs or hosts. If the check successfully establishes a connection, the service status is reported as `success`. If the IP or host does not accept the connection, the service status is reported as `critical`. We recommend TCP checks over [script checks](#script-checks)  that use netcat or another external process to check a socket operation. 
 
 ### TCP check configuration
-Add a `tcp` field to the `check` block in your service definition file and specify the address, including port number, for the check to call. All other fields are optional. Refer to [Health Checks Configuration Reference](/consul/docs/services/configuration/health-checks-configuration) for information about all health check configurations. 
+Add a `tcp` field to the `check` block in your service definition file and specify the address, including port number, for the check to call. All other fields are optional. Refer to [Health Checks Configuration Reference](/consul/docs/services/configuration/checks-configuration-reference) for information about all health check configurations. 
 
 In the following example, a TCP check named `SSH TCP on port 22` attempts to connect to `localhost:22` every 10 seconds:
 
