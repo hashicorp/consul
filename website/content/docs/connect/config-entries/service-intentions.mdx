@@ -402,13 +402,20 @@ The `Peer` and `Partition` fields are mutually exclusive.
 
 ### `Sources[].Action`
 
-Specifies the action to take when the source sends traffic to the destination service. The value  is either `allow` or `deny`. Do not configure this field for L7 intentions. Configure the [`Permissions`](#sources-permissions) field instead. 
+Specifies the action to take when the source sends traffic to the destination service. The value  is either `allow` or `deny`. Do not configure this field to apply L7 intentions to the same source. Configure the [`Permissions`](#sources-permissions) field instead. 
 
 #### Values
 
 - Default: None
 - This field is required for L4 intentions. 
 - Data type: String value set to either `allow` or `deny`
+
+Refer to the following examples for additional guidance:
+
+- [L4 Intentions for specific sources and destinations](#l4-intentions-for-specific-sources-and-destinations)
+- [L4 intentions for all destinations](#l4-intentions-for-all-destinations)
+- [L4 intentions for all sources](#l4-intentions-for-all-sources)
+- [L4 and L7](#l4-and-l7)
 
 ### `Sources[].Permissions[]`
 
@@ -428,6 +435,13 @@ The `Permissions` only applies to services with a compatible protocol. `Permissi
 - List of objects that contain the following fields:
   - `Action`
   - `HTTP`
+
+Refer to the following examples for additional guidance:
+
+- [Rest access](#rest-access)
+- [gRPC](#grpc)
+- [Cluster peering](#cluster-peering)
+- [L4 and L7](#l4-and-l7)
 
 ### `Sources[].Permissions[].Action`
 
@@ -773,6 +787,144 @@ Specifies a description of the intention. Consul presents the description in API
 ## Examples
 
 The following examples demonstrate potential use-cases for the service intentions configuration entry.
+
+### L4 Intentions for specific sources and destinations
+
+The following example configuration entry specifies an L4 intention that denies traffic from `web` to `db` service instances, but allows traffic from `api` to `db`. 
+
+<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}> 
+
+```hcl
+Kind = "service-intentions"
+Name = "db"
+Sources = [
+  {
+    Name   = "web"
+    Action = "deny"
+  },
+  {
+    Name   = "api"
+    Action = "allow"
+  }
+]
+```
+
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ServiceIntentions
+spec:
+  destination:
+    name: db
+  sources:
+  - name: web
+    action: deny
+  - name: api
+    action: allow
+```
+
+```json
+{
+  "Kind": "service-intentions",
+  "Name": "db",
+  "Sources": [
+    {
+      "Action": "deny",
+      "Name": "web"
+    },
+    {
+      "Action": "allow",
+      "Name": "api"
+    }
+  ]
+}
+```
+
+</CodeTabs>
+
+### L4 intentions for all destinations
+
+In the following L4 example, the destination is configured with a `*` wildcard. As a result, traffic from `web` service instances is denied for any service in the datacenter. 
+
+<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
+
+```hcl
+Kind = "service-intentions"
+Name = "*"
+Sources = [
+  {
+    Name   = "web"
+    Action = "deny"
+  }
+]
+```
+
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ServiceIntentions
+spec:
+  destination:
+    name: *
+  sources:
+  - name: web
+    action: deny
+```
+
+```json
+{
+  "Kind": "service-intentions",
+  "Name": "*",
+  "Sources": [
+    {
+      "Action": "deny",
+      "Name": "web"
+    }
+  ]
+}
+```
+
+</CodeTabs>
+
+### L4 intentions for all sources
+
+In the following L4 example, the source is configured with a `*` wildcard. As a result, traffic from any service is denied to `db` service instances. 
+
+<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
+
+```hcl
+Kind = "service-intentions"
+Name = "db"
+Sources = [
+  {
+    Name   = "*"
+    Action = "deny"
+  }
+]
+```
+
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ServiceIntentions
+spec:
+  destination:
+    name: db
+  sources:
+  - name: *
+    action: deny
+```
+
+```json
+{
+  "Kind": "service-intentions",
+  "Name": "db",
+  "Sources": [
+    {
+      "Action": "deny",
+      "Name": "*"
+    }
+  ]
+}
+```
+</CodeTabs>
 
 ### REST access
 
