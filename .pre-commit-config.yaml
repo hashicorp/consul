@@ -8,3 +8,9 @@ repos:
     -   id: end-of-file-fixer
     -   id: check-yaml
     -   id: check-added-large-files
+-   repo: https://github.com/tekwizely/pre-commit-golang
+    rev: v1.0.0-rc.1
+    hooks:
+    -   id: go-imports
+        args:
+          - "-local github.com/hashicorp/consul/"
