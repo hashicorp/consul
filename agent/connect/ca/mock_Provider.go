@@ -120,19 +120,19 @@ func (_m *MockProvider) GenerateIntermediateCSR() (string, string, error) {
 	return r0, r1, r2
 }
 
-// GenerateRoot provides a mock function with given fields:
-func (_m *MockProvider) GenerateRoot() (RootResult, error) {
+// GenerateCAChain provides a mock function with given fields:
+func (_m *MockProvider) GenerateCAChain() (CAChainResult, error) {
 	ret := _m.Called()
 
-	var r0 RootResult
+	var r0 CAChainResult
 	var r1 error
-	if rf, ok := ret.Get(0).(func() (RootResult, error)); ok {
+	if rf, ok := ret.Get(0).(func() (CAChainResult, error)); ok {
 		return rf()
 	}
-	if rf, ok := ret.Get(0).(func() RootResult); ok {
+	if rf, ok := ret.Get(0).(func() CAChainResult); ok {
 		r0 = rf()
 	} else {
-		r0 = ret.Get(0).(RootResult)
+		r0 = ret.Get(0).(CAChainResult)
 	}
 
 	if rf, ok := ret.Get(1).(func() error); ok {

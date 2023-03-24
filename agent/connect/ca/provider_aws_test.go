@@ -46,7 +46,7 @@ func TestAWSBootstrapAndSignPrimary(t *testing.T) {
 			provider := testAWSProvider(t, testProviderConfigPrimary(t, cfg))
 			defer provider.Cleanup(true, nil)
 
-			root, err := provider.GenerateRoot()
+			root, err := provider.GenerateCAChain()
 			require.NoError(t, err)
 			rootPEM := root.PEM
 
@@ -73,7 +73,7 @@ func TestAWSBootstrapAndSignPrimary(t *testing.T) {
 		provider := testAWSProvider(t, testProviderConfigPrimary(t, nil))
 		defer provider.Cleanup(true, nil)
 
-		root, err := provider.GenerateRoot()
+		root, err := provider.GenerateCAChain()
 		require.NoError(t, err)
 		rootPEM := root.PEM
 
@@ -108,7 +108,7 @@ func TestAWSBootstrapAndSignSecondary(t *testing.T) {
 
 	p1 := testAWSProvider(t, testProviderConfigPrimary(t, nil))
 	defer p1.Cleanup(true, nil)
-	root, err := p1.GenerateRoot()
+	root, err := p1.GenerateCAChain()
 	require.NoError(t, err)
 	rootPEM := root.PEM
 
@@ -137,7 +137,7 @@ func TestAWSBootstrapAndSignSecondary(t *testing.T) {
 		cfg1 := testProviderConfigPrimary(t, nil)
 		cfg1.State = p1State
 		p1 = testAWSProvider(t, cfg1)
-		root, err := p1.GenerateRoot()
+		root, err := p1.GenerateCAChain()
 		require.NoError(t, err)
 		newRootPEM := root.PEM
 
@@ -171,7 +171,7 @@ func TestAWSBootstrapAndSignSecondary(t *testing.T) {
 			"ExistingARN": p1State[AWSStateCAARNKey],
 		})
 		p1 = testAWSProvider(t, cfg1)
-		root, err := p1.GenerateRoot()
+		root, err := p1.GenerateCAChain()
 		require.NoError(t, err)
 		newRootPEM := root.PEM
 
@@ -210,7 +210,7 @@ func TestAWSBootstrapAndSignSecondary(t *testing.T) {
 		p2 = testAWSProvider(t, cfg2)
 		require.NoError(t, p2.SetIntermediate(newIntPEM, newRootPEM, ""))
 
-		root, err = p1.GenerateRoot()
+		root, err = p1.GenerateCAChain()
 		require.NoError(t, err)
 		newRootPEM = root.PEM
 		newIntPEM, err = p2.ActiveLeafSigningCert()
@@ -232,7 +232,7 @@ func TestAWSBootstrapAndSignSecondaryConsul(t *testing.T) {
 		p1 := TestConsulProvider(t, delegate)
 		cfg := testProviderConfig(conf)
 		require.NoError(t, p1.Configure(cfg))
-		_, err := p1.GenerateRoot()
+		_, err := p1.GenerateCAChain()
 		require.NoError(t, err)
 
 		p2 := testAWSProvider(t, testProviderConfigSecondary(t, nil))
@@ -245,7 +245,7 @@ func TestAWSBootstrapAndSignSecondaryConsul(t *testing.T) {
 		p1 := testAWSProvider(t, testProviderConfigPrimary(t, nil))
 		defer p1.Cleanup(true, nil)
 
-		_, err := p1.GenerateRoot()
+		_, err := p1.GenerateCAChain()
 		require.NoError(t, err)
 
 		conf := testConsulCAConfig()
@@ -323,7 +323,7 @@ func TestAWSProvider_Cleanup(t *testing.T) {
 		// create a provider with the default config which will create the CA
 		p1Conf := testProviderConfigPrimary(t, nil)
 		p1 := testAWSProvider(t, p1Conf)
-		p1.GenerateRoot()
+		p1.GenerateCAChain()
 
 		t.Cleanup(func() {
 			// This is a fail safe just in case the Cleanup routine of the
@@ -357,7 +357,7 @@ func TestAWSProvider_Cleanup(t *testing.T) {
 		// create a provider with the default config which will create the CA
 		p1Conf := testProviderConfigPrimary(t, nil)
 		p1 := testAWSProvider(t, p1Conf)
-		p1.GenerateRoot()
+		p1.GenerateCAChain()
 
 		t.Cleanup(func() {
 			// This is a fail safe just in case the Cleanup routine of the
@@ -394,7 +394,7 @@ func TestAWSProvider_Cleanup(t *testing.T) {
 		// create a provider with the default config which will create the CA
 		p1Conf := testProviderConfigPrimary(t, nil)
 		p1 := testAWSProvider(t, p1Conf)
-		p1.GenerateRoot()
+		p1.GenerateCAChain()
 
 		t.Cleanup(func() {
 			// the p2 provider should not remove the CA but we need to ensure that

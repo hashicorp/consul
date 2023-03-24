@@ -1359,7 +1359,7 @@ func TestNewCARoot(t *testing.T) {
 	}
 
 	run := func(t *testing.T, tc testCase) {
-		root, err := newCARoot(ca.RootResult{
+		root, err := newCARoot(ca.CAChainResult{
 			PEM:             tc.pem,
 			IntermediatePEM: tc.intermediatePem,
 		}, "provider-name", "cluster-id")

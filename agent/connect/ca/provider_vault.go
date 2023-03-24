@@ -276,10 +276,10 @@ func (v *VaultProvider) State() (map[string]string, error) {
 	return nil, nil
 }
 
-// GenerateRoot mounts and initializes a new root PKI backend if needed.
-func (v *VaultProvider) GenerateRoot() (RootResult, error) {
+// GenerateCAChain mounts and initializes a new root PKI backend if needed.
+func (v *VaultProvider) GenerateCAChain() (CAChainResult, error) {
 	if !v.isPrimary {
-		return RootResult{}, fmt.Errorf("provider is not the root certificate authority")
+		return CAChainResult{}, fmt.Errorf("provider is not the root certificate authority")
 	}
 
 	// Set up the root PKI backend if necessary.
@@ -299,7 +299,7 @@ func (v *VaultProvider) GenerateRoot() (RootResult, error) {
 			},
 		})
 		if err != nil {
-			return RootResult{}, fmt.Errorf("failed to mount root CA backend: %w", err)
+			return CAChainResult{}, fmt.Errorf("failed to mount root CA backend: %w", err)
 		}
 
 		// We want to initialize afterwards
@@ -307,7 +307,7 @@ func (v *VaultProvider) GenerateRoot() (RootResult, error) {
 	case ErrBackendNotInitialized:
 		uid, err := connect.CompactUID()
 		if err != nil {
-			return RootResult{}, err
+			return CAChainResult{}, err
 		}
 		resp, err := v.writeNamespaced(v.config.RootPKINamespace, v.config.RootPKIPath+"root/generate/internal", map[string]interface{}{
 			"common_name": connect.CACN("vault", uid, v.clusterID, v.isPrimary),
@@ -316,23 +316,23 @@ func (v *VaultProvider) GenerateRoot() (RootResult, error) {
 			"key_bits":    v.config.PrivateKeyBits,
 		})
 		if err != nil {
-			return RootResult{}, fmt.Errorf("failed to initialize root CA: %w", err)
+			return CAChainResult{}, fmt.Errorf("failed to initialize root CA: %w", err)
 		}
 		var ok bool
 		rootPEM, ok = resp.Data["certificate"].(string)
 		if !ok {
-			return RootResult{}, fmt.Errorf("unexpected response from Vault: %v", resp.Data["certificate"])
+			return CAChainResult{}, fmt.Errorf("unexpected response from Vault: %v", resp.Data["certificate"])
 		}
 
 	default:
 		if err != nil {
-			return RootResult{}, fmt.Errorf("unexpected error while setting root PKI backend: %w", err)
+			return CAChainResult{}, fmt.Errorf("unexpected error while setting root PKI backend: %w", err)
 		}
 	}
 
 	rootChain, err := v.getCAChain(v.config.RootPKINamespace, v.config.RootPKIPath)
 	if err != nil {
-		return RootResult{}, err
+		return CAChainResult{}, err
 	}
 
 	// Workaround for a bug in the Vault PKI API.
@@ -343,16 +343,16 @@ func (v *VaultProvider) GenerateRoot() (RootResult, error) {
 
 	intermediate, err := v.ActiveLeafSigningCert()
 	if err != nil {
-		return RootResult{}, fmt.Errorf("error fetching active intermediate: %w", err)
+		return CAChainResult{}, fmt.Errorf("error fetching active intermediate: %w", err)
 	}
 	if intermediate == "" {
 		intermediate, err = v.GenerateLeafSigningCert()
 		if err != nil {
-			return RootResult{}, fmt.Errorf("error generating intermediate: %w", err)
+			return CAChainResult{}, fmt.Errorf("error generating intermediate: %w", err)
 		}
 	}
 
-	return RootResult{PEM: rootChain, IntermediatePEM: intermediate}, nil
+	return CAChainResult{PEM: rootChain, IntermediatePEM: intermediate}, nil
 }
 
 // GenerateIntermediateCSR creates a private key and generates a CSR

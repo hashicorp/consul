@@ -402,7 +402,7 @@ func TestVaultCAProvider_Bootstrap(t *testing.T) {
 				"LeafCertTTL": "1h",
 			},
 			certFunc: func(provider *VaultProvider) (string, error) {
-				root, err := provider.GenerateRoot()
+				root, err := provider.GenerateCAChain()
 				return root.PEM, err
 			},
 			backendPath:         "pki-root/",
@@ -480,7 +480,7 @@ func TestVaultCAProvider_SignLeaf(t *testing.T) {
 			Service:    "foo",
 		}
 
-		root, err := provider.GenerateRoot()
+		root, err := provider.GenerateCAChain()
 		require.NoError(t, err)
 		rootPEM := root.PEM
 		assertCorrectKeyType(t, tc.KeyType, rootPEM)
@@ -583,7 +583,7 @@ func TestVaultCAProvider_CrossSignCA(t *testing.T) {
 		})
 
 		testutil.RunStep(t, "init", func(t *testing.T) {
-			root, err := provider1.GenerateRoot()
+			root, err := provider1.GenerateCAChain()
 			require.NoError(t, err)
 			assertCorrectKeyType(t, tc.SigningKeyType, root.PEM)
 
@@ -611,7 +611,7 @@ func TestVaultCAProvider_CrossSignCA(t *testing.T) {
 		})
 
 		testutil.RunStep(t, "swap", func(t *testing.T) {
-			root, err := provider2.GenerateRoot()
+			root, err := provider2.GenerateCAChain()
 			require.NoError(t, err)
 			assertCorrectKeyType(t, tc.CSRKeyType, root.PEM)
 
@@ -735,7 +735,7 @@ func TestVaultProvider_SignIntermediateConsul(t *testing.T) {
 		delegate := newMockDelegate(t, conf)
 		provider1 := TestConsulProvider(t, delegate)
 		require.NoError(t, provider1.Configure(testProviderConfig(conf)))
-		_, err := provider1.GenerateRoot()
+		_, err := provider1.GenerateCAChain()
 		require.NoError(t, err)
 
 		// Ensure that we don't configure vault to try and mint leafs that
@@ -1073,7 +1073,7 @@ func TestVaultProvider_ReconfigureIntermediateTTL(t *testing.T) {
 	t.Cleanup(provider.Stop)
 	err = provider.Configure(makeProviderConfWithTTL("222h"))
 	require.NoError(t, err)
-	_, err = provider.GenerateRoot()
+	_, err = provider.GenerateCAChain()
 	require.NoError(t, err)
 	_, err = provider.GenerateLeafSigningCert()
 	require.NoError(t, err)
@@ -1150,7 +1150,7 @@ func TestVaultCAProvider_GenerateIntermediate_inSecondary(t *testing.T) {
 	delegate := newMockDelegate(t, conf)
 	primaryProvider := TestConsulProvider(t, delegate)
 	require.NoError(t, primaryProvider.Configure(testProviderConfig(conf)))
-	_, err := primaryProvider.GenerateRoot()
+	_, err := primaryProvider.GenerateCAChain()
 	require.NoError(t, err)
 
 	// Ensure that we don't configure vault to try and mint leafs that
@@ -1184,7 +1184,7 @@ func TestVaultCAProvider_GenerateIntermediate_inSecondary(t *testing.T) {
 		// Sign the CSR with primaryProvider.
 		intermediatePEM, err := primaryProvider.SignIntermediate(csr)
 		require.NoError(t, err)
-		root, err := primaryProvider.GenerateRoot()
+		root, err := primaryProvider.GenerateCAChain()
 		require.NoError(t, err)
 		rootPEM := root.PEM
 
@@ -1205,7 +1205,7 @@ func TestVaultCAProvider_GenerateIntermediate_inSecondary(t *testing.T) {
 		// Sign the CSR with primaryProvider.
 		intermediatePEM, err := primaryProvider.SignIntermediate(csr)
 		require.NoError(t, err)
-		root, err := primaryProvider.GenerateRoot()
+		root, err := primaryProvider.GenerateCAChain()
 		require.NoError(t, err)
 		rootPEM := root.PEM
 
@@ -1355,7 +1355,7 @@ func createVaultProvider(t *testing.T, isPrimary bool, addr, token string, rawCo
 	t.Cleanup(provider.Stop)
 	require.NoError(t, provider.Configure(cfg))
 	if isPrimary {
-		_, err := provider.GenerateRoot()
+		_, err := provider.GenerateCAChain()
 		require.NoError(t, err)
 		_, err = provider.GenerateLeafSigningCert()
 		require.NoError(t, err)

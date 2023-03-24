@@ -151,18 +151,18 @@ func (c *ConsulProvider) State() (map[string]string, error) {
 	return c.testState, nil
 }
 
-// GenerateRoot initializes a new root certificate and private key if needed.
-func (c *ConsulProvider) GenerateRoot() (RootResult, error) {
+// GenerateCAChain initializes a new root certificate and private key if needed.
+func (c *ConsulProvider) GenerateCAChain() (CAChainResult, error) {
 	providerState, err := c.getState()
 	if err != nil {
-		return RootResult{}, err
+		return CAChainResult{}, err
 	}
 
 	if !c.isPrimary {
-		return RootResult{}, fmt.Errorf("provider is not the root certificate authority")
+		return CAChainResult{}, fmt.Errorf("provider is not the root certificate authority")
 	}
 	if providerState.RootCert != "" {
-		return RootResult{PEM: providerState.RootCert}, nil
+		return CAChainResult{PEM: providerState.RootCert}, nil
 	}
 
 	// Generate a private key if needed
@@ -170,7 +170,7 @@ func (c *ConsulProvider) GenerateRoot() (RootResult, error) {
 	if c.config.PrivateKey == "" {
 		_, pk, err := connect.GeneratePrivateKeyWithConfig(c.config.PrivateKeyType, c.config.PrivateKeyBits)
 		if err != nil {
-			return RootResult{}, err
+			return CAChainResult{}, err
 		}
 		newState.PrivateKey = pk
 	} else {
@@ -181,12 +181,12 @@ func (c *ConsulProvider) GenerateRoot() (RootResult, error) {
 	if c.config.RootCert == "" {
 		nextSerial, err := c.incrementAndGetNextSerialNumber()
 		if err != nil {
-			return RootResult{}, fmt.Errorf("error computing next serial number: %v", err)
+			return CAChainResult{}, fmt.Errorf("error computing next serial number: %v", err)
 		}
 
 		ca, err := c.generateCA(newState.PrivateKey, nextSerial, c.config.RootCertTTL)
 		if err != nil {
-			return RootResult{}, fmt.Errorf("error generating CA: %v", err)
+			return CAChainResult{}, fmt.Errorf("error generating CA: %v", err)
 		}
 		newState.RootCert = ca
 	} else {
@@ -199,10 +199,10 @@ func (c *ConsulProvider) GenerateRoot() (RootResult, error) {
 		ProviderState: &newState,
 	}
 	if _, err := c.Delegate.ApplyCARequest(args); err != nil {
-		return RootResult{}, err
+		return CAChainResult{}, err
 	}
 
-	return RootResult{PEM: newState.RootCert}, nil
+	return CAChainResult{PEM: newState.RootCert}, nil
 }
 
 // GenerateIntermediateCSR creates a private key and generates a CSR

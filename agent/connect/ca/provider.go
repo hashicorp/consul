@@ -122,18 +122,19 @@ type Provider interface {
 }
 
 type PrimaryProvider interface {
-	// GenerateRoot is called:
+	// GenerateCAChain is called:
 	//   * to initialize the CA system when a server is elected as a raft leader
 	//   * when the CA configuration is updated in a way that might require
 	//     generating a new root certificate.
 	//
-	// In both cases GenerateRoot is always called on a newly created provider
+	// In both cases GenerateCAChain is always called on a newly created provider
 	// after calling Provider.Configure, and before any other calls to the
 	// provider.
 	//
-	// The provider should return an existing root certificate if one exists,
-	// otherwise it should generate a new root certificate and return it.
-	GenerateRoot() (RootResult, error)
+	// Depending on the provider and its configuration, GenerateCAChain may return
+	// a single root certificate or a chain of certs. The provider should return an
+	// existing CA chain if one exists or generate a new one and return it.
+	GenerateCAChain() (CAChainResult, error)
 
 	// SignIntermediate will validate the CSR to ensure the trust domain in the
 	// URI SAN matches the local one and that basic constraints for a CA
@@ -189,10 +190,8 @@ type SecondaryProvider interface {
 	SetIntermediate(intermediatePEM, rootPEM, opaque string) error
 }
 
-// RootResult is the result returned by PrimaryProvider.GenerateRoot.
-//
-// TODO: rename this struct
-type RootResult struct {
+// CAChainResult is the result returned by PrimaryProvider.GenerateCAChain.
+type CAChainResult struct {
 	// PEM encoded bundle of CA certificates. The first certificate must be the
 	// primary CA used to sign intermediates for secondary datacenters, and the
 	// last certificate must be the trusted CA.
@@ -201,8 +200,9 @@ type RootResult struct {
 	// as both the primary CA and the trusted CA.
 	PEM string
 
-	// IntermediatePEM is an encoded bundle of CA certificates used by providers
-	// that use an intermediate CA to sign leaf certificates.
+	// IntermediatePEM is an encoded bundle of CA certificates used only by
+	// providers that use an intermediate CA to sign leaf certificates (e.g.
+	// Vault). Its issuer should form a chain leading to the trusted CA in PEM.
 	IntermediatePEM string
 }
 

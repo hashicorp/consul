@@ -255,7 +255,7 @@ func (c *CAManager) initializeCAConfig() (*structs.CAConfiguration, error) {
 }
 
 // newCARoot returns a filled-in structs.CARoot from a raw PEM value.
-func newCARoot(rootResult ca.RootResult, provider, clusterID string) (*structs.CARoot, error) {
+func newCARoot(rootResult ca.CAChainResult, provider, clusterID string) (*structs.CARoot, error) {
 	primaryCert, err := connect.ParseCert(rootResult.PEM)
 	if err != nil {
 		return nil, err
@@ -505,7 +505,7 @@ func (c *CAManager) primaryInitialize(provider ca.Provider, conf *structs.CAConf
 		}
 	}
 
-	root, err := provider.GenerateRoot()
+	root, err := provider.GenerateCAChain()
 	if err != nil {
 		return fmt.Errorf("error generating CA root certificate: %v", err)
 	}
@@ -861,7 +861,7 @@ func (c *CAManager) primaryUpdateRootCA(newProvider ca.Provider, args *structs.C
 	}
 	args.Config.State = pState
 
-	providerRoot, err := newProvider.GenerateRoot()
+	providerRoot, err := newProvider.GenerateCAChain()
 	if err != nil {
 		return fmt.Errorf("error generating CA root certificate: %v", err)
 	}

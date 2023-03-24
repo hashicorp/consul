@@ -136,20 +136,20 @@ func (a *AWSProvider) State() (map[string]string, error) {
 	return state, nil
 }
 
-// GenerateRoot implements Provider
-func (a *AWSProvider) GenerateRoot() (RootResult, error) {
+// GenerateCAChain implements Provider
+func (a *AWSProvider) GenerateCAChain() (CAChainResult, error) {
 	if !a.isPrimary {
-		return RootResult{}, fmt.Errorf("provider is not the root certificate authority")
+		return CAChainResult{}, fmt.Errorf("provider is not the root certificate authority")
 	}
 
 	if err := a.ensureCA(); err != nil {
-		return RootResult{}, err
+		return CAChainResult{}, err
 	}
 
 	if a.rootPEM == "" {
-		return RootResult{}, fmt.Errorf("AWS CA provider not fully Initialized")
+		return CAChainResult{}, fmt.Errorf("AWS CA provider not fully Initialized")
 	}
-	return RootResult{PEM: a.rootPEM}, nil
+	return CAChainResult{PEM: a.rootPEM}, nil
 }
 
 // ensureCA loads the CA resource to check it exists if configured by User or in
