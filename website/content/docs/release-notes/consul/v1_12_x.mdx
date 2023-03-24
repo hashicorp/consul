@@ -13,7 +13,7 @@ description: >-
 
 - **Per listener TLS Config**: It is now possible to configure TLS differently for each of Consul's listeners, such as HTTPS, gRPC, and the internal multiplexed RPC listener, using the `tls` stanza. Refer to [TLS Configuration Reference](/consul/docs/agent/config/config-files#tls-configuration-reference) for more details. 
 
-- **AWS Lambda**: Adds the ability to invoke AWS Lambdas through terminating gateways, which allows for cross-datacenter communication, transparent proxy, and intentions with Consul Service Mesh. Refer to [AWS Lambda](/consul/docs]/lambda) and [Invoke Lambda Functions](/consul/docs/lambda/invocation) for more details. 
+- **AWS Lambda**: Adds the ability to invoke AWS Lambdas through terminating gateways, which allows for cross-datacenter communication, transparent proxy, and intentions with Consul Service Mesh. Refer to [AWS Lambda](/consul/docs/lambda) and [Invoke Lambda Functions](/consul/docs/lambda/invocation) for more details. 
 
 - **Mesh-wide TLS min/max versions and cipher suites**: Using the [Mesh](/consul/docs/connect/config-entries/mesh#tls) Config Entry or CRD, it is now possible to set TLS min/max versions and cipher suites for both inbound and outbound mTLS connections.
 
