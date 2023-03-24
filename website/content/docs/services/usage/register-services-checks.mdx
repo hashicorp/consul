@@ -7,7 +7,7 @@ description: ->
 
 # Register services and health checks
 
-This topic describes how to register services and health checks with Consul in networks running on virtual machines (VM). Refer to [Define Services](/consul/usage/services/usage/define-services) and [Define Health Checks](/consul/usage/services/usage/checks) for information about how to define services and health checks. 
+This topic describes how to register services and health checks with Consul in networks running on virtual machines (VM). Refer to [Define Services](/consul/docs/services/usage/define-services) and [Define Health Checks](/consul/docs/services/usage/checks) for information about how to define services and health checks. 
 
 ## Overview
 Register services and health checks in VM environments by providing the service definition to a Consul agent. You can use several different methods to register services and health checks.
@@ -65,4 +65,4 @@ Send a `PUT` request to the `/agent/check/register` API endpoint to dynamically 
 $ curl --request PUT --data @payload.json http://localhost:8500/v1/agent/check/register
 ```
 
-Refer to [Check - Agent HTTP API](/consul/api-docs/check/service) for additional information about the `check` endpoint.
+Refer to [Check - Agent HTTP API](/consul/api-docs/agent/check) for additional information about the `check` endpoint.
