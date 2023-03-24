@@ -559,14 +559,10 @@ func (c *CAManager) primaryInitialize(provider ca.Provider, conf *structs.CAConf
 // sign leaf certificates in the local datacenter. The SubjectKeyId of the
 // returned cert should always match the SigningKeyID of the CARoot.
 //
-// TODO: fix the data model so that we don't need this complicated lookup to
-// find the leaf signing cert. See github.com/hashicorp/consul/issues/11347.
+// TODO: only used in tests. Remove if possible.
 func (c *CAManager) getLeafSigningCertFromRoot(root *structs.CARoot) string {
-	if !c.isIntermediateUsedToSignLeaf() {
-		return root.RootCert
-	}
 	if len(root.IntermediateCerts) == 0 {
-		return ""
+		return root.RootCert
 	}
 	return root.IntermediateCerts[len(root.IntermediateCerts)-1]
 }
@@ -1004,8 +1000,12 @@ func (c *CAManager) primaryUpdateRootCA(newProvider ca.Provider, args *structs.C
 // This is only run for CAs that require an intermediary in the primary DC, such as Vault.
 // It should only be called while the state lock is held by setting the state to non-ready.
 func (c *CAManager) primaryRenewIntermediate(provider ca.Provider, newActiveRoot *structs.CARoot) error {
+	p, ok := provider.(ca.PrimaryUsesIntermediate)
+	if !ok {
+		return fmt.Errorf("tried to renew intermediates for a provider that does not use them")
+	}
 	// Generate and sign an intermediate cert using the root CA.
-	intermediatePEM, err := provider.GenerateLeafSigningCert()
+	intermediatePEM, err := p.GenerateLeafSigningCert()
 	if err != nil {
 		return fmt.Errorf("error generating new intermediate cert: %v", err)
 	}

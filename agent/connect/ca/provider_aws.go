@@ -571,19 +571,6 @@ func (a *AWSProvider) ActiveLeafSigningCert() (string, error) {
 	return a.intermediatePEM, nil
 }
 
-// GenerateLeafSigningCert implements Provider
-func (a *AWSProvider) GenerateLeafSigningCert() (string, error) {
-	// Like the consul provider, for now the Primary DC just gets a root and no
-	// intermediate to sign with. so just return this. Secondaries use
-	// intermediates but this method is only called during primary DC (root)
-	// initialization in case a provider generates separate root and
-	// intermediates.
-	//
-	// TODO(banks) support user-supplied CA being a Subordinate even in the
-	// primary DC.
-	return a.ActiveLeafSigningCert()
-}
-
 // Sign implements Provider
 func (a *AWSProvider) Sign(csr *x509.CertificateRequest) (string, error) {
 	connect.HackSANExtensionForCSR(csr)

@@ -14,12 +14,16 @@ import (
 // on servers and CA provider.
 var ErrRateLimited = errors.New("operation rate limited by CA provider")
 
-// PrimaryUsesIntermediate is an optional interface  that CA providers may implement
+// PrimaryUsesIntermediate is an optional interface that CA providers may implement
 // to indicate that they use an intermediate cert in the primary datacenter as
 // well as the secondary. This is used when determining whether to run the
 // intermediate renewal routine in the primary.
 type PrimaryUsesIntermediate interface {
-	PrimaryUsesIntermediate()
+	// GenerateLeafSigningCert returns a new intermediate signing cert and sets it to
+	// the active intermediate. If multiple intermediates are needed to complete
+	// the chain from the signing certificate back to the active root, they should
+	// all by bundled here.
+	GenerateLeafSigningCert() (string, error)
 }
 
 // ProviderConfig encapsulates all the data Consul passes to `Configure` on a
@@ -130,13 +134,6 @@ type PrimaryProvider interface {
 	// The provider should return an existing root certificate if one exists,
 	// otherwise it should generate a new root certificate and return it.
 	GenerateRoot() (RootResult, error)
-
-	// GenerateIntermediate returns a new intermediate signing cert and sets it to
-	// the active intermediate. If multiple intermediates are needed to complete
-	// the chain from the signing certificate back to the active root, they should
-	// all by bundled here.
-	// TODO: move to PrimaryUsesIntermediate
-	GenerateLeafSigningCert() (string, error)
 
 	// SignIntermediate will validate the CSR to ensure the trust domain in the
 	// URI SAN matches the local one and that basic constraints for a CA

@@ -50,14 +50,6 @@ func TestAWSBootstrapAndSignPrimary(t *testing.T) {
 			require.NoError(t, err)
 			rootPEM := root.PEM
 
-			// Generate Intermediate (not actually needed for this provider for now
-			// but this simulates the calls in Server.initializeRoot).
-			interPEM, err := provider.GenerateLeafSigningCert()
-			require.NoError(t, err)
-
-			// Should be the same for now
-			require.Equal(t, rootPEM, interPEM)
-
 			// Ensure they use the right key type
 			rootCert, err := connect.ParseCert(rootPEM)
 			require.NoError(t, err)

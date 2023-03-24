@@ -822,8 +822,6 @@ func (v *VaultProvider) Stop() {
 	v.stopWatcher()
 }
 
-func (v *VaultProvider) PrimaryUsesIntermediate() {}
-
 // We use raw path here
 func (v *VaultProvider) mountNamespaced(namespace, path string, mountInfo *vaultapi.MountInput) error {
 	defer v.setNamespace(namespace)()

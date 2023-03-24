@@ -289,12 +289,6 @@ func (c *ConsulProvider) ActiveLeafSigningCert() (string, error) {
 	return providerState.IntermediateCert, nil
 }
 
-// We aren't maintaining separate root/intermediate CAs for the builtin
-// provider, so just return the root.
-func (c *ConsulProvider) GenerateLeafSigningCert() (string, error) {
-	return c.ActiveLeafSigningCert()
-}
-
 // Remove the state store entry for this provider instance.
 func (c *ConsulProvider) Cleanup(_ bool, _ map[string]interface{}) error {
 	// This method only gets called for final cleanup. Therefore we don't

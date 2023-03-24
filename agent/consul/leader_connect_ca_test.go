@@ -273,7 +273,7 @@ func (m *mockCAProvider) ActiveLeafSigningCert() (string, error) {
 	}
 	return m.intermediatePem, nil
 }
-func (m *mockCAProvider) GenerateLeafSigningCert() (string, error)                  { return "", nil }
+
 func (m *mockCAProvider) Sign(*x509.CertificateRequest) (string, error)             { return "", nil }
 func (m *mockCAProvider) SignIntermediate(*x509.CertificateRequest) (string, error) { return "", nil }
 func (m *mockCAProvider) CrossSignCA(*x509.Certificate) (string, error)             { return "", nil }
