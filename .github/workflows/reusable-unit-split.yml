@@ -132,7 +132,7 @@ jobs:
           path: /tmp/jsonfile
       - name: "Re-run fails report"
         run: |
-          .github/scripts/rerun-fails-report.sh /tmp/gotestsum-rerun-fails
+          .github/scripts/rerun_fails_report.sh /tmp/gotestsum-rerun-fails
       - name: Notify Slack
         if: failure()
         run: .github/scripts/notify_slack.sh
