@@ -9,10 +9,6 @@ parameters:
     type: string
     default: ""
     description: "Commit to run load tests against"
-  trigger-load-test:
-    type: boolean
-    default: false
-    description: "Boolean whether to run the load test workflow"
 
 references:
   paths:
@@ -1076,78 +1072,6 @@ jobs:
           path: *TEST_RESULTS_DIR
       - run: *notify-slack-failure
 
-  # Run load tests against a commit
-  load-test:
-    docker:
-      - image: hashicorp/terraform:latest
-    environment:
-      AWS_DEFAULT_REGION: us-east-2
-      BUCKET: consul-ci-load-tests
-      BASH_ENV: /etc/profile
-    shell: /bin/sh -leo pipefail
-    steps:
-      - checkout
-      - run: apk add jq curl bash
-      - run:
-          name: export load-test credentials
-          command: |
-            echo "export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID_LOAD_TEST" >> $BASH_ENV
-            echo "export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY_LOAD_TEST" >> $BASH_ENV
-      - run:
-          name: export role arn
-          command: |
-            echo "export TF_VAR_role_arn=$ROLE_ARN_LOAD_TEST" >> $BASH_ENV
-      - run:
-          name: setup TF_VARs
-          command: |
-            # if pipeline.parameters.commit="" it was not triggered/set through the API
-            # so we use the latest commit from _this_ branch. This is the case for nightly tests.
-            if [ "<< pipeline.parameters.commit >>" = "" ]; then
-              LOCAL_COMMIT_SHA=$(git rev-parse HEAD)
-            else
-              LOCAL_COMMIT_SHA="<< pipeline.parameters.commit >>"
-            fi
-            echo "export LOCAL_COMMIT_SHA=${LOCAL_COMMIT_SHA}" >> $BASH_ENV
-            git checkout ${LOCAL_COMMIT_SHA}
-
-            short_ref=$(git rev-parse --short ${LOCAL_COMMIT_SHA})
-            echo "export TF_VAR_ami_owners=$LOAD_TEST_AMI_OWNERS" >> $BASH_ENV
-            echo "export TF_VAR_vpc_name=$short_ref" >> $BASH_ENV
-            echo "export TF_VAR_cluster_name=$short_ref" >> $BASH_ENV
-            echo "export TF_VAR_consul_download_url=https://${S3_ARTIFACT_BUCKET}.s3.${AWS_DEFAULT_REGION}.amazonaws.com/${S3_ARTIFACT_PATH}/${LOCAL_COMMIT_SHA}.zip" >> $BASH_ENV
-      - run:
-          name: wait for dev build from test-integrations workflow
-          command: |
-            echo "curl-ing https://${S3_ARTIFACT_BUCKET}.s3.${AWS_DEFAULT_REGION}.amazonaws.com/${S3_ARTIFACT_PATH}/${LOCAL_COMMIT_SHA}.zip"
-            until [ $SECONDS -ge 300 ] && exit 1; do
-              curl -o /dev/null --fail --silent "https://${S3_ARTIFACT_BUCKET}.s3.${AWS_DEFAULT_REGION}.amazonaws.com/${S3_ARTIFACT_PATH}/${LOCAL_COMMIT_SHA}.zip" && exit
-              echo -n "."
-              sleep 2
-            done
-      - run:
-          working_directory: .circleci/terraform/load-test
-          name: terraform init
-          command: |
-            short_ref=$(git rev-parse --short HEAD)
-            echo "Testing commit id: $short_ref"
-            terraform init \
-            -backend-config="bucket=${BUCKET}" \
-            -backend-config="key=${LOCAL_COMMIT_SHA}" \
-            -backend-config="region=${AWS_DEFAULT_REGION}" \
-            -backend-config="role_arn=${ROLE_ARN_LOAD_TEST}"
-      - run:
-          working_directory: .circleci/terraform/load-test
-          name: run terraform apply
-          command: |
-            terraform apply -auto-approve
-      - run:
-          working_directory: .circleci/terraform/load-test
-          when: always
-          name: terraform destroy
-          command: |
-            for i in $(seq 1 5); do terraform destroy -auto-approve && s=0 && break || s=$? && sleep 20; done; (exit $s)
-      - run: *notify-slack-failure
-
   # The noop job is a used as a very fast job in the verify-ci workflow because every workflow
   # requires at least one job. It does nothing.
   noop:
@@ -1164,7 +1088,6 @@ workflows:
     jobs: [noop]
 
   go-tests:
-    unless: << pipeline.parameters.trigger-load-test >>
     jobs:
       - check-go-mod: &filter-ignore-non-go-branches
           filters:
@@ -1227,7 +1150,6 @@ workflows:
       - go-test-32bit: *filter-ignore-non-go-branches
       - noop
   build-distros:
-    unless: << pipeline.parameters.trigger-load-test >>
     jobs:
       - check-go-mod: *filter-ignore-non-go-branches
       - build-386: &require-check-go-mod
@@ -1259,7 +1181,6 @@ workflows:
           context: consul-ci
       - noop
   test-integrations:
-    unless: << pipeline.parameters.trigger-load-test >>
     jobs:
       - dev-build: *filter-ignore-non-go-branches
       - dev-upload-s3: &dev-upload
@@ -1303,7 +1224,6 @@ workflows:
               
       - noop
   frontend:
-    unless: << pipeline.parameters.trigger-load-test >>
     jobs:
       - frontend-cache:
           filters:
@@ -1336,19 +1256,3 @@ workflows:
           requires:
             - ember-build-ent
       - noop
-
-  load-test:
-    when: << pipeline.parameters.trigger-load-test >>
-    jobs:
-      - load-test
-
-  nightly-jobs:
-    triggers:
-      - schedule:
-          cron: "0 4 * * *" # 4AM UTC <> 12AM EST <> 9PM PST should have no impact
-          filters:
-            branches:
-              only:
-                - main
-    jobs:
-      - load-test
