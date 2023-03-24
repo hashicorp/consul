@@ -188,7 +188,7 @@ remote-docker: check-remote-dev-image-env
 	@echo "Building and Pushing Consul Development container - $(REMOTE_DEV_IMAGE)"
 	@if ! docker buildx inspect consul-builder; then \
 		docker buildx create --name consul-builder --driver docker-container --bootstrap; \
-	fi; 
+	fi;
 	@docker buildx use consul-builder && docker buildx build -t '$(REMOTE_DEV_IMAGE)' \
        --platform linux/amd64,linux/arm64 \
 	   --build-arg CONSUL_IMAGE_VERSION=$(CONSUL_IMAGE_VERSION) \
@@ -371,6 +371,14 @@ deep-copy: codegen-tools
 	@$(SHELL) $(CURDIR)/agent/structs/deep-copy.sh
 	@$(SHELL) $(CURDIR)/agent/proxycfg/deep-copy.sh
 
+# Devs shoudln't have to think about whether there is a hypen or not
+.PHONY: precommit
+precommit: pre-commit
+
+.PHONY: pre-commit
+pre-commit:
+	@$(SHELL) $(CURDIR)/build-support/scripts/devtools.sh -pre-commit
+
 version:
 	@echo -n "Version:                    "
 	@$(SHELL) $(CURDIR)/build-support/scripts/version.sh
@@ -496,7 +504,7 @@ proto-format: proto-tools
 
 .PHONY: proto-lint
 proto-lint: proto-tools
-	@buf lint 
+	@buf lint
 	@for fn in $$(find proto -name '*.proto'); do \
 		if [[ "$$fn" = "proto/private/pbsubscribe/subscribe.proto" ]]; then \
 			continue ; \
