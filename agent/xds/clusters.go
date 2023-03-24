@@ -1308,10 +1308,6 @@ func (s *ResourceGenerator) makeUpstreamClustersForDiscoveryChain(
 
 			targetUID := proxycfg.NewUpstreamIDFromTargetID(targetData.targetID)
 			if targetUID.Peer != "" {
-				// targetID already has a stripped partition, so targetUID will not have a partition either. However,
-				// when a failover target is in a cluster peer, the partition should be set to the local partition (i.e
-				// chain.Partition), since that's where the data is imported to.
-				targetUID.OverridePartition(chain.Partition)
 				peerMeta, found := upstreamsSnapshot.UpstreamPeerMeta(targetUID)
 				if !found {
 					s.Logger.Warn("failed to fetch upstream peering metadata for cluster", "target", targetUID)
