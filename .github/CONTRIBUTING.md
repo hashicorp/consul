@@ -10,8 +10,8 @@ effort. The worst that can happen is that you'll be politely asked to change
 something. We appreciate any sort of contributions, and don't want a wall of
 rules to get in the way of that.
 
-That said, if you want to ensure that a pull request is likely to be merged, 
-talk to us! A great way to do this is in issues themselves. When you want to 
+That said, if you want to ensure that a pull request is likely to be merged,
+talk to us! A great way to do this is in issues themselves. When you want to
 work on an issue, comment on it first and tell us the approach you want to take.
 
 ## Getting Started
@@ -29,20 +29,20 @@ are deployed from this repo.
 
 ### Reporting an Issue
 
->Note: Issues on GitHub for Consul are intended to be related to bugs or feature requests. 
+>Note: Issues on GitHub for Consul are intended to be related to bugs or feature requests.
 >Questions should be directed to other community resources such as the: [Discuss Forum](https://discuss.hashicorp.com/c/consul/29), [FAQ](https://www.consul.io/docs/faq.html), or [Guides](https://www.consul.io/docs/guides/index.html).
 
-* Make sure you test against the latest released version. It is possible we 
-already fixed the bug you're experiencing. However, if you are on an older 
+* Make sure you test against the latest released version. It is possible we
+already fixed the bug you're experiencing. However, if you are on an older
 version of Consul and feel the issue is critical, do let us know.
 
-* Check existing issues (both open and closed) to make sure it has not been 
+* Check existing issues (both open and closed) to make sure it has not been
 reported previously.
 
-* Provide a reproducible test case. If a contributor can't reproduce an issue, 
+* Provide a reproducible test case. If a contributor can't reproduce an issue,
 then it dramatically lowers the chances it'll get fixed.
 
-* Aim to respond promptly to any questions made by the Consul team on your 
+* Aim to respond promptly to any questions made by the Consul team on your
 issue. Stale issues will be closed.
 
 ### Issue Lifecycle
@@ -87,9 +87,9 @@ If you make any changes to the code, run `gofmt -s -w` to automatically format t
 
 ##### Organizing Imports
 
-Group imports using `goimports -local github.com/hashicorp/consul/` to keep [local packages](https://github.com/golang/tools/commit/ed69e84b1518b5857a9f4e01d1f9cefdcc45246e) in their own section.
+Imports are automatically checked and organized on commit by using the go-imports [pre-commit](https://https://pre-commit.com/) hook.
+Local packages (github.com/hashicorp/consul/) do have their own section, but go-imports doesn't enforce moving the section to the end of the import list as shown.
 
-Example: 
 ```
 import (
 	"context"
@@ -156,7 +156,7 @@ When you're ready to submit a pull request:
    if your changes aren't finalized but would benefit from in-process feedback.
 5. If there's any reason Consul users might need to know about this change,
    [add a changelog entry](../docs/contributing/add-a-changelog-entry.md).
-6. Add labels to your pull request. A table of commonly use labels is below. 
+6. Add labels to your pull request. A table of commonly use labels is below.
    If you have any questions about which to apply, feel free to call it out in the PR or comments.
    | Label | When to Use |
    | --- | --- |
@@ -170,9 +170,9 @@ When you're ready to submit a pull request:
 8. After you address Consul maintainer feedback and the PR is approved, a Consul maintainer
    will merge it. Your contribution will be available from the next major release (e.g., 1.x)
    unless explicitly backported to an existing or previous major release by the maintainer.
-9. Any backport labels will generate an additional PR to the targeted release branch. 
+9. Any backport labels will generate an additional PR to the targeted release branch.
    These will be linked in the original PR.
-   Assuming the tests pass, the PR will be merged automatically. 
+   Assuming the tests pass, the PR will be merged automatically.
    If the tests fail, it is you responsibility to resolve the issues with backports and request another reviewer.
 
 #### Checklists
