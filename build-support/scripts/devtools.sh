@@ -22,6 +22,7 @@ Options:
     -protobuf                Just install tools for protobuf.
     -lint                    Just install tools for linting.
     -codegen                 Just install tools for codegen.
+    -pre-commit              Just install pre-commit.
     -h | --help              Print this help text.
 EOF
 }
@@ -46,6 +47,10 @@ function main {
                 ;;
             -codegen )
                 codegen_install
+                return 0
+                ;;
+            -pre-commit )
+                pre_commit_install
                 return 0
                 ;;
             -h | --help )
@@ -156,11 +161,38 @@ function codegen_install {
         'github.com/globusdigital/deep-copy'
 }
 
-function tools_install {
+function pre_commit_install {
+    # bail if already installed
+    if command -v "pre-commit" &>/dev/null; then
+        pre-commit install
+        return 0
+    fi
 
+    # Install options based on https://pre-commit.com/#installation
+    if command -v "brew" &>/dev/null; then
+        brew install pre-commit && pre-commit install
+        return 0
+    fi
+
+    if command -v "pip3" &>/dev/null; then
+        pip3 install pre-commit && pre-commit install
+        return 0
+    fi
+
+    if [[ "$(uname)" == "Darwin" ]]; then
+        echo "ERROR: Install homebrew from https://brew.sh/ so that pre-commit (https://pre-commit.com) can be installed."
+        return 1
+    fi
+
+    echo "ERROR: Install python3 and pip3 so that pre-commit (https://pre-commit.com) can be installed."
+    return 1
+}
+
+function tools_install {
     lint_install
     proto_tools_install
     codegen_install
+    pre_commit_install
 
     return 0
 }
