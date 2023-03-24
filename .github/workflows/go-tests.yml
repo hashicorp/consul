@@ -1,0 +1,276 @@
+name: go-tests
+
+on: 
+  push:
+    branches-ignore:
+      - stable-website
+      - 'docs/**'
+      - 'ui/**'
+      - 'mktg-**' # Digital Team Terraform-generated branches' prefix
+      - 'backport/docs/**'
+      - 'backport/ui/**'
+      - 'backport/mktg-**'
+  
+permissions:
+  contents: read
+
+env:
+  TEST_RESULTS: /tmp/test-results
+  GOTESTSUM_VERSION: 1.8.2
+
+jobs:
+  setup:
+    name: Setup
+    runs-on: ubuntu-latest
+    outputs:
+      compute-small: ${{ steps.setup-outputs.outputs.compute-small }}
+      compute-medium: ${{ steps.setup-outputs.outputs.compute-medium }}
+      compute-large: ${{ steps.setup-outputs.outputs.compute-medium }}
+      compute-xl: ${{ steps.setup-outputs.outputs.compute-xl }}
+    steps:
+    - id: setup-outputs
+      name: Setup outputs
+      run: |
+          echo 'compute-small=["custom", "linux", "small"]' >> $GITHUB_OUTPUT
+          echo 'compute-medium=["custom", "linux", "medium"]' >> $GITHUB_OUTPUT
+          echo 'compute-large=["custom", "linux", "large"]' >> $GITHUB_OUTPUT
+          echo 'compute-xl=["custom", "linux", "xl"]' >> $GITHUB_OUTPUT
+
+  check-go-mod:
+    needs: 
+    - setup
+    uses: ./.github/workflows/reusable-check-go-mod.yml
+  check-generated-protobuf:
+    needs: 
+    - setup   
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
+    - uses: actions/setup-go@6edd4406fa81c3da01a34fa6f6343087c207a568 # pin@v3.5.0
+      with:
+        go-version-file: 'go.mod'
+    - run: make proto-tools
+      name: Install protobuf
+    - run: make proto-format
+      name: "Protobuf Format"
+    - run: make --always-make proto
+    - run: |
+            if ! git diff --exit-code; then
+              echo "Generated code was not updated correctly"
+              exit 1
+            fi
+    - run: make proto-lint
+      name: "Protobuf Lint"
+    - name: Notify Slack
+      if: failure()
+      run: .github/scripts/notify_slack.sh 
+  check-generated-deep-copy:
+    needs: 
+    - setup   
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
+    - uses: actions/setup-go@6edd4406fa81c3da01a34fa6f6343087c207a568 # pin@v3.5.0
+      with:
+        go-version-file: 'go.mod'
+    - run: make codegen-tools
+      name: Install deep-copy
+    - run: make --always-make deep-copy
+    - run: |
+        if ! git diff --exit-code; then
+          echo "Generated code was not updated correctly"
+          exit 1
+        fi
+    - name: Notify Slack
+      if: failure()
+      run: .github/scripts/notify_slack.sh  
+  lint-enums:
+    needs: 
+    - setup   
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
+    - uses: actions/setup-go@6edd4406fa81c3da01a34fa6f6343087c207a568 # pin@v3.5.0
+      with:
+        go-version-file: 'go.mod'
+    - run: go install github.com/reillywatson/enumcover/cmd/enumcover@master && enumcover ./...   
+    - name: Notify Slack
+      if: failure()
+      run: .github/scripts/notify_slack.sh
+
+  lint-container-test-deps:
+    needs: 
+    - setup   
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
+    - uses: actions/setup-go@6edd4406fa81c3da01a34fa6f6343087c207a568 # pin@v3.5.0
+      with:
+        go-version-file: 'go.mod'
+    - run: make lint-container-test-deps 
+    - name: Notify Slack
+      if: failure()
+      run: .github/scripts/notify_slack.sh
+
+  lint-consul-retry:
+    needs: 
+    - setup   
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
+    - uses: actions/setup-go@6edd4406fa81c3da01a34fa6f6343087c207a568 # pin@v3.5.0
+      with:
+        go-version-file: 'go.mod'
+    - run: go install github.com/hashicorp/lint-consul-retry@master && lint-consul-retry
+    - name: Notify Slack
+      if: failure()
+      run: .github/scripts/notify_slack.sh
+
+  lint:
+    needs: 
+    - setup   
+    uses: ./.github/workflows/reusable-lint.yml
+
+  lint-32bit:
+    needs: 
+    - setup   
+    uses: ./.github/workflows/reusable-lint.yml
+    with:
+      go-arch: "386"
+
+  # create a development build
+  dev-build:
+    needs: 
+    - setup   
+    uses: ./.github/workflows/reusable-dev-build.yml
+
+  # create a development build for arm64
+  dev-build-arm64:
+    needs: 
+    - setup   
+    uses: ./.github/workflows/reusable-dev-build.yml
+    with:
+      uploaded-binary-name: 'consul-bin-arm64'
+      # runs-on: ${{ needs.setup.outputs.compute-arm64 }}
+
+  go-test-arm64:
+    # TODO(JM):  Fix to run on arm64
+    needs: 
+    - setup   
+    - dev-build-arm64
+    uses: ./.github/workflows/reusable-unit.yml
+    with:
+      directory: .
+      go-version: "1.20"
+      uploaded-binary-name: 'consul-bin-arm64'
+      # runs-on: ${{ needs.setup.outputs.compute-arm64 }}
+    # steps:
+    #   - name: make dev
+    #     run: |
+    #       # TODO(JM)- figure out why this is only needed on these branches
+    #       # if [[ '${{ github.ref }}' == 'refs/heads/main' || startsWith('${{ github.ref }}', 'refs/heads/release/') ]]; then
+    #         make dev
+    #       # fi
+    #   # TODO(JM)- if not always building above, re-enable this.
+    #   # - uses: actions/download-artifact@v3
+    #   #   with:
+    #   #     name: consul-bin
+    #   #     path: ./bin/consul
+
+  go-test:
+    needs: 
+    - setup   
+    - dev-build
+    uses: ./.github/workflows/reusable-unit.yml
+    with:
+      directory: .
+      go-version: "1.20"
+    # steps:
+    # TODO(JM) confirm where this comes from 
+    # and whether it is ok to not get it from an image
+    #   - run:  mkdir -p ${{env.TEST_RESULTS}}
+    #   # - name: Download consul
+    #   #   run: |
+    #   #     mkdir -p $HOME/bin
+    #   #     container_id=$(docker create ${{env.CONSUL_OSS_DOCKER_IMAGE}})
+    #   #     docker cp "$container_id:/bin/consul" $HOME/bin/consul
+    #   #     docker rm "$container_id"
+
+  go-test-race:
+    needs: 
+    - setup   
+    - dev-build
+    uses: ./.github/workflows/reusable-unit.yml
+    with:
+      directory: .
+      go-version: "1.20"
+      args: "-race -gcflags=all=-d=checkptr=0"
+
+  go-test-32bit:
+    needs: 
+    - setup   
+    - dev-build
+    uses: ./.github/workflows/reusable-unit.yml
+    with:
+      directory: .
+      go-version: "1.20"
+      go-arch: "386"
+
+  go-test-envoyextensions:
+    needs: 
+    - setup   
+    - dev-build
+    uses: ./.github/workflows/reusable-unit.yml
+    with:
+      directory: envoyextensions
+      go-version: "1.20"
+
+  go-test-troubleshoot:
+    needs: 
+    - setup   
+    - dev-build
+    uses: ./.github/workflows/reusable-unit.yml
+    with:
+      directory: troubleshoot
+      go-version: "1.20"
+
+  go-test-api-1-19:
+    needs: 
+    - setup   
+    - dev-build
+    uses: ./.github/workflows/reusable-unit.yml
+    with:
+      directory: api
+      go-version: "1.19"
+
+  go-test-api-1-20:
+    needs: 
+    - setup   
+    - dev-build
+    uses: ./.github/workflows/reusable-unit.yml
+    with:
+      directory: api
+      go-version: "1.20"
+
+  go-test-sdk-1-19:
+    needs: 
+    - setup   
+    - dev-build
+    uses: ./.github/workflows/reusable-unit.yml
+    with:
+      directory: sdk
+      go-version: "1.19"
+
+  go-test-sdk-1-20:
+    needs: 
+    - setup   
+    - dev-build
+    uses: ./.github/workflows/reusable-unit.yml
+    with:
+      directory: sdk
+      go-version: "1.20"
+
+  noop:
+    runs-on: ubuntu-latest
+    steps:
+      - run: "echo ok"
