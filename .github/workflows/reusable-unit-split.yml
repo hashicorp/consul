@@ -30,6 +30,10 @@ on:
         required: false
         type: number
         default: 1
+      go-test-flags:
+        required: false
+        type: string
+        default: ""
 
 env:
   TEST_RESULTS: /tmp/test-results
@@ -103,10 +107,7 @@ jobs:
           PACKAGE_NAMES="${{ join(matrix.package, ' ') }}"
           # PACKAGE_NAMES="${{ matrix.package }}"
 
-          # TODO(JM): figure out why this erroring
-          # if [[ github.ref == 'refs/heads/main' || !startsWith(github.ref, 'refs/heads/release/') ]]; then
-          #   export GO_TEST_FLAGS="-short"
-          # fi
+          ${{inputs.go-test-flags}}
           
           # some tests expect this umask, and arm images have a different default
           umask 0022
@@ -121,6 +122,7 @@ jobs:
           --packages="$PACKAGE_NAMES" \
           --junitfile ${{env.TEST_RESULTS}}/gotestsum-report.xml -- \
           -tags="${{env.GOTAGS}}" -p 2 \
+          ${GO_TEST_FLAGS-} \
           -cover -coverprofile=coverage.txt
       - uses: actions/upload-artifact@master
         with:
