@@ -1,0 +1,13 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
+name: Legacy Link Format Checker
+
+on:
+  push:
+
+jobs:
+  noop:
+    runs-on: ['self-hosted', 'linux', 'small']
+    steps:
+    - run: echo "ok"
