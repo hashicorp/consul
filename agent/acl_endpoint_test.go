@@ -1752,6 +1752,16 @@ func TestACL_LoginProcedure_HTTP(t *testing.T) {
 
 			idMap["token-test-1"] = token.AccessorID
 			tokenMap[token.AccessorID] = token
+
+			// Immediately try to read the new token and verify it is usable
+			req, _ = http.NewRequest("GET", "/v1/acl/token/"+token.AccessorID, nil)
+			req.Header.Add("X-Consul-Token", "root")
+			resp = httptest.NewRecorder()
+			obj, err = a.srv.ACLTokenCRUD(resp, req)
+			require.NoError(t, err)
+			tok, ok := obj.(*structs.ACLToken)
+			require.True(t, ok)
+			require.Equal(t, token, tok)
 		})
 		t.Run("Create Token 2", func(t *testing.T) {
 			loginInput := &structs.ACLLoginParams{
@@ -1786,6 +1796,16 @@ func TestACL_LoginProcedure_HTTP(t *testing.T) {
 
 			idMap["token-test-2"] = token.AccessorID
 			tokenMap[token.AccessorID] = token
+
+			// Immediately try to read the new token and verify it is usable
+			req, _ = http.NewRequest("GET", "/v1/acl/token/"+token.AccessorID, nil)
+			req.Header.Add("X-Consul-Token", "root")
+			resp = httptest.NewRecorder()
+			obj, err = a.srv.ACLTokenCRUD(resp, req)
+			require.NoError(t, err)
+			tok, ok := obj.(*structs.ACLToken)
+			require.True(t, ok)
+			require.Equal(t, token, tok)
 		})
 
 		t.Run("List Tokens by (incorrect) Method", func(t *testing.T) {
@@ -1828,6 +1848,19 @@ func TestACL_LoginProcedure_HTTP(t *testing.T) {
 				}
 				require.True(t, found)
 			}
+		})
+
+		t.Run("Verify token exists", func(t *testing.T) {
+			time.Sleep(6 * time.Second)
+			// try to read the new token and verify it is usable
+			req, _ := http.NewRequest("GET", "/v1/acl/token/"+idMap["token-test-1"], nil)
+			req.Header.Add("X-Consul-Token", "root")
+			resp := httptest.NewRecorder()
+			obj, err := a.srv.ACLTokenCRUD(resp, req)
+			require.NoError(t, err)
+			tok, ok := obj.(*structs.ACLToken)
+			require.True(t, ok)
+			require.Equal(t, idMap["token-test-1"], tok.AccessorID)
 		})
 
 		t.Run("Logout", func(t *testing.T) {
