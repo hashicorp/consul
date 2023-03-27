@@ -2,7 +2,7 @@
 # It is aimed at checking new commits don't introduce any breaking build changes.
 name: build-distros
 
-on: [pull_request]
+on: [push]
 
 permissions:
   contents: read
