@@ -157,7 +157,7 @@ information.
 - `-segment` ((#\_segment)) <EnterpriseAlert inline /> - This flag is used to set
   the name of the network segment the agent belongs to. An agent can only join and
   communicate with other agents within its network segment. Ensure the [join
-  operation uses the correct port for this segment](/consul/docs/enterprise/network-segments#join_a_client_to_a_segment).
+  operation uses the correct port for this segment](/consul/docs/enterprise/network-segments/create-network-segment#configure-clients-to-join-segments).
   Review the [Network Segments documentation](/consul/docs/enterprise/network-segments/create-network-segment)
   for more details. By default, this is an empty string, which is the `<default>`
   network segment.
@@ -490,7 +490,7 @@ information.
   the data directory. This is useful when running multiple Consul agents on the same
   host for testing. This defaults to false in Consul prior to version 0.8.5 and in
   0.8.5 and later defaults to true, so you must opt-in for host-based IDs. Host-based
-  IDs are generated using [gopsutil](https://github.com/shirou/gopsutil/tree/master/v3/host), which
+  IDs are generated using [gopsutil](https://github.com/shirou/gopsutil/), which
   is shared with HashiCorp's [Nomad](https://www.nomadproject.io/), so if you opt-in
   to host-based IDs then Consul and Nomad will use information on the host to automatically
   assign the same ID in both systems.

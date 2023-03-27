@@ -317,7 +317,7 @@ func (t *DiscoveryTarget) ToDiscoveryTargetOpts() DiscoveryTargetOpts {
 func ChainID(opts DiscoveryTargetOpts) string {
 	// NOTE: this format is similar to the SNI syntax for simplicity
 	if opts.Peer != "" {
-		return fmt.Sprintf("%s.%s.default.external.%s", opts.Service, opts.Namespace, opts.Peer)
+		return fmt.Sprintf("%s.%s.%s.external.%s", opts.Service, opts.Namespace, opts.Partition, opts.Peer)
 	}
 	if opts.ServiceSubset == "" {
 		return fmt.Sprintf("%s.%s.%s.%s", opts.Service, opts.Namespace, opts.Partition, opts.Datacenter)

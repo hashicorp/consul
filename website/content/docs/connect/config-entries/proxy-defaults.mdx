@@ -473,6 +473,19 @@ spec:
       ],
     },
     {
+      name: 'FailoverPolicy',
+      type: 'ServiceResolverFailoverPolicy: <optional>',
+      description: `Policy specifies the exact mechanism used for failover.
+      Added in v1.16.0.`,
+      children: [
+        {
+          name: 'Mode',
+          type: 'string: ""',
+          description: 'One of `""`, `default`, or `order-by-locality`.',
+        },
+      ],
+    },
+    {
       name: 'AccessLogs',
       type: 'AccessLogsConfig: <optional>',
       description: `Controls the configuration of [Envoy's access logging](https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/observability/access_logging.html?highlight=access%20logs)
