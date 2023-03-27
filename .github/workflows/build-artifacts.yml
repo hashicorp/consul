@@ -19,17 +19,18 @@ jobs:
         go-version-file: 'go.mod'
     - name: Dev Build
       run: make dev
-    - name: Docker Build
-      run: make ci/dev-docker
 
-  dev-upload-docker:
-    needs: dev-build
-    runs-on: ubuntu-20.04
-    steps:
-    - run: echo "dev-upload-docker"
+    # TODO: enable
+    # - name: Login to Docker Hub
+    #   uses: docker/login-action@f4ef78c080cd8ba55a85445d5b36e214a81df20a # pin@v2.1.0
+    #   with:
+    #     username: ${{ secrets.DOCKERHUB_USERNAME }}
+    #     password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-  dev-upload-s3:
-    needs: dev-build
-    runs-on: ubuntu-20.04
-    steps:
-    - run: echo "dev-upload-s3"
+    - name: Docker build and push
+      uses: docker/build-push-action@3b5e8027fcad23fda98b2e3ac259d8d67585f671 # pin@v4.0.0
+      with:
+        file: ./build-support/docker/Consul-Dev.dockerfile
+        push: false # TODO: enable
+        tags: hashicorpdev/consul:${{ github.sha }}
+        labels: COMMIT_SHA=${{ github.sha }}
