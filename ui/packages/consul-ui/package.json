@@ -38,6 +38,8 @@
     "test:coverage": "COVERAGE=true ember test --environment test --filter=Unit --test-port=${EMBER_TEST_PORT:-7357}",
     "test:coverage:ci": "COVERAGE=true ember test --environment test --filter=Unit --path dist --test-port=${EMBER_TEST_PORT:-7357}",
     "test:coverage:view": "COVERAGE=true ember test --server --environment test --filter=Unit --test-port=${EMBER_TEST_PORT:-7357}",
+    "toolkit:link": "yalc link @hashicorp/consul-ui-toolkit",
+    "toolkit:remove": "yalc remove @hashicorp/consul-ui-toolkit",
     "steps:list": "node ./lib/commands/bin/list.js",
     "storybook": "start-storybook -p 6006 -s dist",
     "build-storybook": "build-storybook -s dist"
