@@ -9,9 +9,11 @@ import (
 	"github.com/mitchellh/go-testing-interface"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/configentry"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/discoverychain"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/proto/private/pbcommon"
 	"github.com/hashicorp/consul/proto/private/pbpeering"
 )
 
@@ -97,7 +99,66 @@ func setupTestVariationConfigEntriesAndSnapshot(
 				Nodes: TestGatewayNodesDC2(t),
 			},
 		})
+	case "order-by-locality-failover":
+		cluster1UID := UpstreamID{
+			Name:           "db",
+			Peer:           "cluster-01",
+			EnterpriseMeta: acl.NewEnterpriseMetaWithPartition(dbUID.PartitionOrDefault(), ""),
+		}
+		cluster2UID := UpstreamID{
+			Name:           "db",
+			Peer:           "cluster-02",
+			EnterpriseMeta: acl.NewEnterpriseMetaWithPartition(dbUID.PartitionOrDefault(), ""),
+		}
+		chainID := makeChainID(structs.DiscoveryTargetOpts{Service: "db-v2"})
+		events = append(events,
+			UpdateEvent{
+				CorrelationID: "upstream-target:" + chainID + ":" + dbUID.String(),
+				Result: &structs.IndexedCheckServiceNodes{
+					Nodes: TestUpstreamNodesAlternate(t),
+				},
+			},
+			UpdateEvent{
+				CorrelationID: "peer-trust-bundle:cluster-01",
+				Result: &pbpeering.TrustBundleReadResponse{
+					Bundle: &pbpeering.PeeringTrustBundle{
+						PeerName:          "peer1",
+						TrustDomain:       "peer1.domain",
+						ExportedPartition: "peer1ap",
+						RootPEMs:          []string{"peer1-root-1"},
+					},
+				},
+			},
+			UpdateEvent{
+				CorrelationID: "peer-trust-bundle:cluster-02",
+				Result: &pbpeering.TrustBundleReadResponse{
+					Bundle: &pbpeering.PeeringTrustBundle{
+						PeerName:          "peer2",
+						TrustDomain:       "peer2.domain",
+						ExportedPartition: "peer2ap",
+						RootPEMs:          []string{"peer2-root-2"},
+					},
+				},
+			},
+			UpdateEvent{
+				CorrelationID: "upstream-peer:" + cluster1UID.String(),
+				Result: &structs.IndexedCheckServiceNodes{
+					Nodes: structs.CheckServiceNodes{structs.TestCheckNodeServiceWithNameInPeer(t, "db", "dc1", "cluster-01", "10.40.1.1", false, cluster1UID.EnterpriseMeta)},
+				},
+			},
+			UpdateEvent{
+				CorrelationID: "upstream-peer:" + cluster2UID.String(),
+				Result: &structs.IndexedCheckServiceNodes{
+					Nodes: structs.CheckServiceNodes{structs.TestCheckNodeServiceWithNameInPeer(t, "db", "dc2", "cluster-02", "10.40.1.2", false, cluster2UID.EnterpriseMeta)},
+				},
+			},
+		)
 	case "failover-to-cluster-peer":
+		uid := UpstreamID{
+			Name:           "db",
+			Peer:           "cluster-01",
+			EnterpriseMeta: acl.NewEnterpriseMetaWithPartition(dbUID.PartitionOrDefault(), ""),
+		}
 		events = append(events, UpdateEvent{
 			CorrelationID: "peer-trust-bundle:cluster-01",
 			Result: &pbpeering.TrustBundleReadResponse{
@@ -109,10 +170,6 @@ func setupTestVariationConfigEntriesAndSnapshot(
 				},
 			},
 		})
-		uid := UpstreamID{
-			Name: "db",
-			Peer: "cluster-01",
-		}
 		if enterprise {
 			uid.EnterpriseMeta = acl.NewEnterpriseMetaWithPartition(dbUID.PartitionOrDefault(), "ns9")
 		}
@@ -270,6 +327,7 @@ func setupTestVariationDiscoveryChain(
 ) *structs.CompiledDiscoveryChain {
 	// Compile a chain.
 	var (
+		peers        []*pbpeering.Peering
 		entries      []structs.ConfigEntry
 		compileSetup func(req *discoverychain.CompileRequest)
 	)
@@ -370,6 +428,49 @@ func setupTestVariationDiscoveryChain(
 				Failover: map[string]structs.ServiceResolverFailover{
 					"*": {
 						Targets: []structs.ServiceResolverFailoverTarget{target},
+					},
+				},
+			},
+		)
+	case "order-by-locality-failover":
+		peers = append(peers,
+			&pbpeering.Peering{
+				Name: "cluster-01",
+				Remote: &pbpeering.RemoteInfo{
+					Locality: &pbcommon.Locality{Region: "us-west-1"},
+				},
+			},
+			&pbpeering.Peering{
+				Name: "cluster-02",
+				Remote: &pbpeering.RemoteInfo{
+					Locality: &pbcommon.Locality{Region: "us-west-2"},
+				},
+			})
+		cluster1Target := structs.ServiceResolverFailoverTarget{
+			Peer: "cluster-01",
+		}
+		cluster2Target := structs.ServiceResolverFailoverTarget{
+			Peer: "cluster-02",
+		}
+
+		entries = append(entries,
+			&structs.ServiceResolverConfigEntry{
+				Kind:           structs.ServiceResolver,
+				Name:           "db",
+				EnterpriseMeta: entMeta,
+				ConnectTimeout: 33 * time.Second,
+				RequestTimeout: 33 * time.Second,
+				Failover: map[string]structs.ServiceResolverFailover{
+					"*": {
+						Policy: &structs.ServiceResolverFailoverPolicy{
+							Mode:    "order-by-locality",
+							Regions: []string{"us-west-2", "us-west-1"},
+						},
+						Targets: []structs.ServiceResolverFailoverTarget{
+							cluster1Target,
+							cluster2Target,
+							{Service: "db-v2"},
+						},
 					},
 				},
 			},
@@ -930,7 +1031,12 @@ func setupTestVariationDiscoveryChain(
 		entries = append(entries, additionalEntries...)
 	}
 
-	return discoverychain.TestCompileConfigEntries(t, "db", entMeta.NamespaceOrDefault(), entMeta.PartitionOrDefault(), "dc1", connect.TestClusterID+".consul", compileSetup, entries...)
+	set := configentry.NewDiscoveryChainSet()
+
+	set.AddEntries(entries...)
+	set.AddPeers(peers...)
+
+	return discoverychain.TestCompileConfigEntries(t, "db", entMeta.NamespaceOrDefault(), entMeta.PartitionOrDefault(), "dc1", connect.TestClusterID+".consul", compileSetup, set)
 }
 
 func httpMatch(http *structs.ServiceRouteHTTPMatch) *structs.ServiceRouteMatch {

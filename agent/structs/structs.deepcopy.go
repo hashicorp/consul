@@ -184,6 +184,14 @@ func (o *DiscoveryFailover) DeepCopy() *DiscoveryFailover {
 	if o.Policy != nil {
 		cp.Policy = new(ServiceResolverFailoverPolicy)
 		*cp.Policy = *o.Policy
+		if o.Policy.Regions != nil {
+			cp.Policy.Regions = make([]string, len(o.Policy.Regions))
+			copy(cp.Policy.Regions, o.Policy.Regions)
+		}
+	}
+	if o.Regions != nil {
+		cp.Regions = make([]string, len(o.Regions))
+		copy(cp.Regions, o.Regions)
 	}
 	return &cp
 }
@@ -917,6 +925,10 @@ func (o *ServiceResolverFailover) DeepCopy() *ServiceResolverFailover {
 	if o.Policy != nil {
 		cp.Policy = new(ServiceResolverFailoverPolicy)
 		*cp.Policy = *o.Policy
+		if o.Policy.Regions != nil {
+			cp.Policy.Regions = make([]string, len(o.Policy.Regions))
+			copy(cp.Policy.Regions, o.Policy.Regions)
+		}
 	}
 	return &cp
 }

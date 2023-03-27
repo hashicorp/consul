@@ -17,11 +17,11 @@ func TestCompileConfigEntries(t testing.T,
 	evaluateInPartition string,
 	evaluateInDatacenter string,
 	evaluateInTrustDomain string,
-	setup func(req *CompileRequest), entries ...structs.ConfigEntry) *structs.CompiledDiscoveryChain {
-	set := configentry.NewDiscoveryChainSet()
-
-	set.AddEntries(entries...)
-
+	setup func(req *CompileRequest),
+	set *configentry.DiscoveryChainSet) *structs.CompiledDiscoveryChain {
+	if set == nil {
+		set = configentry.NewDiscoveryChainSet()
+	}
 	req := CompileRequest{
 		ServiceName:           serviceName,
 		EvaluateInNamespace:   evaluateInNamespace,

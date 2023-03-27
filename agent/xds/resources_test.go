@@ -332,7 +332,7 @@ func getAPIGatewayGoldenTestCases(t *testing.T) []goldenTestCase {
 
 	service := structs.NewServiceName("service", nil)
 	serviceUID := proxycfg.NewUpstreamIDFromServiceName(service)
-	serviceChain := discoverychain.TestCompileConfigEntries(t, "service", "default", "default", "dc1", connect.TestClusterID+".consul", nil)
+	serviceChain := discoverychain.TestCompileConfigEntries(t, "service", "default", "default", "dc1", connect.TestClusterID+".consul", nil, nil)
 
 	return []goldenTestCase{
 		{

@@ -11,6 +11,7 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
+	"github.com/hashicorp/consul/agent/configentry"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/discoverychain"
 	"github.com/hashicorp/consul/agent/proxycfg/internal/watch"
@@ -57,21 +58,20 @@ func TestManager_BasicLifecycle(t *testing.T) {
 	roots, leaf := TestCerts(t)
 
 	dbDefaultChain := func() *structs.CompiledDiscoveryChain {
+		set := configentry.NewDiscoveryChainSet()
+		set.AddEntries(&structs.ServiceResolverConfigEntry{
+			Kind: structs.ServiceResolver,
+			Name: "db",
+		})
 		return discoverychain.TestCompileConfigEntries(t, "db", "default", "default", "dc1", connect.TestClusterID+".consul", func(req *discoverychain.CompileRequest) {
 			// This is because structs.TestUpstreams uses an opaque config
 			// to override connect timeouts.
 			req.OverrideConnectTimeout = 1 * time.Second
-		}, &structs.ServiceResolverConfigEntry{
-			Kind: structs.ServiceResolver,
-			Name: "db",
-		})
+		}, set)
 	}
 	dbSplitChain := func() *structs.CompiledDiscoveryChain {
-		return discoverychain.TestCompileConfigEntries(t, "db", "default", "default", "dc1", "trustdomain.consul", func(req *discoverychain.CompileRequest) {
-			// This is because structs.TestUpstreams uses an opaque config
-			// to override connect timeouts.
-			req.OverrideConnectTimeout = 1 * time.Second
-		}, &structs.ProxyConfigEntry{
+		set := configentry.NewDiscoveryChainSet()
+		set.AddEntries(&structs.ProxyConfigEntry{
 			Kind: structs.ProxyDefaults,
 			Name: structs.ProxyConfigGlobal,
 			Config: map[string]interface{}{
@@ -96,6 +96,11 @@ func TestManager_BasicLifecycle(t *testing.T) {
 				{Weight: 40, ServiceSubset: "v2"},
 			},
 		})
+		return discoverychain.TestCompileConfigEntries(t, "db", "default", "default", "dc1", "trustdomain.consul", func(req *discoverychain.CompileRequest) {
+			// This is because structs.TestUpstreams uses an opaque config
+			// to override connect timeouts.
+			req.OverrideConnectTimeout = 1 * time.Second
+		}, set)
 	}
 
 	upstreams := structs.TestUpstreams(t, false)
