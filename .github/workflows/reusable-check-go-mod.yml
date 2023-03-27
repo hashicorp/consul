@@ -2,10 +2,19 @@ name: check-go-mod
 
 on:
   workflow_call:
-
+    inputs:
+      uploaded-binary-name:
+        required: false
+        type: string
+        default: "consul-bin"
+      runs-on:
+        description: An expression indicating which kind of runners to use.
+        required: false
+        type: string
+        default: '["custom", "linux", "small"]'
 jobs:
   check-go-mod:
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(inputs.runs-on) }}
 
     steps:
     - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
