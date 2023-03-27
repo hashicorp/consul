@@ -191,6 +191,7 @@ var (
 	EventTopicHTTPRoute            = pbsubscribe.Topic_HTTPRoute
 	EventTopicInlineCertificate    = pbsubscribe.Topic_InlineCertificate
 	EventTopicBoundAPIGateway      = pbsubscribe.Topic_BoundAPIGateway
+	EventTopicIPRateLimit          = pbsubscribe.Topic_IPRateLimit
 )
 
 func processDBChanges(tx ReadTxn, changes Changes) ([]stream.Event, error) {

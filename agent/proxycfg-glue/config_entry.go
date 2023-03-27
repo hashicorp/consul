@@ -72,6 +72,8 @@ func newConfigEntryRequest(req *structs.ConfigEntryQuery, deps ServerDataSourceD
 		topic = pbsubscribe.Topic_InlineCertificate
 	case structs.BoundAPIGateway:
 		topic = pbsubscribe.Topic_BoundAPIGateway
+	case structs.RateLimitIPConfig:
+		topic = pbsubscribe.Topic_IPRateLimit
 	default:
 		return nil, fmt.Errorf("cannot map config entry kind: %s to a topic", req.Kind)
 	}

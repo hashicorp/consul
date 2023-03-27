@@ -68,6 +68,7 @@ var AllConfigEntryKinds = []string{
 	HTTPRoute,
 	TCPRoute,
 	InlineCertificate,
+	RateLimitIPConfig,
 }
 
 // ConfigEntry is the interface for centralized configuration stored in Raft.
