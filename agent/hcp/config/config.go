@@ -14,6 +14,9 @@ type CloudConfig struct {
 	Hostname     string
 	AuthURL      string
 	ScadaAddress string
+
+	// internal
+	ManagementToken string
 }
 
 func (c *CloudConfig) HCPConfig(opts ...hcpcfg.HCPConfigOption) (hcpcfg.HCPConfig, error) {

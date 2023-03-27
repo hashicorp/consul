@@ -215,6 +215,14 @@ func TestBadDataDirPermissions(t *testing.T) {
 	}
 }
 
+// func TestConfigLoader(t *testing.T) {
+// 	loader := func(source config.Source) (config.LoadResult, error) {
+// 		return config.LoadResult{}, nil
+// 	}
+// 	bd, _ := agent.NewBaseDeps(loader, nil, nil)
+// 	bd.RuntimeConfig.ACLInitialManagementToken
+// }
+
 type captureUI struct {
 	*mcli.MockUi
 }

@@ -438,6 +438,8 @@ type Config struct {
 
 	Locality *structs.Locality
 
+	Cloud *CloudConfig
+
 	// Embedded Consul Enterprise specific configuration
 	*EnterpriseConfig
 }

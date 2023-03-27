@@ -26,6 +26,7 @@ const (
 	certFileName   = "server-tls-cert.pem"
 	keyFileName    = "server-tls-key.pem"
 	configFileName = "server-config.json"
+	tokenFileName  = "hcp-management-token"
 	subDir         = "hcp-config"
 )
 
@@ -41,6 +42,13 @@ type UI interface {
 	Warn(string)
 	Info(string)
 	Error(string)
+}
+
+// RawBootstrapConfig contains the Consul config as a raw JSON string and the management token
+// which either was retrieved from persisted files or from the bootstrap endpoint
+type RawBootstrapConfig struct {
+	ConfigJSON      string
+	ManagementToken string
 }
 
 // MaybeBootstrap will use the passed ConfigLoader to read the existing
@@ -65,12 +73,12 @@ func MaybeBootstrap(ctx context.Context, loader ConfigLoader, ui UI) (bool, Conf
 	ui.Output("Bootstrapping configuration from HCP")
 
 	// See if we have existing config on disk
-	cfgJSON, ok := loadPersistedBootstrapConfig(res.RuntimeConfig, ui)
+	cfg, ok := loadPersistedBootstrapConfig(res.RuntimeConfig, ui)
 
 	if !ok {
 		// Fetch from HCP
 		ui.Info("Fetching configuration from HCP")
-		cfgJSON, err = doHCPBootstrap(ctx, res.RuntimeConfig, ui)
+		cfg, err = doHCPBootstrap(ctx, res.RuntimeConfig, ui)
 		if err != nil {
 			return false, nil, fmt.Errorf("failed to bootstrap from HCP: %w", err)
 		}
@@ -80,27 +88,7 @@ func MaybeBootstrap(ctx context.Context, loader ConfigLoader, ui UI) (bool, Conf
 	}
 
 	// Create a new loader func to return
-	newLoader := func(source config.Source) (config.LoadResult, error) {
-		// Don't allow any further attempts to provide a DefaultSource. This should
-		// only ever be needed later in client agent AutoConfig code but that should
-		// be mutually exclusive from this bootstrapping mechanism since this is
-		// only for servers. If we ever try to change that, this clear failure
-		// should alert future developers that the assumptions are changing rather
-		// than quietly not applying the config they expect!
-		if source != nil {
-			return config.LoadResult{},
-				fmt.Errorf("non-nil config source provided to a loader after HCP bootstrap already provided a DefaultSource")
-		}
-		// Otherwise, just call to the loader we were passed with our own additional
-		// JSON as the source.
-		s := config.FileSource{
-			Name:   "HCP Bootstrap",
-			Format: "json",
-			Data:   cfgJSON,
-		}
-		return loader(s)
-	}
-
+	newLoader := bootstrapConfigLoader(loader, cfg)
 	return true, newLoader, nil
 }
 
@@ -118,7 +106,36 @@ func wrapConfigLoader(loader ConfigLoader) ConfigLoader {
 	}
 }
 
-func doHCPBootstrap(ctx context.Context, rc *config.RuntimeConfig, ui UI) (string, error) {
+func bootstrapConfigLoader(loader ConfigLoader, cfg *RawBootstrapConfig) ConfigLoader {
+	return func(source config.Source) (config.LoadResult, error) {
+		// Don't allow any further attempts to provide a DefaultSource. This should
+		// only ever be needed later in client agent AutoConfig code but that should
+		// be mutually exclusive from this bootstrapping mechanism since this is
+		// only for servers. If we ever try to change that, this clear failure
+		// should alert future developers that the assumptions are changing rather
+		// than quietly not applying the config they expect!
+		if source != nil {
+			return config.LoadResult{},
+				fmt.Errorf("non-nil config source provided to a loader after HCP bootstrap already provided a DefaultSource")
+		}
+		// Otherwise, just call to the loader we were passed with our own additional
+		// JSON as the source.
+		res, err := loader(config.FileSource{
+			Name:   "HCP Bootstrap",
+			Format: "json",
+			Data:   cfg.ConfigJSON,
+		})
+
+		if err != nil {
+			return res, err
+		}
+
+		res.RuntimeConfig.Cloud.ManagementToken = cfg.ManagementToken
+		return res, nil
+	}
+}
+
+func doHCPBootstrap(ctx context.Context, rc *config.RuntimeConfig, ui UI) (*RawBootstrapConfig, error) {
 	w := retry.Waiter{
 		MinWait: 1 * time.Second,
 		MaxWait: 5 * time.Minute,
@@ -129,7 +146,7 @@ func doHCPBootstrap(ctx context.Context, rc *config.RuntimeConfig, ui UI) (strin
 
 	client, err := hcp.NewClient(rc.Cloud)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	for {
@@ -143,7 +160,7 @@ func doHCPBootstrap(ctx context.Context, rc *config.RuntimeConfig, ui UI) (strin
 			ui.Error(fmt.Sprintf("failed to fetch bootstrap config from HCP, will retry in %s: %s",
 				w.NextWait().Round(time.Second), err))
 			if err := w.Wait(ctx); err != nil {
-				return "", err
+				return nil, err
 			}
 			// Finished waiting, restart loop
 			continue
@@ -160,7 +177,7 @@ func doHCPBootstrap(ctx context.Context, rc *config.RuntimeConfig, ui UI) (strin
 		// inline certs right now. Use temp dir
 		tmp, err := os.MkdirTemp(os.TempDir(), "consul-dev-")
 		if err != nil {
-			return "", fmt.Errorf("failed to create temp dir for certificates: %w", err)
+			return nil, fmt.Errorf("failed to create temp dir for certificates: %w", err)
 		}
 		dataDir = tmp
 		shouldPersist = false
@@ -169,27 +186,34 @@ func doHCPBootstrap(ctx context.Context, rc *config.RuntimeConfig, ui UI) (strin
 	// Persist the TLS cert files from the response since we need to refer to them
 	// as disk files either way.
 	if err := persistTLSCerts(dataDir, bsCfg); err != nil {
-		return "", fmt.Errorf("failed to persist TLS certificates to dir %q: %w", dataDir, err)
+		return nil, fmt.Errorf("failed to persist TLS certificates to dir %q: %w", dataDir, err)
 	}
 
 	// Parse just to a map for now as we only have to inject to a specific place
 	// and parsing whole Config struct is complicated...
 	var cfg map[string]interface{}
 	if err := json.Unmarshal([]byte(bsCfg.ConsulConfig), &cfg); err != nil {
-		return "", err
+		return nil, err
 	}
 
 	// Update the config to include those TLS cert files
 	injectTLSCerts(dataDir, cfg)
 
 	// ensure that the initial management token from the bootstrap Consul config
-	// does not override the initial management token in the runtime config
-	checkManagementToken(rc, cfg)
+	// does not override the initial management token in the runtime config, then
+	// persist it if it exists
+	mgmtToken := checkManagementToken(cfg)
+	if shouldPersist && mgmtToken != "" {
+		persistManagementToken(dataDir, mgmtToken)
+	}
+
+	// append HTTP response headers from the bootstrap config
+	appendHTTPResponseHeaders(rc, cfg)
 
 	// convert the bootstrap config back into a string
 	cfgJSONBytes, err := json.Marshal(cfg)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	cfgJSON := string(cfgJSONBytes)
 
@@ -197,11 +221,14 @@ func doHCPBootstrap(ctx context.Context, rc *config.RuntimeConfig, ui UI) (strin
 	// a tmp dir to start with.
 	if shouldPersist {
 		if err := persistBootstrapConfig(dataDir, cfgJSON); err != nil {
-			return "", fmt.Errorf("failed to persist bootstrap config to dir %q: %w", dataDir, err)
+			return nil, fmt.Errorf("failed to persist bootstrap config to dir %q: %w", dataDir, err)
 		}
 	}
 
-	return cfgJSON, nil
+	return &RawBootstrapConfig{
+		ConfigJSON:      cfgJSON,
+		ManagementToken: mgmtToken,
+	}, nil
 }
 
 func persistTLSCerts(dataDir string, bsCfg *hcp.BootstrapConfig) error {
@@ -252,31 +279,70 @@ func injectTLSCerts(dataDir string, cfg map[string]interface{}) {
 	cfg["key_file"] = filepath.Join(dataDir, subDir, keyFileName)
 }
 
-func checkManagementToken(runtimeCfg *config.RuntimeConfig, bootstrapCfg map[string]interface{}) {
-	if runtimeCfg.ACLInitialManagementToken == "" {
-		// if this is empty, the token from the bootstrap will be used
-		return
-	}
-
+func checkManagementToken(bootstrapCfg map[string]interface{}) string {
 	// we're looking for acl.tokens.initial_management token from the bootstrap Consul config map
 	aclCfg, ok := bootstrapCfg["acl"].(map[string]interface{})
 	if !ok {
-		return
+		return ""
 	}
 
 	tokensCfg, ok := aclCfg["tokens"].(map[string]interface{})
 	if !ok {
-		return
+		return ""
 	}
 
 	initManagementToken, ok := tokensCfg["initial_management"].(string)
 	if !ok || initManagementToken == "" {
+		return ""
+	}
+
+	// delete the initial management token from the config, so it doesn't override the runtime config
+	delete(tokensCfg, "initial_management")
+	return initManagementToken
+}
+
+func persistManagementToken(dataDir, token string) error {
+	name := filepath.Join(dataDir, subDir, tokenFileName)
+	return os.WriteFile(name, []byte(token), 0600)
+}
+
+func loadManagementToken(dataDir string) (string, error) {
+	name := filepath.Join(dataDir, subDir, tokenFileName)
+	bytes, err := os.ReadFile(name)
+	if err != nil && !os.IsNotExist(err) {
+		return "", err
+	}
+	return string(bytes), nil
+}
+
+func appendHTTPResponseHeaders(rc *config.RuntimeConfig, bootstrapCfg map[string]interface{}) {
+	if rc.HTTPResponseHeaders == nil {
 		return
 	}
 
-	// if the runtime config has an initial management token, delete the
-	// one from the bootstrap Consul config so it doesn't override
-	delete(tokensCfg, "initial_management")
+	httpCfg, ok := bootstrapCfg["http_config"].(map[string]interface{})
+	if !ok {
+		return
+	}
+
+	headers, ok := httpCfg["response_headers"].(map[string]interface{})
+	if !ok {
+		return
+	}
+
+	for k, v := range headers {
+		stringValue, ok := v.(string)
+		if !ok || stringValue == "" {
+			continue
+		}
+
+		if prevValue, ok := rc.HTTPResponseHeaders[k]; ok {
+			rc.HTTPResponseHeaders[k] = strings.Join([]string{prevValue, stringValue}, ",")
+		}
+	}
+
+	// remove this so they're not merged later on
+	delete(bootstrapCfg, "http_config")
 }
 
 func persistBootstrapConfig(dataDir, cfgJSON string) error {
@@ -286,7 +352,7 @@ func persistBootstrapConfig(dataDir, cfgJSON string) error {
 	return os.WriteFile(name, []byte(cfgJSON), 0600)
 }
 
-func loadPersistedBootstrapConfig(rc *config.RuntimeConfig, ui UI) (string, bool) {
+func loadPersistedBootstrapConfig(rc *config.RuntimeConfig, ui UI) (*RawBootstrapConfig, bool) {
 	// Check if the files all exist
 	files := []string{
 		filepath.Join(rc.DataDir, subDir, configFileName),
@@ -302,7 +368,7 @@ func loadPersistedBootstrapConfig(rc *config.RuntimeConfig, ui UI) (string, bool
 			if hasSome {
 				ui.Warn("ignoring incomplete local bootstrap config files")
 			}
-			return "", false
+			return nil, false
 		}
 		hasSome = true
 	}
@@ -311,7 +377,7 @@ func loadPersistedBootstrapConfig(rc *config.RuntimeConfig, ui UI) (string, bool
 	jsonBs, err := os.ReadFile(name)
 	if err != nil {
 		ui.Warn(fmt.Sprintf("failed to read local bootstrap config file, ignoring local files: %s", err))
-		return "", false
+		return nil, false
 	}
 
 	// Check this looks non-empty at least
@@ -321,12 +387,21 @@ func loadPersistedBootstrapConfig(rc *config.RuntimeConfig, ui UI) (string, bool
 	// empty or just an empty JSON object or something.
 	if len(jsonStr) < 50 {
 		ui.Warn("ignoring incomplete local bootstrap config files")
-		return "", false
+		return nil, false
+	}
+
+	// load the management token
+	mgmtToken, err := loadManagementToken(rc.DataDir)
+	if err != nil {
+		return nil, false
 	}
 
 	// TODO we could parse the certificates and check they are still valid here
 	// and force a reload if not. We could also attempt to parse config and check
 	// it's all valid just in case the local config was really old and has
 	// deprecated fields or something?
-	return jsonStr, true
+	return &RawBootstrapConfig{
+		ConfigJSON:      jsonStr,
+		ManagementToken: mgmtToken,
+	}, true
 }

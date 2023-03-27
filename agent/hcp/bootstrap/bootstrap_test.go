@@ -3,7 +3,9 @@ package bootstrap
 import (
 	"testing"
 
+	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/agent/config"
+	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/stretchr/testify/require"
 )
 
@@ -43,7 +45,7 @@ func TestCheckManagementToken(t *testing.T) {
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			r := require.New(t)
-			checkManagementToken(test.runtimeConfig, test.bootstrapConfig)
+			checkManagementToken(test.bootstrapConfig)
 
 			acl, ok := test.bootstrapConfig["acl"].(map[string]interface{})
 			if !ok {
@@ -59,4 +61,35 @@ func TestCheckManagementToken(t *testing.T) {
 			r.Equal(test.expectedToken, bootstrapToken)
 		})
 	}
+}
+
+func TestBootstrapConfigLoader(t *testing.T) {
+	r := require.New(t)
+	bootstrapConfig := `{"acl":{"tokens":{"initial_management":"foo"}}}`
+
+	baseLoader := func(source config.Source) (config.LoadResult, error) {
+		return config.Load(config.LoadOpts{
+			DefaultConfig: source,
+			HCL: []string{
+				`server = true`,
+				`node_name = "test"`,
+				`data_dir = "/tmp/consul-data"`,
+				`acl { tokens { initial_management = "bar" } }`,
+			},
+		})
+	}
+
+	bootstrapLoader := func(source config.Source) (config.LoadResult, error) {
+		return bootstrapConfigLoader(baseLoader, &RawBootstrapConfig{
+			ConfigJSON:      bootstrapConfig,
+			ManagementToken: "foo",
+		})(source)
+	}
+
+	logger := testutil.NewLogBuffer(t)
+	bd, err := agent.NewBaseDeps(bootstrapLoader, logger, nil)
+	r.NoError(err)
+
+	r.Equal("bar", bd.RuntimeConfig.ACLInitialManagementToken)
+	r.Equal("foo", bd.RuntimeConfig.Cloud.ManagementToken)
 }
