@@ -14,7 +14,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/proto"
 )
 
 func TestWatchList_TypeNotFound(t *testing.T) {
@@ -39,7 +38,7 @@ func TestWatchList_GroupVersionMatches(t *testing.T) {
 	t.Parallel()
 	server := testServer(t)
 	client := testClient(t, server)
-	server.registry.Register(resource.Registration{Type: typev1})
+	server.Registry.Register(resource.Registration{Type: typev1})
 	ctx := context.Background()
 
 	// create a watch
@@ -52,7 +51,7 @@ func TestWatchList_GroupVersionMatches(t *testing.T) {
 	rspCh := handleResourceStream(t, stream)
 
 	// insert and verify upsert event received
-	r1, err := server.backend.WriteCAS(ctx, resourcev1)
+	r1, err := server.Backend.WriteCAS(ctx, resourcev1)
 	require.NoError(t, err)
 	rsp := mustGetResource(t, rspCh)
 	require.Equal(t, pbresource.WatchEvent_OPERATION_UPSERT, rsp.Operation)
@@ -60,14 +59,14 @@ func TestWatchList_GroupVersionMatches(t *testing.T) {
 
 	// update and verify upsert event received
 	r2 := clone(r1)
-	r2, err = server.backend.WriteCAS(ctx, r2)
+	r2, err = server.Backend.WriteCAS(ctx, r2)
 	require.NoError(t, err)
 	rsp = mustGetResource(t, rspCh)
 	require.Equal(t, pbresource.WatchEvent_OPERATION_UPSERT, rsp.Operation)
 	prototest.AssertDeepEqual(t, r2, rsp.Resource)
 
 	// delete and verify delete event received
-	err = server.backend.DeleteCAS(ctx, r2.Id, r2.Version)
+	err = server.Backend.DeleteCAS(ctx, r2.Id, r2.Version)
 	require.NoError(t, err)
 	rsp = mustGetResource(t, rspCh)
 	require.Equal(t, pbresource.WatchEvent_OPERATION_DELETE, rsp.Operation)
@@ -81,8 +80,8 @@ func TestWatchList_GroupVersionMismatch(t *testing.T) {
 	server := testServer(t)
 	client := testClient(t, server)
 	ctx := context.Background()
-	server.registry.Register(resource.Registration{Type: typev1})
-	server.registry.Register(resource.Registration{Type: typev2})
+	server.Registry.Register(resource.Registration{Type: typev1})
+	server.Registry.Register(resource.Registration{Type: typev2})
 
 	// create a watch for typev2
 	stream, err := client.WatchList(ctx, &pbresource.WatchListRequest{
@@ -94,16 +93,16 @@ func TestWatchList_GroupVersionMismatch(t *testing.T) {
 	rspCh := handleResourceStream(t, stream)
 
 	// insert
-	r1, err := server.backend.WriteCAS(ctx, resourcev1)
+	r1, err := server.Backend.WriteCAS(ctx, resourcev1)
 	require.NoError(t, err)
 
 	// update
 	r2 := clone(r1)
-	r2, err = server.backend.WriteCAS(ctx, r2)
+	r2, err = server.Backend.WriteCAS(ctx, r2)
 	require.NoError(t, err)
 
 	// delete
-	err = server.backend.DeleteCAS(ctx, r2.Id, r2.Version)
+	err = server.Backend.DeleteCAS(ctx, r2.Id, r2.Version)
 	require.NoError(t, err)
 
 	// verify no events received
@@ -173,5 +172,3 @@ type resourceOrError struct {
 	rsp *pbresource.WatchEvent
 	err error
 }
-
-func clone[T proto.Message](v T) T { return proto.Clone(v).(T) }

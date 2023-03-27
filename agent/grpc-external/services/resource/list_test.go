@@ -36,7 +36,7 @@ func TestList_Empty(t *testing.T) {
 		t.Run(desc, func(t *testing.T) {
 			server := testServer(t)
 			client := testClient(t, server)
-			server.registry.Register(resource.Registration{Type: typev1})
+			server.Registry.Register(resource.Registration{Type: typev1})
 
 			rsp, err := client.List(tc.ctx, &pbresource.ListRequest{
 				Type:       typev1,
@@ -54,7 +54,7 @@ func TestList_Many(t *testing.T) {
 		t.Run(desc, func(t *testing.T) {
 			server := testServer(t)
 			client := testClient(t, server)
-			server.registry.Register(resource.Registration{Type: typev1})
+			server.Registry.Register(resource.Registration{Type: typev1})
 
 			resources := make([]*pbresource.Resource, 10)
 			for i := 0; i < len(resources); i++ {
@@ -67,7 +67,7 @@ func TestList_Many(t *testing.T) {
 					},
 					Version: "",
 				}
-				server.backend.WriteCAS(tc.ctx, r)
+				server.Backend.WriteCAS(tc.ctx, r)
 			}
 
 			rsp, err := client.List(tc.ctx, &pbresource.ListRequest{
@@ -86,8 +86,8 @@ func TestList_GroupVersionMismatch(t *testing.T) {
 		t.Run(desc, func(t *testing.T) {
 			server := testServer(t)
 			client := testClient(t, server)
-			server.registry.Register(resource.Registration{Type: typev1})
-			server.backend.WriteCAS(tc.ctx, &pbresource.Resource{Id: id2})
+			server.Registry.Register(resource.Registration{Type: typev1})
+			server.Backend.WriteCAS(tc.ctx, &pbresource.Resource{Id: id2})
 
 			rsp, err := client.List(tc.ctx, &pbresource.ListRequest{
 				Type:       typev1,
@@ -106,10 +106,10 @@ func TestList_VerifyReadConsistencyArg(t *testing.T) {
 		t.Run(desc, func(t *testing.T) {
 			mockBackend := NewMockBackend(t)
 			server := NewServer(Config{
-				registry: resource.NewRegistry(),
-				backend:  mockBackend,
+				Registry: resource.NewRegistry(),
+				Backend:  mockBackend,
 			})
-			server.registry.Register(resource.Registration{Type: typev1})
+			server.Registry.Register(resource.Registration{Type: typev1})
 			resource1 := &pbresource.Resource{Id: id1, Version: "1"}
 			mockBackend.On("List", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
 				Return([]*pbresource.Resource{resource1}, nil)

@@ -1,3 +1,5 @@
+// Package demo includes fake resource types for working on Consul's generic
+// state storage without having to refer to specific features.
 package demo
 
 import (
@@ -13,24 +15,28 @@ import (
 	pbdemov1 "github.com/hashicorp/consul/proto/private/pbdemo/v1"
 )
 
+// TenancyDefault contains the default values for all tenancy units.
 var TenancyDefault = &pbresource.Tenancy{
 	Partition: "default",
 	PeerName:  "local",
 	Namespace: "default",
 }
 
+// TypeArtist represents a musician or group of musicians.
 var TypeArtist = &pbresource.Type{
 	Group:        "demo",
 	GroupVersion: "v1",
 	Kind:         "artist",
 }
 
+// TypeAlbum represents a collection of an artist's songs.
 var TypeAlbum = &pbresource.Type{
 	Group:        "demo",
 	GroupVersion: "v1",
 	Kind:         "album",
 }
 
+// Register demo types. Should only be called in tests and dev mode.
 func Register(r resource.Registry) {
 	r.Register(resource.Registration{
 		Type:  TypeArtist,
@@ -43,6 +49,7 @@ func Register(r resource.Registry) {
 	})
 }
 
+// GenerateArtist generates a random Artist resource.
 func GenerateArtist() (*pbresource.Resource, error) {
 	adjective := adjectives[rand.Intn(len(adjectives))]
 	noun := nouns[rand.Intn(len(nouns))]
@@ -69,6 +76,8 @@ func GenerateArtist() (*pbresource.Resource, error) {
 	}, nil
 }
 
+// GenerateAlbum generates a random Album resource, owned by the Artist with the
+// given ID.
 func GenerateAlbum(artistID *pbresource.ID) (*pbresource.Resource, error) {
 	adjective := adjectives[rand.Intn(len(adjectives))]
 	noun := nouns[rand.Intn(len(nouns))]

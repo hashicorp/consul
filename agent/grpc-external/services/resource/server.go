@@ -3,10 +3,12 @@ package resource
 import (
 	"context"
 
+	"github.com/hashicorp/go-hclog"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
 
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/storage"
@@ -18,8 +20,9 @@ type Server struct {
 }
 
 type Config struct {
-	registry Registry
-	backend  Backend
+	Logger   hclog.Logger
+	Registry Registry
+	Backend  Backend
 }
 
 //go:generate mockery --name Registry --inpackage
@@ -42,11 +45,6 @@ func (s *Server) Register(grpcServer *grpc.Server) {
 	pbresource.RegisterResourceServiceServer(grpcServer, s)
 }
 
-func (s *Server) Write(ctx context.Context, req *pbresource.WriteRequest) (*pbresource.WriteResponse, error) {
-	// TODO
-	return &pbresource.WriteResponse{}, nil
-}
-
 func (s *Server) WriteStatus(ctx context.Context, req *pbresource.WriteStatusRequest) (*pbresource.WriteStatusResponse, error) {
 	// TODO
 	return &pbresource.WriteStatusResponse{}, nil
@@ -59,7 +57,7 @@ func (s *Server) Delete(ctx context.Context, req *pbresource.DeleteRequest) (*pb
 
 //nolint:unparam
 func (s *Server) resolveType(typ *pbresource.Type) (*resource.Registration, error) {
-	v, ok := s.registry.Resolve(typ)
+	v, ok := s.Registry.Resolve(typ)
 	if ok {
 		return &v, nil
 	}
@@ -85,3 +83,5 @@ func readConsistencyFrom(ctx context.Context) storage.ReadConsistency {
 	}
 	return storage.EventualConsistency
 }
+
+func clone[T proto.Message](v T) T { return proto.Clone(v).(T) }

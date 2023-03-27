@@ -17,7 +17,7 @@ import (
 )
 
 func TestRead_TypeNotFound(t *testing.T) {
-	server := NewServer(Config{registry: resource.NewRegistry()})
+	server := NewServer(Config{Registry: resource.NewRegistry()})
 	client := testClient(t, server)
 
 	_, err := client.Read(context.Background(), &pbresource.ReadRequest{Id: id1})
@@ -30,7 +30,7 @@ func TestRead_ResourceNotFound(t *testing.T) {
 	for desc, tc := range readTestCases() {
 		t.Run(desc, func(t *testing.T) {
 			server := testServer(t)
-			server.registry.Register(resource.Registration{Type: typev1})
+			server.Registry.Register(resource.Registration{Type: typev1})
 			client := testClient(t, server)
 
 			_, err := client.Read(tc.ctx, &pbresource.ReadRequest{Id: id1})
@@ -45,12 +45,12 @@ func TestRead_GroupVersionMismatch(t *testing.T) {
 	for desc, tc := range readTestCases() {
 		t.Run(desc, func(t *testing.T) {
 			server := testServer(t)
-			server.registry.Register(resource.Registration{Type: typev1})
-			server.registry.Register(resource.Registration{Type: typev2})
+			server.Registry.Register(resource.Registration{Type: typev1})
+			server.Registry.Register(resource.Registration{Type: typev2})
 			client := testClient(t, server)
 
 			resource1 := &pbresource.Resource{Id: id1, Version: ""}
-			_, err := server.backend.WriteCAS(tc.ctx, resource1)
+			_, err := server.Backend.WriteCAS(tc.ctx, resource1)
 			require.NoError(t, err)
 
 			_, err = client.Read(tc.ctx, &pbresource.ReadRequest{Id: id2})
@@ -65,10 +65,10 @@ func TestRead_Success(t *testing.T) {
 	for desc, tc := range readTestCases() {
 		t.Run(desc, func(t *testing.T) {
 			server := testServer(t)
-			server.registry.Register(resource.Registration{Type: typev1})
+			server.Registry.Register(resource.Registration{Type: typev1})
 			client := testClient(t, server)
 			resource1 := &pbresource.Resource{Id: id1, Version: ""}
-			resource1, err := server.backend.WriteCAS(tc.ctx, resource1)
+			resource1, err := server.Backend.WriteCAS(tc.ctx, resource1)
 			require.NoError(t, err)
 
 			rsp, err := client.Read(tc.ctx, &pbresource.ReadRequest{Id: id1})
@@ -84,10 +84,10 @@ func TestRead_VerifyReadConsistencyArg(t *testing.T) {
 		t.Run(desc, func(t *testing.T) {
 			mockBackend := NewMockBackend(t)
 			server := NewServer(Config{
-				registry: resource.NewRegistry(),
-				backend:  mockBackend,
+				Registry: resource.NewRegistry(),
+				Backend:  mockBackend,
 			})
-			server.registry.Register(resource.Registration{Type: typev1})
+			server.Registry.Register(resource.Registration{Type: typev1})
 			resource1 := &pbresource.Resource{Id: id1, Version: "1"}
 			mockBackend.On("Read", mock.Anything, mock.Anything, mock.Anything).Return(resource1, nil)
 			client := testClient(t, server)
