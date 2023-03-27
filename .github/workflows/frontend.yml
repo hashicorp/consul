@@ -10,6 +10,9 @@ on:
       - ui/**
       - backport/ui/**
 
+permissions:
+  contents: read
+
 jobs:
   workspace-tests:
     runs-on: ubuntu-20.04
