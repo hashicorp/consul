@@ -33,10 +33,7 @@ func (s *Server) WatchList(req *pbresource.WatchListRequest, stream pbresource.R
 			continue
 		}
 
-		if err = stream.Send(&pbresource.WatchEvent{
-			Operation: event.Operation,
-			Resource:  event.Resource,
-		}); err != nil {
+		if err = stream.Send(event); err != nil {
 			return err
 		}
 	}
