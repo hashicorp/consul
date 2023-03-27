@@ -4,6 +4,8 @@ import (
 	"context"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/storage"
@@ -15,8 +17,13 @@ type Server struct {
 }
 
 type Config struct {
-	registry resource.Registry
-	backend  storage.Backend
+	registry Registry
+	backend  Backend
+}
+
+//go:generate mockery --name Registry --inpackage
+type Registry interface {
+	resource.Registry
 }
 
 //go:generate mockery --name Backend --inpackage
@@ -54,7 +61,13 @@ func (s *Server) Delete(ctx context.Context, req *pbresource.DeleteRequest) (*pb
 	return &pbresource.DeleteResponse{}, nil
 }
 
-func (s *Server) Watch(req *pbresource.WatchRequest, ws pbresource.ResourceService_WatchServer) error {
-	// TODO
-	return nil
+func (s *Server) resolveType(typ *pbresource.Type) (*resource.Registration, error) {
+	v, ok := s.registry.Resolve(typ)
+	if ok {
+		return &v, nil
+	}
+	return nil, status.Errorf(
+		codes.InvalidArgument,
+		"resource type %s not registered", resource.ToGVK(typ),
+	)
 }
