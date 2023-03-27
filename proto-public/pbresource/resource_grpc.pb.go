@@ -27,6 +27,7 @@ type ResourceServiceClient interface {
 	WriteStatus(ctx context.Context, in *WriteStatusRequest, opts ...grpc.CallOption) (*WriteStatusResponse, error)
 	List(ctx context.Context, in *ListRequest, opts ...grpc.CallOption) (*ListResponse, error)
 	Delete(ctx context.Context, in *DeleteRequest, opts ...grpc.CallOption) (*DeleteResponse, error)
+	// buf:lint:ignore RPC_RESPONSE_STANDARD_NAME
 	WatchList(ctx context.Context, in *WatchListRequest, opts ...grpc.CallOption) (ResourceService_WatchListClient, error)
 }
 
@@ -124,6 +125,7 @@ type ResourceServiceServer interface {
 	WriteStatus(context.Context, *WriteStatusRequest) (*WriteStatusResponse, error)
 	List(context.Context, *ListRequest) (*ListResponse, error)
 	Delete(context.Context, *DeleteRequest) (*DeleteResponse, error)
+	// buf:lint:ignore RPC_RESPONSE_STANDARD_NAME
 	WatchList(*WatchListRequest, ResourceService_WatchListServer) error
 }
 

@@ -83,6 +83,7 @@ service ResourceService {
     };
   }
 
+  // buf:lint:ignore RPC_RESPONSE_STANDARD_NAME
   rpc WatchList(WatchListRequest) returns (stream WatchEvent) {
     option (hashicorp.consul.internal.ratelimit.spec) = {
       operation_type: OPERATION_TYPE_READ,
