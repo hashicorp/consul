@@ -81,8 +81,8 @@ func (e *HTTPRouteConfigEntry) Normalize() error {
 		if parent.Kind == "" {
 			parent.Kind = APIGateway
 		}
-		parent.Merge(e.GetEnterpriseMeta())
-		parent.Normalize()
+		parent.EnterpriseMeta.Merge(e.GetEnterpriseMeta())
+		parent.EnterpriseMeta.Normalize()
 		e.Parents[i] = parent
 	}
 
@@ -101,8 +101,8 @@ func (e *HTTPRouteConfigEntry) Normalize() error {
 }
 
 func (e *HTTPRouteConfigEntry) normalizeHTTPService(service HTTPService) HTTPService {
-	service.Merge(e.GetEnterpriseMeta())
-	service.Normalize()
+	service.EnterpriseMeta.Merge(e.GetEnterpriseMeta())
+	service.EnterpriseMeta.Normalize()
 	if service.Weight <= 0 {
 		service.Weight = 1
 	}
@@ -509,14 +509,14 @@ func (e *TCPRouteConfigEntry) Normalize() error {
 		if parent.Kind == "" {
 			parent.Kind = APIGateway
 		}
-		parent.Merge(e.GetEnterpriseMeta())
-		parent.Normalize()
+		parent.EnterpriseMeta.Merge(e.GetEnterpriseMeta())
+		parent.EnterpriseMeta.Normalize()
 		e.Parents[i] = parent
 	}
 
 	for i, service := range e.Services {
-		service.Merge(e.GetEnterpriseMeta())
-		service.Normalize()
+		service.EnterpriseMeta.Merge(e.GetEnterpriseMeta())
+		service.EnterpriseMeta.Normalize()
 		e.Services[i] = service
 	}
 
