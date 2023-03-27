@@ -28,7 +28,7 @@ jobs:
     uses: ./.github/workflows/reusable-check-go-mod.yml
     with:
       runs-on: ${{ needs.setup.outputs.compute-medium }}
-    
+
   build-386:
     needs: 
     - setup 
