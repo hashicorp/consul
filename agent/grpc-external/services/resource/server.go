@@ -18,8 +18,13 @@ type Server struct {
 }
 
 type Config struct {
-	registry resource.Registry
-	backend  storage.Backend
+	registry Registry
+	backend  Backend
+}
+
+//go:generate mockery --name Registry --inpackage
+type Registry interface {
+	resource.Registry
 }
 
 //go:generate mockery --name Backend --inpackage
@@ -47,17 +52,13 @@ func (s *Server) WriteStatus(ctx context.Context, req *pbresource.WriteStatusReq
 	return &pbresource.WriteStatusResponse{}, nil
 }
 
-func (s *Server) Watch(req *pbresource.WatchRequest, ws pbresource.ResourceService_WatchServer) error {
-	// TODO
-	return nil
-}
-
-func (s *Server) resolveType(typ *pbresource.Type) error {
-	_, ok := s.registry.Resolve(typ)
+//nolint:unparam
+func (s *Server) resolveType(typ *pbresource.Type) (*resource.Registration, error) {
+	v, ok := s.registry.Resolve(typ)
 	if ok {
-		return nil
+		return &v, nil
 	}
-	return status.Errorf(
+	return nil, status.Errorf(
 		codes.InvalidArgument,
 		"resource type %s not registered", resource.ToGVK(typ),
 	)

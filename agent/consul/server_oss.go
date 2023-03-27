@@ -19,6 +19,11 @@ import (
 	"github.com/hashicorp/consul/lib"
 )
 
+// runEnterpriseRateLimiterConfigEntryController start the rate limiter config controller
+func (s *Server) runEnterpriseRateLimiterConfigEntryController() error {
+	return nil
+}
+
 func (s *Server) registerEnterpriseGRPCServices(deps Deps, srv *grpc.Server) {}
 
 func (s *Server) enterpriseValidateJoinWAN() error {

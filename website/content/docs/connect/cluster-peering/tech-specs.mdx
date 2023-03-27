@@ -19,10 +19,13 @@ To use cluster peering features, make sure your Consul environment meets the fol
 
 In addition, the following service mesh components are required in order to establish cluster peering connections:
   
-- [Mesh gateways](#mesh-gateway-requirements)
-- [Sidecar proxies](#sidecar-proxy-requirements)
-- [Exported services](#exported-service-requirements)
-- [ACLs](#acl-requirements)
+- [Cluster peering technical specifications](#cluster-peering-technical-specifications)
+  - [Requirements](#requirements)
+    - [Mesh gateway requirements](#mesh-gateway-requirements)
+      - [Mesh gateway modes](#mesh-gateway-modes)
+  - [Sidecar proxy requirements](#sidecar-proxy-requirements)
+  - [Exported service requirements](#exported-service-requirements)
+  - [ACL requirements](#acl-requirements)
 
 ### Mesh gateway requirements
 
@@ -45,7 +48,7 @@ Refer to [mesh gateway modes](/consul/docs/connect/gateways/mesh-gateway#modes) 
 
 ## Sidecar proxy requirements
 
-The Envoy proxies that function as sidecars in your service mesh require configuration in order to properly route traffic to peers. Sidecar proxies are defined in the [service definition](/consul/docs/services/usage/defin-services).
+The Envoy proxies that function as sidecars in your service mesh require configuration in order to properly route traffic to peers. Sidecar proxies are defined in the [service definition](/consul/docs/services/usage/define-services).
 
 - Configure the `proxy.upstreams` parameters to route traffic to the correct service, namespace, and peer. Refer to the [`upstreams`](/consul/docs/connect/registration/service-registration#upstream-configuration-reference) documentation for details.
 - The `proxy.upstreams.destination_name` parameter is always required.
@@ -56,7 +59,7 @@ The Envoy proxies that function as sidecars in your service mesh require configu
 
 The `exported-services` configuration entry is required in order for services to communicate across partitions with cluster peering connections.
 
-Basic guidance on using the `exported-services` configuration entry is included in [Establish cluster peering connections](/consul/docs/connect/cluster-peering/usage/create-cluster-peering).
+Basic guidance on using the `exported-services` configuration entry is included in [Establish cluster peering connections](/consul/docs/k8s/connect/cluster-peering/usage/establish-peering).
 
 Refer to the [`exported-services` configuration entry](/consul/docs/connect/config-entries/exported-services) reference for more information.
 

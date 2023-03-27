@@ -455,6 +455,15 @@ func deleteConfigEntryTxn(tx WriteTxn, idx uint64, kind, name string, entMeta *a
 		return fmt.Errorf("failed updating index: %s", err)
 	}
 
+	// If this is a resolver/router/splitter, attempt to delete the virtual IP associated
+	// with this service.
+	if kind == structs.ServiceResolver || kind == structs.ServiceRouter || kind == structs.ServiceSplitter {
+		psn := structs.PeeredServiceName{ServiceName: sn}
+		if err := freeServiceVirtualIP(tx, idx, psn, nil); err != nil {
+			return fmt.Errorf("failed to clean up virtual IP for %q: %v", psn.String(), err)
+		}
+	}
+
 	return nil
 }
 
@@ -465,14 +474,15 @@ func insertConfigEntryWithTxn(tx WriteTxn, idx uint64, conf structs.ConfigEntry)
 
 	// If the config entry is for a terminating or ingress gateway we update the memdb table
 	// that associates gateways <-> services.
-	if conf.GetKind() == structs.TerminatingGateway || conf.GetKind() == structs.IngressGateway {
+	kind := conf.GetKind()
+	if kind == structs.TerminatingGateway || kind == structs.IngressGateway {
 		err := updateGatewayServices(tx, idx, conf, conf.GetEnterpriseMeta())
 		if err != nil {
 			return fmt.Errorf("failed to associate services to gateway: %v", err)
 		}
 	}
 
-	switch conf.GetKind() {
+	switch kind {
 	case structs.ServiceDefaults:
 		if conf.(*structs.ServiceConfigEntry).Destination != nil {
 			sn := structs.ServiceName{Name: conf.GetName(), EnterpriseMeta: *conf.GetEnterpriseMeta()}
@@ -497,6 +507,15 @@ func insertConfigEntryWithTxn(tx WriteTxn, idx uint64, conf structs.ConfigEntry)
 	case structs.SamenessGroup:
 		err := checkSamenessGroup(tx, conf)
 		if err != nil {
+			return err
+		}
+	case structs.ServiceResolver:
+		fallthrough
+	case structs.ServiceRouter:
+		fallthrough
+	case structs.ServiceSplitter:
+		psn := structs.PeeredServiceName{ServiceName: structs.NewServiceName(conf.GetName(), conf.GetEnterpriseMeta())}
+		if _, err := assignServiceVirtualIP(tx, idx, psn); err != nil {
 			return err
 		}
 	}
@@ -724,6 +743,16 @@ func validateProposedConfigEntryInServiceGraph(
 	case structs.MeshConfig:
 		// Exported services and mesh config do not influence discovery chains.
 		return nil
+
+	case structs.SamenessGroup:
+		// Any service resolver could reference a sameness group.
+		_, entries, err := configEntriesByKindTxn(tx, nil, structs.ServiceResolver, wildcardEntMeta)
+		if err != nil {
+			return err
+		}
+		for _, entry := range entries {
+			checkChains[structs.NewServiceID(entry.GetName(), entry.GetEnterpriseMeta())] = struct{}{}
+		}
 
 	case structs.ProxyDefaults:
 		// Check anything that has a discovery chain entry. In the future we could
@@ -1297,10 +1326,11 @@ func readDiscoveryChainConfigEntriesTxn(
 	// the end of this function to indicate "no such entry".
 
 	var (
-		todoSplitters = make(map[structs.ServiceID]struct{})
-		todoResolvers = make(map[structs.ServiceID]struct{})
-		todoDefaults  = make(map[structs.ServiceID]struct{})
-		todoPeers     = make(map[string]struct{})
+		todoSplitters      = make(map[structs.ServiceID]struct{})
+		todoResolvers      = make(map[structs.ServiceID]struct{})
+		todoDefaults       = make(map[structs.ServiceID]struct{})
+		todoPeers          = make(map[string]struct{})
+		todoSamenessGroups = make(map[string]struct{})
 	)
 
 	sid := structs.NewServiceID(serviceName, entMeta)
@@ -1406,6 +1436,10 @@ func readDiscoveryChainConfigEntriesTxn(
 		for _, peer := range resolver.RelatedPeers() {
 			todoPeers[peer] = struct{}{}
 		}
+
+		for _, sg := range resolver.RelatedSamenessGroups() {
+			todoSamenessGroups[sg] = struct{}{}
+		}
 	}
 
 	for {
@@ -1448,6 +1482,26 @@ func readDiscoveryChainConfigEntriesTxn(
 	}
 
 	peerEntMeta := structs.DefaultEnterpriseMetaInPartition(entMeta.PartitionOrDefault())
+	for sg := range todoSamenessGroups {
+		idx, entry, err := getSamenessGroupConfigEntryTxn(tx, ws, sg, overrides, peerEntMeta)
+		if err != nil {
+			return 0, nil, err
+		}
+		if idx > maxIdx {
+			maxIdx = idx
+		}
+		if entry == nil {
+			continue
+		}
+
+		for _, e := range entry.Members {
+			if e.Peer != "" {
+				todoPeers[e.Peer] = struct{}{}
+			}
+		}
+		res.SamenessGroups[sg] = entry
+	}
+
 	for peerName := range todoPeers {
 		q := Query{
 			Value:          peerName,

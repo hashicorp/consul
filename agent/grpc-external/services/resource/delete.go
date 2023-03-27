@@ -13,7 +13,7 @@ import (
 
 func (s *Server) Delete(ctx context.Context, req *pbresource.DeleteRequest) (*pbresource.DeleteResponse, error) {
 	// check type registered
-	if err := s.resolveType(req.Id.Type); err != nil {
+	if _, err := s.resolveType(req.Id.Type); err != nil {
 		return nil, err
 	}
 
