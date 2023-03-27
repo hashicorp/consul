@@ -755,8 +755,8 @@ func (e *APIGatewayConfigEntry) Normalize() error {
 			if cert.Kind == "" {
 				cert.Kind = InlineCertificate
 			}
-			cert.Merge(e.GetEnterpriseMeta())
-			cert.Normalize()
+			cert.EnterpriseMeta.Merge(e.GetEnterpriseMeta())
+			cert.EnterpriseMeta.Normalize()
 
 			listener.TLS.Certificates[i] = cert
 		}
@@ -986,14 +986,14 @@ func (e *BoundAPIGatewayConfigEntry) GetMeta() map[string]string { return e.Meta
 func (e *BoundAPIGatewayConfigEntry) Normalize() error {
 	for i, listener := range e.Listeners {
 		for j, route := range listener.Routes {
-			route.Merge(&e.EnterpriseMeta)
-			route.Normalize()
+			route.EnterpriseMeta.Merge(&e.EnterpriseMeta)
+			route.EnterpriseMeta.Normalize()
 
 			listener.Routes[j] = route
 		}
 		for j, cert := range listener.Certificates {
-			cert.Merge(&e.EnterpriseMeta)
-			cert.Normalize()
+			cert.EnterpriseMeta.Merge(&e.EnterpriseMeta)
+			cert.EnterpriseMeta.Normalize()
 
 			listener.Certificates[j] = cert
 		}
