@@ -51,7 +51,7 @@ To mitigate these risks, we recommend a maximum of 5,000 Consul client agents in
 
 1. Run exactly one Consul agent per host in the infrastructure.
 1. Break up the single Consul datacenter into multiple smaller datacenters.
-1. Enterprise users can define [network segments](/consul/docs/enterprise/network-segments) to divide the single gossip pool in the Consul datacenter into multiple smaller pools.
+1. Enterprise users can define [network segments](/consul/docs/enterprise/network-segments/network-segments-overview) to divide the single gossip pool in the Consul datacenter into multiple smaller pools.
 
 If appropriate for your use case, we recommend breaking up a single Consul datacenter into multiple smaller datacenters. Running multiple datacenters reduces your network’s blast radius more than applying network segments.
 
