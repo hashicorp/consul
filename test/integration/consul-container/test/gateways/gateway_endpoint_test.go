@@ -179,7 +179,7 @@ func checkHTTPRouteConfigEntry(t *testing.T, client *api.Client, routeName strin
 	}, time.Second*10, time.Second*1)
 }
 
-func checkHTTPRouteConfigEntryWithoutBindStatus(t *testing.T, client *api.Client, routeName string, namespace string) {
+func checkHTTPRouteConfigEntryExists(t *testing.T, client *api.Client, routeName string, namespace string) {
 	t.Helper()
 
 	require.Eventually(t, func() bool {
