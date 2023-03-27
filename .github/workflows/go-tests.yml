@@ -28,6 +28,7 @@ jobs:
       compute-large: ${{ steps.setup-outputs.outputs.compute-medium }}
       compute-xl: ${{ steps.setup-outputs.outputs.compute-xl }}
     steps:
+    - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
     - id: setup-outputs
       name: Setup outputs
       run: ./.github/scripts/get_runner_classes.sh
