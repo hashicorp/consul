@@ -172,8 +172,8 @@ func initLeaderMetrics() {
 
 // expiresSoon checks to see if we are close enough to the cert expiring that
 // we should send out a WARN log message.
-// It defaults to returning true if the cert will expire within 28 days or 40%
-// of the certs total duration, whichever is shorter.
+// It returns true if the cert will expire within 28 days or 40% of the
+// certificate's total duration (whichever is shorter).
 func expiresSoon(lifetime, untilAfter time.Duration) bool {
 	defaultPeriod := 28 * (24 * time.Hour) // 28 days
 	fortyPercent := (lifetime / 10) * 4    // 40% of total duration
