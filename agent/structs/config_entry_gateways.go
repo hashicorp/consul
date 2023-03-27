@@ -173,7 +173,7 @@ func (e *IngressGatewayConfigEntry) Normalize() error {
 	}
 
 	e.Kind = IngressGateway
-	e.Normalize()
+	e.EnterpriseMeta.Normalize()
 
 	for i, listener := range e.Listeners {
 		if listener.Protocol == "" {
