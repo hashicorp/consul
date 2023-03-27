@@ -173,7 +173,7 @@ func (e *IngressGatewayConfigEntry) Normalize() error {
 	}
 
 	e.Kind = IngressGateway
-	e.EnterpriseMeta.Normalize()
+	e.Normalize()
 
 	for i, listener := range e.Listeners {
 		if listener.Protocol == "" {
@@ -755,7 +755,8 @@ func (e *APIGatewayConfigEntry) Normalize() error {
 			if cert.Kind == "" {
 				cert.Kind = InlineCertificate
 			}
-			cert.EnterpriseMeta.Normalize()
+			cert.Merge(e.GetEnterpriseMeta())
+			cert.Normalize()
 
 			listener.TLS.Certificates[i] = cert
 		}
@@ -985,12 +986,14 @@ func (e *BoundAPIGatewayConfigEntry) GetMeta() map[string]string { return e.Meta
 func (e *BoundAPIGatewayConfigEntry) Normalize() error {
 	for i, listener := range e.Listeners {
 		for j, route := range listener.Routes {
-			route.EnterpriseMeta.Normalize()
+			route.Merge(&e.EnterpriseMeta)
+			route.Normalize()
 
 			listener.Routes[j] = route
 		}
 		for j, cert := range listener.Certificates {
-			cert.EnterpriseMeta.Normalize()
+			cert.Merge(&e.EnterpriseMeta)
+			cert.Normalize()
 
 			listener.Certificates[j] = cert
 		}
