@@ -57,6 +57,7 @@ func (s *Server) Delete(ctx context.Context, req *pbresource.DeleteRequest) (*pb
 	return &pbresource.DeleteResponse{}, nil
 }
 
+//nolint:unparam
 func (s *Server) resolveType(typ *pbresource.Type) (*resource.Registration, error) {
 	v, ok := s.registry.Resolve(typ)
 	if ok {
