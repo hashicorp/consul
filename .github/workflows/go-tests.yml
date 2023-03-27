@@ -30,7 +30,7 @@ jobs:
     steps:
     - id: setup-outputs
       name: Setup outputs
-      run: .github/scripts/get_runner_classes.sh
+      run: ./.github/scripts/get_runner_classes.sh
 
   check-go-mod:
     needs: 
