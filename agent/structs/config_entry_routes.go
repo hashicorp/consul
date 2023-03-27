@@ -509,12 +509,14 @@ func (e *TCPRouteConfigEntry) Normalize() error {
 		if parent.Kind == "" {
 			parent.Kind = APIGateway
 		}
-		parent.EnterpriseMeta.Normalize()
+		parent.Merge(e.GetEnterpriseMeta())
+		parent.Normalize()
 		e.Parents[i] = parent
 	}
 
 	for i, service := range e.Services {
-		service.EnterpriseMeta.Normalize()
+		service.Merge(e.GetEnterpriseMeta())
+		service.Normalize()
 		e.Services[i] = service
 	}
 
