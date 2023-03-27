@@ -130,11 +130,11 @@ func TestGetRuntimeConfigurations_ConnectProxy(t *testing.T) {
 	}
 
 	// Setup a snapshot where the db upstream is on a connect proxy.
-	snapConnect := proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", nil, nil, serviceDefaults)
+	snapConnect := proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", false, nil, nil, serviceDefaults)
 	// Setup a snapshot where the db upstream is on a terminating gateway.
-	snapTermGw := proxycfg.TestConfigSnapshotDiscoveryChain(t, "register-to-terminating-gateway", nil, nil, serviceDefaults)
+	snapTermGw := proxycfg.TestConfigSnapshotDiscoveryChain(t, "register-to-terminating-gateway", false, nil, nil, serviceDefaults)
 	// Setup a snapshot with the local service web has extensions.
-	snapWebConnect := proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", func(ns *structs.NodeService) {
+	snapWebConnect := proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", false, func(ns *structs.NodeService) {
 		ns.Proxy.EnvoyExtensions = envoyExtensions
 	}, nil)
 

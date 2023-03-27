@@ -18,8 +18,13 @@ type Server struct {
 }
 
 type Config struct {
-	registry resource.Registry
-	backend  storage.Backend
+	registry Registry
+	backend  Backend
+}
+
+//go:generate mockery --name Registry --inpackage
+type Registry interface {
+	resource.Registry
 }
 
 //go:generate mockery --name Backend --inpackage
@@ -50,11 +55,6 @@ func (s *Server) WriteStatus(ctx context.Context, req *pbresource.WriteStatusReq
 func (s *Server) Delete(ctx context.Context, req *pbresource.DeleteRequest) (*pbresource.DeleteResponse, error) {
 	// TODO
 	return &pbresource.DeleteResponse{}, nil
-}
-
-func (s *Server) Watch(req *pbresource.WatchRequest, ws pbresource.ResourceService_WatchServer) error {
-	// TODO
-	return nil
 }
 
 func (s *Server) resolveType(typ *pbresource.Type) (*resource.Registration, error) {

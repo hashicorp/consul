@@ -49,27 +49,46 @@ message WatchEvent {
 
 service ResourceService {
   rpc Read(ReadRequest) returns (ReadResponse) {
-    option (hashicorp.consul.internal.ratelimit.spec) = {operation_type: OPERATION_TYPE_READ};
+    option (hashicorp.consul.internal.ratelimit.spec) = {
+      operation_type: OPERATION_TYPE_READ,
+      operation_category: OPERATION_CATEGORY_RESOURCE
+    };
   }
 
   rpc Write(WriteRequest) returns (WriteResponse) {
-    option (hashicorp.consul.internal.ratelimit.spec) = {operation_type: OPERATION_TYPE_WRITE};
+    option (hashicorp.consul.internal.ratelimit.spec) = {
+      operation_type: OPERATION_TYPE_WRITE,
+      operation_category: OPERATION_CATEGORY_RESOURCE
+    };
   }
 
   rpc WriteStatus(WriteStatusRequest) returns (WriteStatusResponse) {
-    option (hashicorp.consul.internal.ratelimit.spec) = {operation_type: OPERATION_TYPE_WRITE};
+    option (hashicorp.consul.internal.ratelimit.spec) = {
+      operation_type: OPERATION_TYPE_WRITE,
+      operation_category: OPERATION_CATEGORY_RESOURCE
+    };
   }
 
   rpc List(ListRequest) returns (ListResponse) {
-    option (hashicorp.consul.internal.ratelimit.spec) = {operation_type: OPERATION_TYPE_READ};
+    option (hashicorp.consul.internal.ratelimit.spec) = {
+      operation_type: OPERATION_TYPE_READ,
+      operation_category: OPERATION_CATEGORY_RESOURCE
+    };
   }
 
   rpc Delete(DeleteRequest) returns (DeleteResponse) {
-    option (hashicorp.consul.internal.ratelimit.spec) = {operation_type: OPERATION_TYPE_WRITE};
+    option (hashicorp.consul.internal.ratelimit.spec) = {
+      operation_type: OPERATION_TYPE_WRITE,
+      operation_category: OPERATION_CATEGORY_RESOURCE
+    };
   }
 
-  rpc Watch(WatchRequest) returns (stream WatchResponse) {
-    option (hashicorp.consul.internal.ratelimit.spec) = {operation_type: OPERATION_TYPE_READ};
+  // buf:lint:ignore RPC_RESPONSE_STANDARD_NAME
+  rpc WatchList(WatchListRequest) returns (stream WatchEvent) {
+    option (hashicorp.consul.internal.ratelimit.spec) = {
+      operation_type: OPERATION_TYPE_READ,
+      operation_category: OPERATION_CATEGORY_RESOURCE
+    };
   }
 }
 
@@ -126,16 +145,8 @@ message DeleteRequest {
 
 message DeleteResponse {}
 
-message WatchRequest {
-  ID id = 1;
-}
-
-message WatchResponse {
-  enum Operation {
-    OPERATION_UNSPECIFIED = 0;
-    OPERATION_UPSERT = 1;
-    OPERATION_DELETE = 2;
-  }
-  Operation operation = 1;
-  Resource resource = 2;
+message WatchListRequest {
+  Type type = 1;
+  Tenancy tenancy = 2;
+  string name_prefix = 3;
 }

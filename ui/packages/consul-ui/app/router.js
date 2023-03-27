@@ -7,14 +7,14 @@
 import EmberRouter from '@ember/routing/router';
 import config from './config/environment';
 import { runInDebug } from '@ember/debug';
-import merge from 'deepmerge';
+import assign from 'deepmerge';
 import { env } from 'consul-ui/env';
 import walk, { dump } from 'consul-ui/utils/routing/walk';
 
 const doc = document;
 const appName = config.modulePrefix;
 
-export const routes = merge.all(
+export const routes = assign.all(
   [...doc.querySelectorAll(`script[data-routes]`)].map(($item) =>
     JSON.parse($item.dataset[`routes`])
   )

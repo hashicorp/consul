@@ -27,7 +27,8 @@ type ResourceServiceClient interface {
 	WriteStatus(ctx context.Context, in *WriteStatusRequest, opts ...grpc.CallOption) (*WriteStatusResponse, error)
 	List(ctx context.Context, in *ListRequest, opts ...grpc.CallOption) (*ListResponse, error)
 	Delete(ctx context.Context, in *DeleteRequest, opts ...grpc.CallOption) (*DeleteResponse, error)
-	Watch(ctx context.Context, in *WatchRequest, opts ...grpc.CallOption) (ResourceService_WatchClient, error)
+	// buf:lint:ignore RPC_RESPONSE_STANDARD_NAME
+	WatchList(ctx context.Context, in *WatchListRequest, opts ...grpc.CallOption) (ResourceService_WatchListClient, error)
 }
 
 type resourceServiceClient struct {
@@ -83,12 +84,12 @@ func (c *resourceServiceClient) Delete(ctx context.Context, in *DeleteRequest, o
 	return out, nil
 }
 
-func (c *resourceServiceClient) Watch(ctx context.Context, in *WatchRequest, opts ...grpc.CallOption) (ResourceService_WatchClient, error) {
-	stream, err := c.cc.NewStream(ctx, &ResourceService_ServiceDesc.Streams[0], "/hashicorp.consul.resource.ResourceService/Watch", opts...)
+func (c *resourceServiceClient) WatchList(ctx context.Context, in *WatchListRequest, opts ...grpc.CallOption) (ResourceService_WatchListClient, error) {
+	stream, err := c.cc.NewStream(ctx, &ResourceService_ServiceDesc.Streams[0], "/hashicorp.consul.resource.ResourceService/WatchList", opts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &resourceServiceWatchClient{stream}
+	x := &resourceServiceWatchListClient{stream}
 	if err := x.ClientStream.SendMsg(in); err != nil {
 		return nil, err
 	}
@@ -98,17 +99,17 @@ func (c *resourceServiceClient) Watch(ctx context.Context, in *WatchRequest, opt
 	return x, nil
 }
 
-type ResourceService_WatchClient interface {
-	Recv() (*WatchResponse, error)
+type ResourceService_WatchListClient interface {
+	Recv() (*WatchEvent, error)
 	grpc.ClientStream
 }
 
-type resourceServiceWatchClient struct {
+type resourceServiceWatchListClient struct {
 	grpc.ClientStream
 }
 
-func (x *resourceServiceWatchClient) Recv() (*WatchResponse, error) {
-	m := new(WatchResponse)
+func (x *resourceServiceWatchListClient) Recv() (*WatchEvent, error) {
+	m := new(WatchEvent)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
@@ -124,7 +125,8 @@ type ResourceServiceServer interface {
 	WriteStatus(context.Context, *WriteStatusRequest) (*WriteStatusResponse, error)
 	List(context.Context, *ListRequest) (*ListResponse, error)
 	Delete(context.Context, *DeleteRequest) (*DeleteResponse, error)
-	Watch(*WatchRequest, ResourceService_WatchServer) error
+	// buf:lint:ignore RPC_RESPONSE_STANDARD_NAME
+	WatchList(*WatchListRequest, ResourceService_WatchListServer) error
 }
 
 // UnimplementedResourceServiceServer should be embedded to have forward compatible implementations.
@@ -146,8 +148,8 @@ func (UnimplementedResourceServiceServer) List(context.Context, *ListRequest) (*
 func (UnimplementedResourceServiceServer) Delete(context.Context, *DeleteRequest) (*DeleteResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Delete not implemented")
 }
-func (UnimplementedResourceServiceServer) Watch(*WatchRequest, ResourceService_WatchServer) error {
-	return status.Errorf(codes.Unimplemented, "method Watch not implemented")
+func (UnimplementedResourceServiceServer) WatchList(*WatchListRequest, ResourceService_WatchListServer) error {
+	return status.Errorf(codes.Unimplemented, "method WatchList not implemented")
 }
 
 // UnsafeResourceServiceServer may be embedded to opt out of forward compatibility for this service.
@@ -251,24 +253,24 @@ func _ResourceService_Delete_Handler(srv interface{}, ctx context.Context, dec f
 	return interceptor(ctx, in, info, handler)
 }
 
-func _ResourceService_Watch_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(WatchRequest)
+func _ResourceService_WatchList_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(WatchListRequest)
 	if err := stream.RecvMsg(m); err != nil {
 		return err
 	}
-	return srv.(ResourceServiceServer).Watch(m, &resourceServiceWatchServer{stream})
+	return srv.(ResourceServiceServer).WatchList(m, &resourceServiceWatchListServer{stream})
 }
 
-type ResourceService_WatchServer interface {
-	Send(*WatchResponse) error
+type ResourceService_WatchListServer interface {
+	Send(*WatchEvent) error
 	grpc.ServerStream
 }
 
-type resourceServiceWatchServer struct {
+type resourceServiceWatchListServer struct {
 	grpc.ServerStream
 }
 
-func (x *resourceServiceWatchServer) Send(m *WatchResponse) error {
+func (x *resourceServiceWatchListServer) Send(m *WatchEvent) error {
 	return x.ServerStream.SendMsg(m)
 }
 
@@ -302,8 +304,8 @@ var ResourceService_ServiceDesc = grpc.ServiceDesc{
 	},
 	Streams: []grpc.StreamDesc{
 		{
-			StreamName:    "Watch",
-			Handler:       _ResourceService_Watch_Handler,
+			StreamName:    "WatchList",
+			Handler:       _ResourceService_WatchList_Handler,
 			ServerStreams: true,
 		},
 	},
