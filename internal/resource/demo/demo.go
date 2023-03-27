@@ -33,11 +33,13 @@ var TypeAlbum = &pbresource.Type{
 
 func Register(r resource.Registry) {
 	r.Register(resource.Registration{
-		Type: TypeArtist,
+		Type:  TypeArtist,
+		Proto: &pbdemov1.Artist{},
 	})
 
 	r.Register(resource.Registration{
-		Type: TypeAlbum,
+		Type:  TypeAlbum,
+		Proto: &pbdemov1.Album{},
 	})
 }
 
