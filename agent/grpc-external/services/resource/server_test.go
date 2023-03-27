@@ -26,14 +26,6 @@ func testClient(t *testing.T, server *Server) pbresource.ResourceServiceClient {
 	return pbresource.NewResourceServiceClient(conn)
 }
 
-func TestRead_TODO(t *testing.T) {
-	server := NewServer(Config{})
-	client := testClient(t, server)
-	resp, err := client.Read(context.Background(), &pbresource.ReadRequest{})
-	require.NoError(t, err)
-	require.NotNil(t, resp)
-}
-
 func TestWrite_TODO(t *testing.T) {
 	server := NewServer(Config{})
 	client := testClient(t, server)
