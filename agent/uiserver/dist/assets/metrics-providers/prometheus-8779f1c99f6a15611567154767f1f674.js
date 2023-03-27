@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 (function(){var e={unitSuffix:"",labels:{},data:[]},t={options:{},init:function(e){if(this.options=e,!this.options.metrics_proxy_enabled)throw new Error("prometheus metrics provider currently requires the ui_config.metrics_proxy to be configured in the Consul agent.")},httpGet:function(e,t,r){if(t){var s=-1!==e.indexOf("?")?"&":"?"
 e=e+s+Object.keys(t).map((function(e){return encodeURIComponent(e)+"="+encodeURIComponent(t[e])})).join("&")}return this.options.fetch(e,{headers:r||{}}).then((function(e){if(e.ok)return e.json()
 var t=new Error("HTTP Error: "+e.statusText)

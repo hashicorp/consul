@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package semaphore
 
 // Based on https://github.com/golang/sync/blob/master/semaphore/semaphore_test.go
