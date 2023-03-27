@@ -13,14 +13,15 @@ on:
 jobs:
   workspace-tests:
     runs-on: ubuntu-20.04
-    container:
-      image: docker.mirror.hashicorp.services/circleci/node:16-browsers
-      options: --user root
     defaults:
       run:
         working-directory: ui
     steps:
     - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
+
+    - uses: actions/setup-node@64ed1c7eab4cce3362f8c340dee64e5eaeef8f7c # pin@v3.6.0
+      with:
+        node-version: '16'
 
     # Install dependencies.
     - name: install yarn packages
@@ -31,11 +32,12 @@ jobs:
 
   node-tests:
     runs-on: ubuntu-20.04
-    container:
-      image: docker.mirror.hashicorp.services/circleci/node:16-browsers
-      options: --user root
     steps:
     - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
+
+    - uses: actions/setup-node@64ed1c7eab4cce3362f8c340dee64e5eaeef8f7c # pin@v3.6.0
+      with:
+        node-version: '16'
 
     # Install dependencies.
     - name: install yarn packages
@@ -47,15 +49,16 @@ jobs:
 
   ember-build-test:
     runs-on: ubuntu-20.04
-    container:
-      image: docker.mirror.hashicorp.services/circleci/node:16-browsers
-      options: --user root
     env:
       EMBER_TEST_REPORT: test-results/report-oss.xml #outputs test report for CircleCI test summary
       EMBER_TEST_PARALLEL: true #enables test parallelization with ember-exam
       CONSUL_NSPACES_ENABLED: 0 # NOTE: this should be 1 in ENT.
     steps:
     - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
+
+    - uses: actions/setup-node@64ed1c7eab4cce3362f8c340dee64e5eaeef8f7c # pin@v3.6.0
+      with:
+        node-version: '16'
 
     # Install dependencies.
     - name: install yarn packages
