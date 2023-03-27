@@ -33,7 +33,7 @@ jobs:
     needs: check-go-mod
     env:
       XC_OS: "freebsd linux windows"
-    runs-on: ["custom", "linux", "medium"]
+    runs-on: ${{ fromJSON(needs.setup.outputs.compute-medium) }}
     steps:
     - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
     - uses: actions/setup-go@6edd4406fa81c3da01a34fa6f6343087c207a568 # pin@v3.5.0
@@ -49,7 +49,7 @@ jobs:
     needs: check-go-mod
     env:
       XC_OS: "darwin freebsd linux solaris windows"
-    runs-on: ["custom", "linux", "medium"]
+    runs-on: ${{ fromJSON(needs.setup.outputs.compute-medium) }}
     steps:
     - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
     - uses: actions/setup-go@6edd4406fa81c3da01a34fa6f6343087c207a568 # pin@v3.5.0
@@ -63,7 +63,7 @@ jobs:
 
   build-arm:
     needs: check-go-mod
-    runs-on: ["custom", "linux", "medium"]
+    runs-on: ${{ fromJSON(needs.setup.outputs.compute-medium) }}
     env:
       CGO_ENABLED: 1
       GOOS: linux
