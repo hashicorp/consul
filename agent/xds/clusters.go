@@ -950,7 +950,7 @@ func (s *ResourceGenerator) makeUpstreamClusterForPeerService(
 	// entire cluster.
 	outlierDetection.MaxEjectionPercent = &wrappers.UInt32Value{Value: 100}
 
-	s.Logger.Trace("generating cluster for", "cluster", clusterName)
+	s.Logger.Trace("generating cluster for", "cluster", clusterName, "uid", uid)
 	if c == nil {
 		c = &envoy_cluster_v3.Cluster{
 			Name:           clusterName,
@@ -1018,10 +1018,13 @@ func (s *ResourceGenerator) makeUpstreamClusterForPeerService(
 		makeTLSParametersFromProxyTLSConfig(cfgSnap.MeshConfigTLSOutgoing()),
 	)
 	err = injectSANMatcher(commonTLSContext, peerMeta.SpiffeID...)
+	s.Logger.Trace("injecting SAN matcher rules for cluster %q with SPIFFE IDs: %+v", clusterName, peerMeta.SpiffeID)
+
 	if err != nil {
 		return nil, fmt.Errorf("failed to inject SAN matcher rules for cluster %q: %v", clusterName, err)
 	}
 
+	s.Logger.Trace("injecting TLS context for cluster %q with SNI: %+v", clusterName, peerMeta.PrimarySNI())
 	tlsContext := &envoy_tls_v3.UpstreamTlsContext{
 		CommonTlsContext: commonTLSContext,
 		Sni:              peerMeta.PrimarySNI(),
