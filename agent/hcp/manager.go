@@ -110,11 +110,17 @@ func (m *Manager) runReporter(ctx context.Context) {
 	m.reporter.Run(ctx)
 }
 
-// Run executes the HCP Manager.
+// Run executes the Manager it's designed to be run in its own goroutine for
+// the life of a server agent. It should be run even if HCP is not configured
+// yet for servers since a config update might configure it later and
+// UpdateConfig called. It will effectively do nothing if there are no HCP
+// credentials set other than wait for some to be added.
 func (m *Manager) Run(ctx context.Context) {
 	m.logger.Debug("HCP manager starting")
 
-	go m.runReporter(ctx)
+	if m.cfg.enabled() {
+		go m.runReporter(ctx)
+	}
 
 	var err error
 	// immediately send initial update
