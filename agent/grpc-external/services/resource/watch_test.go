@@ -17,7 +17,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/proto"
 )
 
 func TestWatchList_TypeNotFound(t *testing.T) {
@@ -42,7 +41,7 @@ func TestWatchList_GroupVersionMatches(t *testing.T) {
 	t.Parallel()
 	server := testServer(t)
 	client := testClient(t, server)
-	server.registry.Register(resource.Registration{Type: typev1})
+	server.Registry.Register(resource.Registration{Type: typev1})
 	ctx := context.Background()
 
 	// create a watch
@@ -84,8 +83,8 @@ func TestWatchList_GroupVersionMismatch(t *testing.T) {
 	server := testServer(t)
 	client := testClient(t, server)
 	ctx := context.Background()
-	server.registry.Register(resource.Registration{Type: typev1})
-	server.registry.Register(resource.Registration{Type: typev2})
+	server.Registry.Register(resource.Registration{Type: typev1})
+	server.Registry.Register(resource.Registration{Type: typev2})
 
 	// create a watch for typev2
 	stream, err := client.WatchList(ctx, &pbresource.WatchListRequest{
@@ -176,5 +175,3 @@ type resourceOrError struct {
 	rsp *pbresource.WatchEvent
 	err error
 }
-
-func clone[T proto.Message](v T) T { return proto.Clone(v).(T) }
