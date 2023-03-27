@@ -1,6 +1,11 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 %inline-alert {
   font-style: normal;
-  font-weight: normal;
+  font-weight: var(--token-typography-font-weight-regular);
 }
 %inline-alert-success,
 %inline-alert-info,
@@ -15,7 +20,7 @@
   color: var(--token-color-foreground-critical);
 }
 %inline-alert::before {
-  font-size: 14px;
+  @extend %body-200-regular;
 }
 %inline-alert::before {
   @extend %as-pseudo;

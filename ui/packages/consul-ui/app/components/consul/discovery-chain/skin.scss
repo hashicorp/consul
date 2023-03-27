@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 /* CSS active states are partly added at the top of */
 /* components/templates/discovery-chain.hbs for reasons */
 /* the styling there almost 100% uses our CSS vars */
@@ -52,7 +57,7 @@
 }
 %chain-group > header > * {
   text-transform: uppercase;
-  @extend %p3;
+  @extend %body-100-regular;
 }
 %chain-group > header span::after {
   @extend %with-info-circle-outline-icon, %as-pseudo;

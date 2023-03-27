@@ -1,5 +1,10 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 %with-glyph-icon {
-  font-weight: var(--typo-weight-normal);
+  font-weight: var(--token-typography-font-weight-regular);
   background-color: var(--token-color-surface-strong);
   visibility: visible;
   padding: 0 4px;

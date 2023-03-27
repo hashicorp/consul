@@ -1,3 +1,8 @@
+{{!
+  Copyright (c) HashiCorp, Inc.
+  SPDX-License-Identifier: MPL-2.0
+}}
+
 {{#if @item}}
   {{#let (service/external-source @item) as |externalSource|}}
   {{#if (and @withInfo (eq externalSource 'consul-api-gateway'))}}

@@ -41,11 +41,6 @@ func (s *Server) Register(grpcServer *grpc.Server) {
 	pbresource.RegisterResourceServiceServer(grpcServer, s)
 }
 
-func (s *Server) Read(ctx context.Context, req *pbresource.ReadRequest) (*pbresource.ReadResponse, error) {
-	// TODO
-	return &pbresource.ReadResponse{}, nil
-}
-
 func (s *Server) Write(ctx context.Context, req *pbresource.WriteRequest) (*pbresource.WriteResponse, error) {
 	// TODO
 	return &pbresource.WriteResponse{}, nil

@@ -1962,6 +1962,7 @@ func (s *ResourceGenerator) mapDiscoChainTargets(cfgSnap *proxycfg.ConfigSnapsho
 
 			peerMeta, found := upstreamsSnapshot.UpstreamPeerMeta(targetUID)
 			if !found {
+				s.Logger.Warn("failed to fetch upstream peering metadata", "target", targetUID)
 				continue
 			}
 			sni = peerMeta.PrimarySNI()

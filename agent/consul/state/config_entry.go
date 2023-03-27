@@ -494,6 +494,11 @@ func insertConfigEntryWithTxn(tx WriteTxn, idx uint64, conf structs.ConfigEntry)
 				return fmt.Errorf("failed to persist service name: %v", err)
 			}
 		}
+	case structs.SamenessGroup:
+		err := checkSamenessGroup(tx, conf)
+		if err != nil {
+			return err
+		}
 	}
 
 	// Insert the config entry and update the index
@@ -539,6 +544,7 @@ func validateProposedConfigEntryInGraph(
 		if err != nil {
 			return err
 		}
+	case structs.SamenessGroup:
 	case structs.ServiceIntentions:
 	case structs.MeshConfig:
 	case structs.ExportedServices:
@@ -547,6 +553,7 @@ func validateProposedConfigEntryInGraph(
 	case structs.InlineCertificate:
 	case structs.HTTPRoute:
 	case structs.TCPRoute:
+	case structs.RateLimitIPConfig:
 	default:
 		return fmt.Errorf("unhandled kind %q during validation of %q", kindName.Kind, kindName.Name)
 	}
@@ -717,6 +724,16 @@ func validateProposedConfigEntryInServiceGraph(
 	case structs.MeshConfig:
 		// Exported services and mesh config do not influence discovery chains.
 		return nil
+
+	case structs.SamenessGroup:
+		// Any service resolver could reference a sameness group.
+		_, entries, err := configEntriesByKindTxn(tx, nil, structs.ServiceResolver, wildcardEntMeta)
+		if err != nil {
+			return err
+		}
+		for _, entry := range entries {
+			checkChains[structs.NewServiceID(entry.GetName(), entry.GetEnterpriseMeta())] = struct{}{}
+		}
 
 	case structs.ProxyDefaults:
 		// Check anything that has a discovery chain entry. In the future we could
@@ -1290,10 +1307,11 @@ func readDiscoveryChainConfigEntriesTxn(
 	// the end of this function to indicate "no such entry".
 
 	var (
-		todoSplitters = make(map[structs.ServiceID]struct{})
-		todoResolvers = make(map[structs.ServiceID]struct{})
-		todoDefaults  = make(map[structs.ServiceID]struct{})
-		todoPeers     = make(map[string]struct{})
+		todoSplitters      = make(map[structs.ServiceID]struct{})
+		todoResolvers      = make(map[structs.ServiceID]struct{})
+		todoDefaults       = make(map[structs.ServiceID]struct{})
+		todoPeers          = make(map[string]struct{})
+		todoSamenessGroups = make(map[string]struct{})
 	)
 
 	sid := structs.NewServiceID(serviceName, entMeta)
@@ -1399,6 +1417,10 @@ func readDiscoveryChainConfigEntriesTxn(
 		for _, peer := range resolver.RelatedPeers() {
 			todoPeers[peer] = struct{}{}
 		}
+
+		for _, sg := range resolver.RelatedSamenessGroups() {
+			todoSamenessGroups[sg] = struct{}{}
+		}
 	}
 
 	for {
@@ -1441,6 +1463,26 @@ func readDiscoveryChainConfigEntriesTxn(
 	}
 
 	peerEntMeta := structs.DefaultEnterpriseMetaInPartition(entMeta.PartitionOrDefault())
+	for sg := range todoSamenessGroups {
+		idx, entry, err := getSamenessGroupConfigEntryTxn(tx, ws, sg, overrides, peerEntMeta)
+		if err != nil {
+			return 0, nil, err
+		}
+		if idx > maxIdx {
+			maxIdx = idx
+		}
+		if entry == nil {
+			continue
+		}
+
+		for _, e := range entry.Members {
+			if e.Peer != "" {
+				todoPeers[e.Peer] = struct{}{}
+			}
+		}
+		res.SamenessGroups[sg] = entry
+	}
+
 	for peerName := range todoPeers {
 		q := Query{
 			Value:          peerName,

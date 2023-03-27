@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 import LinkComponent from '@ember/routing/link-component';
 
 export class HrefTo {

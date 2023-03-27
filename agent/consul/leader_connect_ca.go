@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-hclog"
-	uuid "github.com/hashicorp/go-uuid"
+	"github.com/hashicorp/go-uuid"
 	"golang.org/x/time/rate"
 
 	"github.com/hashicorp/consul/acl"
@@ -272,7 +272,7 @@ func newCARoot(pemValue, provider, clusterID string) (*structs.CARoot, error) {
 		ExternalTrustDomain: clusterID,
 		NotBefore:           primaryCert.NotBefore,
 		NotAfter:            primaryCert.NotAfter,
-		RootCert:            pemValue,
+		RootCert:            lib.EnsureTrailingNewline(pemValue),
 		PrivateKeyType:      keyType,
 		PrivateKeyBits:      keyBits,
 		Active:              true,
@@ -887,6 +887,23 @@ func (c *CAManager) primaryUpdateRootCA(newProvider ca.Provider, args *structs.C
 		return err
 	}
 
+	// TODO: https://github.com/hashicorp/consul/issues/12386
+	intermediate, err := newProvider.ActiveIntermediate()
+	if err != nil {
+		return fmt.Errorf("error fetching active intermediate: %w", err)
+	}
+	if intermediate == "" {
+		intermediate, err = newProvider.GenerateIntermediate()
+		if err != nil {
+			return fmt.Errorf("error generating intermediate: %w", err)
+		}
+	}
+	if intermediate != newRootPEM {
+		if err := setLeafSigningCert(newActiveRoot, intermediate); err != nil {
+			return err
+		}
+	}
+
 	// See if the provider needs to persist any state along with the config
 	pState, err := newProvider.State()
 	if err != nil {
@@ -970,19 +987,9 @@ func (c *CAManager) primaryUpdateRootCA(newProvider ca.Provider, args *structs.C
 			}
 
 			// Add the cross signed cert to the new CA's intermediates (to be attached
-			// to leaf certs).
-			newActiveRoot.IntermediateCerts = []string{xcCert}
-		}
-	}
-
-	// TODO: https://github.com/hashicorp/consul/issues/12386
-	intermediate, err := newProvider.GenerateIntermediate()
-	if err != nil {
-		return err
-	}
-	if intermediate != newRootPEM {
-		if err := setLeafSigningCert(newActiveRoot, intermediate); err != nil {
-			return err
+			// to leaf certs). We do not want it to be the last cert if there are any
+			// existing intermediate certs so we push to the front.
+			newActiveRoot.IntermediateCerts = append([]string{xcCert}, newActiveRoot.IntermediateCerts...)
 		}
 	}
 

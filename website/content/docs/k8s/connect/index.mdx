@@ -175,18 +175,18 @@ upstream. This is analogous to the standard Kubernetes service environment varia
 point instead to the correct local proxy port to establish connections via
 Connect.
 
-We can verify access to the static text server using `kubectl exec`.
+You can verify access to the static text server using `kubectl exec`.
 Because transparent proxy is enabled by default,
-we use Kubernetes DNS to connect to our desired upstream.
+use Kubernetes DNS to connect to your desired upstream.
 
 ```shell-session
 $ kubectl exec deploy/static-client -- curl --silent http://static-server/
 "hello world"
 ```
 
-We can control access to the server using [intentions](/consul/docs/connect/intentions).
+You can control access to the server using [intentions](/consul/docs/connect/intentions).
 If you use the Consul UI or [CLI](/consul/commands/intention/create) to
-create a deny [intention](/consul/docs/connect/intentions) between
+deny communication between
 "static-client" and "static-server", connections are immediately rejected
 without updating either of the running pods. You can then remove this
 intention to allow connections again.

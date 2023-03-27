@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/internal/resource"
-	"github.com/hashicorp/consul/internal/storage/inmem"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/proto/private/prototest"
 
@@ -111,17 +110,6 @@ func TestWatchList_GroupVersionMismatch(t *testing.T) {
 	mustGetNoResource(t, rspCh)
 }
 
-func testServer(t *testing.T) *Server {
-	t.Helper()
-
-	backend, err := inmem.NewBackend()
-	require.NoError(t, err)
-	go backend.Run(testContext(t))
-
-	registry := resource.NewRegistry()
-	return NewServer(Config{registry: registry, backend: backend})
-}
-
 func mustGetNoResource(t *testing.T, ch <-chan resourceOrError) {
 	t.Helper()
 
@@ -181,42 +169,9 @@ func handleResourceStream(t *testing.T, stream pbresource.ResourceService_WatchL
 	return rspCh
 }
 
-var (
-	tenancy = &pbresource.Tenancy{
-		Partition: "default",
-		Namespace: "default",
-		PeerName:  "local",
-	}
-	typev1 = &pbresource.Type{
-		Group:        "mesh",
-		GroupVersion: "v1",
-		Kind:         "service",
-	}
-	typev2 = &pbresource.Type{
-		Group:        "mesh",
-		GroupVersion: "v2",
-		Kind:         "service",
-	}
-	resourcev1 = &pbresource.Resource{
-		Id: &pbresource.ID{
-			Uid:     "someUid",
-			Name:    "someName",
-			Type:    typev1,
-			Tenancy: tenancy,
-		},
-		Version: "",
-	}
-)
-
 type resourceOrError struct {
 	rsp *pbresource.WatchEvent
 	err error
 }
 
 func clone[T proto.Message](v T) T { return proto.Clone(v).(T) }
-
-func testContext(t *testing.T) context.Context {
-	ctx, cancel := context.WithCancel(context.Background())
-	t.Cleanup(cancel)
-	return ctx
-}
