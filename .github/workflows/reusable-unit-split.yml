@@ -74,15 +74,7 @@ jobs:
       - uses: actions/setup-go@6edd4406fa81c3da01a34fa6f6343087c207a568 # pin@v3.5.0
         with:
           go-version-file: 'go.mod'
-      - name: Setup go mod cache
-        uses: actions/cache@v3
-        with:
-          path: |
-            ~/.cache/go-build
-            ~/go/pkg/mod
-          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-          restore-keys: |
-            ${{ runner.os }}-go-
+          cache: true
       - name: Install gotestsum
         run: |
           wget https://github.com/gotestyourself/gotestsum/releases/download/v${{env.GOTESTSUM_VERSION}}/gotestsum_${{env.GOTESTSUM_VERSION}}_linux_amd64.tar.gz
