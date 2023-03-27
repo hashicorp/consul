@@ -1,3 +1,6 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
 schema = "1"
 
 project "consul" {
@@ -129,21 +132,9 @@ event "post-publish-website" {
     on = "always"
   }
 }
-event "bump-version" {
-  depends = ["post-publish-website"]
-  action "bump-version" {
-    organization = "hashicorp"
-    repository = "crt-workflows-common"
-    workflow = "bump-version"
-  }
-
-  notification {
-    on = "fail"
-  }
-}
 
 event "update-ironbank" {
-  depends = ["bump-version"]
+  depends = ["post-publish-website"]
   action "update-ironbank" {
     organization = "hashicorp"
     repository = "crt-workflows-common"

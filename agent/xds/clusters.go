@@ -1957,11 +1957,6 @@ func (s *ResourceGenerator) mapDiscoChainTargets(cfgSnap *proxycfg.ConfigSnapsho
 		}
 
 		if targetUID.Peer != "" {
-			// targetID has the partition stripped, so targetUID will not have a partition either. However,
-			// when a failover target is in a cluster peer, the partition should be set to the local partition (i.e
-			// chain.Partition), since the peered failover target is imported into the local partition.
-			targetUID.OverridePartition(chain.Partition)
-
 			tbs, _ := upstreamsSnapshot.UpstreamPeerTrustBundles.Get(targetUID.Peer)
 			rootPEMs = tbs.ConcatenatedRootPEMs()
 

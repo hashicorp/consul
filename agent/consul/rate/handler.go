@@ -1,4 +1,4 @@
-// package rate implements server-side RPC rate limiting.
+// Package rate implements server-side RPC rate limiting.
 package rate
 
 import (
@@ -112,7 +112,6 @@ const (
 	OperationCategoryHealth          OperationCategory = "Health"
 	OperationCategoryIntention       OperationCategory = "Intention"
 	OperationCategoryKV              OperationCategory = "KV"
-	OperationCategoryTenancy         OperationCategory = "Tenancy"
 	OperationCategoryPreparedQuery   OperationCategory = "PreparedQuery"
 	OperationCategorySession         OperationCategory = "Session"
 	OperationCategoryStatus          OperationCategory = "Status"

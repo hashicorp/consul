@@ -76,14 +76,13 @@ The Kubernetes service account corresponding to the configured
 [`ServiceAccountJWT`](/consul/docs/security/acl/auth-methods/kubernetes#serviceaccountjwt)
 needs to have access to two Kubernetes APIs:
 
-- [**TokenReview**](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.11/#create-tokenreview-v1-authentication-k8s-io)
+- [**TokenReview**](https://kubernetes.io/docs/reference/kubernetes-api/authentication-resources/token-review-v1/)
 
   -> Kubernetes should be running with `--service-account-lookup`. This is
   defaulted to true in Kubernetes 1.7, but any versions prior should ensure
   the Kubernetes API server is started with this setting.
 
-- [**ServiceAccount**](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.11/#read-serviceaccount-v1-core)
-  (`get`)
+- [**ServiceAccount**](https://kubernetes.io/docs/reference/access-authn-authz/authentication/#service-account-tokens)
 
 The following is an example
 [RBAC](https://kubernetes.io/docs/reference/access-authn-authz/rbac/)

@@ -41,7 +41,7 @@ func TestAgent_local_proxycfg(t *testing.T) {
 		LocallyRegisteredAsSidecar: true,
 		Proxy: structs.ConnectProxyConfig{
 			DestinationServiceName: "db",
-			Upstreams:              structs.TestUpstreams(t),
+			Upstreams:              structs.TestUpstreams(t, false),
 		},
 		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}

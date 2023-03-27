@@ -37,12 +37,6 @@ export default Component.extend(Slotted, {
     this._super(...arguments);
     set(this, 'hasError', this._isRegistered('error'));
   },
-  willDestroyElement: function () {
-    this._super(...arguments);
-    if (get(this, 'data.isNew')) {
-      this.data.rollbackAttributes();
-    }
-  },
   actions: {
     setData: function (data) {
       let changeset = data;
