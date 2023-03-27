@@ -25,7 +25,7 @@ var rpcRateLimitSpecs = map[string]rate.OperationSpec{
 	"/hashicorp.consul.resource.ResourceService/Delete":                          {Type: rate.OperationTypeWrite, Category: rate.OperationCategoryResource},
 	"/hashicorp.consul.resource.ResourceService/List":                            {Type: rate.OperationTypeRead, Category: rate.OperationCategoryResource},
 	"/hashicorp.consul.resource.ResourceService/Read":                            {Type: rate.OperationTypeRead, Category: rate.OperationCategoryResource},
-	"/hashicorp.consul.resource.ResourceService/Watch":                           {Type: rate.OperationTypeRead, Category: rate.OperationCategoryResource},
+	"/hashicorp.consul.resource.ResourceService/WatchList":                       {Type: rate.OperationTypeRead, Category: rate.OperationCategoryResource},
 	"/hashicorp.consul.resource.ResourceService/Write":                           {Type: rate.OperationTypeWrite, Category: rate.OperationCategoryResource},
 	"/hashicorp.consul.resource.ResourceService/WriteStatus":                     {Type: rate.OperationTypeWrite, Category: rate.OperationCategoryResource},
 	"/hashicorp.consul.serverdiscovery.ServerDiscoveryService/WatchServers":      {Type: rate.OperationTypeRead, Category: rate.OperationCategoryServerDiscovery},

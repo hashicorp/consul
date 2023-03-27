@@ -12,6 +12,7 @@ lint:
     - PACKAGE_VERSION_SUFFIX
 
   service_suffix: Service
+  allow_comment_ignores: true
 breaking:
   use:
     - FILE

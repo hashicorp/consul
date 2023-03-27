@@ -12,7 +12,6 @@ import (
 
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/storage"
-	"github.com/hashicorp/consul/internal/storage/inmem"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/proto/private/prototest"
 )
@@ -122,50 +121,3 @@ func readTestCases() map[string]readTestCase {
 	}
 
 }
-
-func testServer(t *testing.T) *Server {
-	backend, err := inmem.NewBackend()
-	require.NoError(t, err)
-	ctx := testContext(t)
-	go backend.Run(ctx)
-	return NewServer(Config{
-		registry: resource.NewRegistry(),
-		backend:  backend,
-	})
-}
-
-func testContext(t *testing.T) context.Context {
-	ctx, cancel := context.WithCancel(context.Background())
-	t.Cleanup(cancel)
-	return ctx
-}
-
-var (
-	typev1 = &pbresource.Type{
-		Group:        "mesh",
-		GroupVersion: "v1",
-		Kind:         "service",
-	}
-	typev2 = &pbresource.Type{
-		Group:        "mesh",
-		GroupVersion: "v2",
-		Kind:         "service",
-	}
-	tenancy = &pbresource.Tenancy{
-		Partition: "default",
-		Namespace: "default",
-		PeerName:  "local",
-	}
-	id1 = &pbresource.ID{
-		Uid:     "abcd",
-		Name:    "billing",
-		Type:    typev1,
-		Tenancy: tenancy,
-	}
-	id2 = &pbresource.ID{
-		Uid:     "abcd",
-		Name:    "billing",
-		Type:    typev2,
-		Tenancy: tenancy,
-	}
-)
