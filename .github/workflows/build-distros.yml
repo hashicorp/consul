@@ -28,9 +28,11 @@ jobs:
     uses: ./.github/workflows/reusable-check-go-mod.yml
     with:
       runs-on: ${{ needs.setup.outputs.compute-medium }}
-
+    
   build-386:
-    needs: check-go-mod
+    needs: 
+    - setup 
+    - check-go-mod
     env:
       XC_OS: "freebsd linux windows"
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-medium) }}
@@ -46,7 +48,9 @@ jobs:
         done
 
   build-amd64:
-    needs: check-go-mod
+    needs:
+    - setup 
+    - check-go-mod
     env:
       XC_OS: "darwin freebsd linux solaris windows"
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-medium) }}
@@ -62,7 +66,9 @@ jobs:
         done
 
   build-arm:
-    needs: check-go-mod
+    needs:
+    - setup 
+    - check-go-mod
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-medium) }}
     env:
       CGO_ENABLED: 1
