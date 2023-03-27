@@ -5,6 +5,8 @@ import (
 
 	"google.golang.org/grpc"
 
+	"github.com/hashicorp/consul/internal/resource"
+	"github.com/hashicorp/consul/internal/storage"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
@@ -13,6 +15,13 @@ type Server struct {
 }
 
 type Config struct {
+	registry resource.Registry
+	backend  storage.Backend
+}
+
+//go:generate mockery --name Backend --inpackage
+type Backend interface {
+	storage.Backend
 }
 
 func NewServer(cfg Config) *Server {
@@ -23,11 +32,6 @@ var _ pbresource.ResourceServiceServer = (*Server)(nil)
 
 func (s *Server) Register(grpcServer *grpc.Server) {
 	pbresource.RegisterResourceServiceServer(grpcServer, s)
-}
-
-func (s *Server) Read(ctx context.Context, req *pbresource.ReadRequest) (*pbresource.ReadResponse, error) {
-	// TODO
-	return &pbresource.ReadResponse{}, nil
 }
 
 func (s *Server) Write(ctx context.Context, req *pbresource.WriteRequest) (*pbresource.WriteResponse, error) {
