@@ -556,7 +556,7 @@ func (e *TCPRouteConfigEntry) CanWrite(authz acl.Authorizer) error {
 type TCPService struct {
 	Name string
 
-	acl.EnterpriseMeta
+	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 }
 
 func (s TCPService) ServiceName() ServiceName {
