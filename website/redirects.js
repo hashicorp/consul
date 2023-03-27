@@ -22,4 +22,14 @@ module.exports = [
     destination: '/consul/docs/k8s/connect/cluster-peering/tech-specs',
     permanent: true,
   },
+  {
+    source: '/consul/docs/connect/intentions#intention-management-permissions',
+    destination: `/consul/docs/connect/intentions/create-manage-intentions#acl-requirements`,
+    permanent: true,
+  },
+  {
+    source: '/consul/docs/connect/intentions#intention-basics',
+    destination: `/consul/docs/connect/intentions`,
+    permanent: true,
+  },
 ]

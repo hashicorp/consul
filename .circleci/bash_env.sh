@@ -1,4 +1,7 @@
 #!/bin/bash
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
 
 export GIT_COMMIT=$(git rev-parse --short HEAD)
 export GIT_COMMIT_YEAR=$(git show -s --format=%cd --date=format:%Y HEAD)

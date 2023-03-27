@@ -769,6 +769,9 @@ func (e *APIGatewayConfigEntry) Validate() error {
 		return err
 	}
 
+	if len(e.Listeners) == 0 {
+		return fmt.Errorf("api gateway must have at least one listener")
+	}
 	if err := e.validateListenerNames(); err != nil {
 		return err
 	}

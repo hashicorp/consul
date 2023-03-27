@@ -143,6 +143,6 @@ export default class BaseRoute extends Route {
     if (typeof obj !== 'undefined' && !Array.isArray(obj) && typeof obj !== 'string') {
       params = Object.values(obj);
     }
-    return super.transitionTo(routeName, ...params);
+    return this.router.transitionTo(routeName, ...params);
   }
 }

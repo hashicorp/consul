@@ -154,11 +154,17 @@ func NewConsulContainer(ctx context.Context, config Config, cluster *Cluster, po
 		info AgentInfo
 	)
 	if httpPort > 0 {
-		uri, err := podContainer.PortEndpoint(ctx, "8500", "http")
+		for i := 0; i < 10; i++ {
+			uri, err := podContainer.PortEndpoint(ctx, "8500", "http")
+			if err != nil {
+				time.Sleep(500 * time.Millisecond)
+				continue
+			}
+			clientAddr = uri
+		}
 		if err != nil {
 			return nil, err
 		}
-		clientAddr = uri
 
 	} else if httpsPort > 0 {
 		uri, err := podContainer.PortEndpoint(ctx, "8501", "https")

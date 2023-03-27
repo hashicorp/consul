@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/discoverychain"
 	"github.com/hashicorp/consul/agent/structs"
@@ -474,6 +475,8 @@ func TestConfigSnapshotPeeredMeshGateway(t testing.T, variant string, nsFn func(
 		discoChains = make(map[structs.ServiceName]*structs.CompiledDiscoveryChain)
 		endpoints   = make(map[structs.ServiceName]structs.CheckServiceNodes)
 		entries     []structs.ConfigEntry
+		// This portion of the test is not currently enterprise-aware, but we need this to satisfy a function call.
+		entMeta = *acl.DefaultEnterpriseMeta()
 	)
 
 	switch variant {
@@ -660,8 +663,8 @@ func TestConfigSnapshotPeeredMeshGateway(t testing.T, variant string, nsFn func(
 				CorrelationID: "peering-connect-service:peer-a:db",
 				Result: &structs.IndexedCheckServiceNodes{
 					Nodes: structs.CheckServiceNodes{
-						structs.TestCheckNodeServiceWithNameInPeer(t, "db", "dc1", "peer-a", "10.40.1.1", false),
-						structs.TestCheckNodeServiceWithNameInPeer(t, "db", "dc1", "peer-a", "10.40.1.2", false),
+						structs.TestCheckNodeServiceWithNameInPeer(t, "db", "dc1", "peer-a", "10.40.1.1", false, entMeta),
+						structs.TestCheckNodeServiceWithNameInPeer(t, "db", "dc1", "peer-a", "10.40.1.2", false, entMeta),
 					},
 				},
 			},
@@ -669,8 +672,8 @@ func TestConfigSnapshotPeeredMeshGateway(t testing.T, variant string, nsFn func(
 				CorrelationID: "peering-connect-service:peer-b:alt",
 				Result: &structs.IndexedCheckServiceNodes{
 					Nodes: structs.CheckServiceNodes{
-						structs.TestCheckNodeServiceWithNameInPeer(t, "alt", "remote-dc", "peer-b", "10.40.2.1", false),
-						structs.TestCheckNodeServiceWithNameInPeer(t, "alt", "remote-dc", "peer-b", "10.40.2.2", true),
+						structs.TestCheckNodeServiceWithNameInPeer(t, "alt", "remote-dc", "peer-b", "10.40.2.1", false, entMeta),
+						structs.TestCheckNodeServiceWithNameInPeer(t, "alt", "remote-dc", "peer-b", "10.40.2.2", true, entMeta),
 					},
 				},
 			},
