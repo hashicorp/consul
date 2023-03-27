@@ -92,5 +92,5 @@ func TestSnapshotRestore(t *testing.T) {
 
 	// Check the watch has been closed.
 	_, err = watch.Next(ctx)
-	require.ErrorIs(t, err, inmem.ErrWatchClosed)
+	require.ErrorIs(t, err, storage.ErrWatchClosed)
 }

@@ -32,6 +32,11 @@ var (
 	// not be achieved because of a consistency or availability issue (e.g. loss of
 	// quorum, or when interacting with a Raft follower).
 	ErrInconsistent = errors.New("cannot satisfy consistency requirements")
+
+	// ErrWatchClosed is returned by Watch.Next when the watch is closed, e.g. when
+	// a snapshot is restored and the watch's events are no longer valid. Consumers
+	// should discard any materialized state and start a new watch.
+	ErrWatchClosed = errors.New("watch closed")
 )
 
 // ReadConsistency is used to specify the required consistency guarantees for

@@ -5,7 +5,6 @@ package inmem
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	"github.com/hashicorp/consul/acl"
@@ -14,11 +13,6 @@ import (
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/proto/private/pbsubscribe"
 )
-
-// ErrWatchClosed is returned by Watch.Next when the watch is closed due to the
-// in-memory state being abandoned (i.e. when a snapshot is restored). Consumers
-// should discard any materialized state and start a new watch.
-var ErrWatchClosed = errors.New("watch closed")
 
 // Watch implements the storage.Watch interface using a stream.Subscription.
 type Watch struct {
@@ -35,7 +29,7 @@ func (w *Watch) Next(ctx context.Context) (*pbresource.WatchEvent, error) {
 	for {
 		e, err := w.nextEvent(ctx)
 		if err == stream.ErrSubForceClosed {
-			return nil, ErrWatchClosed
+			return nil, storage.ErrWatchClosed
 		}
 		if err != nil {
 			return nil, err
