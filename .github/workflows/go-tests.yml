@@ -207,15 +207,6 @@ jobs:
       go-test-flags: 'export GO_TEST_FLAGS="-short"'
       runs-on: ${{ needs.setup.outputs.compute-xl }}
 
-  go-test-envoyextensions:
-    needs: 
-    - setup   
-    - dev-build
-    uses: ./.github/workflows/reusable-unit.yml
-    with:
-      directory: envoyextensions
-      runs-on: ${{ needs.setup.outputs.compute-xl }}
-
   go-test-troubleshoot:
     needs: 
     - setup   
