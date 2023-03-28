@@ -3,10 +3,6 @@ name: check-go-mod
 on:
   workflow_call:
     inputs:
-      uploaded-binary-name:
-        required: false
-        type: string
-        default: "consul-bin"
       runs-on:
         description: An expression indicating which kind of runners to use.
         required: false
