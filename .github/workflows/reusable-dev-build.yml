@@ -9,9 +9,8 @@ on:
         default: "consul-bin"
       runs-on:
         description: An expression indicating which kind of runners to use.
-        required: false
+        required: true
         type: string
-        default: '["custom", "linux", "xl"]'
 jobs:
   build:
     runs-on: ${{ fromJSON(inputs.runs-on) }}
@@ -20,12 +19,6 @@ jobs:
       - uses: actions/setup-go@6edd4406fa81c3da01a34fa6f6343087c207a568 # pin@v3.5.0
         with:
           go-version-file: 'go.mod'
-        # TODO(JM) - figure out why this fails and if it is needed
-      # # this normally runs as the first job and has nothing to attach; only used in main branch after rebuilding UI
-      # - uses: actions/download-artifact@v3
-      #   with:
-      #     name: root-path
-      #     path: .
       - name: Build
         run: make dev
       # save dev build to pass to downstream jobs

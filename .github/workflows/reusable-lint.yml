@@ -9,9 +9,8 @@ on:
         default: ""
       runs-on:
         description: An expression indicating which kind of runners to use.
-        required: false
+        required: true
         type: string
-        default: '["custom", "linux", "xl"]'
 
 env:
   GOTAGS: "" # No tags for OSS but there are for enterprise
