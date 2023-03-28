@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 (function(e,t){const n=new Map(Object.entries(JSON.parse(e.querySelector("[data-consul-ui-fs]").textContent))),o=function(t){var n=e.createElement("script")
 n.src=t,e.body.appendChild(n)}
 "TextDecoder"in window||(o(n.get(`${["text-encoding","encoding-indexes"].join("/")}.js`)),o(n.get(`${["text-encoding","encoding"].join("/")}.js`))),window.CSS&&window.CSS.escape||o(n.get(`${["css.escape","css.escape"].join("/")}.js`))
