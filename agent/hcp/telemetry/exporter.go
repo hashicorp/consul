@@ -6,7 +6,7 @@ import (
 	"regexp"
 
 	"github.com/armon/go-metrics"
-	"github.com/hashicorp/consul/agent/hcp/client"
+	hcpclient "github.com/hashicorp/consul/agent/hcp/client"
 	"github.com/hashicorp/go-hclog"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/sdk/instrumentation"
@@ -24,11 +24,11 @@ type MetricsExporterConfig struct {
 	Labels  map[string]string
 	Logger  hclog.Logger
 	Filters []string
-	Client  client.Client
+	Client  hcpclient.Client
 }
 
 type MetricsExporter struct {
-	client   client.Client
+	client   hcpclient.Client
 	resource *resource.Resource
 	logger   hclog.Logger
 	filter   *FilterList

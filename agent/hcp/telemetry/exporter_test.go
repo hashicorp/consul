@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
-	"github.com/hashicorp/consul/agent/hcp/client"
+	hcpclient "github.com/hashicorp/consul/agent/hcp/client"
 	"github.com/hashicorp/go-hclog"
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/otel/attribute"
@@ -40,7 +40,7 @@ func TestExporter_NewMetricsExporter(t *testing.T) {
 		},
 		"invalidFilter": {
 			cfg: &MetricsExporterConfig{
-				Client: client.NewMockClient(t),
+				Client: hcpclient.NewMockClient(t),
 				// Unsupported re2 regex syntax
 				Filters: []string{"(*LF)"},
 				Logger:  hclog.New(&hclog.LoggerOptions{Output: io.Discard}),
@@ -49,7 +49,7 @@ func TestExporter_NewMetricsExporter(t *testing.T) {
 		},
 		"success": {
 			cfg: &MetricsExporterConfig{
-				Client:  client.NewMockClient(t),
+				Client:  hcpclient.NewMockClient(t),
 				Filters: []string{"raft.apply$"},
 				Labels: map[string]string{
 					"instance.id": "asdkfj",
@@ -87,7 +87,7 @@ func TestExporter_NewMetricsExporter(t *testing.T) {
 func TestExporter_Export(t *testing.T) {
 	ctx := context.Background()
 
-	client := client.NewMockClient(t)
+	client := hcpclient.NewMockClient(t)
 	cfg := &MetricsExporterConfig{
 		Client:  client,
 		Filters: []string{"raft.*"},

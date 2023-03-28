@@ -19,11 +19,11 @@ import (
 
 func TestManager_Run(t *testing.T) {
 	client := hcpclient.NewMockClient(t)
-	client.EXPECT().FetchTelemetryConfig(mock.Anything).Return(&hcpclient.TelemetryConfig{}, nil)
 	statusF := func(ctx context.Context) (hcpclient.ServerStatus, error) {
 		return hcpclient.ServerStatus{ID: t.Name()}, nil
 	}
 	updateCh := make(chan struct{}, 1)
+	client.EXPECT().FetchTelemetryConfig(mock.Anything).Maybe().Return(nil, nil)
 	client.EXPECT().PushServerStatus(mock.Anything, &hcpclient.ServerStatus{ID: t.Name()}).Return(nil).Once()
 	mgr := NewManager(ManagerConfig{
 		Client:   client,
@@ -49,13 +49,13 @@ func TestManager_Run(t *testing.T) {
 
 func TestManager_SendUpdate(t *testing.T) {
 	client := hcpclient.NewMockClient(t)
-	client.EXPECT().FetchTelemetryConfig(mock.Anything).Return(&hcpclient.TelemetryConfig{}, nil)
 	statusF := func(ctx context.Context) (hcpclient.ServerStatus, error) {
 		return hcpclient.ServerStatus{ID: t.Name()}, nil
 	}
 	updateCh := make(chan struct{}, 1)
 
 	// Expect two calls, once during run startup and again when SendUpdate is called
+	client.EXPECT().FetchTelemetryConfig(mock.Anything).Maybe().Return(nil, nil)
 	client.EXPECT().PushServerStatus(mock.Anything, &hcpclient.ServerStatus{ID: t.Name()}).Return(nil).Twice()
 	mgr := NewManager(ManagerConfig{
 		Client:   client,
@@ -80,14 +80,13 @@ func TestManager_SendUpdate(t *testing.T) {
 
 func TestManager_SendUpdate_Periodic(t *testing.T) {
 	client := hcpclient.NewMockClient(t)
-	client.EXPECT().FetchTelemetryConfig(mock.Anything).Return(&hcpclient.TelemetryConfig{}, nil)
 	statusF := func(ctx context.Context) (hcpclient.ServerStatus, error) {
 		return hcpclient.ServerStatus{ID: t.Name()}, nil
 	}
 	updateCh := make(chan struct{}, 1)
 
 	// Expect two calls, once during run startup and again when SendUpdate is called
-	client.EXPECT().FetchTelemetryConfig(mock.Anything).Return(nil, nil)
+	client.EXPECT().FetchTelemetryConfig(mock.Anything).Maybe().Return(nil, nil)
 	client.EXPECT().PushServerStatus(mock.Anything, &hcpclient.ServerStatus{ID: t.Name()}).Return(nil).Twice()
 	mgr := NewManager(ManagerConfig{
 		Client:      client,

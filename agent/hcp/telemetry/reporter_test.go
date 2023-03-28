@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
-	"github.com/hashicorp/consul/agent/hcp/client"
+	hcpclient "github.com/hashicorp/consul/agent/hcp/client"
 	"github.com/hashicorp/go-hclog"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -18,7 +18,7 @@ import (
 
 func TestReporter_NewReporter_Failures(t *testing.T) {
 	exp, err := NewMetricsExporter(&MetricsExporterConfig{
-		Client: client.NewMockClient(t),
+		Client: hcpclient.NewMockClient(t),
 		Logger: hclog.New(&hclog.LoggerOptions{Output: io.Discard}),
 	})
 
@@ -63,7 +63,7 @@ func TestReporter_Run(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)
 
-	client := client.NewMockClient(t)
+	client := hcpclient.NewMockClient(t)
 
 	expCfg := &MetricsExporterConfig{
 		Client:  client,

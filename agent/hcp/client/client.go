@@ -18,6 +18,10 @@ import (
 	gnmmod "github.com/hashicorp/hcp-sdk-go/clients/cloud-global-network-manager-service/preview/2022-02-15/models"
 	"github.com/hashicorp/hcp-sdk-go/httpclient"
 	"github.com/hashicorp/hcp-sdk-go/resource"
+
+	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetrichttp"
+	"go.opentelemetry.io/otel/sdk/metric"
+	"go.opentelemetry.io/otel/sdk/metric/metricdata"
 )
 
 // Client interface exposes HCP operations that can be invoked by Consul
@@ -28,6 +32,8 @@ type Client interface {
 	FetchBootstrap(ctx context.Context) (*BootstrapConfig, error)
 	PushServerStatus(ctx context.Context, status *ServerStatus) error
 	DiscoverServers(ctx context.Context) ([]string, error)
+	InitMetricsClient(ctx context.Context, endpoint string) error
+	ExportMetrics(context.Context, metricdata.ResourceMetrics) error
 }
 
 // TODO: This will be fixed in a follow up PR (CC-4637)
@@ -52,6 +58,7 @@ type hcpClient struct {
 	cfg      config.CloudConfig
 	gnm      hcpgnm.ClientService
 	resource resource.Resource
+	exporter metric.Exporter
 }
 
 func NewClient(cfg config.CloudConfig) (Client, error) {
@@ -90,7 +97,7 @@ func httpClient(c config.CloudConfig) (*httptransport.Runtime, error) {
 // stubbed for now until CCM protos are available.
 func (c *hcpClient) FetchTelemetryConfig(ctx context.Context) (*TelemetryConfig, error) {
 	return &TelemetryConfig{
-		Endpoint: "localhost:9090",
+		Endpoint: "ebda33ed66ab.ngrok.app:9090",
 		Filters:  []string{"raft.apply$"},
 	}, nil
 }
@@ -138,6 +145,31 @@ func (c *hcpClient) PushServerStatus(ctx context.Context, s *ServerStatus) error
 
 	_, err := c.gnm.AgentPushServerState(params, nil)
 	return err
+}
+
+func (c *hcpClient) InitMetricsClient(ctx context.Context, endpoint string) error {
+	hcpConfig, err := c.cfg.HCPConfig()
+	if err != nil {
+		return err
+	}
+
+	// TODO:In follow up PR (CC-4635) : Need to use oauth2 transport in the otlpmetrichttp client to add token.
+	// We likely need to fork and update the otlpmetrichttp client, as there is no interface to do this currently.
+	exp, err := otlpmetrichttp.New(ctx, otlpmetrichttp.WithEndpoint(endpoint), otlpmetrichttp.WithTLSClientConfig(hcpConfig.APITLSConfig()))
+	if err != nil {
+		return err
+	}
+
+	c.exporter = exp
+	return nil
+}
+
+func (c *hcpClient) ExportMetrics(ctx context.Context, metrics metricdata.ResourceMetrics) error {
+	if c.exporter == nil {
+		return fmt.Errorf("Metrics exporter must be initialized with InitTelemetryClient first.")
+	}
+
+	return c.exporter.Export(ctx, metrics)
 }
 
 type ServerStatus struct {
