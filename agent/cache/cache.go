@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 // Package cache provides caching features for data from a Consul server.
 //
 // While this is similar in some ways to the "agent/ae" package, a key
