@@ -14,7 +14,7 @@ if [ ! -s "$report_filename" ]; then
 fi
 
 function report {
-    echo ":repeat: gotestsum re-ran some tests in https://github.com/hashicorp/consul/commit/$GITHUB_SHA/checks"
+    echo ":repeat: gotestsum re-ran some tests in https://github.com/hashicorp/consul/actions/run/$GITHUB_RUN_ID"
     echo
     echo '```'
     cat "$report_filename"
