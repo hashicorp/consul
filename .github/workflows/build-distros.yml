@@ -8,26 +8,34 @@ permissions:
   contents: read
 
 jobs:
-  check-go-mod:
-    runs-on: ubuntu-22.04
+  setup:
+    name: Setup
+    runs-on: ubuntu-latest
+    outputs:
+      compute-small: ${{ steps.setup-outputs.outputs.compute-small }}
+      compute-medium: ${{ steps.setup-outputs.outputs.compute-medium }}
+      compute-large: ${{ steps.setup-outputs.outputs.compute-large }}
+      compute-xl: ${{ steps.setup-outputs.outputs.compute-xl }}
     steps:
     - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
-    - uses: actions/setup-go@6edd4406fa81c3da01a34fa6f6343087c207a568 # pin@v3.5.0
-      with:
-        go-version-file: 'go.mod'
-    - run: go mod tidy
-    - run: |
-        if [[ -n $(git status -s) ]]; then
-          echo "Git directory has changes"
-          git status -s
-          exit 1
-        fi
+    - id: setup-outputs
+      name: Setup outputs
+      run: ./.github/scripts/get_runner_classes.sh
+
+  check-go-mod:
+    needs: 
+    - setup
+    uses: ./.github/workflows/reusable-check-go-mod.yml
+    with:
+      runs-on: ${{ needs.setup.outputs.compute-medium }}
 
   build-386:
-    needs: check-go-mod
+    needs: 
+    - setup 
+    - check-go-mod
     env:
       XC_OS: "freebsd linux windows"
-    runs-on: ubuntu-22.04
+    runs-on: ${{ fromJSON(needs.setup.outputs.compute-medium) }}
     steps:
     - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
     - uses: actions/setup-go@6edd4406fa81c3da01a34fa6f6343087c207a568 # pin@v3.5.0
@@ -40,10 +48,12 @@ jobs:
         done
 
   build-amd64:
-    needs: check-go-mod
+    needs:
+    - setup 
+    - check-go-mod
     env:
       XC_OS: "darwin freebsd linux solaris windows"
-    runs-on: ubuntu-22.04
+    runs-on: ${{ fromJSON(needs.setup.outputs.compute-medium) }}
     steps:
     - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
     - uses: actions/setup-go@6edd4406fa81c3da01a34fa6f6343087c207a568 # pin@v3.5.0
@@ -56,8 +66,10 @@ jobs:
         done
 
   build-arm:
-    needs: check-go-mod
-    runs-on: ubuntu-22.04
+    needs:
+    - setup 
+    - check-go-mod
+    runs-on: ${{ fromJSON(needs.setup.outputs.compute-medium) }}
     env:
       CGO_ENABLED: 1
       GOOS: linux
