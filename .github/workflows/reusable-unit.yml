@@ -6,7 +6,8 @@ on:
       directory:
         required: true
         type: string
-      go-version:
+      runs-on:
+        description: An expression indicating which kind of runners to use.
         required: true
         type: string
       go-arch:
@@ -17,11 +18,6 @@ on:
         required: false
         type: string
         default: "consul-bin" 
-      runs-on:
-        description: An expression indicating which kind of runners to use.
-        required: false
-        type: string
-        default: '["custom", "linux", "xl"]'
       package-names-command:
         required: false
         type: string
