@@ -1,0 +1,94 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
+name: frontend
+
+on:
+  push:
+    branches:
+      - main
+      - ui/**
+      - backport/ui/**
+
+permissions:
+  contents: read
+
+jobs:
+  setup:
+    name: Setup
+    runs-on: ubuntu-latest
+    outputs:
+      compute-small: ${{ steps.setup-outputs.outputs.compute-small }}
+      compute-medium: ${{ steps.setup-outputs.outputs.compute-medium }}
+      compute-large: ${{ steps.setup-outputs.outputs.compute-large }}
+      compute-xl: ${{ steps.setup-outputs.outputs.compute-xl }}
+    steps:
+    - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
+    - id: setup-outputs
+      name: Setup outputs
+      run: ./.github/scripts/get_runner_classes.sh
+
+  workspace-tests:
+    needs: setup
+    runs-on: ${{ fromJSON(needs.setup.outputs.compute-small) }}
+    defaults:
+      run:
+        working-directory: ui
+    steps:
+    - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
+
+    - uses: actions/setup-node@64ed1c7eab4cce3362f8c340dee64e5eaeef8f7c # pin@v3.6.0
+      with:
+        node-version: '16'
+
+    # Install dependencies.
+    - name: install yarn packages
+      working-directory: ui
+      run: make deps
+
+    - run: make test-workspace
+
+  node-tests:
+    needs: setup
+    runs-on: ${{ fromJSON(needs.setup.outputs.compute-small) }}
+    steps:
+    - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
+
+    - uses: actions/setup-node@64ed1c7eab4cce3362f8c340dee64e5eaeef8f7c # pin@v3.6.0
+      with:
+        node-version: '16'
+
+    # Install dependencies.
+    - name: install yarn packages
+      working-directory: ui
+      run: make deps
+
+    - run: make test-node
+      working-directory: ui/packages/consul-ui
+
+  ember-build-test:
+    needs: setup
+    runs-on: ${{ fromJSON(needs.setup.outputs.compute-large) }}
+    env:
+      EMBER_TEST_REPORT: test-results/report-oss.xml #outputs test report for CircleCI test summary
+      EMBER_TEST_PARALLEL: true #enables test parallelization with ember-exam
+      CONSUL_NSPACES_ENABLED: 0 # NOTE: this should be 1 in ENT.
+    steps:
+    - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
+
+    - uses: actions/setup-node@64ed1c7eab4cce3362f8c340dee64e5eaeef8f7c # pin@v3.6.0
+      with:
+        node-version: '16'
+
+    # Install dependencies.
+    - name: install yarn packages
+      working-directory: ui
+      run: make deps
+    
+    - working-directory: ui/packages/consul-ui
+      run: |
+        make build-ci
+        node_modules/.bin/ember exam --path dist --silent -r xunit
+
+    - working-directory: ui/packages/consul-ui
+      run: make test-coverage-ci
