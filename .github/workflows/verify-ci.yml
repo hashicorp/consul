@@ -1,13 +1,18 @@
 # Copyright (c) HashiCorp, Inc.
 # SPDX-License-Identifier: MPL-2.0
 
-name: Legacy Link Format Checker
+# verify-ci is a no-op workflow that must run on every PR. It is used in a
+# branch protection rule to detect when CI workflows are not running.
+name: verify-ci
+
+permissions:
+  contents: read
 
 on:
-  push:
+  pull-requests:
 
 jobs:
   noop:
-    runs-on: ['self-hosted', 'linux', 'small']
+    runs-on: ubuntu-latest
     steps:
     - run: echo "ok"
