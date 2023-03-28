@@ -15,5 +15,9 @@ project {
 
     # ignore specific test data files
     "agent/uiserver/testdata/**"
+
+    # generated files 
+    "agent/structs/structs.deepcopy.go"
+    "agent/proxycfg/proxycfg.deepcopy.go"
   ]
 }
