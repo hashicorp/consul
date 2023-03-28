@@ -45,7 +45,7 @@ jobs:
         with:
           go-version-file: 'go.mod'
       - name: Setup go mod cache
-        uses: actions/cache@v3
+        uses: actions/cache@69d9d449aced6a2ede0bc19182fadc3a0a42d2b0 # pin@v3.2.6
         with:
           path: |
             ~/.cache/go-build
@@ -99,7 +99,7 @@ jobs:
         with:
           name: test-results
           path: ${{env.TEST_RESULTS}}
-      - uses: actions/upload-artifact@master
+      - uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # pin@v3.1.2
         with:
           name: jsonfile
           path: /tmp/jsonfile
