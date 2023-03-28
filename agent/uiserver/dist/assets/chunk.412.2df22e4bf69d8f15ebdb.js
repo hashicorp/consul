@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 /*! For license information please see chunk.412.2df22e4bf69d8f15ebdb.js.LICENSE.txt */
 (globalThis.webpackChunk_ember_auto_import_=globalThis.webpackChunk_ember_auto_import_||[]).push([[412],{218:(t,e,n)=>{"use strict"
 n.r(e),n.d(e,{iconNames:()=>r})
