@@ -68,7 +68,7 @@ jobs:
 
   ember-build-test:
     needs: setup
-    runs-on: ${{ fromJSON(needs.setup.outputs.compute-small) }}
+    runs-on: ${{ fromJSON(needs.setup.outputs.compute-large) }}
     env:
       EMBER_TEST_REPORT: test-results/report-oss.xml #outputs test report for CircleCI test summary
       EMBER_TEST_PARALLEL: true #enables test parallelization with ember-exam
