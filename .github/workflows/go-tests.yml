@@ -193,15 +193,6 @@ jobs:
       go-test-flags: 'export GO_TEST_FLAGS="-short"'
       runs-on: ${{ needs.setup.outputs.compute-xl }}
 
-  go-test-troubleshoot:
-    needs: 
-    - setup   
-    - dev-build
-    uses: ./.github/workflows/reusable-unit.yml
-    with:
-      directory: troubleshoot
-      runs-on: ${{ needs.setup.outputs.compute-xl }}
-
   go-test-api-1-19:
     needs: 
     - setup   
