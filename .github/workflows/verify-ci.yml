@@ -9,7 +9,7 @@ permissions:
   contents: read
 
 on:
-  pull-requests:
+  pull_requests:
 
 jobs:
   noop:
