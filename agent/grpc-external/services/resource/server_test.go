@@ -2,15 +2,18 @@ package resource
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
+	"google.golang.org/protobuf/types/known/anypb"
 
 	"github.com/hashicorp/consul/agent/grpc-external/testutils"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/storage/inmem"
 	"github.com/hashicorp/consul/proto-public/pbresource"
+	pbdemov2 "github.com/hashicorp/consul/proto/private/pbdemo/v2"
 	"github.com/hashicorp/consul/sdk/testutil"
 )
 
@@ -67,41 +70,17 @@ func testContext(t *testing.T) context.Context {
 	return ctx
 }
 
-var (
-	tenancy = &pbresource.Tenancy{
-		Partition: "default",
-		Namespace: "default",
-		PeerName:  "local",
-	}
-	typev1 = &pbresource.Type{
-		Group:        "mesh",
-		GroupVersion: "v1",
-		Kind:         "service",
-	}
-	typev2 = &pbresource.Type{
-		Group:        "mesh",
-		GroupVersion: "v2",
-		Kind:         "service",
-	}
-	id1 = &pbresource.ID{
-		Uid:     "abcd",
-		Name:    "billing",
-		Type:    typev1,
-		Tenancy: tenancy,
-	}
-	id2 = &pbresource.ID{
-		Uid:     "abcd",
-		Name:    "billing",
-		Type:    typev2,
-		Tenancy: tenancy,
-	}
-	resourcev1 = &pbresource.Resource{
-		Id: &pbresource.ID{
-			Uid:     "someUid",
-			Name:    "someName",
-			Type:    typev1,
-			Tenancy: tenancy,
-		},
-		Version: "",
-	}
-)
+func modifyArtist(t *testing.T, res *pbresource.Resource) *pbresource.Resource {
+	t.Helper()
+
+	var artist pbdemov2.Artist
+	require.NoError(t, res.Data.UnmarshalTo(&artist))
+	artist.Name = fmt.Sprintf("The artist formerly known as %s", artist.Name)
+
+	data, err := anypb.New(&artist)
+	require.NoError(t, err)
+
+	res = clone(res)
+	res.Data = data
+	return res
+}
