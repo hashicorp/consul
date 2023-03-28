@@ -2078,6 +2078,7 @@ func TestServer_hcpManager(t *testing.T) {
 	conf1.BootstrapExpect = 1
 	conf1.RPCAdvertise = &net.TCPAddr{IP: []byte{127, 0, 0, 2}, Port: conf1.RPCAddr.Port}
 	hcp1 := hcpclient.NewMockClient(t)
+	hcp1.EXPECT().FetchTelemetryConfig(mock.Anything).Return(nil, nil)
 	hcp1.EXPECT().PushServerStatus(mock.Anything, mock.MatchedBy(func(status *hcpclient.ServerStatus) bool {
 		return status.ID == string(conf1.NodeID)
 	})).Run(func(ctx context.Context, status *hcpclient.ServerStatus) {

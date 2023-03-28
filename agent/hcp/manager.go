@@ -79,34 +79,61 @@ func NewManager(cfg ManagerConfig) *Manager {
 	}
 }
 
-// runReporter initializes the metrics reporter by fetching configuration from CCM
-// and runs the reporter if configured.
+// runReporter initializes, and if successful, then runs the metrics reporter.
 func (m *Manager) runReporter(ctx context.Context) {
-	// Make CCM call to obtain configuration.
+	// Step 1: Obtain CCM telemetry configuration
+	// Only enable HCP metrics reporting if server is registered with management plane.
 	telemetryCfg, err := m.cfg.Client.FetchTelemetryConfig(ctx)
-	if err != nil || telemetryCfg.Endpoint == "" {
-		m.logger.Error("HCP Metrics Collection failed", "error", err, "endpoint", telemetryCfg.Endpoint)
+	if err != nil {
+		m.logger.Error("Failed to obtain CCM telemetry config", "error", err, "endpoint", telemetryCfg.Endpoint)
 		return
 	}
 
-	cfg := telemetry.DefaultConfig()
-	cfg.Logger = m.logger
-	cfg.Gatherer = m.cfg.MetricsBackend
-	labels := map[string]string{
-		"service.name":        "consul-server",
-		"service.version":     version.GetHumanVersion(),
-		"service.instance.id": m.cfg.NodeID,
+	if telemetryCfg == nil {
+		return
 	}
-	exp, err := telemetry.NewMetricsExporter(ctx, labels, telemetryCfg.Endpoint, m.logger, telemetryCfg.Filters)
+
+	// Step 2: Init telemetry.MetricsExporter which sends metrics to HCP Metrics Gateway in OTLP format.
+	// It uses a an OTLP exporter client wrapped by the HCP client.
+	// This enables us to perform HCP auth and easily mock the client interface for tests.
+	// It must first be initialized within the HCP Client with the configured endpoint.
+	if m.cfg.Client.InitMetricsClient(ctx, telemetryCfg.Endpoint); err != nil {
+		m.logger.Error("Failed to init metrics HCP client", "error", err)
+		return
+	}
+
+	expCfg := &telemetry.MetricsExporterConfig{
+		Labels: map[string]string{
+			"service.name":        "consul-server",
+			"service.version":     version.GetHumanVersion(),
+			"service.instance.id": m.cfg.NodeID,
+		},
+		Logger:  m.logger.Named("metrics_exporter"),
+		Filters: telemetryCfg.Filters,
+		// Inject client in metrics exporter.
+		Client: m.cfg.Client,
+	}
+
+	exp, err := telemetry.NewMetricsExporter(expCfg)
 	if err != nil {
 		m.logger.Error("Failed to create exporter", "error", err)
 		return
 	}
 
+	// Step 3: Init telemetry.Reporter, which gathers consul server go metrics over a configurable time interval (Report Interval).
+	// It flushes them to the exporter to be sent to HCP at a configurable time interval (Batch Interval).
+	cfg := telemetry.DefaultConfig()
+	cfg.Logger = m.logger.Named("telemetry_reporter")
+	cfg.Gatherer = m.cfg.MetricsBackend
 	cfg.Exporter = exp
 
-	m.reporter = telemetry.NewReporter(cfg)
+	m.reporter, err = telemetry.NewReporter(cfg)
+	if err != nil {
+		m.logger.Error("Failed to create exporter", "error", err)
+		return
+	}
 
+	// If setup is successful, run the reporter.
 	m.reporter.Run(ctx)
 }
 

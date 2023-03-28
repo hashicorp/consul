@@ -86,6 +86,7 @@ func TestManager_SendUpdate_Periodic(t *testing.T) {
 	updateCh := make(chan struct{}, 1)
 
 	// Expect two calls, once during run startup and again when SendUpdate is called
+	client.EXPECT().FetchTelemetryConfig(mock.Anything).Return(nil, nil)
 	client.EXPECT().PushServerStatus(mock.Anything, &hcpclient.ServerStatus{ID: t.Name()}).Return(nil).Twice()
 	mgr := NewManager(ManagerConfig{
 		Client:      client,

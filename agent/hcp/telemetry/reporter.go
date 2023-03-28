@@ -2,7 +2,7 @@ package telemetry
 
 import (
 	"context"
-	"sync"
+	"fmt"
 	"time"
 
 	"github.com/armon/go-metrics"
@@ -16,18 +16,19 @@ const (
 	defaultBatchInterval  = 10 * time.Second
 )
 
-type Config struct {
+type ReporterConfig struct {
 	StreamTimeout  time.Duration
 	ReportInterval time.Duration
 	BatchInterval  time.Duration
-	Labels         map[string]string
-	Logger         hclog.Logger
-	Gatherer       lib.MetricsHandler
-	Exporter       *MetricsExporter
+
+	Logger hclog.Logger
+
+	Gatherer lib.MetricsHandler
+	Exporter Exporter
 }
 
-func DefaultConfig() *Config {
-	return &Config{
+func DefaultConfig() *ReporterConfig {
+	return &ReporterConfig{
 		StreamTimeout:  defaultStreamTimeout,
 		ReportInterval: defaultReportInterval,
 		BatchInterval:  defaultBatchInterval,
@@ -35,17 +36,20 @@ func DefaultConfig() *Config {
 }
 
 type Reporter struct {
-	cfg Config
+	cfg ReporterConfig
 
-	shutdownOnce sync.Once
-	shutdownCh   chan struct{}
+	batchedMetrics map[time.Time]*metrics.IntervalMetrics
+	flushCh        chan struct{}
 
-	batchedMetrics       map[time.Time]*metrics.IntervalMetrics
-	lastIntervalExported time.Time
-	flushCh              chan struct{}
+	// Only used for test purposes to know when flush has occurred.
+	testFlushCh chan struct{}
 }
 
-func NewReporter(cfg *Config) *Reporter {
+func NewReporter(cfg *ReporterConfig) (*Reporter, error) {
+	if cfg.Exporter == nil || cfg.Gatherer == nil || cfg.Logger == nil {
+		return nil, fmt.Errorf("metrics exporter, gatherer and logger must be provided")
+	}
+
 	r := &Reporter{
 		cfg: *cfg,
 
@@ -53,12 +57,15 @@ func NewReporter(cfg *Config) *Reporter {
 		flushCh:        make(chan struct{}, 1),
 	}
 
-	return r
+	return r, nil
 }
 
 func (r *Reporter) Run(ctx context.Context) {
 	r.cfg.Logger.Debug("HCP Metrics Reporter starting")
 
+	// Not that timing will not be perfect since select will
+	// pick a case that is ready via uniform pseudo-random selection
+	// With this approach, we avoid worrying about concurrent access to resources.
 	flushTimer := time.NewTicker(r.cfg.BatchInterval)
 	defer flushTimer.Stop()
 	for {
@@ -70,6 +77,7 @@ func (r *Reporter) Run(ctx context.Context) {
 			r.gatherMetrics()
 
 		case <-flushTimer.C:
+			// Ensures we don't block if the flushCh is handling a signal.
 			select {
 			case r.flushCh <- struct{}{}:
 			default:
@@ -79,6 +87,10 @@ func (r *Reporter) Run(ctx context.Context) {
 			flushTimer.Reset(r.cfg.BatchInterval)
 			if err := r.flushMetrics(); err != nil {
 				r.cfg.Logger.Error("Failed to flush metrics", "error", err)
+			}
+
+			if r.testFlushCh != nil {
+				r.testFlushCh <- struct{}{}
 			}
 		}
 	}
@@ -92,12 +104,15 @@ func (r *Reporter) gatherMetrics() {
 	}
 
 	for _, interval := range intervals {
+		// TODO: We can't fully avoid duplicates without infinite memory.
 		if _, ok := r.batchedMetrics[interval.Interval]; ok {
 			continue
 		}
+		// TODO: Bounded batchedMetrics check.
+		// TODO: Do some testing for 100 batches, 200 batches, etc. (Get data information)
+		// TODO: Fancy flushing, remove the oldest first (circular buffer): https://github.com/armon/circbuf
 		r.batchedMetrics[interval.Interval] = interval
 	}
-	return
 }
 
 func (r *Reporter) flushMetrics() error {
@@ -106,8 +121,10 @@ func (r *Reporter) flushMetrics() error {
 		if intervalMetrics != nil {
 			metricsList = append(metricsList, intervalMetrics)
 		}
+		// TODO: only do this if there is no error. For now since the map is unbounded, leave it.
 		r.batchedMetrics[interval] = nil
 	}
+
 	if len(metricsList) == 0 {
 		return nil
 	}
