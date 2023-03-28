@@ -38,8 +38,9 @@ func DefaultConfig() *ReporterConfig {
 type Reporter struct {
 	cfg ReporterConfig
 
-	batchedMetrics map[time.Time]*metrics.IntervalMetrics
-	flushCh        chan struct{}
+	batchedMetrics       map[time.Time]*metrics.IntervalMetrics
+	flushCh              chan struct{}
+	lastIntervalExported time.Time
 
 	// Only used for test purposes to know when flush has occurred.
 	testFlushCh chan struct{}
@@ -53,8 +54,9 @@ func NewReporter(cfg *ReporterConfig) (*Reporter, error) {
 	r := &Reporter{
 		cfg: *cfg,
 
-		batchedMetrics: make(map[time.Time]*metrics.IntervalMetrics),
-		flushCh:        make(chan struct{}, 1),
+		lastIntervalExported: time.Now(),
+		batchedMetrics:       make(map[time.Time]*metrics.IntervalMetrics),
+		flushCh:              make(chan struct{}, 1),
 	}
 
 	return r, nil
@@ -106,6 +108,11 @@ func (r *Reporter) gatherMetrics() {
 	}
 
 	for _, interval := range intervals {
+		// Skip already processed time intervals.
+		if interval.Interval.Unix() <= r.lastIntervalExported.Unix() {
+			continue
+		}
+
 		if _, ok := r.batchedMetrics[interval.Interval]; ok {
 			continue
 		}
@@ -123,6 +130,10 @@ func (r *Reporter) flushMetrics() error {
 	for interval, intervalMetrics := range r.batchedMetrics {
 		if intervalMetrics != nil {
 			metricsList = append(metricsList, intervalMetrics)
+		}
+
+		if interval.Unix() > r.lastIntervalExported.Unix() {
+			r.lastIntervalExported = interval
 		}
 		// TODO: only do this if there is no error. For now since the map is unbounded, leave it.
 		r.batchedMetrics[interval] = nil
