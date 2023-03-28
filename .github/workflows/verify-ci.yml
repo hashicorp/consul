@@ -8,8 +8,7 @@ name: verify-ci
 permissions:
   contents: read
 
-on:
-  pull_requests:
+on: [pull_request]
 
 jobs:
   noop:
