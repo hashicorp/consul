@@ -6,7 +6,8 @@ on:
       directory:
         required: true
         type: string
-      go-version:
+      runs-on:
+        description: An expression indicating which kind of runners to use.
         required: true
         type: string
       go-arch:
@@ -17,11 +18,6 @@ on:
         required: false
         type: string
         default: "consul-bin" 
-      runs-on:
-        description: An expression indicating which kind of runners to use.
-        required: false
-        type: string
-        default: '["custom", "linux", "xl"]'
       package-names-command:
         required: false
         type: string
@@ -45,7 +41,7 @@ jobs:
         with:
           go-version-file: 'go.mod'
       - name: Setup go mod cache
-        uses: actions/cache@v3
+        uses: actions/cache@69d9d449aced6a2ede0bc19182fadc3a0a42d2b0 # pin@v3.2.6
         with:
           path: |
             ~/.cache/go-build
@@ -99,7 +95,7 @@ jobs:
         with:
           name: test-results
           path: ${{env.TEST_RESULTS}}
-      - uses: actions/upload-artifact@master
+      - uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # pin@v3.1.2
         with:
           name: jsonfile
           path: /tmp/jsonfile

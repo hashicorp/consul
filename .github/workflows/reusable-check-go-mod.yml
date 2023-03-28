@@ -2,12 +2,11 @@ name: check-go-mod
 
 on:
   workflow_call:
-    inputs:       
+    inputs:
       runs-on:
         description: An expression indicating which kind of runners to use.
-        required: false
+        required: true
         type: string
-        default: '["custom", "linux", "small"]'
 jobs:
   check-go-mod:
     runs-on: ${{ fromJSON(inputs.runs-on) }}
