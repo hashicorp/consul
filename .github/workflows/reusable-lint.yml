@@ -25,7 +25,6 @@ jobs:
         - ""
         - "api"
         - "sdk"
-        - "test/integration/consul-container"
       fail-fast: true
     name: lint ${{ matrix.directory }}
     steps:
