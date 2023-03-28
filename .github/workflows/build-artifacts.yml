@@ -40,24 +40,9 @@ jobs:
         context: ./bin
         file: ./build-support/docker/Consul-Dev.dockerfile
         push: true
+        # TODO: hashicorpdev/consul:latest
         tags: |
           hashicorpdev/consul:${{ env.SHORT_SHA }}
-          # TODO: hashicorpdev/consul:latest
         labels: |
           COMMIT_SHA=${{ github.sha }}
           GITHUB_BUILD_URL=${{ env.GITHUB_BUILD_URL }}
-
-    - name: Configure AWS Credentials
-      uses: aws-actions/configure-aws-credentials@e1e17a757e536f70e52b5a12b2e8d1d1c60e04ef # pin@v2.0.0
-      with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
-
-    - name: Upload to S3
-      run: |
-        zip -j consul.zip bin/consul
-        aws s3 cp \
-          --metadata "GIT_COMMIT=${{ env.SHORT_SHA }},GITHUB_BUILD_URL=${{ env.GITHUB_BUILD_URL }}" \
-          "consul.zip" "s3://${{ secrets.S3_ARTIFACT_BUCKET }}/${{ secrets.S3_ARTIFACT_PATH }}/${{ github.sha }}.zip" \
-          --acl public-read
