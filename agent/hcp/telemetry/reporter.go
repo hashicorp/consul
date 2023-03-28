@@ -96,6 +96,8 @@ func (r *Reporter) Run(ctx context.Context) {
 	}
 }
 
+// TODO: This batching strategy will be revisited in a follow up PR (CC-4636)
+// And memory footprint will be evaluated to ensure this is safe.
 func (r *Reporter) gatherMetrics() {
 	intervals := r.cfg.Gatherer.Data()
 	if len(intervals) >= 1 {
@@ -104,7 +106,6 @@ func (r *Reporter) gatherMetrics() {
 	}
 
 	for _, interval := range intervals {
-		// TODO: We can't fully avoid duplicates without infinite memory.
 		if _, ok := r.batchedMetrics[interval.Interval]; ok {
 			continue
 		}
@@ -115,6 +116,8 @@ func (r *Reporter) gatherMetrics() {
 	}
 }
 
+// TODO: Batching strategy will be revisited in a follow up PR (CC-4636)
+// And memory footprint will be evaluated to ensure this is safe.
 func (r *Reporter) flushMetrics() error {
 	metricsList := make([]*metrics.IntervalMetrics, 0)
 	for interval, intervalMetrics := range r.batchedMetrics {

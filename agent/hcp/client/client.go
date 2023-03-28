@@ -30,8 +30,9 @@ type Client interface {
 	DiscoverServers(ctx context.Context) ([]string, error)
 }
 
+// TODO: This will be fixed in a follow up PR (CC-4637)
+// Stubbed design for now until CCM protos are available.
 type TelemetryConfig struct {
-	// TODO: stubbed, requires CCM protos for final design.
 	Endpoint string
 	Filters  []string
 }
@@ -85,7 +86,8 @@ func httpClient(c config.CloudConfig) (*httptransport.Runtime, error) {
 	})
 }
 
-// TODO: Implement this, stubbed for now until CCM protos are available.
+// TODO: This will be fixed in a follow up PR (CC-4637)
+// stubbed for now until CCM protos are available.
 func (c *hcpClient) FetchTelemetryConfig(ctx context.Context) (*TelemetryConfig, error) {
 	return &TelemetryConfig{
 		Endpoint: "localhost:9090",
