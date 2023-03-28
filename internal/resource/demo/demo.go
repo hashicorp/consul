@@ -13,51 +13,84 @@ import (
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	pbdemov1 "github.com/hashicorp/consul/proto/private/pbdemo/v1"
+	pbdemov2 "github.com/hashicorp/consul/proto/private/pbdemo/v2"
 )
 
-// TenancyDefault contains the default values for all tenancy units.
-var TenancyDefault = &pbresource.Tenancy{
-	Partition: "default",
-	PeerName:  "local",
-	Namespace: "default",
-}
+var (
+	// TenancyDefault contains the default values for all tenancy units.
+	TenancyDefault = &pbresource.Tenancy{
+		Partition: "default",
+		PeerName:  "local",
+		Namespace: "default",
+	}
 
-// TypeArtist represents a musician or group of musicians.
-var TypeArtist = &pbresource.Type{
-	Group:        "demo",
-	GroupVersion: "v1",
-	Kind:         "artist",
-}
+	// TypeV1Artist represents a musician or group of musicians.
+	TypeV1Artist = &pbresource.Type{
+		Group:        "demo",
+		GroupVersion: "v1",
+		Kind:         "artist",
+	}
 
-// TypeAlbum represents a collection of an artist's songs.
-var TypeAlbum = &pbresource.Type{
-	Group:        "demo",
-	GroupVersion: "v1",
-	Kind:         "album",
-}
+	// TypeV1Album represents a collection of an artist's songs.
+	TypeV1Album = &pbresource.Type{
+		Group:        "demo",
+		GroupVersion: "v1",
+		Kind:         "album",
+	}
+
+	// TypeV2Artist represents a musician or group of musicians.
+	TypeV2Artist = &pbresource.Type{
+		Group:        "demo",
+		GroupVersion: "v2",
+		Kind:         "artist",
+	}
+
+	// TypeV2Album represents a collection of an artist's songs.
+	TypeV2Album = &pbresource.Type{
+		Group:        "demo",
+		GroupVersion: "v2",
+		Kind:         "album",
+	}
+)
 
 // Register demo types. Should only be called in tests and dev mode.
 func Register(r resource.Registry) {
 	r.Register(resource.Registration{
-		Type:  TypeArtist,
+		Type:  TypeV1Artist,
 		Proto: &pbdemov1.Artist{},
 	})
 
 	r.Register(resource.Registration{
-		Type:  TypeAlbum,
+		Type:  TypeV1Album,
 		Proto: &pbdemov1.Album{},
+	})
+
+	r.Register(resource.Registration{
+		Type:  TypeV2Artist,
+		Proto: &pbdemov2.Artist{},
+	})
+
+	r.Register(resource.Registration{
+		Type:  TypeV2Album,
+		Proto: &pbdemov2.Album{},
 	})
 }
 
-// GenerateArtist generates a random Artist resource.
-func GenerateArtist() (*pbresource.Resource, error) {
+// GenerateV2Artist generates a random Artist resource.
+func GenerateV2Artist() (*pbresource.Resource, error) {
 	adjective := adjectives[rand.Intn(len(adjectives))]
 	noun := nouns[rand.Intn(len(nouns))]
 
-	data, err := anypb.New(&pbdemov1.Artist{
+	numMembers := rand.Intn(5) + 1
+	groupMembers := make(map[string]string, numMembers)
+	for i := 0; i < numMembers; i++ {
+		groupMembers[members[rand.Intn(len(members))]] = instruments[rand.Intn(len(instruments))]
+	}
+
+	data, err := anypb.New(&pbdemov2.Artist{
 		Name:         fmt.Sprintf("%s %s", adjective, noun),
 		Genre:        randomGenre(),
-		GroupMembers: int32(rand.Intn(5) + 1),
+		GroupMembers: groupMembers,
 	})
 	if err != nil {
 		return nil, err
@@ -65,7 +98,7 @@ func GenerateArtist() (*pbresource.Resource, error) {
 
 	return &pbresource.Resource{
 		Id: &pbresource.ID{
-			Type:    TypeArtist,
+			Type:    TypeV2Artist,
 			Tenancy: TenancyDefault,
 			Name:    fmt.Sprintf("%s-%s", strings.ToLower(adjective), strings.ToLower(noun)),
 		},
@@ -76,9 +109,9 @@ func GenerateArtist() (*pbresource.Resource, error) {
 	}, nil
 }
 
-// GenerateAlbum generates a random Album resource, owned by the Artist with the
-// given ID.
-func GenerateAlbum(artistID *pbresource.ID) (*pbresource.Resource, error) {
+// GenerateV2Album generates a random Album resource, owned by the Artist with
+// the given ID.
+func GenerateV2Album(artistID *pbresource.ID) (*pbresource.Resource, error) {
 	adjective := adjectives[rand.Intn(len(adjectives))]
 	noun := nouns[rand.Intn(len(nouns))]
 
@@ -92,8 +125,8 @@ func GenerateAlbum(artistID *pbresource.ID) (*pbresource.Resource, error) {
 		tracks[i] = words[rand.Intn(len(words))]
 	}
 
-	data, err := anypb.New(&pbdemov1.Album{
-		Name:               fmt.Sprintf("%s %s", adjective, noun),
+	data, err := anypb.New(&pbdemov2.Album{
+		Title:              fmt.Sprintf("%s %s", adjective, noun),
 		YearOfRelease:      int32(1990 + rand.Intn(time.Now().Year()-1990)),
 		CriticallyAclaimed: rand.Int()%2 == 0,
 		Tracks:             tracks,
@@ -104,7 +137,7 @@ func GenerateAlbum(artistID *pbresource.ID) (*pbresource.Resource, error) {
 
 	return &pbresource.Resource{
 		Id: &pbresource.ID{
-			Type:    TypeAlbum,
+			Type:    TypeV2Album,
 			Tenancy: artistID.Tenancy,
 			Name:    fmt.Sprintf("%s/%s-%s", artistID.Name, strings.ToLower(adjective), strings.ToLower(noun)),
 		},
@@ -116,8 +149,8 @@ func GenerateAlbum(artistID *pbresource.ID) (*pbresource.Resource, error) {
 	}, nil
 }
 
-func randomGenre() pbdemov1.Genre {
-	return pbdemov1.Genre(rand.Intn(len(pbdemov1.Genre_name)-1) + 1)
+func randomGenre() pbdemov2.Genre {
+	return pbdemov2.Genre(rand.Intn(len(pbdemov1.Genre_name)-1) + 1)
 }
 
 var (
@@ -142,5 +175,28 @@ var (
 		"Grapefruit",
 		"Engineer",
 		"Basketball",
+	}
+
+	members = []string{
+		"Owl",
+		"Tiger",
+		"Beetle",
+		"Lion",
+		"Chicken",
+		"Snake",
+		"Monkey",
+		"Kitten",
+		"Hound",
+	}
+
+	instruments = []string{
+		"Guitar",
+		"Bass",
+		"Lead Vocals",
+		"Backing Vocals",
+		"Drums",
+		"Synthesizer",
+		"Triangle",
+		"Standing by the stage looking cool",
 	}
 )

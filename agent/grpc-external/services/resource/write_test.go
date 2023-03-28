@@ -13,7 +13,7 @@ import (
 	"github.com/hashicorp/consul/internal/resource/demo"
 	"github.com/hashicorp/consul/internal/storage"
 	"github.com/hashicorp/consul/proto-public/pbresource"
-	pbdemov1 "github.com/hashicorp/consul/proto/private/pbdemo/v1"
+	pbdemov2 "github.com/hashicorp/consul/proto/private/pbdemo/v2"
 )
 
 func TestWrite_InputValidation(t *testing.T) {
@@ -31,13 +31,13 @@ func TestWrite_InputValidation(t *testing.T) {
 		"no data":     func(req *pbresource.WriteRequest) { req.Resource.Data = nil },
 		"wrong data type": func(req *pbresource.WriteRequest) {
 			var err error
-			req.Resource.Data, err = anypb.New(&pbdemov1.Album{})
+			req.Resource.Data, err = anypb.New(&pbdemov2.Album{})
 			require.NoError(t, err)
 		},
 	}
 	for desc, modFn := range testCases {
 		t.Run(desc, func(t *testing.T) {
-			res, err := demo.GenerateArtist()
+			res, err := demo.GenerateV2Artist()
 			require.NoError(t, err)
 
 			req := &pbresource.WriteRequest{Resource: res}
@@ -54,13 +54,13 @@ func TestWrite_TypeNotFound(t *testing.T) {
 	server := testServer(t)
 	client := testClient(t, server)
 
-	res, err := demo.GenerateArtist()
+	res, err := demo.GenerateV2Artist()
 	require.NoError(t, err)
 
 	_, err = client.Write(testContext(t), &pbresource.WriteRequest{Resource: res})
 	require.Error(t, err)
 	require.Equal(t, codes.InvalidArgument.String(), status.Code(err).String())
-	require.Contains(t, err.Error(), "resource type demo/v1/artist not registered")
+	require.Contains(t, err.Error(), "resource type demo/v2/artist not registered")
 }
 
 func TestWrite_ResourceCreation(t *testing.T) {
@@ -69,7 +69,7 @@ func TestWrite_ResourceCreation(t *testing.T) {
 
 	demo.Register(server.Registry)
 
-	res, err := demo.GenerateArtist()
+	res, err := demo.GenerateV2Artist()
 	require.NoError(t, err)
 
 	rsp, err := client.Write(testContext(t), &pbresource.WriteRequest{Resource: res})
@@ -85,7 +85,7 @@ func TestWrite_CASUpdate_Success(t *testing.T) {
 
 	demo.Register(server.Registry)
 
-	res, err := demo.GenerateArtist()
+	res, err := demo.GenerateV2Artist()
 	require.NoError(t, err)
 
 	rsp1, err := client.Write(testContext(t), &pbresource.WriteRequest{Resource: res})
@@ -107,7 +107,7 @@ func TestWrite_CASUpdate_Failure(t *testing.T) {
 
 	demo.Register(server.Registry)
 
-	res, err := demo.GenerateArtist()
+	res, err := demo.GenerateV2Artist()
 	require.NoError(t, err)
 
 	rsp1, err := client.Write(testContext(t), &pbresource.WriteRequest{Resource: res})
@@ -128,7 +128,7 @@ func TestWrite_Update_WrongUid(t *testing.T) {
 
 	demo.Register(server.Registry)
 
-	res, err := demo.GenerateArtist()
+	res, err := demo.GenerateV2Artist()
 	require.NoError(t, err)
 
 	rsp1, err := client.Write(testContext(t), &pbresource.WriteRequest{Resource: res})
@@ -149,7 +149,7 @@ func TestWrite_Update_NoUid(t *testing.T) {
 
 	demo.Register(server.Registry)
 
-	res, err := demo.GenerateArtist()
+	res, err := demo.GenerateV2Artist()
 	require.NoError(t, err)
 
 	rsp1, err := client.Write(testContext(t), &pbresource.WriteRequest{Resource: res})
@@ -168,7 +168,7 @@ func TestWrite_NonCASUpdate_Success(t *testing.T) {
 
 	demo.Register(server.Registry)
 
-	res, err := demo.GenerateArtist()
+	res, err := demo.GenerateV2Artist()
 	require.NoError(t, err)
 
 	rsp1, err := client.Write(testContext(t), &pbresource.WriteRequest{Resource: res})
@@ -189,7 +189,7 @@ func TestWrite_NonCASUpdate_Retry(t *testing.T) {
 
 	demo.Register(server.Registry)
 
-	res, err := demo.GenerateArtist()
+	res, err := demo.GenerateV2Artist()
 	require.NoError(t, err)
 
 	rsp1, err := client.Write(testContext(t), &pbresource.WriteRequest{Resource: res})
@@ -247,19 +247,4 @@ func (b *blockOnceBackend) Read(ctx context.Context, consistency storage.ReadCon
 	})
 
 	return res, err
-}
-
-func modifyArtist(t *testing.T, res *pbresource.Resource) *pbresource.Resource {
-	t.Helper()
-
-	var artist pbdemov1.Artist
-	require.NoError(t, res.Data.UnmarshalTo(&artist))
-	artist.GroupMembers++
-
-	data, err := anypb.New(&artist)
-	require.NoError(t, err)
-
-	res = clone(res)
-	res.Data = data
-	return res
 }
