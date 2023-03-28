@@ -20,6 +20,9 @@ jobs:
     - name: Dev Build
       run: make dev
 
+    # Set short git sha
+    - run: echo "SHORT_SHA=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+
     - name: Login to Docker Hub
       uses: docker/login-action@f4ef78c080cd8ba55a85445d5b36e214a81df20a # pin@v2.1.0
       with:
@@ -32,5 +35,7 @@ jobs:
         context: ./bin
         file: ./build-support/docker/Consul-Dev.dockerfile
         push: true
-        tags: hashicorpdev/consul:${{ github.sha }}
-        labels: COMMIT_SHA=${{ github.sha }}
+        tags: hashicorpdev/consul:${{ env.SHORT_SHA }}
+        labels: |
+          COMMIT_SHA=${{ github.sha }}
+          GITHUB_BUILD_URL=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
