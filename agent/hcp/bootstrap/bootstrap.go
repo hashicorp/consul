@@ -19,7 +19,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/agent/config"
-	"github.com/hashicorp/consul/agent/hcp"
+	hcpclient "github.com/hashicorp/consul/agent/hcp/client"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/lib/retry"
 )
@@ -128,9 +128,9 @@ func doHCPBootstrap(ctx context.Context, rc *config.RuntimeConfig, ui UI) (strin
 		Jitter:  retry.NewJitter(50),
 	}
 
-	var bsCfg *hcp.BootstrapConfig
+	var bsCfg *hcpclient.BootstrapConfig
 
-	client, err := hcp.NewClient(rc.Cloud)
+	client, err := hcpclient.NewClient(rc.Cloud)
 	if err != nil {
 		return "", err
 	}
@@ -191,7 +191,7 @@ func doHCPBootstrap(ctx context.Context, rc *config.RuntimeConfig, ui UI) (strin
 	return cfgJSON, nil
 }
 
-func persistTLSCerts(dataDir string, bsCfg *hcp.BootstrapConfig) error {
+func persistTLSCerts(dataDir string, bsCfg *hcpclient.BootstrapConfig) error {
 	dir := filepath.Join(dataDir, subDir)
 
 	if bsCfg.TLSCert == "" || bsCfg.TLSCertKey == "" {
