@@ -4,6 +4,7 @@
 package hcp
 
 import (
+	"fmt"
 	"io"
 	"testing"
 	"time"
@@ -108,4 +109,65 @@ func TestManager_SendUpdate_Periodic(t *testing.T) {
 		require.Fail(t, "manager did not send update in expected time")
 	}
 	client.AssertExpectations(t)
+}
+
+func TestManager_RunReporter_Failures(t *testing.T) {
+	for name, testCase := range map[string]struct {
+		wantErr      string
+		expectations func(m *hcpclient.MockClient)
+	}{
+		"telemetryConfigRequestError": {
+			wantErr: "failed to obtain CCM telemetry config",
+			expectations: func(m *hcpclient.MockClient) {
+				m.EXPECT().FetchTelemetryConfig(mock.Anything).Return(nil, fmt.Errorf("network error"))
+			},
+		},
+		"invalidEndpoint": {
+			wantErr: "failed to init metrics HCP client: invalid endpoint",
+			expectations: func(m *hcpclient.MockClient) {
+				endpoint := "https://badhost"
+				m.EXPECT().FetchTelemetryConfig(mock.Anything).Return(&hcpclient.TelemetryConfig{
+					Endpoint: endpoint,
+				}, nil)
+
+				m.EXPECT().InitMetricsClient(mock.Anything, endpoint).Return(fmt.Errorf("invalid endpoint"))
+			},
+		},
+		"invalidReporter": {
+			wantErr: "failed to create exporter: metrics exporter, gatherer and logger must be provided",
+			expectations: func(m *hcpclient.MockClient) {
+				endpoint := "localhost:8000"
+				m.EXPECT().FetchTelemetryConfig(mock.Anything).Return(&hcpclient.TelemetryConfig{
+					Endpoint: endpoint,
+				}, nil)
+
+				m.EXPECT().InitMetricsClient(mock.Anything, endpoint).Return(nil)
+			},
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			tc := testCase
+
+			client := hcpclient.NewMockClient(t)
+			statusF := func(ctx context.Context) (hcpclient.ServerStatus, error) {
+				return hcpclient.ServerStatus{ID: t.Name()}, nil
+			}
+
+			mgr := NewManager(ManagerConfig{
+				Client:      client,
+				Logger:      hclog.New(&hclog.LoggerOptions{Output: io.Discard}),
+				StatusFn:    statusF,
+				MaxInterval: time.Second,
+				MinInterval: 100 * time.Millisecond,
+			})
+
+			tc.expectations(client)
+
+			ctx := context.Background()
+			err := mgr.runReporter(ctx)
+
+			require.Error(t, err)
+			require.Contains(t, err.Error(), tc.wantErr)
+		})
+	}
 }

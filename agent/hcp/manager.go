@@ -5,6 +5,7 @@ package hcp
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"time"
 
@@ -80,26 +81,25 @@ func NewManager(cfg ManagerConfig) *Manager {
 }
 
 // runReporter initializes, and if successful, then runs the metrics reporter.
-func (m *Manager) runReporter(ctx context.Context) {
+func (m *Manager) runReporter(ctx context.Context) error {
 	// Step 1: Obtain CCM telemetry configuration
 	// Only enable HCP metrics reporting if server is registered with management plane.
 	telemetryCfg, err := m.cfg.Client.FetchTelemetryConfig(ctx)
 	if err != nil {
-		m.logger.Error("Failed to obtain CCM telemetry config", "error", err, "endpoint", telemetryCfg.Endpoint)
-		return
+		return fmt.Errorf("failed to obtain CCM telemetry config: %v", err)
 	}
 
 	if telemetryCfg == nil {
-		return
+		// Not an error, as the server is not registered with CCM, but early return.
+		return nil
 	}
 
 	// Step 2: Init telemetry.MetricsExporter which sends metrics to HCP Metrics Gateway in OTLP format.
 	// It uses a an OTLP exporter client wrapped by the HCP client.
 	// This enables us to perform HCP auth and easily mock the client interface for tests.
 	// It must first be initialized within the HCP Client with the configured endpoint.
-	if m.cfg.Client.InitMetricsClient(ctx, telemetryCfg.Endpoint); err != nil {
-		m.logger.Error("Failed to init metrics HCP client", "error", err)
-		return
+	if err := m.cfg.Client.InitMetricsClient(ctx, telemetryCfg.Endpoint); err != nil {
+		return fmt.Errorf("failed to init metrics HCP client: %v", err)
 	}
 
 	expCfg := &telemetry.MetricsExporterConfig{
@@ -116,8 +116,7 @@ func (m *Manager) runReporter(ctx context.Context) {
 
 	exp, err := telemetry.NewMetricsExporter(expCfg)
 	if err != nil {
-		m.logger.Error("Failed to create exporter", "error", err)
-		return
+		return fmt.Errorf("failed to create exporter: %v", err)
 	}
 
 	// Step 3: Init telemetry.Reporter, which gathers consul server go metrics over a configurable time interval (Report Interval).
@@ -129,12 +128,13 @@ func (m *Manager) runReporter(ctx context.Context) {
 
 	m.reporter, err = telemetry.NewReporter(cfg)
 	if err != nil {
-		m.logger.Error("Failed to create exporter", "error", err)
-		return
+		return fmt.Errorf("failed to create exporter: %v", err)
 	}
 
-	// If setup is successful, run the reporter.
+	// If setup is successful, run the reporter, which is a blocking operation.
 	m.reporter.Run(ctx)
+
+	return nil
 }
 
 // Run executes the Manager it's designed to be run in its own goroutine for
@@ -146,7 +146,11 @@ func (m *Manager) Run(ctx context.Context) {
 	m.logger.Debug("HCP manager starting")
 
 	if m.cfg.enabled() {
-		go m.runReporter(ctx)
+		go func() {
+			if err := m.runReporter(ctx); err != nil {
+				m.cfg.Logger.Error("failed to run reporter: %v", err)
+			}
+		}()
 	}
 
 	var err error

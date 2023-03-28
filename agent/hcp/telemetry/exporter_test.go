@@ -2,6 +2,7 @@ package telemetry
 
 import (
 	"context"
+	"io"
 	"testing"
 	"time"
 
@@ -26,7 +27,7 @@ func TestExporter_NewMetricsExporter(t *testing.T) {
 			cfg: &MetricsExporterConfig{
 				Client:  nil,
 				Filters: []string{"raft.apply$"},
-				Logger:  hclog.L(),
+				Logger:  hclog.New(&hclog.LoggerOptions{Output: io.Discard}),
 			},
 			wantErr: "HCP client and a logger are required",
 		},
@@ -42,7 +43,7 @@ func TestExporter_NewMetricsExporter(t *testing.T) {
 				Client: client.NewMockClient(t),
 				// Unsupported re2 regex syntax
 				Filters: []string{"(*LF)"},
-				Logger:  hclog.L(),
+				Logger:  hclog.New(&hclog.LoggerOptions{Output: io.Discard}),
 			},
 			wantErr: "invalid regex",
 		},
@@ -53,7 +54,7 @@ func TestExporter_NewMetricsExporter(t *testing.T) {
 				Labels: map[string]string{
 					"instance.id": "asdkfj",
 				},
-				Logger: hclog.L(),
+				Logger: hclog.New(&hclog.LoggerOptions{Output: io.Discard}),
 			},
 		},
 	} {
@@ -93,7 +94,7 @@ func TestExporter_Export(t *testing.T) {
 		Labels: map[string]string{
 			"instance.id": "testserver",
 		},
-		Logger: hclog.L(),
+		Logger: hclog.New(&hclog.LoggerOptions{Output: io.Discard}),
 	}
 	exp, err := NewMetricsExporter(cfg)
 	require.NoError(t, err)

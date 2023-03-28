@@ -2,6 +2,7 @@ package telemetry
 
 import (
 	"context"
+	"io"
 	"testing"
 	"time"
 
@@ -18,7 +19,7 @@ import (
 func TestReporter_NewReporter_Failures(t *testing.T) {
 	exp, err := NewMetricsExporter(&MetricsExporterConfig{
 		Client: client.NewMockClient(t),
-		Logger: hclog.L(),
+		Logger: hclog.New(&hclog.LoggerOptions{Output: io.Discard}),
 	})
 
 	require.NoError(t, err)
@@ -30,7 +31,7 @@ func TestReporter_NewReporter_Failures(t *testing.T) {
 		"failsWithoutGatherer": {
 			cfg: &ReporterConfig{
 				Exporter: exp,
-				Logger:   hclog.L(),
+				Logger:   hclog.New(&hclog.LoggerOptions{Output: io.Discard}),
 			},
 			wantErr: "metrics exporter, gatherer and logger must be provided",
 		},
@@ -43,7 +44,7 @@ func TestReporter_NewReporter_Failures(t *testing.T) {
 		"failesWithoutExporter": {
 			cfg: &ReporterConfig{
 				Gatherer: metrics.NewInmemSink(1*time.Second, time.Minute),
-				Logger:   hclog.L(),
+				Logger:   hclog.New(&hclog.LoggerOptions{Output: io.Discard}),
 			},
 			wantErr: "metrics exporter, gatherer and logger must be provided",
 		},
@@ -66,7 +67,7 @@ func TestReporter_Run(t *testing.T) {
 
 	expCfg := &MetricsExporterConfig{
 		Client:  client,
-		Logger:  hclog.L(),
+		Logger:  hclog.New(&hclog.LoggerOptions{Output: io.Discard}),
 		Filters: []string{"raft.*"},
 	}
 	exp, err := NewMetricsExporter(expCfg)
@@ -74,7 +75,7 @@ func TestReporter_Run(t *testing.T) {
 
 	flushCh := make(chan struct{}, 1)
 	cfg := DefaultConfig()
-	cfg.Logger = hclog.L()
+	cfg.Logger = hclog.New(&hclog.LoggerOptions{Output: io.Discard})
 	cfg.Exporter = exp
 	cfg.Gatherer = metrics.NewInmemSink(1*time.Second, time.Minute)
 
