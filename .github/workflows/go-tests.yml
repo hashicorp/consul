@@ -38,7 +38,7 @@ jobs:
     - setup
     uses: ./.github/workflows/reusable-check-go-mod.yml
     with:
-      runs-on: ${{ needs.setup.outputs.compute-medium }}
+      runs-on: ${{ needs.setup.outputs.compute-small }}
     
   check-generated-protobuf:
     needs: 
