@@ -1,7 +1,7 @@
 name: go-tests
 
 on: 
-  push:
+  pull_request:
     branches-ignore:
       - stable-website
       - 'docs/**'
