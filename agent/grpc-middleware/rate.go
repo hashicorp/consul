@@ -38,7 +38,7 @@ func ServerRateLimiterMiddleware(limiter rate.RequestLimitsHandler, panicHandler
 			return ctx, status.Error(codes.Internal, "gRPC rate limit middleware unable to read peer")
 		}
 
-		operationSpec, ok := rpcRateLimitSpecs[info.FullMethodName]
+		operationType, ok := rpcRateLimitSpecs[info.FullMethodName]
 		if !ok {
 			logger.Warn("failed to determine which rate limit to apply to RPC", "rpc", info.FullMethodName)
 			return ctx, nil
@@ -47,8 +47,7 @@ func ServerRateLimiterMiddleware(limiter rate.RequestLimitsHandler, panicHandler
 		err := limiter.Allow(rate.Operation{
 			Name:       info.FullMethodName,
 			SourceAddr: peer.Addr,
-			Type:       operationSpec.Type,
-			Category:   operationSpec.Category,
+			Type:       operationType,
 		})
 
 		switch {

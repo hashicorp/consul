@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 export default function (scenario, find, click) {
   scenario
     .when('I click "$selector"', function (selector) {

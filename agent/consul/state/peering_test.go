@@ -11,9 +11,8 @@ import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/proto/private/pbcommon"
-	"github.com/hashicorp/consul/proto/private/pbpeering"
-	"github.com/hashicorp/consul/proto/private/prototest"
+	"github.com/hashicorp/consul/proto/pbpeering"
+	"github.com/hashicorp/consul/proto/prototest"
 	"github.com/hashicorp/consul/sdk/testutil"
 )
 
@@ -1262,10 +1261,6 @@ func TestStore_PeeringWrite(t *testing.T) {
 					Remote: &pbpeering.RemoteInfo{
 						Partition:  "part1",
 						Datacenter: "datacenter1",
-						Locality: &pbcommon.Locality{
-							Region: "us-west-1",
-							Zone:   "us-west-1a",
-						},
 					},
 				},
 			},
@@ -1277,10 +1272,6 @@ func TestStore_PeeringWrite(t *testing.T) {
 					Remote: &pbpeering.RemoteInfo{
 						Partition:  "part1",
 						Datacenter: "datacenter1",
-						Locality: &pbcommon.Locality{
-							Region: "us-west-1",
-							Zone:   "us-west-1a",
-						},
 					},
 				},
 				secrets: &pbpeering.PeeringSecrets{
@@ -1312,10 +1303,6 @@ func TestStore_PeeringWrite(t *testing.T) {
 					Remote: &pbpeering.RemoteInfo{
 						Partition:  "part1",
 						Datacenter: "datacenter1",
-						Locality: &pbcommon.Locality{
-							Region: "us-west-1",
-							Zone:   "us-west-1a",
-						},
 					},
 				},
 				secrets: &pbpeering.PeeringSecrets{
@@ -1345,10 +1332,6 @@ func TestStore_PeeringWrite(t *testing.T) {
 					Remote: &pbpeering.RemoteInfo{
 						Partition:  "part1",
 						Datacenter: "datacenter1",
-						Locality: &pbcommon.Locality{
-							Region: "us-west-1",
-							Zone:   "us-west-1a",
-						},
 					},
 				},
 				secrets: &pbpeering.PeeringSecrets{
@@ -1378,10 +1361,6 @@ func TestStore_PeeringWrite(t *testing.T) {
 					Remote: &pbpeering.RemoteInfo{
 						Partition:  "part1",
 						Datacenter: "datacenter1",
-						Locality: &pbcommon.Locality{
-							Region: "us-west-1",
-							Zone:   "us-west-1a",
-						},
 					},
 				},
 				// Secrets for baz should have been deleted
@@ -1410,10 +1389,6 @@ func TestStore_PeeringWrite(t *testing.T) {
 					Remote: &pbpeering.RemoteInfo{
 						Partition:  "part1",
 						Datacenter: "datacenter1",
-						Locality: &pbcommon.Locality{
-							Region: "us-west-1",
-							Zone:   "us-west-1a",
-						},
 					},
 					// Meta should be unchanged.
 					Meta: nil,
@@ -1441,10 +1416,6 @@ func TestStore_PeeringWrite(t *testing.T) {
 					Remote: &pbpeering.RemoteInfo{
 						Partition:  "part1",
 						Datacenter: "datacenter1",
-						Locality: &pbcommon.Locality{
-							Region: "us-west-1",
-							Zone:   "us-west-1a",
-						},
 					},
 				},
 				secrets: nil,
@@ -1472,10 +1443,6 @@ func TestStore_PeeringWrite(t *testing.T) {
 					Remote: &pbpeering.RemoteInfo{
 						Partition:  "part1",
 						Datacenter: "datacenter1",
-						Locality: &pbcommon.Locality{
-							Region: "us-west-1",
-							Zone:   "us-west-1a",
-						},
 					},
 				},
 				// Secrets for baz should have been deleted
@@ -1502,10 +1469,6 @@ func TestStore_PeeringWrite(t *testing.T) {
 					Remote: &pbpeering.RemoteInfo{
 						Partition:  "part1",
 						Datacenter: "datacenter1",
-						Locality: &pbcommon.Locality{
-							Region: "us-west-1",
-							Zone:   "us-west-1a",
-						},
 					},
 				},
 				// Secrets for baz should have been deleted

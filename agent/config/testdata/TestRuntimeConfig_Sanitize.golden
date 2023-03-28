@@ -79,8 +79,6 @@
     "BootstrapExpect": 0,
     "BuildDate": "2019-11-20 05:00:00 +0000 UTC",
     "Cache": {
-        "CacheRefreshBackoffMin": 0,
-        "CacheRefreshMaxWait": "0s",
         "EntryFetchMaxBurst": 42,
         "EntryFetchRate": 0.334,
         "Logger": null
@@ -234,10 +232,6 @@
     "LeaveDrainTime": "0s",
     "LeaveOnTerm": false,
     "LocalProxyConfigResyncInterval": "0s",
-    "Locality": {
-        "Region": "us-west-1",
-        "Zone": "us-west-1a"
-    },
     "Logging": {
         "EnableSyslog": false,
         "LogFilePath": "",
@@ -371,7 +365,6 @@
             "EnterpriseMeta": {},
             "ID": "",
             "Kind": "",
-            "Locality": null,
             "Meta": {},
             "Name": "foo",
             "Port": 0,

@@ -8,7 +8,7 @@ import (
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/proxycfg/internal/watch"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/proto/private/pbpeering"
+	"github.com/hashicorp/consul/proto/pbpeering"
 )
 
 var _ kindHandler = (*handlerAPIGateway)(nil)
@@ -392,6 +392,8 @@ func (h *handlerAPIGateway) handleRouteConfigUpdate(ctx context.Context, u Updat
 		snap.APIGateway.Upstreams.set(ref, listener, set)
 	}
 	snap.APIGateway.UpstreamsSet.set(ref, seenUpstreamIDs)
+	// snap.APIGateway.Hosts = TODO
+	snap.APIGateway.AreHostsSet = true
 
 	// Stop watching any upstreams and discovery chains that have become irrelevant
 	for upstreamID, cancelDiscoChain := range snap.APIGateway.WatchedDiscoveryChains {

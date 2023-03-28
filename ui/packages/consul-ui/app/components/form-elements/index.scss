@@ -1,13 +1,7 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 @import './skin';
 @import './layout';
-%form h2,
-.modal-dialog-body h2 {
-  @extend %display-400-semibold;
+%form h2 {
+  @extend %h200;
 }
 /* TODO: This is positioning the element */
 /* probably should be in a special %form class*/
@@ -47,7 +41,9 @@ label span {
   @extend %form-element-error;
 }
 // TODO: float right here is too specific, this is currently used just for the role/policy selectors
-.type-dialog {
+label.type-dialog {
+  @extend %anchor;
+  cursor: pointer;
   float: right;
 }
 .type-toggle {
@@ -72,11 +68,6 @@ span.label {
 %main-content .type-password,
 %main-content .type-text {
   @extend %form-element;
-}
-%main-content .type-select > span,
-%main-content .type-password > span,
-%main-content label.type-text > span {
-  line-height: 2.2em;
 }
 %app-view-content form:not(.filter-bar) [role='radiogroup'],
 %modal-window [role='radiogroup'] {

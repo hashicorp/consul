@@ -436,8 +436,6 @@ type Config struct {
 
 	PeeringTestAllowPeerRegistrations bool
 
-	Locality *structs.Locality
-
 	// Embedded Consul Enterprise specific configuration
 	*EnterpriseConfig
 }

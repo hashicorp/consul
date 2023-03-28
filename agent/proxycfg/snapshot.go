@@ -12,7 +12,7 @@ import (
 	"github.com/hashicorp/consul/agent/proxycfg/internal/watch"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
-	"github.com/hashicorp/consul/proto/private/pbpeering"
+	"github.com/hashicorp/consul/proto/pbpeering"
 )
 
 // TODO(ingress): Can we think of a better for this bag of data?
@@ -666,10 +666,8 @@ func (r routeUpstreamSet) delete(route structs.ResourceReference) {
 	delete(r, route)
 }
 
-type (
-	listenerUpstreamMap    map[APIGatewayListenerKey]structs.Upstreams
-	listenerRouteUpstreams map[structs.ResourceReference]listenerUpstreamMap
-)
+type listenerUpstreamMap map[APIGatewayListenerKey]structs.Upstreams
+type listenerRouteUpstreams map[structs.ResourceReference]listenerUpstreamMap
 
 func (l listenerRouteUpstreams) set(route structs.ResourceReference, listener APIGatewayListenerKey, upstreams structs.Upstreams) {
 	if _, ok := l[route]; !ok {
@@ -707,9 +705,13 @@ type configSnapshotAPIGateway struct {
 	BoundGatewayConfigLoaded bool
 	BoundGatewayConfig       *structs.BoundAPIGatewayConfigEntry
 
+	// Hosts is the list of extra host entries to add to our leaf cert's DNS SANs
+	Hosts       []string
+	AreHostsSet bool
+
 	// LeafCertWatchCancel is a CancelFunc to use when refreshing this gateway's
 	// leaf cert watch with different parameters.
-	// LeafCertWatchCancel context.CancelFunc
+	//LeafCertWatchCancel context.CancelFunc
 
 	// Upstreams is a list of upstreams this ingress gateway should serve traffic
 	// to. This is constructed from the ingress-gateway config entry, and uses
@@ -1077,6 +1079,7 @@ func (s *ConfigSnapshot) Valid() bool {
 			s.APIGateway.Leaf != nil &&
 			s.APIGateway.GatewayConfigLoaded &&
 			s.APIGateway.BoundGatewayConfigLoaded &&
+			s.APIGateway.AreHostsSet &&
 			s.APIGateway.MeshConfigSet
 	default:
 		return false
@@ -1118,8 +1121,8 @@ func (s *ConfigSnapshot) Clone() *ConfigSnapshot {
 		snap.APIGateway.WatchedDiscoveryChains = nil
 
 		// only api-gateway
-		// snap.APIGateway.LeafCertWatchCancel = nil
-		// snap.APIGateway.
+		//snap.APIGateway.LeafCertWatchCancel = nil
+		//snap.APIGateway.
 	}
 
 	return snap

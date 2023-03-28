@@ -1,8 +1,3 @@
-{{!
-  Copyright (c) HashiCorp, Inc.
-  SPDX-License-Identifier: MPL-2.0
-}}
-
 {{#let (hash
   labelledby=(unique-id)
 ) as |aria|}}
@@ -25,14 +20,12 @@
           role="document"
         >
           <header class="modal-dialog-header">
-            <Hds::Button
+            <button
+              type="button"
               data-a11y-dialog-hide
-              @text='Close dialog'
-              @color='secondary'
-              @icon='x'
-              @size='small'
-              @isIconOnly={{true}}
-            />
+              aria-label="Close dialog"
+            >
+            </button>
             <YieldSlot @name="header">
               {{yield (hash
                 open=(action "open")

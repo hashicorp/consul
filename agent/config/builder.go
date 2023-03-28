@@ -455,14 +455,6 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 	sidecarMaxPort := b.portVal("ports.sidecar_max_port", c.Ports.SidecarMaxPort)
 	exposeMinPort := b.portVal("ports.expose_min_port", c.Ports.ExposeMinPort)
 	exposeMaxPort := b.portVal("ports.expose_max_port", c.Ports.ExposeMaxPort)
-	if serverPort <= 0 {
-		return RuntimeConfig{}, fmt.Errorf(
-			"server-port must be greater than zero")
-	}
-	if serfPortLAN <= 0 {
-		return RuntimeConfig{}, fmt.Errorf(
-			"serf-lan-port must be greater than zero")
-	}
 	if proxyMaxPort < proxyMinPort {
 		return RuntimeConfig{}, fmt.Errorf(
 			"proxy_min_port must be less than proxy_max_port. To disable, set both to zero.")
@@ -841,7 +833,6 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		// gossip configuration
 		GossipLANGossipInterval: b.durationVal("gossip_lan..gossip_interval", c.GossipLAN.GossipInterval),
 		GossipLANGossipNodes:    intVal(c.GossipLAN.GossipNodes),
-		Locality:                c.Locality,
 		GossipLANProbeInterval:  b.durationVal("gossip_lan..probe_interval", c.GossipLAN.ProbeInterval),
 		GossipLANProbeTimeout:   b.durationVal("gossip_lan..probe_timeout", c.GossipLAN.ProbeTimeout),
 		GossipLANSuspicionMult:  intVal(c.GossipLAN.SuspicionMult),

@@ -44,16 +44,6 @@ type PeeringRemoteInfo struct {
 	Partition string
 	// Datacenter is the remote peer's datacenter.
 	Datacenter string
-	Locality   *Locality
-}
-
-// Locality identifies where a given entity is running.
-type Locality struct {
-	// Region is region the zone belongs to.
-	Region string
-
-	// Zone is the zone the entity is running in.
-	Zone string
 }
 
 type Peering struct {

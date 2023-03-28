@@ -1,11 +1,6 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 .consul-peer-info {
-  background: var(--token-color-surface-faint);
-  color: var(--token-color-foreground-faint);
+  background: rgb(var(--gray-100));
+  color: rgb(var(--gray-600));
   padding: 0px 8px;
   border-radius: 2px;
 

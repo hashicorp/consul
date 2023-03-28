@@ -36,6 +36,7 @@ func TestHTTPRouteFlattening(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
+
 	t.Parallel()
 
 	// infrastructure set up
@@ -52,8 +53,6 @@ func TestHTTPRouteFlattening(t *testing.T) {
 	gatewayName := randomName("gw", 16)
 	routeOneName := randomName("route", 16)
 	routeTwoName := randomName("route", 16)
-	fooHostName := "test.foo"
-	exampleHostName := "test.example"
 	path1 := "/"
 	path2 := "/v2"
 
@@ -79,57 +78,41 @@ func TestHTTPRouteFlattening(t *testing.T) {
 	cluster, _, _ := libtopology.NewCluster(t, clusterConfig)
 	client := cluster.Agents[0].GetClient()
 
-	gwNamespace := getNamespace()
-	if gwNamespace != "" {
-		ns := &api.Namespace{Name: gwNamespace}
-		_, _, err := client.Namespaces().Create(ns, nil)
-		require.NoError(t, err)
-	}
-
-	serviceOneNamespace := getNamespace()
-	if serviceOneNamespace != "" {
-		ns := &api.Namespace{Name: serviceOneNamespace}
-		_, _, err := client.Namespaces().Create(ns, nil)
-		require.NoError(t, err)
-	}
-
-	serviceTwoNamespace := getNamespace()
-	if serviceTwoNamespace != "" {
-		ns := &api.Namespace{Name: serviceTwoNamespace}
+	namespace := getNamespace()
+	if namespace != "" {
+		ns := &api.Namespace{Name: namespace}
 		_, _, err := client.Namespaces().Create(ns, nil)
 		require.NoError(t, err)
 	}
 
 	_, _, err := libservice.CreateAndRegisterStaticServerAndSidecar(cluster.Agents[0], &libservice.ServiceOpts{
-		Name:      serviceOneName,
 		ID:        serviceOneName,
+		Name:      serviceOneName,
+		Namespace: namespace,
 		HTTPPort:  serviceOneHTTPPort,
 		GRPCPort:  serviceOneGRPCPort,
-		Namespace: serviceOneNamespace,
 	},
 		// customizes response code so we can distinguish between which service is responding
 		"-echo-server-default-params", fmt.Sprintf("status=%d", serviceOneResponseCode),
 	)
-
 	require.NoError(t, err)
 
 	_, _, err = libservice.CreateAndRegisterStaticServerAndSidecar(cluster.Agents[0], &libservice.ServiceOpts{
-		Name:      serviceTwoName,
 		ID:        serviceTwoName,
+		Name:      serviceTwoName,
+		Namespace: namespace,
 		HTTPPort:  serviceTwoHTTPPort,
 		GRPCPort:  serviceTwoGRPCPort,
-		Namespace: serviceTwoNamespace,
 	},
+		// customizes response code so we can distinguish between which service is responding
 		"-echo-server-default-params", fmt.Sprintf("status=%d", serviceTwoResponseCode),
 	)
-
 	require.NoError(t, err)
 
 	// write config entries
 	proxyDefaults := &api.ProxyConfigEntry{
-		Kind:      api.ProxyDefaults,
-		Name:      api.ProxyConfigGlobal,
-		Namespace: "", // proxy-defaults can only be set in the default namespace
+		Kind: api.ProxyDefaults,
+		Name: api.ProxyConfigGlobal,
 		Config: map[string]interface{}{
 			"protocol": "http",
 		},
@@ -147,30 +130,30 @@ func TestHTTPRouteFlattening(t *testing.T) {
 				Protocol: "http",
 			},
 		},
-		Namespace: gwNamespace,
+		Namespace: namespace,
 	}
 
 	routeOne := &api.HTTPRouteConfigEntry{
-		Kind: api.HTTPRoute,
-		Name: routeOneName,
+		Kind:      api.HTTPRoute,
+		Name:      routeOneName,
+		Namespace: namespace,
 		Parents: []api.ResourceReference{
 			{
 				Kind:      api.APIGateway,
 				Name:      gatewayName,
-				Namespace: gwNamespace,
+				Namespace: namespace,
 			},
 		},
 		Hostnames: []string{
-			fooHostName,
-			exampleHostName,
+			"test.foo",
+			"test.example",
 		},
-		Namespace: gwNamespace,
 		Rules: []api.HTTPRouteRule{
 			{
 				Services: []api.HTTPService{
 					{
 						Name:      serviceOneName,
-						Namespace: serviceOneNamespace,
+						Namespace: namespace,
 					},
 				},
 				Matches: []api.HTTPMatch{
@@ -186,25 +169,25 @@ func TestHTTPRouteFlattening(t *testing.T) {
 	}
 
 	routeTwo := &api.HTTPRouteConfigEntry{
-		Kind: api.HTTPRoute,
-		Name: routeTwoName,
+		Kind:      api.HTTPRoute,
+		Name:      routeTwoName,
+		Namespace: namespace,
 		Parents: []api.ResourceReference{
 			{
 				Kind:      api.APIGateway,
 				Name:      gatewayName,
-				Namespace: gwNamespace,
+				Namespace: namespace,
 			},
 		},
 		Hostnames: []string{
-			fooHostName,
+			"test.foo",
 		},
-		Namespace: gwNamespace,
 		Rules: []api.HTTPRouteRule{
 			{
 				Services: []api.HTTPService{
 					{
 						Name:      serviceTwoName,
-						Namespace: serviceTwoNamespace,
+						Namespace: namespace,
 					},
 				},
 				Matches: []api.HTTPMatch{
@@ -234,50 +217,51 @@ func TestHTTPRouteFlattening(t *testing.T) {
 	gwCfg := libservice.GatewayConfig{
 		Name:      gatewayName,
 		Kind:      "api",
-		Namespace: gwNamespace,
+		Namespace: namespace,
 	}
 	gatewayService, err := libservice.NewGatewayService(context.Background(), gwCfg, cluster.Agents[0], listenerPort)
 	require.NoError(t, err)
-	libassert.CatalogServiceExists(t, client, gatewayName, &api.QueryOptions{Namespace: gwNamespace})
+	libassert.CatalogServiceExists(t, client, gatewayName, &api.QueryOptions{Namespace: namespace})
 
 	// make sure config entries have been properly created
-	checkGatewayConfigEntry(t, client, gatewayName, gwNamespace)
-	checkHTTPRouteConfigEntry(t, client, routeOneName, gwNamespace)
-	checkHTTPRouteConfigEntry(t, client, routeTwoName, gwNamespace)
+	checkGatewayConfigEntry(t, client, gatewayName, namespace)
+	t.Log("checking route one")
+	checkHTTPRouteConfigEntry(t, client, routeOneName, namespace)
+	checkHTTPRouteConfigEntry(t, client, routeTwoName, namespace)
 
 	// gateway resolves routes
 	gatewayPort, err := gatewayService.GetPort(listenerPort)
 	require.NoError(t, err)
+	fmt.Println("Gateway Port: ", gatewayPort)
 
 	// Same v2 path with and without header
 	checkRoute(t, gatewayPort, "/v2", map[string]string{
-		"Host": fooHostName,
+		"Host": "test.foo",
 		"x-v2": "v2",
 	}, checkOptions{statusCode: serviceTwoResponseCode, testName: "service2 header and path"})
-
 	checkRoute(t, gatewayPort, "/v2", map[string]string{
-		"Host": fooHostName,
+		"Host": "test.foo",
 	}, checkOptions{statusCode: serviceTwoResponseCode, testName: "service2 just path match"})
 
 	// //v1 path with the header
 	checkRoute(t, gatewayPort, "/check", map[string]string{
-		"Host": fooHostName,
+		"Host": "test.foo",
 		"x-v2": "v2",
 	}, checkOptions{statusCode: serviceTwoResponseCode, testName: "service2 just header match"})
 
 	checkRoute(t, gatewayPort, "/v2/path/value", map[string]string{
-		"Host": fooHostName,
+		"Host": "test.foo",
 		"x-v2": "v2",
 	}, checkOptions{statusCode: serviceTwoResponseCode, testName: "service2 v2 with path"})
 
 	// hit service 1 by hitting root path
 	checkRoute(t, gatewayPort, "", map[string]string{
-		"Host": fooHostName,
+		"Host": "test.foo",
 	}, checkOptions{debug: false, statusCode: serviceOneResponseCode, testName: "service1 root prefix"})
 
 	// hit service 1 by hitting v2 path with v1 hostname
 	checkRoute(t, gatewayPort, "/v2", map[string]string{
-		"Host": exampleHostName,
+		"Host": "test.example",
 	}, checkOptions{debug: false, statusCode: serviceOneResponseCode, testName: "service1, v2 path with v2 hostname"})
 }
 

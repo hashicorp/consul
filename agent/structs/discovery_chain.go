@@ -178,8 +178,7 @@ type DiscoverySplit struct {
 
 // compiled form of ServiceResolverFailover
 type DiscoveryFailover struct {
-	Targets []string                       `json:",omitempty"`
-	Policy  *ServiceResolverFailoverPolicy `json:",omitempty"`
+	Targets []string `json:",omitempty"`
 }
 
 // DiscoveryTarget represents all of the inputs necessary to use a resolver
@@ -190,13 +189,12 @@ type DiscoveryTarget struct {
 	// chain. It should be treated as a per-compile opaque string.
 	ID string `json:",omitempty"`
 
-	Service       string    `json:",omitempty"`
-	ServiceSubset string    `json:",omitempty"`
-	Namespace     string    `json:",omitempty"`
-	Partition     string    `json:",omitempty"`
-	Datacenter    string    `json:",omitempty"`
-	Peer          string    `json:",omitempty"`
-	Locality      *Locality `json:",omitempty"`
+	Service       string `json:",omitempty"`
+	ServiceSubset string `json:",omitempty"`
+	Namespace     string `json:",omitempty"`
+	Partition     string `json:",omitempty"`
+	Datacenter    string `json:",omitempty"`
+	Peer          string `json:",omitempty"`
 
 	MeshGateway      MeshGatewayConfig      `json:",omitempty"`
 	Subset           ServiceResolverSubset  `json:",omitempty"`

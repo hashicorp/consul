@@ -3,7 +3,6 @@ package snapshot
 import (
 	"fmt"
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/sdk/testutil/retry"
 	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
 	libtopology "github.com/hashicorp/consul/test/integration/consul-container/libs/topology"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
@@ -80,9 +79,6 @@ func testSnapShotRestoreForLogStore(t *testing.T, logStore libcluster.LogStore) 
 
 	libcluster.WaitForLeader(t, cluster2, client2)
 
-	leader, err := cluster2.Leader()
-	require.NoError(t, err)
-
 	followers, err := cluster2.Followers()
 	require.NoError(t, err)
 	require.Len(t, followers, 2)
@@ -90,17 +86,6 @@ func testSnapShotRestoreForLogStore(t *testing.T, logStore libcluster.LogStore) 
 	// use a follower api client and set `AllowStale` to true
 	// to test the follower snapshot install code path as well.
 	fc := followers[0].GetClient()
-	lc := leader.GetClient()
-
-	retry.Run(t, func(r *retry.R) {
-		self, err := lc.Agent().Self()
-		require.NoError(r, err)
-		LeaderLogIndex := self["Stats"]["raft"].(map[string]interface{})["last_log_index"].(string)
-		self, err = fc.Agent().Self()
-		require.NoError(r, err)
-		followerLogIndex := self["Stats"]["raft"].(map[string]interface{})["last_log_index"].(string)
-		require.Equal(r, LeaderLogIndex, followerLogIndex)
-	})
 
 	for i := 0; i < 100; i++ {
 		kv, _, err := fc.KV().Get(fmt.Sprintf("key-%d", i), &api.QueryOptions{AllowStale: true})

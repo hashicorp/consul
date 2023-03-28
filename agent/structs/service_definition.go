@@ -26,7 +26,6 @@ type ServiceDefinition struct {
 	Weights           *Weights
 	Token             string
 	EnableTagOverride bool
-	Locality          *Locality
 
 	// Proxy is the configuration set for Kind = connect-proxy. It is mandatory in
 	// that case and an error to be set for any other kind. This config is part of
@@ -77,7 +76,6 @@ func (s *ServiceDefinition) NodeService() *NodeService {
 		Weights:           s.Weights,
 		EnableTagOverride: s.EnableTagOverride,
 		EnterpriseMeta:    s.EnterpriseMeta,
-		Locality:          s.Locality,
 	}
 	ns.EnterpriseMeta.Normalize()
 

@@ -5,7 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/hashicorp/consul/proto/private/pbautoconf"
+	"github.com/hashicorp/consul/proto/pbautoconf"
 	"google.golang.org/protobuf/encoding/protojson"
 )
 

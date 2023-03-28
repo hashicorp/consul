@@ -173,8 +173,7 @@ func GetNetRPCRateLimitingInterceptor(requestLimitsHandler rpcRate.RequestLimits
 		op := rpcRate.Operation{
 			Name:       reqServiceMethod,
 			SourceAddr: sourceAddr,
-			Type:       rpcRateLimitSpecs[reqServiceMethod].Type,
-			Category:   rpcRateLimitSpecs[reqServiceMethod].Category,
+			Type:       rpcRateLimitSpecs[reqServiceMethod],
 		}
 
 		// net/rpc does not provide a way to encode the nuances of the

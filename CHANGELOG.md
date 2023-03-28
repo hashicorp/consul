@@ -28,45 +28,11 @@ BUG FIXES:
 * proxycfg: fix a bug where terminating gateways were not cleaning up deleted service resolvers for their referenced services [[GH-16498](https://github.com/hashicorp/consul/issues/16498)]
 * ui: Fix issue with lists and filters not rendering properly [[GH-16444](https://github.com/hashicorp/consul/issues/16444)]
 
-## 1.14.5 (March 7, 2023)
-
-SECURITY:
-
-* Upgrade to use Go 1.20.1.
-This resolves vulnerabilities [CVE-2022-41724](https://go.dev/issue/58001) in `crypto/tls` and [CVE-2022-41723](https://go.dev/issue/57855) in `net/http`. [[GH-16263](https://github.com/hashicorp/consul/issues/16263)]
-
-IMPROVEMENTS:
-
-* container: Upgrade container image to use to Alpine 3.17. [[GH-16358](https://github.com/hashicorp/consul/issues/16358)]
-* mesh: Add ServiceResolver RequestTimeout for route timeouts to make request timeouts configurable [[GH-16495](https://github.com/hashicorp/consul/issues/16495)]
-
-BUG FIXES:
-
-* mesh: Fix resolution of service resolvers with subsets for external upstreams [[GH-16499](https://github.com/hashicorp/consul/issues/16499)]
-* peering: Fix bug where services were incorrectly imported as connect-enabled. [[GH-16339](https://github.com/hashicorp/consul/issues/16339)]
-* peering: Fix issue where mesh gateways would use the wrong address when contacting a remote peer with the same datacenter name. [[GH-16257](https://github.com/hashicorp/consul/issues/16257)]
-* peering: Fix issue where secondary wan-federated datacenters could not be used as peering acceptors. [[GH-16230](https://github.com/hashicorp/consul/issues/16230)]
-* proxycfg: fix a bug where terminating gateways were not cleaning up deleted service resolvers for their referenced services [[GH-16498](https://github.com/hashicorp/consul/issues/16498)]
-
-## 1.13.7 (March 7, 2023)
-
-SECURITY:
-
-* Upgrade to use Go 1.19.6.
-This resolves vulnerabilities [CVE-2022-41724](https://go.dev/issue/58001) in `crypto/tls` and [CVE-2022-41723](https://go.dev/issue/57855) in `net/http`. [[GH-16299](https://github.com/hashicorp/consul/issues/16299)]
-
-IMPROVEMENTS:
-
-* xds: Removed a bottleneck in Envoy config generation. [[GH-16269](https://github.com/hashicorp/consul/issues/16269)]
-* container: Upgrade container image to use to Alpine 3.17. [[GH-16358](https://github.com/hashicorp/consul/issues/16358)]
-* mesh: Add ServiceResolver RequestTimeout for route timeouts to make request timeouts configurable [[GH-16495](https://github.com/hashicorp/consul/issues/16495)]
-
-BUG FIXES:
-
-* mesh: Fix resolution of service resolvers with subsets for external upstreams [[GH-16499](https://github.com/hashicorp/consul/issues/16499)]
-* proxycfg: fix a bug where terminating gateways were not cleaning up deleted service resolvers for their referenced services [[GH-16498](https://github.com/hashicorp/consul/issues/16498)]
-
 ## 1.15.0 (February 23, 2023)
+
+KNOWN ISSUES:
+
+* connect: An issue with leaf certificate rotation can cause some service instances to lose their ability to communicate in the mesh after 72 hours (LeafCertTTL). This issue is not consistently reproducible. We are working to address this issue in an upcoming patch release. To err on the side of caution, service mesh deployments should not upgrade to Consul v1.15 at this time. Refer to [[GH-16779](https://github.com/hashicorp/consul/issues/16779)] for the latest information.
 
 BREAKING CHANGES:
 

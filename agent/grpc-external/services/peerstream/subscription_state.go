@@ -12,7 +12,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/proto/private/pbservice"
+	"github.com/hashicorp/consul/proto/pbservice"
 )
 
 // subscriptionState is a collection of working state tied to a peerID subscription.

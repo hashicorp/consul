@@ -839,11 +839,11 @@ func (s *ResourceGenerator) makeRouteActionForChainCluster(
 	chain *structs.CompiledDiscoveryChain,
 	forMeshGateway bool,
 ) (*envoy_route_v3.Route_Route, bool) {
-	clusterName := s.getTargetClusterName(upstreamsSnapshot, chain, targetID, forMeshGateway, false)
-	if clusterName == "" {
+	td, ok := s.getTargetClusterData(upstreamsSnapshot, chain, targetID, forMeshGateway, false)
+	if !ok {
 		return nil, false
 	}
-	return makeRouteActionFromName(clusterName), true
+	return makeRouteActionFromName(td.clusterName), true
 }
 
 func makeRouteActionFromName(clusterName string) *envoy_route_v3.Route_Route {
@@ -872,8 +872,8 @@ func (s *ResourceGenerator) makeRouteActionForSplitter(
 		}
 		targetID := nextNode.Resolver.Target
 
-		clusterName := s.getTargetClusterName(upstreamsSnapshot, chain, targetID, forMeshGateway, false)
-		if clusterName == "" {
+		targetOptions, ok := s.getTargetClusterData(upstreamsSnapshot, chain, targetID, forMeshGateway, false)
+		if !ok {
 			continue
 		}
 
@@ -883,7 +883,7 @@ func (s *ResourceGenerator) makeRouteActionForSplitter(
 		totalWeight += weight
 		cw := &envoy_route_v3.WeightedCluster_ClusterWeight{
 			Weight: makeUint32Value(weight),
-			Name:   clusterName,
+			Name:   targetOptions.clusterName,
 		}
 		if err := injectHeaderManipToWeightedCluster(split.Definition, cw); err != nil {
 			return nil, err

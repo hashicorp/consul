@@ -178,7 +178,7 @@ func TestAPI_AgentServiceAndReplaceChecks(t *testing.T) {
 
 	agent := c.Agent()
 	s.WaitForSerfCheck(t)
-	locality := &Locality{Region: "us-west-1", Zone: "us-west-1a"}
+
 	reg := &AgentServiceRegistration{
 		Name: "foo",
 		ID:   "foo",
@@ -193,7 +193,6 @@ func TestAPI_AgentServiceAndReplaceChecks(t *testing.T) {
 		Check: &AgentServiceCheck{
 			TTL: "15s",
 		},
-		Locality: locality,
 	}
 
 	regupdate := &AgentServiceRegistration{
@@ -206,8 +205,7 @@ func TestAPI_AgentServiceAndReplaceChecks(t *testing.T) {
 				Port:    80,
 			},
 		},
-		Port:     9000,
-		Locality: locality,
+		Port: 9000,
 	}
 
 	if err := agent.ServiceRegister(reg); err != nil {
@@ -243,14 +241,12 @@ func TestAPI_AgentServiceAndReplaceChecks(t *testing.T) {
 	require.NotNil(t, out)
 	require.Equal(t, HealthPassing, state)
 	require.Equal(t, 9000, out.Service.Port)
-	require.Equal(t, locality, out.Service.Locality)
 
 	state, outs, err := agent.AgentHealthServiceByName("foo")
 	require.Nil(t, err)
 	require.NotNil(t, outs)
 	require.Equal(t, HealthPassing, state)
 	require.Equal(t, 9000, outs[0].Service.Port)
-	require.Equal(t, locality, outs[0].Service.Locality)
 
 	if err := agent.ServiceDeregister("foo"); err != nil {
 		t.Fatalf("err: %v", err)
@@ -334,7 +330,6 @@ func TestAPI_AgentServices(t *testing.T) {
 	agent := c.Agent()
 	s.WaitForSerfCheck(t)
 
-	locality := &Locality{Region: "us-west-1", Zone: "us-west-1a"}
 	reg := &AgentServiceRegistration{
 		Name: "foo",
 		ID:   "foo",
@@ -349,7 +344,6 @@ func TestAPI_AgentServices(t *testing.T) {
 		Check: &AgentServiceCheck{
 			TTL: "15s",
 		},
-		Locality: locality,
 	}
 	if err := agent.ServiceRegister(reg); err != nil {
 		t.Fatalf("err: %v", err)
@@ -386,7 +380,6 @@ func TestAPI_AgentServices(t *testing.T) {
 	require.NotNil(t, out)
 	require.Equal(t, HealthCritical, state)
 	require.Equal(t, 8000, out.Service.Port)
-	require.Equal(t, locality, out.Service.Locality)
 
 	state, outs, err := agent.AgentHealthServiceByName("foo")
 	require.Nil(t, err)

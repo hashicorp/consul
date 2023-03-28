@@ -1,14 +1,21 @@
-{{!
-  Copyright (c) HashiCorp, Inc.
-  SPDX-License-Identifier: MPL-2.0
-}}
-
-<Hds::Alert @type='inline' @color={{or @type "neutral"}} class='mb-2 mt-2 consul-intention-notice-custom-resource' as |A|>
-  <A.Title>Intention Custom Resource</A.Title>
-  <A.Description>Some of your intentions are being managed through an Intention Custom Resource in your Kubernetes cluster. Those managed intentions will be view only in the UI. Any intentions created in the UI will work but will not be synced to the Custom Resource Definition (CRD) datastore.</A.Description>
-  <A.Link::Standalone @href="{{env 'CONSUL_DOCS_URL'}}/k8s/crds"
-                      @text='Learn more about CRDs'
-                      @icon="docs-link"
-                      @iconPosition="trailing"
-                      @size="small" />
-</Hds::Alert>
+<Notice
+  class="consul-intention-notice-custom-resource crd"
+  ...attributes
+  @type={{or @type "info"}}
+as |notice|>
+  <notice.Header>
+    <h3>
+      Intention Custom Resource
+    </h3>
+  </notice.Header>
+  <notice.Body>
+    <p>
+      Some of your intentions are being managed through an Intention Custom Resource in your Kubernetes cluster. Those managed intentions will be view only in the UI. Any intentions created in the UI will work but will not be synced to the Custom Resource Definition (CRD) datastore.
+    </p>
+  </notice.Body>
+  <notice.Footer>
+    <p>
+      <a href="{{env 'CONSUL_DOCS_URL'}}/k8s/crds" target="_blank" rel="noopener noreferrer">Learn more about CRDs</a>
+    </p>
+  </notice.Footer>
+</Notice>

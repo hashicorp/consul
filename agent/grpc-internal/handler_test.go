@@ -6,7 +6,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/types"
 
 	"github.com/hashicorp/go-hclog"
@@ -14,7 +13,6 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	"github.com/hashicorp/consul/agent/grpc-internal/balancer"
 	"github.com/hashicorp/consul/agent/grpc-internal/resolver"
 	"github.com/hashicorp/consul/agent/grpc-middleware/testutil/testservice"
 )
@@ -29,8 +27,7 @@ func TestHandler_PanicRecoveryInterceptor(t *testing.T) {
 	})
 
 	res := resolver.NewServerResolverBuilder(newConfig(t))
-	bb := balancer.NewBuilder(res.Authority(), testutil.Logger(t))
-	registerWithGRPC(t, res, bb)
+	registerWithGRPC(t, res)
 
 	srv := newPanicTestServer(t, logger, "server-1", "dc1", nil)
 	res.AddServer(types.AreaWAN, srv.Metadata())
@@ -41,6 +38,7 @@ func TestHandler_PanicRecoveryInterceptor(t *testing.T) {
 		UseTLSForDC:           useTLSForDcAlwaysTrue,
 		DialingFromServer:     true,
 		DialingFromDatacenter: "dc1",
+		BalancerBuilder:       balancerBuilder(t, res.Authority()),
 	})
 
 	conn, err := pool.ClientConn("dc1")

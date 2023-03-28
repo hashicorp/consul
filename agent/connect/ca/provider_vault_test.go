@@ -104,16 +104,16 @@ func TestVaultCAProvider_configureVaultAuthMethod(t *testing.T) {
 		expError     string
 		hasLDG       bool
 	}{
-		"alicloud":    {expLoginPath: "auth/alicloud/login", params: map[string]any{"role": "test-role", "region": "test-region"}, hasLDG: true},
-		"approle":     {expLoginPath: "auth/approle/login", params: map[string]any{"role_id_file_path": "test-path"}, hasLDG: true},
+		"alicloud":    {expLoginPath: "auth/alicloud/login"},
+		"approle":     {expLoginPath: "auth/approle/login"},
 		"aws":         {expLoginPath: "auth/aws/login", params: map[string]interface{}{"type": "iam"}, hasLDG: true},
-		"azure":       {expLoginPath: "auth/azure/login", params: map[string]interface{}{"role": "test-role", "resource": "test-resource"}, hasLDG: true},
+		"azure":       {expLoginPath: "auth/azure/login"},
 		"cf":          {expLoginPath: "auth/cf/login"},
 		"github":      {expLoginPath: "auth/github/login"},
 		"gcp":         {expLoginPath: "auth/gcp/login", params: map[string]interface{}{"type": "iam", "role": "test-role"}},
-		"jwt":         {expLoginPath: "auth/jwt/login", params: map[string]any{"role": "test-role", "path": "test-path"}, hasLDG: true},
+		"jwt":         {expLoginPath: "auth/jwt/login"},
 		"kerberos":    {expLoginPath: "auth/kerberos/login"},
-		"kubernetes":  {expLoginPath: "auth/kubernetes/login", params: map[string]interface{}{"role": "test-role"}, hasLDG: true},
+		"kubernetes":  {expLoginPath: "auth/kubernetes/login", params: map[string]interface{}{"jwt": "fake"}},
 		"ldap":        {expLoginPath: "auth/ldap/login/foo", params: map[string]interface{}{"username": "foo"}},
 		"oci":         {expLoginPath: "auth/oci/login/foo", params: map[string]interface{}{"role": "foo"}},
 		"okta":        {expLoginPath: "auth/okta/login/foo", params: map[string]interface{}{"username": "foo"}},

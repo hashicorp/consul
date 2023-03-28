@@ -7,18 +7,17 @@ import (
 	"testing"
 	"time"
 
-	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/go-hclog"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/time/rate"
 
 	"github.com/hashicorp/consul/acl"
-
+	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/consul/discoverychain"
 	"github.com/hashicorp/consul/agent/structs"
 	apimod "github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/proto/private/pbpeering"
-	"github.com/hashicorp/consul/proto/private/prototest"
+	"github.com/hashicorp/consul/proto/pbpeering"
+	"github.com/hashicorp/consul/proto/prototest"
 	"github.com/hashicorp/consul/sdk/testutil"
 )
 

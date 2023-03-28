@@ -12,7 +12,6 @@ import (
 	"github.com/hashicorp/consul/agent/configentry"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/proto/private/pbpeering"
 )
 
 type CompileRequest struct {
@@ -748,11 +747,6 @@ func (c *compiler) newTarget(opts structs.DiscoveryTargetOpts) *structs.Discover
 		// Use the same representation for the name. This will NOT be overridden
 		// later.
 		t.Name = t.SNI
-	} else {
-		peer := c.entries.Peers[opts.Peer]
-		if peer != nil && peer.Remote != nil {
-			t.Locality = pbpeering.LocalityToStructs(peer.Remote.Locality)
-		}
 	}
 
 	prev, ok := c.loadedTargets[t.ID]
@@ -941,8 +935,7 @@ RESOLVE_AGAIN:
 	//
 	// TODO(rb): What about a redirected subset reference? (web/v2, but web redirects to alt/"")
 
-	// Redirects to sameness groups are technically failovers.
-	if resolver.Redirect != nil && resolver.Redirect.SamenessGroup == "" {
+	if resolver.Redirect != nil {
 		redirect := resolver.Redirect
 
 		redirectedTarget := c.rewriteTarget(
@@ -1082,23 +1075,6 @@ RESOLVE_AGAIN:
 	// reasonably if there is some sort of graph loop below.
 	c.recordNode(node)
 
-	var err error
-	// Determine which failover definitions apply.
-	var failoverTargets []*structs.DiscoveryTarget
-	var failoverPolicy *structs.ServiceResolverFailoverPolicy
-	proxyDefault := c.entries.GetProxyDefaults(targetID.PartitionOrDefault())
-	if proxyDefault != nil {
-		failoverPolicy = proxyDefault.FailoverPolicy
-	}
-
-	if resolver.Redirect != nil && resolver.Redirect.SamenessGroup != "" {
-		opts := resolver.Redirect.ToDiscoveryTargetOpts()
-		failoverTargets, err = c.makeSamenessGroupFailover(target, opts, resolver.Redirect.SamenessGroup)
-		if err != nil {
-			return nil, err
-		}
-	}
-
 	if len(resolver.Failover) > 0 {
 		f := resolver.Failover
 
@@ -1112,10 +1088,8 @@ RESOLVE_AGAIN:
 			return node, nil
 		}
 
-		if failover.Policy != nil {
-			failoverPolicy = failover.Policy
-		}
-
+		// Determine which failover definitions apply.
+		var failoverTargets []*structs.DiscoveryTarget
 		if len(failover.Datacenters) > 0 {
 			opts := failover.ToDiscoveryTargetOpts()
 			for _, dc := range failover.Datacenters {
@@ -1134,11 +1108,6 @@ RESOLVE_AGAIN:
 					failoverTargets = append(failoverTargets, failoverTarget)
 				}
 			}
-		} else if failover.SamenessGroup != "" {
-			failoverTargets, err = c.makeSamenessGroupFailover(target, failover.ToDiscoveryTargetOpts(), failover.SamenessGroup)
-			if err != nil {
-				return nil, err
-			}
 		} else {
 			// Rewrite the target as per the failover policy.
 			failoverTarget := c.rewriteTarget(target, failover.ToDiscoveryTargetOpts())
@@ -1147,53 +1116,26 @@ RESOLVE_AGAIN:
 			}
 		}
 
-	}
+		// If we filtered everything out then no point in having a failover.
+		if len(failoverTargets) > 0 {
+			df := &structs.DiscoveryFailover{}
+			node.Resolver.Failover = df
 
-	// If we filtered everything out then no point in having a failover.
-	if len(failoverTargets) > 0 {
-		df := &structs.DiscoveryFailover{}
-		node.Resolver.Failover = df
-
-		df.Policy = failoverPolicy
-
-		// Take care of doing any redirects or configuration loading
-		// related to targets by cheating a bit and recursing into
-		// ourselves.
-		for _, target := range failoverTargets {
-			failoverResolveNode, err := c.getResolverNode(target, true)
-			if err != nil {
-				return nil, err
+			// Take care of doing any redirects or configuration loading
+			// related to targets by cheating a bit and recursing into
+			// ourselves.
+			for _, target := range failoverTargets {
+				failoverResolveNode, err := c.getResolverNode(target, true)
+				if err != nil {
+					return nil, err
+				}
+				failoverTarget := failoverResolveNode.Resolver.Target
+				df.Targets = append(df.Targets, failoverTarget)
 			}
-			failoverTarget := failoverResolveNode.Resolver.Target
-			df.Targets = append(df.Targets, failoverTarget)
 		}
 	}
 
 	return node, nil
-}
-
-func (c *compiler) makeSamenessGroupFailover(target *structs.DiscoveryTarget, opts structs.DiscoveryTargetOpts, samenessGroupName string) ([]*structs.DiscoveryTarget, error) {
-	samenessGroup := c.entries.GetSamenessGroup(samenessGroupName)
-	if samenessGroup == nil {
-		return nil, &structs.ConfigEntryGraphError{
-			Message: fmt.Sprintf(
-				"sameness group missing for service %q",
-				target.Service,
-			),
-		}
-	}
-
-	var failoverTargets []*structs.DiscoveryTarget
-	for _, t := range samenessGroup.ToFailoverTargets() {
-		// Rewrite the target as per the failover policy.
-		targetOpts := structs.MergeDiscoveryTargetOpts(opts, t.ToDiscoveryTargetOpts())
-		failoverTarget := c.rewriteTarget(target, targetOpts)
-		if failoverTarget.ID != target.ID { // don't failover to yourself
-			failoverTargets = append(failoverTargets, failoverTarget)
-		}
-	}
-
-	return failoverTargets, nil
 }
 
 func newDefaultServiceResolver(sid structs.ServiceID) *structs.ServiceResolverConfigEntry {

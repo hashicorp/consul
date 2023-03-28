@@ -64,8 +64,8 @@ import (
 	"github.com/hashicorp/consul/lib/mutex"
 	"github.com/hashicorp/consul/lib/routine"
 	"github.com/hashicorp/consul/logging"
-	"github.com/hashicorp/consul/proto/private/pboperator"
-	"github.com/hashicorp/consul/proto/private/pbpeering"
+	"github.com/hashicorp/consul/proto/pboperator"
+	"github.com/hashicorp/consul/proto/pbpeering"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
 )
@@ -532,7 +532,6 @@ func LocalConfig(cfg *config.RuntimeConfig) local.Config {
 		DiscardCheckOutput:  cfg.DiscardCheckOutput,
 		NodeID:              cfg.NodeID,
 		NodeName:            cfg.NodeName,
-		NodeLocality:        cfg.StructLocality(),
 		Partition:           cfg.PartitionOrDefault(),
 		TaggedAddresses:     map[string]string{},
 	}
@@ -1494,7 +1493,6 @@ func newConsulConfig(runtimeCfg *config.RuntimeConfig, logger hclog.Logger) (*co
 	cfg.RequestLimitsMode = runtimeCfg.RequestLimitsMode.String()
 	cfg.RequestLimitsReadRate = runtimeCfg.RequestLimitsReadRate
 	cfg.RequestLimitsWriteRate = runtimeCfg.RequestLimitsWriteRate
-	cfg.Locality = runtimeCfg.StructLocality()
 
 	enterpriseConsulConfig(cfg, runtimeCfg)
 	return cfg, nil
@@ -1602,7 +1600,10 @@ func (a *Agent) ShutdownAgent() error {
 
 	a.stopLicenseManager()
 
-	a.baseDeps.Close()
+	// this would be cancelled anyways (by the closing of the shutdown ch) but
+	// this should help them to be stopped more quickly
+	a.baseDeps.AutoConfig.Stop()
+	a.baseDeps.MetricsConfig.Cancel()
 
 	a.stateLock.Lock()
 	defer a.stateLock.Unlock()

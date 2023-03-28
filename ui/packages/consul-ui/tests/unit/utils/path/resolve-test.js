@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 import resolve from 'consul-ui/utils/path/resolve';
 import { module, test } from 'qunit';
 
