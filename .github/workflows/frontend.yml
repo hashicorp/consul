@@ -14,8 +14,23 @@ permissions:
   contents: read
 
 jobs:
+  setup:
+    name: Setup
+    runs-on: ubuntu-latest
+    outputs:
+      compute-small: ${{ steps.setup-outputs.outputs.compute-small }}
+      compute-medium: ${{ steps.setup-outputs.outputs.compute-medium }}
+      compute-large: ${{ steps.setup-outputs.outputs.compute-large }}
+      compute-xl: ${{ steps.setup-outputs.outputs.compute-xl }}
+    steps:
+    - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
+    - id: setup-outputs
+      name: Setup outputs
+      run: ./.github/scripts/get_runner_classes.sh
+
   workspace-tests:
-    runs-on: ubuntu-20.04
+    needs: setup
+    runs-on: ${{ fromJSON(needs.setup.outputs.compute-small) }}
     defaults:
       run:
         working-directory: ui
@@ -34,7 +49,8 @@ jobs:
     - run: make test-workspace
 
   node-tests:
-    runs-on: ubuntu-20.04
+    needs: setup
+    runs-on: ${{ fromJSON(needs.setup.outputs.compute-small) }}
     steps:
     - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
 
@@ -51,7 +67,8 @@ jobs:
       working-directory: ui/packages/consul-ui
 
   ember-build-test:
-    runs-on: ubuntu-20.04
+    needs: setup
+    runs-on: ${{ fromJSON(needs.setup.outputs.compute-small) }}
     env:
       EMBER_TEST_REPORT: test-results/report-oss.xml #outputs test report for CircleCI test summary
       EMBER_TEST_PARALLEL: true #enables test parallelization with ember-exam
