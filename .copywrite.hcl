@@ -14,10 +14,10 @@ project {
     "ui/packages/consul-ui/lib/block-slots/**",
 
     # ignore specific test data files
-    "agent/uiserver/testdata/**"
+    "agent/uiserver/testdata/**",
 
     # generated files 
-    "agent/structs/structs.deepcopy.go"
-    "agent/proxycfg/proxycfg.deepcopy.go"
+    "agent/structs/structs.deepcopy.go",
+    "agent/proxycfg/proxycfg.deepcopy.go",
   ]
 }
