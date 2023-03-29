@@ -20,5 +20,6 @@ project {
     "agent/structs/structs.deepcopy.go",
     "agent/proxycfg/proxycfg.deepcopy.go",
     "agent/grpc-middleware/rate_limit_mappings.gen.go",
+    "agent/uiserver/dist/**",
   ]
 }
