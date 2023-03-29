@@ -41,7 +41,7 @@ jobs:
         with:
           go-version-file: 'go.mod'
       - name: Setup go mod cache
-        uses: actions/cache@69d9d449aced6a2ede0bc19182fadc3a0a42d2b0 # pin@v3.2.6
+        uses: actions/cache@88522ab9f39a2ea568f7027eddc7d8d8bc9d59c8 # pin@v3.3.1
         with:
           path: |
             ~/.cache/go-build
