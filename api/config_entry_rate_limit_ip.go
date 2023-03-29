@@ -3,7 +3,7 @@
 
 package api
 
-type readWriteRatesConfig struct {
+type ReadWriteRatesConfig struct {
 	ReadRate  float64
 	WriteRate float64
 }
@@ -20,19 +20,19 @@ type RateLimitIPConfigEntry struct {
 	WriteRate float64
 
 	//limits specific to a type of call
-	ACL            *readWriteRatesConfig `json:",omitempty"`
-	Catalog        *readWriteRatesConfig `json:",omitempty"`
-	ConfigEntry    *readWriteRatesConfig `json:",omitempty"`
-	ConnectCA      *readWriteRatesConfig `json:",omitempty"`
-	Coordinate     *readWriteRatesConfig `json:",omitempty"`
-	DiscoveryChain *readWriteRatesConfig `json:",omitempty"`
-	Health         *readWriteRatesConfig `json:",omitempty"`
-	Intention      *readWriteRatesConfig `json:",omitempty"`
-	KV             *readWriteRatesConfig `json:",omitempty"`
-	Tenancy        *readWriteRatesConfig `json:",omitempty"`
-	PreparedQuery  *readWriteRatesConfig `json:",omitempty"`
-	Session        *readWriteRatesConfig `json:",omitempty"`
-	Txn            *readWriteRatesConfig `json:",omitempty"`
+	ACL            *ReadWriteRatesConfig `json:",omitempty"`
+	Catalog        *ReadWriteRatesConfig `json:",omitempty"`
+	ConfigEntry    *ReadWriteRatesConfig `json:",omitempty"`
+	ConnectCA      *ReadWriteRatesConfig `json:",omitempty"`
+	Coordinate     *ReadWriteRatesConfig `json:",omitempty"`
+	DiscoveryChain *ReadWriteRatesConfig `json:",omitempty"`
+	Health         *ReadWriteRatesConfig `json:",omitempty"`
+	Intention      *ReadWriteRatesConfig `json:",omitempty"`
+	KV             *ReadWriteRatesConfig `json:",omitempty"`
+	Tenancy        *ReadWriteRatesConfig `json:",omitempty"`
+	PreparedQuery  *ReadWriteRatesConfig `json:",omitempty"`
+	Session        *ReadWriteRatesConfig `json:",omitempty"`
+	Txn            *ReadWriteRatesConfig `json:",omitempty"`
 
 	// Partition is the partition the config entry is associated with.
 	// Partitioning is a Consul Enterprise feature.
