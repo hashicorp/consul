@@ -1,11 +1,11 @@
 # Copyright (c) HashiCorp, Inc.
 # SPDX-License-Identifier: MPL-2.0
 
+# This workflow builds a dev binary and distributes a Docker image on every push to the main branch.
 name: build-artifacts
 
 on: 
-  # TODO: only on push to main
-  pull_request:
+  push:
     branches:
       - main
 
@@ -29,7 +29,7 @@ jobs:
 
   dev-build-push:
     needs: setup
-    runs-on: ${{ fromJSON(needs.setup.outputs.compute-small) }}
+    runs-on: ${{ fromJSON(needs.setup.outputs.compute-medium) }}
     steps:
     - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
     - uses: actions/setup-go@6edd4406fa81c3da01a34fa6f6343087c207a568 # pin@v3.5.0
@@ -55,9 +55,9 @@ jobs:
         context: ./bin
         file: ./build-support/docker/Consul-Dev.dockerfile
         push: true
-        # TODO: hashicorpdev/consul:latest
         tags: |
           hashicorpdev/consul:${{ env.SHORT_SHA }}
+          hashicorpdev/consul:latest
         labels: |
           COMMIT_SHA=${{ github.sha }}
           GITHUB_BUILD_URL=${{ env.GITHUB_BUILD_URL }}
