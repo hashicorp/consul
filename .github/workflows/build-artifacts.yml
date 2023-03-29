@@ -13,8 +13,23 @@ permissions:
   contents: read
 
 jobs:
+  setup:
+    name: Setup
+    runs-on: ubuntu-latest
+    outputs:
+      compute-small: ${{ steps.setup-outputs.outputs.compute-small }}
+      compute-medium: ${{ steps.setup-outputs.outputs.compute-medium }}
+      compute-large: ${{ steps.setup-outputs.outputs.compute-large }}
+      compute-xl: ${{ steps.setup-outputs.outputs.compute-xl }}
+    steps:
+    - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
+    - id: setup-outputs
+      name: Setup outputs
+      run: ./.github/scripts/get_runner_classes.sh
+
   dev-build-push:
-    runs-on: ubuntu-20.04
+    needs: setup
+    runs-on: ${{ fromJSON(needs.setup.outputs.compute-small) }}
     steps:
     - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
     - uses: actions/setup-go@6edd4406fa81c3da01a34fa6f6343087c207a568 # pin@v3.5.0
