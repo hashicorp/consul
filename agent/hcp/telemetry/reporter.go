@@ -113,9 +113,6 @@ func (r *Reporter) gatherMetrics() {
 			continue
 		}
 
-		if _, ok := r.batchedMetrics[interval.Interval]; ok {
-			continue
-		}
 		// TODO: Bounded batchedMetrics check.
 		// TODO: Do some testing for 100 batches, 200 batches, etc. (Get data information)
 		// TODO: Fancy flushing, remove the oldest first (circular buffer): https://github.com/armon/circbuf
@@ -132,11 +129,12 @@ func (r *Reporter) flushMetrics() error {
 			metricsList = append(metricsList, intervalMetrics)
 		}
 
-		if interval.Unix() > r.lastIntervalExported.Unix() {
+		if interval.Unix() >= r.lastIntervalExported.Unix() {
+			// Update to prevent duplicates.
 			r.lastIntervalExported = interval
 		}
-		// TODO: only do this if there is no error. For now since the map is unbounded, leave it.
-		r.batchedMetrics[interval] = nil
+		// TODO: only do this if there is no error, as we want to retry, in CC-4636.
+		delete(r.batchedMetrics, interval)
 	}
 
 	if len(metricsList) == 0 {
