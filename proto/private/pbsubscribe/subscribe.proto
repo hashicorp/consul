@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 /*
    Package event provides a service for subscribing to state change events.
 */
@@ -94,6 +97,9 @@ enum Topic {
 
   // BoundAPIGateway topic contains events for changes to bound-api-gateways.
   BoundAPIGateway = 13;
+
+  // IPRateLimit topic contains events for changes to control-plane-request-limit
+  IPRateLimit = 14;
 }
 
 message NamedSubject {

@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 //go:build !consulent
 // +build !consulent
 
@@ -453,6 +456,22 @@ var baseCases = map[string]testCase{
 					{Name: "kind", Value: "tcp-route"},
 				},
 			},
+			"consul.usage.test.consul.state.config_entries;datacenter=dc1;kind=control-plane-request-limit": {
+				Name:  "consul.usage.test.consul.state.config_entries",
+				Value: 0,
+				Labels: []metrics.Label{
+					{Name: "datacenter", Value: "dc1"},
+					{Name: "kind", Value: "control-plane-request-limit"},
+				},
+			},
+			"consul.usage.test.state.config_entries;datacenter=dc1;kind=control-plane-request-limit": {
+				Name:  "consul.usage.test.state.config_entries",
+				Value: 0,
+				Labels: []metrics.Label{
+					{Name: "datacenter", Value: "dc1"},
+					{Name: "kind", Value: "control-plane-request-limit"},
+				},
+			},
 		},
 		getMembersFunc: func() []serf.Member { return []serf.Member{} },
 	},
@@ -894,6 +913,22 @@ var baseCases = map[string]testCase{
 				Labels: []metrics.Label{
 					{Name: "datacenter", Value: "dc1"},
 					{Name: "kind", Value: "tcp-route"},
+				},
+			},
+			"consul.usage.test.consul.state.config_entries;datacenter=dc1;kind=control-plane-request-limit": {
+				Name:  "consul.usage.test.consul.state.config_entries",
+				Value: 0,
+				Labels: []metrics.Label{
+					{Name: "datacenter", Value: "dc1"},
+					{Name: "kind", Value: "control-plane-request-limit"},
+				},
+			},
+			"consul.usage.test.state.config_entries;datacenter=dc1;kind=control-plane-request-limit": {
+				Name:  "consul.usage.test.state.config_entries",
+				Value: 0,
+				Labels: []metrics.Label{
+					{Name: "datacenter", Value: "dc1"},
+					{Name: "kind", Value: "control-plane-request-limit"},
 				},
 			},
 		},

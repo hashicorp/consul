@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package api
 
 // QueryFailoverOptions sets options about how we fail over if there are no
@@ -26,6 +29,14 @@ type QueryFailoverTarget struct {
 
 	// Datacenter specifies a datacenter to try during failover.
 	Datacenter string
+
+	// Partition specifies a partition to try during failover
+	// Note: Partition are available only in Consul Enterprise
+	Partition string
+
+	// Namespace specifies a namespace to try during failover
+	// Note: Namespaces are available only in Consul Enterprise
+	Namespace string
 }
 
 // QueryDNSOptions controls settings when query results are served over DNS.

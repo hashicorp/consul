@@ -1,4 +1,7 @@
 #!/bin/bash -e
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
 
 # set new limit
 echo "fs.file-max = 2097152" >> /etc/sysctl.conf

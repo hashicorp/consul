@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package consul
 
 import (
@@ -410,6 +413,10 @@ type Server struct {
 	// embedded struct to hold all the enterprise specific data
 	EnterpriseServer
 	operatorServer *operator.Server
+
+	// routineManager is responsible for managing longer running go routines
+	// run by the Server
+	routineManager *routine.Manager
 }
 
 type connHandler interface {
@@ -480,6 +487,7 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server, incom
 		fsm:                     fsm.NewFromDeps(fsmDeps),
 		publisher:               flat.EventPublisher,
 		incomingRPCLimiter:      incomingRPCLimiter,
+		routineManager:          routine.NewManager(logger.Named(logging.ConsulServer)),
 	}
 
 	incomingRPCLimiter.Register(s)
@@ -777,6 +785,11 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server, incom
 
 	// Now we are setup, configure the HCP manager
 	go s.hcpManager.Run(&lib.StopChannelContext{StopCh: shutdownCh})
+
+	err = s.runEnterpriseRateLimiterConfigEntryController()
+	if err != nil {
+		return nil, err
+	}
 
 	return s, nil
 }

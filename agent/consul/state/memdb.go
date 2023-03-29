@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package state
 
 import (
@@ -191,6 +194,7 @@ var (
 	EventTopicHTTPRoute            = pbsubscribe.Topic_HTTPRoute
 	EventTopicInlineCertificate    = pbsubscribe.Topic_InlineCertificate
 	EventTopicBoundAPIGateway      = pbsubscribe.Topic_BoundAPIGateway
+	EventTopicIPRateLimit          = pbsubscribe.Topic_IPRateLimit
 )
 
 func processDBChanges(tx ReadTxn, changes Changes) ([]stream.Event, error) {

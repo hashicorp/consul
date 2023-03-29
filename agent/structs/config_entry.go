@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package structs
 
 import (
@@ -68,6 +71,7 @@ var AllConfigEntryKinds = []string{
 	HTTPRoute,
 	TCPRoute,
 	InlineCertificate,
+	RateLimitIPConfig,
 }
 
 // ConfigEntry is the interface for centralized configuration stored in Raft.

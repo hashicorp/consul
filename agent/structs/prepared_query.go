@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package structs
 
 import (
@@ -47,6 +50,8 @@ type QueryFailoverTarget struct {
 
 	// Datacenter specifies a datacenter to try during failover.
 	Datacenter string
+
+	acl.EnterpriseMeta
 }
 
 // QueryDNSOptions controls settings when query results are served over DNS.
