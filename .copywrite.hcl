@@ -19,5 +19,6 @@ project {
     # generated files 
     "agent/structs/structs.deepcopy.go",
     "agent/proxycfg/proxycfg.deepcopy.go",
+    "agent/grpc-middleware/rate_limit_mappings.gen.go",
   ]
 }
