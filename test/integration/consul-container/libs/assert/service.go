@@ -121,22 +121,30 @@ func ServiceLogContains(t *testing.T, service libservice.Service, target string)
 	return strings.Contains(logs, target)
 }
 
-// AssertFortioName asserts that the fortio service replying at urlbase/debug
+// AssertFortioName is a convenience function for [AssertFortioNameWithClient], using a [cleanhttp.DefaultClient()]
+func AssertFortioName(t *testing.T, urlbase string, name string, reqHost string) {
+	t.Helper()
+	client := cleanhttp.DefaultClient()
+	AssertFortioNameWithClient(t, urlbase, name, reqHost, client)
+}
+
+// AssertFortioNameWithClient asserts that the fortio service replying at urlbase/debug
 // has a `FORTIO_NAME` env variable set. This validates that the client is sending
 // traffic to the right envoy proxy.
 //
 // If reqHost is set, the Host field of the HTTP request will be set to its value.
 //
 // It retries with timeout defaultHTTPTimeout and wait defaultHTTPWait.
-func AssertFortioName(t *testing.T, urlbase string, name string, reqHost string) {
+//
+// client must be a custom http.Client
+func AssertFortioNameWithClient(t *testing.T, urlbase string, name string, reqHost string, client *http.Client) {
 	t.Helper()
 	var fortioNameRE = regexp.MustCompile(("\nFORTIO_NAME=(.+)\n"))
-	client := cleanhttp.DefaultClient()
 	retry.RunWith(&retry.Timer{Timeout: defaultHTTPTimeout, Wait: defaultHTTPWait}, t, func(r *retry.R) {
 		fullurl := fmt.Sprintf("%s/debug?env=dump", urlbase)
 		req, err := http.NewRequest("GET", fullurl, nil)
 		if err != nil {
-			r.Fatal("could not make request to service ", fullurl)
+			r.Fatalf("could not build request to %q: %v", fullurl, err)
 		}
 		if reqHost != "" {
 			req.Host = reqHost
@@ -144,14 +152,16 @@ func AssertFortioName(t *testing.T, urlbase string, name string, reqHost string)
 
 		resp, err := client.Do(req)
 		if err != nil {
-			r.Fatal("could not make call to service ", fullurl)
+			r.Fatalf("could not make request to %q: %v", fullurl, err)
 		}
 		defer resp.Body.Close()
+		if resp.StatusCode != http.StatusOK {
+			r.Fatalf("could not make request to %q: status %d", fullurl, resp.StatusCode)
+		}
 
 		body, err := io.ReadAll(resp.Body)
 		if err != nil {
-			r.Error(err)
-			return
+			r.Fatalf("failed to read response body from %q: %v", fullurl, err)
 		}
 
 		m := fortioNameRE.FindStringSubmatch(string(body))
