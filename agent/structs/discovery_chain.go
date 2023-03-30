@@ -183,6 +183,7 @@ type DiscoverySplit struct {
 type DiscoveryFailover struct {
 	Targets []string                       `json:",omitempty"`
 	Policy  *ServiceResolverFailoverPolicy `json:",omitempty"`
+	Regions []string                       `json:",omitempty"`
 }
 
 // DiscoveryTarget represents all of the inputs necessary to use a resolver

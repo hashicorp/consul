@@ -1114,7 +1114,7 @@ func (e *ServiceResolverConfigEntry) Validate() error {
 			}
 
 			if !f.Policy.isValid() {
-				return fmt.Errorf("Bad Failover[%q]: Policy must be one of '', 'default', or 'order-by-locality'", subset)
+				return fmt.Errorf("Bad Failover[%q]: Policy must be one of '', 'sequential', or 'order-by-locality'", subset)
 			}
 
 			if f.ServiceSubset != "" {
@@ -1437,8 +1437,9 @@ type ServiceResolverFailover struct {
 
 type ServiceResolverFailoverPolicy struct {
 	// Mode specifies the type of failover that will be performed. Valid values are
-	// "default", "" (equivalent to "default") and "order-by-locality".
-	Mode string `json:",omitempty"`
+	// "sequential", "" (equivalent to "sequential") and "order-by-locality".
+	Mode    string   `json:",omitempty"`
+	Regions []string `json:",omitempty"`
 }
 
 func (f *ServiceResolverFailover) ToDiscoveryTargetOpts() DiscoveryTargetOpts {
@@ -1465,7 +1466,7 @@ func (fp *ServiceResolverFailoverPolicy) isValid() bool {
 
 	switch fp.Mode {
 	case "":
-	case "default":
+	case "sequential":
 	case "order-by-locality":
 	default:
 		return false

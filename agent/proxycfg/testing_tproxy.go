@@ -10,6 +10,7 @@ import (
 
 	"github.com/mitchellh/go-testing-interface"
 
+	"github.com/hashicorp/consul/agent/configentry"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/discoverychain"
 	"github.com/hashicorp/consul/agent/structs"
@@ -21,11 +22,11 @@ func TestConfigSnapshotTransparentProxy(t testing.T) *ConfigSnapshot {
 	var (
 		google      = structs.NewServiceName("google", nil)
 		googleUID   = NewUpstreamIDFromServiceName(google)
-		googleChain = discoverychain.TestCompileConfigEntries(t, "google", "default", "default", "dc1", connect.TestClusterID+".consul", nil)
+		googleChain = discoverychain.TestCompileConfigEntries(t, "google", "default", "default", "dc1", connect.TestClusterID+".consul", nil, nil)
 
 		noEndpoints      = structs.NewServiceName("no-endpoints", nil)
 		noEndpointsUID   = NewUpstreamIDFromServiceName(noEndpoints)
-		noEndpointsChain = discoverychain.TestCompileConfigEntries(t, "no-endpoints", "default", "default", "dc1", connect.TestClusterID+".consul", nil)
+		noEndpointsChain = discoverychain.TestCompileConfigEntries(t, "no-endpoints", "default", "default", "dc1", connect.TestClusterID+".consul", nil, nil)
 
 		db = structs.NewServiceName("db", nil)
 	)
@@ -129,18 +130,19 @@ func TestConfigSnapshotTransparentProxyHTTPUpstream(t testing.T, additionalEntri
 		},
 	})
 
+	set := configentry.NewDiscoveryChainSet()
+	set.AddEntries(entries...)
+
 	// DiscoveryChain without an UpstreamConfig should yield a
 	// filter chain when in transparent proxy mode
 	var (
 		google      = structs.NewServiceName("google", nil)
 		googleUID   = NewUpstreamIDFromServiceName(google)
-		googleChain = discoverychain.TestCompileConfigEntries(t, "google", "default", "default", "dc1", connect.TestClusterID+".consul", nil,
-			entries...,
-		)
+		googleChain = discoverychain.TestCompileConfigEntries(t, "google", "default", "default", "dc1", connect.TestClusterID+".consul", nil, set)
 
 		noEndpoints      = structs.NewServiceName("no-endpoints", nil)
 		noEndpointsUID   = NewUpstreamIDFromServiceName(noEndpoints)
-		noEndpointsChain = discoverychain.TestCompileConfigEntries(t, "no-endpoints", "default", "default", "dc1", connect.TestClusterID+".consul", nil)
+		noEndpointsChain = discoverychain.TestCompileConfigEntries(t, "no-endpoints", "default", "default", "dc1", connect.TestClusterID+".consul", nil, nil)
 
 		db    = structs.NewServiceName("db", nil)
 		nodes = []structs.CheckServiceNode{
@@ -253,11 +255,11 @@ func TestConfigSnapshotTransparentProxyCatalogDestinationsOnly(t testing.T) *Con
 	var (
 		google      = structs.NewServiceName("google", nil)
 		googleUID   = NewUpstreamIDFromServiceName(google)
-		googleChain = discoverychain.TestCompileConfigEntries(t, "google", "default", "default", "dc1", connect.TestClusterID+".consul", nil)
+		googleChain = discoverychain.TestCompileConfigEntries(t, "google", "default", "default", "dc1", connect.TestClusterID+".consul", nil, nil)
 
 		noEndpoints      = structs.NewServiceName("no-endpoints", nil)
 		noEndpointsUID   = NewUpstreamIDFromServiceName(noEndpoints)
-		noEndpointsChain = discoverychain.TestCompileConfigEntries(t, "no-endpoints", "default", "default", "dc1", connect.TestClusterID+".consul", nil)
+		noEndpointsChain = discoverychain.TestCompileConfigEntries(t, "no-endpoints", "default", "default", "dc1", connect.TestClusterID+".consul", nil, nil)
 
 		db = structs.NewServiceName("db", nil)
 	)
@@ -334,20 +336,23 @@ func TestConfigSnapshotTransparentProxyCatalogDestinationsOnly(t testing.T) *Con
 }
 
 func TestConfigSnapshotTransparentProxyDialDirectly(t testing.T) *ConfigSnapshot {
+	set := configentry.NewDiscoveryChainSet()
+	set.AddEntries(&structs.ServiceResolverConfigEntry{
+		Kind:           structs.ServiceResolver,
+		Name:           "mongo",
+		ConnectTimeout: 33 * time.Second,
+	})
+
 	// DiscoveryChain without an UpstreamConfig should yield a
 	// filter chain when in transparent proxy mode
 	var (
 		kafka      = structs.NewServiceName("kafka", nil)
 		kafkaUID   = NewUpstreamIDFromServiceName(kafka)
-		kafkaChain = discoverychain.TestCompileConfigEntries(t, "kafka", "default", "default", "dc1", connect.TestClusterID+".consul", nil)
+		kafkaChain = discoverychain.TestCompileConfigEntries(t, "kafka", "default", "default", "dc1", connect.TestClusterID+".consul", nil, nil)
 
 		mongo      = structs.NewServiceName("mongo", nil)
 		mongoUID   = NewUpstreamIDFromServiceName(mongo)
-		mongoChain = discoverychain.TestCompileConfigEntries(t, "mongo", "default", "default", "dc1", connect.TestClusterID+".consul", nil, &structs.ServiceResolverConfigEntry{
-			Kind:           structs.ServiceResolver,
-			Name:           "mongo",
-			ConnectTimeout: 33 * time.Second,
-		})
+		mongoChain = discoverychain.TestCompileConfigEntries(t, "mongo", "default", "default", "dc1", connect.TestClusterID+".consul", nil, set)
 
 		db = structs.NewServiceName("db", nil)
 	)
@@ -456,23 +461,23 @@ func TestConfigSnapshotTransparentProxyDialDirectly(t testing.T) *ConfigSnapshot
 }
 
 func TestConfigSnapshotTransparentProxyResolverRedirectUpstream(t testing.T) *ConfigSnapshot {
+	set := configentry.NewDiscoveryChainSet()
+	set.AddEntries(&structs.ServiceResolverConfigEntry{
+		Kind: structs.ServiceResolver,
+		Name: "db-redir",
+		Redirect: &structs.ServiceResolverRedirect{
+			Service: "db",
+		},
+	})
 	// Service-Resolver redirect with explicit upstream should spawn an outbound listener.
 	var (
 		db      = structs.NewServiceName("db-redir", nil)
 		dbUID   = NewUpstreamIDFromServiceName(db)
-		dbChain = discoverychain.TestCompileConfigEntries(t, "db-redir", "default", "default", "dc1", connect.TestClusterID+".consul", nil,
-			&structs.ServiceResolverConfigEntry{
-				Kind: structs.ServiceResolver,
-				Name: "db-redir",
-				Redirect: &structs.ServiceResolverRedirect{
-					Service: "db",
-				},
-			},
-		)
+		dbChain = discoverychain.TestCompileConfigEntries(t, "db-redir", "default", "default", "dc1", connect.TestClusterID+".consul", nil, set)
 
 		google      = structs.NewServiceName("google", nil)
 		googleUID   = NewUpstreamIDFromServiceName(google)
-		googleChain = discoverychain.TestCompileConfigEntries(t, "google", "default", "default", "dc1", connect.TestClusterID+".consul", nil)
+		googleChain = discoverychain.TestCompileConfigEntries(t, "google", "default", "default", "dc1", connect.TestClusterID+".consul", nil, nil)
 	)
 
 	return TestConfigSnapshot(t, func(ns *structs.NodeService) {
@@ -530,11 +535,11 @@ func TestConfigSnapshotTransparentProxyTerminatingGatewayCatalogDestinationsOnly
 	var (
 		google      = structs.NewServiceName("google", nil)
 		googleUID   = NewUpstreamIDFromServiceName(google)
-		googleChain = discoverychain.TestCompileConfigEntries(t, "google", "default", "default", "dc1", connect.TestClusterID+".consul", nil)
+		googleChain = discoverychain.TestCompileConfigEntries(t, "google", "default", "default", "dc1", connect.TestClusterID+".consul", nil, nil)
 
 		kafka      = structs.NewServiceName("kafka", nil)
 		kafkaUID   = NewUpstreamIDFromServiceName(kafka)
-		kafkaChain = discoverychain.TestCompileConfigEntries(t, "kafka", "default", "default", "dc1", connect.TestClusterID+".consul", nil)
+		kafkaChain = discoverychain.TestCompileConfigEntries(t, "kafka", "default", "default", "dc1", connect.TestClusterID+".consul", nil, nil)
 
 		db = structs.NewServiceName("db", nil)
 	)
