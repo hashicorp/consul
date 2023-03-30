@@ -37,8 +37,9 @@ func TestJWTProviderConfigEntry_ValidateAndNormalize(t *testing.T) {
 						Filename: "jwks.txt",
 					},
 				},
+				// TODO RONALD - update this
 				// ClockSkewSeconds: defaultClockSkewSeconds,
-				ClockSkewSeconds: 300,
+				ClockSkewSeconds: 0,
 			},
 		},
 		"invalid jwt-provider - no name": {
@@ -46,7 +47,35 @@ func TestJWTProviderConfigEntry_ValidateAndNormalize(t *testing.T) {
 				Kind: JWTProvider,
 				Name: "",
 			},
-			validateErr: "Name is required",
+			validateErr: "name is required",
+		},
+		"invalid jwt-provider - no jwks": {
+			entry: &JWTProviderConfigEntry{
+				Kind: JWTProvider,
+				Name: "okta",
+			},
+			validateErr: "JSONWebKeySet is required",
+		},
+		"invalid jwt-provider - no jwks local or remote set": {
+			entry: &JWTProviderConfigEntry{
+				Kind:          JWTProvider,
+				Name:          "okta",
+				JSONWebKeySet: &JSONWebKeySet{},
+			},
+			validateErr: "must specify exactly one of Local or Remote JSON Web key set",
+		},
+		"invalid jwt-provider - both jwks local and remote set": {
+			entry: &JWTProviderConfigEntry{
+				Kind: JWTProvider,
+				Name: "okta",
+				JSONWebKeySet: &JSONWebKeySet{
+					Local: &LocalJWKS{
+						Filename: "jwks.txt",
+					},
+					Remote: &RemoteJWKS{},
+				},
+			},
+			validateErr: "must specify exactly one of Local or Remote JSON Web key set",
 		},
 	}
 

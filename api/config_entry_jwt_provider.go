@@ -12,7 +12,7 @@ type JWTProviderConfigEntry struct {
 	// Name is the name of the provider being configured.
 	Name string
 
-	// JWKS defines a JSON Web Key Set, it's location on disk, or the
+	// JSONWebKeySet defines a JSON Web Key Set, its location on disk, or the
 	// means with which to fetch a key set from a remote server.
 	JSONWebKeySet *JSONWebKeySet `json:",omitempty"`
 
@@ -20,7 +20,7 @@ type JWTProviderConfigEntry struct {
 	// This value must match the "iss" claim of the token.
 	Issuer string
 
-	// Audiences is the set of audiences the JWT Is allowed to access.
+	// Audiences is the set of audiences the JWT is allowed to access.
 	// If specified, all JWTs verified with this provider must address
 	// at least one of these to be considered valid.
 	Audiences []string
@@ -28,7 +28,7 @@ type JWTProviderConfigEntry struct {
 	// Locations where the JWT will be present in requests.
 	// Envoy will check all of these locations to extract a JWT.
 	// If no locations are specified Envoy will default to:
-	// 1. Authorization header with Beader schema:
+	// 1. Authorization header with Bearer schema:
 	//    "Authorization: Bearer <token>"
 	// 2. access_token query parameter.
 	Locations []*JWTLocation `json:",omitempty"`
@@ -92,7 +92,7 @@ type JWTLocationHeader struct {
 
 	// ValuePrefix is an optional prefix that precedes the token in the
 	// header value.
-	// For example, "Bearer " a standard value prefix for a header named
+	// For example, "Bearer " is a standard value prefix for a header named
 	// "Authorization", but the prefix is not part of the token itself:
 	// "Authorization: Bearer <token>"
 	ValuePrefix string
@@ -111,7 +111,7 @@ type JWTLocationQueryParam struct {
 	Name string
 }
 
-// CookieJWTLocation defines how to extract a JWT from an HTTP request cookie.
+// JWTLocationCookie defines how to extract a JWT from an HTTP request cookie.
 type JWTLocationCookie struct {
 	// Name is the name of the cookie containing the token.
 	Name string
@@ -133,10 +133,10 @@ type JWTForwardingConfig struct {
 	PadForwardPayloadHeader bool
 }
 
-// JSONWebKeySet defines a key set, it's location on disk, or the
+// JSONWebKeySet defines a key set, its location on disk, or the
 // means with which to fetch a key set from a remote server.
 //
-// Only one of Local or Remote can be specified.
+// Exactly one of Local or Remote must be specified.
 type JSONWebKeySet struct {
 	// Local specifies a local source for the key set.
 	Local *LocalJWKS `json:",omitempty"`
