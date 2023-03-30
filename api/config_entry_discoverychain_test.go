@@ -171,7 +171,7 @@ func TestAPI_ConfigEntry_DiscoveryChain(t *testing.T) {
 							{Service: "another-service", ServiceSubset: "v1"},
 						},
 						Policy: &ServiceResolverFailoverPolicy{
-							Mode: "sequential",
+							Mode:    "sequential",
 							Regions: []string{"us-west-1"},
 						},
 					},
