@@ -2,6 +2,7 @@ package structs
 
 import (
 	"fmt"
+	"net/url"
 	"time"
 
 	"github.com/hashicorp/consul/acl"
@@ -255,16 +256,16 @@ func (ks *LocalJWKS) Validate() error {
 	return nil
 }
 
-func (jwks *RemoteJWKS) Validate() error {
-	// RemoteJWKS
-	// 	Normalize
-	// 	- Set the defaults for unset values.
+func (ks *RemoteJWKS) Validate() error {
+	if ks.URI != "" {
+		return fmt.Errorf("remote JWKS URI is required")
+	}
 
-	// 	Validate
-	// 	- URI must be set.
-	// 	  Must be a valid URI.
-	// 	(all others have defaults)
-	return fmt.Errorf("implement me")
+	if _, err := url.ParseRequestURI(ks.URI); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (header *JWTLocationHeader) Validate() error {
