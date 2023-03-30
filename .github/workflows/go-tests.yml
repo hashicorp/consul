@@ -39,13 +39,20 @@ jobs:
     uses: ./.github/workflows/reusable-check-go-mod.yml
     with:
       runs-on: ${{ needs.setup.outputs.compute-small }}
-    
+      repository-name: ${{ github.repository }}
+    secrets:
+      elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
+
   check-generated-protobuf:
     needs: 
     - setup   
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-small) }}
     steps:
     - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
+    # NOTE: This step is specifically needed for ENT. It allows us to access the required private HashiCorp repos.
+    - name: Setup Git
+      if: ${{ endsWith(github.repository, '-enterprise') }}
+      run: git config --global url."https://${{ secrets.ELEVATED_GITHUB_TOKEN }}:@github.com".insteadOf "https://github.com"
     - uses: actions/setup-go@6edd4406fa81c3da01a34fa6f6343087c207a568 # pin@v3.5.0
       with:
         go-version-file: 'go.mod'
@@ -62,7 +69,7 @@ jobs:
     - run: make proto-lint
       name: "Protobuf Lint"
     - name: Notify Slack
-      if: failure()
+      if: ${{ failure() }}
       run: .github/scripts/notify_slack.sh 
   check-generated-deep-copy:
     needs: 
@@ -70,6 +77,10 @@ jobs:
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-small) }}
     steps:
     - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
+    # NOTE: This step is specifically needed for ENT. It allows us to access the required private HashiCorp repos.
+    - name: Setup Git
+      if: ${{ endsWith(github.repository, '-enterprise') }}
+      run: git config --global url."https://${{ secrets.ELEVATED_GITHUB_TOKEN }}:@github.com".insteadOf "https://github.com"
     - uses: actions/setup-go@6edd4406fa81c3da01a34fa6f6343087c207a568 # pin@v3.5.0
       with:
         go-version-file: 'go.mod'
@@ -82,34 +93,42 @@ jobs:
           exit 1
         fi
     - name: Notify Slack
-      if: failure()
-      run: .github/scripts/notify_slack.sh  
+      if: ${{ failure() }}
+      run: .github/scripts/notify_slack.sh
+
   lint-enums:
     needs: 
     - setup   
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-small) }}
     steps:
     - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
+    # NOTE: This step is specifically needed for ENT. It allows us to access the required private HashiCorp repos.
+    - name: Setup Git
+      if: ${{ endsWith(github.repository, '-enterprise') }}
+      run: git config --global url."https://${{ secrets.ELEVATED_GITHUB_TOKEN }}:@github.com".insteadOf "https://github.com"
     - uses: actions/setup-go@6edd4406fa81c3da01a34fa6f6343087c207a568 # pin@v3.5.0
       with:
         go-version-file: 'go.mod'
     - run: go install github.com/reillywatson/enumcover/cmd/enumcover@master && enumcover ./...   
     - name: Notify Slack
-      if: failure()
+      if: ${{ failure() }}
       run: .github/scripts/notify_slack.sh
 
   lint-container-test-deps:
-    needs: 
-    - setup   
+    needs:
+    - setup
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-small) }}
     steps:
     - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
+    # NOTE: This step is specifically needed for ENT. It allows us to access the required private HashiCorp repos.
+    - name: Setup Git
+      run: git config --global url."https://${{ secrets.ELEVATED_GITHUB_TOKEN }}:@github.com".insteadOf "https://github.com"
     - uses: actions/setup-go@6edd4406fa81c3da01a34fa6f6343087c207a568 # pin@v3.5.0
       with:
         go-version-file: 'go.mod'
-    - run: make lint-container-test-deps 
+    - run: make lint-container-test-deps
     - name: Notify Slack
-      if: failure()
+      if: ${{ failure() }}
       run: .github/scripts/notify_slack.sh
 
   lint-consul-retry:
@@ -118,12 +137,16 @@ jobs:
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-small) }}
     steps:
     - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
+    # NOTE: This step is specifically needed for ENT. It allows us to access the required private HashiCorp repos.
+    - name: Setup Git
+      if: ${{ endsWith(github.repository, '-enterprise') }}
+      run: git config --global url."https://${{ secrets.ELEVATED_GITHUB_TOKEN }}:@github.com".insteadOf "https://github.com"
     - uses: actions/setup-go@6edd4406fa81c3da01a34fa6f6343087c207a568 # pin@v3.5.0
       with:
         go-version-file: 'go.mod'
     - run: go install github.com/hashicorp/lint-consul-retry@master && lint-consul-retry
     - name: Notify Slack
-      if: failure()
+      if: ${{ failure() }}
       run: .github/scripts/notify_slack.sh
 
   lint:
@@ -132,6 +155,9 @@ jobs:
     uses: ./.github/workflows/reusable-lint.yml
     with:
       runs-on: ${{ needs.setup.outputs.compute-xl }}
+      repository-name: ${{ github.repository }}
+    secrets:
+      elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
 
   lint-32bit:
     needs: 
@@ -140,7 +166,9 @@ jobs:
     with:
       go-arch: "386"
       runs-on: ${{ needs.setup.outputs.compute-xl }}
-    
+      repository-name: ${{ github.repository }}
+    secrets:
+      elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
 
   # create a development build
   dev-build:
@@ -149,7 +177,10 @@ jobs:
     uses: ./.github/workflows/reusable-dev-build.yml
     with: 
       runs-on: ${{ needs.setup.outputs.compute-xl }}
-    
+      repository-name: ${{ github.repository }}
+    secrets:
+      elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
+
   # TODO(JM): - linux arm64 is not available in our self-hosted runners
   #             they are currently on the roadmap.
   # # create a development build for arm64
@@ -183,7 +214,10 @@ jobs:
       directory: .
       runner-count: 12
       runs-on: ${{ needs.setup.outputs.compute-xl }}
-    
+      repository-name: ${{ github.repository }}
+    secrets:
+      elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
+      consul-license: ${{secrets.CONSUL_LICENSE}}
 
   go-test-race:
     needs: 
@@ -195,6 +229,10 @@ jobs:
       go-test-flags: 'GO_TEST_FLAGS="-race -gcflags=all=-d=checkptr=0"'
       package-names-command: "go list ./... | grep -E -v '^github.com/hashicorp/consul/agent(/consul|/local|/routine-leak-checker)?$' | grep -E -v '^github.com/hashicorp/consul/command/'"
       runs-on: ${{ needs.setup.outputs.compute-xl }}
+      repository-name: ${{ github.repository }}
+    secrets:
+      elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
+      consul-license: ${{secrets.CONSUL_LICENSE}}
 
   go-test-32bit:
     needs: 
@@ -206,24 +244,36 @@ jobs:
       go-arch: "386"
       go-test-flags: 'export GO_TEST_FLAGS="-short"'
       runs-on: ${{ needs.setup.outputs.compute-xl }}
+      repository-name: ${{ github.repository }}
+    secrets:
+      elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
+      consul-license: ${{secrets.CONSUL_LICENSE}}
 
   go-test-envoyextensions:
-    needs: 
-    - setup   
+    needs:
+    - setup
     - dev-build
     uses: ./.github/workflows/reusable-unit.yml
     with:
       directory: envoyextensions
       runs-on: ${{ needs.setup.outputs.compute-xl }}
+      repository-name: ${{ github.repository }}
+    secrets:
+      elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
+      consul-license: ${{secrets.CONSUL_LICENSE}}
 
   go-test-troubleshoot:
-    needs: 
-    - setup   
+    needs:
+    - setup
     - dev-build
     uses: ./.github/workflows/reusable-unit.yml
     with:
       directory: troubleshoot
       runs-on: ${{ needs.setup.outputs.compute-xl }}
+      repository-name: ${{ github.repository }}
+    secrets:
+      elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
+      consul-license: ${{secrets.CONSUL_LICENSE}}
 
   go-test-api-1-19:
     needs: 
@@ -233,6 +283,10 @@ jobs:
     with:
       directory: api
       runs-on: ${{ needs.setup.outputs.compute-xl }}
+      repository-name: ${{ github.repository }}
+    secrets:
+      elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
+      consul-license: ${{secrets.CONSUL_LICENSE}}
 
   go-test-api-1-20:
     needs: 
@@ -242,6 +296,10 @@ jobs:
     with:
       directory: api
       runs-on: ${{ needs.setup.outputs.compute-xl }}
+      repository-name: ${{ github.repository }}
+    secrets:
+      elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
+      consul-license: ${{secrets.CONSUL_LICENSE}}
 
   go-test-sdk-1-19:
     needs: 
@@ -251,6 +309,10 @@ jobs:
     with:
       directory: sdk
       runs-on: ${{ needs.setup.outputs.compute-xl }}
+      repository-name: ${{ github.repository }}
+    secrets:
+      elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
+      consul-license: ${{secrets.CONSUL_LICENSE}}
 
   go-test-sdk-1-20:
     needs: 
@@ -260,6 +322,10 @@ jobs:
     with:
       directory: sdk
       runs-on: ${{ needs.setup.outputs.compute-xl }}
+      repository-name: ${{ github.repository }}
+    secrets:
+      elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
+      consul-license: ${{secrets.CONSUL_LICENSE}}
 
   noop:
     runs-on: ubuntu-latest

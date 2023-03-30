@@ -11,11 +11,21 @@ on:
         description: An expression indicating which kind of runners to use.
         required: true
         type: string
+      repository-name:
+        required: true
+        type: string
+    secrets:
+      elevated-github-token:
+        required: true
 jobs:
   build:
     runs-on: ${{ fromJSON(inputs.runs-on) }}
     steps:
       - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
+      # NOTE: This step is specifically needed for ENT. It allows us to access the required private HashiCorp repos.
+      - name: Setup Git
+        if: ${{ endsWith(inputs.repository-name, '-enterprise') }}
+        run: git config --global url."https://${{ secrets.elevated-github-token }}:@github.com".insteadOf "https://github.com"
       - uses: actions/setup-go@6edd4406fa81c3da01a34fa6f6343087c207a568 # pin@v3.5.0
         with:
           go-version-file: 'go.mod'
@@ -27,5 +37,5 @@ jobs:
           name: ${{inputs.uploaded-binary-name}}
           path: ./bin/consul
       - name: Notify Slack
-        if: failure()
+        if: ${{ failure() }}
         run: .github/scripts/notify_slack.sh
