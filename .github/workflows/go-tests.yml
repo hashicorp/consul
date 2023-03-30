@@ -205,7 +205,7 @@ jobs:
   #     # runs-on: ${{ needs.setup.outputs.compute-xl-arm64 }}
   #     go-test-flags: 'if ! [[ "$GITHUB_REF_NAME" =~ ^main$|^release/ ]]; then export GO_TEST_FLAGS="-short"; fi'
 
-  go-test:
+  go-test-oss:
     needs: 
     - setup   
     - dev-build
@@ -215,6 +215,22 @@ jobs:
       runner-count: 12
       runs-on: ${{ needs.setup.outputs.compute-xl }}
       repository-name: ${{ github.repository }}
+      go-tags: ""
+    secrets:
+      elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
+      consul-license: ${{secrets.CONSUL_LICENSE}}
+
+  go-test-enterprise:
+    needs: 
+    - setup   
+    - dev-build
+    uses: ./.github/workflows/reusable-unit-split.yml
+    with:
+      directory: .
+      runner-count: 12
+      runs-on: ${{ needs.setup.outputs.compute-xl }}
+      repository-name: ${{ github.repository }}
+      go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consulprem consuldev' || '' }}"
     secrets:
       elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
       consul-license: ${{secrets.CONSUL_LICENSE}}
@@ -230,6 +246,7 @@ jobs:
       package-names-command: "go list ./... | grep -E -v '^github.com/hashicorp/consul/agent(/consul|/local|/routine-leak-checker)?$' | grep -E -v '^github.com/hashicorp/consul/command/'"
       runs-on: ${{ needs.setup.outputs.compute-xl }}
       repository-name: ${{ github.repository }}
+      go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consulprem consuldev' || '' }}"
     secrets:
       elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
       consul-license: ${{secrets.CONSUL_LICENSE}}
@@ -245,6 +262,7 @@ jobs:
       go-test-flags: 'export GO_TEST_FLAGS="-short"'
       runs-on: ${{ needs.setup.outputs.compute-xl }}
       repository-name: ${{ github.repository }}
+      go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consulprem consuldev' || '' }}"
     secrets:
       elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
       consul-license: ${{secrets.CONSUL_LICENSE}}
@@ -258,6 +276,7 @@ jobs:
       directory: envoyextensions
       runs-on: ${{ needs.setup.outputs.compute-xl }}
       repository-name: ${{ github.repository }}
+      go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consulprem consuldev' || '' }}"
     secrets:
       elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
       consul-license: ${{secrets.CONSUL_LICENSE}}
@@ -271,6 +290,7 @@ jobs:
       directory: troubleshoot
       runs-on: ${{ needs.setup.outputs.compute-xl }}
       repository-name: ${{ github.repository }}
+      go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consulprem consuldev' || '' }}"
     secrets:
       elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
       consul-license: ${{secrets.CONSUL_LICENSE}}
@@ -284,6 +304,7 @@ jobs:
       directory: api
       runs-on: ${{ needs.setup.outputs.compute-xl }}
       repository-name: ${{ github.repository }}
+      go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consulprem consuldev' || '' }}"
     secrets:
       elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
       consul-license: ${{secrets.CONSUL_LICENSE}}
@@ -297,6 +318,7 @@ jobs:
       directory: api
       runs-on: ${{ needs.setup.outputs.compute-xl }}
       repository-name: ${{ github.repository }}
+      go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consulprem consuldev' || '' }}"
     secrets:
       elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
       consul-license: ${{secrets.CONSUL_LICENSE}}
@@ -310,6 +332,7 @@ jobs:
       directory: sdk
       runs-on: ${{ needs.setup.outputs.compute-xl }}
       repository-name: ${{ github.repository }}
+      go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consulprem consuldev' || '' }}"
     secrets:
       elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
       consul-license: ${{secrets.CONSUL_LICENSE}}
@@ -323,6 +346,7 @@ jobs:
       directory: sdk
       runs-on: ${{ needs.setup.outputs.compute-xl }}
       repository-name: ${{ github.repository }}
+      go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consulprem consuldev' || '' }}"
     secrets:
       elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
       consul-license: ${{secrets.CONSUL_LICENSE}}

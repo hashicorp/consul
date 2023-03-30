@@ -29,6 +29,10 @@ on:
       repository-name:
         required: true
         type: string
+      go-tags:
+        required: false
+        type: string
+        default: ""
     secrets:
       elevated-github-token:
         required: true
@@ -39,7 +43,7 @@ env:
   GOTESTSUM_VERSION: 1.8.2
   GOARCH: ${{inputs.go-arch}}
   CONSUL_LICENSE: ${{secrets.consul-license}}
-  GOTAGS: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consulprem consuldev' || '' }}"
+  GOTAGS: ${{ inputs.go-tags}}
   
 jobs:
   go-test:
