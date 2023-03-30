@@ -257,12 +257,12 @@ func (ks *LocalJWKS) Validate() error {
 }
 
 func (ks *RemoteJWKS) Validate() error {
-	if ks.URI != "" {
+	if ks.URI == "" {
 		return fmt.Errorf("remote JWKS URI is required")
 	}
 
 	if _, err := url.ParseRequestURI(ks.URI); err != nil {
-		return err
+		return fmt.Errorf("remote JWKS URI is invalid")
 	}
 
 	return nil
@@ -355,7 +355,9 @@ func (e *JWTProviderConfigEntry) Validate() error {
 	}
 
 	if e.Locations != nil {
-		validateLocations(e.Locations)
+		if err := validateLocations(e.Locations); err != nil {
+			return err
+		}
 	}
 
 	if e.Forwarding != nil {

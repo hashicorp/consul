@@ -27,6 +27,9 @@ func TestJWTProviderConfigEntry_ValidateAndNormalize(t *testing.T) {
 						Filename: "jwks.txt",
 					},
 				},
+				Forwarding: &JWTForwardingConfig{
+					HeaderName: "Some-Header",
+				},
 				ClockSkewSeconds: 0,
 			},
 			expected: &JWTProviderConfigEntry{
@@ -36,6 +39,9 @@ func TestJWTProviderConfigEntry_ValidateAndNormalize(t *testing.T) {
 					Local: &LocalJWKS{
 						Filename: "jwks.txt",
 					},
+				},
+				Forwarding: &JWTForwardingConfig{
+					HeaderName: "Some-Header",
 				},
 				// TODO RONALD - update this
 				// ClockSkewSeconds: defaultClockSkewSeconds,
@@ -76,6 +82,70 @@ func TestJWTProviderConfigEntry_ValidateAndNormalize(t *testing.T) {
 				},
 			},
 			validateErr: "must specify exactly one of Local or Remote JSON Web key set",
+		},
+		"invalid jwt-provider - local jwks string and filename both set": {
+			entry: &JWTProviderConfigEntry{
+				Kind: JWTProvider,
+				Name: "okta",
+				JSONWebKeySet: &JSONWebKeySet{
+					Local: &LocalJWKS{
+						Filename: "jwks.txt",
+						String:   "xxxxxxxxxxxxxxxxxxxxxx",
+					},
+				},
+			},
+			validateErr: "must specify exactly one of String or filename for local keyset",
+		},
+		"invalid jwt-provider - remote jwks missing uri": {
+			entry: &JWTProviderConfigEntry{
+				Kind: JWTProvider,
+				Name: "okta",
+				JSONWebKeySet: &JSONWebKeySet{
+					Remote: &RemoteJWKS{
+						FetchAsynchronously: true,
+					},
+				},
+			},
+			validateErr: "remote JWKS URI is required",
+		},
+		"invalid jwt-provider - remote jwks invalid uri": {
+			entry: &JWTProviderConfigEntry{
+				Kind: JWTProvider,
+				Name: "okta",
+				JSONWebKeySet: &JSONWebKeySet{
+					Remote: &RemoteJWKS{
+						FetchAsynchronously: true,
+						URI:                 "jibberishUrl",
+					},
+				},
+			},
+			validateErr: "remote JWKS URI is invalid",
+		},
+		"invalid jwt-provider - JWT location with all fields": {
+			entry: &JWTProviderConfigEntry{
+				Kind: JWTProvider,
+				Name: "okta",
+				JSONWebKeySet: &JSONWebKeySet{
+					Remote: &RemoteJWKS{
+						FetchAsynchronously: true,
+						URI:                 "https://example.com/.well-known/jwks.json",
+					},
+				},
+				Locations: []*JWTLocation{
+					{
+						Header: &JWTLocationHeader{
+							Name: "Bearer",
+						},
+						QueryParam: &JWTLocationQueryParam{
+							Name: "TOKEN-QUERY",
+						},
+						Cookie: &JWTLocationCookie{
+							Name: "SomeCookie",
+						},
+					},
+				},
+			},
+			validateErr: "must set exactly one of: JWT location header, query param or cookie",
 		},
 	}
 
