@@ -6,7 +6,6 @@ package upgrade
 import (
 	"context"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/require"
 
@@ -20,13 +19,15 @@ import (
 )
 
 // Test health check GRPC call using Target Servers and Latest GA Clients
+// Note: this upgrade test doesn't use StandardUpgrade since it requires
+// a cluster with clients and servers with mixed versions
 func TestTargetServersWithLatestGAClients(t *testing.T) {
 	t.Parallel()
 
 	fromVersion, err := version.NewVersion(utils.LatestVersion)
 	require.NoError(t, err)
 	if fromVersion.LessThan(utils.Version_1_14) {
-		return
+		t.Skip("TODO: why are we skipping this?")
 	}
 
 	const (
@@ -59,22 +60,11 @@ func TestTargetServersWithLatestGAClients(t *testing.T) {
 	const serviceName = "api"
 	index := libservice.ServiceCreate(t, client, serviceName)
 
-	ch, errCh := libservice.ServiceHealthBlockingQuery(client, serviceName, index)
 	require.NoError(t, client.Agent().ServiceRegister(
 		&api.AgentServiceRegistration{Name: serviceName, Port: 9998},
 	))
 
-	timer := time.NewTimer(3 * time.Second)
-	select {
-	case err := <-errCh:
-		require.NoError(t, err)
-	case service := <-ch:
-		require.Len(t, service, 1)
-		require.Equal(t, serviceName, service[0].Service.Service)
-		require.Equal(t, 9998, service[0].Service.Port)
-	case <-timer.C:
-		t.Fatalf("test timeout")
-	}
+	checkServiceHealth(t, client, "api", index)
 }
 
 // Test health check GRPC call using Mixed (majority latest) Servers and Latest GA Clients
@@ -156,21 +146,8 @@ func testMixedServersGAClient(t *testing.T, majorityIsTarget bool) {
 
 	const serviceName = "api"
 	index := libservice.ServiceCreate(t, client, serviceName)
-
-	ch, errCh := libservice.ServiceHealthBlockingQuery(client, serviceName, index)
 	require.NoError(t, client.Agent().ServiceRegister(
 		&api.AgentServiceRegistration{Name: serviceName, Port: 9998},
 	))
-
-	timer := time.NewTimer(3 * time.Second)
-	select {
-	case err := <-errCh:
-		require.NoError(t, err)
-	case service := <-ch:
-		require.Len(t, service, 1)
-		require.Equal(t, serviceName, service[0].Service.Service)
-		require.Equal(t, 9998, service[0].Service.Port)
-	case <-timer.C:
-		t.Fatalf("test timeout")
-	}
+	checkServiceHealth(t, client, "api", index)
 }
