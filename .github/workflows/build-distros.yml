@@ -101,7 +101,6 @@ jobs:
       with:
         go-version-file: 'go.mod'
     - run: |
-        # sudo rm -fv /etc/apt/sources.list.d/github_git-lfs.list # workaround for https://github.com/actions/runner-images/issues/1983
         sudo apt-get update --allow-releaseinfo-change-suite --allow-releaseinfo-change-version && sudo apt-get install -y gcc-arm-linux-gnueabi gcc-arm-linux-gnueabihf gcc-aarch64-linux-gnu
 
     - run: CC=arm-linux-gnueabi-gcc GOARCH=arm GOARM=5 go build
