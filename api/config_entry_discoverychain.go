@@ -263,7 +263,7 @@ type ServiceResolverFailoverTarget struct {
 type ServiceResolverFailoverPolicy struct {
 	// Mode specifies the type of failover that will be performed. Valid values are
 	// "sequential", "" (equivalent to "sequential") and "order-by-locality".
-	Mode string `json:",omitempty"`
+	Mode    string   `json:",omitempty"`
 	Regions []string `json:",omitempty"`
 }
 
