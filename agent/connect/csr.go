@@ -94,13 +94,31 @@ func CreateCSR(uri CertURI, privateKey crypto.Signer,
 
 // CreateCSR returns a CA CSR to sign the given service along with the PEM-encoded
 // private key for this certificate.
-func CreateCACSR(uri CertURI, privateKey crypto.Signer) (string, error) {
+func CreateCACSR(uri CertURI, commonName string, privateKey crypto.Signer) (string, error) {
 	ext, err := CreateCAExtension()
 	if err != nil {
 		return "", err
 	}
+	template := &x509.CertificateRequest{
+		URIs:               []*url.URL{uri.URI()},
+		SignatureAlgorithm: SigAlgoForKey(privateKey),
+		ExtraExtensions:    []pkix.Extension{ext},
+		Subject:            pkix.Name{CommonName: commonName},
+	}
 
-	return CreateCSR(uri, privateKey, nil, nil, ext)
+	// Create the CSR itself
+	var csrBuf bytes.Buffer
+	bs, err := x509.CreateCertificateRequest(rand.Reader, template, privateKey)
+	if err != nil {
+		return "", err
+	}
+
+	err = pem.Encode(&csrBuf, &pem.Block{Type: "CERTIFICATE REQUEST", Bytes: bs})
+	if err != nil {
+		return "", err
+	}
+
+	return csrBuf.String(), nil
 }
 
 // CreateCAExtension creates a pkix.Extension for the x509 Basic Constraints
