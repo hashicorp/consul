@@ -132,11 +132,15 @@ func (m CertExpirationMonitor) Monitor(ctx context.Context) error {
 			case rootKey:
 				logger.Warn("root certificate will expire soon",
 					"time_to_expiry", untilAfter,
-					"expiration", time.Now().Add(untilAfter))
+					"expiration", time.Now().Add(untilAfter),
+					"suggested_action", "rotate the root certificate",
+				)
 			case signingKey:
 				logger.Warn("signing (intermediate) certificate will expire soon",
 					"time_to_expiry", untilAfter,
-					"expiration", time.Now().Add(untilAfter))
+					"expiration", time.Now().Add(untilAfter),
+					"suggested_action", "check consul logs for rotation issues",
+				)
 			}
 		}
 
