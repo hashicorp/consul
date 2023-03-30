@@ -30,12 +30,21 @@ on:
         required: false
         type: string
         default: ""
-
+      repository-name:
+        required: true
+        type: string
+    secrets:
+      elevated-github-token:
+        required: true
+      consul-license:
+        required: true
 env:
   TEST_RESULTS: /tmp/test-results
   GOTESTSUM_VERSION: 1.8.2
   GOARCH: ${{inputs.go-arch}}
   TOTAL_RUNNERS: ${{inputs.runner-count}}
+  CONSUL_LICENSE: ${{secrets.consul-license}}
+  GOTAGS: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consulprem consuldev' || '' }}"
   
 jobs:
   set-test-package-matrix:
@@ -67,15 +76,14 @@ jobs:
           echo "Hard limits"
           ulimit -Ha   
       - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
+      # NOTE: This step is specifically needed for ENT. It allows us to access the required private HashiCorp repos.
+      - name: Setup Git
+        if: ${{ endsWith(inputs.repository-name, '-enterprise') }}
+        run: git config --global url."https://${{ secrets.elevated-github-token }}:@github.com".insteadOf "https://github.com"
       - uses: actions/setup-go@6edd4406fa81c3da01a34fa6f6343087c207a568 # pin@v3.5.0
         with:
           go-version-file: 'go.mod'
           cache: true
-      - name: Install gotestsum
-        run: |
-          wget https://github.com/gotestyourself/gotestsum/releases/download/v${{env.GOTESTSUM_VERSION}}/gotestsum_${{env.GOTESTSUM_VERSION}}_linux_amd64.tar.gz
-          sudo tar -C /usr/local/bin -xzf gotestsum_${{env.GOTESTSUM_VERSION}}_linux_amd64.tar.gz
-          rm gotestsum_${{env.GOTESTSUM_VERSION}}_linux_amd64.tar.gz
       - run: mkdir -p ${{env.TEST_RESULTS}}
       - name: go mod download
         working-directory: ${{inputs.directory}}
@@ -84,9 +92,13 @@ jobs:
         uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # pin@v3.0.2
         with:
           name: ${{inputs.uploaded-binary-name}}
-          path: /usr/local/bin
+          path: ${{inputs.directory}} 
+      - name: Display downloaded file
+        run: ls -ld consul 
+        working-directory: ${{inputs.directory}}
+      - run: echo "$GITHUB_WORKSPACE/${{inputs.directory}}" >> $GITHUB_PATH
       - name: Make sure consul is executable
-        run: sudo chmod +x /usr/local/bin/consul
+        run: chmod +x $GITHUB_WORKSPACE/${{inputs.directory}}/consul
       - run: go env
       - name: Run tests 
         working-directory: ${{inputs.directory}}
@@ -100,7 +112,7 @@ jobs:
           # some tests expect this umask, and arm images have a different default
           umask 0022
 
-          gotestsum \
+          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
           --format=short-verbose \
           --jsonfile /tmp/jsonfile/go-test.log \
           --debug \
@@ -124,5 +136,5 @@ jobs:
         run: |
           .github/scripts/rerun_fails_report.sh /tmp/gotestsum-rerun-fails
       - name: Notify Slack
-        if: failure()
+        if: ${{ failure() }}
         run: .github/scripts/notify_slack.sh
