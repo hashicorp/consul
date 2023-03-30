@@ -173,7 +173,7 @@ func TestAPI_ConfigEntry_DiscoveryChain(t *testing.T) {
 						Policy: &ServiceResolverFailoverPolicy{
 							Mode: "sequential",
 							Regions: []string{"us-west-1"},
-						}
+						},
 					},
 				},
 				ConnectTimeout: 5 * time.Second,
