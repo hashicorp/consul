@@ -14,7 +14,7 @@ type JWTProviderConfigEntry struct {
 	// Name is the name of the provider being configured.
 	Name string
 
-	// JWKS defines a JSON Web Key Set, it's location on disk, or the
+	// JSONWebKeySet defines a JSON Web Key Set, its location on disk, or the
 	// means with which to fetch a key set from a remote server.
 	JSONWebKeySet *JSONWebKeySet `json:",omitempty"`
 
@@ -22,7 +22,7 @@ type JWTProviderConfigEntry struct {
 	// This value must match the "iss" claim of the token.
 	Issuer string
 
-	// Audiences is the set of audiences the JWT Is allowed to access.
+	// Audiences is the set of audiences the JWT is allowed to access.
 	// If specified, all JWTs verified with this provider must address
 	// at least one of these to be considered valid.
 	Audiences []string
@@ -30,7 +30,7 @@ type JWTProviderConfigEntry struct {
 	// Locations where the JWT will be present in requests.
 	// Envoy will check all of these locations to extract a JWT.
 	// If no locations are specified Envoy will default to:
-	// 1. Authorization header with Beader schema:
+	// 1. Authorization header with Bearer schema:
 	//    "Authorization: Bearer <token>"
 	// 2. access_token query parameter.
 	Locations []*JWTLocation `json:",omitempty"`
@@ -79,7 +79,7 @@ type JWTLocationHeader struct {
 
 	// ValuePrefix is an optional prefix that precedes the token in the
 	// header value.
-	// For example, "Bearer " a standard value prefix for a header named
+	// For example, "Bearer " is a standard value prefix for a header named
 	// "Authorization", but the prefix is not part of the token itself:
 	// "Authorization: Bearer <token>"
 	ValuePrefix string
@@ -98,7 +98,7 @@ type JWTLocationQueryParam struct {
 	Name string
 }
 
-// CookieJWTLocation defines how to extract a JWT from an HTTP request cookie.
+// JWTLocationCookie defines how to extract a JWT from an HTTP request cookie.
 type JWTLocationCookie struct {
 	// Name is the name of the cookie containing the token.
 	Name string
@@ -120,10 +120,10 @@ type JWTForwardingConfig struct {
 	PadForwardPayloadHeader bool
 }
 
-// JSONWebKeySet defines a key set, it's location on disk, or the
+// JSONWebKeySet defines a key set, its location on disk, or the
 // means with which to fetch a key set from a remote server.
 //
-// Only one of Local or Remote can be specified.
+// Exactly one of Local or Remote must be specified.
 type JSONWebKeySet struct {
 	// Local specifies a local source for the key set.
 	Local *LocalJWKS
@@ -208,7 +208,9 @@ func (e *JWTProviderConfigEntry) GetClockSkewSeconds() int               { retur
 func (e *JWTProviderConfigEntry) GetCacheConfig() *JWTCacheConfig        { return e.CacheConfig }
 
 func (e *JWTProviderConfigEntry) CanRead(authz acl.Authorizer) error {
-	return nil
+	var authzContext acl.AuthorizerContext
+	e.FillAuthzContext(&authzContext)
+	return authz.ToAllowAuthorizer().MeshReadAllowed(&authzContext)
 }
 
 func (e *JWTProviderConfigEntry) CanWrite(authz acl.Authorizer) error {
@@ -217,10 +219,146 @@ func (e *JWTProviderConfigEntry) CanWrite(authz acl.Authorizer) error {
 	return authz.ToAllowAuthorizer().MeshWriteAllowed(&authzContext)
 }
 
+func (jwks *JSONWebKeySet) Validate() error {
+	hasLocalKeySet := jwks.Local != nil
+	hasRemoteKeySet := jwks.Remote != nil
+
+	if (hasLocalKeySet && hasRemoteKeySet) || !(hasLocalKeySet || hasRemoteKeySet) {
+		return fmt.Errorf("must specify exactly one of Local or Remote JSON Web key set")
+	}
+
+	// figure out if i can do something like
+	// keySet := jwks.Remote || jwks.Local
+	// keySet.Validate()
+	if hasRemoteKeySet {
+		if err := jwks.Remote.Validate(); err != nil {
+			return err
+		}
+		return nil
+	}
+
+	if err := jwks.Local.Validate(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (ks *LocalJWKS) Validate() error {
+	hasFilename := ks.Filename != ""
+	hasString := ks.String != ""
+
+	if (hasFilename && hasString) || !(hasFilename || hasString) {
+		return fmt.Errorf("must specify exactly one of String or filename for local keyset")
+	}
+
+	return nil
+}
+
+func (jwks *RemoteJWKS) Validate() error {
+	// RemoteJWKS
+	// 	Normalize
+	// 	- Set the defaults for unset values.
+
+	// 	Validate
+	// 	- URI must be set.
+	// 	  Must be a valid URI.
+	// 	(all others have defaults)
+	return fmt.Errorf("implement me")
+}
+
+func (header *JWTLocationHeader) Validate() error {
+	if header.Name == "" {
+		return fmt.Errorf("JWT location header name must be specified")
+	}
+	return nil
+}
+
+func (cookieHeader *JWTLocationCookie) Validate() error {
+	if cookieHeader.Name == "" {
+		return fmt.Errorf("JWT location cookie name must be specified")
+	}
+	return nil
+}
+
+func (queryHeader *JWTLocationQueryParam) Validate() error {
+	if queryHeader.Name == "" {
+		return fmt.Errorf("JWT location query param name must be specified")
+	}
+	return nil
+}
+
+func (location *JWTLocation) Validate() error {
+	hasHeader := location.Header != nil
+	hasQueryParam := location.QueryParam != nil
+	hasCookie := location.Cookie != nil
+
+	hasAllThree := hasHeader && hasQueryParam && hasCookie
+
+	if hasAllThree || !(hasCookie || hasQueryParam || hasHeader) {
+		return fmt.Errorf("must set exactly one of: JWT location header, query param or cookie")
+	}
+
+	if hasHeader {
+		if err := location.Header.Validate(); err != nil {
+			return err
+		}
+		return nil
+	}
+
+	if hasCookie {
+		if err := location.Cookie.Validate(); err != nil {
+			return err
+		}
+		return nil
+	}
+
+	if err := location.QueryParam.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func validateLocations(locations []*JWTLocation) error {
+	for _, location := range locations {
+		if err := location.Validate(); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (forwardingConfig *JWTForwardingConfig) Validate() error {
+	if forwardingConfig.HeaderName == "" {
+		return fmt.Errorf("header name required for forwarding config")
+	}
+
+	return nil
+}
+
 func (e *JWTProviderConfigEntry) Validate() error {
-	// TODO - RONALD: FIGURE OUT WHAT TO VALIDATE
 	if e.Name == "" {
-		return fmt.Errorf("Name is required")
+		return fmt.Errorf("name is required")
+	}
+
+	if err := validateConfigEntryMeta(e.Meta); err != nil {
+		return err
+	}
+
+	if e.JSONWebKeySet == nil {
+		return fmt.Errorf("JSONWebKeySet is required")
+	}
+
+	if err := e.JSONWebKeySet.Validate(); err != nil {
+		return err
+	}
+
+	if e.Locations != nil {
+		validateLocations(e.Locations)
+	}
+
+	if e.Forwarding != nil {
+		e.Forwarding.Validate()
 	}
 
 	return nil

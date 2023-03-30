@@ -2,7 +2,19 @@ package structs
 
 import (
 	"testing"
+
+	"github.com/hashicorp/consul/acl"
+	"github.com/stretchr/testify/require"
 )
+
+func newTestAuthz(t *testing.T, src string) acl.Authorizer {
+	policy, err := acl.NewPolicyFromSource(src, nil, nil)
+	require.NoError(t, err)
+
+	authorizer, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
+	require.NoError(t, err)
+	return authorizer
+}
 
 func TestJWTProviderConfigEntry_ValidateAndNormalize(t *testing.T) {
 	cases := map[string]configEntryTestcase{
@@ -25,7 +37,8 @@ func TestJWTProviderConfigEntry_ValidateAndNormalize(t *testing.T) {
 						Filename: "jwks.txt",
 					},
 				},
-				ClockSkewSeconds: defaultClockSkewSeconds,
+				// ClockSkewSeconds: defaultClockSkewSeconds,
+				ClockSkewSeconds: 300,
 			},
 		},
 		"invalid jwt-provider - no name": {
