@@ -71,6 +71,9 @@ func (w *Watch) nextEvent(ctx context.Context) (*stream.Event, error) {
 	}
 }
 
+// Close the watch and free its associated resources.
+func (w *Watch) Close() { w.sub.Unsubscribe() }
+
 var eventTopic = stream.StringTopic("resources")
 
 type eventPayload struct {

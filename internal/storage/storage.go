@@ -269,10 +269,13 @@ type Backend interface {
 }
 
 // Watch represents a watch on a given set of resources. Call Next to get the
-// next event (i.e. upsert or deletion).
+// next event (i.e. upsert or deletion) and Close when you're done watching.
 type Watch interface {
 	// Next returns the next event (i.e. upsert or deletion)
 	Next(ctx context.Context) (*pbresource.WatchEvent, error)
+
+	// Close the watch and free its associated resources.
+	Close()
 }
 
 // UnversionedType represents a pbresource.Type as it is stored without the

@@ -452,6 +452,7 @@ func testListWatch(t *testing.T, opts TestOptions) {
 
 				watch, err := backend.WatchList(ctx, tc.resourceType, tc.tenancy, tc.namePrefix)
 				require.NoError(t, err)
+				t.Cleanup(watch.Close)
 
 				for i := 0; i < len(tc.results); i++ {
 					ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
@@ -471,6 +472,7 @@ func testListWatch(t *testing.T, opts TestOptions) {
 
 				watch, err := backend.WatchList(ctx, tc.resourceType, tc.tenancy, tc.namePrefix)
 				require.NoError(t, err)
+				t.Cleanup(watch.Close)
 
 				// Write the seed data after the watch has been established.
 				for _, r := range seedData {
