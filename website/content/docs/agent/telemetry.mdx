@@ -104,7 +104,8 @@ not automatically rotate it.
 ** What to look for:** The Root CA should be monitored for an approaching
 expiration, to indicate it is time to manually rotate the CA or to verify your
 automated system is working. The signing (intermediate) certificate should be
-rotated automatically by Consul but it is good to monitor it in case of issues.
+rotated automatically by Consul, but should be monitored in case of rotation isn't working;
+in this scenario, check the server agent logs for messages related to the CA system.
 
 ### Autopilot
 
