@@ -282,10 +282,9 @@ func (c *Cluster) ServerByAddr(addr string) *Node {
 
 func (c *Cluster) FirstServer() *Node {
 	for _, node := range c.Nodes {
-		if node.Kind != NodeKindServer || node.Disabled {
-			continue
+		if node.IsServer() && !node.Disabled && node.ExposedPort(8500) > 0 {
+			return node
 		}
-		return node
 	}
 	return nil
 }
