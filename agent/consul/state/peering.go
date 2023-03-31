@@ -774,9 +774,9 @@ func exportedServicesForPeerTxn(
 	maxIdx := peering.ModifyIndex
 
 	entMeta := structs.NodeEnterpriseMetaInPartition(peering.Partition)
-	idx, exportConf, err := getExportedServicesConfigEntryTxn(tx, ws, nil, entMeta)
+	idx, exportConf, err := getSimplifiedExportedServices(tx, ws, nil, *entMeta)
 	if err != nil {
-		return 0, nil, fmt.Errorf("failed to fetch exported-services config entry: %w", err)
+		return 0, nil, fmt.Errorf("failed to fetch simplified exported-services config entry: %w", err)
 	}
 	if idx > maxIdx {
 		maxIdx = idx
@@ -1019,17 +1019,8 @@ func listAllExportedServices(
 	overrides map[configentry.KindName]structs.ConfigEntry,
 	entMeta acl.EnterpriseMeta,
 ) (uint64, map[structs.ServiceName]struct{}, error) {
-	idx, export, err := getExportedServicesConfigEntryTxn(tx, ws, overrides, &entMeta)
-	if err != nil {
-		return 0, nil, err
-	}
-
 	found := make(map[structs.ServiceName]struct{})
-	if export == nil {
-		return idx, found, nil
-	}
-
-	_, services, err := listServicesExportedToAnyPeerByConfigEntry(ws, tx, export, overrides)
+	idx, services, err := listServicesExportedToAnyPeerByConfigEntry(ws, tx, entMeta, overrides)
 	if err != nil {
 		return 0, nil, err
 	}
@@ -1044,16 +1035,25 @@ func listAllExportedServices(
 func listServicesExportedToAnyPeerByConfigEntry(
 	ws memdb.WatchSet,
 	tx ReadTxn,
-	conf *structs.ExportedServicesConfigEntry,
+	entMeta acl.EnterpriseMeta,
 	overrides map[configentry.KindName]structs.ConfigEntry,
 ) (uint64, []structs.ServiceName, error) {
 	var (
-		entMeta = conf.GetEnterpriseMeta()
-		found   = make(map[structs.ServiceName]struct{})
-		maxIdx  uint64
+		found  = make(map[structs.ServiceName]struct{})
+		maxIdx uint64
 	)
+	idx, exports, err := getSimplifiedExportedServices(tx, ws, overrides, entMeta)
+	if err != nil {
+		return 0, nil, err
+	}
+	if idx > maxIdx {
+		maxIdx = idx
+	}
+	if exports == nil {
+		return 0, nil, nil
+	}
 
-	for _, svc := range conf.Services {
+	for _, svc := range exports.Services {
 		svcMeta := acl.NewEnterpriseMetaWithPartition(entMeta.PartitionOrDefault(), svc.Namespace)
 
 		sawPeer := false
@@ -1412,17 +1412,12 @@ func peersForServiceTxn(
 	// Exported service config entries are scoped to partitions so they are in the default namespace.
 	partitionMeta := structs.DefaultEnterpriseMetaInPartition(entMeta.PartitionOrDefault())
 
-	idx, rawEntry, err := configEntryTxn(tx, ws, structs.ExportedServices, partitionMeta.PartitionOrDefault(), partitionMeta)
+	idx, exportedServices, err := getSimplifiedExportedServices(tx, ws, nil, *partitionMeta)
 	if err != nil {
 		return 0, nil, err
 	}
-	if rawEntry == nil {
-		return idx, nil, err
-	}
-
-	entry, ok := rawEntry.(*structs.ExportedServicesConfigEntry)
-	if !ok {
-		return 0, nil, fmt.Errorf("unexpected type %T for pbpeering.Peering index", rawEntry)
+	if exportedServices == nil {
+		return idx, nil, nil
 	}
 
 	var (
@@ -1442,7 +1437,7 @@ func peersForServiceTxn(
 	// 		Namespace: *,     Service: *
 	// 		Namespace: Exact, Service: *
 	// 		Namespace: Exact, Service: Exact
-	for i, service := range entry.Services {
+	for i, service := range exportedServices.Services {
 		switch {
 		case service.Namespace == structs.WildcardSpecifier:
 			wildcardNamespaceIdx = i
@@ -1473,7 +1468,7 @@ func peersForServiceTxn(
 		return idx, results, nil
 	}
 
-	for _, c := range entry.Services[targetIdx].Consumers {
+	for _, c := range exportedServices.Services[targetIdx].Consumers {
 		if c.Peer != "" {
 			results = append(results, c.Peer)
 		}

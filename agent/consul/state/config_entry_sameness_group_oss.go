@@ -9,7 +9,6 @@ package state
 import (
 	"fmt"
 
-	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/configentry"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/go-memdb"
@@ -44,7 +43,7 @@ func getSamenessGroupConfigEntryTxn(
 	ws memdb.WatchSet,
 	name string,
 	overrides map[configentry.KindName]structs.ConfigEntry,
-	entMeta *acl.EnterpriseMeta,
+	partition string,
 ) (uint64, *structs.SamenessGroupConfigEntry, error) {
 	return 0, nil, nil
 }
