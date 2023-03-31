@@ -32,6 +32,7 @@ func (l *PipeListener) Handle(conn net.Conn) {
 	select {
 	case l.conns <- conn:
 	case <-l.done:
+		_ = conn.Close()
 	}
 }
 
