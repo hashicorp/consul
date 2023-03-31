@@ -261,7 +261,10 @@ type ServiceResolverFailoverTarget struct {
 }
 
 type ServiceResolverFailoverPolicy struct {
-	Mode string `json:",omitempty"`
+	// Mode specifies the type of failover that will be performed. Valid values are
+	// "sequential", "" (equivalent to "sequential") and "order-by-locality".
+	Mode    string   `json:",omitempty"`
+	Regions []string `json:",omitempty"`
 }
 
 // LoadBalancer determines the load balancing policy and configuration for services
