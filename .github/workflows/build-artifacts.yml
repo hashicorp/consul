@@ -5,7 +5,7 @@
 name: build-artifacts
 
 on: 
-  pull_request:
+  push:
     branches:
       - main
 
@@ -63,5 +63,5 @@ jobs:
         labels: COMMIT_SHA=${{ github.sha }},GITHUB_BUILD_URL=${{ env.GITHUB_BUILD_URL }}
         push: true
         tags: |
-          hashicorpdev/consul-enterprise:${{ env.SHORT_SHA }}
-          hashicorpdev/consul-enterprise:latest
+          hashicorpdev/${{ github.event.repository.name }}:${{ env.SHORT_SHA }}
+          hashicorpdev/${{ github.event.repository.name }}:latest
