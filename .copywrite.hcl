@@ -13,6 +13,10 @@ project {
     "ui/packages/consul-ui/lib/rehype-prism/**",
     "ui/packages/consul-ui/lib/block-slots/**",
 
+    # UI file that do not render properly with copyright headers
+    "ui/packages/consul-ui/app/components/brand-loader/enterprise.hbs",
+    "ui/packages/consul-ui/app/components/brand-loader/index.hbs",
+
     # ignore specific test data files
     "agent/uiserver/testdata/**",
 
