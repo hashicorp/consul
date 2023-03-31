@@ -12,8 +12,32 @@ import "pbresource/resource.proto";
 // operations to the Raft leader. It is served on Consul's multiplexed
 // server port, which is the same port used for regular Raft traffic.
 service Forwarding {
-  // RoundTrip handles the forwarded operation.
-  rpc RoundTrip(Request) returns (Response) {
+  // Write handles a forwarded write operation.
+  rpc Write(WriteRequest) returns (WriteResponse) {
+    option (hashicorp.consul.internal.ratelimit.spec) = {
+      operation_type: OPERATION_TYPE_EXEMPT,
+      operation_category: OPERATION_CATEGORY_RESOURCE
+    };
+  }
+
+  // Delete handles a forwarded delete operation.
+  rpc Delete(DeleteRequest) returns (google.protobuf.Empty) {
+    option (hashicorp.consul.internal.ratelimit.spec) = {
+      operation_type: OPERATION_TYPE_EXEMPT,
+      operation_category: OPERATION_CATEGORY_RESOURCE
+    };
+  }
+
+  // Read handles a forwarded read operation.
+  rpc Read(ReadRequest) returns (ReadResponse) {
+    option (hashicorp.consul.internal.ratelimit.spec) = {
+      operation_type: OPERATION_TYPE_EXEMPT,
+      operation_category: OPERATION_CATEGORY_RESOURCE
+    };
+  }
+
+  // List handles a forwarded list operation.
+  rpc List(ListRequest) returns (ListResponse) {
     option (hashicorp.consul.internal.ratelimit.spec) = {
       operation_type: OPERATION_TYPE_EXEMPT,
       operation_category: OPERATION_CATEGORY_RESOURCE
@@ -21,39 +45,28 @@ service Forwarding {
   }
 }
 
-// RequestType describes the type of operation being forwarded or written to
-// the Raft log.
-enum RequestType {
-  REQUEST_TYPE_UNSPECIFIED = 0;
-  REQUEST_TYPE_WRITE = 1;
-  REQUEST_TYPE_DELETE = 2;
-  REQUEST_TYPE_READ = 3;
-  REQUEST_TYPE_LIST = 4;
+// LogType describes the type of operation being written to the Raft log.
+enum LogType {
+  LOG_TYPE_UNSPECIFIED = 0;
+  LOG_TYPE_WRITE = 1;
+  LOG_TYPE_DELETE = 2;
 }
 
-// Request is used for two purposes:
-//
-//  1. For write and delete operations, Request will be protobuf-encoded and
-//     written to the Raft log.
-//  2. For all operations, Request will be used for forwarding to the leader.
-message Request {
-  RequestType type = 1;
+// Log is protobuf-encoded and written to the Raft log.
+message Log {
+  LogType type = 1;
 
   oneof request {
     WriteRequest write = 2;
     DeleteRequest delete = 3;
-    ReadRequest read = 4;
-    ListRequest list = 5;
   }
 }
 
-// Response contains the results of a Request.
-message Response {
+// LogResponse contains the FSM's response to applying a log.
+message LogResponse {
   oneof response {
     WriteResponse write = 1;
     google.protobuf.Empty delete = 2;
-    ReadResponse read = 3;
-    ListResponse list = 4;
   }
 }
 

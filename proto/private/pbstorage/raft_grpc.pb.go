@@ -11,6 +11,7 @@ import (
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
+	emptypb "google.golang.org/protobuf/types/known/emptypb"
 )
 
 // This is a compile-time assertion to ensure that this generated file
@@ -22,8 +23,14 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type ForwardingClient interface {
-	// RoundTrip handles the forwarded operation.
-	RoundTrip(ctx context.Context, in *Request, opts ...grpc.CallOption) (*Response, error)
+	// Write handles a forwarded write operation.
+	Write(ctx context.Context, in *WriteRequest, opts ...grpc.CallOption) (*WriteResponse, error)
+	// Delete handles a forwarded delete operation.
+	Delete(ctx context.Context, in *DeleteRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	// Read handles a forwarded read operation.
+	Read(ctx context.Context, in *ReadRequest, opts ...grpc.CallOption) (*ReadResponse, error)
+	// List handles a forwarded list operation.
+	List(ctx context.Context, in *ListRequest, opts ...grpc.CallOption) (*ListResponse, error)
 }
 
 type forwardingClient struct {
@@ -34,9 +41,36 @@ func NewForwardingClient(cc grpc.ClientConnInterface) ForwardingClient {
 	return &forwardingClient{cc}
 }
 
-func (c *forwardingClient) RoundTrip(ctx context.Context, in *Request, opts ...grpc.CallOption) (*Response, error) {
-	out := new(Response)
-	err := c.cc.Invoke(ctx, "/hashicorp.consul.internal.storage.raft.Forwarding/RoundTrip", in, out, opts...)
+func (c *forwardingClient) Write(ctx context.Context, in *WriteRequest, opts ...grpc.CallOption) (*WriteResponse, error) {
+	out := new(WriteResponse)
+	err := c.cc.Invoke(ctx, "/hashicorp.consul.internal.storage.raft.Forwarding/Write", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *forwardingClient) Delete(ctx context.Context, in *DeleteRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	out := new(emptypb.Empty)
+	err := c.cc.Invoke(ctx, "/hashicorp.consul.internal.storage.raft.Forwarding/Delete", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *forwardingClient) Read(ctx context.Context, in *ReadRequest, opts ...grpc.CallOption) (*ReadResponse, error) {
+	out := new(ReadResponse)
+	err := c.cc.Invoke(ctx, "/hashicorp.consul.internal.storage.raft.Forwarding/Read", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *forwardingClient) List(ctx context.Context, in *ListRequest, opts ...grpc.CallOption) (*ListResponse, error) {
+	out := new(ListResponse)
+	err := c.cc.Invoke(ctx, "/hashicorp.consul.internal.storage.raft.Forwarding/List", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -47,16 +81,31 @@ func (c *forwardingClient) RoundTrip(ctx context.Context, in *Request, opts ...g
 // All implementations should embed UnimplementedForwardingServer
 // for forward compatibility
 type ForwardingServer interface {
-	// RoundTrip handles the forwarded operation.
-	RoundTrip(context.Context, *Request) (*Response, error)
+	// Write handles a forwarded write operation.
+	Write(context.Context, *WriteRequest) (*WriteResponse, error)
+	// Delete handles a forwarded delete operation.
+	Delete(context.Context, *DeleteRequest) (*emptypb.Empty, error)
+	// Read handles a forwarded read operation.
+	Read(context.Context, *ReadRequest) (*ReadResponse, error)
+	// List handles a forwarded list operation.
+	List(context.Context, *ListRequest) (*ListResponse, error)
 }
 
 // UnimplementedForwardingServer should be embedded to have forward compatible implementations.
 type UnimplementedForwardingServer struct {
 }
 
-func (UnimplementedForwardingServer) RoundTrip(context.Context, *Request) (*Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method RoundTrip not implemented")
+func (UnimplementedForwardingServer) Write(context.Context, *WriteRequest) (*WriteResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Write not implemented")
+}
+func (UnimplementedForwardingServer) Delete(context.Context, *DeleteRequest) (*emptypb.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Delete not implemented")
+}
+func (UnimplementedForwardingServer) Read(context.Context, *ReadRequest) (*ReadResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Read not implemented")
+}
+func (UnimplementedForwardingServer) List(context.Context, *ListRequest) (*ListResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method List not implemented")
 }
 
 // UnsafeForwardingServer may be embedded to opt out of forward compatibility for this service.
@@ -70,20 +119,74 @@ func RegisterForwardingServer(s grpc.ServiceRegistrar, srv ForwardingServer) {
 	s.RegisterService(&Forwarding_ServiceDesc, srv)
 }
 
-func _Forwarding_RoundTrip_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(Request)
+func _Forwarding_Write_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(WriteRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(ForwardingServer).RoundTrip(ctx, in)
+		return srv.(ForwardingServer).Write(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/hashicorp.consul.internal.storage.raft.Forwarding/RoundTrip",
+		FullMethod: "/hashicorp.consul.internal.storage.raft.Forwarding/Write",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ForwardingServer).RoundTrip(ctx, req.(*Request))
+		return srv.(ForwardingServer).Write(ctx, req.(*WriteRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Forwarding_Delete_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ForwardingServer).Delete(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/hashicorp.consul.internal.storage.raft.Forwarding/Delete",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ForwardingServer).Delete(ctx, req.(*DeleteRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Forwarding_Read_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ReadRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ForwardingServer).Read(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/hashicorp.consul.internal.storage.raft.Forwarding/Read",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ForwardingServer).Read(ctx, req.(*ReadRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Forwarding_List_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ForwardingServer).List(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/hashicorp.consul.internal.storage.raft.Forwarding/List",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ForwardingServer).List(ctx, req.(*ListRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -96,8 +199,20 @@ var Forwarding_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*ForwardingServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "RoundTrip",
-			Handler:    _Forwarding_RoundTrip_Handler,
+			MethodName: "Write",
+			Handler:    _Forwarding_Write_Handler,
+		},
+		{
+			MethodName: "Delete",
+			Handler:    _Forwarding_Delete_Handler,
+		},
+		{
+			MethodName: "Read",
+			Handler:    _Forwarding_Read_Handler,
+		},
+		{
+			MethodName: "List",
+			Handler:    _Forwarding_List_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

@@ -113,16 +113,11 @@ func (b *Backend) Read(ctx context.Context, consistency storage.ReadConsistency,
 	}
 
 	// Forward the request to the leader.
-	rsp, err := b.forwardingClient.roundTrip(ctx, &pbstorage.Request{
-		Type: pbstorage.RequestType_REQUEST_TYPE_READ,
-		Request: &pbstorage.Request_Read{
-			Read: &pbstorage.ReadRequest{Id: id},
-		},
-	})
+	rsp, err := b.forwardingClient.read(ctx, &pbstorage.ReadRequest{Id: id})
 	if err != nil {
 		return nil, err
 	}
-	return rsp.GetRead().GetResource(), nil
+	return rsp.GetResource(), nil
 }
 
 func (b *Backend) leaderRead(ctx context.Context, id *pbresource.ID) (*pbresource.Resource, error) {
@@ -134,30 +129,46 @@ func (b *Backend) leaderRead(ctx context.Context, id *pbresource.ID) (*pbresourc
 
 // WriteCAS implements the storage.Backend interface.
 func (b *Backend) WriteCAS(ctx context.Context, res *pbresource.Resource) (*pbresource.Resource, error) {
-	rsp, err := b.roundTripWrite(ctx, &pbstorage.Request{
-		Type: pbstorage.RequestType_REQUEST_TYPE_WRITE,
-		Request: &pbstorage.Request_Write{
-			Write: &pbstorage.WriteRequest{Resource: res},
-		},
-	})
+	req := &pbstorage.WriteRequest{Resource: res}
+
+	if b.handle.IsLeader() {
+		rsp, err := b.raftApply(&pbstorage.Log{
+			Type: pbstorage.LogType_LOG_TYPE_WRITE,
+			Request: &pbstorage.Log_Write{
+				Write: req,
+			},
+		})
+		if err != nil {
+			return nil, err
+		}
+		return rsp.GetWrite().GetResource(), nil
+	}
+
+	rsp, err := b.forwardingClient.write(ctx, req)
 	if err != nil {
 		return nil, err
 	}
-	return rsp.GetWrite().GetResource(), nil
+	return rsp.GetResource(), nil
 }
 
 // DeleteCAS implements the storage.Backend interface.
 func (b *Backend) DeleteCAS(ctx context.Context, id *pbresource.ID, version string) error {
-	_, err := b.roundTripWrite(ctx, &pbstorage.Request{
-		Type: pbstorage.RequestType_REQUEST_TYPE_DELETE,
-		Request: &pbstorage.Request_Delete{
-			Delete: &pbstorage.DeleteRequest{
-				Id:      id,
-				Version: version,
+	req := &pbstorage.DeleteRequest{
+		Id:      id,
+		Version: version,
+	}
+
+	if b.handle.IsLeader() {
+		_, err := b.raftApply(&pbstorage.Log{
+			Type: pbstorage.LogType_LOG_TYPE_DELETE,
+			Request: &pbstorage.Log_Delete{
+				Delete: req,
 			},
-		},
-	})
-	return err
+		})
+		return err
+	}
+
+	return b.forwardingClient.delete(ctx, req)
 }
 
 // List implements the storage.Backend interface.
@@ -177,23 +188,18 @@ func (b *Backend) List(ctx context.Context, consistency storage.ReadConsistency,
 	}
 
 	// Forward the request to the leader.
-	rsp, err := b.forwardingClient.roundTrip(ctx, &pbstorage.Request{
-		Type: pbstorage.RequestType_REQUEST_TYPE_LIST,
-		Request: &pbstorage.Request_List{
-			List: &pbstorage.ListRequest{
-				Type: &pbresource.Type{
-					Group: resType.Group,
-					Kind:  resType.Kind,
-				},
-				Tenancy:    tenancy,
-				NamePrefix: namePrefix,
-			},
+	rsp, err := b.forwardingClient.list(ctx, &pbstorage.ListRequest{
+		Type: &pbresource.Type{
+			Group: resType.Group,
+			Kind:  resType.Kind,
 		},
+		Tenancy:    tenancy,
+		NamePrefix: namePrefix,
 	})
 	if err != nil {
 		return nil, err
 	}
-	return rsp.GetList().GetResources(), nil
+	return rsp.GetResources(), nil
 }
 
 func (b *Backend) leaderList(ctx context.Context, resType storage.UnversionedType, tenancy *pbresource.Tenancy, namePrefix string) ([]*pbresource.Resource, error) {
@@ -216,13 +222,13 @@ func (b *Backend) OwnerReferences(_ context.Context, id *pbresource.ID) ([]*pbre
 // Apply is called by the FSM with the bytes of a Raft log entry, with Consul's
 // envelope (i.e. type prefix and msgpack wrapper) stripped off.
 func (b *Backend) Apply(buf []byte, idx uint64) any {
-	var req pbstorage.Request
+	var req pbstorage.Log
 	if err := req.UnmarshalBinary(buf); err != nil {
 		return fmt.Errorf("failed to decode request: %w", err)
 	}
 
 	switch req.Type {
-	case pbstorage.RequestType_REQUEST_TYPE_WRITE:
+	case pbstorage.LogType_LOG_TYPE_WRITE:
 		res := req.GetWrite().GetResource()
 		oldVsn := res.Version
 		res.Version = strconv.Itoa(int(idx))
@@ -231,18 +237,18 @@ func (b *Backend) Apply(buf []byte, idx uint64) any {
 			return err
 		}
 
-		return &pbstorage.Response{
-			Response: &pbstorage.Response_Write{
+		return &pbstorage.LogResponse{
+			Response: &pbstorage.LogResponse_Write{
 				Write: &pbstorage.WriteResponse{Resource: res},
 			},
 		}
-	case pbstorage.RequestType_REQUEST_TYPE_DELETE:
+	case pbstorage.LogType_LOG_TYPE_DELETE:
 		req := req.GetDelete()
 		if err := b.store.DeleteCAS(req.Id, req.Version); err != nil {
 			return err
 		}
-		return &pbstorage.Response{
-			Response: &pbstorage.Response_Delete{},
+		return &pbstorage.LogResponse{
+			Response: &pbstorage.LogResponse_Delete{},
 		}
 	}
 
@@ -256,17 +262,8 @@ func (b *Backend) LeaderChanged() { b.forwardingClient.leaderChanged() }
 // HandleConnection should be called whenever a forwarding connection is opened.
 func (b *Backend) HandleConnection(conn net.Conn) { b.forwardingServer.listener.Handle(conn) }
 
-// roundTripWrite applies the given request to the Raft log directly if we are
-// the leader, or forwards it to the leader if we are a follower.
-func (b *Backend) roundTripWrite(ctx context.Context, req *pbstorage.Request) (*pbstorage.Response, error) {
-	if b.handle.IsLeader() {
-		return b.raftApply(req)
-	}
-	return b.forwardingClient.roundTrip(ctx, req)
-}
-
 // raftApply round trips the given request through the Raft log and FSM.
-func (b *Backend) raftApply(req *pbstorage.Request) (*pbstorage.Response, error) {
+func (b *Backend) raftApply(req *pbstorage.Log) (*pbstorage.LogResponse, error) {
 	msg, err := req.MarshalBinary()
 	if err != nil {
 		return nil, err
@@ -278,7 +275,7 @@ func (b *Backend) raftApply(req *pbstorage.Request) (*pbstorage.Response, error)
 	}
 
 	switch t := rsp.(type) {
-	case *pbstorage.Response:
+	case *pbstorage.LogResponse:
 		return t, nil
 	default:
 		return nil, fmt.Errorf("unexpected response from Raft apply: %T", rsp)

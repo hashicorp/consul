@@ -8,22 +8,22 @@ import (
 )
 
 // MarshalBinary implements encoding.BinaryMarshaler
-func (msg *Request) MarshalBinary() ([]byte, error) {
+func (msg *Log) MarshalBinary() ([]byte, error) {
 	return proto.Marshal(msg)
 }
 
 // UnmarshalBinary implements encoding.BinaryUnmarshaler
-func (msg *Request) UnmarshalBinary(b []byte) error {
+func (msg *Log) UnmarshalBinary(b []byte) error {
 	return proto.Unmarshal(b, msg)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler
-func (msg *Response) MarshalBinary() ([]byte, error) {
+func (msg *LogResponse) MarshalBinary() ([]byte, error) {
 	return proto.Marshal(msg)
 }
 
 // UnmarshalBinary implements encoding.BinaryUnmarshaler
-func (msg *Response) UnmarshalBinary(b []byte) error {
+func (msg *LogResponse) UnmarshalBinary(b []byte) error {
 	return proto.Unmarshal(b, msg)
 }
 

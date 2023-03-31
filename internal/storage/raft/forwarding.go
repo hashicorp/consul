@@ -9,6 +9,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/emptypb"
 
 	"github.com/hashicorp/go-hclog"
 
@@ -38,48 +39,45 @@ func newForwardingServer(backend *Backend) *forwardingServer {
 	}
 }
 
-// RoundTrip is the RPC endpoint called to forward an operation to the leader.
-func (s *forwardingServer) RoundTrip(ctx context.Context, req *pbstorage.Request) (*pbstorage.Response, error) {
-	switch req.Type {
-	case pbstorage.RequestType_REQUEST_TYPE_READ:
-		return s.handleRead(ctx, req)
-	case pbstorage.RequestType_REQUEST_TYPE_LIST:
-		return s.handleList(ctx, req)
-	default:
-		return s.raftApply(ctx, req)
+func (s *forwardingServer) Write(ctx context.Context, req *pbstorage.WriteRequest) (*pbstorage.WriteResponse, error) {
+	rsp, err := s.raftApply(ctx, &pbstorage.Log{
+		Type:    pbstorage.LogType_LOG_TYPE_WRITE,
+		Request: &pbstorage.Log_Write{Write: req},
+	})
+	if err != nil {
+		return nil, err
 	}
+	return rsp.GetWrite(), nil
 }
 
-func (s *forwardingServer) handleRead(ctx context.Context, req *pbstorage.Request) (*pbstorage.Response, error) {
-	res, err := s.backend.leaderRead(ctx, req.GetRead().Id)
+func (s *forwardingServer) Delete(ctx context.Context, req *pbstorage.DeleteRequest) (*emptypb.Empty, error) {
+	_, err := s.raftApply(ctx, &pbstorage.Log{
+		Type:    pbstorage.LogType_LOG_TYPE_DELETE,
+		Request: &pbstorage.Log_Delete{Delete: req},
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &emptypb.Empty{}, nil
+}
+
+func (s *forwardingServer) Read(ctx context.Context, req *pbstorage.ReadRequest) (*pbstorage.ReadResponse, error) {
+	res, err := s.backend.leaderRead(ctx, req.Id)
 	if err != nil {
 		return nil, wrapError(err)
 	}
-	return &pbstorage.Response{
-		Response: &pbstorage.Response_Read{
-			Read: &pbstorage.ReadResponse{
-				Resource: res,
-			},
-		},
-	}, nil
+	return &pbstorage.ReadResponse{Resource: res}, nil
 }
 
-func (s *forwardingServer) handleList(ctx context.Context, req *pbstorage.Request) (*pbstorage.Response, error) {
-	listReq := req.GetList()
-	res, err := s.backend.leaderList(ctx, storage.UnversionedTypeFrom(listReq.Type), listReq.Tenancy, listReq.NamePrefix)
+func (s *forwardingServer) List(ctx context.Context, req *pbstorage.ListRequest) (*pbstorage.ListResponse, error) {
+	res, err := s.backend.leaderList(ctx, storage.UnversionedTypeFrom(req.Type), req.Tenancy, req.NamePrefix)
 	if err != nil {
 		return nil, wrapError(err)
 	}
-	return &pbstorage.Response{
-		Response: &pbstorage.Response_List{
-			List: &pbstorage.ListResponse{
-				Resources: res,
-			},
-		},
-	}, nil
+	return &pbstorage.ListResponse{Resources: res}, nil
 }
 
-func (s *forwardingServer) raftApply(ctx context.Context, req *pbstorage.Request) (*pbstorage.Response, error) {
+func (s *forwardingServer) raftApply(ctx context.Context, req *pbstorage.Log) (*pbstorage.LogResponse, error) {
 	msg, err := req.MarshalBinary()
 	if err != nil {
 		return nil, wrapError(err)
@@ -91,7 +89,7 @@ func (s *forwardingServer) raftApply(ctx context.Context, req *pbstorage.Request
 	}
 
 	switch t := rsp.(type) {
-	case *pbstorage.Response:
+	case *pbstorage.LogResponse:
 		return t, nil
 	default:
 		return nil, status.Errorf(codes.Internal, "unexpected response from Raft apply: %T", rsp)
@@ -158,13 +156,47 @@ func (c *forwardingClient) getConn() (*grpc.ClientConn, error) {
 	return conn, nil
 }
 
-func (c *forwardingClient) roundTrip(ctx context.Context, req *pbstorage.Request) (*pbstorage.Response, error) {
+func (c *forwardingClient) getClient() (pbstorage.ForwardingClient, error) {
 	conn, err := c.getConn()
 	if err != nil {
 		return nil, err
 	}
+	return pbstorage.NewForwardingClient(conn), nil
+}
 
-	rsp, err := pbstorage.NewForwardingClient(conn).RoundTrip(ctx, req)
+func (c *forwardingClient) delete(ctx context.Context, req *pbstorage.DeleteRequest) error {
+	client, err := c.getClient()
+	if err != nil {
+		return err
+	}
+	_, err = client.Delete(ctx, req)
+	return unwrapError(err)
+}
+
+func (c *forwardingClient) write(ctx context.Context, req *pbstorage.WriteRequest) (*pbstorage.WriteResponse, error) {
+	client, err := c.getClient()
+	if err != nil {
+		return nil, err
+	}
+	rsp, err := client.Write(ctx, req)
+	return rsp, unwrapError(err)
+}
+
+func (c *forwardingClient) read(ctx context.Context, req *pbstorage.ReadRequest) (*pbstorage.ReadResponse, error) {
+	client, err := c.getClient()
+	if err != nil {
+		return nil, err
+	}
+	rsp, err := client.Read(ctx, req)
+	return rsp, unwrapError(err)
+}
+
+func (c *forwardingClient) list(ctx context.Context, req *pbstorage.ListRequest) (*pbstorage.ListResponse, error) {
+	client, err := c.getClient()
+	if err != nil {
+		return nil, err
+	}
+	rsp, err := client.List(ctx, req)
 	return rsp, unwrapError(err)
 }
 
