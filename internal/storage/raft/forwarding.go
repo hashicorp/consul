@@ -20,7 +20,7 @@ import (
 // forwardingServer implements the gRPC forwarding service.
 type forwardingServer struct {
 	backend  *Backend
-	listener *grpcinternal.PipeListener
+	listener *grpcinternal.Listener
 }
 
 var _ pbstorage.ForwardingServer = (*forwardingServer)(nil)
@@ -31,7 +31,7 @@ func newForwardingServer(backend *Backend) *forwardingServer {
 
 		// The address here doesn't actually matter. gRPC uses it as an identifier
 		// internally, but we only bind the server to a single listener.
-		listener: grpcinternal.NewPipeListener(&net.TCPAddr{
+		listener: grpcinternal.NewListener(&net.TCPAddr{
 			IP:   net.ParseIP("0.0.0.0"),
 			Port: 0,
 		}),

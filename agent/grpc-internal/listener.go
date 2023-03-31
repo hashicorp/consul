@@ -5,21 +5,21 @@ import (
 	"net"
 )
 
-// PipeListener implements the net.Listener interface and allows you to manually
+// Listener implements the net.Listener interface and allows you to manually
 // pass connections to it. This is useful when you need to accept connections
 // and do something with them yourself first (e.g. handling our multiplexing
 // scheme) before giving them to the gRPC server.
-type PipeListener struct {
+type Listener struct {
 	addr  net.Addr
 	conns chan net.Conn
 	done  chan struct{}
 }
 
-var _ net.Listener = (*PipeListener)(nil)
+var _ net.Listener = (*Listener)(nil)
 
-// NewPipeListener creates a PipeListener with the given address.
-func NewPipeListener(addr net.Addr) *PipeListener {
-	return &PipeListener{
+// NewListener creates a Listener with the given address.
+func NewListener(addr net.Addr) *Listener {
+	return &Listener{
 		addr:  addr,
 		conns: make(chan net.Conn),
 		done:  make(chan struct{}),
@@ -28,7 +28,7 @@ func NewPipeListener(addr net.Addr) *PipeListener {
 }
 
 // Handle makes the given connection available to Accept.
-func (l *PipeListener) Handle(conn net.Conn) {
+func (l *Listener) Handle(conn net.Conn) {
 	select {
 	case l.conns <- conn:
 	case <-l.done:
@@ -37,7 +37,7 @@ func (l *PipeListener) Handle(conn net.Conn) {
 }
 
 // Accept a connection.
-func (l *PipeListener) Accept() (net.Conn, error) {
+func (l *Listener) Accept() (net.Conn, error) {
 	select {
 	case c := <-l.conns:
 		return c, nil
@@ -52,10 +52,10 @@ func (l *PipeListener) Accept() (net.Conn, error) {
 }
 
 // Addr returns the listener's address.
-func (l *PipeListener) Addr() net.Addr { return l.addr }
+func (l *Listener) Addr() net.Addr { return l.addr }
 
 // Close the listener.
-func (l *PipeListener) Close() error {
+func (l *Listener) Close() error {
 	close(l.done)
 	return nil
 }

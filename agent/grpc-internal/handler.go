@@ -58,14 +58,14 @@ func NewHandler(logger Logger, addr net.Addr, register func(server *grpc.Server)
 	srv := grpc.NewServer(opts...)
 	register(srv)
 
-	return &Handler{srv: srv, listener: NewPipeListener(addr)}
+	return &Handler{srv: srv, listener: NewListener(addr)}
 }
 
 // Handler implements a handler for the rpc server listener, and the
 // agent.Component interface for managing the lifecycle of the grpc.Server.
 type Handler struct {
 	srv      *grpc.Server
-	listener *PipeListener
+	listener *Listener
 }
 
 // Handle the connection by sending it to a channel for the grpc.Server to receive.
