@@ -2215,21 +2215,6 @@ type IndexedServices struct {
 	QueryMeta
 }
 
-type Usage struct {
-	Usage map[string]ServiceUsage
-
-	QueryMeta
-}
-
-// ServiceUsage contains all of the usage data related to services
-type ServiceUsage struct {
-	Services                 int
-	ServiceInstances         int
-	ConnectServiceInstances  map[string]int
-	BillableServiceInstances int
-	EnterpriseServiceUsage
-}
-
 // PeeredServiceName is a basic tuple of ServiceName and peer
 type PeeredServiceName struct {
 	ServiceName ServiceName

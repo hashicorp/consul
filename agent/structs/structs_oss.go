@@ -163,5 +163,3 @@ func (t *Intention) HasWildcardDestination() bool {
 func (s *ServiceNode) NodeIdentity() Identity {
 	return Identity{ID: s.Node}
 }
-
-type EnterpriseServiceUsage struct{}

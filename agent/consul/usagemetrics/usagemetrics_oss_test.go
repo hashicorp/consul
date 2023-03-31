@@ -107,13 +107,6 @@ func TestUsageReporter_emitNodeUsage_OSS(t *testing.T) {
 						{Name: "kind", Value: "connect-native"},
 					},
 				},
-				"consul.usage.test.consul.state.billable_service_instances;datacenter=dc1": {
-					Name:  "consul.usage.test.consul.state.billable_service_instances",
-					Value: 0,
-					Labels: []metrics.Label{
-						{Name: "datacenter", Value: "dc1"},
-					},
-				},
 				// --- kv ---
 				"consul.usage.test.consul.state.kv_entries;datacenter=dc1": {
 					Name:   "consul.usage.test.consul.state.kv_entries",
@@ -303,13 +296,6 @@ func TestUsageReporter_emitNodeUsage_OSS(t *testing.T) {
 					Labels: []metrics.Label{
 						{Name: "datacenter", Value: "dc1"},
 						{Name: "kind", Value: "connect-native"},
-					},
-				},
-				"consul.usage.test.consul.state.billable_service_instances;datacenter=dc1": {
-					Name:  "consul.usage.test.consul.state.billable_service_instances",
-					Value: 0,
-					Labels: []metrics.Label{
-						{Name: "datacenter", Value: "dc1"},
 					},
 				},
 				// --- kv ---
@@ -523,13 +509,6 @@ func TestUsageReporter_emitPeeringUsage_OSS(t *testing.T) {
 						{Name: "kind", Value: "connect-native"},
 					},
 				},
-				"consul.usage.test.consul.state.billable_service_instances;datacenter=dc1": {
-					Name:  "consul.usage.test.consul.state.billable_service_instances",
-					Value: 0,
-					Labels: []metrics.Label{
-						{Name: "datacenter", Value: "dc1"},
-					},
-				},
 				// --- kv ---
 				"consul.usage.test.consul.state.kv_entries;datacenter=dc1": {
 					Name:   "consul.usage.test.consul.state.kv_entries",
@@ -720,13 +699,6 @@ func TestUsageReporter_emitPeeringUsage_OSS(t *testing.T) {
 					Labels: []metrics.Label{
 						{Name: "datacenter", Value: "dc1"},
 						{Name: "kind", Value: "connect-native"},
-					},
-				},
-				"consul.usage.test.consul.state.billable_service_instances;datacenter=dc1": {
-					Name:  "consul.usage.test.consul.state.billable_service_instances",
-					Value: 0,
-					Labels: []metrics.Label{
-						{Name: "datacenter", Value: "dc1"},
 					},
 				},
 				// --- kv ---
@@ -946,13 +918,6 @@ func TestUsageReporter_emitServiceUsage_OSS(t *testing.T) {
 					Labels: []metrics.Label{
 						{Name: "datacenter", Value: "dc1"},
 						{Name: "kind", Value: "connect-native"},
-					},
-				},
-				"consul.usage.test.consul.state.billable_service_instances;datacenter=dc1": {
-					Name:  "consul.usage.test.consul.state.billable_service_instances",
-					Value: 0,
-					Labels: []metrics.Label{
-						{Name: "datacenter", Value: "dc1"},
 					},
 				},
 				// --- kv ---
@@ -1188,13 +1153,6 @@ func TestUsageReporter_emitServiceUsage_OSS(t *testing.T) {
 						{Name: "kind", Value: "connect-native"},
 					},
 				},
-				"consul.usage.test.consul.state.billable_service_instances;datacenter=dc1": {
-					Name:  "consul.usage.test.consul.state.billable_service_instances",
-					Value: 3,
-					Labels: []metrics.Label{
-						{Name: "datacenter", Value: "dc1"},
-					},
-				},
 				// --- kv ---
 				"consul.usage.test.consul.state.kv_entries;datacenter=dc1": {
 					Name:   "consul.usage.test.consul.state.kv_entries",
@@ -1405,13 +1363,6 @@ func TestUsageReporter_emitKVUsage_OSS(t *testing.T) {
 						{Name: "kind", Value: "connect-native"},
 					},
 				},
-				"consul.usage.test.consul.state.billable_service_instances;datacenter=dc1": {
-					Name:  "consul.usage.test.consul.state.billable_service_instances",
-					Value: 0,
-					Labels: []metrics.Label{
-						{Name: "datacenter", Value: "dc1"},
-					},
-				},
 				// --- kv ---
 				"consul.usage.test.consul.state.kv_entries;datacenter=dc1": {
 					Name:   "consul.usage.test.consul.state.kv_entries",
@@ -1610,13 +1561,6 @@ func TestUsageReporter_emitKVUsage_OSS(t *testing.T) {
 					Labels: []metrics.Label{
 						{Name: "datacenter", Value: "dc1"},
 						{Name: "kind", Value: "connect-native"},
-					},
-				},
-				"consul.usage.test.consul.state.billable_service_instances;datacenter=dc1": {
-					Name:  "consul.usage.test.consul.state.billable_service_instances",
-					Value: 0,
-					Labels: []metrics.Label{
-						{Name: "datacenter", Value: "dc1"},
 					},
 				},
 				// --- kv ---
