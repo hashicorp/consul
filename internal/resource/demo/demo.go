@@ -54,25 +54,30 @@ var (
 )
 
 // Register demo types. Should only be called in tests and dev mode.
-func Register(r resource.Registry) {
+// acls are optional
+func Register(r resource.Registry, acls *resource.ACLHooks) {
 	r.Register(resource.Registration{
 		Type:  TypeV1Artist,
 		Proto: &pbdemov1.Artist{},
+		ACLs:  acls,
 	})
 
 	r.Register(resource.Registration{
 		Type:  TypeV1Album,
 		Proto: &pbdemov1.Album{},
+		ACLs:  acls,
 	})
 
 	r.Register(resource.Registration{
 		Type:  TypeV2Artist,
 		Proto: &pbdemov2.Artist{},
+		ACLs:  acls,
 	})
 
 	r.Register(resource.Registration{
 		Type:  TypeV2Album,
 		Proto: &pbdemov2.Album{},
+		ACLs:  acls,
 	})
 }
 

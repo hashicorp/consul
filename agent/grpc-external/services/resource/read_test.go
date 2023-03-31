@@ -10,6 +10,8 @@ import (
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 
+	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/grpc-external/testutils"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/demo"
 	"github.com/hashicorp/consul/internal/storage"
@@ -34,7 +36,8 @@ func TestRead_ResourceNotFound(t *testing.T) {
 	for desc, tc := range readTestCases() {
 		t.Run(desc, func(t *testing.T) {
 			server := testServer(t)
-			demo.Register(server.Registry)
+
+			demo.Register(server.Registry, nil)
 			client := testClient(t, server)
 
 			artist, err := demo.GenerateV2Artist()
@@ -52,7 +55,8 @@ func TestRead_GroupVersionMismatch(t *testing.T) {
 	for desc, tc := range readTestCases() {
 		t.Run(desc, func(t *testing.T) {
 			server := testServer(t)
-			demo.Register(server.Registry)
+
+			demo.Register(server.Registry, nil)
 			client := testClient(t, server)
 
 			artist, err := demo.GenerateV2Artist()
@@ -76,7 +80,8 @@ func TestRead_Success(t *testing.T) {
 	for desc, tc := range readTestCases() {
 		t.Run(desc, func(t *testing.T) {
 			server := testServer(t)
-			demo.Register(server.Registry)
+
+			demo.Register(server.Registry, nil)
 			client := testClient(t, server)
 
 			artist, err := demo.GenerateV2Artist()
@@ -96,12 +101,10 @@ func TestRead_VerifyReadConsistencyArg(t *testing.T) {
 	// Uses a mockBackend instead of the inmem Backend to verify the ReadConsistency argument is set correctly.
 	for desc, tc := range readTestCases() {
 		t.Run(desc, func(t *testing.T) {
+			server := testServer(t)
 			mockBackend := NewMockBackend(t)
-			server := NewServer(Config{
-				Registry: resource.NewRegistry(),
-				Backend:  mockBackend,
-			})
-			demo.Register(server.Registry)
+			server.Backend = mockBackend
+			demo.Register(server.Registry, nil)
 
 			artist, err := demo.GenerateV2Artist()
 			require.NoError(t, err)
@@ -115,6 +118,65 @@ func TestRead_VerifyReadConsistencyArg(t *testing.T) {
 			mockBackend.AssertCalled(t, "Read", mock.Anything, tc.consistency, mock.Anything)
 		})
 	}
+}
+
+func TestRead_ACL_UserHookCalled(t *testing.T) {
+	server := testServer(t)
+	client := testClient(t, server)
+
+	called := false
+	demo.Register(server.Registry, &resource.ACLHooks{
+		Read: func(authz acl.Authorizer, id *pbresource.ID) error {
+			called = true
+			return acl.ErrPermissionDenied
+		},
+	})
+	artist, err := demo.GenerateV2Artist()
+	require.NoError(t, err)
+
+	_, err = client.Read(testContext(t), &pbresource.ReadRequest{Id: artist.Id})
+	require.Error(t, err)
+	require.Equal(t, codes.PermissionDenied.String(), status.Code(err).String())
+	require.True(t, called)
+}
+
+func TestRead_ACL_DefaultHookCalled_PermissionDenied(t *testing.T) {
+	server := testServer(t)
+	client := testClient(t, server)
+
+	mockACLResolver := &MockACLResolver{}
+	mockACLResolver.On("ResolveTokenAndDefaultMeta", mock.Anything, mock.Anything, mock.Anything).
+		Return(testutils.ACLNoPermissions(t), nil)
+	server.ACLResolver = mockACLResolver
+
+	demo.Register(server.Registry, nil)
+	artist, err := demo.GenerateV2Artist()
+	require.NoError(t, err)
+
+	_, err = client.Read(testContext(t), &pbresource.ReadRequest{Id: artist.Id})
+	require.Error(t, err)
+	require.Equal(t, codes.PermissionDenied.String(), status.Code(err).String())
+}
+
+func TestRead_ACL_DefaultHookCalled_PermissionGranted(t *testing.T) {
+	server := testServer(t)
+	client := testClient(t, server)
+
+	mockACLResolver := &MockACLResolver{}
+	mockACLResolver.On("ResolveTokenAndDefaultMeta", mock.Anything, mock.Anything, mock.Anything).
+		Return(testutils.ACLOperatorRead(t), nil)
+	server.ACLResolver = mockACLResolver
+
+	demo.Register(server.Registry, nil)
+	artist, err := demo.GenerateV2Artist()
+	require.NoError(t, err)
+
+	resource1, err := server.Backend.WriteCAS(context.Background(), artist)
+	require.NoError(t, err)
+
+	rsp, err := client.Read(context.Background(), &pbresource.ReadRequest{Id: artist.Id})
+	require.NoError(t, err)
+	prototest.AssertDeepEqual(t, resource1, rsp.Resource)
 }
 
 type readTestCase struct {

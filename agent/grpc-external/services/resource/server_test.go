@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/anypb"
@@ -40,10 +41,16 @@ func testServer(t *testing.T) *Server {
 	require.NoError(t, err)
 	go backend.Run(testContext(t))
 
+	// Mock the ACL Resolver to allow everything for testing
+	mockACLResolver := &MockACLResolver{}
+	mockACLResolver.On("ResolveTokenAndDefaultMeta", mock.Anything, mock.Anything, mock.Anything).
+		Return(testutils.ACLsDisabled(t), nil)
+
 	return NewServer(Config{
-		Logger:   testutil.Logger(t),
-		Registry: resource.NewRegistry(),
-		Backend:  backend,
+		Logger:      testutil.Logger(t),
+		Registry:    resource.NewRegistry(),
+		Backend:     backend,
+		ACLResolver: mockACLResolver,
 	})
 }
 

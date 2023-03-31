@@ -1250,7 +1250,7 @@ func (s *Server) setupExternalGRPC(config *Config, logger hclog.Logger, backend 
 	registry := resource.NewRegistry()
 
 	if s.config.DevMode {
-		demo.Register(registry)
+		demo.Register(registry, nil)
 	}
 
 	resourcegrpc.NewServer(resourcegrpc.Config{

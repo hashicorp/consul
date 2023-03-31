@@ -13,8 +13,20 @@ import (
 
 func (s *Server) Read(ctx context.Context, req *pbresource.ReadRequest) (*pbresource.ReadResponse, error) {
 	// check type exists
-	if _, err := s.resolveType(req.Id.Type); err != nil {
+	reg, err := s.resolveType(req.Id.Type)
+	if err != nil {
 		return nil, err
+	}
+
+	// check acls
+	authz, err := s.ACLResolver.ResolveTokenAndDefaultMeta("??", nil, nil)
+	if err != nil {
+		// TODO: revisit error detail
+		return nil, err
+	}
+	if err = reg.ACLs.Read(authz, req.Id); err != nil {
+		// TODO: revisit error detail
+		return nil, status.Error(codes.PermissionDenied, err.Error())
 	}
 
 	resource, err := s.Backend.Read(ctx, readConsistencyFrom(ctx), req.Id)

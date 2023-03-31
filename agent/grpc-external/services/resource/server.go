@@ -10,6 +10,8 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
 
+	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/acl/resolver"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/storage"
 	"github.com/hashicorp/consul/proto-public/pbresource"
@@ -20,9 +22,10 @@ type Server struct {
 }
 
 type Config struct {
-	Logger   hclog.Logger
-	Registry Registry
-	Backend  Backend
+	Logger      hclog.Logger
+	Registry    Registry
+	Backend     Backend
+	ACLResolver ACLResolver
 }
 
 //go:generate mockery --name Registry --inpackage
@@ -33,6 +36,11 @@ type Registry interface {
 //go:generate mockery --name Backend --inpackage
 type Backend interface {
 	storage.Backend
+}
+
+//go:generate mockery --name ACLResolver --inpackage
+type ACLResolver interface {
+	ResolveTokenAndDefaultMeta(string, *acl.EnterpriseMeta, *acl.AuthorizerContext) (resolver.Result, error)
 }
 
 func NewServer(cfg Config) *Server {
@@ -55,7 +63,6 @@ func (s *Server) Delete(ctx context.Context, req *pbresource.DeleteRequest) (*pb
 	return &pbresource.DeleteResponse{}, nil
 }
 
-//nolint:unparam
 func (s *Server) resolveType(typ *pbresource.Type) (*resource.Registration, error) {
 	v, ok := s.Registry.Resolve(typ)
 	if ok {

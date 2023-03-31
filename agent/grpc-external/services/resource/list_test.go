@@ -36,7 +36,7 @@ func TestList_Empty(t *testing.T) {
 	for desc, tc := range listTestCases() {
 		t.Run(desc, func(t *testing.T) {
 			server := testServer(t)
-			demo.Register(server.Registry)
+			demo.Register(server.Registry, nil)
 			client := testClient(t, server)
 
 			rsp, err := client.List(tc.ctx, &pbresource.ListRequest{
@@ -54,7 +54,7 @@ func TestList_Many(t *testing.T) {
 	for desc, tc := range listTestCases() {
 		t.Run(desc, func(t *testing.T) {
 			server := testServer(t)
-			demo.Register(server.Registry)
+			demo.Register(server.Registry, nil)
 			client := testClient(t, server)
 
 			resources := make([]*pbresource.Resource, 10)
@@ -85,7 +85,7 @@ func TestList_GroupVersionMismatch(t *testing.T) {
 	for desc, tc := range listTestCases() {
 		t.Run(desc, func(t *testing.T) {
 			server := testServer(t)
-			demo.Register(server.Registry)
+			demo.Register(server.Registry, nil)
 			client := testClient(t, server)
 
 			artist, err := demo.GenerateV2Artist()
@@ -114,7 +114,7 @@ func TestList_VerifyReadConsistencyArg(t *testing.T) {
 				Registry: resource.NewRegistry(),
 				Backend:  mockBackend,
 			})
-			demo.Register(server.Registry)
+			demo.Register(server.Registry, nil)
 
 			artist, err := demo.GenerateV2Artist()
 			require.NoError(t, err)

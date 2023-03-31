@@ -38,7 +38,7 @@ func TestWatchList_GroupVersionMatches(t *testing.T) {
 	t.Parallel()
 	server := testServer(t)
 	client := testClient(t, server)
-	demo.Register(server.Registry)
+	demo.Register(server.Registry, nil)
 	ctx := context.Background()
 
 	// create a watch
@@ -81,7 +81,7 @@ func TestWatchList_GroupVersionMismatch(t *testing.T) {
 	// Then no watch events should be emitted
 	t.Parallel()
 	server := testServer(t)
-	demo.Register(server.Registry)
+	demo.Register(server.Registry, nil)
 	client := testClient(t, server)
 	ctx := context.Background()
 
