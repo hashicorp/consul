@@ -17,7 +17,7 @@ const (
 	indexLink                 = "link"
 	indexIntentionLegacyID    = "intention-legacy-id"
 	indexSource               = "intention-source"
-	indexSamenessGroupDefault = "sameness-group-default"
+	indexSamenessGroupDefault = "sameness-group-default-for-failover"
 )
 
 // configTableSchema returns a new table schema used to store global

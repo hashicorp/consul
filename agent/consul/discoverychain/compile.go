@@ -582,7 +582,7 @@ func (c *compiler) assembleChain() error {
 	// Check for short circuit path.
 	if len(c.resolvers) == 0 && c.entries.IsChainEmpty() {
 		// Materialize defaults and cache.
-		c.resolvers[sid] = newDefaultServiceResolver(sid)
+		c.resolvers[sid] = c.newDefaultServiceResolver(sid, "")
 	}
 
 	// The only router we consult is the one for the service name at the top of
@@ -923,7 +923,7 @@ RESOLVE_AGAIN:
 	resolver, ok := c.resolvers[targetID]
 	if !ok {
 		// Materialize defaults and cache.
-		resolver = newDefaultServiceResolver(targetID)
+		resolver = c.newDefaultServiceResolver(targetID, target.Peer)
 		c.resolvers[targetID] = resolver
 	}
 
@@ -1095,7 +1095,8 @@ RESOLVE_AGAIN:
 	}
 
 	if resolver.Redirect != nil && resolver.Redirect.SamenessGroup != "" {
-		opts := resolver.Redirect.ToDiscoveryTargetOpts()
+		opts := structs.MergeDiscoveryTargetOpts(resolver.ToSamenessDiscoveryTargetOpts(),
+			resolver.Redirect.ToDiscoveryTargetOpts())
 		failoverTargets, err = c.makeSamenessGroupFailover(target, opts, resolver.Redirect.SamenessGroup)
 		if err != nil {
 			return nil, err
@@ -1138,7 +1139,9 @@ RESOLVE_AGAIN:
 				}
 			}
 		} else if failover.SamenessGroup != "" {
-			failoverTargets, err = c.makeSamenessGroupFailover(target, failover.ToDiscoveryTargetOpts(), failover.SamenessGroup)
+			opts := structs.MergeDiscoveryTargetOpts(resolver.ToSamenessDiscoveryTargetOpts(),
+				failover.ToDiscoveryTargetOpts())
+			failoverTargets, err = c.makeSamenessGroupFailover(target, opts, failover.SamenessGroup)
 			if err != nil {
 				return nil, err
 			}
@@ -1199,7 +1202,23 @@ func (c *compiler) makeSamenessGroupFailover(target *structs.DiscoveryTarget, op
 	return failoverTargets, nil
 }
 
-func newDefaultServiceResolver(sid structs.ServiceID) *structs.ServiceResolverConfigEntry {
+func (c *compiler) newDefaultServiceResolver(sid structs.ServiceID, peer string) *structs.ServiceResolverConfigEntry {
+	sg := c.entries.GetDefaultSamenessGroup()
+	entMeta := c.GetEnterpriseMeta()
+	if sg != nil && peer == "" && (entMeta == nil || sid.PartitionOrDefault() == entMeta.PartitionOrDefault()) {
+		return &structs.ServiceResolverConfigEntry{
+			Kind:           structs.ServiceResolver,
+			Name:           sid.ID,
+			EnterpriseMeta: sid.EnterpriseMeta,
+			// This needs to be a redirect rather than failover because failovers
+			// implicitly include the local service. This isn't the behavior we want
+			// for services on sameness groups the local partition isn't a member of.
+			Redirect: &structs.ServiceResolverRedirect{
+				SamenessGroup: sg.Name,
+			},
+		}
+	}
+
 	return &structs.ServiceResolverConfigEntry{
 		Kind:           structs.ServiceResolver,
 		Name:           sid.ID,

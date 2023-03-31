@@ -61,7 +61,8 @@ func setupTestVariationConfigEntriesAndSnapshot(
 	}
 	dbChainID := structs.ChainID(dbOpts)
 	makeChainID := func(opts structs.DiscoveryTargetOpts) string {
-		return structs.ChainID(structs.MergeDiscoveryTargetOpts(dbOpts, opts))
+		finalOpts := structs.MergeDiscoveryTargetOpts(dbOpts, opts)
+		return structs.ChainID(finalOpts)
 	}
 
 	switch variation {

@@ -12,7 +12,8 @@ import (
 
 type SamenessGroupConfigEntry struct {
 	Name               string
-	IsDefault          bool `json:",omitempty" alias:"is_default"`
+	DefaultForFailover bool `json:",omitempty" alias:"default_for_failover"`
+	IncludeLocal       bool `json:",omitempty" alias:"include_local"`
 	Members            []SamenessGroupMember
 	Meta               map[string]string `json:",omitempty"`
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
@@ -72,21 +73,4 @@ func (s *SamenessGroupConfigEntry) MarshalJSON() ([]byte, error) {
 type SamenessGroupMember struct {
 	Partition string
 	Peer      string
-}
-
-func (s *SamenessGroupConfigEntry) ToFailoverTargets() []ServiceResolverFailoverTarget {
-	if s == nil {
-		return nil
-	}
-
-	var targets []ServiceResolverFailoverTarget
-
-	for _, m := range s.Members {
-		targets = append(targets, ServiceResolverFailoverTarget{
-			Peer:      m.Peer,
-			Partition: m.Partition,
-		})
-	}
-
-	return targets
 }

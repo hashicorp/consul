@@ -13,13 +13,14 @@ import (
 //
 // None of these are defaulted.
 type DiscoveryChainSet struct {
-	Routers        map[structs.ServiceID]*structs.ServiceRouterConfigEntry
-	Splitters      map[structs.ServiceID]*structs.ServiceSplitterConfigEntry
-	Resolvers      map[structs.ServiceID]*structs.ServiceResolverConfigEntry
-	Services       map[structs.ServiceID]*structs.ServiceConfigEntry
-	Peers          map[string]*pbpeering.Peering
-	SamenessGroups map[string]*structs.SamenessGroupConfigEntry
-	ProxyDefaults  map[string]*structs.ProxyConfigEntry
+	Routers              map[structs.ServiceID]*structs.ServiceRouterConfigEntry
+	Splitters            map[structs.ServiceID]*structs.ServiceSplitterConfigEntry
+	Resolvers            map[structs.ServiceID]*structs.ServiceResolverConfigEntry
+	Services             map[structs.ServiceID]*structs.ServiceConfigEntry
+	Peers                map[string]*pbpeering.Peering
+	DefaultSamenessGroup *structs.SamenessGroupConfigEntry
+	SamenessGroups       map[string]*structs.SamenessGroupConfigEntry
+	ProxyDefaults        map[string]*structs.ProxyConfigEntry
 }
 
 func NewDiscoveryChainSet() *DiscoveryChainSet {
@@ -69,6 +70,10 @@ func (e *DiscoveryChainSet) GetSamenessGroup(name string) *structs.SamenessGroup
 	return nil
 }
 
+func (e *DiscoveryChainSet) GetDefaultSamenessGroup() *structs.SamenessGroupConfigEntry {
+	return e.DefaultSamenessGroup
+}
+
 func (e *DiscoveryChainSet) GetProxyDefaults(partition string) *structs.ProxyConfigEntry {
 	if e.ProxyDefaults != nil {
 		return e.ProxyDefaults[partition]
@@ -116,14 +121,28 @@ func (e *DiscoveryChainSet) AddServices(entries ...*structs.ServiceConfigEntry) 
 	}
 }
 
-// AddSamenessGroup adds service configs. Convenience function for testing.
+// AddSamenessGroup adds a sameness group. Convenience function for testing.
 func (e *DiscoveryChainSet) AddSamenessGroup(entries ...*structs.SamenessGroupConfigEntry) {
-	if e.Services == nil {
+	if e.SamenessGroups == nil {
 		e.SamenessGroups = make(map[string]*structs.SamenessGroupConfigEntry)
 	}
 	for _, entry := range entries {
 		e.SamenessGroups[entry.Name] = entry
 	}
+}
+
+// SetDefaultSamenessGroup sets the default sameness group. Convenience function for testing.
+func (e *DiscoveryChainSet) SetDefaultSamenessGroup(entry *structs.SamenessGroupConfigEntry) {
+	if e.SamenessGroups == nil {
+		e.SamenessGroups = make(map[string]*structs.SamenessGroupConfigEntry)
+	}
+
+	if entry == nil {
+		return
+	}
+
+	e.SamenessGroups[entry.Name] = entry
+	e.DefaultSamenessGroup = entry
 }
 
 // AddProxyDefaults adds proxy-defaults configs. Convenience function for testing.
@@ -149,23 +168,26 @@ func (e *DiscoveryChainSet) AddPeers(entries ...*pbpeering.Peering) {
 // AddEntries adds generic configs. Convenience function for testing. Panics on
 // operator error.
 func (e *DiscoveryChainSet) AddEntries(entries ...structs.ConfigEntry) {
-	for _, entry := range entries {
-		switch entry.GetKind() {
-		case structs.ServiceRouter:
-			e.AddRouters(entry.(*structs.ServiceRouterConfigEntry))
-		case structs.ServiceSplitter:
-			e.AddSplitters(entry.(*structs.ServiceSplitterConfigEntry))
-		case structs.ServiceResolver:
-			e.AddResolvers(entry.(*structs.ServiceResolverConfigEntry))
-		case structs.ServiceDefaults:
-			e.AddServices(entry.(*structs.ServiceConfigEntry))
-		case structs.SamenessGroup:
-			e.AddSamenessGroup(entry.(*structs.SamenessGroupConfigEntry))
-		case structs.ProxyDefaults:
+	for _, rawEntry := range entries {
+		switch entry := rawEntry.(type) {
+		case *structs.ServiceRouterConfigEntry:
+			e.AddRouters(entry)
+		case *structs.ServiceSplitterConfigEntry:
+			e.AddSplitters(entry)
+		case *structs.ServiceResolverConfigEntry:
+			e.AddResolvers(entry)
+		case *structs.ServiceConfigEntry:
+			e.AddServices(entry)
+		case *structs.SamenessGroupConfigEntry:
+			if entry.DefaultForFailover {
+				e.DefaultSamenessGroup = entry
+			}
+			e.AddSamenessGroup(entry)
+		case *structs.ProxyConfigEntry:
 			if entry.GetName() != structs.ProxyConfigGlobal {
 				panic("the only supported proxy-defaults name is '" + structs.ProxyConfigGlobal + "'")
 			}
-			e.AddProxyDefaults(entry.(*structs.ProxyConfigEntry))
+			e.AddProxyDefaults(entry)
 		default:
 			panic("unhandled config entry kind: " + entry.GetKind())
 		}
@@ -182,5 +204,5 @@ func (e *DiscoveryChainSet) IsEmpty() bool {
 // service-splitters, or service-resolvers that are present. These config
 // entries are the primary parts of the discovery chain.
 func (e *DiscoveryChainSet) IsChainEmpty() bool {
-	return len(e.Routers) == 0 && len(e.Splitters) == 0 && len(e.Resolvers) == 0
+	return len(e.Routers) == 0 && len(e.Splitters) == 0 && len(e.Resolvers) == 0 && e.DefaultSamenessGroup == nil
 }
