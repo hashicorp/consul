@@ -175,6 +175,7 @@ message ServiceResolverFailover {
 // name=Structs
 message ServiceResolverFailoverPolicy {
   string Mode = 1;
+  repeated string Regions = 2;
 }
 
 // mog annotation:

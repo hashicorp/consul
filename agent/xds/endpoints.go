@@ -678,7 +678,12 @@ func (s *ResourceGenerator) endpointsFromDiscoveryChain(
 			return nil, err
 		}
 
-		for _, groupedTarget := range mappedTargets.groupedTargets() {
+		targetGroups, err := mappedTargets.groupedTargets()
+		if err != nil {
+			return nil, err
+		}
+
+		for _, groupedTarget := range targetGroups {
 			clusterName := groupedTarget.ClusterName
 			if escapeHatchCluster != nil {
 				clusterName = escapeHatchCluster.Name

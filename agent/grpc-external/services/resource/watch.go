@@ -24,6 +24,7 @@ func (s *Server) WatchList(req *pbresource.WatchListRequest, stream pbresource.R
 	if err != nil {
 		return err
 	}
+	defer watch.Close()
 
 	for {
 		event, err := watch.Next(stream.Context())

@@ -23,6 +23,7 @@ deep-copy \
   -type DiscoveryRoute \
   -type DiscoverySplit \
   -type ExposeConfig \
+  -type ExportedServicesConfigEntry \
   -type GatewayService \
   -type GatewayServiceTLSConfig \
   -type HTTPHeaderModifiers \

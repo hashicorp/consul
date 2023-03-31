@@ -3058,3 +3058,10 @@ func (l *Locality) ToAPI() *api.Locality {
 		Zone:   l.Zone,
 	}
 }
+
+func (l *Locality) GetRegion() string {
+	if l == nil {
+		return ""
+	}
+	return l.Region
+}
