@@ -1367,6 +1367,16 @@ type ServiceResolverRedirect struct {
 	SamenessGroup string `json:",omitempty"`
 }
 
+// ToSamenessDiscoveryTargetOpts returns the options required for sameness failover and redirects.
+// These operations should preserve the service name and namespace.
+func (r *ServiceResolverConfigEntry) ToSamenessDiscoveryTargetOpts() DiscoveryTargetOpts {
+	return DiscoveryTargetOpts{
+		Service:   r.Name,
+		Namespace: r.NamespaceOrDefault(),
+		Partition: r.PartitionOrDefault(),
+	}
+}
+
 func (r *ServiceResolverRedirect) ToDiscoveryTargetOpts() DiscoveryTargetOpts {
 	return DiscoveryTargetOpts{
 		Service:       r.Service,

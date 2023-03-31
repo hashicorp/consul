@@ -14,7 +14,7 @@ import (
 	"github.com/hashicorp/go-memdb"
 )
 
-// SamnessGroupDefaultIndex is a placeholder for OSS. Sameness-groups are enterprise only.
+// SamenessGroupDefaultIndex is a placeholder for OSS. Sameness-groups are enterprise only.
 type SamenessGroupDefaultIndex struct{}
 
 var _ memdb.Indexer = (*SamenessGroupDefaultIndex)(nil)
@@ -45,5 +45,9 @@ func getSamenessGroupConfigEntryTxn(
 	overrides map[configentry.KindName]structs.ConfigEntry,
 	partition string,
 ) (uint64, *structs.SamenessGroupConfigEntry, error) {
+	return 0, nil, nil
+}
+
+func getDefaultSamenessGroup(tx ReadTxn, ws memdb.WatchSet, partition string) (uint64, *structs.SamenessGroupConfigEntry, error) {
 	return 0, nil, nil
 }

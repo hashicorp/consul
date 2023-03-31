@@ -4,14 +4,15 @@
 package api
 
 type SamenessGroupConfigEntry struct {
-	Kind        string
-	Name        string
-	Partition   string `json:",omitempty"`
-	IsDefault   bool   `json:",omitempty" alias:"is_default"`
-	Members     []SamenessGroupMember
-	Meta        map[string]string `json:",omitempty"`
-	CreateIndex uint64
-	ModifyIndex uint64
+	Kind               string
+	Name               string
+	Partition          string `json:",omitempty"`
+	DefaultForFailover bool   `json:",omitempty" alias:"default_for_failover"`
+	IncludeLocal       bool   `json:",omitempty" alias:"include_local"`
+	Members            []SamenessGroupMember
+	Meta               map[string]string `json:",omitempty"`
+	CreateIndex        uint64
+	ModifyIndex        uint64
 }
 
 type SamenessGroupMember struct {
