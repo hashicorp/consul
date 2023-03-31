@@ -32,14 +32,20 @@ jobs:
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-medium) }}
     steps:
     - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
+
+    - name: Setup Git
+      if: ${{ endsWith(github.repository, '-enterprise') }}
+      run: git config --global url."https://${{ secrets.ELEVATED_GITHUB_TOKEN }}:@github.com".insteadOf "https://github.com"
+
     - uses: actions/setup-go@6edd4406fa81c3da01a34fa6f6343087c207a568 # pin@v3.5.0
       with:
         go-version-file: 'go.mod'
-    - name: Dev Build
+
+    - name: Build dev binary
       run: make dev
 
-    # Set env vars
-    - run: |
+    - name: Set env vars
+      run: |
         echo "SHORT_SHA=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
         echo "GITHUB_BUILD_URL=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" >> $GITHUB_ENV
 
@@ -54,10 +60,8 @@ jobs:
       with:
         context: ./bin
         file: ./build-support/docker/Consul-Dev.dockerfile
+        labels: COMMIT_SHA=${{ github.sha }},GITHUB_BUILD_URL=${{ env.GITHUB_BUILD_URL }}
         push: true
         tags: |
-          hashicorpdev/consul:${{ env.SHORT_SHA }}
-          hashicorpdev/consul:latest
-        labels: |
-          COMMIT_SHA=${{ github.sha }}
-          GITHUB_BUILD_URL=${{ env.GITHUB_BUILD_URL }}
+          hashicorpdev/consul-enterprise:${{ env.SHORT_SHA }}
+          hashicorpdev/consul-enterprise:latest
