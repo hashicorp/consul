@@ -11,6 +11,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 
 	"github.com/hashicorp/consul/internal/storage"
 	"github.com/hashicorp/consul/internal/storage/conformance"
@@ -49,7 +50,7 @@ func newRaftCluster(t *testing.T) (*raft.Backend, *raft.Backend) {
 	lis, err := net.Listen("tcp", ":0")
 	require.NoError(t, err)
 
-	lc, err := grpc.DialContext(ctx, lis.Addr().String(), grpc.WithInsecure())
+	lc, err := grpc.DialContext(ctx, lis.Addr().String(), grpc.WithTransportCredentials(insecure.NewCredentials()))
 	require.NoError(t, err)
 
 	lh := &leaderHandle{replCh: make(chan log, 10)}

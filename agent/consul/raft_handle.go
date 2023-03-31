@@ -6,6 +6,7 @@ import (
 	"net"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 
 	"github.com/hashicorp/consul/agent/pool"
 	"github.com/hashicorp/consul/agent/structs"
@@ -42,7 +43,7 @@ func (h *raftHandle) DialLeader() (*grpc.ClientConn, error) {
 
 	return grpc.Dial(string(leaderAddr),
 		// TLS is handled in the dialer below.
-		grpc.WithInsecure(),
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
 
 		// This dialer negotiates a connection on the multiplexed server port using
 		// our type-byte prefix scheme (see Server.handleConn for other side of it).
