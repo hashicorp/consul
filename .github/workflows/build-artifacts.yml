@@ -3,14 +3,17 @@
 
 name: build-artifacts
 
-# TODO: only on push to main
-on: [pull_request]
+on: 
+  # TODO: only on push to main
+  pull_request:
+    branches:
+      - main
 
 permissions:
   contents: read
 
 jobs:
-  dev-build:
+  dev-build-push:
     runs-on: ubuntu-20.04
     steps:
     - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
@@ -20,8 +23,10 @@ jobs:
     - name: Dev Build
       run: make dev
 
-    # Set short git sha
-    - run: echo "SHORT_SHA=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+    # Set env vars
+    - run: |
+        echo "SHORT_SHA=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+        echo "GITHUB_BUILD_URL=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" >> $GITHUB_ENV
 
     - name: Login to Docker Hub
       uses: docker/login-action@f4ef78c080cd8ba55a85445d5b36e214a81df20a # pin@v2.1.0
@@ -35,7 +40,24 @@ jobs:
         context: ./bin
         file: ./build-support/docker/Consul-Dev.dockerfile
         push: true
-        tags: hashicorpdev/consul:${{ env.SHORT_SHA }}
+        tags: |
+          hashicorpdev/consul:${{ env.SHORT_SHA }}
+          # TODO: hashicorpdev/consul:latest
         labels: |
           COMMIT_SHA=${{ github.sha }}
-          GITHUB_BUILD_URL=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          GITHUB_BUILD_URL=${{ env.GITHUB_BUILD_URL }}
+
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@e1e17a757e536f70e52b5a12b2e8d1d1c60e04ef # pin@v2.0.0
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+
+    - name: Upload to S3
+      run: |
+        zip -j consul.zip bin/consul
+        aws s3 cp \
+          --metadata "GIT_COMMIT=${{ env.SHORT_SHA }},GITHUB_BUILD_URL=${{ env.GITHUB_BUILD_URL }}" \
+          "consul.zip" "s3://${{ secrets.S3_ARTIFACT_BUCKET }}/${{ secrets.S3_ARTIFACT_PATH }}/${{ github.sha }}.zip" \
+          --acl public-read
