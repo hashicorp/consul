@@ -5,7 +5,7 @@
 name: build-artifacts
 
 on: 
-  push:
+  pull_request:
     branches:
       - main
 
