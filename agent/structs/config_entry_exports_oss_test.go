@@ -59,6 +59,22 @@ func TestExportedServicesConfigEntry_OSS(t *testing.T) {
 			},
 			validateErr: `exported-services Name must be "default"`,
 		},
+		"validate: sameness groups are enterprise only": {
+			entry: &ExportedServicesConfigEntry{
+				Name: "default",
+				Services: []ExportedService{
+					{
+						Name: "web",
+						Consumers: []ServiceConsumer{
+							{
+								SamenessGroup: "sg",
+							},
+						},
+					},
+				},
+			},
+			validateErr: `Services[0].Consumers[0]: sameness-groups are an enterprise-only feature`,
+		},
 	}
 
 	testConfigEntryNormalizeAndValidate(t, cases)
