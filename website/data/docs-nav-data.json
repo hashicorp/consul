@@ -1022,10 +1022,6 @@
             "title": "Cluster Peering",
             "routes": [
               {
-                "title": "Overview",
-                "href": "/docs/connect/cluster-peering"
-              },
-              {
                 "title": "Technical Specifications",
                 "path": "k8s/connect/cluster-peering/tech-specs"
               },
