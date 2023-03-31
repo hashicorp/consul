@@ -11,7 +11,7 @@ One of the primary query interfaces to Consul is the
 [DNS interface](/consul/docs/services/discovery/dns-overview). You can configure Consul DNS in
 Kubernetes using a
 [stub-domain configuration](https://kubernetes.io/docs/tasks/administer-cluster/dns-custom-nameservers/#configure-stub-domain-and-upstream-dns-servers)
-if using KubeDNS or a [proxy configuration](https://coredns.io/plugins/proxy/) if using CoreDNS.
+if using KubeDNS or a [proxy configuration](https://coredns.io/plugins/forward/) if using CoreDNS.
 
 Once configured, DNS requests in the form `<consul-service-name>.service.consul` will
 resolve for services in Consul. This will work from all Kubernetes namespaces.
