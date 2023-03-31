@@ -18,7 +18,7 @@ func newTestAuthz(t *testing.T, src string) acl.Authorizer {
 
 func TestJWTProviderConfigEntry_ValidateAndNormalize(t *testing.T) {
 	cases := map[string]configEntryTestcase{
-		"valid jwt-provider": {
+		"valid jwt-provider - local jwks": {
 			entry: &JWTProviderConfigEntry{
 				Kind: JWTProvider,
 				Name: "test-jwt-provider",
@@ -30,7 +30,6 @@ func TestJWTProviderConfigEntry_ValidateAndNormalize(t *testing.T) {
 				Forwarding: &JWTForwardingConfig{
 					HeaderName: "Some-Header",
 				},
-				ClockSkewSeconds: 0,
 			},
 			expected: &JWTProviderConfigEntry{
 				Kind: JWTProvider,
@@ -40,12 +39,66 @@ func TestJWTProviderConfigEntry_ValidateAndNormalize(t *testing.T) {
 						Filename: "jwks.txt",
 					},
 				},
+				Locations: []*JWTLocation{
+					{
+						Header: &JWTLocationHeader{
+							Name:        DefaultAuthorizationHeaderName,
+							ValuePrefix: DefaultAuthorizationValuePrefix,
+							Forward:     DefaultAuthorizationHeaderForward,
+						},
+					},
+				},
+				CacheConfig: &JWTCacheConfig{
+					Size: DefaultCacheConfigSize,
+				},
 				Forwarding: &JWTForwardingConfig{
 					HeaderName: "Some-Header",
 				},
-				// TODO RONALD - update this
-				// ClockSkewSeconds: defaultClockSkewSeconds,
-				ClockSkewSeconds: 0,
+				ClockSkewSeconds: DefaultClockSkewSeconds,
+			},
+		},
+		"valid jwt-provider - remote jwks defaults": {
+			entry: &JWTProviderConfigEntry{
+				Kind: JWTProvider,
+				Name: "test-jwt-provider",
+				JSONWebKeySet: &JSONWebKeySet{
+					Remote: &RemoteJWKS{
+						FetchAsynchronously: true,
+						URI:                 "https://example.com/.well-known/jwks.json",
+					},
+				},
+				Forwarding: &JWTForwardingConfig{
+					HeaderName: "Some-Header",
+				},
+			},
+			expected: &JWTProviderConfigEntry{
+				Kind: JWTProvider,
+				Name: "test-jwt-provider",
+				JSONWebKeySet: &JSONWebKeySet{
+					Remote: &RemoteJWKS{
+						FetchAsynchronously: true,
+						URI:                 "https://example.com/.well-known/jwks.json",
+						RetryPolicy: &JWKSRetryPolicy{
+							NumRetries: DefaultRetryPolicyNumRetries,
+						},
+					},
+				},
+				Locations: []*JWTLocation{
+					{
+						Header: &JWTLocationHeader{
+							Name:        DefaultAuthorizationHeaderName,
+							ValuePrefix: DefaultAuthorizationValuePrefix,
+							Forward:     DefaultAuthorizationHeaderForward,
+						},
+					},
+				},
+				CacheConfig: &JWTCacheConfig{
+					Size: DefaultCacheConfigSize,
+				},
+				Forwarding: &JWTForwardingConfig{
+					HeaderName: "Some-Header",
+				},
+				ClockSkewSeconds: DefaultClockSkewSeconds,
 			},
 		},
 		"invalid jwt-provider - no name": {

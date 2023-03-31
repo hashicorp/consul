@@ -8,6 +8,15 @@ import (
 	"github.com/hashicorp/consul/acl"
 )
 
+const (
+	DefaultClockSkewSeconds           = 30
+	DefaultCacheConfigSize            = 0
+	DefaultAuthorizationHeaderName    = "Authorization"
+	DefaultAuthorizationValuePrefix   = "Bearer"
+	DefaultAuthorizationHeaderForward = false
+	DefaultRetryPolicyNumRetries      = 0
+)
+
 type JWTProviderConfigEntry struct {
 	// Kind is the kind of configuration entry and must be "jwt-provider".
 	Kind string
@@ -158,8 +167,8 @@ type RemoteJWKS struct {
 	// CacheDuration is the duration after which cached keys
 	// should be expired.
 	//
-	// Default value is 5 minutes.
-	CacheDuration time.Duration
+	// Default value from envoy is 10 minutes.
+	CacheDuration *time.Duration
 
 	// FetchAsynchronously indicates that the JWKS should be fetched
 	// when a client request arrives. Client requests will be paused
@@ -228,9 +237,6 @@ func (jwks *JSONWebKeySet) Validate() error {
 		return fmt.Errorf("must specify exactly one of Local or Remote JSON Web key set")
 	}
 
-	// figure out if i can do something like
-	// keySet := jwks.Remote || jwks.Local
-	// keySet.Validate()
 	if hasRemoteKeySet {
 		if err := jwks.Remote.Validate(); err != nil {
 			return err
@@ -368,9 +374,42 @@ func (e *JWTProviderConfigEntry) Validate() error {
 }
 
 func (e *JWTProviderConfigEntry) Normalize() error {
-	// TODO - RONALD: FIGURE OUT WHAT TO NORMALIZE
 	if e == nil {
 		return fmt.Errorf("config entry is nil")
 	}
+
+	e.Kind = JWTProvider
+	e.EnterpriseMeta.Normalize()
+
+	if e.Locations == nil {
+		e.Locations = []*JWTLocation{
+			{
+				Header: &JWTLocationHeader{
+					Name:        DefaultAuthorizationHeaderName,
+					ValuePrefix: DefaultAuthorizationValuePrefix,
+					Forward:     DefaultAuthorizationHeaderForward,
+				},
+			},
+		}
+	}
+
+	if e.ClockSkewSeconds == 0 {
+		e.ClockSkewSeconds = DefaultClockSkewSeconds
+	}
+
+	if e.CacheConfig == nil {
+		e.CacheConfig = &JWTCacheConfig{
+			Size: DefaultCacheConfigSize,
+		}
+	}
+
+	if e.JSONWebKeySet != nil && e.JSONWebKeySet.Remote != nil {
+		if e.JSONWebKeySet.Remote.RetryPolicy == nil {
+			e.JSONWebKeySet.Remote.RetryPolicy = &JWKSRetryPolicy{
+				NumRetries: DefaultRetryPolicyNumRetries,
+			}
+		}
+	}
+
 	return nil
 }
