@@ -730,7 +730,9 @@ func validateProposedConfigEntryInServiceGraph(
 
 		entry := newEntry.(*structs.ExportedServicesConfigEntry)
 
-		_, serviceList, err := listServicesExportedToAnyPeerByConfigEntry(nil, tx, entry, nil)
+		_, serviceList, err := listServicesExportedToAnyPeerByConfigEntry(nil, tx, entry.EnterpriseMeta, map[configentry.KindName]structs.ConfigEntry{
+			configentry.NewKindNameForEntry(entry): entry,
+		})
 		if err != nil {
 			return err
 		}
@@ -1486,7 +1488,7 @@ func readDiscoveryChainConfigEntriesTxn(
 
 	peerEntMeta := structs.DefaultEnterpriseMetaInPartition(entMeta.PartitionOrDefault())
 	for sg := range todoSamenessGroups {
-		idx, entry, err := getSamenessGroupConfigEntryTxn(tx, ws, sg, overrides, peerEntMeta)
+		idx, entry, err := getSamenessGroupConfigEntryTxn(tx, ws, sg, overrides, peerEntMeta.PartitionOrDefault())
 		if err != nil {
 			return 0, nil, err
 		}
@@ -1718,32 +1720,6 @@ func getServiceIntentionsConfigEntryTxn(
 		return 0, nil, fmt.Errorf("invalid service config type %T", entry)
 	}
 	return idx, ixn, nil
-}
-
-// getExportedServicesConfigEntryTxn is a convenience method for fetching a
-// exported-services kind of config entry.
-//
-// If an override KEY is present for the requested config entry, the index
-// returned will be 0. Any override VALUE (nil or otherwise) will be returned
-// if there is a KEY match.
-func getExportedServicesConfigEntryTxn(
-	tx ReadTxn,
-	ws memdb.WatchSet,
-	overrides map[configentry.KindName]structs.ConfigEntry,
-	entMeta *acl.EnterpriseMeta,
-) (uint64, *structs.ExportedServicesConfigEntry, error) {
-	idx, entry, err := configEntryWithOverridesTxn(tx, ws, structs.ExportedServices, entMeta.PartitionOrDefault(), overrides, entMeta)
-	if err != nil {
-		return 0, nil, err
-	} else if entry == nil {
-		return idx, nil, nil
-	}
-
-	export, ok := entry.(*structs.ExportedServicesConfigEntry)
-	if !ok {
-		return 0, nil, fmt.Errorf("invalid service config type %T", entry)
-	}
-	return idx, export, nil
 }
 
 func configEntryWithOverridesTxn(
