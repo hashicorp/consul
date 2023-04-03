@@ -150,8 +150,11 @@ func (b *PeeringBackend) fetchPeerServerAddresses(ws memdb.WatchSet, peerID stri
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch peer %q: %w", peerID, err)
 	}
-	if !peering.IsActive() {
-		return nil, fmt.Errorf("there is no active peering for %q", peerID)
+	if peering == nil {
+		return nil, fmt.Errorf("unknown peering %q", peerID)
+	}
+	if peering.DeletedAt != nil && !structs.IsZeroProtoTime(peering.DeletedAt) {
+		return nil, fmt.Errorf("peering %q was deleted", peerID)
 	}
 	return bufferFromAddresses(peering.GetAddressesToDial())
 }

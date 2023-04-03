@@ -256,7 +256,7 @@ func TestPeeringBackend_GetDialAddresses(t *testing.T) {
 			},
 			peerID: acceptorPeerID,
 			expect: expectation{
-				err: fmt.Sprintf(`there is no active peering for %q`, acceptorPeerID),
+				err: fmt.Sprintf(`unknown peering %q`, acceptorPeerID),
 			},
 		},
 		{
@@ -388,6 +388,25 @@ func TestPeeringBackend_GetDialAddresses(t *testing.T) {
 			},
 		},
 		{
+			name: "addresses are returned if the peering is marked as terminated",
+			setup: func(store *state.Store) {
+				require.NoError(t, store.PeeringWrite(5, &pbpeering.PeeringWriteRequest{
+					Peering: &pbpeering.Peering{
+						Name:                "dialer",
+						ID:                  dialerPeerID,
+						PeerServerAddresses: []string{"1.2.3.4:8502", "2.3.4.5:8503"},
+						State:               pbpeering.PeeringState_TERMINATED,
+					},
+				}))
+			},
+			peerID: dialerPeerID,
+			expect: expectation{
+				// Gateways come first, and we use their LAN addresses since this is for outbound communication.
+				addrs:        []string{"5.6.7.8:8443", "6.7.8.9:8443", "1.2.3.4:8502", "2.3.4.5:8503"},
+				gatewayAddrs: []string{"5.6.7.8:8443", "6.7.8.9:8443"},
+			},
+		},
+		{
 			name: "addresses are not returned if the peering is deleted",
 			setup: func(store *state.Store) {
 				require.NoError(t, store.PeeringWrite(5, &pbpeering.PeeringWriteRequest{
@@ -404,7 +423,7 @@ func TestPeeringBackend_GetDialAddresses(t *testing.T) {
 			},
 			peerID: dialerPeerID,
 			expect: expectation{
-				err: fmt.Sprintf(`there is no active peering for %q`, dialerPeerID),
+				err: fmt.Sprintf(`peering %q was deleted`, dialerPeerID),
 			},
 		},
 	}

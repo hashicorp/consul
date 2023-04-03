@@ -472,6 +472,30 @@ func TestLeader_PeeringSync_Lifecycle_ServerDeletion(t *testing.T) {
 		require.NoError(r, err)
 		require.Equal(r, pbpeering.PeeringState_TERMINATED, peering.State)
 	})
+
+	// Re-establishing a peering terminated by the acceptor should be possible
+	// without needing to delete the terminated peering first.
+	ctx, cancel = context.WithTimeout(context.Background(), 3*time.Second)
+	t.Cleanup(cancel)
+
+	req = pbpeering.GenerateTokenRequest{
+		PeerName: "my-peer-dialer",
+	}
+	resp, err = peeringClient.GenerateToken(ctx, &req)
+	require.NoError(t, err)
+
+	tokenJSON, err = base64.StdEncoding.DecodeString(resp.PeeringToken)
+	require.NoError(t, err)
+
+	token = structs.PeeringToken{}
+	require.NoError(t, json.Unmarshal(tokenJSON, &token))
+
+	establishReq = pbpeering.EstablishRequest{
+		PeerName:     "my-peer-acceptor",
+		PeeringToken: resp.PeeringToken,
+	}
+	_, err = dialerClient.Establish(ctx, &establishReq)
+	require.NoError(t, err)
 }
 
 func TestLeader_PeeringSync_FailsForTLSError(t *testing.T) {
