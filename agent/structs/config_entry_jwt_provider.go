@@ -1,3 +1,5 @@
+// Copyright (c) HashiCorp, Inc.
+
 package structs
 
 import (
@@ -328,6 +330,10 @@ func (e *JWTProviderConfigEntry) Validate() error {
 		return err
 	}
 
+	if err := e.validatePartition(); err != nil {
+		return err
+	}
+
 	if e.JSONWebKeySet == nil {
 		return fmt.Errorf("JSONWebKeySet is required")
 	}
@@ -355,6 +361,7 @@ func (e *JWTProviderConfigEntry) Normalize() error {
 	}
 
 	e.Kind = JWTProvider
+	e.EnterpriseMeta = *DefaultEnterpriseMetaInPartition(e.Name)
 	e.EnterpriseMeta.Normalize()
 
 	if e.ClockSkewSeconds == 0 {
