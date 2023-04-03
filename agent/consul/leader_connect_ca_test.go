@@ -259,8 +259,8 @@ type mockCAProvider struct {
 
 func (m *mockCAProvider) Configure(cfg ca.ProviderConfig) error { return nil }
 func (m *mockCAProvider) State() (map[string]string, error)     { return nil, nil }
-func (m *mockCAProvider) GenerateRoot() (ca.RootResult, error) {
-	return ca.RootResult{PEM: m.rootPEM}, nil
+func (m *mockCAProvider) GenerateCAChain() (ca.CAChainResult, error) {
+	return ca.CAChainResult{PEM: m.rootPEM}, nil
 }
 func (m *mockCAProvider) GenerateIntermediateCSR() (string, string, error) {
 	m.callbackCh <- "provider/GenerateIntermediateCSR"
@@ -270,13 +270,13 @@ func (m *mockCAProvider) SetIntermediate(intermediatePEM, rootPEM, _ string) err
 	m.callbackCh <- "provider/SetIntermediate"
 	return nil
 }
-func (m *mockCAProvider) ActiveIntermediate() (string, error) {
+func (m *mockCAProvider) ActiveLeafSigningCert() (string, error) {
 	if m.intermediatePem == "" {
 		return m.rootPEM, nil
 	}
 	return m.intermediatePem, nil
 }
-func (m *mockCAProvider) GenerateIntermediate() (string, error)                     { return "", nil }
+
 func (m *mockCAProvider) Sign(*x509.CertificateRequest) (string, error)             { return "", nil }
 func (m *mockCAProvider) SignIntermediate(*x509.CertificateRequest) (string, error) { return "", nil }
 func (m *mockCAProvider) CrossSignCA(*x509.Certificate) (string, error)             { return "", nil }
