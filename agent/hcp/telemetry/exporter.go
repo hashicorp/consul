@@ -6,13 +6,15 @@ import (
 	"regexp"
 
 	"github.com/armon/go-metrics"
-	hcpclient "github.com/hashicorp/consul/agent/hcp/client"
-	"github.com/hashicorp/go-hclog"
+
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/sdk/instrumentation"
 	"go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/metric/metricdata"
 	"go.opentelemetry.io/otel/sdk/resource"
+
+	hcpclient "github.com/hashicorp/consul/agent/hcp/client"
+	"github.com/hashicorp/go-hclog"
 )
 
 type Exporter interface {
@@ -70,13 +72,20 @@ func NewMetricsExporter(cfg *MetricsExporterConfig) (*MetricsExporter, error) {
 // It calls the HCP client to send the metrics to the HCP Metrics Gateway
 // via an authenticated HTTP request to the configured endpoint.
 func (m *MetricsExporter) Export(ctx context.Context, goMetrics []*metrics.IntervalMetrics) error {
-	r := m.ConvertToOTLP(goMetrics)
-
-	return m.client.ExportMetrics(ctx, r)
+	if r := m.ConvertToOTLP(goMetrics); r != nil {
+		return m.client.ExportMetrics(ctx, r)
+	}
+	return nil
 }
 
 // ConvertToOTLP creates an OTLP request with given goMetrics.
 func (m *MetricsExporter) ConvertToOTLP(goMetrics []*metrics.IntervalMetrics) *metricdata.ResourceMetrics {
+	oltpMetrics := m.goMetricsToOTLP(goMetrics)
+
+	if len(oltpMetrics) == 0 {
+		return nil
+	}
+
 	return &metricdata.ResourceMetrics{
 		Resource: m.resource,
 		ScopeMetrics: []metricdata.ScopeMetrics{
@@ -85,7 +94,7 @@ func (m *MetricsExporter) ConvertToOTLP(goMetrics []*metrics.IntervalMetrics) *m
 					Name:    "github.com/hashicorp/consul/agent/hcp/client/telemetry",
 					Version: "v1",
 				},
-				Metrics: m.goMetricsToOTLP(goMetrics),
+				Metrics: oltpMetrics,
 			},
 		},
 	}

@@ -24,7 +24,7 @@ var (
 type ManagerConfig struct {
 	Client         hcpclient.Client
 	NodeID         string
-	MetricsBackend lib.MetricsHandler
+	MetricsHandler lib.MetricsHandler
 
 	StatusFn    StatusCallback
 	MinInterval time.Duration
@@ -123,7 +123,7 @@ func (m *Manager) runReporter(ctx context.Context) error {
 	// It flushes them to the exporter to be sent to HCP at a configurable time interval (Batch Interval).
 	cfg := telemetry.DefaultConfig()
 	cfg.Logger = m.logger.Named("telemetry_reporter")
-	cfg.Gatherer = m.cfg.MetricsBackend
+	cfg.Gatherer = m.cfg.MetricsHandler
 	cfg.Exporter = exp
 
 	m.reporter, err = telemetry.NewReporter(cfg)

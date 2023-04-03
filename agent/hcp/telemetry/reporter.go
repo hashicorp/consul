@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
+
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/go-hclog"
 )

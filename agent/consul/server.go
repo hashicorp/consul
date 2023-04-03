@@ -501,7 +501,7 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server, incom
 	}
 
 	if flat.MetricsConfig != nil {
-		hcpManagerCfg.MetricsBackend = flat.MetricsConfig.Backend
+		hcpManagerCfg.MetricsHandler = flat.MetricsConfig.Handler
 	}
 
 	s.hcpManager = hcp.NewManager(hcpManagerCfg)
