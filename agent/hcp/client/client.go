@@ -33,7 +33,7 @@ type Client interface {
 	PushServerStatus(ctx context.Context, status *ServerStatus) error
 	DiscoverServers(ctx context.Context) ([]string, error)
 	InitMetricsClient(ctx context.Context, endpoint string) error
-	ExportMetrics(context.Context, metricdata.ResourceMetrics) error
+	ExportMetrics(context.Context, *metricdata.ResourceMetrics) error
 }
 
 // TODO: This will be fixed in a follow up PR (CC-4637)
@@ -164,12 +164,12 @@ func (c *hcpClient) InitMetricsClient(ctx context.Context, endpoint string) erro
 	return nil
 }
 
-func (c *hcpClient) ExportMetrics(ctx context.Context, metrics metricdata.ResourceMetrics) error {
+func (c *hcpClient) ExportMetrics(ctx context.Context, metrics *metricdata.ResourceMetrics) error {
 	if c.exporter == nil {
-		return fmt.Errorf("Metrics exporter must be initialized with InitTelemetryClient first.")
+		return fmt.Errorf("metrics exporter must be initialized with InitTelemetryClient first")
 	}
 
-	return c.exporter.Export(ctx, metrics)
+	return c.exporter.Export(ctx, *metrics)
 }
 
 type ServerStatus struct {

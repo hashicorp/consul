@@ -17,7 +17,7 @@ import (
 
 type Exporter interface {
 	Export(ctx context.Context, goMetrics []*metrics.IntervalMetrics) error
-	ConvertToOTLP(goMetrics []*metrics.IntervalMetrics) []metricdata.Metrics
+	ConvertToOTLP(goMetrics []*metrics.IntervalMetrics) *metricdata.ResourceMetrics
 }
 
 type MetricsExporterConfig struct {
@@ -70,9 +70,14 @@ func NewMetricsExporter(cfg *MetricsExporterConfig) (*MetricsExporter, error) {
 // It calls the HCP client to send the metrics to the HCP Metrics Gateway
 // via an authenticated HTTP request to the configured endpoint.
 func (m *MetricsExporter) Export(ctx context.Context, goMetrics []*metrics.IntervalMetrics) error {
-	otlpMetrics := m.ConvertToOTLP(goMetrics)
+	r := m.ConvertToOTLP(goMetrics)
 
-	resourceMetrics := metricdata.ResourceMetrics{
+	return m.client.ExportMetrics(ctx, r)
+}
+
+// ConvertToOTLP creates an OTLP request with given goMetrics.
+func (m *MetricsExporter) ConvertToOTLP(goMetrics []*metrics.IntervalMetrics) *metricdata.ResourceMetrics {
+	return &metricdata.ResourceMetrics{
 		Resource: m.resource,
 		ScopeMetrics: []metricdata.ScopeMetrics{
 			{
@@ -80,16 +85,15 @@ func (m *MetricsExporter) Export(ctx context.Context, goMetrics []*metrics.Inter
 					Name:    "github.com/hashicorp/consul/agent/hcp/client/telemetry",
 					Version: "v1",
 				},
-				Metrics: otlpMetrics,
+				Metrics: m.goMetricsToOTLP(goMetrics),
 			},
 		},
 	}
 
-	return m.client.ExportMetrics(ctx, resourceMetrics)
 }
 
-// goMetricsToOTLP converts go metrics data to OTLP format.
-func (m *MetricsExporter) ConvertToOTLP(goMetrics []*metrics.IntervalMetrics) []metricdata.Metrics {
+// goMetricsToOTLP converts go metrics data to OTLP metrics format.
+func (m *MetricsExporter) goMetricsToOTLP(goMetrics []*metrics.IntervalMetrics) []metricdata.Metrics {
 	otlpMetrics := make([]metricdata.Metrics, 0)
 	for _, interval := range goMetrics {
 		for _, v := range interval.Gauges {

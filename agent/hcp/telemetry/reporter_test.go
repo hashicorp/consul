@@ -11,9 +11,6 @@ import (
 	"github.com/hashicorp/go-hclog"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
-	"go.opentelemetry.io/otel/sdk/instrumentation"
-	"go.opentelemetry.io/otel/sdk/metric/metricdata"
-	"go.opentelemetry.io/otel/sdk/resource"
 )
 
 func TestReporter_NewReporter_Failures(t *testing.T) {
@@ -95,18 +92,7 @@ func TestReporter_Run(t *testing.T) {
 		},
 	}
 
-	expectedOTLPMetrics := metricdata.ResourceMetrics{
-		Resource: resource.NewWithAttributes(""),
-		ScopeMetrics: []metricdata.ScopeMetrics{
-			{
-				Scope: instrumentation.Scope{
-					Name:    "github.com/hashicorp/consul/agent/hcp/client/telemetry",
-					Version: "v1",
-				},
-				Metrics: r.cfg.Exporter.ConvertToOTLP([]*metrics.IntervalMetrics{interval}),
-			},
-		},
-	}
+	expectedOTLPMetrics := r.cfg.Exporter.ConvertToOTLP([]*metrics.IntervalMetrics{interval})
 
 	client.EXPECT().ExportMetrics(mock.Anything, expectedOTLPMetrics).Once().Return(nil)
 

@@ -77,11 +77,11 @@ func (_c *MockClient_DiscoverServers_Call) RunAndReturn(run func(context.Context
 }
 
 // ExportMetrics provides a mock function with given fields: _a0, _a1
-func (_m *MockClient) ExportMetrics(_a0 context.Context, _a1 metricdata.ResourceMetrics) error {
+func (_m *MockClient) ExportMetrics(_a0 context.Context, _a1 *metricdata.ResourceMetrics) error {
 	ret := _m.Called(_a0, _a1)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, metricdata.ResourceMetrics) error); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, *metricdata.ResourceMetrics) error); ok {
 		r0 = rf(_a0, _a1)
 	} else {
 		r0 = ret.Error(0)
@@ -97,14 +97,14 @@ type MockClient_ExportMetrics_Call struct {
 
 // ExportMetrics is a helper method to define mock.On call
 //   - _a0 context.Context
-//   - _a1 metricdata.ResourceMetrics
+//   - _a1 *metricdata.ResourceMetrics
 func (_e *MockClient_Expecter) ExportMetrics(_a0 interface{}, _a1 interface{}) *MockClient_ExportMetrics_Call {
 	return &MockClient_ExportMetrics_Call{Call: _e.mock.On("ExportMetrics", _a0, _a1)}
 }
 
-func (_c *MockClient_ExportMetrics_Call) Run(run func(_a0 context.Context, _a1 metricdata.ResourceMetrics)) *MockClient_ExportMetrics_Call {
+func (_c *MockClient_ExportMetrics_Call) Run(run func(_a0 context.Context, _a1 *metricdata.ResourceMetrics)) *MockClient_ExportMetrics_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(metricdata.ResourceMetrics))
+		run(args[0].(context.Context), args[1].(*metricdata.ResourceMetrics))
 	})
 	return _c
 }
@@ -114,7 +114,7 @@ func (_c *MockClient_ExportMetrics_Call) Return(_a0 error) *MockClient_ExportMet
 	return _c
 }
 
-func (_c *MockClient_ExportMetrics_Call) RunAndReturn(run func(context.Context, metricdata.ResourceMetrics) error) *MockClient_ExportMetrics_Call {
+func (_c *MockClient_ExportMetrics_Call) RunAndReturn(run func(context.Context, *metricdata.ResourceMetrics) error) *MockClient_ExportMetrics_Call {
 	_c.Call.Return(run)
 	return _c
 }
