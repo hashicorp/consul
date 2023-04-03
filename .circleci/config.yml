@@ -1081,12 +1081,6 @@ jobs:
       - run: "echo ok"
 
 workflows:
-  version: 2
-  # verify-ci is a no-op workflow that must run on every PR. It is used in a
-  # branch protection rule to detect when CI workflows are not running.
-  verify-ci:
-    jobs: [noop]
-
   go-tests:
     jobs:
       - check-go-mod: &filter-ignore-non-go-branches
