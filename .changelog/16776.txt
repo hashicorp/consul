@@ -1,0 +1,3 @@
+```release-note:improvement
+peering: allow re-establishing terminated peering from new token without deleting existing peering first.
+```
