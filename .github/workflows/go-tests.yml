@@ -97,13 +97,9 @@ jobs:
       run: .github/scripts/notify_slack.sh
 
   lint-enums:
-    # this currently (Apr 4, 2023) hangs on self hosted runner.
-    # only going to run this on OSS runners.  Will try again as new self-hosted
-    # runners get updated.
-    if: ${{ !endsWith(github.repository, '-enterprise') }}  
     needs: 
     - setup   
-    runs-on: ${{ fromJSON(needs.setup.outputs.compute-small) }}
+    runs-on: ${{ fromJSON(needs.setup.outputs.compute-large) }}
     steps:
     - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
     # NOTE: This step is specifically needed for ENT. It allows us to access the required private HashiCorp repos.
