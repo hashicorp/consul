@@ -10,7 +10,7 @@ The `/query` endpoints create, update, destroy, and execute prepared queries.
 
 Prepared queries allow you to register a complex service query and then execute
 it later by specifying the query ID or name. Consul returns a set of healthy nodes that provide a given
-service. Refer to 
+service. Refer to
 [Enable Dynamic DNS Queries](/consul/docs/services/discovery/dns-dynamic-lookups) for additional information.
 
 Check the [Geo Failover tutorial](/consul/tutorials/developer-discovery/automate-geo-failover) for details and
@@ -211,6 +211,12 @@ The table below shows this endpoint's support for
 
       - `Datacenter` `(string: "")` - Specifies a WAN federated datacenter to forward the
         query to.
+
+      - `Partition` `(string: "")` <EnterpriseAlert inline /> - Specifies a Partition to forward the
+      query to.
+
+      - `Namespace` `(string: "")` <EnterpriseAlert inline /> - Specifies a Namespace to forward the
+      query to.
 
   - `IgnoreCheckIDs` `(array<string>: nil)` - Specifies a list of check IDs that
     should be ignored when filtering unhealthy instances. This is mostly useful

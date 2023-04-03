@@ -48,7 +48,7 @@ import (
 	"github.com/hashicorp/consul/agent/grpc-external/services/connectca"
 	"github.com/hashicorp/consul/agent/grpc-external/services/dataplane"
 	"github.com/hashicorp/consul/agent/grpc-external/services/peerstream"
-	"github.com/hashicorp/consul/agent/grpc-external/services/resource"
+	resourcegrpc "github.com/hashicorp/consul/agent/grpc-external/services/resource"
 	"github.com/hashicorp/consul/agent/grpc-external/services/serverdiscovery"
 	agentgrpc "github.com/hashicorp/consul/agent/grpc-internal"
 	"github.com/hashicorp/consul/agent/grpc-internal/services/subscribe"
@@ -62,6 +62,10 @@ import (
 	"github.com/hashicorp/consul/agent/rpc/peering"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
+	"github.com/hashicorp/consul/internal/resource"
+	"github.com/hashicorp/consul/internal/resource/demo"
+	"github.com/hashicorp/consul/internal/storage"
+	"github.com/hashicorp/consul/internal/storage/inmem"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/lib/routine"
 	"github.com/hashicorp/consul/logging"
@@ -734,8 +738,15 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server, incom
 	s.overviewManager = NewOverviewManager(s.logger, s.fsm, s.config.MetricsReportingInterval)
 	go s.overviewManager.Run(&lib.StopChannelContext{StopCh: s.shutdownCh})
 
+	// TODO: replace this with the Raft backend.
+	backend, err := inmem.NewBackend()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create storage backend: %w", err)
+	}
+	go backend.Run(&lib.StopChannelContext{StopCh: s.shutdownCh})
+
 	// Initialize external gRPC server
-	s.setupExternalGRPC(config, logger)
+	s.setupExternalGRPC(config, logger, backend)
 
 	// Initialize internal gRPC server.
 	//
@@ -1171,8 +1182,7 @@ func (s *Server) setupRPC() error {
 }
 
 // Initialize and register services on external gRPC server.
-func (s *Server) setupExternalGRPC(config *Config, logger hclog.Logger) {
-
+func (s *Server) setupExternalGRPC(config *Config, logger hclog.Logger, backend storage.Backend) {
 	s.externalACLServer = aclgrpc.NewServer(aclgrpc.Config{
 		ACLsEnabled: s.config.ACLsEnabled,
 		ForwardRPC: func(info structs.RPCInfo, fn func(*grpc.ClientConn) error) (bool, error) {
@@ -1237,7 +1247,17 @@ func (s *Server) setupExternalGRPC(config *Config, logger hclog.Logger) {
 	})
 	s.peerStreamServer.Register(s.externalGRPCServer)
 
-	resource.NewServer(resource.Config{}).Register(s.externalGRPCServer)
+	registry := resource.NewRegistry()
+
+	if s.config.DevMode {
+		demo.Register(registry)
+	}
+
+	resourcegrpc.NewServer(resourcegrpc.Config{
+		Registry: registry,
+		Backend:  backend,
+		Logger:   logger.Named("grpc-api.resource"),
+	}).Register(s.externalGRPCServer)
 }
 
 // Shutdown is used to shutdown the server

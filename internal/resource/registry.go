@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"sync"
 
+	"google.golang.org/protobuf/proto"
+
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
@@ -18,6 +20,9 @@ type Registry interface {
 type Registration struct {
 	// Type is the GVK of the resource type.
 	Type *pbresource.Type
+
+	// Proto is the resource's protobuf message type.
+	Proto proto.Message
 
 	// In the future, we'll add hooks, the controller etc. here.
 	// TODO: https://github.com/hashicorp/consul/pull/16622#discussion_r1134515909
