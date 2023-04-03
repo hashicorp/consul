@@ -102,6 +102,11 @@ func (m *Manager) runReporter(ctx context.Context) error {
 		return fmt.Errorf("failed to init metrics HCP client: %v", err)
 	}
 
+	defer func() {
+		err := m.cfg.Client.ShutdownMetricsClient(ctx)
+		m.logger.Error("failed to shutdown metrics client: %v:", err)
+	}()
+
 	expCfg := &telemetry.MetricsExporterConfig{
 		Labels: map[string]string{
 			"service.name":        "consul-server",

@@ -141,6 +141,7 @@ func TestManager_RunReporter_Failures(t *testing.T) {
 				}, nil)
 
 				m.EXPECT().InitMetricsClient(mock.Anything, endpoint).Return(nil)
+				m.EXPECT().ShutdownMetricsClient(mock.Anything).Return(nil)
 			},
 		},
 	} {

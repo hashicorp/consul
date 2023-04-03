@@ -313,6 +313,48 @@ func (_c *MockClient_PushServerStatus_Call) RunAndReturn(run func(context.Contex
 	return _c
 }
 
+// ShutdownMetricsClient provides a mock function with given fields: ctx
+func (_m *MockClient) ShutdownMetricsClient(ctx context.Context) error {
+	ret := _m.Called(ctx)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context) error); ok {
+		r0 = rf(ctx)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockClient_ShutdownMetricsClient_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ShutdownMetricsClient'
+type MockClient_ShutdownMetricsClient_Call struct {
+	*mock.Call
+}
+
+// ShutdownMetricsClient is a helper method to define mock.On call
+//   - ctx context.Context
+func (_e *MockClient_Expecter) ShutdownMetricsClient(ctx interface{}) *MockClient_ShutdownMetricsClient_Call {
+	return &MockClient_ShutdownMetricsClient_Call{Call: _e.mock.On("ShutdownMetricsClient", ctx)}
+}
+
+func (_c *MockClient_ShutdownMetricsClient_Call) Run(run func(ctx context.Context)) *MockClient_ShutdownMetricsClient_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context))
+	})
+	return _c
+}
+
+func (_c *MockClient_ShutdownMetricsClient_Call) Return(_a0 error) *MockClient_ShutdownMetricsClient_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockClient_ShutdownMetricsClient_Call) RunAndReturn(run func(context.Context) error) *MockClient_ShutdownMetricsClient_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 type mockConstructorTestingTNewMockClient interface {
 	mock.TestingT
 	Cleanup(func())

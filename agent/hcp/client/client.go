@@ -33,6 +33,7 @@ type Client interface {
 	PushServerStatus(ctx context.Context, status *ServerStatus) error
 	DiscoverServers(ctx context.Context) ([]string, error)
 	InitMetricsClient(ctx context.Context, endpoint string) error
+	ShutdownMetricsClient(ctx context.Context) error
 	ExportMetrics(context.Context, *metricdata.ResourceMetrics) error
 }
 
@@ -162,6 +163,14 @@ func (c *hcpClient) InitMetricsClient(ctx context.Context, endpoint string) erro
 
 	c.exporter = exp
 	return nil
+}
+
+func (c *hcpClient) ShutdownMetricsClient(ctx context.Context) error {
+	if c.exporter == nil {
+		return fmt.Errorf("metrics exporter must be initialized with InitTelemetryClient first")
+	}
+
+	return c.exporter.Shutdown(ctx)
 }
 
 func (c *hcpClient) ExportMetrics(ctx context.Context, metrics *metricdata.ResourceMetrics) error {
