@@ -279,10 +279,10 @@ func (v *VaultProvider) State() (map[string]string, error) {
 	return nil, nil
 }
 
-// GenerateRoot mounts and initializes a new root PKI backend if needed.
-func (v *VaultProvider) GenerateRoot() (RootResult, error) {
+// GenerateCAChain mounts and initializes a new root PKI backend if needed.
+func (v *VaultProvider) GenerateCAChain() (CAChainResult, error) {
 	if !v.isPrimary {
-		return RootResult{}, fmt.Errorf("provider is not the root certificate authority")
+		return CAChainResult{}, fmt.Errorf("provider is not the root certificate authority")
 	}
 
 	// Set up the root PKI backend if necessary.
@@ -302,7 +302,7 @@ func (v *VaultProvider) GenerateRoot() (RootResult, error) {
 			},
 		})
 		if err != nil {
-			return RootResult{}, fmt.Errorf("failed to mount root CA backend: %w", err)
+			return CAChainResult{}, fmt.Errorf("failed to mount root CA backend: %w", err)
 		}
 
 		// We want to initialize afterwards
@@ -310,7 +310,7 @@ func (v *VaultProvider) GenerateRoot() (RootResult, error) {
 	case ErrBackendNotInitialized:
 		uid, err := connect.CompactUID()
 		if err != nil {
-			return RootResult{}, err
+			return CAChainResult{}, err
 		}
 		resp, err := v.writeNamespaced(v.config.RootPKINamespace, v.config.RootPKIPath+"root/generate/internal", map[string]interface{}{
 			"common_name": connect.CACN("vault", uid, v.clusterID, v.isPrimary),
@@ -319,23 +319,23 @@ func (v *VaultProvider) GenerateRoot() (RootResult, error) {
 			"key_bits":    v.config.PrivateKeyBits,
 		})
 		if err != nil {
-			return RootResult{}, fmt.Errorf("failed to initialize root CA: %w", err)
+			return CAChainResult{}, fmt.Errorf("failed to initialize root CA: %w", err)
 		}
 		var ok bool
 		rootPEM, ok = resp.Data["certificate"].(string)
 		if !ok {
-			return RootResult{}, fmt.Errorf("unexpected response from Vault: %v", resp.Data["certificate"])
+			return CAChainResult{}, fmt.Errorf("unexpected response from Vault: %v", resp.Data["certificate"])
 		}
 
 	default:
 		if err != nil {
-			return RootResult{}, fmt.Errorf("unexpected error while setting root PKI backend: %w", err)
+			return CAChainResult{}, fmt.Errorf("unexpected error while setting root PKI backend: %w", err)
 		}
 	}
 
 	rootChain, err := v.getCAChain(v.config.RootPKINamespace, v.config.RootPKIPath)
 	if err != nil {
-		return RootResult{}, err
+		return CAChainResult{}, err
 	}
 
 	// Workaround for a bug in the Vault PKI API.
@@ -344,7 +344,18 @@ func (v *VaultProvider) GenerateRoot() (RootResult, error) {
 		rootChain = rootPEM
 	}
 
-	return RootResult{PEM: rootChain}, nil
+	intermediate, err := v.ActiveLeafSigningCert()
+	if err != nil {
+		return CAChainResult{}, fmt.Errorf("error fetching active intermediate: %w", err)
+	}
+	if intermediate == "" {
+		intermediate, err = v.GenerateLeafSigningCert()
+		if err != nil {
+			return CAChainResult{}, fmt.Errorf("error generating intermediate: %w", err)
+		}
+	}
+
+	return CAChainResult{PEM: rootChain, IntermediatePEM: intermediate}, nil
 }
 
 // GenerateIntermediateCSR creates a private key and generates a CSR
@@ -498,7 +509,7 @@ func (v *VaultProvider) SetIntermediate(intermediatePEM, rootPEM, keyId string) 
 }
 
 // ActiveIntermediate returns the current intermediate certificate.
-func (v *VaultProvider) ActiveIntermediate() (string, error) {
+func (v *VaultProvider) ActiveLeafSigningCert() (string, error) {
 	cert, err := v.getCA(v.config.IntermediatePKINamespace, v.config.IntermediatePKIPath)
 
 	// This error is expected when calling initializeSecondaryCA for the
@@ -571,7 +582,7 @@ func (v *VaultProvider) getCAChain(namespace, path string) (string, error) {
 // GenerateIntermediate mounts the configured intermediate PKI backend if
 // necessary, then generates and signs a new CA CSR using the root PKI backend
 // and updates the intermediate backend to use that new certificate.
-func (v *VaultProvider) GenerateIntermediate() (string, error) {
+func (v *VaultProvider) GenerateLeafSigningCert() (string, error) {
 	csr, keyId, err := v.generateIntermediateCSR()
 	if err != nil {
 		return "", err
@@ -607,7 +618,7 @@ func (v *VaultProvider) GenerateIntermediate() (string, error) {
 		}
 	}
 
-	return v.ActiveIntermediate()
+	return v.ActiveLeafSigningCert()
 }
 
 // setDefaultIntermediateIssuer updates the default issuer for
@@ -813,8 +824,6 @@ func (v *VaultProvider) Cleanup(providerTypeChange bool, otherConfig map[string]
 func (v *VaultProvider) Stop() {
 	v.stopWatcher()
 }
-
-func (v *VaultProvider) PrimaryUsesIntermediate() {}
 
 // We use raw path here
 func (v *VaultProvider) mountNamespaced(namespace, path string, mountInfo *vaultapi.MountInput) error {
