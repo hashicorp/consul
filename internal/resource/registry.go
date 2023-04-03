@@ -83,13 +83,19 @@ func (r *TypeRegistry) Register(registration Registration) {
 	}
 	if registration.ACLs.Read == nil {
 		registration.ACLs.Read = func(authz acl.Authorizer, id *pbresource.ID) error {
-			if err := authz.ToAllowAuthorizer().OperatorReadAllowed(&acl.AuthorizerContext{}); err != nil {
-				return err
-			}
-			return nil
+			return authz.ToAllowAuthorizer().OperatorReadAllowed(&acl.AuthorizerContext{})
 		}
 	}
-	// TODO: write & list hooks
+	if registration.ACLs.Write == nil {
+		registration.ACLs.Write = func(authz acl.Authorizer, resource *pbresource.Resource) error {
+			return authz.ToAllowAuthorizer().OperatorWriteAllowed(&acl.AuthorizerContext{})
+		}
+	}
+	if registration.ACLs.List == nil {
+		registration.ACLs.List = func(authz acl.Authorizer, tenancy *pbresource.Tenancy) error {
+			return authz.ToAllowAuthorizer().OperatorReadAllowed(&acl.AuthorizerContext{})
+		}
+	}
 	r.registrations[key] = registration
 }
 

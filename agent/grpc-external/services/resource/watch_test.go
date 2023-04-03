@@ -7,10 +7,14 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/grpc-external/testutils"
+	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/demo"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/proto/private/prototest"
 
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -112,6 +116,123 @@ func TestWatchList_GroupVersionMismatch(t *testing.T) {
 
 	// verify no events received
 	mustGetNoResource(t, rspCh)
+}
+
+func TestWatchList_ACL_RegisteredHooks(t *testing.T) {
+	t.Parallel()
+	server := testServer(t)
+	client := testClient(t, server)
+	ctx := context.Background()
+
+	readCalled := false
+	listCalled := false
+	demo.Register(server.Registry, &resource.ACLHooks{
+		Read: func(authz acl.Authorizer, id *pbresource.ID) error {
+			readCalled = true
+			return nil
+		},
+		List: func(authz acl.Authorizer, tenancy *pbresource.Tenancy) error {
+			listCalled = true
+			return nil
+		},
+	})
+
+	// create a watch
+	stream, err := client.WatchList(ctx, &pbresource.WatchListRequest{
+		Type:       demo.TypeV2Artist,
+		Tenancy:    demo.TenancyDefault,
+		NamePrefix: "",
+	})
+	require.NoError(t, err)
+	rspCh := handleResourceStream(t, stream)
+
+	artist, err := demo.GenerateV2Artist()
+	require.NoError(t, err)
+
+	// induce single watch event
+	_, err = server.Backend.WriteCAS(ctx, artist)
+	require.NoError(t, err)
+	_ = mustGetResource(t, rspCh)
+
+	// verify both registered ACL hooks called
+	require.True(t, listCalled)
+	require.True(t, readCalled)
+}
+
+func TestWatchList_ACL_DefaultListHook_PermissionDenied(t *testing.T) {
+	t.Parallel()
+	server := testServer(t)
+	client := testClient(t, server)
+	ctx := context.Background()
+
+	mockACLResolver := &MockACLResolver{}
+	mockACLResolver.On("ResolveTokenAndDefaultMeta", mock.Anything, mock.Anything, mock.Anything).
+		Return(testutils.ACLNoPermissions(t), nil)
+	server.ACLResolver = mockACLResolver
+
+	// There two two hooks in play: List and Read. To make sure only the default List hook is
+	// exercised by this test and is the origin of PermissionDenied, provide a Read hook
+	// and verify it is never called.
+	readCalled := false
+	demo.Register(server.Registry, &resource.ACLHooks{
+		Read: func(authz acl.Authorizer, id *pbresource.ID) error {
+			readCalled = true
+			return nil
+		},
+	})
+
+	// create a watch
+	stream, err := client.WatchList(ctx, &pbresource.WatchListRequest{
+		Type:       demo.TypeV2Artist,
+		Tenancy:    demo.TenancyDefault,
+		NamePrefix: "",
+	})
+	require.NoError(t, err)
+	require.False(t, readCalled)
+	rspCh := handleResourceStream(t, stream)
+
+	// verify persmission denied
+	err = mustGetError(t, rspCh)
+	require.Error(t, err)
+	require.Equal(t, codes.PermissionDenied.String(), status.Code(err).String())
+	require.False(t, readCalled)
+}
+
+func TestWatchList_ACL_DefaultReadHook_PermissionDenied(t *testing.T) {
+	server := testServer(t)
+	client := testClient(t, server)
+	ctx := context.Background()
+
+	mockACLResolver := &MockACLResolver{}
+	mockACLResolver.On("ResolveTokenAndDefaultMeta", mock.Anything, mock.Anything, mock.Anything).
+		Return(testutils.ACLNoPermissions(t), nil)
+	server.ACLResolver = mockACLResolver
+
+	// Allow List ACL check to pass so Read ACL check can be reached
+	listCalled := false
+	demo.Register(server.Registry, &resource.ACLHooks{
+		List: func(authz acl.Authorizer, tenancy *pbresource.Tenancy) error {
+			listCalled = true
+			return nil
+		},
+	})
+	artist, err := demo.GenerateV2Artist()
+	require.NoError(t, err)
+	_, err = server.Backend.WriteCAS(context.Background(), artist)
+	require.NoError(t, err)
+
+	// create a watch
+	stream, err := client.WatchList(ctx, &pbresource.WatchListRequest{
+		Type:       demo.TypeV2Artist,
+		Tenancy:    demo.TenancyDefault,
+		NamePrefix: "",
+	})
+	require.NoError(t, err)
+	rspCh := handleResourceStream(t, stream)
+
+	// verify no resource since ACL filtered out event
+	mustGetNoResource(t, rspCh)
+	require.True(t, listCalled)
 }
 
 func mustGetNoResource(t *testing.T, ch <-chan resourceOrError) {
