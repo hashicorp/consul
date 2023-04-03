@@ -63,6 +63,17 @@ func (s *Server) Delete(ctx context.Context, req *pbresource.DeleteRequest) (*pb
 	return &pbresource.DeleteResponse{}, nil
 }
 
+// Extracts ACL token ID from incoming context
+func tokenFromContext(ctx context.Context) string {
+	// TODO(spatel): Figure out where to get the token from correctly. This is just a stand in for the PR
+	//               Should I be using QueryOptions like some of the other gRPC servers?
+	token := ctx.Value("x-token")
+	if token == nil {
+		return acl.AnonymousTokenID
+	}
+	return token.(string)
+}
+
 func (s *Server) resolveType(typ *pbresource.Type) (*resource.Registration, error) {
 	v, ok := s.Registry.Resolve(typ)
 	if ok {

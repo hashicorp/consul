@@ -120,7 +120,7 @@ func TestRead_VerifyReadConsistencyArg(t *testing.T) {
 	}
 }
 
-func TestRead_ACL_UserHookCalled(t *testing.T) {
+func TestRead_ACL_RegisteredHook(t *testing.T) {
 	server := testServer(t)
 	client := testClient(t, server)
 
@@ -140,7 +140,7 @@ func TestRead_ACL_UserHookCalled(t *testing.T) {
 	require.True(t, called)
 }
 
-func TestRead_ACL_DefaultHookCalled_PermissionDenied(t *testing.T) {
+func TestRead_ACL_DefaultHook_PermissionDenied(t *testing.T) {
 	server := testServer(t)
 	client := testClient(t, server)
 
@@ -158,7 +158,7 @@ func TestRead_ACL_DefaultHookCalled_PermissionDenied(t *testing.T) {
 	require.Equal(t, codes.PermissionDenied.String(), status.Code(err).String())
 }
 
-func TestRead_ACL_DefaultHookCalled_PermissionGranted(t *testing.T) {
+func TestRead_ACL_DefaultHook_PermissionGranted(t *testing.T) {
 	server := testServer(t)
 	client := testClient(t, server)
 

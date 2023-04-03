@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/grpc-external/testutils"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/demo"
 	"github.com/hashicorp/consul/internal/storage"
@@ -110,10 +112,8 @@ func TestList_VerifyReadConsistencyArg(t *testing.T) {
 	for desc, tc := range listTestCases() {
 		t.Run(desc, func(t *testing.T) {
 			mockBackend := NewMockBackend(t)
-			server := NewServer(Config{
-				Registry: resource.NewRegistry(),
-				Backend:  mockBackend,
-			})
+			server := testServer(t)
+			server.Backend = mockBackend
 			demo.Register(server.Registry, nil)
 
 			artist, err := demo.GenerateV2Artist()
@@ -129,6 +129,92 @@ func TestList_VerifyReadConsistencyArg(t *testing.T) {
 			mockBackend.AssertCalled(t, "List", mock.Anything, tc.consistency, mock.Anything, mock.Anything, mock.Anything)
 		})
 	}
+}
+
+func TestList_ACL_RegisteredHooks(t *testing.T) {
+	server := testServer(t)
+	client := testClient(t, server)
+
+	readCalled := false
+	listCalled := false
+	demo.Register(server.Registry, &resource.ACLHooks{
+		Read: func(authz acl.Authorizer, id *pbresource.ID) error {
+			readCalled = true
+			return nil
+		},
+		List: func(authz acl.Authorizer, tenancy *pbresource.Tenancy) error {
+			listCalled = true
+			return nil
+		},
+	})
+	artist, err := demo.GenerateV2Artist()
+	require.NoError(t, err)
+	_, err = client.Write(context.Background(), &pbresource.WriteRequest{Resource: artist})
+	require.NoError(t, err)
+
+	// verify both registered ACL hooks called
+	_, err = client.List(testContext(t), &pbresource.ListRequest{Type: artist.Id.Type, Tenancy: artist.Id.Tenancy, NamePrefix: ""})
+	require.NoError(t, err)
+	require.True(t, listCalled)
+	require.True(t, readCalled)
+}
+
+func TestList_ACL_DefaultListHook_PermissionDenied(t *testing.T) {
+	server := testServer(t)
+	client := testClient(t, server)
+
+	mockACLResolver := &MockACLResolver{}
+	mockACLResolver.On("ResolveTokenAndDefaultMeta", mock.Anything, mock.Anything, mock.Anything).
+		Return(testutils.ACLNoPermissions(t), nil)
+	server.ACLResolver = mockACLResolver
+
+	// There two two hooks in play: List and Read. To make sure only the List hook is
+	// exercised by this test and is the origin of PermissionDenied, provide a Read hook
+	// and verify it is never called.
+	readCalled := false
+	demo.Register(server.Registry, &resource.ACLHooks{
+		Read: func(authz acl.Authorizer, id *pbresource.ID) error {
+			readCalled = true
+			return nil
+		},
+	})
+	artist, err := demo.GenerateV2Artist()
+	require.NoError(t, err)
+
+	_, err = client.List(testContext(t), &pbresource.ListRequest{Type: artist.Id.Type, Tenancy: artist.Id.Tenancy, NamePrefix: ""})
+	require.Error(t, err)
+	require.Equal(t, codes.PermissionDenied.String(), status.Code(err).String())
+	require.False(t, readCalled)
+}
+
+func TestList_ACL_DefaultReadHook_PermissionDenied(t *testing.T) {
+	server := testServer(t)
+	client := testClient(t, server)
+
+	mockACLResolver := &MockACLResolver{}
+	mockACLResolver.On("ResolveTokenAndDefaultMeta", mock.Anything, mock.Anything, mock.Anything).
+		Return(testutils.ACLNoPermissions(t), nil)
+	server.ACLResolver = mockACLResolver
+
+	// Allow List ACL check to pass so Read ACL check can be reached
+	listCalled := false
+	demo.Register(server.Registry, &resource.ACLHooks{
+		List: func(authz acl.Authorizer, tenancy *pbresource.Tenancy) error {
+			listCalled = true
+			return nil
+		},
+	})
+	artist, err := demo.GenerateV2Artist()
+	require.NoError(t, err)
+
+	_, err = server.Backend.WriteCAS(context.Background(), artist)
+	require.NoError(t, err)
+
+	// The read ACL permission denied should exclude all items from the result, hence verify empty list
+	rsp, err := client.List(testContext(t), &pbresource.ListRequest{Type: artist.Id.Type, Tenancy: artist.Id.Tenancy, NamePrefix: ""})
+	require.NoError(t, err)
+	require.Empty(t, rsp.Resources)
+	require.True(t, listCalled)
 }
 
 type listTestCase struct {

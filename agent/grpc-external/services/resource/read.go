@@ -3,10 +3,12 @@ package resource
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/internal/storage"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
@@ -19,14 +21,17 @@ func (s *Server) Read(ctx context.Context, req *pbresource.ReadRequest) (*pbreso
 	}
 
 	// check acls
-	authz, err := s.ACLResolver.ResolveTokenAndDefaultMeta("??", nil, nil)
+	authz, err := s.ACLResolver.ResolveTokenAndDefaultMeta(tokenFromContext(ctx), nil, nil)
 	if err != nil {
-		// TODO: revisit error detail
-		return nil, err
+		return nil, fmt.Errorf("getting authorizer: %w", err)
 	}
 	if err = reg.ACLs.Read(authz, req.Id); err != nil {
-		// TODO: revisit error detail
-		return nil, status.Error(codes.PermissionDenied, err.Error())
+		switch {
+		case acl.IsErrPermissionDenied(err):
+			return nil, status.Error(codes.PermissionDenied, err.Error())
+		default:
+			return nil, fmt.Errorf("authorizing read: %w", err)
+		}
 	}
 
 	resource, err := s.Backend.Read(ctx, readConsistencyFrom(ctx), req.Id)
