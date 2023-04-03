@@ -11,12 +11,7 @@ import (
 )
 
 const (
-	DefaultClockSkewSeconds           = 30
-	DefaultCacheConfigSize            = 0
-	DefaultAuthorizationHeaderName    = "Authorization"
-	DefaultAuthorizationValuePrefix   = "Bearer"
-	DefaultAuthorizationHeaderForward = false
-	DefaultRetryPolicyNumRetries      = 0
+	DefaultClockSkewSeconds = 30
 )
 
 type JWTProviderConfigEntry struct {
@@ -92,7 +87,7 @@ func (location *JWTLocation) Validate() error {
 	hasAPair := hasCookie && hasHeader || hasCookie && hasQueryParam || hasQueryParam && hasHeader
 
 	if hasOrMissingAllThree || hasAPair {
-		return fmt.Errorf("must set exactly one of: JWT location header, query param or cookie")
+		return fmt.Errorf("Must set exactly one of: JWT location header, query param or cookie")
 	}
 
 	if hasHeader {
@@ -164,7 +159,7 @@ type JWTForwardingConfig struct {
 
 func (fc *JWTForwardingConfig) Validate() error {
 	if fc.HeaderName == "" {
-		return fmt.Errorf("header name required for forwarding config")
+		return fmt.Errorf("Header name required for forwarding config")
 	}
 
 	return nil
@@ -186,8 +181,8 @@ type JSONWebKeySet struct {
 //
 // Only one of String and Filename can be specified.
 type LocalJWKS struct {
-	// String contains a base64 encoded JWKS.
-	String string
+	// JWKS contains a base64 encoded JWKS.
+	JWKS string
 
 	// Filename configures a location on disk where the JWKS can be
 	// found. If specified, the file must be present on the disk of ALL
@@ -197,10 +192,10 @@ type LocalJWKS struct {
 
 func (ks *LocalJWKS) Validate() error {
 	hasFilename := ks.Filename != ""
-	hasString := ks.String != ""
+	hasJWKS := ks.JWKS != ""
 
-	if (hasFilename && hasString) || !(hasFilename || hasString) {
-		return fmt.Errorf("must specify exactly one of String or filename for local keyset")
+	if hasFilename == hasJWKS {
+		return fmt.Errorf("Must specify exactly one of String or filename for local keyset")
 	}
 
 	return nil
@@ -238,11 +233,11 @@ type RemoteJWKS struct {
 
 func (ks *RemoteJWKS) Validate() error {
 	if ks.URI == "" {
-		return fmt.Errorf("remote JWKS URI is required")
+		return fmt.Errorf("Remote JWKS URI is required")
 	}
 
 	if _, err := url.ParseRequestURI(ks.URI); err != nil {
-		return fmt.Errorf("remote JWKS URI is invalid: %w, uri: %s", err, ks.URI)
+		return fmt.Errorf("Remote JWKS URI is invalid: %w, uri: %s", err, ks.URI)
 	}
 
 	return nil
@@ -288,7 +283,7 @@ func (jwks *JSONWebKeySet) Validate() error {
 	hasRemoteKeySet := jwks.Remote != nil
 
 	if hasLocalKeySet == hasRemoteKeySet {
-		return fmt.Errorf("must specify exactly one of Local or Remote JSON Web key set")
+		return fmt.Errorf("Must specify exactly one of Local or Remote JSON Web key set")
 	}
 
 	if hasRemoteKeySet {
@@ -323,7 +318,7 @@ func validateLocations(locations []*JWTLocation) error {
 
 func (e *JWTProviderConfigEntry) Validate() error {
 	if e.Name == "" {
-		return fmt.Errorf("name is required")
+		return fmt.Errorf("Name is required")
 	}
 
 	if err := validateConfigEntryMeta(e.Meta); err != nil {
@@ -357,7 +352,7 @@ func (e *JWTProviderConfigEntry) Validate() error {
 
 func (e *JWTProviderConfigEntry) Normalize() error {
 	if e == nil {
-		return fmt.Errorf("config entry is nil")
+		return fmt.Errorf("Config entry is nil")
 	}
 
 	e.Kind = JWTProvider

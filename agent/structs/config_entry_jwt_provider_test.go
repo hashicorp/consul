@@ -58,7 +58,7 @@ func TestJWTProviderConfigEntry_ValidateAndNormalize(t *testing.T) {
 				Locations: []*JWTLocation{
 					{
 						Header: &JWTLocationHeader{
-							Name: "Bearer",
+							Name: "Authorization",
 						},
 					},
 				},
@@ -81,7 +81,7 @@ func TestJWTProviderConfigEntry_ValidateAndNormalize(t *testing.T) {
 				Locations: []*JWTLocation{
 					{
 						Header: &JWTLocationHeader{
-							Name: "Bearer",
+							Name: "Authorization",
 						},
 					},
 				},
@@ -93,7 +93,7 @@ func TestJWTProviderConfigEntry_ValidateAndNormalize(t *testing.T) {
 				Kind: JWTProvider,
 				Name: "",
 			},
-			validateErr: "name is required",
+			validateErr: "Name is required",
 		},
 		"invalid jwt-provider - no jwks": {
 			entry: &JWTProviderConfigEntry{
@@ -108,7 +108,7 @@ func TestJWTProviderConfigEntry_ValidateAndNormalize(t *testing.T) {
 				Name:          "okta",
 				JSONWebKeySet: &JSONWebKeySet{},
 			},
-			validateErr: "must specify exactly one of Local or Remote JSON Web key set",
+			validateErr: "Must specify exactly one of Local or Remote JSON Web key set",
 		},
 		"invalid jwt-provider - both jwks local and remote set": {
 			entry: &JWTProviderConfigEntry{
@@ -121,7 +121,7 @@ func TestJWTProviderConfigEntry_ValidateAndNormalize(t *testing.T) {
 					Remote: &RemoteJWKS{},
 				},
 			},
-			validateErr: "must specify exactly one of Local or Remote JSON Web key set",
+			validateErr: "Must specify exactly one of Local or Remote JSON Web key set",
 		},
 		"invalid jwt-provider - local jwks string and filename both set": {
 			entry: &JWTProviderConfigEntry{
@@ -130,11 +130,11 @@ func TestJWTProviderConfigEntry_ValidateAndNormalize(t *testing.T) {
 				JSONWebKeySet: &JSONWebKeySet{
 					Local: &LocalJWKS{
 						Filename: "jwks.txt",
-						String:   "xxxxxxxxxxxxxxxxxxxxxx",
+						JWKS:     "xxxxxxxxxxxxxxxxxxxxxx",
 					},
 				},
 			},
-			validateErr: "must specify exactly one of String or filename for local keyset",
+			validateErr: "Must specify exactly one of String or filename for local keyset",
 		},
 		"invalid jwt-provider - remote jwks missing uri": {
 			entry: &JWTProviderConfigEntry{
@@ -146,7 +146,7 @@ func TestJWTProviderConfigEntry_ValidateAndNormalize(t *testing.T) {
 					},
 				},
 			},
-			validateErr: "remote JWKS URI is required",
+			validateErr: "Remote JWKS URI is required",
 		},
 		"invalid jwt-provider - remote jwks invalid uri": {
 			entry: &JWTProviderConfigEntry{
@@ -159,7 +159,7 @@ func TestJWTProviderConfigEntry_ValidateAndNormalize(t *testing.T) {
 					},
 				},
 			},
-			validateErr: "remote JWKS URI is invalid",
+			validateErr: "Remote JWKS URI is invalid",
 		},
 		"invalid jwt-provider - JWT location with all fields": {
 			entry: &JWTProviderConfigEntry{
@@ -174,7 +174,7 @@ func TestJWTProviderConfigEntry_ValidateAndNormalize(t *testing.T) {
 				Locations: []*JWTLocation{
 					{
 						Header: &JWTLocationHeader{
-							Name: "Bearer",
+							Name: "Authorization",
 						},
 						QueryParam: &JWTLocationQueryParam{
 							Name: "TOKEN-QUERY",
@@ -185,7 +185,7 @@ func TestJWTProviderConfigEntry_ValidateAndNormalize(t *testing.T) {
 					},
 				},
 			},
-			validateErr: "must set exactly one of: JWT location header, query param or cookie",
+			validateErr: "Must set exactly one of: JWT location header, query param or cookie",
 		},
 		"invalid jwt-provider - JWT location with 2 fields": {
 			entry: &JWTProviderConfigEntry{
@@ -200,7 +200,7 @@ func TestJWTProviderConfigEntry_ValidateAndNormalize(t *testing.T) {
 				Locations: []*JWTLocation{
 					{
 						Header: &JWTLocationHeader{
-							Name: "Bearer",
+							Name: "Authorization",
 						},
 						QueryParam: &JWTLocationQueryParam{
 							Name: "TOKEN-QUERY",
@@ -208,7 +208,7 @@ func TestJWTProviderConfigEntry_ValidateAndNormalize(t *testing.T) {
 					},
 				},
 			},
-			validateErr: "must set exactly one of: JWT location header, query param or cookie",
+			validateErr: "Must set exactly one of: JWT location header, query param or cookie",
 		},
 	}
 
@@ -216,8 +216,6 @@ func TestJWTProviderConfigEntry_ValidateAndNormalize(t *testing.T) {
 }
 
 func TestJWTProviderConfigEntry_ACLs(t *testing.T) {
-	type testACL = configEntryTestACL
-
 	cases := []configEntryACLTestCase{
 		{
 			name: "jwt-provider",
@@ -230,7 +228,7 @@ func TestJWTProviderConfigEntry_ACLs(t *testing.T) {
 					},
 				},
 			},
-			expectACLs: []testACL{
+			expectACLs: []configEntryTestACL{
 				{
 					name:       "no-authz",
 					authorizer: newTestAuthz(t, ``),
