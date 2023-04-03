@@ -81,6 +81,29 @@ type JWTLocation struct {
 	Cookie *JWTLocationCookie
 }
 
+func (location *JWTLocation) Validate() error {
+	hasHeader := location.Header != nil
+	hasQueryParam := location.QueryParam != nil
+	hasCookie := location.Cookie != nil
+
+	hasOrMissingAllThree := hasHeader == hasQueryParam && hasHeader == hasCookie
+	hasAPair := hasCookie && hasHeader || hasCookie && hasQueryParam || hasQueryParam && hasHeader
+
+	if hasOrMissingAllThree || hasAPair {
+		return fmt.Errorf("must set exactly one of: JWT location header, query param or cookie")
+	}
+
+	if hasHeader {
+		return location.Header.Validate()
+	}
+
+	if hasCookie {
+		return location.Cookie.Validate()
+	}
+
+	return location.QueryParam.Validate()
+}
+
 // JWTLocationHeader defines how to extract a JWT from an HTTP
 // request header.
 type JWTLocationHeader struct {
@@ -108,6 +131,13 @@ type JWTLocationQueryParam struct {
 	Name string
 }
 
+func (qp *JWTLocationQueryParam) Validate() error {
+	if qp.Name == "" {
+		return fmt.Errorf("JWT location query param name must be specified")
+	}
+	return nil
+}
+
 // JWTLocationCookie defines how to extract a JWT from an HTTP request cookie.
 type JWTLocationCookie struct {
 	// Name is the name of the cookie containing the token.
@@ -128,6 +158,14 @@ type JWTForwardingConfig struct {
 	//
 	// Default value is false.
 	PadForwardPayloadHeader bool
+}
+
+func (fc *JWTForwardingConfig) Validate() error {
+	if fc.HeaderName == "" {
+		return fmt.Errorf("header name required for forwarding config")
+	}
+
+	return nil
 }
 
 // JSONWebKeySet defines a key set, its location on disk, or the
@@ -153,6 +191,17 @@ type LocalJWKS struct {
 	// found. If specified, the file must be present on the disk of ALL
 	// proxies with intentions referencing this provider.
 	Filename string
+}
+
+func (ks *LocalJWKS) Validate() error {
+	hasFilename := ks.Filename != ""
+	hasString := ks.String != ""
+
+	if (hasFilename && hasString) || !(hasFilename || hasString) {
+		return fmt.Errorf("must specify exactly one of String or filename for local keyset")
+	}
+
+	return nil
 }
 
 // RemoteJWKS specifies how to fetch a JWKS from a remote server.
@@ -185,6 +234,18 @@ type RemoteJWKS struct {
 	RetryPolicy *JWKSRetryPolicy
 }
 
+func (ks *RemoteJWKS) Validate() error {
+	if ks.URI == "" {
+		return fmt.Errorf("remote JWKS URI is required")
+	}
+
+	if _, err := url.ParseRequestURI(ks.URI); err != nil {
+		return fmt.Errorf("remote JWKS URI is invalid: %w, uri: %s", err, ks.URI)
+	}
+
+	return nil
+}
+
 type JWKSRetryPolicy struct {
 	// NumRetries is the number of times to retry fetching the JWKS.
 	// The retry strategy uses jittered exponential backoff with
@@ -202,20 +263,11 @@ type JWTCacheConfig struct {
 	Size int
 }
 
-func (e *JWTProviderConfigEntry) GetKind() string {
-	return JWTProvider
-}
+func (e *JWTProviderConfigEntry) GetKind() string                        { return JWTProvider }
 func (e *JWTProviderConfigEntry) GetName() string                        { return e.Name }
 func (e *JWTProviderConfigEntry) GetMeta() map[string]string             { return e.Meta }
 func (e *JWTProviderConfigEntry) GetEnterpriseMeta() *acl.EnterpriseMeta { return &e.EnterpriseMeta }
 func (e *JWTProviderConfigEntry) GetRaftIndex() *RaftIndex               { return &e.RaftIndex }
-func (e *JWTProviderConfigEntry) GetJSONWebKeySet() *JSONWebKeySet       { return e.JSONWebKeySet }
-func (e *JWTProviderConfigEntry) GetIssuer() string                      { return e.Issuer }
-func (e *JWTProviderConfigEntry) GetAudiences() []string                 { return e.Audiences }
-func (e *JWTProviderConfigEntry) GetLocations() []*JWTLocation           { return e.Locations }
-func (e *JWTProviderConfigEntry) GetForwarding() *JWTForwardingConfig    { return e.Forwarding }
-func (e *JWTProviderConfigEntry) GetClockSkewSeconds() int               { return e.ClockSkewSeconds }
-func (e *JWTProviderConfigEntry) GetCacheConfig() *JWTCacheConfig        { return e.CacheConfig }
 
 func (e *JWTProviderConfigEntry) CanRead(authz acl.Authorizer) error {
 	var authzContext acl.AuthorizerContext
@@ -233,95 +285,27 @@ func (jwks *JSONWebKeySet) Validate() error {
 	hasLocalKeySet := jwks.Local != nil
 	hasRemoteKeySet := jwks.Remote != nil
 
-	if (hasLocalKeySet && hasRemoteKeySet) || !(hasLocalKeySet || hasRemoteKeySet) {
+	if hasLocalKeySet == hasRemoteKeySet {
 		return fmt.Errorf("must specify exactly one of Local or Remote JSON Web key set")
 	}
 
 	if hasRemoteKeySet {
-		if err := jwks.Remote.Validate(); err != nil {
-			return err
-		}
-		return nil
+		return jwks.Remote.Validate()
 	}
 
-	if err := jwks.Local.Validate(); err != nil {
-		return err
-	}
-
-	return nil
+	return jwks.Local.Validate()
 }
 
-func (ks *LocalJWKS) Validate() error {
-	hasFilename := ks.Filename != ""
-	hasString := ks.String != ""
-
-	if (hasFilename && hasString) || !(hasFilename || hasString) {
-		return fmt.Errorf("must specify exactly one of String or filename for local keyset")
-	}
-
-	return nil
-}
-
-func (ks *RemoteJWKS) Validate() error {
-	if ks.URI == "" {
-		return fmt.Errorf("remote JWKS URI is required")
-	}
-
-	if _, err := url.ParseRequestURI(ks.URI); err != nil {
-		return fmt.Errorf("remote JWKS URI is invalid")
-	}
-
-	return nil
-}
-
-func (header *JWTLocationHeader) Validate() error {
-	if header.Name == "" {
+func (lh *JWTLocationHeader) Validate() error {
+	if lh.Name == "" {
 		return fmt.Errorf("JWT location header name must be specified")
 	}
 	return nil
 }
 
-func (cookieHeader *JWTLocationCookie) Validate() error {
-	if cookieHeader.Name == "" {
+func (lc *JWTLocationCookie) Validate() error {
+	if lc.Name == "" {
 		return fmt.Errorf("JWT location cookie name must be specified")
-	}
-	return nil
-}
-
-func (queryHeader *JWTLocationQueryParam) Validate() error {
-	if queryHeader.Name == "" {
-		return fmt.Errorf("JWT location query param name must be specified")
-	}
-	return nil
-}
-
-func (location *JWTLocation) Validate() error {
-	hasHeader := location.Header != nil
-	hasQueryParam := location.QueryParam != nil
-	hasCookie := location.Cookie != nil
-
-	hasAllThree := hasHeader && hasQueryParam && hasCookie
-
-	if hasAllThree || !(hasCookie || hasQueryParam || hasHeader) {
-		return fmt.Errorf("must set exactly one of: JWT location header, query param or cookie")
-	}
-
-	if hasHeader {
-		if err := location.Header.Validate(); err != nil {
-			return err
-		}
-		return nil
-	}
-
-	if hasCookie {
-		if err := location.Cookie.Validate(); err != nil {
-			return err
-		}
-		return nil
-	}
-
-	if err := location.QueryParam.Validate(); err != nil {
-		return err
 	}
 	return nil
 }
@@ -332,14 +316,6 @@ func validateLocations(locations []*JWTLocation) error {
 			return err
 		}
 	}
-	return nil
-}
-
-func (forwardingConfig *JWTForwardingConfig) Validate() error {
-	if forwardingConfig.HeaderName == "" {
-		return fmt.Errorf("header name required for forwarding config")
-	}
-
 	return nil
 }
 
@@ -360,14 +336,14 @@ func (e *JWTProviderConfigEntry) Validate() error {
 		return err
 	}
 
-	if e.Locations != nil {
-		if err := validateLocations(e.Locations); err != nil {
-			return err
-		}
+	if err := validateLocations(e.Locations); err != nil {
+		return err
 	}
 
 	if e.Forwarding != nil {
-		e.Forwarding.Validate()
+		if err := e.Forwarding.Validate(); err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -381,34 +357,8 @@ func (e *JWTProviderConfigEntry) Normalize() error {
 	e.Kind = JWTProvider
 	e.EnterpriseMeta.Normalize()
 
-	if e.Locations == nil {
-		e.Locations = []*JWTLocation{
-			{
-				Header: &JWTLocationHeader{
-					Name:        DefaultAuthorizationHeaderName,
-					ValuePrefix: DefaultAuthorizationValuePrefix,
-					Forward:     DefaultAuthorizationHeaderForward,
-				},
-			},
-		}
-	}
-
 	if e.ClockSkewSeconds == 0 {
 		e.ClockSkewSeconds = DefaultClockSkewSeconds
-	}
-
-	if e.CacheConfig == nil {
-		e.CacheConfig = &JWTCacheConfig{
-			Size: DefaultCacheConfigSize,
-		}
-	}
-
-	if e.JSONWebKeySet != nil && e.JSONWebKeySet.Remote != nil {
-		if e.JSONWebKeySet.Remote.RetryPolicy == nil {
-			e.JSONWebKeySet.Remote.RetryPolicy = &JWKSRetryPolicy{
-				NumRetries: DefaultRetryPolicyNumRetries,
-			}
-		}
 	}
 
 	return nil

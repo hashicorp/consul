@@ -39,18 +39,6 @@ func TestJWTProviderConfigEntry_ValidateAndNormalize(t *testing.T) {
 						Filename: "jwks.txt",
 					},
 				},
-				Locations: []*JWTLocation{
-					{
-						Header: &JWTLocationHeader{
-							Name:        DefaultAuthorizationHeaderName,
-							ValuePrefix: DefaultAuthorizationValuePrefix,
-							Forward:     DefaultAuthorizationHeaderForward,
-						},
-					},
-				},
-				CacheConfig: &JWTCacheConfig{
-					Size: DefaultCacheConfigSize,
-				},
 				Forwarding: &JWTForwardingConfig{
 					HeaderName: "Some-Header",
 				},
@@ -67,6 +55,13 @@ func TestJWTProviderConfigEntry_ValidateAndNormalize(t *testing.T) {
 						URI:                 "https://example.com/.well-known/jwks.json",
 					},
 				},
+				Locations: []*JWTLocation{
+					{
+						Header: &JWTLocationHeader{
+							Name: "Bearer",
+						},
+					},
+				},
 				Forwarding: &JWTForwardingConfig{
 					HeaderName: "Some-Header",
 				},
@@ -78,25 +73,17 @@ func TestJWTProviderConfigEntry_ValidateAndNormalize(t *testing.T) {
 					Remote: &RemoteJWKS{
 						FetchAsynchronously: true,
 						URI:                 "https://example.com/.well-known/jwks.json",
-						RetryPolicy: &JWKSRetryPolicy{
-							NumRetries: DefaultRetryPolicyNumRetries,
-						},
 					},
+				},
+				Forwarding: &JWTForwardingConfig{
+					HeaderName: "Some-Header",
 				},
 				Locations: []*JWTLocation{
 					{
 						Header: &JWTLocationHeader{
-							Name:        DefaultAuthorizationHeaderName,
-							ValuePrefix: DefaultAuthorizationValuePrefix,
-							Forward:     DefaultAuthorizationHeaderForward,
+							Name: "Bearer",
 						},
 					},
-				},
-				CacheConfig: &JWTCacheConfig{
-					Size: DefaultCacheConfigSize,
-				},
-				Forwarding: &JWTForwardingConfig{
-					HeaderName: "Some-Header",
 				},
 				ClockSkewSeconds: DefaultClockSkewSeconds,
 			},
@@ -194,6 +181,29 @@ func TestJWTProviderConfigEntry_ValidateAndNormalize(t *testing.T) {
 						},
 						Cookie: &JWTLocationCookie{
 							Name: "SomeCookie",
+						},
+					},
+				},
+			},
+			validateErr: "must set exactly one of: JWT location header, query param or cookie",
+		},
+		"invalid jwt-provider - JWT location with 2 fields": {
+			entry: &JWTProviderConfigEntry{
+				Kind: JWTProvider,
+				Name: "okta",
+				JSONWebKeySet: &JSONWebKeySet{
+					Remote: &RemoteJWKS{
+						FetchAsynchronously: true,
+						URI:                 "https://example.com/.well-known/jwks.json",
+					},
+				},
+				Locations: []*JWTLocation{
+					{
+						Header: &JWTLocationHeader{
+							Name: "Bearer",
+						},
+						QueryParam: &JWTLocationQueryParam{
+							Name: "TOKEN-QUERY",
 						},
 					},
 				},
