@@ -3039,6 +3039,30 @@ func (s *Store) VirtualIPForService(psn structs.PeeredServiceName) (string, erro
 	return result.String(), nil
 }
 
+func (s *Store) ServiceVirtualIPs() (uint64, []ServiceVirtualIP, error) {
+	tx := s.db.Txn(false)
+	defer tx.Abort()
+
+	return servicesVirtualIPsTxn(tx)
+}
+
+func servicesVirtualIPsTxn(tx ReadTxn) (uint64, []ServiceVirtualIP, error) {
+	iter, err := tx.Get(tableServiceVirtualIPs, indexID)
+	if err != nil {
+		return 0, nil, err
+	}
+
+	var vips []ServiceVirtualIP
+	for raw := iter.Next(); raw != nil; raw = iter.Next() {
+		vip := raw.(ServiceVirtualIP)
+		vips = append(vips, vip)
+	}
+
+	idx := maxIndexWatchTxn(tx, nil, tableServiceVirtualIPs)
+
+	return idx, vips, nil
+}
+
 func (s *Store) ServiceManualVIPs(psn structs.PeeredServiceName) (*ServiceVirtualIP, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
