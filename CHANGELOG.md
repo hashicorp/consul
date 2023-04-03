@@ -1,3 +1,42 @@
+## 1.15.2 (March 30, 2023)
+
+FEATURES:
+
+* xds: Allow for configuring connect proxies to send service mesh telemetry to an HCP metrics collection service. [[GH-16585](https://github.com/hashicorp/consul/issues/16585)]
+
+BUG FIXES:
+
+* audit-logging: (Enterprise only) Fix a bug where `/agent/monitor` and `/agent/metrics` endpoints return a `Streaming not supported` error when audit logs are enabled. This also fixes the delay receiving logs when running `consul monitor` against an agent with audit logs enabled. [[GH-16700](https://github.com/hashicorp/consul/issues/16700)]
+* ca: Fixes a bug where updating Vault CA Provider config would cause TLS issues in the service mesh [[GH-16592](https://github.com/hashicorp/consul/issues/16592)]
+* cache: revert cache refactor which could cause blocking queries to never return [[GH-16818](https://github.com/hashicorp/consul/issues/16818)]
+* gateway: **(Enterprise only)** Fix bug where namespace/partition would fail to unmarshal for TCPServices. [[GH-16781](https://github.com/hashicorp/consul/issues/16781)]
+* gateway: **(Enterprise only)** Fix bug where namespace/partition would fail to unmarshal. [[GH-16651](https://github.com/hashicorp/consul/issues/16651)]
+* gateway: **(Enterprise only)** Fix bug where parent refs and service refs for a route in the same namespace as the route would fallback to the default namespace if the namespace was not specified in the configuration rather than falling back to the routes namespace. [[GH-16789](https://github.com/hashicorp/consul/issues/16789)]
+* gateway: **(Enterprise only)** Fix bug where routes defined in a different namespace than a gateway would fail to register. [[GH-16677](https://github.com/hashicorp/consul/pull/16677)].
+* gateways: Adds validation to ensure the API Gateway has a listener defined when created [[GH-16649](https://github.com/hashicorp/consul/issues/16649)]
+* gateways: Fixes a bug API gateways using HTTP listeners were taking upwards of 15 seconds to get configured over xDS. [[GH-16661](https://github.com/hashicorp/consul/issues/16661)]
+* peering: **(Consul Enterprise only)** Fix issue where connect-enabled services with peer upstreams incorrectly required `service:write` access in the `default` namespace to query data, which was too restrictive. Now having `service:write` to any namespace is sufficient to query the peering data.
+* peering: **(Consul Enterprise only)** Fix issue where resolvers, routers, and splitters referencing peer targets may not work correctly for non-default partitions and namespaces. Enterprise customers leveraging peering are encouraged to upgrade both servers and agents to avoid this problem.
+* peering: Fix issue resulting in prepared query failover to cluster peers never un-failing over. [[GH-16729](https://github.com/hashicorp/consul/issues/16729)]
+* peering: Fixes a bug that can lead to peering service deletes impacting the state of local services [[GH-16570](https://github.com/hashicorp/consul/issues/16570)]
+* peering: Fixes a bug where the importing partition was not added to peered failover targets, which causes issues when the importing partition is a non-default partition. [[GH-16675](https://github.com/hashicorp/consul/issues/16675)]
+* raft_logstore: Fixes a bug where restoring a snapshot when using the experimental WAL storage backend causes a panic. [[GH-16647](https://github.com/hashicorp/consul/issues/16647)]
+* ui: fix PUT token request with adding missed AccessorID property to requestBody [[GH-16660](https://github.com/hashicorp/consul/issues/16660)]
+* ui: fix rendering issues on Overview and empty-states by addressing isHTMLSafe errors [[GH-16574](https://github.com/hashicorp/consul/issues/16574)]
+
+## 1.14.6 (March 30, 2023)
+
+BUG FIXES:
+
+* audit-logging: (Enterprise only) Fix a bug where `/agent/monitor` and `/agent/metrics` endpoints return a `Streaming not supported` error when audit logs are enabled. This also fixes the delay receiving logs when running `consul monitor` against an agent with audit logs enabled. [[GH-16700](https://github.com/hashicorp/consul/issues/16700)]
+* ca: Fixes a bug where updating Vault CA Provider config would cause TLS issues in the service mesh [[GH-16592](https://github.com/hashicorp/consul/issues/16592)]
+* peering: **(Consul Enterprise only)** Fix issue where connect-enabled services with peer upstreams incorrectly required `service:write` access in the `default` namespace to query data, which was too restrictive. Now having `service:write` to any namespace is sufficient to query the peering data.
+* peering: **(Consul Enterprise only)** Fix issue where resolvers, routers, and splitters referencing peer targets may not work correctly for non-default partitions and namespaces. Enterprise customers leveraging peering are encouraged to upgrade both servers and agents to avoid this problem.
+* peering: Fix issue resulting in prepared query failover to cluster peers never un-failing over. [[GH-16729](https://github.com/hashicorp/consul/issues/16729)]
+* peering: Fixes a bug that can lead to peering service deletes impacting the state of local services [[GH-16570](https://github.com/hashicorp/consul/issues/16570)]
+* peering: Fixes a bug where the importing partition was not added to peered failover targets, which causes issues when the importing partition is a non-default partition. [[GH-16693](https://github.com/hashicorp/consul/issues/16693)]
+* ui: fix PUT token request with adding missed AccessorID property to requestBody [[GH-16660](https://github.com/hashicorp/consul/issues/16660)]
+
 ## 1.15.1 (March 7, 2023)
 
 IMPROVEMENTS:
@@ -3475,6 +3514,26 @@ BUG FIXES:
 * agent: (Consul Enterprise) Fixed an issue where the snapshot agent's HTTP client config was being ignored in favor of the HTTP command-line flags.
 * agent: Fixed an issue where health checks added to services with tags would cause extra periodic writes to the Consul servers, even if nothing had changed. This could cause extra churn on downstream applications like consul-template or Fabio. [[GH-3845](https://github.com/hashicorp/consul/issues/3845)]
 * agent: Fixed several areas where reading from catalog, health, or agent HTTP endpoints could make unintended mofidications to Consul's state in a way that would cause unnecessary anti-entropy syncs back to the Consul servers. This could cause extra churn on downstream applications like consul-template or Fabio. [[GH-3867](https://github.com/hashicorp/consul/issues/3867)]
+* agent: Fixed an issue where Serf events for failed Consul servers weren't being proactively processed by the RPC router. This would prvent Consul from proactively choosing a new server, and would instead wait for a failed RPC request before choosing a new server. This exposed clients to a failed request, when often the proactive switching would avoid that. [[GH-3864](https://github.com/hashicorp/consul/issues/3864)]
+
+## 1.0.4 (February 6, 2018)
+SECURITY:
+
+* dns: Updated DNS vendor library to pick up bug fix in the DNS server where an open idle connection blocks the accept loop. [[GH-3859](https://github.com/hashicorp/consul/issues/3859)]
+
+FEATURES:
+
+* agent: Added support for gRPC health checks that probe the standard gRPC health endpoint. [[GH-3073](https://github.com/hashicorp/consul/issues/3073)]
+
+IMPROVEMENTS:
+
+* agent: (Consul Enterprise) The `disable_update_check` option to disable Checkpoint now defaults to `true` (this is only in the Enterprise version).
+* build: Bumped Go version to 1.9.3. [[GH-3837](https://github.com/hashicorp/consul/issues/3837)]
+
+BUG FIXES:
+
+* agent: (Consul Enterprise) Fixed an issue where the snapshot agent's HTTP client config was being ignored in favor of the HTTP command-line flags.
+* agent: Fixed an issue where health checks added to services with tags would cause extra periodic writes to the Consul servers, even if nothing had changed. This could cause extra churn on downstream applications like consul-template or Fabio. [[GH-3845](https://github.com/hashicorp/consul/issues/3845)]
 * agent: Fixed an issue where Serf events for failed Consul servers weren't being proactively processed by the RPC router. This would prvent Consul from proactively choosing a new server, and would instead wait for a failed RPC request before choosing a new server. This exposed clients to a failed request, when often the proactive switching would avoid that. [[GH-3864](https://github.com/hashicorp/consul/issues/3864)]
 
 ## 1.0.3 (January 24, 2018)
