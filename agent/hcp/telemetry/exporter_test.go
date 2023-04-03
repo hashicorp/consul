@@ -40,15 +40,6 @@ func TestExporter_NewMetricsExporter(t *testing.T) {
 			},
 			wantErr: "HCP client and a logger are required",
 		},
-		"invalidFilter": {
-			cfg: &MetricsExporterConfig{
-				Client: hcpclient.NewMockClient(t),
-				// Unsupported re2 regex syntax
-				Filters: []string{"(*LF)"},
-				Logger:  hclog.New(&hclog.LoggerOptions{Output: io.Discard}),
-			},
-			wantErr: "invalid regex",
-		},
 		"success": {
 			cfg: &MetricsExporterConfig{
 				Client:  hcpclient.NewMockClient(t),

@@ -3,7 +3,6 @@ package telemetry
 import (
 	"context"
 	"fmt"
-	"regexp"
 
 	"github.com/armon/go-metrics"
 
@@ -17,11 +16,13 @@ import (
 	"github.com/hashicorp/go-hclog"
 )
 
+// Exporter is an interface to represent any telemetry OTLP exporter.
 type Exporter interface {
 	Export(ctx context.Context, goMetrics []*metrics.IntervalMetrics) error
 	ConvertToOTLP(goMetrics []*metrics.IntervalMetrics) *metricdata.ResourceMetrics
 }
 
+// MetricsExporterConfig is configuration needed to initialize a MetricsExporter via NewMetricsExporter.
 type MetricsExporterConfig struct {
 	Labels  map[string]string
 	Logger  hclog.Logger
@@ -29,6 +30,8 @@ type MetricsExporterConfig struct {
 	Client  hcpclient.Client
 }
 
+// MetricsExporter converts Go Metrics into OTLP, and filters allowed metrics,
+// to then export them to a HCP OTLP receiver endpoint.
 type MetricsExporter struct {
 	client   hcpclient.Client
 	resource *resource.Resource
@@ -51,9 +54,10 @@ func NewMetricsExporter(cfg *MetricsExporterConfig) (*MetricsExporter, error) {
 		})
 	}
 
-	f := &FilterList{map[string]*regexp.Regexp{}}
-	if err := f.Set(cfg.Filters); err != nil {
-		return nil, fmt.Errorf("invalid regex: %v", err.Error())
+	f, errs := NewFilterList(cfg.Filters)
+	for _, err := range errs {
+		// Do not fail metrics collection if bad regex filters are loaded, but log error.
+		cfg.Logger.Error("failed to set regex filter: %v", err)
 	}
 
 	res := resource.NewWithAttributes("", attr...)

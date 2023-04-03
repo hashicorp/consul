@@ -1,7 +1,6 @@
 package telemetry
 
 import (
-	"regexp"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -27,14 +26,10 @@ func TestFilter(t *testing.T) {
 		},
 	} {
 		t.Run(name, func(t *testing.T) {
-			f := &FilterList{
-				filters: make(map[string]*regexp.Regexp, 0),
-			}
-
-			err := f.Set(tc.filters)
+			f, errs := NewFilterList(tc.filters)
 			if tc.wantErr != "" {
-				require.Error(t, err)
-				require.Contains(t, err.Error(), tc.wantErr)
+				require.Len(t, errs, 1)
+				require.Contains(t, errs[0].Error(), tc.wantErr)
 
 			} else {
 				m := f.Match("consul.raft.peers")
