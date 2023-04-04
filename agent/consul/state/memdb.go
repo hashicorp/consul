@@ -5,6 +5,7 @@ package state
 
 import (
 	"fmt"
+	"sync"
 
 	"github.com/hashicorp/go-memdb"
 
@@ -127,6 +128,9 @@ func (c *changeTrackerDB) WriteTxnRestore() *txn {
 	return t
 }
 
+//go:generate mockery --name publishFuncType --inpackage
+type publishFuncType func(tx ReadTxn, changes Changes) error
+
 // txn wraps a memdb.Txn to capture changes and send them to the EventPublisher.
 //
 // This can not be done with txn.Defer because the callback passed to Defer is
@@ -140,7 +144,9 @@ type txn struct {
 	// Index is stored so that it may be passed along to any subscribers as part
 	// of a change event.
 	Index   uint64
-	publish func(tx ReadTxn, changes Changes) error
+	publish publishFuncType
+
+	commitLock sync.Mutex
 }
 
 // Commit first pushes changes to EventPublisher, then calls Commit on the
@@ -161,6 +167,11 @@ func (tx *txn) Commit() error {
 		}
 	}
 
+	// This lock prevent concurrent commits to get published out of order.
+	tx.commitLock.Lock()
+	defer tx.commitLock.Unlock()
+	tx.Txn.Commit()
+
 	// publish may be nil if this is a read-only or WriteTxnRestore transaction.
 	// In those cases changes should also be empty, and there will be nothing
 	// to publish.
@@ -169,8 +180,6 @@ func (tx *txn) Commit() error {
 			return err
 		}
 	}
-
-	tx.Txn.Commit()
 	return nil
 }
 
