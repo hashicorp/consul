@@ -14,6 +14,8 @@ import (
 )
 
 func TestDelete_TypeNotRegistered(t *testing.T) {
+	t.Parallel()
+
 	_, client, ctx := testDeps(t)
 	artist, err := demo.GenerateV2Artist()
 	require.NoError(t, err)
@@ -25,6 +27,8 @@ func TestDelete_TypeNotRegistered(t *testing.T) {
 }
 
 func TestDelete_Success(t *testing.T) {
+	t.Parallel()
+
 	for desc, tc := range deleteTestCases() {
 		t.Run(desc, func(t *testing.T) {
 			server, client, ctx := testDeps(t)
@@ -50,6 +54,8 @@ func TestDelete_Success(t *testing.T) {
 }
 
 func TestDelete_NotFound(t *testing.T) {
+	t.Parallel()
+
 	for desc, tc := range deleteTestCases() {
 		t.Run(desc, func(t *testing.T) {
 			server, client, ctx := testDeps(t)
@@ -65,6 +71,8 @@ func TestDelete_NotFound(t *testing.T) {
 }
 
 func TestDelete_VersionMismatch(t *testing.T) {
+	t.Parallel()
+
 	server, client, ctx := testDeps(t)
 	demo.Register(server.Registry)
 	artist, err := demo.GenerateV2Artist()
