@@ -2,7 +2,6 @@ package resource
 
 import (
 	"context"
-	"fmt"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -19,23 +18,29 @@ func (s *Server) List(ctx context.Context, req *pbresource.ListRequest) (*pbreso
 		return nil, err
 	}
 
-	// check list acls
-	authz, err := s.ACLResolver.ResolveTokenAndDefaultMeta(tokenFromContext(ctx), nil, nil)
-	if err != nil {
-		return nil, fmt.Errorf("getting authorizer: %w", err)
-	}
-	if err = reg.ACLs.List(authz, req.Tenancy); err != nil {
-		switch {
-		case acl.IsErrPermissionDenied(err):
-			return nil, status.Error(codes.PermissionDenied, err.Error())
-		default:
-			return nil, fmt.Errorf("authorizing list: %w", err)
-		}
-	}
-
-	resources, err := s.Backend.List(ctx, readConsistencyFrom(ctx), storage.UnversionedTypeFrom(req.Type), req.Tenancy, req.NamePrefix)
+	authz, err := s.getAuthorizer(tokenFromContext(ctx))
 	if err != nil {
 		return nil, err
+	}
+
+	// check acls
+	err = reg.ACLs.List(authz, req.Tenancy)
+	switch {
+	case acl.IsErrPermissionDenied(err):
+		return nil, status.Error(codes.PermissionDenied, err.Error())
+	case err != nil:
+		return nil, status.Errorf(codes.Internal, "failed list acl: %v", err)
+	}
+
+	resources, err := s.Backend.List(
+		ctx,
+		readConsistencyFrom(ctx),
+		storage.UnversionedTypeFrom(req.Type),
+		req.Tenancy,
+		req.NamePrefix,
+	)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed list: %v", err)
 	}
 
 	result := make([]*pbresource.Resource, 0)
@@ -46,13 +51,12 @@ func (s *Server) List(ctx context.Context, req *pbresource.ListRequest) (*pbreso
 		}
 
 		// filter out items that don't pass read ACLs
-		if err = reg.ACLs.Read(authz, resource.Id); err != nil {
-			switch {
-			case acl.IsErrPermissionDenied(err):
-				continue
-			default:
-				return nil, fmt.Errorf("authorizing read: %w", err)
-			}
+		err = reg.ACLs.Read(authz, resource.Id)
+		switch {
+		case acl.IsErrPermissionDenied(err):
+			continue
+		case err != nil:
+			return nil, status.Errorf(codes.Internal, "failed read acl: %v", err)
 		}
 		result = append(result, resource)
 	}
