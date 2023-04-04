@@ -24,80 +24,83 @@ func TestDelete_TypeNotRegistered(t *testing.T) {
 	require.Equal(t, codes.InvalidArgument.String(), status.Code(err).String())
 }
 
-func TestDelete_ByVersion_Success(t *testing.T) {
-	server, client, ctx := testDeps(t)
-	demo.Register(server.Registry)
-	artist, err := demo.GenerateV2Artist()
-	require.NoError(t, err)
-	_ = artist
-	rsp, err := client.Write(ctx, &pbresource.WriteRequest{Resource: artist})
-	require.NoError(t, err)
+func TestDelete_Success(t *testing.T) {
+	for desc, tc := range deleteTestCases() {
+		t.Run(desc, func(t *testing.T) {
+			server, client, ctx := testDeps(t)
+			demo.Register(server.Registry)
+			artist, err := demo.GenerateV2Artist()
+			require.NoError(t, err)
+			rsp, err := client.Write(ctx, &pbresource.WriteRequest{Resource: artist})
+			require.NoError(t, err)
 
-	// delete artist by version
-	_, err = client.Delete(ctx, &pbresource.DeleteRequest{Id: rsp.Resource.Id, Version: rsp.Resource.Version})
-	require.NoError(t, err)
+			// delete
+			_, err = client.Delete(ctx, &pbresource.DeleteRequest{
+				Id:      rsp.Resource.Id,
+				Version: tc.versionFn(rsp.Resource),
+			})
+			require.NoError(t, err)
 
-	// verify
-	_, err = server.Backend.Read(ctx, storage.StrongConsistency, rsp.Resource.Id)
-	require.ErrorIs(t, err, storage.ErrNotFound)
+			// verify deleted
+			_, err = server.Backend.Read(ctx, storage.StrongConsistency, rsp.Resource.Id)
+			require.Error(t, err)
+			require.ErrorIs(t, err, storage.ErrNotFound)
+		})
+	}
 }
 
-func TestDelete_ByVersion_Mismatch(t *testing.T) {
+func TestDelete_NotFound(t *testing.T) {
+	for desc, tc := range deleteTestCases() {
+		t.Run(desc, func(t *testing.T) {
+			server, client, ctx := testDeps(t)
+			demo.Register(server.Registry)
+			artist, err := demo.GenerateV2Artist()
+			require.NoError(t, err)
+
+			// verify delete of non-existant or already deleted resource is a no-op
+			_, err = client.Delete(ctx, &pbresource.DeleteRequest{Id: artist.Id, Version: tc.versionFn(artist)})
+			require.NoError(t, err)
+		})
+	}
+}
+
+func TestDelete_VersionMismatch(t *testing.T) {
 	server, client, ctx := testDeps(t)
 	demo.Register(server.Registry)
 	artist, err := demo.GenerateV2Artist()
 	require.NoError(t, err)
-	_ = artist
 	rsp, err := client.Write(ctx, &pbresource.WriteRequest{Resource: artist})
 	require.NoError(t, err)
 
-	// delete artist with a non-existent version
+	// delete with a version that is different from the stored version
 	_, err = client.Delete(ctx, &pbresource.DeleteRequest{Id: rsp.Resource.Id, Version: "non-existent-version"})
 	require.Error(t, err)
 	require.Equal(t, codes.FailedPrecondition.String(), status.Code(err).String())
-}
-
-func TestDelete_NonCAS_Success(t *testing.T) {
-	server, client, ctx := testDeps(t)
-	demo.Register(server.Registry)
-	artist, err := demo.GenerateV2Artist()
-	require.NoError(t, err)
-	rsp, err := client.Write(ctx, &pbresource.WriteRequest{Resource: artist})
-	require.NoError(t, err)
-
-	// delete artist regardless of the version
-	_, err = client.Delete(ctx, &pbresource.DeleteRequest{Id: rsp.Resource.Id, Version: ""})
-	require.NoError(t, err)
-
-	// verify
-	_, err = server.Backend.Read(ctx, storage.StrongConsistency, rsp.Resource.Id)
-	require.ErrorIs(t, err, storage.ErrNotFound)
-}
-
-func TestDelete_ByVersion_NonExistantIsNoOp(t *testing.T) {
-	// TODO: Not sure what is expected bahavior here
-	server, client, ctx := testDeps(t)
-	demo.Register(server.Registry)
-	artist, err := demo.GenerateV2Artist()
-	require.NoError(t, err)
-
-	_, err = client.Delete(ctx, &pbresource.DeleteRequest{Id: artist.Id, Version: "xxx"})
-	require.NoError(t, err)
-}
-
-func TestDelete_NonCAS_NonExistantIsError(t *testing.T) {
-	// TODO: Not sure what is expected bahavior here
-	server, client, ctx := testDeps(t)
-	demo.Register(server.Registry)
-	artist, err := demo.GenerateV2Artist()
-	require.NoError(t, err)
-
-	_, err = client.Delete(ctx, &pbresource.DeleteRequest{Id: artist.Id, Version: ""})
-	require.Error(t, err)
+	require.ErrorContains(t, err, "CAS operation failed")
 }
 
 func testDeps(t *testing.T) (*Server, pbresource.ResourceServiceClient, context.Context) {
 	server := testServer(t)
 	client := testClient(t, server)
 	return server, client, context.Background()
+}
+
+type deleteTestCase struct {
+	// returns the version so use in the test given the passed in resource
+	versionFn func(*pbresource.Resource) string
+}
+
+func deleteTestCases() map[string]deleteTestCase {
+	return map[string]deleteTestCase{
+		"specific version": {
+			versionFn: func(r *pbresource.Resource) string {
+				return r.Version
+			},
+		},
+		"empty version": {
+			versionFn: func(r *pbresource.Resource) string {
+				return ""
+			},
+		},
+	}
 }
