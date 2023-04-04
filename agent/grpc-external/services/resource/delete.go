@@ -37,7 +37,7 @@ func (s *Server) Delete(ctx context.Context, req *pbresource.DeleteRequest) (*pb
 				// deletes are idempotent so no-op if resource not found
 				return &pbresource.DeleteResponse{}, nil
 			}
-			return nil, fmt.Errorf("failed read: %w", err)
+			return nil, fmt.Errorf("failed read: %v", err)
 		}
 		versionToDelete = existing.Version
 	}
@@ -46,7 +46,7 @@ func (s *Server) Delete(ctx context.Context, req *pbresource.DeleteRequest) (*pb
 		if errors.Is(err, storage.ErrCASFailure) {
 			return nil, status.Error(codes.FailedPrecondition, err.Error())
 		}
-		return nil, fmt.Errorf("failed delete: %w", err)
+		return nil, fmt.Errorf("failed delete: %v", err)
 	}
 	return &pbresource.DeleteResponse{}, nil
 }

@@ -86,7 +86,7 @@ func testDeps(t *testing.T) (*Server, pbresource.ResourceServiceClient, context.
 }
 
 type deleteTestCase struct {
-	// returns the version so use in the test given the passed in resource
+	// returns the version to use in the test given the passed in resource
 	versionFn func(*pbresource.Resource) string
 }
 
