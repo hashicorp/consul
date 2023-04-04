@@ -106,9 +106,9 @@ require (
 	google.golang.org/protobuf v1.28.1
 	gopkg.in/square/go-jose.v2 v2.5.1
 	gotest.tools/v3 v3.0.3
-	k8s.io/api v0.18.2
-	k8s.io/apimachinery v0.18.2
-	k8s.io/client-go v0.18.2
+	k8s.io/api v0.20.0-alpha.2
+	k8s.io/apimachinery v0.20.0-alpha.2
+	k8s.io/client-go v0.20.0-alpha.2
 )
 
 require (
@@ -148,6 +148,7 @@ require (
 	github.com/dimchansky/utfbom v1.1.0 // indirect
 	github.com/envoyproxy/protoc-gen-validate v0.1.0 // indirect
 	github.com/form3tech-oss/jwt-go v3.2.2+incompatible // indirect
+	github.com/go-logr/logr v0.2.0 // indirect
 	github.com/go-ole/go-ole v1.2.6 // indirect
 	github.com/go-openapi/analysis v0.21.2 // indirect
 	github.com/go-openapi/errors v0.20.2 // indirect
@@ -164,7 +165,7 @@ require (
 	github.com/google/btree v1.0.0 // indirect
 	github.com/google/go-querystring v1.0.0 // indirect
 	github.com/googleapis/gax-go/v2 v2.1.0 // indirect
-	github.com/googleapis/gnostic v0.2.0 // indirect
+	github.com/googleapis/gnostic v0.4.1 // indirect
 	github.com/gophercloud/gophercloud v0.3.0 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-msgpack v0.5.5 // indirect
@@ -238,8 +239,8 @@ require (
 	gopkg.in/resty.v1 v1.12.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	k8s.io/klog v1.0.0 // indirect
-	k8s.io/utils v0.0.0-20200324210504-a9aa75ae1b89 // indirect
-	sigs.k8s.io/structured-merge-diff/v3 v3.0.0 // indirect
+	k8s.io/klog/v2 v2.2.0 // indirect
+	k8s.io/utils v0.0.0-20200729134348-d5654de09c73 // indirect
+	sigs.k8s.io/structured-merge-diff/v4 v4.0.2-0.20201001033253-b3cf1e8ff931 // indirect
 	sigs.k8s.io/yaml v1.2.0 // indirect
 )
