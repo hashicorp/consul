@@ -1,7 +1,10 @@
+// Copyright (c) HashiCorp, Inc.
+
 package structs
 
 import (
 	"testing"
+	"time"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/stretchr/testify/require"
@@ -15,6 +18,9 @@ func newTestAuthz(t *testing.T, src string) acl.Authorizer {
 	require.NoError(t, err)
 	return authorizer
 }
+
+var tenSeconds time.Duration = 10 * time.Second
+var hundredSeconds time.Duration = 100 * time.Second
 
 func TestJWTProviderConfigEntry_ValidateAndNormalize(t *testing.T) {
 	cases := map[string]configEntryTestcase{
@@ -110,6 +116,18 @@ func TestJWTProviderConfigEntry_ValidateAndNormalize(t *testing.T) {
 			},
 			validateErr: "Must specify exactly one of Local or Remote JSON Web key set",
 		},
+		"invalid jwt-provider - local jwks with non-encoded base64 jwks": {
+			entry: &JWTProviderConfigEntry{
+				Kind: JWTProvider,
+				Name: "okta",
+				JSONWebKeySet: &JSONWebKeySet{
+					Local: &LocalJWKS{
+						JWKS: "not base64 encoded",
+					},
+				},
+			},
+			validateErr: "JWKS must be valid base64 encoded string",
+		},
 		"invalid jwt-provider - both jwks local and remote set": {
 			entry: &JWTProviderConfigEntry{
 				Kind: JWTProvider,
@@ -130,7 +148,7 @@ func TestJWTProviderConfigEntry_ValidateAndNormalize(t *testing.T) {
 				JSONWebKeySet: &JSONWebKeySet{
 					Local: &LocalJWKS{
 						Filename: "jwks.txt",
-						JWKS:     "xxxxxxxxxxxxxxxxxxxxxx",
+						JWKS:     "d2VhcmV0ZXN0aW5n",
 					},
 				},
 			},
@@ -186,6 +204,25 @@ func TestJWTProviderConfigEntry_ValidateAndNormalize(t *testing.T) {
 				},
 			},
 			validateErr: "Must set exactly one of: JWT location header, query param or cookie",
+		},
+		"invalid jwt-provider - Remote JWKS retry policy maxinterval < baseInterval": {
+			entry: &JWTProviderConfigEntry{
+				Kind: JWTProvider,
+				Name: "okta",
+				JSONWebKeySet: &JSONWebKeySet{
+					Remote: &RemoteJWKS{
+						FetchAsynchronously: true,
+						URI:                 "https://example.com/.well-known/jwks.json",
+						RetryPolicy: &JWKSRetryPolicy{
+							RetryPolicyBackOff: &RetryPolicyBackOff{
+								BaseInterval: &hundredSeconds,
+								MaxInterval:  &tenSeconds,
+							},
+						},
+					},
+				},
+			},
+			validateErr: "Retry policy backoff's MaxInterval should be greater or equal to BaseInterval",
 		},
 		"invalid jwt-provider - JWT location with 2 fields": {
 			entry: &JWTProviderConfigEntry{

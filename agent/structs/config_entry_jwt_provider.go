@@ -3,6 +3,7 @@
 package structs
 
 import (
+	"encoding/base64"
 	"fmt"
 	"net/url"
 	"time"
@@ -198,6 +199,12 @@ func (ks *LocalJWKS) Validate() error {
 		return fmt.Errorf("Must specify exactly one of String or filename for local keyset")
 	}
 
+	if hasJWKS {
+		if _, err := base64.StdEncoding.DecodeString(ks.JWKS); err != nil {
+			return fmt.Errorf("JWKS must be valid base64 encoded string")
+		}
+	}
+
 	return nil
 }
 
@@ -240,6 +247,10 @@ func (ks *RemoteJWKS) Validate() error {
 		return fmt.Errorf("Remote JWKS URI is invalid: %w, uri: %s", err, ks.URI)
 	}
 
+	if ks.RetryPolicy != nil && ks.RetryPolicy.RetryPolicyBackOff != nil {
+		return ks.RetryPolicy.RetryPolicyBackOff.Validate()
+	}
+
 	return nil
 }
 
@@ -250,6 +261,33 @@ type JWKSRetryPolicy struct {
 	//
 	// Default value is 0.
 	NumRetries int
+
+	// Backoff policy
+	//
+	// Defaults to envoy's backoff policy
+	RetryPolicyBackOff *RetryPolicyBackOff
+}
+
+type RetryPolicyBackOff struct {
+	// BaseInterval to be used for the next back off computation
+	//
+	// The default value from envoy is 1s
+	BaseInterval *time.Duration
+
+	// MaxInternal to be used to specify the maximum interval between retries.
+	// Optional but should be greater or equal to BaseInterval.
+	//
+	// Defaults to 10 times BaseInterval
+	MaxInterval *time.Duration
+}
+
+func (r *RetryPolicyBackOff) Validate() error {
+
+	if (r.MaxInterval != nil) && (*r.BaseInterval > *r.MaxInterval) {
+		return fmt.Errorf("Retry policy backoff's MaxInterval should be greater or equal to BaseInterval")
+	}
+
+	return nil
 }
 
 type JWTCacheConfig struct {
@@ -356,7 +394,6 @@ func (e *JWTProviderConfigEntry) Normalize() error {
 	}
 
 	e.Kind = JWTProvider
-	e.EnterpriseMeta = *DefaultEnterpriseMetaInPartition(e.Name)
 	e.EnterpriseMeta.Normalize()
 
 	if e.ClockSkewSeconds == 0 {

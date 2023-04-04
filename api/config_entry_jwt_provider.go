@@ -1,7 +1,8 @@
+// Copyright (c) HashiCorp, Inc.
+
 package api
 
 import (
-	"fmt"
 	"time"
 )
 
@@ -149,8 +150,8 @@ type JSONWebKeySet struct {
 //
 // Only one of String and Filename can be specified.
 type LocalJWKS struct {
-	// String contains a base64 encoded JWKS.
-	String string
+	// JWKS contains a base64 encoded JWKS.
+	JWKS string
 
 	// Filename configures a location on disk where the JWKS can be
 	// found. If specified, the file must be present on the disk of ALL
@@ -195,6 +196,24 @@ type JWKSRetryPolicy struct {
 	//
 	// Default value is 0.
 	NumRetries int
+
+	// Backoff policy
+	//
+	// Defaults to Envoy's backoff policy
+	RetryPolicyBackOff *RetryPolicyBackOff
+}
+
+type RetryPolicyBackOff struct {
+	// BaseInterval to be used for the next back off computation
+	//
+	// The default value from envoy is 1s
+	BaseInterval *time.Duration
+
+	// MaxInternal to be used to specify the maximum interval between retries.
+	// Optional but should be greater or equal to BaseInterval.
+	//
+	// Defaults to 10 times BaseInterval
+	MaxInterval *time.Duration
 }
 
 type JWTCacheConfig struct {
@@ -215,10 +234,3 @@ func (e *JWTProviderConfigEntry) GetCreateIndex() uint64     { return e.CreateIn
 func (e *JWTProviderConfigEntry) GetModifyIndex() uint64     { return e.ModifyIndex }
 func (e *JWTProviderConfigEntry) GetPartition() string       { return e.Partition }
 func (e *JWTProviderConfigEntry) GetNamespace() string       { return e.Namespace }
-
-func (e *JWTProviderConfigEntry) Normalize() error {
-	if e == nil {
-		return fmt.Errorf("config entry is nil")
-	}
-	return nil
-}
