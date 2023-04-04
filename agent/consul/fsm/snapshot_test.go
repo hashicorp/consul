@@ -19,6 +19,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/internal/storage"
 	"github.com/hashicorp/consul/lib/stringslice"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/proto/private/pbpeering"
@@ -33,7 +34,7 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 
 	handle := &testRaftHandle{}
 	storageBackend := newStorageBackend(t, handle)
-	handle.apply = func(buf []byte) (any, error) { return storageBackend.Apply(buf), nil }
+	handle.apply = func(buf []byte) (any, error) { return storageBackend.Apply(buf, 123), nil }
 
 	fsm := NewFromDeps(Deps{
 		Logger: logger,
@@ -544,7 +545,7 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	require.Equal(t, vip, "240.0.0.3")
 
 	// Resources
-	resource := &pbresource.Resource{
+	resource, err := storageBackend.WriteCAS(context.Background(), &pbresource.Resource{
 		Id: &pbresource.ID{
 			Type: &pbresource.Type{
 				Group:        "test",
@@ -559,9 +560,7 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 			Name: "bar",
 			Uid:  "a",
 		},
-		Version: "1",
-	}
-	_, err = storageBackend.WriteCAS(context.Background(), resource, "")
+	})
 	require.NoError(t, err)
 
 	// Snapshot
@@ -897,7 +896,7 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	require.Equal(t, "qux certificate bundle", ptbRestored.RootPEMs[0])
 
 	// Verify resources are restored.
-	resourceRestored, err := storageBackend2.Read(context.Background(), resource.Id)
+	resourceRestored, err := storageBackend2.Read(context.Background(), storage.EventualConsistency, resource.Id)
 	require.NoError(t, err)
 	prototest.AssertDeepEqual(t, resource, resourceRestored)
 

@@ -6,6 +6,7 @@ package fsm
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"math/rand"
 	"reflect"
@@ -20,12 +21,14 @@ import (
 	"github.com/mitchellh/mapstructure"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/grpc"
 	"google.golang.org/protobuf/proto"
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/internal/storage"
 	raftstorage "github.com/hashicorp/consul/internal/storage/raft"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/proto/private/prototest"
@@ -1526,7 +1529,7 @@ func TestFSM_Resources(t *testing.T) {
 		return fsm.Apply(makeLog(buf)), nil
 	}
 
-	resource := &pbresource.Resource{
+	resource, err := storageBackend.WriteCAS(context.Background(), &pbresource.Resource{
 		Id: &pbresource.ID{
 			Type: &pbresource.Type{
 				Group:        "test",
@@ -1541,12 +1544,10 @@ func TestFSM_Resources(t *testing.T) {
 			Name: "bar",
 			Uid:  "a",
 		},
-		Version: "1",
-	}
-	_, err := storageBackend.WriteCAS(context.Background(), resource, "")
+	})
 	require.NoError(t, err)
 
-	storedResource, err := storageBackend.Read(context.Background(), resource.Id)
+	storedResource, err := storageBackend.Read(context.Background(), storage.EventualConsistency, resource.Id)
 	require.NoError(t, err)
 	prototest.AssertDeepEqual(t, resource, storedResource)
 }
@@ -1782,7 +1783,7 @@ func TestFSM_Chunking_TermChange(t *testing.T) {
 func newStorageBackend(t *testing.T, handle raftstorage.Handle) *raftstorage.Backend {
 	t.Helper()
 
-	backend, err := raftstorage.NewBackend(handle)
+	backend, err := raftstorage.NewBackend(handle, testutil.Logger(t))
 	require.NoError(t, err)
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -1796,6 +1797,9 @@ type testRaftHandle struct {
 	apply func(msg []byte) (any, error)
 }
 
-func (h *testRaftHandle) Apply(msg []byte) (any, error)        { return h.apply(msg) }
-func (testRaftHandle) IsLeader() bool                          { return true }
-func (testRaftHandle) EnsureConsistency(context.Context) error { return nil }
+func (h *testRaftHandle) Apply(msg []byte) (any, error)              { return h.apply(msg) }
+func (testRaftHandle) IsLeader() bool                                { return true }
+func (testRaftHandle) EnsureStrongConsistency(context.Context) error { return nil }
+func (testRaftHandle) DialLeader() (*grpc.ClientConn, error) {
+	return nil, errors.New("DialLeader not implemented")
+}

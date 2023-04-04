@@ -24,7 +24,7 @@ func TestRestoreFromEnterprise(t *testing.T) {
 
 	handle := &testRaftHandle{}
 	storageBackend := newStorageBackend(t, handle)
-	handle.apply = func(buf []byte) (any, error) { return storageBackend.Apply(buf), nil }
+	handle.apply = func(buf []byte) (any, error) { return storageBackend.Apply(buf, 123), nil }
 
 	fsm := NewFromDeps(Deps{
 		Logger: logger,
