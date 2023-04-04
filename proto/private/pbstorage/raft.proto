@@ -11,7 +11,7 @@ import "pbresource/resource.proto";
 // Forwarding service is used for forwarding write and consistent read
 // operations to the Raft leader. It is served on Consul's multiplexed
 // server port, which is the same port used for regular Raft traffic.
-service Forwarding {
+service ForwardingService {
   // Write handles a forwarded write operation.
   rpc Write(WriteRequest) returns (WriteResponse) {
     option (hashicorp.consul.internal.ratelimit.spec) = {

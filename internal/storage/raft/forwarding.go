@@ -24,7 +24,7 @@ type forwardingServer struct {
 	listener *grpcinternal.Listener
 }
 
-var _ pbstorage.ForwardingServer = (*forwardingServer)(nil)
+var _ pbstorage.ForwardingServiceServer = (*forwardingServer)(nil)
 
 func newForwardingServer(backend *Backend) *forwardingServer {
 	return &forwardingServer{
@@ -98,7 +98,7 @@ func (s *forwardingServer) raftApply(ctx context.Context, req *pbstorage.Log) (*
 
 func (s *forwardingServer) run(ctx context.Context) error {
 	server := grpc.NewServer()
-	pbstorage.RegisterForwardingServer(server, s)
+	pbstorage.RegisterForwardingServiceServer(server, s)
 
 	go func() {
 		<-ctx.Done()
@@ -156,12 +156,12 @@ func (c *forwardingClient) getConn() (*grpc.ClientConn, error) {
 	return conn, nil
 }
 
-func (c *forwardingClient) getClient() (pbstorage.ForwardingClient, error) {
+func (c *forwardingClient) getClient() (pbstorage.ForwardingServiceClient, error) {
 	conn, err := c.getConn()
 	if err != nil {
 		return nil, err
 	}
-	return pbstorage.NewForwardingClient(conn), nil
+	return pbstorage.NewForwardingServiceClient(conn), nil
 }
 
 func (c *forwardingClient) delete(ctx context.Context, req *pbstorage.DeleteRequest) error {
