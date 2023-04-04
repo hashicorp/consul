@@ -2,11 +2,15 @@ package raft
 
 import (
 	"context"
-	"errors"
 	"fmt"
+	"net"
 	"strconv"
 
-	"github.com/hashicorp/consul/agent/structs"
+	"golang.org/x/sync/errgroup"
+	"google.golang.org/grpc"
+
+	"github.com/hashicorp/go-hclog"
+
 	"github.com/hashicorp/consul/internal/storage"
 	"github.com/hashicorp/consul/internal/storage/inmem"
 	"github.com/hashicorp/consul/proto-public/pbresource"
@@ -27,17 +31,26 @@ import (
 // during peers.json recovery - but calling any of the data access methods (read
 // or write) will result in a panic.
 //
-// Calling WriteCAS, DeleteCAS, or ReadConsistent on a follower will result in
-// a storage.ErrInconsistent error. It's expected that for these operations, the
-// whole thing will be forwarded to the leader at the RPC level.
+// With Raft, writes and strongly consistent reads must be done on the leader.
+// Backend implements a gRPC server, which followers will use to transparently
+// forward operations to the leader. To do so, they will obtain a connection
+// using Handle.DialLeader. Connections are cached for re-use, so when there's
+// a new leader, you must call LeaderChanged to refresh the connection. Leaders
+// must accept connections and hand them off by calling Backend.HandleConnection.
+// Backend's gRPC client and server *DO NOT* handle TLS themselves, as they are
+// intended to communicate over Consul's multiplexed server port (which handles
+// TLS).
 //
 // You must call Run before using the backend.
-func NewBackend(h Handle) (*Backend, error) {
+func NewBackend(h Handle, l hclog.Logger) (*Backend, error) {
 	s, err := inmem.NewStore()
 	if err != nil {
 		return nil, err
 	}
-	return &Backend{h, s}, nil
+	b := &Backend{handle: h, store: s}
+	b.forwardingServer = newForwardingServer(b)
+	b.forwardingClient = newForwardingClient(h, l)
+	return b, nil
 }
 
 // Handle provides glue for interacting with the Raft subsystem via existing
@@ -49,64 +62,148 @@ type Handle interface {
 	// IsLeader determines if this server is the Raft leader (so can handle writes).
 	IsLeader() bool
 
-	// EnsureConsistency checks the server is able to handle consistent reads by
+	// EnsureStrongConsistency checks the server is able to handle consistent reads by
 	// verifying its leadership and checking the FSM has applied all queued writes.
-	EnsureConsistency(ctx context.Context) error
+	EnsureStrongConsistency(ctx context.Context) error
+
+	// DialLeader dials a gRPC connection to the leader for forwarding.
+	DialLeader() (*grpc.ClientConn, error)
 }
 
 // Backend is a Raft-backed storage backend implementation.
 type Backend struct {
 	handle Handle
 	store  *inmem.Store
+
+	forwardingServer *forwardingServer
+	forwardingClient *forwardingClient
 }
 
 // Run until the given context is canceled. This method blocks, so should be
 // called in a goroutine.
-func (b *Backend) Run(ctx context.Context) { b.store.Run(ctx) }
+func (b *Backend) Run(ctx context.Context) {
+	group, groupCtx := errgroup.WithContext(ctx)
+
+	group.Go(func() error {
+		b.store.Run(groupCtx)
+		return nil
+	})
+
+	group.Go(func() error {
+		return b.forwardingServer.run(groupCtx)
+	})
+
+	group.Wait()
+}
 
 // Read implements the storage.Backend interface.
 func (b *Backend) Read(ctx context.Context, consistency storage.ReadConsistency, id *pbresource.ID) (*pbresource.Resource, error) {
-	if err := b.ensureConsistency(ctx, consistency); err != nil {
-		return nil, err
-	}
-	return b.store.Read(id)
-}
-
-// WriteCAS implements the storage.Backend interface. It can only be called on
-// a Raft leader.
-func (b *Backend) WriteCAS(_ context.Context, res *pbresource.Resource) (*pbresource.Resource, error) {
-	if !b.handle.IsLeader() {
-		return nil, storage.ErrInconsistent
+	// Easy case. Both leaders and followers can read from the local store.
+	if consistency == storage.EventualConsistency {
+		return b.store.Read(id)
 	}
 
-	rsp, err := b.roundTrip(&pbstorage.Request{
-		Op:      pbstorage.Request_OP_WRITE,
-		Subject: &pbstorage.Request_Resource{Resource: res},
-	})
+	if consistency != storage.StrongConsistency {
+		return nil, fmt.Errorf("%w: unknown consistency: %s", storage.ErrInconsistent, consistency)
+	}
+
+	// We are the leader. Handle the request ourself.
+	if b.handle.IsLeader() {
+		return b.leaderRead(ctx, id)
+	}
+
+	// Forward the request to the leader.
+	rsp, err := b.forwardingClient.read(ctx, &pbstorage.ReadRequest{Id: id})
 	if err != nil {
 		return nil, err
 	}
 	return rsp.GetResource(), nil
 }
 
-// DeleteCAS implements the storage.Backend interface. It can only be called on
-// a Raft leader.
-func (b *Backend) DeleteCAS(_ context.Context, id *pbresource.ID, version string) error {
-	if !b.handle.IsLeader() {
-		return storage.ErrInconsistent
+func (b *Backend) leaderRead(ctx context.Context, id *pbresource.ID) (*pbresource.Resource, error) {
+	if err := b.ensureStrongConsistency(ctx); err != nil {
+		return nil, err
+	}
+	return b.store.Read(id)
+}
+
+// WriteCAS implements the storage.Backend interface.
+func (b *Backend) WriteCAS(ctx context.Context, res *pbresource.Resource) (*pbresource.Resource, error) {
+	req := &pbstorage.WriteRequest{Resource: res}
+
+	if b.handle.IsLeader() {
+		rsp, err := b.raftApply(&pbstorage.Log{
+			Type: pbstorage.LogType_LOG_TYPE_WRITE,
+			Request: &pbstorage.Log_Write{
+				Write: req,
+			},
+		})
+		if err != nil {
+			return nil, err
+		}
+		return rsp.GetWrite().GetResource(), nil
 	}
 
-	_, err := b.roundTrip(&pbstorage.Request{
-		Op:      pbstorage.Request_OP_DELETE,
-		Subject: &pbstorage.Request_Id{Id: id},
+	rsp, err := b.forwardingClient.write(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	return rsp.GetResource(), nil
+}
+
+// DeleteCAS implements the storage.Backend interface.
+func (b *Backend) DeleteCAS(ctx context.Context, id *pbresource.ID, version string) error {
+	req := &pbstorage.DeleteRequest{
+		Id:      id,
 		Version: version,
-	})
-	return err
+	}
+
+	if b.handle.IsLeader() {
+		_, err := b.raftApply(&pbstorage.Log{
+			Type: pbstorage.LogType_LOG_TYPE_DELETE,
+			Request: &pbstorage.Log_Delete{
+				Delete: req,
+			},
+		})
+		return err
+	}
+
+	return b.forwardingClient.delete(ctx, req)
 }
 
 // List implements the storage.Backend interface.
 func (b *Backend) List(ctx context.Context, consistency storage.ReadConsistency, resType storage.UnversionedType, tenancy *pbresource.Tenancy, namePrefix string) ([]*pbresource.Resource, error) {
-	if err := b.ensureConsistency(ctx, consistency); err != nil {
+	// Easy case. Both leaders and followers can read from the local store.
+	if consistency == storage.EventualConsistency {
+		return b.store.List(resType, tenancy, namePrefix)
+	}
+
+	if consistency != storage.StrongConsistency {
+		return nil, fmt.Errorf("%w: unknown consistency: %s", storage.ErrInconsistent, consistency)
+	}
+
+	// We are the leader. Handle the request ourself.
+	if b.handle.IsLeader() {
+		return b.leaderList(ctx, resType, tenancy, namePrefix)
+	}
+
+	// Forward the request to the leader.
+	rsp, err := b.forwardingClient.list(ctx, &pbstorage.ListRequest{
+		Type: &pbresource.Type{
+			Group: resType.Group,
+			Kind:  resType.Kind,
+		},
+		Tenancy:    tenancy,
+		NamePrefix: namePrefix,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return rsp.GetResources(), nil
+}
+
+func (b *Backend) leaderList(ctx context.Context, resType storage.UnversionedType, tenancy *pbresource.Tenancy, namePrefix string) ([]*pbresource.Resource, error) {
+	if err := b.ensureStrongConsistency(ctx); err != nil {
 		return nil, err
 	}
 	return b.store.List(resType, tenancy, namePrefix)
@@ -125,14 +222,14 @@ func (b *Backend) OwnerReferences(_ context.Context, id *pbresource.ID) ([]*pbre
 // Apply is called by the FSM with the bytes of a Raft log entry, with Consul's
 // envelope (i.e. type prefix and msgpack wrapper) stripped off.
 func (b *Backend) Apply(buf []byte, idx uint64) any {
-	var req pbstorage.Request
+	var req pbstorage.Log
 	if err := req.UnmarshalBinary(buf); err != nil {
 		return fmt.Errorf("failed to decode request: %w", err)
 	}
 
-	switch req.Op {
-	case pbstorage.Request_OP_WRITE:
-		res := req.GetResource()
+	switch req.Type {
+	case pbstorage.LogType_LOG_TYPE_WRITE:
+		res := req.GetWrite().GetResource()
 		oldVsn := res.Version
 		res.Version = strconv.Itoa(int(idx))
 
@@ -140,18 +237,33 @@ func (b *Backend) Apply(buf []byte, idx uint64) any {
 			return err
 		}
 
-		return &pbstorage.Response{Resource: res}
-	case pbstorage.Request_OP_DELETE:
-		if err := b.store.DeleteCAS(req.GetId(), req.Version); err != nil {
+		return &pbstorage.LogResponse{
+			Response: &pbstorage.LogResponse_Write{
+				Write: &pbstorage.WriteResponse{Resource: res},
+			},
+		}
+	case pbstorage.LogType_LOG_TYPE_DELETE:
+		req := req.GetDelete()
+		if err := b.store.DeleteCAS(req.Id, req.Version); err != nil {
 			return err
 		}
-		return &pbstorage.Response{}
+		return &pbstorage.LogResponse{
+			Response: &pbstorage.LogResponse_Delete{},
+		}
 	}
-	return fmt.Errorf("unexpected op: %d", req.Op)
+
+	return fmt.Errorf("unexpected request type: %s", req.Type)
 }
 
-// roundTrip the given request through the Raft log and FSM.
-func (b *Backend) roundTrip(req *pbstorage.Request) (*pbstorage.Response, error) {
+// LeaderChanged should be called whenever the current Raft leader changes, to
+// drop and re-create the gRPC connection used for forwarding.
+func (b *Backend) LeaderChanged() { b.forwardingClient.leaderChanged() }
+
+// HandleConnection should be called whenever a forwarding connection is opened.
+func (b *Backend) HandleConnection(conn net.Conn) { b.forwardingServer.listener.Handle(conn) }
+
+// raftApply round trips the given request through the Raft log and FSM.
+func (b *Backend) raftApply(req *pbstorage.Log) (*pbstorage.LogResponse, error) {
 	msg, err := req.MarshalBinary()
 	if err != nil {
 		return nil, err
@@ -163,28 +275,18 @@ func (b *Backend) roundTrip(req *pbstorage.Request) (*pbstorage.Response, error)
 	}
 
 	switch t := rsp.(type) {
-	case *pbstorage.Response:
+	case *pbstorage.LogResponse:
 		return t, nil
-	case error:
-		return nil, t
 	default:
 		return nil, fmt.Errorf("unexpected response from Raft apply: %T", rsp)
 	}
 }
 
-func (b *Backend) ensureConsistency(ctx context.Context, consistency storage.ReadConsistency) error {
-	switch consistency {
-	case storage.EventualConsistency:
-		return nil
-	case storage.StrongConsistency:
-		err := b.handle.EnsureConsistency(ctx)
-		if errors.Is(err, structs.ErrNotReadyForConsistentReads) {
-			return storage.ErrInconsistent
-		}
-		return err
-	default:
-		return fmt.Errorf("%w: unknown consistency mode (%s)", storage.ErrInconsistent, consistency)
+func (b *Backend) ensureStrongConsistency(ctx context.Context) error {
+	if err := b.handle.EnsureStrongConsistency(ctx); err != nil {
+		return fmt.Errorf("%w: %v", storage.ErrInconsistent, err)
 	}
+	return nil
 }
 
 // Snapshot obtains a point-in-time snapshot of the backend's state, so that it

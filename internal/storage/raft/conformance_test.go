@@ -4,102 +4,107 @@ import (
 	"context"
 	"errors"
 	"math/rand"
+	"net"
 	"sync/atomic"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/require"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 
-	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/internal/storage"
 	"github.com/hashicorp/consul/internal/storage/conformance"
 	"github.com/hashicorp/consul/internal/storage/raft"
-	"github.com/hashicorp/consul/proto-public/pbresource"
+	"github.com/hashicorp/consul/sdk/testutil"
 )
 
 func TestBackend_Conformance(t *testing.T) {
-	// We run the conformance suite against a backend that simulates reads being
-	// handled by an eventually consistent follower. Writes will be replicated to
-	// the follower with a small amount of lag (you can use the -short flag to
-	// disable this).
-	conformance.Test(t, conformance.TestOptions{
-		NewBackend: func(t *testing.T) storage.Backend {
-			return newRaftCluster(t)
-		},
-		SupportsStronglyConsistentList: true,
+	t.Run("Leader", func(t *testing.T) {
+		conformance.Test(t, conformance.TestOptions{
+			NewBackend: func(t *testing.T) storage.Backend {
+				leader, _ := newRaftCluster(t)
+				return leader
+			},
+			SupportsStronglyConsistentList: true,
+		})
+	})
+
+	t.Run("Follower", func(t *testing.T) {
+		conformance.Test(t, conformance.TestOptions{
+			NewBackend: func(t *testing.T) storage.Backend {
+				_, follower := newRaftCluster(t)
+				return follower
+			},
+			SupportsStronglyConsistentList: true,
+		})
 	})
 }
 
-func newRaftCluster(t *testing.T) *raftCluster {
+func newRaftCluster(t *testing.T) (*raft.Backend, *raft.Backend) {
+	t.Helper()
+
 	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)
 
-	leaderHandle := &leaderHandle{replCh: make(chan log, 10)}
-	leader, err := raft.NewBackend(leaderHandle)
+	lis, err := net.Listen("tcp", ":0")
 	require.NoError(t, err)
-	go leader.Run(ctx)
-	leaderHandle.backend = leader
 
-	follower, err := raft.NewBackend(followerHandle{})
+	lc, err := grpc.DialContext(ctx, lis.Addr().String(), grpc.WithTransportCredentials(insecure.NewCredentials()))
+	require.NoError(t, err)
+
+	lh := &leaderHandle{replCh: make(chan log, 10)}
+	leader, err := raft.NewBackend(lh, testutil.Logger(t))
+	require.NoError(t, err)
+	lh.backend = leader
+	go leader.Run(ctx)
+
+	go func() {
+		for {
+			conn, err := lis.Accept()
+			if errors.Is(err, net.ErrClosed) {
+				return
+			}
+			require.NoError(t, err)
+			go leader.HandleConnection(conn)
+		}
+	}()
+
+	follower, err := raft.NewBackend(&followerHandle{leaderConn: lc}, testutil.Logger(t))
 	require.NoError(t, err)
 	go follower.Run(ctx)
+	follower.LeaderChanged()
 
-	go leaderHandle.replicate(t, follower)
+	go lh.replicate(t, follower)
 
-	return &raftCluster{leader, follower}
+	return leader, follower
 }
 
-type raftCluster struct {
-	leader, follower *raft.Backend
-}
-
-func (c *raftCluster) Read(ctx context.Context, consistency storage.ReadConsistency, id *pbresource.ID) (*pbresource.Resource, error) {
-	if consistency == storage.StrongConsistency {
-		return c.leader.Read(ctx, consistency, id)
-	}
-
-	return c.follower.Read(ctx, consistency, id)
-}
-
-func (c *raftCluster) WriteCAS(ctx context.Context, res *pbresource.Resource) (*pbresource.Resource, error) {
-	return c.leader.WriteCAS(ctx, res)
-}
-
-func (c *raftCluster) DeleteCAS(ctx context.Context, id *pbresource.ID, version string) error {
-	return c.leader.DeleteCAS(ctx, id, version)
-}
-
-func (c *raftCluster) List(ctx context.Context, consistency storage.ReadConsistency, resType storage.UnversionedType, tenancy *pbresource.Tenancy, namePrefix string) ([]*pbresource.Resource, error) {
-	if consistency == storage.StrongConsistency {
-		return c.leader.List(ctx, consistency, resType, tenancy, namePrefix)
-	}
-	return c.follower.List(ctx, consistency, resType, tenancy, namePrefix)
-}
-
-func (c *raftCluster) WatchList(ctx context.Context, resType storage.UnversionedType, tenancy *pbresource.Tenancy, namePrefix string) (storage.Watch, error) {
-	return c.follower.WatchList(ctx, resType, tenancy, namePrefix)
-}
-
-func (c *raftCluster) OwnerReferences(ctx context.Context, id *pbresource.ID) ([]*pbresource.ID, error) {
-	return c.follower.OwnerReferences(ctx, id)
-}
-
-type followerHandle struct{}
-
-func (followerHandle) IsLeader() bool { return false }
-
-func (followerHandle) EnsureConsistency(context.Context) error {
-	return structs.ErrNotReadyForConsistentReads
+type followerHandle struct {
+	leaderConn *grpc.ClientConn
 }
 
 func (followerHandle) Apply([]byte) (any, error) {
-	return nil, errors.New("follower should not try to handle writes")
+	return nil, errors.New("not leader")
+}
+
+func (followerHandle) IsLeader() bool {
+	return false
+}
+
+func (followerHandle) EnsureStrongConsistency(context.Context) error {
+	return errors.New("not leader")
+}
+
+func (f *followerHandle) DialLeader() (*grpc.ClientConn, error) {
+	return f.leaderConn, nil
 }
 
 type leaderHandle struct {
-	index   uint64
+	index  uint64
+	replCh chan log
+
 	backend *raft.Backend
-	replCh  chan log
 }
 
 type log struct {
@@ -107,23 +112,35 @@ type log struct {
 	msg []byte
 }
 
-func (leaderHandle) IsLeader() bool                          { return true }
-func (leaderHandle) EnsureConsistency(context.Context) error { return nil }
-
-func (h *leaderHandle) Apply(msg []byte) (any, error) {
-	idx := atomic.AddUint64(&h.index, 1)
+func (l *leaderHandle) Apply(msg []byte) (any, error) {
+	idx := atomic.AddUint64(&l.index, 1)
 
 	// Apply the operation to the leader synchronously and capture its response
 	// to return to the caller.
-	rsp := h.backend.Apply(msg, idx)
+	rsp := l.backend.Apply(msg, idx)
 
 	// Replicate the operation to the follower asynchronously.
-	h.replCh <- log{idx, msg}
+	l.replCh <- log{idx, msg}
 
+	if err, ok := rsp.(error); ok {
+		return nil, err
+	}
 	return rsp, nil
 }
 
-func (h leaderHandle) replicate(t *testing.T, follower *raft.Backend) {
+func (leaderHandle) IsLeader() bool {
+	return true
+}
+
+func (leaderHandle) EnsureStrongConsistency(context.Context) error {
+	return nil
+}
+
+func (leaderHandle) DialLeader() (*grpc.ClientConn, error) {
+	return nil, errors.New("leader should not dial itself")
+}
+
+func (h *leaderHandle) replicate(t *testing.T, follower *raft.Backend) {
 	doneCh := make(chan struct{})
 	t.Cleanup(func() { close(doneCh) })
 

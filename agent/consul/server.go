@@ -253,6 +253,9 @@ type Server struct {
 	// transition notifications from the Raft layer.
 	raftNotifyCh <-chan bool
 
+	// raftStorageBackend is the Raft-backed storage backend for resources.
+	raftStorageBackend *raftstorage.Backend
+
 	// reconcileCh is used to pass events from the serf handler
 	// into the leader manager, so that the strong state can be
 	// updated
@@ -484,11 +487,11 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server, incom
 	}
 	incomingRPCLimiter.Register(s)
 
-	backend, err := raftstorage.NewBackend(&raftHandle{s})
+	s.raftStorageBackend, err = raftstorage.NewBackend(&raftHandle{s}, logger.Named("raft-storage-backend"))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create storage backend: %w", err)
 	}
-	go backend.Run(&lib.StopChannelContext{StopCh: shutdownCh})
+	go s.raftStorageBackend.Run(&lib.StopChannelContext{StopCh: shutdownCh})
 
 	s.fsm = fsm.NewFromDeps(fsm.Deps{
 		Logger: flat.Logger,
@@ -496,7 +499,7 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server, incom
 			return state.NewStateStoreWithEventPublisher(gc, flat.EventPublisher)
 		},
 		Publisher:      flat.EventPublisher,
-		StorageBackend: backend,
+		StorageBackend: s.raftStorageBackend,
 	})
 
 	s.hcpManager = hcp.NewManager(hcp.ManagerConfig{
@@ -745,7 +748,7 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server, incom
 	go s.overviewManager.Run(&lib.StopChannelContext{StopCh: s.shutdownCh})
 
 	// Initialize external gRPC server
-	s.setupExternalGRPC(config, backend, logger)
+	s.setupExternalGRPC(config, s.raftStorageBackend, logger)
 
 	// Initialize internal gRPC server.
 	//
@@ -1047,7 +1050,7 @@ func (s *Server) setupRaft() error {
 
 			// It's safe to pass nil as the handle argument here because we won't call
 			// the backend's data access methods (only Apply, Snapshot, and Restore).
-			backend, err := raftstorage.NewBackend(nil)
+			backend, err := raftstorage.NewBackend(nil, hclog.NewNullLogger())
 			if err != nil {
 				return fmt.Errorf("recovery failed: %w", err)
 			}
@@ -1881,6 +1884,7 @@ func (s *Server) trackLeaderChanges() {
 
 			s.grpcLeaderForwarder.UpdateLeaderAddr(s.config.Datacenter, string(leaderObs.LeaderAddr))
 			s.peeringBackend.SetLeaderAddress(string(leaderObs.LeaderAddr))
+			s.raftStorageBackend.LeaderChanged()
 
 			// Trigger sending an update to HCP status
 			s.hcpManager.SendUpdate()
