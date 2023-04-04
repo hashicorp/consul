@@ -3,7 +3,6 @@ package resource
 import (
 	"context"
 	"errors"
-	"fmt"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -23,26 +22,26 @@ func (s *Server) Read(ctx context.Context, req *pbresource.ReadRequest) (*pbreso
 	// check acls
 	authz, err := s.ACLResolver.ResolveTokenAndDefaultMeta(tokenFromContext(ctx), nil, nil)
 	if err != nil {
-		return nil, fmt.Errorf("getting authorizer: %w", err)
+		return nil, status.Errorf(codes.Internal, "failed getting authorizer: %v", err)
 	}
-	if err = reg.ACLs.Read(authz, req.Id); err != nil {
-		switch {
-		case acl.IsErrPermissionDenied(err):
-			return nil, status.Error(codes.PermissionDenied, err.Error())
-		default:
-			return nil, fmt.Errorf("authorizing read: %w", err)
-		}
+
+	err = reg.ACLs.Read(authz, req.Id)
+	switch {
+	case acl.IsErrPermissionDenied(err):
+		return nil, status.Error(codes.PermissionDenied, err.Error())
+	case err != nil:
+		return nil, status.Errorf(codes.Internal, "failed read acl: %v", err)
 	}
 
 	resource, err := s.Backend.Read(ctx, readConsistencyFrom(ctx), req.Id)
-	if err != nil {
-		if errors.Is(err, storage.ErrNotFound) {
-			return nil, status.Error(codes.NotFound, err.Error())
-		}
-		if errors.As(err, &storage.GroupVersionMismatchError{}) {
-			return nil, status.Error(codes.InvalidArgument, err.Error())
-		}
-		return nil, err
+	switch {
+	case err == nil:
+		return &pbresource.ReadResponse{Resource: resource}, nil
+	case errors.Is(err, storage.ErrNotFound):
+		return nil, status.Error(codes.NotFound, err.Error())
+	case errors.As(err, &storage.GroupVersionMismatchError{}):
+		return nil, status.Error(codes.InvalidArgument, err.Error())
+	default:
+		return nil, status.Errorf(codes.Internal, "failed read: %v", err)
 	}
-	return &pbresource.ReadResponse{Resource: resource}, nil
 }
