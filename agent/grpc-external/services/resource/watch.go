@@ -1,9 +1,6 @@
 package resource
 
 import (
-	"context"
-	"fmt"
-
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
@@ -19,20 +16,18 @@ func (s *Server) WatchList(req *pbresource.WatchListRequest, stream pbresource.R
 		return err
 	}
 
-	// check acls
-	// TODO(spatel): FIXME Where do I get the ctx in order to extract the token?
-	ctx := context.Background()
-	authz, err := s.ACLResolver.ResolveTokenAndDefaultMeta(tokenFromContext(ctx), nil, nil)
+	authz, err := s.getAuthorizer(tokenFromContext(stream.Context()))
 	if err != nil {
-		return fmt.Errorf("getting authorizer: %w", err)
+		return err
 	}
-	if err = reg.ACLs.List(authz, req.Tenancy); err != nil {
-		switch {
-		case acl.IsErrPermissionDenied(err):
-			return status.Error(codes.PermissionDenied, err.Error())
-		default:
-			return fmt.Errorf("authorizing list: %w", err)
-		}
+
+	// check acls
+	err = reg.ACLs.List(authz, req.Tenancy)
+	switch {
+	case acl.IsErrPermissionDenied(err):
+		return status.Error(codes.PermissionDenied, err.Error())
+	case err != nil:
+		return status.Errorf(codes.Internal, "failed list acl: %v", err)
 	}
 
 	unversionedType := storage.UnversionedTypeFrom(req.Type)
@@ -49,7 +44,7 @@ func (s *Server) WatchList(req *pbresource.WatchListRequest, stream pbresource.R
 	for {
 		event, err := watch.Next(stream.Context())
 		if err != nil {
-			return err
+			return status.Errorf(codes.Internal, "failed next: %v", err)
 		}
 
 		// drop versions that don't match
@@ -58,13 +53,12 @@ func (s *Server) WatchList(req *pbresource.WatchListRequest, stream pbresource.R
 		}
 
 		// filter out items that don't pass read ACLs
-		if err = reg.ACLs.Read(authz, event.Resource.Id); err != nil {
-			switch {
-			case acl.IsErrPermissionDenied(err):
-				continue
-			default:
-				return fmt.Errorf("authorizing read: %w", err)
-			}
+		err = reg.ACLs.Read(authz, event.Resource.Id)
+		switch {
+		case acl.IsErrPermissionDenied(err):
+			continue
+		case err != nil:
+			return status.Errorf(codes.Internal, "failed read acl: %v", err)
 		}
 
 		if err = stream.Send(event); err != nil {
