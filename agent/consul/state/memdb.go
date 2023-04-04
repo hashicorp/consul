@@ -4,7 +4,6 @@
 package state
 
 import (
-	"fmt"
 	"sync"
 
 	"github.com/hashicorp/go-memdb"
@@ -94,21 +93,17 @@ func (c *changeTrackerDB) ReadTxn() *memdb.Txn {
 // data directly into the DB. These cases may use WriteTxnRestore.
 func (c *changeTrackerDB) WriteTxn(idx uint64) *txn {
 	t := &txn{
-		Txn:     c.db.Txn(true),
-		Index:   idx,
-		publish: c.publish,
+		Txn:        c.db.Txn(true),
+		Index:      idx,
+		publish:    c.publish,
+		prePublish: c.processChanges,
 	}
 	t.Txn.TrackChanges()
 	return t
 }
 
-func (c *changeTrackerDB) publish(tx ReadTxn, changes Changes) error {
-	events, err := c.processChanges(tx, changes)
-	if err != nil {
-		return fmt.Errorf("failed generating events from changes: %v", err)
-	}
+func (c *changeTrackerDB) publish(events []stream.Event) {
 	c.publisher.Publish(events)
-	return nil
 }
 
 // WriteTxnRestore returns a wrapped RW transaction that should only be used in
@@ -128,8 +123,10 @@ func (c *changeTrackerDB) WriteTxnRestore() *txn {
 	return t
 }
 
+type prePublishFuncType func(tx ReadTxn, changes Changes) ([]stream.Event, error)
+
 //go:generate mockery --name publishFuncType --inpackage
-type publishFuncType func(tx ReadTxn, changes Changes) error
+type publishFuncType func(events []stream.Event)
 
 // txn wraps a memdb.Txn to capture changes and send them to the EventPublisher.
 //
@@ -145,6 +142,8 @@ type txn struct {
 	// of a change event.
 	Index   uint64
 	publish publishFuncType
+
+	prePublish prePublishFuncType
 
 	commitLock sync.Mutex
 }
@@ -170,15 +169,26 @@ func (tx *txn) Commit() error {
 	// This lock prevent concurrent commits to get published out of order.
 	tx.commitLock.Lock()
 	defer tx.commitLock.Unlock()
+
+	var events []stream.Event
+	var err error
+
+	// prePublish need to generate a list of events before the transaction is commited,
+	// as we loose the changes in the transaction after the call to Commit().
+	if tx.prePublish != nil {
+		events, err = tx.prePublish(tx.Txn, changes)
+		if err != nil {
+			return err
+		}
+	}
+
 	tx.Txn.Commit()
 
 	// publish may be nil if this is a read-only or WriteTxnRestore transaction.
-	// In those cases changes should also be empty, and there will be nothing
+	// In those cases events should also be empty, and there will be nothing
 	// to publish.
 	if tx.publish != nil {
-		if err := tx.publish(tx.Txn, changes); err != nil {
-			return err
-		}
+		tx.publish(events)
 	}
 	return nil
 }
