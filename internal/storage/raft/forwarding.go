@@ -77,7 +77,7 @@ func (s *forwardingServer) List(ctx context.Context, req *pbstorage.ListRequest)
 	return &pbstorage.ListResponse{Resources: res}, nil
 }
 
-func (s *forwardingServer) raftApply(ctx context.Context, req *pbstorage.Log) (*pbstorage.LogResponse, error) {
+func (s *forwardingServer) raftApply(_ context.Context, req *pbstorage.Log) (*pbstorage.LogResponse, error) {
 	msg, err := req.MarshalBinary()
 	if err != nil {
 		return nil, wrapError(err)
