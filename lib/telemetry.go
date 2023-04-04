@@ -216,6 +216,7 @@ type TelemetryConfig struct {
 type MetricsHandler interface {
 	DisplayMetrics(resp http.ResponseWriter, req *http.Request) (interface{}, error)
 	Stream(ctx context.Context, encoder metrics.Encoder)
+	Data() []*metrics.IntervalMetrics
 }
 
 type MetricsConfig struct {

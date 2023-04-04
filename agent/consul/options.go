@@ -16,10 +16,12 @@ import (
 	"github.com/hashicorp/consul/agent/router"
 	"github.com/hashicorp/consul/agent/rpc/middleware"
 	"github.com/hashicorp/consul/agent/token"
+	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/tlsutil"
 )
 
 type Deps struct {
+	MetricsConfig    *lib.MetricsConfig
 	EventPublisher   *stream.EventPublisher
 	Logger           hclog.InterceptLogger
 	TLSConfigurator  *tlsutil.Configurator

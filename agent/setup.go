@@ -51,7 +51,6 @@ type BaseDeps struct {
 	consul.Deps // TODO: un-embed
 
 	RuntimeConfig *config.RuntimeConfig
-	MetricsConfig *lib.MetricsConfig
 	AutoConfig    *autoconf.AutoConfig // TODO: use an interface
 	Cache         *cache.Cache
 	ViewStore     *submatview.Store
