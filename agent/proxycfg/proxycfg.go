@@ -20,11 +20,11 @@
 //		               | State |                | State Sync |
 //		               +-------+                +-----+------+
 //		                 ▲                            |
-//		                 |     +---------------+      | 2.
-//		              4. | 4a. | Local         |      |
-//		                 | +-▶ | Config Source +-+    |
-//		                 | |   +---------------+ |    |
-//		                 | |                     ▼    ▼
+//	    +-------+            |     +---------------+      | 2.
+//	    | envoy |         4. | 4a. | Local         |      |
+//	    +-------+            | +-▶ | Config Source +-+    |
+//		 | stream        | |   +---------------+ |    |
+//		 ▼               | |                     ▼    ▼
 //		+--------+ 3.  +-+-+-----------+ 6.    +----------+ 2a.  +----------+
 //		| xDS    +---▶ | Catalog       +-----▶ | proxycfg +----▶ | proxycfg |
 //		| Server | ◀---+ Config Source +-----▶ | Manager  +--+   | State    |
@@ -41,10 +41,10 @@
 //	   they are sync'd to the proxycfg.Manager.
 //	   2a. proxycfg.Manager creates a state object for the service and begins
 //	       pre-fetching data (go to 8).
-//	3. Client begins a stream and the xDS server calls Watch on its ConfigSource -
-//	   on a client agent this would be a local config source, on a server it would
-//	   be a catalog config source.
-//	4. The catalog config source will check if service is registered locally.
+//	3. Client (i.e., envoy) begins a stream and the xDS server calls Watch on its
+//	   ConfigSource - on a client agent this would be a local config source, on a
+//	   server it would be a catalog config source.
+//	4. On server, the catalog config source will check if service is registered locally.
 //	   4a. If the service *is* registered locally it hands off the the local config
 //	      source, which calls Watch on the proxycfg manager (and serves the pre-
 //	      fetched data).
