@@ -922,21 +922,19 @@ func (s *Server) raftApply(t structs.MessageType, msg interface{}) (interface{},
 }
 
 // raftApplyMsgpack encodes the msg using msgpack and calls raft.Apply. See
-// raftApplyWithEncoder.
+// raftApplyEncoded.
 func (s *Server) raftApplyMsgpack(t structs.MessageType, msg interface{}) (interface{}, error) {
 	return s.raftApplyWithEncoder(t, msg, structs.Encode)
 }
 
 // raftApplyProtobuf encodes the msg using protobuf and calls raft.Apply. See
-// raftApplyWithEncoder.
+// raftApplyEncoded.
 func (s *Server) raftApplyProtobuf(t structs.MessageType, msg interface{}) (interface{}, error) {
 	return s.raftApplyWithEncoder(t, msg, structs.EncodeProtoInterface)
 }
 
 // raftApplyWithEncoder encodes a message, and then calls raft.Apply with the
-// encoded message. Returns the FSM response along with any errors. If the
-// FSM.Apply response is an error it will be returned as the error return
-// value with a nil response.
+// encoded message. See raftApplyEncoded.
 func (s *Server) raftApplyWithEncoder(
 	t structs.MessageType,
 	msg interface{},
