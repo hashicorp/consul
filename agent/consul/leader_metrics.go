@@ -125,21 +125,25 @@ func (m CertExpirationMonitor) Monitor(ctx context.Context) error {
 		}
 
 		if expiresSoon(lifetime, untilAfter) {
-			key := strings.Join(m.Key, "")
-			rootKey := strings.Join(metricsKeyMeshRootCAExpiry, "")
-			signingKey := strings.Join(metricsKeyMeshActiveSigningCAExpiry, "")
+			key := strings.Join(m.Key, ":")
 			switch key {
-			case rootKey:
+			case "mesh:active-root-ca:expiry":
 				logger.Warn("root certificate will expire soon",
 					"time_to_expiry", untilAfter,
 					"expiration", time.Now().Add(untilAfter),
-					"suggested_action", "rotate the root certificate",
+					"suggested_action", "manually rotate the root certificate",
 				)
-			case signingKey:
+			case "mesh:active-signing-ca:expiry":
 				logger.Warn("signing (intermediate) certificate will expire soon",
 					"time_to_expiry", untilAfter,
 					"expiration", time.Now().Add(untilAfter),
 					"suggested_action", "check consul logs for rotation issues",
+				)
+			case "agent:tls:cert:expiry":
+				logger.Warn("agent TLS certificate will expire soon",
+					"time_to_expiry", untilAfter,
+					"expiration", time.Now().Add(untilAfter),
+					"suggested_action", "manually rotate this agent's certificate",
 				)
 			}
 		}
