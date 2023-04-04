@@ -63,15 +63,18 @@ func (s *Server) Delete(ctx context.Context, req *pbresource.DeleteRequest) (*pb
 	return &pbresource.DeleteResponse{}, nil
 }
 
-// Extracts ACL token ID from incoming context
+// Get token from grpc metadata or AnonymounsTokenId if not found
 func tokenFromContext(ctx context.Context) string {
-	// TODO(spatel): Figure out where to get the token from correctly. This is just a stand in for the PR
-	//               Should I be using QueryOptions like some of the other gRPC servers?
-	token := ctx.Value("x-token")
-	if token == nil {
+	md, ok := metadata.FromIncomingContext(ctx)
+	if !ok {
 		return acl.AnonymousTokenID
 	}
-	return token.(string)
+
+	vals := md.Get("x-consul-token")
+	if len(vals) == 0 {
+		return acl.AnonymousTokenID
+	}
+	return vals[0]
 }
 
 func (s *Server) resolveType(typ *pbresource.Type) (*resource.Registration, error) {
@@ -100,6 +103,14 @@ func readConsistencyFrom(ctx context.Context) storage.ReadConsistency {
 		return storage.StrongConsistency
 	}
 	return storage.EventualConsistency
+}
+
+func (s *Server) getAuthorizer(token string) (acl.Authorizer, error) {
+	authz, err := s.ACLResolver.ResolveTokenAndDefaultMeta(token, nil, nil)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed getting authorizer: %v", err)
+	}
+	return authz, nil
 }
 
 func clone[T proto.Message](v T) T { return proto.Clone(v).(T) }

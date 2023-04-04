@@ -19,12 +19,12 @@ func (s *Server) Read(ctx context.Context, req *pbresource.ReadRequest) (*pbreso
 		return nil, err
 	}
 
-	// check acls
-	authz, err := s.ACLResolver.ResolveTokenAndDefaultMeta(tokenFromContext(ctx), nil, nil)
+	authz, err := s.getAuthorizer(tokenFromContext(ctx))
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "failed getting authorizer: %v", err)
+		return nil, err
 	}
 
+	// check acls
 	err = reg.ACLs.Read(authz, req.Id)
 	switch {
 	case acl.IsErrPermissionDenied(err):
