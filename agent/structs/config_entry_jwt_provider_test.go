@@ -23,6 +23,8 @@ var tenSeconds time.Duration = 10 * time.Second
 var hundredSeconds time.Duration = 100 * time.Second
 
 func TestJWTProviderConfigEntry_ValidateAndNormalize(t *testing.T) {
+	defaultMeta := DefaultEnterpriseMetaInDefaultPartition()
+
 	cases := map[string]configEntryTestcase{
 		"valid jwt-provider - local jwks": {
 			entry: &JWTProviderConfigEntry{
@@ -49,6 +51,7 @@ func TestJWTProviderConfigEntry_ValidateAndNormalize(t *testing.T) {
 					HeaderName: "Some-Header",
 				},
 				ClockSkewSeconds: DefaultClockSkewSeconds,
+				EnterpriseMeta:   *defaultMeta,
 			},
 		},
 		"valid jwt-provider - remote jwks defaults": {
@@ -92,6 +95,7 @@ func TestJWTProviderConfigEntry_ValidateAndNormalize(t *testing.T) {
 					},
 				},
 				ClockSkewSeconds: DefaultClockSkewSeconds,
+				EnterpriseMeta:   *defaultMeta,
 			},
 		},
 		"invalid jwt-provider - no name": {
