@@ -7,9 +7,10 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/hashicorp/consul-net-rpc/go-msgpack/codec"
 	"github.com/hashicorp/raft"
 	"github.com/mitchellh/mapstructure"
+
+	"github.com/hashicorp/consul-net-rpc/go-msgpack/codec"
 
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
@@ -102,6 +103,9 @@ func persistOSS(s *snapshot, sink raft.SnapshotSink, encoder *codec.Encoder) err
 		return err
 	}
 	if err := s.persistPeeringSecrets(sink, encoder); err != nil {
+		return err
+	}
+	if err := s.persistResources(sink, encoder); err != nil {
 		return err
 	}
 	return nil
@@ -607,6 +611,25 @@ func (s *snapshot) persistPeeringSecrets(sink raft.SnapshotSink, encoder *codec.
 	}
 
 	return nil
+}
+
+func (s *snapshot) persistResources(sink raft.SnapshotSink, encoder *codec.Encoder) error {
+	for {
+		v, err := s.storageSnapshot.Next()
+		if err != nil {
+			return err
+		}
+		if v == nil {
+			return nil
+		}
+
+		if _, err := sink.Write([]byte{byte(structs.ResourceOperationType)}); err != nil {
+			return err
+		}
+		if err := encoder.Encode(v); err != nil {
+			return err
+		}
+	}
 }
 
 func restoreRegistration(header *SnapshotHeader, restore *state.Restore, decoder *codec.Decoder) error {

@@ -145,6 +145,7 @@ func init() {
 	registerCommand(structs.PeeringTrustBundleWriteType, (*FSM).applyPeeringTrustBundleWrite)
 	registerCommand(structs.PeeringTrustBundleDeleteType, (*FSM).applyPeeringTrustBundleDelete)
 	registerCommand(structs.PeeringSecretsWriteType, (*FSM).applyPeeringSecretsWrite)
+	registerCommand(structs.ResourceOperationType, (*FSM).applyResourceOperation)
 }
 
 func (c *FSM) applyRegister(buf []byte, index uint64) interface{} {
@@ -780,4 +781,8 @@ func (c *FSM) applyPeeringTrustBundleDelete(buf []byte, index uint64) interface{
 		EnterpriseMeta: *structs.NodeEnterpriseMetaInPartition(req.Partition),
 	}
 	return c.state.PeeringTrustBundleDelete(index, q)
+}
+
+func (f *FSM) applyResourceOperation(buf []byte, idx uint64) any {
+	return f.deps.StorageBackend.Apply(buf, idx)
 }

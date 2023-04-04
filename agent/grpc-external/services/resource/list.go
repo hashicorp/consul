@@ -15,7 +15,7 @@ func (s *Server) List(ctx context.Context, req *pbresource.ListRequest) (*pbreso
 		return nil, err
 	}
 
-	resources, err := s.backend.List(ctx, readConsistencyFrom(ctx), storage.UnversionedTypeFrom(req.Type), req.Tenancy, req.NamePrefix)
+	resources, err := s.Backend.List(ctx, readConsistencyFrom(ctx), storage.UnversionedTypeFrom(req.Type), req.Tenancy, req.NamePrefix)
 	if err != nil {
 		return nil, err
 	}

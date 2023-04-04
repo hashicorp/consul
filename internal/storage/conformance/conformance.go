@@ -135,7 +135,7 @@ func testRead(t *testing.T, opts TestOptions) {
 
 					var e storage.GroupVersionMismatchError
 					if errors.As(err, &e) {
-						require.Equal(t, id.Type, e.RequestedType)
+						prototest.AssertDeepEqual(t, id.Type, e.RequestedType)
 						prototest.AssertDeepEqual(t, res, e.Stored, ignoreVersion)
 					} else {
 						t.Fatalf("expected storage.GroupVersionMismatchError, got: %T", err)

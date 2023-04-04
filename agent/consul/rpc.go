@@ -246,6 +246,9 @@ func (s *Server) handleConn(conn net.Conn, isTLS bool) {
 	case pool.RPCGRPC:
 		s.grpcHandler.Handle(conn)
 
+	case pool.RPCRaftForwarding:
+		s.handleRaftForwarding(conn)
+
 	default:
 		if !s.handleEnterpriseRPCConn(typ, conn, isTLS) {
 			s.rpcLogger().Error("unrecognized RPC byte",
@@ -313,6 +316,9 @@ func (s *Server) handleNativeTLS(conn net.Conn) {
 
 	case pool.ALPN_RPCGRPC:
 		s.grpcHandler.Handle(tlsConn)
+
+	case pool.ALPN_RPCRaftForwarding:
+		s.handleRaftForwarding(tlsConn)
 
 	case pool.ALPN_WANGossipPacket:
 		if err := s.handleALPN_WANGossipPacketStream(tlsConn); err != nil && err != io.EOF {
@@ -494,6 +500,19 @@ func (s *Server) handleRaftRPC(conn net.Conn) {
 
 	metrics.IncrCounter([]string{"rpc", "raft_handoff"}, 1)
 	s.raftLayer.Handoff(conn)
+}
+
+func (s *Server) handleRaftForwarding(conn net.Conn) {
+	if tlsConn, ok := conn.(*tls.Conn); ok {
+		err := s.tlsConfigurator.AuthorizeServerConn(s.config.Datacenter, tlsConn)
+		if err != nil {
+			s.rpcLogger().Warn(err.Error(), "from", conn.RemoteAddr(), "operation", "raft forwarding")
+			conn.Close()
+			return
+		}
+	}
+
+	s.raftStorageBackend.HandleConnection(conn)
 }
 
 func (s *Server) handleALPN_WANGossipPacketStream(conn net.Conn) error {
@@ -903,21 +922,19 @@ func (s *Server) raftApply(t structs.MessageType, msg interface{}) (interface{},
 }
 
 // raftApplyMsgpack encodes the msg using msgpack and calls raft.Apply. See
-// raftApplyWithEncoder.
+// raftApplyEncoded.
 func (s *Server) raftApplyMsgpack(t structs.MessageType, msg interface{}) (interface{}, error) {
 	return s.raftApplyWithEncoder(t, msg, structs.Encode)
 }
 
 // raftApplyProtobuf encodes the msg using protobuf and calls raft.Apply. See
-// raftApplyWithEncoder.
+// raftApplyEncoded.
 func (s *Server) raftApplyProtobuf(t structs.MessageType, msg interface{}) (interface{}, error) {
 	return s.raftApplyWithEncoder(t, msg, structs.EncodeProtoInterface)
 }
 
 // raftApplyWithEncoder encodes a message, and then calls raft.Apply with the
-// encoded message. Returns the FSM response along with any errors. If the
-// FSM.Apply response is an error it will be returned as the error return
-// value with a nil response.
+// encoded message. See raftApplyEncoded.
 func (s *Server) raftApplyWithEncoder(
 	t structs.MessageType,
 	msg interface{},
@@ -930,7 +947,13 @@ func (s *Server) raftApplyWithEncoder(
 	if err != nil {
 		return nil, fmt.Errorf("Failed to encode request: %v", err)
 	}
+	return s.raftApplyEncoded(t, buf)
+}
 
+// raftApplyEncoded calls raft.Apply with the encoded message. Returns the FSM
+// response along with any errors. If the FSM.Apply response is an error it will
+// be returned as the error return value with a nil response.
+func (s *Server) raftApplyEncoded(t structs.MessageType, buf []byte) (any, error) {
 	// Warn if the command is very large
 	if n := len(buf); n > raftWarnSize {
 		s.rpcLogger().Warn("Attempting to apply large raft entry", "size_in_bytes", n)
@@ -1177,37 +1200,53 @@ func (s *Server) setQueryMeta(m blockingQueryResponseMeta, token string) {
 	}
 }
 
-// consistentRead is used to ensure we do not perform a stale
-// read. This is done by verifying leadership before the read.
-func (s *Server) consistentRead() error {
+func (s *Server) consistentReadWithContext(ctx context.Context) error {
 	defer metrics.MeasureSince([]string{"rpc", "consistentRead"}, time.Now())
 	future := s.raft.VerifyLeader()
 	if err := future.Error(); err != nil {
 		return err // fail fast if leader verification fails
 	}
-	// poll consistent read readiness, wait for up to RPCHoldTimeout milliseconds
+
 	if s.isReadyForConsistentReads() {
 		return nil
 	}
-	jitter := lib.RandomStagger(s.config.RPCHoldTimeout / structs.JitterFraction)
-	deadline := time.Now().Add(s.config.RPCHoldTimeout)
 
-	for time.Now().Before(deadline) {
+	// Poll until the context reaches its deadline, or for RPCHoldTimeout if the
+	// context has no deadline.
+	pollFor := s.config.RPCHoldTimeout
+	if deadline, ok := ctx.Deadline(); ok {
+		pollFor = time.Until(deadline)
+	}
 
+	interval := pollFor / structs.JitterFraction
+	if interval <= 0 {
+		return structs.ErrNotReadyForConsistentReads
+	}
+
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
+
+	for {
 		select {
-		case <-time.After(jitter):
-			// Drop through and check before we loop again.
-
+		case <-ticker.C:
+			if s.isReadyForConsistentReads() {
+				return nil
+			}
+		case <-ctx.Done():
+			return structs.ErrNotReadyForConsistentReads
 		case <-s.shutdownCh:
 			return fmt.Errorf("shutdown waiting for leader")
 		}
-
-		if s.isReadyForConsistentReads() {
-			return nil
-		}
 	}
+}
 
-	return structs.ErrNotReadyForConsistentReads
+// consistentRead is used to ensure we do not perform a stale
+// read. This is done by verifying leadership before the read.
+func (s *Server) consistentRead() error {
+	ctx, cancel := context.WithTimeout(context.Background(), s.config.RPCHoldTimeout)
+	defer cancel()
+
+	return s.consistentReadWithContext(ctx)
 }
 
 // rpcQueryTimeout calculates the timeout for the query, ensures it is

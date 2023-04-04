@@ -4,6 +4,7 @@
 package fsm
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"sync"
@@ -18,6 +19,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/structs"
+	raftstorage "github.com/hashicorp/consul/internal/storage/raft"
 	"github.com/hashicorp/consul/logging"
 )
 
@@ -72,7 +74,11 @@ func New(gc *state.TombstoneGC, logger hclog.Logger) (*FSM, error) {
 	newStateStore := func() *state.Store {
 		return state.NewStateStore(gc)
 	}
-	return NewFromDeps(Deps{Logger: logger, NewStateStore: newStateStore}), nil
+	return NewFromDeps(Deps{
+		Logger:         logger,
+		NewStateStore:  newStateStore,
+		StorageBackend: NullStorageBackend,
+	}), nil
 }
 
 // Deps are dependencies used to construct the FSM.
@@ -86,12 +92,42 @@ type Deps struct {
 	NewStateStore func() *state.Store
 
 	Publisher *stream.EventPublisher
+
+	// StorageBackend is the storage backend used by the resource service, it
+	// manages its own state and has methods for handling Raft logs, snapshotting,
+	// and restoring snapshots.
+	StorageBackend StorageBackend
+}
+
+// StorageBackend contains the methods on the Raft resource storage backend that
+// are used by the FSM. See the internal/storage/raft package docs for more info.
+type StorageBackend interface {
+	Apply(buf []byte, idx uint64) any
+	Snapshot() (*raftstorage.Snapshot, error)
+	Restore() (*raftstorage.Restoration, error)
+}
+
+// NullStorageBackend can be used as the StorageBackend dependency in tests
+// that won't exercize resource storage or snapshotting.
+var NullStorageBackend StorageBackend = nullStorageBackend{}
+
+type nullStorageBackend struct{}
+
+func (nullStorageBackend) Apply([]byte, uint64) any { return errors.New("NullStorageBackend in use") }
+func (nullStorageBackend) Snapshot() (*raftstorage.Snapshot, error) {
+	return nil, errors.New("NullStorageBackend in use")
+}
+func (nullStorageBackend) Restore() (*raftstorage.Restoration, error) {
+	return nil, errors.New("NullStorageBackend in use")
 }
 
 // NewFromDeps creates a new FSM from its dependencies.
 func NewFromDeps(deps Deps) *FSM {
 	if deps.Logger == nil {
 		deps.Logger = hclog.New(&hclog.LoggerOptions{})
+	}
+	if deps.StorageBackend == nil {
+		panic("StorageBackend is required")
 	}
 
 	fsm := &FSM{
@@ -172,9 +208,15 @@ func (c *FSM) Snapshot() (raft.FSMSnapshot, error) {
 		return nil, err
 	}
 
+	storageSnapshot, err := c.deps.StorageBackend.Snapshot()
+	if err != nil {
+		return nil, err
+	}
+
 	return &snapshot{
-		state:      c.state.Snapshot(),
-		chunkState: chunkState,
+		state:           c.state.Snapshot(),
+		chunkState:      chunkState,
+		storageSnapshot: storageSnapshot,
 	}, nil
 }
 
@@ -189,6 +231,12 @@ func (c *FSM) Restore(old io.ReadCloser) error {
 	restore := stateNew.Restore()
 	defer restore.Abort()
 
+	storageRestoration, err := c.deps.StorageBackend.Restore()
+	if err != nil {
+		return err
+	}
+	defer storageRestoration.Abort()
+
 	handler := func(header *SnapshotHeader, msg structs.MessageType, dec *codec.Decoder) error {
 		switch {
 		case msg == structs.ChunkingStateType:
@@ -199,6 +247,14 @@ func (c *FSM) Restore(old io.ReadCloser) error {
 				return err
 			}
 			if err := c.chunker.RestoreState(chunkState); err != nil {
+				return err
+			}
+		case msg == structs.ResourceOperationType:
+			var b []byte
+			if err := dec.Decode(&b); err != nil {
+				return err
+			}
+			if err := storageRestoration.Apply(b); err != nil {
 				return err
 			}
 		case restorers[msg] != nil:
@@ -222,6 +278,7 @@ func (c *FSM) Restore(old io.ReadCloser) error {
 	if err := restore.Commit(); err != nil {
 		return err
 	}
+	storageRestoration.Commit()
 
 	// External code might be calling State(), so we need to synchronize
 	// here to make sure we swap in the new state store atomically.

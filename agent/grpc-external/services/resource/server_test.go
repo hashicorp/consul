@@ -17,7 +17,7 @@ import (
 )
 
 func TestWrite_TODO(t *testing.T) {
-	server := NewServer(Config{})
+	server := testServer(t)
 	client := testClient(t, server)
 	resp, err := client.Write(context.Background(), &pbresource.WriteRequest{})
 	require.NoError(t, err)
@@ -25,7 +25,7 @@ func TestWrite_TODO(t *testing.T) {
 }
 
 func TestWriteStatus_TODO(t *testing.T) {
-	server := NewServer(Config{})
+	server := testServer(t)
 	client := testClient(t, server)
 	resp, err := client.WriteStatus(context.Background(), &pbresource.WriteStatusRequest{})
 	require.NoError(t, err)
@@ -33,7 +33,7 @@ func TestWriteStatus_TODO(t *testing.T) {
 }
 
 func TestDelete_TODO(t *testing.T) {
-	server := NewServer(Config{})
+	server := testServer(t)
 	client := testClient(t, server)
 	resp, err := client.Delete(context.Background(), &pbresource.DeleteRequest{})
 	require.NoError(t, err)
@@ -48,7 +48,7 @@ func testServer(t *testing.T) *Server {
 	go backend.Run(testContext(t))
 
 	registry := resource.NewRegistry()
-	return NewServer(Config{registry: registry, backend: backend})
+	return NewServer(Config{registry: registry, Backend: backend})
 }
 
 func testClient(t *testing.T, server *Server) pbresource.ResourceServiceClient {
