@@ -14,6 +14,10 @@ on:
       repository-name:
         required: true
         type: string
+      go-arch:
+        required: false
+        type: string
+        default: ""
     secrets:
       elevated-github-token:
         required: true
@@ -30,6 +34,8 @@ jobs:
         with:
           go-version-file: 'go.mod'
       - name: Build
+        env:
+          GOARCH: ${{ inputs.goarch }}
         run: make dev
       # save dev build to pass to downstream jobs
       - uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # pin@v3.1.2
