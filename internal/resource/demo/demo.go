@@ -10,6 +10,7 @@ import (
 
 	"google.golang.org/protobuf/types/known/anypb"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	pbdemov1 "github.com/hashicorp/consul/proto/private/pbdemo/v1"
@@ -53,31 +54,74 @@ var (
 	}
 )
 
+const (
+	ArtistV1ReadPolicy  = `key_prefix "resource/demo.v1.artist/" { policy = "read" }`
+	ArtistV1WritePolicy = `key_prefix "resource/demo.v1.artist/" { policy = "write" }`
+	ArtistV2ReadPolicy  = `key_prefix "resource/demo.v2.artist/" { policy = "read" }`
+	ArtistV2WritePolicy = `key_prefix "resource/demo.v2.artist/" { policy = "write" }`
+)
+
 // Register demo types. Should only be called in tests and dev mode.
 // acls are optional
 func Register(r resource.Registry, acls *resource.ACLHooks) {
+
+	// TODO(spatel): remove acls arg to this function after :eyes: ^
+
+	readACL := func(authz acl.Authorizer, id *pbresource.ID) error {
+		key := fmt.Sprintf("resource/%s/%s", resource.ToGVK(id.Type), id.Name)
+		return authz.ToAllowAuthorizer().KeyReadAllowed(key, &acl.AuthorizerContext{})
+	}
+
+	writeACL := func(authz acl.Authorizer, res *pbresource.Resource) error {
+		key := fmt.Sprintf("resource/%s/%s", resource.ToGVK(res.Id.Type), res.Id.Name)
+		return authz.ToAllowAuthorizer().KeyWriteAllowed(key, &acl.AuthorizerContext{})
+	}
+
+	makeListACL := func(typ *pbresource.Type) func(acl.Authorizer, *pbresource.Tenancy) error {
+		return func(authz acl.Authorizer, tenancy *pbresource.Tenancy) error {
+			key := fmt.Sprintf("resource/%s", resource.ToGVK(typ))
+			return authz.ToAllowAuthorizer().KeyListAllowed(key, &acl.AuthorizerContext{})
+		}
+	}
+
 	r.Register(resource.Registration{
 		Type:  TypeV1Artist,
 		Proto: &pbdemov1.Artist{},
-		ACLs:  acls,
+		ACLs: &resource.ACLHooks{
+			Read:  readACL,
+			Write: writeACL,
+			List:  makeListACL(TypeV1Artist),
+		},
 	})
 
 	r.Register(resource.Registration{
 		Type:  TypeV1Album,
 		Proto: &pbdemov1.Album{},
-		ACLs:  acls,
+		ACLs: &resource.ACLHooks{
+			Read:  readACL,
+			Write: writeACL,
+			List:  makeListACL(TypeV1Album),
+		},
 	})
 
 	r.Register(resource.Registration{
 		Type:  TypeV2Artist,
 		Proto: &pbdemov2.Artist{},
-		ACLs:  acls,
+		ACLs: &resource.ACLHooks{
+			Read:  readACL,
+			Write: writeACL,
+			List:  makeListACL(TypeV2Artist),
+		},
 	})
 
 	r.Register(resource.Registration{
 		Type:  TypeV2Album,
 		Proto: &pbdemov2.Album{},
-		ACLs:  acls,
+		ACLs: &resource.ACLHooks{
+			Read:  readACL,
+			Write: writeACL,
+			List:  makeListACL(TypeV2Album),
+		},
 	})
 }
 

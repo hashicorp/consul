@@ -10,12 +10,16 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/anypb"
 
+	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/acl/resolver"
 	"github.com/hashicorp/consul/agent/grpc-external/testutils"
+	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/storage/inmem"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	pbdemov2 "github.com/hashicorp/consul/proto/private/pbdemo/v2"
 	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/go-uuid"
 )
 
 func TestWriteStatus_TODO(t *testing.T) {
@@ -32,6 +36,26 @@ func TestDelete_TODO(t *testing.T) {
 	resp, err := client.Delete(context.Background(), &pbresource.DeleteRequest{})
 	require.NoError(t, err)
 	require.NotNil(t, resp)
+}
+
+func randomACLIdentity(t *testing.T) structs.ACLIdentity {
+	id, err := uuid.GenerateUUID()
+	require.NoError(t, err)
+
+	return &structs.ACLToken{AccessorID: id}
+}
+
+func AuthorizerFrom(t *testing.T, policyStr string) resolver.Result {
+	policy, err := acl.NewPolicyFromSource(policyStr, nil, nil)
+	require.NoError(t, err)
+
+	authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
+	require.NoError(t, err)
+
+	return resolver.Result{
+		Authorizer:  authz,
+		ACLIdentity: randomACLIdentity(t),
+	}
 }
 
 func testServer(t *testing.T) *Server {

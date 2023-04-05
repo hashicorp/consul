@@ -47,7 +47,7 @@ func (s *Server) WatchList(req *pbresource.WatchListRequest, stream pbresource.R
 			return status.Errorf(codes.Internal, "failed next: %v", err)
 		}
 
-		// drop versions that don't match
+		// drop group versions that don't match
 		if event.Resource.Id.Type.GroupVersion != req.Type.GroupVersion {
 			continue
 		}

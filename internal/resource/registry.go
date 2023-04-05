@@ -110,5 +110,5 @@ func (r *TypeRegistry) Resolve(typ *pbresource.Type) (reg Registration, ok bool)
 }
 
 func ToGVK(resourceType *pbresource.Type) string {
-	return fmt.Sprintf("%s/%s/%s", resourceType.Group, resourceType.GroupVersion, resourceType.Kind)
+	return fmt.Sprintf("%s.%s.%s", resourceType.Group, resourceType.GroupVersion, resourceType.Kind)
 }

@@ -21,7 +21,7 @@ func TestRegister(t *testing.T) {
 	r.Register(serviceRegistration)
 
 	// register existing should panic
-	assertRegisterPanics(t, r.Register, serviceRegistration, "resource type mesh/v1/service already registered")
+	assertRegisterPanics(t, r.Register, serviceRegistration, "resource type mesh.v1.service already registered")
 
 	// register empty Group should panic
 	assertRegisterPanics(t, r.Register, Registration{

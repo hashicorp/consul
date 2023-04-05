@@ -10,12 +10,13 @@ import (
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 
-	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/acl/resolver"
 	"github.com/hashicorp/consul/agent/grpc-external/testutils"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/demo"
 	"github.com/hashicorp/consul/internal/storage"
 	"github.com/hashicorp/consul/proto-public/pbresource"
+	pbdemov2 "github.com/hashicorp/consul/proto/private/pbdemo/v2"
 	"github.com/hashicorp/consul/proto/private/prototest"
 )
 
@@ -29,7 +30,7 @@ func TestRead_TypeNotFound(t *testing.T) {
 	_, err = client.Read(context.Background(), &pbresource.ReadRequest{Id: artist.Id})
 	require.Error(t, err)
 	require.Equal(t, codes.InvalidArgument.String(), status.Code(err).String())
-	require.Contains(t, err.Error(), "resource type demo/v2/artist not registered")
+	require.Contains(t, err.Error(), "resource type demo.v2.artist not registered")
 }
 
 func TestRead_ResourceNotFound(t *testing.T) {
@@ -120,63 +121,78 @@ func TestRead_VerifyReadConsistencyArg(t *testing.T) {
 	}
 }
 
-func TestRead_ACL_RegisteredHook(t *testing.T) {
-	server := testServer(t)
-	client := testClient(t, server)
-
-	called := false
-	demo.Register(server.Registry, &resource.ACLHooks{
-		Read: func(authz acl.Authorizer, id *pbresource.ID) error {
-			called = true
-			return acl.ErrPermissionDenied
+func TestRead_ACLs(t *testing.T) {
+	testcases := map[string]aclTestCase{
+		// verify denied using type's custom read acl hook via demo.Register(...)
+		"custom hook denied": {
+			authz: AuthorizerFrom(t, demo.ArtistV1ReadPolicy),
+			code:  codes.PermissionDenied,
+			registerFn: func(registry resource.Registry) {
+				demo.Register(registry, nil)
+			},
 		},
-	})
-	artist, err := demo.GenerateV2Artist()
-	require.NoError(t, err)
+		// verify allowed using type's custom read acl hook via demo.Register(...)
+		"custom hook allowed": {
+			authz: AuthorizerFrom(t, demo.ArtistV2ReadPolicy),
+			code:  codes.NotFound,
+			registerFn: func(registry resource.Registry) {
+				demo.Register(registry, nil)
+			},
+		},
+		// verify denied using default read acl hook (operator:read) when type doesn't specify one
+		"default hook denied": {
+			authz: testutils.ACLNoPermissions(t),
+			code:  codes.PermissionDenied,
+			registerFn: func(registry resource.Registry) {
+				registry.Register(resource.Registration{
+					Type:  demo.TypeV2Artist,
+					Proto: &pbdemov2.Artist{},
+					ACLs:  &resource.ACLHooks{Read: nil},
+				})
+			},
+		},
+		// verify allowed using default read acl hook (operator:read) when type doesn't specify one
+		"default hook allowed": {
+			authz: testutils.ACLOperatorRead(t),
+			code:  codes.NotFound,
+			registerFn: func(registry resource.Registry) {
+				registry.Register(resource.Registration{
+					Type:  demo.TypeV2Artist,
+					Proto: &pbdemov2.Artist{},
+					ACLs:  &resource.ACLHooks{Read: nil},
+				})
+			},
+		},
+	}
 
-	_, err = client.Read(testContext(t), &pbresource.ReadRequest{Id: artist.Id})
-	require.Error(t, err)
-	require.Equal(t, codes.PermissionDenied.String(), status.Code(err).String())
-	require.True(t, called)
+	for desc, tc := range testcases {
+		t.Run(desc, func(t *testing.T) {
+			server := testServer(t)
+			client := testClient(t, server)
+
+			mockACLResolver := &MockACLResolver{}
+			mockACLResolver.On("ResolveTokenAndDefaultMeta", mock.Anything, mock.Anything, mock.Anything).
+				Return(tc.authz, nil)
+			server.ACLResolver = mockACLResolver
+
+			// decides whether default or custom acl hook used
+			tc.registerFn(server.Registry)
+
+			artist, err := demo.GenerateV2Artist()
+			require.NoError(t, err)
+
+			// exercise ACL
+			_, err = client.Read(testContext(t), &pbresource.ReadRequest{Id: artist.Id})
+			require.Error(t, err)
+			require.Equal(t, tc.code.String(), status.Code(err).String())
+		})
+	}
 }
 
-func TestRead_ACL_DefaultHook_PermissionDenied(t *testing.T) {
-	server := testServer(t)
-	client := testClient(t, server)
-
-	mockACLResolver := &MockACLResolver{}
-	mockACLResolver.On("ResolveTokenAndDefaultMeta", mock.Anything, mock.Anything, mock.Anything).
-		Return(testutils.ACLNoPermissions(t), nil)
-	server.ACLResolver = mockACLResolver
-
-	demo.Register(server.Registry, nil)
-	artist, err := demo.GenerateV2Artist()
-	require.NoError(t, err)
-
-	_, err = client.Read(testContext(t), &pbresource.ReadRequest{Id: artist.Id})
-	require.Error(t, err)
-	require.Equal(t, codes.PermissionDenied.String(), status.Code(err).String())
-}
-
-func TestRead_ACL_DefaultHook_PermissionGranted(t *testing.T) {
-	server := testServer(t)
-	client := testClient(t, server)
-
-	mockACLResolver := &MockACLResolver{}
-	mockACLResolver.On("ResolveTokenAndDefaultMeta", mock.Anything, mock.Anything, mock.Anything).
-		Return(testutils.ACLOperatorRead(t), nil)
-	server.ACLResolver = mockACLResolver
-
-	demo.Register(server.Registry, nil)
-	artist, err := demo.GenerateV2Artist()
-	require.NoError(t, err)
-
-	resource1, err := server.Backend.WriteCAS(context.Background(), artist)
-	require.NoError(t, err)
-
-	rsp, err := client.Read(context.Background(), &pbresource.ReadRequest{Id: artist.Id})
-	require.NoError(t, err)
-	prototest.AssertDeepEqual(t, resource1, rsp.Resource)
+type aclTestCase struct {
+	authz      resolver.Result
+	code       codes.Code
+	registerFn func(resource.Registry)
 }
 
 type readTestCase struct {
@@ -198,5 +214,4 @@ func readTestCases() map[string]readTestCase {
 			),
 		},
 	}
-
 }
