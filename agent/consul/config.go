@@ -408,6 +408,8 @@ type Config struct {
 
 	PeeringTestAllowPeerRegistrations bool
 
+	Reporting Reporting
+
 	// Embedded Consul Enterprise specific configuration
 	*EnterpriseConfig
 }
@@ -630,8 +632,17 @@ type ReloadableConfig struct {
 	RaftTrailingLogs      int
 	HeartbeatTimeout      time.Duration
 	ElectionTimeout       time.Duration
+	Reporting             Reporting
 }
 
 type RaftBoltDBConfig struct {
 	NoFreelistSync bool
+}
+
+type License struct {
+	Enabled bool
+}
+
+type Reporting struct {
+	License License
 }

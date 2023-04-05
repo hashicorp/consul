@@ -298,6 +298,9 @@ type Config struct {
 	LicensePollMaxTime    *string `mapstructure:"license_poll_max_time"`
 	LicenseUpdateBaseTime *string `mapstructure:"license_update_base_time"`
 	LicenseUpdateMaxTime  *string `mapstructure:"license_update_max_time"`
+
+	// license reporting
+	Reporting Reporting `mapstructure:"reporting"`
 }
 
 type GossipLANConfig struct {
@@ -923,4 +926,12 @@ type Peering struct {
 	// TestAllowPeerRegistrations controls whether CatalogRegister endpoints allow registrations for objects with `PeerName`
 	// This always gets overridden in NonUserSource()
 	TestAllowPeerRegistrations *bool `mapstructure:"test_allow_peer_registrations"`
+}
+
+type License struct {
+	Enabled *bool `mapstructure:"enabled"`
+}
+
+type Reporting struct {
+	License License `mapstructure:"license"`
 }
