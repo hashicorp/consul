@@ -295,6 +295,11 @@
     "ReconnectTimeoutLAN": "0s",
     "ReconnectTimeoutWAN": "0s",
     "RejoinAfterLeave": false,
+    "Reporting": {
+        "License": {
+            "Enabled": false
+        }
+    },
     "RequestLimitsMode": 0,
     "RequestLimitsReadRate": 0,
     "RequestLimitsWriteRate": 0,
