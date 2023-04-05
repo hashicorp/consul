@@ -59,10 +59,11 @@ func (s *Server) Write(ctx context.Context, req *pbresource.WriteRequest) (*pbre
 		//	  current version.
 		//
 		//	- StrongConsistency is expensive. In the Raft backend, it involves a round
-		//	  of heartbeats to verify cluster leadership (on top of log replication).
+		//	  of heartbeats to verify cluster leadership (in addition to the write's
+		//	  log replication).
 		//
-		//	- CAS failures will be retried anyway. So the read-modify-write cycle
-		//	  should eventually succeed.
+		//	- CAS failures will be retried by retryCAS anyway. So the read-modify-write
+		//	  cycle should eventually succeed.
 		existing, err := s.Backend.Read(ctx, storage.EventualConsistency, input.Id)
 		switch {
 		// Create path.
@@ -84,6 +85,22 @@ func (s *Server) Write(ctx context.Context, req *pbresource.WriteRequest) (*pbre
 			// User is doing a non-CAS write, use the current version.
 			if input.Version == "" {
 				input.Version = existing.Version
+			}
+
+			// Check the stored version matches the user-given version.
+			//
+			// Although CAS operations are implemented "for real" at the storage backend
+			// layer, we must check the version here too to prevent a scenario where:
+			//
+			//	- Current resource version is `v2`
+			//	- User passes version `v2`
+			//	- Read returns stale version `v1`
+			//	- We carry `v1`'s statuses over (effectively overwriting `v2`'s statuses)
+			//	- CAS operation succeeds anyway because user-given version is current
+			//
+			// TODO(boxofrad): add a test for this once the status field has been added.
+			if input.Version != existing.Version {
+				return storage.ErrCASFailure
 			}
 
 			// TODO: Carry over the statuses here.
