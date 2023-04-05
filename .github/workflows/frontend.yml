@@ -41,6 +41,9 @@ jobs:
       with:
         node-version: '16'
 
+    - name: Install Yarn
+      run: npm install -g yarn
+
     # Install dependencies.
     - name: install yarn packages
       working-directory: ui
@@ -58,6 +61,9 @@ jobs:
       with:
         node-version: '16'
 
+    - name: Install Yarn
+      run: npm install -g yarn
+
     # Install dependencies.
     - name: install yarn packages
       working-directory: ui
@@ -68,17 +74,23 @@ jobs:
 
   ember-build-test:
     needs: setup
-    runs-on: ${{ fromJSON(needs.setup.outputs.compute-large) }}
+    runs-on: ${{ fromJSON(needs.setup.outputs.compute-xl) }}
     env:
-      EMBER_TEST_REPORT: test-results/report-oss.xml #outputs test report for CircleCI test summary
-      EMBER_TEST_PARALLEL: true #enables test parallelization with ember-exam
-      CONSUL_NSPACES_ENABLED: 0 # NOTE: this should be 1 in ENT.
+      EMBER_TEST_REPORT: test-results/report-oss.xml # outputs test report for CircleCI test summary
+      EMBER_TEST_PARALLEL: true # enables test parallelization with ember-exam
+      CONSUL_NSPACES_ENABLED: ${{ endsWith(github.repository, '-enterprise') && 1 || 0 }} # NOTE: this should be 1 in ENT.
     steps:
     - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
 
     - uses: actions/setup-node@64ed1c7eab4cce3362f8c340dee64e5eaeef8f7c # pin@v3.6.0
       with:
         node-version: '16'
+
+    - name: Install Yarn
+      run: npm install -g yarn
+
+    - name: Install Chrome
+      uses: browser-actions/setup-chrome@29abc1a83d1d71557708563b4bc962d0f983a376 # pin@v1.2.1
 
     # Install dependencies.
     - name: install yarn packages
