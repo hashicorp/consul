@@ -43,12 +43,13 @@ The following TLS certificates and keys can be generated and managed by the Vaul
 1. Vault must be installed and accessible to the Consul on Kubernetes installation.
 1. `global.tls.enableAutoencrypt=true` is required if TLS is enabled for the Consul installation when using the Vault secrets backend.
 1. The Vault installation must have been initialized, unsealed and the KV2 and PKI secrets engines and the Kubernetes Auth Method enabled.
-## Next Steps
 
 ## Known Limitations
 
 1. [Cluster Peering](/consul/docs/k8s/connect/cluster-peering/tech-specs) is currently not supported for use with the Vault Secrets backend.
 1. [Consul API Gateway](/consul/docs/api-gateway) is currently not supported for use with the Vault Secrets backend. 
+
+## Next Steps
 
 The Vault integration with Consul on Kubernetes has two aspects or phases:
 - [Systems Integration](/consul/docs/k8s/deployment-configurations/vault/systems-integration) - Configure Vault and Consul on Kubernetes systems to leverage Vault as the secrets store.  
