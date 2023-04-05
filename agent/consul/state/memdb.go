@@ -95,15 +95,11 @@ func (c *changeTrackerDB) WriteTxn(idx uint64) *txn {
 	t := &txn{
 		Txn:        c.db.Txn(true),
 		Index:      idx,
-		publish:    c.publish,
+		publish:    c.publisher.Publish,
 		prePublish: c.processChanges,
 	}
 	t.Txn.TrackChanges()
 	return t
-}
-
-func (c *changeTrackerDB) publish(events []stream.Event) {
-	c.publisher.Publish(events)
 }
 
 // WriteTxnRestore returns a wrapped RW transaction that should only be used in
