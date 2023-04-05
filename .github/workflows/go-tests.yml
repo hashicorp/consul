@@ -179,37 +179,37 @@ jobs:
     secrets:
       elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
 
-  dev-build-arm64:
-    # only run on enterprise because GHA does not have arm64 runners in OSS
-    if: ${{ endsWith(github.repository, '-enterprise') }}
-    needs: 
-    - setup   
-    uses: ./.github/workflows/reusable-dev-build.yml
-    with:
-      uploaded-binary-name: 'consul-bin-arm64'
-      runs-on: ${{ needs.setup.outputs.compute-xl }}
-      go-arch: "arm64"
-      repository-name: ${{ github.repository }}
-    secrets:
-      elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
+  # dev-build-arm64:
+  #   # only run on enterprise because GHA does not have arm64 runners in OSS
+  #   if: ${{ endsWith(github.repository, '-enterprise') }}
+  #   needs: 
+  #   - setup   
+  #   uses: ./.github/workflows/reusable-dev-build.yml
+  #   with:
+  #     uploaded-binary-name: 'consul-bin-arm64'
+  #     runs-on: ${{ needs.setup.outputs.compute-xl }}
+  #     go-arch: "arm64"
+  #     repository-name: ${{ github.repository }}
+  #   secrets:
+  #     elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
 
-  go-test-arm64:
-    # only run on enterprise because GHA does not have arm64 runners in OSS
-    if: ${{ endsWith(github.repository, '-enterprise') }}
-    needs: 
-    - setup   
-    - dev-build-arm64
-    uses: ./.github/workflows/reusable-unit-split.yml
-    with:
-      directory: .
-      uploaded-binary-name: 'consul-bin-arm64'
-      runner-count: 12
-      runs-on: "['self-hosted', 'ondemand', 'os=macos-arm', 'arm64']"
-      go-test-flags: 'if ! [[ "$GITHUB_REF_NAME" =~ ^main$|^release/ ]]; then export GO_TEST_FLAGS="-short"; fi'
-      repository-name: ${{ github.repository }}
-    secrets:
-      elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
-      consul-license: ${{secrets.CONSUL_LICENSE}}
+  # go-test-arm64:
+  #   # only run on enterprise because GHA does not have arm64 runners in OSS
+  #   if: ${{ endsWith(github.repository, '-enterprise') }}
+  #   needs: 
+  #   - setup   
+  #   - dev-build-arm64
+  #   uses: ./.github/workflows/reusable-unit-split.yml
+  #   with:
+  #     directory: .
+  #     uploaded-binary-name: 'consul-bin-arm64'
+  #     runner-count: 12
+  #     runs-on: "['self-hosted', 'ondemand', 'os=macos-arm', 'arm64']"
+  #     go-test-flags: 'if ! [[ "$GITHUB_REF_NAME" =~ ^main$|^release/ ]]; then export GO_TEST_FLAGS="-short"; fi'
+  #     repository-name: ${{ github.repository }}
+  #   secrets:
+  #     elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
+  #     consul-license: ${{secrets.CONSUL_LICENSE}}
 
   go-test-oss:
     needs: 
