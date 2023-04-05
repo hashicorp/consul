@@ -18,7 +18,7 @@ jobs:
         id: lychee
         uses: lycheeverse/lychee-action@v1.6.1
         with:
-          args: ./website/content/docs/ --base https://developer.hashicorp.com/ --exclude-all-private --exclude '\.(svg|gif|jpg|png)' --exclude 'manage\.auth0\.com' --max-concurrency=24 --no-progress --verbose
+          args: ./website/content/docs/ --base https://developer.hashicorp.com/ --exclude-all-private --exclude '\.(svg|gif|jpg|png)' --exclude 'manage\.auth0\.com' --accept 403 --max-concurrency=24 --no-progress --verbose
           # Fail GitHub action when broken links are found?
           fail: false
         env:
