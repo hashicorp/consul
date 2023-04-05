@@ -1470,7 +1470,10 @@ func newConsulConfig(runtimeCfg *config.RuntimeConfig, logger hclog.Logger) (*co
 	cfg.PeeringEnabled = runtimeCfg.PeeringEnabled
 	cfg.PeeringTestAllowPeerRegistrations = runtimeCfg.PeeringTestAllowPeerRegistrations
 
+	cfg.Reporting.License.Enabled = runtimeCfg.Reporting.License.Enabled
+
 	enterpriseConsulConfig(cfg, runtimeCfg)
+
 	return cfg, nil
 }
 
@@ -4157,6 +4160,11 @@ func (a *Agent) reloadConfigInternal(newCfg *config.RuntimeConfig) error {
 		HeartbeatTimeout:      newCfg.ConsulRaftHeartbeatTimeout,
 		ElectionTimeout:       newCfg.ConsulRaftElectionTimeout,
 		RaftTrailingLogs:      newCfg.RaftTrailingLogs,
+		Reporting: consul.Reporting{
+			License: consul.License{
+				Enabled: newCfg.Reporting.License.Enabled,
+			},
+		},
 	}
 	if err := a.delegate.ReloadConfig(cc); err != nil {
 		return err
