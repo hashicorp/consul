@@ -565,6 +565,9 @@ func newContainerRequest(config Config, opts containerOpts, ports ...int) (podRe
 	for _, port := range ports {
 		pod.ExposedPorts = append(pod.ExposedPorts, fmt.Sprintf("%d/tcp", port))
 	}
+	if utils.Debug {
+		pod.ExposedPorts = append(pod.ExposedPorts, "4000/tcp")
+	}
 
 	// For handshakes like auto-encrypt, it can take 10's of seconds for the agent to become "ready".
 	// If we only wait until the log stream starts, subsequent commands to agents will fail.

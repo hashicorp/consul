@@ -19,7 +19,7 @@ func TestBasic(t *testing.T) {
 	t.Parallel()
 
 	configCtx := libcluster.NewBuildContext(t, libcluster.BuildOptions{
-		ConsulImageName: utils.TargetImageName,
+		ConsulImageName: utils.GetTargetImageName(),
 		ConsulVersion:   utils.LatestVersion,
 	})
 
