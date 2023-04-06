@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package resource
 
 import (
@@ -22,8 +25,10 @@ type Server struct {
 }
 
 type Config struct {
-	Logger      hclog.Logger
-	Registry    Registry
+	Logger   hclog.Logger
+	Registry Registry
+
+	// Backend is the storage backend that will be used for resource persistence.
 	Backend     Backend
 	ACLResolver ACLResolver
 }
@@ -56,11 +61,6 @@ func (s *Server) Register(grpcServer *grpc.Server) {
 func (s *Server) WriteStatus(ctx context.Context, req *pbresource.WriteStatusRequest) (*pbresource.WriteStatusResponse, error) {
 	// TODO
 	return &pbresource.WriteStatusResponse{}, nil
-}
-
-func (s *Server) Delete(ctx context.Context, req *pbresource.DeleteRequest) (*pbresource.DeleteResponse, error) {
-	// TODO
-	return &pbresource.DeleteResponse{}, nil
 }
 
 // Get token from grpc metadata or AnonymounsTokenId if not found

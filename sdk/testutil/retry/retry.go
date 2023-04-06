@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 // Package retry provides support for repeating operations in tests.
 //
 // A sample retry operation looks like this:

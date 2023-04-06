@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package resource
 
 import (
@@ -35,7 +38,7 @@ func TestWatchList_TypeNotFound(t *testing.T) {
 
 	err = mustGetError(t, rspCh)
 	require.Equal(t, codes.InvalidArgument.String(), status.Code(err).String())
-	require.Contains(t, err.Error(), "resource type demo/v2/artist not registered")
+	require.Contains(t, err.Error(), "resource type demo.v2.artist not registered")
 }
 
 func TestWatchList_GroupVersionMatches(t *testing.T) {

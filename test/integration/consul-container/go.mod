@@ -3,6 +3,7 @@ module github.com/hashicorp/consul/test/integration/consul-container
 go 1.20
 
 require (
+	fortio.org/fortio v1.54.0
 	github.com/avast/retry-go v3.0.0+incompatible
 	github.com/docker/docker v20.10.22+incompatible
 	github.com/docker/go-connections v0.4.0
@@ -19,10 +20,15 @@ require (
 	github.com/stretchr/testify v1.8.1
 	github.com/teris-io/shortid v0.0.0-20220617161101-71ec9f2aa569
 	github.com/testcontainers/testcontainers-go v0.15.0
-	golang.org/x/mod v0.6.0-dev.0.20220419223038-86c51ed26bb4
+	golang.org/x/mod v0.8.0
+	google.golang.org/grpc v1.53.0
 )
 
 require (
+	fortio.org/dflag v1.5.2 // indirect
+	fortio.org/log v1.3.0 // indirect
+	fortio.org/sets v1.0.2 // indirect
+	fortio.org/version v1.0.2 // indirect
 	github.com/Azure/go-ansiterm v0.0.0-20210617225240-d185dfc1b5a1 // indirect
 	github.com/Microsoft/go-winio v0.5.2 // indirect
 	github.com/Microsoft/hcsshim v0.9.4 // indirect
@@ -36,7 +42,7 @@ require (
 	github.com/fatih/color v1.13.0 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
-	github.com/golang/protobuf v1.5.2 // indirect
+	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/google/btree v1.0.0 // indirect
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
@@ -66,11 +72,12 @@ require (
 	github.com/sean-/seed v0.0.0-20170313163322-e2103e2c3529 // indirect
 	github.com/sirupsen/logrus v1.8.1 // indirect
 	go.opencensus.io v0.23.0 // indirect
-	golang.org/x/net v0.4.0 // indirect
+	golang.org/x/exp v0.0.0-20230303215020-44a13b063f3e // indirect
+	golang.org/x/net v0.8.0 // indirect
 	golang.org/x/sync v0.0.0-20220722155255-886fb9371eb4 // indirect
-	golang.org/x/sys v0.3.0 // indirect
-	google.golang.org/genproto v0.0.0-20220921223823-23cae91e6737 // indirect
-	google.golang.org/grpc v1.49.0 // indirect
+	golang.org/x/sys v0.6.0 // indirect
+	golang.org/x/text v0.8.0 // indirect
+	google.golang.org/genproto v0.0.0-20230223222841-637eb2293923 // indirect
 	google.golang.org/protobuf v1.28.1 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

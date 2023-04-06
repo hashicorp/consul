@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package resource
 
 import (
@@ -23,17 +26,9 @@ import (
 )
 
 func TestWriteStatus_TODO(t *testing.T) {
-	server := NewServer(Config{})
+	server := testServer(t)
 	client := testClient(t, server)
 	resp, err := client.WriteStatus(context.Background(), &pbresource.WriteStatusRequest{})
-	require.NoError(t, err)
-	require.NotNil(t, resp)
-}
-
-func TestDelete_TODO(t *testing.T) {
-	server := NewServer(Config{})
-	client := testClient(t, server)
-	resp, err := client.Delete(context.Background(), &pbresource.DeleteRequest{})
 	require.NoError(t, err)
 	require.NotNil(t, resp)
 }

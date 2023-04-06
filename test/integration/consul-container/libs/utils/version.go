@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package utils
 
 import (
@@ -45,4 +48,18 @@ func DockerImage(image, version string) string {
 func isSemVer(ver string) bool {
 	_, err := version.NewVersion(ver)
 	return err == nil
+}
+
+// ensure version a >= b
+func VersionGTE(a, b string) bool {
+	av := version.Must(version.NewVersion(a))
+	bv := version.Must(version.NewVersion(b))
+	return av.GreaterThanOrEqual(bv)
+}
+
+// ensure version a < b
+func VersionLT(a, b string) bool {
+	av := version.Must(version.NewVersion(a))
+	bv := version.Must(version.NewVersion(b))
+	return av.LessThan(bv)
 }

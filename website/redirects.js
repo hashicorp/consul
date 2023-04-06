@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 // REDIRECTS FILE
 
 // See the README file in this directory for documentation. Please do not

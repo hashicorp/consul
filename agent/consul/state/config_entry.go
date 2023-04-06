@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package state
 
 import (
@@ -727,7 +730,9 @@ func validateProposedConfigEntryInServiceGraph(
 
 		entry := newEntry.(*structs.ExportedServicesConfigEntry)
 
-		_, serviceList, err := listServicesExportedToAnyPeerByConfigEntry(nil, tx, entry, nil)
+		_, serviceList, err := listServicesExportedToAnyPeerByConfigEntry(nil, tx, entry.EnterpriseMeta, map[configentry.KindName]structs.ConfigEntry{
+			configentry.NewKindNameForEntry(entry): entry,
+		})
 		if err != nil {
 			return err
 		}
@@ -746,12 +751,68 @@ func validateProposedConfigEntryInServiceGraph(
 
 	case structs.SamenessGroup:
 		// Any service resolver could reference a sameness group.
-		_, entries, err := configEntriesByKindTxn(tx, nil, structs.ServiceResolver, wildcardEntMeta)
+		_, resolverEntries, err := configEntriesByKindTxn(tx, nil, structs.ServiceResolver, wildcardEntMeta)
 		if err != nil {
 			return err
 		}
-		for _, entry := range entries {
+		for _, entry := range resolverEntries {
 			checkChains[structs.NewServiceID(entry.GetName(), entry.GetEnterpriseMeta())] = struct{}{}
+		}
+
+		// This is the case for deleting a config entry
+		if newEntry == nil {
+			break
+		}
+
+		entry := newEntry.(*structs.SamenessGroupConfigEntry)
+
+		_, samenessGroupEntries, err := configEntriesByKindTxn(tx, nil, structs.SamenessGroup, wildcardEntMeta)
+		if err != nil {
+			return err
+		}
+
+		// Replace the existing sameness group if one exists.
+		var exists bool
+		for i := range samenessGroupEntries {
+			sg := samenessGroupEntries[i]
+			if sg.GetName() == entry.Name {
+				samenessGroupEntries[i] = entry
+				exists = true
+				break
+			}
+		}
+
+		// If this sameness group doesn't currently exist, add it.
+		if !exists {
+			samenessGroupEntries = append(samenessGroupEntries, entry)
+		}
+
+		existingPartitions := make(map[string]string)
+		existingPeers := make(map[string]string)
+		for _, e := range samenessGroupEntries {
+			sg, ok := e.(*structs.SamenessGroupConfigEntry)
+			if !ok {
+				return fmt.Errorf("type %T is not a sameness group config entry", e)
+			}
+
+			for _, m := range sg.AllMembers() {
+				if m.Peer != "" {
+					if prev, ok := existingPeers[m.Peer]; ok {
+						return fmt.Errorf("members can only belong to a single sameness group, but cluster peer %q is shared between groups %q and %q",
+							m.Peer, prev, sg.Name,
+						)
+					}
+					existingPeers[m.Peer] = sg.Name
+					continue
+				}
+
+				if prev, ok := existingPartitions[m.Partition]; ok {
+					return fmt.Errorf("members can only belong to a single sameness group, but partition %q is shared between groups %q and %q",
+						m.Partition, prev, sg.Name,
+					)
+				}
+				existingPartitions[m.Partition] = sg.Name
+			}
 		}
 
 	case structs.ProxyDefaults:
@@ -1483,7 +1544,7 @@ func readDiscoveryChainConfigEntriesTxn(
 
 	peerEntMeta := structs.DefaultEnterpriseMetaInPartition(entMeta.PartitionOrDefault())
 	for sg := range todoSamenessGroups {
-		idx, entry, err := getSamenessGroupConfigEntryTxn(tx, ws, sg, overrides, peerEntMeta)
+		idx, entry, err := getSamenessGroupConfigEntryTxn(tx, ws, sg, overrides, peerEntMeta.PartitionOrDefault())
 		if err != nil {
 			return 0, nil, err
 		}
@@ -1494,12 +1555,27 @@ func readDiscoveryChainConfigEntriesTxn(
 			continue
 		}
 
-		for _, e := range entry.Members {
-			if e.Peer != "" {
-				todoPeers[e.Peer] = struct{}{}
-			}
+		for _, peer := range entry.RelatedPeers() {
+			todoPeers[peer] = struct{}{}
 		}
 		res.SamenessGroups[sg] = entry
+	}
+
+	if r := res.Resolvers[sid]; r == nil {
+		idx, sg, err := getDefaultSamenessGroup(tx, ws, sid.PartitionOrDefault())
+		if err != nil {
+			return 0, nil, err
+		}
+		if idx > maxIdx {
+			maxIdx = idx
+		}
+		if sg != nil {
+			res.DefaultSamenessGroup = sg
+			res.SamenessGroups[sg.Name] = sg
+			for _, peer := range sg.RelatedPeers() {
+				todoPeers[peer] = struct{}{}
+			}
+		}
 	}
 
 	for peerName := range todoPeers {
@@ -1715,32 +1791,6 @@ func getServiceIntentionsConfigEntryTxn(
 		return 0, nil, fmt.Errorf("invalid service config type %T", entry)
 	}
 	return idx, ixn, nil
-}
-
-// getExportedServicesConfigEntryTxn is a convenience method for fetching a
-// exported-services kind of config entry.
-//
-// If an override KEY is present for the requested config entry, the index
-// returned will be 0. Any override VALUE (nil or otherwise) will be returned
-// if there is a KEY match.
-func getExportedServicesConfigEntryTxn(
-	tx ReadTxn,
-	ws memdb.WatchSet,
-	overrides map[configentry.KindName]structs.ConfigEntry,
-	entMeta *acl.EnterpriseMeta,
-) (uint64, *structs.ExportedServicesConfigEntry, error) {
-	idx, entry, err := configEntryWithOverridesTxn(tx, ws, structs.ExportedServices, entMeta.PartitionOrDefault(), overrides, entMeta)
-	if err != nil {
-		return 0, nil, err
-	} else if entry == nil {
-		return idx, nil, nil
-	}
-
-	export, ok := entry.(*structs.ExportedServicesConfigEntry)
-	if !ok {
-		return 0, nil, fmt.Errorf("invalid service config type %T", entry)
-	}
-	return idx, export, nil
 }
 
 func configEntryWithOverridesTxn(

@@ -1447,12 +1447,14 @@ func ServiceResolverFailoverPolicyToStructs(s *ServiceResolverFailoverPolicy, t 
 		return
 	}
 	t.Mode = s.Mode
+	t.Regions = s.Regions
 }
 func ServiceResolverFailoverPolicyFromStructs(t *structs.ServiceResolverFailoverPolicy, s *ServiceResolverFailoverPolicy) {
 	if s == nil {
 		return
 	}
 	s.Mode = t.Mode
+	s.Regions = t.Regions
 }
 func ServiceResolverFailoverTargetToStructs(s *ServiceResolverFailoverTarget, t *structs.ServiceResolverFailoverTarget) {
 	if s == nil {

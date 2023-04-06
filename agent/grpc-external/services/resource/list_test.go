@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package resource
 
 import (
@@ -31,7 +34,7 @@ func TestList_TypeNotFound(t *testing.T) {
 	})
 	require.Error(t, err)
 	require.Equal(t, codes.InvalidArgument.String(), status.Code(err).String())
-	require.Contains(t, err.Error(), "resource type demo/v2/artist not registered")
+	require.Contains(t, err.Error(), "resource type demo.v2.artist not registered")
 }
 
 func TestList_Empty(t *testing.T) {

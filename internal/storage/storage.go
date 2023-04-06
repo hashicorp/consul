@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package storage
 
 import (
@@ -29,6 +32,11 @@ var (
 	// not be achieved because of a consistency or availability issue (e.g. loss of
 	// quorum, or when interacting with a Raft follower).
 	ErrInconsistent = errors.New("cannot satisfy consistency requirements")
+
+	// ErrWatchClosed is returned by Watch.Next when the watch is closed, e.g. when
+	// a snapshot is restored and the watch's events are no longer valid. Consumers
+	// should discard any materialized state and start a new watch.
+	ErrWatchClosed = errors.New("watch closed")
 )
 
 // ReadConsistency is used to specify the required consistency guarantees for
@@ -266,10 +274,13 @@ type Backend interface {
 }
 
 // Watch represents a watch on a given set of resources. Call Next to get the
-// next event (i.e. upsert or deletion).
+// next event (i.e. upsert or deletion) and Close when you're done watching.
 type Watch interface {
 	// Next returns the next event (i.e. upsert or deletion)
 	Next(ctx context.Context) (*pbresource.WatchEvent, error)
+
+	// Close the watch and free its associated resources.
+	Close()
 }
 
 // UnversionedType represents a pbresource.Type as it is stored without the

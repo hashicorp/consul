@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 // Package ae provides tools to synchronize state between local and remote consul servers.
 package ae
 

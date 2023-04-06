@@ -89,6 +89,24 @@ These are some metrics emitted that can help you understand the health of your c
 
 **What to look for:** For a healthy cluster, you're looking for a `lastContact` lower than 200ms, `leader` > 0 and `candidate` == 0. Deviations from this might indicate flapping leadership.
 
+### Certificate Authority Expiration
+
+| Metric Name                            | Description                                                             | Unit    | Type  |
+| :------------------------- | :---------------------------------------------------------------------------------- | :------ | :---- |
+| `consul.mesh.active-root-ca.expiry`    | The number of seconds until the root CA expires, updated every hour.    | seconds | gauge |
+| `consul.mesh.active-signing-ca.expiry` | The number of seconds until the signing CA expires, updated every hour. | seconds | gauge |
+
+** Why they're important:** Consul Mesh requires a CA to sign all certificates
+used to connect the mesh and the mesh network ceases to work if they expire and
+become invalid. The Root is particularly important to monitor as Consul does
+not automatically rotate it.
+
+** What to look for:** The Root CA should be monitored for an approaching
+expiration, to indicate it is time for you to rotate the "root" CA either manually or with external automation.
+The signing (intermediate) certificate should be
+rotated automatically by Consul, but should be monitored in case of rotation isn't working;
+in this scenario, check the server agent logs for messages related to the CA system.
+
 ### Autopilot
 
 | Metric Name                | Description                                                                                                                                                                  | Unit         | Type  |
@@ -670,8 +688,6 @@ are allowed for <EnterpriseAlert inline />.
 | `consul.catalog.connect.query-tag`     | Increments for each connect-based catalog query for the given service with the given tag.                                                                                                                                                                                                                                                                                                                                          | queries                                 | counter |
 | `consul.catalog.connect.query-tags`    | Increments for each connect-based catalog query for the given service with the given tags.                                                                                                                                                                                                                                                                                                                                         | queries                                 | counter |
 | `consul.catalog.connect.not-found`     | Increments for each connect-based catalog query where the given service could not be found.                                                                                                                                                                                                                                                                                                                                        | queries                                 | counter |
-| `consul.mesh.active-root-ca.expiry`    | The number of seconds until the root CA expires, updated every hour.                                                                                                                                                                                                                                                                                                                                                               | seconds                                 | gauge   |
-| `consul.mesh.active-signing-ca.expiry` | The number of seconds until the signing CA expires, updated every hour.                                                                                                                                                                                                                                                                                                                                                            | seconds                                 | gauge   |
 | `consul.agent.tls.cert.expiry`         | The number of seconds until the Agent TLS certificate expires, updated every hour.                                                                                                                                                                                                                                                                                                                                                 | seconds                                 | gauge   |
 
 ## Connect Built-in Proxy Metrics
