@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/consul/internal/resource"
+	"github.com/hashicorp/consul/internal/resource/demo"
 	"github.com/hashicorp/consul/internal/storage"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/proto/private/prototest"
@@ -25,25 +26,25 @@ func TestList_TypeNotFound(t *testing.T) {
 	client := testClient(t, server)
 
 	_, err := client.List(context.Background(), &pbresource.ListRequest{
-		Type:       typev1,
-		Tenancy:    tenancy,
+		Type:       demo.TypeV2Artist,
+		Tenancy:    demo.TenancyDefault,
 		NamePrefix: "",
 	})
 	require.Error(t, err)
 	require.Equal(t, codes.InvalidArgument.String(), status.Code(err).String())
-	require.Contains(t, err.Error(), "resource type mesh/v1/service not registered")
+	require.Contains(t, err.Error(), "resource type demo/v2/artist not registered")
 }
 
 func TestList_Empty(t *testing.T) {
 	for desc, tc := range listTestCases() {
 		t.Run(desc, func(t *testing.T) {
 			server := testServer(t)
+			demo.Register(server.Registry)
 			client := testClient(t, server)
-			server.registry.Register(resource.Registration{Type: typev1})
 
 			rsp, err := client.List(tc.ctx, &pbresource.ListRequest{
-				Type:       typev1,
-				Tenancy:    tenancy,
+				Type:       demo.TypeV1Artist,
+				Tenancy:    demo.TenancyDefault,
 				NamePrefix: "",
 			})
 			require.NoError(t, err)
@@ -56,26 +57,25 @@ func TestList_Many(t *testing.T) {
 	for desc, tc := range listTestCases() {
 		t.Run(desc, func(t *testing.T) {
 			server := testServer(t)
+			demo.Register(server.Registry)
 			client := testClient(t, server)
-			server.registry.Register(resource.Registration{Type: typev1})
 
 			resources := make([]*pbresource.Resource, 10)
 			for i := 0; i < len(resources); i++ {
-				r := &pbresource.Resource{
-					Id: &pbresource.ID{
-						Uid:     fmt.Sprintf("uid%d", i),
-						Name:    fmt.Sprintf("name%d", i),
-						Type:    typev1,
-						Tenancy: tenancy,
-					},
-					Version: "",
-				}
-				server.Backend.WriteCAS(tc.ctx, r)
+				artist, err := demo.GenerateV2Artist()
+				require.NoError(t, err)
+
+				// Prevent test flakes if the generated names collide.
+				artist.Id.Name = fmt.Sprintf("%s-%d", artist.Id.Name, i)
+				_, err = server.Backend.WriteCAS(tc.ctx, artist)
+				require.NoError(t, err)
+
+				resources[i] = artist
 			}
 
 			rsp, err := client.List(tc.ctx, &pbresource.ListRequest{
-				Type:       typev1,
-				Tenancy:    tenancy,
+				Type:       demo.TypeV2Artist,
+				Tenancy:    demo.TenancyDefault,
 				NamePrefix: "",
 			})
 			require.NoError(t, err)
@@ -88,13 +88,18 @@ func TestList_GroupVersionMismatch(t *testing.T) {
 	for desc, tc := range listTestCases() {
 		t.Run(desc, func(t *testing.T) {
 			server := testServer(t)
+			demo.Register(server.Registry)
 			client := testClient(t, server)
-			server.registry.Register(resource.Registration{Type: typev1})
-			server.Backend.WriteCAS(tc.ctx, &pbresource.Resource{Id: id2})
+
+			artist, err := demo.GenerateV2Artist()
+			require.NoError(t, err)
+
+			_, err = server.Backend.WriteCAS(tc.ctx, artist)
+			require.NoError(t, err)
 
 			rsp, err := client.List(tc.ctx, &pbresource.ListRequest{
-				Type:       typev1,
-				Tenancy:    tenancy,
+				Type:       demo.TypeV1Artist,
+				Tenancy:    artist.Id.Tenancy,
 				NamePrefix: "",
 			})
 			require.NoError(t, err)
@@ -109,18 +114,21 @@ func TestList_VerifyReadConsistencyArg(t *testing.T) {
 		t.Run(desc, func(t *testing.T) {
 			mockBackend := NewMockBackend(t)
 			server := NewServer(Config{
-				registry: resource.NewRegistry(),
+				Registry: resource.NewRegistry(),
 				Backend:  mockBackend,
 			})
-			server.registry.Register(resource.Registration{Type: typev1})
-			resource1 := &pbresource.Resource{Id: id1, Version: "1"}
+			demo.Register(server.Registry)
+
+			artist, err := demo.GenerateV2Artist()
+			require.NoError(t, err)
+
 			mockBackend.On("List", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
-				Return([]*pbresource.Resource{resource1}, nil)
+				Return([]*pbresource.Resource{artist}, nil)
 			client := testClient(t, server)
 
-			rsp, err := client.List(tc.ctx, &pbresource.ListRequest{Type: typev1, Tenancy: tenancy, NamePrefix: ""})
+			rsp, err := client.List(tc.ctx, &pbresource.ListRequest{Type: artist.Id.Type, Tenancy: artist.Id.Tenancy, NamePrefix: ""})
 			require.NoError(t, err)
-			prototest.AssertDeepEqual(t, resource1, rsp.Resources[0])
+			prototest.AssertDeepEqual(t, artist, rsp.Resources[0])
 			mockBackend.AssertCalled(t, "List", mock.Anything, tc.consistency, mock.Anything, mock.Anything, mock.Anything)
 		})
 	}

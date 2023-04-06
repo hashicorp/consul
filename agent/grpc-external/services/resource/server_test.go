@@ -5,24 +5,20 @@ package resource
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
+	"google.golang.org/protobuf/types/known/anypb"
 
 	"github.com/hashicorp/consul/agent/grpc-external/testutils"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/storage/inmem"
 	"github.com/hashicorp/consul/proto-public/pbresource"
+	pbdemov2 "github.com/hashicorp/consul/proto/private/pbdemo/v2"
+	"github.com/hashicorp/consul/sdk/testutil"
 )
-
-func TestWrite_TODO(t *testing.T) {
-	server := testServer(t)
-	client := testClient(t, server)
-	resp, err := client.Write(context.Background(), &pbresource.WriteRequest{})
-	require.NoError(t, err)
-	require.NotNil(t, resp)
-}
 
 func TestWriteStatus_TODO(t *testing.T) {
 	server := testServer(t)
@@ -47,8 +43,11 @@ func testServer(t *testing.T) *Server {
 	require.NoError(t, err)
 	go backend.Run(testContext(t))
 
-	registry := resource.NewRegistry()
-	return NewServer(Config{registry: registry, Backend: backend})
+	return NewServer(Config{
+		Logger:   testutil.Logger(t),
+		Registry: resource.NewRegistry(),
+		Backend:  backend,
+	})
 }
 
 func testClient(t *testing.T, server *Server) pbresource.ResourceServiceClient {
@@ -67,46 +66,24 @@ func testClient(t *testing.T, server *Server) pbresource.ResourceServiceClient {
 }
 
 func testContext(t *testing.T) context.Context {
+	t.Helper()
+
 	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)
 	return ctx
 }
 
-var (
-	tenancy = &pbresource.Tenancy{
-		Partition: "default",
-		Namespace: "default",
-		PeerName:  "local",
-	}
-	typev1 = &pbresource.Type{
-		Group:        "mesh",
-		GroupVersion: "v1",
-		Kind:         "service",
-	}
-	typev2 = &pbresource.Type{
-		Group:        "mesh",
-		GroupVersion: "v2",
-		Kind:         "service",
-	}
-	id1 = &pbresource.ID{
-		Uid:     "abcd",
-		Name:    "billing",
-		Type:    typev1,
-		Tenancy: tenancy,
-	}
-	id2 = &pbresource.ID{
-		Uid:     "abcd",
-		Name:    "billing",
-		Type:    typev2,
-		Tenancy: tenancy,
-	}
-	resourcev1 = &pbresource.Resource{
-		Id: &pbresource.ID{
-			Uid:     "someUid",
-			Name:    "someName",
-			Type:    typev1,
-			Tenancy: tenancy,
-		},
-		Version: "",
-	}
-)
+func modifyArtist(t *testing.T, res *pbresource.Resource) *pbresource.Resource {
+	t.Helper()
+
+	var artist pbdemov2.Artist
+	require.NoError(t, res.Data.UnmarshalTo(&artist))
+	artist.Name = fmt.Sprintf("The artist formerly known as %s", artist.Name)
+
+	data, err := anypb.New(&artist)
+	require.NoError(t, err)
+
+	res = clone(res)
+	res.Data = data
+	return res
+}
