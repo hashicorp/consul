@@ -19,14 +19,13 @@ env:
   GOTESTSUM_VERSION: 1.8.2
 
 jobs:
-  setup:
-    fail-on-purpose:
-      needs: 
-      runs-on: ubuntu-latest
-      steps:
-      - run: |
-              echo "Failing on purpose"
-              exit 1
+  fail-on-purpose:
+    needs: 
+    runs-on: ubuntu-latest
+    steps:
+    - run: |
+            echo "Failing on purpose"
+            exit 1
   #   name: Setup
   #   runs-on: ubuntu-latest
   #   outputs:
