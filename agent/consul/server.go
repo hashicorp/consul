@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package consul
 
 import (
@@ -65,7 +68,7 @@ import (
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/demo"
 	"github.com/hashicorp/consul/internal/storage"
-	"github.com/hashicorp/consul/internal/storage/inmem"
+	raftstorage "github.com/hashicorp/consul/internal/storage/raft"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/lib/routine"
 	"github.com/hashicorp/consul/logging"
@@ -251,6 +254,9 @@ type Server struct {
 	// raftNotifyCh is set up by setupRaft() and ensures that we get reliable leader
 	// transition notifications from the Raft layer.
 	raftNotifyCh <-chan bool
+
+	// raftStorageBackend is the Raft-backed storage backend for resources.
+	raftStorageBackend *raftstorage.Backend
 
 	// reconcileCh is used to pass events from the serf handler
 	// into the leader manager, so that the strong state can be
@@ -451,14 +457,6 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server, incom
 
 	loggers := newLoggerStore(serverLogger)
 
-	fsmDeps := fsm.Deps{
-		Logger: flat.Logger,
-		NewStateStore: func() *state.Store {
-			return state.NewStateStoreWithEventPublisher(gc, flat.EventPublisher)
-		},
-		Publisher: flat.EventPublisher,
-	}
-
 	if incomingRPCLimiter == nil {
 		incomingRPCLimiter = rpcRate.NullRequestLimitsHandler()
 	}
@@ -485,13 +483,26 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server, incom
 		shutdownCh:              shutdownCh,
 		leaderRoutineManager:    routine.NewManager(logger.Named(logging.Leader)),
 		aclAuthMethodValidators: authmethod.NewCache(),
-		fsm:                     fsm.NewFromDeps(fsmDeps),
 		publisher:               flat.EventPublisher,
 		incomingRPCLimiter:      incomingRPCLimiter,
 		routineManager:          routine.NewManager(logger.Named(logging.ConsulServer)),
 	}
-
 	incomingRPCLimiter.Register(s)
+
+	s.raftStorageBackend, err = raftstorage.NewBackend(&raftHandle{s}, logger.Named("raft-storage-backend"))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create storage backend: %w", err)
+	}
+	go s.raftStorageBackend.Run(&lib.StopChannelContext{StopCh: shutdownCh})
+
+	s.fsm = fsm.NewFromDeps(fsm.Deps{
+		Logger: flat.Logger,
+		NewStateStore: func() *state.Store {
+			return state.NewStateStoreWithEventPublisher(gc, flat.EventPublisher)
+		},
+		Publisher:      flat.EventPublisher,
+		StorageBackend: s.raftStorageBackend,
+	})
 
 	s.hcpManager = hcp.NewManager(hcp.ManagerConfig{
 		Client:   flat.HCP.Client,
@@ -738,15 +749,8 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server, incom
 	s.overviewManager = NewOverviewManager(s.logger, s.fsm, s.config.MetricsReportingInterval)
 	go s.overviewManager.Run(&lib.StopChannelContext{StopCh: s.shutdownCh})
 
-	// TODO: replace this with the Raft backend.
-	backend, err := inmem.NewBackend()
-	if err != nil {
-		return nil, fmt.Errorf("failed to create storage backend: %w", err)
-	}
-	go backend.Run(&lib.StopChannelContext{StopCh: s.shutdownCh})
-
 	// Initialize external gRPC server
-	s.setupExternalGRPC(config, logger, backend)
+	s.setupExternalGRPC(config, s.raftStorageBackend, logger)
 
 	// Initialize internal gRPC server.
 	//
@@ -1046,11 +1050,22 @@ func (s *Server) setupRaft() error {
 				return fmt.Errorf("recovery failed to parse peers.json: %v", err)
 			}
 
+			// It's safe to pass nil as the handle argument here because we won't call
+			// the backend's data access methods (only Apply, Snapshot, and Restore).
+			backend, err := raftstorage.NewBackend(nil, hclog.NewNullLogger())
+			if err != nil {
+				return fmt.Errorf("recovery failed: %w", err)
+			}
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+			go backend.Run(ctx)
+
 			tmpFsm := fsm.NewFromDeps(fsm.Deps{
 				Logger: s.logger,
 				NewStateStore: func() *state.Store {
 					return state.NewStateStore(s.tombstoneGC)
 				},
+				StorageBackend: backend,
 			})
 			if err := raft.RecoverCluster(s.config.RaftConfig, tmpFsm,
 				log, stable, snap, trans, configuration); err != nil {
@@ -1182,7 +1197,7 @@ func (s *Server) setupRPC() error {
 }
 
 // Initialize and register services on external gRPC server.
-func (s *Server) setupExternalGRPC(config *Config, logger hclog.Logger, backend storage.Backend) {
+func (s *Server) setupExternalGRPC(config *Config, backend storage.Backend, logger hclog.Logger) {
 	s.externalACLServer = aclgrpc.NewServer(aclgrpc.Config{
 		ACLsEnabled: s.config.ACLsEnabled,
 		ForwardRPC: func(info structs.RPCInfo, fn func(*grpc.ClientConn) error) (bool, error) {
@@ -1878,6 +1893,7 @@ func (s *Server) trackLeaderChanges() {
 
 			s.grpcLeaderForwarder.UpdateLeaderAddr(s.config.Datacenter, string(leaderObs.LeaderAddr))
 			s.peeringBackend.SetLeaderAddress(string(leaderObs.LeaderAddr))
+			s.raftStorageBackend.LeaderChanged()
 
 			// Trigger sending an update to HCP status
 			s.hcpManager.SendUpdate()

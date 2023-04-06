@@ -16,7 +16,7 @@ This page details the process for establishing a cluster peering connection betw
 
 Cluster peering between services cannot be established until all four steps are complete.
 
-For Kubernetes-specific guidance for establishing cluster peering connections, refer to [Establish cluster peering connections on Kubernetes](/consul/docs/k8s/connect/cluster-peering/usage/establish-peering).
+For Kubernetes guidance, refer to [Establish cluster peering connections on Kubernetes](/consul/docs/k8s/connect/cluster-peering/usage/establish-peering). For HCP Consul guidance, refer to [Establish cluster peering connections on HCP Consul](/hcp/docs/consul/usage/cluster-peering/create-connections).
 
 ## Requirements
 
@@ -29,11 +29,9 @@ If you need to make services available to an admin partition in the same datacen
 
 ### Mesh gateway requirements
 
-Mesh gateways are required for all cluster peering connections. Consider the following architectural requirements when creating mesh gateways:
+Consul's default configuration supports cluster peering connections directly between clusters. In production environments, we recommend using mesh gateways to securely route service mesh traffic between partitions with cluster peering connections.
 
-- A registered mesh gateway is required in order to export services to peers.
-- For Enterprise, the mesh gateway that exports services must be registered in the same partition as the exported services and their `exported-services` configuration entry.
-- To use the `local` mesh gateway mode, you must register a mesh gateway in the importing cluster.
+To enable cluster peering through mesh gateways and configure mesh gateways to support cluster peering, refer to [mesh gateway specifications](/consul/docs/connect/cluster-peering/tech-specs#mesh-gateway-specifications).
 
 ## Create a peering token
 

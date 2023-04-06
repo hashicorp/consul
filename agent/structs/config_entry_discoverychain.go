@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package structs
 
 import (
@@ -1111,7 +1114,7 @@ func (e *ServiceResolverConfigEntry) Validate() error {
 			}
 
 			if !f.Policy.isValid() {
-				return fmt.Errorf("Bad Failover[%q]: Policy must be one of '', 'default', or 'order-by-locality'", subset)
+				return fmt.Errorf("Bad Failover[%q]: Policy must be one of '', 'sequential', or 'order-by-locality'", subset)
 			}
 
 			if f.ServiceSubset != "" {
@@ -1364,6 +1367,16 @@ type ServiceResolverRedirect struct {
 	SamenessGroup string `json:",omitempty"`
 }
 
+// ToSamenessDiscoveryTargetOpts returns the options required for sameness failover and redirects.
+// These operations should preserve the service name and namespace.
+func (r *ServiceResolverConfigEntry) ToSamenessDiscoveryTargetOpts() DiscoveryTargetOpts {
+	return DiscoveryTargetOpts{
+		Service:   r.Name,
+		Namespace: r.NamespaceOrDefault(),
+		Partition: r.PartitionOrDefault(),
+	}
+}
+
 func (r *ServiceResolverRedirect) ToDiscoveryTargetOpts() DiscoveryTargetOpts {
 	return DiscoveryTargetOpts{
 		Service:       r.Service,
@@ -1434,8 +1447,9 @@ type ServiceResolverFailover struct {
 
 type ServiceResolverFailoverPolicy struct {
 	// Mode specifies the type of failover that will be performed. Valid values are
-	// "default", "" (equivalent to "default") and "order-by-locality".
-	Mode string `json:",omitempty"`
+	// "sequential", "" (equivalent to "sequential") and "order-by-locality".
+	Mode    string   `json:",omitempty"`
+	Regions []string `json:",omitempty"`
 }
 
 func (f *ServiceResolverFailover) ToDiscoveryTargetOpts() DiscoveryTargetOpts {
@@ -1462,7 +1476,7 @@ func (fp *ServiceResolverFailoverPolicy) isValid() bool {
 
 	switch fp.Mode {
 	case "":
-	case "default":
+	case "sequential":
 	case "order-by-locality":
 	default:
 		return false

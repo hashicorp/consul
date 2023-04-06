@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package resource
 
 import (
@@ -18,7 +21,7 @@ import (
 )
 
 func TestWriteStatus_TODO(t *testing.T) {
-	server := NewServer(Config{})
+	server := testServer(t)
 	client := testClient(t, server)
 	resp, err := client.WriteStatus(context.Background(), &pbresource.WriteStatusRequest{})
 	require.NoError(t, err)

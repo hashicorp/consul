@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 // package balancer implements a custom gRPC load balancer.
 //
 // Similarly to gRPC's built-in "pick_first" balancer, our balancer will pin the

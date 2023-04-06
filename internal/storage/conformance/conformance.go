@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package conformance
 
 import (
@@ -132,7 +135,7 @@ func testRead(t *testing.T, opts TestOptions) {
 
 					var e storage.GroupVersionMismatchError
 					if errors.As(err, &e) {
-						require.Equal(t, id.Type, e.RequestedType)
+						prototest.AssertDeepEqual(t, id.Type, e.RequestedType)
 						prototest.AssertDeepEqual(t, res, e.Stored, ignoreVersion)
 					} else {
 						t.Fatalf("expected storage.GroupVersionMismatchError, got: %T", err)
@@ -449,6 +452,7 @@ func testListWatch(t *testing.T, opts TestOptions) {
 
 				watch, err := backend.WatchList(ctx, tc.resourceType, tc.tenancy, tc.namePrefix)
 				require.NoError(t, err)
+				t.Cleanup(watch.Close)
 
 				for i := 0; i < len(tc.results); i++ {
 					ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
@@ -468,6 +472,7 @@ func testListWatch(t *testing.T, opts TestOptions) {
 
 				watch, err := backend.WatchList(ctx, tc.resourceType, tc.tenancy, tc.namePrefix)
 				require.NoError(t, err)
+				t.Cleanup(watch.Close)
 
 				// Write the seed data after the watch has been established.
 				for _, r := range seedData {

@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package inmem
 
 import (
@@ -25,6 +28,9 @@ type Watch struct {
 func (w *Watch) Next(ctx context.Context) (*pbresource.WatchEvent, error) {
 	for {
 		e, err := w.nextEvent(ctx)
+		if err == stream.ErrSubForceClosed {
+			return nil, storage.ErrWatchClosed
+		}
 		if err != nil {
 			return nil, err
 		}
@@ -67,6 +73,9 @@ func (w *Watch) nextEvent(ctx context.Context) (*stream.Event, error) {
 		}
 	}
 }
+
+// Close the watch and free its associated resources.
+func (w *Watch) Close() { w.sub.Unsubscribe() }
 
 var eventTopic = stream.StringTopic("resources")
 
@@ -156,7 +165,7 @@ func (s *Store) watchSnapshot(req stream.SubscribeRequest, snap stream.SnapshotA
 		return 0, fmt.Errorf("unhandled subject type: %T", req.Subject)
 	}
 
-	tx := s.db.Txn(false)
+	tx := s.txn(false)
 	defer tx.Abort()
 
 	idx, err := currentEventIndex(tx)

@@ -10,12 +10,15 @@ description: ->
 This topic describes how to dynamically query the Consul catalog using prepared queries. Prepared queries are configurations that enable you to register a complex service query and execute it on demand. For information about how to perform standard node and service lookups, refer to [Perform Static DNS Queries](/consul/docs/services/discovery/dns-static-lookups).
 
 ## Introduction
+
 Prepared queries provide a rich set of lookup features, such as filtering by multiple tags and automatically failing over to look for services in remote datacenters if no healthy nodes are available in the local datacenter. You can also create prepared query templates that match names using a prefix match, allowing a single template to apply to potentially many services. Refer to [Query Consul Nodes and Services Overview](/consul/docs/services/discovery/dns-overview) for additional information about DNS query behaviors.
 
 ## Requirements
+
 Consul 0.6.4 or later is required to create prepared query templates.
 
 ### ACLs
+
 If ACLs are enabled, the querying service must present a token linked to permissions that enable read access for query, service, and node resources. Refer to the following documentation for information about creating policies to enable read access to the necessary resources:
 
 - [Prepared query rules](/consul/docs/security/acl/acl-rules#prepared-query-rules)
@@ -23,6 +26,7 @@ If ACLs are enabled, the querying service must present a token linked to permiss
 - [Node rules](/consul/docs/security/acl/acl-rules#node-rules)
 
 ## Create prepared queries
+
 Refer to the [prepared query reference](/consul/api-docs/query#create-prepared-query) for usage information.
 
 1. Specify the prepared query options in JSON format. The following prepared query targets all instances of the `redis` service in `dc1` and `dc2`:
@@ -64,6 +68,7 @@ Refer to the [prepared query reference](/consul/api-docs/query#create-prepared-q
     $ curl --request POST --data @payload.json http://127.0.0.1:8500/v1/query
     {"ID":"014af5ff-29e6-e972-dcf8-6ee602137127"}%
     ```
+
 1. To run the query, send a GET request to the endpoint and specify the ID returned from the POST call.
 
     ```shell-session
@@ -71,6 +76,7 @@ Refer to the [prepared query reference](/consul/api-docs/query#create-prepared-q
     ```
 
 ## Execute prepared queries
+
 You can execute a prepared query using the standard lookup format or the strict RFC 2782 SRV lookup.
 
 ### Standard lookup
@@ -84,6 +90,7 @@ Use the following format to execute a prepared query using the standard lookup f
 Refer [Standard lookups](/consul/docs/services/discovery/dns-static-lookups#standard-lookups) for additional information about the standard lookup format in Consul.
 
 ### RFC 2782 SRV lookup
+
 Use the following format to execute a prepared query using the RFC 2782 lookup format:
 
 ```
@@ -93,9 +100,11 @@ _<query name or id>._tcp.query[.<datacenter>].<domain>
 For additional information about following the RFC 2782 SRV lookup format in Consul, refer to [RFC 2782 Lookup](/consul/docs/services/discovery/dns-static-lookups#rfc-2782-lookup). For general information about the RFC 2782 specification, refer to [A DNS RR for specifying the location of services \(DNS SRV\)](https://tools.ietf.org/html/rfc2782).
 
 ### Lookup options
+
 The `datacenter` subdomain is optional. By default, the lookup queries the datacenter of this Consul agent.
 
 The `query name` or `id` subdomain is the name or ID of an existing prepared query.
 
 ## Results
+
 To allow for simple load balancing, Consul returns the set of nodes in random order for each query. Prepared queries support A and SRV records. SRV records provide the port that a service is registered. Consul only serves SRV records if the client specifically requests them.

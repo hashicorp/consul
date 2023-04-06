@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 //go:build !consulent
 // +build !consulent
 
@@ -7,18 +10,30 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/hashicorp/consul-net-rpc/go-msgpack/codec"
 	"github.com/stretchr/testify/require"
 
+	"github.com/hashicorp/consul-net-rpc/go-msgpack/codec"
+
+	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/sdk/testutil"
 )
 
 func TestRestoreFromEnterprise(t *testing.T) {
-
 	logger := testutil.Logger(t)
-	fsm, err := New(nil, logger)
-	require.NoError(t, err)
+
+	handle := &testRaftHandle{}
+	storageBackend := newStorageBackend(t, handle)
+	handle.apply = func(buf []byte) (any, error) { return storageBackend.Apply(buf, 123), nil }
+
+	fsm := NewFromDeps(Deps{
+		Logger: logger,
+		NewStateStore: func() *state.Store {
+			return state.NewStateStore(nil)
+		},
+		StorageBackend: storageBackend,
+	})
+
 	// To verify if a proper message is displayed when Consul OSS tries to
 	//  unsuccessfully restore entries from a Consul Ent snapshot.
 	buf := bytes.NewBuffer(nil)

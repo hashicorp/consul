@@ -1,3 +1,6 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
 # This Dockerfile contains multiple targets.
 # Use 'docker build --target=<name> .' to build one.
 # e.g. `docker build --target=official .`

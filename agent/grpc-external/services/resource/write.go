@@ -37,32 +37,73 @@ func (s *Server) Write(ctx context.Context, req *pbresource.WriteRequest) (*pbre
 		)
 	}
 
+	// At the storage backend layer, all writes are CAS operations.
+	//
+	// This makes it possible to *safely* do things like keeping the Uid stable
+	// across writes, carrying statuses over, and passing the current version of
+	// the resource to hooks, without restricting ourselves to only using the more
+	// feature-rich storage systems that support "patch" updates etc. natively.
+	//
+	// Although CAS semantics are useful for machine users like controllers, human
+	// users generally don't need them. If the user is performing a non-CAS write,
+	// we read the current version, and automatically retry if the CAS write fails.
 	var result *pbresource.Resource
 	err = s.retryCAS(ctx, req.Resource.Version, func() error {
 		input := clone(req.Resource)
 
-		// Read with EventualConsistency because we'll already automatically retry on
-		// CAS failure, so it's not worth the latency penalty of StrongConsistency.
+		// We read with EventualConsistency here because:
+		//
+		//	- In the common case, individual resources are written infrequently, and
+		//	  when using the Raft backend followers are generally within a few hundred
+		//	  milliseconds of the leader, so the first read will probably return the
+		//	  current version.
+		//
+		//	- StrongConsistency is expensive. In the Raft backend, it involves a round
+		//	  of heartbeats to verify cluster leadership (in addition to the write's
+		//	  log replication).
+		//
+		//	- CAS failures will be retried by retryCAS anyway. So the read-modify-write
+		//	  cycle should eventually succeed.
 		existing, err := s.Backend.Read(ctx, storage.EventualConsistency, input.Id)
 		switch {
-		case err == nil:
-			if input.Id.Uid == "" {
-				input.Id.Uid = existing.Id.Uid
-			}
-
-			if input.Version == "" {
-				input.Version = existing.Version
-			} else if input.Version != existing.Version {
-				// Although the storage backend will check the version on-write, we check
-				// it here too to make sure we don't carry over statuses from the wrong
-				// version.
-				return storage.ErrCASFailure
-			}
-			// TODO: Carry over the statuses here.
-
+		// Create path.
 		case errors.Is(err, storage.ErrNotFound):
 			input.Id.Uid = ulid.Make().String()
+
 			// TODO: Prevent setting statuses in this endpoint.
+
+		// Update path.
+		case err == nil:
+			// Use the stored ID because it includes the Uid.
+			//
+			// Generally, users won't provide the Uid but controllers will, because
+			// controllers need to operate on a specific "incarnation" of a resource
+			// as opposed to an older/newer resource with the same name, whereas users
+			// just want to update the current resource.
+			input.Id = existing.Id
+
+			// User is doing a non-CAS write, use the current version.
+			if input.Version == "" {
+				input.Version = existing.Version
+			}
+
+			// Check the stored version matches the user-given version.
+			//
+			// Although CAS operations are implemented "for real" at the storage backend
+			// layer, we must check the version here too to prevent a scenario where:
+			//
+			//	- Current resource version is `v2`
+			//	- User passes version `v2`
+			//	- Read returns stale version `v1`
+			//	- We carry `v1`'s statuses over (effectively overwriting `v2`'s statuses)
+			//	- CAS operation succeeds anyway because user-given version is current
+			//
+			// TODO(boxofrad): add a test for this once the status field has been added.
+			if input.Version != existing.Version {
+				return storage.ErrCASFailure
+			}
+
+			// TODO: Carry over the statuses here.
 
 		default:
 			return err

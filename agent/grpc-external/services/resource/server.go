@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package resource
 
 import (
@@ -22,7 +25,9 @@ type Server struct {
 type Config struct {
 	Logger   hclog.Logger
 	Registry Registry
-	Backend  Backend
+
+	// Backend is the storage backend that will be used for resource persistence.
+	Backend Backend
 }
 
 //go:generate mockery --name Registry --inpackage

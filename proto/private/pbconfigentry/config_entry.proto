@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 syntax = "proto3";
 
 package hashicorp.consul.internal.configentry;
@@ -172,6 +175,7 @@ message ServiceResolverFailover {
 // name=Structs
 message ServiceResolverFailoverPolicy {
   string Mode = 1;
+  repeated string Regions = 2;
 }
 
 // mog annotation:
