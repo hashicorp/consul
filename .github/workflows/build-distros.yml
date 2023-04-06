@@ -2,7 +2,13 @@
 # It is aimed at checking new commits don't introduce any breaking build changes.
 name: build-distros
 
-on: [pull_request]
+on: 
+  pull_request:
+  push:
+    branches:
+      # Push events on the main branch
+      - main
+      - release/**
 
 permissions:
   contents: read
@@ -106,3 +112,32 @@ jobs:
     - run: CC=arm-linux-gnueabi-gcc GOARCH=arm GOARM=5 go build
     - run: CC=arm-linux-gnueabihf-gcc GOARCH=arm GOARM=6 go build
     - run: CC=aarch64-linux-gnu-gcc GOARCH=arm64 go build
+
+  # This is job is required for branch protection as a required gihub check
+  # because GitHub actions show up as checks at the job level and not the
+  # workflow level.  This is currently a feature request:
+  # https://github.com/orgs/community/discussions/12395
+  #
+  # This job must:
+  # - be placed after the fanout of a workflow so that everything fans back in
+  #   to this job.
+  # - "need" any job that is part of the fan out / fan in
+  # - implement the if logic because we have conditional jobs 
+  #   (go-test-enteprise) that this job needs and this would potentially get 
+  #   skipped if a previous job got skipped.  So we use the if clause to make 
+  # sure it does not get skipped.
+
+  build-distros-success:
+    needs: 
+    - setup
+    - check-go-mod
+    - build-386
+    - build-amd64
+    - build-arm
+    runs-on: ${{ fromJSON(needs.setup.outputs.compute-small) }}
+    if: |
+      (always() && ! cancelled()) &&
+      !contains(needs.*.result, 'failure') &&
+      !contains(needs.*.result, 'cancelled')
+    steps:
+      - run: echo "build-distros succeeded"
