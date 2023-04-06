@@ -128,16 +128,14 @@ load helpers
 }
 
 @test "test request auto host rewrite" {
-  run retry_default curl -s -f \
-    -H "X-Bad-Req: true" \
-    "localhost:5000/auto-host-rewrite/debug"
+  run retry_default curl -s -f "localhost:5000/auto-host-rewrite/debug"
 
   echo "GOT: $output"
 
   [ "$status" == "0" ]
 
   # Route should have rewritten request host header to upstream host name
-  echo "$output" | grep -E "^Host: localhost:19003"
+  echo "$output" | grep -E "^Host: localhost:8183"
 }
 
 @test "test response header manipulation" {

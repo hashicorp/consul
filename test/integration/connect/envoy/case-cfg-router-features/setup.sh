@@ -330,6 +330,7 @@ routes = [
     } },
     destination {
       service_subset    = "v2"
+      prefix_rewrite    = "/debug"
       auto_host_rewrite = true
     }
   },
