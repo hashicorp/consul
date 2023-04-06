@@ -369,7 +369,6 @@ jobs:
     - check-generated-protobuf
     - check-go-mod
     - lint-consul-retry
-    - lint-container-test-deps
     - lint-enums
     - lint
     - lint-32bit
@@ -377,8 +376,6 @@ jobs:
     - go-test-enterprise
     - go-test-oss 
     - go-test-race
-    - go-test-envoyextensions
-    - go-test-troubleshoot
     - go-test-api-1-19
     - go-test-api-1-20
     - go-test-sdk-1-19
