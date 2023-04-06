@@ -51,7 +51,7 @@ import (
 	"github.com/hashicorp/consul/agent/grpc-external/services/connectca"
 	"github.com/hashicorp/consul/agent/grpc-external/services/dataplane"
 	"github.com/hashicorp/consul/agent/grpc-external/services/peerstream"
-	"github.com/hashicorp/consul/agent/grpc-external/services/resource"
+	resourcegrpc "github.com/hashicorp/consul/agent/grpc-external/services/resource"
 	"github.com/hashicorp/consul/agent/grpc-external/services/serverdiscovery"
 	agentgrpc "github.com/hashicorp/consul/agent/grpc-internal"
 	"github.com/hashicorp/consul/agent/grpc-internal/services/subscribe"
@@ -65,6 +65,8 @@ import (
 	"github.com/hashicorp/consul/agent/rpc/peering"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
+	"github.com/hashicorp/consul/internal/resource"
+	"github.com/hashicorp/consul/internal/resource/demo"
 	"github.com/hashicorp/consul/internal/storage"
 	raftstorage "github.com/hashicorp/consul/internal/storage/raft"
 	"github.com/hashicorp/consul/lib"
@@ -1196,7 +1198,6 @@ func (s *Server) setupRPC() error {
 
 // Initialize and register services on external gRPC server.
 func (s *Server) setupExternalGRPC(config *Config, backend storage.Backend, logger hclog.Logger) {
-
 	s.externalACLServer = aclgrpc.NewServer(aclgrpc.Config{
 		ACLsEnabled: s.config.ACLsEnabled,
 		ForwardRPC: func(info structs.RPCInfo, fn func(*grpc.ClientConn) error) (bool, error) {
@@ -1261,8 +1262,16 @@ func (s *Server) setupExternalGRPC(config *Config, backend storage.Backend, logg
 	})
 	s.peerStreamServer.Register(s.externalGRPCServer)
 
-	resource.NewServer(resource.Config{
-		Backend: backend,
+	registry := resource.NewRegistry()
+
+	if s.config.DevMode {
+		demo.Register(registry)
+	}
+
+	resourcegrpc.NewServer(resourcegrpc.Config{
+		Registry: registry,
+		Backend:  backend,
+		Logger:   logger.Named("grpc-api.resource"),
 	}).Register(s.externalGRPCServer)
 }
 
