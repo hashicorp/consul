@@ -31,21 +31,24 @@ func (s *Server) Delete(ctx context.Context, req *pbresource.DeleteRequest) (*pb
 		// Delete resource regardless of the stored Version. Hence, strong read
 		// necessary to get latest Version
 		existing, err := s.Backend.Read(ctx, storage.StrongConsistency, req.Id)
-		if err != nil {
-			if errors.Is(err, storage.ErrNotFound) {
-				// deletes are idempotent so no-op if resource not found
-				return &pbresource.DeleteResponse{}, nil
-			}
+		switch {
+		case err == nil:
+			versionToDelete = existing.Version
+		case errors.Is(err, storage.ErrNotFound):
+			// deletes are idempotent so no-op if resource not found
+			return &pbresource.DeleteResponse{}, nil
+		default:
 			return nil, status.Errorf(codes.Internal, "failed read: %v", err)
 		}
-		versionToDelete = existing.Version
 	}
 
-	if err = s.Backend.DeleteCAS(ctx, req.Id, versionToDelete); err != nil {
-		if errors.Is(err, storage.ErrCASFailure) {
-			return nil, status.Error(codes.Aborted, err.Error())
-		}
+	err = s.Backend.DeleteCAS(ctx, req.Id, versionToDelete)
+	switch {
+	case err == nil:
+		return &pbresource.DeleteResponse{}, nil
+	case errors.Is(err, storage.ErrCASFailure):
+		return nil, status.Error(codes.Aborted, err.Error())
+	default:
 		return nil, status.Errorf(codes.Internal, "failed delete: %v", err)
 	}
-	return &pbresource.DeleteResponse{}, nil
 }
