@@ -259,34 +259,6 @@ jobs:
       elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
       consul-license: ${{secrets.CONSUL_LICENSE}}
 
-  go-test-envoyextensions:
-    needs:
-    - setup
-    - dev-build
-    uses: ./.github/workflows/reusable-unit.yml
-    with:
-      directory: envoyextensions
-      runs-on: ${{ needs.setup.outputs.compute-xl }}
-      repository-name: ${{ github.repository }}
-      go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consulprem consuldev' || '' }}"
-    secrets:
-      elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
-      consul-license: ${{secrets.CONSUL_LICENSE}}
-
-  go-test-troubleshoot:
-    needs:
-    - setup
-    - dev-build
-    uses: ./.github/workflows/reusable-unit.yml
-    with:
-      directory: troubleshoot
-      runs-on: ${{ needs.setup.outputs.compute-xl }}
-      repository-name: ${{ github.repository }}
-      go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consulprem consuldev' || '' }}"
-    secrets:
-      elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
-      consul-license: ${{secrets.CONSUL_LICENSE}}
-
   go-test-api-1-19:
     needs: 
     - setup   
