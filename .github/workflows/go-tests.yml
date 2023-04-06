@@ -381,6 +381,7 @@ jobs:
 
   go-tests-success:
     needs: 
+    - setup
     - check-generated-deep-copy
     - check-generated-protobuf
     - check-go-mod
