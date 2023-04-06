@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
+// TODO(spatel): Move docs to the proto file
 // Deletes a resource with the given Id and Version.
 //
 // Pass an empty Version to delete a resource regardless of the stored Version.
