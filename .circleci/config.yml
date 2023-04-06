@@ -812,7 +812,17 @@ workflows:
 
   build-distros:
     jobs:
-      - check-go-mod: *filter-ignore-non-go-branches
+      - check-go-mod: &filter-ignore-non-go-branches
+          filters:
+            branches:
+              ignore:
+                - stable-website
+                - /^docs\/.*/
+                - /^ui\/.*/
+                - /^mktg-.*/ # Digital Team Terraform-generated branches' prefix
+                - /^backport\/docs\/.*/
+                - /^backport\/ui\/.*/
+                - /^backport\/mktg-.*/
       - build-386: &require-check-go-mod
           requires:
             - check-go-mod
