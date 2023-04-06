@@ -3,7 +3,6 @@ package resource
 import (
 	"context"
 	"errors"
-	"fmt"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -16,7 +15,7 @@ import (
 //
 // Pass an empty Version to delete a resource regardless of the stored Version.
 // Deletes of previously deleted or non-existent resource are no-ops.
-// Returns a FailedPrecondition error if requested Version does not match the stored Version.
+// Returns an Aborted error if the requested Version does not match the stored Version.
 func (s *Server) Delete(ctx context.Context, req *pbresource.DeleteRequest) (*pbresource.DeleteResponse, error) {
 	// check type registered
 	reg, err := s.resolveType(req.Id.Type)
@@ -37,16 +36,16 @@ func (s *Server) Delete(ctx context.Context, req *pbresource.DeleteRequest) (*pb
 				// deletes are idempotent so no-op if resource not found
 				return &pbresource.DeleteResponse{}, nil
 			}
-			return nil, fmt.Errorf("failed read: %v", err)
+			return nil, status.Errorf(codes.Internal, "failed read: %v", err)
 		}
 		versionToDelete = existing.Version
 	}
 
 	if err = s.Backend.DeleteCAS(ctx, req.Id, versionToDelete); err != nil {
 		if errors.Is(err, storage.ErrCASFailure) {
-			return nil, status.Error(codes.FailedPrecondition, err.Error())
+			return nil, status.Error(codes.Aborted, err.Error())
 		}
-		return nil, fmt.Errorf("failed delete: %v", err)
+		return nil, status.Errorf(codes.Internal, "failed delete: %v", err)
 	}
 	return &pbresource.DeleteResponse{}, nil
 }

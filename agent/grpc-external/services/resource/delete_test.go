@@ -83,7 +83,7 @@ func TestDelete_VersionMismatch(t *testing.T) {
 	// delete with a version that is different from the stored version
 	_, err = client.Delete(ctx, &pbresource.DeleteRequest{Id: rsp.Resource.Id, Version: "non-existent-version"})
 	require.Error(t, err)
-	require.Equal(t, codes.FailedPrecondition.String(), status.Code(err).String())
+	require.Equal(t, codes.Aborted.String(), status.Code(err).String())
 	require.ErrorContains(t, err, "CAS operation failed")
 }
 
