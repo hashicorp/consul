@@ -10,6 +10,11 @@ on:
       - 'backport/docs/**'
       - 'backport/ui/**'
       - 'backport/mktg-**'
+  push:
+    branches:
+      # Push events on the main branch
+      - main
+      - release/**
   
 permissions:
   contents: read

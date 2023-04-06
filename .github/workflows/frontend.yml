@@ -104,3 +104,31 @@ jobs:
 
     - working-directory: ui/packages/consul-ui
       run: make test-coverage-ci
+
+  # This is job is required for branch protection as a required gihub check
+  # because GitHub actions show up as checks at the job level and not the
+  # workflow level.  This is currently a feature request:
+  # https://github.com/orgs/community/discussions/12395
+  #
+  # This job must:
+  # - be placed after the fanout of a workflow so that everything fans back in
+  #   to this job.
+  # - "need" any job that is part of the fan out / fan in
+  # - implement the if logic because we have conditional jobs 
+  #   (go-test-enteprise) that this job needs and this would potentially get 
+  #   skipped if a previous job got skipped.  So we use the if clause to make 
+  # sure it does not get skipped.
+
+  frontend-success:
+    needs: 
+    - setup
+    - workspace-tests
+    - node-tests
+    - ember-build-test
+    runs-on: ${{ fromJSON(needs.setup.outputs.compute-small) }}
+    if: |
+      (always() && ! cancelled()) &&
+      !contains(needs.*.result, 'failure') &&
+      !contains(needs.*.result, 'cancelled')
+    steps:
+      - run: echo "frontend succeeded"
