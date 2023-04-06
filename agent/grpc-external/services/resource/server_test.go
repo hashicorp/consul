@@ -28,14 +28,6 @@ func TestWriteStatus_TODO(t *testing.T) {
 	require.NotNil(t, resp)
 }
 
-func TestDelete_TODO(t *testing.T) {
-	server := testServer(t)
-	client := testClient(t, server)
-	resp, err := client.Delete(context.Background(), &pbresource.DeleteRequest{})
-	require.NoError(t, err)
-	require.NotNil(t, resp)
-}
-
 func testServer(t *testing.T) *Server {
 	t.Helper()
 

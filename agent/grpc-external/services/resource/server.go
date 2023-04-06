@@ -55,11 +55,6 @@ func (s *Server) WriteStatus(ctx context.Context, req *pbresource.WriteStatusReq
 	return &pbresource.WriteStatusResponse{}, nil
 }
 
-func (s *Server) Delete(ctx context.Context, req *pbresource.DeleteRequest) (*pbresource.DeleteResponse, error) {
-	// TODO
-	return &pbresource.DeleteResponse{}, nil
-}
-
 //nolint:unparam
 func (s *Server) resolveType(typ *pbresource.Type) (*resource.Registration, error) {
 	v, ok := s.Registry.Resolve(typ)
