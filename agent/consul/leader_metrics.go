@@ -104,8 +104,10 @@ type CertExpirationMonitor struct {
 	// then the metrics will expire before they are emitted again.
 	Labels []metrics.Label
 	Logger hclog.Logger
-	// Query is called at each interval. It should return the duration until the
-	// certificate expires, or an error if the query failed.
+	// Query is called at each interval. It should return 2 durations, the full
+	// lifespan of the certificate (NotBefore -> NotAfter) and the duration
+	// until the certificate expires (Now -> NotAfter), or an error if the
+	// query failed.
 	Query func() (time.Duration, time.Duration, error)
 }
 
