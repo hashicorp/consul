@@ -1269,9 +1269,10 @@ func (s *Server) setupExternalGRPC(config *Config, backend storage.Backend, logg
 	}
 
 	resourcegrpc.NewServer(resourcegrpc.Config{
-		Registry: registry,
-		Backend:  backend,
-		Logger:   logger.Named("grpc-api.resource"),
+		Registry:    registry,
+		Backend:     backend,
+		ACLResolver: s.ACLResolver,
+		Logger:      logger.Named("grpc-api.resource"),
 	}).Register(s.externalGRPCServer)
 }
 
