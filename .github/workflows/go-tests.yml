@@ -379,8 +379,15 @@ jobs:
 
   go-tests-success:
     needs: 
+    - check-generated-deep-copy
+    - check-generated-protobuf
+    - check-go-mod
+    - lint-consul-retry
+    - lint-container-test-deps
+    - lint-enums
     - lint
     - lint-32bit
+    # - go-test-arm64
     - go-test-enterprise
     - go-test-oss 
     - go-test-race
@@ -390,6 +397,7 @@ jobs:
     - go-test-api-1-20
     - go-test-sdk-1-19
     - go-test-sdk-1-20
+    - go-test-32bit
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-small) }}
     if: |
       (always() && ! cancelled()) &&
