@@ -387,7 +387,7 @@ jobs:
     - go-test-oss 
     - go-test-race
     - go-test-envoyextensions
-    - go-test-troubleshooting
+    - go-test-troubleshoot
     - go-test-api-1-19
     - go-test-api-1-20
     - go-test-sdk-1-19
