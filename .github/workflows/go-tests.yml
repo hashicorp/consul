@@ -365,7 +365,7 @@ jobs:
   go-tests-success:
     needs: 
     - lint
-    - lint32bit
+    - lint-32bit
     - go-test-enterprise
     - go-test-oss 
     - go-test-race
