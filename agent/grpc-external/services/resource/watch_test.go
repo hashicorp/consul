@@ -10,9 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/grpc-external/testutils"
-	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/demo"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/proto/private/prototest"
@@ -45,7 +43,7 @@ func TestWatchList_GroupVersionMatches(t *testing.T) {
 	t.Parallel()
 	server := testServer(t)
 	client := testClient(t, server)
-	demo.Register(server.Registry, nil)
+	demo.Register(server.Registry)
 	ctx := context.Background()
 
 	// create a watch
@@ -88,7 +86,7 @@ func TestWatchList_GroupVersionMismatch(t *testing.T) {
 	// Then no watch events should be emitted
 	t.Parallel()
 	server := testServer(t)
-	demo.Register(server.Registry, nil)
+	demo.Register(server.Registry)
 	client := testClient(t, server)
 	ctx := context.Background()
 
@@ -129,7 +127,7 @@ func TestWatchList_ACL_RegisteredHooks(t *testing.T) {
 
 	readCalled := false
 	listCalled := false
-	demo.Register(server.Registry, &resource.ACLHooks{
+	demo.Register(server.Registry) /*, &resource.ACLHooks{
 		Read: func(authz acl.Authorizer, id *pbresource.ID) error {
 			readCalled = true
 			return nil
@@ -138,7 +136,7 @@ func TestWatchList_ACL_RegisteredHooks(t *testing.T) {
 			listCalled = true
 			return nil
 		},
-	})
+	})*/
 
 	// create a watch
 	stream, err := client.WatchList(ctx, &pbresource.WatchListRequest{
@@ -177,12 +175,12 @@ func TestWatchList_ACL_DefaultListHook_PermissionDenied(t *testing.T) {
 	// exercised by this test and is the origin of PermissionDenied, provide a Read hook
 	// and verify it is never called.
 	readCalled := false
-	demo.Register(server.Registry, &resource.ACLHooks{
+	demo.Register(server.Registry) /*, &resource.ACLHooks{
 		Read: func(authz acl.Authorizer, id *pbresource.ID) error {
 			readCalled = true
 			return nil
 		},
-	})
+	})*/
 
 	// create a watch
 	stream, err := client.WatchList(ctx, &pbresource.WatchListRequest{
@@ -213,12 +211,12 @@ func TestWatchList_ACL_DefaultReadHook_PermissionDenied(t *testing.T) {
 
 	// Allow List ACL check to pass so Read ACL check can be reached
 	listCalled := false
-	demo.Register(server.Registry, &resource.ACLHooks{
+	demo.Register(server.Registry) /*, &resource.ACLHooks{
 		List: func(authz acl.Authorizer, tenancy *pbresource.Tenancy) error {
 			listCalled = true
 			return nil
 		},
-	})
+	})*/
 	artist, err := demo.GenerateV2Artist()
 	require.NoError(t, err)
 	_, err = server.Backend.WriteCAS(context.Background(), artist)

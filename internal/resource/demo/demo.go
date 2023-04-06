@@ -54,6 +54,8 @@ var (
 	}
 )
 
+// TODO(spatel): We're standing-in key ACLs for demo resources until our ACL
+// system can be more modularly extended (or support generic resource permissions).
 const (
 	ArtistV1ReadPolicy  = `key_prefix "resource/demo.v1.artist/" { policy = "read" }`
 	ArtistV1WritePolicy = `key_prefix "resource/demo.v1.artist/" { policy = "write" }`
@@ -63,10 +65,7 @@ const (
 
 // Register demo types. Should only be called in tests and dev mode.
 // acls are optional
-func Register(r resource.Registry, acls *resource.ACLHooks) {
-
-	// TODO(spatel): remove acls arg to this function after :eyes: ^
-
+func Register(r resource.Registry) {
 	readACL := func(authz acl.Authorizer, id *pbresource.ID) error {
 		key := fmt.Sprintf("resource/%s/%s", resource.ToGVK(id.Type), id.Name)
 		return authz.ToAllowAuthorizer().KeyReadAllowed(key, &acl.AuthorizerContext{})

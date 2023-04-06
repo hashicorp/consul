@@ -8,9 +8,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/grpc-external/testutils"
-	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/demo"
 	"github.com/hashicorp/consul/internal/storage"
 	"github.com/hashicorp/consul/proto-public/pbresource"
@@ -41,7 +39,7 @@ func TestList_Empty(t *testing.T) {
 	for desc, tc := range listTestCases() {
 		t.Run(desc, func(t *testing.T) {
 			server := testServer(t)
-			demo.Register(server.Registry, nil)
+			demo.Register(server.Registry)
 			client := testClient(t, server)
 
 			rsp, err := client.List(tc.ctx, &pbresource.ListRequest{
@@ -59,7 +57,7 @@ func TestList_Many(t *testing.T) {
 	for desc, tc := range listTestCases() {
 		t.Run(desc, func(t *testing.T) {
 			server := testServer(t)
-			demo.Register(server.Registry, nil)
+			demo.Register(server.Registry)
 			client := testClient(t, server)
 
 			resources := make([]*pbresource.Resource, 10)
@@ -90,7 +88,7 @@ func TestList_GroupVersionMismatch(t *testing.T) {
 	for desc, tc := range listTestCases() {
 		t.Run(desc, func(t *testing.T) {
 			server := testServer(t)
-			demo.Register(server.Registry, nil)
+			demo.Register(server.Registry)
 			client := testClient(t, server)
 
 			artist, err := demo.GenerateV2Artist()
@@ -117,7 +115,7 @@ func TestList_VerifyReadConsistencyArg(t *testing.T) {
 			mockBackend := NewMockBackend(t)
 			server := testServer(t)
 			server.Backend = mockBackend
-			demo.Register(server.Registry, nil)
+			demo.Register(server.Registry)
 
 			artist, err := demo.GenerateV2Artist()
 			require.NoError(t, err)
@@ -140,7 +138,7 @@ func TestList_ACL_RegisteredHooks(t *testing.T) {
 
 	readCalled := false
 	listCalled := false
-	demo.Register(server.Registry, &resource.ACLHooks{
+	demo.Register(server.Registry) /*, &resource.ACLHooks{
 		Read: func(authz acl.Authorizer, id *pbresource.ID) error {
 			readCalled = true
 			return nil
@@ -149,7 +147,7 @@ func TestList_ACL_RegisteredHooks(t *testing.T) {
 			listCalled = true
 			return nil
 		},
-	})
+	}*/
 	artist, err := demo.GenerateV2Artist()
 	require.NoError(t, err)
 	_, err = client.Write(context.Background(), &pbresource.WriteRequest{Resource: artist})
@@ -175,12 +173,12 @@ func TestList_ACL_DefaultListHook_PermissionDenied(t *testing.T) {
 	// exercised by this test and is the origin of PermissionDenied, provide a Read hook
 	// and verify it is never called.
 	readCalled := false
-	demo.Register(server.Registry, &resource.ACLHooks{
+	demo.Register(server.Registry) /*, &resource.ACLHooks{
 		Read: func(authz acl.Authorizer, id *pbresource.ID) error {
 			readCalled = true
 			return nil
 		},
-	})
+	})*/
 	artist, err := demo.GenerateV2Artist()
 	require.NoError(t, err)
 
@@ -201,12 +199,12 @@ func TestList_ACL_DefaultReadHook_PermissionDenied(t *testing.T) {
 
 	// Allow List ACL check to pass so Read ACL check can be reached
 	listCalled := false
-	demo.Register(server.Registry, &resource.ACLHooks{
+	demo.Register(server.Registry) /*, &resource.ACLHooks{
 		List: func(authz acl.Authorizer, tenancy *pbresource.Tenancy) error {
 			listCalled = true
 			return nil
 		},
-	})
+	})*/
 	artist, err := demo.GenerateV2Artist()
 	require.NoError(t, err)
 

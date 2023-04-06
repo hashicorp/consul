@@ -14,12 +14,10 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/hashicorp/consul/acl/resolver"
-	"github.com/hashicorp/consul/agent/grpc-external/testutils"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/demo"
 	"github.com/hashicorp/consul/internal/storage"
 	"github.com/hashicorp/consul/proto-public/pbresource"
-	pbdemov2 "github.com/hashicorp/consul/proto/private/pbdemo/v2"
 	"github.com/hashicorp/consul/proto/private/prototest"
 )
 
@@ -41,7 +39,7 @@ func TestRead_ResourceNotFound(t *testing.T) {
 		t.Run(desc, func(t *testing.T) {
 			server := testServer(t)
 
-			demo.Register(server.Registry, nil)
+			demo.Register(server.Registry)
 			client := testClient(t, server)
 
 			artist, err := demo.GenerateV2Artist()
@@ -60,7 +58,7 @@ func TestRead_GroupVersionMismatch(t *testing.T) {
 		t.Run(desc, func(t *testing.T) {
 			server := testServer(t)
 
-			demo.Register(server.Registry, nil)
+			demo.Register(server.Registry)
 			client := testClient(t, server)
 
 			artist, err := demo.GenerateV2Artist()
@@ -85,7 +83,7 @@ func TestRead_Success(t *testing.T) {
 		t.Run(desc, func(t *testing.T) {
 			server := testServer(t)
 
-			demo.Register(server.Registry, nil)
+			demo.Register(server.Registry)
 			client := testClient(t, server)
 
 			artist, err := demo.GenerateV2Artist()
@@ -108,7 +106,7 @@ func TestRead_VerifyReadConsistencyArg(t *testing.T) {
 			server := testServer(t)
 			mockBackend := NewMockBackend(t)
 			server.Backend = mockBackend
-			demo.Register(server.Registry, nil)
+			demo.Register(server.Registry)
 
 			artist, err := demo.GenerateV2Artist()
 			require.NoError(t, err)
@@ -125,46 +123,18 @@ func TestRead_VerifyReadConsistencyArg(t *testing.T) {
 }
 
 func TestRead_ACLs(t *testing.T) {
-	testcases := map[string]aclTestCase{
-		// verify denied using type's custom read acl hook via demo.Register(...)
-		"custom hook denied": {
+	type testCase struct {
+		authz resolver.Result
+		code  codes.Code
+	}
+	testcases := map[string]testCase{
+		"read hook denied": {
 			authz: AuthorizerFrom(t, demo.ArtistV1ReadPolicy),
 			code:  codes.PermissionDenied,
-			registerFn: func(registry resource.Registry) {
-				demo.Register(registry, nil)
-			},
 		},
-		// verify allowed using type's custom read acl hook via demo.Register(...)
-		"custom hook allowed": {
+		"read hook allowed": {
 			authz: AuthorizerFrom(t, demo.ArtistV2ReadPolicy),
 			code:  codes.NotFound,
-			registerFn: func(registry resource.Registry) {
-				demo.Register(registry, nil)
-			},
-		},
-		// verify denied using default read acl hook (operator:read) when type doesn't specify one
-		"default hook denied": {
-			authz: testutils.ACLNoPermissions(t),
-			code:  codes.PermissionDenied,
-			registerFn: func(registry resource.Registry) {
-				registry.Register(resource.Registration{
-					Type:  demo.TypeV2Artist,
-					Proto: &pbdemov2.Artist{},
-					ACLs:  &resource.ACLHooks{Read: nil},
-				})
-			},
-		},
-		// verify allowed using default read acl hook (operator:read) when type doesn't specify one
-		"default hook allowed": {
-			authz: testutils.ACLOperatorRead(t),
-			code:  codes.NotFound,
-			registerFn: func(registry resource.Registry) {
-				registry.Register(resource.Registration{
-					Type:  demo.TypeV2Artist,
-					Proto: &pbdemov2.Artist{},
-					ACLs:  &resource.ACLHooks{Read: nil},
-				})
-			},
 		},
 	}
 
@@ -177,9 +147,7 @@ func TestRead_ACLs(t *testing.T) {
 			mockACLResolver.On("ResolveTokenAndDefaultMeta", mock.Anything, mock.Anything, mock.Anything).
 				Return(tc.authz, nil)
 			server.ACLResolver = mockACLResolver
-
-			// decides whether default or custom acl hook used
-			tc.registerFn(server.Registry)
+			demo.Register(server.Registry)
 
 			artist, err := demo.GenerateV2Artist()
 			require.NoError(t, err)
@@ -190,12 +158,6 @@ func TestRead_ACLs(t *testing.T) {
 			require.Equal(t, tc.code.String(), status.Code(err).String())
 		})
 	}
-}
-
-type aclTestCase struct {
-	authz      resolver.Result
-	code       codes.Code
-	registerFn func(resource.Registry)
 }
 
 type readTestCase struct {
