@@ -79,6 +79,7 @@ type ServiceRouteDestination struct {
 	RetryOn               []string             `json:",omitempty" alias:"retry_on"`
 	RequestHeaders        *HTTPHeaderModifiers `json:",omitempty" alias:"request_headers"`
 	ResponseHeaders       *HTTPHeaderModifiers `json:",omitempty" alias:"response_headers"`
+	AutoHostRewrite       bool                 `json:",omitempty" alias:"auto_host_rewrite"`
 }
 
 func (e *ServiceRouteDestination) MarshalJSON() ([]byte, error) {

@@ -2733,6 +2733,17 @@ func TestServiceRouterConfigEntry(t *testing.T) {
 			}),
 			validateErr: "contains an invalid retry condition: \"invalid-retry-condition\"",
 		},
+		////////////////
+		{
+			name: "route with no match with auto host header rewrite",
+			entry: makerouter(ServiceRoute{
+				Match: nil,
+				Destination: &ServiceRouteDestination{
+					Service:       "other",
+					AutoHostRewrite: true,
+				},
+			}),
+		},
 	}
 
 	for _, tc := range cases {

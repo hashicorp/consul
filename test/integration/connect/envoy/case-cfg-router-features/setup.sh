@@ -324,6 +324,15 @@ routes = [
       }
     }
   },
+  {
+    match { http {
+      path_exact = "/auto-host-rewrite/debug"
+    } },
+    destination {
+      service_subset    = "v2"
+      auto_host_rewrite = true
+    }
+  },
 ]
 '
 

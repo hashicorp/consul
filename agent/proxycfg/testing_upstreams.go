@@ -968,6 +968,15 @@ func setupTestVariationDiscoveryChain(
 							},
 						},
 					},
+					{
+						Match: httpMatch(&structs.ServiceRouteHTTPMatch{
+							PathPrefix: "/auto-host-rewrite",
+						}),
+						Destination: &structs.ServiceRouteDestination{
+							Service:       	 "auto-host-rewrite",
+							AutoHostRewrite: true,
+						},
+					},
 				},
 			},
 		)

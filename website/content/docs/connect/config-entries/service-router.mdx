@@ -737,6 +737,11 @@ spec:
       that will be applied to responses from this service.
       This cannot be used with a \`tcp\` listener.`,
     },
+    {
+      name: 'AutoHostRewrite',
+      type: 'bool: false',
+      description: 'Automatically rewrite request Host header to the name of the upstream host.',
+    },
   ]}
 />
 

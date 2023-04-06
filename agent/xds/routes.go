@@ -603,6 +603,12 @@ func (s *ResourceGenerator) makeUpstreamRouteForDiscoveryChain(
 				if err := injectHeaderManipToRoute(destination, route); err != nil {
 					return nil, fmt.Errorf("failed to apply header manipulation configuration to route: %v", err)
 				}
+
+				if destination.AutoHostRewrite {
+					routeAction.Route.HostRewriteSpecifier = &envoy_route_v3.RouteAction_AutoHostRewrite{
+						AutoHostRewrite: makeBoolValue(true),
+					}
+				}
 			}
 
 			route.Match = routeMatch

@@ -295,6 +295,7 @@ func TestAPI_ConfigEntry_DiscoveryChain(t *testing.T) {
 							ResponseHeaders: &HTTPHeaderModifiers{
 								Remove: []string{"x-foo"},
 							},
+							AutoHostRewrite: true,
 						},
 					},
 				},

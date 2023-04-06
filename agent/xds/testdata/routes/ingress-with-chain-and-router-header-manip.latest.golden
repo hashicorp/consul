@@ -413,6 +413,15 @@
             },
             {
               "match": {
+                "prefix": "/auto-host-rewrite"
+              },
+              "route": {
+                "cluster": "auto-host-rewrite.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+                "autoHostRewrite": true
+              }
+            },
+            {
+              "match": {
                 "prefix": "/"
               },
               "route": {

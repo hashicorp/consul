@@ -454,6 +454,10 @@ type ServiceRouteDestination struct {
 	// Allow HTTP header manipulation to be configured.
 	RequestHeaders  *HTTPHeaderModifiers `json:",omitempty" alias:"request_headers"`
 	ResponseHeaders *HTTPHeaderModifiers `json:",omitempty" alias:"response_headers"`
+
+	// AutoHostRewrite is used to automatically update the Host header of requests
+	// to the upstream host name
+	AutoHostRewrite bool `json:",omitempty" alias:"auto_host_rewrite"`
 }
 
 func (e *ServiceRouteDestination) MarshalJSON() ([]byte, error) {
