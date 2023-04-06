@@ -94,7 +94,7 @@ func (l *lua) PatchFilter(_ *extensioncommon.RuntimeConfig, filter *envoy_listen
 	if config == nil {
 		return filter, false, errors.New("error unmarshalling filter")
 	}
-	luaHttpFilter, err := makeEnvoyHTTPFilter(
+	luaHttpFilter, err := extensioncommon.MakeEnvoyHTTPFilter(
 		"envoy.filters.http.lua",
 		&envoy_lua_v3.Lua{
 			InlineCode: l.Script,
@@ -124,7 +124,7 @@ func (l *lua) PatchFilter(_ *extensioncommon.RuntimeConfig, filter *envoy_listen
 		config.HttpFilters = changedFilters
 	}
 
-	newFilter, err := makeFilter("envoy.filters.network.http_connection_manager", config)
+	newFilter, err := extensioncommon.MakeFilter("envoy.filters.network.http_connection_manager", config)
 	if err != nil {
 		return filter, false, errors.New("error making new filter")
 	}
