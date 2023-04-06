@@ -2739,7 +2739,7 @@ func TestServiceRouterConfigEntry(t *testing.T) {
 			entry: makerouter(ServiceRoute{
 				Match: nil,
 				Destination: &ServiceRouteDestination{
-					Service:       "other",
+					Service:         "other",
 					AutoHostRewrite: true,
 				},
 			}),

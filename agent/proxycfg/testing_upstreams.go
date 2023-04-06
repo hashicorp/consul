@@ -973,7 +973,7 @@ func setupTestVariationDiscoveryChain(
 							PathPrefix: "/auto-host-rewrite",
 						}),
 						Destination: &structs.ServiceRouteDestination{
-							Service:       	 "auto-host-rewrite",
+							Service:         "auto-host-rewrite",
 							AutoHostRewrite: true,
 						},
 					},
