@@ -377,3 +377,21 @@ jobs:
         with:
           name: ${{ env.TEST_RESULTS_ARTIFACT_NAME }}
           path: ${{ env.TEST_RESULTS_DIR }}
+
+  test-integrations-success:
+    needs: 
+    - setup
+    - generate-envoy-job-matrices
+    - dev-build
+    - nomad-integration-test
+    - vault-integration-test
+    - envoy-integration-test
+    - compatibility-integration-test
+    - upgrade-integration-test
+    runs-on: ${{ fromJSON(needs.setup.outputs.compute-small) }}
+    if: |
+      (always() && ! cancelled()) &&
+      !contains(needs.*.result, 'failure') &&
+      !contains(needs.*.result, 'cancelled')
+    steps:
+      - run: echo "test-integrations succeeded"
