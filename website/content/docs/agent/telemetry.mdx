@@ -100,7 +100,7 @@ These are some metrics emitted that can help you understand the health of your c
 ** Why they're important:** Consul Mesh requires a CA to sign all certificates
 used to connect the mesh and the mesh network ceases to work if they expire and
 become invalid. The Root is particularly important to monitor as Consul does
-not automatically rotate it. The third metric is to monitor the certificate
+not automatically rotate it. The TLS certificate metric monitors the certificate
 that the server's agent uses to connect with the other agents in the cluster.
 
 ** What to look for:** The Root CA should be monitored for an approaching
