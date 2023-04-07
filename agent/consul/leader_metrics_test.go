@@ -1,7 +1,6 @@
 package consul
 
 import (
-	"fmt"
 	"testing"
 	"time"
 )
@@ -30,7 +29,6 @@ func TestExpiresSoon(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			fmt.Print(tc.name + ": ")
 			if expiresSoon(tc.lifetime, tc.untilAfter) != tc.expiresSoon {
 				t.Errorf("test case failed, should return `%t`", tc.expiresSoon)
 			}
