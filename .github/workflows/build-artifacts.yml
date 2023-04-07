@@ -32,7 +32,7 @@ jobs:
 
   dev-build-push:
     needs: setup
-    runs-on: ${{ fromJSON(needs.setup.outputs.compute-medium) }}
+    runs-on: ${{ fromJSON(needs.setup.outputs.compute-large) }}
     permissions:
       id-token: write # NOTE: this permission is explicitly required for Vault auth.
       contents: read

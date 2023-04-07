@@ -44,7 +44,7 @@ jobs:
     - check-go-mod
     env:
       XC_OS: "freebsd linux windows"
-    runs-on: ${{ fromJSON(needs.setup.outputs.compute-medium) }}
+    runs-on: ${{ fromJSON(needs.setup.outputs.compute-xl) }}
     steps:
     - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
 
@@ -68,7 +68,7 @@ jobs:
     - check-go-mod
     env:
       XC_OS: "darwin freebsd linux solaris windows"
-    runs-on: ${{ fromJSON(needs.setup.outputs.compute-medium) }}
+    runs-on: ${{ fromJSON(needs.setup.outputs.compute-xl) }}
     steps:
     - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
 
