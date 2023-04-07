@@ -179,7 +179,7 @@ func TestList_ACL_ListAllowed_ReadAllowed(t *testing.T) {
 	prototest.AssertDeepEqual(t, artist, rsp.Resources[0])
 }
 
-// roundtrip a List which attempts to return single resource
+// roundtrip a List which attempts to return a single resource
 func roundTripList(t *testing.T, authz acl.Authorizer) (*pbresource.Resource, *pbresource.ListResponse, error) {
 	server := testServer(t)
 	client := testClient(t, server)
@@ -195,7 +195,6 @@ func roundTripList(t *testing.T, authz acl.Authorizer) (*pbresource.Resource, *p
 	require.NoError(t, err)
 
 	artist, err = server.Backend.WriteCAS(ctx, artist)
-	// writeRsp, err := client.Write(testContext(t), &pbresource.WriteRequest{Resource: artist})
 	require.NoError(t, err)
 
 	rsp, err := client.List(
