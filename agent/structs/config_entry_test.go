@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package structs
 
 import (
@@ -3195,25 +3192,6 @@ func TestProxyConfigEntry(t *testing.T) {
 			expected: &ProxyConfigEntry{
 				Name:           ProxyConfigGlobal,
 				Kind:           ProxyDefaults,
-				EnterpriseMeta: *acl.DefaultEnterpriseMeta(),
-			},
-		},
-		"proxy config has invalid failover policy": {
-			entry: &ProxyConfigEntry{
-				Name:           "global",
-				FailoverPolicy: &ServiceResolverFailoverPolicy{Mode: "bad"},
-			},
-			validateErr: `Failover policy must be one of '', 'default', or 'order-by-locality'`,
-		},
-		"proxy config with valid failover policy": {
-			entry: &ProxyConfigEntry{
-				Name:           "global",
-				FailoverPolicy: &ServiceResolverFailoverPolicy{Mode: "order-by-locality"},
-			},
-			expected: &ProxyConfigEntry{
-				Name:           ProxyConfigGlobal,
-				Kind:           ProxyDefaults,
-				FailoverPolicy: &ServiceResolverFailoverPolicy{Mode: "order-by-locality"},
 				EnterpriseMeta: *acl.DefaultEnterpriseMeta(),
 			},
 		},

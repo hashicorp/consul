@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package consul
 
 import (
@@ -51,7 +48,6 @@ import (
 	"github.com/hashicorp/consul/agent/grpc-external/services/connectca"
 	"github.com/hashicorp/consul/agent/grpc-external/services/dataplane"
 	"github.com/hashicorp/consul/agent/grpc-external/services/peerstream"
-	resourcegrpc "github.com/hashicorp/consul/agent/grpc-external/services/resource"
 	"github.com/hashicorp/consul/agent/grpc-external/services/serverdiscovery"
 	agentgrpc "github.com/hashicorp/consul/agent/grpc-internal"
 	"github.com/hashicorp/consul/agent/grpc-internal/services/subscribe"
@@ -65,14 +61,10 @@ import (
 	"github.com/hashicorp/consul/agent/rpc/peering"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
-	"github.com/hashicorp/consul/internal/resource"
-	"github.com/hashicorp/consul/internal/resource/demo"
-	"github.com/hashicorp/consul/internal/storage"
-	raftstorage "github.com/hashicorp/consul/internal/storage/raft"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/lib/routine"
 	"github.com/hashicorp/consul/logging"
-	"github.com/hashicorp/consul/proto/private/pbsubscribe"
+	"github.com/hashicorp/consul/proto/pbsubscribe"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
 	cslversion "github.com/hashicorp/consul/version"
@@ -255,9 +247,6 @@ type Server struct {
 	// transition notifications from the Raft layer.
 	raftNotifyCh <-chan bool
 
-	// raftStorageBackend is the Raft-backed storage backend for resources.
-	raftStorageBackend *raftstorage.Backend
-
 	// reconcileCh is used to pass events from the serf handler
 	// into the leader manager, so that the strong state can be
 	// updated
@@ -420,10 +409,6 @@ type Server struct {
 	// embedded struct to hold all the enterprise specific data
 	EnterpriseServer
 	operatorServer *operator.Server
-
-	// routineManager is responsible for managing longer running go routines
-	// run by the Server
-	routineManager *routine.Manager
 }
 
 type connHandler interface {
@@ -457,6 +442,14 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server, incom
 
 	loggers := newLoggerStore(serverLogger)
 
+	fsmDeps := fsm.Deps{
+		Logger: flat.Logger,
+		NewStateStore: func() *state.Store {
+			return state.NewStateStoreWithEventPublisher(gc, flat.EventPublisher)
+		},
+		Publisher: flat.EventPublisher,
+	}
+
 	if incomingRPCLimiter == nil {
 		incomingRPCLimiter = rpcRate.NullRequestLimitsHandler()
 	}
@@ -483,26 +476,12 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server, incom
 		shutdownCh:              shutdownCh,
 		leaderRoutineManager:    routine.NewManager(logger.Named(logging.Leader)),
 		aclAuthMethodValidators: authmethod.NewCache(),
+		fsm:                     fsm.NewFromDeps(fsmDeps),
 		publisher:               flat.EventPublisher,
 		incomingRPCLimiter:      incomingRPCLimiter,
-		routineManager:          routine.NewManager(logger.Named(logging.ConsulServer)),
 	}
+
 	incomingRPCLimiter.Register(s)
-
-	s.raftStorageBackend, err = raftstorage.NewBackend(&raftHandle{s}, logger.Named("raft-storage-backend"))
-	if err != nil {
-		return nil, fmt.Errorf("failed to create storage backend: %w", err)
-	}
-	go s.raftStorageBackend.Run(&lib.StopChannelContext{StopCh: shutdownCh})
-
-	s.fsm = fsm.NewFromDeps(fsm.Deps{
-		Logger: flat.Logger,
-		NewStateStore: func() *state.Store {
-			return state.NewStateStoreWithEventPublisher(gc, flat.EventPublisher)
-		},
-		Publisher:      flat.EventPublisher,
-		StorageBackend: s.raftStorageBackend,
-	})
 
 	s.hcpManager = hcp.NewManager(hcp.ManagerConfig{
 		Client:   flat.HCP.Client,
@@ -749,8 +728,69 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server, incom
 	s.overviewManager = NewOverviewManager(s.logger, s.fsm, s.config.MetricsReportingInterval)
 	go s.overviewManager.Run(&lib.StopChannelContext{StopCh: s.shutdownCh})
 
-	// Initialize external gRPC server
-	s.setupExternalGRPC(config, s.raftStorageBackend, logger)
+	// Initialize external gRPC server - register services on external gRPC server.
+	s.externalACLServer = aclgrpc.NewServer(aclgrpc.Config{
+		ACLsEnabled: s.config.ACLsEnabled,
+		ForwardRPC: func(info structs.RPCInfo, fn func(*grpc.ClientConn) error) (bool, error) {
+			return s.ForwardGRPC(s.grpcConnPool, info, fn)
+		},
+		InPrimaryDatacenter: s.InPrimaryDatacenter(),
+		LoadAuthMethod: func(methodName string, entMeta *acl.EnterpriseMeta) (*structs.ACLAuthMethod, aclgrpc.Validator, error) {
+			return s.loadAuthMethod(methodName, entMeta)
+		},
+		LocalTokensEnabled:        s.LocalTokensEnabled,
+		Logger:                    logger.Named("grpc-api.acl"),
+		NewLogin:                  func() aclgrpc.Login { return s.aclLogin() },
+		NewTokenWriter:            func() aclgrpc.TokenWriter { return s.aclTokenWriter() },
+		PrimaryDatacenter:         s.config.PrimaryDatacenter,
+		ValidateEnterpriseRequest: s.validateEnterpriseRequest,
+	})
+	s.externalACLServer.Register(s.externalGRPCServer)
+
+	s.externalConnectCAServer = connectca.NewServer(connectca.Config{
+		Publisher:   s.publisher,
+		GetStore:    func() connectca.StateStore { return s.FSM().State() },
+		Logger:      logger.Named("grpc-api.connect-ca"),
+		ACLResolver: s.ACLResolver,
+		CAManager:   s.caManager,
+		ForwardRPC: func(info structs.RPCInfo, fn func(*grpc.ClientConn) error) (bool, error) {
+			return s.ForwardGRPC(s.grpcConnPool, info, fn)
+		},
+		ConnectEnabled: s.config.ConnectEnabled,
+	})
+	s.externalConnectCAServer.Register(s.externalGRPCServer)
+
+	dataplane.NewServer(dataplane.Config{
+		GetStore:    func() dataplane.StateStore { return s.FSM().State() },
+		Logger:      logger.Named("grpc-api.dataplane"),
+		ACLResolver: s.ACLResolver,
+		Datacenter:  s.config.Datacenter,
+	}).Register(s.externalGRPCServer)
+
+	serverdiscovery.NewServer(serverdiscovery.Config{
+		Publisher:   s.publisher,
+		ACLResolver: s.ACLResolver,
+		Logger:      logger.Named("grpc-api.server-discovery"),
+	}).Register(s.externalGRPCServer)
+
+	s.peeringBackend = NewPeeringBackend(s)
+	s.operatorBackend = NewOperatorBackend(s)
+	s.peerStreamServer = peerstream.NewServer(peerstream.Config{
+		Backend:        s.peeringBackend,
+		GetStore:       func() peerstream.StateStore { return s.FSM().State() },
+		Logger:         logger.Named("grpc-api.peerstream"),
+		ACLResolver:    s.ACLResolver,
+		Datacenter:     s.config.Datacenter,
+		ConnectEnabled: s.config.ConnectEnabled,
+		ForwardRPC: func(info structs.RPCInfo, fn func(*grpc.ClientConn) error) (bool, error) {
+			// Only forward the request if the dc in the request matches the server's datacenter.
+			if info.RequestDatacenter() != "" && info.RequestDatacenter() != config.Datacenter {
+				return false, fmt.Errorf("requests to generate peering tokens cannot be forwarded to remote datacenters")
+			}
+			return s.ForwardGRPC(s.grpcConnPool, info, fn)
+		},
+	})
+	s.peerStreamServer.Register(s.externalGRPCServer)
 
 	// Initialize internal gRPC server.
 	//
@@ -798,11 +838,6 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server, incom
 	// Now we are setup, configure the HCP manager
 	go s.hcpManager.Run(&lib.StopChannelContext{StopCh: shutdownCh})
 
-	err = s.runEnterpriseRateLimiterConfigEntryController()
-	if err != nil {
-		return nil, err
-	}
-
 	return s, nil
 }
 
@@ -825,7 +860,6 @@ func newGRPCHandlerFromConfig(deps Deps, config *Config, s *Server) connHandler 
 		Datacenter:     config.Datacenter,
 		ConnectEnabled: config.ConnectEnabled,
 		PeeringEnabled: config.PeeringEnabled,
-		Locality:       config.Locality,
 	})
 	s.peeringServer = p
 	o := operator.NewServer(operator.Config{
@@ -1050,22 +1084,11 @@ func (s *Server) setupRaft() error {
 				return fmt.Errorf("recovery failed to parse peers.json: %v", err)
 			}
 
-			// It's safe to pass nil as the handle argument here because we won't call
-			// the backend's data access methods (only Apply, Snapshot, and Restore).
-			backend, err := raftstorage.NewBackend(nil, hclog.NewNullLogger())
-			if err != nil {
-				return fmt.Errorf("recovery failed: %w", err)
-			}
-			ctx, cancel := context.WithCancel(context.Background())
-			defer cancel()
-			go backend.Run(ctx)
-
 			tmpFsm := fsm.NewFromDeps(fsm.Deps{
 				Logger: s.logger,
 				NewStateStore: func() *state.Store {
 					return state.NewStateStore(s.tombstoneGC)
 				},
-				StorageBackend: backend,
 			})
 			if err := raft.RecoverCluster(s.config.RaftConfig, tmpFsm,
 				log, stable, snap, trans, configuration); err != nil {
@@ -1194,85 +1217,6 @@ func (s *Server) setupRPC() error {
 	}
 	s.raftLayer = NewRaftLayer(s.config.RPCSrcAddr, s.config.RPCAdvertise, wrapper, tlsFunc)
 	return nil
-}
-
-// Initialize and register services on external gRPC server.
-func (s *Server) setupExternalGRPC(config *Config, backend storage.Backend, logger hclog.Logger) {
-	s.externalACLServer = aclgrpc.NewServer(aclgrpc.Config{
-		ACLsEnabled: s.config.ACLsEnabled,
-		ForwardRPC: func(info structs.RPCInfo, fn func(*grpc.ClientConn) error) (bool, error) {
-			return s.ForwardGRPC(s.grpcConnPool, info, fn)
-		},
-		InPrimaryDatacenter: s.InPrimaryDatacenter(),
-		LoadAuthMethod: func(methodName string, entMeta *acl.EnterpriseMeta) (*structs.ACLAuthMethod, aclgrpc.Validator, error) {
-			return s.loadAuthMethod(methodName, entMeta)
-		},
-		LocalTokensEnabled:        s.LocalTokensEnabled,
-		Logger:                    logger.Named("grpc-api.acl"),
-		NewLogin:                  func() aclgrpc.Login { return s.aclLogin() },
-		NewTokenWriter:            func() aclgrpc.TokenWriter { return s.aclTokenWriter() },
-		PrimaryDatacenter:         s.config.PrimaryDatacenter,
-		ValidateEnterpriseRequest: s.validateEnterpriseRequest,
-	})
-	s.externalACLServer.Register(s.externalGRPCServer)
-
-	s.externalConnectCAServer = connectca.NewServer(connectca.Config{
-		Publisher:   s.publisher,
-		GetStore:    func() connectca.StateStore { return s.FSM().State() },
-		Logger:      logger.Named("grpc-api.connect-ca"),
-		ACLResolver: s.ACLResolver,
-		CAManager:   s.caManager,
-		ForwardRPC: func(info structs.RPCInfo, fn func(*grpc.ClientConn) error) (bool, error) {
-			return s.ForwardGRPC(s.grpcConnPool, info, fn)
-		},
-		ConnectEnabled: s.config.ConnectEnabled,
-	})
-	s.externalConnectCAServer.Register(s.externalGRPCServer)
-
-	dataplane.NewServer(dataplane.Config{
-		GetStore:    func() dataplane.StateStore { return s.FSM().State() },
-		Logger:      logger.Named("grpc-api.dataplane"),
-		ACLResolver: s.ACLResolver,
-		Datacenter:  s.config.Datacenter,
-	}).Register(s.externalGRPCServer)
-
-	serverdiscovery.NewServer(serverdiscovery.Config{
-		Publisher:   s.publisher,
-		ACLResolver: s.ACLResolver,
-		Logger:      logger.Named("grpc-api.server-discovery"),
-	}).Register(s.externalGRPCServer)
-
-	s.peeringBackend = NewPeeringBackend(s)
-	s.operatorBackend = NewOperatorBackend(s)
-
-	s.peerStreamServer = peerstream.NewServer(peerstream.Config{
-		Backend:        s.peeringBackend,
-		GetStore:       func() peerstream.StateStore { return s.FSM().State() },
-		Logger:         logger.Named("grpc-api.peerstream"),
-		ACLResolver:    s.ACLResolver,
-		Datacenter:     s.config.Datacenter,
-		ConnectEnabled: s.config.ConnectEnabled,
-		ForwardRPC: func(info structs.RPCInfo, fn func(*grpc.ClientConn) error) (bool, error) {
-			// Only forward the request if the dc in the request matches the server's datacenter.
-			if info.RequestDatacenter() != "" && info.RequestDatacenter() != config.Datacenter {
-				return false, fmt.Errorf("requests to generate peering tokens cannot be forwarded to remote datacenters")
-			}
-			return s.ForwardGRPC(s.grpcConnPool, info, fn)
-		},
-	})
-	s.peerStreamServer.Register(s.externalGRPCServer)
-
-	registry := resource.NewRegistry()
-
-	if s.config.DevMode {
-		demo.Register(registry)
-	}
-
-	resourcegrpc.NewServer(resourcegrpc.Config{
-		Registry: registry,
-		Backend:  backend,
-		Logger:   logger.Named("grpc-api.resource"),
-	}).Register(s.externalGRPCServer)
 }
 
 // Shutdown is used to shutdown the server
@@ -1893,7 +1837,6 @@ func (s *Server) trackLeaderChanges() {
 
 			s.grpcLeaderForwarder.UpdateLeaderAddr(s.config.Datacenter, string(leaderObs.LeaderAddr))
 			s.peeringBackend.SetLeaderAddress(string(leaderObs.LeaderAddr))
-			s.raftStorageBackend.LeaderChanged()
 
 			// Trigger sending an update to HCP status
 			s.hcpManager.SendUpdate()

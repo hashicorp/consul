@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package xds
 
 import (
@@ -624,6 +621,14 @@ func (s *ResourceGenerator) endpointsFromDiscoveryChain(
 		upstreamConfigMap = make(map[string]interface{}) // TODO:needed?
 	}
 
+	upstreamsSnapshot, err := cfgSnap.ToConfigSnapshotUpstreams()
+
+	// Mesh gateways are exempt because upstreamsSnapshot is only used for
+	// cluster peering targets and transative failover/redirects are unsupported.
+	if err != nil && !forMeshGateway {
+		return nil, err
+	}
+
 	var resources []proto.Message
 
 	var escapeHatchCluster *envoy_cluster_v3.Cluster
@@ -659,48 +664,44 @@ func (s *ResourceGenerator) endpointsFromDiscoveryChain(
 
 	// Find all resolver nodes.
 	for _, node := range chain.Nodes {
-		switch {
-		case node == nil:
-			return nil, fmt.Errorf("impossible to process a nil node")
-		case node.Type != structs.DiscoveryGraphNodeTypeResolver:
+		if node.Type != structs.DiscoveryGraphNodeTypeResolver {
 			continue
-		case node.Resolver == nil:
-			return nil, fmt.Errorf("impossible to process a non-resolver node")
 		}
-		rawUpstreamConfig, err := structs.ParseUpstreamConfigNoDefaults(upstreamConfigMap)
-		if err != nil {
-			return nil, err
-		}
-		upstreamConfig := finalizeUpstreamConfig(rawUpstreamConfig, chain, node.Resolver.ConnectTimeout)
+		primaryTargetID := node.Resolver.Target
+		failover := node.Resolver.Failover
 
-		mappedTargets, err := s.mapDiscoChainTargets(cfgSnap, chain, node, upstreamConfig, forMeshGateway)
-		if err != nil {
-			return nil, err
-		}
+		var targetsClustersData []targetClusterData
 
-		targetGroups, err := mappedTargets.groupedTargets()
-		if err != nil {
-			return nil, err
+		var numFailoverTargets int
+		if failover != nil {
+			numFailoverTargets = len(failover.Targets)
 		}
+		if numFailoverTargets > 0 && !forMeshGateway {
+			for _, targetID := range append([]string{primaryTargetID}, failover.Targets...) {
+				targetData, ok := s.getTargetClusterData(upstreamsSnapshot, chain, targetID, forMeshGateway, true)
+				if !ok {
+					continue
+				}
+				if escapeHatchCluster != nil {
+					targetData.clusterName = escapeHatchCluster.Name
+				}
 
-		for _, groupedTarget := range targetGroups {
-			clusterName := groupedTarget.ClusterName
-			if escapeHatchCluster != nil {
-				clusterName = escapeHatchCluster.Name
+				targetsClustersData = append(targetsClustersData, targetData)
 			}
-			switch len(groupedTarget.Targets) {
-			case 0:
-				continue
-			case 1:
-				// We expect one target so this passes through to continue setting the load assignment up.
-			default:
-				return nil, fmt.Errorf("cannot have more than one target")
+		} else {
+			if td, ok := s.getTargetClusterData(upstreamsSnapshot, chain, primaryTargetID, forMeshGateway, false); ok {
+				if escapeHatchCluster != nil {
+					td.clusterName = escapeHatchCluster.Name
+				}
+				targetsClustersData = append(targetsClustersData, td)
 			}
-			ti := groupedTarget.Targets[0]
-			s.Logger.Debug("generating endpoints for", "cluster", clusterName, "targetID", ti.TargetID)
-			targetUID := proxycfg.NewUpstreamIDFromTargetID(ti.TargetID)
+		}
+
+		for _, targetOpt := range targetsClustersData {
+			s.Logger.Debug("generating endpoints for", "cluster", targetOpt.clusterName)
+			targetUID := proxycfg.NewUpstreamIDFromTargetID(targetOpt.targetID)
 			if targetUID.Peer != "" {
-				loadAssignment, err := s.makeUpstreamLoadAssignmentForPeerService(cfgSnap, clusterName, targetUID, mgwMode)
+				loadAssignment, err := s.makeUpstreamLoadAssignmentForPeerService(cfgSnap, targetOpt.clusterName, targetUID, mgwMode)
 				if err != nil {
 					return nil, err
 				}
@@ -714,7 +715,7 @@ func (s *ResourceGenerator) endpointsFromDiscoveryChain(
 				chain.Targets,
 				upstreamEndpoints,
 				gatewayEndpoints,
-				ti.TargetID,
+				targetOpt.targetID,
 				gatewayKey,
 				forMeshGateway,
 			)
@@ -723,7 +724,7 @@ func (s *ResourceGenerator) endpointsFromDiscoveryChain(
 			}
 
 			la := makeLoadAssignment(
-				clusterName,
+				targetOpt.clusterName,
 				[]loadAssignmentEndpointGroup{endpointGroup},
 				gatewayKey,
 			)

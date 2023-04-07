@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 /*
 Package mutex implements the sync.Locker interface using x/sync/semaphore. It
 may be used as a replacement for sync.Mutex when one or more goroutines need to

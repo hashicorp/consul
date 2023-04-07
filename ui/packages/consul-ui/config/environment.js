@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 // All of the configuration here is shared between buildtime and runtime and
 // is therefore added to ember's <meta> tag in the actual app, if the
 // configuration is for buildtime only you should probably just use

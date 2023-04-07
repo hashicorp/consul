@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package agent
 
 import (
@@ -307,7 +304,6 @@ func buildAgentService(s *structs.NodeService, dc string) api.AgentService {
 		ModifyIndex:       s.ModifyIndex,
 		Weights:           weights,
 		Datacenter:        dc,
-		Locality:          s.Locality.ToAPI(),
 	}
 
 	if as.Tags == nil {

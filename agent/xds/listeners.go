@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package xds
 
 import (
@@ -45,7 +42,7 @@ import (
 	"github.com/hashicorp/consul/envoyextensions/xdscommon"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/lib/stringslice"
-	"github.com/hashicorp/consul/proto/private/pbpeering"
+	"github.com/hashicorp/consul/proto/pbpeering"
 	"github.com/hashicorp/consul/sdk/iptables"
 	"github.com/hashicorp/consul/types"
 )
@@ -158,7 +155,7 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 		// RDS, Envoy's Route Discovery Service, is only used for HTTP services with a customized discovery chain.
 		useRDS := chain.Protocol != "tcp" && !chain.Default
 
-		var clusterName string
+		var targetClusterData targetClusterData
 		if !useRDS {
 			// When not using RDS we must generate a cluster name to attach to the filter chain.
 			// With RDS, cluster names get attached to the dynamic routes instead.
@@ -167,10 +164,11 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 				return nil, err
 			}
 
-			clusterName = s.getTargetClusterName(upstreamsSnapshot, chain, target.ID, false, false)
-			if clusterName == "" {
+			td, ok := s.getTargetClusterData(upstreamsSnapshot, chain, target.ID, false, false)
+			if !ok {
 				continue
 			}
+			targetClusterData = td
 		}
 
 		filterName := fmt.Sprintf("%s.%s.%s.%s", chain.ServiceName, chain.Namespace, chain.Partition, chain.Datacenter)
@@ -180,7 +178,7 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 			filterChain, err := s.makeUpstreamFilterChain(filterChainOpts{
 				accessLogs:  &cfgSnap.Proxy.AccessLogs,
 				routeName:   uid.EnvoyID(),
-				clusterName: clusterName,
+				clusterName: targetClusterData.clusterName,
 				filterName:  filterName,
 				protocol:    cfg.Protocol,
 				useRDS:      useRDS,
@@ -215,7 +213,7 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 		filterChain, err := s.makeUpstreamFilterChain(filterChainOpts{
 			accessLogs:  &cfgSnap.Proxy.AccessLogs,
 			routeName:   uid.EnvoyID(),
-			clusterName: clusterName,
+			clusterName: targetClusterData.clusterName,
 			filterName:  filterName,
 			protocol:    cfg.Protocol,
 			useRDS:      useRDS,

@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package gateways
 
 import (
@@ -11,15 +8,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/go-hclog"
-	"github.com/stretchr/testify/require"
-
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/controller"
 	"github.com/hashicorp/consul/agent/consul/fsm"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/go-hclog"
+	"github.com/stretchr/testify/require"
 )
 
 func TestBoundAPIGatewayBindRoute(t *testing.T) {
@@ -3557,8 +3553,7 @@ func TestAPIGatewayController(t *testing.T) {
 				NewStateStore: func() *state.Store {
 					return state.NewStateStoreWithEventPublisher(nil, publisher)
 				},
-				Publisher:      publisher,
-				StorageBackend: fsm.NullStorageBackend,
+				Publisher: publisher,
 			})
 
 			var index uint64
@@ -3677,8 +3672,7 @@ func TestNewAPIGatewayController(t *testing.T) {
 		NewStateStore: func() *state.Store {
 			return state.NewStateStoreWithEventPublisher(nil, publisher)
 		},
-		Publisher:      publisher,
-		StorageBackend: fsm.NullStorageBackend,
+		Publisher: publisher,
 	})
 
 	updater := &Updater{

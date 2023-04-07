@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 %badge {
   @extend %horizontal-kv-list;
   padding-left: 8px;
@@ -13,8 +8,8 @@
 %badge,
 %badge + dd {
   @extend %pill;
-  background-color: var(--token-color-surface-strong);
-  color: var(--token-color-foreground-faint);
+  background-color: rgb(var(--tone-gray-100));
+  color: rgb(var(--tone-gray-500));
 }
 %badge::after,
 %badge-reversed::after,

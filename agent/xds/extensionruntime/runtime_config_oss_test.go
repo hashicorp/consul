@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 //go:build !consulent
 // +build !consulent
 
@@ -256,17 +253,8 @@ func TestGetRuntimeConfigurations_ConnectProxy(t *testing.T) {
 							},
 						},
 						ServiceName: webService,
-						Kind:        api.ServiceKindConnectProxy,
 						Upstreams:   nil,
-						LocalUpstreams: map[api.CompoundServiceName]*extensioncommon.UpstreamData{
-							dbService: {
-								SNI: map[string]struct{}{
-									"db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul": {},
-								},
-								EnvoyID:           "db",
-								OutgoingProxyKind: "connect-proxy",
-							},
-						},
+						Kind:        api.ServiceKindConnectProxy,
 					},
 					{
 						EnvoyExtension: api.EnvoyExtension{
@@ -277,17 +265,8 @@ func TestGetRuntimeConfigurations_ConnectProxy(t *testing.T) {
 							},
 						},
 						ServiceName: webService,
-						Kind:        api.ServiceKindConnectProxy,
 						Upstreams:   nil,
-						LocalUpstreams: map[api.CompoundServiceName]*extensioncommon.UpstreamData{
-							dbService: {
-								SNI: map[string]struct{}{
-									"db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul": {},
-								},
-								EnvoyID:           "db",
-								OutgoingProxyKind: "connect-proxy",
-							},
-						},
+						Kind:        api.ServiceKindConnectProxy,
 					},
 				},
 			},

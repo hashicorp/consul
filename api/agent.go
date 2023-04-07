@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package api
 
 import (
@@ -107,8 +104,7 @@ type AgentService struct {
 	Namespace string `json:",omitempty" bexpr:"-" hash:"ignore"`
 	Partition string `json:",omitempty" bexpr:"-" hash:"ignore"`
 	// Datacenter is only ever returned and is ignored if presented.
-	Datacenter string    `json:",omitempty" bexpr:"-" hash:"ignore"`
-	Locality   *Locality `json:",omitempty" bexpr:"-" hash:"ignore"`
+	Datacenter string `json:",omitempty" bexpr:"-" hash:"ignore"`
 }
 
 // AgentServiceChecksInfo returns information about a Service and its checks
@@ -295,7 +291,6 @@ type AgentServiceRegistration struct {
 	Connect           *AgentServiceConnect            `json:",omitempty"`
 	Namespace         string                          `json:",omitempty" bexpr:"-" hash:"ignore"`
 	Partition         string                          `json:",omitempty" bexpr:"-" hash:"ignore"`
-	Locality          *Locality                       `json:",omitempty" bexpr:"-" hash:"ignore"`
 }
 
 // ServiceRegisterOpts is used to pass extra options to the service register.

@@ -1,0 +1,31 @@
+@import './skin';
+@import './layout';
+
+%notice {
+  margin: 1em 0;
+}
+/**/
+.notice.success {
+  @extend %notice-success;
+}
+.notice.warning {
+  @extend %notice-warning;
+}
+.notice.error {
+  @extend %notice-error;
+}
+.notice.info {
+  @extend %notice-info;
+}
+.notice.highlight {
+  @extend %notice-highlight;
+}
+.notice.policy-management {
+  @extend %notice-highlight;
+}
+.notice.crd::before {
+  -webkit-mask-image: none;
+  mask-image: none;
+  background-color: transparent;
+  @extend %with-logo-kubernetes-color-icon;
+}

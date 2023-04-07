@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package ca
 
 import (
@@ -11,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -279,10 +277,10 @@ func (v *VaultProvider) State() (map[string]string, error) {
 	return nil, nil
 }
 
-// GenerateCAChain mounts and initializes a new root PKI backend if needed.
-func (v *VaultProvider) GenerateCAChain() (CAChainResult, error) {
+// GenerateRoot mounts and initializes a new root PKI backend if needed.
+func (v *VaultProvider) GenerateRoot() (RootResult, error) {
 	if !v.isPrimary {
-		return CAChainResult{}, fmt.Errorf("provider is not the root certificate authority")
+		return RootResult{}, fmt.Errorf("provider is not the root certificate authority")
 	}
 
 	// Set up the root PKI backend if necessary.
@@ -302,7 +300,7 @@ func (v *VaultProvider) GenerateCAChain() (CAChainResult, error) {
 			},
 		})
 		if err != nil {
-			return CAChainResult{}, fmt.Errorf("failed to mount root CA backend: %w", err)
+			return RootResult{}, fmt.Errorf("failed to mount root CA backend: %w", err)
 		}
 
 		// We want to initialize afterwards
@@ -310,7 +308,7 @@ func (v *VaultProvider) GenerateCAChain() (CAChainResult, error) {
 	case ErrBackendNotInitialized:
 		uid, err := connect.CompactUID()
 		if err != nil {
-			return CAChainResult{}, err
+			return RootResult{}, err
 		}
 		resp, err := v.writeNamespaced(v.config.RootPKINamespace, v.config.RootPKIPath+"root/generate/internal", map[string]interface{}{
 			"common_name": connect.CACN("vault", uid, v.clusterID, v.isPrimary),
@@ -319,23 +317,23 @@ func (v *VaultProvider) GenerateCAChain() (CAChainResult, error) {
 			"key_bits":    v.config.PrivateKeyBits,
 		})
 		if err != nil {
-			return CAChainResult{}, fmt.Errorf("failed to initialize root CA: %w", err)
+			return RootResult{}, fmt.Errorf("failed to initialize root CA: %w", err)
 		}
 		var ok bool
 		rootPEM, ok = resp.Data["certificate"].(string)
 		if !ok {
-			return CAChainResult{}, fmt.Errorf("unexpected response from Vault: %v", resp.Data["certificate"])
+			return RootResult{}, fmt.Errorf("unexpected response from Vault: %v", resp.Data["certificate"])
 		}
 
 	default:
 		if err != nil {
-			return CAChainResult{}, fmt.Errorf("unexpected error while setting root PKI backend: %w", err)
+			return RootResult{}, fmt.Errorf("unexpected error while setting root PKI backend: %w", err)
 		}
 	}
 
 	rootChain, err := v.getCAChain(v.config.RootPKINamespace, v.config.RootPKIPath)
 	if err != nil {
-		return CAChainResult{}, err
+		return RootResult{}, err
 	}
 
 	// Workaround for a bug in the Vault PKI API.
@@ -344,18 +342,7 @@ func (v *VaultProvider) GenerateCAChain() (CAChainResult, error) {
 		rootChain = rootPEM
 	}
 
-	intermediate, err := v.ActiveLeafSigningCert()
-	if err != nil {
-		return CAChainResult{}, fmt.Errorf("error fetching active intermediate: %w", err)
-	}
-	if intermediate == "" {
-		intermediate, err = v.GenerateLeafSigningCert()
-		if err != nil {
-			return CAChainResult{}, fmt.Errorf("error generating intermediate: %w", err)
-		}
-	}
-
-	return CAChainResult{PEM: rootChain, IntermediatePEM: intermediate}, nil
+	return RootResult{PEM: rootChain}, nil
 }
 
 // GenerateIntermediateCSR creates a private key and generates a CSR
@@ -509,7 +496,7 @@ func (v *VaultProvider) SetIntermediate(intermediatePEM, rootPEM, keyId string) 
 }
 
 // ActiveIntermediate returns the current intermediate certificate.
-func (v *VaultProvider) ActiveLeafSigningCert() (string, error) {
+func (v *VaultProvider) ActiveIntermediate() (string, error) {
 	cert, err := v.getCA(v.config.IntermediatePKINamespace, v.config.IntermediatePKIPath)
 
 	// This error is expected when calling initializeSecondaryCA for the
@@ -582,7 +569,7 @@ func (v *VaultProvider) getCAChain(namespace, path string) (string, error) {
 // GenerateIntermediate mounts the configured intermediate PKI backend if
 // necessary, then generates and signs a new CA CSR using the root PKI backend
 // and updates the intermediate backend to use that new certificate.
-func (v *VaultProvider) GenerateLeafSigningCert() (string, error) {
+func (v *VaultProvider) GenerateIntermediate() (string, error) {
 	csr, keyId, err := v.generateIntermediateCSR()
 	if err != nil {
 		return "", err
@@ -618,7 +605,7 @@ func (v *VaultProvider) GenerateLeafSigningCert() (string, error) {
 		}
 	}
 
-	return v.ActiveLeafSigningCert()
+	return v.ActiveIntermediate()
 }
 
 // setDefaultIntermediateIssuer updates the default issuer for
@@ -825,6 +812,8 @@ func (v *VaultProvider) Stop() {
 	v.stopWatcher()
 }
 
+func (v *VaultProvider) PrimaryUsesIntermediate() {}
+
 // We use raw path here
 func (v *VaultProvider) mountNamespaced(namespace, path string, mountInfo *vaultapi.MountInput) error {
 	defer v.setNamespace(namespace)()
@@ -933,14 +922,6 @@ func vaultLogin(client *vaultapi.Client, authMethod *structs.VaultAuthMethod) (*
 	return resp, nil
 }
 
-// Note the authMethod's parameters (Params) is populated from a freeform map
-// in the configuration where they could hardcode values to be passed directly
-// to the `auth/*/login` endpoint. Each auth method's authentication code
-// needs to handle two cases:
-// - The legacy case (which should be deprecated) where the user has
-// hardcoded login values directly (eg. a `jwt` string)
-// - The case where they use the configuration option used in the
-// vault agent's auth methods.
 func configureVaultAuthMethod(authMethod *structs.VaultAuthMethod) (VaultAuthenticator, error) {
 	if authMethod.MountPath == "" {
 		authMethod.MountPath = authMethod.Type
@@ -950,18 +931,20 @@ func configureVaultAuthMethod(authMethod *structs.VaultAuthMethod) (VaultAuthent
 	switch authMethod.Type {
 	case VaultAuthMethodTypeAWS:
 		return NewAWSAuthClient(authMethod), nil
-	case VaultAuthMethodTypeAzure:
-		return NewAzureAuthClient(authMethod)
 	case VaultAuthMethodTypeGCP:
 		return NewGCPAuthClient(authMethod)
-	case VaultAuthMethodTypeJWT:
-		return NewJwtAuthClient(authMethod)
-	case VaultAuthMethodTypeAppRole:
-		return NewAppRoleAuthClient(authMethod)
-	case VaultAuthMethodTypeAliCloud:
-		return NewAliCloudAuthClient(authMethod)
 	case VaultAuthMethodTypeKubernetes:
-		return NewK8sAuthClient(authMethod)
+		// For the Kubernetes Auth method, we will try to read the JWT token
+		// from the default service account file location if jwt was not provided.
+		if jwt, ok := authMethod.Params["jwt"]; !ok || jwt == "" {
+			serviceAccountToken, err := os.ReadFile(defaultK8SServiceAccountTokenPath)
+			if err != nil {
+				return nil, err
+			}
+
+			authMethod.Params["jwt"] = string(serviceAccountToken)
+		}
+		return NewVaultAPIAuthClient(authMethod, loginPath), nil
 	// These auth methods require a username for the login API path.
 	case VaultAuthMethodTypeLDAP, VaultAuthMethodTypeUserpass, VaultAuthMethodTypeOkta, VaultAuthMethodTypeRadius:
 		// Get username from the params.
@@ -983,8 +966,12 @@ func configureVaultAuthMethod(authMethod *structs.VaultAuthMethod) (VaultAuthent
 		return nil, fmt.Errorf("'token' auth method is not supported via auth method configuration; " +
 			"please provide the token with the 'token' parameter in the CA configuration")
 	// The rest of the auth methods use auth/<auth method path> login API path.
-	case VaultAuthMethodTypeCloudFoundry,
+	case VaultAuthMethodTypeAliCloud,
+		VaultAuthMethodTypeAppRole,
+		VaultAuthMethodTypeAzure,
+		VaultAuthMethodTypeCloudFoundry,
 		VaultAuthMethodTypeGitHub,
+		VaultAuthMethodTypeJWT,
 		VaultAuthMethodTypeKerberos,
 		VaultAuthMethodTypeTLS:
 		return NewVaultAPIAuthClient(authMethod, loginPath), nil

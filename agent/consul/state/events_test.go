@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package state
 
 import (
@@ -11,7 +8,7 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/stream"
-	"github.com/hashicorp/consul/proto/private/pbsubscribe"
+	"github.com/hashicorp/consul/proto/pbsubscribe"
 )
 
 const aclToken = "67b04fbc-e35f-494a-ad43-739f1c8b839c"

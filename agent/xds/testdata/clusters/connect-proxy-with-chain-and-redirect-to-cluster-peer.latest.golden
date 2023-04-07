@@ -4,7 +4,6 @@
     {
       "@type":  "type.googleapis.com/envoy.config.cluster.v3.Cluster",
       "name":  "db.default.cluster-01.external.peer1.domain",
-      "altStatName":  "db.default.cluster-01.external.peer1.domain",
       "type":  "EDS",
       "edsClusterConfig":  {
         "edsConfig":  {
@@ -12,9 +11,11 @@
           "resourceApiVersion":  "V3"
         }
       },
-      "connectTimeout":  "33s",
+      "connectTimeout":  "1s",
       "circuitBreakers":  {},
-      "outlierDetection":  {},
+      "outlierDetection":  {
+        "maxEjectionPercent":  100
+      },
       "commonLbConfig":  {
         "healthyPanicThreshold":  {}
       },

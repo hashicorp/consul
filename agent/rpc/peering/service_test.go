@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package peering_test
 
 import (
@@ -41,8 +38,8 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/lib"
-	"github.com/hashicorp/consul/proto/private/pbpeering"
-	"github.com/hashicorp/consul/proto/private/prototest"
+	"github.com/hashicorp/consul/proto/pbpeering"
+	"github.com/hashicorp/consul/proto/prototest"
 	"github.com/hashicorp/consul/sdk/freeport"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
@@ -1696,9 +1693,8 @@ func newDefaultDeps(t *testing.T, c *consul.Config) consul.Deps {
 		Datacenter:      c.Datacenter,
 	}
 
-	balancerBuilder := balancer.NewBuilder(builder.Authority(), testutil.Logger(t))
+	balancerBuilder := balancer.NewBuilder(t.Name(), testutil.Logger(t))
 	balancerBuilder.Register()
-	t.Cleanup(balancerBuilder.Deregister)
 
 	return consul.Deps{
 		EventPublisher:  stream.NewEventPublisher(10 * time.Second),
@@ -1713,6 +1709,7 @@ func newDefaultDeps(t *testing.T, c *consul.Config) consul.Deps {
 			UseTLSForDC:           tls.UseTLS,
 			DialingFromServer:     true,
 			DialingFromDatacenter: c.Datacenter,
+			BalancerBuilder:       balancerBuilder,
 		}),
 		LeaderForwarder:          builder,
 		EnterpriseDeps:           newDefaultDepsEnterprise(t, logger, c),

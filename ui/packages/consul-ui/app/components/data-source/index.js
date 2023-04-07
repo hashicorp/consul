@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 /* eslint no-console: ["error", { allow: ["debug"] }] */
 import Component from '@glimmer/component';
 import { inject as service } from '@ember/service';

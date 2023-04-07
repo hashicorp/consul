@@ -1,14 +1,11 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 // Package dataplane provides a service on Consul servers for the Consul Dataplane
 
 syntax = "proto3";
 
 package hashicorp.consul.dataplane;
 
-import "annotations/ratelimit/ratelimit.proto";
 import "google/protobuf/struct.proto";
+import "proto-public/annotations/ratelimit/ratelimit.proto";
 
 message GetSupportedDataplaneFeaturesRequest {}
 
@@ -94,14 +91,12 @@ service DataplaneService {
   rpc GetSupportedDataplaneFeatures(GetSupportedDataplaneFeaturesRequest) returns (GetSupportedDataplaneFeaturesResponse) {
     option (hashicorp.consul.internal.ratelimit.spec) = {
       operation_type: OPERATION_TYPE_READ,
-      operation_category: OPERATION_CATEGORY_DATAPLANE
     };
   }
 
   rpc GetEnvoyBootstrapParams(GetEnvoyBootstrapParamsRequest) returns (GetEnvoyBootstrapParamsResponse) {
     option (hashicorp.consul.internal.ratelimit.spec) = {
       operation_type: OPERATION_TYPE_READ,
-      operation_category: OPERATION_CATEGORY_DATAPLANE
     };
   }
 }

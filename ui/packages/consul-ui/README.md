@@ -160,13 +160,6 @@ OSS only tests can also be run using:
 
 See `.eslintrc.js` and `.eslintignore` for specific configuration.
 
-### Testing local changes to `@hashicorp/consul-ui-toolkit`
-
-| Command                | Description                                                          |
-|------------------------|----------------------------------------------------------------------|
-| `yarn toolkit:link`    | Similar to `npm link` it adds the dependency locally from yalc store |
-| `yarn toolkit:remove"` | It will remove package info from package.json and yarn.lock file     |
-
 ### Building
 
 * `make build` builds the UI for production usage (env=production)

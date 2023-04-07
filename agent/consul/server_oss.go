@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 //go:build !consulent
 // +build !consulent
 
@@ -21,11 +18,6 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
 )
-
-// runEnterpriseRateLimiterConfigEntryController start the rate limiter config controller
-func (s *Server) runEnterpriseRateLimiterConfigEntryController() error {
-	return nil
-}
 
 func (s *Server) registerEnterpriseGRPCServices(deps Deps, srv *grpc.Server) {}
 

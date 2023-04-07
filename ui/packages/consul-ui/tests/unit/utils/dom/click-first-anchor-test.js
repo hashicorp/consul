@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 import domClickFirstAnchor from 'consul-ui/utils/dom/click-first-anchor';
 import { module, test } from 'qunit';
 

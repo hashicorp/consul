@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package health
 
 import (
@@ -11,7 +8,7 @@ import (
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/submatview"
-	"github.com/hashicorp/consul/proto/private/pbsubscribe"
+	"github.com/hashicorp/consul/proto/pbsubscribe"
 )
 
 // Client provides access to service health data.

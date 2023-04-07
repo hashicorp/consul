@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package proxycfg
 
 import (
@@ -23,7 +20,7 @@ func TestConfigSnapshot(t testing.T, nsFn func(ns *structs.NodeService), extraUp
 	roots, leaf := TestCerts(t)
 
 	// no entries implies we'll get a default chain
-	dbChain := discoverychain.TestCompileConfigEntries(t, "db", "default", "default", "dc1", connect.TestClusterID+".consul", nil, nil)
+	dbChain := discoverychain.TestCompileConfigEntries(t, "db", "default", "default", "dc1", connect.TestClusterID+".consul", nil)
 	assert.True(t, dbChain.Default)
 
 	var (
@@ -309,7 +306,7 @@ func TestConfigSnapshotHCPMetrics(t testing.T) *ConfigSnapshot {
 	var (
 		collector      = structs.NewServiceName(api.HCPMetricsCollectorName, nil)
 		collectorUID   = NewUpstreamIDFromServiceName(collector)
-		collectorChain = discoverychain.TestCompileConfigEntries(t, api.HCPMetricsCollectorName, "default", "default", "dc1", connect.TestClusterID+".consul", nil, nil)
+		collectorChain = discoverychain.TestCompileConfigEntries(t, api.HCPMetricsCollectorName, "default", "default", "dc1", connect.TestClusterID+".consul", nil)
 	)
 
 	return TestConfigSnapshot(t, func(ns *structs.NodeService) {

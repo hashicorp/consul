@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 import getEnvironment from 'consul-ui/utils/get-environment';
 import { module, test } from 'qunit';
 const getEntriesByType = function (type) {

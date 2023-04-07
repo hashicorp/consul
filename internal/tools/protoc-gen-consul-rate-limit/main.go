@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 // protoc-gen-consul-rate-limit maintains the mapping of gRPC method names to
 // a specification of how they should be rate-limited. This is used by the gRPC
 // InTapHandle function (see agent/grpc-middleware/rate.go) to enforce relevant
@@ -15,7 +12,6 @@
 //	     rpc Bar(BarRequest) returns (BarResponse) {
 //	       option (hashicorp.consul.internal.ratelimit.spec) = {
 //	         operation_type: OPERATION_TYPE_WRITE,
-//			 operation_category: OPERATION_CATEGORY_ACL
 //	       };
 //	     }
 //	   }
@@ -26,7 +22,6 @@
 //	     {
 //	       "MethodName": "/Foo/Bar",
 //	       "OperationType": "OPERATION_TYPE_WRITE",
-//		   "OperationCategory": "OPERATION_CATEGORY_ACL"
 //	     }
 //	   ]
 //
@@ -59,7 +54,6 @@ const (
 	  rpc %s(...) returns (...) {
 	    option (hashicorp.consul.internal.ratelimit.spec) = {
 	      operation_type: OPERATION_TYPE_READ | OPERATION_TYPE_WRITE | OPERATION_TYPE_EXEMPT,
-		  operation_category: OPERATION_CATEGORY_ACL | OPERATION_CATEGORY_PEER_STREAM | OPERATION_CATEGORY_CONNECT_CA | OPERATION_CATEGORY_PARTITION | OPERATION_CATEGORY_PEERING | OPERATION_CATEGORY_SERVER_DISCOVERY | OPERATION_CATEGORY_DATAPLANE | OPERATION_CATEGORY_DNS | OPERATION_CATEGORY_SUBSCRIBE | OPERATION_CATEGORY_OPERATOR | OPERATION_CATEGORY_RESOURCE,
 	    };
 	  }
 	}
@@ -69,10 +63,9 @@ const (
 )
 
 type rateLimitSpec struct {
-	MethodName        string
-	OperationType     string
-	OperationCategory string
-	Enterprise        bool
+	MethodName    string
+	OperationType string
+	Enterprise    bool
 }
 
 func main() {
@@ -130,7 +123,6 @@ func rateLimitSpecs(file *protogen.File) ([]rateLimitSpec, error) {
 
 			def := proto.GetExtension(options, ratelimit.E_Spec).(*ratelimit.Spec)
 			spec.OperationType = def.OperationType.String()
-			spec.OperationCategory = def.OperationCategory.String()
 
 			specs = append(specs, spec)
 		}

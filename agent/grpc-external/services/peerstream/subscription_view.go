@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package peerstream
 
 import (
@@ -15,8 +12,8 @@ import (
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/submatview"
-	"github.com/hashicorp/consul/proto/private/pbservice"
-	"github.com/hashicorp/consul/proto/private/pbsubscribe"
+	"github.com/hashicorp/consul/proto/pbservice"
+	"github.com/hashicorp/consul/proto/pbsubscribe"
 )
 
 type Subscriber interface {

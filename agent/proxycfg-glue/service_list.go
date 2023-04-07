@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package proxycfgglue
 
 import (
@@ -13,8 +10,8 @@ import (
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/submatview"
-	"github.com/hashicorp/consul/proto/private/pbcommon"
-	"github.com/hashicorp/consul/proto/private/pbsubscribe"
+	"github.com/hashicorp/consul/proto/pbcommon"
+	"github.com/hashicorp/consul/proto/pbsubscribe"
 )
 
 // CacheServiceList satisfies the proxycfg.ServiceList interface by sourcing

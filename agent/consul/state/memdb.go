@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package state
 
 import (
@@ -9,7 +6,7 @@ import (
 	"github.com/hashicorp/go-memdb"
 
 	"github.com/hashicorp/consul/agent/consul/stream"
-	"github.com/hashicorp/consul/proto/private/pbsubscribe"
+	"github.com/hashicorp/consul/proto/pbsubscribe"
 )
 
 // ReadTxn is implemented by memdb.Txn to perform read operations.
@@ -194,7 +191,6 @@ var (
 	EventTopicHTTPRoute            = pbsubscribe.Topic_HTTPRoute
 	EventTopicInlineCertificate    = pbsubscribe.Topic_InlineCertificate
 	EventTopicBoundAPIGateway      = pbsubscribe.Topic_BoundAPIGateway
-	EventTopicIPRateLimit          = pbsubscribe.Topic_IPRateLimit
 )
 
 func processDBChanges(tx ReadTxn, changes Changes) ([]stream.Event, error) {

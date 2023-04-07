@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package api
 
 import (
@@ -175,21 +172,19 @@ func testNodeServiceCheckRegistrations(t *testing.T, client *Client, datacenter 
 					Notes:   "foo has ssh access",
 				},
 			},
-			Locality: &Locality{Region: "us-west-1", Zone: "us-west-1a"},
 		},
 		"Service redis v1 on foo": {
 			Datacenter:     datacenter,
 			Node:           "foo",
 			SkipNodeUpdate: true,
 			Service: &AgentService{
-				Kind:     ServiceKindTypical,
-				ID:       "redisV1",
-				Service:  "redis",
-				Tags:     []string{"v1"},
-				Meta:     map[string]string{"version": "1"},
-				Port:     1234,
-				Address:  "198.18.1.2",
-				Locality: &Locality{Region: "us-west-1", Zone: "us-west-1a"},
+				Kind:    ServiceKindTypical,
+				ID:      "redisV1",
+				Service: "redis",
+				Tags:    []string{"v1"},
+				Meta:    map[string]string{"version": "1"},
+				Port:    1234,
+				Address: "198.18.1.2",
 			},
 			Checks: HealthChecks{
 				&HealthCheck{

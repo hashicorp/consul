@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package proxycfgglue
 
 import (
@@ -13,9 +10,9 @@ import (
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/submatview"
-	"github.com/hashicorp/consul/proto/private/pbcommon"
-	"github.com/hashicorp/consul/proto/private/pbconfigentry"
-	"github.com/hashicorp/consul/proto/private/pbsubscribe"
+	"github.com/hashicorp/consul/proto/pbcommon"
+	"github.com/hashicorp/consul/proto/pbconfigentry"
+	"github.com/hashicorp/consul/proto/pbsubscribe"
 )
 
 // CacheConfigEntry satisfies the proxycfg.ConfigEntry interface by sourcing
@@ -75,8 +72,6 @@ func newConfigEntryRequest(req *structs.ConfigEntryQuery, deps ServerDataSourceD
 		topic = pbsubscribe.Topic_InlineCertificate
 	case structs.BoundAPIGateway:
 		topic = pbsubscribe.Topic_BoundAPIGateway
-	case structs.RateLimitIPConfig:
-		topic = pbsubscribe.Topic_IPRateLimit
 	default:
 		return nil, fmt.Errorf("cannot map config entry kind: %s to a topic", req.Kind)
 	}

@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package config
 
 import (
@@ -36,7 +33,7 @@ import (
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logging"
-	"github.com/hashicorp/consul/proto/private/prototest"
+	"github.com/hashicorp/consul/proto/prototest"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
@@ -7095,7 +7092,6 @@ func TestRuntimeConfig_Sanitize(t *testing.T) {
 				},
 			},
 		},
-		Locality: &Locality{Region: strPtr("us-west-1"), Zone: strPtr("us-west-1a")},
 	}
 
 	b, err := json.MarshalIndent(rt.Sanitized(), "", "    ")

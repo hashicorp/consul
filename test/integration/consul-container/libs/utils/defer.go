@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package utils
 
 // ResettableDefer is a way to capture a series of cleanup functions and

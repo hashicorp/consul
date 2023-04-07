@@ -1,19 +1,14 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
-[id^='docfy-demo-preview-horizontal-kv-list'] {
+[id^=docfy-demo-preview-horizontal-kv-list] {
   dl {
     @extend %horizontal-kv-list;
   }
   .lock-delay::before {
     @extend %with-delay-mask, %as-pseudo;
-    color: var(--token-color-foreground-faint);
+    color: rgb(var(--tone-gray-700));
   }
   .ttl::before {
     @extend %with-history-mask, %as-pseudo;
-    color: var(--token-color-foreground-action);
+    color: rgb(var(--tone-blue-500));
   }
   .service-identity {
     @extend %badge;

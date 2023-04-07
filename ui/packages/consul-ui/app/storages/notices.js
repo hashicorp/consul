@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 import { TrackedArray } from 'tracked-built-ins';
 import Storage from './base';
 

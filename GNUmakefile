@@ -9,8 +9,7 @@ SHELL = bash
 ###
 GOLANGCI_LINT_VERSION='v1.51.1'
 MOCKERY_VERSION='v2.20.0'
-BUF_VERSION='v1.14.0'
-
+BUF_VERSION='v1.4.0'
 PROTOC_GEN_GO_GRPC_VERSION="v1.2.0"
 MOG_VERSION='v0.4.0'
 PROTOC_GO_INJECT_TAG_VERSION='v1.3.0'
@@ -496,11 +495,12 @@ proto-format: proto-tools
 
 .PHONY: proto-lint
 proto-lint: proto-tools
-	@buf lint 
+	@buf lint --config proto/buf.yaml --path proto
+	@buf lint --config proto-public/buf.yaml --path proto-public
 	@for fn in $$(find proto -name '*.proto'); do \
-		if [[ "$$fn" = "proto/private/pbsubscribe/subscribe.proto" ]]; then \
+		if [[ "$$fn" = "proto/pbsubscribe/subscribe.proto" ]]; then \
 			continue ; \
-		elif [[ "$$fn" = "proto/private/pbpartition/partition.proto" ]]; then \
+		elif [[ "$$fn" = "proto/pbpartition/partition.proto" ]]; then \
 			continue ; \
 		fi ; \
 		pkg=$$(grep "^package " "$$fn" | sed 's/^package \(.*\);/\1/'); \

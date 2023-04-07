@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package pool
 
 import (
@@ -21,7 +18,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
-	"github.com/hashicorp/consul/proto/private/pbcommon"
+	"github.com/hashicorp/consul/proto/pbcommon"
 	"github.com/hashicorp/consul/tlsutil"
 )
 

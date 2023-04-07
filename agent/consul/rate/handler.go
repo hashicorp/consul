@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 // package rate implements server-side RPC rate limiting.
 package rate
 
@@ -86,13 +83,6 @@ func RequestLimitsModeFromNameWithDefault(name string) Mode {
 // OperationType is the type of operation the client is attempting to perform.
 type OperationType int
 
-type OperationCategory string
-
-type OperationSpec struct {
-	Type     OperationType
-	Category OperationCategory
-}
-
 const (
 	// OperationTypeRead represents a read operation.
 	OperationTypeRead OperationType = iota
@@ -102,34 +92,6 @@ const (
 
 	// OperationTypeExempt represents an operation that is exempt from rate-limiting.
 	OperationTypeExempt
-)
-
-const (
-	OperationCategoryACL             OperationCategory = "ACL"
-	OperationCategoryCatalog         OperationCategory = "Catalog"
-	OperationCategoryConfigEntry     OperationCategory = "ConfigEntry"
-	OperationCategoryConnectCA       OperationCategory = "ConnectCA"
-	OperationCategoryCoordinate      OperationCategory = "Coordinate"
-	OperationCategoryDiscoveryChain  OperationCategory = "DiscoveryChain"
-	OperationCategoryServerDiscovery OperationCategory = "ServerDiscovery"
-	OperationCategoryHealth          OperationCategory = "Health"
-	OperationCategoryIntention       OperationCategory = "Intention"
-	OperationCategoryKV              OperationCategory = "KV"
-	OperationCategoryPreparedQuery   OperationCategory = "PreparedQuery"
-	OperationCategorySession         OperationCategory = "Session"
-	OperationCategoryStatus          OperationCategory = "Status"
-	OperationCategoryTxn             OperationCategory = "Txn"
-	OperationCategoryAutoConfig      OperationCategory = "AutoConfig"
-	OperationCategoryFederationState OperationCategory = "FederationState"
-	OperationCategoryInternal        OperationCategory = "Internal"
-	OperationCategoryOperator        OperationCategory = "Operator"
-	OperationCategoryPeerStream      OperationCategory = "PeerStream"
-	OperationCategoryPeering         OperationCategory = "Peering"
-	OperationCategoryPartition       OperationCategory = "Partition"
-	OperationCategoryDataPlane       OperationCategory = "DataPlane"
-	OperationCategoryDNS             OperationCategory = "DNS"
-	OperationCategorySubscribe       OperationCategory = "Subscribe"
-	OperationCategoryResource        OperationCategory = "Resource"
 )
 
 // Operation the client is attempting to perform.
@@ -142,8 +104,6 @@ type Operation struct {
 
 	// Type of operation to be performed (e.g. read or write).
 	Type OperationType
-
-	Category OperationCategory
 }
 
 //go:generate mockery --name RequestLimitsHandler --inpackage

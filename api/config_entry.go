@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package api
 
 import (
@@ -26,8 +23,6 @@ const (
 	ServiceIntentions  string = "service-intentions"
 	MeshConfig         string = "mesh"
 	ExportedServices   string = "exported-services"
-	SamenessGroup      string = "sameness-group"
-	RateLimitIPConfig  string = "control-plane-request-limit"
 
 	ProxyConfigGlobal string = "global"
 	MeshConfigMesh    string = "mesh"
@@ -38,10 +33,8 @@ const (
 )
 
 const (
-	BuiltinAWSLambdaExtension      string = "builtin/aws/lambda"
-	BuiltinLuaExtension            string = "builtin/lua"
-	BuiltinLocalRatelimitExtension string = "builtin/http/localratelimit"
-	BuiltinWasmExtension           string = "builtin/wasm"
+	BuiltinAWSLambdaExtension string = "builtin/aws/lambda"
+	BuiltinLuaExtension       string = "builtin/lua"
 )
 
 type ConfigEntry interface {
@@ -316,16 +309,15 @@ func (s *ServiceConfigEntry) GetModifyIndex() uint64     { return s.ModifyIndex 
 type ProxyConfigEntry struct {
 	Kind             string
 	Name             string
-	Partition        string                         `json:",omitempty"`
-	Namespace        string                         `json:",omitempty"`
-	Mode             ProxyMode                      `json:",omitempty"`
-	TransparentProxy *TransparentProxyConfig        `json:",omitempty" alias:"transparent_proxy"`
-	Config           map[string]interface{}         `json:",omitempty"`
-	MeshGateway      MeshGatewayConfig              `json:",omitempty" alias:"mesh_gateway"`
-	Expose           ExposeConfig                   `json:",omitempty"`
-	AccessLogs       *AccessLogsConfig              `json:",omitempty" alias:"access_logs"`
-	EnvoyExtensions  []EnvoyExtension               `json:",omitempty" alias:"envoy_extensions"`
-	FailoverPolicy   *ServiceResolverFailoverPolicy `json:",omitempty" alias:"failover_policy"`
+	Partition        string                  `json:",omitempty"`
+	Namespace        string                  `json:",omitempty"`
+	Mode             ProxyMode               `json:",omitempty"`
+	TransparentProxy *TransparentProxyConfig `json:",omitempty" alias:"transparent_proxy"`
+	Config           map[string]interface{}  `json:",omitempty"`
+	MeshGateway      MeshGatewayConfig       `json:",omitempty" alias:"mesh_gateway"`
+	Expose           ExposeConfig            `json:",omitempty"`
+	AccessLogs       *AccessLogsConfig       `json:",omitempty" alias:"access_logs"`
+	EnvoyExtensions  []EnvoyExtension        `json:",omitempty" alias:"envoy_extensions"`
 
 	Meta        map[string]string `json:",omitempty"`
 	CreateIndex uint64
@@ -362,8 +354,6 @@ func makeConfigEntry(kind, name string) (ConfigEntry, error) {
 		return &MeshConfigEntry{}, nil
 	case ExportedServices:
 		return &ExportedServicesConfigEntry{Name: name}, nil
-	case SamenessGroup:
-		return &SamenessGroupConfigEntry{Kind: kind, Name: name}, nil
 	case APIGateway:
 		return &APIGatewayConfigEntry{Kind: kind, Name: name}, nil
 	case TCPRoute:
@@ -372,8 +362,6 @@ func makeConfigEntry(kind, name string) (ConfigEntry, error) {
 		return &InlineCertificateConfigEntry{Kind: kind, Name: name}, nil
 	case HTTPRoute:
 		return &HTTPRouteConfigEntry{Kind: kind, Name: name}, nil
-	case RateLimitIPConfig:
-		return &RateLimitIPConfigEntry{Kind: kind, Name: name}, nil
 	default:
 		return nil, fmt.Errorf("invalid config entry kind: %s", kind)
 	}
