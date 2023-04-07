@@ -90,7 +90,7 @@ jobs:
     needs:
     - setup 
     - check-go-mod
-    runs-on: ${{ fromJSON(needs.setup.outputs.compute-medium) }}
+    runs-on: ${{ fromJSON(needs.setup.outputs.compute-xl) }}
     env:
       CGO_ENABLED: 1
       GOOS: linux
