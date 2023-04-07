@@ -95,7 +95,7 @@ These are some metrics emitted that can help you understand the health of your c
 | :------------------------- | :---------------------------------------------------------------------------------- | :------ | :---- |
 | `consul.mesh.active-root-ca.expiry`    | The number of seconds until the root CA expires, updated every hour.       | seconds | gauge |
 | `consul.mesh.active-signing-ca.expiry` | The number of seconds until the signing CA expires, updated every hour.    | seconds | gauge |
-| `consul.agent.tls.cert.expiry` | The number of seconds until the Agent TLS certificate expires, updated every hour. | seconds | gauge |
+| `consul.agent.tls.cert.expiry` | The number of seconds until the server agent's TLS certificate expires, updated every hour. | seconds | gauge |
 
 ** Why they're important:** Consul Mesh requires a CA to sign all certificates
 used to connect the mesh and the mesh network ceases to work if they expire and
