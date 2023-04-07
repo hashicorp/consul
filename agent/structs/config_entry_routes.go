@@ -147,6 +147,7 @@ func (e *HTTPRouteConfigEntry) Validate() error {
 		if !validParentKinds[parent.Kind] {
 			return fmt.Errorf("unsupported parent kind: %q, must be 'api-gateway'", parent.Kind)
 		}
+
 		if _, ok := uniques[parent]; ok {
 			return errors.New("route parents must be unique")
 		}
@@ -538,10 +539,19 @@ func (e *TCPRouteConfigEntry) Validate() error {
 	if len(e.Services) > 1 {
 		return fmt.Errorf("tcp-route currently only supports one service")
 	}
+
+	uniques := make(map[ResourceReference]struct{}, len(e.Parents))
+
 	for _, parent := range e.Parents {
 		if !validParentKinds[parent.Kind] {
 			return fmt.Errorf("unsupported parent kind: %q, must be 'api-gateway'", parent.Kind)
 		}
+
+		if _, ok := uniques[parent]; ok {
+			return errors.New("route parents must be unique")
+		}
+		uniques[parent] = struct{}{}
+
 	}
 
 	if err := validateConfigEntryMeta(e.Meta); err != nil {
