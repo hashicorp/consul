@@ -40,11 +40,15 @@ func randomACLIdentity(t *testing.T) structs.ACLIdentity {
 	return &structs.ACLToken{AccessorID: id}
 }
 
-func AuthorizerFrom(t *testing.T, policyStr string) resolver.Result {
-	policy, err := acl.NewPolicyFromSource(policyStr, nil, nil)
-	require.NoError(t, err)
+func AuthorizerFrom(t *testing.T, policyStrs ...string) resolver.Result {
+	policies := []*acl.Policy{}
+	for _, policyStr := range policyStrs {
+		policy, err := acl.NewPolicyFromSource(policyStr, nil, nil)
+		require.NoError(t, err)
+		policies = append(policies, policy)
+	}
 
-	authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
+	authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), policies, nil)
 	require.NoError(t, err)
 
 	return resolver.Result{

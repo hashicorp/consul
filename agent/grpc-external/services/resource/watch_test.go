@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/grpc-external/testutils"
 	"github.com/hashicorp/consul/internal/resource/demo"
 	"github.com/hashicorp/consul/proto-public/pbresource"
@@ -23,6 +24,7 @@ import (
 
 func TestWatchList_TypeNotFound(t *testing.T) {
 	t.Parallel()
+
 	server := testServer(t)
 	client := testClient(t, server)
 
@@ -41,6 +43,7 @@ func TestWatchList_TypeNotFound(t *testing.T) {
 
 func TestWatchList_GroupVersionMatches(t *testing.T) {
 	t.Parallel()
+
 	server := testServer(t)
 	client := testClient(t, server)
 	demo.Register(server.Registry)
@@ -85,6 +88,7 @@ func TestWatchList_GroupVersionMismatch(t *testing.T) {
 	// When a resource of TypeArtistV2 is created/updated/deleted
 	// Then no watch events should be emitted
 	t.Parallel()
+
 	server := testServer(t)
 	demo.Register(server.Registry)
 	client := testClient(t, server)
@@ -119,121 +123,76 @@ func TestWatchList_GroupVersionMismatch(t *testing.T) {
 	mustGetNoResource(t, rspCh)
 }
 
-func TestWatchList_ACL_RegisteredHooks(t *testing.T) {
+func TestWatchList_ACL_ListDenied(t *testing.T) {
 	t.Parallel()
-	server := testServer(t)
-	client := testClient(t, server)
-	ctx := context.Background()
 
-	readCalled := false
-	listCalled := false
-	demo.Register(server.Registry) /*, &resource.ACLHooks{
-		Read: func(authz acl.Authorizer, id *pbresource.ID) error {
-			readCalled = true
-			return nil
-		},
-		List: func(authz acl.Authorizer, tenancy *pbresource.Tenancy) error {
-			listCalled = true
-			return nil
-		},
-	})*/
+	// deny all
+	rspCh, _ := roundTripACL(t, testutils.ACLNoPermissions(t))
 
-	// create a watch
-	stream, err := client.WatchList(ctx, &pbresource.WatchListRequest{
-		Type:       demo.TypeV2Artist,
-		Tenancy:    demo.TenancyDefault,
-		NamePrefix: "",
-	})
-	require.NoError(t, err)
-	rspCh := handleResourceStream(t, stream)
-
-	artist, err := demo.GenerateV2Artist()
-	require.NoError(t, err)
-
-	// induce single watch event
-	_, err = server.Backend.WriteCAS(ctx, artist)
-	require.NoError(t, err)
-	_ = mustGetResource(t, rspCh)
-
-	// verify both registered ACL hooks called
-	require.True(t, listCalled)
-	require.True(t, readCalled)
-}
-
-func TestWatchList_ACL_DefaultListHook_PermissionDenied(t *testing.T) {
-	t.Parallel()
-	server := testServer(t)
-	client := testClient(t, server)
-	ctx := context.Background()
-
-	mockACLResolver := &MockACLResolver{}
-	mockACLResolver.On("ResolveTokenAndDefaultMeta", mock.Anything, mock.Anything, mock.Anything).
-		Return(testutils.ACLNoPermissions(t), nil)
-	server.ACLResolver = mockACLResolver
-
-	// There two two hooks in play: List and Read. To make sure only the default List hook is
-	// exercised by this test and is the origin of PermissionDenied, provide a Read hook
-	// and verify it is never called.
-	readCalled := false
-	demo.Register(server.Registry) /*, &resource.ACLHooks{
-		Read: func(authz acl.Authorizer, id *pbresource.ID) error {
-			readCalled = true
-			return nil
-		},
-	})*/
-
-	// create a watch
-	stream, err := client.WatchList(ctx, &pbresource.WatchListRequest{
-		Type:       demo.TypeV2Artist,
-		Tenancy:    demo.TenancyDefault,
-		NamePrefix: "",
-	})
-	require.NoError(t, err)
-	require.False(t, readCalled)
-	rspCh := handleResourceStream(t, stream)
-
-	// verify persmission denied
-	err = mustGetError(t, rspCh)
+	// verify key:list denied
+	err := mustGetError(t, rspCh)
 	require.Error(t, err)
 	require.Equal(t, codes.PermissionDenied.String(), status.Code(err).String())
-	require.False(t, readCalled)
+	require.Contains(t, err.Error(), "lacks permission 'key:list'")
 }
 
-func TestWatchList_ACL_DefaultReadHook_PermissionDenied(t *testing.T) {
+func TestWatchList_ACL_ListAllowed_ReadDenied(t *testing.T) {
+	t.Parallel()
+
+	// allow list, deny read
+	authz := AuthorizerFrom(t, `
+		key_prefix "resource/" { policy = "list" }
+		key_prefix "resource/demo.v2.artist/" { policy = "deny" }
+		`)
+	rspCh, _ := roundTripACL(t, authz)
+
+	// verify resource filtered out by key:read denied, hence no events
+	mustGetNoResource(t, rspCh)
+}
+
+func TestWatchList_ACL_ListAllowed_ReadAllowed(t *testing.T) {
+	t.Parallel()
+
+	// allow list, allow read
+	authz := AuthorizerFrom(t, `
+		key_prefix "resource/" { policy = "list" }
+		key_prefix "resource/demo.v2.artist/" { policy = "read" }
+	`)
+	rspCh, artist := roundTripACL(t, authz)
+
+	// verify resource not filtered out by acl
+	event := mustGetResource(t, rspCh)
+	prototest.AssertDeepEqual(t, artist, event.Resource)
+}
+
+// roundtrip a WatchList which attempts to stream back a single write event
+func roundTripACL(t *testing.T, authz acl.Authorizer) (<-chan resourceOrError, *pbresource.Resource) {
 	server := testServer(t)
 	client := testClient(t, server)
-	ctx := context.Background()
 
 	mockACLResolver := &MockACLResolver{}
 	mockACLResolver.On("ResolveTokenAndDefaultMeta", mock.Anything, mock.Anything, mock.Anything).
-		Return(testutils.ACLNoPermissions(t), nil)
+		Return(authz, nil)
 	server.ACLResolver = mockACLResolver
+	demo.Register(server.Registry)
 
-	// Allow List ACL check to pass so Read ACL check can be reached
-	listCalled := false
-	demo.Register(server.Registry) /*, &resource.ACLHooks{
-		List: func(authz acl.Authorizer, tenancy *pbresource.Tenancy) error {
-			listCalled = true
-			return nil
-		},
-	})*/
 	artist, err := demo.GenerateV2Artist()
 	require.NoError(t, err)
-	_, err = server.Backend.WriteCAS(context.Background(), artist)
-	require.NoError(t, err)
 
-	// create a watch
-	stream, err := client.WatchList(ctx, &pbresource.WatchListRequest{
-		Type:       demo.TypeV2Artist,
-		Tenancy:    demo.TenancyDefault,
+	stream, err := client.WatchList(testContext(t), &pbresource.WatchListRequest{
+		Type:       artist.Id.Type,
+		Tenancy:    artist.Id.Tenancy,
 		NamePrefix: "",
 	})
 	require.NoError(t, err)
 	rspCh := handleResourceStream(t, stream)
 
-	// verify no resource since ACL filtered out event
-	mustGetNoResource(t, rspCh)
-	require.True(t, listCalled)
+	// induce single watch event
+	artist, err = server.Backend.WriteCAS(context.Background(), artist)
+	require.NoError(t, err)
+
+	// caller to make assertions on the rspCh and written artist
+	return rspCh, artist
 }
 
 func mustGetNoResource(t *testing.T, ch <-chan resourceOrError) {
