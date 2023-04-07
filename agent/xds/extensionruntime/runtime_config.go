@@ -89,8 +89,9 @@ func GetRuntimeConfigurations(cfgSnap *proxycfg.ConfigSnapshot) map[api.Compound
 				EnvoyExtension: ext,
 				ServiceName:    localSvc,
 				// Upstreams is nil to signify this extension is not being applied to an upstream service, but rather to the local service.
-				Upstreams: nil,
-				Kind:      kind,
+				Upstreams:      nil,
+				LocalUpstreams: upstreamMap,
+				Kind:           kind,
 			}
 			extensionConfigurationsMap[localSvc] = append(extensionConfigurationsMap[localSvc], extCfg)
 		}
