@@ -122,6 +122,7 @@ func TestRead_VerifyReadConsistencyArg(t *testing.T) {
 	}
 }
 
+// N.B. Uses key ACLs for now. See demo.Register()
 func TestRead_ACLs(t *testing.T) {
 	type testCase struct {
 		authz resolver.Result
