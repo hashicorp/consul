@@ -13,6 +13,7 @@ import (
 	goretry "github.com/avast/retry-go"
 	dockercontainer "github.com/docker/docker/api/types/container"
 	"github.com/hashicorp/go-multierror"
+	"github.com/otiai10/copy"
 	"github.com/pkg/errors"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
@@ -91,11 +92,15 @@ func NewConsulContainer(ctx context.Context, config Config, cluster *Cluster, po
 		return nil, err
 	}
 
-	consulType := "client"
-	if pc.Server {
-		consulType = "server"
+	name := config.NodeName
+	if name == "" {
+		// Generate a random name for the agent
+		consulType := "client"
+		if pc.Server {
+			consulType = "server"
+		}
+		name = utils.RandName(fmt.Sprintf("%s-consul-%s-%d", pc.Datacenter, consulType, index))
 	}
-	name := utils.RandName(fmt.Sprintf("%s-consul-%s-%d", pc.Datacenter, consulType, index))
 
 	// Inject new Agent name
 	config.Cmd = append(config.Cmd, "-node", name)
@@ -106,6 +111,14 @@ func NewConsulContainer(ctx context.Context, config Config, cluster *Cluster, po
 	}
 	if err := os.Chmod(tmpDirData, 0777); err != nil {
 		return nil, fmt.Errorf("error chowning data directory %s: %w", tmpDirData, err)
+	}
+
+	if config.ExternalDataDir != "" {
+		// copy consul persistent state from an external dir
+		err := copy.Copy(config.ExternalDataDir, tmpDirData)
+		if err != nil {
+			return nil, fmt.Errorf("error copying persistent data from %s: %w", config.ExternalDataDir, err)
+		}
 	}
 
 	var caCertFileForAPI string
