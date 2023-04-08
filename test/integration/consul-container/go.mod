@@ -16,6 +16,7 @@ require (
 	github.com/hashicorp/serf v0.10.1
 	github.com/itchyny/gojq v0.12.9
 	github.com/mitchellh/copystructure v1.2.0
+	github.com/otiai10/copy v1.10.0
 	github.com/pkg/errors v0.9.1
 	github.com/stretchr/testify v1.8.1
 	github.com/teris-io/shortid v0.0.0-20220617161101-71ec9f2aa569

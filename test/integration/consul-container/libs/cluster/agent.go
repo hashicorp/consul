@@ -40,6 +40,19 @@ type Agent interface {
 //
 // Constructed by (Builder).ToAgentConfig()
 type Config struct {
+	// NodeName is set for the consul agent name and container name
+	// Equivalent to the -node command-line flag.
+	// If empty, a randam name will be generated
+	NodeName string
+	// NodeID is used to configure node_id in agent config file
+	// Equivalent to the -node-id command-line flag.
+	// If empty, a randam name will be generated
+	NodeID string
+
+	// ExternalDataDir is data directory to copy consul data from, if set.
+	// This directory contains subdirectories like raft, serf, services
+	ExternalDataDir string
+
 	ScratchDir    string
 	CertVolume    string
 	CACert        string
