@@ -67,6 +67,7 @@ The following outline shows how to format the service splitter configuration ent
 - [`MaxInboundConnections`](#maxinboundconnections): integer | `0`
 - [`LocalConnectTimeoutMs`](#localconnecttimeoutms): integer | `0`
 - [`LocalRequestTimeoutMs`](#localrequesttimeoutms): integer | `0`
+- [`LocalIdleTimeoutMs`](#localidletimeoutms): integer | `0`
 - [`MeshGateway`](#meshgateway): map | no default
   - [`Mode`](#meshgateway): string | no default
 - [`ExternalSNI`](#externalsni): string | no default
@@ -134,6 +135,7 @@ The following outline shows how to format the service splitter configuration ent
   - [`maxInboundConnections`](#maxinboundconnections): integer | `0`
   - [`localConnectTimeoutMs`](#localconnecttimeoutms): integer | `0`
   - [`localRequestTimeoutMs`](#localrequesttimeoutms): integer | `0`
+  - [`localIdleTimeoutMs`](#localidletimeoutms): integer | `0`
   - [`meshGateway`](#meshgateway): map | no default
     - [`mode`](#meshgateway): string | no default
   - [`externalSNI`](#externalsni): string | no default
@@ -220,6 +222,7 @@ Destination = {
 MaxInboundConnections = 100
 LocalConnectTimeoutMs = 10
 LocalRequestTimeoutMs = 10
+LocalIdleTimeoutMs = 10
 MeshGateway = {
   Mode = "remote"
 }
@@ -723,6 +726,13 @@ Specifies the number of milliseconds allowed for establishing connections to the
 ### `LocalRequestTimeoutMs` 
 
 Specifies the timeout for HTTP requests to the local application instance. Applies to HTTP-based protocols only. If not specified, inherits the Envoy default for route timeouts.
+
+- Default: Inherits `15s` from Envoy as the default
+- Data type: string
+
+### `LocalIdleTimeoutMs`
+
+Specifies the idle timeout for HTTP requests to the local application instance. Applies to HTTP-based protocols only. If not specified, inherits the Envoy default for route idle timeouts.
 
 - Default: Inherits `15s` from Envoy as the default
 - Data type: string
@@ -1943,6 +1953,12 @@ represents a location outside the Consul cluster. Services can dial destinations
     {
       name: 'LocalRequestTimeoutMs',
       description: ' In milliseconds, the timeout for HTTP requests to the local application instance. Applies to HTTP-based protocols only. If not specified, inherits the Envoy default for route timeouts (15s).',
+      type: 'int: 0',
+      yaml: false,
+    },
+    {
+      name: 'LocalIdleTimeoutMs',
+      description: ' In milliseconds, the idle timeout for HTTP requests to the local application instance. Applies to HTTP-based protocols only. If not specified, inherits the Envoy default for route idle timeouts (15s).',
       type: 'int: 0',
       yaml: false,
     },

@@ -115,6 +115,9 @@ func ComputeResolvedServiceConfig(
 		if serviceConf.LocalRequestTimeoutMs > 0 {
 			proxyConf["local_request_timeout_ms"] = serviceConf.LocalRequestTimeoutMs
 		}
+		if serviceConf.LocalIdleTimeoutMs > 0 {
+			proxyConf["local_idle_timeout_ms"] = serviceConf.LocalIdleTimeoutMs
+		}
 		// Add the proxy conf to the response if any fields were populated
 		if len(proxyConf) > 0 {
 			thisReply.ProxyConfig = proxyConf

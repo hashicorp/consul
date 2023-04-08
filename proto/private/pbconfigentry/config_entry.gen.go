@@ -1237,6 +1237,7 @@ func ServiceDefaultsToStructs(s *ServiceDefaults, t *structs.ServiceConfigEntry)
 	t.MaxInboundConnections = int(s.MaxInboundConnections)
 	t.LocalConnectTimeoutMs = int(s.LocalConnectTimeoutMs)
 	t.LocalRequestTimeoutMs = int(s.LocalRequestTimeoutMs)
+	t.LocalIdleTimeoutMs = int(s.LocalIdleTimeoutMs)
 	t.BalanceInboundConnections = s.BalanceInboundConnections
 	t.EnvoyExtensions = EnvoyExtensionsToStructs(s.EnvoyExtensions)
 	t.Meta = s.Meta
@@ -1276,6 +1277,7 @@ func ServiceDefaultsFromStructs(t *structs.ServiceConfigEntry, s *ServiceDefault
 	s.MaxInboundConnections = int32(t.MaxInboundConnections)
 	s.LocalConnectTimeoutMs = int32(t.LocalConnectTimeoutMs)
 	s.LocalRequestTimeoutMs = int32(t.LocalRequestTimeoutMs)
+	s.LocalIdleTimeoutMs = int32(t.LocalIdleTimeoutMs)
 	s.BalanceInboundConnections = t.BalanceInboundConnections
 	s.EnvoyExtensions = EnvoyExtensionsFromStructs(t.EnvoyExtensions)
 	s.Meta = t.Meta
