@@ -515,6 +515,14 @@ to Consul 1.11.11 or later to avoid the breaking nature of that change.
 
 ### Licensing Changes <EnterpriseAlert inline />
 
+You can only upgrade to Consul Enterprise 1.10 from the following Enterprise versions:
+- 1.8 release series: 1.8.13+
+- 1.9 release series: 1.9.7+
+
+Other versions of Consul Enterprise are not forward compatible with v1.10 and will
+cause issues during the upgrade that could result in agents failing to start due to
+[changes in the way we manage licenses](/consul/docs/enterprise/license/faq).
+
 Consul Enterprise 1.10 has removed temporary licensing capabilities from the binaries
 found on https://releases.hashicorp.com. Servers will no longer load a license previously
 set through the CLI or API. Instead the license must be present in the server's configuration

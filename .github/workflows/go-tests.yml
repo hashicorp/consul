@@ -10,6 +10,11 @@ on:
       - 'backport/docs/**'
       - 'backport/ui/**'
       - 'backport/mktg-**'
+  push:
+    branches:
+      # Push events on the main branch
+      - main
+      - release/**
   
 permissions:
   contents: read
@@ -227,6 +232,7 @@ jobs:
       consul-license: ${{secrets.CONSUL_LICENSE}}
 
   go-test-enterprise:
+    if: ${{ endsWith(github.repository, '-enterprise') }}
     needs: 
     - setup   
     - dev-build
@@ -361,3 +367,47 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - run: "echo ok"
+
+  # This is job is required for branch protection as a required gihub check
+  # because GitHub actions show up as checks at the job level and not the
+  # workflow level.  This is currently a feature request:
+  # https://github.com/orgs/community/discussions/12395
+  #
+  # This job must:
+  # - be placed after the fanout of a workflow so that everything fans back in
+  #   to this job.
+  # - "need" any job that is part of the fan out / fan in
+  # - implement the if logic because we have conditional jobs 
+  #   (go-test-enteprise) that this job needs and this would potentially get 
+  #   skipped if a previous job got skipped.  So we use the if clause to make 
+  # sure it does not get skipped.
+
+  go-tests-success:
+    needs: 
+    - setup
+    - check-generated-deep-copy
+    - check-generated-protobuf
+    - check-go-mod
+    - lint-consul-retry
+    - lint-container-test-deps
+    - lint-enums
+    - lint
+    - lint-32bit
+    # - go-test-arm64
+    - go-test-enterprise
+    - go-test-oss 
+    - go-test-race
+    - go-test-envoyextensions
+    - go-test-troubleshoot
+    - go-test-api-1-19
+    - go-test-api-1-20
+    - go-test-sdk-1-19
+    - go-test-sdk-1-20
+    - go-test-32bit
+    runs-on: ${{ fromJSON(needs.setup.outputs.compute-small) }}
+    if: |
+      (always() && ! cancelled()) &&
+      !contains(needs.*.result, 'failure') &&
+      !contains(needs.*.result, 'cancelled')
+    steps:
+      - run: echo "go-tests succeeded"
