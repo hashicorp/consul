@@ -75,7 +75,12 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	entry, _, err := client.ConfigEntries().Get("exported-services", "default", nil)
+	cfgName := "default"
+	if c.http.Partition() != "" {
+		cfgName = c.http.Partition()
+	}
+
+	entry, _, err := client.ConfigEntries().Get(api.ExportedServices, cfgName, &api.QueryOptions{Namespace: ""})
 	if err != nil && !strings.Contains(err.Error(), agent.ConfigEntryNotFoundErr) {
 		c.UI.Error(fmt.Sprintf("Error reading config entry %s/%s: %v", "exported-services", "default", err))
 		return 1
@@ -83,7 +88,7 @@ func (c *cmd) Run(args []string) int {
 
 	var cfg *api.ExportedServicesConfigEntry
 	if entry == nil {
-		cfg = c.initializeConfigEntry(peerNames, partitionNames)
+		cfg = c.initializeConfigEntry(cfgName, peerNames, partitionNames)
 	} else {
 		existingCfg, ok := entry.(*api.ExportedServicesConfigEntry)
 		if !ok {
@@ -115,9 +120,9 @@ func (c *cmd) Run(args []string) int {
 	return 0
 }
 
-func (c *cmd) initializeConfigEntry(peerNames, partitionNames []string) *api.ExportedServicesConfigEntry {
+func (c *cmd) initializeConfigEntry(cfgName string, peerNames, partitionNames []string) *api.ExportedServicesConfigEntry {
 	return &api.ExportedServicesConfigEntry{
-		Name: "default",
+		Name: cfgName,
 		Services: []api.ExportedService{
 			{
 				Name:      c.serviceName,
