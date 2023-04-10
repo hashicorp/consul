@@ -1,9 +1,13 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 //go:build !consulent
 // +build !consulent
 
 package agent
 
 import (
+	"context"
 	"testing"
 
 	"github.com/hashicorp/consul/acl"
@@ -69,7 +73,7 @@ func TestDNS_OSS_PeeredServices(t *testing.T) {
 	}
 
 	t.Run("srv-with-addr-reply", func(t *testing.T) {
-		require.NoError(t, a.RPC("Catalog.Register", makeReq(), &struct{}{}))
+		require.NoError(t, a.RPC(context.Background(), "Catalog.Register", makeReq(), &struct{}{}))
 		q := dnsQuery(t, "web-proxy.service.peer1.peer.consul.", dns.TypeSRV)
 		require.Len(t, q.Answer, 1)
 		require.Len(t, q.Extra, 1)
@@ -89,7 +93,7 @@ func TestDNS_OSS_PeeredServices(t *testing.T) {
 		req := makeReq()
 		// Clear service address to trigger node response
 		req.Service.Address = ""
-		require.NoError(t, a.RPC("Catalog.Register", req, &struct{}{}))
+		require.NoError(t, a.RPC(context.Background(), "Catalog.Register", req, &struct{}{}))
 		q := dnsQuery(t, "web-proxy.service.peer1.peer.consul.", dns.TypeSRV)
 		require.Len(t, q.Answer, 1)
 		require.Len(t, q.Extra, 1)
@@ -110,7 +114,7 @@ func TestDNS_OSS_PeeredServices(t *testing.T) {
 		// Set non-ip address to trigger external response
 		req.Address = "localhost"
 		req.Service.Address = ""
-		require.NoError(t, a.RPC("Catalog.Register", req, &struct{}{}))
+		require.NoError(t, a.RPC(context.Background(), "Catalog.Register", req, &struct{}{}))
 		q := dnsQuery(t, "web-proxy.service.peer1.peer.consul.", dns.TypeSRV)
 		require.Len(t, q.Answer, 1)
 		require.Len(t, q.Extra, 0)
@@ -118,7 +122,7 @@ func TestDNS_OSS_PeeredServices(t *testing.T) {
 	})
 
 	t.Run("a-reply", func(t *testing.T) {
-		require.NoError(t, a.RPC("Catalog.Register", makeReq(), &struct{}{}))
+		require.NoError(t, a.RPC(context.Background(), "Catalog.Register", makeReq(), &struct{}{}))
 		q := dnsQuery(t, "web-proxy.service.peer1.peer.consul.", dns.TypeA)
 		require.Len(t, q.Answer, 1)
 		require.Len(t, q.Extra, 0)

@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 import Route from 'consul-ui/routing/route';
 import { inject as service } from '@ember/service';
 import { set, action } from '@ember/object';

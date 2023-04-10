@@ -1,11 +1,12 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package resolver
 
 import (
 	"fmt"
-	"math/rand"
 	"strings"
 	"sync"
-	"time"
 
 	"google.golang.org/grpc/resolver"
 
@@ -40,31 +41,6 @@ func NewServerResolverBuilder(cfg Config) *ServerResolverBuilder {
 		cfg:       cfg,
 		servers:   make(map[types.AreaID]map[string]*metadata.Server),
 		resolvers: make(map[resolver.ClientConn]*serverResolver),
-	}
-}
-
-// NewRebalancer returns a function which shuffles the server list for resolvers
-// in all datacenters.
-func (s *ServerResolverBuilder) NewRebalancer(dc string) func() {
-	shuffler := rand.New(rand.NewSource(time.Now().UnixNano()))
-	return func() {
-		s.lock.RLock()
-		defer s.lock.RUnlock()
-
-		for _, resolver := range s.resolvers {
-			if resolver.datacenter != dc {
-				continue
-			}
-			// Shuffle the list of addresses using the last list given to the resolver.
-			resolver.addrLock.Lock()
-			addrs := resolver.addrs
-			shuffler.Shuffle(len(addrs), func(i, j int) {
-				addrs[i], addrs[j] = addrs[j], addrs[i]
-			})
-			// Pass the shuffled list to the resolver.
-			resolver.updateAddrsLocked(addrs)
-			resolver.addrLock.Unlock()
-		}
 	}
 }
 
@@ -265,27 +241,8 @@ var _ resolver.Resolver = (*serverResolver)(nil)
 func (r *serverResolver) updateAddrs(addrs []resolver.Address) {
 	r.addrLock.Lock()
 	defer r.addrLock.Unlock()
-	r.updateAddrsLocked(addrs)
-}
 
-// updateAddrsLocked updates this serverResolver's ClientConn to use the given
-// set of addrs. addrLock must be held by caller.
-func (r *serverResolver) updateAddrsLocked(addrs []resolver.Address) {
-	// Only pass the first address initially, which will cause the
-	// balancer to spin down the connection for its previous first address
-	// if it is different. If we don't do this, it will keep using the old
-	// first address as long as it is still in the list, making it impossible to
-	// rebalance until that address is removed.
-	var firstAddr []resolver.Address
-	if len(addrs) > 0 {
-		firstAddr = []resolver.Address{addrs[0]}
-	}
-	r.clientConn.UpdateState(resolver.State{Addresses: firstAddr})
-
-	// Call UpdateState again with the entire list of addrs in case we need them
-	// for failover.
 	r.clientConn.UpdateState(resolver.State{Addresses: addrs})
-
 	r.addrs = addrs
 }
 

@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package agent
 
 import (
@@ -47,10 +50,8 @@ func (a *Agent) retryJoinWAN() {
 		// completely hijack whatever the user configured to correctly
 		// implement the star-join.
 		//
-		// Elsewhere we enforce that start-join-wan and retry-join-wan cannot
-		// be set if wanfed is enabled so we don't have to emit any warnings
-		// related to that here.
-
+		// Elsewhere we enforce that retry-join-wan cannot be set if wanfed is
+		// enabled so we don't have to emit any warnings related to that here.
 		if isPrimary {
 			// Wanfed requires that secondaries join TO the primary and the
 			// primary doesn't explicitly join down to the secondaries, so as

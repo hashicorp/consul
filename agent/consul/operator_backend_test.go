@@ -1,15 +1,19 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package consul
 
 import (
 	"context"
+	"testing"
+	"time"
+
 	"github.com/hashicorp/consul/acl"
 	external "github.com/hashicorp/consul/agent/grpc-external"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/proto/pboperator"
+	"github.com/hashicorp/consul/proto/private/pboperator"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"google.golang.org/grpc/credentials/insecure"
-	"testing"
-	"time"
 
 	"github.com/stretchr/testify/require"
 	gogrpc "google.golang.org/grpc"
@@ -60,17 +64,14 @@ func TestOperatorBackend_TransferLeader(t *testing.T) {
 		reply, err := operatorClient.TransferLeader(ctx, &req)
 		require.NoError(t, err)
 		require.True(t, reply.Success)
-		time.Sleep(1 * time.Second)
 		testrpc.WaitForLeader(t, s1.RPC, "dc1")
 		retry.Run(t, func(r *retry.R) {
+			time.Sleep(1 * time.Second)
 			afterLeader, _ := s1.raft.LeaderWithID()
 			require.NotEmpty(r, afterLeader)
+			require.NotEqual(r, afterLeader, beforeLeader)
 		})
-		afterLeader, _ := s1.raft.LeaderWithID()
-		require.NotEmpty(t, afterLeader)
-		if afterLeader == beforeLeader {
-			t.Fatalf("leader should have changed %s == %s", afterLeader, beforeLeader)
-		}
+
 	})
 }
 
@@ -94,7 +95,6 @@ func TestOperatorBackend_TransferLeaderWithACL(t *testing.T) {
 	s1 := nodes.Servers[0]
 	// Make sure a leader is elected
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
-
 	// Make a write call to server2 and make sure it gets forwarded to server1
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	t.Cleanup(cancel)
@@ -109,6 +109,13 @@ func TestOperatorBackend_TransferLeaderWithACL(t *testing.T) {
 
 	operatorClient := pboperator.NewOperatorServiceClient(conn)
 
+	codec := rpcClient(t, s1)
+	rules := `operator = "write"`
+	tokenWrite := createTokenWithPolicyNameFull(t, codec, "the-policy-write", rules, "root")
+	rules = `operator = "read"`
+	tokenRead := createToken(t, codec, rules)
+	require.NoError(t, err)
+
 	testutil.RunStep(t, "transfer leader no token", func(t *testing.T) {
 		beforeLeader, _ := s1.raft.LeaderWithID()
 		require.NotEmpty(t, beforeLeader)
@@ -121,15 +128,14 @@ func TestOperatorBackend_TransferLeaderWithACL(t *testing.T) {
 		require.Nil(t, reply)
 		time.Sleep(1 * time.Second)
 		testrpc.WaitForLeader(t, s1.RPC, "dc1")
-		retry.Run(t, func(r *retry.R) {
+		retry.RunWith(&retry.Timer{Wait: time.Second, Timeout: 3 * time.Second}, t, func(r *retry.R) {
 			afterLeader, _ := s1.raft.LeaderWithID()
 			require.NotEmpty(r, afterLeader)
+			if afterLeader != beforeLeader {
+				r.Fatalf("leader should have changed %s == %s", afterLeader, beforeLeader)
+			}
 		})
-		afterLeader, _ := s1.raft.LeaderWithID()
-		require.NotEmpty(t, afterLeader)
-		if afterLeader != beforeLeader {
-			t.Fatalf("leader should have changed %s == %s", afterLeader, beforeLeader)
-		}
+
 	})
 
 	testutil.RunStep(t, "transfer leader operator read token", func(t *testing.T) {
@@ -140,26 +146,21 @@ func TestOperatorBackend_TransferLeaderWithACL(t *testing.T) {
 		req := pboperator.TransferLeaderRequest{
 			ID: "",
 		}
-		codec := rpcClient(t, s1)
-		rules := `operator = "read"`
-		tokenRead := createToken(t, codec, rules)
 
 		ctxToken, err := external.ContextWithQueryOptions(ctx, structs.QueryOptions{Token: tokenRead})
 		require.NoError(t, err)
+
 		reply, err := operatorClient.TransferLeader(ctxToken, &req)
 		require.True(t, acl.IsErrPermissionDenied(err))
 		require.Nil(t, reply)
-		time.Sleep(1 * time.Second)
 		testrpc.WaitForLeader(t, s1.RPC, "dc1")
-		retry.Run(t, func(r *retry.R) {
+		retry.RunWith(&retry.Timer{Wait: time.Second, Timeout: 3 * time.Second}, t, func(r *retry.R) {
 			afterLeader, _ := s1.raft.LeaderWithID()
 			require.NotEmpty(r, afterLeader)
+			if afterLeader != beforeLeader {
+				r.Fatalf("leader should have changed %s == %s", afterLeader, beforeLeader)
+			}
 		})
-		afterLeader, _ := s1.raft.LeaderWithID()
-		require.NotEmpty(t, afterLeader)
-		if afterLeader != beforeLeader {
-			t.Fatalf("leader should have changed %s == %s", afterLeader, beforeLeader)
-		}
 	})
 
 	testutil.RunStep(t, "transfer leader operator write token", func(t *testing.T) {
@@ -170,9 +171,6 @@ func TestOperatorBackend_TransferLeaderWithACL(t *testing.T) {
 		req := pboperator.TransferLeaderRequest{
 			ID: "",
 		}
-		codec := rpcClient(t, s1)
-		rules := `operator = "write"`
-		tokenWrite := createTokenWithPolicyNameFull(t, codec, "the-policy-write", rules, "root")
 		ctxToken, err := external.ContextWithQueryOptions(ctx, structs.QueryOptions{Token: tokenWrite.SecretID})
 		require.NoError(t, err)
 		reply, err := operatorClient.TransferLeader(ctxToken, &req)
@@ -180,14 +178,12 @@ func TestOperatorBackend_TransferLeaderWithACL(t *testing.T) {
 		require.True(t, reply.Success)
 		time.Sleep(1 * time.Second)
 		testrpc.WaitForLeader(t, s1.RPC, "dc1")
-		retry.Run(t, func(r *retry.R) {
+		retry.RunWith(&retry.Timer{Wait: 2 * time.Second, Timeout: 6 * time.Second}, t, func(r *retry.R) {
 			afterLeader, _ := s1.raft.LeaderWithID()
 			require.NotEmpty(r, afterLeader)
+			if afterLeader == beforeLeader {
+				r.Fatalf("leader should have changed %s == %s", afterLeader, beforeLeader)
+			}
 		})
-		afterLeader, _ := s1.raft.LeaderWithID()
-		require.NotEmpty(t, afterLeader)
-		if afterLeader == beforeLeader {
-			t.Fatalf("leader should have changed %s == %s", afterLeader, beforeLeader)
-		}
 	})
 }

@@ -1,0 +1,3 @@
+```release-note:bug
+agent: **(Enterprise Only)** Ensure configIntentionsConvertToList does not compare empty strings with populated strings when filtering intentions created prior to AdminPartitions.
+```

@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package structs
 
 import (
@@ -117,7 +120,7 @@ func TestIntention_ACLs(t *testing.T) {
 
 	for name, tcase := range cases {
 		t.Run(name, func(t *testing.T) {
-			authz, err := acl.NewAuthorizerFromRules(tcase.rules, acl.SyntaxCurrent, &config, nil)
+			authz, err := acl.NewAuthorizerFromRules(tcase.rules, &config, nil)
 			require.NoError(t, err)
 
 			require.Equal(t, tcase.read, tcase.intention.CanRead(authz))

@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package agenttokens
 
 import (
@@ -58,6 +61,8 @@ func (c *cmd) Run(args []string) int {
 		_, err = client.Agent().UpdateAgentRecoveryACLToken(token, nil)
 	case "replication":
 		_, err = client.Agent().UpdateReplicationACLToken(token, nil)
+	case "config_file_service_registration":
+		_, err = client.Agent().UpdateConfigFileRegistrationToken(token, nil)
 	default:
 		c.UI.Error(fmt.Sprintf("Unknown token type"))
 		return 1
@@ -107,26 +112,33 @@ const synopsis = "Assign tokens for the Consul Agent's usage"
 const help = `
 Usage: consul acl set-agent-token [options] TYPE TOKEN
 
-  This command will set the corresponding token for the agent to use.
-  Note that the tokens uploaded this way are not persisted and if
-  the agent reloads then the tokens will need to be set again.
+  This command will set the corresponding token for the agent to use. If token
+  persistence is not enabled, then tokens uploaded this way are not persisted
+  and if the agent reloads then the tokens will need to be set again.
 
   Token Types:
 
-    default       The default token is the token that the agent will use for
-                  both internal agent operations and operations initiated by
-                  the HTTP and DNS interfaces when no specific token is provided.
-                  If not set the agent will use the anonymous token.
+    default                           The default token is the token that the agent will use for
+                                      both internal agent operations and operations initiated by
+                                      the HTTP and DNS interfaces when no specific token is provided.
+                                      If not set the agent will use the anonymous token.
 
-    agent         The token that the agent will use for internal agent operations.
-                  If not given then the default token is used for these operations.
+    agent                             The token that the agent will use for internal agent operations.
+                                      If not given then the default token is used for these operations.
 
-    recovery      This sets the token that can be used to access the Agent APIs in
-                  the event that the ACL datacenter cannot be reached.
+    recovery                          This sets the token that can be used to access the Agent APIs in
+                                      the event that the ACL datacenter cannot be reached.
 
-    replication   This is the token that the agent will use for replication
-                  operations. This token will need to be configured with read access
-                  to whatever data is being replicated.
+    replication                       This is the token that the agent will use for replication
+                                      operations. This token will need to be configured with read access
+                                      to whatever data is being replicated.
+
+    config_file_service_registration  This is the token that the agent uses to register services
+                                      and checks defined in config files. This token needs to
+                                      be configured with permission for the service or checks
+                                      being registered. If not set, the default token is used.
+                                      If a service or check definition contains a 'token'
+                                      field, then that token is used instead.
 
   Example:
 

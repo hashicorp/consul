@@ -1,6 +1,10 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package state
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -9,6 +13,8 @@ import (
 
 	"github.com/hashicorp/consul/agent/configentry"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/proto/private/pbpeering"
+	"github.com/hashicorp/consul/proto/private/prototest"
 	"github.com/hashicorp/consul/sdk/testutil"
 )
 
@@ -2065,6 +2071,53 @@ func TestStore_ReadDiscoveryChainConfigEntries_SubsetSplit(t *testing.T) {
 	require.Len(t, entrySet.Services, 1)
 }
 
+func TestStore_ReadDiscoveryChainConfigEntries_FetchPeers(t *testing.T) {
+	s := testConfigStateStore(t)
+
+	entries := []structs.ConfigEntry{
+		&structs.ServiceConfigEntry{
+			Kind:     structs.ServiceDefaults,
+			Name:     "main",
+			Protocol: "http",
+		},
+		&structs.ServiceResolverConfigEntry{
+			Kind: structs.ServiceResolver,
+			Name: "main",
+			Failover: map[string]structs.ServiceResolverFailover{
+				"*": {
+					Targets: []structs.ServiceResolverFailoverTarget{
+						{Peer: "cluster-01"},
+						{Peer: "cluster-02"}, // Non-existant
+					},
+				},
+			},
+		},
+	}
+
+	for _, entry := range entries {
+		require.NoError(t, s.EnsureConfigEntry(0, entry))
+	}
+
+	cluster01Peering := &pbpeering.Peering{
+		ID:   testFooPeerID,
+		Name: "cluster-01",
+	}
+	err := s.PeeringWrite(0, &pbpeering.PeeringWriteRequest{Peering: cluster01Peering})
+	require.NoError(t, err)
+
+	_, entrySet, err := s.readDiscoveryChainConfigEntries(nil, "main", nil, nil)
+	require.NoError(t, err)
+
+	require.Len(t, entrySet.Routers, 0)
+	require.Len(t, entrySet.Splitters, 0)
+	require.Len(t, entrySet.Resolvers, 1)
+	require.Len(t, entrySet.Services, 1)
+	prototest.AssertDeepEqual(t, entrySet.Peers, map[string]*pbpeering.Peering{
+		"cluster-01": cluster01Peering,
+		"cluster-02": nil,
+	})
+}
+
 // TODO(rb): add ServiceIntentions tests
 
 func TestStore_ValidateGatewayNamesCannotBeShared(t *testing.T) {
@@ -2980,6 +3033,152 @@ func TestStore_ValidateServiceIntentionsErrorOnIncompatibleProtocols(t *testing.
 					require.NoError(t, err)
 				}
 			}
+		})
+	}
+}
+
+func TestStateStore_ConfigEntry_VirtualIP(t *testing.T) {
+	createServiceInstance := func(t *testing.T, s *Store, name string) {
+		ns1 := &structs.NodeService{
+			ID:      name,
+			Service: name,
+			Address: "1.1.1.1",
+			Port:    1111,
+			Connect: structs.ServiceConnect{Native: true},
+		}
+		require.NoError(t, s.EnsureService(0, "node1", ns1))
+	}
+	deleteServiceInstance := func(t *testing.T, s *Store, name string) {
+		require.NoError(t, s.DeleteService(0, "node1", name, nil, ""))
+	}
+	createServiceResolver := func(t *testing.T, s *Store, name string) {
+		require.NoError(t, s.EnsureConfigEntry(0, &structs.ServiceResolverConfigEntry{
+			Kind: structs.ServiceResolver,
+			Name: name,
+		}))
+	}
+	createServiceRouter := func(t *testing.T, s *Store, name string) {
+		require.NoError(t, s.EnsureConfigEntry(0, &structs.ServiceRouterConfigEntry{
+			Kind: structs.ServiceRouter,
+			Name: name,
+		}))
+	}
+	createServiceSplitter := func(t *testing.T, s *Store, name string) {
+		require.NoError(t, s.EnsureConfigEntry(0, &structs.ServiceSplitterConfigEntry{
+			Kind: structs.ServiceSplitter,
+			Name: name,
+			Splits: []structs.ServiceSplit{
+				{Weight: 100},
+			},
+		}))
+	}
+	deleteConfigEntry := func(t *testing.T, s *Store, kind, name string) {
+		require.NoError(t, s.DeleteConfigEntry(0, kind, name, nil))
+	}
+	ensureVirtualIP := func(t *testing.T, s *Store, service string, value string) {
+		vip, err := s.VirtualIPForService(structs.PeeredServiceName{ServiceName: structs.ServiceName{Name: service}})
+		require.NoError(t, err)
+		require.Equal(t, value, vip)
+	}
+
+	testVIPStateStore := func(t *testing.T) *Store {
+		s := testStateStore(t)
+		setVirtualIPFlags(t, s)
+		testRegisterNode(t, s, 0, "node1")
+		s.EnsureConfigEntry(0, &structs.ProxyConfigEntry{
+			Kind: structs.ProxyDefaults,
+			Name: structs.ProxyConfigGlobal,
+			Config: map[string]interface{}{
+				"protocol": "http",
+			},
+		})
+		return s
+	}
+
+	cases := []struct {
+		kind       string
+		createFunc func(*testing.T, *Store, string)
+	}{
+		{
+			kind:       structs.ServiceResolver,
+			createFunc: createServiceResolver,
+		},
+		{
+			kind:       structs.ServiceRouter,
+			createFunc: createServiceRouter,
+		},
+		{
+			kind:       structs.ServiceSplitter,
+			createFunc: createServiceSplitter,
+		},
+	}
+	for _, tc := range cases {
+		t.Run(fmt.Sprintf("create and delete %s with no service instances", tc.kind), func(t *testing.T) {
+			s := testVIPStateStore(t)
+
+			// Create unrelated service instance
+			createServiceInstance(t, s, "unrelated")
+
+			// Create the config entry and make sure a virtual ip is allocated
+			ensureVirtualIP(t, s, "foo", "")
+			tc.createFunc(t, s, "foo")
+			ensureVirtualIP(t, s, "foo", "240.0.0.2")
+
+			// Delete the config entry and make sure the virtual ip is freed and reused
+			ensureVirtualIP(t, s, "bar", "")
+			deleteConfigEntry(t, s, tc.kind, "foo")
+			ensureVirtualIP(t, s, "foo", "")
+			tc.createFunc(t, s, "bar")
+			ensureVirtualIP(t, s, "bar", "240.0.0.2")
+		})
+
+		t.Run(fmt.Sprintf("create and delete %s with service instances", tc.kind), func(t *testing.T) {
+			s := testVIPStateStore(t)
+
+			// Create a foo service instance and an unrelated service instance
+			createServiceInstance(t, s, "foo")
+
+			// Creating the config entry should not affect the service virtual IP
+			ensureVirtualIP(t, s, "foo", "240.0.0.1")
+			tc.createFunc(t, s, "foo")
+			ensureVirtualIP(t, s, "foo", "240.0.0.1")
+
+			// Deleting should also not affect the service virtual IP because there are still existing
+			// service instances that need the VIP.
+			deleteConfigEntry(t, s, tc.kind, "foo")
+			ensureVirtualIP(t, s, "foo", "240.0.0.1")
+
+			// Now delete the service instance, which should free up the virtual IP
+			deleteServiceInstance(t, s, "foo")
+			ensureVirtualIP(t, s, "foo", "")
+
+			// Make sure the free address can be reused
+			tc.createFunc(t, s, "bar")
+			ensureVirtualIP(t, s, "bar", "240.0.0.1")
+		})
+
+		t.Run(fmt.Sprintf("create and delete service instance while %s still exists", tc.kind), func(t *testing.T) {
+			s := testVIPStateStore(t)
+
+			// Create the config entry to get the virtual IP
+			tc.createFunc(t, s, "foo")
+			ensureVirtualIP(t, s, "foo", "240.0.0.1")
+
+			// Creating service instance should not affect virtual IP
+			createServiceInstance(t, s, "foo")
+			ensureVirtualIP(t, s, "foo", "240.0.0.1")
+
+			// Deleting should also not affect the service virtual IP because the config entry still exists.
+			deleteServiceInstance(t, s, "foo")
+			ensureVirtualIP(t, s, "foo", "240.0.0.1")
+
+			// Now delete the config entry, which should free up the ip
+			deleteConfigEntry(t, s, tc.kind, "foo")
+			ensureVirtualIP(t, s, "foo", "")
+
+			// Make sure the free address can be reused
+			tc.createFunc(t, s, "bar")
+			ensureVirtualIP(t, s, "bar", "240.0.0.1")
 		})
 	}
 }

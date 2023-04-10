@@ -1,81 +1,87 @@
-<style>
-  {{#if selected.nodes }}
-    {{selected.nodes}} {
-      opacity: 1 !important;
+{{!
+  Copyright (c) HashiCorp, Inc.
+  SPDX-License-Identifier: MPL-2.0
+}}
 
-      background-color: var(--tone-gray-000);
-      border: var(--decor-border-100);
-      border-radius: var(--decor-radius-200);
-      border-color: rgb(var(--tone-gray-500));
-      box-shadow: var(--decor-elevation-600);
-    }
+<style>
+  {{#if selected.nodes}}
+    {{selected.nodes}}
+    { opacity: 1 !important; background-color: var(--token-color-surface-interactive); border:
+    var(--decor-border-100); border-radius: var(--decor-radius-200); border-color:
+    var(--token-color-foreground-faint); box-shadow: var(--token-surface-high-box-shadow); }
   {{/if}}
-  {{#if selected.edges }}
-    {{selected.edges}} {
-      opacity: 1;
-    }
+  {{#if selected.edges}}
+    {{selected.edges}}
+    { opacity: 1; }
   {{/if}}
 </style>
 
-<div class="routes">
+<div class='routes'>
   <header>
     <h2>
-      {{chain.ServiceName}} Router
+      {{chain.ServiceName}}
+      Router
       <span
-        {{tooltip 'Use routers to intercept traffic using Layer 7 criteria such as path prefixes or http headers.'}}
+        {{tooltip
+          'Use routers to intercept traffic using Layer 7 criteria such as path prefixes or http headers.'
+        }}
       >
       </span>
     </h2>
   </header>
-  <div role="group">
+  <div role='group'>
     {{#each routes as |item|}}
       <Consul::DiscoveryChain::RouteCard
         {{on-resize (dom-position (set item 'rect') from=this.edges)}}
         @item={{item}}
-        @onclick={{action "click"}}
+        @onclick={{action 'click'}}
       />
     {{/each}}
   </div>
 </div>
 
-<div class="splitters">
+<div class='splitters'>
   <header>
     <h2>
       Splitters
       <span
-        {{tooltip 'Splitters are configured to split incoming requests across different services or subsets of a single service.'}}
+        {{tooltip
+          'Splitters are configured to split incoming requests across different services or subsets of a single service.'
+        }}
       >
       </span>
     </h2>
   </header>
-  <div role="group">
+  <div role='group'>
     {{#each (sort-by 'Name' splitters) as |item|}}
       <Consul::DiscoveryChain::SplitterCard
         {{on-resize (dom-position (set item 'rect') from=this.edges)}}
         @item={{item}}
-        @onclick={{action "click"}}
+        @onclick={{action 'click'}}
       />
     {{/each}}
   </div>
 </div>
 
-<div class="resolvers">
+<div class='resolvers'>
   <header>
     <h2>
       Resolvers
       <span
-        {{tooltip "Resolvers are used to define which instances of a service should satisfy discovery requests."}}
+        {{tooltip
+          'Resolvers are used to define which instances of a service should satisfy discovery requests.'
+        }}
       >
       </span>
     </h2>
   </header>
-  <div role="group">
+  <div role='group'>
     {{#each (sort-by 'Name' resolvers) as |item|}}
       <Consul::DiscoveryChain::ResolverCard
         {{on-resize (dom-position (set item 'rect') from=this.edges)}}
         @item={{item}}
         @edges={{this.edges}}
-        @onclick={{action "click"}}
+        @onclick={{action 'click'}}
       />
     {{/each}}
   </div>
@@ -83,31 +89,28 @@
 
 {{nodes}}
 
-<svg class="edges"
+<svg
+  class='edges'
   {{did-insert (set this 'edges')}}
-  width="100%"
-  height="100%"
-  preserveAspectRatio="none"
+  width='100%'
+  height='100%'
+  preserveAspectRatio='none'
 >
   {{#each routes as |item|}}
     {{#if item.rect}}
       {{#let item.rect item.NextItem.rect as |src destRect|}}
-        {{#let (tween-to (hash
-          x=destRect.x
-          y=(add destRect.y (div destRect.height 2))
-        ) (concat item.ID)) as |dest|}}
+        {{#let
+          (tween-to (hash x=destRect.x y=(add destRect.y (div destRect.height 2))) (concat item.ID))
+          as |dest|
+        }}
 
-    <path
-      id={{concat item.ID '>' item.NextNode}}
-      d={{
-        svg-curve (hash
-          x=dest.x
-          y=(sub dest.y 0)
-        ) src=(hash
-          x=src.right
-          y=(add src.y (div src.height 2))
-      )}}
-    />
+          <path
+            id={{concat item.ID '>' item.NextNode}}
+            d={{svg-curve
+              (hash x=dest.x y=(sub dest.y 0))
+              src=(hash x=src.right y=(add src.y (div src.height 2)))
+            }}
+          ></path>
 
         {{/let}}
       {{/let}}
@@ -119,27 +122,26 @@
       {{#let splitter.rect as |src|}}
         {{#each splitter.Splits as |item index|}}
           {{#let item.NextItem.rect as |destRect|}}
-            {{#let (tween-to (hash
-              x=destRect.x
-              y=(add destRect.y (div destRect.height 2))
-            ) (concat splitter.ID '-' index)) as |dest|}}
+            {{#let
+              (tween-to
+                (hash x=destRect.x y=(add destRect.y (div destRect.height 2)))
+                (concat splitter.ID '-' index)
+              )
+              as |dest|
+            }}
 
-      <path
-        {{tooltip
-          (concat (round (or item.Weight 0) decimals=2) '%')
-          options=(hash followCursor=true)
-        }}
-        id={{concat 'splitter:' splitter.Name '>' item.NextNode}}
-        class="split"
-        d={{
-          svg-curve (hash
-            x=dest.x
-            y=dest.y
-          ) src=(hash
-            x=src.right
-            y=(add src.y (div src.height 2))
-        )}}
-      />
+              <path
+                {{tooltip
+                  (concat (round (or item.Weight 0) decimals=2) '%')
+                  options=(hash followCursor=true)
+                }}
+                id={{concat 'splitter:' splitter.Name '>' item.NextNode}}
+                class='split'
+                d={{svg-curve
+                  (hash x=dest.x y=dest.y)
+                  src=(hash x=src.right y=(add src.y (div src.height 2)))
+                }}
+              ></path>
 
             {{/let}}
           {{/let}}
@@ -150,28 +152,28 @@
 
 </svg>
 
-<svg class="resolver-inlets" height="100%">
+<svg class='resolver-inlets' height='100%'>
   {{#each routes as |item|}}
-    {{#if (string-starts-with item.NextNode 'resolver:') }}
+    {{#if (string-starts-with item.NextNode 'resolver:')}}
       {{#let (or item.NextItem.rect (hash y=0 height=0)) as |dest|}}
-        <circle r="2.5" cx="5" cy={{add dest.y (div dest.height 2)}} />
+        <circle r='2.5' cx='5' cy={{add dest.y (div dest.height 2)}}></circle>
       {{/let}}
     {{/if}}
   {{/each}}
   {{#each splitters as |item|}}
-      {{#each item.Splits as |item|}}
-        {{#let (or item.NextItem.rect (hash y=0 height=0)) as |dest|}}
-          <circle r="2.5" cx="5" cy={{add dest.y (div dest.height 2)}} />
-        {{/let}}
-      {{/each}}
+    {{#each item.Splits as |item|}}
+      {{#let (or item.NextItem.rect (hash y=0 height=0)) as |dest|}}
+        <circle r='2.5' cx='5' cy={{add dest.y (div dest.height 2)}}></circle>
+      {{/let}}
+    {{/each}}
   {{/each}}
 </svg>
 
-<svg class="splitter-inlets" height="100%">
+<svg class='splitter-inlets' height='100%'>
   {{#each routes as |item|}}
-    {{#if (string-starts-with item.NextNode 'splitter:') }}
+    {{#if (string-starts-with item.NextNode 'splitter:')}}
       {{#let (or item.NextItem.rect (hash y=0 height=0)) as |dest|}}
-        <circle r="2.5" cx="5" cy={{add dest.y (div dest.height 2)}} />
+        <circle r='2.5' cx='5' cy={{add dest.y (div dest.height 2)}}></circle>
       {{/let}}
     {{/if}}
   {{/each}}

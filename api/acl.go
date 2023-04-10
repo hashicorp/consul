@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package api
 
 import (
@@ -45,8 +48,8 @@ type ACLToken struct {
 	Hash              []byte        `json:",omitempty"`
 
 	// DEPRECATED (ACL-Legacy-Compat)
-	// Rules will only be present for legacy tokens returned via the new APIs
-	Rules string `json:",omitempty"`
+	// Rules are an artifact of legacy tokens deprecated in Consul 1.4
+	Rules string `json:"-"`
 
 	// Namespace is the namespace the ACLToken is associated with.
 	// Namespaces are a Consul Enterprise feature.
@@ -90,7 +93,7 @@ type ACLTokenListEntry struct {
 	ExpirationTime    *time.Time `json:",omitempty"`
 	CreateTime        time.Time
 	Hash              []byte
-	Legacy            bool
+	Legacy            bool `json:"-"` // DEPRECATED
 
 	// Namespace is the namespace the ACLTokenListEntry is associated with.
 	// Namespacing is a Consul Enterprise feature.
@@ -498,10 +501,25 @@ func (c *Client) ACL() *ACL {
 	return &ACL{c}
 }
 
+// BootstrapRequest is used for when operators provide an ACL Bootstrap Token
+type BootstrapRequest struct {
+	BootstrapSecret string
+}
+
 // Bootstrap is used to perform a one-time ACL bootstrap operation on a cluster
 // to get the first management token.
 func (a *ACL) Bootstrap() (*ACLToken, *WriteMeta, error) {
+	return a.BootstrapWithToken("")
+}
+
+// BootstrapWithToken is used to get the initial bootstrap token or pass in the one that was provided in the API
+func (a *ACL) BootstrapWithToken(btoken string) (*ACLToken, *WriteMeta, error) {
 	r := a.c.newRequest("PUT", "/v1/acl/bootstrap")
+	if btoken != "" {
+		r.obj = &BootstrapRequest{
+			BootstrapSecret: btoken,
+		}
+	}
 	rtt, resp, err := a.c.doRequest(r)
 	if err != nil {
 		return nil, nil, err
@@ -731,14 +749,14 @@ func (a *ACL) TokenUpdate(token *ACLToken, q *WriteOptions) (*ACLToken, *WriteMe
 
 // TokenClone will create a new token with the same policies and locality as the original
 // token but will have its own auto-generated AccessorID and SecretID as well having the
-// description passed to this function. The tokenID parameter must be a valid Accessor ID
+// description passed to this function. The accessorID parameter must be a valid Accessor ID
 // of an existing token.
-func (a *ACL) TokenClone(tokenID string, description string, q *WriteOptions) (*ACLToken, *WriteMeta, error) {
-	if tokenID == "" {
-		return nil, nil, fmt.Errorf("Must specify a tokenID for Token Cloning")
+func (a *ACL) TokenClone(accessorID string, description string, q *WriteOptions) (*ACLToken, *WriteMeta, error) {
+	if accessorID == "" {
+		return nil, nil, fmt.Errorf("Must specify a token AccessorID for Token Cloning")
 	}
 
-	r := a.c.newRequest("PUT", "/v1/acl/token/"+tokenID+"/clone")
+	r := a.c.newRequest("PUT", "/v1/acl/token/"+accessorID+"/clone")
 	r.setWriteOptions(q)
 	r.obj = struct{ Description string }{description}
 	rtt, resp, err := a.c.doRequest(r)
@@ -758,10 +776,10 @@ func (a *ACL) TokenClone(tokenID string, description string, q *WriteOptions) (*
 	return &out, wm, nil
 }
 
-// TokenDelete removes a single ACL token. The tokenID parameter must be a valid
+// TokenDelete removes a single ACL token. The accessorID parameter must be a valid
 // Accessor ID of an existing token.
-func (a *ACL) TokenDelete(tokenID string, q *WriteOptions) (*WriteMeta, error) {
-	r := a.c.newRequest("DELETE", "/v1/acl/token/"+tokenID)
+func (a *ACL) TokenDelete(accessorID string, q *WriteOptions) (*WriteMeta, error) {
+	r := a.c.newRequest("DELETE", "/v1/acl/token/"+accessorID)
 	r.setWriteOptions(q)
 	rtt, resp, err := a.c.doRequest(r)
 	if err != nil {
@@ -776,10 +794,10 @@ func (a *ACL) TokenDelete(tokenID string, q *WriteOptions) (*WriteMeta, error) {
 	return wm, nil
 }
 
-// TokenRead retrieves the full token details. The tokenID parameter must be a valid
+// TokenRead retrieves the full token details. The accessorID parameter must be a valid
 // Accessor ID of an existing token.
-func (a *ACL) TokenRead(tokenID string, q *QueryOptions) (*ACLToken, *QueryMeta, error) {
-	r := a.c.newRequest("GET", "/v1/acl/token/"+tokenID)
+func (a *ACL) TokenRead(accessorID string, q *QueryOptions) (*ACLToken, *QueryMeta, error) {
+	r := a.c.newRequest("GET", "/v1/acl/token/"+accessorID)
 	r.setQueryOptions(q)
 	rtt, resp, err := a.c.doRequest(r)
 	if err != nil {
@@ -802,9 +820,9 @@ func (a *ACL) TokenRead(tokenID string, q *QueryOptions) (*ACLToken, *QueryMeta,
 }
 
 // TokenReadExpanded retrieves the full token details, as well as the contents of any policies affecting the token.
-// The tokenID parameter must be a valid Accessor ID of an existing token.
-func (a *ACL) TokenReadExpanded(tokenID string, q *QueryOptions) (*ACLTokenExpanded, *QueryMeta, error) {
-	r := a.c.newRequest("GET", "/v1/acl/token/"+tokenID)
+// The accessorID parameter must be a valid Accessor ID of an existing token.
+func (a *ACL) TokenReadExpanded(accessorID string, q *QueryOptions) (*ACLTokenExpanded, *QueryMeta, error) {
+	r := a.c.newRequest("GET", "/v1/acl/token/"+accessorID)
 	r.setQueryOptions(q)
 	r.params.Set("expanded", "true")
 	rtt, resp, err := a.c.doRequest(r)
@@ -1027,58 +1045,19 @@ func (a *ACL) PolicyList(q *QueryOptions) ([]*ACLPolicyListEntry, *QueryMeta, er
 
 // RulesTranslate translates the legacy rule syntax into the current syntax.
 //
-// Deprecated: Support for the legacy syntax translation will be removed
-// when legacy ACL support is removed.
+// Deprecated: Support for the legacy syntax translation has been removed.
+// This function always returns an error.
 func (a *ACL) RulesTranslate(rules io.Reader) (string, error) {
-	r := a.c.newRequest("POST", "/v1/acl/rules/translate")
-	r.body = rules
-	r.header.Set("Content-Type", "text/plain")
-	rtt, resp, err := a.c.doRequest(r)
-	if err != nil {
-		return "", err
-	}
-	defer closeResponseBody(resp)
-	if err := requireOK(resp); err != nil {
-		return "", err
-	}
-
-	qm := &QueryMeta{}
-	parseQueryMeta(resp, qm)
-	qm.RequestTime = rtt
-
-	ruleBytes, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return "", fmt.Errorf("Failed to read translated rule body: %v", err)
-	}
-
-	return string(ruleBytes), nil
+	return "", fmt.Errorf("Legacy ACL rules were deprecated in Consul 1.4")
 }
 
 // RulesTranslateToken translates the rules associated with the legacy syntax
 // into the current syntax and returns the results.
 //
-// Deprecated: Support for the legacy syntax translation will be removed
-// when legacy ACL support is removed.
+// Deprecated: Support for the legacy syntax translation has been removed.
+// This function always returns an error.
 func (a *ACL) RulesTranslateToken(tokenID string) (string, error) {
-	r := a.c.newRequest("GET", "/v1/acl/rules/translate/"+tokenID)
-	rtt, resp, err := a.c.doRequest(r)
-	if err != nil {
-		return "", err
-	}
-	defer closeResponseBody(resp)
-	if err := requireOK(resp); err != nil {
-		return "", err
-	}
-	qm := &QueryMeta{}
-	parseQueryMeta(resp, qm)
-	qm.RequestTime = rtt
-
-	ruleBytes, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return "", fmt.Errorf("Failed to read translated rule body: %v", err)
-	}
-
-	return string(ruleBytes), nil
+	return "", fmt.Errorf("Legacy ACL tokens and rules were deprecated in Consul 1.4")
 }
 
 // RoleCreate will create a new role. It is not allowed for the role parameters

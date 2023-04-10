@@ -1,3 +1,8 @@
+{{!
+  Copyright (c) HashiCorp, Inc.
+  SPDX-License-Identifier: MPL-2.0
+}}
+
 <StateChart @src={{this.chart}} as |State Guard ChartAction dispatch state|>
   {{#let
     (hash State=State Guard=Guard Action=ChartAction dispatch=dispatch state=state)
@@ -37,40 +42,52 @@
           {{/if}}
           <State @matches='error'>
             {{#if this.error.status}}
-              <Notice @type='error' role='alert' as |notice|>
-                <notice.Body>
-                  <p>
-                    {{#if this.value.Name}}
-                      {{#if (eq this.error.status '403')}}
-                        <strong>Consul login failed</strong><br />
-                        We received a token from your OIDC provider but could not log in to Consul
-                        with it.
-                      {{else if (eq this.error.status '401')}}
-                        <strong>Could not log in to provider</strong><br />
-                        The OIDC provider has rejected this access token. Please have an
-                        administrator check your auth method configuration.
-                      {{else if (eq this.error.status '499')}}
-                        <strong>SSO log in window closed</strong><br />
-                        The OIDC provider window was closed. Please try again.
-                      {{else}}
-                        <strong>Error</strong><br />
-                        {{this.error.detail}}
-                      {{/if}}
+              <Hds::Alert @type='inline' @color='critical' class='mb-1 mt-2' as |A|>
+                <A.Title>
+                  {{#if this.value.Name}}
+                    {{#if (eq this.error.status '403')}}
+                      Consul login failed
+                    {{else if (eq this.error.status '401')}}
+                      Could not log in to provider
+                    {{else if (eq this.error.status '499')}}
+                      SSO log in window closed
                     {{else}}
-                      {{#if (eq this.error.status '403')}}
-                        <strong>Invalid token</strong><br />
-                        The token entered does not exist. Please enter a valid token to log in.
-                      {{else if (eq this.error.status '404')}}
-                        <strong>No providers</strong><br />
-                        No SSO providers are configured for that Partition.
-                      {{else}}
-                        <strong>Error</strong><br />
-                        {{this.error.detail}}
-                      {{/if}}
+                      Error
                     {{/if}}
-                  </p>
-                </notice.Body>
-              </Notice>
+                  {{else}}
+                    {{#if (eq this.error.status '403')}}
+                      Invalid token
+                    {{else if (eq this.error.status '404')}}
+                      No providers
+                    {{else}}
+                      Error
+                    {{/if}}
+                  {{/if}}
+                </A.Title>
+                <A.Description>
+                  {{#if this.value.Name}}
+                    {{#if (eq this.error.status '403')}}
+                      We received a token from your OIDC provider but could not log in to Consul
+                      with it.
+                    {{else if (eq this.error.status '401')}}
+                      The OIDC provider has rejected this access token. Please have an
+                      administrator check your auth method configuration.
+                    {{else if (eq this.error.status '499')}}
+                      The OIDC provider window was closed. Please try again.
+                    {{else}}
+                      {{this.error.detail}}
+                    {{/if}}
+                  {{else}}
+                    {{#if (eq this.error.status '403')}}
+                      The token entered does not exist. Please enter a valid token to log in.
+                    {{else if (eq this.error.status '404')}}
+                      No SSO providers are configured for that Partition.
+                    {{else}}
+                      {{this.error.detail}}
+                    {{/if}}
+                  {{/if}}
+                </A.Description>
+              </Hds::Alert>
             {{/if}}
           </State>
           <TabState @matches='token'>
@@ -109,9 +126,11 @@
                   </State>
                 </label>
               </fieldset>
-              <Action @type='submit' disabled={{state-matches state 'loading'}}>
-                Log in
-              </Action>
+              <Hds::Button
+                type='submit'
+                @text='Log in'
+                disabled={{state-matches state 'loading'}}
+              />
             </form>
           </TabState>
 

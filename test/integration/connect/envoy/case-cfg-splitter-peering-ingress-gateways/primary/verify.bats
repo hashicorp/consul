@@ -2,7 +2,6 @@
 
 load helpers
 
-
 @test "ingress-primary proxy admin is up" {
   retry_default curl -f -s localhost:20000/stats -o /dev/null
 }
@@ -12,7 +11,7 @@ load helpers
 }
 
 @test "services should be healthy in primary" {
-  assert_service_has_healthy_instances s1 1 alpha
+  assert_service_has_healthy_instances s1 1 primary
 }
 
 @test "services should be healthy in alpha" {
@@ -26,7 +25,12 @@ load helpers
 }
 
 @test "peer the two clusters together" {
-  create_peering primary alpha
+  retry_long create_peering primary alpha
+}
+
+@test "s1, s2 alpha proxies should be imported to primary" {
+  retry_long assert_service_has_imported primary s1 primary-to-alpha
+  retry_long assert_service_has_imported primary s2 primary-to-alpha
 }
 
 @test "s1 alpha proxies should be healthy in primary" {
@@ -68,3 +72,4 @@ load helpers
   retry_long assert_expected_fortio_name s1-alpha split.ingress.consul 10002
   retry_long assert_expected_fortio_name s2-alpha split.ingress.consul 10002
 }
+

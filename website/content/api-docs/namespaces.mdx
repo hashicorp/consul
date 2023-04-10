@@ -20,16 +20,16 @@ This endpoint creates a new Namespace.
 | `PUT`  | `/namespace` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api-docs/features/blocking),
-[consistency modes](/api-docs/features/consistency),
-[agent caching](/api-docs/features/caching), and
-[required ACLs](/api-docs/api-structure#authentication).
+[blocking queries](/consul/api-docs/features/blocking),
+[consistency modes](/consul/api-docs/features/consistency),
+[agent caching](/consul/api-docs/features/caching), and
+[required ACLs](/consul/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required     |
 | ---------------- | ----------------- | ------------- | ---------------- |
 | `NO`             | `none`            | `none`        | `operator:write` |
 
-The corresponding CLI command is [`consul namespace create`](/commands/namespace/create).
+The corresponding CLI command is [`consul namespace create`](/consul/commands/namespace/create).
 
 ### JSON Request Body Schema
 
@@ -53,7 +53,7 @@ The corresponding CLI command is [`consul namespace create`](/commands/namespace
     struct is an object with an "ID" and/or "Name" field to identify a policy.
     When a name is used instead of an ID, Consul will resolve the name to an ID
     and store that internally. The ACL token used in the API request
-    must have [`acl:write` access](/docs/security/acl/acl-rules#acl-resource-rules)
+    must have [`acl:write` access](/consul/docs/security/acl/acl-rules#acl-resource-rules)
     to the linked policy.
 
   - `RoleDefaults` `(array<ACLLink>)` - This is the list of default roles
@@ -61,7 +61,7 @@ The corresponding CLI command is [`consul namespace create`](/commands/namespace
     struct is an object with an "ID" and/or "Name" field to identify a policy.
     When a name is used instead of an ID, Consul will resolve the name to an ID
     and store that internally. The ACL token used in the API request
-    must have [`acl:write` access](/docs/security/acl/acl-rules#acl-resource-rules)
+    must have [`acl:write` access](/consul/docs/security/acl/acl-rules#acl-resource-rules)
     access to the linked role.
 
 - `Meta` `(map<string|string>: <optional>)` - Specifies arbitrary KV metadata
@@ -151,10 +151,10 @@ This endpoint reads a Namespace with the given name.
 | `GET`  | `/namespace/:name` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api-docs/features/blocking),
-[consistency modes](/api-docs/features/consistency),
-[agent caching](/api-docs/features/caching), and
-[required ACLs](/api-docs/api-structure#authentication).
+[blocking queries](/consul/api-docs/features/blocking),
+[consistency modes](/consul/api-docs/features/consistency),
+[agent caching](/consul/api-docs/features/caching), and
+[required ACLs](/consul/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required                                      |
 | ---------------- | ----------------- | ------------- | ------------------------------------------------- |
@@ -163,7 +163,7 @@ The table below shows this endpoint's support for
 <sup>1</sup> Access can be granted to list the Namespace if the token used when making
 the request has been granted any access in the namespace (read, list or write).
 
-The corresponding CLI command is [`consul namespace read`](/commands/namespace/read).
+The corresponding CLI command is [`consul namespace read`](/consul/commands/namespace/read).
 
 ### Path Parameters
 
@@ -221,16 +221,16 @@ This endpoint updates a Namespace.
 | `PUT`  | `/namespace/:name` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api-docs/features/blocking),
-[consistency modes](/api-docs/features/consistency),
-[agent caching](/api-docs/features/caching), and
-[required ACLs](/api-docs/api-structure#authentication).
+[blocking queries](/consul/api-docs/features/blocking),
+[consistency modes](/consul/api-docs/features/consistency),
+[agent caching](/consul/api-docs/features/caching), and
+[required ACLs](/consul/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required     |
 | ---------------- | ----------------- | ------------- | ---------------- |
 | `NO`             | `none`            | `none`        | `operator:write` |
 
-The corresponding CLI command is [`consul namespace update`](/commands/namespace/update) or [`consul namespace write`](/commands/namespace/write).
+The corresponding CLI command is [`consul namespace update`](/consul/commands/namespace/update) or [`consul namespace write`](/consul/commands/namespace/write).
 
 ### Path Parameters
 
@@ -258,7 +258,7 @@ The corresponding CLI command is [`consul namespace update`](/commands/namespace
     struct is an object with an "ID" and/or "Name" field to identify a policy.
     When a name is used instead of an ID, Consul will resolve the name to an ID
     and store that internally. The ACL token used in the API request
-    must have [`acl:write` access](/docs/security/acl/acl-rules#acl-resource-rules)
+    must have [`acl:write` access](/consul/docs/security/acl/acl-rules#acl-resource-rules)
     to the linked policy.
 
   - `RoleDefaults` `(array<ACLLink>)` - This is the list of default roles
@@ -266,7 +266,7 @@ The corresponding CLI command is [`consul namespace update`](/commands/namespace
     struct is an object with an "ID" and/or "Name" field to identify a policy.
     When a name is used instead of an ID, Consul will resolve the name to an ID
     and store that internally. The ACL token used in the API request
-    must have [`acl:write` access](/docs/security/acl/acl-rules#acl-resource-rules)
+    must have [`acl:write` access](/consul/docs/security/acl/acl-rules#acl-resource-rules)
     to the linked role.
 
 - `Meta` `(map<string|string>: <optional>)` - Specifies arbitrary KV metadata
@@ -363,16 +363,16 @@ This endpoint will return no data. Success or failure is indicated by the status
 code returned.
 
 The table below shows this endpoint's support for
-[blocking queries](/api-docs/features/blocking),
-[consistency modes](/api-docs/features/consistency),
-[agent caching](/api-docs/features/caching), and
-[required ACLs](/api-docs/api-structure#authentication).
+[blocking queries](/consul/api-docs/features/blocking),
+[consistency modes](/consul/api-docs/features/consistency),
+[agent caching](/consul/api-docs/features/caching), and
+[required ACLs](/consul/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required     |
 | ---------------- | ----------------- | ------------- | ---------------- |
 | `NO`             | `none`            | `none`        | `operator:write` |
 
-The corresponding CLI command is [`consul namespace delete`](/commands/namespace/delete).
+The corresponding CLI command is [`consul namespace delete`](/consul/commands/namespace/delete).
 
 ### Path Parameters
 
@@ -435,10 +435,10 @@ privileges of the ACL token used for the request.
 | `GET`  | `/namespaces` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/api-docs/features/blocking),
-[consistency modes](/api-docs/features/consistency),
-[agent caching](/api-docs/features/caching), and
-[required ACLs](/api-docs/api-structure#authentication).
+[blocking queries](/consul/api-docs/features/blocking),
+[consistency modes](/consul/api-docs/features/consistency),
+[agent caching](/consul/api-docs/features/caching), and
+[required ACLs](/consul/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required                                      |
 | ---------------- | ----------------- | ------------- | ------------------------------------------------- |
@@ -447,7 +447,7 @@ The table below shows this endpoint's support for
 <sup>1</sup> Access can be granted to list the Namespace if the token used when making
 the request has been granted any access in the namespace (read, list or write).
 
-The corresponding CLI command is [`consul namespace list`](/commands/namespace/list).
+The corresponding CLI command is [`consul namespace list`](/consul/commands/namespace/list).
 
 ### Sample Request
 

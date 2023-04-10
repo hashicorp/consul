@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package proxycfg
 
 import (
@@ -179,4 +182,12 @@ func UpstreamsToMap(us structs.Upstreams) map[UpstreamID]*structs.Upstream {
 		upstreamMap[NewUpstreamID(&u)] = &u
 	}
 	return upstreamMap
+}
+
+func NewWildcardUID(entMeta *acl.EnterpriseMeta) UpstreamID {
+	wildcardSID := structs.NewServiceID(
+		structs.WildcardSpecifier,
+		entMeta.WithWildcardNamespace(),
+	)
+	return NewUpstreamIDFromServiceID(wildcardSID)
 }

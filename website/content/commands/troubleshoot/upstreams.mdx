@@ -1,0 +1,37 @@
+---
+layout: commands
+page_title: 'Commands: Troubleshoot Upstreams'
+description: >-
+  The `consul troubleshoot upstreams` lists the available upstreams in the Consul service mesh from the current service.
+---
+
+# Consul Troubleshoot Upstreams
+
+Command: `consul troubleshoot upstreams`
+
+The `troubleshoot upstreams` lists the available upstreams in the Consul service mesh from the current service. For additional information about using the `troubleshoot upstreams` command, including explanations, requirements, usage instructions, refer to the [service-to-service troubleshooting overview](/consul/docs/troubleshoot/troubleshoot-services).
+
+## Usage
+
+Usage: `consul troubleshoot upstreams [options]`
+
+#### Command Options
+
+- `-envoy-admin-endpoint=<value>` - Envoy admin endpoint address for the local Envoy instance.
+Defaults to `127.0.0.1:19000`.
+
+## Examples
+
+Display all transparent proxy upstreams in Consul service mesh from the current Envoy instance.
+
+  ```shell-session
+  $ consul troubleshoot upstreams
+  ==> Upstreams (explicit upstreams only) (0)
+
+  ==> Upstreams IPs (transparent proxy only) (1)
+  [10.4.6.160 240.0.0.3] true map[backend.default.dc1.internal.e08fa6d6-e91e-dfe0-f6e1-ba097a828e31.consul backend2.default.dc1.internal.e08fa6d6-e91e-dfe0-f6e1-ba097a828e31.consul]
+
+  If you cannot find the upstream address or cluster for a transparent proxy upstream:
+  - Check intentions: Tproxy upstreams are configured based on intentions. Make sure you have configured intentions to allow traffic to your upstream.
+  - To check that the right cluster is being dialed, run a DNS lookup for the upstream you are dialing. For example, run `dig backend.svc.consul` to return the IP address for the `backend` service. If the address you get from that is missing from the upstream IPs, it means that your proxy may be misconfigured.
+  ```

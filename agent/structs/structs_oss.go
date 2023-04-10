@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 //go:build !consulent
 // +build !consulent
 
@@ -169,3 +172,5 @@ func (t *Intention) HasWildcardDestination() bool {
 func (s *ServiceNode) NodeIdentity() Identity {
 	return Identity{ID: s.Node}
 }
+
+type EnterpriseServiceUsage struct{}

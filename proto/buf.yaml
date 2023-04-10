@@ -1,3 +1,6 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
 version: v1
 lint:
   use:
@@ -18,6 +21,7 @@ lint:
     - ONEOF_LOWER_SNAKE_CASE
     - ENUM_VALUE_PREFIX
   service_suffix: ""
+  rpc_allow_google_protobuf_empty_responses: true
 breaking:
   use:
     - FILE

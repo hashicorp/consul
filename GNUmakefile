@@ -7,12 +7,14 @@ SHELL = bash
 # These version variables can either be a valid string for "go install <module>@<version>"
 # or the string @DEV to imply use what is currently installed locally.
 ###
-GOLANGCI_LINT_VERSION='v1.50.1'
-MOCKERY_VERSION='v2.12.2'
-BUF_VERSION='v1.4.0'
+GOLANGCI_LINT_VERSION='v1.51.1'
+MOCKERY_VERSION='v2.20.0'
+BUF_VERSION='v1.14.0'
+
 PROTOC_GEN_GO_GRPC_VERSION="v1.2.0"
-MOG_VERSION='v0.3.0'
+MOG_VERSION='v0.4.0'
 PROTOC_GO_INJECT_TAG_VERSION='v1.3.0'
+PROTOC_GEN_GO_BINARY_VERSION="v0.1.0"
 DEEP_COPY_VERSION='bc3f5aa5735d8a54961580a3a24422c308c831c2'
 
 MOCKED_PB_DIRS= pbdns
@@ -33,6 +35,8 @@ DATE_FORMAT="%Y-%m-%dT%H:%M:%SZ" # it's tricky to do an RFC3339 format in a cros
 GIT_DATE=$(shell $(CURDIR)/build-support/scripts/build-date.sh) # we're using this for build date because it's stable across platform builds
 GOLDFLAGS=-X $(GIT_IMPORT).GitCommit=$(GIT_COMMIT)$(GIT_DIRTY) -X $(GIT_IMPORT).BuildDate=$(GIT_DATE)
 
+GOTESTSUM_PATH?=$(shell command -v gotestsum)
+
 ifeq ($(FORCE_REBUILD),1)
 NOCACHE=--no-cache
 else
@@ -44,6 +48,12 @@ ifeq (${DOCKER_BUILD_QUIET},1)
 QUIET=-q
 else
 QUIET=
+endif
+
+ifeq ("$(GOTAGS)","")
+CONSUL_COMPAT_TEST_IMAGE=consul
+else
+CONSUL_COMPAT_TEST_IMAGE=hashicorp/consul-enterprise
 endif
 
 CONSUL_DEV_IMAGE?=consul-dev
@@ -176,7 +186,10 @@ remote-docker: check-remote-dev-image-env
 	@echo "Pulling consul container image - $(CONSUL_IMAGE_VERSION)"
 	@docker pull consul:$(CONSUL_IMAGE_VERSION) >/dev/null
 	@echo "Building and Pushing Consul Development container - $(REMOTE_DEV_IMAGE)"
-	@docker buildx use default && docker buildx build -t '$(REMOTE_DEV_IMAGE)' \
+	@if ! docker buildx inspect consul-builder; then \
+		docker buildx create --name consul-builder --driver docker-container --bootstrap; \
+	fi; 
+	@docker buildx use consul-builder && docker buildx build -t '$(REMOTE_DEV_IMAGE)' \
        --platform linux/amd64,linux/arm64 \
 	   --build-arg CONSUL_IMAGE_VERSION=$(CONSUL_IMAGE_VERSION) \
        --push \
@@ -227,6 +240,14 @@ go-mod-tidy:
 	@cd sdk && go mod tidy
 	@cd api && go mod tidy
 	@go mod tidy
+	@cd test/integration/consul-container && go mod tidy
+	@cd test/integration/connect/envoy/test-sds-server && go mod tidy
+	@cd proto-public && go mod tidy
+	@cd internal/tools/proto-gen-rpc-glue && go mod tidy
+	@cd internal/tools/proto-gen-rpc-glue/e2e && go mod tidy
+	@cd internal/tools/proto-gen-rpc-glue/e2e/consul && go mod tidy
+	@cd internal/tools/protoc-gen-consul-rate-limit && go mod tidy
+
 
 test-internal:
 	@echo "--> Running go test"
@@ -294,15 +315,31 @@ other-consul:
 		exit 1 ; \
 	fi
 
-lint: lint-tools
+lint: -lint-main lint-container-test-deps
+
+.PHONY: -lint-main
+-lint-main: lint-tools
 	@echo "--> Running golangci-lint"
 	@golangci-lint run --build-tags '$(GOTAGS)' && \
 		(cd api && golangci-lint run --build-tags '$(GOTAGS)') && \
 		(cd sdk && golangci-lint run --build-tags '$(GOTAGS)')
+	@echo "--> Running golangci-lint (container tests)"
+	@cd test/integration/consul-container && golangci-lint run --build-tags '$(GOTAGS)'
 	@echo "--> Running lint-consul-retry"
 	@lint-consul-retry
 	@echo "--> Running enumcover"
 	@enumcover ./...
+
+.PHONY: lint-container-test-deps
+lint-container-test-deps:
+	@echo "--> Checking container tests for bad dependencies"
+	@cd test/integration/consul-container && ( \
+		found="$$(go list -m all | grep -c '^github.com/hashicorp/consul ')" ; \
+		if [[ "$$found" != "0" ]]; then \
+			echo "test/integration/consul-container: This project should not depend on the root consul module" >&2 ; \
+			exit 1 ; \
+		fi \
+	)
 
 # Build the static web ui inside a Docker container. For local testing only; do not commit these assets.
 ui: ui-docker
@@ -330,7 +367,7 @@ codegen-tools:
 	@$(SHELL) $(CURDIR)/build-support/scripts/devtools.sh -codegen
 
 .PHONY: deep-copy
-deep-copy:
+deep-copy: codegen-tools
 	@$(SHELL) $(CURDIR)/agent/structs/deep-copy.sh
 	@$(SHELL) $(CURDIR)/agent/proxycfg/deep-copy.sh
 
@@ -379,25 +416,48 @@ test-envoy-integ: $(ENVOY_INTEG_DEPS)
 	@go test -v -timeout=30m -tags integration $(GO_TEST_FLAGS) ./test/integration/connect/envoy
 
 .PHONY: test-compat-integ
-test-compat-integ: dev-docker
-ifeq ("$(GOTAGS)","")
-	@docker tag consul-dev:latest consul:local
-	@docker run --rm -t consul:local consul version
+test-compat-integ: test-compat-integ-setup
+ifeq ("$(GOTESTSUM_PATH)","")
 	@cd ./test/integration/consul-container && \
-		go test -v -timeout=30m ./... --target-version local --latest-version latest
+	go test \
+		-v \
+		-timeout=30m \
+		./... \
+		--tags $(GOTAGS) \
+		--target-image $(CONSUL_COMPAT_TEST_IMAGE) \
+		--target-version local \
+		--latest-image $(CONSUL_COMPAT_TEST_IMAGE) \
+		--latest-version latest
 else
-	@docker tag consul-dev:latest hashicorp/consul-enterprise:local
-	@docker run --rm -t hashicorp/consul-enterprise:local consul version
 	@cd ./test/integration/consul-container && \
-		go test -v -timeout=30m ./... --tags $(GOTAGS) --target-version local --latest-version latest
+	gotestsum \
+		--format=short-verbose \
+		--debug \
+		--rerun-fails=3 \
+		--packages="./..." \
+		-- \
+		--tags $(GOTAGS) \
+		-timeout=30m \
+		./... \
+		--target-image $(CONSUL_COMPAT_TEST_IMAGE) \
+		--target-version local \
+		--latest-image $(CONSUL_COMPAT_TEST_IMAGE) \
+		--latest-version latest
 endif
 
+.PHONY: test-compat-integ-setup
+test-compat-integ-setup: dev-docker
+	@docker tag consul-dev:latest $(CONSUL_COMPAT_TEST_IMAGE):local
+	@docker run --rm -t $(CONSUL_COMPAT_TEST_IMAGE):local consul version
+
 .PHONY: test-metrics-integ
-test-metrics-integ: dev-docker
-	@docker tag consul-dev:latest consul:local
-	@docker run --rm -t consul:local consul version
+test-metrics-integ: test-compat-integ-setup
 	@cd ./test/integration/consul-container && \
-		go test -v -timeout=7m ./metrics --target-version local
+		go test -v -timeout=7m ./test/metrics \
+		--target-image $(CONSUL_COMPAT_TEST_IMAGE) \
+		--target-version local \
+		--latest-image $(CONSUL_COMPAT_TEST_IMAGE) \
+		--latest-version latest
 
 test-connect-ca-providers:
 ifeq ("$(CIRCLECI)","true")
@@ -436,12 +496,11 @@ proto-format: proto-tools
 
 .PHONY: proto-lint
 proto-lint: proto-tools
-	@buf lint --config proto/buf.yaml --path proto
-	@buf lint --config proto-public/buf.yaml --path proto-public
+	@buf lint 
 	@for fn in $$(find proto -name '*.proto'); do \
-		if [[ "$$fn" = "proto/pbsubscribe/subscribe.proto" ]]; then \
+		if [[ "$$fn" = "proto/private/pbsubscribe/subscribe.proto" ]]; then \
 			continue ; \
-		elif [[ "$$fn" = "proto/pbpartition/partition.proto" ]]; then \
+		elif [[ "$$fn" = "proto/private/pbpartition/partition.proto" ]]; then \
 			continue ; \
 		fi ; \
 		pkg=$$(grep "^package " "$$fn" | sed 's/^package \(.*\);/\1/'); \

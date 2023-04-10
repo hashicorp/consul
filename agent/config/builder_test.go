@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package config
 
 import (
@@ -68,41 +71,6 @@ func TestShouldParseFile(t *testing.T) {
 }
 
 func TestNewBuilder_PopulatesSourcesFromConfigFiles(t *testing.T) {
-	paths := setupConfigFiles(t)
-
-	b, err := newBuilder(LoadOpts{ConfigFiles: paths})
-	require.NoError(t, err)
-
-	expected := []Source{
-		FileSource{Name: paths[0], Format: "hcl", Data: "content a"},
-		FileSource{Name: paths[1], Format: "json", Data: "content b"},
-		FileSource{Name: filepath.Join(paths[3], "a.hcl"), Format: "hcl", Data: "content a"},
-		FileSource{Name: filepath.Join(paths[3], "b.json"), Format: "json", Data: "content b"},
-	}
-	require.Equal(t, expected, b.Sources)
-	require.Len(t, b.Warnings, 2)
-}
-
-func TestNewBuilder_PopulatesSourcesFromConfigFiles_WithConfigFormat(t *testing.T) {
-	paths := setupConfigFiles(t)
-
-	b, err := newBuilder(LoadOpts{ConfigFiles: paths, ConfigFormat: "hcl"})
-	require.NoError(t, err)
-
-	expected := []Source{
-		FileSource{Name: paths[0], Format: "hcl", Data: "content a"},
-		FileSource{Name: paths[1], Format: "hcl", Data: "content b"},
-		FileSource{Name: paths[2], Format: "hcl", Data: "content c"},
-		FileSource{Name: filepath.Join(paths[3], "a.hcl"), Format: "hcl", Data: "content a"},
-		FileSource{Name: filepath.Join(paths[3], "b.json"), Format: "hcl", Data: "content b"},
-		FileSource{Name: filepath.Join(paths[3], "c.yaml"), Format: "hcl", Data: "content c"},
-	}
-	require.Equal(t, expected, b.Sources)
-}
-
-// TODO: this would be much nicer with gotest.tools/fs
-func setupConfigFiles(t *testing.T) []string {
-	t.Helper()
 	path, err := os.MkdirTemp("", t.Name())
 	require.NoError(t, err)
 	t.Cleanup(func() { os.RemoveAll(path) })
@@ -121,12 +89,43 @@ func setupConfigFiles(t *testing.T) []string {
 		err = os.WriteFile(filepath.Join(dir, "c.yaml"), []byte("content c"), 0644)
 		require.NoError(t, err)
 	}
-	return []string{
+	paths := []string{
 		filepath.Join(path, "a.hcl"),
 		filepath.Join(path, "b.json"),
 		filepath.Join(path, "c.yaml"),
-		subpath,
 	}
+
+	t.Run("fail on unknown files", func(t *testing.T) {
+		_, err := newBuilder(LoadOpts{ConfigFiles: append(paths, subpath)})
+		require.Error(t, err)
+	})
+
+	t.Run("skip on unknown files in dir", func(t *testing.T) {
+		b, err := newBuilder(LoadOpts{ConfigFiles: []string{subpath}})
+		require.NoError(t, err)
+
+		expected := []Source{
+			FileSource{Name: filepath.Join(subpath, "a.hcl"), Format: "hcl", Data: "content a"},
+			FileSource{Name: filepath.Join(subpath, "b.json"), Format: "json", Data: "content b"},
+		}
+		require.Equal(t, expected, b.Sources)
+		require.Len(t, b.Warnings, 1)
+	})
+
+	t.Run("force config format", func(t *testing.T) {
+		b, err := newBuilder(LoadOpts{ConfigFiles: append(paths, subpath), ConfigFormat: "hcl"})
+		require.NoError(t, err)
+
+		expected := []Source{
+			FileSource{Name: paths[0], Format: "hcl", Data: "content a"},
+			FileSource{Name: paths[1], Format: "hcl", Data: "content b"},
+			FileSource{Name: paths[2], Format: "hcl", Data: "content c"},
+			FileSource{Name: filepath.Join(subpath, "a.hcl"), Format: "hcl", Data: "content a"},
+			FileSource{Name: filepath.Join(subpath, "b.json"), Format: "hcl", Data: "content b"},
+			FileSource{Name: filepath.Join(subpath, "c.yaml"), Format: "hcl", Data: "content c"},
+		}
+		require.Equal(t, expected, b.Sources)
+	})
 }
 
 func TestLoad_NodeName(t *testing.T) {
@@ -138,9 +137,11 @@ func TestLoad_NodeName(t *testing.T) {
 
 	fn := func(t *testing.T, tc testCase) {
 		opts := LoadOpts{
-			FlagValues: Config{
-				NodeName: pString(tc.nodeName),
-				DataDir:  pString("dir"),
+			FlagValues: FlagValuesTarget{
+				Config: Config{
+					NodeName: pString(tc.nodeName),
+					DataDir:  pString("dir"),
+				},
 			},
 		}
 		patchLoadOptsShims(&opts)
@@ -178,9 +179,11 @@ func TestLoad_NodeName(t *testing.T) {
 func TestBuilder_unixPermissionsVal(t *testing.T) {
 
 	b, _ := newBuilder(LoadOpts{
-		FlagValues: Config{
-			NodeName: pString("foo"),
-			DataDir:  pString("dir"),
+		FlagValues: FlagValuesTarget{
+			Config: Config{
+				NodeName: pString("foo"),
+				DataDir:  pString("dir"),
+			},
 		},
 	})
 
@@ -259,9 +262,11 @@ func TestLoad_EmptyClientAddr(t *testing.T) {
 
 	fn := func(t *testing.T, tc testCase) {
 		opts := LoadOpts{
-			FlagValues: Config{
-				ClientAddr: tc.clientAddr,
-				DataDir:    pString("dir"),
+			FlagValues: FlagValuesTarget{
+				Config: Config{
+					ClientAddr: tc.clientAddr,
+					DataDir:    pString("dir"),
+				},
 			},
 		}
 		patchLoadOptsShims(&opts)

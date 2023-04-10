@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package consul
 
 import (
@@ -142,7 +145,7 @@ func (s *Server) fetchConfigEntries(lastRemoteIndex uint64) (*structs.IndexedGen
 	}
 
 	var response structs.IndexedGenericConfigEntries
-	if err := s.RPC("ConfigEntry.ListAll", &req, &response); err != nil {
+	if err := s.RPC(context.Background(), "ConfigEntry.ListAll", &req, &response); err != nil {
 		return nil, err
 	}
 

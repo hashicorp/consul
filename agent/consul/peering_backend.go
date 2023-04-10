@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package consul
 
 import (
@@ -21,7 +24,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/lib"
-	"github.com/hashicorp/consul/proto/pbpeering"
+	"github.com/hashicorp/consul/proto/private/pbpeering"
 )
 
 type PeeringBackend struct {
@@ -147,8 +150,11 @@ func (b *PeeringBackend) fetchPeerServerAddresses(ws memdb.WatchSet, peerID stri
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch peer %q: %w", peerID, err)
 	}
-	if !peering.IsActive() {
-		return nil, fmt.Errorf("there is no active peering for %q", peerID)
+	if peering == nil {
+		return nil, fmt.Errorf("unknown peering %q", peerID)
+	}
+	if peering.DeletedAt != nil && !structs.IsZeroProtoTime(peering.DeletedAt) {
+		return nil, fmt.Errorf("peering %q was deleted", peerID)
 	}
 	return bufferFromAddresses(peering.GetAddressesToDial())
 }

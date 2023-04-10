@@ -1,3 +1,8 @@
+{{!
+  Copyright (c) HashiCorp, Inc.
+  SPDX-License-Identifier: MPL-2.0
+}}
+
 <Route
   @name={{routeName}}
 as |route|>
@@ -62,7 +67,11 @@ as |route|>
       </BlockSlot>
       <BlockSlot @name="actions">
   {{#if (can "create policies")}}
-          <a data-test-create href="{{href-to 'dc.acls.policies.create'}}" class="type-create">Create</a>
+    <Hds::Button
+      @text='Create'
+      @route='dc.acls.policies.create'
+      data-test-create
+    />
   {{/if}}
       </BlockSlot>
       <BlockSlot @name="toolbar">
@@ -111,11 +120,23 @@ as |route|>
                 }}
               </BlockSlot>
               <BlockSlot @name="actions">
-                <li class="docs-link">
-                  <a href="{{env 'CONSUL_DOCS_URL'}}/commands/acl/policy" rel="noopener noreferrer" target="_blank">Documentation on policies</a>
+                <li>
+                  <Hds::Link::Standalone
+                    @text='Documentation on policies'
+                    @href="{{env 'CONSUL_DOCS_URL'}}/commands/acl/policy"
+                    @icon='docs-link'
+                    @iconPosition='trailing'
+                    @size='small'
+                  />
                 </li>
-                <li class="learn-link">
-                  <a href="{{env 'CONSUL_LEARN_URL'}}/consul/security-networking/managing-acl-policies" rel="noopener noreferrer" target="_blank">Take the tutorial</a>
+                <li>
+                  <Hds::Link::Standalone
+                    @text='Take the tutorial'
+                    @href="{{env 'CONSUL_LEARN_URL'}}/consul/security-networking/managing-acl-policies"
+                    @icon='learn-link'
+                    @iconPosition='trailing'
+                    @size='small'
+                  />
                 </li>
               </BlockSlot>
             </EmptyState>

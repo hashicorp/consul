@@ -1,7 +1,11 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package proxycfg
 
 import (
 	"errors"
+	"runtime/debug"
 	"sync"
 
 	"github.com/hashicorp/go-hclog"
@@ -142,8 +146,22 @@ func (m *Manager) Register(id ProxyID, ns *structs.NodeService, source ProxySour
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
+	defer func() {
+		if r := recover(); r != nil {
+			m.Logger.Error("unexpected panic during service manager registration",
+				"node", id.NodeName,
+				"service", id.ServiceID,
+				"message", r,
+				"stacktrace", string(debug.Stack()),
+			)
+		}
+	}()
+	return m.register(id, ns, source, token, overwrite)
+}
+
+func (m *Manager) register(id ProxyID, ns *structs.NodeService, source ProxySource, token string, overwrite bool) error {
 	state, ok := m.proxies[id]
-	if ok {
+	if ok && !state.stoppedRunning() {
 		if state.source != source && !overwrite {
 			// Registered by a different source, leave as-is.
 			return nil

@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 %oidc-select [class$='-oidc-provider']::before {
   width: 22px;
   height: 22px;

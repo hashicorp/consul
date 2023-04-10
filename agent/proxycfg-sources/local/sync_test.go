@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package local
 
 import (
@@ -32,7 +35,7 @@ func TestSync(t *testing.T) {
 	state.AddServiceWithChecks(&structs.NodeService{
 		ID:   serviceID,
 		Kind: structs.ServiceKindConnectProxy,
-	}, nil, serviceToken)
+	}, nil, serviceToken, false)
 
 	cfgMgr := NewMockConfigManager(t)
 
@@ -99,7 +102,7 @@ func TestSync(t *testing.T) {
 	state.AddServiceWithChecks(&structs.NodeService{
 		ID:   serviceID,
 		Kind: structs.ServiceKindConnectProxy,
-	}, nil, "")
+	}, nil, "", false)
 
 	select {
 	case reg := <-registerCh:

@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
 
 set -eEuo pipefail
 
@@ -571,7 +574,7 @@ function suite_setup {
 
     # pre-build the test-sds-server container
     echo "Rebuilding 'test-sds-server' image..."
-    retry_default docker build -t test-sds-server -f Dockerfile-test-sds-server test-sds-server
+    retry_default docker build -t test-sds-server -f test-sds-server/Dockerfile test-sds-server
 }
 
 function suite_teardown {
@@ -801,6 +804,10 @@ function run_container_gateway-alpha {
 
 function run_container_ingress-gateway-primary {
   common_run_container_gateway ingress-gateway primary
+}
+
+function run_container_api-gateway-primary {
+  common_run_container_gateway api-gateway primary
 }
 
 function run_container_terminating-gateway-primary {

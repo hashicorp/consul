@@ -1,0 +1,679 @@
+---
+layout: docs
+page_title: HTTP Route Configuration
+description: Learn how to configure an HTTP Route bound to an API Gateway on VMs.
+---
+
+# HTTP route configuration reference
+
+This topic provides reference information for the gateway routes configuration entry. Refer to [Route Resource Configuration](/consul/docs/api-gateway/configuration/routes) for information about configuring API gateway routes in Kubernetes environments.
+
+## Configuration model
+
+The following list outlines field hierarchy, language-specific data types, and
+requirements in an `http-route` configuration entry. Click on a property name
+to view additional details, including default values.
+
+- [`Kind`](#kind): string | must be `http-route`
+- [`Name`](#name): string | no default
+- [`Namespace`](#namespace): string | no default <EnterpriseAlert inline />
+- [`Partition`](#partition): string | no default <EnterpriseAlert inline />
+- [`Meta`](#meta): map | no default
+- [`Hostnames`](#hostnames): list | no default
+- [`Parents`](#parents): list | no default
+  - [`Kind`](#parents-kind): string | must be `api-gateway`
+  - [`Name`](#parents-name): string | no default
+  - [`Namespace`](#parents-namespace): string | no default <EnterpriseAlert inline />
+  - [`Partition`](#parents-partition): string | no default <EnterpriseAlert inline />
+  - [`SectionName`](#parents-sectionname): string | no default
+- [`Rules`](#rules): list | no default
+  - [`Filters`](#rules-filters): map | no default
+    - [`Headers`](#rules-filters-headers): list | no default
+      - [`Add`](#rules-filters-headers-add): map | no default
+      - [`Remove`](#rules-filters-headers-remove): list | no default
+      - [`Set`](#rules-filters-headers-set): map | no default
+    - [`URLRewrite`](#rules-filters-urlrewrite): map | no default
+      - [`Path`](#rules-filters-urlrewrite-path): string | no default
+  - [`Matches`](#rules-matches): list | no default
+    - [`Headers`](#rules-matches-headers): list | no default
+      - [`Match`](#rules-matches-headers-match): string | no default
+      - [`Name`](#rules-matches-headers-name): string | no default
+      - [`Value`](#rules-matches-headers-value): string | no default
+    - [`Method`](#rules-matches-method): string | no default
+    - [`Path`](#rules-matches-path): map | no default
+      - [`Match`](#rules-matches-path-match): string | no default
+      - [`Value`](#rules-matches-path-value): string | no default
+    - [`Query`](#rules-matches-query): list | no default
+      - [`Match`](#rules-matches-query-match): string | no default
+      - [`Name`](#rules-matches-query-name): string | no default
+      - [`Value`](#rules-matches-query-value): string | no default
+  - [`Services`](#rules-services): list | no default
+    - [`Name`](#rules-services-name): string | no default
+    - [`Namespace`](#rules-services-namespace): string <EnterpriseAlert inline />
+    - [`Partition`](#rules-services-partition): string <EnterpriseAlert inline />
+    - [`Weight`](#rules-services-weight): number | `1`
+    - [`Filters`](#rules-services-filters): map | no default
+      - [`Headers`](#rules-services-filters-headers): list | no default
+        - [`Add`](#rules-services-filters-headers-add): map | no default
+        - [`Remove`](#rules-services-filters-headers-remove): list | no default
+        - [`Set`](#rules-services-filters-headers-set): map | no default
+      - [`URLRewrite`](#rules-services-filters-urlrewrite): map | no default
+        - [`Path`](#rules-services-filters-urlrewrite-path): string | no default
+
+## Complete configuration
+
+When every field is defined, an `http-route` configuration entry has the following form:
+
+<CodeTabs>
+
+```hcl
+Kind = "http-route"
+Name = "<name of the route>"
+Namespace = "<enterprise: namespace of the service>"
+Partition = "<enterprise: partition of the service>"
+Meta = {
+  "<any key>" = "<any value>"
+}
+Hostnames = ["<hostnames for which this HTTPRoute should respond to requests>"]
+
+Parents = [
+  {
+    Kind        = "api-gateway"
+    Name        = "<name of the api-gateway to bind to>"
+    Namespace = "<enterprise: namespace of the service>"
+    Partition = "<enterprise: partition of the service>"
+    SectionName = "<optional name of a specific listener on the api-gateway to bind to>"
+  }
+]
+
+Rules = [
+  {
+    Filters = {
+      Headers = [
+        {
+          Add = {
+            "<name of header to add>" = "<value of header to add>"
+          }
+          Remove = [
+            "<name of header to remove from request>"
+          ]
+          Set = {
+            "<name of header to set>" = "<value of header to set>"
+          }
+        }
+      ]
+      URLRewrite = {
+        Path = "<path to rewrite request to>"
+      }
+    }
+    Matches = [
+      {
+        Headers = [
+          {
+            Match = "<type of match: exact, prefix or regex>"
+            Name = "<name of header to match on>"
+            Value = "<value of header to match on>"
+          }
+        ]
+        Method = "<method type to match on>"
+        Path = {
+          Match = "<type of match: exact, prefix or regex>"
+          Value = "<value to match on>"
+        }
+        Query = [
+          {
+            Match = "<type of match: exact, present or regex>"
+            Name = "<name of query parameter to match on>"
+            Value = "<value of query parameter to match on>"
+          }
+        ]
+      }
+    ]
+    Services = [
+      {
+        Name   = "<name of Consul service to route to>"
+        Namespace = "<enterprise: namespace of the service>"
+        Partition = "<enterprise: partition of the service>"
+        Weight = "<number proportional to other weights>"
+        Filters = {
+          Headers = [
+            {
+              Add = {
+                "<name of header to add>" = "<value of header to add>"
+              }
+              Remove = [
+                "<name of header to remove from request>"
+              ]
+              Set = {
+                "<name of header to set>" = "<value of header to set>"
+              }
+            }
+          ]
+          URLRewrite = {
+            Path = "<path to rewrite request to>"
+          }
+        }
+      }
+    ]
+  }
+]
+
+```
+
+```json
+{
+  "Kind": "http-route",
+  "Name": "<name of the route>",
+  "Namespace": "<enterprise: namespace of the route>",
+  "Partition": "<enterprise: partition of the route>",
+  "Meta": {
+    "<any key>": "<any value>"
+  },
+  "Hostnames": [
+    "<hostnames for which this HTTPRoute should respond to requests>"
+  ],
+  "Parents": [
+    {
+      "Kind": "api-gateway",
+      "Name": "<name of the api-gateway to bind to>",
+      "Namespace": "<enterprise: namespace of the route>",
+      "Partition": "<enterprise: partition of the route>",
+      "SectionName": "<optional name of a specific listener on the api-gateway to bind to>"
+    }
+  ],
+  "Rules": [
+    {
+      "Filters": [
+        {
+          "Headers": [
+            {
+              "Add": [
+                {
+                  "<name of header to add>": "<value of header to add>"
+                }
+              ],
+              "Remove": ["<header to remove from request>"],
+              "Set": [
+                {
+                  "<name of header to set>": "<value of header to set>"
+                }
+              ]
+            }
+          ],
+          "URLRewrite": [
+            {
+              "Path": "<path to rewrite request to>"
+            }
+          ]
+        }
+      ],
+      "Matches": [
+        {
+          "Headers": [
+            {
+              "Match": "<type of match: exact, prefix or regex>",
+              "Name": "<name of header to match on>",
+              "Value": "<value of header to match on>"
+            }
+          ],
+          "Method": "<method type to match on>",
+          "Path": [
+            {
+              "Match": "<type of match: exact, prefix or regex>",
+              "Value": "<value to match on>"
+            }
+          ],
+          "Query": [
+            {
+              "Match": "<type of match: exact, present or regex>",
+              "Name": "<name of query parameter to match on>",
+              "Value": "<value of query parameter to match on>"
+            }
+          ]
+        }
+      ],
+      "Services": [
+        {
+          "Name": "<name of Consul service to route to>",
+          "Namespace": "<enterprise: namespace of the route>",
+          "Partition": "<enterprise: partition of the route>",
+          "Weight": "<number proportional to other weights>",
+          "Filters": [
+            {
+              "Headers": [
+                {
+                  "Add": [
+                    {
+                      "<name of header to add": "<value of header to add>"
+                    }
+                  ],
+                  "Remove": ["<header to remove from request>"],
+                  "Set": [
+                    {
+                      "<name of header to set": "<value of header to set>"
+                    }
+                  ]
+                }
+              ],
+              "URLRewrite": [
+                {
+                  "Path": "<path to rewrite request to>"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+```
+
+</CodeTabs>
+
+## Specification
+
+This section provides details about the fields you can configure in the `http-route` configuration entry.
+
+### `Kind`
+
+Specifies the type of configuration entry to implement. For HTTP routes, this must be `http-route`.
+
+#### Values
+
+- Default: none
+- This field is required.
+- Data type: string value that must be set to `"http-route"`.
+
+### `Name`
+
+Specifies a name for the configuration entry. The name is metadata that you can
+use to reference the configuration entry when performing Consul operations,
+such as applying a configuration entry to a specific cluster.
+
+#### Values
+
+- Default: Defaults to the name of the node after writing the entry to the Consul server.
+- This field is required.
+- Data type: string
+
+### `Namespace` <EnterpriseAlert inline />
+
+Specifies the Enterprise [namespace](/consul/docs/enterprise/namespaces) to apply to the configuration entry.
+
+#### Values
+
+- Default: `"default"` in Enterprise
+- Data type: string
+
+### `Partition` <EnterpriseAlert inline />
+
+Specifies the Enterprise [admin partition](/consul/docs/enterprise/admin-partitions) to apply to the configuration entry.
+
+#### Values
+
+- Default: `"default"` in Enterprise
+- Data type: string
+
+### `Meta`
+
+Specifies an arbitrary set of key-value pairs to associate with the route.
+
+#### Values
+
+- Default: none
+- Data type: map containing one or more keys and string values.
+
+### `Parents[]`
+
+Specifies the list of gateways that this route binds to.
+
+#### Values
+
+- Default: none
+- Data type: List of map. Each member of the list contains the following fields:
+  - `Kind`
+  - `Name`
+  - `Namespace` <EnterpriseAlert inline />
+  - `Partition` <EnterpriseAlert inline />
+  - `SectionName`
+
+### `Parents[].Kind`
+
+Specifies the type of resource to bind to. This field is required and must be
+set to `"api-gateway"`
+
+#### Values
+
+- Default: none
+- This field is required.
+- Data type: string value set to `"api-gateway"`
+
+### `Parents[].Name`
+
+Specifies the name of the api-gateway to bind to.
+
+#### Values
+
+- Default: none
+- This field is required.
+- Data type: string
+
+### `Parents[].Namespace` <EnterpriseAlert inline />
+
+Specifies the Enterprise [namespace](/consul/docs/enterprise/namespaces) to apply to the configuration entry.
+
+#### Values
+
+- Default: `"default"` in Enterprise
+- Data type: string
+
+### `Parents[].Partition` <EnterpriseAlert inline />
+
+Specifies the Enterprise [admin partition](/consul/docs/enterprise/admin-partitions) to apply to the configuration entry.
+
+#### Values
+
+- Default: `"default"` in Enterprise
+- Data type: string
+
+### `Parents[].SectionName`
+
+Specifies the name of the listener to bind to on the `api-gateway`. If left
+empty, this route binds to _all listeners_ on the parent gateway.
+
+#### Values
+
+- Default: ""
+- Data type: string
+
+### `Rules[]`
+
+Specifies the list of HTTP-based routing rules that this route uses to construct a route table.
+
+#### Values
+
+- Default:
+- Data type: List of maps. Each member of the list contains the following fields:
+  - `Filters`
+  - `Matches`
+  - `Services`
+
+### `Rules[].Filters`
+
+Specifies the list of HTTP-based filters used to modify a request prior to routing it to the upstream service.
+
+#### Values
+
+- Default: none
+- Data type: Map that contains the following fields:
+  - `Headers`
+  - `UrlRewrite`
+
+### `Rules[].Filters.Headers[]`
+
+Defines operations to perform on matching request headers when an incoming request matches the `Rules.Matches` configuration.
+
+#### Values
+
+This field contains the following configuration objects:
+
+| Parameter | Description                                                                                                                                                                                                                                                                                                                                                                                                                                  | Type            |
+| --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------- |
+| `set`     | Configure this field to rewrite the HTTP request header. It specifies the name of an HTTP header to overwrite and the new value to set. Any existing values associated with the header name are overwritten. You can specify the following configurations: <ul><li>`name`: Required string that specifies the name of the HTTP header to set.</li><li>`value`: Required string that specifies the value of the HTTP header to set.</li></ul> | List of maps    |
+| `add`     | Configure this field to append the request header with a new value. It specifies the name of an HTTP header to append and the values to add. You can specify the following configurations: <ul><li>`name`: Required string that specifies the name of the HTTP header to append.</li><li>`value`: Required string that specifies the value of the HTTP header to add.</li></ul>                                                              | List of maps    |
+| `remove`  | Configure this field to specify an array of header names to remove from the request header.                                                                                                                                                                                                                                                                                                                                                  | List of strings |
+
+### `Rules[].Filters.URLRewrite`
+
+Specifies rule for rewriting the URL of incoming requests when an incoming request matches the `Rules.Matches` configuration.
+
+#### Values
+
+- Default: none
+- This field is a map that contains a `Path` field.
+
+### Rules[].Filters.URLRewrite.Path
+
+Specifies a path that determines how Consul API Gateway rewrites a URL path. Refer to [Reroute HTTP requests](/consul/docs/api-gateway/usage/reroute-http-requests) for additional information.
+
+#### Values
+
+The following table describes the parameters for `path`:
+
+| Parameter            | Description                                                                                                                                                                                      | Type   |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------ |
+| `replacePrefixMatch` | Specifies a value that replaces the path prefix for incoming HTTP requests. The operation only affects the path prefix. The rest of the path is unchanged.                                       | String |
+| `type`               | Specifies the type of replacement to use for the URL path. You can specify the following values: <ul><li>`ReplacePrefixMatch`: Replaces the matched prefix of the URL path (default). </li></ul> | String |
+
+### `Rules[].Matches[]`
+
+Specifies the matching criteria used in the routing table. When an incoming
+request matches the given HTTPMatch configuration, traffic routes to
+services specified in the [`Rules.Services`](#rules-services) field.
+
+#### Values
+
+- Default: none
+- Data type: List containing maps. Each member of the list contains the following fields:
+  - `Headers`
+  - `Method`
+  - `Path`
+  - `Query`
+
+### `Rules[].Matches[].Headers[]`
+
+Specifies rules for matching incoming request headers. You can specify multiple rules in a list, as well as multiple lists of rules. If all rules in a single list are satisfied, then the route forwards the request to the appropriate service defined in the [`Rules.Services`](#rules-services) configuration. You can create multiple `Header[]` lists to create a range of matching criteria. When at least one list of matching rules are satisfied, the route forwards the request to the appropriate service defined in the [`Rules.Services`](#rules-services) configuration.
+
+#### Values
+
+- Default: none
+- Data type: List containing maps with the following fields:
+  - `Match`
+  - `Name`
+  - `Value`
+
+### `Rules.Matches.Headers.Match`
+
+Specifies type of match for headers: `"exact"`, `"prefix"`, or `"regex"`.
+
+#### Values
+
+- Default: none
+- Data type: string
+
+### `Rules.Matches.Headers.Name`
+
+Specifies the name of the header to match.
+
+#### Values
+
+- Default: none
+- Data type: string
+
+### `Rules[].Matches.Headers.Value`
+
+Specifies the value of the header to match.
+
+#### Values
+
+- Default: none
+- Data type: string
+
+### `Rules[].Matches[].Method`
+
+Specifies a list of strings that define matches based on HTTP request method.
+
+#### Values
+
+Specify one of the following string values:
+
+- `HEAD`
+- `POST`
+- `PUT`
+- `PATCH`
+- `GET`
+- `DELETE`
+- `OPTIONS`
+- `TRACE`
+- `CONNECT`
+
+### `Rules[].Matches[].Path`
+
+Specifies the HTTP method to match.
+
+#### Values
+
+- Default: none
+- Data type: map containing the following fields:
+  - `Match`
+  - `Value`
+
+### `Rules[].Matches[].Path.Match`
+
+Specifies type of match for the path: `"exact"`, `"prefix"`, or `"regex"`.
+
+#### Values
+
+- Default: none
+- Data type: string
+
+### `Rules[].Matches[].Path.Value`
+
+Specifies the value of the path to match.
+
+#### Values
+
+- Default: none
+- Data type: string
+
+### `Rules[].Matches[].Query[]`
+
+Specifies how a match is completed on a request’s query parameters.
+
+#### Values
+
+- Default: none
+- Data type: List of map that contains the following fields:
+  - `Match`
+  - `Name`
+  - `Value`
+
+### `Rules[].Matches[].Query[].Match`
+
+Specifies type of match for query parameters: `"exact"`, `"prefix"`, or `"regex"`.
+
+#### Values
+
+- Default: none
+- Data type: string
+
+### `Rules[].Matches[].Query[].Name`
+
+Specifies the name of the query parameter to match.
+
+#### Values
+
+- Default: none
+- Data type: string
+
+### `Rules[].Matches[].Query[].Value`
+
+Specifies the value of the query parameter to match.
+
+#### Values
+
+- Default: none
+- Data type: string
+
+### `Rules[].Services[]`
+
+Specifies the service that the API gateway routes incoming requests to when the
+requests match the `Rules.Matches` configuration.
+
+#### Values
+
+- Default: none
+- This field contains a list of maps. Each member of the list contains the following fields:
+  - `Name`
+  - `Weight`
+  - `Filters`
+  - `Namespace` <EnterpriseAlert inline />
+  - `Partition` <EnterpriseAlert inline />
+
+### `Rules[].Services[].Name`
+
+Specifies the name of an HTTP-based service to route to.
+
+#### Values
+
+- Default: none
+- Data type: string
+
+### `Rules[].Services[].Namespace` <EnterpriseAlert inline />
+
+Specifies the Enterprise [namespace](/consul/docs/enterprise/namespaces) to apply to the configuration entry.
+
+#### Values
+
+- Default: `"default"` in Enterprise
+- Data type: string
+
+### `Rules[].Services.Partition` <EnterpriseAlert inline />
+
+Specifies the Enterprise [admin partition](/consul/docs/enterprise/admin-partitions) to apply to the configuration entry.
+
+#### Values
+
+- Default: `"default"` in Enterprise
+- Data type: string
+
+### `Rules[].Services[].Weight`
+
+Specifies the proportion of requests forwarded to the specified service. If no weight is specified, or if the specified
+weight is set to less than or equal to `0`, the weight is normalized to `1`. The
+proportion is determined by dividing the value of the weight by the sum of all
+weights in the service list. For non-zero values, there may be some deviation
+from the exact proportion depending on the precision an implementation
+supports. Weight is not a percentage and the sum of weights does not need to
+equal 100.
+
+#### Values
+
+- Default: none
+- Data type: integer
+
+### `Rules[].Services[].Filters`
+
+Specifies the list of HTTP-based filters used to modify a request prior to
+routing it to this upstream service.
+
+#### Values
+
+- Default: none
+- Data type: Map that contains the following fields:
+  - `Headers`
+  - `UrlRewrite`
+
+### `Rules[].Services[].Filters.Headers[]`
+
+Defines operations to perform on matching request headers.
+
+#### Values
+
+This field contains the following configuration objects:
+
+| Parameter | Description                                                                                                                                                                                                                                                                                                                                                                                                                                  | Type            |
+| --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------- |
+| `set`     | Configure this field to rewrite the HTTP request header. It specifies the name of an HTTP header to overwrite and the new value to set. Any existing values associated with the header name are overwritten. You can specify the following configurations: <ul><li>`name`: Required string that specifies the name of the HTTP header to set.</li><li>`value`: Required string that specifies the value of the HTTP header to set.</li></ul> | List of maps    |
+| `add`     | Configure this field to append the request header with a new value. It specifies the name of an HTTP header to append and the values to add. You can specify the following configurations: <ul><li>`name`: Required string that specifies the name of the HTTP header to append.</li><li>`value`: Required string that specifies the value of the HTTP header to add.</li></ul>                                                              | List of maps    |
+| `remove`  | Configure this field to specify an array of header names to remove from the request header.                                                                                                                                                                                                                                                                                                                                                  | List of strings |
+
+### `Rules[].Services[].Filters.URLRewrite`
+
+Specifies rule for rewriting the URL of incoming requests.
+
+#### Values
+
+- Default: none
+- This field is a map that contains a `Path` field.

@@ -1,11 +1,12 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package config
 
 import (
 	"encoding/json"
 	"fmt"
 	"time"
-
-	"github.com/hashicorp/consul/agent/consul"
 
 	"github.com/hashicorp/hcl"
 	"github.com/mitchellh/mapstructure"
@@ -188,6 +189,7 @@ type Config struct {
 	LeaveOnTerm                      *bool               `mapstructure:"leave_on_terminate" json:"leave_on_terminate,omitempty"`
 	LicensePath                      *string             `mapstructure:"license_path" json:"license_path,omitempty"`
 	Limits                           Limits              `mapstructure:"limits" json:"-"`
+	Locality                         *Locality           `mapstructure:"locality" json:"-"`
 	LogLevel                         *string             `mapstructure:"log_level" json:"log_level,omitempty"`
 	LogJSON                          *bool               `mapstructure:"log_json" json:"log_json,omitempty"`
 	LogFile                          *string             `mapstructure:"log_file" json:"log_file,omitempty"`
@@ -230,8 +232,6 @@ type Config struct {
 	Services                         []ServiceDefinition `mapstructure:"services" json:"-"`
 	SessionTTLMin                    *string             `mapstructure:"session_ttl_min" json:"session_ttl_min,omitempty"`
 	SkipLeaveOnInt                   *bool               `mapstructure:"skip_leave_on_interrupt" json:"skip_leave_on_interrupt,omitempty"`
-	StartJoinAddrsLAN                []string            `mapstructure:"start_join" json:"start_join,omitempty"`
-	StartJoinAddrsWAN                []string            `mapstructure:"start_join_wan" json:"start_join_wan,omitempty"`
 	SyslogFacility                   *string             `mapstructure:"syslog_facility" json:"syslog_facility,omitempty"`
 	TLS                              TLS                 `mapstructure:"tls" json:"tls,omitempty"`
 	TaggedAddresses                  map[string]string   `mapstructure:"tagged_addresses" json:"tagged_addresses,omitempty"`
@@ -252,7 +252,7 @@ type Config struct {
 
 	RPC RPC `mapstructure:"rpc" json:"-"`
 
-	RaftBoltDBConfig *consul.RaftBoltDBConfig `mapstructure:"raft_boltdb" json:"-"`
+	RaftLogStore RaftLogStoreRaw `mapstructure:"raft_logstore" json:"raft_logstore,omitempty"`
 
 	// UseStreamingBackend instead of blocking queries for service health and
 	// any other endpoints which support streaming.
@@ -313,6 +313,15 @@ type GossipWANConfig struct {
 	ProbeTimeout   *string `mapstructure:"probe_timeout"`
 	SuspicionMult  *int    `mapstructure:"suspicion_mult"`
 	RetransmitMult *int    `mapstructure:"retransmit_mult"`
+}
+
+// Locality identifies where a given entity is running.
+type Locality struct {
+	// Region is region the zone belongs to.
+	Region *string `mapstructure:"region"`
+
+	// Zone is the zone the entity is running in.
+	Zone *string `mapstructure:"zone"`
 }
 
 type Consul struct {
@@ -613,7 +622,6 @@ type Connect struct {
 	CAProvider                      *string                `mapstructure:"ca_provider" json:"ca_provider,omitempty"`
 	CAConfig                        map[string]interface{} `mapstructure:"ca_config" json:"ca_config,omitempty"`
 	MeshGatewayWANFederationEnabled *bool                  `mapstructure:"enable_mesh_gateway_wan_federation" json:"enable_mesh_gateway_wan_federation,omitempty"`
-	EnableServerlessPlugin          *bool                  `mapstructure:"enable_serverless_plugin" json:"enable_serverless_plugin,omitempty"`
 
 	// TestCALeafRootChangeSpread controls how long after a CA roots change before new leaf certs will be generated.
 	// This is only tuned in tests, generally set to 1ns to make tests deterministic with when to expect updated leaf
@@ -713,16 +721,23 @@ type UnixSocket struct {
 	User  *string `mapstructure:"user"`
 }
 
+type RequestLimits struct {
+	Mode      *string  `mapstructure:"mode"`
+	ReadRate  *float64 `mapstructure:"read_rate"`
+	WriteRate *float64 `mapstructure:"write_rate"`
+}
+
 type Limits struct {
-	HTTPMaxConnsPerClient *int     `mapstructure:"http_max_conns_per_client"`
-	HTTPSHandshakeTimeout *string  `mapstructure:"https_handshake_timeout"`
-	RPCClientTimeout      *string  `mapstructure:"rpc_client_timeout"`
-	RPCHandshakeTimeout   *string  `mapstructure:"rpc_handshake_timeout"`
-	RPCMaxBurst           *int     `mapstructure:"rpc_max_burst"`
-	RPCMaxConnsPerClient  *int     `mapstructure:"rpc_max_conns_per_client"`
-	RPCRate               *float64 `mapstructure:"rpc_rate"`
-	KVMaxValueSize        *uint64  `mapstructure:"kv_max_value_size"`
-	TxnMaxReqLen          *uint64  `mapstructure:"txn_max_req_len"`
+	HTTPMaxConnsPerClient *int          `mapstructure:"http_max_conns_per_client"`
+	HTTPSHandshakeTimeout *string       `mapstructure:"https_handshake_timeout"`
+	RequestLimits         RequestLimits `mapstructure:"request_limits"`
+	RPCClientTimeout      *string       `mapstructure:"rpc_client_timeout"`
+	RPCHandshakeTimeout   *string       `mapstructure:"rpc_handshake_timeout"`
+	RPCMaxBurst           *int          `mapstructure:"rpc_max_burst"`
+	RPCMaxConnsPerClient  *int          `mapstructure:"rpc_max_conns_per_client"`
+	RPCRate               *float64      `mapstructure:"rpc_rate"`
+	KVMaxValueSize        *uint64       `mapstructure:"kv_max_value_size"`
+	TxnMaxReqLen          *uint64       `mapstructure:"txn_max_req_len"`
 }
 
 type Segment struct {
@@ -750,11 +765,12 @@ type ACL struct {
 }
 
 type Tokens struct {
-	InitialManagement *string `mapstructure:"initial_management"`
-	Replication       *string `mapstructure:"replication"`
-	AgentRecovery     *string `mapstructure:"agent_recovery"`
-	Default           *string `mapstructure:"default"`
-	Agent             *string `mapstructure:"agent"`
+	InitialManagement      *string `mapstructure:"initial_management"`
+	Replication            *string `mapstructure:"replication"`
+	AgentRecovery          *string `mapstructure:"agent_recovery"`
+	Default                *string `mapstructure:"default"`
+	Agent                  *string `mapstructure:"agent"`
+	ConfigFileRegistration *string `mapstructure:"config_file_service_registration"`
 
 	// Enterprise Only
 	ManagedServiceProvider []ServiceProviderToken `mapstructure:"managed_service_provider"`
@@ -915,4 +931,28 @@ type Peering struct {
 
 type XDS struct {
 	UpdateMaxPerSecond *float64 `mapstructure:"update_max_per_second"`
+}
+
+type RaftLogStoreRaw struct {
+	Backend         *string `mapstructure:"backend" json:"backend,omitempty"`
+	DisableLogCache *bool   `mapstructure:"disable_log_cache" json:"disable_log_cache,omitempty"`
+
+	Verification RaftLogStoreVerificationRaw `mapstructure:"verification" json:"verification,omitempty"`
+
+	BoltDBConfig RaftBoltDBConfigRaw `mapstructure:"boltdb" json:"boltdb,omitempty"`
+
+	WALConfig RaftWALConfigRaw `mapstructure:"wal" json:"wal,omitempty"`
+}
+
+type RaftLogStoreVerificationRaw struct {
+	Enabled  *bool   `mapstructure:"enabled" json:"enabled,omitempty"`
+	Interval *string `mapstructure:"interval" json:"interval,omitempty"`
+}
+
+type RaftBoltDBConfigRaw struct {
+	NoFreelistSync *bool `mapstructure:"no_freelist_sync" json:"no_freelist_sync,omitempty"`
+}
+
+type RaftWALConfigRaw struct {
+	SegmentSizeMB *int `mapstructure:"segment_size_mb" json:"segment_size_mb,omitempty"`
 }

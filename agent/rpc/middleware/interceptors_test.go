@@ -1,13 +1,21 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package middleware
 
 import (
+	"errors"
+	"net"
+	"net/netip"
 	"strings"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/armon/go-metrics"
+	"github.com/hashicorp/consul/agent/consul/rate"
 	"github.com/hashicorp/go-hclog"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -260,9 +268,48 @@ func TestRequestRecorder(t *testing.T) {
 			o := store.get(key)
 
 			require.Equal(t, o.key, metricRPCRequest)
-			require.LessOrEqual(t, o.elapsed, float32(start.Sub(time.Now()).Milliseconds()))
+			require.LessOrEqual(t, o.elapsed, float32(time.Now().Sub(start).Microseconds())/1000)
 			require.Equal(t, o.labels, tc.expectedLabels)
 
 		})
 	}
+}
+
+func TestGetNetRPCRateLimitingInterceptor(t *testing.T) {
+	limiter := rate.NewMockRequestLimitsHandler(t)
+
+	logger := hclog.NewNullLogger()
+	rateLimitInterceptor := GetNetRPCRateLimitingInterceptor(limiter, NewPanicHandler(logger))
+
+	addr := net.TCPAddrFromAddrPort(netip.MustParseAddrPort("1.2.3.4:5678"))
+
+	t.Run("allow operation", func(t *testing.T) {
+		limiter.On("Allow", mock.Anything).
+			Return(nil).
+			Once()
+
+		err := rateLimitInterceptor("Status.Leader", addr)
+		require.NoError(t, err)
+	})
+
+	t.Run("allow returns error", func(t *testing.T) {
+		limiter.On("Allow", mock.Anything).
+			Return(errors.New("uh oh")).
+			Once()
+
+		err := rateLimitInterceptor("Status.Leader", addr)
+		require.Error(t, err)
+		require.Equal(t, "uh oh", err.Error())
+	})
+
+	t.Run("allow panics", func(t *testing.T) {
+		limiter.On("Allow", mock.Anything).
+			Panic("uh oh").
+			Once()
+
+		err := rateLimitInterceptor("Status.Leader", addr)
+
+		require.Error(t, err)
+		require.Equal(t, "rpc: panic serving request", err.Error())
+	})
 }

@@ -1,32 +1,30 @@
 ---
 layout: commands
 page_title: 'Commands: Services Deregister'
+description: |
+  The `consul services deregister` command removes a service from the Consul catalog. Run the commeand on the agent that initially registered the service.
 ---
 
 # Consul Agent Service Deregistration
 
 Command: `consul services deregister`
 
-Corresponding HTTP API Endpoint: [\[PUT\] /v1/agent/service/deregister/:service_id](/api-docs/agent/service#deregister-service)
+Corresponding HTTP API Endpoint: [\[PUT\] /v1/agent/service/deregister/:service_id](/consul/api-docs/agent/service#deregister-service)
 
 The `services deregister` command deregisters a service with the local agent.
 Note that this command can only deregister services that were registered
-with the agent specified (defaults to the local agent) and is meant to
-be paired with `services register`.
+with the agent specified and is intended to be paired with `services register`. 
+By default, the command deregisters services on the local agent. 
 
-This is just one method for service deregistration. If the service was
-registered with a configuration file, then deleting that file and
-[reloading](/commands/reload) Consul is the correct method to
-deregister. See [Service Definition](/docs/discovery/services) for more
-information about registering services generally.
+We recommend deregistering services registered with a configuration file by deleting the file and [reloading](/consul/commands/reload) Consul. Refer to [Services Overview](/consul/docs/services/services) for additional information about services.
 
-The table below shows this command's [required ACLs](/api-docs/api-structure#authentication). Configuration of
-[blocking queries](/api-docs/features/blocking) and [agent caching](/api-docs/features/caching)
-are not supported from commands, but may be from the corresponding HTTP endpoint.
+The following table shows the [ACLs](/consul/api-docs/api-structure#authentication) required to run the `consul services deregister` command: 
 
 | ACL Required    |
 | --------------- |
 | `service:write` |
+
+You cannot use the Consul command line to configure [blocking queries](/consul/api-docs/features/blocking) and [agent caching](/consul/api-docs/features/caching), you can configure them from the corresponding HTTP endpoint.
 
 ## Usage
 

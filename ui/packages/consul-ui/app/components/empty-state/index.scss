@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 @import './layout';
 @import './skin';
 .empty-state {
@@ -15,7 +20,4 @@
 %empty-state > ul > li > *,
 %empty-state > ul > li > label > button {
   @extend %empty-state-anchor;
-}
-%empty-state div > button {
-  @extend %primary-button;
 }

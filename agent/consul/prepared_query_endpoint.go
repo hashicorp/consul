@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package consul
 
 import (
@@ -468,7 +471,7 @@ func (p *PreparedQuery) Execute(args *structs.PreparedQueryExecuteRequest,
 	// by the query setup.
 	if len(reply.Nodes) == 0 {
 		wrapper := &queryServerWrapper{srv: p.srv, executeRemote: p.ExecuteRemote}
-		if err := queryFailover(wrapper, query, args, reply); err != nil {
+		if err := queryFailover(wrapper, *query, args, reply); err != nil {
 			return err
 		}
 	}
@@ -707,7 +710,7 @@ func (q *queryServerWrapper) GetOtherDatacentersByDistance() ([]string, error) {
 
 // queryFailover runs an algorithm to determine which DCs to try and then calls
 // them to try to locate alternative services.
-func queryFailover(q queryServer, query *structs.PreparedQuery,
+func queryFailover(q queryServer, query structs.PreparedQuery,
 	args *structs.PreparedQueryExecuteRequest,
 	reply *structs.PreparedQueryExecuteResponse) error {
 
@@ -718,13 +721,13 @@ func queryFailover(q queryServer, query *structs.PreparedQuery,
 		return err
 	}
 
-	// This will help us filter unknown DCs supplied by the user.
+	// This will help us filter unknown targets supplied by the user.
 	known := make(map[string]struct{})
 	for _, dc := range nearest {
 		known[dc] = struct{}{}
 	}
 
-	// Build a candidate list of DCs to try, starting with the nearest N
+	// Build a candidate list of failover targets to try, starting with the nearest N target
 	// from RTTs.
 	var targets []structs.QueryFailoverTarget
 	index := make(map[string]struct{})
@@ -739,9 +742,9 @@ func queryFailover(q queryServer, query *structs.PreparedQuery,
 		}
 	}
 
-	// Then add any DCs explicitly listed that weren't selected above.
+	// Then add any targets explicitly listed that weren't selected above.
 	for _, target := range query.Service.Failover.AsTargets() {
-		// This will prevent a log of other log spammage if we do not
+		// This will prevent a log of other log spam if we do not
 		// attempt to talk to datacenters we don't know about.
 		if dc := target.Datacenter; dc != "" {
 			if _, ok := known[dc]; !ok {
@@ -753,15 +756,16 @@ func queryFailover(q queryServer, query *structs.PreparedQuery,
 			// from the NearestN list.
 			if _, ok := index[dc]; !ok {
 				targets = append(targets, target)
+				continue
 			}
 		}
 
-		if target.Peer != "" {
+		if target.Peer != "" || target.PartitionOrEmpty() != "" || target.NamespaceOrEmpty() != "" {
 			targets = append(targets, target)
 		}
 	}
 
-	// Now try the selected DCs in priority order.
+	// Now try the selected targets in priority order.
 	failovers := 0
 	for _, target := range targets {
 		// This keeps track of how many iterations we actually run.
@@ -775,9 +779,10 @@ func queryFailover(q queryServer, query *structs.PreparedQuery,
 		// through this slice across successive RPC calls.
 		reply.Nodes = nil
 
-		// Reset PeerName because it may have been set by a previous failover
+		// Reset Peer, because it may have been set by a previous failover
 		// target.
 		query.Service.Peer = target.Peer
+		query.Service.EnterpriseMeta = target.EnterpriseMeta
 		dc := target.Datacenter
 		if target.Peer != "" {
 			dc = q.GetLocalDC()
@@ -789,7 +794,7 @@ func queryFailover(q queryServer, query *structs.PreparedQuery,
 		// the remote query as well.
 		remote := &structs.PreparedQueryExecuteRemoteRequest{
 			Datacenter:   dc,
-			Query:        *query,
+			Query:        query,
 			Limit:        args.Limit,
 			QueryOptions: args.QueryOptions,
 			Connect:      args.Connect,
@@ -800,6 +805,7 @@ func queryFailover(q queryServer, query *structs.PreparedQuery,
 				"service", query.Service.Service,
 				"peerName", query.Service.Peer,
 				"datacenter", dc,
+				"enterpriseMeta", query.Service.EnterpriseMeta,
 				"error", err,
 			)
 			continue

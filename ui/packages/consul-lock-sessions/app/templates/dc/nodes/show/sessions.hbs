@@ -1,3 +1,8 @@
+{{!
+  Copyright (c) HashiCorp, Inc.
+  SPDX-License-Identifier: MPL-2.0
+}}
+
 <Route
   @name={{routeName}}
 as |route|>
@@ -85,21 +90,23 @@ as |route|>
               </BlockSlot>
 
                 <BlockSlot @name="actions">
-                  <li class="docs-link">
-                    <Action
+                  <li>
+                    <Hds::Link::Standalone
+                      @text='Documentation on Lock Sessions'
                       @href="{{env 'CONSUL_DOCS_URL'}}/internals/sessions.html"
-                      @external={{true}}
-                    >
-                      Documentation on Lock Sessions
-                    </Action>
+                      @icon='docs-link'
+                      @iconPosition='trailing'
+                      @size='small'
+                    />
                   </li>
-                  <li class="learn-link">
-                    <Action
-                      @href="{{env 'CONSUL_DOCS_LEARN_URL'}}/tutorials/consul/distributed-semaphore"
-                      @external={{true}}
-                    >
-                      Take the tutorial
-                    </Action>
+                  <li>
+                    <Hds::Link::Standalone
+                      @text='Take the tutorial'
+                      @href='{{env 'CONSUL_DOCS_LEARN_URL'}}/tutorials/consul/distributed-semaphore'
+                      @icon='learn-link'
+                      @iconPosition='trailing'
+                      @size='small'
+                    />
                   </li>
                 </BlockSlot>
 

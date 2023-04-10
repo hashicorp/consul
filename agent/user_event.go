@@ -1,7 +1,11 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package agent
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"regexp"
 
@@ -105,7 +109,7 @@ func (a *Agent) UserEvent(dc, token string, params *UserEvent) error {
 	// gossip will take over anyways
 	args.AllowStale = true
 	var out structs.EventFireResponse
-	return a.RPC("Internal.EventFire", &args, &out)
+	return a.RPC(context.Background(), "Internal.EventFire", &args, &out)
 }
 
 // handleEvents is used to process incoming user events

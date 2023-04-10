@@ -1,7 +1,11 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package agent
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -25,7 +29,7 @@ func verifySession(t *testing.T, r *retry.R, a *TestAgent, want structs.Session)
 		SessionID:  want.ID,
 	}
 	var out structs.IndexedSessions
-	if err := a.RPC("Session.Get", args, &out); err != nil {
+	if err := a.RPC(context.Background(), "Session.Get", args, &out); err != nil {
 		r.Fatalf("err: %v", err)
 	}
 	if len(out.Sessions) != 1 {
@@ -88,7 +92,7 @@ func TestSessionCreate(t *testing.T) {
 
 	retry.Run(t, func(r *retry.R) {
 		var out struct{}
-		if err := a.RPC("Catalog.Register", args, &out); err != nil {
+		if err := a.RPC(context.Background(), "Catalog.Register", args, &out); err != nil {
 			r.Fatalf("err: %v", err)
 		}
 
@@ -150,7 +154,7 @@ func TestSessionCreate_NodeChecks(t *testing.T) {
 
 	retry.Run(t, func(r *retry.R) {
 		var out struct{}
-		if err := a.RPC("Catalog.Register", args, &out); err != nil {
+		if err := a.RPC(context.Background(), "Catalog.Register", args, &out); err != nil {
 			r.Fatalf("err: %v", err)
 		}
 
@@ -213,7 +217,7 @@ func TestSessionCreate_Delete(t *testing.T) {
 	}
 	retry.Run(t, func(r *retry.R) {
 		var out struct{}
-		if err := a.RPC("Catalog.Register", args, &out); err != nil {
+		if err := a.RPC(context.Background(), "Catalog.Register", args, &out); err != nil {
 			r.Fatalf("err: %v", err)
 		}
 

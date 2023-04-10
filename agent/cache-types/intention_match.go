@@ -1,6 +1,10 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package cachetype
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/hashicorp/consul/agent/cache"
@@ -36,7 +40,7 @@ func (c *IntentionMatch) Fetch(opts cache.FetchOptions, req cache.Request) (cach
 
 	// Fetch
 	var reply structs.IndexedIntentionMatches
-	if err := c.RPC.RPC("Intention.Match", reqReal, &reply); err != nil {
+	if err := c.RPC.RPC(context.Background(), "Intention.Match", reqReal, &reply); err != nil {
 		return result, err
 	}
 

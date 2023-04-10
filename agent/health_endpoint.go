@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package agent
 
 import (
@@ -38,7 +41,7 @@ func (s *HTTPHandlers) HealthChecksInState(resp http.ResponseWriter, req *http.R
 	var out structs.IndexedHealthChecks
 	defer setMeta(resp, &out.QueryMeta)
 RETRY_ONCE:
-	if err := s.agent.RPC("Health.ChecksInState", &args, &out); err != nil {
+	if err := s.agent.RPC(req.Context(), "Health.ChecksInState", &args, &out); err != nil {
 		return nil, err
 	}
 	if args.QueryOptions.AllowStale && args.MaxStaleDuration > 0 && args.MaxStaleDuration < out.LastContact {
@@ -82,7 +85,7 @@ func (s *HTTPHandlers) HealthNodeChecks(resp http.ResponseWriter, req *http.Requ
 	var out structs.IndexedHealthChecks
 	defer setMeta(resp, &out.QueryMeta)
 RETRY_ONCE:
-	if err := s.agent.RPC("Health.NodeChecks", &args, &out); err != nil {
+	if err := s.agent.RPC(req.Context(), "Health.NodeChecks", &args, &out); err != nil {
 		return nil, err
 	}
 	if args.QueryOptions.AllowStale && args.MaxStaleDuration > 0 && args.MaxStaleDuration < out.LastContact {
@@ -128,7 +131,7 @@ func (s *HTTPHandlers) HealthServiceChecks(resp http.ResponseWriter, req *http.R
 	var out structs.IndexedHealthChecks
 	defer setMeta(resp, &out.QueryMeta)
 RETRY_ONCE:
-	if err := s.agent.RPC("Health.ServiceChecks", &args, &out); err != nil {
+	if err := s.agent.RPC(req.Context(), "Health.ServiceChecks", &args, &out); err != nil {
 		return nil, err
 	}
 	if args.QueryOptions.AllowStale && args.MaxStaleDuration > 0 && args.MaxStaleDuration < out.LastContact {

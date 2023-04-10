@@ -1,14 +1,21 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package proxycfg
 
 import (
 	"context"
 	"fmt"
+	"path"
 	"strings"
 
+	"github.com/hashicorp/consul/acl"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/proxycfg/internal/watch"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/proto/pbpeering"
+	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/proto/private/pbpeering"
+	"github.com/mitchellh/mapstructure"
 )
 
 type handlerConnectProxy struct {
@@ -101,6 +108,10 @@ func (s *handlerConnectProxy) initialize(ctx context.Context) (ConfigSnapshot, e
 	}, svcChecksWatchIDPrefix+structs.ServiceIDString(s.proxyCfg.DestinationServiceID, &s.proxyID.EnterpriseMeta), s.ch)
 	if err != nil {
 		return snap, err
+	}
+
+	if err := s.maybeInitializeHCPMetricsWatches(ctx, snap); err != nil {
+		return snap, fmt.Errorf("failed to initialize HCP metrics watches: %w", err)
 	}
 
 	if s.proxyCfg.Mode == structs.ProxyModeTransparent {
@@ -197,7 +208,7 @@ func (s *handlerConnectProxy) initialize(ctx context.Context) (ConfigSnapshot, e
 
 		case "":
 			if u.DestinationPeer != "" {
-				err := s.setupWatchesForPeeredUpstream(ctx, snap.ConnectProxy, NewUpstreamID(&u), u.MeshGateway.Mode, dc)
+				err := s.setupWatchesForPeeredUpstream(ctx, snap.ConnectProxy, NewUpstreamID(&u), dc)
 				if err != nil {
 					return snap, fmt.Errorf("failed to setup watches for peered upstream %q: %w", uid.String(), err)
 				}
@@ -231,7 +242,6 @@ func (s *handlerConnectProxy) setupWatchesForPeeredUpstream(
 	ctx context.Context,
 	snapConnectProxy configSnapshotConnectProxy,
 	uid UpstreamID,
-	mgwMode structs.MeshGatewayMode,
 	dc string,
 ) error {
 	s.logger.Trace("initializing watch of peered upstream", "upstream", uid)
@@ -272,29 +282,10 @@ func (s *handlerConnectProxy) setupWatchesForPeeredUpstream(
 		snapConnectProxy.UpstreamPeerTrustBundles.InitWatch(uid.Peer, cancel)
 	}
 
-	// If a peered upstream is set to local mesh gw mode,
-	// set up a watch for them.
-	if mgwMode == structs.MeshGatewayModeLocal {
-		gk := GatewayKey{
-			Partition:  s.source.NodePartitionOrDefault(),
-			Datacenter: s.source.Datacenter,
-		}
-		if !snapConnectProxy.WatchedLocalGWEndpoints.IsWatched(gk.String()) {
-			opts := gatewayWatchOpts{
-				internalServiceDump: s.dataSources.InternalServiceDump,
-				notifyCh:            s.ch,
-				source:              *s.source,
-				token:               s.token,
-				key:                 gk,
-			}
-			if err := watchMeshGateway(ctx, opts); err != nil {
-				return fmt.Errorf("error while watching for local mesh gateway: %w", err)
-			}
-			snapConnectProxy.WatchedLocalGWEndpoints.InitWatch(gk.String(), nil)
-		}
-	} else if mgwMode == structs.MeshGatewayModeNone {
-		s.logger.Warn(fmt.Sprintf("invalid mesh gateway mode 'none', defaulting to 'remote' for %q", uid))
-	}
+	// Always watch local GW endpoints for peer upstreams so that we don't have to worry about
+	// the timing on whether the wildcard upstream config was fetched yet.
+	up := &handlerUpstreams{handlerState: s.handlerState}
+	up.setupWatchForLocalGWEndpoints(ctx, &snapConnectProxy.ConfigSnapshotUpstreams)
 	return nil
 }
 
@@ -344,7 +335,7 @@ func (s *handlerConnectProxy) handleUpdate(ctx context.Context, u UpdateEvent, s
 			}
 			seenUpstreams[uid] = struct{}{}
 
-			err := s.setupWatchesForPeeredUpstream(ctx, snap.ConnectProxy, uid, s.proxyCfg.MeshGateway.Mode, s.source.Datacenter)
+			err := s.setupWatchesForPeeredUpstream(ctx, snap.ConnectProxy, uid, s.source.Datacenter)
 			if err != nil {
 				return fmt.Errorf("failed to setup watches for peered upstream %q: %w", uid.String(), err)
 			}
@@ -417,8 +408,7 @@ func (s *handlerConnectProxy) handleUpdate(ctx context.Context, u UpdateEvent, s
 				// Use the centralized upstream defaults if they exist and there isn't specific configuration for this upstream
 				// This is only relevant to upstreams from intentions because for explicit upstreams the defaulting is handled
 				// by the ResolveServiceConfig endpoint.
-				wildcardSID := structs.NewServiceID(structs.WildcardSpecifier, s.proxyID.WithWildcardNamespace())
-				wildcardUID := NewUpstreamIDFromServiceID(wildcardSID)
+				wildcardUID := NewWildcardUID(&s.proxyID.EnterpriseMeta)
 				defaults, ok := snap.ConnectProxy.UpstreamConfig[wildcardUID]
 				if ok {
 					u = defaults
@@ -632,6 +622,69 @@ func (s *handlerConnectProxy) handleUpdate(ctx context.Context, u UpdateEvent, s
 
 	default:
 		return (*handlerUpstreams)(s).handleUpdateUpstreams(ctx, u, snap)
+	}
+	return nil
+}
+
+// hcpMetricsConfig represents the basic opaque config values for pushing telemetry to HCP.
+type hcpMetricsConfig struct {
+	// HCPMetricsBindSocketDir is a string that configures the directory for a
+	// unix socket where Envoy will forward metrics. These metrics get pushed to
+	// the HCP Metrics collector to show service mesh metrics on HCP.
+	HCPMetricsBindSocketDir string `mapstructure:"envoy_hcp_metrics_bind_socket_dir"`
+}
+
+func parseHCPMetricsConfig(m map[string]interface{}) (hcpMetricsConfig, error) {
+	var cfg hcpMetricsConfig
+	err := mapstructure.WeakDecode(m, &cfg)
+
+	if err != nil {
+		return cfg, fmt.Errorf("failed to decode: %w", err)
+	}
+
+	return cfg, nil
+}
+
+// maybeInitializeHCPMetricsWatches will initialize a synthetic upstream and discovery chain
+// watch for the HCP metrics collector, if metrics collection is enabled on the proxy registration.
+func (s *handlerConnectProxy) maybeInitializeHCPMetricsWatches(ctx context.Context, snap ConfigSnapshot) error {
+	hcpCfg, err := parseHCPMetricsConfig(s.proxyCfg.Config)
+	if err != nil {
+		s.logger.Error("failed to parse connect.proxy.config", "error", err)
+	}
+
+	if hcpCfg.HCPMetricsBindSocketDir == "" {
+		// Metrics collection is not enabled, return early.
+		return nil
+	}
+
+	// The path includes the proxy ID so that when multiple proxies are on the same host
+	// they each have a distinct path to send their metrics.
+	sock := fmt.Sprintf("%s_%s.sock", s.proxyID.NamespaceOrDefault(), s.proxyID.ID)
+	path := path.Join(hcpCfg.HCPMetricsBindSocketDir, sock)
+
+	upstream := structs.Upstream{
+		DestinationNamespace: acl.DefaultNamespaceName,
+		DestinationPartition: s.proxyID.PartitionOrDefault(),
+		DestinationName:      api.HCPMetricsCollectorName,
+		LocalBindSocketPath:  path,
+		Config: map[string]interface{}{
+			"protocol": "grpc",
+		},
+	}
+	uid := NewUpstreamID(&upstream)
+	snap.ConnectProxy.UpstreamConfig[uid] = &upstream
+
+	err = s.dataSources.CompiledDiscoveryChain.Notify(ctx, &structs.DiscoveryChainRequest{
+		Datacenter:           s.source.Datacenter,
+		QueryOptions:         structs.QueryOptions{Token: s.token},
+		Name:                 upstream.DestinationName,
+		EvaluateInDatacenter: s.source.Datacenter,
+		EvaluateInNamespace:  uid.NamespaceOrDefault(),
+		EvaluateInPartition:  uid.PartitionOrDefault(),
+	}, "discovery-chain:"+uid.String(), s.ch)
+	if err != nil {
+		return fmt.Errorf("failed to watch discovery chain for %s: %v", uid.String(), err)
 	}
 	return nil
 }

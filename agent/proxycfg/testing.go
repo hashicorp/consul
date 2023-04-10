@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package proxycfg
 
 import (
@@ -20,7 +23,7 @@ import (
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/proto/pbpeering"
+	"github.com/hashicorp/consul/proto/private/pbpeering"
 )
 
 func TestPeerTrustBundles(t testing.T) *pbpeering.TrustBundleListByServiceResponse {
@@ -552,7 +555,7 @@ func TestGatewayServiceGroupBarDC1(t testing.T) structs.CheckServiceNodes {
 				},
 				Proxy: structs.ConnectProxyConfig{
 					DestinationServiceName: "bar",
-					Upstreams:              structs.TestUpstreams(t),
+					Upstreams:              structs.TestUpstreams(t, false),
 				},
 			},
 		},
@@ -573,7 +576,7 @@ func TestGatewayServiceGroupBarDC1(t testing.T) structs.CheckServiceNodes {
 				},
 				Proxy: structs.ConnectProxyConfig{
 					DestinationServiceName: "bar",
-					Upstreams:              structs.TestUpstreams(t),
+					Upstreams:              structs.TestUpstreams(t, false),
 				},
 			},
 		},
@@ -594,7 +597,7 @@ func TestGatewayServiceGroupBarDC1(t testing.T) structs.CheckServiceNodes {
 				},
 				Proxy: structs.ConnectProxyConfig{
 					DestinationServiceName: "bar",
-					Upstreams:              structs.TestUpstreams(t),
+					Upstreams:              structs.TestUpstreams(t, false),
 				},
 			},
 		},
@@ -620,7 +623,7 @@ func TestGatewayServiceGroupFooDC1(t testing.T) structs.CheckServiceNodes {
 				},
 				Proxy: structs.ConnectProxyConfig{
 					DestinationServiceName: "foo",
-					Upstreams:              structs.TestUpstreams(t),
+					Upstreams:              structs.TestUpstreams(t, false),
 				},
 			},
 		},
@@ -641,7 +644,7 @@ func TestGatewayServiceGroupFooDC1(t testing.T) structs.CheckServiceNodes {
 				},
 				Proxy: structs.ConnectProxyConfig{
 					DestinationServiceName: "foo",
-					Upstreams:              structs.TestUpstreams(t),
+					Upstreams:              structs.TestUpstreams(t, false),
 				},
 			},
 		},
@@ -662,7 +665,7 @@ func TestGatewayServiceGroupFooDC1(t testing.T) structs.CheckServiceNodes {
 				},
 				Proxy: structs.ConnectProxyConfig{
 					DestinationServiceName: "foo",
-					Upstreams:              structs.TestUpstreams(t),
+					Upstreams:              structs.TestUpstreams(t, false),
 				},
 			},
 		},
@@ -683,7 +686,7 @@ func TestGatewayServiceGroupFooDC1(t testing.T) structs.CheckServiceNodes {
 				},
 				Proxy: structs.ConnectProxyConfig{
 					DestinationServiceName: "foo",
-					Upstreams:              structs.TestUpstreams(t),
+					Upstreams:              structs.TestUpstreams(t, false),
 				},
 			},
 			Checks: structs.HealthChecks{

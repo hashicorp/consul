@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 import Adapter from './application';
 import { inject as service } from '@ember/service';
 import { SLUG_KEY } from 'consul-ui/models/token';
@@ -80,6 +85,7 @@ export default class TokenAdapter extends Adapter {
 
       ${{
         Description: serialized.Description,
+        AccessorID: serialized.AccessorID,
         Policies: serialized.Policies,
         Roles: serialized.Roles,
         ServiceIdentities: serialized.ServiceIdentities,

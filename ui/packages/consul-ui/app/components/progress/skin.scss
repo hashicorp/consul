@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 %progress-indeterminate {
   width: 100%;
   display: flex;
@@ -5,7 +10,7 @@
   justify-content: center;
   --icon-size: icon-700; /* 24px */
   --icon-name: var(--icon-loading);
-  --icon-color: rgb(var(--tone-gray-500));
+  --icon-color: var(--token-color-foreground-faint);
 }
 %progress-indeterminate::before {
   content: '';

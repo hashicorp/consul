@@ -1,6 +1,10 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package agent
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
@@ -216,7 +220,7 @@ func TestDiscoveryChainRead(t *testing.T) {
 
 	{ // Now create one config entry.
 		out := false
-		require.NoError(t, a.RPC("ConfigEntry.Apply", &structs.ConfigEntryRequest{
+		require.NoError(t, a.RPC(context.Background(), "ConfigEntry.Apply", &structs.ConfigEntryRequest{
 			Datacenter: "dc1",
 			Entry: &structs.ServiceResolverConfigEntry{
 				Kind:           structs.ServiceResolver,

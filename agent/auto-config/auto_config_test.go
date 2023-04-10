@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package autoconf
 
 import (
@@ -22,8 +25,8 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/lib/retry"
-	"github.com/hashicorp/consul/proto/pbautoconf"
-	"github.com/hashicorp/consul/proto/pbconfig"
+	"github.com/hashicorp/consul/proto/private/pbautoconf"
+	"github.com/hashicorp/consul/proto/private/pbconfig"
 	"github.com/hashicorp/consul/sdk/testutil"
 	testretry "github.com/hashicorp/consul/sdk/testutil/retry"
 )
@@ -201,11 +204,13 @@ func setupRuntimeConfig(t *testing.T) *configLoader {
 	dataDir := testutil.TempDir(t, "auto-config")
 
 	opts := config.LoadOpts{
-		FlagValues: config.Config{
-			DataDir:    &dataDir,
-			Datacenter: stringPointer("dc1"),
-			NodeName:   stringPointer("autoconf"),
-			BindAddr:   stringPointer("127.0.0.1"),
+		FlagValues: config.FlagValuesTarget{
+			Config: config.Config{
+				DataDir:    &dataDir,
+				Datacenter: stringPointer("dc1"),
+				NodeName:   stringPointer("autoconf"),
+				BindAddr:   stringPointer("127.0.0.1"),
+			},
 		},
 	}
 	return &configLoader{opts: opts}
@@ -306,9 +311,9 @@ func TestInitialConfiguration_restored(t *testing.T) {
 		Certificate:         mustTranslateIssuedCertToProtobuf(t, cert),
 		ExtraCACertificates: extraCACerts,
 	}
-	data, err := pbMarshaler.MarshalToString(response)
+	data, err := pbMarshaler.Marshal(response)
 	require.NoError(t, err)
-	require.NoError(t, os.WriteFile(persistedFile, []byte(data), 0600))
+	require.NoError(t, os.WriteFile(persistedFile, data, 0600))
 
 	// recording the initial configuration even when restoring is going to update
 	// the agent token in the token store

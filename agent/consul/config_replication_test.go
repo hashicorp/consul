@@ -1,6 +1,10 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package consul
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"testing"
@@ -137,7 +141,7 @@ func TestReplication_ConfigEntries(t *testing.T) {
 		}
 
 		out := false
-		require.NoError(t, s1.RPC("ConfigEntry.Apply", &arg, &out))
+		require.NoError(t, s1.RPC(context.Background(), "ConfigEntry.Apply", &arg, &out))
 		entries = append(entries, arg.Entry)
 	}
 
@@ -155,7 +159,7 @@ func TestReplication_ConfigEntries(t *testing.T) {
 	}
 
 	out := false
-	require.NoError(t, s1.RPC("ConfigEntry.Apply", &arg, &out))
+	require.NoError(t, s1.RPC(context.Background(), "ConfigEntry.Apply", &arg, &out))
 	entries = append(entries, arg.Entry)
 
 	checkSame := func(t *retry.R) error {
@@ -208,7 +212,7 @@ func TestReplication_ConfigEntries(t *testing.T) {
 		}
 
 		out := false
-		require.NoError(t, s1.RPC("ConfigEntry.Apply", &arg, &out))
+		require.NoError(t, s1.RPC(context.Background(), "ConfigEntry.Apply", &arg, &out))
 	}
 
 	arg = structs.ConfigEntryRequest{
@@ -224,7 +228,7 @@ func TestReplication_ConfigEntries(t *testing.T) {
 		},
 	}
 
-	require.NoError(t, s1.RPC("ConfigEntry.Apply", &arg, &out))
+	require.NoError(t, s1.RPC(context.Background(), "ConfigEntry.Apply", &arg, &out))
 
 	// Wait for the replica to converge.
 	retry.Run(t, func(r *retry.R) {
@@ -239,7 +243,7 @@ func TestReplication_ConfigEntries(t *testing.T) {
 		}
 
 		var out structs.ConfigEntryDeleteResponse
-		require.NoError(t, s1.RPC("ConfigEntry.Delete", &arg, &out))
+		require.NoError(t, s1.RPC(context.Background(), "ConfigEntry.Delete", &arg, &out))
 	}
 
 	// Wait for the replica to converge.
@@ -299,7 +303,7 @@ func TestReplication_ConfigEntries_GraphValidationErrorDuringReplication(t *test
 		}
 
 		out := false
-		require.NoError(t, s1.RPC("ConfigEntry.Apply", &arg, &out))
+		require.NoError(t, s1.RPC(context.Background(), "ConfigEntry.Apply", &arg, &out))
 	}
 
 	// Try to join which should kick off replication.

@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package structs
 
 import (
@@ -109,6 +112,39 @@ var expectedFieldConfigTransparentProxyConfig bexpr.FieldConfigurations = bexpr.
 	},
 }
 
+var expectedFieldConfigAccessLogsConfig bexpr.FieldConfigurations = bexpr.FieldConfigurations{
+	"Enabled": &bexpr.FieldConfiguration{
+		StructFieldName:     "Enabled",
+		CoerceFn:            bexpr.CoerceBool,
+		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual},
+	},
+	"DisableListenerLogs": &bexpr.FieldConfiguration{
+		StructFieldName:     "DisableListenerLogs",
+		CoerceFn:            bexpr.CoerceBool,
+		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual},
+	},
+	"Type": &bexpr.FieldConfiguration{
+		StructFieldName:     "Type",
+		CoerceFn:            bexpr.CoerceString,
+		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual, bexpr.MatchIn, bexpr.MatchNotIn, bexpr.MatchMatches, bexpr.MatchNotMatches},
+	},
+	"Path": &bexpr.FieldConfiguration{
+		StructFieldName:     "Path",
+		CoerceFn:            bexpr.CoerceString,
+		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual, bexpr.MatchIn, bexpr.MatchNotIn, bexpr.MatchMatches, bexpr.MatchNotMatches},
+	},
+	"JSONPath": &bexpr.FieldConfiguration{
+		StructFieldName:     "JSONPath",
+		CoerceFn:            bexpr.CoerceString,
+		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual, bexpr.MatchIn, bexpr.MatchNotIn, bexpr.MatchMatches, bexpr.MatchNotMatches},
+	},
+	"TextPath": &bexpr.FieldConfiguration{
+		StructFieldName:     "TextPath",
+		CoerceFn:            bexpr.CoerceString,
+		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual, bexpr.MatchIn, bexpr.MatchNotIn, bexpr.MatchMatches, bexpr.MatchNotMatches},
+	},
+}
+
 var expectedFieldConfigExposeConfig bexpr.FieldConfigurations = bexpr.FieldConfigurations{
 	"Checks": &bexpr.FieldConfiguration{
 		StructFieldName:     "Checks",
@@ -150,6 +186,18 @@ var expectedFieldConfigPaths bexpr.FieldConfigurations = bexpr.FieldConfiguratio
 	},
 }
 
+var expectedFieldConfigEnvoyExtensions bexpr.FieldConfigurations = bexpr.FieldConfigurations{
+	"Name": &bexpr.FieldConfiguration{
+		StructFieldName:     "Name",
+		CoerceFn:            bexpr.CoerceString,
+		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual, bexpr.MatchIn, bexpr.MatchNotIn, bexpr.MatchMatches, bexpr.MatchNotMatches},
+	},
+	"Required": &bexpr.FieldConfiguration{
+		StructFieldName:     "Required",
+		CoerceFn:            bexpr.CoerceBool,
+		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual},
+	},
+}
 var expectedFieldConfigUpstreams bexpr.FieldConfigurations = bexpr.FieldConfigurations{
 	"DestinationType": &bexpr.FieldConfiguration{
 		StructFieldName:     "DestinationType",
@@ -208,6 +256,11 @@ var expectedFieldConfigUpstreams bexpr.FieldConfigurations = bexpr.FieldConfigur
 }
 
 var expectedFieldConfigConnectProxyConfig bexpr.FieldConfigurations = bexpr.FieldConfigurations{
+	"EnvoyExtensions": &bexpr.FieldConfiguration{
+		StructFieldName:     "EnvoyExtensions",
+		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchIsEmpty, bexpr.MatchIsNotEmpty},
+		SubFields:           expectedFieldConfigEnvoyExtensions,
+	},
 	"DestinationServiceName": &bexpr.FieldConfiguration{
 		StructFieldName:     "DestinationServiceName",
 		CoerceFn:            bexpr.CoerceString,
@@ -254,6 +307,10 @@ var expectedFieldConfigConnectProxyConfig bexpr.FieldConfigurations = bexpr.Fiel
 		StructFieldName:     "Mode",
 		CoerceFn:            bexpr.CoerceString,
 		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual, bexpr.MatchIn, bexpr.MatchNotIn, bexpr.MatchMatches, bexpr.MatchNotMatches},
+	},
+	"AccessLogs": &bexpr.FieldConfiguration{
+		StructFieldName: "AccessLogs",
+		SubFields:       expectedFieldConfigAccessLogsConfig,
 	},
 }
 

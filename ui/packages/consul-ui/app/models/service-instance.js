@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 import Model, { attr } from '@ember-data/model';
 import { fragmentArray } from 'ember-data-model-fragments/attributes';
 import { computed } from '@ember/object';
@@ -64,9 +69,13 @@ export default class ServiceInstance extends Model {
 
   @computed('Service.Kind')
   get IsProxy() {
-    return ['connect-proxy', 'mesh-gateway', 'ingress-gateway', 'terminating-gateway'].includes(
-      this.Service.Kind
-    );
+    return [
+      'connect-proxy',
+      'mesh-gateway',
+      'ingress-gateway',
+      'terminating-gateway',
+      'api-gateway',
+    ].includes(this.Service.Kind);
   }
 
   // IsOrigin means that the service can have associated up or down streams,

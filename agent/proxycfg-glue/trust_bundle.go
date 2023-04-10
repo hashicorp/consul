@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package proxycfgglue
 
 import (
@@ -13,7 +16,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul/watch"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/proto/pbpeering"
+	"github.com/hashicorp/consul/proto/private/pbpeering"
 )
 
 // CacheTrustBundle satisfies the proxycfg.TrustBundle interface by sourcing
@@ -33,12 +36,14 @@ type serverTrustBundle struct {
 }
 
 func (s *serverTrustBundle) Notify(ctx context.Context, req *cachetype.TrustBundleReadRequest, correlationID string, ch chan<- proxycfg.UpdateEvent) error {
-	entMeta := structs.NodeEnterpriseMetaInPartition(req.Request.Partition)
+	// Having the ability to write a service in ANY (at least one) namespace should be
+	// sufficient for reading the trust bundle, which is why we use a wildcard.
+	entMeta := acl.NewEnterpriseMetaWithPartition(req.Request.Partition, acl.WildcardName)
 
 	return watch.ServerLocalNotify(ctx, correlationID, s.deps.GetStore,
 		func(ws memdb.WatchSet, store Store) (uint64, *pbpeering.TrustBundleReadResponse, error) {
 			var authzCtx acl.AuthorizerContext
-			authz, err := s.deps.ACLResolver.ResolveTokenAndDefaultMeta(req.Token, entMeta, &authzCtx)
+			authz, err := s.deps.ACLResolver.ResolveTokenAndDefaultMeta(req.Token, &entMeta, &authzCtx)
 			if err != nil {
 				return 0, nil, err
 			}

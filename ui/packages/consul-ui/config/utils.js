@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 const read = require('fs').readFileSync;
 const exec = require('child_process').execSync;
 
@@ -9,16 +14,9 @@ const repositorySHA = function (sha = exec('git rev-parse --short HEAD')) {
   return sha.toString().trim();
 };
 const binaryVersion = function (repositoryRoot) {
-  return function (versionFileContents = read(`${repositoryRoot}/version/version.go`)) {
+  return function (versionFileContents = read(`${repositoryRoot}/version/VERSION`)) {
     // see /scripts/dist.sh:8
-    return versionFileContents
-      .toString()
-      .split('\n')
-      .find(function (item, i, arr) {
-        return item.indexOf('Version =') !== -1;
-      })
-      .trim()
-      .split('"')[1];
+    return versionFileContents.toString();
   };
 };
 const env = function ($) {

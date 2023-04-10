@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package cachetype
 
 import (
@@ -18,14 +21,14 @@ func TestExportedPeeredServices(t *testing.T) {
 	// Expect the proper RPC call. This also sets the expected value
 	// since that is return-by-pointer in the arguments.
 	var resp *structs.IndexedExportedServiceList
-	rpc.On("RPC", "Internal.ExportedPeeredServices", mock.Anything, mock.Anything).Return(nil).
+	rpc.On("RPC", mock.Anything, "Internal.ExportedPeeredServices", mock.Anything, mock.Anything).Return(nil).
 		Run(func(args mock.Arguments) {
-			req := args.Get(1).(*structs.DCSpecificRequest)
+			req := args.Get(2).(*structs.DCSpecificRequest)
 			require.Equal(t, uint64(24), req.QueryOptions.MinQueryIndex)
 			require.Equal(t, 1*time.Second, req.QueryOptions.MaxQueryTime)
 			require.True(t, req.AllowStale)
 
-			reply := args.Get(2).(*structs.IndexedExportedServiceList)
+			reply := args.Get(3).(*structs.IndexedExportedServiceList)
 			reply.Services = map[string]structs.ServiceList{
 				"my-peer": {
 					structs.ServiceName{

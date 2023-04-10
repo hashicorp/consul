@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 import { isLegacy } from 'consul-ui/helpers/token/is-legacy';
 import { module, test } from 'qunit';
 
@@ -27,11 +32,11 @@ module('Unit | Helper | token/is-legacy', function () {
     const actual = isLegacy([[{}, {}]]);
     assert.notOk(actual);
   });
-  test('it returns true if the token has a Legacy=true', function (assert) {
+  test('it returns true if one token has Legacy=true', function (assert) {
     const actual = isLegacy([[{}, { Legacy: true }]]);
     assert.ok(actual);
   });
-  test('it returns false if the token has a Legacy=false', function (assert) {
+  test('it returns false if one token as Legacy=false', function (assert) {
     const actual = isLegacy([[{}, { Legacy: false }]]);
     assert.notOk(actual);
   });

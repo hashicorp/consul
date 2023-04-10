@@ -1,9 +1,13 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package cachetype
 
 import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/stretchr/testify/mock"
@@ -18,21 +22,26 @@ func TestResolvedServiceConfig(t *testing.T) {
 	// Expect the proper RPC call. This also sets the expected value
 	// since that is return-by-pointer in the arguments.
 	var resp *structs.ServiceConfigResponse
-	rpc.On("RPC", "ConfigEntry.ResolveServiceConfig", mock.Anything, mock.Anything).Return(nil).
+	rpc.On("RPC", mock.Anything, "ConfigEntry.ResolveServiceConfig", mock.Anything, mock.Anything).Return(nil).
 		Run(func(args mock.Arguments) {
-			req := args.Get(1).(*structs.ServiceConfigRequest)
+			req := args.Get(2).(*structs.ServiceConfigRequest)
 			require.Equal(t, uint64(24), req.QueryOptions.MinQueryIndex)
 			require.Equal(t, 1*time.Second, req.QueryOptions.MaxQueryTime)
 			require.Equal(t, "foo", req.Name)
 			require.True(t, req.AllowStale)
 
-			reply := args.Get(2).(*structs.ServiceConfigResponse)
+			reply := args.Get(3).(*structs.ServiceConfigResponse)
 			reply.ProxyConfig = map[string]interface{}{
 				"protocol": "http",
 			}
-			reply.UpstreamConfigs = map[string]map[string]interface{}{
-				"s2": {
-					"protocol": "http",
+			reply.UpstreamConfigs = structs.OpaqueUpstreamConfigs{
+				{
+					Upstream: structs.PeeredServiceName{
+						ServiceName: structs.NewServiceName("a", acl.DefaultEnterpriseMeta()),
+					},
+					Config: map[string]interface{}{
+						"protocol": "http",
+					},
 				},
 			}
 

@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 export default function (
   visitable,
   submitable,
@@ -13,7 +18,7 @@ export default function (
     ...cancelable({}, 'main form > div'),
     ...deletable({}, 'main form > div'),
     use: clickable('[data-test-use]'),
-    confirmUse: clickable('button.type-delete'),
+    confirmUse: clickable('[data-test-confirm-use]'),
     clone: clickable('[data-test-clone]'),
     policies: policySelector(),
     roles: roleSelector(),

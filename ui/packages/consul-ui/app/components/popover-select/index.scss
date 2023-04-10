@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 .popover-select {
   @extend %popover-select;
 }
@@ -28,23 +33,23 @@
 /* even their own search bar sub menu components */
 %popover-select .value-passing button::before {
   @extend %with-check-circle-fill-mask, %as-pseudo;
-  color: rgb(var(--tone-green-500));
+  color: var(--token-color-foreground-success);
 }
 %popover-select .value-warning button::before {
   @extend %with-alert-triangle-mask, %as-pseudo;
-  color: rgb(var(--tone-orange-500));
+  color: var(--token-color-foreground-warning);
 }
 %popover-select .value-critical button::before {
   @extend %with-cancel-square-fill-mask, %as-pseudo;
-  color: rgb(var(--tone-red-500));
+  color: var(--token-color-foreground-critical);
 }
 %popover-select .value-empty button::before {
   @extend %with-minus-square-fill-mask, %as-pseudo;
-  color: rgb(var(--tone-gray-400));
+  color: var(--token-color-foreground-disabled);
 }
 %popover-select .value-unknown button::before {
   @extend %with-help-circle-outline-mask, %as-pseudo;
-  color: rgb(var(--tone-gray-500));
+  color: var(--token-color-foreground-faint);
 }
 %popover-select.type-source li:not(.partition) button {
   text-transform: capitalize;
@@ -54,7 +59,7 @@
 }
 %popover-select.type-source li.partition button::before {
   @extend %with-user-team-mask, %as-pseudo;
-  color: rgb(var(--tone-gray-500));
+  color: var(--token-color-foreground-faint);
 }
 %popover-select .jwt button::before {
   @extend %with-logo-jwt-color-icon, %as-pseudo;

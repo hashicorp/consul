@@ -1,3 +1,8 @@
+{{!
+  Copyright (c) HashiCorp, Inc.
+  SPDX-License-Identifier: MPL-2.0
+}}
+
 {{#if (can 'use acls')}}
   <li data-test-main-nav-auth>
 
@@ -64,11 +69,11 @@
             </AuthForm>
           </BlockSlot>
           <BlockSlot @name="actions">
-            <Action
-              {{on "click" modal.close}}
-            >
-              Continue without logging in
-            </Action>
+            <Hds::Button
+              @color='secondary'
+              @text='Continue without logging in'
+              {{on 'click' modal.close}}
+            />
           </BlockSlot>
         </ModalDialog>
       </:unauthorized>
@@ -106,11 +111,11 @@
             </AuthForm>
           </BlockSlot>
           <BlockSlot @name="actions">
-            <Action
+            <Hds::Button
+              @color='secondary'
+              @text='Continue without logging in'
               {{on 'click' modal.close}}
-            >
-              Continue without logging in
-            </Action>
+            />
           </BlockSlot>
         </ModalDialog>
         <Portal @target="app-before-skip-links">

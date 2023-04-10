@@ -1,5 +1,9 @@
-import Model from 'ember-data/model';
-import attr from 'ember-data/attr';
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
+import Model, { attr } from '@ember-data/model';
 
 export const PRIMARY_KEY = 'uid';
 export const SLUG_KEY = 'Name';

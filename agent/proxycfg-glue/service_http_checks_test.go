@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package proxycfgglue
 
 import (
@@ -38,7 +41,7 @@ func TestServerHTTPChecks(t *testing.T) {
 		localState := testLocalState(t)
 		mockCacheSource := newMockServiceHTTPChecks(t)
 		if tc.serviceInLocalState {
-			require.NoError(t, localState.AddServiceWithChecks(&structs.NodeService{ID: serviceID.ID}, nil, ""))
+			require.NoError(t, localState.AddServiceWithChecks(&structs.NodeService{ID: serviceID.ID}, nil, "", false))
 		}
 		if tc.req.NodeName == nodeName && tc.serviceInLocalState {
 			mockCacheSource.On("Notify", ctx, tc.req, correlationID, ch).Return(cacheResult)

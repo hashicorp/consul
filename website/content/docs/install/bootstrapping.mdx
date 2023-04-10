@@ -8,34 +8,34 @@ description: >-
 # Bootstrap a Datacenter
 
 An agent can run in either client or server mode. Server nodes are responsible for running the
-[consensus protocol](/docs/architecture/consensus) and storing the cluster state.
+[consensus protocol](/consul/docs/architecture/consensus) and storing the cluster state.
 The client nodes are mostly stateless and rely heavily on the server nodes.
 
 Before a Consul cluster can begin to service requests,
 a server node must be elected leader. Bootstrapping is the process
 of joining these initial server nodes into a cluster. Read the
-[architecture documentation](/docs/architecture) to learn more about
+[architecture documentation](/consul/docs/architecture) to learn more about
 the internals of Consul.
 
 It is recommended to have three or five total servers per datacenter. A single server deployment is _highly_ discouraged
 as data loss is inevitable in a failure scenario. Please refer to the
-[deployment table](/docs/architecture/consensus#deployment-table) for more detail.
+[deployment table](/consul/docs/architecture/consensus#deployment-table) for more detail.
 
 ~> **Note**: In versions of Consul prior to 0.4, bootstrapping was a manual process. For details on using the `-bootstrap` flag directly, see the
-[manual bootstrapping documentation](/docs/install/bootstrapping#manually-join-the-servers).
+[manual bootstrapping documentation](/consul/docs/install/bootstrapping#manually-join-the-servers).
 Manual bootstrapping with `-bootstrap` is not recommended in
 newer versions of Consul (0.5 and newer) as it is more error-prone.
 Instead you should use automatic bootstrapping
-with [`-bootstrap-expect`](/docs/agent/config/cli-flags#_bootstrap_expect).
+with [`-bootstrap-expect`](/consul/docs/agent/config/cli-flags#_bootstrap_expect).
 
 ## Bootstrapping the Servers
 
-The recommended way to bootstrap the servers is to use the [`-bootstrap-expect`](/docs/agent/config/cli-flags#_bootstrap_expect)
+The recommended way to bootstrap the servers is to use the [`-bootstrap-expect`](/consul/docs/agent/config/cli-flags#_bootstrap_expect)
 configuration option. This option informs Consul of the expected number of
 server nodes and automatically bootstraps when that many servers are available. To prevent
 inconsistencies and split-brain (clusters where multiple servers consider
 themselves leader) situations, you should either specify the same value for
-[`-bootstrap-expect`](/docs/agent/config/cli-flags#_bootstrap_expect)
+[`-bootstrap-expect`](/consul/docs/agent/config/cli-flags#_bootstrap_expect)
 or specify no value at all on all the servers. Only servers that specify a value will attempt to bootstrap the cluster.
 
 Suppose we are starting a three server cluster. We can start `Node A`, `Node B`, and `Node C` with each
@@ -54,14 +54,10 @@ You can trigger leader election by joining the servers together, to create a clu
 
 ### Automatically Join the Servers
 
-There are multiple options for joining the servers. Choose the method which best suits your environment and specific use case.
+There are two options for joining the servers. Choose the method which best suits your environment and specific use case.
 
-- Specify a list of servers with
-  [-join](/docs/agent/config/cli-flags#_join) and
-  [start_join](/docs/agent/config/config-files#start_join)
-  options.
-- Specify a list of servers with [-retry-join](/docs/agent/config/cli-flags#_retry_join) option.
-- Use automatic joining by tag for supported cloud environments with the [-retry-join](/docs/agent/config/cli-flags#_retry_join) option.
+- Specify a list of servers with [-retry-join](/consul/docs/agent/config/cli-flags#_retry_join) option.
+- Use automatic joining by tag for supported cloud environments with the [-retry-join](/consul/docs/agent/config/cli-flags#_retry_join) option.
 
 All three methods can be set in the agent configuration file or
 the command line flag.
@@ -88,10 +84,10 @@ Since a join operation is symmetric, it does not matter which node initiates it.
 
 ### Verifying the Cluster and Connect the Clients
 
-As a sanity check, the [`consul info`](/commands/info) command
+As a sanity check, the [`consul info`](/consul/commands/info) command
 is a useful tool. It can be used to verify the `raft.num_peers`
 and to view the latest log index under `raft.last_log_index`. When
-running [`consul info`](/commands/info) on the followers, you
+running [`consul info`](/consul/commands/info) on the followers, you
 should see `raft.last_log_index` converge to the same value once the
 leader begins replication. That value represents the last log entry that
 has been stored on disk.

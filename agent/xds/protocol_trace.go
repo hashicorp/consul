@@ -1,11 +1,14 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package xds
 
 import (
 	envoy_discovery_v3 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 
-	"github.com/golang/protobuf/jsonpb"
-	"github.com/golang/protobuf/proto"
 	"github.com/mitchellh/copystructure"
+	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 )
 
 func (s *ResourceGenerator) logTraceRequest(msg string, pb proto.Message) {
@@ -40,12 +43,16 @@ func (s *ResourceGenerator) logTraceProto(msg string, pb proto.Message, response
 		}
 	}
 
-	m := jsonpb.Marshaler{
+	m := protojson.MarshalOptions{
 		Indent: "  ",
 	}
-	out, err := m.MarshalToString(pb)
+
+	out := ""
+	outBytes, err := m.Marshal(pb)
 	if err != nil {
 		out = "<ERROR: " + err.Error() + ">"
+	} else {
+		out = string(outBytes)
 	}
 
 	s.Logger.Trace(msg, "direction", dir, "protobuf", out)

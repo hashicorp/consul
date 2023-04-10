@@ -1,11 +1,13 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package structs
 
 import (
 	"time"
 
-	"github.com/golang/protobuf/ptypes"
-	"github.com/golang/protobuf/ptypes/duration"
-	"github.com/golang/protobuf/ptypes/timestamp"
+	"google.golang.org/protobuf/types/known/durationpb"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 type QueryOptions struct {
@@ -30,28 +32,24 @@ const (
 	QueryBackendStreaming
 )
 
-func DurationToProto(d time.Duration) *duration.Duration {
-	return ptypes.DurationProto(d)
+func DurationToProto(d time.Duration) *durationpb.Duration {
+	return durationpb.New(d)
 }
 
-func DurationFromProto(d *duration.Duration) time.Duration {
-	ret, _ := ptypes.Duration(d)
-	return ret
-
+func DurationFromProto(d *durationpb.Duration) time.Duration {
+	return d.AsDuration()
 }
 
-func TimeFromProto(s *timestamp.Timestamp) time.Time {
-	ret, _ := ptypes.Timestamp(s)
-	return ret
+func TimeFromProto(s *timestamppb.Timestamp) time.Time {
+	return s.AsTime()
 }
 
-func TimeToProto(s time.Time) *timestamp.Timestamp {
-	ret, _ := ptypes.TimestampProto(s)
-	return ret
+func TimeToProto(s time.Time) *timestamppb.Timestamp {
+	return timestamppb.New(s)
 }
 
 // IsZeroProtoTime returns true if the time is the minimum protobuf timestamp
 // (the Unix epoch).
-func IsZeroProtoTime(t *timestamp.Timestamp) bool {
+func IsZeroProtoTime(t *timestamppb.Timestamp) bool {
 	return t.Seconds == 0 && t.Nanos == 0
 }

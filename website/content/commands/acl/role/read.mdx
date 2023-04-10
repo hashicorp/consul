@@ -1,18 +1,20 @@
 ---
 layout: commands
 page_title: 'Commands: ACL Role Read'
+description: |
+  The `consul acl role read` command outputs details for the ACL role of the specified name or ID, including policies attached to the role.
 ---
 
 # Consul ACL Role Read
 
 Command: `consul acl role read`
 
-Corresponding HTTP API Endpoints: [\[GET\] /v1/acl/role/:id](/api-docs/acl/roles#read-a-role), [\[GET\] /v1/acl/role/name/:name](/api-docs/acl/roles#read-a-role-by-name)
+Corresponding HTTP API Endpoints: [\[GET\] /v1/acl/role/:id](/consul/api-docs/acl/roles#read-a-role), [\[GET\] /v1/acl/role/name/:name](/consul/api-docs/acl/roles#read-a-role-by-name)
 
 The `acl role read` command reads and displays a roles details.
 
-The table below shows this command's [required ACLs](/api-docs/api-structure#authentication). Configuration of
-[blocking queries](/api-docs/features/blocking) and [agent caching](/api-docs/features/caching)
+The table below shows this command's [required ACLs](/consul/api-docs/api-structure#authentication). Configuration of
+[blocking queries](/consul/api-docs/features/blocking) and [agent caching](/consul/api-docs/features/caching)
 are not supported from commands, but may be from the corresponding HTTP endpoint.
 
 | ACL Required |

@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 import { module, test } from 'qunit';
 import { setupTest } from 'ember-qunit';
 import getNspaceRunner from 'consul-ui/tests/helpers/get-nspace-runner';
@@ -10,6 +15,7 @@ module('Integration | Adapter | intention', function (hooks) {
   const id =
     'SourcePartition:SourceNS:SourceName:DestinationPartition:DestinationNS:DestinationName';
   test('requestForQuery returns the correct url', function (assert) {
+    assert.expect(2);
     return nspaceRunner(
       (adapter, serializer, client) => {
         const request = client.body.bind(client);

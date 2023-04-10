@@ -1,13 +1,15 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package autoconf
 
 import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 
-	"github.com/golang/protobuf/jsonpb"
-	"github.com/hashicorp/consul/proto/pbautoconf"
+	"github.com/hashicorp/consul/proto/private/pbautoconf"
+	"google.golang.org/protobuf/encoding/protojson"
 )
 
 const (
@@ -17,15 +19,15 @@ const (
 )
 
 var (
-	pbMarshaler = &jsonpb.Marshaler{
-		OrigName:     false,
-		EnumsAsInts:  false,
-		Indent:       "   ",
-		EmitDefaults: true,
+	pbMarshaler = &protojson.MarshalOptions{
+		UseProtoNames:   false,
+		UseEnumNumbers:  false,
+		Indent:          "   ",
+		EmitUnpopulated: true,
 	}
 
-	pbUnmarshaler = &jsonpb.Unmarshaler{
-		AllowUnknownFields: false,
+	pbUnmarshaler = &protojson.UnmarshalOptions{
+		DiscardUnknown: false,
 	}
 )
 
@@ -40,10 +42,8 @@ func (ac *AutoConfig) readPersistedAutoConfig() (*pbautoconf.AutoConfigResponse,
 
 	content, err := os.ReadFile(path)
 	if err == nil {
-		rdr := strings.NewReader(string(content))
-
 		var resp pbautoconf.AutoConfigResponse
-		if err := pbUnmarshaler.Unmarshal(rdr, &resp); err != nil {
+		if err := pbUnmarshaler.Unmarshal(content, &resp); err != nil {
 			return nil, fmt.Errorf("failed to decode persisted auto-config data: %w", err)
 		}
 
@@ -67,14 +67,14 @@ func (ac *AutoConfig) persistAutoConfig(resp *pbautoconf.AutoConfigResponse) err
 		return nil
 	}
 
-	serialized, err := pbMarshaler.MarshalToString(resp)
+	serialized, err := pbMarshaler.Marshal(resp)
 	if err != nil {
 		return fmt.Errorf("failed to encode auto-config response as JSON: %w", err)
 	}
 
 	path := filepath.Join(ac.config.DataDir, autoConfigFileName)
 
-	err = os.WriteFile(path, []byte(serialized), 0660)
+	err = os.WriteFile(path, serialized, 0660)
 	if err != nil {
 		return fmt.Errorf("failed to write auto-config configurations: %w", err)
 	}

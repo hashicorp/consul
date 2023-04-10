@@ -31,7 +31,7 @@ description: >-
   to rewrite the URL path in a client's HTTP request before sending the request
   to a service. For example, you could configure the gateway to change the path
   from `//store/checkout` to `//cart/checkout`. Refer to the [usage
-  documentation](/docs/api-gateway/usage) for additional information.  
+  documentation](/consul/docs/connect/gateways/api-gateway/usage) for additional information.  
 
 ## What has Changed
 
@@ -41,7 +41,7 @@ description: >-
   in a future version of the standard.
 
   After upgrading to this version of Consul API Gateway, you should rename all
-  existing `ReferencePolicy` to `ReferenceGrant`. Refer to the [Upgrades](/docs/api-gateway/upgrades)
+  existing `ReferencePolicy` to `ReferenceGrant`. Refer to the [Upgrades](/consul/docs/api-gateway/upgrades)
   instructions for additional details.
 
 ## Supported Software
@@ -52,7 +52,7 @@ description: >-
   - Kubernetes 1.24 is not supported at this time.
 - Kubectl 1.21+
 - Envoy proxy support is determined by the Consul version deployed. Refer to
-  [Envoy Integration](/docs/connect/proxies/envoy) for details.
+  [Envoy Integration](/consul/docs/connect/proxies/envoy) for details.
 
 ## Kubernetes Gateway API Specification
 
@@ -60,7 +60,7 @@ Supported version of the [Gateway API](https://gateway-api.sigs.k8s.io/) spec: v
 
 ## Upgrading
 
-For detailed information on upgrading, please refer to the [Upgrades page](/docs/api-gateway/upgrades)
+For detailed information on upgrading, please refer to the [Upgrades page](/consul/docs/api-gateway/upgrades)
 
 ## Known Issues
 The following issues are know to exist in the v0.4.0 release

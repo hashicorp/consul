@@ -1,11 +1,15 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package consul
 
 import (
 	"context"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/acl/resolver"
 	"github.com/hashicorp/consul/agent/rpc/operator"
-	"github.com/hashicorp/consul/proto/pboperator"
+	"github.com/hashicorp/consul/proto/private/pboperator"
 	"github.com/hashicorp/raft"
 )
 
@@ -21,7 +25,14 @@ func NewOperatorBackend(srv *Server) *OperatorBackend {
 }
 
 func (op *OperatorBackend) ResolveTokenAndDefaultMeta(token string, entMeta *acl.EnterpriseMeta, authzCtx *acl.AuthorizerContext) (resolver.Result, error) {
-	return op.srv.ResolveTokenAndDefaultMeta(token, entMeta, authzCtx)
+	res, err := op.srv.ResolveTokenAndDefaultMeta(token, entMeta, authzCtx)
+	if err != nil {
+		return resolver.Result{}, err
+	}
+	if err := op.srv.validateEnterpriseToken(res.ACLIdentity); err != nil {
+		return resolver.Result{}, err
+	}
+	return res, err
 }
 
 func (op *OperatorBackend) TransferLeader(_ context.Context, request *pboperator.TransferLeaderRequest) (*pboperator.TransferLeaderResponse, error) {

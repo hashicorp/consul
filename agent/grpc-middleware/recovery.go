@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package middleware
 
 import (
@@ -32,4 +35,5 @@ func NewPanicHandler(logger Logger) recovery.RecoveryHandlerFunc {
 
 type Logger interface {
 	Error(string, ...interface{})
+	Warn(string, ...interface{})
 }

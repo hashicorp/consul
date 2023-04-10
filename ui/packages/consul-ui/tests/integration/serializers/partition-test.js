@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 import { module, test, skip } from 'qunit';
 import { setupTest } from 'ember-qunit';
 
@@ -7,6 +12,8 @@ import { HEADERS_SYMBOL as META } from 'consul-ui/utils/http/consul';
 module('Integration | Serializer | partition', function (hooks) {
   setupTest(hooks);
   test('respondForQuery returns the correct data for list endpoint', function (assert) {
+    assert.expect(1);
+
     const serializer = this.owner.lookup('serializer:partition');
     const dc = 'dc-1';
     const request = {

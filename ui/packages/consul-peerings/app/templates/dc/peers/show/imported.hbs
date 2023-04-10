@@ -1,3 +1,8 @@
+{{!
+  Copyright (c) HashiCorp, Inc.
+  SPDX-License-Identifier: MPL-2.0
+}}
+
 <Route @name={{routeName}} as |route|>
   <DataLoader
     @src={{uri
@@ -103,25 +108,28 @@
                 }}
               </BlockSlot>
               <BlockSlot @name="actions">
-                <li class="docs-link">
-                  <a
-                    href="{{env 'CONSUL_DOCS_URL'}}/connect/cluster-peering"
-                    rel="noopener noreferrer"
-                    target="_blank"
-                  >
-                    Documentation on Peers
-                  </a>
+                <li>
+                  {{! what's the docs for peering?}}
+                  <Hds::Link::Standalone
+                    @text='Documentation on Peers'
+                    @href="{{env
+                      'CONSUL_DOCS_URL'
+                    }}/connect/cluster-peering"
+                    @icon='docs-link'
+                    @iconPosition='trailing'
+                    @size='small'
+                  />
                 </li>
-                <li class="learn-link">
-                  <a
-                    href="{{env
+                <li>
+                  <Hds::Link::Standalone
+                    @text='Take the tutorial'
+                    @href="{{env
                       'CONSUL_DOCS_URL'
                     }}/connect/cluster-peering/create-manage-peering"
-                    rel="noopener noreferrer"
-                    target="_blank"
-                  >
-                    Take the tutorial
-                  </a>
+                    @icon='learn-link'
+                    @iconPosition='trailing'
+                    @size='small'
+                  />
                 </li>
               </BlockSlot>
             </EmptyState>
