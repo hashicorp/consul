@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
 
 	"github.com/hashicorp/consul/acl"
@@ -84,6 +85,32 @@ func Register(r resource.Registry) {
 		}
 	}
 
+	validateArtistFn := func(res *pbresource.Resource) error {
+		if proto.Equal(res.Id.Type, TypeV1Artist) {
+			artist := &pbdemov1.Artist{}
+			if err := anypb.UnmarshalTo(res.Data, artist, proto.UnmarshalOptions{}); err != nil {
+				return err
+			}
+			if artist.Name == "" {
+				return fmt.Errorf("artist.name required")
+			}
+			return nil
+		}
+
+		if proto.Equal(res.Id.Type, TypeV2Artist) {
+			artist := &pbdemov2.Artist{}
+			if err := anypb.UnmarshalTo(res.Data, artist, proto.UnmarshalOptions{}); err != nil {
+				return err
+			}
+			if artist.Name == "" {
+				return fmt.Errorf("artist.name required")
+			}
+			return nil
+		}
+
+		return fmt.Errorf("unsupported artist type %v", resource.ToGVK(res.Id.Type))
+	}
+
 	r.Register(resource.Registration{
 		Type:  TypeV1Artist,
 		Proto: &pbdemov1.Artist{},
@@ -92,6 +119,7 @@ func Register(r resource.Registry) {
 			Write: writeACL,
 			List:  makeListACL(TypeV1Artist),
 		},
+		Validate: validateArtistFn,
 	})
 
 	r.Register(resource.Registration{
@@ -112,6 +140,7 @@ func Register(r resource.Registry) {
 			Write: writeACL,
 			List:  makeListACL(TypeV2Artist),
 		},
+		Validate: validateArtistFn,
 	})
 
 	r.Register(resource.Registration{
