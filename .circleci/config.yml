@@ -31,10 +31,10 @@ references:
     - "1.2.10"
     - "1.1.16"
   vault-versions: &supported_vault_versions
-    - &default_vault_version "1.12.2"
-    - "1.11.6"
-    - "1.10.9"
-    - "1.9.10"
+    - &default_vault_version "1.13.1"
+    - "1.12.5"
+    - "1.11.9"
+    - "1.10.11"
   consul-versions: &consul_versions
     - "1.14"
     - "1.15"
