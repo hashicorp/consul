@@ -1,6 +1,7 @@
 package export
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"strings"
@@ -52,15 +53,10 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	var peerNames []string
-	if c.peerNames != "" {
-		peerNames = strings.Split(c.peerNames, ",")
-		for _, peerName := range peerNames {
-			if peerName == "" {
-				c.UI.Error(fmt.Sprintf("Invalid peer %q", peerName))
-				return 1
-			}
-		}
+	peerNames, err := c.getPeerNames()
+	if err != nil {
+		c.UI.Error(err.Error())
+		return 1
 	}
 
 	partitionNames, err := c.getPartitionNames()
@@ -75,6 +71,7 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
+	// Name matches partition, so "default" if none specified
 	cfgName := "default"
 	if c.http.Partition() != "" {
 		cfgName = c.http.Partition()
@@ -118,6 +115,44 @@ func (c *cmd) Run(args []string) int {
 	}
 
 	return 0
+}
+
+func (c *cmd) validateFlags() error {
+	if c.serviceName == "" {
+		return errors.New("Missing the required -name flag")
+	}
+
+	if c.peerNames == "" {
+		return errors.New("Missing the required -consumer-peers flag")
+	}
+
+	return nil
+}
+
+func (c *cmd) getPeerNames() ([]string, error) {
+	var peerNames []string
+	if c.peerNames != "" {
+		peerNames = strings.Split(c.peerNames, ",")
+		for _, peerName := range peerNames {
+			if peerName == "" {
+				return nil, fmt.Errorf("Invalid peer %q", peerName)
+			}
+		}
+	}
+	return peerNames, nil
+}
+
+func (c *cmd) getPartitionNames() ([]string, error) {
+	var partitionNames []string
+	if c.partitionNames != "" {
+		partitionNames = strings.Split(c.partitionNames, ",")
+		for _, partitionName := range partitionNames {
+			if partitionName == "" {
+				return nil, fmt.Errorf("Invalid partition %q", partitionName)
+			}
+		}
+	}
+	return partitionNames, nil
 }
 
 func (c *cmd) initializeConfigEntry(cfgName string, peerNames, partitionNames []string) *api.ExportedServicesConfigEntry {
@@ -206,3 +241,17 @@ func (c *cmd) Synopsis() string {
 func (c *cmd) Help() string {
 	return flags.Usage(c.help, nil)
 }
+
+const (
+	synopsis = "Export a service"
+	help     = `
+Usage: consul services export [options] -name <service name> -consumer-peers <other cluster name>
+
+  Export a service. The peers provided will be used locally by
+  this cluster to refer to the other cluster where the services will be exported. 
+
+  Example:
+
+  $ consul services export -name=web -consumer-peers=other-cluster
+`
+)
