@@ -121,6 +121,7 @@ func (c *cmd) initializeConfigEntry(peerNames, partitionNames []string) *api.Exp
 		Services: []api.ExportedService{
 			{
 				Name:      c.serviceName,
+				Namespace: c.http.Namespace(),
 				Consumers: buildConsumers(peerNames, partitionNames),
 			},
 		},
@@ -131,7 +132,7 @@ func (c *cmd) updateConfigEntry(cfg *api.ExportedServicesConfigEntry, peerNames,
 	serviceExists := false
 
 	for i, service := range cfg.Services {
-		if c.serviceMatches(service) {
+		if service.Name == c.serviceName && service.Namespace == c.http.Namespace() {
 			serviceExists = true
 
 			// Add a consumer for each peer where one doesn't already exist
@@ -168,6 +169,7 @@ func (c *cmd) updateConfigEntry(cfg *api.ExportedServicesConfigEntry, peerNames,
 	if !serviceExists {
 		cfg.Services = append(cfg.Services, api.ExportedService{
 			Name:      c.serviceName,
+			Namespace: c.http.Namespace(),
 			Consumers: buildConsumers(peerNames, partitionNames),
 		})
 	}
