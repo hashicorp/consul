@@ -162,7 +162,7 @@ func (p ratelimit) PatchFilter(_ *extensioncommon.RuntimeConfig, filter *envoy_l
 		}
 	}
 
-	ratelimitHttpFilter, err := makeEnvoyHTTPFilter(
+	ratelimitHttpFilter, err := extensioncommon.MakeEnvoyHTTPFilter(
 		"envoy.filters.http.local_ratelimit",
 		&envoy_ratelimit.LocalRateLimit{
 			TokenBucket:    &tokenBucket,
@@ -184,7 +184,7 @@ func (p ratelimit) PatchFilter(_ *extensioncommon.RuntimeConfig, filter *envoy_l
 	changedFilters = append(changedFilters, config.HttpFilters...)
 	config.HttpFilters = changedFilters
 
-	newFilter, err := makeFilter("envoy.filters.network.http_connection_manager", config)
+	newFilter, err := extensioncommon.MakeFilter("envoy.filters.network.http_connection_manager", config)
 	if err != nil {
 		return filter, false, errors.New("error making new filter")
 	}

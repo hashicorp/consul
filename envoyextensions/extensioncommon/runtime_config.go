@@ -23,10 +23,9 @@ type UpstreamData struct {
 	VIP string
 }
 
-// RuntimeConfig is the configuration for an extension attached to a service on the local proxy. Currently, it
-// is only created for the local proxy's upstream service if the upstream service has an extension configured. In the
-// future it will also include information about the service local to the local proxy as well. It should depend on the
-// API client rather than the structs package because the API client is meant to be public.
+// RuntimeConfig is the configuration for an extension attached to a service on the local proxy.
+// It should depend on the API client rather than the structs package because the API client is
+// meant to be public.
 type RuntimeConfig struct {
 	// EnvoyExtension is the extension that will patch Envoy resources.
 	EnvoyExtension api.EnvoyExtension
@@ -39,27 +38,40 @@ type RuntimeConfig struct {
 	// If there are no Upstreams, then EnvoyExtension is being applied to the local service's resources.
 	Upstreams map[api.CompoundServiceName]*UpstreamData
 
+	// LocalUpstreams will only be configured if the EnvoyExtension is being applied to the local service.
+	LocalUpstreams map[api.CompoundServiceName]*UpstreamData
+
 	// Kind is mode the local Envoy proxy is running in. For now, only connect proxy and
 	// terminating gateways are supported.
 	Kind api.ServiceKind
 }
 
+// IsLocal indicates if the extension configuration is for the proxy's local service.
+func (ec RuntimeConfig) IsLocal() bool {
+	return !ec.IsUpstream()
+}
+
+// IsUpstream indicates if the extension configuration is for an upstream service.
 func (ec RuntimeConfig) IsUpstream() bool {
 	_, ok := ec.Upstreams[ec.ServiceName]
 	return ok
 }
 
+// MatchesUpstreamServiceSNI indicates if the extension configuration is for an upstream service
+// that matches the given SNI.
 func (ec RuntimeConfig) MatchesUpstreamServiceSNI(sni string) bool {
 	u := ec.Upstreams[ec.ServiceName]
 	_, match := u.SNI[sni]
 	return match
 }
 
+// EnvoyID returns the unique Envoy identifier of the upstream service.
 func (ec RuntimeConfig) EnvoyID() string {
 	u := ec.Upstreams[ec.ServiceName]
 	return u.EnvoyID
 }
 
+// OutgoingProxyKind returns the service kind for the outgoing listener of an upstream service.
 func (ec RuntimeConfig) OutgoingProxyKind() api.ServiceKind {
 	u := ec.Upstreams[ec.ServiceName]
 	return u.OutgoingProxyKind
