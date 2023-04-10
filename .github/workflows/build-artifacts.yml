@@ -94,7 +94,6 @@ jobs:
         file: ./build-support/docker/Consul-Dev.dockerfile
         labels: COMMIT_SHA=${{ github.sha }},GITHUB_BUILD_URL=${{ env.GITHUB_BUILD_URL }}
         push: true
-        platform: linux/amd64
         # This is required or else the image is not pullable.  
         # See https://github.com/docker/build-push-action/issues/820 for further 
         # details.
