@@ -6,8 +6,9 @@ package structs
 import (
 	"testing"
 
-	"github.com/hashicorp/consul/acl"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/acl"
 )
 
 func TestTCPRoute(t *testing.T) {
@@ -59,6 +60,78 @@ func TestTCPRoute(t *testing.T) {
 				}},
 			},
 			validateErr: "unsupported parent kind",
+		},
+		"duplicate parents with no listener specified": {
+			entry: &TCPRouteConfigEntry{
+				Kind: TCPRoute,
+				Name: "route-two",
+				Parents: []ResourceReference{
+					{
+						Kind: "api-gateway",
+						Name: "gateway",
+					},
+					{
+						Kind: "api-gateway",
+						Name: "gateway",
+					},
+				},
+			},
+			validateErr: "route parents must be unique",
+		},
+		"duplicate parents with listener specified": {
+			entry: &TCPRouteConfigEntry{
+				Kind: TCPRoute,
+				Name: "route-two",
+				Parents: []ResourceReference{
+					{
+						Kind:        "api-gateway",
+						Name:        "gateway",
+						SectionName: "same",
+					},
+					{
+						Kind:        "api-gateway",
+						Name:        "gateway",
+						SectionName: "same",
+					},
+				},
+			},
+			validateErr: "route parents must be unique",
+		},
+		"almost duplicate parents with one not specifying a listener": {
+			entry: &TCPRouteConfigEntry{
+				Kind: TCPRoute,
+				Name: "route-two",
+				Parents: []ResourceReference{
+					{
+						Kind: "api-gateway",
+						Name: "gateway",
+					},
+					{
+						Kind:        "api-gateway",
+						Name:        "gateway",
+						SectionName: "same",
+					},
+				},
+			},
+			check: func(t *testing.T, entry ConfigEntry) {
+				expectedParents := []ResourceReference{
+					{
+						Kind:           APIGateway,
+						Name:           "gateway",
+						EnterpriseMeta: *acl.DefaultEnterpriseMeta(),
+					},
+					{
+						Kind:           APIGateway,
+						Name:           "gateway",
+						SectionName:    "same",
+						EnterpriseMeta: *acl.DefaultEnterpriseMeta(),
+					},
+				}
+				route := entry.(*TCPRouteConfigEntry)
+				require.Len(t, route.Parents, 2)
+				require.Equal(t, expectedParents[0], route.Parents[0])
+				require.Equal(t, expectedParents[1], route.Parents[1])
+			},
 		},
 	}
 	testConfigEntryNormalizeAndValidate(t, cases)
@@ -278,13 +351,87 @@ func TestHTTPRoute(t *testing.T) {
 						{
 							Name:   "test2",
 							Weight: -1,
-						}},
+						},
+					},
 				}},
 			},
 			check: func(t *testing.T, entry ConfigEntry) {
 				route := entry.(*HTTPRouteConfigEntry)
 				require.Equal(t, 1, route.Rules[0].Services[0].Weight)
 				require.Equal(t, 1, route.Rules[0].Services[1].Weight)
+			},
+		},
+
+		"duplicate parents with no listener specified": {
+			entry: &HTTPRouteConfigEntry{
+				Kind: HTTPRoute,
+				Name: "route-two",
+				Parents: []ResourceReference{
+					{
+						Kind: "api-gateway",
+						Name: "gateway",
+					},
+					{
+						Kind: "api-gateway",
+						Name: "gateway",
+					},
+				},
+			},
+			validateErr: "route parents must be unique",
+		},
+		"duplicate parents with listener specified": {
+			entry: &HTTPRouteConfigEntry{
+				Kind: HTTPRoute,
+				Name: "route-two",
+				Parents: []ResourceReference{
+					{
+						Kind:        "api-gateway",
+						Name:        "gateway",
+						SectionName: "same",
+					},
+					{
+						Kind:        "api-gateway",
+						Name:        "gateway",
+						SectionName: "same",
+					},
+				},
+			},
+			validateErr: "route parents must be unique",
+		},
+		"almost duplicate parents with one not specifying a listener": {
+			entry: &HTTPRouteConfigEntry{
+				Kind: HTTPRoute,
+				Name: "route-two",
+				Parents: []ResourceReference{
+					{
+						Kind: "api-gateway",
+						Name: "gateway",
+					},
+					{
+						Kind:        "api-gateway",
+						Name:        "gateway",
+						SectionName: "same",
+					},
+				},
+			},
+			check: func(t *testing.T, entry ConfigEntry) {
+				expectedParents := []ResourceReference{
+					{
+						Kind:           APIGateway,
+						Name:           "gateway",
+						EnterpriseMeta: *acl.DefaultEnterpriseMeta(),
+					},
+					{
+						Kind:           APIGateway,
+						Name:           "gateway",
+						SectionName:    "same",
+						EnterpriseMeta: *acl.DefaultEnterpriseMeta(),
+					},
+				}
+				route := entry.(*HTTPRouteConfigEntry)
+				require.Len(t, route.Parents, 2)
+				require.Equal(t, expectedParents[0], route.Parents[0])
+				require.Equal(t, expectedParents[1], route.Parents[1])
 			},
 		},
 	}
