@@ -127,7 +127,7 @@ jobs:
       - dev-build
     strategy:
       matrix:
-        vault-version: ["1.12.2", "1.11.6", "1.10.9", "1.9.10"]
+        vault-version: ["1.13.1", "1.12.5", "1.11.9", "1.10.11"]
     env:
       VAULT_BINARY_VERSION: ${{ matrix.vault-version }}
     steps:
