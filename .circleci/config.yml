@@ -1,3 +1,6 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
 ---
 version: 2.1
 
@@ -8,16 +11,6 @@ parameters:
     description: "Commit to run load tests against"
 
 references:
-  paths:
-    test-results: &TEST_RESULTS_DIR /tmp/test-results
-  environment: &ENVIRONMENT
-    TEST_RESULTS_DIR: *TEST_RESULTS_DIR
-    EMAIL: noreply@hashicorp.com
-    GIT_AUTHOR_NAME: circleci-consul
-    GIT_COMMITTER_NAME: circleci-consul
-    S3_ARTIFACT_BUCKET: consul-dev-artifacts-v2
-    BASH_ENV: .circleci/bash_env.sh
-    GO_VERSION: 1.20.1
   envoy-versions: &supported_envoy_versions
     - &default_envoy_version "1.22.7"
     - "1.23.4"
@@ -32,14 +25,36 @@ references:
     - "1.11.6"
     - "1.10.9"
     - "1.9.10"
+  consul-versions: &consul_versions
+    - "1.15"
+    - "1.14"
   images:
     # When updating the Go version, remember to also update the versions in the
     # workflows section for go-test-lib jobs.
     go: &GOLANG_IMAGE docker.mirror.hashicorp.services/cimg/go:1.20.1
-    ember: &EMBER_IMAGE docker.mirror.hashicorp.services/circleci/node:14-browsers
+    ember: &EMBER_IMAGE docker.mirror.hashicorp.services/circleci/node:16-browsers
     ubuntu: &UBUNTU_CI_IMAGE ubuntu-2004:202201-02
+
+  paths:
+    test-results: &TEST_RESULTS_DIR /tmp/test-results
+
   cache:
     yarn: &YARN_CACHE_KEY consul-ui-v9-{{ checksum "ui/yarn.lock" }}
+
+  consul_exec_contexts: &consul_exec_contexts
+    - team-consul
+    - consul-enterprise-licensing
+
+  environment: &ENVIRONMENT
+    TEST_RESULTS_DIR: *TEST_RESULTS_DIR
+    EMAIL: noreply@hashicorp.com
+    GIT_AUTHOR_NAME: circleci-consul
+    GIT_COMMITTER_NAME: circleci-consul
+    S3_ARTIFACT_BUCKET: consul-dev-artifacts-v2
+    S3_ARTIFACT_BUCKET_CLOUD: consul-enterprise-dev-artifacts-v2
+    BASH_ENV: .circleci/bash_env.sh
+    GOPRIVATE: github.com/hashicorp
+    GO_VERSION: 1.20.1
 
 steps:
   install-gotestsum: &install-gotestsum
@@ -203,58 +218,6 @@ jobs:
             done
 
       # save dev build to CircleCI
-      - store_artifacts:
-          path: ./pkg/bin
-      - run: *notify-slack-failure
-
-  # build all 386 architecture supported OS binaries
-  build-386:
-    <<: *build-distros
-    environment:
-      <<: *build-env
-      XC_OS: "freebsd linux windows"
-      GOARCH: "386"
-
-  # build all amd64 architecture supported OS binaries
-  build-amd64:
-    <<: *build-distros
-    environment:
-      <<: *build-env
-      XC_OS: "darwin freebsd linux solaris windows"
-      GOARCH: "amd64"
-
-  # build all arm/arm64 architecture supported OS binaries
-  build-arm:
-    docker:
-      - image: *GOLANG_IMAGE
-    resource_class: large
-    environment:
-      <<: *ENVIRONMENT
-      CGO_ENABLED: 1
-      GOOS: linux
-    steps:
-      - checkout
-      - run:
-          command: |
-            sudo rm -fv /etc/apt/sources.list.d/github_git-lfs.list # workaround for https://github.com/actions/runner-images/issues/1983
-            sudo apt-get update --allow-releaseinfo-change-suite --allow-releaseinfo-change-version && sudo apt-get install -y gcc-arm-linux-gnueabi gcc-arm-linux-gnueabihf gcc-aarch64-linux-gnu
-      - run:
-          environment:
-            GOARM: 5
-            CC: arm-linux-gnueabi-gcc
-            GOARCH: arm
-          command: go build -o ./pkg/bin/linux_armel/consul  -ldflags="-linkmode=external ${GOLDFLAGS}"
-      - run:
-          environment:
-            GOARM: 6
-            CC: arm-linux-gnueabihf-gcc
-            GOARCH: arm
-          command: go build -o ./pkg/bin/linux_armhf/consul  -ldflags="-linkmode=external ${GOLDFLAGS}"
-      - run:
-          environment:
-            CC: aarch64-linux-gnu-gcc
-            GOARCH: arm64
-          command: go build -o ./pkg/bin/linux_aarch64/consul  -ldflags="-linkmode=external ${GOLDFLAGS}"
       - store_artifacts:
           path: ./pkg/bin
       - run: *notify-slack-failure
@@ -423,64 +386,6 @@ jobs:
       JOBS: 2 # limit parallelism for broccoli-babel-transpiler
       CONSUL_NSPACES_ENABLED: 1
 
-  # rebuild UI for packaging
-  ember-build-prod:
-    docker:
-      - image: *EMBER_IMAGE
-    environment:
-      JOBS: 2 # limit parallelism for broccoli-babel-transpiler
-    steps:
-      - checkout
-      - restore_cache:
-          key: *YARN_CACHE_KEY
-      - run: cd ui && make
-
-      # saves the build to a workspace to be passed to a downstream job
-      - persist_to_workspace:
-          root: ui
-          paths:
-            - packages/consul-ui/dist
-      - run: *notify-slack-failure
-
-  # commits static assets to git
-  publish-static-assets:
-    docker:
-      - image: *GOLANG_IMAGE
-    steps:
-      - checkout
-      - add_ssh_keys: # needs a key to push updated static asset commit back to github
-          fingerprints:
-            - "94:03:9e:8b:24:7f:36:60:00:30:b8:32:ed:e7:59:10"
-      - attach_workspace:
-          at: .
-      - run:
-          name: move compiled ui files to agent/uiserver
-          command: |
-            rm -rf agent/uiserver/dist
-            mv packages/consul-ui/dist agent/uiserver
-      - run:
-          name: commit agent/uiserver/dist/ if there are UI changes
-          command: |
-            # check if there are any changes in ui/
-            # if there are, we commit the ui static asset file
-            # HEAD^! is shorthand for HEAD^..HEAD (parent of HEAD and HEAD)
-            if ! git diff --quiet --exit-code HEAD^! ui/; then
-              git config --local user.email "github-team-consul-core@hashicorp.com"
-              git config --local user.name "hc-github-team-consul-core"
-
-              # -B resets the CI branch to main which may diverge history
-              # but we will force push anyways.
-              git checkout -B ci/main-assetfs-build main
-
-              short_sha=$(git rev-parse --short HEAD)
-              git add agent/uiserver/dist/
-              git commit -m "auto-updated agent/uiserver/dist/ from commit ${short_sha}"
-              git push --force origin ci/main-assetfs-build
-            else
-              echo "no UI changes so no static assets to publish"
-            fi
-      - run: *notify-slack-failure
-
   # run node tests
   node-tests:
     docker:
@@ -625,6 +530,70 @@ jobs:
           path: *TEST_RESULTS_DIR
       - run: *notify-slack-failure
 
+  upgrade-integration-test:
+      machine:
+        image: *UBUNTU_CI_IMAGE
+        docker_layer_caching: true
+      parallelism: 3
+      resource_class: large
+      parameters:
+        consul-version:
+          type: enum
+          enum: *consul_versions
+      environment:
+        CONSUL_VERSION: << parameters.consul-version >>
+      steps:
+        - checkout
+        # Get go binary from workspace
+        - attach_workspace:
+            at: .
+        # Build the consul:local image from the already built binary
+        - run:
+            command: |
+              sudo rm -rf /usr/local/go
+              wget https://dl.google.com/go/go${GO_VERSION}.linux-amd64.tar.gz
+              sudo tar -C /usr/local -xzvf go${GO_VERSION}.linux-amd64.tar.gz
+            environment:
+              <<: *ENVIRONMENT
+        - run: *install-gotestsum
+        - run: docker build -t consul:local -f ./build-support/docker/Consul-Dev.dockerfile .
+        - run:
+            name: Upgrade Integration Tests
+            command: |
+              mkdir -p /tmp/test-results/
+              cd ./test/integration/consul-container
+              docker run --rm consul:local consul version
+              gotestsum \
+                --raw-command \
+                --format=short-verbose \
+                --debug \
+                --rerun-fails=3 \
+                --packages="./..." \
+                -- \
+                go test \
+                -p=4 \
+                -tags "${GOTAGS}" \
+                -timeout=30m \
+                -json \
+                ./.../upgrade/ \
+                --target-image consul \
+                --target-version local \
+                --latest-image consul \
+                --latest-version $CONSUL_VERSION
+              ls -lrt
+            environment:
+              # this is needed because of incompatibility between RYUK container and circleci
+              GOTESTSUM_JUNITFILE: /tmp/test-results/results.xml
+              GOTESTSUM_FORMAT: standard-verbose
+              COMPOSE_INTERACTIVE_NO_CLI: 1
+              # tput complains if this isn't set to something.
+              TERM: ansi
+        - store_test_results:
+            path: *TEST_RESULTS_DIR
+        - store_artifacts:
+            path: *TEST_RESULTS_DIR
+        - run: *notify-slack-failure
+
   envoy-integration-test: &ENVOY_TESTS
     machine:
       image: *UBUNTU_CI_IMAGE
@@ -720,9 +689,9 @@ jobs:
       - run: "echo ok"
 
 workflows:
-  build-distros:
+  test-integrations:
     jobs:
-      - check-go-mod: &filter-ignore-non-go-branches
+      - dev-build: &filter-ignore-non-go-branches
           filters:
             branches:
               ignore:
@@ -733,37 +702,6 @@ workflows:
                 - /^backport\/docs\/.*/
                 - /^backport\/ui\/.*/
                 - /^backport\/mktg-.*/
-      - build-386: &require-check-go-mod
-          requires:
-            - check-go-mod
-      - build-amd64: *require-check-go-mod
-      - build-arm: *require-check-go-mod
-      # every commit on main will have a rebuilt UI
-      - frontend-cache:
-          filters:
-            branches:
-              only:
-                - main
-      - ember-build-prod:
-          requires:
-            - frontend-cache
-      - publish-static-assets:
-          requires:
-            - ember-build-prod
-      - dev-build:
-          requires:
-            - ember-build-prod
-      - dev-upload-s3:
-          requires:
-            - dev-build
-      - dev-upload-docker:
-          requires:
-            - dev-build
-          context: consul-ci
-      - noop
-  test-integrations:
-    jobs:
-      - dev-build: *filter-ignore-non-go-branches
       - dev-upload-s3: &dev-upload
           requires:
             - dev-build
