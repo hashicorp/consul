@@ -19,6 +19,8 @@ env:
   TEST_RESULTS_ARTIFACT_NAME: test-results
   CONSUL_LICENSE: ${{ secrets.CONSUL_LICENSE }}
   GOTAGS: ${{ endsWith(github.repository, '-enterprise') && 'consulent' || '' }}
+  GOTESTSUM_VERSION: "1.9.0"
+  CONSUL_BINARY_UPLOAD_NAME: gotestsum_version: consul-bin
 
 jobs:
   setup:
@@ -35,41 +37,13 @@ jobs:
       - id: runners
         run: .github/scripts/get_runner_classes.sh
 
-  generate-envoy-job-matrices:
-    needs: [setup]
-    runs-on: ${{ fromJSON(needs.setup.outputs.compute-small) }}
-    name: Generate Envoy Job Matrices
-    outputs:
-      envoy-matrix: ${{ steps.set-matrix.outputs.envoy-matrix }}
-    steps:
-      - uses: actions/checkout@24cb9080177205b6e8c946b17badbe402adc938f # v3.4.0
-      - name: Generate Envoy Job Matrix
-        id: set-matrix
-        env:
-          # this is further going to multiplied in envoy-integration tests by the 
-          # other dimensions in the matrix.  Currently TOTAL_RUNNERS would be
-          # multiplied by 8 based on these values:
-          # envoy-version: ["1.22.7", "1.23.4", "1.24.2", "1.25.1"]
-          # xds-target: ["server", "client"]
-          TOTAL_RUNNERS: 3 
-          JQ_SLICER: '[ inputs ] | [_nwise(length / $runnercount | floor)]'
-        run: |
-          {
-            echo -n "envoy-matrix="
-            find ./test/integration/connect/envoy -maxdepth 1 -type d -print0 \
-              | xargs -0 -n 1 basename \
-              | jq --raw-input --argjson runnercount "$TOTAL_RUNNERS" "$JQ_SLICER" \
-              | jq --compact-output 'map(join("|"))'
-          } >> "$GITHUB_OUTPUT"
-          cat "$GITHUB_OUTPUT"
-
   dev-build:
     needs: [setup]
     uses: ./.github/workflows/reusable-dev-build.yml
     with:
       runs-on: ${{ needs.setup.outputs.compute-xl }}
       repository-name: ${{ github.repository }}
-      uploaded-binary-name: 'consul-bin'
+      uploaded-binary-name: 'gotestsum_version: ${{ env.CONSUL_BINARY_UPLOAD_NAME }}'
     secrets:
       elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
 
@@ -85,7 +59,7 @@ jobs:
       - name: Setup gotestsum
         uses: autero1/action-gotestsum@2e48af62f5248bd3b014f598cd1aa69a01dd36e3 # v1.0.0
         with:
-          gotestsum_version: 1.9.0
+          gotestsum_version: ${{ env.GOTESTSUM_VERSION }}
       - name: Checkout Nomad
         uses: actions/checkout@24cb9080177205b6e8c946b17badbe402adc938f # v3.4.0
         with:
@@ -100,7 +74,7 @@ jobs:
       - name: Fetch Consul binary
         uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
         with:
-          name: 'consul-bin'
+          name: 'gotestsum_version: ${{ env.CONSUL_BINARY_UPLOAD_NAME }}'
           path: ./bin
       - name: Restore Consul permissions
         run: |
@@ -144,7 +118,7 @@ jobs:
 
       - uses: autero1/action-gotestsum@2e48af62f5248bd3b014f598cd1aa69a01dd36e3 # v1.0.0
         with:
-          gotestsum_version: 1.9.0
+          gotestsum_version: ${{ env.GOTESTSUM_VERSION }}
 
       - name: Install Vault
         run: |
@@ -157,6 +131,34 @@ jobs:
           mkdir -p "${{ env.TEST_RESULTS_DIR }}"
           make test-connect-ca-providers
 
+  generate-envoy-job-matrices:
+    needs: [setup]
+    runs-on: ${{ fromJSON(needs.setup.outputs.compute-small) }}
+    name: Generate Envoy Job Matrices
+    outputs:
+      envoy-matrix: ${{ steps.set-matrix.outputs.envoy-matrix }}
+    steps:
+      - uses: actions/checkout@24cb9080177205b6e8c946b17badbe402adc938f # v3.4.0
+      - name: Generate Envoy Job Matrix
+        id: set-matrix
+        env:
+          # this is further going to multiplied in envoy-integration tests by the 
+          # other dimensions in the matrix.  Currently TOTAL_RUNNERS would be
+          # multiplied by 8 based on these values:
+          # envoy-version: ["1.22.7", "1.23.4", "1.24.2", "1.25.1"]
+          # xds-target: ["server", "client"]
+          TOTAL_RUNNERS: 3 
+          JQ_SLICER: '[ inputs ] | [_nwise(length / $runnercount | floor)]'
+        run: |
+          {
+            echo -n "envoy-matrix="
+            find ./test/integration/connect/envoy -maxdepth 1 -type d -print0 \
+              | xargs -0 -n 1 basename \
+              | jq --raw-input --argjson runnercount "$TOTAL_RUNNERS" "$JQ_SLICER" \
+              | jq --compact-output 'map(join("|"))'
+          } >> "$GITHUB_OUTPUT"
+          cat "$GITHUB_OUTPUT"
+  
   envoy-integration-test:
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-xl) }}
     permissions:
@@ -202,12 +204,12 @@ jobs:
       - name: Setup gotestsum
         uses: autero1/action-gotestsum@2e48af62f5248bd3b014f598cd1aa69a01dd36e3 # v1.0.0
         with:
-          gotestsum_version: 1.9.0
+          gotestsum_version: ${{ env.GOTESTSUM_VERSION }}
 
       - name: fetch binary
         uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
         with:
-          name: 'consul-bin'
+          name: 'gotestsum_version: ${{ env.CONSUL_BINARY_UPLOAD_NAME }}'
           path: ./bin
       - name: restore mode+x
         run: chmod +x ./bin/consul
@@ -262,13 +264,13 @@ jobs:
       - name: Setup gotestsum
         uses: autero1/action-gotestsum@2e48af62f5248bd3b014f598cd1aa69a01dd36e3 # v1.0.0
         with:
-          gotestsum_version: 1.9.0
+          gotestsum_version: ${{ env.GOTESTSUM_VERSION }}
 
       # Build the consul:local image from the already built binary
       - name: fetch binary
         uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
         with:
-          name: 'consul-bin'
+          name: 'gotestsum_version: ${{ env.CONSUL_BINARY_UPLOAD_NAME }}'
           path: .
       - name: restore mode+x
         run: chmod +x consul
@@ -330,13 +332,13 @@ jobs:
       - name: Setup gotestsum
         uses: autero1/action-gotestsum@2e48af62f5248bd3b014f598cd1aa69a01dd36e3 # v1.0.0
         with:
-          gotestsum_version: 1.9.0
+          gotestsum_version: ${{ env.GOTESTSUM_VERSION }}
 
       # Get go binary from workspace
       - name: fetch binary
         uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
         with:
-          name: 'consul-bin'
+          name: 'gotestsum_version: ${{ env.CONSUL_BINARY_UPLOAD_NAME }}'
           path: .
       - name: restore mode+x
         run: chmod +x consul
