@@ -18,11 +18,9 @@ upgrade flow.
 
 #### Remove deprecated service-defaults peer upstream override behavior
 
-In Consul 1.16.x, `service-defaults` upstream [`overrides`](/consul/docs/connect/config-entries/service-defaults#overrides)
-will not apply to peer upstreams, unless the [`peer`](/consul/docs/connect/config-entries/service-defaults#peer) field is explicitly provided.
-
-Consul 1.15.x introduced a backward-compatibility behavior to allow for a smoother transition during the upgrade. This behavior will be removed in Consul 1.16.x.
-Visit the [upgrade instructions for 1.15.x](#service-defaults-overrides-for-upstream-peered-services) for more info.
+When configuring a service defaults configuration entry, the [`UpstreamConfig.Overrides` configuration](/consul/docs/connect/config-entries/service-defaults#upstreamconfig-overrides) 
+does not apply to peer upstreams unless the [`Peer`](/consul/docs/connect/config-entries/service-defaults#upstreamconfig-overrides-peer) field is explicitly provided.
+This change removes the backward-compatibility behavior introduced in Consul 1.15.x. Refer to the [upgrade instructions for 1.15.x](#service-defaults-overrides-for-upstream-peered-services) for more information.
 
 ## Consul 1.15.x
 
