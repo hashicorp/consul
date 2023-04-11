@@ -19,8 +19,8 @@ func TestLeadershipMetrics(t *testing.T) {
 	t.Parallel()
 
 	opts := libcluster.BuildOptions{
-		InjectAutoEncryption:   true,
-		InjectGossipEncryption: true,
+		InjectAutoEncryption:   false,
+		InjectGossipEncryption: false,
 	}
 	ctx := libcluster.NewBuildContext(t, opts)
 
