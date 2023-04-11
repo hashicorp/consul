@@ -20,7 +20,7 @@ env:
   CONSUL_LICENSE: ${{ secrets.CONSUL_LICENSE }}
   GOTAGS: ${{ endsWith(github.repository, '-enterprise') && 'consulent' || '' }}
   GOTESTSUM_VERSION: "1.9.0"
-  CONSUL_BINARY_UPLOAD_NAME: gotestsum_version: consul-bin
+  CONSUL_BINARY_UPLOAD_NAME: consul-bin
 
 jobs:
   setup:
