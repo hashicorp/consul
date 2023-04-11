@@ -38,7 +38,7 @@ func (s *Server) Write(ctx context.Context, req *pbresource.WriteRequest) (*pbre
 	}
 
 	if err = reg.Validate(req.Resource); err != nil {
-		return nil, status.Errorf(codes.InvalidArgument, "failed validation: %v", err)
+		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
 
 	// At the storage backend layer, all writes are CAS operations.
