@@ -14,6 +14,16 @@ provided for their upgrades as a result of new features or changed behavior.
 This page is used to document those details separately from the standard
 upgrade flow.
 
+## Consul 1.16.x
+
+#### Remove deprecated service-defaults peer upstream override behavior
+
+In Consul 1.16.x, `service-defaults` upstream [`overrides`](/consul/docs/connect/config-entries/service-defaults#overrides)
+will not apply to peer upstreams, unless the [`peer`](/consul/docs/connect/config-entries/service-defaults#peer) field is explicitly provided.
+
+Consul 1.15.x introduced a backward-compatibility behavior to allow for a smoother transition during the upgrade. This behavior will be removed in Consul 1.16.x.
+Visit the [upgrade instructions for 1.15.x](#service-defaults-overrides-for-upstream-peered-services) for more info.
+
 ## Consul 1.15.x
 
 #### Service mesh known issue
