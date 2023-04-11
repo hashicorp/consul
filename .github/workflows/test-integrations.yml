@@ -43,7 +43,7 @@ jobs:
     with:
       runs-on: ${{ needs.setup.outputs.compute-xl }}
       repository-name: ${{ github.repository }}
-      uploaded-binary-name: 'gotestsum_version: ${{ env.CONSUL_BINARY_UPLOAD_NAME }}'
+      uploaded-binary-name: '${{ env.CONSUL_BINARY_UPLOAD_NAME }}'
     secrets:
       elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
 
@@ -74,7 +74,7 @@ jobs:
       - name: Fetch Consul binary
         uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
         with:
-          name: 'gotestsum_version: ${{ env.CONSUL_BINARY_UPLOAD_NAME }}'
+          name: '${{ env.CONSUL_BINARY_UPLOAD_NAME }}'
           path: ./bin
       - name: Restore Consul permissions
         run: |
@@ -209,7 +209,7 @@ jobs:
       - name: fetch binary
         uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
         with:
-          name: 'gotestsum_version: ${{ env.CONSUL_BINARY_UPLOAD_NAME }}'
+          name: '${{ env.CONSUL_BINARY_UPLOAD_NAME }}'
           path: ./bin
       - name: restore mode+x
         run: chmod +x ./bin/consul
@@ -270,7 +270,7 @@ jobs:
       - name: fetch binary
         uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
         with:
-          name: 'gotestsum_version: ${{ env.CONSUL_BINARY_UPLOAD_NAME }}'
+          name: '${{ env.CONSUL_BINARY_UPLOAD_NAME }}'
           path: .
       - name: restore mode+x
         run: chmod +x consul
@@ -337,7 +337,7 @@ jobs:
       - name: fetch binary
         uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
         with:
-          name: 'gotestsum_version: ${{ env.CONSUL_BINARY_UPLOAD_NAME }}'
+          name: '${{ env.CONSUL_BINARY_UPLOAD_NAME }}'
           path: .
       - name: restore mode+x
         run: chmod +x consul
