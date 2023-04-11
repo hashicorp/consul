@@ -4,7 +4,6 @@
 name: frontend
 
 on:
-  pull_request:
   push:
     branches:
       - main
