@@ -286,7 +286,6 @@ jobs:
           go test \
            -p=4 \
            -timeout=30m \
-           -json \
            `go list ./... | grep -v upgrade` \
            --target-image consul \
            --target-version local \
@@ -347,7 +346,6 @@ jobs:
             -p=4 \
             -tags "${{ env.GOTAGS }}" \
             -timeout=30m \
-            -json \
             ./... \
             --target-image consul \
             --target-version local \
