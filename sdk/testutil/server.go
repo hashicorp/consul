@@ -357,7 +357,13 @@ func NewTestServerConfigT(t TestingTB, cb ServerConfigCallback) (*TestServer, er
 // Stop stops the test Consul server, and removes the Consul data
 // directory once we are done.
 func (s *TestServer) Stop() error {
-	defer os.RemoveAll(s.tmpdir)
+	defer func() {
+		if noCleanup {
+			fmt.Println("skipping cleanup because TEST_NOCLEANUP was enabled")
+		} else {
+			os.RemoveAll(s.tmpdir)
+		}
+	}()
 
 	// There was no process
 	if s.cmd == nil {

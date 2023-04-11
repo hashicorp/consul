@@ -120,14 +120,14 @@ func (s *Store) WriteCAS(res *pbresource.Resource, vsn string) error {
 	if existing != nil {
 		existingRes := existing.(*pbresource.Resource)
 
-		// Ensure CAS semantics.
-		if existingRes.Version != vsn {
-			return storage.ErrCASFailure
-		}
-
 		// Uid is immutable.
 		if existingRes.Id.Uid != res.Id.Uid {
 			return storage.ErrWrongUid
+		}
+
+		// Ensure CAS semantics.
+		if existingRes.Version != vsn {
+			return storage.ErrCASFailure
 		}
 	}
 
