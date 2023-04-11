@@ -18,10 +18,10 @@ const (
 
 type JWTProviderConfigEntry struct {
 	// Kind is the kind of configuration entry and must be "jwt-provider".
-	Kind string
+	Kind string `json:",omitempty"`
 
 	// Name is the name of the provider being configured.
-	Name string
+	Name string `json:",omitempty"`
 
 	// JSONWebKeySet defines a JSON Web Key Set, its location on disk, or the
 	// means with which to fetch a key set from a remote server.
@@ -29,7 +29,7 @@ type JWTProviderConfigEntry struct {
 
 	// Issuer is the entity that must have issued the JWT.
 	// This value must match the "iss" claim of the token.
-	Issuer string
+	Issuer string `json:",omitempty"`
 
 	// Audiences is the set of audiences the JWT is allowed to access.
 	// If specified, all JWTs verified with this provider must address
@@ -52,7 +52,7 @@ type JWTProviderConfigEntry struct {
 	// (Not Before) claims.
 	//
 	// Default value is 30 seconds.
-	ClockSkewSeconds int `alias:"clock_skew_seconds"`
+	ClockSkewSeconds int `json:",omitempty" alias:"clock_skew_seconds"`
 
 	// CacheConfig defines configuration for caching the validation
 	// result for previously seen JWTs. Caching results can speed up
@@ -70,14 +70,14 @@ type JWTProviderConfigEntry struct {
 // Only one of Header, QueryParam, or Cookie can be specified.
 type JWTLocation struct {
 	// Header defines how to extract a JWT from an HTTP request header.
-	Header *JWTLocationHeader
+	Header *JWTLocationHeader `json:",omitempty"`
 
 	// QueryParam defines how to extract a JWT from an HTTP request
 	// query parameter.
 	QueryParam *JWTLocationQueryParam `json:",omitempty" alias:"query_param"`
 
 	// Cookie defines how to extract a JWT from an HTTP request cookie.
-	Cookie *JWTLocationCookie
+	Cookie *JWTLocationCookie `json:",omitempty"`
 }
 
 func countTrue(vals ...bool) int {
@@ -114,27 +114,27 @@ func (location *JWTLocation) Validate() error {
 // request header.
 type JWTLocationHeader struct {
 	// Name is the name of the header containing the token.
-	Name string
+	Name string `json:",omitempty"`
 
 	// ValuePrefix is an optional prefix that precedes the token in the
 	// header value.
 	// For example, "Bearer " is a standard value prefix for a header named
 	// "Authorization", but the prefix is not part of the token itself:
 	// "Authorization: Bearer <token>"
-	ValuePrefix string `alias:"value_prefix"`
+	ValuePrefix string `json:",omitempty" alias:"value_prefix"`
 
 	// Forward defines whether the header with the JWT should be
 	// forwarded after the token has been verified. If false, the
 	// header will not be forwarded to the backend.
 	//
 	// Default value is false.
-	Forward bool
+	Forward bool `json:",omitempty"`
 }
 
 // JWTLocationQueryParam defines how to extract a JWT from an HTTP request query parameter.
 type JWTLocationQueryParam struct {
 	// Name is the name of the query param containing the token.
-	Name string
+	Name string `json:",omitempty"`
 }
 
 func (qp *JWTLocationQueryParam) Validate() error {
@@ -147,7 +147,7 @@ func (qp *JWTLocationQueryParam) Validate() error {
 // JWTLocationCookie defines how to extract a JWT from an HTTP request cookie.
 type JWTLocationCookie struct {
 	// Name is the name of the cookie containing the token.
-	Name string
+	Name string `json:",omitempty"`
 }
 
 type JWTForwardingConfig struct {
@@ -157,7 +157,7 @@ type JWTForwardingConfig struct {
 	//
 	// The header value will be base64-URL-encoded, and will not be
 	// padded unless PadForwardPayloadHeader is true.
-	HeaderName string `alias:"header_name"`
+	HeaderName string `json:",omitempty" alias:"header_name"`
 
 	// PadForwardPayloadHeader determines whether padding should be added
 	// to the base64 encoded token forwarded with ForwardPayloadHeader.
@@ -191,12 +191,12 @@ type JSONWebKeySet struct {
 // Only one of String and Filename can be specified.
 type LocalJWKS struct {
 	// JWKS contains a base64 encoded JWKS.
-	JWKS string
+	JWKS string `json:",omitempty"`
 
 	// Filename configures a location on disk where the JWKS can be
 	// found. If specified, the file must be present on the disk of ALL
 	// proxies with intentions referencing this provider.
-	Filename string
+	Filename string `json:",omitempty"`
 }
 
 func (ks *LocalJWKS) Validate() error {
@@ -219,17 +219,17 @@ func (ks *LocalJWKS) Validate() error {
 // RemoteJWKS specifies how to fetch a JWKS from a remote server.
 type RemoteJWKS struct {
 	// URI is the URI of the server to query for the JWKS.
-	URI string
+	URI string `json:",omitempty"`
 
 	// RequestTimeoutMs is the number of milliseconds to
 	// time out when making a request for the JWKS.
-	RequestTimeoutMs int `alias:"request_timeout_ms"`
+	RequestTimeoutMs int `json:",omitempty" alias:"request_timeout_ms"`
 
 	// CacheDuration is the duration after which cached keys
 	// should be expired.
 	//
 	// Default value from envoy is 10 minutes.
-	CacheDuration time.Duration `alias:"cache_duration"`
+	CacheDuration time.Duration `json:",omitempty" alias:"cache_duration"`
 
 	// FetchAsynchronously indicates that the JWKS should be fetched
 	// when a client request arrives. Client requests will be paused
@@ -238,7 +238,7 @@ type RemoteJWKS struct {
 	// fetched before being activated.
 	//
 	// Default value is false.
-	FetchAsynchronously bool `alias:"fetch_asynchronously"`
+	FetchAsynchronously bool `json:",omitempty" alias:"fetch_asynchronously"`
 
 	// RetryPolicy defines a retry policy for fetching JWKS.
 	//
@@ -268,7 +268,7 @@ type JWKSRetryPolicy struct {
 	// a base interval of 1s and max of 10s.
 	//
 	// Default value is 0.
-	NumRetries int `alias:"num_retries"`
+	NumRetries int `json:",omitempty" alias:"num_retries"`
 
 	// Backoff policy
 	//
@@ -303,7 +303,7 @@ type JWTCacheConfig struct {
 	// results to cache.
 	//
 	// Defaults to 0, meaning that JWT caching is disabled.
-	Size int
+	Size int `json:",omitempty"`
 }
 
 func (e *JWTProviderConfigEntry) GetKind() string                        { return JWTProvider }
