@@ -27,6 +27,7 @@ The following outline shows how to format the service splitter configuration ent
   - [`Overrides`](#upstreamconfig-overrides): map | no default
     - [`Name`](#upstreamconfig-overrides-name): string | no default
     - [`Namespace`](#upstreamconfig-overrides-namespace): string | no default
+    - [`Peer`](#upstreamconfig-overrides-peer): string | no default
     - [`Protocol`](#upstreamconfig-overrides-protocol): string | no default
     - [`ConnectTimeoutMs`](#upstreamconfig-overrides-connecttimeoutms): int | default: `5000`
     - [`MeshGateway`](#upstreamconfig-overrides-meshgateway): map | no default
@@ -526,6 +527,15 @@ Specifies the name of the upstream service that the configuration applies to. We
 ### `UpstreamConfig.Overrides[].Namespace` <Enterprise/>
 
 Specifies the namespace containing the upstream service that the configuration applies to. Do not use the `*` wildcard to prevent the configuration from appling to unintended upstreams.
+
+#### Values
+
+- Default: none
+- Data type: string
+
+### `UpstreamConfig.Overrides[].Peer`
+
+Specifies the peer name of the upstream service that the configuration applies to. The `*` wildcard is not supported.
 
 #### Values
 
