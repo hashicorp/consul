@@ -9,6 +9,7 @@ import (
 
 	"google.golang.org/protobuf/proto"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
@@ -27,12 +28,30 @@ type Registration struct {
 	// Proto is the resource's protobuf message type.
 	Proto proto.Message
 
+	// ACLs are hooks called to perform authorization on RPCs.
+	ACLs *ACLHooks
+
 	// In the future, we'll add hooks, the controller etc. here.
 	// TODO: https://github.com/hashicorp/consul/pull/16622#discussion_r1134515909
 }
 
-// Hashable key for a resource type
-type TypeKey string
+type ACLHooks struct {
+	// Read is used to authorize Read RPCs and to filter results in List
+	// RPCs.
+	//
+	// If it is omitted, `operator:read` permission is assumed.
+	Read func(acl.Authorizer, *pbresource.ID) error
+
+	// Write is used to authorize Write and Delete RPCs.
+	//
+	// If it is omitted, `operator:write` permission is assumed.
+	Write func(acl.Authorizer, *pbresource.Resource) error
+
+	// List is used to authorize List RPCs.
+	//
+	// If it is omitted, we only filter the results using Read.
+	List func(acl.Authorizer, *pbresource.Tenancy) error
+}
 
 // Resource type registry
 type TypeRegistry struct {
@@ -61,6 +80,25 @@ func (r *TypeRegistry) Register(registration Registration) {
 		panic(fmt.Sprintf("resource type %s already registered", key))
 	}
 
+	// set default acl hooks for those not provided
+	if registration.ACLs == nil {
+		registration.ACLs = &ACLHooks{}
+	}
+	if registration.ACLs.Read == nil {
+		registration.ACLs.Read = func(authz acl.Authorizer, id *pbresource.ID) error {
+			return authz.ToAllowAuthorizer().OperatorReadAllowed(&acl.AuthorizerContext{})
+		}
+	}
+	if registration.ACLs.Write == nil {
+		registration.ACLs.Write = func(authz acl.Authorizer, resource *pbresource.Resource) error {
+			return authz.ToAllowAuthorizer().OperatorWriteAllowed(&acl.AuthorizerContext{})
+		}
+	}
+	if registration.ACLs.List == nil {
+		registration.ACLs.List = func(authz acl.Authorizer, tenancy *pbresource.Tenancy) error {
+			return authz.ToAllowAuthorizer().OperatorReadAllowed(&acl.AuthorizerContext{})
+		}
+	}
 	r.registrations[key] = registration
 }
 
@@ -75,5 +113,5 @@ func (r *TypeRegistry) Resolve(typ *pbresource.Type) (reg Registration, ok bool)
 }
 
 func ToGVK(resourceType *pbresource.Type) string {
-	return fmt.Sprintf("%s/%s/%s", resourceType.Group, resourceType.GroupVersion, resourceType.Kind)
+	return fmt.Sprintf("%s.%s.%s", resourceType.Group, resourceType.GroupVersion, resourceType.Kind)
 }

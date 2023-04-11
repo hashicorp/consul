@@ -13,6 +13,7 @@ import (
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 
+	"github.com/hashicorp/consul/acl/resolver"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/demo"
 	"github.com/hashicorp/consul/internal/storage"
@@ -30,13 +31,14 @@ func TestRead_TypeNotFound(t *testing.T) {
 	_, err = client.Read(context.Background(), &pbresource.ReadRequest{Id: artist.Id})
 	require.Error(t, err)
 	require.Equal(t, codes.InvalidArgument.String(), status.Code(err).String())
-	require.Contains(t, err.Error(), "resource type demo/v2/artist not registered")
+	require.Contains(t, err.Error(), "resource type demo.v2.artist not registered")
 }
 
 func TestRead_ResourceNotFound(t *testing.T) {
 	for desc, tc := range readTestCases() {
 		t.Run(desc, func(t *testing.T) {
 			server := testServer(t)
+
 			demo.Register(server.Registry)
 			client := testClient(t, server)
 
@@ -55,6 +57,7 @@ func TestRead_GroupVersionMismatch(t *testing.T) {
 	for desc, tc := range readTestCases() {
 		t.Run(desc, func(t *testing.T) {
 			server := testServer(t)
+
 			demo.Register(server.Registry)
 			client := testClient(t, server)
 
@@ -79,6 +82,7 @@ func TestRead_Success(t *testing.T) {
 	for desc, tc := range readTestCases() {
 		t.Run(desc, func(t *testing.T) {
 			server := testServer(t)
+
 			demo.Register(server.Registry)
 			client := testClient(t, server)
 
@@ -99,11 +103,9 @@ func TestRead_VerifyReadConsistencyArg(t *testing.T) {
 	// Uses a mockBackend instead of the inmem Backend to verify the ReadConsistency argument is set correctly.
 	for desc, tc := range readTestCases() {
 		t.Run(desc, func(t *testing.T) {
+			server := testServer(t)
 			mockBackend := NewMockBackend(t)
-			server := NewServer(Config{
-				Registry: resource.NewRegistry(),
-				Backend:  mockBackend,
-			})
+			server.Backend = mockBackend
 			demo.Register(server.Registry)
 
 			artist, err := demo.GenerateV2Artist()
@@ -116,6 +118,45 @@ func TestRead_VerifyReadConsistencyArg(t *testing.T) {
 			require.NoError(t, err)
 			prototest.AssertDeepEqual(t, artist, rsp.Resource)
 			mockBackend.AssertCalled(t, "Read", mock.Anything, tc.consistency, mock.Anything)
+		})
+	}
+}
+
+// N.B. Uses key ACLs for now. See demo.Register()
+func TestRead_ACLs(t *testing.T) {
+	type testCase struct {
+		authz resolver.Result
+		code  codes.Code
+	}
+	testcases := map[string]testCase{
+		"read hook denied": {
+			authz: AuthorizerFrom(t, demo.ArtistV1ReadPolicy),
+			code:  codes.PermissionDenied,
+		},
+		"read hook allowed": {
+			authz: AuthorizerFrom(t, demo.ArtistV2ReadPolicy),
+			code:  codes.NotFound,
+		},
+	}
+
+	for desc, tc := range testcases {
+		t.Run(desc, func(t *testing.T) {
+			server := testServer(t)
+			client := testClient(t, server)
+
+			mockACLResolver := &MockACLResolver{}
+			mockACLResolver.On("ResolveTokenAndDefaultMeta", mock.Anything, mock.Anything, mock.Anything).
+				Return(tc.authz, nil)
+			server.ACLResolver = mockACLResolver
+			demo.Register(server.Registry)
+
+			artist, err := demo.GenerateV2Artist()
+			require.NoError(t, err)
+
+			// exercise ACL
+			_, err = client.Read(testContext(t), &pbresource.ReadRequest{Id: artist.Id})
+			require.Error(t, err)
+			require.Equal(t, tc.code.String(), status.Code(err).String())
 		})
 	}
 }
@@ -139,5 +180,4 @@ func readTestCases() map[string]readTestCase {
 			),
 		},
 	}
-
 }
