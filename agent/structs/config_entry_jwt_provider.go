@@ -229,7 +229,7 @@ type RemoteJWKS struct {
 	// should be expired.
 	//
 	// Default value from envoy is 10 minutes.
-	CacheDuration *time.Duration `alias:"cache_duration"`
+	CacheDuration time.Duration `alias:"cache_duration"`
 
 	// FetchAsynchronously indicates that the JWKS should be fetched
 	// when a client request arrives. Client requests will be paused
@@ -280,18 +280,18 @@ type RetryPolicyBackOff struct {
 	// BaseInterval to be used for the next back off computation
 	//
 	// The default value from envoy is 1s
-	BaseInterval *time.Duration `json:",omitempty" alias:"base_interval"`
+	BaseInterval time.Duration `json:",omitempty" alias:"base_interval"`
 
 	// MaxInternal to be used to specify the maximum interval between retries.
 	// Optional but should be greater or equal to BaseInterval.
 	//
 	// Defaults to 10 times BaseInterval
-	MaxInterval *time.Duration `json:",omitempty" alias:"max_interval"`
+	MaxInterval time.Duration `json:",omitempty" alias:"max_interval"`
 }
 
 func (r *RetryPolicyBackOff) Validate() error {
 
-	if (r.MaxInterval != nil) && (*r.BaseInterval > *r.MaxInterval) {
+	if (r.MaxInterval != 0) && (r.BaseInterval > r.MaxInterval) {
 		return fmt.Errorf("Retry policy backoff's MaxInterval should be greater or equal to BaseInterval")
 	}
 

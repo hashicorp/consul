@@ -213,8 +213,8 @@ func TestJWTProviderConfigEntry_ValidateAndNormalize(t *testing.T) {
 						URI:                 "https://example.com/.well-known/jwks.json",
 						RetryPolicy: &JWKSRetryPolicy{
 							RetryPolicyBackOff: &RetryPolicyBackOff{
-								BaseInterval: &hundredSeconds,
-								MaxInterval:  &tenSeconds,
+								BaseInterval: hundredSeconds,
+								MaxInterval:  tenSeconds,
 							},
 						},
 					},
@@ -260,8 +260,8 @@ func TestJWTProviderConfigEntry_ValidateAndNormalize(t *testing.T) {
 						URI:                 "https://example.com/.well-known/jwks.json",
 						RetryPolicy: &JWKSRetryPolicy{
 							RetryPolicyBackOff: &RetryPolicyBackOff{
-								BaseInterval: &tenSeconds,
-								MaxInterval:  &hundredSeconds,
+								BaseInterval: tenSeconds,
+								MaxInterval:  hundredSeconds,
 							},
 						},
 					},
@@ -292,8 +292,8 @@ func TestJWTProviderConfigEntry_ValidateAndNormalize(t *testing.T) {
 						URI:                 "https://example.com/.well-known/jwks.json",
 						RetryPolicy: &JWKSRetryPolicy{
 							RetryPolicyBackOff: &RetryPolicyBackOff{
-								BaseInterval: &tenSeconds,
-								MaxInterval:  &hundredSeconds,
+								BaseInterval: tenSeconds,
+								MaxInterval:  hundredSeconds,
 							},
 						},
 					},

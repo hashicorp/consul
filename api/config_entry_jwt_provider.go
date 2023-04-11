@@ -207,13 +207,13 @@ type RetryPolicyBackOff struct {
 	// BaseInterval to be used for the next back off computation
 	//
 	// The default value from envoy is 1s
-	BaseInterval *time.Duration `json:",omitempty" alias:"base_interval"`
+	BaseInterval time.Duration `json:",omitempty" alias:"base_interval"`
 
 	// MaxInternal to be used to specify the maximum interval between retries.
 	// Optional but should be greater or equal to BaseInterval.
 	//
 	// Defaults to 10 times BaseInterval
-	MaxInterval *time.Duration `json:",omitempty" alias:"max_interval"`
+	MaxInterval time.Duration `json:",omitempty" alias:"max_interval"`
 }
 
 type JWTCacheConfig struct {
