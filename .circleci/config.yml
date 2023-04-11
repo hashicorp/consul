@@ -213,58 +213,6 @@ jobs:
           path: ./pkg/bin
       - run: *notify-slack-failure
 
-  # build all 386 architecture supported OS binaries
-  build-386:
-    <<: *build-distros
-    environment:
-      <<: *build-env
-      XC_OS: "freebsd linux windows"
-      GOARCH: "386"
-
-  # build all amd64 architecture supported OS binaries
-  build-amd64:
-    <<: *build-distros
-    environment:
-      <<: *build-env
-      XC_OS: "darwin freebsd linux solaris windows"
-      GOARCH: "amd64"
-
-  # build all arm/arm64 architecture supported OS binaries
-  build-arm:
-    docker:
-      - image: *GOLANG_IMAGE
-    resource_class: large
-    environment:
-      <<: *ENVIRONMENT
-      CGO_ENABLED: 1
-      GOOS: linux
-    steps:
-      - checkout
-      - run:
-          command: |
-            sudo rm -fv /etc/apt/sources.list.d/github_git-lfs.list # workaround for https://github.com/actions/runner-images/issues/1983
-            sudo apt-get update --allow-releaseinfo-change-suite --allow-releaseinfo-change-version && sudo apt-get install -y gcc-arm-linux-gnueabi gcc-arm-linux-gnueabihf gcc-aarch64-linux-gnu
-      - run:
-          environment:
-            GOARM: 5
-            CC: arm-linux-gnueabi-gcc
-            GOARCH: arm
-          command: go build -o ./pkg/bin/linux_armel/consul  -ldflags="-linkmode=external ${GOLDFLAGS}"
-      - run:
-          environment:
-            GOARM: 6
-            CC: arm-linux-gnueabihf-gcc
-            GOARCH: arm
-          command: go build -o ./pkg/bin/linux_armhf/consul  -ldflags="-linkmode=external ${GOLDFLAGS}"
-      - run:
-          environment:
-            CC: aarch64-linux-gnu-gcc
-            GOARCH: arm64
-          command: go build -o ./pkg/bin/linux_aarch64/consul  -ldflags="-linkmode=external ${GOLDFLAGS}"
-      - store_artifacts:
-          path: ./pkg/bin
-      - run: *notify-slack-failure
-
   # create a development build
   dev-build:
     docker:
@@ -428,64 +376,6 @@ jobs:
     environment:
       JOBS: 2 # limit parallelism for broccoli-babel-transpiler
       CONSUL_NSPACES_ENABLED: 1
-
-  # rebuild UI for packaging
-  ember-build-prod:
-    docker:
-      - image: *EMBER_IMAGE
-    environment:
-      JOBS: 2 # limit parallelism for broccoli-babel-transpiler
-    steps:
-      - checkout
-      - restore_cache:
-          key: *YARN_CACHE_KEY
-      - run: cd ui && make
-
-      # saves the build to a workspace to be passed to a downstream job
-      - persist_to_workspace:
-          root: ui
-          paths:
-            - packages/consul-ui/dist
-      - run: *notify-slack-failure
-
-  # commits static assets to git
-  publish-static-assets:
-    docker:
-      - image: *GOLANG_IMAGE
-    steps:
-      - checkout
-      - add_ssh_keys: # needs a key to push updated static asset commit back to github
-          fingerprints:
-            - "94:03:9e:8b:24:7f:36:60:00:30:b8:32:ed:e7:59:10"
-      - attach_workspace:
-          at: .
-      - run:
-          name: move compiled ui files to agent/uiserver
-          command: |
-            rm -rf agent/uiserver/dist
-            mv packages/consul-ui/dist agent/uiserver
-      - run:
-          name: commit agent/uiserver/dist/ if there are UI changes
-          command: |
-            # check if there are any changes in ui/
-            # if there are, we commit the ui static asset file
-            # HEAD^! is shorthand for HEAD^..HEAD (parent of HEAD and HEAD)
-            if ! git diff --quiet --exit-code HEAD^! ui/; then
-              git config --local user.email "github-team-consul-core@hashicorp.com"
-              git config --local user.name "hc-github-team-consul-core"
-
-              # -B resets the CI branch to main which may diverge history
-              # but we will force push anyways.
-              git checkout -B ci/main-assetfs-build main
-
-              short_sha=$(git rev-parse --short HEAD)
-              git add agent/uiserver/dist/
-              git commit -m "auto-updated agent/uiserver/dist/ from commit ${short_sha}"
-              git push --force origin ci/main-assetfs-build
-            else
-              echo "no UI changes so no static assets to publish"
-            fi
-      - run: *notify-slack-failure
 
   # run node tests
   node-tests:
@@ -695,20 +585,6 @@ jobs:
             path: *TEST_RESULTS_DIR
         - run: *notify-slack-failure
 
-  # Lints all *.dockerfile but don't fail at this time
-  dockerfile-lint:
-    docker:
-      - image: docker.mirror.hashicorp.services/hadolint/hadolint:latest-debian
-    steps:
-      - run: apt-get -qq update; apt-get -y install git # the hadolint container doesn't have git
-      - checkout
-      - run:
-          name: Dockefile lint
-          command: |
-            for file in $(find . -type f -name *.dockerfile); do
-              hadolint $file || true
-            done
-
   envoy-integration-test: &ENVOY_TESTS
     machine:
       image: *UBUNTU_CI_IMAGE
@@ -804,9 +680,9 @@ jobs:
       - run: "echo ok"
 
 workflows:
-  build-distros:
+  test-integrations:
     jobs:
-      - check-go-mod: &filter-ignore-non-go-branches
+      - dev-build: &filter-ignore-non-go-branches
           filters:
             branches:
               ignore:
@@ -817,37 +693,6 @@ workflows:
                 - /^backport\/docs\/.*/
                 - /^backport\/ui\/.*/
                 - /^backport\/mktg-.*/
-      - build-386: &require-check-go-mod
-          requires:
-            - check-go-mod
-      - build-amd64: *require-check-go-mod
-      - build-arm: *require-check-go-mod
-      # every commit on main will have a rebuilt UI
-      - frontend-cache:
-          filters:
-            branches:
-              only:
-                - main
-      - ember-build-prod:
-          requires:
-            - frontend-cache
-      - publish-static-assets:
-          requires:
-            - ember-build-prod
-      - dev-build:
-          requires:
-            - ember-build-prod
-      - dev-upload-s3:
-          requires:
-            - dev-build
-      - dev-upload-docker:
-          requires:
-            - dev-build
-          context: consul-ci
-      - noop
-  test-integrations:
-    jobs:
-      - dev-build: *filter-ignore-non-go-branches
       - dev-upload-s3: &dev-upload
           requires:
             - dev-build
