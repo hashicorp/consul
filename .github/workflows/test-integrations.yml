@@ -284,7 +284,8 @@ jobs:
           cd ./test/integration/consul-container
           docker run --rm consul:local consul version
           go test \
-           -p=4 \
+           -p=1 \
+           -parallel=1 \
            -timeout=30m \
            `go list ./... | grep -v upgrade` \
            --target-image consul \
@@ -343,7 +344,8 @@ jobs:
           docker run --rm consul:local consul version
           PACKAGE_NAMES=$(go list -tags "${{ env.GOTAGS }}" ./...)
           go test \
-            -p=4 \
+            -p=1 \
+            -parallel=1 \
             -tags "${{ env.GOTAGS }}" \
             -timeout=30m \
             ./... \
