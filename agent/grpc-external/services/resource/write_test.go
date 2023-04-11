@@ -2,7 +2,7 @@ package resource
 
 import (
 	"context"
-	"sync"
+	"sync/atomic"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -239,7 +239,7 @@ func TestWrite_NonCASUpdate_Retry(t *testing.T) {
 type blockOnceBackend struct {
 	storage.Backend
 
-	once    sync.Once
+	done    uint32
 	readCh  chan struct{}
 	blockCh chan struct{}
 }
@@ -247,10 +247,12 @@ type blockOnceBackend struct {
 func (b *blockOnceBackend) Read(ctx context.Context, consistency storage.ReadConsistency, id *pbresource.ID) (*pbresource.Resource, error) {
 	res, err := b.Backend.Read(ctx, consistency, id)
 
-	b.once.Do(func() {
+	// Block for exactly one call to Read. All subsequent calls (including those
+	// concurrent to the blocked call) will return immediately.
+	if atomic.CompareAndSwapUint32(&b.done, 0, 1) {
 		close(b.readCh)
 		<-b.blockCh
-	})
+	}
 
 	return res, err
 }

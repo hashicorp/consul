@@ -107,7 +107,7 @@ func (s *Server) Write(ctx context.Context, req *pbresource.WriteRequest) (*pbre
 				return storage.ErrCASFailure
 			}
 
-			// TODO: Carry over the statuses here.
+			input.Status = existing.Status
 
 		default:
 			return err
