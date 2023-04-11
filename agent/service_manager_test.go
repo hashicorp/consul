@@ -829,9 +829,6 @@ func fixPersistedServiceConfigForTest(content []byte) ([]byte, error) {
 		return nil, err
 	}
 	// Sort the output, since it's randomized and causes flaky tests otherwise.
-	sort.Slice(parsed.Defaults.UpstreamIDConfigs, func(i, j int) bool {
-		return parsed.Defaults.UpstreamIDConfigs[i].Upstream.ID < parsed.Defaults.UpstreamIDConfigs[j].Upstream.ID
-	})
 	sort.Slice(parsed.Defaults.UpstreamConfigs, func(i, j int) bool {
 		return parsed.Defaults.UpstreamConfigs[i].Upstream.String() < parsed.Defaults.UpstreamConfigs[j].Upstream.String()
 	})
