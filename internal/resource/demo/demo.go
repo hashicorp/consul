@@ -60,6 +60,7 @@ const (
 	ArtistV1WritePolicy = `key_prefix "resource/demo.v1.artist/" { policy = "write" }`
 	ArtistV2ReadPolicy  = `key_prefix "resource/demo.v2.artist/" { policy = "read" }`
 	ArtistV2WritePolicy = `key_prefix "resource/demo.v2.artist/" { policy = "write" }`
+	ArtistV2ListPolicy  = `key_prefix "resource/" { policy = "list" }`
 )
 
 // Register demo types. Should only be called in tests and dev mode.

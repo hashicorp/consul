@@ -151,10 +151,8 @@ func TestList_ACL_ListAllowed_ReadDenied(t *testing.T) {
 	t.Parallel()
 
 	// allow list, deny read
-	authz := AuthorizerFrom(t, `
-		key_prefix "resource/" { policy = "list" }
-		key_prefix "resource/demo.v2.artist/" { policy = "deny" }
-		`)
+	authz := AuthorizerFrom(t, demo.ArtistV2ListPolicy,
+		`key_prefix "resource/demo.v2.artist/" { policy = "deny" }`)
 	_, rsp, err := roundTripList(t, authz)
 
 	// verify resource filtered out by key:read denied hence no results
@@ -167,10 +165,7 @@ func TestList_ACL_ListAllowed_ReadAllowed(t *testing.T) {
 	t.Parallel()
 
 	// allow list, allow read
-	authz := AuthorizerFrom(t, `
-		key_prefix "resource/" { policy = "list" }
-		key_prefix "resource/demo.v2.artist/" { policy = "read" }
-	`)
+	authz := AuthorizerFrom(t, demo.ArtistV2ListPolicy, demo.ArtistV2ReadPolicy)
 	artist, rsp, err := roundTripList(t, authz)
 
 	// verify resource not filtered out by acl
