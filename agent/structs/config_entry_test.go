@@ -2146,13 +2146,6 @@ func TestDecodeConfigEntry(t *testing.T) {
 
 func TestServiceConfigRequest(t *testing.T) {
 
-	makeLegacyUpstreamIDs := func(services ...string) []ServiceID {
-		u := make([]ServiceID, 0, len(services))
-		for _, s := range services {
-			u = append(u, NewServiceID(s, acl.DefaultEnterpriseMeta()))
-		}
-		return u
-	}
 	tests := []struct {
 		name     string
 		req      ServiceConfigRequest
@@ -2183,39 +2176,17 @@ func TestServiceConfigRequest(t *testing.T) {
 			wantSame: false,
 		},
 		{
-			name: "legacy upstreams should be different",
-			req: ServiceConfigRequest{
-				Name:        "web",
-				UpstreamIDs: makeLegacyUpstreamIDs("foo"),
-			},
-			mutate: func(req *ServiceConfigRequest) {
-				req.UpstreamIDs = makeLegacyUpstreamIDs("foo", "bar")
-			},
-			wantSame: false,
-		},
-		{
-			name: "legacy upstreams should not depend on order",
-			req: ServiceConfigRequest{
-				Name:        "web",
-				UpstreamIDs: makeLegacyUpstreamIDs("bar", "foo"),
-			},
-			mutate: func(req *ServiceConfigRequest) {
-				req.UpstreamIDs = makeLegacyUpstreamIDs("foo", "bar")
-			},
-			wantSame: true,
-		},
-		{
 			name: "upstreams should be different",
 			req: ServiceConfigRequest{
 				Name: "web",
-				UpstreamIDs: []ServiceID{
-					NewServiceID("foo", nil),
+				UpstreamServiceNames: []PeeredServiceName{
+					{ServiceName: NewServiceName("foo", nil)},
 				},
 			},
 			mutate: func(req *ServiceConfigRequest) {
-				req.UpstreamIDs = []ServiceID{
-					NewServiceID("foo", nil),
-					NewServiceID("bar", nil),
+				req.UpstreamServiceNames = []PeeredServiceName{
+					{ServiceName: NewServiceName("foo", nil)},
+					{ServiceName: NewServiceName("bar", nil)},
 				}
 			},
 			wantSame: false,
@@ -2224,15 +2195,15 @@ func TestServiceConfigRequest(t *testing.T) {
 			name: "upstreams should not depend on order",
 			req: ServiceConfigRequest{
 				Name: "web",
-				UpstreamIDs: []ServiceID{
-					NewServiceID("bar", nil),
-					NewServiceID("foo", nil),
+				UpstreamServiceNames: []PeeredServiceName{
+					{ServiceName: NewServiceName("foo", nil)},
+					{ServiceName: NewServiceName("bar", nil)},
 				},
 			},
 			mutate: func(req *ServiceConfigRequest) {
-				req.UpstreamIDs = []ServiceID{
-					NewServiceID("foo", nil),
-					NewServiceID("bar", nil),
+				req.UpstreamServiceNames = []PeeredServiceName{
+					{ServiceName: NewServiceName("foo", nil)},
+					{ServiceName: NewServiceName("bar", nil)},
 				}
 			},
 			wantSame: true,

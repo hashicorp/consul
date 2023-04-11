@@ -8,10 +8,16 @@ name: verify-ci
 permissions:
   contents: read
 
-on: [pull_request]
+on: 
+  pull_request:
+  push:
+    branches:
+      # Push events on the main branch
+      - main
+      - release/**
 
 jobs:
-  noop:
+  verify-ci-success:
     runs-on: ubuntu-latest
     steps:
-    - run: echo "ok"
+    - run: echo "verify-ci succeeded"

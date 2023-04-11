@@ -152,7 +152,7 @@ func TestPatchCluster(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			transportSocket, err := makeUpstreamTLSTransportSocket(&envoy_tls_v3.UpstreamTlsContext{
+			transportSocket, err := extensioncommon.MakeUpstreamTLSTransportSocket(&envoy_tls_v3.UpstreamTlsContext{
 				Sni: "*.amazonaws.com",
 			})
 			require.NoError(t, err)

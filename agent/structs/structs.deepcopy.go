@@ -783,18 +783,6 @@ func (o *ServiceConfigResponse) DeepCopy() *ServiceConfigResponse {
 			cp.ProxyConfig[k2] = v2
 		}
 	}
-	if o.UpstreamIDConfigs != nil {
-		cp.UpstreamIDConfigs = make([]OpaqueUpstreamConfigDeprecated, len(o.UpstreamIDConfigs))
-		copy(cp.UpstreamIDConfigs, o.UpstreamIDConfigs)
-		for i2 := range o.UpstreamIDConfigs {
-			if o.UpstreamIDConfigs[i2].Config != nil {
-				cp.UpstreamIDConfigs[i2].Config = make(map[string]interface{}, len(o.UpstreamIDConfigs[i2].Config))
-				for k4, v4 := range o.UpstreamIDConfigs[i2].Config {
-					cp.UpstreamIDConfigs[i2].Config[k4] = v4
-				}
-			}
-		}
-	}
 	if o.UpstreamConfigs != nil {
 		cp.UpstreamConfigs = make([]OpaqueUpstreamConfig, len(o.UpstreamConfigs))
 		copy(cp.UpstreamConfigs, o.UpstreamConfigs)
