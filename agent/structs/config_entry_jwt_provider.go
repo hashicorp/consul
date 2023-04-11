@@ -34,7 +34,7 @@ type JWTProviderConfigEntry struct {
 	// Audiences is the set of audiences the JWT is allowed to access.
 	// If specified, all JWTs verified with this provider must address
 	// at least one of these to be considered valid.
-	Audiences []string
+	Audiences []string `json:",omitempty"`
 
 	// Locations where the JWT will be present in requests.
 	// Envoy will check all of these locations to extract a JWT.
