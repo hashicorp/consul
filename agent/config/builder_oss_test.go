@@ -110,6 +110,19 @@ func TestValidateEnterpriseConfigKeys(t *testing.T) {
 				require.Empty(t, c.LicensePath)
 			},
 		},
+		"reporting.license.enabled": {
+			config: Config{
+				Reporting: Reporting{
+					License: License{
+						Enabled: &boolVal,
+					},
+				},
+			},
+			badKeys: []string{"reporting.license.enabled"},
+			check: func(t *testing.T, c *Config) {
+				require.Nil(t, c.Reporting.License.Enabled)
+			},
+		},
 		"multi": {
 			config: Config{
 				ReadReplica: &boolVal,
