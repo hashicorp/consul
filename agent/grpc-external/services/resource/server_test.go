@@ -13,6 +13,8 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/anypb"
 
+	"github.com/hashicorp/go-uuid"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/acl/resolver"
 	"github.com/hashicorp/consul/agent/grpc-external/testutils"
@@ -22,16 +24,7 @@ import (
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	pbdemov2 "github.com/hashicorp/consul/proto/private/pbdemo/v2"
 	"github.com/hashicorp/consul/sdk/testutil"
-	"github.com/hashicorp/go-uuid"
 )
-
-func TestWriteStatus_TODO(t *testing.T) {
-	server := testServer(t)
-	client := testClient(t, server)
-	resp, err := client.WriteStatus(context.Background(), &pbresource.WriteStatusRequest{})
-	require.NoError(t, err)
-	require.NotNil(t, resp)
-}
 
 func randomACLIdentity(t *testing.T) structs.ACLIdentity {
 	id, err := uuid.GenerateUUID()
