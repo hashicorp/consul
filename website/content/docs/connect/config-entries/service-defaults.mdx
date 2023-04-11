@@ -1589,11 +1589,7 @@ represents a location outside the Consul cluster. Services can dial destinations
               name: 'Peer',
               type: 'string: ""',
               description: 
-                `The name of the peer containing the upstream. Do not use a wildcard specifier ( \`*\`).<br><br>
-                    If the \`peer\` field is not set in any \`Overrides\` configuration, then Consul applies overrides to peered services with the same [\`name\`](/consul/docs/connect/config-entries/service-defaults#name). 
-                    This maintains backward compatibility with Consul 1.14.0. 
-                    If the \`peer\` field is specified in any override, then backward compatibility with Consul 1.14.0 is disabled. 
-                    As a result, each peered service must have a separate override configuration if desired.` ,
+                `The peer name of the upstream. Do not use a wildcard specifier ( \`*\`).`,
             },
             {
               name: 'Protocol',
