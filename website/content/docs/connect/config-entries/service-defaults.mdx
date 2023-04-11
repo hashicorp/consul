@@ -95,6 +95,7 @@ The following outline shows how to format the service splitter configuration ent
     - [`overrides`](#upstreamconfig-overrides): list | no default
       - [`name`](#upstreamconfig-overrides-name): string | no default
       - [`namespace`](#upstreamconfig-overrides-namespace): string | no default
+      - [`peer`](#upstreamconfig-overrides-peer): string | no default
       - [`protocol`](#upstreamconfig-overrides-protocol): string | no default
       - [`connectTimeoutMs`](#upstreamconfig-overrides-connecttimeoutms): int | default: `5000`
       - [`meshGateway`](#upstreamconfig-overrides-meshgateway): map | no default
@@ -913,6 +914,15 @@ Specifies the name of the upstream service that the configuration applies to. Do
 ### `spec.upstreamConfig.overrides[].namespace` <Enterprise/>
 
 Specifies the namespace containing the upstream service that the configuration applies to. Do not use the `*` wildcard to prevent the configuration from applying to unintended upstreams.
+
+#### Values
+
+- Default: none
+- Data type: string
+
+### `spec.upstreamConfig.overrides[].peer`
+
+Specifies the peer name of the upstream service that the configuration applies to. The `*` wildcard is not supported.
 
 #### Values
 
