@@ -424,6 +424,9 @@ type Server struct {
 	// routineManager is responsible for managing longer running go routines
 	// run by the Server
 	routineManager *routine.Manager
+
+	// typeRegistry contains Consul's registered resource types.
+	typeRegistry resource.Registry
 }
 
 type connHandler interface {
@@ -486,6 +489,7 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server, incom
 		publisher:               flat.EventPublisher,
 		incomingRPCLimiter:      incomingRPCLimiter,
 		routineManager:          routine.NewManager(logger.Named(logging.ConsulServer)),
+		typeRegistry:            resource.NewRegistry(),
 	}
 	incomingRPCLimiter.Register(s)
 
@@ -801,6 +805,10 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server, incom
 	err = s.runEnterpriseRateLimiterConfigEntryController()
 	if err != nil {
 		return nil, err
+	}
+
+	if s.config.DevMode {
+		demo.Register(s.typeRegistry)
 	}
 
 	return s, nil
@@ -1262,14 +1270,8 @@ func (s *Server) setupExternalGRPC(config *Config, backend storage.Backend, logg
 	})
 	s.peerStreamServer.Register(s.externalGRPCServer)
 
-	registry := resource.NewRegistry()
-
-	if s.config.DevMode {
-		demo.Register(registry)
-	}
-
 	resourcegrpc.NewServer(resourcegrpc.Config{
-		Registry:    registry,
+		Registry:    s.typeRegistry,
 		Backend:     backend,
 		ACLResolver: s.ACLResolver,
 		Logger:      logger.Named("grpc-api.resource"),
