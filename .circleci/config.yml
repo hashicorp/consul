@@ -346,6 +346,7 @@ jobs:
             sudo tar -C /usr/local -xzvf go${GO_VERSION}.linux-amd64.tar.gz
           environment:
             <<: *ENVIRONMENT
+      - run: go env
       - run: *install-gotestsum
       - run: docker build -t consul:local -f ./build-support/docker/Consul-Dev.dockerfile .
       - run:
@@ -409,6 +410,7 @@ jobs:
               sudo tar -C /usr/local -xzvf go${GO_VERSION}.linux-amd64.tar.gz
             environment:
               <<: *ENVIRONMENT
+        - run: go env
         - run: *install-gotestsum
         - run: docker build -t consul:local -f ./build-support/docker/Consul-Dev.dockerfile .
         - run:
