@@ -108,6 +108,19 @@ func Register(r resource.Registry) {
 		return nil
 	}
 
+	mutateV2ArtistFn := func(res *pbresource.Resource) error {
+		// Not a realistic use for this hook, but set genre if not specified
+		artist := &pbdemov2.Artist{}
+		if err := anypb.UnmarshalTo(res.Data, artist, proto.UnmarshalOptions{}); err != nil {
+			return err
+		}
+		if artist.Genre == pbdemov2.Genre_GENRE_UNSPECIFIED {
+			artist.Genre = pbdemov2.Genre_GENRE_DISCO
+			return res.Data.MarshalFrom(artist)
+		}
+		return nil
+	}
+
 	r.Register(resource.Registration{
 		Type:  TypeV1Artist,
 		Proto: &pbdemov1.Artist{},
@@ -138,6 +151,7 @@ func Register(r resource.Registry) {
 			List:  makeListACL(TypeV2Artist),
 		},
 		Validate: validateV2ArtistFn,
+		Mutate:   mutateV2ArtistFn,
 	})
 
 	r.Register(resource.Registration{

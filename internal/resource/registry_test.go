@@ -61,10 +61,7 @@ func TestRegister(t *testing.T) {
 
 func TestRegister_Defaults(t *testing.T) {
 	r := resource.NewRegistry()
-	r.Register(resource.Registration{
-		Type: demo.TypeV2Artist,
-		// intentionally don't provide ACLs so defaults kick in
-	})
+	r.Register(resource.Registration{Type: demo.TypeV2Artist})
 	artist, err := demo.GenerateV2Artist()
 	require.NoError(t, err)
 
@@ -85,6 +82,9 @@ func TestRegister_Defaults(t *testing.T) {
 
 	// verify default validate is a no-op
 	require.NoError(t, reg.Validate(nil))
+
+	// verify default mutate is a no-op
+	require.NoError(t, reg.Mutate(nil))
 }
 
 func assertRegisterPanics(t *testing.T, registerFn func(reg resource.Registration), registration resource.Registration, panicString string) {
