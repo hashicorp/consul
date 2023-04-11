@@ -4,10 +4,12 @@ import (
 	"context"
 	"testing"
 
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
+	"github.com/hashicorp/consul/acl/resolver"
 	"github.com/hashicorp/consul/internal/resource/demo"
 	"github.com/hashicorp/consul/internal/storage"
 	"github.com/hashicorp/consul/proto-public/pbresource"
@@ -24,6 +26,51 @@ func TestDelete_TypeNotRegistered(t *testing.T) {
 	_, err = client.Delete(ctx, &pbresource.DeleteRequest{Id: artist.Id, Version: ""})
 	require.Error(t, err)
 	require.Equal(t, codes.InvalidArgument.String(), status.Code(err).String())
+}
+
+func TestDelete_ACLs(t *testing.T) {
+	type testCase struct {
+		authz       resolver.Result
+		assertErrFn func(error)
+	}
+	testcases := map[string]testCase{
+		"delete denied": {
+			authz: AuthorizerFrom(t, demo.ArtistV1WritePolicy),
+			assertErrFn: func(err error) {
+				require.Error(t, err)
+				require.Equal(t, codes.PermissionDenied.String(), status.Code(err).String())
+			},
+		},
+		"delete allowed": {
+			authz: AuthorizerFrom(t, demo.ArtistV2WritePolicy),
+			assertErrFn: func(err error) {
+				require.NoError(t, err)
+			},
+		},
+	}
+
+	for desc, tc := range testcases {
+		t.Run(desc, func(t *testing.T) {
+			server := testServer(t)
+			client := testClient(t, server)
+
+			mockACLResolver := &MockACLResolver{}
+			mockACLResolver.On("ResolveTokenAndDefaultMeta", mock.Anything, mock.Anything, mock.Anything).
+				Return(tc.authz, nil)
+			server.ACLResolver = mockACLResolver
+			demo.Register(server.Registry)
+
+			artist, err := demo.GenerateV2Artist()
+			require.NoError(t, err)
+
+			artist, err = server.Backend.WriteCAS(context.Background(), artist)
+			require.NoError(t, err)
+
+			// exercise ACL
+			_, err = client.Delete(testContext(t), &pbresource.DeleteRequest{Id: artist.Id})
+			tc.assertErrFn(err)
+		})
+	}
 }
 
 func TestDelete_Success(t *testing.T) {
