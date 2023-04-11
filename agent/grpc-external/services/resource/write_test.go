@@ -34,6 +34,12 @@ func TestWrite_InputValidation(t *testing.T) {
 			req.Resource.Data, err = anypb.New(&pbdemov2.Album{})
 			require.NoError(t, err)
 		},
+		"fail validation hook": func(req *pbresource.WriteRequest) {
+			artist := &pbdemov2.Artist{}
+			require.NoError(t, req.Resource.Data.UnmarshalTo(artist))
+			artist.Name = "" // name cannot be empty
+			require.NoError(t, req.Resource.Data.MarshalFrom(artist))
+		},
 	}
 	for desc, modFn := range testCases {
 		t.Run(desc, func(t *testing.T) {

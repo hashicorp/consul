@@ -31,6 +31,10 @@ type Registration struct {
 	// ACLs are hooks called to perform authorization on RPCs.
 	ACLs *ACLHooks
 
+	// Validate is called to structurally validate the resource (e.g.
+	// check for required fields).
+	Validate func(*pbresource.Resource) error
+
 	// In the future, we'll add hooks, the controller etc. here.
 	// TODO: https://github.com/hashicorp/consul/pull/16622#discussion_r1134515909
 }
@@ -99,6 +103,12 @@ func (r *TypeRegistry) Register(registration Registration) {
 			return authz.ToAllowAuthorizer().OperatorReadAllowed(&acl.AuthorizerContext{})
 		}
 	}
+
+	// default validation to a no-op
+	if registration.Validate == nil {
+		registration.Validate = func(resource *pbresource.Resource) error { return nil }
+	}
+
 	r.registrations[key] = registration
 }
 

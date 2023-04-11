@@ -59,7 +59,7 @@ func TestRegister(t *testing.T) {
 	}, "type field(s) cannot be empty")
 }
 
-func TestRegister_DefaultACLs(t *testing.T) {
+func TestRegister_Defaults(t *testing.T) {
 	r := resource.NewRegistry()
 	r.Register(resource.Registration{
 		Type: demo.TypeV2Artist,
@@ -82,6 +82,9 @@ func TestRegister_DefaultACLs(t *testing.T) {
 	// verify default list hook requires operator:read
 	require.NoError(t, reg.ACLs.List(testutils.ACLOperatorRead(t), artist.Id.Tenancy))
 	require.True(t, acl.IsErrPermissionDenied(reg.ACLs.List(testutils.ACLNoPermissions(t), artist.Id.Tenancy)))
+
+	// verify default validate is a no-op
+	require.NoError(t, reg.Validate(nil))
 }
 
 func assertRegisterPanics(t *testing.T, registerFn func(reg resource.Registration), registration resource.Registration, panicString string) {
