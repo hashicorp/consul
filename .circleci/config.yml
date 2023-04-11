@@ -1,3 +1,6 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
 ---
 version: 2.1
 
@@ -8,21 +11,11 @@ parameters:
     description: "Commit to run load tests against"
 
 references:
-  paths:
-    test-results: &TEST_RESULTS_DIR /tmp/test-results
-  environment: &ENVIRONMENT
-    TEST_RESULTS_DIR: *TEST_RESULTS_DIR
-    EMAIL: noreply@hashicorp.com
-    GIT_AUTHOR_NAME: circleci-consul
-    GIT_COMMITTER_NAME: circleci-consul
-    S3_ARTIFACT_BUCKET: consul-dev-artifacts-v2
-    BASH_ENV: .circleci/bash_env.sh
-    GO_VERSION: 1.20.1
   envoy-versions: &supported_envoy_versions
-    - &default_envoy_version "1.21.5"
-    - "1.22.5"
-    - "1.23.2"
-    - "1.24.0"
+    - &default_envoy_version "1.22.7"
+    - "1.23.4"
+    - "1.24.2"
+    - "1.25.1"
   nomad-versions: &supported_nomad_versions
     - &default_nomad_version "1.3.3"
     - "1.2.10"
@@ -32,14 +25,36 @@ references:
     - "1.11.6"
     - "1.10.9"
     - "1.9.10"
+  consul-versions: &consul_versions
+    - "1.15"
+    - "1.14"
   images:
     # When updating the Go version, remember to also update the versions in the
     # workflows section for go-test-lib jobs.
     go: &GOLANG_IMAGE docker.mirror.hashicorp.services/cimg/go:1.20.1
-    ember: &EMBER_IMAGE docker.mirror.hashicorp.services/circleci/node:14-browsers
+    ember: &EMBER_IMAGE docker.mirror.hashicorp.services/circleci/node:16-browsers
     ubuntu: &UBUNTU_CI_IMAGE ubuntu-2004:202201-02
+
+  paths:
+    test-results: &TEST_RESULTS_DIR /tmp/test-results
+
   cache:
     yarn: &YARN_CACHE_KEY consul-ui-v9-{{ checksum "ui/yarn.lock" }}
+
+  consul_exec_contexts: &consul_exec_contexts
+    - team-consul
+    - consul-enterprise-licensing
+
+  environment: &ENVIRONMENT
+    TEST_RESULTS_DIR: *TEST_RESULTS_DIR
+    EMAIL: noreply@hashicorp.com
+    GIT_AUTHOR_NAME: circleci-consul
+    GIT_COMMITTER_NAME: circleci-consul
+    S3_ARTIFACT_BUCKET: consul-dev-artifacts-v2
+    S3_ARTIFACT_BUCKET_CLOUD: consul-enterprise-dev-artifacts-v2
+    BASH_ENV: .circleci/bash_env.sh
+    GOPRIVATE: github.com/hashicorp
+    GO_VERSION: 1.20.1
 
 steps:
   install-gotestsum: &install-gotestsum
