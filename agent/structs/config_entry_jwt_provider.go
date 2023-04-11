@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/go-multierror"
 )
 
 const (
@@ -24,7 +25,7 @@ type JWTProviderConfigEntry struct {
 
 	// JSONWebKeySet defines a JSON Web Key Set, its location on disk, or the
 	// means with which to fetch a key set from a remote server.
-	JSONWebKeySet *JSONWebKeySet `json:",omitempty"`
+	JSONWebKeySet *JSONWebKeySet `json:",omitempty" alias:"json_web_key_set"`
 
 	// Issuer is the entity that must have issued the JWT.
 	// This value must match the "iss" claim of the token.
@@ -51,13 +52,13 @@ type JWTProviderConfigEntry struct {
 	// (Not Before) claims.
 	//
 	// Default value is 30 seconds.
-	ClockSkewSeconds int
+	ClockSkewSeconds int `alias:"clock_skew_seconds"`
 
 	// CacheConfig defines configuration for caching the validation
 	// result for previously seen JWTs. Caching results can speed up
 	// verification when individual tokens are expected to be handled
 	// multiple times.
-	CacheConfig *JWTCacheConfig `json:",omitempty"`
+	CacheConfig *JWTCacheConfig `json:",omitempty" alias:"cache_config"`
 
 	Meta               map[string]string `json:",omitempty"`
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
@@ -73,10 +74,20 @@ type JWTLocation struct {
 
 	// QueryParam defines how to extract a JWT from an HTTP request
 	// query parameter.
-	QueryParam *JWTLocationQueryParam
+	QueryParam *JWTLocationQueryParam `json:",omitempty" alias:"query_param"`
 
 	// Cookie defines how to extract a JWT from an HTTP request cookie.
 	Cookie *JWTLocationCookie
+}
+
+func countTrue(vals ...bool) int {
+	var result int
+	for _, v := range vals {
+		if v {
+			result++
+		}
+	}
+	return result
 }
 
 func (location *JWTLocation) Validate() error {
@@ -84,10 +95,7 @@ func (location *JWTLocation) Validate() error {
 	hasQueryParam := location.QueryParam != nil
 	hasCookie := location.Cookie != nil
 
-	hasOrMissingAllThree := hasHeader == hasQueryParam && hasHeader == hasCookie
-	hasAPair := hasCookie && hasHeader || hasCookie && hasQueryParam || hasQueryParam && hasHeader
-
-	if hasOrMissingAllThree || hasAPair {
+	if countTrue(hasHeader, hasQueryParam, hasCookie) != 1 {
 		return fmt.Errorf("Must set exactly one of: JWT location header, query param or cookie")
 	}
 
@@ -113,7 +121,7 @@ type JWTLocationHeader struct {
 	// For example, "Bearer " is a standard value prefix for a header named
 	// "Authorization", but the prefix is not part of the token itself:
 	// "Authorization: Bearer <token>"
-	ValuePrefix string
+	ValuePrefix string `alias:"value_prefix"`
 
 	// Forward defines whether the header with the JWT should be
 	// forwarded after the token has been verified. If false, the
@@ -149,13 +157,13 @@ type JWTForwardingConfig struct {
 	//
 	// The header value will be base64-URL-encoded, and will not be
 	// padded unless PadForwardPayloadHeader is true.
-	HeaderName string
+	HeaderName string `alias:"header_name"`
 
 	// PadForwardPayloadHeader determines whether padding should be added
 	// to the base64 encoded token forwarded with ForwardPayloadHeader.
 	//
 	// Default value is false.
-	PadForwardPayloadHeader bool
+	PadForwardPayloadHeader bool `alias:"pay_forward_payload_header"`
 }
 
 func (fc *JWTForwardingConfig) Validate() error {
@@ -172,10 +180,10 @@ func (fc *JWTForwardingConfig) Validate() error {
 // Exactly one of Local or Remote must be specified.
 type JSONWebKeySet struct {
 	// Local specifies a local source for the key set.
-	Local *LocalJWKS
+	Local *LocalJWKS `json:",omitempty"`
 
 	// Remote specifies how to fetch a key set from a remote server.
-	Remote *RemoteJWKS
+	Remote *RemoteJWKS `json:",omitempty"`
 }
 
 // LocalJWKS specifies a location for a local JWKS.
@@ -195,7 +203,7 @@ func (ks *LocalJWKS) Validate() error {
 	hasFilename := ks.Filename != ""
 	hasJWKS := ks.JWKS != ""
 
-	if hasFilename == hasJWKS {
+	if countTrue(hasFilename, hasJWKS) != 1 {
 		return fmt.Errorf("Must specify exactly one of String or filename for local keyset")
 	}
 
@@ -215,13 +223,13 @@ type RemoteJWKS struct {
 
 	// RequestTimeoutMs is the number of milliseconds to
 	// time out when making a request for the JWKS.
-	RequestTimeoutMs int
+	RequestTimeoutMs int `alias:"request_timeout_ms"`
 
 	// CacheDuration is the duration after which cached keys
 	// should be expired.
 	//
 	// Default value from envoy is 10 minutes.
-	CacheDuration *time.Duration
+	CacheDuration *time.Duration `alias:"cache_duration"`
 
 	// FetchAsynchronously indicates that the JWKS should be fetched
 	// when a client request arrives. Client requests will be paused
@@ -230,12 +238,12 @@ type RemoteJWKS struct {
 	// fetched before being activated.
 	//
 	// Default value is false.
-	FetchAsynchronously bool
+	FetchAsynchronously bool `alias:"fetch_asynchronously"`
 
 	// RetryPolicy defines a retry policy for fetching JWKS.
 	//
 	// There is no retry by default.
-	RetryPolicy *JWKSRetryPolicy
+	RetryPolicy *JWKSRetryPolicy `json:",omitempty" alias:"retry_policy"`
 }
 
 func (ks *RemoteJWKS) Validate() error {
@@ -260,25 +268,25 @@ type JWKSRetryPolicy struct {
 	// a base interval of 1s and max of 10s.
 	//
 	// Default value is 0.
-	NumRetries int
+	NumRetries int `alias:"num_retries"`
 
 	// Backoff policy
 	//
 	// Defaults to envoy's backoff policy
-	RetryPolicyBackOff *RetryPolicyBackOff
+	RetryPolicyBackOff *RetryPolicyBackOff `json:",omitempty" alias:"retry_policy_back_off"`
 }
 
 type RetryPolicyBackOff struct {
 	// BaseInterval to be used for the next back off computation
 	//
 	// The default value from envoy is 1s
-	BaseInterval *time.Duration
+	BaseInterval *time.Duration `json:",omitempty" alias:"base_interval"`
 
 	// MaxInternal to be used to specify the maximum interval between retries.
 	// Optional but should be greater or equal to BaseInterval.
 	//
 	// Defaults to 10 times BaseInterval
-	MaxInterval *time.Duration
+	MaxInterval *time.Duration `json:",omitempty" alias:"max_interval"`
 }
 
 func (r *RetryPolicyBackOff) Validate() error {
@@ -320,7 +328,7 @@ func (jwks *JSONWebKeySet) Validate() error {
 	hasLocalKeySet := jwks.Local != nil
 	hasRemoteKeySet := jwks.Remote != nil
 
-	if hasLocalKeySet == hasRemoteKeySet {
+	if countTrue(hasLocalKeySet, hasRemoteKeySet) != 1 {
 		return fmt.Errorf("Must specify exactly one of Local or Remote JSON Web key set")
 	}
 
@@ -346,12 +354,13 @@ func (lc *JWTLocationCookie) Validate() error {
 }
 
 func validateLocations(locations []*JWTLocation) error {
+	var result error
 	for _, location := range locations {
 		if err := location.Validate(); err != nil {
-			return err
+			result = multierror.Append(result, err)
 		}
 	}
-	return nil
+	return result
 }
 
 func (e *JWTProviderConfigEntry) Validate() error {

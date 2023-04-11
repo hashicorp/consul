@@ -15,7 +15,7 @@ type JWTProviderConfigEntry struct {
 
 	// JSONWebKeySet defines a JSON Web Key Set, its location on disk, or the
 	// means with which to fetch a key set from a remote server.
-	JSONWebKeySet *JSONWebKeySet `json:",omitempty"`
+	JSONWebKeySet *JSONWebKeySet `json:",omitempty" alias:"json_web_key_set"`
 
 	// Issuer is the entity that must have issued the JWT.
 	// This value must match the "iss" claim of the token.
@@ -42,13 +42,13 @@ type JWTProviderConfigEntry struct {
 	// (Not Before) claims.
 	//
 	// Default value is 30 seconds.
-	ClockSkewSeconds int
+	ClockSkewSeconds int `alias:"clock_skew_seconds"`
 
 	// CacheConfig defines configuration for caching the validation
 	// result for previously seen JWTs. Caching results can speed up
 	// verification when individual tokens are expected to be handled
 	// multiple times.
-	CacheConfig *JWTCacheConfig `json:",omitempty"`
+	CacheConfig *JWTCacheConfig `json:",omitempty" alias:"cache_config"`
 
 	Meta map[string]string `json:",omitempty"`
 
@@ -79,7 +79,7 @@ type JWTLocation struct {
 
 	// QueryParam defines how to extract a JWT from an HTTP request
 	// query parameter.
-	QueryParam *JWTLocationQueryParam `json:",omitempty"`
+	QueryParam *JWTLocationQueryParam `json:",omitempty" alias:"query_param"`
 
 	// Cookie defines how to extract a JWT from an HTTP request cookie.
 	Cookie *JWTLocationCookie `json:",omitempty"`
@@ -96,7 +96,7 @@ type JWTLocationHeader struct {
 	// For example, "Bearer " is a standard value prefix for a header named
 	// "Authorization", but the prefix is not part of the token itself:
 	// "Authorization: Bearer <token>"
-	ValuePrefix string
+	ValuePrefix string `alias:"value_prefix"`
 
 	// Forward defines whether the header with the JWT should be
 	// forwarded after the token has been verified. If false, the
@@ -125,13 +125,13 @@ type JWTForwardingConfig struct {
 	//
 	// The header value will be base64-URL-encoded, and will not be
 	// padded unless PadForwardPayloadHeader is true.
-	HeaderName string
+	HeaderName string `alias:"header_name"`
 
 	// PadForwardPayloadHeader determines whether padding should be added
 	// to the base64 encoded token forwarded with ForwardPayloadHeader.
 	//
 	// Default value is false.
-	PadForwardPayloadHeader bool
+	PadForwardPayloadHeader bool `alias:"pay_forward_payload_header"`
 }
 
 // JSONWebKeySet defines a key set, its location on disk, or the
@@ -166,13 +166,13 @@ type RemoteJWKS struct {
 
 	// RequestTimeoutMs is the number of milliseconds to
 	// time out when making a request for the JWKS.
-	RequestTimeoutMs int
+	RequestTimeoutMs int `alias:"request_timeout_ms"`
 
 	// CacheDuration is the duration after which cached keys
 	// should be expired.
 	//
 	// Default value is 5 minutes.
-	CacheDuration time.Duration
+	CacheDuration time.Duration `alias:"cache_duration"`
 
 	// FetchAsynchronously indicates that the JWKS should be fetched
 	// when a client request arrives. Client requests will be paused
@@ -181,12 +181,12 @@ type RemoteJWKS struct {
 	// fetched before being activated.
 	//
 	// Default value is false.
-	FetchAsynchronously bool
+	FetchAsynchronously bool `alias:"fetch_asynchronously"`
 
 	// RetryPolicy defines a retry policy for fetching JWKS.
 	//
 	// There is no retry by default.
-	RetryPolicy *JWKSRetryPolicy `json:",omitempty"`
+	RetryPolicy *JWKSRetryPolicy `json:",omitempty" alias:"retry_policy"`
 }
 
 type JWKSRetryPolicy struct {
@@ -195,25 +195,25 @@ type JWKSRetryPolicy struct {
 	// a base interval of 1s and max of 10s.
 	//
 	// Default value is 0.
-	NumRetries int
+	NumRetries int `alias:"num_retries"`
 
 	// Backoff policy
 	//
 	// Defaults to Envoy's backoff policy
-	RetryPolicyBackOff *RetryPolicyBackOff
+	RetryPolicyBackOff *RetryPolicyBackOff `json:",omitempty" alias:"retry_policy_back_off"`
 }
 
 type RetryPolicyBackOff struct {
 	// BaseInterval to be used for the next back off computation
 	//
 	// The default value from envoy is 1s
-	BaseInterval *time.Duration
+	BaseInterval *time.Duration `json:",omitempty" alias:"base_interval"`
 
 	// MaxInternal to be used to specify the maximum interval between retries.
 	// Optional but should be greater or equal to BaseInterval.
 	//
 	// Defaults to 10 times BaseInterval
-	MaxInterval *time.Duration
+	MaxInterval *time.Duration `json:",omitempty" alias:"max_interval"`
 }
 
 type JWTCacheConfig struct {

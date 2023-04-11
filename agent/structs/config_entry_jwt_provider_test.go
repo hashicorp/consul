@@ -35,9 +35,6 @@ func TestJWTProviderConfigEntry_ValidateAndNormalize(t *testing.T) {
 						Filename: "jwks.txt",
 					},
 				},
-				Forwarding: &JWTForwardingConfig{
-					HeaderName: "Some-Header",
-				},
 			},
 			expected: &JWTProviderConfigEntry{
 				Kind: JWTProvider,
@@ -46,9 +43,6 @@ func TestJWTProviderConfigEntry_ValidateAndNormalize(t *testing.T) {
 					Local: &LocalJWKS{
 						Filename: "jwks.txt",
 					},
-				},
-				Forwarding: &JWTForwardingConfig{
-					HeaderName: "Some-Header",
 				},
 				ClockSkewSeconds: DefaultClockSkewSeconds,
 				EnterpriseMeta:   *defaultMeta,
@@ -251,6 +245,73 @@ func TestJWTProviderConfigEntry_ValidateAndNormalize(t *testing.T) {
 			},
 			validateErr: "Must set exactly one of: JWT location header, query param or cookie",
 		},
+		"valid jwt-provider - with all possible fields": {
+			entry: &JWTProviderConfigEntry{
+				Kind:      JWTProvider,
+				Name:      "test-jwt-provider",
+				Issuer:    "iss",
+				Audiences: []string{"api", "web"},
+				CacheConfig: &JWTCacheConfig{
+					Size: 30,
+				},
+				JSONWebKeySet: &JSONWebKeySet{
+					Remote: &RemoteJWKS{
+						FetchAsynchronously: true,
+						URI:                 "https://example.com/.well-known/jwks.json",
+						RetryPolicy: &JWKSRetryPolicy{
+							RetryPolicyBackOff: &RetryPolicyBackOff{
+								BaseInterval: &tenSeconds,
+								MaxInterval:  &hundredSeconds,
+							},
+						},
+					},
+				},
+				Forwarding: &JWTForwardingConfig{
+					HeaderName: "Some-Header",
+				},
+				Locations: []*JWTLocation{
+					{
+						Cookie: &JWTLocationCookie{
+							Name: "SomeCookie",
+						},
+					},
+				},
+				ClockSkewSeconds: 20,
+			},
+			expected: &JWTProviderConfigEntry{
+				Kind:      JWTProvider,
+				Name:      "test-jwt-provider",
+				Issuer:    "iss",
+				Audiences: []string{"api", "web"},
+				CacheConfig: &JWTCacheConfig{
+					Size: 30,
+				},
+				JSONWebKeySet: &JSONWebKeySet{
+					Remote: &RemoteJWKS{
+						FetchAsynchronously: true,
+						URI:                 "https://example.com/.well-known/jwks.json",
+						RetryPolicy: &JWKSRetryPolicy{
+							RetryPolicyBackOff: &RetryPolicyBackOff{
+								BaseInterval: &tenSeconds,
+								MaxInterval:  &hundredSeconds,
+							},
+						},
+					},
+				},
+				Forwarding: &JWTForwardingConfig{
+					HeaderName: "Some-Header",
+				},
+				Locations: []*JWTLocation{
+					{
+						Cookie: &JWTLocationCookie{
+							Name: "SomeCookie",
+						},
+					},
+				},
+				ClockSkewSeconds: 20,
+				EnterpriseMeta:   *defaultMeta,
+			},
+		},
 	}
 
 	testConfigEntryNormalizeAndValidate(t, cases)
@@ -285,6 +346,18 @@ func TestJWTProviderConfigEntry_ACLs(t *testing.T) {
 				{
 					name:       "jwt-provider: mesh write",
 					authorizer: newTestAuthz(t, `mesh = "write"`),
+					canRead:    true,
+					canWrite:   true,
+				},
+				{
+					name:       "jwt-provider: operator read",
+					authorizer: newTestAuthz(t, `operator = "read"`),
+					canRead:    true,
+					canWrite:   false,
+				},
+				{
+					name:       "jwt-provider: operator write",
+					authorizer: newTestAuthz(t, `operator = "write"`),
 					canRead:    true,
 					canWrite:   true,
 				},
