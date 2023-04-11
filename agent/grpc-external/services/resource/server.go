@@ -72,7 +72,6 @@ func tokenFromContext(ctx context.Context) string {
 	return vals[0]
 }
 
-//nolint:unparam
 func (s *Server) resolveType(typ *pbresource.Type) (*resource.Registration, error) {
 	v, ok := s.Registry.Resolve(typ)
 	if ok {
