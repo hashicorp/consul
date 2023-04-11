@@ -1,0 +1,4 @@
+```release-note:improvement
+agent/hcp: Upgrade hcp-scada-provider library to stop excessive logging when connected to HCP
+```
+
