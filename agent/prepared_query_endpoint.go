@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package agent
 
 import (
@@ -19,7 +16,7 @@ type preparedQueryCreateResponse struct {
 }
 
 // preparedQueryCreate makes a new prepared query.
-func (s *HTTPHandlers) preparedQueryCreate(_ http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) preparedQueryCreate(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	args := structs.PreparedQueryRequest{
 		Op: structs.PreparedQueryCreate,
 	}
@@ -30,7 +27,7 @@ func (s *HTTPHandlers) preparedQueryCreate(_ http.ResponseWriter, req *http.Requ
 	}
 
 	var reply string
-	if err := s.agent.RPC(req.Context(), "PreparedQuery.Apply", &args, &reply); err != nil {
+	if err := s.agent.RPC("PreparedQuery.Apply", &args, &reply); err != nil {
 		return nil, err
 	}
 	return preparedQueryCreateResponse{reply}, nil
@@ -46,7 +43,7 @@ func (s *HTTPHandlers) preparedQueryList(resp http.ResponseWriter, req *http.Req
 	var reply structs.IndexedPreparedQueries
 	defer setMeta(resp, &reply.QueryMeta)
 RETRY_ONCE:
-	if err := s.agent.RPC(req.Context(), "PreparedQuery.List", &args, &reply); err != nil {
+	if err := s.agent.RPC("PreparedQuery.List", &args, &reply); err != nil {
 		return nil, err
 	}
 	if args.QueryOptions.AllowStale && args.MaxStaleDuration > 0 && args.MaxStaleDuration < reply.LastContact {
@@ -142,7 +139,7 @@ func (s *HTTPHandlers) preparedQueryExecute(id string, resp http.ResponseWriter,
 		reply = *r
 	} else {
 	RETRY_ONCE:
-		if err := s.agent.RPC(req.Context(), "PreparedQuery.Execute", &args, &reply); err != nil {
+		if err := s.agent.RPC("PreparedQuery.Execute", &args, &reply); err != nil {
 			// We have to check the string since the RPC sheds
 			// the specific error type.
 			if structs.IsErrQueryNotFound(err) {
@@ -195,7 +192,7 @@ func (s *HTTPHandlers) preparedQueryExplain(id string, resp http.ResponseWriter,
 	var reply structs.PreparedQueryExplainResponse
 	defer setMeta(resp, &reply.QueryMeta)
 RETRY_ONCE:
-	if err := s.agent.RPC(req.Context(), "PreparedQuery.Explain", &args, &reply); err != nil {
+	if err := s.agent.RPC("PreparedQuery.Explain", &args, &reply); err != nil {
 		// We have to check the string since the RPC sheds
 		// the specific error type.
 		if structs.IsErrQueryNotFound(err) {
@@ -224,7 +221,7 @@ func (s *HTTPHandlers) preparedQueryGet(id string, resp http.ResponseWriter, req
 	var reply structs.IndexedPreparedQueries
 	defer setMeta(resp, &reply.QueryMeta)
 RETRY_ONCE:
-	if err := s.agent.RPC(req.Context(), "PreparedQuery.Get", &args, &reply); err != nil {
+	if err := s.agent.RPC("PreparedQuery.Get", &args, &reply); err != nil {
 		// We have to check the string since the RPC sheds
 		// the specific error type.
 		if structs.IsErrQueryNotFound(err) {
@@ -262,7 +259,7 @@ func (s *HTTPHandlers) preparedQueryUpdate(id string, resp http.ResponseWriter, 
 	args.Query.ID = id
 
 	var reply string
-	if err := s.agent.RPC(req.Context(), "PreparedQuery.Apply", &args, &reply); err != nil {
+	if err := s.agent.RPC("PreparedQuery.Apply", &args, &reply); err != nil {
 		return nil, err
 	}
 	return nil, nil
@@ -280,7 +277,7 @@ func (s *HTTPHandlers) preparedQueryDelete(id string, resp http.ResponseWriter, 
 	s.parseToken(req, &args.Token)
 
 	var reply string
-	if err := s.agent.RPC(req.Context(), "PreparedQuery.Apply", &args, &reply); err != nil {
+	if err := s.agent.RPC("PreparedQuery.Apply", &args, &reply); err != nil {
 		return nil, err
 	}
 	return nil, nil

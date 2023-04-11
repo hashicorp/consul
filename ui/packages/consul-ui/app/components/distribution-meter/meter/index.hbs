@@ -1,0 +1,64 @@
+<CustomElement
+  @element="distribution-meter-meter"
+  @class={{require './element'
+    from='/components/distribution-meter/meter'}}
+
+  @attrs={{array
+    (array 'percentage' 'number' 0
+      'The percentage to be used for the meter'
+    )
+    (array 'description' 'string' ''
+      'Textual value to describe the meters value'
+    )
+  }}
+
+  @cssprops={{array
+    (array '--percentage' 'percentage' '[percentage]'
+      'Read-only alias of the percentage attribute'
+    )
+    (array '--aggregated-percentage' 'percentage' undefined
+      'Aggregated percentage of all meters within the distribution meter'
+    )
+  }}
+as |custom element|>
+
+  <distribution-meter-meter
+    {{did-insert custom.connect}}
+    {{will-destroy custom.disconnect}}
+    class={{class-map
+      (array (concat 'type-' @type) @type)
+    }}
+    ...attributes
+  >
+    <custom.Template
+      @styles={{css-map
+        (require '/styles/base/decoration/visually-hidden.css'
+          from='/components/distribution-meter/meter')
+        (require './index.css'
+          from='/components/distribution-meter/meter')
+      }}
+    >
+      <dt>{{element.attrs.description}}</dt>
+      <dd aria-label={{concat element.attrs.percentage '%'}}>
+        <meter min="0" max="100" value={{element.attrs.percentage}}>
+          <slot>{{concat element.attrs.percentage '%'}}</slot>
+        </meter>
+        {{#if (or (eq @type 'circular') (eq @type 'radial'))}}
+          <svg
+            aria-hidden="true"
+            viewBox="0 0 32 32"
+            clip-path="circle()"
+          >
+            <circle
+              r="16"
+              cx="16"
+              cy="16"
+            />
+          </svg>
+        {{/if}}
+      </dd>
+    </custom.Template>
+  </distribution-meter-meter>
+
+</CustomElement>
+

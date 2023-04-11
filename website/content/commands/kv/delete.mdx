@@ -1,21 +1,19 @@
 ---
 layout: commands
 page_title: 'Commands: KV Delete'
-description: >-
-  The `consul kv delete` command removes a value from Consul's key/value store.
 ---
 
 # Consul KV Delete
 
 Command: `consul kv delete`
 
-Corresponding HTTP API Endpoint: [\[DELETE\] /v1/kv/:key](/consul/api-docs/kv#delete-key)
+Corresponding HTTP API Endpoint: [\[DELETE\] /v1/kv/:key](/api-docs/kv#delete-key)
 
 The `kv delete` command removes the value from Consul's KV store at the
 given path. If no key exists at the path, no action is taken.
 
-The table below shows this command's [required ACLs](/consul/api-docs/api-structure#authentication). Configuration of
-[blocking queries](/consul/api-docs/features/blocking) and [agent caching](/consul/api-docs/features/caching)
+The table below shows this command's [required ACLs](/api-docs/api-structure#authentication). Configuration of
+[blocking queries](/api-docs/features/blocking) and [agent caching](/api-docs/features/caching)
 are not supported from commands, but may be from the corresponding HTTP endpoint.
 
 | ACL Required |

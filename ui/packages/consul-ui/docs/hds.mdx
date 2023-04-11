@@ -4,50 +4,50 @@ title: Hashicorp Design System
 
 # Hashicorp Design System
 
-The application integrates setup that make it possible to use the [Hashicorp Design System (HDS)](https://github.com/hashicorp/design-system) in the application. The application also
-bundles [TailwindCSS](https://tailwindcss.com/) to follow a utility-based CSS approach that mixes well with HDS utility classes. Tailwind is expected to be used
-as a supplement to HDS's utility classes, and should mainly be used for layouting.
+The application integrates setup that make it possible to use the [Hashicorp Design System (HDS)](https://github.com/hashicorp/design-system) in the application.
 
 ## Design Tokens
 
+HDS ships a set of [design tokens](https://design-system-components-hashicorp.vercel.app/foundations/tokens), which are implemented as CSS custom properties.
+To make it easy to work with these design tokens without having to work with verbose CSS properties all over the place, we have setup a [TailwindCSS](https://tailwindcss.com/)-configuration that makes the color tokens
+available via functional [utility classes](https://tailwindcss.com/docs/customizing-colors).
+
 ### Colors
 
-To make sure we follow HDS-guidelines, we disabled Tailwind's color utilities completely. Instead of relying on Tailwind for colors, you should be working with the colors from HashiCorp-Design-System and follow the [guidance in the docs](https://design-system-components-hashicorp.vercel.app/foundations/colors) on how to use them:
+You can work with any color from the HDS by prefixing colors with the `hds-`-prefix. The `hds-`-prefix makes it easy to see what classes are auto-generated from HDS. When we wanted to color a header tag with the `consul-brand`-color we could do it like this for example:
 
 ```hbs preview-template
-<h2 class='hds-foreground-strong'>
+<h2 class="text-hds-consul-brand">
   HDS is awesome
 </h2>
 ```
 
-Regular TailwindCSS colors aren't available.
+Regular tailwindCss colors aren't available. You can only use colors defined in HDS with this pattern.
 
 ```hbs preview-template
-<h2 class='text-red-400'>
+<h2 class="text-red-400">
   TailwindCSS colors won't work
 </h2>
 ```
 
-### HDS core styles
+### Other tokens
 
-HDS core styles are available via the provided `hds`-[utility-classes](https://design-system-components-hashicorp.vercel.app/foundations/typography) made available via `@hashicorp/design-system-tokens`.
+Other tokens than colors are available via the provided `hds`-[helper-classes](https://design-system-components-hashicorp.vercel.app/foundations/typography) made available via `@hashicorp/design-system-tokens`.
 
-You for example would work with HDS' typography styles in this way:
+You for example would work with HDS' typography tokens in this way:
 
 ```hbs preview-template
-<p class='hds-typography-display-400'>
+<p class="hds-typography-display-400">
   A paragraph styled via HDS.
 </p>
 ```
 
-Because HDS provides utility classes for core styles, you should not be using Tailwind classes to customize core styles like typography.
-
 ### Combining HDS and Tailwind
 
-Tailwind is used as a supplement to what HDS provides. You will be using Tailwind for layouting and other utility functionality that isn't provided by HDS.
+Because we are working with a customized tailwind configuration it is easy to combine HDS design tokens with regular tailwind utility classes:
 
 ```hbs preview-template
-<button type='button' class='underline transform scale-100 transition ease-in-out hover:scale-125'>
+<button type="button" class="text-hds-consul-brand underline transform scale-100 transition ease-in-out hover:text-hds-consul-foreground hover:scale-125">
   Hover me
 </button>
 ```
@@ -57,58 +57,46 @@ Tailwind is used as a supplement to what HDS provides. You will be using Tailwin
 All components from Hashicorp Design System are available for you to use. Here's an example that shows how to implement a navigation bar with HDS and Tailwind in combination.
 
 ```hbs preview-template
-<nav
-  class='h-16 w-full consul-surface-nav flex items-center justify-between px-4 hds-font-weight-medium'
->
-  <ul class='flex items-center'>
+<nav class="h-16 w-full bg-hds-foreground-strong flex items-center justify-between px-4 hds-font-weight-medium">
+  <ul class="flex items-center">
     <li>
       {{! should probably be a context-switcher }}
       <FlightIcon
-        @name='menu'
-        @color='var(--token-color-foreground-high-contrast)'
-        class='cursor-pointer'
+        @name="menu"
+        class="fill-current cursor-pointer text-hds-neutral-200"
       />
     </li>
     <li>
-      <FlightIcon @name='consul' class='ml-4 h-8 w-8' @color='var(--token-color-consul-brand)' />
+      <FlightIcon
+        @name="consul"
+        class="fill-current ml-4 h-8 w-8 text-hds-consul-brand"
+      />
     </li>
   </ul>
-  <ul class='flex items-center space-x-2'>
+  <ul class="flex items-center">
     <li>
       <Hds::Dropdown as |dd|>
-        <dd.ToggleButton @text='Help' />
-        <dd.Title @text='Consul HDS' />
-        <dd.Interactive @text='Documentation' @icon='docs-link' />
-        <dd.Interactive @text='HashiCorp Learn' @icon='learn-link' />
+        <dd.ToggleButton
+          @text="Help"
+          @color="secondary"
+          class="text-hds-neutral-300"
+        />
+        <dd.Title @text="Consul HDS" />
+        <dd.Interactive @text="Documentation" @icon="docs-link" />
+        <dd.Interactive @text="HashiCorp Learn" @icon="learn-link" />
         <dd.Separator />
-        <dd.Interactive @text='Provide Feedback' @icon='github' />
+        <dd.Interactive @text="Provide Feedback" @icon="github" />
       </Hds::Dropdown>
     </li>
     <li>
-      <Hds::Link::Standalone
-        @href='https://hashicorp.com'
-        @icon='settings'
-        @iconPosition='trailing'
-        @size='medium'
-        @text='Settings'
+      <Hds::Button
+        @text="Settings"
+        @color="tertiary"
+        @icon="settings"
+        @iconPosition="trailing"
+        class="text-hds-neutral-300"
       />
     </li>
   </ul>
 </nav>
 ```
-
-Please notice the custom `consul-surface-nav`-utility class. This class has been created because at the moment of writing,
-there wasn't a `hds-surface-` that matched what we needed for this navigation header. If you run into situations like
-that, you can add a `consul-`-utility class to the `utilities`-layer in `tailwind.scss`.
-
-```css
-// consul-ui/app/styles/tailwind.scss
-@layer utilities {
-  .consul-surface-nav {
-    background: var(--token-color-palette-neutral-700);
-  }
-  // ...
-}
-```
-
-This should only be used as a last resort and you should stick to `hds-`-utilities whenever possible.

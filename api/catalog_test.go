@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package api
 
 import (
@@ -329,12 +326,11 @@ func TestAPI_CatalogService_SingleTag(t *testing.T) {
 
 	agent := c.Agent()
 	catalog := c.Catalog()
-	locality := &Locality{Region: "us-west-1", Zone: "us-west-1a"}
+
 	reg := &AgentServiceRegistration{
-		Name:     "foo",
-		ID:       "foo1",
-		Tags:     []string{"bar"},
-		Locality: locality,
+		Name: "foo",
+		ID:   "foo1",
+		Tags: []string{"bar"},
 	}
 	require.NoError(t, agent.ServiceRegister(reg))
 	defer agent.ServiceDeregister("foo1")
@@ -345,7 +341,6 @@ func TestAPI_CatalogService_SingleTag(t *testing.T) {
 		require.NotEqual(r, meta.LastIndex, 0)
 		require.Len(r, services, 1)
 		require.Equal(r, services[0].ServiceID, "foo1")
-		require.Equal(r, locality, services[0].ServiceLocality)
 	})
 }
 

@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 import Service, { inject as service } from '@ember/service';
 import { runInDebug } from '@ember/debug';
 import { proxy } from 'consul-ui/utils/dom/event-source';

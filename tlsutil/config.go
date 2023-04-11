@@ -1,12 +1,10 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package tlsutil
 
 import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
+	"io/ioutil"
 	"net"
 	"os"
 	"path/filepath"
@@ -19,7 +17,7 @@ import (
 	"github.com/hashicorp/go-multierror"
 
 	"github.com/hashicorp/consul/logging"
-	"github.com/hashicorp/consul/proto/private/pbconfig"
+	"github.com/hashicorp/consul/proto/pbconfig"
 	"github.com/hashicorp/consul/types"
 )
 
@@ -518,7 +516,7 @@ func LoadCAs(caFile, caPath string) ([]string, error) {
 	pems := []string{}
 
 	readFn := func(path string) error {
-		pem, err := os.ReadFile(path)
+		pem, err := ioutil.ReadFile(path)
 		if err != nil {
 			return fmt.Errorf("Error loading from %s: %s", path, err)
 		}

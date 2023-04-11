@@ -1,8 +1,3 @@
-{{!
-  Copyright (c) HashiCorp, Inc.
-  SPDX-License-Identifier: MPL-2.0
-}}
-
 <ChildSelector
   @disabled={{disabled}}
   @repo={{repo}}
@@ -15,22 +10,20 @@
   ...attributes
 >
   {{yield}}
-  <BlockSlot @name="label" data-test-apply-policy>
+  <BlockSlot @name="label">
     Apply an existing policy
   </BlockSlot>
   <BlockSlot @name="create">
     {{#yield-slot name='trigger'}}
       {{yield}}
     {{else}}
-      <Hds::Button
-        @text='Create new policy'
-        @size='small'
-        @color='tertiary'
-        @icon='plus'
-        class='type-dialog'
+      <label
+        class="type-dialog"
         data-test-policy-create
         {{on "click" (action this.openModal)}}
-      />
+      >
+        <span>Create new policy</span>
+      </label>
       {{!TODO: potentially call trigger something else}}
       {{!the modal has to go here so that if you provide a slot to trigger it doesn't get rendered}}
       <ModalDialog
@@ -55,22 +48,16 @@
           />
         </BlockSlot>
         <BlockSlot @name="actions" as |close|>
-          <Hds::ButtonSet>
-            <Hds::Button
-              type="submit"
-              @isLoading={{item.isSaving}}
-              onclick={{perform this.save item items (queue (action close) (action 'reset'))}}
-              disabled={{if (or item.isSaving item.isPristine item.isInvalid) 'disabled'}}
-              @text='Create and apply'
-            />
-            <Hds::Button
-              type="reset"
-              @color="secondary"
-              disabled={{if item.isSaving 'disabled'}}
-              {{on 'click' (action (queue (action close) (action 'reset')))}}
-              @text='Cancel'
-            />
-          </Hds::ButtonSet>
+          <button type="submit"
+            onclick={{perform this.save item items (queue (action close) (action 'reset'))}}
+            disabled={{if (or item.isSaving item.isPristine item.isInvalid) 'disabled'}}
+          >
+            {{#if item.isSaving }}
+              <div class="progress indeterminate"></div>
+            {{/if}}
+            <span>Create and apply</span>
+          </button>
+          <button type="reset" disabled={{if item.isSaving 'disabled'}} {{action (queue (action close) (action 'reset'))}}>Cancel</button>
         </BlockSlot>
       </ModalDialog>
     {{/yield-slot}}
@@ -174,34 +161,15 @@
           <div>
             <ConfirmationDialog @message="Are you sure you want to remove this policy from this token?">
               <BlockSlot @name="action" as |confirm|>
-                <Hds::Button
-                  @text='Remove'
-                  @color='critical'
-                  @size='small'
-                  {{action confirm 'remove' item items}}
-                  data-test-delete
-                />
+                <button data-test-delete type="button" class="type-delete" {{action confirm 'remove' item items}}>Remove</button>
               </BlockSlot>
               <BlockSlot @name="dialog" as |execute cancel message|>
                 <p>
                   {{message}}
                 </p>
-                <Hds::ButtonSet>
-                  <Hds::Button
-                    @text='Confirm remove'
-                    @color='critical'
-                    @size='small'
-                    {{action execute}}
-                    data-test-delete
-                  />
-                  <Hds::Button
-                    @text='Cancel'
-                    @color='secondary'
-                    @size='small'
-                    {{action cancel}}
-                    data-test-delete
-                  />
-                </Hds::ButtonSet>
+
+                <button type="button" class="type-delete" {{action execute}}>Confirm remove</button>
+                <button type="button" class="type-cancel" {{action cancel}}>Cancel</button>
               </BlockSlot>
             </ConfirmationDialog>
           </div>

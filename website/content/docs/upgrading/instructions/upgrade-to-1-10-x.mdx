@@ -12,7 +12,7 @@ description: >-
 
 This guide explains how to best upgrade a single Consul Enterprise datacenter to latest v1.10.x
 from a version of Consul that is forward compatible with v1.10. If you are on a major
-version of Consul prior to 1.8, you must first [upgrade to latest 1.8.x](/consul/docs/upgrading/instructions/upgrade-to-1-8-x)
+version of Consul prior to 1.8, you must first [upgrade to latest 1.8.x](/docs/upgrading/instructions/upgrade-to-1-8-x)
 before continuing with this guide. If you are already on a major version of 1.8 or 1.9, then
 this guide will go over the procedures required for upgrading to v1.10.x. This process
 will require intermediate version upgrades to a forward-compatible release of v1.8 or v1.9,
@@ -20,32 +20,32 @@ as well as other licensing related configuration changes. If you have multiple C
 upgrade them in the normal order and take the following instructions into account for each upgrade.
 
 For the open source version of Consul please follow the
-[General Upgrade Process](/consul/docs/upgrading/instructions/general-process).
+[General Upgrade Process](/docs/upgrading/instructions/general-process).
 
 ~> You can only upgrade to Consul Enterprise 1.10 from a version of Consul Enterprise
 1.8 >= 1.8.13 or 1.9 >= 1.9.7. Other versions of Consul Enterprise are not forward
 compatible with v1.10 and will cause issues during the upgrade that could result in
-agents failing to start due to [changes in the way we manage licenses](/consul/docs/enterprise/license/faq).
+agents failing to start due to [changes in the way we manage licenses](/docs/enterprise/license/faq).
 
 ## Requirements
 
 - All Consul servers, clients, and snapshot agents should be on a version of Consul >= 1.8.0 and < 1.10.0. If
-  they are not at the minimum version or higher, follow the [normal upgrade procedures](/consul/docs/upgrading) to upgrade them until the version requirement is met.
+  they are not at the minimum version or higher, follow the [normal upgrade procedures](/docs/upgrading) to upgrade them until the version requirement is met.
 
 ## Assumptions
 
 This guides makes the following assumptions:
 
-- You are familiar with the [General Upgrade Process](/consul/docs/upgrading/instructions/general-process).
+- You are familiar with the [General Upgrade Process](/docs/upgrading/instructions/general-process).
 - You have the ability to run Consul CLI commands.
 - If ACLs are in use, then you possess a token with at least `operator:read` permissions.
 
 ## Considerations
 
-The licensing changes outlined on the [Specific Version Details](/consul/docs/upgrading/upgrade-specific#consul-1-10-0)
+The licensing changes outlined on the [Specific Version Details](/docs/upgrading/upgrade-specific#consul-1-10-0)
 page are the main breaking changes in Consul Enterprise 1.10 that require special handling during the upgrade process.
 The page also describes other changes that might cause issues during an upgrade.
-You can also review the [licensing FAQ](/consul/docs/enterprise/license/faq), which includes granular details, as well as the full
+You can also review the [licensing FAQ](/docs/enterprise/license/faq), which includes granular details, as well as the full
 [changelog](https://github.com/hashicorp/consul/blob/main/CHANGELOG.md#1100-june-22-2021).
 We strongly recommend reviewing the changes prior to upgrading.
 
@@ -54,8 +54,8 @@ We strongly recommend reviewing the changes prior to upgrading.
 ~> Any steps in the following section that mention upgrading servers/clients assume that normal safe upgrade
 procedures are followed. Licensing-related configuration changes are required for upgrading to 1.10.
 Intermediate version upgrades are also required to ensure forward compatibility.
-Refer to our documentation for the [basic server upgrade process](/consul/docs/upgrading/instructions/general-process),
-and for [autopilot assisted upgrades](/consul/tutorials/datacenter-operations/upgrade-automation)
+Refer to our documentation for the [basic server upgrade process](/docs/upgrading/instructions/general-process),
+and for [autopilot assisted upgrades](https://learn.hashicorp.com/tutorials/consul/upgrade-automation)
 for more information.
 
 **1.** Retrieve the datacenter's current license by executing the following CLI command:
@@ -113,7 +113,7 @@ are operating Consul within Kubernetes.
 
 **5.** Upgrade all client agents to the latest 1.8.x or 1.9.x release.
 
-**6.** Upgrade all [snapshot agents](/consul/commands/snapshot/agent) to the latest 1.8.x or 1.9.x release.
+**6.** Upgrade all [snapshot agents](/commands/snapshot/agent) to the latest 1.8.x or 1.9.x release.
 
 **7.** Take a snapshot of the upgraded cluster by running the following command:
 
@@ -122,7 +122,7 @@ consul snapshot save intermediate.snap
 ```
 
 Note that you can run the command from anywhere Consul is already running or from a location that has network access to the cluster.
-If run elsewhere, [additional command line options](/consul/commands/snapshot/save#api-options) may be needed to direct the request to the right Consul API.
+If run elsewhere, [additional command line options](/commands/snapshot/save#api-options) may be needed to direct the request to the right Consul API.
 
 Note that you will need to ensure there is enough disk space in the current directory
 to store the snapshot. In the worst case, the snapshot size could be close to the amount
@@ -135,21 +135,21 @@ the snapshot would make it possible to restore the previous state.
 
 This can either be set with the `license_path` configuration item, the
 `CONSUL_LICENSE_PATH` environment variable, or the `CONSUL_LICENSE`
-environment variable. See the [licensing documentation](/consul/docs/enterprise/license/overview)
+environment variable. See the [licensing documentation](/docs/enterprise/license/overview)
 for more information about how to configure the license.
-You can also refer to the [Apply Enterprise License](/consul/tutorials/production-deploy/deployment-guide#apply-enterprise-license) tutorial for additional information.
+You can also refer to the [Apply Enterprise License](https://learn.hashicorp.com/tutorials/consul/deployment-guide#apply-enterprise-license) tutorial for additional information.
 
 **9.** Upgrade all server agents to latest v1.10.x.
 
 **10.** Upgrade all client agents to latest v1.10.x.
 
-**11.** Upgrade all [snapshot agents](/consul/commands/snapshot/agent) to latest v1.10.x.
+**11.** Upgrade all [snapshot agents](/commands/snapshot/agent) to latest v1.10.x.
 
 </Tab>
 <Tab heading="ACLs Disabled">
 
 ~> We do not recommend running in production with ACLs disabled. An alternative upgrade
-path involves first enabling ACLs by following [this tutorial](/consul/tutorials/security/access-control-setup-production)
+path involves first enabling ACLs by following [this tutorial](https://learn.hashicorp.com/tutorials/consul/access-control-setup-production)
 and then proceeding with the instructions within the "ACLs Enabled" tab.
 
 **4.** Upgrade all server agents to the latest 1.8.x or 1.9.x release.
@@ -158,9 +158,9 @@ and then proceeding with the instructions within the "ACLs Enabled" tab.
 
 This can either be set with the `license_path` configuration item, the
 `CONSUL_LICENSE_PATH` environment variable, or the `CONSUL_LICENSE`
-environment variable. See the [licensing documentation](/consul/docs/enterprise/license/overview)
+environment variable. See the [licensing documentation](/docs/enterprise/license/overview)
 for more information about how to configure the license.
-You can also refer to the [Apply Enterprise License](/consul/tutorials/production-deploy/deployment-guide#apply-enterprise-license) tutorial for additional information.
+You can also refer to the [Apply Enterprise License](https://learn.hashicorp.com/tutorials/consul/deployment-guide#apply-enterprise-license) tutorial for additional information.
 Note that while Consul Enterprise 1.8.13 and 1.9.7 have the ability to load the license
 from these configurations, it is intended to only be used during upgrades.
 Licenses loaded this way are not online reloadable. It is therefore important
@@ -171,7 +171,7 @@ to promptly proceed with the upgrade and not leave agents in the intermediate st
 **7.** Pre-configure the snapshot agents with a license. This is the same process that
 was executed for the servers in step 5.
 
-**8.** Upgrade all [snapshot agents](/consul/commands/snapshot/agent) to the latest 1.8.x or 1.9.x release.
+**8.** Upgrade all [snapshot agents](/commands/snapshot/agent) to the latest 1.8.x or 1.9.x release.
 
 **9.** Take a snapshot of the upgraded cluster by running the following command:
 
@@ -196,7 +196,7 @@ was executed for the servers in step 5.
 
 **12.** Upgrade all client agents to latest v1.10.x.
 
-**13.** Upgrade all [snapshot agents](/consul/commands/snapshot/agent) to latest v1.10.x.
+**13.** Upgrade all [snapshot agents](/commands/snapshot/agent) to latest v1.10.x.
 
 </Tab>
 <Tab heading="Kubernetes">
@@ -213,9 +213,9 @@ values `server.enterpriseLicense.secretName` and `server.enterpriseLicense.secre
 
 **7.** Upgrade the cluster.
 
-Follow the steps in the [Kubernetes Upgrade Guide](/consul/docs/k8s/upgrade#upgrade-consul-on-kubernetes)
-to upgrade the cluster. Ensure you check the steps to upgrade the [servers](/consul/docs/k8s/upgrade#upgrading-consul-servers)
-and the [clients](/consul/docs/k8s/upgrade#upgrading-consul-clients).
+Follow the steps in the [Kubernetes Upgrade Guide](/docs/k8s/upgrade#upgrade-consul-on-kubernetes)
+to upgrade the cluster. Ensure you check the steps to upgrade the [servers](/docs/k8s/upgrade#upgrading-consul-servers)
+and the [clients](/docs/k8s/upgrade#upgrading-consul-clients).
 
 **8.** **If** the Consul servers are running outside the Kubernetes cluster, ensure they are upgraded
 to 1.10.0 before the next steps. Otherwise, this step can be skipped.
@@ -223,9 +223,9 @@ to 1.10.0 before the next steps. Otherwise, this step can be skipped.
 This will require pre-configuring the servers with a license
 before running 1.10. This can either be set with the `license_path` configuration item, the
 `CONSUL_LICENSE_PATH` environment variable or the `CONSUL_LICENSE`
-environment variable. See the [licensing documentation](/consul/docs/enterprise/license/overview)
+environment variable. See the [licensing documentation](/docs/enterprise/license/overview)
 for more information about how to configure the license.
-You can also refer to the [Apply Enterprise License](/consul/tutorials/production-deploy/deployment-guide#apply-enterprise-license) tutorial for additional information.
+You can also refer to the [Apply Enterprise License](https://learn.hashicorp.com/tutorials/consul/deployment-guide#apply-enterprise-license) tutorial for additional information.
 Note that while Consul Enterprise 1.8.13 and 1.9.7 have the ability to load the license
 from these configurations, it is intended to only be used during upgrades.
 Licenses loaded this way are not online reloadable. It is therefore important
@@ -235,9 +235,9 @@ to promptly proceed with the upgrade and not leave agents in the intermediate st
 
 **10.** Upgrade the cluster.
 
-Follow the steps in the [Kubernetes Upgrade Guide](/consul/docs/k8s/upgrade#upgrade-consul-on-kubernetes)
-to then upgrade the cluster. Ensure you check the steps to upgrade the [servers](/consul/docs/k8s/upgrade#upgrading-consul-servers)
-and the [clients](/consul/docs/k8s/upgrade#upgrading-consul-clients).
+Follow the steps in the [Kubernetes Upgrade Guide](/docs/k8s/upgrade#upgrade-consul-on-kubernetes)
+to then upgrade the cluster. Ensure you check the steps to upgrade the [servers](/docs/k8s/upgrade#upgrading-consul-servers)
+and the [clients](/docs/k8s/upgrade#upgrading-consul-clients).
 
 </Tab>
 </Tabs>

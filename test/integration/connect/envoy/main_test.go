@@ -1,12 +1,10 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 //go:build integration
 // +build integration
 
 package envoy
 
 import (
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"sort"
@@ -59,7 +57,7 @@ func discoverCases() ([]string, error) {
 		return nil, err
 	}
 
-	dirs, err := os.ReadDir(cwd)
+	dirs, err := ioutil.ReadDir(cwd)
 	if err != nil {
 		return nil, err
 	}

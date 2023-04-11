@@ -1,0 +1,50 @@
+# Notice
+
+Presentational component for informational/warning/error banners/notices.
+
+
+```hbs preview-template
+<Notice
+  @type={{this.type}}
+as |notice|>
+  <notice.Header>
+    <h3>Header</h3>
+  </notice.Header>
+  <notice.Body>
+    <p>
+      Body
+    </p>
+  </notice.Body>
+  <notice.Footer>
+    <p>
+      <a href="">Footer link</a>
+    </p>
+  </notice.Footer>
+</Notice>
+
+<figure>
+  <figcaption>Provide a widget to change the <code>@type</code></figcaption>
+
+  <select
+    onchange={{action (mut this.type) value="target.value"}}
+  >
+    <option>info</option>
+    <option>success</option>
+    <option>warning</option>
+    <option>error</option>
+  </select>
+
+</figure>
+```
+
+## Arguments
+
+| Argument/Attribute | Type | Default | Description |
+| --- | --- | --- | --- |
+| `type` | `String` | `info` | Type of notice [info\|warning\|error] |
+
+## See
+
+- [Template Source Code](./index.hbs)
+
+---

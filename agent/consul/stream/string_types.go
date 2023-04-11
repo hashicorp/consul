@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package stream
 
 // StringSubject can be used as a Subject for Events sent to the EventPublisher

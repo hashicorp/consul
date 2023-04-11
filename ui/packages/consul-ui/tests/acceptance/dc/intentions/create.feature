@@ -59,8 +59,8 @@ Feature: dc / intentions / create: Intention Create
     ---
     Then the url should be /datacenter/intentions
     And the title should be "Intentions - Consul"
-    And "[data-notification]" has the "hds-toast" class
-    And "[data-notification]" has the "hds-alert--color-success" class
+    And "[data-notification]" has the "notification-update" class
+    And "[data-notification]" has the "success" class
   @notNamespaceable
   Scenario: with namespaces disabled
     Given 1 datacenter model with the value "datacenter"
@@ -101,5 +101,5 @@ Feature: dc / intentions / create: Intention Create
     ---
     Then the url should be /datacenter/intentions
     And the title should be "Intentions - Consul"
-    And "[data-notification]" has the "hds-toast" class
-    And "[data-notification]" has the "hds-alert--color-success" class
+    And "[data-notification]" has the "notification-update" class
+    And "[data-notification]" has the "success" class

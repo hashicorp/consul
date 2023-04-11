@@ -1,15 +1,8 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 import { module, skip, test } from 'qunit';
 import promisedTimeout from 'consul-ui/utils/promisedTimeout';
 
 module('Unit | Utils | promisedTimeout', function () {
   test('it calls setTimeout with the correct milliseconds', function (assert) {
-    assert.expect(2);
-
     const expected = 1000;
     const P = function (cb) {
       cb(function (milliseconds) {

@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 import Modifier from 'ember-modifier';
 import { inject as service } from '@ember/service';
 import { runInDebug } from '@ember/debug';
@@ -31,7 +26,6 @@ export default class WithCopyableModifier extends Modifier {
     this.source = this.clipboard
       .execute(this.element, {
         text: (_) => value,
-        container: this.element,
         ...hash.options,
       })
       .on('success', hash.success)

@@ -50,15 +50,15 @@
       },
       {
         "title": "Learn HCP Consul",
-        "href": "https://developer.hashicorp.com/consul/tutorials/get-started-hcp"
+        "href": "https://learn.hashicorp.com/tutorials/cloud/get-started-consul"
       },
       {
         "title": "Learn Consul on Kubernetes",
-        "href": "https://developer.hashicorp.com/consul/tutorials/get-started-kubernetes"
+        "href": "https://learn.hashicorp.com/tutorials/consul/service-mesh-deploy"
       },
       {
         "title": "Learn Consul on VMs",
-        "href": "https://developer.hashicorp.com/consul/tutorials/get-started-vms"
+        "href": "https://learn.hashicorp.com/collections/consul/get-started-vms"
       },
       {
         "title": "Manual Bootstrap",
@@ -146,10 +146,6 @@
         "title": "Consul",
         "routes": [
           {
-            "title": "v1.15.x",
-            "path": "release-notes/consul/v1_15_x"
-          },
-          {
             "title": "v1.14.x",
             "path": "release-notes/consul/v1_14_x"
           },
@@ -179,10 +175,6 @@
         "title": "Consul K8s",
         "routes": [
           {
-            "title": "v1.1.x",
-            "path": "release-notes/consul-k8s/v1_1_x"
-          },
-          {
             "title": "v1.0.x",
             "path": "release-notes/consul-k8s/v1_0_x"
           },
@@ -201,12 +193,8 @@
         ]
       },
       {
-        "title": "API Gateway for Kubernetes",
+        "title": "Consul API Gateway",
         "routes": [
-          {
-            "title": "v0.5.x",
-            "path": "release-notes/consul-api-gateway/v0_5_x"
-          },
           {
             "title": "v0.4.x",
             "path": "release-notes/consul-api-gateway/v0_4_x"
@@ -401,42 +389,6 @@
             "path": "connect/config-entries"
           },
           {
-            "title": "API Gateway",
-            "href": "/consul/docs/connect/gateways/api-gateway/configuration/api-gateway",
-            "badge": {
-              "text": "BETA",
-              "type": "outlined",
-              "color": "neutral"
-            }
-          },
-          {
-            "title": "HTTP Route",
-            "href": "/consul/docs/connect/gateways/api-gateway/configuration/http-route",
-            "badge": {
-              "text": "BETA",
-              "type": "outlined",
-              "color": "neutral"
-            }
-          },
-          {
-            "title": "TCP Route",
-            "href": "/consul/docs/connect/gateways/api-gateway/configuration/tcp-route",
-            "badge": {
-              "text": "BETA",
-              "type": "outlined",
-              "color": "neutral"
-            }
-          },
-          {
-            "title": "Inline Certificate",
-            "href": "/consul/docs/connect/gateways/api-gateway/configuration/inline-certificate",
-            "badge": {
-              "text": "BETA",
-              "type": "outlined",
-              "color": "neutral"
-            }
-          },
-          {
             "title": "Ingress Gateway",
             "path": "connect/config-entries/ingress-gateway"
           },
@@ -490,28 +442,6 @@
             "path": "connect/proxies/envoy"
           },
           {
-            "title": "Envoy Extensions",
-            "routes": [
-              {
-                "title": "Overview",
-                "path": "connect/proxies/envoy-extensions"
-              },
-              {
-                "title": "Usage",
-                "routes": [
-                  {
-                    "title": "Run Lua scripts in Envoy proxies",
-                    "path": "connect/proxies/envoy-extensions/usage/lua"
-                  },
-                  {
-                    "title": "Invoke Lambda functions in Envoy proxies",
-                    "path": "connect/proxies/envoy-extensions/usage/lambda"
-                  }
-                ]
-              }
-            ]
-          },
-          {
             "title": "Built-in Proxy",
             "path": "connect/proxies/built-in"
           },
@@ -539,25 +469,12 @@
         ]
       },
       {
-        "title": "Service intentions",
-        "routes": [
-          {
-            "title": "Overview",
-            "path": "connect/intentions"
-          },
-          {
-            "title": "Create and manage service intentions",
-            "path": "connect/intentions/create-manage-intentions"
-          },
-          {
-            "title": "Service intentions legacy mode",
-            "path": "connect/intentions/legacy"
-          },
-          {
-            "title": "Configuration",
-            "href": "/consul/docs/connect/config-entries/service-intentions"
-          }
-        ]
+        "title": "Service-to-service permissions - Intentions",
+        "path": "connect/intentions"
+      },
+      {
+        "title": "Service-to-service permissions - Intentions (Legacy Mode)",
+        "path": "connect/intentions-legacy"
       },
       {
         "title": "Transparent Proxy",
@@ -569,10 +486,6 @@
           {
             "title": "Overview",
             "path": "connect/observability"
-          },
-          {
-            "title": "Access Logs",
-            "path": "connect/observability/access-logs"
           },
           {
             "title": "UI Visualization",
@@ -607,45 +520,6 @@
           {
             "title": "Overview",
             "path": "connect/gateways"
-          },
-          {
-            "title": "API Gateways",
-            "badge": {
-              "text": "BETA",
-              "type": "outlined",
-              "color": "neutral"
-            },
-            "routes": [
-              {
-                "title": "Overview",
-                "path": "connect/gateways/api-gateway"
-              },
-              {
-                "title": "Usage",
-                "path": "connect/gateways/api-gateway/usage"
-              },
-              {
-                "title": "Configuration",
-                "routes": [
-                  {
-                    "title": "API Gateway",
-                    "path": "connect/gateways/api-gateway/configuration/api-gateway"
-                  },
-                  {
-                    "title": "HTTP Route",
-                    "path": "connect/gateways/api-gateway/configuration/http-route"
-                  },
-                  {
-                    "title": "TCP Route",
-                    "path": "connect/gateways/api-gateway/configuration/tcp-route"
-                  },
-                  {
-                    "title": "Inline Certificate",
-                    "path": "connect/gateways/api-gateway/configuration/inline-certificate"
-                  }
-                ]
-              }
-            ]
           },
           {
             "title": "Mesh Gateways",
@@ -830,6 +704,14 @@
             "path": "security/acl/acl-rules"
           },
           {
+            "title": "Legacy Mode",
+            "path": "security/acl/acl-legacy"
+          },
+          {
+            "title": "Token Migration",
+            "path": "security/acl/acl-migrate-tokens"
+          },
+          {
             "title": "ACLs in Federated Datacenters",
             "path": "security/acl/acl-federated-datacenters"
           },
@@ -908,23 +790,6 @@
         ]
       },
       {
-        "title": "Limit Traffic Rates",
-        "routes": [
-          {
-            "title": "Overview",
-            "path": "agent/limits"
-          },
-          {
-            "title": "Initialize Rate Limit Settings",
-            "path": "agent/limits/init-rate-limits"
-          },
-          {
-            "title": "Set Global Traffic Rate Limits",
-            "path": "agent/limits/set-global-traffic-rate-limits"
-          }
-        ]
-      },
-      {
         "title": "Configuration Entries",
         "path": "agent/config-entries"
       },
@@ -940,27 +805,6 @@
         "title": "RPC",
         "path": "agent/rpc",
         "hidden": true
-      },
-      {
-        "title": "Experimental WAL LogStore",
-        "routes": [
-          {
-            "title": "Overview",
-            "path": "agent/wal-logstore"
-          },
-          {
-            "title": "Enable WAL LogStore backend",
-            "path": "agent/wal-logstore/enable"
-          },
-          {
-            "title": "Monitor Raft metrics and logs for WAL",
-            "path": "agent/wal-logstore/monitoring"
-          },
-          {
-            "title": "Revert to BoltDB",
-            "path": "agent/wal-logstore/revert-to-boltdb"
-          }
-        ]
       }
     ]
   },
@@ -993,10 +837,6 @@
     "title": "Troubleshoot",
     "routes": [
       {
-        "title": "Service-to-Service Troubleshooting",
-        "path": "troubleshoot/troubleshoot-services"
-      },
-      {
         "title": "Common Error Messages",
         "path": "troubleshoot/common-errors"
       },
@@ -1020,6 +860,7 @@
         "title": "Architecture",
         "path": "k8s/architecture"
       },
+
       {
         "title": "Installation",
         "routes": [
@@ -1533,7 +1374,7 @@
     "divider": true
   },
   {
-    "title": "API Gateway for Kubernetes",
+    "title": "Consul API Gateway",
     "routes": [
       {
         "title": "Overview",
@@ -1555,7 +1396,7 @@
         "title": "Usage",
         "routes": [
           {
-            "title": "Deploy",
+            "title": "Basic Usage",
             "path": "api-gateway/usage/usage"
           },
           {

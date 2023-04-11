@@ -1,8 +1,6 @@
 ---
 layout: commands
 page_title: 'Commands: KV Export'
-description: >-
-  The `consul kv export` command outputs KV pairs from Consul's key/value store in JSON to move trees between Consul clusters.
 ---
 
 # Consul KV Export
@@ -14,8 +12,8 @@ prefix from Consul's KV store, and write a JSON representation to
 stdout. This can be used with the command "consul kv import" to move entire
 trees between Consul clusters.
 
-The table below shows this command's [required ACLs](/consul/api-docs/api-structure#authentication). Configuration of
-[blocking queries](/consul/api-docs/features/blocking) and [agent caching](/consul/api-docs/features/caching)
+The table below shows this command's [required ACLs](/api-docs/api-structure#authentication). Configuration of
+[blocking queries](/api-docs/features/blocking) and [agent caching](/api-docs/features/caching)
 are not supported from commands, but may be from the corresponding HTTP endpoint.
 
 | ACL Required |

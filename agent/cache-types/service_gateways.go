@@ -1,10 +1,6 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package cachetype
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/hashicorp/consul/agent/cache"
@@ -46,7 +42,7 @@ func (g *ServiceGateways) Fetch(opts cache.FetchOptions, req cache.Request) (cac
 
 	// Fetch
 	var reply structs.IndexedCheckServiceNodes
-	if err := g.RPC.RPC(context.Background(), "Internal.ServiceGateways", reqReal, &reply); err != nil {
+	if err := g.RPC.RPC("Internal.ServiceGateways", reqReal, &reply); err != nil {
 		return result, err
 	}
 

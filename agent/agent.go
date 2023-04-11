@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package agent
 
 import (
@@ -9,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net"
 	"net/http"
 	"os"
@@ -22,8 +20,6 @@ import (
 
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
-	"github.com/hashicorp/consul/agent/rpcclient"
-	"github.com/hashicorp/consul/agent/rpcclient/configentry"
 	"github.com/hashicorp/go-connlimit"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
@@ -43,7 +39,6 @@ import (
 	"github.com/hashicorp/consul/agent/checks"
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/consul"
-	rpcRate "github.com/hashicorp/consul/agent/consul/rate"
 	"github.com/hashicorp/consul/agent/consul/servercert"
 	"github.com/hashicorp/consul/agent/dns"
 	external "github.com/hashicorp/consul/agent/grpc-external"
@@ -69,8 +64,7 @@ import (
 	"github.com/hashicorp/consul/lib/mutex"
 	"github.com/hashicorp/consul/lib/routine"
 	"github.com/hashicorp/consul/logging"
-	"github.com/hashicorp/consul/proto/private/pboperator"
-	"github.com/hashicorp/consul/proto/private/pbpeering"
+	"github.com/hashicorp/consul/proto/pbpeering"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
 )
@@ -193,8 +187,7 @@ type delegate interface {
 	// default partition and namespace from the token.
 	ResolveTokenAndDefaultMeta(token string, entMeta *acl.EnterpriseMeta, authzContext *acl.AuthorizerContext) (resolver.Result, error)
 
-	RPC(ctx context.Context, method string, args interface{}, reply interface{}) error
-
+	RPC(method string, args interface{}, reply interface{}) error
 	SnapshotRPC(args *structs.SnapshotRequest, in io.Reader, out io.Writer, replyFn structs.SnapshotReplyFn) error
 	Shutdown() error
 	Stats() map[string]map[string]string
@@ -386,12 +379,9 @@ type Agent struct {
 
 	// TODO: pass directly to HTTPHandlers and DNSServer once those are passed
 	// into Agent, which will allow us to remove this field.
-	rpcClientHealth      *health.Client
-	rpcClientConfigEntry *configentry.Client
+	rpcClientHealth *health.Client
 
 	rpcClientPeering pbpeering.PeeringServiceClient
-
-	rpcClientOperator pboperator.OperatorServiceClient
 
 	// routineManager is responsible for managing longer running go routines
 	// run by the Agent
@@ -465,37 +455,21 @@ func New(bd BaseDeps) (*Agent, error) {
 	}
 
 	a.rpcClientHealth = &health.Client{
-		Client: rpcclient.Client{
-			Cache:     bd.Cache,
-			NetRPC:    &a,
-			CacheName: cachetype.HealthServicesName,
-			ViewStore: bd.ViewStore,
-			MaterializerDeps: rpcclient.MaterializerDeps{
-				Conn:   conn,
-				Logger: bd.Logger.Named("rpcclient.health"),
-			},
-			UseStreamingBackend: a.config.UseStreamingBackend,
-			QueryOptionDefaults: config.ApplyDefaultQueryOptions(a.config),
+		Cache:     bd.Cache,
+		NetRPC:    &a,
+		CacheName: cachetype.HealthServicesName,
+		ViewStore: bd.ViewStore,
+		MaterializerDeps: health.MaterializerDeps{
+			Conn:   conn,
+			Logger: bd.Logger.Named("rpcclient.health"),
 		},
+		UseStreamingBackend: a.config.UseStreamingBackend,
+		QueryOptionDefaults: config.ApplyDefaultQueryOptions(a.config),
 	}
 
 	a.rpcClientPeering = pbpeering.NewPeeringServiceClient(conn)
-	a.rpcClientOperator = pboperator.NewOperatorServiceClient(conn)
 
 	a.serviceManager = NewServiceManager(&a)
-	a.rpcClientConfigEntry = &configentry.Client{
-		Client: rpcclient.Client{
-			Cache:     bd.Cache,
-			NetRPC:    &a,
-			CacheName: cachetype.ConfigEntryName,
-			ViewStore: bd.ViewStore,
-			MaterializerDeps: rpcclient.MaterializerDeps{
-				Conn:   conn,
-				Logger: bd.Logger.Named("rpcclient.configentry"),
-			},
-			QueryOptionDefaults: config.ApplyDefaultQueryOptions(a.config),
-		},
-	}
 
 	// We used to do this in the Start method. However it doesn't need to go
 	// there any longer. Originally it did because we passed the agent
@@ -553,7 +527,6 @@ func LocalConfig(cfg *config.RuntimeConfig) local.Config {
 		DiscardCheckOutput:  cfg.DiscardCheckOutput,
 		NodeID:              cfg.NodeID,
 		NodeName:            cfg.NodeName,
-		NodeLocality:        cfg.StructLocality(),
 		Partition:           cfg.PartitionOrDefault(),
 		TaggedAddresses:     map[string]string{},
 	}
@@ -585,6 +558,14 @@ func (a *Agent) Start(ctx context.Context) error {
 	if err := a.tlsConfigurator.Update(a.config.TLS); err != nil {
 		return fmt.Errorf("Failed to load TLS configurations after applying auto-config settings: %w", err)
 	}
+
+	// This needs to happen after the initial auto-config is loaded, because TLS
+	// can only be configured on the gRPC server at the point of creation.
+	a.externalGRPCServer = external.NewServer(
+		a.logger.Named("grpc.external"),
+		metrics.Default(),
+		a.tlsConfigurator,
+	)
 
 	if err := a.startLicenseManager(ctx); err != nil {
 		return err
@@ -623,26 +604,10 @@ func (a *Agent) Start(ctx context.Context) error {
 
 	// Setup either the client or the server.
 	if c.ServerMode {
-		serverLogger := a.baseDeps.Logger.NamedIntercept(logging.ConsulServer)
-
-		incomingRPCLimiter := consul.ConfiguredIncomingRPCLimiter(
-			&lib.StopChannelContext{StopCh: a.shutdownCh},
-			serverLogger,
-			consulCfg,
-		)
-
-		a.externalGRPCServer = external.NewServer(
-			a.logger.Named("grpc.external"),
-			metrics.Default(),
-			a.tlsConfigurator,
-			incomingRPCLimiter,
-		)
-
-		server, err := consul.NewServer(consulCfg, a.baseDeps.Deps, a.externalGRPCServer, incomingRPCLimiter, serverLogger)
+		server, err := consul.NewServer(consulCfg, a.baseDeps.Deps, a.externalGRPCServer)
 		if err != nil {
 			return fmt.Errorf("Failed to start Consul server: %v", err)
 		}
-		incomingRPCLimiter.Register(server)
 		a.delegate = server
 
 		if a.config.PeeringEnabled && a.config.ConnectEnabled {
@@ -663,13 +628,6 @@ func (a *Agent) Start(ctx context.Context) error {
 		}
 
 	} else {
-		a.externalGRPCServer = external.NewServer(
-			a.logger.Named("grpc.external"),
-			metrics.Default(),
-			a.tlsConfigurator,
-			rpcRate.NullRequestLimitsHandler(),
-		)
-
 		client, err := consul.NewClient(consulCfg, a.baseDeps.Deps)
 		if err != nil {
 			return fmt.Errorf("Failed to start Consul client: %v", err)
@@ -889,6 +847,7 @@ func (a *Agent) listenAndServeGRPC() error {
 	a.xdsServer = xds.NewServer(
 		a.config.NodeName,
 		a.logger.Named(logging.Envoy),
+		a.config.ConnectServerlessPluginEnabled,
 		cfg,
 		func(id string) (acl.Authorizer, error) {
 			return a.delegate.ResolveTokenAndDefaultMeta(id, nil, nil)
@@ -1503,7 +1462,7 @@ func newConsulConfig(runtimeCfg *config.RuntimeConfig, logger hclog.Logger) (*co
 	}
 
 	cfg.ConfigEntryBootstrap = runtimeCfg.ConfigEntryBootstrap
-	cfg.LogStoreConfig = runtimeCfg.RaftLogStoreConfig
+	cfg.RaftBoltDBConfig = runtimeCfg.RaftBoltDBConfig
 
 	// Duplicate our own serf config once to make sure that the duplication
 	// function does not drift.
@@ -1511,11 +1470,6 @@ func newConsulConfig(runtimeCfg *config.RuntimeConfig, logger hclog.Logger) (*co
 
 	cfg.PeeringEnabled = runtimeCfg.PeeringEnabled
 	cfg.PeeringTestAllowPeerRegistrations = runtimeCfg.PeeringTestAllowPeerRegistrations
-
-	cfg.RequestLimitsMode = runtimeCfg.RequestLimitsMode.String()
-	cfg.RequestLimitsReadRate = runtimeCfg.RequestLimitsReadRate
-	cfg.RequestLimitsWriteRate = runtimeCfg.RequestLimitsWriteRate
-	cfg.Locality = runtimeCfg.StructLocality()
 
 	cfg.Reporting.License.Enabled = runtimeCfg.Reporting.License.Enabled
 
@@ -1587,7 +1541,7 @@ func (a *Agent) registerEndpoint(name string, handler interface{}) error {
 
 // RPC is used to make an RPC call to the Consul servers
 // This allows the agent to implement the Consul.Interface
-func (a *Agent) RPC(ctx context.Context, method string, args interface{}, reply interface{}) error {
+func (a *Agent) RPC(method string, args interface{}, reply interface{}) error {
 	a.endpointsLock.RLock()
 	// fast path: only translate if there are overrides
 	if len(a.endpoints) > 0 {
@@ -1597,7 +1551,7 @@ func (a *Agent) RPC(ctx context.Context, method string, args interface{}, reply 
 		}
 	}
 	a.endpointsLock.RUnlock()
-	return a.delegate.RPC(ctx, method, args, reply)
+	return a.delegate.RPC(method, args, reply)
 }
 
 // Leave is used to prepare the agent for a graceful shutdown
@@ -1626,7 +1580,10 @@ func (a *Agent) ShutdownAgent() error {
 
 	a.stopLicenseManager()
 
-	a.baseDeps.Close()
+	// this would be cancelled anyways (by the closing of the shutdown ch) but
+	// this should help them to be stopped more quickly
+	a.baseDeps.AutoConfig.Stop()
+	a.baseDeps.MetricsConfig.Cancel()
 
 	a.stateLock.Lock()
 	defer a.stateLock.Unlock()
@@ -1680,7 +1637,6 @@ func (a *Agent) ShutdownAgent() error {
 	}
 
 	a.rpcClientHealth.Close()
-	a.rpcClientConfigEntry.Close()
 
 	// Shutdown SCADA provider
 	if a.scadaProvider != nil {
@@ -1981,10 +1937,12 @@ OUTER:
 					WriteRequest:   structs.WriteRequest{Token: agentToken},
 				}
 				var reply struct{}
-				if err := a.RPC(context.Background(), "Coordinate.Update", &req, &reply); err != nil {
+				// todo(kit) port all of these logger calls to hclog w/ loglevel configuration
+				// todo(kit) handle acl.ErrNotFound cases here in the future
+				if err := a.RPC("Coordinate.Update", &req, &reply); err != nil {
 					if acl.IsErrPermissionDenied(err) {
 						accessorID := a.aclAccessorID(agentToken)
-						a.logger.Warn("Coordinate update blocked by ACLs", "accessorID", acl.AliasIfAnonymousToken(accessorID))
+						a.logger.Warn("Coordinate update blocked by ACLs", "accessorID", accessorID)
 					} else {
 						a.logger.Error("Coordinate update error", "error", err)
 					}
@@ -2181,7 +2139,7 @@ func (a *Agent) readPersistedServiceConfigs() (map[structs.ServiceID]*structs.Se
 	out := make(map[structs.ServiceID]*structs.ServiceConfigResponse)
 
 	configDir := filepath.Join(a.config.DataDir, serviceConfigDir)
-	files, err := os.ReadDir(configDir)
+	files, err := ioutil.ReadDir(configDir)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil, nil
@@ -2203,7 +2161,7 @@ func (a *Agent) readPersistedServiceConfigs() (map[structs.ServiceID]*structs.Se
 
 		// Read the contents into a buffer
 		file := filepath.Join(configDir, fi.Name())
-		buf, err := os.ReadFile(file)
+		buf, err := ioutil.ReadFile(file)
 		if err != nil {
 			return nil, fmt.Errorf("failed reading service config file %q: %w", file, err)
 		}
@@ -2463,7 +2421,7 @@ func (a *Agent) addServiceInternal(req addServiceInternalRequest) error {
 		}
 	}
 
-	err := a.State.AddServiceWithChecks(service, checks, req.token, req.Source == ConfigSourceLocal)
+	err := a.State.AddServiceWithChecks(service, checks, req.token)
 	if err != nil {
 		a.cleanupRegistration(cleanupServices, cleanupChecks)
 		return err
@@ -2799,7 +2757,7 @@ func (a *Agent) addCheckLocked(check *structs.HealthCheck, chkType *structs.Chec
 	}
 
 	// Add to the local state for anti-entropy
-	err = a.State.AddCheck(check, token, source == ConfigSourceLocal)
+	err = a.State.AddCheck(check, token)
 	if err != nil {
 		return err
 	}
@@ -3416,7 +3374,7 @@ func (a *Agent) persistCheckState(check *checks.CheckTTL, status, output string)
 	tempFile := file + ".tmp"
 
 	// persistCheckState is called frequently, so don't use writeFileAtomic to avoid calling fsync here
-	if err := os.WriteFile(tempFile, buf, 0600); err != nil {
+	if err := ioutil.WriteFile(tempFile, buf, 0600); err != nil {
 		return fmt.Errorf("failed writing temp file %q: %s", tempFile, err)
 	}
 	if err := os.Rename(tempFile, file); err != nil {
@@ -3431,12 +3389,12 @@ func (a *Agent) loadCheckState(check *structs.HealthCheck) error {
 	cid := check.CompoundCheckID()
 	// Try to read the persisted state for this check
 	file := filepath.Join(a.config.DataDir, checkStateDir, cid.StringHashSHA256())
-	buf, err := os.ReadFile(file)
+	buf, err := ioutil.ReadFile(file)
 	if err != nil {
 		if os.IsNotExist(err) {
 			// try the md5 based name. This can be removed once we no longer support upgrades from versions that use MD5 hashing
 			oldFile := filepath.Join(a.config.DataDir, checkStateDir, cid.StringHashMD5())
-			buf, err = os.ReadFile(oldFile)
+			buf, err = ioutil.ReadFile(oldFile)
 			if err != nil {
 				if os.IsNotExist(err) {
 					return nil
@@ -3643,7 +3601,7 @@ func (a *Agent) loadServices(conf *config.RuntimeConfig, snap map[structs.CheckI
 
 	// Load any persisted services
 	svcDir := filepath.Join(a.config.DataDir, servicesDir)
-	files, err := os.ReadDir(svcDir)
+	files, err := ioutil.ReadDir(svcDir)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil
@@ -3664,7 +3622,7 @@ func (a *Agent) loadServices(conf *config.RuntimeConfig, snap map[structs.CheckI
 
 		// Read the contents into a buffer
 		file := filepath.Join(svcDir, fi.Name())
-		buf, err := os.ReadFile(file)
+		buf, err := ioutil.ReadFile(file)
 		if err != nil {
 			return fmt.Errorf("failed reading service file %q: %w", file, err)
 		}
@@ -3811,7 +3769,7 @@ func (a *Agent) loadChecks(conf *config.RuntimeConfig, snap map[structs.CheckID]
 
 	// Load any persisted checks
 	checkDir := filepath.Join(a.config.DataDir, checksDir)
-	files, err := os.ReadDir(checkDir)
+	files, err := ioutil.ReadDir(checkDir)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil
@@ -3826,7 +3784,7 @@ func (a *Agent) loadChecks(conf *config.RuntimeConfig, snap map[structs.CheckID]
 
 		// Read the contents into a buffer
 		file := filepath.Join(checkDir, fi.Name())
-		buf, err := os.ReadFile(file)
+		buf, err := ioutil.ReadFile(file)
 		if err != nil {
 			return fmt.Errorf("failed reading check file %q: %w", file, err)
 		}
@@ -4082,18 +4040,17 @@ func (a *Agent) reloadConfig(autoReload bool) error {
 			{a.config.TLS.HTTPS, newCfg.TLS.HTTPS},
 		} {
 			if f.oldCfg.KeyFile != f.newCfg.KeyFile {
-				a.configFileWatcher.Replace(f.oldCfg.KeyFile, f.newCfg.KeyFile)
+				err = a.configFileWatcher.Replace(f.oldCfg.KeyFile, f.newCfg.KeyFile)
 				if err != nil {
 					return err
 				}
 			}
 			if f.oldCfg.CertFile != f.newCfg.CertFile {
-				a.configFileWatcher.Replace(f.oldCfg.CertFile, f.newCfg.CertFile)
+				err = a.configFileWatcher.Replace(f.oldCfg.CertFile, f.newCfg.CertFile)
 				if err != nil {
 					return err
 				}
 			}
-
 			if revertStaticConfig(f.oldCfg, f.newCfg) {
 				a.logger.Warn("Changes to your configuration were detected that for security reasons cannot be automatically applied by 'auto_reload_config'. Manually reload your configuration (e.g. with 'consul reload') to apply these changes.", "StaticRuntimeConfig", f.oldCfg, "StaticRuntimeConfig From file", f.newCfg)
 			}
@@ -4194,11 +4151,6 @@ func (a *Agent) reloadConfigInternal(newCfg *config.RuntimeConfig) error {
 	}
 
 	cc := consul.ReloadableConfig{
-		RequestLimits: &consul.RequestLimits{
-			Mode:      newCfg.RequestLimitsMode,
-			ReadRate:  newCfg.RequestLimitsReadRate,
-			WriteRate: newCfg.RequestLimitsWriteRate,
-		},
 		RPCClientTimeout:      newCfg.RPCClientTimeout,
 		RPCRateLimit:          newCfg.RPCRateLimit,
 		RPCMaxBurst:           newCfg.RPCMaxBurst,

@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package peerstream
 
 import (
@@ -32,7 +29,7 @@ func TestTracker_IsHealthy(t *testing.T) {
 			tracker:     NewTracker(defaultIncomingHeartbeatTimeout),
 			expectedVal: true,
 			modifierFunc: func(status *MutableStatus) {
-				status.DisconnectTime = ptr(time.Now())
+				status.DisconnectTime = time.Now()
 			},
 		},
 		{
@@ -40,7 +37,7 @@ func TestTracker_IsHealthy(t *testing.T) {
 			tracker:     NewTracker(1 * time.Millisecond),
 			expectedVal: false,
 			modifierFunc: func(status *MutableStatus) {
-				status.DisconnectTime = ptr(time.Now().Add(-1 * time.Minute))
+				status.DisconnectTime = time.Now().Add(-1 * time.Minute)
 			},
 		},
 		{
@@ -49,8 +46,8 @@ func TestTracker_IsHealthy(t *testing.T) {
 			expectedVal: true,
 			modifierFunc: func(status *MutableStatus) {
 				now := time.Now()
-				status.LastRecvResourceSuccess = &now
-				status.LastRecvError = ptr(now.Add(1 * time.Second))
+				status.LastRecvResourceSuccess = now
+				status.LastRecvError = now.Add(1 * time.Second)
 			},
 		},
 		{
@@ -59,8 +56,8 @@ func TestTracker_IsHealthy(t *testing.T) {
 			expectedVal: true,
 			modifierFunc: func(status *MutableStatus) {
 				now := time.Now()
-				status.LastRecvResourceSuccess = &now
-				status.LastRecvError = ptr(now.Add(1 * time.Second))
+				status.LastRecvResourceSuccess = now
+				status.LastRecvError = now.Add(1 * time.Second)
 			},
 		},
 		{
@@ -69,8 +66,8 @@ func TestTracker_IsHealthy(t *testing.T) {
 			expectedVal: false,
 			modifierFunc: func(status *MutableStatus) {
 				now := time.Now().Add(-2 * time.Second)
-				status.LastRecvResourceSuccess = &now
-				status.LastRecvError = ptr(now.Add(1 * time.Second))
+				status.LastRecvResourceSuccess = now
+				status.LastRecvError = now.Add(1 * time.Second)
 			},
 		},
 		{
@@ -79,8 +76,8 @@ func TestTracker_IsHealthy(t *testing.T) {
 			expectedVal: true,
 			modifierFunc: func(status *MutableStatus) {
 				now := time.Now()
-				status.LastAck = &now
-				status.LastNack = ptr(now.Add(1 * time.Second))
+				status.LastAck = now
+				status.LastNack = now.Add(1 * time.Second)
 			},
 		},
 		{
@@ -89,8 +86,8 @@ func TestTracker_IsHealthy(t *testing.T) {
 			expectedVal: false,
 			modifierFunc: func(status *MutableStatus) {
 				now := time.Now().Add(-2 * time.Second)
-				status.LastAck = &now
-				status.LastNack = ptr(now.Add(1 * time.Second))
+				status.LastAck = now
+				status.LastNack = now.Add(1 * time.Second)
 			},
 		},
 		{
@@ -151,7 +148,7 @@ func TestTracker_EnsureConnectedDisconnected(t *testing.T) {
 	})
 
 	var sequence uint64
-	var lastSuccess *time.Time
+	var lastSuccess time.Time
 
 	testutil.RunStep(t, "stream updated", func(t *testing.T) {
 		statusPtr.TrackAck()
@@ -160,7 +157,7 @@ func TestTracker_EnsureConnectedDisconnected(t *testing.T) {
 		status, ok := tracker.StreamStatus(peerID)
 		require.True(t, ok)
 
-		lastSuccess = ptr(it.base.Add(time.Duration(sequence) * time.Second).UTC())
+		lastSuccess = it.base.Add(time.Duration(sequence) * time.Second).UTC()
 		expect := Status{
 			Connected: true,
 			LastAck:   lastSuccess,
@@ -174,7 +171,7 @@ func TestTracker_EnsureConnectedDisconnected(t *testing.T) {
 
 		expect := Status{
 			Connected:      false,
-			DisconnectTime: ptr(it.base.Add(time.Duration(sequence) * time.Second).UTC()),
+			DisconnectTime: it.base.Add(time.Duration(sequence) * time.Second).UTC(),
 			LastAck:        lastSuccess,
 		}
 		status, ok := tracker.StreamStatus(peerID)
@@ -187,9 +184,9 @@ func TestTracker_EnsureConnectedDisconnected(t *testing.T) {
 		require.NoError(t, err)
 
 		expect := Status{
-			Connected:      true,
-			LastAck:        lastSuccess,
-			DisconnectTime: &time.Time{},
+			Connected: true,
+			LastAck:   lastSuccess,
+
 			// DisconnectTime gets cleared on re-connect.
 		}
 
@@ -274,7 +271,7 @@ func TestMutableStatus_TrackConnected(t *testing.T) {
 	s := MutableStatus{
 		Status: Status{
 			Connected:              false,
-			DisconnectTime:         ptr(time.Now()),
+			DisconnectTime:         time.Now(),
 			DisconnectErrorMessage: "disconnected",
 		},
 	}
@@ -282,7 +279,7 @@ func TestMutableStatus_TrackConnected(t *testing.T) {
 
 	require.True(t, s.IsConnected())
 	require.True(t, s.Connected)
-	require.Equal(t, &time.Time{}, s.DisconnectTime)
+	require.Equal(t, time.Time{}, s.DisconnectTime)
 	require.Empty(t, s.DisconnectErrorMessage)
 }
 
@@ -290,7 +287,7 @@ func TestMutableStatus_TrackDisconnectedGracefully(t *testing.T) {
 	it := incrementalTime{
 		base: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
 	}
-	disconnectTime := ptr(it.FutureNow(1))
+	disconnectTime := it.FutureNow(1)
 
 	s := MutableStatus{
 		timeNow: it.Now,
@@ -311,7 +308,7 @@ func TestMutableStatus_TrackDisconnectedDueToError(t *testing.T) {
 	it := incrementalTime{
 		base: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
 	}
-	disconnectTime := ptr(it.FutureNow(1))
+	disconnectTime := it.FutureNow(1)
 
 	s := MutableStatus{
 		timeNow: it.Now,

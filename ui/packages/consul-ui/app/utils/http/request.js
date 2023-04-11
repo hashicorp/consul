@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 import EventTarget from 'consul-ui/utils/dom/event-target/rsvp';
 export default class extends EventTarget {
   constructor(method, url, headers) {

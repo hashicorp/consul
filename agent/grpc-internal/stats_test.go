@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package internal
 
 import (
@@ -17,10 +14,9 @@ import (
 
 	"github.com/hashicorp/go-hclog"
 
-	"github.com/hashicorp/consul/agent/consul/rate"
 	"github.com/hashicorp/consul/agent/grpc-middleware/testutil"
 	"github.com/hashicorp/consul/agent/grpc-middleware/testutil/testservice"
-	"github.com/hashicorp/consul/proto/private/prototest"
+	"github.com/hashicorp/consul/proto/prototest"
 )
 
 func noopRegister(*grpc.Server) {}
@@ -29,7 +25,7 @@ func TestHandler_EmitsStats(t *testing.T) {
 	sink, metricsObj := testutil.NewFakeSink(t)
 
 	addr := &net.IPAddr{IP: net.ParseIP("127.0.0.1")}
-	handler := NewHandler(hclog.Default(), addr, noopRegister, metricsObj, rate.NullRequestLimitsHandler())
+	handler := NewHandler(hclog.Default(), addr, noopRegister, metricsObj)
 
 	testservice.RegisterSimpleServer(handler.srv, &testservice.Simple{})
 

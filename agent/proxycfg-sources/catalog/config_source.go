@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package catalog
 
 import (
@@ -149,7 +146,16 @@ func (m *ConfigSource) startSync(closeCh <-chan chan struct{}, proxyID proxycfg.
 			return nil, err
 		}
 
-		_, ns, err = configentry.MergeNodeServiceWithCentralConfig(ws, store, ns, logger)
+		_, ns, err = configentry.MergeNodeServiceWithCentralConfig(
+			ws,
+			store,
+			// TODO(agentless): it doesn't seem like we actually *need* any of the
+			// values on this request struct - we should try to remove the parameter
+			// in case that changes in the future as this call-site isn't passing them.
+			&structs.ServiceSpecificRequest{},
+			ns,
+			logger,
+		)
 		if err != nil {
 			logger.Error("failed to merge with central config", "error", err.Error())
 			return nil, err

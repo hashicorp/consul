@@ -23,10 +23,10 @@ running.
 | `GET`  | `/status/leader` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/consul/api-docs/features/blocking),
-[consistency modes](/consul/api-docs/features/consistency),
-[agent caching](/consul/api-docs/features/caching), and
-[required ACLs](/consul/api-docs/api-structure#authentication).
+[blocking queries](/api-docs/features/blocking),
+[consistency modes](/api-docs/features/consistency),
+[agent caching](/api-docs/features/caching), and
+[required ACLs](/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
 | ---------------- | ----------------- | ------------- | ------------ |
@@ -60,16 +60,16 @@ determining when a given server has successfully joined the cluster.
 | `GET`  | `/status/peers` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/consul/api-docs/features/blocking),
-[consistency modes](/consul/api-docs/features/consistency),
-[agent caching](/consul/api-docs/features/caching), and
-[required ACLs](/consul/api-docs/api-structure#authentication).
+[blocking queries](/api-docs/features/blocking),
+[consistency modes](/api-docs/features/consistency),
+[agent caching](/api-docs/features/caching), and
+[required ACLs](/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
 | ---------------- | ----------------- | ------------- | ------------ |
 | `NO`             | `none`            | `none`        | `none`       |
 
-The corresponding CLI command is [`consul operator raft list-peers`](/consul/commands/operator/raft#list-peers).
+The corresponding CLI command is [`consul operator raft list-peers`](/commands/operator/raft#list-peers).
 
 ### Query Parameters
 

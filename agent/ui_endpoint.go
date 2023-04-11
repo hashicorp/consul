@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package agent
 
 import (
@@ -101,7 +98,7 @@ func (s *HTTPHandlers) UINodes(resp http.ResponseWriter, req *http.Request) (int
 	var out structs.IndexedNodeDump
 	defer setMeta(resp, &out.QueryMeta)
 RPC:
-	if err := s.agent.RPC(req.Context(), "Internal.NodeDump", &args, &out); err != nil {
+	if err := s.agent.RPC("Internal.NodeDump", &args, &out); err != nil {
 		// Retry the request allowing stale data if no leader
 		if strings.Contains(err.Error(), structs.ErrNoLeader.Error()) && !args.AllowStale {
 			args.AllowStale = true
@@ -163,7 +160,7 @@ func (s *HTTPHandlers) UINodeInfo(resp http.ResponseWriter, req *http.Request) (
 	var out structs.IndexedNodeDump
 	defer setMeta(resp, &out.QueryMeta)
 RPC:
-	if err := s.agent.RPC(req.Context(), "Internal.NodeInfo", &args, &out); err != nil {
+	if err := s.agent.RPC("Internal.NodeInfo", &args, &out); err != nil {
 		// Retry the request allowing stale data if no leader
 		if strings.Contains(err.Error(), structs.ErrNoLeader.Error()) && !args.AllowStale {
 			args.AllowStale = true
@@ -199,7 +196,7 @@ func (s *HTTPHandlers) UICatalogOverview(resp http.ResponseWriter, req *http.Req
 
 	// Make the RPC request
 	var out structs.CatalogSummary
-	if err := s.agent.RPC(req.Context(), "Internal.CatalogOverview", &args, &out); err != nil {
+	if err := s.agent.RPC("Internal.CatalogOverview", &args, &out); err != nil {
 		return nil, err
 	}
 
@@ -227,7 +224,7 @@ func (s *HTTPHandlers) UIServices(resp http.ResponseWriter, req *http.Request) (
 	var out structs.IndexedNodesWithGateways
 	defer setMeta(resp, &out.QueryMeta)
 RPC:
-	if err := s.agent.RPC(req.Context(), "Internal.ServiceDump", &args, &out); err != nil {
+	if err := s.agent.RPC("Internal.ServiceDump", &args, &out); err != nil {
 		// Retry the request allowing stale data if no leader
 		if strings.Contains(err.Error(), structs.ErrNoLeader.Error()) && !args.AllowStale {
 			args.AllowStale = true
@@ -296,7 +293,7 @@ func (s *HTTPHandlers) UIGatewayServicesNodes(resp http.ResponseWriter, req *htt
 	var out structs.IndexedServiceDump
 	defer setMeta(resp, &out.QueryMeta)
 RPC:
-	if err := s.agent.RPC(req.Context(), "Internal.GatewayServiceDump", &args, &out); err != nil {
+	if err := s.agent.RPC("Internal.GatewayServiceDump", &args, &out); err != nil {
 		// Retry the request allowing stale data if no leader
 		if strings.Contains(err.Error(), structs.ErrNoLeader.Error()) && !args.AllowStale {
 			args.AllowStale = true
@@ -349,7 +346,7 @@ func (s *HTTPHandlers) UIServiceTopology(resp http.ResponseWriter, req *http.Req
 	var out structs.IndexedServiceTopology
 	defer setMeta(resp, &out.QueryMeta)
 RPC:
-	if err := s.agent.RPC(req.Context(), "Internal.ServiceTopology", &args, &out); err != nil {
+	if err := s.agent.RPC("Internal.ServiceTopology", &args, &out); err != nil {
 		// Retry the request allowing stale data if no leader
 		if strings.Contains(err.Error(), structs.ErrNoLeader.Error()) && !args.AllowStale {
 			args.AllowStale = true
@@ -634,7 +631,7 @@ func (s *HTTPHandlers) UIGatewayIntentions(resp http.ResponseWriter, req *http.R
 	var reply structs.IndexedIntentions
 
 	defer setMeta(resp, &reply.QueryMeta)
-	if err := s.agent.RPC(req.Context(), "Internal.GatewayIntentions", args, &reply); err != nil {
+	if err := s.agent.RPC("Internal.GatewayIntentions", args, &reply); err != nil {
 		return nil, err
 	}
 
@@ -804,7 +801,7 @@ func (s *HTTPHandlers) UIExportedServices(resp http.ResponseWriter, req *http.Re
 	var out structs.IndexedServiceList
 	defer setMeta(resp, &out.QueryMeta)
 RPC:
-	if err := s.agent.RPC(req.Context(), "Internal.ExportedServicesForPeer", &args, &out); err != nil {
+	if err := s.agent.RPC("Internal.ExportedServicesForPeer", &args, &out); err != nil {
 		// Retry the request allowing stale data if no leader
 		if strings.Contains(err.Error(), structs.ErrNoLeader.Error()) && !args.AllowStale {
 			args.AllowStale = true

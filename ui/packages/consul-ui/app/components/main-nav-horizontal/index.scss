@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 @import './skin';
 @import './layout';
 
@@ -31,6 +26,6 @@
 /**/
 
 /* menu-panels in the main navigation are treated slightly differently */
-%main-nav-horizontal .disclosure-menu button + * {
+%main-nav-horizontal label + div {
   @extend %main-nav-horizontal-menu-panel;
 }

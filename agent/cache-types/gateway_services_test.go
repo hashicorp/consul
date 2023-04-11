@@ -1,17 +1,13 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package cachetype
 
 import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/mock"
-	"github.com/stretchr/testify/require"
-
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 )
 
 func TestGatewayServices(t *testing.T) {
@@ -21,9 +17,9 @@ func TestGatewayServices(t *testing.T) {
 	// Expect the proper RPC call. This also sets the expected value
 	// since that is return-by-pointer in the arguments.
 	var resp *structs.IndexedGatewayServices
-	rpc.On("RPC", mock.Anything, "Catalog.GatewayServices", mock.Anything, mock.Anything).Return(nil).
+	rpc.On("RPC", "Catalog.GatewayServices", mock.Anything, mock.Anything).Return(nil).
 		Run(func(args mock.Arguments) {
-			req := args.Get(2).(*structs.ServiceSpecificRequest)
+			req := args.Get(1).(*structs.ServiceSpecificRequest)
 			require.Equal(t, uint64(24), req.QueryOptions.MinQueryIndex)
 			require.Equal(t, 1*time.Second, req.QueryOptions.MaxQueryTime)
 			require.True(t, req.AllowStale)
@@ -41,7 +37,7 @@ func TestGatewayServices(t *testing.T) {
 					SNI:         "my-domain",
 				},
 			}
-			reply := args.Get(3).(*structs.IndexedGatewayServices)
+			reply := args.Get(2).(*structs.IndexedGatewayServices)
 			reply.Services = services
 			reply.QueryMeta.Index = 48
 			resp = reply

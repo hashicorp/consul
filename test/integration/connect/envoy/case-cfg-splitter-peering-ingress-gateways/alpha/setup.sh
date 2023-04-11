@@ -1,40 +1,9 @@
 #!/bin/bash
-# Copyright (c) HashiCorp, Inc.
-# SPDX-License-Identifier: MPL-2.0
-
 
 set -euo pipefail
 
-upsert_config_entry alpha '
-kind = "proxy-defaults"
-name = "global"
-config {
-  protocol = "tcp"
-}
-'
-
-upsert_config_entry alpha '
-kind = "exported-services"
-name = "default"
-services = [
-  {
-    name = "s1"
-    consumers = [
-      {
-        peer_name = "alpha-to-primary"
-      }
-    ]
-  },
-  {
-    name = "s2"
-    consumers = [
-      {
-        peer_name = "alpha-to-primary"
-      }
-    ]
-  }
-]
-'
+wait_for_config_entry proxy-defaults global alpha
+wait_for_config_entry exported-services default alpha
 
 register_services alpha
 

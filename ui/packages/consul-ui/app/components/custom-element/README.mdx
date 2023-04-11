@@ -1,0 +1,87 @@
+# CustomElement
+
+A renderless component to aid with the creation of HTML custom elements a.k.a
+WebComponents.
+
+All of the CustomElement component arguments are only used at construction
+time (within the components constructor) therefore they are, by design, static.
+You shouldn't be dynamically updating these values at all. They are only for
+type checking and documention purposes and therefore once defined/hardcoded
+they should only change if you as the author wishes to change them.
+
+The component is built from various other components, also see their documentaton
+for further details (`<ShadowHost />`, `<ShadowTemplate />`).
+
+```hbs preview-template
+<CustomElement
+  @element="x-component"
+  @attrs={{array
+    (array 'type' '"awesome" | "sauce"' 'awesome' 'Set the type of the x-component')
+    (array 'x' 'number' 0 'The x-ness of the x-component')
+  }}
+  @cssprops={{array
+    (array '--awesome-x-sauce' 'length' '[x]' 'Makes the x-ness of the sauce available to CSS, automatically synced/tracked from the x attributes')
+    (array '--awesome-color' 'color' undefined 'This CSS property can be used to set the color of the awesome')
+  }}
+  @cssparts={{array
+    (array 'base' 'Style base from The Outside via ::part(base)')
+  }}
+  @slots={{array
+    (array 'header' "You'll want to document the slots also")
+    (array '' 'Including the default slot')
+  }}
+as |custom element|>
+  <x-component
+    {{did-insert custom.connect}}
+    {{will-destroy custom.disconnect}}
+    aria-hidden="true"
+    ...attributes
+  >
+    <custom.Template
+      @styles={{css-map
+      }}
+    >
+      <div part="base"
+        data-x={{element.attrs.x}}
+        data-type={{element.attrs.type}}
+      >
+        <slot name="header"></slot>
+        <slot></slot>
+      </div>
+    </custom.Template>
+  </x-component>
+</CustomElement>
+
+```
+
+## Arguments
+
+All `descriptions` in attributes will be compiled out at build time as well as the `@description` attribute itself.
+
+| Attribute     | Type           | Default | Description                                                                |
+| :------------ | :------------- | :------ | :------------------------------------------------------------------------- |
+| element       | string         |         | The custom tag to be used for the custom element. Must include a dash      |
+| description   | string         |         | Short 1 line description for the element. Think "git commit title" style   |
+| attrs         | attrInfo[]     |         | An array of attributes that can be used on the element                     |
+| slots         | slotsInfo[]    |         | An array of slots that can be used for the element (100% compiled out)     |
+| cssprops      | cssPropsInfo[] |         | An array of CSS properties that are relevant to the component              |
+| cssparts      | cssPartsInfo[] |         | An array of CSS parts that can be used for the element (100% compiled out) |
+| args          | argsInfo[]     |         | An array of Glimmer arguments used for the component (100% compiled out)   |
+
+## Exports
+
+### custom
+
+| Attribute  | Type     | Description                                                                         |
+| :--------- | :------- | :---------------------------------------------------------------------------------- |
+| connect    | function | A did-insert-able callback for tagging an element to be used for the custom element |
+| disconnect | function | A will-destroy-able callback for destroying an element used for the custom element  |
+
+### element
+
+| Attribute  | Type     | Description                                                                      |
+| :--------- | :------- | :------------------------------------------------------------------------------- |
+| attributes | object   | An object containing a reference to all the custom elements' observed properties |
+| *          |          | All other properties proxy through to the CustomElements class                   |
+
+

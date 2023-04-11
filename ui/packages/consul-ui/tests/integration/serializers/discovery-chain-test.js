@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 import { module, test } from 'qunit';
 import { setupTest } from 'ember-qunit';
 
@@ -17,7 +12,6 @@ import {
 module('Integration | Serializer | discovery-chain', function (hooks) {
   setupTest(hooks);
   test('respondForQueryRecord returns the correct data for item endpoint', function (assert) {
-    assert.expect(2);
     const serializer = this.owner.lookup('serializer:discovery-chain');
     const dc = 'dc-1';
     const id = 'slug';

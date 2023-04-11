@@ -1,6 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
-# SPDX-License-Identifier: MPL-2.0
-
 function supported_osarch {
    # Arguments:
    #   $1 - osarch - example, linux/amd64

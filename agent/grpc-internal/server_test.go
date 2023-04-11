@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package internal
 
 import (
@@ -17,7 +14,6 @@ import (
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
 
-	"github.com/hashicorp/consul/agent/consul/rate"
 	"github.com/hashicorp/consul/agent/grpc-middleware/testutil/testservice"
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/pool"
@@ -58,7 +54,7 @@ func newPanicTestServer(t *testing.T, logger hclog.Logger, name, dc string, tlsC
 
 func newTestServer(t *testing.T, logger hclog.Logger, name, dc string, tlsConf *tlsutil.Configurator, register func(server *grpc.Server)) testServer {
 	addr := &net.IPAddr{IP: net.ParseIP("127.0.0.1")}
-	handler := NewHandler(logger, addr, register, nil, rate.NullRequestLimitsHandler())
+	handler := NewHandler(logger, addr, register, nil)
 
 	lis, err := net.Listen("tcp", "127.0.0.1:0")
 	require.NoError(t, err)

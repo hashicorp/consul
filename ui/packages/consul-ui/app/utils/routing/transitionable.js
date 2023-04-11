@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 const filter = function (routeName, atts, params) {
   return [routeName, ...atts];
 };

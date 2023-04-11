@@ -55,16 +55,3 @@ load helpers
 @test "s1 upstream made 1 connection to s2" {
   assert_envoy_metric_at_least 127.0.0.1:19000 "cluster.s2.default.primary-to-alpha.external.*cx_total" 1
 }
-
-@test "test lua adding a header" {
-  run retry_default curl -s -f \
-    "localhost:5000/debug?env=dump"
-
-
-  [ "$status" == "0" ]
-
-  echo "$output" | grep -E "X-Consul-Service: s1"
-  echo "$output" | grep -E "X-Consul-Datacenter: primary"
-  echo "$output" | grep -E "X-Consul-Namespace: default"
-  echo "$output" | grep -E "X-Consul-Trust-Domain: (\w+-){4}\w+.consul"
-}

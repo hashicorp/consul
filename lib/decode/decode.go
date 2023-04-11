@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 /*
 Package decode provides tools for customizing the decoding of configuration,
 into structures using mapstructure.

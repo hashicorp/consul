@@ -20,8 +20,8 @@ The service represented by the `MeshService` resource must either be in the same
 
 The following outline shows how to format the configurations in the `MeshService` object. Click on a property name to view details about the configuration.
 
-- [`name`](#name): string | required
-- [`peer`](#peer): string | optional
+* [`name`](#name): string | required
+* [`peer`](#peer): string | optional
 
 
 ## Specification
@@ -30,29 +30,13 @@ This topic provides details about the configuration parameters.
 
 ### name
 Specifies the name of the service in the Consul service mesh to send traffic to.
-- Type: string
-- Required: required
+* Type: string
+* Required: required
 
 ### peer
-Specifies the name of the peered Consul cluster that exported the service. If not specified, Consul defaults to the local datacenter.
+Specifies the name of the peered Consul cluster from where the service is exported. If not specified, Consul defaults to the local datacenter.
 
-You must apply a [`ServiceResolver`](/consul/docs/connect/config-entries/service-resolver) for the referenced service. The `ServiceResolver` configuration entry enables Consul to resolve routes to upstream service instances.
+You must apply a [`ServiceResolver`](/docs/connect/config-entries/service-resolver) for the referenced service. The `ServiceResolver` configuration entry enables Consul to resolve routes to upstream service instances. 
 
-- Type: string
-- Required: optional
-
-## Example Configuration
-
-The following example creates a mesh service called `example-mesh-service`. Routes that use `example-mesh-service` as a backend route traffic to the Consul service in the local datacenter named `echo`.
-
-<CodeBlockConfig filename="meshservice.yaml">
-
-```yaml hideClipboard
-apiVersion: api-gateway.consul.hashicorp.com/v1alpha1
-kind: MeshService
-metadata:
-  name: example-mesh-service
-spec:
-  name: echo
-```
-</CodeBlockConfig>
+* Type: string
+* Required: optional

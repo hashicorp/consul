@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 // Package bootstrap handles bootstrapping an agent's config from HCP. It must be a
 // separate package from other HCP components because it has a dependency on
 // agent/config while other components need to be imported and run within the
@@ -13,6 +10,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -221,11 +219,11 @@ func persistTLSCerts(dataDir string, bsCfg *hcp.BootstrapConfig) error {
 		return err
 	}
 
-	if err := os.WriteFile(filepath.Join(dir, certFileName), []byte(bsCfg.TLSCert), 0600); err != nil {
+	if err := ioutil.WriteFile(filepath.Join(dir, certFileName), []byte(bsCfg.TLSCert), 0600); err != nil {
 		return err
 	}
 
-	if err := os.WriteFile(filepath.Join(dir, keyFileName), []byte(bsCfg.TLSCertKey), 0600); err != nil {
+	if err := ioutil.WriteFile(filepath.Join(dir, keyFileName), []byte(bsCfg.TLSCertKey), 0600); err != nil {
 		return err
 	}
 
@@ -258,7 +256,7 @@ func persistBootstrapConfig(dataDir, cfgJSON string) error {
 	// Persist the important bits we got from bootstrapping. The TLS certs are
 	// already persisted, just need to persist the config we are going to add.
 	name := filepath.Join(dataDir, subDir, configFileName)
-	return os.WriteFile(name, []byte(cfgJSON), 0600)
+	return ioutil.WriteFile(name, []byte(cfgJSON), 0600)
 }
 
 func loadPersistedBootstrapConfig(rc *config.RuntimeConfig, ui UI) (string, bool) {
@@ -283,7 +281,7 @@ func loadPersistedBootstrapConfig(rc *config.RuntimeConfig, ui UI) (string, bool
 	}
 
 	name := filepath.Join(rc.DataDir, subDir, configFileName)
-	jsonBs, err := os.ReadFile(name)
+	jsonBs, err := ioutil.ReadFile(name)
 	if err != nil {
 		ui.Warn(fmt.Sprintf("failed to read local bootstrap config file, ignoring local files: %s", err))
 		return "", false

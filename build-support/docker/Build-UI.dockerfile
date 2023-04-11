@@ -1,7 +1,4 @@
-# Copyright (c) HashiCorp, Inc.
-# SPDX-License-Identifier: MPL-2.0
-
-FROM docker.mirror.hashicorp.services/circleci/node:16-browsers
+FROM docker.mirror.hashicorp.services/circleci/node:14-browsers
 
 USER root
 

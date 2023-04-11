@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 %pill-allow::before,
 %pill-deny::before,
 %pill-l7::before {
@@ -11,17 +6,17 @@
 %pill-allow,
 %pill-deny,
 %pill-l7 {
-  font-weight: var(--token-typography-font-weight-regular);
-  font-size: var(--token-typography-body-200-font-size);
   display: inline-block;
+  font-weight: var(--typo-weight-normal);
+  font-size: var(--typo-size-600);
 }
 %pill-allow {
-  color: var(--token-color-foreground-success-on-surface);
-  background-color: var(--token-color-border-success);
+  color: rgb(var(--tone-green-800));
+  background-color: rgb(var(--tone-green-100));
 }
 %pill-deny {
-  color: var(--token-color-foreground-critical-on-surface);
-  background-color: var(--token-color-border-critical);
+  color: rgb(var(--tone-red-800));
+  background-color: rgb(var(--tone-red-100));
 }
 %pill-l7 {
   @extend %frame-gray-900;
