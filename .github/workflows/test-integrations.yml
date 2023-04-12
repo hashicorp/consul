@@ -252,7 +252,7 @@ jobs:
           path: ${{ env.TEST_RESULTS_DIR }}
 
   compatibility-integration-test:
-    runs-on: ${{ fromJSON(needs.setup.outputs.compute-xl) }}
+    runs-on: ubuntu-latest
     needs:
       - setup
       - dev-build
@@ -316,7 +316,7 @@ jobs:
           path: ${{ env.TEST_RESULTS_DIR }}
 
   upgrade-integration-test:
-    runs-on: ${{ fromJSON(needs.setup.outputs.compute-xl) }}
+    runs-on: ubuntu-latest
     needs:
       - setup
       - dev-build
