@@ -162,7 +162,7 @@ func (tx *txn) Commit() error {
 		}
 	}
 
-	// This lock prevent concurrent commits to get published out of order.
+	// This lock prevents events from concurrent transactions getting published out of order.
 	tx.commitLock.Lock()
 	defer tx.commitLock.Unlock()
 
