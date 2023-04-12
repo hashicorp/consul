@@ -114,6 +114,31 @@ func TestWrite_ACLs(t *testing.T) {
 	}
 }
 
+func TestWrite_Mutate(t *testing.T) {
+	server := testServer(t)
+	client := testClient(t, server)
+	demo.Register(server.Registry)
+
+	artist, err := demo.GenerateV2Artist()
+	require.NoError(t, err)
+
+	artistData := &pbdemov2.Artist{}
+	artist.Data.UnmarshalTo(artistData)
+	require.NoError(t, err)
+
+	// mutate hook sets genre to disco when unspecified
+	artistData.Genre = pbdemov2.Genre_GENRE_UNSPECIFIED
+	artist.Data.MarshalFrom(artistData)
+	require.NoError(t, err)
+
+	rsp, err := client.Write(testContext(t), &pbresource.WriteRequest{Resource: artist})
+	require.NoError(t, err)
+
+	// verify mutate hook set genre to disco
+	require.NoError(t, rsp.Resource.Data.UnmarshalTo(artistData))
+	require.Equal(t, pbdemov2.Genre_GENRE_DISCO, artistData.Genre)
+}
+
 func TestWrite_ResourceCreation_Success(t *testing.T) {
 	server := testServer(t)
 	client := testClient(t, server)

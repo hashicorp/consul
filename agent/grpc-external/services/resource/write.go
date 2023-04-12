@@ -73,6 +73,10 @@ func (s *Server) Write(ctx context.Context, req *pbresource.WriteRequest) (*pbre
 		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
 
+	if err = reg.Mutate(req.Resource); err != nil {
+		return nil, status.Errorf(codes.Internal, "failed mutate hook: %v", err.Error())
+	}
+
 	// At the storage backend layer, all writes are CAS operations.
 	//
 	// This makes it possible to *safely* do things like keeping the Uid stable
