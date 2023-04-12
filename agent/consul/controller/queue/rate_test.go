@@ -1,7 +1,7 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: MPL-2.0
 
-package controller
+package queue
 
 import (
 	"testing"
@@ -10,10 +10,12 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+type Request struct{ Kind string }
+
 func TestRateLimiter_Backoff(t *testing.T) {
 	t.Parallel()
 
-	limiter := NewRateLimiter(1*time.Millisecond, 1*time.Second)
+	limiter := NewRateLimiter[Request](1*time.Millisecond, 1*time.Second)
 
 	request := Request{Kind: "one"}
 	require.Equal(t, 1*time.Millisecond, limiter.NextRetry(request))
@@ -33,7 +35,7 @@ func TestRateLimiter_Backoff(t *testing.T) {
 func TestRateLimiter_Overflow(t *testing.T) {
 	t.Parallel()
 
-	limiter := NewRateLimiter(1*time.Millisecond, 1000*time.Second)
+	limiter := NewRateLimiter[Request](1*time.Millisecond, 1000*time.Second)
 
 	request := Request{Kind: "one"}
 	for i := 0; i < 5; i++ {
@@ -49,7 +51,7 @@ func TestRateLimiter_Overflow(t *testing.T) {
 	// make sure we're capped at the passed in max backoff
 	require.Equal(t, 1000*time.Second, limiter.NextRetry(overflow))
 
-	limiter = NewRateLimiter(1*time.Minute, 1000*time.Hour)
+	limiter = NewRateLimiter[Request](1*time.Minute, 1000*time.Hour)
 
 	for i := 0; i < 2; i++ {
 		limiter.NextRetry(request)
