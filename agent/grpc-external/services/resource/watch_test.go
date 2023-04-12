@@ -10,10 +10,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/grpc-external/testutils"
 	"github.com/hashicorp/consul/internal/resource/demo"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/proto/private/prototest"
 
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -21,6 +24,7 @@ import (
 
 func TestWatchList_TypeNotFound(t *testing.T) {
 	t.Parallel()
+
 	server := testServer(t)
 	client := testClient(t, server)
 
@@ -34,11 +38,12 @@ func TestWatchList_TypeNotFound(t *testing.T) {
 
 	err = mustGetError(t, rspCh)
 	require.Equal(t, codes.InvalidArgument.String(), status.Code(err).String())
-	require.Contains(t, err.Error(), "resource type demo/v2/artist not registered")
+	require.Contains(t, err.Error(), "resource type demo.v2.artist not registered")
 }
 
 func TestWatchList_GroupVersionMatches(t *testing.T) {
 	t.Parallel()
+
 	server := testServer(t)
 	client := testClient(t, server)
 	demo.Register(server.Registry)
@@ -83,6 +88,7 @@ func TestWatchList_GroupVersionMismatch(t *testing.T) {
 	// When a resource of TypeArtistV2 is created/updated/deleted
 	// Then no watch events should be emitted
 	t.Parallel()
+
 	server := testServer(t)
 	demo.Register(server.Registry)
 	client := testClient(t, server)
@@ -115,6 +121,81 @@ func TestWatchList_GroupVersionMismatch(t *testing.T) {
 
 	// verify no events received
 	mustGetNoResource(t, rspCh)
+}
+
+// N.B. Uses key ACLs for now. See demo.Register()
+func TestWatchList_ACL_ListDenied(t *testing.T) {
+	t.Parallel()
+
+	// deny all
+	rspCh, _ := roundTripACL(t, testutils.ACLNoPermissions(t))
+
+	// verify key:list denied
+	err := mustGetError(t, rspCh)
+	require.Error(t, err)
+	require.Equal(t, codes.PermissionDenied.String(), status.Code(err).String())
+	require.Contains(t, err.Error(), "lacks permission 'key:list'")
+}
+
+// N.B. Uses key ACLs for now. See demo.Register()
+func TestWatchList_ACL_ListAllowed_ReadDenied(t *testing.T) {
+	t.Parallel()
+
+	// allow list, deny read
+	authz := AuthorizerFrom(t, `
+		key_prefix "resource/" { policy = "list" }
+		key_prefix "resource/demo.v2.artist/" { policy = "deny" }
+		`)
+	rspCh, _ := roundTripACL(t, authz)
+
+	// verify resource filtered out by key:read denied, hence no events
+	mustGetNoResource(t, rspCh)
+}
+
+// N.B. Uses key ACLs for now. See demo.Register()
+func TestWatchList_ACL_ListAllowed_ReadAllowed(t *testing.T) {
+	t.Parallel()
+
+	// allow list, allow read
+	authz := AuthorizerFrom(t, `
+		key_prefix "resource/" { policy = "list" }
+		key_prefix "resource/demo.v2.artist/" { policy = "read" }
+	`)
+	rspCh, artist := roundTripACL(t, authz)
+
+	// verify resource not filtered out by acl
+	event := mustGetResource(t, rspCh)
+	prototest.AssertDeepEqual(t, artist, event.Resource)
+}
+
+// roundtrip a WatchList which attempts to stream back a single write event
+func roundTripACL(t *testing.T, authz acl.Authorizer) (<-chan resourceOrError, *pbresource.Resource) {
+	server := testServer(t)
+	client := testClient(t, server)
+
+	mockACLResolver := &MockACLResolver{}
+	mockACLResolver.On("ResolveTokenAndDefaultMeta", mock.Anything, mock.Anything, mock.Anything).
+		Return(authz, nil)
+	server.ACLResolver = mockACLResolver
+	demo.Register(server.Registry)
+
+	artist, err := demo.GenerateV2Artist()
+	require.NoError(t, err)
+
+	stream, err := client.WatchList(testContext(t), &pbresource.WatchListRequest{
+		Type:       artist.Id.Type,
+		Tenancy:    artist.Id.Tenancy,
+		NamePrefix: "",
+	})
+	require.NoError(t, err)
+	rspCh := handleResourceStream(t, stream)
+
+	// induce single watch event
+	artist, err = server.Backend.WriteCAS(context.Background(), artist)
+	require.NoError(t, err)
+
+	// caller to make assertions on the rspCh and written artist
+	return rspCh, artist
 }
 
 func mustGetNoResource(t *testing.T, ch <-chan resourceOrError) {

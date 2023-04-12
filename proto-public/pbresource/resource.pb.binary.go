@@ -48,6 +48,36 @@ func (msg *Resource) UnmarshalBinary(b []byte) error {
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler
+func (msg *Status) MarshalBinary() ([]byte, error) {
+	return proto.Marshal(msg)
+}
+
+// UnmarshalBinary implements encoding.BinaryUnmarshaler
+func (msg *Status) UnmarshalBinary(b []byte) error {
+	return proto.Unmarshal(b, msg)
+}
+
+// MarshalBinary implements encoding.BinaryMarshaler
+func (msg *Condition) MarshalBinary() ([]byte, error) {
+	return proto.Marshal(msg)
+}
+
+// UnmarshalBinary implements encoding.BinaryUnmarshaler
+func (msg *Condition) UnmarshalBinary(b []byte) error {
+	return proto.Unmarshal(b, msg)
+}
+
+// MarshalBinary implements encoding.BinaryMarshaler
+func (msg *Reference) MarshalBinary() ([]byte, error) {
+	return proto.Marshal(msg)
+}
+
+// UnmarshalBinary implements encoding.BinaryUnmarshaler
+func (msg *Reference) UnmarshalBinary(b []byte) error {
+	return proto.Unmarshal(b, msg)
+}
+
+// MarshalBinary implements encoding.BinaryMarshaler
 func (msg *WatchEvent) MarshalBinary() ([]byte, error) {
 	return proto.Marshal(msg)
 }
@@ -118,22 +148,22 @@ func (msg *WriteResponse) UnmarshalBinary(b []byte) error {
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler
-func (msg *WriteStatusResponse) MarshalBinary() ([]byte, error) {
-	return proto.Marshal(msg)
-}
-
-// UnmarshalBinary implements encoding.BinaryUnmarshaler
-func (msg *WriteStatusResponse) UnmarshalBinary(b []byte) error {
-	return proto.Unmarshal(b, msg)
-}
-
-// MarshalBinary implements encoding.BinaryMarshaler
 func (msg *WriteStatusRequest) MarshalBinary() ([]byte, error) {
 	return proto.Marshal(msg)
 }
 
 // UnmarshalBinary implements encoding.BinaryUnmarshaler
 func (msg *WriteStatusRequest) UnmarshalBinary(b []byte) error {
+	return proto.Unmarshal(b, msg)
+}
+
+// MarshalBinary implements encoding.BinaryMarshaler
+func (msg *WriteStatusResponse) MarshalBinary() ([]byte, error) {
+	return proto.Marshal(msg)
+}
+
+// UnmarshalBinary implements encoding.BinaryUnmarshaler
+func (msg *WriteStatusResponse) UnmarshalBinary(b []byte) error {
 	return proto.Unmarshal(b, msg)
 }
 

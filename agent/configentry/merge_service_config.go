@@ -157,44 +157,20 @@ func MergeServiceConfig(defaults *structs.ServiceConfigResponse, service *struct
 	// remoteUpstreams contains synthetic Upstreams generated from central config (service-defaults.UpstreamConfigs).
 	remoteUpstreams := make(map[structs.PeeredServiceName]structs.Upstream)
 
-	if len(defaults.UpstreamIDConfigs) > 0 {
-		// Handle legacy upstreams. This should be removed in Consul 1.16.
-		for _, us := range defaults.UpstreamIDConfigs {
-			parsed, err := structs.ParseUpstreamConfigNoDefaults(us.Config)
-			if err != nil {
-				return nil, fmt.Errorf("failed to parse upstream config map for %s: %v", us.Upstream.String(), err)
-			}
-			psn := structs.PeeredServiceName{
-				Peer:        "",
-				ServiceName: structs.NewServiceName(us.Upstream.ID, &us.Upstream.EnterpriseMeta),
-			}
-
-			remoteUpstreams[psn] = structs.Upstream{
-				DestinationNamespace: us.Upstream.NamespaceOrDefault(),
-				DestinationPartition: us.Upstream.PartitionOrDefault(),
-				DestinationName:      us.Upstream.ID,
-				DestinationPeer:      "",
-				Config:               us.Config,
-				MeshGateway:          parsed.MeshGateway,
-				CentrallyConfigured:  true,
-			}
+	for _, us := range defaults.UpstreamConfigs {
+		parsed, err := structs.ParseUpstreamConfigNoDefaults(us.Config)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse upstream config map for %s: %v", us.Upstream.String(), err)
 		}
-	} else {
-		for _, us := range defaults.UpstreamConfigs {
-			parsed, err := structs.ParseUpstreamConfigNoDefaults(us.Config)
-			if err != nil {
-				return nil, fmt.Errorf("failed to parse upstream config map for %s: %v", us.Upstream.String(), err)
-			}
 
-			remoteUpstreams[us.Upstream] = structs.Upstream{
-				DestinationNamespace: us.Upstream.ServiceName.NamespaceOrDefault(),
-				DestinationPartition: us.Upstream.ServiceName.PartitionOrDefault(),
-				DestinationName:      us.Upstream.ServiceName.Name,
-				DestinationPeer:      us.Upstream.Peer,
-				Config:               us.Config,
-				MeshGateway:          parsed.MeshGateway,
-				CentrallyConfigured:  true,
-			}
+		remoteUpstreams[us.Upstream] = structs.Upstream{
+			DestinationNamespace: us.Upstream.ServiceName.NamespaceOrDefault(),
+			DestinationPartition: us.Upstream.ServiceName.PartitionOrDefault(),
+			DestinationName:      us.Upstream.ServiceName.Name,
+			DestinationPeer:      us.Upstream.Peer,
+			Config:               us.Config,
+			MeshGateway:          parsed.MeshGateway,
+			CentrallyConfigured:  true,
 		}
 	}
 

@@ -4,14 +4,33 @@
 package resource
 
 import (
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/internal/storage"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
 func (s *Server) WatchList(req *pbresource.WatchListRequest, stream pbresource.ResourceService_WatchListServer) error {
 	// check type exists
-	if _, err := s.resolveType(req.Type); err != nil {
+	reg, err := s.resolveType(req.Type)
+	if err != nil {
 		return err
+	}
+
+	authz, err := s.getAuthorizer(tokenFromContext(stream.Context()))
+	if err != nil {
+		return err
+	}
+
+	// check acls
+	err = reg.ACLs.List(authz, req.Tenancy)
+	switch {
+	case acl.IsErrPermissionDenied(err):
+		return status.Error(codes.PermissionDenied, err.Error())
+	case err != nil:
+		return status.Errorf(codes.Internal, "failed list acl: %v", err)
 	}
 
 	unversionedType := storage.UnversionedTypeFrom(req.Type)
@@ -29,12 +48,21 @@ func (s *Server) WatchList(req *pbresource.WatchListRequest, stream pbresource.R
 	for {
 		event, err := watch.Next(stream.Context())
 		if err != nil {
-			return err
+			return status.Errorf(codes.Internal, "failed next: %v", err)
 		}
 
-		// drop versions that don't match
+		// drop group versions that don't match
 		if event.Resource.Id.Type.GroupVersion != req.Type.GroupVersion {
 			continue
+		}
+
+		// filter out items that don't pass read ACLs
+		err = reg.ACLs.Read(authz, event.Resource.Id)
+		switch {
+		case acl.IsErrPermissionDenied(err):
+			continue
+		case err != nil:
+			return status.Errorf(codes.Internal, "failed read acl: %v", err)
 		}
 
 		if err = stream.Send(event); err != nil {
