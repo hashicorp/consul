@@ -337,7 +337,7 @@ jobs:
           mkdir -p "${{ env.TEST_RESULTS_DIR }}"
           cd ./test/integration/consul-container
           docker run --rm consul:local consul version
-          go test -timeout=30m `go list ./... | grep -v upgrade`
+          go test -timeout=30m `go list ./... | grep -v upgrade` -v -follow-log=false
           ls -lrt
         env:
           # this is needed because of incompatibility between RYUK container and circleci
@@ -386,6 +386,7 @@ jobs:
           docker run --rm consul:local consul version
           go test -timeout 30m -run ^TestLeadershipMetrics$ ./test/observability -v -follow-log=false
           go test -timeout 30m ./test/observability -v -follow-log=false
+          go test -timeout 30m ./test/peering -v -follow-log=false
           ls -lrt
         env:
           # this is needed because of incompatibility between RYUK container and circleci
