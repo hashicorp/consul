@@ -1703,11 +1703,6 @@ func SourceIntentionToStructs(s *SourceIntention, t *structs.SourceIntention) {
 		}
 	}
 	t.Precedence = int(s.Precedence)
-	if s.JWT != nil {
-		var x structs.IntentionJWTRequirement
-		IntentionJWTRequirementToStructs(s.JWT, &x)
-		t.JWT = &x
-	}
 	t.LegacyID = s.LegacyID
 	t.Type = intentionSourceTypeToStructs(s.Type)
 	t.Description = s.Description
@@ -1734,11 +1729,6 @@ func SourceIntentionFromStructs(t *structs.SourceIntention, s *SourceIntention) 
 		}
 	}
 	s.Precedence = int32(t.Precedence)
-	if t.JWT != nil {
-		var x IntentionJWTRequirement
-		IntentionJWTRequirementFromStructs(t.JWT, &x)
-		s.JWT = &x
-	}
 	s.LegacyID = t.LegacyID
 	s.Type = intentionSourceTypeFromStructs(t.Type)
 	s.Description = t.Description

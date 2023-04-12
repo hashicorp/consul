@@ -429,7 +429,6 @@ message SourceIntention {
   // mog: func-to=enterpriseMetaToStructs func-from=enterpriseMetaFromStructs
   common.EnterpriseMeta EnterpriseMeta = 11;
   string Peer = 12;
-  IntentionJWTRequirement JWT = 13;
 }
 
 enum IntentionAction {

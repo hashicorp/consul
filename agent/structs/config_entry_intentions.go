@@ -137,7 +137,7 @@ func (e *ServiceIntentionsConfigEntry) ToIntention(src *SourceIntention) *Intent
 		SourceNS:             src.NamespaceOrDefault(),
 		SourceName:           src.Name,
 		SourceType:           src.Type,
-		JWT:                  src.JWT,
+		JWT:                  e.JWT,
 		Action:               src.Action,
 		Permissions:          src.Permissions,
 		Meta:                 meta,
@@ -236,8 +236,6 @@ type SourceIntention struct {
 	//
 	// formerly Intention.Precedence
 	Precedence int
-
-	JWT *IntentionJWTRequirement `json:",omitempty"`
 
 	// LegacyID is manipulated just by the bridging code
 	// used as part of backwards compatibility.
