@@ -328,28 +328,6 @@ jobs:
           path: *TEST_RESULTS_DIR
       - run: *notify-slack-failure
 
-  # build frontend yarn cache
-  frontend-cache:
-    docker:
-      - image: *EMBER_IMAGE
-    steps:
-      - checkout
-
-      # cache yarn deps
-      - restore_cache:
-          key: *YARN_CACHE_KEY
-
-      - run:
-          name: install yarn packages
-          command: cd ui && make deps
-
-      - save_cache:
-          key: *YARN_CACHE_KEY
-          paths:
-            - ui/node_modules
-            - ui/packages/consul-ui/node_modules
-      - run: *notify-slack-failure
-
   compatibility-integration-test:
     machine:
       image: *UBUNTU_CI_IMAGE
