@@ -7,6 +7,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/internal/storage"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
@@ -18,14 +19,23 @@ import (
 // Deletes of previously deleted or non-existent resource are no-ops.
 // Returns an Aborted error if the requested Version does not match the stored Version.
 func (s *Server) Delete(ctx context.Context, req *pbresource.DeleteRequest) (*pbresource.DeleteResponse, error) {
-	// check type registered
 	reg, err := s.resolveType(req.Id.Type)
 	if err != nil {
 		return nil, err
 	}
 
-	// TODO(spatel): reg will be used for ACL hooks
-	_ = reg
+	authz, err := s.getAuthorizer(tokenFromContext(ctx))
+	if err != nil {
+		return nil, err
+	}
+
+	err = reg.ACLs.Write(authz, req.Id)
+	switch {
+	case acl.IsErrPermissionDenied(err):
+		return nil, status.Error(codes.PermissionDenied, err.Error())
+	case err != nil:
+		return nil, status.Errorf(codes.Internal, "failed write acl: %v", err)
+	}
 
 	versionToDelete := req.Version
 	if versionToDelete == "" {

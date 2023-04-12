@@ -74,8 +74,8 @@ func Register(r resource.Registry) {
 		return authz.ToAllowAuthorizer().KeyReadAllowed(key, &acl.AuthorizerContext{})
 	}
 
-	writeACL := func(authz acl.Authorizer, res *pbresource.Resource) error {
-		key := fmt.Sprintf("resource/%s/%s", resource.ToGVK(res.Id.Type), res.Id.Name)
+	writeACL := func(authz acl.Authorizer, id *pbresource.ID) error {
+		key := fmt.Sprintf("resource/%s/%s", resource.ToGVK(id.Type), id.Name)
 		return authz.ToAllowAuthorizer().KeyWriteAllowed(key, &acl.AuthorizerContext{})
 	}
 

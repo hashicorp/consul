@@ -6,11 +6,13 @@ import (
 	"testing"
 
 	"github.com/oklog/ulid/v2"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/anypb"
 
+	"github.com/hashicorp/consul/acl/resolver"
 	"github.com/hashicorp/consul/internal/resource/demo"
 	"github.com/hashicorp/consul/internal/storage"
 	"github.com/hashicorp/consul/proto-public/pbresource"
@@ -68,6 +70,48 @@ func TestWrite_TypeNotFound(t *testing.T) {
 	require.Error(t, err)
 	require.Equal(t, codes.InvalidArgument.String(), status.Code(err).String())
 	require.Contains(t, err.Error(), "resource type demo.v2.artist not registered")
+}
+
+func TestWrite_ACLs(t *testing.T) {
+	type testCase struct {
+		authz       resolver.Result
+		assertErrFn func(error)
+	}
+	testcases := map[string]testCase{
+		"write denied": {
+			authz: AuthorizerFrom(t, demo.ArtistV1WritePolicy),
+			assertErrFn: func(err error) {
+				require.Error(t, err)
+				require.Equal(t, codes.PermissionDenied.String(), status.Code(err).String())
+			},
+		},
+		"write allowed": {
+			authz: AuthorizerFrom(t, demo.ArtistV2WritePolicy),
+			assertErrFn: func(err error) {
+				require.NoError(t, err)
+			},
+		},
+	}
+
+	for desc, tc := range testcases {
+		t.Run(desc, func(t *testing.T) {
+			server := testServer(t)
+			client := testClient(t, server)
+
+			mockACLResolver := &MockACLResolver{}
+			mockACLResolver.On("ResolveTokenAndDefaultMeta", mock.Anything, mock.Anything, mock.Anything).
+				Return(tc.authz, nil)
+			server.ACLResolver = mockACLResolver
+			demo.Register(server.Registry)
+
+			artist, err := demo.GenerateV2Artist()
+			require.NoError(t, err)
+
+			// exercise ACL
+			_, err = client.Write(testContext(t), &pbresource.WriteRequest{Resource: artist})
+			tc.assertErrFn(err)
+		})
+	}
 }
 
 func TestWrite_ResourceCreation_Success(t *testing.T) {
