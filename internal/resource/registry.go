@@ -49,7 +49,7 @@ type ACLHooks struct {
 	// Write is used to authorize Write and Delete RPCs.
 	//
 	// If it is omitted, `operator:write` permission is assumed.
-	Write func(acl.Authorizer, *pbresource.Resource) error
+	Write func(acl.Authorizer, *pbresource.ID) error
 
 	// List is used to authorize List RPCs.
 	//
@@ -94,7 +94,7 @@ func (r *TypeRegistry) Register(registration Registration) {
 		}
 	}
 	if registration.ACLs.Write == nil {
-		registration.ACLs.Write = func(authz acl.Authorizer, resource *pbresource.Resource) error {
+		registration.ACLs.Write = func(authz acl.Authorizer, id *pbresource.ID) error {
 			return authz.ToAllowAuthorizer().OperatorWriteAllowed(&acl.AuthorizerContext{})
 		}
 	}

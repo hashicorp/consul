@@ -32,7 +32,7 @@ func (s *Server) Write(ctx context.Context, req *pbresource.WriteRequest) (*pbre
 	}
 
 	// check acls
-	err = reg.ACLs.Write(authz, req.Resource)
+	err = reg.ACLs.Write(authz, req.Resource.Id)
 	switch {
 	case acl.IsErrPermissionDenied(err):
 		return nil, status.Error(codes.PermissionDenied, err.Error())
