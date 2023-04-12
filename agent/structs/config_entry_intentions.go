@@ -20,6 +20,8 @@ type ServiceIntentionsConfigEntry struct {
 
 	Sources []*SourceIntention
 
+	JWT *IntentionJWTRequirement `json:",omitempty"`
+
 	Meta map[string]string `json:",omitempty"` // formerly Intention.Meta
 
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"` // formerly DestinationNS
@@ -55,6 +57,10 @@ func (e *ServiceIntentionsConfigEntry) Clone() *ServiceIntentionsConfigEntry {
 	e2.Sources = make([]*SourceIntention, len(e.Sources))
 	for i, src := range e.Sources {
 		e2.Sources[i] = src.Clone()
+	}
+
+	if e.JWT != nil {
+		e2.JWT = e.JWT.Clone()
 	}
 
 	return &e2
@@ -131,6 +137,7 @@ func (e *ServiceIntentionsConfigEntry) ToIntention(src *SourceIntention) *Intent
 		SourceNS:             src.NamespaceOrDefault(),
 		SourceName:           src.Name,
 		SourceType:           src.Type,
+		JWT:                  src.JWT,
 		Action:               src.Action,
 		Permissions:          src.Permissions,
 		Meta:                 meta,
@@ -230,6 +237,8 @@ type SourceIntention struct {
 	// formerly Intention.Precedence
 	Precedence int
 
+	JWT *IntentionJWTRequirement `json:",omitempty"`
+
 	// LegacyID is manipulated just by the bridging code
 	// used as part of backwards compatibility.
 	//
@@ -268,6 +277,60 @@ type SourceIntention struct {
 	Peer string `json:",omitempty"`
 }
 
+type IntentionJWTRequirement struct {
+	// Providers is a list of providers to consider when verifying a JWT.
+	Providers []*IntentionJWTProvider
+}
+
+func (e *IntentionJWTRequirement) Clone() *IntentionJWTRequirement {
+	e2 := *e
+
+	e2.Providers = make([]*IntentionJWTProvider, len(e.Providers))
+	for i, src := range e.Providers {
+		e2.Providers[i] = src.Clone()
+	}
+	return &e2
+}
+
+type IntentionJWTProvider struct {
+	// Name is the name of the JWT provider. There MUST be a corresponding
+	// "jwt-provider" config entry with this name.
+	Name string
+
+	// VerifyClaims is a list of additional claims to verify in a JWT's payload.
+	VerifyClaims []*IntentionJWTClaimVerification
+}
+
+func (e *IntentionJWTProvider) Clone() *IntentionJWTProvider {
+	e2 := *e
+
+	e2.VerifyClaims = make([]*IntentionJWTClaimVerification, len(e.VerifyClaims))
+	for i, src := range e.VerifyClaims {
+		e2.VerifyClaims[i] = src.Clone()
+	}
+	return &e2
+}
+
+type IntentionJWTClaimVerification struct {
+	// Path is the path to the claim in the token JSON.
+	Path []string
+
+	// Value is the expected value at the given path:
+	// - If the type at the path is a list then we verify
+	//   that this value is contained in the list.
+	//
+	// - If the type at the path is a string then we verify
+	//   that this value matches.
+	Value string
+}
+
+func (e *IntentionJWTClaimVerification) Clone() *IntentionJWTClaimVerification {
+	e2 := *e
+
+	e2.Path = stringslice.CloneStringSlice(e.Path)
+	return &e2
+}
+
 type IntentionPermission struct {
 	Action IntentionAction // required: allow|deny
 
@@ -281,12 +344,17 @@ type IntentionPermission struct {
 
 	// If we ever add Sentinel support, this is one place we may
 	// wish to add it.
+
+	JWT *IntentionJWTRequirement `json:",omitempty"`
 }
 
 func (p *IntentionPermission) Clone() *IntentionPermission {
 	p2 := *p
 	if p.HTTP != nil {
 		p2.HTTP = p.HTTP.Clone()
+	}
+	if p.JWT != nil {
+		p2.JWT = p.JWT.Clone()
 	}
 	return &p2
 }
