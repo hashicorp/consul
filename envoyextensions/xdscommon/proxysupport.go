@@ -12,7 +12,7 @@ var EnvoyVersions = []string{
 	"1.25.4",
 	"1.24.6",
 	"1.23.8",
-	"1.22.10",
+	"1.22.11",
 }
 
 // UnsupportedEnvoyVersions lists any unsupported Envoy versions (mainly minor versions) that fall
