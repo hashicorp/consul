@@ -305,6 +305,52 @@ jobs:
         with:
           name: ${{ env.TEST_RESULTS_ARTIFACT_NAME }}
           path: ${{ env.TEST_RESULTS_DIR }}
+  experiment-all-compatibility-integration-test:
+    runs-on: ${{ fromJSON(needs.setup.outputs.compute-xl) }}
+    needs:
+      - setup
+      - dev-build
+    steps:
+      - uses: actions/checkout@24cb9080177205b6e8c946b17badbe402adc938f # v3.4.0
+      - uses: actions/setup-go@6edd4406fa81c3da01a34fa6f6343087c207a568 # v3.5.0
+        with:
+          go-version-file: 'go.mod'
+      - run: go env
+      - name: Setup gotestsum
+        uses: autero1/action-gotestsum@2e48af62f5248bd3b014f598cd1aa69a01dd36e3 # v1.0.0
+        with:
+          gotestsum_version: ${{ env.GOTESTSUM_VERSION }}
+
+      # Build the consul:local image from the already built binary
+      - name: fetch binary
+        uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
+        with:
+          name: '${{ env.CONSUL_BINARY_UPLOAD_NAME }}'
+          path: .
+      - name: restore mode+x
+        run: chmod +x consul
+
+      - name: Build consul:local image
+        run: docker build -t consul:local -f ./build-support/docker/Consul-Dev.dockerfile .
+      - name: Compatibility Integration Tests
+        run: |
+          mkdir -p "${{ env.TEST_RESULTS_DIR }}"
+          cd ./test/integration/consul-container
+          docker run --rm consul:local consul version
+          go test -timeout=30m `go list ./... | grep -v upgrade`
+          ls -lrt
+        env:
+          # this is needed because of incompatibility between RYUK container and circleci
+          GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
+          GOTESTSUM_FORMAT: standard-verbose
+          COMPOSE_INTERACTIVE_NO_CLI: 1
+          # tput complains if this isn't set to something.
+          TERM: ansi
+
+      - uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
+        with:
+          name: ${{ env.TEST_RESULTS_ARTIFACT_NAME }}
+          path: ${{ env.TEST_RESULTS_DIR }}
 
   experiment-compatibility-integration-test:
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-xl) }}
