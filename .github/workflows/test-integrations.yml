@@ -281,7 +281,7 @@ jobs:
       - name: Compatibility Integration Tests
         run: |
             mkdir -p "/tmp/test-results"
-            cd ./test/integration/consul-container
+            cd ./test/integration/consul-container/test
             docker run --rm consul:local consul version
             # shellcheck disable=SC2046
             gotestsum \
