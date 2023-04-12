@@ -280,26 +280,28 @@ jobs:
         run: docker build -t consul:local -f ./build-support/docker/Consul-Dev.dockerfile .
       - name: Compatibility Integration Tests
         run: |
-          mkdir -p "${{ env.TEST_RESULTS_DIR }}"
-          cd ./test/integration/consul-container
-          docker run --rm consul:local consul version
-          gotestsum \
-            --raw-command \
-            --format=short-verbose \
-            --debug \
-            --rerun-fails=3 \
-            --packages="./..." \
-            -- \
-            go test \
-            -p=4 \
-            -timeout=30m \
-            -json \
-            `go list ./... | grep -v upgrade` \
-            --target-image consul \
-            --target-version local \
-            --latest-image consul \
-            --latest-version latest
-          ls -lrt
+            mkdir -p "/tmp/test-results"
+            cd ./test/integration/consul-container
+            docker run --rm consul:local consul version
+            # shellcheck disable=SC2046
+            gotestsum \
+              --raw-command \
+              --format=short-verbose \
+              --debug \
+              --rerun-fails=3 \
+              --packages="./..." \
+              -- \
+              go test \
+              -p=4 \
+              -tags "" \
+              -timeout=30m \
+              -json \
+              $(go list ./... | grep -v upgrade) \
+              --target-image consul \
+              --target-version local \
+              --latest-image consul \
+              --latest-version latest
+            ls -lrt
         env:
           # this is needed because of incompatibility between RYUK container and circleci
           GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
