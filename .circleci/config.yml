@@ -11,6 +11,16 @@ parameters:
     description: "Commit to run load tests against"
 
 references:
+  paths:
+    test-results: &TEST_RESULTS_DIR /tmp/test-results
+  environment: &ENVIRONMENT
+    TEST_RESULTS_DIR: *TEST_RESULTS_DIR
+    EMAIL: noreply@hashicorp.com
+    GIT_AUTHOR_NAME: circleci-consul
+    GIT_COMMITTER_NAME: circleci-consul
+    S3_ARTIFACT_BUCKET: consul-dev-artifacts-v2
+    BASH_ENV: .circleci/bash_env.sh
+    GO_VERSION: 1.19.6
   envoy-versions: &supported_envoy_versions
     - &default_envoy_version "1.20.7"
     - "1.21.6"
@@ -25,36 +35,14 @@ references:
     - "1.11.6"
     - "1.10.9"
     - "1.9.10"
-  consul-versions: &consul_versions
-    - "1.15"
-    - "1.14"
   images:
     # When updating the Go version, remember to also update the versions in the
     # workflows section for go-test-lib jobs.
-    go: &GOLANG_IMAGE docker.mirror.hashicorp.services/cimg/go:1.20.1
-    ember: &EMBER_IMAGE docker.mirror.hashicorp.services/circleci/node:16-browsers
+    go: &GOLANG_IMAGE docker.mirror.hashicorp.services/cimg/go:1.19.6
+    ember: &EMBER_IMAGE docker.mirror.hashicorp.services/circleci/node:14-browsers
     ubuntu: &UBUNTU_CI_IMAGE ubuntu-2004:202201-02
-
-  paths:
-    test-results: &TEST_RESULTS_DIR /tmp/test-results
-
   cache:
     yarn: &YARN_CACHE_KEY consul-ui-v9-{{ checksum "ui/yarn.lock" }}
-
-  consul_exec_contexts: &consul_exec_contexts
-    - team-consul
-    - consul-enterprise-licensing
-
-  environment: &ENVIRONMENT
-    TEST_RESULTS_DIR: *TEST_RESULTS_DIR
-    EMAIL: noreply@hashicorp.com
-    GIT_AUTHOR_NAME: circleci-consul
-    GIT_COMMITTER_NAME: circleci-consul
-    S3_ARTIFACT_BUCKET: consul-dev-artifacts-v2
-    S3_ARTIFACT_BUCKET_CLOUD: consul-enterprise-dev-artifacts-v2
-    BASH_ENV: .circleci/bash_env.sh
-    GOPRIVATE: github.com/hashicorp
-    GO_VERSION: 1.20.1
 
 steps:
   install-gotestsum: &install-gotestsum
@@ -200,28 +188,6 @@ jobs:
           fi
       - run: *notify-slack-failure
 
-  # build is a templated job for build-x
-  build-distros: &build-distros
-    docker:
-      - image: *GOLANG_IMAGE
-    resource_class: large
-    environment: &build-env
-      <<: *ENVIRONMENT
-    steps:
-      - checkout
-      - run:
-          name: Build
-          command: |
-            for os in $XC_OS; do
-              target="./pkg/bin/${GOOS}_${GOARCH}/"
-              GOOS="$os" CGO_ENABLED=0 go build -o "${target}" -ldflags "${GOLDFLAGS}" -tags "${GOTAGS}"
-            done
-
-      # save dev build to CircleCI
-      - store_artifacts:
-          path: ./pkg/bin
-      - run: *notify-slack-failure
-
   # create a development build
   dev-build:
     docker:
@@ -337,143 +303,6 @@ jobs:
           path: *TEST_RESULTS_DIR
       - run: *notify-slack-failure
 
-  # build frontend yarn cache
-  frontend-cache:
-    docker:
-      - image: *EMBER_IMAGE
-    steps:
-      - checkout
-
-      # cache yarn deps
-      - restore_cache:
-          key: *YARN_CACHE_KEY
-
-      - run:
-          name: install yarn packages
-          command: cd ui && make deps
-
-      - save_cache:
-          key: *YARN_CACHE_KEY
-          paths:
-            - ui/node_modules
-            - ui/packages/consul-ui/node_modules
-      - run: *notify-slack-failure
-
-  # build ember so frontend tests run faster
-  ember-build-oss: &ember-build-oss
-    docker:
-      - image: *EMBER_IMAGE
-    environment:
-      JOBS: 2 # limit parallelism for broccoli-babel-transpiler
-      CONSUL_NSPACES_ENABLED: 0
-    steps:
-      - checkout
-      - restore_cache:
-          key: *YARN_CACHE_KEY
-      - run: cd ui/packages/consul-ui && make build-ci
-
-      # saves the build to a workspace to be passed to a downstream job
-      - persist_to_workspace:
-          root: ui
-          paths:
-            - packages/consul-ui/dist
-      - run: *notify-slack-failure
-
-  # build ember so frontend tests run faster
-  ember-build-ent:
-    <<: *ember-build-oss
-    environment:
-      JOBS: 2 # limit parallelism for broccoli-babel-transpiler
-      CONSUL_NSPACES_ENABLED: 1
-
-  # run node tests
-  node-tests:
-    docker:
-      - image: *EMBER_IMAGE
-    steps:
-      - checkout
-      - restore_cache:
-          key: *YARN_CACHE_KEY
-      - attach_workspace:
-          at: ui
-      - run:
-          working_directory: ui/packages/consul-ui
-          command: make test-node
-      - run: *notify-slack-failure
-  # run yarn workspace wide checks/tests
-  workspace-tests:
-    docker:
-      - image: *EMBER_IMAGE
-    steps:
-      - checkout
-      - restore_cache:
-          key: *YARN_CACHE_KEY
-      - attach_workspace:
-          at: ui
-      - run:
-          working_directory: ui
-          command: make test-workspace
-      - run: *notify-slack-failure
-
-  # run ember frontend tests
-  ember-test-oss:
-    docker:
-      - image: *EMBER_IMAGE
-    environment:
-      EMBER_TEST_REPORT: test-results/report-oss.xml #outputs test report for CircleCI test summary
-      EMBER_TEST_PARALLEL: true #enables test parallelization with ember-exam
-      CONSUL_NSPACES_ENABLED: 0
-    parallelism: 4
-    steps:
-      - checkout
-      - restore_cache:
-          key: *YARN_CACHE_KEY
-      - attach_workspace:
-          at: ui
-      - run:
-          working_directory: ui/packages/consul-ui
-          command: node_modules/.bin/ember exam --split=$CIRCLE_NODE_TOTAL --partition=`expr $CIRCLE_NODE_INDEX + 1` --path dist --silent -r xunit
-      - store_test_results:
-          path: ui/packages/consul-ui/test-results
-      - run: *notify-slack-failure
-
-  # run ember frontend tests
-  ember-test-ent:
-    docker:
-      - image: *EMBER_IMAGE
-    environment:
-      EMBER_TEST_REPORT: test-results/report-ent.xml #outputs test report for CircleCI test summary
-      EMBER_TEST_PARALLEL: true #enables test parallelization with ember-exam
-      CONSUL_NSPACES_ENABLED: 1
-    parallelism: 4
-    steps:
-      - checkout
-      - restore_cache:
-          key: *YARN_CACHE_KEY
-      - attach_workspace:
-          at: ui
-      - run:
-          working_directory: ui/packages/consul-ui
-          command: node_modules/.bin/ember exam --split=$CIRCLE_NODE_TOTAL --partition=`expr $CIRCLE_NODE_INDEX + 1` --path dist --silent -r xunit
-      - store_test_results:
-          path: ui/packages/consul-ui/test-results
-      - run: *notify-slack-failure
-
-  # run ember frontend unit tests to produce coverage report
-  ember-coverage:
-    docker:
-      - image: *EMBER_IMAGE
-    steps:
-      - checkout
-      - restore_cache:
-          key: *YARN_CACHE_KEY
-      - attach_workspace:
-          at: ui
-      - run:
-          working_directory: ui/packages/consul-ui
-          command: make test-coverage-ci
-      - run: *notify-slack-failure
-
   compatibility-integration-test:
     machine:
       image: *UBUNTU_CI_IMAGE
@@ -526,70 +355,6 @@ jobs:
       - store_artifacts:
           path: *TEST_RESULTS_DIR
       - run: *notify-slack-failure
-
-  upgrade-integration-test:
-      machine:
-        image: *UBUNTU_CI_IMAGE
-        docker_layer_caching: true
-      parallelism: 3
-      resource_class: large
-      parameters:
-        consul-version:
-          type: enum
-          enum: *consul_versions
-      environment:
-        CONSUL_VERSION: << parameters.consul-version >>
-      steps:
-        - checkout
-        # Get go binary from workspace
-        - attach_workspace:
-            at: .
-        # Build the consul:local image from the already built binary
-        - run:
-            command: |
-              sudo rm -rf /usr/local/go
-              wget https://dl.google.com/go/go${GO_VERSION}.linux-amd64.tar.gz
-              sudo tar -C /usr/local -xzvf go${GO_VERSION}.linux-amd64.tar.gz
-            environment:
-              <<: *ENVIRONMENT
-        - run: *install-gotestsum
-        - run: docker build -t consul:local -f ./build-support/docker/Consul-Dev.dockerfile .
-        - run:
-            name: Upgrade Integration Tests
-            command: |
-              mkdir -p /tmp/test-results/
-              cd ./test/integration/consul-container
-              docker run --rm consul:local consul version
-              gotestsum \
-                --raw-command \
-                --format=short-verbose \
-                --debug \
-                --rerun-fails=3 \
-                --packages="./..." \
-                -- \
-                go test \
-                -p=4 \
-                -tags "${GOTAGS}" \
-                -timeout=30m \
-                -json \
-                ./.../upgrade/ \
-                --target-image consul \
-                --target-version local \
-                --latest-image consul \
-                --latest-version $CONSUL_VERSION
-              ls -lrt
-            environment:
-              # this is needed because of incompatibility between RYUK container and circleci
-              GOTESTSUM_JUNITFILE: /tmp/test-results/results.xml
-              GOTESTSUM_FORMAT: standard-verbose
-              COMPOSE_INTERACTIVE_NO_CLI: 1
-              # tput complains if this isn't set to something.
-              TERM: ansi
-        - store_test_results:
-            path: *TEST_RESULTS_DIR
-        - store_artifacts:
-            path: *TEST_RESULTS_DIR
-        - run: *notify-slack-failure
 
   envoy-integration-test: &ENVOY_TESTS
     machine:
@@ -696,7 +461,6 @@ workflows:
                 - /^ui\/.*/
                 - /^backport\/docs\/.*/
                 - /^backport\/ui\/.*/
-                - /^backport\/mktg-.*/
       - dev-upload-s3: &dev-upload
           requires:
             - dev-build
@@ -729,37 +493,4 @@ workflows:
       - compatibility-integration-test:
           requires:
             - dev-build
-      - noop
-  frontend:
-    jobs:
-      - frontend-cache:
-          filters:
-            branches:
-              only:
-                - main
-                - /^ui\/.*/
-                - /^backport\/ui\/.*/
-      - workspace-tests:
-          requires:
-            - frontend-cache
-      - node-tests:
-          requires:
-            - frontend-cache
-      - ember-build-oss:
-          requires:
-            - frontend-cache
-      - ember-build-ent:
-          requires:
-            - frontend-cache
-      - ember-test-oss:
-          requires:
-            - ember-build-oss
-      - ember-test-ent:
-          requires:
-            - ember-build-ent
-      # ember-coverage in CI uses the dist/ folder to run tests so it requires
-      # either/or ent/oss to be built first
-      - ember-coverage:
-          requires:
-            - ember-build-ent
       - noop
