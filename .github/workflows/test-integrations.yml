@@ -37,6 +37,16 @@ jobs:
       - id: runners
         run: .github/scripts/get_runner_classes.sh
 
+  dev-build:
+    needs: [setup]
+    uses: ./.github/workflows/reusable-dev-build.yml
+    with:
+      runs-on: ${{ needs.setup.outputs.compute-xl }}
+      repository-name: ${{ github.repository }}
+      uploaded-binary-name: 'consul-bin'
+    secrets:
+      elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
+
   compatibility-integration-test:
     runs-on: ubuntu-latest
     needs:
