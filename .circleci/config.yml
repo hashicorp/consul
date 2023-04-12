@@ -13,7 +13,7 @@ parameters:
 references:
   envoy-versions: &supported_envoy_versions
     - &default_envoy_version "1.21.6"
-    - "1.22.10"
+    - "1.22.11"
     - "1.23.8"
     - "1.24.6"
   nomad-versions: &supported_nomad_versions

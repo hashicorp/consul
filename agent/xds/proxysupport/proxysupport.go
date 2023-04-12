@@ -9,6 +9,6 @@ package proxysupport
 var EnvoyVersions = []string{
 	"1.24.6",
 	"1.23.8",
-	"1.22.10",
+	"1.22.11",
 	"1.21.6",
 }
