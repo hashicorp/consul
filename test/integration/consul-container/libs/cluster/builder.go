@@ -273,6 +273,11 @@ func (b *Builder) Peering(enable bool) *Builder {
 	return b
 }
 
+func (b *Builder) NodeID(nodeID string) *Builder {
+	b.conf.Set("node_id", nodeID)
+	return b
+}
+
 func (b *Builder) Partition(name string) *Builder {
 	b.conf.Set("partition", name)
 	return b
