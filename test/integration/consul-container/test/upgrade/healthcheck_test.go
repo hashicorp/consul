@@ -22,7 +22,7 @@ import (
 // Note: this upgrade test doesn't use StandardUpgrade since it requires
 // a cluster with clients and servers with mixed versions
 func TestTargetServersWithLatestGAClients(t *testing.T) {
-	t.Parallel()
+
 
 	fromVersion, err := version.NewVersion(utils.LatestVersion)
 	require.NoError(t, err)
@@ -70,14 +70,14 @@ func TestTargetServersWithLatestGAClients(t *testing.T) {
 
 // Test health check GRPC call using Mixed (majority latest) Servers and Latest GA Clients
 func TestMixedServersMajorityLatestGAClient(t *testing.T) {
-	t.Parallel()
+
 
 	testMixedServersGAClient(t, false)
 }
 
 // Test health check GRPC call using Mixed (majority target) Servers and Latest GA Clients
 func TestMixedServersMajorityTargetGAClient(t *testing.T) {
-	t.Parallel()
+
 
 	testMixedServersGAClient(t, true)
 }

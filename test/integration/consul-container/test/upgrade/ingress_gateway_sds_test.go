@@ -32,7 +32,6 @@ const sdsServerPort = 1234
 //  4. does HTTPS calls against the gateway and checks that the certs returned
 //     are from the SDS server as expected
 func TestIngressGateway_SDS_UpgradeToTarget_fromLatest(t *testing.T) {
-	t.Parallel()
 
 	cluster, _, client := topology.NewCluster(t, &topology.ClusterConfig{
 		NumServers: 1,

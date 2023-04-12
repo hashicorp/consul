@@ -16,7 +16,7 @@ import (
 
 // Test upgrade a cluster of latest version to the target version
 func TestBasic(t *testing.T) {
-	t.Parallel()
+
 
 	configCtx := libcluster.NewBuildContext(t, libcluster.BuildOptions{
 		ConsulImageName: utils.TargetImageName,

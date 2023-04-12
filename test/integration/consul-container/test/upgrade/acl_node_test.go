@@ -19,7 +19,7 @@ import (
 // 1. Upgraded agent can inherit the persistend token and join the cluster
 // 2. Agent token prior to upgrade is still valid after upgrade
 func TestACL_NodeToken(t *testing.T) {
-	t.Parallel()
+
 
 	// NOTE: Disable auto.encrypt due to its conflict with ACL token during bootstrap
 	cluster, _, _ := libtopology.NewCluster(t, &libtopology.ClusterConfig{

@@ -17,7 +17,6 @@ import (
 )
 
 func TestIngressGateway_GRPC_UpgradeToTarget_fromLatest(t *testing.T) {
-	t.Parallel()
 	cluster, _, client := topology.NewCluster(t, &topology.ClusterConfig{
 		NumServers: 1,
 		NumClients: 1,

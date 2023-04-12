@@ -508,7 +508,7 @@ func startContainer(ctx context.Context, req testcontainers.ContainerRequest) (t
 	})
 }
 
-const pauseImage = "registry.k8s.io/pause:3.3"
+const pauseImage = "registry.k8s.io/pause:3.8"
 
 type containerOpts struct {
 	configFile        string
@@ -548,8 +548,9 @@ func newContainerRequest(config Config, opts containerOpts, ports ...int) (podRe
 			"9998/tcp", // Envoy App Listener
 			"9999/tcp", // Envoy App Listener
 		},
-		Hostname: opts.hostname,
-		Networks: opts.addtionalNetworks,
+		Hostname:   opts.hostname,
+		Networks:   opts.addtionalNetworks,
+		// WaitingFor: wait.ForExposedPort().WithStartupTimeout(999 * time.Second),
 	}
 
 	// Envoy upstream listener

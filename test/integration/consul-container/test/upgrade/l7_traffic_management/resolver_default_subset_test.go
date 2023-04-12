@@ -22,8 +22,6 @@ import (
 // - Create 2 additional static-server instances: one in V1 subset and the other in V2 subset
 // - resolver directs traffic to the default subset, which is V2.
 func TestTrafficManagement_ResolveDefaultSubset(t *testing.T) {
-	t.Parallel()
-
 	cluster, staticServerProxy, staticClientProxy := setup(t)
 	defer cluster.Terminate()
 
