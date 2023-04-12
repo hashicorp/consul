@@ -34,9 +34,36 @@ message Resource {
   string generation = 4;
 
   map<string, string> metadata = 5;
-  reserved 6; // status
+  map<string, Status> status = 6;
 
   google.protobuf.Any data = 7;
+}
+
+message Status {
+  string observed_generation = 1;
+  repeated Condition conditions = 2;
+}
+
+message Condition {
+  enum State {
+    // buf:lint:ignore ENUM_ZERO_VALUE_SUFFIX
+    STATE_UNKNOWN = 0;
+    STATE_TRUE = 1;
+    STATE_FALSE = 2;
+  }
+
+  string type = 1;
+  State state = 2;
+  string reason = 3;
+  string message = 4;
+  Reference resource = 5;
+}
+
+message Reference {
+  Type type = 1;
+  Tenancy tenancy = 2;
+  string name = 3;
+  string section = 4;
 }
 
 message WatchEvent {
@@ -95,13 +122,6 @@ service ResourceService {
   }
 }
 
-enum Condition {
-  CONDITION_UNSPECIFIED = 0;
-  CONDITION_ACCEPTED = 1;
-  CONDITION_INVALID = 2;
-  CONDITION_PERSISTENT_FAILURE = 3;
-}
-
 message ReadRequest {
   ID id = 1;
 }
@@ -128,17 +148,15 @@ message WriteResponse {
   Resource resource = 1;
 }
 
-message WriteStatusResponse {
-  Resource resource = 1;
-}
-
 message WriteStatusRequest {
   ID id = 1;
   string version = 2;
   string key = 3;
-  Condition condition = 4;
-  string state = 5;
-  repeated string messages = 6;
+  Status status = 4;
+}
+
+message WriteStatusResponse {
+  Resource resource = 1;
 }
 
 message DeleteRequest {

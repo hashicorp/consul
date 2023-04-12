@@ -75,10 +75,14 @@ jobs:
   ember-build-test:
     needs: setup
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-xl) }}
+    strategy:
+      matrix:
+        partition: [1, 2, 3, 4]
     env:
       EMBER_TEST_REPORT: test-results/report-oss.xml # outputs test report for CircleCI test summary
       EMBER_TEST_PARALLEL: true # enables test parallelization with ember-exam
       CONSUL_NSPACES_ENABLED: ${{ endsWith(github.repository, '-enterprise') && 1 || 0 }} # NOTE: this should be 1 in ENT.
+      JOBS: 2 # limit parallelism for broccoli-babel-transpiler
     steps:
     - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
 
@@ -92,17 +96,20 @@ jobs:
     - name: Install Chrome
       uses: browser-actions/setup-chrome@29abc1a83d1d71557708563b4bc962d0f983a376 # pin@v1.2.1
 
-    # Install dependencies.
-    - name: install yarn packages
+    - name: Install dependencies
       working-directory: ui
       run: make deps
     
-    - working-directory: ui/packages/consul-ui
-      run: |
-        make build-ci
-        node_modules/.bin/ember exam --path dist --silent -r xunit
+    - name: Build CI
+      working-directory: ui/packages/consul-ui
+      run: make build-ci
 
-    - working-directory: ui/packages/consul-ui
+    - name: Ember exam
+      working-directory: ui/packages/consul-ui
+      run: node_modules/.bin/ember exam --split=4 --partition=${{ matrix.partition }} --path dist --silent -r xunit
+
+    - name: Test Coverage CI
+      working-directory: ui/packages/consul-ui
       run: make test-coverage-ci
 
   # This is job is required for branch protection as a required gihub check
