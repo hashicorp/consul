@@ -37,7 +37,6 @@ references:
     - "1.9.10"
   consul-versions: &consul_versions
     - "1.14"
-    - "1.15"
   images:
     # When updating the Go version, remember to also update the versions in the
     # workflows section for go-test-lib jobs.
