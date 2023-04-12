@@ -11,6 +11,16 @@ parameters:
     description: "Commit to run load tests against"
 
 references:
+  paths:
+    test-results: &TEST_RESULTS_DIR /tmp/test-results
+  environment: &ENVIRONMENT
+    TEST_RESULTS_DIR: *TEST_RESULTS_DIR
+    EMAIL: noreply@hashicorp.com
+    GIT_AUTHOR_NAME: circleci-consul
+    GIT_COMMITTER_NAME: circleci-consul
+    S3_ARTIFACT_BUCKET: consul-dev-artifacts-v2
+    BASH_ENV: .circleci/bash_env.sh
+    GO_VERSION: 1.20.1
   envoy-versions: &supported_envoy_versions
     - &default_envoy_version "1.22.7"
     - "1.23.4"
@@ -26,41 +36,22 @@ references:
     - "1.10.9"
     - "1.9.10"
   consul-versions: &consul_versions
-    - "1.15"
     - "1.14"
+    - "1.15"
   images:
     # When updating the Go version, remember to also update the versions in the
     # workflows section for go-test-lib jobs.
     go: &GOLANG_IMAGE docker.mirror.hashicorp.services/cimg/go:1.20.1
     ember: &EMBER_IMAGE docker.mirror.hashicorp.services/circleci/node:16-browsers
     ubuntu: &UBUNTU_CI_IMAGE ubuntu-2004:202201-02
-
-  paths:
-    test-results: &TEST_RESULTS_DIR /tmp/test-results
-
   cache:
     yarn: &YARN_CACHE_KEY consul-ui-v9-{{ checksum "ui/yarn.lock" }}
-
-  consul_exec_contexts: &consul_exec_contexts
-    - team-consul
-    - consul-enterprise-licensing
-
-  environment: &ENVIRONMENT
-    TEST_RESULTS_DIR: *TEST_RESULTS_DIR
-    EMAIL: noreply@hashicorp.com
-    GIT_AUTHOR_NAME: circleci-consul
-    GIT_COMMITTER_NAME: circleci-consul
-    S3_ARTIFACT_BUCKET: consul-dev-artifacts-v2
-    S3_ARTIFACT_BUCKET_CLOUD: consul-enterprise-dev-artifacts-v2
-    BASH_ENV: .circleci/bash_env.sh
-    GOPRIVATE: github.com/hashicorp
-    GO_VERSION: 1.20.1
 
 steps:
   install-gotestsum: &install-gotestsum
     name: install gotestsum
     environment:
-      GOTESTSUM_RELEASE: 1.6.4
+      GOTESTSUM_RELEASE: 1.9.0
     command: |
       ARCH=`uname -m`
       if [[ "$ARCH" == "aarch64" ]]; then
@@ -184,56 +175,6 @@ commands:
       - run: *notify-slack-failure
 
 jobs:
-  # lint consul tests
-  lint-consul-retry:
-    docker:
-      - image: *GOLANG_IMAGE
-    steps:
-      - checkout
-      - run: go install github.com/hashicorp/lint-consul-retry@master && lint-consul-retry
-      - run: *notify-slack-failure
-
-  lint-enums:
-    docker:
-      - image: *GOLANG_IMAGE
-    steps:
-      - checkout
-      - run: go install github.com/reillywatson/enumcover/cmd/enumcover@master && enumcover ./...
-      - run: *notify-slack-failure
-
-  lint:
-    description: "Run golangci-lint"
-    parameters:
-      go-arch:
-        type: string
-        default: ""
-    docker:
-      - image: *GOLANG_IMAGE
-    resource_class: xlarge
-    environment:
-      GOTAGS: "" # No tags for OSS but there are for enterprise
-      GOARCH: "<<parameters.go-arch>>"
-    steps:
-      - checkout
-      - run: go env
-      - run:
-          name: Install golangci-lint
-          command: make lint-tools
-      - run: go mod download
-      - run:
-          name: lint
-          command: &lintcmd |
-            golangci-lint run --build-tags="$GOTAGS" -v
-      - run:
-          name: lint api
-          working_directory: api
-          command: *lintcmd
-      - run:
-          name: lint sdk
-          working_directory: sdk
-          command: *lintcmd
-      - run: *notify-slack-failure
-
   check-go-mod:
     docker:
       - image: *GOLANG_IMAGE
@@ -248,213 +189,6 @@ jobs:
             git status -s
             exit 1
           fi
-      - run: *notify-slack-failure
-
-  check-generated-protobuf:
-    docker:
-      - image: *GOLANG_IMAGE
-    environment:
-      <<: *ENVIRONMENT
-      # tput complains if this isn't set to something.
-      TERM: ansi
-    steps:
-      - checkout
-      - run:
-          name: Install protobuf
-          command: make proto-tools
-      - run:
-          name: "Protobuf Format"
-          command: make proto-format
-      - run:
-          command: make --always-make proto
-      - run: |
-          if ! git diff --exit-code; then
-            echo "Generated code was not updated correctly"
-            exit 1
-          fi
-      - run:
-          name: "Protobuf Lint"
-          command: make proto-lint
-
-  check-generated-deep-copy:
-    docker:
-      - image: *GOLANG_IMAGE
-    environment:
-      <<: *ENVIRONMENT
-      # tput complains if this isn't set to something.
-      TERM: ansi
-    steps:
-      - checkout
-      - run:
-          name: Install deep-copy
-          command: make codegen-tools
-      - run:
-          command: make --always-make deep-copy
-      - run: |
-          if ! git diff --exit-code; then
-            echo "Generated code was not updated correctly"
-            exit 1
-          fi
-
-  go-test-arm64:
-    machine:
-      image: *UBUNTU_CI_IMAGE
-    resource_class: arm.large
-    parallelism: 4
-    environment:
-      <<: *ENVIRONMENT
-      GOTAGS: "" # No tags for OSS but there are for enterprise
-      # GOMAXPROCS defaults to number of cores on underlying hardware, set
-      # explicitly to avoid OOM issues https://support.circleci.com/hc/en-us/articles/360034684273-common-GoLang-memory-issues
-      GOMAXPROCS: 4
-    steps:
-      - checkout
-      - run:
-          command: |
-            sudo rm -rf /usr/local/go
-            wget https://dl.google.com/go/go${GO_VERSION}.linux-arm64.tar.gz
-            sudo tar -C /usr/local -xzvf go${GO_VERSION}.linux-arm64.tar.gz
-      - run: *install-gotestsum
-      - run: go mod download
-      - run:
-          name: make dev
-          command: |
-            if [[ "$CIRCLE_BRANCH" =~ ^main$|^release/ ]]; then
-              make dev
-              mkdir -p /home/circleci/bin
-              cp ./bin/consul /home/circleci/bin/consul
-            fi
-      - run-go-test-full:
-          go_test_flags: 'if ! [[ "$CIRCLE_BRANCH" =~ ^main$|^release/ ]]; then export GO_TEST_FLAGS="-short"; fi'
-
-  go-test:
-    docker:
-      - image: *GOLANG_IMAGE
-    resource_class: large
-    parallelism: 4
-    environment:
-      <<: *ENVIRONMENT
-      GOTAGS: "" # No tags for OSS but there are for enterprise
-      # GOMAXPROCS defaults to number of cores on underlying hardware, set
-      # explicitly to avoid OOM issues https://support.circleci.com/hc/en-us/articles/360034684273-common-GoLang-memory-issues
-      GOMAXPROCS: 4
-    steps:
-      - checkout
-      - run-go-test-full
-
-  go-test-race:
-    docker:
-      - image: *GOLANG_IMAGE
-    environment:
-      <<: *ENVIRONMENT
-      GOTAGS: "" # No tags for OSS but there are for enterprise
-      # GOMAXPROCS defaults to number of cores on underlying hardware, set
-      # explicitly to avoid OOM issues https://support.circleci.com/hc/en-us/articles/360034684273-common-GoLang-memory-issues
-      GOMAXPROCS: 4
-      # The medium resource class (default) boxes are 2 vCPUs, 4GB RAM
-      # https://circleci.com/docs/2.0/configuration-reference/#docker-executor
-      # but we can run a little over that limit.
-    steps:
-      - checkout
-      - run: go mod download
-      - run:
-          name: go test -race
-          command: |
-            mkdir -p $TEST_RESULTS_DIR /tmp/jsonfile
-            pkgs="$(go list ./... | \
-              grep -E -v '^github.com/hashicorp/consul/agent(/consul|/local|/routine-leak-checker)?$' | \
-              grep -E -v '^github.com/hashicorp/consul/command/')"
-            gotestsum \
-              --jsonfile /tmp/jsonfile/go-test-race.log \
-              --junitfile $TEST_RESULTS_DIR/gotestsum-report.xml -- \
-              -tags="$GOTAGS" -p 2 \
-              -race -gcflags=all=-d=checkptr=0 \
-              $pkgs
-
-      - store_test_results:
-          path: *TEST_RESULTS_DIR
-      - store_artifacts:
-          path: *TEST_RESULTS_DIR
-      - store_artifacts:
-          path: /tmp/jsonfile
-      - run: *notify-slack-failure
-
-  # go-test-32bit is to catch problems where 64-bit ints must be 64-bit aligned
-  # to use them with sync/atomic. See https://golang.org/pkg/sync/atomic/#pkg-note-BUG.
-  # Running tests with GOARCH=386 seems to be the best way to detect this
-  # problem. Only runs tests that are -short to limit the time we spend checking
-  # for these bugs.
-  go-test-32bit:
-    docker:
-      - image: *GOLANG_IMAGE
-    resource_class: large
-    environment:
-      <<: *ENVIRONMENT
-      GOTAGS: "" # No tags for OSS but there are for enterprise
-    steps:
-      - checkout
-      - run: go mod download
-      - run:
-          name: go test 32-bit
-          environment:
-            GOARCH: 386
-          command: |
-            mkdir -p $TEST_RESULTS_DIR /tmp/jsonfile
-            go env
-            PACKAGE_NAMES=$(go list -tags "$GOTAGS" ./...)
-            gotestsum \
-              --jsonfile /tmp/jsonfile/go-test-32bit.log \
-              --rerun-fails=3 \
-              --rerun-fails-max-failures=40 \
-              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
-              --packages="$PACKAGE_NAMES" \
-              --junitfile $TEST_RESULTS_DIR/gotestsum-report.xml -- \
-              -tags="$GOTAGS" -p 2 \
-              -short
-
-      - store_test_results:
-          path: *TEST_RESULTS_DIR
-      - store_artifacts:
-          path: *TEST_RESULTS_DIR
-      - run: *notify-slack-failure
-
-  go-test-lib:
-    description: "test a library against a specific Go version"
-    parameters:
-      go-version:
-        type: string
-      path:
-        type: string
-    docker:
-      - image: "docker.mirror.hashicorp.services/cimg/go:<<parameters.go-version>>"
-    environment:
-      <<: *ENVIRONMENT
-      GOTAGS: "" # No tags for OSS but there are for enterprise
-    steps:
-      - checkout
-      - attach_workspace:
-          at: /home/circleci/go/bin
-      - run:
-          working_directory: <<parameters.path>>
-          command: go mod download
-      - run:
-          working_directory: <<parameters.path>>
-          name: go test
-          command: |
-            mkdir -p $TEST_RESULTS_DIR /tmp/jsonfile
-            gotestsum \
-              --format=short-verbose \
-              --jsonfile /tmp/jsonfile/go-test-<<parameters.path>>.log \
-              --junitfile $TEST_RESULTS_DIR/gotestsum-report.xml -- \
-              -tags="$GOTAGS" -cover -coverprofile=coverage.txt \
-              ./...
-
-      - store_test_results:
-          path: *TEST_RESULTS_DIR
-      - store_artifacts:
-          path: *TEST_RESULTS_DIR
-      - store_artifacts:
-          path: /tmp/jsonfile
       - run: *notify-slack-failure
 
   # build is a templated job for build-x
@@ -594,143 +328,6 @@ jobs:
           path: *TEST_RESULTS_DIR
       - run: *notify-slack-failure
 
-  # build frontend yarn cache
-  frontend-cache:
-    docker:
-      - image: *EMBER_IMAGE
-    steps:
-      - checkout
-
-      # cache yarn deps
-      - restore_cache:
-          key: *YARN_CACHE_KEY
-
-      - run:
-          name: install yarn packages
-          command: cd ui && make deps
-
-      - save_cache:
-          key: *YARN_CACHE_KEY
-          paths:
-            - ui/node_modules
-            - ui/packages/consul-ui/node_modules
-      - run: *notify-slack-failure
-
-  # build ember so frontend tests run faster
-  ember-build-oss: &ember-build-oss
-    docker:
-      - image: *EMBER_IMAGE
-    environment:
-      JOBS: 2 # limit parallelism for broccoli-babel-transpiler
-      CONSUL_NSPACES_ENABLED: 0
-    steps:
-      - checkout
-      - restore_cache:
-          key: *YARN_CACHE_KEY
-      - run: cd ui/packages/consul-ui && make build-ci
-
-      # saves the build to a workspace to be passed to a downstream job
-      - persist_to_workspace:
-          root: ui
-          paths:
-            - packages/consul-ui/dist
-      - run: *notify-slack-failure
-
-  # build ember so frontend tests run faster
-  ember-build-ent:
-    <<: *ember-build-oss
-    environment:
-      JOBS: 2 # limit parallelism for broccoli-babel-transpiler
-      CONSUL_NSPACES_ENABLED: 1
-
-  # run node tests
-  node-tests:
-    docker:
-      - image: *EMBER_IMAGE
-    steps:
-      - checkout
-      - restore_cache:
-          key: *YARN_CACHE_KEY
-      - attach_workspace:
-          at: ui
-      - run:
-          working_directory: ui/packages/consul-ui
-          command: make test-node
-      - run: *notify-slack-failure
-  # run yarn workspace wide checks/tests
-  workspace-tests:
-    docker:
-      - image: *EMBER_IMAGE
-    steps:
-      - checkout
-      - restore_cache:
-          key: *YARN_CACHE_KEY
-      - attach_workspace:
-          at: ui
-      - run:
-          working_directory: ui
-          command: make test-workspace
-      - run: *notify-slack-failure
-
-  # run ember frontend tests
-  ember-test-oss:
-    docker:
-      - image: *EMBER_IMAGE
-    environment:
-      EMBER_TEST_REPORT: test-results/report-oss.xml #outputs test report for CircleCI test summary
-      EMBER_TEST_PARALLEL: true #enables test parallelization with ember-exam
-      CONSUL_NSPACES_ENABLED: 0
-    parallelism: 4
-    steps:
-      - checkout
-      - restore_cache:
-          key: *YARN_CACHE_KEY
-      - attach_workspace:
-          at: ui
-      - run:
-          working_directory: ui/packages/consul-ui
-          command: node_modules/.bin/ember exam --split=$CIRCLE_NODE_TOTAL --partition=`expr $CIRCLE_NODE_INDEX + 1` --path dist --silent -r xunit
-      - store_test_results:
-          path: ui/packages/consul-ui/test-results
-      - run: *notify-slack-failure
-
-  # run ember frontend tests
-  ember-test-ent:
-    docker:
-      - image: *EMBER_IMAGE
-    environment:
-      EMBER_TEST_REPORT: test-results/report-ent.xml #outputs test report for CircleCI test summary
-      EMBER_TEST_PARALLEL: true #enables test parallelization with ember-exam
-      CONSUL_NSPACES_ENABLED: 1
-    parallelism: 4
-    steps:
-      - checkout
-      - restore_cache:
-          key: *YARN_CACHE_KEY
-      - attach_workspace:
-          at: ui
-      - run:
-          working_directory: ui/packages/consul-ui
-          command: node_modules/.bin/ember exam --split=$CIRCLE_NODE_TOTAL --partition=`expr $CIRCLE_NODE_INDEX + 1` --path dist --silent -r xunit
-      - store_test_results:
-          path: ui/packages/consul-ui/test-results
-      - run: *notify-slack-failure
-
-  # run ember frontend unit tests to produce coverage report
-  ember-coverage:
-    docker:
-      - image: *EMBER_IMAGE
-    steps:
-      - checkout
-      - restore_cache:
-          key: *YARN_CACHE_KEY
-      - attach_workspace:
-          at: ui
-      - run:
-          working_directory: ui/packages/consul-ui
-          command: make test-coverage-ci
-      - run: *notify-slack-failure
-
   compatibility-integration-test:
     machine:
       image: *UBUNTU_CI_IMAGE
@@ -758,14 +355,20 @@ jobs:
             cd ./test/integration/consul-container
             docker run --rm consul:local consul version
             gotestsum \
+              --raw-command \
               --format=short-verbose \
               --debug \
               --rerun-fails=3 \
               --packages="./..." \
               -- \
+              go test \
+              -p=4 \
               -timeout=30m \
-              ./... \
+              -json \
+              `go list ./... | grep -v upgrade` \
+              --target-image consul \
               --target-version local \
+              --latest-image consul \
               --latest-version latest
             ls -lrt
           environment:
@@ -775,9 +378,6 @@ jobs:
             COMPOSE_INTERACTIVE_NO_CLI: 1
             # tput complains if this isn't set to something.
             TERM: ansi
-      - store_artifacts:
-          path: ./test/integration/consul-container/test/upgrade/workdir/logs
-          destination: container-logs
       - store_test_results:
           path: *TEST_RESULTS_DIR
       - store_artifacts:
@@ -952,6 +552,7 @@ workflows:
                 - stable-website
                 - /^docs\/.*/
                 - /^ui\/.*/
+                - /^mktg-.*/ # Digital Team Terraform-generated branches' prefix
                 - /^backport\/docs\/.*/
                 - /^backport\/ui\/.*/
                 - /^backport\/mktg-.*/
@@ -987,37 +588,11 @@ workflows:
       - compatibility-integration-test:
           requires:
             - dev-build
-      - noop
-  frontend:
-    jobs:
-      - frontend-cache:
-          filters:
-            branches:
-              only:
-                - main
-                - /^ui\/.*/
-                - /^backport\/ui\/.*/
-      - workspace-tests:
+      - upgrade-integration-test:
           requires:
-            - frontend-cache
-      - node-tests:
-          requires:
-            - frontend-cache
-      - ember-build-oss:
-          requires:
-            - frontend-cache
-      - ember-build-ent:
-          requires:
-            - frontend-cache
-      - ember-test-oss:
-          requires:
-            - ember-build-oss
-      - ember-test-ent:
-          requires:
-            - ember-build-ent
-      # ember-coverage in CI uses the dist/ folder to run tests so it requires
-      # either/or ent/oss to be built first
-      - ember-coverage:
-          requires:
-            - ember-build-ent
+            - dev-build
+          matrix:
+            parameters:
+              consul-version: *consul_versions
+              
       - noop
