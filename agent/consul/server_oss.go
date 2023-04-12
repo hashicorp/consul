@@ -182,3 +182,7 @@ func addSerfMetricsLabels(conf *serf.Config, wan bool, segment string, partition
 
 	conf.MetricLabels = append(conf.MetricLabels, networkMetric)
 }
+
+func (s *Server) updateReportingConfig(config ReloadableConfig) {
+	// no-op
+}

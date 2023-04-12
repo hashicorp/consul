@@ -1803,6 +1803,8 @@ func (s *Server) ReloadConfig(config ReloadableConfig) error {
 		return err
 	}
 
+	s.updateReportingConfig(config)
+
 	s.rpcLimiter.Store(rate.NewLimiter(config.RPCRateLimit, config.RPCMaxBurst))
 
 	if config.RequestLimits != nil {

@@ -58,11 +58,6 @@ func (s *Server) Register(grpcServer *grpc.Server) {
 	pbresource.RegisterResourceServiceServer(grpcServer, s)
 }
 
-func (s *Server) WriteStatus(ctx context.Context, req *pbresource.WriteStatusRequest) (*pbresource.WriteStatusResponse, error) {
-	// TODO
-	return &pbresource.WriteStatusResponse{}, nil
-}
-
 // Get token from grpc metadata or AnonymounsTokenId if not found
 func tokenFromContext(ctx context.Context) string {
 	md, ok := metadata.FromIncomingContext(ctx)

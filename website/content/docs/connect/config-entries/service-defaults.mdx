@@ -27,6 +27,7 @@ The following outline shows how to format the service splitter configuration ent
   - [`Overrides`](#upstreamconfig-overrides): map | no default
     - [`Name`](#upstreamconfig-overrides-name): string | no default
     - [`Namespace`](#upstreamconfig-overrides-namespace): string | no default
+    - [`Peer`](#upstreamconfig-overrides-peer): string | no default
     - [`Protocol`](#upstreamconfig-overrides-protocol): string | no default
     - [`ConnectTimeoutMs`](#upstreamconfig-overrides-connecttimeoutms): int | default: `5000`
     - [`MeshGateway`](#upstreamconfig-overrides-meshgateway): map | no default
@@ -94,6 +95,7 @@ The following outline shows how to format the service splitter configuration ent
     - [`overrides`](#upstreamconfig-overrides): list | no default
       - [`name`](#upstreamconfig-overrides-name): string | no default
       - [`namespace`](#upstreamconfig-overrides-namespace): string | no default
+      - [`peer`](#upstreamconfig-overrides-peer): string | no default
       - [`protocol`](#upstreamconfig-overrides-protocol): string | no default
       - [`connectTimeoutMs`](#upstreamconfig-overrides-connecttimeoutms): int | default: `5000`
       - [`meshGateway`](#upstreamconfig-overrides-meshgateway): map | no default
@@ -170,6 +172,7 @@ UpstreamConfig = {
   Overrides = {
     Name             = "name-of-upstreams-to-override"
     Namespace        = "namespace-containing-upstreams-to-override"
+    Peer             = "peer-name-of-upstream-service"
     Protocol         = "http"
     ConnectTimeoutMs = 100
     MeshGateway = {
@@ -254,6 +257,7 @@ spec:
     overrides: 
     - name: <name of upstream>
       namespace: <namespace containing upstream - Consul Enterprise>
+      peer: <peer name of the upstream service>
       protocol: <protocol for the upstream listener>
       connectTimeoutMs: 5000
       meshGateway:
@@ -324,6 +328,7 @@ spec:
         {
           "name": "<name of upstream>",
           "namespace": "<namespace containing upstream - Consul Enterprise>",
+          "peer": "<peer name of the upstream service>",
           "protocol": "<protocol for the upstream listener>",
           "connectTimeoutMs": 5000,
           "meshGateway": {
@@ -526,6 +531,15 @@ Specifies the name of the upstream service that the configuration applies to. We
 ### `UpstreamConfig.Overrides[].Namespace` <Enterprise/>
 
 Specifies the namespace containing the upstream service that the configuration applies to. Do not use the `*` wildcard to prevent the configuration from appling to unintended upstreams.
+
+#### Values
+
+- Default: none
+- Data type: string
+
+### `UpstreamConfig.Overrides[].Peer`
+
+Specifies the peer name of the upstream service that the configuration applies to. The `*` wildcard is not supported.
 
 #### Values
 
@@ -900,6 +914,15 @@ Specifies the name of the upstream service that the configuration applies to. Do
 ### `spec.upstreamConfig.overrides[].namespace` <Enterprise/>
 
 Specifies the namespace containing the upstream service that the configuration applies to. Do not use the `*` wildcard to prevent the configuration from applying to unintended upstreams.
+
+#### Values
+
+- Default: none
+- Data type: string
+
+### `spec.upstreamConfig.overrides[].peer`
+
+Specifies the peer name of the upstream service that the configuration applies to. The `*` wildcard is not supported.
 
 #### Values
 
@@ -1589,11 +1612,7 @@ represents a location outside the Consul cluster. Services can dial destinations
               name: 'Peer',
               type: 'string: ""',
               description: 
-                `The name of the peer containing the upstream. Do not use a wildcard specifier ( \`*\`).<br><br>
-                    If the \`peer\` field is not set in any \`Overrides\` configuration, then Consul applies overrides to peered services with the same [\`name\`](/consul/docs/connect/config-entries/service-defaults#name). 
-                    This maintains backward compatibility with Consul 1.14.0. 
-                    If the \`peer\` field is specified in any override, then backward compatibility with Consul 1.14.0 is disabled. 
-                    As a result, each peered service must have a separate override configuration if desired.` ,
+                `The peer name of the upstream. Do not use a wildcard specifier ( \`*\`).`,
             },
             {
               name: 'Protocol',

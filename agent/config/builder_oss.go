@@ -60,6 +60,10 @@ func validateEnterpriseConfigKeys(config *Config) []error {
 		add("license_path")
 		config.LicensePath = nil
 	}
+	if config.Reporting.License.Enabled != nil {
+		add("reporting.license.enabled")
+		config.Reporting.License.Enabled = nil
+	}
 
 	return result
 }
