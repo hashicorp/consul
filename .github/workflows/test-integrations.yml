@@ -340,7 +340,7 @@ jobs:
           mkdir -p "${{ env.TEST_RESULTS_DIR }}"
           cd ./test/integration/consul-container
           docker run --rm consul:local consul version
-          go test -timeout=30m -tags "${{ env.GOTAGS }}" \
+          go test  -p 1 -timeout=30m -tags "${{ env.GOTAGS }}" \
             ./test/upgrade -v \
             --target-image consul \
             --target-version local \
