@@ -449,7 +449,15 @@ jobs:
 workflows:
   test-integrations:
     jobs:
-      - dev-build: *filter-ignore-non-go-branches
+      - dev-build: &filter-ignore-non-go-branches
+          filters:
+            branches:
+              ignore:
+                - stable-website
+                - /^docs\/.*/
+                - /^ui\/.*/
+                - /^backport\/docs\/.*/
+                - /^backport\/ui\/.*/
       - dev-upload-s3: &dev-upload
           requires:
             - dev-build
