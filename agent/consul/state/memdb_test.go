@@ -36,6 +36,9 @@ type TestObject struct {
 	Foo string
 }
 
+// This test verify that the new data in a TXN is commited at the time that publishFunc is called.
+// To do so, the publish func is mocked, a read on ch1 means that publish is called and blocked,
+// ch2 permit to control the publish func and unblock it when receiving a signal.
 func Test_txn_Commit(t *testing.T) {
 	db, err := memdb.NewMemDB(testValidSchema())
 	require.NoError(t, err)
