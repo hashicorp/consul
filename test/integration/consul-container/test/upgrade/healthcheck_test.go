@@ -46,6 +46,7 @@ func TestTargetServersWithLatestGAClients(t *testing.T) {
 	}
 
 	cluster, _, _ := libtopology.NewCluster(t, clusterConfig)
+	defer cluster.Terminate()
 
 	// change the version of Client agent to latest version
 	config := cluster.Agents[3].GetConfig()

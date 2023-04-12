@@ -33,6 +33,7 @@ func TestACL_NodeToken(t *testing.T) {
 		},
 		ApplyDefaultProxySettings: true,
 	})
+	defer cluster.Terminate()
 
 	agentToken, err := cluster.CreateAgentToken("dc1",
 		cluster.Agents[1].GetAgentName())

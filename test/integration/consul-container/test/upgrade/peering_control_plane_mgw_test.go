@@ -32,6 +32,8 @@ func TestPeering_ControlPlaneMGW(t *testing.T) {
 		acceptingCluster = accepting.Cluster
 		dialingCluster   = dialing.Cluster
 	)
+	defer accepting.Cluster.Terminate()
+	defer dialing.Cluster.Terminate()
 
 	dialingClient, err := dialingCluster.GetClient(nil, false)
 	require.NoError(t, err)

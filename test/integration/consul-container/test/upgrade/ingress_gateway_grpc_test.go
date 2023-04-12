@@ -27,6 +27,7 @@ func TestIngressGateway_GRPC_UpgradeToTarget_fromLatest(t *testing.T) {
 		},
 		ApplyDefaultProxySettings: true,
 	})
+	defer cluster.Terminate()
 
 	require.NoError(t, cluster.ConfigEntryWrite(&api.ServiceConfigEntry{
 		Name:     libservice.StaticServerServiceName,

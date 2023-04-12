@@ -67,6 +67,7 @@ func TestStandardUpgradeToTarget_fromLatest(t *testing.T) {
 
 		cluster, err := libcluster.NewN(t, *serverConf, numServers)
 		require.NoError(t, err)
+		defer cluster.Terminate()
 
 		client := cluster.APIClient(0)
 

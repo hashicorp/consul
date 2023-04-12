@@ -29,6 +29,8 @@ func TestPeering_HTTPRouter(t *testing.T) {
 	t.Parallel()
 	accepting, dialing := libtopology.BasicPeeringTwoClustersSetup(t, utils.LatestVersion, false)
 	acceptingCluster := accepting.Cluster
+	defer acceptingCluster.Terminate()
+	defer dialing.Cluster.Terminate()
 
 	// Create a second static-server at the client agent of accepting cluster and
 	// a service-router that routes /static-server-2 to static-server-2
@@ -92,6 +94,8 @@ func TestPeering_HTTPResolverAndFailover(t *testing.T) {
 
 	accepting, dialing := libtopology.BasicPeeringTwoClustersSetup(t, utils.LatestVersion, false)
 	dialingCluster := dialing.Cluster
+	defer dialingCluster.Terminate()
+	defer accepting.Cluster.Terminate()
 
 	require.NoError(t, dialingCluster.ConfigEntryWrite(&api.ProxyConfigEntry{
 		Kind: api.ProxyDefaults,

@@ -25,6 +25,7 @@ func TestTrafficManagement_ResolveDefaultSubset(t *testing.T) {
 	t.Parallel()
 
 	cluster, staticServerProxy, staticClientProxy := setup(t)
+	defer cluster.Terminate()
 
 	node := cluster.Agents[0]
 	client := node.GetClient()

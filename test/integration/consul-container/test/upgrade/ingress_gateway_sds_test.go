@@ -43,8 +43,10 @@ func TestIngressGateway_SDS_UpgradeToTarget_fromLatest(t *testing.T) {
 		},
 		ApplyDefaultProxySettings: true,
 	})
+	defer cluster.Terminate()
 
 	sdsServerContainerName, rootPEM := createSDSServer(t, cluster)
+	
 
 	require.NoError(t, cluster.ConfigEntryWrite(&api.ServiceConfigEntry{
 		Name:     libservice.StaticServerServiceName,

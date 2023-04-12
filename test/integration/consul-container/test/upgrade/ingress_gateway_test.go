@@ -54,6 +54,7 @@ func TestIngressGateway_UpgradeToTarget_fromLatest(t *testing.T) {
 		},
 		ApplyDefaultProxySettings: true,
 	})
+	defer cluster.Terminate()
 
 	require.NoError(t, cluster.ConfigEntryWrite(&api.ProxyConfigEntry{
 		Name: api.ProxyConfigGlobal,
