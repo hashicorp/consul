@@ -24,8 +24,8 @@ func TestNewGatewayConditionWithValidCombinations(t *testing.T) {
 			message:  "no bueno",
 			ref:      ResourceReference{Name: "name", Kind: "httproute"},
 		},
-		"accepted false gateway reason pending": {
-			status:   ConditionStatusFalse,
+		"accepted unknown gateway reason pending": {
+			status:   ConditionStatusUnknown,
 			reason:   GatewayReasonPending,
 			condType: GatewayConditionAccepted,
 			message:  "pending",
