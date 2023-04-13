@@ -48,7 +48,7 @@ jobs:
       elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
 
   compatibility-integration-test:
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(needs.setup.outputs.compute-xl) }}
     needs:
       - setup
       - dev-build
