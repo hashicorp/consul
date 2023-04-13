@@ -58,6 +58,7 @@ jobs:
         with:
           go-version-file: 'go.mod'
       - run: go env
+      - run: lscpu
       - name: Setup gotestsum
         uses: autero1/action-gotestsum@2e48af62f5248bd3b014f598cd1aa69a01dd36e3 # v1.0.0
         with:
