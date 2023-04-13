@@ -155,7 +155,7 @@ func (c *Condition) IsCondition(other *Condition) bool {
 
 func (c *Condition) IsSame(other *Condition) bool {
 	return c.IsCondition(other) &&
-		c.Type == c.Type &&
+		c.Type == other.Type &&
 		c.Status == other.Status &&
 		c.Reason == other.Reason &&
 		c.Message == other.Message
@@ -362,14 +362,6 @@ const (
 	GatewayListenerReasonRefNotPermitted GatewayConditionReason = "RefNotPermitted"
 )
 
-// these are custom to Consul
-const (
-	GatewayConditionConflicted GatewayConditionType = "Conflicted"
-
-	GatewayReasonNoConflicts   GatewayConditionReason = "NoConflicts"
-	GatewayReasonRouteConflict GatewayConditionReason = "RouteConflict"
-)
-
 var validGatewayConditionReasonsMapping = map[GatewayConditionType]map[ConditionStatus][]GatewayConditionReason{
 	GatewayConditionAccepted: {
 		ConditionStatusTrue: {
@@ -381,15 +373,6 @@ var validGatewayConditionReasonsMapping = map[GatewayConditionType]map[Condition
 		ConditionStatusUnknown: {
 			GatewayReasonPending,
 		},
-	},
-	GatewayConditionConflicted: {
-		ConditionStatusTrue: {
-			GatewayReasonRouteConflict,
-		},
-		ConditionStatusFalse: {
-			GatewayReasonNoConflicts,
-		},
-		ConditionStatusUnknown: {},
 	},
 	GatewayConditionListenersConfigured: {
 		ConditionStatusTrue: {
