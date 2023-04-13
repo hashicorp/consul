@@ -1265,6 +1265,52 @@ func TestServiceIntentionsConfigEntry(t *testing.T) {
 			},
 			validateErr: `Sources[1] defines peer("peer1") "` + fooName.String() + `" more than once`,
 		},
+		"JWT - missing provider name": {
+			entry: &ServiceIntentionsConfigEntry{
+				Kind: ServiceIntentions,
+				Name: "test",
+				JWT: &IntentionJWTRequirement{
+					Providers: []*IntentionJWTProvider{
+						{
+							VerifyClaims: []*IntentionJWTClaimVerification{
+								{
+									Value: "api.apps.test.com",
+								},
+							},
+						},
+					},
+				},
+			},
+			validateErr: `JWT provider name is empty`,
+		},
+		"JWT - missing 1 provider name with multiple providers": {
+			entry: &ServiceIntentionsConfigEntry{
+				Kind: ServiceIntentions,
+				Name: "test",
+				JWT: &IntentionJWTRequirement{
+					Providers: []*IntentionJWTProvider{
+						{
+							VerifyClaims: []*IntentionJWTClaimVerification{
+								{
+									Path:  []string{"aud"},
+									Value: "another-api.test.com",
+								},
+							},
+						},
+						{
+							Name: "okta",
+							VerifyClaims: []*IntentionJWTClaimVerification{
+								{
+									Path:  []string{"aud"},
+									Value: "api.apps.test.com",
+								},
+							},
+						},
+					},
+				},
+			},
+			validateErr: `JWT provider name is empty`,
+		},
 	}
 	for name, tc := range cases {
 		tc := tc

@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/lib/stringslice"
+	"github.com/hashicorp/go-multierror"
 
 	"github.com/hashicorp/consul/acl"
 )
@@ -277,7 +278,7 @@ type SourceIntention struct {
 
 type IntentionJWTRequirement struct {
 	// Providers is a list of providers to consider when verifying a JWT.
-	Providers []*IntentionJWTProvider
+	Providers []*IntentionJWTProvider `json:",omitempty"`
 }
 
 func (e *IntentionJWTRequirement) Clone() *IntentionJWTRequirement {
@@ -290,13 +291,32 @@ func (e *IntentionJWTRequirement) Clone() *IntentionJWTRequirement {
 	return &e2
 }
 
+func (p *IntentionJWTProvider) Validate() error {
+	if p.Name == "" {
+		return fmt.Errorf("JWT provider name is empty")
+	}
+	return nil
+}
+
+func (e *IntentionJWTRequirement) Validate() error {
+	var result error
+
+	for _, provider := range e.Providers {
+		if err := provider.Validate(); err != nil {
+			result = multierror.Append(result, err)
+		}
+	}
+
+	return result
+}
+
 type IntentionJWTProvider struct {
 	// Name is the name of the JWT provider. There MUST be a corresponding
 	// "jwt-provider" config entry with this name.
-	Name string
+	Name string `json:",omitempty"`
 
 	// VerifyClaims is a list of additional claims to verify in a JWT's payload.
-	VerifyClaims []*IntentionJWTClaimVerification
+	VerifyClaims []*IntentionJWTClaimVerification `json:",omitempty"`
 }
 
 func (e *IntentionJWTProvider) Clone() *IntentionJWTProvider {
@@ -311,7 +331,7 @@ func (e *IntentionJWTProvider) Clone() *IntentionJWTProvider {
 
 type IntentionJWTClaimVerification struct {
 	// Path is the path to the claim in the token JSON.
-	Path []string
+	Path []string `json:",omitempty"`
 
 	// Value is the expected value at the given path:
 	// - If the type at the path is a list then we verify
@@ -319,7 +339,7 @@ type IntentionJWTClaimVerification struct {
 	//
 	// - If the type at the path is a string then we verify
 	//   that this value matches.
-	Value string
+	Value string `json:",omitempty"`
 }
 
 func (e *IntentionJWTClaimVerification) Clone() *IntentionJWTClaimVerification {
@@ -627,6 +647,12 @@ func (e *ServiceIntentionsConfigEntry) validate(legacyWrite bool) error {
 	}
 
 	destIsWild := e.HasWildcardDestination()
+
+	if e.JWT != nil {
+		if err := e.JWT.Validate(); err != nil {
+			return err
+		}
+	}
 
 	if legacyWrite {
 		if len(e.Meta) > 0 {
