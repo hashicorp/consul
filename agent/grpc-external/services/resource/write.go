@@ -111,14 +111,14 @@ func (s *Server) Write(ctx context.Context, req *pbresource.WriteRequest) (*pbre
 		case errors.Is(err, storage.ErrNotFound):
 			input.Id.Uid = ulid.Make().String()
 
+			// Prevent setting statuses in this endpoint.
+			if len(input.Status) != 0 {
+				return errUseWriteStatus
+			}
+
 			// Enforce same tenancy for owner
 			if input.Owner != nil && !proto.Equal(input.Id.Tenancy, input.Owner.Tenancy) {
 				return status.Errorf(codes.InvalidArgument, "owner and resource tenancy must be the same")
-			}
-
-			// TODO: Prevent setting statuses in this endpoint.
-			if len(input.Status) != 0 {
-				return errUseWriteStatus
 			}
 
 		// Update path.
@@ -155,6 +155,7 @@ func (s *Server) Write(ctx context.Context, req *pbresource.WriteRequest) (*pbre
 				return status.Errorf(codes.InvalidArgument, "owner cannot be changed")
 			}
 
+			// Carry over status and prevent updates
 			if input.Status == nil {
 				input.Status = existing.Status
 			} else if !resource.EqualStatus(input.Status, existing.Status) {
