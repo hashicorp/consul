@@ -868,9 +868,9 @@ func invalidCertificates() structs.Condition {
 // bound routes
 func gatewayListenerNoConflicts(ref structs.ResourceReference) structs.Condition {
 	return structs.NewGatewayCondition(
-		structs.GatewayConditionListenersConfigured,
-		structs.ConditionStatusTrue,
-		structs.GatewayReasonListenersConfigured,
+		structs.GatewayConditionConflicted,
+		structs.ConditionStatusFalse,
+		structs.GatewayReasonNoConflicts,
 		"listener has no route conflicts",
 		ref,
 	)
@@ -880,9 +880,9 @@ func gatewayListenerNoConflicts(ref structs.ResourceReference) structs.Condition
 // and make the listener, therefore invalid
 func gatewayListenerConflicts(ref structs.ResourceReference) structs.Condition {
 	return structs.NewGatewayCondition(
-		structs.GatewayConditionListenersConfigured,
-		structs.ConditionStatusFalse,
-		structs.GatewayListenerReasonProtocolConflict,
+		structs.GatewayConditionConflicted,
+		structs.ConditionStatusTrue,
+		structs.GatewayReasonRouteConflicted,
 		"TCP-based listeners currently only support binding a single route",
 		ref,
 	)
@@ -950,7 +950,7 @@ func routeNoUpstreams() structs.Condition {
 	return structs.NewRouteCondition(
 		structs.RouteConditionAccepted,
 		structs.ConditionStatusFalse,
-		structs.RouteReasonInvalidDiscoveryChain,
+		structs.RouteReasonNoUpstreamServicesTargeted,
 		"route must target at least one upstream service",
 		structs.ResourceReference{},
 	)

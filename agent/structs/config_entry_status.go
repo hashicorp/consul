@@ -155,7 +155,6 @@ func (c *Condition) IsCondition(other *Condition) bool {
 
 func (c *Condition) IsSame(other *Condition) bool {
 	return c.IsCondition(other) &&
-		c.Type == other.Type &&
 		c.Status == other.Status &&
 		c.Reason == other.Reason &&
 		c.Message == other.Message
@@ -231,91 +230,35 @@ const (
 	//
 	// * "Accepted"
 	//
-	// Possible reasons for this condition to be False are:
-	//
-	// * "Invalid"
-	//
-	// Possible reasons for this condition to be Unknown are:
-	//
-	// * "Pending"
-	//
 	GatewayConditionAccepted GatewayConditionType = "Accepted"
 
 	// This reason is used with the "Accepted" condition when the condition is
 	// True.
 	GatewayReasonAccepted GatewayConditionReason = "Accepted"
 
-	// This reason is used with the "Accepted" condition when the Gateway is
-	// syntactically or semantically invalid.
-	GatewayReasonInvalid GatewayConditionReason = "Invalid"
-
-	// This reason is used with the "Accepted" and "ListenersConfigured"
-	// conditions when the status is "Unknown" and no controller has reconciled
-	// the Gateway.
-	GatewayReasonPending GatewayConditionReason = "Pending"
-	// This condition indicates that the controller was able to resolve
-	// all specification requirements for all Gateway Listeners. If a Listener is
-	// conflicted, its network port should not be configured on any network
-	// elements. Even if a Listener is syntactically and semantically valid,
-	// the controller may not able to configure it on the underlying Gateway
-	// infrastructure. When setting this condition to False, a ResourceReference to
-	// the misconfigured Listener should be provided.
-
+	// This condition indicates that the gateway was unable to resolve
+	// conflicting specification requirements for this Listener. If a
+	// Listener is conflicted, its network port should not be configured
+	// on any network elements.
 	//
-	// Possible reasons for this condition to be True are:
+	// Possible reasons for this condition to be true are:
 	//
-	// * "ListenersConfigured"
+	// * "RouteConflict"
 	//
 	// Possible reasons for this condition to be False are:
 	//
-	// * "ListenerHostnameConflict"
-	// * "ListenerProtocolConflict"
-	// * "ListenerPortUnavailable"
-	// * "ListenerUnsupportedProtocol"
-	// * "ListenerUnsupportedAddress"
+	// * "NoConflicts"
 	//
-	// Possible reasons for this condition to be Unknown are:
-	//
-	// * "Pending"
-	//
-	GatewayConditionListenersConfigured GatewayConditionType = "ListenersConfigured"
-
-	// This reason is used with the "ListenersConfigured" condition when the
-	// condition is True.
-	GatewayReasonListenersConfigured GatewayConditionReason = "ListenersConfigured"
-
-	// This reason is used with the "ListenersConfigured" condition when
-	// the Listener conflicts with hostnames in other Listeners. For
-	// example, this reason would be used when multiple Listeners on
-	// the same port use `example.com` in the hostname field.
-	GatewayListenerReasonHostnameConflict GatewayConditionReason = "ListenerHostnameConflict"
-
-	// This reason is used with the "ListenersConfigured" condition when
-	// multiple Listeners are specified with the same Listener port
-	// number, but have conflicting protocol specifications.
-	GatewayListenerReasonProtocolConflict GatewayConditionReason = "ListenerProtocolConflict"
-
-	// This reason is used with the "ListenersConfigured" condition when the Listener
-	// requests a port that cannot be used on the Gateway. This reason could be
-	// used in a number of instances, including:
-	//
-	// * The port is already in use.
-	// * The port is not supported by the implementation.
-	GatewayListenerReasonPortUnavailable GatewayConditionReason = "ListenerPortUnavailable"
-
-	// This reason is used with the "ListenersConfigured" condition when the
-	// Listener could not be attached to be Gateway because its
-	// protocol type is not supported.
-	GatewayListenerReasonUnsupportedProtocol GatewayConditionReason = "ListenerUnsupportedProtocol"
-
-	// This reason is used with the "ListenersConfigured" condition when a
-	// Listener could not be attached to the Gateway because the requested address
-	// is not supported. This reason could be used in a number of instances,
-	// including:
-	//
-	// * The address is already in use.
-	// * The type of address is not supported by the implementation.
-	GatewayListenerReasonUnsupportedAddress GatewayConditionReason = "ListenerUnsupportedAddress"
+	// Controllers may raise this condition with other reasons,
+	// but should prefer to use the reasons listed above to improve
+	// interoperability.
+	GatewayConditionConflicted GatewayConditionType = "Conflicted"
+	// This reason is used with the "Conflicted" condition when the condition
+	// is False.
+	GatewayReasonNoConflicts GatewayConditionReason = "NoConflicts"
+	// This reason is used with the "Conflicted" condition when the route is
+	// in a conflicted state, such as when a TCPListener attempts to bind to two routes
+	GatewayReasonRouteConflicted GatewayConditionReason = "RouteConflicted"
 
 	// This condition indicates whether the controller was able to
 	// resolve all the object references for the Gateway. When setting this
@@ -350,16 +293,6 @@ const (
 	// If the reference is not allowed, the reason RefNotPermitted must be used
 	// instead.
 	GatewayListenerReasonInvalidCertificateRef GatewayConditionReason = "InvalidCertificateRef"
-
-	// This reason is used with the "ResolvedRefs" condition when an invalid or
-	// unsupported Route kind is specified by a Listener.
-	GatewayListenerReasonInvalidRouteKinds GatewayConditionReason = "InvalidRouteKinds"
-
-	// This reason is used with the "ResolvedRefs" condition when a
-	// Listener has a TLS configuration that references an object in another
-	// namespace, where the object in the other namespace does not have a
-	// ReferenceGrant explicitly allowing the reference.
-	GatewayListenerReasonRefNotPermitted GatewayConditionReason = "RefNotPermitted"
 )
 
 var validGatewayConditionReasonsMapping = map[GatewayConditionType]map[ConditionStatus][]GatewayConditionReason{
@@ -367,27 +300,17 @@ var validGatewayConditionReasonsMapping = map[GatewayConditionType]map[Condition
 		ConditionStatusTrue: {
 			GatewayReasonAccepted,
 		},
-		ConditionStatusFalse: {
-			GatewayReasonInvalid,
-		},
-		ConditionStatusUnknown: {
-			GatewayReasonPending,
-		},
+		ConditionStatusFalse:   {},
+		ConditionStatusUnknown: {},
 	},
-	GatewayConditionListenersConfigured: {
+	GatewayConditionConflicted: {
 		ConditionStatusTrue: {
-			GatewayReasonListenersConfigured,
+			GatewayReasonRouteConflicted,
 		},
 		ConditionStatusFalse: {
-			GatewayListenerReasonHostnameConflict,
-			GatewayListenerReasonProtocolConflict,
-			GatewayListenerReasonPortUnavailable,
-			GatewayListenerReasonUnsupportedProtocol,
-			GatewayListenerReasonUnsupportedAddress,
+			GatewayReasonNoConflicts,
 		},
-		ConditionStatusUnknown: {
-			GatewayReasonPending,
-		},
+		ConditionStatusUnknown: {},
 	},
 	GatewayConditionResolvedRefs: {
 		ConditionStatusTrue: {
@@ -395,8 +318,6 @@ var validGatewayConditionReasonsMapping = map[GatewayConditionType]map[Condition
 		},
 		ConditionStatusFalse: {
 			GatewayListenerReasonInvalidCertificateRef,
-			GatewayListenerReasonInvalidRouteKinds,
-			GatewayListenerReasonRefNotPermitted,
 		},
 		ConditionStatusUnknown: {},
 	},
@@ -458,17 +379,9 @@ const (
 	//
 	// Possible reasons for this condition to be False are:
 	//
-	// * "NotAllowedByListeners"
-	// * "NoMatchingListenerHostname"
-	// * "NoMatchingParent"
-	// * "UnsupportedValue"
-	// * "ParentRefNotPermitted"
 	// * "InvalidDiscoveryChain"
 	// * "NoUpstreamServicesTargeted"
 	//
-	// Possible reasons for this condition to be Unknown are:
-	//
-	// * "Pending"
 	//
 	// Controllers may raise this condition with other reasons,
 	// but should prefer to use the reasons listed above to improve
@@ -479,34 +392,6 @@ const (
 	// accepted by the Gateway.
 	RouteReasonAccepted RouteConditionReason = "Accepted"
 
-	// This reason is used with the "Accepted" condition when the route has not
-	// been accepted by a Gateway because the Gateway has no Listener whose
-	// allowedRoutes criteria permit the route
-	RouteReasonNotAllowedByListeners RouteConditionReason = "NotAllowedByListeners"
-
-	// This reason is used with the "Accepted" condition when the Gateway has no
-	// compatible Listeners whose Hostname matches the route
-	RouteReasonNoMatchingListenerHostname RouteConditionReason = "NoMatchingListenerHostname"
-
-	// This reason is used with the "Accepted" condition when there are
-	// no matching Parents. In the case of Gateways, this can occur when
-	// a Route ParentRef specifies a Port and/or SectionName that does not
-	// match any Listeners in the Gateway.
-	RouteReasonNoMatchingParent RouteConditionReason = "NoMatchingParent"
-
-	// This reason is used with the "Accepted" condition when a value for an Enum
-	// is not recognized.
-	RouteReasonUnsupportedValue RouteConditionReason = "UnsupportedValue"
-
-	// This reason is used with the "Accepted" condition when the route has not
-	// been accepted by a Gateway because it has a cross-namespace parentRef,
-	// but no ReferenceGrant in the other namespace allows such a reference.
-	RouteReasonParentRefNotPermitted RouteConditionReason = "ParentRefNotPermitted"
-
-	// This reason is used with the "Accepted" when a controller has not yet
-	// reconciled the route.
-	RouteReasonPending RouteConditionReason = "Pending"
-
 	// This reason is used with the "Accepted" condition when the route has an
 	// invalid discovery chain, this includes conditions like the protocol being invalid
 	// or the discovery chain failing to compile
@@ -514,43 +399,6 @@ const (
 
 	// This reason is used with the "Accepted" condition when the route
 	RouteReasonNoUpstreamServicesTargeted RouteConditionReason = "NoUpstreamServicesTargeted"
-
-	// This condition indicates whether the controller was able to resolve all
-	// the object references for the Route.
-	//
-	// Possible reasons for this condition to be true are:
-	//
-	// * "ResolvedRefs"
-	//
-	// Possible reasons for this condition to be false are:
-	//
-	// * "RefNotPermitted"
-	// * "InvalidKind"
-	// * "BackendNotFound"
-	//
-	// Controllers may raise this condition with other reasons,
-	// but should prefer to use the reasons listed above to improve
-	// interoperability.
-	RouteConditionResolvedRefs RouteConditionType = "ResolvedRefs"
-
-	// This reason is used with the "ResolvedRefs" condition when the condition
-	// is true.
-	RouteReasonResolvedRefs RouteConditionReason = "ResolvedRefs"
-
-	// This reason is used with the "ResolvedRefs" condition when
-	// one of the Listener's Routes has a BackendRef to an object in
-	// another namespace, where the object in the other namespace does
-	// not have a ReferenceGrant explicitly allowing the reference.
-	RouteReasonRefNotPermitted RouteConditionReason = "RefNotPermitted"
-
-	// This reason is used with the "ResolvedRefs" condition when
-	// one of the Route's rules has a reference to an unknown or unsupported
-	// Group and/or Kind.
-	RouteReasonInvalidKind RouteConditionReason = "InvalidKind"
-
-	// This reason is used with the "ResolvedRefs" condition when one of the
-	// Route's rules has a reference to a resource that does not exist.
-	RouteReasonBackendNotFound RouteConditionReason = "BackendNotFound"
 )
 
 // the following statuses are custom to Consul
@@ -605,26 +453,8 @@ var validRouteConditionReasonsMapping = map[RouteConditionType]map[ConditionStat
 			RouteReasonAccepted,
 		},
 		ConditionStatusFalse: {
-			RouteReasonNotAllowedByListeners,
-			RouteReasonNoMatchingListenerHostname,
-			RouteReasonNoMatchingParent,
-			RouteReasonUnsupportedValue,
-			RouteReasonParentRefNotPermitted,
 			RouteReasonInvalidDiscoveryChain,
 			RouteReasonNoUpstreamServicesTargeted,
-		},
-		ConditionStatusUnknown: {
-			RouteReasonPending,
-		},
-	},
-	RouteConditionResolvedRefs: {
-		ConditionStatusTrue: {
-			RouteReasonResolvedRefs,
-		},
-		ConditionStatusFalse: {
-			RouteReasonRefNotPermitted,
-			RouteReasonInvalidKind,
-			RouteReasonBackendNotFound,
 		},
 		ConditionStatusUnknown: {},
 	},
