@@ -252,7 +252,7 @@ jobs:
           name: ${{ env.TEST_RESULTS_ARTIFACT_NAME }}
           path: ${{ env.TEST_RESULTS_DIR }}
 
- compatibility-integration-test:
+  compatibility-integration-test:
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-xl) }}
     needs:
       - setup
