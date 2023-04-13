@@ -220,6 +220,7 @@ type GatewayConditionType string
 // particular Gateway condition type has been raised.
 type GatewayConditionReason string
 
+// the following are directly from the k8s spec
 const (
 	// This condition is true when the controller managing the Gateway is
 	// syntactically and semantically valid enough to produce some configuration
@@ -361,6 +362,14 @@ const (
 	GatewayListenerReasonRefNotPermitted GatewayConditionReason = "RefNotPermitted"
 )
 
+// these are custom to Consul
+const (
+	GatewayConditionConflicted GatewayConditionType = "Conflicted"
+
+	GatewayReasonNoConflicts   GatewayConditionReason = "NoConflicts"
+	GatewayReasonRouteConflict GatewayConditionReason = "RouteConflict"
+)
+
 var validGatewayConditionReasonsMapping = map[GatewayConditionType]map[ConditionStatus][]GatewayConditionReason{
 	GatewayConditionAccepted: {
 		ConditionStatusTrue: {
@@ -372,6 +381,15 @@ var validGatewayConditionReasonsMapping = map[GatewayConditionType]map[Condition
 		ConditionStatusUnknown: {
 			GatewayReasonPending,
 		},
+	},
+	GatewayConditionConflicted: {
+		ConditionStatusTrue: {
+			GatewayReasonRouteConflict,
+		},
+		ConditionStatusFalse: {
+			GatewayReasonNoConflicts,
+		},
+		ConditionStatusUnknown: {},
 	},
 	GatewayConditionListenersConfigured: {
 		ConditionStatusTrue: {

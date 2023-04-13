@@ -748,7 +748,6 @@ func (g *gatewayMeta) checkCertificates(store *state.Store) (map[structs.Resourc
 		}
 		return nil
 	})
-
 	if err != nil {
 		return nil, err
 	}
@@ -845,7 +844,7 @@ func gatewayAccepted() structs.Condition {
 // to a given APIGateway listener.
 func invalidCertificate(ref structs.ResourceReference, err error) structs.Condition {
 	return structs.NewGatewayCondition(
-		structs.GatewayConditionAccepted,
+		structs.GatewayConditionResolvedRefs,
 		structs.ConditionStatusFalse,
 		structs.GatewayListenerReasonInvalidCertificateRef,
 		err.Error(),
@@ -857,7 +856,7 @@ func invalidCertificate(ref structs.ResourceReference, err error) structs.Condit
 // to invalid due to missing certificates that it references.
 func invalidCertificates() structs.Condition {
 	return structs.NewGatewayCondition(
-		structs.GatewayConditionAccepted,
+		structs.GatewayConditionResolvedRefs,
 		structs.ConditionStatusFalse,
 		structs.GatewayListenerReasonInvalidCertificateRef,
 		"gateway references invalid certificates",
@@ -869,9 +868,9 @@ func invalidCertificates() structs.Condition {
 // bound routes
 func gatewayListenerNoConflicts(ref structs.ResourceReference) structs.Condition {
 	return structs.NewGatewayCondition(
-		structs.GatewayConditionListenersConfigured,
-		structs.ConditionStatusTrue,
-		structs.GatewayReasonListenersConfigured,
+		structs.GatewayConditionConflicted,
+		structs.ConditionStatusFalse,
+		structs.GatewayReasonNoConflicts,
 		"listener has no route conflicts",
 		ref,
 	)
@@ -881,9 +880,9 @@ func gatewayListenerNoConflicts(ref structs.ResourceReference) structs.Condition
 // and make the listener, therefore invalid
 func gatewayListenerConflicts(ref structs.ResourceReference) structs.Condition {
 	return structs.NewGatewayCondition(
-		structs.GatewayConditionListenersConfigured,
-		structs.ConditionStatusFalse,
-		structs.GatewayListenerReasonProtocolConflict,
+		structs.GatewayConditionConflicted,
+		structs.ConditionStatusTrue,
+		structs.GatewayReasonRouteConflict,
 		"TCP-based listeners currently only support binding a single route",
 		ref,
 	)
