@@ -2933,6 +2933,7 @@ func TestAPIGatewayController(t *testing.T) {
 					}},
 					Status: structs.Status{
 						Conditions: []structs.Condition{
+							routeAccepted(),
 							routeUnbound(structs.ResourceReference{
 								Kind: structs.APIGateway,
 								Name: "gateway",
