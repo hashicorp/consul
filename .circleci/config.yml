@@ -36,6 +36,7 @@ references:
     - "1.10.9"
     - "1.9.10"
   consul-versions: &consul_versions
+    - "1.13"
     - "1.14"
     - "1.15"
   images:
