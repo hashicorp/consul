@@ -10,19 +10,12 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/hashicorp/go-bexpr"
-	"github.com/hashicorp/go-hclog"
-	"google.golang.org/grpc"
-
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/agent/submatview"
 	"github.com/hashicorp/consul/proto/private/pbservice"
 	"github.com/hashicorp/consul/proto/private/pbsubscribe"
+	"github.com/hashicorp/go-bexpr"
 )
-
-type MaterializerDeps struct {
-	Conn   *grpc.ClientConn
-	Logger hclog.Logger
-}
 
 func NewMaterializerRequest(srvReq structs.ServiceSpecificRequest) func(index uint64) *pbsubscribe.SubscribeRequest {
 	return func(index uint64) *pbsubscribe.SubscribeRequest {
@@ -59,6 +52,8 @@ func NewHealthView(req structs.ServiceSpecificRequest) (*HealthView, error) {
 		kind:    req.ServiceKind,
 	}, nil
 }
+
+var _ submatview.View = (*HealthView)(nil)
 
 // HealthView implements submatview.View for storing the view state
 // of a service health result. We store it as a map to make updates and

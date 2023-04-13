@@ -100,6 +100,14 @@ func ConfigEntryToStructs(s *ConfigEntry) structs.ConfigEntry {
 		pbcommon.RaftIndexToStructs(s.RaftIndex, &target.RaftIndex)
 		pbcommon.EnterpriseMetaToStructs(s.EnterpriseMeta, &target.EnterpriseMeta)
 		return &target
+	case Kind_KindSamenessGroup:
+		var target structs.SamenessGroupConfigEntry
+		target.Name = s.Name
+
+		SamenessGroupToStructs(s.GetSamenessGroup(), &target)
+		pbcommon.RaftIndexToStructs(s.RaftIndex, &target.RaftIndex)
+		pbcommon.EnterpriseMetaToStructs(s.EnterpriseMeta, &target.EnterpriseMeta)
+		return &target
 	default:
 		panic(fmt.Sprintf("unable to convert ConfigEntry of kind %s to structs", s.Kind))
 	}
@@ -196,6 +204,14 @@ func ConfigEntryFromStructs(s structs.ConfigEntry) *ConfigEntry {
 		configEntry.Entry = &ConfigEntry_InlineCertificate{
 			InlineCertificate: &cert,
 		}
+	case *structs.SamenessGroupConfigEntry:
+		var sg SamenessGroup
+		SamenessGroupFromStructs(v, &sg)
+		configEntry.Kind = Kind_KindSamenessGroup
+		configEntry.Entry = &ConfigEntry_SamenessGroup{
+			SamenessGroup: &sg,
+		}
+
 	default:
 		panic(fmt.Sprintf("unable to convert %T to proto", s))
 	}
