@@ -1311,6 +1311,107 @@ func TestServiceIntentionsConfigEntry(t *testing.T) {
 			},
 			validateErr: `JWT provider name is empty`,
 		},
+		"JWT - missing provider name under permissions": {
+			entry: &ServiceIntentionsConfigEntry{
+				Kind: ServiceIntentions,
+				Name: "test",
+				Sources: []*SourceIntention{
+					{
+						Name: "foo",
+						Permissions: []*IntentionPermission{
+							{
+								Action: IntentionActionAllow,
+								HTTP: &IntentionHTTPPermission{
+									PathPrefix: "/foo",
+									Header: []IntentionHTTPHeaderPermission{
+										{
+											Name:  "x-abc",
+											Exact: "foo",
+										},
+										{
+											Name:    "x-xyz",
+											Present: true,
+											Invert:  true,
+										},
+									},
+									Methods: []string{"POST", "PUT", "GET"},
+								},
+								JWT: &IntentionJWTRequirement{
+									Providers: []*IntentionJWTProvider{
+										{
+											VerifyClaims: []*IntentionJWTClaimVerification{
+												{
+													Path:  []string{"aud"},
+													Value: "another-api.test.com",
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			validateErr: `JWT provider name is empty`,
+		},
+		"valid JWTs": {
+			entry: &ServiceIntentionsConfigEntry{
+				Kind: ServiceIntentions,
+				Name: "test",
+				JWT: &IntentionJWTRequirement{
+					Providers: []*IntentionJWTProvider{
+						{
+							Name: "okta",
+							VerifyClaims: []*IntentionJWTClaimVerification{
+								{
+									Path:  []string{"aud"},
+									Value: "another-api.test.com",
+								},
+							},
+						},
+					},
+				},
+				Sources: []*SourceIntention{
+					{
+						Name: "foo",
+						Permissions: []*IntentionPermission{
+							{
+								Action: IntentionActionAllow,
+								HTTP: &IntentionHTTPPermission{
+									PathPrefix: "/foo",
+									Header: []IntentionHTTPHeaderPermission{
+										{
+											Name:  "x-abc",
+											Exact: "foo",
+										},
+										{
+											Name:    "x-xyz",
+											Present: true,
+											Invert:  true,
+										},
+									},
+									Methods: []string{"POST", "PUT", "GET"},
+								},
+								JWT: &IntentionJWTRequirement{
+									Providers: []*IntentionJWTProvider{
+										{
+											Name: "okta",
+											VerifyClaims: []*IntentionJWTClaimVerification{
+												{
+													Path:  []string{"aud"},
+													Value: "another-api.test.com",
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
 	}
 	for name, tc := range cases {
 		tc := tc

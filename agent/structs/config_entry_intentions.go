@@ -377,6 +377,15 @@ func (p *IntentionPermission) Clone() *IntentionPermission {
 	return &p2
 }
 
+func (p *IntentionPermission) Validate() error {
+	var result error
+	if p.JWT != nil {
+		result = p.JWT.Validate()
+	}
+
+	return result
+}
+
 type IntentionHTTPPermission struct {
 	// PathExact, PathPrefix, and PathRegex are mutually exclusive.
 	PathExact  string `json:",omitempty" alias:"path_exact"`
@@ -853,6 +862,10 @@ func (e *ServiceIntentionsConfigEntry) validate(legacyWrite bool) error {
 
 			if permParts == 0 {
 				return fmt.Errorf(errorPrefix+" should not be empty", i, j)
+			}
+
+			if err := perm.Validate(); err != nil {
+				return err
 			}
 		}
 
