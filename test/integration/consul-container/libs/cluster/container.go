@@ -32,6 +32,7 @@ const disableRYUKEnv = "TESTCONTAINERS_RYUK_DISABLED"
 const MaxEnvoyOnNode = 10                  // the max number of Envoy sidecar can run along with the agent, base is 19000
 const ServiceUpstreamLocalBindPort = 5000  // local bind Port of service's upstream
 const ServiceUpstreamLocalBindPort2 = 5001 // local bind Port of service's upstream, for services with 2 upstreams
+const debugPort = "4000/tcp"
 
 // consulContainerNode implements the Agent interface by running a Consul agent
 // in a container.
@@ -441,6 +442,13 @@ func (c *consulContainerNode) Upgrade(ctx context.Context, config Config) error 
 		return err
 	}
 
+	if utils.Debug {
+		port, err := container.MappedPort(ctx, debugPort)
+		if err != nil {
+			return err
+		}
+		fmt.Printf("\nDebug endpoint:: 0.0.0.0:%s\n", port)
+	}
 	if utils.FollowLog {
 		if err := container.StartLogProducer(ctx); err != nil {
 			return err
@@ -566,7 +574,7 @@ func newContainerRequest(config Config, opts containerOpts, ports ...int) (podRe
 		pod.ExposedPorts = append(pod.ExposedPorts, fmt.Sprintf("%d/tcp", port))
 	}
 	if utils.Debug {
-		pod.ExposedPorts = append(pod.ExposedPorts, "4000/tcp")
+		pod.ExposedPorts = append(pod.ExposedPorts, debugPort)
 	}
 
 	// For handshakes like auto-encrypt, it can take 10's of seconds for the agent to become "ready".
