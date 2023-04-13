@@ -157,6 +157,20 @@ func NewConsulContainer(ctx context.Context, config Config, cluster *Cluster, po
 
 		info AgentInfo
 	)
+	if utils.Debug {
+		for i := 0; i < 10; i++ {
+			uri, err := podContainer.PortEndpoint(ctx, "4000", "tcp")
+			if err != nil {
+				time.Sleep(500 * time.Millisecond)
+				continue
+			}
+			fmt.Printf("\nDebug endpoint:: %s\n\n", uri)
+			break
+		}
+		if err != nil {
+			return nil, err
+		}
+	}
 	if httpPort > 0 {
 		for i := 0; i < 10; i++ {
 			uri, err := podContainer.PortEndpoint(ctx, "8500", "http")
@@ -442,13 +456,6 @@ func (c *consulContainerNode) Upgrade(ctx context.Context, config Config) error 
 		return err
 	}
 
-	if utils.Debug {
-		port, err := container.MappedPort(ctx, debugPort)
-		if err != nil {
-			return err
-		}
-		fmt.Printf("\nDebug endpoint:: 0.0.0.0:%s\n", port)
-	}
 	if utils.FollowLog {
 		if err := container.StartLogProducer(ctx); err != nil {
 			return err
