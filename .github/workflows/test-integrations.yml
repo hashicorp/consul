@@ -80,8 +80,8 @@ jobs:
             cd ./test/integration/consul-container/test_many_clusters
             docker run --rm consul:local consul version
             go test \
-              -p=1 \
-              -parallel=1 \
+              -p=4 \
+              -parallel=4 \
               -tags "" \
               -timeout=30m \
               -v \

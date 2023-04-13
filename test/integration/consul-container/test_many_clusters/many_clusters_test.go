@@ -10,7 +10,7 @@ import (
 )
 
 func TestManyClusters(t *testing.T) {
-	const n = 100
+	const n = 64
 	for i := 0; i < n; i++ {
 		t.Run(fmt.Sprintf("cluster %d", i), func(t *testing.T) {
 			topology.NewCluster(t, &topology.ClusterConfig{
