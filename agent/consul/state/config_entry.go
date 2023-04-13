@@ -8,6 +8,7 @@ import (
 	"fmt"
 
 	memdb "github.com/hashicorp/go-memdb"
+	"github.com/hashicorp/go-multierror"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/configentry"
@@ -568,6 +569,10 @@ func validateProposedConfigEntryInGraph(
 		}
 	case structs.SamenessGroup:
 	case structs.ServiceIntentions:
+		err := validateJWTProvidersExist(tx, kindName, newEntry)
+		if err != nil {
+			return err
+		}
 	case structs.MeshConfig:
 	case structs.ExportedServices:
 	case structs.APIGateway: // TODO Consider checkGatewayClash
@@ -582,6 +587,46 @@ func validateProposedConfigEntryInGraph(
 	}
 
 	return validateProposedConfigEntryInServiceGraph(tx, kindName, newEntry)
+}
+
+// TODO: validate sources.perm
+func validateJWTProvider(configEntries []structs.ConfigEntry, jwt *structs.IntentionJWTRequirement) error {
+	var result error
+
+	for _, provider := range jwt.Providers {
+		matchNotFound := true
+		for i := range configEntries {
+			jwtEntry := configEntries[i].(*structs.JWTProviderConfigEntry)
+
+			if jwtEntry.Name == provider.Name {
+				matchNotFound = false
+			}
+		}
+
+		if matchNotFound {
+			result = multierror.Append(result, fmt.Errorf("Referenced JWT Provider does not exist. Provider Name: %s", provider.Name))
+		}
+	}
+
+	return result
+}
+
+func validateJWTProvidersExist(tx ReadTxn, kn configentry.KindName, ce structs.ConfigEntry) error {
+	var result error
+	entry := ce.(*structs.ServiceIntentionsConfigEntry)
+
+	if entry.JWT != nil {
+		wildcardEntMeta := kn.WithWildcardNamespace()
+
+		_, jwtConfigEntries, err := configEntriesByKindTxn(tx, nil, structs.JWTProvider, wildcardEntMeta)
+
+		if err != nil {
+			return fmt.Errorf("Failed retrieval of jwt config entries with err: %v", err)
+		}
+
+		result = validateJWTProvider(jwtConfigEntries, entry.JWT)
+	}
+	return result
 }
 
 func checkGatewayClash(tx ReadTxn, kindName configentry.KindName, otherKind string) error {
