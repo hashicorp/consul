@@ -633,6 +633,7 @@ message Status {
 // name=Structs
 message Condition {
   string Type = 1;
+  // mog: func-to=conditionStatusToStructs func-from=conditionStatusFromStructs
   string Status = 2;
   string Reason = 3;
   string Message = 4;

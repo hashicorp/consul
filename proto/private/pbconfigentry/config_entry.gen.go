@@ -185,7 +185,7 @@ func ConditionToStructs(s *Condition, t *structs.Condition) {
 		return
 	}
 	t.Type = s.Type
-	t.Status = s.Status
+	t.Status = conditionStatusToStructs(s.Status)
 	t.Reason = s.Reason
 	t.Message = s.Message
 	if s.Resource != nil {
@@ -200,7 +200,7 @@ func ConditionFromStructs(t *structs.Condition, s *Condition) {
 		return
 	}
 	s.Type = t.Type
-	s.Status = t.Status
+	s.Status = conditionStatusFromStructs(t.Status)
 	s.Reason = t.Reason
 	s.Message = t.Message
 	if t.Resource != nil {

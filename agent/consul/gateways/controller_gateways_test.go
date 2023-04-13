@@ -3287,10 +3287,16 @@ func TestAPIGatewayController(t *testing.T) {
 					}},
 					Status: structs.Status{
 						Conditions: []structs.Condition{
-							conditions.invalidCertificate(structs.ResourceReference{
-								Kind: structs.InlineCertificate,
-								Name: "certificate",
-							}, errors.New("certificate not found")),
+							structs.NewGatewayCondition(
+								structs.GatewayConditionAccepted,
+								structs.ConditionStatusFalse,
+								structs.GatewayListenerReasonInvalidCertificateRef,
+								errors.New("certificate not found").Error(),
+								structs.ResourceReference{
+									Kind: structs.InlineCertificate,
+									Name: "certificate",
+								},
+							),
 							conditions.invalidCertificates(),
 							conditions.gatewayListenerNoConflicts(structs.ResourceReference{
 								Kind:        structs.APIGateway,
