@@ -613,6 +613,9 @@ func validateJWTProvider(configEntries []structs.ConfigEntry, jwt *structs.Inten
 
 func validateJWTProvidersExist(tx ReadTxn, kn configentry.KindName, ce structs.ConfigEntry) error {
 	var result error
+	if ce == nil {
+		return result
+	}
 	entry := ce.(*structs.ServiceIntentionsConfigEntry)
 
 	if entry.JWT != nil {
