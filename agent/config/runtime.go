@@ -1465,7 +1465,17 @@ type RuntimeConfig struct {
 	// AutoReloadConfigCoalesceInterval Coalesce Interval for auto reload config
 	AutoReloadConfigCoalesceInterval time.Duration
 
+	Reporting ReportingConfig
+
 	EnterpriseRuntimeConfig
+}
+
+type LicenseConfig struct {
+	Enabled bool
+}
+
+type ReportingConfig struct {
+	License LicenseConfig
 }
 
 type AutoConfig struct {
