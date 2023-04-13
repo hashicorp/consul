@@ -133,7 +133,7 @@ func ComputeResolvedServiceConfig(
 	seenUpstreams := map[structs.PeeredServiceName]struct{}{}
 
 	var (
-		noUpstreamArgs = len(args.UpstreamServiceNames) == 0 && len(args.UpstreamIDs) == 0
+		noUpstreamArgs = len(args.UpstreamServiceNames) == 0
 
 		// Check the args and the resolved value. If it was exclusively set via a config entry, then args.Mode
 		// will never be transparent because the service config request does not use the resolved value.
@@ -152,15 +152,6 @@ func ComputeResolvedServiceConfig(
 		if _, ok := seenUpstreams[psn]; !ok {
 			seenUpstreams[psn] = struct{}{}
 		}
-	}
-	// For 1.14, service-defaults overrides would apply to peer upstreams incorrectly
-	// because the config merging logic was oblivious to the concept of a peer.
-	// We replicate this behavior on legacy calls for backwards-compatibility.
-	for _, sid := range args.UpstreamIDs {
-		psn := structs.PeeredServiceName{
-			ServiceName: structs.NewServiceName(sid.ID, &sid.EnterpriseMeta),
-		}
-		seenUpstreams[psn] = struct{}{}
 	}
 
 	// Then store upstreams inferred from service-defaults and mapify the overrides.
@@ -205,22 +196,6 @@ func ComputeResolvedServiceConfig(
 	if len(wildcardUpstreamDefaults) > 0 {
 		resolvedConfigs[wildcard] = wildcardUpstreamDefaults
 	}
-
-	// For Consul 1.14.x, service-defaults would apply to either local or peer services as long
-	// as the `name` matched. We introduce `legacyUpstreams` as a compatibility mode for:
-	//   1. old agents, that are using the deprecated UpstreamIDs api
-	//   2. Migrations to 1.15 that do not specify the "peer" field. The behavior should remain the same
-	//      until the config entries are updates.
-	//
-	// This should be remove in Consul 1.16
-	var hasPeerUpstream bool
-	for _, override := range upstreamOverrides {
-		if override.Peer != "" {
-			hasPeerUpstream = true
-			break
-		}
-	}
-	legacyUpstreams := len(args.UpstreamIDs) > 0 || !hasPeerUpstream
 
 	for upstream := range seenUpstreams {
 		resolvedCfg := make(map[string]interface{})
@@ -273,16 +248,6 @@ func ComputeResolvedServiceConfig(
 		}
 
 		// Merge in Overrides for the upstream (step 5).
-		// In the legacy case, overrides only match on name. We remove the peer and try to match against
-		// our map of overrides. We still want to check the full PSN in the map in case there is a specific
-		// override that applies to peers.
-		if legacyUpstreams {
-			peerlessUpstream := upstream
-			peerlessUpstream.Peer = ""
-			if upstreamOverrides[peerlessUpstream] != nil {
-				upstreamOverrides[peerlessUpstream].MergeInto(resolvedCfg)
-			}
-		}
 		if upstreamOverrides[upstream] != nil {
 			upstreamOverrides[upstream].MergeInto(resolvedCfg)
 		}
@@ -297,21 +262,11 @@ func ComputeResolvedServiceConfig(
 		return &thisReply, nil
 	}
 
-	if len(args.UpstreamIDs) > 0 {
-		// DEPRECATED: Remove these legacy upstreams in Consul v1.16
-		thisReply.UpstreamIDConfigs = make(structs.OpaqueUpstreamConfigsDeprecated, 0, len(resolvedConfigs))
+	thisReply.UpstreamConfigs = make(structs.OpaqueUpstreamConfigs, 0, len(resolvedConfigs))
 
-		for us, conf := range resolvedConfigs {
-			thisReply.UpstreamIDConfigs = append(thisReply.UpstreamIDConfigs,
-				structs.OpaqueUpstreamConfigDeprecated{Upstream: us.ServiceName.ToServiceID(), Config: conf})
-		}
-	} else {
-		thisReply.UpstreamConfigs = make(structs.OpaqueUpstreamConfigs, 0, len(resolvedConfigs))
-
-		for us, conf := range resolvedConfigs {
-			thisReply.UpstreamConfigs = append(thisReply.UpstreamConfigs,
-				structs.OpaqueUpstreamConfig{Upstream: us, Config: conf})
-		}
+	for us, conf := range resolvedConfigs {
+		thisReply.UpstreamConfigs = append(thisReply.UpstreamConfigs,
+			structs.OpaqueUpstreamConfig{Upstream: us, Config: conf})
 	}
 
 	return &thisReply, nil

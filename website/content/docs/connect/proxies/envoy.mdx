@@ -39,13 +39,13 @@ Consul supports **four major Envoy releases** at the beginning of each major Con
 
 | Consul Version      | Compatible Envoy Versions                                                          |
 | ------------------- | -----------------------------------------------------------------------------------|
-| 1.15.x              | 1.25.1, 1.24.2, 1.23.4, 1.22.5                                                     |
+| 1.15.x              | 1.25.4, 1.24.6, 1.23.8, 1.22.11                                                     |
 | 1.14.x              | 1.24.0, 1.23.1, 1.22.5, 1.21.5                                                     |
 | 1.13.x              | 1.23.1, 1.22.5, 1.21.5, 1.20.7                                                     |
 
 ### Envoy and Consul Dataplane
 
-The Consul dataplane component was introduced in Consul v1.14 as a way to manage Envoy proxies without the use of Consul clients. Each new minor version of Consul is released with a new minor version of Consul dataplane, which packages both Envoy and the `consul-dataplane` binary in a single container image. For backwards compatability reasons, each new minor version of Consul will also support the previous minor version of Consul dataplane to allow for seamless upgrades. In addition, each minor version of Consul will support the next minor version of Consul dataplane to allow for extended dataplane support via newer versions of Envoy.  
+The Consul dataplane component was introduced in Consul v1.14 as a way to manage Envoy proxies without the use of Consul clients. Each new minor version of Consul is released with a new minor version of Consul dataplane, which packages both Envoy and the `consul-dataplane` binary in a single container image. For backwards compatability reasons, each new minor version of Consul will also support the previous minor version of Consul dataplane to allow for seamless upgrades. In addition, each minor version of Consul will support the next minor version of Consul dataplane to allow for extended dataplane support via newer versions of Envoy.
 
 | Consul Version      | Consul Dataplane Version (Bundled Envoy Version)  |
 | ------------------- | ------------------------------------------------- |
@@ -124,7 +124,7 @@ Connect to a local Consul client agent and run the [`consul connect envoy` comma
 
 If you experience issues when bootstrapping Envoy proxies from the CLI, use the
 `-enable-config-gen-logging` flag to enable debug message logging. These logs can
-help you troubleshoot issues that occur during the bootstrapping process. 
+help you troubleshoot issues that occur during the bootstrapping process.
 For more information about available flags and parameters, refer to the
 [`consul connect envoy CLI` reference](/consul/commands/connect/envoy).
 
@@ -336,7 +336,7 @@ defaults that are inherited by all services.
 
 - `local_idle_timeout_ms` - In milliseconds, the idle timeout for HTTP requests
   to the local application instance. Applies to HTTP based protocols only. If not
-  specified, inherits the Envoy default for route idle timeouts (15s). A value of 0 
+  specified, inherits the Envoy default for route idle timeouts (15s). A value of 0
   disables request timeouts.
 
 - `max_inbound_connections` - The maximum number of concurrent inbound connections

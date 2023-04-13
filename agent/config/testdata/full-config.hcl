@@ -375,6 +375,11 @@ reconnect_timeout = "23739s"
 reconnect_timeout_wan = "26694s"
 recursors = [ "63.38.39.58", "92.49.18.18" ]
 rejoin_after_leave = true
+reporting = {
+    license = {
+        enabled = false
+    }
+}
 retry_interval = "8067s"
 retry_interval_wan = "28866s"
 retry_join = [ "pbsSFY7U", "l0qLtWij" ]

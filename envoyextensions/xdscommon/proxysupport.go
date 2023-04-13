@@ -12,10 +12,10 @@ import "strings"
 //
 // see: https://www.consul.io/docs/connect/proxies/envoy#supported-versions
 var EnvoyVersions = []string{
-	"1.25.1",
-	"1.24.2",
-	"1.23.4",
-	"1.22.5",
+	"1.25.4",
+	"1.24.6",
+	"1.23.8",
+	"1.22.11",
 }
 
 // UnsupportedEnvoyVersions lists any unsupported Envoy versions (mainly minor versions) that fall

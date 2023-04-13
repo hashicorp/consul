@@ -1345,66 +1345,6 @@ func TestConfigEntry_ResolveServiceConfig_Upstreams(t *testing.T) {
 			},
 		},
 		{
-			name: "upstream config entries from UpstreamIDs and service-defaults",
-			entries: []structs.ConfigEntry{
-				&structs.ProxyConfigEntry{
-					Kind: structs.ProxyDefaults,
-					Name: structs.ProxyConfigGlobal,
-					Config: map[string]interface{}{
-						"protocol": "grpc",
-					},
-				},
-				&structs.ServiceConfigEntry{
-					Kind: structs.ServiceDefaults,
-					Name: "api",
-					UpstreamConfig: &structs.UpstreamConfiguration{
-						Overrides: []*structs.UpstreamConfig{
-							{
-								Name:     "mysql",
-								Peer:     "peer1", // This should be ignored for legacy UpstreamIDs mode
-								Protocol: "http",
-							},
-						},
-					},
-				},
-			},
-			request: structs.ServiceConfigRequest{
-				Name:       "api",
-				Datacenter: "dc1",
-				UpstreamIDs: []structs.ServiceID{
-					structs.NewServiceID("cache", nil),
-				},
-			},
-			expect: structs.ServiceConfigResponse{
-				ProxyConfig: map[string]interface{}{
-					"protocol": "grpc",
-				},
-				UpstreamIDConfigs: structs.OpaqueUpstreamConfigsDeprecated{
-					{
-						Upstream: structs.NewServiceID(
-							structs.WildcardSpecifier,
-							acl.DefaultEnterpriseMeta().WithWildcardNamespace(),
-						),
-						Config: map[string]interface{}{
-							"protocol": "grpc",
-						},
-					},
-					{
-						Upstream: structs.NewServiceID("cache", nil),
-						Config: map[string]interface{}{
-							"protocol": "grpc",
-						},
-					},
-					{
-						Upstream: structs.NewServiceID("mysql", nil),
-						Config: map[string]interface{}{
-							"protocol": "http",
-						},
-					},
-				},
-			},
-		},
-		{
 			name: "upstream config entries from UpstreamServiceNames and service-defaults",
 			entries: []structs.ConfigEntry{
 				&structs.ProxyConfigEntry{
@@ -1764,9 +1704,6 @@ func TestConfigEntry_ResolveServiceConfig_Upstreams(t *testing.T) {
 			sort.SliceStable(out.UpstreamConfigs, func(i, j int) bool {
 				return out.UpstreamConfigs[i].Upstream.String() < out.UpstreamConfigs[j].Upstream.String()
 			})
-			sort.SliceStable(out.UpstreamIDConfigs, func(i, j int) bool {
-				return out.UpstreamIDConfigs[i].Upstream.String() < out.UpstreamIDConfigs[j].Upstream.String()
-			})
 
 			require.Equal(t, tc.expect, out)
 		})
@@ -2037,9 +1974,9 @@ func TestConfigEntry_ResolveServiceConfig_Upstreams_Blocking(t *testing.T) {
 			&structs.ServiceConfigRequest{
 				Name:       "foo",
 				Datacenter: "dc1",
-				UpstreamIDs: []structs.ServiceID{
-					structs.NewServiceID("bar", nil),
-					structs.NewServiceID("other", nil),
+				UpstreamServiceNames: []structs.PeeredServiceName{
+					{ServiceName: structs.NewServiceName("bar", nil)},
+					{ServiceName: structs.NewServiceName("other", nil)},
 				},
 				QueryOptions: structs.QueryOptions{
 					MinQueryIndex: index,
@@ -2073,9 +2010,9 @@ func TestConfigEntry_ResolveServiceConfig_Upstreams_Blocking(t *testing.T) {
 			&structs.ServiceConfigRequest{
 				Name:       "foo",
 				Datacenter: "dc1",
-				UpstreamIDs: []structs.ServiceID{
-					structs.NewServiceID("bar", nil),
-					structs.NewServiceID("other", nil),
+				UpstreamServiceNames: []structs.PeeredServiceName{
+					{ServiceName: structs.NewServiceName("bar", nil)},
+					{ServiceName: structs.NewServiceName("other", nil)},
 				},
 			},
 			&out,
@@ -2116,9 +2053,9 @@ func TestConfigEntry_ResolveServiceConfig_Upstreams_Blocking(t *testing.T) {
 			&structs.ServiceConfigRequest{
 				Name:       "foo",
 				Datacenter: "dc1",
-				UpstreamIDs: []structs.ServiceID{
-					structs.NewServiceID("bar", nil),
-					structs.NewServiceID("other", nil),
+				UpstreamServiceNames: []structs.PeeredServiceName{
+					{ServiceName: structs.NewServiceName("bar", nil)},
+					{ServiceName: structs.NewServiceName("other", nil)},
 				},
 				QueryOptions: structs.QueryOptions{
 					MinQueryIndex: index,
@@ -2355,8 +2292,8 @@ func TestConfigEntry_ResolveServiceConfig_BlockOnNoChange(t *testing.T) {
 			func(minQueryIndex uint64) (*structs.QueryMeta, <-chan error) {
 				args := structs.ServiceConfigRequest{
 					Name: "foo",
-					UpstreamIDs: []structs.ServiceID{
-						structs.NewServiceID("bar", nil),
+					UpstreamServiceNames: []structs.PeeredServiceName{
+						{ServiceName: structs.NewServiceName("bar", nil)},
 					},
 				}
 				args.QueryOptions.MinQueryIndex = minQueryIndex

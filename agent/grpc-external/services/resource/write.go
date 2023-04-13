@@ -12,13 +12,30 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/storage"
 	"github.com/hashicorp/consul/lib/retry"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
+// errUseWriteStatus is returned when the user attempts to modify the resource
+// status using the Write endpoint.
+//
+// We only allow modifications to the status using the WriteStatus endpoint
+// because:
+//
+//   - Setting statuses should only be done by controllers and requires different
+//     permissions.
+//
+//   - Status-only updates shouldn't increment the resource generation.
+//
+// While we could accomplish both in the Write handler, there's seldom need to
+// update the resource body and status at the same time, so it makes more sense
+// to keep them separate.
+var errUseWriteStatus = status.Error(codes.InvalidArgument, "resource.status can only be set using the WriteStatus endpoint")
+
 func (s *Server) Write(ctx context.Context, req *pbresource.WriteRequest) (*pbresource.WriteResponse, error) {
-	if err := validateWriteRequiredFields(req); err != nil {
+	if err := validateWriteRequest(req); err != nil {
 		return nil, err
 	}
 
@@ -33,7 +50,7 @@ func (s *Server) Write(ctx context.Context, req *pbresource.WriteRequest) (*pbre
 	}
 
 	// check acls
-	err = reg.ACLs.Write(authz, req.Resource)
+	err = reg.ACLs.Write(authz, req.Resource.Id)
 	switch {
 	case acl.IsErrPermissionDenied(err):
 		return nil, status.Error(codes.PermissionDenied, err.Error())
@@ -100,6 +117,9 @@ func (s *Server) Write(ctx context.Context, req *pbresource.WriteRequest) (*pbre
 			}
 
 			// TODO: Prevent setting statuses in this endpoint.
+			if len(input.Status) != 0 {
+				return errUseWriteStatus
+			}
 
 		// Update path.
 		case err == nil:
@@ -126,8 +146,6 @@ func (s *Server) Write(ctx context.Context, req *pbresource.WriteRequest) (*pbre
 			//	- Read returns stale version `v1`
 			//	- We carry `v1`'s statuses over (effectively overwriting `v2`'s statuses)
 			//	- CAS operation succeeds anyway because user-given version is current
-			//
-			// TODO(boxofrad): add a test for this once the status field has been added.
 			if input.Version != existing.Version {
 				return storage.ErrCASFailure
 			}
@@ -135,6 +153,12 @@ func (s *Server) Write(ctx context.Context, req *pbresource.WriteRequest) (*pbre
 			// Owner can only be set on creation. Enforce immutability.
 			if !proto.Equal(input.Owner, existing.Owner) {
 				return status.Errorf(codes.InvalidArgument, "owner cannot be changed")
+			}
+
+			if input.Status == nil {
+				input.Status = existing.Status
+			} else if !resource.EqualStatus(input.Status, existing.Status) {
+				return errUseWriteStatus
 			}
 
 		default:
@@ -194,7 +218,7 @@ func (s *Server) retryCAS(ctx context.Context, vsn string, cas func() error) err
 	return err
 }
 
-func validateWriteRequiredFields(req *pbresource.WriteRequest) error {
+func validateWriteRequest(req *pbresource.WriteRequest) error {
 	var field string
 	switch {
 	case req.Resource == nil:

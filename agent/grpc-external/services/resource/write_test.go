@@ -2,9 +2,10 @@ package resource
 
 import (
 	"context"
-	"sync"
+	"sync/atomic"
 	"testing"
 
+	"github.com/oklog/ulid/v2"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
@@ -138,7 +139,7 @@ func TestWrite_Mutate(t *testing.T) {
 	require.Equal(t, pbdemov2.Genre_GENRE_DISCO, artistData.Genre)
 }
 
-func TestWrite_ResourceCreation(t *testing.T) {
+func TestWrite_ResourceCreation_Success(t *testing.T) {
 	server := testServer(t)
 	client := testClient(t, server)
 
@@ -174,6 +175,25 @@ func TestWrite_CASUpdate_Success(t *testing.T) {
 	require.Equal(t, rsp1.Resource.Id.Uid, rsp2.Resource.Id.Uid)
 	require.NotEqual(t, rsp1.Resource.Version, rsp2.Resource.Version)
 	require.NotEqual(t, rsp1.Resource.Generation, rsp2.Resource.Generation)
+}
+
+func TestWrite_ResourceCreation_StatusProvided(t *testing.T) {
+	server := testServer(t)
+	client := testClient(t, server)
+
+	demo.Register(server.Registry)
+
+	res, err := demo.GenerateV2Artist()
+	require.NoError(t, err)
+
+	res.Status = map[string]*pbresource.Status{
+		"consul.io/some-controller": {ObservedGeneration: ulid.Make().String()},
+	}
+
+	_, err = client.Write(testContext(t), &pbresource.WriteRequest{Resource: res})
+	require.Error(t, err)
+	require.Equal(t, codes.InvalidArgument.String(), status.Code(err).String())
+	require.Contains(t, err.Error(), "WriteStatus endpoint")
 }
 
 func TestWrite_CASUpdate_Failure(t *testing.T) {
@@ -216,6 +236,60 @@ func TestWrite_Update_WrongUid(t *testing.T) {
 	require.Error(t, err)
 	require.Equal(t, codes.FailedPrecondition.String(), status.Code(err).String())
 	require.Contains(t, err.Error(), "uid doesn't match")
+}
+
+func TestWrite_Update_StatusModified(t *testing.T) {
+	server := testServer(t)
+	client := testClient(t, server)
+
+	demo.Register(server.Registry)
+
+	res, err := demo.GenerateV2Artist()
+	require.NoError(t, err)
+
+	rsp1, err := client.Write(testContext(t), &pbresource.WriteRequest{Resource: res})
+	require.NoError(t, err)
+
+	statusRsp, err := client.WriteStatus(testContext(t), validWriteStatusRequest(t, rsp1.Resource))
+	require.NoError(t, err)
+	res = statusRsp.Resource
+
+	// Passing the staus unmodified should be fine.
+	rsp2, err := client.Write(testContext(t), &pbresource.WriteRequest{Resource: res})
+	require.NoError(t, err)
+
+	// Attempting to modify the status should return an error.
+	res = rsp2.Resource
+	res.Status["consul.io/other-controller"] = &pbresource.Status{ObservedGeneration: res.Generation}
+
+	_, err = client.Write(testContext(t), &pbresource.WriteRequest{Resource: res})
+	require.Error(t, err)
+	require.Equal(t, codes.InvalidArgument.String(), status.Code(err).String())
+	require.Contains(t, err.Error(), "WriteStatus endpoint")
+}
+
+func TestWrite_Update_NilStatus(t *testing.T) {
+	server := testServer(t)
+	client := testClient(t, server)
+
+	demo.Register(server.Registry)
+
+	res, err := demo.GenerateV2Artist()
+	require.NoError(t, err)
+
+	rsp1, err := client.Write(testContext(t), &pbresource.WriteRequest{Resource: res})
+	require.NoError(t, err)
+
+	statusRsp, err := client.WriteStatus(testContext(t), validWriteStatusRequest(t, rsp1.Resource))
+	require.NoError(t, err)
+
+	// Passing a nil status should be fine (and carry over the old status).
+	res = statusRsp.Resource
+	res.Status = nil
+
+	rsp2, err := client.Write(testContext(t), &pbresource.WriteRequest{Resource: res})
+	require.NoError(t, err)
+	require.NotEmpty(t, rsp2.Resource.Status)
 }
 
 func TestWrite_Update_NoUid(t *testing.T) {
@@ -366,7 +440,7 @@ func TestWrite_Owner_RequireSameTenancy(t *testing.T) {
 type blockOnceBackend struct {
 	storage.Backend
 
-	once    sync.Once
+	done    uint32
 	readCh  chan struct{}
 	blockCh chan struct{}
 }
@@ -374,10 +448,12 @@ type blockOnceBackend struct {
 func (b *blockOnceBackend) Read(ctx context.Context, consistency storage.ReadConsistency, id *pbresource.ID) (*pbresource.Resource, error) {
 	res, err := b.Backend.Read(ctx, consistency, id)
 
-	b.once.Do(func() {
+	// Block for exactly one call to Read. All subsequent calls (including those
+	// concurrent to the blocked call) will return immediately.
+	if atomic.CompareAndSwapUint32(&b.done, 0, 1) {
 		close(b.readCh)
 		<-b.blockCh
-	})
+	}
 
 	return res, err
 }

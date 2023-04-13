@@ -29,8 +29,7 @@ func (s *Server) Delete(ctx context.Context, req *pbresource.DeleteRequest) (*pb
 		return nil, err
 	}
 
-	// TODO(spatel): Revisit `Write` signature: is the resource required or is id sufficient
-	err = reg.ACLs.Write(authz, &pbresource.Resource{Id: req.Id})
+	err = reg.ACLs.Write(authz, req.Id)
 	switch {
 	case acl.IsErrPermissionDenied(err):
 		return nil, status.Error(codes.PermissionDenied, err.Error())
