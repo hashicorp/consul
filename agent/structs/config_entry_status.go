@@ -419,6 +419,10 @@ func NewGatewayCondition(name GatewayConditionType, status ConditionStatus, reas
 }
 
 func validateGatewayConfigReason(name GatewayConditionType, status ConditionStatus, reason GatewayConditionReason) error {
+	if err := checkConditionStatus(status); err != nil {
+		return err
+	}
+
 	reasons, ok := validGatewayConditionReasonsMapping[name]
 	if !ok {
 		return fmt.Errorf("unrecognized GatewayConditionType %q", name)
@@ -636,9 +640,9 @@ var validRouteConditionReasonsMapping = map[RouteConditionType]map[ConditionStat
 }
 
 func checkRouteConditionReason(name RouteConditionType, status ConditionStatus, reason RouteConditionReason) error {
-	// if err := checkConditionStatus(status); err != nil {
-	// return err
-	// }
+	if err := checkConditionStatus(status); err != nil {
+		return err
+	}
 
 	reasons, ok := validRouteConditionReasonsMapping[name]
 	if !ok {
@@ -655,6 +659,15 @@ func checkRouteConditionReason(name RouteConditionType, status ConditionStatus, 
 	}
 
 	return nil
+}
+
+func checkConditionStatus(status ConditionStatus) error {
+	switch status {
+	case ConditionStatusTrue, ConditionStatusFalse, ConditionStatusUnknown:
+		return nil
+	default:
+		return fmt.Errorf("unrecognized condition status: %q", status)
+	}
 }
 
 func ptrTo[T any](val T) *T {

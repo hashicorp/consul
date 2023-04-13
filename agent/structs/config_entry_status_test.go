@@ -158,6 +158,13 @@ func TestNewGatewayInvalidCombinationsCausePanic(t *testing.T) {
 			message:  "still not working",
 			ref:      ResourceReference{Name: "name", Kind: "httproute"},
 		},
+		"pass something other than a condition status": {
+			status:   ConditionStatus("hello"),
+			reason:   GatewayReasonInvalid,
+			condType: GatewayConditionResolvedRefs,
+			message:  "still not working",
+			ref:      ResourceReference{Name: "name", Kind: "httproute"},
+		},
 	}
 
 	for name, tc := range testCases {
@@ -306,6 +313,64 @@ func TestNewRouteConditionWithValidCombinations(t *testing.T) {
 			if !cond.IsSame(&expectedCond) {
 				t.Errorf("Expected condition to be\n%+v\ngot\n%+v", expectedCond, cond)
 			}
+		})
+	}
+}
+
+func TestNewRouteInvalidCombinationsCausePanic(t *testing.T) {
+	// This is not an exhaustive list of all invalid combinations, just a few to confirm
+	testCases := map[string]struct {
+		status   ConditionStatus
+		reason   RouteConditionReason
+		condType RouteConditionType
+		message  string
+		ref      ResourceReference
+	}{
+		"reason and condition type are valid but status is not": {
+			status:   ConditionStatusTrue,
+			reason:   RouteReasonNotAllowedByListeners,
+			condType: RouteConditionAccepted,
+			message:  "almost there",
+			ref:      ResourceReference{Name: "name", Kind: "httproute"},
+		},
+		"reason and status are valid but condition type is not": {
+			status:   ConditionStatusFalse,
+			reason:   RouteReasonRefNotPermitted,
+			condType: RouteConditionBound,
+			message:  "not quite",
+			ref:      ResourceReference{Name: "name", Kind: "httproute"},
+		},
+		"condition type and status are valid but status is not": {
+			status:   ConditionStatusUnknown,
+			reason:   RouteReasonBound,
+			condType: RouteConditionBound,
+			message:  "still not working",
+			ref:      ResourceReference{Name: "name", Kind: "httproute"},
+		},
+		"all are invalid": {
+			status:   ConditionStatusUnknown,
+			reason:   RouteReasonGatewayNotFound,
+			condType: RouteConditionResolvedRefs,
+			message:  "still not working",
+			ref:      ResourceReference{Name: "name", Kind: "httproute"},
+		},
+		"pass something other than a condition status": {
+			status:   ConditionStatus("hello"),
+			reason:   RouteReasonAccepted,
+			condType: RouteConditionAccepted,
+			message:  "still not working",
+			ref:      ResourceReference{Name: "name", Kind: "httproute"},
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			defer func() {
+				if r := recover(); r == nil {
+					t.Errorf("Expected combination %+v to be invalid", tc)
+				}
+			}()
+			_ = NewRouteCondition(tc.condType, tc.status, tc.reason, tc.message, tc.ref)
 		})
 	}
 }

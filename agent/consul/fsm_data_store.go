@@ -56,15 +56,11 @@ func (f *FSMDataStore) Update(entry structs.ConfigEntry) error {
 // UpdateStatus takes a config entry, an error, and updates the status field as needed in the FSM state
 func (f *FSMDataStore) UpdateStatus(entry structs.ControlledConfigEntry, err error) error {
 	if err == nil {
-		//TODO additional status messages for success?
+		// TODO additional status messages for success?
 		return nil
 	}
 	status := structs.Status{
-		Conditions: []structs.Condition{{
-
-			Status: err.Error() + ": Accepted == false",
-		},
-		},
+		Conditions: entry.GetStatus().Conditions,
 	}
 	entry.SetStatus(status)
 	return f.Update(entry)
