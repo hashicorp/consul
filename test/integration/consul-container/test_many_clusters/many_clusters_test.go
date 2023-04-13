@@ -10,9 +10,11 @@ import (
 )
 
 func TestManyClusters(t *testing.T) {
+	t.Parallel()
 	const n = 64
 	for i := 0; i < n; i++ {
 		t.Run(fmt.Sprintf("cluster %d", i), func(t *testing.T) {
+			t.Parallel()
 			topology.NewCluster(t, &topology.ClusterConfig{
 				NumServers: 1,
 				NumClients: 1,
