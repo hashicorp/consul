@@ -87,6 +87,7 @@ jobs:
               -timeout=30m \
               -v \
               -failfast \
+              -count=3 \
               . \
               --follow-log=false \
               --target-image consul \
