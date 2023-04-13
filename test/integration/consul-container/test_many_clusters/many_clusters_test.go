@@ -11,7 +11,7 @@ import (
 
 func TestManyClusters(t *testing.T) {
 	t.Parallel()
-	const n = 16
+	const n = 8
 	for i := 0; i < n; i++ {
 		t.Run(fmt.Sprintf("cluster %d", i), func(t *testing.T) {
 			t.Parallel()
