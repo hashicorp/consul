@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/stretchr/testify/require"
 )
 
 var testRuntimeConfigSanitizeExpectedFilename = "TestRuntimeConfig_Sanitize.golden"
@@ -27,6 +28,7 @@ var enterpriseConfigKeyWarnings = []string{
 	enterpriseConfigKeyError{key: "acl.msp_disable_bootstrap"}.Error(),
 	enterpriseConfigKeyError{key: "acl.tokens.managed_service_provider"}.Error(),
 	enterpriseConfigKeyError{key: "audit"}.Error(),
+	enterpriseConfigKeyError{key: "reporting.license.enabled"}.Error(),
 }
 
 // OSS-only equivalent of TestConfigFlagsAndEdgecases
@@ -79,4 +81,83 @@ func TestLoad_IntegrationWithFlags_OSS(t *testing.T) {
 			t.Run(name, tc.run(format, dataDir))
 		}
 	}
+}
+
+func TestLoad_ReportingConfig(t *testing.T) {
+	dir := testutil.TempDir(t, t.Name())
+
+	t.Run("load from JSON defaults to false", func(t *testing.T) {
+		content := `{
+			"reporting": {}
+		}`
+
+		opts := LoadOpts{
+			FlagValues: Config{
+				DataDir: &dir,
+			},
+			Overrides: []Source{
+				FileSource{
+					Name:   "reporting.json",
+					Format: "json",
+					Data:   content,
+				},
+			},
+		}
+		patchLoadOptsShims(&opts)
+		result, err := Load(opts)
+		require.NoError(t, err)
+		require.Len(t, result.Warnings, 0)
+		require.Equal(t, false, result.RuntimeConfig.Reporting.License.Enabled)
+	})
+
+	t.Run("load from HCL defaults to false", func(t *testing.T) {
+		content := `
+		  reporting {}
+		`
+
+		opts := LoadOpts{
+			FlagValues: Config{
+				DataDir: &dir,
+			},
+			Overrides: []Source{
+				FileSource{
+					Name:   "reporting.hcl",
+					Format: "hcl",
+					Data:   content,
+				},
+			},
+		}
+		patchLoadOptsShims(&opts)
+		result, err := Load(opts)
+		require.NoError(t, err)
+		require.Len(t, result.Warnings, 0)
+		require.Equal(t, false, result.RuntimeConfig.Reporting.License.Enabled)
+	})
+
+	t.Run("with value set returns warning and defaults to false", func(t *testing.T) {
+		content := `reporting {
+			license {
+			  enabled = true
+			}
+		}`
+
+		opts := LoadOpts{
+			FlagValues: Config{
+				DataDir: &dir,
+			},
+			Overrides: []Source{
+				FileSource{
+					Name:   "reporting.hcl",
+					Format: "hcl",
+					Data:   content,
+				},
+			},
+		}
+		patchLoadOptsShims(&opts)
+		result, err := Load(opts)
+		require.NoError(t, err)
+		require.Len(t, result.Warnings, 1)
+		require.Contains(t, result.Warnings[0], "\"reporting.license.enabled\" is a Consul Enterprise configuration and will have no effect")
+		require.Equal(t, false, result.RuntimeConfig.Reporting.License.Enabled)
+	})
 }
