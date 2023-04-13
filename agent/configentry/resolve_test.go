@@ -83,7 +83,7 @@ func Test_ComputeResolvedServiceConfig(t *testing.T) {
 			},
 		},
 		{
-			name: "proxy with local_connect_timeout_ms and local_request_timeout_ms",
+			name: "proxy with local_connect_timeout_ms, local_request_timeout_ms and local_idle_timeout_ms",
 			args: args{
 				scReq: &structs.ServiceConfigRequest{
 					Name: "sid",
@@ -94,6 +94,7 @@ func Test_ComputeResolvedServiceConfig(t *testing.T) {
 							MaxInboundConnections: 20,
 							LocalConnectTimeoutMs: 20000,
 							LocalRequestTimeoutMs: 30000,
+							LocalIdleTimeoutMs:    30000,
 						},
 					},
 				},
@@ -103,6 +104,7 @@ func Test_ComputeResolvedServiceConfig(t *testing.T) {
 					"max_inbound_connections":  20,
 					"local_connect_timeout_ms": 20000,
 					"local_request_timeout_ms": 30000,
+					"local_idle_timeout_ms":    30000,
 				},
 			},
 		},

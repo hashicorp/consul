@@ -141,6 +141,7 @@ type ServiceConfigEntry struct {
 	MaxInboundConnections     int                    `json:",omitempty" alias:"max_inbound_connections"`
 	LocalConnectTimeoutMs     int                    `json:",omitempty" alias:"local_connect_timeout_ms"`
 	LocalRequestTimeoutMs     int                    `json:",omitempty" alias:"local_request_timeout_ms"`
+	LocalIdleTimeoutMs        int                    `json:",omitempty" alias:"local_idle_timeout_ms"`
 	BalanceInboundConnections string                 `json:",omitempty" alias:"balance_inbound_connections"`
 	EnvoyExtensions           EnvoyExtensions        `json:",omitempty" alias:"envoy_extensions"`
 
