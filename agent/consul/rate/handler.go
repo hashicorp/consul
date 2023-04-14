@@ -1,7 +1,7 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: MPL-2.0
 
-// package rate implements server-side RPC rate limiting.
+// Package rate implements server-side RPC rate limiting.
 package rate
 
 import (
@@ -14,6 +14,7 @@ import (
 
 	"github.com/armon/go-metrics"
 	"github.com/hashicorp/go-hclog"
+	"golang.org/x/time/rate"
 
 	"github.com/hashicorp/consul/agent/consul/multilimiter"
 )
@@ -54,7 +55,7 @@ var modeToName = map[Mode]string{
 	ModeEnforcing:  "enforcing",
 	ModePermissive: "permissive",
 }
-var modeFromName = func() map[string]Mode {
+var ModeFromName = func() map[string]Mode {
 	vals := map[string]Mode{
 		"": ModeDisabled,
 	}
@@ -70,13 +71,13 @@ func (m Mode) String() string {
 
 // RequestLimitsModeFromName will unmarshal the string form of a configMode.
 func RequestLimitsModeFromName(name string) (Mode, bool) {
-	s, ok := modeFromName[name]
+	s, ok := ModeFromName[name]
 	return s, ok
 }
 
 // RequestLimitsModeFromNameWithDefault will unmarshal the string form of a configMode.
 func RequestLimitsModeFromNameWithDefault(name string) Mode {
-	s, ok := modeFromName[name]
+	s, ok := ModeFromName[name]
 	if !ok {
 		return ModePermissive
 	}
@@ -151,12 +152,14 @@ type RequestLimitsHandler interface {
 	Run(ctx context.Context)
 	Allow(op Operation) error
 	UpdateConfig(cfg HandlerConfig)
+	UpdateIPConfig(cfg IPLimitConfig)
 	Register(leaderStatusProvider LeaderStatusProvider)
 }
 
 // Handler enforces rate limits for incoming RPCs.
 type Handler struct {
-	cfg                  *atomic.Pointer[HandlerConfig]
+	globalCfg            *atomic.Pointer[HandlerConfig]
+	ipCfg                *atomic.Pointer[IPLimitConfig]
 	leaderStatusProvider LeaderStatusProvider
 
 	limiter multilimiter.RateLimiter
@@ -164,20 +167,23 @@ type Handler struct {
 	logger hclog.Logger
 }
 
+type ReadWriteConfig struct {
+	// WriteConfig configures the global rate limiter for write operations.
+	WriteConfig multilimiter.LimiterConfig
+
+	// ReadConfig configures the global rate limiter for read operations.
+	ReadConfig multilimiter.LimiterConfig
+}
+
+type GlobalLimitConfig struct {
+	Mode Mode
+	ReadWriteConfig
+}
+
 type HandlerConfig struct {
 	multilimiter.Config
 
-	// GlobalMode configures the action that will be taken when a global rate-limit
-	// has been exhausted.
-	//
-	// Note: in the future there'll be a separate Mode for IP-based limits.
-	GlobalMode Mode
-
-	// GlobalWriteConfig configures the global rate limiter for write operations.
-	GlobalWriteConfig multilimiter.LimiterConfig
-
-	// GlobalReadConfig configures the global rate limiter for read operations.
-	GlobalReadConfig multilimiter.LimiterConfig
+	GlobalLimitConfig GlobalLimitConfig
 }
 
 //go:generate mockery --name LeaderStatusProvider --inpackage --filename mock_LeaderStatusProvider_test.go
@@ -189,20 +195,26 @@ type LeaderStatusProvider interface {
 	IsLeader() bool
 }
 
+func isInfRate(cfg multilimiter.LimiterConfig) bool {
+	return cfg.Rate == rate.Inf
+}
+
 func NewHandlerWithLimiter(
 	cfg HandlerConfig,
 	limiter multilimiter.RateLimiter,
 	logger hclog.Logger) *Handler {
 
-	limiter.UpdateConfig(cfg.GlobalWriteConfig, globalWrite)
-	limiter.UpdateConfig(cfg.GlobalReadConfig, globalRead)
+	limiter.UpdateConfig(cfg.GlobalLimitConfig.WriteConfig, globalWrite)
+
+	limiter.UpdateConfig(cfg.GlobalLimitConfig.ReadConfig, globalRead)
 
 	h := &Handler{
-		cfg:     new(atomic.Pointer[HandlerConfig]),
-		limiter: limiter,
-		logger:  logger,
+		ipCfg:     new(atomic.Pointer[IPLimitConfig]),
+		globalCfg: new(atomic.Pointer[HandlerConfig]),
+		limiter:   limiter,
+		logger:    logger,
 	}
-	h.cfg.Store(&cfg)
+	h.globalCfg.Store(&cfg)
 
 	return h
 }
@@ -231,8 +243,8 @@ func (h *Handler) Allow(op Operation) error {
 		// panic("leaderStatusProvider required to be set via Register(..)")
 	}
 
-	cfg := h.cfg.Load()
-	if cfg.GlobalMode == ModeDisabled {
+	cfg := h.globalCfg.Load()
+	if cfg.GlobalLimitConfig.Mode == ModeDisabled {
 		return nil
 	}
 
@@ -281,18 +293,21 @@ func (h *Handler) Allow(op Operation) error {
 }
 
 func (h *Handler) UpdateConfig(cfg HandlerConfig) {
-	existingCfg := h.cfg.Load()
-	h.cfg.Store(&cfg)
-	if reflect.DeepEqual(existingCfg, cfg) {
+	existingCfg := h.globalCfg.Load()
+	h.globalCfg.Store(&cfg)
+	if reflect.DeepEqual(existingCfg, &cfg) {
 		h.logger.Warn("UpdateConfig called but configuration has not changed.  Skipping updating the server rate limiter configuration.")
 		return
 	}
-	if !reflect.DeepEqual(existingCfg.GlobalWriteConfig, cfg.GlobalWriteConfig) {
-		h.limiter.UpdateConfig(cfg.GlobalWriteConfig, globalWrite)
+
+	if !reflect.DeepEqual(existingCfg.GlobalLimitConfig.WriteConfig, cfg.GlobalLimitConfig.WriteConfig) {
+		h.limiter.UpdateConfig(cfg.GlobalLimitConfig.WriteConfig, globalWrite)
 	}
-	if !reflect.DeepEqual(existingCfg.GlobalReadConfig, cfg.GlobalReadConfig) {
-		h.limiter.UpdateConfig(cfg.GlobalReadConfig, globalRead)
+
+	if !reflect.DeepEqual(existingCfg.GlobalLimitConfig.ReadConfig, cfg.GlobalLimitConfig.ReadConfig) {
+		h.limiter.UpdateConfig(cfg.GlobalLimitConfig.ReadConfig, globalRead)
 	}
+
 }
 
 func (h *Handler) Register(leaderStatusProvider LeaderStatusProvider) {
@@ -321,9 +336,9 @@ func (h *Handler) globalLimit(op Operation) *limit {
 	if op.Type == OperationTypeExempt {
 		return nil
 	}
-	cfg := h.cfg.Load()
+	cfg := h.globalCfg.Load()
 
-	lim := &limit{mode: cfg.GlobalMode}
+	lim := &limit{mode: cfg.GlobalLimitConfig.Mode}
 	switch op.Type {
 	case OperationTypeRead:
 		lim.desc = "global/read"
@@ -343,6 +358,12 @@ var (
 
 	// globalRead identifies the global rate limit applied to read operations.
 	globalRead = globalLimit("global.read")
+
+	// globalIPRead identifies the global rate limit applied to read operations.
+	globalIPRead = globalLimit("global.ip.read")
+
+	// globalIPWrite identifies the global rate limit applied to read operations.
+	globalIPWrite = globalLimit("global.ip.write")
 )
 
 // globalLimit represents a limit that applies to all writes or reads.
@@ -360,10 +381,12 @@ func NullRequestLimitsHandler() RequestLimitsHandler {
 
 type nullRequestLimitsHandler struct{}
 
+func (h nullRequestLimitsHandler) UpdateIPConfig(cfg IPLimitConfig) {}
+
 func (nullRequestLimitsHandler) Allow(Operation) error { return nil }
 
-func (nullRequestLimitsHandler) Run(ctx context.Context) {}
+func (nullRequestLimitsHandler) Run(_ context.Context) {}
 
-func (nullRequestLimitsHandler) UpdateConfig(cfg HandlerConfig) {}
+func (nullRequestLimitsHandler) UpdateConfig(_ HandlerConfig) {}
 
-func (nullRequestLimitsHandler) Register(leaderStatusProvider LeaderStatusProvider) {}
+func (nullRequestLimitsHandler) Register(_ LeaderStatusProvider) {}
