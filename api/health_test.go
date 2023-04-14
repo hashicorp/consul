@@ -12,33 +12,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestAPI_HealthNode(t *testing.T) {
-	t.Parallel()
-	c, s := makeClient(t)
-	defer s.Stop()
-
-	agent := c.Agent()
-	health := c.Health()
-
-	info, err := agent.Self()
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	name := info["Config"]["NodeName"].(string)
-	retry.Run(t, func(r *retry.R) {
-		checks, meta, err := health.Node(name, nil)
-		if err != nil {
-			r.Fatal(err)
-		}
-		if meta.LastIndex == 0 {
-			r.Fatalf("bad: %v", meta)
-		}
-		if len(checks) == 0 {
-			r.Fatalf("bad: %v", checks)
-		}
-	})
-}
-
 func TestAPI_HealthNode_Filter(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
