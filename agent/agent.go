@@ -22,6 +22,8 @@ import (
 
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
+	"github.com/hashicorp/consul/agent/rpcclient"
+	"github.com/hashicorp/consul/agent/rpcclient/configentry"
 	"github.com/hashicorp/go-connlimit"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
@@ -384,7 +386,8 @@ type Agent struct {
 
 	// TODO: pass directly to HTTPHandlers and DNSServer once those are passed
 	// into Agent, which will allow us to remove this field.
-	rpcClientHealth *health.Client
+	rpcClientHealth      *health.Client
+	rpcClientConfigEntry *configentry.Client
 
 	rpcClientPeering pbpeering.PeeringServiceClient
 
@@ -462,22 +465,37 @@ func New(bd BaseDeps) (*Agent, error) {
 	}
 
 	a.rpcClientHealth = &health.Client{
-		Cache:     bd.Cache,
-		NetRPC:    &a,
-		CacheName: cachetype.HealthServicesName,
-		ViewStore: bd.ViewStore,
-		MaterializerDeps: health.MaterializerDeps{
-			Conn:   conn,
-			Logger: bd.Logger.Named("rpcclient.health"),
+		Client: rpcclient.Client{
+			Cache:     bd.Cache,
+			NetRPC:    &a,
+			CacheName: cachetype.HealthServicesName,
+			ViewStore: bd.ViewStore,
+			MaterializerDeps: rpcclient.MaterializerDeps{
+				Conn:   conn,
+				Logger: bd.Logger.Named("rpcclient.health"),
+			},
+			UseStreamingBackend: a.config.UseStreamingBackend,
+			QueryOptionDefaults: config.ApplyDefaultQueryOptions(a.config),
 		},
-		UseStreamingBackend: a.config.UseStreamingBackend,
-		QueryOptionDefaults: config.ApplyDefaultQueryOptions(a.config),
 	}
 
 	a.rpcClientPeering = pbpeering.NewPeeringServiceClient(conn)
 	a.rpcClientOperator = pboperator.NewOperatorServiceClient(conn)
 
 	a.serviceManager = NewServiceManager(&a)
+	a.rpcClientConfigEntry = &configentry.Client{
+		Client: rpcclient.Client{
+			Cache:     bd.Cache,
+			NetRPC:    &a,
+			CacheName: cachetype.ConfigEntryName,
+			ViewStore: bd.ViewStore,
+			MaterializerDeps: rpcclient.MaterializerDeps{
+				Conn:   conn,
+				Logger: bd.Logger.Named("rpcclient.configentry"),
+			},
+			QueryOptionDefaults: config.ApplyDefaultQueryOptions(a.config),
+		},
+	}
 
 	// We used to do this in the Start method. However it doesn't need to go
 	// there any longer. Originally it did because we passed the agent
@@ -1662,6 +1680,7 @@ func (a *Agent) ShutdownAgent() error {
 	}
 
 	a.rpcClientHealth.Close()
+	a.rpcClientConfigEntry.Close()
 
 	// Shutdown SCADA provider
 	if a.scadaProvider != nil {

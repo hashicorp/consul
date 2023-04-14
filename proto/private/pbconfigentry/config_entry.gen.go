@@ -1208,6 +1208,58 @@ func RingHashConfigFromStructs(t *structs.RingHashConfig, s *RingHashConfig) {
 	s.MinimumRingSize = t.MinimumRingSize
 	s.MaximumRingSize = t.MaximumRingSize
 }
+func SamenessGroupToStructs(s *SamenessGroup, t *structs.SamenessGroupConfigEntry) {
+	if s == nil {
+		return
+	}
+	t.Name = s.Name
+	t.DefaultForFailover = s.DefaultForFailover
+	t.IncludeLocal = s.IncludeLocal
+	{
+		t.Members = make([]structs.SamenessGroupMember, len(s.Members))
+		for i := range s.Members {
+			if s.Members[i] != nil {
+				SamenessGroupMemberToStructs(s.Members[i], &t.Members[i])
+			}
+		}
+	}
+	t.Meta = s.Meta
+	t.EnterpriseMeta = enterpriseMetaToStructs(s.EnterpriseMeta)
+}
+func SamenessGroupFromStructs(t *structs.SamenessGroupConfigEntry, s *SamenessGroup) {
+	if s == nil {
+		return
+	}
+	s.Name = t.Name
+	s.DefaultForFailover = t.DefaultForFailover
+	s.IncludeLocal = t.IncludeLocal
+	{
+		s.Members = make([]*SamenessGroupMember, len(t.Members))
+		for i := range t.Members {
+			{
+				var x SamenessGroupMember
+				SamenessGroupMemberFromStructs(&t.Members[i], &x)
+				s.Members[i] = &x
+			}
+		}
+	}
+	s.Meta = t.Meta
+	s.EnterpriseMeta = enterpriseMetaFromStructs(t.EnterpriseMeta)
+}
+func SamenessGroupMemberToStructs(s *SamenessGroupMember, t *structs.SamenessGroupMember) {
+	if s == nil {
+		return
+	}
+	t.Partition = s.Partition
+	t.Peer = s.Peer
+}
+func SamenessGroupMemberFromStructs(t *structs.SamenessGroupMember, s *SamenessGroupMember) {
+	if s == nil {
+		return
+	}
+	s.Partition = t.Partition
+	s.Peer = t.Peer
+}
 func ServiceDefaultsToStructs(s *ServiceDefaults, t *structs.ServiceConfigEntry) {
 	if s == nil {
 		return

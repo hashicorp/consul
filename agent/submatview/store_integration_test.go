@@ -16,6 +16,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+	"github.com/hashicorp/consul/agent/rpcclient"
 	"github.com/hashicorp/go-hclog"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/sync/errgroup"
@@ -303,11 +304,13 @@ func newConsumer(t *testing.T, addr net.Addr, store *submatview.Store, srv strin
 	require.NoError(t, err)
 
 	c := &health.Client{
-		UseStreamingBackend: true,
-		ViewStore:           store,
-		MaterializerDeps: health.MaterializerDeps{
-			Conn:   conn,
-			Logger: hclog.New(nil),
+		Client: rpcclient.Client{
+			UseStreamingBackend: true,
+			ViewStore:           store,
+			MaterializerDeps: rpcclient.MaterializerDeps{
+				Conn:   conn,
+				Logger: hclog.New(nil),
+			},
 		},
 	}
 
