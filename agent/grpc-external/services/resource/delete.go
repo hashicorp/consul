@@ -12,12 +12,14 @@ import (
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
-// TODO(spatel): Move docs to the proto file
-// Deletes a resource with the given Id and Version.
+// Deletes a resource.
+// - To delete a resource regardless of the stored version, set Version = ""
+// - Supports deleting a resource by name, hence Id.Uid may be empty.
+// - Delete of a previously deleted or non-existent resource is a no-op to support idempotency.
+// - Errors with Aborted if the requested Version does not match the stored Version.
+// - Errors with PermissionDenied if ACL check fails
 //
-// Pass an empty Version to delete a resource regardless of the stored Version.
-// Deletes of previously deleted or non-existent resource are no-ops.
-// Returns an Aborted error if the requested Version does not match the stored Version.
+// TODO(spatel): Move docs to the proto file
 func (s *Server) Delete(ctx context.Context, req *pbresource.DeleteRequest) (*pbresource.DeleteResponse, error) {
 	reg, err := s.resolveType(req.Id.Type)
 	if err != nil {
@@ -37,23 +39,30 @@ func (s *Server) Delete(ctx context.Context, req *pbresource.DeleteRequest) (*pb
 		return nil, status.Errorf(codes.Internal, "failed write acl: %v", err)
 	}
 
-	versionToDelete := req.Version
-	if versionToDelete == "" {
-		// Delete resource regardless of the stored Version. Hence, strong read
-		// necessary to get latest Version
+	// The storage backend requires a Version and Uid to delete a resource based
+	// on CAS semantics. When either are not provided, the resource must be read
+	// with a strongly consistent read to retrieve either or both.
+	//
+	// n.b.: There is a chance DeleteCAS may fail with a storage.ErrCASFailure
+	// if an update occurs between the Read and DeleteCAS. Consider refactoring
+	// to use retryCAS() similar to the Write endpoint to close this gap.
+	deleteVersion := req.Version
+	deleteId := req.Id
+	if deleteVersion == "" || deleteId.Uid == "" {
 		existing, err := s.Backend.Read(ctx, storage.StrongConsistency, req.Id)
 		switch {
 		case err == nil:
-			versionToDelete = existing.Version
+			deleteVersion = existing.Version
+			deleteId = existing.Id
 		case errors.Is(err, storage.ErrNotFound):
-			// deletes are idempotent so no-op if resource not found
+			// Deletes are idempotent so no-op when not found
 			return &pbresource.DeleteResponse{}, nil
 		default:
 			return nil, status.Errorf(codes.Internal, "failed read: %v", err)
 		}
 	}
 
-	err = s.Backend.DeleteCAS(ctx, req.Id, versionToDelete)
+	err = s.Backend.DeleteCAS(ctx, deleteId, deleteVersion)
 	switch {
 	case err == nil:
 		return &pbresource.DeleteResponse{}, nil
