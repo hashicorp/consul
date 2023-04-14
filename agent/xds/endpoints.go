@@ -304,9 +304,8 @@ func (s *ResourceGenerator) endpointsFromSnapshotMeshGateway(cfgSnap *proxycfg.C
 
 		servers, _ := cfgSnap.MeshGateway.WatchedLocalServers.Get(structs.ConsulServiceName)
 		for _, srv := range servers {
-			if isReplica := srv.Service.Meta["read_replica"]; isReplica == "true" {
-				// Peering control-plane traffic can only ever be handled by the local leader.
-				// We avoid routing to read replicas since they will never be Raft voters.
+			isLeader := srv.Service.Meta["leader"] == "true"
+			if !isLeader {
 				continue
 			}
 
