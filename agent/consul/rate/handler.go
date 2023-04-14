@@ -1,20 +1,20 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: MPL-2.0
 
-// package rate implements server-side RPC rate limiting.
+// Package rate implements server-side RPC rate limiting.
 package rate
 
 import (
 	"context"
 	"errors"
 	"fmt"
-	"golang.org/x/time/rate"
 	"net"
 	"reflect"
 	"sync/atomic"
 
 	"github.com/armon/go-metrics"
 	"github.com/hashicorp/go-hclog"
+	"golang.org/x/time/rate"
 
 	"github.com/hashicorp/consul/agent/consul/multilimiter"
 )
@@ -196,10 +196,7 @@ type LeaderStatusProvider interface {
 }
 
 func isInfRate(cfg multilimiter.LimiterConfig) bool {
-	if cfg.Rate == rate.Inf {
-		return true
-	}
-	return false
+	return cfg.Rate == rate.Inf
 }
 
 func NewHandlerWithLimiter(
