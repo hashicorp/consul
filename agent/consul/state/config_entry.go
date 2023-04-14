@@ -571,6 +571,7 @@ func validateProposedConfigEntryInGraph(
 	case structs.ServiceIntentions:
 		err := validateJWTProvidersExist(tx, kindName, newEntry)
 		if err != nil {
+
 			return err
 		}
 	case structs.MeshConfig:
@@ -589,7 +590,14 @@ func validateProposedConfigEntryInGraph(
 	return validateProposedConfigEntryInServiceGraph(tx, kindName, newEntry)
 }
 
-// TODO: validate sources.perm
+func getAllJWTProviderConfigEntries(tx ReadTxn, kn configentry.KindName) ([]structs.ConfigEntry, error) {
+	wildcardEntMeta := kn.WithWildcardNamespace()
+
+	_, jwtConfigEntries, err := configEntriesByKindTxn(tx, nil, structs.JWTProvider, wildcardEntMeta)
+
+	return jwtConfigEntries, err
+}
+
 func validateJWTProvider(configEntries []structs.ConfigEntry, jwt *structs.IntentionJWTRequirement) error {
 	var result error
 
@@ -604,13 +612,16 @@ func validateJWTProvider(configEntries []structs.ConfigEntry, jwt *structs.Inten
 		}
 
 		if matchNotFound {
-			result = multierror.Append(result, fmt.Errorf("Referenced JWT Provider does not exist. Provider Name: %s", provider.Name))
+			result = multierror.Append(result, fmt.Errorf("Referenced JWT Provider does not exist. Provider Name: %s", provider.Name)).ErrorOrNil()
 		}
 	}
 
 	return result
 }
 
+// This fetches all the jwt-providers (via getAllJWTProviderConfigEntries) config entries and iterates over them
+// to validate (via validateJWTProvider) that any provider referenced exists.
+// This is okay because we assume there are very few jwt-providers per partition
 func validateJWTProvidersExist(tx ReadTxn, kn configentry.KindName, ce structs.ConfigEntry) error {
 	var result error
 	if ce == nil {
@@ -618,16 +629,40 @@ func validateJWTProvidersExist(tx ReadTxn, kn configentry.KindName, ce structs.C
 	}
 	entry := ce.(*structs.ServiceIntentionsConfigEntry)
 
-	if entry.JWT != nil {
-		wildcardEntMeta := kn.WithWildcardNamespace()
+	var jwtCE []structs.ConfigEntry
 
-		_, jwtConfigEntries, err := configEntriesByKindTxn(tx, nil, structs.JWTProvider, wildcardEntMeta)
+	if entry.JWT != nil {
+		jwtConfigEntries, err := getAllJWTProviderConfigEntries(tx, kn)
+		jwtCE = jwtConfigEntries
 
 		if err != nil {
 			return fmt.Errorf("Failed retrieval of jwt config entries with err: %v", err)
 		}
 
-		result = validateJWTProvider(jwtConfigEntries, entry.JWT)
+		result = multierror.Append(result, validateJWTProvider(jwtConfigEntries, entry.JWT)).ErrorOrNil()
+	}
+
+	if entry.Sources != nil {
+		for _, src := range entry.Sources {
+			if len(src.Permissions) == 0 {
+				continue
+			}
+
+			if jwtCE == nil {
+				jwtConfigEntries, err := getAllJWTProviderConfigEntries(tx, kn)
+				jwtCE = jwtConfigEntries
+
+				if err != nil {
+					return fmt.Errorf("Failed retrieval of jwt config entries with err: %v", err)
+				}
+			}
+
+			for _, perm := range src.Permissions {
+				if perm.JWT != nil {
+					result = multierror.Append(result, validateJWTProvider(jwtCE, entry.JWT)).ErrorOrNil()
+				}
+			}
+		}
 	}
 	return result
 }

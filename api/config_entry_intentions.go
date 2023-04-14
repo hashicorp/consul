@@ -29,8 +29,7 @@ type SourceIntention struct {
 	Permissions []*IntentionPermission `json:",omitempty"`
 	Precedence  int
 	Type        IntentionSourceType
-	Description string                   `json:",omitempty"`
-	JWT         *IntentionJWTRequirement `json:",omitempty"`
+	Description string `json:",omitempty"`
 
 	LegacyID         string            `json:",omitempty" alias:"legacy_id"`
 	LegacyMeta       map[string]string `json:",omitempty" alias:"legacy_meta"`
@@ -49,6 +48,7 @@ func (e *ServiceIntentionsConfigEntry) GetModifyIndex() uint64     { return e.Mo
 type IntentionPermission struct {
 	Action IntentionAction
 	HTTP   *IntentionHTTPPermission `json:",omitempty"`
+	JWT    *IntentionJWTRequirement `json:",omitempty"`
 }
 
 type IntentionHTTPPermission struct {
