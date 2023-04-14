@@ -79,4 +79,5 @@ type AgentInfo struct {
 	CACertFile    string
 	UseTLSForAPI  bool
 	UseTLSForGRPC bool
+	DebugUri      string
 }

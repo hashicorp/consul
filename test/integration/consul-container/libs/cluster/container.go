@@ -157,19 +157,21 @@ func NewConsulContainer(ctx context.Context, config Config, cluster *Cluster, po
 
 		info AgentInfo
 	)
+	debugUri := ""
 	if utils.Debug {
-		for i := 0; i < 10; i++ {
-			uri, err := podContainer.PortEndpoint(ctx, "4000", "tcp")
-			if err != nil {
-				time.Sleep(500 * time.Millisecond)
-				continue
-			}
-			fmt.Printf("\nDebug endpoint:: %s\n\n", uri)
-			break
+		if err := goretry.Do(
+			func() (err error) {
+				debugUri, err = podContainer.PortEndpoint(ctx, "4000", "tcp")
+				return err
+			},
+			goretry.Delay(10*time.Second),
+			goretry.RetryIf(func(err error) bool {
+				return err != nil
+			}),
+		); err != nil {
+			return nil, fmt.Errorf("container creating: %s", err)
 		}
-		if err != nil {
-			return nil, err
-		}
+		info.DebugUri = debugUri
 	}
 	if httpPort > 0 {
 		for i := 0; i < 10; i++ {
