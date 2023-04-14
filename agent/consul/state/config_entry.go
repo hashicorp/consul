@@ -591,9 +591,12 @@ func validateProposedConfigEntryInGraph(
 }
 
 func getAllJWTProviderConfigEntries(tx ReadTxn, kn configentry.KindName) ([]structs.ConfigEntry, error) {
-	wildcardEntMeta := kn.WithWildcardNamespace()
+	meta := acl.NewEnterpriseMetaWithPartition(
+		kn.EnterpriseMeta.PartitionOrDefault(),
+		acl.DefaultNamespaceName,
+	)
 
-	_, jwtConfigEntries, err := configEntriesByKindTxn(tx, nil, structs.JWTProvider, wildcardEntMeta)
+	_, jwtConfigEntries, err := configEntriesByKindTxn(tx, nil, structs.JWTProvider, &meta)
 
 	return jwtConfigEntries, err
 }
