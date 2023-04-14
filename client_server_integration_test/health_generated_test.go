@@ -7,20 +7,31 @@ import (
 )
 
 func TestAPI_HealthNode_Noncontainerized(t *testing.T) {
+	t.Parallel()
 	c, s := NewClientServer(t)
-	cstestAPI_HealthNode(t, c, s)
+	ts := &cstestAPI_HealthNode{}
+	ts.assemble(t, c, s)
+	ts.act(t, c, s)
+	ts.assert(t, c, s)
 }
 
 func TestAPI_HealthNode_Containerized(t *testing.T) {
+	t.Parallel()
 	c, s := NewClusterTestServerAdapter(t)
-	cstestAPI_HealthNode(t, c, s)
+	ts := &cstestAPI_HealthNode{}
+	ts.assemble(t, c, s)
+	ts.act(t, c, s)
+	ts.assert(t, c, s)
 }
 
-/* TODO
 func TestAPI_HealthNode_ContainerizedUpgrade(t *testing.T) {
-	c, s := topology.NewTestServerAdapter(t)
-	cstestAPI_HealthNode(t, c, s)
+	t.Parallel()
+	c, s := NewClusterTestServerAdapter(t)
+	ts := &cstestAPI_HealthNode{}
+	ts.assemble(t, c, s)
+	ts.act(t, c, s)
+	ts.assert(t, c, s)
 
-	s.StandardUpgrade()
+	s.Upgrade(t)
+	ts.assert(t, c, s)
 }
-*/

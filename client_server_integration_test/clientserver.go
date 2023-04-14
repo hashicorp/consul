@@ -18,6 +18,11 @@ func (a *TestServerAdapter) Stop() error {
 	return nil
 }
 
+func (a *TestServerAdapter) Upgrade(t *testing.T) {
+	// TODO: does upgrade invalidate our client?
+	a.cluster.Upgrade(t)
+}
+
 // assert that we fulfill the interface
 var _ TestServerI = &TestServerAdapter{}
 

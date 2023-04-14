@@ -8,10 +8,18 @@ import (
 )
 
 //go:generate cstestgen
-func cstestAPI_HealthNode(t *testing.T, c *api.Client, s TestServerI) {
-	t.Parallel()
-	defer s.Stop()
+type cstestAPI_HealthNode struct {
+}
 
+func (cstest *cstestAPI_HealthNode) assemble(t *testing.T, c *api.Client, s TestServerI) {
+	// nothing
+}
+
+func (cstest *cstestAPI_HealthNode) act(t *testing.T, c *api.Client, s TestServerI) {
+	// nothing
+}
+
+func (cstest *cstestAPI_HealthNode) assert(t *testing.T, c *api.Client, s TestServerI) {
 	agent := c.Agent()
 	health := c.Health()
 

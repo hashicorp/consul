@@ -20,6 +20,7 @@ import (
 	"github.com/hashicorp/serf/serf"
 
 	goretry "github.com/avast/retry-go"
+	utils "github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 	"github.com/stretchr/testify/require"
 	"github.com/teris-io/shortid"
 	"github.com/testcontainers/testcontainers-go"
@@ -284,6 +285,11 @@ func (c *Cluster) Remove(n Agent) error {
 
 	c.Agents = append(c.Agents[:foundIdx], c.Agents[foundIdx+1:]...)
 	return nil
+}
+
+// simpler StandardUpgrade
+func (c *Cluster) Upgrade(t *testing.T) {
+	require.NoError(t, c.StandardUpgrade(t, context.Background(), utils.TargetVersion))
 }
 
 // StandardUpgrade upgrades a running consul cluster following the steps from
