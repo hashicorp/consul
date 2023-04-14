@@ -1,7 +1,7 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: MPL-2.0
 
-package proxycfgglue
+package configentry
 
 import (
 	"testing"
@@ -18,7 +18,7 @@ import (
 func TestConfigEntryView(t *testing.T) {
 	const index uint64 = 123
 
-	view := &configEntryView{}
+	view := &ConfigEntryView{}
 
 	testutil.RunStep(t, "initial state", func(t *testing.T) {
 		result := view.Result(index)
@@ -102,7 +102,7 @@ func TestConfigEntryView(t *testing.T) {
 func TestConfigEntryListView(t *testing.T) {
 	const index uint64 = 123
 
-	view := newConfigEntryListView(structs.ServiceResolver, *acl.DefaultEnterpriseMeta())
+	view := NewConfigEntryListView(structs.ServiceResolver, *acl.DefaultEnterpriseMeta())
 
 	testutil.RunStep(t, "initial state", func(t *testing.T) {
 		result := view.Result(index)
@@ -183,4 +183,10 @@ func TestConfigEntryListView(t *testing.T) {
 		require.Truef(t, ok, "expected ServiceResolverConfigEntry, got: %T", resp.Entries[0])
 		require.Equal(t, "db", serviceResolver.Name)
 	})
+}
+
+func TestConfigEntryListView_Reset(t *testing.T) {
+	view := &ConfigEntryView{state: &structs.SamenessGroupConfigEntry{}}
+	view.Reset()
+	require.Nil(t, view.state)
 }

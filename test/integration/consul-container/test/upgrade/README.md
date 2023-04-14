@@ -26,7 +26,7 @@ and envoy sidecars are deployed.
 
 > Note that all consul agents and user workloads such as application services, mesh-gateway are running in docker containers.
 
-In general, each upgrade test has following steps:
+In general, each upgrade test has the following steps:
 1. Create a cluster with a specified number of server and client agents, then enable the feature to be tested. 
 2. Create some workload in the cluster, e.g., registering 2 services: static-server, static-client.
 Static-server is a simple http application and the upstream service of static-client.
@@ -35,7 +35,7 @@ connection between static client and server. Ensure that a connection cannot be 
 4. Upgrade Consul cluster to the `target-version` and restart the Envoy sidecars
 (we restart Envoy sidecar to ensure the upgraded Consul binary can read the state from
 the previous version and generate the correct Envoy configurations)
-5. Re-validate the client, server and sidecars to ensure the persisted data from the pervious
+5. Re-validate the client, server and sidecars to ensure the persisted data from the previous
 version can be accessed in the target version. Verify connection / disconnection
 (e.g., deny Action)  
 

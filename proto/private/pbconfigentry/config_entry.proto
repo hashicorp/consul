@@ -21,6 +21,7 @@ enum Kind {
   KindBoundAPIGateway = 8;
   KindHTTPRoute = 9;
   KindTCPRoute = 10;
+  KindSamenessGroup = 11;
 }
 
 message ConfigEntry {
@@ -41,6 +42,7 @@ message ConfigEntry {
     TCPRoute TCPRoute = 12;
     HTTPRoute HTTPRoute = 13;
     InlineCertificate InlineCertificate = 14;
+    SamenessGroup SamenessGroup = 15;
   }
 }
 
@@ -883,4 +885,30 @@ message TCPService {
   string Name = 1;
   // mog: func-to=enterpriseMetaToStructs func-from=enterpriseMetaFromStructs
   common.EnterpriseMeta EnterpriseMeta = 2;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.SamenessGroupConfigEntry
+// output=config_entry.gen.go
+// name=Structs
+// ignore-fields=RaftIndex
+message SamenessGroup {
+  string Name = 1;
+  bool DefaultForFailover = 2;
+  bool IncludeLocal = 3;
+  repeated SamenessGroupMember Members = 4;
+  map<string, string> Meta = 5;
+  // mog: func-to=enterpriseMetaToStructs func-from=enterpriseMetaFromStructs
+  common.EnterpriseMeta EnterpriseMeta = 6;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.SamenessGroupMember
+// output=config_entry.gen.go
+// name=Structs
+message SamenessGroupMember {
+  string Partition = 1;
+  string Peer = 2;
 }
