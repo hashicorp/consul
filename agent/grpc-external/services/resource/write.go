@@ -226,18 +226,52 @@ func validateWriteRequest(req *pbresource.WriteRequest) error {
 		field = "resource"
 	case req.Resource.Id == nil:
 		field = "resource.id"
-	case req.Resource.Id.Type == nil:
-		field = "resource.id.type"
-	case req.Resource.Id.Tenancy == nil:
-		field = "resource.id.tenancy"
-	case req.Resource.Id.Name == "":
-		field = "resource.id.name"
 	case req.Resource.Data == nil:
 		field = "resource.data"
 	}
 
-	if field == "" {
-		return nil
+	if field != "" {
+		return status.Errorf(codes.InvalidArgument, "%s is required", field)
 	}
-	return status.Errorf(codes.InvalidArgument, "%s is required", field)
+
+	if err := validateId(req.Resource.Id, "resource.id"); err != nil {
+		return err
+	}
+
+	if req.Resource.Owner != nil {
+		if err := validateId(req.Resource.Owner, "resource.owner"); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func validateId(id *pbresource.ID, errorPrefix string) error {
+	var field string
+	switch {
+	case id.Type == nil:
+		field = "type"
+	case id.Tenancy == nil:
+		field = "tenancy"
+	case id.Name == "":
+		field = "name"
+	}
+
+	if field != "" {
+		return status.Errorf(codes.InvalidArgument, "%s.%s is required", errorPrefix, field)
+	}
+
+	switch {
+	case id.Tenancy.Namespace == storage.Wildcard:
+		field = "tenancy.namespace"
+	case id.Tenancy.Partition == storage.Wildcard:
+		field = "tenancy.partition"
+	case id.Tenancy.PeerName == storage.Wildcard:
+		field = "tenancy.peername"
+	}
+
+	if field != "" {
+		return status.Errorf(codes.InvalidArgument, "%s.%s cannot be a wildcard", errorPrefix, field)
+	}
+	return nil
 }
