@@ -10,6 +10,7 @@ import (
 
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-multierror"
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul-topology/sprawl"
@@ -107,9 +108,19 @@ func CleanupWorkingDirectories() {
 		path := filepath.Join("workdir", d.Name(), "terraform")
 
 		fmt.Fprintf(os.Stdout, "INFO: sprawltest: cleaning up failed prior run in: %s\n", path)
+
 		err := r.TerraformExec([]string{
+			"init", "-input=false",
+		}, io.Discard, path)
+
+		err2 := r.TerraformExec([]string{
 			"destroy", "-input=false", "-auto-approve", "-refresh=false",
 		}, io.Discard, path)
+
+		if err2 != nil {
+			err = multierror.Append(err, err2)
+		}
+
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "WARN: sprawltest: could not clean up failed prior run in: %s: %v\n", path, err)
 		} else {
