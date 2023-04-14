@@ -314,18 +314,19 @@ func (s *ServiceConfigEntry) GetCreateIndex() uint64     { return s.CreateIndex 
 func (s *ServiceConfigEntry) GetModifyIndex() uint64     { return s.ModifyIndex }
 
 type ProxyConfigEntry struct {
-	Kind             string
-	Name             string
-	Partition        string                         `json:",omitempty"`
-	Namespace        string                         `json:",omitempty"`
-	Mode             ProxyMode                      `json:",omitempty"`
-	TransparentProxy *TransparentProxyConfig        `json:",omitempty" alias:"transparent_proxy"`
-	Config           map[string]interface{}         `json:",omitempty"`
-	MeshGateway      MeshGatewayConfig              `json:",omitempty" alias:"mesh_gateway"`
-	Expose           ExposeConfig                   `json:",omitempty"`
-	AccessLogs       *AccessLogsConfig              `json:",omitempty" alias:"access_logs"`
-	EnvoyExtensions  []EnvoyExtension               `json:",omitempty" alias:"envoy_extensions"`
-	FailoverPolicy   *ServiceResolverFailoverPolicy `json:",omitempty" alias:"failover_policy"`
+	Kind                 string
+	Name                 string
+	Partition            string                               `json:",omitempty"`
+	Namespace            string                               `json:",omitempty"`
+	Mode                 ProxyMode                            `json:",omitempty"`
+	TransparentProxy     *TransparentProxyConfig              `json:",omitempty" alias:"transparent_proxy"`
+	Config               map[string]interface{}               `json:",omitempty"`
+	MeshGateway          MeshGatewayConfig                    `json:",omitempty" alias:"mesh_gateway"`
+	Expose               ExposeConfig                         `json:",omitempty"`
+	AccessLogs           *AccessLogsConfig                    `json:",omitempty" alias:"access_logs"`
+	EnvoyExtensions      []EnvoyExtension                     `json:",omitempty" alias:"envoy_extensions"`
+	FailoverPolicy       *ServiceResolverFailoverPolicy       `json:",omitempty" alias:"failover_policy"`
+	PrioritizeByLocality *ServiceResolverPrioritizeByLocality `json:",omitempty" alias:"prioritize_by_locality"`
 
 	Meta        map[string]string `json:",omitempty"`
 	CreateIndex uint64

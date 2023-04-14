@@ -1394,6 +1394,11 @@ func ServiceResolverToStructs(s *ServiceResolver, t *structs.ServiceResolverConf
 			t.Failover[k] = y
 		}
 	}
+	if s.PrioritizeByLocality != nil {
+		var x structs.ServiceResolverPrioritizeByLocality
+		ServiceResolverPrioritizeByLocalityToStructs(s.PrioritizeByLocality, &x)
+		t.PrioritizeByLocality = &x
+	}
 	t.ConnectTimeout = structs.DurationFromProto(s.ConnectTimeout)
 	t.RequestTimeout = structs.DurationFromProto(s.RequestTimeout)
 	if s.LoadBalancer != nil {
@@ -1436,6 +1441,11 @@ func ServiceResolverFromStructs(t *structs.ServiceResolverConfigEntry, s *Servic
 			}
 			s.Failover[k] = y
 		}
+	}
+	if t.PrioritizeByLocality != nil {
+		var x ServiceResolverPrioritizeByLocality
+		ServiceResolverPrioritizeByLocalityFromStructs(t.PrioritizeByLocality, &x)
+		s.PrioritizeByLocality = &x
 	}
 	s.ConnectTimeout = structs.DurationToProto(t.ConnectTimeout)
 	s.RequestTimeout = structs.DurationToProto(t.RequestTimeout)
@@ -1529,6 +1539,18 @@ func ServiceResolverFailoverTargetFromStructs(t *structs.ServiceResolverFailover
 	s.Namespace = t.Namespace
 	s.Datacenter = t.Datacenter
 	s.Peer = t.Peer
+}
+func ServiceResolverPrioritizeByLocalityToStructs(s *ServiceResolverPrioritizeByLocality, t *structs.ServiceResolverPrioritizeByLocality) {
+	if s == nil {
+		return
+	}
+	t.Mode = s.Mode
+}
+func ServiceResolverPrioritizeByLocalityFromStructs(t *structs.ServiceResolverPrioritizeByLocality, s *ServiceResolverPrioritizeByLocality) {
+	if s == nil {
+		return
+	}
+	s.Mode = t.Mode
 }
 func ServiceResolverRedirectToStructs(s *ServiceResolverRedirect, t *structs.ServiceResolverRedirect) {
 	if s == nil {
