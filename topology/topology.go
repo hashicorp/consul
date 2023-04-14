@@ -391,6 +391,7 @@ const (
 	NodeKindDataplane NodeKind = "dataplane"
 )
 
+// TODO: rename pod
 type Node struct {
 	Kind      NodeKind
 	Partition string // will be not empty
