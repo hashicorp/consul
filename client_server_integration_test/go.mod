@@ -11,6 +11,7 @@ replace github.com/hashicorp/consul/test/integration/consul-container/... => ../
 require (
 	github.com/hashicorp/consul/api v1.20.0
 	github.com/hashicorp/consul/sdk v0.13.1
+	github.com/hashicorp/consul/test/integration/consul-container v0.0.0-20230414162446-0dd4ea203374
 )
 
 require (
@@ -38,7 +39,6 @@ require (
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/google/btree v1.0.0 // indirect
 	github.com/google/uuid v1.3.0 // indirect
-	github.com/hashicorp/consul/test/integration/consul-container v0.0.0-20230414162446-0dd4ea203374 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/hashicorp/go-hclog v1.2.1 // indirect

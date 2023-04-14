@@ -1,4 +1,4 @@
-package testclientserver
+package integration_test
 
 import (
 	"testing"
@@ -11,11 +11,20 @@ import (
 )
 
 type TestServerAdapter struct {
-	Cluster *libcluster.Cluster
+	cluster *libcluster.Cluster
 }
 
 func (a *TestServerAdapter) Stop() error {
 	return nil
+}
+
+// assert that we fulfill the interface
+var _ TestServerI = &TestServerAdapter{}
+
+// TODO: name, location
+type TestServerI interface {
+	// TODO: not sure we really need this; just use t.Cleanup, so maybe a no-op
+	Stop() error
 }
 
 func NewClusterTestServerAdapter(t *testing.T) (*api.Client, *TestServerAdapter) {
@@ -27,7 +36,7 @@ func NewClusterTestServerAdapter(t *testing.T) (*api.Client, *TestServerAdapter)
 		},
 	})
 	return client, &TestServerAdapter{
-		Cluster: cluster_,
+		cluster: cluster_,
 	}
 }
 
