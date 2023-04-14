@@ -9,6 +9,7 @@ import (
 	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/internal/resource"
@@ -110,8 +111,14 @@ func (s *Server) Write(ctx context.Context, req *pbresource.WriteRequest) (*pbre
 		case errors.Is(err, storage.ErrNotFound):
 			input.Id.Uid = ulid.Make().String()
 
+			// Prevent setting statuses in this endpoint.
 			if len(input.Status) != 0 {
 				return errUseWriteStatus
+			}
+
+			// Enforce same tenancy for owner
+			if input.Owner != nil && !proto.Equal(input.Id.Tenancy, input.Owner.Tenancy) {
+				return status.Errorf(codes.InvalidArgument, "owner and resource tenancy must be the same")
 			}
 
 		// Update path.
@@ -143,6 +150,12 @@ func (s *Server) Write(ctx context.Context, req *pbresource.WriteRequest) (*pbre
 				return storage.ErrCASFailure
 			}
 
+			// Owner can only be set on creation. Enforce immutability.
+			if !proto.Equal(input.Owner, existing.Owner) {
+				return status.Errorf(codes.InvalidArgument, "owner cannot be changed")
+			}
+
+			// Carry over status and prevent updates
 			if input.Status == nil {
 				input.Status = existing.Status
 			} else if !resource.EqualStatus(input.Status, existing.Status) {
@@ -163,13 +176,11 @@ func (s *Server) Write(ctx context.Context, req *pbresource.WriteRequest) (*pbre
 		return nil, status.Error(codes.Aborted, err.Error())
 	case errors.Is(err, storage.ErrWrongUid):
 		return nil, status.Error(codes.FailedPrecondition, err.Error())
-	case err != nil:
-		if _, ok := status.FromError(err); !ok {
-			err = status.Errorf(codes.Internal, "failed to write resource: %v", err.Error())
-		}
+	case isGRPCStatusError(err):
 		return nil, err
+	case err != nil:
+		return nil, status.Errorf(codes.Internal, "failed to write resource: %v", err.Error())
 	}
-
 	return &pbresource.WriteResponse{Resource: result}, nil
 }
 

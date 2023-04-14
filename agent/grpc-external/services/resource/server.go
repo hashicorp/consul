@@ -108,4 +108,12 @@ func (s *Server) getAuthorizer(token string) (acl.Authorizer, error) {
 	return authz, nil
 }
 
+func isGRPCStatusError(err error) bool {
+	if err == nil {
+		return false
+	}
+	_, ok := status.FromError(err)
+	return ok
+}
+
 func clone[T proto.Message](v T) T { return proto.Clone(v).(T) }

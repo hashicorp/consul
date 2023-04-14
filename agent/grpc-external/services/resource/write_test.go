@@ -379,6 +379,64 @@ func TestWrite_NonCASUpdate_Retry(t *testing.T) {
 	require.NoError(t, <-errCh)
 }
 
+func TestWrite_Owner_Immutable(t *testing.T) {
+	// Use of proto.Equal(..) in implementation covers all permutations
+	// (nil -> non-nil, non-nil -> nil, owner1 -> owner2) so only the first one
+	// is tested.
+	server := testServer(t)
+	client := testClient(t, server)
+
+	demo.Register(server.Registry)
+
+	artist, err := demo.GenerateV2Artist()
+	require.NoError(t, err)
+	rsp1, err := client.Write(testContext(t), &pbresource.WriteRequest{Resource: artist})
+	require.NoError(t, err)
+	artist = rsp1.Resource
+
+	// create album with no owner
+	album, err := demo.GenerateV2Album(rsp1.Resource.Id)
+	require.NoError(t, err)
+	album.Owner = nil
+	rsp2, err := client.Write(testContext(t), &pbresource.WriteRequest{Resource: album})
+	require.NoError(t, err)
+
+	// setting owner on update should fail
+	album = rsp2.Resource
+	album.Owner = artist.Id
+	_, err = client.Write(testContext(t), &pbresource.WriteRequest{Resource: album})
+	require.Error(t, err)
+	require.Equal(t, codes.InvalidArgument.String(), status.Code(err).String())
+	require.ErrorContains(t, err, "owner cannot be changed")
+}
+
+func TestWrite_Owner_RequireSameTenancy(t *testing.T) {
+	server := testServer(t)
+	client := testClient(t, server)
+
+	demo.Register(server.Registry)
+
+	artist, err := demo.GenerateV2Artist()
+	require.NoError(t, err)
+	rsp1, err := client.Write(testContext(t), &pbresource.WriteRequest{Resource: artist})
+	require.NoError(t, err)
+
+	// change album tenancy to be different from artist tenancy
+	album, err := demo.GenerateV2Album(rsp1.Resource.Id)
+	require.NoError(t, err)
+	album.Owner.Tenancy = &pbresource.Tenancy{
+		Partition: "some",
+		Namespace: "other",
+		PeerName:  "tenancy",
+	}
+
+	// verify create fails
+	_, err = client.Write(testContext(t), &pbresource.WriteRequest{Resource: album})
+	require.Error(t, err)
+	require.Equal(t, codes.InvalidArgument.String(), status.Code(err).String())
+	require.ErrorContains(t, err, "tenancy must be the same")
+}
+
 type blockOnceBackend struct {
 	storage.Backend
 
