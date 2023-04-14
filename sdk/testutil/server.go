@@ -265,10 +265,16 @@ type TestServer struct {
 // function returns (thus you do not need to stop it).
 // This function will call the `consul` binary in GOPATH.
 func NewTestServerConfigT(t TestingTB, cb ServerConfigCallback) (*TestServer, error) {
-	path, err := exec.LookPath("consul")
+	return NewTestServerConfigPathT(t, "consul", cb)
+}
+
+// Same as NewTestServerConfigT but additionally supports passing the path to
+// the consul executable. Passing the path allows for testing multiple
+// versions.
+func NewTestServerConfigPathT(t TestingTB, path string, cb ServerConfigCallback) (*TestServer, error) {
+	path, err := exec.LookPath(path)
 	if err != nil || path == "" {
-		return nil, fmt.Errorf("consul not found on $PATH - download and install " +
-			"consul or skip this test")
+		return nil, fmt.Errorf("%q not found on $PATH - download and install consul or skip this test", path)
 	}
 
 	prefix := "consul"
@@ -281,7 +287,7 @@ func NewTestServerConfigT(t TestingTB, cb ServerConfigCallback) (*TestServer, er
 		return nil, errors.Wrap(err, "failed to create tempdir")
 	}
 
-	consulVersion, err := findConsulVersion()
+	consulVersion, err := findConsulVersion(path)
 	if err != nil {
 		return nil, err
 	}
@@ -308,7 +314,7 @@ func NewTestServerConfigT(t TestingTB, cb ServerConfigCallback) (*TestServer, er
 	// Start the server
 	args := []string{"agent", "-config-file", configFile}
 	args = append(args, cfg.Args...)
-	cmd := exec.Command("consul", args...)
+	cmd := exec.Command(path, args...)
 	cmd.Stdout = cfg.Stdout
 	cmd.Stderr = cfg.Stderr
 	if err := cmd.Start(); err != nil {
@@ -598,8 +604,8 @@ func (s *TestServer) privilegedDelete(url string) (*http.Response, error) {
 	return s.HTTPClient.Do(req)
 }
 
-func findConsulVersion() (*version.Version, error) {
-	cmd := exec.Command("consul", "version", "-format=json")
+func findConsulVersion(path string) (*version.Version, error) {
+	cmd := exec.Command(path, "version", "-format=json")
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
