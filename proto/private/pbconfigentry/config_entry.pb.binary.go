@@ -128,6 +128,16 @@ func (msg *ServiceResolverFailoverPolicy) UnmarshalBinary(b []byte) error {
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler
+func (msg *ServiceResolverPrioritizeByLocality) MarshalBinary() ([]byte, error) {
+	return proto.Marshal(msg)
+}
+
+// UnmarshalBinary implements encoding.BinaryUnmarshaler
+func (msg *ServiceResolverPrioritizeByLocality) UnmarshalBinary(b []byte) error {
+	return proto.Unmarshal(b, msg)
+}
+
+// MarshalBinary implements encoding.BinaryMarshaler
 func (msg *ServiceResolverFailoverTarget) MarshalBinary() ([]byte, error) {
 	return proto.Marshal(msg)
 }

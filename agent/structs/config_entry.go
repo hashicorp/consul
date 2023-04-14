@@ -367,16 +367,17 @@ func IsIP(address string) bool {
 
 // ProxyConfigEntry is the top-level struct for global proxy configuration defaults.
 type ProxyConfigEntry struct {
-	Kind             string
-	Name             string
-	Config           map[string]interface{}
-	Mode             ProxyMode                      `json:",omitempty"`
-	TransparentProxy TransparentProxyConfig         `json:",omitempty" alias:"transparent_proxy"`
-	MeshGateway      MeshGatewayConfig              `json:",omitempty" alias:"mesh_gateway"`
-	Expose           ExposeConfig                   `json:",omitempty"`
-	AccessLogs       AccessLogsConfig               `json:",omitempty" alias:"access_logs"`
-	EnvoyExtensions  EnvoyExtensions                `json:",omitempty" alias:"envoy_extensions"`
-	FailoverPolicy   *ServiceResolverFailoverPolicy `json:",omitempty" alias:"failover_policy"`
+	Kind                 string
+	Name                 string
+	Config               map[string]interface{}
+	Mode                 ProxyMode                            `json:",omitempty"`
+	TransparentProxy     TransparentProxyConfig               `json:",omitempty" alias:"transparent_proxy"`
+	MeshGateway          MeshGatewayConfig                    `json:",omitempty" alias:"mesh_gateway"`
+	Expose               ExposeConfig                         `json:",omitempty"`
+	AccessLogs           AccessLogsConfig                     `json:",omitempty" alias:"access_logs"`
+	EnvoyExtensions      EnvoyExtensions                      `json:",omitempty" alias:"envoy_extensions"`
+	FailoverPolicy       *ServiceResolverFailoverPolicy       `json:",omitempty" alias:"failover_policy"`
+	PrioritizeByLocality *ServiceResolverPrioritizeByLocality `json:",omitempty" alias:"prioritize_by_locality"`
 
 	Meta               map[string]string `json:",omitempty"`
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
@@ -443,8 +444,12 @@ func (e *ProxyConfigEntry) Validate() error {
 		return err
 	}
 
-	if !e.FailoverPolicy.isValid() {
-		return fmt.Errorf("Failover policy must be one of '', 'default', or 'order-by-locality'")
+	if err := e.FailoverPolicy.validate(); err != nil {
+		return err
+	}
+
+	if err := e.PrioritizeByLocality.validate(); err != nil {
+		return err
 	}
 
 	return e.validateEnterpriseMeta()
