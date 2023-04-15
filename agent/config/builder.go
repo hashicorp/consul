@@ -2165,8 +2165,11 @@ func (b *builder) expandAddrs(name string, s *string) []net.Addr {
 		case strings.HasPrefix(a, "unix://"):
 			addrs = append(addrs, &net.UnixAddr{Name: a[len("unix://"):], Net: "unix"})
 		default:
-			// net.ParseIP does not like '[::]'
 			ip := net.ParseIP(a)
+			// net.ParseIP does not support parsing any IPv6 literals with enclosing square brackets.
+			// We are currently supporting [::] as a single special exception, which is a bit odd.
+			// It may well make more sense to standardize on tolerating square brackets regardless of the
+			// specific IPv6 address they enclose.
 			if a == "[::]" {
 				ip = net.ParseIP("::")
 			}
