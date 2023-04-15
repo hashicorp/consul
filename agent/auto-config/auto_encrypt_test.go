@@ -157,9 +157,20 @@ func TestAutoEncrypt_hosts(t *testing.T) {
 		"split-host-port-error": {
 			serverProvider: providerNone,
 			config: &config.RuntimeConfig{
-				RetryJoinLAN: []string{"this-is-not:a:ip:and_port"},
+				RetryJoinLAN: []string{"[this-is-not]:a:ip:and_port"},
 			},
 			err: "no auto-encrypt server addresses available for use",
+			// Something that looks like IPv6 [addr]:port syntax, but with too many colons, does trigger an error at
+			// this layer.
+		},
+		"split-host-port-no-error": {
+			serverProvider: providerNone,
+			config: &config.RuntimeConfig{
+				RetryJoinLAN: []string{"this-is-not:a:ip:and_port"},
+			},
+			hosts: []string{"this-is-not:a:ip:and_port"},
+			// This doesn't trigger an error at this layer, as the basic logic keying off number of colons sees it as a
+			// possible IPv6 literal - but that's fine, it'll be caught later when we try to resolve it as a hostname.
 		},
 	}
 
@@ -173,7 +184,7 @@ func TestAutoEncrypt_hosts(t *testing.T) {
 				},
 			}
 
-			hosts, err := ac.joinHosts()
+			hosts, err := ac.autoEncryptHosts()
 			if tcase.err != "" {
 				testutil.RequireErrorContains(t, err, tcase.err)
 			} else {
