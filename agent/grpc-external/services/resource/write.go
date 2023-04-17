@@ -226,18 +226,22 @@ func validateWriteRequest(req *pbresource.WriteRequest) error {
 		field = "resource"
 	case req.Resource.Id == nil:
 		field = "resource.id"
-	case req.Resource.Id.Type == nil:
-		field = "resource.id.type"
-	case req.Resource.Id.Tenancy == nil:
-		field = "resource.id.tenancy"
-	case req.Resource.Id.Name == "":
-		field = "resource.id.name"
 	case req.Resource.Data == nil:
 		field = "resource.data"
 	}
 
-	if field == "" {
-		return nil
+	if field != "" {
+		return status.Errorf(codes.InvalidArgument, "%s is required", field)
 	}
-	return status.Errorf(codes.InvalidArgument, "%s is required", field)
+
+	if err := validateId(req.Resource.Id, "resource.id"); err != nil {
+		return err
+	}
+
+	if req.Resource.Owner != nil {
+		if err := validateId(req.Resource.Owner, "resource.owner"); err != nil {
+			return err
+		}
+	}
+	return nil
 }

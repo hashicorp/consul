@@ -32,6 +32,19 @@ func TestWrite_InputValidation(t *testing.T) {
 		"no tenancy":  func(req *pbresource.WriteRequest) { req.Resource.Id.Tenancy = nil },
 		"no name":     func(req *pbresource.WriteRequest) { req.Resource.Id.Name = "" },
 		"no data":     func(req *pbresource.WriteRequest) { req.Resource.Data = nil },
+		// clone necessary to not pollute DefaultTenancy
+		"tenancy partition wildcard": func(req *pbresource.WriteRequest) {
+			req.Resource.Id.Tenancy = clone(req.Resource.Id.Tenancy)
+			req.Resource.Id.Tenancy.Partition = storage.Wildcard
+		},
+		"tenancy namespace wildcard": func(req *pbresource.WriteRequest) {
+			req.Resource.Id.Tenancy = clone(req.Resource.Id.Tenancy)
+			req.Resource.Id.Tenancy.Namespace = storage.Wildcard
+		},
+		"tenancy peername wildcard": func(req *pbresource.WriteRequest) {
+			req.Resource.Id.Tenancy = clone(req.Resource.Id.Tenancy)
+			req.Resource.Id.Tenancy.PeerName = storage.Wildcard
+		},
 		"wrong data type": func(req *pbresource.WriteRequest) {
 			var err error
 			req.Resource.Data, err = anypb.New(&pbdemov2.Album{})
@@ -55,6 +68,71 @@ func TestWrite_InputValidation(t *testing.T) {
 			_, err = client.Write(testContext(t), req)
 			require.Error(t, err)
 			require.Equal(t, codes.InvalidArgument.String(), status.Code(err).String())
+		})
+	}
+}
+
+func TestWrite_OwnerValidation(t *testing.T) {
+	server := testServer(t)
+	client := testClient(t, server)
+
+	demo.Register(server.Registry)
+
+	type testCase struct {
+		modReqFn      func(req *pbresource.WriteRequest)
+		errorContains string
+	}
+	testCases := map[string]testCase{
+		"no owner type": {
+			modReqFn:      func(req *pbresource.WriteRequest) { req.Resource.Owner.Type = nil },
+			errorContains: "resource.owner.type",
+		},
+		"no owner tenancy": {
+			modReqFn:      func(req *pbresource.WriteRequest) { req.Resource.Owner.Tenancy = nil },
+			errorContains: "resource.owner.tenancy",
+		},
+		"no owner name": {
+			modReqFn:      func(req *pbresource.WriteRequest) { req.Resource.Owner.Name = "" },
+			errorContains: "resource.owner.name",
+		},
+		// clone necessary to not pollute DefaultTenancy
+		"owner tenancy partition wildcard": {
+			modReqFn: func(req *pbresource.WriteRequest) {
+				req.Resource.Owner.Tenancy = clone(req.Resource.Owner.Tenancy)
+				req.Resource.Owner.Tenancy.Partition = storage.Wildcard
+			},
+			errorContains: "resource.owner.tenancy.partition",
+		},
+		"owner tenancy namespace wildcard": {
+			modReqFn: func(req *pbresource.WriteRequest) {
+				req.Resource.Owner.Tenancy = clone(req.Resource.Owner.Tenancy)
+				req.Resource.Owner.Tenancy.Namespace = storage.Wildcard
+			},
+			errorContains: "resource.owner.tenancy.namespace",
+		},
+		"owner tenancy peername wildcard": {
+			modReqFn: func(req *pbresource.WriteRequest) {
+				req.Resource.Owner.Tenancy = clone(req.Resource.Owner.Tenancy)
+				req.Resource.Owner.Tenancy.PeerName = storage.Wildcard
+			},
+			errorContains: "resource.owner.tenancy.peername",
+		},
+	}
+	for desc, tc := range testCases {
+		t.Run(desc, func(t *testing.T) {
+			artist, err := demo.GenerateV2Artist()
+			require.NoError(t, err)
+
+			album, err := demo.GenerateV2Album(artist.Id)
+			require.NoError(t, err)
+
+			albumReq := &pbresource.WriteRequest{Resource: album}
+			tc.modReqFn(albumReq)
+
+			_, err = client.Write(testContext(t), albumReq)
+			require.Error(t, err)
+			require.Equal(t, codes.InvalidArgument.String(), status.Code(err).String())
+			require.ErrorContains(t, err, tc.errorContains)
 		})
 	}
 }
