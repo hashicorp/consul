@@ -668,7 +668,7 @@ func (c *Cluster) ConfigEntryDelete(entry api.ConfigEntry) error {
 
 func (c *Cluster) PrintDebugInfo(agents []Agent) {
 	for _, a := range agents {
-		uri := a.GetInfo().DebugUri
+		uri := a.GetInfo().DebugURI
 		n := a.GetAgentName()
 		s := a.IsServer()
 		l := "NA"
