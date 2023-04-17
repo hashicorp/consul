@@ -592,36 +592,43 @@ func validateProposedConfigEntryInGraph(
 	return validateProposedConfigEntryInServiceGraph(tx, kindName, newEntry)
 }
 
-func getAllJWTProviderConfigEntries(tx ReadTxn, kn configentry.KindName) ([]structs.ConfigEntry, error) {
+func getExistingJWTProvidersByName(tx ReadTxn, kn configentry.KindName) (map[string]*structs.JWTProviderConfigEntry, error) {
 	meta := acl.NewEnterpriseMetaWithPartition(
 		kn.EnterpriseMeta.PartitionOrDefault(),
 		acl.DefaultNamespaceName,
 	)
 
-	_, jwtConfigEntries, err := configEntriesByKindTxn(tx, nil, structs.JWTProvider, &meta)
+	_, configEntries, err := configEntriesByKindTxn(tx, nil, structs.JWTProvider, &meta)
 
-	return jwtConfigEntries, err
+	providerNames := make(map[string]*structs.JWTProviderConfigEntry)
+
+	for i := range configEntries {
+		entry, ok := configEntries[i].(*structs.JWTProviderConfigEntry)
+		if !ok {
+			return nil, fmt.Errorf("Invalid type of jwt-provider config entry: %T", configEntries[i])
+		}
+
+		if _, ok := providerNames[entry.Name]; !ok {
+			providerNames[entry.Name] = entry
+		}
+	}
+
+	return providerNames, err
 }
 
-func validateJWTProvider(configEntries []structs.ConfigEntry, referencedProviderNames map[string]struct{}) error {
+func validateJWTProvider(existingProviderNames map[string]*structs.JWTProviderConfigEntry, referencedProviderNames map[string]struct{}) error {
 	var result error
 
-	for name := range referencedProviderNames {
+	for referencedProvider := range referencedProviderNames {
 		matchNotFound := true
-		for i := range configEntries {
-			jwtEntry, ok := configEntries[i].(*structs.JWTProviderConfigEntry)
-
-			if !ok {
-				return fmt.Errorf("Invalid type of jwt-provider config entry: %T", configEntries[i])
-			}
-
-			if jwtEntry.Name == name {
+		for existingProvider := range existingProviderNames {
+			if existingProvider == referencedProvider {
 				matchNotFound = false
 			}
 		}
 
 		if matchNotFound {
-			result = multierror.Append(result, fmt.Errorf("Referenced JWT Provider does not exist. Provider Name: %s", name)).ErrorOrNil()
+			result = multierror.Append(result, fmt.Errorf("Referenced JWT Provider does not exist. Provider Name: %s", referencedProvider)).ErrorOrNil()
 		}
 	}
 
@@ -660,8 +667,8 @@ func getReferencedProviderNames(j *structs.IntentionJWTRequirement, s []*structs
 	return providerNames
 }
 
-// This fetches all the jwt-providers (via getAllJWTProviderConfigEntries) config entries and iterates over them
-// to validate (via validateJWTProvider) that any provider referenced exists.
+// This fetches all the jwt-providers config entries and iterates over them
+// to validate that any provider referenced exists.
 // This is okay because we assume there are very few jwt-providers per partition
 func validateJWTProvidersExist(tx ReadTxn, kn configentry.KindName, ce structs.ConfigEntry) error {
 	var result error
@@ -673,12 +680,12 @@ func validateJWTProvidersExist(tx ReadTxn, kn configentry.KindName, ce structs.C
 	referencedProvidersNames := getReferencedProviderNames(entry.JWT, entry.Sources)
 
 	if len(referencedProvidersNames) > 0 {
-		jwtConfigEntries, err := getAllJWTProviderConfigEntries(tx, kn)
+		jwtProvidersNames, err := getExistingJWTProvidersByName(tx, kn)
 		if err != nil {
 			return fmt.Errorf("Failed retrieval of jwt config entries with err: %v", err)
 		}
 
-		result = multierror.Append(result, validateJWTProvider(jwtConfigEntries, referencedProvidersNames)).ErrorOrNil()
+		result = multierror.Append(result, validateJWTProvider(jwtProvidersNames, referencedProvidersNames)).ErrorOrNil()
 	}
 	return result
 }
