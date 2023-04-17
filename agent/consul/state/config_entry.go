@@ -603,10 +603,10 @@ func getAllJWTProviderConfigEntries(tx ReadTxn, kn configentry.KindName) ([]stru
 	return jwtConfigEntries, err
 }
 
-func validateJWTProvider(configEntries []structs.ConfigEntry, jwt *structs.IntentionJWTRequirement) error {
+func validateJWTProvider(configEntries []structs.ConfigEntry, referencedProviderNames map[string]struct{}) error {
 	var result error
 
-	for _, provider := range jwt.Providers {
+	for name := range referencedProviderNames {
 		matchNotFound := true
 		for i := range configEntries {
 			jwtEntry, ok := configEntries[i].(*structs.JWTProviderConfigEntry)
@@ -615,17 +615,49 @@ func validateJWTProvider(configEntries []structs.ConfigEntry, jwt *structs.Inten
 				return fmt.Errorf("Invalid type of jwt-provider config entry: %T", configEntries[i])
 			}
 
-			if jwtEntry.Name == provider.Name {
+			if jwtEntry.Name == name {
 				matchNotFound = false
 			}
 		}
 
 		if matchNotFound {
-			result = multierror.Append(result, fmt.Errorf("Referenced JWT Provider does not exist. Provider Name: %s", provider.Name)).ErrorOrNil()
+			result = multierror.Append(result, fmt.Errorf("Referenced JWT Provider does not exist. Provider Name: %s", name)).ErrorOrNil()
 		}
 	}
 
 	return result
+}
+
+func getReferencedProviderNames(j *structs.IntentionJWTRequirement, s []*structs.SourceIntention) map[string]struct{} {
+	providerNames := make(map[string]struct{})
+
+	if j != nil {
+		for _, provider := range j.Providers {
+			if _, ok := providerNames[provider.Name]; !ok {
+				providerNames[provider.Name] = struct{}{}
+			}
+		}
+	}
+
+	if s != nil {
+		for _, src := range s {
+			if len(src.Permissions) == 0 {
+				continue
+			}
+
+			for _, perm := range src.Permissions {
+				if perm.JWT != nil && perm.JWT.Providers != nil {
+					for _, provider := range perm.JWT.Providers {
+						if _, ok := providerNames[provider.Name]; !ok {
+							providerNames[provider.Name] = struct{}{}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return providerNames
 }
 
 // This fetches all the jwt-providers (via getAllJWTProviderConfigEntries) config entries and iterates over them
@@ -633,49 +665,20 @@ func validateJWTProvider(configEntries []structs.ConfigEntry, jwt *structs.Inten
 // This is okay because we assume there are very few jwt-providers per partition
 func validateJWTProvidersExist(tx ReadTxn, kn configentry.KindName, ce structs.ConfigEntry) error {
 	var result error
-	if ce == nil {
-		return result
-	}
 	entry, ok := ce.(*structs.ServiceIntentionsConfigEntry)
-
 	if !ok {
 		return fmt.Errorf("Invalid service intention config entry: %T", entry)
 	}
 
-	var jwtCE []structs.ConfigEntry
+	referencedProvidersNames := getReferencedProviderNames(entry.JWT, entry.Sources)
 
-	if entry.JWT != nil {
+	if len(referencedProvidersNames) > 0 {
 		jwtConfigEntries, err := getAllJWTProviderConfigEntries(tx, kn)
-		jwtCE = jwtConfigEntries
-
 		if err != nil {
 			return fmt.Errorf("Failed retrieval of jwt config entries with err: %v", err)
 		}
 
-		result = multierror.Append(result, validateJWTProvider(jwtConfigEntries, entry.JWT)).ErrorOrNil()
-	}
-
-	if entry.Sources != nil {
-		for _, src := range entry.Sources {
-			if len(src.Permissions) == 0 {
-				continue
-			}
-
-			if jwtCE == nil {
-				jwtConfigEntries, err := getAllJWTProviderConfigEntries(tx, kn)
-				jwtCE = jwtConfigEntries
-
-				if err != nil {
-					return fmt.Errorf("Failed retrieval of jwt config entries with err: %v", err)
-				}
-			}
-
-			for _, perm := range src.Permissions {
-				if perm.JWT != nil {
-					result = multierror.Append(result, validateJWTProvider(jwtCE, entry.JWT)).ErrorOrNil()
-				}
-			}
-		}
+		result = multierror.Append(result, validateJWTProvider(jwtConfigEntries, referencedProvidersNames)).ErrorOrNil()
 	}
 	return result
 }
