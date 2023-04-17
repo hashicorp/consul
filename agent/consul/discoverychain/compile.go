@@ -382,7 +382,6 @@ func (c *compiler) determineIfDefaultChain() bool {
 	}
 
 	target := c.loadedTargets[node.Resolver.Target]
-
 	return target.Service == c.serviceName && target.Namespace == c.evaluateInNamespace && target.Partition == c.evaluateInPartition
 }
 
@@ -996,12 +995,19 @@ RESOLVE_AGAIN:
 		Type: structs.DiscoveryGraphNodeTypeResolver,
 		Name: target.ID,
 		Resolver: &structs.DiscoveryResolver{
-			Default:        resolver.IsDefault(),
-			Target:         target.ID,
-			ConnectTimeout: connectTimeout,
-			RequestTimeout: resolver.RequestTimeout,
+			Default:              resolver.IsDefault(),
+			Target:               target.ID,
+			ConnectTimeout:       connectTimeout,
+			RequestTimeout:       resolver.RequestTimeout,
+			PrioritizeByLocality: resolver.PrioritizeByLocality.ToDiscovery(),
 		},
 		LoadBalancer: resolver.LoadBalancer,
+	}
+
+	// Merge default values from the proxy defaults
+	proxyDefault := c.entries.GetProxyDefaults(targetID.PartitionOrDefault())
+	if proxyDefault != nil && node.Resolver.PrioritizeByLocality == nil {
+		node.Resolver.PrioritizeByLocality = proxyDefault.PrioritizeByLocality.ToDiscovery()
 	}
 
 	target.Subset = resolver.Subsets[target.ServiceSubset]
@@ -1089,7 +1095,7 @@ RESOLVE_AGAIN:
 	// Determine which failover definitions apply.
 	var failoverTargets []*structs.DiscoveryTarget
 	var failoverPolicy *structs.ServiceResolverFailoverPolicy
-	proxyDefault := c.entries.GetProxyDefaults(targetID.PartitionOrDefault())
+
 	if proxyDefault != nil {
 		failoverPolicy = proxyDefault.FailoverPolicy
 	}

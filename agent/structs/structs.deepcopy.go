@@ -232,6 +232,10 @@ func (o *DiscoveryResolver) DeepCopy() *DiscoveryResolver {
 	if o.Failover != nil {
 		cp.Failover = o.Failover.DeepCopy()
 	}
+	if o.PrioritizeByLocality != nil {
+		cp.PrioritizeByLocality = new(DiscoveryPrioritizeByLocality)
+		*cp.PrioritizeByLocality = *o.PrioritizeByLocality
+	}
 	return &cp
 }
 
@@ -908,6 +912,10 @@ func (o *ServiceResolverConfigEntry) DeepCopy() *ServiceResolverConfigEntry {
 			}
 			cp.Failover[k2] = cp_Failover_v2
 		}
+	}
+	if o.PrioritizeByLocality != nil {
+		cp.PrioritizeByLocality = new(ServiceResolverPrioritizeByLocality)
+		*cp.PrioritizeByLocality = *o.PrioritizeByLocality
 	}
 	if o.LoadBalancer != nil {
 		cp.LoadBalancer = o.LoadBalancer.DeepCopy()

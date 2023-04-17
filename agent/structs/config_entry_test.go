@@ -3174,7 +3174,7 @@ func TestProxyConfigEntry(t *testing.T) {
 				Name:           "global",
 				FailoverPolicy: &ServiceResolverFailoverPolicy{Mode: "bad"},
 			},
-			validateErr: `Failover policy must be one of '', 'default', or 'order-by-locality'`,
+			validateErr: `Failover-policy mode must be one of '', 'sequential', or 'order-by-locality'`,
 		},
 		"proxy config with valid failover policy": {
 			entry: &ProxyConfigEntry{

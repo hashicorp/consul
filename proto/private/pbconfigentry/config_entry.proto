@@ -128,6 +128,7 @@ message ServiceResolver {
   map<string, string> Meta = 7;
   // mog: func-to=structs.DurationFromProto func-from=structs.DurationToProto
   google.protobuf.Duration RequestTimeout = 8;
+  ServiceResolverPrioritizeByLocality PrioritizeByLocality = 9;
 }
 
 // mog annotation:
@@ -178,6 +179,15 @@ message ServiceResolverFailover {
 message ServiceResolverFailoverPolicy {
   string Mode = 1;
   repeated string Regions = 2;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.ServiceResolverPrioritizeByLocality
+// output=config_entry.gen.go
+// name=Structs
+message ServiceResolverPrioritizeByLocality {
+  string Mode = 1;
 }
 
 // mog annotation:
