@@ -44,6 +44,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul/fsm"
 	"github.com/hashicorp/consul/agent/consul/multilimiter"
 	rpcRate "github.com/hashicorp/consul/agent/consul/rate"
+	"github.com/hashicorp/consul/agent/consul/reporting"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/consul/usagemetrics"
@@ -434,6 +435,8 @@ type Server struct {
 	// with the Resource Service in-process (i.e. not via the network) without auth.
 	// It should only be used for purely-internal workloads, such as controllers.
 	internalResourceServiceClient pbresource.ResourceServiceClient
+	// handles metrics reporting to HashiCorp
+	reportingManager *reporting.ReportingManager
 }
 
 type connHandler interface {
@@ -759,6 +762,8 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server, incom
 
 	s.overviewManager = NewOverviewManager(s.logger, s.fsm, s.config.MetricsReportingInterval)
 	go s.overviewManager.Run(&lib.StopChannelContext{StopCh: s.shutdownCh})
+
+	s.reportingManager = reporting.NewReportingManager(s.logger, getEnterpriseReportingDeps(flat), s)
 
 	// Initialize external gRPC server
 	s.setupExternalGRPC(config, logger)

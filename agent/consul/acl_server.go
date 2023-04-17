@@ -113,7 +113,7 @@ type serverACLResolverBackend struct {
 }
 
 func (s *serverACLResolverBackend) IsServerManagementToken(token string) bool {
-	mgmt, err := s.getSystemMetadata(structs.ServerManagementTokenAccessorID)
+	mgmt, err := s.GetSystemMetadata(structs.ServerManagementTokenAccessorID)
 	if err != nil {
 		s.logger.Debug("failed to fetch server management token: %w", err)
 		return false

@@ -341,6 +341,10 @@ func (s *Server) establishLeadership(ctx context.Context) error {
 		s.startLogVerification(ctx)
 	}
 
+	if s.config.Reporting.License.Enabled && s.reportingManager != nil {
+		s.reportingManager.StartReportingAgent()
+	}
+
 	s.logger.Debug("successfully established leadership", "duration", time.Since(start))
 	return nil
 }
@@ -377,6 +381,8 @@ func (s *Server) revokeLeadership() {
 	s.resetConsistentReadReady()
 
 	s.autopilot.DisableReconciliation()
+
+	s.reportingManager.StopReportingAgent()
 }
 
 // initializeACLs is used to setup the ACLs if we are the leader
@@ -525,7 +531,7 @@ func (s *Server) initializeACLs(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("failed to generate the secret ID for the server management token: %w", err)
 	}
-	if err := s.setSystemMetadataKey(structs.ServerManagementTokenAccessorID, secretID); err != nil {
+	if err := s.SetSystemMetadataKey(structs.ServerManagementTokenAccessorID, secretID); err != nil {
 		return fmt.Errorf("failed to persist server management token: %w", err)
 	}
 
