@@ -109,7 +109,7 @@ BUG FIXES:
 
 KNOWN ISSUES:
 
-* connect: A race condition can cause some service instances to lose their ability to communicate in the mesh after 72 hours (LeafCertTTL) due to a problem with leaf certificate rotation. This bug is fixed in Consul v1.15.2 by [[GH-16818](https://github.com/hashicorp/consul/issues/16818)].
+* connect: A race condition can cause some service instances to lose their ability to communicate in the mesh after 72 hours (LeafCertTTL) due to a problem with leaf certificate rotation. This bug is fixed in Consul v1.15.2 by [GH-16818](https://github.com/hashicorp/consul/issues/16818).
 
 BREAKING CHANGES:
 
