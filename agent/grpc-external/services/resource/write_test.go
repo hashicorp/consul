@@ -33,15 +33,15 @@ func TestWrite_InputValidation(t *testing.T) {
 		"no name":     func(req *pbresource.WriteRequest) { req.Resource.Id.Name = "" },
 		"no data":     func(req *pbresource.WriteRequest) { req.Resource.Data = nil },
 		// clone necessary to not pollute DefaultTenancy
-		"tenancy partition not wildcard": func(req *pbresource.WriteRequest) {
+		"tenancy partition wildcard": func(req *pbresource.WriteRequest) {
 			req.Resource.Id.Tenancy = clone(req.Resource.Id.Tenancy)
 			req.Resource.Id.Tenancy.Partition = storage.Wildcard
 		},
-		"tenancy namespace not wildcard": func(req *pbresource.WriteRequest) {
+		"tenancy namespace wildcard": func(req *pbresource.WriteRequest) {
 			req.Resource.Id.Tenancy = clone(req.Resource.Id.Tenancy)
 			req.Resource.Id.Tenancy.Namespace = storage.Wildcard
 		},
-		"tenancy peername not wildcard": func(req *pbresource.WriteRequest) {
+		"tenancy peername wildcard": func(req *pbresource.WriteRequest) {
 			req.Resource.Id.Tenancy = clone(req.Resource.Id.Tenancy)
 			req.Resource.Id.Tenancy.PeerName = storage.Wildcard
 		},
@@ -96,21 +96,21 @@ func TestWrite_OwnerValidation(t *testing.T) {
 			errorContains: "resource.owner.name",
 		},
 		// clone necessary to not pollute DefaultTenancy
-		"owner tenancy partition not wildcard": {
+		"owner tenancy partition wildcard": {
 			modReqFn: func(req *pbresource.WriteRequest) {
 				req.Resource.Owner.Tenancy = clone(req.Resource.Owner.Tenancy)
 				req.Resource.Owner.Tenancy.Partition = storage.Wildcard
 			},
 			errorContains: "resource.owner.tenancy.partition",
 		},
-		"owner tenancy namespace not wildcard": {
+		"owner tenancy namespace wildcard": {
 			modReqFn: func(req *pbresource.WriteRequest) {
 				req.Resource.Owner.Tenancy = clone(req.Resource.Owner.Tenancy)
 				req.Resource.Owner.Tenancy.Namespace = storage.Wildcard
 			},
 			errorContains: "resource.owner.tenancy.namespace",
 		},
-		"owner tenancy peername not wildcard": {
+		"owner tenancy peername wildcard": {
 			modReqFn: func(req *pbresource.WriteRequest) {
 				req.Resource.Owner.Tenancy = clone(req.Resource.Owner.Tenancy)
 				req.Resource.Owner.Tenancy.PeerName = storage.Wildcard

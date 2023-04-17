@@ -21,6 +21,10 @@ import (
 //
 // TODO(spatel): Move docs to the proto file
 func (s *Server) Delete(ctx context.Context, req *pbresource.DeleteRequest) (*pbresource.DeleteResponse, error) {
+	if err := validateDeleteRequest(req); err != nil {
+		return nil, err
+	}
+
 	reg, err := s.resolveType(req.Id.Type)
 	if err != nil {
 		return nil, err
@@ -71,4 +75,15 @@ func (s *Server) Delete(ctx context.Context, req *pbresource.DeleteRequest) (*pb
 	default:
 		return nil, status.Errorf(codes.Internal, "failed delete: %v", err)
 	}
+}
+
+func validateDeleteRequest(req *pbresource.DeleteRequest) error {
+	if req.Id == nil {
+		return status.Errorf(codes.InvalidArgument, "id is required")
+	}
+
+	if err := validateId(req.Id, "id"); err != nil {
+		return err
+	}
+	return nil
 }

@@ -245,33 +245,3 @@ func validateWriteRequest(req *pbresource.WriteRequest) error {
 	}
 	return nil
 }
-
-func validateId(id *pbresource.ID, errorPrefix string) error {
-	var field string
-	switch {
-	case id.Type == nil:
-		field = "type"
-	case id.Tenancy == nil:
-		field = "tenancy"
-	case id.Name == "":
-		field = "name"
-	}
-
-	if field != "" {
-		return status.Errorf(codes.InvalidArgument, "%s.%s is required", errorPrefix, field)
-	}
-
-	switch {
-	case id.Tenancy.Namespace == storage.Wildcard:
-		field = "tenancy.namespace"
-	case id.Tenancy.Partition == storage.Wildcard:
-		field = "tenancy.partition"
-	case id.Tenancy.PeerName == storage.Wildcard:
-		field = "tenancy.peername"
-	}
-
-	if field != "" {
-		return status.Errorf(codes.InvalidArgument, "%s.%s cannot be a wildcard", errorPrefix, field)
-	}
-	return nil
-}
