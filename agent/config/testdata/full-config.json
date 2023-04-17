@@ -428,6 +428,11 @@
     "92.49.18.18"
   ],
   "rejoin_after_leave": true,
+  "reporting": {
+    "license": {
+      "enabled": false
+    }
+  },
   "retry_interval": "8067s",
   "retry_interval_wan": "28866s",
   "retry_join": [

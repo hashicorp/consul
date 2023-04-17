@@ -2,14 +2,17 @@ package resource
 
 import (
 	"context"
-	"sync"
+	"sync/atomic"
 	"testing"
 
+	"github.com/oklog/ulid/v2"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/anypb"
 
+	"github.com/hashicorp/consul/acl/resolver"
 	"github.com/hashicorp/consul/internal/resource/demo"
 	"github.com/hashicorp/consul/internal/storage"
 	"github.com/hashicorp/consul/proto-public/pbresource"
@@ -69,7 +72,74 @@ func TestWrite_TypeNotFound(t *testing.T) {
 	require.Contains(t, err.Error(), "resource type demo.v2.artist not registered")
 }
 
-func TestWrite_ResourceCreation(t *testing.T) {
+func TestWrite_ACLs(t *testing.T) {
+	type testCase struct {
+		authz       resolver.Result
+		assertErrFn func(error)
+	}
+	testcases := map[string]testCase{
+		"write denied": {
+			authz: AuthorizerFrom(t, demo.ArtistV1WritePolicy),
+			assertErrFn: func(err error) {
+				require.Error(t, err)
+				require.Equal(t, codes.PermissionDenied.String(), status.Code(err).String())
+			},
+		},
+		"write allowed": {
+			authz: AuthorizerFrom(t, demo.ArtistV2WritePolicy),
+			assertErrFn: func(err error) {
+				require.NoError(t, err)
+			},
+		},
+	}
+
+	for desc, tc := range testcases {
+		t.Run(desc, func(t *testing.T) {
+			server := testServer(t)
+			client := testClient(t, server)
+
+			mockACLResolver := &MockACLResolver{}
+			mockACLResolver.On("ResolveTokenAndDefaultMeta", mock.Anything, mock.Anything, mock.Anything).
+				Return(tc.authz, nil)
+			server.ACLResolver = mockACLResolver
+			demo.Register(server.Registry)
+
+			artist, err := demo.GenerateV2Artist()
+			require.NoError(t, err)
+
+			// exercise ACL
+			_, err = client.Write(testContext(t), &pbresource.WriteRequest{Resource: artist})
+			tc.assertErrFn(err)
+		})
+	}
+}
+
+func TestWrite_Mutate(t *testing.T) {
+	server := testServer(t)
+	client := testClient(t, server)
+	demo.Register(server.Registry)
+
+	artist, err := demo.GenerateV2Artist()
+	require.NoError(t, err)
+
+	artistData := &pbdemov2.Artist{}
+	artist.Data.UnmarshalTo(artistData)
+	require.NoError(t, err)
+
+	// mutate hook sets genre to disco when unspecified
+	artistData.Genre = pbdemov2.Genre_GENRE_UNSPECIFIED
+	artist.Data.MarshalFrom(artistData)
+	require.NoError(t, err)
+
+	rsp, err := client.Write(testContext(t), &pbresource.WriteRequest{Resource: artist})
+	require.NoError(t, err)
+
+	// verify mutate hook set genre to disco
+	require.NoError(t, rsp.Resource.Data.UnmarshalTo(artistData))
+	require.Equal(t, pbdemov2.Genre_GENRE_DISCO, artistData.Genre)
+}
+
+func TestWrite_ResourceCreation_Success(t *testing.T) {
 	server := testServer(t)
 	client := testClient(t, server)
 
@@ -105,6 +175,25 @@ func TestWrite_CASUpdate_Success(t *testing.T) {
 	require.Equal(t, rsp1.Resource.Id.Uid, rsp2.Resource.Id.Uid)
 	require.NotEqual(t, rsp1.Resource.Version, rsp2.Resource.Version)
 	require.NotEqual(t, rsp1.Resource.Generation, rsp2.Resource.Generation)
+}
+
+func TestWrite_ResourceCreation_StatusProvided(t *testing.T) {
+	server := testServer(t)
+	client := testClient(t, server)
+
+	demo.Register(server.Registry)
+
+	res, err := demo.GenerateV2Artist()
+	require.NoError(t, err)
+
+	res.Status = map[string]*pbresource.Status{
+		"consul.io/some-controller": {ObservedGeneration: ulid.Make().String()},
+	}
+
+	_, err = client.Write(testContext(t), &pbresource.WriteRequest{Resource: res})
+	require.Error(t, err)
+	require.Equal(t, codes.InvalidArgument.String(), status.Code(err).String())
+	require.Contains(t, err.Error(), "WriteStatus endpoint")
 }
 
 func TestWrite_CASUpdate_Failure(t *testing.T) {
@@ -147,6 +236,60 @@ func TestWrite_Update_WrongUid(t *testing.T) {
 	require.Error(t, err)
 	require.Equal(t, codes.FailedPrecondition.String(), status.Code(err).String())
 	require.Contains(t, err.Error(), "uid doesn't match")
+}
+
+func TestWrite_Update_StatusModified(t *testing.T) {
+	server := testServer(t)
+	client := testClient(t, server)
+
+	demo.Register(server.Registry)
+
+	res, err := demo.GenerateV2Artist()
+	require.NoError(t, err)
+
+	rsp1, err := client.Write(testContext(t), &pbresource.WriteRequest{Resource: res})
+	require.NoError(t, err)
+
+	statusRsp, err := client.WriteStatus(testContext(t), validWriteStatusRequest(t, rsp1.Resource))
+	require.NoError(t, err)
+	res = statusRsp.Resource
+
+	// Passing the staus unmodified should be fine.
+	rsp2, err := client.Write(testContext(t), &pbresource.WriteRequest{Resource: res})
+	require.NoError(t, err)
+
+	// Attempting to modify the status should return an error.
+	res = rsp2.Resource
+	res.Status["consul.io/other-controller"] = &pbresource.Status{ObservedGeneration: res.Generation}
+
+	_, err = client.Write(testContext(t), &pbresource.WriteRequest{Resource: res})
+	require.Error(t, err)
+	require.Equal(t, codes.InvalidArgument.String(), status.Code(err).String())
+	require.Contains(t, err.Error(), "WriteStatus endpoint")
+}
+
+func TestWrite_Update_NilStatus(t *testing.T) {
+	server := testServer(t)
+	client := testClient(t, server)
+
+	demo.Register(server.Registry)
+
+	res, err := demo.GenerateV2Artist()
+	require.NoError(t, err)
+
+	rsp1, err := client.Write(testContext(t), &pbresource.WriteRequest{Resource: res})
+	require.NoError(t, err)
+
+	statusRsp, err := client.WriteStatus(testContext(t), validWriteStatusRequest(t, rsp1.Resource))
+	require.NoError(t, err)
+
+	// Passing a nil status should be fine (and carry over the old status).
+	res = statusRsp.Resource
+	res.Status = nil
+
+	rsp2, err := client.Write(testContext(t), &pbresource.WriteRequest{Resource: res})
+	require.NoError(t, err)
+	require.NotEmpty(t, rsp2.Resource.Status)
 }
 
 func TestWrite_Update_NoUid(t *testing.T) {
@@ -236,10 +379,68 @@ func TestWrite_NonCASUpdate_Retry(t *testing.T) {
 	require.NoError(t, <-errCh)
 }
 
+func TestWrite_Owner_Immutable(t *testing.T) {
+	// Use of proto.Equal(..) in implementation covers all permutations
+	// (nil -> non-nil, non-nil -> nil, owner1 -> owner2) so only the first one
+	// is tested.
+	server := testServer(t)
+	client := testClient(t, server)
+
+	demo.Register(server.Registry)
+
+	artist, err := demo.GenerateV2Artist()
+	require.NoError(t, err)
+	rsp1, err := client.Write(testContext(t), &pbresource.WriteRequest{Resource: artist})
+	require.NoError(t, err)
+	artist = rsp1.Resource
+
+	// create album with no owner
+	album, err := demo.GenerateV2Album(rsp1.Resource.Id)
+	require.NoError(t, err)
+	album.Owner = nil
+	rsp2, err := client.Write(testContext(t), &pbresource.WriteRequest{Resource: album})
+	require.NoError(t, err)
+
+	// setting owner on update should fail
+	album = rsp2.Resource
+	album.Owner = artist.Id
+	_, err = client.Write(testContext(t), &pbresource.WriteRequest{Resource: album})
+	require.Error(t, err)
+	require.Equal(t, codes.InvalidArgument.String(), status.Code(err).String())
+	require.ErrorContains(t, err, "owner cannot be changed")
+}
+
+func TestWrite_Owner_RequireSameTenancy(t *testing.T) {
+	server := testServer(t)
+	client := testClient(t, server)
+
+	demo.Register(server.Registry)
+
+	artist, err := demo.GenerateV2Artist()
+	require.NoError(t, err)
+	rsp1, err := client.Write(testContext(t), &pbresource.WriteRequest{Resource: artist})
+	require.NoError(t, err)
+
+	// change album tenancy to be different from artist tenancy
+	album, err := demo.GenerateV2Album(rsp1.Resource.Id)
+	require.NoError(t, err)
+	album.Owner.Tenancy = &pbresource.Tenancy{
+		Partition: "some",
+		Namespace: "other",
+		PeerName:  "tenancy",
+	}
+
+	// verify create fails
+	_, err = client.Write(testContext(t), &pbresource.WriteRequest{Resource: album})
+	require.Error(t, err)
+	require.Equal(t, codes.InvalidArgument.String(), status.Code(err).String())
+	require.ErrorContains(t, err, "tenancy must be the same")
+}
+
 type blockOnceBackend struct {
 	storage.Backend
 
-	once    sync.Once
+	done    uint32
 	readCh  chan struct{}
 	blockCh chan struct{}
 }
@@ -247,10 +448,12 @@ type blockOnceBackend struct {
 func (b *blockOnceBackend) Read(ctx context.Context, consistency storage.ReadConsistency, id *pbresource.ID) (*pbresource.Resource, error) {
 	res, err := b.Backend.Read(ctx, consistency, id)
 
-	b.once.Do(func() {
+	// Block for exactly one call to Read. All subsequent calls (including those
+	// concurrent to the blocked call) will return immediately.
+	if atomic.CompareAndSwapUint32(&b.done, 0, 1) {
 		close(b.readCh)
 		<-b.blockCh
-	})
+	}
 
 	return res, err
 }

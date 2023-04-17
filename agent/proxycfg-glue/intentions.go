@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/consul/agent/cache"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/proxycfg"
+	"github.com/hashicorp/consul/agent/rpcclient/configentry"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/submatview"
 	"github.com/hashicorp/consul/proto/private/pbsubscribe"
@@ -164,7 +165,7 @@ func (r intentionsRequest) NewMaterializer() (submatview.Materializer, error) {
 		Backend:     r.deps.EventPublisher,
 		ACLResolver: r.deps.ACLResolver,
 		Deps: submatview.Deps{
-			View:    &configEntryView{},
+			View:    &configentry.ConfigEntryView{},
 			Logger:  r.deps.Logger,
 			Request: r.Request,
 		},

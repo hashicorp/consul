@@ -1208,6 +1208,58 @@ func RingHashConfigFromStructs(t *structs.RingHashConfig, s *RingHashConfig) {
 	s.MinimumRingSize = t.MinimumRingSize
 	s.MaximumRingSize = t.MaximumRingSize
 }
+func SamenessGroupToStructs(s *SamenessGroup, t *structs.SamenessGroupConfigEntry) {
+	if s == nil {
+		return
+	}
+	t.Name = s.Name
+	t.DefaultForFailover = s.DefaultForFailover
+	t.IncludeLocal = s.IncludeLocal
+	{
+		t.Members = make([]structs.SamenessGroupMember, len(s.Members))
+		for i := range s.Members {
+			if s.Members[i] != nil {
+				SamenessGroupMemberToStructs(s.Members[i], &t.Members[i])
+			}
+		}
+	}
+	t.Meta = s.Meta
+	t.EnterpriseMeta = enterpriseMetaToStructs(s.EnterpriseMeta)
+}
+func SamenessGroupFromStructs(t *structs.SamenessGroupConfigEntry, s *SamenessGroup) {
+	if s == nil {
+		return
+	}
+	s.Name = t.Name
+	s.DefaultForFailover = t.DefaultForFailover
+	s.IncludeLocal = t.IncludeLocal
+	{
+		s.Members = make([]*SamenessGroupMember, len(t.Members))
+		for i := range t.Members {
+			{
+				var x SamenessGroupMember
+				SamenessGroupMemberFromStructs(&t.Members[i], &x)
+				s.Members[i] = &x
+			}
+		}
+	}
+	s.Meta = t.Meta
+	s.EnterpriseMeta = enterpriseMetaFromStructs(t.EnterpriseMeta)
+}
+func SamenessGroupMemberToStructs(s *SamenessGroupMember, t *structs.SamenessGroupMember) {
+	if s == nil {
+		return
+	}
+	t.Partition = s.Partition
+	t.Peer = s.Peer
+}
+func SamenessGroupMemberFromStructs(t *structs.SamenessGroupMember, s *SamenessGroupMember) {
+	if s == nil {
+		return
+	}
+	s.Partition = t.Partition
+	s.Peer = t.Peer
+}
 func ServiceDefaultsToStructs(s *ServiceDefaults, t *structs.ServiceConfigEntry) {
 	if s == nil {
 		return
@@ -1342,6 +1394,11 @@ func ServiceResolverToStructs(s *ServiceResolver, t *structs.ServiceResolverConf
 			t.Failover[k] = y
 		}
 	}
+	if s.PrioritizeByLocality != nil {
+		var x structs.ServiceResolverPrioritizeByLocality
+		ServiceResolverPrioritizeByLocalityToStructs(s.PrioritizeByLocality, &x)
+		t.PrioritizeByLocality = &x
+	}
 	t.ConnectTimeout = structs.DurationFromProto(s.ConnectTimeout)
 	t.RequestTimeout = structs.DurationFromProto(s.RequestTimeout)
 	if s.LoadBalancer != nil {
@@ -1384,6 +1441,11 @@ func ServiceResolverFromStructs(t *structs.ServiceResolverConfigEntry, s *Servic
 			}
 			s.Failover[k] = y
 		}
+	}
+	if t.PrioritizeByLocality != nil {
+		var x ServiceResolverPrioritizeByLocality
+		ServiceResolverPrioritizeByLocalityFromStructs(t.PrioritizeByLocality, &x)
+		s.PrioritizeByLocality = &x
 	}
 	s.ConnectTimeout = structs.DurationToProto(t.ConnectTimeout)
 	s.RequestTimeout = structs.DurationToProto(t.RequestTimeout)
@@ -1477,6 +1539,18 @@ func ServiceResolverFailoverTargetFromStructs(t *structs.ServiceResolverFailover
 	s.Namespace = t.Namespace
 	s.Datacenter = t.Datacenter
 	s.Peer = t.Peer
+}
+func ServiceResolverPrioritizeByLocalityToStructs(s *ServiceResolverPrioritizeByLocality, t *structs.ServiceResolverPrioritizeByLocality) {
+	if s == nil {
+		return
+	}
+	t.Mode = s.Mode
+}
+func ServiceResolverPrioritizeByLocalityFromStructs(t *structs.ServiceResolverPrioritizeByLocality, s *ServiceResolverPrioritizeByLocality) {
+	if s == nil {
+		return
+	}
+	s.Mode = t.Mode
 }
 func ServiceResolverRedirectToStructs(s *ServiceResolverRedirect, t *structs.ServiceResolverRedirect) {
 	if s == nil {

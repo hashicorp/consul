@@ -118,3 +118,11 @@ func (f *ServiceResolverFailoverPolicy) ValidateEnterprise() error {
 func (e *ServiceResolverConfigEntry) RelatedSamenessGroups() []string {
 	return nil
 }
+
+func (pbl *ServiceResolverPrioritizeByLocality) validate() error {
+	var zero ServiceResolverPrioritizeByLocality
+	if pbl == nil || *pbl == zero {
+		return nil
+	}
+	return fmt.Errorf("Prioritize-by-locality requires Consul Enterprise ")
+}

@@ -74,8 +74,8 @@ func Register(r resource.Registry) {
 		return authz.ToAllowAuthorizer().KeyReadAllowed(key, &acl.AuthorizerContext{})
 	}
 
-	writeACL := func(authz acl.Authorizer, res *pbresource.Resource) error {
-		key := fmt.Sprintf("resource/%s/%s", resource.ToGVK(res.Id.Type), res.Id.Name)
+	writeACL := func(authz acl.Authorizer, id *pbresource.ID) error {
+		key := fmt.Sprintf("resource/%s/%s", resource.ToGVK(id.Type), id.Name)
 		return authz.ToAllowAuthorizer().KeyWriteAllowed(key, &acl.AuthorizerContext{})
 	}
 
@@ -104,6 +104,19 @@ func Register(r resource.Registry) {
 		}
 		if artist.Name == "" {
 			return fmt.Errorf("artist.name required")
+		}
+		return nil
+	}
+
+	mutateV2ArtistFn := func(res *pbresource.Resource) error {
+		// Not a realistic use for this hook, but set genre if not specified
+		artist := &pbdemov2.Artist{}
+		if err := anypb.UnmarshalTo(res.Data, artist, proto.UnmarshalOptions{}); err != nil {
+			return err
+		}
+		if artist.Genre == pbdemov2.Genre_GENRE_UNSPECIFIED {
+			artist.Genre = pbdemov2.Genre_GENRE_DISCO
+			return res.Data.MarshalFrom(artist)
 		}
 		return nil
 	}
@@ -138,6 +151,7 @@ func Register(r resource.Registry) {
 			List:  makeListACL(TypeV2Artist),
 		},
 		Validate: validateV2ArtistFn,
+		Mutate:   mutateV2ArtistFn,
 	})
 
 	r.Register(resource.Registration{

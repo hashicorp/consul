@@ -58,11 +58,6 @@ func (s *Server) Register(grpcServer *grpc.Server) {
 	pbresource.RegisterResourceServiceServer(grpcServer, s)
 }
 
-func (s *Server) WriteStatus(ctx context.Context, req *pbresource.WriteStatusRequest) (*pbresource.WriteStatusResponse, error) {
-	// TODO
-	return &pbresource.WriteStatusResponse{}, nil
-}
-
 // Get token from grpc metadata or AnonymounsTokenId if not found
 func tokenFromContext(ctx context.Context) string {
 	md, ok := metadata.FromIncomingContext(ctx)
@@ -111,6 +106,14 @@ func (s *Server) getAuthorizer(token string) (acl.Authorizer, error) {
 		return nil, status.Errorf(codes.Internal, "failed getting authorizer: %v", err)
 	}
 	return authz, nil
+}
+
+func isGRPCStatusError(err error) bool {
+	if err == nil {
+		return false
+	}
+	_, ok := status.FromError(err)
+	return ok
 }
 
 func clone[T proto.Message](v T) T { return proto.Clone(v).(T) }

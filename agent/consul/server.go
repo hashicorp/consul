@@ -1803,6 +1803,8 @@ func (s *Server) ReloadConfig(config ReloadableConfig) error {
 		return err
 	}
 
+	s.updateReportingConfig(config)
+
 	s.rpcLimiter.Store(rate.NewLimiter(config.RPCRateLimit, config.RPCMaxBurst))
 
 	if config.RequestLimits != nil {
@@ -1995,14 +1997,18 @@ func ConfiguredIncomingRPCLimiter(ctx context.Context, serverLogger hclog.Interc
 
 func convertConsulConfigToRateLimitHandlerConfig(limitsConfig RequestLimits, multilimiterConfig *multilimiter.Config) *rpcRate.HandlerConfig {
 	hc := &rpcRate.HandlerConfig{
-		GlobalMode: limitsConfig.Mode,
-		GlobalReadConfig: multilimiter.LimiterConfig{
-			Rate:  limitsConfig.ReadRate,
-			Burst: int(limitsConfig.ReadRate) * requestLimitsBurstMultiplier,
-		},
-		GlobalWriteConfig: multilimiter.LimiterConfig{
-			Rate:  limitsConfig.WriteRate,
-			Burst: int(limitsConfig.WriteRate) * requestLimitsBurstMultiplier,
+		GlobalLimitConfig: rpcRate.GlobalLimitConfig{
+			Mode: limitsConfig.Mode,
+			ReadWriteConfig: rpcRate.ReadWriteConfig{
+				ReadConfig: multilimiter.LimiterConfig{
+					Rate:  limitsConfig.ReadRate,
+					Burst: int(limitsConfig.ReadRate) * requestLimitsBurstMultiplier,
+				},
+				WriteConfig: multilimiter.LimiterConfig{
+					Rate:  limitsConfig.WriteRate,
+					Burst: int(limitsConfig.WriteRate) * requestLimitsBurstMultiplier,
+				},
+			},
 		},
 	}
 	if multilimiterConfig != nil {

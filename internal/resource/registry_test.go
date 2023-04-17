@@ -61,10 +61,7 @@ func TestRegister(t *testing.T) {
 
 func TestRegister_Defaults(t *testing.T) {
 	r := resource.NewRegistry()
-	r.Register(resource.Registration{
-		Type: demo.TypeV2Artist,
-		// intentionally don't provide ACLs so defaults kick in
-	})
+	r.Register(resource.Registration{Type: demo.TypeV2Artist})
 	artist, err := demo.GenerateV2Artist()
 	require.NoError(t, err)
 
@@ -76,8 +73,8 @@ func TestRegister_Defaults(t *testing.T) {
 	require.True(t, acl.IsErrPermissionDenied(reg.ACLs.Read(testutils.ACLNoPermissions(t), artist.Id)))
 
 	// verify default write hook requires operator:write
-	require.NoError(t, reg.ACLs.Write(testutils.ACLOperatorWrite(t), artist))
-	require.True(t, acl.IsErrPermissionDenied(reg.ACLs.Write(testutils.ACLNoPermissions(t), artist)))
+	require.NoError(t, reg.ACLs.Write(testutils.ACLOperatorWrite(t), artist.Id))
+	require.True(t, acl.IsErrPermissionDenied(reg.ACLs.Write(testutils.ACLNoPermissions(t), artist.Id)))
 
 	// verify default list hook requires operator:read
 	require.NoError(t, reg.ACLs.List(testutils.ACLOperatorRead(t), artist.Id.Tenancy))
@@ -85,6 +82,9 @@ func TestRegister_Defaults(t *testing.T) {
 
 	// verify default validate is a no-op
 	require.NoError(t, reg.Validate(nil))
+
+	// verify default mutate is a no-op
+	require.NoError(t, reg.Mutate(nil))
 }
 
 func assertRegisterPanics(t *testing.T, registerFn func(reg resource.Registration), registration resource.Registration, panicString string) {

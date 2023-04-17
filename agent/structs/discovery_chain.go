@@ -117,11 +117,12 @@ func (s *DiscoveryGraphNode) MapKey() string {
 
 // compiled form of ServiceResolverConfigEntry
 type DiscoveryResolver struct {
-	Default        bool               `json:",omitempty"`
-	ConnectTimeout time.Duration      `json:",omitempty"`
-	RequestTimeout time.Duration      `json:",omitempty"`
-	Target         string             `json:",omitempty"`
-	Failover       *DiscoveryFailover `json:",omitempty"`
+	Default              bool                           `json:",omitempty"`
+	ConnectTimeout       time.Duration                  `json:",omitempty"`
+	RequestTimeout       time.Duration                  `json:",omitempty"`
+	Target               string                         `json:",omitempty"`
+	Failover             *DiscoveryFailover             `json:",omitempty"`
+	PrioritizeByLocality *DiscoveryPrioritizeByLocality `json:",omitempty"`
 }
 
 func (r *DiscoveryResolver) MarshalJSON() ([]byte, error) {
@@ -184,6 +185,20 @@ type DiscoveryFailover struct {
 	Targets []string                       `json:",omitempty"`
 	Policy  *ServiceResolverFailoverPolicy `json:",omitempty"`
 	Regions []string                       `json:",omitempty"`
+}
+
+// compiled form of ServiceResolverPrioritizeByLocality
+type DiscoveryPrioritizeByLocality struct {
+	Mode string `json:",omitempty"`
+}
+
+func (pbl *ServiceResolverPrioritizeByLocality) ToDiscovery() *DiscoveryPrioritizeByLocality {
+	if pbl == nil {
+		return nil
+	}
+	return &DiscoveryPrioritizeByLocality{
+		Mode: pbl.Mode,
+	}
 }
 
 // DiscoveryTarget represents all of the inputs necessary to use a resolver
