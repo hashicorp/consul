@@ -830,7 +830,7 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server, incom
 	}
 
 	if s.config.DevMode {
-		demo.Register(s.typeRegistry)
+		demo.RegisterTypes(s.typeRegistry)
 		demo.RegisterControllers(s.controllerManager)
 	}
 	go s.controllerManager.Run(&lib.StopChannelContext{StopCh: shutdownCh})

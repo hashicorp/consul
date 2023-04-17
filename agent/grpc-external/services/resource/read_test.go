@@ -79,7 +79,7 @@ func TestRead_ResourceNotFound(t *testing.T) {
 		t.Run(desc, func(t *testing.T) {
 			server := testServer(t)
 
-			demo.Register(server.Registry)
+			demo.RegisterTypes(server.Registry)
 			client := testClient(t, server)
 
 			artist, err := demo.GenerateV2Artist()
@@ -98,7 +98,7 @@ func TestRead_GroupVersionMismatch(t *testing.T) {
 		t.Run(desc, func(t *testing.T) {
 			server := testServer(t)
 
-			demo.Register(server.Registry)
+			demo.RegisterTypes(server.Registry)
 			client := testClient(t, server)
 
 			artist, err := demo.GenerateV2Artist()
@@ -123,7 +123,7 @@ func TestRead_Success(t *testing.T) {
 		t.Run(desc, func(t *testing.T) {
 			server := testServer(t)
 
-			demo.Register(server.Registry)
+			demo.RegisterTypes(server.Registry)
 			client := testClient(t, server)
 
 			artist, err := demo.GenerateV2Artist()
@@ -146,7 +146,7 @@ func TestRead_VerifyReadConsistencyArg(t *testing.T) {
 			server := testServer(t)
 			mockBackend := NewMockBackend(t)
 			server.Backend = mockBackend
-			demo.Register(server.Registry)
+			demo.RegisterTypes(server.Registry)
 
 			artist, err := demo.GenerateV2Artist()
 			require.NoError(t, err)
@@ -188,7 +188,7 @@ func TestRead_ACLs(t *testing.T) {
 			mockACLResolver.On("ResolveTokenAndDefaultMeta", mock.Anything, mock.Anything, mock.Anything).
 				Return(tc.authz, nil)
 			server.ACLResolver = mockACLResolver
-			demo.Register(server.Registry)
+			demo.RegisterTypes(server.Registry)
 
 			artist, err := demo.GenerateV2Artist()
 			require.NoError(t, err)

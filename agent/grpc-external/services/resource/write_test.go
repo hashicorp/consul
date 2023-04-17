@@ -26,7 +26,7 @@ func TestWrite_InputValidation(t *testing.T) {
 	server := testServer(t)
 	client := testClient(t, server)
 
-	demo.Register(server.Registry)
+	demo.RegisterTypes(server.Registry)
 
 	testCases := map[string]func(*pbresource.WriteRequest){
 		"no resource": func(req *pbresource.WriteRequest) { req.Resource = nil },
@@ -224,7 +224,7 @@ func TestWrite_ResourceCreation_Success(t *testing.T) {
 	server := testServer(t)
 	client := testClient(t, server)
 
-	demo.Register(server.Registry)
+	demo.RegisterTypes(server.Registry)
 
 	res, err := demo.GenerateV2Artist()
 	require.NoError(t, err)
@@ -240,7 +240,7 @@ func TestWrite_CASUpdate_Success(t *testing.T) {
 	server := testServer(t)
 	client := testClient(t, server)
 
-	demo.Register(server.Registry)
+	demo.RegisterTypes(server.Registry)
 
 	res, err := demo.GenerateV2Artist()
 	require.NoError(t, err)
@@ -262,7 +262,7 @@ func TestWrite_ResourceCreation_StatusProvided(t *testing.T) {
 	server := testServer(t)
 	client := testClient(t, server)
 
-	demo.Register(server.Registry)
+	demo.RegisterTypes(server.Registry)
 
 	res, err := demo.GenerateV2Artist()
 	require.NoError(t, err)
@@ -281,7 +281,7 @@ func TestWrite_CASUpdate_Failure(t *testing.T) {
 	server := testServer(t)
 	client := testClient(t, server)
 
-	demo.Register(server.Registry)
+	demo.RegisterTypes(server.Registry)
 
 	res, err := demo.GenerateV2Artist()
 	require.NoError(t, err)
@@ -302,7 +302,7 @@ func TestWrite_Update_WrongUid(t *testing.T) {
 	server := testServer(t)
 	client := testClient(t, server)
 
-	demo.Register(server.Registry)
+	demo.RegisterTypes(server.Registry)
 
 	res, err := demo.GenerateV2Artist()
 	require.NoError(t, err)
@@ -323,7 +323,7 @@ func TestWrite_Update_StatusModified(t *testing.T) {
 	server := testServer(t)
 	client := testClient(t, server)
 
-	demo.Register(server.Registry)
+	demo.RegisterTypes(server.Registry)
 
 	res, err := demo.GenerateV2Artist()
 	require.NoError(t, err)
@@ -353,7 +353,7 @@ func TestWrite_Update_NilStatus(t *testing.T) {
 	server := testServer(t)
 	client := testClient(t, server)
 
-	demo.Register(server.Registry)
+	demo.RegisterTypes(server.Registry)
 
 	res, err := demo.GenerateV2Artist()
 	require.NoError(t, err)
@@ -377,7 +377,7 @@ func TestWrite_Update_NoUid(t *testing.T) {
 	server := testServer(t)
 	client := testClient(t, server)
 
-	demo.Register(server.Registry)
+	demo.RegisterTypes(server.Registry)
 
 	res, err := demo.GenerateV2Artist()
 	require.NoError(t, err)
@@ -396,7 +396,7 @@ func TestWrite_NonCASUpdate_Success(t *testing.T) {
 	server := testServer(t)
 	client := testClient(t, server)
 
-	demo.Register(server.Registry)
+	demo.RegisterTypes(server.Registry)
 
 	res, err := demo.GenerateV2Artist()
 	require.NoError(t, err)
@@ -417,7 +417,7 @@ func TestWrite_NonCASUpdate_Retry(t *testing.T) {
 	server := testServer(t)
 	client := testClient(t, server)
 
-	demo.Register(server.Registry)
+	demo.RegisterTypes(server.Registry)
 
 	res, err := demo.GenerateV2Artist()
 	require.NoError(t, err)

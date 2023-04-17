@@ -46,7 +46,7 @@ func TestWatchList_GroupVersionMatches(t *testing.T) {
 
 	server := testServer(t)
 	client := testClient(t, server)
-	demo.Register(server.Registry)
+	demo.RegisterTypes(server.Registry)
 	ctx := context.Background()
 
 	// create a watch
@@ -90,7 +90,7 @@ func TestWatchList_GroupVersionMismatch(t *testing.T) {
 	t.Parallel()
 
 	server := testServer(t)
-	demo.Register(server.Registry)
+	demo.RegisterTypes(server.Registry)
 	client := testClient(t, server)
 	ctx := context.Background()
 
@@ -177,7 +177,7 @@ func roundTripACL(t *testing.T, authz acl.Authorizer) (<-chan resourceOrError, *
 	mockACLResolver.On("ResolveTokenAndDefaultMeta", mock.Anything, mock.Anything, mock.Anything).
 		Return(authz, nil)
 	server.ACLResolver = mockACLResolver
-	demo.Register(server.Registry)
+	demo.RegisterTypes(server.Registry)
 
 	artist, err := demo.GenerateV2Artist()
 	require.NoError(t, err)

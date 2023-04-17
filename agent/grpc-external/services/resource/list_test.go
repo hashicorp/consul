@@ -40,7 +40,7 @@ func TestList_Empty(t *testing.T) {
 	for desc, tc := range listTestCases() {
 		t.Run(desc, func(t *testing.T) {
 			server := testServer(t)
-			demo.Register(server.Registry)
+			demo.RegisterTypes(server.Registry)
 			client := testClient(t, server)
 
 			rsp, err := client.List(tc.ctx, &pbresource.ListRequest{
@@ -58,7 +58,7 @@ func TestList_Many(t *testing.T) {
 	for desc, tc := range listTestCases() {
 		t.Run(desc, func(t *testing.T) {
 			server := testServer(t)
-			demo.Register(server.Registry)
+			demo.RegisterTypes(server.Registry)
 			client := testClient(t, server)
 
 			resources := make([]*pbresource.Resource, 10)
@@ -89,7 +89,7 @@ func TestList_GroupVersionMismatch(t *testing.T) {
 	for desc, tc := range listTestCases() {
 		t.Run(desc, func(t *testing.T) {
 			server := testServer(t)
-			demo.Register(server.Registry)
+			demo.RegisterTypes(server.Registry)
 			client := testClient(t, server)
 
 			artist, err := demo.GenerateV2Artist()
@@ -116,7 +116,7 @@ func TestList_VerifyReadConsistencyArg(t *testing.T) {
 			mockBackend := NewMockBackend(t)
 			server := testServer(t)
 			server.Backend = mockBackend
-			demo.Register(server.Registry)
+			demo.RegisterTypes(server.Registry)
 
 			artist, err := demo.GenerateV2Artist()
 			require.NoError(t, err)
@@ -184,7 +184,7 @@ func roundTripList(t *testing.T, authz acl.Authorizer) (*pbresource.Resource, *p
 	mockACLResolver.On("ResolveTokenAndDefaultMeta", mock.Anything, mock.Anything, mock.Anything).
 		Return(authz, nil)
 	server.ACLResolver = mockACLResolver
-	demo.Register(server.Registry)
+	demo.RegisterTypes(server.Registry)
 
 	artist, err := demo.GenerateV2Artist()
 	require.NoError(t, err)
