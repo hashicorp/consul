@@ -281,6 +281,9 @@ jobs:
         run: docker build -t ${{ env.CONSUL_LATEST_IMAGE_NAME }}:local -f ./build-support/docker/Consul-Dev.dockerfile .
       - name: Compatibility Integration Tests
         run: |
+            cat /etc/hosts && echo "-----------"
+            sudo sed -i 's/::1 *localhost ip6-localhost ip6-loopback/::1 ip6-localhost ip6-loopback/g' /etc/hosts
+            cat /etc/hosts
             mkdir -p "/tmp/test-results"
             cd ./test/integration/consul-container
             docker run --rm ${{ env.CONSUL_LATEST_IMAGE_NAME }}:local consul version
@@ -349,6 +352,9 @@ jobs:
         run: docker build -t ${{ env.CONSUL_LATEST_IMAGE_NAME }}:local -f ./build-support/docker/Consul-Dev.dockerfile .
       - name: Upgrade Integration Tests
         run: |
+          cat /etc/hosts && echo "-----------"
+          sudo sed -i 's/::1 *localhost ip6-localhost ip6-loopback/::1 ip6-localhost ip6-loopback/g' /etc/hosts
+          cat /etc/hosts
           mkdir -p "${{ env.TEST_RESULTS_DIR }}"
           cd ./test/integration/consul-container/test/upgrade
           docker run --rm ${{ env.CONSUL_LATEST_IMAGE_NAME }}:local consul version
