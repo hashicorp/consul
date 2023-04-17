@@ -15,6 +15,46 @@ import (
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
+func TestDelete_InputValidation(t *testing.T) {
+	server := testServer(t)
+	client := testClient(t, server)
+
+	demo.Register(server.Registry)
+
+	testCases := map[string]func(*pbresource.DeleteRequest){
+		"no id":      func(req *pbresource.DeleteRequest) { req.Id = nil },
+		"no type":    func(req *pbresource.DeleteRequest) { req.Id.Type = nil },
+		"no tenancy": func(req *pbresource.DeleteRequest) { req.Id.Tenancy = nil },
+		"no name":    func(req *pbresource.DeleteRequest) { req.Id.Name = "" },
+		// clone necessary to not pollute DefaultTenancy
+		"tenancy partition wildcard": func(req *pbresource.DeleteRequest) {
+			req.Id.Tenancy = clone(req.Id.Tenancy)
+			req.Id.Tenancy.Partition = storage.Wildcard
+		},
+		"tenancy namespace wildcard": func(req *pbresource.DeleteRequest) {
+			req.Id.Tenancy = clone(req.Id.Tenancy)
+			req.Id.Tenancy.Namespace = storage.Wildcard
+		},
+		"tenancy peername wildcard": func(req *pbresource.DeleteRequest) {
+			req.Id.Tenancy = clone(req.Id.Tenancy)
+			req.Id.Tenancy.PeerName = storage.Wildcard
+		},
+	}
+	for desc, modFn := range testCases {
+		t.Run(desc, func(t *testing.T) {
+			res, err := demo.GenerateV2Artist()
+			require.NoError(t, err)
+
+			req := &pbresource.DeleteRequest{Id: res.Id, Version: ""}
+			modFn(req)
+
+			_, err = client.Delete(testContext(t), req)
+			require.Error(t, err)
+			require.Equal(t, codes.InvalidArgument.String(), status.Code(err).String())
+		})
+	}
+}
+
 func TestDelete_TypeNotRegistered(t *testing.T) {
 	t.Parallel()
 
