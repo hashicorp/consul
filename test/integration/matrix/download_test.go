@@ -11,12 +11,12 @@ func TestDownload(t *testing.T) {
 		// should return ~3 entries
 		consuls := latestReleases("consul")
 		if len(consuls) < 2 || len(consuls) > 4 {
-			t.Errorf("weird number of versions?? `%#v`", consuls)
+			t.Errorf("weird number of versions?? `%v`", consuls)
 		}
 		// should return ~3 entries
 		vaults := latestReleases("vault")
 		if len(vaults) < 2 || len(vaults) > 4 {
-			t.Errorf("weird number of versions?? `%#v`", vaults)
+			t.Errorf("weird number of versions?? `%v`", vaults)
 		}
 	})
 

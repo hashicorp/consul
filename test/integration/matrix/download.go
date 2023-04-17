@@ -8,8 +8,8 @@ import (
 	"strings"
 )
 
-// For a given product and version (eg. vault and 1.13.2) you'll get the
-// URL to download the binary (zipped) for AMD64 (hardcoded for now).
+// downloadURL returns the URL (string) to the (zipped) binary for AMD64
+// for a given product and version (eg. vault and 1.13.2).
 func downloadURL(product, version string) string {
 	releaseURL := "https://api.releases.hashicorp.com/v1/releases/%s/%s"
 	resp, err := http.Get(fmt.Sprintf(releaseURL, product, version))
@@ -43,8 +43,8 @@ func downloadURL(product, version string) string {
 	panic("No binary architecture match found.")
 }
 
-// loop through releases until a duplicate minor release number is found
-// this should include all the currently supported releases
+// latestReleases for 'product' it checks throught the last 20 releases for the
+// 3 most recent minor versions (semantic versioning, major.MINOR.micro).
 func latestReleases(product string) []string {
 	lastTwenty := "https://api.releases.hashicorp.com/v1/releases/%s?license_class=oss&limit=20"
 	resp, err := http.Get(fmt.Sprintf(lastTwenty, product))
@@ -68,13 +68,15 @@ func latestReleases(product string) []string {
 	unique := make(map[string]struct{}, 3)
 	result := []string{}
 	for _, v := range versions {
-		vl := strings.Split(v.Version, ".")
-		minor := vl[1]
-		if _, ok := unique[minor]; ok {
+		if len(unique) > 3 {
 			break
 		}
-		unique[minor] = struct{}{}
-		result = append(result, v.Version)
+		vl := strings.Split(v.Version, ".")
+		minorVersion := vl[1]
+		if _, ok := unique[minorVersion]; !ok {
+			result = append(result, v.Version)
+			unique[minorVersion] = struct{}{}
+		}
 	}
 
 	return result
