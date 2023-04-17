@@ -856,9 +856,9 @@ func invalidCertificate(ref structs.ResourceReference, err error) structs.Condit
 // to invalid due to missing certificates that it references.
 func invalidCertificates() structs.Condition {
 	return structs.NewGatewayCondition(
-		structs.GatewayConditionResolvedRefs,
+		structs.GatewayConditionAccepted,
 		structs.ConditionStatusFalse,
-		structs.GatewayListenerReasonInvalidCertificateRef,
+		structs.GatewayReasonInvalidCertificates,
 		"gateway references invalid certificates",
 		structs.ResourceReference{},
 	)

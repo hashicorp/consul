@@ -230,11 +230,19 @@ const (
 	//
 	// * "Accepted"
 	//
+	// Possible reasons for this condition to be False are:
+	//
+	// * InvalidCertificates
+	//
 	GatewayConditionAccepted GatewayConditionType = "Accepted"
 
 	// This reason is used with the "Accepted" condition when the condition is
 	// True.
 	GatewayReasonAccepted GatewayConditionReason = "Accepted"
+
+	// This reason is used with the "Accepted" condition when the gateway has multiple invalid
+	// certificates and cannot bind to any routes
+	GatewayReasonInvalidCertificates GatewayConditionReason = "InvalidCertificates"
 
 	// This condition indicates that the gateway was unable to resolve
 	// conflicting specification requirements for this Listener. If a
@@ -300,7 +308,9 @@ var validGatewayConditionReasonsMapping = map[GatewayConditionType]map[Condition
 		ConditionStatusTrue: {
 			GatewayReasonAccepted,
 		},
-		ConditionStatusFalse:   {},
+		ConditionStatusFalse: {
+			GatewayReasonInvalidCertificates,
+		},
 		ConditionStatusUnknown: {},
 	},
 	GatewayConditionConflicted: {

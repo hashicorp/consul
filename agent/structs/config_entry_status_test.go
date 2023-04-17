@@ -10,13 +10,21 @@ func TestNewGatewayConditionWithValidCombinations(t *testing.T) {
 		message  string
 		ref      ResourceReference
 	}{
-		"accepted all around": {
+		"accepted": {
 			status:   ConditionStatusTrue,
 			reason:   GatewayReasonAccepted,
 			condType: GatewayConditionAccepted,
 			message:  "it's all good",
 			ref:      ResourceReference{Name: "name", Kind: "httproute"},
 		},
+		"accepted invalid certificates": {
+			status:   ConditionStatusFalse,
+			reason:   GatewayReasonInvalidCertificates,
+			condType: GatewayConditionAccepted,
+			message:  "invalid certificates",
+			ref:      ResourceReference{Name: "name", Kind: "httproute"},
+		},
+
 		"resolved refs": {
 			status:   ConditionStatusTrue,
 			reason:   GatewayReasonResolvedRefs,
