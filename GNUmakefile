@@ -168,7 +168,7 @@ dev-docker-dbg: dev-docker linux dev-build
 	@echo "Pulling consul container image - $(CONSUL_IMAGE_VERSION)"
 	@docker pull consul:$(CONSUL_IMAGE_VERSION) >/dev/null
 	@echo "Building Consul Development container - $(CONSUL_DEV_IMAGE)"
-	@#  'consul:local' tag is needed to run the integration tests
+	@#  'consul-dbg:local' tag is needed to run the integration tests
 	@#  'consul-dev:latest' is needed by older workflows
 	@docker buildx use default && docker buildx build -t 'consul-dbg:local' -t '$(CONSUL_DEV_IMAGE)' \
        --platform linux/$(GOARCH) \
