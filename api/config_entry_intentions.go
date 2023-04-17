@@ -82,7 +82,7 @@ type IntentionJWTProvider struct {
 	Name string `json:",omitempty"`
 
 	// VerifyClaims is a list of additional claims to verify in a JWT's payload.
-	VerifyClaims []*IntentionJWTClaimVerification `json:",omitempty"`
+	VerifyClaims []*IntentionJWTClaimVerification `json:",omitempty" alias:"verify_claims"`
 }
 
 type IntentionJWTClaimVerification struct {

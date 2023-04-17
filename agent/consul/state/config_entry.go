@@ -569,10 +569,12 @@ func validateProposedConfigEntryInGraph(
 		}
 	case structs.SamenessGroup:
 	case structs.ServiceIntentions:
-		err := validateJWTProvidersExist(tx, kindName, newEntry)
-		if err != nil {
+		if newEntry != nil {
+			err := validateJWTProvidersExist(tx, kindName, newEntry)
+			if err != nil {
 
-			return err
+				return err
+			}
 		}
 	case structs.MeshConfig:
 	case structs.ExportedServices:
@@ -607,7 +609,11 @@ func validateJWTProvider(configEntries []structs.ConfigEntry, jwt *structs.Inten
 	for _, provider := range jwt.Providers {
 		matchNotFound := true
 		for i := range configEntries {
-			jwtEntry := configEntries[i].(*structs.JWTProviderConfigEntry)
+			jwtEntry, ok := configEntries[i].(*structs.JWTProviderConfigEntry)
+
+			if !ok {
+				return fmt.Errorf("Invalid type of jwt-provider config entry: %T", configEntries[i])
+			}
 
 			if jwtEntry.Name == provider.Name {
 				matchNotFound = false
@@ -630,7 +636,11 @@ func validateJWTProvidersExist(tx ReadTxn, kn configentry.KindName, ce structs.C
 	if ce == nil {
 		return result
 	}
-	entry := ce.(*structs.ServiceIntentionsConfigEntry)
+	entry, ok := ce.(*structs.ServiceIntentionsConfigEntry)
+
+	if !ok {
+		return fmt.Errorf("Invalid service intention config entry: %T", entry)
+	}
 
 	var jwtCE []structs.ConfigEntry
 
