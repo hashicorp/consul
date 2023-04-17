@@ -293,7 +293,7 @@ func (e *IntentionJWTRequirement) Clone() *IntentionJWTRequirement {
 
 func (p *IntentionJWTProvider) Validate() error {
 	if p.Name == "" {
-		return fmt.Errorf("JWT provider name is empty")
+		return fmt.Errorf("JWT provider name is required")
 	}
 	return nil
 }

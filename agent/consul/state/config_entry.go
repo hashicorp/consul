@@ -620,14 +620,8 @@ func validateJWTProvider(existingProviderNames map[string]*structs.JWTProviderCo
 	var result error
 
 	for referencedProvider := range referencedProviderNames {
-		matchNotFound := true
-		for existingProvider := range existingProviderNames {
-			if existingProvider == referencedProvider {
-				matchNotFound = false
-			}
-		}
-
-		if matchNotFound {
+		_, found := existingProviderNames[referencedProvider]
+		if !found {
 			result = multierror.Append(result, fmt.Errorf("Referenced JWT Provider does not exist. Provider Name: %s", referencedProvider)).ErrorOrNil()
 		}
 	}
@@ -646,18 +640,12 @@ func getReferencedProviderNames(j *structs.IntentionJWTRequirement, s []*structs
 		}
 	}
 
-	if s != nil {
-		for _, src := range s {
-			if len(src.Permissions) == 0 {
-				continue
-			}
-
-			for _, perm := range src.Permissions {
-				if perm.JWT != nil && perm.JWT.Providers != nil {
-					for _, provider := range perm.JWT.Providers {
-						if _, ok := providerNames[provider.Name]; !ok {
-							providerNames[provider.Name] = struct{}{}
-						}
+	for _, src := range s {
+		for _, perm := range src.Permissions {
+			if perm.JWT != nil {
+				for _, provider := range perm.JWT.Providers {
+					if _, ok := providerNames[provider.Name]; !ok {
+						providerNames[provider.Name] = struct{}{}
 					}
 				}
 			}

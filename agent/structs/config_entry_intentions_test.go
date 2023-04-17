@@ -1281,7 +1281,7 @@ func TestServiceIntentionsConfigEntry(t *testing.T) {
 					},
 				},
 			},
-			validateErr: `JWT provider name is empty`,
+			validateErr: `JWT provider name is required`,
 		},
 		"JWT - missing 1 provider name with multiple providers": {
 			entry: &ServiceIntentionsConfigEntry{
@@ -1309,7 +1309,7 @@ func TestServiceIntentionsConfigEntry(t *testing.T) {
 					},
 				},
 			},
-			validateErr: `JWT provider name is empty`,
+			validateErr: `JWT provider name is required`,
 		},
 		"JWT - missing provider name under permissions": {
 			entry: &ServiceIntentionsConfigEntry{
@@ -1353,7 +1353,7 @@ func TestServiceIntentionsConfigEntry(t *testing.T) {
 					},
 				},
 			},
-			validateErr: `JWT provider name is empty`,
+			validateErr: `JWT provider name is required`,
 		},
 		"valid JWTs": {
 			entry: &ServiceIntentionsConfigEntry{
