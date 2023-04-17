@@ -123,7 +123,7 @@ func TestWatchList_GroupVersionMismatch(t *testing.T) {
 	mustGetNoResource(t, rspCh)
 }
 
-// N.B. Uses key ACLs for now. See demo.Register()
+// N.B. Uses key ACLs for now. See demo.RegisterTypes()
 func TestWatchList_ACL_ListDenied(t *testing.T) {
 	t.Parallel()
 
@@ -137,7 +137,7 @@ func TestWatchList_ACL_ListDenied(t *testing.T) {
 	require.Contains(t, err.Error(), "lacks permission 'key:list'")
 }
 
-// N.B. Uses key ACLs for now. See demo.Register()
+// N.B. Uses key ACLs for now. See demo.RegisterTypes()
 func TestWatchList_ACL_ListAllowed_ReadDenied(t *testing.T) {
 	t.Parallel()
 
@@ -152,7 +152,7 @@ func TestWatchList_ACL_ListAllowed_ReadDenied(t *testing.T) {
 	mustGetNoResource(t, rspCh)
 }
 
-// N.B. Uses key ACLs for now. See demo.Register()
+// N.B. Uses key ACLs for now. See demo.RegisterTypes()
 func TestWatchList_ACL_ListAllowed_ReadAllowed(t *testing.T) {
 	t.Parallel()
 

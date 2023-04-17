@@ -25,7 +25,7 @@ func TestRead_InputValidation(t *testing.T) {
 	server := testServer(t)
 	client := testClient(t, server)
 
-	demo.Register(server.Registry)
+	demo.RegisterTypes(server.Registry)
 
 	testCases := map[string]func(*pbresource.ReadRequest){
 		"no id":      func(req *pbresource.ReadRequest) { req.Id = nil },
@@ -162,7 +162,7 @@ func TestRead_VerifyReadConsistencyArg(t *testing.T) {
 	}
 }
 
-// N.B. Uses key ACLs for now. See demo.Register()
+// N.B. Uses key ACLs for now. See demo.RegisterTypes()
 func TestRead_ACLs(t *testing.T) {
 	type testCase struct {
 		authz resolver.Result

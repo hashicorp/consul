@@ -133,7 +133,7 @@ func TestList_VerifyReadConsistencyArg(t *testing.T) {
 	}
 }
 
-// N.B. Uses key ACLs for now. See demo.Register()
+// N.B. Uses key ACLs for now. See demo.RegisterTypes()
 func TestList_ACL_ListDenied(t *testing.T) {
 	t.Parallel()
 
@@ -146,7 +146,7 @@ func TestList_ACL_ListDenied(t *testing.T) {
 	require.Contains(t, err.Error(), "lacks permission 'key:list'")
 }
 
-// N.B. Uses key ACLs for now. See demo.Register()
+// N.B. Uses key ACLs for now. See demo.RegisterTypes()
 func TestList_ACL_ListAllowed_ReadDenied(t *testing.T) {
 	t.Parallel()
 
@@ -160,7 +160,7 @@ func TestList_ACL_ListAllowed_ReadDenied(t *testing.T) {
 	require.Empty(t, rsp.Resources)
 }
 
-// N.B. Uses key ACLs for now. See demo.Register()
+// N.B. Uses key ACLs for now. See demo.RegisterTypes()
 func TestList_ACL_ListAllowed_ReadAllowed(t *testing.T) {
 	t.Parallel()
 

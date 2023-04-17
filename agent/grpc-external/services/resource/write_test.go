@@ -79,7 +79,7 @@ func TestWrite_OwnerValidation(t *testing.T) {
 	server := testServer(t)
 	client := testClient(t, server)
 
-	demo.Register(server.Registry)
+	demo.RegisterTypes(server.Registry)
 
 	type testCase struct {
 		modReqFn      func(req *pbresource.WriteRequest)
@@ -183,7 +183,7 @@ func TestWrite_ACLs(t *testing.T) {
 			mockACLResolver.On("ResolveTokenAndDefaultMeta", mock.Anything, mock.Anything, mock.Anything).
 				Return(tc.authz, nil)
 			server.ACLResolver = mockACLResolver
-			demo.Register(server.Registry)
+			demo.RegisterTypes(server.Registry)
 
 			artist, err := demo.GenerateV2Artist()
 			require.NoError(t, err)
@@ -198,7 +198,7 @@ func TestWrite_ACLs(t *testing.T) {
 func TestWrite_Mutate(t *testing.T) {
 	server := testServer(t)
 	client := testClient(t, server)
-	demo.Register(server.Registry)
+	demo.RegisterTypes(server.Registry)
 
 	artist, err := demo.GenerateV2Artist()
 	require.NoError(t, err)
@@ -467,7 +467,7 @@ func TestWrite_Owner_Immutable(t *testing.T) {
 	server := testServer(t)
 	client := testClient(t, server)
 
-	demo.Register(server.Registry)
+	demo.RegisterTypes(server.Registry)
 
 	artist, err := demo.GenerateV2Artist()
 	require.NoError(t, err)
