@@ -217,6 +217,23 @@ type ACLResolverSettings struct {
 	ACLDefaultPolicy string
 }
 
+func (a ACLResolverSettings) CheckACLs() error {
+	switch a.ACLDefaultPolicy {
+	case "allow":
+	case "deny":
+	default:
+		return fmt.Errorf("Unsupported default ACL policy: %s", a.ACLDefaultPolicy)
+	}
+	switch a.ACLDownPolicy {
+	case "allow":
+	case "deny":
+	case "async-cache", "extend-cache":
+	default:
+		return fmt.Errorf("Unsupported down ACL policy: %s", a.ACLDownPolicy)
+	}
+	return nil
+}
+
 // ACLResolver is the type to handle all your token and policy resolution needs.
 //
 // Supports:

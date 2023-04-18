@@ -103,7 +103,7 @@ func NewClient(config *Config, deps Deps) (*Client, error) {
 	if config.DataDir == "" {
 		return nil, fmt.Errorf("Config must provide a DataDir")
 	}
-	if err := config.CheckACL(); err != nil {
+	if err := config.CheckEnumStrings(); err != nil {
 		return nil, err
 	}
 

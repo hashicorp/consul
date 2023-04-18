@@ -22,8 +22,6 @@ import (
 
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
-	"github.com/hashicorp/consul/agent/rpcclient"
-	"github.com/hashicorp/consul/agent/rpcclient/configentry"
 	"github.com/hashicorp/go-connlimit"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
@@ -56,6 +54,8 @@ import (
 	proxycfgglue "github.com/hashicorp/consul/agent/proxycfg-glue"
 	catalogproxycfg "github.com/hashicorp/consul/agent/proxycfg-sources/catalog"
 	localproxycfg "github.com/hashicorp/consul/agent/proxycfg-sources/local"
+	"github.com/hashicorp/consul/agent/rpcclient"
+	"github.com/hashicorp/consul/agent/rpcclient/configentry"
 	"github.com/hashicorp/consul/agent/rpcclient/health"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/systemd"
@@ -707,6 +707,8 @@ func (a *Agent) Start(ctx context.Context) error {
 	}
 
 	var intentionDefaultAllow bool
+	// For backwards compatibility as of Consul 1.16, we
+	// inherit the value from ACLDefaultPolicy.
 	switch a.config.ACLResolverSettings.ACLDefaultPolicy {
 	case "allow":
 		intentionDefaultAllow = true
@@ -714,6 +716,15 @@ func (a *Agent) Start(ctx context.Context) error {
 		intentionDefaultAllow = false
 	default:
 		return fmt.Errorf("unexpected ACL default policy value of %q", a.config.ACLResolverSettings.ACLDefaultPolicy)
+	}
+
+	// If DefaultIntentionPolicy is defined, it should override
+	// the values inherited from ACLDefaultPolicy.
+	switch a.config.DefaultIntentionPolicy {
+	case "allow":
+		intentionDefaultAllow = true
+	case "deny":
+		intentionDefaultAllow = false
 	}
 
 	go a.baseDeps.ViewStore.Run(&lib.StopChannelContext{StopCh: a.shutdownCh})

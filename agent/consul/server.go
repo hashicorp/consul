@@ -460,7 +460,7 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server, incom
 	if config.DataDir == "" && !config.DevMode {
 		return nil, fmt.Errorf("Config must provide a DataDir")
 	}
-	if err := config.CheckACL(); err != nil {
+	if err := config.CheckEnumStrings(); err != nil {
 		return nil, err
 	}
 

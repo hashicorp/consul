@@ -409,6 +409,13 @@ type Config struct {
 	// datacenters should exclusively traverse mesh gateways.
 	ConnectMeshGatewayWANFederationEnabled bool
 
+	// DefaultIntentionPolicy is used to define a default intention action for all
+	// sources and destinations. Possible values are "allow", "deny", or "" (blank).
+	// For compatibility, falls back to ACLResolverSettings.ACLDefaultPolicy (which
+	// itself has a default of "allow") if left blank. Future versions of Consul
+	// will default this field to "deny" to be secure by default.
+	DefaultIntentionPolicy string
+
 	// DisableFederationStateAntiEntropy solely exists for use in unit tests to
 	// disable a background routine.
 	DisableFederationStateAntiEntropy bool
@@ -462,21 +469,17 @@ func (c *Config) CheckProtocolVersion() error {
 	return nil
 }
 
-// CheckACL validates the ACL configuration.
-// TODO: move this to ACLResolverSettings
-func (c *Config) CheckACL() error {
-	switch c.ACLResolverSettings.ACLDefaultPolicy {
-	case "allow":
-	case "deny":
-	default:
-		return fmt.Errorf("Unsupported default ACL policy: %s", c.ACLResolverSettings.ACLDefaultPolicy)
+// CheckEnumStrings validates string configuration which must be specific values.
+func (c *Config) CheckEnumStrings() error {
+	if err := c.ACLResolverSettings.CheckACLs(); err != nil {
+		return err
 	}
-	switch c.ACLResolverSettings.ACLDownPolicy {
+	switch c.DefaultIntentionPolicy {
 	case "allow":
 	case "deny":
-	case "async-cache", "extend-cache":
+	case "":
 	default:
-		return fmt.Errorf("Unsupported down ACL policy: %s", c.ACLResolverSettings.ACLDownPolicy)
+		return fmt.Errorf("Unsupported default intention policy: %s", c.DefaultIntentionPolicy)
 	}
 	return nil
 }

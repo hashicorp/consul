@@ -565,6 +565,15 @@ type RuntimeConfig struct {
 	// flag: -data-dir string
 	DataDir string
 
+	// DefaultIntentionPolicy is used to define a default intention action for all
+	// sources and destinations. Possible values are "allow", "deny", or "" (blank).
+	// For compatibility, falls back to ACLResolverSettings.ACLDefaultPolicy (which
+	// itself has a default of "allow") if left blank. Future versions of Consul
+	// will default this field to "deny" to be secure by default.
+	//
+	// hcl: default_intention_policy = string
+	DefaultIntentionPolicy string
+
 	// DefaultQueryTime is the amount of time a blocking query will wait before
 	// Consul will force a response. This value can be overridden by the 'wait'
 	// query parameter.
