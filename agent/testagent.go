@@ -211,6 +211,9 @@ func (a *TestAgent) Start(t *testing.T) error {
 			} else {
 				result.RuntimeConfig.Telemetry.Disable = true
 			}
+
+			// Lower the resync interval for tests.
+			result.RuntimeConfig.LocalProxyConfigResyncInterval = 250 * time.Millisecond
 		}
 		return result, err
 	}
