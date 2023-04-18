@@ -127,10 +127,14 @@ func makeClientWithConfig(
 	}
 	// TODO: magic env var :(
 	if _, ok := os.LookupEnv("TEST_API_CLIENT_NOPWRITE"); ok {
+		tr := client.config.HttpClient.Transport
+		if tr == nil {
+			tr = cleanhttp.DefaultPooledTransport()
+		}
 		// client.doRequest uses client.config.HttpClient
 		client.config.HttpClient.Transport = &nopWriteRoundTripper{
 			t:  t,
-			tr: cleanhttp.DefaultPooledTransport(),
+			tr: tr,
 		}
 	}
 
@@ -1266,10 +1270,11 @@ func (t *nopWriteRoundTripper) RoundTrip(req *http.Request) (*http.Response, err
 	}
 	for _, m := range writeMethods {
 		if req.Method == m {
-			t.t.Logf("NOP: %s %s", req.Method, req.URL)
+			t.t.Logf("NOP: %s %s", req.Method, req.URL.Path)
 			return &http.Response{
 				Status:     "200 OK",
 				StatusCode: http.StatusOK,
+				Header:     http.Header{},
 			}, nil
 		}
 	}
