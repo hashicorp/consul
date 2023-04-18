@@ -58,10 +58,15 @@ func (m *Manager) Run(ctx context.Context) {
 	m.running = true
 
 	for _, desc := range m.controllers {
+		logger := desc.logger
+		if logger == nil {
+			logger = m.logger.With("managed_type", resource.ToGVK(desc.managedType))
+		}
+
 		runner := &controllerRunner{
 			ctrl:   desc,
 			client: m.client,
-			logger: m.logger.With("managed_type", resource.ToGVK(desc.managedType)),
+			logger: logger,
 		}
 		go newSupervisor(runner.run, m.newLeaseLocked()).run(ctx)
 	}
