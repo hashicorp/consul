@@ -27,6 +27,7 @@ import (
 
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
+	"github.com/hashicorp/go-cleanhttp"
 )
 
 type configCallback func(c *Config)
@@ -123,6 +124,14 @@ func makeClientWithConfig(
 	if err != nil {
 		server.Stop()
 		t.Fatalf("err: %v", err)
+	}
+	// TODO: magic env var :(
+	if _, ok := os.LookupEnv("TEST_API_CLIENT_NOPWRITE"); ok {
+		// client.doRequest uses client.config.HttpClient
+		client.config.HttpClient.Transport = &nopWriteRoundTripper{
+			t:  t,
+			tr: cleanhttp.DefaultPooledTransport(),
+		}
 	}
 
 	return client, server
@@ -1239,4 +1248,30 @@ func assertDeepEqual(t *testing.T, x, y interface{}, opts ...cmp.Option) {
 	if diff := cmp.Diff(x, y, opts...); diff != "" {
 		t.Fatalf("assertion failed: values are not equal\n--- expected\n+++ actual\n%v", diff)
 	}
+}
+
+type nopWriteRoundTripper struct {
+	t  *testing.T
+	tr http.RoundTripper
+}
+
+func (t *nopWriteRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
+	t.t.Helper()
+	// TODO: no idea if this is comprehensive or accurate; I think it's just PUT
+	writeMethods := []string{
+		http.MethodPost,
+		http.MethodPut,
+		http.MethodPatch,
+		http.MethodDelete,
+	}
+	for _, m := range writeMethods {
+		if req.Method == m {
+			t.t.Logf("NOP: %s %s", req.Method, req.URL)
+			return &http.Response{
+				Status:     "200 OK",
+				StatusCode: http.StatusOK,
+			}, nil
+		}
+	}
+	return t.tr.RoundTrip(req)
 }
