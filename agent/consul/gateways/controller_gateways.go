@@ -871,7 +871,7 @@ func gatewayListenerNoConflicts(ref structs.ResourceReference) structs.Condition
 	return structs.NewGatewayCondition(
 		api.GatewayConditionConflicted,
 		api.ConditionStatusFalse,
-		api.GatewayReasonNoConflicts,
+		api.GatewayReasonNoConflict,
 		"listener has no route conflicts",
 		ref,
 	)

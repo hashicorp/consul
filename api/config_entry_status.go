@@ -117,7 +117,7 @@ const (
 	//
 	// Possible reasons for this condition to be False are:
 	//
-	// * "NoConflicts"
+	// * "NoConflict"
 	//
 	// Controllers may raise this condition with other reasons,
 	// but should prefer to use the reasons listed above to improve
@@ -125,7 +125,7 @@ const (
 	GatewayConditionConflicted GatewayConditionType = "Conflicted"
 	// This reason is used with the "Conflicted" condition when the condition
 	// is False.
-	GatewayReasonNoConflicts GatewayConditionReason = "NoConflicts"
+	GatewayReasonNoConflict GatewayConditionReason = "NoConflict"
 	// This reason is used with the "Conflicted" condition when the route is
 	// in a conflicted state, such as when a TCPListener attempts to bind to two routes
 	GatewayReasonRouteConflict GatewayConditionReason = "RouteConflict"
@@ -180,7 +180,7 @@ var validGatewayConditionReasonsMapping = map[GatewayConditionType]map[Condition
 			GatewayReasonRouteConflict,
 		},
 		ConditionStatusFalse: {
-			GatewayReasonNoConflicts,
+			GatewayReasonNoConflict,
 		},
 		ConditionStatusUnknown: {},
 	},

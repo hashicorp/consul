@@ -25,7 +25,7 @@ func TestValidateGatewayConditionReasonWithValidCombinations(t *testing.T) {
 		},
 		"conflicted no conflicts": {
 			status:   ConditionStatusFalse,
-			reason:   GatewayReasonNoConflicts,
+			reason:   GatewayReasonNoConflict,
 			condType: GatewayConditionConflicted,
 		},
 
@@ -60,17 +60,17 @@ func TestValidateGatewayConditionReasonWithInvalidCombinationsReturnsError(t *te
 	}{
 		"reason and condition type are valid but status is not": {
 			status:   ConditionStatusTrue,
-			reason:   GatewayReasonNoConflicts,
+			reason:   GatewayReasonNoConflict,
 			condType: GatewayConditionConflicted,
 		},
 		"reason and status are valid but condition type is not": {
 			status:   ConditionStatusFalse,
-			reason:   GatewayReasonNoConflicts,
+			reason:   GatewayReasonNoConflict,
 			condType: GatewayConditionResolvedRefs,
 		},
 		"condition type and status are valid but status is not": {
 			status:   ConditionStatusTrue,
-			reason:   GatewayReasonNoConflicts,
+			reason:   GatewayReasonNoConflict,
 			condType: GatewayConditionAccepted,
 		},
 		"all are invalid": {
