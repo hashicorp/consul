@@ -4,7 +4,6 @@
 name: test-integrations
 
 on:
-  push:
   pull_request:
     branches-ignore:
       - stable-website
