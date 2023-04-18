@@ -19,8 +19,8 @@ func TestBasic(t *testing.T) {
 	t.Parallel()
 
 	configCtx := libcluster.NewBuildContext(t, libcluster.BuildOptions{
-		ConsulImageName: utils.TargetImageName,
-		ConsulVersion:   utils.LatestVersion,
+		ConsulImageName: utils.GetTargetImageName(),
+		ConsulVersion:   utils.TargetVersion,
 	})
 
 	const numServers = 1
@@ -29,7 +29,7 @@ func TestBasic(t *testing.T) {
 		Bootstrap(numServers).
 		ToAgentConfig(t)
 	t.Logf("Cluster config:\n%s", serverConf.JSON)
-	require.Equal(t, utils.LatestVersion, serverConf.Version) // TODO: remove
+	require.Equal(t, utils.TargetVersion, serverConf.Version) // TODO: remove
 
 	cluster, err := libcluster.NewN(t, *serverConf, numServers)
 	require.NoError(t, err)
