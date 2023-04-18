@@ -537,7 +537,7 @@ spec:
           type: 'string: ""',
           description:
               `Specifies the destination cluster peer to resolve the target service name from.
-                  Ensure that [intentions are defined](/consul/docs/connect/cluster-peering/create-manage-peering#authorize-services-for-peers)
+                  Ensure that [intentions are defined](/consul/docs/connect/cluster-peering/usage/establish-cluster-peering#authorize-services-for-peers)
                   on the peered cluster to allow the source service to access this redirect target service as an upstream. When
                   the peer name is specified, Consul uses Envoy's outlier detection to determine
                   the health of the redirect target based on whether communication attempts to the
@@ -646,7 +646,7 @@ spec:
               type: 'string: ""',
               description:
               `Specifies the destination cluster peer to resolve the target service name from.
-                  Ensure that [intentions are defined](/consul/docs/connect/cluster-peering/create-manage-peering#authorize-services-for-peers)
+                  Ensure that [intentions are defined](/consul/docs/connect/cluster-peering/usage/establish-cluster-peering#authorize-services-for-peers)
                   on the peered cluster to allow the source service to access this failover target service as an upstream.
                   When the peer name is specified, Consul uses Envoy's outlier detection
                   to determine the health of the failover target based on
