@@ -21,6 +21,12 @@ func (c Controller) WithReconciler(reconciler Reconciler) Controller {
 	return c
 }
 
+// WithLogger adds the given logger to the controller being built.
+func (c Controller) WithLogger(logger hclog.Logger) Controller {
+	c.logger = logger
+	return c
+}
+
 // WithBackoff changes the base and maximum backoff values for the controller's
 // retry rate limiter.
 func (c Controller) WithBackoff(base, max time.Duration) Controller {
@@ -38,6 +44,7 @@ func (c Controller) WithBackoff(base, max time.Duration) Controller {
 type Controller struct {
 	managedType *pbresource.Type
 	reconciler  Reconciler
+	logger      hclog.Logger
 
 	baseBackoff, maxBackoff time.Duration
 }
