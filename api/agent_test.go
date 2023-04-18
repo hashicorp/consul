@@ -1365,6 +1365,20 @@ func TestAPI_AgentForceLeavePrune(t *testing.T) {
 	}
 }
 
+func TestAPI_AgentForceLeaveOptions(t *testing.T) {
+	t.Parallel()
+	c, s := makeClient(t)
+	defer s.Stop()
+
+	agent := c.Agent()
+
+	// Eject somebody with token
+	err := agent.ForceLeaveOptions(s.Config.NodeName, ForceLeaveOpts{Prune: true}, &QueryOptions{Token: "testToken"})
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+}
+
 func TestAPI_AgentMonitor(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
