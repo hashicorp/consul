@@ -8,10 +8,12 @@ import (
 	"github.com/hashicorp/go-hclog"
 
 	"github.com/hashicorp/consul/internal/resource"
+	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
 // Manager is responsible for scheduling the execution of controllers.
 type Manager struct {
+	client pbresource.ResourceServiceClient
 	logger hclog.Logger
 
 	raftLeader atomic.Bool
@@ -24,8 +26,11 @@ type Manager struct {
 
 // NewManager creates a Manager. logger will be used by the Manager, and as the
 // base logger for controllers when one is not specified using WithLogger.
-func NewManager(logger hclog.Logger) *Manager {
-	return &Manager{logger: logger}
+func NewManager(client pbresource.ResourceServiceClient, logger hclog.Logger) *Manager {
+	return &Manager{
+		client: client,
+		logger: logger,
+	}
 }
 
 // Register the given controller to be executed by the Manager. Cannot be called
@@ -55,6 +60,7 @@ func (m *Manager) Run(ctx context.Context) {
 	for _, desc := range m.controllers {
 		runner := &controllerRunner{
 			ctrl:   desc,
+			client: m.client,
 			logger: m.logger.With("managed_type", resource.ToGVK(desc.managedType)),
 		}
 		go newSupervisor(runner.run, m.newLeaseLocked()).run(ctx)
