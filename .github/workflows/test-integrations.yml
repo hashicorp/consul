@@ -84,7 +84,8 @@ jobs:
 
       - name: Run integration tests
         run: |
-          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
+          go install gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} && \
+          gotestsum \
             --format=short-verbose \
             --rerun-fails \
             --rerun-fails-report=/tmp/gotestsum-rerun-fails \
