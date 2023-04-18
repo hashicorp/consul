@@ -7,7 +7,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 )
 
-func (s *Server) getSystemMetadata(key string) (string, error) {
+func (s *Server) GetSystemMetadata(key string) (string, error) {
 	_, entry, err := s.fsm.State().SystemMetadataGet(nil, key)
 	if err != nil {
 		return "", err
@@ -19,7 +19,7 @@ func (s *Server) getSystemMetadata(key string) (string, error) {
 	return entry.Value, nil
 }
 
-func (s *Server) setSystemMetadataKey(key, val string) error {
+func (s *Server) SetSystemMetadataKey(key, val string) error {
 	args := &structs.SystemMetadataRequest{
 		Op:    structs.SystemMetadataUpsert,
 		Entry: &structs.SystemMetadataEntry{Key: key, Value: val},

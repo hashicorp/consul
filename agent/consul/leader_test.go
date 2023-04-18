@@ -1303,7 +1303,7 @@ func TestLeader_ACL_Initialization(t *testing.T) {
 			require.NoError(t, err)
 			require.NotNil(t, policy)
 
-			serverToken, err := s1.getSystemMetadata(structs.ServerManagementTokenAccessorID)
+			serverToken, err := s1.GetSystemMetadata(structs.ServerManagementTokenAccessorID)
 			require.NoError(t, err)
 			require.NotEmpty(t, serverToken)
 
@@ -1341,14 +1341,14 @@ func TestLeader_ACL_Initialization_SecondaryDC(t *testing.T) {
 	testrpc.WaitForTestAgent(t, s2.RPC, "dc2")
 
 	// Check dc1's management token
-	serverToken1, err := s1.getSystemMetadata(structs.ServerManagementTokenAccessorID)
+	serverToken1, err := s1.GetSystemMetadata(structs.ServerManagementTokenAccessorID)
 	require.NoError(t, err)
 	require.NotEmpty(t, serverToken1)
 	_, err = uuid.ParseUUID(serverToken1)
 	require.NoError(t, err)
 
 	// Check dc2's management token
-	serverToken2, err := s2.getSystemMetadata(structs.ServerManagementTokenAccessorID)
+	serverToken2, err := s2.GetSystemMetadata(structs.ServerManagementTokenAccessorID)
 	require.NoError(t, err)
 	require.NotEmpty(t, serverToken2)
 	_, err = uuid.ParseUUID(serverToken2)
