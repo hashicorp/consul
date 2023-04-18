@@ -177,7 +177,7 @@ var validGatewayConditionReasonsMapping = map[GatewayConditionType]map[Condition
 	},
 	GatewayConditionConflicted: {
 		ConditionStatusTrue: {
-			GatewayReasonRouteConflicted,
+			GatewayReasonRouteConflict,
 		},
 		ConditionStatusFalse: {
 			GatewayReasonNoConflicts,
