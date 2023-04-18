@@ -19,6 +19,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/api"
 )
 
 var (
@@ -831,9 +832,9 @@ func newGatewayMeta(gateway *structs.APIGatewayConfigEntry, bound structs.Config
 // gatewayAccepted marks the APIGateway as valid.
 func gatewayAccepted() structs.Condition {
 	return structs.NewGatewayCondition(
-		structs.GatewayConditionAccepted,
-		structs.ConditionStatusTrue,
-		structs.GatewayReasonAccepted,
+		api.GatewayConditionAccepted,
+		api.ConditionStatusTrue,
+		api.GatewayReasonAccepted,
 		"gateway is valid",
 		structs.ResourceReference{},
 	)
@@ -844,9 +845,9 @@ func gatewayAccepted() structs.Condition {
 // to a given APIGateway listener.
 func invalidCertificate(ref structs.ResourceReference, err error) structs.Condition {
 	return structs.NewGatewayCondition(
-		structs.GatewayConditionResolvedRefs,
-		structs.ConditionStatusFalse,
-		structs.GatewayListenerReasonInvalidCertificateRef,
+		api.GatewayConditionResolvedRefs,
+		api.ConditionStatusFalse,
+		api.GatewayListenerReasonInvalidCertificateRef,
 		err.Error(),
 		ref,
 	)
@@ -856,9 +857,9 @@ func invalidCertificate(ref structs.ResourceReference, err error) structs.Condit
 // to invalid due to missing certificates that it references.
 func invalidCertificates() structs.Condition {
 	return structs.NewGatewayCondition(
-		structs.GatewayConditionAccepted,
-		structs.ConditionStatusFalse,
-		structs.GatewayReasonInvalidCertificates,
+		api.GatewayConditionAccepted,
+		api.ConditionStatusFalse,
+		api.GatewayReasonInvalidCertificates,
 		"gateway references invalid certificates",
 		structs.ResourceReference{},
 	)
@@ -868,9 +869,9 @@ func invalidCertificates() structs.Condition {
 // bound routes
 func gatewayListenerNoConflicts(ref structs.ResourceReference) structs.Condition {
 	return structs.NewGatewayCondition(
-		structs.GatewayConditionConflicted,
-		structs.ConditionStatusFalse,
-		structs.GatewayReasonNoConflicts,
+		api.GatewayConditionConflicted,
+		api.ConditionStatusFalse,
+		api.GatewayReasonNoConflicts,
 		"listener has no route conflicts",
 		ref,
 	)
@@ -880,9 +881,9 @@ func gatewayListenerNoConflicts(ref structs.ResourceReference) structs.Condition
 // and make the listener, therefore invalid
 func gatewayListenerConflicts(ref structs.ResourceReference) structs.Condition {
 	return structs.NewGatewayCondition(
-		structs.GatewayConditionConflicted,
-		structs.ConditionStatusTrue,
-		structs.GatewayReasonRouteConflicted,
+		api.GatewayConditionConflicted,
+		api.ConditionStatusTrue,
+		api.GatewayReasonRouteConflicted,
 		"TCP-based listeners currently only support binding a single route",
 		ref,
 	)
@@ -891,9 +892,9 @@ func gatewayListenerConflicts(ref structs.ResourceReference) structs.Condition {
 // routeBound marks a Route as bound to the referenced APIGateway
 func routeBound(ref structs.ResourceReference) structs.Condition {
 	return structs.NewRouteCondition(
-		structs.RouteConditionBound,
-		structs.ConditionStatusTrue,
-		structs.RouteReasonBound,
+		api.RouteConditionBound,
+		api.ConditionStatusTrue,
+		api.RouteReasonBound,
 		"successfully bound route",
 		ref,
 	)
@@ -903,9 +904,9 @@ func routeBound(ref structs.ResourceReference) structs.Condition {
 // the Gateway not existing (or having not been reconciled yet)
 func gatewayNotFound(ref structs.ResourceReference) structs.Condition {
 	return structs.NewRouteCondition(
-		structs.RouteConditionBound,
-		structs.ConditionStatusFalse,
-		structs.RouteReasonGatewayNotFound,
+		api.RouteConditionBound,
+		api.ConditionStatusFalse,
+		api.RouteReasonGatewayNotFound,
 		"gateway was not found",
 		ref,
 	)
@@ -914,9 +915,9 @@ func gatewayNotFound(ref structs.ResourceReference) structs.Condition {
 // routeUnbound marks the route as having failed to bind to the referenced APIGateway
 func routeUnbound(ref structs.ResourceReference, err error) structs.Condition {
 	return structs.NewRouteCondition(
-		structs.RouteConditionBound,
-		structs.ConditionStatusFalse,
-		structs.RouteReasonFailedToBind,
+		api.RouteConditionBound,
+		api.ConditionStatusFalse,
+		api.RouteReasonFailedToBind,
 		err.Error(),
 		ref,
 	)
@@ -925,9 +926,9 @@ func routeUnbound(ref structs.ResourceReference, err error) structs.Condition {
 // routeAccepted marks the Route as valid
 func routeAccepted() structs.Condition {
 	return structs.NewRouteCondition(
-		structs.RouteConditionAccepted,
-		structs.ConditionStatusTrue,
-		structs.RouteReasonAccepted,
+		api.RouteConditionAccepted,
+		api.ConditionStatusTrue,
+		api.RouteReasonAccepted,
 		"route is valid",
 		structs.ResourceReference{},
 	)
@@ -937,9 +938,9 @@ func routeAccepted() structs.Condition {
 // discovery chian
 func routeInvalidDiscoveryChain(err error) structs.Condition {
 	return structs.NewRouteCondition(
-		structs.RouteConditionAccepted,
-		structs.ConditionStatusFalse,
-		structs.RouteReasonInvalidDiscoveryChain,
+		api.RouteConditionAccepted,
+		api.ConditionStatusFalse,
+		api.RouteReasonInvalidDiscoveryChain,
 		err.Error(),
 		structs.ResourceReference{},
 	)
@@ -948,9 +949,9 @@ func routeInvalidDiscoveryChain(err error) structs.Condition {
 // routeNoUpstreams marks the route as invalid because it has no upstreams that it targets
 func routeNoUpstreams() structs.Condition {
 	return structs.NewRouteCondition(
-		structs.RouteConditionAccepted,
-		structs.ConditionStatusFalse,
-		structs.RouteReasonNoUpstreamServicesTargeted,
+		api.RouteConditionAccepted,
+		api.ConditionStatusFalse,
+		api.RouteReasonNoUpstreamServicesTargeted,
 		"route must target at least one upstream service",
 		structs.ResourceReference{},
 	)
