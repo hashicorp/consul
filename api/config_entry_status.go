@@ -128,7 +128,7 @@ const (
 	GatewayReasonNoConflicts GatewayConditionReason = "NoConflicts"
 	// This reason is used with the "Conflicted" condition when the route is
 	// in a conflicted state, such as when a TCPListener attempts to bind to two routes
-	GatewayReasonRouteConflicted GatewayConditionReason = "RouteConflicted"
+	GatewayReasonRouteConflict GatewayConditionReason = "RouteConflict"
 
 	// This condition indicates whether the controller was able to
 	// resolve all the object references for the Gateway. When setting this

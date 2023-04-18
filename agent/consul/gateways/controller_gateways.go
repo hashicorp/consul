@@ -883,7 +883,7 @@ func gatewayListenerConflicts(ref structs.ResourceReference) structs.Condition {
 	return structs.NewGatewayCondition(
 		api.GatewayConditionConflicted,
 		api.ConditionStatusTrue,
-		api.GatewayReasonRouteConflicted,
+		api.GatewayReasonRouteConflict,
 		"TCP-based listeners currently only support binding a single route",
 		ref,
 	)

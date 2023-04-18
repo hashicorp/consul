@@ -18,6 +18,16 @@ func TestValidateGatewayConditionReasonWithValidCombinations(t *testing.T) {
 			reason:   GatewayReasonInvalidCertificates,
 			condType: GatewayConditionAccepted,
 		},
+		"conflicted": {
+			status:   ConditionStatusTrue,
+			reason:   GatewayReasonRouteConflict,
+			condType: GatewayConditionConflicted,
+		},
+		"conflicted no conflicts": {
+			status:   ConditionStatusFalse,
+			reason:   GatewayReasonNoConflicts,
+			condType: GatewayConditionConflicted,
+		},
 
 		"resolved refs": {
 			status:   ConditionStatusTrue,
