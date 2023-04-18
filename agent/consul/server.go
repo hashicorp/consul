@@ -507,7 +507,6 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server, incom
 		incomingRPCLimiter:      incomingRPCLimiter,
 		routineManager:          routine.NewManager(logger.Named(logging.ConsulServer)),
 		typeRegistry:            resource.NewRegistry(),
-		controllerManager:       controller.NewManager(logger.Named(logging.ControllerRuntime)),
 	}
 	incomingRPCLimiter.Register(s)
 
@@ -832,6 +831,10 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server, incom
 		return nil, err
 	}
 
+	s.controllerManager = controller.NewManager(
+		s.internalResourceServiceClient,
+		logger.Named(logging.ControllerRuntime),
+	)
 	s.registerResources()
 	go s.controllerManager.Run(&lib.StopChannelContext{StopCh: shutdownCh})
 
