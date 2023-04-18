@@ -18,6 +18,10 @@ import (
 	"github.com/hashicorp/consul/lib/maps"
 )
 
+var (
+	permissiveModeNotAllowedError = errors.New("cannot set MutualTLSMode=permissive because AllowEnablingPermissiveMutualTLS=false in the mesh config entry")
+)
+
 type ConfigEntryLinkIndex struct {
 }
 
@@ -229,14 +233,16 @@ func ensureConfigEntryTxn(tx WriteTxn, idx uint64, statusUpdate bool, conf struc
 		return fmt.Errorf("failed configuration lookup: %s", err)
 	}
 
+	var existingConf structs.ConfigEntry
 	raftIndex := conf.GetRaftIndex()
 	if existing != nil {
-		existingIdx := existing.(structs.ConfigEntry).GetRaftIndex()
+		existingConf = existing.(structs.ConfigEntry)
+		existingIdx := existingConf.GetRaftIndex()
 		raftIndex.CreateIndex = existingIdx.CreateIndex
 
 		// Handle optional upsert logic.
 		if updatableConf, ok := conf.(structs.UpdatableConfigEntry); ok {
-			if err := updatableConf.UpdateOver(existing.(structs.ConfigEntry)); err != nil {
+			if err := updatableConf.UpdateOver(existingConf); err != nil {
 				return err
 			}
 		}
@@ -256,7 +262,7 @@ func ensureConfigEntryTxn(tx WriteTxn, idx uint64, statusUpdate bool, conf struc
 	}
 	raftIndex.ModifyIndex = idx
 
-	err = validateProposedConfigEntryInGraph(tx, q, conf)
+	err = validateProposedConfigEntryInGraph(tx, q, conf, existingConf)
 	if err != nil {
 		return err // Err is already sufficiently decorated.
 	}
@@ -445,7 +451,7 @@ func deleteConfigEntryTxn(tx WriteTxn, idx uint64, kind, name string, entMeta *a
 		}
 	}
 
-	err = validateProposedConfigEntryInGraph(tx, q, nil)
+	err = validateProposedConfigEntryInGraph(tx, q, nil, c)
 	if err != nil {
 		return err // Err is already sufficiently decorated.
 	}
@@ -544,7 +550,7 @@ func insertConfigEntryWithTxn(tx WriteTxn, idx uint64, conf structs.ConfigEntry)
 func validateProposedConfigEntryInGraph(
 	tx ReadTxn,
 	kindName configentry.KindName,
-	newEntry structs.ConfigEntry,
+	newEntry, existingEntry structs.ConfigEntry,
 ) error {
 	switch kindName.Kind {
 	case structs.ProxyDefaults:
@@ -552,7 +558,25 @@ func validateProposedConfigEntryInGraph(
 		if kindName.Name != structs.ProxyConfigGlobal {
 			return nil
 		}
+		if newPD, ok := newEntry.(*structs.ProxyConfigEntry); ok && newPD != nil {
+			var existingMode structs.MutualTLSMode
+			if existingPD, ok := existingEntry.(*structs.ProxyConfigEntry); ok && existingPD != nil {
+				existingMode = existingPD.MutualTLSMode
+			}
+			if err := checkMutualTLSMode(tx, kindName, newPD.MutualTLSMode, existingMode); err != nil {
+				return err
+			}
+		}
 	case structs.ServiceDefaults:
+		if newSD, ok := newEntry.(*structs.ServiceConfigEntry); ok && newSD != nil {
+			var existingMode structs.MutualTLSMode
+			if existingSD, ok := existingEntry.(*structs.ServiceConfigEntry); ok && existingSD != nil {
+				existingMode = existingSD.MutualTLSMode
+			}
+			if err := checkMutualTLSMode(tx, kindName, newSD.MutualTLSMode, existingMode); err != nil {
+				return err
+			}
+		}
 	case structs.ServiceRouter:
 	case structs.ServiceSplitter:
 	case structs.ServiceResolver:
@@ -581,6 +605,54 @@ func validateProposedConfigEntryInGraph(
 	}
 
 	return validateProposedConfigEntryInServiceGraph(tx, kindName, newEntry)
+}
+
+// checkMutualTLSMode validates the MutualTLSMode (in proxy-defaults or
+// service-defaults) against the AllowEnablingPermissiveMutualTLS setting in the
+// mesh config entry, as follows:
+//
+// - If AllowEnablingPermissiveMutualTLS=true, any value of MutualTLSMode is allowed.
+// - If AllowEnablingPermissiveMutualTLS=false, *changing* to MutualTLSMode=permissive is not allowed
+//
+// If MutualTLSMode=permissive is already stored, but the setting is not being changed
+// by this transaction, then the permissive setting is allowed (does not cause a validation error).
+func checkMutualTLSMode(tx ReadTxn, kindName configentry.KindName, newMode, existingMode structs.MutualTLSMode) error {
+	// Setting the mode to something not permissive is always allowed.
+	if newMode != structs.MutualTLSModePermissive {
+		return nil
+	}
+
+	// If the MutualTLSMode has not been changed, then do not error. This allows
+	// remaining in MutualTLSMode=permissive without causing validation failures
+	// after AllowEnablingPermissiveMutualTLS=false is set.
+	if existingMode == newMode {
+		return nil
+	}
+
+	// The mesh config entry exists in the default namespace in the given partition.
+	metaInDefaultNS := acl.NewEnterpriseMetaWithPartition(
+		kindName.EnterpriseMeta.PartitionOrDefault(),
+		acl.DefaultNamespaceName,
+	)
+	_, mesh, err := configEntryTxn(tx, nil, structs.MeshConfig, structs.MeshConfigMesh, &metaInDefaultNS)
+	if err != nil {
+		return fmt.Errorf("unable to validate MutualTLSMode against mesh config entry: %w", err)
+	}
+
+	permissiveAllowed := false
+	if mesh != nil {
+		meshConfig, ok := mesh.(*structs.MeshConfigEntry)
+		if !ok {
+			return fmt.Errorf("unable to validate MutualTLSMode: invalid type from mesh config entry lookup: %T", mesh)
+		}
+		permissiveAllowed = meshConfig.AllowEnablingPermissiveMutualTLS
+	}
+
+	// If permissive is not allowed, then any value for MutualTLSMode is allowed.
+	if !permissiveAllowed && newMode == structs.MutualTLSModePermissive {
+		return permissiveModeNotAllowedError
+	}
+	return nil
 }
 
 func checkGatewayClash(tx ReadTxn, kindName configentry.KindName, otherKind string) error {
