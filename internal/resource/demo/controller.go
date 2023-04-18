@@ -23,6 +23,7 @@ func RegisterControllers(mgr *controller.Manager) {
 
 func artistController() controller.Controller {
 	return controller.ForType(TypeV2Artist).
+		WithWatch(TypeV2Album, controller.MapOwner).
 		WithReconciler(&artistReconciler{})
 }
 

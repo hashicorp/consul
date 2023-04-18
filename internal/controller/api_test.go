@@ -22,6 +22,7 @@ func TestControllerAPI(t *testing.T) {
 
 	ctrl := controller.
 		ForType(demo.TypeV2Artist).
+		WithWatch(demo.TypeV2Album, controller.MapOwner).
 		WithBackoff(10*time.Millisecond, 100*time.Millisecond).
 		WithReconciler(rec)
 
@@ -30,7 +31,18 @@ func TestControllerAPI(t *testing.T) {
 	mgr.SetRaftLeader(true)
 	go mgr.Run(testContext(t))
 
-	t.Run("basic", func(t *testing.T) {
+	t.Run("managed resource type", func(t *testing.T) {
+		res, err := demo.GenerateV2Artist()
+		require.NoError(t, err)
+
+		rsp, err := client.Write(testContext(t), &pbresource.WriteRequest{Resource: res})
+		require.NoError(t, err)
+
+		req := rec.wait(t)
+		prototest.AssertDeepEqual(t, rsp.Resource.Id, req.ID)
+	})
+
+	t.Run("watched resource type", func(t *testing.T) {
 		res, err := demo.GenerateV2Artist()
 		require.NoError(t, err)
 
@@ -40,7 +52,16 @@ func TestControllerAPI(t *testing.T) {
 		req := rec.wait(t)
 		prototest.AssertDeepEqual(t, rsp.Resource.Id, req.ID)
 
-		rec.expectNoRequest(t, 1*time.Second)
+		rec.expectNoRequest(t, 500*time.Millisecond)
+
+		album, err := demo.GenerateV2Album(rsp.Resource.Id)
+		require.NoError(t, err)
+
+		_, err = client.Write(testContext(t), &pbresource.WriteRequest{Resource: album})
+		require.NoError(t, err)
+
+		req = rec.wait(t)
+		prototest.AssertDeepEqual(t, rsp.Resource.Id, req.ID)
 	})
 
 	t.Run("error retries", func(t *testing.T) {
