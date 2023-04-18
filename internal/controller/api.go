@@ -21,6 +21,14 @@ func (c Controller) WithReconciler(reconciler Reconciler) Controller {
 	return c
 }
 
+// WithWatch adds a watch on the given type/dependency to the controller being
+// built. mapper will be called to determine which resources must be reconciled
+// as a result of a watched resource changing.
+func (c Controller) WithWatch(watchedType *pbresource.Type, mapper DependencyMapper) Controller {
+	c.watches = append(c.watches, watch{watchedType, mapper})
+	return c
+}
+
 // WithLogger adds the given logger to the controller being built.
 func (c Controller) WithLogger(logger hclog.Logger) Controller {
 	c.logger = logger
@@ -45,8 +53,14 @@ type Controller struct {
 	managedType *pbresource.Type
 	reconciler  Reconciler
 	logger      hclog.Logger
+	watches     []watch
+	baseBackoff time.Duration
+	maxBackoff  time.Duration
+}
 
-	baseBackoff, maxBackoff time.Duration
+type watch struct {
+	watchedType *pbresource.Type
+	mapper      DependencyMapper
 }
 
 // Request represents a request to reconcile the resource with the given ID.
@@ -65,6 +79,23 @@ type Runtime struct {
 type Reconciler interface {
 	// Reconcile the resource identified by req.ID.
 	Reconcile(ctx context.Context, rt Runtime, req Request) error
+}
+
+// DependencyMapper is called when a dependency watched via WithWatch is changed
+// to determine which of the controller's managed resources need to be reconciled.
+type DependencyMapper func(
+	ctx context.Context,
+	rt Runtime,
+	res *pbresource.Resource,
+) ([]Request, error)
+
+// MapOwner implements a DependencyMapper that returns the updated resource's owner.
+func MapOwner(_ context.Context, _ Runtime, res *pbresource.Resource) ([]Request, error) {
+	var reqs []Request
+	if res.Owner != nil {
+		reqs = append(reqs, Request{ID: res.Owner})
+	}
+	return reqs, nil
 }
 
 // RequeueAfterError is an error that allows a Reconciler to override the
