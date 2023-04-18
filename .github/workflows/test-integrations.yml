@@ -85,12 +85,12 @@ jobs:
       - name: Run integration tests
         run: |
           go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
-              --format=short-verbose \
-              --rerun-fails \
-              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
-              --packages="./command/agent/consul" \
-              --junitfile $TEST_RESULTS_DIR/results.xml -- \
-              -run TestConsul
+            --format=short-verbose \
+            --rerun-fails \
+            --rerun-fails-report=/tmp/gotestsum-rerun-fails \
+            --packages="./command/agent/consul" \
+            --junitfile $TEST_RESULTS_DIR/results.xml -- \
+            -run TestConsul
 
   vault-integration-test:
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-large) }}
