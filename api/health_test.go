@@ -236,6 +236,9 @@ func TestAPI_HealthChecks(t *testing.T) {
 		if err != nil {
 			r.Fatal(err)
 		}
+		if len(out) <= 0 {
+			r.Fatalf("bad health.Checks: %v", out)
+		}
 		if meta.LastIndex == 0 {
 			r.Fatalf("bad: %v", meta)
 		}

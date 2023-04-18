@@ -801,6 +801,7 @@ func TestAPI_CatalogNode_Filter(t *testing.T) {
 	// should have only 1 matching service
 	info, _, err := catalog.Node("bar", &QueryOptions{Filter: "connect in Tags"})
 	require.NoError(t, err)
+	require.NotNil(t, info)
 	require.Len(t, info.Services, 1)
 	require.Contains(t, info.Services, "webV1")
 	require.Equal(t, "web", info.Services["webV1"].Service)
@@ -883,6 +884,9 @@ func TestAPI_CatalogRegistration(t *testing.T) {
 		node, _, err := catalog.Node("foobar", nil)
 		if err != nil {
 			r.Fatal(err)
+		}
+		if node == nil {
+			r.Fatal("node nil")
 		}
 
 		if _, ok := node.Services["redis1"]; !ok {
@@ -1037,6 +1041,9 @@ func TestAPI_CatalogEnableTagOverride(t *testing.T) {
 		node, _, err := catalog.Node("foobar", nil)
 		if err != nil {
 			r.Fatal(err)
+		}
+		if node == nil {
+			r.Fatal("node nil")
 		}
 
 		if _, ok := node.Services["redis1"]; !ok {

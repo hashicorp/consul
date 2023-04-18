@@ -1328,6 +1328,9 @@ func TestAPI_AgentLeave(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
+	if len(members) <= 1 {
+		t.Fatal("members <= 0")
+	}
 	member := members[0]
 	if member.Name == s1.Config.NodeName {
 		member = members[1]

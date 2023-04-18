@@ -88,6 +88,7 @@ func TestAPI_ClientTxn(t *testing.T) {
 
 	node, _, err := catalog.Node("foo", nil)
 	require.NoError(t, err)
+	require.NotNil(t, node)
 	require.Equal(t, nodeID, node.Node.ID)
 
 	// Make a session.
