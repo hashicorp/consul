@@ -171,6 +171,50 @@ kind = "proxy-defaults"
 	})
 }
 
+func TestConfigWrite_Warning(t *testing.T) {
+	t.Parallel()
+
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	a := agent.NewTestAgent(t, ``)
+	defer a.Shutdown()
+	client := a.Client()
+
+	_, _, err := client.ConfigEntries().Set(&api.MeshConfigEntry{
+		AllowEnablingPermissiveMutualTLS: true,
+	}, nil)
+	require.NoError(t, err)
+
+	f := testutil.TempFile(t, "config-write-proxy-defaults.hcl")
+	_, err = f.WriteString(`
+    Kind = "proxy-defaults"
+    Name = "global"
+	MutualTLSMode = "permissive"
+	`)
+	require.NoError(t, err)
+
+	args := []string{
+		"-http-addr=" + a.HTTPAddr(),
+		f.Name(),
+	}
+
+	ui := cli.NewMockUi()
+	c := New(ui)
+	code := c.Run(args)
+	require.Equal(t, 0, code)
+
+	errMsg := ui.ErrorWriter.String()
+	require.Contains(t, errMsg, "WARNING: Found MutualTLSMode=permissive.")
+	require.Contains(t, errMsg, "Setting this mode in proxy-defaults enables"+
+		" this insecure mode by default for all services.")
+
+	require.Contains(t, ui.OutputWriter.String(),
+		`Config entry written: proxy-defaults/global`)
+	require.Equal(t, 0, code)
+}
+
 func requireContainsLower(t *testing.T, haystack, needle string) {
 	t.Helper()
 	require.Contains(t, strings.ToLower(haystack), strings.ToLower(needle))

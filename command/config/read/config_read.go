@@ -8,6 +8,7 @@ import (
 	"flag"
 	"fmt"
 
+	"github.com/hashicorp/consul/command/config"
 	"github.com/hashicorp/consul/command/flags"
 	"github.com/mitchellh/cli"
 )
@@ -75,6 +76,10 @@ func (c *cmd) Run(args []string) int {
 	}
 
 	c.UI.Info(string(b))
+
+	if msg := config.KindSpecificWarning(entry); msg != "" {
+		c.UI.Warn("WARNING: " + msg)
+	}
 	return 0
 }
 

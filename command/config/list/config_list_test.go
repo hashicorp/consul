@@ -28,9 +28,6 @@ func TestConfigList(t *testing.T) {
 	defer a.Shutdown()
 	client := a.Client()
 
-	ui := cli.NewMockUi()
-	c := New(ui)
-
 	_, _, err := client.ConfigEntries().Set(&api.ServiceConfigEntry{
 		Kind:     api.ServiceDefaults,
 		Name:     "web",
@@ -48,21 +45,58 @@ func TestConfigList(t *testing.T) {
 	_, _, err = client.ConfigEntries().Set(&api.ServiceConfigEntry{
 		Kind:     api.ServiceDefaults,
 		Name:     "api",
-		Protocol: "tcp",
+		Protocol: "http",
 	}, nil)
 	require.NoError(t, err)
 
-	args := []string{
-		"-http-addr=" + a.HTTPAddr(),
-		"-kind=" + api.ServiceDefaults,
+	cases := map[string]struct {
+		args     []string
+		expected []string
+		errMsg   string
+	}{
+		"list service-defaults": {
+			args: []string{
+				"-http-addr=" + a.HTTPAddr(),
+				"-kind=" + api.ServiceDefaults,
+			},
+			expected: []string{"web", "foo", "api"},
+		},
+		"filter service-defaults": {
+			args: []string{
+				"-http-addr=" + a.HTTPAddr(),
+				"-kind=" + api.ServiceDefaults,
+				"-filter=" + `Protocol == "http"`,
+			},
+			expected: []string{"api"},
+		},
+		"filter unsupported kind": {
+			args: []string{
+				"-http-addr=" + a.HTTPAddr(),
+				"-kind=" + api.ProxyDefaults,
+				"-filter", `Mode == "transparent"`,
+			},
+			errMsg: "filtering not supported for config entry kind=proxy-defaults",
+		},
 	}
+	for name, c := range cases {
+		c := c
+		t.Run(name, func(t *testing.T) {
+			ui := cli.NewMockUi()
+			cmd := New(ui)
 
-	code := c.Run(args)
-	require.Equal(t, 0, code)
+			code := cmd.Run(c.args)
 
-	services := strings.Split(strings.Trim(ui.OutputWriter.String(), "\n"), "\n")
+			if c.errMsg == "" {
+				require.Equal(t, 0, code)
+				services := parseOutputLines(ui.OutputWriter.String())
+				require.ElementsMatch(t, c.expected, services)
+			} else {
+				require.NotEqual(t, 0, code)
+				require.Contains(t, ui.ErrorWriter.String(), c.errMsg)
+			}
 
-	require.ElementsMatch(t, []string{"web", "foo", "api"}, services)
+		})
+	}
 }
 
 func TestConfigList_InvalidArgs(t *testing.T) {
@@ -81,4 +115,48 @@ func TestConfigList_InvalidArgs(t *testing.T) {
 			require.NotEmpty(t, ui.ErrorWriter.String())
 		})
 	}
+}
+
+func TestConfigList_Warning(t *testing.T) {
+	t.Parallel()
+
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	a := agent.NewTestAgent(t, ``)
+	defer a.Shutdown()
+	client := a.Client()
+
+	_, _, err := client.ConfigEntries().Set(&api.MeshConfigEntry{
+		AllowEnablingPermissiveMutualTLS: true,
+	}, nil)
+	require.NoError(t, err)
+
+	svcs := []string{"svc1", "svc2", "svc3"}
+	for _, name := range svcs {
+		_, _, err = client.ConfigEntries().Set(&api.ServiceConfigEntry{
+			Kind:          api.ServiceDefaults,
+			Name:          name,
+			MutualTLSMode: "permissive",
+		}, nil)
+		require.NoError(t, err)
+	}
+
+	args := []string{
+		"-http-addr=" + a.HTTPAddr(),
+		"-kind=" + api.ServiceDefaults,
+	}
+
+	ui := cli.NewMockUi()
+	c := New(ui)
+	code := c.Run(args)
+	require.Equal(t, 0, code)
+
+	require.Contains(t, ui.ErrorWriter.String(), "WARNING: Found 3 service-default(s) with MutualTLSMode=permissive.")
+	require.ElementsMatch(t, svcs, parseOutputLines(ui.OutputWriter.String()))
+}
+
+func parseOutputLines(out string) []string {
+	return strings.Split(strings.Trim(out, "\n"), "\n")
 }
