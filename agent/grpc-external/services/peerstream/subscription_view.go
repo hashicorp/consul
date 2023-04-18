@@ -9,7 +9,6 @@ import (
 
 	"github.com/hashicorp/go-hclog"
 
-	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/acl/resolver"
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/consul/stream"
@@ -78,7 +77,7 @@ func (e *exportedServiceRequest) NewMaterializer() (submatview.Materializer, err
 	}
 	deps := submatview.LocalMaterializerDeps{
 		Backend:     e.sub,
-		ACLResolver: DANGER_NO_AUTH{},
+		ACLResolver: resolver.DANGER_NO_AUTH{},
 		Deps: submatview.Deps{
 			View:    newExportedServicesView(),
 			Logger:  e.logger,
@@ -86,14 +85,6 @@ func (e *exportedServiceRequest) NewMaterializer() (submatview.Materializer, err
 		},
 	}
 	return submatview.NewLocalMaterializer(deps), nil
-}
-
-// DANGER_NO_AUTH implements submatview.ACLResolver to short-circuit authorization
-// in cases where it is handled somewhere else (e.g. in an RPC handler).
-type DANGER_NO_AUTH struct{}
-
-func (DANGER_NO_AUTH) ResolveTokenAndDefaultMeta(string, *acl.EnterpriseMeta, *acl.AuthorizerContext) (resolver.Result, error) {
-	return resolver.Result{Authorizer: acl.ManageAll()}, nil
 }
 
 // Type implements submatview.Request
