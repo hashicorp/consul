@@ -20,6 +20,7 @@ import "private/pbservice/healthcheck.proto";
 // target=github.com/hashicorp/consul/agent/structs.ConnectProxyConfig
 // output=service.gen.go
 // name=Structs
+// ignore-fields=MutualTLSMode
 message ConnectProxyConfig {
   // DestinationServiceName is required and is the name of the service to accept
   // traffic for.
