@@ -34,7 +34,7 @@ func downloadURL(product, version string) string {
 	}
 
 	for _, b := range rel.Builds {
-		if b.Arch == "amd64" {
+		if b.Arch == "amd64" && b.OS == "linux" {
 			return b.URL
 		}
 	}
