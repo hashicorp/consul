@@ -9,22 +9,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestMatrix(t *testing.T) {
-	matrix := NewMatrix()
-	for i := 0; i < 10; i++ {
-		fmt.Printf("===============================================>%v\n\n\n", i)
-		consul, vault, more := matrix.NextPair(t)
-		if !more {
-			return
-		}
-		t.Run("demo", func(t *testing.T) {
-			demo(t, consul, vault)
-		})
-		consul.Stop()
-		vault.Stop()
-	}
-}
-
 func TestDemo(t *testing.T) {
 	vault := NewTestVaultServer(t, "vault")
 	defer vault.Stop()
