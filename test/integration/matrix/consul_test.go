@@ -3,6 +3,7 @@ package test
 import (
 	"io/ioutil"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	capi "github.com/hashicorp/consul/api"
@@ -34,6 +35,9 @@ func NewTestConsulServer(t *testing.T, path string) TestConsulServer {
 			c.Stderr = ioutil.Discard
 			c.CertFile = certFile
 			c.KeyFile = keyFile
+			if strings.Contains(path, "1.13") {
+				c.Ports.GRPCTLS = 0
+			}
 		})
 	if err != nil {
 		t.Fatalf("failed to start consul server: %v", err)
@@ -53,7 +57,7 @@ func (s TestConsulServer) Client() *capi.Client {
 	return s.client
 }
 
-func caConf(addr, token string) *capi.CAConfig {
+func caConf(addr, token, rootPath, intrPath string) *capi.CAConfig {
 	return &capi.CAConfig{
 		Provider: "vault",
 		Config: map[string]any{
@@ -61,6 +65,9 @@ func caConf(addr, token string) *capi.CAConfig {
 			"Token":               token,
 			"RootPKIPath":         rootPath,
 			"IntermediatePKIPath": intrPath,
+			"LeafCertTTL":         "72h",
+			"RotationPeriod":      "2160h",
+			"IntermediateCertTTL": "8760h",
 		},
 	}
 }
