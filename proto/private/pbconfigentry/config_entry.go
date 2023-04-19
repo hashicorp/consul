@@ -340,6 +340,32 @@ func proxyModeToStructs(a ProxyMode) structs.ProxyMode {
 	}
 }
 
+func mutualTLSModeFromStructs(a structs.MutualTLSMode) MutualTLSMode {
+	switch a {
+	case structs.MutualTLSModeDefault:
+		return MutualTLSMode_MutualTLSModeDefault
+	case structs.MutualTLSModeStrict:
+		return MutualTLSMode_MutualTLSModeStrict
+	case structs.MutualTLSModePermissive:
+		return MutualTLSMode_MutualTLSModePermissive
+	default:
+		return MutualTLSMode_MutualTLSModeDefault
+	}
+}
+
+func mutualTLSModeToStructs(a MutualTLSMode) structs.MutualTLSMode {
+	switch a {
+	case MutualTLSMode_MutualTLSModeDefault:
+		return structs.MutualTLSModeDefault
+	case MutualTLSMode_MutualTLSModeStrict:
+		return structs.MutualTLSModeStrict
+	case MutualTLSMode_MutualTLSModePermissive:
+		return structs.MutualTLSModePermissive
+	default:
+		return structs.MutualTLSModeDefault
+	}
+}
+
 func meshGatewayModeFromStructs(a structs.MeshGatewayMode) MeshGatewayMode {
 	switch a {
 	case structs.MeshGatewayModeDefault:

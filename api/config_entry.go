@@ -110,6 +110,21 @@ type TransparentProxyConfig struct {
 	DialedDirectly bool `json:",omitempty" alias:"dialed_directly"`
 }
 
+type MutualTLSMode string
+
+const (
+	// MutualTLSModeDefault represents no specific mode and should
+	// be used to indicate that a different layer of the configuration
+	// chain should take precedence.
+	MutualTLSModeDefault MutualTLSMode = ""
+
+	// MutualTLSModeStrict requires mTLS for incoming traffic.
+	MutualTLSModeStrict MutualTLSMode = "strict"
+
+	// MutualTLSModePermissive allows incoming non-mTLS traffic.
+	MutualTLSModePermissive MutualTLSMode = "permissive"
+)
+
 // ExposeConfig describes HTTP paths to expose through Envoy outside of Connect.
 // Users can expose individual paths and/or all HTTP/GRPC paths for checks.
 type ExposeConfig struct {
@@ -291,6 +306,7 @@ type ServiceConfigEntry struct {
 	Protocol                  string                  `json:",omitempty"`
 	Mode                      ProxyMode               `json:",omitempty"`
 	TransparentProxy          *TransparentProxyConfig `json:",omitempty" alias:"transparent_proxy"`
+	MutualTLSMode             MutualTLSMode           `json:",omitempty" alias:"mutual_tls_mode"`
 	MeshGateway               MeshGatewayConfig       `json:",omitempty" alias:"mesh_gateway"`
 	Expose                    ExposeConfig            `json:",omitempty"`
 	ExternalSNI               string                  `json:",omitempty" alias:"external_sni"`
@@ -321,6 +337,7 @@ type ProxyConfigEntry struct {
 	Namespace            string                               `json:",omitempty"`
 	Mode                 ProxyMode                            `json:",omitempty"`
 	TransparentProxy     *TransparentProxyConfig              `json:",omitempty" alias:"transparent_proxy"`
+	MutualTLSMode        MutualTLSMode                        `json:",omitempty" alias:"mutual_tls_mode"`
 	Config               map[string]interface{}               `json:",omitempty"`
 	MeshGateway          MeshGatewayConfig                    `json:",omitempty" alias:"mesh_gateway"`
 	Expose               ExposeConfig                         `json:",omitempty"`

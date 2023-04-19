@@ -84,7 +84,7 @@ jobs:
         partition: [ 1, 2, 3, 4 ]
     env:
       CONSUL_NSPACES_ENABLED: 0
-      EMBER_TEST_REPORT: test-results/report-oss.xml #outputs test report for CircleCI test summary
+      EMBER_TEST_REPORT: test-results/report-oss.xml #outputs test report for CI test summary
       EMBER_TEST_PARALLEL: true #enables test parallelization with ember-exam
     steps:
       - uses: actions/checkout@v2
@@ -156,7 +156,7 @@ jobs:
         partition: [ 1, 2, 3, 4 ]
     env:
       CONSUL_NSPACES_ENABLED: 1
-      EMBER_TEST_REPORT: test-results/report-oss.xml #outputs test report for CircleCI test summary
+      EMBER_TEST_REPORT: test-results/report-oss.xml #outputs test report for CI test summary
       EMBER_TEST_PARALLEL: true #enables test parallelization with ember-exam
     steps:
       - uses: actions/checkout@v2

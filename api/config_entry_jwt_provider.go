@@ -1,4 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
 
 package api
 
@@ -131,7 +132,7 @@ type JWTForwardingConfig struct {
 	// to the base64 encoded token forwarded with ForwardPayloadHeader.
 	//
 	// Default value is false.
-	PadForwardPayloadHeader bool `json:",omitempty" alias:"pay_forward_payload_header"`
+	PadForwardPayloadHeader bool `json:",omitempty" alias:"pad_forward_payload_header"`
 }
 
 // JSONWebKeySet defines a key set, its location on disk, or the

@@ -208,7 +208,7 @@ remote-docker: check-remote-dev-image-env
        --push \
        -f $(CURDIR)/build-support/docker/Consul-Dev-Multiarch.dockerfile $(CURDIR)/pkg/bin/
 
-# In CircleCI, the linux binary will be attached from a previous step at bin/. This make target
+# In CI, the linux binary will be attached from a previous step at bin/. This make target
 # should only run in CI and not locally.
 ci.dev-docker:
 	@echo "Pulling consul container image - $(CONSUL_IMAGE_VERSION)"
@@ -473,20 +473,10 @@ test-metrics-integ: test-compat-integ-setup
 		--latest-version latest
 
 test-connect-ca-providers:
-ifeq ("$(CIRCLECI)","true")
-# Run in CI
-	gotestsum --format=short-verbose --junitfile "$(TEST_RESULTS_DIR)/gotestsum-report.xml" -- -cover -coverprofile=coverage.txt ./agent/connect/ca
-# Run leader tests that require Vault
-	gotestsum --format=short-verbose --junitfile "$(TEST_RESULTS_DIR)/gotestsum-report-leader.xml" -- -cover -coverprofile=coverage-leader.txt -run Vault ./agent/consul
-# Run agent tests that require Vault
-	gotestsum --format=short-verbose --junitfile "$(TEST_RESULTS_DIR)/gotestsum-report-agent.xml" -- -cover -coverprofile=coverage-agent.txt -run Vault ./agent
-else
-# Run locally
 	@echo "Running /agent/connect/ca tests in verbose mode"
 	@go test -v ./agent/connect/ca
 	@go test -v ./agent/consul -run Vault
 	@go test -v ./agent -run Vault
-endif
 
 .PHONY: proto
 proto: proto-tools proto-gen proto-mocks
