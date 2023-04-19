@@ -1884,14 +1884,18 @@ func TestServer_ReloadConfig(t *testing.T) {
 
 	// Check the incoming RPC rate limiter got updated
 	mockHandler.AssertCalled(t, "UpdateConfig", rpcRate.HandlerConfig{
-		GlobalMode: rc.RequestLimits.Mode,
-		GlobalReadConfig: multilimiter.LimiterConfig{
-			Rate:  rc.RequestLimits.ReadRate,
-			Burst: int(rc.RequestLimits.ReadRate) * requestLimitsBurstMultiplier,
-		},
-		GlobalWriteConfig: multilimiter.LimiterConfig{
-			Rate:  rc.RequestLimits.WriteRate,
-			Burst: int(rc.RequestLimits.WriteRate) * requestLimitsBurstMultiplier,
+		GlobalLimitConfig: rpcRate.GlobalLimitConfig{
+			Mode: rc.RequestLimits.Mode,
+			ReadWriteConfig: rpcRate.ReadWriteConfig{
+				ReadConfig: multilimiter.LimiterConfig{
+					Rate:  rc.RequestLimits.ReadRate,
+					Burst: int(rc.RequestLimits.ReadRate) * requestLimitsBurstMultiplier,
+				},
+				WriteConfig: multilimiter.LimiterConfig{
+					Rate:  rc.RequestLimits.WriteRate,
+					Burst: int(rc.RequestLimits.WriteRate) * requestLimitsBurstMultiplier,
+				},
+			},
 		},
 	})
 
@@ -1902,7 +1906,7 @@ func TestServer_ReloadConfig(t *testing.T) {
 	defaults := DefaultConfig()
 	got := s.raft.ReloadableConfig()
 	require.Equal(t, uint64(4321), got.SnapshotThreshold,
-		"should have be reloaded to new value")
+		"should have been reloaded to new value")
 	require.Equal(t, defaults.RaftConfig.SnapshotInterval, got.SnapshotInterval,
 		"should have remained the default interval")
 	require.Equal(t, defaults.RaftConfig.TrailingLogs, got.TrailingLogs,
