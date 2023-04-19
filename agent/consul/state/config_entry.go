@@ -8,6 +8,7 @@ import (
 	"fmt"
 
 	memdb "github.com/hashicorp/go-memdb"
+	"github.com/hashicorp/go-multierror"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/configentry"
@@ -592,6 +593,13 @@ func validateProposedConfigEntryInGraph(
 		}
 	case structs.SamenessGroup:
 	case structs.ServiceIntentions:
+		if newEntry != nil {
+			err := validateJWTProvidersExist(tx, kindName, newEntry)
+			if err != nil {
+
+				return err
+			}
+		}
 	case structs.MeshConfig:
 	case structs.ExportedServices:
 	case structs.APIGateway: // TODO Consider checkGatewayClash
@@ -606,6 +614,92 @@ func validateProposedConfigEntryInGraph(
 	}
 
 	return validateProposedConfigEntryInServiceGraph(tx, kindName, newEntry)
+}
+
+func getExistingJWTProvidersByName(tx ReadTxn, kn configentry.KindName) (map[string]*structs.JWTProviderConfigEntry, error) {
+	meta := acl.NewEnterpriseMetaWithPartition(
+		kn.EnterpriseMeta.PartitionOrDefault(),
+		acl.DefaultNamespaceName,
+	)
+
+	_, configEntries, err := configEntriesByKindTxn(tx, nil, structs.JWTProvider, &meta)
+
+	providerNames := make(map[string]*structs.JWTProviderConfigEntry)
+
+	for i := range configEntries {
+		entry, ok := configEntries[i].(*structs.JWTProviderConfigEntry)
+		if !ok {
+			return nil, fmt.Errorf("Invalid type of jwt-provider config entry: %T", configEntries[i])
+		}
+
+		if _, ok := providerNames[entry.Name]; !ok {
+			providerNames[entry.Name] = entry
+		}
+	}
+
+	return providerNames, err
+}
+
+func validateJWTProvider(existingProviderNames map[string]*structs.JWTProviderConfigEntry, referencedProviderNames map[string]struct{}) error {
+	var result error
+
+	for referencedProvider := range referencedProviderNames {
+		_, found := existingProviderNames[referencedProvider]
+		if !found {
+			result = multierror.Append(result, fmt.Errorf("Referenced JWT Provider does not exist. Provider Name: %s", referencedProvider)).ErrorOrNil()
+		}
+	}
+
+	return result
+}
+
+func getReferencedProviderNames(j *structs.IntentionJWTRequirement, s []*structs.SourceIntention) map[string]struct{} {
+	providerNames := make(map[string]struct{})
+
+	if j != nil {
+		for _, provider := range j.Providers {
+			if _, ok := providerNames[provider.Name]; !ok {
+				providerNames[provider.Name] = struct{}{}
+			}
+		}
+	}
+
+	for _, src := range s {
+		for _, perm := range src.Permissions {
+			if perm.JWT != nil {
+				for _, provider := range perm.JWT.Providers {
+					if _, ok := providerNames[provider.Name]; !ok {
+						providerNames[provider.Name] = struct{}{}
+					}
+				}
+			}
+		}
+	}
+
+	return providerNames
+}
+
+// This fetches all the jwt-providers config entries and iterates over them
+// to validate that any provider referenced exists.
+// This is okay because we assume there are very few jwt-providers per partition
+func validateJWTProvidersExist(tx ReadTxn, kn configentry.KindName, ce structs.ConfigEntry) error {
+	var result error
+	entry, ok := ce.(*structs.ServiceIntentionsConfigEntry)
+	if !ok {
+		return fmt.Errorf("Invalid service intention config entry: %T", entry)
+	}
+
+	referencedProvidersNames := getReferencedProviderNames(entry.JWT, entry.Sources)
+
+	if len(referencedProvidersNames) > 0 {
+		jwtProvidersNames, err := getExistingJWTProvidersByName(tx, kn)
+		if err != nil {
+			return fmt.Errorf("Failed retrieval of jwt config entries with err: %v", err)
+		}
+
+		result = multierror.Append(result, validateJWTProvider(jwtProvidersNames, referencedProvidersNames)).ErrorOrNil()
+	}
+	return result
 }
 
 // checkMutualTLSMode validates the MutualTLSMode (in proxy-defaults or

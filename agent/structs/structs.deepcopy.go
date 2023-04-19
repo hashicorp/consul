@@ -565,6 +565,34 @@ func (o *Intention) DeepCopy() *Intention {
 			}
 		}
 	}
+	if o.JWT != nil {
+		cp.JWT = new(IntentionJWTRequirement)
+		*cp.JWT = *o.JWT
+		if o.JWT.Providers != nil {
+			cp.JWT.Providers = make([]*IntentionJWTProvider, len(o.JWT.Providers))
+			copy(cp.JWT.Providers, o.JWT.Providers)
+			for i4 := range o.JWT.Providers {
+				if o.JWT.Providers[i4] != nil {
+					cp.JWT.Providers[i4] = new(IntentionJWTProvider)
+					*cp.JWT.Providers[i4] = *o.JWT.Providers[i4]
+					if o.JWT.Providers[i4].VerifyClaims != nil {
+						cp.JWT.Providers[i4].VerifyClaims = make([]*IntentionJWTClaimVerification, len(o.JWT.Providers[i4].VerifyClaims))
+						copy(cp.JWT.Providers[i4].VerifyClaims, o.JWT.Providers[i4].VerifyClaims)
+						for i7 := range o.JWT.Providers[i4].VerifyClaims {
+							if o.JWT.Providers[i4].VerifyClaims[i7] != nil {
+								cp.JWT.Providers[i4].VerifyClaims[i7] = new(IntentionJWTClaimVerification)
+								*cp.JWT.Providers[i4].VerifyClaims[i7] = *o.JWT.Providers[i4].VerifyClaims[i7]
+								if o.JWT.Providers[i4].VerifyClaims[i7].Path != nil {
+									cp.JWT.Providers[i4].VerifyClaims[i7].Path = make([]string, len(o.JWT.Providers[i4].VerifyClaims[i7].Path))
+									copy(cp.JWT.Providers[i4].VerifyClaims[i7].Path, o.JWT.Providers[i4].VerifyClaims[i7].Path)
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
 	if o.Meta != nil {
 		cp.Meta = make(map[string]string, len(o.Meta))
 		for k2, v2 := range o.Meta {
@@ -591,6 +619,34 @@ func (o *IntentionPermission) DeepCopy() *IntentionPermission {
 		if o.HTTP.Methods != nil {
 			cp.HTTP.Methods = make([]string, len(o.HTTP.Methods))
 			copy(cp.HTTP.Methods, o.HTTP.Methods)
+		}
+	}
+	if o.JWT != nil {
+		cp.JWT = new(IntentionJWTRequirement)
+		*cp.JWT = *o.JWT
+		if o.JWT.Providers != nil {
+			cp.JWT.Providers = make([]*IntentionJWTProvider, len(o.JWT.Providers))
+			copy(cp.JWT.Providers, o.JWT.Providers)
+			for i4 := range o.JWT.Providers {
+				if o.JWT.Providers[i4] != nil {
+					cp.JWT.Providers[i4] = new(IntentionJWTProvider)
+					*cp.JWT.Providers[i4] = *o.JWT.Providers[i4]
+					if o.JWT.Providers[i4].VerifyClaims != nil {
+						cp.JWT.Providers[i4].VerifyClaims = make([]*IntentionJWTClaimVerification, len(o.JWT.Providers[i4].VerifyClaims))
+						copy(cp.JWT.Providers[i4].VerifyClaims, o.JWT.Providers[i4].VerifyClaims)
+						for i7 := range o.JWT.Providers[i4].VerifyClaims {
+							if o.JWT.Providers[i4].VerifyClaims[i7] != nil {
+								cp.JWT.Providers[i4].VerifyClaims[i7] = new(IntentionJWTClaimVerification)
+								*cp.JWT.Providers[i4].VerifyClaims[i7] = *o.JWT.Providers[i4].VerifyClaims[i7]
+								if o.JWT.Providers[i4].VerifyClaims[i7].Path != nil {
+									cp.JWT.Providers[i4].VerifyClaims[i7].Path = make([]string, len(o.JWT.Providers[i4].VerifyClaims[i7].Path))
+									copy(cp.JWT.Providers[i4].VerifyClaims[i7].Path, o.JWT.Providers[i4].VerifyClaims[i7].Path)
+								}
+							}
+						}
+					}
+				}
+			}
 		}
 	}
 	return &cp
