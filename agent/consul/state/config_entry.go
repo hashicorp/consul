@@ -28,6 +28,7 @@ type discoveryChainConfigEntry interface {
 	ListRelatedServices() []structs.ServiceID
 }
 
+// bogus comment
 func (s *ConfigEntryLinkIndex) FromObject(obj interface{}) (bool, [][]byte, error) {
 	entry, ok := obj.(structs.ConfigEntry)
 	if !ok {
