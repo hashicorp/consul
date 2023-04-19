@@ -36,6 +36,7 @@ const (
 // target=github.com/hashicorp/consul/agent/structs.ConnectProxyConfig
 // output=service.gen.go
 // name=Structs
+// ignore-fields=MutualTLSMode
 type ConnectProxyConfig struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
