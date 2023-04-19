@@ -58,6 +58,7 @@ message MeshConfig {
   MeshHTTPConfig HTTP = 3;
   map<string, string> Meta = 4;
   PeeringMeshConfig Peering = 5;
+  bool AllowEnablingPermissiveMutualTLS = 6;
 }
 
 // mog annotation:
@@ -475,12 +476,20 @@ message ServiceDefaults {
   map<string, string> Meta = 13;
   // mog: func-to=EnvoyExtensionsToStructs func-from=EnvoyExtensionsFromStructs
   repeated hashicorp.consul.internal.common.EnvoyExtension EnvoyExtensions = 14;
+  // mog: func-to=mutualTLSModeToStructs func-from=mutualTLSModeFromStructs
+  MutualTLSMode MutualTLSMode = 15;
 }
 
 enum ProxyMode {
   ProxyModeDefault = 0;
   ProxyModeTransparent = 1;
   ProxyModeDirect = 2;
+}
+
+enum MutualTLSMode {
+  MutualTLSModeDefault = 0;
+  MutualTLSModeStrict = 1;
+  MutualTLSModePermissive = 2;
 }
 
 // mog annotation:
