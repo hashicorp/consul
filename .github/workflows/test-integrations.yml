@@ -272,8 +272,8 @@ jobs:
           cd ./test/integration/consul-container
           {
             echo -n "compatibility-matrix="
-            find ./test -maxdepth 2 -type d -print0 | xargs -0 -n 1 \
-              | grep -v util | grep -v upgrade \
+            find . -maxdepth 2 -type d -print0 | xargs -0 -n 1 \
+              | grep -v lib  \
               | jq --raw-input --argjson runnercount "$TOTAL_RUNNERS" "$JQ_SLICER" \
               | jq --compact-output 'map(join(" "))'
           } >> "$GITHUB_OUTPUT"
