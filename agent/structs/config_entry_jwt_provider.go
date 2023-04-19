@@ -1,4 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
 
 package structs
 
@@ -163,7 +164,7 @@ type JWTForwardingConfig struct {
 	// to the base64 encoded token forwarded with ForwardPayloadHeader.
 	//
 	// Default value is false.
-	PadForwardPayloadHeader bool `alias:"pay_forward_payload_header"`
+	PadForwardPayloadHeader bool `alias:"pad_forward_payload_header"`
 }
 
 func (fc *JWTForwardingConfig) Validate() error {
