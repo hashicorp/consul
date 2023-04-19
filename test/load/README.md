@@ -4,9 +4,6 @@ Consul Load Testing is used to capture baseline performance metrics for Consul u
 This relies on the [Gruntwork's Terraform AWS Consul Module](https://github.com/hashicorp/terraform-aws-consul) which *by default* creates 3 Consul servers across 3 availability zones. A load test instance which has an image that is configured with the necessary scripts and [k6](https://k6.io/) is created and sends traffic to a load balancer. The load balancer will distribute requests across the Consul clients who will ultimately forward the requests to the servers.
  
 <img src="loadtestdiagram.png" width="500" height="300"/>
-
-# Load Test Automation
-This can only be run on PRs that a Dev Build has been made for. When a PR has the `pr/load-test` Github Label applied this will kick off a Github Action. This Github Action will trigger Circle CI to run a Terraform Apply that runs a load test against the Dev Build Consul binary. The GitHub Action will paste the CircleCI load test workflow URL to the PR as a comment.
   
 ## How to use
 [Terraform](https://www.terraform.io/downloads.html) and [Packer](https://www.packer.io/downloads), AWS and [Datadog](https://docs.datadoghq.com/getting_started/) are required to use this. All of this, except the AWS resources that will be utilized, are free.
