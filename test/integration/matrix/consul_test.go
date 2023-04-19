@@ -14,12 +14,13 @@ import (
 // Plus anscillary data useful in testing is available on embedded TestServer.
 type TestConsulServer struct {
 	*testutil.TestServer
-	client *capi.Client
+	client  *capi.Client
+	version string
 }
 
 // NewTestConsulServer runs the Consul binary given on the path and returning
 // TestConsulServer object which encaptulates the server and a connected client.
-func NewTestConsulServer(t *testing.T, path string) TestConsulServer {
+func NewTestConsulServer(t *testing.T, path, version string) TestConsulServer {
 	certFile, err := filepath.Abs("./testdata/cert.pem")
 	if err != nil {
 		t.Fatalf("failed to open test cert file: %v\n", err)
@@ -50,7 +51,7 @@ func NewTestConsulServer(t *testing.T, path string) TestConsulServer {
 		t.Fatalf("failed to create consul client: %v", err)
 	}
 
-	return TestConsulServer{consul, client}
+	return TestConsulServer{TestServer: consul, client: client, version: version}
 }
 
 func (s TestConsulServer) Client() *capi.Client {

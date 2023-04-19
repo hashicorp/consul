@@ -10,9 +10,9 @@ import (
 )
 
 func TestDemo(t *testing.T) {
-	vault := NewTestVaultServer(t, "vault")
+	vault := NewTestVaultServer(t, "vault", "local")
 	defer vault.Stop()
-	consul := NewTestConsulServer(t, "consul")
+	consul := NewTestConsulServer(t, "consul", "local")
 	defer consul.Stop()
 
 	t.Run("demo", func(t *testing.T) {

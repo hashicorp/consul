@@ -8,14 +8,14 @@ import (
 func TestMatrix(t *testing.T) {
 	matrix := NewMatrix()
 	for i := 0; i < 10; i++ {
-		fmt.Printf("===============================================>%v\n\n\n", i)
 		consul, vault, more := matrix.NextPair(t)
 		if !more {
 			return
 		}
-		t.Run("demo", func(t *testing.T) {
-			demo(t, consul, vault)
-		})
+		t.Run(fmt.Sprintf("demo-consul_%v-vault_%v", consul.version, vault.version),
+			func(t *testing.T) {
+				demo(t, consul, vault)
+			})
 		consul.Stop()
 		vault.Stop()
 	}
@@ -48,10 +48,8 @@ func (m Matrix) NextPair(t *testing.T) (TestConsulServer, TestVaultServer, bool)
 	if nextPair.Nil() {
 		return TestConsulServer{}, TestVaultServer{}, false
 	}
-	//	return NewTestConsulServer(t, getBinary("consul", nextPair.consul)),
-	//		TestVaultServer{}, true
-	return NewTestConsulServer(t, getBinary("consul", nextPair.consul)),
-		NewTestVaultServer(t, getBinary("vault", nextPair.vault)), true
+	return NewTestConsulServer(t, getBinary("consul", nextPair.consul), nextPair.consul),
+		NewTestVaultServer(t, getBinary("vault", nextPair.vault), nextPair.vault), true
 }
 
 type pair struct {

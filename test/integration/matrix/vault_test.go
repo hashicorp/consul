@@ -24,13 +24,14 @@ func vaultClient(v TestVaultServer) (*api.Client, error) {
 type TestVaultServer struct {
 	RootToken string
 	Addr      string
+	version   string
 	cmd       *exec.Cmd
 	client    *api.Client
 }
 
 // NewTestVaultServer runs the Vault binary given on the path and returning
 // TestVaultServer object which encaptulates the server and a connected client.
-func NewTestVaultServer(t *testing.T, path string) TestVaultServer {
+func NewTestVaultServer(t *testing.T, path, version string) TestVaultServer {
 	path, err := exec.LookPath(path)
 	if err != nil || path == "" {
 		t.Fatalf("%q not found on $PATH", path)
@@ -70,6 +71,7 @@ func NewTestVaultServer(t *testing.T, path string) TestVaultServer {
 	testVault := TestVaultServer{
 		RootToken: token,
 		Addr:      "http://" + clientAddr,
+		version:   version,
 		cmd:       cmd,
 		client:    client,
 	}
