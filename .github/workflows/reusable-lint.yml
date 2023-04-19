@@ -52,7 +52,6 @@ jobs:
           version: v1.51
           args: --build-tags="${{ env.GOTAGS }}" -v
           skip-cache: true
-          only-new-issues: true
       - name: Notify Slack
         if: ${{ failure() }}
         run: .github/scripts/notify_slack.sh
