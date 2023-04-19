@@ -67,8 +67,7 @@ issue. Stale issues will be closed.
 ### Prerequisites
 
 If you wish to work on Consul itself, you'll first need to:
-- install [Go](https://golang.org) (the version should match that of our
-  [CI config's](https://github.com/hashicorp/consul/blob/main/.circleci/config.yml) Go image).
+- install [Go](https://golang.org)
 - [fork the Consul repo](../docs/contributing/fork-the-project.md)
 
 ### Building Consul
