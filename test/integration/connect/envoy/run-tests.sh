@@ -314,8 +314,7 @@ function pre_service_setup {
 }
 
 function start_services {
-  # Push the state to the shared docker volume (note this is because CircleCI
-  # can't use shared volumes)
+  # Push the state to the shared docker volume
   docker cp workdir/. envoy_workdir_1:/workdir
 
   # Start containers required
@@ -476,8 +475,7 @@ function run_tests {
   # Wipe state
   wipe_volumes
 
-  # Push the state to the shared docker volume (note this is because CircleCI
-  # can't use shared volumes)
+  # Push the state to the shared docker volume
   docker cp workdir/. envoy_workdir_1:/workdir
 
   start_consul primary
@@ -559,10 +557,6 @@ function suite_setup {
     echo "Rebuilding 'bats-verify' image..."
     retry_default docker build -t bats-verify -f Dockerfile-bats .
 
-    # if this fails on CircleCI your first thing to try would be to upgrade
-    # the machine image to the latest version using this listing:
-    #
-    # https://circleci.com/docs/2.0/configuration-reference/#available-linux-machine-images
     echo "Checking bats image..."
     docker run --rm -t bats-verify -v
 

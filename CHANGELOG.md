@@ -109,7 +109,7 @@ BUG FIXES:
 
 KNOWN ISSUES:
 
-* connect: An issue with leaf certificate rotation can cause some service instances to lose their ability to communicate in the mesh after 72 hours (LeafCertTTL). This issue is not consistently reproducible. We are working to address this issue in an upcoming patch release. To err on the side of caution, service mesh deployments should not upgrade to Consul v1.15 at this time. Refer to [[GH-16779](https://github.com/hashicorp/consul/issues/16779)] for the latest information.
+* connect: A race condition can cause some service instances to lose their ability to communicate in the mesh after 72 hours (LeafCertTTL) due to a problem with leaf certificate rotation. This bug is fixed in Consul v1.15.2 by [GH-16818](https://github.com/hashicorp/consul/issues/16818).
 
 BREAKING CHANGES:
 

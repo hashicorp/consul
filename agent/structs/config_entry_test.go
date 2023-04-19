@@ -350,6 +350,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 				mesh_gateway {
 					mode = "remote"
 				}
+				mutual_tls_mode = "permissive"
 			`,
 			camel: `
 				Kind = "proxy-defaults"
@@ -369,6 +370,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 				MeshGateway {
 					Mode = "remote"
 				}
+				MutualTLSMode = "permissive"
 			`,
 			expect: &ProxyConfigEntry{
 				Kind: "proxy-defaults",
@@ -388,6 +390,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 				MeshGateway: MeshGatewayConfig{
 					Mode: MeshGatewayModeRemote,
 				},
+				MutualTLSMode: MutualTLSModePermissive,
 			},
 		},
 		{
@@ -404,6 +407,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 				mesh_gateway {
 					mode = "remote"
 				}
+				mutual_tls_mode = "permissive"
 				balance_inbound_connections = "exact_balance"
 				upstream_config {
 					overrides = [
@@ -447,6 +451,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 				MeshGateway {
 					Mode = "remote"
 				}
+				MutualTLSMode = "permissive"
 				BalanceInboundConnections = "exact_balance"
 				UpstreamConfig {
 					Overrides = [
@@ -490,6 +495,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 				MeshGateway: MeshGatewayConfig{
 					Mode: MeshGatewayModeRemote,
 				},
+				MutualTLSMode:             MutualTLSModePermissive,
 				BalanceInboundConnections: "exact_balance",
 				UpstreamConfig: &UpstreamConfiguration{
 					Overrides: []*UpstreamConfig{
@@ -1811,6 +1817,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 				transparent_proxy {
 					mesh_destinations_only = true
 				}
+				allow_enabling_permissive_mutual_tls = true
 				tls {
 					incoming {
 						tls_min_version = "TLSv1_1"
@@ -1845,6 +1852,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 				TransparentProxy {
 					MeshDestinationsOnly = true
 				}
+				AllowEnablingPermissiveMutualTLS = true
 				TLS {
 					Incoming {
 						TLSMinVersion = "TLSv1_1"
@@ -1878,6 +1886,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 				TransparentProxy: TransparentProxyMeshConfig{
 					MeshDestinationsOnly: true,
 				},
+				AllowEnablingPermissiveMutualTLS: true,
 				TLS: &MeshTLSConfig{
 					Incoming: &MeshDirectionalTLSConfig{
 						TLSMinVersion: types.TLSv1_1,
@@ -2840,6 +2849,22 @@ func TestServiceConfigEntry(t *testing.T) {
 				},
 			},
 		},
+		"validate: invalid MutualTLSMode in service-defaults": {
+			entry: &ServiceConfigEntry{
+				Kind:          ServiceDefaults,
+				Name:          "web",
+				MutualTLSMode: MutualTLSMode("invalid-mtls-mode"),
+			},
+			validateErr: `Invalid MutualTLSMode "invalid-mtls-mode". Must be one of "", "strict", or "permissive".`,
+		},
+		"validate: invalid MutualTLSMode in proxy-defaults": {
+			entry: &ServiceConfigEntry{
+				Kind:          ProxyDefaults,
+				Name:          ProxyConfigGlobal,
+				MutualTLSMode: MutualTLSMode("invalid-mtls-mode"),
+			},
+			validateErr: `Invalid MutualTLSMode "invalid-mtls-mode". Must be one of "", "strict", or "permissive".`,
+		},
 	}
 	testConfigEntryNormalizeAndValidate(t, cases)
 }
@@ -3174,7 +3199,7 @@ func TestProxyConfigEntry(t *testing.T) {
 				Name:           "global",
 				FailoverPolicy: &ServiceResolverFailoverPolicy{Mode: "bad"},
 			},
-			validateErr: `Failover policy must be one of '', 'default', or 'order-by-locality'`,
+			validateErr: `Failover-policy mode must be one of '', 'sequential', or 'order-by-locality'`,
 		},
 		"proxy config with valid failover policy": {
 			entry: &ProxyConfigEntry{

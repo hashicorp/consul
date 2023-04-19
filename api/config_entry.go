@@ -109,6 +109,21 @@ type TransparentProxyConfig struct {
 	DialedDirectly bool `json:",omitempty" alias:"dialed_directly"`
 }
 
+type MutualTLSMode string
+
+const (
+	// MutualTLSModeDefault represents no specific mode and should
+	// be used to indicate that a different layer of the configuration
+	// chain should take precedence.
+	MutualTLSModeDefault MutualTLSMode = ""
+
+	// MutualTLSModeStrict requires mTLS for incoming traffic.
+	MutualTLSModeStrict MutualTLSMode = "strict"
+
+	// MutualTLSModePermissive allows incoming non-mTLS traffic.
+	MutualTLSModePermissive MutualTLSMode = "permissive"
+)
+
 // ExposeConfig describes HTTP paths to expose through Envoy outside of Connect.
 // Users can expose individual paths and/or all HTTP/GRPC paths for checks.
 type ExposeConfig struct {
@@ -290,6 +305,7 @@ type ServiceConfigEntry struct {
 	Protocol                  string                  `json:",omitempty"`
 	Mode                      ProxyMode               `json:",omitempty"`
 	TransparentProxy          *TransparentProxyConfig `json:",omitempty" alias:"transparent_proxy"`
+	MutualTLSMode             MutualTLSMode           `json:",omitempty" alias:"mutual_tls_mode"`
 	MeshGateway               MeshGatewayConfig       `json:",omitempty" alias:"mesh_gateway"`
 	Expose                    ExposeConfig            `json:",omitempty"`
 	ExternalSNI               string                  `json:",omitempty" alias:"external_sni"`
@@ -314,18 +330,20 @@ func (s *ServiceConfigEntry) GetCreateIndex() uint64     { return s.CreateIndex 
 func (s *ServiceConfigEntry) GetModifyIndex() uint64     { return s.ModifyIndex }
 
 type ProxyConfigEntry struct {
-	Kind             string
-	Name             string
-	Partition        string                         `json:",omitempty"`
-	Namespace        string                         `json:",omitempty"`
-	Mode             ProxyMode                      `json:",omitempty"`
-	TransparentProxy *TransparentProxyConfig        `json:",omitempty" alias:"transparent_proxy"`
-	Config           map[string]interface{}         `json:",omitempty"`
-	MeshGateway      MeshGatewayConfig              `json:",omitempty" alias:"mesh_gateway"`
-	Expose           ExposeConfig                   `json:",omitempty"`
-	AccessLogs       *AccessLogsConfig              `json:",omitempty" alias:"access_logs"`
-	EnvoyExtensions  []EnvoyExtension               `json:",omitempty" alias:"envoy_extensions"`
-	FailoverPolicy   *ServiceResolverFailoverPolicy `json:",omitempty" alias:"failover_policy"`
+	Kind                 string
+	Name                 string
+	Partition            string                               `json:",omitempty"`
+	Namespace            string                               `json:",omitempty"`
+	Mode                 ProxyMode                            `json:",omitempty"`
+	TransparentProxy     *TransparentProxyConfig              `json:",omitempty" alias:"transparent_proxy"`
+	MutualTLSMode        MutualTLSMode                        `json:",omitempty" alias:"mutual_tls_mode"`
+	Config               map[string]interface{}               `json:",omitempty"`
+	MeshGateway          MeshGatewayConfig                    `json:",omitempty" alias:"mesh_gateway"`
+	Expose               ExposeConfig                         `json:",omitempty"`
+	AccessLogs           *AccessLogsConfig                    `json:",omitempty" alias:"access_logs"`
+	EnvoyExtensions      []EnvoyExtension                     `json:",omitempty" alias:"envoy_extensions"`
+	FailoverPolicy       *ServiceResolverFailoverPolicy       `json:",omitempty" alias:"failover_policy"`
+	PrioritizeByLocality *ServiceResolverPrioritizeByLocality `json:",omitempty" alias:"prioritize_by_locality"`
 
 	Meta        map[string]string `json:",omitempty"`
 	CreateIndex uint64

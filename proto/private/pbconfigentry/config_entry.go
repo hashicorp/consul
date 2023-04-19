@@ -100,6 +100,14 @@ func ConfigEntryToStructs(s *ConfigEntry) structs.ConfigEntry {
 		pbcommon.RaftIndexToStructs(s.RaftIndex, &target.RaftIndex)
 		pbcommon.EnterpriseMetaToStructs(s.EnterpriseMeta, &target.EnterpriseMeta)
 		return &target
+	case Kind_KindSamenessGroup:
+		var target structs.SamenessGroupConfigEntry
+		target.Name = s.Name
+
+		SamenessGroupToStructs(s.GetSamenessGroup(), &target)
+		pbcommon.RaftIndexToStructs(s.RaftIndex, &target.RaftIndex)
+		pbcommon.EnterpriseMetaToStructs(s.EnterpriseMeta, &target.EnterpriseMeta)
+		return &target
 	default:
 		panic(fmt.Sprintf("unable to convert ConfigEntry of kind %s to structs", s.Kind))
 	}
@@ -196,6 +204,14 @@ func ConfigEntryFromStructs(s structs.ConfigEntry) *ConfigEntry {
 		configEntry.Entry = &ConfigEntry_InlineCertificate{
 			InlineCertificate: &cert,
 		}
+	case *structs.SamenessGroupConfigEntry:
+		var sg SamenessGroup
+		SamenessGroupFromStructs(v, &sg)
+		configEntry.Kind = Kind_KindSamenessGroup
+		configEntry.Entry = &ConfigEntry_SamenessGroup{
+			SamenessGroup: &sg,
+		}
+
 	default:
 		panic(fmt.Sprintf("unable to convert %T to proto", s))
 	}
@@ -321,6 +337,32 @@ func proxyModeToStructs(a ProxyMode) structs.ProxyMode {
 		return structs.ProxyModeDirect
 	default:
 		return structs.ProxyModeDefault
+	}
+}
+
+func mutualTLSModeFromStructs(a structs.MutualTLSMode) MutualTLSMode {
+	switch a {
+	case structs.MutualTLSModeDefault:
+		return MutualTLSMode_MutualTLSModeDefault
+	case structs.MutualTLSModeStrict:
+		return MutualTLSMode_MutualTLSModeStrict
+	case structs.MutualTLSModePermissive:
+		return MutualTLSMode_MutualTLSModePermissive
+	default:
+		return MutualTLSMode_MutualTLSModeDefault
+	}
+}
+
+func mutualTLSModeToStructs(a MutualTLSMode) structs.MutualTLSMode {
+	switch a {
+	case MutualTLSMode_MutualTLSModeDefault:
+		return structs.MutualTLSModeDefault
+	case MutualTLSMode_MutualTLSModeStrict:
+		return structs.MutualTLSModeStrict
+	case MutualTLSMode_MutualTLSModePermissive:
+		return structs.MutualTLSModePermissive
+	default:
+		return structs.MutualTLSModeDefault
 	}
 }
 

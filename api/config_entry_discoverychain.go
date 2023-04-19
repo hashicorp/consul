@@ -172,6 +172,10 @@ type ServiceResolverConfigEntry struct {
 	ConnectTimeout time.Duration                      `json:",omitempty" alias:"connect_timeout"`
 	RequestTimeout time.Duration                      `json:",omitempty" alias:"request_timeout"`
 
+	// PrioritizeByLocality controls whether the locality of services within the
+	// local partition will be used to prioritize connectivity.
+	PrioritizeByLocality *ServiceResolverPrioritizeByLocality `json:",omitempty" alias:"prioritize_by_locality"`
+
 	// LoadBalancer determines the load balancing policy and configuration for services
 	// issuing requests to this upstream service.
 	LoadBalancer *LoadBalancer `json:",omitempty" alias:"load_balancer"`
@@ -265,6 +269,13 @@ type ServiceResolverFailoverPolicy struct {
 	// "sequential", "" (equivalent to "sequential") and "order-by-locality".
 	Mode    string   `json:",omitempty"`
 	Regions []string `json:",omitempty"`
+}
+
+type ServiceResolverPrioritizeByLocality struct {
+	// Mode specifies the type of prioritization that will be performed
+	// when selecting nodes in the local partition.
+	// Valid values are: "" (default "none"), "none", and "failover".
+	Mode string `json:",omitempty"`
 }
 
 // LoadBalancer determines the load balancing policy and configuration for services

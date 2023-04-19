@@ -1055,8 +1055,17 @@ func (a *Agent) ForceLeavePrune(node string) error {
 
 // ForceLeaveOpts is used to have the agent eject a failed node or remove it
 // completely from the list of members.
+//
+// DEPRECATED - Use ForceLeaveOptions instead.
 func (a *Agent) ForceLeaveOpts(node string, opts ForceLeaveOpts) error {
+	return a.ForceLeaveOptions(node, opts, nil)
+}
+
+// ForceLeaveOptions is used to have the agent eject a failed node or remove it
+// completely from the list of members. Allows usage of QueryOptions on-top of ForceLeaveOpts
+func (a *Agent) ForceLeaveOptions(node string, opts ForceLeaveOpts, q *QueryOptions) error {
 	r := a.c.newRequest("PUT", "/v1/agent/force-leave/"+node)
+	r.setQueryOptions(q)
 	if opts.Prune {
 		r.params.Set("prune", "1")
 	}

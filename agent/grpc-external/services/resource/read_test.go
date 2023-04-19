@@ -21,6 +21,46 @@ import (
 	"github.com/hashicorp/consul/proto/private/prototest"
 )
 
+func TestRead_InputValidation(t *testing.T) {
+	server := testServer(t)
+	client := testClient(t, server)
+
+	demo.Register(server.Registry)
+
+	testCases := map[string]func(*pbresource.ReadRequest){
+		"no id":      func(req *pbresource.ReadRequest) { req.Id = nil },
+		"no type":    func(req *pbresource.ReadRequest) { req.Id.Type = nil },
+		"no tenancy": func(req *pbresource.ReadRequest) { req.Id.Tenancy = nil },
+		"no name":    func(req *pbresource.ReadRequest) { req.Id.Name = "" },
+		// clone necessary to not pollute DefaultTenancy
+		"tenancy partition wildcard": func(req *pbresource.ReadRequest) {
+			req.Id.Tenancy = clone(req.Id.Tenancy)
+			req.Id.Tenancy.Partition = storage.Wildcard
+		},
+		"tenancy namespace wildcard": func(req *pbresource.ReadRequest) {
+			req.Id.Tenancy = clone(req.Id.Tenancy)
+			req.Id.Tenancy.Namespace = storage.Wildcard
+		},
+		"tenancy peername wildcard": func(req *pbresource.ReadRequest) {
+			req.Id.Tenancy = clone(req.Id.Tenancy)
+			req.Id.Tenancy.PeerName = storage.Wildcard
+		},
+	}
+	for desc, modFn := range testCases {
+		t.Run(desc, func(t *testing.T) {
+			res, err := demo.GenerateV2Artist()
+			require.NoError(t, err)
+
+			req := &pbresource.ReadRequest{Id: res.Id}
+			modFn(req)
+
+			_, err = client.Read(testContext(t), req)
+			require.Error(t, err)
+			require.Equal(t, codes.InvalidArgument.String(), status.Code(err).String())
+		})
+	}
+}
+
 func TestRead_TypeNotFound(t *testing.T) {
 	server := NewServer(Config{Registry: resource.NewRegistry()})
 	client := testClient(t, server)

@@ -32,6 +32,19 @@ func TestWrite_InputValidation(t *testing.T) {
 		"no tenancy":  func(req *pbresource.WriteRequest) { req.Resource.Id.Tenancy = nil },
 		"no name":     func(req *pbresource.WriteRequest) { req.Resource.Id.Name = "" },
 		"no data":     func(req *pbresource.WriteRequest) { req.Resource.Data = nil },
+		// clone necessary to not pollute DefaultTenancy
+		"tenancy partition wildcard": func(req *pbresource.WriteRequest) {
+			req.Resource.Id.Tenancy = clone(req.Resource.Id.Tenancy)
+			req.Resource.Id.Tenancy.Partition = storage.Wildcard
+		},
+		"tenancy namespace wildcard": func(req *pbresource.WriteRequest) {
+			req.Resource.Id.Tenancy = clone(req.Resource.Id.Tenancy)
+			req.Resource.Id.Tenancy.Namespace = storage.Wildcard
+		},
+		"tenancy peername wildcard": func(req *pbresource.WriteRequest) {
+			req.Resource.Id.Tenancy = clone(req.Resource.Id.Tenancy)
+			req.Resource.Id.Tenancy.PeerName = storage.Wildcard
+		},
 		"wrong data type": func(req *pbresource.WriteRequest) {
 			var err error
 			req.Resource.Data, err = anypb.New(&pbdemov2.Album{})
@@ -55,6 +68,71 @@ func TestWrite_InputValidation(t *testing.T) {
 			_, err = client.Write(testContext(t), req)
 			require.Error(t, err)
 			require.Equal(t, codes.InvalidArgument.String(), status.Code(err).String())
+		})
+	}
+}
+
+func TestWrite_OwnerValidation(t *testing.T) {
+	server := testServer(t)
+	client := testClient(t, server)
+
+	demo.Register(server.Registry)
+
+	type testCase struct {
+		modReqFn      func(req *pbresource.WriteRequest)
+		errorContains string
+	}
+	testCases := map[string]testCase{
+		"no owner type": {
+			modReqFn:      func(req *pbresource.WriteRequest) { req.Resource.Owner.Type = nil },
+			errorContains: "resource.owner.type",
+		},
+		"no owner tenancy": {
+			modReqFn:      func(req *pbresource.WriteRequest) { req.Resource.Owner.Tenancy = nil },
+			errorContains: "resource.owner.tenancy",
+		},
+		"no owner name": {
+			modReqFn:      func(req *pbresource.WriteRequest) { req.Resource.Owner.Name = "" },
+			errorContains: "resource.owner.name",
+		},
+		// clone necessary to not pollute DefaultTenancy
+		"owner tenancy partition wildcard": {
+			modReqFn: func(req *pbresource.WriteRequest) {
+				req.Resource.Owner.Tenancy = clone(req.Resource.Owner.Tenancy)
+				req.Resource.Owner.Tenancy.Partition = storage.Wildcard
+			},
+			errorContains: "resource.owner.tenancy.partition",
+		},
+		"owner tenancy namespace wildcard": {
+			modReqFn: func(req *pbresource.WriteRequest) {
+				req.Resource.Owner.Tenancy = clone(req.Resource.Owner.Tenancy)
+				req.Resource.Owner.Tenancy.Namespace = storage.Wildcard
+			},
+			errorContains: "resource.owner.tenancy.namespace",
+		},
+		"owner tenancy peername wildcard": {
+			modReqFn: func(req *pbresource.WriteRequest) {
+				req.Resource.Owner.Tenancy = clone(req.Resource.Owner.Tenancy)
+				req.Resource.Owner.Tenancy.PeerName = storage.Wildcard
+			},
+			errorContains: "resource.owner.tenancy.peername",
+		},
+	}
+	for desc, tc := range testCases {
+		t.Run(desc, func(t *testing.T) {
+			artist, err := demo.GenerateV2Artist()
+			require.NoError(t, err)
+
+			album, err := demo.GenerateV2Album(artist.Id)
+			require.NoError(t, err)
+
+			albumReq := &pbresource.WriteRequest{Resource: album}
+			tc.modReqFn(albumReq)
+
+			_, err = client.Write(testContext(t), albumReq)
+			require.Error(t, err)
+			require.Equal(t, codes.InvalidArgument.String(), status.Code(err).String())
+			require.ErrorContains(t, err, tc.errorContains)
 		})
 	}
 }
@@ -377,6 +455,64 @@ func TestWrite_NonCASUpdate_Retry(t *testing.T) {
 
 	// Check that the write succeeded anyway because of a retry.
 	require.NoError(t, <-errCh)
+}
+
+func TestWrite_Owner_Immutable(t *testing.T) {
+	// Use of proto.Equal(..) in implementation covers all permutations
+	// (nil -> non-nil, non-nil -> nil, owner1 -> owner2) so only the first one
+	// is tested.
+	server := testServer(t)
+	client := testClient(t, server)
+
+	demo.Register(server.Registry)
+
+	artist, err := demo.GenerateV2Artist()
+	require.NoError(t, err)
+	rsp1, err := client.Write(testContext(t), &pbresource.WriteRequest{Resource: artist})
+	require.NoError(t, err)
+	artist = rsp1.Resource
+
+	// create album with no owner
+	album, err := demo.GenerateV2Album(rsp1.Resource.Id)
+	require.NoError(t, err)
+	album.Owner = nil
+	rsp2, err := client.Write(testContext(t), &pbresource.WriteRequest{Resource: album})
+	require.NoError(t, err)
+
+	// setting owner on update should fail
+	album = rsp2.Resource
+	album.Owner = artist.Id
+	_, err = client.Write(testContext(t), &pbresource.WriteRequest{Resource: album})
+	require.Error(t, err)
+	require.Equal(t, codes.InvalidArgument.String(), status.Code(err).String())
+	require.ErrorContains(t, err, "owner cannot be changed")
+}
+
+func TestWrite_Owner_RequireSameTenancy(t *testing.T) {
+	server := testServer(t)
+	client := testClient(t, server)
+
+	demo.Register(server.Registry)
+
+	artist, err := demo.GenerateV2Artist()
+	require.NoError(t, err)
+	rsp1, err := client.Write(testContext(t), &pbresource.WriteRequest{Resource: artist})
+	require.NoError(t, err)
+
+	// change album tenancy to be different from artist tenancy
+	album, err := demo.GenerateV2Album(rsp1.Resource.Id)
+	require.NoError(t, err)
+	album.Owner.Tenancy = &pbresource.Tenancy{
+		Partition: "some",
+		Namespace: "other",
+		PeerName:  "tenancy",
+	}
+
+	// verify create fails
+	_, err = client.Write(testContext(t), &pbresource.WriteRequest{Resource: album})
+	require.Error(t, err)
+	require.Equal(t, codes.InvalidArgument.String(), status.Code(err).String())
+	require.ErrorContains(t, err, "tenancy must be the same")
 }
 
 type blockOnceBackend struct {

@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -168,6 +169,10 @@ func (c *Cluster) Add(configs []Config, serfJoin bool, ports ...int) (xe error) 
 		if err := c.JoinExternally(agents); err != nil {
 			return fmt.Errorf("could not join agents to cluster: %w", err)
 		}
+	}
+
+	if utils.Debug {
+		c.PrintDebugInfo(agents)
 	}
 
 	return nil
@@ -659,6 +664,26 @@ func (c *Cluster) ConfigEntryDelete(entry api.ConfigEntry) error {
 		return fmt.Errorf("error deleting config entry: %v", err)
 	}
 	return err
+}
+
+func (c *Cluster) PrintDebugInfo(agents []Agent) {
+	for _, a := range agents {
+		uri := a.GetInfo().DebugURI
+		n := a.GetAgentName()
+		s := a.IsServer()
+		l := "NA"
+		if s {
+			leader, err := c.Leader()
+			if err == nil {
+				if leader == a {
+					l = "true"
+				} else {
+					l = "false"
+				}
+			}
+		}
+		fmt.Printf("\ndebug info:: n=%s,s=%t,l=%s,uri=%s\n\n", n, s, l, uri)
+	}
 }
 
 func extractSecretIDFrom(tokenOutput string) (string, error) {

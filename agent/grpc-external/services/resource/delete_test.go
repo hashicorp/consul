@@ -15,6 +15,46 @@ import (
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
+func TestDelete_InputValidation(t *testing.T) {
+	server := testServer(t)
+	client := testClient(t, server)
+
+	demo.Register(server.Registry)
+
+	testCases := map[string]func(*pbresource.DeleteRequest){
+		"no id":      func(req *pbresource.DeleteRequest) { req.Id = nil },
+		"no type":    func(req *pbresource.DeleteRequest) { req.Id.Type = nil },
+		"no tenancy": func(req *pbresource.DeleteRequest) { req.Id.Tenancy = nil },
+		"no name":    func(req *pbresource.DeleteRequest) { req.Id.Name = "" },
+		// clone necessary to not pollute DefaultTenancy
+		"tenancy partition wildcard": func(req *pbresource.DeleteRequest) {
+			req.Id.Tenancy = clone(req.Id.Tenancy)
+			req.Id.Tenancy.Partition = storage.Wildcard
+		},
+		"tenancy namespace wildcard": func(req *pbresource.DeleteRequest) {
+			req.Id.Tenancy = clone(req.Id.Tenancy)
+			req.Id.Tenancy.Namespace = storage.Wildcard
+		},
+		"tenancy peername wildcard": func(req *pbresource.DeleteRequest) {
+			req.Id.Tenancy = clone(req.Id.Tenancy)
+			req.Id.Tenancy.PeerName = storage.Wildcard
+		},
+	}
+	for desc, modFn := range testCases {
+		t.Run(desc, func(t *testing.T) {
+			res, err := demo.GenerateV2Artist()
+			require.NoError(t, err)
+
+			req := &pbresource.DeleteRequest{Id: res.Id, Version: ""}
+			modFn(req)
+
+			_, err = client.Delete(testContext(t), req)
+			require.Error(t, err)
+			require.Equal(t, codes.InvalidArgument.String(), status.Code(err).String())
+		})
+	}
+}
+
 func TestDelete_TypeNotRegistered(t *testing.T) {
 	t.Parallel()
 
@@ -80,20 +120,21 @@ func TestDelete_Success(t *testing.T) {
 		t.Run(desc, func(t *testing.T) {
 			server, client, ctx := testDeps(t)
 			demo.Register(server.Registry)
+
 			artist, err := demo.GenerateV2Artist()
 			require.NoError(t, err)
+
 			rsp, err := client.Write(ctx, &pbresource.WriteRequest{Resource: artist})
 			require.NoError(t, err)
+			artistId := clone(rsp.Resource.Id)
+			artist = rsp.Resource
 
 			// delete
-			_, err = client.Delete(ctx, &pbresource.DeleteRequest{
-				Id:      rsp.Resource.Id,
-				Version: tc.versionFn(rsp.Resource),
-			})
+			_, err = client.Delete(ctx, tc.deleteReqFn(artist))
 			require.NoError(t, err)
 
 			// verify deleted
-			_, err = server.Backend.Read(ctx, storage.StrongConsistency, rsp.Resource.Id)
+			_, err = server.Backend.Read(ctx, storage.StrongConsistency, artistId)
 			require.Error(t, err)
 			require.ErrorIs(t, err, storage.ErrNotFound)
 		})
@@ -111,7 +152,7 @@ func TestDelete_NotFound(t *testing.T) {
 			require.NoError(t, err)
 
 			// verify delete of non-existant or already deleted resource is a no-op
-			_, err = client.Delete(ctx, &pbresource.DeleteRequest{Id: artist.Id, Version: tc.versionFn(artist)})
+			_, err = client.Delete(ctx, tc.deleteReqFn(artist))
 			require.NoError(t, err)
 		})
 	}
@@ -141,20 +182,31 @@ func testDeps(t *testing.T) (*Server, pbresource.ResourceServiceClient, context.
 }
 
 type deleteTestCase struct {
-	// returns the version to use in the test given the passed in resource
-	versionFn func(*pbresource.Resource) string
+	deleteReqFn func(r *pbresource.Resource) *pbresource.DeleteRequest
 }
 
 func deleteTestCases() map[string]deleteTestCase {
 	return map[string]deleteTestCase{
-		"specific version": {
-			versionFn: func(r *pbresource.Resource) string {
-				return r.Version
+		"version and uid": {
+			deleteReqFn: func(r *pbresource.Resource) *pbresource.DeleteRequest {
+				return &pbresource.DeleteRequest{Id: r.Id, Version: r.Version}
 			},
 		},
-		"empty version": {
-			versionFn: func(r *pbresource.Resource) string {
-				return ""
+		"version only": {
+			deleteReqFn: func(r *pbresource.Resource) *pbresource.DeleteRequest {
+				r.Id.Uid = ""
+				return &pbresource.DeleteRequest{Id: r.Id, Version: r.Version}
+			},
+		},
+		"uid only": {
+			deleteReqFn: func(r *pbresource.Resource) *pbresource.DeleteRequest {
+				return &pbresource.DeleteRequest{Id: r.Id, Version: ""}
+			},
+		},
+		"no version or uid": {
+			deleteReqFn: func(r *pbresource.Resource) *pbresource.DeleteRequest {
+				r.Id.Uid = ""
+				return &pbresource.DeleteRequest{Id: r.Id, Version: ""}
 			},
 		},
 	}

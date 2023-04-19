@@ -125,6 +125,26 @@ type WarningConfigEntry interface {
 	ConfigEntry
 }
 
+type MutualTLSMode string
+
+const (
+	MutualTLSModeDefault    MutualTLSMode = ""
+	MutualTLSModeStrict     MutualTLSMode = "strict"
+	MutualTLSModePermissive MutualTLSMode = "permissive"
+)
+
+func (m MutualTLSMode) validate() error {
+	switch m {
+	case MutualTLSModeDefault, MutualTLSModeStrict, MutualTLSModePermissive:
+		return nil
+	}
+	return fmt.Errorf("Invalid MutualTLSMode %q. Must be one of %q, %q, or %q.", m,
+		MutualTLSModeDefault,
+		MutualTLSModeStrict,
+		MutualTLSModePermissive,
+	)
+}
+
 // ServiceConfiguration is the top-level struct for the configuration of a service
 // across the entire cluster.
 type ServiceConfigEntry struct {
@@ -133,6 +153,7 @@ type ServiceConfigEntry struct {
 	Protocol                  string
 	Mode                      ProxyMode              `json:",omitempty"`
 	TransparentProxy          TransparentProxyConfig `json:",omitempty" alias:"transparent_proxy"`
+	MutualTLSMode             MutualTLSMode          `json:",omitempty" alias:"mutual_tls_mode"`
 	MeshGateway               MeshGatewayConfig      `json:",omitempty" alias:"mesh_gateway"`
 	Expose                    ExposeConfig           `json:",omitempty"`
 	ExternalSNI               string                 `json:",omitempty" alias:"external_sni"`
@@ -267,6 +288,10 @@ func (e *ServiceConfigEntry) Validate() error {
 		validationErr = multierror.Append(validationErr, err)
 	}
 
+	if err := e.MutualTLSMode.validate(); err != nil {
+		return err
+	}
+
 	return validationErr
 }
 
@@ -367,16 +392,18 @@ func IsIP(address string) bool {
 
 // ProxyConfigEntry is the top-level struct for global proxy configuration defaults.
 type ProxyConfigEntry struct {
-	Kind             string
-	Name             string
-	Config           map[string]interface{}
-	Mode             ProxyMode                      `json:",omitempty"`
-	TransparentProxy TransparentProxyConfig         `json:",omitempty" alias:"transparent_proxy"`
-	MeshGateway      MeshGatewayConfig              `json:",omitempty" alias:"mesh_gateway"`
-	Expose           ExposeConfig                   `json:",omitempty"`
-	AccessLogs       AccessLogsConfig               `json:",omitempty" alias:"access_logs"`
-	EnvoyExtensions  EnvoyExtensions                `json:",omitempty" alias:"envoy_extensions"`
-	FailoverPolicy   *ServiceResolverFailoverPolicy `json:",omitempty" alias:"failover_policy"`
+	Kind                 string
+	Name                 string
+	Config               map[string]interface{}
+	Mode                 ProxyMode                            `json:",omitempty"`
+	TransparentProxy     TransparentProxyConfig               `json:",omitempty" alias:"transparent_proxy"`
+	MutualTLSMode        MutualTLSMode                        `json:",omitempty" alias:"mutual_tls_mode"`
+	MeshGateway          MeshGatewayConfig                    `json:",omitempty" alias:"mesh_gateway"`
+	Expose               ExposeConfig                         `json:",omitempty"`
+	AccessLogs           AccessLogsConfig                     `json:",omitempty" alias:"access_logs"`
+	EnvoyExtensions      EnvoyExtensions                      `json:",omitempty" alias:"envoy_extensions"`
+	FailoverPolicy       *ServiceResolverFailoverPolicy       `json:",omitempty" alias:"failover_policy"`
+	PrioritizeByLocality *ServiceResolverPrioritizeByLocality `json:",omitempty" alias:"prioritize_by_locality"`
 
 	Meta               map[string]string `json:",omitempty"`
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
@@ -443,8 +470,16 @@ func (e *ProxyConfigEntry) Validate() error {
 		return err
 	}
 
-	if !e.FailoverPolicy.isValid() {
-		return fmt.Errorf("Failover policy must be one of '', 'default', or 'order-by-locality'")
+	if err := e.FailoverPolicy.validate(); err != nil {
+		return err
+	}
+
+	if err := e.PrioritizeByLocality.validate(); err != nil {
+		return err
+	}
+
+	if err := e.MutualTLSMode.validate(); err != nil {
+		return err
 	}
 
 	return e.validateEnterpriseMeta()
@@ -1152,6 +1187,7 @@ type ServiceConfigResponse struct {
 	MeshGateway      MeshGatewayConfig      `json:",omitempty"`
 	Expose           ExposeConfig           `json:",omitempty"`
 	TransparentProxy TransparentProxyConfig `json:",omitempty"`
+	MutualTLSMode    MutualTLSMode          `json:",omitempty"`
 	Mode             ProxyMode              `json:",omitempty"`
 	Destination      DestinationConfig      `json:",omitempty"`
 	AccessLogs       AccessLogsConfig       `json:",omitempty"`

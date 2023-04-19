@@ -289,3 +289,5 @@ var (
 		"Standing by the stage looking cool",
 	}
 )
+
+func clone[T proto.Message](v T) T { return proto.Clone(v).(T) }

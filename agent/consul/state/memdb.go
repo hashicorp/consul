@@ -210,6 +210,7 @@ var (
 	EventTopicInlineCertificate    = pbsubscribe.Topic_InlineCertificate
 	EventTopicBoundAPIGateway      = pbsubscribe.Topic_BoundAPIGateway
 	EventTopicIPRateLimit          = pbsubscribe.Topic_IPRateLimit
+	EventTopicSamenessGroup        = pbsubscribe.Topic_SamenessGroup
 )
 
 func processDBChanges(tx ReadTxn, changes Changes) ([]stream.Event, error) {

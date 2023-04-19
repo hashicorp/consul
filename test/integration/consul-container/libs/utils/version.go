@@ -10,13 +10,15 @@ import (
 )
 
 var (
-	TargetImageName string
+	targetImageName string
 	TargetVersion   string
 
 	LatestImageName string
 	LatestVersion   string
 
-	FollowLog       bool
+	FollowLog bool
+
+	Debug           bool
 	Version_1_14, _ = version.NewVersion("1.14")
 )
 
@@ -27,13 +29,22 @@ const (
 )
 
 func init() {
-	flag.StringVar(&TargetImageName, "target-image", defaultImageName, "docker image name to be used under test (Default: "+defaultImageName+")")
+	flag.BoolVar(&Debug, "debug", false, "run consul with dlv to enable live debugging")
+	flag.StringVar(&targetImageName, "target-image", defaultImageName, "docker image name to be used under test (Default: "+defaultImageName+")")
 	flag.StringVar(&TargetVersion, "target-version", "local", "docker image version to be used as UUT (unit under test)")
 
 	flag.StringVar(&LatestImageName, "latest-image", defaultImageName, "docker image name to be used under test (Default: "+defaultImageName+")")
 	flag.StringVar(&LatestVersion, "latest-version", "latest", "docker image to be used as latest")
 
 	flag.BoolVar(&FollowLog, "follow-log", true, "follow container log in output (Default: true)")
+
+}
+
+func GetTargetImageName() string {
+	if Debug {
+		return targetImageName + "-dbg"
+	}
+	return targetImageName
 }
 
 func DockerImage(image, version string) string {

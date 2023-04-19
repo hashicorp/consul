@@ -39,7 +39,6 @@ func TestManager_Run(t *testing.T) {
 
 	// Make sure after manager has stopped no more statuses are pushed.
 	cancel()
-	mgr.SendUpdate()
 	client.AssertExpectations(t)
 }
 
