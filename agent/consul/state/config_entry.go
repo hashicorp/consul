@@ -27,6 +27,7 @@ type discoveryChainConfigEntry interface {
 	ListRelatedServices() []structs.ServiceID
 }
 
+// adding a comment to see if lint will pick up the changes
 func (s *ConfigEntryLinkIndex) FromObject(obj interface{}) (bool, [][]byte, error) {
 	entry, ok := obj.(structs.ConfigEntry)
 	if !ok {
