@@ -600,6 +600,7 @@ func validateProposedConfigEntryInGraph(
 	case structs.HTTPRoute:
 	case structs.TCPRoute:
 	case structs.RateLimitIPConfig:
+	case structs.JWTProvider:
 	default:
 		return fmt.Errorf("unhandled kind %q during validation of %q", kindName.Kind, kindName.Name)
 	}
