@@ -16,6 +16,7 @@ func unzip(zipPath, destPath string) error {
 	if err != nil {
 		return err
 	}
+
 	fp, err := os.OpenFile(destPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0755)
 	if err != nil {
 		return err
@@ -23,5 +24,7 @@ func unzip(zipPath, destPath string) error {
 	if _, err := io.Copy(fp, zfp); err != nil {
 		return err
 	}
+	fp.Close()
+	zr.Close()
 	return nil
 }
