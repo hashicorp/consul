@@ -100,7 +100,7 @@ jobs:
       - dev-build
     strategy:
       matrix:
-        vault-version: ["1.13.1", "1.12.5", "1.11.9", "1.10.11"]
+        vault-version: ["1.12.2","1.11.6","1.10.9","1.9.10"]
     env:
       VAULT_BINARY_VERSION: ${{ matrix.vault-version }}
     steps:
@@ -179,7 +179,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        envoy-version: ["1.22.11", "1.23.8", "1.24.6", "1.25.4"]
+        envoy-version: ["1.20.7", "1.21.6","1.22.11","1.23.8"]
         xds-target: ["server", "client"]
         test-cases: ${{ fromJSON(needs.generate-envoy-job-matrices.outputs.envoy-matrix) }}
     env:
