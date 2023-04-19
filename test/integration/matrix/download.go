@@ -46,6 +46,7 @@ func getBinary(product, version string) string {
 	const binPath = "./testdata/bin/%s/%s"
 	url := downloadURL(product, version)
 	path := fmt.Sprintf(binPath, product, version)
+	os.MkdirAll(filepath.Dir(path), 0755)
 	downloadBinary(url, path)
 	return path
 }
