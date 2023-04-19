@@ -339,7 +339,7 @@ jobs:
               --latest-version latest
             ls -lrt
         env:
-          # this is needed because of incompatibility between RYUK container and circleci
+          # this is needed because of incompatibility between RYUK container and GHA
           GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
           GOTESTSUM_FORMAT: standard-verbose
           COMPOSE_INTERACTIVE_NO_CLI: 1
