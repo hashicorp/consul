@@ -48,7 +48,7 @@ contain other important source related to Consul.
 * [ui] contains the source code for the Consul UI.
 * [website] contains the source for [consul.io](https://www.consul.io/). A pull requests
   can update the source code and Consul's documentation at the same time.
-* [.circleci] and [.github] contain the source for our CI and GitHub repository
+* [.github] contains the source for our CI and GitHub repository
   automation.
 * [.changelog] contains markdown files that are used by [hashicorp/go-changelog] to produce the
   [CHANGELOG.md].
