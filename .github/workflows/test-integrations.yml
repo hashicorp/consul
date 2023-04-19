@@ -266,7 +266,7 @@ jobs:
       - name: Generate Compatibility Job Matrix
         id: set-matrix
         env:
-          TOTAL_RUNNERS: 5
+          TOTAL_RUNNERS: 3
           JQ_SLICER: '[ inputs ] | [_nwise(length / $runnercount | floor)]'
         run: |
           cd ./test/integration/consul-container
@@ -364,7 +364,7 @@ jobs:
       - name: Generate Updgrade Job Matrix
         id: set-matrix
         env:
-          TOTAL_RUNNERS: 4
+          TOTAL_RUNNERS: 2
           JQ_SLICER: '[ inputs ] | [_nwise(length / $runnercount | floor)]'
         run: |
           cd ./test/integration/consul-container/test/upgrade
