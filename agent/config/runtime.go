@@ -1467,6 +1467,10 @@ type RuntimeConfig struct {
 
 	Reporting ReportingConfig
 
+	// LocalProxyConfigResyncInterval is not a user-configurable value and exists
+	// here so that tests can use a smaller value.
+	LocalProxyConfigResyncInterval time.Duration
+
 	EnterpriseRuntimeConfig
 }
 
