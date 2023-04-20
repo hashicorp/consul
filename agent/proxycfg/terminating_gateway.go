@@ -56,7 +56,7 @@ func (s *handlerTerminatingGateway) initialize(ctx context.Context) (ConfigSnaps
 
 	snap.TerminatingGateway.WatchedServices = make(map[structs.ServiceName]context.CancelFunc)
 	snap.TerminatingGateway.WatchedIntentions = make(map[structs.ServiceName]context.CancelFunc)
-	snap.TerminatingGateway.Intentions = make(map[structs.ServiceName]structs.Intentions)
+	snap.TerminatingGateway.Intentions = make(map[structs.ServiceName]structs.SimplifiedIntentions)
 	snap.TerminatingGateway.WatchedLeaves = make(map[structs.ServiceName]context.CancelFunc)
 	snap.TerminatingGateway.ServiceLeaves = make(map[structs.ServiceName]*structs.IssuedCert)
 	snap.TerminatingGateway.WatchedConfigs = make(map[structs.ServiceName]context.CancelFunc)
@@ -366,7 +366,7 @@ func (s *handlerTerminatingGateway) handleUpdate(ctx context.Context, u UpdateEv
 		}
 
 	case strings.HasPrefix(u.CorrelationID, serviceIntentionsIDPrefix):
-		resp, ok := u.Result.(structs.Intentions)
+		resp, ok := u.Result.(structs.SimplifiedIntentions)
 		if !ok {
 			return fmt.Errorf("invalid type for response: %T", u.Result)
 		}

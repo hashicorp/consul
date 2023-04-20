@@ -631,9 +631,9 @@ func (o *configSnapshotTerminatingGateway) DeepCopy() *configSnapshotTerminating
 		}
 	}
 	if o.Intentions != nil {
-		cp.Intentions = make(map[structs.ServiceName]structs.Intentions, len(o.Intentions))
+		cp.Intentions = make(map[structs.ServiceName]structs.SimplifiedIntentions, len(o.Intentions))
 		for k2, v2 := range o.Intentions {
-			var cp_Intentions_v2 structs.Intentions
+			var cp_Intentions_v2 structs.SimplifiedIntentions
 			if v2 != nil {
 				cp_Intentions_v2 = make([]*structs.Intention, len(v2))
 				copy(cp_Intentions_v2, v2)

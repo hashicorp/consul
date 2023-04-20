@@ -179,7 +179,7 @@ func (s *Intention) computeApplyChangesLegacyCreate(
 	if !args.Intention.CanWrite(authz) {
 		sn := args.Intention.SourceServiceName()
 		dn := args.Intention.DestinationServiceName()
-		s.logger.Warn("Intention creation denied due to ACLs",
+		s.logger.Debug("Intention creation denied due to ACLs",
 			"source", sn.String(),
 			"destination", dn.String(),
 			"accessorID", acl.AliasIfAnonymousToken(accessorID))
@@ -252,7 +252,7 @@ func (s *Intention) computeApplyChangesLegacyUpdate(
 	}
 
 	if !ixn.CanWrite(authz) {
-		s.logger.Warn("Update operation on intention denied due to ACLs",
+		s.logger.Debug("Update operation on intention denied due to ACLs",
 			"intention", args.Intention.ID,
 			"accessorID", acl.AliasIfAnonymousToken(accessorID))
 		return nil, acl.ErrPermissionDenied
@@ -314,7 +314,7 @@ func (s *Intention) computeApplyChangesUpsert(
 	if !args.Intention.CanWrite(authz) {
 		sn := args.Intention.SourceServiceName()
 		dn := args.Intention.DestinationServiceName()
-		s.logger.Warn("Intention upsert denied due to ACLs",
+		s.logger.Debug("Intention upsert denied due to ACLs",
 			"source", sn.String(),
 			"destination", dn.String(),
 			"accessorID", acl.AliasIfAnonymousToken(accessorID))
@@ -373,7 +373,7 @@ func (s *Intention) computeApplyChangesLegacyDelete(
 	}
 
 	if !ixn.CanWrite(authz) {
-		s.logger.Warn("Deletion operation on intention denied due to ACLs",
+		s.logger.Debug("Deletion operation on intention denied due to ACLs",
 			"intention", args.Intention.ID,
 			"accessorID", acl.AliasIfAnonymousToken(accessorID))
 		return nil, acl.ErrPermissionDenied
@@ -395,7 +395,7 @@ func (s *Intention) computeApplyChangesDelete(
 	if !args.Intention.CanWrite(authz) {
 		sn := args.Intention.SourceServiceName()
 		dn := args.Intention.DestinationServiceName()
-		s.logger.Warn("Intention delete denied due to ACLs",
+		s.logger.Debug("Intention delete denied due to ACLs",
 			"source", sn.String(),
 			"destination", dn.String(),
 			"accessorID", acl.AliasIfAnonymousToken(accessorID))
@@ -485,7 +485,7 @@ func (s *Intention) Get(args *structs.IntentionQueryRequest, reply *structs.Inde
 			// If ACLs prevented any responses, error
 			if len(reply.Intentions) == 0 {
 				accessorID := authz.AccessorID()
-				s.logger.Warn("Request to get intention denied due to ACLs",
+				s.logger.Debug("Request to get intention denied due to ACLs",
 					"intention", args.IntentionID,
 					"accessorID", acl.AliasIfAnonymousToken(accessorID))
 				return acl.ErrPermissionDenied
@@ -620,7 +620,7 @@ func (s *Intention) Match(args *structs.IntentionQueryRequest, reply *structs.In
 		if prefix := entry.Name; prefix != "" {
 			if err := authz.ToAllowAuthorizer().IntentionReadAllowed(prefix, &authzContext); err != nil {
 				accessorID := authz.AccessorID()
-				s.logger.Warn("Operation on intention prefix denied due to ACLs",
+				s.logger.Debug("Operation on intention prefix denied due to ACLs",
 					"prefix", prefix,
 					"accessorID", acl.AliasIfAnonymousToken(accessorID))
 				return err
@@ -745,7 +745,7 @@ func (s *Intention) Check(args *structs.IntentionQueryRequest, reply *structs.In
 		query.FillAuthzContext(&authzContext)
 		if err := authz.ToAllowAuthorizer().ServiceReadAllowed(prefix, &authzContext); err != nil {
 			accessorID := authz.AccessorID()
-			s.logger.Warn("test on intention denied due to ACLs",
+			s.logger.Debug("test on intention denied due to ACLs",
 				"prefix", prefix,
 				"accessorID", acl.AliasIfAnonymousToken(accessorID))
 			return err

@@ -1270,15 +1270,15 @@ func TestStore_IntentionExact_ConfigEntries(t *testing.T) {
 
 func TestStore_IntentionMatch_ConfigEntries(t *testing.T) {
 	type testcase struct {
-		name   string
-		input  []*structs.ServiceIntentionsConfigEntry
-		query  structs.IntentionQueryMatch
-		expect []structs.Intentions
+		name          string
+		configEntries []structs.ConfigEntry
+		query         structs.IntentionQueryMatch
+		expect        []structs.Intentions
 	}
 	run := func(t *testing.T, tc testcase) {
 		s := testConfigStateStore(t)
 		idx := uint64(0)
-		for _, conf := range tc.input {
+		for _, conf := range tc.configEntries {
 			require.NoError(t, conf.Normalize())
 			require.NoError(t, conf.Validate())
 			idx++
@@ -1300,8 +1300,8 @@ func TestStore_IntentionMatch_ConfigEntries(t *testing.T) {
 	tcs := []testcase{
 		{
 			name: "peered intention matched with destination query",
-			input: []*structs.ServiceIntentionsConfigEntry{
-				{
+			configEntries: []structs.ConfigEntry{
+				&structs.ServiceIntentionsConfigEntry{
 					Kind: structs.ServiceIntentions,
 					Name: "foo",
 					Sources: []*structs.SourceIntention{
@@ -1360,8 +1360,8 @@ func TestStore_IntentionMatch_ConfigEntries(t *testing.T) {
 			// This behavior may change in the future but this test is in place
 			// to ensure peered intentions cannot accidentally be queried by source
 			name: "peered intention cannot be queried by source",
-			input: []*structs.ServiceIntentionsConfigEntry{
-				{
+			configEntries: []structs.ConfigEntry{
+				&structs.ServiceIntentionsConfigEntry{
 					Kind: structs.ServiceIntentions,
 					Name: "foo",
 					Sources: []*structs.SourceIntention{

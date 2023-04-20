@@ -1715,6 +1715,7 @@ func SourceIntentionToStructs(s *SourceIntention, t *structs.SourceIntention) {
 	t.LegacyUpdateTime = timeToStructs(s.LegacyUpdateTime)
 	t.EnterpriseMeta = enterpriseMetaToStructs(s.EnterpriseMeta)
 	t.Peer = s.Peer
+	t.SamenessGroup = s.SamenessGroup
 }
 func SourceIntentionFromStructs(t *structs.SourceIntention, s *SourceIntention) {
 	if s == nil {
@@ -1741,6 +1742,7 @@ func SourceIntentionFromStructs(t *structs.SourceIntention, s *SourceIntention) 
 	s.LegacyUpdateTime = timeFromStructs(t.LegacyUpdateTime)
 	s.EnterpriseMeta = enterpriseMetaFromStructs(t.EnterpriseMeta)
 	s.Peer = t.Peer
+	s.SamenessGroup = t.SamenessGroup
 }
 func StatusToStructs(s *Status, t *structs.Status) {
 	if s == nil {
