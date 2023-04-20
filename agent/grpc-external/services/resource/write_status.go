@@ -13,16 +13,31 @@ import (
 
 	"github.com/oklog/ulid/v2"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/internal/storage"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
 func (s *Server) WriteStatus(ctx context.Context, req *pbresource.WriteStatusRequest) (*pbresource.WriteStatusResponse, error) {
+	authz, err := s.getAuthorizer(tokenFromContext(ctx))
+	if err != nil {
+		return nil, err
+	}
+
+	// check acls
+	err = authz.ToAllowAuthorizer().OperatorWriteAllowed(&acl.AuthorizerContext{})
+	switch {
+	case acl.IsErrPermissionDenied(err):
+		return nil, status.Error(codes.PermissionDenied, err.Error())
+	case err != nil:
+		return nil, status.Errorf(codes.Internal, "failed operator:write allowed acl: %v", err)
+	}
+
 	if err := validateWriteStatusRequest(req); err != nil {
 		return nil, err
 	}
 
-	_, err := s.resolveType(req.Id.Type)
+	_, err = s.resolveType(req.Id.Type)
 	if err != nil {
 		return nil, err
 	}
