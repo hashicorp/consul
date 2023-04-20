@@ -175,7 +175,6 @@ jobs:
               | jq --raw-input --argjson runnercount "$NUM_RUNNERS" "$JQ_SLICER" \
               | jq --compact-output 'map(join("|"))'
           } >> "$GITHUB_OUTPUT"
-          cat "$GITHUB_OUTPUT"
   
   envoy-integration-test:
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-xl) }}
@@ -291,7 +290,6 @@ jobs:
               | jq --raw-input --argjson runnercount "$NUM_RUNNERS" "$JQ_SLICER" \
               | jq --compact-output 'map(join(" "))'
           } >> "$GITHUB_OUTPUT"
-          cat "$GITHUB_OUTPUT"
   compatibility-integration-test:
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-xl) }}
     needs:
@@ -397,7 +395,6 @@ jobs:
             | jq --raw-input --argjson runnercount "$NUM_RUNNERS" "$JQ_SLICER" \
             | jq --compact-output 'map(join("|"))'
           } >> "$GITHUB_OUTPUT"
-          cat "$GITHUB_OUTPUT"
   
   upgrade-integration-test:
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-xl) }}
