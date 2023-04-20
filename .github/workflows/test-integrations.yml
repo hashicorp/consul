@@ -167,7 +167,7 @@ jobs:
             NUM_RUNNERS=$NUM_DIRS
           fi
           # fix issue where test splitting calculation generates 1 more split than TOTAL_RUNNERS.
-          NUM_RUNNERS=$(($NUM_RUNNERS))-1
+          NUM_RUNNERS=$(($NUM_RUNNERS-1))
           echo "NUM_RUNNERS: $NUM_RUNNERS"
           {
             echo -n "envoy-matrix="
@@ -284,7 +284,7 @@ jobs:
             NUM_RUNNERS=$NUM_DIRS
           fi
           # fix issue where test splitting calculation generates 1 more split than TOTAL_RUNNERS.
-          NUM_RUNNERS=$(($NUM_RUNNERS))-1
+          NUM_RUNNERS=$(($NUM_RUNNERS-1))
           echo "NUM_RUNNERS: $NUM_RUNNERS"
           {
             echo -n "compatibility-matrix="
@@ -392,7 +392,7 @@ jobs:
             NUM_RUNNERS=$NUM_DIRS
           fi
           # fix issue where test splitting calculation generates 1 more split than TOTAL_RUNNERS.
-          NUM_RUNNERS=$(($NUM_RUNNERS))-1
+          NUM_RUNNERS=$(($NUM_RUNNERS-1))
           echo "NUM_RUNNERS: $NUM_RUNNERS"
           {
             echo -n "upgrade-matrix="
