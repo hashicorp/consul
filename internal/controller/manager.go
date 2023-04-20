@@ -2,6 +2,7 @@ package controller
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"sync/atomic"
 
@@ -43,6 +44,10 @@ func (m *Manager) Register(ctrl Controller) {
 		panic("cannot register additional controllers after calling Run")
 	}
 
+	if ctrl.reconciler == nil {
+		panic(fmt.Sprintf("cannot register controller without a reconciler %s", ctrl))
+	}
+
 	m.controllers = append(m.controllers, ctrl)
 }
 
@@ -68,7 +73,7 @@ func (m *Manager) Run(ctx context.Context) {
 			client: m.client,
 			logger: logger,
 		}
-		go newSupervisor(runner.run, m.newLeaseLocked()).run(ctx)
+		go newSupervisor(runner.run, m.newLeaseLocked(desc)).run(ctx)
 	}
 }
 
@@ -93,7 +98,11 @@ func (m *Manager) SetRaftLeader(leader bool) {
 	}
 }
 
-func (m *Manager) newLeaseLocked() Lease {
+func (m *Manager) newLeaseLocked(ctrl Controller) Lease {
+	if ctrl.placement == PlacementEachServer {
+		return eternalLease{}
+	}
+
 	ch := make(chan struct{}, 1)
 	m.leaseChans = append(m.leaseChans, ch)
 	return &raftLease{m: m, ch: ch}
