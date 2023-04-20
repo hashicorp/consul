@@ -33,6 +33,9 @@ The table below shows this endpoint's support for
 | ---------------- | ----------------- | ------------- | -------------------------- |
 | `NO`             | `none`            | `none`        | `node:write,service:write` |
 
+~> **Note:** The `/v1/catalog/register` endpoint does not support `snake_case` 
+for any key name in the API request payloads.
+
 ### Query Parameters
 
 - `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace of the service and checks you register.
