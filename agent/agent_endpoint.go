@@ -28,6 +28,7 @@ import (
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/debug"
+	"github.com/hashicorp/consul/agent/leafcert"
 	"github.com/hashicorp/consul/agent/structs"
 	token_store "github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/api"
@@ -1571,7 +1572,7 @@ func (s *HTTPHandlers) AgentConnectCALeafCert(resp http.ResponseWriter, req *htt
 
 	// TODO(peering): expose way to get kind=mesh-gateway type cert with appropriate ACLs
 
-	args := cachetype.ConnectCALeafRequest{
+	args := leafcert.ConnectCALeafRequest{
 		Service: serviceName, // Need name not ID
 	}
 	var qOpts structs.QueryOptions
@@ -1600,17 +1601,13 @@ func (s *HTTPHandlers) AgentConnectCALeafCert(resp http.ResponseWriter, req *htt
 		return nil, nil
 	}
 
-	raw, m, err := s.agent.cache.Get(req.Context(), cachetype.ConnectCALeafName, &args)
+	reply, m, err := s.agent.leafCertManager.Get(req.Context(), &args)
 	if err != nil {
 		return nil, err
 	}
+
 	defer setCacheMeta(resp, &m)
 
-	reply, ok := raw.(*structs.IssuedCert)
-	if !ok {
-		// This should never happen, but we want to protect against panics
-		return nil, fmt.Errorf("internal error: response type not correct")
-	}
 	setIndex(resp, reply.ModifyIndex)
 
 	return reply, nil
