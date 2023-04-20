@@ -10,8 +10,6 @@ import (
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
 
-	"github.com/hashicorp/consul/proto/private/pbpeering"
-
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
@@ -23,6 +21,7 @@ import (
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/submatview"
+	"github.com/hashicorp/consul/proto/private/pbpeering"
 )
 
 // ServerDataSourceDeps contains the dependencies needed for sourcing data from
@@ -79,17 +78,6 @@ func CacheDatacenters(c *cache.Cache) proxycfg.Datacenters {
 // sourcing data from the agent cache.
 func CacheServiceGateways(c *cache.Cache) proxycfg.GatewayServices {
 	return &cacheProxyDataSource[*structs.ServiceSpecificRequest]{c, cachetype.ServiceGatewaysName}
-}
-
-// CacheLeafCertificate satisifies the proxycfg.LeafCertificate interface by
-// sourcing data from the agent cache.
-//
-// Note: there isn't a server-local equivalent of this data source because
-// "agentless" proxies obtain certificates via SDS served by consul-dataplane.
-// If SDS is not supported on consul-dataplane, data is sourced from the server agent cache
-// even for "agentless" proxies.
-func CacheLeafCertificate(c *cache.Cache) proxycfg.LeafCertificate {
-	return &cacheProxyDataSource[*cachetype.ConnectCALeafRequest]{c, cachetype.ConnectCALeafName}
 }
 
 // CachePrepraredQuery satisfies the proxycfg.PreparedQuery interface by
