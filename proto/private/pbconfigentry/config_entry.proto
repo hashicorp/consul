@@ -374,6 +374,36 @@ message HTTPHeaderModifiers {
 message ServiceIntentions {
   repeated SourceIntention Sources = 1;
   map<string, string> Meta = 2;
+  IntentionJWTRequirement JWT = 3;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.IntentionJWTRequirement
+// output=config_entry.gen.go
+// name=Structs
+message IntentionJWTRequirement {
+  repeated IntentionJWTProvider Providers = 1;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.IntentionJWTProvider
+// output=config_entry.gen.go
+// name=Structs
+message IntentionJWTProvider {
+  string Name = 1;
+  repeated IntentionJWTClaimVerification VerifyClaims = 2;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.IntentionJWTClaimVerification
+// output=config_entry.gen.go
+// name=Structs
+message IntentionJWTClaimVerification {
+  repeated string Path = 1;
+  string Value = 2;
 }
 
 // mog annotation:
@@ -420,6 +450,7 @@ message IntentionPermission {
   // mog: func-to=intentionActionToStructs func-from=intentionActionFromStructs
   IntentionAction Action = 1;
   IntentionHTTPPermission HTTP = 2;
+  IntentionJWTRequirement JWT = 3;
 }
 
 // mog annotation:

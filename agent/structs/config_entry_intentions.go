@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/lib/stringslice"
+	"github.com/hashicorp/go-multierror"
 
 	"github.com/hashicorp/consul/acl"
 )
@@ -19,6 +20,8 @@ type ServiceIntentionsConfigEntry struct {
 	Name string // formerly DestinationName
 
 	Sources []*SourceIntention
+
+	JWT *IntentionJWTRequirement `json:",omitempty"`
 
 	Meta map[string]string `json:",omitempty"` // formerly Intention.Meta
 
@@ -55,6 +58,10 @@ func (e *ServiceIntentionsConfigEntry) Clone() *ServiceIntentionsConfigEntry {
 	e2.Sources = make([]*SourceIntention, len(e.Sources))
 	for i, src := range e.Sources {
 		e2.Sources[i] = src.Clone()
+	}
+
+	if e.JWT != nil {
+		e2.JWT = e.JWT.Clone()
 	}
 
 	return &e2
@@ -131,6 +138,7 @@ func (e *ServiceIntentionsConfigEntry) ToIntention(src *SourceIntention) *Intent
 		SourceNS:             src.NamespaceOrDefault(),
 		SourceName:           src.Name,
 		SourceType:           src.Type,
+		JWT:                  e.JWT,
 		Action:               src.Action,
 		Permissions:          src.Permissions,
 		Meta:                 meta,
@@ -268,6 +276,79 @@ type SourceIntention struct {
 	Peer string `json:",omitempty"`
 }
 
+type IntentionJWTRequirement struct {
+	// Providers is a list of providers to consider when verifying a JWT.
+	Providers []*IntentionJWTProvider `json:",omitempty"`
+}
+
+func (e *IntentionJWTRequirement) Clone() *IntentionJWTRequirement {
+	e2 := *e
+
+	e2.Providers = make([]*IntentionJWTProvider, len(e.Providers))
+	for i, src := range e.Providers {
+		e2.Providers[i] = src.Clone()
+	}
+	return &e2
+}
+
+func (p *IntentionJWTProvider) Validate() error {
+	if p.Name == "" {
+		return fmt.Errorf("JWT provider name is required")
+	}
+	return nil
+}
+
+func (e *IntentionJWTRequirement) Validate() error {
+	var result error
+
+	for _, provider := range e.Providers {
+		if err := provider.Validate(); err != nil {
+			result = multierror.Append(result, err)
+		}
+	}
+
+	return result
+}
+
+type IntentionJWTProvider struct {
+	// Name is the name of the JWT provider. There MUST be a corresponding
+	// "jwt-provider" config entry with this name.
+	Name string `json:",omitempty"`
+
+	// VerifyClaims is a list of additional claims to verify in a JWT's payload.
+	VerifyClaims []*IntentionJWTClaimVerification `json:",omitempty" alias:"verify_claims"`
+}
+
+func (e *IntentionJWTProvider) Clone() *IntentionJWTProvider {
+	e2 := *e
+
+	e2.VerifyClaims = make([]*IntentionJWTClaimVerification, len(e.VerifyClaims))
+	for i, src := range e.VerifyClaims {
+		e2.VerifyClaims[i] = src.Clone()
+	}
+	return &e2
+}
+
+type IntentionJWTClaimVerification struct {
+	// Path is the path to the claim in the token JSON.
+	Path []string `json:",omitempty"`
+
+	// Value is the expected value at the given path:
+	// - If the type at the path is a list then we verify
+	//   that this value is contained in the list.
+	//
+	// - If the type at the path is a string then we verify
+	//   that this value matches.
+	Value string `json:",omitempty"`
+}
+
+func (e *IntentionJWTClaimVerification) Clone() *IntentionJWTClaimVerification {
+	e2 := *e
+
+	e2.Path = stringslice.CloneStringSlice(e.Path)
+	return &e2
+}
+
 type IntentionPermission struct {
 	Action IntentionAction // required: allow|deny
 
@@ -281,6 +362,8 @@ type IntentionPermission struct {
 
 	// If we ever add Sentinel support, this is one place we may
 	// wish to add it.
+
+	JWT *IntentionJWTRequirement `json:",omitempty"`
 }
 
 func (p *IntentionPermission) Clone() *IntentionPermission {
@@ -288,7 +371,19 @@ func (p *IntentionPermission) Clone() *IntentionPermission {
 	if p.HTTP != nil {
 		p2.HTTP = p.HTTP.Clone()
 	}
+	if p.JWT != nil {
+		p2.JWT = p.JWT.Clone()
+	}
 	return &p2
+}
+
+func (p *IntentionPermission) Validate() error {
+	var result error
+	if p.JWT != nil {
+		result = p.JWT.Validate()
+	}
+
+	return result
 }
 
 type IntentionHTTPPermission struct {
@@ -562,6 +657,12 @@ func (e *ServiceIntentionsConfigEntry) validate(legacyWrite bool) error {
 
 	destIsWild := e.HasWildcardDestination()
 
+	if e.JWT != nil {
+		if err := e.JWT.Validate(); err != nil {
+			return err
+		}
+	}
+
 	if legacyWrite {
 		if len(e.Meta) > 0 {
 			return fmt.Errorf("Meta must be omitted for legacy intention writes")
@@ -761,6 +862,10 @@ func (e *ServiceIntentionsConfigEntry) validate(legacyWrite bool) error {
 
 			if permParts == 0 {
 				return fmt.Errorf(errorPrefix+" should not be empty", i, j)
+			}
+
+			if err := perm.Validate(); err != nil {
+				return err
 			}
 		}
 
