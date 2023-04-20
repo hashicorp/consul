@@ -383,7 +383,7 @@ jobs:
         run: |
           cd ./test/integration/consul-container/test/upgrade
           NUM_RUNNERS=$TOTAL_RUNNERS
-          NUM_DIRS=$(go test ./...  -list=. -json | jq -r '.Output | select (. !=null) |  select(. | startswith("Test")) | wc -l)
+          NUM_DIRS=$(go test ./...  -list=. -json | jq -r '.Output | select (. !=null) |  select(. | startswith("Test")) | gsub("[\\n\\t]"; "")' | wc -l)
           if [ $NUM_DIRS -lt $NUM_RUNNERS ]
           then
             echo "TOTAL_RUNNERS is larger than the number of tests/packages to split."
