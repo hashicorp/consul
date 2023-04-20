@@ -89,7 +89,7 @@ func testMixedServersGAClient(t *testing.T, majorityIsTarget bool) {
 			ConsulVersion:   utils.LatestVersion,
 		}
 		targetOpts = libcluster.BuildOptions{
-			ConsulImageName: utils.TargetImageName,
+			ConsulImageName: utils.GetTargetImageName(),
 			ConsulVersion:   utils.TargetVersion,
 		}
 

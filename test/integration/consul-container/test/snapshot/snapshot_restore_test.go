@@ -38,7 +38,7 @@ func testSnapShotRestoreForLogStore(t *testing.T, logStore libcluster.LogStore) 
 		NumClients: 0,
 		BuildOpts: &libcluster.BuildOptions{
 			Datacenter:      "dc1",
-			ConsulImageName: utils.TargetImageName,
+			ConsulImageName: utils.GetTargetImageName(),
 			ConsulVersion:   utils.TargetVersion,
 			LogStore:        logStore,
 		},
@@ -67,7 +67,7 @@ func testSnapShotRestoreForLogStore(t *testing.T, logStore libcluster.LogStore) 
 		NumClients: 0,
 		BuildOpts: &libcluster.BuildOptions{
 			Datacenter:      "dc1",
-			ConsulImageName: utils.TargetImageName,
+			ConsulImageName: utils.GetTargetImageName(),
 			ConsulVersion:   utils.TargetVersion,
 			LogStore:        logStore,
 		},

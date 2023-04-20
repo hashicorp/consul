@@ -20,21 +20,26 @@ with Consul.
 
 Use these links to navigate to a particular top-level stanza.
 
-- [`global`](#h-global)
-- [`server`](#h-server)
-- [`externalServers`](#h-externalservers)
-- [`client`](#h-client)
-- [`dns`](#h-dns)
-- [`ui`](#h-ui)
-- [`syncCatalog`](#h-synccatalog)
-- [`connectInject`](#h-connectinject)
-- [`meshGateway`](#h-meshgateway)
-- [`ingressGateways`](#h-ingressgateways)
-- [`terminatingGateways`](#h-terminatinggateways)
-- [`apiGateway`](#h-apigateway)
-- [`webhookCertManager`](#h-webhookcertmanager)
-- [`prometheus`](#h-prometheus)
-- [`tests`](#h-tests)
+- [Helm Chart Reference](#helm-chart-reference)
+  - [Top-Level Stanzas](#top-level-stanzas)
+  - [All Values](#all-values)
+    - [global ((#h-global))](#global-h-global)
+    - [server ((#h-server))](#server-h-server)
+    - [externalServers ((#h-externalservers))](#externalservers-h-externalservers)
+    - [client ((#h-client))](#client-h-client)
+    - [dns ((#h-dns))](#dns-h-dns)
+    - [ui ((#h-ui))](#ui-h-ui)
+    - [syncCatalog ((#h-synccatalog))](#synccatalog-h-synccatalog)
+    - [connectInject ((#h-connectinject))](#connectinject-h-connectinject)
+    - [meshGateway ((#h-meshgateway))](#meshgateway-h-meshgateway)
+    - [ingressGateways ((#h-ingressgateways))](#ingressgateways-h-ingressgateways)
+    - [terminatingGateways ((#h-terminatinggateways))](#terminatinggateways-h-terminatinggateways)
+    - [apiGateway ((#h-apigateway))](#apigateway-h-apigateway)
+    - [webhookCertManager ((#h-webhookcertmanager))](#webhookcertmanager-h-webhookcertmanager)
+    - [prometheus ((#h-prometheus))](#prometheus-h-prometheus)
+    - [tests ((#h-tests))](#tests-h-tests)
+  - [Helm Chart Examples](#helm-chart-examples)
+  - [Customizing the Helm Chart](#customizing-the-helm-chart)
 
 ## All Values
 
@@ -299,7 +304,7 @@ Use these links to navigate to a particular top-level stanza.
     - `enabled` ((#v-global-tls-enabled)) (`boolean: false`) - If true, the Helm chart will enable TLS for Consul
       servers and clients and all consul-k8s-control-plane components, as well as generate certificate
       authority (optional) and server and client certificates.
-      This setting is required for [Cluster Peering](/consul/docs/connect/cluster-peering/k8s).
+      This setting is required for [cluster peering](/consul/docs/k8s/connect/cluster-peering/tech-specs).
 
     - `enableAutoEncrypt` ((#v-global-tls-enableautoencrypt)) (`boolean: false`) - If true, turns on the auto-encrypt feature on clients and servers.
       It also switches consul-k8s-control-plane components to retrieve the CA from the servers
@@ -1911,7 +1916,7 @@ Use these links to navigate to a particular top-level stanza.
 
   - `enabled` ((#v-meshgateway-enabled)) (`boolean: false`) - If [mesh gateways](/consul/docs/connect/gateways/mesh-gateway) are enabled, a Deployment will be created that runs
     gateways and Consul Connect will be configured to use gateways.
-    This setting is required for [Cluster Peering](/consul/docs/connect/cluster-peering/k8s).
+    This setting is required for [cluster peering](/consul/docs/k8s/connect/cluster-peering/tech-specs).
     Requirements: consul 1.6.0+ if using `global.acls.manageSystemACLs``.
 
   - `replicas` ((#v-meshgateway-replicas)) (`integer: 1`) - Number of replicas for the Deployment.

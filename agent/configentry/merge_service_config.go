@@ -154,6 +154,10 @@ func MergeServiceConfig(defaults *structs.ServiceConfigResponse, service *struct
 		ns.Proxy.TransparentProxy.DialedDirectly = defaults.TransparentProxy.DialedDirectly
 	}
 
+	if ns.Proxy.MutualTLSMode == structs.MutualTLSModeDefault {
+		ns.Proxy.MutualTLSMode = defaults.MutualTLSMode
+	}
+
 	// remoteUpstreams contains synthetic Upstreams generated from central config (service-defaults.UpstreamConfigs).
 	remoteUpstreams := make(map[structs.PeeredServiceName]structs.Upstream)
 

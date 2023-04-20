@@ -3182,3 +3182,210 @@ func TestStateStore_ConfigEntry_VirtualIP(t *testing.T) {
 		})
 	}
 }
+
+func TestStore_MutualTLSMode_Validation_InitialWrite(t *testing.T) {
+	cases := []struct {
+		// setup
+		mesh *structs.MeshConfigEntry
+
+		mtlsMode structs.MutualTLSMode
+		expErr   error
+	}{
+		// Mesh config entry does not exist. Should default to AllowEnablingPermissiveMutualTLS=false.
+		{
+			mtlsMode: structs.MutualTLSModeDefault,
+		},
+		{
+			mtlsMode: structs.MutualTLSModeStrict,
+		},
+		{
+			mtlsMode: structs.MutualTLSModePermissive,
+			expErr:   permissiveModeNotAllowedError,
+		},
+
+		// Mesh config entry contains AllowEnablingPermissiveMutualTLS=false
+		{
+			mesh:     &structs.MeshConfigEntry{},
+			mtlsMode: structs.MutualTLSModeDefault,
+		},
+		{
+			mesh:     &structs.MeshConfigEntry{},
+			mtlsMode: structs.MutualTLSModeStrict,
+		},
+		{
+			mesh:     &structs.MeshConfigEntry{},
+			mtlsMode: structs.MutualTLSModePermissive,
+			expErr:   permissiveModeNotAllowedError,
+		},
+
+		// Mesh config entry exists with AllowEnablingPermissiveMutualTLS=true.
+		{
+			mesh:     &structs.MeshConfigEntry{AllowEnablingPermissiveMutualTLS: true},
+			mtlsMode: structs.MutualTLSModeDefault,
+		},
+		{
+			mesh:     &structs.MeshConfigEntry{AllowEnablingPermissiveMutualTLS: true},
+			mtlsMode: structs.MutualTLSModeStrict,
+		},
+		{
+			mesh:     &structs.MeshConfigEntry{AllowEnablingPermissiveMutualTLS: true},
+			mtlsMode: structs.MutualTLSModePermissive,
+		},
+	}
+	for _, c := range cases {
+		c := c
+		var name string
+		if c.mesh == nil {
+			name = fmt.Sprintf("when mesh config entry not found")
+		} else {
+			name = fmt.Sprintf("when AllowEnablingPermissiveMutualTLS=%v", c.mesh.AllowEnablingPermissiveMutualTLS)
+		}
+		if c.expErr != nil {
+			name += " cannot"
+		} else {
+			name += " can"
+		}
+		name += fmt.Sprintf(" set MutualTLSMode=%q", c.mtlsMode)
+		t.Run(name, func(t *testing.T) {
+			s := testConfigStateStore(t)
+
+			var err error
+			var idx uint64
+			if c.mesh != nil {
+				idx, err = writeConfigAndBumpIndexForTest(s, idx, c.mesh)
+				require.NoError(t, err)
+			}
+
+			idx, err = writeConfigAndBumpIndexForTest(s, idx, &structs.ProxyConfigEntry{
+				Kind:          structs.ProxyDefaults,
+				Name:          structs.ProxyConfigGlobal,
+				MutualTLSMode: c.mtlsMode,
+			})
+			require.Equal(t, c.expErr, err)
+
+			_, err = writeConfigAndBumpIndexForTest(s, idx, &structs.ServiceConfigEntry{
+				Kind:          structs.ServiceDefaults,
+				Name:          "test-svc",
+				MutualTLSMode: c.mtlsMode,
+			})
+			require.Equal(t, c.expErr, err)
+		})
+	}
+}
+
+func TestStore_MutualTLSMode_Validation_SubsequentWrite(t *testing.T) {
+	cases := []struct {
+		allowPermissive bool
+		initialModes    []structs.MutualTLSMode
+		transitions     map[structs.MutualTLSMode]error
+	}{
+		{
+			allowPermissive: false,
+			initialModes: []structs.MutualTLSMode{
+				structs.MutualTLSModeDefault,
+				structs.MutualTLSModeStrict,
+			},
+			transitions: map[structs.MutualTLSMode]error{
+				structs.MutualTLSModeDefault: nil,
+				structs.MutualTLSModeStrict:  nil,
+				// Cannot transition from "" -> "permissive"
+				// Cannot transition from "strict" -> "permissive"
+				structs.MutualTLSModePermissive: permissiveModeNotAllowedError,
+			},
+		},
+		{
+			allowPermissive: false,
+			initialModes: []structs.MutualTLSMode{
+				structs.MutualTLSModePermissive,
+			},
+			transitions: map[structs.MutualTLSMode]error{
+				structs.MutualTLSModeDefault: nil,
+				structs.MutualTLSModeStrict:  nil,
+				// Can transition from "permissive" -> "permissive"
+				structs.MutualTLSModePermissive: nil,
+			},
+		},
+		{
+			allowPermissive: true,
+			initialModes: []structs.MutualTLSMode{
+				structs.MutualTLSModeDefault,
+				structs.MutualTLSModeStrict,
+				structs.MutualTLSModePermissive,
+			},
+			transitions: map[structs.MutualTLSMode]error{
+				// Can transition from any mode to any other mode when allowPermissive=true
+				structs.MutualTLSModeDefault:    nil,
+				structs.MutualTLSModeStrict:     nil,
+				structs.MutualTLSModePermissive: nil,
+			},
+		},
+	}
+	for _, c := range cases {
+		c := c
+
+		for _, initialMode := range c.initialModes {
+			for newMode, expErr := range c.transitions {
+				name := fmt.Sprintf("when AllowEnablingPermissiveMutualTLS=%v", c.allowPermissive)
+				if expErr != nil {
+					name += " cannot"
+				} else {
+					name += " can"
+				}
+				name += fmt.Sprintf(" transition MutualTLSMode from %q to %q", initialMode, newMode)
+				t.Run(name, func(t *testing.T) {
+					s := testConfigStateStore(t)
+
+					// Setup initial state.
+					idx, err := writeConfigAndBumpIndexForTest(s, 0, &structs.MeshConfigEntry{
+						AllowEnablingPermissiveMutualTLS: true, // set to true to allow writing any initial mode.
+					})
+					require.NoError(t, err)
+
+					idx, err = writeConfigAndBumpIndexForTest(s, idx, &structs.ProxyConfigEntry{
+						Kind:          structs.ProxyDefaults,
+						Name:          structs.ProxyConfigGlobal,
+						MutualTLSMode: initialMode,
+					})
+					require.NoError(t, err)
+
+					idx, err = writeConfigAndBumpIndexForTest(s, idx, &structs.ServiceConfigEntry{
+						Kind:          structs.ServiceDefaults,
+						Name:          "test-svc",
+						MutualTLSMode: initialMode,
+					})
+					require.NoError(t, err)
+
+					// Set AllowEnablingPermissiveMutualTLS for the test case.
+					idx, err = writeConfigAndBumpIndexForTest(s, idx, &structs.MeshConfigEntry{
+						AllowEnablingPermissiveMutualTLS: c.allowPermissive,
+					})
+					require.NoError(t, err)
+
+					// Test switching to the other mode.
+					idx, err = writeConfigAndBumpIndexForTest(s, idx, &structs.ProxyConfigEntry{
+						Kind:          structs.ProxyDefaults,
+						Name:          structs.ProxyConfigGlobal,
+						MutualTLSMode: newMode,
+					})
+					require.Equal(t, expErr, err)
+
+					_, err = writeConfigAndBumpIndexForTest(s, idx, &structs.ServiceConfigEntry{
+						Kind:          structs.ServiceDefaults,
+						Name:          "test-svc",
+						MutualTLSMode: newMode,
+					})
+					require.Equal(t, expErr, err)
+				})
+
+			}
+		}
+	}
+}
+
+func writeConfigAndBumpIndexForTest(s *Store, idx uint64, entry structs.ConfigEntry) (uint64, error) {
+	err := s.EnsureConfigEntry(idx, entry)
+	if err == nil {
+		idx++
+	}
+	return idx, err
+}
