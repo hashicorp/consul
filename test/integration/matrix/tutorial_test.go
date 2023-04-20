@@ -35,7 +35,7 @@ func demo(t *testing.T, c TestConsulServer, v TestVaultServer) {
 		err := v.Client().Sys().Unmount(intrPath + "/")
 		require.NoError(t, err)
 	})
-	err = v.Client().Sys().PutPolicy(policyName, policyRules)
+	err = v.Client().Sys().PutPolicy(policyName, policyRules(rootPath, intrPath))
 	require.NoError(t, err)
 	t.Cleanup(func() {
 		err := v.Client().Sys().DeletePolicy(policyName)
@@ -49,10 +49,10 @@ func demo(t *testing.T, c TestConsulServer, v TestVaultServer) {
 		require.NoError(t, err)
 	})
 	require.NoError(t, err)
+
 	// consul setup
-	// XXX shouldn't the above created token work here?
 	_, err = c.Client().Connect().CASetConfig(
-		caConf(v.Addr, v.RootToken, rootPath, intrPath), nil)
+		caConf(v.Addr, token, rootPath, intrPath), nil)
 	require.NoError(t, err)
 	// can't undo this... maybe add note that new tests that touch this
 	// will need to overwrite other setups
@@ -100,28 +100,32 @@ const (
 	policyName = "ca"
 )
 
-const policyRules = `
-path "/sys/mounts/connect_root" {
+func policyRules(rootPath, intrPath string) string {
+	return fmt.Sprintf(policyRulesTmpl, rootPath, intrPath)
+}
+
+const policyRulesTmpl = `
+path "/sys/mounts/%[1]s" {
   capabilities = [ "read" ]
 }
 
-path "/sys/mounts/connect_dc1_inter" {
+path "/sys/mounts/%[2]s" {
   capabilities = [ "read" ]
 }
 
-path "/sys/mounts/connect_dc1_inter/tune" {
+path "/sys/mounts/%[2]s/tune" {
   capabilities = [ "update" ]
 }
 
-path "/connect_root/" {
-  capabilities = [ "read" ]
+path "/%[1]s/*" {
+  capabilities = [ "read", "update" ]
 }
 
-path "/connect_root/root/sign-intermediate" {
+path "%[1]s/root/sign-intermediate" {
   capabilities = [ "update" ]
 }
 
-path "/connect_dc1_inter/*" {
+path "%[2]s/*" {
   capabilities = [ "create", "read", "update", "delete", "list" ]
 }
 
