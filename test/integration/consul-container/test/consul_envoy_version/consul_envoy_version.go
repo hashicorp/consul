@@ -34,7 +34,7 @@ func main() {
 	sort.Sort(sort.Reverse(sort.StringSlice(cev.EnvoyVersions)))
 
 	ceVersions := consulEnvoyVersions{
-		ConsulVersion: string(cVersion),
+		ConsulVersion: cVersion,
 		EnvoyVersions: cev.EnvoyVersions,
 	}
 	output, err := json.Marshal(ceVersions)
