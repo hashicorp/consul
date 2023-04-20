@@ -23,7 +23,7 @@ import (
 )
 
 func makeRBACNetworkFilter(
-	intentions structs.Intentions,
+	intentions structs.SimplifiedIntentions,
 	intentionDefaultAllow bool,
 	localInfo rbacLocalInfo,
 	peerTrustBundles []*pbpeering.PeeringTrustBundle,
@@ -38,7 +38,7 @@ func makeRBACNetworkFilter(
 }
 
 func makeRBACHTTPFilter(
-	intentions structs.Intentions,
+	intentions structs.SimplifiedIntentions,
 	intentionDefaultAllow bool,
 	localInfo rbacLocalInfo,
 	peerTrustBundles []*pbpeering.PeeringTrustBundle,
@@ -52,7 +52,7 @@ func makeRBACHTTPFilter(
 }
 
 func intentionListToIntermediateRBACForm(
-	intentions structs.Intentions,
+	intentions structs.SimplifiedIntentions,
 	localInfo rbacLocalInfo,
 	isHTTP bool,
 	trustBundlesByPeer map[string]*pbpeering.PeeringTrustBundle,
@@ -478,7 +478,7 @@ type rbacLocalInfo struct {
 //
 // Which really is just an allow-list of [A, C AND NOT(B)]
 func makeRBACRules(
-	intentions structs.Intentions,
+	intentions structs.SimplifiedIntentions,
 	intentionDefaultAllow bool,
 	localInfo rbacLocalInfo,
 	isHTTP bool,
@@ -590,13 +590,13 @@ func optimizePrincipals(orig []*envoy_rbac_v3.Principal) []*envoy_rbac_v3.Princi
 //
 // (backend/* -> default/*) was dropped because it is already known that any service
 // in the backend namespace can target default/web.
-func removeSameSourceIntentions(intentions structs.Intentions) structs.Intentions {
+func removeSameSourceIntentions(intentions structs.SimplifiedIntentions) structs.SimplifiedIntentions {
 	if len(intentions) < 2 {
 		return intentions
 	}
 
 	var (
-		out        = make(structs.Intentions, 0, len(intentions))
+		out        = make(structs.SimplifiedIntentions, 0, len(intentions))
 		changed    = false
 		seenSource = make(map[structs.PeeredServiceName]struct{})
 	)

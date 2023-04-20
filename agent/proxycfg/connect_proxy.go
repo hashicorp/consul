@@ -313,7 +313,7 @@ func (s *handlerConnectProxy) handleUpdate(ctx context.Context, u UpdateEvent, s
 		snap.ConnectProxy.InboundPeerTrustBundlesSet = true
 
 	case u.CorrelationID == intentionsWatchID:
-		resp, ok := u.Result.(structs.Intentions)
+		resp, ok := u.Result.(structs.SimplifiedIntentions)
 		if !ok {
 			return fmt.Errorf("invalid type for response: %T", u.Result)
 		}

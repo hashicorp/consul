@@ -430,6 +430,7 @@ message SourceIntention {
   // mog: func-to=enterpriseMetaToStructs func-from=enterpriseMetaFromStructs
   common.EnterpriseMeta EnterpriseMeta = 11;
   string Peer = 12;
+  string SamenessGroup = 13;
 }
 
 enum IntentionAction {
