@@ -62,17 +62,8 @@ func (c *controllerRunner) run(ctx context.Context) error {
 }
 
 func runQueue[T queue.ItemType](ctx context.Context, ctrl Controller) queue.WorkQueue[T] {
-	baseBackoff := ctrl.baseBackoff
-	if baseBackoff == 0 {
-		baseBackoff = 5 * time.Millisecond
-	}
-
-	maxBackoff := ctrl.maxBackoff
-	if maxBackoff == 0 {
-		maxBackoff = 1000 * time.Second
-	}
-
-	return queue.RunWorkQueue[T](ctx, baseBackoff, maxBackoff)
+	base, max := ctrl.backoff()
+	return queue.RunWorkQueue[T](ctx, base, max)
 }
 
 func (c *controllerRunner) watch(ctx context.Context, typ *pbresource.Type, add func(*pbresource.Resource)) error {

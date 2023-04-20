@@ -16,7 +16,9 @@ import (
 	"github.com/hashicorp/consul/sdk/testutil"
 )
 
-func TestControllerAPI(t *testing.T) {
+func TestController_API(t *testing.T) {
+	t.Parallel()
+
 	rec := newTestReconciler()
 	client := svctest.RunResourceService(t, demo.RegisterTypes)
 
@@ -115,6 +117,89 @@ func TestControllerAPI(t *testing.T) {
 		req = rec.wait(t)
 		prototest.AssertDeepEqual(t, rsp.Resource.Id, req.ID)
 	})
+}
+
+func TestController_Placement(t *testing.T) {
+	t.Parallel()
+
+	t.Run("singleton", func(t *testing.T) {
+		rec := newTestReconciler()
+		client := svctest.RunResourceService(t, demo.RegisterTypes)
+
+		ctrl := controller.
+			ForType(demo.TypeV2Artist).
+			WithWatch(demo.TypeV2Album, controller.MapOwner).
+			WithPlacement(controller.PlacementSingleton).
+			WithReconciler(rec)
+
+		mgr := controller.NewManager(client, testutil.Logger(t))
+		mgr.Register(ctrl)
+		go mgr.Run(testContext(t))
+
+		res, err := demo.GenerateV2Artist()
+		require.NoError(t, err)
+
+		// Reconciler should not be called until we're the Raft leader.
+		_, err = client.Write(testContext(t), &pbresource.WriteRequest{Resource: res})
+		require.NoError(t, err)
+		rec.expectNoRequest(t, 500*time.Millisecond)
+
+		// Become the leader and check the reconciler is called.
+		mgr.SetRaftLeader(true)
+		_ = rec.wait(t)
+
+		// Should not be called after losing leadership.
+		mgr.SetRaftLeader(false)
+		_, err = client.Write(testContext(t), &pbresource.WriteRequest{Resource: res})
+		require.NoError(t, err)
+		rec.expectNoRequest(t, 500*time.Millisecond)
+	})
+
+	t.Run("each server", func(t *testing.T) {
+		rec := newTestReconciler()
+		client := svctest.RunResourceService(t, demo.RegisterTypes)
+
+		ctrl := controller.
+			ForType(demo.TypeV2Artist).
+			WithWatch(demo.TypeV2Album, controller.MapOwner).
+			WithPlacement(controller.PlacementEachServer).
+			WithReconciler(rec)
+
+		mgr := controller.NewManager(client, testutil.Logger(t))
+		mgr.Register(ctrl)
+		go mgr.Run(testContext(t))
+
+		res, err := demo.GenerateV2Artist()
+		require.NoError(t, err)
+
+		// Reconciler should be called even though we're not the Raft leader.
+		_, err = client.Write(testContext(t), &pbresource.WriteRequest{Resource: res})
+		require.NoError(t, err)
+		_ = rec.wait(t)
+	})
+}
+
+func TestController_String(t *testing.T) {
+	ctrl := controller.
+		ForType(demo.TypeV2Artist).
+		WithWatch(demo.TypeV2Album, controller.MapOwner).
+		WithBackoff(5*time.Second, 1*time.Hour).
+		WithPlacement(controller.PlacementEachServer)
+
+	require.Equal(t,
+		`<Controller managed_type="demo.v2.artist", watched_types=["demo.v2.album"], backoff=<base="5s", max="1h0m0s">, placement="each-server">`,
+		ctrl.String(),
+	)
+}
+
+func TestController_NoReconciler(t *testing.T) {
+	client := svctest.RunResourceService(t, demo.RegisterTypes)
+	mgr := controller.NewManager(client, testutil.Logger(t))
+
+	ctrl := controller.ForType(demo.TypeV2Artist)
+	require.PanicsWithValue(t,
+		`cannot register controller without a reconciler <Controller managed_type="demo.v2.artist", watched_types=[], backoff=<base="5ms", max="16m40s">, placement="singleton">`,
+		func() { mgr.Register(ctrl) })
 }
 
 func newTestReconciler() *testReconciler {

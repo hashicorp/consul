@@ -3,10 +3,12 @@ package controller
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/go-hclog"
 
+	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
@@ -15,22 +17,38 @@ func ForType(managedType *pbresource.Type) Controller {
 	return Controller{managedType: managedType}
 }
 
-// WithReconciler adds the given reconciler to the controller being built.
+// WithReconciler changes the controller's reconciler.
 func (c Controller) WithReconciler(reconciler Reconciler) Controller {
+	if reconciler == nil {
+		panic("reconciler must not be nil")
+	}
+
 	c.reconciler = reconciler
 	return c
 }
 
-// WithWatch adds a watch on the given type/dependency to the controller being
-// built. mapper will be called to determine which resources must be reconciled
-// as a result of a watched resource changing.
+// WithWatch adds a watch on the given type/dependency to the controller. mapper
+// will be called to determine which resources must be reconciled as a result of
+// a watched resource changing.
 func (c Controller) WithWatch(watchedType *pbresource.Type, mapper DependencyMapper) Controller {
+	if watchedType == nil {
+		panic("watchedType must not be nil")
+	}
+
+	if mapper == nil {
+		panic("mapper must not be nil")
+	}
+
 	c.watches = append(c.watches, watch{watchedType, mapper})
 	return c
 }
 
-// WithLogger adds the given logger to the controller being built.
+// WithLogger changes the controller's logger.
 func (c Controller) WithLogger(logger hclog.Logger) Controller {
+	if logger == nil {
+		panic("logger must not be nil")
+	}
+
 	c.logger = logger
 	return c
 }
@@ -41,6 +59,42 @@ func (c Controller) WithBackoff(base, max time.Duration) Controller {
 	c.baseBackoff = base
 	c.maxBackoff = max
 	return c
+}
+
+// WithPlacement changes where and how many replicas of the controller will run.
+// In the majority of cases, the default placement (one leader elected instance
+// per cluster) is the most appropriate and you shouldn't need to override it.
+func (c Controller) WithPlacement(placement Placement) Controller {
+	c.placement = placement
+	return c
+}
+
+// String returns a textual description of the controller, useful for debugging.
+func (c Controller) String() string {
+	watchedTypes := make([]string, len(c.watches))
+	for idx, w := range c.watches {
+		watchedTypes[idx] = fmt.Sprintf("%q", resource.ToGVK(w.watchedType))
+	}
+	base, max := c.backoff()
+	return fmt.Sprintf(
+		"<Controller managed_type=%q, watched_types=[%s], backoff=<base=%q, max=%q>, placement=%q>",
+		resource.ToGVK(c.managedType),
+		strings.Join(watchedTypes, ", "),
+		base, max,
+		c.placement,
+	)
+}
+
+func (c Controller) backoff() (time.Duration, time.Duration) {
+	base := c.baseBackoff
+	if base == 0 {
+		base = 5 * time.Millisecond
+	}
+	max := c.maxBackoff
+	if max == 0 {
+		max = 1000 * time.Second
+	}
+	return base, max
 }
 
 // Controller runs a reconciliation loop to respond to changes in resources and
@@ -56,6 +110,7 @@ type Controller struct {
 	watches     []watch
 	baseBackoff time.Duration
 	maxBackoff  time.Duration
+	placement   Placement
 }
 
 type watch struct {
@@ -96,6 +151,34 @@ func MapOwner(_ context.Context, _ Runtime, res *pbresource.Resource) ([]Request
 		reqs = append(reqs, Request{ID: res.Owner})
 	}
 	return reqs, nil
+}
+
+// Placement determines where and how many replicas of the controller will run.
+type Placement int
+
+const (
+	// PlacementSingleton ensures there is a single, leader-elected, instance of
+	// the controller running in the cluster at any time. It's the default and is
+	// suitable for most use-cases.
+	PlacementSingleton Placement = iota
+
+	// PlacementEachServer ensures there is a replica of the controller running on
+	// each server in the cluster. It is useful for cases where the controller is
+	// responsible for applying some configuration resource to the server whenever
+	// it changes (e.g. rate-limit configuration). Generally, controllers in this
+	// placement mode should not modify resources.
+	PlacementEachServer
+)
+
+// String satisfies the fmt.Stringer interface.
+func (p Placement) String() string {
+	switch p {
+	case PlacementSingleton:
+		return "singleton"
+	case PlacementEachServer:
+		return "each-server"
+	}
+	panic(fmt.Sprintf("unknown placement %d", p))
 }
 
 // RequeueAfterError is an error that allows a Reconciler to override the
