@@ -78,6 +78,9 @@ type Intention struct {
 	// service-intentions config entry directly.
 	Permissions []*IntentionPermission `bexpr:"-" json:",omitempty"`
 
+	// JWT specifies JWT authn that applies to incoming requests.
+	JWT *IntentionJWTRequirement `bexpr:"-" json:",omitempty"`
+
 	// DefaultAddr is not used.
 	// Deprecated: DefaultAddr is not used and may be removed in a future version.
 	DefaultAddr string `bexpr:"-" codec:",omitempty" json:",omitempty"`

@@ -47,6 +47,7 @@ func ComputeResolvedServiceConfig(
 		thisReply.ProxyConfig = mapCopy.(map[string]interface{})
 		thisReply.Mode = proxyConf.Mode
 		thisReply.TransparentProxy = proxyConf.TransparentProxy
+		thisReply.MutualTLSMode = proxyConf.MutualTLSMode
 		thisReply.MeshGateway = proxyConf.MeshGateway
 		thisReply.Expose = proxyConf.Expose
 		thisReply.EnvoyExtensions = proxyConf.EnvoyExtensions
@@ -118,6 +119,10 @@ func ComputeResolvedServiceConfig(
 		// Add the proxy conf to the response if any fields were populated
 		if len(proxyConf) > 0 {
 			thisReply.ProxyConfig = proxyConf
+		}
+
+		if serviceConf.MutualTLSMode != structs.MutualTLSModeDefault {
+			thisReply.MutualTLSMode = serviceConf.MutualTLSMode
 		}
 
 		thisReply.Meta = serviceConf.Meta

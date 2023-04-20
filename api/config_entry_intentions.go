@@ -12,6 +12,7 @@ type ServiceIntentionsConfigEntry struct {
 	Namespace string `json:",omitempty"`
 
 	Sources []*SourceIntention
+	JWT     *IntentionJWTRequirement `json:",omitempty"`
 
 	Meta map[string]string `json:",omitempty"`
 
@@ -47,6 +48,7 @@ func (e *ServiceIntentionsConfigEntry) GetModifyIndex() uint64     { return e.Mo
 type IntentionPermission struct {
 	Action IntentionAction
 	HTTP   *IntentionHTTPPermission `json:",omitempty"`
+	JWT    *IntentionJWTRequirement `json:",omitempty"`
 }
 
 type IntentionHTTPPermission struct {
@@ -67,4 +69,31 @@ type IntentionHTTPHeaderPermission struct {
 	Suffix  string `json:",omitempty"`
 	Regex   string `json:",omitempty"`
 	Invert  bool   `json:",omitempty"`
+}
+
+type IntentionJWTRequirement struct {
+	// Providers is a list of providers to consider when verifying a JWT.
+	Providers []*IntentionJWTProvider `json:",omitempty"`
+}
+
+type IntentionJWTProvider struct {
+	// Name is the name of the JWT provider. There MUST be a corresponding
+	// "jwt-provider" config entry with this name.
+	Name string `json:",omitempty"`
+
+	// VerifyClaims is a list of additional claims to verify in a JWT's payload.
+	VerifyClaims []*IntentionJWTClaimVerification `json:",omitempty" alias:"verify_claims"`
+}
+
+type IntentionJWTClaimVerification struct {
+	// Path is the path to the claim in the token JSON.
+	Path []string `json:",omitempty"`
+
+	// Value is the expected value at the given path:
+	// - If the type at the path is a list then we verify
+	//   that this value is contained in the list.
+	//
+	// - If the type at the path is a string then we verify
+	//   that this value matches.
+	Value string `json:",omitempty"`
 }
