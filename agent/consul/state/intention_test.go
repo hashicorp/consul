@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package state
 
 import (
@@ -1270,15 +1267,15 @@ func TestStore_IntentionExact_ConfigEntries(t *testing.T) {
 
 func TestStore_IntentionMatch_ConfigEntries(t *testing.T) {
 	type testcase struct {
-		name          string
-		configEntries []structs.ConfigEntry
-		query         structs.IntentionQueryMatch
-		expect        []structs.Intentions
+		name   string
+		input  []*structs.ServiceIntentionsConfigEntry
+		query  structs.IntentionQueryMatch
+		expect []structs.Intentions
 	}
 	run := func(t *testing.T, tc testcase) {
 		s := testConfigStateStore(t)
 		idx := uint64(0)
-		for _, conf := range tc.configEntries {
+		for _, conf := range tc.input {
 			require.NoError(t, conf.Normalize())
 			require.NoError(t, conf.Validate())
 			idx++
@@ -1300,8 +1297,8 @@ func TestStore_IntentionMatch_ConfigEntries(t *testing.T) {
 	tcs := []testcase{
 		{
 			name: "peered intention matched with destination query",
-			configEntries: []structs.ConfigEntry{
-				&structs.ServiceIntentionsConfigEntry{
+			input: []*structs.ServiceIntentionsConfigEntry{
+				{
 					Kind: structs.ServiceIntentions,
 					Name: "foo",
 					Sources: []*structs.SourceIntention{
@@ -1360,8 +1357,8 @@ func TestStore_IntentionMatch_ConfigEntries(t *testing.T) {
 			// This behavior may change in the future but this test is in place
 			// to ensure peered intentions cannot accidentally be queried by source
 			name: "peered intention cannot be queried by source",
-			configEntries: []structs.ConfigEntry{
-				&structs.ServiceIntentionsConfigEntry{
+			input: []*structs.ServiceIntentionsConfigEntry{
+				{
 					Kind: structs.ServiceIntentions,
 					Name: "foo",
 					Sources: []*structs.SourceIntention{

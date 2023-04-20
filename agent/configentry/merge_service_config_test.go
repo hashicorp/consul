@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package configentry
 
 import (
@@ -35,7 +32,6 @@ func Test_MergeServiceConfig_TransparentProxy(t *testing.T) {
 					ProxyConfig: map[string]interface{}{
 						"foo": "bar",
 					},
-					MutualTLSMode: structs.MutualTLSModePermissive,
 					Expose: structs.ExposeConfig{
 						Checks: true,
 						Paths: []structs.ExposePath{
@@ -77,7 +73,6 @@ func Test_MergeServiceConfig_TransparentProxy(t *testing.T) {
 						OutboundListenerPort: 10101,
 						DialedDirectly:       true,
 					},
-					MutualTLSMode: structs.MutualTLSModePermissive,
 					Config: map[string]interface{}{
 						"foo": "bar",
 					},

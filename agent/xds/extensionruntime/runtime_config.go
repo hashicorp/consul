@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package extensionruntime
 
 import (
@@ -89,9 +86,8 @@ func GetRuntimeConfigurations(cfgSnap *proxycfg.ConfigSnapshot) map[api.Compound
 				EnvoyExtension: ext,
 				ServiceName:    localSvc,
 				// Upstreams is nil to signify this extension is not being applied to an upstream service, but rather to the local service.
-				Upstreams:      nil,
-				LocalUpstreams: upstreamMap,
-				Kind:           kind,
+				Upstreams: nil,
+				Kind:      kind,
 			}
 			extensionConfigurationsMap[localSvc] = append(extensionConfigurationsMap[localSvc], extCfg)
 		}

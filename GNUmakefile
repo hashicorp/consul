@@ -9,8 +9,7 @@ SHELL = bash
 ###
 GOLANGCI_LINT_VERSION='v1.51.1'
 MOCKERY_VERSION='v2.20.0'
-BUF_VERSION='v1.14.0'
-
+BUF_VERSION='v1.4.0'
 PROTOC_GEN_GO_GRPC_VERSION="v1.2.0"
 MOG_VERSION='v0.4.0'
 PROTOC_GO_INJECT_TAG_VERSION='v1.3.0'
@@ -162,19 +161,6 @@ dev-build:
 	# rm needed due to signature caching (https://apple.stackexchange.com/a/428388)
 	rm -f ./bin/consul
 	cp ${MAIN_GOPATH}/bin/consul ./bin/consul
-
-
-dev-docker-dbg: dev-docker linux dev-build
-	@echo "Pulling consul container image - $(CONSUL_IMAGE_VERSION)"
-	@docker pull consul:$(CONSUL_IMAGE_VERSION) >/dev/null
-	@echo "Building Consul Development container - $(CONSUL_DEV_IMAGE)"
-	@#  'consul-dbg:local' tag is needed to run the integration tests
-	@#  'consul-dev:latest' is needed by older workflows
-	@docker buildx use default && docker buildx build -t 'consul-dbg:local' -t '$(CONSUL_DEV_IMAGE)' \
-       --platform linux/$(GOARCH) \
-	   --build-arg CONSUL_IMAGE_VERSION=$(CONSUL_IMAGE_VERSION) \
-       --load \
-       -f $(CURDIR)/build-support/docker/Consul-Dev-Dbg.dockerfile $(CURDIR)/pkg/bin/
 
 dev-docker: linux dev-build
 	@echo "Pulling consul container image - $(CONSUL_IMAGE_VERSION)"
@@ -499,11 +485,12 @@ proto-format: proto-tools
 
 .PHONY: proto-lint
 proto-lint: proto-tools
-	@buf lint 
+	@buf lint --config proto/buf.yaml --path proto
+	@buf lint --config proto-public/buf.yaml --path proto-public
 	@for fn in $$(find proto -name '*.proto'); do \
-		if [[ "$$fn" = "proto/private/pbsubscribe/subscribe.proto" ]]; then \
+		if [[ "$$fn" = "proto/pbsubscribe/subscribe.proto" ]]; then \
 			continue ; \
-		elif [[ "$$fn" = "proto/private/pbpartition/partition.proto" ]]; then \
+		elif [[ "$$fn" = "proto/pbpartition/partition.proto" ]]; then \
 			continue ; \
 		fi ; \
 		pkg=$$(grep "^package " "$$fn" | sed 's/^package \(.*\);/\1/'); \

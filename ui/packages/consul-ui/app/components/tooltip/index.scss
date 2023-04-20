@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 .tippy-box[data-theme~='tooltip'] {
   & {
     @extend %tooltip-bubble;
@@ -27,7 +22,7 @@
   }
 }
 %tooltip-content {
-  @extend %body-100-regular;
+  @extend %p3;
   padding: 12px;
   max-width: 224px;
   position: relative;
@@ -36,19 +31,19 @@
 
 %tooltip-bubble {
   & {
-    background-color: var(--token-color-foreground-faint);
-    color: var(--token-color-surface-primary);
+    background-color: rgb(var(--tone-gray-700));
+    color: rgb(var(--tone-gray-000));
   }
 }
 %tooltip-tail {
   --size: 5px;
   & {
-    color: var(--token-color-foreground-faint);
+    color: rgb(var(--tone-gray-700));
     width: calc(var(--size) * 2);
     height: calc(var(--size) * 2);
   }
   &::before {
-    border-color: transparent;
+    border-color: var(--transparent);
     border-style: solid;
   }
 }

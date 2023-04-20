@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 //go:build !consulent
 // +build !consulent
 
@@ -209,87 +206,6 @@ end`,
 					}
 				}
 				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", false, nsFunc, nil, makeLambdaServiceDefaults(true))
-			},
-		},
-		{
-			name: "http-local-ratelimit-applyto-filter",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
-					ns.Proxy.Config["protocol"] = "http"
-					ns.Proxy.EnvoyExtensions = []structs.EnvoyExtension{
-						{
-							Name: api.BuiltinLocalRatelimitExtension,
-							Arguments: map[string]interface{}{
-								"ProxyType":      "connect-proxy",
-								"MaxTokens":      3,
-								"TokensPerFill":  2,
-								"FillInterval":   10,
-								"FilterEnabled":  100,
-								"FilterEnforced": 100,
-							},
-						},
-					}
-				}, nil)
-			},
-		},
-		{
-			name: "wasm-http-local-file",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
-					ns.Proxy.Config["protocol"] = "http"
-					ns.Proxy.EnvoyExtensions = []structs.EnvoyExtension{
-						{
-							Name: api.BuiltinWasmExtension,
-							Arguments: map[string]interface{}{
-								"Protocol":     "http",
-								"ListenerType": "inbound",
-								"PluginConfig": map[string]interface{}{
-									"VmConfig": map[string]interface{}{
-										"Code": map[string]interface{}{
-											"Local": map[string]interface{}{
-												"Filename": "/path/to/extension.wasm",
-											},
-										},
-									},
-									"Configuration": `{"foo": "bar"}`,
-								},
-							},
-						},
-					}
-				}, nil)
-			},
-		},
-		{
-			name: "wasm-http-remote-file",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
-					ns.Proxy.Config["protocol"] = "http"
-					ns.Proxy.EnvoyExtensions = []structs.EnvoyExtension{
-						{
-							Name: api.BuiltinWasmExtension,
-							Arguments: map[string]interface{}{
-								"Protocol":     "http",
-								"ListenerType": "inbound",
-								"PluginConfig": map[string]interface{}{
-									"VmConfig": map[string]interface{}{
-										"Code": map[string]interface{}{
-											"Remote": map[string]interface{}{
-												"HttpURI": map[string]interface{}{
-													"Service": map[string]interface{}{
-														"Name": "db",
-													},
-													"URI": "https://db/plugin.wasm",
-												},
-												"SHA256": "d05d88b0ce8a8f1d5176481e0af3ae5c65ed82cbfb8c61506c5354b076078545",
-											},
-										},
-									},
-									"Configuration": `{"foo": "bar"}`,
-								},
-							},
-						},
-					}
-				}, nil)
 			},
 		},
 	}

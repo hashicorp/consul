@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package cluster
 
 import (
@@ -92,5 +89,4 @@ type AgentInfo struct {
 	CACertFile    string
 	UseTLSForAPI  bool
 	UseTLSForGRPC bool
-	DebugURI      string
 }

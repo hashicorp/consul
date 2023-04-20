@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package agent
 
 import (
@@ -22,8 +19,6 @@ import (
 
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
-	"github.com/hashicorp/consul/agent/rpcclient"
-	"github.com/hashicorp/consul/agent/rpcclient/configentry"
 	"github.com/hashicorp/go-connlimit"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
@@ -69,8 +64,8 @@ import (
 	"github.com/hashicorp/consul/lib/mutex"
 	"github.com/hashicorp/consul/lib/routine"
 	"github.com/hashicorp/consul/logging"
-	"github.com/hashicorp/consul/proto/private/pboperator"
-	"github.com/hashicorp/consul/proto/private/pbpeering"
+	"github.com/hashicorp/consul/proto/pboperator"
+	"github.com/hashicorp/consul/proto/pbpeering"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
 )
@@ -386,8 +381,7 @@ type Agent struct {
 
 	// TODO: pass directly to HTTPHandlers and DNSServer once those are passed
 	// into Agent, which will allow us to remove this field.
-	rpcClientHealth      *health.Client
-	rpcClientConfigEntry *configentry.Client
+	rpcClientHealth *health.Client
 
 	rpcClientPeering pbpeering.PeeringServiceClient
 
@@ -465,37 +459,22 @@ func New(bd BaseDeps) (*Agent, error) {
 	}
 
 	a.rpcClientHealth = &health.Client{
-		Client: rpcclient.Client{
-			Cache:     bd.Cache,
-			NetRPC:    &a,
-			CacheName: cachetype.HealthServicesName,
-			ViewStore: bd.ViewStore,
-			MaterializerDeps: rpcclient.MaterializerDeps{
-				Conn:   conn,
-				Logger: bd.Logger.Named("rpcclient.health"),
-			},
-			UseStreamingBackend: a.config.UseStreamingBackend,
-			QueryOptionDefaults: config.ApplyDefaultQueryOptions(a.config),
+		Cache:     bd.Cache,
+		NetRPC:    &a,
+		CacheName: cachetype.HealthServicesName,
+		ViewStore: bd.ViewStore,
+		MaterializerDeps: health.MaterializerDeps{
+			Conn:   conn,
+			Logger: bd.Logger.Named("rpcclient.health"),
 		},
+		UseStreamingBackend: a.config.UseStreamingBackend,
+		QueryOptionDefaults: config.ApplyDefaultQueryOptions(a.config),
 	}
 
 	a.rpcClientPeering = pbpeering.NewPeeringServiceClient(conn)
 	a.rpcClientOperator = pboperator.NewOperatorServiceClient(conn)
 
 	a.serviceManager = NewServiceManager(&a)
-	a.rpcClientConfigEntry = &configentry.Client{
-		Client: rpcclient.Client{
-			Cache:     bd.Cache,
-			NetRPC:    &a,
-			CacheName: cachetype.ConfigEntryName,
-			ViewStore: bd.ViewStore,
-			MaterializerDeps: rpcclient.MaterializerDeps{
-				Conn:   conn,
-				Logger: bd.Logger.Named("rpcclient.configentry"),
-			},
-			QueryOptionDefaults: config.ApplyDefaultQueryOptions(a.config),
-		},
-	}
 
 	// We used to do this in the Start method. However it doesn't need to go
 	// there any longer. Originally it did because we passed the agent
@@ -553,7 +532,6 @@ func LocalConfig(cfg *config.RuntimeConfig) local.Config {
 		DiscardCheckOutput:  cfg.DiscardCheckOutput,
 		NodeID:              cfg.NodeID,
 		NodeName:            cfg.NodeName,
-		NodeLocality:        cfg.StructLocality(),
 		Partition:           cfg.PartitionOrDefault(),
 		TaggedAddresses:     map[string]string{},
 	}
@@ -1515,7 +1493,6 @@ func newConsulConfig(runtimeCfg *config.RuntimeConfig, logger hclog.Logger) (*co
 	cfg.RequestLimitsMode = runtimeCfg.RequestLimitsMode.String()
 	cfg.RequestLimitsReadRate = runtimeCfg.RequestLimitsReadRate
 	cfg.RequestLimitsWriteRate = runtimeCfg.RequestLimitsWriteRate
-	cfg.Locality = runtimeCfg.StructLocality()
 
 	cfg.Reporting.License.Enabled = runtimeCfg.Reporting.License.Enabled
 
@@ -1626,7 +1603,10 @@ func (a *Agent) ShutdownAgent() error {
 
 	a.stopLicenseManager()
 
-	a.baseDeps.Close()
+	// this would be cancelled anyways (by the closing of the shutdown ch) but
+	// this should help them to be stopped more quickly
+	a.baseDeps.AutoConfig.Stop()
+	a.baseDeps.MetricsConfig.Cancel()
 
 	a.stateLock.Lock()
 	defer a.stateLock.Unlock()
@@ -1680,7 +1660,6 @@ func (a *Agent) ShutdownAgent() error {
 	}
 
 	a.rpcClientHealth.Close()
-	a.rpcClientConfigEntry.Close()
 
 	// Shutdown SCADA provider
 	if a.scadaProvider != nil {

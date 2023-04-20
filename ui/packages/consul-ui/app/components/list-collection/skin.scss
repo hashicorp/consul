@@ -1,16 +1,11 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 %list-collection > ul {
   border-top: 1px solid;
-  border-color: var(--token-color-surface-interactive-active);
+  border-color: rgb(var(--tone-gray-200));
 }
 %list-collection-partial-button {
   cursor: pointer;
-  background-color: var(--token-color-surface-strong);
-  color: var(--token-color-foreground-action);
+  background-color: rgb(var(--tone-gray-050));
+  color: rgb(var(--tone-blue-500));
 }
 %list-collection-partial-button::after {
   @extend %with-chevron-up-mask, %as-pseudo;

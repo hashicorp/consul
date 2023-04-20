@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package lua
 
 import (
@@ -94,7 +91,7 @@ func (l *lua) PatchFilter(_ *extensioncommon.RuntimeConfig, filter *envoy_listen
 	if config == nil {
 		return filter, false, errors.New("error unmarshalling filter")
 	}
-	luaHttpFilter, err := extensioncommon.MakeEnvoyHTTPFilter(
+	luaHttpFilter, err := makeEnvoyHTTPFilter(
 		"envoy.filters.http.lua",
 		&envoy_lua_v3.Lua{
 			InlineCode: l.Script,
@@ -124,7 +121,7 @@ func (l *lua) PatchFilter(_ *extensioncommon.RuntimeConfig, filter *envoy_listen
 		config.HttpFilters = changedFilters
 	}
 
-	newFilter, err := extensioncommon.MakeFilter("envoy.filters.network.http_connection_manager", config)
+	newFilter, err := makeFilter("envoy.filters.network.http_connection_manager", config)
 	if err != nil {
 		return filter, false, errors.New("error making new filter")
 	}

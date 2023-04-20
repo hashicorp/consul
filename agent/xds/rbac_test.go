@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package xds
 
 import (
@@ -17,7 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/proto/private/pbpeering"
+	"github.com/hashicorp/consul/proto/pbpeering"
 )
 
 func TestRemoveIntentionPrecedence(t *testing.T) {
@@ -49,11 +46,11 @@ func TestRemoveIntentionPrecedence(t *testing.T) {
 		ixn.Permissions = perms
 		return ixn
 	}
-	sorted := func(ixns ...*structs.Intention) structs.SimplifiedIntentions {
+	sorted := func(ixns ...*structs.Intention) structs.Intentions {
 		sort.SliceStable(ixns, func(i, j int) bool {
 			return ixns[j].Precedence < ixns[i].Precedence
 		})
-		return structs.SimplifiedIntentions(ixns)
+		return structs.Intentions(ixns)
 	}
 	testPeerTrustBundle := map[string]*pbpeering.PeeringTrustBundle{
 		"peer1": {
@@ -106,7 +103,7 @@ func TestRemoveIntentionPrecedence(t *testing.T) {
 	tests := map[string]struct {
 		intentionDefaultAllow bool
 		http                  bool
-		intentions            structs.SimplifiedIntentions
+		intentions            structs.Intentions
 		expect                []*rbacIntention
 	}{
 		"default-allow-path-allow": {
@@ -492,11 +489,11 @@ func TestMakeRBACNetworkAndHTTPFilters(t *testing.T) {
 		},
 	}
 	testTrustDomain := "test.consul"
-	sorted := func(ixns ...*structs.Intention) structs.SimplifiedIntentions {
+	sorted := func(ixns ...*structs.Intention) structs.Intentions {
 		sort.SliceStable(ixns, func(i, j int) bool {
 			return ixns[j].Precedence < ixns[i].Precedence
 		})
-		return structs.SimplifiedIntentions(ixns)
+		return structs.Intentions(ixns)
 	}
 
 	var (
@@ -516,7 +513,7 @@ func TestMakeRBACNetworkAndHTTPFilters(t *testing.T) {
 
 	tests := map[string]struct {
 		intentionDefaultAllow bool
-		intentions            structs.SimplifiedIntentions
+		intentions            structs.Intentions
 	}{
 		"default-deny-mixed-precedence": {
 			intentionDefaultAllow: false,
@@ -858,15 +855,15 @@ func TestRemoveSameSourceIntentions(t *testing.T) {
 		ixn.UpdatePrecedence()
 		return ixn
 	}
-	sorted := func(ixns ...*structs.Intention) structs.SimplifiedIntentions {
+	sorted := func(ixns ...*structs.Intention) structs.Intentions {
 		sort.SliceStable(ixns, func(i, j int) bool {
 			return ixns[j].Precedence < ixns[i].Precedence
 		})
-		return structs.SimplifiedIntentions(ixns)
+		return structs.Intentions(ixns)
 	}
 	tests := map[string]struct {
-		in     structs.SimplifiedIntentions
-		expect structs.SimplifiedIntentions
+		in     structs.Intentions
+		expect structs.Intentions
 	}{
 		"empty": {},
 		"one": {

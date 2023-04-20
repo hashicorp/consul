@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package consul
 
 import (
@@ -1884,18 +1881,14 @@ func TestServer_ReloadConfig(t *testing.T) {
 
 	// Check the incoming RPC rate limiter got updated
 	mockHandler.AssertCalled(t, "UpdateConfig", rpcRate.HandlerConfig{
-		GlobalLimitConfig: rpcRate.GlobalLimitConfig{
-			Mode: rc.RequestLimits.Mode,
-			ReadWriteConfig: rpcRate.ReadWriteConfig{
-				ReadConfig: multilimiter.LimiterConfig{
-					Rate:  rc.RequestLimits.ReadRate,
-					Burst: int(rc.RequestLimits.ReadRate) * requestLimitsBurstMultiplier,
-				},
-				WriteConfig: multilimiter.LimiterConfig{
-					Rate:  rc.RequestLimits.WriteRate,
-					Burst: int(rc.RequestLimits.WriteRate) * requestLimitsBurstMultiplier,
-				},
-			},
+		GlobalMode: rc.RequestLimits.Mode,
+		GlobalReadConfig: multilimiter.LimiterConfig{
+			Rate:  rc.RequestLimits.ReadRate,
+			Burst: int(rc.RequestLimits.ReadRate) * requestLimitsBurstMultiplier,
+		},
+		GlobalWriteConfig: multilimiter.LimiterConfig{
+			Rate:  rc.RequestLimits.WriteRate,
+			Burst: int(rc.RequestLimits.WriteRate) * requestLimitsBurstMultiplier,
 		},
 	})
 

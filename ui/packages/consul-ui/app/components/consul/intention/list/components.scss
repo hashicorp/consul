@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 .consul-intention-list {
   td.source,
   td.destination {
@@ -20,7 +15,13 @@
   td.intent- strong {
     @extend %pill-l7;
   }
-  td.permissions {
-    @extend %body-100-regular;
+  .notice.allow {
+    @extend %notice-success;
+  }
+  .notice.deny {
+    @extend %notice-error;
+  }
+  .notice.permissions {
+    @extend %notice-info;
   }
 }

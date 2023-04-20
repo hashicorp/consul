@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package rate
 
 import (
@@ -9,8 +6,6 @@ import (
 	"net"
 	"net/netip"
 	"testing"
-
-	"golang.org/x/time/rate"
 
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -243,13 +238,7 @@ func TestHandler(t *testing.T) {
 
 			handler := NewHandlerWithLimiter(
 				HandlerConfig{
-					GlobalLimitConfig: GlobalLimitConfig{
-						Mode: tc.globalMode,
-						ReadWriteConfig: ReadWriteConfig{
-							ReadConfig:  multilimiter.LimiterConfig{},
-							WriteConfig: multilimiter.LimiterConfig{},
-						},
-					},
+					GlobalMode: tc.globalMode,
 				},
 				limiter,
 				logger,
@@ -277,24 +266,13 @@ func TestNewHandlerWithLimiter_CallsUpdateConfig(t *testing.T) {
 	readCfg := multilimiter.LimiterConfig{Rate: 100, Burst: 100}
 	writeCfg := multilimiter.LimiterConfig{Rate: 99, Burst: 99}
 	cfg := &HandlerConfig{
-		GlobalLimitConfig: GlobalLimitConfig{
-			Mode: ModeEnforcing,
-			ReadWriteConfig: ReadWriteConfig{
-				ReadConfig:  readCfg,
-				WriteConfig: writeCfg,
-			},
-		},
+		GlobalReadConfig:  readCfg,
+		GlobalWriteConfig: writeCfg,
+		GlobalMode:        ModeEnforcing,
 	}
 	logger := hclog.NewNullLogger()
 	NewHandlerWithLimiter(*cfg, mockRateLimiter, logger)
 	mockRateLimiter.AssertNumberOfCalls(t, "UpdateConfig", 2)
-}
-
-func infReadRateConfig() ReadWriteConfig {
-	return ReadWriteConfig{
-		ReadConfig:  multilimiter.LimiterConfig{Rate: rate.Inf},
-		WriteConfig: multilimiter.LimiterConfig{Rate: rate.Inf},
-	}
 }
 
 func TestUpdateConfig(t *testing.T) {
@@ -314,29 +292,27 @@ func TestUpdateConfig(t *testing.T) {
 		{
 			description: "RateLimiter gets updated when GlobalReadConfig changes.",
 			configModFunc: func(cfg *HandlerConfig) {
-				rc := multilimiter.LimiterConfig{Rate: cfg.GlobalLimitConfig.ReadWriteConfig.ReadConfig.Rate, Burst: cfg.GlobalLimitConfig.ReadWriteConfig.ReadConfig.Burst + 1}
-				cfg.GlobalLimitConfig.ReadWriteConfig.ReadConfig = rc
+				cfg.GlobalReadConfig.Burst++
 			},
 			assertFunc: func(mockRateLimiter *multilimiter.MockRateLimiter, cfg *HandlerConfig) {
 				mockRateLimiter.AssertNumberOfCalls(t, "UpdateConfig", 1)
-				mockRateLimiter.AssertCalled(t, "UpdateConfig", cfg.GlobalLimitConfig.ReadWriteConfig.ReadConfig, []byte("global.read"))
+				mockRateLimiter.AssertCalled(t, "UpdateConfig", cfg.GlobalReadConfig, []byte("global.read"))
 			},
 		},
 		{
 			description: "RateLimiter gets updated when GlobalWriteConfig changes.",
 			configModFunc: func(cfg *HandlerConfig) {
-				wc := multilimiter.LimiterConfig{Rate: cfg.GlobalLimitConfig.ReadWriteConfig.WriteConfig.Rate, Burst: cfg.GlobalLimitConfig.ReadWriteConfig.WriteConfig.Burst + 1}
-				cfg.GlobalLimitConfig.ReadWriteConfig.WriteConfig = wc
+				cfg.GlobalWriteConfig.Burst++
 			},
 			assertFunc: func(mockRateLimiter *multilimiter.MockRateLimiter, cfg *HandlerConfig) {
 				mockRateLimiter.AssertNumberOfCalls(t, "UpdateConfig", 1)
-				mockRateLimiter.AssertCalled(t, "UpdateConfig", cfg.GlobalLimitConfig.ReadWriteConfig.WriteConfig, []byte("global.write"))
+				mockRateLimiter.AssertCalled(t, "UpdateConfig", cfg.GlobalWriteConfig, []byte("global.write"))
 			},
 		},
 		{
 			description: "RateLimiter does not get updated when GlobalMode changes.",
 			configModFunc: func(cfg *HandlerConfig) {
-				cfg.GlobalLimitConfig.Mode = ModePermissive
+				cfg.GlobalMode = ModePermissive
 			},
 			assertFunc: func(mockRateLimiter *multilimiter.MockRateLimiter, cfg *HandlerConfig) {
 				mockRateLimiter.AssertNumberOfCalls(t, "UpdateConfig", 0)
@@ -349,13 +325,9 @@ func TestUpdateConfig(t *testing.T) {
 			readCfg := multilimiter.LimiterConfig{Rate: 100, Burst: 100}
 			writeCfg := multilimiter.LimiterConfig{Rate: 99, Burst: 99}
 			cfg := &HandlerConfig{
-				GlobalLimitConfig: GlobalLimitConfig{
-					Mode: ModeEnforcing,
-					ReadWriteConfig: ReadWriteConfig{
-						ReadConfig:  readCfg,
-						WriteConfig: writeCfg,
-					},
-				},
+				GlobalReadConfig:  readCfg,
+				GlobalWriteConfig: writeCfg,
+				GlobalMode:        ModeEnforcing,
 			}
 			mockRateLimiter := multilimiter.NewMockRateLimiter(t)
 			mockRateLimiter.On("UpdateConfig", mock.Anything, mock.Anything).Return()
@@ -382,39 +354,27 @@ func TestAllow(t *testing.T) {
 		{
 			description: "RateLimiter does not get called when mode is disabled.",
 			cfg: &HandlerConfig{
-				GlobalLimitConfig: GlobalLimitConfig{
-					Mode: ModeDisabled,
-					ReadWriteConfig: ReadWriteConfig{
-						ReadConfig:  readCfg,
-						WriteConfig: writeCfg,
-					},
-				},
+				GlobalReadConfig:  readCfg,
+				GlobalWriteConfig: writeCfg,
+				GlobalMode:        ModeDisabled,
 			},
 			expectedAllowCalls: 0,
 		},
 		{
 			description: "RateLimiter gets called when mode is permissive.",
 			cfg: &HandlerConfig{
-				GlobalLimitConfig: GlobalLimitConfig{
-					Mode: ModePermissive,
-					ReadWriteConfig: ReadWriteConfig{
-						ReadConfig:  readCfg,
-						WriteConfig: writeCfg,
-					},
-				},
+				GlobalReadConfig:  readCfg,
+				GlobalWriteConfig: writeCfg,
+				GlobalMode:        ModePermissive,
 			},
 			expectedAllowCalls: 1,
 		},
 		{
 			description: "RateLimiter gets called when mode is enforcing.",
 			cfg: &HandlerConfig{
-				GlobalLimitConfig: GlobalLimitConfig{
-					Mode: ModeEnforcing,
-					ReadWriteConfig: ReadWriteConfig{
-						ReadConfig:  readCfg,
-						WriteConfig: writeCfg,
-					},
-				},
+				GlobalReadConfig:  readCfg,
+				GlobalWriteConfig: writeCfg,
+				GlobalMode:        ModeEnforcing,
 			},
 			expectedAllowCalls: 1,
 		},
@@ -459,7 +419,4 @@ func (m *mockLimiter) Allow(v multilimiter.LimitedEntity) bool { return m.Called
 func (m *mockLimiter) Run(ctx context.Context)                 { m.Called(ctx) }
 func (m *mockLimiter) UpdateConfig(cfg multilimiter.LimiterConfig, prefix []byte) {
 	m.Called(cfg, prefix)
-}
-func (m *mockLimiter) DeleteConfig(prefix []byte) {
-	m.Called(prefix)
 }

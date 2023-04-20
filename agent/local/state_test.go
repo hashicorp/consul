@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package local_test
 
 import (
@@ -1977,10 +1974,6 @@ func TestAgentAntiEntropy_NodeInfo(t *testing.T) {
 		node_id = "40e4a748-2192-161a-0510-9bf59fe950b5"
 		node_meta {
 			somekey = "somevalue"
-		}
-		locality {
-			region = "us-west-1"
-			zone = "us-west-1a"
 		}`}
 	if err := a.Start(t); err != nil {
 		t.Fatal(err)
@@ -2015,12 +2008,10 @@ func TestAgentAntiEntropy_NodeInfo(t *testing.T) {
 	id := services.NodeServices.Node.ID
 	addrs := services.NodeServices.Node.TaggedAddresses
 	meta := services.NodeServices.Node.Meta
-	nodeLocality := services.NodeServices.Node.Locality
 	delete(meta, structs.MetaSegmentKey) // Added later, not in config.
 	require.Equal(t, a.Config.NodeID, id)
 	require.Equal(t, a.Config.TaggedAddresses, addrs)
-	require.Equal(t, a.Config.StructLocality(), nodeLocality)
-	require.Equal(t, unNilMap(a.Config.NodeMeta), meta)
+	assert.Equal(t, unNilMap(a.Config.NodeMeta), meta)
 
 	// Blow away the catalog version of the node info
 	if err := a.RPC(context.Background(), "Catalog.Register", args, &out); err != nil {
@@ -2040,11 +2031,9 @@ func TestAgentAntiEntropy_NodeInfo(t *testing.T) {
 		id := services.NodeServices.Node.ID
 		addrs := services.NodeServices.Node.TaggedAddresses
 		meta := services.NodeServices.Node.Meta
-		nodeLocality := services.NodeServices.Node.Locality
 		delete(meta, structs.MetaSegmentKey) // Added later, not in config.
 		require.Equal(t, nodeID, id)
 		require.Equal(t, a.Config.TaggedAddresses, addrs)
-		require.Equal(t, a.Config.StructLocality(), nodeLocality)
 		require.Equal(t, nodeMeta, meta)
 	}
 }

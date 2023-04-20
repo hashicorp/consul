@@ -5,7 +5,7 @@ package proxycfg
 import (
 	"context"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/proto/private/pbpeering"
+	"github.com/hashicorp/consul/proto/pbpeering"
 	"github.com/hashicorp/consul/types"
 )
 
@@ -254,6 +254,10 @@ func (o *configSnapshotAPIGateway) DeepCopy() *configSnapshotAPIGateway {
 	}
 	if o.BoundGatewayConfig != nil {
 		cp.BoundGatewayConfig = o.BoundGatewayConfig.DeepCopy()
+	}
+	if o.Hosts != nil {
+		cp.Hosts = make([]string, len(o.Hosts))
+		copy(cp.Hosts, o.Hosts)
 	}
 	if o.Upstreams != nil {
 		cp.Upstreams = make(map[structs.ResourceReference]listenerUpstreamMap, len(o.Upstreams))
@@ -631,9 +635,9 @@ func (o *configSnapshotTerminatingGateway) DeepCopy() *configSnapshotTerminating
 		}
 	}
 	if o.Intentions != nil {
-		cp.Intentions = make(map[structs.ServiceName]structs.SimplifiedIntentions, len(o.Intentions))
+		cp.Intentions = make(map[structs.ServiceName]structs.Intentions, len(o.Intentions))
 		for k2, v2 := range o.Intentions {
-			var cp_Intentions_v2 structs.SimplifiedIntentions
+			var cp_Intentions_v2 structs.Intentions
 			if v2 != nil {
 				cp_Intentions_v2 = make([]*structs.Intention, len(v2))
 				copy(cp_Intentions_v2, v2)

@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package gateways
 
 import (
@@ -179,25 +176,6 @@ func checkHTTPRouteConfigEntry(t *testing.T, client *api.Client, routeName strin
 
 		apiEntry := entry.(*api.HTTPRouteConfigEntry)
 		return isBound(apiEntry.Status.Conditions)
-	}, time.Second*10, time.Second*1)
-}
-
-func checkHTTPRouteConfigEntryExists(t *testing.T, client *api.Client, routeName string, namespace string) {
-	t.Helper()
-
-	require.Eventually(t, func() bool {
-		entry, _, err := client.ConfigEntries().Get(api.HTTPRoute, routeName, &api.QueryOptions{Namespace: namespace})
-		if err != nil {
-			t.Log("error constructing request", err)
-			return false
-		}
-		if entry == nil {
-			t.Log("returned entry is nil")
-			return false
-		}
-
-		_ = entry.(*api.HTTPRouteConfigEntry)
-		return true
 	}, time.Second*10, time.Second*1)
 }
 

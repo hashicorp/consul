@@ -127,9 +127,9 @@ Peeering:
 ```
 </CodeTabs>
 
-By setting this mesh config on a cluster before [creating a peering token](/consul/docs/connect/cluster-peering/usage/establish-cluster-peering#create-a-peering-token), inbound control plane traffic will be sent through the mesh gateway registered this cluster, also known the accepting cluster. 
+By setting this mesh config on a cluster before [creating a peering token](/consul/docs/connect/cluster-peering/create-manage-peering#create-a-peering-token), inbound control plane traffic will be sent through the mesh gateway registered this cluster, also known the accepting cluster. 
 As mesh gateway instances are registered at the accepting cluster, their addresses will be exposed to the dialing cluster over the bi-directional peering stream.
 
-Setting this mesh config on a cluster before [establishing a connection](/consul/docs/connect/cluster-peering/usage/establish-cluster-peering#establish-a-connection-between-clusters) will cause the outbound control plane traffic to flow through the mesh gateway.
+Setting this mesh config on a cluster before [establishing a connection](/consul/docs/connect/cluster-peering/create-manage-peering#establish-a-connection-between-clusters) will cause the outbound control plane traffic to flow through the mesh gateway.
 
 To route all peering control plane traffic though mesh gateways, both the accepting and dialing cluster must have the mesh config entry applied.

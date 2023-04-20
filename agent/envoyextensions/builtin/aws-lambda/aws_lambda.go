@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package awslambda
 
 import (
@@ -95,7 +92,7 @@ func (a *awsLambda) PatchRoute(r *extensioncommon.RuntimeConfig, route *envoy_ro
 
 // PatchCluster patches the provided envoy cluster with data required to support an AWS lambda function
 func (a *awsLambda) PatchCluster(_ *extensioncommon.RuntimeConfig, c *envoy_cluster_v3.Cluster) (*envoy_cluster_v3.Cluster, bool, error) {
-	transportSocket, err := extensioncommon.MakeUpstreamTLSTransportSocket(&envoy_tls_v3.UpstreamTlsContext{
+	transportSocket, err := makeUpstreamTLSTransportSocket(&envoy_tls_v3.UpstreamTlsContext{
 		Sni: "*.amazonaws.com",
 	})
 
@@ -169,7 +166,7 @@ func (a *awsLambda) PatchFilter(_ *extensioncommon.RuntimeConfig, filter *envoy_
 		return filter, false, errors.New("error unmarshalling filter")
 	}
 
-	lambdaHttpFilter, err := extensioncommon.MakeEnvoyHTTPFilter(
+	lambdaHttpFilter, err := makeEnvoyHTTPFilter(
 		"envoy.filters.http.aws_lambda",
 		&envoy_lambda_v3.Config{
 			Arn:                a.ARN,
@@ -204,7 +201,7 @@ func (a *awsLambda) PatchFilter(_ *extensioncommon.RuntimeConfig, filter *envoy_
 	config.StripPortMode = &envoy_http_v3.HttpConnectionManager_StripAnyHostPort{
 		StripAnyHostPort: true,
 	}
-	newFilter, err := extensioncommon.MakeFilter("envoy.filters.network.http_connection_manager", config)
+	newFilter, err := makeFilter("envoy.filters.network.http_connection_manager", config)
 	if err != nil {
 		return filter, false, errors.New("error making new filter")
 	}

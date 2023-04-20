@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package structs
 
 import (
@@ -246,12 +243,11 @@ func TestIntentionValidate(t *testing.T) {
 
 func TestIntentionPrecedenceSorter(t *testing.T) {
 	type fields struct {
-		SrcSamenessGroup string
-		SrcPeer          string
-		SrcNS            string
-		SrcN             string
-		DstNS            string
-		DstN             string
+		SrcPeer string
+		SrcNS   string
+		SrcN    string
+		DstNS   string
+		DstN    string
 	}
 	cases := []struct {
 		Name     string
@@ -261,16 +257,6 @@ func TestIntentionPrecedenceSorter(t *testing.T) {
 		{
 			"exhaustive list",
 			[]fields{
-				// Sameness fields
-				{SrcSamenessGroup: "group", SrcNS: "*", SrcN: "*", DstNS: "exact", DstN: "*"},
-				{SrcSamenessGroup: "group", SrcNS: "*", SrcN: "*", DstNS: "*", DstN: "*"},
-				{SrcSamenessGroup: "group", SrcNS: "exact", SrcN: "*", DstNS: "exact", DstN: "exact"},
-				{SrcSamenessGroup: "group", SrcNS: "*", SrcN: "*", DstNS: "exact", DstN: "exact"},
-				{SrcSamenessGroup: "group", SrcNS: "exact", SrcN: "exact", DstNS: "*", DstN: "*"},
-				{SrcSamenessGroup: "group", SrcNS: "exact", SrcN: "exact", DstNS: "exact", DstN: "exact"},
-				{SrcSamenessGroup: "group", SrcNS: "exact", SrcN: "exact", DstNS: "exact", DstN: "*"},
-				{SrcSamenessGroup: "group", SrcNS: "exact", SrcN: "*", DstNS: "exact", DstN: "*"},
-				{SrcSamenessGroup: "group", SrcNS: "exact", SrcN: "*", DstNS: "*", DstN: "*"},
 				// Peer fields
 				{SrcPeer: "peer", SrcNS: "*", SrcN: "*", DstNS: "exact", DstN: "*"},
 				{SrcPeer: "peer", SrcNS: "*", SrcN: "*", DstNS: "*", DstN: "*"},
@@ -295,31 +281,22 @@ func TestIntentionPrecedenceSorter(t *testing.T) {
 			[]fields{
 				{SrcPeer: "", SrcNS: "exact", SrcN: "exact", DstNS: "exact", DstN: "exact"},
 				{SrcPeer: "peer", SrcNS: "exact", SrcN: "exact", DstNS: "exact", DstN: "exact"},
-				{SrcSamenessGroup: "group", SrcNS: "exact", SrcN: "exact", DstNS: "exact", DstN: "exact"},
 				{SrcPeer: "", SrcNS: "exact", SrcN: "*", DstNS: "exact", DstN: "exact"},
 				{SrcPeer: "peer", SrcNS: "exact", SrcN: "*", DstNS: "exact", DstN: "exact"},
-				{SrcSamenessGroup: "group", SrcNS: "exact", SrcN: "*", DstNS: "exact", DstN: "exact"},
 				{SrcPeer: "", SrcNS: "*", SrcN: "*", DstNS: "exact", DstN: "exact"},
 				{SrcPeer: "peer", SrcNS: "*", SrcN: "*", DstNS: "exact", DstN: "exact"},
-				{SrcSamenessGroup: "group", SrcNS: "*", SrcN: "*", DstNS: "exact", DstN: "exact"},
 				{SrcPeer: "", SrcNS: "exact", SrcN: "exact", DstNS: "exact", DstN: "*"},
 				{SrcPeer: "peer", SrcNS: "exact", SrcN: "exact", DstNS: "exact", DstN: "*"},
-				{SrcSamenessGroup: "group", SrcNS: "exact", SrcN: "exact", DstNS: "exact", DstN: "*"},
 				{SrcPeer: "", SrcNS: "exact", SrcN: "*", DstNS: "exact", DstN: "*"},
 				{SrcPeer: "peer", SrcNS: "exact", SrcN: "*", DstNS: "exact", DstN: "*"},
-				{SrcSamenessGroup: "group", SrcNS: "exact", SrcN: "*", DstNS: "exact", DstN: "*"},
 				{SrcPeer: "", SrcNS: "*", SrcN: "*", DstNS: "exact", DstN: "*"},
 				{SrcPeer: "peer", SrcNS: "*", SrcN: "*", DstNS: "exact", DstN: "*"},
-				{SrcSamenessGroup: "group", SrcNS: "*", SrcN: "*", DstNS: "exact", DstN: "*"},
 				{SrcPeer: "", SrcNS: "exact", SrcN: "exact", DstNS: "*", DstN: "*"},
 				{SrcPeer: "peer", SrcNS: "exact", SrcN: "exact", DstNS: "*", DstN: "*"},
-				{SrcSamenessGroup: "group", SrcNS: "exact", SrcN: "exact", DstNS: "*", DstN: "*"},
 				{SrcPeer: "", SrcNS: "exact", SrcN: "*", DstNS: "*", DstN: "*"},
 				{SrcPeer: "peer", SrcNS: "exact", SrcN: "*", DstNS: "*", DstN: "*"},
-				{SrcSamenessGroup: "group", SrcNS: "exact", SrcN: "*", DstNS: "*", DstN: "*"},
 				{SrcPeer: "", SrcNS: "*", SrcN: "*", DstNS: "*", DstN: "*"},
 				{SrcPeer: "peer", SrcNS: "*", SrcN: "*", DstNS: "*", DstN: "*"},
-				{SrcSamenessGroup: "group", SrcNS: "*", SrcN: "*", DstNS: "*", DstN: "*"},
 			},
 		},
 		{
@@ -354,12 +331,11 @@ func TestIntentionPrecedenceSorter(t *testing.T) {
 			var input Intentions
 			for _, v := range tc.Input {
 				input = append(input, &Intention{
-					SourceSamenessGroup: v.SrcSamenessGroup,
-					SourcePeer:          v.SrcPeer,
-					SourceNS:            v.SrcNS,
-					SourceName:          v.SrcN,
-					DestinationNS:       v.DstNS,
-					DestinationName:     v.DstN,
+					SourcePeer:      v.SrcPeer,
+					SourceNS:        v.SrcNS,
+					SourceName:      v.SrcN,
+					DestinationNS:   v.DstNS,
+					DestinationName: v.DstN,
 				})
 			}
 
@@ -375,12 +351,11 @@ func TestIntentionPrecedenceSorter(t *testing.T) {
 			var actual []fields
 			for _, v := range input {
 				actual = append(actual, fields{
-					SrcSamenessGroup: v.SourceSamenessGroup,
-					SrcPeer:          v.SourcePeer,
-					SrcNS:            v.SourceNS,
-					SrcN:             v.SourceName,
-					DstNS:            v.DestinationNS,
-					DstN:             v.DestinationName,
+					SrcPeer: v.SourcePeer,
+					SrcNS:   v.SourceNS,
+					SrcN:    v.SourceName,
+					DstNS:   v.DestinationNS,
+					DstN:    v.DestinationName,
 				})
 			}
 			assert.Equal(t, tc.Expected, actual)
@@ -505,15 +480,6 @@ func TestIntention_String(t *testing.T) {
 				Action:          IntentionActionAllow,
 			},
 			`peer(billing)/default/foo => ` + partitionPrefix + `default/bar (Precedence: 9, Action: ALLOW)`,
-		},
-		"L4 allow with source sameness group": {
-			&Intention{
-				SourceName:          "foo",
-				SourceSamenessGroup: "group-1",
-				DestinationName:     "bar",
-				Action:              IntentionActionAllow,
-			},
-			`sameness-group(group-1)/default/foo => ` + partitionPrefix + `default/bar (Precedence: 9, Action: ALLOW)`,
 		},
 	}
 

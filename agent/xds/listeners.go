@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package xds
 
 import (
@@ -45,7 +42,7 @@ import (
 	"github.com/hashicorp/consul/envoyextensions/xdscommon"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/lib/stringslice"
-	"github.com/hashicorp/consul/proto/private/pbpeering"
+	"github.com/hashicorp/consul/proto/pbpeering"
 	"github.com/hashicorp/consul/sdk/iptables"
 	"github.com/hashicorp/consul/types"
 )
@@ -158,7 +155,7 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 		// RDS, Envoy's Route Discovery Service, is only used for HTTP services with a customized discovery chain.
 		useRDS := chain.Protocol != "tcp" && !chain.Default
 
-		var clusterName string
+		var targetClusterData targetClusterData
 		if !useRDS {
 			// When not using RDS we must generate a cluster name to attach to the filter chain.
 			// With RDS, cluster names get attached to the dynamic routes instead.
@@ -167,10 +164,11 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 				return nil, err
 			}
 
-			clusterName = s.getTargetClusterName(upstreamsSnapshot, chain, target.ID, false, false)
-			if clusterName == "" {
+			td, ok := s.getTargetClusterData(upstreamsSnapshot, chain, target.ID, false, false)
+			if !ok {
 				continue
 			}
+			targetClusterData = td
 		}
 
 		filterName := fmt.Sprintf("%s.%s.%s.%s", chain.ServiceName, chain.Namespace, chain.Partition, chain.Datacenter)
@@ -180,7 +178,7 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 			filterChain, err := s.makeUpstreamFilterChain(filterChainOpts{
 				accessLogs:  &cfgSnap.Proxy.AccessLogs,
 				routeName:   uid.EnvoyID(),
-				clusterName: clusterName,
+				clusterName: targetClusterData.clusterName,
 				filterName:  filterName,
 				protocol:    cfg.Protocol,
 				useRDS:      useRDS,
@@ -215,7 +213,7 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 		filterChain, err := s.makeUpstreamFilterChain(filterChainOpts{
 			accessLogs:  &cfgSnap.Proxy.AccessLogs,
 			routeName:   uid.EnvoyID(),
-			clusterName: clusterName,
+			clusterName: targetClusterData.clusterName,
 			filterName:  filterName,
 			protocol:    cfg.Protocol,
 			useRDS:      useRDS,
@@ -1430,50 +1428,7 @@ func (s *ResourceGenerator) makeInboundListener(cfgSnap *proxycfg.ConfigSnapshot
 		return nil, fmt.Errorf("failed to attach Consul filters and TLS context to custom public listener: %v", err)
 	}
 
-	// When permissive mTLS mode is enabled, include an additional filter chain
-	// that matches on the `destination_port == <service port>`. Traffic sent
-	// directly to the service port is passed through to the application
-	// unmodified.
-	if cfgSnap.Proxy.MutualTLSMode == structs.MutualTLSModePermissive {
-		chain, err := makePermissiveFilterChain(cfgSnap, filterOpts)
-		if err != nil {
-			return nil, fmt.Errorf("unable to add permissive mtls filter chain: %w", err)
-		}
-		if chain == nil {
-			s.Logger.Debug("no service port defined for service in permissive mTLS mode; not adding filter chain for non-mTLS traffic")
-		} else {
-			l.FilterChains = append(l.FilterChains, chain)
-
-			// With tproxy, the REDIRECT iptables target rewrites the destination ip/port
-			// to the proxy ip/port (e.g. 127.0.0.1:20000) for incoming packets.
-			// We need the original_dst filter to recover the original destination address.
-			l.UseOriginalDst = &wrapperspb.BoolValue{Value: true}
-		}
-	}
 	return l, err
-}
-
-func makePermissiveFilterChain(cfgSnap *proxycfg.ConfigSnapshot, opts listenerFilterOpts) (*envoy_listener_v3.FilterChain, error) {
-	servicePort := cfgSnap.Proxy.LocalServicePort
-	if servicePort <= 0 {
-		// No service port means the service does not accept incoming traffic, so
-		// the connect proxy does not need to listen for incoming non-mTLS traffic.
-		return nil, nil
-	}
-
-	opts.statPrefix += "permissive_"
-	filter, err := makeTCPProxyFilter(opts)
-	if err != nil {
-		return nil, err
-	}
-
-	chain := &envoy_listener_v3.FilterChain{
-		FilterChainMatch: &envoy_listener_v3.FilterChainMatch{
-			DestinationPort: &wrapperspb.UInt32Value{Value: uint32(servicePort)},
-		},
-		Filters: []*envoy_listener_v3.Filter{filter},
-	}
-	return chain, nil
 }
 
 // finalizePublicListenerFromConfig is used for best-effort injection of Consul filter-chains onto listeners.
@@ -1742,7 +1697,7 @@ func (s *ResourceGenerator) makeTerminatingGatewayListener(
 type terminatingGatewayFilterChainOpts struct {
 	cluster    string
 	service    structs.ServiceName
-	intentions structs.SimplifiedIntentions
+	intentions structs.Intentions
 	protocol   string
 	address    string // only valid for destination listeners
 	port       int    // only valid for destination listeners

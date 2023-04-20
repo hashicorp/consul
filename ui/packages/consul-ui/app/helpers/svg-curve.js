@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 import { helper } from '@ember/component/helper';
 // arguments should be a list of {x: numLike, y: numLike} points
 // numLike meaning they should be numbers (or numberlike strings i.e. "1" vs 1)

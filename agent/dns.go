@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package agent
 
 import (
@@ -776,63 +773,54 @@ func (d *DNSServer) dispatch(remoteAddr net.Addr, req, resp *dns.Msg, maxRecursi
 			return invalid()
 		}
 
-		localities, err := d.parseSamenessGroupLocality(cfg, querySuffixes, invalid)
-		if err != nil {
-			return err
+		locality, ok := d.parseLocality(querySuffixes, cfg)
+		if !ok {
+			return invalid()
 		}
 
-		// Loop over the localities and return as soon as a lookup is successful
-		for _, locality := range localities {
-			d.logger.Debug("labels", "querySuffixes", querySuffixes)
-
-			lookup := serviceLookup{
-				Datacenter:        locality.effectiveDatacenter(d.agent.config.Datacenter),
-				PeerName:          locality.peer,
-				Connect:           false,
-				Ingress:           false,
-				MaxRecursionLevel: maxRecursionLevel,
-				EnterpriseMeta:    locality.EnterpriseMeta,
-			}
-			// Only one of dc or peer can be used.
-			if lookup.PeerName != "" {
-				lookup.Datacenter = ""
-			}
-
-			// Support RFC 2782 style syntax
-			if n == 2 && strings.HasPrefix(queryParts[1], "_") && strings.HasPrefix(queryParts[0], "_") {
-				// Grab the tag since we make nuke it if it's tcp
-				tag := queryParts[1][1:]
-
-				// Treat _name._tcp.service.consul as a default, no need to filter on that tag
-				if tag == "tcp" {
-					tag = ""
-				}
-
-				lookup.Tag = tag
-				lookup.Service = queryParts[0][1:]
-				// _name._tag.service.consul
-			} else {
-				// Consul 0.3 and prior format for SRV queries
-				// Support "." in the label, re-join all the parts
-				tag := ""
-				if n >= 2 {
-					tag = strings.Join(queryParts[:n-1], ".")
-				}
-
-				lookup.Tag = tag
-				lookup.Service = queryParts[n-1]
-				// tag[.tag].name.service.consul
-			}
-
-			err = d.serviceLookup(cfg, lookup, req, resp)
-			// Return if we are error free right away, otherwise loop again if we can
-			if err == nil {
-				return nil
-			}
+		lookup := serviceLookup{
+			Datacenter:        locality.effectiveDatacenter(d.agent.config.Datacenter),
+			PeerName:          locality.peer,
+			Connect:           false,
+			Ingress:           false,
+			MaxRecursionLevel: maxRecursionLevel,
+			EnterpriseMeta:    locality.EnterpriseMeta,
+		}
+		// Only one of dc or peer can be used.
+		if lookup.PeerName != "" {
+			lookup.Datacenter = ""
 		}
 
-		// We've exhausted all DNS possibilities so return here
-		return err
+		// Support RFC 2782 style syntax
+		if n == 2 && strings.HasPrefix(queryParts[1], "_") && strings.HasPrefix(queryParts[0], "_") {
+
+			// Grab the tag since we make nuke it if it's tcp
+			tag := queryParts[1][1:]
+
+			// Treat _name._tcp.service.consul as a default, no need to filter on that tag
+			if tag == "tcp" {
+				tag = ""
+			}
+
+			lookup.Tag = tag
+			lookup.Service = queryParts[0][1:]
+			// _name._tag.service.consul
+			return d.serviceLookup(cfg, lookup, req, resp)
+		}
+
+		// Consul 0.3 and prior format for SRV queries
+		// Support "." in the label, re-join all the parts
+		tag := ""
+		if n >= 2 {
+			tag = strings.Join(queryParts[:n-1], ".")
+		}
+
+		lookup.Tag = tag
+		lookup.Service = queryParts[n-1]
+
+		// tag[.tag].name.service.consul
+		return d.serviceLookup(cfg, lookup, req, resp)
+
 	case "connect":
 		if len(queryParts) < 1 {
 			return invalid()

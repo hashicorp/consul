@@ -19,7 +19,6 @@
 /npm-debug.log*
 /testem.log
 /yarn-error.log
-/yalc.lock
 
 # ember-try
 /.node_modules.ember-try/

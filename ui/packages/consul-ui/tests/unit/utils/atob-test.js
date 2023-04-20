@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 import { module, skip, test } from 'qunit';
 import atob from 'consul-ui/utils/atob';
 

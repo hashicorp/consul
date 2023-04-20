@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package xds
 
 import (
@@ -332,7 +329,7 @@ func getAPIGatewayGoldenTestCases(t *testing.T) []goldenTestCase {
 
 	service := structs.NewServiceName("service", nil)
 	serviceUID := proxycfg.NewUpstreamIDFromServiceName(service)
-	serviceChain := discoverychain.TestCompileConfigEntries(t, "service", "default", "default", "dc1", connect.TestClusterID+".consul", nil, nil)
+	serviceChain := discoverychain.TestCompileConfigEntries(t, "service", "default", "default", "dc1", connect.TestClusterID+".consul", nil)
 
 	return []goldenTestCase{
 		{

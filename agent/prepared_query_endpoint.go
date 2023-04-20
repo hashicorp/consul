@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package agent
 
 import (
@@ -19,7 +16,7 @@ type preparedQueryCreateResponse struct {
 }
 
 // preparedQueryCreate makes a new prepared query.
-func (s *HTTPHandlers) preparedQueryCreate(_ http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) preparedQueryCreate(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	args := structs.PreparedQueryRequest{
 		Op: structs.PreparedQueryCreate,
 	}

@@ -15,7 +15,6 @@ Consul supports two methods for modifying Envoy behavior. You can either modify 
 
 Instead of modifying Consul code, you can configure your services to use Envoy extensions through the `EnvoyExtensions` field. This field is definable in [`proxy-defaults`](/consul/docs/connect/config-entries/proxy-defaults#envoyextensions) and [`service-defaults`](/consul/docs/connect/config-entries/service-defaults#envoyextensions) configuration entries.
 
-
 ## Supported extensions
 
 Envoy extensions enable additional service mesh functionality in Consul by changing how the sidecar proxies behave. Extensions invoke custom code when traffic passes through an Envoy proxy. Consul supports the following extensions:

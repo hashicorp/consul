@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package consul
 
 import (
@@ -1926,7 +1923,6 @@ func TestIntentionMatch_acl(t *testing.T) {
 		}
 		var resp structs.IndexedIntentionMatches
 		err := msgpackrpc.CallWithCodec(codec, "Intention.Match", req, &resp)
-		require.Error(t, err)
 		require.True(t, acl.IsErrPermissionDenied(err))
 		require.Len(t, resp.Matches, 0)
 	}

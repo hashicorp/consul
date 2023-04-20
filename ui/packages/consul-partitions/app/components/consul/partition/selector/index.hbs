@@ -1,74 +1,79 @@
-{{!
-  Copyright (c) HashiCorp, Inc.
-  SPDX-License-Identifier: MPL-2.0
-}}
-
 {{#let
-  (or @partition "default")
-  (is-href "dc.partitions" @dc.Name)
-  as |partition isManaging|
-}}
+  (or @partition 'default')
+  (is-href 'dc.partitions' @dc.Name)
+as |partition isManaging|}}
   {{#if (can "choose partitions" dc=@dc)}}
-    <li class="partitions" data-test-partition-menu>
-      <DisclosureMenu
-        aria-label="Admin Partition"
-        @items={{append
-          (hash
-            Name="Manage Partitions" href=(href-to "dc.partitions" @dc.Name)
-          )
-          (reject-by "DeletedAt" @partitions)
-        }}
-        as |disclosure|
+      <li
+        class="partitions"
+        data-test-partition-menu
       >
-        <disclosure.Action {{on "click" disclosure.toggle}}>
-          {{if isManaging "Manage Partition" partition}}
-        </disclosure.Action>
-        <disclosure.Menu as |panel|>
-          <DataSource
-            @src={{uri "/*/*/${dc}/partitions" (hash dc=@dc.Name)}}
-            @onchange={{fn (optional @onchange)}}
-          />
-          <panel.Menu as |menu|>
-            {{#each menu.items as |item|}}
-              <menu.Item
-                aria-current={{if
-                  (or
-                    (and isManaging item.href)
-                    (and (not isManaging) (eq partition item.Name))
-                  )
-                  "true"
-                }}
-              >
-                <menu.Action
-                  {{on "click" disclosure.close}}
-                  @href={{if
-                    item.href
-                    item.href
-                    (if
-                      isManaging
-                      (href-to
-                        "dc.services.index"
-                        params=(hash
-                          partition=item.Name nspace=undefined dc=@dc.Name
-                        )
-                      )
-                      (href-to
-                        "." params=(hash partition=item.Name nspace=undefined)
-                      )
+        <DisclosureMenu
+          aria-label="Admin Partition"
+          @items={{append 
+            (hash 
+              Name="Manage Partitions"
+              href=(href-to 'dc.partitions' @dc.Name)
+            ) 
+            (reject-by 'DeletedAt' @partitions)
+          }}
+        as |disclosure|>
+          <disclosure.Action
+            {{on 'click' disclosure.toggle}}
+          >
+            {{if isManaging 'Manage Partition' partition}}
+          </disclosure.Action>
+          <disclosure.Menu as |panel|>
+            <DataSource
+              @src={{uri
+                '/*/*/${dc}/partitions'
+                (hash
+                  dc=@dc.Name
+                )
+              }}
+              @onchange={{fn (optional @onchange)}}
+            />
+            <panel.Menu as |menu|>
+              {{#each menu.items as |item|}}
+                <menu.Item
+                  aria-current={{if 
+                    (or 
+                      (and isManaging item.href)
+                      (and (not isManaging) (eq partition item.Name))
                     )
+                    'true'
                   }}
                 >
-                  {{item.Name}}
-                </menu.Action>
-              </menu.Item>
-            {{/each}}
-          </panel.Menu>
-        </disclosure.Menu>
-      </DisclosureMenu>
-    </li>
+                  <menu.Action
+                    {{on 'click' disclosure.close}}
+                    @href={{if item.href 
+                      item.href 
+                      (if isManaging 
+                        (href-to 'dc.services.index' params=(hash
+                          partition=item.Name
+                          nspace=undefined
+                          dc=@dc.Name
+                        ))
+                        (href-to '.' params=(hash
+                          partition=item.Name
+                          nspace=undefined
+                        ))
+                      )
+                    }}
+                  >
+                    {{item.Name}}
+                  </menu.Action>
+                </menu.Item>
+              {{/each}}
+            </panel.Menu>
+          </disclosure.Menu>
+        </DisclosureMenu>
+      </li>
   {{else}}
-    <li class="partition" aria-label="Admin Partition">
-      {{"default"}}
+    <li 
+      class="partition"
+      aria-label="Admin Partition"
+    >
+      {{'default'}}
     </li>
   {{/if}}
 {{/let}}

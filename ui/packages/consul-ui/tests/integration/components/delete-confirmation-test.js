@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 import { module, test } from 'qunit';
 import { setupRenderingTest } from 'ember-qunit';
 import { render } from '@ember/test-helpers';
@@ -17,13 +12,13 @@ module('Integration | Component | delete confirmation', function (hooks) {
 
     await render(hbs`{{delete-confirmation}}`);
 
-    assert.dom('[data-test-delete]').exists({ count: 1 });
+    assert.dom('.type-delete').exists({ count: 1 });
 
     // Template block usage:
     await render(hbs`
       {{#delete-confirmation}}{{/delete-confirmation}}
     `);
 
-    assert.dom('[data-test-delete]').exists({ count: 1 });
+    assert.dom('.type-delete').exists({ count: 1 });
   });
 });
