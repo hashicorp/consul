@@ -7,7 +7,6 @@ import (
 	"context"
 	"sync"
 	"testing"
-	"time"
 
 	"github.com/hashicorp/go-hclog"
 	"github.com/stretchr/testify/require"
@@ -15,39 +14,47 @@ import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/acl/resolver"
 	"github.com/hashicorp/consul/agent/consul/state"
-	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/agent/submatview"
-	"github.com/hashicorp/consul/proto/private/pbsubscribe"
 	"github.com/hashicorp/consul/sdk/testutil"
 )
 
 func TestServerIntentions(t *testing.T) {
-	const (
-		serviceName = "web"
-		index       = 1
-	)
-
-	logger := hclog.NewNullLogger()
+	nextIndex := indexGenerator()
 
 	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)
 
-	store := submatview.NewStore(logger)
-	go store.Run(ctx)
+	store := state.NewStateStore(nil)
 
-	publisher := stream.NewEventPublisher(10 * time.Second)
-	publisher.RegisterHandler(pbsubscribe.Topic_ServiceIntentions,
-		func(stream.SubscribeRequest, stream.SnapshotAppender) (uint64, error) { return index, nil },
-		false)
-	go publisher.Run(ctx)
+	const (
+		serviceName = "web"
+		index       = 1
+	)
+	require.NoError(t, store.SystemMetadataSet(1, &structs.SystemMetadataEntry{
+		Key:   structs.SystemMetadataIntentionFormatKey,
+		Value: structs.SystemMetadataIntentionFormatConfigValue,
+	}))
+	require.NoError(t, store.EnsureConfigEntry(nextIndex(), &structs.ServiceIntentionsConfigEntry{
+		Name: serviceName,
+		Sources: []*structs.SourceIntention{
+			{
+				Name:   "db",
+				Action: structs.IntentionActionAllow,
+			},
+		},
+	}))
+
+	authz := policyAuthorizer(t, `
+		service "web" { policy = "read" }
+	`)
+
+	logger := hclog.NewNullLogger()
 
 	intentions := ServerIntentions(ServerDataSourceDeps{
-		ACLResolver:    newStaticResolver(acl.ManageAll()),
-		ViewStore:      store,
-		EventPublisher: publisher,
-		Logger:         logger,
+		ACLResolver: newStaticResolver(authz),
+		Logger:      logger,
+		GetStore:    func() Store { return store },
 	})
 
 	eventCh := make(chan proxycfg.UpdateEvent)
@@ -57,27 +64,7 @@ func TestServerIntentions(t *testing.T) {
 	}, "", eventCh))
 
 	testutil.RunStep(t, "initial snapshot", func(t *testing.T) {
-		getEventResult[structs.Intentions](t, eventCh)
-	})
-
-	testutil.RunStep(t, "publishing an explicit intention", func(t *testing.T) {
-		publisher.Publish([]stream.Event{
-			{
-				Topic: pbsubscribe.Topic_ServiceIntentions,
-				Index: index + 1,
-				Payload: state.EventPayloadConfigEntry{
-					Op: pbsubscribe.ConfigEntryUpdate_Upsert,
-					Value: &structs.ServiceIntentionsConfigEntry{
-						Name: serviceName,
-						Sources: []*structs.SourceIntention{
-							{Name: "db", Action: structs.IntentionActionAllow, Precedence: 1},
-						},
-					},
-				},
-			},
-		})
-
-		result := getEventResult[structs.Intentions](t, eventCh)
+		result := getEventResult[structs.SimplifiedIntentions](t, eventCh)
 		require.Len(t, result, 1)
 
 		intention := result[0]
@@ -85,53 +72,85 @@ func TestServerIntentions(t *testing.T) {
 		require.Equal(t, intention.SourceName, "db")
 	})
 
-	testutil.RunStep(t, "publishing a wildcard intention", func(t *testing.T) {
-		publisher.Publish([]stream.Event{
-			{
-				Topic: pbsubscribe.Topic_ServiceIntentions,
-				Index: index + 2,
-				Payload: state.EventPayloadConfigEntry{
-					Op: pbsubscribe.ConfigEntryUpdate_Upsert,
-					Value: &structs.ServiceIntentionsConfigEntry{
-						Name: structs.WildcardSpecifier,
-						Sources: []*structs.SourceIntention{
-							{Name: structs.WildcardSpecifier, Action: structs.IntentionActionAllow, Precedence: 0},
-						},
-					},
+	testutil.RunStep(t, "updating an intention", func(t *testing.T) {
+		require.NoError(t, store.EnsureConfigEntry(nextIndex(), &structs.ServiceIntentionsConfigEntry{
+			Name: serviceName,
+			Sources: []*structs.SourceIntention{
+				{
+					Name:   "api",
+					Action: structs.IntentionActionAllow,
+				},
+				{
+					Name:   "db",
+					Action: structs.IntentionActionAllow,
 				},
 			},
-		})
+		}))
 
-		result := getEventResult[structs.Intentions](t, eventCh)
+		result := getEventResult[structs.SimplifiedIntentions](t, eventCh)
 		require.Len(t, result, 2)
 
-		a := result[0]
-		require.Equal(t, a.DestinationName, serviceName)
-		require.Equal(t, a.SourceName, "db")
-
-		b := result[1]
-		require.Equal(t, b.DestinationName, structs.WildcardSpecifier)
-		require.Equal(t, b.SourceName, structs.WildcardSpecifier)
+		for i, src := range []string{"api", "db"} {
+			intention := result[i]
+			require.Equal(t, intention.DestinationName, serviceName)
+			require.Equal(t, intention.SourceName, src)
+		}
 	})
 
 	testutil.RunStep(t, "publishing a delete event", func(t *testing.T) {
-		publisher.Publish([]stream.Event{
-			{
-				Topic: pbsubscribe.Topic_ServiceIntentions,
-				Index: index + 3,
-				Payload: state.EventPayloadConfigEntry{
-					Op: pbsubscribe.ConfigEntryUpdate_Delete,
-					Value: &structs.ServiceIntentionsConfigEntry{
-						Name: serviceName,
-					},
-				},
-			},
-		})
+		require.NoError(t, store.DeleteConfigEntry(nextIndex(), structs.ServiceIntentions, serviceName, nil))
 
-		result := getEventResult[structs.Intentions](t, eventCh)
-		require.Len(t, result, 1)
+		result := getEventResult[structs.SimplifiedIntentions](t, eventCh)
+		require.Len(t, result, 0)
+	})
+}
+
+func TestServerIntentions_ACLDeny(t *testing.T) {
+	nextIndex := indexGenerator()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	t.Cleanup(cancel)
+
+	store := state.NewStateStore(nil)
+
+	const (
+		serviceName = "web"
+		index       = 1
+	)
+	require.NoError(t, store.SystemMetadataSet(1, &structs.SystemMetadataEntry{
+		Key:   structs.SystemMetadataIntentionFormatKey,
+		Value: structs.SystemMetadataIntentionFormatConfigValue,
+	}))
+	require.NoError(t, store.EnsureConfigEntry(nextIndex(), &structs.ServiceIntentionsConfigEntry{
+		Name: serviceName,
+		Sources: []*structs.SourceIntention{
+			{
+				Name:   "db",
+				Action: structs.IntentionActionAllow,
+			},
+		},
+	}))
+
+	authz := policyAuthorizer(t, ``)
+
+	logger := hclog.NewNullLogger()
+
+	intentions := ServerIntentions(ServerDataSourceDeps{
+		ACLResolver: newStaticResolver(authz),
+		Logger:      logger,
+		GetStore:    func() Store { return store },
 	})
 
+	eventCh := make(chan proxycfg.UpdateEvent)
+	require.NoError(t, intentions.Notify(ctx, &structs.ServiceSpecificRequest{
+		ServiceName:    serviceName,
+		EnterpriseMeta: *acl.DefaultEnterpriseMeta(),
+	}, "", eventCh))
+
+	testutil.RunStep(t, "initial snapshot", func(t *testing.T) {
+		result := getEventResult[structs.SimplifiedIntentions](t, eventCh)
+		require.Len(t, result, 0)
+	})
 }
 
 type staticResolver struct {

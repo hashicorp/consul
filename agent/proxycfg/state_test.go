@@ -839,7 +839,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 		}
 	}
 
-	dbIxnMatch := structs.Intentions{
+	dbIxnMatch := structs.SimplifiedIntentions{
 		{
 			ID:              "abc-123",
 			SourceNS:        "default",

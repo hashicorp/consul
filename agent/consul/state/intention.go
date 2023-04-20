@@ -740,7 +740,8 @@ type IntentionDecisionOpts struct {
 	Target           string
 	Namespace        string
 	Partition        string
-	Intentions       structs.Intentions
+	Peer             string
+	Intentions       structs.SimplifiedIntentions
 	MatchType        structs.IntentionMatchType
 	DefaultDecision  acl.EnforcementDecision
 	AllowPermissions bool
@@ -755,7 +756,7 @@ func (s *Store) IntentionDecision(opts IntentionDecisionOpts) (structs.Intention
 	// Figure out which source matches this request.
 	var ixnMatch *structs.Intention
 	for _, ixn := range opts.Intentions {
-		if _, ok := connect.AuthorizeIntentionTarget(opts.Target, opts.Namespace, opts.Partition, ixn, opts.MatchType); ok {
+		if _, ok := connect.AuthorizeIntentionTarget(opts.Target, opts.Namespace, opts.Partition, opts.Peer, ixn, opts.MatchType); ok {
 			ixnMatch = ixn
 			break
 		}
@@ -805,10 +806,39 @@ func (s *Store) IntentionMatch(ws memdb.WatchSet, args *structs.IntentionQueryMa
 	if err != nil {
 		return 0, nil, err
 	}
+
 	if !usingConfigEntries {
-		return s.legacyIntentionMatchTxn(tx, ws, args)
+		idx, ixnsList, err := s.legacyIntentionMatchTxn(tx, ws, args)
+		if err != nil {
+			return 0, nil, err
+		}
+
+		return idx, ixnsList, nil
 	}
-	return s.configIntentionMatchTxn(tx, ws, args)
+
+	maxIdx, ixnsList, err := s.configIntentionMatchTxn(tx, ws, args)
+	if err != nil {
+		return 0, nil, err
+	}
+
+	if args.WithSamenessGroups {
+		return maxIdx, ixnsList, err
+	}
+
+	// Non-legacy intentions support sameness groups. We need to simplify them.
+	var out []structs.Intentions
+	for i, ixns := range ixnsList {
+		entry := args.Entries[i]
+		idx, simplifiedIxns, err := getSimplifiedIntentions(tx, ws, ixns, *entry.GetEnterpriseMeta())
+		if err != nil {
+			return 0, nil, err
+		}
+		if idx > maxIdx {
+			maxIdx = idx
+		}
+		out = append(out, simplifiedIxns)
+	}
+	return maxIdx, out, nil
 }
 
 func (s *Store) legacyIntentionMatchTxn(tx ReadTxn, ws memdb.WatchSet, args *structs.IntentionQueryMatch) (uint64, []structs.Intentions, error) {
@@ -847,7 +877,7 @@ func (s *Store) IntentionMatchOne(
 	entry structs.IntentionMatchEntry,
 	matchType structs.IntentionMatchType,
 	destinationType structs.IntentionTargetType,
-) (uint64, structs.Intentions, error) {
+) (uint64, structs.SimplifiedIntentions, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
@@ -860,16 +890,34 @@ func compatIntentionMatchOneTxn(
 	entry structs.IntentionMatchEntry,
 	matchType structs.IntentionMatchType,
 	destinationType structs.IntentionTargetType,
-) (uint64, structs.Intentions, error) {
+) (uint64, structs.SimplifiedIntentions, error) {
 
 	usingConfigEntries, err := areIntentionsInConfigEntries(tx, ws)
 	if err != nil {
 		return 0, nil, err
 	}
 	if !usingConfigEntries {
-		return legacyIntentionMatchOneTxn(tx, ws, entry, matchType)
+		idx, ixns, err := legacyIntentionMatchOneTxn(tx, ws, entry, matchType)
+		if err != nil {
+			return 0, nil, err
+		}
+		return idx, structs.SimplifiedIntentions(ixns), err
 	}
-	return configIntentionMatchOneTxn(tx, ws, entry, matchType, destinationType)
+
+	maxIdx, ixns, err := configIntentionMatchOneTxn(tx, ws, entry, matchType, destinationType)
+	if err != nil {
+		return 0, nil, err
+	}
+
+	idx, simplifiedIxns, err := getSimplifiedIntentions(tx, ws, ixns, *entry.GetEnterpriseMeta())
+	if err != nil {
+		return 0, nil, err
+	}
+	if idx > maxIdx {
+		maxIdx = idx
+	}
+
+	return maxIdx, structs.SimplifiedIntentions(simplifiedIxns), nil
 }
 
 func legacyIntentionMatchOneTxn(
