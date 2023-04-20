@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"sync"
 	"testing"
@@ -42,6 +43,7 @@ func init() {
 //     (*testing.T).Cleanup. For failed tests, this can be skipped by setting the
 //     environment variable SKIP_TEARDOWN=1.
 func Launch(t *testing.T, cfg *topology.Config) *sprawl.Sprawl {
+	SkipIfTerraformNotPresent(t)
 	sp, err := sprawl.Launch(
 		testutil.Logger(t),
 		initWorkingDirectory(t),
@@ -126,5 +128,14 @@ func CleanupWorkingDirectories() {
 		} else {
 			_ = os.RemoveAll(path)
 		}
+	}
+}
+
+func SkipIfTerraformNotPresent(t *testing.T) {
+	const terraformBinaryName = "terraform"
+
+	path, err := exec.LookPath(terraformBinaryName)
+	if err != nil || path == "" {
+		t.Skipf("%q not found on $PATH - download and install to run this test", terraformBinaryName)
 	}
 }

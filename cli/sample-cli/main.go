@@ -5,6 +5,8 @@ import (
 	"io"
 	"log"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/hashicorp/go-hclog"
@@ -40,6 +42,9 @@ func run(logger hclog.Logger) error {
 
 	cfg := SampleTopology1()
 
+	sigs := make(chan os.Signal, 1)
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+
 	sp, err := sprawl.Launch(logger, workdir, cfg)
 	if err != nil {
 		return fmt.Errorf("error during launch: %w", err)
@@ -49,6 +54,7 @@ func run(logger hclog.Logger) error {
 	defer sp.Stop()
 
 	logger.Info("================ SLEEPING 5s BEFORE RELAUNCH ================")
+
 	time.Sleep(5 * time.Second)
 
 	node := cfg.Cluster("dc1").
@@ -61,8 +67,11 @@ func run(logger hclog.Logger) error {
 	}
 	logger.Info("================ RELAUNCH IS COMPLETE; sleeping 5m for inspection ================")
 
-	// TODO
-	time.Sleep(5 * time.Minute)
+	select {
+	case <-time.After(5 * time.Minute):
+	case sig := <-sigs:
+		logger.Info("Caught signal; exiting", "signal", sig)
+	}
 
 	return nil
 }
