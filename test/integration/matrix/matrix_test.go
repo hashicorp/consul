@@ -5,6 +5,7 @@ import (
 	"testing"
 )
 
+// The matrix test
 func TestMatrix(t *testing.T) {
 	matrix := NewMatrix()
 	for i := 0; i < 10; i++ {
@@ -21,11 +22,13 @@ func TestMatrix(t *testing.T) {
 	}
 }
 
+// organizes matrix tests between 2 products
 type Matrix struct {
 	consulVersions, vaultVersions []string
 	pairs                         []pair
 }
 
+// Returns a matrix ready for use in testing
 func NewMatrix() Matrix {
 	cvs := latestReleases("consul")
 	vvs := latestReleases("vault")
@@ -42,7 +45,7 @@ func NewMatrix() Matrix {
 	}
 }
 
-// for each consul test with each vault (3x3 matrix, 9 test cases)
+// iterates through the matrix binary pairs
 func (m Matrix) NextPair(t *testing.T) (TestConsulServer, TestVaultServer, bool) {
 	nextPair := m.next()
 	if nextPair.Nil() {

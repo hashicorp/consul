@@ -6,12 +6,14 @@ import (
 	"os"
 )
 
+// Unzip the file at zipPath to destPath
+// Only supports zip files with single binary entry (ie. our releases)
 func unzip(zipPath, destPath string) error {
 	zr, err := zip.OpenReader(zipPath)
 	if err != nil {
 		return err
 	}
-	zf := zr.File[0]
+	zf := zr.File[0] // release zip archive's single file
 	zfp, err := zf.Open()
 	if err != nil {
 		return err
