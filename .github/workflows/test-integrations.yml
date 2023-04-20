@@ -168,6 +168,7 @@ jobs:
           fi
           # fix issue where test splitting calculation generates 1 more split than TOTAL_RUNNERS.
           NUM_RUNNERS=$(($NUM_RUNNERS))-1
+          echo "NUM_RUNNERS: $NUM_RUNNERS"
           {
             echo -n "envoy-matrix="
             find ./test/integration/connect/envoy -maxdepth 1 -type d -print0 \
@@ -284,6 +285,7 @@ jobs:
           fi
           # fix issue where test splitting calculation generates 1 more split than TOTAL_RUNNERS.
           NUM_RUNNERS=$(($NUM_RUNNERS))-1
+          echo "NUM_RUNNERS: $NUM_RUNNERS"
           {
             echo -n "compatibility-matrix="
             find ./test -maxdepth 2 -type d -print0 | xargs -0 -n 1 \
@@ -391,6 +393,7 @@ jobs:
           fi
           # fix issue where test splitting calculation generates 1 more split than TOTAL_RUNNERS.
           NUM_RUNNERS=$(($NUM_RUNNERS))-1
+          echo "NUM_RUNNERS: $NUM_RUNNERS"
           {
             echo -n "upgrade-matrix="
             go test ./...  -list=. -json | jq -r '.Output | select (. !=null) |  select(. | startswith("Test")) | gsub("[\\n\\t]"; "")' \
