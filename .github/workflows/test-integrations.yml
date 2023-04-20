@@ -244,11 +244,6 @@ jobs:
               --jsonfile /tmp/jsonfile/go-test.log \
               --packages=./test/integration/connect/envoy \
               -- -timeout=30m -tags integration -run="TestEnvoy/(${{ matrix.test-cases }})"
-          
-      - uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
-        with:
-          name: container-logs
-          path: ./test/integration/connect/envoy/workdir/logs
 
       - uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
         with:
@@ -266,7 +261,7 @@ jobs:
       - name: Generate Compatibility Job Matrix
         id: set-matrix
         env:
-          TOTAL_RUNNERS: 5
+          TOTAL_RUNNERS: 3
           JQ_SLICER: '[ inputs ] | [_nwise(length / $runnercount | floor)]'
         run: |
           cd ./test/integration/consul-container
@@ -338,7 +333,7 @@ jobs:
               --latest-version latest
             ls -lrt
         env:
-          # this is needed because of incompatibility between RYUK container and circleci
+          # this is needed because of incompatibility between RYUK container and GHA
           GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
           GOTESTSUM_FORMAT: standard-verbose
           COMPOSE_INTERACTIVE_NO_CLI: 1
@@ -364,7 +359,7 @@ jobs:
       - name: Generate Updgrade Job Matrix
         id: set-matrix
         env:
-          TOTAL_RUNNERS: 4
+          TOTAL_RUNNERS: 2
           JQ_SLICER: '[ inputs ] | [_nwise(length / $runnercount | floor)]'
         run: |
           cd ./test/integration/consul-container/test/upgrade
@@ -469,7 +464,7 @@ jobs:
             --latest-version "${{ env.CONSUL_VERSION }}"
           ls -lrt
         env:
-          # this is needed because of incompatibility between RYUK container and circleci
+          # this is needed because of incompatibility between RYUK container and GHA
           GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
           GOTESTSUM_FORMAT: standard-verbose
           COMPOSE_INTERACTIVE_NO_CLI: 1
