@@ -1554,14 +1554,14 @@ func readDiscoveryChainConfigEntriesTxn(
 	// the end of this function to indicate "no such entry".
 
 	var (
-		todoSplitters      = make(map[structs.ServiceID]struct{})
-		todoResolvers      = make(map[structs.ServiceID]struct{})
-		todoDefaults       = make(map[structs.ServiceID]struct{})
-		todoPeers          = make(map[string]struct{})
-		todoSamenessGroups = make(map[string]struct{})
+		todoSplitters = make(map[structs.ServiceID]struct{})
+		todoResolvers = make(map[structs.ServiceID]struct{})
+		todoDefaults  = make(map[structs.ServiceID]struct{})
+		todoPeers     = make(map[string]struct{})
 	)
 
 	sid := structs.NewServiceID(serviceName, entMeta)
+	peerEntMeta := structs.DefaultEnterpriseMetaInPartition(entMeta.PartitionOrDefault())
 
 	// At every step we'll need service and proxy defaults.
 	todoDefaults[sid] = struct{}{}
@@ -1628,6 +1628,31 @@ func readDiscoveryChainConfigEntriesTxn(
 		}
 	}
 
+	processSamenessGroup := func(sg *structs.SamenessGroupConfigEntry, resolverID structs.ServiceID) error {
+		if sg == nil {
+			return nil
+		}
+
+		res.SamenessGroups[sg.Name] = sg
+
+		for _, peer := range sg.RelatedPeers() {
+			todoPeers[peer] = struct{}{}
+		}
+
+		for _, m := range sg.AllMembers() {
+			if m.Peer != "" {
+				continue
+			}
+
+			// Disco chains preserve the name and namespace from the resolver.
+			em := acl.NewEnterpriseMetaWithPartition(m.Partition, resolverID.NamespaceOrDefault())
+			s := structs.NewServiceID(resolverID.ID, &em)
+			todoResolvers[s] = struct{}{}
+		}
+
+		return nil
+	}
+
 	for {
 		resolverID, ok := anyKey(todoResolvers)
 		if !ok {
@@ -1650,12 +1675,23 @@ func readDiscoveryChainConfigEntriesTxn(
 			maxIdx = idx
 		}
 
+		res.Resolvers[resolverID] = resolver
 		if resolver == nil {
-			res.Resolvers[resolverID] = nil
+			idx, sg, err := getDefaultSamenessGroup(tx, ws, resolverID.PartitionOrDefault())
+			if err != nil {
+				return 0, nil, err
+			}
+			if idx > maxIdx {
+				maxIdx = idx
+			}
+			processSamenessGroup(sg, resolverID)
+
+			if resolverID == sid {
+				res.DefaultSamenessGroup = sg
+			}
+
 			continue
 		}
-
-		res.Resolvers[resolverID] = resolver
 
 		for _, svc := range resolver.ListRelatedServices() {
 			todoResolvers[svc] = struct{}{}
@@ -1665,8 +1701,22 @@ func readDiscoveryChainConfigEntriesTxn(
 			todoPeers[peer] = struct{}{}
 		}
 
+		// We fetch sameness groups here rather than in another loop because we need the resolvers
+		// for services in different partitions of the local datacenter.
 		for _, sg := range resolver.RelatedSamenessGroups() {
-			todoSamenessGroups[sg] = struct{}{}
+			if _, ok := res.SamenessGroups[sg]; ok {
+				continue
+			}
+
+			idx, entry, err := getSamenessGroupConfigEntryTxn(tx, ws, sg, overrides, peerEntMeta.PartitionOrDefault())
+			if err != nil {
+				return 0, nil, err
+			}
+			if idx > maxIdx {
+				maxIdx = idx
+			}
+
+			processSamenessGroup(entry, resolverID)
 		}
 	}
 
@@ -1707,42 +1757,6 @@ func readDiscoveryChainConfigEntriesTxn(
 			continue
 		}
 		res.Services[svcID] = entry
-	}
-
-	peerEntMeta := structs.DefaultEnterpriseMetaInPartition(entMeta.PartitionOrDefault())
-	for sg := range todoSamenessGroups {
-		idx, entry, err := getSamenessGroupConfigEntryTxn(tx, ws, sg, overrides, peerEntMeta.PartitionOrDefault())
-		if err != nil {
-			return 0, nil, err
-		}
-		if idx > maxIdx {
-			maxIdx = idx
-		}
-		if entry == nil {
-			continue
-		}
-
-		for _, peer := range entry.RelatedPeers() {
-			todoPeers[peer] = struct{}{}
-		}
-		res.SamenessGroups[sg] = entry
-	}
-
-	if r := res.Resolvers[sid]; r == nil {
-		idx, sg, err := getDefaultSamenessGroup(tx, ws, sid.PartitionOrDefault())
-		if err != nil {
-			return 0, nil, err
-		}
-		if idx > maxIdx {
-			maxIdx = idx
-		}
-		if sg != nil {
-			res.DefaultSamenessGroup = sg
-			res.SamenessGroups[sg.Name] = sg
-			for _, peer := range sg.RelatedPeers() {
-				todoPeers[peer] = struct{}{}
-			}
-		}
 	}
 
 	for peerName := range todoPeers {
