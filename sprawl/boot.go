@@ -92,6 +92,9 @@ func (s *Sprawl) launchType(firstTime bool) (launchErr error) {
 	})
 
 	if firstTime {
+		// The networking phase is special. We have to pick a random subnet and
+		// hope. Once we have this established once it is immutable for future
+		// runs.
 		if err := s.initNetworking(); err != nil {
 			return fmt.Errorf("initNetworking: %w", err)
 		}
