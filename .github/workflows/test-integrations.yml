@@ -274,9 +274,13 @@ jobs:
           cd ./test/integration/consul-container
           NUM_RUNNERS=$TOTAL_RUNNERS
           NUM_DIRS=$(find ./test -maxdepth 2 -type d | wc -l)
+          
+          #remove on for the top level directory
+          NUM_DIRS=$((NUM_DIRS-1))
+
           if [ "$NUM_DIRS" -lt "$NUM_RUNNERS" ]; then
             echo "TOTAL_RUNNERS is larger than the number of tests/packages to split."
-            NUM_RUNNERS=$NUM_DIRS
+            NUM_RUNNERS=$((NUM_DIRS-1))
           fi
           # fix issue where test splitting calculation generates 1 more split than TOTAL_RUNNERS.
           NUM_RUNNERS=$((NUM_RUNNERS-1))
