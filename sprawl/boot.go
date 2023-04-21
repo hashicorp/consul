@@ -4,7 +4,9 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/base64"
+	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/consul/api"
@@ -204,13 +206,25 @@ func (s *Sprawl) Stop() error {
 	return merr
 }
 
+const dockerOutOfNetworksErrorMessage = `Unable to create network: Error response from daemon: Pool overlaps with other one on this address space`
+
+var ErrDockerNetworkCollision = errors.New("could not create one or more docker networks for use due to subnet collision")
+
 func (s *Sprawl) initNetworking() error {
-	// TODO: loop this on a very specific error
-	if err := s.generator.Generate(tfgen.StepNetworks); err != nil {
-		return fmt.Errorf("generator[networks]: %w", err)
+	var lastErr error
+	for attempts := 0; attempts < 5; attempts++ {
+		err := s.generator.Generate(tfgen.StepNetworks)
+		if err != nil && strings.Contains(err.Error(), dockerOutOfNetworksErrorMessage) {
+			lastErr = ErrDockerNetworkCollision
+			s.logger.Warn(ErrDockerNetworkCollision.Error()+"; retrying", "attempt", attempts+1)
+		} else if err != nil {
+			return fmt.Errorf("generator[networks]: %w", err)
+		}
+		lastErr = err
+		time.Sleep(1 * time.Second)
 	}
 
-	return nil
+	return lastErr
 }
 
 func (s *Sprawl) assignIPAddresses() error {

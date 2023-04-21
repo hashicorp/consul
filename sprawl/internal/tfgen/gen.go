@@ -275,7 +275,9 @@ func (g *Generator) Generate(step Step) error {
 	if netResult, err := WriteHCLResourceFile(g.logger, networks, tfpath("networks.tf"), 0644); err != nil {
 		return err
 	} else if netResult == UpdateResultModified {
-		return fmt.Errorf("cannot change networking details after they are established")
+		if step != StepNetworks {
+			return fmt.Errorf("cannot change networking details after they are established")
+		}
 	}
 	if _, err := WriteHCLResourceFile(g.logger, volumes, tfpath("volumes.tf"), 0644); err != nil {
 		return err
