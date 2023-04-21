@@ -230,6 +230,7 @@ func (c *cmd) run(args []string) int {
 		config.SerfPortLAN, config.SerfPortWAN))
 	ui.Info(fmt.Sprintf("Gossip Encryption: %t", config.EncryptKey != ""))
 	ui.Info(fmt.Sprintf(" Auto-Encrypt-TLS: %t", config.AutoEncryptTLS || config.AutoEncryptAllowTLS))
+	ui.Info(fmt.Sprintf("     ACLs Enabled: %t", config.ACLsEnabled))
 	ui.Info(fmt.Sprintf("        HTTPS TLS: Verify Incoming: %t, Verify Outgoing: %t, Min Version: %s",
 		config.TLS.HTTPS.VerifyIncoming, config.TLS.HTTPS.VerifyOutgoing, config.TLS.HTTPS.TLSMinVersion))
 	ui.Info(fmt.Sprintf("         gRPC TLS: Verify Incoming: %t, Min Version: %s", config.TLS.GRPC.VerifyIncoming, config.TLS.GRPC.TLSMinVersion))
