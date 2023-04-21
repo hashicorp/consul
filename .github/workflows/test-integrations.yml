@@ -159,7 +159,7 @@ jobs:
           JQ_SLICER: '[ inputs ] | [_nwise(length / $runnercount | floor)]'
         run: |
           NUM_RUNNERS=$TOTAL_RUNNERS
-          NUM_DIRS=$(find ./test -maxdepth 2 -type d | wc -l)
+          NUM_DIRS=$(find ./test/integration/connect/envoy -maxdepth 1 -type d | wc -l)
           
           #remove on for the top level directory
           NUM_DIRS=$((NUM_DIRS-1))
@@ -386,11 +386,8 @@ jobs:
         run: |
           cd ./test/integration/consul-container/test/upgrade
           NUM_RUNNERS=$TOTAL_RUNNERS
-          NUM_DIRS=$(find ./test -maxdepth 2 -type d | wc -l)
+          NUM_DIRS=$(go test ./...  -list=. -json | jq -r '.Output | select (. !=null) |  select(. | startswith("Test")) | gsub("[\\n\\t]"; "")' | wc -l)
           
-          #remove on for the top level directory
-          NUM_DIRS=$((NUM_DIRS-1))
-
           if [ "$NUM_DIRS" -lt "$NUM_RUNNERS" ]; then
             echo "TOTAL_RUNNERS is larger than the number of tests/packages to split."
             NUM_RUNNERS=$((NUM_DIRS-1))
