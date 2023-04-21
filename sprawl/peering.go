@@ -7,6 +7,9 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/go-hclog"
+
+	"github.com/hashicorp/consul-topology/topology"
 )
 
 // TODO: this is definitely a grpc resolver/balancer issue to look into
@@ -90,4 +93,64 @@ func (s *Sprawl) initPeerings() error {
 	}
 
 	return nil
+}
+
+func (s *Sprawl) waitForPeeringEstablishment(peering *topology.Peering) error {
+	var (
+		logger = s.logger.Named("peering")
+	)
+
+	for _, peering := range s.topology.Peerings {
+		dialingCluster, ok := s.topology.Clusters[peering.Dialing.Name]
+		if !ok {
+			return fmt.Errorf("peering references dialing cluster that does not exist: %s", peering.String())
+		}
+		acceptingCluster, ok := s.topology.Clusters[peering.Accepting.Name]
+		if !ok {
+			return fmt.Errorf("peering references accepting cluster that does not exist: %s", peering.String())
+		}
+
+		var (
+			dialingClient   = s.clients[dialingCluster.Name]
+			acceptingClient = s.clients[acceptingCluster.Name]
+
+			dialingLogger = logger.With(
+				"cluster", dialingCluster.Name,
+				"peering", peering.String(),
+			)
+			acceptingLogger = logger.With(
+				"cluster", acceptingCluster.Name,
+				"peering", peering.String(),
+			)
+		)
+
+		s.checkPeeringDirection(dialingLogger, dialingClient, peering.Dialing.PeerName)
+		s.checkPeeringDirection(acceptingLogger, acceptingClient, peering.Accepting.PeerName)
+	}
+	return nil
+}
+
+func (s *Sprawl) checkPeeringDirection(logger hclog.Logger, client *api.Client, peerName string) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	for {
+		res, _, err := client.Peerings().Read(ctx, peerName, nil)
+		if isWeirdGRPCError(err) {
+			time.Sleep(50 * time.Millisecond)
+			continue
+		}
+		if err != nil {
+			logger.Info("error looking up peering", "error", err)
+			time.Sleep(100 * time.Millisecond)
+			continue
+		}
+
+		if res.State == api.PeeringStateActive {
+			logger.Info("peering is active")
+			return
+		}
+		logger.Info("peering not active yet", "state", res.State)
+		time.Sleep(500 * time.Millisecond)
+	}
 }

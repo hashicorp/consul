@@ -121,7 +121,11 @@ func (s *Sprawl) launchType(firstTime bool) (launchErr error) {
 		}
 	}
 
-	// TODO: verify peering
+	for _, peering := range s.topology.Peerings {
+		if err := s.waitForPeeringEstablishment(peering); err != nil {
+			return fmt.Errorf("waitForPeeringEstablishment[%s]: %w", peering.String(), err)
+		}
+	}
 
 	cleanupFuncs = nil // reset
 

@@ -80,10 +80,13 @@ func compile(logger hclog.Logger, raw *Config, prev *Topology) (*Topology, error
 		nextIndex int // use a global index so any shared networks work properly with assignments
 	)
 
+	foundPeerNames := make(map[string]map[string]struct{})
 	for _, c := range raw.Clusters {
 		if c.Name == "" {
 			return nil, fmt.Errorf("cluster has no name")
 		}
+
+		foundPeerNames[c.Name] = make(map[string]struct{})
 
 		if !IsValidLabel(c.Name) {
 			return nil, fmt.Errorf("cluster name is not valid: %s", c.Name)
@@ -313,6 +316,7 @@ func compile(logger hclog.Logger, raw *Config, prev *Topology) (*Topology, error
 							u.ID.Partition = svc.ID.Partition
 						}
 						u.ID.Namespace = NamespaceOrDefault(u.ID.Namespace)
+						foundPeerNames[c.Name][u.Peer] = struct{}{}
 					}
 
 					if u.ID.Name == "" {
@@ -391,6 +395,20 @@ func compile(logger hclog.Logger, raw *Config, prev *Topology) (*Topology, error
 		}
 		if p.Accepting.PeerName == "" {
 			p.Accepting.PeerName = "peer-" + p.Dialing.Name + "-" + p.Dialing.Partition
+		}
+
+		delete(foundPeerNames[p.Accepting.Name], p.Accepting.PeerName)
+		delete(foundPeerNames[p.Dialing.Name], p.Dialing.PeerName)
+	}
+
+	for cluster, peers := range foundPeerNames {
+		if len(peers) > 0 {
+			var pretty []string
+			for name := range peers {
+				pretty = append(pretty, name)
+			}
+			sort.Strings(pretty)
+			return nil, fmt.Errorf("cluster[%s] found topology references to peerings that do not exist: %v", cluster, pretty)
 		}
 	}
 

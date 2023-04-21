@@ -346,6 +346,20 @@ func (c *Cluster) ServiceByID(nid NodeID, sid ServiceID) *Service {
 	return c.NodeByID(nid).ServiceByID(sid)
 }
 
+func (c *Cluster) ServicesByID(sid ServiceID) []ServiceAndNode {
+	sid.Normalize()
+
+	var out []ServiceAndNode
+	for _, n := range c.Nodes {
+		for _, svc := range n.Services {
+			if svc.ID == sid {
+				out = append(out, ServiceAndNode{Service: svc, Node: n})
+			}
+		}
+	}
+	return out
+}
+
 func (c *Cluster) NodeByID(nid NodeID) *Node {
 	nid.Normalize()
 	for _, n := range c.Nodes {
@@ -599,6 +613,11 @@ func (n *Node) ServiceByID(sid ServiceID) *Service {
 		}
 	}
 	panic("service not found: " + sid.String())
+}
+
+type ServiceAndNode struct {
+	Service *Service
+	Node    *Node
 }
 
 type Service struct {
