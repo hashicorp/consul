@@ -156,7 +156,7 @@ jobs:
           # multiplied by 8 based on these values:
           # envoy-version: ["1.22.11", "1.23.8", "1.24.6", "1.25.4"]
           # xds-target: ["server", "client"]
-          TOTAL_RUNNERS: 4 
+          TOTAL_RUNNERS: 700 
           JQ_SLICER: '[ inputs ] | [_nwise(length / $runnercount | floor)]'
         run: |
           NUM_RUNNERS=$TOTAL_RUNNERS
