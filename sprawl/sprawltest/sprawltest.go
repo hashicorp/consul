@@ -19,35 +19,63 @@ import (
 	"github.com/hashicorp/consul-topology/topology"
 )
 
+// TODO(rb): move comments to doc.go
+
 var (
-	// set SPRAWL_KEEP_RUNNING=1 in the environment to keep the terraform
-	// output intact and also refrain from tearing anything down. Things are
-	// all destroyed by default.
+	// set SPRAWL_WORKDIR_ROOT in the environment to have the test output
+	// coalesced in here. By default it uses a directory called "workdir" in
+	// each package.
+	workdirRoot string
+
+	// set SPRAWL_KEEP_WORKDIR=1 in the environment to keep the workdir output
+	// intact. Files are all destroyed by default.
+	keepWorkdirOnFail bool
+
+	// set SPRAWL_KEEP_RUNNING=1 in the environment to keep the workdir output
+	// intact and also refrain from tearing anything down. Things are all
+	// destroyed by default.
 	//
-	// SPRAWL_KEEP_RUNNING=1 implies SPRAWL_KEEP_TERRAFORM=1
+	// SPRAWL_KEEP_RUNNING=1 implies SPRAWL_KEEP_WORKDIR=1
 	keepRunningOnFail bool
 
-	// set SPRAWL_KEEP_TERRAFORM=1 in the environment to keep the terraform
-	// output intact. Files are all destroyed by default.
-	keepTerraformOnFail bool
+	// set SPRAWL_SKIP_OLD_CLEANUP to prevent the library from tearing down and
+	// removing anything found in the working directory at init time. The
+	// default behavior is to do this.
+	skipOldCleanup bool
 )
 
 var cleanupPriorRunOnce sync.Once
 
 func init() {
-	if os.Getenv("SPRAWL_KEEP_TERRAFORM") == "1" {
-		keepTerraformOnFail = true
+	if root := os.Getenv("SPRAWL_WORKDIR_ROOT"); root != "" {
+		fmt.Fprintf(os.Stdout, "INFO: sprawltest: SPRAWL_WORKDIR_ROOT set; using %q as output root\n", root)
+		workdirRoot = root
+	} else {
+		workdirRoot = "workdir"
+	}
+
+	if os.Getenv("SPRAWL_KEEP_WORKDIR") == "1" {
+		keepWorkdirOnFail = true
+		fmt.Fprintf(os.Stdout, "INFO: sprawltest: SPRAWL_KEEP_WORKDIR set; not destroying workdir on failure\n")
 	}
 
 	if os.Getenv("SPRAWL_KEEP_RUNNING") == "1" {
 		keepRunningOnFail = true
-		keepTerraformOnFail = true
+		keepWorkdirOnFail = true
+		fmt.Fprintf(os.Stdout, "INFO: sprawltest: SPRAWL_KEEP_RUNNING set; not tearing down resources on failure\n")
 	}
 
-	cleanupPriorRunOnce.Do(func() {
-		fmt.Fprintf(os.Stdout, "INFO: sprawltest: triggering cleanup of any prior test runs\n")
-		CleanupWorkingDirectories()
-	})
+	if os.Getenv("SPRAWL_SKIP_OLD_CLEANUP") == "1" {
+		skipOldCleanup = true
+		fmt.Fprintf(os.Stdout, "INFO: sprawltest: SPRAWL_SKIP_OLD_CLEANUP set; not cleaning up anything found in %q\n", workdirRoot)
+	}
+
+	if !skipOldCleanup {
+		cleanupPriorRunOnce.Do(func() {
+			fmt.Fprintf(os.Stdout, "INFO: sprawltest: triggering cleanup of any prior test runs\n")
+			CleanupWorkingDirectories()
+		})
+	}
 }
 
 // Launch will create the topology defined by the provided configuration and
@@ -71,14 +99,17 @@ func Launch(t *testing.T, cfg *topology.Config) *sprawl.Sprawl {
 }
 
 func initWorkingDirectory(t *testing.T) string {
-	scratchDir := filepath.Join("workdir", t.Name())
+	// TODO(rb): figure out how to get the calling package which we can put in
+	// the middle here, which is likely 2 call frames away so maybe
+	// runtime.Callers can help
+	scratchDir := filepath.Join(workdirRoot, t.Name())
 	_ = os.RemoveAll(scratchDir) // cleanup prior runs
 	if err := os.MkdirAll(scratchDir, 0755); err != nil {
 		t.Fatalf("error: %v", err)
 	}
 
 	t.Cleanup(func() {
-		if t.Failed() && keepTerraformOnFail {
+		if t.Failed() && keepWorkdirOnFail {
 			t.Logf("test failed; leaving sprawl terraform definitions in: %s", scratchDir)
 		} else {
 			_ = os.RemoveAll(scratchDir)
@@ -102,7 +133,7 @@ func stopOnCleanup(t *testing.T, sp *sprawl.Sprawl) {
 // CleanupWorkingDirectories is meant to run in an init() once at the start of
 // any tests.
 func CleanupWorkingDirectories() {
-	fi, err := os.ReadDir("workdir")
+	fi, err := os.ReadDir(workdirRoot)
 	if os.IsNotExist(err) {
 		return
 	} else if err != nil {
@@ -123,7 +154,7 @@ func CleanupWorkingDirectories() {
 		if !d.IsDir() {
 			continue
 		}
-		path := filepath.Join("workdir", d.Name(), "terraform")
+		path := filepath.Join(workdirRoot, d.Name(), "terraform")
 
 		fmt.Fprintf(os.Stdout, "INFO: sprawltest: cleaning up failed prior run in: %s\n", path)
 
