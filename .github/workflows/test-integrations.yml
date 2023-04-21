@@ -170,6 +170,7 @@ jobs:
             echo -n "envoy-matrix="
             find ./test/integration/connect/envoy -maxdepth 1 -type d -print0 \
               | xargs -0 -n 1 basename \
+
               | jq --raw-input --argjson runnercount "$NUM_RUNNERS" "$JQ_SLICER" \
               | jq --compact-output 'map(join("|"))'
           } >> "$GITHUB_OUTPUT"
@@ -268,6 +269,7 @@ jobs:
       - name: Generate Compatibility Job Matrix
         id: set-matrix
         env:
+
           TOTAL_RUNNERS: 6
           JQ_SLICER: '[ inputs ] | [_nwise(length / $runnercount | floor)]'
         run: |
@@ -287,6 +289,7 @@ jobs:
               | jq --raw-input --argjson runnercount "$NUM_RUNNERS" "$JQ_SLICER" \
               | jq --compact-output 'map(join(" "))'
           } >> "$GITHUB_OUTPUT"
+
   compatibility-integration-test:
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-xl) }}
     needs:
