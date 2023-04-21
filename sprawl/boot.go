@@ -65,8 +65,6 @@ func (s *Sprawl) launchType(firstTime bool) (launchErr error) {
 		}
 	}()
 
-	var relaunchDeferredFunc []func() error
-
 	if firstTime {
 		var err error
 		s.generator, err = tfgen.NewGenerator(
@@ -97,8 +95,8 @@ func (s *Sprawl) launchType(firstTime bool) (launchErr error) {
 		// The networking phase is special. We have to pick a random subnet and
 		// hope. Once we have this established once it is immutable for future
 		// runs.
-		if err := s.initNetworking(); err != nil {
-			return fmt.Errorf("initNetworking: %w", err)
+		if err := s.initNetworkingAndVolumes(); err != nil {
+			return fmt.Errorf("initNetworkingAndVolumes: %w", err)
 		}
 	}
 
@@ -111,87 +109,21 @@ func (s *Sprawl) launchType(firstTime bool) (launchErr error) {
 		return fmt.Errorf("initTLS: %w", err)
 	}
 
-	if err := s.initConsulServers(firstTime); err != nil {
-		return fmt.Errorf("initConsulServers: %w", err)
-	}
-
 	if firstTime {
-		if err := s.generator.Generate(tfgen.StepAgents); err != nil {
-			return fmt.Errorf("generator[agents]: %w", err)
+		if err := s.createFirstTime(); err != nil {
+			return err
 		}
-		for _, cluster := range s.topology.Clusters {
-			if err := s.waitForClientAntiEntropyOnce(cluster); err != nil {
-				return fmt.Errorf("waitForClientAntiEntropyOnce[%s]: %w", cluster.Name, err)
-			}
-		}
+
+		s.generator.MarkLaunched()
 	} else {
-		relaunchDeferredFunc = append(relaunchDeferredFunc, func() error {
-			for _, cluster := range s.topology.Clusters {
-				if err := s.waitForClientAntiEntropyOnce(cluster); err != nil {
-					return fmt.Errorf("waitForClientAntiEntropyOnce[%s]: %w", cluster.Name, err)
-				}
-			}
-			return nil
-		})
-	}
-
-	// Ideally we start services WITH a token initially, so we pre-create them
-	// before running terraform for them.
-	if err := s.createAllServiceTokens(); err != nil {
-		return fmt.Errorf("createAllServiceTokens: %w", err)
-	}
-
-	if err := s.registerAllServicesForDataplaneInstances(); err != nil {
-		return fmt.Errorf("registerAllServicesForDataplaneInstances: %w", err)
-	}
-
-	if firstTime {
-		// We can do this ahead, because we've incrementally run terraform as
-		// we went.
-		if err := s.registerAllServicesToAgents(); err != nil {
-			return fmt.Errorf("registerAllServicesToAgents: %w", err)
-		}
-		// NOTE: start services WITH token initially
-		if err := s.generator.Generate(tfgen.StepServices); err != nil {
-			return fmt.Errorf("generator[services]: %w", err)
-		}
-	} else {
-		relaunchDeferredFunc = append(relaunchDeferredFunc, func() error {
-			if err := s.registerAllServicesToAgents(); err != nil {
-				return fmt.Errorf("registerAllServicesToAgents: %w", err)
-			}
-			return nil
-		})
-	}
-
-	if !firstTime {
-		// We save all of the terraform to the end. Some of the containers will
-		// be a little broken until we can do stuff like register services to
-		// new agents, which we cannot do until they come up.
-		if err := s.generator.Generate(tfgen.StepRelaunch); err != nil {
-			return fmt.Errorf("generator[relaunch]: %w", err)
-		}
-
-		for _, fn := range relaunchDeferredFunc {
-			if err := fn(); err != nil {
-				return err
-			}
-		}
-	}
-
-	if firstTime {
-		if err := s.initPeerings(); err != nil {
-			return fmt.Errorf("initPeerings: %w", err)
+		if err := s.updateExisting(); err != nil {
+			return err
 		}
 	}
 
 	// TODO: verify peering
 
 	cleanupFuncs = nil // reset
-
-	if firstTime {
-		s.generator.MarkLaunched()
-	}
 
 	return nil
 }
@@ -210,7 +142,7 @@ const dockerOutOfNetworksErrorMessage = `Unable to create network: Error respons
 
 var ErrDockerNetworkCollision = errors.New("could not create one or more docker networks for use due to subnet collision")
 
-func (s *Sprawl) initNetworking() error {
+func (s *Sprawl) initNetworkingAndVolumes() error {
 	var lastErr error
 	for attempts := 0; attempts < 5; attempts++ {
 		err := s.generator.Generate(tfgen.StepNetworks)
@@ -249,48 +181,37 @@ func (s *Sprawl) assignIPAddresses() error {
 	return nil
 }
 
-func (s *Sprawl) initConsulServers(firstTime bool) error {
-	if firstTime {
-		if err := s.generator.Generate(tfgen.StepServers); err != nil {
-			return fmt.Errorf("generator[servers]: %w", err)
-		}
+func (s *Sprawl) initConsulServers() error {
+	if err := s.generator.Generate(tfgen.StepServers); err != nil {
+		return fmt.Errorf("generator[servers]: %w", err)
+	}
 
-		s.logger.Info("ALL", "t", jd(s.topology)) // TODO
+	// s.logger.Info("ALL", "t", jd(s.topology)) // TODO
 
-		// Create token-less api clients first.
-		for _, cluster := range s.topology.Clusters {
-			node := cluster.FirstServer()
+	// Create token-less api clients first.
+	for _, cluster := range s.topology.Clusters {
+		node := cluster.FirstServer()
 
-			var err error
-			s.clients[cluster.Name], err = util.ProxyAPIClient(
-				node.LocalSquidPort(),
-				node.LocalAddress(),
-				8500,
-				"", /*no token yet*/
-			)
-			if err != nil {
-				return fmt.Errorf("error creating initial bootstrap client for cluster=%s: %w", cluster.Name, err)
-			}
+		var err error
+		s.clients[cluster.Name], err = util.ProxyAPIClient(
+			node.LocalSquidPort(),
+			node.LocalAddress(),
+			8500,
+			"", /*no token yet*/
+		)
+		if err != nil {
+			return fmt.Errorf("error creating initial bootstrap client for cluster=%s: %w", cluster.Name, err)
 		}
 	}
 
-	if firstTime {
-		// Join the servers together.
-		for _, cluster := range s.topology.Clusters {
-			if err := s.rejoinServers(cluster, firstTime); err != nil {
-				return fmt.Errorf("rejoinServers[%s]: %w", cluster.Name, err)
-			}
-			s.waitForLeader(cluster)
-		}
+	if err := s.rejoinAllConsulServers(); err != nil {
+		return err
 	}
 
 	for _, cluster := range s.topology.Clusters {
-		var err error
-		if firstTime {
-			err = s.bootstrapACLs(cluster.Name)
-			if err != nil {
-				return fmt.Errorf("bootstrap[%s]: %w", cluster.Name, err)
-			}
+		err := s.bootstrapACLs(cluster.Name)
+		if err != nil {
+			return fmt.Errorf("bootstrap[%s]: %w", cluster.Name, err)
 		}
 
 		mgmtToken := s.secrets.ReadGeneric(cluster.Name, secrets.BootstrapToken)
@@ -307,10 +228,6 @@ func (s *Sprawl) initConsulServers(firstTime bool) error {
 			return fmt.Errorf("error creating final client for cluster=%s: %v", cluster.Name, err)
 		}
 
-		if !firstTime {
-			s.waitForLeader(cluster)
-		}
-
 		// For some reason the grpc resolver stuff for partitions takes some
 		// time to get ready.
 		s.waitForLocalWrites(cluster, mgmtToken)
@@ -322,10 +239,8 @@ func (s *Sprawl) initConsulServers(firstTime bool) error {
 			}
 		}
 
-		if firstTime {
-			if err := s.populateInitialConfigEntries(cluster); err != nil {
-				return fmt.Errorf("populateInitialConfigEntries[%s]: %w", cluster.Name, err)
-			}
+		if err := s.populateInitialConfigEntries(cluster); err != nil {
+			return fmt.Errorf("populateInitialConfigEntries[%s]: %w", cluster.Name, err)
 		}
 
 		// Create tokens for all of the agents to use for anti-entropy.
@@ -335,6 +250,143 @@ func (s *Sprawl) initConsulServers(firstTime bool) error {
 		if err := s.createAgentTokens(cluster); err != nil {
 			return fmt.Errorf("createAgentTokens[%s]: %w", cluster.Name, err)
 		}
+	}
+
+	return nil
+}
+
+func (s *Sprawl) createFirstTime() error {
+	if err := s.initConsulServers(); err != nil {
+		return fmt.Errorf("initConsulServers: %w", err)
+	}
+
+	if err := s.generator.Generate(tfgen.StepAgents); err != nil {
+		return fmt.Errorf("generator[agents]: %w", err)
+	}
+	for _, cluster := range s.topology.Clusters {
+		if err := s.waitForClientAntiEntropyOnce(cluster); err != nil {
+			return fmt.Errorf("waitForClientAntiEntropyOnce[%s]: %w", cluster.Name, err)
+		}
+	}
+
+	// Ideally we start services WITH a token initially, so we pre-create them
+	// before running terraform for them.
+	if err := s.createAllServiceTokens(); err != nil {
+		return fmt.Errorf("createAllServiceTokens: %w", err)
+	}
+
+	if err := s.registerAllServicesForDataplaneInstances(); err != nil {
+		return fmt.Errorf("registerAllServicesForDataplaneInstances: %w", err)
+	}
+
+	// We can do this ahead, because we've incrementally run terraform as
+	// we went.
+	if err := s.registerAllServicesToAgents(); err != nil {
+		return fmt.Errorf("registerAllServicesToAgents: %w", err)
+	}
+
+	// NOTE: start services WITH token initially
+	if err := s.generator.Generate(tfgen.StepServices); err != nil {
+		return fmt.Errorf("generator[services]: %w", err)
+	}
+
+	if err := s.initPeerings(); err != nil {
+		return fmt.Errorf("initPeerings: %w", err)
+	}
+	return nil
+}
+
+func (s *Sprawl) updateExisting() error {
+	if err := s.preRegenTasks(); err != nil {
+		return fmt.Errorf("preRegenTasks: %w", err)
+	}
+
+	// We save all of the terraform to the end. Some of the containers will
+	// be a little broken until we can do stuff like register services to
+	// new agents, which we cannot do until they come up.
+	if err := s.generator.Generate(tfgen.StepRelaunch); err != nil {
+		return fmt.Errorf("generator[relaunch]: %w", err)
+	}
+
+	if err := s.postRegenTasks(); err != nil {
+		return fmt.Errorf("postRegenTasks: %w", err)
+	}
+
+	// TODO: enforce that peering relationships cannot change
+	// TODO: include a fixup version of new peerings?
+
+	return nil
+}
+
+func (s *Sprawl) preRegenTasks() error {
+	for _, cluster := range s.topology.Clusters {
+		// Create tenancies so that the ACL tokens and clients have somewhere to go.
+		if cluster.Enterprise {
+			if err := s.initTenancies(cluster); err != nil {
+				return fmt.Errorf("initTenancies[%s]: %w", cluster.Name, err)
+			}
+		}
+
+		if err := s.populateInitialConfigEntries(cluster); err != nil {
+			return fmt.Errorf("populateInitialConfigEntries[%s]: %w", cluster.Name, err)
+		}
+
+		// Create tokens for all of the agents to use for anti-entropy.
+		if err := s.createAgentTokens(cluster); err != nil {
+			return fmt.Errorf("createAgentTokens[%s]: %w", cluster.Name, err)
+		}
+	}
+
+	// Ideally we start services WITH a token initially, so we pre-create them
+	// before running terraform for them.
+	if err := s.createAllServiceTokens(); err != nil {
+		return fmt.Errorf("createAllServiceTokens: %w", err)
+	}
+
+	if err := s.registerAllServicesForDataplaneInstances(); err != nil {
+		return fmt.Errorf("registerAllServicesForDataplaneInstances: %w", err)
+	}
+
+	return nil
+}
+
+func (s *Sprawl) postRegenTasks() error {
+	if err := s.rejoinAllConsulServers(); err != nil {
+		return err
+	}
+
+	for _, cluster := range s.topology.Clusters {
+		var err error
+
+		mgmtToken := s.secrets.ReadGeneric(cluster.Name, secrets.BootstrapToken)
+
+		// Reconfigure the clients to use a management token.
+		node := cluster.FirstServer()
+		s.clients[cluster.Name], err = util.ProxyAPIClient(
+			node.LocalSquidPort(),
+			node.LocalAddress(),
+			8500,
+			mgmtToken,
+		)
+		if err != nil {
+			return fmt.Errorf("error creating final client for cluster=%s: %v", cluster.Name, err)
+		}
+
+		s.waitForLeader(cluster)
+
+		// For some reason the grpc resolver stuff for partitions takes some
+		// time to get ready.
+		s.waitForLocalWrites(cluster, mgmtToken)
+	}
+
+	for _, cluster := range s.topology.Clusters {
+		if err := s.waitForClientAntiEntropyOnce(cluster); err != nil {
+			return fmt.Errorf("waitForClientAntiEntropyOnce[%s]: %w", cluster.Name, err)
+		}
+	}
+
+	if err := s.registerAllServicesToAgents(); err != nil {
+		return fmt.Errorf("registerAllServicesToAgents: %w", err)
 	}
 
 	return nil

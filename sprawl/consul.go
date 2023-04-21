@@ -39,7 +39,18 @@ func (s *Sprawl) waitForLeader(cluster *topology.Cluster) *topology.Node {
 	}
 }
 
-func (s *Sprawl) rejoinServers(cluster *topology.Cluster, firstTime bool) error {
+func (s *Sprawl) rejoinAllConsulServers() error {
+	// Join the servers together.
+	for _, cluster := range s.topology.Clusters {
+		if err := s.rejoinServers(cluster); err != nil {
+			return fmt.Errorf("rejoinServers[%s]: %w", cluster.Name, err)
+		}
+		s.waitForLeader(cluster)
+	}
+	return nil
+}
+
+func (s *Sprawl) rejoinServers(cluster *topology.Cluster) error {
 	var (
 		// client = s.clients[cluster.Name]
 		logger = s.logger.With("cluster", cluster.Name)

@@ -263,3 +263,21 @@ func (s *Sprawl) Followers(clusterName string) ([]*topology.Node, error) {
 
 	return followers, nil
 }
+
+func (s *Sprawl) DisabledServers(clusterName string) ([]*topology.Node, error) {
+	cluster, ok := s.topology.Clusters[clusterName]
+	if !ok {
+		return nil, fmt.Errorf("no such cluster: %s", clusterName)
+	}
+
+	var servers []*topology.Node
+
+	for _, node := range cluster.Nodes {
+		if !node.IsServer() || !node.Disabled {
+			continue
+		}
+		servers = append(servers, node)
+	}
+
+	return servers, nil
+}
