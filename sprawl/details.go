@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"sort"
+	"strconv"
 	"strings"
 	"text/tabwriter"
 )
@@ -58,19 +59,21 @@ func (s *Sprawl) PrintDetails() error {
 			for _, svc := range node.Services {
 				if svc.IsMeshGateway {
 					cd.Apps = append(cd.Apps, appDetail{
-						Type:        "mesh-gateway",
-						Container:   node.DockerName(),
-						ExposedPort: node.ExposedPort(svc.Port),
-						Addresses:   addrs,
-						Service:     svc.ID.String(),
+						Type:                  "mesh-gateway",
+						Container:             node.DockerName(),
+						ExposedPort:           node.ExposedPort(svc.Port),
+						ExposedEnvoyAdminPort: node.ExposedPort(svc.EnvoyAdminPort),
+						Addresses:             addrs,
+						Service:               svc.ID.String(),
 					})
 				} else {
 					cd.Apps = append(cd.Apps, appDetail{
-						Type:        "app",
-						Container:   node.DockerName(),
-						ExposedPort: node.ExposedPort(svc.Port),
-						Addresses:   addrs,
-						Service:     svc.ID.String(),
+						Type:                  "app",
+						Container:             node.DockerName(),
+						ExposedPort:           node.ExposedPort(svc.Port),
+						ExposedEnvoyAdminPort: node.ExposedPort(svc.EnvoyAdminPort),
+						Addresses:             addrs,
+						Service:               svc.ID.String(),
 					})
 				}
 			}
@@ -89,7 +92,7 @@ func (s *Sprawl) PrintDetails() error {
 	}
 
 	for _, cluster := range det.Clusters {
-		fmt.Fprintf(w, "CLUSTER\tTYPE\tCONTAINER\tNAME\tLAN ADDR\tPORT\t\n")
+		fmt.Fprintf(w, "CLUSTER\tTYPE\tCONTAINER\tNAME\tADDRS\tPORTS\t\n")
 		sort.Slice(cluster.Apps, func(i, j int) bool {
 			a := cluster.Apps[i]
 			b := cluster.Apps[j]
@@ -121,13 +124,17 @@ func (s *Sprawl) PrintDetails() error {
 			if d.Type == "server" && d.Container == cluster.Leader {
 				d.Type = "leader"
 			}
-			fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%d\t\n",
+			portStr := "app=" + strconv.Itoa(d.ExposedPort)
+			if d.ExposedEnvoyAdminPort > 0 {
+				portStr += " envoy=" + strconv.Itoa(d.ExposedEnvoyAdminPort)
+			}
+			fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t\n",
 				cluster.Name,
 				d.Type,
 				d.Container,
 				d.Service,
 				strings.Join(d.Addresses, ", "),
-				d.ExposedPort,
+				portStr,
 			)
 		}
 		fmt.Fprintf(w, "\t\t\t\t\t\n")
@@ -153,10 +160,11 @@ type clusterDetails struct {
 }
 
 type appDetail struct {
-	Type        string // server|mesh-gateway|app
-	Container   string
-	Addresses   []string
-	ExposedPort int `json:",omitempty"`
+	Type                  string // server|mesh-gateway|app
+	Container             string
+	Addresses             []string
+	ExposedPort           int `json:",omitempty"`
+	ExposedEnvoyAdminPort int `json:",omitempty"`
 	// just services
 	Service string `json:",omitempty"`
 }
