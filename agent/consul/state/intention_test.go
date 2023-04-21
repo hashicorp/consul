@@ -2161,6 +2161,7 @@ func TestStore_IntentionTopology(t *testing.T) {
 		name            string
 		defaultDecision acl.EnforcementDecision
 		intentions      []structs.ServiceIntentionsConfigEntry
+		discoveryChains []structs.ConfigEntry
 		target          structs.ServiceName
 		downstreams     bool
 		expect          expect
@@ -2187,6 +2188,68 @@ func TestStore_IntentionTopology(t *testing.T) {
 				services: structs.ServiceList{
 					{
 						Name:           "mysql",
+						EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+					},
+				},
+			},
+		},
+		{
+			name:            "(upstream) acl allow includes virtual service",
+			defaultDecision: acl.Allow,
+			discoveryChains: []structs.ConfigEntry{
+				&structs.ServiceResolverConfigEntry{
+					Kind: structs.ServiceResolver,
+					Name: "backend",
+				},
+			},
+			target:      structs.NewServiceName("web", nil),
+			downstreams: false,
+			expect: expect{
+				idx: 10,
+				services: structs.ServiceList{
+					{
+						Name:           "api",
+						EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+					},
+					{
+						Name:           "backend",
+						EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+					},
+					{
+						Name:           "mysql",
+						EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+					},
+				},
+			},
+		},
+		{
+			name:            "(upstream) acl deny all intentions allow virtual service",
+			defaultDecision: acl.Deny,
+			discoveryChains: []structs.ConfigEntry{
+				&structs.ServiceResolverConfigEntry{
+					Kind: structs.ServiceResolver,
+					Name: "backend",
+				},
+			},
+			intentions: []structs.ServiceIntentionsConfigEntry{
+				{
+					Kind: structs.ServiceIntentions,
+					Name: "backend",
+					Sources: []*structs.SourceIntention{
+						{
+							Name:   "web",
+							Action: structs.IntentionActionAllow,
+						},
+					},
+				},
+			},
+			target:      structs.NewServiceName("web", nil),
+			downstreams: false,
+			expect: expect{
+				idx: 11,
+				services: structs.ServiceList{
+					{
+						Name:           "backend",
 						EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 					},
 				},
@@ -2376,6 +2439,10 @@ func TestStore_IntentionTopology(t *testing.T) {
 			}
 			for _, ixn := range tt.intentions {
 				require.NoError(t, s.EnsureConfigEntry(idx, &ixn))
+				idx++
+			}
+			for _, entry := range tt.discoveryChains {
+				require.NoError(t, s.EnsureConfigEntry(idx, entry))
 				idx++
 			}
 
