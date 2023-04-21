@@ -121,6 +121,14 @@ func initWorkingDirectory(t *testing.T) string {
 
 func stopOnCleanup(t *testing.T, sp *sprawl.Sprawl) {
 	t.Cleanup(func() {
+		if t.Failed() && keepWorkdirOnFail {
+			// It's only worth it to capture the logs if we aren't going to
+			// immediately discard them.
+			if err := sp.CaptureLogs(); err != nil {
+				t.Logf("log capture encountered failures: %v", err)
+			}
+		}
+
 		if t.Failed() && keepRunningOnFail {
 			t.Log("test failed; leaving sprawl running")
 		} else {

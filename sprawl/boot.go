@@ -156,7 +156,6 @@ func (s *Sprawl) initNetworkingAndVolumes() error {
 		} else if err != nil {
 			return fmt.Errorf("generator[networks]: %w", err)
 		}
-		lastErr = err
 		time.Sleep(1 * time.Second)
 	}
 

@@ -57,14 +57,18 @@ func Load(logger hclog.Logger) (*Runner, error) {
 }
 
 func (r *Runner) DockerExec(args []string, stdout io.Writer, stdin io.Reader) error {
-	return cmdExec("docker", r.dockerBin, args, stdout, stdin, "")
+	return cmdExec("docker", r.dockerBin, args, stdout, nil, stdin, "")
+}
+
+func (r *Runner) DockerExecWithStderr(args []string, stdout, stderr io.Writer, stdin io.Reader) error {
+	return cmdExec("docker", r.dockerBin, args, stdout, stderr, stdin, "")
 }
 
 func (r *Runner) TerraformExec(args []string, stdout io.Writer, workdir string) error {
-	return cmdExec("terraform", r.tfBin, args, stdout, nil, workdir)
+	return cmdExec("terraform", r.tfBin, args, stdout, nil, nil, workdir)
 }
 
-func cmdExec(name, binary string, args []string, stdout io.Writer, stdin io.Reader, dir string) error {
+func cmdExec(name, binary string, args []string, stdout, stderr io.Writer, stdin io.Reader, dir string) error {
 	if binary == "" {
 		panic("binary named " + name + " was not detected")
 	}
@@ -80,6 +84,9 @@ func cmdExec(name, binary string, args []string, stdout io.Writer, stdin io.Read
 	}
 	cmd.Stdout = stdout
 	cmd.Stderr = &errWriter
+	if stderr != nil {
+		cmd.Stderr = io.MultiWriter(stderr, cmd.Stderr)
+	}
 	cmd.Stdin = stdin
 	if err := cmd.Run(); err != nil {
 		return &ExecError{

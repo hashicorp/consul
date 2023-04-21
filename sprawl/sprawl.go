@@ -1,6 +1,8 @@
 package sprawl
 
 import (
+	"bufio"
+	"bytes"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -9,6 +11,7 @@ import (
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-multierror"
 	"github.com/mitchellh/copystructure"
 
 	"github.com/hashicorp/consul-topology/sprawl/internal/runner"
@@ -280,4 +283,94 @@ func (s *Sprawl) DisabledServers(clusterName string) ([]*topology.Node, error) {
 	}
 
 	return servers, nil
+}
+
+func (s *Sprawl) CaptureLogs() error {
+	logDir := filepath.Join(s.workdir, "logs")
+	if err := os.MkdirAll(logDir, 0755); err != nil {
+		return fmt.Errorf("could not create log output dir %s: %w", logDir, err)
+	}
+
+	containers, err := s.listContainers()
+	if err != nil {
+		return err
+	}
+
+	s.logger.Info("Capturing logs")
+
+	var merr error
+	for _, container := range containers {
+		if err := s.dumpContainerLogs(container, logDir); err != nil {
+			merr = multierror.Append(merr, fmt.Errorf("could not dump logs for container %s: %w", container, err))
+		}
+	}
+
+	return merr
+}
+
+// Dump known containers out of terraform state file.
+func (s *Sprawl) listContainers() ([]string, error) {
+	tfdir := filepath.Join(s.workdir, "terraform")
+
+	var buf bytes.Buffer
+	if err := s.runner.TerraformExec([]string{"state", "list"}, &buf, tfdir); err != nil {
+		return nil, fmt.Errorf("error listing containers in terraform state file: %w", err)
+	}
+
+	var (
+		scan       = bufio.NewScanner(&buf)
+		containers []string
+	)
+	for scan.Scan() {
+		line := strings.TrimSpace(scan.Text())
+
+		name := strings.TrimPrefix(line, "docker_container.")
+		if name != line {
+			containers = append(containers, name)
+			continue
+		}
+	}
+	if err := scan.Err(); err != nil {
+		return nil, err
+	}
+
+	return containers, nil
+}
+
+func (s *Sprawl) dumpContainerLogs(containerName, outputRoot string) error {
+	path := filepath.Join(outputRoot, containerName+".log")
+
+	f, err := os.Create(path + ".tmp")
+	if err != nil {
+		return err
+	}
+	keep := false
+	defer func() {
+		_ = f.Close()
+		if !keep {
+			_ = os.Remove(path + ".tmp")
+			_ = os.Remove(path)
+		}
+	}()
+
+	err = s.runner.DockerExecWithStderr(
+		[]string{"logs", containerName},
+		f,
+		f,
+		nil,
+	)
+	if err != nil {
+		return err
+	}
+
+	if err := f.Close(); err != nil {
+		return err
+	}
+
+	if err := os.Rename(path+".tmp", path); err != nil {
+		return err
+	}
+
+	keep = true
+	return nil
 }
