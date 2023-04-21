@@ -100,7 +100,7 @@ jobs:
       - dev-build
     strategy:
       matrix:
-        vault-version: ["1.12.2","1.11.6","1.10.9","1.9.10"]
+        vault-version: ["1.13.1", "1.12.5", "1.11.9", "1.10.11"]
     env:
       VAULT_BINARY_VERSION: ${{ matrix.vault-version }}
     steps:
@@ -155,17 +155,24 @@ jobs:
           # multiplied by 8 based on these values:
           # envoy-version: ["1.22.11", "1.23.8", "1.24.6", "1.25.4"]
           # xds-target: ["server", "client"]
-          TOTAL_RUNNERS: 3 
+          TOTAL_RUNNERS: 4 
           JQ_SLICER: '[ inputs ] | [_nwise(length / $runnercount | floor)]'
         run: |
+          NUM_RUNNERS=$TOTAL_RUNNERS
+          NUM_DIRS=$(find ./test/integration/connect/envoy -maxdepth 1 -type d | wc -l)
+          if [ "$NUM_DIRS" -lt "$NUM_RUNNERS" ]; then
+            echo "TOTAL_RUNNERS is larger than the number of tests/packages to split."
+            NUM_RUNNERS=$NUM_DIRS
+          fi
+          # fix issue where test splitting calculation generates 1 more split than TOTAL_RUNNERS.
+          NUM_RUNNERS=$((NUM_RUNNERS-1))
           {
             echo -n "envoy-matrix="
             find ./test/integration/connect/envoy -maxdepth 1 -type d -print0 \
               | xargs -0 -n 1 basename \
-              | jq --raw-input --argjson runnercount "$TOTAL_RUNNERS" "$JQ_SLICER" \
+              | jq --raw-input --argjson runnercount "$NUM_RUNNERS" "$JQ_SLICER" \
               | jq --compact-output 'map(join("|"))'
           } >> "$GITHUB_OUTPUT"
-          cat "$GITHUB_OUTPUT"
   
   envoy-integration-test:
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-xl) }}
@@ -179,7 +186,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        envoy-version: ["1.20.7", "1.21.6","1.22.11","1.23.8"]
+        envoy-version: ["1.22.11", "1.23.8", "1.24.6", "1.25.4"]
         xds-target: ["server", "client"]
         test-cases: ${{ fromJSON(needs.generate-envoy-job-matrices.outputs.envoy-matrix) }}
     env:
