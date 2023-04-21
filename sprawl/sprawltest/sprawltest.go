@@ -19,13 +19,29 @@ import (
 	"github.com/hashicorp/consul-topology/topology"
 )
 
-var skipTestTeardown bool
+var (
+	// set SPRAWL_KEEP_RUNNING=1 in the environment to keep the terraform
+	// output intact and also refrain from tearing anything down. Things are
+	// all destroyed by default.
+	//
+	// SPRAWL_KEEP_RUNNING=1 implies SPRAWL_KEEP_TERRAFORM=1
+	keepRunningOnFail bool
+
+	// set SPRAWL_KEEP_TERRAFORM=1 in the environment to keep the terraform
+	// output intact. Files are all destroyed by default.
+	keepTerraformOnFail bool
+)
 
 var cleanupPriorRunOnce sync.Once
 
 func init() {
-	if os.Getenv("SKIP_TEARDOWN") == "1" {
-		skipTestTeardown = true
+	if os.Getenv("SPRAWL_KEEP_TERRAFORM") == "1" {
+		keepTerraformOnFail = true
+	}
+
+	if os.Getenv("SPRAWL_KEEP_RUNNING") == "1" {
+		keepRunningOnFail = true
+		keepTerraformOnFail = true
 	}
 
 	cleanupPriorRunOnce.Do(func() {
@@ -62,7 +78,7 @@ func initWorkingDirectory(t *testing.T) string {
 	}
 
 	t.Cleanup(func() {
-		if t.Failed() && !skipTestTeardown {
+		if t.Failed() && keepTerraformOnFail {
 			t.Logf("test failed; leaving sprawl terraform definitions in: %s", scratchDir)
 		} else {
 			_ = os.RemoveAll(scratchDir)
@@ -74,7 +90,7 @@ func initWorkingDirectory(t *testing.T) string {
 
 func stopOnCleanup(t *testing.T, sp *sprawl.Sprawl) {
 	t.Cleanup(func() {
-		if t.Failed() && !skipTestTeardown {
+		if t.Failed() && keepRunningOnFail {
 			t.Log("test failed; leaving sprawl running")
 		} else {
 			//nolint:errcheck
