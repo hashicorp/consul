@@ -161,13 +161,12 @@ jobs:
         run: |
           NUM_RUNNERS=$TOTAL_RUNNERS
           NUM_DIRS=$(find ./test/integration/connect/envoy -maxdepth 1 -type d | wc -l)
-          if [ $NUM_DIRS -lt $NUM_RUNNERS ]
-          then
+          if [ "$NUM_DIRS" -lt "$NUM_RUNNERS" ]; then
             echo "TOTAL_RUNNERS is larger than the number of tests/packages to split."
             NUM_RUNNERS=$NUM_DIRS
           fi
           # fix issue where test splitting calculation generates 1 more split than TOTAL_RUNNERS.
-          NUM_RUNNERS=$(($NUM_RUNNERS-1))
+          NUM_RUNNERS=$((NUM_RUNNERS-1))
           {
             echo -n "envoy-matrix="
             find ./test/integration/connect/envoy -maxdepth 1 -type d -print0 \
@@ -276,13 +275,12 @@ jobs:
           cd ./test/integration/consul-container
           NUM_RUNNERS=$TOTAL_RUNNERS
           NUM_DIRS=$(find ./test -maxdepth 2 -type d | wc -l)
-          if [ $NUM_DIRS -lt $NUM_RUNNERS ]
-          then
+          if [ "$NUM_DIRS" -lt "$NUM_RUNNERS" ]; then
             echo "TOTAL_RUNNERS is larger than the number of tests/packages to split."
             NUM_RUNNERS=$NUM_DIRS
           fi
           # fix issue where test splitting calculation generates 1 more split than TOTAL_RUNNERS.
-          NUM_RUNNERS=$(($NUM_RUNNERS-1))
+          NUM_RUNNERS=$((NUM_RUNNERS-1))
           {
             echo -n "compatibility-matrix="
             find ./test -maxdepth 2 -type d -print0 | xargs -0 -n 1 \
@@ -382,13 +380,12 @@ jobs:
           cd ./test/integration/consul-container/test/upgrade
           NUM_RUNNERS=$TOTAL_RUNNERS
           NUM_DIRS=$(go test ./...  -list=. -json | jq -r '.Output | select (. !=null) |  select(. | startswith("Test")) | gsub("[\\n\\t]"; "")' | wc -l)
-          if [ $NUM_DIRS -lt $NUM_RUNNERS ]
-          then
+          if [ "$NUM_DIRS" -lt "$NUM_RUNNERS" ]; then
             echo "TOTAL_RUNNERS is larger than the number of tests/packages to split."
             NUM_RUNNERS=$NUM_DIRS
           fi
           # fix issue where test splitting calculation generates 1 more split than TOTAL_RUNNERS.
-          NUM_RUNNERS=$(($NUM_RUNNERS-1))
+          NUM_RUNNERS=$((NUM_RUNNERS-1))
           {
             echo -n "upgrade-matrix="
             go test ./...  -list=. -json | jq -r '.Output | select (. !=null) |  select(. | startswith("Test")) | gsub("[\\n\\t]"; "")' \
