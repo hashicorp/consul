@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package pbcommon
 
 import (
@@ -183,4 +186,34 @@ func (q *QueryMeta) GetBackend() structs.QueryBackend {
 // SetResultsFilteredByACLs is needed to implement the structs.QueryMetaCompat interface
 func (q *QueryMeta) SetResultsFilteredByACLs(v bool) {
 	q.ResultsFilteredByACLs = v
+}
+
+// IsEmpty returns true if the Locality is unset or contains an empty region and zone.
+func (l *Locality) IsEmpty() bool {
+	if l == nil {
+		return true
+	}
+	return l.Region == "" && l.Zone == ""
+}
+
+// LocalityFromProto converts a protobuf Locality to a struct Locality.
+func LocalityFromProto(l *Locality) *structs.Locality {
+	if l == nil {
+		return nil
+	}
+	return &structs.Locality{
+		Region: l.Region,
+		Zone:   l.Zone,
+	}
+}
+
+// LocalityFromProto converts a struct Locality to a protobuf Locality.
+func LocalityToProto(l *structs.Locality) *Locality {
+	if l == nil {
+		return nil
+	}
+	return &Locality{
+		Region: l.Region,
+		Zone:   l.Zone,
+	}
 }

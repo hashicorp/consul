@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package topology
 
 import (
@@ -67,9 +70,13 @@ func BasicPeeringTwoClustersSetup(
 	})
 
 	// Create the mesh gateway for dataplane traffic and peering control plane traffic (if enabled)
-	acceptingClusterGateway, err := libservice.NewGatewayService(context.Background(), "mesh", "mesh", acceptingCluster.Clients()[0])
+	gwCfg := libservice.GatewayConfig{
+		Name: "mesh",
+		Kind: "mesh",
+	}
+	acceptingClusterGateway, err := libservice.NewGatewayService(context.Background(), gwCfg, acceptingCluster.Clients()[0])
 	require.NoError(t, err)
-	dialingClusterGateway, err := libservice.NewGatewayService(context.Background(), "mesh", "mesh", dialingCluster.Clients()[0])
+	dialingClusterGateway, err := libservice.NewGatewayService(context.Background(), gwCfg, dialingCluster.Clients()[0])
 	require.NoError(t, err)
 
 	// Enable peering control plane traffic through mesh gateway
@@ -194,6 +201,7 @@ func NewCluster(
 		AllowHTTPAnyway:        true,
 		ConsulVersion:          config.BuildOpts.ConsulVersion,
 		ACLEnabled:             config.BuildOpts.ACLEnabled,
+		LogStore:               config.BuildOpts.LogStore,
 	}
 	ctx := libcluster.NewBuildContext(t, opts)
 
@@ -221,6 +229,10 @@ func NewCluster(
 		cluster, err = libcluster.NewN(t, *serverConf, config.NumServers)
 	}
 	require.NoError(t, err)
+	// builder generates certs for us, so copy them back
+	if opts.InjectAutoEncryption {
+		cluster.CACert = serverConf.CACert
+	}
 
 	var retryJoin []string
 	for i := 0; i < config.NumServers; i++ {

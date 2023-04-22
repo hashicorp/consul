@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package pbpeering
 
 import (
@@ -15,6 +18,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/proto/private/pbcommon"
 )
 
 // RequestDatacenter implements structs.RPCInfo
@@ -276,7 +280,7 @@ func (r *RemoteInfo) IsEmpty() bool {
 	if r == nil {
 		return true
 	}
-	return r.Partition == "" && r.Datacenter == ""
+	return r.Partition == "" && r.Datacenter == "" && r.Locality.IsEmpty()
 }
 
 // convenience
@@ -323,4 +327,52 @@ func (o *PeeringTrustBundle) DeepCopy() *PeeringTrustBundle {
 		panic(fmt.Sprintf("failed to clone *PeeringTrustBundle, got: %T", cp))
 	}
 	return cp
+}
+
+// TODO: handle this with mog
+// LocalityToStructs converts a protobuf Locality to a struct Locality.
+func LocalityToStructs(l *pbcommon.Locality) *structs.Locality {
+	if l == nil {
+		return nil
+	}
+	return &structs.Locality{
+		Region: l.Region,
+		Zone:   l.Zone,
+	}
+}
+
+// TODO: handle this with mog
+// LocalityFromStructs converts a struct Locality to a protobuf Locality.
+func LocalityFromStructs(l *structs.Locality) *pbcommon.Locality {
+	if l == nil {
+		return nil
+	}
+	return &pbcommon.Locality{
+		Region: l.Region,
+		Zone:   l.Zone,
+	}
+}
+
+// TODO: handle this with mog
+// LocalityToAPI converts a protobuf Locality to an API Locality.
+func LocalityToAPI(l *pbcommon.Locality) *api.Locality {
+	if l == nil {
+		return nil
+	}
+	return &api.Locality{
+		Region: l.Region,
+		Zone:   l.Zone,
+	}
+}
+
+// TODO: handle this with mog
+// LocalityFromProto converts an API Locality to a protobuf Locality.
+func LocalityFromAPI(l *api.Locality) *pbcommon.Locality {
+	if l == nil {
+		return nil
+	}
+	return &pbcommon.Locality{
+		Region: l.Region,
+		Zone:   l.Zone,
+	}
 }

@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package xds
 
 import (
@@ -47,7 +50,7 @@ func newTestSnapshot(
 	dbServiceProtocol string,
 	additionalEntries ...structs.ConfigEntry,
 ) *proxycfg.ConfigSnapshot {
-	snap := proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", nil, nil, additionalEntries...)
+	snap := proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", false, nil, nil, additionalEntries...)
 	snap.ConnectProxy.PreparedQueryEndpoints = map[proxycfg.UpstreamID]structs.CheckServiceNodes{
 		UID("prepared_query:geo-cache"): proxycfg.TestPreparedQueryNodes(t, "geo-cache"),
 	}

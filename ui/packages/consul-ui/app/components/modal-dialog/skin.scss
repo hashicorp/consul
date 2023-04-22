@@ -1,11 +1,15 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 %modal-dialog.warning header {
   background-color: var(--token-color-vault-gradient-faint-start);
   border-color: var(--token-color-vault-brand);
   color: var(--token-color-vault-foreground);
 }
 %modal-dialog.warning header > *:not(label) {
-  font-size: var(--typo-size-500);
-  font-weight: var(--typo-weight-semibold);
+  @extend %display-300-semibold;
 }
 %modal-dialog.warning header::before {
   @extend %with-alert-triangle-mask, %as-pseudo;
@@ -30,7 +34,7 @@
   @extend %frame-gray-800;
 }
 %modal-window > header > *:not(button) {
-  @extend %h200;
+  @extend %display-400-semibold;
 }
 
 .modal-dialog-body,

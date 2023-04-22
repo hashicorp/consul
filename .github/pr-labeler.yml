@@ -1,3 +1,6 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
 pr/dependencies:
     - vendor/**/*
     - go.*
@@ -57,7 +60,7 @@ theme/ui:
 # thinking:
 # type/bug:
 type/ci:
-    - .circleci/*
+    - .github/workflows/*
 # type/crash:
 type/docs:
     - website/**/*

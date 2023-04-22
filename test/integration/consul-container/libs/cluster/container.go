@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package cluster
 
 import (
@@ -13,6 +16,7 @@ import (
 	goretry "github.com/avast/retry-go"
 	dockercontainer "github.com/docker/docker/api/types/container"
 	"github.com/hashicorp/go-multierror"
+	"github.com/otiai10/copy"
 	"github.com/pkg/errors"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
@@ -29,6 +33,7 @@ const disableRYUKEnv = "TESTCONTAINERS_RYUK_DISABLED"
 const MaxEnvoyOnNode = 10                  // the max number of Envoy sidecar can run along with the agent, base is 19000
 const ServiceUpstreamLocalBindPort = 5000  // local bind Port of service's upstream
 const ServiceUpstreamLocalBindPort2 = 5001 // local bind Port of service's upstream, for services with 2 upstreams
+const debugPort = "4000/tcp"
 
 // consulContainerNode implements the Agent interface by running a Consul agent
 // in a container.
@@ -91,11 +96,15 @@ func NewConsulContainer(ctx context.Context, config Config, cluster *Cluster, po
 		return nil, err
 	}
 
-	consulType := "client"
-	if pc.Server {
-		consulType = "server"
+	name := config.NodeName
+	if name == "" {
+		// Generate a random name for the agent
+		consulType := "client"
+		if pc.Server {
+			consulType = "server"
+		}
+		name = utils.RandName(fmt.Sprintf("%s-consul-%s-%d", pc.Datacenter, consulType, index))
 	}
-	name := utils.RandName(fmt.Sprintf("%s-consul-%s-%d", pc.Datacenter, consulType, index))
 
 	// Inject new Agent name
 	config.Cmd = append(config.Cmd, "-node", name)
@@ -106,6 +115,14 @@ func NewConsulContainer(ctx context.Context, config Config, cluster *Cluster, po
 	}
 	if err := os.Chmod(tmpDirData, 0777); err != nil {
 		return nil, fmt.Errorf("error chowning data directory %s: %w", tmpDirData, err)
+	}
+
+	if config.ExternalDataDir != "" {
+		// copy consul persistent state from an external dir
+		err := copy.Copy(config.ExternalDataDir, tmpDirData)
+		if err != nil {
+			return nil, fmt.Errorf("error copying persistent data from %s: %w", config.ExternalDataDir, err)
+		}
 	}
 
 	var caCertFileForAPI string
@@ -153,12 +170,34 @@ func NewConsulContainer(ctx context.Context, config Config, cluster *Cluster, po
 
 		info AgentInfo
 	)
+	debugURI := ""
+	if utils.Debug {
+		if err := goretry.Do(
+			func() (err error) {
+				debugURI, err = podContainer.PortEndpoint(ctx, "4000", "tcp")
+				return err
+			},
+			goretry.Delay(10*time.Second),
+			goretry.RetryIf(func(err error) bool {
+				return err != nil
+			}),
+		); err != nil {
+			return nil, fmt.Errorf("container creating: %s", err)
+		}
+		info.DebugURI = debugURI
+	}
 	if httpPort > 0 {
-		uri, err := podContainer.PortEndpoint(ctx, "8500", "http")
+		for i := 0; i < 10; i++ {
+			uri, err := podContainer.PortEndpoint(ctx, "8500", "http")
+			if err != nil {
+				time.Sleep(500 * time.Millisecond)
+				continue
+			}
+			clientAddr = uri
+		}
 		if err != nil {
 			return nil, err
 		}
-		clientAddr = uri
 
 	} else if httpsPort > 0 {
 		uri, err := podContainer.PortEndpoint(ctx, "8501", "https")
@@ -534,6 +573,8 @@ func newContainerRequest(config Config, opts containerOpts, ports ...int) (podRe
 			"8081/tcp", // Envoy App Listener - http port used by static-server-v1
 			"8082/tcp", // Envoy App Listener - http port used by static-server-v2
 			"8083/tcp", // Envoy App Listener - http port used by static-server-v3
+
+			"9997/tcp", // Envoy App Listener
 			"9998/tcp", // Envoy App Listener
 			"9999/tcp", // Envoy App Listener
 		},
@@ -553,6 +594,9 @@ func newContainerRequest(config Config, opts containerOpts, ports ...int) (podRe
 
 	for _, port := range ports {
 		pod.ExposedPorts = append(pod.ExposedPorts, fmt.Sprintf("%d/tcp", port))
+	}
+	if utils.Debug {
+		pod.ExposedPorts = append(pod.ExposedPorts, debugPort)
 	}
 
 	// For handshakes like auto-encrypt, it can take 10's of seconds for the agent to become "ready".

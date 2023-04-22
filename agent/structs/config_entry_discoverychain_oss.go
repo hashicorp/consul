@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 //go:build !consulent
 // +build !consulent
 
@@ -38,6 +41,10 @@ func (redir *ServiceResolverRedirect) ValidateEnterprise() error {
 		return fmt.Errorf("Setting Namespace requires Consul Enterprise")
 	}
 
+	if redir.SamenessGroup != "" {
+		return fmt.Errorf("Setting SamenessGroup requires Consul Enterprise")
+	}
+
 	return nil
 }
 
@@ -52,6 +59,10 @@ func (failover *ServiceResolverFailover) GetEnterpriseMeta(_ *acl.EnterpriseMeta
 func (failover *ServiceResolverFailover) ValidateEnterprise() error {
 	if failover.Namespace != "" {
 		return fmt.Errorf("Setting Namespace requires Consul Enterprise")
+	}
+
+	if failover.SamenessGroup != "" {
+		return fmt.Errorf("Setting SamenessGroup requires Consul Enterprise")
 	}
 
 	return nil
@@ -101,4 +112,17 @@ func (f *ServiceResolverFailoverPolicy) ValidateEnterprise() error {
 	}
 
 	return nil
+}
+
+// RelatedSamenessGroups doesn't return anything on open source.
+func (e *ServiceResolverConfigEntry) RelatedSamenessGroups() []string {
+	return nil
+}
+
+func (pbl *ServiceResolverPrioritizeByLocality) validate() error {
+	var zero ServiceResolverPrioritizeByLocality
+	if pbl == nil || *pbl == zero {
+		return nil
+	}
+	return fmt.Errorf("Prioritize-by-locality requires Consul Enterprise ")
 }

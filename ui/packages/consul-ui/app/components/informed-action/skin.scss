@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 %informed-action {
   & {
     border-radius: var(--decor-radius-200);
@@ -11,13 +16,13 @@
     cursor: default;
   }
   header {
-    @extend %h400;
+    @extend %display-100-semibold;
   }
   header > * {
     @extend %typo-inherit;
   }
   p {
-    @extend %p2;
+    @extend %body-100-regular;
     color: var(--token-color-hashicorp-brand);
   }
   > ul {

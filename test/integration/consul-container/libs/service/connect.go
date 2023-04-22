@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package service
 
 import (
@@ -142,18 +145,24 @@ func (g ConnectContainer) GetStatus() (string, error) {
 	return state.Status, err
 }
 
+type SidecarConfig struct {
+	Name      string
+	ServiceID string
+	Namespace string
+}
+
 // NewConnectService returns a container that runs envoy sidecar, launched by
 // "consul connect envoy", for service name (serviceName) on the specified
 // node. The container exposes port serviceBindPort and envoy admin port
 // (19000) by mapping them onto host ports. The container's name has a prefix
 // combining datacenter and name.
-func NewConnectService(ctx context.Context, sidecarServiceName string, serviceID string, serviceBindPorts []int, node cluster.Agent) (*ConnectContainer, error) {
+func NewConnectService(ctx context.Context, sidecarCfg SidecarConfig, serviceBindPorts []int, node cluster.Agent) (*ConnectContainer, error) {
 	nodeConfig := node.GetConfig()
 	if nodeConfig.ScratchDir == "" {
 		return nil, fmt.Errorf("node ScratchDir is required")
 	}
 
-	namePrefix := fmt.Sprintf("%s-service-connect-%s", node.GetDatacenter(), sidecarServiceName)
+	namePrefix := fmt.Sprintf("%s-service-connect-%s", node.GetDatacenter(), sidecarCfg.Name)
 	containerName := utils.RandName(namePrefix)
 
 	envoyVersion := getEnvoyVersion()
@@ -181,8 +190,9 @@ func NewConnectService(ctx context.Context, sidecarServiceName string, serviceID
 		Name:           containerName,
 		Cmd: []string{
 			"consul", "connect", "envoy",
-			"-sidecar-for", serviceID,
+			"-sidecar-for", sidecarCfg.ServiceID,
 			"-admin-bind", fmt.Sprintf("0.0.0.0:%d", internalAdminPort),
+			"-namespace", sidecarCfg.Namespace,
 			"--",
 			"--log-level", envoyLogLevel,
 		},
@@ -240,7 +250,7 @@ func NewConnectService(ctx context.Context, sidecarServiceName string, serviceID
 		ip:                info.IP,
 		externalAdminPort: info.MappedPorts[adminPortStr].Int(),
 		internalAdminPort: internalAdminPort,
-		serviceName:       sidecarServiceName,
+		serviceName:       sidecarCfg.Name,
 	}
 
 	for _, port := range appPortStrs {
@@ -248,9 +258,9 @@ func NewConnectService(ctx context.Context, sidecarServiceName string, serviceID
 	}
 
 	fmt.Printf("NewConnectService: name %s, mapped App Port %d, service bind port %v\n",
-		serviceID, out.appPort, serviceBindPorts)
+		sidecarCfg.ServiceID, out.appPort, serviceBindPorts)
 	fmt.Printf("NewConnectService sidecar: name %s, mapped admin port %d, admin port %d\n",
-		sidecarServiceName, out.externalAdminPort, internalAdminPort)
+		sidecarCfg.Name, out.externalAdminPort, internalAdminPort)
 
 	return out, nil
 }

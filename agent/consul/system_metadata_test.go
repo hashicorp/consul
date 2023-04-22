@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package consul
 
 import (
@@ -39,9 +42,9 @@ func TestLeader_SystemMetadata_CRUD(t *testing.T) {
 	require.Len(t, entries, 0)
 
 	// Create 3
-	require.NoError(t, srv.setSystemMetadataKey("key1", "val1"))
-	require.NoError(t, srv.setSystemMetadataKey("key2", "val2"))
-	require.NoError(t, srv.setSystemMetadataKey("key3", ""))
+	require.NoError(t, srv.SetSystemMetadataKey("key1", "val1"))
+	require.NoError(t, srv.SetSystemMetadataKey("key2", "val2"))
+	require.NoError(t, srv.SetSystemMetadataKey("key3", ""))
 
 	mapify := func(entries []*structs.SystemMetadataEntry) map[string]string {
 		m := make(map[string]string)
@@ -62,7 +65,7 @@ func TestLeader_SystemMetadata_CRUD(t *testing.T) {
 	}, mapify(entries))
 
 	// Update one and delete one.
-	require.NoError(t, srv.setSystemMetadataKey("key3", "val3"))
+	require.NoError(t, srv.SetSystemMetadataKey("key3", "val3"))
 	require.NoError(t, srv.deleteSystemMetadataKey("key1"))
 
 	_, entries, err = state.SystemMetadataList(nil)

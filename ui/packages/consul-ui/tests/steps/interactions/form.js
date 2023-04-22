@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 export default function (scenario, find, fillIn, triggerKeyEvent, currentPage) {
   const dont = `( don't| shouldn't| can't)?`;
   const fillInElement = async function (page, name, value) {

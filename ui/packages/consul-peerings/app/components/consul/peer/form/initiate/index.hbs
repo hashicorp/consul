@@ -1,3 +1,8 @@
+{{!
+  Copyright (c) HashiCorp, Inc.
+  SPDX-License-Identifier: MPL-2.0
+}}
+
 <div class={{class-map "consul-peer-form-initiate"}} ...attributes>
   <DataWriter
     @sink={{uri
@@ -14,7 +19,7 @@
     as |writer|
   >
     <BlockSlot @name="error" as |after error|>
-      <Hds::Alert @type='critical' class='mb-3 mt-2' as |A|>
+      <Hds::Alert @color='critical' class='mb-3 mt-2' as |A|>
         <A.Title>Error</A.Title>
         <A.Description>{{error.message}}</A.Description>
       </Hds::Alert>

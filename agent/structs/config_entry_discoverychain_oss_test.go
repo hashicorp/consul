@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 //go:build !consulent
 // +build !consulent
 
@@ -21,6 +24,19 @@ func TestServiceResolverConfigEntry_OSS(t *testing.T) {
 	}
 
 	cases := []testcase{
+		{
+			name: "failover with a sameness group on OSS",
+			entry: &ServiceResolverConfigEntry{
+				Kind: ServiceResolver,
+				Name: "test",
+				Failover: map[string]ServiceResolverFailover{
+					"*": {
+						SamenessGroup: "ns1",
+					},
+				},
+			},
+			validateErr: `Bad Failover["*"]: Setting SamenessGroup requires Consul Enterprise`,
+		},
 		{
 			name: "failover with a namespace on OSS",
 			entry: &ServiceResolverConfigEntry{
@@ -82,6 +98,17 @@ func TestServiceResolverConfigEntry_OSS(t *testing.T) {
 				},
 			},
 			validateErr: `Bad Failover["*"]: Setting failover policies requires Consul Enterprise`,
+		},
+		{
+			name: "setting redirect SamenessGroup on OSS",
+			entry: &ServiceResolverConfigEntry{
+				Kind: ServiceResolver,
+				Name: "test",
+				Redirect: &ServiceResolverRedirect{
+					SamenessGroup: "group",
+				},
+			},
+			validateErr: `Redirect: Setting SamenessGroup requires Consul Enterprise`,
 		},
 		{
 			name: "setting redirect Namespace on OSS",

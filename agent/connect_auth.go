@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package agent
 
 import (
@@ -116,7 +119,7 @@ func (a *Agent) ConnectAuthorize(token string,
 	for _, ixn := range reply.Matches[0] {
 		// We match on the intention source because the uriService is the source of the connection to authorize.
 		if _, ok := connect.AuthorizeIntentionTarget(
-			uriService.Service, uriService.Namespace, uriService.Partition, ixn, structs.IntentionMatchSource); ok {
+			uriService.Service, uriService.Namespace, uriService.Partition, "", ixn, structs.IntentionMatchSource); ok {
 			ixnMatch = ixn
 			break
 		}

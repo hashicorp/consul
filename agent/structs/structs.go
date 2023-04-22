@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package structs
 
 import (
@@ -84,6 +87,8 @@ const (
 	PeeringTrustBundleDeleteType                = 39
 	PeeringSecretsWriteType                     = 40
 	RaftLogVerifierCheckpoint                   = 41 // Only used for log verifier, no-op on FSM.
+	ResourceOperationType                       = 42
+	UpdateVirtualIPRequestType                  = 43
 )
 
 const (
@@ -151,6 +156,8 @@ var requestTypeStrings = map[MessageType]string{
 	PeeringTrustBundleDeleteType:    "PeeringTrustBundleDelete",
 	PeeringSecretsWriteType:         "PeeringSecret",
 	RaftLogVerifierCheckpoint:       "RaftLogVerifierCheckpoint",
+	ResourceOperationType:           "Resource",
+	UpdateVirtualIPRequestType:      "UpdateManualVirtualIPRequestType",
 }
 
 const (
@@ -462,6 +469,7 @@ type RegisterRequest struct {
 	Service         *NodeService
 	Check           *HealthCheck
 	Checks          HealthChecks
+	Locality        *Locality
 
 	// SkipNodeUpdate can be used when a register request is intended for
 	// updating a service and/or checks, but doesn't want to overwrite any
@@ -506,7 +514,8 @@ func (r *RegisterRequest) ChangesNode(node *Node) bool {
 		r.Address != node.Address ||
 		r.Datacenter != node.Datacenter ||
 		!reflect.DeepEqual(r.TaggedAddresses, node.TaggedAddresses) ||
-		!reflect.DeepEqual(r.NodeMeta, node.Meta) {
+		!reflect.DeepEqual(r.NodeMeta, node.Meta) ||
+		!reflect.DeepEqual(r.Locality, node.Locality) {
 		return true
 	}
 
@@ -875,6 +884,7 @@ type Node struct {
 	PeerName        string `json:",omitempty"`
 	TaggedAddresses map[string]string
 	Meta            map[string]string
+	Locality        *Locality `json:",omitempty" bexpr:"-"`
 
 	RaftIndex `bexpr:"-"`
 }
@@ -1045,6 +1055,7 @@ type ServiceNode struct {
 	ServiceEnableTagOverride bool
 	ServiceProxy             ConnectProxyConfig
 	ServiceConnect           ServiceConnect
+	ServiceLocality          *Locality `bexpr:"-"`
 
 	// If not empty, PeerName represents the peer that this ServiceNode was imported from.
 	PeerName string `json:",omitempty"`
@@ -1103,6 +1114,7 @@ func (s *ServiceNode) PartialClone() *ServiceNode {
 		ServiceEnableTagOverride: s.ServiceEnableTagOverride,
 		ServiceProxy:             s.ServiceProxy,
 		ServiceConnect:           s.ServiceConnect,
+		ServiceLocality:          s.ServiceLocality,
 		RaftIndex: RaftIndex{
 			CreateIndex: s.CreateIndex,
 			ModifyIndex: s.ModifyIndex,
@@ -1130,6 +1142,7 @@ func (s *ServiceNode) ToNodeService() *NodeService {
 		Connect:           s.ServiceConnect,
 		PeerName:          s.PeerName,
 		EnterpriseMeta:    s.EnterpriseMeta,
+		Locality:          s.ServiceLocality,
 		RaftIndex: RaftIndex{
 			CreateIndex: s.CreateIndex,
 			ModifyIndex: s.ModifyIndex,
@@ -1153,7 +1166,7 @@ func (sn *ServiceNode) CompoundServiceID() ServiceID {
 	}
 }
 
-func (sn *ServiceNode) CompoundServiceName() ServiceName {
+func (sn *ServiceNode) CompoundServiceName() PeeredServiceName {
 	name := sn.ServiceName
 	if name == "" {
 		name = sn.ServiceID
@@ -1163,10 +1176,14 @@ func (sn *ServiceNode) CompoundServiceName() ServiceName {
 	entMeta := sn.EnterpriseMeta
 	entMeta.Normalize()
 
-	return ServiceName{
-		Name:           name,
-		EnterpriseMeta: entMeta,
+	return PeeredServiceName{
+		ServiceName: ServiceName{
+			Name:           name,
+			EnterpriseMeta: entMeta,
+		},
+		Peer: sn.PeerName,
 	}
+
 }
 
 // Weights represent the weight used by DNS for a given status
@@ -1270,6 +1287,7 @@ type NodeService struct {
 	SocketPath        string `json:",omitempty"` // TODO This might be integrated into Address somehow, but not sure about the ergonomics. Only one of (address,port) or socketpath can be defined.
 	Weights           *Weights
 	EnableTagOverride bool
+	Locality          *Locality `json:",omitempty" bexpr:"-"`
 
 	// Proxy is the configuration set for Kind = connect-proxy. It is mandatory in
 	// that case and an error to be set for any other kind. This config is part of
@@ -1652,6 +1670,7 @@ func (s *NodeService) IsSame(other *NodeService) bool {
 		!reflect.DeepEqual(s.TaggedAddresses, other.TaggedAddresses) ||
 		!reflect.DeepEqual(s.Weights, other.Weights) ||
 		!reflect.DeepEqual(s.Meta, other.Meta) ||
+		!reflect.DeepEqual(s.Locality, other.Locality) ||
 		s.EnableTagOverride != other.EnableTagOverride ||
 		s.Kind != other.Kind ||
 		!reflect.DeepEqual(s.Proxy, other.Proxy) ||
@@ -1727,6 +1746,7 @@ func (s *NodeService) ToServiceNode(node string) *ServiceNode {
 		ServiceEnableTagOverride: s.EnableTagOverride,
 		ServiceProxy:             s.Proxy,
 		ServiceConnect:           s.Connect,
+		ServiceLocality:          s.Locality,
 		EnterpriseMeta:           s.EnterpriseMeta,
 		PeerName:                 s.PeerName,
 		RaftIndex: RaftIndex{
@@ -3020,4 +3040,32 @@ func TimeToProto(s time.Time) *timestamppb.Timestamp {
 // (the Unix epoch).
 func IsZeroProtoTime(t *timestamppb.Timestamp) bool {
 	return t.Seconds == 0 && t.Nanos == 0
+}
+
+// Locality identifies where a given entity is running.
+type Locality struct {
+	// Region is region the zone belongs to.
+	Region string `json:",omitempty"`
+
+	// Zone is the zone the entity is running in.
+	Zone string `json:",omitempty"`
+}
+
+// ToAPI converts a struct Locality to an API Locality.
+func (l *Locality) ToAPI() *api.Locality {
+	if l == nil {
+		return nil
+	}
+
+	return &api.Locality{
+		Region: l.Region,
+		Zone:   l.Zone,
+	}
+}
+
+func (l *Locality) GetRegion() string {
+	if l == nil {
+		return ""
+	}
+	return l.Region
 }

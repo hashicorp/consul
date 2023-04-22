@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package structs
 
 // PeeringToken identifies a peer in order for a connection to be established.
@@ -14,6 +17,7 @@ type PeeringToken struct {
 type PeeringTokenRemote struct {
 	Partition  string
 	Datacenter string
+	Locality   *Locality
 }
 
 type IndexedExportedServiceList struct {

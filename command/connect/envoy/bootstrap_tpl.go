@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package envoy
 
 // BootstrapTplArgs is the set of arguments that may be interpolated into the
@@ -262,7 +265,9 @@ const bootstrapTemplate = `{
     {{- end }}
   },
   {{- if .StatsSinksJSON }}
-  "stats_sinks": {{ .StatsSinksJSON }},
+  "stats_sinks": [
+    {{ .StatsSinksJSON }}
+  ],
   {{- end }}
   {{- if .StatsConfigJSON }}
   "stats_config": {{ .StatsConfigJSON }},

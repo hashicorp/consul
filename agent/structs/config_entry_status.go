@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package structs
 
 import (
@@ -22,7 +25,7 @@ type ResourceReference struct {
 	// unused, this should be blank.
 	SectionName string
 
-	acl.EnterpriseMeta
+	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 }
 
 func (r *ResourceReference) String() string {

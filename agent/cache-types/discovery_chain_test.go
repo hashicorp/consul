@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package cachetype
 
 import (
@@ -17,7 +20,7 @@ func TestCompiledDiscoveryChain(t *testing.T) {
 	typ := &CompiledDiscoveryChain{RPC: rpc}
 
 	// just do the default chain
-	chain := discoverychain.TestCompileConfigEntries(t, "web", "default", "default", "dc1", "trustdomain.consul", nil)
+	chain := discoverychain.TestCompileConfigEntries(t, "web", "default", "default", "dc1", "trustdomain.consul", nil, nil)
 
 	// Expect the proper RPC call. This also sets the expected value
 	// since that is return-by-pointer in the arguments.

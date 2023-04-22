@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 syntax = "proto3";
 
 package hashicorp.consul.internal.operator;
@@ -8,7 +11,10 @@ import "annotations/ratelimit/ratelimit.proto";
 service OperatorService {
   //Transfer raft leadership to another node
   rpc TransferLeader(TransferLeaderRequest) returns (TransferLeaderResponse) {
-    option (hashicorp.consul.internal.ratelimit.spec) = {operation_type: OPERATION_TYPE_EXEMPT};
+    option (hashicorp.consul.internal.ratelimit.spec) = {
+      operation_type: OPERATION_TYPE_EXEMPT,
+      operation_category: OPERATION_CATEGORY_OPERATOR
+    };
   }
 }
 

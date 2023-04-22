@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package connect
 
 import (
@@ -8,14 +11,15 @@ import (
 
 func TestAuthorizeIntentionTarget(t *testing.T) {
 	cases := []struct {
-		name      string
-		target    string
-		targetNS  string
-		targetAP  string
-		ixn       *structs.Intention
-		matchType structs.IntentionMatchType
-		auth      bool
-		match     bool
+		name       string
+		target     string
+		targetNS   string
+		targetAP   string
+		targetPeer string
+		ixn        *structs.Intention
+		matchType  structs.IntentionMatchType
+		auth       bool
+		match      bool
 	}{
 		// Source match type
 		{
@@ -140,11 +144,41 @@ func TestAuthorizeIntentionTarget(t *testing.T) {
 			auth:      false,
 			match:     false,
 		},
+		{
+			name:       "match peer",
+			target:     "web",
+			targetNS:   structs.IntentionDefaultNamespace,
+			targetPeer: "cluster-01",
+			ixn: &structs.Intention{
+				SourceName: "web",
+				SourceNS:   structs.IntentionDefaultNamespace,
+				SourcePeer: "cluster-01",
+				Action:     structs.IntentionActionAllow,
+			},
+			matchType: structs.IntentionMatchSource,
+			auth:      true,
+			match:     true,
+		},
+		{
+			name:       "no peer match",
+			target:     "web",
+			targetNS:   structs.IntentionDefaultNamespace,
+			targetPeer: "cluster-02",
+			ixn: &structs.Intention{
+				SourceName: "web",
+				SourceNS:   structs.IntentionDefaultNamespace,
+				SourcePeer: "cluster-01",
+				Action:     structs.IntentionActionAllow,
+			},
+			matchType: structs.IntentionMatchSource,
+			auth:      false,
+			match:     false,
+		},
 	}
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			auth, match := AuthorizeIntentionTarget(tc.target, tc.targetNS, tc.targetAP, tc.ixn, tc.matchType)
+			auth, match := AuthorizeIntentionTarget(tc.target, tc.targetNS, tc.targetAP, tc.targetPeer, tc.ixn, tc.matchType)
 			assert.Equal(t, tc.auth, auth)
 			assert.Equal(t, tc.match, match)
 		})

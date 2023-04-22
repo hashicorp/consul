@@ -309,7 +309,7 @@ Ensure that the following requirements are met prior to upgrading:
 
   </CodeBlockConfig>
 
-1. If you have already created a `ReferencePolicy`, modify it to allow your gateway to access your `certificateRef` and save it as `referencepolicy.yaml`. Note that each `ReferencePolicy` only supports one `to` field and one `from` field (refer the [`ReferencePolicy`](https://gateway-api.sigs.k8s.io/v1alpha2/api-types/referencepolicy/#api-design-decisions) documentation). As a result, you may need to create multiple `ReferencePolicy`s.
+1. If you have already created a `ReferencePolicy`, modify it to allow your gateway to access your `certificateRef` and save it as `referencepolicy.yaml`. Note that each `ReferencePolicy` only supports one `to` field and one `from` field (refer the [`ReferencePolicy`](https://gateway-api.sigs.k8s.io/v1alpha2/api-types/referencegrant/#api-design-decisions) documentation). As a result, you may need to create multiple `ReferencePolicy`s.
 
 1. Issue the following command to apply it to your cluster:
 
@@ -516,9 +516,9 @@ Ensure that the following requirements are met prior to upgrading:
 
   </CodeBlockConfig>
 
-1. If you have already created a `ReferencePolicy`, modify it to allow your route and save it as `referencepolicy.yaml`. Note that each `ReferencePolicy` only supports one `to` field and one `from` field (refer the [`ReferencePolicy`](https://gateway-api.sigs.k8s.io/v1alpha2/api-types/referencepolicy/#api-design-decisions) documentation). As a result, you may need to create multiple `ReferencePolicy`s.
+1. If you have already created a `ReferencePolicy`, modify it to allow your route and save it as `referencepolicy.yaml`. Note that each `ReferencePolicy` only supports one `to` field and one `from` field (refer the [`ReferencePolicy`](https://gateway-api.sigs.k8s.io/api-types/referencegrant/#api-design-decisions) documentation). As a result, you may need to create multiple `ReferencePolicy`s.
 
-1. Issue the following command to apply it to your cluster:
+2. Issue the following command to apply it to your cluster:
 
   ```shell-session
   $ kubectl apply --filename referencepolicy.yaml

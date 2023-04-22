@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package agent
 
 import (
@@ -93,7 +96,7 @@ func TestAgent_sidecarServiceFromNodeService(t *testing.T) {
 							LocalServiceAddress:    "127.0.127.0",
 							LocalServicePort:       9999,
 							Config:                 map[string]interface{}{"baz": "qux"},
-							Upstreams:              structs.TestUpstreams(t),
+							Upstreams:              structs.TestUpstreams(t, false),
 						},
 					},
 				},
@@ -118,7 +121,7 @@ func TestAgent_sidecarServiceFromNodeService(t *testing.T) {
 					LocalServiceAddress:    "127.0.127.0",
 					LocalServicePort:       9999,
 					Config:                 map[string]interface{}{"baz": "qux"},
-					Upstreams: structs.TestAddDefaultsToUpstreams(t, structs.TestUpstreams(t),
+					Upstreams: structs.TestAddDefaultsToUpstreams(t, structs.TestUpstreams(t, false),
 						*structs.DefaultEnterpriseMetaInDefaultPartition()),
 				},
 			},

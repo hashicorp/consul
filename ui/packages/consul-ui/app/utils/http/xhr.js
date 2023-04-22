@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 export default function (parseHeaders, XHR) {
   return function (options) {
     const xhr = new (XHR || XMLHttpRequest)();

@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 syntax = "proto3";
 
 package hashicorp.consul.internal.service;
@@ -17,6 +20,7 @@ import "private/pbservice/healthcheck.proto";
 // target=github.com/hashicorp/consul/agent/structs.ConnectProxyConfig
 // output=service.gen.go
 // name=Structs
+// ignore-fields=MutualTLSMode
 message ConnectProxyConfig {
   // DestinationServiceName is required and is the name of the service to accept
   // traffic for.
@@ -307,6 +311,10 @@ message ServiceDefinition {
 
   // mog: func-to=ServiceConnectPtrToStructs func-from=NewServiceConnectPtrFromStructs
   ServiceConnect Connect = 15;
+
+  // Locality identifies where the service is running.
+  // mog: func-to=LocalityToStructs func-from=LocalityFromStructs
+  common.Locality Locality = 19;
 }
 
 // Type to hold an address and port of a service

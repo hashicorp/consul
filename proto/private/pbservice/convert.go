@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package pbservice
 
 import (
@@ -275,4 +278,26 @@ func NewServiceDefinitionPtrFromStructs(t *structs.ServiceDefinition) *ServiceDe
 	sd := new(ServiceDefinition)
 	ServiceDefinitionFromStructs(t, sd)
 	return sd
+}
+
+// TODO: handle this with mog
+func LocalityToStructs(l *pbcommon.Locality) *structs.Locality {
+	if l == nil {
+		return nil
+	}
+	return &structs.Locality{
+		Region: l.Region,
+		Zone:   l.Zone,
+	}
+}
+
+// TODO: handle this with mog
+func LocalityFromStructs(l *structs.Locality) *pbcommon.Locality {
+	if l == nil {
+		return nil
+	}
+	return &pbcommon.Locality{
+		Region: l.Region,
+		Zone:   l.Zone,
+	}
 }

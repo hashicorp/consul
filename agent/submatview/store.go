@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package submatview
 
 import (
@@ -107,7 +110,7 @@ func (s *Store) Run(ctx context.Context) {
 // fields are ignored (ex: MaxAge, and MustRevalidate).
 type Request interface {
 	cache.Request
-	// NewMaterializer will be called if there is no active materializer to fulfil
+	// NewMaterializer will be called if there is no active materializer to fulfill
 	// the request. It should return a Materializer appropriate for streaming
 	// data to fulfil this request.
 	NewMaterializer() (Materializer, error)

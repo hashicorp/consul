@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package api
 
 import (
@@ -23,6 +26,8 @@ const (
 	ServiceIntentions  string = "service-intentions"
 	MeshConfig         string = "mesh"
 	ExportedServices   string = "exported-services"
+	SamenessGroup      string = "sameness-group"
+	RateLimitIPConfig  string = "control-plane-request-limit"
 
 	ProxyConfigGlobal string = "global"
 	MeshConfigMesh    string = "mesh"
@@ -30,12 +35,14 @@ const (
 	TCPRoute          string = "tcp-route"
 	InlineCertificate string = "inline-certificate"
 	HTTPRoute         string = "http-route"
+	JWTProvider       string = "jwt-provider"
 )
 
 const (
 	BuiltinAWSLambdaExtension      string = "builtin/aws/lambda"
 	BuiltinLuaExtension            string = "builtin/lua"
 	BuiltinLocalRatelimitExtension string = "builtin/http/localratelimit"
+	BuiltinWasmExtension           string = "builtin/wasm"
 )
 
 type ConfigEntry interface {
@@ -102,6 +109,21 @@ type TransparentProxyConfig struct {
 	// This setting is useful when addressing stateful services, such as a database cluster with a leader node.
 	DialedDirectly bool `json:",omitempty" alias:"dialed_directly"`
 }
+
+type MutualTLSMode string
+
+const (
+	// MutualTLSModeDefault represents no specific mode and should
+	// be used to indicate that a different layer of the configuration
+	// chain should take precedence.
+	MutualTLSModeDefault MutualTLSMode = ""
+
+	// MutualTLSModeStrict requires mTLS for incoming traffic.
+	MutualTLSModeStrict MutualTLSMode = "strict"
+
+	// MutualTLSModePermissive allows incoming non-mTLS traffic.
+	MutualTLSModePermissive MutualTLSMode = "permissive"
+)
 
 // ExposeConfig describes HTTP paths to expose through Envoy outside of Connect.
 // Users can expose individual paths and/or all HTTP/GRPC paths for checks.
@@ -284,6 +306,7 @@ type ServiceConfigEntry struct {
 	Protocol                  string                  `json:",omitempty"`
 	Mode                      ProxyMode               `json:",omitempty"`
 	TransparentProxy          *TransparentProxyConfig `json:",omitempty" alias:"transparent_proxy"`
+	MutualTLSMode             MutualTLSMode           `json:",omitempty" alias:"mutual_tls_mode"`
 	MeshGateway               MeshGatewayConfig       `json:",omitempty" alias:"mesh_gateway"`
 	Expose                    ExposeConfig            `json:",omitempty"`
 	ExternalSNI               string                  `json:",omitempty" alias:"external_sni"`
@@ -308,17 +331,20 @@ func (s *ServiceConfigEntry) GetCreateIndex() uint64     { return s.CreateIndex 
 func (s *ServiceConfigEntry) GetModifyIndex() uint64     { return s.ModifyIndex }
 
 type ProxyConfigEntry struct {
-	Kind             string
-	Name             string
-	Partition        string                  `json:",omitempty"`
-	Namespace        string                  `json:",omitempty"`
-	Mode             ProxyMode               `json:",omitempty"`
-	TransparentProxy *TransparentProxyConfig `json:",omitempty" alias:"transparent_proxy"`
-	Config           map[string]interface{}  `json:",omitempty"`
-	MeshGateway      MeshGatewayConfig       `json:",omitempty" alias:"mesh_gateway"`
-	Expose           ExposeConfig            `json:",omitempty"`
-	AccessLogs       *AccessLogsConfig       `json:",omitempty" alias:"access_logs"`
-	EnvoyExtensions  []EnvoyExtension        `json:",omitempty" alias:"envoy_extensions"`
+	Kind                 string
+	Name                 string
+	Partition            string                               `json:",omitempty"`
+	Namespace            string                               `json:",omitempty"`
+	Mode                 ProxyMode                            `json:",omitempty"`
+	TransparentProxy     *TransparentProxyConfig              `json:",omitempty" alias:"transparent_proxy"`
+	MutualTLSMode        MutualTLSMode                        `json:",omitempty" alias:"mutual_tls_mode"`
+	Config               map[string]interface{}               `json:",omitempty"`
+	MeshGateway          MeshGatewayConfig                    `json:",omitempty" alias:"mesh_gateway"`
+	Expose               ExposeConfig                         `json:",omitempty"`
+	AccessLogs           *AccessLogsConfig                    `json:",omitempty" alias:"access_logs"`
+	EnvoyExtensions      []EnvoyExtension                     `json:",omitempty" alias:"envoy_extensions"`
+	FailoverPolicy       *ServiceResolverFailoverPolicy       `json:",omitempty" alias:"failover_policy"`
+	PrioritizeByLocality *ServiceResolverPrioritizeByLocality `json:",omitempty" alias:"prioritize_by_locality"`
 
 	Meta        map[string]string `json:",omitempty"`
 	CreateIndex uint64
@@ -355,6 +381,8 @@ func makeConfigEntry(kind, name string) (ConfigEntry, error) {
 		return &MeshConfigEntry{}, nil
 	case ExportedServices:
 		return &ExportedServicesConfigEntry{Name: name}, nil
+	case SamenessGroup:
+		return &SamenessGroupConfigEntry{Kind: kind, Name: name}, nil
 	case APIGateway:
 		return &APIGatewayConfigEntry{Kind: kind, Name: name}, nil
 	case TCPRoute:
@@ -363,6 +391,10 @@ func makeConfigEntry(kind, name string) (ConfigEntry, error) {
 		return &InlineCertificateConfigEntry{Kind: kind, Name: name}, nil
 	case HTTPRoute:
 		return &HTTPRouteConfigEntry{Kind: kind, Name: name}, nil
+	case RateLimitIPConfig:
+		return &RateLimitIPConfigEntry{Kind: kind, Name: name}, nil
+	case JWTProvider:
+		return &JWTProviderConfigEntry{Kind: kind, Name: name}, nil
 	default:
 		return nil, fmt.Errorf("invalid config entry kind: %s", kind)
 	}

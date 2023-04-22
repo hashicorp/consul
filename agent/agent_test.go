@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package agent
 
 import (
@@ -443,6 +446,7 @@ func testAgent_AddService(t *testing.T, extraHCL string) {
 				Tags:           []string{"tag1"},
 				Weights:        nil, // nil weights...
 				Port:           8100,
+				Locality:       &structs.Locality{Region: "us-west-1", Zone: "us-west-1a"},
 				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 			},
 			// ... should be populated to avoid "IsSame" returning true during AE.
@@ -4819,19 +4823,19 @@ services {
 
 	deadlineCh := time.After(10 * time.Second)
 	start := time.Now()
+LOOP:
 	for {
 		select {
 		case evt := <-ch:
 			// We may receive several notifications of an error until we get the
 			// first successful reply.
 			require.Equal(t, "foo", evt.CorrelationID)
-			if evt.Err == nil {
-				require.NoError(t, evt.Err)
-				require.NotNil(t, evt.Result)
-				t.Logf("took %s to get first success", time.Since(start))
-				return
+			if evt.Err != nil {
+				break LOOP
 			}
-			t.Logf("saw error: %v", evt.Err)
+			require.NoError(t, evt.Err)
+			require.NotNil(t, evt.Result)
+			t.Logf("took %s to get first success", time.Since(start))
 		case <-deadlineCh:
 			t.Fatal("did not get notified successfully")
 		}
