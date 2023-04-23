@@ -204,6 +204,16 @@ module.exports = function (defaults, $ = process.env) {
         // allows use of a CSP without 'unsafe-eval' directive
         forbidEval: true,
         publicAssetURL: isProd ? '{{.ContentPath}}assets' : undefined,
+        webpack: {
+          output: {
+            filename: `chunk.[id].[contenthash].js`,
+            chunkFilename: `chunk.[id].[contenthash].js`,
+          },
+          optimization: {
+            realContentHash: true,
+            moduleIds: 'natural'
+          }
+        }
       },
       codemirror: {
         keyMaps: ['sublime'],
