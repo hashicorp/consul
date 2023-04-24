@@ -74,6 +74,13 @@ func NewRegistry() Registry {
 	registry.Register(Registration{
 		Type:  TypeV1Tombstone,
 		Proto: &pbresource.Tombstone{},
+		ACLs: &ACLHooks{
+			// TODO(spatel): Figure out ACLs. Delete(ctx, resource) doesn't have acls to Write(ctx, resource's tombstone)
+			//               How to pull a tombstone only ACL out of nowhere to inline in Delete(..)?
+			Read:  func(a acl.Authorizer, i *pbresource.ID) error { return nil },
+			Write: func(a acl.Authorizer, i *pbresource.ID) error { return nil },
+			List:  func(a acl.Authorizer, t *pbresource.Tenancy) error { return nil },
+		},
 	})
 	return registry
 }

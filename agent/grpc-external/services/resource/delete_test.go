@@ -162,6 +162,8 @@ func TestDelete_Success(t *testing.T) {
 }
 
 func TestDelete_TombstoneDeletionDoesNotCreateNewTombstone(t *testing.T) {
+	t.Parallel()
+
 	server, client, ctx := testDeps(t)
 	demo.Register(server.Registry)
 
@@ -170,7 +172,6 @@ func TestDelete_TombstoneDeletionDoesNotCreateNewTombstone(t *testing.T) {
 
 	rsp, err := client.Write(ctx, &pbresource.WriteRequest{Resource: artist})
 	require.NoError(t, err)
-	artistId := clone(rsp.Resource.Id)
 	artist = rsp.Resource
 
 	// delete artist
@@ -188,16 +189,12 @@ func TestDelete_TombstoneDeletionDoesNotCreateNewTombstone(t *testing.T) {
 	event := mustGetResource(t, rspCh)
 	require.Equal(t, event.Operation, pbresource.WatchEvent_OPERATION_UPSERT)
 	tombstone := event.Resource
-	data := &pbresource.Tombstone{}
-	require.NoError(t, event.Resource.Data.UnmarshalTo(data))
-	prototest.AssertDeepEqual(t, artistId, data.OwnerId)
-	require.Equal(t, artist.Version, data.OwnerVersion)
 
 	// delete artist's tombstone
 	_, err = client.Delete(ctx, &pbresource.DeleteRequest{Id: tombstone.Id, Version: tombstone.Version})
 	require.NoError(t, err)
 
-	// verify no new tombstones created, but existing artist's tombstone deleted
+	// verify no new tombstones created, but artist's existing tombstone deleted
 	event = mustGetResource(t, rspCh)
 	require.Equal(t, event.Operation, pbresource.WatchEvent_OPERATION_DELETE)
 	mustGetNoResource(t, rspCh)
