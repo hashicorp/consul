@@ -108,9 +108,9 @@
             "Method": "",
             "Name": "zoo",
             "Notes": "",
+            "OSService": "",
             "OutputMaxSize": 4096,
             "ScriptArgs": [],
-            "OSService": "",
             "ServiceID": "",
             "Shell": "",
             "Status": "",
@@ -231,6 +231,7 @@
     "KVMaxValueSize": 1234567800000000,
     "LeaveDrainTime": "0s",
     "LeaveOnTerm": false,
+    "LocalProxyConfigResyncInterval": "0s",
     "Logging": {
         "EnableSyslog": false,
         "LogFilePath": "",
@@ -256,6 +257,7 @@
     "PrimaryGatewaysInterval": "0s",
     "RPCAdvertiseAddr": "",
     "RPCBindAddr": "",
+    "RPCClientTimeout": "0s",
     "RPCConfig": {
         "EnableStreaming": false
     },
@@ -265,7 +267,6 @@
     "RPCMaxConnsPerClient": 0,
     "RPCProtocol": 0,
     "RPCRateLimit": 0,
-    "RPCClientTimeout": "0s",
     "RaftBoltDBConfig": {
         "NoFreelistSync": false
     },
@@ -334,6 +335,7 @@
                 "Method": "",
                 "Name": "blurb",
                 "Notes": "",
+                "OSService": "",
                 "OutputMaxSize": 4096,
                 "ProxyGRPC": "",
                 "ProxyHTTP": "",
@@ -341,7 +343,6 @@
                 "Shell": "",
                 "Status": "",
                 "SuccessBeforePassing": 0,
-                "OSService": "",
                 "TCP": "",
                 "TLSServerName": "",
                 "TLSSkipVerify": false,
