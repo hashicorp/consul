@@ -112,7 +112,7 @@ func (o *OTELSink) IncrCounter(key []string, val float32) {
 // AddSampleWithLabels emits a Consul gauge metric that gets
 // registed by an OpenTelemetry Histogram instrument.
 func (o *OTELSink) SetGaugeWithLabels(key []string, val float32, labels []gometrics.Label) {
-	k := o.flattenKey(key)
+	k := o.flattenKey(key, labels)
 
 	// Set value in global Gauge store.
 	o.gaugeStore.Set(k, float64(val), toAttributes(labels))
@@ -136,7 +136,7 @@ func (o *OTELSink) SetGaugeWithLabels(key []string, val float32, labels []gometr
 
 // AddSampleWithLabels emits a Consul sample metric that gets registed by an OpenTelemetry Histogram instrument.
 func (o *OTELSink) AddSampleWithLabels(key []string, val float32, labels []gometrics.Label) {
-	k := o.flattenKey(key)
+	k := o.flattenKey(key, labels)
 
 	o.mutex.Lock()
 	defer o.mutex.Unlock()
@@ -158,7 +158,7 @@ func (o *OTELSink) AddSampleWithLabels(key []string, val float32, labels []gomet
 
 // IncrCounterWithLabels emits a Consul counter metric that gets registed by an OpenTelemetry Histogram instrument.
 func (o *OTELSink) IncrCounterWithLabels(key []string, val float32, labels []gometrics.Label) {
-	k := o.flattenKey(key)
+	k := o.flattenKey(key, labels)
 
 	o.mutex.Lock()
 	defer o.mutex.Unlock()
@@ -183,7 +183,7 @@ func (o *OTELSink) IncrCounterWithLabels(key []string, val float32, labels []gom
 func (o *OTELSink) EmitKey(key []string, val float32) {}
 
 // flattenKey key along with its labels.
-func (o *OTELSink) flattenKey(parts []string) string {
+func (o *OTELSink) flattenKey(parts []string, labels []gometrics.Label) string {
 	buf := &bytes.Buffer{}
 	joined := strings.Join(parts, ".")
 
