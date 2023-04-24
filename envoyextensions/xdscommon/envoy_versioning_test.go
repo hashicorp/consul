@@ -125,6 +125,18 @@ func TestDetermineSupportedProxyFeaturesFromString(t *testing.T) {
 		"1.19.5": {expectErr: "Envoy 1.19.5 " + errTooOld},
 		"1.20.7": {expectErr: "Envoy 1.20.7 " + errTooOld},
 		"1.21.5": {expectErr: "Envoy 1.21.5 " + errTooOld},
+		"1.22.0": {expectErr: "Envoy 1.22.0 " + errTooOld},
+		"1.22.1": {expectErr: "Envoy 1.22.1 " + errTooOld},
+		"1.22.2": {expectErr: "Envoy 1.22.2 " + errTooOld},
+		"1.22.3": {expectErr: "Envoy 1.22.3 " + errTooOld},
+		"1.22.4": {expectErr: "Envoy 1.22.4 " + errTooOld},
+		"1.22.5": {expectErr: "Envoy 1.22.5 " + errTooOld},
+		"1.22.6": {expectErr: "Envoy 1.22.6 " + errTooOld},
+		"1.22.7": {expectErr: "Envoy 1.22.7 " + errTooOld},
+		"1.22.8": {expectErr: "Envoy 1.22.8 " + errTooOld},
+		"1.22.9": {expectErr: "Envoy 1.22.9 " + errTooOld},
+		"1.22.10": {expectErr: "Envoy 1.22.10 " + errTooOld},
+		"1.22.11": {expectErr: "Envoy 1.22.11 " + errTooOld},
 	}
 
 	// Insert a bunch of valid versions.
@@ -139,10 +151,9 @@ func TestDetermineSupportedProxyFeaturesFromString(t *testing.T) {
 	}
 	*/
 	for _, v := range []string{
-		"1.22.0", "1.22.1", "1.22.2", "1.22.3", "1.22.4", "1.22.5", "1.22.6", "1.22.7", "1.22.8", "1.22.9", "1.22.10", "1.22.11",
 		"1.23.0", "1.23.1", "1.23.2", "1.23.3", "1.23.4", "1.23.5", "1.23.6", "1.23.7", "1.23.8",
 		"1.24.0", "1.24.1", "1.24.2", "1.24.3", "1.24.4", "1.24.5", "1.24.6",
-		"1.25.0", "1.25.1", "1.25.2", "1.25.3", "1.25.4",
+		"1.25.0", "1.25.1", "1.25.2", "1.25.3", "1.25.4", "1.26.0",
 	} {
 		cases[v] = testcase{expect: SupportedProxyFeatures{}}
 	}
@@ -152,6 +163,7 @@ func TestDetermineSupportedProxyFeaturesFromString(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			sf, err := DetermineSupportedProxyFeaturesFromString(name)
 			if tc.expectErr == "" {
+				require.NoError(t, err) 
 				require.Equal(t, tc.expect, sf)
 			} else {
 				testutil.RequireErrorContains(t, err, tc.expectErr)
