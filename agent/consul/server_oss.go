@@ -15,6 +15,7 @@ import (
 	"google.golang.org/grpc"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/consul/reporting"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
 )
@@ -177,4 +178,9 @@ func addSerfMetricsLabels(conf *serf.Config, wan bool, segment string, partition
 
 func (s *Server) updateReportingConfig(config ReloadableConfig) {
 	// no-op
+}
+
+func getEnterpriseReportingDeps(deps Deps) reporting.EntDeps {
+	// no-op
+	return reporting.EntDeps{}
 }
