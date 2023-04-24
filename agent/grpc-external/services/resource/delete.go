@@ -6,11 +6,16 @@ package resource
 import (
 	"context"
 	"errors"
+	"fmt"
+	"time"
 
+	"github.com/golang/protobuf/proto"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/anypb"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/storage"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
@@ -69,6 +74,10 @@ func (s *Server) Delete(ctx context.Context, req *pbresource.DeleteRequest) (*pb
 		}
 	}
 
+	if err := s.maybeCreateTombstone(ctx, deleteId, deleteVersion); err != nil {
+		return nil, err
+	}
+
 	err = s.Backend.DeleteCAS(ctx, deleteId, deleteVersion)
 	switch {
 	case err == nil:
@@ -78,6 +87,44 @@ func (s *Server) Delete(ctx context.Context, req *pbresource.DeleteRequest) (*pb
 	default:
 		return nil, status.Errorf(codes.Internal, "failed delete: %v", err)
 	}
+}
+
+// Create a tombstone to capture the intent to delete child resources.
+// Tombstones are created preemptively to prevent partial failures even though
+// we are currently unaware of the success/failure/no-op of DeleteCAS. In
+// the failure and no-op cases the tombstone is effectively a no-op and will
+// still be deleted from the system by the reaper controller.
+func (s *Server) maybeCreateTombstone(ctx context.Context, deleteId *pbresource.ID, deleteVersion string) error {
+	// Don't create a tombstone when the resource being deleted is itself a tombstone.
+	if proto.Equal(resource.TypeV1Tombstone, deleteId.Type) {
+		return nil
+	}
+
+	data, err := anypb.New(&pbresource.Tombstone{
+		OwnerId:      deleteId,
+		OwnerVersion: deleteVersion,
+	})
+	if err != nil {
+		return status.Errorf(codes.Internal, "failed creating tombstone: %v", err)
+	}
+
+	tombstone := &pbresource.Resource{
+		Id: &pbresource.ID{
+			Type:    resource.TypeV1Tombstone,
+			Tenancy: deleteId.Tenancy,
+			// TODO(spatel): Does this need to be more unique (embed deleteId.Uid)?
+			Name: fmt.Sprintf("%s-tombstone", deleteId.Name),
+		},
+		Data: data,
+		Metadata: map[string]string{
+			"generated_at": time.Now().Format(time.RFC3339),
+		},
+	}
+
+	if _, err := s.Backend.WriteCAS(ctx, tombstone); err != nil {
+		return status.Errorf(codes.Internal, "failed writing tombstone: %v", err)
+	}
+	return nil
 }
 
 func validateDeleteRequest(req *pbresource.DeleteRequest) error {

@@ -171,3 +171,10 @@ message WatchListRequest {
   Tenancy tenancy = 2;
   string name_prefix = 3;
 }
+
+// Given an owner resource, a tombstone represents a promise to delete all
+// the immediately owned (child) resources.
+message Tombstone {
+  ID owner_id = 1;
+  string owner_version = 2;
+}

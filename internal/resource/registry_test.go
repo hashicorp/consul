@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/demo"
 	"github.com/hashicorp/consul/proto-public/pbresource"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -87,21 +88,12 @@ func TestRegister_Defaults(t *testing.T) {
 	require.NoError(t, reg.Mutate(nil))
 }
 
-func assertRegisterPanics(t *testing.T, registerFn func(reg resource.Registration), registration resource.Registration, panicString string) {
-	defer func() {
-		if r := recover(); r == nil {
-			t.Errorf("expected panic, but none occurred")
-		} else {
-			errstr, ok := r.(string)
-			if !ok {
-				t.Errorf("unexpected error type returned from panic")
-			} else if errstr != panicString {
-				t.Errorf("expected %s error message but got: %s", panicString, errstr)
-			}
-		}
-	}()
+func TestNewRegistry(t *testing.T) {
+	r := resource.NewRegistry()
 
-	registerFn(registration)
+	// verify tombstone type registered implicitly
+	_, ok := r.Resolve(resource.TypeV1Tombstone)
+	require.True(t, ok)
 }
 
 func TestResolve(t *testing.T) {
@@ -122,4 +114,21 @@ func TestResolve(t *testing.T) {
 	registration, ok := r.Resolve(serviceType)
 	assert.True(t, ok)
 	assert.Equal(t, registration.Type, serviceType)
+}
+
+func assertRegisterPanics(t *testing.T, registerFn func(reg resource.Registration), registration resource.Registration, panicString string) {
+	defer func() {
+		if r := recover(); r == nil {
+			t.Errorf("expected panic, but none occurred")
+		} else {
+			errstr, ok := r.(string)
+			if !ok {
+				t.Errorf("unexpected error type returned from panic")
+			} else if errstr != panicString {
+				t.Errorf("expected %s error message but got: %s", panicString, errstr)
+			}
+		}
+	}()
+
+	registerFn(registration)
 }

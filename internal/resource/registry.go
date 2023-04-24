@@ -68,9 +68,14 @@ type TypeRegistry struct {
 }
 
 func NewRegistry() Registry {
-	return &TypeRegistry{
-		registrations: make(map[string]Registration),
-	}
+	registry := &TypeRegistry{registrations: make(map[string]Registration)}
+	// Tombstone is an implicitly registered type since it is used to implement
+	// the cascading deletion of resources.
+	registry.Register(Registration{
+		Type:  TypeV1Tombstone,
+		Proto: &pbresource.Tombstone{},
+	})
+	return registry
 }
 
 func (r *TypeRegistry) Register(registration Registration) {
