@@ -176,9 +176,6 @@ jobs:
   
   envoy-integration-test:
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-xl) }}
-    permissions:
-      id-token: write # NOTE: this permission is explicitly required for Vault auth.
-      contents: read
     needs:
       - setup
       - generate-envoy-job-matrices
