@@ -171,6 +171,7 @@ var validGatewayConditionReasonsMapping = map[GatewayConditionType]map[Condition
 			GatewayReasonAccepted,
 		},
 		ConditionStatusFalse: {
+			GatewayListenerReasonInvalidCertificateRef, // TODO: remove this in follow up PR
 			GatewayReasonInvalidCertificates,
 		},
 		ConditionStatusUnknown: {},
