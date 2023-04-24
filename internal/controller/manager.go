@@ -63,7 +63,7 @@ func (m *Manager) Run(ctx context.Context) {
 
 // SetRaftLeader notifies the Manager of Raft leadership changes. Controllers
 // are currently only executed on the Raft leader, so calling this method will
-// cause the Manager to spin them up/down acordingly.
+// cause the Manager to spin them up/down accordingly.
 func (m *Manager) SetRaftLeader(leader bool) {
 	m.raftLeader.Store(leader)
 
