@@ -1733,6 +1733,9 @@ func (c *RuntimeConfig) Sanitized() map[string]interface{} {
 
 // IsCloudEnabled returns true if a cloud.resource_id is set and the server mode is enabled
 func (c *RuntimeConfig) IsCloudEnabled() bool {
+	if c == nil {
+		return false
+	}
 	return c.ServerMode && c.Cloud.ResourceID != ""
 }
 

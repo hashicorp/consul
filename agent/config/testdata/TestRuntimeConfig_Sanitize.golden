@@ -131,8 +131,10 @@
         "ClientID": "id",
         "ClientSecret": "hidden",
         "Hostname": "",
+        "ManagementToken": "hidden",
         "ResourceID": "cluster1",
-        "ScadaAddress": ""
+        "ScadaAddress": "",
+        "TLSConfig": null
     },
     "ConfigEntryBootstrap": [],
     "ConnectCAConfig": {},
