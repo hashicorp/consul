@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"sync"
-	"time"
 
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
@@ -17,6 +16,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/api"
 )
 
 var (
@@ -208,8 +208,6 @@ func (r *apiGatewayReconciler) cleanupGateway(_ context.Context, req controller.
 // referenced this gateway. It then persists any status updates for the gateway,
 // the modified routes, and updates the bound gateway.
 func (r *apiGatewayReconciler) reconcileGateway(_ context.Context, req controller.Request, store *state.Store, gateway *structs.APIGatewayConfigEntry) error {
-	conditions := newGatewayConditionGenerator()
-
 	logger := gatewayRequestLogger(r.logger, req)
 
 	logger.Trace("started reconciling gateway")
@@ -241,13 +239,13 @@ func (r *apiGatewayReconciler) reconcileGateway(_ context.Context, req controlle
 	}
 
 	for ref, err := range certificateErrors {
-		updater.SetCondition(conditions.invalidCertificate(ref, err))
+		updater.SetCondition(invalidCertificate(ref, err))
 	}
 
 	if len(certificateErrors) > 0 {
-		updater.SetCondition(conditions.invalidCertificates())
+		updater.SetCondition(invalidCertificates())
 	} else {
-		updater.SetCondition(conditions.gatewayAccepted())
+		updater.SetCondition(gatewayAccepted())
 	}
 
 	// now we bind all of the routes we can
@@ -259,19 +257,19 @@ func (r *apiGatewayReconciler) reconcileGateway(_ context.Context, req controlle
 		// unset the old gateway binding in case it's stale
 		for _, parent := range route.GetParents() {
 			if parent.Kind == gateway.Kind && parent.Name == gateway.Name && parent.EnterpriseMeta.IsSame(&gateway.EnterpriseMeta) {
-				routeUpdater.RemoveCondition(conditions.routeBound(parent))
+				routeUpdater.RemoveCondition(routeBound(parent))
 			}
 		}
 
 		// set the status for parents that have bound successfully
 		for _, ref := range boundRefs {
-			routeUpdater.SetCondition(conditions.routeBound(ref))
+			routeUpdater.SetCondition(routeBound(ref))
 		}
 
 		// set the status for any parents that have errored trying to
 		// bind
 		for ref, err := range bindErrors {
-			routeUpdater.SetCondition(conditions.routeUnbound(ref, err))
+			routeUpdater.SetCondition(routeUnbound(ref, err))
 		}
 
 		// if we've updated any statuses, then store them as needing
@@ -351,8 +349,6 @@ func (r *apiGatewayReconciler) cleanupRoute(_ context.Context, req controller.Re
 // gateways that now have route conflicts, and updates all statuses and states
 // as necessary.
 func (r *apiGatewayReconciler) reconcileRoute(_ context.Context, req controller.Request, store *state.Store, route structs.BoundRoute) error {
-	conditions := newGatewayConditionGenerator()
-
 	logger := routeRequestLogger(r.logger, req)
 
 	logger.Trace("reconciling route")
@@ -432,23 +428,23 @@ func (r *apiGatewayReconciler) reconcileRoute(_ context.Context, req controller.
 			Entries:               chainSet,
 		})
 		if err != nil {
-			updater.SetCondition(conditions.routeInvalidDiscoveryChain(err))
+			updater.SetCondition(routeInvalidDiscoveryChain(err))
 			continue
 		}
 
 		if chain.Protocol != string(route.GetProtocol()) {
-			updater.SetCondition(conditions.routeInvalidDiscoveryChain(errInvalidProtocol))
+			updater.SetCondition(routeInvalidDiscoveryChain(errInvalidProtocol))
 			continue
 		}
 
-		updater.SetCondition(conditions.routeAccepted())
+		updater.SetCondition(routeAccepted())
 	}
 
 	// if we have no upstream targets, then set the route as invalid
 	// this should already happen in the validation check on write, but
 	// we'll do it here too just in case
 	if len(route.GetServiceNames()) == 0 {
-		updater.SetCondition(conditions.routeNoUpstreams())
+		updater.SetCondition(routeNoUpstreams())
 	}
 
 	// the route is valid, attempt to bind it to all gateways
@@ -457,12 +453,12 @@ func (r *apiGatewayReconciler) reconcileRoute(_ context.Context, req controller.
 
 	// set the status of the references that are bound
 	for _, ref := range boundRefs {
-		updater.SetCondition(conditions.routeBound(ref))
+		updater.SetCondition(routeBound(ref))
 	}
 
 	// set any binding errors
 	for ref, err := range bindErrors {
-		updater.SetCondition(conditions.routeUnbound(ref, err))
+		updater.SetCondition(routeUnbound(ref, err))
 	}
 
 	// set any refs that haven't been bound or explicitly errored
@@ -476,7 +472,7 @@ PARENT_LOOP:
 		if _, ok := bindErrors[ref]; ok {
 			continue PARENT_LOOP
 		}
-		updater.SetCondition(conditions.gatewayNotFound(ref))
+		updater.SetCondition(gatewayNotFound(ref))
 	}
 
 	return finalize(modifiedGateways)
@@ -546,8 +542,6 @@ type gatewayMeta struct {
 	// the map values are pointers so that we can update them directly
 	// and have the changes propagate back to the container gateways.
 	boundListeners map[string]*structs.BoundAPIGatewayListener
-
-	generator *gatewayConditionGenerator
 }
 
 // getAllGatewayMeta returns a pre-constructed list of all valid gateway and state
@@ -675,13 +669,13 @@ func (g *gatewayMeta) bindRoute(listener *structs.APIGatewayListener, bound *str
 	}
 
 	// check to make sure we're not binding to an invalid gateway
-	if !g.Gateway.Status.MatchesConditionStatus(g.generator.gatewayAccepted()) {
+	if !g.Gateway.Status.MatchesConditionStatus(gatewayAccepted()) {
 		return false, fmt.Errorf("failed to bind route to gateway %s: gateway has not been accepted", g.Gateway.Name)
 	}
 
 	// check to make sure we're not binding to an invalid route
 	status := route.GetStatus()
-	if !status.MatchesConditionStatus(g.generator.routeAccepted()) {
+	if !status.MatchesConditionStatus(routeAccepted()) {
 		return false, fmt.Errorf("failed to bind route to gateway %s: route has not been accepted", g.Gateway.Name)
 	}
 
@@ -752,7 +746,6 @@ func (g *gatewayMeta) checkCertificates(store *state.Store) (map[structs.Resourc
 		}
 		return nil
 	})
-
 	if err != nil {
 		return nil, err
 	}
@@ -770,8 +763,6 @@ func (g *gatewayMeta) checkConflicts() (structs.ControlledConfigEntry, bool) {
 // setConflicts ensures that no TCP listener has more than the one allowed route and
 // assigns an appropriate status
 func (g *gatewayMeta) setConflicts(updater *structs.StatusUpdater) {
-	conditions := newGatewayConditionGenerator()
-
 	g.eachListener(func(listener *structs.APIGatewayListener, bound *structs.BoundAPIGatewayListener) error {
 		ref := structs.ResourceReference{
 			Kind:           structs.APIGateway,
@@ -782,19 +773,17 @@ func (g *gatewayMeta) setConflicts(updater *structs.StatusUpdater) {
 		switch listener.Protocol {
 		case structs.ListenerProtocolTCP:
 			if len(bound.Routes) > 1 {
-				updater.SetCondition(conditions.gatewayListenerConflicts(ref))
+				updater.SetCondition(gatewayListenerConflicts(ref))
 				return nil
 			}
 		}
-		updater.SetCondition(conditions.gatewayListenerNoConflicts(ref))
+		updater.SetCondition(gatewayListenerNoConflicts(ref))
 		return nil
 	})
 }
 
 // initialize sets up the listener maps that we use for quickly indexing the listeners in our binding logic
 func (g *gatewayMeta) initialize() *gatewayMeta {
-	g.generator = newGatewayConditionGenerator()
-
 	// set up the maps for fast access
 	g.boundListeners = make(map[string]*structs.BoundAPIGatewayListener, len(g.BoundGateway.Listeners))
 	for i, listener := range g.BoundGateway.Listeners {
@@ -837,151 +826,132 @@ func newGatewayMeta(gateway *structs.APIGatewayConfigEntry, bound structs.Config
 	}).initialize()
 }
 
-// gatewayConditionGenerator is a simple struct used for isolating
-// the status conditions that we generate for our components
-type gatewayConditionGenerator struct {
-	now *time.Time
-}
-
-// newGatewayConditionGenerator initializes a status conditions generator
-func newGatewayConditionGenerator() *gatewayConditionGenerator {
-	return &gatewayConditionGenerator{
-		now: pointerTo(time.Now().UTC()),
-	}
+// gatewayAccepted marks the APIGateway as valid.
+func gatewayAccepted() structs.Condition {
+	return structs.NewGatewayCondition(
+		api.GatewayConditionAccepted,
+		api.ConditionStatusTrue,
+		api.GatewayReasonAccepted,
+		"gateway is valid",
+		structs.ResourceReference{},
+	)
 }
 
 // invalidCertificate returns a condition used when a gateway references a
 // certificate that does not exist. It takes a ref used to scope the condition
 // to a given APIGateway listener.
-func (g *gatewayConditionGenerator) invalidCertificate(ref structs.ResourceReference, err error) structs.Condition {
-	return structs.Condition{
-		Type:               "Accepted",
-		Status:             "False",
-		Reason:             "InvalidCertificate",
-		Message:            err.Error(),
-		Resource:           pointerTo(ref),
-		LastTransitionTime: g.now,
-	}
+func invalidCertificate(ref structs.ResourceReference, err error) structs.Condition {
+	return structs.NewGatewayCondition(
+		api.GatewayConditionAccepted,
+		api.ConditionStatusFalse,
+		api.GatewayListenerReasonInvalidCertificateRef,
+		err.Error(),
+		ref,
+	)
 }
 
 // invalidCertificates is used to set the overall condition of the APIGateway
 // to invalid due to missing certificates that it references.
-func (g *gatewayConditionGenerator) invalidCertificates() structs.Condition {
-	return structs.Condition{
-		Type:               "Accepted",
-		Status:             "False",
-		Reason:             "InvalidCertificates",
-		Message:            "gateway references invalid certificates",
-		LastTransitionTime: g.now,
-	}
-}
-
-// gatewayAccepted marks the APIGateway as valid.
-func (g *gatewayConditionGenerator) gatewayAccepted() structs.Condition {
-	return structs.Condition{
-		Type:               "Accepted",
-		Status:             "True",
-		Reason:             "Accepted",
-		Message:            "gateway is valid",
-		LastTransitionTime: g.now,
-	}
-}
-
-// routeBound marks a Route as bound to the referenced APIGateway
-func (g *gatewayConditionGenerator) routeBound(ref structs.ResourceReference) structs.Condition {
-	return structs.Condition{
-		Type:               "Bound",
-		Status:             "True",
-		Reason:             "Bound",
-		Resource:           pointerTo(ref),
-		Message:            "successfully bound route",
-		LastTransitionTime: g.now,
-	}
-}
-
-// routeAccepted marks the Route as valid
-func (g *gatewayConditionGenerator) routeAccepted() structs.Condition {
-	return structs.Condition{
-		Type:               "Accepted",
-		Status:             "True",
-		Reason:             "Accepted",
-		Message:            "route is valid",
-		LastTransitionTime: g.now,
-	}
-}
-
-// routeUnbound marks the route as having failed to bind to the referenced APIGateway
-func (g *gatewayConditionGenerator) routeUnbound(ref structs.ResourceReference, err error) structs.Condition {
-	return structs.Condition{
-		Type:               "Bound",
-		Status:             "False",
-		Reason:             "FailedToBind",
-		Resource:           pointerTo(ref),
-		Message:            err.Error(),
-		LastTransitionTime: g.now,
-	}
-}
-
-// routeInvalidDiscoveryChain marks the route as invalid due to an error while validating its referenced
-// discovery chian
-func (g *gatewayConditionGenerator) routeInvalidDiscoveryChain(err error) structs.Condition {
-	return structs.Condition{
-		Type:               "Accepted",
-		Status:             "False",
-		Reason:             "InvalidDiscoveryChain",
-		Message:            err.Error(),
-		LastTransitionTime: g.now,
-	}
-}
-
-// routeNoUpstreams marks the route as invalid because it has no upstreams that it targets
-func (g *gatewayConditionGenerator) routeNoUpstreams() structs.Condition {
-	return structs.Condition{
-		Type:               "Accepted",
-		Status:             "False",
-		Reason:             "NoUpstreamServicesTargeted",
-		Message:            "route must target at least one upstream service",
-		LastTransitionTime: g.now,
-	}
-}
-
-// gatewayListenerConflicts marks an APIGateway listener as having bound routes that conflict with each other
-// and make the listener, therefore invalid
-func (g *gatewayConditionGenerator) gatewayListenerConflicts(ref structs.ResourceReference) structs.Condition {
-	return structs.Condition{
-		Type:               "Conflicted",
-		Status:             "True",
-		Reason:             "RouteConflict",
-		Resource:           pointerTo(ref),
-		Message:            "TCP-based listeners currently only support binding a single route",
-		LastTransitionTime: g.now,
-	}
+func invalidCertificates() structs.Condition {
+	return structs.NewGatewayCondition(
+		api.GatewayConditionAccepted,
+		api.ConditionStatusFalse,
+		api.GatewayReasonInvalidCertificates,
+		"gateway references invalid certificates",
+		structs.ResourceReference{},
+	)
 }
 
 // gatewayListenerNoConflicts marks an APIGateway listener as having no conflicts within its
 // bound routes
-func (g *gatewayConditionGenerator) gatewayListenerNoConflicts(ref structs.ResourceReference) structs.Condition {
-	return structs.Condition{
-		Type:               "Conflicted",
-		Status:             "False",
-		Reason:             "NoConflict",
-		Resource:           pointerTo(ref),
-		Message:            "listener has no route conflicts",
-		LastTransitionTime: g.now,
-	}
+func gatewayListenerNoConflicts(ref structs.ResourceReference) structs.Condition {
+	return structs.NewGatewayCondition(
+		api.GatewayConditionConflicted,
+		api.ConditionStatusFalse,
+		api.GatewayReasonNoConflict,
+		"listener has no route conflicts",
+		ref,
+	)
+}
+
+// gatewayListenerConflicts marks an APIGateway listener as having bound routes that conflict with each other
+// and make the listener, therefore invalid
+func gatewayListenerConflicts(ref structs.ResourceReference) structs.Condition {
+	return structs.NewGatewayCondition(
+		api.GatewayConditionConflicted,
+		api.ConditionStatusTrue,
+		api.GatewayReasonRouteConflict,
+		"TCP-based listeners currently only support binding a single route",
+		ref,
+	)
+}
+
+// routeBound marks a Route as bound to the referenced APIGateway
+func routeBound(ref structs.ResourceReference) structs.Condition {
+	return structs.NewRouteCondition(
+		api.RouteConditionBound,
+		api.ConditionStatusTrue,
+		api.RouteReasonBound,
+		"successfully bound route",
+		ref,
+	)
 }
 
 // gatewayNotFound marks a Route as having failed to bind to a referenced APIGateway due to
 // the Gateway not existing (or having not been reconciled yet)
-func (g *gatewayConditionGenerator) gatewayNotFound(ref structs.ResourceReference) structs.Condition {
-	return structs.Condition{
-		Type:               "Bound",
-		Status:             "False",
-		Reason:             "GatewayNotFound",
-		Resource:           pointerTo(ref),
-		Message:            "gateway was not found",
-		LastTransitionTime: g.now,
-	}
+func gatewayNotFound(ref structs.ResourceReference) structs.Condition {
+	return structs.NewRouteCondition(
+		api.RouteConditionBound,
+		api.ConditionStatusFalse,
+		api.RouteReasonGatewayNotFound,
+		"gateway was not found",
+		ref,
+	)
+}
+
+// routeUnbound marks the route as having failed to bind to the referenced APIGateway
+func routeUnbound(ref structs.ResourceReference, err error) structs.Condition {
+	return structs.NewRouteCondition(
+		api.RouteConditionBound,
+		api.ConditionStatusFalse,
+		api.RouteReasonFailedToBind,
+		err.Error(),
+		ref,
+	)
+}
+
+// routeAccepted marks the Route as valid
+func routeAccepted() structs.Condition {
+	return structs.NewRouteCondition(
+		api.RouteConditionAccepted,
+		api.ConditionStatusTrue,
+		api.RouteReasonAccepted,
+		"route is valid",
+		structs.ResourceReference{},
+	)
+}
+
+// routeInvalidDiscoveryChain marks the route as invalid due to an error while validating its referenced
+// discovery chian
+func routeInvalidDiscoveryChain(err error) structs.Condition {
+	return structs.NewRouteCondition(
+		api.RouteConditionAccepted,
+		api.ConditionStatusFalse,
+		api.RouteReasonInvalidDiscoveryChain,
+		err.Error(),
+		structs.ResourceReference{},
+	)
+}
+
+// routeNoUpstreams marks the route as invalid because it has no upstreams that it targets
+func routeNoUpstreams() structs.Condition {
+	return structs.NewRouteCondition(
+		api.RouteConditionAccepted,
+		api.ConditionStatusFalse,
+		api.RouteReasonNoUpstreamServicesTargeted,
+		"route must target at least one upstream service",
+		structs.ResourceReference{},
+	)
 }
 
 // bindRoutesToGateways takes a route variadic number of gateways.
@@ -1021,7 +991,6 @@ func bindRoutesToGateways(route structs.BoundRoute, gateways ...*gatewayMeta) ([
 // removeGateway sets the route's status appropriately when the gateway that it's
 // attempting to bind to does not exist
 func removeGateway(gateway structs.ResourceReference, entries ...structs.BoundRoute) []structs.ControlledConfigEntry {
-	conditions := newGatewayConditionGenerator()
 	modified := []structs.ControlledConfigEntry{}
 
 	for _, route := range entries {
@@ -1029,7 +998,7 @@ func removeGateway(gateway structs.ResourceReference, entries ...structs.BoundRo
 
 		for _, parent := range route.GetParents() {
 			if parent.Kind == gateway.Kind && parent.Name == gateway.Name && parent.EnterpriseMeta.IsSame(&gateway.EnterpriseMeta) {
-				updater.SetCondition(conditions.gatewayNotFound(parent))
+				updater.SetCondition(gatewayNotFound(parent))
 			}
 		}
 
