@@ -252,6 +252,9 @@ func compile(logger hclog.Logger, raw *Config, prev *Topology) (*Topology, error
 				}
 				svc.ID.Normalize()
 
+				// Denormalize
+				svc.Node = n
+
 				if !IsValidLabel(svc.ID.Partition) {
 					return nil, fmt.Errorf("service partition is not valid: %s", svc.ID.Partition)
 				}

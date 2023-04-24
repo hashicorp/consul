@@ -342,19 +342,18 @@ func (c *Cluster) SortedNodes() []*Node {
 	return out
 }
 
-func (c *Cluster) ServiceByID(nid NodeID, sid ServiceID) (*Service, *Node) {
-	n := c.NodeByID(nid)
-	return n.ServiceByID(sid), n
+func (c *Cluster) ServiceByID(nid NodeID, sid ServiceID) *Service {
+	return c.NodeByID(nid).ServiceByID(sid)
 }
 
-func (c *Cluster) ServicesByID(sid ServiceID) []ServiceAndNode {
+func (c *Cluster) ServicesByID(sid ServiceID) []*Service {
 	sid.Normalize()
 
-	var out []ServiceAndNode
+	var out []*Service
 	for _, n := range c.Nodes {
 		for _, svc := range n.Services {
 			if svc.ID == sid {
-				out = append(out, ServiceAndNode{Service: svc, Node: n})
+				out = append(out, svc)
 			}
 		}
 	}
@@ -647,6 +646,9 @@ type Service struct {
 	DisableServiceMesh bool `json:",omitempty"`
 	IsMeshGateway      bool `json:",omitempty"`
 	Upstreams          []*Upstream
+
+	// denormalized at topology compile
+	Node *Node `json:"-"`
 }
 
 func (s *Service) inheritFromExisting(existing *Service) {
