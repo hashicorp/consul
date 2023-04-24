@@ -88,6 +88,7 @@ const (
 	PeeringSecretsWriteType                     = 40
 	RaftLogVerifierCheckpoint                   = 41 // Only used for log verifier, no-op on FSM.
 	ResourceOperationType                       = 42
+	UpdateVirtualIPRequestType                  = 43
 )
 
 const (
@@ -156,6 +157,7 @@ var requestTypeStrings = map[MessageType]string{
 	PeeringSecretsWriteType:         "PeeringSecret",
 	RaftLogVerifierCheckpoint:       "RaftLogVerifierCheckpoint",
 	ResourceOperationType:           "Resource",
+	UpdateVirtualIPRequestType:      "UpdateManualVirtualIPRequestType",
 }
 
 const (

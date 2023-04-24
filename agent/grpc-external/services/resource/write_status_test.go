@@ -8,14 +8,62 @@ import (
 	"testing"
 
 	"github.com/oklog/ulid/v2"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
+	"github.com/hashicorp/consul/acl/resolver"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/demo"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
+
+func TestWriteStatus_ACL(t *testing.T) {
+	type testCase struct {
+		authz       resolver.Result
+		assertErrFn func(error)
+	}
+	testcases := map[string]testCase{
+		"denied": {
+			authz: AuthorizerFrom(t, demo.ArtistV2WritePolicy),
+			assertErrFn: func(err error) {
+				require.Error(t, err)
+				require.Equal(t, codes.PermissionDenied.String(), status.Code(err).String())
+			},
+		},
+		"allowed": {
+			authz: AuthorizerFrom(t, demo.ArtistV2WritePolicy, `operator = "write"`),
+			assertErrFn: func(err error) {
+				require.NoError(t, err)
+			},
+		},
+	}
+
+	for desc, tc := range testcases {
+		t.Run(desc, func(t *testing.T) {
+			server := testServer(t)
+			client := testClient(t, server)
+
+			mockACLResolver := &MockACLResolver{}
+			mockACLResolver.On("ResolveTokenAndDefaultMeta", mock.Anything, mock.Anything, mock.Anything).
+				Return(tc.authz, nil)
+			server.ACLResolver = mockACLResolver
+			demo.Register(server.Registry)
+
+			artist, err := demo.GenerateV2Artist()
+			require.NoError(t, err)
+
+			rsp, err := client.Write(testContext(t), &pbresource.WriteRequest{Resource: artist})
+			require.NoError(t, err)
+			artist = rsp.Resource
+
+			// exercise ACL
+			_, err = client.WriteStatus(testContext(t), validWriteStatusRequest(t, artist))
+			tc.assertErrFn(err)
+		})
+	}
+}
 
 func TestWriteStatus_InputValidation(t *testing.T) {
 	server := testServer(t)

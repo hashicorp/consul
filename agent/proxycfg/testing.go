@@ -141,8 +141,8 @@ func TestMeshGatewayLeafForCA(t testing.T, ca *structs.CARoot) *structs.IssuedCe
 
 // TestIntentions returns a sample intentions match result useful to
 // mocking service discovery cache results.
-func TestIntentions() structs.Intentions {
-	return structs.Intentions{
+func TestIntentions() structs.SimplifiedIntentions {
+	return structs.SimplifiedIntentions{
 		{
 			ID:              "foo",
 			SourceNS:        "default",
@@ -950,7 +950,7 @@ func NewTestDataSources() *TestDataSources {
 		GatewayServices:                 NewTestDataSource[*structs.ServiceSpecificRequest, *structs.IndexedGatewayServices](),
 		Health:                          NewTestDataSource[*structs.ServiceSpecificRequest, *structs.IndexedCheckServiceNodes](),
 		HTTPChecks:                      NewTestDataSource[*cachetype.ServiceHTTPChecksRequest, []structs.CheckType](),
-		Intentions:                      NewTestDataSource[*structs.ServiceSpecificRequest, structs.Intentions](),
+		Intentions:                      NewTestDataSource[*structs.ServiceSpecificRequest, structs.SimplifiedIntentions](),
 		IntentionUpstreams:              NewTestDataSource[*structs.ServiceSpecificRequest, *structs.IndexedServiceList](),
 		IntentionUpstreamsDestination:   NewTestDataSource[*structs.ServiceSpecificRequest, *structs.IndexedServiceList](),
 		InternalServiceDump:             NewTestDataSource[*structs.ServiceDumpRequest, *structs.IndexedCheckServiceNodes](),
@@ -977,7 +977,7 @@ type TestDataSources struct {
 	ServiceGateways                 *TestDataSource[*structs.ServiceSpecificRequest, *structs.IndexedServiceNodes]
 	Health                          *TestDataSource[*structs.ServiceSpecificRequest, *structs.IndexedCheckServiceNodes]
 	HTTPChecks                      *TestDataSource[*cachetype.ServiceHTTPChecksRequest, []structs.CheckType]
-	Intentions                      *TestDataSource[*structs.ServiceSpecificRequest, structs.Intentions]
+	Intentions                      *TestDataSource[*structs.ServiceSpecificRequest, structs.SimplifiedIntentions]
 	IntentionUpstreams              *TestDataSource[*structs.ServiceSpecificRequest, *structs.IndexedServiceList]
 	IntentionUpstreamsDestination   *TestDataSource[*structs.ServiceSpecificRequest, *structs.IndexedServiceList]
 	InternalServiceDump             *TestDataSource[*structs.ServiceDumpRequest, *structs.IndexedCheckServiceNodes]

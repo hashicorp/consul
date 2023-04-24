@@ -33,17 +33,17 @@ func TestRead_InputValidation(t *testing.T) {
 		"no tenancy": func(req *pbresource.ReadRequest) { req.Id.Tenancy = nil },
 		"no name":    func(req *pbresource.ReadRequest) { req.Id.Name = "" },
 		// clone necessary to not pollute DefaultTenancy
-		"tenancy partition wildcard": func(req *pbresource.ReadRequest) {
+		"tenancy partition not default": func(req *pbresource.ReadRequest) {
 			req.Id.Tenancy = clone(req.Id.Tenancy)
-			req.Id.Tenancy.Partition = storage.Wildcard
+			req.Id.Tenancy.Partition = ""
 		},
-		"tenancy namespace wildcard": func(req *pbresource.ReadRequest) {
+		"tenancy namespace not default": func(req *pbresource.ReadRequest) {
 			req.Id.Tenancy = clone(req.Id.Tenancy)
-			req.Id.Tenancy.Namespace = storage.Wildcard
+			req.Id.Tenancy.Namespace = ""
 		},
-		"tenancy peername wildcard": func(req *pbresource.ReadRequest) {
+		"tenancy peername not local": func(req *pbresource.ReadRequest) {
 			req.Id.Tenancy = clone(req.Id.Tenancy)
-			req.Id.Tenancy.PeerName = storage.Wildcard
+			req.Id.Tenancy.PeerName = ""
 		},
 	}
 	for desc, modFn := range testCases {

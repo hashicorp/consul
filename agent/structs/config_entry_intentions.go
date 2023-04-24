@@ -134,6 +134,7 @@ func (e *ServiceIntentionsConfigEntry) ToIntention(src *SourceIntention) *Intent
 		ID:                   src.LegacyID,
 		Description:          src.Description,
 		SourcePeer:           src.Peer,
+		SourceSamenessGroup:  src.SamenessGroup,
 		SourcePartition:      src.PartitionOrEmpty(),
 		SourceNS:             src.NamespaceOrDefault(),
 		SourceName:           src.Name,
@@ -274,6 +275,9 @@ type SourceIntention struct {
 
 	// Peer is the name of the remote peer of the source service, if applicable.
 	Peer string `json:",omitempty"`
+
+	// SamenessGroup is the name of the sameness group, if applicable.
+	SamenessGroup string `json:",omitempty"`
 }
 
 type IntentionJWTRequirement struct {
@@ -528,13 +532,13 @@ func (e *ServiceIntentionsConfigEntry) normalize(legacyWrite bool) error {
 		// Normalize the source's namespace and partition.
 		// If the source is not peered, it inherits the destination's
 		// EnterpriseMeta.
-		if src.Peer == "" {
+		if src.Peer != "" || src.SamenessGroup != "" {
+			// If the source is peered or a sameness group, normalize the namespace only,
+			// since they are mutually exclusive with partition.
+			src.EnterpriseMeta.NormalizeNamespace()
+		} else {
 			src.EnterpriseMeta.MergeNoWildcard(&e.EnterpriseMeta)
 			src.EnterpriseMeta.Normalize()
-		} else {
-			// If the source is peered, normalize the namespace only,
-			// since peer is mutually exclusive with partition.
-			src.EnterpriseMeta.NormalizeNamespace()
 		}
 
 		// Compute the precedence only AFTER normalizing namespaces since the
@@ -651,7 +655,7 @@ func (e *ServiceIntentionsConfigEntry) validate(legacyWrite bool) error {
 		return fmt.Errorf("Name is required")
 	}
 
-	if err := validateIntentionWildcards(e.Name, &e.EnterpriseMeta, ""); err != nil {
+	if err := validateIntentionWildcards(e.Name, &e.EnterpriseMeta, "", ""); err != nil {
 		return err
 	}
 
@@ -677,13 +681,23 @@ func (e *ServiceIntentionsConfigEntry) validate(legacyWrite bool) error {
 		return fmt.Errorf("At least one source is required")
 	}
 
-	seenSources := make(map[PeeredServiceName]struct{})
+	type qualifiedServiceName struct {
+		ServiceName   ServiceName
+		Peer          string
+		SamenessGroup string
+	}
+
+	seenSources := make(map[qualifiedServiceName]struct{})
 	for i, src := range e.Sources {
 		if src.Name == "" {
 			return fmt.Errorf("Sources[%d].Name is required", i)
 		}
 
-		if err := validateIntentionWildcards(src.Name, &src.EnterpriseMeta, src.Peer); err != nil {
+		if err := src.validateSamenessGroup(); err != nil {
+			return fmt.Errorf("Sources[%d].SamenessGroup: %v ", i, err)
+		}
+
+		if err := validateIntentionWildcards(src.Name, &src.EnterpriseMeta, src.Peer, src.SamenessGroup); err != nil {
 			return fmt.Errorf("Sources[%d].%v", i, err)
 		}
 
@@ -695,6 +709,14 @@ func (e *ServiceIntentionsConfigEntry) validate(legacyWrite bool) error {
 			return fmt.Errorf("Sources[%d].Peer: cannot set Peer and Partition at the same time.", i)
 		}
 
+		if src.SamenessGroup != "" && src.PartitionOrEmpty() != "" {
+			return fmt.Errorf("Sources[%d].SamenessGroup: cannot set SamenessGroup and Partition at the same time", i)
+		}
+
+		if src.SamenessGroup != "" && src.Peer != "" {
+			return fmt.Errorf("Sources[%d].SamenessGroup: cannot set SamenessGroup and Peer at the same time", i)
+		}
+
 		// Length of opaque values
 		if len(src.Description) > metaValueMaxLength {
 			return fmt.Errorf(
@@ -704,6 +726,10 @@ func (e *ServiceIntentionsConfigEntry) validate(legacyWrite bool) error {
 		if legacyWrite {
 			if src.Peer != "" {
 				return fmt.Errorf("Sources[%d].Peer cannot be set by legacy intentions", i)
+			}
+
+			if src.SamenessGroup != "" {
+				return fmt.Errorf("Sources[%d].SamenessGroup cannot be set by legacy intentions", i)
 			}
 
 			if len(src.LegacyMeta) > metaMaxKeyPairs {
@@ -869,22 +895,24 @@ func (e *ServiceIntentionsConfigEntry) validate(legacyWrite bool) error {
 			}
 		}
 
-		psn := PeeredServiceName{Peer: src.Peer, ServiceName: src.SourceServiceName()}
-		if _, exists := seenSources[psn]; exists {
-			if psn.Peer != "" {
-				return fmt.Errorf("Sources[%d] defines peer(%q) %q more than once", i, psn.Peer, psn.ServiceName.String())
+		qsn := qualifiedServiceName{Peer: src.Peer, SamenessGroup: src.SamenessGroup, ServiceName: src.SourceServiceName()}
+		if _, exists := seenSources[qsn]; exists {
+			if qsn.Peer != "" {
+				return fmt.Errorf("Sources[%d] defines peer(%q) %q more than once", i, qsn.Peer, qsn.ServiceName.String())
+			} else if qsn.SamenessGroup != "" {
+				return fmt.Errorf("Sources[%d] defines sameness-group(%q) %q more than once", i, qsn.SamenessGroup, qsn.ServiceName.String())
 			} else {
-				return fmt.Errorf("Sources[%d] defines %q more than once", i, psn.ServiceName.String())
+				return fmt.Errorf("Sources[%d] defines %q more than once", i, qsn.ServiceName.String())
 			}
 		}
-		seenSources[psn] = struct{}{}
+		seenSources[qsn] = struct{}{}
 	}
 
 	return nil
 }
 
 // Wildcard usage verification
-func validateIntentionWildcards(name string, entMeta *acl.EnterpriseMeta, peerName string) error {
+func validateIntentionWildcards(name string, entMeta *acl.EnterpriseMeta, peerName, samenessGroup string) error {
 	ns := entMeta.NamespaceOrDefault()
 	if ns != WildcardSpecifier {
 		if strings.Contains(ns, WildcardSpecifier) {
@@ -905,6 +933,9 @@ func validateIntentionWildcards(name string, entMeta *acl.EnterpriseMeta, peerNa
 	}
 	if strings.Contains(peerName, WildcardSpecifier) {
 		return fmt.Errorf("Peer: cannot use wildcard '*' in peer")
+	}
+	if strings.Contains(samenessGroup, WildcardSpecifier) {
+		return fmt.Errorf("SamenessGroup: cannot use wildcard '*' in sameness group")
 	}
 	return nil
 }

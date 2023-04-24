@@ -153,7 +153,7 @@ type configSnapshotConnectProxy struct {
 	// NOTE: Intentions stores a list of lists as returned by the Intentions
 	// Match RPC. So far we only use the first list as the list of matching
 	// intentions.
-	Intentions    structs.Intentions
+	Intentions    structs.SimplifiedIntentions
 	IntentionsSet bool
 
 	DestinationsUpstream watch.Map[UpstreamID, *structs.ServiceConfigEntry]
@@ -230,7 +230,7 @@ type configSnapshotTerminatingGateway struct {
 	//
 	// A key being present implies that we have gotten at least one watch reply for the
 	// service. This is logically the same as ConnectProxy.IntentionsSet==true
-	Intentions map[structs.ServiceName]structs.Intentions
+	Intentions map[structs.ServiceName]structs.SimplifiedIntentions
 
 	// WatchedLeaves is a map of ServiceName to a cancel function.
 	// This cancel function is tied to the watch of leaf certs for linked services.
