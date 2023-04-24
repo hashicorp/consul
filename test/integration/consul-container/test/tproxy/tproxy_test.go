@@ -5,11 +5,12 @@ package tproxy
 
 import (
 	"context"
-	"fmt"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 	libassert "github.com/hashicorp/consul/test/integration/consul-container/libs/assert"
 	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
 	libservice "github.com/hashicorp/consul/test/integration/consul-container/libs/service"
@@ -21,10 +22,11 @@ import (
 // with transparent proxy enabled.
 //
 // Steps:
-//   - Create a single agent cluster.
+//   - Create a single server cluster.
 //   - Create the example static-server and sidecar containers, then register them both with Consul
 //   - Create an example static-client sidecar, then register both the service and sidecar with Consul
-//   - Make sure a call to the client sidecar local bind port returns a response from the upstream, static-server
+//   - Make sure a request from static-client to the virtual address (<svc>.virtual.consul) returns a
+//     response from the upstream.
 func TestTProxyService(t *testing.T) {
 	t.Parallel()
 
@@ -42,54 +44,57 @@ func TestTProxyService(t *testing.T) {
 	})
 
 	clientService := createServices(t, cluster)
-	_, port := clientService.GetAddr()
 	_, adminPort := clientService.GetAdminAddr()
-
-	fmt.Printf("client app test addr = localhost:%d", port)
 
 	libassert.AssertUpstreamEndpointStatus(t, adminPort, "static-server.default", "HEALTHY", 1)
 	libassert.AssertContainerState(t, clientService, "running")
+	assertHTTPRequestToVirtualAddress(t, clientService)
+}
 
-	// Test that we can make a request to the virtual ip to reach the upstream.
-	//
-	// This uses a workaround for DNS because I had trouble modifying
-	// /etc/resolv.conf. There is a --dns option to docker run, but it
-	// didn't seem to be exposed via testcontainers. I'm not sure if it would
-	// do what I want. In any case, Docker sets up /etc/resolv.conf for certain
-	// functionality so it seems better to leave this alone.
-	//
-	// But, that means DNS queries aren't redirected to Consul out of the box.
-	// As a workaround, we `dig @localhost:53` which is iptables-redirected to
-	// localhost:8600 where the Consul client responds with the virtual ip.
-	//
-	// In tproxy tests, Envoy is not configured with a unique listener for each
-	// upstreams. This means the usual approach for non-tproxy tests doesn't
-	// work - where we send the request to a host address mapped in to Envoy's
-	// upstream listener. Instead, we exec into the container.
-	//
-	// We must make this request with a non-envoy user. The envoy and consul
-	// users are excluded from traffic redirection rules, so instead we
-	// make the request as root.
-	out, err := clientService.Exec(
-		context.Background(),
-		[]string{"sudo", "sh", "-c", `
-		set -e
-		VIRTUAL=$(dig @localhost +short static-server.virtual.consul)
-		echo "Virtual IP: $VIRTUAL"
-		curl -o /dev/null -s -w 'Response code: %{http_code}' $VIRTUAL
-		`,
-		},
-	)
-	t.Logf("curl upstream\nerr = %s\nout = %s", err, out)
-	require.NoError(t, err)
-	require.Regexp(t, `Virtual IP: 240.0.0.\d+`, out)
-	require.Contains(t, out, "Response code: 200")
+func assertHTTPRequestToVirtualAddress(t *testing.T, clientService libservice.Service) {
+	timer := &retry.Timer{Timeout: 120 * time.Second, Wait: 500 * time.Millisecond}
+
+	retry.RunWith(timer, t, func(r *retry.R) {
+		// Test that we can make a request to the virtual ip to reach the upstream.
+		//
+		// This uses a workaround for DNS because I had trouble modifying
+		// /etc/resolv.conf. There is a --dns option to docker run, but it
+		// didn't seem to be exposed via testcontainers. I'm not sure if it would
+		// do what I want. In any case, Docker sets up /etc/resolv.conf for certain
+		// functionality so it seems better to leave DNS alone.
+		//
+		// But, that means DNS queries aren't redirected to Consul out of the box.
+		// As a workaround, we `dig @localhost:53` which is iptables-redirected to
+		// localhost:8600 where the Consul client responds with the virtual ip.
+		//
+		// In tproxy tests, Envoy is not configured with a unique listener for each
+		// upstream. This means the usual approach for non-tproxy tests doesn't
+		// work - where we send the request to a host address mapped in to Envoy's
+		// upstream listener. Instead, we exec into the container and run curl.
+		//
+		// We must make this request with a non-envoy user. The envoy and consul
+		// users are excluded from traffic redirection rules, so instead we
+		// make the request as root.
+		out, err := clientService.Exec(
+			context.Background(),
+			[]string{"sudo", "sh", "-c", `
+			set -e
+			VIRTUAL=$(dig @localhost +short static-server.virtual.consul)
+			echo "Virtual IP: $VIRTUAL"
+			curl -s "$VIRTUAL/debug?env=dump"
+			`,
+			},
+		)
+		t.Logf("making call to upstream\nerr = %v\nout = %s", err, out)
+		require.NoError(r, err)
+		require.Regexp(r, `Virtual IP: 240.0.0.\d+`, out)
+		require.Contains(r, out, "FORTIO_NAME=static-server")
+	})
 }
 
 func createServices(t *testing.T, cluster *libcluster.Cluster) libservice.Service {
 	{
 		node := cluster.Agents[1]
-		t.Logf("createServices: node for static-server = %v", node)
 		client := node.GetClient()
 		// Create a service and proxy instance
 		serviceOpts := &libservice.ServiceOpts{
@@ -114,7 +119,6 @@ func createServices(t *testing.T, cluster *libcluster.Cluster) libservice.Servic
 
 	{
 		node := cluster.Agents[2]
-		t.Logf("createServices: node for static-server = %v", node)
 		client := node.GetClient()
 
 		// Create a client proxy instance with the server as an upstream
