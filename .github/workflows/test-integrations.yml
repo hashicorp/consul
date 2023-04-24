@@ -176,9 +176,6 @@ jobs:
   
   envoy-integration-test:
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-xl) }}
-    permissions:
-      id-token: write # NOTE: this permission is explicitly required for Vault auth.
-      contents: read
     needs:
       - setup
       - generate-envoy-job-matrices
@@ -194,24 +191,6 @@ jobs:
       XDS_TARGET: ${{ matrix.xds-target }}
       AWS_LAMBDA_REGION: us-west-2
     steps:
-      # NOTE: ENT specific step as we store secrets in Vault.
-      - name: Authenticate to Vault
-        if: ${{ endsWith(github.repository, '-enterprise') }}
-        id: vault-auth
-        run: vault-auth
-
-      # NOTE: ENT specific step as we store secrets in Vault.
-      - name: Fetch Secrets
-        if: ${{ endsWith(github.repository, '-enterprise') }}
-        id: secrets
-        uses: hashicorp/vault-action@v2.5.0
-        with:
-          url: ${{ steps.vault-auth.outputs.addr }}
-          caCertificate: ${{ steps.vault-auth.outputs.ca_certificate }}
-          token: ${{ steps.vault-auth.outputs.token }}
-          secrets: |
-            kv/data/github/${{ github.repository }}/aws arn | AWS_ROLE_ARN ;
-
       - uses: actions/checkout@24cb9080177205b6e8c946b17badbe402adc938f # v3.4.0
       - uses: actions/setup-go@6edd4406fa81c3da01a34fa6f6343087c207a568 # v3.5.0
         with:
