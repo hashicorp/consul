@@ -121,8 +121,8 @@ func (s *Server) maybeCreateTombstone(ctx context.Context, deleteId *pbresource.
 		},
 	}
 
-	if _, err := s.Backend.WriteCAS(ctx, tombstone); err != nil {
-		return status.Errorf(codes.Internal, "failed writing tombstone: %v", err)
+	if _, err := s.Write(ctx, &pbresource.WriteRequest{Resource: tombstone}); err != nil {
+		return fmt.Errorf("failed writing tombstone: %w", err)
 	}
 	return nil
 }
