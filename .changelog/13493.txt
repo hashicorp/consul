@@ -1,3 +1,0 @@
-```release-note:bug
-cli: Fix Consul kv CLI 'GET' flags 'keys' and 'recurse' to be set together
-```

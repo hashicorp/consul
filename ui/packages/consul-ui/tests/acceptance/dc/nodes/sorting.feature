@@ -5,38 +5,26 @@ Feature: dc / nodes / sorting
     And 6 node models from yaml
     ---
       - Node: Node-A
-        Meta:
-          synthetic-node: false
         Checks:
           - Status: critical
             ServiceID: ""
       - Node: Node-B
-        Meta:
-          synthetic-node: false
         Checks:
           - Status: passing
             ServiceID: ""
       - Node: Node-C
-        Meta:
-          synthetic-node: false
         Checks:
           - Status: warning
             ServiceID: ""
       - Node: Node-D
-        Meta:
-          synthetic-node: false
         Checks:
           - Status: critical
             ServiceID: ""
       - Node: Node-E
-        Meta:
-          synthetic-node: false
         Checks:
           - Status: critical
             ServiceID: ""
       - Node: Node-F
-        Meta:
-          synthetic-node: false
         Checks:
           - Status: warning
             ServiceID: ""

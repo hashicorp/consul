@@ -1,11 +1,14 @@
 ---
 layout: docs
-page_title: Sessions and Distributed Locks Overview
+page_title: Sessions
 description: >-
-  Consul supports sessions that you can use to build distributed locks with granular locking. Learn about sessions, how they can prevent ""split-brain"" systems by ensuring consistency in deployments, and how they can integrate with the key/value (KV) store.
+  Consul provides a session mechanism which can be used to build distributed
+  locks. Sessions act as a binding layer between nodes, health checks, and
+  key/value data. They are designed to provide granular locking and are heavily
+  inspired by The Chubby Lock Service for Loosely-Coupled Distributed Systems.
 ---
 
-# Sessions and Distributed Locks Overview
+# Sessions
 
 Consul provides a session mechanism which can be used to build distributed locks.
 Sessions act as a binding layer between nodes, health checks, and key/value data.
@@ -48,7 +51,7 @@ deleted by Consul.
 
 While this is a simple design, it enables a multitude of usage
 patterns. By default, the
-[gossip based failure detector](/consul/docs/architecture/gossip)
+[gossip based failure detector](/docs/architecture/gossip)
 is used as the associated health check. This failure detector allows
 Consul to detect when a node that is holding a lock has failed and
 to automatically release the lock. This ability provides **liveness** to
@@ -136,7 +139,7 @@ the goal of Consul to protect against misbehaving clients.
 
 The primitives provided by sessions and the locking mechanisms of the KV
 store can be used to build client-side leader election algorithms.
-These are covered in more detail in the [Leader Election guide](/consul/tutorials/developer-configuration/application-leader-elections).
+These are covered in more detail in the [Leader Election guide](https://learn.hashicorp.com/tutorials/consul/application-leader-elections).
 
 ## Prepared Query Integration
 

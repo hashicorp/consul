@@ -1,0 +1,9 @@
+syntax = "proto3";
+
+package hashicorp.consul.internal.acl;
+
+message ACLLink {
+  string ID = 1;
+  // @gotags: hash:ignore-"
+  string Name = 2;
+}

@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 // certgen: a tool for generating test certificates on disk for use as
 // test-fixtures and for end-to-end testing and local development.
 //
@@ -34,13 +31,13 @@ package main // import "github.com/hashicorp/consul/connect/certgen"
 import (
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
 
-	"github.com/mitchellh/go-testing-interface"
-
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/mitchellh/go-testing-interface"
 )
 
 func main() {
@@ -88,7 +85,7 @@ func main() {
 
 func writeFile(name, content string) {
 	fmt.Println("Writing ", name)
-	err := os.WriteFile(name, []byte(content), 0600)
+	err := ioutil.WriteFile(name, []byte(content), 0600)
 	if err != nil {
 		log.Fatalf("failed writing file: %s", err)
 	}

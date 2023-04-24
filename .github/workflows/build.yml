@@ -1,6 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
-# SPDX-License-Identifier: MPL-2.0
-
 name: build
 
 on:
@@ -40,7 +37,7 @@ jobs:
         id: shared-ldflags
         run: |
           T="github.com/hashicorp/consul/version"
-          echo "::set-output name=shared-ldflags::-X ${T}.GitCommit=${GITHUB_SHA::8} \
+           echo "::set-output name=shared-ldflags::-X ${T}.GitCommit=${GITHUB_SHA::8} \
           -X ${T}.GitDescribe=${{ steps.set-product-version.outputs.product-version }} \
           -X ${T}.BuildDate=${{ steps.get-product-version.outputs.product-date }} \
           "
@@ -56,6 +53,7 @@ jobs:
           echo "Product Date: ${{ needs.set-product-version.outputs.product-date }}"
           echo "Prerelease Version: ${{ needs.set-product-version.outputs.pre-version }}"
           echo "Ldflags: ${{ needs.set-product-version.outputs.shared-ldflags }}"
+
   generate-metadata-file:
     needs: set-product-version
     runs-on: ubuntu-latest
@@ -82,15 +80,15 @@ jobs:
     strategy:
       matrix:
         include:
-          - {go: "1.20.1", goos: "linux", goarch: "386"}
-          - {go: "1.20.1", goos: "linux", goarch: "amd64"}
-          - {go: "1.20.1", goos: "linux", goarch: "arm"}
-          - {go: "1.20.1", goos: "linux", goarch: "arm64"}
-          - {go: "1.20.1", goos: "freebsd", goarch: "386"}
-          - {go: "1.20.1", goos: "freebsd", goarch: "amd64"}
-          - {go: "1.20.1", goos: "windows", goarch: "386"}
-          - {go: "1.20.1", goos: "windows", goarch: "amd64"}
-          - {go: "1.20.1", goos: "solaris", goarch: "amd64"}
+          - {go: "1.19.6", goos: "linux", goarch: "386"}
+          - {go: "1.19.6", goos: "linux", goarch: "amd64"}
+          - {go: "1.19.6", goos: "linux", goarch: "arm"}
+          - {go: "1.19.6", goos: "linux", goarch: "arm64"}
+          - {go: "1.19.6", goos: "freebsd", goarch: "386"}
+          - {go: "1.19.6", goos: "freebsd", goarch: "amd64"}
+          - {go: "1.19.6", goos: "windows", goarch: "386"}
+          - {go: "1.19.6", goos: "windows", goarch: "amd64"}
+          - {go: "1.19.6", goos: "solaris", goarch: "amd64"}
       fail-fast: true
 
     name: Go ${{ matrix.go }} ${{ matrix.goos }} ${{ matrix.goarch }} build
@@ -133,7 +131,7 @@ jobs:
           reproducible: report
           instructions: |-
             go build -ldflags="$GOLDFLAGS" -o "$BIN_PATH" -trimpath -buildvcs=false
-
+ 
       - name: Package
         if: ${{ matrix.goos == 'linux' }}
         uses: hashicorp/actions-packaging-linux@v1
@@ -179,13 +177,13 @@ jobs:
       matrix:
         goos: [ darwin ]
         goarch: [ "amd64", "arm64" ]
-        go: [ "1.20.1" ]
+        go: [ "1.19.6" ]
       fail-fast: true
 
     name: Go ${{ matrix.go }} ${{ matrix.goos }} ${{ matrix.goarch }} build
     steps:
       - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
-          
+
       - name: Setup with node and yarn
         uses: actions/setup-node@64ed1c7eab4cce3362f8c340dee64e5eaeef8f7c # pin@v3.6.0
         with:
@@ -204,6 +202,7 @@ jobs:
           cd ui && make && cd ..
           rm -rf agent/uiserver/dist
           mv ui/packages/consul-ui/dist agent/uiserver/
+
       - name: Go Build
         env:
           PRODUCT_VERSION: ${{ needs.set-product-version.outputs.product-version }}

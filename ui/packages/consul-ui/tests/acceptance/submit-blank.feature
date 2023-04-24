@@ -10,7 +10,7 @@ Feature: submit-blank
       dc: datacenter
     ---
     Then the url should be /datacenter/[Slug]/create
-    Then I don't see submitIsEnabled
+    And I submit
     Then the url should be /datacenter/[Slug]/create
   Where:
     --------------------------

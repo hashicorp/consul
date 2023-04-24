@@ -1,3 +1,0 @@
-```release-note:improvement
-Fixes a performance issue in Raft where commit latency can increase by 100x or more when under heavy load. For more details see https://github.com/hashicorp/raft/pull/541.
-```

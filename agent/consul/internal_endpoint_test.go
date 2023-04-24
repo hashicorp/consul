@@ -1,12 +1,9 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package consul
 
 import (
-	"crypto/rand"
 	"encoding/base64"
 	"fmt"
+	"math/rand"
 	"os"
 	"strings"
 	"testing"
@@ -22,7 +19,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib/stringslice"
-	"github.com/hashicorp/consul/proto/private/pbpeering"
+	"github.com/hashicorp/consul/proto/pbpeering"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
@@ -3337,19 +3334,19 @@ func TestInternal_ExportedPeeredServices_ACLEnforcement(t *testing.T) {
 			{
 				Name: "web",
 				Consumers: []structs.ServiceConsumer{
-					{Peer: "peer-1"},
+					{PeerName: "peer-1"},
 				},
 			},
 			{
 				Name: "db",
 				Consumers: []structs.ServiceConsumer{
-					{Peer: "peer-2"},
+					{PeerName: "peer-2"},
 				},
 			},
 			{
 				Name: "api",
 				Consumers: []structs.ServiceConsumer{
-					{Peer: "peer-1"},
+					{PeerName: "peer-1"},
 				},
 			},
 		},
@@ -3408,7 +3405,7 @@ func TestInternal_ExportedPeeredServices_ACLEnforcement(t *testing.T) {
 				`
 			service "web" { policy = "read" }
 			service "api" { policy = "read" }
-			service "db"  { policy = "deny" }
+			service "db"  { policy = "deny" }	
 			`),
 			expect: map[string]structs.ServiceList{
 				"peer-1": {
@@ -3517,19 +3514,19 @@ func TestInternal_ExportedServicesForPeer_ACLEnforcement(t *testing.T) {
 			{
 				Name: "web",
 				Consumers: []structs.ServiceConsumer{
-					{Peer: "peer-1"},
+					{PeerName: "peer-1"},
 				},
 			},
 			{
 				Name: "db",
 				Consumers: []structs.ServiceConsumer{
-					{Peer: "peer-2"},
+					{PeerName: "peer-2"},
 				},
 			},
 			{
 				Name: "api",
 				Consumers: []structs.ServiceConsumer{
-					{Peer: "peer-1"},
+					{PeerName: "peer-1"},
 				},
 			},
 		},

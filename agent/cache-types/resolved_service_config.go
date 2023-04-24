@@ -1,10 +1,6 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package cachetype
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/hashicorp/consul/agent/cache"
@@ -47,7 +43,7 @@ func (c *ResolvedServiceConfig) Fetch(opts cache.FetchOptions, req cache.Request
 
 	// Fetch
 	var reply structs.ServiceConfigResponse
-	if err := c.RPC.RPC(context.Background(), "ConfigEntry.ResolveServiceConfig", reqReal, &reply); err != nil {
+	if err := c.RPC.RPC("ConfigEntry.ResolveServiceConfig", reqReal, &reply); err != nil {
 		return result, err
 	}
 

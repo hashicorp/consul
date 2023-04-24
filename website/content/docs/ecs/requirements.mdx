@@ -1,11 +1,11 @@
 ---
 layout: docs
-page_title: Requirements - Consul on AWS Elastic Container Service (ECS)
+page_title: Requirements - AWS ECS
 description: >-
-  Consul has requirements to install and run on Amazon Web Services ECS. Learn about Consul's requirements for Fargate and EC2, including network mode and subnet information, as well as server, routing, and ACL controller considerations to keep in mind.
+  Requirements for Consul Service Mesh on AWS ECS (Elastic Container Service).
 ---
 
-# Requirements for Consul on AWS Elastic Container Service (ECS)
+# Requirements
 
 The following requirements must be met in order to install Consul on ECS:
 
@@ -14,16 +14,16 @@ The following requirements must be met in order to install Consul on ECS:
 * **Subnets:** ECS Tasks can run in private or public subnets. Tasks must have [network access](https://aws.amazon.com/premiumsupport/knowledge-center/ecs-pull-container-api-error-ecr/) to Amazon ECR or other public container registries to pull images.
 * **Consul Servers:** You can use your own Consul servers running on virtual machines or use [HashiCorp Cloud Platform Consul](https://www.hashicorp.com/cloud-platform) to host the servers for you. For development purposes or testing, you may use the `dev-server` [Terraform module](https://github.com/hashicorp/terraform-aws-consul-ecs/tree/main) that runs the Consul server as an ECS task. The `dev-server` does not support persistent storage.
 * **ACL Controller:** If you are running a secure Consul installation with ACLs enabled, configure the ACL controller.
-   * **Admin Partitions:** <EnterpriseAlert inline />Consul on ECS supports [admin partitions](/consul/docs/enterprise/admin-partitions) when ACLs are enabled and the ACL controller is configured.
+   * **Admin Partitions:** <EnterpriseAlert inline />Consul on ECS supports [admin partitions](/docs/enterprise/admin-partitions) when ACLs are enabled and the ACL controller is configured.
       The ACL controller manages one admin partition and each ECS cluster requires an ACL controller.
       Each `mesh-task` must also be configured to use a Consul Enterprise client.
-   * **Namespaces:** <EnterpriseAlert inline />[Namespaces](/consul/docs/enterprise/namespaces) are supported when ACLs are enabled and the ACL controller is configured.
+   * **Namespaces:** <EnterpriseAlert inline />[Namespaces](/docs/enterprise/namespaces) are supported when ACLs are enabled and the ACL controller is configured.
       Each `mesh-task` must also be configured to use a Consul Enterprise client.
 * **Sidecar containers:** Consul on ECS requires two sidecar containers to run in each ECS task: a
    Consul agent container and a sidecar proxy container. These additional sidecar containers must
-   be included in the ECS task definition. The [Consul ECS Terraform module](/consul/docs/ecs/terraform/install)
+   be included in the ECS task definition. The [Consul ECS Terraform module](/docs/ecs/terraform/install)
    will include these sidecar containers for you. If you do not use Terraform, you can construct
-   the task definition yourself by following [our documentation](/consul/docs/ecs/manual/install).
+   the task definition yourself by following [our documentation](/docs/ecs/manual/install).
 * **Routing:** With your application running in tasks as part of the mesh, you must specify the
    upstream services that your application calls. You will also need to change the URLs your
    application uses to ensure the application is making requests through the service mesh.

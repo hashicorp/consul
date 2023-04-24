@@ -1,3 +1,0 @@
-```release-note:improvement
-dns/peering: **(Enterprise Only)** Support addresses in the formats `<servicename>.virtual.<namespace>.ns.<partition>.ap.<peername>.peer.consul` and `<servicename>.virtual.<partition>.ap.<peername>.peer.consul`. This longer form address that allows specifying `.peer` would need to be used for tproxy DNS requests made within non-default partitions for imported services.
-```

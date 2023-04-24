@@ -1,3 +1,0 @@
-```release-note:note
-deps: Upgrade to use Go 1.19.2
-```

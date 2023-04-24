@@ -26,23 +26,23 @@ This will no longer work since each server must be able to find a valid license 
 All customers on Consul Enterprise 1.8/1.9 must first upgrade their client and server agents to the latest patch release.
 During the upgrade the license file must also be configured on client agents in an environment variable or file path, otherwise the Consul agents will fail to retrieve the license with a valid agent token.
 The upgrade process varies if ACLs are enabled or disabled in the cluster.
-Refer to the instructions on [upgrading to 1.10.x](/consul/docs/upgrading/instructions/upgrade-to-1-10-x) for details.
+Refer to the instructions on [upgrading to 1.10.x](/docs/upgrading/instructions/upgrade-to-1-10-x) for details.
 
 ## Q: Is there a tutorial available for the license configuration steps?
 
-Please visit the [Enterprise License Tutorial](/nomad/tutorials/enterprise/hashicorp-enterprise-license?utm_source=docs).
+Please visit the [Enterprise License Tutorial](https://learn.hashicorp.com/tutorials/consul/hashicorp-enterprise-license?utm_source=docs).
 
 ## Q: What resources are available?
 
 The list below is a great starting point for learning more about the license changes introduced in Consul Enterprise 1.10.0+ent.
 
-- [Consul Enterprise Upgrade Documentation](/consul/docs/enterprise/upgrades)
+- [Consul Enterprise Upgrade Documentation](/docs/enterprise/upgrades)
 
-- [Consul License Documentation](/consul/docs/enterprise/license/overview)
+- [Consul License Documentation](/docs/enterprise/license/overview)
 
-- [License configuration values documentation](/consul/docs/enterprise/license/overview#binaries-without-built-in-licenses)
+- [License configuration values documentation](/docs/enterprise/license/overview#binaries-without-built-in-licenses)
 
-- [Install a HashiCorp Enterprise License Tutorial](/nomad/tutorials/enterprise/hashicorp-enterprise-license?utm_source=docs)
+- [Install a HashiCorp Enterprise License Tutorial](https://learn.hashicorp.com/tutorials/consul/hashicorp-enterprise-license?utm_source=docs)
 
 ## Q: Do these changes impact all customers/licenses?
 
@@ -65,12 +65,12 @@ can operate without a license.
 ## Q: Is there a grace period when licenses expire?
 
 **Yes—Consul will continue normal operation and can be restarted after license *expiration*** as defined in
-[`expiration_time`](/consul/api-docs/operator/license#getting-the-consul-license).
+[`expiration_time`](/api-docs/operator/license#getting-the-consul-license).
 As license expiration is approached or passed, Consul will issue warnings in the system logs.
 
 Consul will only cease operation after license *termination*, which occurs 10 years
 after license expiration and is defined in
-[`termination_time`](/consul/api-docs/operator/license#getting-the-consul-license).
+[`termination_time`](/api-docs/operator/license#getting-the-consul-license).
 
 ~> **Starting with Consul 1.14, and patch releases 1.13.3 and 1.12.6, Consul will support non-terminating licenses**:
    Please contact your support representative for more details on non-terminating licenses.
@@ -80,11 +80,11 @@ after license expiration and is defined in
 ## Q: Does this affect client agents?
 
 There are upgrade requirements that affect Consul Enterprise clients.
-Please review the [upgrade requirements](#q-what-are-the-upgrade-requirements) documentation.
+Please review the [upgrade requirements](faq#q-what-are-the-upgrade-requirements) documentation.
 
 ## Q: Does this affect snapshot agents?
 
-Same behavior as Consul clients. See answer for [Does this affect client agents? ](#q-does-this-affect-client-agents)
+Same behavior as Consul clients. See answer for [Does this affect client agents? ](faq#q-does-this-affect-client-agents)
 
 ## Q: What is the behavior if the license is missing?
 
@@ -94,14 +94,14 @@ Consul client agents will attempt to retrieve the license from servers if certai
 
 - ACLs are enabled.
 - An ACL token is provided to the client agent.
-- The client agents configuration contains `retry_join` addresses.
-- The retry join addresses are addresses of the Consul servers.
+- The client agents configuration contains `start_join/retry_join` addresses.
+- The start/retry join addresses are addresses of the Consul servers.
 
-Consul snapshot agents will attempt to retrieve the license from servers if certain conditions are met: ACLs are enabled, a ACL token is provided to the client agent, the client agents configuration contains `retry_join` addresses, the retry join addresses are addresses of the Consul servers.
+Consul snapshot agents will attempt to retrieve the license from servers if certain conditions are met: ACLs are enabled, a ACL token is provided to the client agent, the client agents configuration contains `start_join/retry_join` addresses, the start/retry join addresses are addresses of the Consul servers.
 
 ## Q: Where can users get a trial license for Consul Enterprise?
 
-Contact your [HashiCorp Support contact](https://support.hashicorp.com/) for a development license.
+Visit [consul.io/trial](https://www.hashicorp.com/products/consul/trial) for a free 30-day trial license.
 
 ~> **Trial install will cease operation 24 hours after 30-day license expiration**:
    Trial licenses are not meant to be used in production.
@@ -110,11 +110,13 @@ Contact your [HashiCorp Support contact](https://support.hashicorp.com/) for a d
 
 ## Q: How can I renew a license?
 
-Contact your organization's [HashiCorp account team](https://support.hashicorp.com/hc/en-us) for information on how to renew your organization's enterprise license.
+Contact your organization's HashiCorp account team or email support-softwaredelivery@hashicorp.com
+for information on how to renew your organization's enterprise license.
 
 ## Q: I'm an existing enterprise customer but don't have my license, how can I get it?
 
-Contact your organization's [HashiCorp account team](https://support.hashicorp.com/hc/en-us) for information on how to renew your organization's enterprise license.
+Contact your organization's HashiCorp account team or email support-softwaredelivery@hashicorp.com
+for information on how to renew your organization's enterprise license.
 
 ## Q: Are the license files locked to a specific cluster?
 
@@ -138,44 +140,44 @@ When a customer deploys new clusters to a 1.10.0+ent release, they need to have 
 
 New Consul cluster deployments using 1.10.0+ent will need to have a valid license on servers to successfully deploy.
 This valid license must be on-disk (auto-loaded) or as an environment variable.
-Please see the [upgrade requirements](/consul/docs/enterprise/license/faq#q-what-are-the-upgrade-requirements).
+Please see the [upgrade requirements](faq#q-what-are-the-upgrade-requirements).
 
 ## Q: What is the migration path for customers who want to migrate from their existing license-as-applied-via-the-CLI flow to the license on disk flow?
 
 ### VM
 
-1. Run [`consul license get -signed`](/consul/commands/license#get) to extract the license from their running cluster. Store the license in a secure location on disk.
+1. Run [`consul license get -signed`](/commands/license#get) to extract the license from their running cluster. Store the license in a secure location on disk.
 1. Set up the necessary configuration so that when Consul Enterprise reboots it will have access to the required license. This could be via the client agent configuration file or an environment variable.
-1. Visit the [Enterprise License Tutorial](/nomad/tutorials/enterprise/hashicorp-enterprise-license?utm_source=docs) for detailed steps on how to install the license key.
-1. Follow the Consul upgrade [documentation](/consul/docs/upgrading).
+1. Visit the [Enterprise License Tutorial](https://learn.hashicorp.com/tutorials/consul/hashicorp-enterprise-license?utm_source=docs) for detailed steps on how to install the license key.
+1. Follow the Consul upgrade [documentation](/docs/upgrading).
 
 ### Kubernetes
 
 **NOTE:** If you are not upgrading Consul or your Helm chart version then no action is required.
 
 1. In order to use Consul Enterprise 1.10.0 or greater on Kubernetes you must use version 0.32.0 or greater of the Helm chart.
-1. You should already have a Consul Enterprise license set as a Kubernetes secret. If you do not, refer to [how to obtain a copy of your license](/consul/docs/enterprise/license/faq#q-i-m-an-existing-enterprise-customer-but-don-t-have-my-license-how-can-i-get-it).
-Once you have the license then create a Kubernetes secret containing the license as described in [Kubernetes - Consul Enterprise](/consul/docs/k8s/deployment-configurations/consul-enterprise).
-1. Follow the [Kubernetes Upgrade Docs](/consul/docs/k8s/upgrade) to upgrade. No changes to your `values.yaml` file are needed to enable enterprise autoloading since this support is built in to consul-helm 0.32.0 and greater.
+1. You should already have a Consul Enterprise license set as a Kubernetes secret. If you do not, refer to [how to obtain a copy of your license](/docs/enterprise/license/faq#q-i-m-an-existing-enterprise-customer-but-don-t-have-my-license-how-can-i-get-it).
+Once you have the license then create a Kubernetes secret containing the license as described in [Kubernetes - Consul Enterprise](/docs/k8s/deployment-configurations/consul-enterprise).
+1. Follow the [Kubernetes Upgrade Docs](/docs/k8s/upgrade) to upgrade. No changes to your `values.yaml` file are needed to enable enterprise autoloading since this support is built in to consul-helm 0.32.0 and greater.
 
-!> **Warning:** If you are upgrading the Helm chart but **not** upgrading the Consul version, you must set `server.enterpriseLicense.enableLicenseAutoload: false`. See [Kubernetes - Consul Enterprise](/consul/docs/k8s/deployment-configurations/consul-enterprise) for more details.
+!> **Warning:** If you are upgrading the Helm chart but **not** upgrading the Consul version, you must set `server.enterpriseLicense.enableLicenseAutoload: false`. See [Kubernetes - Consul Enterprise](/docs/k8s/deployment-configurations/consul-enterprise) for more details.
 
 ## Q: What is the migration path for customers who want to migrate from their existing perpetually-licensed binaries to the license on disk flow?
 
 ### VM
 
-1. Acquire a valid Consul Enterprise license. If you are an existing HashiCorp enterprise customer you may contact your organization's [customer success manager](https://support.hashicorp.com/hc/en-us) (CSM) for information on how to get your organization's enterprise license.
+1. Acquire a valid Consul Enterprise license. If you are an existing HashiCorp enterprise customer you may contact your organization's customer success manager (CSM) or email support-softwaredelivery@hashicorp.com for information on how to get your organization's enterprise license.
 1. Store the license in a secure location on disk.
 1. Set up the necessary configuration so that when Consul Enterprise reboots it will have the required license. This could be via the client agent configuration file or an environment variable.
-   Visit the [Enterprise License Tutorial](/nomad/tutorials/enterprise/hashicorp-enterprise-license?utm_source=docs) for detailed steps on how to install the license key.
-1. Follow the Consul upgrade [documentation](/consul/docs/upgrading).
+   Visit the [Enterprise License Tutorial](https://learn.hashicorp.com/tutorials/consul/hashicorp-enterprise-license?utm_source=docs) for detailed steps on how to install the license key.
+1. Follow the Consul upgrade [documentation](/docs/upgrading).
 
 ### Kubernetes
 
-1. Acquire a valid Consul Enterprise license. If you are an existing HashiCorp enterprise customer you may contact your organization's [customer success manager](https://support.hashicorp.com/hc/en-us) (CSM) for information on how to get your organization's enterprise license.
+1. Acquire a valid Consul Enterprise license. If you are an existing HashiCorp enterprise customer you may contact your organization's customer success manager (CSM) or email support-softwaredelivery@hashicorp.com for information on how to get your organization's enterprise license.
 1. Set up the necessary configuration so that when Consul Enterprise reboots it will have the required license. This could be via the client agent configuration file or an environment variable.
-   Visit the [Enterprise License Tutorial](/nomad/tutorials/enterprise/hashicorp-enterprise-license?utm_source=docs) for detailed steps on how to install the license key.
-1. Proceed with the `helm` [upgrade instructions](/consul/docs/k8s/upgrade)
+   Visit the [Enterprise License Tutorial](https://learn.hashicorp.com/tutorials/consul/hashicorp-enterprise-license?utm_source=docs) for detailed steps on how to install the license key.
+1. Proceed with the `helm` [upgrade instructions](/docs/k8s/upgrade)
 
 ## Q: Will Consul downgrades/rollbacks work?
 
@@ -183,7 +185,7 @@ When downgrading to a version of Consul before 1.10.0+ent, customers will need t
 
 ## Q: Are there potential pitfalls when downgrading or upgrading Consul server instances?
 
-~> Verify that you meet the [upgrade requirements](/consul/docs/enterprise/license/faq#q-what-are-the-upgrade-requirements).
+~> Verify that you meet the [upgrade requirements](faq#q-what-are-the-upgrade-requirements).
 
 Assume a scenario where there are three Consul server nodes:
 

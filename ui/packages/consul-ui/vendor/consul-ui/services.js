@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 (services =>
   services({
     'route:basic': {
@@ -21,9 +16,6 @@
       class: '@glimmer/component',
     },
     'component:consul/peer/selector': {
-      class: '@glimmer/component',
-    },
-    'component:consul/hcp/home': {
       class: '@glimmer/component',
     },
   }))(

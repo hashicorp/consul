@@ -1,3 +1,0 @@
-```release-note:feature
-ui: Filter agentless (synthetic) nodes from the nodes list page. 
-```

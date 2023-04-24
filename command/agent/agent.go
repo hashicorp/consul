@@ -1,13 +1,10 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package agent
 
 import (
 	"context"
 	"flag"
 	"fmt"
-	"io"
+	"io/ioutil"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -21,7 +18,6 @@ import (
 
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/agent/config"
-	hcpbootstrap "github.com/hashicorp/consul/agent/hcp/bootstrap"
 	"github.com/hashicorp/consul/command/cli"
 	"github.com/hashicorp/consul/command/flags"
 	"github.com/hashicorp/consul/lib"
@@ -119,10 +115,44 @@ func (c *cmd) startupUpdateCheck(config *config.RuntimeConfig) {
 	}()
 }
 
+// startupJoin is invoked to handle any joins specified to take place at start time
+func (c *cmd) startupJoin(agent *agent.Agent, cfg *config.RuntimeConfig) error {
+	if len(cfg.StartJoinAddrsLAN) == 0 {
+		return nil
+	}
+
+	c.logger.Info("Joining cluster")
+	// NOTE: For partitioned servers you are only capable of using start join
+	// to join nodes in the default partition.
+	n, err := agent.JoinLAN(cfg.StartJoinAddrsLAN, agent.AgentEnterpriseMeta())
+	if err != nil {
+		return err
+	}
+
+	c.logger.Info("Join completed. Initial agents synced with", "agent_count", n)
+	return nil
+}
+
+// startupJoinWan is invoked to handle any joins -wan specified to take place at start time
+func (c *cmd) startupJoinWan(agent *agent.Agent, cfg *config.RuntimeConfig) error {
+	if len(cfg.StartJoinAddrsWAN) == 0 {
+		return nil
+	}
+
+	c.logger.Info("Joining wan cluster")
+	n, err := agent.JoinWAN(cfg.StartJoinAddrsWAN)
+	if err != nil {
+		return err
+	}
+
+	c.logger.Info("Join wan completed. Initial agents synced with", "agent_count", n)
+	return nil
+}
+
 func (c *cmd) run(args []string) int {
 	ui := &mcli.PrefixedUi{
 		OutputPrefix: "==> ",
-		InfoPrefix:   "    ", // Note that startupLogger also uses this prefix
+		InfoPrefix:   "    ",
 		ErrorPrefix:  "==> ",
 		Ui:           c.ui,
 	}
@@ -145,30 +175,7 @@ func (c *cmd) run(args []string) int {
 		c.configLoadOpts.DefaultConfig = source
 		return config.Load(c.configLoadOpts)
 	}
-
-	// wait for signal
-	signalCh := make(chan os.Signal, 10)
-	signal.Notify(signalCh, os.Interrupt, syscall.SIGTERM, syscall.SIGHUP, syscall.SIGPIPE)
-
-	ctx, cancel := context.WithCancel(context.Background())
-
-	// startup logger is a shim since we need to be about to log both before and
-	// after logging is setup properly but before agent has started fully. This
-	// takes care of that!
-	suLogger := newStartupLogger()
-	go handleStartupSignals(ctx, cancel, signalCh, suLogger)
-
-	// See if we need to bootstrap config from HCP before we go any further with
-	// agent startup. We override loader with the one returned as it may be
-	// modified to include HCP-provided config.
-	var err error
-	_, loader, err = hcpbootstrap.MaybeBootstrap(ctx, loader, ui)
-	if err != nil {
-		ui.Error(err.Error())
-		return 1
-	}
-
-	bd, err := agent.NewBaseDeps(loader, logGate, nil)
+	bd, err := agent.NewBaseDeps(loader, logGate)
 	if err != nil {
 		ui.Error(err.Error())
 		return 1
@@ -180,14 +187,11 @@ func (c *cmd) run(args []string) int {
 		return 1
 	}
 
-	// Upgrade our startupLogger to use the real logger now we have it
-	suLogger.SetLogger(c.logger)
-
 	config := bd.RuntimeConfig
 	if config.Logging.LogJSON {
 		// Hide all non-error output when JSON logging is enabled.
 		ui.Ui = &cli.BasicUI{
-			BasicUi: mcli.BasicUi{ErrorWriter: c.ui.Stderr(), Writer: io.Discard},
+			BasicUi: mcli.BasicUi{ErrorWriter: c.ui.Stderr(), Writer: ioutil.Discard},
 		}
 	}
 
@@ -209,8 +213,8 @@ func (c *cmd) run(args []string) int {
 	}
 	ui.Info(fmt.Sprintf("       Datacenter: '%s' (Segment: '%s')", config.Datacenter, segment))
 	ui.Info(fmt.Sprintf("           Server: %v (Bootstrap: %v)", config.ServerMode, config.Bootstrap))
-	ui.Info(fmt.Sprintf("      Client Addr: %v (HTTP: %d, HTTPS: %d, gRPC: %d, gRPC-TLS: %d, DNS: %d)", config.ClientAddrs,
-		config.HTTPPort, config.HTTPSPort, config.GRPCPort, config.GRPCTLSPort, config.DNSPort))
+	ui.Info(fmt.Sprintf("      Client Addr: %v (HTTP: %d, HTTPS: %d, gRPC: %d, DNS: %d)", config.ClientAddrs,
+		config.HTTPPort, config.HTTPSPort, config.GRPCPort, config.DNSPort))
 	ui.Info(fmt.Sprintf("     Cluster Addr: %v (LAN: %d, WAN: %d)", config.AdvertiseAddrLAN,
 		config.SerfPortLAN, config.SerfPortWAN))
 	ui.Info(fmt.Sprintf("Gossip Encryption: %t", config.EncryptKey != ""))
@@ -224,6 +228,38 @@ func (c *cmd) run(args []string) int {
 	ui.Output("")
 	ui.Output("Log data will now stream in as it occurs:\n")
 	logGate.Flush()
+
+	// wait for signal
+	signalCh := make(chan os.Signal, 10)
+	signal.Notify(signalCh, os.Interrupt, syscall.SIGTERM, syscall.SIGHUP, syscall.SIGPIPE)
+
+	ctx, cancel := context.WithCancel(context.Background())
+
+	go func() {
+		for {
+			var sig os.Signal
+			select {
+			case s := <-signalCh:
+				sig = s
+			case <-ctx.Done():
+				return
+			}
+
+			switch sig {
+			case syscall.SIGPIPE:
+				continue
+
+			case syscall.SIGHUP:
+				err := fmt.Errorf("cannot reload before agent started")
+				c.logger.Error("Caught", "signal", sig, "error", err)
+
+			default:
+				c.logger.Info("Caught", "signal", sig)
+				cancel()
+				return
+			}
+		}
+	}()
 
 	err = agent.Start(ctx)
 	signal.Stop(signalCh)
@@ -240,6 +276,16 @@ func (c *cmd) run(args []string) int {
 
 	if !config.DisableUpdateCheck && !config.DevMode {
 		c.startupUpdateCheck(config)
+	}
+
+	if err := c.startupJoin(agent, config); err != nil {
+		c.logger.Error(err.Error())
+		return 1
+	}
+
+	if err := c.startupJoinWan(agent, config); err != nil {
+		c.logger.Error(err.Error())
+		return 1
 	}
 
 	// Let the agent know we've finished registration
@@ -312,32 +358,6 @@ func (c *cmd) run(args []string) int {
 				c.logger.Info("Graceful exit completed")
 				return 0
 			}
-		}
-	}
-}
-
-func handleStartupSignals(ctx context.Context, cancel func(), signalCh chan os.Signal, logger *startupLogger) {
-	for {
-		var sig os.Signal
-		select {
-		case s := <-signalCh:
-			sig = s
-		case <-ctx.Done():
-			return
-		}
-
-		switch sig {
-		case syscall.SIGPIPE:
-			continue
-
-		case syscall.SIGHUP:
-			err := fmt.Errorf("cannot reload before agent started")
-			logger.Error("Caught", "signal", sig, "error", err)
-
-		default:
-			logger.Info("Caught", "signal", sig)
-			cancel()
-			return
 		}
 	}
 }

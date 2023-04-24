@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 //go:build !consulent
 // +build !consulent
 
@@ -34,7 +31,7 @@ func addEnterpriseKVUsage(map[string]int, memdb.Change) {}
 
 func addEnterpriseConfigEntryUsage(map[string]int, memdb.Change) {}
 
-func compileEnterpriseServiceUsage(ws memdb.WatchSet, tx ReadTxn, usage structs.ServiceUsage) (structs.ServiceUsage, error) {
+func compileEnterpriseServiceUsage(tx ReadTxn, usage structs.ServiceUsage) (structs.ServiceUsage, error) {
 	return usage, nil
 }
 

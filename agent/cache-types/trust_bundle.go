@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package cachetype
 
 import (
@@ -15,7 +12,7 @@ import (
 	"github.com/hashicorp/consul/agent/cache"
 	external "github.com/hashicorp/consul/agent/grpc-external"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/proto/private/pbpeering"
+	"github.com/hashicorp/consul/proto/pbpeering"
 )
 
 // Recommended name for registration.
@@ -86,12 +83,7 @@ func (t *TrustBundle) Fetch(_ cache.FetchOptions, req cache.Request) (cache.Fetc
 	reqReal.QueryOptions.SetAllowStale(true)
 
 	// Fetch
-	ctx, err := external.ContextWithQueryOptions(context.Background(), reqReal.QueryOptions)
-	if err != nil {
-		return result, err
-	}
-
-	reply, err := t.Client.TrustBundleRead(ctx, reqReal.Request)
+	reply, err := t.Client.TrustBundleRead(external.ContextWithToken(context.Background(), reqReal.Token), reqReal.Request)
 	if err != nil {
 		return result, err
 	}

@@ -1,10 +1,8 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package config
 
 import (
 	"fmt"
+	"io/ioutil"
 	"net"
 	"os"
 	"path/filepath"
@@ -71,7 +69,42 @@ func TestShouldParseFile(t *testing.T) {
 }
 
 func TestNewBuilder_PopulatesSourcesFromConfigFiles(t *testing.T) {
-	path, err := os.MkdirTemp("", t.Name())
+	paths := setupConfigFiles(t)
+
+	b, err := newBuilder(LoadOpts{ConfigFiles: paths})
+	require.NoError(t, err)
+
+	expected := []Source{
+		FileSource{Name: paths[0], Format: "hcl", Data: "content a", FromUser: true},
+		FileSource{Name: paths[1], Format: "json", Data: "content b", FromUser: true},
+		FileSource{Name: filepath.Join(paths[3], "a.hcl"), Format: "hcl", Data: "content a", FromUser: true},
+		FileSource{Name: filepath.Join(paths[3], "b.json"), Format: "json", Data: "content b", FromUser: true},
+	}
+	require.Equal(t, expected, b.Sources)
+	require.Len(t, b.Warnings, 2)
+}
+
+func TestNewBuilder_PopulatesSourcesFromConfigFiles_WithConfigFormat(t *testing.T) {
+	paths := setupConfigFiles(t)
+
+	b, err := newBuilder(LoadOpts{ConfigFiles: paths, ConfigFormat: "hcl"})
+	require.NoError(t, err)
+
+	expected := []Source{
+		FileSource{Name: paths[0], Format: "hcl", Data: "content a", FromUser: true},
+		FileSource{Name: paths[1], Format: "hcl", Data: "content b", FromUser: true},
+		FileSource{Name: paths[2], Format: "hcl", Data: "content c", FromUser: true},
+		FileSource{Name: filepath.Join(paths[3], "a.hcl"), Format: "hcl", Data: "content a", FromUser: true},
+		FileSource{Name: filepath.Join(paths[3], "b.json"), Format: "hcl", Data: "content b", FromUser: true},
+		FileSource{Name: filepath.Join(paths[3], "c.yaml"), Format: "hcl", Data: "content c", FromUser: true},
+	}
+	require.Equal(t, expected, b.Sources)
+}
+
+// TODO: this would be much nicer with gotest.tools/fs
+func setupConfigFiles(t *testing.T) []string {
+	t.Helper()
+	path, err := ioutil.TempDir("", t.Name())
 	require.NoError(t, err)
 	t.Cleanup(func() { os.RemoveAll(path) })
 
@@ -80,52 +113,21 @@ func TestNewBuilder_PopulatesSourcesFromConfigFiles(t *testing.T) {
 	require.NoError(t, err)
 
 	for _, dir := range []string{path, subpath} {
-		err = os.WriteFile(filepath.Join(dir, "a.hcl"), []byte("content a"), 0644)
+		err = ioutil.WriteFile(filepath.Join(dir, "a.hcl"), []byte("content a"), 0644)
 		require.NoError(t, err)
 
-		err = os.WriteFile(filepath.Join(dir, "b.json"), []byte("content b"), 0644)
+		err = ioutil.WriteFile(filepath.Join(dir, "b.json"), []byte("content b"), 0644)
 		require.NoError(t, err)
 
-		err = os.WriteFile(filepath.Join(dir, "c.yaml"), []byte("content c"), 0644)
+		err = ioutil.WriteFile(filepath.Join(dir, "c.yaml"), []byte("content c"), 0644)
 		require.NoError(t, err)
 	}
-	paths := []string{
+	return []string{
 		filepath.Join(path, "a.hcl"),
 		filepath.Join(path, "b.json"),
 		filepath.Join(path, "c.yaml"),
+		subpath,
 	}
-
-	t.Run("fail on unknown files", func(t *testing.T) {
-		_, err := newBuilder(LoadOpts{ConfigFiles: append(paths, subpath)})
-		require.Error(t, err)
-	})
-
-	t.Run("skip on unknown files in dir", func(t *testing.T) {
-		b, err := newBuilder(LoadOpts{ConfigFiles: []string{subpath}})
-		require.NoError(t, err)
-
-		expected := []Source{
-			FileSource{Name: filepath.Join(subpath, "a.hcl"), Format: "hcl", Data: "content a"},
-			FileSource{Name: filepath.Join(subpath, "b.json"), Format: "json", Data: "content b"},
-		}
-		require.Equal(t, expected, b.Sources)
-		require.Len(t, b.Warnings, 1)
-	})
-
-	t.Run("force config format", func(t *testing.T) {
-		b, err := newBuilder(LoadOpts{ConfigFiles: append(paths, subpath), ConfigFormat: "hcl"})
-		require.NoError(t, err)
-
-		expected := []Source{
-			FileSource{Name: paths[0], Format: "hcl", Data: "content a"},
-			FileSource{Name: paths[1], Format: "hcl", Data: "content b"},
-			FileSource{Name: paths[2], Format: "hcl", Data: "content c"},
-			FileSource{Name: filepath.Join(subpath, "a.hcl"), Format: "hcl", Data: "content a"},
-			FileSource{Name: filepath.Join(subpath, "b.json"), Format: "hcl", Data: "content b"},
-			FileSource{Name: filepath.Join(subpath, "c.yaml"), Format: "hcl", Data: "content c"},
-		}
-		require.Equal(t, expected, b.Sources)
-	})
 }
 
 func TestLoad_NodeName(t *testing.T) {
@@ -137,11 +139,9 @@ func TestLoad_NodeName(t *testing.T) {
 
 	fn := func(t *testing.T, tc testCase) {
 		opts := LoadOpts{
-			FlagValues: FlagValuesTarget{
-				Config: Config{
-					NodeName: pString(tc.nodeName),
-					DataDir:  pString("dir"),
-				},
+			FlagValues: Config{
+				NodeName: pString(tc.nodeName),
+				DataDir:  pString("dir"),
 			},
 		}
 		patchLoadOptsShims(&opts)
@@ -179,11 +179,9 @@ func TestLoad_NodeName(t *testing.T) {
 func TestBuilder_unixPermissionsVal(t *testing.T) {
 
 	b, _ := newBuilder(LoadOpts{
-		FlagValues: FlagValuesTarget{
-			Config: Config{
-				NodeName: pString("foo"),
-				DataDir:  pString("dir"),
-			},
+		FlagValues: Config{
+			NodeName: pString("foo"),
+			DataDir:  pString("dir"),
 		},
 	})
 
@@ -262,11 +260,9 @@ func TestLoad_EmptyClientAddr(t *testing.T) {
 
 	fn := func(t *testing.T, tc testCase) {
 		opts := LoadOpts{
-			FlagValues: FlagValuesTarget{
-				Config: Config{
-					ClientAddr: tc.clientAddr,
-					DataDir:    pString("dir"),
-				},
+			FlagValues: Config{
+				ClientAddr: tc.clientAddr,
+				DataDir:    pString("dir"),
 			},
 		}
 		patchLoadOptsShims(&opts)
@@ -368,90 +364,6 @@ func TestBuilder_tlsVersion(t *testing.T) {
 	require.Contains(t, b.err.Error(), "2 errors")
 	require.Contains(t, b.err.Error(), deprecatedTLSVersion)
 	require.Contains(t, b.err.Error(), invalidTLSVersion)
-}
-
-func TestBuilder_WarnGRPCTLS(t *testing.T) {
-	tests := []struct {
-		name      string
-		hcl       string
-		expectErr bool
-	}{
-		{
-			name:      "success",
-			hcl:       ``,
-			expectErr: false,
-		},
-		{
-			name: "grpc_tls is disabled but explicitly defined",
-			hcl: `
-			ports { grpc_tls = -1 }
-			tls { grpc { cert_file = "defined" }}
-			`,
-			// This behavior is a little strange, but it allows users
-			// to setup TLS and disable the port if they wish.
-			expectErr: false,
-		},
-		{
-			name: "grpc is disabled",
-			hcl: `
-			ports { grpc = -1 }
-			tls { grpc { cert_file = "defined" }}
-			`,
-			expectErr: false,
-		},
-		{
-			name: "grpc_tls is undefined with default manual cert",
-			hcl: `
-			tls { defaults { cert_file = "defined" }}
-			`,
-			expectErr: true,
-		},
-		{
-			name: "grpc_tls is undefined with manual cert",
-			hcl: `
-			tls { grpc { cert_file = "defined" }}
-			`,
-			expectErr: true,
-		},
-		{
-			name: "grpc_tls is undefined with auto encrypt",
-			hcl: `
-			auto_encrypt { tls = true }
-			tls { grpc { use_auto_cert = true }}
-			`,
-			expectErr: true,
-		},
-		{
-			name: "grpc_tls is undefined with auto config",
-			hcl: `
-			auto_config { enabled = true }
-			tls { grpc { use_auto_cert = true }}
-			`,
-			expectErr: true,
-		},
-	}
-	for _, tc := range tests {
-		// using dev mode skips the need for a data dir
-		// and enables both grpc ports by default.
-		devMode := true
-		builderOpts := LoadOpts{
-			DevMode: &devMode,
-			Overrides: []Source{
-				FileSource{
-					Name:   "overrides",
-					Format: "hcl",
-					Data:   tc.hcl,
-				},
-			},
-		}
-		_, err := Load(builderOpts)
-		if tc.expectErr {
-			require.Error(t, err)
-			require.Contains(t, err.Error(), "listener no longer supports TLS")
-		} else {
-			require.NoError(t, err)
-		}
-	}
 }
 
 func TestBuilder_tlsCipherSuites(t *testing.T) {

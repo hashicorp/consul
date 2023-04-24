@@ -1,3 +1,0 @@
-```release-note:bug
-server: fixes the error trying to source proxy configuration for http checks, in case of proxies using consul-dataplane.
-```

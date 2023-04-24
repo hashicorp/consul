@@ -1,22 +1,20 @@
 ---
 layout: commands
 page_title: 'Commands: Catalog List Services'
-description: >-
-  The `consul catalog services` command returns all known services. It can also get a list of services on a particular node and query services that contain specific metadata.
 ---
 
 # Consul Catalog List Services
 
 Command: `consul catalog services`
 
-Corresponding HTTP API Endpoint: [\[GET\] /v1/catalog/services](/consul/api-docs/catalog#list-services)
+Corresponding HTTP API Endpoint: [\[GET\] /v1/catalog/services](/api-docs/catalog#list-services)
 
 The `catalog services` command prints all known services. It can also query
 for services that match particular metadata or list the services that a
 particular node provides.
 
-The table below shows this command's [required ACLs](/consul/api-docs/api-structure#authentication). Configuration of
-[blocking queries](/consul/api-docs/features/blocking) and [agent caching](/consul/api-docs/features/caching)
+The table below shows this command's [required ACLs](/api-docs/api-structure#authentication). Configuration of
+[blocking queries](/api-docs/features/blocking) and [agent caching](/api-docs/features/caching)
 are not supported from commands, but may be from the corresponding HTTP endpoint.
 
 | ACL Required   |

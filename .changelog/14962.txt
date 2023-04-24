@@ -1,3 +1,0 @@
-```release-note:bug
-xds: Central service configuration (proxy-defaults and service-defaults) is now correctly applied to Consul Dataplane proxies
-```

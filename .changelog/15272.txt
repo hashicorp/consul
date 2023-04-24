@@ -1,3 +1,0 @@
-```release-note:bug
-proxycfg(mesh-gateway): Fix issue where deregistered services are not removed from mesh-gateway clusters.
-```

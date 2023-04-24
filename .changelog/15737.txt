@@ -1,4 +1,0 @@
-```release-note:security
-Upgrades `golang.org/x/net` to prevent a denial of service by excessive memory usage caused by HTTP2 requests. [CVE-2022-41717](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2022-41717)
-```
-

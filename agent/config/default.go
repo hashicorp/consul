@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package config
 
 import (
@@ -100,11 +97,6 @@ func DefaultSource() Source {
 		limits = {
 			http_max_conns_per_client = 200
 			https_handshake_timeout = "5s"
-			request_limits = {
-				mode = "disabled"
-				read_rate = -1
-				write_rate = -1
-			}
 			rpc_handshake_timeout = "5s"
 			rpc_client_timeout = "60s"
 			rpc_rate = -1
@@ -143,23 +135,7 @@ func DefaultSource() Source {
 		raft_snapshot_threshold = ` + strconv.Itoa(int(cfg.RaftConfig.SnapshotThreshold)) + `
 		raft_snapshot_interval =  "` + cfg.RaftConfig.SnapshotInterval.String() + `"
 		raft_trailing_logs = ` + strconv.Itoa(int(cfg.RaftConfig.TrailingLogs)) + `
-		raft_logstore {
-			backend = "boltdb"
-			wal {
-				segment_size_mb = 64
-			}
-		}
-		xds {
-			update_max_per_second = 250
-		}
 
-		connect = {
-			enabled = true
-		}
-
-		peering = {
-			enabled = true
-		}
 	`,
 	}
 }
@@ -197,11 +173,6 @@ func DevSource() Source {
 		connect = {
 			enabled = true
 		}
-
-		peering = {
-			enabled = true
-		}
-
 		performance = {
 			raft_multiplier = 1
 		}

@@ -1,12 +1,6 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package structs
 
 import (
-	"fmt"
-
-	"github.com/hashicorp/consul/acl"
 	"github.com/mitchellh/go-testing-interface"
 )
 
@@ -56,68 +50,6 @@ func TestNodeServiceWithName(t testing.T, name string) *NodeService {
 		Kind:    ServiceKindTypical,
 		Service: name,
 		Port:    8080,
-	}
-}
-
-const peerTrustDomain = "1c053652-8512-4373-90cf-5a7f6263a994.consul"
-
-func TestCheckNodeServiceWithNameInPeer(t testing.T, name, dc, peer, ip string, useHostname bool, remoteEntMeta acl.EnterpriseMeta) CheckServiceNode {
-
-	// Non-default partitions have a different spiffe format.
-	spiffe := fmt.Sprintf("spiffe://%s/ns/default/dc/%s/svc/%s", peerTrustDomain, dc, name)
-	if !remoteEntMeta.InDefaultPartition() {
-		spiffe = fmt.Sprintf("spiffe://%s/ap/%s/ns/%s/dc/%s/svc/%s",
-			peerTrustDomain, remoteEntMeta.PartitionOrDefault(), remoteEntMeta.NamespaceOrDefault(), dc, name)
-	}
-	service := &NodeService{
-		Kind:    ServiceKindTypical,
-		Service: name,
-		// We should not see this port number appear in most xds golden tests,
-		// because the WAN addr should typically be used.
-		Port:     9090,
-		PeerName: peer,
-		Connect: ServiceConnect{
-			PeerMeta: &PeeringServiceMeta{
-				SNI: []string{
-					fmt.Sprintf("%s.%s.%s.%s.external.%s",
-						name, remoteEntMeta.NamespaceOrDefault(), remoteEntMeta.PartitionOrDefault(), peer, peerTrustDomain),
-				},
-				SpiffeID: []string{spiffe},
-				Protocol: "tcp",
-			},
-		},
-		// This value should typically be seen in golden file output, since this is a peered service.
-		TaggedAddresses: map[string]ServiceAddress{
-			TaggedAddressWAN: {
-				Address: ip,
-				Port:    8080,
-			},
-		},
-	}
-
-	if useHostname {
-		service.TaggedAddresses = map[string]ServiceAddress{
-			TaggedAddressLAN: {
-				Address: ip,
-				Port:    443,
-			},
-			TaggedAddressWAN: {
-				Address: name + ".us-east-1.elb.notaws.com",
-				Port:    8443,
-			},
-		}
-	}
-
-	return CheckServiceNode{
-		Node: &Node{
-			ID:   "test1",
-			Node: "test1",
-			// We should not see this address appear in most xds golden tests,
-			// because the WAN addr should typically be used.
-			Address:    "1.23.45.67",
-			Datacenter: dc,
-		},
-		Service: service,
 	}
 }
 

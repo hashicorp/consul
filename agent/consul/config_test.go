@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package consul
 
 import (
@@ -42,7 +39,6 @@ func TestCloneSerfLANConfig(t *testing.T) {
 		"Ping",
 		"ProtocolVersion",
 		"PushPullInterval",
-		"QueueCheckInterval",
 		"RequireNodeNames",
 		"SkipInboundLabelCheck",
 		"SuspicionMaxTimeoutMult",

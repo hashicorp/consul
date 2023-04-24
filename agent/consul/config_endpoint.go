@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package consul
 
 import (
@@ -15,7 +12,6 @@ import (
 	hashstructure_v2 "github.com/mitchellh/hashstructure/v2"
 
 	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/agent/configentry"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 )
@@ -463,12 +459,32 @@ func (c *ConfigEntry) ResolveServiceConfig(args *structs.ServiceConfigRequest, r
 		&args.QueryOptions,
 		&reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
+			var (
+				upstreamIDs     = args.UpstreamIDs
+				legacyUpstreams = false
+			)
+
+			// The request is considered legacy if the deprecated args.Upstream was used
+			if len(upstreamIDs) == 0 && len(args.Upstreams) > 0 {
+				legacyUpstreams = true
+
+				upstreamIDs = make([]structs.ServiceID, 0)
+				for _, upstream := range args.Upstreams {
+					// Before Consul namespaces were released, the Upstreams
+					// provided to the endpoint did not contain the namespace.
+					// Because of this we attach the enterprise meta of the
+					// request, which will just be the default namespace.
+					sid := structs.NewServiceID(upstream, &args.EnterpriseMeta)
+					upstreamIDs = append(upstreamIDs, sid)
+				}
+			}
+
 			// Fetch all relevant config entries.
 			index, entries, err := state.ReadResolvedServiceConfigEntries(
 				ws,
 				args.Name,
 				&args.EnterpriseMeta,
-				args.GetLocalUpstreamIDs(),
+				upstreamIDs,
 				args.Mode,
 			)
 			if err != nil {
@@ -494,8 +510,10 @@ func (c *ConfigEntry) ResolveServiceConfig(args *structs.ServiceConfigRequest, r
 				ranOnce = true
 			}
 
-			thisReply, err := configentry.ComputeResolvedServiceConfig(
+			thisReply, err := computeResolvedServiceConfig(
 				args,
+				upstreamIDs,
+				legacyUpstreams,
 				entries,
 				c.logger,
 			)

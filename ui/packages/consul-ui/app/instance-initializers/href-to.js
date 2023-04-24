@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 import LinkComponent from '@ember/routing/link-component';
 
 export class HrefTo {
@@ -133,7 +128,7 @@ export default {
       const dom = container.lookup('service:dom');
       const doc = dom.document();
 
-      const listener = (e) => {
+      const listener = e => {
         const link = e.target.tagName === 'A' ? e.target : closestLink(e.target);
         if (link) {
           const hrefTo = new HrefTo(container, link);

@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 'use strict';
 
 module.exports = {
@@ -14,8 +9,9 @@ module.exports = {
 
   locals(options) {
     // Return custom template variables here.
-    return {};
-  },
+    return {
+    };
+  }
 
   // afterInstall(options) {
   //   // Perform extra work here.

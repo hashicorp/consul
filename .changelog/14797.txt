@@ -1,3 +1,0 @@
-```release-note:feature
-peering: Ensure un-exported services get deleted even if the un-export happens while cluster peering replication is down.
-```

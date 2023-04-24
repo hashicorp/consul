@@ -1,8 +1,3 @@
-{{!
-  Copyright (c) HashiCorp, Inc.
-  SPDX-License-Identifier: MPL-2.0
-}}
-
 <Route
   @name={{routeName}}
 as |route|>
@@ -49,19 +44,25 @@ as |route|>
       {{! TODO: Looks like we can get this straight from item.Proxy.Mode }}
       {{! the less we need `proxy` and `meta` the better }}
       {{#if (eq meta.ServiceProxy.Mode 'transparent')}}
-        <Hds::Alert @type="inline" @color="warning" class="mb-3 mt-2" as |A|>
-          <A.Title>{{t "routes.dc.services.instance.upstreams.tproxy-mode.header"}}</A.Title>
-          <A.Description>
-            {{t "routes.dc.services.instance.upstreams.tproxy-mode.body"}}
-          </A.Description>
-          <A.Link::Standalone
-            @text={{t "routes.dc.services.instance.upstreams.tproxy-mode.footer.text"}}
-            @href='{{concat (env 'CONSUL_DOCS_URL') (t "routes.dc.services.instance.upstreams.tproxy-mode.footer.link")}}'
-            @icon="docs-link"
-            @iconPosition="trailing"
-            @size="small"
-          />
-        </Hds::Alert>
+        <Notice
+          @type="warning"
+        as |notice|>
+          <notice.Header>
+            <h3>
+              {{t "routes.dc.services.instance.upstreams.tproxy-mode.header"}}
+            </h3>
+          </notice.Header>
+          <notice.Body>
+            {{t "routes.dc.services.instance.upstreams.tproxy-mode.body"
+              htmlSafe=true
+            }}
+          </notice.Body>
+          <notice.Footer>
+            {{t "routes.dc.services.instance.upstreams.tproxy-mode.footer"
+              htmlSafe=true
+            }}
+          </notice.Footer>
+        </Notice>
       {{/if}}
       <DataCollection
         @type="upstream-instance"

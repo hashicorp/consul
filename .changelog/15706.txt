@@ -1,0 +1,3 @@
+```release-note:security
+Upgrade to use Go 1.18.9. This resolves a vulnerability where restricted files can be read on Windows. [CVE-2022-41720](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2022-41720)
+```

@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package consul
 
 import (
@@ -622,7 +619,8 @@ func (m *Internal) ExportedPeeredServices(args *structs.DCSpecificRequest, reply
 		return err
 	}
 
-	authz, err := m.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, nil)
+	var authzCtx acl.AuthorizerContext
+	authz, err := m.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, &authzCtx)
 	if err != nil {
 		return err
 	}
@@ -634,7 +632,7 @@ func (m *Internal) ExportedPeeredServices(args *structs.DCSpecificRequest, reply
 		&args.QueryOptions,
 		&reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
-			index, serviceMap, err := state.ExportedServicesForAllPeersByName(ws, args.Datacenter, args.EnterpriseMeta)
+			index, serviceMap, err := state.ExportedServicesForAllPeersByName(ws, args.EnterpriseMeta)
 			if err != nil {
 				return err
 			}
@@ -680,7 +678,7 @@ func (m *Internal) ExportedServicesForPeer(args *structs.ServiceDumpRequest, rep
 				reply.Services = nil
 				return errNotFound
 			}
-			idx, exportedSvcs, err := store.ExportedServicesForPeer(ws, p.ID, args.Datacenter)
+			idx, exportedSvcs, err := store.ExportedServicesForPeer(ws, p.ID, "")
 			if err != nil {
 				return fmt.Errorf("error while listing exported services for peer %q: %w", args.PeerName, err)
 			}
@@ -758,7 +756,7 @@ func (m *Internal) EventFire(args *structs.EventFireRequest,
 
 	if err := authz.ToAllowAuthorizer().EventWriteAllowed(args.Name, nil); err != nil {
 		accessorID := authz.AccessorID()
-		m.logger.Warn("user event blocked by ACLs", "event", args.Name, "accessorID", acl.AliasIfAnonymousToken(accessorID))
+		m.logger.Warn("user event blocked by ACLs", "event", args.Name, "accessorID", accessorID)
 		return err
 	}
 

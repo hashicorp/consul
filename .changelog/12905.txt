@@ -1,3 +1,0 @@
-```release-note:improvement
-metrics: Service RPC calls less than 1ms are now emitted as a decimal number.
-```

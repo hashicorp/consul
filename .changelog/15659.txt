@@ -1,3 +1,0 @@
-```release-note:improvement
-connect: Add support for ConsulResolver to specifies a filter expression
-```

@@ -1,3 +1,0 @@
-```release-note:bug
-peering: **(Consul Enterprise only)** Fix issue where connect-enabled services with peer upstreams incorrectly required `service:write` access in the `default` namespace to query data, which was too restrictive. Now having `service:write` to any namespace is sufficient to query the peering data.
-```

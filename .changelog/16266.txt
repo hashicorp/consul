@@ -1,3 +1,0 @@
-```release-note:improvement
-ca: support Vault agent auto-auth config for Vault CA provider using JWT authentication.
-```

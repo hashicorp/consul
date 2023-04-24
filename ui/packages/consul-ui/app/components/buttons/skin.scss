@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 /* decor */
 %button,
 %internal-button {
@@ -16,12 +11,27 @@
   cursor: default;
   box-shadow: none;
 }
+%primary-button,
 %secondary-button,
 %dangerous-button {
   @extend %button;
   border-width: 1px;
   border-radius: var(--decor-radius-100);
-  box-shadow: var(--token-elevation-high-box-shadow);
+  box-shadow: var(--decor-elevation-300);
+}
+/* color */
+%primary-button {
+  @extend %frame-blue-800;
+}
+%primary-button:hover:not(:disabled):not(:active),
+%primary-button:focus {
+  @extend %frame-blue-700;
+}
+%primary-button:disabled {
+  @extend %frame-blue-600;
+}
+%primary-button:hover:active {
+  @extend %frame-blue-900;
 }
 /**/
 %secondary-button:hover:not(:disabled):not(:active),
@@ -32,13 +42,14 @@
   @extend %frame-gray-400;
 }
 %secondary-button:disabled {
-  color: var(--token-color-foreground-faint);
+  color: rgb(var(--tone-gray-600));
 }
 %secondary-button:active {
+  /* %frame-gray-something */
   @extend %frame-gray-700;
-  background-color: var(--token-color-surface-interactive-active);
-  color: var(--token-color-foreground-primary);
-  border-color: var(--token-color-foreground-faint);
+  background-color: rgb(var(--tone-gray-200));
+  color: rgb(var(--tone-gray-800));
+  border-color: rgb(var(--tone-gray-700));
 }
 /**/
 %dangerous-button {
@@ -56,8 +67,8 @@
 }
 
 %internal-button {
-  color: var(--token-color-foreground-strong);
-  background-color: var(--token-color-surface-primary);
+  color: rgb(var(--tone-gray-900));
+  background-color: rgb(var(--tone-gray-000));
 }
 %internal-button-dangerous {
   @extend %frame-red-300;
@@ -66,7 +77,7 @@
   @extend %frame-red-700;
 }
 %internal-button-intent {
-  background-color: var(--token-color-surface-strong);
+  background-color: rgb(var(--tone-gray-050));
 }
 %internal-button:focus,
 %internal-button:hover {
@@ -84,7 +95,7 @@
   top: 0;
   height: 100%;
   margin-left: 8px;
-  background-color: var(--token-color-palette-neutral-300);
+  background-color: rgb(var(--tone-gray-300));
 }
 %sort-button::before {
   @extend %with-sort-mask, %as-pseudo;

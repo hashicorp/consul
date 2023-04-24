@@ -12,26 +12,26 @@ Integrating Vault with Consul on Kubernetes includes a one-time setup on Vault a
 
 Complete the following steps once:
   - Enabling Vault KV Secrets Engine - Version 2 to store arbitrary secrets
-  - Enabling Vault PKI Engine if you are choosing to store and manage either [Consul Server TLS credentials](/consul/docs/k8s/deployment-configurations/vault/data-integration/server-tls) or [Service Mesh and Consul client TLS credentials](/consul/docs/k8s/deployment-configurations/vault/data-integration/connect-ca)
+  - Enabling Vault PKI Engine if you are choosing to store and manage either [Consul Server TLS credentials](/docs/k8s/installation/vault/data-integration/server-tls) or [Service Mesh and Consul client TLS credentials](/docs/k8s/installation/vault/data-integration/connect-ca)
   
 Repeat the following steps for each datacenter in the cluster:
   - Installing the Vault Injector within the Consul datacenter installation
   - Configuring a Kubernetes Auth Method in Vault to authenticate and authorize operations from the Consul datacenter
   - Enable Vault as the Secrets Backend in the Consul datacenter
 
-Please read [Run Vault on Kubernetes](/vault/docs/platform/k8s/helm/run) if instructions on setting up a Vault cluster are needed. 
+Please read [Run Vault on Kubernetes](https://www.vaultproject.io/docs/platform/k8s/helm/run) if instructions on setting up a Vault cluster are needed. 
 
 ## Vault KV Secrets Engine - Version 2
 
 The following secrets can be stored in Vault KV secrets engine, which is meant to handle arbitrary secrets:
-- ACL Bootstrap token ([`global.acls.bootstrapToken`](/consul/docs/k8s/helm#v-global-acls-bootstraptoken))
-- ACL Partition token ([`global.acls.partitionToken`](/consul/docs/k8s/helm#v-global-acls-partitiontoken))
-- ACL Replication token ([`global.acls.replicationToken`](/consul/docs/k8s/helm#v-global-acls-replicationtoken))
-- Gossip encryption key ([`global.gossipEncryption`](/consul/docs/k8s/helm#v-global-gossipencryption))
-- Enterprise license ([`global.enterpriseLicense`](/consul/docs/k8s/helm#v-global-enterpriselicense))
-- Snapshot Agent config ([`client.snapshotAgent.configSecret`](/consul/docs/k8s/helm#v-client-snapshotagent-configsecret))
+- ACL Bootstrap token ([`global.acls.bootstrapToken`](/docs/k8s/helm#v-global-acls-bootstraptoken))
+- ACL Partition token ([`global.acls.partitionToken`](/docs/k8s/helm#v-global-acls-partitiontoken))
+- ACL Replication token ([`global.acls.replicationToken`](/docs/k8s/helm#v-global-acls-replicationtoken))
+- Gossip encryption key ([`global.gossipEncryption`](/docs/k8s/helm#v-global-gossipencryption))
+- Enterprise license ([`global.enterpriseLicense`](/docs/k8s/helm#v-global-enterpriselicense))
+- Snapshot Agent config ([`client.snapshotAgent.configSecret`](/docs/k8s/helm#v-client-snapshotagent-configsecret))
 
-In order to store any of these secrets, we must enable the [Vault KV secrets engine - Version 2](/vault/docs/secrets/kv/kv-v2).
+In order to store any of these secrets, we must enable the [Vault KV secrets engine - Version 2](https://www.vaultproject.io/docs/secrets/kv/kv-v2).
 
 ```shell-session
 $ vault secrets enable -path=consul kv-v2
@@ -39,7 +39,7 @@ $ vault secrets enable -path=consul kv-v2
 
 ## Vault PKI Engine
 
-The Vault PKI Engine must be enabled in order to leverage Vault for issuing Consul Server TLS certificates. More details for configuring the PKI Engine is found in [Bootstrapping the PKI Engine](/consul/docs/k8s/deployment-configurations/vault/data-integration/server-tls#bootstrapping-the-pki-engine) under the Server TLS section.
+The Vault PKI Engine must be enabled in order to leverage Vault for issuing Consul Server TLS certificates. More details for configuring the PKI Engine is found in [Bootstrapping the PKI Engine](/docs/k8s/installation/vault/data-integration/server-tls#bootstrapping-the-pki-engine) under the Server TLS section.
 
 ```shell-session
 $ vault secrets enable pki
@@ -100,7 +100,7 @@ Before installing the Vault Injector and configuring the Vault Kubernetes Auth M
       </Tab>
     </Tabs>
 
-    If Vault is not running on Kubernetes, utilize the `api_addr` as defined in the Vault [High Availability Parameters](/vault/docs/configuration#high-availability-parameters) configuration:
+    If Vault is not running on Kubernetes, utilize the `api_addr` as defined in the Vault [High Availability Parameters](https://www.vaultproject.io/docs/configuration#high-availability-parameters) configuration:
     ```shell-session
     $ export VAULT_SERVER_HOST=<external IP for vault cluster>
     ```
@@ -112,7 +112,7 @@ Before installing the Vault Injector and configuring the Vault Kubernetes Auth M
     $ export VAULT_ADDR=http://${VAULT_SERVER_HOST}:8200
     ```
 
-    If your vault installation is current exposed using SSL, this address will need to use `https` instead of `http`.  You will also need to setup the [`VAULT_CACERT`](/vault/docs/commands#vault_cacert) environment variable.
+    If your vault installation is current exposed using SSL, this address will need to use `https` instead of `http`.  You will also need to setup the [`VAULT_CACERT`](https://www.vaultproject.io/docs/commands#vault_cacert) environment variable.
 
   - VAULT_TOKEN
       
@@ -123,7 +123,7 @@ Before installing the Vault Injector and configuring the Vault Kubernetes Auth M
 
 ## Install Vault Injector in Consul k8s cluster
 
-A minimal valid installation of Vault Kubernetes must include the Agent Injector which is utilized for accessing secrets from Vault. Vault servers could be deployed external to Vault on Kubernetes with the [`injector.externalVaultAddr`](/vault/docs/platform/k8s/helm/configuration#externalvaultaddr) value in the Vault Helm Configuration.
+A minimal valid installation of Vault Kubernetes must include the Agent Injector which is utilized for accessing secrets from Vault. Vault servers could be deployed external to Vault on Kubernetes with the [`injector.externalVaultAddr`](https://www.vaultproject.io/docs/platform/k8s/helm/configuration#externalvaultaddr) value in the Vault Helm Configuration.
 
 ```shell-session
 $ cat <<EOF >> vault-injector.yaml
@@ -153,7 +153,7 @@ Ensure that the Vault Kubernetes Auth method is enabled.
 $ vault auth enable -path=kubernetes-${DATACENTER} kubernetes
 ```
 
-After enabling the Kubernetes auth method, in Vault, ensure that you have configured the Kubernetes Auth method properly as described in [Kubernetes Auth Method Configuration](/vault/docs/auth/kubernetes#configuration). 
+After enabling the Kubernetes auth method, in Vault, ensure that you have configured the Kubernetes Auth method properly as described in [Kubernetes Auth Method Configuration](https://www.vaultproject.io/docs/auth/kubernetes#configuration). 
 
 First, while targeting your Consul cluster, get the externally reachable address of the Consul Kubernetes cluster.
 
@@ -175,14 +175,14 @@ $ vault write auth/kubernetes/config \
 
 ## Update Vault Helm chart
 Finally, you will configure the Consul on Kubernetes helm chart for the datacenter to expect to receive the following values (if you have configured them) to be retrieved from Vault:
-- ACL Bootstrap token ([`global.acls.bootstrapToken`](/consul/docs/k8s/helm#v-global-acls-bootstraptoken))
-- ACL Partition token ([`global.acls.partitionToken`](/consul/docs/k8s/helm#v-global-acls-partitiontoken))
-- ACL Replication token ([`global.acls.replicationToken`](/consul/docs/k8s/helm#v-global-acls-replicationtoken))
-- Enterprise license ([`global.enterpriseLicense`](/consul/docs/k8s/helm#v-global-enterpriselicense))
-- Gossip encryption key ([`global.gossipEncryption`](/consul/docs/k8s/helm#v-global-gossipencryption))
-- Snapshot Agent config ([`client.snapshotAgent.configSecret`](/consul/docs/k8s/helm#v-client-snapshotagent-configsecret))
-- TLS CA certificates ([`global.tls.caCert`](/consul/docs/k8s/helm#v-global-tls-cacert))
-- Server TLS certificates ([`server.serverCert`](/consul/docs/k8s/helm#v-server-servercert))
+- ACL Bootstrap token ([`global.acls.bootstrapToken`](/docs/k8s/helm#v-global-acls-bootstraptoken))
+- ACL Partition token ([`global.acls.partitionToken`](/docs/k8s/helm#v-global-acls-partitiontoken))
+- ACL Replication token ([`global.acls.replicationToken`](/docs/k8s/helm#v-global-acls-replicationtoken))
+- Enterprise license ([`global.enterpriseLicense`](/docs/k8s/helm#v-global-enterpriselicense))
+- Gossip encryption key ([`global.gossipEncryption`](/docs/k8s/helm#v-global-gossipencryption))
+- Snapshot Agent config ([`client.snapshotAgent.configSecret`](/docs/k8s/helm#v-client-snapshotagent-configsecret))
+- TLS CA certificates ([`global.tls.caCert`](/docs/k8s/helm#v-global-tls-cacert))
+- Server TLS certificates ([`server.serverCert`](/docs/k8s/helm#v-server-servercert))
 
 <CodeBlockConfig filename="values.yaml">
 
@@ -197,7 +197,7 @@ global:
 
 ## Next Steps
 
-As a next step, please proceed to Vault integration with Consul on Kubernetes' [Data Integration](/consul/docs/k8s/deployment-configurations/vault/data-integration).
+As a next step, please proceed to Vault integration with Consul on Kubernetes' [Data Integration](/docs/k8s/deployment-configurations/vault/data-integration).
 
 ## Troubleshooting
 

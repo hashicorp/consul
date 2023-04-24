@@ -1,3 +1,0 @@
-```release-note:bug
-connect: Fix issue where watches on upstream failover peer targets did not always query the correct data.
-```

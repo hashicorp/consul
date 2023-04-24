@@ -1,0 +1,3 @@
+```release-note:bug
+tls: undo breaking change that prevented setting TLS for gRPC when using config flags available in Consul v1.11.
+```

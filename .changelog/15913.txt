@@ -1,3 +1,0 @@
-```release-note:bug
-cli: Fix issue where `consul connect envoy` was unable to configure TLS over unix-sockets to gRPC.
-```

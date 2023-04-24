@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package xds
 
 import (
@@ -15,7 +12,7 @@ import (
 	envoy_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	envoy_matcher_v3 "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
 
-	"google.golang.org/protobuf/proto"
+	"github.com/golang/protobuf/proto"
 	"google.golang.org/protobuf/types/known/durationpb"
 
 	"github.com/hashicorp/consul/agent/connect"
@@ -34,14 +31,6 @@ func (s *ResourceGenerator) routesFromSnapshot(cfgSnap *proxycfg.ConfigSnapshot)
 	case structs.ServiceKindConnectProxy:
 		return s.routesForConnectProxy(cfgSnap)
 	case structs.ServiceKindIngressGateway:
-		return s.routesForIngressGateway(cfgSnap)
-	case structs.ServiceKindAPIGateway:
-		// TODO Find a cleaner solution, can't currently pass unexported property types
-		var err error
-		cfgSnap.IngressGateway, err = cfgSnap.APIGateway.ToIngress(cfgSnap.Datacenter)
-		if err != nil {
-			return nil, err
-		}
 		return s.routesForIngressGateway(cfgSnap)
 	case structs.ServiceKindTerminatingGateway:
 		return s.routesForTerminatingGateway(cfgSnap)
@@ -68,7 +57,7 @@ func (s *ResourceGenerator) routesForConnectProxy(cfgSnap *proxycfg.ConfigSnapsh
 			continue
 		}
 
-		virtualHost, err := s.makeUpstreamRouteForDiscoveryChain(cfgSnap, uid, chain, []string{"*"}, false)
+		virtualHost, err := makeUpstreamRouteForDiscoveryChain(uid.EnvoyID(), chain, []string{"*"}, "")
 		if err != nil {
 			return nil, err
 		}
@@ -260,12 +249,11 @@ func (s *ResourceGenerator) routesForMeshGateway(cfgSnap *proxycfg.ConfigSnapsho
 
 		uid := proxycfg.NewUpstreamIDFromServiceName(svc)
 
-		virtualHost, err := s.makeUpstreamRouteForDiscoveryChain(
-			cfgSnap,
-			uid,
+		virtualHost, err := makeUpstreamRouteForDiscoveryChain(
+			uid.EnvoyID(),
 			chain,
 			[]string{"*"},
-			true,
+			meshGatewayExportedClusterNamePrefix,
 		)
 		if err != nil {
 			return nil, err
@@ -383,7 +371,7 @@ func (s *ResourceGenerator) routesForIngressGateway(cfgSnap *proxycfg.ConfigSnap
 			}
 
 			domains := generateUpstreamIngressDomains(listenerKey, u)
-			virtualHost, err := s.makeUpstreamRouteForDiscoveryChain(cfgSnap, uid, chain, domains, false)
+			virtualHost, err := makeUpstreamRouteForDiscoveryChain(uid.EnvoyID(), chain, domains, "")
 			if err != nil {
 				return nil, err
 			}
@@ -450,7 +438,7 @@ func findIngressServiceMatchingUpstream(l structs.IngressListener, u structs.Ups
 	// only one IngressService for each unique name although originally that
 	// wasn't checked as it didn't matter. Assume there is only one now
 	// though!
-	wantSID := u.DestinationID().ServiceName.ToServiceID()
+	wantSID := u.DestinationID()
 	var foundSameNSWildcard *structs.IngressService
 	for _, s := range l.Services {
 		sid := structs.NewServiceID(s.Name, &s.EnterpriseMeta)
@@ -516,24 +504,17 @@ func generateUpstreamIngressDomains(listenerKey proxycfg.IngressListenerKey, u s
 	return domains
 }
 
-func (s *ResourceGenerator) makeUpstreamRouteForDiscoveryChain(
-	cfgSnap *proxycfg.ConfigSnapshot,
-	uid proxycfg.UpstreamID,
+func makeUpstreamRouteForDiscoveryChain(
+	routeName string,
 	chain *structs.CompiledDiscoveryChain,
 	serviceDomains []string,
-	forMeshGateway bool,
+	clusterNamePrefix string,
 ) (*envoy_route_v3.VirtualHost, error) {
-	routeName := uid.EnvoyID()
 	var routes []*envoy_route_v3.Route
 
 	startNode := chain.Nodes[chain.StartNode]
 	if startNode == nil {
 		return nil, fmt.Errorf("missing first node in compiled discovery chain for: %s", chain.ServiceName)
-	}
-
-	upstreamsSnapshot, err := cfgSnap.ToConfigSnapshotUpstreams()
-	if err != nil && !forMeshGateway {
-		return nil, err
 	}
 
 	switch startNode.Type {
@@ -557,17 +538,13 @@ func (s *ResourceGenerator) makeUpstreamRouteForDiscoveryChain(
 
 			switch nextNode.Type {
 			case structs.DiscoveryGraphNodeTypeSplitter:
-				routeAction, err = s.makeRouteActionForSplitter(upstreamsSnapshot, nextNode.Splits, chain, forMeshGateway)
+				routeAction, err = makeRouteActionForSplitter(nextNode.Splits, chain, clusterNamePrefix)
 				if err != nil {
 					return nil, err
 				}
 
 			case structs.DiscoveryGraphNodeTypeResolver:
-				ra, ok := s.makeRouteActionForChainCluster(upstreamsSnapshot, nextNode.Resolver.Target, chain, forMeshGateway)
-				if !ok {
-					continue
-				}
-				routeAction = ra
+				routeAction = makeRouteActionForChainCluster(nextNode.Resolver.Target, chain, clusterNamePrefix)
 
 			default:
 				return nil, fmt.Errorf("unexpected graph node after route %q", nextNode.Type)
@@ -592,12 +569,26 @@ func (s *ResourceGenerator) makeUpstreamRouteForDiscoveryChain(
 					routeAction.Route.Timeout = durationpb.New(destination.RequestTimeout)
 				}
 
-				if destination.IdleTimeout > 0 {
-					routeAction.Route.IdleTimeout = durationpb.New(destination.IdleTimeout)
-				}
-
 				if destination.HasRetryFeatures() {
-					routeAction.Route.RetryPolicy = getRetryPolicyForDestination(destination)
+					retryPolicy := &envoy_route_v3.RetryPolicy{}
+					if destination.NumRetries > 0 {
+						retryPolicy.NumRetries = makeUint32Value(int(destination.NumRetries))
+					}
+
+					// The RetryOn magic values come from: https://www.envoyproxy.io/docs/envoy/v1.10.0/configuration/http_filters/router_filter#config-http-filters-router-x-envoy-retry-on
+					if destination.RetryOnConnectFailure {
+						retryPolicy.RetryOn = "connect-failure"
+					}
+					if len(destination.RetryOnStatusCodes) > 0 {
+						if retryPolicy.RetryOn != "" {
+							retryPolicy.RetryOn = retryPolicy.RetryOn + ",retriable-status-codes"
+						} else {
+							retryPolicy.RetryOn = "retriable-status-codes"
+						}
+						retryPolicy.RetriableStatusCodes = destination.RetryOnStatusCodes
+					}
+
+					routeAction.Route.RetryPolicy = retryPolicy
 				}
 
 				if err := injectHeaderManipToRoute(destination, route); err != nil {
@@ -612,10 +603,11 @@ func (s *ResourceGenerator) makeUpstreamRouteForDiscoveryChain(
 		}
 
 	case structs.DiscoveryGraphNodeTypeSplitter:
-		routeAction, err := s.makeRouteActionForSplitter(upstreamsSnapshot, startNode.Splits, chain, forMeshGateway)
+		routeAction, err := makeRouteActionForSplitter(startNode.Splits, chain, clusterNamePrefix)
 		if err != nil {
 			return nil, err
 		}
+
 		var lb *structs.LoadBalancer
 		if startNode.LoadBalancer != nil {
 			lb = startNode.LoadBalancer
@@ -632,10 +624,8 @@ func (s *ResourceGenerator) makeUpstreamRouteForDiscoveryChain(
 		routes = []*envoy_route_v3.Route{defaultRoute}
 
 	case structs.DiscoveryGraphNodeTypeResolver:
-		routeAction, ok := s.makeRouteActionForChainCluster(upstreamsSnapshot, startNode.Resolver.Target, chain, forMeshGateway)
-		if !ok {
-			break
-		}
+		routeAction := makeRouteActionForChainCluster(startNode.Resolver.Target, chain, clusterNamePrefix)
+
 		var lb *structs.LoadBalancer
 		if startNode.LoadBalancer != nil {
 			lb = startNode.LoadBalancer
@@ -665,43 +655,6 @@ func (s *ResourceGenerator) makeUpstreamRouteForDiscoveryChain(
 	}
 
 	return host, nil
-}
-
-func getRetryPolicyForDestination(destination *structs.ServiceRouteDestination) *envoy_route_v3.RetryPolicy {
-	retryPolicy := &envoy_route_v3.RetryPolicy{}
-	if destination.NumRetries > 0 {
-		retryPolicy.NumRetries = makeUint32Value(int(destination.NumRetries))
-	}
-
-	// The RetryOn magic values come from: https://www.envoyproxy.io/docs/envoy/v1.10.0/configuration/http_filters/router_filter#config-http-filters-router-x-envoy-retry-on
-	var retryStrings []string
-
-	if len(destination.RetryOn) > 0 {
-		retryStrings = append(retryStrings, destination.RetryOn...)
-	}
-
-	if destination.RetryOnConnectFailure {
-		// connect-failure can be enabled by either adding connect-failure to the RetryOn list or by using the legacy RetryOnConnectFailure option
-		// Check that it's not already in the RetryOn list, so we don't set it twice
-		connectFailureExists := false
-		for _, r := range retryStrings {
-			if r == "connect-failure" {
-				connectFailureExists = true
-			}
-		}
-		if !connectFailureExists {
-			retryStrings = append(retryStrings, "connect-failure")
-		}
-	}
-
-	if len(destination.RetryOnStatusCodes) > 0 {
-		retryStrings = append(retryStrings, "retriable-status-codes")
-		retryPolicy.RetriableStatusCodes = destination.RetryOnStatusCodes
-	}
-
-	retryPolicy.RetryOn = strings.Join(retryStrings, ",")
-
-	return retryPolicy
 }
 
 func makeRouteMatchForDiscoveryRoute(discoveryRoute *structs.DiscoveryRoute) *envoy_route_v3.RouteMatch {
@@ -836,17 +789,13 @@ func makeDefaultRouteMatch() *envoy_route_v3.RouteMatch {
 	}
 }
 
-func (s *ResourceGenerator) makeRouteActionForChainCluster(
-	upstreamsSnapshot *proxycfg.ConfigSnapshotUpstreams,
+func makeRouteActionForChainCluster(
 	targetID string,
 	chain *structs.CompiledDiscoveryChain,
-	forMeshGateway bool,
-) (*envoy_route_v3.Route_Route, bool) {
-	clusterName := s.getTargetClusterName(upstreamsSnapshot, chain, targetID, forMeshGateway, false)
-	if clusterName == "" {
-		return nil, false
-	}
-	return makeRouteActionFromName(clusterName), true
+	clusterNamePrefix string,
+) *envoy_route_v3.Route_Route {
+	target := chain.Targets[targetID]
+	return makeRouteActionFromName(clusterNamePrefix + CustomizeClusterName(target.Name, chain))
 }
 
 func makeRouteActionFromName(clusterName string) *envoy_route_v3.Route_Route {
@@ -859,14 +808,12 @@ func makeRouteActionFromName(clusterName string) *envoy_route_v3.Route_Route {
 	}
 }
 
-func (s *ResourceGenerator) makeRouteActionForSplitter(
-	upstreamsSnapshot *proxycfg.ConfigSnapshotUpstreams,
+func makeRouteActionForSplitter(
 	splits []*structs.DiscoverySplit,
 	chain *structs.CompiledDiscoveryChain,
-	forMeshGateway bool,
+	clusterNamePrefix string,
 ) (*envoy_route_v3.Route_Route, error) {
 	clusters := make([]*envoy_route_v3.WeightedCluster_ClusterWeight, 0, len(splits))
-	totalWeight := 0
 	for _, split := range splits {
 		nextNode := chain.Nodes[split.NextNode]
 
@@ -875,17 +822,14 @@ func (s *ResourceGenerator) makeRouteActionForSplitter(
 		}
 		targetID := nextNode.Resolver.Target
 
-		clusterName := s.getTargetClusterName(upstreamsSnapshot, chain, targetID, forMeshGateway, false)
-		if clusterName == "" {
-			continue
-		}
+		target := chain.Targets[targetID]
+
+		clusterName := clusterNamePrefix + CustomizeClusterName(target.Name, chain)
 
 		// The smallest representable weight is 1/10000 or .01% but envoy
 		// deals with integers so scale everything up by 100x.
-		weight := int(split.Weight * 100)
-		totalWeight += weight
 		cw := &envoy_route_v3.WeightedCluster_ClusterWeight{
-			Weight: makeUint32Value(weight),
+			Weight: makeUint32Value(int(split.Weight * 100)),
 			Name:   clusterName,
 		}
 		if err := injectHeaderManipToWeightedCluster(split.Definition, cw); err != nil {
@@ -899,19 +843,12 @@ func (s *ResourceGenerator) makeRouteActionForSplitter(
 		return nil, fmt.Errorf("number of clusters in splitter must be > 0; got %d", len(clusters))
 	}
 
-	envoyWeightScale := 10000
-	if envoyWeightScale < totalWeight {
-		clusters[0].Weight.Value += uint32(totalWeight - envoyWeightScale)
-	} else {
-		clusters[0].Weight.Value += uint32(envoyWeightScale - totalWeight)
-	}
-
 	return &envoy_route_v3.Route_Route{
 		Route: &envoy_route_v3.RouteAction{
 			ClusterSpecifier: &envoy_route_v3.RouteAction_WeightedClusters{
 				WeightedClusters: &envoy_route_v3.WeightedCluster{
 					Clusters:    clusters,
-					TotalWeight: makeUint32Value(envoyWeightScale), // scaled up 100%
+					TotalWeight: makeUint32Value(10000), // scaled up 100%
 				},
 			},
 		},

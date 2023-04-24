@@ -20,7 +20,7 @@ and discovery terminates.
 ## Interaction with other Config Entries
 
 - Service resolver config entries are a component of [L7 Traffic
-  Management](/consul/docs/connect/l7-traffic).
+  Management](/docs/connect/l7-traffic).
 
 ## UI
 
@@ -166,57 +166,6 @@ spec:
     },
     "*": {
       "Datacenters": ["dc3", "dc4"]
-    }
-  }
-}
-```
-
-</CodeTabs>
-
-Enable failover to a WAN federated datacenter and then a cluster peer for all
-service subsets.
-
-<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
-
-```hcl
-Kind           = "service-resolver"
-Name           = "web"
-ConnectTimeout = "15s"
-Failover = {
-  "*" = {
-    Targets = [
-      {Datacenter = "dc3"},
-      {Peer = "peer-01"}
-    ]
-  }
-}
-```
-
-```yaml
-apiVersion: consul.hashicorp.com/v1alpha1
-kind: ServiceResolver
-metadata:
-  name: web
-spec:
-  connectTimeout: 15s
-  failover:
-    '*':
-      targets:
-      - datacenter: "dc3"
-      - peer: "peer-01"
-```
-
-```json
-{
-  "Kind": "service-resolver",
-  "Name": "web",
-  "ConnectTimeout": "15s",
-  "Failover": {
-    "*": {
-      "Targets": [
-        {"Datacenter": "dc3"},
-        {"Peer": "peer-01"}
-      ]
     }
   }
 }
@@ -429,7 +378,7 @@ spec:
         {
           name: 'namespace',
           description:
-            'If running Consul Open Source, the namespace is ignored (see [Kubernetes Namespaces in Consul OSS](/consul/docs/k8s/crds#consul-oss)). If running Consul Enterprise see [Kubernetes Namespaces in Consul Enterprise](/consul/docs/k8s/crds#consul-enterprise) for more details.',
+            'If running Consul Open Source, the namespace is ignored (see [Kubernetes Namespaces in Consul OSS](/docs/k8s/crds#consul-oss)). If running Consul Enterprise see [Kubernetes Namespaces in Consul Enterprise](/docs/k8s/crds#consul-enterprise) for more details.',
         },
       ],
       hcl: false,
@@ -438,7 +387,7 @@ spec:
       name: 'ConnectTimeout',
       type: 'duration: 0s',
       description:
-        'The timeout for establishing new network connections to this service. The default unit of time is `ns`.',
+        'The timeout for establishing new network connections to this service.',
     },
     {
       name: 'RequestTimeout',
@@ -450,7 +399,7 @@ spec:
       name: 'DefaultSubset',
       type: 'string: ""',
       description:
-        'The subset to use when no explicit subset is requested. If empty, the unnamed subset is used.',
+        'The subset to use when no explicit subset is requested. If empty the unnamed subset is used.',
     },
     {
       name: 'Subsets',
@@ -461,10 +410,10 @@ spec:
         {
           name: 'Filter',
           type: 'string: ""',
-          description: `The filter expression for selecting instances of the 
-                            requested service. If empty, all healthy instances are returned. 
-                            This expression can filter on the same selectors as the
-                            [Health API endpoint](/consul/api-docs/health#filtering-2).`,
+          description: `The [filter expression](/api-docs/features/filtering) to be used for selecting
+                            instances of the requested service. If empty all healthy instances are
+                            returned. This expression can filter on the same selectors as the
+                            [Health API endpoint](/api-docs/health#filtering-2).`,
         },
         {
           name: 'OnlyPassing',
@@ -532,19 +481,6 @@ spec:
           description:
             'Specifies the destination datacenter to resolve the service from.',
         },
-        {
-          name: 'Peer',
-          type: 'string: ""',
-          description:
-              `Specifies the destination cluster peer to resolve the target service name from.
-                  Ensure that [intentions are defined](/consul/docs/connect/cluster-peering/usage/establish-cluster-peering#authorize-services-for-peers)
-                  on the peered cluster to allow the source service to access this redirect target service as an upstream. When
-                  the peer name is specified, Consul uses Envoy's outlier detection to determine
-                  the health of the redirect target based on whether communication attempts to the
-                  redirect target are generally successful. Service health checks imported from a peer
-                  are not considered in the health of a redirect target because they do not account for service
-                  routers, splitters, and resolvers that may be defined in the peer for the target service.`,
-        },
       ],
     },
     {
@@ -558,8 +494,8 @@ spec:
                 string \`"*"\` is a wildcard that applies to any subset not otherwise
                 specified here.
                 <br><br>
-                \`Service\`, \`ServiceSubset\`, \`Namespace\`, \`Targets\`, and
-                \`Datacenters\` cannot all be empty at once.`,
+                \`Service\`, \`ServiceSubset\`, \`Namespace\`, and \`Datacenters\` cannot all be
+                empty at once.`,
         yaml: `Controls when and how to
                 reroute traffic to an alternate pool of service instances.
                 <br><br>
@@ -567,8 +503,8 @@ spec:
                 string \`"*"\` is a wildcard that applies to any subset not otherwise
                 specified here.
                 <br><br>
-                \`service\`, \`serviceSubset\`, \`namespace\`, \`targets\` and
-                \`datacenters\` cannot all be empty at once.`,
+                \`service\`, \`serviceSubset\`, \`namespace\`, and \`datacenters\` cannot all be
+                empty at once.`,
       },
       children: [
         {
@@ -581,81 +517,19 @@ spec:
           name: 'ServiceSubset',
           type: 'string: ""',
           description:
-            'The named subset of the requested service to resolve as the failover group of instances. If empty, the default subset for the requested service is used.',
+            'The named subset of the requested service to resolve as the failover group of instances. If empty the default subset for the requested service is used.',
         },
         {
           name: 'Namespace',
           enterprise: true,
           type: 'string: ""',
           description:
-            'The namespace to resolve the requested service from to form the failover group of instances. If empty, the current namespace is used.',
+            'The namespace to resolve the requested service from to form the failover group of instances. If empty the current namespace is used.',
         },
         {
           name: 'Datacenters',
           type: 'array<string>',
           description: 'A fixed list of datacenters to try during failover.',
-        },
-        {
-          name: 'Targets',
-          type: 'array<ServiceResolverFailoverTarget>',
-          description: `A fixed list of failover targets to try during
-                          failover. It allows operators to express complicated failover
-                          scenarios such as between cluster peers, WAN federated datacenters, and local admin partitions.`,
-          children: [
-            {
-              name: 'Service',
-              type: 'string: ""',
-              description:
-                'The service name to use for the failover target. If empty, the current service name is used.',
-            },
-            {
-              name: 'ServiceSubset',
-              type: 'string: ""',
-              description:
-                'The named subset to use for the failover target. If empty, the default subset for the requested service name is used.',
-            },
-            {
-              name: 'Namespace',
-              enterprise: true,
-              type: 'string: ""',
-              description:
-                `The namespace to use for the failover target. If empty, the \`default\` namespace is used.`,
-            },
-            {
-              name: 'Partition',
-              enterprise: true,
-              type: 'string: ""',
-              description:
-                `The admin partition within the same datacenter to use for the failover target.
-                If empty, the \`default\` partition is used.
-                To use an admin partition in a different datacenter for the failover target,
-                use the \`Peer\` field instead.`,
-            },
-            {
-              name: 'Datacenter',
-              type: 'string: ""',
-              description:
-                `The WAN federated datacenter to use for the failover target.
-                If empty, the current datacenter is used.
-                To use a datacenter for the failover target that is connected
-                with a cluster peering relationship rather than WAN federation,
-                use the \`Peer\` field instead.`,
-            },
-            {
-              name: 'Peer',
-              type: 'string: ""',
-              description:
-              `Specifies the destination cluster peer to resolve the target service name from.
-                  Ensure that [intentions are defined](/consul/docs/connect/cluster-peering/usage/establish-cluster-peering#authorize-services-for-peers)
-                  on the peered cluster to allow the source service to access this failover target service as an upstream.
-                  When the peer name is specified, Consul uses Envoy's outlier detection
-                  to determine the health of the failover target based on
-                  whether communication attempts to the failover target are generally successful.
-                  Service health checks imported from a peer are not considered in the health
-                  of a failover target because they do not account for service routers, splitters, and resolvers
-                  that may be defined in the peer for the target service.`,
-            },
-          ],
         },
       ],
     },
@@ -795,7 +669,7 @@ referenced by their names throughout the other configuration entry kinds.
 
 ## ACLs
 
-Configuration entries may be protected by [ACLs](/consul/docs/security/acl).
+Configuration entries may be protected by [ACLs](/docs/security/acl).
 
 Reading a `service-resolver` config entry requires `service:read` on the resource.
 

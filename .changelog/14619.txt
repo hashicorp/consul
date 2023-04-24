@@ -1,3 +1,0 @@
-```release-note:bug
-checks: Do not set interval as timeout value
-```

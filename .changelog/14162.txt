@@ -1,5 +1,0 @@
-```release-note:improvement
-config-entry: Validate that service-resolver `Failover`s and `Redirect`s only
-specify `Partition` and `Namespace` on Consul Enterprise. This prevents scenarios
-where OSS Consul would save service-resolvers that require Consul Enterprise.
-```

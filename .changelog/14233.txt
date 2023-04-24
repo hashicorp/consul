@@ -1,3 +1,3 @@
-```release-note:bug
+```release-note:bugfix
 rpc: Adds max jitter to client deadlines to prevent i/o deadline errors on blocking queries
 ```

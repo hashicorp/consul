@@ -1,3 +1,0 @@
-```release-note:bug
-peering: Fix a bug that resulted in /v1/agent/metrics returning an error.
-```

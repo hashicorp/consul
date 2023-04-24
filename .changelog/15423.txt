@@ -1,3 +1,0 @@
-```release-note:bug
-sdk: Fix SDK testutil backwards compatibility by only configuring grpc_tls port for new Consul versions.
-```

@@ -22,20 +22,20 @@ description: >-
 ## Supported Software
 
 - Consul 1.11.x, Consul 1.12.x and Consul 1.13.1+
-- Kubernetes 1.19.x - 1.24.x 
+- Kubernetes 1.19-1.24
 - Kubectl 1.19+
 - Helm 3.2+
 - Envoy proxy support is determined by the Consul version deployed. Refer to
-  [Envoy Integration](/consul/docs/connect/proxies/envoy) for details.
+  [Envoy Integration](/docs/connect/proxies/envoy) for details.
 
 ## Upgrading
 
-For detailed information on upgrading, please refer to the [Upgrades page](/consul/docs/k8s/upgrade)
+For detailed information on upgrading, please refer to the [Upgrades page](/docs/k8s/upgrade)
 
 ## Known Issues
 The following issues are know to exist in the v0.49.0 release: 
 
-- Kubernetes 1.25.x is not supported as the [Pod Security Admission controller](https://kubernetes.io/blog/2022/08/25/pod-security-admission-stable/) is currently not supported by Consul K8s. 
+- Kubernetes 1.25 is not supported as the [Pod Security Admission controller](https://kubernetes.io/blog/2022/08/25/pod-security-admission-stable/) is currently not supported by Consul K8s. 
 
 ## Changelogs
 
@@ -44,7 +44,3 @@ The changelogs for this major release version and any maintenance versions are l
 ~> **Note:** The following link takes you to the changelogs on the GitHub website.
 
 - [0.49.0](https://github.com/hashicorp/consul-k8s/releases/tag/v0.49.0)
-- [0.49.1](https://github.com/hashicorp/consul-k8s/releases/tag/v0.49.1)
-- [0.49.2](https://github.com/hashicorp/consul-k8s/releases/tag/v0.49.2)
-- [0.49.3](https://github.com/hashicorp/consul-k8s/releases/tag/v0.49.3)
-- [0.49.4](https://github.com/hashicorp/consul-k8s/releases/tag/v0.49.4)

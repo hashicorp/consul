@@ -1,12 +1,7 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 %form-element-text-input {
   -moz-appearance: none;
   -webkit-appearance: none;
-  box-shadow: var(--token-surface-inset-box-shadow);
+  box-shadow: inset var(--decor-elevation-100);
   border-radius: var(--decor-radius-100);
   border: var(--decor-border-100);
   outline: none;
@@ -19,22 +14,22 @@ textarea:disabled + .CodeMirror,
 %form fieldset > p,
 %form-element-note,
 %form-element-text-input::placeholder {
-  color: var(--token-color-foreground-disabled);
+  color: rgb(var(--tone-gray-400));
 }
 %form-element-error > input,
 %form-element-error > textarea {
-  border-color: var(--decor-error, var(--token-color-foreground-critical)) !important;
+  border-color: var(--decor-error-500, rgb(var(--tone-red-500))) !important;
 }
 %form-element-text-input {
-  color: var(--token-color-foreground-faint);
-  border-color: var(--token-color-palette-neutral-300);
+  color: rgb(var(--tone-gray-500));
+  border-color: rgb(var(--tone-gray-300));
 }
 %form-element-text-input-hover {
-  border-color: var(--token-color-foreground-faint);
+  border-color: rgb(var(--tone-gray-500));
 }
 %form-element-text-input-focus {
-  border-color: var(--typo-action, var(--token-color-foreground-action));
+  border-color: var(--typo-action-500, rgb(var(--tone-blue-500)));
 }
 %form-element-label {
-  color: var(--typo-contrast, inherit);
+  color: var(--typo-contrast-999, inherit);
 }

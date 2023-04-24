@@ -1,3 +1,0 @@
-```release-note:feature
-peering: Add support for stale queries for trust bundle lookups
-```

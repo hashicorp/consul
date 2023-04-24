@@ -1,3 +1,0 @@
-```release-note:feature
-snapshot: **(Enterprise Only)** Add support for the snapshot agent to use an IAM role for authentication/authorization when managing snapshots in S3.
-```

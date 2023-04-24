@@ -1,10 +1,5 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
-export default function (clickable, is) {
-  return function (obj) {
+export default function(clickable, is) {
+  return function(obj) {
     return {
       ...obj,
       ...{

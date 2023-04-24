@@ -18,13 +18,8 @@
       'TERMINATED',
       'UNDEFINED'
     ])}",
-    "StreamStatus": {
-      "LastHeartbeat": "${fake.date.past(10).toISOString()}",
-      "LastReceive": "${fake.date.past(10).toISOString()}",
-      "LastSend": "${fake.date.past(10).toISOString()}",
-      "ExportedServices": [${range(0, Math.floor(Math.random() * 10)).map((i) => `"exported-service-${i}"`)}],
-      "ImportedServices": [${range(0, Math.floor(Math.random() * 10)).map((i) => `"imported-service-${i}"`)}]
-    },
+    "ImportedServiceCount": ${fake.random.number({min: 0, max: 4000})},
+    "ExportedServiceCount": ${fake.random.number({min: 0, max: 4000})},
     "PeerID": "${id}",
     "PeerServerName": "${fake.internet.domainName()}",
     "PeerServerAddresses": [

@@ -1,19 +1,17 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package consul
 
 import (
 	"bytes"
 	"crypto"
-	"crypto/rand"
+	crand "crypto/rand"
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/pem"
 	"fmt"
+	"io/ioutil"
+	"math/rand"
 	"net"
 	"net/url"
-	"os"
 	"path"
 	"testing"
 	"time"
@@ -26,10 +24,10 @@ import (
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/internal/go-sso/oidcauth/oidcauthtest"
-	"github.com/hashicorp/consul/proto/private/pbautoconf"
-	"github.com/hashicorp/consul/proto/private/pbconfig"
-	"github.com/hashicorp/consul/proto/private/pbconnect"
-	"github.com/hashicorp/consul/proto/private/prototest"
+	"github.com/hashicorp/consul/proto/pbautoconf"
+	"github.com/hashicorp/consul/proto/pbconfig"
+	"github.com/hashicorp/consul/proto/pbconnect"
+	"github.com/hashicorp/consul/proto/prototest"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
@@ -164,15 +162,15 @@ func TestAutoConfigInitialConfiguration(t *testing.T) {
 		c.AutoConfigAuthzAllowReuse = true
 
 		cafile := path.Join(c.DataDir, "cacert.pem")
-		err := os.WriteFile(cafile, []byte(cacert), 0600)
+		err := ioutil.WriteFile(cafile, []byte(cacert), 0600)
 		require.NoError(t, err)
 
 		certfile := path.Join(c.DataDir, "cert.pem")
-		err = os.WriteFile(certfile, []byte(cert), 0600)
+		err = ioutil.WriteFile(certfile, []byte(cert), 0600)
 		require.NoError(t, err)
 
 		keyfile := path.Join(c.DataDir, "key.pem")
-		err = os.WriteFile(keyfile, []byte(key), 0600)
+		err = ioutil.WriteFile(keyfile, []byte(key), 0600)
 		require.NoError(t, err)
 
 		c.TLSConfig.InternalRPC.CAFile = cafile
@@ -428,7 +426,7 @@ func TestAutoConfig_updateTLSSettingsInConfig(t *testing.T) {
 
 	dir := testutil.TempDir(t, "auto-config-tls-settings")
 	cafile := path.Join(dir, "cacert.pem")
-	err = os.WriteFile(cafile, []byte(cacert), 0600)
+	err = ioutil.WriteFile(cafile, []byte(cacert), 0600)
 	require.NoError(t, err)
 
 	type testCase struct {
@@ -634,7 +632,7 @@ func TestAutoConfig_updateTLSCertificatesInConfig(t *testing.T) {
 	// will error if it cannot load the CA certificate from disk
 	dir := testutil.TempDir(t, "auto-config-tls-certificate")
 	cafile := path.Join(dir, "cacert.pem")
-	err = os.WriteFile(cafile, []byte(cacert), 0600)
+	err = ioutil.WriteFile(cafile, []byte(cacert), 0600)
 	require.NoError(t, err)
 
 	// translate the roots response to protobuf to be embedded
@@ -886,7 +884,7 @@ func TestAutoConfig_parseAutoConfigCSR(t *testing.T) {
 	// customizations to allow for better unit testing.
 	createCSR := func(tmpl *x509.CertificateRequest, privateKey crypto.Signer) (string, error) {
 		connect.HackSANExtensionForCSR(tmpl)
-		bs, err := x509.CreateCertificateRequest(rand.Reader, tmpl, privateKey)
+		bs, err := x509.CreateCertificateRequest(crand.Reader, tmpl, privateKey)
 		require.NoError(t, err)
 		var csrBuf bytes.Buffer
 		err = pem.Encode(&csrBuf, &pem.Block{Type: "CERTIFICATE REQUEST", Bytes: bs})

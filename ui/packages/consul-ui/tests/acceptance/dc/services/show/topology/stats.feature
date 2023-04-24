@@ -14,7 +14,7 @@ Feature: dc / services / show / topology / stats
       dc: dc1
       service: service-0
     ---
-    And I see topologyIsVisible on the tabs
+    And I see topology on the tabs
     And I don't see the "[data-test-topology-metrics-stats]" element
   Scenario: Given metrics is enabled, the Topology tab should display metrics
     Given 1 datacenter model with the value "dc1"
@@ -31,7 +31,7 @@ Feature: dc / services / show / topology / stats
       dc: dc1
       service: service-0
     ---
-    And I see topologyIsVisible on the tabs
+    And I see topology on the tabs
     And I see the "[data-test-topology-metrics-stats]" element
   Scenario: Given metrics is enabled, metrics stats are disabled for an ingress gateway Topology
     Given 1 datacenter model with the value "dc1"
@@ -49,7 +49,7 @@ Feature: dc / services / show / topology / stats
       dc: dc1
       service: ingress-gateway
     ---
-    And I see topologyIsVisible on the tabs
+    And I see topology on the tabs
     And I don't see the "[data-test-topology-metrics-stats]" element
     And I see the "[data-test-topology-metrics-status]" element
   Scenario: Given metrics is enabled, metric stats are disabled for ingress gateway as downstream services
@@ -77,7 +77,7 @@ Feature: dc / services / show / topology / stats
       dc: dc1
       service: service-0
     ---
-    And I see topologyIsVisible on the tabs
+    And I see topology on the tabs
     And I see the "[data-test-sparkline]" element
     And I don't see the "[data-test-topology-metrics-downstream-stats]" element
 

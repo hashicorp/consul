@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package members
 
 import (
@@ -16,6 +13,7 @@ import (
 
 	"github.com/hashicorp/consul/agent"
 	consulapi "github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/lib"
 )
 
 // TODO(partitions): split these tests
@@ -208,6 +206,8 @@ func zip(t *testing.T, k, v []string) map[string]string {
 }
 
 func TestSortByMemberNamePartitionAndSegment(t *testing.T) {
+	lib.SeedMathRand()
+
 	// For the test data we'll give them names that would sort them backwards
 	// if we only sorted by name.
 	newData := func() []*consulapi.AgentMember {

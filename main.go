@@ -1,11 +1,8 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package main
 
 import (
 	"fmt"
-	"io"
+	"io/ioutil"
 	"log"
 	"os"
 
@@ -14,15 +11,20 @@ import (
 	"github.com/hashicorp/consul/command"
 	"github.com/hashicorp/consul/command/cli"
 	"github.com/hashicorp/consul/command/version"
+	"github.com/hashicorp/consul/lib"
 	_ "github.com/hashicorp/consul/service_os"
 )
+
+func init() {
+	lib.SeedMathRand()
+}
 
 func main() {
 	os.Exit(realMain())
 }
 
 func realMain() int {
-	log.SetOutput(io.Discard)
+	log.SetOutput(ioutil.Discard)
 
 	ui := &cli.BasicUI{
 		BasicUi: mcli.BasicUi{Writer: os.Stdout, ErrorWriter: os.Stderr},

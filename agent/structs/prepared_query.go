@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package structs
 
 import (
@@ -45,13 +42,11 @@ func (f *QueryFailoverOptions) AsTargets() []QueryFailoverTarget {
 }
 
 type QueryFailoverTarget struct {
-	// Peer specifies a peer to try during failover.
-	Peer string
+	// PeerName specifies a peer to try during failover.
+	PeerName string
 
 	// Datacenter specifies a datacenter to try during failover.
 	Datacenter string
-
-	acl.EnterpriseMeta
 }
 
 // QueryDNSOptions controls settings when query results are served over DNS.
@@ -110,9 +105,9 @@ type ServiceQuery struct {
 	// should be directly next to their services so this isn't an issue.
 	Connect bool
 
-	// If not empty, Peer represents the peer that the service
+	// If not empty, PeerName represents the peer that the service
 	// was imported from.
-	Peer string
+	PeerName string
 
 	// EnterpriseMeta is the embedded enterprise metadata
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`

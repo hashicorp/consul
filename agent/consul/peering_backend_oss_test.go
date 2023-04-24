@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 //go:build !consulent
 // +build !consulent
 
@@ -14,10 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 	gogrpc "google.golang.org/grpc"
 
-	"github.com/hashicorp/consul/agent/connect"
-	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/proto/private/pbpeering"
-	"github.com/hashicorp/consul/sdk/freeport"
+	"github.com/hashicorp/consul/proto/pbpeering"
 	"github.com/hashicorp/consul/testrpc"
 )
 
@@ -27,18 +21,9 @@ func TestPeeringBackend_RejectsPartition(t *testing.T) {
 	}
 
 	t.Parallel()
-
-	ca := connect.TestCA(t, nil)
 	_, s1 := testServerWithConfig(t, func(c *Config) {
-		c.GRPCTLSPort = freeport.GetOne(t)
-		c.CAConfig = &structs.CAConfiguration{
-			ClusterID: connect.TestClusterID,
-			Provider:  structs.ConsulCAProvider,
-			Config: map[string]interface{}{
-				"PrivateKey": ca.SigningKey,
-				"RootCert":   ca.RootCert,
-			},
-		}
+		c.Datacenter = "dc1"
+		c.Bootstrap = true
 	})
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
@@ -49,7 +34,6 @@ func TestPeeringBackend_RejectsPartition(t *testing.T) {
 
 	conn, err := gogrpc.DialContext(ctx, s1.config.RPCAddr.String(),
 		gogrpc.WithContextDialer(newServerDialer(s1.config.RPCAddr.String())),
-		//nolint:staticcheck
 		gogrpc.WithInsecure(),
 		gogrpc.WithBlock())
 	require.NoError(t, err)
@@ -71,17 +55,9 @@ func TestPeeringBackend_IgnoresDefaultPartition(t *testing.T) {
 	}
 
 	t.Parallel()
-	ca := connect.TestCA(t, nil)
 	_, s1 := testServerWithConfig(t, func(c *Config) {
-		c.GRPCTLSPort = freeport.GetOne(t)
-		c.CAConfig = &structs.CAConfiguration{
-			ClusterID: connect.TestClusterID,
-			Provider:  structs.ConsulCAProvider,
-			Config: map[string]interface{}{
-				"PrivateKey": ca.SigningKey,
-				"RootCert":   ca.RootCert,
-			},
-		}
+		c.Datacenter = "dc1"
+		c.Bootstrap = true
 	})
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
@@ -92,7 +68,6 @@ func TestPeeringBackend_IgnoresDefaultPartition(t *testing.T) {
 
 	conn, err := gogrpc.DialContext(ctx, s1.config.RPCAddr.String(),
 		gogrpc.WithContextDialer(newServerDialer(s1.config.RPCAddr.String())),
-		//nolint:staticcheck
 		gogrpc.WithInsecure(),
 		gogrpc.WithBlock())
 	require.NoError(t, err)

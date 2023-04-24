@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package cachetype
 
 import (
@@ -17,7 +14,7 @@ import (
 	"github.com/hashicorp/consul/agent/cache"
 	external "github.com/hashicorp/consul/agent/grpc-external"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/proto/private/pbpeering"
+	"github.com/hashicorp/consul/proto/pbpeering"
 )
 
 // Recommended name for registration.
@@ -90,12 +87,7 @@ func (t *TrustBundles) Fetch(_ cache.FetchOptions, req cache.Request) (cache.Fet
 	reqReal.QueryOptions.SetAllowStale(true)
 
 	// Fetch
-	ctx, err := external.ContextWithQueryOptions(context.Background(), reqReal.QueryOptions)
-	if err != nil {
-		return result, err
-	}
-
-	reply, err := t.Client.TrustBundleListByService(ctx, reqReal.Request)
+	reply, err := t.Client.TrustBundleListByService(external.ContextWithToken(context.Background(), reqReal.Token), reqReal.Request)
 	if err != nil {
 		// Return an empty result if the error is due to peering being disabled.
 		// This allows mesh gateways to receive an update and confirm that the watch is set.

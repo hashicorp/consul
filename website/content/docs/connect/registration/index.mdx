@@ -7,16 +7,17 @@ description: >-
 
 # Service Mesh Proxy Overview
 
-To enable service mesh proxies, you must define and register them with Consul. Proxies are a type of service in Consul that facilitate highly secure communication between services in a service mesh. The topics in the section outline your options for registering service mesh proxies. You can register proxies independently or nested inside a sidecar service registration.
+To make Connect aware of proxies you will need to register them in a [service
+definition](/docs/discovery/services), just like you would register any other service with Consul. This section outlines your options for registering Connect proxies, either using independent registrations, or in nested sidecar registrations.
 
-## Proxy service registration
+## Proxy Service Registration
 
-To register proxies with independent proxy service registrations, you can define them in either in config files or via the API just like any other service. Learn more about all of the options you can define when registering your proxy service in the [proxy registration documentation](/consul/docs/connect/registration/service-registration).
+To register proxies with independent proxy service registrations, you can define them in either in config files or via the API just like any other service. Learn more about all of the options you can define when registering your proxy service in the [proxy registration documentation](/docs/connect/registration/service-registration).
 
-## Sidecar service registration
+## Sidecar Service Registration
 
 To reduce the amount of boilerplate needed for a sidecar proxy,
 application service definitions may define an inline sidecar service block. This is an opinionated
 shorthand for a separate full proxy registration as described above. For a
 description of how to configure the sidecar proxy as well as the opinionated defaults, see the [sidecar service registrations
-documentation](/consul/docs/connect/registration/sidecar-service).
+documentation](/docs/connect/registration/sidecar-service).

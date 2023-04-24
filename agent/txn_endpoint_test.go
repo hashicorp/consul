@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package agent
 
 import (
@@ -70,9 +67,9 @@ func TestTxnEndpoint_Bad_Size_Item(t *testing.T) {
 				t.Fatalf("err: %v", err)
 			}
 		} else {
-			if httpErr, ok := err.(HTTPError); ok {
-				if httpErr.StatusCode != 413 {
-					t.Fatalf("expected 413 but got %d", httpErr.StatusCode)
+			if err, ok := err.(HTTPError); ok {
+				if err.StatusCode != 413 {
+					t.Fatalf("expected 413 but got %d", err.StatusCode)
 				}
 			} else {
 				t.Fatalf("excected HTTP error but got %v", err)
@@ -153,9 +150,9 @@ func TestTxnEndpoint_Bad_Size_Net(t *testing.T) {
 				t.Fatalf("err: %v", err)
 			}
 		} else {
-			if httpErr, ok := err.(HTTPError); ok {
-				if httpErr.StatusCode != 413 {
-					t.Fatalf("expected 413 but got %d", httpErr.StatusCode)
+			if err, ok := err.(HTTPError); ok {
+				if err.StatusCode != 413 {
+					t.Fatalf("expected 413 but got %d", err.StatusCode)
 				}
 			} else {
 				t.Fatalf("excected HTTP error but got %v", err)
@@ -223,9 +220,9 @@ func TestTxnEndpoint_Bad_Size_Ops(t *testing.T) {
 	resp := httptest.NewRecorder()
 	_, err := a.srv.Txn(resp, req)
 
-	if httpErr, ok := err.(HTTPError); ok {
-		if httpErr.StatusCode != 413 {
-			t.Fatalf("expected 413 but got %d", httpErr.StatusCode)
+	if err, ok := err.(HTTPError); ok {
+		if err.StatusCode != 413 {
+			t.Fatalf("expected 413 but got %d", err.StatusCode)
 		}
 	} else {
 		t.Fatalf("expected HTTP error but got %v", err)
@@ -800,55 +797,4 @@ func TestTxnEndpoint_NodeService(t *testing.T) {
 		},
 	}
 	assert.Equal(t, expected, txnResp)
-}
-
-func TestTxnEndpoint_OperationsSize(t *testing.T) {
-	if testing.Short() {
-		t.Skip("too slow for testing.Short")
-	}
-
-	t.Run("too-many-operations", func(t *testing.T) {
-		var ops []api.TxnOp
-		agent := NewTestAgent(t, "limits = { txn_max_req_len = 700000 }")
-
-		for i := 0; i < 130; i++ {
-			ops = append(ops, api.TxnOp{
-				KV: &api.KVTxnOp{
-					Verb:  api.KVSet,
-					Key:   "key",
-					Value: []byte("test"),
-				},
-			})
-		}
-
-		req, _ := http.NewRequest("PUT", "/v1/txn", jsonBody(ops))
-		resp := httptest.NewRecorder()
-		raw, err := agent.srv.Txn(resp, req)
-		require.Error(t, err)
-		require.Contains(t, err.Error(), "Transaction contains too many operations")
-		require.Nil(t, raw)
-		agent.Shutdown()
-	})
-
-	t.Run("allowed", func(t *testing.T) {
-		var ops []api.TxnOp
-		agent := NewTestAgent(t, "limits = { txn_max_req_len = 700000 }")
-
-		for i := 0; i < 128; i++ {
-			ops = append(ops, api.TxnOp{
-				KV: &api.KVTxnOp{
-					Verb:  api.KVSet,
-					Key:   "key",
-					Value: []byte("test"),
-				},
-			})
-		}
-
-		req, _ := http.NewRequest("PUT", "/v1/txn", jsonBody(ops))
-		resp := httptest.NewRecorder()
-		raw, err := agent.srv.Txn(resp, req)
-		require.NoError(t, err)
-		require.NotNil(t, raw)
-		agent.Shutdown()
-	})
 }

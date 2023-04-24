@@ -1,3 +1,0 @@
-```release-note:enhancement
-peering: Add peering datacenter and partition to initial handshake.
-```

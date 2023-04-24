@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package cachetype
 
 import (
@@ -14,7 +11,7 @@ import (
 	grpcstatus "google.golang.org/grpc/status"
 
 	"github.com/hashicorp/consul/agent/cache"
-	"github.com/hashicorp/consul/proto/private/pbpeering"
+	"github.com/hashicorp/consul/proto/pbpeering"
 )
 
 func TestTrustBundles(t *testing.T) {
@@ -124,7 +121,6 @@ func TestTrustBundles_MultipleUpdates(t *testing.T) {
 	for {
 		select {
 		case <-ctx.Done():
-			t.Fatal("context deadline exceeded")
 			return
 		case update := <-ch:
 			// Expect to receive updates for increasing indexes serially.

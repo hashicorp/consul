@@ -1,11 +1,11 @@
 ---
 layout: docs
-page_title: GatewayClass Resource Configuration
-description: >-
-  A `GatewayClass` resource specifies a controller name, controller parameters, and global `Gateway` options for Consul API Gateway. Learn about its configuration model and reference specifications, and review an example configuration.
+page_title: Consul API Gateway GatewayClass
+description:  >-
+  Consul API Gateway GatewayClass
 ---
 
-# GatewayClass Resource Configuration
+# GatewayClass
 
 This topic provides describes how to configure the `GatewayClass` resource, a generic Kubernetes gateway object used as a template for creating `Gateway` resources.
 
@@ -15,7 +15,7 @@ The `GatewayClass` specification includes the name of the controller (`controlle
 
 When gateways are created from a `GatewayClass`, they use the parameters specified in the `GatewayClass` at the time of instantiation.
 
-The `GatewayClass` resource is a generic Kubernetes gateway object. For configuration specific to Consul API Gateway, see [GatewayClassConfig](/consul/docs/api-gateway/configuration/gatewayclassconfig).
+The `GatewayClass` resource is a generic Kubernetes gateway object. For configuration specific to Consul API Gateway, see [GatewayClassConfig](/docs/api-gateway/configuration/gatewayclassconfig).
 
 ## Configuration model
 The following outline shows how to format the configurations in the `GatewayClass` object. Click on a property name to view details about the configuration.

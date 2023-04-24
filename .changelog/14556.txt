@@ -1,3 +1,0 @@
-```release-note:improvement
-peering: adds an internally managed server certificate for automatic TLS between servers in peer clusters.
-```

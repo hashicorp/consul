@@ -71,7 +71,7 @@ Feature: dc / services / index: List Services
     ---
   Scenario: Viewing the service list page with gateways
     Given 1 datacenter model with the value "dc-1"
-    And 4 service models from yaml
+    And 3 service models from yaml
     ---
       - Name: Service-0-proxy
         Kind: 'connect-proxy'
@@ -88,11 +88,6 @@ Feature: dc / services / index: List Services
         ChecksPassing: 0
         ChecksWarning: 0
         ChecksCritical: 1
-      - Name: Service-3-api-gateway
-        Kind: 'api-gateway'
-        ChecksPassing: 0
-        ChecksWarning: 0
-        ChecksCritical: 1
     ---
 
     When I visit the services page for yaml
@@ -101,12 +96,11 @@ Feature: dc / services / index: List Services
     ---
     Then the url should be /dc-1/services
     And the title should be "Services - Consul"
-    Then I see 3 service models
+    Then I see 2 service models
     And I see kind on the services like yaml
     ---
     - ingress-gateway
     - terminating-gateway
-    - api-gateway
     ---
   Scenario: View a Service in mesh
     Given 1 datacenter model with the value "dc-1"
@@ -171,28 +165,3 @@ Feature: dc / services / index: List Services
     Then I see 2 service models
     And I don't see associatedServiceCount on the services.0
     And I see associatedServiceCount on the services.1
-  Scenario: Viewing the services index page with no services and ACLs enabled 
-    Given 1 datacenter model with the value "dc-1"
-    And 0 service models
-    When I visit the services page for yaml
-    ---
-      dc: dc-1
-    ---
-    Then the url should be /dc-1/services
-    And the title should be "Services - Consul"
-    Then I see 0 service models 
-    And I see the text "There don't seem to be any registered services in this Consul cluster, or you may not have service:read and node:read access to this view. Use Terraform, Kubernetes CRDs, Vault, or the Consul CLI to register Services." in ".empty-state p"
-    And I see the "[data-test-empty-state-login]" element
-  Scenario: Viewing the services index page with no services and ACLs disabled
-    Given ACLs are disabled
-    Given 1 datacenter model with the value "dc-1"
-    And 0 service models
-    When I visit the services page for yaml
-    ---
-      dc: dc-1
-    ---
-    Then the url should be /dc-1/services
-    And the title should be "Services - Consul"
-    Then I see 0 service models 
-    And I see the text "There don't seem to be any registered services in this Consul cluster." in ".empty-state p"
-    And I don't see the "[data-test-empty-state-login]" element

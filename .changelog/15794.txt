@@ -1,3 +1,0 @@
-```release-note:improvement
-cli: connect envoy command errors if grpc ports are not open
-```

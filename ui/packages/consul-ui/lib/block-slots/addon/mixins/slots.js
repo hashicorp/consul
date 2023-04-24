@@ -2,7 +2,7 @@ import { computed, get } from '@ember/object';
 import { A } from '@ember/array';
 import Mixin from '@ember/object/mixin';
 export default Mixin.create({
-  _slots: computed(function () {
+  _slots: computed(function() {
     return A();
   }),
   _activateSlot(name) {

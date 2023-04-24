@@ -1,24 +1,10 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 //go:build !consulent
 // +build !consulent
 
 package acl
 
-// AuthorizerContext contains extra information that can be
-// used in the determination of an ACL enforcement decision.
-type AuthorizerContext struct {
-	// Peer is the name of the peer that the resource was imported from.
-	Peer string
-}
-
-func (c *AuthorizerContext) PeerOrEmpty() string {
-	if c == nil {
-		return ""
-	}
-	return c.Peer
-}
+// AuthorizerContext stub
+type AuthorizerContext struct{}
 
 // enterpriseAuthorizer stub interface
 type enterpriseAuthorizer interface{}

@@ -15,7 +15,7 @@ Feature: dc / services / show-routing: Show Routing for Service
       service: service-0
     ---
     And the title should be "service-0 - Consul"
-    And I see routingIsVisible on the tabs
+    And I see routing on the tabs
   Scenario: Given connect is disabled, the Routing tab should not display or error
     Given 2 datacenter models from yaml
     ---
@@ -51,7 +51,7 @@ Feature: dc / services / show-routing: Show Routing for Service
       dc: dc2
       service: service-1
     ---
-    And I see routingIsVisible on the tabs
+    And I see routing on the tabs
     And I visit the service page for yaml
     ---
       dc: dc1

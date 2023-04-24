@@ -1,3 +1,0 @@
-```release-note:improvement
-telemetry: Added a `consul.xds.server.streamStart` metric to measure time taken to first generate xDS resources for an xDS stream.
-```

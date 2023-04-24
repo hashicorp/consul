@@ -86,7 +86,7 @@ ${(Math.random(1) > 0.3) ? `
       "Intention": {
         "Allowed": ${allowed},
         "HasPermissions": ${hasPerms},
-        "ExternalSource": "${fake.helpers.randomize(['kubernetes', ''])}",
+        "ExternalSource": "${fake.helpers.randomize(['vault', 'nomad', 'kubernetes', ''])}",
         "HasExact": ${fake.random.boolean()},
         "DefaultAllow": ${fake.random.boolean()}
       }
@@ -116,7 +116,7 @@ ${(Math.random(1) > 0.3) ? `
       "Intention": {
         "Allowed": ${allowed},
         "HasPermissions": ${hasPerms},
-        "ExternalSource": "${fake.helpers.randomize(['kubernetes', ''])}",
+        "ExternalSource": "${fake.helpers.randomize(['nomad', 'kubernetes', ''])}",
         "HasExact": ${fake.random.boolean()},
         "DefaultAllow": ${fake.random.boolean()}
       }

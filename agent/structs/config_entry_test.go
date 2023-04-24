@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package structs
 
 import (
@@ -19,7 +16,6 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
-	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/types"
 )
@@ -29,7 +25,7 @@ func TestConfigEntries_ACLs(t *testing.T) {
 	type testcase = configEntryACLTestCase
 
 	newAuthz := func(t *testing.T, src string) acl.Authorizer {
-		policy, err := acl.NewPolicyFromSource(src, nil, nil)
+		policy, err := acl.NewPolicyFromSource(src, acl.SyntaxCurrent, nil, nil)
 		require.NoError(t, err)
 
 		authorizer, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
@@ -180,7 +176,6 @@ type configEntryACLTestCase struct {
 }
 
 func testConfigEntries_ListRelatedServices_AndACLs(t *testing.T, cases []configEntryACLTestCase) {
-
 	// This test tests both of these because they are related functions.
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -301,7 +296,7 @@ func TestDecodeConfigEntry_ServiceDefaults(t *testing.T) {
 }
 
 // TestDecodeConfigEntry is the 'structs' mirror image of
-// command/helpers/helpers_test.go:TestParseConfigEntry
+// command/config/write/config_write_test.go:TestParseConfigEntry
 func TestDecodeConfigEntry(t *testing.T) {
 
 	for _, tc := range []struct {
@@ -345,12 +340,10 @@ func TestDecodeConfigEntry(t *testing.T) {
 				  "moreconfig" {
 					"moar" = "config"
 				  }
-				  "balance_inbound_connections" = "exact_balance"
 				}
 				mesh_gateway {
 					mode = "remote"
 				}
-				mutual_tls_mode = "permissive"
 			`,
 			camel: `
 				Kind = "proxy-defaults"
@@ -365,12 +358,10 @@ func TestDecodeConfigEntry(t *testing.T) {
 				  "moreconfig" {
 					"moar" = "config"
 				  }
-				  "balance_inbound_connections" = "exact_balance"
 				}
 				MeshGateway {
 					Mode = "remote"
 				}
-				MutualTLSMode = "permissive"
 			`,
 			expect: &ProxyConfigEntry{
 				Kind: "proxy-defaults",
@@ -385,12 +376,10 @@ func TestDecodeConfigEntry(t *testing.T) {
 					"moreconfig": map[string]interface{}{
 						"moar": "config",
 					},
-					"balance_inbound_connections": "exact_balance",
 				},
 				MeshGateway: MeshGatewayConfig{
 					Mode: MeshGatewayModeRemote,
 				},
-				MutualTLSMode: MutualTLSModePermissive,
 			},
 		},
 		{
@@ -407,8 +396,6 @@ func TestDecodeConfigEntry(t *testing.T) {
 				mesh_gateway {
 					mode = "remote"
 				}
-				mutual_tls_mode = "permissive"
-				balance_inbound_connections = "exact_balance"
 				upstream_config {
 					overrides = [
 						{
@@ -428,7 +415,6 @@ func TestDecodeConfigEntry(t *testing.T) {
 					defaults {
 						connect_timeout_ms = 5
 						protocol = "http"
-						balance_outbound_connections = "exact_balance"
 						envoy_listener_json = "foo"
 						envoy_cluster_json = "bar"
 						limits {
@@ -451,8 +437,6 @@ func TestDecodeConfigEntry(t *testing.T) {
 				MeshGateway {
 					Mode = "remote"
 				}
-				MutualTLSMode = "permissive"
-				BalanceInboundConnections = "exact_balance"
 				UpstreamConfig {
 					Overrides = [
 						{
@@ -479,7 +463,6 @@ func TestDecodeConfigEntry(t *testing.T) {
 							MaxPendingRequests = 4
 							MaxConcurrentRequests = 5
 						}
-						BalanceOutboundConnections = "exact_balance"
 					}
 				}
 			`,
@@ -495,8 +478,6 @@ func TestDecodeConfigEntry(t *testing.T) {
 				MeshGateway: MeshGatewayConfig{
 					Mode: MeshGatewayModeRemote,
 				},
-				MutualTLSMode:             MutualTLSModePermissive,
-				BalanceInboundConnections: "exact_balance",
 				UpstreamConfig: &UpstreamConfiguration{
 					Overrides: []*UpstreamConfig{
 						{
@@ -521,7 +502,6 @@ func TestDecodeConfigEntry(t *testing.T) {
 							MaxPendingRequests:    intPointer(4),
 							MaxConcurrentRequests: intPointer(5),
 						},
-						BalanceOutboundConnections: "exact_balance",
 					},
 				},
 			},
@@ -614,7 +594,6 @@ func TestDecodeConfigEntry(t *testing.T) {
 						  namespace             = "leek"
 						  prefix_rewrite         = "/alternate"
 						  request_timeout        = "99s"
-						  idle_timeout           = "99s"
 						  num_retries            = 12345
 						  retry_on_connect_failure = true
 						  retry_on_status_codes    = [401, 209]
@@ -716,7 +695,6 @@ func TestDecodeConfigEntry(t *testing.T) {
 						  Namespace             = "leek"
 						  PrefixRewrite         = "/alternate"
 						  RequestTimeout        = "99s"
-						  IdleTimeout           = "99s"
 						  NumRetries            = 12345
 						  RetryOnConnectFailure = true
 						  RetryOnStatusCodes    = [401, 209]
@@ -818,7 +796,6 @@ func TestDecodeConfigEntry(t *testing.T) {
 							Namespace:             "leek",
 							PrefixRewrite:         "/alternate",
 							RequestTimeout:        99 * time.Second,
-							IdleTimeout:           99 * time.Second,
 							NumRetries:            12345,
 							RetryOnConnectFailure: true,
 							RetryOnStatusCodes:    []uint32{401, 209},
@@ -1817,7 +1794,6 @@ func TestDecodeConfigEntry(t *testing.T) {
 				transparent_proxy {
 					mesh_destinations_only = true
 				}
-				allow_enabling_permissive_mutual_tls = true
 				tls {
 					incoming {
 						tls_min_version = "TLSv1_1"
@@ -1839,9 +1815,6 @@ func TestDecodeConfigEntry(t *testing.T) {
 				http {
 					sanitize_x_forwarded_client_cert = true
 				}
-				peering {
-					peer_through_mesh_gateways = true
-				}
 			`,
 			camel: `
 				Kind = "mesh"
@@ -1852,7 +1825,6 @@ func TestDecodeConfigEntry(t *testing.T) {
 				TransparentProxy {
 					MeshDestinationsOnly = true
 				}
-				AllowEnablingPermissiveMutualTLS = true
 				TLS {
 					Incoming {
 						TLSMinVersion = "TLSv1_1"
@@ -1873,10 +1845,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 				}
 				HTTP {
 					SanitizeXForwardedClientCert = true
-				}
-				Peering {
-					PeerThroughMeshGateways = true
-				}
+				}	
 			`,
 			expect: &MeshConfigEntry{
 				Meta: map[string]string{
@@ -1886,7 +1855,6 @@ func TestDecodeConfigEntry(t *testing.T) {
 				TransparentProxy: TransparentProxyMeshConfig{
 					MeshDestinationsOnly: true,
 				},
-				AllowEnablingPermissiveMutualTLS: true,
 				TLS: &MeshTLSConfig{
 					Incoming: &MeshDirectionalTLSConfig{
 						TLSMinVersion: types.TLSv1_1,
@@ -1907,117 +1875,6 @@ func TestDecodeConfigEntry(t *testing.T) {
 				},
 				HTTP: &MeshHTTPConfig{
 					SanitizeXForwardedClientCert: true,
-				},
-				Peering: &PeeringMeshConfig{
-					PeerThroughMeshGateways: true,
-				},
-			},
-		},
-		{
-			name: "api-gateway",
-			snake: `
-				kind = "api-gateway"
-				name = "foo"
-				meta {
-					"foo" = "bar"
-					"gir" = "zim"
-				}
-			`,
-			camel: `
-				Kind = "api-gateway"
-				Name = "foo"
-				Meta {
-					"foo" = "bar"
-					"gir" = "zim"
-				}
-			`,
-			expect: &APIGatewayConfigEntry{
-				Kind: "api-gateway",
-				Name: "foo",
-				Meta: map[string]string{
-					"foo": "bar",
-					"gir": "zim",
-				},
-			},
-		},
-		{
-			name: "inline-certificate",
-			snake: `
-				kind = "inline-certificate"
-				name = "foo"
-				meta {
-					"foo" = "bar"
-					"gir" = "zim"
-				}
-			`,
-			camel: `
-				Kind = "inline-certificate"
-				Name = "foo"
-				Meta {
-					"foo" = "bar"
-					"gir" = "zim"
-				}
-			`,
-			expect: &InlineCertificateConfigEntry{
-				Kind: "inline-certificate",
-				Name: "foo",
-				Meta: map[string]string{
-					"foo": "bar",
-					"gir": "zim",
-				},
-			},
-		},
-		{
-			name: "http-route",
-			snake: `
-				kind = "http-route"
-				name = "foo"
-				meta {
-					"foo" = "bar"
-					"gir" = "zim"
-				}
-			`,
-			camel: `
-				Kind = "http-route"
-				Name = "foo"
-				Meta {
-					"foo" = "bar"
-					"gir" = "zim"
-				}
-			`,
-			expect: &HTTPRouteConfigEntry{
-				Kind: "http-route",
-				Name: "foo",
-				Meta: map[string]string{
-					"foo": "bar",
-					"gir": "zim",
-				},
-			},
-		},
-		{
-			name: "tcp-route",
-			snake: `
-				kind = "tcp-route"
-				name = "foo"
-				meta {
-					"foo" = "bar"
-					"gir" = "zim"
-				}
-			`,
-			camel: `
-				Kind = "tcp-route"
-				Name = "foo"
-				Meta {
-					"foo" = "bar"
-					"gir" = "zim"
-				}
-			`,
-			expect: &TCPRouteConfigEntry{
-				Kind: "tcp-route",
-				Name: "foo",
-				Meta: map[string]string{
-					"foo": "bar",
-					"gir": "zim",
 				},
 			},
 		},
@@ -2076,7 +1933,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 								Partition = "baz"
 							},
 							{
-								Peer = "flarm"
+								PeerName = "flarm"
 							}
 						]
 					},
@@ -2109,7 +1966,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 								Partition: "baz",
 							},
 							{
-								Peer: "flarm",
+								PeerName: "flarm",
 							},
 						},
 					},
@@ -2154,7 +2011,6 @@ func TestDecodeConfigEntry(t *testing.T) {
 }
 
 func TestServiceConfigRequest(t *testing.T) {
-
 	tests := []struct {
 		name     string
 		req      ServiceConfigRequest
@@ -2185,17 +2041,39 @@ func TestServiceConfigRequest(t *testing.T) {
 			wantSame: false,
 		},
 		{
+			name: "legacy upstreams should be different",
+			req: ServiceConfigRequest{
+				Name:      "web",
+				Upstreams: []string{"foo"},
+			},
+			mutate: func(req *ServiceConfigRequest) {
+				req.Upstreams = []string{"foo", "bar"}
+			},
+			wantSame: false,
+		},
+		{
+			name: "legacy upstreams should not depend on order",
+			req: ServiceConfigRequest{
+				Name:      "web",
+				Upstreams: []string{"bar", "foo"},
+			},
+			mutate: func(req *ServiceConfigRequest) {
+				req.Upstreams = []string{"foo", "bar"}
+			},
+			wantSame: true,
+		},
+		{
 			name: "upstreams should be different",
 			req: ServiceConfigRequest{
 				Name: "web",
-				UpstreamServiceNames: []PeeredServiceName{
-					{ServiceName: NewServiceName("foo", nil)},
+				UpstreamIDs: []ServiceID{
+					NewServiceID("foo", nil),
 				},
 			},
 			mutate: func(req *ServiceConfigRequest) {
-				req.UpstreamServiceNames = []PeeredServiceName{
-					{ServiceName: NewServiceName("foo", nil)},
-					{ServiceName: NewServiceName("bar", nil)},
+				req.UpstreamIDs = []ServiceID{
+					NewServiceID("foo", nil),
+					NewServiceID("bar", nil),
 				}
 			},
 			wantSame: false,
@@ -2204,15 +2082,15 @@ func TestServiceConfigRequest(t *testing.T) {
 			name: "upstreams should not depend on order",
 			req: ServiceConfigRequest{
 				Name: "web",
-				UpstreamServiceNames: []PeeredServiceName{
-					{ServiceName: NewServiceName("foo", nil)},
-					{ServiceName: NewServiceName("bar", nil)},
+				UpstreamIDs: []ServiceID{
+					NewServiceID("bar", nil),
+					NewServiceID("foo", nil),
 				},
 			},
 			mutate: func(req *ServiceConfigRequest) {
-				req.UpstreamServiceNames = []PeeredServiceName{
-					{ServiceName: NewServiceName("foo", nil)},
-					{ServiceName: NewServiceName("bar", nil)},
+				req.UpstreamIDs = []ServiceID{
+					NewServiceID("foo", nil),
+					NewServiceID("bar", nil),
 				}
 			},
 			wantSame: true,
@@ -2245,35 +2123,27 @@ func TestServiceConfigRequest(t *testing.T) {
 }
 
 func TestServiceConfigResponse_MsgPack(t *testing.T) {
+	// TODO(banks) lib.MapWalker doesn't actually fix the map[interface{}] issue
+	// it claims to in docs yet. When it does uncomment those cases below.
 	a := ServiceConfigResponse{
 		ProxyConfig: map[string]interface{}{
 			"string": "foo",
-			"map": map[string]interface{}{
-				"baz": "bar",
-			},
+			// "map": map[string]interface{}{
+			// 	"baz": "bar",
+			// },
 		},
-		UpstreamConfigs: []OpaqueUpstreamConfig{
-			{
-				Upstream: PeeredServiceName{
-					ServiceName: NewServiceName("a", acl.DefaultEnterpriseMeta()),
-				},
-				Config: map[string]interface{}{
-					"string": "aaaa",
-					"map": map[string]interface{}{
-						"baz": "aa",
-					},
-				},
+		UpstreamConfigs: map[string]map[string]interface{}{
+			"a": {
+				"string": "aaaa",
+				// "map": map[string]interface{}{
+				// 	"baz": "aa",
+				// },
 			},
-			{
-				Upstream: PeeredServiceName{
-					ServiceName: NewServiceName("b", acl.DefaultEnterpriseMeta()),
-				},
-				Config: map[string]interface{}{
-					"string": "bbbb",
-					"map": map[string]interface{}{
-						"baz": "bb",
-					},
-				},
+			"b": {
+				"string": "bbbb",
+				// "map": map[string]interface{}{
+				// 	"baz": "bb",
+				// },
 			},
 		},
 	}
@@ -2772,99 +2642,6 @@ func TestServiceConfigEntry(t *testing.T) {
 			},
 			validateErr: "Duplicate address",
 		},
-		"validate: invalid inbound connection balance": {
-			entry: &ServiceConfigEntry{
-				Kind:                      ServiceDefaults,
-				Name:                      "external",
-				Protocol:                  "http",
-				BalanceInboundConnections: "invalid",
-			},
-			validateErr: "invalid value for balance_inbound_connections",
-		},
-		"validate: invalid default outbound connection balance": {
-			entry: &ServiceConfigEntry{
-				Kind:     ServiceDefaults,
-				Name:     "external",
-				Protocol: "http",
-				UpstreamConfig: &UpstreamConfiguration{
-					Defaults: &UpstreamConfig{
-						BalanceOutboundConnections: "invalid",
-					},
-				},
-			},
-			validateErr: "invalid value for balance_outbound_connections",
-		},
-		"validate: invalid override outbound connection balance": {
-			entry: &ServiceConfigEntry{
-				Kind:     ServiceDefaults,
-				Name:     "external",
-				Protocol: "http",
-				UpstreamConfig: &UpstreamConfiguration{
-					Overrides: []*UpstreamConfig{
-						{
-							Name:                       "upstream",
-							BalanceOutboundConnections: "invalid",
-						},
-					},
-				},
-			},
-			validateErr: "invalid value for balance_outbound_connections",
-		},
-		"validate: invalid extension": {
-			entry: &ServiceConfigEntry{
-				Kind:     ServiceDefaults,
-				Name:     "external",
-				Protocol: "http",
-				EnvoyExtensions: []EnvoyExtension{
-					{},
-				},
-			},
-			validateErr: "invalid EnvoyExtensions[0]: Name is required",
-		},
-		"validate: invalid extension name": {
-			entry: &ServiceConfigEntry{
-				Kind:     ServiceDefaults,
-				Name:     "external",
-				Protocol: "http",
-				EnvoyExtensions: []EnvoyExtension{
-					{
-						Name: "not-a-builtin",
-					},
-				},
-			},
-			validateErr: `name "not-a-builtin" is not a built-in extension`,
-		},
-		"validate: valid extension": {
-			entry: &ServiceConfigEntry{
-				Kind:     ServiceDefaults,
-				Name:     "external",
-				Protocol: "http",
-				EnvoyExtensions: []EnvoyExtension{
-					{
-						Name: api.BuiltinAWSLambdaExtension,
-						Arguments: map[string]interface{}{
-							"ARN": "some-arn",
-						},
-					},
-				},
-			},
-		},
-		"validate: invalid MutualTLSMode in service-defaults": {
-			entry: &ServiceConfigEntry{
-				Kind:          ServiceDefaults,
-				Name:          "web",
-				MutualTLSMode: MutualTLSMode("invalid-mtls-mode"),
-			},
-			validateErr: `Invalid MutualTLSMode "invalid-mtls-mode". Must be one of "", "strict", or "permissive".`,
-		},
-		"validate: invalid MutualTLSMode in proxy-defaults": {
-			entry: &ServiceConfigEntry{
-				Kind:          ProxyDefaults,
-				Name:          ProxyConfigGlobal,
-				MutualTLSMode: MutualTLSMode("invalid-mtls-mode"),
-			},
-			validateErr: `Invalid MutualTLSMode "invalid-mtls-mode". Must be one of "", "strict", or "permissive".`,
-		},
 	}
 	testConfigEntryNormalizeAndValidate(t, cases)
 }
@@ -2879,11 +2656,10 @@ func TestUpstreamConfig_MergeInto(t *testing.T) {
 		{
 			name: "kitchen sink",
 			source: UpstreamConfig{
-				BalanceOutboundConnections: "exact_balance",
-				EnvoyListenerJSON:          "foo",
-				EnvoyClusterJSON:           "bar",
-				ConnectTimeoutMs:           5,
-				Protocol:                   "http",
+				EnvoyListenerJSON: "foo",
+				EnvoyClusterJSON:  "bar",
+				ConnectTimeoutMs:  5,
+				Protocol:          "http",
 				Limits: &UpstreamLimits{
 					MaxConnections:        intPointer(3),
 					MaxPendingRequests:    intPointer(4),
@@ -2897,11 +2673,10 @@ func TestUpstreamConfig_MergeInto(t *testing.T) {
 			},
 			destination: make(map[string]interface{}),
 			want: map[string]interface{}{
-				"balance_outbound_connections": "exact_balance",
-				"envoy_listener_json":          "foo",
-				"envoy_cluster_json":           "bar",
-				"connect_timeout_ms":           5,
-				"protocol":                     "http",
+				"envoy_listener_json": "foo",
+				"envoy_cluster_json":  "bar",
+				"connect_timeout_ms":  5,
+				"protocol":            "http",
 				"limits": &UpstreamLimits{
 					MaxConnections:        intPointer(3),
 					MaxPendingRequests:    intPointer(4),
@@ -2917,11 +2692,10 @@ func TestUpstreamConfig_MergeInto(t *testing.T) {
 		{
 			name: "kitchen sink override of destination",
 			source: UpstreamConfig{
-				BalanceOutboundConnections: "exact_balance",
-				EnvoyListenerJSON:          "foo",
-				EnvoyClusterJSON:           "bar",
-				ConnectTimeoutMs:           5,
-				Protocol:                   "http",
+				EnvoyListenerJSON: "foo",
+				EnvoyClusterJSON:  "bar",
+				ConnectTimeoutMs:  5,
+				Protocol:          "http",
 				Limits: &UpstreamLimits{
 					MaxConnections:        intPointer(3),
 					MaxPendingRequests:    intPointer(4),
@@ -2934,11 +2708,10 @@ func TestUpstreamConfig_MergeInto(t *testing.T) {
 				MeshGateway: MeshGatewayConfig{Mode: MeshGatewayModeRemote},
 			},
 			destination: map[string]interface{}{
-				"balance_outbound_connections": "",
-				"envoy_listener_json":          "zip",
-				"envoy_cluster_json":           "zap",
-				"connect_timeout_ms":           10,
-				"protocol":                     "grpc",
+				"envoy_listener_json": "zip",
+				"envoy_cluster_json":  "zap",
+				"connect_timeout_ms":  10,
+				"protocol":            "grpc",
 				"limits": &UpstreamLimits{
 					MaxConnections:        intPointer(10),
 					MaxPendingRequests:    intPointer(11),
@@ -2951,11 +2724,10 @@ func TestUpstreamConfig_MergeInto(t *testing.T) {
 				"mesh_gateway": MeshGatewayConfig{Mode: MeshGatewayModeLocal},
 			},
 			want: map[string]interface{}{
-				"balance_outbound_connections": "exact_balance",
-				"envoy_listener_json":          "foo",
-				"envoy_cluster_json":           "bar",
-				"connect_timeout_ms":           5,
-				"protocol":                     "http",
+				"envoy_listener_json": "foo",
+				"envoy_cluster_json":  "bar",
+				"connect_timeout_ms":  5,
+				"protocol":            "http",
 				"limits": &UpstreamLimits{
 					MaxConnections:        intPointer(3),
 					MaxPendingRequests:    intPointer(4),
@@ -2972,11 +2744,10 @@ func TestUpstreamConfig_MergeInto(t *testing.T) {
 			name:   "empty source leaves destination intact",
 			source: UpstreamConfig{},
 			destination: map[string]interface{}{
-				"balance_outbound_connections": "exact_balance",
-				"envoy_listener_json":          "zip",
-				"envoy_cluster_json":           "zap",
-				"connect_timeout_ms":           10,
-				"protocol":                     "grpc",
+				"envoy_listener_json": "zip",
+				"envoy_cluster_json":  "zap",
+				"connect_timeout_ms":  10,
+				"protocol":            "grpc",
 				"limits": &UpstreamLimits{
 					MaxConnections:        intPointer(10),
 					MaxPendingRequests:    intPointer(11),
@@ -2990,11 +2761,10 @@ func TestUpstreamConfig_MergeInto(t *testing.T) {
 				"mesh_gateway": MeshGatewayConfig{Mode: MeshGatewayModeLocal},
 			},
 			want: map[string]interface{}{
-				"balance_outbound_connections": "exact_balance",
-				"envoy_listener_json":          "zip",
-				"envoy_cluster_json":           "zap",
-				"connect_timeout_ms":           10,
-				"protocol":                     "grpc",
+				"envoy_listener_json": "zip",
+				"envoy_cluster_json":  "zap",
+				"connect_timeout_ms":  10,
+				"protocol":            "grpc",
 				"limits": &UpstreamLimits{
 					MaxConnections:        intPointer(10),
 					MaxPendingRequests:    intPointer(11),
@@ -3193,76 +2963,6 @@ func TestProxyConfigEntry(t *testing.T) {
 				Kind:           ProxyDefaults,
 				EnterpriseMeta: *acl.DefaultEnterpriseMeta(),
 			},
-		},
-		"proxy config has invalid failover policy": {
-			entry: &ProxyConfigEntry{
-				Name:           "global",
-				FailoverPolicy: &ServiceResolverFailoverPolicy{Mode: "bad"},
-			},
-			validateErr: `Failover-policy mode must be one of '', 'sequential', or 'order-by-locality'`,
-		},
-		"proxy config with valid failover policy": {
-			entry: &ProxyConfigEntry{
-				Name:           "global",
-				FailoverPolicy: &ServiceResolverFailoverPolicy{Mode: "order-by-locality"},
-			},
-			expected: &ProxyConfigEntry{
-				Name:           ProxyConfigGlobal,
-				Kind:           ProxyDefaults,
-				FailoverPolicy: &ServiceResolverFailoverPolicy{Mode: "order-by-locality"},
-				EnterpriseMeta: *acl.DefaultEnterpriseMeta(),
-			},
-		},
-		"proxy config has invalid access log type": {
-			entry: &ProxyConfigEntry{
-				Name: "global",
-				AccessLogs: AccessLogsConfig{
-					Enabled: true,
-					Type:    "stdin",
-				},
-			},
-			validateErr: "invalid access log type: stdin",
-		},
-		"proxy config has invalid access log config - both text and json formats": {
-			entry: &ProxyConfigEntry{
-				Name: "global",
-				AccessLogs: AccessLogsConfig{
-					Enabled:    true,
-					JSONFormat: "[%START_TIME%]",
-					TextFormat: "{\"start_time\": \"[%START_TIME%]\"}",
-				},
-			},
-			validateErr: "cannot specify both access log JSONFormat and TextFormat",
-		},
-		"proxy config has invalid access log config - file path with wrong type": {
-			entry: &ProxyConfigEntry{
-				Name: "global",
-				AccessLogs: AccessLogsConfig{
-					Enabled: true,
-					Path:    "/tmp/logs.txt",
-				},
-			},
-			validateErr: "path is only valid for file type access logs",
-		},
-		"proxy config has invalid access log config - no file path specified": {
-			entry: &ProxyConfigEntry{
-				Name: "global",
-				AccessLogs: AccessLogsConfig{
-					Enabled: true,
-					Type:    FileLogSinkType,
-				},
-			},
-			validateErr: "path must be specified when using file type access logs",
-		},
-		"proxy config has invalid access log JSON format": {
-			entry: &ProxyConfigEntry{
-				Name: "global",
-				AccessLogs: AccessLogsConfig{
-					Enabled:    true,
-					JSONFormat: "{\"start_time\": \"[%START_TIME%]\"", // Missing trailing brace
-				},
-			},
-			validateErr: "invalid access log json for JSON format",
 		},
 	}
 	testConfigEntryNormalizeAndValidate(t, cases)

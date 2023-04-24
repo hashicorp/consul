@@ -55,23 +55,6 @@ load helpers
   [ "$MAX_REQS" = "30" ]
 }
 
-@test "s2 proxy should have been configured with outlier detection in ingress gateway" {
-  CLUSTER_THRESHOLD=$(get_envoy_cluster_config 127.0.0.1:20000 s2.default.primary | jq '.outlier_detection')
-  echo $CLUSTER_THRESHOLD
-
-  INTERVAL=$(echo $CLUSTER_THRESHOLD | jq --raw-output '.interval')
-  CONSECTIVE5xx=$(echo $CLUSTER_THRESHOLD | jq --raw-output '.consecutive_5xx')
-  ENFORCING_CONSECTIVE5xx=$(echo $CLUSTER_THRESHOLD | jq --raw-output '.enforcing_consecutive_5xx')
-
-  echo "INTERVAL = $INTERVAL"
-  echo "CONSECTIVE5xx = $CONSECTIVE5xx"
-  echo "ENFORCING_CONSECTIVE5xx = $ENFORCING_CONSECTIVE5xx"
-
-  [ "$INTERVAL" = "5s" ]
-  [ "$CONSECTIVE5xx" = "10" ]
-  [ "$ENFORCING_CONSECTIVE5xx" = null ]
-}
-
 @test "ingress should be able to connect to s1 using Host header" {
   assert_expected_fortio_name s1 s1.ingress.consul 9999
 }

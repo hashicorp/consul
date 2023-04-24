@@ -1,12 +1,10 @@
-{{!
-  Copyright (c) HashiCorp, Inc.
-  SPDX-License-Identifier: MPL-2.0
-}}
-
-<Hds::Button
-  @text='Generate token'
+<Action
   form={{@id}}
-  type='submit'
-  disabled={{or (eq @item.Name.length 0)}}
+  @type="submit"
+  {{disabled (or
+    (eq @item.Name.length 0)
+  )}}
   ...attributes
-/>
+>
+  Generate token
+</Action>

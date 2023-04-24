@@ -37,13 +37,14 @@ module.exports = (options) => {
 
   return (tree) => {
     visit(tree, 'element', (node, index, parent) => {
-      if (typeof parent === 'undefined' || parent.tagName !== 'pre' || node.tagName !== 'code') {
+      if (typeof parent === 'undefined' ||
+          parent.tagName !== 'pre' ||
+          node.tagName !== 'code'
+      ) {
         return;
       }
       const languagePrefix = 'language-';
-      const langClass = (
-        (node.properties.className || []).find((item) => item.startsWith(languagePrefix)) || ''
-      ).toLowerCase();
+      const langClass = ((node.properties.className || []).find(item => item.startsWith(languagePrefix)) || '').toLowerCase();
       if (langClass.length === 0) {
         return;
       }

@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 //go:build !consulent
 // +build !consulent
 
@@ -8,7 +5,6 @@ package config
 
 import (
 	"fmt"
-	"net"
 	"os"
 	"testing"
 
@@ -72,12 +68,9 @@ func TestLoad_IntegrationWithFlags_OSS(t *testing.T) {
 			expected: func(rt *RuntimeConfig) {
 				rt.DataDir = dataDir
 				rt.ServerMode = true
-				rt.TLS.ServerMode = true
 				rt.LeaveOnTerm = false
 				rt.SkipLeaveOnInt = true
 				rt.RPCConfig.EnableStreaming = true
-				rt.GRPCTLSPort = 8503
-				rt.GRPCTLSAddrs = []net.Addr{defaultGrpcTlsAddr}
 			},
 		},
 	}
@@ -99,9 +92,9 @@ func TestLoad_ReportingConfig(t *testing.T) {
 		}`
 
 		opts := LoadOpts{
-			FlagValues: FlagValuesTarget{Config: Config{
+			FlagValues: Config{
 				DataDir: &dir,
-			}},
+			},
 			Overrides: []Source{
 				FileSource{
 					Name:   "reporting.json",
@@ -123,9 +116,9 @@ func TestLoad_ReportingConfig(t *testing.T) {
 		`
 
 		opts := LoadOpts{
-			FlagValues: FlagValuesTarget{Config: Config{
+			FlagValues: Config{
 				DataDir: &dir,
-			}},
+			},
 			Overrides: []Source{
 				FileSource{
 					Name:   "reporting.hcl",
@@ -149,9 +142,9 @@ func TestLoad_ReportingConfig(t *testing.T) {
 		}`
 
 		opts := LoadOpts{
-			FlagValues: FlagValuesTarget{Config: Config{
+			FlagValues: Config{
 				DataDir: &dir,
-			}},
+			},
 			Overrides: []Source{
 				FileSource{
 					Name:   "reporting.hcl",

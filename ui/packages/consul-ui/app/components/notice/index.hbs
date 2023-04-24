@@ -1,0 +1,10 @@
+<div
+  class="notice {{or @type 'info'}}"
+  ...attributes
+>
+{{yield (hash
+  Header=(component 'anonymous' tagName="header")
+  Body=(component 'anonymous')
+  Footer=(component 'anonymous' tagName="footer")
+)}}
+</div>

@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package acl
 
 import (
@@ -19,13 +16,15 @@ func errStartsWith(t *testing.T, actual error, expected string) {
 func TestPolicySourceParse(t *testing.T) {
 	cases := []struct {
 		Name      string
+		Syntax    SyntaxVersion
 		Rules     string
 		RulesJSON string
 		Expected  *Policy
 		Err       string
 	}{
 		{
-			Name: "Basic",
+			Name:   "Basic",
+			Syntax: SyntaxCurrent,
 			Rules: `
 				agent_prefix "bar" {
 					policy = "write"
@@ -304,7 +303,290 @@ func TestPolicySourceParse(t *testing.T) {
 			}},
 		},
 		{
+			Name:   "Legacy Basic",
+			Syntax: SyntaxLegacy,
+			Rules: `
+				agent "foo" {
+					policy = "read"
+				}
+				agent "bar" {
+					policy = "write"
+				}
+				event "" {
+					policy = "read"
+				}
+				event "foo" {
+					policy = "write"
+				}
+				event "bar" {
+					policy = "deny"
+				}
+				key "" {
+					policy = "read"
+				}
+				key "foo/" {
+					policy = "write"
+				}
+				key "foo/bar/" {
+					policy = "read"
+				}
+				key "foo/bar/baz" {
+					policy = "deny"
+				}
+				keyring = "deny"
+				node "" {
+					policy = "read"
+				}
+				node "foo" {
+					policy = "write"
+				}
+				node "bar" {
+					policy = "deny"
+				}
+				operator = "deny"
+				service "" {
+					policy = "write"
+				}
+				service "foo" {
+					policy = "read"
+				}
+				session "foo" {
+					policy = "write"
+				}
+				session "bar" {
+					policy = "deny"
+				}
+				session "baz" {
+					policy = "deny"
+				}
+				query "" {
+					policy = "read"
+				}
+				query "foo" {
+					policy = "write"
+				}
+				query "bar" {
+					policy = "deny"
+				}
+				`,
+			RulesJSON: `
+				{
+				  "agent": {
+					"foo": {
+					  "policy": "read"
+					},
+					"bar": {
+					  "policy": "write"
+					}
+				  },
+				  "event": {
+					"": {
+					  "policy": "read"
+					},
+					"foo": {
+					  "policy": "write"
+					},
+					"bar": {
+					  "policy": "deny"
+					}
+				  },
+				  "key": {
+					"": {
+					  "policy": "read"
+					},
+					"foo/": {
+					  "policy": "write"
+					},
+					"foo/bar/": {
+					  "policy": "read"
+					},
+					"foo/bar/baz": {
+					  "policy": "deny"
+					}
+				  },
+				  "keyring": "deny",
+				  "node": {
+					"": {
+					  "policy": "read"
+					},
+					"foo": {
+					  "policy": "write"
+					},
+					"bar": {
+					  "policy": "deny"
+					}
+				  },
+				  "operator": "deny",
+				  "service": {
+					"": {
+					  "policy": "write"
+					},
+					"foo": {
+					  "policy": "read"
+					}
+				  },
+				  "session": {
+					"foo": {
+					  "policy": "write"
+					},
+					"bar": {
+					  "policy": "deny"
+					},
+					"baz": {
+					  "policy": "deny"
+					}
+				  },
+				  "query": {
+					"": {
+					  "policy": "read"
+					},
+					"foo": {
+					  "policy": "write"
+					},
+					"bar": {
+					  "policy": "deny"
+					}
+				  }
+				}
+				`,
+			Expected: &Policy{PolicyRules: PolicyRules{
+				AgentPrefixes: []*AgentRule{
+					{
+						Node:   "foo",
+						Policy: PolicyRead,
+					},
+					{
+						Node:   "bar",
+						Policy: PolicyWrite,
+					},
+				},
+				EventPrefixes: []*EventRule{
+					{
+						Event:  "",
+						Policy: PolicyRead,
+					},
+					{
+						Event:  "foo",
+						Policy: PolicyWrite,
+					},
+					{
+						Event:  "bar",
+						Policy: PolicyDeny,
+					},
+				},
+				Keyring: PolicyDeny,
+				KeyPrefixes: []*KeyRule{
+					{
+						Prefix: "",
+						Policy: PolicyRead,
+					},
+					{
+						Prefix: "foo/",
+						Policy: PolicyWrite,
+					},
+					{
+						Prefix: "foo/bar/",
+						Policy: PolicyRead,
+					},
+					{
+						Prefix: "foo/bar/baz",
+						Policy: PolicyDeny,
+					},
+				},
+				NodePrefixes: []*NodeRule{
+					{
+						Name:   "",
+						Policy: PolicyRead,
+					},
+					{
+						Name:   "foo",
+						Policy: PolicyWrite,
+					},
+					{
+						Name:   "bar",
+						Policy: PolicyDeny,
+					},
+				},
+				Operator: PolicyDeny,
+				PreparedQueryPrefixes: []*PreparedQueryRule{
+					{
+						Prefix: "",
+						Policy: PolicyRead,
+					},
+					{
+						Prefix: "foo",
+						Policy: PolicyWrite,
+					},
+					{
+						Prefix: "bar",
+						Policy: PolicyDeny,
+					},
+				},
+				ServicePrefixes: []*ServiceRule{
+					{
+						Name:   "",
+						Policy: PolicyWrite,
+					},
+					{
+						Name:   "foo",
+						Policy: PolicyRead,
+					},
+				},
+				SessionPrefixes: []*SessionRule{
+					{
+						Node:   "foo",
+						Policy: PolicyWrite,
+					},
+					{
+						Node:   "bar",
+						Policy: PolicyDeny,
+					},
+					{
+						Node:   "baz",
+						Policy: PolicyDeny,
+					},
+				},
+			}},
+		},
+		{
+			Name:      "Service No Intentions (Legacy)",
+			Syntax:    SyntaxLegacy,
+			Rules:     `service "foo" { policy = "write" }`,
+			RulesJSON: `{ "service": { "foo": { "policy": "write" }}}`,
+			Expected: &Policy{PolicyRules: PolicyRules{
+				ServicePrefixes: []*ServiceRule{
+					{
+						Name:   "foo",
+						Policy: "write",
+					},
+				},
+			}},
+		},
+		{
+			Name:      "Service Intentions (Legacy)",
+			Syntax:    SyntaxLegacy,
+			Rules:     `service "foo" { policy = "write" intentions = "read" }`,
+			RulesJSON: `{ "service": { "foo": { "policy": "write", "intentions": "read" }}}`,
+			Expected: &Policy{PolicyRules: PolicyRules{
+				ServicePrefixes: []*ServiceRule{
+					{
+						Name:       "foo",
+						Policy:     "write",
+						Intentions: "read",
+					},
+				},
+			}},
+		},
+		{
+			Name:      "Service Intention: invalid value (Legacy)",
+			Syntax:    SyntaxLegacy,
+			Rules:     `service "foo" { policy = "write" intentions = "foo" }`,
+			RulesJSON: `{ "service": { "foo": { "policy": "write", "intentions": "foo" }}}`,
+			Err:       "Invalid service intentions policy",
+		},
+		{
 			Name:      "Service No Intentions",
+			Syntax:    SyntaxCurrent,
 			Rules:     `service "foo" { policy = "write" }`,
 			RulesJSON: `{ "service": { "foo": { "policy": "write" }}}`,
 			Expected: &Policy{PolicyRules: PolicyRules{
@@ -318,6 +600,7 @@ func TestPolicySourceParse(t *testing.T) {
 		},
 		{
 			Name:      "Service Intentions",
+			Syntax:    SyntaxCurrent,
 			Rules:     `service "foo" { policy = "write" intentions = "read" }`,
 			RulesJSON: `{ "service": { "foo": { "policy": "write", "intentions": "read" }}}`,
 			Expected: &Policy{PolicyRules: PolicyRules{
@@ -332,144 +615,168 @@ func TestPolicySourceParse(t *testing.T) {
 		},
 		{
 			Name:      "Service Intention: invalid value",
+			Syntax:    SyntaxCurrent,
 			Rules:     `service "foo" { policy = "write" intentions = "foo" }`,
 			RulesJSON: `{ "service": { "foo": { "policy": "write", "intentions": "foo" }}}`,
 			Err:       "Invalid service intentions policy",
 		},
 		{
 			Name:      "Bad Policy - ACL",
+			Syntax:    SyntaxCurrent,
 			Rules:     `acl = "list"`,      // there is no list policy but this helps to exercise another check in isPolicyValid
 			RulesJSON: `{ "acl": "list" }`, // there is no list policy but this helps to exercise another check in isPolicyValid
 			Err:       "Invalid acl policy",
 		},
 		{
 			Name:      "Bad Policy - Agent",
+			Syntax:    SyntaxCurrent,
 			Rules:     `agent "foo" { policy = "nope" }`,
 			RulesJSON: `{ "agent": { "foo": { "policy": "nope" }}}`,
 			Err:       "Invalid agent policy",
 		},
 		{
 			Name:      "Bad Policy - Agent Prefix",
+			Syntax:    SyntaxCurrent,
 			Rules:     `agent_prefix "foo" { policy = "nope" }`,
 			RulesJSON: `{ "agent_prefix": { "foo": { "policy": "nope" }}}`,
 			Err:       "Invalid agent_prefix policy",
 		},
 		{
 			Name:      "Bad Policy - Key",
+			Syntax:    SyntaxCurrent,
 			Rules:     `key "foo" { policy = "nope" }`,
 			RulesJSON: `{ "key": { "foo": { "policy": "nope" }}}`,
 			Err:       "Invalid key policy",
 		},
 		{
 			Name:      "Bad Policy - Key Prefix",
+			Syntax:    SyntaxCurrent,
 			Rules:     `key_prefix "foo" { policy = "nope" }`,
 			RulesJSON: `{ "key_prefix": { "foo": { "policy": "nope" }}}`,
 			Err:       "Invalid key_prefix policy",
 		},
 		{
 			Name:      "Bad Policy - Node",
+			Syntax:    SyntaxCurrent,
 			Rules:     `node "foo" { policy = "nope" }`,
 			RulesJSON: `{ "node": { "foo": { "policy": "nope" }}}`,
 			Err:       "Invalid node policy",
 		},
 		{
 			Name:      "Bad Policy - Node Prefix",
+			Syntax:    SyntaxCurrent,
 			Rules:     `node_prefix "foo" { policy = "nope" }`,
 			RulesJSON: `{ "node_prefix": { "foo": { "policy": "nope" }}}`,
 			Err:       "Invalid node_prefix policy",
 		},
 		{
 			Name:      "Bad Policy - Service",
+			Syntax:    SyntaxCurrent,
 			Rules:     `service "foo" { policy = "nope" }`,
 			RulesJSON: `{ "service": { "foo": { "policy": "nope" }}}`,
 			Err:       "Invalid service policy",
 		},
 		{
 			Name:      "Bad Policy - Service Prefix",
+			Syntax:    SyntaxCurrent,
 			Rules:     `service_prefix "foo" { policy = "nope" }`,
 			RulesJSON: `{ "service_prefix": { "foo": { "policy": "nope" }}}`,
 			Err:       "Invalid service_prefix policy",
 		},
 		{
 			Name:      "Bad Policy - Session",
+			Syntax:    SyntaxCurrent,
 			Rules:     `session "foo" { policy = "nope" }`,
 			RulesJSON: `{ "session": { "foo": { "policy": "nope" }}}`,
 			Err:       "Invalid session policy",
 		},
 		{
 			Name:      "Bad Policy - Session Prefix",
+			Syntax:    SyntaxCurrent,
 			Rules:     `session_prefix "foo" { policy = "nope" }`,
 			RulesJSON: `{ "session_prefix": { "foo": { "policy": "nope" }}}`,
 			Err:       "Invalid session_prefix policy",
 		},
 		{
 			Name:      "Bad Policy - Event",
+			Syntax:    SyntaxCurrent,
 			Rules:     `event "foo" { policy = "nope" }`,
 			RulesJSON: `{ "event": { "foo": { "policy": "nope" }}}`,
 			Err:       "Invalid event policy",
 		},
 		{
 			Name:      "Bad Policy - Event Prefix",
+			Syntax:    SyntaxCurrent,
 			Rules:     `event_prefix "foo" { policy = "nope" }`,
 			RulesJSON: `{ "event_prefix": { "foo": { "policy": "nope" }}}`,
 			Err:       "Invalid event_prefix policy",
 		},
 		{
 			Name:      "Bad Policy - Prepared Query",
+			Syntax:    SyntaxCurrent,
 			Rules:     `query "foo" { policy = "nope" }`,
 			RulesJSON: `{ "query": { "foo": { "policy": "nope" }}}`,
 			Err:       "Invalid query policy",
 		},
 		{
 			Name:      "Bad Policy - Prepared Query Prefix",
+			Syntax:    SyntaxCurrent,
 			Rules:     `query_prefix "foo" { policy = "nope" }`,
 			RulesJSON: `{ "query_prefix": { "foo": { "policy": "nope" }}}`,
 			Err:       "Invalid query_prefix policy",
 		},
 		{
 			Name:      "Bad Policy - Keyring",
+			Syntax:    SyntaxCurrent,
 			Rules:     `keyring = "nope"`,
 			RulesJSON: `{ "keyring": "nope" }`,
 			Err:       "Invalid keyring policy",
 		},
 		{
 			Name:      "Bad Policy - Operator",
+			Syntax:    SyntaxCurrent,
 			Rules:     `operator = "nope"`,
 			RulesJSON: `{ "operator": "nope" }`,
 			Err:       "Invalid operator policy",
 		},
 		{
 			Name:      "Bad Policy - Mesh",
+			Syntax:    SyntaxCurrent,
 			Rules:     `mesh = "nope"`,
 			RulesJSON: `{ "mesh": "nope" }`,
 			Err:       "Invalid mesh policy",
 		},
 		{
 			Name:      "Bad Policy - Peering",
+			Syntax:    SyntaxCurrent,
 			Rules:     `peering = "nope"`,
 			RulesJSON: `{ "peering": "nope" }`,
 			Err:       "Invalid peering policy",
 		},
 		{
 			Name:      "Keyring Empty",
+			Syntax:    SyntaxCurrent,
 			Rules:     `keyring = ""`,
 			RulesJSON: `{ "keyring": "" }`,
 			Expected:  &Policy{PolicyRules: PolicyRules{Keyring: ""}},
 		},
 		{
 			Name:      "Operator Empty",
+			Syntax:    SyntaxCurrent,
 			Rules:     `operator = ""`,
 			RulesJSON: `{ "operator": "" }`,
 			Expected:  &Policy{PolicyRules: PolicyRules{Operator: ""}},
 		},
 		{
 			Name:      "Mesh Empty",
+			Syntax:    SyntaxCurrent,
 			Rules:     `mesh = ""`,
 			RulesJSON: `{ "mesh": "" }`,
 			Expected:  &Policy{PolicyRules: PolicyRules{Mesh: ""}},
 		},
 		{
 			Name:      "Peering Empty",
+			Syntax:    SyntaxCurrent,
 			Rules:     `peering = ""`,
 			RulesJSON: `{ "peering": "" }`,
 			Expected:  &Policy{PolicyRules: PolicyRules{Peering: ""}},
@@ -481,7 +788,7 @@ func TestPolicySourceParse(t *testing.T) {
 			require.True(t, tc.Rules != "" || tc.RulesJSON != "")
 			if tc.Rules != "" {
 				t.Run("hcl", func(t *testing.T) {
-					actual, err := NewPolicyFromSource(tc.Rules, nil, nil)
+					actual, err := NewPolicyFromSource(tc.Rules, tc.Syntax, nil, nil)
 					if tc.Err != "" {
 						errStartsWith(t, err, tc.Err)
 					} else {
@@ -491,7 +798,7 @@ func TestPolicySourceParse(t *testing.T) {
 			}
 			if tc.RulesJSON != "" {
 				t.Run("json", func(t *testing.T) {
-					actual, err := NewPolicyFromSource(tc.RulesJSON, nil, nil)
+					actual, err := NewPolicyFromSource(tc.RulesJSON, tc.Syntax, nil, nil)
 					if tc.Err != "" {
 						errStartsWith(t, err, tc.Err)
 					} else {
@@ -1276,6 +1583,236 @@ func TestMergePolicies(t *testing.T) {
 		})
 	}
 
+}
+
+func TestRulesTranslate(t *testing.T) {
+	input := `
+# top level comment
+
+# block comment
+agent "" {
+  # policy comment
+  policy = "write"
+}
+
+# block comment
+key "" {
+  # policy comment
+  policy = "write"
+}
+
+# block comment
+node "" {
+  # policy comment
+  policy = "write"
+}
+
+# block comment
+event "" {
+  # policy comment
+  policy = "write"
+}
+
+# block comment
+service "" {
+  # policy comment
+  policy = "write"
+}
+
+# block comment
+session "" {
+  # policy comment
+  policy = "write"
+}
+
+# block comment
+query "" {
+  # policy comment
+  policy = "write"
+}
+
+# comment
+keyring = "write"
+
+# comment
+operator = "write"
+
+# comment
+mesh = "write"
+
+# comment
+peering = "write"
+`
+
+	expected := `
+# top level comment
+
+# block comment
+agent_prefix "" {
+  # policy comment
+  policy = "write"
+}
+
+# block comment
+key_prefix "" {
+  # policy comment
+  policy = "write"
+}
+
+# block comment
+node_prefix "" {
+  # policy comment
+  policy = "write"
+}
+
+# block comment
+event_prefix "" {
+  # policy comment
+  policy = "write"
+}
+
+# block comment
+service_prefix "" {
+  # policy comment
+  policy = "write"
+}
+
+# block comment
+session_prefix "" {
+  # policy comment
+  policy = "write"
+}
+
+# block comment
+query_prefix "" {
+  # policy comment
+  policy = "write"
+}
+
+# comment
+keyring = "write"
+
+# comment
+operator = "write"
+
+# comment
+mesh = "write"
+
+# comment
+peering = "write"
+`
+
+	output, err := TranslateLegacyRules([]byte(input))
+	require.NoError(t, err)
+	require.Equal(t, strings.Trim(expected, "\n"), string(output))
+}
+
+func TestRulesTranslate_GH5493(t *testing.T) {
+	input := `
+{
+	"key": {
+		"": {
+			"policy": "read"
+		},
+		"key": {
+			"policy": "read"
+		},
+		"policy": {
+			"policy": "read"
+		},
+		"privatething1/": {
+			"policy": "deny"
+		},
+		"anapplication/private/": {
+			"policy": "deny"
+		},
+		"privatething2/": {
+			"policy": "deny"
+		}
+	},
+	"session": {
+		"": {
+			"policy": "write"
+		}
+	},
+	"node": {
+		"": {
+			"policy": "read"
+		}
+	},
+	"agent": {
+		"": {
+			"policy": "read"
+		}
+	},
+	"service": {
+		"": {
+			"policy": "read"
+		}
+	},
+	"event": {
+		"": {
+			"policy": "read"
+		}
+	},
+	"query": {
+		"": {
+			"policy": "read"
+		}
+	}
+}`
+	expected := `
+key_prefix "" {
+  policy = "read"
+}
+
+key_prefix "key" {
+  policy = "read"
+}
+
+key_prefix "policy" {
+  policy = "read"
+}
+
+key_prefix "privatething1/" {
+  policy = "deny"
+}
+
+key_prefix "anapplication/private/" {
+  policy = "deny"
+}
+
+key_prefix "privatething2/" {
+  policy = "deny"
+}
+
+session_prefix "" {
+  policy = "write"
+}
+
+node_prefix "" {
+  policy = "read"
+}
+
+agent_prefix "" {
+  policy = "read"
+}
+
+service_prefix "" {
+  policy = "read"
+}
+
+event_prefix "" {
+  policy = "read"
+}
+
+query_prefix "" {
+  policy = "read"
+}
+`
+	output, err := TranslateLegacyRules([]byte(input))
+	require.NoError(t, err)
+	require.Equal(t, strings.Trim(expected, "\n"), string(output))
 }
 
 func TestPrecedence(t *testing.T) {

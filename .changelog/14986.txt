@@ -1,3 +1,0 @@
-```release-note:feature
-ui: Filter out node health checks on agentless service instances
-```

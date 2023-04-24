@@ -6,32 +6,22 @@ Feature: dc / nodes / empty-ids: Hedge for if nodes come in over the API with no
     ---
     - ID: id-1
       Node: name-1
-      Meta:
-        synthetic-node: false
       Checks:
       - Status: passing
     - ID: ""
       Node: name-2
-      Meta:
-        synthetic-node: false
       Checks:
       - Status: passing
     - ID: ""
       Node: name-3
-      Meta:
-        synthetic-node: false
       Checks:
       - Status: passing
     - ID: ""
       Node: name-4
-      Meta:
-        synthetic-node: false
       Checks:
       - Status: passing
     - ID: ""
       Node: name-5
-      Meta:
-        synthetic-node: false
       Checks:
       - Status: passing
     ---

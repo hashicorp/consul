@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 %main-nav-horizontal-action {
   border-radius: var(--decor-radius-200);
   cursor: pointer;
@@ -18,28 +13,18 @@
   transform: scaleY(-100%);
 }
 
-%main-nav-horizontal-menu-panel,
-%main-nav-horizontal-menu-panel > ul[role='menu'],
-%main-nav-horizontal-menu-panel > ul[role='menu'] > li > [role='menuitem'] {
-  background-color: var(--token-color-hashicorp-brand);
-  color: var(--token-color-palette-neutral-300);
-}
-
-%main-nav-horizontal-menu-panel > ul[role='menu'] > li > [role='menuitem']:hover {
-  background-color: var(--token-color-palette-neutral-600);
-}
-
 %main-nav-horizontal-toggle {
   display: none;
 }
 %main-nav-horizontal-toggle-button::before {
   --icon-name: icon-menu;
-  --icon-color: var(--token-color-palette-neutral-300);
+  --icon-color: rgb(var(--tone-gray-800));
   content: '';
   cursor: pointer;
 }
 %main-nav-horizontal-action,
 %main-nav-horizontal-action-intent,
 %main-nav-horizontal-action-active {
-  color: var(--token-color-palette-neutral-300);
+  color: rgb(var(--tone-gray-600));
 }
+/**/

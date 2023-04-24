@@ -58,7 +58,7 @@
       "dnsRefreshRate": "10s",
       "dnsLookupFamily": "V4_ONLY",
       "outlierDetection": {
-        "maxEjectionPercent": 100
+
       },
       "commonLbConfig": {
         "healthyPanicThreshold": {
@@ -115,7 +115,7 @@
 
       },
       "outlierDetection": {
-        "maxEjectionPercent": 100
+
       },
       "commonLbConfig": {
         "healthyPanicThreshold": {

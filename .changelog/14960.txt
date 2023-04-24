@@ -1,3 +1,0 @@
-```release-note:enhancement
-xds: Added a rate limiter to the delivery of proxy config updates, to prevent updates to "global" resources such as wildcard intentions from overwhelming servers (see: `xds.update_max_per_second` config field)
-```

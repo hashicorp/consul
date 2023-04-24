@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package peerstream
 
 import (
@@ -8,66 +5,42 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/golang/protobuf/proto"
 	"google.golang.org/genproto/googleapis/rpc/code"
-	"google.golang.org/protobuf/proto"
 	newproto "google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
 
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/proto/private/pbpeering"
-	"github.com/hashicorp/consul/proto/private/pbpeerstream"
-	"github.com/hashicorp/consul/proto/private/pbservice"
-	"github.com/hashicorp/consul/proto/private/pbstatus"
+	"github.com/hashicorp/consul/proto/pbpeering"
+	"github.com/hashicorp/consul/proto/pbpeerstream"
+	"github.com/hashicorp/consul/proto/pbservice"
+	"github.com/hashicorp/consul/proto/pbstatus"
 	"github.com/hashicorp/consul/types"
 )
 
 /*
 	TODO(peering):
 
+	At the start of each peering stream establishment (not initiation, but the
+	thing that reconnects) we need to do a little bit of light differential
+	snapshot correction to initially synchronize the local state store.
+
 	Then if we ever fail to apply a replication message we should either tear
 	down the entire connection (and thus force a resync on reconnect) or
 	request a resync operation.
 */
 
-// makeExportedServiceListResponse handles preparing exported service list updates to the peer cluster.
-// Each cache.UpdateEvent will contain all exported services.
-func makeExportedServiceListResponse(
-	mst *MutableStatus,
-	update cache.UpdateEvent,
-) (*pbpeerstream.ReplicationMessage_Response, error) {
-	exportedService, ok := update.Result.(*pbpeerstream.ExportedServiceList)
-	if !ok {
-		return nil, fmt.Errorf("invalid type for exported service list response: %T", update.Result)
-	}
-
-	any, _, err := marshalToProtoAny[*pbpeerstream.ExportedServiceList](exportedService)
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal: %w", err)
-	}
-
-	var serviceNames []structs.ServiceName
-	for _, serviceName := range exportedService.Services {
-		sn := structs.ServiceNameFromString(serviceName)
-		serviceNames = append(serviceNames, sn)
-	}
-
-	mst.SetExportedServices(serviceNames)
-
-	return &pbpeerstream.ReplicationMessage_Response{
-		ResourceURL: pbpeerstream.TypeURLExportedServiceList,
-		ResourceID:  subExportedServiceList,
-		Operation:   pbpeerstream.Operation_OPERATION_UPSERT,
-		Resource:    any,
-	}, nil
-}
-
 // makeServiceResponse handles preparing exported service instance updates to the peer cluster.
 // Each cache.UpdateEvent will contain all instances for a service name.
 // If there are no instances in the event, we consider that to be a de-registration.
-func makeServiceResponse(update cache.UpdateEvent) (*pbpeerstream.ReplicationMessage_Response, error) {
+func makeServiceResponse(
+	mst *MutableStatus,
+	update cache.UpdateEvent,
+) (*pbpeerstream.ReplicationMessage_Response, error) {
 	serviceName := strings.TrimPrefix(update.CorrelationID, subExportedService)
+	sn := structs.ServiceNameFromString(serviceName)
 	csn, ok := update.Result.(*pbservice.IndexedCheckServiceNodes)
 	if !ok {
 		return nil, fmt.Errorf("invalid type for service response: %T", update.Result)
@@ -81,12 +54,35 @@ func makeServiceResponse(update cache.UpdateEvent) (*pbpeerstream.ReplicationMes
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal: %w", err)
 	}
+	// If no nodes are present then it's due to one of:
+	// 1. The service is newly registered or exported and yielded a transient empty update.
+	// 2. All instances of the service were de-registered.
+	// 3. The service was un-exported.
+	//
+	// We don't distinguish when these three things occurred, but it's safe to send a DELETE Op in all cases, so we do that.
+	// Case #1 is a no-op for the importing peer.
+	if len(csn.Nodes) == 0 {
+		mst.RemoveExportedService(sn)
 
+		return &pbpeerstream.ReplicationMessage_Response{
+			ResourceURL: pbpeerstream.TypeURLExportedService,
+			// TODO(peering): Nonce management
+			Nonce:      "",
+			ResourceID: serviceName,
+			Operation:  pbpeerstream.Operation_OPERATION_DELETE,
+		}, nil
+	}
+
+	mst.TrackExportedService(sn)
+
+	// If there are nodes in the response, we push them as an UPSERT operation.
 	return &pbpeerstream.ReplicationMessage_Response{
 		ResourceURL: pbpeerstream.TypeURLExportedService,
-		ResourceID:  serviceName,
-		Operation:   pbpeerstream.Operation_OPERATION_UPSERT,
-		Resource:    any,
+		// TODO(peering): Nonce management
+		Nonce:      "",
+		ResourceID: serviceName,
+		Operation:  pbpeerstream.Operation_OPERATION_UPSERT,
+		Resource:   any,
 	}, nil
 }
 
@@ -100,9 +96,11 @@ func makeCARootsResponse(
 
 	return &pbpeerstream.ReplicationMessage_Response{
 		ResourceURL: pbpeerstream.TypeURLPeeringTrustBundle,
-		ResourceID:  "roots",
-		Operation:   pbpeerstream.Operation_OPERATION_UPSERT,
-		Resource:    any,
+		// TODO(peering): Nonce management
+		Nonce:      "",
+		ResourceID: "roots",
+		Operation:  pbpeerstream.Operation_OPERATION_UPSERT,
+		Resource:   any,
 	}, nil
 }
 
@@ -116,9 +114,11 @@ func makeServerAddrsResponse(
 
 	return &pbpeerstream.ReplicationMessage_Response{
 		ResourceURL: pbpeerstream.TypeURLPeeringServerAddresses,
-		ResourceID:  "server-addrs",
-		Operation:   pbpeerstream.Operation_OPERATION_UPSERT,
-		Resource:    any,
+		// TODO(peering): Nonce management
+		Nonce:      "",
+		ResourceID: "server-addrs",
+		Operation:  pbpeerstream.Operation_OPERATION_UPSERT,
+		Resource:   any,
 	}, nil
 }
 
@@ -154,15 +154,6 @@ func (s *Server) processResponse(
 			err.Error(),
 		), err
 	}
-	if resp.Nonce == "" {
-		err := fmt.Errorf("received response without a nonce for: %s:%s", resp.ResourceURL, resp.ResourceID)
-		return makeNACKReply(
-			resp.ResourceURL,
-			resp.Nonce,
-			code.Code_INVALID_ARGUMENT,
-			err.Error(),
-		), err
-	}
 
 	switch resp.Operation {
 	case pbpeerstream.Operation_OPERATION_UPSERT:
@@ -185,6 +176,17 @@ func (s *Server) processResponse(
 			), fmt.Errorf("upsert error: %w", err)
 		}
 
+		return makeACKReply(resp.ResourceURL, resp.Nonce), nil
+
+	case pbpeerstream.Operation_OPERATION_DELETE:
+		if err := s.handleDelete(peerName, partition, mutableStatus, resp.ResourceURL, resp.ResourceID); err != nil {
+			return makeNACKReply(
+				resp.ResourceURL,
+				resp.Nonce,
+				code.Code_INTERNAL,
+				fmt.Sprintf("delete error, ResourceURL: %q, ResourceID: %q: %v", resp.ResourceURL, resp.ResourceID, err),
+			), fmt.Errorf("delete error: %w", err)
+		}
 		return makeACKReply(resp.ResourceURL, resp.Nonce), nil
 
 	default:
@@ -216,18 +218,6 @@ func (s *Server) handleUpsert(
 	}
 
 	switch resourceURL {
-	case pbpeerstream.TypeURLExportedServiceList:
-		export := &pbpeerstream.ExportedServiceList{}
-		if err := resource.UnmarshalTo(export); err != nil {
-			return fmt.Errorf("failed to unmarshal resource: %w", err)
-		}
-
-		err := s.handleUpsertExportedServiceList(mutableStatus, peerName, partition, export)
-		if err != nil {
-			return fmt.Errorf("did not update imported services based on the exported service list event: %w", err)
-		}
-
-		return nil
 	case pbpeerstream.TypeURLExportedService:
 		sn := structs.ServiceNameFromString(resourceID)
 		sn.OverridePartition(partition)
@@ -241,6 +231,8 @@ func (s *Server) handleUpsert(
 		if err != nil {
 			return fmt.Errorf("did not increment imported services count for service=%q: %w", sn.String(), err)
 		}
+
+		mutableStatus.TrackImportedService(sn)
 
 		return nil
 
@@ -264,47 +256,6 @@ func (s *Server) handleUpsert(
 	}
 }
 
-func (s *Server) handleUpsertExportedServiceList(
-	mutableStatus *MutableStatus,
-	peerName string,
-	partition string,
-	export *pbpeerstream.ExportedServiceList,
-) error {
-	exportedServices := make(map[structs.ServiceName]struct{})
-	var serviceNames []structs.ServiceName
-	for _, service := range export.Services {
-		sn := structs.ServiceNameFromString(service)
-		sn.OverridePartition(partition)
-
-		// This ensures that we don't delete exported service's sidecars below.
-		snSidecarProxy := structs.ServiceNameFromString(service + syntheticProxyNameSuffix)
-		snSidecarProxy.OverridePartition(partition)
-
-		exportedServices[sn] = struct{}{}
-		exportedServices[snSidecarProxy] = struct{}{}
-		serviceNames = append(serviceNames, sn)
-	}
-	entMeta := structs.NodeEnterpriseMetaInPartition(partition)
-
-	_, serviceList, err := s.GetStore().ServiceList(nil, entMeta, peerName)
-	if err != nil {
-		return err
-	}
-	for _, sn := range serviceList {
-		if _, ok := exportedServices[sn]; !ok {
-			err := s.handleUpdateService(peerName, partition, sn, nil)
-
-			if err != nil {
-				return fmt.Errorf("failed to delete unexported service: %w", err)
-			}
-		}
-	}
-
-	mutableStatus.SetImportedServices(serviceNames)
-
-	return nil
-}
-
 // handleUpdateService handles both deletion and upsert events for a service.
 //
 //	On an UPSERT event:
@@ -326,74 +277,41 @@ func (s *Server) handleUpdateService(
 		return fmt.Errorf("failed to read imported services: %w", err)
 	}
 
-	structsNodes := []structs.CheckServiceNode{}
-	if export != nil {
-		structsNodes, err = export.CheckServiceNodesToStruct()
-		if err != nil {
-			return fmt.Errorf("failed to convert protobuf instances to structs: %w", err)
-		}
+	structsNodes, err := export.CheckServiceNodesToStruct()
+	if err != nil {
+		return fmt.Errorf("failed to convert protobuf instances to structs: %w", err)
 	}
 
 	// Normalize the data into a convenient form for operation.
 	snap := newHealthSnapshot(structsNodes, partition, peerName)
-	storedNodesMap, storedSvcInstMap, storedChecksMap := buildStoredMap(storedInstances)
 
 	for _, nodeSnap := range snap.Nodes {
-		// First register the node - skip the unchanged ones
-		changed := true
-		if storedNode, ok := storedNodesMap[nodeSnap.Node.ID]; ok {
-			if storedNode.IsSame(nodeSnap.Node) {
-				changed = false
-			}
-		}
-
+		// First register the node
 		req := nodeSnap.Node.ToRegisterRequest()
-		if changed {
-			if err := s.Backend.CatalogRegister(&req); err != nil {
-				return fmt.Errorf("failed to register node: %w", err)
-			}
+		if err := s.Backend.CatalogRegister(&req); err != nil {
+			return fmt.Errorf("failed to register node: %w", err)
 		}
 
-		// Then register all services on that node - skip the unchanged ones
+		// Then register all services on that node
 		for _, svcSnap := range nodeSnap.Services {
-			changed = true
-			if storedSvcInst, ok := storedSvcInstMap[makeNodeSvcInstID(nodeSnap.Node.ID, svcSnap.Service.ID)]; ok {
-				if storedSvcInst.IsSame(svcSnap.Service) {
-					changed = false
-				}
-			}
-
-			if changed {
-				req.Service = svcSnap.Service
-				if err := s.Backend.CatalogRegister(&req); err != nil {
-					return fmt.Errorf("failed to register service: %w", err)
-				}
+			req.Service = svcSnap.Service
+			if err := s.Backend.CatalogRegister(&req); err != nil {
+				return fmt.Errorf("failed to register service: %w", err)
 			}
 		}
 		req.Service = nil
 
-		// Then register all checks on that node - skip the unchanged ones
+		// Then register all checks on that node
 		var chks structs.HealthChecks
 		for _, svcSnap := range nodeSnap.Services {
 			for _, c := range svcSnap.Checks {
-				changed := true
-				if chk, ok := storedChecksMap[makeNodeCheckID(nodeSnap.Node.ID, svcSnap.Service.ID, c.CheckID)]; ok {
-					if chk.IsSame(c) {
-						changed = false
-					}
-				}
-
-				if changed {
-					chks = append(chks, c)
-				}
+				chks = append(chks, c)
 			}
 		}
 
-		if len(chks) > 0 {
-			req.Checks = chks
-			if err := s.Backend.CatalogRegister(&req); err != nil {
-				return fmt.Errorf("failed to register check: %w", err)
-			}
+		req.Checks = chks
+		if err := s.Backend.CatalogRegister(&req); err != nil {
+			return fmt.Errorf("failed to register check: %w", err)
 		}
 	}
 
@@ -581,6 +499,32 @@ func (s *Server) handleUpsertServerAddrs(
 	return s.Backend.PeeringWrite(req)
 }
 
+func (s *Server) handleDelete(
+	peerName string,
+	partition string,
+	mutableStatus *MutableStatus,
+	resourceURL string,
+	resourceID string,
+) error {
+	switch resourceURL {
+	case pbpeerstream.TypeURLExportedService:
+		sn := structs.ServiceNameFromString(resourceID)
+		sn.OverridePartition(partition)
+
+		err := s.handleUpdateService(peerName, partition, sn, nil)
+		if err != nil {
+			return err
+		}
+
+		mutableStatus.RemoveImportedService(sn)
+
+		return nil
+
+	default:
+		return fmt.Errorf("unexpected resourceURL: %s", resourceURL)
+	}
+}
+
 func makeACKReply(resourceURL, nonce string) *pbpeerstream.ReplicationMessage {
 	return makeReplicationRequest(&pbpeerstream.ReplicationMessage_Request{
 		ResourceURL:   resourceURL,
@@ -620,47 +564,4 @@ func makeReplicationResponse(resp *pbpeerstream.ReplicationMessage_Response) *pb
 			Response: resp,
 		},
 	}
-}
-
-// nodeSvcInstIdentity uniquely identifies an service instance imported from a peering cluster
-type nodeSvcInstIdentity struct {
-	nodeID    string
-	serviceID string
-}
-
-// nodeCheckIdentity uniquely identifies a check imported from a peering cluster
-type nodeCheckIdentity struct {
-	nodeID    string
-	serviceID string
-	checkID   string
-}
-
-func makeNodeSvcInstID(nodeID types.NodeID, serviceID string) nodeSvcInstIdentity {
-	return nodeSvcInstIdentity{
-		nodeID:    string(nodeID),
-		serviceID: serviceID,
-	}
-}
-
-func makeNodeCheckID(nodeID types.NodeID, serviceID string, checkID types.CheckID) nodeCheckIdentity {
-	return nodeCheckIdentity{
-		serviceID: serviceID,
-		checkID:   string(checkID),
-		nodeID:    string(nodeID),
-	}
-}
-
-func buildStoredMap(storedInstances structs.CheckServiceNodes) (map[types.NodeID]*structs.Node, map[nodeSvcInstIdentity]*structs.NodeService, map[nodeCheckIdentity]*structs.HealthCheck) {
-	nodesMap := map[types.NodeID]*structs.Node{}
-	svcInstMap := map[nodeSvcInstIdentity]*structs.NodeService{}
-	checksMap := map[nodeCheckIdentity]*structs.HealthCheck{}
-
-	for _, csn := range storedInstances {
-		nodesMap[csn.Node.ID] = csn.Node
-		svcInstMap[makeNodeSvcInstID(csn.Node.ID, csn.Service.ID)] = csn.Service
-		for _, chk := range csn.Checks {
-			checksMap[makeNodeCheckID(csn.Node.ID, csn.Service.ID, chk.CheckID)] = chk
-		}
-	}
-	return nodesMap, svcInstMap, checksMap
 }

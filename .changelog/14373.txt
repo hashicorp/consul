@@ -1,3 +1,0 @@
-```release-note:improvement
-xds: Set `max_ejection_percent` on Envoy's outlier detection to 100% for peered services.
-```

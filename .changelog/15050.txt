@@ -1,6 +1,0 @@
-```release-note:feature
-cli: Add `-consul-dns-port` flag to the `consul connect redirect-traffic` command to allow forwarding DNS traffic to a specific Consul DNS port.
-```
-```release-note:feature
-sdk: Configure `iptables` to forward DNS traffic to a specific DNS port.
-```

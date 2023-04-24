@@ -1,3 +1,0 @@
-```release-note:feature
-xds: servers will limit the number of concurrent xDS streams they can handle to balance the load across all servers
-```

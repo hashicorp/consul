@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package proxycfg
 
 import (
@@ -9,12 +6,9 @@ import (
 	"fmt"
 	"net"
 	"reflect"
-	"runtime/debug"
-	"sync/atomic"
 	"time"
 
 	"github.com/hashicorp/go-hclog"
-	"golang.org/x/time/rate"
 
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/structs"
@@ -29,22 +23,18 @@ const (
 	peerTrustBundleIDPrefix            = "peer-trust-bundle:"
 	intentionsWatchID                  = "intentions"
 	serviceListWatchID                 = "service-list"
-	peeringServiceListWatchID          = "peering-service-list:"
 	federationStateListGatewaysWatchID = "federation-state-list-mesh-gateways"
 	consulServerListWatchID            = "consul-server-list"
 	datacentersWatchID                 = "datacenters"
 	serviceResolversWatchID            = "service-resolvers"
 	gatewayServicesWatchID             = "gateway-services"
 	gatewayConfigWatchID               = "gateway-config"
-	inlineCertificateConfigWatchID     = "inline-certificate-config"
-	routeConfigWatchID                 = "route-config"
 	externalServiceIDPrefix            = "external-service:"
 	serviceLeafIDPrefix                = "service-leaf:"
 	serviceConfigIDPrefix              = "service-config:"
 	serviceResolverIDPrefix            = "service-resolver:"
 	serviceIntentionsIDPrefix          = "service-intentions:"
 	intentionUpstreamsID               = "intention-upstreams"
-	peerServersWatchID                 = "peer-servers"
 	peeredUpstreamsID                  = "peered-upstreams"
 	intentionUpstreamsDestinationID    = "intention-upstreams-destination"
 	upstreamPeerWatchIDPrefix          = "upstream-peer:"
@@ -79,31 +69,9 @@ type state struct {
 	// in Watch.
 	cancel func()
 
-	// failedFlag is (atomically) set to 1 (by Close) when run exits because a data
-	// source is in an irrecoverable state. It can be read with failed.
-	failedFlag int32
-
 	ch     chan UpdateEvent
 	snapCh chan ConfigSnapshot
 	reqCh  chan chan *ConfigSnapshot
-	doneCh chan struct{}
-
-	rateLimiter *rate.Limiter
-}
-
-func (s *state) stoppedRunning() bool {
-	select {
-	case <-s.doneCh:
-		return true
-	default:
-		return false
-	}
-}
-
-// failed returns whether run exited because a data source is in an
-// irrecoverable state.
-func (s *state) failed() bool {
-	return atomic.LoadInt32(&s.failedFlag) == 1
 }
 
 type DNSConfig struct {
@@ -167,7 +135,7 @@ func copyProxyConfig(ns *structs.NodeService) (structs.ConnectProxyConfig, error
 //
 // The returned state needs its required dependencies to be set before Watch
 // can be called.
-func newState(id ProxyID, ns *structs.NodeService, source ProxySource, token string, config stateConfig, rateLimiter *rate.Limiter) (*state, error) {
+func newState(id ProxyID, ns *structs.NodeService, source ProxySource, token string, config stateConfig) (*state, error) {
 	// 10 is fairly arbitrary here but allow for the 3 mandatory and a
 	// reasonable number of upstream watches to all deliver their initial
 	// messages in parallel without blocking the cache.Notify loops. It's not a
@@ -195,8 +163,6 @@ func newState(id ProxyID, ns *structs.NodeService, source ProxySource, token str
 		ch:              ch,
 		snapCh:          make(chan ConfigSnapshot, 1),
 		reqCh:           make(chan chan *ConfigSnapshot, 1),
-		doneCh:          make(chan struct{}),
-		rateLimiter:     rateLimiter,
 	}, nil
 }
 
@@ -215,8 +181,6 @@ func newKindHandler(config stateConfig, s serviceInstance, ch chan UpdateEvent) 
 		handler = &handlerMeshGateway{handlerState: h}
 	case structs.ServiceKindIngressGateway:
 		handler = &handlerIngressGateway{handlerState: h}
-	case structs.ServiceKindAPIGateway:
-		handler = &handlerAPIGateway{handlerState: h}
 	default:
 		return nil, errors.New("not a connect-proxy, terminating-gateway, mesh-gateway, or ingress-gateway")
 	}
@@ -278,15 +242,9 @@ func (s *state) Watch() (<-chan ConfigSnapshot, error) {
 }
 
 // Close discards the state and stops any long-running watches.
-func (s *state) Close(failed bool) error {
-	if s.stoppedRunning() {
-		return nil
-	}
+func (s *state) Close() error {
 	if s.cancel != nil {
 		s.cancel()
-	}
-	if failed {
-		atomic.StoreInt32(&s.failedFlag, 1)
 	}
 	return nil
 }
@@ -316,24 +274,6 @@ func newConfigSnapshotFromServiceInstance(s serviceInstance, config stateConfig)
 }
 
 func (s *state) run(ctx context.Context, snap *ConfigSnapshot) {
-	// Add a recover here so than any panics do not make their way up
-	// into the server / agent.
-	defer func() {
-		if r := recover(); r != nil {
-			s.logger.Error("unexpected panic while running proxycfg",
-				"node", s.serviceInstance.proxyID.NodeName,
-				"service", s.serviceInstance.proxyID.ServiceID,
-				"message", r,
-				"stacktrace", string(debug.Stack()))
-		}
-	}()
-	s.unsafeRun(ctx, snap)
-}
-
-func (s *state) unsafeRun(ctx context.Context, snap *ConfigSnapshot) {
-	// Closing the done channel signals that this entire state is no longer
-	// going to be updated.
-	defer close(s.doneCh)
 	// Close the channel we return from Watch when we stop so consumers can stop
 	// watching and clean up their goroutines. It's important we do this here and
 	// not in Close since this routine sends on this chan and so might panic if it
@@ -347,35 +287,12 @@ func (s *state) unsafeRun(ctx context.Context, snap *ConfigSnapshot) {
 	sendCh := make(chan struct{})
 	var coalesceTimer *time.Timer
 
-	scheduleUpdate := func() {
-		// Wait for MAX(<rate limiter delay>, coalesceTimeout)
-		delay := s.rateLimiter.Reserve().Delay()
-		if delay < coalesceTimeout {
-			delay = coalesceTimeout
-		}
-		coalesceTimer = time.AfterFunc(delay, func() {
-			// This runs in another goroutine so we can't just do the send
-			// directly here as access to snap is racy. Instead, signal the main
-			// loop above.
-			select {
-			case sendCh <- struct{}{}:
-			case <-ctx.Done():
-			}
-		})
-	}
-
 	for {
 		select {
 		case <-ctx.Done():
 			return
 		case u := <-s.ch:
-			s.logger.Trace("Data source returned; handling snapshot update", "correlationID", u.CorrelationID)
-
-			if IsTerminalError(u.Err) {
-				s.logger.Error("Data source in an irrecoverable state; exiting", "error", u.Err, "correlationID", u.CorrelationID)
-				s.Close(true)
-				return
-			}
+			s.logger.Trace("A blocking query returned; handling snapshot update", "correlationID", u.CorrelationID)
 
 			if err := s.handler.handleUpdate(ctx, u, snap); err != nil {
 				s.logger.Error("Failed to handle update from watch",
@@ -406,7 +323,9 @@ func (s *state) unsafeRun(ctx context.Context, snap *ConfigSnapshot) {
 				s.logger.Trace("Failed to deliver new snapshot to proxy config watchers")
 
 				// Reset the timer to retry later. This is to ensure we attempt to redeliver the updated snapshot shortly.
-				scheduleUpdate()
+				coalesceTimer = time.AfterFunc(coalesceTimeout, func() {
+					sendCh <- struct{}{}
+				})
 
 				// Do not reset coalesceTimer since we just queued a timer-based refresh
 				continue
@@ -434,10 +353,15 @@ func (s *state) unsafeRun(ctx context.Context, snap *ConfigSnapshot) {
 		// Check if snap is complete enough to be a valid config to deliver to a
 		// proxy yet.
 		if snap.Valid() {
+			// Don't send it right away, set a short timer that will wait for updates
+			// from any of the other cache values and deliver them all together.
 			if coalesceTimer == nil {
-				// Don't send it right away, set a short timer that will wait for updates
-				// from any of the other cache values and deliver them all together.
-				scheduleUpdate()
+				coalesceTimer = time.AfterFunc(coalesceTimeout, func() {
+					// This runs in another goroutine so we can't just do the send
+					// directly here as access to snap is racy. Instead, signal the main
+					// loop above.
+					sendCh <- struct{}{}
+				})
 			}
 		}
 	}
@@ -449,20 +373,9 @@ func (s *state) unsafeRun(ctx context.Context, snap *ConfigSnapshot) {
 func (s *state) CurrentSnapshot() *ConfigSnapshot {
 	// Make a chan for the response to be sent on
 	ch := make(chan *ConfigSnapshot, 1)
-
-	select {
-	case <-s.doneCh:
-		return nil
-	case s.reqCh <- ch:
-	}
-
+	s.reqCh <- ch
 	// Wait for the response
-	select {
-	case <-s.doneCh:
-		return nil
-	case resp := <-ch:
-		return resp
-	}
+	return <-ch
 }
 
 // Changed returns whether or not the passed NodeService has had any of the
@@ -526,13 +439,6 @@ type gatewayWatchOpts struct {
 }
 
 func watchMeshGateway(ctx context.Context, opts gatewayWatchOpts) error {
-	var correlationId string
-	if opts.upstreamID.Name == "" {
-		correlationId = fmt.Sprintf("mesh-gateway:%s", opts.key.String())
-	} else {
-		correlationId = fmt.Sprintf("mesh-gateway:%s:%s", opts.key.String(), opts.upstreamID.String())
-	}
-
 	return opts.internalServiceDump.Notify(ctx, &structs.ServiceDumpRequest{
 		Datacenter:     opts.key.Datacenter,
 		QueryOptions:   structs.QueryOptions{Token: opts.token},
@@ -540,5 +446,5 @@ func watchMeshGateway(ctx context.Context, opts gatewayWatchOpts) error {
 		UseServiceKind: true,
 		Source:         opts.source,
 		EnterpriseMeta: *structs.DefaultEnterpriseMetaInPartition(opts.key.Partition),
-	}, correlationId, opts.notifyCh)
+	}, fmt.Sprintf("mesh-gateway:%s:%s", opts.key.String(), opts.upstreamID.String()), opts.notifyCh)
 }

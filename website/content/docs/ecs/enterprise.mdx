@@ -1,11 +1,11 @@
 ---
 layout: docs
-page_title: Consul Enterprise on AWS Elastic Container Service (ECS)
+page_title: Consul Enterprise - AWS ECS
 description: >-
-  You can deploy Consul Enterprise on Amazon Web Services ECS with an official Docker image. Learn about supported Enterprise features, including requirements for admin partitions, namespaces, and audit logging.
+  Consul Enterprise support for Consul on ECS.
 ---
 
-# Consul Enterprise on AWS Elastic Container Service (ECS)
+# Consul Enterprise
 
 You can run Consul Enterprise on ECS by specifying the Consul Enterprise Docker image in the Terraform module parameters.
 
@@ -26,9 +26,9 @@ module "my_task" {
 
 ## Licensing
 
-!> **Warning:** Consul Enterprise is currently only fully supported when [ACLs are enabled](/consul/docs/ecs/terraform/secure-configuration).
+!> **Warning:** Consul Enterprise is currently only fully supported when [ACLs are enabled](/docs/ecs/terraform/secure-configuration).
 
-Consul Enterprise [requires a license](/consul/docs/enterprise/license/overview). If running
+Consul Enterprise [requires a license](/docs/enterprise/license/overview). If running
 Consul on ECS with ACLs enabled, the license will be automatically pulled down from Consul servers.
 
 Currently there is no capability for specifying the license when ACLs are disabled so if you wish to
@@ -60,7 +60,7 @@ If client support is required for any of the features, then you must use a Consu
 
 ### Admin Partitions and Namespaces
 
-Consul on ECS supports [admin partitions](/consul/docs/enterprise/admin-partitions) and [namespaces](/consul/docs/enterprise/namespaces) when Consul Enterprise servers and clients are used. These features have the following requirements:
+Consul on ECS supports [admin partitions](/docs/enterprise/admin-partitions) and [namespaces](/docs/enterprise/namespaces) when Consul Enterprise servers and clients are used. These features have the following requirements:
 
 - ACLs must be enabled.
 - ACL controller must run in the ECS cluster.
@@ -95,7 +95,7 @@ module "acl_controller" {
 
 </CodeBlockConfig>
 
-Services are assigned to admin partitions and namespaces through the use of [task tags](/consul/docs/ecs/manual/install#task-tags).
+Services are assigned to admin partitions and namespaces through the use of [task tags](/docs/ecs/manual/install#task-tags).
 The `mesh-task` module automatically adds the necessary tags to the task definition.
 If the ACL controller is configured for admin partitions, services on the mesh will
 always be assigned to an admin partition and namespace. If the `mesh-task` does not define
@@ -124,7 +124,7 @@ module "my_task" {
 
 ### Audit Logging
 
-Consul on ECS supports [audit logging](/consul/docs/enterprise/audit-logging) when using Consul Enterprise clients.
+Consul on ECS supports [audit logging](/docs/enterprise/audit-logging) when using Consul Enterprise clients.
 This feature has the following requirements:
 
 - ACLs must be enabled.

@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package structs
 
 import (
@@ -17,10 +14,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/golang/protobuf/proto"
+	"github.com/golang/protobuf/ptypes/duration"
+	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/serf/coordinate"
 	"github.com/mitchellh/hashstructure"
-	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
@@ -86,9 +85,6 @@ const (
 	PeeringTrustBundleWriteType                 = 38
 	PeeringTrustBundleDeleteType                = 39
 	PeeringSecretsWriteType                     = 40
-	RaftLogVerifierCheckpoint                   = 41 // Only used for log verifier, no-op on FSM.
-	ResourceOperationType                       = 42
-	UpdateVirtualIPRequestType                  = 43
 )
 
 const (
@@ -155,9 +151,6 @@ var requestTypeStrings = map[MessageType]string{
 	PeeringTrustBundleWriteType:     "PeeringTrustBundle",
 	PeeringTrustBundleDeleteType:    "PeeringTrustBundleDelete",
 	PeeringSecretsWriteType:         "PeeringSecret",
-	RaftLogVerifierCheckpoint:       "RaftLogVerifierCheckpoint",
-	ResourceOperationType:           "Resource",
-	UpdateVirtualIPRequestType:      "UpdateManualVirtualIPRequestType",
 }
 
 const (
@@ -258,22 +251,22 @@ type RPCInfo interface {
 type QueryOptions struct {
 	// Token is the ACL token ID. If not provided, the 'anonymous'
 	// token is assumed for backwards compatibility.
-	Token string `mapstructure:"x-consul-token,omitempty"`
+	Token string
 
 	// If set, wait until query exceeds given index. Must be provided
 	// with MaxQueryTime.
-	MinQueryIndex uint64 `mapstructure:"min-query-index,omitempty"`
+	MinQueryIndex uint64
 
 	// Provided with MinQueryIndex to wait for change.
-	MaxQueryTime time.Duration `mapstructure:"max-query-time,omitempty"`
+	MaxQueryTime time.Duration
 
 	// If set, any follower can service the request. Results
 	// may be arbitrarily stale.
-	AllowStale bool `mapstructure:"allow-stale,omitempty"`
+	AllowStale bool
 
 	// If set, the leader must verify leadership prior to
 	// servicing the request. Prevents a stale read.
-	RequireConsistent bool `mapstructure:"require-consistent,omitempty"`
+	RequireConsistent bool
 
 	// If set, the local agent may respond with an arbitrarily stale locally
 	// cached response. The semantics differ from AllowStale since the agent may
@@ -282,12 +275,12 @@ type QueryOptions struct {
 	// provide additional bounds on the last contact time from the leader. It's
 	// expected that servers that are partitioned are noticed and replaced in a
 	// timely way by operators while the same may not be true for client agents.
-	UseCache bool `mapstructure:"use-cache,omitempty"`
+	UseCache bool
 
 	// If set and AllowStale is true, will try first a stale
 	// read, and then will perform a consistent read if stale
 	// read is older than value.
-	MaxStaleDuration time.Duration `mapstructure:"max-stale-duration,omitempty"`
+	MaxStaleDuration time.Duration
 
 	// MaxAge limits how old a cached value will be returned if UseCache is true.
 	// If there is a cached response that is older than the MaxAge, it is treated
@@ -296,30 +289,30 @@ type QueryOptions struct {
 	// StaleIfError to a longer duration to change this behavior. It is ignored
 	// if the endpoint supports background refresh caching. See
 	// https://www.consul.io/api/index.html#agent-caching for more details.
-	MaxAge time.Duration `mapstructure:"max-age,omitempty"`
+	MaxAge time.Duration
 
 	// MustRevalidate forces the agent to fetch a fresh version of a cached
 	// resource or at least validate that the cached version is still fresh. It is
 	// implied by either max-age=0 or must-revalidate Cache-Control headers. It
 	// only makes sense when UseCache is true. We store it since MaxAge = 0 is the
 	// default unset value.
-	MustRevalidate bool `mapstructure:"must-revalidate,omitempty"`
+	MustRevalidate bool
 
 	// StaleIfError specifies how stale the client will accept a cached response
 	// if the servers are unavailable to fetch a fresh one. Only makes sense when
 	// UseCache is true and MaxAge is set to a lower, non-zero value. It is
 	// ignored if the endpoint supports background refresh caching. See
 	// https://www.consul.io/api/index.html#agent-caching for more details.
-	StaleIfError time.Duration `mapstructure:"stale-if-error,omitempty"`
+	StaleIfError time.Duration
 
 	// Filter specifies the go-bexpr filter expression to be used for
 	// filtering the data prior to returning a response
-	Filter string `mapstructure:"filter,omitempty"`
+	Filter string
 
 	// AllowNotModifiedResponse indicates that if the MinIndex matches the
 	// QueryMeta.Index, the response can be left empty and QueryMeta.NotModified
 	// will be set to true to indicate the result of the query has not changed.
-	AllowNotModifiedResponse bool `mapstructure:"allow-not-modified-response,omitempty"`
+	AllowNotModifiedResponse bool
 }
 
 // IsRead is always true for QueryOption.
@@ -469,7 +462,6 @@ type RegisterRequest struct {
 	Service         *NodeService
 	Check           *HealthCheck
 	Checks          HealthChecks
-	Locality        *Locality
 
 	// SkipNodeUpdate can be used when a register request is intended for
 	// updating a service and/or checks, but doesn't want to overwrite any
@@ -514,8 +506,7 @@ func (r *RegisterRequest) ChangesNode(node *Node) bool {
 		r.Address != node.Address ||
 		r.Datacenter != node.Datacenter ||
 		!reflect.DeepEqual(r.TaggedAddresses, node.TaggedAddresses) ||
-		!reflect.DeepEqual(r.NodeMeta, node.Meta) ||
-		!reflect.DeepEqual(r.Locality, node.Locality) {
+		!reflect.DeepEqual(r.NodeMeta, node.Meta) {
 		return true
 	}
 
@@ -636,12 +627,6 @@ func (r *DCSpecificRequest) CacheInfo() cache.RequestInfo {
 
 func (r *DCSpecificRequest) CacheMinIndex() uint64 {
 	return r.QueryOptions.MinQueryIndex
-}
-
-type OperatorUsageRequest struct {
-	DCSpecificRequest
-
-	Global bool
 }
 
 type ServiceDumpRequest struct {
@@ -884,7 +869,6 @@ type Node struct {
 	PeerName        string `json:",omitempty"`
 	TaggedAddresses map[string]string
 	Meta            map[string]string
-	Locality        *Locality `json:",omitempty" bexpr:"-"`
 
 	RaftIndex `bexpr:"-"`
 }
@@ -1055,7 +1039,6 @@ type ServiceNode struct {
 	ServiceEnableTagOverride bool
 	ServiceProxy             ConnectProxyConfig
 	ServiceConnect           ServiceConnect
-	ServiceLocality          *Locality `bexpr:"-"`
 
 	// If not empty, PeerName represents the peer that this ServiceNode was imported from.
 	PeerName string `json:",omitempty"`
@@ -1063,15 +1046,6 @@ type ServiceNode struct {
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash" bexpr:"-"`
 
 	RaftIndex `bexpr:"-"`
-}
-
-func (s *ServiceNode) FillAuthzContext(ctx *acl.AuthorizerContext) {
-	if ctx == nil {
-		return
-	}
-	ctx.Peer = s.PeerName
-
-	s.EnterpriseMeta.FillAuthzContext(ctx)
 }
 
 func (s *ServiceNode) PeerOrEmpty() string {
@@ -1114,7 +1088,6 @@ func (s *ServiceNode) PartialClone() *ServiceNode {
 		ServiceEnableTagOverride: s.ServiceEnableTagOverride,
 		ServiceProxy:             s.ServiceProxy,
 		ServiceConnect:           s.ServiceConnect,
-		ServiceLocality:          s.ServiceLocality,
 		RaftIndex: RaftIndex{
 			CreateIndex: s.CreateIndex,
 			ModifyIndex: s.ModifyIndex,
@@ -1142,7 +1115,6 @@ func (s *ServiceNode) ToNodeService() *NodeService {
 		Connect:           s.ServiceConnect,
 		PeerName:          s.PeerName,
 		EnterpriseMeta:    s.EnterpriseMeta,
-		Locality:          s.ServiceLocality,
 		RaftIndex: RaftIndex{
 			CreateIndex: s.CreateIndex,
 			ModifyIndex: s.ModifyIndex,
@@ -1210,8 +1182,7 @@ func (k ServiceKind) IsProxy() bool {
 	case ServiceKindConnectProxy,
 		ServiceKindMeshGateway,
 		ServiceKindTerminatingGateway,
-		ServiceKindIngressGateway,
-		ServiceKindAPIGateway:
+		ServiceKindIngressGateway:
 		return true
 	}
 	return false
@@ -1224,40 +1195,29 @@ const (
 	// default to the typical service.
 	ServiceKindTypical ServiceKind = ""
 
-	// ServiceKindConnectProxy is a proxy for the Consul Service Mesh. This
+	// ServiceKindConnectProxy is a proxy for the Connect feature. This
 	// service proxies another service within Consul and speaks the connect
 	// protocol.
 	ServiceKindConnectProxy ServiceKind = "connect-proxy"
 
-	// ServiceKindMeshGateway is a Mesh Gateway for the Consul Service Mesh.
-	// This service will proxy connections based off the SNI header set by other
+	// ServiceKindMeshGateway is a Mesh Gateway for the Connect feature. This
+	// service will proxy connections based off the SNI header set by other
 	// connect proxies
 	ServiceKindMeshGateway ServiceKind = "mesh-gateway"
 
-	// ServiceKindTerminatingGateway is a Terminating Gateway for the Consul Service
-	// Mesh feature. This service will proxy connections to services outside the mesh.
+	// ServiceKindTerminatingGateway is a Terminating Gateway for the Connect
+	// feature. This service will proxy connections to services outside the mesh.
 	ServiceKindTerminatingGateway ServiceKind = "terminating-gateway"
 
-	// ServiceKindIngressGateway is an Ingress Gateway for the Consul Service Mesh.
+	// ServiceKindIngressGateway is an Ingress Gateway for the Connect feature.
 	// This service allows external traffic to enter the mesh based on
 	// centralized configuration.
 	ServiceKindIngressGateway ServiceKind = "ingress-gateway"
 
-	// ServiceKindAPIGateway is an API Gateway for the Consul Service Mesh.
-	// This service allows external traffic to enter the mesh based on
-	// centralized configuration.
-	ServiceKindAPIGateway ServiceKind = "api-gateway"
-
-	// ServiceKindDestination is a Destination  for the Consul Service Mesh feature.
+	// ServiceKindDestination is a Destination  for the Connect feature.
 	// This service allows external traffic to exit the mesh through a terminating gateway
 	// based on centralized configuration.
 	ServiceKindDestination ServiceKind = "destination"
-
-	// ServiceKindConnectEnabled is used to indicate whether a service is either
-	// connect-native or if the service has a corresponding sidecar. It is used for
-	// internal query purposes and should not be exposed to users as a valid Kind
-	// option.
-	ServiceKindConnectEnabled ServiceKind = "connect-enabled"
 )
 
 // Type to hold a address and port of a service
@@ -1287,7 +1247,6 @@ type NodeService struct {
 	SocketPath        string `json:",omitempty"` // TODO This might be integrated into Address somehow, but not sure about the ergonomics. Only one of (address,port) or socketpath can be defined.
 	Weights           *Weights
 	EnableTagOverride bool
-	Locality          *Locality `json:",omitempty" bexpr:"-"`
 
 	// Proxy is the configuration set for Kind = connect-proxy. It is mandatory in
 	// that case and an error to be set for any other kind. This config is part of
@@ -1340,15 +1299,6 @@ func (m *PeeringServiceMeta) PrimarySNI() string {
 		return ""
 	}
 	return m.SNI[0]
-}
-
-func (ns *NodeService) FillAuthzContext(ctx *acl.AuthorizerContext) {
-	if ctx == nil {
-		return
-	}
-	ctx.Peer = ns.PeerName
-
-	ns.EnterpriseMeta.FillAuthzContext(ctx)
 }
 
 func (ns *NodeService) BestAddress(wan bool) (string, int) {
@@ -1454,8 +1404,7 @@ func (s *NodeService) IsSidecarProxy() bool {
 func (s *NodeService) IsGateway() bool {
 	return s.Kind == ServiceKindMeshGateway ||
 		s.Kind == ServiceKindTerminatingGateway ||
-		s.Kind == ServiceKindIngressGateway ||
-		s.Kind == ServiceKindAPIGateway
+		s.Kind == ServiceKindIngressGateway
 }
 
 // Validate validates the node service configuration.
@@ -1599,7 +1548,7 @@ func (s *NodeService) ValidateForAgent() error {
 	// Gateway validation
 	if s.IsGateway() {
 		// Non-ingress gateways must have a port
-		if s.Port == 0 && s.Kind != ServiceKindIngressGateway && s.Kind != ServiceKindAPIGateway {
+		if s.Port == 0 && s.Kind != ServiceKindIngressGateway {
 			result = multierror.Append(result, fmt.Errorf("Port must be non-zero for a %s", s.Kind))
 		}
 
@@ -1670,7 +1619,6 @@ func (s *NodeService) IsSame(other *NodeService) bool {
 		!reflect.DeepEqual(s.TaggedAddresses, other.TaggedAddresses) ||
 		!reflect.DeepEqual(s.Weights, other.Weights) ||
 		!reflect.DeepEqual(s.Meta, other.Meta) ||
-		!reflect.DeepEqual(s.Locality, other.Locality) ||
 		s.EnableTagOverride != other.EnableTagOverride ||
 		s.Kind != other.Kind ||
 		!reflect.DeepEqual(s.Proxy, other.Proxy) ||
@@ -1746,7 +1694,6 @@ func (s *NodeService) ToServiceNode(node string) *ServiceNode {
 		ServiceEnableTagOverride: s.EnableTagOverride,
 		ServiceProxy:             s.Proxy,
 		ServiceConnect:           s.Connect,
-		ServiceLocality:          s.Locality,
 		EnterpriseMeta:           s.EnterpriseMeta,
 		PeerName:                 s.PeerName,
 		RaftIndex: RaftIndex{
@@ -1801,15 +1748,6 @@ type HealthCheck struct {
 	RaftIndex `bexpr:"-"`
 }
 
-func (hc *HealthCheck) FillAuthzContext(ctx *acl.AuthorizerContext) {
-	if ctx == nil {
-		return
-	}
-	ctx.Peer = hc.PeerName
-
-	hc.EnterpriseMeta.FillAuthzContext(ctx)
-}
-
 func (hc *HealthCheck) PeerOrEmpty() string {
 	return hc.PeerName
 }
@@ -1857,7 +1795,6 @@ type HealthCheckDefinition struct {
 	TCP                            string              `json:",omitempty"`
 	UDP                            string              `json:",omitempty"`
 	H2PING                         string              `json:",omitempty"`
-	OSService                      string              `json:",omitempty"`
 	H2PingUseTLS                   bool                `json:",omitempty"`
 	Interval                       time.Duration       `json:",omitempty"`
 	OutputMaxSize                  uint                `json:",omitempty"`
@@ -2009,7 +1946,6 @@ func (c *HealthCheck) CheckType() *CheckType {
 		TCP:                            c.Definition.TCP,
 		UDP:                            c.Definition.UDP,
 		H2PING:                         c.Definition.H2PING,
-		OSService:                      c.Definition.OSService,
 		H2PingUseTLS:                   c.Definition.H2PingUseTLS,
 		Interval:                       c.Definition.Interval,
 		DockerContainerID:              c.Definition.DockerContainerID,
@@ -2061,14 +1997,14 @@ func (csn *CheckServiceNode) CanRead(authz acl.Authorizer) acl.EnforcementDecisi
 		return acl.Deny
 	}
 
-	var authzContext acl.AuthorizerContext
-	csn.Service.FillAuthzContext(&authzContext)
+	authzContext := new(acl.AuthorizerContext)
+	csn.Service.EnterpriseMeta.FillAuthzContext(authzContext)
 
-	if authz.NodeRead(csn.Node.Node, &authzContext) != acl.Allow {
+	if authz.NodeRead(csn.Node.Node, authzContext) != acl.Allow {
 		return acl.Deny
 	}
 
-	if authz.ServiceRead(csn.Service.Service, &authzContext) != acl.Allow {
+	if authz.ServiceRead(csn.Service.Service, authzContext) != acl.Allow {
 		return acl.Deny
 	}
 	return acl.Allow
@@ -2912,12 +2848,11 @@ func EncodeProtoInterface(t MessageType, message interface{}) ([]byte, error) {
 }
 
 func EncodeProto(t MessageType, pb proto.Message) ([]byte, error) {
-	data := make([]byte, 0, proto.Size(pb)+1)
-	data = append(data, uint8(t))
+	data := make([]byte, proto.Size(pb)+1)
+	data[0] = uint8(t)
 
-	var err error
-	data, err = proto.MarshalOptions{}.MarshalAppend(data, pb)
-	if err != nil {
+	buf := proto.NewBuffer(data[1:1])
+	if err := buf.Marshal(pb); err != nil {
 		return nil, err
 	}
 
@@ -3016,56 +2951,24 @@ func (m MessageType) String() string {
 
 }
 
-// This should only be used for conversions generated by MOG
-func DurationToProto(d time.Duration) *durationpb.Duration {
+func DurationToProto(d time.Duration) *duration.Duration {
 	return durationpb.New(d)
 }
 
-// This should only be used for conversions generated by MOG
-func DurationFromProto(d *durationpb.Duration) time.Duration {
+func DurationFromProto(d *duration.Duration) time.Duration {
 	return d.AsDuration()
 }
 
-// This should only be used for conversions generated by MOG
-func TimeFromProto(s *timestamppb.Timestamp) time.Time {
+func TimeFromProto(s *timestamp.Timestamp) time.Time {
 	return s.AsTime()
 }
 
-// This should only be used for conversions generated by MOG
-func TimeToProto(s time.Time) *timestamppb.Timestamp {
+func TimeToProto(s time.Time) *timestamp.Timestamp {
 	return timestamppb.New(s)
 }
 
 // IsZeroProtoTime returns true if the time is the minimum protobuf timestamp
 // (the Unix epoch).
-func IsZeroProtoTime(t *timestamppb.Timestamp) bool {
+func IsZeroProtoTime(t *timestamp.Timestamp) bool {
 	return t.Seconds == 0 && t.Nanos == 0
-}
-
-// Locality identifies where a given entity is running.
-type Locality struct {
-	// Region is region the zone belongs to.
-	Region string `json:",omitempty"`
-
-	// Zone is the zone the entity is running in.
-	Zone string `json:",omitempty"`
-}
-
-// ToAPI converts a struct Locality to an API Locality.
-func (l *Locality) ToAPI() *api.Locality {
-	if l == nil {
-		return nil
-	}
-
-	return &api.Locality{
-		Region: l.Region,
-		Zone:   l.Zone,
-	}
-}
-
-func (l *Locality) GetRegion() string {
-	if l == nil {
-		return ""
-	}
-	return l.Region
 }

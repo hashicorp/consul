@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package api
 
 import (
@@ -152,9 +149,6 @@ func TestAPI_ConfigEntry_DiscoveryChain(t *testing.T) {
 					"v2": {
 						Filter: "Service.Meta.version == v2",
 					},
-					"v3": {
-						Filter: "Service.Meta.version == v3",
-					},
 				},
 				Failover: map[string]ServiceResolverFailover{
 					"*": {
@@ -163,13 +157,6 @@ func TestAPI_ConfigEntry_DiscoveryChain(t *testing.T) {
 					"v1": {
 						Service:   "alternate",
 						Namespace: defaultNamespace,
-					},
-					"v3": {
-						Targets: []ServiceResolverFailoverTarget{
-							{Peer: "cluster-01"},
-							{Datacenter: "dc1"},
-							{Service: "another-service", ServiceSubset: "v1"},
-						},
 					},
 				},
 				ConnectTimeout: 5 * time.Second,
@@ -192,20 +179,6 @@ func TestAPI_ConfigEntry_DiscoveryChain(t *testing.T) {
 					ServiceSubset: "v2",
 					Namespace:     defaultNamespace,
 					Datacenter:    "d",
-				},
-			},
-			verify: verifyResolver,
-		},
-		{
-			name: "redirect to peer",
-			entry: &ServiceResolverConfigEntry{
-				Kind:      ServiceResolver,
-				Name:      "test-redirect",
-				Partition: defaultPartition,
-				Namespace: defaultNamespace,
-				Redirect: &ServiceResolverRedirect{
-					Service: "test-failover",
-					Peer:    "cluster-01",
 				},
 			},
 			verify: verifyResolver,
@@ -275,18 +248,6 @@ func TestAPI_ConfigEntry_DiscoveryChain(t *testing.T) {
 							NumRetries:            5,
 							RetryOnConnectFailure: true,
 							RetryOnStatusCodes:    []uint32{500, 503, 401},
-							RetryOn: []string{
-								"gateway-error",
-								"reset",
-								"envoy-ratelimited",
-								"retriable-4xx",
-								"refused-stream",
-								"cancelled",
-								"deadline-exceeded",
-								"internal",
-								"resource-exhausted",
-								"unavailable",
-							},
 							RequestHeaders: &HTTPHeaderModifiers{
 								Set: map[string]string{
 									"x-foo": "bar",

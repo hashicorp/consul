@@ -1,3 +1,0 @@
-```release-note:feature
-http: Add new `get-or-empty` operation to the txn api. Refer to the [API docs](https://www.consul.io/api-docs/txn#kv-operations) for more information.
-```

@@ -70,9 +70,6 @@
                       "resourceApiVersion": "V3"
                     }
                   }
-                ],
-                "alpnProtocols": [
-                  "http/1.1"
                 ]
               },
               "requireClientCertificate": false

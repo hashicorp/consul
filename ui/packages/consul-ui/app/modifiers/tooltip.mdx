@@ -11,21 +11,7 @@ most common usage will be something like the below:
 </span>
 ```
 
-A `tabindex=0` is automatically added to the element that triggers the tooltip
-if it doesn't have one already to make sure the tooltip is in the natural
-tabbing order of the document.
-
-If you specify and empty string as a content, then the tooltip will not show,
-you can use this to conditionally disable/enable tooltips. It additionally
-means empty tooltips can not been added by accident.
-
-```hbs preview-template
-<span
-  {{tooltip (if false 'Never show this' '')}}
->
-  Hover over me
-</span>
-```
+A `tabindex=0` is automatically added to the element that triggers the tooltip if it doesn't have one already to make sure the tooltip is in the natural tabbing order of the document.
 
 An additional options hash can be passed into the tooltip the contents of
 which are passed along to `tippy.js` [so all of the `tippy.js`

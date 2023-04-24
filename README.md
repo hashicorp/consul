@@ -48,7 +48,7 @@ by contacting us at security@hashicorp.com.
 
 A few quick start guides are available on the Consul website:
 
-* **Standalone binary install:** https://learn.hashicorp.com/collections/consul/get-started-vms
+* **Standalone binary install:** https://learn.hashicorp.com/tutorials/consul/get-started-install
 * **Minikube install:** https://learn.hashicorp.com/tutorials/consul/kubernetes-minikube
 * **Kind install:** https://learn.hashicorp.com/tutorials/consul/kubernetes-kind
 * **Kubernetes install:** https://learn.hashicorp.com/tutorials/consul/kubernetes-deployment-guide

@@ -33,13 +33,13 @@ load helpers
 @test "s1 upstream should be able to connect to s2" {
   run retry_default curl -s -f -d hello localhost:5000
   [ "$status" -eq 0 ]
-  [[ "$output" == *"hello"* ]]
+  [ "$output" = "hello" ]
 }
 
 @test "s1 proxy should have been configured with one rbac listener filter at L4" {
   LISTEN_FILTERS=$(get_envoy_listener_filters localhost:19000)
-  PUB=$(echo "$LISTEN_FILTERS" | grep -E "^public_listener:" | cut -f 2 -d ' ')
-  UPS=$(echo "$LISTEN_FILTERS" | grep -E "^(default\/default\/)?s2:" | cut -f 2 -d ' ')
+  PUB=$(echo "$LISTEN_FILTERS" | grep -E "^public_listener:" | cut -f 2 -d ' ' )
+  UPS=$(echo "$LISTEN_FILTERS" | grep -E "^(default\/default\/)?s2:" | cut -f 2 -d ' ' )
 
   echo "LISTEN_FILTERS = $LISTEN_FILTERS"
   echo "PUB = $PUB"

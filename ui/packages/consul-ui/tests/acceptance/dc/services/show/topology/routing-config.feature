@@ -24,7 +24,7 @@ Feature: dc / services / show / topology / routing-config
       dc: dc1
       service: service-0
     ---
-    And I see topologyIsVisible on the tabs
+    And I see topology on the tabs
   Scenario: Given the Source is routing config, show Source Type
     Then I see the text "Routing configuration" in "[data-test-topology-metrics-source-type]"
   Scenario: Given the Source is routing config, redirect to Routing Config page

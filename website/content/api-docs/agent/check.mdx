@@ -6,7 +6,8 @@ description: The /agent/check endpoints interact with checks on the local agent 
 
 # Check - Agent HTTP API
 
-Refer to [Define Health Checks](/consul/docs/services/usage/checks) for information about Consul health check capabilities.
+Consul's health check capabilities are described in the
+[health checks overview](/docs/discovery/checks).
 The `/agent/check` endpoints interact with health checks
 managed by the local agent in Consul.
 These should not be confused with checks in the catalog.
@@ -20,7 +21,7 @@ using the HTTP API.
 It is important to note that the checks known by the agent may be different from
 those reported by the catalog. This is usually due to changes being made while
 there is no leader elected. The agent performs active
-[anti-entropy](/consul/docs/architecture/anti-entropy), so in most situations
+[anti-entropy](/docs/architecture/anti-entropy), so in most situations
 everything will be in sync within a few seconds.
 
 @include 'http_api_results_filtered_by_acls.mdx'
@@ -30,10 +31,10 @@ everything will be in sync within a few seconds.
 | `GET`  | `/agent/checks` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/consul/api-docs/features/blocking),
-[consistency modes](/consul/api-docs/features/consistency),
-[agent caching](/consul/api-docs/features/caching), and
-[required ACLs](/consul/api-docs/api-structure#authentication).
+[blocking queries](/api-docs/features/blocking),
+[consistency modes](/api-docs/features/consistency),
+[agent caching](/api-docs/features/caching), and
+[required ACLs](/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required             |
 | ---------------- | ----------------- | ------------- | ------------------------ |
@@ -108,10 +109,10 @@ check and keeping the Catalog in sync.
 | `PUT`  | `/agent/check/register` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/consul/api-docs/features/blocking),
-[consistency modes](/consul/api-docs/features/consistency),
-[agent caching](/consul/api-docs/features/caching), and
-[required ACLs](/consul/api-docs/api-structure#authentication).
+[blocking queries](/api-docs/features/blocking),
+[consistency modes](/api-docs/features/consistency),
+[agent caching](/api-docs/features/caching), and
+[required ACLs](/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required               |
 | ---------------- | ----------------- | ------------- | -------------------------- |
@@ -244,8 +245,6 @@ The check sends datagrams to the value specified at the interval specified in th
 If the datagram is sent successfully or a timeout is returned, the check is set to the `passing` state.
 The check is logged as `critical` if the datagram is sent unsuccessfully.
 
-- `OSService` `(string: "")` - Specifies the identifier of an OS-level service to check. You can specify either `Windows Services` on Windows or `SystemD` services on Unix.
-
 - `TTL` `(duration: 10s)` - Specifies this is a TTL check, and the TTL endpoint
   must be used periodically to update the state of the check. If the check is not
   set to passing within the specified duration, then the check will be set to the failed state.
@@ -312,10 +311,10 @@ not exist, no action is taken.
 | `PUT`  | `/agent/check/deregister/:check_id` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/consul/api-docs/features/blocking),
-[consistency modes](/consul/api-docs/features/consistency),
-[agent caching](/consul/api-docs/features/caching), and
-[required ACLs](/consul/api-docs/api-structure#authentication).
+[blocking queries](/api-docs/features/blocking),
+[consistency modes](/api-docs/features/consistency),
+[agent caching](/api-docs/features/caching), and
+[required ACLs](/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required               |
 | ---------------- | ----------------- | ------------- | -------------------------- |
@@ -350,10 +349,10 @@ This endpoint is used with a TTL type check to set the status of the check to
 | `PUT`  | `/agent/check/pass/:check_id` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/consul/api-docs/features/blocking),
-[consistency modes](/consul/api-docs/features/consistency),
-[agent caching](/consul/api-docs/features/caching), and
-[required ACLs](/consul/api-docs/api-structure#authentication).
+[blocking queries](/api-docs/features/blocking),
+[consistency modes](/api-docs/features/consistency),
+[agent caching](/api-docs/features/caching), and
+[required ACLs](/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required               |
 | ---------------- | ----------------- | ------------- | -------------------------- |
@@ -389,10 +388,10 @@ This endpoint is used with a TTL type check to set the status of the check to
 | `PUT`  | `/agent/check/warn/:check_id` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/consul/api-docs/features/blocking),
-[consistency modes](/consul/api-docs/features/consistency),
-[agent caching](/consul/api-docs/features/caching), and
-[required ACLs](/consul/api-docs/api-structure#authentication).
+[blocking queries](/api-docs/features/blocking),
+[consistency modes](/api-docs/features/consistency),
+[agent caching](/api-docs/features/caching), and
+[required ACLs](/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required               |
 | ---------------- | ----------------- | ------------- | -------------------------- |
@@ -423,7 +422,7 @@ This endpoint is used with a TTL type check to set the status of the check to
 `critical` and to reset the TTL clock.
 
 If you want to manually mark a service as unhealthy,
-use [maintenance mode](/consul/api-docs/agent#enable-maintenance-mode)
+use [maintenance mode](/api-docs/agent#enable-maintenance-mode)
 instead of defining a TTL health check and using this endpoint.
 
 | Method | Path                          | Produces           |
@@ -431,10 +430,10 @@ instead of defining a TTL health check and using this endpoint.
 | `PUT`  | `/agent/check/fail/:check_id` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/consul/api-docs/features/blocking),
-[consistency modes](/consul/api-docs/features/consistency),
-[agent caching](/consul/api-docs/features/caching), and
-[required ACLs](/consul/api-docs/api-structure#authentication).
+[blocking queries](/api-docs/features/blocking),
+[consistency modes](/api-docs/features/consistency),
+[agent caching](/api-docs/features/caching), and
+[required ACLs](/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required               |
 | ---------------- | ----------------- | ------------- | -------------------------- |
@@ -465,7 +464,7 @@ This endpoint is used with a TTL type check to set the status of the check and
 to reset the TTL clock.
 
 If you want to manually mark a service as unhealthy,
-use [maintenance mode](/consul/api-docs/agent#enable-maintenance-mode)
+use [maintenance mode](/api-docs/agent#enable-maintenance-mode)
 instead of defining a TTL health check and using this endpoint.
 
 | Method | Path                            | Produces           |
@@ -473,10 +472,10 @@ instead of defining a TTL health check and using this endpoint.
 | `PUT`  | `/agent/check/update/:check_id` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/consul/api-docs/features/blocking),
-[consistency modes](/consul/api-docs/features/consistency),
-[agent caching](/consul/api-docs/features/caching), and
-[required ACLs](/consul/api-docs/api-structure#authentication).
+[blocking queries](/api-docs/features/blocking),
+[consistency modes](/api-docs/features/consistency),
+[agent caching](/api-docs/features/caching), and
+[required ACLs](/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required               |
 | ---------------- | ----------------- | ------------- | -------------------------- |

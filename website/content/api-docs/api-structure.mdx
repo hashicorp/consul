@@ -40,11 +40,11 @@ $ curl \
     http://127.0.0.1:8500/v1/agent/members
 ```
 
-**Security Note:** Though you could pass the token through the `?token=` query parameter,
-this method is highly discouraged because the token can show up in access logs as part of the URL. 
-The `?token=` query parameter is deprecated and will be removed in Consul 1.17.
+Previously this was provided via a `?token=` query parameter. This functionality
+exists on many endpoints for backwards compatibility, but its use is **highly
+discouraged**, since it can show up in access logs as part of the URL.
 
-To learn more about the ACL system read the [documentation](/consul/docs/security/acl).
+To learn more about the ACL system read the [documentation](/docs/security/acl).
 
 ## Version Prefix
 
@@ -89,11 +89,11 @@ However, we generally recommend using resource names that don't require URL-enco
 Depending on the validation that Consul applies to a resource name,
 Consul may still reject a request if it considers the resource name invalid for that endpoint.
 And even if Consul considers the resource name valid, it may degrade other functionality,
-such as failed [DNS lookups](/consul/docs/services/discovery/dns-overview)
+such as failed [DNS lookups](/docs/discovery/dns)
 for nodes or services with names containing invalid DNS characters.
 
 This HTTP API capability also allows the
-[CLI to accept arguments with URL-invalid characters](/consul/commands#arguments-with-url-invalid-characters).
+[CLI to accept arguments with URL-invalid characters](/commands#arguments-with-url-invalid-characters).
 
 ### Invalid Characters
 
@@ -103,7 +103,7 @@ The linefeed character (`%0a`) will cause a request to be rejected even if it is
 
 Consul 0.7 added the ability to translate addresses in HTTP response based on
 the configuration setting for
-[`translate_wan_addrs`](/consul/docs/agent/config/config-files#translate_wan_addrs). In order
+[`translate_wan_addrs`](/docs/agent/config/config-files#translate_wan_addrs). In order
 to allow clients to know if address translation is in effect, the
 `X-Consul-Translate-Addresses` header will be added if translation is enabled,
 and will have a value of `true`. If translation is not enabled then this header
@@ -114,9 +114,9 @@ will not be present.
 All API responses for Consul versions after 1.9 will include an HTTP response
 header `X-Consul-Default-ACL-Policy` set to either "allow" or "deny" which
 mirrors the current value of the agent's
-[`acl.default_policy`](/consul/docs/agent/config/config-files#acl_default_policy) option.
+[`acl.default_policy`](/docs/agent/config/config-files#acl_default_policy) option.
 
-This is also the default [intention](/consul/docs/connect/intentions) enforcement
+This is also the default [intention](/docs/connect/intentions) enforcement
 action if no intention matches.
 
 This is returned even if ACLs are disabled.

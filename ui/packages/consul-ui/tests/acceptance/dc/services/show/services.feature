@@ -16,7 +16,7 @@ Feature: dc / services / show / services
       service: terminating-gateway-1
     ---
     And the title should be "terminating-gateway-1 - Consul"
-    And I see linkedServicesIsVisible on the tabs
+    And I see linkedServices on the tabs
     When I click linkedServices on the tabs
     And I see linkedServicesIsSelected on the tabs
   Scenario: Seeing the list of Linked Services
@@ -50,7 +50,6 @@ Feature: dc / services / show / services
     | Name                | Kind                |
     | service             | ~                   |
     | ingress-gateway     | ingress-gateway     |
-    | api-gateway         | api-gateway         |
     | mesh-gateway        | mesh-gateway        |
     ---------------------------------------------
 

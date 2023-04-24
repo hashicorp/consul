@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package agent
 
 import (
@@ -11,7 +8,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hashicorp/consul/envoyextensions/xdscommon"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
 	"github.com/mitchellh/hashstructure"
@@ -28,6 +24,7 @@ import (
 	"github.com/hashicorp/consul/agent/debug"
 	"github.com/hashicorp/consul/agent/structs"
 	token_store "github.com/hashicorp/consul/agent/token"
+	"github.com/hashicorp/consul/agent/xds/proxysupport"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/lib"
@@ -48,19 +45,7 @@ type Self struct {
 
 type XDSSelf struct {
 	SupportedProxies map[string][]string
-	// Port could be used for either TLS or plain-text communication
-	// up through version 1.14. In order to maintain backwards-compatibility,
-	// Port will now default to TLS and fallback to the standard port value.
-	// DEPRECATED: Use Ports field instead
-	Port  int
-	Ports GRPCPorts
-}
-
-// GRPCPorts is used to hold the external GRPC server's port numbers.
-type GRPCPorts struct {
-	// Technically, this port is not always plain-text as of 1.14, but will be in a future release.
-	Plaintext int
-	TLS       int
+	Port             int
 }
 
 func (s *HTTPHandlers) AgentSelf(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
@@ -91,18 +76,9 @@ func (s *HTTPHandlers) AgentSelf(resp http.ResponseWriter, req *http.Request) (i
 	if s.agent.xdsServer != nil {
 		xds = &XDSSelf{
 			SupportedProxies: map[string][]string{
-				"envoy": xdscommon.EnvoyVersions,
+				"envoy": proxysupport.EnvoyVersions,
 			},
-			// Prefer the TLS port. See comment on the XDSSelf struct for details.
-			Port: s.agent.config.GRPCTLSPort,
-			Ports: GRPCPorts{
-				Plaintext: s.agent.config.GRPCPort,
-				TLS:       s.agent.config.GRPCTLSPort,
-			},
-		}
-		// Fallback to standard port if TLS is not enabled.
-		if s.agent.config.GRPCTLSPort <= 0 {
-			xds.Port = s.agent.config.GRPCPort
+			Port: s.agent.config.GRPCPort,
 		}
 	}
 
@@ -307,7 +283,6 @@ func buildAgentService(s *structs.NodeService, dc string) api.AgentService {
 		ModifyIndex:       s.ModifyIndex,
 		Weights:           weights,
 		Datacenter:        dc,
-		Locality:          s.Locality.ToAPI(),
 	}
 
 	if as.Tags == nil {
@@ -1511,9 +1486,6 @@ func (s *HTTPHandlers) AgentToken(resp http.ResponseWriter, req *http.Request) (
 
 		case "acl_replication_token", "replication":
 			s.agent.tokens.UpdateReplicationToken(args.Token, token_store.TokenSourceAPI)
-
-		case "config_file_service_registration":
-			s.agent.tokens.UpdateConfigFileRegistrationToken(args.Token, token_store.TokenSourceAPI)
 
 		default:
 			return HTTPError{StatusCode: http.StatusNotFound, Reason: fmt.Sprintf("Token %q is unknown", target)}

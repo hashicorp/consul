@@ -35,11 +35,6 @@ be found in the public [user documentation].
 
 Also see the [FAQ](./faq.md).
 
-## Other Docs
-
-1. [Integration Tests](../test/integration/connect/envoy/README.md)
-1. [Upgrade Tests](../test/integration/consul-container/test/upgrade/README.md)
-
 ## Important Directories
 
 Most top level directories contain Go source code. The directories listed below

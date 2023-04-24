@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package consul
 
 import (
@@ -259,8 +256,8 @@ type mockCAProvider struct {
 
 func (m *mockCAProvider) Configure(cfg ca.ProviderConfig) error { return nil }
 func (m *mockCAProvider) State() (map[string]string, error)     { return nil, nil }
-func (m *mockCAProvider) GenerateCAChain() (ca.CAChainResult, error) {
-	return ca.CAChainResult{PEM: m.rootPEM}, nil
+func (m *mockCAProvider) GenerateRoot() (ca.RootResult, error) {
+	return ca.RootResult{PEM: m.rootPEM}, nil
 }
 func (m *mockCAProvider) GenerateIntermediateCSR() (string, string, error) {
 	m.callbackCh <- "provider/GenerateIntermediateCSR"
@@ -270,13 +267,13 @@ func (m *mockCAProvider) SetIntermediate(intermediatePEM, rootPEM, _ string) err
 	m.callbackCh <- "provider/SetIntermediate"
 	return nil
 }
-func (m *mockCAProvider) ActiveLeafSigningCert() (string, error) {
+func (m *mockCAProvider) ActiveIntermediate() (string, error) {
 	if m.intermediatePem == "" {
 		return m.rootPEM, nil
 	}
 	return m.intermediatePem, nil
 }
-
+func (m *mockCAProvider) GenerateIntermediate() (string, error)                     { return "", nil }
 func (m *mockCAProvider) Sign(*x509.CertificateRequest) (string, error)             { return "", nil }
 func (m *mockCAProvider) SignIntermediate(*x509.CertificateRequest) (string, error) { return "", nil }
 func (m *mockCAProvider) CrossSignCA(*x509.Certificate) (string, error)             { return "", nil }
@@ -566,7 +563,7 @@ func TestCAManager_Initialize_Logging(t *testing.T) {
 	deps := newDefaultDeps(t, conf1)
 	deps.Logger = logger
 
-	s1, err := NewServer(conf1, deps, grpc.NewServer(), nil, logger)
+	s1, err := NewServer(conf1, deps, grpc.NewServer())
 	require.NoError(t, err)
 	defer s1.Shutdown()
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
@@ -574,7 +571,7 @@ func TestCAManager_Initialize_Logging(t *testing.T) {
 	// Wait til CA root is setup
 	retry.Run(t, func(r *retry.R) {
 		var out structs.IndexedCARoots
-		r.Check(s1.RPC(context.Background(), "ConnectCA.Roots", structs.DCSpecificRequest{
+		r.Check(s1.RPC("ConnectCA.Roots", structs.DCSpecificRequest{
 			Datacenter: conf1.Datacenter,
 		}, &out))
 	})
@@ -1187,46 +1184,6 @@ func setupPrimaryCA(t *testing.T, client *vaultapi.Client, path string, rootPEM 
 	require.NoError(t, err, "failed to set signed intermediate")
 	// TODO: also fix issuers here?
 	return lib.EnsureTrailingNewline(buf.String())
-}
-
-func TestCAManager_Sign_SpiffeIDServer(t *testing.T) {
-	if testing.Short() {
-		t.Skip("too slow for testing.Short")
-	}
-
-	_, s1 := testServerWithConfig(t)
-	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
-
-	codec := rpcClient(t, s1)
-	roots := structs.IndexedCARoots{}
-
-	retry.Run(t, func(r *retry.R) {
-		err := msgpackrpc.CallWithCodec(codec, "ConnectCA.Roots", &structs.DCSpecificRequest{}, &roots)
-		require.NoError(r, err)
-		require.Len(r, roots.Roots, 1)
-	})
-
-	pk, _, err := connect.GeneratePrivateKey()
-	require.NoError(t, err)
-
-	// Request a leaf certificate for a server.
-	spiffeID := &connect.SpiffeIDServer{
-		Host:       roots.TrustDomain,
-		Datacenter: "dc1",
-	}
-	csr, err := connect.CreateCSR(spiffeID, pk, nil, nil)
-	require.NoError(t, err)
-
-	req := structs.CASignRequest{CSR: csr}
-	cert := structs.IssuedCert{}
-	err = msgpackrpc.CallWithCodec(codec, "ConnectCA.Sign", &req, &cert)
-	require.NoError(t, err)
-
-	// Verify the chain of trust.
-	verifyLeafCert(t, roots.Roots[0], cert.CertPEM)
-
-	// Verify the Server's URI.
-	require.Equal(t, fmt.Sprintf("spiffe://%s/agent/server/dc/dc1", roots.TrustDomain), cert.ServerURI)
 }
 
 func TestCAManager_AuthorizeAndSignCertificate(t *testing.T) {

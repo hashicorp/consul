@@ -33,7 +33,7 @@ Feature: dc / services / instances / Exposed Paths
       id: service-0-with-id
     ---
     Then the url should be /dc1/services/service-0/instances/node-0/service-0-with-id/health-checks
-    And I see exposedPathsIsVisible on the tabs
+    And I see exposedPaths on the tabs
 
     When I click exposedPaths on the tabs
 

@@ -1,8 +1,3 @@
-{{!
-  Copyright (c) HashiCorp, Inc.
-  SPDX-License-Identifier: MPL-2.0
-}}
-
 <DataForm
   @dc={{dc}}
   @nspace={{nspace}}
@@ -65,58 +60,29 @@
             </label>
         </div>
 {{/if}}
-      </fieldset>
-      <Hds::ButtonSet>
-        {{#if api.isCreate}}
-          {{#if (not disabld)}}
-            <Hds::Button
-              @text='Save'
-              type='submit'
-              disabled={{or api.data.isPristine api.data.isInvalid api.disabled}}
-            />
-          {{/if}}
-
-          <Hds::Button
-            @text='Cancel'
-            @color='secondary'
-            type='reset'
-            disabled={{api.disabled}}
-            onclick={{action oncancel api.data}}
-          />
-        {{else}}
-          {{#if (not disabld)}}
-            <Hds::Button
-              @text='Save'
-              type='submit'
-              disabled={{or api.data.isInvalid api.disabled}}
-            />
-          {{/if}}
-          <Hds::Button
-            @text='Cancel'
-            @color='secondary'
-            type='reset'
-            disabled={{api.disabled}}
-            onclick={{action oncancel api.data}}
-          />
-          {{#if (not disabld)}}
-            <ConfirmationDialog @message="Are you sure you want to delete this key?">
-              <BlockSlot @name="action" as |confirm|>
-                <Hds::Button
-                  @text='Delete'
-                  @color='critical'
-                  data-test-delete
-                  disabled={{api.disabled}}
-                  {{on 'click' (action confirm api.delete)}}
-                />
-              </BlockSlot>
-              <BlockSlot @name="dialog" as |execute cancel message|>
-                <DeleteConfirmation @message={{message}} @execute={{execute}} @cancel={{cancel}} />
-              </BlockSlot>
-            </ConfirmationDialog>
-          {{/if}}
-        {{/if}}
-      </Hds::ButtonSet>
-    </form>
+    </fieldset>
+    {{#if api.isCreate}}
+{{#if (not disabld)}}
+        <button type="submit" disabled={{or api.data.isPristine api.data.isInvalid api.disabled}}>Save</button>
+{{/if}}
+        <button type="reset" onclick={{action oncancel api.data}} disabled={{api.disabled}}>Cancel</button>
+    {{else}}
+{{#if (not disabld)}}
+        <button type="submit" disabled={{or api.data.isInvalid api.disabled}}>Save</button>
+{{/if}}
+        <button type="reset" onclick={{action oncancel api.data}} disabled={{api.disabled}}>Cancel</button>
+{{#if (not disabld)}}
+        <ConfirmationDialog @message="Are you sure you want to delete this key?">
+          <BlockSlot @name="action" as |confirm|>
+            <button data-test-delete type="button" class="type-delete" {{action confirm api.delete}} disabled={{api.disabled}}>Delete</button>
+          </BlockSlot>
+          <BlockSlot @name="dialog" as |execute cancel message|>
+            <DeleteConfirmation @message={{message}} @execute={{execute}} @cancel={{cancel}} />
+          </BlockSlot>
+        </ConfirmationDialog>
+    {{/if}}
+{{/if}}
+      </form>
 {{/let}}
     </BlockSlot>
 </DataForm>

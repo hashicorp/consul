@@ -1,6 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
-# SPDX-License-Identifier: MPL-2.0
-
 acl_agent_master_token = "furuQD0b"
 acl_agent_token = "cOshLOQ2"
 acl_datacenter = "m3urck3z"
@@ -47,7 +44,6 @@ addresses = {
     http = "83.39.91.39"
     https = "95.17.17.19"
     grpc = "32.31.61.91"
-    grpc_tls = "23.14.88.19"
 }
 advertise_addr = "17.99.29.16"
 advertise_addr_wan = "78.63.37.19"
@@ -122,7 +118,6 @@ check = {
     output_max_size = 4096
     docker_container_id = "qF66POS9"
     shell = "sOnDy228"
-    os_service = "aZaCAXww"
     tls_server_name = "7BdnzBYk"
     tls_skip_verify = true
     timeout = "5954s"
@@ -152,7 +147,6 @@ checks = [
         output_max_size = 4096
         docker_container_id = "ipgdFtjd"
         shell = "qAeOYy0M"
-        os_service = "aAjE6m9Z"
         tls_server_name = "bdeb5f6a"
         tls_skip_verify = true
         timeout = "1813s"
@@ -181,7 +175,6 @@ checks = [
         output_max_size = 4096
         docker_container_id = "THW6u7rL"
         shell = "C1Zt3Zwh"
-        os_service = "aqq95BhP"
         tls_server_name = "6adc3bfb"
         tls_skip_verify = true
         timeout = "18506s"
@@ -207,14 +200,6 @@ auto_encrypt = {
     ip_san = ["192.168.4.139", "192.168.4.140"]
     allow_tls = true
 }
-cloud {
-    resource_id = "N43DsscE"
-    client_id = "6WvsDZCP"
-    client_secret = "lCSMHOpB"
-    hostname = "DH4bh7aC"
-    auth_url = "332nCdR2"
-    scada_address = "aoeusth232"
-}
 connect {
     ca_provider = "consul"
     ca_config {
@@ -228,6 +213,7 @@ connect {
     }
     enable_mesh_gateway_wan_federation = false
     enabled = true
+    enable_serverless_plugin = true
 }
 gossip_lan {
     gossip_nodes    = 6
@@ -308,11 +294,6 @@ limits {
     rpc_max_conns_per_client = 2954
     kv_max_value_size = 1234567800
     txn_max_req_len = 567800000
-    request_limits {
-        mode = "permissive"
-        read_rate = 99.0
-        write_rate = 101.0
-    }
 }
 log_level = "k1zo9Spt"
 log_json = true
@@ -340,7 +321,6 @@ ports {
     https = 15127
     server = 3757
     grpc = 4881
-    grpc_tls = 5201
     proxy_min_port = 2000
     proxy_max_port = 3000
     sidecar_min_port = 8888
@@ -356,19 +336,8 @@ raft_protocol = 3
 raft_snapshot_threshold = 16384
 raft_snapshot_interval = "30s"
 raft_trailing_logs = 83749
-raft_logstore {
-    backend = "wal"
-    disable_log_cache = true
-    verification {
-        enabled = true
-        interval = "12345s"
-    }
-    boltdb {
-        no_freelist_sync = true
-    }
-    wal {
-       segment_size_mb = 15
-    }
+raft_boltdb {
+    NoFreelistSync = true
 }
 read_replica = true
 reconnect_timeout = "23739s"
@@ -439,7 +408,6 @@ service = {
         interval = "23926s"
         docker_container_id = "dO5TtRHk"
         shell = "e6q2ttES"
-        os_service = "RAa85Dv8"
         tls_server_name = "ECSHk8WF"
         tls_skip_verify = true
         timeout = "38483s"
@@ -467,7 +435,6 @@ service = {
             output_max_size = 4096
             docker_container_id = "ipgdFtjd"
             shell = "omVZq7Sz"
-            os_service = "ZA99e9Ka"
             tls_server_name = "axw5QPL5"
             tls_skip_verify = true
             timeout = "18913s"
@@ -494,7 +461,6 @@ service = {
             output_max_size = 4096
             docker_container_id = "HBndBU6R"
             shell = "hVI33JjA"
-            os_service = "GAaO6Mpr"
             tls_server_name = "7uwWOnUS"
             tls_skip_verify = true
             timeout = "38282s"
@@ -535,7 +501,6 @@ services = [
             output_max_size = 4096
             docker_container_id = "ZKXr68Yb"
             shell = "CEfzx0Fo"
-            os_service = "amfeO5if"
             tls_server_name = "4f191d4F"
             tls_skip_verify = true
             timeout = "38333s"
@@ -579,7 +544,6 @@ services = [
                 output_max_size = 4096
                 docker_container_id = "cU15LMet"
                 shell = "nEz9qz2l"
-                os_service = "GTti9hCA"
                 tls_server_name = "f43ouY7a"
                 tls_skip_verify = true
                 timeout = "34738s"
@@ -787,6 +751,3 @@ watches = [{
     key = "sl3Dffu7"
     args = ["dltjDJ2a", "flEa7C2d"]
 }]
-xds {
-  update_max_per_second = 9526.2
-}

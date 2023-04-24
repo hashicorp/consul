@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package xds
 
 import (
@@ -10,8 +7,6 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/agent/connect"
-	"github.com/hashicorp/consul/agent/grpc-external/limiter"
-	"github.com/hashicorp/consul/envoyextensions/xdscommon"
 
 	envoy_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
@@ -29,12 +24,13 @@ import (
 	envoy_type_v3 "github.com/envoyproxy/go-control-plane/envoy/type/v3"
 
 	"github.com/armon/go-metrics"
+	"github.com/golang/protobuf/proto"
+	"github.com/golang/protobuf/ptypes"
+	"github.com/golang/protobuf/ptypes/wrappers"
 	"github.com/mitchellh/copystructure"
 	"github.com/stretchr/testify/require"
-	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/durationpb"
-	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
@@ -50,7 +46,7 @@ func newTestSnapshot(
 	dbServiceProtocol string,
 	additionalEntries ...structs.ConfigEntry,
 ) *proxycfg.ConfigSnapshot {
-	snap := proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", false, nil, nil, additionalEntries...)
+	snap := proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", nil, nil, additionalEntries...)
 	snap.ConnectProxy.PreparedQueryEndpoints = map[proxycfg.UpstreamID]structs.CheckServiceNodes{
 		UID("prepared_query:geo-cache"): proxycfg.TestPreparedQueryNodes(t, "geo-cache"),
 	}
@@ -70,16 +66,14 @@ func newTestSnapshot(
 // testing. It also implements ConnectAuthz to allow control over authorization.
 type testManager struct {
 	sync.Mutex
-	stateChans map[structs.ServiceID]chan *proxycfg.ConfigSnapshot
-	drainChans map[structs.ServiceID]chan struct{}
-	cancels    chan structs.ServiceID
+	chans   map[structs.ServiceID]chan *proxycfg.ConfigSnapshot
+	cancels chan structs.ServiceID
 }
 
 func newTestManager(t *testing.T) *testManager {
 	return &testManager{
-		stateChans: map[structs.ServiceID]chan *proxycfg.ConfigSnapshot{},
-		drainChans: map[structs.ServiceID]chan struct{}{},
-		cancels:    make(chan structs.ServiceID, 10),
+		chans:   map[structs.ServiceID]chan *proxycfg.ConfigSnapshot{},
+		cancels: make(chan structs.ServiceID, 10),
 	}
 }
 
@@ -87,8 +81,7 @@ func newTestManager(t *testing.T) *testManager {
 func (m *testManager) RegisterProxy(t *testing.T, proxyID structs.ServiceID) {
 	m.Lock()
 	defer m.Unlock()
-	m.stateChans[proxyID] = make(chan *proxycfg.ConfigSnapshot, 1)
-	m.drainChans[proxyID] = make(chan struct{})
+	m.chans[proxyID] = make(chan *proxycfg.ConfigSnapshot, 1)
 }
 
 // Deliver simulates a proxy registration
@@ -97,42 +90,18 @@ func (m *testManager) DeliverConfig(t *testing.T, proxyID structs.ServiceID, cfg
 	m.Lock()
 	defer m.Unlock()
 	select {
-	case m.stateChans[proxyID] <- cfg:
+	case m.chans[proxyID] <- cfg:
 	case <-time.After(10 * time.Millisecond):
 		t.Fatalf("took too long to deliver config")
 	}
 }
 
-// DrainStreams drains any open streams for the given proxyID. If there aren't
-// any open streams, it'll create a marker so that future attempts to watch the
-// given proxyID will return limiter.ErrCapacityReached.
-func (m *testManager) DrainStreams(proxyID structs.ServiceID) {
-	m.Lock()
-	defer m.Unlock()
-
-	ch, ok := m.drainChans[proxyID]
-	if !ok {
-		ch = make(chan struct{})
-		m.drainChans[proxyID] = ch
-	}
-	close(ch)
-}
-
 // Watch implements ConfigManager
-func (m *testManager) Watch(proxyID structs.ServiceID, _ string, _ string) (<-chan *proxycfg.ConfigSnapshot, limiter.SessionTerminatedChan, proxycfg.CancelFunc, error) {
+func (m *testManager) Watch(proxyID structs.ServiceID, _ string, _ string) (<-chan *proxycfg.ConfigSnapshot, proxycfg.CancelFunc, error) {
 	m.Lock()
 	defer m.Unlock()
-
-	// If the drain chan has already been closed, return limiter.ErrCapacityReached.
-	drainCh := m.drainChans[proxyID]
-	select {
-	case <-drainCh:
-		return nil, nil, nil, limiter.ErrCapacityReached
-	default:
-	}
-
 	// ch might be nil but then it will just block forever
-	return m.stateChans[proxyID], drainCh, func() {
+	return m.chans[proxyID], func() {
 		m.cancels <- proxyID
 	}, nil
 }
@@ -162,13 +131,17 @@ type testServerScenario struct {
 
 func newTestServerDeltaScenario(
 	t *testing.T,
-	resolveTokenSecret ACLResolverFunc,
+	resolveToken ACLResolverFunc,
 	proxyID string,
 	token string,
 	authCheckFrequency time.Duration,
+	serverlessPluginEnabled bool,
 ) *testServerScenario {
 	mgr := newTestManager(t)
 	envoy := NewTestEnvoy(t, proxyID, token)
+	t.Cleanup(func() {
+		envoy.Close()
+	})
 
 	sink := metrics.NewInmemSink(1*time.Minute, 1*time.Minute)
 	cfg := metrics.DefaultConfig("consul.xds.test")
@@ -177,7 +150,6 @@ func newTestServerDeltaScenario(
 	metrics.NewGlobal(cfg, sink)
 
 	t.Cleanup(func() {
-		envoy.Close()
 		sink := &metrics.BlackholeSink{}
 		metrics.NewGlobal(cfg, sink)
 	})
@@ -185,8 +157,9 @@ func newTestServerDeltaScenario(
 	s := NewServer(
 		"node-123",
 		testutil.Logger(t),
+		serverlessPluginEnabled,
 		mgr,
-		resolveTokenSecret,
+		resolveToken,
 		nil, /*cfgFetcher ConfigFetcher*/
 	)
 	if authCheckFrequency > 0 {
@@ -294,7 +267,7 @@ func xdsNewTransportSocket(
 
 	var tlsContext proto.Message
 	if downstream {
-		var requireClientCertPB *wrapperspb.BoolValue
+		var requireClientCertPB *wrappers.BoolValue
 		if requireClientCert {
 			requireClientCertPB = makeBoolValue(true)
 		}
@@ -310,7 +283,7 @@ func xdsNewTransportSocket(
 		}
 	}
 
-	any, err := anypb.New(tlsContext)
+	any, err := ptypes.MarshalAny(tlsContext)
 	require.NoError(t, err)
 
 	return &envoy_core_v3.TransportSocket{
@@ -369,11 +342,11 @@ func makeTestResource(t *testing.T, raw interface{}) *envoy_discovery_v3.Resourc
 		}
 	case proto.Message:
 
-		any, err := anypb.New(res)
+		any, err := ptypes.MarshalAny(res)
 		require.NoError(t, err)
 
 		return &envoy_discovery_v3.Resource{
-			Name:     xdscommon.GetResourceName(res),
+			Name:     getResourceName(res),
 			Version:  mustHashResource(t, res),
 			Resource: any,
 		}
@@ -490,7 +463,7 @@ func makeTestCluster(t *testing.T, snap *proxycfg.ConfigSnapshot, fixtureName st
 				},
 			},
 		}
-		typedExtensionProtocolOptionsEncoded, err := anypb.New(typedExtensionProtocolOptions)
+		typedExtensionProtocolOptionsEncoded, err := ptypes.MarshalAny(typedExtensionProtocolOptions)
 		require.NoError(t, err)
 		c.TypedExtensionProtocolOptions = map[string]*anypb.Any{
 			"envoy.extensions.upstreams.http.v3.HttpProtocolOptions": typedExtensionProtocolOptionsEncoded,
@@ -833,7 +806,7 @@ func requireProtocolVersionGauge(
 	require.Len(t, data, 1)
 
 	item := data[0]
-	require.Len(t, item.Gauges, 2)
+	require.Len(t, item.Gauges, 1)
 
 	val, ok := item.Gauges["consul.xds.test.xds.server.streams;version="+xdsVersion]
 	require.True(t, ok)

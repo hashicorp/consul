@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package agent
 
 import (
@@ -77,7 +74,7 @@ func (s *HTTPHandlers) DiscoveryChainRead(resp http.ResponseWriter, req *http.Re
 		out = *reply
 	} else {
 	RETRY_ONCE:
-		if err := s.agent.RPC(req.Context(), "DiscoveryChain.Get", &args, &out); err != nil {
+		if err := s.agent.RPC("DiscoveryChain.Get", &args, &out); err != nil {
 			return nil, err
 		}
 		if args.QueryOptions.AllowStale && args.MaxStaleDuration > 0 && args.MaxStaleDuration < out.LastContact {

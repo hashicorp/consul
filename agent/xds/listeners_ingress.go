@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package xds
 
 import (
@@ -10,13 +7,12 @@ import (
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	envoy_tls_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 
-	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/types/known/durationpb"
-	"google.golang.org/protobuf/types/known/wrapperspb"
+	"github.com/golang/protobuf/proto"
+	"github.com/golang/protobuf/ptypes/duration"
+	"github.com/golang/protobuf/ptypes/wrappers"
 
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/types"
 )
 
@@ -27,15 +23,6 @@ func (s *ResourceGenerator) makeIngressGatewayListeners(address string, cfgSnap 
 		listenerCfg, ok := cfgSnap.IngressGateway.Listeners[listenerKey]
 		if !ok {
 			return nil, fmt.Errorf("no listener config found for listener on proto/port %s/%d", listenerKey.Protocol, listenerKey.Port)
-		}
-
-		var isAPIGatewayWithTLS bool
-		var certs []structs.InlineCertificateConfigEntry
-		if cfgSnap.APIGateway.ListenerCertificates != nil {
-			certs = cfgSnap.APIGateway.ListenerCertificates[listenerKey]
-		}
-		if certs != nil {
-			isAPIGatewayWithTLS = true
 		}
 
 		tlsContext, err := makeDownstreamTLSContextFromSnapshotListenerConfig(cfgSnap, listenerCfg)
@@ -76,18 +63,8 @@ func (s *ResourceGenerator) makeIngressGatewayListeners(address string, cfgSnap 
 
 			filterName := fmt.Sprintf("%s.%s.%s.%s", chain.ServiceName, chain.Namespace, chain.Partition, chain.Datacenter)
 
-			opts := makeListenerOpts{
-				name:       uid.EnvoyID(),
-				accessLogs: cfgSnap.Proxy.AccessLogs,
-				addr:       address,
-				port:       u.LocalBindPort,
-				direction:  envoy_core_v3.TrafficDirection_OUTBOUND,
-				logger:     s.Logger,
-			}
-			l := makeListener(opts)
-
+			l := makePortListenerWithDefault(uid.EnvoyID(), address, u.LocalBindPort, envoy_core_v3.TrafficDirection_OUTBOUND)
 			filterChain, err := s.makeUpstreamFilterChain(filterChainOpts{
-				accessLogs:  &cfgSnap.Proxy.AccessLogs,
 				routeName:   uid.EnvoyID(),
 				useRDS:      useRDS,
 				clusterName: clusterName,
@@ -101,67 +78,27 @@ func (s *ResourceGenerator) makeIngressGatewayListeners(address string, cfgSnap 
 			l.FilterChains = []*envoy_listener_v3.FilterChain{
 				filterChain,
 			}
-
-			if isAPIGatewayWithTLS {
-				// construct SNI filter chains
-				l.FilterChains, err = makeInlineOverrideFilterChains(cfgSnap, cfgSnap.IngressGateway.TLSConfig, listenerKey, listenerFilterOpts{
-					useRDS:     useRDS,
-					protocol:   listenerKey.Protocol,
-					routeName:  listenerKey.RouteName(),
-					cluster:    clusterName,
-					statPrefix: "ingress_upstream_",
-					accessLogs: &cfgSnap.Proxy.AccessLogs,
-					logger:     s.Logger,
-				}, certs)
-				if err != nil {
-					return nil, err
-				}
-				// add the tls inspector to do SNI introspection
-				tlsInspector, err := makeTLSInspectorListenerFilter()
-				if err != nil {
-					return nil, err
-				}
-				l.ListenerFilters = []*envoy_listener_v3.ListenerFilter{tlsInspector}
-			}
-
 			resources = append(resources, l)
+
 		} else {
 			// If multiple upstreams share this port, make a special listener for the protocol.
-			listenerOpts := makeListenerOpts{
-				name:       listenerKey.Protocol,
-				accessLogs: cfgSnap.Proxy.AccessLogs,
-				addr:       address,
-				port:       listenerKey.Port,
-				direction:  envoy_core_v3.TrafficDirection_OUTBOUND,
-				logger:     s.Logger,
-			}
-			listener := makeListener(listenerOpts)
-
-			filterOpts := listenerFilterOpts{
-				useRDS:           true,
-				protocol:         listenerKey.Protocol,
-				filterName:       listenerKey.RouteName(),
-				routeName:        listenerKey.RouteName(),
-				cluster:          "",
-				statPrefix:       "ingress_upstream_",
-				routePath:        "",
-				httpAuthzFilters: nil,
-				accessLogs:       &cfgSnap.Proxy.AccessLogs,
-				logger:           s.Logger,
+			listener := makePortListener(listenerKey.Protocol, address, listenerKey.Port, envoy_core_v3.TrafficDirection_OUTBOUND)
+			opts := listenerFilterOpts{
+				useRDS:          true,
+				protocol:        listenerKey.Protocol,
+				filterName:      listenerKey.RouteName(),
+				routeName:       listenerKey.RouteName(),
+				cluster:         "",
+				statPrefix:      "ingress_upstream_",
+				routePath:       "",
+				httpAuthzFilter: nil,
 			}
 
 			// Generate any filter chains needed for services with custom TLS certs
 			// via SDS.
-			sniFilterChains, err := makeSDSOverrideFilterChains(cfgSnap, listenerKey, filterOpts)
+			sniFilterChains, err := makeSDSOverrideFilterChains(cfgSnap, listenerKey, opts)
 			if err != nil {
 				return nil, err
-			}
-
-			if isAPIGatewayWithTLS {
-				sniFilterChains, err = makeInlineOverrideFilterChains(cfgSnap, cfgSnap.IngressGateway.TLSConfig, listenerKey, filterOpts, certs)
-				if err != nil {
-					return nil, err
-				}
 			}
 
 			// If there are any sni filter chains, we need a TLS inspector filter!
@@ -177,8 +114,8 @@ func (s *ResourceGenerator) makeIngressGatewayListeners(address string, cfgSnap 
 
 			// See if there are other services that didn't have specific SNI-matching
 			// filter chains. If so add a default filterchain to serve them.
-			if len(sniFilterChains) < len(upstreams) && !isAPIGatewayWithTLS {
-				defaultFilter, err := makeListenerFilter(filterOpts)
+			if len(sniFilterChains) < len(upstreams) {
+				defaultFilter, err := makeListenerFilter(opts)
 				if err != nil {
 					return nil, err
 				}
@@ -212,12 +149,9 @@ func makeDownstreamTLSContextFromSnapshotListenerConfig(cfgSnap *proxycfg.Config
 	}
 
 	if tlsContext != nil {
-		// Configure alpn protocols on TLSContext
-		tlsContext.AlpnProtocols = getAlpnProtocols(listenerCfg.Protocol)
-
 		downstreamContext = &envoy_tls_v3.DownstreamTlsContext{
 			CommonTlsContext:         tlsContext,
-			RequireClientCertificate: &wrapperspb.BoolValue{Value: false},
+			RequireClientCertificate: &wrappers.BoolValue{Value: false},
 		}
 	}
 
@@ -391,15 +325,9 @@ func makeSDSOverrideFilterChains(cfgSnap *proxycfg.ConfigSnapshot,
 			return nil, err
 		}
 
-		commonTlsContext := makeCommonTLSContextFromGatewayServiceTLSConfig(*svc.TLS)
-		if commonTlsContext != nil {
-			// Configure alpn protocols on TLSContext
-			commonTlsContext.AlpnProtocols = getAlpnProtocols(listenerCfg.Protocol)
-		}
-
 		tlsContext := &envoy_tls_v3.DownstreamTlsContext{
-			CommonTlsContext:         commonTlsContext,
-			RequireClientCertificate: &wrapperspb.BoolValue{Value: false},
+			CommonTlsContext:         makeCommonTLSContextFromGatewayServiceTLSConfig(*svc.TLS),
+			RequireClientCertificate: &wrappers.BoolValue{Value: false},
 		}
 
 		transportSocket, err := makeDownstreamTLSTransportSocket(tlsContext)
@@ -422,131 +350,8 @@ func makeSDSOverrideFilterChains(cfgSnap *proxycfg.ConfigSnapshot,
 	return chains, nil
 }
 
-// when we have multiple certificates on a single listener, we need
-// to duplicate the filter chains with multiple TLS contexts
-func makeInlineOverrideFilterChains(cfgSnap *proxycfg.ConfigSnapshot,
-	tlsCfg structs.GatewayTLSConfig,
-	listenerKey proxycfg.IngressListenerKey,
-	filterOpts listenerFilterOpts,
-	certs []structs.InlineCertificateConfigEntry) ([]*envoy_listener_v3.FilterChain, error) {
-
-	listenerCfg, ok := cfgSnap.IngressGateway.Listeners[listenerKey]
-	if !ok {
-		return nil, fmt.Errorf("no listener config found for listener on port %d", listenerKey.Port)
-	}
-
-	var chains []*envoy_listener_v3.FilterChain
-
-	constructChain := func(name string, hosts []string, tlsContext *envoy_tls_v3.CommonTlsContext) error {
-		filterOpts.filterName = name
-		filter, err := makeListenerFilter(filterOpts)
-		if err != nil {
-			return err
-		}
-
-		// Configure alpn protocols on TLSContext
-		tlsContext.AlpnProtocols = getAlpnProtocols(listenerCfg.Protocol)
-		transportSocket, err := makeDownstreamTLSTransportSocket(&envoy_tls_v3.DownstreamTlsContext{
-			CommonTlsContext:         tlsContext,
-			RequireClientCertificate: &wrapperspb.BoolValue{Value: false},
-		})
-		if err != nil {
-			return err
-		}
-
-		chains = append(chains, &envoy_listener_v3.FilterChain{
-			FilterChainMatch: makeSNIFilterChainMatch(hosts...),
-			Filters: []*envoy_listener_v3.Filter{
-				filter,
-			},
-			TransportSocket: transportSocket,
-		})
-
-		return nil
-	}
-
-	multipleCerts := len(certs) > 1
-
-	allCertHosts := map[string]struct{}{}
-	overlappingHosts := map[string]struct{}{}
-
-	if multipleCerts {
-		// we only need to prune out overlapping hosts if we have more than
-		// one certificate
-		for _, cert := range certs {
-			hosts, err := cert.Hosts()
-			if err != nil {
-				return nil, fmt.Errorf("unable to parse hosts from x509 certificate: %v", hosts)
-			}
-			for _, host := range hosts {
-				if _, ok := allCertHosts[host]; ok {
-					overlappingHosts[host] = struct{}{}
-				}
-				allCertHosts[host] = struct{}{}
-			}
-		}
-	}
-
-	for _, cert := range certs {
-		var hosts []string
-
-		// if we only have one cert, we just use it for all ingress
-		if multipleCerts {
-			// otherwise, we need an SNI per cert and to fallback to our ingress
-			// gateway certificate signed by our Consul CA
-			certHosts, err := cert.Hosts()
-			if err != nil {
-				return nil, fmt.Errorf("unable to parse hosts from x509 certificate: %v", hosts)
-			}
-			// filter out any overlapping hosts so we don't have collisions in our filter chains
-			for _, host := range certHosts {
-				if _, ok := overlappingHosts[host]; !ok {
-					hosts = append(hosts, host)
-				}
-			}
-
-			if len(hosts) == 0 {
-				// all of our hosts are overlapping, so we just skip this filter and it'll be
-				// handled by the default filter chain
-				continue
-			}
-		}
-
-		if err := constructChain(cert.Name, hosts, makeInlineTLSContextFromGatewayTLSConfig(tlsCfg, cert)); err != nil {
-			return nil, err
-		}
-	}
-
-	if multipleCerts {
-		// if we have more than one cert, add a default handler that uses the leaf cert from connect
-		if err := constructChain("default", nil, makeCommonTLSContext(cfgSnap.Leaf(), cfgSnap.RootPEMs(), makeTLSParametersFromGatewayTLSConfig(tlsCfg))); err != nil {
-			return nil, err
-		}
-	}
-
-	return chains, nil
-}
-
 func makeTLSParametersFromGatewayTLSConfig(tlsCfg structs.GatewayTLSConfig) *envoy_tls_v3.TlsParameters {
 	return makeTLSParametersFromTLSConfig(tlsCfg.TLSMinVersion, tlsCfg.TLSMaxVersion, tlsCfg.CipherSuites)
-}
-
-func makeInlineTLSContextFromGatewayTLSConfig(tlsCfg structs.GatewayTLSConfig, cert structs.InlineCertificateConfigEntry) *envoy_tls_v3.CommonTlsContext {
-	return &envoy_tls_v3.CommonTlsContext{
-		TlsParams: makeTLSParametersFromGatewayTLSConfig(tlsCfg),
-		TlsCertificates: []*envoy_tls_v3.TlsCertificate{{
-			CertificateChain: &envoy_core_v3.DataSource{
-				Specifier: &envoy_core_v3.DataSource_InlineString{
-					InlineString: lib.EnsureTrailingNewline(cert.Certificate),
-				},
-			},
-			PrivateKey: &envoy_core_v3.DataSource{
-				Specifier: &envoy_core_v3.DataSource_InlineString{
-					InlineString: lib.EnsureTrailingNewline(cert.PrivateKey),
-				},
-			},
-		}},
-	}
 }
 
 func makeCommonTLSContextFromGatewayTLSConfig(tlsCfg structs.GatewayTLSConfig) *envoy_tls_v3.CommonTlsContext {
@@ -562,7 +367,6 @@ func makeCommonTLSContextFromGatewayServiceTLSConfig(tlsCfg structs.GatewayServi
 		TlsCertificateSdsSecretConfigs: makeTLSCertificateSdsSecretConfigsFromSDS(*tlsCfg.SDS),
 	}
 }
-
 func makeTLSCertificateSdsSecretConfigsFromSDS(sdsCfg structs.GatewayTLSSDSConfig) []*envoy_tls_v3.SdsSecretConfig {
 	return []*envoy_tls_v3.SdsSecretConfig{
 		{
@@ -581,7 +385,7 @@ func makeTLSCertificateSdsSecretConfigsFromSDS(sdsCfg structs.GatewayTLSSDSConfi
 										ClusterName: sdsCfg.ClusterName,
 									},
 								},
-								Timeout: &durationpb.Duration{Seconds: 5},
+								Timeout: &duration.Duration{Seconds: 5},
 							},
 						},
 					},

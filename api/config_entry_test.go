@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package api
 
 import (
@@ -28,7 +25,6 @@ func TestAPI_ConfigEntries(t *testing.T) {
 				"foo": "bar",
 				"bar": 1.0,
 			},
-			MutualTLSMode: MutualTLSModeStrict,
 			Meta: map[string]string{
 				"foo": "bar",
 				"gir": "zim",
@@ -53,8 +49,7 @@ func TestAPI_ConfigEntries(t *testing.T) {
 		require.Equal(t, global_proxy.Kind, readProxy.Kind)
 		require.Equal(t, global_proxy.Name, readProxy.Name)
 		require.Equal(t, global_proxy.Config, readProxy.Config)
-		require.Equal(t, global_proxy.MutualTLSMode, readProxy.MutualTLSMode)
-		require.Equal(t, global_proxy.Meta, readProxy.GetMeta())
+		require.Equal(t, global_proxy.Meta, readProxy.Meta)
 		require.Equal(t, global_proxy.Meta, readProxy.GetMeta())
 
 		global_proxy.Config["baz"] = true
@@ -102,18 +97,16 @@ func TestAPI_ConfigEntries(t *testing.T) {
 
 	t.Run("Service Defaults", func(t *testing.T) {
 		service := &ServiceConfigEntry{
-			Kind:          ServiceDefaults,
-			Name:          "foo",
-			Protocol:      "udp",
-			MutualTLSMode: MutualTLSModeStrict,
+			Kind:     ServiceDefaults,
+			Name:     "foo",
+			Protocol: "udp",
 			Meta: map[string]string{
 				"foo": "bar",
 				"gir": "zim",
 			},
-			MaxInboundConnections:     5,
-			BalanceInboundConnections: "exact_balance",
-			LocalConnectTimeoutMs:     5000,
-			LocalRequestTimeoutMs:     7000,
+			MaxInboundConnections: 5,
+			LocalConnectTimeoutMs: 5000,
+			LocalRequestTimeoutMs: 7000,
 		}
 
 		dest := &DestinationConfig{
@@ -152,11 +145,9 @@ func TestAPI_ConfigEntries(t *testing.T) {
 		require.Equal(t, service.Kind, readService.Kind)
 		require.Equal(t, service.Name, readService.Name)
 		require.Equal(t, service.Protocol, readService.Protocol)
-		require.Equal(t, service.MutualTLSMode, readService.MutualTLSMode)
 		require.Equal(t, service.Meta, readService.Meta)
 		require.Equal(t, service.Meta, readService.GetMeta())
 		require.Equal(t, service.MaxInboundConnections, readService.MaxInboundConnections)
-		require.Equal(t, service.BalanceInboundConnections, readService.BalanceInboundConnections)
 		require.Equal(t, service.LocalConnectTimeoutMs, readService.LocalConnectTimeoutMs)
 		require.Equal(t, service.LocalRequestTimeoutMs, readService.LocalRequestTimeoutMs)
 
@@ -223,8 +214,7 @@ func TestAPI_ConfigEntries(t *testing.T) {
 
 	t.Run("Mesh", func(t *testing.T) {
 		mesh := &MeshConfigEntry{
-			TransparentProxy:                 TransparentProxyMeshConfig{MeshDestinationsOnly: true},
-			AllowEnablingPermissiveMutualTLS: true,
+			TransparentProxy: TransparentProxyMeshConfig{MeshDestinationsOnly: true},
 			Meta: map[string]string{
 				"foo": "bar",
 				"gir": "zim",
@@ -409,16 +399,6 @@ func TestDecodeConfigEntry(t *testing.T) {
 				"TransparentProxy": {
 					"OutboundListenerPort": 808,
 					"DialedDirectly": true
-				},
-				"AccessLogs": {
-					"Enabled": true,
-					"DisableListenerLogs": true,
-					"Type": "file",
-					"Path": "/tmp/logs.txt",
-					"TextFormat": "[%START_TIME%]"
-				},
-				"FailoverPolicy": {
-					"Mode": "default"
 				}
 			}
 			`,
@@ -444,16 +424,6 @@ func TestDecodeConfigEntry(t *testing.T) {
 					OutboundListenerPort: 808,
 					DialedDirectly:       true,
 				},
-				AccessLogs: &AccessLogsConfig{
-					Enabled:             true,
-					DisableListenerLogs: true,
-					Type:                FileLogSinkType,
-					Path:                "/tmp/logs.txt",
-					TextFormat:          "[%START_TIME%]",
-				},
-				FailoverPolicy: &ServiceResolverFailoverPolicy{
-					Mode: "default",
-				},
 			},
 		},
 		{
@@ -476,7 +446,6 @@ func TestDecodeConfigEntry(t *testing.T) {
 					"OutboundListenerPort": 808,
 					"DialedDirectly": true
 				},
-				"BalanceInboundConnections": "exact_balance",
 				"UpstreamConfig": {
 					"Overrides": [
 						{
@@ -485,8 +454,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 								"MaxFailures": 3,
 								"Interval": "2s",
 								"EnforcingConsecutive5xx": 60
-							},
-							"BalanceOutboundConnections": "exact_balance"
+							}
 						},
 						{
 							"Name": "finance--billing",
@@ -530,7 +498,6 @@ func TestDecodeConfigEntry(t *testing.T) {
 					OutboundListenerPort: 808,
 					DialedDirectly:       true,
 				},
-				BalanceInboundConnections: "exact_balance",
 				UpstreamConfig: &UpstreamConfiguration{
 					Overrides: []*UpstreamConfig{
 						{
@@ -540,7 +507,6 @@ func TestDecodeConfigEntry(t *testing.T) {
 								Interval:                2 * time.Second,
 								EnforcingConsecutive5xx: uint32Pointer(60),
 							},
-							BalanceOutboundConnections: "exact_balance",
 						},
 						{
 							Name:        "finance--billing",
@@ -640,7 +606,6 @@ func TestDecodeConfigEntry(t *testing.T) {
 						  "Namespace": "leek",
 						  "PrefixRewrite": "/alternate",
 						  "RequestTimeout": "99s",
-						  "IdleTimeout": "99s",
 						  "NumRetries": 12345,
 						  "RetryOnConnectFailure": true,
 						  "RetryOnStatusCodes": [401, 209]
@@ -725,7 +690,6 @@ func TestDecodeConfigEntry(t *testing.T) {
 							Namespace:             "leek",
 							PrefixRewrite:         "/alternate",
 							RequestTimeout:        99 * time.Second,
-							IdleTimeout:           99 * time.Second,
 							NumRetries:            12345,
 							RetryOnConnectFailure: true,
 							RetryOnStatusCodes:    []uint32{401, 209},
@@ -1352,9 +1316,6 @@ func TestDecodeConfigEntry(t *testing.T) {
 				},
 				"HTTP": {
 					"SanitizeXForwardedClientCert": true
-				},
-				"Peering": {
-					"PeerThroughMeshGateways": true
 				}
 			}
 			`,
@@ -1386,9 +1347,6 @@ func TestDecodeConfigEntry(t *testing.T) {
 				},
 				HTTP: &MeshHTTPConfig{
 					SanitizeXForwardedClientCert: true,
-				},
-				Peering: &PeeringMeshConfig{
-					PeerThroughMeshGateways: true,
 				},
 			},
 		},

@@ -1,8 +1,3 @@
-{{!
-  Copyright (c) HashiCorp, Inc.
-  SPDX-License-Identifier: MPL-2.0
-}}
-
 <StateChart @src={{chart}} as |State Guard Action dispatch state|>
 
   <Ref @target={{this}} @name="dispatch" @value={{dispatch}} />
@@ -44,14 +39,22 @@ as |after|}}
     {{#yield-slot name="removed" params=(block-params after)}}
       {{yield api}}
     {{else}}
-      <Hds::Toast
-        @color='success'
-        {{notification
-          after=(action after)
-        }} as |T|>
-        <T.Title>Success!</T.Title>
-        <T.Description>Your {{or label type}} has been deleted.</T.Description>
-      </Hds::Toast>
+    <Notice
+      {{notification
+        after=(action after)
+      }}
+      class="notification-delete"
+      @type="success"
+    as |notice|>
+      <notice.Header>
+        <strong>Success!</strong>
+      </notice.Header>
+      <notice.Body>
+        <p>
+          Your {{or label type}} has been deleted.
+        </p>
+      </notice.Body>
+    </Notice>
     {{/yield-slot}}
 {{/let}}
   </State>
@@ -63,14 +66,22 @@ as |after|}}
     {{#yield-slot name="persisted" params=(block-params after)}}
       {{yield api}}
     {{else}}
-      <Hds::Toast
-        @color='success'
+      <Notice
         {{notification
           after=(action after)
-        }} as |T|>
-        <T.Title>Success!</T.Title>
-        <T.Description>Your {{or label type}} has been saved.</T.Description>
-      </Hds::Toast>
+        }}
+        class="notification-update"
+        @type="success"
+      as |notice|>
+        <notice.Header>
+          <strong>Success!</strong>
+        </notice.Header>
+        <notice.Body>
+          <p>
+            Your {{or label type}} has been saved.
+          </p>
+        </notice.Body>
+      </Notice>
     {{/yield-slot}}
 {{/let}}
   </State>
@@ -82,20 +93,27 @@ as |after|}}
     {{#yield-slot name="error" params=(block-params after api.error)}}
       {{yield api}}
     {{else}}
-      <Hds::Toast
-        @color='critical'
+      <Notice
         {{notification
           after=(action after)
-        }} as |T|>
-        <T.Title>Error!</T.Title>
-        <T.Description>There was an error saving your {{or label type}}.
-          {{#if (and api.error.status api.error.detail)}}
+        }}
+        class="notification-update"
+        @type="error"
+      as |notice|>
+        <notice.Header>
+          <strong>Error!</strong>
+        </notice.Header>
+        <notice.Body>
+          <p>
+            There was an error saving your {{or label type}}.
+        {{#if (and api.error.status api.error.detail)}}
             <br />{{api.error.status}}: {{api.error.detail}}
-          {{else if api.error.message}}
+        {{else if api.error.message}}
             <br />{{api.error.message}}
-          {{/if}}
-        </T.Description>
-      </Hds::Toast>
+        {{/if}}
+          </p>
+        </notice.Body>
+      </Notice>
     {{/yield-slot}}
 {{/let}}
   </State>
