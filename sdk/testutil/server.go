@@ -81,6 +81,11 @@ type Locality struct {
 	Zone   string `json:"zone"`
 }
 
+// TestAutopilotConfig contains the configuration for autopilot.
+type TestAutopilotConfig struct {
+	ServerStabilizationTime string `json:"server_stabilization_time,omitempty"`
+}
+
 // TestServerConfig is the main server configuration struct.
 type TestServerConfig struct {
 	NodeName            string                 `json:"node_name"`
@@ -118,6 +123,7 @@ type TestServerConfig struct {
 	EnableDebug         bool                   `json:"enable_debug,omitempty"`
 	SkipLeaveOnInt      bool                   `json:"skip_leave_on_interrupt"`
 	Peering             *TestPeeringConfig     `json:"peering,omitempty"`
+	Autopilot           *TestAutopilotConfig   `json:"autopilot,omitempty"`
 	ReadyTimeout        time.Duration          `json:"-"`
 	StopTimeout         time.Duration          `json:"-"`
 	Stdout              io.Writer              `json:"-"`
@@ -251,6 +257,7 @@ type TestServer struct {
 	HTTPSAddr   string
 	LANAddr     string
 	WANAddr     string
+	ServerAddr  string
 	GRPCAddr    string
 	GRPCTLSAddr string
 
@@ -335,6 +342,7 @@ func NewTestServerConfigT(t TestingTB, cb ServerConfigCallback) (*TestServer, er
 		HTTPSAddr:   fmt.Sprintf("127.0.0.1:%d", cfg.Ports.HTTPS),
 		LANAddr:     fmt.Sprintf("127.0.0.1:%d", cfg.Ports.SerfLan),
 		WANAddr:     fmt.Sprintf("127.0.0.1:%d", cfg.Ports.SerfWan),
+		ServerAddr:  fmt.Sprintf("127.0.0.1:%d", cfg.Ports.Server),
 		GRPCAddr:    fmt.Sprintf("127.0.0.1:%d", cfg.Ports.GRPC),
 		GRPCTLSAddr: fmt.Sprintf("127.0.0.1:%d", cfg.Ports.GRPCTLS),
 
@@ -433,7 +441,7 @@ func (s *TestServer) waitForAPI() error {
 	return nil
 }
 
-// waitForLeader waits for the Consul server's HTTP API to become
+// WaitForLeader waits for the Consul server's HTTP API to become
 // available, and then waits for a known leader and an index of
 // 2 or more to be observed to confirm leader election is done.
 func (s *TestServer) WaitForLeader(t testing.TB) {
@@ -460,6 +468,49 @@ func (s *TestServer) WaitForLeader(t testing.TB) {
 		if index < 2 {
 			r.Fatal("consul index should be at least 2")
 		}
+	})
+}
+
+// WaitForVoting waits for the Consul server to become a voter in the current raft
+// configuration. You probably want to adjust the ServerStablizationTime autopilot
+// configuration otherwise this could take 10 seconds.
+func (s *TestServer) WaitForVoting(t testing.TB) {
+	// don't need to fully decode the response
+	type raftServer struct {
+		ID    string
+		Voter bool
+	}
+	type raftCfgResponse struct {
+		Servers []raftServer
+	}
+
+	retry.Run(t, func(r *retry.R) {
+		// Query the API and get the current raft configuration.
+		url := s.url("/v1/operator/raft/configuration")
+		resp, err := s.privilegedGet(url)
+		if err != nil {
+			r.Fatalf("failed http get '%s': %v", url, err)
+		}
+		defer resp.Body.Close()
+		if err := s.requireOK(resp); err != nil {
+			r.Fatalf("failed OK response: %v", err)
+		}
+
+		var cfg raftCfgResponse
+		dec := json.NewDecoder(resp.Body)
+		if err := dec.Decode(&cfg); err != nil {
+			r.Fatal(err)
+		}
+
+		for _, srv := range cfg.Servers {
+			if srv.ID == s.Config.NodeID {
+				if srv.Voter {
+					return
+				}
+				break
+			}
+		}
+		r.Fatalf("Server is not voting: %#v", cfg.Servers)
 	})
 }
 
