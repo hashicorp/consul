@@ -10,7 +10,7 @@ type Lease interface {
 	// Held returns whether we are the current lease-holders.
 	Held() bool
 
-	// Watch returns a channel on which you can receive notifications whenever the
-	// lease is acquired or lost.
-	Watch() <-chan struct{}
+	// Changed returns a channel on which you can receive notifications whenever
+	// the lease is acquired or lost.
+	Changed() <-chan struct{}
 }

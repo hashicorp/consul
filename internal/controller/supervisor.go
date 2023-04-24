@@ -69,7 +69,7 @@ func (s *supervisor) run(ctx context.Context) {
 			}
 
 		// Unblock when the lease is acquired/lost, or the backoff timer fires.
-		case <-s.lease.Watch():
+		case <-s.lease.Changed():
 		case <-s.backoffTimerCh:
 		}
 	}

@@ -89,5 +89,5 @@ type raftLease struct {
 	ch <-chan struct{}
 }
 
-func (l *raftLease) Held() bool             { return l.m.raftLeader.Load() }
-func (l *raftLease) Watch() <-chan struct{} { return l.ch }
+func (l *raftLease) Held() bool               { return l.m.raftLeader.Load() }
+func (l *raftLease) Changed() <-chan struct{} { return l.ch }

@@ -102,8 +102,8 @@ type testLease struct {
 	ch   chan struct{}
 }
 
-func (l *testLease) Held() bool             { return l.held.Load() }
-func (l *testLease) Watch() <-chan struct{} { return l.ch }
+func (l *testLease) Held() bool               { return l.held.Load() }
+func (l *testLease) Changed() <-chan struct{} { return l.ch }
 
 func (l *testLease) acquired() { l.setHeld(true) }
 func (l *testLease) lost()     { l.setHeld(false) }
