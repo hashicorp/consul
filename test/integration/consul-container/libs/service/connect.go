@@ -10,6 +10,7 @@ import (
 	"io"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/testcontainers/testcontainers-go"
@@ -146,9 +147,10 @@ func (g ConnectContainer) GetStatus() (string, error) {
 }
 
 type SidecarConfig struct {
-	Name      string
-	ServiceID string
-	Namespace string
+	Name         string
+	ServiceID    string
+	Namespace    string
+	EnableTProxy bool
 }
 
 // NewConnectService returns a container that runs envoy sidecar, launched by
@@ -197,6 +199,26 @@ func NewConnectService(ctx context.Context, sidecarCfg SidecarConfig, serviceBin
 			"--log-level", envoyLogLevel,
 		},
 		Env: make(map[string]string),
+	}
+
+	if sidecarCfg.EnableTProxy {
+		req.Entrypoint = []string{"/bin/tproxy-startup.sh"}
+		req.Env["REDIRECT_TRAFFIC_ARGS"] = strings.Join(
+			[]string{
+				"-exclude-inbound-port", fmt.Sprint(internalAdminPort),
+				"-exclude-inbound-port", "8300",
+				"-exclude-inbound-port", "8301",
+				"-exclude-inbound-port", "8302",
+				"-exclude-inbound-port", "8500",
+				"-exclude-inbound-port", "8502",
+				"-exclude-inbound-port", "8600",
+				"-consul-dns-ip", "127.0.0.1",
+				"-consul-dns-port", "8600",
+				"-proxy-id", fmt.Sprintf("%s-sidecar-proxy", sidecarCfg.ServiceID),
+			},
+			" ",
+		)
+		req.CapAdd = append(req.CapAdd, "NET_ADMIN")
 	}
 
 	nodeInfo := node.GetInfo()

@@ -58,6 +58,7 @@ func LaunchContainerOnNode(
 	launchCtx, cancel := context.WithTimeout(ctx, time.Second*40)
 	defer cancel()
 
+	req.PrintBuildLog = true
 	container, err := testcontainers.GenericContainer(launchCtx, testcontainers.GenericContainerRequest{
 		ContainerRequest: req,
 		Started:          true,
