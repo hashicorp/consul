@@ -308,7 +308,7 @@ func (s *Sprawl) DisabledServers(clusterName string) ([]*topology.Node, error) {
 }
 
 func (s *Sprawl) StopContainer(ctx context.Context, containerName string) error {
-	return s.runner.DockerExec(ctx, []string{"stop", "-f", containerName}, nil, nil)
+	return s.runner.DockerExec(ctx, []string{"stop", containerName}, nil, nil)
 }
 
 func (s *Sprawl) CaptureLogs(ctx context.Context) error {
