@@ -245,6 +245,14 @@ func (r *apiGatewayReconciler) reconcileGateway(_ context.Context, req controlle
 		updater.SetCondition(invalidCertificate(ref, err))
 	}
 
+	if len(certificateErrors) == 0 {
+		for _, listener := range gateway.Listeners {
+			for _, ref := range listener.TLS.Certificates {
+				updater.SetCondition(validCertificate(ref))
+			}
+		}
+	}
+
 	if len(certificateErrors) > 0 {
 		updater.SetCondition(invalidCertificates())
 	} else {
@@ -837,6 +845,19 @@ func gatewayAccepted() structs.Condition {
 		api.GatewayReasonAccepted,
 		"gateway is valid",
 		structs.ResourceReference{},
+	)
+}
+
+// validCertificate returns a condition used when a gateway references a
+// certificate that does not exist. It takes a ref used to scope the condition
+// to a given APIGateway listener.
+func validCertificate(ref structs.ResourceReference) structs.Condition {
+	return structs.NewGatewayCondition(
+		api.GatewayConditionResolvedRefs,
+		api.ConditionStatusTrue,
+		api.GatewayReasonResolvedRefs,
+		"resolved refs",
+		ref,
 	)
 }
 
