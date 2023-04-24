@@ -21,15 +21,16 @@ type ServiceIntentionsConfigEntry struct {
 }
 
 type SourceIntention struct {
-	Name        string
-	Peer        string                 `json:",omitempty"`
-	Partition   string                 `json:",omitempty"`
-	Namespace   string                 `json:",omitempty"`
-	Action      IntentionAction        `json:",omitempty"`
-	Permissions []*IntentionPermission `json:",omitempty"`
-	Precedence  int
-	Type        IntentionSourceType
-	Description string `json:",omitempty"`
+	Name          string
+	Peer          string                 `json:",omitempty"`
+	Partition     string                 `json:",omitempty"`
+	Namespace     string                 `json:",omitempty"`
+	SamenessGroup string                 `json:",omitempty" alias:"sameness_group"`
+	Action        IntentionAction        `json:",omitempty"`
+	Permissions   []*IntentionPermission `json:",omitempty"`
+	Precedence    int
+	Type          IntentionSourceType
+	Description   string `json:",omitempty"`
 
 	LegacyID         string            `json:",omitempty" alias:"legacy_id"`
 	LegacyMeta       map[string]string `json:",omitempty" alias:"legacy_meta"`
