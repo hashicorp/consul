@@ -14,3 +14,11 @@ type Lease interface {
 	// the lease is acquired or lost.
 	Changed() <-chan struct{}
 }
+
+type raftLease struct {
+	m  *Manager
+	ch <-chan struct{}
+}
+
+func (l *raftLease) Held() bool               { return l.m.raftLeader.Load() }
+func (l *raftLease) Changed() <-chan struct{} { return l.ch }

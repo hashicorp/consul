@@ -83,11 +83,3 @@ func (m *Manager) newLeaseLocked() Lease {
 	m.leaseChans = append(m.leaseChans, ch)
 	return &raftLease{m: m, ch: ch}
 }
-
-type raftLease struct {
-	m  *Manager
-	ch <-chan struct{}
-}
-
-func (l *raftLease) Held() bool               { return l.m.raftLeader.Load() }
-func (l *raftLease) Changed() <-chan struct{} { return l.ch }
