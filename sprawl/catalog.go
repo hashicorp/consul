@@ -92,9 +92,10 @@ func (s *Sprawl) registerAgentService(
 		var upstreams []api.Upstream
 		for _, u := range svc.Upstreams {
 			uAPI := api.Upstream{
-				DestinationPeer: u.Peer,
-				DestinationName: u.ID.Name,
-				LocalBindPort:   u.LocalPort,
+				DestinationPeer:  u.Peer,
+				DestinationName:  u.ID.Name,
+				LocalBindAddress: u.LocalAddress,
+				LocalBindPort:    u.LocalPort,
 				// Config               map[string]interface{} `json:",omitempty" bexpr:"-"`
 				// MeshGateway          MeshGatewayConfig      `json:",omitempty"`
 			}

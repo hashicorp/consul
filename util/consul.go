@@ -41,3 +41,23 @@ func proxyAPIClient(baseTransport *http.Transport, proxyPort int, containerIP st
 	cfg.Token = token
 	return api.NewClient(cfg)
 }
+
+func ProxyNotPooledHTTPTransport(proxyPort int) (*http.Transport, error) {
+	return proxyHTTPTransport(cleanhttp.DefaultTransport(), proxyPort)
+}
+
+func ProxyHTTPTransport(proxyPort int) (*http.Transport, error) {
+	return proxyHTTPTransport(cleanhttp.DefaultPooledTransport(), proxyPort)
+}
+
+func proxyHTTPTransport(baseTransport *http.Transport, proxyPort int) (*http.Transport, error) {
+	if proxyPort <= 0 {
+		return nil, fmt.Errorf("cannot use an http proxy on port %d", proxyPort)
+	}
+	proxyURL, err := url.Parse("http://127.0.0.1:" + strconv.Itoa(proxyPort))
+	if err != nil {
+		return nil, err
+	}
+	baseTransport.Proxy = http.ProxyURL(proxyURL)
+	return baseTransport, nil
+}

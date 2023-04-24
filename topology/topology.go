@@ -342,8 +342,9 @@ func (c *Cluster) SortedNodes() []*Node {
 	return out
 }
 
-func (c *Cluster) ServiceByID(nid NodeID, sid ServiceID) *Service {
-	return c.NodeByID(nid).ServiceByID(sid)
+func (c *Cluster) ServiceByID(nid NodeID, sid ServiceID) (*Service, *Node) {
+	n := c.NodeByID(nid)
+	return n.ServiceByID(sid), n
 }
 
 func (c *Cluster) ServicesByID(sid ServiceID) []ServiceAndNode {
@@ -719,15 +720,23 @@ func (s *Service) Validate() error {
 		if u.LocalPort <= 0 {
 			return fmt.Errorf("upstream local port is required")
 		}
+
+		if u.LocalAddress != "" {
+			ip := net.ParseIP(u.LocalAddress)
+			if ip == nil {
+				return fmt.Errorf("upstream local address is invalid: %s", u.LocalAddress)
+			}
+		}
 	}
 
 	return nil
 }
 
 type Upstream struct {
-	ID        ServiceID
-	LocalPort int
-	Peer      string `json:",omitempty"`
+	ID           ServiceID
+	LocalAddress string `json:",omitempty"` // defaults to 127.0.0.1
+	LocalPort    int
+	Peer         string `json:",omitempty"`
 	// TODO: what about mesh gateway mode overrides?
 }
 

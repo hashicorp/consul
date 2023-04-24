@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -52,6 +53,26 @@ func (s *Sprawl) Config() *topology.Config {
 		panic(err)
 	}
 	return c2
+}
+
+func (s *Sprawl) HTTPClientForCluster(clusterName string) (*http.Client, error) {
+	cluster, ok := s.topology.Clusters[clusterName]
+	if !ok {
+		return nil, fmt.Errorf("no such cluster: %s", clusterName)
+	}
+
+	// grab the local network for the cluster
+	network, ok := s.topology.Networks[cluster.NetworkName]
+	if !ok {
+		return nil, fmt.Errorf("no such network: %s", cluster.NetworkName)
+	}
+
+	transport, err := util.ProxyHTTPTransport(network.SquidPort)
+	if err != nil {
+		return nil, err
+	}
+
+	return &http.Client{Transport: transport}, nil
 }
 
 // APIClientForNode gets a pooled api.Client connected to the agent running on
