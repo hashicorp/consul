@@ -119,10 +119,7 @@ func (s *Server) Write(ctx context.Context, req *pbresource.WriteRequest) (*pbre
 				return errUseWriteStatus
 			}
 
-			// Enforce same tenancy for owner
-			if input.Owner != nil && !proto.Equal(input.Id.Tenancy, input.Owner.Tenancy) {
-				return status.Errorf(codes.InvalidArgument, "owner and resource tenancy must be the same")
-			}
+			// TODO(spatel): Revisit owner<->resource tenancy rules post-1.16
 
 		// Update path.
 		case err == nil:
