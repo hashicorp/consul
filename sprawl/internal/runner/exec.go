@@ -2,6 +2,7 @@ package runner
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -56,19 +57,19 @@ func Load(logger hclog.Logger) (*Runner, error) {
 	return r, nil
 }
 
-func (r *Runner) DockerExec(args []string, stdout io.Writer, stdin io.Reader) error {
-	return cmdExec("docker", r.dockerBin, args, stdout, nil, stdin, "")
+func (r *Runner) DockerExec(ctx context.Context, args []string, stdout io.Writer, stdin io.Reader) error {
+	return cmdExec(ctx, "docker", r.dockerBin, args, stdout, nil, stdin, "")
 }
 
-func (r *Runner) DockerExecWithStderr(args []string, stdout, stderr io.Writer, stdin io.Reader) error {
-	return cmdExec("docker", r.dockerBin, args, stdout, stderr, stdin, "")
+func (r *Runner) DockerExecWithStderr(ctx context.Context, args []string, stdout, stderr io.Writer, stdin io.Reader) error {
+	return cmdExec(ctx, "docker", r.dockerBin, args, stdout, stderr, stdin, "")
 }
 
-func (r *Runner) TerraformExec(args []string, stdout io.Writer, workdir string) error {
-	return cmdExec("terraform", r.tfBin, args, stdout, nil, nil, workdir)
+func (r *Runner) TerraformExec(ctx context.Context, args []string, stdout io.Writer, workdir string) error {
+	return cmdExec(ctx, "terraform", r.tfBin, args, stdout, nil, nil, workdir)
 }
 
-func cmdExec(name, binary string, args []string, stdout, stderr io.Writer, stdin io.Reader, dir string) error {
+func cmdExec(ctx context.Context, name, binary string, args []string, stdout, stderr io.Writer, stdin io.Reader, dir string) error {
 	if binary == "" {
 		panic("binary named " + name + " was not detected")
 	}
@@ -78,7 +79,7 @@ func cmdExec(name, binary string, args []string, stdout, stderr io.Writer, stdin
 		stdout = os.Stdout // TODO: wrap logs
 	}
 
-	cmd := exec.Command(binary, args...)
+	cmd := exec.CommandContext(ctx, binary, args...)
 	if dir != "" {
 		cmd.Dir = dir
 	}

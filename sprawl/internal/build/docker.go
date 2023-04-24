@@ -1,6 +1,7 @@
 package build
 
 import (
+	"context"
 	"strings"
 
 	"github.com/hashicorp/go-hclog"
@@ -43,7 +44,7 @@ func DockerImages(
 			joint := n.Images.EnvoyConsulImage()
 			if _, ok := built[joint]; joint != "" && !ok {
 				logger.Info("building image", "image", joint)
-				err := run.DockerExec([]string{
+				err := run.DockerExec(context.TODO(), []string{
 					"build",
 					"--build-arg",
 					"CONSUL_IMAGE=" + n.Images.Consul,
@@ -62,7 +63,7 @@ func DockerImages(
 			cdp := n.Images.LocalDataplaneImage()
 			if _, ok := built[cdp]; cdp != "" && !ok {
 				logger.Info("building image", "image", cdp)
-				err := run.DockerExec([]string{
+				err := run.DockerExec(context.TODO(), []string{
 					"build",
 					"--build-arg",
 					"DATAPLANE_IMAGE=" + n.Images.Dataplane,

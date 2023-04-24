@@ -2,6 +2,7 @@ package sprawl
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 
@@ -33,7 +34,7 @@ func tlsCertCreateCommand(node *topology.Node) string {
 	}
 }
 
-func (s *Sprawl) initTLS() error {
+func (s *Sprawl) initTLS(ctx context.Context) error {
 	for _, cluster := range s.topology.Clusters {
 
 		var buf bytes.Buffer
@@ -78,7 +79,7 @@ fi
 			))
 		}
 
-		err := s.runner.DockerExec([]string{
+		err := s.runner.DockerExec(ctx, []string{
 			"run",
 			"--rm",
 			"-i",
@@ -93,7 +94,7 @@ fi
 			return fmt.Errorf("could not initialize docker volume for cert data %q: %w", cluster.TLSVolumeName, err)
 		}
 
-		err = s.runner.DockerExec([]string{"run",
+		err = s.runner.DockerExec(ctx, []string{"run",
 			"--rm",
 			"-i",
 			"--net=none",

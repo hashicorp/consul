@@ -2,6 +2,7 @@ package tfgen
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -71,7 +72,7 @@ func NewGenerator(
 	}
 	g.SetTopology(topo)
 
-	_ = g.terraformDestroy(true) // cleanup prior run
+	_ = g.terraformDestroy(context.Background(), true) // cleanup prior run
 
 	return g, nil
 }
@@ -289,11 +290,11 @@ func (g *Generator) Generate(step Step) error {
 		return err
 	}
 
-	if err := g.terraformApply(); err != nil {
+	if err := g.terraformApply(context.TODO()); err != nil {
 		return err
 	}
 
-	out, err := g.terraformOutputs()
+	out, err := g.terraformOutputs(context.TODO())
 	if err != nil {
 		return err
 	}
@@ -302,14 +303,14 @@ func (g *Generator) Generate(step Step) error {
 }
 
 func (g *Generator) DestroyAll() error {
-	return g.terraformDestroy(false)
+	return g.terraformDestroy(context.TODO(), false)
 }
 
 func (g *Generator) DestroyAllQuietly() error {
-	return g.terraformDestroy(true)
+	return g.terraformDestroy(context.TODO(), true)
 }
 
-func (g *Generator) terraformApply() error {
+func (g *Generator) terraformApply(ctx context.Context) error {
 	tfdir := filepath.Join(g.workdir, "terraform")
 
 	if _, err := os.Stat(filepath.Join(tfdir, ".terraform")); err != nil {
@@ -319,16 +320,16 @@ func (g *Generator) terraformApply() error {
 
 		// On the fly init
 		g.logger.Info("Running 'terraform init'...")
-		if err := g.runner.TerraformExec([]string{"init", "-input=false"}, g.tfLogger, tfdir); err != nil {
+		if err := g.runner.TerraformExec(ctx, []string{"init", "-input=false"}, g.tfLogger, tfdir); err != nil {
 			return err
 		}
 	}
 
 	g.logger.Info("Running 'terraform apply'...")
-	return g.runner.TerraformExec([]string{"apply", "-input=false", "-auto-approve"}, g.tfLogger, tfdir)
+	return g.runner.TerraformExec(ctx, []string{"apply", "-input=false", "-auto-approve"}, g.tfLogger, tfdir)
 }
 
-func (g *Generator) terraformDestroy(quiet bool) error {
+func (g *Generator) terraformDestroy(ctx context.Context, quiet bool) error {
 	g.logger.Info("Running 'terraform destroy'...")
 
 	var out io.Writer
@@ -339,16 +340,16 @@ func (g *Generator) terraformDestroy(quiet bool) error {
 	}
 
 	tfdir := filepath.Join(g.workdir, "terraform")
-	return g.runner.TerraformExec([]string{
+	return g.runner.TerraformExec(ctx, []string{
 		"destroy", "-input=false", "-auto-approve", "-refresh=false",
 	}, out, tfdir)
 }
 
-func (g *Generator) terraformOutputs() (*Outputs, error) {
+func (g *Generator) terraformOutputs(ctx context.Context) (*Outputs, error) {
 	tfdir := filepath.Join(g.workdir, "terraform")
 
 	var buf bytes.Buffer
-	err := g.runner.TerraformExec([]string{
+	err := g.runner.TerraformExec(ctx, []string{
 		"output", "-json",
 	}, &buf, tfdir)
 	if err != nil {

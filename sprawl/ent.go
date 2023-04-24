@@ -114,14 +114,14 @@ func (s *Sprawl) initTenancies(cluster *topology.Cluster) error {
 		}
 	}
 
-	if err := s.waitUntilPartitionedSerfIsReady(cluster, partitionNameList); err != nil {
+	if err := s.waitUntilPartitionedSerfIsReady(context.TODO(), cluster, partitionNameList); err != nil {
 		return fmt.Errorf("waitUntilPartitionedSerfIsReady: %w", err)
 	}
 
 	return nil
 }
 
-func (s *Sprawl) waitUntilPartitionedSerfIsReady(cluster *topology.Cluster, partitions []string) error {
+func (s *Sprawl) waitUntilPartitionedSerfIsReady(ctx context.Context, cluster *topology.Cluster, partitions []string) error {
 	var (
 		logger = s.logger.With("cluster", cluster.Name)
 	)
@@ -142,7 +142,7 @@ func (s *Sprawl) waitUntilPartitionedSerfIsReady(cluster *topology.Cluster, part
 		for {
 			buf.Reset()
 
-			err := s.runner.DockerExec([]string{
+			err := s.runner.DockerExec(ctx, []string{
 				"logs", node.DockerName(),
 			}, &buf, nil)
 			if err != nil {

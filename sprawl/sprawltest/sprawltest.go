@@ -1,6 +1,7 @@
 package sprawltest
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"os"
@@ -124,7 +125,7 @@ func stopOnCleanup(t *testing.T, sp *sprawl.Sprawl) {
 		if t.Failed() && keepWorkdirOnFail {
 			// It's only worth it to capture the logs if we aren't going to
 			// immediately discard them.
-			if err := sp.CaptureLogs(); err != nil {
+			if err := sp.CaptureLogs(context.Background()); err != nil {
 				t.Logf("log capture encountered failures: %v", err)
 			}
 		}
@@ -158,6 +159,8 @@ func CleanupWorkingDirectories() {
 		return
 	}
 
+	ctx := context.Background()
+
 	for _, d := range fi {
 		if !d.IsDir() {
 			continue
@@ -166,11 +169,11 @@ func CleanupWorkingDirectories() {
 
 		fmt.Fprintf(os.Stdout, "INFO: sprawltest: cleaning up failed prior run in: %s\n", path)
 
-		err := r.TerraformExec([]string{
+		err := r.TerraformExec(ctx, []string{
 			"init", "-input=false",
 		}, io.Discard, path)
 
-		err2 := r.TerraformExec([]string{
+		err2 := r.TerraformExec(ctx, []string{
 			"destroy", "-input=false", "-auto-approve", "-refresh=false",
 		}, io.Discard, path)
 

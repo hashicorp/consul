@@ -105,7 +105,7 @@ func (s *Sprawl) launchType(firstTime bool) (launchErr error) {
 	}
 
 	// The previous terraform run should have made the special volume for us.
-	if err := s.initTLS(); err != nil {
+	if err := s.initTLS(context.TODO()); err != nil {
 		return fmt.Errorf("initTLS: %w", err)
 	}
 

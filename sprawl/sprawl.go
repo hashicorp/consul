@@ -3,6 +3,7 @@ package sprawl
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"fmt"
 	"net/http"
 	"os"
@@ -306,13 +307,17 @@ func (s *Sprawl) DisabledServers(clusterName string) ([]*topology.Node, error) {
 	return servers, nil
 }
 
-func (s *Sprawl) CaptureLogs() error {
+func (s *Sprawl) StopContainer(ctx context.Context, containerName string) error {
+	return s.runner.DockerExec(ctx, []string{"stop", "-f", containerName}, nil, nil)
+}
+
+func (s *Sprawl) CaptureLogs(ctx context.Context) error {
 	logDir := filepath.Join(s.workdir, "logs")
 	if err := os.MkdirAll(logDir, 0755); err != nil {
 		return fmt.Errorf("could not create log output dir %s: %w", logDir, err)
 	}
 
-	containers, err := s.listContainers()
+	containers, err := s.listContainers(ctx)
 	if err != nil {
 		return err
 	}
@@ -321,7 +326,7 @@ func (s *Sprawl) CaptureLogs() error {
 
 	var merr error
 	for _, container := range containers {
-		if err := s.dumpContainerLogs(container, logDir); err != nil {
+		if err := s.dumpContainerLogs(ctx, container, logDir); err != nil {
 			merr = multierror.Append(merr, fmt.Errorf("could not dump logs for container %s: %w", container, err))
 		}
 	}
@@ -330,11 +335,11 @@ func (s *Sprawl) CaptureLogs() error {
 }
 
 // Dump known containers out of terraform state file.
-func (s *Sprawl) listContainers() ([]string, error) {
+func (s *Sprawl) listContainers(ctx context.Context) ([]string, error) {
 	tfdir := filepath.Join(s.workdir, "terraform")
 
 	var buf bytes.Buffer
-	if err := s.runner.TerraformExec([]string{"state", "list"}, &buf, tfdir); err != nil {
+	if err := s.runner.TerraformExec(ctx, []string{"state", "list"}, &buf, tfdir); err != nil {
 		return nil, fmt.Errorf("error listing containers in terraform state file: %w", err)
 	}
 
@@ -358,7 +363,7 @@ func (s *Sprawl) listContainers() ([]string, error) {
 	return containers, nil
 }
 
-func (s *Sprawl) dumpContainerLogs(containerName, outputRoot string) error {
+func (s *Sprawl) dumpContainerLogs(ctx context.Context, containerName, outputRoot string) error {
 	path := filepath.Join(outputRoot, containerName+".log")
 
 	f, err := os.Create(path + ".tmp")
@@ -375,6 +380,7 @@ func (s *Sprawl) dumpContainerLogs(containerName, outputRoot string) error {
 	}()
 
 	err = s.runner.DockerExecWithStderr(
+		ctx,
 		[]string{"logs", containerName},
 		f,
 		f,
