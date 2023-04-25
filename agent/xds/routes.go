@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -36,13 +37,13 @@ func (s *ResourceGenerator) routesFromSnapshot(cfgSnap *proxycfg.ConfigSnapshot)
 	case structs.ServiceKindIngressGateway:
 		return s.routesForIngressGateway(cfgSnap)
 	case structs.ServiceKindAPIGateway:
-		// TODO Find a cleaner solution, can't currently pass unexported property types
 		var err error
 		cfgSnap.IngressGateway, err = cfgSnap.APIGateway.ToIngress(cfgSnap.Datacenter)
 		if err != nil {
 			return nil, err
 		}
 		return s.routesForIngressGateway(cfgSnap)
+		//return s.routesForAPIGateway(cfgSnap)
 	case structs.ServiceKindTerminatingGateway:
 		return s.routesForTerminatingGateway(cfgSnap)
 	case structs.ServiceKindMeshGateway:
@@ -430,6 +431,122 @@ func (s *ResourceGenerator) routesForIngressGateway(cfgSnap *proxycfg.ConfigSnap
 	return result, nil
 }
 
+// routesForAPIGateway returns the xDS API representation of the
+// "routes" in the snapshot.
+func (s *ResourceGenerator) routesForAPIGateway(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
+	var result []proto.Message
+
+	readyUpstreamsList := getReadyUpstreams(cfgSnap)
+
+	for _, readyUpstreams := range readyUpstreamsList {
+		listenerCfg := readyUpstreams.listenerCfg
+		// Do not create any route configuration for TCP listeners
+		if listenerCfg.Protocol == "tcp" {
+			continue
+		}
+
+		//boundListenerCfg := readyUpstreams.boundListenerCfg
+		routeRef := readyUpstreams.routeReference
+
+		//boundListenerCfg := readyUpstreams.boundListenerCfg
+
+		listenerKey := readyUpstreams.listenerKey
+
+		// Depending on their TLS config, upstreams are either attached to the
+		// default route or have their own routes. We'll add any upstreams that
+		// don't have custom filter chains and routes to this.
+		defaultRoute := &envoy_route_v3.RouteConfiguration{
+			Name: listenerKey.RouteName(),
+			// ValidateClusters defaults to true when defined statically and false
+			// when done via RDS. Re-set the reasonable value of true to prevent
+			// null-routing traffic.
+			ValidateClusters: makeBoolValue(true),
+		}
+
+		for _, u := range readyUpstreams.upstreams {
+			uid := proxycfg.NewUpstreamID(&u)
+			chain := cfgSnap.APIGateway.DiscoveryChain[uid]
+			if chain == nil {
+				continue
+			}
+
+			route, ok := cfgSnap.APIGateway.HTTPRoutes.Get(routeRef)
+			if !ok {
+				//TODO handle
+			}
+
+			//TODO don't think this is right location for this, but the test fails without this line
+			hostname := listenerCfg.GetHostname()
+			u.IngressHosts = append(u.IngressHosts, hostname)
+
+			fmt.Println(hostname)
+			fmt.Println(route.Hostnames)
+			fmt.Println(u.IngressHosts)
+
+			domains := generateUpstreamAPIsDomains(listenerKey, u)
+
+			virtualHost, err := s.makeUpstreamRouteForDiscoveryChain(cfgSnap, uid, chain, domains, false)
+			if err != nil {
+				return nil, err
+			}
+
+			//find matching service
+			httpService := findHTTPServiceMatchingUpstream(route, u)
+			fmt.Println(listenerCfg.Name)
+			fmt.Println(route.Name)
+			fmt.Println(httpService.Name)
+			fmt.Println(httpService.ServiceName())
+			fmt.Println("hello")
+			panic("hi")
+			if httpService == nil {
+				return nil, fmt.Errorf("missing service in listener config (service %q listener on proto/port %s/%d)",
+					u.DestinationID(), listenerKey.Protocol, listenerKey.Port)
+			}
+
+			if err := injectHeaderManipToVirtualHostAPIGateway(httpService, virtualHost); err != nil {
+				return nil, err
+			}
+
+			//TODO test fails unless this is the port, but should this instead be httpService.GetName()?
+			svcRouteName := strconv.Itoa(listenerCfg.Port)
+
+			// If the routeName is the same as the default one, merge the virtual host
+			// to the default route
+			if svcRouteName == defaultRoute.Name {
+				defaultRoute.VirtualHosts = append(defaultRoute.VirtualHosts, virtualHost)
+			} else {
+				svcRoute := &envoy_route_v3.RouteConfiguration{
+					Name:             svcRouteName,
+					ValidateClusters: makeBoolValue(true),
+					VirtualHosts:     []*envoy_route_v3.VirtualHost{virtualHost},
+				}
+				result = append(result, svcRoute)
+			}
+		}
+
+		if len(defaultRoute.VirtualHosts) > 0 {
+			result = append(result, defaultRoute)
+		}
+
+	}
+
+	return result, nil
+}
+
+func findHTTPServiceMatchingUpstream(route *structs.HTTPRouteConfigEntry, upstream structs.Upstream) *structs.HTTPService {
+	var httpservice structs.HTTPService
+	for _, rule := range route.Rules {
+		for _, service := range rule.Services {
+			//TODO more elaborate IS SAME check?
+			if service.Name == upstream.DestinationName {
+				httpservice = service
+				return &httpservice
+			}
+		}
+	}
+	return nil
+}
+
 func makeHeadersValueOptions(vals map[string]string, add bool) []*envoy_core_v3.HeaderValueOption {
 	opts := make([]*envoy_core_v3.HeaderValueOption, 0, len(vals))
 	for k, v := range vals {
@@ -514,6 +631,10 @@ func generateUpstreamIngressDomains(listenerKey proxycfg.IngressListenerKey, u s
 	}
 
 	return domains
+}
+
+func generateUpstreamAPIsDomains(listenerKey proxycfg.APIGatewayListenerKey, u structs.Upstream) []string {
+	return generateUpstreamIngressDomains(listenerKey, u)
 }
 
 func (s *ResourceGenerator) makeUpstreamRouteForDiscoveryChain(
@@ -1016,6 +1137,11 @@ func injectHeaderManipToRoute(dest *structs.ServiceRouteDestination, r *envoy_ro
 			dest.ResponseHeaders.Remove...,
 		)
 	}
+	return nil
+}
+
+func injectHeaderManipToVirtualHostAPIGateway(dest *structs.HTTPService, vh *envoy_route_v3.VirtualHost) error {
+	//TODO we aren't touching these fields in ToIngress so I'm leaving them alone for now
 	return nil
 }
 

@@ -116,6 +116,7 @@ func (l *GatewayChainSynthesizer) Synthesize(chains ...*structs.CompiledDiscover
 
 	compiledChains := make([]*structs.CompiledDiscoveryChain, 0, len(set))
 	for i, service := range services {
+
 		entries := set[i]
 
 		compiled, err := Compile(CompileRequest{
