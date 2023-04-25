@@ -74,6 +74,10 @@ func (m *Manager) SetRaftLeader(leader bool) {
 		select {
 		case ch <- struct{}{}:
 		default:
+			// Do not block if there's nothing receiving on ch (because the supervisor is
+			// busy doing something else). Note that ch has a buffer of 1, so we'll never
+			// miss the notification that something has changed so we need to re-evaluate
+			// the lease.
 		}
 	}
 }
