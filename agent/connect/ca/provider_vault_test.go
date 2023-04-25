@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -1130,15 +1131,6 @@ func TestVaultCAProvider_GenerateIntermediate(t *testing.T) {
 	orig, err := provider.ActiveLeafSigningCert()
 	require.NoError(t, err)
 
-	// Check that setting auto-tidy works. It must be run as the only way to
-	// check it is set is by checking the returned value of the write call.
-	if ok := provider.autotidyIssuers("pki-intermediate/"); !ok {
-		t.Error("setting auto-tidy on pki-intermediate/ failed")
-	}
-	if ok := provider.autotidyIssuers("no-perm-pki/"); ok {
-		t.Error("setting auto-tidy on no-perm-pki/ should have failed")
-	}
-
 	// This test was created to ensure that our calls to Vault
 	// returns a new Intermediate certificate and further calls
 	// to ActiveLeafSigningCert return the same new cert.
@@ -1150,6 +1142,50 @@ func TestVaultCAProvider_GenerateIntermediate(t *testing.T) {
 
 	require.Equal(t, new, newActive)
 	require.NotEqual(t, orig, new)
+}
+
+func TestVaultCAProvider_AutoTidyExpiredIssuers(t *testing.T) {
+	SkipIfVaultNotPresent(t)
+
+	t.Parallel()
+
+	testVault := NewTestVaultServer(t)
+
+	attr := &VaultTokenAttributes{
+		RootPath:         "pki-root",
+		IntermediatePath: "pki-intermediate",
+		ConsulManaged:    true,
+	}
+	token := CreateVaultTokenWithAttrs(t, testVault.client, attr)
+
+	provider := createVaultProvider(t, true, testVault.Addr, token, map[string]any{
+		"RootPKIPath":         "pki-root/",
+		"IntermediatePKIPath": "pki-intermediate/",
+	})
+
+	// this runs the auto-tidy config call but we can't test that as there
+	// is no way to check. so we re-set it again below checking that it works.
+	_, err := provider.ActiveLeafSigningCert()
+	require.NoError(t, err)
+
+	fmt.Println("vaultTestVersion:", vaultTestVersion)
+	minorVersion := strings.Split(vaultTestVersion, ".")[1]
+	expIssSet, errStr := provider.autotidyIssuers("pki-intermediate/")
+	switch minorVersion {
+	case "10", "11":
+		require.False(t, expIssSet)
+		require.Contains(t, errStr, "don't support auto-tidy")
+	case "12":
+		require.False(t, expIssSet)
+		require.Contains(t, errStr, "don't support tidy_expired_issuers")
+	default:
+		require.True(t, expIssSet)
+	}
+
+	// check permission denied
+	expIssSet, errStr = provider.autotidyIssuers("pki-bad/")
+	require.False(t, expIssSet)
+	require.Contains(t, errStr, "permission denied")
 }
 
 func TestVaultCAProvider_GenerateIntermediate_inSecondary(t *testing.T) {
