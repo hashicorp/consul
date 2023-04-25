@@ -122,6 +122,8 @@ func (s *supervisor) stopTask() {
 }
 
 func (s *supervisor) handleError(err error) func() bool {
+	// TODO(spatel): Fix unused err flagged by lint
+	_ = err
 	s.running = false
 
 	if time.Since(s.startedAt) > flapThreshold {
