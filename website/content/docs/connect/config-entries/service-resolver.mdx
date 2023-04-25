@@ -19,13 +19,13 @@ The following list outlines field hierarchy, language-specific data types, and r
 
 <Tab heading="HCL and JSON" group="hcl">
 
-- [`Kind`](#kind): string | `service-resolver` | required
+- [`Kind`](#kind): string | required | must be set to `service-resolver`
 - [`Name`](#name): string | required
 - [`Namespace`](#namespace): string | `default` <EnterpriseAlert inline />
 - [`Partition`](#partition): string | `default` <EnterpriseAlert inline />
 - [`Meta`](#meta): map
 - [`ConnectTimeout`](#connecttimeout): string | `0s`
-- [`RequestTimeout`](#requesttimeout): string | `0s`
+- [`RequestTimeout`](#requesttimeout): string | `15s`
 - [`Subsets`](#subsets): map
   - [`Filter`](#subsets): string
   - [`OnlyPassing`](#subsets): boolean | `false`
@@ -70,14 +70,14 @@ The following list outlines field hierarchy, language-specific data types, and r
 
 <Tab heading="YAML" group="yaml">
 
-- [`apiVersion`](#apiversion): string | required | `consul.hashicorp.com/v1alpha1`
-- [`kind`](#kind): string | required | `serviceResolver`
+- [`apiVersion`](#apiversion): string | required | must be set to `consul.hashicorp.com/v1alpha1`
+- [`kind`](#kind): string | required | must be set to `serviceResolver`
 - [`metadata`](#metadata): map | required
   - [`name`](#metadata-name): string | required
   - [`namespace`](#metadata-namespace): string | optional <EnterpriseAlert inline />
 - [`spec`](#spec): map | required
   - [`connectTimeout`](#spec-connecttimeout): string | `0s`
-  - [`requestTimeout`](#spec-requesttimeout): string | `0s`
+  - [`requestTimeout`](#spec-requesttimeout): string | `15s`
   - [`subsets`](#spec-subsets): map
     - [`filter`](#spec-subsets-filter): string
     - [`onlyPassing`](#spec-subsets-onlypassing): boolean | `false`
@@ -139,7 +139,7 @@ Meta = {
 }
 
 ConnectTimeout = "10s"
-RequestTimeout = "5s"
+RequestTimeout = "15s"
 Subsets = {
  <subset01-name> = {
    Filter      = "<expression.to.match.on == subset01-name>"
@@ -162,7 +162,7 @@ Redirect = {
 }
 
 Failover = {                   ## requires at least one of the following: Service, ServiceSubset, Namespace, Targets, Datacenters
- <local=subset-name> = {
+ <local-subset-name> = {
    Targets = [
      { Service = "<destination-service>" },
      { ServiceSubset = "<destination-service-subset>" },
@@ -221,7 +221,7 @@ LoadBalancer = {
   },
 
   "ConnectTimeout":"10s",
-  "RequestTimeout":"5s",
+  "RequestTimeout":"15s",
   "Subsets":{
    "<subset01-name>":{
      "Filter":"<expression.to.match.on == subset01-name>",
@@ -300,7 +300,7 @@ metadata:
   namespace: <namespace>
 spec:
   connectTimeout: 10s
-  requestTimeout: 5s
+  requestTimeout: 15s
   subsets:
     <subset01Name>:
       filter: <expression.to.match.on == subset01Name>
@@ -414,7 +414,7 @@ Specifies the timeout duration for establishing new network connections to this 
 
 #### Values
 
-- Default: `15s`
+- Default: `0s`
 - Data type: String
 
 ### `RequestTimeout`
@@ -436,6 +436,7 @@ Specifies names for service subsets and the conditions under which service insta
 - Data type: Map containing a key/value pair.
   - `<KEY>`: String that names the subset. The string must be valid as a DNS subdomain element.
   - `<VALUE>`: Map that can contain the following fields:
+  
     | Parameter     | Description                                                                                                                                                                                                                                                                                   | Data type | Default |
     | :------------ | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- | ------- |
     | `Filter`      | Specifies an expression that filters the DNS elements of service instances that belong to the subset. If empty, all healthy instances of a service are returned. This expression can filter on the same DNS selectors as the [Health API endpoint](/consul/api-docs/health#filtering-2).      | String    | None    |
@@ -458,6 +459,7 @@ Specifies redirect instructions for local service traffic so that services deplo
 
 - Default: None
 - Data type: Map that can contain the following paramters:
+  
     | Parameter                              | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             | Data type | Default |
     | :------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------- | ------- |
     | `Service`                              | Specifies the name of a service at the redirect’s destination that resolves local upstream requests.                                                                                                                                                                                                                                                                                                                                                                                                                                                    | String    | None    |
@@ -478,8 +480,8 @@ This map is keyed by the name of the local service subset whose traffic should r
 #### Values
 
 - Default: None
-- Data type: Map that can contain the following objects:
-- Data type: Map that can contain the following paramters:
+- Data type: Map that can contain the following parameters:
+  
     | Parameter                              | Description                                                                                                                                                                                                                                                                                 | Data type | Default |
     | :------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------- | ------- |
     | `Service`                              | Specifies the name of the service to resolve at the failover location during a failover scenario.                                                                                                                                                                                           | String    | None    |
@@ -498,6 +500,7 @@ For examples, refer to the [failover example configurations](#examples-failover)
 
 - Default: None
 - Data type: List of maps that can contain the following parameters:
+  
     | Parameter                              | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | Data type | Default |
     | :------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------- | ------- |
     | `Service`                              | Specifies the service name to use for the failover target. If empty, the current service name is used.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          | String    | None    |
@@ -515,6 +518,7 @@ Specifies the load balancing policy and configuration for services issuing reque
 
 - Default: None
 - Data type: Map that can contain the following parameters:
+  
   | Parameter      | Description                                                                       | Data type | Default |
   | :------------- | :-------------------------------------------------------------------------------- | --------- | ------- |
   | `Policy`      | Specifies the type of load balancing policy for selecting a host. Refer to [`LoadBalancer{}.Policy`](#loadbalancer-policy) for additional configuration parameters. | Map   | None |
@@ -536,6 +540,7 @@ Specifies the type of load balancing policy for selecting a host. Supported load
 
 - Default: None
 - Data type: String containing one of the following values:
+  
   | Policy type     | Description                                                                                                                                                                                                                      |
   | :-------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
   | `random`        | The load balancer forwards a client request to a server chosen at random from a fixed list.                                                                                                                                      |
@@ -552,6 +557,7 @@ Specifies configuration for the `least_request policy` type.
 
 - Default: None
 - Data type: Map containing the following object:
+  
   | Parameter     | Description                                                                                        | Data type | Default |
   | :------------ | :------------------------------------------------------------------------------------------------- | --------- | ------- |
   | `ChoiceCount` | Specifies the number of random healthy hosts from which to select the one with the least requests. | Integer   | `2`     |
@@ -564,6 +570,7 @@ Specifies configuration for the `ring_hash` policy type.
 
 - Default: None
 - Data type: List that can contain the following maps:
+  
   | Parameter     | Description                                                    | Data type | Default |
   | :------------ | :------------------------------------------------------------- | --------- | ------- |
   | `MinimumRingSize` | Determines the minimum number of entries in the hash ring. | Integer   | `1024`  |
@@ -577,6 +584,7 @@ Specifies a list of hash policies to use for hashing load balancing algorithms. 
 
 - Default: None
 - Data type:  List of maps for the following parameters:
+  
   | Parameter      | Description                                                    | Data type | Default |
   | :------------- | :------------------------------------------------------------- | --------- | ------- |
   | `Field`        | Specifies the attribute type to hash on. Must be one of the following values: `header`, `cookie`, or `query_parameter`. You cannot specify the `Field` parameter if `SourceIP` is also configured. | String   | None  |
@@ -593,6 +601,7 @@ Specifies additional configuration options for the `cookie` hash policy type. Th
 
 - Default: None
 - Data type: Map that can contain the following parameters:
+  
   | Parameter      | Description                                                                       | Data type | Default |
   | :------------- | :-------------------------------------------------------------------------------- | --------- | ------- |
   | `Session`      | Directs Consul to generate a session cookie with no expiration.                   | Boolean   | `false` |
@@ -667,7 +676,7 @@ Specifies the timeout duration for establishing new network connections to this 
 
 #### Values
 
-- Default: `15s`
+- Default: `0s`
 - Data type: String
 
 ### `spec.requestTimeout`
@@ -688,7 +697,8 @@ Specifies names for service subsets and the conditions under which service insta
 - Default: None
 - Data type: Map containing a key/value pair.
   - `<KEY>`: String that names the subset. The string must be valid as a DNS subdomain element.
-  - `<VALUE>`: Map that can contain the following fields:
+  - `<VALUE>`: Map that can contain the following parameters:
+
     | Parameter     | Description                                                                                                                                                                                                                                                                                   | Data type | Default |
     | :------------ | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- | ------- |
     | `filter`      | Specifies an expression that filters the DNS elements of service instances that belong to the subset. If empty, all healthy instances of a service are returned. This expression can filter on the same DNS selectors as the [Health API endpoint](/consul/api-docs/health#filtering-2).      | String    | None    |
@@ -710,7 +720,8 @@ Specifies redirect instructions for local service traffic so that services deplo
 #### Values
 
 - Default: None
-- Data type: Map that can contain the following paramters:
+- Data type: Map that can contain the following parameters:
+
     | Parameter                              | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             | Data type | Default |
     | :------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------- | ------- |
     | `service`                              | Specifies the name of a service at the redirect’s destination that resolves local upstream requests.                                                                                                                                                                                                                                                                                                                                                                                                                                                    | String    | None    |
@@ -732,7 +743,8 @@ This map is keyed by the name of the local service subset whose traffic should r
 
 - Default: None
 - Data type: Map that can contain the following objects:
-- Data type: Map that can contain the following paramters:
+- Data type: Map that can contain the following parameters:
+  
     | Parameter                              | Description                                                                                                                                                                                                                                                                                 | Data type | Default |
     | :------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------- | ------- |
     | `service`                              | Specifies the name of the service to resolve at the failover location during a failover scenario.                                                                                                                                                                                           | String    | None    |
@@ -751,6 +763,7 @@ For examples, refer to the [failover example configurations](#examples-failover)
 
 - Default: None
 - Data type: List of maps that can contain the following parameters:
+  
     | Parameter                              | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | Data type | Default |
     | :------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------- | ------- |
     | `service`                              | Specifies the service name to use for the failover target. If empty, the current service name is used.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          | String    | None    |
@@ -768,6 +781,7 @@ Specifies the load balancing policy and configuration for services issuing reque
 
 - Default: None
 - Data type: Map that can contain the following parameters:
+  
   | Parameter      | Description                                                                       | Data type | Default |
   | :------------- | :-------------------------------------------------------------------------------- | --------- | ------- |
   | `policy`      | Specifies the type of load balancing policy for selecting a host. Refer to [`spec.loadBalancer{}.policy`](#spec-loadbalancer-policy) for additional configuration parameters. | Map   | None |
@@ -789,6 +803,7 @@ Specifies the type of load balancing policy for selecting a host. Supported load
 
 - Default: None
 - Data type: String containing one of the following values:
+  
   | Policy type     | Description                                                                                                                                                                                                                      |
   | :-------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
   | `random`        | The load balancer forwards a client request to a server chosen at random from a fixed list.                                                                                                                                      |
@@ -805,6 +820,7 @@ Specifies configuration for the `least_request policy` type.
 
 - Default: None
 - Data type: Map containing the following parameter:
+  
   | Parameter     | Description                                                                                        | Data type | Default |
   | :------------ | :------------------------------------------------------------------------------------------------- | --------- | ------- |
   | `choiceCount` | Specifies the number of random healthy hosts from which to select the one with the least requests. | Integer   | `2`     |
@@ -817,6 +833,7 @@ Specifies configuration for the `ring_hash` policy type.
 
 - Default: None
 - Data type: List that can contain the following parameters:
+  
   | Parameter     | Description                                                    | Data type | Default |
   | :------------ | :------------------------------------------------------------- | --------- | ------- |
   | `minimumRingSize` | Determines the minimum number of entries in the hash ring. | Integer   | `1024`  |
@@ -830,6 +847,7 @@ Specifies a list of hash policies to use for hashing load balancing algorithms. 
 
 - Default: None
 - Data type:  List that can contain the following parameters:
+  
   | Parameter      | Description                                                    | Data type | Default |
   | :------------- | :------------------------------------------------------------- | --------- | ------- |
   | `field`        | Specifies the attribute type to hash on. Must be one of the following values: `header`, `cookie`, or `query_parameter`. You cannot specify the `field` parameter if `sourceIP` is also configured. | String   | None  |
@@ -846,6 +864,7 @@ Specifies additional configuration options for the `cookie` hash policy type. Th
 
 - Default: None
 - Data type: Map that can contain the following parameters:
+  
   | Parameter      | Description                                                                       | Data type | Default |
   | :------------- | :-------------------------------------------------------------------------------- | --------- | ------- |
   | `session`      | Directs Consul to generate a session cookie with no expiration.                   | Boolean   | `false` |
@@ -861,7 +880,7 @@ The following examples demonstrate common service resolver configuration pattern
 
 ### Filter on service version
 
-Create service subsets based on a version metadata and override the defaults:
+The following example creates service subsets based on version metadata:
 
 <CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
 
@@ -913,7 +932,7 @@ spec:
 
 ### Resolve virtual upstreams
 
-Expose a set of services to another datacenter as a virtual service:
+The folowing example uses the [`Redirect` parameter](#redirect) to expose a set of services to another datacenter as a virtual service:
 
 <CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
 
@@ -952,7 +971,7 @@ spec:
 
 ### Failover
 
-Enable failover for subset `v2` to `dc2`, and all other subsets to `dc3` or `dc4`:
+The following example enables failover for subset `v2` to `dc2`. All other subsets attempt failover to `dc3`, and when it is not available, to `dc4`:
 
 <CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
 
@@ -1002,10 +1021,9 @@ spec:
 
 </CodeTabs>
 
-#### Failover for federation and cluster peering
+#### Failover targets for federation and cluster peering
 
-Enable failover to a WAN federated datacenter and then a cluster peer for all
-service subsets.
+The following example enables failover to target a WAN federated datacenter for all service subsets. If the connection to `dc3` times out after 15 seconds, the service failover targets the peer with the establish cluster peering connection instead.
 
 <CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
 
@@ -1055,12 +1073,9 @@ spec:
 
 </CodeTabs>
 
-<EnterpriseAlert product="consul">
+#### Failover for all service subsets <EnterpriseAlert inline />
 
-#### Failover for all service subsets
-
-  Failover to another datacenter and namespace for all service subsets.
-</EnterpriseAlert>
+The following example enables failover to the `secondary` namespace in another datacenter for all service subsets.
 
 <CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
 
@@ -1107,12 +1122,11 @@ spec:
 
 </CodeTabs>
 
-<EnterpriseAlert product="consul">
 
-#### Failover to a namespace
+#### Failover to a namespace <EnterpriseAlert inline />
 
-  Failover within a datacenter and a different namespace.
-</EnterpriseAlert>
+The following example enables failover to a different namespace in the same datacenter.
+
 
 <CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
 
@@ -1161,7 +1175,7 @@ spec:
 
 ### Consistent load balancing
 
-Apply consistent load balancing for requests based on `x-user-id` header:
+The following example applies a Maglev load balancing policy for requests with an `x-user-id` header:
 
 <CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
 
