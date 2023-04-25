@@ -68,7 +68,9 @@ import (
 	"github.com/hashicorp/consul/agent/rpc/peering"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
+	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/controller"
+	"github.com/hashicorp/consul/internal/mesh"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/demo"
 	raftstorage "github.com/hashicorp/consul/internal/storage/raft"
@@ -830,13 +832,20 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server, incom
 		return nil, err
 	}
 
+	s.registerResources()
+	go s.controllerManager.Run(&lib.StopChannelContext{StopCh: shutdownCh})
+
+	return s, nil
+}
+
+func (s *Server) registerResources() {
+	catalog.RegisterTypes(s.typeRegistry)
+	mesh.RegisterTypes(s.typeRegistry)
+
 	if s.config.DevMode {
 		demo.RegisterTypes(s.typeRegistry)
 		demo.RegisterControllers(s.controllerManager)
 	}
-	go s.controllerManager.Run(&lib.StopChannelContext{StopCh: shutdownCh})
-
-	return s, nil
 }
 
 func newGRPCHandlerFromConfig(deps Deps, config *Config, s *Server) connHandler {
