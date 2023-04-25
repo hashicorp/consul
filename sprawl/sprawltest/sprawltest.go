@@ -128,6 +128,9 @@ func stopOnCleanup(t *testing.T, sp *sprawl.Sprawl) {
 			if err := sp.CaptureLogs(context.Background()); err != nil {
 				t.Logf("log capture encountered failures: %v", err)
 			}
+			if err := sp.SnapshotEnvoy(context.Background()); err != nil {
+				t.Logf("envoy snapshot capture encountered failures: %v", err)
+			}
 		}
 
 		if t.Failed() && keepRunningOnFail {

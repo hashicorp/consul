@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -294,6 +295,83 @@ func (s *Sprawl) DisabledServers(clusterName string) ([]*topology.Node, error) {
 
 func (s *Sprawl) StopContainer(ctx context.Context, containerName string) error {
 	return s.runner.DockerExec(ctx, []string{"stop", containerName}, nil, nil)
+}
+
+func (s *Sprawl) SnapshotEnvoy(ctx context.Context) error {
+	snapDir := filepath.Join(s.workdir, "envoy-snapshots")
+	if err := os.MkdirAll(snapDir, 0755); err != nil {
+		return fmt.Errorf("could not create envoy snapshot output dir %s: %w", snapDir, err)
+	}
+
+	targets := map[string]string{
+		"config_dump.json":     "config_dump",
+		"clusters.json":        "clusters?format=json",
+		"stats.txt":            "stats",
+		"stats_prometheus.txt": "stats/prometheus",
+	}
+
+	var merr error
+	for _, c := range s.topology.Clusters {
+		client, err := s.HTTPClientForCluster(c.Name)
+		if err != nil {
+			return fmt.Errorf("could not get http client for cluster %q: %w", c.Name, err)
+		}
+
+		for _, n := range c.Nodes {
+			if n.Disabled {
+				continue
+			}
+			for _, s := range n.Services {
+				if s.Disabled || s.EnvoyAdminPort <= 0 {
+					continue
+				}
+				prefix := fmt.Sprintf("http://%s:%d", n.LocalAddress(), s.EnvoyAdminPort)
+
+				for fn, target := range targets {
+					u := prefix + "/" + target
+
+					body, err := scrapeURL(client, u)
+					if err != nil {
+						merr = multierror.Append(merr, fmt.Errorf("could not scrape %q for %s on %s: %w",
+							target, s.ID.String(), n.ID().String(), err,
+						))
+						continue
+					}
+
+					outFn := filepath.Join(snapDir, n.DockerName()+"--"+s.ID.TFString()+"."+fn)
+
+					if err := os.WriteFile(outFn+".tmp", body, 0644); err != nil {
+						merr = multierror.Append(merr, fmt.Errorf("could not write output %q for %s on %s: %w",
+							target, s.ID.String(), n.ID().String(), err,
+						))
+						continue
+					}
+
+					if err := os.Rename(outFn+".tmp", outFn); err != nil {
+						merr = multierror.Append(merr, fmt.Errorf("could not write output %q for %s on %s: %w",
+							target, s.ID.String(), n.ID().String(), err,
+						))
+						continue
+					}
+				}
+			}
+		}
+	}
+	return merr
+}
+
+func scrapeURL(client *http.Client, url string) ([]byte, error) {
+	res, err := client.Get(url)
+	if err != nil {
+		return nil, err
+	}
+	defer res.Body.Close()
+
+	body, err := io.ReadAll(res.Body)
+	if err != nil {
+		return nil, err
+	}
+	return body, nil
 }
 
 func (s *Sprawl) CaptureLogs(ctx context.Context) error {
