@@ -12,7 +12,6 @@ import (
 	svc "github.com/hashicorp/consul/agent/grpc-external/services/resource"
 	internal "github.com/hashicorp/consul/agent/grpc-internal"
 	"github.com/hashicorp/consul/internal/resource"
-	"github.com/hashicorp/consul/internal/resource/demo"
 	"github.com/hashicorp/consul/internal/storage/inmem"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/sdk/testutil"
@@ -20,7 +19,7 @@ import (
 
 // RunResourceService runs a Resource Service for the duration of the test and
 // returns a client to interact with it. ACLs will be disabled.
-func RunResourceService(t *testing.T) pbresource.ResourceServiceClient {
+func RunResourceService(t *testing.T, registerFns ...func(resource.Registry)) pbresource.ResourceServiceClient {
 	t.Helper()
 
 	backend, err := inmem.NewBackend()
@@ -31,7 +30,9 @@ func RunResourceService(t *testing.T) pbresource.ResourceServiceClient {
 	go backend.Run(ctx)
 
 	registry := resource.NewRegistry()
-	demo.Register(registry)
+	for _, fn := range registerFns {
+		fn(registry)
+	}
 
 	server := grpc.NewServer()
 
