@@ -69,7 +69,7 @@ func TestWriteStatus_InputValidation(t *testing.T) {
 	server := testServer(t)
 	client := testClient(t, server)
 
-	demo.Register(server.Registry)
+	demo.RegisterTypes(server.Registry)
 
 	testCases := map[string]func(*pbresource.WriteStatusRequest){
 		"no id":                   func(req *pbresource.WriteStatusRequest) { req.Id = nil },
@@ -113,7 +113,7 @@ func TestWriteStatus_Success(t *testing.T) {
 			server := testServer(t)
 			client := testClient(t, server)
 
-			demo.Register(server.Registry)
+			demo.RegisterTypes(server.Registry)
 
 			res, err := demo.GenerateV2Artist()
 			require.NoError(t, err)
@@ -148,7 +148,7 @@ func TestWriteStatus_CASFailure(t *testing.T) {
 	server := testServer(t)
 	client := testClient(t, server)
 
-	demo.Register(server.Registry)
+	demo.RegisterTypes(server.Registry)
 
 	res, err := demo.GenerateV2Artist()
 	require.NoError(t, err)
@@ -183,7 +183,7 @@ func TestWriteStatus_TypeNotFound(t *testing.T) {
 func TestWriteStatus_ResourceNotFound(t *testing.T) {
 	server := testServer(t)
 	client := testClient(t, server)
-	demo.Register(server.Registry)
+	demo.RegisterTypes(server.Registry)
 
 	res, err := demo.GenerateV2Artist()
 	require.NoError(t, err)
@@ -198,7 +198,7 @@ func TestWriteStatus_ResourceNotFound(t *testing.T) {
 func TestWriteStatus_WrongUid(t *testing.T) {
 	server := testServer(t)
 	client := testClient(t, server)
-	demo.Register(server.Registry)
+	demo.RegisterTypes(server.Registry)
 
 	res, err := demo.GenerateV2Artist()
 	require.NoError(t, err)
@@ -219,7 +219,7 @@ func TestWriteStatus_NonCASUpdate_Retry(t *testing.T) {
 	server := testServer(t)
 	client := testClient(t, server)
 
-	demo.Register(server.Registry)
+	demo.RegisterTypes(server.Registry)
 
 	res, err := demo.GenerateV2Artist()
 	require.NoError(t, err)

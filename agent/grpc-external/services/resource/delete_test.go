@@ -22,7 +22,7 @@ func TestDelete_InputValidation(t *testing.T) {
 	server := testServer(t)
 	client := testClient(t, server)
 
-	demo.Register(server.Registry)
+	demo.RegisterTypes(server.Registry)
 
 	testCases := map[string]func(*pbresource.DeleteRequest){
 		"no id":      func(req *pbresource.DeleteRequest) { req.Id = nil },
@@ -101,7 +101,7 @@ func TestDelete_ACLs(t *testing.T) {
 			mockACLResolver.On("ResolveTokenAndDefaultMeta", mock.Anything, mock.Anything, mock.Anything).
 				Return(tc.authz, nil)
 			server.ACLResolver = mockACLResolver
-			demo.Register(server.Registry)
+			demo.RegisterTypes(server.Registry)
 
 			artist, err := demo.GenerateV2Artist()
 			require.NoError(t, err)
@@ -122,8 +122,7 @@ func TestDelete_Success(t *testing.T) {
 	for desc, tc := range deleteTestCases() {
 		t.Run(desc, func(t *testing.T) {
 			server, client, ctx := testDeps(t)
-			demo.Register(server.Registry)
-
+			demo.RegisterTypes(server.Registry)
 			artist, err := demo.GenerateV2Artist()
 			require.NoError(t, err)
 
@@ -150,7 +149,7 @@ func TestDelete_NotFound(t *testing.T) {
 	for desc, tc := range deleteTestCases() {
 		t.Run(desc, func(t *testing.T) {
 			server, client, ctx := testDeps(t)
-			demo.Register(server.Registry)
+			demo.RegisterTypes(server.Registry)
 			artist, err := demo.GenerateV2Artist()
 			require.NoError(t, err)
 
@@ -165,7 +164,7 @@ func TestDelete_VersionMismatch(t *testing.T) {
 	t.Parallel()
 
 	server, client, ctx := testDeps(t)
-	demo.Register(server.Registry)
+	demo.RegisterTypes(server.Registry)
 	artist, err := demo.GenerateV2Artist()
 	require.NoError(t, err)
 	rsp, err := client.Write(ctx, &pbresource.WriteRequest{Resource: artist})
