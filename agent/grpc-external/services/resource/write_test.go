@@ -26,7 +26,7 @@ func TestWrite_InputValidation(t *testing.T) {
 	server := testServer(t)
 	client := testClient(t, server)
 
-	demo.Register(server.Registry)
+	demo.RegisterTypes(server.Registry)
 
 	testCases := map[string]func(*pbresource.WriteRequest){
 		"no resource": func(req *pbresource.WriteRequest) { req.Resource = nil },
@@ -36,17 +36,17 @@ func TestWrite_InputValidation(t *testing.T) {
 		"no name":     func(req *pbresource.WriteRequest) { req.Resource.Id.Name = "" },
 		"no data":     func(req *pbresource.WriteRequest) { req.Resource.Data = nil },
 		// clone necessary to not pollute DefaultTenancy
-		"tenancy partition wildcard": func(req *pbresource.WriteRequest) {
+		"tenancy partition not default": func(req *pbresource.WriteRequest) {
 			req.Resource.Id.Tenancy = clone(req.Resource.Id.Tenancy)
-			req.Resource.Id.Tenancy.Partition = storage.Wildcard
+			req.Resource.Id.Tenancy.Partition = ""
 		},
-		"tenancy namespace wildcard": func(req *pbresource.WriteRequest) {
+		"tenancy namespace not default": func(req *pbresource.WriteRequest) {
 			req.Resource.Id.Tenancy = clone(req.Resource.Id.Tenancy)
-			req.Resource.Id.Tenancy.Namespace = storage.Wildcard
+			req.Resource.Id.Tenancy.Namespace = ""
 		},
-		"tenancy peername wildcard": func(req *pbresource.WriteRequest) {
+		"tenancy peername not local": func(req *pbresource.WriteRequest) {
 			req.Resource.Id.Tenancy = clone(req.Resource.Id.Tenancy)
-			req.Resource.Id.Tenancy.PeerName = storage.Wildcard
+			req.Resource.Id.Tenancy.PeerName = ""
 		},
 		"wrong data type": func(req *pbresource.WriteRequest) {
 			var err error
@@ -79,7 +79,7 @@ func TestWrite_OwnerValidation(t *testing.T) {
 	server := testServer(t)
 	client := testClient(t, server)
 
-	demo.Register(server.Registry)
+	demo.RegisterTypes(server.Registry)
 
 	type testCase struct {
 		modReqFn      func(req *pbresource.WriteRequest)
@@ -99,24 +99,24 @@ func TestWrite_OwnerValidation(t *testing.T) {
 			errorContains: "resource.owner.name",
 		},
 		// clone necessary to not pollute DefaultTenancy
-		"owner tenancy partition wildcard": {
+		"owner tenancy partition not default": {
 			modReqFn: func(req *pbresource.WriteRequest) {
 				req.Resource.Owner.Tenancy = clone(req.Resource.Owner.Tenancy)
-				req.Resource.Owner.Tenancy.Partition = storage.Wildcard
+				req.Resource.Owner.Tenancy.Partition = ""
 			},
 			errorContains: "resource.owner.tenancy.partition",
 		},
-		"owner tenancy namespace wildcard": {
+		"owner tenancy namespace not default": {
 			modReqFn: func(req *pbresource.WriteRequest) {
 				req.Resource.Owner.Tenancy = clone(req.Resource.Owner.Tenancy)
-				req.Resource.Owner.Tenancy.Namespace = storage.Wildcard
+				req.Resource.Owner.Tenancy.Namespace = ""
 			},
 			errorContains: "resource.owner.tenancy.namespace",
 		},
-		"owner tenancy peername wildcard": {
+		"owner tenancy peername not local": {
 			modReqFn: func(req *pbresource.WriteRequest) {
 				req.Resource.Owner.Tenancy = clone(req.Resource.Owner.Tenancy)
-				req.Resource.Owner.Tenancy.PeerName = storage.Wildcard
+				req.Resource.Owner.Tenancy.PeerName = ""
 			},
 			errorContains: "resource.owner.tenancy.peername",
 		},
@@ -183,7 +183,7 @@ func TestWrite_ACLs(t *testing.T) {
 			mockACLResolver.On("ResolveTokenAndDefaultMeta", mock.Anything, mock.Anything, mock.Anything).
 				Return(tc.authz, nil)
 			server.ACLResolver = mockACLResolver
-			demo.Register(server.Registry)
+			demo.RegisterTypes(server.Registry)
 
 			artist, err := demo.GenerateV2Artist()
 			require.NoError(t, err)
@@ -198,7 +198,7 @@ func TestWrite_ACLs(t *testing.T) {
 func TestWrite_Mutate(t *testing.T) {
 	server := testServer(t)
 	client := testClient(t, server)
-	demo.Register(server.Registry)
+	demo.RegisterTypes(server.Registry)
 
 	artist, err := demo.GenerateV2Artist()
 	require.NoError(t, err)
@@ -224,7 +224,7 @@ func TestWrite_ResourceCreation_Success(t *testing.T) {
 	server := testServer(t)
 	client := testClient(t, server)
 
-	demo.Register(server.Registry)
+	demo.RegisterTypes(server.Registry)
 
 	res, err := demo.GenerateV2Artist()
 	require.NoError(t, err)
@@ -240,7 +240,7 @@ func TestWrite_CASUpdate_Success(t *testing.T) {
 	server := testServer(t)
 	client := testClient(t, server)
 
-	demo.Register(server.Registry)
+	demo.RegisterTypes(server.Registry)
 
 	res, err := demo.GenerateV2Artist()
 	require.NoError(t, err)
@@ -262,7 +262,7 @@ func TestWrite_ResourceCreation_StatusProvided(t *testing.T) {
 	server := testServer(t)
 	client := testClient(t, server)
 
-	demo.Register(server.Registry)
+	demo.RegisterTypes(server.Registry)
 
 	res, err := demo.GenerateV2Artist()
 	require.NoError(t, err)
@@ -281,7 +281,7 @@ func TestWrite_CASUpdate_Failure(t *testing.T) {
 	server := testServer(t)
 	client := testClient(t, server)
 
-	demo.Register(server.Registry)
+	demo.RegisterTypes(server.Registry)
 
 	res, err := demo.GenerateV2Artist()
 	require.NoError(t, err)
@@ -302,7 +302,7 @@ func TestWrite_Update_WrongUid(t *testing.T) {
 	server := testServer(t)
 	client := testClient(t, server)
 
-	demo.Register(server.Registry)
+	demo.RegisterTypes(server.Registry)
 
 	res, err := demo.GenerateV2Artist()
 	require.NoError(t, err)
@@ -323,7 +323,7 @@ func TestWrite_Update_StatusModified(t *testing.T) {
 	server := testServer(t)
 	client := testClient(t, server)
 
-	demo.Register(server.Registry)
+	demo.RegisterTypes(server.Registry)
 
 	res, err := demo.GenerateV2Artist()
 	require.NoError(t, err)
@@ -353,7 +353,7 @@ func TestWrite_Update_NilStatus(t *testing.T) {
 	server := testServer(t)
 	client := testClient(t, server)
 
-	demo.Register(server.Registry)
+	demo.RegisterTypes(server.Registry)
 
 	res, err := demo.GenerateV2Artist()
 	require.NoError(t, err)
@@ -377,7 +377,7 @@ func TestWrite_Update_NoUid(t *testing.T) {
 	server := testServer(t)
 	client := testClient(t, server)
 
-	demo.Register(server.Registry)
+	demo.RegisterTypes(server.Registry)
 
 	res, err := demo.GenerateV2Artist()
 	require.NoError(t, err)
@@ -396,7 +396,7 @@ func TestWrite_NonCASUpdate_Success(t *testing.T) {
 	server := testServer(t)
 	client := testClient(t, server)
 
-	demo.Register(server.Registry)
+	demo.RegisterTypes(server.Registry)
 
 	res, err := demo.GenerateV2Artist()
 	require.NoError(t, err)
@@ -417,7 +417,7 @@ func TestWrite_NonCASUpdate_Retry(t *testing.T) {
 	server := testServer(t)
 	client := testClient(t, server)
 
-	demo.Register(server.Registry)
+	demo.RegisterTypes(server.Registry)
 
 	res, err := demo.GenerateV2Artist()
 	require.NoError(t, err)
@@ -467,7 +467,7 @@ func TestWrite_Owner_Immutable(t *testing.T) {
 	server := testServer(t)
 	client := testClient(t, server)
 
-	demo.Register(server.Registry)
+	demo.RegisterTypes(server.Registry)
 
 	artist, err := demo.GenerateV2Artist()
 	require.NoError(t, err)
@@ -489,33 +489,6 @@ func TestWrite_Owner_Immutable(t *testing.T) {
 	require.Error(t, err)
 	require.Equal(t, codes.InvalidArgument.String(), status.Code(err).String())
 	require.ErrorContains(t, err, "owner cannot be changed")
-}
-
-func TestWrite_Owner_RequireSameTenancy(t *testing.T) {
-	server := testServer(t)
-	client := testClient(t, server)
-
-	demo.Register(server.Registry)
-
-	artist, err := demo.GenerateV2Artist()
-	require.NoError(t, err)
-	rsp1, err := client.Write(testContext(t), &pbresource.WriteRequest{Resource: artist})
-	require.NoError(t, err)
-
-	// change album tenancy to be different from artist tenancy
-	album, err := demo.GenerateV2Album(rsp1.Resource.Id)
-	require.NoError(t, err)
-	album.Owner.Tenancy = &pbresource.Tenancy{
-		Partition: "some",
-		Namespace: "other",
-		PeerName:  "tenancy",
-	}
-
-	// verify create fails
-	_, err = client.Write(testContext(t), &pbresource.WriteRequest{Resource: album})
-	require.Error(t, err)
-	require.Equal(t, codes.InvalidArgument.String(), status.Code(err).String())
-	require.ErrorContains(t, err, "tenancy must be the same")
 }
 
 type blockOnceBackend struct {
