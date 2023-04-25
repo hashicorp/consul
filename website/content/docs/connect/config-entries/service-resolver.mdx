@@ -133,7 +133,7 @@ When every field is defined, a service resolver configuration entry has the foll
 Kind      = "service-resolver"                                     ## required
 Name      = "<name-of-service-configuration-applies-to>"
 Namespace = "<namespace-configuration-applies-to>" 
-Partition = "parition-configuration-applies-to>" 
+Partition = "<partition-configuration-applies-to>" 
 Meta = {
  <key> = "<value>"
 }
@@ -439,7 +439,7 @@ Specifies names for service subsets and the conditions under which service insta
   
     | Parameter     | Description                                                                                                                                                                                                                                                                                   | Data type | Default |
     | :------------ | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- | ------- |
-    | `Filter`      | Specifies an expression that filters the DNS elements of service instances that belong to the subset. If empty, all healthy instances of a service are returned. This expression can filter on the same DNS selectors as the [Health API endpoint](/consul/api-docs/health#filtering-2).      | String    | None    |
+    | `Filter`      | Specifies an expression that filters the DNS elements of service instances that belong to the subset. If empty, all healthy instances of a service are returned. This expression can filter on the same DNS selectors as the [Health API endpoint](/consul/api-docs/health#filtering-2). For more information about creating and using expressions to filter, refer to [filtering](/consul/api-docs/features/filtering).     | String    | None    |
     | `OnlyPassing` | Determines if instances that return a warning from a health check are allowed to resolve a request. When set to `false`, instances with `passing` and `warning` states are considered healthy. When set to `true`, only instances with a `passing` health check state are considered healthy. | Boolean   | `false` |
 
 ### `DefaultSubset`
@@ -701,7 +701,7 @@ Specifies names for service subsets and the conditions under which service insta
 
     | Parameter     | Description                                                                                                                                                                                                                                                                                   | Data type | Default |
     | :------------ | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- | ------- |
-    | `filter`      | Specifies an expression that filters the DNS elements of service instances that belong to the subset. If empty, all healthy instances of a service are returned. This expression can filter on the same DNS selectors as the [Health API endpoint](/consul/api-docs/health#filtering-2).      | String    | None    |
+    | `filter`      | Specifies an expression that filters the DNS elements of service instances that belong to the subset. If empty, all healthy instances of a service are returned. This expression can filter on the same DNS selectors as the [Health API endpoint](/consul/api-docs/health#filtering-2). For more information about creating and using expressions to filter, refer to [filtering](/consul/api-docs/features/filtering).     | String    | None    |
     | `onlyPassing` | Determines if instances that return a warning from a health check are allowed to resolve a request. When set to `false`, instances with `passing` and `warning` states are considered healthy. When set to `true`, only instances with a `passing` health check state are considered healthy. | Boolean   | `false` |
 
 ### `spec.defaultSubset`
