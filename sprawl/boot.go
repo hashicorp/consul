@@ -197,7 +197,7 @@ func (s *Sprawl) initConsulServers() error {
 
 		var err error
 		s.clients[cluster.Name], err = util.ProxyAPIClient(
-			node.LocalSquidPort(),
+			node.LocalProxyPort(),
 			node.LocalAddress(),
 			8500,
 			"", /*no token yet*/
@@ -222,7 +222,7 @@ func (s *Sprawl) initConsulServers() error {
 		// Reconfigure the clients to use a management token.
 		node := cluster.FirstServer()
 		s.clients[cluster.Name], err = util.ProxyAPIClient(
-			node.LocalSquidPort(),
+			node.LocalProxyPort(),
 			node.LocalAddress(),
 			8500,
 			mgmtToken,
@@ -366,7 +366,7 @@ func (s *Sprawl) postRegenTasks() error {
 		// Reconfigure the clients to use a management token.
 		node := cluster.FirstServer()
 		s.clients[cluster.Name], err = util.ProxyAPIClient(
-			node.LocalSquidPort(),
+			node.LocalProxyPort(),
 			node.LocalAddress(),
 			8500,
 			mgmtToken,
@@ -420,7 +420,6 @@ func (s *Sprawl) waitForLocalWrites(cluster *topology.Cluster, token string) {
 	start := time.Now()
 	for attempts := 0; ; attempts++ {
 		if err := tryKV(); err != nil {
-			err = util.TruncateSquidError(err)
 			logger.Warn("local kv write failed; something is not ready yet", "error", err)
 			time.Sleep(500 * time.Millisecond)
 			continue
@@ -436,7 +435,6 @@ func (s *Sprawl) waitForLocalWrites(cluster *topology.Cluster, token string) {
 		start = time.Now()
 		for attempts := 0; ; attempts++ {
 			if err := tryAP(); err != nil {
-				err = util.TruncateSquidError(err)
 				logger.Warn("local partition write failed; something is not ready yet", "error", err)
 				time.Sleep(500 * time.Millisecond)
 				continue

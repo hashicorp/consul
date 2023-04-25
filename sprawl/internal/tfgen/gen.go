@@ -175,7 +175,7 @@ func (g *Generator) Generate(step Step) error {
 		return fmt.Errorf("exhausted all docker networks")
 	}
 
-	addImage("squid", "ubuntu/squid:latest")
+	addImage("nginx", "nginx:latest")
 	addImage("coredns", "coredns/coredns:latest")
 	for _, net := range g.topology.SortedNetworks() {
 		if net.Subnet == "" {
@@ -207,14 +207,26 @@ func (g *Generator) Generate(step Step) error {
 			// proxy address. There's an offset of 2 in the list of available
 			// addresses here because we removed x.x.x.0 and x.x.x.1 from the
 			// pool.
-			squidIPAddress = net.IPByIndex(250)
+			proxyIPAddress = net.IPByIndex(250)
 			// Grab x.x.x.253 for the dns server
 			dnsIPAddress = net.IPByIndex(251)
 		)
 
-		containers = append(containers, g.getSquidContainer(net, squidIPAddress))
+		{
+			// wrote, hashes, err := g.write
+		}
 
-		net.SquidAddress = squidIPAddress
+		{ // nginx forward proxy
+			_, hash, err := g.writeNginxConfig(net)
+			if err != nil {
+				return fmt.Errorf("writeNginxConfig[%s]: %w", net.Name, err)
+			}
+
+			containers = append(containers, g.getForwardProxyContainer(net, proxyIPAddress, hash))
+
+		}
+
+		net.ProxyAddress = proxyIPAddress
 		net.DNSAddress = ""
 
 		if net.IsLocal() {
@@ -386,19 +398,19 @@ func (g *Generator) terraformOutputs(ctx context.Context) (*Outputs, error) {
 				ports[ki] = int(v.(float64))
 			}
 			out.SetNodePorts(cluster, nid, ports)
-		case strings.HasPrefix(key, "squidport_"):
-			netname := strings.TrimPrefix(key, "squidport_")
+		case strings.HasPrefix(key, "forwardproxyport_"):
+			netname := strings.TrimPrefix(key, "forwardproxyport_")
 
 			found := rv.Value.(map[string]any)
 			if len(found) != 1 {
 				return nil, fmt.Errorf("found unexpected ports: %v", found)
 			}
-			got, ok := found[strconv.Itoa(squidInternalPort)]
+			got, ok := found[strconv.Itoa(proxyInternalPort)]
 			if !ok {
 				return nil, fmt.Errorf("found unexpected ports: %v", found)
 			}
 
-			out.SetSquidPort(netname, int(got.(float64)))
+			out.SetProxyPort(netname, int(got.(float64)))
 		}
 	}
 
@@ -423,7 +435,7 @@ func extractNodeOutputKey(prefix, key string) (string, topology.NodeID, bool) {
 }
 
 type Outputs struct {
-	SquidPorts map[string]int                             // net -> exposed port
+	ProxyPorts map[string]int                             // net -> exposed port
 	Nodes      map[string]map[topology.NodeID]*NodeOutput // clusterID -> node -> stuff
 }
 
@@ -432,11 +444,11 @@ func (o *Outputs) SetNodePorts(cluster string, nid topology.NodeID, ports map[in
 	nodeOut.Ports = ports
 }
 
-func (o *Outputs) SetSquidPort(net string, port int) {
-	if o.SquidPorts == nil {
-		o.SquidPorts = make(map[string]int)
+func (o *Outputs) SetProxyPort(net string, port int) {
+	if o.ProxyPorts == nil {
+		o.ProxyPorts = make(map[string]int)
 	}
-	o.SquidPorts[net] = port
+	o.ProxyPorts[net] = port
 }
 
 func (o *Outputs) getNode(cluster string, nid topology.NodeID) *NodeOutput {

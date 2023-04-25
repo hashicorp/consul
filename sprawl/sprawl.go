@@ -69,14 +69,12 @@ func (s *Sprawl) HTTPClientForCluster(clusterName string) (*http.Client, error) 
 		return nil, fmt.Errorf("no such network: %s", cluster.NetworkName)
 	}
 
-	transport, err := util.ProxyHTTPTransport(network.SquidPort)
+	transport, err := util.ProxyHTTPTransport(network.ProxyPort)
 	if err != nil {
 		return nil, err
 	}
 
-	return &http.Client{
-		Transport: util.SquidErrorHidingRoundTripper(transport),
-	}, nil
+	return &http.Client{Transport: transport}, nil
 }
 
 // APIClientForNode gets a pooled api.Client connected to the agent running on
@@ -105,7 +103,7 @@ func (s *Sprawl) APIClientForNode(clusterName string, nid topology.NodeID, token
 	}
 
 	return util.ProxyAPIClient(
-		node.LocalSquidPort(),
+		node.LocalProxyPort(),
 		node.LocalAddress(),
 		8500,
 		token,

@@ -62,7 +62,7 @@ func (s *Sprawl) rejoinServers(cluster *topology.Cluster) error {
 
 	node0, rest := servers[0], servers[1:]
 	client, err := util.ProxyNotPooledAPIClient(
-		node0.LocalSquidPort(),
+		node0.LocalProxyPort(),
 		node0.LocalAddress(),
 		8500,
 		recoveryToken,

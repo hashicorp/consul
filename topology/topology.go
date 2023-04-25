@@ -31,23 +31,23 @@ type Topology struct {
 	Peerings []*Peering `json:",omitempty"`
 }
 
-func (t *Topology) DigestExposedSquidPort(netName string, squidPort int) (bool, error) {
+func (t *Topology) DigestExposedProxyPort(netName string, proxyPort int) (bool, error) {
 	net, ok := t.Networks[netName]
 	if !ok {
 		return false, fmt.Errorf("found output network that does not exist: %s", netName)
 	}
-	if net.SquidPort == squidPort {
+	if net.ProxyPort == proxyPort {
 		return false, nil
 	}
 
-	net.SquidPort = squidPort
+	net.ProxyPort = proxyPort
 
 	// Denormalize for UX.
 	for _, cluster := range t.Clusters {
 		for _, node := range cluster.Nodes {
 			for _, addr := range node.Addresses {
 				if addr.Network == netName {
-					addr.SquidPort = squidPort
+					addr.ProxyPort = proxyPort
 				}
 			}
 		}
@@ -115,10 +115,10 @@ type Network struct {
 	Subnet string
 	IPPool []string `json:"-"`
 	// generated during network-and-tls
-	SquidAddress string `json:",omitempty"`
+	ProxyAddress string `json:",omitempty"`
 	DNSAddress   string `json:",omitempty"`
 	// filled in from terraform outputs after network-and-tls
-	SquidPort int `json:",omitempty"`
+	ProxyPort int `json:",omitempty"`
 }
 
 func (n *Network) IsLocal() bool {
@@ -132,9 +132,9 @@ func (n *Network) IsPublic() bool {
 func (n *Network) inheritFromExisting(existing *Network) {
 	n.Subnet = existing.Subnet
 	n.IPPool = existing.IPPool
-	n.SquidAddress = existing.SquidAddress
+	n.ProxyAddress = existing.ProxyAddress
 	n.DNSAddress = existing.DNSAddress
-	n.SquidPort = existing.SquidPort
+	n.ProxyPort = existing.ProxyPort
 }
 
 func (n *Network) IPByIndex(index int) string {
@@ -388,12 +388,12 @@ type Address struct {
 	// generated after network-and-tls
 	IPAddress string
 	// denormalized from terraform outputs stored in the Network
-	SquidPort int `json:",omitempty"`
+	ProxyPort int `json:",omitempty"`
 }
 
 func (a *Address) inheritFromExisting(existing *Address) {
 	a.IPAddress = existing.IPAddress
-	a.SquidPort = existing.SquidPort
+	a.ProxyPort = existing.ProxyPort
 }
 
 func (a Address) IsLocal() bool {
@@ -521,11 +521,11 @@ func (n *Node) HasPublicAddress() bool {
 	return false
 }
 
-func (n *Node) LocalSquidPort() int {
+func (n *Node) LocalProxyPort() int {
 	for _, a := range n.Addresses {
 		if a.IsLocal() {
-			if a.SquidPort > 0 {
-				return a.SquidPort
+			if a.ProxyPort > 0 {
+				return a.ProxyPort
 			}
 			panic("node has no assigned local address")
 		}
@@ -545,11 +545,11 @@ func (n *Node) PublicAddress() string {
 	panic("node has no public network")
 }
 
-func (n *Node) PublicSquidPort() int {
+func (n *Node) PublicProxyPort() int {
 	for _, a := range n.Addresses {
 		if a.IsPublic() {
-			if a.SquidPort > 0 {
-				return a.SquidPort
+			if a.ProxyPort > 0 {
+				return a.ProxyPort
 			}
 			panic("node has no assigned public address")
 		}

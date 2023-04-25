@@ -14,7 +14,7 @@ resource "docker_container" "{{.PodName}}" {
 
 depends_on = [
   docker_container.{{.DockerNetworkName}}-coredns,
-  docker_container.{{.DockerNetworkName}}-squid,
+  docker_container.{{.DockerNetworkName}}-forwardproxy,
 ]
 
 {{- range .Ports }}

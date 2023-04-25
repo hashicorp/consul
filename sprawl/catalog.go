@@ -40,7 +40,7 @@ func (s *Sprawl) registerServicesToAgents(cluster *topology.Cluster) error {
 		}
 
 		agentClient, err := util.ProxyAPIClient(
-			node.LocalSquidPort(),
+			node.LocalProxyPort(),
 			node.LocalAddress(),
 			8500,
 			"", /*token will be in request*/

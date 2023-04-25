@@ -1,15 +1,11 @@
 package sprawl
 
-import (
-	"github.com/hashicorp/consul-topology/util"
-)
-
-// Deprecated: see util
+// Deprecated: remove
 func TruncateSquidError(err error) error {
-	return util.TruncateSquidError(err)
+	return err
 }
 
-// Deprecated: see util
+// Deprecated: remove
 func IsSquid503(err error) bool {
-	return util.IsSquid503(err)
+	return false
 }

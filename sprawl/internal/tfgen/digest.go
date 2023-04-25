@@ -28,15 +28,15 @@ func (g *Generator) digestOutputs(out *Outputs) error {
 		}
 	}
 
-	for netName, squidPort := range out.SquidPorts {
-		changed, err := g.topology.DigestExposedSquidPort(netName, squidPort)
+	for netName, proxyPort := range out.ProxyPorts {
+		changed, err := g.topology.DigestExposedProxyPort(netName, proxyPort)
 		if err != nil {
 			return err
 		}
 		if changed {
-			g.logger.Info("discovered exposed squid port",
+			g.logger.Info("discovered exposed forward proxy port",
 				"network", netName,
-				"port", squidPort,
+				"port", proxyPort,
 			)
 		}
 	}
