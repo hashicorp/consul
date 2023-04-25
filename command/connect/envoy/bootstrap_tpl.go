@@ -17,6 +17,9 @@ type BootstrapTplArgs struct {
 	// the agent to deliver the correct configuration.
 	ProxyID string
 
+	// NodeID is the ID of the node on which the proxy service instance is registered.
+	NodeID string
+
 	// NodeName is the name of the node on which the proxy service instance is registered.
 	NodeName string
 
@@ -184,6 +187,7 @@ const bootstrapTemplate = `{
       {{- if .NodeName }}
       "node_name": "{{ .NodeName }}",
       {{- end }}
+      "node_id": "{{ .NodeID }}",
       "namespace": "{{if ne .Namespace ""}}{{ .Namespace }}{{else}}default{{end}}",
       "partition": "{{if ne .Partition ""}}{{ .Partition }}{{else}}default{{end}}"
     }
