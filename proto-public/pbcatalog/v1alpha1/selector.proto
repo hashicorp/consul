@@ -1,0 +1,13 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
+syntax = "proto3";
+
+package hashicorp.consul.catalog.v1alpha1;
+
+// WorkloadSelector selects workloads for this service. This object
+// is also used for the following resources with selectors.
+message WorkloadSelector {
+  repeated string prefixes = 1;
+  repeated string names = 2;
+}

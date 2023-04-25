@@ -1,0 +1,21 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
+syntax = "proto3";
+
+package hashicorp.consul.catalog.v1alpha1;
+
+message Node {
+  repeated NodeAddress addresses = 1;
+  string datacenter = 2;
+}
+
+message NodeAddress {
+  // host can be an IP, DNS name or a unix socket.
+  // If it's a unix socket, only one port can be provided.
+  string host = 1;
+
+  // external indicates whether this address should be used for external communication
+  // (aka a WAN address).
+  bool external = 3;
+}
