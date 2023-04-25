@@ -20,6 +20,7 @@ const (
 	Consul                string = "consul"
 	ConsulClient          string = "client"
 	ConsulServer          string = "server"
+	ControllerRuntime     string = "controller-runtime"
 	Coordinate            string = "coordinate"
 	DNS                   string = "dns"
 	Envoy                 string = "envoy"
