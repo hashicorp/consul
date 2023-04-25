@@ -339,7 +339,7 @@ no `aws-s3-static-snapshot-name` configured.
 | `ListBucket`         | `arn:aws:s3:::<bucket name>`       | Required only when snapshot rotation is enabled |
 | `ListBucketVersions` | `arn:aws:s3:::<bucket name>`       | Required only when snapshot rotation is enabled |
 
-Within the table `<key>` refers to the the key used to store the snapshot. When `aws-s3-static-snapshot-name` is configured the `<key>` is simply the value of that configuration. Otherwise the `<key>` will be the `<aws-s3-key-prefix configuration>/consul-*.snap`.
+Within the table `<key>` refers to the key used to store the snapshot. When `aws-s3-static-snapshot-name` is configured the `<key>` is simply the value of that configuration. Otherwise the `<key>` will be the `<aws-s3-key-prefix configuration>/consul-*.snap`.
 
 The following example IAM policy document assumes that the `aws-s3-bucket` is `consul-data` with defaults for `aws-s3-key-prefix`, `aws-s3-static-snapshot-name` and `retain`:
 

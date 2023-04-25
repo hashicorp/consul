@@ -324,7 +324,7 @@ type Peering struct {
 	PeerCAPems []string `protobuf:"bytes,8,rep,name=PeerCAPems,proto3" json:"PeerCAPems,omitempty"`
 	// PeerServerName is the name of the remote server as it relates to TLS.
 	PeerServerName string `protobuf:"bytes,9,opt,name=PeerServerName,proto3" json:"PeerServerName,omitempty"`
-	// PeerServerAddresses contains all the the connection addresses for the remote peer.
+	// PeerServerAddresses contains all the connection addresses for the remote peer.
 	PeerServerAddresses []string `protobuf:"bytes,10,rep,name=PeerServerAddresses,proto3" json:"PeerServerAddresses,omitempty"`
 	// StreamStatus contains information computed on read based on the state of the stream.
 	//
