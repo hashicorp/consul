@@ -1,0 +1,3 @@
+```release-note:bug
+api: ensure empty locality field is not transmitted to Consul
+```
