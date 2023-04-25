@@ -26,7 +26,7 @@ func transformOTLP(rm *metricdata.ResourceMetrics) (*mpb.ResourceMetrics, error)
 
 // scopeMetrics returns a slice of OTLP ScopeMetrics.
 func scopeMetrics(scopeMetrics []metricdata.ScopeMetrics) ([]*mpb.ScopeMetrics, error) {
-	var merr *multierror.Error
+	var merr error
 	out := make([]*mpb.ScopeMetrics, 0, len(scopeMetrics))
 	for _, sm := range scopeMetrics {
 		ms, err := metrics(sm.Metrics)
@@ -47,7 +47,7 @@ func scopeMetrics(scopeMetrics []metricdata.ScopeMetrics) ([]*mpb.ScopeMetrics, 
 
 // metrics returns a slice of OTLP Metric generated from OTEL metrics sdk ones.
 func metrics(metrics []metricdata.Metrics) ([]*mpb.Metric, error) {
-	var merr *multierror.Error
+	var merr error
 	out := make([]*mpb.Metric, 0, len(metrics))
 	for _, m := range metrics {
 		o, err := metricType(m)
@@ -63,11 +63,10 @@ func metrics(metrics []metricdata.Metrics) ([]*mpb.Metric, error) {
 // metricType identifies the instrument type and converts it to OTLP format.
 // only float64 values are accepted since the go metrics sink only receives float64 values.
 func metricType(m metricdata.Metrics) (*mpb.Metric, error) {
-	var err error
 	out := &mpb.Metric{
 		Name:        m.Name,
 		Description: m.Description,
-		Unit:        string(m.Unit),
+		Unit:        m.Unit,
 	}
 	switch a := m.Data.(type) {
 	case metricdata.Gauge[float64]:
@@ -100,7 +99,7 @@ func metricType(m metricdata.Metrics) (*mpb.Metric, error) {
 	default:
 		return out, fmt.Errorf("%s: %T", "unknown aggregation", a)
 	}
-	return out, err
+	return out, nil
 }
 
 // DataPoints returns a slice of OTLP NumberDataPoint generated from OTEL metrics sdk ones.
