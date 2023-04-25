@@ -1130,6 +1130,15 @@ func TestVaultCAProvider_GenerateIntermediate(t *testing.T) {
 	orig, err := provider.ActiveLeafSigningCert()
 	require.NoError(t, err)
 
+	// Check that setting auto-tidy works. It must be run as the only way to
+	// check it is set is by checking the returned value of the write call.
+	if ok := provider.autotidyIssuers("pki-intermediate/"); !ok {
+		t.Error("setting auto-tidy on pki-intermediate/ failed")
+	}
+	if ok := provider.autotidyIssuers("no-perm-pki/"); ok {
+		t.Error("setting auto-tidy on no-perm-pki/ should have failed")
+	}
+
 	// This test was created to ensure that our calls to Vault
 	// returns a new Intermediate certificate and further calls
 	// to ActiveLeafSigningCert return the same new cert.

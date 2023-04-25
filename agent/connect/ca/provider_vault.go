@@ -617,7 +617,7 @@ func (v *VaultProvider) GenerateLeafSigningCert() (string, error) {
 			return "", fmt.Errorf("failed to update default intermediate issuer: %w", err)
 		}
 	}
-
+	v.autotidyIssuers(v.config.IntermediatePKIPath)
 	return v.ActiveLeafSigningCert()
 }
 
@@ -829,6 +829,35 @@ func (v *VaultProvider) Stop() {
 func (v *VaultProvider) mountNamespaced(namespace, path string, mountInfo *vaultapi.MountInput) error {
 	defer v.setNamespace(namespace)()
 	return v.client.Sys().Mount(path, mountInfo)
+}
+
+// autotidyIssuers sets Vault's auto-tidy to remove expired issuers
+// returns a boolean on success for testing (as there is no post-facto way of
+// checking if it is set). Logs warnings on failure to set and why.
+func (v *VaultProvider) autotidyIssuers(path string) bool {
+	s, err := v.client.Logical().Write(path+"/config/auto-tidy",
+		map[string]interface{}{
+			"enabled":              true,
+			"tidy_expired_issuers": true,
+		})
+	if err != nil {
+		errStr := err.Error()
+		switch {
+		case strings.Contains(errStr, "404"):
+			errStr = "vault versions < 1.12 don't support auto-tidy"
+		case strings.Contains(errStr, "400"):
+			errStr = "vault versions < 1.13 don't support tidy_expired_issuers"
+		case strings.Contains(errStr, "403"):
+			errStr = "permission denied setting auto-tidy in vault"
+		}
+		v.logger.Info("Unable to enable Vault's auto-tidy feature for expired issuers", "error", errStr, "path", path)
+		return false
+	}
+	tidySet := false
+	if tei, ok := s.Data["tidy_expired_issuers"]; ok {
+		tidySet, _ = tei.(bool)
+	}
+	return tidySet
 }
 
 func (v *VaultProvider) tuneMountNamespaced(namespace, path string, mountConfig *vaultapi.MountConfigInput) error {
