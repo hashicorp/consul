@@ -154,6 +154,7 @@ func (s *Sprawl) initNetworkingAndVolumes() error {
 			lastErr = ErrDockerNetworkCollision
 			s.logger.Warn(ErrDockerNetworkCollision.Error()+"; retrying", "attempt", attempts+1)
 			time.Sleep(1 * time.Second)
+			continue
 		} else if err != nil {
 			return fmt.Errorf("generator[networks]: %w", err)
 		}
