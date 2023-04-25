@@ -112,8 +112,9 @@ func (s *Server) maybeCreateTombstone(ctx context.Context, deleteId *pbresource.
 		Id: &pbresource.ID{
 			Type:    resource.TypeV1Tombstone,
 			Tenancy: deleteId.Tenancy,
-			// TODO(spatel): Does this need to be more unique (embed deleteId.Uid)?
-			Name: fmt.Sprintf("%s-tombstone", deleteId.Name),
+			// Maintain a strict 1:1 mapping between a resource and it's associated tombstone
+			// by embedding the resources's Uid in the tombstone's name.
+			Name: fmt.Sprintf("tombstone-%v-%v", deleteId.Name, deleteId.Uid),
 		},
 		Data: data,
 		Metadata: map[string]string{
