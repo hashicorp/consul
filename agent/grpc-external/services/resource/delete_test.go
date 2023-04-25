@@ -164,7 +164,7 @@ func TestDelete_TombstoneDeletionDoesNotCreateNewTombstone(t *testing.T) {
 	t.Parallel()
 
 	server, client, ctx := testDeps(t)
-	demo.Register(server.Registry)
+	demo.RegisterTypes(server.Registry)
 
 	artist, err := demo.GenerateV2Artist()
 	require.NoError(t, err)
