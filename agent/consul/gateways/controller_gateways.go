@@ -241,6 +241,19 @@ func (r *apiGatewayReconciler) reconcileGateway(_ context.Context, req controlle
 		return err
 	}
 
+	// set each listener as having valid certs, then overwrite that status condition
+	// if there are any certificate errors
+	meta.eachListener(func(listener *structs.APIGatewayListener, bound *structs.BoundAPIGatewayListener) error {
+		listenerRef := structs.ResourceReference{
+			Kind:           structs.APIGateway,
+			Name:           meta.BoundGateway.Name,
+			SectionName:    bound.Name,
+			EnterpriseMeta: meta.BoundGateway.EnterpriseMeta,
+		}
+		updater.SetCondition(validCertificate(listenerRef))
+		return nil
+	})
+
 	for ref, err := range certificateErrors {
 		updater.SetCondition(invalidCertificate(ref, err))
 	}
@@ -248,16 +261,6 @@ func (r *apiGatewayReconciler) reconcileGateway(_ context.Context, req controlle
 	if len(certificateErrors) > 0 {
 		updater.SetCondition(invalidCertificates())
 	} else {
-		meta.eachListener(func(listener *structs.APIGatewayListener, bound *structs.BoundAPIGatewayListener) error {
-			listenerRef := structs.ResourceReference{
-				Kind:           structs.APIGateway,
-				Name:           meta.BoundGateway.Name,
-				SectionName:    bound.Name,
-				EnterpriseMeta: meta.BoundGateway.EnterpriseMeta,
-			}
-			updater.SetCondition(validCertificate(listenerRef))
-			return nil
-		})
 		updater.SetCondition(gatewayAccepted())
 	}
 
