@@ -309,7 +309,7 @@ jobs:
             docker run --rm ${{ env.CONSUL_LATEST_IMAGE_NAME }}:local consul version
             echo "Running $(sed 's,|, ,g' <<< "${{ matrix.test-cases }}" |wc -w) subtests"
             # shellcheck disable=SC2001
-            sed 's,|,\n,g' <<< "${{ matrix.test-cases }}"
+            sed 's, ,\n,g' <<< "${{ matrix.test-cases }}"
             go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
               --raw-command \
               --format=short-verbose \
@@ -321,7 +321,7 @@ jobs:
               -tags "${{ env.GOTAGS }}" \
               -timeout=30m \
               -json \
-              "${{ matrix.test-cases }}" \
+              ${{ matrix.test-cases }} \
               --target-image ${{ env.CONSUL_LATEST_IMAGE_NAME }} \
               --target-version local \
               --latest-image ${{ env.CONSUL_LATEST_IMAGE_NAME }} \
