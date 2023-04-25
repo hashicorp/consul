@@ -405,9 +405,10 @@ func serviceToSidecarCatalogRegistration(
 
 	for _, u := range svc.Upstreams {
 		pu := api.Upstream{
-			DestinationName: u.ID.Name,
-			DestinationPeer: u.Peer,
-			LocalBindPort:   u.LocalPort,
+			DestinationName:  u.ID.Name,
+			DestinationPeer:  u.Peer,
+			LocalBindAddress: u.LocalAddress,
+			LocalBindPort:    u.LocalPort,
 		}
 		if cluster.Enterprise {
 			pu.DestinationNamespace = u.ID.Namespace

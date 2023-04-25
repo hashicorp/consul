@@ -25,8 +25,11 @@ server {
     listen       %d;
 
     location / {
-		#resolver 8.8.8.8;
+        resolver 8.8.8.8;
         proxy_pass http://$http_host$uri$is_args$args;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
     }
 }
 `, proxyInternalPort)
