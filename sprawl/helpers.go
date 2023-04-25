@@ -1,22 +1,15 @@
 package sprawl
 
 import (
-	"errors"
-	"strings"
+	"github.com/hashicorp/consul-topology/util"
 )
 
-const squid503 = `Unexpected response code: 503`
-
+// Deprecated: see util
 func TruncateSquidError(err error) error {
-	if IsSquid503(err) {
-		return errors.New("Squid: " + squid503)
-	}
-	return err
+	return util.TruncateSquidError(err)
 }
 
+// Deprecated: see util
 func IsSquid503(err error) bool {
-	if err == nil {
-		return false
-	}
-	return strings.Contains(err.Error(), squid503)
+	return util.IsSquid503(err)
 }

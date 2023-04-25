@@ -420,7 +420,7 @@ func (s *Sprawl) waitForLocalWrites(cluster *topology.Cluster, token string) {
 	start := time.Now()
 	for attempts := 0; ; attempts++ {
 		if err := tryKV(); err != nil {
-			err = TruncateSquidError(err)
+			err = util.TruncateSquidError(err)
 			logger.Warn("local kv write failed; something is not ready yet", "error", err)
 			time.Sleep(500 * time.Millisecond)
 			continue
@@ -436,7 +436,7 @@ func (s *Sprawl) waitForLocalWrites(cluster *topology.Cluster, token string) {
 		start = time.Now()
 		for attempts := 0; ; attempts++ {
 			if err := tryAP(); err != nil {
-				err = TruncateSquidError(err)
+				err = util.TruncateSquidError(err)
 				logger.Warn("local partition write failed; something is not ready yet", "error", err)
 				time.Sleep(500 * time.Millisecond)
 				continue

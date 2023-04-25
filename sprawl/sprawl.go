@@ -73,7 +73,9 @@ func (s *Sprawl) HTTPClientForCluster(clusterName string) (*http.Client, error) 
 		return nil, err
 	}
 
-	return &http.Client{Transport: transport}, nil
+	return &http.Client{
+		Transport: util.SquidErrorHidingRoundTripper(transport),
+	}, nil
 }
 
 // APIClientForNode gets a pooled api.Client connected to the agent running on
@@ -108,23 +110,6 @@ func (s *Sprawl) APIClientForNode(clusterName string, nid topology.NodeID, token
 		token,
 	)
 }
-
-// func (s *Sprawl) HTTPClientForCluster(clusterName string) (*http.Client, error) {
-// 	cluster, ok := s.topology.Clusters[clusterName]
-// 	if !ok {
-// 		return nil, fmt.Errorf("no such cluster: %s", clusterName)
-// 	}
-
-// 	proxyPort :=
-
-// 	proxyURL, err := url.Parse("http://127.0.0.1:" + strconv.Itoa(proxyPort))
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	t := cleanhttp.DefaultPooledTransport()
-// 	t.Proxy =
-// }
 
 func copyConfig(cfg *topology.Config) (*topology.Config, error) {
 	dup, err := copystructure.Copy(cfg)

@@ -342,6 +342,14 @@ func (c *Cluster) SortedNodes() []*Node {
 	return out
 }
 
+func (c *Cluster) FindService(id NodeServiceID) *Service {
+	id.Normalize()
+
+	nid := id.NodeID()
+	sid := id.ServiceID()
+	return c.ServiceByID(nid, sid)
+}
+
 func (c *Cluster) ServiceByID(nid NodeID, sid ServiceID) *Service {
 	return c.NodeByID(nid).ServiceByID(sid)
 }
@@ -740,6 +748,9 @@ type Upstream struct {
 	LocalPort    int
 	Peer         string `json:",omitempty"`
 	// TODO: what about mesh gateway mode overrides?
+
+	// computed at topology compile
+	Cluster string `json:",omitempty"`
 }
 
 type Peering struct {

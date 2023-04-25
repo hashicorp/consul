@@ -4,6 +4,41 @@ import (
 	"fmt"
 )
 
+type NodeServiceID struct {
+	Node      string
+	Service   string `json:",omitempty"`
+	Namespace string `json:",omitempty"`
+	Partition string `json:",omitempty"`
+}
+
+func NewNodeServiceID(node, service, namespace, partition string) NodeServiceID {
+	id := NodeServiceID{
+		Node:      node,
+		Service:   service,
+		Namespace: namespace,
+		Partition: partition,
+	}
+	id.Normalize()
+	return id
+}
+
+func (id NodeServiceID) NodeID() NodeID {
+	return NewNodeID(id.Node, id.Partition)
+}
+
+func (id NodeServiceID) ServiceID() ServiceID {
+	return NewServiceID(id.Service, id.Namespace, id.Partition)
+}
+
+func (id *NodeServiceID) Normalize() {
+	id.Namespace = NamespaceOrDefault(id.Namespace)
+	id.Partition = PartitionOrDefault(id.Partition)
+}
+
+func (id NodeServiceID) String() string {
+	return fmt.Sprintf("%s/%s/%s/%s", id.Partition, id.Node, id.Namespace, id.Service)
+}
+
 type NodeID struct {
 	Name      string `json:",omitempty"`
 	Partition string `json:",omitempty"`

@@ -358,6 +358,16 @@ func compile(logger hclog.Logger, raw *Config, prev *Topology) (*Topology, error
 		}
 	}
 
+	// TODO(rb): add this as a utility method?
+	peeringMap := make(map[string]map[string]string) // local-cluster -> local-peer -> remote-cluster
+	addPeerMapEntry := func(localCluster, localPeer, remoteCluster string) {
+		pm, ok := peeringMap[localCluster]
+		if !ok {
+			pm = make(map[string]string)
+			peeringMap[localCluster] = pm
+		}
+		pm[localPeer] = remoteCluster
+	}
 	for _, p := range raw.Peerings {
 		dialingCluster, ok := clusters[p.Dialing.Name]
 		if !ok {
@@ -400,6 +410,9 @@ func compile(logger hclog.Logger, raw *Config, prev *Topology) (*Topology, error
 			p.Accepting.PeerName = "peer-" + p.Dialing.Name + "-" + p.Dialing.Partition
 		}
 
+		addPeerMapEntry(p.Accepting.Name, p.Accepting.PeerName, p.Dialing.Name)
+		addPeerMapEntry(p.Dialing.Name, p.Dialing.PeerName, p.Accepting.Name)
+
 		delete(foundPeerNames[p.Accepting.Name], p.Accepting.PeerName)
 		delete(foundPeerNames[p.Dialing.Name], p.Dialing.PeerName)
 	}
@@ -412,6 +425,29 @@ func compile(logger hclog.Logger, raw *Config, prev *Topology) (*Topology, error
 			}
 			sort.Strings(pretty)
 			return nil, fmt.Errorf("cluster[%s] found topology references to peerings that do not exist: %v", cluster, pretty)
+		}
+	}
+
+	// after we decoded the peering stuff, we can fill in some computed data in the upstreams
+	for _, c := range clusters {
+		for _, n := range c.Nodes {
+			for _, svc := range n.Services {
+				for _, u := range svc.Upstreams {
+					if u.Peer == "" {
+						u.Cluster = c.Name
+						continue
+					}
+					pm, ok := peeringMap[c.Name]
+					if !ok {
+						return nil, fmt.Errorf("not possible")
+					}
+					remoteCluster, ok := pm[u.Peer]
+					if !ok {
+						return nil, fmt.Errorf("not possible")
+					}
+					u.Cluster = remoteCluster
+				}
+			}
 		}
 	}
 
