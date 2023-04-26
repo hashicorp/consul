@@ -241,7 +241,7 @@ type ServiceResolverRedirect struct {
 	Partition     string `json:",omitempty"`
 	Datacenter    string `json:",omitempty"`
 	Peer          string `json:",omitempty"`
-	SamenessGroup string `json:",omitempty"`
+	SamenessGroup string `json:",omitempty" alias:"sameness_group"`
 }
 
 type ServiceResolverFailover struct {
@@ -252,7 +252,7 @@ type ServiceResolverFailover struct {
 	Datacenters   []string                        `json:",omitempty"`
 	Targets       []ServiceResolverFailoverTarget `json:",omitempty"`
 	Policy        *ServiceResolverFailoverPolicy  `json:",omitempty"`
-	SamenessGroup string                          `json:",omitempty"`
+	SamenessGroup string                          `json:",omitempty" alias:"sameness_group"`
 }
 
 type ServiceResolverFailoverTarget struct {
