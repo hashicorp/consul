@@ -49,11 +49,11 @@ func TestRemoveIntentionPrecedence(t *testing.T) {
 		ixn.Permissions = perms
 		return ixn
 	}
-	sorted := func(ixns ...*structs.Intention) structs.Intentions {
+	sorted := func(ixns ...*structs.Intention) structs.SimplifiedIntentions {
 		sort.SliceStable(ixns, func(i, j int) bool {
 			return ixns[j].Precedence < ixns[i].Precedence
 		})
-		return structs.Intentions(ixns)
+		return structs.SimplifiedIntentions(ixns)
 	}
 	testPeerTrustBundle := map[string]*pbpeering.PeeringTrustBundle{
 		"peer1": {
@@ -106,7 +106,7 @@ func TestRemoveIntentionPrecedence(t *testing.T) {
 	tests := map[string]struct {
 		intentionDefaultAllow bool
 		http                  bool
-		intentions            structs.Intentions
+		intentions            structs.SimplifiedIntentions
 		expect                []*rbacIntention
 	}{
 		"default-allow-path-allow": {
@@ -492,11 +492,11 @@ func TestMakeRBACNetworkAndHTTPFilters(t *testing.T) {
 		},
 	}
 	testTrustDomain := "test.consul"
-	sorted := func(ixns ...*structs.Intention) structs.Intentions {
+	sorted := func(ixns ...*structs.Intention) structs.SimplifiedIntentions {
 		sort.SliceStable(ixns, func(i, j int) bool {
 			return ixns[j].Precedence < ixns[i].Precedence
 		})
-		return structs.Intentions(ixns)
+		return structs.SimplifiedIntentions(ixns)
 	}
 
 	var (
@@ -516,7 +516,7 @@ func TestMakeRBACNetworkAndHTTPFilters(t *testing.T) {
 
 	tests := map[string]struct {
 		intentionDefaultAllow bool
-		intentions            structs.Intentions
+		intentions            structs.SimplifiedIntentions
 	}{
 		"default-deny-mixed-precedence": {
 			intentionDefaultAllow: false,
@@ -858,15 +858,15 @@ func TestRemoveSameSourceIntentions(t *testing.T) {
 		ixn.UpdatePrecedence()
 		return ixn
 	}
-	sorted := func(ixns ...*structs.Intention) structs.Intentions {
+	sorted := func(ixns ...*structs.Intention) structs.SimplifiedIntentions {
 		sort.SliceStable(ixns, func(i, j int) bool {
 			return ixns[j].Precedence < ixns[i].Precedence
 		})
-		return structs.Intentions(ixns)
+		return structs.SimplifiedIntentions(ixns)
 	}
 	tests := map[string]struct {
-		in     structs.Intentions
-		expect structs.Intentions
+		in     structs.SimplifiedIntentions
+		expect structs.SimplifiedIntentions
 	}{
 		"empty": {},
 		"one": {

@@ -1742,7 +1742,7 @@ func (s *ResourceGenerator) makeTerminatingGatewayListener(
 type terminatingGatewayFilterChainOpts struct {
 	cluster    string
 	service    structs.ServiceName
-	intentions structs.Intentions
+	intentions structs.SimplifiedIntentions
 	protocol   string
 	address    string // only valid for destination listeners
 	port       int    // only valid for destination listeners
