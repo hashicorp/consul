@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"strconv"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -1169,16 +1170,19 @@ func TestVaultCAProvider_AutoTidyExpiredIssuers(t *testing.T) {
 	require.NoError(t, err)
 
 	fmt.Println("vaultTestVersion:", vaultTestVersion)
-	minorVersion := strings.Split(vaultTestVersion, ".")[1]
+	version := strings.Split(vaultTestVersion, ".")
+	require.Len(t, version, 3)
+	minorVersion, err := strconv.Atoi(version[1])
+	require.NoError(t, err)
 	expIssSet, errStr := provider.autotidyIssuers("pki-intermediate/")
-	switch minorVersion {
-	case "10", "11":
+	switch {
+	case minorVersion <= 11:
 		require.False(t, expIssSet)
 		require.Contains(t, errStr, "don't support auto-tidy")
-	case "12":
+	case minorVersion == 12:
 		require.False(t, expIssSet)
 		require.Contains(t, errStr, "don't support tidy_expired_issuers")
-	default:
+	default: // Consul 1.13+
 		require.True(t, expIssSet)
 	}
 
