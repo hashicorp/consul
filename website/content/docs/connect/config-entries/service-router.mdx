@@ -287,7 +287,6 @@ Routes = [
 <Tab heading="YAML" group="yaml">
 
 ```yaml
-```yaml
 apiVersion: consul.hashicorp.com/v1alpha1                  # required
 kind: ServiceRouter                                        # required            
 metadata:
@@ -306,7 +305,7 @@ spec:
          methods: [GET, POST, PUT]
        http:
          header:                                           ## do not specify present, exact, prefix, suffix, and regex in a single header
-          - name: <header-to-match>                        ## required when specifying routes.match.http.header
+          - name: <header-to-match>                        ## required when specifying spec.routes.match.http.header
             present: false
             exact: <exact-match-name>
             prefix: <prefix-to-match>
@@ -314,8 +313,8 @@ spec:
             regex: <regex-to-match>
             invert: false
        http:
-         queryParam:                                        ## do not specify present, exact, and regex in a single QueryParam
-          - name: <text-to-match-in-query-parameter>        ## required when specifying routes.match.http.header
+         queryParam:                                        ## do not specify present, exact, and regex in a single queryParam
+          - name: <text-to-match-in-query-parameter>        ## required when specifying spec.routes.match.http.header
             present: false
             exact: <exact-text-to-match-in-query-parameter>
             regex: <regex-to-match-in-query-paramater>
@@ -325,7 +324,7 @@ spec:
        serviceSubset: <service-subset-at-destination>
        namespace: <namespace-at-destination>
        partition: <partition-at-destination>
-       prefixRewrite: <new-prefix-after-routing>             ## required specifying either routes.match.http.pathPrefix or routes.match.http.pathExact
+       prefixRewrite: <new-prefix-after-routing>             ## required specifying either spec.routes.match.http.pathPrefix or spec.routes.match.http.pathExact
        requestTimeout: 0 
        idleTimeout: 0
        numRetries: 1
@@ -396,8 +395,8 @@ Specifies key-value pairs to add to the KV store.
 
 #### Values
 
-- Default: none 
-- Data type: Map of one or more key-value pairs 
+- Default: None
+- Data type: Map of one or more key-value pairs
   - `<KEY>`: String
   - `<VALUE>`: String or integer
 
@@ -413,7 +412,7 @@ Defines the possible routes for L7 requests. Consul evaluates traffic against th
   | Parameter     | Description                                                                       | Data type | Default |
   | :------------ | :-------------------------------------------------------------------------------- | --------- | ------- |
   | `Match`       | The criteria the configuration entry uses to identify requests. Refer to [`Routes[].Match`](#routes-match) for additional configuration parameters. | Map | None |
-  | `Destination` | The target service to route matching requests to and behavior the request should follow. Refer to [`Routes.Destination`](#routes-destination) for additional configuration parameters. | Map | None |
+  | `Destination` | The target service to route matching requests to and behavior the request should follow. Refer to [`Routes[].Destination`](#routes-destination) for additional configuration parameters. | Map | None |
 
 ### `Routes[].Match`
 
@@ -441,12 +440,12 @@ When matching on the HTTP request path, you can only match on one path at a time
 
 | Parameter    | Description                                                                                                                            | Data type | Default |
 | :----------- | :------------------------------------------------------------------------------------------------------------------------------------- | --------- | ------- |
-| `PathExact`  | Specifies the exact path to match on the HTTP request path. When using this field, do not configure `PathPrefix` or `PathRegex` in the same HTTP object. | String | None |
-| `PathPrefix` | Specifies the path prefix to match on the HTTP request path. When using this field, do not configure `PathExact` or `PathRegex` in the same HTTP object. | String | None |
-| `PathRegex`  | Specifies a regular expression to match on the HTTP request path. When using this field, do not configure `PathExact` or `PathPrefix` in the same HTTP object. The syntax for the regular expression field is proxy-specific. When [using Envoy](/consul/docs/connect/proxies/envoy), refer to [the documentation for Envoy v1.11.2 or newer](https://github.com/google/re2/wiki/Syntax) or [the documentation for Envoy v1.11.1 or older](https://en.cppreference.com/w/cpp/regex/ecmascript), depending on the version of Envoy you use. | String | None |
+| `PathExact`  | Specifies the exact path to match on the HTTP request path. When using this field, do not configure `PathPrefix` or `PathRegex` in the same HTTP map. | String | None |
+| `PathPrefix` | Specifies the path prefix to match on the HTTP request path. When using this field, do not configure `PathExact` or `PathRegex` in the same HTTP map. | String | None |
+| `PathRegex`  | Specifies a regular expression to match on the HTTP request path. When using this field, do not configure `PathExact` or `PathPrefix` in the same HTTP map. The syntax for the regular expression field is proxy-specific. When [using Envoy](/consul/docs/connect/proxies/envoy), refer to [the documentation for Envoy v1.11.2 or newer](https://github.com/google/re2/wiki/Syntax) or [the documentation for Envoy v1.11.1 or older](https://en.cppreference.com/w/cpp/regex/ecmascript), depending on the version of Envoy you use. | String | None |
 | `Methods`    | Specifies HTTP methods that the match applies to. Refer to [`Routes[].Match{}.HTTP{}.Methods`](#routes-match-http-methods) for additional configuration parameters. | List | None |
-| `Header`     | Specifies information to match to in the HTTP request header. When using this field, do not configure `Present`, `Exact`, `Prefix`, `Suffix`, or `Regex` in the same HTTP object. You can use only one of these fields at a time when configuring match criteria for HTTP headers, as they are mutually exclusive with one another. Refer to [`Routes[].Match{}.HTTP{}.Header`](#routes-match-http-header) for additional configuration parameters. | List | None |
-| `QueryParam` | Specifies information to match to on HTTP query parameters. When using this field, do not configure `Present`, `Exact`, or `Regex` in the same HTTP object. Refer to [`Routes[].Match{}.HTTP{}.QueryParam](#routes-match-http-queryparam) for additional configuration parameters. | List | None |
+| `Header`     | Specifies information to match to in the HTTP request header. When using this field, do not configure `Present`, `Exact`, `Prefix`, `Suffix`, or `Regex` in the same HTTP map. You can use only one of these fields at a time when configuring match criteria for HTTP headers, as they are mutually exclusive with one another. Refer to [`Routes[].Match{}.HTTP{}.Header`](#routes-match-http-header) for additional configuration parameters. | List | None |
+| `QueryParam` | Specifies information to match to on HTTP query parameters. When using this field, do not configure `Present`, `Exact`, or `Regex` in the same HTTP map. Refer to [`Routes[].Match{}.HTTP{}.QueryParam](#routes-match-http-queryparam) for additional configuration parameters. | List | None |
 
 ### `Routes[].Match{}.HTTP{}.Methods`
 
@@ -468,9 +467,9 @@ Specifies HTTP methods that the match applies to. If not specified, the request 
 
 ### `Routes[].Match{}.HTTP{}.Header`
 
-Specifies information to match to in the HTTP request header. When more than one field is configured, all criteria must match for the service routing to apply.
+Specifies information in the HTTP request header to match with. When more than one field is configured, all criteria must match for the service routing to apply.
 
-When using this field, do not configure `Present`, `Exact`, `Prefix`, `Suffix`, and `Regex` in the same HTTP object. You can use only one of these fields at a time when configuring match criteria for HTTP headers, as they are mutually exclusive with one another.
+When using this field, do not configure `Present`, `Exact`, `Prefix`, `Suffix`, and `Regex` in the same HTTP map. You can use only one of these fields at a time when configuring match criteria for HTTP headers, as they are mutually exclusive with one another.
 
 #### Values
 
@@ -480,11 +479,11 @@ When using this field, do not configure `Present`, `Exact`, `Prefix`, `Suffix`, 
 | Parameter | Description                                                                                                                            | Data type | Default |
 | :-------- | :------------------------------------------------------------------------------------------------------------------------------------- | --------- | ------- |
 | `Name`    | Specifies the name of the HTTP header to match. This field is required when using [`Routes[].Match{}.HTTP{}.Header`](#routes-match-http-header). | String | None |
-| `Present` | Specifies that a request matches when the value in the `Name` field is present anywhere in the HTTP header. When using this field, do not configure `Exact`, `Prefix`, `Suffix`, or `Regex` in the same HTTP object. | Boolean | `false` |
-| `Exact`   | Specifies that a request matches when the header with the given name is this exact value. When using this field, do not configure `Present`, `Prefix`, `Suffix`, or `Regex` in the same HTTP object. | String | None |
-| `Prefix`  | Specifies that a request matches when the header with the given name has this prefix. When using this field, do not configure `Present`, `Exact`, `Suffix`, or `Regex` in the same HTTP object. | String | None |
-| `Suffix`  | Specifies that a request matches when the header with the given name has this suffix. When using this field, do not configure `Present`, `Exact`, `Prefix`, or `Regex` in the same HTTP object. | String | None |
-| `Regex`   | Specifies that a request matches when the header with the given name matches this regular expression. When using this field, do not configure `Present`, `Exact`, `Prefix`, or `Suffix` in the same HTTP object. The syntax for the regular expression field is proxy-specific. When [using Envoy](/consul/docs/connect/proxies/envoy), refer to [the documentation for Envoy v1.11.2 or newer](https://github.com/google/re2/wiki/Syntax) or [the documentation for Envoy v1.11.1 or older](https://en.cppreference.com/w/cpp/regex/ecmascript), depending on the version of Envoy you use. | String | None |
+| `Present` | Specifies that a request matches when the value in the `Name` field is present anywhere in the HTTP header. When using this field, do not configure `Exact`, `Prefix`, `Suffix`, or `Regex` in the same  HTTP map . | Boolean | `false` |
+| `Exact`   | Specifies that a request matches when the header with the given name is this exact value. When using this field, do not configure `Present`, `Prefix`, `Suffix`, or `Regex` in the same  HTTP map . | String | None |
+| `Prefix`  | Specifies that a request matches when the header with the given name has this prefix. When using this field, do not configure `Present`, `Exact`, `Suffix`, or `Regex` in the same  HTTP map . | String | None |
+| `Suffix`  | Specifies that a request matches when the header with the given name has this suffix. When using this field, do not configure `Present`, `Exact`, `Prefix`, or `Regex` in the same  HTTP map . | String | None |
+| `Regex`   | Specifies that a request matches when the header with the given name matches this regular expression. When using this field, do not configure `Present`, `Exact`, `Prefix`, or `Suffix` in the same  HTTP map . The syntax for the regular expression field is proxy-specific. When [using Envoy](/consul/docs/connect/proxies/envoy), refer to [the documentation for Envoy v1.11.2 or newer](https://github.com/google/re2/wiki/Syntax) or [the documentation for Envoy v1.11.1 or older](https://en.cppreference.com/w/cpp/regex/ecmascript), depending on the version of Envoy you use. | String | None |
 | `Invert`  | Specifies that the logic for the HTTP header match should be inverted. Requests with matching criteria are not routed. | Boolean | `false` |
 
 ### `Routes[].Match{}.HTTP{}.QueryParam`
@@ -520,7 +519,7 @@ Specifies the target service to route matching requests to, as well as behavior 
 | `ServiceSubset` | Specifies a named subset of the given service to resolve instead of the one defined as that service's `DefaultSubset` in the [service resolver configuration entry](/consul/docs/connect/config-entries/service-resolver). If empty, the default subset is used. | String | None |
 | `Namespace` <EnterpriseAlert inline /> | Specifies the Consul namespace to resolve the service from instead of the current namespace. If empty, the current namespace is used. | String | None |
 | `Partition` <EnterpriseAlert inline /> | Specifies the Consul admin partition to resolve the service from instead of the current partition. If empty, the current partition is used. | String | None |
-| `PrefixRewrite` | Specifies rewrites to the HTTP request path before proxying it to its final destination. This field requires that either [`Match.HTTP.PathPrefix`](#match-http-pathprefix) or [`Match.HTTP.PathExact`](#match-http-pathexact) be configured on this route. | String | None |
+| `PrefixRewrite` | Specifies rewrites to the HTTP request path before proxying it to its final destination. This field requires that either [`Routes[].Match{}.HTTP{}.PathPrefix`](#routes-match-http-pathprefix) or [`Routes[].Match{}.HTTP{}.PathExact`](#routes-match-http-pathexact) be configured on this route. | String | None |
 | `RequestTimeout` | Specifies the total amount of time permitted for the entire downstream request to be processed, including retry attempts. | Integer | `0` |
 | `IdleTimeout` | Specifies the total amount of time permitted for the request stream to be idle. | Integer | `0` |
 | `NumRetries` | Specifies the number of times to retry the request when a retry condition occurs. Configure this field and other retry fields in `Destination` to configure the logic for retry attempts. For examples, refer to the [retry logic example configurations](#retry-logic). You cannot set the value to `0`. To disable retries, unset all other retry settings: `RetryOnConnectFailure`, `RetryOn`, `RetryOnStatusCodes`. | Integer | `1` |
@@ -701,12 +700,12 @@ When matching on the HTTP request path, you can only match on one path at a time
 
 | Parameter    | Description                                                                                                                            | Data type | Default |
 | :----------- | :------------------------------------------------------------------------------------------------------------------------------------- | --------- | ------- |
-| `pathExact`  | Specifies the exact path to match on the HTTP request path. When using this field, do not configure `pathPrefix` or `pathRegex` in the same HTTP object. | String | None |
-| `pathPrefix` | Specifies the path prefix to match on the HTTP request path. When using this field, do not configure `pathExact` or `pathRegex` in the same HTTP object. | String | None |
-| `pathRegex`  | Specifies a regular expression to match on the HTTP request path. When using this field, do not configure `pathExact` or `pathPrefix` in the same HTTP object. The syntax for the regular expression field is proxy-specific. When [using Envoy](/consul/docs/connect/proxies/envoy), refer to [the documentation for Envoy v1.11.2 or newer](https://github.com/google/re2/wiki/Syntax) or [the documentation for Envoy v1.11.1 or older](https://en.cppreference.com/w/cpp/regex/ecmascript), depending on the version of Envoy you use. | String | None |
+| `pathExact`  | Specifies the exact path to match on the HTTP request path. When using this field, do not configure `pathPrefix` or `pathRegex` in the same  HTTP map . | String | None |
+| `pathPrefix` | Specifies the path prefix to match on the HTTP request path. When using this field, do not configure `pathExact` or `pathRegex` in the same  HTTP map . | String | None |
+| `pathRegex`  | Specifies a regular expression to match on the HTTP request path. When using this field, do not configure `pathExact` or `pathPrefix` in the same  HTTP map . The syntax for the regular expression field is proxy-specific. When [using Envoy](/consul/docs/connect/proxies/envoy), refer to [the documentation for Envoy v1.11.2 or newer](https://github.com/google/re2/wiki/Syntax) or [the documentation for Envoy v1.11.1 or older](https://en.cppreference.com/w/cpp/regex/ecmascript), depending on the version of Envoy you use. | String | None |
 | `methods`    | Specifies HTTP methods that the match applies to. Refer to [`spec.routes[].match.http.methods`](#spec-routes-match-http-methods) for additional configuration parameters. | List | None |
-| `header`     | Specifies information to match to in the HTTP request header. When using this field, do not configure `present`, `exact`, `prefix`, `suffix`, or `regex` in the same HTTP object. You can use only one of these fields at a time when configuring match criteria for HTTP headers, as they are mutually exclusive with one another. Refer to [`spec.routes[].match.http.header`](#spec-routes-match-http-header) for additional configuration parameters. | List | None |
-| `queryParam` | Specifies information to match to on HTTP query parameters. When using this field, do not configure `present`, `exact`, or `regex` in the same HTTP object. Refer to [`spec.routes[].match.http.queryParam](#spec-routes-match-http-queryparam) for additional configuration parameters. | List | None |
+| `header`     | Specifies information to match to in the HTTP request header. When using this field, do not configure `present`, `exact`, `prefix`, `suffix`, or `regex` in the same  HTTP map . You can use only one of these fields at a time when configuring match criteria for HTTP headers, as they are mutually exclusive with one another. Refer to [`spec.routes[].match.http.header`](#spec-routes-match-http-header) for additional configuration parameters. | List | None |
+| `queryParam` | Specifies information to match to on HTTP query parameters. When using this field, do not configure `present`, `exact`, or `regex` in the same  HTTP map . Refer to [`spec.routes[].match.http.queryParam](#spec-routes-match-http-queryparam) for additional configuration parameters. | List | None |
 
 ### `spec.routes[].match.http.methods`
 
@@ -730,7 +729,7 @@ Specifies HTTP methods that the match applies to. If not specified, the request 
 
 Specifies information to match to in the HTTP request header. When more than one field is configured, all criteria must match for the service routing to apply.
 
-When using this field, do not configure `present`, `exact`, `prefix`, `suffix`, and `regex` in the same HTTP object. You can use only one of these fields at a time when configuring match criteria for HTTP headers, as they are mutually exclusive with one another.
+When using this field, do not configure `present`, `exact`, `prefix`, `suffix`, and `regex` in the same  HTTP map . You can use only one of these fields at a time when configuring match criteria for HTTP headers, as they are mutually exclusive with one another.
 
 #### Values
 
@@ -740,11 +739,11 @@ When using this field, do not configure `present`, `exact`, `prefix`, `suffix`, 
 | Parameter | Description                                                                                                                            | Data type | Default |
 | :-------- | :------------------------------------------------------------------------------------------------------------------------------------- | --------- | ------- |
 | `name`    | Specifies the name of the HTTP header to match. This field is required when using [`spec.routes[].match.http.header`](#spec-routes-match-http-header). | String | None |
-| `present` | Specifies that a request matches when the value in the `Name` field is present anywhere in the HTTP header. When using this field, do not configure `exact`, `prefix`, `suffix`, or `regex` in the same HTTP object. | Boolean | `false` |
-| `exact`   | Specifies that a request matches when the header with the given name is this exact value. When using this field, do not configure `present`, `prefix`, `suffix`, or `regex` in the same HTTP object. | String | None |
-| `prefix`  | Specifies that a request matches when the header with the given name has this prefix. When using this field, do not configure `present`, `exact`, `suffix`, or `regex` in the same HTTP object. | String | None |
-| `suffix`  | Specifies that a request matches when the header with the given name has this suffix. When using this field, do not configure `present`, `exact`, `prefix`, or `regex` in the same HTTP object. | String | None |
-| `regex`   | Specifies that a request matches when the header with the given name matches this regular expression. When using this field, do not configure `present`, `exact`, `prefix`, or `suffix` in the same HTTP object. The syntax for the regular expression field is proxy-specific. When [using Envoy](/consul/docs/connect/proxies/envoy), refer to [the documentation for Envoy v1.11.2 or newer](https://github.com/google/re2/wiki/Syntax) or [the documentation for Envoy v1.11.1 or older](https://en.cppreference.com/w/cpp/regex/ecmascript), depending on the version of Envoy you use. | String | None |
+| `present` | Specifies that a request matches when the value in the `Name` field is present anywhere in the HTTP header. When using this field, do not configure `exact`, `prefix`, `suffix`, or `regex` in the same  HTTP map . | Boolean | `false` |
+| `exact`   | Specifies that a request matches when the header with the given name is this exact value. When using this field, do not configure `present`, `prefix`, `suffix`, or `regex` in the same  HTTP map . | String | None |
+| `prefix`  | Specifies that a request matches when the header with the given name has this prefix. When using this field, do not configure `present`, `exact`, `suffix`, or `regex` in the same  HTTP map . | String | None |
+| `suffix`  | Specifies that a request matches when the header with the given name has this suffix. When using this field, do not configure `present`, `exact`, `prefix`, or `regex` in the same  HTTP map . | String | None |
+| `regex`   | Specifies that a request matches when the header with the given name matches this regular expression. When using this field, do not configure `present`, `exact`, `prefix`, or `suffix` in the same  HTTP map . The syntax for the regular expression field is proxy-specific. When [using Envoy](/consul/docs/connect/proxies/envoy), refer to [the documentation for Envoy v1.11.2 or newer](https://github.com/google/re2/wiki/Syntax) or [the documentation for Envoy v1.11.1 or older](https://en.cppreference.com/w/cpp/regex/ecmascript), depending on the version of Envoy you use. | String | None |
 | `invert`  | Specifies that the logic for the HTTP header match should be inverted. Requests with matching criteria are not routed. | Boolean | `false` |
 
 ### `spec.routes[].match.http.queryParam`
