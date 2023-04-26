@@ -8,10 +8,10 @@ import (
 	"sync"
 	"time"
 
-	gometrics "github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/agent/hcp/client"
 	"github.com/hashicorp/go-hclog"
 
+	gometrics "github.com/armon/go-metrics"
 	"go.opentelemetry.io/otel/attribute"
 	otelmetric "go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/metric/instrument"
@@ -20,11 +20,37 @@ import (
 )
 
 // Store for Gauge values as workaround for async OpenTelemetry Gauge instrument.
-var gauges sync.Map = sync.Map{}
+var gauges *GlobalGaugeStore
 
 type GaugeValue struct {
-	Value  float64
-	Labels []attribute.KeyValue
+	Value      float64
+	Attributes []attribute.KeyValue
+}
+
+type GlobalGaugeStore struct {
+	store map[string]*GaugeValue
+	mutex sync.Mutex
+}
+
+// LoadAndDelete will read a Gauge value and delete it.
+// Within the Gauge callbacks we delete the value once we have registed it with OTEL to ensure
+// we only emit a Gauge value once.
+func (g *GlobalGaugeStore) LoadAndDelete(key string) (*GaugeValue, bool) {
+	g.mutex.Lock()
+	defer g.mutex.Unlock()
+
+	gauge, ok := g.store[key]
+
+	delete(g.store, key)
+
+	return gauge, ok
+}
+
+func (g *GlobalGaugeStore) Store(key string, gauge *GaugeValue) {
+	g.mutex.Lock()
+	defer g.mutex.Unlock()
+
+	g.store[key] = gauge
 }
 
 type OTELSinkOpts struct {
@@ -42,9 +68,11 @@ type OTELSink struct {
 	meter          *otelmetric.Meter
 	exportInterval time.Duration
 
-	gaugeInstruments     sync.Map
-	counterInstruments   sync.Map
-	histogramInstruments sync.Map
+	gaugeInstruments     map[string]*instrument.Float64ObservableGauge
+	counterInstruments   map[string]*instrument.Float64Counter
+	histogramInstruments map[string]*instrument.Float64Histogram
+
+	mutex sync.Mutex
 }
 
 func NewOTELReader(client client.MetricsClient, endpoint string, exportInterval time.Duration) otelsdk.Reader {
@@ -65,11 +93,21 @@ func NewOTELSink(opts *OTELSinkOpts) (gometrics.MetricSink, error) {
 	meterProvider := otelsdk.NewMeterProvider(otelsdk.WithResource(res), otelsdk.WithReader(opts.Reader))
 	meter := meterProvider.Meter("github.com/hashicorp/consul/agent/hcp/telemetry")
 
+	// Init global gauge store.
+	gauges = &GlobalGaugeStore{
+		store: make(map[string]*GaugeValue, 0),
+		mutex: sync.Mutex{},
+	}
+
 	return &OTELSink{
-		meterProvider: meterProvider,
-		meter:         &meter,
-		spaceReplacer: strings.NewReplacer(" ", "_"),
-		ctx:           opts.Ctx,
+		meterProvider:        meterProvider,
+		meter:                &meter,
+		spaceReplacer:        strings.NewReplacer(" ", "_"),
+		ctx:                  opts.Ctx,
+		mutex:                sync.Mutex{},
+		gaugeInstruments:     make(map[string]*instrument.Float64ObservableGauge, 0),
+		counterInstruments:   make(map[string]*instrument.Float64Counter, 0),
+		histogramInstruments: make(map[string]*instrument.Float64Histogram, 0),
 	}, nil
 }
 
@@ -95,37 +133,41 @@ func (o *OTELSink) SetGaugeWithLabels(key []string, val float32, labels []gometr
 
 	// Set value in global Gauge store.
 	g := &GaugeValue{
-		Value:  float64(val),
-		Labels: toAttributes(labels),
+		Value:      float64(val),
+		Attributes: toAttributes(labels),
 	}
 	gauges.Store(k, g)
 
-	// If instrument does not exist, create it and register callback to get last value in global Gauge store.
-	if _, ok := o.gaugeInstruments.Load(k); !ok {
+	o.mutex.Lock()
+	defer o.mutex.Unlock()
+
+	// If instrument does not exist, create it and register callback to emit last value in global Gauge store.
+	if _, ok := o.gaugeInstruments[k]; !ok {
 		inst, err := (*o.meter).Float64ObservableGauge(k, instrument.WithFloat64Callback(gaugeCallback(k)))
 		if err != nil {
 			o.logger.Error("Failed to emit gauge: %w", err)
 			return
 		}
-		o.gaugeInstruments.Store(k, &inst)
+		o.gaugeInstruments[k] = &inst
 	}
 }
 
 // AddSampleWithLabels emits a Consul sample metric that gets registed by an OpenTelemetry Histogram instrument.
 func (o *OTELSink) AddSampleWithLabels(key []string, val float32, labels []gometrics.Label) {
 	k := o.flattenKey(key, labels)
-	var inst *instrument.Float64Histogram
-	v, ok := o.histogramInstruments.Load(k)
+
+	o.mutex.Lock()
+	defer o.mutex.Unlock()
+
+	inst, ok := o.histogramInstruments[k]
 	if !ok {
-		v, err := (*o.meter).Float64Histogram(k)
+		histogram, err := (*o.meter).Float64Histogram(k)
 		if err != nil {
 			o.logger.Error("Failed to emit gauge: %w", err)
 			return
 		}
-		inst = &v
-		o.histogramInstruments.Store(k, v)
-	} else {
-		inst = v.(*instrument.Float64Histogram)
+		inst = &histogram
+		o.histogramInstruments[k] = inst
 	}
 
 	attrs := toAttributes(labels)
@@ -135,18 +177,20 @@ func (o *OTELSink) AddSampleWithLabels(key []string, val float32, labels []gomet
 // IncrCounterWithLabels emits a Consul counter metric that gets registed by an OpenTelemetry Histogram instrument.
 func (o *OTELSink) IncrCounterWithLabels(key []string, val float32, labels []gometrics.Label) {
 	k := o.flattenKey(key, labels)
-	var inst *instrument.Float64Counter
-	v, ok := o.histogramInstruments.Load(k)
+
+	o.mutex.Lock()
+	defer o.mutex.Unlock()
+
+	inst, ok := o.counterInstruments[k]
 	if !ok {
-		v, err := (*o.meter).Float64Counter(k)
+		counter, err := (*o.meter).Float64Counter(k)
 		if err != nil {
 			o.logger.Error("Failed to emit gauge: %w", err)
 			return
 		}
-		inst = &v
-		o.histogramInstruments.Store(k, v)
-	} else {
-		inst = v.(*instrument.Float64Counter)
+
+		inst = &counter
+		o.counterInstruments[k] = inst
 	}
 
 	attrs := toAttributes(labels)
@@ -185,9 +229,8 @@ func gaugeCallback(key string) instrument.Float64Callback {
 	// Closures keep a reference to the key string, so we don't have to worry about it.
 	// These get garbage collected as the closure completes.
 	return func(_ context.Context, obs instrument.Float64Observer) error {
-		if val, ok := gauges.LoadAndDelete(key); ok {
-			v := val.(*GaugeValue)
-			obs.Observe(v.Value, v.Labels...)
+		if gauge, ok := gauges.LoadAndDelete(key); ok {
+			obs.Observe(gauge.Value, gauge.Attributes...)
 		}
 		return nil
 	}
