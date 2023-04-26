@@ -154,7 +154,7 @@ func (r *FederationStateReplicator) PerformDeletions(ctx context.Context, deleti
 			State:      state,
 		}
 
-		_, err := r.srv.leaderRaftApply("FederationState.Delete", structs.FederationStateRequestType, &req)
+		_, err := r.srv.leaderRaftApply("FederationState.Delete", structs.FederationStateRequestType | structs.IgnoreUnknownTypeFlag, &req)
 		if err != nil {
 			return false, err
 		}
@@ -195,7 +195,7 @@ func (r *FederationStateReplicator) PerformUpdates(ctx context.Context, updatesR
 			State:      state2,
 		}
 
-		_, err := r.srv.leaderRaftApply("FederationState.Apply", structs.FederationStateRequestType, &req)
+		_, err := r.srv.leaderRaftApply("FederationState.Apply", structs.FederationStateRequestType | structs.IgnoreUnknownTypeFlag, &req)
 		if err != nil {
 			return false, err
 		}

@@ -466,7 +466,7 @@ func (s *snapshot) persistFederationStates(sink raft.SnapshotSink, encoder *code
 	}
 
 	for _, fedState := range fedStates {
-		if _, err := sink.Write([]byte{byte(structs.FederationStateRequestType)}); err != nil {
+		if _, err := sink.Write([]byte{byte(structs.FederationStateRequestType | structs.IgnoreUnknownTypeFlag)}); err != nil {
 			return err
 		}
 		// Encode the entry request without an operation since we don't need it for restoring.

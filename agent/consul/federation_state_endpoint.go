@@ -81,7 +81,7 @@ func (c *FederationState) Apply(args *structs.FederationStateRequest, reply *boo
 		return fmt.Errorf("Invalid federation state operation: %v", args.Op)
 	}
 
-	resp, err := c.srv.raftApply(structs.FederationStateRequestType, args)
+	resp, err := c.srv.raftApply(structs.FederationStateRequestType | structs.IgnoreUnknownTypeFlag, args)
 	if err != nil {
 		return err
 	}
