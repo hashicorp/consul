@@ -5,6 +5,7 @@ package hcp
 
 import (
 	"context"
+	"fmt"
 	"net/url"
 	"time"
 
@@ -55,11 +56,11 @@ func initTelemetry(hcpClient hcpclient.Client, logger hclog.Logger, cfg config.C
 		endpoint = override
 	}
 
-	url, err := url.Parse(endpoint)
+	// The endpoint from the HCP gateway is a domain without scheme, so it must be added.
+	url, err := url.Parse(fmt.Sprintf("https://%s", endpoint))
 	if err != nil {
 		return nil, err
 	}
-	url.Scheme = "https"
 
 	// If the above succeeds, the server is registered with CCM, init metrics sink.
 	metricsClient, err := hcpclient.NewMetricsClient(&hcpclient.TelemetryClientCfg{
@@ -71,7 +72,7 @@ func initTelemetry(hcpClient hcpclient.Client, logger hclog.Logger, cfg config.C
 	}
 
 	opts := &telemetry.OTELSinkOpts{
-		Reader: telemetry.NewOTELReader(metricsClient, endpoint, 10*time.Second),
+		Reader: telemetry.NewOTELReader(metricsClient, url.String(), 10*time.Second),
 		Logger: logger,
 		Ctx:    ctx,
 	}

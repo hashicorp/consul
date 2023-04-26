@@ -13,6 +13,7 @@ import (
 	"sync"
 	"time"
 
+	hcpgnm "github.com/hashicorp/hcp-sdk-go/clients/cloud-global-network-manager-service/preview/2022-02-15/client/global_network_manager_service"
 	gnmmod "github.com/hashicorp/hcp-sdk-go/clients/cloud-global-network-manager-service/preview/2022-02-15/models"
 	"github.com/hashicorp/hcp-sdk-go/resource"
 )
@@ -141,7 +142,7 @@ func mockTokenResponse(w http.ResponseWriter) {
 }
 
 func (s *MockHCPServer) handleStatus(r *http.Request, cluster resource.Resource) (interface{}, error) {
-	var req gnmmod.HashicorpCloudGlobalNetworkManager20220215AgentPushServerStateRequest
+	var req hcpgnm.AgentPushServerStateBody
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		return nil, err
 	}
