@@ -473,6 +473,7 @@ func (s *ResourceGenerator) routesForAPIGateway(cfgSnap *proxycfg.ConfigSnapshot
 			route, ok := cfgSnap.APIGateway.HTTPRoutes.Get(routeRef)
 			if !ok {
 				//TODO handle
+				return nil, fmt.Errorf("missing route for route reference %s:%s", routeRef.Name, routeRef.Kind)
 			}
 			//flatten httproute
 			flattenedRoutes := discoverychain.FlattenHTTPRoute(route, &listenerCfg, cfgSnap.APIGateway.GatewayConfig)
@@ -490,7 +491,6 @@ func (s *ResourceGenerator) routesForAPIGateway(cfgSnap *proxycfg.ConfigSnapshot
 				//find matching service
 				httpService := findHTTPServiceMatchingUpstream(&flattenedRoute, u)
 				if httpService == nil {
-					panic("you dumb idiot")
 					return nil, fmt.Errorf("missing service in listener config (service %q listener on proto/port %s/%d)",
 						u.DestinationID(), listenerKey.Protocol, listenerKey.Port)
 				}
