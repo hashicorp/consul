@@ -129,7 +129,6 @@ func (o *otlpClient) ExportMetrics(ctx context.Context, protoMetrics *metricpb.R
 	if err != nil {
 		return fmt.Errorf("failed to export metrics: %v", err)
 	}
-	defer resp.Body.Close()
 
 	var respData bytes.Buffer
 	if _, err := io.Copy(&respData, resp.Body); err != nil {
