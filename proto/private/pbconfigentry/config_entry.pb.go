@@ -4201,6 +4201,20 @@ func (x *PassiveHealthCheck) GetEnforcingConsecutive5Xx() uint32 {
 	return 0
 }
 
+func (x *PassiveHealthCheck) GetMaxEjectionPercent() uint32 {
+	if x != nil {
+		return x.MaxEjectionPercent
+	}
+	return 0
+}
+
+func (x *PassiveHealthCheck) GetBaseEjectionTime() *durationpb.Duration {
+	if x != nil {
+		return x.BaseEjectionTime
+	}
+	return nil
+}
+
 // mog annotation:
 //
 // target=github.com/hashicorp/consul/agent/structs.DestinationConfig
