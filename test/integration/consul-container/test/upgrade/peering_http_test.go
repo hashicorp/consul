@@ -324,7 +324,7 @@ func peeringUpgrade(t *testing.T, accepting, dialing *libtopology.BuiltCluster, 
 func peeringPostUpgradeValidation(t *testing.T, dialing *libtopology.BuiltCluster) {
 	t.Helper()
 
-	clientSidecarService, err := libservice.CreateAndRegisterStaticClientSidecar(dialing.Cluster.Servers()[0], libtopology.DialingPeerName, true)
+	clientSidecarService, err := libservice.CreateAndRegisterStaticClientSidecar(dialing.Cluster.Servers()[0], libtopology.DialingPeerName, true, false)
 	require.NoError(t, err)
 	_, port := clientSidecarService.GetAddr()
 	_, adminPort := clientSidecarService.GetAdminAddr()
