@@ -645,7 +645,7 @@ type Service struct {
 
 	Meta map[string]string `json:",omitempty"`
 
-	Protocol  string `json:",omitempty"` // tcp|http (empty == tcp)
+	// TODO(rb): re-expose this perhaps? Protocol  string `json:",omitempty"` // tcp|http (empty == tcp)
 	CheckHTTP string `json:",omitempty"` // url; will do a GET
 	CheckTCP  string `json:",omitempty"` // addr; will do a socket open/close
 

@@ -289,21 +289,22 @@ func compile(logger hclog.Logger, raw *Config, prev *Topology) (*Topology, error
 					}
 				}
 
-				switch svc.Protocol {
-				case "":
-					svc.Protocol = "tcp"
-					fallthrough
-				case "tcp":
-					if svc.CheckHTTP != "" {
-						return nil, fmt.Errorf("cannot set CheckHTTP for tcp service")
-					}
-				case "http":
-					if svc.CheckTCP != "" {
-						return nil, fmt.Errorf("cannot set CheckTCP for tcp service")
-					}
-				default:
-					return nil, fmt.Errorf("service has invalid protocol: %s", svc.Protocol)
-				}
+				// TODO(rb): re-expose?
+				// switch svc.Protocol {
+				// case "":
+				// 	svc.Protocol = "tcp"
+				// 	fallthrough
+				// case "tcp":
+				// 	if svc.CheckHTTP != "" {
+				// 		return nil, fmt.Errorf("cannot set CheckHTTP for tcp service")
+				// 	}
+				// case "http":
+				// 	if svc.CheckTCP != "" {
+				// 		return nil, fmt.Errorf("cannot set CheckTCP for tcp service")
+				// 	}
+				// default:
+				// 	return nil, fmt.Errorf("service has invalid protocol: %s", svc.Protocol)
+				// }
 
 				for _, u := range svc.Upstreams {
 					// Default to that of the enclosing service.
