@@ -9,7 +9,6 @@ import (
 	"net/url"
 	"time"
 
-	gometrics "github.com/armon/go-metrics"
 	hcpclient "github.com/hashicorp/consul/agent/hcp/client"
 	"github.com/hashicorp/consul/agent/hcp/config"
 	"github.com/hashicorp/consul/agent/hcp/scada"
@@ -21,7 +20,7 @@ import (
 type Deps struct {
 	Client   hcpclient.Client
 	Provider scada.Provider
-	Sink     gometrics.MetricSink
+	Sink     *telemetry.OTELSink
 }
 
 func NewDeps(cfg config.CloudConfig, logger hclog.Logger) (d Deps, err error) {
@@ -84,7 +83,7 @@ func verifyCCMRegistration(ctx context.Context, client hcpclient.Client) (string
 	return url.String(), nil
 }
 
-func initHCPSink(sinkOpts *telemetry.OTELSinkOpts, clientCfg *hcpclient.TelemetryClientCfg, url string) (gometrics.MetricSink, error) {
+func initHCPSink(sinkOpts *telemetry.OTELSinkOpts, clientCfg *hcpclient.TelemetryClientCfg, url string) (*telemetry.OTELSink, error) {
 	// If the above succeeds, the server is registered with CCM, init metrics sink.
 	metricsClient, err := hcpclient.NewMetricsClient(clientCfg)
 	if err != nil {

@@ -19,6 +19,7 @@ import (
 	"github.com/hashicorp/go-multierror"
 	prometheuscore "github.com/prometheus/client_golang/prometheus"
 
+	"github.com/hashicorp/consul/agent/hcp/telemetry"
 	"github.com/hashicorp/consul/lib/retry"
 )
 
@@ -213,7 +214,7 @@ type TelemetryConfig struct {
 
 	// HCPSink provides an intialized OpenTelemetry sink that aggregates Consul metrics.
 	// The aggregated metrics are periodically exported to HCP.
-	HCPSink metrics.MetricSink
+	HCPSink *telemetry.OTELSink
 }
 
 // MetricsHandler provides an http.Handler for displaying metrics.
