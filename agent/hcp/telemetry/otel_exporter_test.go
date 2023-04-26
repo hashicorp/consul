@@ -62,10 +62,35 @@ func TestExport(t *testing.T) {
 		metrics *metricdata.ResourceMetrics
 		client  client.MetricsClient
 	}{
+		"earlyReturnWithoutScopeMetrics": {
+			client: &mockErrMetricsClient{},
+			metrics: &metricdata.ResourceMetrics{
+				Resource: resource.Empty(),
+				ScopeMetrics: []metricdata.ScopeMetrics{
+					{Metrics: []metricdata.Metrics{}},
+				},
+			},
+		},
+		"earlyReturnWithoutMetrics": {
+			client: &mockErrMetricsClient{},
+			metrics: &metricdata.ResourceMetrics{
+				Resource:     resource.Empty(),
+				ScopeMetrics: []metricdata.ScopeMetrics{},
+			},
+		},
 		"errorWithExportFailure": {
 			client: &mockErrMetricsClient{},
 			metrics: &metricdata.ResourceMetrics{
 				Resource: resource.Empty(),
+				ScopeMetrics: []metricdata.ScopeMetrics{
+					{
+						Metrics: []metricdata.Metrics{
+							{
+								Name: "consul.raft.commitTime",
+							},
+						},
+					},
+				},
 			},
 			wantErr: "failed to export metrics",
 		},
@@ -110,8 +135,13 @@ func TestExport(t *testing.T) {
 			}
 
 			err := exp.Export(context.Background(), test.metrics)
-			require.Error(t, err)
-			require.Contains(t, err.Error(), test.wantErr)
+			if test.wantErr != "" {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), test.wantErr)
+				return
+			}
+
+			require.NoError(t, err)
 		})
 	}
 }
