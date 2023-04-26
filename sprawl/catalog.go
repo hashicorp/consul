@@ -101,7 +101,9 @@ func (s *Sprawl) registerAgentService(
 			}
 			if cluster.Enterprise {
 				uAPI.DestinationNamespace = u.ID.Namespace
-				uAPI.DestinationPartition = u.ID.Partition
+				if u.Peer == "" {
+					uAPI.DestinationPartition = u.ID.Partition
+				}
 			}
 			upstreams = append(upstreams, uAPI)
 		}
@@ -412,7 +414,9 @@ func serviceToSidecarCatalogRegistration(
 		}
 		if cluster.Enterprise {
 			pu.DestinationNamespace = u.ID.Namespace
-			pu.DestinationPartition = u.ID.Partition
+			if u.Peer == "" {
+				pu.DestinationPartition = u.ID.Partition
+			}
 		}
 		reg.Service.Proxy.Upstreams = append(reg.Service.Proxy.Upstreams, pu)
 	}

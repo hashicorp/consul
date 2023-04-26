@@ -220,10 +220,10 @@ type Cluster struct {
 	// This is generated during the networking phase and is not user specified.
 	TLSVolumeName string `json:",omitempty"`
 
-	// PeerClusters is a map of peering names to cluster names.
+	// Peerings is a map of peering names to information about that peering in this cluster
 	//
 	// Denormalized during compile.
-	PeerClusters map[string]string `json:",omitempty"`
+	Peerings map[string]*PeerCluster `json:",omitempty"`
 }
 
 func (c *Cluster) inheritFromExisting(existing *Cluster) {
@@ -755,7 +755,8 @@ type Upstream struct {
 	// TODO: what about mesh gateway mode overrides?
 
 	// computed at topology compile
-	Cluster string `json:",omitempty"`
+	Cluster string       `json:",omitempty"`
+	Peering *PeerCluster `json:",omitempty"` // this will have Link!=nil
 }
 
 type Peering struct {
@@ -767,6 +768,9 @@ type PeerCluster struct {
 	Name      string
 	Partition string
 	PeerName  string // name to call it on this side; defaults if not specified
+
+	// computed at topology compile (pointer so it can be empty in json)
+	Link *PeerCluster `json:",omitempty"`
 }
 
 func (c PeerCluster) String() string {

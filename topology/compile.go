@@ -315,8 +315,8 @@ func compile(logger hclog.Logger, raw *Config, prev *Topology) (*Topology, error
 							u.ID.Namespace = svc.ID.Namespace
 						}
 					} else {
-						if u.ID.Partition == "" {
-							u.ID.Partition = svc.ID.Partition
+						if u.ID.Partition != "" {
+							u.ID.Partition = "" // irrelevant here; we'll set it to the value of the OTHER side for plumbing purposes in tests
 						}
 						u.ID.Namespace = NamespaceOrDefault(u.ID.Namespace)
 						foundPeerNames[c.Name][u.Peer] = struct{}{}
@@ -358,15 +358,14 @@ func compile(logger hclog.Logger, raw *Config, prev *Topology) (*Topology, error
 		}
 	}
 
-	// TODO(rb): add this as a utility method?
-	peeringMap := make(map[string]map[string]string) // local-cluster -> local-peer -> remote-cluster
-	addPeerMapEntry := func(localCluster, localPeer, remoteCluster string) {
-		pm, ok := peeringMap[localCluster]
+	clusteredPeerings := make(map[string]map[string]*PeerCluster) // local-cluster -> local-peer -> info
+	addPeerMapEntry := func(pc PeerCluster) {
+		pm, ok := clusteredPeerings[pc.Name]
 		if !ok {
-			pm = make(map[string]string)
-			peeringMap[localCluster] = pm
+			pm = make(map[string]*PeerCluster)
+			clusteredPeerings[pc.Name] = pm
 		}
-		pm[localPeer] = remoteCluster
+		pm[pc.PeerName] = &pc
 	}
 	for _, p := range raw.Peerings {
 		dialingCluster, ok := clusters[p.Dialing.Name]
@@ -410,8 +409,20 @@ func compile(logger hclog.Logger, raw *Config, prev *Topology) (*Topology, error
 			p.Accepting.PeerName = "peer-" + p.Dialing.Name + "-" + p.Dialing.Partition
 		}
 
-		addPeerMapEntry(p.Accepting.Name, p.Accepting.PeerName, p.Dialing.Name)
-		addPeerMapEntry(p.Dialing.Name, p.Dialing.PeerName, p.Accepting.Name)
+		{ // Ensure the link fields do not have recursive links.
+			p.Dialing.Link = nil
+			p.Accepting.Link = nil
+
+			// Copy the un-linked data before setting the link
+			pa := p.Accepting
+			pd := p.Dialing
+
+			p.Accepting.Link = &pd
+			p.Dialing.Link = &pa
+		}
+
+		addPeerMapEntry(p.Accepting)
+		addPeerMapEntry(p.Dialing)
 
 		delete(foundPeerNames[p.Accepting.Name], p.Accepting.PeerName)
 		delete(foundPeerNames[p.Dialing.Name], p.Dialing.PeerName)
@@ -430,23 +441,23 @@ func compile(logger hclog.Logger, raw *Config, prev *Topology) (*Topology, error
 
 	// after we decoded the peering stuff, we can fill in some computed data in the upstreams
 	for _, c := range clusters {
-		c.PeerClusters = peeringMap[c.Name]
+		c.Peerings = clusteredPeerings[c.Name]
 		for _, n := range c.Nodes {
 			for _, svc := range n.Services {
 				for _, u := range svc.Upstreams {
 					if u.Peer == "" {
 						u.Cluster = c.Name
+						u.Peering = nil
 						continue
 					}
-					pm, ok := peeringMap[c.Name]
+					remotePeer, ok := c.Peerings[u.Peer]
 					if !ok {
 						return nil, fmt.Errorf("not possible")
 					}
-					remoteCluster, ok := pm[u.Peer]
-					if !ok {
-						return nil, fmt.Errorf("not possible")
-					}
-					u.Cluster = remoteCluster
+					u.Cluster = remotePeer.Link.Name
+					u.Peering = remotePeer.Link
+					// this helps in generating fortio assertions; otherwise field is ignored
+					u.ID.Partition = remotePeer.Link.Partition
 				}
 			}
 		}
