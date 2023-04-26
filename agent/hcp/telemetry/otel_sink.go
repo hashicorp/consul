@@ -19,40 +19,6 @@ import (
 	"go.opentelemetry.io/otel/sdk/resource"
 )
 
-// Store for Gauge values as workaround for async OpenTelemetry Gauge instrument.
-var gauges *GlobalGaugeStore
-
-type GaugeValue struct {
-	Value      float64
-	Attributes []attribute.KeyValue
-}
-
-type GlobalGaugeStore struct {
-	store map[string]*GaugeValue
-	mutex sync.Mutex
-}
-
-// LoadAndDelete will read a Gauge value and delete it.
-// Within the Gauge callbacks we delete the value once we have registed it with OTEL to ensure
-// we only emit a Gauge value once.
-func (g *GlobalGaugeStore) LoadAndDelete(key string) (*GaugeValue, bool) {
-	g.mutex.Lock()
-	defer g.mutex.Unlock()
-
-	gauge, ok := g.store[key]
-
-	delete(g.store, key)
-
-	return gauge, ok
-}
-
-func (g *GlobalGaugeStore) Store(key string, gauge *GaugeValue) {
-	g.mutex.Lock()
-	defer g.mutex.Unlock()
-
-	g.store[key] = gauge
-}
-
 type OTELSinkOpts struct {
 	Reader otelsdk.Reader
 	Logger hclog.Logger
@@ -64,9 +30,8 @@ type OTELSink struct {
 	logger        hclog.Logger
 	ctx           context.Context
 
-	meterProvider  *otelsdk.MeterProvider
-	meter          *otelmetric.Meter
-	exportInterval time.Duration
+	meterProvider *otelsdk.MeterProvider
+	meter         *otelmetric.Meter
 
 	gaugeInstruments     map[string]*instrument.Float64ObservableGauge
 	counterInstruments   map[string]*instrument.Float64Counter
@@ -94,16 +59,14 @@ func NewOTELSink(opts *OTELSinkOpts) (gometrics.MetricSink, error) {
 	meter := meterProvider.Meter("github.com/hashicorp/consul/agent/hcp/telemetry")
 
 	// Init global gauge store.
-	gauges = &GlobalGaugeStore{
-		store: make(map[string]*GaugeValue, 0),
-		mutex: sync.Mutex{},
-	}
+	initGaugeStore()
 
 	return &OTELSink{
+		spaceReplacer:        strings.NewReplacer(" ", "_"),
+		logger:               opts.Logger.Named("otel_sink"),
+		ctx:                  opts.Ctx,
 		meterProvider:        meterProvider,
 		meter:                &meter,
-		spaceReplacer:        strings.NewReplacer(" ", "_"),
-		ctx:                  opts.Ctx,
 		mutex:                sync.Mutex{},
 		gaugeInstruments:     make(map[string]*instrument.Float64ObservableGauge, 0),
 		counterInstruments:   make(map[string]*instrument.Float64Counter, 0),
@@ -132,11 +95,7 @@ func (o *OTELSink) SetGaugeWithLabels(key []string, val float32, labels []gometr
 	k := o.flattenKey(key, labels)
 
 	// Set value in global Gauge store.
-	g := &GaugeValue{
-		Value:      float64(val),
-		Attributes: toAttributes(labels),
-	}
-	gauges.Store(k, g)
+	globalGauges.Store(k, float64(val), toAttributes(labels))
 
 	o.mutex.Lock()
 	defer o.mutex.Unlock()
@@ -229,7 +188,7 @@ func gaugeCallback(key string) instrument.Float64Callback {
 	// Closures keep a reference to the key string, so we don't have to worry about it.
 	// These get garbage collected as the closure completes.
 	return func(_ context.Context, obs instrument.Float64Observer) error {
-		if gauge, ok := gauges.LoadAndDelete(key); ok {
+		if gauge, ok := globalGauges.LoadAndDelete(key); ok {
 			obs.Observe(gauge.Value, gauge.Attributes...)
 		}
 		return nil
