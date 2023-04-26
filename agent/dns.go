@@ -1036,8 +1036,8 @@ func (d *DNSServer) dispatch(remoteAddr net.Addr, req, resp *dns.Msg, maxRecursi
 }
 
 func (d *DNSServer) trimDomain(query string) string {
-	longer := d.domain
-	shorter := d.altDomain
+	longer := "." + strings.TrimLeft(d.domain, ".")
+	shorter := "." + strings.TrimLeft(d.altDomain, ".")
 
 	if len(shorter) > len(longer) {
 		longer, shorter = shorter, longer
