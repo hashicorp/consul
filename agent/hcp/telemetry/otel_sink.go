@@ -48,7 +48,7 @@ func NewOTELReader(client client.MetricsClient, endpoint string, exportInterval 
 	return otelsdk.NewPeriodicReader(exporter, otelsdk.WithInterval(exportInterval))
 }
 
-func NewOTELSink(opts *OTELSinkOpts) (gometrics.MetricSink, error) {
+func NewOTELSink(opts *OTELSinkOpts) (*OTELSink, error) {
 	if opts.Logger == nil || opts.Reader == nil || opts.Ctx == nil {
 		return nil, fmt.Errorf("failed to init OTEL sink: provide valid OTELSinkOpts")
 	}
