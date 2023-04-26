@@ -100,7 +100,7 @@ func (s *Server) maybeCreateTombstone(ctx context.Context, deleteId *pbresource.
 		return nil
 	}
 
-	data, err := anypb.New(&pbresource.Tombstone{OwnerId: deleteId})
+	data, err := anypb.New(&pbresource.Tombstone{Owner: deleteId})
 	if err != nil {
 		return status.Errorf(codes.Internal, "failed creating tombstone: %v", err)
 	}

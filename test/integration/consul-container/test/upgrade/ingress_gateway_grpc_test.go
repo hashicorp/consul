@@ -91,7 +91,7 @@ func TestIngressGateway_GRPC_UpgradeToTarget_fromLatest(t *testing.T) {
 	serverNodes := cluster.Servers()
 	require.NoError(t, err)
 	require.True(t, len(serverNodes) > 0)
-	staticClientSvcSidecar, err := libservice.CreateAndRegisterStaticClientSidecar(serverNodes[0], "", true)
+	staticClientSvcSidecar, err := libservice.CreateAndRegisterStaticClientSidecar(serverNodes[0], "", true, false)
 	require.NoError(t, err)
 
 	tests := func(t *testing.T) {
