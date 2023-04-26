@@ -25,28 +25,28 @@ The following list outlines field hierarchy, language-specific data types, and r
 - [`Partition`](#partition): string | `default` <EnterpriseAlert inline />
 - [`Meta`](#meta): map 
 - [`Routes`](#routes): list
-	- [`Match`](#routes-match): map
-		- [‘HTTP`](#routes-match-http): map
-			- [`PathExact`](#routes-match-http-pathexact): string
-			- [`PathPrefix`](#routes-match-http-pathprefix): string
-			- [`PathRegex`](#routes-match-http-pathregex): string
-			- [`Methods`](#routes-match-http-methods): list
-			- [`Header`](#routes-match-http-header): list
-				- [`Name`](#routes-match-http-header-name): string
-				- [`Present`](#routes-match-http-header-present): boolean | `false`
-				- [`Exact`](#routes-match-http-header-exact): string
-				- [`Prefix`](#routes-match-http-header-prefix): string
-				- [`Suffix`](#routes-match-http-header-suffix): string
-				- [`Regex`](#routes-match-http-header-regex): string
-				- [`Invert`](#routes-match-http-header-invert): boolean | `false`
-			- [`QueryParam`](#routes-match-http-queryparam): list
-				- [`Name`](#routes-match-http-queryparam-name): string
-				- [`Present`](#routes-match-http-queryparam-present): boolean | `false`
-				- [`Exact`](#routes-match-http-queryparam-exact): string
-				- [`Regex`](#routes-match-http-queryparam-regex): string
-	- [`Destination`](#routes-destination): map
-		- [`Service`](#routes-destination-service): string
-		- [`ServiceSubset`](#routes-destination-servicesubset): string
+  - [`Match`](#routes-match): map
+    - [‘HTTP`](#routes-match-http): map
+      - [`PathExact`](#routes-match-http-pathexact): string
+      - [`PathPrefix`](#routes-match-http-pathprefix): string
+      - [`PathRegex`](#routes-match-http-pathregex): string
+      - [`Methods`](#routes-match-http-methods): list
+      - [`Header`](#routes-match-http-header): list
+        - [`Name`](#routes-match-http-header-name): string
+        - [`Present`](#routes-match-http-header-present): boolean | `false`
+        - [`Exact`](#routes-match-http-header-exact): string
+        - [`Prefix`](#routes-match-http-header-prefix): string
+        - [`Suffix`](#routes-match-http-header-suffix): string
+        - [`Regex`](#routes-match-http-header-regex): string
+        - [`Invert`](#routes-match-http-header-invert): boolean | `false`
+      - [`QueryParam`](#routes-match-http-queryparam): list
+        - [`Name`](#routes-match-http-queryparam-name): string
+        - [`Present`](#routes-match-http-queryparam-present): boolean | `false`
+        - [`Exact`](#routes-match-http-queryparam-exact): string
+        - [`Regex`](#routes-match-http-queryparam-regex): string
+  - [`Destination`](#routes-destination): map
+    - [`Service`](#routes-destination-service): string
+    - [`ServiceSubset`](#routes-destination-servicesubset): string
     - [`Namespace`](#routes-destination-namespace): string <EnterpriseAlert inline />
     - [`Partition`](#routes-destination-partition): string <EnterpriseAlert inline />
     - [`PrefixRewrite`](#routes-destination-prefixrewrite): string
@@ -57,13 +57,13 @@ The following list outlines field hierarchy, language-specific data types, and r
     - [`RetryOn`](#routes-destination-retryon): list
     - [`RetryOnStatusCodes`](#routes-destination-retryonstatuscodes): list
     - [`RequestHeaders`](#routes-destination-requestheaders): map
-    	- [`Add`](#routes-destination-requestheaders): map
-	    - [`Set`](#routes-destination-requestheaders): map
-	    - [`Remove`](#routes-destination-requestheaders): map
+      - [`Add`](#routes-destination-requestheaders): map
+      - [`Set`](#routes-destination-requestheaders): map
+      - [`Remove`](#routes-destination-requestheaders): map
     - [`ResponseHeaders`](#routes-destination-responseheaders): map
-	    - [`Add`](#routes-destination-responseheaders): map
-	    - [`Set`](#routes-destination-responseheaders): map
-	    - [`Remove`](#routes-destination-responseheaders): map
+      - [`Add`](#routes-destination-responseheaders): map
+      - [`Set`](#routes-destination-responseheaders): map
+      - [`Remove`](#routes-destination-responseheaders): map
 
 </Tab>
 
@@ -75,45 +75,45 @@ The following list outlines field hierarchy, language-specific data types, and r
   - [`name`](#metadata-name): string | required
   - [`namespace`](#metadata-namespace): string | optional <EnterpriseAlert inline />
 - [`spec`](#spec): map | required
-	- [`routes`](#spec-routes): list
-		- [`match`](#spec-routes-match): map
-			- [‘http`](#spec-routes-match-http): map
-				- [`pathExact`](#spec-routes-match-http-pathexact): string
-				- [`pathPrefix`](#spec-routes-match-http-pathprefix): string
-				- [`pathRegex`](#spec-routes-match-http-pathregex): string
-				- [`methods`](#spec-routes-match-http-methods): list
-				- [`header`](#spec-routes-match-http-header): list
-					- [`name`](#spec-routes-match-http-header-name): string
-					- [`present`](#spec-routes-match-http-header-present): boolean | `false`
-					- [`exact`](#spec-routes-match-http-header-exact): string
-					- [`prefix`](#spec-routes-match-http-header-prefix): string
-					- [`suffix`](#spec-routes-match-http-header-suffix): string
-					- [`regex`](#spec-routes-match-http-header-regex): string
-					- [`invert`](#spec-routes-match-http-header-invert): boolean
-				- [`queryParam`](#spec-routes-match-http-queryparam): list
-					- [`name`](#spec-routes-match-http-queryparam-name): string
-					- [`present`](#spec-routes-match-http-queryparam-present): boolean | `false`
-					- [`regex`](#spec-routes-match-http-queryparam-regex): string
-		- [`destination`](#spec-routes-destination): map
-			- [`service`](#spec-routes-destination-service): string
-			- [`serviceSubset`](#spec-routes-destination-servicesubset): string
-    	- [`namespace`](#spec-routes-destination-namespace): string <EnterpriseAlert inline />
-    	- [`partition`](#spec-routes-destination-partition): string <EnterpriseAlert inline />
-    	- [`prefixRewrite`](#spec-routes-destination-prefixrewrite): string
-    	- [`requestTimeout`](#spec-routes-destination-requesttimeout): integer | `0`
-    	- [`numRetries`](#spec-routes-destination-numretries): integer | `0`
-    	- [`numRetries`](#spec-routes-destination-numretries): integer | `1`
-    	- [`retryOnConnectFailure`](#spec-routes-destination-retryonconnectfailure): boolean | `false`
-    	- [`retryOn`](#spec-routes-destination-retryon): list
-    	- [`retryOnStatusCodes`](#spec-routes-destination-retryonstatuscodes): list
-    	- [`requestHeaders`](#spec-routes-destination-requestheaders): map
-	    	- [`add`](#spec-routes-destination-requestheaders): map
-	    	- [`set`](#spec-routes-destination-requestheaders): map
-	    	- [`remove`](#spec-routes-destination-requestheaders): map
-    	- [`responseHeaders`](#spec-routes-destination-responseheaders): map
-	    	- [`add`](#spec-routes-destination-responseheaders): map
-	    	- [`set`](#spec-routes-destination-responseheaders): map
-	    	- [`remove`](#spec-routes-destination-responseheaders): map
+  - [`routes`](#spec-routes): list
+    - [`match`](#spec-routes-match): map
+      - [‘http`](#spec-routes-match-http): map
+        - [`pathExact`](#spec-routes-match-http-pathexact): string
+        - [`pathPrefix`](#spec-routes-match-http-pathprefix): string
+        - [`pathRegex`](#spec-routes-match-http-pathregex): string
+        - [`methods`](#spec-routes-match-http-methods): list
+        - [`header`](#spec-routes-match-http-header): list
+          - [`name`](#spec-routes-match-http-header-name): string
+          - [`present`](#spec-routes-match-http-header-present): boolean | `false`
+          - [`exact`](#spec-routes-match-http-header-exact): string
+          - [`prefix`](#spec-routes-match-http-header-prefix): string
+          - [`suffix`](#spec-routes-match-http-header-suffix): string
+          - [`regex`](#spec-routes-match-http-header-regex): string
+          - [`invert`](#spec-routes-match-http-header-invert): boolean
+        - [`queryParam`](#spec-routes-match-http-queryparam): list
+          - [`name`](#spec-routes-match-http-queryparam-name): string
+          - [`present`](#spec-routes-match-http-queryparam-present): boolean | `false`
+          - [`regex`](#spec-routes-match-http-queryparam-regex): string
+    - [`destination`](#spec-routes-destination): map
+      - [`service`](#spec-routes-destination-service): string
+      - [`serviceSubset`](#spec-routes-destination-servicesubset): string
+      - [`namespace`](#spec-routes-destination-namespace): string <EnterpriseAlert inline />
+      - [`partition`](#spec-routes-destination-partition): string <EnterpriseAlert inline />
+      - [`prefixRewrite`](#spec-routes-destination-prefixrewrite): string
+      - [`requestTimeout`](#spec-routes-destination-requesttimeout): integer | `0`
+      - [`numRetries`](#spec-routes-destination-numretries): integer | `0`
+      - [`numRetries`](#spec-routes-destination-numretries): integer | `1`
+      - [`retryOnConnectFailure`](#spec-routes-destination-retryonconnectfailure): boolean | `false`
+      - [`retryOn`](#spec-routes-destination-retryon): list
+      - [`retryOnStatusCodes`](#spec-routes-destination-retryonstatuscodes): list
+      - [`requestHeaders`](#spec-routes-destination-requestheaders): map
+        - [`add`](#spec-routes-destination-requestheaders): map
+        - [`set`](#spec-routes-destination-requestheaders): map
+        - [`remove`](#spec-routes-destination-requestheaders): map
+      - [`responseHeaders`](#spec-routes-destination-responseheaders): map
+        - [`add`](#spec-routes-destination-responseheaders): map
+        - [`set`](#spec-routes-destination-responseheaders): map
+        - [`remove`](#spec-routes-destination-responseheaders): map
   
 </Tab>
 </Tabs>
@@ -456,15 +456,15 @@ Specifies HTTP methods that the match applies to. If not specified, the request 
 
 - Default: None
 - Data type: List of strings. String values must be a valid [HTTP request method](https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods):
-	- `GET`
-	- `HEAD`
-	- `POST`
-	- `PUT`
-	- `DELETE`
-	- `CONNECT`
-	- `OPTIONS`
-	- `TRACE`
-	- `PATCH`
+  - `GET`
+  - `HEAD`
+  - `POST`
+  - `PUT`
+  - `DELETE`
+  - `CONNECT`
+  - `OPTIONS`
+  - `TRACE`
+  - `PATCH`
 
 ### `Routes[].Match{}.HTTP{}.Header`
 
@@ -569,7 +569,7 @@ Specifies a set of HTTP-specific header modification rules applied to requests r
 The following table describes how to configure values for request headers:
 
 | Rule | Description | Type |   
-| --- 	    | ---	       | ---         |  
+| ---       | ---         | ---         |  
 | `Add` | Defines a set of key-value pairs to add to the header. Use header names as the keys. Header names are not case-sensitive. If header values with the same name already exist, the value is appended and Consul applies both headers. You can [use variable placeholders](#use-variable-placeholders). | map of strings | 
 | `Set` | Defines a set of key-value pairs to add to the request header or to replace existing header values with. Use header names as the keys. Header names are not case-sensitive. If header values with the same names already exist, Consul replaces the header values. You can [use variable placeholders](#use-variable-placeholders). | map of strings | 
 | `Remove` | Defines a list of headers to remove. Consul removes only headers containing exact matches. Header names are not case-sensitive. | list of strings |
@@ -593,7 +593,7 @@ Specifies a set of HTTP-specific header modification rules applied to responses 
 The following table describes how to configure values for response headers:
   
 | Rule | Description | Type | 
-| --- 	    | ---	       | ---         |  
+| ---       | ---         | ---         |  
 | `Add` | Defines a set of key-value pairs to add to the header. Use header names as the keys. Header names are not case-sensitive. If header values with the same name already exist, the value is appended and Consul applies both headers. You can [use variable placeholders](#use-variable-placeholders). | map of strings | 
 | `Set` | Defines a set of key-value pairs to add to the request header or to replace existing header values with. Use header names as the keys. Header names are not case-sensitive. If header values with the same names already exist, Consul replaces the header values. You can [use variable placeholders](#use-variable-placeholders). | map of strings | 
 | `Remove` | Defines a list of headers to remove. Consul removes only headers containing exact matches. Header names are not case-sensitive. | list of strings | 
@@ -716,15 +716,15 @@ Specifies HTTP methods that the match applies to. If not specified, the request 
 
 - Default: None
 - Data type: List of strings. String values must be a valid [HTTP request method](https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods):
-	- `GET`
-	- `HEAD`
-	- `POST`
-	- `PUT`
-	- `DELETE`
-	- `CONNECT`
-	- `OPTIONS`
-	- `TRACE`
-	- `PATCH`
+  - `GET`
+  - `HEAD`
+  - `POST`
+  - `PUT`
+  - `DELETE`
+  - `CONNECT`
+  - `OPTIONS`
+  - `TRACE`
+  - `PATCH`
 
 ### `spec.routes[].match.http.header`
 
