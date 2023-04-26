@@ -25,13 +25,18 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// State represents the state of the condition (i.e. true/false/unknown).
 type Condition_State int32
 
 const (
+	// STATE_UNKNOWN means that the state of the condition is unknown.
+	//
 	// buf:lint:ignore ENUM_ZERO_VALUE_SUFFIX
 	Condition_STATE_UNKNOWN Condition_State = 0
-	Condition_STATE_TRUE    Condition_State = 1
-	Condition_STATE_FALSE   Condition_State = 2
+	// STATE_TRUE means that the state of the condition is true.
+	Condition_STATE_TRUE Condition_State = 1
+	// STATE_FALSE means that the state of the condition is false.
+	Condition_STATE_FALSE Condition_State = 2
 )
 
 // Enum value maps for Condition_State.
@@ -75,12 +80,19 @@ func (Condition_State) EnumDescriptor() ([]byte, []int) {
 	return file_pbresource_resource_proto_rawDescGZIP(), []int{5, 0}
 }
 
+// Operation describes the type of event.
 type WatchEvent_Operation int32
 
 const (
+	// OPERATION_UNSPECIFIED is the default/zero value. You should not see it
+	// in practice.
 	WatchEvent_OPERATION_UNSPECIFIED WatchEvent_Operation = 0
-	WatchEvent_OPERATION_UPSERT      WatchEvent_Operation = 1
-	WatchEvent_OPERATION_DELETE      WatchEvent_Operation = 2
+	// OPERATION_UPSERT indicates that the resource was written (i.e. created or
+	// updated). All events from the initial state-of-the-world will be upsert
+	// events.
+	WatchEvent_OPERATION_UPSERT WatchEvent_Operation = 1
+	// OPERATION_DELETED indicates that the resource was deleted.
+	WatchEvent_OPERATION_DELETE WatchEvent_Operation = 2
 )
 
 // Enum value maps for WatchEvent_Operation.
@@ -121,17 +133,25 @@ func (x WatchEvent_Operation) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use WatchEvent_Operation.Descriptor instead.
 func (WatchEvent_Operation) EnumDescriptor() ([]byte, []int) {
-	return file_pbresource_resource_proto_rawDescGZIP(), []int{7, 0}
+	return file_pbresource_resource_proto_rawDescGZIP(), []int{18, 0}
 }
 
+// Type describes a resource's type. It follows the GVK (Group Version Kind)
+// [pattern](https://book.kubebuilder.io/cronjob-tutorial/gvks.html) established
+// by Kubernetes.
 type Type struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Group        string `protobuf:"bytes,1,opt,name=group,proto3" json:"group,omitempty"`
+	// Group describes the area of functionality to which this resource type
+	// relates (e.g. "catalog", "authorization").
+	Group string `protobuf:"bytes,1,opt,name=group,proto3" json:"group,omitempty"`
+	// GroupVersion is incremented when sweeping or backward-incompatible changes
+	// are made to the group's resource types.
 	GroupVersion string `protobuf:"bytes,2,opt,name=group_version,json=groupVersion,proto3" json:"group_version,omitempty"`
-	Kind         string `protobuf:"bytes,3,opt,name=kind,proto3" json:"kind,omitempty"`
+	// Kind identifies the specific resource type within the group.
+	Kind string `protobuf:"bytes,3,opt,name=kind,proto3" json:"kind,omitempty"`
 }
 
 func (x *Type) Reset() {
@@ -187,14 +207,30 @@ func (x *Type) GetKind() string {
 	return ""
 }
 
+// Tenancy describes the tenancy units in which the resource resides.
 type Tenancy struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
+	// Partition is the topmost administrative boundary within a cluster.
+	// https://developer.hashicorp.com/consul/docs/enterprise/admin-partitions
+	//
+	// When using the List and WatchList endpoints, provide the wildcard value "*"
+	// to list resources across all partitions.
 	Partition string `protobuf:"bytes,1,opt,name=partition,proto3" json:"partition,omitempty"`
+	// Namespace further isolates resources within a partition.
+	// https://developer.hashicorp.com/consul/docs/enterprise/namespaces
+	//
+	// When using the List and WatchList endpoints, provide the wildcard value "*"
+	// to list resources across all namespaces.
 	Namespace string `protobuf:"bytes,2,opt,name=namespace,proto3" json:"namespace,omitempty"`
-	PeerName  string `protobuf:"bytes,3,opt,name=peer_name,json=peerName,proto3" json:"peer_name,omitempty"`
+	// PeerName identifies which peer the resource is imported from.
+	// https://developer.hashicorp.com/consul/docs/connect/cluster-peering
+	//
+	// When using the List and WatchList endpoints, provide the wildcard value "*"
+	// to list resources across all peers.
+	PeerName string `protobuf:"bytes,3,opt,name=peer_name,json=peerName,proto3" json:"peer_name,omitempty"`
 }
 
 func (x *Tenancy) Reset() {
@@ -250,14 +286,26 @@ func (x *Tenancy) GetPeerName() string {
 	return ""
 }
 
+// ID uniquely identifies a resource.
 type ID struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Uid     string   `protobuf:"bytes,1,opt,name=uid,proto3" json:"uid,omitempty"`
-	Name    string   `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
-	Type    *Type    `protobuf:"bytes,3,opt,name=type,proto3" json:"type,omitempty"`
+	// Uid is the unique internal identifier we gave to the resource.
+	//
+	// It is primarily used to tell the difference between the current resource
+	// and previous deleted resources with the same user-given name.
+	//
+	// Concretely, Uid is a [ULID](https://github.com/ulid/spec) and you can treat
+	// its timestamp component as the resource's creation time.
+	Uid string `protobuf:"bytes,1,opt,name=uid,proto3" json:"uid,omitempty"`
+	// Name is the user-given name of the resource (e.g. the "billing" service).
+	Name string `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	// Type identifies the resource's type.
+	Type *Type `protobuf:"bytes,3,opt,name=type,proto3" json:"type,omitempty"`
+	// Tenancy identifies the tenancy units (i.e. partition, namespace) in which
+	// the resource resides.
 	Tenancy *Tenancy `protobuf:"bytes,4,opt,name=tenancy,proto3" json:"tenancy,omitempty"`
 }
 
@@ -321,18 +369,44 @@ func (x *ID) GetTenancy() *Tenancy {
 	return nil
 }
 
+// Resource describes a resource of a known type managed by Consul.
 type Resource struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Id         *ID                `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	Owner      *ID                `protobuf:"bytes,2,opt,name=owner,proto3" json:"owner,omitempty"`
-	Version    string             `protobuf:"bytes,3,opt,name=version,proto3" json:"version,omitempty"`
-	Generation string             `protobuf:"bytes,4,opt,name=generation,proto3" json:"generation,omitempty"`
-	Metadata   map[string]string  `protobuf:"bytes,5,rep,name=metadata,proto3" json:"metadata,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
-	Status     map[string]*Status `protobuf:"bytes,6,rep,name=status,proto3" json:"status,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
-	Data       *anypb.Any         `protobuf:"bytes,7,opt,name=data,proto3" json:"data,omitempty"`
+	// ID uniquely identifies the resource.
+	Id *ID `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	// Owner (optionally) describes which resource "owns" this resource, it is
+	// immutable and can only be set on resource creation. Owned resources will
+	// be automatically deleted when their owner is deleted.
+	Owner *ID `protobuf:"bytes,2,opt,name=owner,proto3" json:"owner,omitempty"`
+	// Version is the low-level version identifier used by the storage backend
+	// in CAS (Compare-And-Swap) operations. It will change when the resource is
+	// modified in any way, including status updates.
+	//
+	// When calling the Write endpoint, providing a non-blank version will perform
+	// a CAS (Compare-And-Swap) write, which will result in an Aborted error code
+	// if the given version doesn't match what is stored.
+	Version string `protobuf:"bytes,3,opt,name=version,proto3" json:"version,omitempty"`
+	// Generation is incremented whenever the resource's content (i.e. not its
+	// status) is modified. You can think of it as being the "user version".
+	//
+	// Concretely, Generation is a [ULID](https://github.com/ulid/spec) and you
+	// can treat its timestamp component as the resource's modification time.
+	Generation string `protobuf:"bytes,4,opt,name=generation,proto3" json:"generation,omitempty"`
+	// Metadata contains key/value pairs of arbitrary metadata about the resource.
+	Metadata map[string]string `protobuf:"bytes,5,rep,name=metadata,proto3" json:"metadata,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
+	// Status is used by controllers to communicate the result of attempting to
+	// reconcile and apply the resource (e.g. surface semantic validation errors)
+	// with users and other controllers. Each status is identified by a unique key
+	// and should only ever be updated by one controller.
+	//
+	// Status can only be updated via the WriteStatus endpoint. Attempting to do
+	// so via the Write endpoint will result in an InvalidArgument error code.
+	Status map[string]*Status `protobuf:"bytes,6,rep,name=status,proto3" json:"status,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
+	// Data contains the resource's type-specific content.
+	Data *anypb.Any `protobuf:"bytes,7,opt,name=data,proto3" json:"data,omitempty"`
 }
 
 func (x *Resource) Reset() {
@@ -416,13 +490,21 @@ func (x *Resource) GetData() *anypb.Any {
 	return nil
 }
 
+// Status is used by controllers to communicate the result of attempting to
+// reconcile and apply a resource (e.g. surface semantic validation errors)
+// with users and other controllers.
 type Status struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	ObservedGeneration string       `protobuf:"bytes,1,opt,name=observed_generation,json=observedGeneration,proto3" json:"observed_generation,omitempty"`
-	Conditions         []*Condition `protobuf:"bytes,2,rep,name=conditions,proto3" json:"conditions,omitempty"`
+	// ObservedGeneration identifies which generation of a resource this status
+	// related to. It can be used to determine whether the current generation of
+	// a resource has been reconciled.
+	ObservedGeneration string `protobuf:"bytes,1,opt,name=observed_generation,json=observedGeneration,proto3" json:"observed_generation,omitempty"`
+	// Conditions contains a set of discreet observations about the resource in
+	// relation to the current state of the system (e.g. it is semantically valid).
+	Conditions []*Condition `protobuf:"bytes,2,rep,name=conditions,proto3" json:"conditions,omitempty"`
 }
 
 func (x *Status) Reset() {
@@ -471,16 +553,28 @@ func (x *Status) GetConditions() []*Condition {
 	return nil
 }
 
+// Condition represents a discreet observation about a resource in relation to
+// the current state of the system.
+//
+// It is heavily inspired by Kubernetes' [conditions](https://bit.ly/3H9Y6IK)
+// and the Gateway API [types and reasons](https://bit.ly/3n2PPiP).
 type Condition struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Type     string          `protobuf:"bytes,1,opt,name=type,proto3" json:"type,omitempty"`
-	State    Condition_State `protobuf:"varint,2,opt,name=state,proto3,enum=hashicorp.consul.resource.Condition_State" json:"state,omitempty"`
-	Reason   string          `protobuf:"bytes,3,opt,name=reason,proto3" json:"reason,omitempty"`
-	Message  string          `protobuf:"bytes,4,opt,name=message,proto3" json:"message,omitempty"`
-	Resource *Reference      `protobuf:"bytes,5,opt,name=resource,proto3" json:"resource,omitempty"`
+	// Type identifies the type of condition (e.g. "Invalid", "ResolvedRefs").
+	Type string `protobuf:"bytes,1,opt,name=type,proto3" json:"type,omitempty"`
+	// State represents the state of the condition (i.e. true/false/unknown).
+	State Condition_State `protobuf:"varint,2,opt,name=state,proto3,enum=hashicorp.consul.resource.Condition_State" json:"state,omitempty"`
+	// Reason provides more machine-readable details about the condition (e.g.
+	// "InvalidProtocol").
+	Reason string `protobuf:"bytes,3,opt,name=reason,proto3" json:"reason,omitempty"`
+	// Message contains a human-friendly description of the status.
+	Message string `protobuf:"bytes,4,opt,name=message,proto3" json:"message,omitempty"`
+	// Resource identifies which resource this condition relates to, when it is
+	// not the core resource itself.
+	Resource *Reference `protobuf:"bytes,5,opt,name=resource,proto3" json:"resource,omitempty"`
 }
 
 func (x *Condition) Reset() {
@@ -550,15 +644,22 @@ func (x *Condition) GetResource() *Reference {
 	return nil
 }
 
+// Reference identifies which resource a condition relates to, when it is not
+// the core resource itself.
 type Reference struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Type    *Type    `protobuf:"bytes,1,opt,name=type,proto3" json:"type,omitempty"`
+	// Type identifies the resource's type.
+	Type *Type `protobuf:"bytes,1,opt,name=type,proto3" json:"type,omitempty"`
+	// Tenancy identifies the tenancy units (i.e. partition, namespace) in which
+	// the resource resides.
 	Tenancy *Tenancy `protobuf:"bytes,2,opt,name=tenancy,proto3" json:"tenancy,omitempty"`
-	Name    string   `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
-	Section string   `protobuf:"bytes,4,opt,name=section,proto3" json:"section,omitempty"`
+	// Name is the user-given name of the resource (e.g. the "billing" service).
+	Name string `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
+	// Section identifies which part of the resource the condition relates to.
+	Section string `protobuf:"bytes,4,opt,name=section,proto3" json:"section,omitempty"`
 }
 
 func (x *Reference) Reset() {
@@ -621,73 +722,20 @@ func (x *Reference) GetSection() string {
 	return ""
 }
 
-type WatchEvent struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	Operation WatchEvent_Operation `protobuf:"varint,1,opt,name=operation,proto3,enum=hashicorp.consul.resource.WatchEvent_Operation" json:"operation,omitempty"`
-	Resource  *Resource            `protobuf:"bytes,2,opt,name=resource,proto3" json:"resource,omitempty"`
-}
-
-func (x *WatchEvent) Reset() {
-	*x = WatchEvent{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_pbresource_resource_proto_msgTypes[7]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
-}
-
-func (x *WatchEvent) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*WatchEvent) ProtoMessage() {}
-
-func (x *WatchEvent) ProtoReflect() protoreflect.Message {
-	mi := &file_pbresource_resource_proto_msgTypes[7]
-	if protoimpl.UnsafeEnabled && x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use WatchEvent.ProtoReflect.Descriptor instead.
-func (*WatchEvent) Descriptor() ([]byte, []int) {
-	return file_pbresource_resource_proto_rawDescGZIP(), []int{7}
-}
-
-func (x *WatchEvent) GetOperation() WatchEvent_Operation {
-	if x != nil {
-		return x.Operation
-	}
-	return WatchEvent_OPERATION_UNSPECIFIED
-}
-
-func (x *WatchEvent) GetResource() *Resource {
-	if x != nil {
-		return x.Resource
-	}
-	return nil
-}
-
+// ReadRequest contains the parameters to the Read endpoint.
 type ReadRequest struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
+	// ID of the resource.
 	Id *ID `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 }
 
 func (x *ReadRequest) Reset() {
 	*x = ReadRequest{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_pbresource_resource_proto_msgTypes[8]
+		mi := &file_pbresource_resource_proto_msgTypes[7]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -700,7 +748,7 @@ func (x *ReadRequest) String() string {
 func (*ReadRequest) ProtoMessage() {}
 
 func (x *ReadRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_pbresource_resource_proto_msgTypes[8]
+	mi := &file_pbresource_resource_proto_msgTypes[7]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -713,7 +761,7 @@ func (x *ReadRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReadRequest.ProtoReflect.Descriptor instead.
 func (*ReadRequest) Descriptor() ([]byte, []int) {
-	return file_pbresource_resource_proto_rawDescGZIP(), []int{8}
+	return file_pbresource_resource_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *ReadRequest) GetId() *ID {
@@ -723,18 +771,20 @@ func (x *ReadRequest) GetId() *ID {
 	return nil
 }
 
+// ReadResponse contains the results of calling the Read endpoint.
 type ReadResponse struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
+	// Resource that was read.
 	Resource *Resource `protobuf:"bytes,1,opt,name=resource,proto3" json:"resource,omitempty"`
 }
 
 func (x *ReadResponse) Reset() {
 	*x = ReadResponse{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_pbresource_resource_proto_msgTypes[9]
+		mi := &file_pbresource_resource_proto_msgTypes[8]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -747,7 +797,7 @@ func (x *ReadResponse) String() string {
 func (*ReadResponse) ProtoMessage() {}
 
 func (x *ReadResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_pbresource_resource_proto_msgTypes[9]
+	mi := &file_pbresource_resource_proto_msgTypes[8]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -760,7 +810,7 @@ func (x *ReadResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReadResponse.ProtoReflect.Descriptor instead.
 func (*ReadResponse) Descriptor() ([]byte, []int) {
-	return file_pbresource_resource_proto_rawDescGZIP(), []int{9}
+	return file_pbresource_resource_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *ReadResponse) GetResource() *Resource {
@@ -770,20 +820,26 @@ func (x *ReadResponse) GetResource() *Resource {
 	return nil
 }
 
+// ListRequest contains the parameters to the List endpoint.
 type ListRequest struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Type       *Type    `protobuf:"bytes,1,opt,name=type,proto3" json:"type,omitempty"`
-	Tenancy    *Tenancy `protobuf:"bytes,2,opt,name=tenancy,proto3" json:"tenancy,omitempty"`
-	NamePrefix string   `protobuf:"bytes,3,opt,name=name_prefix,json=namePrefix,proto3" json:"name_prefix,omitempty"`
+	// Type of resource to list.
+	Type *Type `protobuf:"bytes,1,opt,name=type,proto3" json:"type,omitempty"`
+	// Tenancy units in which to list resources. To list resources in all units,
+	// provide the wildcard "*" value.
+	Tenancy *Tenancy `protobuf:"bytes,2,opt,name=tenancy,proto3" json:"tenancy,omitempty"`
+	// NamePrefix filters the results to those with a name beginning with the
+	// given prefix.
+	NamePrefix string `protobuf:"bytes,3,opt,name=name_prefix,json=namePrefix,proto3" json:"name_prefix,omitempty"`
 }
 
 func (x *ListRequest) Reset() {
 	*x = ListRequest{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_pbresource_resource_proto_msgTypes[10]
+		mi := &file_pbresource_resource_proto_msgTypes[9]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -796,7 +852,7 @@ func (x *ListRequest) String() string {
 func (*ListRequest) ProtoMessage() {}
 
 func (x *ListRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_pbresource_resource_proto_msgTypes[10]
+	mi := &file_pbresource_resource_proto_msgTypes[9]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -809,7 +865,7 @@ func (x *ListRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListRequest.ProtoReflect.Descriptor instead.
 func (*ListRequest) Descriptor() ([]byte, []int) {
-	return file_pbresource_resource_proto_rawDescGZIP(), []int{10}
+	return file_pbresource_resource_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *ListRequest) GetType() *Type {
@@ -833,18 +889,20 @@ func (x *ListRequest) GetNamePrefix() string {
 	return ""
 }
 
+// ListResponse contains the results of calling the List endpoint.
 type ListResponse struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
+	// Resources that were listed.
 	Resources []*Resource `protobuf:"bytes,1,rep,name=resources,proto3" json:"resources,omitempty"`
 }
 
 func (x *ListResponse) Reset() {
 	*x = ListResponse{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_pbresource_resource_proto_msgTypes[11]
+		mi := &file_pbresource_resource_proto_msgTypes[10]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -857,7 +915,7 @@ func (x *ListResponse) String() string {
 func (*ListResponse) ProtoMessage() {}
 
 func (x *ListResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_pbresource_resource_proto_msgTypes[11]
+	mi := &file_pbresource_resource_proto_msgTypes[10]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -870,7 +928,7 @@ func (x *ListResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListResponse.ProtoReflect.Descriptor instead.
 func (*ListResponse) Descriptor() ([]byte, []int) {
-	return file_pbresource_resource_proto_rawDescGZIP(), []int{11}
+	return file_pbresource_resource_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *ListResponse) GetResources() []*Resource {
@@ -880,18 +938,20 @@ func (x *ListResponse) GetResources() []*Resource {
 	return nil
 }
 
+// WriteRequest contains the parameters to the Write endpoint.
 type WriteRequest struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
+	// Resource to write.
 	Resource *Resource `protobuf:"bytes,1,opt,name=resource,proto3" json:"resource,omitempty"`
 }
 
 func (x *WriteRequest) Reset() {
 	*x = WriteRequest{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_pbresource_resource_proto_msgTypes[12]
+		mi := &file_pbresource_resource_proto_msgTypes[11]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -904,7 +964,7 @@ func (x *WriteRequest) String() string {
 func (*WriteRequest) ProtoMessage() {}
 
 func (x *WriteRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_pbresource_resource_proto_msgTypes[12]
+	mi := &file_pbresource_resource_proto_msgTypes[11]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -917,7 +977,7 @@ func (x *WriteRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WriteRequest.ProtoReflect.Descriptor instead.
 func (*WriteRequest) Descriptor() ([]byte, []int) {
-	return file_pbresource_resource_proto_rawDescGZIP(), []int{12}
+	return file_pbresource_resource_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *WriteRequest) GetResource() *Resource {
@@ -927,18 +987,20 @@ func (x *WriteRequest) GetResource() *Resource {
 	return nil
 }
 
+// WriteResponse contains the results of calling the Write endpoint.
 type WriteResponse struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
+	// Resource that was written.
 	Resource *Resource `protobuf:"bytes,1,opt,name=resource,proto3" json:"resource,omitempty"`
 }
 
 func (x *WriteResponse) Reset() {
 	*x = WriteResponse{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_pbresource_resource_proto_msgTypes[13]
+		mi := &file_pbresource_resource_proto_msgTypes[12]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -951,7 +1013,7 @@ func (x *WriteResponse) String() string {
 func (*WriteResponse) ProtoMessage() {}
 
 func (x *WriteResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_pbresource_resource_proto_msgTypes[13]
+	mi := &file_pbresource_resource_proto_msgTypes[12]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -964,7 +1026,7 @@ func (x *WriteResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WriteResponse.ProtoReflect.Descriptor instead.
 func (*WriteResponse) Descriptor() ([]byte, []int) {
-	return file_pbresource_resource_proto_rawDescGZIP(), []int{13}
+	return file_pbresource_resource_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *WriteResponse) GetResource() *Resource {
@@ -974,21 +1036,34 @@ func (x *WriteResponse) GetResource() *Resource {
 	return nil
 }
 
+// WriteStatusRequest contains the parameters to the WriteStatus endpoint.
 type WriteStatusRequest struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Id      *ID     `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	Version string  `protobuf:"bytes,2,opt,name=version,proto3" json:"version,omitempty"`
-	Key     string  `protobuf:"bytes,3,opt,name=key,proto3" json:"key,omitempty"`
-	Status  *Status `protobuf:"bytes,4,opt,name=status,proto3" json:"status,omitempty"`
+	// ID of the resource to which the status will be written. Must contain a Uid.
+	Id *ID `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	// Version may be provided to perform a CAS (Compare-And-Swap) update of the
+	// status. If the given version doesn't match what is currently stored, an
+	// Aborted error code will be returned.
+	//
+	// Note: in most cases, CAS status updates are not necessary because updates
+	// are scoped to a specific status key and controllers are leader-elected so
+	// there is no chance of a conflict.
+	Version string `protobuf:"bytes,2,opt,name=version,proto3" json:"version,omitempty"`
+	// Key identifies which status will be written. Generally, each controller
+	// should write 1 status which it owns exclusively (i.e. no other controller
+	// updates it).
+	Key string `protobuf:"bytes,3,opt,name=key,proto3" json:"key,omitempty"`
+	// Status that will be written to the resource.
+	Status *Status `protobuf:"bytes,4,opt,name=status,proto3" json:"status,omitempty"`
 }
 
 func (x *WriteStatusRequest) Reset() {
 	*x = WriteStatusRequest{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_pbresource_resource_proto_msgTypes[14]
+		mi := &file_pbresource_resource_proto_msgTypes[13]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1001,7 +1076,7 @@ func (x *WriteStatusRequest) String() string {
 func (*WriteStatusRequest) ProtoMessage() {}
 
 func (x *WriteStatusRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_pbresource_resource_proto_msgTypes[14]
+	mi := &file_pbresource_resource_proto_msgTypes[13]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1014,7 +1089,7 @@ func (x *WriteStatusRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WriteStatusRequest.ProtoReflect.Descriptor instead.
 func (*WriteStatusRequest) Descriptor() ([]byte, []int) {
-	return file_pbresource_resource_proto_rawDescGZIP(), []int{14}
+	return file_pbresource_resource_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *WriteStatusRequest) GetId() *ID {
@@ -1045,18 +1120,20 @@ func (x *WriteStatusRequest) GetStatus() *Status {
 	return nil
 }
 
+// WriteStatusResponse contains the results of calling the WriteStatus endpoint.
 type WriteStatusResponse struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
+	// Resource to which the status was written.
 	Resource *Resource `protobuf:"bytes,1,opt,name=resource,proto3" json:"resource,omitempty"`
 }
 
 func (x *WriteStatusResponse) Reset() {
 	*x = WriteStatusResponse{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_pbresource_resource_proto_msgTypes[15]
+		mi := &file_pbresource_resource_proto_msgTypes[14]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1069,7 +1146,7 @@ func (x *WriteStatusResponse) String() string {
 func (*WriteStatusResponse) ProtoMessage() {}
 
 func (x *WriteStatusResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_pbresource_resource_proto_msgTypes[15]
+	mi := &file_pbresource_resource_proto_msgTypes[14]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1082,7 +1159,7 @@ func (x *WriteStatusResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WriteStatusResponse.ProtoReflect.Descriptor instead.
 func (*WriteStatusResponse) Descriptor() ([]byte, []int) {
-	return file_pbresource_resource_proto_rawDescGZIP(), []int{15}
+	return file_pbresource_resource_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *WriteStatusResponse) GetResource() *Resource {
@@ -1092,19 +1169,24 @@ func (x *WriteStatusResponse) GetResource() *Resource {
 	return nil
 }
 
+// DeleteRequest contains the parameters to the Delete endpoint.
 type DeleteRequest struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Id      *ID    `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	// ID of the resource that will be deleted.
+	Id *ID `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	// Version may be provided to perform a CAS (Compare-And-Swap) deletion of the
+	// resource. If the given version doesn't match what is currently stored, an
+	// Aborted error code will be returned.
 	Version string `protobuf:"bytes,2,opt,name=version,proto3" json:"version,omitempty"`
 }
 
 func (x *DeleteRequest) Reset() {
 	*x = DeleteRequest{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_pbresource_resource_proto_msgTypes[16]
+		mi := &file_pbresource_resource_proto_msgTypes[15]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1117,7 +1199,7 @@ func (x *DeleteRequest) String() string {
 func (*DeleteRequest) ProtoMessage() {}
 
 func (x *DeleteRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_pbresource_resource_proto_msgTypes[16]
+	mi := &file_pbresource_resource_proto_msgTypes[15]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1130,7 +1212,7 @@ func (x *DeleteRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteRequest.ProtoReflect.Descriptor instead.
 func (*DeleteRequest) Descriptor() ([]byte, []int) {
-	return file_pbresource_resource_proto_rawDescGZIP(), []int{16}
+	return file_pbresource_resource_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *DeleteRequest) GetId() *ID {
@@ -1147,6 +1229,7 @@ func (x *DeleteRequest) GetVersion() string {
 	return ""
 }
 
+// DeleteResponse contains the results of calling the Delete endpoint.
 type DeleteResponse struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -1156,7 +1239,7 @@ type DeleteResponse struct {
 func (x *DeleteResponse) Reset() {
 	*x = DeleteResponse{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_pbresource_resource_proto_msgTypes[17]
+		mi := &file_pbresource_resource_proto_msgTypes[16]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1169,7 +1252,7 @@ func (x *DeleteResponse) String() string {
 func (*DeleteResponse) ProtoMessage() {}
 
 func (x *DeleteResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_pbresource_resource_proto_msgTypes[17]
+	mi := &file_pbresource_resource_proto_msgTypes[16]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1182,23 +1265,29 @@ func (x *DeleteResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteResponse.ProtoReflect.Descriptor instead.
 func (*DeleteResponse) Descriptor() ([]byte, []int) {
-	return file_pbresource_resource_proto_rawDescGZIP(), []int{17}
+	return file_pbresource_resource_proto_rawDescGZIP(), []int{16}
 }
 
+// WatchListRequest contains the parameters to the WatchList endpoint.
 type WatchListRequest struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Type       *Type    `protobuf:"bytes,1,opt,name=type,proto3" json:"type,omitempty"`
-	Tenancy    *Tenancy `protobuf:"bytes,2,opt,name=tenancy,proto3" json:"tenancy,omitempty"`
-	NamePrefix string   `protobuf:"bytes,3,opt,name=name_prefix,json=namePrefix,proto3" json:"name_prefix,omitempty"`
+	// Type of resource to watch.
+	Type *Type `protobuf:"bytes,1,opt,name=type,proto3" json:"type,omitempty"`
+	// Tenancy units in which to watch resources. To list resources in all units,
+	// provide the wildcard "*" value.
+	Tenancy *Tenancy `protobuf:"bytes,2,opt,name=tenancy,proto3" json:"tenancy,omitempty"`
+	// NamePrefix filters the results to those with a name beginning with the
+	// given prefix.
+	NamePrefix string `protobuf:"bytes,3,opt,name=name_prefix,json=namePrefix,proto3" json:"name_prefix,omitempty"`
 }
 
 func (x *WatchListRequest) Reset() {
 	*x = WatchListRequest{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_pbresource_resource_proto_msgTypes[18]
+		mi := &file_pbresource_resource_proto_msgTypes[17]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1211,7 +1300,7 @@ func (x *WatchListRequest) String() string {
 func (*WatchListRequest) ProtoMessage() {}
 
 func (x *WatchListRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_pbresource_resource_proto_msgTypes[18]
+	mi := &file_pbresource_resource_proto_msgTypes[17]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1224,7 +1313,7 @@ func (x *WatchListRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WatchListRequest.ProtoReflect.Descriptor instead.
 func (*WatchListRequest) Descriptor() ([]byte, []int) {
-	return file_pbresource_resource_proto_rawDescGZIP(), []int{18}
+	return file_pbresource_resource_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *WatchListRequest) GetType() *Type {
@@ -1246,6 +1335,64 @@ func (x *WatchListRequest) GetNamePrefix() string {
 		return x.NamePrefix
 	}
 	return ""
+}
+
+// WatchEvent is emitted on the WatchList stream when a resource changes.
+type WatchEvent struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	// Operation describes the type of event.
+	Operation WatchEvent_Operation `protobuf:"varint,1,opt,name=operation,proto3,enum=hashicorp.consul.resource.WatchEvent_Operation" json:"operation,omitempty"`
+	// Resource the event relates to.
+	Resource *Resource `protobuf:"bytes,2,opt,name=resource,proto3" json:"resource,omitempty"`
+}
+
+func (x *WatchEvent) Reset() {
+	*x = WatchEvent{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_pbresource_resource_proto_msgTypes[18]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *WatchEvent) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*WatchEvent) ProtoMessage() {}
+
+func (x *WatchEvent) ProtoReflect() protoreflect.Message {
+	mi := &file_pbresource_resource_proto_msgTypes[18]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use WatchEvent.ProtoReflect.Descriptor instead.
+func (*WatchEvent) Descriptor() ([]byte, []int) {
+	return file_pbresource_resource_proto_rawDescGZIP(), []int{18}
+}
+
+func (x *WatchEvent) GetOperation() WatchEvent_Operation {
+	if x != nil {
+		return x.Operation
+	}
+	return WatchEvent_OPERATION_UNSPECIFIED
+}
+
+func (x *WatchEvent) GetResource() *Resource {
+	if x != nil {
+		return x.Resource
+	}
+	return nil
 }
 
 var File_pbresource_resource_proto protoreflect.FileDescriptor
@@ -1349,90 +1496,90 @@ var file_pbresource_resource_proto_rawDesc = []byte{
 	0x63, 0x79, 0x12, 0x12, 0x0a, 0x04, 0x6e, 0x61, 0x6d, 0x65, 0x18, 0x03, 0x20, 0x01, 0x28, 0x09,
 	0x52, 0x04, 0x6e, 0x61, 0x6d, 0x65, 0x12, 0x18, 0x0a, 0x07, 0x73, 0x65, 0x63, 0x74, 0x69, 0x6f,
 	0x6e, 0x18, 0x04, 0x20, 0x01, 0x28, 0x09, 0x52, 0x07, 0x73, 0x65, 0x63, 0x74, 0x69, 0x6f, 0x6e,
-	0x22, 0xf0, 0x01, 0x0a, 0x0a, 0x57, 0x61, 0x74, 0x63, 0x68, 0x45, 0x76, 0x65, 0x6e, 0x74, 0x12,
-	0x4d, 0x0a, 0x09, 0x6f, 0x70, 0x65, 0x72, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x18, 0x01, 0x20, 0x01,
-	0x28, 0x0e, 0x32, 0x2f, 0x2e, 0x68, 0x61, 0x73, 0x68, 0x69, 0x63, 0x6f, 0x72, 0x70, 0x2e, 0x63,
-	0x6f, 0x6e, 0x73, 0x75, 0x6c, 0x2e, 0x72, 0x65, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x2e, 0x57,
-	0x61, 0x74, 0x63, 0x68, 0x45, 0x76, 0x65, 0x6e, 0x74, 0x2e, 0x4f, 0x70, 0x65, 0x72, 0x61, 0x74,
-	0x69, 0x6f, 0x6e, 0x52, 0x09, 0x6f, 0x70, 0x65, 0x72, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x12, 0x3f,
-	0x0a, 0x08, 0x72, 0x65, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b,
+	0x22, 0x3c, 0x0a, 0x0b, 0x52, 0x65, 0x61, 0x64, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12,
+	0x2d, 0x0a, 0x02, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x1d, 0x2e, 0x68, 0x61,
+	0x73, 0x68, 0x69, 0x63, 0x6f, 0x72, 0x70, 0x2e, 0x63, 0x6f, 0x6e, 0x73, 0x75, 0x6c, 0x2e, 0x72,
+	0x65, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x2e, 0x49, 0x44, 0x52, 0x02, 0x69, 0x64, 0x22, 0x4f,
+	0x0a, 0x0c, 0x52, 0x65, 0x61, 0x64, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x3f,
+	0x0a, 0x08, 0x72, 0x65, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b,
 	0x32, 0x23, 0x2e, 0x68, 0x61, 0x73, 0x68, 0x69, 0x63, 0x6f, 0x72, 0x70, 0x2e, 0x63, 0x6f, 0x6e,
 	0x73, 0x75, 0x6c, 0x2e, 0x72, 0x65, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x2e, 0x52, 0x65, 0x73,
 	0x6f, 0x75, 0x72, 0x63, 0x65, 0x52, 0x08, 0x72, 0x65, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x22,
-	0x52, 0x0a, 0x09, 0x4f, 0x70, 0x65, 0x72, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x12, 0x19, 0x0a, 0x15,
-	0x4f, 0x50, 0x45, 0x52, 0x41, 0x54, 0x49, 0x4f, 0x4e, 0x5f, 0x55, 0x4e, 0x53, 0x50, 0x45, 0x43,
-	0x49, 0x46, 0x49, 0x45, 0x44, 0x10, 0x00, 0x12, 0x14, 0x0a, 0x10, 0x4f, 0x50, 0x45, 0x52, 0x41,
-	0x54, 0x49, 0x4f, 0x4e, 0x5f, 0x55, 0x50, 0x53, 0x45, 0x52, 0x54, 0x10, 0x01, 0x12, 0x14, 0x0a,
-	0x10, 0x4f, 0x50, 0x45, 0x52, 0x41, 0x54, 0x49, 0x4f, 0x4e, 0x5f, 0x44, 0x45, 0x4c, 0x45, 0x54,
-	0x45, 0x10, 0x02, 0x22, 0x3c, 0x0a, 0x0b, 0x52, 0x65, 0x61, 0x64, 0x52, 0x65, 0x71, 0x75, 0x65,
-	0x73, 0x74, 0x12, 0x2d, 0x0a, 0x02, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x1d,
-	0x2e, 0x68, 0x61, 0x73, 0x68, 0x69, 0x63, 0x6f, 0x72, 0x70, 0x2e, 0x63, 0x6f, 0x6e, 0x73, 0x75,
-	0x6c, 0x2e, 0x72, 0x65, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x2e, 0x49, 0x44, 0x52, 0x02, 0x69,
-	0x64, 0x22, 0x4f, 0x0a, 0x0c, 0x52, 0x65, 0x61, 0x64, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73,
-	0x65, 0x12, 0x3f, 0x0a, 0x08, 0x72, 0x65, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x18, 0x01, 0x20,
+	0xa1, 0x01, 0x0a, 0x0b, 0x4c, 0x69, 0x73, 0x74, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12,
+	0x33, 0x0a, 0x04, 0x74, 0x79, 0x70, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x1f, 0x2e,
+	0x68, 0x61, 0x73, 0x68, 0x69, 0x63, 0x6f, 0x72, 0x70, 0x2e, 0x63, 0x6f, 0x6e, 0x73, 0x75, 0x6c,
+	0x2e, 0x72, 0x65, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x2e, 0x54, 0x79, 0x70, 0x65, 0x52, 0x04,
+	0x74, 0x79, 0x70, 0x65, 0x12, 0x3c, 0x0a, 0x07, 0x74, 0x65, 0x6e, 0x61, 0x6e, 0x63, 0x79, 0x18,
+	0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x22, 0x2e, 0x68, 0x61, 0x73, 0x68, 0x69, 0x63, 0x6f, 0x72,
+	0x70, 0x2e, 0x63, 0x6f, 0x6e, 0x73, 0x75, 0x6c, 0x2e, 0x72, 0x65, 0x73, 0x6f, 0x75, 0x72, 0x63,
+	0x65, 0x2e, 0x54, 0x65, 0x6e, 0x61, 0x6e, 0x63, 0x79, 0x52, 0x07, 0x74, 0x65, 0x6e, 0x61, 0x6e,
+	0x63, 0x79, 0x12, 0x1f, 0x0a, 0x0b, 0x6e, 0x61, 0x6d, 0x65, 0x5f, 0x70, 0x72, 0x65, 0x66, 0x69,
+	0x78, 0x18, 0x03, 0x20, 0x01, 0x28, 0x09, 0x52, 0x0a, 0x6e, 0x61, 0x6d, 0x65, 0x50, 0x72, 0x65,
+	0x66, 0x69, 0x78, 0x22, 0x51, 0x0a, 0x0c, 0x4c, 0x69, 0x73, 0x74, 0x52, 0x65, 0x73, 0x70, 0x6f,
+	0x6e, 0x73, 0x65, 0x12, 0x41, 0x0a, 0x09, 0x72, 0x65, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x73,
+	0x18, 0x01, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x23, 0x2e, 0x68, 0x61, 0x73, 0x68, 0x69, 0x63, 0x6f,
+	0x72, 0x70, 0x2e, 0x63, 0x6f, 0x6e, 0x73, 0x75, 0x6c, 0x2e, 0x72, 0x65, 0x73, 0x6f, 0x75, 0x72,
+	0x63, 0x65, 0x2e, 0x52, 0x65, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x52, 0x09, 0x72, 0x65, 0x73,
+	0x6f, 0x75, 0x72, 0x63, 0x65, 0x73, 0x22, 0x4f, 0x0a, 0x0c, 0x57, 0x72, 0x69, 0x74, 0x65, 0x52,
+	0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x3f, 0x0a, 0x08, 0x72, 0x65, 0x73, 0x6f, 0x75, 0x72,
+	0x63, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x23, 0x2e, 0x68, 0x61, 0x73, 0x68, 0x69,
+	0x63, 0x6f, 0x72, 0x70, 0x2e, 0x63, 0x6f, 0x6e, 0x73, 0x75, 0x6c, 0x2e, 0x72, 0x65, 0x73, 0x6f,
+	0x75, 0x72, 0x63, 0x65, 0x2e, 0x52, 0x65, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x52, 0x08, 0x72,
+	0x65, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x22, 0x50, 0x0a, 0x0d, 0x57, 0x72, 0x69, 0x74, 0x65,
+	0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x3f, 0x0a, 0x08, 0x72, 0x65, 0x73, 0x6f,
+	0x75, 0x72, 0x63, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x23, 0x2e, 0x68, 0x61, 0x73,
+	0x68, 0x69, 0x63, 0x6f, 0x72, 0x70, 0x2e, 0x63, 0x6f, 0x6e, 0x73, 0x75, 0x6c, 0x2e, 0x72, 0x65,
+	0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x2e, 0x52, 0x65, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x52,
+	0x08, 0x72, 0x65, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x22, 0xaa, 0x01, 0x0a, 0x12, 0x57, 0x72,
+	0x69, 0x74, 0x65, 0x53, 0x74, 0x61, 0x74, 0x75, 0x73, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74,
+	0x12, 0x2d, 0x0a, 0x02, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x1d, 0x2e, 0x68,
+	0x61, 0x73, 0x68, 0x69, 0x63, 0x6f, 0x72, 0x70, 0x2e, 0x63, 0x6f, 0x6e, 0x73, 0x75, 0x6c, 0x2e,
+	0x72, 0x65, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x2e, 0x49, 0x44, 0x52, 0x02, 0x69, 0x64, 0x12,
+	0x18, 0x0a, 0x07, 0x76, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09,
+	0x52, 0x07, 0x76, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x12, 0x10, 0x0a, 0x03, 0x6b, 0x65, 0x79,
+	0x18, 0x03, 0x20, 0x01, 0x28, 0x09, 0x52, 0x03, 0x6b, 0x65, 0x79, 0x12, 0x39, 0x0a, 0x06, 0x73,
+	0x74, 0x61, 0x74, 0x75, 0x73, 0x18, 0x04, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x21, 0x2e, 0x68, 0x61,
+	0x73, 0x68, 0x69, 0x63, 0x6f, 0x72, 0x70, 0x2e, 0x63, 0x6f, 0x6e, 0x73, 0x75, 0x6c, 0x2e, 0x72,
+	0x65, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x2e, 0x53, 0x74, 0x61, 0x74, 0x75, 0x73, 0x52, 0x06,
+	0x73, 0x74, 0x61, 0x74, 0x75, 0x73, 0x22, 0x56, 0x0a, 0x13, 0x57, 0x72, 0x69, 0x74, 0x65, 0x53,
+	0x74, 0x61, 0x74, 0x75, 0x73, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x3f, 0x0a,
+	0x08, 0x72, 0x65, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32,
+	0x23, 0x2e, 0x68, 0x61, 0x73, 0x68, 0x69, 0x63, 0x6f, 0x72, 0x70, 0x2e, 0x63, 0x6f, 0x6e, 0x73,
+	0x75, 0x6c, 0x2e, 0x72, 0x65, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x2e, 0x52, 0x65, 0x73, 0x6f,
+	0x75, 0x72, 0x63, 0x65, 0x52, 0x08, 0x72, 0x65, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x22, 0x58,
+	0x0a, 0x0d, 0x44, 0x65, 0x6c, 0x65, 0x74, 0x65, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12,
+	0x2d, 0x0a, 0x02, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x1d, 0x2e, 0x68, 0x61,
+	0x73, 0x68, 0x69, 0x63, 0x6f, 0x72, 0x70, 0x2e, 0x63, 0x6f, 0x6e, 0x73, 0x75, 0x6c, 0x2e, 0x72,
+	0x65, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x2e, 0x49, 0x44, 0x52, 0x02, 0x69, 0x64, 0x12, 0x18,
+	0x0a, 0x07, 0x76, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52,
+	0x07, 0x76, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x22, 0x10, 0x0a, 0x0e, 0x44, 0x65, 0x6c, 0x65,
+	0x74, 0x65, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22, 0xa6, 0x01, 0x0a, 0x10, 0x57,
+	0x61, 0x74, 0x63, 0x68, 0x4c, 0x69, 0x73, 0x74, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12,
+	0x33, 0x0a, 0x04, 0x74, 0x79, 0x70, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x1f, 0x2e,
+	0x68, 0x61, 0x73, 0x68, 0x69, 0x63, 0x6f, 0x72, 0x70, 0x2e, 0x63, 0x6f, 0x6e, 0x73, 0x75, 0x6c,
+	0x2e, 0x72, 0x65, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x2e, 0x54, 0x79, 0x70, 0x65, 0x52, 0x04,
+	0x74, 0x79, 0x70, 0x65, 0x12, 0x3c, 0x0a, 0x07, 0x74, 0x65, 0x6e, 0x61, 0x6e, 0x63, 0x79, 0x18,
+	0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x22, 0x2e, 0x68, 0x61, 0x73, 0x68, 0x69, 0x63, 0x6f, 0x72,
+	0x70, 0x2e, 0x63, 0x6f, 0x6e, 0x73, 0x75, 0x6c, 0x2e, 0x72, 0x65, 0x73, 0x6f, 0x75, 0x72, 0x63,
+	0x65, 0x2e, 0x54, 0x65, 0x6e, 0x61, 0x6e, 0x63, 0x79, 0x52, 0x07, 0x74, 0x65, 0x6e, 0x61, 0x6e,
+	0x63, 0x79, 0x12, 0x1f, 0x0a, 0x0b, 0x6e, 0x61, 0x6d, 0x65, 0x5f, 0x70, 0x72, 0x65, 0x66, 0x69,
+	0x78, 0x18, 0x03, 0x20, 0x01, 0x28, 0x09, 0x52, 0x0a, 0x6e, 0x61, 0x6d, 0x65, 0x50, 0x72, 0x65,
+	0x66, 0x69, 0x78, 0x22, 0xf0, 0x01, 0x0a, 0x0a, 0x57, 0x61, 0x74, 0x63, 0x68, 0x45, 0x76, 0x65,
+	0x6e, 0x74, 0x12, 0x4d, 0x0a, 0x09, 0x6f, 0x70, 0x65, 0x72, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x18,
+	0x01, 0x20, 0x01, 0x28, 0x0e, 0x32, 0x2f, 0x2e, 0x68, 0x61, 0x73, 0x68, 0x69, 0x63, 0x6f, 0x72,
+	0x70, 0x2e, 0x63, 0x6f, 0x6e, 0x73, 0x75, 0x6c, 0x2e, 0x72, 0x65, 0x73, 0x6f, 0x75, 0x72, 0x63,
+	0x65, 0x2e, 0x57, 0x61, 0x74, 0x63, 0x68, 0x45, 0x76, 0x65, 0x6e, 0x74, 0x2e, 0x4f, 0x70, 0x65,
+	0x72, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x52, 0x09, 0x6f, 0x70, 0x65, 0x72, 0x61, 0x74, 0x69, 0x6f,
+	0x6e, 0x12, 0x3f, 0x0a, 0x08, 0x72, 0x65, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x18, 0x02, 0x20,
 	0x01, 0x28, 0x0b, 0x32, 0x23, 0x2e, 0x68, 0x61, 0x73, 0x68, 0x69, 0x63, 0x6f, 0x72, 0x70, 0x2e,
 	0x63, 0x6f, 0x6e, 0x73, 0x75, 0x6c, 0x2e, 0x72, 0x65, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x2e,
 	0x52, 0x65, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x52, 0x08, 0x72, 0x65, 0x73, 0x6f, 0x75, 0x72,
-	0x63, 0x65, 0x22, 0xa1, 0x01, 0x0a, 0x0b, 0x4c, 0x69, 0x73, 0x74, 0x52, 0x65, 0x71, 0x75, 0x65,
-	0x73, 0x74, 0x12, 0x33, 0x0a, 0x04, 0x74, 0x79, 0x70, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b,
-	0x32, 0x1f, 0x2e, 0x68, 0x61, 0x73, 0x68, 0x69, 0x63, 0x6f, 0x72, 0x70, 0x2e, 0x63, 0x6f, 0x6e,
-	0x73, 0x75, 0x6c, 0x2e, 0x72, 0x65, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x2e, 0x54, 0x79, 0x70,
-	0x65, 0x52, 0x04, 0x74, 0x79, 0x70, 0x65, 0x12, 0x3c, 0x0a, 0x07, 0x74, 0x65, 0x6e, 0x61, 0x6e,
-	0x63, 0x79, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x22, 0x2e, 0x68, 0x61, 0x73, 0x68, 0x69,
-	0x63, 0x6f, 0x72, 0x70, 0x2e, 0x63, 0x6f, 0x6e, 0x73, 0x75, 0x6c, 0x2e, 0x72, 0x65, 0x73, 0x6f,
-	0x75, 0x72, 0x63, 0x65, 0x2e, 0x54, 0x65, 0x6e, 0x61, 0x6e, 0x63, 0x79, 0x52, 0x07, 0x74, 0x65,
-	0x6e, 0x61, 0x6e, 0x63, 0x79, 0x12, 0x1f, 0x0a, 0x0b, 0x6e, 0x61, 0x6d, 0x65, 0x5f, 0x70, 0x72,
-	0x65, 0x66, 0x69, 0x78, 0x18, 0x03, 0x20, 0x01, 0x28, 0x09, 0x52, 0x0a, 0x6e, 0x61, 0x6d, 0x65,
-	0x50, 0x72, 0x65, 0x66, 0x69, 0x78, 0x22, 0x51, 0x0a, 0x0c, 0x4c, 0x69, 0x73, 0x74, 0x52, 0x65,
-	0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x41, 0x0a, 0x09, 0x72, 0x65, 0x73, 0x6f, 0x75, 0x72,
-	0x63, 0x65, 0x73, 0x18, 0x01, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x23, 0x2e, 0x68, 0x61, 0x73, 0x68,
-	0x69, 0x63, 0x6f, 0x72, 0x70, 0x2e, 0x63, 0x6f, 0x6e, 0x73, 0x75, 0x6c, 0x2e, 0x72, 0x65, 0x73,
-	0x6f, 0x75, 0x72, 0x63, 0x65, 0x2e, 0x52, 0x65, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x52, 0x09,
-	0x72, 0x65, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x73, 0x22, 0x4f, 0x0a, 0x0c, 0x57, 0x72, 0x69,
-	0x74, 0x65, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x3f, 0x0a, 0x08, 0x72, 0x65, 0x73,
-	0x6f, 0x75, 0x72, 0x63, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x23, 0x2e, 0x68, 0x61,
-	0x73, 0x68, 0x69, 0x63, 0x6f, 0x72, 0x70, 0x2e, 0x63, 0x6f, 0x6e, 0x73, 0x75, 0x6c, 0x2e, 0x72,
-	0x65, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x2e, 0x52, 0x65, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65,
-	0x52, 0x08, 0x72, 0x65, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x22, 0x50, 0x0a, 0x0d, 0x57, 0x72,
-	0x69, 0x74, 0x65, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x3f, 0x0a, 0x08, 0x72,
-	0x65, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x23, 0x2e,
-	0x68, 0x61, 0x73, 0x68, 0x69, 0x63, 0x6f, 0x72, 0x70, 0x2e, 0x63, 0x6f, 0x6e, 0x73, 0x75, 0x6c,
-	0x2e, 0x72, 0x65, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x2e, 0x52, 0x65, 0x73, 0x6f, 0x75, 0x72,
-	0x63, 0x65, 0x52, 0x08, 0x72, 0x65, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x22, 0xaa, 0x01, 0x0a,
-	0x12, 0x57, 0x72, 0x69, 0x74, 0x65, 0x53, 0x74, 0x61, 0x74, 0x75, 0x73, 0x52, 0x65, 0x71, 0x75,
-	0x65, 0x73, 0x74, 0x12, 0x2d, 0x0a, 0x02, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32,
-	0x1d, 0x2e, 0x68, 0x61, 0x73, 0x68, 0x69, 0x63, 0x6f, 0x72, 0x70, 0x2e, 0x63, 0x6f, 0x6e, 0x73,
-	0x75, 0x6c, 0x2e, 0x72, 0x65, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x2e, 0x49, 0x44, 0x52, 0x02,
-	0x69, 0x64, 0x12, 0x18, 0x0a, 0x07, 0x76, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x18, 0x02, 0x20,
-	0x01, 0x28, 0x09, 0x52, 0x07, 0x76, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x12, 0x10, 0x0a, 0x03,
-	0x6b, 0x65, 0x79, 0x18, 0x03, 0x20, 0x01, 0x28, 0x09, 0x52, 0x03, 0x6b, 0x65, 0x79, 0x12, 0x39,
-	0x0a, 0x06, 0x73, 0x74, 0x61, 0x74, 0x75, 0x73, 0x18, 0x04, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x21,
-	0x2e, 0x68, 0x61, 0x73, 0x68, 0x69, 0x63, 0x6f, 0x72, 0x70, 0x2e, 0x63, 0x6f, 0x6e, 0x73, 0x75,
-	0x6c, 0x2e, 0x72, 0x65, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x2e, 0x53, 0x74, 0x61, 0x74, 0x75,
-	0x73, 0x52, 0x06, 0x73, 0x74, 0x61, 0x74, 0x75, 0x73, 0x22, 0x56, 0x0a, 0x13, 0x57, 0x72, 0x69,
-	0x74, 0x65, 0x53, 0x74, 0x61, 0x74, 0x75, 0x73, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65,
-	0x12, 0x3f, 0x0a, 0x08, 0x72, 0x65, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x18, 0x01, 0x20, 0x01,
-	0x28, 0x0b, 0x32, 0x23, 0x2e, 0x68, 0x61, 0x73, 0x68, 0x69, 0x63, 0x6f, 0x72, 0x70, 0x2e, 0x63,
-	0x6f, 0x6e, 0x73, 0x75, 0x6c, 0x2e, 0x72, 0x65, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x2e, 0x52,
-	0x65, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x52, 0x08, 0x72, 0x65, 0x73, 0x6f, 0x75, 0x72, 0x63,
-	0x65, 0x22, 0x58, 0x0a, 0x0d, 0x44, 0x65, 0x6c, 0x65, 0x74, 0x65, 0x52, 0x65, 0x71, 0x75, 0x65,
-	0x73, 0x74, 0x12, 0x2d, 0x0a, 0x02, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x1d,
-	0x2e, 0x68, 0x61, 0x73, 0x68, 0x69, 0x63, 0x6f, 0x72, 0x70, 0x2e, 0x63, 0x6f, 0x6e, 0x73, 0x75,
-	0x6c, 0x2e, 0x72, 0x65, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x2e, 0x49, 0x44, 0x52, 0x02, 0x69,
-	0x64, 0x12, 0x18, 0x0a, 0x07, 0x76, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x18, 0x02, 0x20, 0x01,
-	0x28, 0x09, 0x52, 0x07, 0x76, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x22, 0x10, 0x0a, 0x0e, 0x44,
-	0x65, 0x6c, 0x65, 0x74, 0x65, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22, 0xa6, 0x01,
-	0x0a, 0x10, 0x57, 0x61, 0x74, 0x63, 0x68, 0x4c, 0x69, 0x73, 0x74, 0x52, 0x65, 0x71, 0x75, 0x65,
-	0x73, 0x74, 0x12, 0x33, 0x0a, 0x04, 0x74, 0x79, 0x70, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b,
-	0x32, 0x1f, 0x2e, 0x68, 0x61, 0x73, 0x68, 0x69, 0x63, 0x6f, 0x72, 0x70, 0x2e, 0x63, 0x6f, 0x6e,
-	0x73, 0x75, 0x6c, 0x2e, 0x72, 0x65, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x2e, 0x54, 0x79, 0x70,
-	0x65, 0x52, 0x04, 0x74, 0x79, 0x70, 0x65, 0x12, 0x3c, 0x0a, 0x07, 0x74, 0x65, 0x6e, 0x61, 0x6e,
-	0x63, 0x79, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x22, 0x2e, 0x68, 0x61, 0x73, 0x68, 0x69,
-	0x63, 0x6f, 0x72, 0x70, 0x2e, 0x63, 0x6f, 0x6e, 0x73, 0x75, 0x6c, 0x2e, 0x72, 0x65, 0x73, 0x6f,
-	0x75, 0x72, 0x63, 0x65, 0x2e, 0x54, 0x65, 0x6e, 0x61, 0x6e, 0x63, 0x79, 0x52, 0x07, 0x74, 0x65,
-	0x6e, 0x61, 0x6e, 0x63, 0x79, 0x12, 0x1f, 0x0a, 0x0b, 0x6e, 0x61, 0x6d, 0x65, 0x5f, 0x70, 0x72,
-	0x65, 0x66, 0x69, 0x78, 0x18, 0x03, 0x20, 0x01, 0x28, 0x09, 0x52, 0x0a, 0x6e, 0x61, 0x6d, 0x65,
-	0x50, 0x72, 0x65, 0x66, 0x69, 0x78, 0x32, 0x8b, 0x05, 0x0a, 0x0f, 0x52, 0x65, 0x73, 0x6f, 0x75,
+	0x63, 0x65, 0x22, 0x52, 0x0a, 0x09, 0x4f, 0x70, 0x65, 0x72, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x12,
+	0x19, 0x0a, 0x15, 0x4f, 0x50, 0x45, 0x52, 0x41, 0x54, 0x49, 0x4f, 0x4e, 0x5f, 0x55, 0x4e, 0x53,
+	0x50, 0x45, 0x43, 0x49, 0x46, 0x49, 0x45, 0x44, 0x10, 0x00, 0x12, 0x14, 0x0a, 0x10, 0x4f, 0x50,
+	0x45, 0x52, 0x41, 0x54, 0x49, 0x4f, 0x4e, 0x5f, 0x55, 0x50, 0x53, 0x45, 0x52, 0x54, 0x10, 0x01,
+	0x12, 0x14, 0x0a, 0x10, 0x4f, 0x50, 0x45, 0x52, 0x41, 0x54, 0x49, 0x4f, 0x4e, 0x5f, 0x44, 0x45,
+	0x4c, 0x45, 0x54, 0x45, 0x10, 0x02, 0x32, 0x8b, 0x05, 0x0a, 0x0f, 0x52, 0x65, 0x73, 0x6f, 0x75,
 	0x72, 0x63, 0x65, 0x53, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x12, 0x61, 0x0a, 0x04, 0x52, 0x65,
 	0x61, 0x64, 0x12, 0x26, 0x2e, 0x68, 0x61, 0x73, 0x68, 0x69, 0x63, 0x6f, 0x72, 0x70, 0x2e, 0x63,
 	0x6f, 0x6e, 0x73, 0x75, 0x6c, 0x2e, 0x72, 0x65, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x2e, 0x52,
@@ -1515,18 +1662,18 @@ var file_pbresource_resource_proto_goTypes = []interface{}{
 	(*Status)(nil),              // 6: hashicorp.consul.resource.Status
 	(*Condition)(nil),           // 7: hashicorp.consul.resource.Condition
 	(*Reference)(nil),           // 8: hashicorp.consul.resource.Reference
-	(*WatchEvent)(nil),          // 9: hashicorp.consul.resource.WatchEvent
-	(*ReadRequest)(nil),         // 10: hashicorp.consul.resource.ReadRequest
-	(*ReadResponse)(nil),        // 11: hashicorp.consul.resource.ReadResponse
-	(*ListRequest)(nil),         // 12: hashicorp.consul.resource.ListRequest
-	(*ListResponse)(nil),        // 13: hashicorp.consul.resource.ListResponse
-	(*WriteRequest)(nil),        // 14: hashicorp.consul.resource.WriteRequest
-	(*WriteResponse)(nil),       // 15: hashicorp.consul.resource.WriteResponse
-	(*WriteStatusRequest)(nil),  // 16: hashicorp.consul.resource.WriteStatusRequest
-	(*WriteStatusResponse)(nil), // 17: hashicorp.consul.resource.WriteStatusResponse
-	(*DeleteRequest)(nil),       // 18: hashicorp.consul.resource.DeleteRequest
-	(*DeleteResponse)(nil),      // 19: hashicorp.consul.resource.DeleteResponse
-	(*WatchListRequest)(nil),    // 20: hashicorp.consul.resource.WatchListRequest
+	(*ReadRequest)(nil),         // 9: hashicorp.consul.resource.ReadRequest
+	(*ReadResponse)(nil),        // 10: hashicorp.consul.resource.ReadResponse
+	(*ListRequest)(nil),         // 11: hashicorp.consul.resource.ListRequest
+	(*ListResponse)(nil),        // 12: hashicorp.consul.resource.ListResponse
+	(*WriteRequest)(nil),        // 13: hashicorp.consul.resource.WriteRequest
+	(*WriteResponse)(nil),       // 14: hashicorp.consul.resource.WriteResponse
+	(*WriteStatusRequest)(nil),  // 15: hashicorp.consul.resource.WriteStatusRequest
+	(*WriteStatusResponse)(nil), // 16: hashicorp.consul.resource.WriteStatusResponse
+	(*DeleteRequest)(nil),       // 17: hashicorp.consul.resource.DeleteRequest
+	(*DeleteResponse)(nil),      // 18: hashicorp.consul.resource.DeleteResponse
+	(*WatchListRequest)(nil),    // 19: hashicorp.consul.resource.WatchListRequest
+	(*WatchEvent)(nil),          // 20: hashicorp.consul.resource.WatchEvent
 	nil,                         // 21: hashicorp.consul.resource.Resource.MetadataEntry
 	nil,                         // 22: hashicorp.consul.resource.Resource.StatusEntry
 	(*anypb.Any)(nil),           // 23: google.protobuf.Any
@@ -1544,34 +1691,34 @@ var file_pbresource_resource_proto_depIdxs = []int32{
 	8,  // 9: hashicorp.consul.resource.Condition.resource:type_name -> hashicorp.consul.resource.Reference
 	2,  // 10: hashicorp.consul.resource.Reference.type:type_name -> hashicorp.consul.resource.Type
 	3,  // 11: hashicorp.consul.resource.Reference.tenancy:type_name -> hashicorp.consul.resource.Tenancy
-	1,  // 12: hashicorp.consul.resource.WatchEvent.operation:type_name -> hashicorp.consul.resource.WatchEvent.Operation
-	5,  // 13: hashicorp.consul.resource.WatchEvent.resource:type_name -> hashicorp.consul.resource.Resource
-	4,  // 14: hashicorp.consul.resource.ReadRequest.id:type_name -> hashicorp.consul.resource.ID
-	5,  // 15: hashicorp.consul.resource.ReadResponse.resource:type_name -> hashicorp.consul.resource.Resource
-	2,  // 16: hashicorp.consul.resource.ListRequest.type:type_name -> hashicorp.consul.resource.Type
-	3,  // 17: hashicorp.consul.resource.ListRequest.tenancy:type_name -> hashicorp.consul.resource.Tenancy
-	5,  // 18: hashicorp.consul.resource.ListResponse.resources:type_name -> hashicorp.consul.resource.Resource
-	5,  // 19: hashicorp.consul.resource.WriteRequest.resource:type_name -> hashicorp.consul.resource.Resource
-	5,  // 20: hashicorp.consul.resource.WriteResponse.resource:type_name -> hashicorp.consul.resource.Resource
-	4,  // 21: hashicorp.consul.resource.WriteStatusRequest.id:type_name -> hashicorp.consul.resource.ID
-	6,  // 22: hashicorp.consul.resource.WriteStatusRequest.status:type_name -> hashicorp.consul.resource.Status
-	5,  // 23: hashicorp.consul.resource.WriteStatusResponse.resource:type_name -> hashicorp.consul.resource.Resource
-	4,  // 24: hashicorp.consul.resource.DeleteRequest.id:type_name -> hashicorp.consul.resource.ID
-	2,  // 25: hashicorp.consul.resource.WatchListRequest.type:type_name -> hashicorp.consul.resource.Type
-	3,  // 26: hashicorp.consul.resource.WatchListRequest.tenancy:type_name -> hashicorp.consul.resource.Tenancy
+	4,  // 12: hashicorp.consul.resource.ReadRequest.id:type_name -> hashicorp.consul.resource.ID
+	5,  // 13: hashicorp.consul.resource.ReadResponse.resource:type_name -> hashicorp.consul.resource.Resource
+	2,  // 14: hashicorp.consul.resource.ListRequest.type:type_name -> hashicorp.consul.resource.Type
+	3,  // 15: hashicorp.consul.resource.ListRequest.tenancy:type_name -> hashicorp.consul.resource.Tenancy
+	5,  // 16: hashicorp.consul.resource.ListResponse.resources:type_name -> hashicorp.consul.resource.Resource
+	5,  // 17: hashicorp.consul.resource.WriteRequest.resource:type_name -> hashicorp.consul.resource.Resource
+	5,  // 18: hashicorp.consul.resource.WriteResponse.resource:type_name -> hashicorp.consul.resource.Resource
+	4,  // 19: hashicorp.consul.resource.WriteStatusRequest.id:type_name -> hashicorp.consul.resource.ID
+	6,  // 20: hashicorp.consul.resource.WriteStatusRequest.status:type_name -> hashicorp.consul.resource.Status
+	5,  // 21: hashicorp.consul.resource.WriteStatusResponse.resource:type_name -> hashicorp.consul.resource.Resource
+	4,  // 22: hashicorp.consul.resource.DeleteRequest.id:type_name -> hashicorp.consul.resource.ID
+	2,  // 23: hashicorp.consul.resource.WatchListRequest.type:type_name -> hashicorp.consul.resource.Type
+	3,  // 24: hashicorp.consul.resource.WatchListRequest.tenancy:type_name -> hashicorp.consul.resource.Tenancy
+	1,  // 25: hashicorp.consul.resource.WatchEvent.operation:type_name -> hashicorp.consul.resource.WatchEvent.Operation
+	5,  // 26: hashicorp.consul.resource.WatchEvent.resource:type_name -> hashicorp.consul.resource.Resource
 	6,  // 27: hashicorp.consul.resource.Resource.StatusEntry.value:type_name -> hashicorp.consul.resource.Status
-	10, // 28: hashicorp.consul.resource.ResourceService.Read:input_type -> hashicorp.consul.resource.ReadRequest
-	14, // 29: hashicorp.consul.resource.ResourceService.Write:input_type -> hashicorp.consul.resource.WriteRequest
-	16, // 30: hashicorp.consul.resource.ResourceService.WriteStatus:input_type -> hashicorp.consul.resource.WriteStatusRequest
-	12, // 31: hashicorp.consul.resource.ResourceService.List:input_type -> hashicorp.consul.resource.ListRequest
-	18, // 32: hashicorp.consul.resource.ResourceService.Delete:input_type -> hashicorp.consul.resource.DeleteRequest
-	20, // 33: hashicorp.consul.resource.ResourceService.WatchList:input_type -> hashicorp.consul.resource.WatchListRequest
-	11, // 34: hashicorp.consul.resource.ResourceService.Read:output_type -> hashicorp.consul.resource.ReadResponse
-	15, // 35: hashicorp.consul.resource.ResourceService.Write:output_type -> hashicorp.consul.resource.WriteResponse
-	17, // 36: hashicorp.consul.resource.ResourceService.WriteStatus:output_type -> hashicorp.consul.resource.WriteStatusResponse
-	13, // 37: hashicorp.consul.resource.ResourceService.List:output_type -> hashicorp.consul.resource.ListResponse
-	19, // 38: hashicorp.consul.resource.ResourceService.Delete:output_type -> hashicorp.consul.resource.DeleteResponse
-	9,  // 39: hashicorp.consul.resource.ResourceService.WatchList:output_type -> hashicorp.consul.resource.WatchEvent
+	9,  // 28: hashicorp.consul.resource.ResourceService.Read:input_type -> hashicorp.consul.resource.ReadRequest
+	13, // 29: hashicorp.consul.resource.ResourceService.Write:input_type -> hashicorp.consul.resource.WriteRequest
+	15, // 30: hashicorp.consul.resource.ResourceService.WriteStatus:input_type -> hashicorp.consul.resource.WriteStatusRequest
+	11, // 31: hashicorp.consul.resource.ResourceService.List:input_type -> hashicorp.consul.resource.ListRequest
+	17, // 32: hashicorp.consul.resource.ResourceService.Delete:input_type -> hashicorp.consul.resource.DeleteRequest
+	19, // 33: hashicorp.consul.resource.ResourceService.WatchList:input_type -> hashicorp.consul.resource.WatchListRequest
+	10, // 34: hashicorp.consul.resource.ResourceService.Read:output_type -> hashicorp.consul.resource.ReadResponse
+	14, // 35: hashicorp.consul.resource.ResourceService.Write:output_type -> hashicorp.consul.resource.WriteResponse
+	16, // 36: hashicorp.consul.resource.ResourceService.WriteStatus:output_type -> hashicorp.consul.resource.WriteStatusResponse
+	12, // 37: hashicorp.consul.resource.ResourceService.List:output_type -> hashicorp.consul.resource.ListResponse
+	18, // 38: hashicorp.consul.resource.ResourceService.Delete:output_type -> hashicorp.consul.resource.DeleteResponse
+	20, // 39: hashicorp.consul.resource.ResourceService.WatchList:output_type -> hashicorp.consul.resource.WatchEvent
 	34, // [34:40] is the sub-list for method output_type
 	28, // [28:34] is the sub-list for method input_type
 	28, // [28:28] is the sub-list for extension type_name
@@ -1670,18 +1817,6 @@ func file_pbresource_resource_proto_init() {
 			}
 		}
 		file_pbresource_resource_proto_msgTypes[7].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*WatchEvent); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_pbresource_resource_proto_msgTypes[8].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*ReadRequest); i {
 			case 0:
 				return &v.state
@@ -1693,7 +1828,7 @@ func file_pbresource_resource_proto_init() {
 				return nil
 			}
 		}
-		file_pbresource_resource_proto_msgTypes[9].Exporter = func(v interface{}, i int) interface{} {
+		file_pbresource_resource_proto_msgTypes[8].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*ReadResponse); i {
 			case 0:
 				return &v.state
@@ -1705,7 +1840,7 @@ func file_pbresource_resource_proto_init() {
 				return nil
 			}
 		}
-		file_pbresource_resource_proto_msgTypes[10].Exporter = func(v interface{}, i int) interface{} {
+		file_pbresource_resource_proto_msgTypes[9].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*ListRequest); i {
 			case 0:
 				return &v.state
@@ -1717,7 +1852,7 @@ func file_pbresource_resource_proto_init() {
 				return nil
 			}
 		}
-		file_pbresource_resource_proto_msgTypes[11].Exporter = func(v interface{}, i int) interface{} {
+		file_pbresource_resource_proto_msgTypes[10].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*ListResponse); i {
 			case 0:
 				return &v.state
@@ -1729,7 +1864,7 @@ func file_pbresource_resource_proto_init() {
 				return nil
 			}
 		}
-		file_pbresource_resource_proto_msgTypes[12].Exporter = func(v interface{}, i int) interface{} {
+		file_pbresource_resource_proto_msgTypes[11].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*WriteRequest); i {
 			case 0:
 				return &v.state
@@ -1741,7 +1876,7 @@ func file_pbresource_resource_proto_init() {
 				return nil
 			}
 		}
-		file_pbresource_resource_proto_msgTypes[13].Exporter = func(v interface{}, i int) interface{} {
+		file_pbresource_resource_proto_msgTypes[12].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*WriteResponse); i {
 			case 0:
 				return &v.state
@@ -1753,7 +1888,7 @@ func file_pbresource_resource_proto_init() {
 				return nil
 			}
 		}
-		file_pbresource_resource_proto_msgTypes[14].Exporter = func(v interface{}, i int) interface{} {
+		file_pbresource_resource_proto_msgTypes[13].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*WriteStatusRequest); i {
 			case 0:
 				return &v.state
@@ -1765,7 +1900,7 @@ func file_pbresource_resource_proto_init() {
 				return nil
 			}
 		}
-		file_pbresource_resource_proto_msgTypes[15].Exporter = func(v interface{}, i int) interface{} {
+		file_pbresource_resource_proto_msgTypes[14].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*WriteStatusResponse); i {
 			case 0:
 				return &v.state
@@ -1777,7 +1912,7 @@ func file_pbresource_resource_proto_init() {
 				return nil
 			}
 		}
-		file_pbresource_resource_proto_msgTypes[16].Exporter = func(v interface{}, i int) interface{} {
+		file_pbresource_resource_proto_msgTypes[15].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*DeleteRequest); i {
 			case 0:
 				return &v.state
@@ -1789,7 +1924,7 @@ func file_pbresource_resource_proto_init() {
 				return nil
 			}
 		}
-		file_pbresource_resource_proto_msgTypes[17].Exporter = func(v interface{}, i int) interface{} {
+		file_pbresource_resource_proto_msgTypes[16].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*DeleteResponse); i {
 			case 0:
 				return &v.state
@@ -1801,8 +1936,20 @@ func file_pbresource_resource_proto_init() {
 				return nil
 			}
 		}
-		file_pbresource_resource_proto_msgTypes[18].Exporter = func(v interface{}, i int) interface{} {
+		file_pbresource_resource_proto_msgTypes[17].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*WatchListRequest); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_pbresource_resource_proto_msgTypes[18].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*WatchEvent); i {
 			case 0:
 				return &v.state
 			case 1:
