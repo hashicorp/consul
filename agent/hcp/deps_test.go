@@ -63,28 +63,6 @@ func TestSink(t *testing.T) {
 				mockClient.EXPECT().FetchTelemetryConfig(mock.Anything).Return(nil, fmt.Errorf("FetchTelemetryConfig error"))
 			},
 		},
-		"failsWithURLParseErr": {
-			expect: func(mockClient *client.MockClient) {
-				mockClient.EXPECT().FetchTelemetryConfig(mock.Anything).Return(&client.TelemetryConfig{
-					// Minimum 2 chars for a domain to be valid.
-					Endpoint: "s",
-					MetricsConfig: &client.MetricsConfig{
-						// Invalid domain chars
-						Endpoint: "			",
-					},
-				}, nil)
-			},
-		},
-		"noErrWithEmptyEndpoint": {
-			expect: func(mockClient *client.MockClient) {
-				mockClient.EXPECT().FetchTelemetryConfig(mock.Anything).Return(&client.TelemetryConfig{
-					Endpoint: "",
-					MetricsConfig: &client.MetricsConfig{
-						Endpoint: "",
-					},
-				}, nil)
-			},
-		},
 	} {
 		test := test
 		t.Run(name, func(t *testing.T) {

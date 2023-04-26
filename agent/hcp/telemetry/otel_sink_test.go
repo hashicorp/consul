@@ -17,8 +17,13 @@ import (
 )
 
 var (
-	attrs = attribute.NewSet(attribute.KeyValue{
+	expectedResource = resource.NewWithAttributes("", attribute.KeyValue{
 		Key:   attribute.Key("server.id"),
+		Value: attribute.StringValue("test"),
+	})
+
+	attrs = attribute.NewSet(attribute.KeyValue{
+		Key:   attribute.Key("metric.label"),
 		Value: attribute.StringValue("test"),
 	})
 
@@ -129,6 +134,15 @@ func TestNewOTELSink(t *testing.T) {
 				Ctx:    context.Background(),
 			},
 		},
+		"success": {
+			opts: &OTELSinkOpts{
+				Reader: metric.NewManualReader(),
+				Labels: map[string]string{
+					"server": "test",
+				},
+				Filters: []string{"raft"},
+			},
+		},
 	} {
 		test := test
 		t.Run(name, func(t *testing.T) {
@@ -153,8 +167,12 @@ func TestOTELSink(t *testing.T) {
 
 	ctx := context.Background()
 	opts := &OTELSinkOpts{
-		Reader: reader,
-		Ctx:    ctx,
+		Reader:  reader,
+		Ctx:     ctx,
+		Filters: []string{"raft", "autopilot"},
+		Labels: map[string]string{
+			"server.id": "test",
+		},
 	}
 
 	sink, err := NewOTELSink(opts)
@@ -162,7 +180,7 @@ func TestOTELSink(t *testing.T) {
 
 	labels := []gometrics.Label{
 		{
-			Name:  "server.id",
+			Name:  "metric.label",
 			Value: "test",
 		},
 	}
@@ -187,8 +205,9 @@ func TestOTELSink_Race(t *testing.T) {
 	reader := metric.NewManualReader()
 	ctx := context.Background()
 	opts := &OTELSinkOpts{
-		Ctx:    ctx,
-		Reader: reader,
+		Ctx:     ctx,
+		Reader:  reader,
+		Filters: []string{"test"},
 	}
 
 	sink, err := NewOTELSink(opts)
