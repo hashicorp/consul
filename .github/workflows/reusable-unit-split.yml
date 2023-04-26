@@ -128,6 +128,19 @@ jobs:
           -tags="${{env.GOTAGS}}" -p 2 \
           ${GO_TEST_FLAGS-} \
           -cover -coverprofile=coverage.txt
+
+      - name: prepare datadog-ci
+        if: ${{ !endsWith(github.repository, '-enterprise') }}
+        run: |
+          curl -L --fail "https://github.com/DataDog/datadog-ci/releases/latest/download/datadog-ci_linux-x64" --output "/usr/local/bin/datadog-ci"
+          chmod +x /usr/local/bin/datadog-ci
+
+      - name: upload coverage
+        env:
+          DATADOG_API_KEY: "${{ secrets.DATADOG_API_KEY }}"
+          DD_ENV: ci
+        run: datadog-ci junit upload --service "$GITHUB_REPOSITORY" ${{env.TEST_RESULTS}}/gotestsum-report.xml
+
       - uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # pin@v3.1.2
         with:
           name: test-results

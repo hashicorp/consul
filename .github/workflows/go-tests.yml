@@ -21,7 +21,6 @@ permissions:
 
 env:
   TEST_RESULTS: /tmp/test-results
-  GOTESTSUM_VERSION: 1.8.2
 
 jobs:
   setup:
