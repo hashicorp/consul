@@ -92,6 +92,18 @@ jobs:
             --packages="./command/agent/consul" \
             --junitfile $TEST_RESULTS_DIR/results.xml -- \
             -run TestConsul
+      
+      - name: prepare datadog-ci
+        if: ${{ !endsWith(github.repository, '-enterprise') }}
+        run: |
+          curl -L --fail "https://github.com/DataDog/datadog-ci/releases/latest/download/datadog-ci_linux-x64" --output "/usr/local/bin/datadog-ci"
+          chmod +x /usr/local/bin/datadog-ci
+
+      - name: upload coverage
+        env:
+          DATADOG_API_KEY: "${{ secrets.DATADOG_API_KEY }}"
+          DD_ENV: ci
+        run: datadog-ci junit upload --service "$GITHUB_REPOSITORY" $TEST_RESULTS_DIR/results.xml
 
   vault-integration-test:
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-large) }}
