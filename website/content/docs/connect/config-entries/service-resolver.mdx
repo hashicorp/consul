@@ -71,7 +71,7 @@ The following list outlines field hierarchy, language-specific data types, and r
 <Tab heading="YAML" group="yaml">
 
 - [`apiVersion`](#apiversion): string | required | must be set to `consul.hashicorp.com/v1alpha1`
-- [`kind`](#kind): string | required | must be set to `serviceResolver`
+- [`kind`](#kind): string | required | must be set to `ServiceResolver`
 - [`metadata`](#metadata): map | required
   - [`name`](#metadata-name): string | required
   - [`namespace`](#metadata-namespace): string | optional <EnterpriseAlert inline />
@@ -399,12 +399,12 @@ Specifies the admin partition that the service resolver applies to. Refer to [ad
 
 ### `Meta`
 
-Specifies key-value pairs to add to the KV store.
+Specifies key/value pairs to add to the KV store.
 
 #### Values
 
 - Default: none
-- Data type: Map of one or more key-value pairs
+- Data type: Map of one or more key/value pairs
   - `<KEY>`: String
   - `<VALUE>`: String or integer
 
@@ -662,7 +662,7 @@ Specifies the namespace that the service resolver applies to. Refer to [namespac
 
 ### `spec`
 
-Map that contains the details about the `ServiceIntentions` configuration entry. The `apiVersion`, `kind`, and `metadata` fields are siblings of the spec field. All other configurations are children.
+Map that contains the details about the `ServiceResolver` configuration entry. The `apiVersion`, `kind`, and `metadata` fields are siblings of the spec field. All other configurations are children.
 
 #### Values
 

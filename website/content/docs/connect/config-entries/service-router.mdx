@@ -70,7 +70,7 @@ The following list outlines field hierarchy, language-specific data types, and r
 <Tab heading="YAML" group="yaml">
 
 - [`apiVersion`](#apiversion): string | required | must be set to `consul.hashicorp.com/v1alpha1`
-- [`kind`](#kind): string | required | must be set to `serviceRouter`
+- [`kind`](#kind): string | required | must be set to `ServiceRouter`
 - [`metadata`](#metadata): map | required
   - [`name`](#metadata-name): string | required
   - [`namespace`](#metadata-namespace): string | optional <EnterpriseAlert inline />
@@ -391,12 +391,12 @@ Specifies the [admin partition](/consul/docs/enterprise/admin-partitions) to app
 
 ### `Meta`
 
-Specifies key-value pairs to add to the KV store.
+Specifies key/value pairs to add to the KV store.
 
 #### Values
 
 - Default: None
-- Data type: Map of one or more key-value pairs
+- Data type: Map of one or more key/value pairs
   - `<KEY>`: String
   - `<VALUE>`: String or integer
 
@@ -561,16 +561,16 @@ Specifies a set of HTTP-specific header modification rules applied to requests r
 
 - Default: None
 - Values: Object containing one or more fields that define header modification rules:
-  - `Add`: Map of one or more key-value pairs.
-  - `Set`: Map of one or more key-value pairs.
-  - `Remove`: Map of one or more key-value pairs.
+  - `Add`: Map of one or more key/value pairs.
+  - `Set`: Map of one or more key/value pairs.
+  - `Remove`: Map of one or more key/value pairs.
 
 The following table describes how to configure values for request headers:
 
 | Rule | Description | Type |   
 | ---       | ---         | ---         |  
-| `Add` | Defines a set of key-value pairs to add to the header. Use header names as the keys. Header names are not case-sensitive. If header values with the same name already exist, the value is appended and Consul applies both headers. You can [use variable placeholders](#use-variable-placeholders). | map of strings | 
-| `Set` | Defines a set of key-value pairs to add to the request header or to replace existing header values with. Use header names as the keys. Header names are not case-sensitive. If header values with the same names already exist, Consul replaces the header values. You can [use variable placeholders](#use-variable-placeholders). | map of strings | 
+| `Add` | Defines a set of key/value pairs to add to the header. Use header names as the keys. Header names are not case-sensitive. If header values with the same name already exist, the value is appended and Consul applies both headers. You can [use variable placeholders](#use-variable-placeholders). | map of strings | 
+| `Set` | Defines a set of key/value pairs to add to the request header or to replace existing header values with. Use header names as the keys. Header names are not case-sensitive. If header values with the same names already exist, Consul replaces the header values. You can [use variable placeholders](#use-variable-placeholders). | map of strings | 
 | `Remove` | Defines a list of headers to remove. Consul removes only headers containing exact matches. Header names are not case-sensitive. | list of strings |
 
 #### Use variable placeholders
@@ -585,16 +585,16 @@ Specifies a set of HTTP-specific header modification rules applied to responses 
 
 - Default: None
 - Values: Object containing one or more fields that define header modification rules:
-  - `Add`: Map of one or more string key-value pairs.
-  - `Set`: Map of one or more string key-value pairs.
-  - `Remove`: Map of one or more string key-value pairs.
+  - `Add`: Map of one or more string key/value pairs.
+  - `Set`: Map of one or more string key/value pairs.
+  - `Remove`: Map of one or more string key/value pairs.
 
 The following table describes how to configure values for response headers:
   
 | Rule | Description | Type | 
 | ---       | ---         | ---         |  
-| `Add` | Defines a set of key-value pairs to add to the header. Use header names as the keys. Header names are not case-sensitive. If header values with the same name already exist, the value is appended and Consul applies both headers. You can [use variable placeholders](#use-variable-placeholders). | map of strings | 
-| `Set` | Defines a set of key-value pairs to add to the request header or to replace existing header values with. Use header names as the keys. Header names are not case-sensitive. If header values with the same names already exist, Consul replaces the header values. You can [use variable placeholders](#use-variable-placeholders). | map of strings | 
+| `Add` | Defines a set of key/value pairs to add to the header. Use header names as the keys. Header names are not case-sensitive. If header values with the same name already exist, the value is appended and Consul applies both headers. You can [use variable placeholders](#use-variable-placeholders). | map of strings | 
+| `Set` | Defines a set of key/value pairs to add to the request header or to replace existing header values with. Use header names as the keys. Header names are not case-sensitive. If header values with the same names already exist, Consul replaces the header values. You can [use variable placeholders](#use-variable-placeholders). | map of strings | 
 | `Remove` | Defines a list of headers to remove. Consul removes only headers containing exact matches. Header names are not case-sensitive. | list of strings | 
 
 #### Use variable placeholders
@@ -617,7 +617,7 @@ Specifies the type of configuration entry to implement.
 
 - Default: none
 - This field is required.
-- Data type: String value that must be set to `serviceRouter`. 
+- Data type: String value that must be set to `ServiceRouter`. 
 
 ### `metadata.name`
 
@@ -641,7 +641,7 @@ Specifies the Consul namespace to use for resolving the service. You can map Con
 
 ### `spec`
 
-Kubernetes-only field that contains all of the configurations for service splitter pods.
+Map that contains the details about the `ServiceRouter` configuration entry. The `apiVersion`, `kind`, and `metadata` fields are siblings of the spec field. All other configurations are children.
 
 #### Values
 
@@ -651,12 +651,12 @@ Kubernetes-only field that contains all of the configurations for service splitt
 
 ### `spec.meta`
 
-Specifies key-value pairs to add to the KV store.
+Specifies key/value pairs to add to the KV store.
 
 #### Values
 
 - Default: none 
-- Data type: Map of one or more key-value pairs 
+- Data type: Map of one or more key/value pairs 
   - keys: String
   - values: String, integer, or float 
 
@@ -700,12 +700,12 @@ When matching on the HTTP request path, you can only match on one path at a time
 
 | Parameter    | Description                                                                                                                            | Data type | Default |
 | :----------- | :------------------------------------------------------------------------------------------------------------------------------------- | --------- | ------- |
-| `pathExact`  | Specifies the exact path to match on the HTTP request path. When using this field, do not configure `pathPrefix` or `pathRegex` in the same  HTTP map . | String | None |
-| `pathPrefix` | Specifies the path prefix to match on the HTTP request path. When using this field, do not configure `pathExact` or `pathRegex` in the same  HTTP map . | String | None |
-| `pathRegex`  | Specifies a regular expression to match on the HTTP request path. When using this field, do not configure `pathExact` or `pathPrefix` in the same  HTTP map . The syntax for the regular expression field is proxy-specific. When [using Envoy](/consul/docs/connect/proxies/envoy), refer to [the documentation for Envoy v1.11.2 or newer](https://github.com/google/re2/wiki/Syntax) or [the documentation for Envoy v1.11.1 or older](https://en.cppreference.com/w/cpp/regex/ecmascript), depending on the version of Envoy you use. | String | None |
+| `pathExact`  | Specifies the exact path to match on the HTTP request path. When using this field, do not configure `pathPrefix` or `pathRegex` in the same HTTP map. | String | None |
+| `pathPrefix` | Specifies the path prefix to match on the HTTP request path. When using this field, do not configure `pathExact` or `pathRegex` in the same HTTP map. | String | None |
+| `pathRegex`  | Specifies a regular expression to match on the HTTP request path. When using this field, do not configure `pathExact` or `pathPrefix` in the same HTTP map. The syntax for the regular expression field is proxy-specific. When [using Envoy](/consul/docs/connect/proxies/envoy), refer to [the documentation for Envoy v1.11.2 or newer](https://github.com/google/re2/wiki/Syntax) or [the documentation for Envoy v1.11.1 or older](https://en.cppreference.com/w/cpp/regex/ecmascript), depending on the version of Envoy you use. | String | None |
 | `methods`    | Specifies HTTP methods that the match applies to. Refer to [`spec.routes[].match.http.methods`](#spec-routes-match-http-methods) for additional configuration parameters. | List | None |
-| `header`     | Specifies information to match to in the HTTP request header. When using this field, do not configure `present`, `exact`, `prefix`, `suffix`, or `regex` in the same  HTTP map . You can use only one of these fields at a time when configuring match criteria for HTTP headers, as they are mutually exclusive with one another. Refer to [`spec.routes[].match.http.header`](#spec-routes-match-http-header) for additional configuration parameters. | List | None |
-| `queryParam` | Specifies information to match to on HTTP query parameters. When using this field, do not configure `present`, `exact`, or `regex` in the same  HTTP map . Refer to [`spec.routes[].match.http.queryParam](#spec-routes-match-http-queryparam) for additional configuration parameters. | List | None |
+| `header`     | Specifies information to match to in the HTTP request header. When using this field, do not configure `present`, `exact`, `prefix`, `suffix`, or `regex` in the same HTTP map. You can use only one of these fields at a time when configuring match criteria for HTTP headers, as they are mutually exclusive with one another. Refer to [`spec.routes[].match.http.header`](#spec-routes-match-http-header) for additional configuration parameters. | List | None |
+| `queryParam` | Specifies information to match to on HTTP query parameters. When using this field, do not configure `present`, `exact`, or `regex` in the same HTTP map. Refer to [`spec.routes[].match.http.queryParam](#spec-routes-match-http-queryparam) for additional configuration parameters. | List | None |
 
 ### `spec.routes[].match.http.methods`
 
@@ -729,7 +729,7 @@ Specifies HTTP methods that the match applies to. If not specified, the request 
 
 Specifies information to match to in the HTTP request header. When more than one field is configured, all criteria must match for the service routing to apply.
 
-When using this field, do not configure `present`, `exact`, `prefix`, `suffix`, and `regex` in the same  HTTP map . You can use only one of these fields at a time when configuring match criteria for HTTP headers, as they are mutually exclusive with one another.
+When using this field, do not configure `present`, `exact`, `prefix`, `suffix`, and `regex` in the same HTTP map. You can use only one of these fields at a time when configuring match criteria for HTTP headers, as they are mutually exclusive with one another.
 
 #### Values
 
@@ -739,11 +739,11 @@ When using this field, do not configure `present`, `exact`, `prefix`, `suffix`, 
 | Parameter | Description                                                                                                                            | Data type | Default |
 | :-------- | :------------------------------------------------------------------------------------------------------------------------------------- | --------- | ------- |
 | `name`    | Specifies the name of the HTTP header to match. This field is required when using [`spec.routes[].match.http.header`](#spec-routes-match-http-header). | String | None |
-| `present` | Specifies that a request matches when the value in the `Name` field is present anywhere in the HTTP header. When using this field, do not configure `exact`, `prefix`, `suffix`, or `regex` in the same  HTTP map . | Boolean | `false` |
-| `exact`   | Specifies that a request matches when the header with the given name is this exact value. When using this field, do not configure `present`, `prefix`, `suffix`, or `regex` in the same  HTTP map . | String | None |
-| `prefix`  | Specifies that a request matches when the header with the given name has this prefix. When using this field, do not configure `present`, `exact`, `suffix`, or `regex` in the same  HTTP map . | String | None |
-| `suffix`  | Specifies that a request matches when the header with the given name has this suffix. When using this field, do not configure `present`, `exact`, `prefix`, or `regex` in the same  HTTP map . | String | None |
-| `regex`   | Specifies that a request matches when the header with the given name matches this regular expression. When using this field, do not configure `present`, `exact`, `prefix`, or `suffix` in the same  HTTP map . The syntax for the regular expression field is proxy-specific. When [using Envoy](/consul/docs/connect/proxies/envoy), refer to [the documentation for Envoy v1.11.2 or newer](https://github.com/google/re2/wiki/Syntax) or [the documentation for Envoy v1.11.1 or older](https://en.cppreference.com/w/cpp/regex/ecmascript), depending on the version of Envoy you use. | String | None |
+| `present` | Specifies that a request matches when the value in the `Name` field is present anywhere in the HTTP header. When using this field, do not configure `exact`, `prefix`, `suffix`, or `regex` in the same HTTP map. | Boolean | `false` |
+| `exact`   | Specifies that a request matches when the header with the given name is this exact value. When using this field, do not configure `present`, `prefix`, `suffix`, or `regex` in the same  HTTP map. | String | None |
+| `prefix`  | Specifies that a request matches when the header with the given name has this prefix. When using this field, do not configure `present`, `exact`, `suffix`, or `regex` in the same HTTP map. | String | None |
+| `suffix`  | Specifies that a request matches when the header with the given name has this suffix. When using this field, do not configure `present`, `exact`, `prefix`, or `regex` in the same HTTP map. | String | None |
+| `regex`   | Specifies that a request matches when the header with the given name matches this regular expression. When using this field, do not configure `present`, `exact`, `prefix`, or `suffix` in the same HTTP map. The syntax for the regular expression field is proxy-specific. When [using Envoy](/consul/docs/connect/proxies/envoy), refer to [the documentation for Envoy v1.11.2 or newer](https://github.com/google/re2/wiki/Syntax) or [the documentation for Envoy v1.11.1 or older](https://en.cppreference.com/w/cpp/regex/ecmascript), depending on the version of Envoy you use. | String | None |
 | `invert`  | Specifies that the logic for the HTTP header match should be inverted. Requests with matching criteria are not routed. | Boolean | `false` |
 
 ### `spec.routes[].match.http.queryParam`
@@ -821,16 +821,16 @@ Specifies a set of HTTP-specific header modification rules applied to requests r
 
 - Default: None
 - Values: Object containing one or more fields that define header modification rules:
-  - `add`: Map of one or more key-value pairs.
-  - `set`: Map of one or more key-value pairs.
-  - `remove`: Map of one or more key-value pairs.
+  - `add`: Map of one or more key/value pairs.
+  - `set`: Map of one or more key/value pairs.
+  - `remove`: Map of one or more key/value pairs.
 
 The following table describes how to configure values for request headers:
 
 | Rule | Description | Type |   
 | --- 	    | ---	       | ---         |  
-| `add` | Defines a set of key-value pairs to add to the header. Use header names as the keys. Header names are not case-sensitive. If header values with the same name already exist, the value is appended and Consul applies both headers. You can [use variable placeholders](#use-variable-placeholders). | map of strings | 
-| `set` | Defines a set of key-value pairs to add to the request header or to replace existing header values with. Use header names as the keys. Header names are not case-sensitive. If header values with the same names already exist, Consul replaces the header values. You can [use variable placeholders](#use-variable-placeholders). | map of strings | 
+| `add` | Defines a set of key/value pairs to add to the header. Use header names as the keys. Header names are not case-sensitive. If header values with the same name already exist, the value is appended and Consul applies both headers. You can [use variable placeholders](#use-variable-placeholders). | map of strings | 
+| `set` | Defines a set of key/value pairs to add to the request header or to replace existing header values with. Use header names as the keys. Header names are not case-sensitive. If header values with the same names already exist, Consul replaces the header values. You can [use variable placeholders](#use-variable-placeholders). | map of strings | 
 | `remove` | Defines a list of headers to remove. Consul removes only headers containing exact matches. Header names are not case-sensitive. | list of strings |
 
 #### Use variable placeholders
@@ -845,16 +845,16 @@ Specifies a set of HTTP-specific header modification rules applied to responses 
 
 - Default: None
 - Values: Object containing one or more fields that define header modification rules:
-  - `add`: Map of one or more string key-value pairs.
-  - `set`: Map of one or more string key-value pairs.
-  - `remove`: Map of one or more string key-value pairs.
+  - `add`: Map of one or more string key/value pairs.
+  - `set`: Map of one or more string key/value pairs.
+  - `remove`: Map of one or more string key/value pairs.
 
 The following table describes how to configure values for response headers:
   
 | Rule | Description | Type | 
 | --- 	    | ---	       | ---         |  
-| `add` | Defines a set of key-value pairs to add to the header. Use header names as the keys. Header names are not case-sensitive. If header values with the same name already exist, the value is appended and Consul applies both headers. You can [use variable placeholders](#use-variable-placeholders). | map of strings | 
-| `set` | Defines a set of key-value pairs to add to the request header or to replace existing header values with. Use header names as the keys. Header names are not case-sensitive. If header values with the same names already exist, Consul replaces the header values. You can [use variable placeholders](#use-variable-placeholders). | map of strings | 
+| `add` | Defines a set of key/value pairs to add to the header. Use header names as the keys. Header names are not case-sensitive. If header values with the same name already exist, the value is appended and Consul applies both headers. You can [use variable placeholders](#use-variable-placeholders). | map of strings | 
+| `set` | Defines a set of key/value pairs to add to the request header or to replace existing header values with. Use header names as the keys. Header names are not case-sensitive. If header values with the same names already exist, Consul replaces the header values. You can [use variable placeholders](#use-variable-placeholders). | map of strings | 
 | `remove` | Defines a list of headers to remove. Consul removes only headers containing exact matches. Header names are not case-sensitive. | list of strings | 
 
 #### Use variable placeholders
@@ -871,7 +871,7 @@ The following examples demonstrate common service router configuration patterns 
 
 ### Path prefix matching
 
-The following example routes HTTP requests with `/admin` at the start of their path to a service named `admin`.
+The following example routes HTTP requests for the `web` service to a service named `admin` when they have `/admin` at the start of their path.
 
 <Tabs>
 <Tab heading="HCL" group="hcl">
