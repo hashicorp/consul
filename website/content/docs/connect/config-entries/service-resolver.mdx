@@ -7,7 +7,7 @@ description: >-
 
 # Service Resolver Configuration Reference
 
-This page provides reference information for service resolver configuration entries. Configure and apply service resolvers to create named subsets of service instances and their behavior when satisfying upstream requests.
+This page provides reference information for service resolver configuration entries. Configure and apply service resolvers to create named subsets of service instances and define their behavior when satisfying upstream requests.
 
 Refer to [L7 traffic management overview](/consul/docs/connect/l7-traffic) for additional information.
 
@@ -142,11 +142,11 @@ ConnectTimeout = "10s"
 RequestTimeout = "15s"
 Subsets = {
  <subset01-name> = {
-   Filter      = "<expression.to.match.on == subset01-name>"
+   Filter      = "<expression.to.match.on == value01>"
    OnlyPassing = true
  }
  <subset02-name> = {
-   Filter      = "<expression.to.match.on == subset02-name>"
+   Filter      = "<expression.to.match.on == value02>"
    OnlyPassing = true
  }
 }
@@ -224,11 +224,11 @@ LoadBalancer = {
   "RequestTimeout":"15s",
   "Subsets":{
    "<subset01-name>":{
-     "Filter":"<expression.to.match.on == subset01-name>",
+     "Filter":"<expression.to.match.on == value01",
      "OnlyPassing":true
     },
    "<subset02-name>":{
-     "Filter":"<expression.to.match.on == subset02-name>",
+     "Filter":"<expression.to.match.on == value02>",
      "OnlyPassing":true
    }
   },
@@ -303,10 +303,10 @@ spec:
   requestTimeout: 15s
   subsets:
     <subset01Name>:
-      filter: <expression.to.match.on == subset01Name>
+      filter: <expression.to.match.on == value01>
       onlyPassing: false
     <subset02Name>:
-      filter: <expression.to.match.on == subset02Name>
+      filter: <expression.to.match.on == value02>
       onlyPassing: false
   defaultSubset: <definedSubsetName>
   redirect:                                 
@@ -428,14 +428,14 @@ Specifies the timeout duration for receiving an HTTP response from this service,
 
 ### `Subsets`
 
-Specifies names for service subsets and the conditions under which service instances belong to each subset. Subsets are defined in the form of a key/value pair, where the key is the subset’s name and the value is a map that contains a filtering expression. If empty, only the unnamed default subset is usable.
+Specifies names for service subsets and the conditions under which service instances belong to each subset. Subsets are defined in the form of a key/value pair, where the key is the subset’s name and the value is a map that contains a [filtering expression](/consul/api-docs/features/filtering). If empty, only the unnamed default subset is usable.
 
 #### Values
 
 - Default: None
 - Data type: Map containing a key/value pair.
   - `<KEY>`: String that names the subset. The string must be valid as a DNS subdomain element.
-  - `<VALUE>`: Map that can contain the following fields:
+  - `<VALUE>`: Map that can contain the following parameters:
   
     | Parameter     | Description                                                                                                                                                                                                                                                                                   | Data type | Default |
     | :------------ | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- | ------- |
@@ -458,12 +458,12 @@ Specifies redirect instructions for local service traffic so that services deplo
 #### Values
 
 - Default: None
-- Data type: Map that can contain the following paramters:
+- Data type: Map that can contain the following parameters:
   
     | Parameter                              | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             | Data type | Default |
     | :------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------- | ------- |
     | `Service`                              | Specifies the name of a service at the redirect’s destination that resolves local upstream requests.                                                                                                                                                                                                                                                                                                                                                                                                                                                    | String    | None    |
-    | `ServiceSubset`                        | Specifies the name of a subset of services at the redirect’s destination that resolves local upstream requests. If empty, the default subset is used. If specified, you must also specify at least one of the following in the same `Redirect` map: `Service`, `Namespace`, `Datacenter`                                                                                                                                                                                                                                                                | String    | None    |
+    | `ServiceSubset`                        | Specifies the name of a subset of services at the redirect’s destination that resolves local upstream requests. If empty, the default subset is used. If specified, you must also specify at least one of the following in the same `Redirect` map: `Service`, `Namespace`, and`Datacenter`.                                                                                                                                                                                                                                                                | String    | None    |
     | `Namespace` <EnterpriseAlert inline /> | Specifies the namespace at the redirect’s destination that resolves local upstream requests.                                                                                                                                                                                                                                                                                                                                                                                                                                                            | String    | None    |
     | `Partition` <EnterpriseAlert inline /> | Specifies the admin partition at the redirect’s destination that resolves local upstream requests.                                                                                                                                                                                                                                                                                                                                                                                                                                                      | String    | None    |
     | `Datacenter`                           | Specifies the datacenter at the redirect’s destination that resolves local upstream requests.                                                                                                                                                                                                                                                                                                                                                                                                                                                           | String    | None    |
@@ -473,7 +473,7 @@ Specifies redirect instructions for local service traffic so that services deplo
 
 Specifies controls for rerouting traffic to an alternate pool of service instances if the target service fails.
 
-This map is keyed by the name of the local service subset whose traffic should redirect when it fails. The `"*"` wildcard can be used to apply failovers to any subset.
+This map is keyed by the name of the local service subset whose traffic should resolve elsewhere when it fails. The `"*"` wildcard can be used to apply failovers to any subset.
 
 `Service`, `ServiceSubset`, `Namespace`, `Targets`, and `Datacenters` cannot all be empty at the same time.
 
@@ -485,7 +485,7 @@ This map is keyed by the name of the local service subset whose traffic should r
     | Parameter                              | Description                                                                                                                                                                                                                                                                                 | Data type | Default |
     | :------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------- | ------- |
     | `Service`                              | Specifies the name of the service to resolve at the failover location during a failover scenario.                                                                                                                                                                                           | String    | None    |
-    | `ServiceSubset`                        | Specifies the name of a subset of service instances to resolve at the failover location during a failover scenario. If empty, Consul uses the service’s [`DefaultSubset](#defaultsubset).                                                                                                   | String    | None    |
+    | `ServiceSubset`                        | Specifies the name of a subset of service instances to resolve at the failover location during a failover scenario. If empty, Consul uses the service’s [`DefaultSubset`](#defaultsubset).                                                                                                   | String    | None    |
     | `Namespace` <EnterpriseAlert inline /> | Specifies the namespace at the failover location where the failover services are deployed. If empty, the current namespace is used.                                                                                                                                                         | String    | None    |
     | `Datacenters`                          | Specifies an ordered list of datacenters at the failover location to attempt connections to during a failover scenario. When Consul cannot establish a connection with the first datacenter in the list, it proceeds sequentially until establishing a connection with another datacenter.  | String    | None    |
     | `Targets`                              | Specifies a fixed list of failover targets to try during failover. This list can express complicated failover scenarios. Refer to [`Failover{}.Targets`](#failover-targets) for configuration details.                                                                                      | List      | None    |
@@ -556,7 +556,7 @@ Specifies configuration for the `least_request policy` type.
 #### Values
 
 - Default: None
-- Data type: Map containing the following object:
+- Data type: Map containing the following parameter:
   
   | Parameter     | Description                                                                                        | Data type | Default |
   | :------------ | :------------------------------------------------------------------------------------------------- | --------- | ------- |
@@ -569,7 +569,7 @@ Specifies configuration for the `ring_hash` policy type.
 #### Values
 
 - Default: None
-- Data type: List that can contain the following maps:
+- Data type: List that can contain the following parameters:
   
   | Parameter     | Description                                                    | Data type | Default |
   | :------------ | :------------------------------------------------------------- | --------- | ------- |
@@ -690,7 +690,7 @@ Specifies the timeout duration for receiving an HTTP response from this service,
 
 ### `spec.subsets`
 
-Specifies names for service subsets and the conditions under which service instances belong to each subset. Subsets are defined in the form of a key/value pair, where the key is the subset’s name and the value is a map that contains a filtering expression. If empty, only the unnamed default subset is usable.
+Specifies names for service subsets and the conditions under which service instances belong to each subset. Subsets are defined in the form of a key/value pair, where the key is the subset’s name and the value is a map that contains a [filtering expression](/consul/api-docs/features/filtering). If empty, only the unnamed default subset is usable.
 
 #### Values
 
@@ -725,7 +725,7 @@ Specifies redirect instructions for local service traffic so that services deplo
     | Parameter                              | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             | Data type | Default |
     | :------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------- | ------- |
     | `service`                              | Specifies the name of a service at the redirect’s destination that resolves local upstream requests.                                                                                                                                                                                                                                                                                                                                                                                                                                                    | String    | None    |
-    | `serviceSubset`                        | Specifies the name of a subset of services at the redirect’s destination that resolves local upstream requests. If empty, the default subset is used. If specified, you must also specify at least one of the following in the same `redirect` map: `service`, `namespace`, `datacenter`                                                                                                                                                                                                                                                                | String    | None    |
+    | `serviceSubset`                        | Specifies the name of a subset of services at the redirect’s destination that resolves local upstream requests. If empty, the default subset is used. If specified, you must also specify at least one of the following in the same `redirect` map: `service`, `namespace`, and `datacenter`.                                                                                                                                                                                                                                                                | String    | None    |
     | `namespace` <EnterpriseAlert inline /> | Specifies the namespace at the redirect’s destination that resolves local upstream requests.                                                                                                                                                                                                                                                                                                                                                                                                                                                            | String    | None    |
     | `partition` <EnterpriseAlert inline /> | Specifies the admin partition at the redirect’s destination that resolves local upstream requests.                                                                                                                                                                                                                                                                                                                                                                                                                                                      | String    | None    |
     | `datacenter`                           | Specifies the datacenter at the redirect’s destination that resolves local upstream requests.                                                                                                                                                                                                                                                                                                                                                                                                                                                           | String    | None    |
@@ -737,12 +737,11 @@ Specifies controls for rerouting traffic to an alternate pool of service instanc
 
 This map is keyed by the name of the local service subset whose traffic should redirect when it fails. The `"*"` wildcard can be used to apply failovers to any subset.
 
-`service`, `serviceSubset`, `namespace`, `targets`, and `Datacenters` cannot all be empty at the same time.
+`service`, `serviceSubset`, `namespace`, `targets`, and `datacenters` cannot all be empty at the same time.
 
 #### Values
 
 - Default: None
-- Data type: Map that can contain the following objects:
 - Data type: Map that can contain the following parameters:
   
     | Parameter                              | Description                                                                                                                                                                                                                                                                                 | Data type | Default |
@@ -751,7 +750,7 @@ This map is keyed by the name of the local service subset whose traffic should r
     | `serviceSubset`                        | Specifies the name of a subset of service instances to resolve at the failover location during a failover scenario. If empty, Consul uses the service’s [`defaultSubset](#spec-defaultsubset).                                                                                                   | String    | None    |
     | `namespace` <EnterpriseAlert inline /> | Specifies the namespace at the failover location where the failover services are deployed. If empty, the current namespace is used.                                                                                                                                                         | String    | None    |
     | `datacenters`                          | Specifies an ordered list of datacenters at the failover location to attempt connections to during a failover scenario. When Consul cannot establish a connection with the first datacenter in the list, it proceeds sequentially until establishing a connection with another datacenter.  | String    | None    |
-    | `targets`                              | Specifies a fixed list of failover targets to try during failover. This list can express complicated failover scenarios. Refer to [`spec-failover{}.targets`](#spec-failover-targets) for configuration details.                                                                                      | List      | None    |
+    | `targets`                              | Specifies a fixed list of failover targets to try during failover. This list can express complicated failover scenarios. Refer to [`spec-failover.targets`](#spec-failover-targets) for configuration details.                                                                                      | List      | None    |
 
 ### `spec.failover.targets`
 
@@ -814,7 +813,7 @@ Specifies the type of load balancing policy for selecting a host. Supported load
 
 ### `spec.loadBalancer.leastRequestConfig`
 
-Specifies configuration for the `least_request policy` type.
+Specifies configuration for the `least_request` policy type.
 
 #### Values
 
@@ -876,11 +875,11 @@ Specifies additional configuration options for the `cookie` hash policy type. Th
 
 ## Examples
 
-The following examples demonstrate common service resolver configuration patterns for specific use cases. 
+The following examples demonstrate common service resolver configuration patterns for specific use cases.
 
 ### Filter on service version
 
-The following example creates service subsets based on version metadata:
+The following example creates two subsets of the `web` service, and assigns service instances to subsets based on each instance's version metadata. It also defined `v1` as the default subset.
 
 <Tabs>
 <Tab heading="HCL" group="hcl">
@@ -942,7 +941,7 @@ spec:
 
 ### Resolve virtual upstreams
 
-The folowing example uses the [`Redirect` parameter](#redirect) to expose a set of services to another datacenter as a virtual service:
+The folowing example uses the [`Redirect` parameter](#redirect) to expose a set of services to another datacenter as a virtual service.
 
 <Tabs>
 <Tab heading="HCL" group="hcl">
