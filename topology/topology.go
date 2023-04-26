@@ -219,6 +219,11 @@ type Cluster struct {
 	//
 	// This is generated during the networking phase and is not user specified.
 	TLSVolumeName string `json:",omitempty"`
+
+	// PeerClusters is a map of peering names to cluster names.
+	//
+	// Denormalized during compile.
+	PeerClusters map[string]string `json:",omitempty"`
 }
 
 func (c *Cluster) inheritFromExisting(existing *Cluster) {

@@ -430,6 +430,7 @@ func compile(logger hclog.Logger, raw *Config, prev *Topology) (*Topology, error
 
 	// after we decoded the peering stuff, we can fill in some computed data in the upstreams
 	for _, c := range clusters {
+		c.PeerClusters = peeringMap[c.Name]
 		for _, n := range c.Nodes {
 			for _, svc := range n.Services {
 				for _, u := range svc.Upstreams {
