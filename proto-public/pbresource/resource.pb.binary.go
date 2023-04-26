@@ -78,16 +78,6 @@ func (msg *Reference) UnmarshalBinary(b []byte) error {
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler
-func (msg *WatchEvent) MarshalBinary() ([]byte, error) {
-	return proto.Marshal(msg)
-}
-
-// UnmarshalBinary implements encoding.BinaryUnmarshaler
-func (msg *WatchEvent) UnmarshalBinary(b []byte) error {
-	return proto.Unmarshal(b, msg)
-}
-
-// MarshalBinary implements encoding.BinaryMarshaler
 func (msg *ReadRequest) MarshalBinary() ([]byte, error) {
 	return proto.Marshal(msg)
 }
@@ -194,5 +184,15 @@ func (msg *WatchListRequest) MarshalBinary() ([]byte, error) {
 
 // UnmarshalBinary implements encoding.BinaryUnmarshaler
 func (msg *WatchListRequest) UnmarshalBinary(b []byte) error {
+	return proto.Unmarshal(b, msg)
+}
+
+// MarshalBinary implements encoding.BinaryMarshaler
+func (msg *WatchEvent) MarshalBinary() ([]byte, error) {
+	return proto.Marshal(msg)
+}
+
+// UnmarshalBinary implements encoding.BinaryUnmarshaler
+func (msg *WatchEvent) UnmarshalBinary(b []byte) error {
 	return proto.Unmarshal(b, msg)
 }
