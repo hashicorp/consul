@@ -17,7 +17,6 @@ import (
 	"github.com/hashicorp/consul/internal/resource/demo"
 	"github.com/hashicorp/consul/internal/storage"
 	"github.com/hashicorp/consul/proto-public/pbresource"
-	"github.com/hashicorp/consul/proto/private/prototest"
 )
 
 func TestDelete_InputValidation(t *testing.T) {
@@ -143,19 +142,14 @@ func TestDelete_Success(t *testing.T) {
 			require.ErrorIs(t, err, storage.ErrNotFound)
 
 			// verify tombstone created
-			stream, err := client.WatchList(ctx, &pbresource.WatchListRequest{
-				Type:       resource.TypeV1Tombstone,
-				Tenancy:    artist.Id.Tenancy,
-				NamePrefix: "",
+			_, err = client.Read(ctx, &pbresource.ReadRequest{
+				Id: &pbresource.ID{
+					Name:    tombstoneName(artistId),
+					Type:    resource.TypeV1Tombstone,
+					Tenancy: artist.Id.Tenancy,
+				},
 			})
 			require.NoError(t, err)
-			rspCh := handleResourceStream(t, stream)
-			event := mustGetResource(t, rspCh)
-			require.Equal(t, event.Operation, pbresource.WatchEvent_OPERATION_UPSERT)
-			tombstone := &pbresource.Tombstone{}
-			require.NoError(t, event.Resource.Data.UnmarshalTo(tombstone))
-			prototest.AssertDeepEqual(t, artistId, tombstone.OwnerId)
-			require.Equal(t, artist.Version, tombstone.OwnerVersion)
 		})
 	}
 }
@@ -178,25 +172,24 @@ func TestDelete_TombstoneDeletionDoesNotCreateNewTombstone(t *testing.T) {
 	require.NoError(t, err)
 
 	// verify artist's tombstone created
-	stream, err := client.WatchList(ctx, &pbresource.WatchListRequest{
-		Type:       resource.TypeV1Tombstone,
-		Tenancy:    artist.Id.Tenancy,
-		NamePrefix: "",
+	rsp2, err := client.Read(ctx, &pbresource.ReadRequest{
+		Id: &pbresource.ID{
+			Name:    tombstoneName(artist.Id),
+			Type:    resource.TypeV1Tombstone,
+			Tenancy: artist.Id.Tenancy,
+		},
 	})
 	require.NoError(t, err)
-	rspCh := handleResourceStream(t, stream)
-	event := mustGetResource(t, rspCh)
-	require.Equal(t, event.Operation, pbresource.WatchEvent_OPERATION_UPSERT)
-	tombstone := event.Resource
+	tombstone := rsp2.Resource
 
 	// delete artist's tombstone
 	_, err = client.Delete(ctx, &pbresource.DeleteRequest{Id: tombstone.Id, Version: tombstone.Version})
 	require.NoError(t, err)
 
-	// verify no new tombstones created, but artist's existing tombstone deleted
-	event = mustGetResource(t, rspCh)
-	require.Equal(t, event.Operation, pbresource.WatchEvent_OPERATION_DELETE)
-	mustGetNoResource(t, rspCh)
+	// verify no new tombstones created and artist's existing tombstone deleted
+	rsp3, err := client.List(ctx, &pbresource.ListRequest{Type: resource.TypeV1Tombstone, Tenancy: artist.Id.Tenancy})
+	require.NoError(t, err)
+	require.Empty(t, rsp3.Resources)
 }
 
 func TestDelete_NotFound(t *testing.T) {

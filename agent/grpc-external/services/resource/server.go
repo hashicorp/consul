@@ -11,6 +11,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 
 	"github.com/hashicorp/consul/acl"
@@ -149,3 +150,8 @@ func validateId(id *pbresource.ID, errorPrefix string) error {
 }
 
 func clone[T proto.Message](v T) T { return proto.Clone(v).(T) }
+
+func pprint(pb proto.Message) string {
+	marshaler := &protojson.MarshalOptions{Indent: "    "}
+	return marshaler.Format(pb)
+}
