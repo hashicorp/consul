@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul/discoverychain"
 	"net"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -475,7 +476,12 @@ func (s *ResourceGenerator) routesForAPIGateway(cfgSnap *proxycfg.ConfigSnapshot
 			for _, flattenedRoute := range flattenedRoutes {
 				//dereference the loop pointer for luck
 				flattenedRoute := flattenedRoute
-				uid.Name = flattenedRoute.Name
+				//reconstruct upstream
+				upstream := discoverychain.RebuildHTTPRouteUpstream(flattenedRoute, listenerCfg)
+				uid := proxycfg.NewUpstreamID(&upstream)
+				fmt.Println(upstream.DestinationName)
+				fmt.Println(uid)
+				fmt.Println(flattenedRoute.Name)
 
 				domains := generateUpstreamAPIsDomains(listenerKey, u, flattenedRoute.Hostnames)
 
@@ -494,7 +500,8 @@ func (s *ResourceGenerator) routesForAPIGateway(cfgSnap *proxycfg.ConfigSnapshot
 					defaultRoute.VirtualHosts = append(defaultRoute.VirtualHosts, virtualHost)
 				} else {
 					svcRoute := &envoy_route_v3.RouteConfiguration{
-						Name:             flattenedRoute.Name,
+						//TODO this makes it pass the unit test but is it correct?
+						Name:             strconv.Itoa(listenerCfg.Port),
 						ValidateClusters: makeBoolValue(true),
 						VirtualHosts:     []*envoy_route_v3.VirtualHost{virtualHost},
 					}

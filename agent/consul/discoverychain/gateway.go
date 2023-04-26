@@ -208,6 +208,31 @@ func FlattenHTTPRoute(route *structs.HTTPRouteConfigEntry, listener *structs.API
 
 }
 
+func RebuildHTTPRouteUpstream(route structs.HTTPRouteConfigEntry, listener structs.APIGatewayListener) structs.Upstream {
+	router, _, _ := httpRouteToDiscoveryChain(route)
+	fmt.Println(route.Name)
+	fmt.Println(listener.Port)
+
+	//TODO temporary glue so I can call the x or default function while I'm debugging
+	ingress := structs.IngressService{
+		Name:           router.Name,
+		Hosts:          route.Hostnames,
+		Meta:           route.Meta,
+		EnterpriseMeta: route.EnterpriseMeta,
+	}
+
+	return structs.Upstream{
+		DestinationName:      ingress.Name,
+		DestinationNamespace: ingress.NamespaceOrDefault(),
+		DestinationPartition: ingress.PartitionOrDefault(),
+		IngressHosts:         ingress.Hosts,
+		LocalBindPort:        listener.Port,
+		Config: map[string]interface{}{
+			"protocol": string(listener.Protocol),
+		},
+	}
+}
+
 // ConsolidateHTTPRoutes combines all rules into the shortest possible list of routes
 // with one route per hostname containing all rules for that hostname.
 func consolidateHTTPRoutes(matches map[string][]hostnameMatch, suffix string, gateway *structs.APIGatewayConfigEntry) []structs.HTTPRouteConfigEntry {
