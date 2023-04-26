@@ -30,42 +30,51 @@ func NewDeps(cfg config.CloudConfig, logger hclog.Logger) (d Deps, err error) {
 	}
 
 	d.Provider, err = scada.New(cfg, logger.Named("hcp.scada"))
+	if err != nil {
+		return
+	}
 
+	d.Sink, err = initTelemetry(d.Client, logger, cfg)
+
+	return
+}
+
+func initTelemetry(hcpClient hcpclient.Client, logger hclog.Logger, cfg config.CloudConfig) (gometrics.MetricSink, error) {
+	// Make telemetry config request here to HCP.
 	ctx := context.Background()
-	// Make telemetry config request here to verify registration with CCM.
 	reqCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
-	config, err := d.Client.FetchTelemetryConfig(reqCtx)
+
+	telemetryCfg, err := hcpClient.FetchTelemetryConfig(reqCtx)
 	if err != nil {
-		return
+		return nil, err
 	}
 
-	endpoint := config.Endpoint
-	if config.MetricsOverride.Endpoint != "" {
-		endpoint = config.MetricsOverride.Endpoint
+	endpoint := telemetryCfg.Endpoint
+	if override := telemetryCfg.MetricsOverride.Endpoint; override != "" {
+		endpoint = override
 	}
+
 	url, err := url.Parse(endpoint)
 	if err != nil {
-		return
+		return nil, err
 	}
 	url.Scheme = "https"
 
-	// If the above succeeds, Init metrics sink
+	// If the above succeeds, the server is registered with CCM, init metrics sink.
 	metricsClient, err := hcpclient.NewMetricsClient(&hcpclient.TelemetryClientCfg{
 		Logger:   logger,
 		CloudCfg: &cfg,
 	})
 	if err != nil {
-		return
+		return nil, err
 	}
 
 	opts := &telemetry.OTELSinkOpts{
-		Reader:         telemetry.NewOTELReader(metricsClient, endpoint),
-		Logger:         logger,
-		ExportInterval: 10 * time.Second,
-		Ctx:            ctx,
+		Reader: telemetry.NewOTELReader(metricsClient, endpoint, 10*time.Second),
+		Logger: logger,
+		Ctx:    ctx,
 	}
-	d.Sink, err = telemetry.NewOTELSink(opts)
 
-	return
+	return telemetry.NewOTELSink(opts)
 }

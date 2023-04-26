@@ -150,7 +150,7 @@ func (c *hcpClient) PushServerStatus(ctx context.Context, s *ServerStatus) error
 		WithLocationOrganizationID(c.resource.Organization).
 		WithLocationProjectID(c.resource.Project)
 
-	params.SetBody(&gnmmod.HashicorpCloudGlobalNetworkManager20220215AgentPushServerStateRequest{
+	params.SetBody(hcpgnm.AgentPushServerStateBody{
 		ServerState: serverStatusToHCP(s),
 	})
 
