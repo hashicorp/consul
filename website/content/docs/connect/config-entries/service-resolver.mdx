@@ -882,7 +882,8 @@ The following examples demonstrate common service resolver configuration pattern
 
 The following example creates service subsets based on version metadata:
 
-<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
+<Tabs>
+<Tab heading="HCL" group="hcl">
 
 ```hcl
 Kind          = "service-resolver"
@@ -898,6 +899,10 @@ Subsets = {
 }
 ```
 
+</Tab>
+
+<Tab heading="YAML" group="yaml">
+
 ```yaml
 apiVersion: consul.hashicorp.com/v1alpha1
 kind: ServiceResolver
@@ -911,6 +916,10 @@ spec:
     v2:
       filter: 'Service.Meta.version == v2'
 ```
+
+</Tab>
+
+<Tab heading="JSON" group="json">
 
 ```json
 {
@@ -928,13 +937,15 @@ spec:
 }
 ```
 
-</CodeTabs>
+</Tab>
+</Tabs>
 
 ### Resolve virtual upstreams
 
 The folowing example uses the [`Redirect` parameter](#redirect) to expose a set of services to another datacenter as a virtual service:
 
-<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
+<Tabs>
+<Tab heading="HCL" group="hcl">
 
 ```hcl
 Kind = "service-resolver"
@@ -944,6 +955,10 @@ Redirect {
   Datacenter = "dc2"
 }
 ```
+
+</Tab>
+
+<Tab heading="YAML" group="yaml">
 
 ```yaml
 apiVersion: consul.hashicorp.com/v1alpha1
@@ -956,6 +971,10 @@ spec:
     datacenter: dc2
 ```
 
+</Tab>
+
+<Tab heading="JSON" group="json">
+
 ```json
 {
   "Kind": "service-resolver",
@@ -967,13 +986,15 @@ spec:
 }
 ```
 
-</CodeTabs>
+</Tab>
+</Tabs>
 
 ### Failover
 
 The following example enables failover for subset `v2` to `dc2`. All other subsets attempt failover to `dc3`, and when it is not available, to `dc4`:
 
-<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
+<Tabs>
+<Tab heading="HCL" group="hcl">
 
 ```hcl
 Kind           = "service-resolver"
@@ -989,6 +1010,10 @@ Failover = {
 }
 ```
 
+</Tab>
+
+<Tab heading="YAML" group="yaml">
+
 ```yaml
 apiVersion: consul.hashicorp.com/v1alpha1
 kind: ServiceResolver
@@ -1002,6 +1027,10 @@ spec:
     '*':
       datacenters: ['dc3', 'dc4']
 ```
+
+</Tab>
+
+<Tab heading="JSON" group="json">
 
 ```json
 {
@@ -1019,13 +1048,15 @@ spec:
 }
 ```
 
-</CodeTabs>
+</Tab>
+</Tabs>
 
 #### Failover targets for federation and cluster peering
 
 The following example enables failover to target a WAN federated datacenter for all service subsets. If the connection to `dc3` times out after 15 seconds, the service failover targets the peer with the establish cluster peering connection instead.
 
-<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
+<Tabs>
+<Tab heading="HCL" group="hcl">
 
 ```hcl
 Kind           = "service-resolver"
@@ -1041,6 +1072,10 @@ Failover = {
 }
 ```
 
+</Tab>
+
+<Tab heading="YAML" group="yaml">
+
 ```yaml
 apiVersion: consul.hashicorp.com/v1alpha1
 kind: ServiceResolver
@@ -1054,6 +1089,10 @@ spec:
       - datacenter: "dc3"
       - peer: "peer-01"
 ```
+
+</Tab>
+
+<Tab heading="JSON" group="json">
 
 ```json
 {
@@ -1071,13 +1110,15 @@ spec:
 }
 ```
 
-</CodeTabs>
+</Tab>
+</Tabs>
 
 #### Failover for all service subsets <EnterpriseAlert inline />
 
 The following example enables failover to the `secondary` namespace in another datacenter for all service subsets.
 
-<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
+<Tabs>
+<Tab heading="HCL" group="hcl">
 
 ```hcl
 Kind           = "service-resolver"
@@ -1092,6 +1133,10 @@ Failover = {
 }
 ```
 
+</Tab>
+
+<Tab heading="YAML" group="yaml">
+
 ```yaml
 apiVersion: consul.hashicorp.com/v1alpha1
 kind: ServiceResolver
@@ -1104,6 +1149,10 @@ spec:
     namespace: 'secondary'
     datacenters: ['dc2']
 ```
+
+</Tab>
+
+<Tab heading="JSON" group="json">
 
 ```json
 {
@@ -1120,15 +1169,15 @@ spec:
 }
 ```
 
-</CodeTabs>
-
+</Tab>
+</Tabs>
 
 #### Failover to a namespace <EnterpriseAlert inline />
 
 The following example enables failover to a different namespace in the same datacenter.
 
-
-<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
+<Tabs>
+<Tab heading="HCL" group="hcl">
 
 ```hcl
 Kind           = "service-resolver"
@@ -1143,6 +1192,10 @@ Failover = {
 }
 ```
 
+</Tab>
+
+<Tab heading="YAML" group="yaml">
+
 ```yaml
 apiVersion: consul.hashicorp.com/v1alpha1
 kind: ServiceResolver
@@ -1155,6 +1208,10 @@ spec:
     service: 'product-api-backup'
     namespace: 'secondary'
 ```
+
+</Tab>
+
+<Tab heading="JSON" group="json">
 
 ```json
 {
@@ -1171,13 +1228,15 @@ spec:
 }
 ```
 
-</CodeTabs>
+</Tab>
+</Tabs>
 
 ### Consistent load balancing
 
 The following example applies a Maglev load balancing policy for requests with an `x-user-id` header:
 
-<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
+<Tabs>
+<Tab heading="HCL" group="hcl">
 
 ```hcl
 Kind = "service-resolver"
@@ -1194,6 +1253,10 @@ LoadBalancer = {
 }
 ```
 
+</Tab>
+
+<Tab heading="YAML" group="yaml">
+
 ```yaml
 apiVersion: consul.hashicorp.com/v1alpha1
 kind: ServiceResolver
@@ -1206,6 +1269,10 @@ spec:
       - field: header
         fieldValue: x-user-id
 ```
+
+</Tab>
+
+<Tab heading="JSON" group="json">
 
 ```json
 {
@@ -1223,4 +1290,5 @@ spec:
 }
 ```
 
-</CodeTabs>
+</Tab>
+</Tabs>
