@@ -19,8 +19,6 @@ import (
 	"go.opentelemetry.io/otel/sdk/resource"
 )
 
-const defaultExportInterval = 10 * time.Second
-
 // Store for Gauge values as workaround for async OpenTelemetry Gauge instrument.
 var gauges sync.Map = sync.Map{}
 
@@ -30,11 +28,9 @@ type GaugeValue struct {
 }
 
 type OTELSinkOpts struct {
-	Endpoint       string
-	Reader         otelsdk.Reader
-	Logger         hclog.Logger
-	ExportInterval time.Duration
-	Ctx            context.Context
+	Reader otelsdk.Reader
+	Logger hclog.Logger
+	Ctx    context.Context
 }
 
 type OTELSink struct {
@@ -51,15 +47,16 @@ type OTELSink struct {
 	histogramInstruments sync.Map
 }
 
-func NewOTELReader(client client.MetricsClient) otelsdk.Reader {
-	exp := &OTELExporter{
-		client: client,
+func NewOTELReader(client client.MetricsClient, endpoint string, exportInterval time.Duration) otelsdk.Reader {
+	exporter := &OTELExporter{
+		client:   client,
+		endpoint: endpoint,
 	}
-	return otelsdk.NewPeriodicReader(exp, otelsdk.WithInterval(defaultExportInterval))
+	return otelsdk.NewPeriodicReader(exporter, otelsdk.WithInterval(exportInterval))
 }
 
 func NewOTELSink(opts *OTELSinkOpts) (gometrics.MetricSink, error) {
-	if opts.Logger == nil || opts.Reader == nil || opts.Endpoint == "" || opts.Ctx == nil {
+	if opts.Logger == nil || opts.Reader == nil || opts.Ctx == nil {
 		return nil, fmt.Errorf("failed to init OTEL sink: provide valid OTELSinkOpts")
 	}
 
