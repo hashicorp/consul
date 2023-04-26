@@ -37,13 +37,7 @@ func (s *ResourceGenerator) routesFromSnapshot(cfgSnap *proxycfg.ConfigSnapshot)
 	case structs.ServiceKindIngressGateway:
 		return s.routesForIngressGateway(cfgSnap)
 	case structs.ServiceKindAPIGateway:
-		var err error
-		cfgSnap.IngressGateway, err = cfgSnap.APIGateway.ToIngress(cfgSnap.Datacenter)
-		if err != nil {
-			return nil, err
-		}
-		return s.routesForIngressGateway(cfgSnap)
-		//return s.routesForAPIGateway(cfgSnap)
+		return s.routesForAPIGateway(cfgSnap)
 	case structs.ServiceKindTerminatingGateway:
 		return s.routesForTerminatingGateway(cfgSnap)
 	case structs.ServiceKindMeshGateway:
@@ -478,38 +472,29 @@ func (s *ResourceGenerator) routesForAPIGateway(cfgSnap *proxycfg.ConfigSnapshot
 			//flatten httproute
 			flattenedRoutes := discoverychain.FlattenHTTPRoute(route, &listenerCfg, cfgSnap.APIGateway.GatewayConfig)
 
-			domains := generateUpstreamAPIsDomains(listenerKey, u)
-
-			virtualHost, err := s.makeUpstreamRouteForDiscoveryChain(cfgSnap, uid, chain, domains, false)
-			if err != nil {
-				return nil, err
-			}
-
 			for _, flattenedRoute := range flattenedRoutes {
 				//dereference the loop pointer for luck
 				flattenedRoute := flattenedRoute
-				//find matching service
-				httpService := findHTTPServiceMatchingUpstream(&flattenedRoute, u)
-				if httpService == nil {
-					return nil, fmt.Errorf("missing service in listener config (service %q listener on proto/port %s/%d)",
-						u.DestinationID(), listenerKey.Protocol, listenerKey.Port)
-				}
+				uid.Name = flattenedRoute.Name
 
-				if err := injectHeaderManipToVirtualHostAPIGateway(httpService, virtualHost); err != nil {
+				domains := generateUpstreamAPIsDomains(listenerKey, u, flattenedRoute.Hostnames)
+
+				virtualHost, err := s.makeUpstreamRouteForDiscoveryChain(cfgSnap, uid, chain, domains, false)
+				if err != nil {
 					return nil, err
 				}
 
-				////TODO test fails unless this is the port, but should this instead be httpService.GetName()?
-				//svcRouteName := strconv.Itoa(listenerCfg.Port)
-				svcRouteName := httpService.Name
+				if err := injectHeaderManipToVirtualHostAPIGateway(&flattenedRoute, virtualHost); err != nil {
+					return nil, err
+				}
 
 				// If the routeName is the same as the default one, merge the virtual host
 				// to the default route
-				if svcRouteName == defaultRoute.Name {
+				if flattenedRoute.Name == defaultRoute.Name {
 					defaultRoute.VirtualHosts = append(defaultRoute.VirtualHosts, virtualHost)
 				} else {
 					svcRoute := &envoy_route_v3.RouteConfiguration{
-						Name:             svcRouteName,
+						Name:             flattenedRoute.Name,
 						ValidateClusters: makeBoolValue(true),
 						VirtualHosts:     []*envoy_route_v3.VirtualHost{virtualHost},
 					}
@@ -532,20 +517,6 @@ type hostnameMatch struct {
 	match    structs.HTTPMatch
 	filters  structs.HTTPFilters
 	services []structs.HTTPService
-}
-
-func findHTTPServiceMatchingUpstream(route *structs.HTTPRouteConfigEntry, upstream structs.Upstream) *structs.HTTPService {
-	var httpservice structs.HTTPService
-	for _, rule := range route.Rules {
-		for _, service := range rule.Services {
-			//TODO more elaborate IS SAME check?
-			if service.Name == upstream.DestinationName {
-				httpservice = service
-				return &httpservice
-			}
-		}
-	}
-	return nil
 }
 
 func makeHeadersValueOptions(vals map[string]string, add bool) []*envoy_core_v3.HeaderValueOption {
@@ -634,7 +605,8 @@ func generateUpstreamIngressDomains(listenerKey proxycfg.IngressListenerKey, u s
 	return domains
 }
 
-func generateUpstreamAPIsDomains(listenerKey proxycfg.APIGatewayListenerKey, u structs.Upstream) []string {
+func generateUpstreamAPIsDomains(listenerKey proxycfg.APIGatewayListenerKey, u structs.Upstream, hosts []string) []string {
+	u.IngressHosts = hosts
 	return generateUpstreamIngressDomains(listenerKey, u)
 }
 
@@ -1141,7 +1113,7 @@ func injectHeaderManipToRoute(dest *structs.ServiceRouteDestination, r *envoy_ro
 	return nil
 }
 
-func injectHeaderManipToVirtualHostAPIGateway(dest *structs.HTTPService, vh *envoy_route_v3.VirtualHost) error {
+func injectHeaderManipToVirtualHostAPIGateway(dest *structs.HTTPRouteConfigEntry, vh *envoy_route_v3.VirtualHost) error {
 	//TODO we aren't touching these fields in ToIngress so I'm leaving them alone for now
 	return nil
 }
