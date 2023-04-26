@@ -169,6 +169,7 @@ func (o *OTELSink) flattenKey(parts []string, labels []gometrics.Label) string {
 	return buf.String()
 }
 
+// toAttributes converts go metrics Labels into OTEL format []attributes.KeyValue
 func toAttributes(labels []gometrics.Label) []attribute.KeyValue {
 	if len(labels) == 0 {
 		return nil
@@ -184,9 +185,10 @@ func toAttributes(labels []gometrics.Label) []attribute.KeyValue {
 	return attrs
 }
 
+// gaugeCallback returns a callback which gets called when metrics are collected for export.
+// the callback obtains the gauge value from the global gauges.
 func gaugeCallback(key string) instrument.Float64Callback {
-	// Closures keep a reference to the key string, so we don't have to worry about it.
-	// These get garbage collected as the closure completes.
+	// Closures keep a reference to the key string, that get garbage collected when code completes.
 	return func(_ context.Context, obs instrument.Float64Observer) error {
 		if gauge, ok := globalGauges.LoadAndDelete(key); ok {
 			obs.Observe(gauge.Value, gauge.Attributes...)
