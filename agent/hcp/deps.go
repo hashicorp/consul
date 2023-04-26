@@ -35,20 +35,35 @@ func NewDeps(cfg config.CloudConfig, logger hclog.Logger) (d Deps, err error) {
 		return
 	}
 
-	d.Sink, err = initTelemetry(d.Client, logger, cfg)
+	// Make telemetry config request here to HCP.
+	ctx := context.Background()
+	url, err := verifyCCMRegistration(ctx, d.Client)
+	if err != nil {
+		return
+	}
+
+	metricsClientOpts := &hcpclient.TelemetryClientCfg{
+		Logger:   logger,
+		CloudCfg: &cfg,
+	}
+
+	sinkOpts := &telemetry.OTELSinkOpts{
+		Ctx:    ctx,
+		Logger: logger,
+	}
+
+	d.Sink, err = initHCPSink(sinkOpts, metricsClientOpts, url)
 
 	return
 }
 
-func initTelemetry(hcpClient hcpclient.Client, logger hclog.Logger, cfg config.CloudConfig) (gometrics.MetricSink, error) {
-	// Make telemetry config request here to HCP.
-	ctx := context.Background()
+func verifyCCMRegistration(ctx context.Context, client hcpclient.Client) (string, error) {
 	reqCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
-	telemetryCfg, err := hcpClient.FetchTelemetryConfig(reqCtx)
+	telemetryCfg, err := client.FetchTelemetryConfig(reqCtx)
 	if err != nil {
-		return nil, err
+		return "", fmt.Errorf("failed to fetch telemetry config %w", err)
 	}
 
 	endpoint := telemetryCfg.Endpoint
@@ -56,26 +71,27 @@ func initTelemetry(hcpClient hcpclient.Client, logger hclog.Logger, cfg config.C
 		endpoint = override
 	}
 
+	if endpoint == "" {
+		return "", fmt.Errorf("server not registed with management plane")
+	}
+
 	// The endpoint from the HCP gateway is a domain without scheme, so it must be added.
 	url, err := url.Parse(fmt.Sprintf("https://%s", endpoint))
 	if err != nil {
-		return nil, err
+		return "", fmt.Errorf("failed to parse url: %w", err)
 	}
 
+	return url.String(), nil
+}
+
+func initHCPSink(sinkOpts *telemetry.OTELSinkOpts, clientCfg *hcpclient.TelemetryClientCfg, url string) (gometrics.MetricSink, error) {
 	// If the above succeeds, the server is registered with CCM, init metrics sink.
-	metricsClient, err := hcpclient.NewMetricsClient(&hcpclient.TelemetryClientCfg{
-		Logger:   logger,
-		CloudCfg: &cfg,
-	})
+	metricsClient, err := hcpclient.NewMetricsClient(clientCfg)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to init metrics client: %w", err)
 	}
 
-	opts := &telemetry.OTELSinkOpts{
-		Reader: telemetry.NewOTELReader(metricsClient, url.String(), 10*time.Second),
-		Logger: logger,
-		Ctx:    ctx,
-	}
+	sinkOpts.Reader = telemetry.NewOTELReader(metricsClient, url, 10*time.Second)
 
-	return telemetry.NewOTELSink(opts)
+	return telemetry.NewOTELSink(sinkOpts)
 }

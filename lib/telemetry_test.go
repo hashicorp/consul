@@ -4,30 +4,47 @@
 package lib
 
 import (
+	"context"
 	"errors"
+	"io"
 	"net"
 	"os"
 	"testing"
 
+	hcptelemetry "github.com/hashicorp/consul/agent/hcp/telemetry"
 	"github.com/hashicorp/consul/logging"
+	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-multierror"
 	"github.com/stretchr/testify/require"
+	"go.opentelemetry.io/otel/sdk/metric"
 )
 
-func newCfg() TelemetryConfig {
+func newCfg() (TelemetryConfig, error) {
+	// Manual reader outputs the aggregated metrics when reader.Collect is called.
+	reader := metric.NewManualReader()
+	opts := &hcptelemetry.OTELSinkOpts{
+		Logger: hclog.New(&hclog.LoggerOptions{Output: io.Discard}),
+		Reader: reader,
+		Ctx:    context.Background(),
+	}
+
+	hcpSink, err := hcptelemetry.NewOTELSink(opts)
+
 	return TelemetryConfig{
 		StatsdAddr:    "statsd.host:1234",
 		StatsiteAddr:  "statsite.host:1234",
 		DogstatsdAddr: "mydog.host:8125",
-	}
+		HCPSink:       hcpSink,
+	}, err
 }
 
 func TestConfigureSinks(t *testing.T) {
-	cfg := newCfg()
+	cfg, err := newCfg()
+	require.NoError(t, err)
 	sinks, err := configureSinks(cfg, nil)
 	require.Error(t, err)
-	// 3 sinks: statsd, statsite, inmem
-	require.Equal(t, 3, len(sinks))
+	// 4 sinks: statsd, statsite, inmem, hcp
+	require.Equal(t, 4, len(sinks))
 
 	cfg = TelemetryConfig{
 		DogstatsdAddr: "",
@@ -55,7 +72,10 @@ func TestInitTelemetryRetrySuccess(t *testing.T) {
 		LogLevel: "INFO",
 	}, os.Stdout)
 	require.NoError(t, err)
-	cfg := newCfg()
+
+	cfg, err := newCfg()
+	require.NoError(t, err)
+
 	_, err = InitTelemetry(cfg, logger)
 	require.Error(t, err)
 

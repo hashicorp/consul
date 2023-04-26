@@ -101,6 +101,8 @@ func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer, providedLogger hcl
 	cfg.Telemetry.PrometheusOpts.CounterDefinitions = counters
 	cfg.Telemetry.PrometheusOpts.SummaryDefinitions = summaries
 
+	cfg.Telemetry.HCPSink = d.HCP.Sink
+
 	d.MetricsConfig, err = lib.InitTelemetry(cfg.Telemetry, d.Logger)
 	if err != nil {
 		return d, fmt.Errorf("failed to initialize telemetry: %w", err)

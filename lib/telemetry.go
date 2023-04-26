@@ -210,6 +210,10 @@ type TelemetryConfig struct {
 	//
 	// hcl: telemetry { prometheus_retention_time = "duration" }
 	PrometheusOpts prometheus.PrometheusOpts
+
+	// HCPSink provides an intialized OpenTelemetry sink that aggregates Consul metrics.
+	// The aggregated metrics are periodically exported to HCP.
+	HCPSink metrics.MetricSink
 }
 
 // MetricsHandler provides an http.Handler for displaying metrics.
@@ -231,6 +235,12 @@ func (cfg *MetricsConfig) Cancel() {
 	if cfg.cancelFn != nil {
 		cfg.cancelFn()
 	}
+}
+
+func hcpSink(cfg TelemetryConfig, _ string) (metrics.MetricSink, error) {
+	// The sink is already initialized when HCP deps setup occurs to ensure the
+	// server is registered with the management plane.
+	return cfg.HCPSink, nil
 }
 
 func statsiteSink(cfg TelemetryConfig, hostname string) (metrics.MetricSink, error) {
@@ -349,6 +359,7 @@ func configureSinks(cfg TelemetryConfig, memSink metrics.MetricSink) (metrics.Fa
 	addSink(dogstatdSink)
 	addSink(circonusSink)
 	addSink(prometheusSink)
+	addSink(hcpSink)
 
 	if len(sinks) > 0 {
 		sinks = append(sinks, memSink)
