@@ -169,16 +169,16 @@ func (s *Sprawl) registerServicesForDataplaneInstances(cluster *topology.Cluster
 		}
 
 		if err := s.registerCatalogNode(cluster, node); err != nil {
-			return err
+			return fmt.Errorf("error registering virtual node: %w", err)
 		}
 
 		for _, svc := range node.Services {
 			if err := s.registerCatalogService(cluster, node, svc); err != nil {
-				return err
+				return fmt.Errorf("error registering service: %w", err)
 			}
 			if !svc.DisableServiceMesh {
 				if err := s.registerCatalogSidecarService(cluster, node, svc); err != nil {
-					return err
+					return fmt.Errorf("error registering sidecar service: %w", err)
 				}
 			}
 		}
