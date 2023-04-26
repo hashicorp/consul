@@ -26,10 +26,19 @@ server {
 
     location / {
         resolver 8.8.8.8;
+        ##############
+        # Relevant config knobs are here: https://nginx.org/en/docs/http/ngx_http_proxy_module.html
+        ##############
         proxy_pass http://$http_host$uri$is_args$args;
+        proxy_cache off;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
+        proxy_connect_timeout 5s;
+        proxy_read_timeout 5s;
+        proxy_send_timeout 5s;
+        proxy_request_buffering off;
+        proxy_buffering off;
     }
 }
 `, proxyInternalPort)
