@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"testing"
 
 	"golang.org/x/oauth2"
@@ -24,25 +25,31 @@ import (
 
 type mockHCPCfg struct{}
 
-func (m *mockHCPCfg) APITLSConfig() *tls.Config {
-	return nil
-}
-
 func (m *mockHCPCfg) Token() (*oauth2.Token, error) {
 	return &oauth2.Token{
 		AccessToken: "test-token",
 	}, nil
 }
 
+func (m *mockHCPCfg) APITLSConfig() *tls.Config { return nil }
+
+func (m *mockHCPCfg) SCADAAddress() string { return "" }
+
+func (m *mockHCPCfg) SCADATLSConfig() *tls.Config { return &tls.Config{} }
+
+func (m *mockHCPCfg) APIAddress() string { return "" }
+
+func (m *mockHCPCfg) PortalURL() *url.URL { return &url.URL{} }
+
 type mockCloudCfg struct{}
 
-func (m mockCloudCfg) HCPConfig(opts ...hcpcfg.HCPConfigOption) (hcpConfig, error) {
+func (m mockCloudCfg) HCPConfig(opts ...hcpcfg.HCPConfigOption) (hcpcfg.HCPConfig, error) {
 	return &mockHCPCfg{}, nil
 }
 
 type mockErrCloudCfg struct{}
 
-func (m mockErrCloudCfg) HCPConfig(opts ...hcpcfg.HCPConfigOption) (hcpConfig, error) {
+func (m mockErrCloudCfg) HCPConfig(opts ...hcpcfg.HCPConfigOption) (hcpcfg.HCPConfig, error) {
 	return nil, errors.New("test bad HCP config")
 }
 

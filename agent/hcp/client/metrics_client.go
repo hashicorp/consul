@@ -3,7 +3,6 @@ package client
 import (
 	"bytes"
 	"context"
-	"crypto/tls"
 	"fmt"
 	"io"
 	"net/http"
@@ -37,15 +36,9 @@ type MetricsClient interface {
 	ExportMetrics(ctx context.Context, protoMetrics *metricpb.ResourceMetrics, endpoint string) error
 }
 
-// hcpConfig represents HCP config for TLS abstracted in an interface for easy testing.
-type hcpConfig interface {
-	oauth2.TokenSource
-	APITLSConfig() *tls.Config
-}
-
 // cloudConfig represents cloud config for TLS abstracted in an interface for easy testing.
 type cloudConfig interface {
-	HCPConfig(opts ...hcpcfg.HCPConfigOption) (hcpConfig, error)
+	HCPConfig(opts ...hcpcfg.HCPConfigOption) (hcpcfg.HCPConfig, error)
 }
 
 // otlpClient is an implementation of MetricsClient with a retryable http client for retries and to honor throttle.
@@ -143,7 +136,6 @@ func (o *otlpClient) ExportMetrics(ctx context.Context, protoMetrics *metricpb.R
 	if err != nil {
 		return fmt.Errorf("failed to export metrics: %v", err)
 	}
-	defer resp.Body.Close()
 
 	var respData bytes.Buffer
 	if _, err := io.Copy(&respData, resp.Body); err != nil {
