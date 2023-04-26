@@ -14,6 +14,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/hcp/config"
 	"github.com/hashicorp/consul/version"
+	hcptelemetry "github.com/hashicorp/hcp-sdk-go/clients/cloud-consul-telemetry-gateway/preview/2023-04-14/client/consul_telemetry_service"
 	hcpgnm "github.com/hashicorp/hcp-sdk-go/clients/cloud-global-network-manager-service/preview/2022-02-15/client/global_network_manager_service"
 	gnmmod "github.com/hashicorp/hcp-sdk-go/clients/cloud-global-network-manager-service/preview/2022-02-15/models"
 	"github.com/hashicorp/hcp-sdk-go/httpclient"
@@ -25,8 +26,19 @@ import (
 //go:generate mockery --name Client --with-expecter --inpackage
 type Client interface {
 	FetchBootstrap(ctx context.Context) (*BootstrapConfig, error)
+	FetchTelemetryConfig(ctx context.Context) (*TelemetryConfig, error)
 	PushServerStatus(ctx context.Context, status *ServerStatus) error
 	DiscoverServers(ctx context.Context) ([]string, error)
+}
+
+type MetricsConfig struct {
+	Filters  []string
+	Endpoint string
+}
+type TelemetryConfig struct {
+	Endpoint        string
+	Labels          map[string]string
+	MetricsOverride *MetricsConfig
 }
 
 type BootstrapConfig struct {
@@ -43,6 +55,7 @@ type hcpClient struct {
 	hc       *httptransport.Runtime
 	cfg      config.CloudConfig
 	gnm      hcpgnm.ClientService
+	tgw      hcptelemetry.ClientService
 	resource resource.Resource
 }
 
@@ -63,6 +76,8 @@ func NewClient(cfg config.CloudConfig) (Client, error) {
 	}
 
 	client.gnm = hcpgnm.New(client.hc, nil)
+	client.tgw = hcptelemetry.New(client.hc, nil)
+
 	return client, nil
 }
 
@@ -76,6 +91,26 @@ func httpClient(c config.CloudConfig) (*httptransport.Runtime, error) {
 		HCPConfig:     cfg,
 		SourceChannel: "consul " + version.GetHumanVersion(),
 	})
+}
+func (c *hcpClient) FetchTelemetryConfig(ctx context.Context) (*TelemetryConfig, error) {
+	params := hcptelemetry.NewAgentTelemetryConfigParamsWithContext(ctx).
+		WithLocationOrganizationID(c.resource.Organization).
+		WithLocationProjectID(c.resource.Project)
+
+	resp, err := c.tgw.AgentTelemetryConfig(params, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	payloadConfig := resp.Payload.TelemetryConfig
+	return &TelemetryConfig{
+		Endpoint: payloadConfig.Endpoint,
+		Labels:   payloadConfig.Labels,
+		MetricsOverride: &MetricsConfig{
+			Filters:  payloadConfig.Metrics.IncludeList,
+			Endpoint: payloadConfig.Metrics.Endpoint,
+		},
+	}, nil
 }
 
 func (c *hcpClient) FetchBootstrap(ctx context.Context) (*BootstrapConfig, error) {
