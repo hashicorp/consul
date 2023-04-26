@@ -258,7 +258,10 @@ func (f *Filter) filterServiceNodes(nodes *structs.ServiceNodes) bool {
 			continue
 		}
 		removed = true
-		f.logger.Debug("dropping node from result due to ACLs", "node", structs.NodeNameString(node.Node, &node.EnterpriseMeta))
+		node.CompoundServiceID()
+		f.logger.Debug("dropping service node from result due to ACLs",
+			"node", structs.NodeNameString(node.Node, &node.EnterpriseMeta),
+			"service", node.CompoundServiceID())
 		sn = append(sn[:i], sn[i+1:]...)
 		i--
 	}
@@ -340,7 +343,9 @@ func (f *Filter) filterCheckServiceNodes(nodes *structs.CheckServiceNodes) bool 
 		if node.CanRead(f.authorizer) == acl.Allow {
 			continue
 		}
-		f.logger.Debug("dropping node from result due to ACLs", "node", structs.NodeNameString(node.Node.Node, node.Node.GetEnterpriseMeta()))
+		f.logger.Debug("dropping check service node from result due to ACLs",
+			"node", structs.NodeNameString(node.Node.Node, node.Node.GetEnterpriseMeta()),
+			"service", node.Service.CompoundServiceID())
 		removed = true
 		csn = append(csn[:i], csn[i+1:]...)
 		i--
