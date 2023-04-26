@@ -68,6 +68,7 @@ import (
 	"github.com/hashicorp/consul/agent/rpc/peering"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
+	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/demo"
 	raftstorage "github.com/hashicorp/consul/internal/storage/raft"
@@ -435,6 +436,10 @@ type Server struct {
 	// with the Resource Service in-process (i.e. not via the network) without auth.
 	// It should only be used for purely-internal workloads, such as controllers.
 	internalResourceServiceClient pbresource.ResourceServiceClient
+
+	// controllerManager schedules the execution of controllers.
+	controllerManager *controller.Manager
+
 	// handles metrics reporting to HashiCorp
 	reportingManager *reporting.ReportingManager
 }
@@ -500,6 +505,7 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server, incom
 		incomingRPCLimiter:      incomingRPCLimiter,
 		routineManager:          routine.NewManager(logger.Named(logging.ConsulServer)),
 		typeRegistry:            resource.NewRegistry(),
+		controllerManager:       controller.NewManager(logger.Named(logging.ControllerRuntime)),
 	}
 	incomingRPCLimiter.Register(s)
 
@@ -824,8 +830,10 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server, incom
 	}
 
 	if s.config.DevMode {
-		demo.Register(s.typeRegistry)
+		demo.RegisterTypes(s.typeRegistry)
+		demo.RegisterControllers(s.controllerManager)
 	}
+	go s.controllerManager.Run(&lib.StopChannelContext{StopCh: shutdownCh})
 
 	return s, nil
 }
@@ -1951,6 +1959,7 @@ func (s *Server) trackLeaderChanges() {
 			s.grpcLeaderForwarder.UpdateLeaderAddr(s.config.Datacenter, string(leaderObs.LeaderAddr))
 			s.peeringBackend.SetLeaderAddress(string(leaderObs.LeaderAddr))
 			s.raftStorageBackend.LeaderChanged()
+			s.controllerManager.SetRaftLeader(s.IsLeader())
 
 			// Trigger sending an update to HCP status
 			s.hcpManager.SendUpdate()

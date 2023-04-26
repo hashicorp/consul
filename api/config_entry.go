@@ -35,6 +35,7 @@ const (
 	TCPRoute          string = "tcp-route"
 	InlineCertificate string = "inline-certificate"
 	HTTPRoute         string = "http-route"
+	JWTProvider       string = "jwt-provider"
 )
 
 const (
@@ -392,6 +393,8 @@ func makeConfigEntry(kind, name string) (ConfigEntry, error) {
 		return &HTTPRouteConfigEntry{Kind: kind, Name: name}, nil
 	case RateLimitIPConfig:
 		return &RateLimitIPConfigEntry{Kind: kind, Name: name}, nil
+	case JWTProvider:
+		return &JWTProviderConfigEntry{Kind: kind, Name: name}, nil
 	default:
 		return nil, fmt.Errorf("invalid config entry kind: %s", kind)
 	}

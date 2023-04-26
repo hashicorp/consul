@@ -1196,7 +1196,7 @@ func (c *compiler) makeSamenessGroupFailover(target *structs.DiscoveryTarget, op
 	}
 
 	var failoverTargets []*structs.DiscoveryTarget
-	for _, t := range samenessGroup.ToFailoverTargets() {
+	for _, t := range samenessGroup.ToServiceResolverFailoverTargets() {
 		// Rewrite the target as per the failover policy.
 		targetOpts := structs.MergeDiscoveryTargetOpts(opts, t.ToDiscoveryTargetOpts())
 		failoverTarget := c.rewriteTarget(target, targetOpts)

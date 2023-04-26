@@ -13,11 +13,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/go-raftchunking"
-	raftchunkingtypes "github.com/hashicorp/go-raftchunking/types"
-	"github.com/hashicorp/go-uuid"
-	"github.com/hashicorp/raft"
-	"github.com/hashicorp/serf/coordinate"
 	"github.com/mitchellh/mapstructure"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -34,6 +29,11 @@ import (
 	"github.com/hashicorp/consul/proto/private/prototest"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/types"
+	"github.com/hashicorp/go-raftchunking"
+	raftchunkingtypes "github.com/hashicorp/go-raftchunking/types"
+	"github.com/hashicorp/go-uuid"
+	"github.com/hashicorp/raft"
+	"github.com/hashicorp/serf/coordinate"
 )
 
 func generateUUID() (ret string) {
@@ -1372,9 +1372,10 @@ func TestFSM_ConfigEntry_StatusCAS(t *testing.T) {
 		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 		Status: structs.Status{
 			Conditions: []structs.Condition{{
-				Status: "Foo",
+				Status: string(api.ConditionStatusTrue),
 			}},
-		}}
+		},
+	}
 
 	// Create a new request.
 	req := &structs.ConfigEntryRequest{
@@ -1403,7 +1404,7 @@ func TestFSM_ConfigEntry_StatusCAS(t *testing.T) {
 	// do a status update
 	entry.Status = structs.Status{
 		Conditions: []structs.Condition{{
-			Status: "Foo",
+			Status: string(api.ConditionStatusTrue),
 		}},
 	}
 	req = &structs.ConfigEntryRequest{
@@ -1427,7 +1428,7 @@ func TestFSM_ConfigEntry_StatusCAS(t *testing.T) {
 		entry.RaftIndex.ModifyIndex = 2
 		conditions := config.(*structs.APIGatewayConfigEntry).Status.Conditions
 		require.Len(t, conditions, 1)
-		require.Equal(t, "Foo", conditions[0].Status)
+		require.Equal(t, string(api.ConditionStatusTrue), conditions[0].Status)
 	}
 
 	// attempt to change the status with a regular update and make sure it's ignored
@@ -1456,7 +1457,7 @@ func TestFSM_ConfigEntry_StatusCAS(t *testing.T) {
 		require.NoError(t, err)
 		conditions := config.(*structs.APIGatewayConfigEntry).Status.Conditions
 		require.Len(t, conditions, 1)
-		require.Equal(t, "Foo", conditions[0].Status)
+		require.Equal(t, string(api.ConditionStatusTrue), conditions[0].Status)
 	}
 }
 

@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package resource
 
 import (
@@ -19,7 +22,7 @@ func TestDelete_InputValidation(t *testing.T) {
 	server := testServer(t)
 	client := testClient(t, server)
 
-	demo.Register(server.Registry)
+	demo.RegisterTypes(server.Registry)
 
 	testCases := map[string]func(*pbresource.DeleteRequest){
 		"no id":      func(req *pbresource.DeleteRequest) { req.Id = nil },
@@ -27,17 +30,17 @@ func TestDelete_InputValidation(t *testing.T) {
 		"no tenancy": func(req *pbresource.DeleteRequest) { req.Id.Tenancy = nil },
 		"no name":    func(req *pbresource.DeleteRequest) { req.Id.Name = "" },
 		// clone necessary to not pollute DefaultTenancy
-		"tenancy partition wildcard": func(req *pbresource.DeleteRequest) {
+		"tenancy partition not default": func(req *pbresource.DeleteRequest) {
 			req.Id.Tenancy = clone(req.Id.Tenancy)
-			req.Id.Tenancy.Partition = storage.Wildcard
+			req.Id.Tenancy.Partition = ""
 		},
-		"tenancy namespace wildcard": func(req *pbresource.DeleteRequest) {
+		"tenancy namespace not default": func(req *pbresource.DeleteRequest) {
 			req.Id.Tenancy = clone(req.Id.Tenancy)
-			req.Id.Tenancy.Namespace = storage.Wildcard
+			req.Id.Tenancy.Namespace = ""
 		},
-		"tenancy peername wildcard": func(req *pbresource.DeleteRequest) {
+		"tenancy peername not local": func(req *pbresource.DeleteRequest) {
 			req.Id.Tenancy = clone(req.Id.Tenancy)
-			req.Id.Tenancy.PeerName = storage.Wildcard
+			req.Id.Tenancy.PeerName = ""
 		},
 	}
 	for desc, modFn := range testCases {
@@ -98,7 +101,7 @@ func TestDelete_ACLs(t *testing.T) {
 			mockACLResolver.On("ResolveTokenAndDefaultMeta", mock.Anything, mock.Anything, mock.Anything).
 				Return(tc.authz, nil)
 			server.ACLResolver = mockACLResolver
-			demo.Register(server.Registry)
+			demo.RegisterTypes(server.Registry)
 
 			artist, err := demo.GenerateV2Artist()
 			require.NoError(t, err)
@@ -119,8 +122,7 @@ func TestDelete_Success(t *testing.T) {
 	for desc, tc := range deleteTestCases() {
 		t.Run(desc, func(t *testing.T) {
 			server, client, ctx := testDeps(t)
-			demo.Register(server.Registry)
-
+			demo.RegisterTypes(server.Registry)
 			artist, err := demo.GenerateV2Artist()
 			require.NoError(t, err)
 
@@ -147,7 +149,7 @@ func TestDelete_NotFound(t *testing.T) {
 	for desc, tc := range deleteTestCases() {
 		t.Run(desc, func(t *testing.T) {
 			server, client, ctx := testDeps(t)
-			demo.Register(server.Registry)
+			demo.RegisterTypes(server.Registry)
 			artist, err := demo.GenerateV2Artist()
 			require.NoError(t, err)
 
@@ -162,7 +164,7 @@ func TestDelete_VersionMismatch(t *testing.T) {
 	t.Parallel()
 
 	server, client, ctx := testDeps(t)
-	demo.Register(server.Registry)
+	demo.RegisterTypes(server.Registry)
 	artist, err := demo.GenerateV2Artist()
 	require.NoError(t, err)
 	rsp, err := client.Write(ctx, &pbresource.WriteRequest{Resource: artist})
