@@ -26,8 +26,6 @@ import (
 // - Delete of a previously deleted or non-existent resource is a no-op to support idempotency.
 // - Errors with Aborted if the requested Version does not match the stored Version.
 // - Errors with PermissionDenied if ACL check fails
-//
-// TODO(spatel): Move docs to the proto file
 func (s *Server) Delete(ctx context.Context, req *pbresource.DeleteRequest) (*pbresource.DeleteResponse, error) {
 	if err := validateDeleteRequest(req); err != nil {
 		return nil, err
@@ -116,12 +114,21 @@ func (s *Server) maybeCreateTombstone(ctx context.Context, deleteId *pbresource.
 			"generated_at": time.Now().Format(time.RFC3339),
 		},
 	}
-
 	_, err = s.Write(ctx, &pbresource.WriteRequest{Resource: tombstone})
-	if err != nil {
-		return fmt.Errorf("failed writing tombstone: %w", err)
+
+	switch {
+	case err == nil:
+		// tombstone written!
+		return nil
+	case isAbortError(err):
+		// CAS write failed but that should be OK. This indicates that a tombstone already
+		// exists (most likely from a previous failed attempt to delete the resource) and
+		// the delete should continue as planned.
+		return nil
+	default:
+		// something else went wrong
+		return status.Errorf(codes.Internal, "failed writing tombstone: %v", err)
 	}
-	return nil
 }
 
 func validateDeleteRequest(req *pbresource.DeleteRequest) error {
@@ -140,4 +147,15 @@ func validateDeleteRequest(req *pbresource.DeleteRequest) error {
 func tombstoneName(deleteId *pbresource.ID) string {
 	// deleteId.Name is just included for easier identification
 	return fmt.Sprintf("tombstone-%v-%v", deleteId.Name, deleteId.Uid)
+}
+
+func isAbortError(err error) bool {
+	if err == nil {
+		return false
+	}
+	s, ok := status.FromError(err)
+	if !ok {
+		return false
+	}
+	return s.Code() == codes.Aborted
 }
