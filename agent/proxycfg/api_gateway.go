@@ -128,7 +128,7 @@ func (h *handlerAPIGateway) handleUpdate(ctx context.Context, u UpdateEvent, sna
 		return (*handlerUpstreams)(h).handleUpdateUpstreams(ctx, u, snap)
 	}
 
-	return nil
+	return h.recompileDiscoveryChains(snap)
 }
 
 // handleRootCAUpdate responds to changes in the watched root CA for a gateway
@@ -417,6 +417,42 @@ func (h *handlerAPIGateway) handleRouteConfigUpdate(ctx context.Context, u Updat
 		delete(snap.APIGateway.WatchedDiscoveryChains, upstreamID)
 	}
 
+	return nil
+}
+
+func (h *handlerAPIGateway) recompileDiscoveryChains(snap *ConfigSnapshot) error {
+	synthesizedChains := map[UpstreamID]*structs.CompiledDiscoveryChain{}
+
+	for name, listener := range snap.APIGateway.Listeners {
+		boundListener, ok := snap.APIGateway.BoundListeners[name]
+		if !ok {
+			// Skip any listeners that don't have a bound listener. Once the bound listener is created, this will be run again.
+			continue
+		}
+
+		if !snap.APIGateway.GatewayConfig.ListenerIsReady(name) {
+			// skip any listeners that might be in an invalid state
+			continue
+		}
+
+		// Create a synthesized discovery chain for each service.
+		services, upstreams, compiled, err := snap.APIGateway.synthesizeChains(h.source.Datacenter, listener, boundListener)
+		if err != nil {
+			return err
+		}
+
+		if len(upstreams) == 0 {
+			// skip if we can't construct any upstreams
+			continue
+		}
+
+		for i, service := range services {
+			id := NewUpstreamIDFromServiceName(structs.NewServiceName(service.Name, &service.EnterpriseMeta))
+			synthesizedChains[id] = compiled[i]
+		}
+	}
+
+	snap.APIGateway.DiscoveryChain = synthesizedChains
 	return nil
 }
 
