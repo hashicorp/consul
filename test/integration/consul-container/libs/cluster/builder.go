@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package cluster
 
 import (
@@ -20,6 +23,13 @@ const (
 	ConsulCACertKey = "consul-agent-ca-key.pem"
 )
 
+type LogStore string
+
+const (
+	LogStore_WAL    LogStore = "wal"
+	LogStore_BoltDB LogStore = "boltdb"
+)
+
 // BuildContext provides a reusable object meant to share common configuration settings
 // between agent configuration builders.
 type BuildContext struct {
@@ -39,6 +49,9 @@ type BuildContext struct {
 	certVolume   string
 	caCert       string
 	tlsCertIndex int // keeps track of the certificates issued for naming purposes
+
+	aclEnabled bool
+	logStore   LogStore
 }
 
 func (c *BuildContext) DockerImage() string {
@@ -84,6 +97,12 @@ type BuildOptions struct {
 	// UseGRPCWithTLS ensures that any accesses for external gRPC use the
 	// grpc_tls port. By default it will not.
 	UseGRPCWithTLS bool
+
+	// ACLEnabled configures acl in agent configuration
+	ACLEnabled bool
+
+	//StoreLog define which LogStore to use
+	LogStore LogStore
 }
 
 func NewBuildContext(t *testing.T, opts BuildOptions) *BuildContext {
@@ -97,10 +116,12 @@ func NewBuildContext(t *testing.T, opts BuildOptions) *BuildContext {
 		allowHTTPAnyway:        opts.AllowHTTPAnyway,
 		useAPIWithTLS:          opts.UseAPIWithTLS,
 		useGRPCWithTLS:         opts.UseGRPCWithTLS,
+		aclEnabled:             opts.ACLEnabled,
+		logStore:               opts.LogStore,
 	}
 
 	if ctx.consulImageName == "" {
-		ctx.consulImageName = utils.TargetImageName
+		ctx.consulImageName = utils.GetTargetImageName()
 	}
 	if ctx.consulVersion == "" {
 		ctx.consulVersion = utils.TargetVersion
@@ -165,6 +186,7 @@ func NewConfigBuilder(ctx *BuildContext) *Builder {
 	b.conf.Set("connect.enabled", true)
 	b.conf.Set("log_level", "debug")
 	b.conf.Set("server", true)
+	b.conf.Set("ui_config.enabled", true)
 
 	// These are the default ports, disabling plaintext transport
 	b.conf.Set("ports.dns", 8600)
@@ -188,6 +210,24 @@ func NewConfigBuilder(ctx *BuildContext) *Builder {
 	if ctx.consulVersion == "local" || semver.Compare("v"+ctx.consulVersion, "v1.14.0") >= 0 {
 		// Enable GRPCTLS for version after v1.14.0
 		b.conf.Set("ports.grpc_tls", 8503)
+	}
+
+	if ctx.aclEnabled {
+		b.conf.Set("acl.enabled", true)
+		b.conf.Set("acl.default_policy", "deny")
+		b.conf.Set("acl.enable_token_persistence", true)
+	}
+
+	ls := string(ctx.logStore)
+	if ls != "" && (ctx.consulVersion == "local" ||
+		semver.Compare("v"+ctx.consulVersion, "v1.15.0") >= 0) {
+		// Enable logstore backend for version after v1.15.0
+		if ls != string(LogStore_WAL) && ls != string(LogStore_BoltDB) {
+			ls = string(LogStore_BoltDB)
+		}
+		b.conf.Set("raft_logstore.backend", ls)
+	} else {
+		b.conf.Unset("raft_logstore.backend")
 	}
 
 	return b
@@ -233,8 +273,25 @@ func (b *Builder) Peering(enable bool) *Builder {
 	return b
 }
 
+func (b *Builder) NodeID(nodeID string) *Builder {
+	b.conf.Set("node_id", nodeID)
+	return b
+}
+
+func (b *Builder) Partition(name string) *Builder {
+	b.conf.Set("partition", name)
+	return b
+}
+
 func (b *Builder) RetryJoin(names ...string) *Builder {
 	b.conf.Set("retry_join", names)
+	return b
+}
+
+func (b *Builder) EnableACL() *Builder {
+	b.conf.Set("acl.enabled", true)
+	b.conf.Set("acl.default_policy", "deny")
+	b.conf.Set("acl.enable_token_persistence", true)
 	return b
 }
 
@@ -254,11 +311,15 @@ func (b *Builder) ToAgentConfig(t *testing.T) *Config {
 	confCopy, err := b.conf.Clone()
 	require.NoError(t, err)
 
+	cmd := []string{"agent"}
+	if utils.Debug {
+		cmd = []string{"/root/go/bin/dlv", "exec", "/bin/consul", "--listen=:4000", "--headless=true", "", "--accept-multiclient", "--continue", "--api-version=2", "--", "agent", "--config-file=/consul/config/config.json"}
+	}
 	return &Config{
 		JSON:          string(out),
 		ConfigBuilder: confCopy,
 
-		Cmd: []string{"agent"},
+		Cmd: cmd,
 
 		Image:   b.context.consulImageName,
 		Version: b.context.consulVersion,
@@ -268,6 +329,8 @@ func (b *Builder) ToAgentConfig(t *testing.T) *Config {
 
 		UseAPIWithTLS:  b.context.useAPIWithTLS,
 		UseGRPCWithTLS: b.context.useGRPCWithTLS,
+
+		ACLEnabled: b.context.aclEnabled,
 	}
 }
 

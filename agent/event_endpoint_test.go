@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package agent
 
 import (
@@ -85,8 +88,9 @@ func TestEventFire_token(t *testing.T) {
 	}
 	for _, c := range tcases {
 		// Try to fire the event over the HTTP interface
-		url := fmt.Sprintf("/v1/event/fire/%s?token=%s", c.event, token)
+		url := fmt.Sprintf("/v1/event/fire/%s", c.event)
 		req, _ := http.NewRequest("PUT", url, nil)
+		req.Header.Add("X-Consul-Token", token)
 		resp := httptest.NewRecorder()
 		_, err := a.srv.EventFire(resp, req)
 
@@ -236,7 +240,8 @@ func TestEventList_ACLFilter(t *testing.T) {
 				}
 			`)
 
-			req := httptest.NewRequest("GET", fmt.Sprintf("/v1/event/list?token=%s", token), nil)
+			req := httptest.NewRequest("GET", "/v1/event/list", nil)
+			req.Header.Add("X-Consul-Token", token)
 			resp := httptest.NewRecorder()
 
 			obj, err := a.srv.EventList(resp, req)
@@ -252,7 +257,8 @@ func TestEventList_ACLFilter(t *testing.T) {
 
 	t.Run("root token", func(t *testing.T) {
 		retry.Run(t, func(r *retry.R) {
-			req := httptest.NewRequest("GET", "/v1/event/list?token=root", nil)
+			req := httptest.NewRequest("GET", "/v1/event/list", nil)
+			req.Header.Add("X-Consul-Token", "root")
 			resp := httptest.NewRecorder()
 
 			obj, err := a.srv.EventList(resp, req)

@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 import domEventSourceBlocking, {
   validateCursor,
   createErrorBackoff,
@@ -46,6 +51,8 @@ module('Unit | Utility | dom/event-source/blocking', function () {
     assert.ok(source instanceof EventSource);
   });
   test("the 5xx backoff continues to throw when it's not a 5xx", function (assert) {
+    assert.expect(11);
+
     const backoff = createErrorBackoff();
     [
       undefined,
@@ -66,6 +73,8 @@ module('Unit | Utility | dom/event-source/blocking', function () {
     });
   });
   test('the 5xx backoff returns a resolve promise on a 5xx (apart from 500)', function (assert) {
+    assert.expect(18);
+
     [
       { statusCode: 501 },
       { errors: [{ status: 501 }] },
@@ -85,12 +94,16 @@ module('Unit | Utility | dom/event-source/blocking', function () {
     });
   });
   test("the cursor validation always returns undefined if the cursor can't be parsed to an integer", function (assert) {
+    assert.expect(4);
+
     ['null', null, '', undefined].forEach((item) => {
       const actual = validateCursor(item);
       assert.equal(actual, undefined);
     });
   });
   test('the cursor validation always returns a cursor greater than zero', function (assert) {
+    assert.expect(5);
+
     [
       {
         cursor: 0,
@@ -118,6 +131,8 @@ module('Unit | Utility | dom/event-source/blocking', function () {
     });
   });
   test('the cursor validation resets to 1 if its less than the previous cursor', function (assert) {
+    assert.expect(4);
+
     [
       {
         previous: 100,

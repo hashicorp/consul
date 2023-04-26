@@ -1,3 +1,6 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
 schema = "1"
 
 project "consul" {
@@ -35,6 +38,41 @@ event "prepare" {
 
   notification {
     on = "fail"
+  }
+}
+
+## These are promotion and post-publish events
+## they should be added to the end of the file after the verify event stanza.
+
+event "trigger-staging" {
+// This event is dispatched by the bob trigger-promotion command
+// and is required - do not delete.
+}
+
+event "promote-staging" {
+  depends = ["trigger-staging"]
+  action "promote-staging" {
+    organization = "hashicorp"
+    repository = "crt-workflows-common"
+    workflow = "promote-staging"
+    config = "release-metadata.hcl"
+  }
+
+  notification {
+    on = "always"
+  }
+}
+
+event "promote-staging-docker" {
+  depends = ["promote-staging"]
+  action "promote-staging-docker" {
+    organization = "hashicorp"
+    repository = "crt-workflows-common"
+    workflow = "promote-staging-docker"
+  }
+
+  notification {
+    on = "always"
   }
 }
 
@@ -94,21 +132,9 @@ event "post-publish-website" {
     on = "always"
   }
 }
-event "bump-version" {
-  depends = ["post-publish-website"]
-  action "bump-version" {
-    organization = "hashicorp"
-    repository = "crt-workflows-common"
-    workflow = "bump-version"
-  }
-
-  notification {
-    on = "fail"
-  }
-}
 
 event "update-ironbank" {
-  depends = ["bump-version"]
+  depends = ["post-publish-website"]
   action "update-ironbank" {
     organization = "hashicorp"
     repository = "crt-workflows-common"

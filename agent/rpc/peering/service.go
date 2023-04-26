@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package peering
 
 import (
@@ -28,8 +31,9 @@ import (
 	"github.com/hashicorp/consul/agent/grpc-external/services/peerstream"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
-	"github.com/hashicorp/consul/proto/pbpeering"
-	"github.com/hashicorp/consul/proto/pbpeerstream"
+	"github.com/hashicorp/consul/proto/private/pbcommon"
+	"github.com/hashicorp/consul/proto/private/pbpeering"
+	"github.com/hashicorp/consul/proto/private/pbpeerstream"
 )
 
 var (
@@ -87,6 +91,7 @@ type Config struct {
 	Datacenter     string
 	ConnectEnabled bool
 	PeeringEnabled bool
+	Locality       *structs.Locality
 }
 
 func NewServer(cfg Config) *Server {
@@ -327,6 +332,7 @@ func (s *Server) GenerateToken(
 		Remote: structs.PeeringTokenRemote{
 			Partition:  req.PartitionOrDefault(),
 			Datacenter: s.Datacenter,
+			Locality:   s.Config.Locality,
 		},
 	}
 
@@ -445,6 +451,7 @@ func (s *Server) Establish(
 		Remote: &pbpeering.RemoteInfo{
 			Partition:  tok.Remote.Partition,
 			Datacenter: tok.Remote.Datacenter,
+			Locality:   pbcommon.LocalityToProto(tok.Remote.Locality),
 		},
 	}
 
@@ -920,9 +927,12 @@ func (s *Server) TrustBundleRead(ctx context.Context, req *pbpeering.TrustBundle
 
 	defer metrics.MeasureSince([]string{"peering", "trust_bundle_read"}, time.Now())
 
+	// Having the ability to write a service in ANY (at least one) namespace should be
+	// sufficient for reading the trust bundle, which is why we use a wildcard.
+	entMeta := acl.NewEnterpriseMetaWithPartition(req.Partition, acl.WildcardName)
+	entMeta.Normalize()
 	var authzCtx acl.AuthorizerContext
-	entMeta := structs.DefaultEnterpriseMetaInPartition(req.Partition)
-	authz, err := s.Backend.ResolveTokenAndDefaultMeta(options.Token, entMeta, &authzCtx)
+	authz, err := s.Backend.ResolveTokenAndDefaultMeta(options.Token, &entMeta, &authzCtx)
 	if err != nil {
 		return nil, err
 	}
@@ -933,7 +943,7 @@ func (s *Server) TrustBundleRead(ctx context.Context, req *pbpeering.TrustBundle
 
 	idx, trustBundle, err := s.Backend.Store().PeeringTrustBundleRead(nil, state.Query{
 		Value:          req.Name,
-		EnterpriseMeta: *entMeta,
+		EnterpriseMeta: entMeta,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to read trust bundle for peer %s: %w", req.Name, err)

@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package consul
 
 import (
@@ -27,8 +30,9 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/logging"
-	"github.com/hashicorp/consul/proto/pbpeering"
-	"github.com/hashicorp/consul/proto/pbpeerstream"
+	"github.com/hashicorp/consul/proto/private/pbcommon"
+	"github.com/hashicorp/consul/proto/private/pbpeering"
+	"github.com/hashicorp/consul/proto/private/pbpeerstream"
 )
 
 var leaderExportedServicesCountKeyDeprecated = []string{"consul", "peering", "exported_services"}
@@ -385,6 +389,7 @@ func (s *Server) establishStream(ctx context.Context,
 					Remote: &pbpeering.RemoteInfo{
 						Partition:  peer.Partition,
 						Datacenter: s.config.Datacenter,
+						Locality:   pbcommon.LocalityToProto(s.config.Locality),
 					},
 				},
 			},

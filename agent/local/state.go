@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package local
 
 import (
@@ -59,6 +62,7 @@ type Config struct {
 	DiscardCheckOutput  bool
 	NodeID              types.NodeID
 	NodeName            string
+	NodeLocality        *structs.Locality
 	Partition           string // this defaults if empty
 	TaggedAddresses     map[string]string
 }
@@ -1073,6 +1077,7 @@ func (l *State) updateSyncState() error {
 	// Check if node info needs syncing
 	if svcNode == nil || svcNode.ID != l.config.NodeID ||
 		!reflect.DeepEqual(svcNode.TaggedAddresses, l.config.TaggedAddresses) ||
+		!reflect.DeepEqual(svcNode.Locality, l.config.NodeLocality) ||
 		!reflect.DeepEqual(svcNode.Meta, l.metadata) {
 		l.nodeInfoInSync = false
 	}
@@ -1293,7 +1298,12 @@ func (l *State) deleteService(key structs.ServiceID) error {
 		return fmt.Errorf("ServiceID missing")
 	}
 
-	st := l.aclTokenForServiceSync(key, l.tokens.AgentToken)
+	// Always use the agent token to delete without trying the service token.
+	// This works because the agent token really must have node:write
+	// permission and node:write allows deregistration of services/checks on
+	// that node. Because the service token may have been deleted, using the
+	// agent token without fallback logic is a bit faster, simpler, and safer.
+	st := l.tokens.AgentToken()
 	req := structs.DeregisterRequest{
 		Datacenter:     l.config.Datacenter,
 		Node:           l.config.NodeName,
@@ -1344,7 +1354,9 @@ func (l *State) deleteCheck(key structs.CheckID) error {
 		return fmt.Errorf("CheckID missing")
 	}
 
-	ct := l.aclTokenForCheckSync(key, l.tokens.AgentToken)
+	// Always use the agent token for deletion. Refer to deleteService() for
+	// an explanation.
+	ct := l.tokens.AgentToken()
 	req := structs.DeregisterRequest{
 		Datacenter:     l.config.Datacenter,
 		Node:           l.config.NodeName,
@@ -1558,6 +1570,7 @@ func (l *State) syncNodeInfo() error {
 		Node:            l.config.NodeName,
 		Address:         l.config.AdvertiseAddr,
 		TaggedAddresses: l.config.TaggedAddresses,
+		Locality:        l.config.NodeLocality,
 		NodeMeta:        l.metadata,
 		EnterpriseMeta:  l.agentEnterpriseMeta,
 		WriteRequest:    structs.WriteRequest{Token: at},

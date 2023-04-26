@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package state
 
 import (
@@ -10,7 +13,7 @@ import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/proto/pbsubscribe"
+	"github.com/hashicorp/consul/proto/private/pbsubscribe"
 )
 
 func TestStore_IntegrationWithEventPublisher_ACLTokenUpdate(t *testing.T) {
@@ -140,7 +143,6 @@ func TestStore_IntegrationWithEventPublisher_ACLPolicyUpdate(t *testing.T) {
 		ID:          testPolicyID_C,
 		Name:        "foo-read",
 		Rules:       `node "foo" { policy = "read" }`,
-		Syntax:      acl.SyntaxCurrent,
 		Datacenters: []string{"dc1"},
 	}
 	policy2.SetHash(false)
@@ -154,7 +156,6 @@ func TestStore_IntegrationWithEventPublisher_ACLPolicyUpdate(t *testing.T) {
 		ID:          testPolicyID_A,
 		Name:        "node-read",
 		Rules:       `node_prefix "" { policy = "write" }`,
-		Syntax:      acl.SyntaxCurrent,
 		Datacenters: []string{"dc1"},
 	}
 	policy3.SetHash(false)
@@ -213,7 +214,6 @@ func TestStore_IntegrationWithEventPublisher_ACLPolicyUpdate(t *testing.T) {
 		ID:          testPolicyID_B,
 		Name:        "node-read",
 		Rules:       `node_prefix "foo" { policy = "read" }`,
-		Syntax:      acl.SyntaxCurrent,
 		Datacenters: []string{"dc1"},
 	}
 	policy4.SetHash(false)

@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 //go:build !consulent
 // +build !consulent
 
@@ -16,7 +19,7 @@ import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/proto/pbpeering"
+	"github.com/hashicorp/consul/proto/private/pbpeering"
 	"github.com/hashicorp/consul/sdk/testutil"
 )
 
@@ -176,6 +179,13 @@ var baseCases = map[string]testCase{
 				Labels: []metrics.Label{
 					{Name: "datacenter", Value: "dc1"},
 					{Name: "kind", Value: "connect-native"},
+				},
+			},
+			"consul.usage.test.state.billable_service_instances;datacenter=dc1": {
+				Name:  "consul.usage.test.state.billable_service_instances",
+				Value: 0,
+				Labels: []metrics.Label{
+					{Name: "datacenter", Value: "dc1"},
 				},
 			},
 			// --- kv ---
@@ -350,6 +360,22 @@ var baseCases = map[string]testCase{
 					{Name: "kind", Value: "exported-services"},
 				},
 			},
+			"consul.usage.test.consul.state.config_entries;datacenter=dc1;kind=sameness-group": { // Legacy
+				Name:  "consul.usage.test.consul.state.config_entries",
+				Value: 0,
+				Labels: []metrics.Label{
+					{Name: "datacenter", Value: "dc1"},
+					{Name: "kind", Value: "sameness-group"},
+				},
+			},
+			"consul.usage.test.state.config_entries;datacenter=dc1;kind=sameness-group": {
+				Name:  "consul.usage.test.state.config_entries",
+				Value: 0,
+				Labels: []metrics.Label{
+					{Name: "datacenter", Value: "dc1"},
+					{Name: "kind", Value: "sameness-group"},
+				},
+			},
 			"consul.usage.test.consul.state.config_entries;datacenter=dc1;kind=api-gateway": { // Legacy
 				Name:  "consul.usage.test.consul.state.config_entries",
 				Value: 0,
@@ -428,6 +454,38 @@ var baseCases = map[string]testCase{
 				Labels: []metrics.Label{
 					{Name: "datacenter", Value: "dc1"},
 					{Name: "kind", Value: "tcp-route"},
+				},
+			},
+			"consul.usage.test.consul.state.config_entries;datacenter=dc1;kind=jwt-provider": { // Legacy
+				Name:  "consul.usage.test.consul.state.config_entries",
+				Value: 0,
+				Labels: []metrics.Label{
+					{Name: "datacenter", Value: "dc1"},
+					{Name: "kind", Value: "jwt-provider"},
+				},
+			},
+			"consul.usage.test.state.config_entries;datacenter=dc1;kind=jwt-provider": {
+				Name:  "consul.usage.test.state.config_entries",
+				Value: 0,
+				Labels: []metrics.Label{
+					{Name: "datacenter", Value: "dc1"},
+					{Name: "kind", Value: "jwt-provider"},
+				},
+			},
+			"consul.usage.test.consul.state.config_entries;datacenter=dc1;kind=control-plane-request-limit": {
+				Name:  "consul.usage.test.consul.state.config_entries",
+				Value: 0,
+				Labels: []metrics.Label{
+					{Name: "datacenter", Value: "dc1"},
+					{Name: "kind", Value: "control-plane-request-limit"},
+				},
+			},
+			"consul.usage.test.state.config_entries;datacenter=dc1;kind=control-plane-request-limit": {
+				Name:  "consul.usage.test.state.config_entries",
+				Value: 0,
+				Labels: []metrics.Label{
+					{Name: "datacenter", Value: "dc1"},
+					{Name: "kind", Value: "control-plane-request-limit"},
 				},
 			},
 		},
@@ -596,6 +654,13 @@ var baseCases = map[string]testCase{
 				Labels: []metrics.Label{
 					{Name: "datacenter", Value: "dc1"},
 					{Name: "kind", Value: "connect-native"},
+				},
+			},
+			"consul.usage.test.state.billable_service_instances;datacenter=dc1": {
+				Name:  "consul.usage.test.state.billable_service_instances",
+				Value: 0,
+				Labels: []metrics.Label{
+					{Name: "datacenter", Value: "dc1"},
 				},
 			},
 			// --- kv ---
@@ -770,6 +835,22 @@ var baseCases = map[string]testCase{
 					{Name: "kind", Value: "exported-services"},
 				},
 			},
+			"consul.usage.test.consul.state.config_entries;datacenter=dc1;kind=sameness-group": { // Legacy
+				Name:  "consul.usage.test.consul.state.config_entries",
+				Value: 0,
+				Labels: []metrics.Label{
+					{Name: "datacenter", Value: "dc1"},
+					{Name: "kind", Value: "sameness-group"},
+				},
+			},
+			"consul.usage.test.state.config_entries;datacenter=dc1;kind=sameness-group": {
+				Name:  "consul.usage.test.state.config_entries",
+				Value: 0,
+				Labels: []metrics.Label{
+					{Name: "datacenter", Value: "dc1"},
+					{Name: "kind", Value: "sameness-group"},
+				},
+			},
 			"consul.usage.test.consul.state.config_entries;datacenter=dc1;kind=api-gateway": { // Legacy
 				Name:  "consul.usage.test.consul.state.config_entries",
 				Value: 0,
@@ -848,6 +929,38 @@ var baseCases = map[string]testCase{
 				Labels: []metrics.Label{
 					{Name: "datacenter", Value: "dc1"},
 					{Name: "kind", Value: "tcp-route"},
+				},
+			},
+			"consul.usage.test.consul.state.config_entries;datacenter=dc1;kind=jwt-provider": { // Legacy
+				Name:  "consul.usage.test.consul.state.config_entries",
+				Value: 0,
+				Labels: []metrics.Label{
+					{Name: "datacenter", Value: "dc1"},
+					{Name: "kind", Value: "jwt-provider"},
+				},
+			},
+			"consul.usage.test.state.config_entries;datacenter=dc1;kind=jwt-provider": {
+				Name:  "consul.usage.test.state.config_entries",
+				Value: 0,
+				Labels: []metrics.Label{
+					{Name: "datacenter", Value: "dc1"},
+					{Name: "kind", Value: "jwt-provider"},
+				},
+			},
+			"consul.usage.test.consul.state.config_entries;datacenter=dc1;kind=control-plane-request-limit": {
+				Name:  "consul.usage.test.consul.state.config_entries",
+				Value: 0,
+				Labels: []metrics.Label{
+					{Name: "datacenter", Value: "dc1"},
+					{Name: "kind", Value: "control-plane-request-limit"},
+				},
+			},
+			"consul.usage.test.state.config_entries;datacenter=dc1;kind=control-plane-request-limit": {
+				Name:  "consul.usage.test.state.config_entries",
+				Value: 0,
+				Labels: []metrics.Label{
+					{Name: "datacenter", Value: "dc1"},
+					{Name: "kind", Value: "control-plane-request-limit"},
 				},
 			},
 		},
@@ -1174,6 +1287,13 @@ func TestUsageReporter_emitServiceUsage_OSS(t *testing.T) {
 		Labels: []metrics.Label{
 			{Name: "datacenter", Value: "dc1"},
 			{Name: "kind", Value: "connect-native"},
+		},
+	}
+	nodesAndSvcsCase.expectedGauges["consul.usage.test.state.billable_service_instances;datacenter=dc1"] = metrics.GaugeValue{
+		Name:  "consul.usage.test.state.billable_service_instances",
+		Value: 3,
+		Labels: []metrics.Label{
+			{Name: "datacenter", Value: "dc1"},
 		},
 	}
 	nodesAndSvcsCase.expectedGauges["consul.usage.test.consul.state.config_entries;datacenter=dc1;kind=ingress-gateway"] = metrics.GaugeValue{ // Legacy

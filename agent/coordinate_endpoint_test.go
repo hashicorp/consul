@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package agent
 
 import (
@@ -40,9 +43,9 @@ func TestCoordinate_Disabled_Response(t *testing.T) {
 			req, _ := http.NewRequest("PUT", "/should/not/care", nil)
 			resp := httptest.NewRecorder()
 			obj, err := tt(resp, req)
-			if err, ok := err.(HTTPError); ok {
-				if err.StatusCode != 401 {
-					t.Fatalf("expected status 401 but got %d", err.StatusCode)
+			if httpErr, ok := err.(HTTPError); ok {
+				if httpErr.StatusCode != 401 {
+					t.Fatalf("expected status 401 but got %d", httpErr.StatusCode)
 				}
 			} else {
 				t.Fatalf("expected HTTP error but got %v", err)
@@ -342,7 +345,8 @@ func TestCoordinate_Update_ACLDeny(t *testing.T) {
 	})
 
 	t.Run("valid token", func(t *testing.T) {
-		req, _ := http.NewRequest("PUT", "/v1/coordinate/update?token=root", jsonReader(body))
+		req, _ := http.NewRequest("PUT", "/v1/coordinate/update", jsonReader(body))
+		req.Header.Add("X-Consul-Token", "root")
 		if _, err := a.srv.CoordinateUpdate(nil, req); err != nil {
 			t.Fatalf("err: %v", err)
 		}

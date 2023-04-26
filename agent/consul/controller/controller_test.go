@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package controller
 
 import (
@@ -7,12 +10,14 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-memdb"
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/agent/consul/fsm"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/go-hclog"
-	"github.com/stretchr/testify/require"
 )
 
 func TestBasicController(t *testing.T) {
@@ -32,7 +37,8 @@ func TestBasicController(t *testing.T) {
 		NewStateStore: func() *state.Store {
 			return state.NewStateStoreWithEventPublisher(nil, publisher)
 		},
-		Publisher: publisher,
+		Publisher:      publisher,
+		StorageBackend: fsm.NullStorageBackend,
 	}).State()
 
 	for i := 0; i < 200; i++ {
@@ -88,7 +94,8 @@ func TestBasicController_Transform(t *testing.T) {
 		NewStateStore: func() *state.Store {
 			return state.NewStateStoreWithEventPublisher(nil, publisher)
 		},
-		Publisher: publisher,
+		Publisher:      publisher,
+		StorageBackend: fsm.NullStorageBackend,
 	}).State()
 
 	go New(publisher, reconciler).Subscribe(&stream.SubscribeRequest{
@@ -133,7 +140,8 @@ func TestBasicController_Retry(t *testing.T) {
 		NewStateStore: func() *state.Store {
 			return state.NewStateStoreWithEventPublisher(nil, publisher)
 		},
-		Publisher: publisher,
+		Publisher:      publisher,
+		StorageBackend: fsm.NullStorageBackend,
 	}).State()
 
 	queueInitialized := make(chan *countingWorkQueue)
@@ -378,7 +386,8 @@ func TestConfigEntrySubscriptions(t *testing.T) {
 				NewStateStore: func() *state.Store {
 					return state.NewStateStoreWithEventPublisher(nil, publisher)
 				},
-				Publisher: publisher,
+				Publisher:      publisher,
+				StorageBackend: fsm.NullStorageBackend,
 			}).State()
 
 			for i := 0; i < 200; i++ {
@@ -414,4 +423,150 @@ func TestConfigEntrySubscriptions(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestBasicController_Triggers(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	reconciler := newTestReconciler(true)
+
+	publisher := stream.NewEventPublisher(0)
+	go publisher.Run(ctx)
+
+	controller := New(publisher, reconciler)
+
+	go func() {
+		require.NoError(t, controller.Run(ctx))
+	}()
+
+	ensureCalled := func(request chan Request, name string) bool {
+		select {
+		case req := <-request:
+			require.Equal(t, structs.IngressGateway, req.Kind)
+			require.Equal(t, name, req.Name)
+			return true
+		case <-time.After(10 * time.Millisecond):
+			return false
+		}
+	}
+
+	request := Request{
+		Kind: structs.IngressGateway,
+		Name: "foo-1",
+	}
+
+	triggerOneChan := make(chan struct{}, 3)
+	triggerOne := func(ctx context.Context) error {
+		select {
+		case <-triggerOneChan:
+			return nil
+		case <-ctx.Done():
+			return nil
+		}
+	}
+	controller.AddTrigger(request, triggerOne)
+	require.False(t, ensureCalled(reconciler.received, "foo-1"))
+	triggerOneChan <- struct{}{}
+	reconciler.stepFor(10 * time.Millisecond)
+	require.True(t, ensureCalled(reconciler.received, "foo-1"))
+
+	// do it again
+	require.False(t, ensureCalled(reconciler.received, "foo-1"))
+	controller.AddTrigger(request, triggerOne)
+	triggerOneChan <- struct{}{}
+	reconciler.stepFor(10 * time.Millisecond)
+	require.True(t, ensureCalled(reconciler.received, "foo-1"))
+
+	// check with the overwritten trigger
+	controller.AddTrigger(request, triggerOne)
+	triggerTwoChan := make(chan struct{}, 2)
+	triggerTwo := func(ctx context.Context) error {
+		select {
+		case <-triggerTwoChan:
+			return nil
+		case <-ctx.Done():
+			return nil
+		}
+	}
+	controller.AddTrigger(request, triggerTwo)
+	triggerOneChan <- struct{}{}
+	reconciler.stepFor(10 * time.Millisecond)
+	require.False(t, ensureCalled(reconciler.received, "foo-1"))
+	triggerTwoChan <- struct{}{}
+	reconciler.stepFor(10 * time.Millisecond)
+	require.True(t, ensureCalled(reconciler.received, "foo-1"))
+
+	// remove the trigger and make sure we're not called again
+	controller.RemoveTrigger(request)
+	triggerTwoChan <- struct{}{}
+	reconciler.stepFor(10 * time.Millisecond)
+	require.False(t, ensureCalled(reconciler.received, "foo-1"))
+}
+
+func TestDiscoveryChainController(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	reconciler := newTestReconciler(false)
+
+	publisher := stream.NewEventPublisher(1 * time.Millisecond)
+	go publisher.Run(ctx)
+
+	// get the store through the FSM since the publisher handlers get registered through it
+	store := fsm.NewFromDeps(fsm.Deps{
+		Logger: hclog.New(nil),
+		NewStateStore: func() *state.Store {
+			return state.NewStateStoreWithEventPublisher(nil, publisher)
+		},
+		Publisher:      publisher,
+		StorageBackend: fsm.NullStorageBackend,
+	}).State()
+
+	controller := New(publisher, reconciler)
+	go controller.Subscribe(&stream.SubscribeRequest{
+		Topic:   state.EventTopicIngressGateway,
+		Subject: stream.SubjectWildcard,
+	}).WithWorkers(10).Run(ctx)
+
+	request := Request{
+		Kind: structs.IngressGateway,
+		Name: "foo-1",
+	}
+
+	ensureCalled := func(request chan Request, name string) bool {
+		select {
+		case req := <-request:
+			require.Equal(t, structs.IngressGateway, req.Kind)
+			require.Equal(t, name, req.Name)
+			return true
+		case <-time.After(10 * time.Millisecond):
+			return false
+		}
+	}
+
+	require.NoError(t, store.EnsureConfigEntry(1, &structs.IngressGatewayConfigEntry{
+		Kind: structs.IngressGateway,
+		Name: "foo-1",
+	}))
+	require.True(t, ensureCalled(reconciler.received, "foo-1"))
+
+	// create the trigger and something that changes in its upstream discovery chain and ensure that we've
+	// fired the reconciler
+	ws := memdb.NewWatchSet()
+	ws.Add(store.AbandonCh())
+	_, _, err := store.ReadDiscoveryChainConfigEntries(ws, "foo-2", nil)
+	require.NoError(t, err)
+	controller.AddTrigger(request, ws.WatchCtx)
+
+	require.False(t, ensureCalled(reconciler.received, "foo-1"))
+	require.NoError(t, store.EnsureConfigEntry(1, &structs.ServiceResolverConfigEntry{
+		Kind: structs.ServiceResolver,
+		Name: "foo-2",
+	}))
+	require.True(t, ensureCalled(reconciler.received, "foo-1"))
 }

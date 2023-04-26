@@ -1,0 +1,592 @@
+---
+layout: docs
+page_title: Define health checks
+description: ->
+    Learn how to configure different types of health checks for services you register with Consul.
+---
+
+# Define health checks 
+This topic describes how to create different types of health checks for your services. 
+
+
+## Overview
+Health checks are configurations that verifies the health of a service or node. Health checks configurations are nested in the `service` block. Refer to [Define Services](/consul/docs/services/usage/define-services) for information about specifying other service parameters.   
+
+You can define individual health checks for your service in separate `check` blocks or define multiple checks in a `checks` block. Refer to [Define multiple checks](#define-multiple-checks) for additional information.
+
+You can create several different kinds of checks:
+
+- _Script_ checks invoke an external application that performs the health check, exits with an appropriate exit code, and potentially generates output. Script checks are one of the most common types of checks.
+- _HTTP_ checks make an HTTP GET request to the specified URL and wait for the specified amount of time. HTTP checks are one of the most common types of checks.
+- _TCP_  checks attempt to connect to an IP or hostname and port over TCP and wait for the specified amount of time. 
+- _UDP_ checks send UDP datagrams to the specified IP or hostname and port and wait for the specified amount of time. 
+- _Time-to-live (TTL)_ checks are passive checks that await updates from the service. If the check does not receive a status update before the specified duration, the health check enters a `critical`state. 
+- _Docker_ checks are dependent on external applications packaged with a Docker container that are triggered by calls to the Docker `exec` API endpoint. 
+- _gRPC_ checks probe applications that support the standard gRPC health checking protocol. 
+- _H2ping_ checks test an endpoint that uses http2. The check connects to the endpoint and sends a ping frame. 
+- _Alias_ checks represent the health state of another registered node or service. 
+
+If your network runs in a Kubernetes environment, you can sync service health information with Kubernetes health checks. Refer to [Configure Health Checks for Consul on Kubernetes](/consul/docs/k8s/connect/health) for details. 
+
+### Registration
+
+After defining health checks, you must register the service containing the checks with Consul. Refer to [Register Services and Health Checks](/consul/docs/services/usage/register-services-checks) for additional information. If the service is already registered, you can reload the service configuration file to implement your health check. Refer to [Reload](/consul/commands/reload) for additional information.
+
+## Define multiple checks
+
+You can define multiple checks for a service in a single `checks` block. The `checks` block contains an array of objects. The objects contain the configuration for each health check you want to implement. The following example includes two script checks named `mem` and `cpu` and an HTTP check that calls the `/health` API endpoint.
+
+<CodeTabs tabs={[ "HCL","JSON" ]} heading="Multiple checks example">
+
+```hcl
+checks = [
+  {
+    id       = "chk1"
+    name     = "mem"
+    args     = ["/bin/check_mem", "-limit", "256MB"]
+    interval = "5s"
+  },
+  {
+    id       = "chk2"
+    name     = "/health"
+    http     = "http://localhost:5000/health"
+    interval = "15s"
+  },
+  {
+    id       = "chk3"
+    name     = "cpu"
+    args     = ["/bin/check_cpu"]
+    interval = "10s"
+  },
+  ...
+]
+```
+
+```json
+{
+  "checks": [
+    {
+      "id": "chk1",
+      "name": "mem",
+      "args": ["/bin/check_mem", "-limit", "256MB"],
+      "interval": "5s"
+    },
+    {
+      "id": "chk2",
+      "name": "/health",
+      "http": "http://localhost:5000/health",
+      "interval": "15s"
+    },
+    {
+      "id": "chk3",
+      "name": "cpu",
+      "args": ["/bin/check_cpu"],
+      "interval": "10s"
+    },
+    ...
+  ]
+}
+```
+
+</CodeTabs>
+
+## Define initial health check status
+When checks are registered against a Consul agent, they are assigned a `critical` status by default. This prevents services from registering as `passing` and entering the service pool before their health is verified. You can add the `status` parameter to the check definition to specify the initial state. In the following example, the check registers in a `passing` state:
+
+<CodeTabs tabs={[ "HCL","JSON" ]} heading="Define initial check status example">
+
+```hcl
+check = {
+  id = "mem"
+  args = ["/bin/check_mem", "-limit", "256MB"]
+  interval = "10s"
+  status = "passing"
+}
+```
+
+```json
+{
+  "check": [
+    {
+      "args": [
+        "/bin/check_mem",
+        "-limit",
+        "256MB"
+      ],
+      "id": "mem",
+      "interval": "10s",
+      "status": "passing"
+    }
+  ]
+}
+```
+
+</CodeTabs>
+
+## Script checks
+Script checks invoke an external application that performs the health check, exits with an appropriate exit code, and potentially generates output data. The output of a script check is limited to 4KB. Outputs that exceed the limit are truncated.
+
+Script checks timeout after 30 seconds by default, but you can configure a custom script check timeout value by specifying the `timeout` field in the check definition. When the timeout is reached on Windows, Consul waits for any child processes spawned by the script to finish. For any other system, Consul attempts to force-kill the script and any child processes it has spawned once the timeout has passed. 
+
+### Script check configuration
+To enable script checks, you must first enable the agent to send external requests, then configure the health check settings in the service definition:
+
+1. Add one of the following configurations to your agent configuration file to enable a script check:
+   - [`enable_local_script_checks`](/consul/docs/agent/config/cli-flags#enable_local_script_checks): Enable script checks defined in local configuration files. Script checks registered using the HTTP API are not allowed.
+   - [`enable_script_checks`](/consul/docs/agent/config/cli-flags#enable_script_checks): Enable script checks no matter how they are registered.
+
+   !> **Security warning:** Enabling non-local script checks in some configurations may introduce a known remote execution vulnerability targeted by malware. We strongly recommend `enable_local_script_checks` instead.
+
+1. Specify the script to run in the `args` of the `check` block in your service configuration file. In the following example, a check named `Memory utilization` invokes the `check_mem.py` script every 10 seconds and times out if a response takes longer than one second:
+
+   <CodeTabs tabs={[ "HCL","JSON" ]} heading="Script check configuration">
+
+   ```hcl
+   service {
+     ## ...
+     check = {
+       id = "mem-util"
+       name = "Memory utilization"
+       args = ["/usr/local/bin/check_mem.py", "-limit", "256MB"]
+       interval = "10s"
+       timeout = "1s"
+     }
+   }
+   ```
+
+   ```json
+   {
+     "service": [
+     {
+       "check": {
+         "id": "mem-util",
+         "name": "Memory utilization",
+         "args": ["/usr/local/bin/check_mem.py", "-limit", "256MB"],
+         "interval": "10s",
+         "timeout": "1s"
+         }
+     }  ]
+   }
+   ```
+   </CodeTabs>
+
+Refer to [Health Checks Configuration Reference](/consul/docs/services/configuration/checks-configuration-reference) for information about all health check configurations. 
+
+### Script check exit codes
+The following exit codes returned by the script check determine the health check status:
+
+- Exit code 0 - Check is passing
+- Exit code 1 - Check is warning
+- Any other code - Check is failing
+
+Any output of the script is captured and made available in the `Output` field of checks included in HTTP API responses. Refer to the example described in the [local service health endpoint](/consul/api-docs/agent/service#by-name-json).
+
+## HTTP checks 
+_HTTP_ checks send an HTTP request to the specified URL and report the service health based on the [HTTP response code](#http-check-response-codes). We recommend using HTTP checks over [script checks](#script-checks) that use cURL or another external process to check an HTTP operation. 
+
+### HTTP check configuration
+Add an `http` field to the `check` block in your service definition file and specify the HTTP address, including port number, for the check to call. All other fields are optional. Refer to [Health Checks Configuration Reference](/consul/docs/services/configuration/checks-configuration-reference) for information about all health check configurations. 
+
+In the following example, an HTTP check named `HTTP API on port 5000` sends a `POST` request to the `health` endpoint every 10 seconds:
+
+<CodeTabs tabs={[ "HCL","JSON" ]} heading="HTTP check configuration">
+
+```hcl
+check = {
+  id = "api"
+  name = "HTTP API on port 5000"
+  http = "https://localhost:5000/health"
+  tls_server_name =  ""
+  tls_skip_verify = false
+  method = "POST"
+  header = {
+     Content-Type = ["application/json"]
+  }
+  body = "{\"method\":\"health\"}"
+  disable_redirects = true
+  interval = "10s"
+  timeout = "1s"
+}
+```
+
+```json
+{
+  "check": {
+    "id": "api",
+    "name": "HTTP API on port 5000",
+    "http": "https://localhost:5000/health",
+    "tls_server_name": "",
+    "tls_skip_verify": false,
+    "method": "POST",
+    "header": { "Content-Type": ["application/json"] },
+    "body": "{\"method\":\"health\"}",
+    "interval": "10s",
+    "timeout": "1s"
+  }
+}
+```
+</CodeTabs>
+
+HTTP checks send GET requests by default, but you can specify another request method in the `method` field. You can send additional headers in the `header` block. The `header` block contains a key and an array of strings, such as `{"x-foo": ["bar", "baz"]}`. By default, HTTP checks timeout at 10 seconds, but you can specify a custom timeout value in the `timeout` field. 
+
+HTTP checks expect a valid TLS certificate by default. You can disable certificate verification by setting the `tls_skip_verify` field to `true`. When using TLS and a host name is specified in the `http` field, the check automatically determines the SNI from the URL. If the `http` field is configured with an IP address or if you want to explicitly set the SNI, specify the name in the `tls_server_name` field.
+
+The check follows HTTP redirects configured in the network by default. Set the `disable_redirects` field to `true` to disable redirects.
+
+### HTTP check response codes
+Responses larger than 4KB are truncated. The HTTP response determines the status of the service: 
+
+- A `200`-`299` response code is healthy.
+- A `429` response code indicating too many requests is a warning. 
+- All other response codes indicate a failure.
+
+
+## TCP checks
+TCP checks establish connections to the specified IPs or hosts. If the check successfully establishes a connection, the service status is reported as `success`. If the IP or host does not accept the connection, the service status is reported as `critical`. We recommend TCP checks over [script checks](#script-checks)  that use netcat or another external process to check a socket operation. 
+
+### TCP check configuration
+Add a `tcp` field to the `check` block in your service definition file and specify the address, including port number, for the check to call. All other fields are optional. Refer to [Health Checks Configuration Reference](/consul/docs/services/configuration/checks-configuration-reference) for information about all health check configurations. 
+
+In the following example, a TCP check named `SSH TCP on port 22` attempts to connect to `localhost:22` every 10 seconds:
+
+<CodeTabs tabs={[ "HCL","JSON" ]} heading="TCP check configuration">
+
+
+```hcl
+check = {
+  id = "ssh"
+  name = "SSH TCP on port 22"
+  tcp = "localhost:22"
+  interval = "10s"
+  timeout = "1s"
+}
+```
+
+```json
+{
+  "check": {
+    "id": "ssh",
+    "name": "SSH TCP on port 22",
+    "tcp": "localhost:22",
+    "interval": "10s",
+    "timeout": "1s"
+  }
+}
+```
+
+</CodeTabs>
+
+If a hostname resolves to an IPv4 and an IPv6 address, Consul attempts to connect to both addresses. The first successful connection attempt results in a successful check. 
+
+By default, TCP check requests timeout at 10 seconds, but you can specify a custom timeout in the `timeout` field.
+
+## UDP checks
+UDP checks direct the Consul agent to send UDP datagrams to the specified IP or hostname and port. The check status is set to `success` if any response is received from the targeted UDP server. Any other result sets the status to `critical`.
+
+### UDP check configuration
+Add a `udp` field to the `check` block in your service definition file and specify the address, including port number, for sending datagrams. All other fields are optional. Refer to [Health Checks Configuration Reference](/consul/docs/services/configuration/checks-configuration-reference) for information about all health check configurations. 
+
+In the following example, a UDP check named `DNS UDP on port 53` sends datagrams to `localhost:53` every 10 seconds: 
+
+<CodeTabs tabs={[ "HCL","JSON" ]}  heading="UDP Check">
+
+```hcl
+check = {
+  id = "dns"
+  name = "DNS UDP on port 53"
+  udp = "localhost:53"
+  interval = "10s"
+  timeout = "1s"
+}
+```
+
+```json
+{
+  "check": {
+    "id": "dns",
+    "name": "DNS UDP on port 53",
+    "udp": "localhost:53",
+    "interval": "10s",
+    "timeout": "1s"
+  }
+}
+```
+
+</CodeTabs>
+
+By default, UDP checks timeout at 10 seconds, but you can specify a custom timeout in the `timeout` field. If any timeout on read exists, the check is still considered healthy.
+
+## OSService check
+OSService checks if an OS service is running on the host. OSService checks support Windows services on Windows hosts or SystemD services on Unix hosts. The check logs the service as `healthy` if it is running. If the service is not running, the status is logged as `critical`. All other results are logged with `warning`. A `warning` status indicates that the check is not reliable because an issue is preventing it from determining the health of the service.
+
+### OSService check configurations
+Add an `os_service` field to the `check` block in your service definition file and specify the name of the service to check. All other fields are optional. Refer to [Health Checks Configuration Reference](/consul/docs/services/configuration/checks-configuration-reference] for information about all health check configurations. 
+
+In the following example, an OSService check named `svcname-001 Windows Service Health` verifies that the `myco-svctype-svcname-001` service is running every 10 seconds:
+
+<CodeTabs tabs={[ "HCL","JSON" ]} heading="OSService check configuration">
+
+```hcl
+check = {
+  id = "myco-svctype-svcname-001"
+  name = "svcname-001 Windows Service Health"
+  service_id = "flash_pnl_1"
+  os_service = "myco-svctype-svcname-001"
+  interval = "10s"
+}
+```
+
+```json
+{
+  "check": {
+    "id": "myco-svctype-svcname-001",
+    "name": "svcname-001 Windows Service Health",
+    "service_id": "flash_pnl_1",
+    "os_service": "myco-svctype-svcname-001",
+    "interval": "10s"
+  }
+}
+```
+
+</CodeTabs>
+
+## TTL checks
+Time-to-live (TTL) checks wait for an external process to report the service's state to a Consul [`/agent/check` HTTP endpoint](/consul/api-docs/agent/check). If the check does not receive an update before the specified `ttl` duration, the check logs the service as `critical`. For example, if a healthy application is configured to periodically send a `PUT` request a status update to the HTTP endpoint, then the health check logs a `critical` state if the application is unable to send the update before the TTL expires. The check uses the following endpoints to update health information:
+
+- [pass](/consul/api-docs/agent/check#ttl-check-pass) 
+- [warn] (/consul/api-docs/agent/check#ttl-check-warn)
+- [fail](/consul/api-docs/agent/check#ttl-check-fail) 
+- [update](/consul/api-docs/agent/check#ttl-check-update) 
+
+TTL checks also persist their last known status to disk so that the Consul agent can restore the last known status of the check across restarts. Persisted check status is valid through the end of the TTL from the time of the last check. 
+
+You can manually mark a service as unhealthy using the [`consul maint` CLI command](/consul/commands/maint) or [`agent/maintenance` HTTP API endpoint](/consul/api-docs/agent#enable-maintenance-mode), rather than waiting for a TTL health check if the `ttl` duration is high.
+
+### TTL check configuration
+Add a `ttl` field to the `check` block in your service definition file and specify how long to wait for an update from the external process. All other fields are optional. Refer to [Health Checks Configuration Reference](/consul/docs/services/configuration/checks-configuration-reference] for information about all health check configurations. 
+
+In the following example, a TTL check named `Web App Status` logs the application as `critical` if a status update is not received every 30 seconds:
+
+<CodeTabs tabs={[ "HCL","JSON" ]} heading="TTL check configuration">
+
+
+```hcl
+check = {
+  id = "web-app"
+  name = "Web App Status"
+  notes = "Web app does a curl internally every 10 seconds"
+  ttl = "30s"
+}
+```
+
+```json
+{
+  "check": {
+    "id": "web-app",
+    "name": "Web App Status",
+    "notes": "Web app does a curl internally every 10 seconds",
+    "ttl": "30s"
+  }
+}
+```
+
+</CodeTabs>
+
+## Docker checks
+Docker checks invoke an application packaged within a Docker container. The application should perform a health check and exit with an appropriate exit code. 
+
+The application is triggered within the running container through the Docker `exec` API. You should have access to either the Docker HTTP API or the Unix socket. Consul uses the `$DOCKER_HOST` environment variable to determine the Docker API endpoint. 
+
+The output of a Docker check is limited to 4KB. Larger outputs are truncated.
+
+### Docker check configuration
+To enable Docker checks, you must first enable the agent to send external requests, then configure the health check settings in the service definition:
+
+1. Add one of the following configurations to your agent configuration file to enable a Docker check:
+
+   - [`enable_local_script_checks`](/consul/docs/agent/config/cli-flags#enable_local_script_checks): Enable script checks defined in local config files. Script checks registered using the HTTP API are not allowed.
+  
+   - [`enable_script_checks`](/consul/docs/agent/config/cli-flags#enable_script_checks): Enable script checks no matter how they are registered.
+
+   !> **Security warning**: Enabling non-local script checks in some configurations may introduce a known remote execution vulnerability targeted by malware. We strongly recommend `enable_local_script_checks` instead.
+1. Configure the following fields in the `check` block in your service definition file:
+   - `docker_container_id`: The `docker ps` command is a common way to get the ID.
+   - `shell`: Specifies the shell to use for performing the check. Different containers can run different shells on the same host.
+   - `args`: Specifies the external application to invoke.
+   - `interval`: Specifies the interval for running the check.
+
+In the following example, a Docker check named `Memory utilization` invokes the `check_mem.py` application in container `f972c95ebf0e` every 10 seconds:
+
+<CodeTabs tabs={[ "HCL","JSON" ]} heading="Docker check configuration">
+
+
+```hcl
+check = {
+  id = "mem-util"
+  name = "Memory utilization"
+  docker_container_id = "f972c95ebf0e"
+  shell = "/bin/bash"
+  args = ["/usr/local/bin/check_mem.py"]
+  interval = "10s"
+}
+```
+
+```json
+{
+  "check": {
+    "id": "mem-util",
+    "name": "Memory utilization",
+    "docker_container_id": "f972c95ebf0e",
+    "shell": "/bin/bash",
+    "args": ["/usr/local/bin/check_mem.py"],
+    "interval": "10s"
+  }
+}
+```
+
+</CodeTabs>
+
+## gRPC checks 
+gRPC checks send a request to the specified endpoint. These checks are intended for applications that support the standard [gRPC health checking protocol](https://github.com/grpc/grpc/blob/master/doc/health-checking.md). 
+
+### gRPC check configuration
+Add a `grpc` field to the `check` block in your service definition file and specify the endpoint, including port number, for sending requests. All other fields are optional. Refer to [Health Checks Configuration Reference](/consul/docs/services/configuration/checks-configuration-reference] for information about all health check configurations. 
+
+In the following example, a gRPC check named `Service health status` probes the entire application by sending requests to `127.0.0.1:12345` every 10 seconds:
+
+<CodeTabs tabs={[ "HCL","JSON"]} heading="gRPC check on entire application">
+
+```hcl
+check = {
+  id = "mem-util"
+  name = "Service health status"
+  grpc = "127.0.0.1:12345"
+  grpc_use_tls = true
+  interval = "10s"
+}
+```
+
+```json
+{
+  "check": {
+    "id": "mem-util",
+    "name": "Service health status",
+    "grpc": "127.0.0.1:12345",
+    "grpc_use_tls": true,
+    "interval": "10s"
+  }
+}
+```
+
+</CodeTabs>
+
+gRPC checks probe the entire gRPC server, but you can check on a specific service by adding the service identifier after the gRPC check's endpoint using the following format: `/:service_identifier`.
+
+In the following example, a gRPC check probes `my_service` in the application at `127.0.0.1:12345` every 10 seconds:
+
+
+<CodeTabs tabs={[ "HCL","JSON"]} heading="gRPC check for a specific service">
+
+```hcl
+check = {
+  id = "mem-util"
+  name = "Service health status"
+  grpc = "127.0.0.1:12345/my_service"
+  grpc_use_tls = true
+  interval = "10s"
+}
+```
+
+```json
+{
+  "check": {
+    "id": "mem-util",
+    "name": "Service health status",
+    "grpc": "127.0.0.1:12345/my_service",
+    "grpc_use_tls": true,
+    "interval": "10s"
+  }
+}
+```
+
+</CodeTabs>
+
+TLS is disabled for gRPC checks by default. You can enable TLS by setting `grpc_use_tls` to `true`. If TLS is enabled, you must either provide a valid TLS certificate or disable certificate verification by setting the `tls_skip_verify` field to `true`. 
+
+By default, gRPC checks timeout after 10 seconds, but you can specify a custom duration in the `timeout` field. 
+
+## H2ping checks
+H2ping checks test an endpoint that uses HTTP2 by connecting to the endpoint and sending a ping frame. If the endpoint sends a response within the specified interval, the check status is set to `success`.
+
+### H2ping check configuration
+Add an `h2ping` field to the `check` block in your service definition file and specify the HTTP2 endpoint, including port number, for the check to ping. All other fields are optional. Refer to [Health Checks Configuration Reference](/consul/docs/services/configuration/checks-configuration-reference) for information about all health check configurations.
+
+In the following example, an H2ping check named `h2ping` pings the endpoint at `localhost:22222` every 10 seconds:
+
+
+<CodeTabs tabs={[ "HCL", "JSON" ]} heading="H2ping check configuration">
+
+```hcl
+check = {
+  id = "h2ping-check"
+  name = "h2ping"
+  h2ping = "localhost:22222"
+  interval = "10s"
+  h2ping_use_tls = false
+}
+```
+
+```json
+{
+  "check": {
+    "id": "h2ping-check",
+    "name": "h2ping",
+    "h2ping": "localhost:22222",
+    "interval": "10s",
+    "h2ping_use_tls": false
+  }
+}
+```
+
+</CodeTabs>
+
+TLS is enabled by default, but you can disable TLS by setting `h2ping_use_tls` to `false`. When TLS is disabled, the Consul sends pings over h2c. When TLS is enabled, a valid certificate is required unless `tls_skip_verify` is set to `true`. 
+
+By default, H2ping checks timeout at 10 seconds, but you can specify a custom duration in the `timeout` field. 
+
+
+## Alias checks
+Alias checks continuously report the health state of another registered node or service. If the alias experiences errors while watching the actual node or service, the check reports a`critical` state. Consul updates the alias and actual node or service state asynchronously but nearly instantaneously. 
+
+For aliased services on the same agent, the check monitors the local state without consuming additional network resources. For services and nodes on different agents, the check maintains a blocking query over the agent's connection with a current server and allows stale requests. 
+
+### ACLs
+For the blocking query, the alias check presents the ACL token set on the actual service or the token configured in the check definition. If neither are available, the alias check falls back to the default ACL token set for the agent. Refer to [`acl.tokens.default`](/consul/docs/agent/config/config-files#acl_tokens_default) for additional information about the default ACL token.
+
+### Alias checks configuration
+Add an `alias_service` field to the `check` block in your service definition file and specify the name of the service or node to alias. All other fields are optional. Refer to [Health Checks Configuration Reference](/consul/docs/services/configuration/checks-configuration-reference] for information about all health check configurations.
+
+In the following example, an alias check with the ID `web-alias` reports the health state of the `web` service:
+
+<CodeTabs tabs={[ "HCL", "JSON" ]} heading="Alias check configuration">
+
+
+```hcl
+check = {
+  id = "web-alias"
+  alias_service = "web"
+}
+```
+
+```json
+{
+  "check": {
+    "id": "web-alias",
+    "alias_service": "web"
+  }
+}
+```
+
+</CodeTabs>
+
+By default, the alias must be registered with the same Consul agent as the alias check. If the service is not registered with the same agent, you must specify `"alias_node": "<node_id>"` in the `check` configuration. If no service is specified and the `alias_node` field is enabled, the check aliases the health of the node. If a service is specified, the check will alias the specified service on this particular node.

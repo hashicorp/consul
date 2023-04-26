@@ -1,28 +1,25 @@
+{{!
+  Copyright (c) HashiCorp, Inc.
+  SPDX-License-Identifier: MPL-2.0
+}}
+
 {{#if isVisible}}
-  <Notice data-test-node-agentless-notice @type='info' class='agentless-node-notice' as |notice|>
-    <notice.Header>
-      <h3>
-        {{t 'routes.dc.nodes.index.agentless.notice.header'}}
-      </h3>
-      <button type='button' aria-label='Dismiss notice' {{on 'click' this.dismissAgentlessNotice}}>
-        <FlightIcon @name='x' />
-      </button>
-    </notice.Header>
-    <notice.Body>
-      <p>
-        {{t 'routes.dc.nodes.index.agentless.notice.body'}}
-      </p>
-    </notice.Body>
-    <notice.Footer>
-      <p class='docs-link'>
-        <a
-          href='{{env "CONSUL_DOCS_DEVELOPER_URL"}}/connect/dataplane'
-          target='_blank'
-          rel='noopener noreferrer'
-        >
-          {{t 'routes.dc.nodes.index.agentless.notice.footer'}}
-        </a>
-      </p>
-    </notice.Footer>
-  </Notice>
+  <Hds::Alert @type="inline" class='mb-3 mt-2 agentless-node-notice' data-test-node-agentless-notice as |A|>
+    <A.Title>
+      <span>{{t 'routes.dc.nodes.index.agentless.notice.header'}}</span>
+      <Hds::Button
+        @color='secondary'
+        @text='Dismiss notice'
+        {{on 'click' this.dismissAgentlessNotice}}
+        @icon='x'
+        @size='small'
+        @isIconOnly={{true}}
+      />
+    </A.Title>
+    <A.Description>{{t 'routes.dc.nodes.index.agentless.notice.body'}}</A.Description>
+    <A.Link::Standalone @href='{{env "CONSUL_DOCS_DEVELOPER_URL"}}/connect/dataplane'
+                        @text={{t 'routes.dc.nodes.index.agentless.notice.footer'}}
+                        @icon='docs-link'
+                        @iconPosition='trailing' />
+  </Hds::Alert>
 {{/if}}

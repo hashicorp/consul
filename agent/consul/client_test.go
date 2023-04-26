@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package consul
 
 import (
@@ -522,9 +525,13 @@ func newDefaultDeps(t *testing.T, c *Config) Deps {
 
 	resolverBuilder := resolver.NewServerResolverBuilder(newTestResolverConfig(t, c.NodeName+"-"+c.Datacenter))
 	resolver.Register(resolverBuilder)
+	t.Cleanup(func() {
+		resolver.Deregister(resolverBuilder.Authority())
+	})
 
 	balancerBuilder := balancer.NewBuilder(resolverBuilder.Authority(), testutil.Logger(t))
 	balancerBuilder.Register()
+	t.Cleanup(balancerBuilder.Deregister)
 
 	r := router.NewRouter(
 		logger,
@@ -559,7 +566,6 @@ func newDefaultDeps(t *testing.T, c *Config) Deps {
 			UseTLSForDC:           tls.UseTLS,
 			DialingFromServer:     true,
 			DialingFromDatacenter: c.Datacenter,
-			BalancerBuilder:       balancerBuilder,
 		}),
 		LeaderForwarder:          resolverBuilder,
 		NewRequestRecorderFunc:   middleware.NewRequestRecorder,
@@ -821,6 +827,7 @@ func TestClient_ReloadConfig(t *testing.T) {
 	deps := newDefaultDeps(t, &Config{NodeName: "node1", Datacenter: "dc1"})
 	c, err := NewClient(cfg, deps)
 	require.NoError(t, err)
+	defer c.Shutdown()
 
 	limiter := c.rpcLimiter.Load().(*rate.Limiter)
 	require.Equal(t, rate.Limit(500), limiter.Limit())
@@ -866,7 +873,6 @@ func TestClient_ShortReconnectTimeout(t *testing.T) {
 		func() bool {
 			return len(cluster.Servers[0].LANMembersInAgentPartition()) == 2 &&
 				len(cluster.Clients[0].LANMembersInAgentPartition()) == 2
-
 		},
 		time.Second,
 		50*time.Millisecond,
@@ -898,6 +904,7 @@ func TestClient_RPC_Timeout(t *testing.T) {
 		c.MaxQueryTime = 200 * time.Millisecond
 		c.RPCHoldTimeout = 50 * time.Millisecond
 	})
+	defer c1.Shutdown()
 	joinLAN(t, c1, s1)
 
 	retry.Run(t, func(r *retry.R) {

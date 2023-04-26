@@ -1,8 +1,12 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package controller
 
 import (
 	"context"
 	"sync"
+	"time"
 )
 
 type testReconciler struct {
@@ -42,6 +46,12 @@ func (r *testReconciler) setResponse(err error) {
 
 func (r *testReconciler) step() {
 	r.stepChan <- struct{}{}
+}
+func (r *testReconciler) stepFor(duration time.Duration) {
+	select {
+	case r.stepChan <- struct{}{}:
+	case <-time.After(duration):
+	}
 }
 
 func (r *testReconciler) stop() {

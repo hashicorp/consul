@@ -44,10 +44,6 @@
         "path": "acl/tokens"
       },
       {
-        "title": "Legacy Tokens",
-        "path": "acl/legacy"
-      },
-      {
         "title": "Policies",
         "path": "acl/policies"
       },
@@ -169,6 +165,10 @@
       {
         "title": "Segment",
         "path": "operator/segment"
+      },
+      {
+        "title": "Usage",
+        "path": "operator/usage"
       }
     ]
   },

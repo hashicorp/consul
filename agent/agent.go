@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package agent
 
 import (
@@ -19,6 +22,8 @@ import (
 
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
+	"github.com/hashicorp/consul/agent/rpcclient"
+	"github.com/hashicorp/consul/agent/rpcclient/configentry"
 	"github.com/hashicorp/go-connlimit"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
@@ -64,8 +69,8 @@ import (
 	"github.com/hashicorp/consul/lib/mutex"
 	"github.com/hashicorp/consul/lib/routine"
 	"github.com/hashicorp/consul/logging"
-	"github.com/hashicorp/consul/proto/pboperator"
-	"github.com/hashicorp/consul/proto/pbpeering"
+	"github.com/hashicorp/consul/proto/private/pboperator"
+	"github.com/hashicorp/consul/proto/private/pbpeering"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
 )
@@ -381,7 +386,8 @@ type Agent struct {
 
 	// TODO: pass directly to HTTPHandlers and DNSServer once those are passed
 	// into Agent, which will allow us to remove this field.
-	rpcClientHealth *health.Client
+	rpcClientHealth      *health.Client
+	rpcClientConfigEntry *configentry.Client
 
 	rpcClientPeering pbpeering.PeeringServiceClient
 
@@ -459,22 +465,37 @@ func New(bd BaseDeps) (*Agent, error) {
 	}
 
 	a.rpcClientHealth = &health.Client{
-		Cache:     bd.Cache,
-		NetRPC:    &a,
-		CacheName: cachetype.HealthServicesName,
-		ViewStore: bd.ViewStore,
-		MaterializerDeps: health.MaterializerDeps{
-			Conn:   conn,
-			Logger: bd.Logger.Named("rpcclient.health"),
+		Client: rpcclient.Client{
+			Cache:     bd.Cache,
+			NetRPC:    &a,
+			CacheName: cachetype.HealthServicesName,
+			ViewStore: bd.ViewStore,
+			MaterializerDeps: rpcclient.MaterializerDeps{
+				Conn:   conn,
+				Logger: bd.Logger.Named("rpcclient.health"),
+			},
+			UseStreamingBackend: a.config.UseStreamingBackend,
+			QueryOptionDefaults: config.ApplyDefaultQueryOptions(a.config),
 		},
-		UseStreamingBackend: a.config.UseStreamingBackend,
-		QueryOptionDefaults: config.ApplyDefaultQueryOptions(a.config),
 	}
 
 	a.rpcClientPeering = pbpeering.NewPeeringServiceClient(conn)
 	a.rpcClientOperator = pboperator.NewOperatorServiceClient(conn)
 
 	a.serviceManager = NewServiceManager(&a)
+	a.rpcClientConfigEntry = &configentry.Client{
+		Client: rpcclient.Client{
+			Cache:     bd.Cache,
+			NetRPC:    &a,
+			CacheName: cachetype.ConfigEntryName,
+			ViewStore: bd.ViewStore,
+			MaterializerDeps: rpcclient.MaterializerDeps{
+				Conn:   conn,
+				Logger: bd.Logger.Named("rpcclient.configentry"),
+			},
+			QueryOptionDefaults: config.ApplyDefaultQueryOptions(a.config),
+		},
+	}
 
 	// We used to do this in the Start method. However it doesn't need to go
 	// there any longer. Originally it did because we passed the agent
@@ -532,6 +553,7 @@ func LocalConfig(cfg *config.RuntimeConfig) local.Config {
 		DiscardCheckOutput:  cfg.DiscardCheckOutput,
 		NodeID:              cfg.NodeID,
 		NodeName:            cfg.NodeName,
+		NodeLocality:        cfg.StructLocality(),
 		Partition:           cfg.PartitionOrDefault(),
 		TaggedAddresses:     map[string]string{},
 	}
@@ -721,11 +743,12 @@ func (a *Agent) Start(ctx context.Context) error {
 	go localproxycfg.Sync(
 		&lib.StopChannelContext{StopCh: a.shutdownCh},
 		localproxycfg.SyncConfig{
-			Manager:  a.proxyConfig,
-			State:    a.State,
-			Logger:   a.proxyConfig.Logger.Named("agent-state"),
-			Tokens:   a.baseDeps.Tokens,
-			NodeName: a.config.NodeName,
+			Manager:         a.proxyConfig,
+			State:           a.State,
+			Logger:          a.proxyConfig.Logger.Named("agent-state"),
+			Tokens:          a.baseDeps.Tokens,
+			NodeName:        a.config.NodeName,
+			ResyncFrequency: a.config.LocalProxyConfigResyncInterval,
 		},
 	)
 
@@ -1051,7 +1074,8 @@ func (a *Agent) listenHTTP() ([]apiServer, error) {
 		for _, l := range listeners {
 			var tlscfg *tls.Config
 			_, isTCP := l.(*tcpKeepAliveListener)
-			if isTCP && proto == "https" {
+			isUnix := l.Addr().Network() == "unix"
+			if (isTCP || isUnix) && proto == "https" {
 				tlscfg = a.tlsConfigurator.IncomingHTTPSConfig()
 				l = tls.NewListener(l, tlscfg)
 			}
@@ -1479,7 +1503,7 @@ func newConsulConfig(runtimeCfg *config.RuntimeConfig, logger hclog.Logger) (*co
 	}
 
 	cfg.ConfigEntryBootstrap = runtimeCfg.ConfigEntryBootstrap
-	cfg.RaftBoltDBConfig = runtimeCfg.RaftBoltDBConfig
+	cfg.LogStoreConfig = runtimeCfg.RaftLogStoreConfig
 
 	// Duplicate our own serf config once to make sure that the duplication
 	// function does not drift.
@@ -1491,8 +1515,12 @@ func newConsulConfig(runtimeCfg *config.RuntimeConfig, logger hclog.Logger) (*co
 	cfg.RequestLimitsMode = runtimeCfg.RequestLimitsMode.String()
 	cfg.RequestLimitsReadRate = runtimeCfg.RequestLimitsReadRate
 	cfg.RequestLimitsWriteRate = runtimeCfg.RequestLimitsWriteRate
+	cfg.Locality = runtimeCfg.StructLocality()
+
+	cfg.Reporting.License.Enabled = runtimeCfg.Reporting.License.Enabled
 
 	enterpriseConsulConfig(cfg, runtimeCfg)
+
 	return cfg, nil
 }
 
@@ -1598,10 +1626,7 @@ func (a *Agent) ShutdownAgent() error {
 
 	a.stopLicenseManager()
 
-	// this would be cancelled anyways (by the closing of the shutdown ch) but
-	// this should help them to be stopped more quickly
-	a.baseDeps.AutoConfig.Stop()
-	a.baseDeps.MetricsConfig.Cancel()
+	a.baseDeps.Close()
 
 	a.stateLock.Lock()
 	defer a.stateLock.Unlock()
@@ -1655,6 +1680,7 @@ func (a *Agent) ShutdownAgent() error {
 	}
 
 	a.rpcClientHealth.Close()
+	a.rpcClientConfigEntry.Close()
 
 	// Shutdown SCADA provider
 	if a.scadaProvider != nil {
@@ -2206,7 +2232,9 @@ func (a *Agent) readPersistedServiceConfigs() (map[structs.ServiceID]*structs.Se
 			}
 		}
 
-		if !acl.EqualPartitions(a.AgentEnterpriseMeta().PartitionOrDefault(), p.PartitionOrDefault()) {
+		if acl.EqualPartitions("", p.PartitionOrEmpty()) {
+			p.OverridePartition(a.AgentEnterpriseMeta().PartitionOrDefault())
+		} else if !acl.EqualPartitions(a.AgentEnterpriseMeta().PartitionOrDefault(), p.PartitionOrDefault()) {
 			a.logger.Info("Purging service config file in wrong partition",
 				"file", file,
 				"partition", p.PartitionOrDefault(),
@@ -3552,6 +3580,11 @@ func (a *Agent) loadServices(conf *config.RuntimeConfig, snap map[structs.CheckI
 
 	// Register the services from config
 	for _, service := range conf.Services {
+		// Default service partition to the same as agent
+		if service.EnterpriseMeta.PartitionOrEmpty() == "" {
+			service.EnterpriseMeta.OverridePartition(a.AgentEnterpriseMeta().PartitionOrDefault())
+		}
+
 		ns := service.NodeService()
 		chkTypes, err := service.CheckTypes()
 		if err != nil {
@@ -3661,7 +3694,11 @@ func (a *Agent) loadServices(conf *config.RuntimeConfig, snap map[structs.CheckI
 			}
 		}
 
-		if !acl.EqualPartitions(a.AgentEnterpriseMeta().PartitionOrDefault(), p.Service.PartitionOrDefault()) {
+		if acl.EqualPartitions("", p.Service.PartitionOrEmpty()) {
+			// NOTE: in case loading a service with empty partition (e.g., OSS -> ENT),
+			// we always default the service partition to the agent's partition.
+			p.Service.OverridePartition(a.AgentEnterpriseMeta().PartitionOrDefault())
+		} else if !acl.EqualPartitions(a.AgentEnterpriseMeta().PartitionOrDefault(), p.Service.PartitionOrDefault()) {
 			a.logger.Info("Purging service file in wrong partition",
 				"file", file,
 				"partition", p.Service.EnterpriseMeta.PartitionOrDefault(),
@@ -4172,6 +4209,11 @@ func (a *Agent) reloadConfigInternal(newCfg *config.RuntimeConfig) error {
 		HeartbeatTimeout:      newCfg.ConsulRaftHeartbeatTimeout,
 		ElectionTimeout:       newCfg.ConsulRaftElectionTimeout,
 		RaftTrailingLogs:      newCfg.RaftTrailingLogs,
+		Reporting: consul.Reporting{
+			License: consul.License{
+				Enabled: newCfg.Reporting.License.Enabled,
+			},
+		},
 	}
 	if err := a.delegate.ReloadConfig(cc); err != nil {
 		return err

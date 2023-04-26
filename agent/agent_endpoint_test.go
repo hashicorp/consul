@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package agent
 
 import (
@@ -18,6 +21,7 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
+	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/serf/serf"
@@ -37,8 +41,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
 	tokenStore "github.com/hashicorp/consul/agent/token"
-	"github.com/hashicorp/consul/agent/xds/proxysupport"
-	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/envoyextensions/xdscommon"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
@@ -52,7 +55,8 @@ func createACLTokenWithAgentReadPolicy(t *testing.T, srv *HTTPHandlers) string {
 		Rules: `agent_prefix "" { policy = "read" }`,
 	}
 
-	req, _ := http.NewRequest("PUT", "/v1/acl/policy?token=root", jsonReader(policyReq))
+	req, _ := http.NewRequest("PUT", "/v1/acl/policy", jsonReader(policyReq))
+	req.Header.Add("X-Consul-Token", "root")
 	resp := httptest.NewRecorder()
 	srv.h.ServeHTTP(resp, req)
 	require.Equal(t, http.StatusOK, resp.Code)
@@ -62,7 +66,8 @@ func createACLTokenWithAgentReadPolicy(t *testing.T, srv *HTTPHandlers) string {
 		Policies:    []structs.ACLTokenPolicyLink{{Name: "agent-read"}},
 	}
 
-	req, _ = http.NewRequest("PUT", "/v1/acl/token?token=root", jsonReader(tokenReq))
+	req, _ = http.NewRequest("PUT", "/v1/acl/token", jsonReader(tokenReq))
+	req.Header.Add("X-Consul-Token", "root")
 	resp = httptest.NewRecorder()
 	srv.h.ServeHTTP(resp, req)
 	require.Equal(t, http.StatusOK, resp.Code)
@@ -184,7 +189,7 @@ func TestAgent_Services_ExternalConnectProxy(t *testing.T) {
 		Port:    5000,
 		Proxy: structs.ConnectProxyConfig{
 			DestinationServiceName: "db",
-			Upstreams:              structs.TestUpstreams(t),
+			Upstreams:              structs.TestUpstreams(t, false),
 		},
 	}
 	a.State.AddServiceWithChecks(srv1, nil, "", false)
@@ -224,7 +229,7 @@ func TestAgent_Services_Sidecar(t *testing.T) {
 		LocallyRegisteredAsSidecar: true,
 		Proxy: structs.ConnectProxyConfig{
 			DestinationServiceName: "db",
-			Upstreams:              structs.TestUpstreams(t),
+			Upstreams:              structs.TestUpstreams(t, false),
 			Mode:                   structs.ProxyModeTransparent,
 			TransparentProxy: structs.TransparentProxyConfig{
 				OutboundListenerPort: 10101,
@@ -398,7 +403,8 @@ func TestAgent_Services_ACLFilter(t *testing.T) {
 			}
 		`)
 
-		req := httptest.NewRequest("GET", fmt.Sprintf("/v1/agent/services?token=%s", token), nil)
+		req := httptest.NewRequest("GET", "/v1/agent/services", nil)
+		req.Header.Add("X-Consul-Token", token)
 		resp := httptest.NewRecorder()
 		a.srv.h.ServeHTTP(resp, req)
 
@@ -412,7 +418,8 @@ func TestAgent_Services_ACLFilter(t *testing.T) {
 	})
 
 	t.Run("root token", func(t *testing.T) {
-		req, _ := http.NewRequest("GET", "/v1/agent/services?token=root", nil)
+		req, _ := http.NewRequest("GET", "/v1/agent/services", nil)
+		req.Header.Add("X-Consul-Token", "root")
 		resp := httptest.NewRecorder()
 		a.srv.h.ServeHTTP(resp, req)
 		dec := json.NewDecoder(resp.Body)
@@ -531,7 +538,7 @@ func TestAgent_Service(t *testing.T) {
 
 	tests := []struct {
 		name       string
-		tokenRules string
+		policies   string
 		url        string
 		updateFunc func()
 		wantWait   time.Duration
@@ -571,7 +578,8 @@ func TestAgent_Service(t *testing.T) {
 				time.Sleep(100 * time.Millisecond)
 				// Re-register with new proxy config, make sure we copy the struct so we
 				// don't alter it and affect later test cases.
-				req, _ := http.NewRequest("PUT", "/v1/agent/service/register?token=root", jsonReader(updatedProxy))
+				req, _ := http.NewRequest("PUT", "/v1/agent/service/register", jsonReader(updatedProxy))
+				req.Header.Add("X-Consul-Token", "root")
 				resp := httptest.NewRecorder()
 				a.srv.h.ServeHTTP(resp, req)
 				require.Equal(t, 200, resp.Code, "body: %s", resp.Body.String())
@@ -604,7 +612,8 @@ func TestAgent_Service(t *testing.T) {
 			updateFunc: func() {
 				time.Sleep(100 * time.Millisecond)
 				// Re-register with _same_ proxy config
-				req, _ := http.NewRequest("PUT", "/v1/agent/service/register?token=root", jsonReader(sidecarProxy))
+				req, _ := http.NewRequest("PUT", "/v1/agent/service/register", jsonReader(sidecarProxy))
+				req.Header.Add("X-Consul-Token", "root")
 				resp := httptest.NewRecorder()
 				a.srv.h.ServeHTTP(resp, req)
 				require.Equal(t, 200, resp.Code, "body: %s", resp.Body.String())
@@ -665,7 +674,7 @@ func TestAgent_Service(t *testing.T) {
 			name: "err: bad ACL for service",
 			url:  "/v1/agent/service/web-sidecar-proxy",
 			// Limited token doesn't grant read to the service
-			tokenRules: `
+			policies: `
 			key "" {
 				policy = "read"
 			}
@@ -679,7 +688,7 @@ func TestAgent_Service(t *testing.T) {
 			name: "good ACL for service",
 			url:  "/v1/agent/service/web-sidecar-proxy",
 			// Limited token doesn't grant read to the service
-			tokenRules: `
+			policies: `
 			service "web-sidecar-proxy" {
 				policy = "read"
 			}
@@ -694,7 +703,8 @@ func TestAgent_Service(t *testing.T) {
 
 			// Register the basic service to ensure it's in a known state to start.
 			{
-				req, _ := http.NewRequest("PUT", "/v1/agent/service/register?token=root", jsonReader(sidecarProxy))
+				req, _ := http.NewRequest("PUT", "/v1/agent/service/register", jsonReader(sidecarProxy))
+				req.Header.Add("X-Consul-Token", "root")
 				resp := httptest.NewRecorder()
 				a.srv.h.ServeHTTP(resp, req)
 				require.Equal(t, 200, resp.Code, "body: %s", resp.Body.String())
@@ -704,9 +714,9 @@ func TestAgent_Service(t *testing.T) {
 
 			// Inject the root token for tests that don't care about ACL
 			token := "root"
-			if tt.tokenRules != "" {
+			if tt.policies != "" {
 				// Create new token and use that.
-				token = testCreateToken(t, a, tt.tokenRules)
+				token = testCreateToken(t, a, tt.policies)
 			}
 			req.Header.Set("X-Consul-Token", token)
 			resp := httptest.NewRecorder()
@@ -1395,7 +1405,8 @@ func TestAgent_Checks_ACLFilter(t *testing.T) {
 			}
 		`, a.Config.NodeName))
 
-		req := httptest.NewRequest("GET", fmt.Sprintf("/v1/agent/checks?token=%s", token), nil)
+		req := httptest.NewRequest("GET", "/v1/agent/checks", nil)
+		req.Header.Add("X-Consul-Token", token)
 		resp := httptest.NewRecorder()
 
 		a.srv.h.ServeHTTP(resp, req)
@@ -1409,7 +1420,8 @@ func TestAgent_Checks_ACLFilter(t *testing.T) {
 	})
 
 	t.Run("root token", func(t *testing.T) {
-		req, _ := http.NewRequest("GET", "/v1/agent/checks?token=root", nil)
+		req, _ := http.NewRequest("GET", "/v1/agent/checks", nil)
+		req.Header.Add("X-Consul-Token", "root")
 		resp := httptest.NewRecorder()
 		a.srv.h.ServeHTTP(resp, req)
 
@@ -1499,7 +1511,7 @@ func TestAgent_Self(t *testing.T) {
 			if tc.expectXDS {
 				require.NotNil(t, val.XDS, "xds component missing when gRPC is enabled")
 				require.Equal(t,
-					map[string][]string{"envoy": proxysupport.EnvoyVersions},
+					map[string][]string{"envoy": xdscommon.EnvoyVersions},
 					val.XDS.SupportedProxies,
 				)
 				require.Equal(t, a.Config.GRPCTLSPort, val.XDS.Ports.TLS)
@@ -1535,7 +1547,8 @@ func TestAgent_Self_ACLDeny(t *testing.T) {
 	})
 
 	t.Run("agent recovery token", func(t *testing.T) {
-		req, _ := http.NewRequest("GET", "/v1/agent/self?token=towel", nil)
+		req, _ := http.NewRequest("GET", "/v1/agent/self", nil)
+		req.Header.Add("X-Consul-Token", "towel")
 		resp := httptest.NewRecorder()
 		a.srv.h.ServeHTTP(resp, req)
 		require.Equal(t, http.StatusOK, resp.Code)
@@ -1543,7 +1556,8 @@ func TestAgent_Self_ACLDeny(t *testing.T) {
 
 	t.Run("read-only token", func(t *testing.T) {
 		ro := createACLTokenWithAgentReadPolicy(t, a.srv)
-		req, _ := http.NewRequest("GET", fmt.Sprintf("/v1/agent/self?token=%s", ro), nil)
+		req, _ := http.NewRequest("GET", "/v1/agent/self", nil)
+		req.Header.Add("X-Consul-Token", ro)
 		resp := httptest.NewRecorder()
 		a.srv.h.ServeHTTP(resp, req)
 		require.Equal(t, http.StatusOK, resp.Code)
@@ -1568,7 +1582,8 @@ func TestAgent_Metrics_ACLDeny(t *testing.T) {
 	})
 
 	t.Run("agent recovery token", func(t *testing.T) {
-		req, _ := http.NewRequest("GET", "/v1/agent/metrics?token=towel", nil)
+		req, _ := http.NewRequest("GET", "/v1/agent/metrics", nil)
+		req.Header.Add("X-Consul-Token", "towel")
 		resp := httptest.NewRecorder()
 		a.srv.h.ServeHTTP(resp, req)
 		require.Equal(t, http.StatusOK, resp.Code)
@@ -1576,7 +1591,8 @@ func TestAgent_Metrics_ACLDeny(t *testing.T) {
 
 	t.Run("read-only token", func(t *testing.T) {
 		ro := createACLTokenWithAgentReadPolicy(t, a.srv)
-		req, _ := http.NewRequest("GET", fmt.Sprintf("/v1/agent/metrics?token=%s", ro), nil)
+		req, _ := http.NewRequest("GET", "/v1/agent/metrics", nil)
+		req.Header.Add("X-Consul-Token", ro)
 		resp := httptest.NewRecorder()
 		a.srv.h.ServeHTTP(resp, req)
 		require.Equal(t, http.StatusOK, resp.Code)
@@ -1922,7 +1938,8 @@ func TestAgent_Reload_ACLDeny(t *testing.T) {
 
 	t.Run("read-only token", func(t *testing.T) {
 		ro := createACLTokenWithAgentReadPolicy(t, a.srv)
-		req, _ := http.NewRequest("PUT", fmt.Sprintf("/v1/agent/reload?token=%s", ro), nil)
+		req, _ := http.NewRequest("PUT", "/v1/agent/reload", nil)
+		req.Header.Add("X-Consul-Token", ro)
 		resp := httptest.NewRecorder()
 		a.srv.h.ServeHTTP(resp, req)
 		require.Equal(t, http.StatusForbidden, resp.Code)
@@ -2009,9 +2026,11 @@ func TestAgent_Members_ACLFilter(t *testing.T) {
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 	testrpc.WaitForLeader(t, b.RPC, "dc1")
 
-	joinPath := fmt.Sprintf("/v1/agent/join/127.0.0.1:%d?token=root", b.Config.SerfPortLAN)
+	joinPath := fmt.Sprintf("/v1/agent/join/127.0.0.1:%d", b.Config.SerfPortLAN)
+	req := httptest.NewRequest("PUT", joinPath, nil)
+	req.Header.Add("X-Consul-Token", "root")
 	resp := httptest.NewRecorder()
-	a.srv.h.ServeHTTP(resp, httptest.NewRequest(http.MethodPut, joinPath, nil))
+	a.srv.h.ServeHTTP(resp, req)
 	require.Equal(t, http.StatusOK, resp.Code)
 
 	t.Run("no token", func(t *testing.T) {
@@ -2036,7 +2055,8 @@ func TestAgent_Members_ACLFilter(t *testing.T) {
 			}
 		`, b.Config.NodeName))
 
-		req := httptest.NewRequest("GET", fmt.Sprintf("/v1/agent/members?token=%s", token), nil)
+		req := httptest.NewRequest("GET", "/v1/agent/members", nil)
+		req.Header.Add("X-Consul-Token", token)
 		resp := httptest.NewRecorder()
 		a.srv.h.ServeHTTP(resp, req)
 
@@ -2050,7 +2070,8 @@ func TestAgent_Members_ACLFilter(t *testing.T) {
 	})
 
 	t.Run("root token", func(t *testing.T) {
-		req, _ := http.NewRequest("GET", "/v1/agent/members?token=root", nil)
+		req, _ := http.NewRequest("GET", "/v1/agent/members", nil)
+		req.Header.Add("X-Consul-Token", "root")
 		resp := httptest.NewRecorder()
 		a.srv.h.ServeHTTP(resp, req)
 
@@ -2146,7 +2167,8 @@ func TestAgent_Join_ACLDeny(t *testing.T) {
 	})
 
 	t.Run("agent recovery token", func(t *testing.T) {
-		req, _ := http.NewRequest("PUT", fmt.Sprintf("/v1/agent/join/%s?token=towel", addr), nil)
+		req, _ := http.NewRequest("PUT", fmt.Sprintf("/v1/agent/join/%s", addr), nil)
+		req.Header.Add("X-Consul-Token", "towel")
 		resp := httptest.NewRecorder()
 		a1.srv.h.ServeHTTP(resp, req)
 
@@ -2155,7 +2177,8 @@ func TestAgent_Join_ACLDeny(t *testing.T) {
 
 	t.Run("read-only token", func(t *testing.T) {
 		ro := createACLTokenWithAgentReadPolicy(t, a1.srv)
-		req, _ := http.NewRequest("PUT", fmt.Sprintf("/v1/agent/join/%s?token=%s", addr, ro), nil)
+		req, _ := http.NewRequest("PUT", fmt.Sprintf("/v1/agent/join/%s", addr), nil)
+		req.Header.Add("X-Consul-Token", ro)
 		resp := httptest.NewRecorder()
 		a1.srv.h.ServeHTTP(resp, req)
 
@@ -2257,7 +2280,8 @@ func TestAgent_Leave_ACLDeny(t *testing.T) {
 
 	t.Run("read-only token", func(t *testing.T) {
 		ro := createACLTokenWithAgentReadPolicy(t, a.srv)
-		req, _ := http.NewRequest("PUT", fmt.Sprintf("/v1/agent/leave?token=%s", ro), nil)
+		req, _ := http.NewRequest("PUT", "/v1/agent/leave", nil)
+		req.Header.Add("X-Consul-Token", ro)
 		resp := httptest.NewRecorder()
 		a.srv.h.ServeHTTP(resp, req)
 
@@ -2267,7 +2291,8 @@ func TestAgent_Leave_ACLDeny(t *testing.T) {
 	// this sub-test will change the state so that there is no leader.
 	// it must therefore be the last one in this list.
 	t.Run("agent recovery token", func(t *testing.T) {
-		req, _ := http.NewRequest("PUT", "/v1/agent/leave?token=towel", nil)
+		req, _ := http.NewRequest("PUT", "/v1/agent/leave", nil)
+		req.Header.Add("X-Consul-Token", "towel")
 		resp := httptest.NewRecorder()
 		a.srv.h.ServeHTTP(resp, req)
 
@@ -2353,7 +2378,8 @@ func TestAgent_ForceLeave_ACLDeny(t *testing.T) {
 	})
 
 	t.Run("agent recovery token", func(t *testing.T) {
-		req, _ := http.NewRequest("PUT", uri+"?token=towel", nil)
+		req, _ := http.NewRequest("PUT", uri, nil)
+		req.Header.Add("X-Consul-Token", "towel")
 		resp := httptest.NewRecorder()
 		a.srv.h.ServeHTTP(resp, req)
 		require.Equal(t, http.StatusForbidden, resp.Code)
@@ -2361,7 +2387,8 @@ func TestAgent_ForceLeave_ACLDeny(t *testing.T) {
 
 	t.Run("read-only token", func(t *testing.T) {
 		ro := createACLTokenWithAgentReadPolicy(t, a.srv)
-		req, _ := http.NewRequest("PUT", fmt.Sprintf(uri+"?token=%s", ro), nil)
+		req, _ := http.NewRequest("PUT", uri, nil)
+		req.Header.Add("X-Consul-Token", ro)
 		resp := httptest.NewRecorder()
 		a.srv.h.ServeHTTP(resp, req)
 		require.Equal(t, http.StatusForbidden, resp.Code)
@@ -2374,7 +2401,8 @@ func TestAgent_ForceLeave_ACLDeny(t *testing.T) {
                 `
 		opToken := testCreateToken(t, a, rules)
 
-		req, _ := http.NewRequest("PUT", fmt.Sprintf(uri+"?token=%s", opToken), nil)
+		req, _ := http.NewRequest("PUT", uri, nil)
+		req.Header.Add("X-Consul-Token", opToken)
 		resp := httptest.NewRecorder()
 		a.srv.h.ServeHTTP(resp, req)
 		require.Equal(t, http.StatusOK, resp.Code)
@@ -2509,7 +2537,8 @@ func TestAgent_RegisterCheck(t *testing.T) {
 		Name: "test",
 		TTL:  15 * time.Second,
 	}
-	req, _ := http.NewRequest("PUT", "/v1/agent/check/register?token=abc123", jsonReader(args))
+	req, _ := http.NewRequest("PUT", "/v1/agent/check/register", jsonReader(args))
+	req.Header.Add("X-Consul-Token", "abc123")
 	resp := httptest.NewRecorder()
 	a.srv.h.ServeHTTP(resp, req)
 	require.Equal(t, http.StatusOK, resp.Code)
@@ -2551,7 +2580,8 @@ func TestAgent_RegisterCheck_UDP(t *testing.T) {
 		Name:     "test",
 		Interval: 10 * time.Second,
 	}
-	req, _ := http.NewRequest("PUT", "/v1/agent/check/register?token=abc123", jsonReader(args))
+	req, _ := http.NewRequest("PUT", "/v1/agent/check/register", jsonReader(args))
+	req.Header.Add("X-Consul-Token", "abc123")
 	resp := httptest.NewRecorder()
 	a.srv.h.ServeHTTP(resp, req)
 	require.Equal(t, http.StatusOK, resp.Code)
@@ -2678,7 +2708,8 @@ func TestAgent_RegisterCheckScriptsExecDisable(t *testing.T) {
 		ScriptArgs: []string{"true"},
 		Interval:   time.Second,
 	}
-	req, _ := http.NewRequest("PUT", "/v1/agent/check/register?token=abc123", jsonReader(args))
+	req, _ := http.NewRequest("PUT", "/v1/agent/check/register", jsonReader(args))
+	req.Header.Add("X-Consul-Token", "abc123")
 	res := httptest.NewRecorder()
 	a.srv.h.ServeHTTP(res, req)
 	if http.StatusInternalServerError != res.Code {
@@ -2708,7 +2739,8 @@ func TestAgent_RegisterCheckScriptsExecRemoteDisable(t *testing.T) {
 		ScriptArgs: []string{"true"},
 		Interval:   time.Second,
 	}
-	req, _ := http.NewRequest("PUT", "/v1/agent/check/register?token=abc123", jsonReader(args))
+	req, _ := http.NewRequest("PUT", "/v1/agent/check/register", jsonReader(args))
+	req.Header.Add("X-Consul-Token", "abc123")
 	res := httptest.NewRecorder()
 	a.srv.h.ServeHTTP(res, req)
 	if http.StatusInternalServerError != res.Code {
@@ -2810,7 +2842,8 @@ func TestAgent_RegisterCheck_ACLDeny(t *testing.T) {
 	}
 
 	// ensure the service is ready for registering a check for it.
-	req, _ := http.NewRequest("PUT", "/v1/agent/service/register?token=root", jsonReader(svc))
+	req, _ := http.NewRequest("PUT", "/v1/agent/service/register", jsonReader(svc))
+	req.Header.Add("X-Consul-Token", "root")
 	resp := httptest.NewRecorder()
 	a.srv.h.ServeHTTP(resp, req)
 	require.Equal(t, http.StatusOK, resp.Code)
@@ -2821,7 +2854,8 @@ func TestAgent_RegisterCheck_ACLDeny(t *testing.T) {
 		Rules: `service "foo" { policy = "write"}`,
 	}
 
-	req, _ = http.NewRequest("PUT", "/v1/acl/policy?token=root", jsonReader(policyReq))
+	req, _ = http.NewRequest("PUT", "/v1/acl/policy", jsonReader(policyReq))
+	req.Header.Add("X-Consul-Token", "root")
 	resp = httptest.NewRecorder()
 	a.srv.h.ServeHTTP(resp, req)
 	require.Equal(t, http.StatusOK, resp.Code)
@@ -2832,7 +2866,8 @@ func TestAgent_RegisterCheck_ACLDeny(t *testing.T) {
 		Rules: fmt.Sprintf(`node "%s" { policy = "write" }`, a.config.NodeName),
 	}
 
-	req, _ = http.NewRequest("PUT", "/v1/acl/policy?token=root", jsonReader(policyReq))
+	req, _ = http.NewRequest("PUT", "/v1/acl/policy", jsonReader(policyReq))
+	req.Header.Add("X-Consul-Token", "root")
 	resp = httptest.NewRecorder()
 	a.srv.h.ServeHTTP(resp, req)
 	require.Equal(t, http.StatusOK, resp.Code)
@@ -2847,7 +2882,8 @@ func TestAgent_RegisterCheck_ACLDeny(t *testing.T) {
 		},
 	}
 
-	req, _ = http.NewRequest("PUT", "/v1/acl/token?token=root", jsonReader(tokenReq))
+	req, _ = http.NewRequest("PUT", "/v1/acl/token", jsonReader(tokenReq))
+	req.Header.Add("X-Consul-Token", "root")
 	resp = httptest.NewRecorder()
 	a.srv.h.ServeHTTP(resp, req)
 	require.Equal(t, http.StatusOK, resp.Code)
@@ -2869,7 +2905,8 @@ func TestAgent_RegisterCheck_ACLDeny(t *testing.T) {
 		},
 	}
 
-	req, _ = http.NewRequest("PUT", "/v1/acl/token?token=root", jsonReader(tokenReq))
+	req, _ = http.NewRequest("PUT", "/v1/acl/token", jsonReader(tokenReq))
+	req.Header.Add("X-Consul-Token", "root")
 	resp = httptest.NewRecorder()
 	a.srv.h.ServeHTTP(resp, req)
 	require.Equal(t, http.StatusOK, resp.Code)
@@ -2892,7 +2929,8 @@ func TestAgent_RegisterCheck_ACLDeny(t *testing.T) {
 
 	t.Run("svc token - node check", func(t *testing.T) {
 		retry.Run(t, func(r *retry.R) {
-			req, _ := http.NewRequest("PUT", "/v1/agent/check/register?token="+svcToken.SecretID, jsonReader(nodeCheck))
+			req, _ := http.NewRequest("PUT", "/v1/agent/check/register", jsonReader(nodeCheck))
+			req.Header.Add("X-Consul-Token", svcToken.SecretID)
 			resp := httptest.NewRecorder()
 			a.srv.h.ServeHTTP(resp, req)
 			require.Equal(t, http.StatusForbidden, resp.Code)
@@ -2901,7 +2939,8 @@ func TestAgent_RegisterCheck_ACLDeny(t *testing.T) {
 
 	t.Run("node token - node check", func(t *testing.T) {
 		retry.Run(t, func(r *retry.R) {
-			req, _ := http.NewRequest("PUT", "/v1/agent/check/register?token="+nodeToken.SecretID, jsonReader(nodeCheck))
+			req, _ := http.NewRequest("PUT", "/v1/agent/check/register", jsonReader(nodeCheck))
+			req.Header.Add("X-Consul-Token", nodeToken.SecretID)
 			resp := httptest.NewRecorder()
 			a.srv.h.ServeHTTP(resp, req)
 			require.Equal(t, http.StatusOK, resp.Code)
@@ -2919,7 +2958,8 @@ func TestAgent_RegisterCheck_ACLDeny(t *testing.T) {
 
 	t.Run("node token - svc check", func(t *testing.T) {
 		retry.Run(t, func(r *retry.R) {
-			req, _ := http.NewRequest("PUT", "/v1/agent/check/register?token="+nodeToken.SecretID, jsonReader(svcCheck))
+			req, _ := http.NewRequest("PUT", "/v1/agent/check/register", jsonReader(svcCheck))
+			req.Header.Add("X-Consul-Token", nodeToken.SecretID)
 			resp := httptest.NewRecorder()
 			a.srv.h.ServeHTTP(resp, req)
 			require.Equal(t, http.StatusForbidden, resp.Code)
@@ -2928,7 +2968,8 @@ func TestAgent_RegisterCheck_ACLDeny(t *testing.T) {
 
 	t.Run("svc token - svc check", func(t *testing.T) {
 		retry.Run(t, func(r *retry.R) {
-			req, _ := http.NewRequest("PUT", "/v1/agent/check/register?token="+svcToken.SecretID, jsonReader(svcCheck))
+			req, _ := http.NewRequest("PUT", "/v1/agent/check/register", jsonReader(svcCheck))
+			req.Header.Add("X-Consul-Token", svcToken.SecretID)
 			resp := httptest.NewRecorder()
 			a.srv.h.ServeHTTP(resp, req)
 			require.Equal(t, http.StatusOK, resp.Code)
@@ -2992,7 +3033,8 @@ func TestAgent_DeregisterCheckACLDeny(t *testing.T) {
 	})
 
 	t.Run("root token", func(t *testing.T) {
-		req, _ := http.NewRequest("PUT", "/v1/agent/check/deregister/test?token=root", nil)
+		req, _ := http.NewRequest("PUT", "/v1/agent/check/deregister/test", nil)
+		req.Header.Add("X-Consul-Token", "root")
 		resp := httptest.NewRecorder()
 		a.srv.h.ServeHTTP(resp, req)
 		require.Equal(t, http.StatusOK, resp.Code)
@@ -3006,7 +3048,8 @@ func TestAgent_DeregisterCheckACLDeny(t *testing.T) {
 	})
 
 	t.Run("non-existent check with token", func(t *testing.T) {
-		req, _ := http.NewRequest("PUT", "/v1/agent/check/deregister/_nope_?token=root", nil)
+		req, _ := http.NewRequest("PUT", "/v1/agent/check/deregister/_nope_", nil)
+		req.Header.Add("X-Consul-Token", "root")
 		resp := httptest.NewRecorder()
 		a.srv.h.ServeHTTP(resp, req)
 		require.Equal(t, http.StatusNotFound, resp.Code)
@@ -3068,7 +3111,8 @@ func TestAgent_PassCheck_ACLDeny(t *testing.T) {
 	})
 
 	t.Run("root token", func(t *testing.T) {
-		req, _ := http.NewRequest("PUT", "/v1/agent/check/pass/test?token=root", nil)
+		req, _ := http.NewRequest("PUT", "/v1/agent/check/pass/test", nil)
+		req.Header.Add("X-Consul-Token", "root")
 		resp := httptest.NewRecorder()
 		a.srv.h.ServeHTTP(resp, req)
 		require.Equal(t, http.StatusOK, resp.Code)
@@ -3130,7 +3174,8 @@ func TestAgent_WarnCheck_ACLDeny(t *testing.T) {
 	})
 
 	t.Run("root token", func(t *testing.T) {
-		req, _ := http.NewRequest("PUT", "/v1/agent/check/warn/test?token=root", nil)
+		req, _ := http.NewRequest("PUT", "/v1/agent/check/warn/test", nil)
+		req.Header.Add("X-Consul-Token", "root")
 		resp := httptest.NewRecorder()
 		a.srv.h.ServeHTTP(resp, req)
 		require.Equal(t, http.StatusOK, resp.Code)
@@ -3192,7 +3237,8 @@ func TestAgent_FailCheck_ACLDeny(t *testing.T) {
 	})
 
 	t.Run("root token", func(t *testing.T) {
-		req, _ := http.NewRequest("PUT", "/v1/agent/check/fail/test?token=root", nil)
+		req, _ := http.NewRequest("PUT", "/v1/agent/check/fail/test", nil)
+		req.Header.Add("X-Consul-Token", "root")
 		resp := httptest.NewRecorder()
 		a.srv.h.ServeHTTP(resp, req)
 		require.Equal(t, http.StatusOK, resp.Code)
@@ -3296,7 +3342,8 @@ func TestAgent_UpdateCheck_ACLDeny(t *testing.T) {
 
 	t.Run("root token", func(t *testing.T) {
 		args := checkUpdate{api.HealthPassing, "hello-passing"}
-		req, _ := http.NewRequest("PUT", "/v1/agent/check/update/test?token=root", jsonReader(args))
+		req, _ := http.NewRequest("PUT", "/v1/agent/check/update/test", jsonReader(args))
+		req.Header.Add("X-Consul-Token", "root")
 		resp := httptest.NewRecorder()
 		a.srv.h.ServeHTTP(resp, req)
 		require.Equal(t, http.StatusOK, resp.Code)
@@ -3350,7 +3397,8 @@ func testAgent_RegisterService(t *testing.T, extraHCL string) {
 			Warning: 3,
 		},
 	}
-	req, _ := http.NewRequest("PUT", "/v1/agent/service/register?token=abc123", jsonReader(args))
+	req, _ := http.NewRequest("PUT", "/v1/agent/service/register", jsonReader(args))
+	req.Header.Add("X-Consul-Token", "abc123")
 	resp := httptest.NewRecorder()
 	a.srv.h.ServeHTTP(resp, req)
 	if http.StatusOK != resp.Code {
@@ -4064,7 +4112,8 @@ func testAgent_RegisterService_ACLDeny(t *testing.T, extraHCL string) {
 	})
 
 	t.Run("root token", func(t *testing.T) {
-		req, _ := http.NewRequest("PUT", "/v1/agent/service/register?token=root", jsonReader(args))
+		req, _ := http.NewRequest("PUT", "/v1/agent/service/register", jsonReader(args))
+		req.Header.Add("X-Consul-Token", "root")
 		resp := httptest.NewRecorder()
 		a.srv.h.ServeHTTP(resp, req)
 		require.Equal(t, http.StatusOK, resp.Code)
@@ -4100,7 +4149,8 @@ func testAgent_RegisterService_InvalidAddress(t *testing.T, extraHCL string) {
 				Address: addr,
 				Port:    8000,
 			}
-			req, _ := http.NewRequest("PUT", "/v1/agent/service/register?token=abc123", jsonReader(args))
+			req, _ := http.NewRequest("PUT", "/v1/agent/service/register", jsonReader(args))
+			req.Header.Add("X-Consul-Token", "abc123")
 			resp := httptest.NewRecorder()
 			a.srv.h.ServeHTTP(resp, req)
 			if got, want := resp.Code, 400; got != want {
@@ -4162,7 +4212,8 @@ func testAgent_RegisterService_UnmanagedConnectProxy(t *testing.T, extraHCL stri
 		},
 	}
 
-	req, _ := http.NewRequest("PUT", "/v1/agent/service/register?token=abc123", jsonReader(args))
+	req, _ := http.NewRequest("PUT", "/v1/agent/service/register", jsonReader(args))
+	req.Header.Add("X-Consul-Token", "abc123")
 	resp := httptest.NewRecorder()
 	a.srv.h.ServeHTTP(resp, req)
 	require.Equal(t, http.StatusOK, resp.Code)
@@ -4240,7 +4291,8 @@ func testCreateToken(t *testing.T, a *TestAgent, rules string) string {
 		},
 		"Local": false,
 	}
-	req, _ := http.NewRequest("PUT", "/v1/acl/token?token=root", jsonReader(args))
+	req, _ := http.NewRequest("PUT", "/v1/acl/token", jsonReader(args))
+	req.Header.Add("X-Consul-Token", "root")
 	resp := httptest.NewRecorder()
 	a.srv.h.ServeHTTP(resp, req)
 	require.Equal(t, http.StatusOK, resp.Code)
@@ -4258,7 +4310,8 @@ func testCreatePolicy(t *testing.T, a *TestAgent, name, rules string) string {
 		"Name":  name,
 		"Rules": rules,
 	}
-	req, _ := http.NewRequest("PUT", "/v1/acl/policy?token=root", jsonReader(args))
+	req, _ := http.NewRequest("PUT", "/v1/acl/policy", jsonReader(args))
+	req.Header.Add("X-Consul-Token", "root")
 	resp := httptest.NewRecorder()
 	a.srv.h.ServeHTTP(resp, req)
 	require.Equal(t, http.StatusOK, resp.Code)
@@ -4303,7 +4356,7 @@ func testAgent_RegisterServiceDeregisterService_Sidecar(t *testing.T, extraHCL s
 		// directly.
 		json                        string
 		enableACL                   bool
-		tokenRules                  string
+		policies                    string
 		wantNS                      *structs.NodeService
 		wantErr                     string
 		wantSidecarIDLeftAfterDereg bool
@@ -4346,7 +4399,7 @@ func testAgent_RegisterServiceDeregisterService_Sidecar(t *testing.T, extraHCL s
 			}
 			`,
 			enableACL: true,
-			tokenRules: `
+			policies: `
 			service "web-sidecar-proxy" {
 				policy = "write"
 			}
@@ -4367,10 +4420,10 @@ func testAgent_RegisterServiceDeregisterService_Sidecar(t *testing.T, extraHCL s
 				}
 			}
 			`,
-			enableACL:  true,
-			tokenRules: ``, // No token rules means no valid token
-			wantNS:     nil,
-			wantErr:    "Permission denied",
+			enableACL: true,
+			policies:  ``, // No policy means no valid token
+			wantNS:    nil,
+			wantErr:   "Permission denied",
 		},
 		{
 			name: "ACL OK for service but not for sidecar",
@@ -4385,7 +4438,7 @@ func testAgent_RegisterServiceDeregisterService_Sidecar(t *testing.T, extraHCL s
 			`,
 			enableACL: true,
 			// This will become more common/reasonable when ACLs support exact match.
-			tokenRules: `
+			policies: `
 			service "web-sidecar-proxy" {
 				policy = "deny"
 			}
@@ -4411,7 +4464,7 @@ func testAgent_RegisterServiceDeregisterService_Sidecar(t *testing.T, extraHCL s
 			}
 			`,
 			enableACL: true,
-			tokenRules: `
+			policies: `
 			service "web-sidecar-proxy" {
 				policy = "write"
 			}
@@ -4435,7 +4488,7 @@ func testAgent_RegisterServiceDeregisterService_Sidecar(t *testing.T, extraHCL s
 			}
 			`,
 			enableACL: true,
-			tokenRules: `
+			policies: `
 			service "web-sidecar-proxy" {
 				policy = "write"
 			}
@@ -4464,7 +4517,7 @@ func testAgent_RegisterServiceDeregisterService_Sidecar(t *testing.T, extraHCL s
 			}
 			`,
 			enableACL: true,
-			tokenRules: `
+			policies: `
 			service "web-sidecar-proxy" {
 				policy = "write"
 			}
@@ -4689,13 +4742,14 @@ func testAgent_RegisterServiceDeregisterService_Sidecar(t *testing.T, extraHCL s
 
 			// Create an ACL token with require policy
 			var token string
-			if tt.enableACL && tt.tokenRules != "" {
-				token = testCreateToken(t, a, tt.tokenRules)
+			if tt.enableACL && tt.policies != "" {
+				token = testCreateToken(t, a, tt.policies)
 			}
 
 			br := bytes.NewBufferString(tt.json)
 
-			req, _ := http.NewRequest("PUT", "/v1/agent/service/register?token="+token, br)
+			req, _ := http.NewRequest("PUT", "/v1/agent/service/register", br)
+			req.Header.Add("X-Consul-Token", token)
 			resp := httptest.NewRecorder()
 			a.srv.h.ServeHTTP(resp, req)
 			if tt.wantErr != "" {
@@ -4749,7 +4803,8 @@ func testAgent_RegisterServiceDeregisterService_Sidecar(t *testing.T, extraHCL s
 			// was added via sidecar not just coincidental ID clash)
 			{
 				req := httptest.NewRequest("PUT",
-					"/v1/agent/service/deregister/"+svcID+"?token="+token, nil)
+					"/v1/agent/service/deregister/"+svcID, nil)
+				req.Header.Add("X-Consul-Token", token)
 				resp := httptest.NewRecorder()
 				a.srv.h.ServeHTTP(resp, req)
 				require.Equal(t, http.StatusOK, resp.Code)
@@ -4798,7 +4853,7 @@ func testAgent_RegisterServiceDeregisterService_Sidecar_UDP(t *testing.T, extraH
 		// directly.
 		json                        string
 		enableACL                   bool
-		tokenRules                  string
+		policies                    string
 		wantNS                      *structs.NodeService
 		wantErr                     string
 		wantSidecarIDLeftAfterDereg bool
@@ -4841,7 +4896,7 @@ func testAgent_RegisterServiceDeregisterService_Sidecar_UDP(t *testing.T, extraH
 			}
 			`,
 			enableACL: true,
-			tokenRules: `
+			policies: `
 			service "web-sidecar-proxy" {
 				policy = "write"
 			}
@@ -4862,10 +4917,10 @@ func testAgent_RegisterServiceDeregisterService_Sidecar_UDP(t *testing.T, extraH
 				}
 			}
 			`,
-			enableACL:  true,
-			tokenRules: ``, // No token rules means no valid token
-			wantNS:     nil,
-			wantErr:    "Permission denied",
+			enableACL: true,
+			policies:  ``, // No policies means no valid token
+			wantNS:    nil,
+			wantErr:   "Permission denied",
 		},
 		{
 			name: "ACL OK for service but not for sidecar",
@@ -4880,7 +4935,7 @@ func testAgent_RegisterServiceDeregisterService_Sidecar_UDP(t *testing.T, extraH
 			`,
 			enableACL: true,
 			// This will become more common/reasonable when ACLs support exact match.
-			tokenRules: `
+			policies: `
 			service "web-sidecar-proxy" {
 				policy = "deny"
 			}
@@ -4906,7 +4961,7 @@ func testAgent_RegisterServiceDeregisterService_Sidecar_UDP(t *testing.T, extraH
 			}
 			`,
 			enableACL: true,
-			tokenRules: `
+			policies: `
 			service "web-sidecar-proxy" {
 				policy = "write"
 			}
@@ -4930,7 +4985,7 @@ func testAgent_RegisterServiceDeregisterService_Sidecar_UDP(t *testing.T, extraH
 			}
 			`,
 			enableACL: true,
-			tokenRules: `
+			policies: `
 			service "web-sidecar-proxy" {
 				policy = "write"
 			}
@@ -4959,7 +5014,7 @@ func testAgent_RegisterServiceDeregisterService_Sidecar_UDP(t *testing.T, extraH
 			}
 			`,
 			enableACL: true,
-			tokenRules: `
+			policies: `
 			service "web-sidecar-proxy" {
 				policy = "write"
 			}
@@ -5184,13 +5239,14 @@ func testAgent_RegisterServiceDeregisterService_Sidecar_UDP(t *testing.T, extraH
 
 			// Create an ACL token with require policy
 			var token string
-			if tt.enableACL && tt.tokenRules != "" {
-				token = testCreateToken(t, a, tt.tokenRules)
+			if tt.enableACL && tt.policies != "" {
+				token = testCreateToken(t, a, tt.policies)
 			}
 
 			br := bytes.NewBufferString(tt.json)
 
-			req, _ := http.NewRequest("PUT", "/v1/agent/service/register?token="+token, br)
+			req, _ := http.NewRequest("PUT", "/v1/agent/service/register", br)
+			req.Header.Add("X-Consul-Token", token)
 			resp := httptest.NewRecorder()
 			a.srv.h.ServeHTTP(resp, req)
 			if tt.wantErr != "" {
@@ -5244,7 +5300,8 @@ func testAgent_RegisterServiceDeregisterService_Sidecar_UDP(t *testing.T, extraH
 			// was added via sidecar not just coincidental ID clash)
 			{
 				req := httptest.NewRequest("PUT",
-					"/v1/agent/service/deregister/"+svcID+"?token="+token, nil)
+					"/v1/agent/service/deregister/"+svcID, nil)
+				req.Header.Add("X-Consul-Token", token)
 				resp := httptest.NewRecorder()
 				a.srv.h.ServeHTTP(resp, req)
 				require.Equal(t, http.StatusOK, resp.Code)
@@ -5299,7 +5356,8 @@ func testAgent_RegisterService_UnmanagedConnectProxyInvalid(t *testing.T, extraH
 		},
 	}
 
-	req, _ := http.NewRequest("PUT", "/v1/agent/service/register?token=abc123", jsonReader(args))
+	req, _ := http.NewRequest("PUT", "/v1/agent/service/register", jsonReader(args))
+	req.Header.Add("X-Consul-Token", "abc123")
 	resp := httptest.NewRecorder()
 	a.srv.h.ServeHTTP(resp, req)
 	assert.Equal(t, http.StatusBadRequest, resp.Code)
@@ -5394,7 +5452,8 @@ func testAgent_RegisterService_ScriptCheck_ExecDisable(t *testing.T, extraHCL st
 			Warning: 3,
 		},
 	}
-	req, _ := http.NewRequest("PUT", "/v1/agent/service/register?token=abc123", jsonReader(args))
+	req, _ := http.NewRequest("PUT", "/v1/agent/service/register", jsonReader(args))
+	req.Header.Add("X-Consul-Token", "abc123")
 	resp := httptest.NewRecorder()
 	a.srv.h.ServeHTTP(resp, req)
 	if http.StatusInternalServerError != resp.Code {
@@ -5446,7 +5505,8 @@ func testAgent_RegisterService_ScriptCheck_ExecRemoteDisable(t *testing.T, extra
 			Warning: 3,
 		},
 	}
-	req, _ := http.NewRequest("PUT", "/v1/agent/service/register?token=abc123", jsonReader(args))
+	req, _ := http.NewRequest("PUT", "/v1/agent/service/register", jsonReader(args))
+	req.Header.Add("X-Consul-Token", "abc123")
 	resp := httptest.NewRecorder()
 	a.srv.h.ServeHTTP(resp, req)
 	if http.StatusInternalServerError != resp.Code {
@@ -5522,7 +5582,8 @@ func TestAgent_DeregisterService_ACLDeny(t *testing.T) {
 	})
 
 	t.Run("root token", func(t *testing.T) {
-		req, _ := http.NewRequest("PUT", "/v1/agent/service/deregister/test?token=root", nil)
+		req, _ := http.NewRequest("PUT", "/v1/agent/service/deregister/test", nil)
+		req.Header.Add("X-Consul-Token", "root")
 		resp := httptest.NewRecorder()
 		a.srv.h.ServeHTTP(resp, req)
 		require.Equal(t, http.StatusOK, resp.Code)
@@ -6097,7 +6158,8 @@ func TestAgent_TokenTriggersFullSync(t *testing.T) {
 			Rules: `node_prefix "" { policy = "write" }`,
 		}
 
-		req, err := http.NewRequest("PUT", "/v1/acl/policy?token=root", jsonBody(policy))
+		req, err := http.NewRequest("PUT", "/v1/acl/policy", jsonBody(policy))
+		req.Header.Add("X-Consul-Token", "root")
 		require.NoError(t, err)
 
 		resp := httptest.NewRecorder()
@@ -6120,7 +6182,8 @@ func TestAgent_TokenTriggersFullSync(t *testing.T) {
 			},
 		}
 
-		req, err := http.NewRequest("PUT", "/v1/acl/token?token=root", jsonBody(token))
+		req, err := http.NewRequest("PUT", "/v1/acl/token", jsonBody(token))
+		req.Header.Add("X-Consul-Token", "root")
 		require.NoError(t, err)
 
 		resp := httptest.NewRecorder()
@@ -6158,7 +6221,7 @@ func TestAgent_TokenTriggersFullSync(t *testing.T) {
 	for _, tt := range cases {
 		tt := tt
 		t.Run(tt.path, func(t *testing.T) {
-			url := fmt.Sprintf("/v1/agent/token/%s?token=root", tt.path)
+			url := fmt.Sprintf("/v1/agent/token/%s", tt.path)
 
 			a := NewTestAgent(t, `
 				primary_datacenter = "dc1"
@@ -6183,6 +6246,7 @@ func TestAgent_TokenTriggersFullSync(t *testing.T) {
 			token := createNodeToken(t, a, "test")
 
 			req, err := http.NewRequest("PUT", url, body(token.SecretID))
+			req.Header.Add("X-Consul-Token", "root")
 			require.NoError(t, err)
 
 			resp := httptest.NewRecorder()
@@ -6270,7 +6334,7 @@ func TestAgent_Token(t *testing.T) {
 		{
 			name:        "bad token name",
 			method:      "PUT",
-			url:         "nope?token=root",
+			url:         "nope",
 			body:        body("X"),
 			code:        http.StatusNotFound,
 			expectedErr: `Token "nope" is unknown`,
@@ -6278,7 +6342,7 @@ func TestAgent_Token(t *testing.T) {
 		{
 			name:        "bad JSON",
 			method:      "PUT",
-			url:         "acl_token?token=root",
+			url:         "acl_token",
 			body:        badJSON(),
 			code:        http.StatusBadRequest,
 			expectedErr: `Request decode failed: json: cannot unmarshal bool into Go value of type api.AgentToken`,
@@ -6286,7 +6350,7 @@ func TestAgent_Token(t *testing.T) {
 		{
 			name:      "set user legacy",
 			method:    "PUT",
-			url:       "acl_token?token=root",
+			url:       "acl_token",
 			body:      body("U"),
 			code:      http.StatusOK,
 			raw:       tokens{user: "U", userSource: tokenStore.TokenSourceAPI},
@@ -6295,7 +6359,7 @@ func TestAgent_Token(t *testing.T) {
 		{
 			name:      "set default",
 			method:    "PUT",
-			url:       "default?token=root",
+			url:       "default",
 			body:      body("U"),
 			code:      http.StatusOK,
 			raw:       tokens{user: "U", userSource: tokenStore.TokenSourceAPI},
@@ -6304,7 +6368,7 @@ func TestAgent_Token(t *testing.T) {
 		{
 			name:      "set agent legacy",
 			method:    "PUT",
-			url:       "acl_agent_token?token=root",
+			url:       "acl_agent_token",
 			body:      body("A"),
 			code:      http.StatusOK,
 			init:      tokens{user: "U", agent: "U"},
@@ -6314,7 +6378,7 @@ func TestAgent_Token(t *testing.T) {
 		{
 			name:      "set agent",
 			method:    "PUT",
-			url:       "agent?token=root",
+			url:       "agent",
 			body:      body("A"),
 			code:      http.StatusOK,
 			init:      tokens{user: "U", agent: "U"},
@@ -6324,7 +6388,7 @@ func TestAgent_Token(t *testing.T) {
 		{
 			name:      "set master legacy",
 			method:    "PUT",
-			url:       "acl_agent_master_token?token=root",
+			url:       "acl_agent_master_token",
 			body:      body("M"),
 			code:      http.StatusOK,
 			raw:       tokens{agentRecovery: "M", agentRecoverySource: tokenStore.TokenSourceAPI},
@@ -6333,7 +6397,7 @@ func TestAgent_Token(t *testing.T) {
 		{
 			name:      "set master",
 			method:    "PUT",
-			url:       "agent_master?token=root",
+			url:       "agent_master",
 			body:      body("M"),
 			code:      http.StatusOK,
 			raw:       tokens{agentRecovery: "M", agentRecoverySource: tokenStore.TokenSourceAPI},
@@ -6342,7 +6406,7 @@ func TestAgent_Token(t *testing.T) {
 		{
 			name:      "set recovery",
 			method:    "PUT",
-			url:       "agent_recovery?token=root",
+			url:       "agent_recovery",
 			body:      body("R"),
 			code:      http.StatusOK,
 			raw:       tokens{agentRecovery: "R", agentRecoverySource: tokenStore.TokenSourceAPI},
@@ -6351,7 +6415,7 @@ func TestAgent_Token(t *testing.T) {
 		{
 			name:      "set repl legacy",
 			method:    "PUT",
-			url:       "acl_replication_token?token=root",
+			url:       "acl_replication_token",
 			body:      body("R"),
 			code:      http.StatusOK,
 			raw:       tokens{repl: "R", replSource: tokenStore.TokenSourceAPI},
@@ -6360,7 +6424,7 @@ func TestAgent_Token(t *testing.T) {
 		{
 			name:      "set repl",
 			method:    "PUT",
-			url:       "replication?token=root",
+			url:       "replication",
 			body:      body("R"),
 			code:      http.StatusOK,
 			raw:       tokens{repl: "R", replSource: tokenStore.TokenSourceAPI},
@@ -6369,7 +6433,7 @@ func TestAgent_Token(t *testing.T) {
 		{
 			name:      "set registration",
 			method:    "PUT",
-			url:       "config_file_service_registration?token=root",
+			url:       "config_file_service_registration",
 			body:      body("G"),
 			code:      http.StatusOK,
 			raw:       tokens{registration: "G", registrationSource: tokenStore.TokenSourceAPI},
@@ -6378,7 +6442,7 @@ func TestAgent_Token(t *testing.T) {
 		{
 			name:   "clear user legacy",
 			method: "PUT",
-			url:    "acl_token?token=root",
+			url:    "acl_token",
 			body:   body(""),
 			code:   http.StatusOK,
 			init:   tokens{user: "U"},
@@ -6387,7 +6451,7 @@ func TestAgent_Token(t *testing.T) {
 		{
 			name:   "clear default",
 			method: "PUT",
-			url:    "default?token=root",
+			url:    "default",
 			body:   body(""),
 			code:   http.StatusOK,
 			init:   tokens{user: "U"},
@@ -6396,7 +6460,7 @@ func TestAgent_Token(t *testing.T) {
 		{
 			name:   "clear agent legacy",
 			method: "PUT",
-			url:    "acl_agent_token?token=root",
+			url:    "acl_agent_token",
 			body:   body(""),
 			code:   http.StatusOK,
 			init:   tokens{agent: "A"},
@@ -6405,7 +6469,7 @@ func TestAgent_Token(t *testing.T) {
 		{
 			name:   "clear agent",
 			method: "PUT",
-			url:    "agent?token=root",
+			url:    "agent",
 			body:   body(""),
 			code:   http.StatusOK,
 			init:   tokens{agent: "A"},
@@ -6414,7 +6478,7 @@ func TestAgent_Token(t *testing.T) {
 		{
 			name:   "clear master legacy",
 			method: "PUT",
-			url:    "acl_agent_master_token?token=root",
+			url:    "acl_agent_master_token",
 			body:   body(""),
 			code:   http.StatusOK,
 			init:   tokens{agentRecovery: "M"},
@@ -6423,7 +6487,7 @@ func TestAgent_Token(t *testing.T) {
 		{
 			name:   "clear master",
 			method: "PUT",
-			url:    "agent_master?token=root",
+			url:    "agent_master",
 			body:   body(""),
 			code:   http.StatusOK,
 			init:   tokens{agentRecovery: "M"},
@@ -6432,7 +6496,7 @@ func TestAgent_Token(t *testing.T) {
 		{
 			name:   "clear recovery",
 			method: "PUT",
-			url:    "agent_recovery?token=root",
+			url:    "agent_recovery",
 			body:   body(""),
 			code:   http.StatusOK,
 			init:   tokens{agentRecovery: "R"},
@@ -6441,7 +6505,7 @@ func TestAgent_Token(t *testing.T) {
 		{
 			name:   "clear repl legacy",
 			method: "PUT",
-			url:    "acl_replication_token?token=root",
+			url:    "acl_replication_token",
 			body:   body(""),
 			code:   http.StatusOK,
 			init:   tokens{repl: "R"},
@@ -6450,7 +6514,7 @@ func TestAgent_Token(t *testing.T) {
 		{
 			name:   "clear repl",
 			method: "PUT",
-			url:    "replication?token=root",
+			url:    "replication",
 			body:   body(""),
 			code:   http.StatusOK,
 			init:   tokens{repl: "R"},
@@ -6459,7 +6523,7 @@ func TestAgent_Token(t *testing.T) {
 		{
 			name:   "clear registration",
 			method: "PUT",
-			url:    "config_file_service_registration?token=root",
+			url:    "config_file_service_registration",
 			body:   body(""),
 			code:   http.StatusOK,
 			init:   tokens{registration: "G"},
@@ -6472,6 +6536,7 @@ func TestAgent_Token(t *testing.T) {
 			url := fmt.Sprintf("/v1/agent/token/%s", tt.url)
 			resp := httptest.NewRecorder()
 			req, _ := http.NewRequest(tt.method, url, tt.body)
+			req.Header.Add("X-Consul-Token", "root")
 
 			a.srv.h.ServeHTTP(resp, req)
 			require.Equal(t, tt.code, resp.Code)
@@ -6649,7 +6714,8 @@ func TestAgentConnectCALeafCert_aclDefaultDeny(t *testing.T) {
 			Connect: &structs.ServiceConnect{},
 		}
 
-		req, _ := http.NewRequest("PUT", "/v1/agent/service/register?token=root", jsonReader(reg))
+		req, _ := http.NewRequest("PUT", "/v1/agent/service/register", jsonReader(reg))
+		req.Header.Add("X-Consul-Token", "root")
 		resp := httptest.NewRecorder()
 		a.srv.h.ServeHTTP(resp, req)
 		require.Equal(t, 200, resp.Code, "body: %s", resp.Body.String())
@@ -6686,7 +6752,8 @@ func TestAgentConnectCALeafCert_aclServiceWrite(t *testing.T) {
 			Connect: &structs.ServiceConnect{},
 		}
 
-		req, _ := http.NewRequest("PUT", "/v1/agent/service/register?token=root", jsonReader(reg))
+		req, _ := http.NewRequest("PUT", "/v1/agent/service/register", jsonReader(reg))
+		req.Header.Add("X-Consul-Token", "root")
 		resp := httptest.NewRecorder()
 		a.srv.h.ServeHTTP(resp, req)
 		require.Equal(t, 200, resp.Code, "body: %s", resp.Body.String())
@@ -6694,7 +6761,8 @@ func TestAgentConnectCALeafCert_aclServiceWrite(t *testing.T) {
 
 	token := createACLTokenWithServicePolicy(t, a.srv, "write")
 
-	req, _ := http.NewRequest("GET", "/v1/agent/connect/ca/leaf/test?token="+token, nil)
+	req, _ := http.NewRequest("GET", "/v1/agent/connect/ca/leaf/test", nil)
+	req.Header.Add("X-Consul-Token", token)
 	resp := httptest.NewRecorder()
 	a.srv.h.ServeHTTP(resp, req)
 
@@ -6711,7 +6779,8 @@ func createACLTokenWithServicePolicy(t *testing.T, srv *HTTPHandlers, policy str
 		Rules: fmt.Sprintf(`service "test" { policy = "%v" }`, policy),
 	}
 
-	req, _ := http.NewRequest("PUT", "/v1/acl/policy?token=root", jsonReader(policyReq))
+	req, _ := http.NewRequest("PUT", "/v1/acl/policy", jsonReader(policyReq))
+	req.Header.Add("X-Consul-Token", "root")
 	resp := httptest.NewRecorder()
 	_, err := srv.ACLPolicyCreate(resp, req)
 	require.NoError(t, err)
@@ -6721,7 +6790,8 @@ func createACLTokenWithServicePolicy(t *testing.T, srv *HTTPHandlers, policy str
 		Policies:    []structs.ACLTokenPolicyLink{{Name: "service-test-write"}},
 	}
 
-	req, _ = http.NewRequest("PUT", "/v1/acl/token?token=root", jsonReader(tokenReq))
+	req, _ = http.NewRequest("PUT", "/v1/acl/token", jsonReader(tokenReq))
+	req.Header.Add("X-Consul-Token", "root")
 	resp = httptest.NewRecorder()
 	srv.h.ServeHTTP(resp, req)
 
@@ -6756,7 +6826,8 @@ func TestAgentConnectCALeafCert_aclServiceReadDeny(t *testing.T) {
 			Connect: &structs.ServiceConnect{},
 		}
 
-		req, _ := http.NewRequest("PUT", "/v1/agent/service/register?token=root", jsonReader(reg))
+		req, _ := http.NewRequest("PUT", "/v1/agent/service/register", jsonReader(reg))
+		req.Header.Add("X-Consul-Token", "root")
 		resp := httptest.NewRecorder()
 		a.srv.h.ServeHTTP(resp, req)
 		require.Equal(t, 200, resp.Code, "body: %s", resp.Body.String())
@@ -6764,7 +6835,8 @@ func TestAgentConnectCALeafCert_aclServiceReadDeny(t *testing.T) {
 
 	token := createACLTokenWithServicePolicy(t, a.srv, "read")
 
-	req, _ := http.NewRequest("GET", "/v1/agent/connect/ca/leaf/test?token="+token, nil)
+	req, _ := http.NewRequest("GET", "/v1/agent/connect/ca/leaf/test", nil)
+	req.Header.Add("X-Consul-Token", token)
 	resp := httptest.NewRecorder()
 	a.srv.h.ServeHTTP(resp, req)
 	require.Equal(t, http.StatusForbidden, resp.Code)
@@ -7856,8 +7928,8 @@ func TestAgentConnectAuthorize_serviceWrite(t *testing.T) {
 		Target:        "test",
 		ClientCertURI: connect.TestSpiffeIDService(t, "web").URI().String(),
 	}
-	req, _ := http.NewRequest("POST",
-		"/v1/agent/connect/authorize?token="+token, jsonReader(args))
+	req, _ := http.NewRequest("POST", "/v1/agent/connect/authorize", jsonReader(args))
+	req.Header.Add("X-Consul-Token", token)
 	resp := httptest.NewRecorder()
 	a.srv.h.ServeHTTP(resp, req)
 
@@ -7880,7 +7952,8 @@ func TestAgentConnectAuthorize_defaultDeny(t *testing.T) {
 		Target:        "foo",
 		ClientCertURI: connect.TestSpiffeIDService(t, "web").URI().String(),
 	}
-	req, _ := http.NewRequest("POST", "/v1/agent/connect/authorize?token=root", jsonReader(args))
+	req, _ := http.NewRequest("POST", "/v1/agent/connect/authorize", jsonReader(args))
+	req.Header.Add("X-Consul-Token", "root")
 	resp := httptest.NewRecorder()
 	a.srv.h.ServeHTTP(resp, req)
 	assert.Equal(t, 200, resp.Code)
@@ -7922,7 +7995,8 @@ func TestAgentConnectAuthorize_defaultAllow(t *testing.T) {
 		Target:        "foo",
 		ClientCertURI: connect.TestSpiffeIDService(t, "web").URI().String(),
 	}
-	req, _ := http.NewRequest("POST", "/v1/agent/connect/authorize?token=root", jsonReader(args))
+	req, _ := http.NewRequest("POST", "/v1/agent/connect/authorize", jsonReader(args))
+	req.Header.Add("X-Consul-Token", "root")
 	resp := httptest.NewRecorder()
 	a.srv.h.ServeHTTP(resp, req)
 	assert.Equal(t, 200, resp.Code)
@@ -7959,7 +8033,8 @@ func TestAgent_Host(t *testing.T) {
 	defer a.Shutdown()
 
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
-	req, _ := http.NewRequest("GET", "/v1/agent/host?token=initial-management", nil)
+	req, _ := http.NewRequest("GET", "/v1/agent/host", nil)
+	req.Header.Add("X-Consul-Token", "initial-management")
 	resp := httptest.NewRecorder()
 	// TODO: AgentHost should write to response so that we can test using ServeHTTP()
 	respRaw, err := a.srv.AgentHost(resp, req)
@@ -7997,7 +8072,8 @@ func TestAgent_HostBadACL(t *testing.T) {
 	defer a.Shutdown()
 
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
-	req, _ := http.NewRequest("GET", "/v1/agent/host?token=agent", nil)
+	req, _ := http.NewRequest("GET", "/v1/agent/host", nil)
+	req.Header.Add("X-Consul-Token", "agent")
 	resp := httptest.NewRecorder()
 	// TODO: AgentHost should write to response so that we can test using ServeHTTP()
 	_, err := a.srv.AgentHost(resp, req)

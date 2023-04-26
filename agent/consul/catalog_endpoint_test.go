@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package consul
 
 import (
@@ -3588,7 +3591,7 @@ service "gateway" {
 
 func TestVetRegisterWithACL(t *testing.T) {
 	appendAuthz := func(t *testing.T, defaultAuthz acl.Authorizer, rules string) acl.Authorizer {
-		policy, err := acl.NewPolicyFromSource(rules, acl.SyntaxCurrent, nil, nil)
+		policy, err := acl.NewPolicyFromSource(rules, nil, nil)
 		require.NoError(t, err)
 
 		authz, err := acl.NewPolicyAuthorizerWithDefaults(defaultAuthz, []*acl.Policy{policy}, nil)
@@ -3876,10 +3879,10 @@ func TestVetDeregisterWithACL(t *testing.T) {
 
 	// Create a basic node policy.
 	policy, err := acl.NewPolicyFromSource(`
-node "node" {
-  policy = "write"
-}
-`, acl.SyntaxLegacy, nil, nil)
+    node_prefix "node" {
+      policy = "write"
+    }
+    `, nil, nil)
 	if err != nil {
 		t.Fatalf("err %v", err)
 	}
@@ -3892,7 +3895,7 @@ node "node" {
 	service "my-service" {
 	  policy = "write"
 	}
-	`, acl.SyntaxLegacy, nil, nil)
+	`, nil, nil)
 	if err != nil {
 		t.Fatalf("err %v", err)
 	}

@@ -1,20 +1,22 @@
 ---
 layout: commands
 page_title: 'Commands: Config Delete'
+description: >-
+  The `consul config delete` command deletes a configuration entry specified by kind and name.
 ---
 
 # Consul Config Delete
 
 Command: `consul config delete`
 
-Corresponding HTTP API Endpoint: [\[DELETE\] /v1/config/:kind/:name](/api-docs/config#delete-configuration)
+Corresponding HTTP API Endpoint: [\[DELETE\] /v1/config/:kind/:name](/consul/api-docs/config#delete-configuration)
 
 The `config delete` command deletes the configuration entry specified by the
-kind and name. See the [configuration entries docs](/docs/agent/config-entries)
+kind and name. See the [configuration entries docs](/consul/docs/agent/config-entries)
 for more details about configuration entries.
 
-The table below shows this command's [required ACLs](/api-docs/api-structure#authentication). Configuration of
-[blocking queries](/api-docs/features/blocking) and [agent caching](/api-docs/features/caching)
+The table below shows this command's [required ACLs](/consul/api-docs/api-structure#authentication). Configuration of
+[blocking queries](/consul/api-docs/features/blocking) and [agent caching](/consul/api-docs/features/caching)
 are not supported from commands, but may be from the corresponding HTTP endpoint.
 
 | ACL Required<sup>1</sup>                                      |
@@ -25,6 +27,7 @@ are not supported from commands, but may be from the corresponding HTTP endpoint
 
 | Config Entry Kind   | Required ACL       |
 | ------------------- | ------------------ |
+| api-gateway         | `mesh:write`       |
 | ingress-gateway     | `operator:write`   |
 | proxy-defaults      | `operator:write`   |
 | service-defaults    | `service:write`    |
@@ -43,16 +46,16 @@ Usage: `consul config delete [options]`
 - `-kind` - Specifies the kind of the config entry to read.
 
 - `-name` - Specifies the name of the config entry to delete. The name of the
-  `proxy-defaults` config entry must be `global`, and the name of the `mesh`
-  config entry must be `mesh`.
+`proxy-defaults` config entry must be `global`, and the name of the `mesh`
+config entry must be `mesh`.
 
 - `-filename` - Specifies the file describing the config entry to delete.
 
 - `-cas` - Perform a Check-And-Set operation. Specifying this value also
-  requires the -modify-index flag to be set. The default value is false.
+requires the -modify-index flag to be set. The default value is false.
 
 - `-modify-index=<int>` - Unsigned integer representing the ModifyIndex of the
-  config entry. This is used in combination with the -cas flag.
+config entry. This is used in combination with the -cas flag.
 
 #### Enterprise Options
 

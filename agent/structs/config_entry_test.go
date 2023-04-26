@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package structs
 
 import (
@@ -16,6 +19,7 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
+	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/types"
 )
@@ -25,7 +29,7 @@ func TestConfigEntries_ACLs(t *testing.T) {
 	type testcase = configEntryACLTestCase
 
 	newAuthz := func(t *testing.T, src string) acl.Authorizer {
-		policy, err := acl.NewPolicyFromSource(src, acl.SyntaxCurrent, nil, nil)
+		policy, err := acl.NewPolicyFromSource(src, nil, nil)
 		require.NoError(t, err)
 
 		authorizer, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
@@ -176,6 +180,7 @@ type configEntryACLTestCase struct {
 }
 
 func testConfigEntries_ListRelatedServices_AndACLs(t *testing.T, cases []configEntryACLTestCase) {
+
 	// This test tests both of these because they are related functions.
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -345,6 +350,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 				mesh_gateway {
 					mode = "remote"
 				}
+				mutual_tls_mode = "permissive"
 			`,
 			camel: `
 				Kind = "proxy-defaults"
@@ -364,6 +370,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 				MeshGateway {
 					Mode = "remote"
 				}
+				MutualTLSMode = "permissive"
 			`,
 			expect: &ProxyConfigEntry{
 				Kind: "proxy-defaults",
@@ -383,6 +390,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 				MeshGateway: MeshGatewayConfig{
 					Mode: MeshGatewayModeRemote,
 				},
+				MutualTLSMode: MutualTLSModePermissive,
 			},
 		},
 		{
@@ -399,6 +407,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 				mesh_gateway {
 					mode = "remote"
 				}
+				mutual_tls_mode = "permissive"
 				balance_inbound_connections = "exact_balance"
 				upstream_config {
 					overrides = [
@@ -445,6 +454,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 				MeshGateway {
 					Mode = "remote"
 				}
+				MutualTLSMode = "permissive"
 				BalanceInboundConnections = "exact_balance"
 				UpstreamConfig {
 					Overrides = [
@@ -491,6 +501,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 				MeshGateway: MeshGatewayConfig{
 					Mode: MeshGatewayModeRemote,
 				},
+				MutualTLSMode:             MutualTLSModePermissive,
 				BalanceInboundConnections: "exact_balance",
 				UpstreamConfig: &UpstreamConfiguration{
 					Overrides: []*UpstreamConfig{
@@ -1815,6 +1826,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 				transparent_proxy {
 					mesh_destinations_only = true
 				}
+				allow_enabling_permissive_mutual_tls = true
 				tls {
 					incoming {
 						tls_min_version = "TLSv1_1"
@@ -1849,6 +1861,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 				TransparentProxy {
 					MeshDestinationsOnly = true
 				}
+				AllowEnablingPermissiveMutualTLS = true
 				TLS {
 					Incoming {
 						TLSMinVersion = "TLSv1_1"
@@ -1882,6 +1895,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 				TransparentProxy: TransparentProxyMeshConfig{
 					MeshDestinationsOnly: true,
 				},
+				AllowEnablingPermissiveMutualTLS: true,
 				TLS: &MeshTLSConfig{
 					Incoming: &MeshDirectionalTLSConfig{
 						TLSMinVersion: types.TLSv1_1,
@@ -2149,6 +2163,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 }
 
 func TestServiceConfigRequest(t *testing.T) {
+
 	tests := []struct {
 		name     string
 		req      ServiceConfigRequest
@@ -2179,39 +2194,17 @@ func TestServiceConfigRequest(t *testing.T) {
 			wantSame: false,
 		},
 		{
-			name: "legacy upstreams should be different",
-			req: ServiceConfigRequest{
-				Name:      "web",
-				Upstreams: []string{"foo"},
-			},
-			mutate: func(req *ServiceConfigRequest) {
-				req.Upstreams = []string{"foo", "bar"}
-			},
-			wantSame: false,
-		},
-		{
-			name: "legacy upstreams should not depend on order",
-			req: ServiceConfigRequest{
-				Name:      "web",
-				Upstreams: []string{"bar", "foo"},
-			},
-			mutate: func(req *ServiceConfigRequest) {
-				req.Upstreams = []string{"foo", "bar"}
-			},
-			wantSame: true,
-		},
-		{
 			name: "upstreams should be different",
 			req: ServiceConfigRequest{
 				Name: "web",
-				UpstreamIDs: []ServiceID{
-					NewServiceID("foo", nil),
+				UpstreamServiceNames: []PeeredServiceName{
+					{ServiceName: NewServiceName("foo", nil)},
 				},
 			},
 			mutate: func(req *ServiceConfigRequest) {
-				req.UpstreamIDs = []ServiceID{
-					NewServiceID("foo", nil),
-					NewServiceID("bar", nil),
+				req.UpstreamServiceNames = []PeeredServiceName{
+					{ServiceName: NewServiceName("foo", nil)},
+					{ServiceName: NewServiceName("bar", nil)},
 				}
 			},
 			wantSame: false,
@@ -2220,15 +2213,15 @@ func TestServiceConfigRequest(t *testing.T) {
 			name: "upstreams should not depend on order",
 			req: ServiceConfigRequest{
 				Name: "web",
-				UpstreamIDs: []ServiceID{
-					NewServiceID("bar", nil),
-					NewServiceID("foo", nil),
+				UpstreamServiceNames: []PeeredServiceName{
+					{ServiceName: NewServiceName("foo", nil)},
+					{ServiceName: NewServiceName("bar", nil)},
 				},
 			},
 			mutate: func(req *ServiceConfigRequest) {
-				req.UpstreamIDs = []ServiceID{
-					NewServiceID("foo", nil),
-					NewServiceID("bar", nil),
+				req.UpstreamServiceNames = []PeeredServiceName{
+					{ServiceName: NewServiceName("foo", nil)},
+					{ServiceName: NewServiceName("bar", nil)},
 				}
 			},
 			wantSame: true,
@@ -2261,27 +2254,35 @@ func TestServiceConfigRequest(t *testing.T) {
 }
 
 func TestServiceConfigResponse_MsgPack(t *testing.T) {
-	// TODO(banks) lib.MapWalker doesn't actually fix the map[interface{}] issue
-	// it claims to in docs yet. When it does uncomment those cases below.
 	a := ServiceConfigResponse{
 		ProxyConfig: map[string]interface{}{
 			"string": "foo",
-			// "map": map[string]interface{}{
-			// 	"baz": "bar",
-			// },
-		},
-		UpstreamConfigs: map[string]map[string]interface{}{
-			"a": {
-				"string": "aaaa",
-				// "map": map[string]interface{}{
-				// 	"baz": "aa",
-				// },
+			"map": map[string]interface{}{
+				"baz": "bar",
 			},
-			"b": {
-				"string": "bbbb",
-				// "map": map[string]interface{}{
-				// 	"baz": "bb",
-				// },
+		},
+		UpstreamConfigs: []OpaqueUpstreamConfig{
+			{
+				Upstream: PeeredServiceName{
+					ServiceName: NewServiceName("a", acl.DefaultEnterpriseMeta()),
+				},
+				Config: map[string]interface{}{
+					"string": "aaaa",
+					"map": map[string]interface{}{
+						"baz": "aa",
+					},
+				},
+			},
+			{
+				Upstream: PeeredServiceName{
+					ServiceName: NewServiceName("b", acl.DefaultEnterpriseMeta()),
+				},
+				Config: map[string]interface{}{
+					"string": "bbbb",
+					"map": map[string]interface{}{
+						"baz": "bb",
+					},
+				},
 			},
 		},
 	}
@@ -2873,19 +2874,38 @@ func TestServiceConfigEntry(t *testing.T) {
 					},
 				},
 			},
-			validateErr: `invalid EnvoyExtensions[0]: Name "not-a-builtin" is not a built-in extension`,
+			validateErr: `name "not-a-builtin" is not a built-in extension`,
 		},
-		"validate: valid extension name": {
+		"validate: valid extension": {
 			entry: &ServiceConfigEntry{
 				Kind:     ServiceDefaults,
 				Name:     "external",
 				Protocol: "http",
 				EnvoyExtensions: []EnvoyExtension{
 					{
-						Name: BuiltinAWSLambdaExtension,
+						Name: api.BuiltinAWSLambdaExtension,
+						Arguments: map[string]interface{}{
+							"ARN": "some-arn",
+						},
 					},
 				},
 			},
+		},
+		"validate: invalid MutualTLSMode in service-defaults": {
+			entry: &ServiceConfigEntry{
+				Kind:          ServiceDefaults,
+				Name:          "web",
+				MutualTLSMode: MutualTLSMode("invalid-mtls-mode"),
+			},
+			validateErr: `Invalid MutualTLSMode "invalid-mtls-mode". Must be one of "", "strict", or "permissive".`,
+		},
+		"validate: invalid MutualTLSMode in proxy-defaults": {
+			entry: &ServiceConfigEntry{
+				Kind:          ProxyDefaults,
+				Name:          ProxyConfigGlobal,
+				MutualTLSMode: MutualTLSMode("invalid-mtls-mode"),
+			},
+			validateErr: `Invalid MutualTLSMode "invalid-mtls-mode". Must be one of "", "strict", or "permissive".`,
 		},
 	}
 	testConfigEntryNormalizeAndValidate(t, cases)
@@ -3238,6 +3258,25 @@ func TestProxyConfigEntry(t *testing.T) {
 			expected: &ProxyConfigEntry{
 				Name:           ProxyConfigGlobal,
 				Kind:           ProxyDefaults,
+				EnterpriseMeta: *acl.DefaultEnterpriseMeta(),
+			},
+		},
+		"proxy config has invalid failover policy": {
+			entry: &ProxyConfigEntry{
+				Name:           "global",
+				FailoverPolicy: &ServiceResolverFailoverPolicy{Mode: "bad"},
+			},
+			validateErr: `Failover-policy mode must be one of '', 'sequential', or 'order-by-locality'`,
+		},
+		"proxy config with valid failover policy": {
+			entry: &ProxyConfigEntry{
+				Name:           "global",
+				FailoverPolicy: &ServiceResolverFailoverPolicy{Mode: "order-by-locality"},
+			},
+			expected: &ProxyConfigEntry{
+				Name:           ProxyConfigGlobal,
+				Kind:           ProxyDefaults,
+				FailoverPolicy: &ServiceResolverFailoverPolicy{Mode: "order-by-locality"},
 				EnterpriseMeta: *acl.DefaultEnterpriseMeta(),
 			},
 		},

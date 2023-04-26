@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package connect
 
 import (
@@ -61,6 +64,39 @@ func ServiceSNI(service string, subset string, namespace string, partition strin
 			return dotJoin(service, namespace, partition, datacenter, internalVersion, trustDomain)
 		} else {
 			return dotJoin(subset, service, namespace, partition, datacenter, internalVersion, trustDomain)
+		}
+	}
+}
+
+func dotSplitLast(s string, n int) string {
+	tokens := strings.SplitN(s, ".", n)
+	if len(tokens) != n {
+		return ""
+	}
+	return tokens[n-1]
+}
+
+func TrustDomainForTarget(target structs.DiscoveryTarget) string {
+	if target.External {
+		return ""
+	}
+
+	switch target.Partition {
+	case "default":
+		if target.ServiceSubset == "" {
+			// service, namespace, datacenter, internal, trustDomain
+			return dotSplitLast(target.SNI, 5)
+		} else {
+			// subset, service, namespace, datacenter, internal, trustDomain
+			return dotSplitLast(target.SNI, 6)
+		}
+	default:
+		if target.ServiceSubset == "" {
+			// service, namespace, partition, datacenter, internalVersion, trustDomain
+			return dotSplitLast(target.SNI, 6)
+		} else {
+			// subset, service, namespace, partition, datacenter, internalVersion, trustDomain
+			return dotSplitLast(target.SNI, 7)
 		}
 	}
 }

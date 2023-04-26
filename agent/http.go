@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package agent
 
 import (
@@ -35,7 +38,7 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logging"
-	"github.com/hashicorp/consul/proto/pbcommon"
+	"github.com/hashicorp/consul/proto/private/pbcommon"
 )
 
 var HTTPSummaries = []prometheus.SummaryDefinition{
@@ -368,6 +371,9 @@ func (s *HTTPHandlers) wrap(handler endpoint, methods []string) http.HandlerFunc
 				}
 				logURL = strings.Replace(logURL, token, "<hidden>", -1)
 			}
+			httpLogger.Warn("This request used the token query parameter "+
+				"which is deprecated and will be removed in Consul 1.17",
+				"logUrl", logURL)
 		}
 		logURL = aclEndpointRE.ReplaceAllString(logURL, "$1<hidden>$4")
 

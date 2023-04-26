@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package agent
 
 import (
@@ -11,7 +14,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
@@ -420,15 +422,11 @@ func TestServiceManager_PersistService_API(t *testing.T) {
 				"foo":      1,
 				"protocol": "http",
 			},
-			UpstreamIDConfigs: structs.OpaqueUpstreamConfigs{
+			UpstreamConfigs: structs.OpaqueUpstreamConfigs{
 				{
-					Upstream: structs.NewServiceID(structs.WildcardSpecifier, acl.DefaultEnterpriseMeta().WithWildcardNamespace()),
-					Config: map[string]interface{}{
-						"foo": int64(1),
+					Upstream: structs.PeeredServiceName{
+						ServiceName: structs.NewServiceName("redis", nil),
 					},
-				},
-				{
-					Upstream: structs.NewServiceID("redis", nil),
 					Config: map[string]interface{}{
 						"protocol": "tcp",
 					},
@@ -474,15 +472,11 @@ func TestServiceManager_PersistService_API(t *testing.T) {
 				"foo":      1,
 				"protocol": "http",
 			},
-			UpstreamIDConfigs: structs.OpaqueUpstreamConfigs{
+			UpstreamConfigs: structs.OpaqueUpstreamConfigs{
 				{
-					Upstream: structs.NewServiceID(structs.WildcardSpecifier, acl.DefaultEnterpriseMeta().WithWildcardNamespace()),
-					Config: map[string]interface{}{
-						"foo": int64(1),
+					Upstream: structs.PeeredServiceName{
+						ServiceName: structs.NewServiceName("redis", nil),
 					},
-				},
-				{
-					Upstream: structs.NewServiceID("redis", nil),
 					Config: map[string]interface{}{
 						"protocol": "tcp",
 					},
@@ -659,15 +653,11 @@ func TestServiceManager_PersistService_ConfigFiles(t *testing.T) {
 				"foo":      1,
 				"protocol": "http",
 			},
-			UpstreamIDConfigs: structs.OpaqueUpstreamConfigs{
+			UpstreamConfigs: structs.OpaqueUpstreamConfigs{
 				{
-					Upstream: structs.NewServiceID(structs.WildcardSpecifier, acl.DefaultEnterpriseMeta().WithWildcardNamespace()),
-					Config: map[string]interface{}{
-						"foo": int64(1),
+					Upstream: structs.PeeredServiceName{
+						ServiceName: structs.NewServiceName("redis", nil),
 					},
-				},
-				{
-					Upstream: structs.NewServiceID("redis", nil),
 					Config: map[string]interface{}{
 						"protocol": "tcp",
 					},
@@ -839,8 +829,8 @@ func fixPersistedServiceConfigForTest(content []byte) ([]byte, error) {
 		return nil, err
 	}
 	// Sort the output, since it's randomized and causes flaky tests otherwise.
-	sort.Slice(parsed.Defaults.UpstreamIDConfigs, func(i, j int) bool {
-		return parsed.Defaults.UpstreamIDConfigs[i].Upstream.ID < parsed.Defaults.UpstreamIDConfigs[j].Upstream.ID
+	sort.Slice(parsed.Defaults.UpstreamConfigs, func(i, j int) bool {
+		return parsed.Defaults.UpstreamConfigs[i].Upstream.String() < parsed.Defaults.UpstreamConfigs[j].Upstream.String()
 	})
 	out, err := json.Marshal(parsed)
 	if err != nil {

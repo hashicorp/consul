@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 %modal-layer {
   height: 0;
 }
@@ -63,7 +68,5 @@
 }
 %modal-window > header button {
   float: right;
-  width: 24px;
-  height: 24px;
   margin-top: -3px;
 }

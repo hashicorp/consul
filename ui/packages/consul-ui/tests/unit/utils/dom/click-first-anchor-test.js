@@ -1,8 +1,15 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 import domClickFirstAnchor from 'consul-ui/utils/dom/click-first-anchor';
 import { module, test } from 'qunit';
 
 module('Unit | Utility | dom/click first anchor', function () {
   test('it does nothing if the clicked element is generally a clickable thing', function (assert) {
+    assert.expect(4);
+
     const closest = function () {
       return {
         querySelector: function () {

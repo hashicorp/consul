@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 %consul-upstream-instance-list {
   li {
     @extend %composite-row;
@@ -21,7 +26,7 @@
   dl.local-bind-socket-mode dt {
     @extend %horizontal-kv-list-visible-title;
     text-transform: lowercase;
-    font-weight: var(--typo-weight-semibold);
+    font-weight: var(--token-typography-font-weight-semibold);
   }
 }
 .consul-upstream-instance-list {

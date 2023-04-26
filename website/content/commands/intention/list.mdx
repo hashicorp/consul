@@ -1,32 +1,25 @@
 ---
 layout: commands
 page_title: 'Commands: Intention List'
+description: >-
+  The `consul intention list` command returns all L4 service intentions, including a unique ID and intention precendence. It was deprecated in Consul v1.9.0; use `consul config` instead.
 ---
 
 # Consul Intention List
 
 Command: `consul intention list`
 
-Corresponding HTTP API Endpoint: [\[GET\] /v1/connect/intentions](/api-docs/connect/intentions#list-intentions)
+Corresponding HTTP API Endpoint: [\[GET\] /v1/connect/intentions](/consul/api-docs/connect/intentions#list-intentions)
 
 The `intention list` command shows all intentions including ID and precedence.
 
-The table below shows this command's [required ACLs](/api-docs/api-structure#authentication). Configuration of
-[blocking queries](/api-docs/features/blocking) and [agent caching](/api-docs/features/caching)
+The table below shows this command's [required ACLs](/consul/api-docs/api-structure#authentication). Configuration of
+[blocking queries](/consul/api-docs/features/blocking) and [agent caching](/consul/api-docs/features/caching)
 are not supported from commands, but may be from the corresponding HTTP endpoint.
 
 | ACL Required                  |
 | ----------------------------- |
-| `intentions:read`<sup>1</sup> |
-
-<p>
-  <sup>1</sup> Intention ACL rules are specified as part of a{' '}
-  <code>service</code> rule. See{' '}
-  <a href="/docs/connect/intentions#intention-management-permissions">
-    Intention Management Permissions
-  </a>{' '}
-  for more details.
-</p>
+| `intentions:read` <p> Define intention rules in the `service` policy. Refer to [ACL requirements for intentions](/consul/docs/connect/intentions/create-manage-intentions#acl-requirements) for additional information.</p> |
 
 ## Usage
 

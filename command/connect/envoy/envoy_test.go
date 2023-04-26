@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package envoy
 
 import (
@@ -20,8 +23,8 @@ import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/agent/xds"
-	"github.com/hashicorp/consul/agent/xds/proxysupport"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/envoyextensions/xdscommon"
 	"github.com/hashicorp/consul/sdk/testutil"
 )
 
@@ -123,6 +126,7 @@ type generateConfigTestCase struct {
 	NamespacesEnabled bool
 	XDSPorts          agent.GRPCPorts // used to mock an agent's configured gRPC ports. Plaintext defaults to 8502 and TLS defaults to 8503.
 	AgentSelf110      bool            // fake the agent API from versions v1.10 and earlier
+	GRPCDisabled      bool
 	WantArgs          BootstrapTplArgs
 	WantErr           string
 	WantWarn          string
@@ -146,13 +150,10 @@ func TestGenerateConfig(t *testing.T) {
 			WantErr: "'-node-name' requires '-proxy-id'",
 		},
 		{
-			Name:  "gRPC disabled",
-			Flags: []string{"-proxy-id", "test-proxy"},
-			XDSPorts: agent.GRPCPorts{
-				Plaintext: -1,
-				TLS:       -1,
-			},
-			WantErr: "agent has grpc disabled",
+			Name:         "gRPC disabled",
+			Flags:        []string{"-proxy-id", "test-proxy"},
+			GRPCDisabled: true,
+			WantErr:      "agent has grpc disabled",
 		},
 		{
 			Name:  "defaults",
@@ -194,6 +195,29 @@ func TestGenerateConfig(t *testing.T) {
 				AdminBindPort:         "19000",
 				LocalAgentClusterName: xds.LocalAgentClusterName,
 				PrometheusBackendPort: "",
+				PrometheusScrapePath:  "/metrics",
+			},
+		},
+		{
+			Name:  "hcp-metrics",
+			Flags: []string{"-proxy-id", "test-proxy"},
+			ProxyConfig: map[string]interface{}{
+				"envoy_hcp_metrics_bind_socket_dir": "/tmp/consul/hcp-metrics",
+			},
+			WantArgs: BootstrapTplArgs{
+				ProxyCluster: "test-proxy",
+				ProxyID:      "test-proxy",
+				// We don't know this til after the lookup so it will be empty in the
+				// initial args call we are testing here.
+				ProxySourceService: "",
+				GRPC: GRPC{
+					AgentAddress: "127.0.0.1",
+					AgentPort:    "8502",
+				},
+				AdminAccessLogPath:    "/dev/null",
+				AdminBindAddress:      "127.0.0.1",
+				AdminBindPort:         "19000",
+				LocalAgentClusterName: xds.LocalAgentClusterName,
 				PrometheusScrapePath:  "/metrics",
 			},
 		},
@@ -997,6 +1021,28 @@ func TestGenerateConfig(t *testing.T) {
 			},
 		},
 		{
+			Name: "envoy-readiness-probe",
+			Flags: []string{"-proxy-id", "test-proxy",
+				"-envoy-ready-bind-address", "127.0.0.1", "-envoy-ready-bind-port", "21000"},
+			WantArgs: BootstrapTplArgs{
+				ProxyCluster: "test-proxy",
+				ProxyID:      "test-proxy",
+				// We don't know this til after the lookup so it will be empty in the
+				// initial args call we are testing here.
+				ProxySourceService: "",
+				GRPC: GRPC{
+					AgentAddress: "127.0.0.1",
+					AgentPort:    "8502", // Note this is the gRPC port
+				},
+				AdminAccessLogPath:    "/dev/null",
+				AdminBindAddress:      "127.0.0.1",
+				AdminBindPort:         "19000",
+				LocalAgentClusterName: xds.LocalAgentClusterName,
+				PrometheusBackendPort: "",
+				PrometheusScrapePath:  "/metrics",
+			},
+		},
+		{
 			Name:  "ingress-gateway-address-specified",
 			Flags: []string{"-proxy-id", "ingress-gateway", "-gateway", "ingress", "-address", "1.2.3.4:7777"},
 			WantArgs: BootstrapTplArgs{
@@ -1365,7 +1411,7 @@ func testMockAgent(tc generateConfigTestCase) http.HandlerFunc {
 		case strings.Contains(r.URL.Path, "/agent/service"):
 			testMockAgentProxyConfig(tc.ProxyConfig, tc.NamespacesEnabled)(w, r)
 		case strings.Contains(r.URL.Path, "/agent/self"):
-			testMockAgentSelf(tc.XDSPorts, tc.AgentSelf110)(w, r)
+			testMockAgentSelf(tc.XDSPorts, tc.AgentSelf110, tc.GRPCDisabled)(w, r)
 		case strings.Contains(r.URL.Path, "/catalog/node-services"):
 			testMockCatalogNodeServiceList()(w, r)
 		case strings.Contains(r.URL.Path, "/config/proxy-defaults/global"):
@@ -1636,7 +1682,11 @@ func TestEnvoyCommand_canBindInternal(t *testing.T) {
 
 // testMockAgentSelf returns an empty /v1/agent/self response except GRPC
 // port is filled in to match the given wantXDSPort argument.
-func testMockAgentSelf(wantXDSPorts agent.GRPCPorts, agentSelf110 bool) http.HandlerFunc {
+func testMockAgentSelf(
+	wantXDSPorts agent.GRPCPorts,
+	agentSelf110 bool,
+	grpcDisabled bool,
+) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		resp := agent.Self{
 			Config: map[string]interface{}{
@@ -1648,6 +1698,12 @@ func testMockAgentSelf(wantXDSPorts agent.GRPCPorts, agentSelf110 bool) http.Han
 			resp.DebugConfig = map[string]interface{}{
 				"GRPCPort": wantXDSPorts.Plaintext,
 			}
+		} else if grpcDisabled {
+			resp.DebugConfig = map[string]interface{}{
+				"GRPCPort": -1,
+			}
+			// the real agent does not populate XDS if grpc or
+			// grpc-tls ports are < 0
 		} else {
 			resp.XDS = &agent.XDSSelf{
 				// The deprecated Port field should default to TLS if it's available.
@@ -1674,50 +1730,65 @@ func TestCheckEnvoyVersionCompatibility(t *testing.T) {
 		name            string
 		envoyVersion    string
 		unsupportedList []string
-		expectedSupport bool
+		expectedCompat  envoyCompat
 		isErrorExpected bool
 	}{
 		{
 			name:            "supported-using-proxy-support-defined",
-			envoyVersion:    proxysupport.EnvoyVersions[1],
-			unsupportedList: proxysupport.UnsupportedEnvoyVersions,
-			expectedSupport: true,
+			envoyVersion:    xdscommon.EnvoyVersions[1],
+			unsupportedList: xdscommon.UnsupportedEnvoyVersions,
+			expectedCompat: envoyCompat{
+				isCompatible: true,
+			},
 		},
 		{
 			name:            "supported-at-max",
-			envoyVersion:    proxysupport.GetMaxEnvoyMinorVersion(),
-			unsupportedList: proxysupport.UnsupportedEnvoyVersions,
-			expectedSupport: true,
+			envoyVersion:    xdscommon.GetMaxEnvoyMinorVersion(),
+			unsupportedList: xdscommon.UnsupportedEnvoyVersions,
+			expectedCompat: envoyCompat{
+				isCompatible: true,
+			},
 		},
 		{
 			name:            "supported-patch-higher",
-			envoyVersion:    addNPatchVersion(proxysupport.EnvoyVersions[0], 1),
-			unsupportedList: proxysupport.UnsupportedEnvoyVersions,
-			expectedSupport: true,
+			envoyVersion:    addNPatchVersion(xdscommon.EnvoyVersions[0], 1),
+			unsupportedList: xdscommon.UnsupportedEnvoyVersions,
+			expectedCompat: envoyCompat{
+				isCompatible: true,
+			},
 		},
 		{
 			name:            "not-supported-minor-higher",
-			envoyVersion:    addNMinorVersion(proxysupport.EnvoyVersions[0], 1),
-			unsupportedList: proxysupport.UnsupportedEnvoyVersions,
-			expectedSupport: false,
+			envoyVersion:    addNMinorVersion(xdscommon.EnvoyVersions[0], 1),
+			unsupportedList: xdscommon.UnsupportedEnvoyVersions,
+			expectedCompat: envoyCompat{
+				isCompatible:        false,
+				versionIncompatible: replacePatchVersionWithX(addNMinorVersion(xdscommon.EnvoyVersions[0], 1)),
+			},
 		},
 		{
 			name:            "not-supported-minor-lower",
-			envoyVersion:    addNMinorVersion(proxysupport.EnvoyVersions[len(proxysupport.EnvoyVersions)-1], -1),
-			unsupportedList: proxysupport.UnsupportedEnvoyVersions,
-			expectedSupport: false,
+			envoyVersion:    addNMinorVersion(xdscommon.EnvoyVersions[len(xdscommon.EnvoyVersions)-1], -1),
+			unsupportedList: xdscommon.UnsupportedEnvoyVersions,
+			expectedCompat: envoyCompat{
+				isCompatible:        false,
+				versionIncompatible: replacePatchVersionWithX(addNMinorVersion(xdscommon.EnvoyVersions[len(xdscommon.EnvoyVersions)-1], -1)),
+			},
 		},
 		{
 			name:            "not-supported-explicitly-unsupported-version",
-			envoyVersion:    addNPatchVersion(proxysupport.EnvoyVersions[0], 1),
-			unsupportedList: []string{"1.23.1", addNPatchVersion(proxysupport.EnvoyVersions[0], 1)},
-			expectedSupport: false,
+			envoyVersion:    addNPatchVersion(xdscommon.EnvoyVersions[0], 1),
+			unsupportedList: []string{"1.23.1", addNPatchVersion(xdscommon.EnvoyVersions[0], 1)},
+			expectedCompat: envoyCompat{
+				isCompatible:        false,
+				versionIncompatible: addNPatchVersion(xdscommon.EnvoyVersions[0], 1),
+			},
 		},
 		{
 			name:            "error-bad-input",
 			envoyVersion:    "1.abc.3",
-			unsupportedList: proxysupport.UnsupportedEnvoyVersions,
-			expectedSupport: false,
+			unsupportedList: xdscommon.UnsupportedEnvoyVersions,
+			expectedCompat:  envoyCompat{},
 			isErrorExpected: true,
 		},
 	}
@@ -1730,7 +1801,7 @@ func TestCheckEnvoyVersionCompatibility(t *testing.T) {
 			} else {
 				assert.NoError(t, err)
 			}
-			assert.Equal(t, tc.expectedSupport, actual)
+			assert.Equal(t, tc.expectedCompat, actual)
 		})
 	}
 }

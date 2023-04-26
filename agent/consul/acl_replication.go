@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package consul
 
 import (
@@ -313,10 +316,10 @@ func (s *Server) updateLocalACLType(ctx context.Context, logger hclog.Logger, tr
 	return false, nil
 }
 
-func (s *Server) fetchACLTokensBatch(tokenIDs []string) (*structs.ACLTokenBatchResponse, error) {
+func (s *Server) fetchACLTokensBatch(tokenAccessorIDs []string) (*structs.ACLTokenBatchResponse, error) {
 	req := structs.ACLTokenBatchGetRequest{
 		Datacenter:  s.config.PrimaryDatacenter,
-		AccessorIDs: tokenIDs,
+		AccessorIDs: tokenAccessorIDs,
 		QueryOptions: structs.QueryOptions{
 			AllowStale: true,
 			Token:      s.tokens.ReplicationToken(),

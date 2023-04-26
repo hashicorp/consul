@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package version
 
 import (
@@ -20,7 +23,7 @@ var (
 	//go:embed VERSION
 	fullVersion string
 
-	Version, VersionPrerelease, _ = strings.Cut(fullVersion, "-")
+	Version, VersionPrerelease, _ = strings.Cut(strings.TrimSpace(fullVersion), "-")
 
 	// https://semver.org/#spec-item-10
 	VersionMetadata = ""

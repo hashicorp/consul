@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package envoy
 
 import (
@@ -11,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-version"
 	"github.com/mitchellh/cli"
 	"github.com/mitchellh/mapstructure"
@@ -20,10 +24,10 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/xds"
 	"github.com/hashicorp/consul/agent/xds/accesslogs"
-	"github.com/hashicorp/consul/agent/xds/proxysupport"
 	"github.com/hashicorp/consul/api"
 	proxyCmd "github.com/hashicorp/consul/command/connect/proxy"
 	"github.com/hashicorp/consul/command/flags"
+	"github.com/hashicorp/consul/envoyextensions/xdscommon"
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/tlsutil"
 )
@@ -42,6 +46,7 @@ type cmd struct {
 	http   *flags.HTTPFlags
 	help   string
 	client *api.Client
+	logger hclog.Logger
 
 	// flags
 	meshGateway              bool
@@ -65,6 +70,7 @@ type cmd struct {
 	prometheusCertFile       string
 	prometheusKeyFile        string
 	ignoreEnvoyCompatibility bool
+	enableLogging            bool
 
 	// mesh gateway registration information
 	register           bool
@@ -75,6 +81,9 @@ type cmd struct {
 	exposeServers      bool
 	omitDeprecatedTags bool
 
+	envoyReadyBindAddress string
+	envoyReadyBindPort    int
+
 	gatewaySvcName string
 	gatewayKind    api.ServiceKind
 
@@ -83,9 +92,10 @@ type cmd struct {
 
 const meshGatewayVal = "mesh"
 
-var defaultEnvoyVersion = proxysupport.EnvoyVersions[0]
+var defaultEnvoyVersion = xdscommon.EnvoyVersions[0]
 
 var supportedGateways = map[string]api.ServiceKind{
+	"api":         api.ServiceKindAPIGateway,
 	"mesh":        api.ServiceKindMeshGateway,
 	"terminating": api.ServiceKindTerminatingGateway,
 	"ingress":     api.ServiceKindIngressGateway,
@@ -161,6 +171,11 @@ func (c *cmd) init() {
 	c.flags.Var(&c.lanAddress, "address",
 		"LAN address to advertise in the gateway service registration")
 
+	c.flags.StringVar(&c.envoyReadyBindAddress, "envoy-ready-bind-address", "",
+		"The address on which Envoy's readiness probe is available.")
+	c.flags.IntVar(&c.envoyReadyBindPort, "envoy-ready-bind-port", 0,
+		"The port on which Envoy's readiness probe is available.")
+
 	c.flags.Var(&c.wanAddress, "wan-address",
 		"WAN address to advertise in the gateway service registration. For ingress gateways, "+
 			"only an IP address (without a port) is required.")
@@ -212,6 +227,9 @@ func (c *cmd) init() {
 		"If set to `true`, this flag ignores the Envoy version compatibility check. We recommend setting this "+
 			"flag to `false` to ensure compatibility with Envoy and prevent potential issues. "+
 			"Default is `false`.")
+
+	c.flags.BoolVar(&c.enableLogging, "enable-config-gen-logging", false,
+		"Output debug log messages during config generation")
 
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
@@ -273,11 +291,18 @@ func (c *cmd) Run(args []string) int {
 		c.UI.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
 		return 1
 	}
+
 	// TODO: refactor
 	return c.run(c.flags.Args())
 }
 
 func (c *cmd) run(args []string) int {
+	opts := hclog.LoggerOptions{Level: hclog.Off}
+	if c.enableLogging {
+		opts.Level = hclog.Debug
+	}
+	c.logger = hclog.New(&opts)
+	c.logger.Debug("Starting Envoy config generation")
 
 	if c.nodeName != "" && c.proxyID == "" {
 		c.UI.Error("'-node-name' requires '-proxy-id'")
@@ -309,7 +334,7 @@ func (c *cmd) run(args []string) int {
 	if c.gateway != "" {
 		kind, ok := supportedGateways[c.gateway]
 		if !ok {
-			c.UI.Error("Gateway must be one of: terminating, mesh, or ingress")
+			c.UI.Error("Gateway must be one of: api, terminating, mesh, or ingress")
 			return 1
 		}
 		c.gatewayKind = kind
@@ -342,6 +367,7 @@ func (c *cmd) run(args []string) int {
 			c.proxyID = c.gatewaySvcName
 
 		}
+		c.logger.Debug("Set Proxy ID", "proxy-id", c.proxyID)
 	}
 	if c.proxyID == "" {
 		c.UI.Error("No proxy ID specified. One of -proxy-id, -sidecar-for, or -gateway is " +
@@ -435,6 +461,7 @@ func (c *cmd) run(args []string) int {
 			c.UI.Error(fmt.Sprintf("Error registering service %q: %s", svc.Name, err))
 			return 1
 		}
+		c.logger.Debug("Proxy registration complete")
 
 		if !c.bootstrap {
 			// We need stdout to be reserved exclusively for the JSON blob, so
@@ -449,6 +476,7 @@ func (c *cmd) run(args []string) int {
 	}
 
 	// Generate config
+	c.logger.Debug("Generating bootstrap config")
 	bootstrapJson, err := c.generateConfig()
 	if err != nil {
 		c.UI.Error(err.Error())
@@ -457,11 +485,13 @@ func (c *cmd) run(args []string) int {
 
 	if c.bootstrap {
 		// Just output it and we are done
+		c.logger.Debug("Outputting bootstrap config")
 		c.UI.Output(string(bootstrapJson))
 		return 0
 	}
 
 	// Find Envoy binary
+	c.logger.Debug("Finding envoy binary")
 	binary, err := c.findBinary()
 	if err != nil {
 		c.UI.Error("Couldn't find envoy binary: " + err.Error())
@@ -476,19 +506,20 @@ func (c *cmd) run(args []string) int {
 			return 1
 		}
 
-		ok, err := checkEnvoyVersionCompatibility(v, proxysupport.UnsupportedEnvoyVersions)
+		ec, err := checkEnvoyVersionCompatibility(v, xdscommon.UnsupportedEnvoyVersions)
 
 		if err != nil {
 			c.UI.Warn("There was an error checking the compatibility of the envoy version: " + err.Error())
-		} else if !ok {
+		} else if !ec.isCompatible {
 			c.UI.Error(fmt.Sprintf("Envoy version %s is not supported. If there is a reason you need to use "+
 				"this version of envoy use the ignore-envoy-compatibility flag. Using an unsupported version of Envoy "+
 				"is not recommended and your experience may vary. For more information on compatibility "+
-				"see https://developer.hashicorp.com/consul/docs/connect/proxies/envoy#envoy-and-consul-client-agent", v))
+				"see https://developer.hashicorp.com/consul/docs/connect/proxies/envoy#envoy-and-consul-client-agent", ec.versionIncompatible))
 			return 1
 		}
 	}
 
+	c.logger.Debug("Executing envoy binary")
 	err = execEnvoy(binary, nil, args, bootstrapJson)
 	if err == errUnsupportedOS {
 		c.UI.Error("Directly running Envoy is only supported on linux and macOS " +
@@ -610,6 +641,7 @@ func (c *cmd) generateConfig() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+	c.logger.Debug("Generated template args")
 
 	var bsCfg BootstrapConfig
 
@@ -657,6 +689,7 @@ func (c *cmd) generateConfig() ([]byte, error) {
 		datacenter = svcList.Node.Datacenter
 		c.gatewayKind = svcList.Services[0].Kind
 	}
+	c.logger.Debug("Fetched registration info")
 	if svcProxyConfig == nil {
 		return nil, errors.New("service is not a Connect proxy or gateway")
 	}
@@ -692,6 +725,7 @@ func (c *cmd) generateConfig() ([]byte, error) {
 	if err := generateAccessLogs(c, args); err != nil {
 		return nil, err
 	}
+	c.logger.Debug("Generated access logs")
 
 	// Setup ready listener for ingress gateway to pass healthcheck
 	if c.gatewayKind == api.ServiceKindIngressGateway {
@@ -702,6 +736,10 @@ func (c *cmd) generateConfig() ([]byte, error) {
 			lanAddr = "127.0.0.1" + lanAddr
 		}
 		bsCfg.ReadyBindAddr = lanAddr
+	}
+
+	if c.envoyReadyBindAddress != "" && c.envoyReadyBindPort != 0 {
+		bsCfg.ReadyBindAddr = fmt.Sprintf("%s:%d", c.envoyReadyBindAddress, c.envoyReadyBindPort)
 	}
 
 	if !c.disableCentralConfig {
@@ -775,8 +813,7 @@ func (c *cmd) xdsAddress() (GRPC, error) {
 		port, protocol, err := c.lookupXDSPort()
 		if err != nil {
 			if strings.Contains(err.Error(), "Permission denied") {
-				// Token did not have agent:read. Log and proceed with defaults.
-				c.UI.Info(fmt.Sprintf("Could not query /v1/agent/self for xDS ports: %s", err))
+				// Token did not have agent:read. Suppress and proceed with defaults.
 			} else {
 				// If not a permission denied error, gRPC is explicitly disabled
 				// or something went fatally wrong.
@@ -787,7 +824,7 @@ func (c *cmd) xdsAddress() (GRPC, error) {
 			// This is the dev mode default and recommended production setting if
 			// enabled.
 			port = 8502
-			c.UI.Info("-grpc-addr not provided and unable to discover a gRPC address for xDS. Defaulting to localhost:8502")
+			c.UI.Warn("-grpc-addr not provided and unable to discover a gRPC address for xDS. Defaulting to localhost:8502")
 		}
 		addr = fmt.Sprintf("%vlocalhost:%v", protocol, port)
 	}
@@ -852,9 +889,12 @@ func (c *cmd) lookupXDSPort() (int, string, error) {
 
 	var resp response
 	if err := mapstructure.Decode(self, &resp); err == nil {
-		if resp.XDS.Ports.TLS < 0 && resp.XDS.Ports.Plaintext < 0 {
-			return 0, "", fmt.Errorf("agent has grpc disabled")
-		}
+		// When we get rid of the 1.10 compatibility code below we can uncomment
+		// this check:
+		//
+		// if resp.XDS.Ports.TLS <= 0 && resp.XDS.Ports.Plaintext <= 0 {
+		// 	return 0, "", fmt.Errorf("agent has grpc disabled")
+		// }
 		if resp.XDS.Ports.TLS > 0 {
 			return resp.XDS.Ports.TLS, "https://", nil
 		}
@@ -863,9 +903,12 @@ func (c *cmd) lookupXDSPort() (int, string, error) {
 		}
 	}
 
-	// If above TLS and Plaintext ports are both 0, fallback to
-	// old API for the case where a new consul CLI is being used
-	// with an older API version.
+	// If above TLS and Plaintext ports are both 0, it could mean
+	// gRPC is disabled on the agent or we are using an older API.
+	// In either case, fallback to reading from the DebugConfig.
+	//
+	// Next major version we should get rid of this below code.
+	// It exists for compatibility reasons for 1.10 and below.
 	cfg, ok := self["DebugConfig"]
 	if !ok {
 		return 0, "", fmt.Errorf("unexpected agent response: no debug config")
@@ -877,6 +920,12 @@ func (c *cmd) lookupXDSPort() (int, string, error) {
 	portN, ok := port.(float64)
 	if !ok {
 		return 0, "", fmt.Errorf("invalid grpc port in agent response")
+	}
+
+	// This works for both <1.10 and later but we should prefer
+	// reading from resp.XDS instead.
+	if portN < 0 {
+		return 0, "", fmt.Errorf("agent has grpc disabled")
 	}
 
 	return int(portN), "", nil
@@ -941,34 +990,73 @@ Usage: consul connect envoy [options] [-- pass-through options]
 `
 )
 
-func checkEnvoyVersionCompatibility(envoyVersion string, unsupportedList []string) (bool, error) {
-	// Now compare the versions to the list of supported versions
+type envoyCompat struct {
+	isCompatible        bool
+	versionIncompatible string
+}
+
+func checkEnvoyVersionCompatibility(envoyVersion string, unsupportedList []string) (envoyCompat, error) {
 	v, err := version.NewVersion(envoyVersion)
 	if err != nil {
-		return false, err
+		return envoyCompat{}, err
 	}
 
 	var cs strings.Builder
 
-	// Add one to the max minor version so that we accept all patches
-	splitS := strings.Split(proxysupport.GetMaxEnvoyMinorVersion(), ".")
+	// If there is a list of unsupported versions, build the constraint string,
+	// this will detect exactly unsupported versions
+	if len(unsupportedList) > 0 {
+		for i, s := range unsupportedList {
+			if i == 0 {
+				cs.WriteString(fmt.Sprintf("!= %s", s))
+			} else {
+				cs.WriteString(fmt.Sprintf(", != %s", s))
+			}
+		}
+
+		constraints, err := version.NewConstraint(cs.String())
+		if err != nil {
+			return envoyCompat{}, err
+		}
+
+		if c := constraints.Check(v); !c {
+			return envoyCompat{
+				isCompatible:        c,
+				versionIncompatible: envoyVersion,
+			}, nil
+		}
+	}
+
+	// Next build the constraint string using the bounds, make sure that we are less than but not equal to
+	// maxSupported since we will add 1. Need to add one to the max minor version so that we accept all patches
+	splitS := strings.Split(xdscommon.GetMaxEnvoyMinorVersion(), ".")
 	minor, err := strconv.Atoi(splitS[1])
 	if err != nil {
-		return false, err
+		return envoyCompat{}, err
 	}
 	minor++
 	maxSupported := fmt.Sprintf("%s.%d", splitS[0], minor)
 
-	// Build the constraint string, make sure that we are less than but not equal to maxSupported since we added 1
-	cs.WriteString(fmt.Sprintf(">= %s, < %s", proxysupport.GetMinEnvoyMinorVersion(), maxSupported))
-	for _, s := range unsupportedList {
-		cs.WriteString(fmt.Sprintf(", != %s", s))
-	}
-
+	cs.Reset()
+	cs.WriteString(fmt.Sprintf(">= %s, < %s", xdscommon.GetMinEnvoyMinorVersion(), maxSupported))
 	constraints, err := version.NewConstraint(cs.String())
 	if err != nil {
-		return false, err
+		return envoyCompat{}, err
 	}
 
-	return constraints.Check(v), nil
+	if c := constraints.Check(v); !c {
+		return envoyCompat{
+			isCompatible:        c,
+			versionIncompatible: replacePatchVersionWithX(envoyVersion),
+		}, nil
+	}
+
+	return envoyCompat{isCompatible: true}, nil
+}
+
+func replacePatchVersionWithX(version string) string {
+	// Strip off the patch and append x to convey that the constraint is on the minor version and not the patch
+	// itself
+	a := strings.Split(version, ".")
+	return fmt.Sprintf("%s.%s.x", a[0], a[1])
 }

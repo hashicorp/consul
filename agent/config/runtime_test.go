@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package config
 
 import (
@@ -33,7 +36,7 @@ import (
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logging"
-	"github.com/hashicorp/consul/proto/prototest"
+	"github.com/hashicorp/consul/proto/private/prototest"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
@@ -4646,6 +4649,8 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.RequestLimitsWriteRate = rate.Inf
 			rt.SegmentLimit = 64
 			rt.XDSUpdateRateLimit = 250
+			rt.RPCRateLimit = rate.Inf
+			rt.RPCMaxBurst = 1000
 		},
 	})
 
@@ -5754,6 +5759,143 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.TLS.GRPC.UseAutoCert = false
 		},
 	})
+	run(t, testCase{
+		desc: "logstore defaults",
+		args: []string{
+			`-data-dir=` + dataDir,
+		},
+		json: []string{``},
+		hcl:  []string{``},
+		expected: func(rt *RuntimeConfig) {
+			rt.DataDir = dataDir
+			rt.RaftLogStoreConfig.Backend = consul.LogStoreBackendBoltDB
+			rt.RaftLogStoreConfig.WAL.SegmentSize = 64 * 1024 * 1024
+		},
+	})
+	run(t, testCase{
+		// this was a bug in the initial config commit. Specifying part of this
+		// stanza should still result in sensible defaults for the other parts.
+		desc: "wal defaults",
+		args: []string{
+			`-data-dir=` + dataDir,
+		},
+		json: []string{`{
+			"raft_logstore": {
+				"backend": "boltdb"
+			}
+		}`},
+		hcl: []string{`
+			raft_logstore {
+				backend = "boltdb"
+			}
+		`},
+		expected: func(rt *RuntimeConfig) {
+			rt.DataDir = dataDir
+			rt.RaftLogStoreConfig.Backend = consul.LogStoreBackendBoltDB
+			rt.RaftLogStoreConfig.WAL.SegmentSize = 64 * 1024 * 1024
+		},
+	})
+	run(t, testCase{
+		desc: "wal segment size lower bound",
+		args: []string{
+			`-data-dir=` + dataDir,
+		},
+		json: []string{`
+			{
+				"server": true,
+				"raft_logstore": {
+					"wal":{
+						"segment_size_mb": 0
+					}
+				}
+			}`},
+		hcl: []string{`
+			server = true
+			raft_logstore {
+				wal {
+					segment_size_mb = 0
+				}
+			}`},
+		expectedErr: "raft_logstore.wal.segment_size_mb cannot be less than",
+	})
+	run(t, testCase{
+		desc: "wal segment size upper bound",
+		args: []string{
+			`-data-dir=` + dataDir,
+		},
+		json: []string{`
+			{
+				"server": true,
+				"raft_logstore": {
+					"wal":{
+						"segment_size_mb": 1025
+					}
+				}
+			}`},
+		hcl: []string{`
+			server = true
+			raft_logstore {
+				wal {
+					segment_size_mb = 1025
+				}
+			}`},
+		expectedErr: "raft_logstore.wal.segment_size_mb cannot be greater than",
+	})
+	run(t, testCase{
+		desc: "valid logstore backend",
+		args: []string{
+			`-data-dir=` + dataDir,
+		},
+		json: []string{`
+			{
+				"server": true,
+				"raft_logstore": {
+					"backend": "thecloud"
+				}
+			}`},
+		hcl: []string{`
+			server = true
+			raft_logstore {
+				backend = "thecloud"
+			}`},
+		expectedErr: "raft_logstore.backend must be one of 'boltdb' or 'wal'",
+	})
+	run(t, testCase{
+		desc: "raft_logstore merging",
+		args: []string{
+			`-data-dir=` + dataDir,
+		},
+		json: []string{
+			// File 1 has logstore info
+			`{
+				"raft_logstore": {
+					"backend": "wal"
+				}
+			}`,
+			// File 2 doesn't have anything for logstore
+			`{
+				"enable_debug": true
+			}`,
+		},
+		hcl: []string{
+			// File 1 has logstore info
+			`
+			raft_logstore {
+				backend = "wal"
+			}`,
+			// File 2 doesn't have anything for logstore
+			`
+			enable_debug = true
+			`,
+		},
+		expected: func(rt *RuntimeConfig) {
+			rt.DataDir = dataDir
+			// The logstore settings from first file should not be overridden by a
+			// later file with nothing to say about logstores!
+			rt.RaftLogStoreConfig.Backend = consul.LogStoreBackendWAL
+			rt.EnableDebug = true
+		},
+	})
 }
 
 func (tc testCase) run(format string, dataDir string) func(t *testing.T) {
@@ -5856,12 +5998,13 @@ func TestLoad_FullConfig(t *testing.T) {
 	nodeEntMeta := structs.NodeEnterpriseMetaInDefaultPartition()
 	expected := &RuntimeConfig{
 		// non-user configurable values
-		AEInterval:                 time.Minute,
-		CheckDeregisterIntervalMin: time.Minute,
-		CheckReapInterval:          30 * time.Second,
-		SegmentNameLimit:           64,
-		SyncCoordinateIntervalMin:  15 * time.Second,
-		SyncCoordinateRateTarget:   64,
+		AEInterval:                     time.Minute,
+		CheckDeregisterIntervalMin:     time.Minute,
+		CheckReapInterval:              30 * time.Second,
+		SegmentNameLimit:               64,
+		SyncCoordinateIntervalMin:      15 * time.Second,
+		SyncCoordinateRateTarget:       64,
+		LocalProxyConfigResyncInterval: 30 * time.Second,
 
 		Revision:          "JNtPSav3",
 		Version:           "R909Hblt",
@@ -6627,8 +6770,17 @@ func TestLoad_FullConfig(t *testing.T) {
 				"args":       []interface{}{"dltjDJ2a", "flEa7C2d"},
 			},
 		},
-		XDSUpdateRateLimit:               9526.2,
-		RaftBoltDBConfig:                 consul.RaftBoltDBConfig{NoFreelistSync: true},
+		XDSUpdateRateLimit: 9526.2,
+		RaftLogStoreConfig: consul.RaftLogStoreConfig{
+			Backend:         consul.LogStoreBackendWAL,
+			DisableLogCache: true,
+			Verification: consul.RaftLogStoreVerificationConfig{
+				Enabled:  true,
+				Interval: 12345 * time.Second,
+			},
+			BoltDB: consul.RaftBoltDBConfig{NoFreelistSync: true},
+			WAL:    consul.WALConfig{SegmentSize: 15 * 1024 * 1024},
+		},
 		AutoReloadConfigCoalesceInterval: 1 * time.Second,
 	}
 	entFullRuntimeConfig(expected)
@@ -6943,6 +7095,7 @@ func TestRuntimeConfig_Sanitize(t *testing.T) {
 				},
 			},
 		},
+		Locality: &Locality{Region: strPtr("us-west-1"), Zone: strPtr("us-west-1a")},
 	}
 
 	b, err := json.MarshalIndent(rt.Sanitized(), "", "    ")

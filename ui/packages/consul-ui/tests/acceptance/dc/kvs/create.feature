@@ -16,8 +16,8 @@ Feature: dc / kvs / create
     And I submit
     Then the url should be /datacenter/kv
     Then a PUT request was made to "/v1/kv/key-value?dc=datacenter&ns=@namespace"
-    And "[data-notification]" has the "notification-update" class
-    And "[data-notification]" has the "success" class
+    And "[data-notification]" has the "hds-toast" class
+    And "[data-notification]" has the "hds-alert--color-success" class
   Scenario: Creating a folder
     Given 1 datacenter model with the value "datacenter"
     When I visit the kv page for yaml
@@ -33,8 +33,8 @@ Feature: dc / kvs / create
     And I submit
     Then the url should be /datacenter/kv
     Then a PUT request was made to "/v1/kv/key-value/?dc=datacenter&ns=@namespace"
-    And "[data-notification]" has the "notification-update" class
-    And "[data-notification]" has the "success" class
+    And "[data-notification]" has the "hds-toast" class
+    And "[data-notification]" has the "hds-alert--color-success" class
   Scenario: Clicking create from within a folder
     Given 1 datacenter model with the value "datacenter"
     And 1 kv model from yaml

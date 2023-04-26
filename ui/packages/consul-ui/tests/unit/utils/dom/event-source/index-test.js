@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 import {
   source,
   proxy,
@@ -14,15 +19,15 @@ module('Unit | Utility | dom/event source/index', function () {
   // Replace this with your real tests.
   test('it works', function (assert) {
     // All The EventSource
-    assert.ok(typeof CallableEventSource === 'function');
-    assert.ok(typeof OpenableEventSource === 'function');
-    assert.ok(typeof BlockingEventSource === 'function');
-    assert.ok(typeof StorageEventSource === 'function');
+    assert.strictEqual(typeof CallableEventSource, 'function');
+    assert.strictEqual(typeof OpenableEventSource, 'function');
+    assert.strictEqual(typeof BlockingEventSource, 'function');
+    assert.strictEqual(typeof StorageEventSource, 'function');
 
     // Utils
-    assert.ok(typeof source === 'function');
-    assert.ok(typeof proxy === 'function');
-    assert.ok(typeof cache === 'function');
-    assert.ok(typeof resolve === 'function');
+    assert.strictEqual(typeof source, 'function');
+    assert.strictEqual(typeof proxy, 'function');
+    assert.strictEqual(typeof cache, 'function');
+    assert.strictEqual(typeof resolve, 'function');
   });
 });

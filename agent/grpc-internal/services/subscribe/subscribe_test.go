@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package subscribe
 
 import (
@@ -25,10 +28,10 @@ import (
 	grpc "github.com/hashicorp/consul/agent/grpc-internal"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/proto/pbcommon"
-	"github.com/hashicorp/consul/proto/pbservice"
-	"github.com/hashicorp/consul/proto/pbsubscribe"
-	"github.com/hashicorp/consul/proto/prototest"
+	"github.com/hashicorp/consul/proto/private/pbcommon"
+	"github.com/hashicorp/consul/proto/private/pbservice"
+	"github.com/hashicorp/consul/proto/private/pbsubscribe"
+	"github.com/hashicorp/consul/proto/private/prototest"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/types"
 )
@@ -692,7 +695,7 @@ node "node1" {
 }
 `
 		cfg := &acl.Config{WildcardName: structs.WildcardSpecifier}
-		authorizer, err := acl.NewAuthorizerFromRules(rules, acl.SyntaxCurrent, cfg, nil)
+		authorizer, err := acl.NewAuthorizerFromRules(rules, cfg, nil)
 		require.NoError(t, err)
 		authorizer = acl.NewChainedAuthorizer([]acl.Authorizer{authorizer, acl.DenyAll()})
 		require.Equal(t, acl.Deny, authorizer.NodeRead("denied", nil))
@@ -896,7 +899,7 @@ node "node1" {
 	policy = "write"
 }
 `
-		authorizer, err := acl.NewAuthorizerFromRules(rules, acl.SyntaxCurrent, &acl.Config{WildcardName: structs.WildcardSpecifier}, nil)
+		authorizer, err := acl.NewAuthorizerFromRules(rules, &acl.Config{WildcardName: structs.WildcardSpecifier}, nil)
 		require.NoError(t, err)
 		authorizer = acl.NewChainedAuthorizer([]acl.Authorizer{authorizer, acl.DenyAll()})
 		require.Equal(t, acl.Deny, authorizer.NodeRead("denied", nil))
@@ -945,7 +948,6 @@ node "node1" {
 		aclToken := &structs.ACLToken{
 			AccessorID: tokenID,
 			SecretID:   token,
-			Rules:      "",
 		}
 		require.NoError(t, backend.store.ACLTokenSet(ids.Next("update"), aclToken))
 

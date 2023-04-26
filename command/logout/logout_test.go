@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package logout
 
 import (
@@ -55,7 +58,7 @@ func TestLogoutCommand(t *testing.T) {
 
 		code := cmd.Run(args)
 		require.Equal(t, code, 1, "err: %s", ui.ErrorWriter.String())
-		require.Contains(t, ui.ErrorWriter.String(), "403 (ACL not found)")
+		require.Contains(t, ui.ErrorWriter.String(), "401 (Supplied token does not exist)")
 	})
 
 	t.Run("logout of deleted token", func(t *testing.T) {
@@ -185,7 +188,7 @@ func TestLogoutCommand_k8s(t *testing.T) {
 
 		code := cmd.Run(args)
 		require.Equal(t, code, 1, "err: %s", ui.ErrorWriter.String())
-		require.Contains(t, ui.ErrorWriter.String(), "403 (ACL not found)")
+		require.Contains(t, ui.ErrorWriter.String(), "401 (Supplied token does not exist)")
 	})
 
 	t.Run("logout of deleted token", func(t *testing.T) {

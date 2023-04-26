@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package multilimiter
 
 import (
@@ -15,12 +18,8 @@ var _ RateLimiter = &MultiLimiter{}
 
 const separator = "♣"
 
-func makeKey(keys ...[]byte) KeyType {
+func Key(keys ...[]byte) KeyType {
 	return bytes.Join(keys, []byte(separator))
-}
-
-func Key(prefix, key []byte) KeyType {
-	return makeKey(prefix, key)
 }
 
 // RateLimiter is the interface implemented by MultiLimiter
@@ -30,6 +29,7 @@ type RateLimiter interface {
 	Run(ctx context.Context)
 	Allow(entity LimitedEntity) bool
 	UpdateConfig(c LimiterConfig, prefix []byte)
+	DeleteConfig(prefix []byte)
 }
 
 type limiterWithKey struct {
@@ -71,7 +71,6 @@ type LimiterConfig struct {
 
 // Config is a MultiLimiter configuration
 type Config struct {
-	LimiterConfig
 	ReconcileCheckLimit    time.Duration
 	ReconcileCheckInterval time.Duration
 }
@@ -79,14 +78,13 @@ type Config struct {
 // UpdateConfig will update the MultiLimiter Config
 // which will cascade to all the Limiter(s) LimiterConfig
 func (m *MultiLimiter) UpdateConfig(c LimiterConfig, prefix []byte) {
-	m.configsLock.Lock()
-	defer m.configsLock.Unlock()
-	if prefix == nil {
-		prefix = []byte("")
-	}
-	configs := m.limitersConfigs.Load()
-	newConfigs, _, _ := configs.Insert(prefix, &c)
-	m.limitersConfigs.Store(newConfigs)
+	m.updateConfig(&c, prefix)
+}
+
+// DeleteConfig will delete the MultiLimiter Config
+// which will cascade to all the Limiter(s) LimiterConfig
+func (m *MultiLimiter) DeleteConfig(prefix []byte) {
+	m.updateConfig(nil, prefix)
 }
 
 // NewMultiLimiter create a new MultiLimiter
@@ -131,19 +129,9 @@ func (m *MultiLimiter) Run(ctx context.Context) {
 
 }
 
-func splitKey(key []byte) ([]byte, []byte) {
-
-	ret := bytes.SplitN(key, []byte(separator), 2)
-	if len(ret) != 2 {
-		return []byte(""), []byte("")
-	}
-	return ret[0], ret[1]
-}
-
 // Allow should be called by a request processor to check if the current request is Limited
 // The request processor should provide a LimitedEntity that implement the right Key()
 func (m *MultiLimiter) Allow(e LimitedEntity) bool {
-	prefix, _ := splitKey(e.Key())
 	limiters := m.limiters.Load()
 	l, ok := limiters.Get(e.Key())
 	now := time.Now()
@@ -157,18 +145,40 @@ func (m *MultiLimiter) Allow(e LimitedEntity) bool {
 	}
 
 	configs := m.limitersConfigs.Load()
-	c, okP := configs.Get(prefix)
-	var config = &m.defaultConfig.Load().LimiterConfig
-	if okP {
-		prefixConfig := c.(*LimiterConfig)
-		if prefixConfig != nil {
-			config = prefixConfig
-		}
+
+	p, _, ok := configs.Root().LongestPrefix(e.Key())
+
+	if !ok {
+		return true
 	}
+	var config *LimiterConfig
+	c, ok := configs.Get(p)
+	if ok && c != nil {
+		config = c.(*LimiterConfig)
+	}
+
 	limiter := &Limiter{limiter: rate.NewLimiter(config.Rate, config.Burst)}
 	limiter.lastAccess.Store(unixNow)
 	m.limiterCh <- &limiterWithKey{l: limiter, k: e.Key(), t: now}
 	return limiter.limiter.Allow()
+}
+
+// UpdateConfig will update the MultiLimiter Config
+// which will cascade to all the Limiter(s) LimiterConfig
+func (m *MultiLimiter) updateConfig(c *LimiterConfig, prefix []byte) {
+	m.configsLock.Lock()
+	defer m.configsLock.Unlock()
+	if prefix == nil {
+		prefix = []byte("")
+	}
+	configs := m.limitersConfigs.Load()
+	var newConfigs *radix.Tree
+	if c == nil {
+		newConfigs, _, _ = configs.Delete(prefix)
+	} else {
+		newConfigs, _, _ = configs.Insert(prefix, c)
+	}
+	m.limitersConfigs.Store(newConfigs)
 }
 
 type ticker interface {
@@ -182,7 +192,6 @@ type tickerWrapper struct {
 func (t tickerWrapper) Ticker() <-chan time.Time {
 	return t.ticker.C
 }
-
 func (m *MultiLimiter) reconcile(ctx context.Context, waiter ticker, txn *radix.Txn, reconcileCheckLimit time.Duration) *radix.Txn {
 	select {
 	case <-waiter.Ticker():
@@ -223,8 +232,14 @@ func (m *MultiLimiter) reconcileConfig(txn *radix.Txn) {
 
 		// find the prefix for the leaf and check if the defaultConfig is up-to-date
 		// it's possible that the prefix is equal to the key
-		prefix, _ := splitKey(k)
-		v, ok := m.limitersConfigs.Load().Get(prefix)
+		p, _, ok := m.limitersConfigs.Load().Root().LongestPrefix(k)
+
+		// no corresponding config found, need to delete it
+		if !ok {
+			txn.Delete(k)
+			continue
+		}
+		v, ok := m.limitersConfigs.Load().Get(p)
 		if v == nil || !ok {
 			continue
 		}

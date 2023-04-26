@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package main
 
 import (
@@ -7,6 +10,7 @@ import (
 	"flag"
 	"fmt"
 	"go/format"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"sort"
@@ -83,6 +87,7 @@ func run(inputPaths []string, outputPath string) error {
 // enterpriseFileName adds the _ent filename suffix before the extension.
 //
 // Example:
+//
 //	enterpriseFileName("bar/baz/foo.gen.go") => "bar/baz/foo_ent.gen.go"
 func enterpriseFileName(filename string) string {
 	fileName := filepath.Base(filename)
@@ -94,9 +99,10 @@ func enterpriseFileName(filename string) string {
 }
 
 type spec struct {
-	MethodName    string
-	OperationType string
-	Enterprise    bool
+	MethodName        string
+	OperationType     string
+	Enterprise        bool
+	OperationCategory string
 }
 
 func (s spec) GoOperationType() string {
@@ -111,26 +117,64 @@ func (s spec) GoOperationType() string {
 	panic(fmt.Sprintf("unknown rate limit operation type: %s", s.OperationType))
 }
 
+func (s spec) GoOperationCategory() string {
+	switch s.OperationCategory {
+	case "OPERATION_CATEGORY_ACL":
+		return "rate.OperationCategoryACL"
+	case "OPERATION_CATEGORY_PEER_STREAM":
+		return "rate.OperationCategoryPeerStream"
+	case "OPERATION_CATEGORY_CONNECT_CA":
+		return "rate.OperationCategoryConnectCA"
+	case "OPERATION_CATEGORY_PARTITION":
+		return "rate.OperationCategoryPartition"
+	case "OPERATION_CATEGORY_PEERING":
+		return "rate.OperationCategoryPeering"
+	case "OPERATION_CATEGORY_SERVER_DISCOVERY":
+		return "rate.OperationCategoryServerDiscovery"
+	case "OPERATION_CATEGORY_DATAPLANE":
+		return "rate.OperationCategoryDataPlane"
+	case "OPERATION_CATEGORY_DNS":
+		return "rate.OperationCategoryDNS"
+	case "OPERATION_CATEGORY_SUBSCRIBE":
+		return "rate.OperationCategorySubscribe"
+	case "OPERATION_CATEGORY_OPERATOR":
+		return "rate.OperationCategoryOperator"
+	case "OPERATION_CATEGORY_RESOURCE":
+		return "rate.OperationCategoryResource"
+	}
+	panic(fmt.Sprintf("unknown rate limit operation category: %s found in method: %s", s.OperationCategory, s.MethodName))
+}
+
 func collectSpecs(inputPaths []string) ([]spec, []spec, error) {
 	var specs []spec
+	var specFiles []string
 	for _, protoPath := range inputPaths {
-		specFiles, err := filepath.Glob(filepath.Join(protoPath, "*", ".ratelimit.tmp"))
-		if err != nil {
-			return nil, nil, fmt.Errorf("failed to glob directory: %s - %s", protoPath, err)
-		}
-
-		for _, file := range specFiles {
-			b, err := os.ReadFile(file)
+		err := filepath.WalkDir(protoPath, func(path string, info fs.DirEntry, err error) error {
 			if err != nil {
-				return nil, nil, fmt.Errorf("failed to read ratelimit file: %w", err)
+				return err
+			}
+			if info.Name() == ".ratelimit.tmp" {
+				specFiles = append(specFiles, path)
 			}
 
-			var fileSpecs []spec
-			if err := json.Unmarshal(b, &fileSpecs); err != nil {
-				return nil, nil, fmt.Errorf("failed to unmarshal ratelimit file %s - %w", file, err)
-			}
-			specs = append(specs, fileSpecs...)
+			return nil
+		})
+		if err != nil {
+			return nil, nil, fmt.Errorf("failed to walk directory: %s - %w", protoPath, err)
 		}
+	}
+
+	for _, file := range specFiles {
+		b, err := os.ReadFile(file)
+		if err != nil {
+			return nil, nil, fmt.Errorf("failed to read ratelimit file: %w", err)
+		}
+
+		var fileSpecs []spec
+		if err := json.Unmarshal(b, &fileSpecs); err != nil {
+			return nil, nil, fmt.Errorf("failed to unmarshal ratelimit file %s - %w", file, err)
+		}
+		specs = append(specs, fileSpecs...)
 	}
 
 	sort.Slice(specs, func(a, b int) bool {
@@ -153,16 +197,16 @@ func generateOSS(specs []spec) ([]byte, error) {
 	var output bytes.Buffer
 	output.WriteString(fileHeader)
 
-	fmt.Fprintln(&output, `var rpcRateLimitSpecs = map[string]rate.OperationType{`)
+	fmt.Fprintln(&output, `var rpcRateLimitSpecs = map[string]rate.OperationSpec{`)
 	for _, spec := range specs {
-		fmt.Fprintf(&output, `"%s": %s,`, spec.MethodName, spec.GoOperationType())
+		fmt.Fprintf(&output, `"%s": {Type: %s, Category: %s},`, spec.MethodName, spec.GoOperationType(), spec.GoOperationCategory())
 		output.WriteString("\n")
 	}
 	output.WriteString("}")
 
 	formatted, err := format.Source(output.Bytes())
 	if err != nil {
-		return nil, fmt.Errorf("failed to format source: %w", err)
+		return nil, fmt.Errorf("failed to format source in oss: %w", err)
 	}
 	return formatted, nil
 }
@@ -174,14 +218,14 @@ func generateENT(specs []spec) ([]byte, error) {
 
 	output.WriteString("func init() {\n")
 	for _, spec := range specs {
-		fmt.Fprintf(&output, `rpcRateLimitSpecs["%s"] = %s`, spec.MethodName, spec.GoOperationType())
+		fmt.Fprintf(&output, `rpcRateLimitSpecs["%s"] = rate.OperationSpec{Type: %s, Category: %s}`, spec.MethodName, spec.GoOperationType(), spec.GoOperationCategory())
 		output.WriteString("\n")
 	}
 	output.WriteString("}")
 
 	formatted, err := format.Source(output.Bytes())
 	if err != nil {
-		return nil, fmt.Errorf("failed to format source: %w", err)
+		return nil, fmt.Errorf("failed to format source in ent: %w", err)
 	}
 	return formatted, nil
 }

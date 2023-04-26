@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package consul
 
 import (
@@ -19,8 +22,8 @@ import (
 	"github.com/hashicorp/consul/agent/grpc-internal/resolver"
 	"github.com/hashicorp/consul/agent/router"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/proto/pbservice"
-	"github.com/hashicorp/consul/proto/pbsubscribe"
+	"github.com/hashicorp/consul/proto/private/pbservice"
+	"github.com/hashicorp/consul/proto/private/pbsubscribe"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/testrpc"
 )
@@ -39,7 +42,7 @@ func TestSubscribeBackend_IntegrationWithServer_TLSEnabled(t *testing.T) {
 	require.NoError(t, err)
 	defer server.Shutdown()
 
-	client, resolverBuilder, balancerBuilder := newClientWithGRPCPlumbing(t, configureTLS, clientConfigVerifyOutgoing)
+	client, resolverBuilder := newClientWithGRPCPlumbing(t, configureTLS, clientConfigVerifyOutgoing)
 
 	// Try to join
 	testrpc.WaitForLeader(t, server.RPC, "dc1")
@@ -71,7 +74,6 @@ func TestSubscribeBackend_IntegrationWithServer_TLSEnabled(t *testing.T) {
 			UseTLSForDC:           client.tlsConfigurator.UseTLS,
 			DialingFromServer:     true,
 			DialingFromDatacenter: "dc1",
-			BalancerBuilder:       balancerBuilder,
 		})
 		conn, err := pool.ClientConn("dc1")
 		require.NoError(t, err)
@@ -116,7 +118,6 @@ func TestSubscribeBackend_IntegrationWithServer_TLSEnabled(t *testing.T) {
 			UseTLSForDC:           client.tlsConfigurator.UseTLS,
 			DialingFromServer:     true,
 			DialingFromDatacenter: "dc1",
-			BalancerBuilder:       balancerBuilder,
 		})
 		conn, err := pool.ClientConn("dc1")
 		require.NoError(t, err)
@@ -191,7 +192,7 @@ func TestSubscribeBackend_IntegrationWithServer_TLSReload(t *testing.T) {
 	defer server.Shutdown()
 
 	// Set up a client with valid certs and verify_outgoing = true
-	client, resolverBuilder, balancerBuilder := newClientWithGRPCPlumbing(t, configureTLS, clientConfigVerifyOutgoing)
+	client, resolverBuilder := newClientWithGRPCPlumbing(t, configureTLS, clientConfigVerifyOutgoing)
 
 	testrpc.WaitForLeader(t, server.RPC, "dc1")
 
@@ -204,7 +205,6 @@ func TestSubscribeBackend_IntegrationWithServer_TLSReload(t *testing.T) {
 		UseTLSForDC:           client.tlsConfigurator.UseTLS,
 		DialingFromServer:     true,
 		DialingFromDatacenter: "dc1",
-		BalancerBuilder:       balancerBuilder,
 	})
 	conn, err := pool.ClientConn("dc1")
 	require.NoError(t, err)
@@ -284,7 +284,7 @@ func TestSubscribeBackend_IntegrationWithServer_DeliversAllMessages(t *testing.T
 	codec := rpcClient(t, server)
 	defer codec.Close()
 
-	client, resolverBuilder, balancerBuilder := newClientWithGRPCPlumbing(t)
+	client, resolverBuilder := newClientWithGRPCPlumbing(t)
 
 	// Try to join
 	testrpc.WaitForLeader(t, server.RPC, "dc1")
@@ -346,7 +346,6 @@ func TestSubscribeBackend_IntegrationWithServer_DeliversAllMessages(t *testing.T
 		UseTLSForDC:           client.tlsConfigurator.UseTLS,
 		DialingFromServer:     true,
 		DialingFromDatacenter: "dc1",
-		BalancerBuilder:       balancerBuilder,
 	})
 	conn, err := pool.ClientConn("dc1")
 	require.NoError(t, err)
@@ -376,7 +375,7 @@ func TestSubscribeBackend_IntegrationWithServer_DeliversAllMessages(t *testing.T
 		"at least some of the subscribers should have received non-snapshot updates")
 }
 
-func newClientWithGRPCPlumbing(t *testing.T, ops ...func(*Config)) (*Client, *resolver.ServerResolverBuilder, *balancer.Builder) {
+func newClientWithGRPCPlumbing(t *testing.T, ops ...func(*Config)) (*Client, *resolver.ServerResolverBuilder) {
 	_, config := testClientConfig(t)
 	for _, op := range ops {
 		op(config)
@@ -392,6 +391,7 @@ func newClientWithGRPCPlumbing(t *testing.T, ops ...func(*Config)) (*Client, *re
 
 	balancerBuilder := balancer.NewBuilder(resolverBuilder.Authority(), testutil.Logger(t))
 	balancerBuilder.Register()
+	t.Cleanup(balancerBuilder.Deregister)
 
 	deps := newDefaultDeps(t, config)
 	deps.Router = router.NewRouter(
@@ -406,7 +406,7 @@ func newClientWithGRPCPlumbing(t *testing.T, ops ...func(*Config)) (*Client, *re
 	t.Cleanup(func() {
 		client.Shutdown()
 	})
-	return client, resolverBuilder, balancerBuilder
+	return client, resolverBuilder
 }
 
 type testLogger interface {

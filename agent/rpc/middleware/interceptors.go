@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package middleware
 
 import (
@@ -160,13 +163,21 @@ func GetNetRPCInterceptor(recorder *RequestRecorder) rpc.ServerServiceCallInterc
 	}
 }
 
-func GetNetRPCRateLimitingInterceptor(requestLimitsHandler rpcRate.RequestLimitsHandler) rpc.PreBodyInterceptor {
+func GetNetRPCRateLimitingInterceptor(requestLimitsHandler rpcRate.RequestLimitsHandler, panicHandler RecoveryHandlerFunc) rpc.PreBodyInterceptor {
 
-	return func(reqServiceMethod string, sourceAddr net.Addr) error {
+	return func(reqServiceMethod string, sourceAddr net.Addr) (retErr error) {
+
+		defer func() {
+			if r := recover(); r != nil {
+				retErr = panicHandler(r)
+			}
+		}()
+
 		op := rpcRate.Operation{
 			Name:       reqServiceMethod,
 			SourceAddr: sourceAddr,
-			Type:       rpcRateLimitSpecs[reqServiceMethod],
+			Type:       rpcRateLimitSpecs[reqServiceMethod].Type,
+			Category:   rpcRateLimitSpecs[reqServiceMethod].Category,
 		}
 
 		// net/rpc does not provide a way to encode the nuances of the

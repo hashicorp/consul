@@ -1,15 +1,20 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package peering
 
 import (
 	"context"
 	"encoding/pem"
+	"fmt"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
-	"github.com/stretchr/testify/require"
 
 	libassert "github.com/hashicorp/consul/test/integration/consul-container/libs/assert"
 	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
@@ -46,7 +51,9 @@ import (
 //   - Terminate the server nodes in the exporting cluster
 //   - Make sure there is still service connectivity from the importing cluster
 func TestPeering_RotateServerAndCAThenFail_(t *testing.T) {
-	accepting, dialing := libtopology.BasicPeeringTwoClustersSetup(t, utils.TargetVersion)
+	t.Parallel()
+
+	accepting, dialing := libtopology.BasicPeeringTwoClustersSetup(t, utils.TargetVersion, false)
 	var (
 		acceptingCluster     = accepting.Cluster
 		dialingCluster       = dialing.Cluster
@@ -89,7 +96,8 @@ func TestPeering_RotateServerAndCAThenFail_(t *testing.T) {
 		libassert.PeeringExports(t, client, peerName, 1)
 
 		_, port := clientSidecarService.GetAddr()
-		libassert.HTTPServiceEchoes(t, "localhost", port)
+		libassert.HTTPServiceEchoes(t, "localhost", port, "")
+		libassert.AssertFortioName(t, fmt.Sprintf("http://localhost:%d", port), libservice.StaticServerServiceName, "")
 	}
 
 	testutil.RunStep(t, "rotate exporting cluster's root CA", func(t *testing.T) {
@@ -138,7 +146,8 @@ func TestPeering_RotateServerAndCAThenFail_(t *testing.T) {
 
 		// Connectivity should still be contained
 		_, port := clientSidecarService.GetAddr()
-		libassert.HTTPServiceEchoes(t, "localhost", port)
+		libassert.HTTPServiceEchoes(t, "localhost", port, "")
+		libassert.AssertFortioName(t, fmt.Sprintf("http://localhost:%d", port), libservice.StaticServerServiceName, "")
 
 		verifySidecarHasTwoRootCAs(t, clientSidecarService)
 	})
@@ -159,7 +168,8 @@ func TestPeering_RotateServerAndCAThenFail_(t *testing.T) {
 		time.Sleep(30 * time.Second)
 
 		_, port := clientSidecarService.GetAddr()
-		libassert.HTTPServiceEchoes(t, "localhost", port)
+		libassert.HTTPServiceEchoes(t, "localhost", port, "")
+		libassert.AssertFortioName(t, fmt.Sprintf("http://localhost:%d", port), libservice.StaticServerServiceName, "")
 	})
 }
 
@@ -192,7 +202,7 @@ func verifySidecarHasTwoRootCAs(t *testing.T, sidecar libservice.Service) {
 	}
 
 	retry.RunWith(failer(), t, func(r *retry.R) {
-		dump, err := libservice.GetEnvoyConfigDump(adminPort, "include_eds")
+		dump, _, err := libassert.GetEnvoyOutput(adminPort, "config_dump", map[string]string{})
 		require.NoError(r, err, "could not fetch envoy configuration")
 
 		// Make sure there are two certs in the sidecar

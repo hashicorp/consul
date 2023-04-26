@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package main
 
 import (
@@ -11,13 +14,8 @@ import (
 	"github.com/hashicorp/consul/command"
 	"github.com/hashicorp/consul/command/cli"
 	"github.com/hashicorp/consul/command/version"
-	"github.com/hashicorp/consul/lib"
 	_ "github.com/hashicorp/consul/service_os"
 )
-
-func init() {
-	lib.SeedMathRand()
-}
 
 func main() {
 	os.Exit(realMain())

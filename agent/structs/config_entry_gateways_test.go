@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package structs
 
 import (
@@ -1126,6 +1129,13 @@ func TestGatewayService_Addresses(t *testing.T) {
 
 func TestAPIGateway_Listeners(t *testing.T) {
 	cases := map[string]configEntryTestcase{
+		"no listeners defined": {
+			entry: &APIGatewayConfigEntry{
+				Kind: "api-gateway",
+				Name: "api-gw-one",
+			},
+			validateErr: "api gateway must have at least one listener",
+		},
 		"listener name conflict": {
 			entry: &APIGatewayConfigEntry{
 				Kind: "api-gateway",
@@ -1143,12 +1153,40 @@ func TestAPIGateway_Listeners(t *testing.T) {
 			},
 			validateErr: "multiple listeners with the name",
 		},
+		"empty listener name": {
+			entry: &APIGatewayConfigEntry{
+				Kind: "api-gateway",
+				Name: "api-gw-one",
+				Listeners: []APIGatewayListener{
+					{
+						Port:     80,
+						Protocol: "tcp",
+					},
+				},
+			},
+			validateErr: "listener name \"\" is invalid, must be at least 1 character and contain only letters, numbers, or dashes",
+		},
+		"invalid listener name": {
+			entry: &APIGatewayConfigEntry{
+				Kind: "api-gateway",
+				Name: "api-gw-one",
+				Listeners: []APIGatewayListener{
+					{
+						Port:     80,
+						Protocol: "tcp",
+						Name:     "/",
+					},
+				},
+			},
+			validateErr: "listener name \"/\" is invalid, must be at least 1 character and contain only letters, numbers, or dashes",
+		},
 		"merged listener protocol conflict": {
 			entry: &APIGatewayConfigEntry{
 				Kind: "api-gateway",
 				Name: "api-gw-two",
 				Listeners: []APIGatewayListener{
 					{
+						Name:     "listener-one",
 						Port:     80,
 						Protocol: ListenerProtocolHTTP,
 					},
@@ -1167,6 +1205,7 @@ func TestAPIGateway_Listeners(t *testing.T) {
 				Name: "api-gw-three",
 				Listeners: []APIGatewayListener{
 					{
+						Name:     "listener",
 						Port:     80,
 						Hostname: "host.one",
 					},
@@ -1185,6 +1224,7 @@ func TestAPIGateway_Listeners(t *testing.T) {
 				Name: "api-gw-four",
 				Listeners: []APIGatewayListener{
 					{
+						Name:     "listener",
 						Port:     80,
 						Hostname: "host.one",
 						Protocol: APIGatewayListenerProtocol("UDP"),
@@ -1199,6 +1239,7 @@ func TestAPIGateway_Listeners(t *testing.T) {
 				Name: "api-gw-five",
 				Listeners: []APIGatewayListener{
 					{
+						Name:     "listener",
 						Port:     80,
 						Hostname: "host.one",
 						Protocol: APIGatewayListenerProtocol("tcp"),
@@ -1213,6 +1254,7 @@ func TestAPIGateway_Listeners(t *testing.T) {
 				Name: "api-gw-six",
 				Listeners: []APIGatewayListener{
 					{
+						Name:     "listener",
 						Port:     -1,
 						Protocol: APIGatewayListenerProtocol("tcp"),
 					},
@@ -1226,6 +1268,7 @@ func TestAPIGateway_Listeners(t *testing.T) {
 				Name: "api-gw-seven",
 				Listeners: []APIGatewayListener{
 					{
+						Name:     "listener",
 						Port:     80,
 						Hostname: "*.*.host.one",
 						Protocol: APIGatewayListenerProtocol("http"),
@@ -1240,6 +1283,7 @@ func TestAPIGateway_Listeners(t *testing.T) {
 				Name: "api-gw-eight",
 				Listeners: []APIGatewayListener{
 					{
+						Name:     "listener",
 						Port:     80,
 						Hostname: "host.one",
 						Protocol: APIGatewayListenerProtocol("http"),
@@ -1259,6 +1303,7 @@ func TestAPIGateway_Listeners(t *testing.T) {
 				Name: "api-gw-nine",
 				Listeners: []APIGatewayListener{
 					{
+						Name:     "listener",
 						Port:     80,
 						Hostname: "host.one",
 						Protocol: APIGatewayListenerProtocol("http"),
@@ -1340,4 +1385,184 @@ func TestBoundAPIGateway(t *testing.T) {
 		},
 	}
 	testConfigEntryNormalizeAndValidate(t, cases)
+}
+
+func TestListenerBindRoute(t *testing.T) {
+	cases := map[string]struct {
+		listener         BoundAPIGatewayListener
+		route            BoundRoute
+		expectedListener BoundAPIGatewayListener
+		expectedDidBind  bool
+	}{
+		"Listener has no routes": {
+			listener: BoundAPIGatewayListener{},
+			route: &TCPRouteConfigEntry{
+				Kind: TCPRoute,
+				Name: "Test Route",
+			},
+			expectedListener: BoundAPIGatewayListener{
+				Routes: []ResourceReference{
+					{
+						Kind: TCPRoute,
+						Name: "Test Route",
+					},
+				},
+			},
+			expectedDidBind: true,
+		},
+		"Listener to update existing route": {
+			listener: BoundAPIGatewayListener{
+				Routes: []ResourceReference{
+					{
+						Kind: TCPRoute,
+						Name: "Test Route 1",
+					},
+					{
+						Kind: TCPRoute,
+						Name: "Test Route 2",
+					},
+					{
+						Kind: TCPRoute,
+						Name: "Test Route 3",
+					},
+				},
+			},
+			route: &TCPRouteConfigEntry{
+				Kind: TCPRoute,
+				Name: "Test Route 2",
+			},
+			expectedListener: BoundAPIGatewayListener{
+				Routes: []ResourceReference{
+					{
+						Kind: TCPRoute,
+						Name: "Test Route 1",
+					},
+					{
+						Kind: TCPRoute,
+						Name: "Test Route 2",
+					},
+					{
+						Kind: TCPRoute,
+						Name: "Test Route 3",
+					},
+				},
+			},
+			expectedDidBind: true,
+		},
+		"Listener appends new route": {
+			listener: BoundAPIGatewayListener{
+				Routes: []ResourceReference{
+					{
+						Kind: TCPRoute,
+						Name: "Test Route 1",
+					},
+					{
+						Kind: TCPRoute,
+						Name: "Test Route 2",
+					},
+				},
+			},
+			route: &TCPRouteConfigEntry{
+				Kind: TCPRoute,
+				Name: "Test Route 3",
+			},
+			expectedListener: BoundAPIGatewayListener{
+				Routes: []ResourceReference{
+					{
+						Kind: TCPRoute,
+						Name: "Test Route 1",
+					},
+					{
+						Kind: TCPRoute,
+						Name: "Test Route 2",
+					},
+					{
+						Kind: TCPRoute,
+						Name: "Test Route 3",
+					},
+				},
+			},
+			expectedDidBind: true,
+		},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			routeRef := ResourceReference{
+				Kind:           tc.route.GetKind(),
+				Name:           tc.route.GetName(),
+				EnterpriseMeta: *tc.route.GetEnterpriseMeta(),
+			}
+			actualDidBind := tc.listener.BindRoute(routeRef)
+			require.Equal(t, tc.expectedDidBind, actualDidBind)
+			require.Equal(t, tc.expectedListener.Routes, tc.listener.Routes)
+		})
+	}
+}
+
+func TestListenerUnbindRoute(t *testing.T) {
+	cases := map[string]struct {
+		listener          BoundAPIGatewayListener
+		route             BoundRoute
+		expectedListener  BoundAPIGatewayListener
+		expectedDidUnbind bool
+	}{
+		"Listener has no routes": {
+			listener: BoundAPIGatewayListener{},
+			route: &TCPRouteConfigEntry{
+				Kind: TCPRoute,
+				Name: "Test Route",
+			},
+			expectedListener:  BoundAPIGatewayListener{},
+			expectedDidUnbind: false,
+		},
+		"Listener to remove existing route": {
+			listener: BoundAPIGatewayListener{
+				Routes: []ResourceReference{
+					{
+						Kind: TCPRoute,
+						Name: "Test Route 1",
+					},
+					{
+						Kind: TCPRoute,
+						Name: "Test Route 2",
+					},
+					{
+						Kind: TCPRoute,
+						Name: "Test Route 3",
+					},
+				},
+			},
+			route: &TCPRouteConfigEntry{
+				Kind: TCPRoute,
+				Name: "Test Route 2",
+			},
+			expectedListener: BoundAPIGatewayListener{
+				Routes: []ResourceReference{
+					{
+						Kind: TCPRoute,
+						Name: "Test Route 1",
+					},
+					{
+						Kind: TCPRoute,
+						Name: "Test Route 3",
+					},
+				},
+			},
+			expectedDidUnbind: true,
+		},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			routeRef := ResourceReference{
+				Kind:           tc.route.GetKind(),
+				Name:           tc.route.GetName(),
+				EnterpriseMeta: *tc.route.GetEnterpriseMeta(),
+			}
+			actualDidUnbind := tc.listener.UnbindRoute(routeRef)
+			require.Equal(t, tc.expectedDidUnbind, actualDidUnbind)
+			require.Equal(t, tc.expectedListener.Routes, tc.listener.Routes)
+		})
+	}
 }

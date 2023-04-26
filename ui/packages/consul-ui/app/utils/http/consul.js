@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 // TODO: Need to make all these headers capital case
 export const HEADERS_PARTITION = 'X-Consul-Partition';
 export const HEADERS_NAMESPACE = 'X-Consul-Namespace';

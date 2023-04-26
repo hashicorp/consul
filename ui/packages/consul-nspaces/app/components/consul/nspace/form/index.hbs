@@ -1,3 +1,8 @@
+{{!
+  Copyright (c) HashiCorp, Inc.
+  SPDX-License-Identifier: MPL-2.0
+}}
+
 <div class="consul-nspace-form" ...attributes>
   <DataWriter
     @sink={{uri
@@ -102,25 +107,29 @@
               </fieldset>
             {{/if}}
             <div>
+              <Hds::ButtonSet>
               {{#if (and (is "new nspace" item=item) (can "create nspaces"))}}
-                <Action
-                  @type="submit"
-                  {{disabled
-                    (or
+                <Hds::Button
+                  type="submit"
+                  disabled={{or
                       (is "pristine nspace" item=item)
                       (state-matches state "error")
-                    )
                   }}
-                >
-                  Save
-                </Action>
+                  @text='Save'
+                />
               {{else if (can "write nspace" item=item)}}
-                <Action @type="submit">Save</Action>
+                <Hds::Button
+                  type='submit'
+                  @text='Save'
+                />
               {{/if}}
 
-              <Action @type="reset" {{on "click" (fn this.onCancel item)}}>
-                Cancel
-              </Action>
+                <Hds::Button
+                  type='reset'
+                  @color='secondary'
+                  @text='Cancel'
+                  {{on 'click' (fn this.onCancel item)}}
+                />
 
               {{#if
                 (and
@@ -132,13 +141,12 @@
                   @message="Are you sure you want to delete this Namespace?"
                 >
                   <BlockSlot @name="action" as |confirm|>
-                    <Action
+                    <Hds::Button
                       data-test-delete
-                      class="type-delete"
+                      @color='critical'
+                      @text='Delete'
                       {{on "click" (fn confirm (fn writer.delete item))}}
-                    >
-                      Delete
-                    </Action>
+                    />
                   </BlockSlot>
                   <BlockSlot @name="dialog" as |execute cancel message|>
                     <DeleteConfirmation
@@ -149,7 +157,7 @@
                   </BlockSlot>
                 </ConfirmationDialog>
               {{/if}}
-
+              </Hds::ButtonSet>
             </div>
           </StateChart>
         </form>

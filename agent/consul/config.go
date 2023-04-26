@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package consul
 
 import (
@@ -34,6 +37,11 @@ const (
 	// MaxRaftMultiplier is a fairly arbitrary upper bound that limits the
 	// amount of performance detuning that's possible.
 	MaxRaftMultiplier uint = 10
+
+	// LogStoreBackend* are well-known string values used to configure different
+	// log store backends.
+	LogStoreBackendBoltDB = "boltdb"
+	LogStoreBackendWAL    = "wal"
 )
 
 var (
@@ -424,12 +432,16 @@ type Config struct {
 
 	RPCConfig RPCConfig
 
-	RaftBoltDBConfig RaftBoltDBConfig
+	LogStoreConfig RaftLogStoreConfig
 
 	// PeeringEnabled enables cluster peering.
 	PeeringEnabled bool
 
 	PeeringTestAllowPeerRegistrations bool
+
+	Locality *structs.Locality
+
+	Reporting Reporting
 
 	// Embedded Consul Enterprise specific configuration
 	*EnterpriseConfig
@@ -666,8 +678,34 @@ type ReloadableConfig struct {
 	RaftTrailingLogs      int
 	HeartbeatTimeout      time.Duration
 	ElectionTimeout       time.Duration
+	Reporting             Reporting
+}
+
+type RaftLogStoreConfig struct {
+	Backend         string
+	DisableLogCache bool
+	Verification    RaftLogStoreVerificationConfig
+	BoltDB          RaftBoltDBConfig
+	WAL             WALConfig
+}
+
+type RaftLogStoreVerificationConfig struct {
+	Enabled  bool
+	Interval time.Duration
 }
 
 type RaftBoltDBConfig struct {
 	NoFreelistSync bool
+}
+
+type WALConfig struct {
+	SegmentSize int
+}
+
+type License struct {
+	Enabled bool
+}
+
+type Reporting struct {
+	License License
 }

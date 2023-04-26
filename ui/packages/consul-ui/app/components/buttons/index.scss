@@ -1,19 +1,7 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 @import './skin';
 @import './layout';
-button[type='submit'],
-button.type-submit,
-button.type-create,
-a.type-create {
-  @extend %primary-button;
-}
-// TODO: Once we move action-groups to use aria menu we can get rid of
-// some of this and just use not(aria-haspopup)
-button[type='reset'],
-button.type-cancel {
-  @extend %secondary-button;
-}
-.with-confirmation .type-delete,
-.modal-dialog .type-delete,
-%app-view-content form button[type='button'].type-delete {
-  @extend %dangerous-button;
-}

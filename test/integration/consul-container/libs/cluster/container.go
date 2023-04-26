@@ -1,26 +1,39 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package cluster
 
 import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strconv"
 	"time"
 
+	goretry "github.com/avast/retry-go"
 	dockercontainer "github.com/docker/docker/api/types/container"
-	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/go-multierror"
+	"github.com/otiai10/copy"
 	"github.com/pkg/errors"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
+
+	"github.com/hashicorp/consul/api"
 
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 )
 
 const bootLogLine = "Consul agent running"
 const disableRYUKEnv = "TESTCONTAINERS_RYUK_DISABLED"
+
+// Exposed ports info
+const MaxEnvoyOnNode = 10                  // the max number of Envoy sidecar can run along with the agent, base is 19000
+const ServiceUpstreamLocalBindPort = 5000  // local bind Port of service's upstream
+const ServiceUpstreamLocalBindPort2 = 5001 // local bind Port of service's upstream, for services with 2 upstreams
+const debugPort = "4000/tcp"
 
 // consulContainerNode implements the Agent interface by running a Consul agent
 // in a container.
@@ -30,6 +43,7 @@ type consulContainerNode struct {
 	container      testcontainers.Container
 	serverMode     bool
 	datacenter     string
+	partition      string
 	config         Config
 	podReq         testcontainers.ContainerRequest
 	consulReq      testcontainers.ContainerRequest
@@ -44,7 +58,8 @@ type consulContainerNode struct {
 	clientCACertFile string
 	ip               string
 
-	nextAdminPortOffset int
+	nextAdminPortOffset   int
+	nextConnectPortOffset int
 
 	info AgentInfo
 }
@@ -53,14 +68,20 @@ func (c *consulContainerNode) GetPod() testcontainers.Container {
 	return c.pod
 }
 
-func (c *consulContainerNode) ClaimAdminPort() int {
+func (c *consulContainerNode) ClaimAdminPort() (int, error) {
+	if c.nextAdminPortOffset >= MaxEnvoyOnNode {
+		return 0, fmt.Errorf("running out of envoy admin port, max %d, already claimed %d",
+			MaxEnvoyOnNode, c.nextAdminPortOffset)
+	}
 	p := 19000 + c.nextAdminPortOffset
 	c.nextAdminPortOffset++
-	return p
+	return p, nil
 }
 
 // NewConsulContainer starts a Consul agent in a container with the given config.
-func NewConsulContainer(ctx context.Context, config Config, network string, index int) (Agent, error) {
+func NewConsulContainer(ctx context.Context, config Config, cluster *Cluster, ports ...int) (Agent, error) {
+	network := cluster.NetworkName
+	index := cluster.Index
 	if config.ScratchDir == "" {
 		return nil, fmt.Errorf("ScratchDir is required")
 	}
@@ -75,11 +96,15 @@ func NewConsulContainer(ctx context.Context, config Config, network string, inde
 		return nil, err
 	}
 
-	consulType := "client"
-	if pc.Server {
-		consulType = "server"
+	name := config.NodeName
+	if name == "" {
+		// Generate a random name for the agent
+		consulType := "client"
+		if pc.Server {
+			consulType = "server"
+		}
+		name = utils.RandName(fmt.Sprintf("%s-consul-%s-%d", pc.Datacenter, consulType, index))
 	}
-	name := utils.RandName(fmt.Sprintf("%s-consul-%s-%d", pc.Datacenter, consulType, index))
 
 	// Inject new Agent name
 	config.Cmd = append(config.Cmd, "-node", name)
@@ -90,6 +115,14 @@ func NewConsulContainer(ctx context.Context, config Config, network string, inde
 	}
 	if err := os.Chmod(tmpDirData, 0777); err != nil {
 		return nil, fmt.Errorf("error chowning data directory %s: %w", tmpDirData, err)
+	}
+
+	if config.ExternalDataDir != "" {
+		// copy consul persistent state from an external dir
+		err := copy.Copy(config.ExternalDataDir, tmpDirData)
+		if err != nil {
+			return nil, fmt.Errorf("error copying persistent data from %s: %w", config.ExternalDataDir, err)
+		}
 	}
 
 	var caCertFileForAPI string
@@ -113,7 +146,7 @@ func NewConsulContainer(ctx context.Context, config Config, network string, inde
 		addtionalNetworks: []string{"bridge", network},
 		hostname:          fmt.Sprintf("agent-%d", index),
 	}
-	podReq, consulReq := newContainerRequest(config, opts)
+	podReq, consulReq := newContainerRequest(config, opts, ports...)
 
 	// Do some trickery to ensure that partial completion is correctly torn
 	// down, but successful execution is not.
@@ -137,12 +170,34 @@ func NewConsulContainer(ctx context.Context, config Config, network string, inde
 
 		info AgentInfo
 	)
+	debugURI := ""
+	if utils.Debug {
+		if err := goretry.Do(
+			func() (err error) {
+				debugURI, err = podContainer.PortEndpoint(ctx, "4000", "tcp")
+				return err
+			},
+			goretry.Delay(10*time.Second),
+			goretry.RetryIf(func(err error) bool {
+				return err != nil
+			}),
+		); err != nil {
+			return nil, fmt.Errorf("container creating: %s", err)
+		}
+		info.DebugURI = debugURI
+	}
 	if httpPort > 0 {
-		uri, err := podContainer.PortEndpoint(ctx, "8500", "http")
+		for i := 0; i < 10; i++ {
+			uri, err := podContainer.PortEndpoint(ctx, "8500", "http")
+			if err != nil {
+				time.Sleep(500 * time.Millisecond)
+				continue
+			}
+			clientAddr = uri
+		}
 		if err != nil {
 			return nil, err
 		}
-		clientAddr = uri
 
 	} else if httpsPort > 0 {
 		uri, err := podContainer.PortEndpoint(ctx, "8501", "https")
@@ -213,6 +268,7 @@ func NewConsulContainer(ctx context.Context, config Config, network string, inde
 		container:  consulContainer,
 		serverMode: pc.Server,
 		datacenter: pc.Datacenter,
+		partition:  pc.Partition,
 		ctx:        ctx,
 		podReq:     podReq,
 		consulReq:  consulReq,
@@ -231,6 +287,9 @@ func NewConsulContainer(ctx context.Context, config Config, network string, inde
 			apiConfig.TLSConfig.CAFile = clientCACertFile
 		}
 
+		if cluster.TokenBootstrap != "" {
+			apiConfig.Token = cluster.TokenBootstrap
+		}
 		apiClient, err := api.NewClient(apiConfig)
 		if err != nil {
 			return nil, err
@@ -241,10 +300,40 @@ func NewConsulContainer(ctx context.Context, config Config, network string, inde
 		node.clientCACertFile = clientCACertFile
 	}
 
+	// Inject node token if ACL is enabled and the bootstrap token is generated
+	if cluster.TokenBootstrap != "" && cluster.ACLEnabled {
+		agentToken, err := cluster.CreateAgentToken(pc.Datacenter, name)
+		if err != nil {
+			return nil, err
+		}
+		cmd := []string{"consul", "acl", "set-agent-token",
+			"-token", cluster.TokenBootstrap,
+			"agent", agentToken}
+
+		// retry in case agent has not fully initialized
+		err = goretry.Do(
+			func() error {
+				_, err := node.Exec(context.Background(), cmd)
+				if err != nil {
+					return fmt.Errorf("error setting the agent token, error %s", err)
+				}
+				return nil
+			},
+			goretry.Delay(time.Second*1),
+		)
+		if err != nil {
+			return nil, fmt.Errorf("error setting agent token: %s", err)
+		}
+	}
+
 	// disable cleanup functions now that we have an object with a Terminate() function
 	deferClean.Reset()
 
 	return node, nil
+}
+
+func (c *consulContainerNode) GetNetwork() string {
+	return c.network
 }
 
 func (c *consulContainerNode) GetName() string {
@@ -258,12 +347,20 @@ func (c *consulContainerNode) GetName() string {
 	return name
 }
 
+func (c *consulContainerNode) GetAgentName() string {
+	return c.name
+}
+
 func (c *consulContainerNode) GetConfig() Config {
 	return c.config.Clone()
 }
 
 func (c *consulContainerNode) GetDatacenter() string {
 	return c.datacenter
+}
+
+func (c *consulContainerNode) GetPartition() string {
+	return c.partition
 }
 
 func (c *consulContainerNode) IsServer() bool {
@@ -273,6 +370,29 @@ func (c *consulContainerNode) IsServer() bool {
 // GetClient returns an API client that can be used to communicate with the Agent.
 func (c *consulContainerNode) GetClient() *api.Client {
 	return c.client
+}
+
+// NewClient returns an API client by making a new one based on the provided token
+// - updateDefault: if true update the default client
+func (c *consulContainerNode) NewClient(token string, updateDefault bool) (*api.Client, error) {
+	apiConfig := api.DefaultConfig()
+	apiConfig.Address = c.clientAddr
+	if c.clientCACertFile != "" {
+		apiConfig.TLSConfig.CAFile = c.clientCACertFile
+	}
+
+	if token != "" {
+		apiConfig.Token = token
+	}
+	apiClient, err := api.NewClient(apiConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	if updateDefault {
+		c.client = apiClient
+	}
+	return apiClient, nil
 }
 
 func (c *consulContainerNode) GetAPIAddrInfo() (addr, caCert string) {
@@ -291,9 +411,21 @@ func (c *consulContainerNode) RegisterTermination(f func() error) {
 	c.terminateFuncs = append(c.terminateFuncs, f)
 }
 
-func (c *consulContainerNode) Exec(ctx context.Context, cmd []string) (int, error) {
-	exit, _, err := c.container.Exec(ctx, cmd)
-	return exit, err
+func (c *consulContainerNode) Exec(ctx context.Context, cmd []string) (string, error) {
+	exitcode, reader, err := c.container.Exec(ctx, cmd)
+	if exitcode != 0 {
+		return "", fmt.Errorf("exec with exit code %d", exitcode)
+	}
+	if err != nil {
+		return "", fmt.Errorf("exec with error %s", err)
+	}
+
+	buf, err := io.ReadAll(reader)
+	if err != nil {
+		return "", fmt.Errorf("error reading from exe output: %s", err)
+	}
+
+	return string(buf), err
 }
 
 func (c *consulContainerNode) Upgrade(ctx context.Context, config Config) error {
@@ -326,7 +458,7 @@ func (c *consulContainerNode) Upgrade(ctx context.Context, config Config) error 
 		return fmt.Errorf("new hostname %q should match old hostname %q", consulReq2.Hostname, c.consulReq.Hostname)
 	}
 
-	if err := c.TerminateAndRetainPod(); err != nil {
+	if err := c.TerminateAndRetainPod(true); err != nil {
 		return fmt.Errorf("error terminating running container during upgrade: %w", err)
 	}
 
@@ -355,18 +487,22 @@ func (c *consulContainerNode) Upgrade(ctx context.Context, config Config) error 
 // This might also include running termination functions for containers associated with the agent.
 // On failure, an error will be returned and the reaper process (RYUK) will handle cleanup.
 func (c *consulContainerNode) Terminate() error {
-	return c.terminate(false)
+	return c.terminate(false, false)
 }
-func (c *consulContainerNode) TerminateAndRetainPod() error {
-	return c.terminate(true)
+func (c *consulContainerNode) TerminateAndRetainPod(skipFuncs bool) error {
+	return c.terminate(true, skipFuncs)
 }
-func (c *consulContainerNode) terminate(retainPod bool) error {
+func (c *consulContainerNode) terminate(retainPod bool, skipFuncs bool) error {
 	// Services might register a termination function that should also fire
-	// when the "agent" is cleaned up
-	for _, f := range c.terminateFuncs {
-		err := f()
-		if err != nil {
-			continue
+	// when the "agent" is cleaned up.
+	// If skipFuncs is tru, We skip the terminateFuncs of connect sidecar, e.g.,
+	// during upgrade
+	if !skipFuncs {
+		for _, f := range c.terminateFuncs {
+			err := f()
+			if err != nil {
+				continue
+			}
 		}
 	}
 
@@ -402,7 +538,7 @@ func startContainer(ctx context.Context, req testcontainers.ContainerRequest) (t
 	})
 }
 
-const pauseImage = "k8s.gcr.io/pause:3.3"
+const pauseImage = "registry.k8s.io/pause:3.3"
 
 type containerOpts struct {
 	configFile        string
@@ -414,7 +550,7 @@ type containerOpts struct {
 	addtionalNetworks []string
 }
 
-func newContainerRequest(config Config, opts containerOpts) (podRequest, consulRequest testcontainers.ContainerRequest) {
+func newContainerRequest(config Config, opts containerOpts, ports ...int) (podRequest, consulRequest testcontainers.ContainerRequest) {
 	skipReaper := isRYUKDisabled()
 
 	pod := testcontainers.ContainerRequest{
@@ -423,30 +559,44 @@ func newContainerRequest(config Config, opts containerOpts) (podRequest, consulR
 		Name:       opts.name + "-pod",
 		SkipReaper: skipReaper,
 		ExposedPorts: []string{
-			"8500/tcp",
-			"8501/tcp",
+			"8500/tcp", // Consul HTTP API
+			"8501/tcp", // Consul HTTPs API
 
 			"8443/tcp", // Envoy Gateway Listener
 
-			"5000/tcp", // Envoy Connect Listener
-			"8079/tcp", // Envoy Connect Listener
-			"8080/tcp", // Envoy Connect Listener
-			"9998/tcp", // Envoy Connect Listener
-			"9999/tcp", // Envoy Connect Listener
+			"8079/tcp", // Envoy App Listener - grpc port used by static-server
+			"8078/tcp", // Envoy App Listener - grpc port used by static-server-v1
+			"8077/tcp", // Envoy App Listener - grpc port used by static-server-v2
+			"8076/tcp", // Envoy App Listener - grpc port used by static-server-v3
 
-			"19000/tcp", // Envoy Admin Port
-			"19001/tcp", // Envoy Admin Port
-			"19002/tcp", // Envoy Admin Port
-			"19003/tcp", // Envoy Admin Port
-			"19004/tcp", // Envoy Admin Port
-			"19005/tcp", // Envoy Admin Port
-			"19006/tcp", // Envoy Admin Port
-			"19007/tcp", // Envoy Admin Port
-			"19008/tcp", // Envoy Admin Port
-			"19009/tcp", // Envoy Admin Port
+			"8080/tcp", // Envoy App Listener - http port used by static-server
+			"8081/tcp", // Envoy App Listener - http port used by static-server-v1
+			"8082/tcp", // Envoy App Listener - http port used by static-server-v2
+			"8083/tcp", // Envoy App Listener - http port used by static-server-v3
+
+			"9997/tcp", // Envoy App Listener
+			"9998/tcp", // Envoy App Listener
+			"9999/tcp", // Envoy App Listener
 		},
 		Hostname: opts.hostname,
 		Networks: opts.addtionalNetworks,
+	}
+
+	// Envoy upstream listener
+	pod.ExposedPorts = append(pod.ExposedPorts, fmt.Sprintf("%d/tcp", ServiceUpstreamLocalBindPort))
+	pod.ExposedPorts = append(pod.ExposedPorts, fmt.Sprintf("%d/tcp", ServiceUpstreamLocalBindPort2))
+
+	// Reserve the exposed ports for Envoy admin port, e.g., 19000 - 19009
+	basePort := 19000
+	for i := 0; i < MaxEnvoyOnNode; i++ {
+		pod.ExposedPorts = append(pod.ExposedPorts, fmt.Sprintf("%d/tcp", basePort+i))
+	}
+
+	for _, port := range ports {
+		pod.ExposedPorts = append(pod.ExposedPorts, fmt.Sprintf("%d/tcp", port))
+	}
+	if utils.Debug {
+		pod.ExposedPorts = append(pod.ExposedPorts, debugPort)
 	}
 
 	// For handshakes like auto-encrypt, it can take 10's of seconds for the agent to become "ready".
@@ -541,6 +691,7 @@ type parsedConfig struct {
 	Datacenter string      `json:"datacenter"`
 	Server     bool        `json:"server"`
 	Ports      parsedPorts `json:"ports"`
+	Partition  string      `json:"partition"`
 }
 
 type parsedPorts struct {

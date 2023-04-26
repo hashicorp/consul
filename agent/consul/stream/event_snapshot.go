@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package stream
 
 // eventSnapshot represents the state of memdb for a given topic and key at some

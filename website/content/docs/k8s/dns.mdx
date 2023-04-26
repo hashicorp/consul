@@ -8,21 +8,21 @@ description: >-
 # Resolve Consul DNS Requests in Kubernetes
 
 One of the primary query interfaces to Consul is the
-[DNS interface](/docs/discovery/dns). You can configure Consul DNS in
+[DNS interface](/consul/docs/services/discovery/dns-overview). You can configure Consul DNS in
 Kubernetes using a
 [stub-domain configuration](https://kubernetes.io/docs/tasks/administer-cluster/dns-custom-nameservers/#configure-stub-domain-and-upstream-dns-servers)
-if using KubeDNS or a [proxy configuration](https://coredns.io/plugins/proxy/) if using CoreDNS.
+if using KubeDNS or a [proxy configuration](https://coredns.io/plugins/forward/) if using CoreDNS.
 
 Once configured, DNS requests in the form `<consul-service-name>.service.consul` will
 resolve for services in Consul. This will work from all Kubernetes namespaces.
 
 -> **Note:** If you want requests to just `<consul-service-name>` (without the `.service.consul`) to resolve, then you'll need
-to turn on [Consul to Kubernetes Service Sync](/docs/k8s/service-sync#consul-to-kubernetes).
+to turn on [Consul to Kubernetes Service Sync](/consul/docs/k8s/service-sync#consul-to-kubernetes).
 
 ## Consul DNS Cluster IP
 
 To configure KubeDNS or CoreDNS you'll first need the `ClusterIP` of the Consul
-DNS service created by the [Helm chart](/docs/k8s/helm).
+DNS service created by the [Helm chart](/consul/docs/k8s/helm).
 
 The default name of the Consul DNS service will be `consul-dns`. Use
 that name to get the `ClusterIP`:

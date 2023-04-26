@@ -1,36 +1,29 @@
 ---
 layout: commands
 page_title: 'Commands: Intention Delete'
+description: >-
+  The `consul intention delete` command delete L4 service intentions that authorize two services to communicate. It was deprecated in Consul v1.9.0; use `consul config` instead.
 ---
 
 # Consul Intention Delete
 
 Command: `consul intention delete`
 
-Corresponding HTTP API Endpoints: [\[DELETE\] /v1/connect/intentions/exact](/api-docs/connect/intentions#delete-intention-by-name), [\[DELETE\] /v1/connect/intentions/:uuid](/api-docs/connect/intentions#delete-intention-by-id)
+Corresponding HTTP API Endpoints: [\[DELETE\] /v1/connect/intentions/exact](/consul/api-docs/connect/intentions#delete-intention-by-name), [\[DELETE\] /v1/connect/intentions/:uuid](/consul/api-docs/connect/intentions#delete-intention-by-id)
 
 The `intention delete` command deletes a matching intention.
 
-The table below shows this command's [required ACLs](/api-docs/api-structure#authentication). Configuration of
-[blocking queries](/api-docs/features/blocking) and [agent caching](/api-docs/features/caching)
+The table below shows this command's [required ACLs](/consul/api-docs/api-structure#authentication). Configuration of
+[blocking queries](/consul/api-docs/features/blocking) and [agent caching](/consul/api-docs/features/caching)
 are not supported from commands, but may be from the corresponding HTTP endpoint.
 
 | ACL Required                   |
 | ------------------------------ |
-| `intentions:write`<sup>1</sup> |
-
-<p>
-  <sup>1</sup> Intention ACL rules are specified as part of a{' '}
-  <code>service</code> rule. See{' '}
-  <a href="/docs/connect/intentions#intention-management-permissions">
-    Intention Management Permissions
-  </a>{' '}
-  for more details.
-</p>
+| `intentions:write`<p> Define intention rules in the `service` policy. Refer to [ACL requirements for intentions](/consul/docs/connect/intentions/create-manage-intentions#acl-requirements) for additional information.</p> |
 
 -> **Deprecated** - The one argument form of this command is deprecated in
 Consul 1.9.0. Intentions no longer need IDs when represented as
-[`service-intentions`](/docs/connect/config-entries/service-intentions) config
+[`service-intentions`](/consul/docs/connect/config-entries/service-intentions) config
 entries.
 
 ## Usage
@@ -40,7 +33,7 @@ Usage:
 - `consul intention delete [options] SRC DST`
 - `consul intention delete [options] ID`
 
-`SRC` and `DST` can both take [several forms](/commands/intention#source-and-destination-naming).
+`SRC` and `DST` can both take [several forms](/consul/commands/intention#source-and-destination-naming).
 
 #### Enterprise Options
 

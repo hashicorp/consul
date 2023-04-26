@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package state
 
 import (
@@ -6,7 +9,7 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/stream"
-	"github.com/hashicorp/consul/proto/pbsubscribe"
+	"github.com/hashicorp/consul/proto/private/pbsubscribe"
 )
 
 // PBToStreamSubscribeRequest takes a protobuf subscribe request and enterprise
@@ -43,7 +46,7 @@ func PBToStreamSubscribeRequest(req *pbsubscribe.SubscribeRequest, entMeta acl.E
 		case EventTopicMeshConfig, EventTopicServiceResolver, EventTopicIngressGateway,
 			EventTopicServiceIntentions, EventTopicServiceDefaults, EventTopicAPIGateway,
 			EventTopicTCPRoute, EventTopicHTTPRoute, EventTopicInlineCertificate,
-			EventTopicBoundAPIGateway:
+			EventTopicBoundAPIGateway, EventTopicSamenessGroup:
 			subject = EventSubjectConfigEntry{
 				Name:           named.Key,
 				EnterpriseMeta: &entMeta,

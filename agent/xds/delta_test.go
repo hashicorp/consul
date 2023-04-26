@@ -1,12 +1,18 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package xds
 
 import (
 	"errors"
+	"strconv"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
 
+	"github.com/armon/go-metrics"
 	envoy_discovery_v3 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 	"github.com/stretchr/testify/require"
 	rpcstatus "google.golang.org/genproto/googleapis/rpc/status"
@@ -18,8 +24,11 @@ import (
 	"github.com/hashicorp/consul/agent/grpc-external/limiter"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/agent/xds/xdscommon"
+	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/envoyextensions/xdscommon"
 	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
+	"github.com/hashicorp/consul/version"
 )
 
 // NOTE: For these tests, prefer not using xDS protobuf "factory" methods if
@@ -43,7 +52,20 @@ func TestServer_DeltaAggregatedResources_v3_BasicProtocol_TCP(t *testing.T) {
 	var snap *proxycfg.ConfigSnapshot
 
 	testutil.RunStep(t, "initial setup", func(t *testing.T) {
-		snap = newTestSnapshot(t, nil, "")
+		snap = newTestSnapshot(t, nil, "", &structs.ProxyConfigEntry{
+			Kind: structs.ProxyDefaults,
+			Name: structs.ProxyConfigGlobal,
+			EnvoyExtensions: []structs.EnvoyExtension{
+				{
+					Name: api.BuiltinLuaExtension,
+					Arguments: map[string]interface{}{
+						"ProxyType": "connect-proxy",
+						"Listener":  "inbound",
+						"Script":    "x = 0",
+					},
+				},
+			},
+		})
 
 		// Send initial cluster discover. We'll assume we are testing a partial
 		// reconnect and include some initial resource versions that will be
@@ -153,6 +175,8 @@ func TestServer_DeltaAggregatedResources_v3_BasicProtocol_TCP(t *testing.T) {
 
 		// We are caught up, so there should be nothing queued to send.
 		assertDeltaChanBlocked(t, envoy.deltaStream.sendCh)
+
+		requireExtensionMetrics(t, scenario, api.BuiltinLuaExtension, sid, nil)
 	})
 
 	deleteAllButOneEndpoint := func(snap *proxycfg.ConfigSnapshot, uid proxycfg.UpstreamID, targetID string) {
@@ -1038,19 +1062,40 @@ func TestServer_DeltaAggregatedResources_v3_ACLEnforcement(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			var stopped bool
+			lock := &sync.RWMutex{}
+
+			defer func() {
+				lock.Lock()
+				stopped = true
+				lock.Unlock()
+			}()
+
+			// aclResolve may be called in a goroutine even after a
+			// testcase tt returns. Capture the variable as tc so the
+			// values don't swap in the next iteration.
+			tc := tt
 			aclResolve := func(id string) (acl.Authorizer, error) {
-				if !tt.defaultDeny {
+				if !tc.defaultDeny {
 					// Allow all
 					return acl.RootAuthorizer("allow"), nil
 				}
-				if tt.acl == "" {
+				if tc.acl == "" {
 					// No token and defaultDeny is denied
 					return acl.RootAuthorizer("deny"), nil
 				}
+
+				lock.RLock()
+				defer lock.RUnlock()
+
+				if stopped {
+					return acl.DenyAll().ToAllowAuthorizer(), nil
+				}
+
 				// Ensure the correct token was passed
-				require.Equal(t, tt.token, id)
+				require.Equal(t, tc.token, id)
 				// Parse the ACL and enforce it
-				policy, err := acl.NewPolicyFromSource(tt.acl, acl.SyntaxLegacy, nil, nil)
+				policy, err := acl.NewPolicyFromSource(tc.acl, nil, nil)
 				require.NoError(t, err)
 				return acl.NewPolicyAuthorizerWithDefaults(acl.RootAuthorizer("deny"), []*acl.Policy{policy}, nil)
 			}
@@ -1076,13 +1121,15 @@ func TestServer_DeltaAggregatedResources_v3_ACLEnforcement(t *testing.T) {
 
 			// If there is no token, check that we increment the gauge
 			if tt.token == "" {
-				data := scenario.sink.Data()
-				require.Len(t, data, 1)
+				retry.Run(t, func(r *retry.R) {
+					data := scenario.sink.Data()
+					require.Len(r, data, 1)
 
-				item := data[0]
-				val, ok := item.Gauges["consul.xds.test.xds.server.streamsUnauthenticated"]
-				require.True(t, ok)
-				require.Equal(t, float32(1), val.Value)
+					item := data[0]
+					val, ok := item.Gauges["consul.xds.test.xds.server.streamsUnauthenticated"]
+					require.True(r, ok)
+					require.Equal(r, float32(1), val.Value)
+				})
 			}
 
 			if !tt.wantDenied {
@@ -1119,13 +1166,15 @@ func TestServer_DeltaAggregatedResources_v3_ACLEnforcement(t *testing.T) {
 
 			// If there is no token, check that we decrement the gauge
 			if tt.token == "" {
-				data := scenario.sink.Data()
-				require.Len(t, data, 1)
+				retry.Run(t, func(r *retry.R) {
+					data := scenario.sink.Data()
+					require.Len(r, data, 1)
 
-				item := data[0]
-				val, ok := item.Gauges["consul.xds.test.xds.server.streamsUnauthenticated"]
-				require.True(t, ok)
-				require.Equal(t, float32(0), val.Value)
+					item := data[0]
+					val, ok := item.Gauges["consul.xds.test.xds.server.streamsUnauthenticated"]
+					require.True(r, ok)
+					require.Equal(r, float32(0), val.Value)
+				})
 			}
 		})
 	}
@@ -1139,7 +1188,7 @@ func TestServer_DeltaAggregatedResources_v3_ACLTokenDeleted_StreamTerminatedDuri
 	aclRules := `service "web" { policy = "write" }`
 	token := "service-write-on-web"
 
-	policy, err := acl.NewPolicyFromSource(aclRules, acl.SyntaxLegacy, nil, nil)
+	policy, err := acl.NewPolicyFromSource(aclRules, nil, nil)
 	require.NoError(t, err)
 
 	var validToken atomic.Value
@@ -1237,7 +1286,7 @@ func TestServer_DeltaAggregatedResources_v3_ACLTokenDeleted_StreamTerminatedInBa
 	aclRules := `service "web" { policy = "write" }`
 	token := "service-write-on-web"
 
-	policy, err := acl.NewPolicyFromSource(aclRules, acl.SyntaxLegacy, nil, nil)
+	policy, err := acl.NewPolicyFromSource(aclRules, nil, nil)
 	require.NoError(t, err)
 
 	var validToken atomic.Value
@@ -1519,8 +1568,44 @@ func assertDeltaResponse(t *testing.T, got, want *envoy_discovery_v3.DeltaDiscov
 func mustMakeVersionMap(t *testing.T, resources ...proto.Message) map[string]string {
 	m := make(map[string]string)
 	for _, res := range resources {
-		name := getResourceName(res)
+		name := xdscommon.GetResourceName(res)
 		m[name] = mustHashResource(t, res)
 	}
 	return m
+}
+
+func requireExtensionMetrics(
+	t *testing.T,
+	scenario *testServerScenario,
+	extName string,
+	sid structs.ServiceID,
+	err error,
+) {
+	data := scenario.sink.Data()
+	require.Len(t, data, 1)
+	item := data[0]
+
+	expectLabels := []metrics.Label{
+		{Name: "extension", Value: extName},
+		{Name: "version", Value: "builtin/" + version.Version},
+		{Name: "service", Value: sid.ID},
+		{Name: "partition", Value: sid.PartitionOrDefault()},
+		{Name: "namespace", Value: sid.NamespaceOrDefault()},
+		{Name: "error", Value: strconv.FormatBool(err != nil)},
+	}
+
+	for _, s := range []string{
+		"consul.xds.test.envoy_extension.validate_arguments;",
+		"consul.xds.test.envoy_extension.validate;",
+		"consul.xds.test.envoy_extension.extend;",
+	} {
+		foundLabel := false
+		for k, v := range item.Samples {
+			if strings.HasPrefix(k, s) {
+				foundLabel = true
+				require.ElementsMatch(t, expectLabels, v.Labels)
+			}
+		}
+		require.True(t, foundLabel)
+	}
 }

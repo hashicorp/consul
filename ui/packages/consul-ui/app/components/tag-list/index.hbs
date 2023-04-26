@@ -1,3 +1,8 @@
+{{!
+  Copyright (c) HashiCorp, Inc.
+  SPDX-License-Identifier: MPL-2.0
+}}
+
 {{#let (union (or @item.Tags (array)) (or @tags (array))) as |tags|}}
   {{#if (gt tags.length 0)}}
     {{#if (has-block)}}

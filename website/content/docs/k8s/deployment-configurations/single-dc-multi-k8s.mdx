@@ -7,7 +7,7 @@ description: >-
 
 # Deploy Single Consul Datacenter Across Multiple Kubernetes Clusters
 
-~> **Note:** When running Consul across multiple Kubernetes clusters, we recommend using [admin partitions](/docs/enterprise/admin-partitions) for production environments. This Consul Enterprise feature allows you to accommodate multiple tenants without resource collisions when administering a cluster at scale. Admin partitions also enable you to run Consul on Kubernetes clusters across a non-flat network.
+~> **Note:** When running Consul across multiple Kubernetes clusters, we recommend using [admin partitions](/consul/docs/enterprise/admin-partitions) for production environments. This Consul Enterprise feature allows you to accommodate multiple tenants without resource collisions when administering a cluster at scale. Admin partitions also enable you to run Consul on Kubernetes clusters across a non-flat network.
 
 This page describes deploying a single Consul datacenter in multiple Kubernetes clusters,
 with servers running in one cluster and only Consul on Kubernetes components in the rest of the clusters.
@@ -15,7 +15,8 @@ This example uses two Kubernetes clusters, but this approach could be extended t
 
 ## Requirements
 
-* Consul-Helm version `v1.0.0` or higher
+* `consul-k8s` v1.0.x or higher, and Consul 1.14.x or higher 
+* Kubernetes clusters must be able to communicate over LAN on a flat network.
 * Either the Helm release name for each Kubernetes cluster must be unique, or `global.name` for each Kubernetes cluster must be unique to prevent collisions of ACL resources with the same prefix.
 
 ## Prepare Helm release name ahead of installs
@@ -50,6 +51,17 @@ global:
   gossipEncryption:
     secretName: consul-gossip-encryption-key
     secretKey: key
+server:
+  exposeService:
+    enabled: true
+    type: NodePort
+    nodePort:
+      ## all are random nodePorts and you can set your own
+      http: 30010
+      https: 30011
+      serf: 30012
+      rpc: 30013
+      grpc: 30014
 ui:
   service:
     type: NodePort
@@ -64,6 +76,8 @@ that can be used later to verify the connectivity of services across clusters.
 The UI's service type is set to be `NodePort`.
 This is needed to connect to servers from another cluster without using the pod IPs of the servers,
 which are likely going to change.
+
+Other services are exposed as `NodePort` services and configured with random port numbers. In this example, the `grpc` port is set to `30014`, which enables services to discover Consul servers using gRPC when connecting from another cluster.
 
 To deploy, first generate the Gossip encryption key and save it as a Kubernetes secret.
 
@@ -123,6 +137,8 @@ externalServers:
   hosts: ["10.0.0.4"]
   # The node port of the UI's NodePort service or the load balancer port.
   httpsPort: 31557
+  # Matches the gRPC port of the Consul servers in the first cluster.
+  grpcPort: 30014
   tlsServerName: server.dc1.consul
   # The address of the kube API server of this Kubernetes cluster
   k8sAuthMethodHost: https://kubernetes.example.com:443
@@ -146,6 +162,8 @@ $ kubectl get service cluster1-consul-ui --context cluster1
 NAME                 TYPE       CLUSTER-IP    EXTERNAL-IP   PORT(S)         AGE
 cluster1-consul-ui   NodePort   10.0.240.80   <none>        443:31557/TCP   40h
 ```
+
+The `grpcPort: 30014` configuration refers to the gRPC port number specified in the `NodePort` configuration in the first cluster.
 
 Set the `externalServer.tlsServerName` to `server.dc1.consul`. This the DNS SAN
 (Subject Alternative Name) that is present in the Consul server's certificate.
@@ -172,7 +190,7 @@ $ helm install ${HELM_RELEASE_CONSUL} --values cluster2-values.yaml hashicorp/co
 
 ## Verifying the Consul Service Mesh works
 
-~> When Transparent proxy is enabled, services in one Kubernetes cluster that need to communicate with a service in another Kubernetes cluster must have an explicit upstream configured through the ["consul.hashicorp.com/connect-service-upstreams"](/docs/k8s/annotations-and-labels#consul-hashicorp-com-connect-service-upstreams) annotation.
+~> When Transparent proxy is enabled, services in one Kubernetes cluster that need to communicate with a service in another Kubernetes cluster must have an explicit upstream configured through the ["consul.hashicorp.com/connect-service-upstreams"](/consul/docs/k8s/annotations-and-labels#consul-hashicorp-com-connect-service-upstreams) annotation.
 
 Now that the Consul cluster spanning across multiple k8s clusters is up and running, deploy two services in separate k8s clusters and verify that they can connect to each other.
 

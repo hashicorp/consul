@@ -1,26 +1,56 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package upgrade
 
 import (
+	"context"
 	"testing"
-	"time"
 
-	"github.com/hashicorp/consul/api"
 	"github.com/stretchr/testify/require"
 
+	"github.com/hashicorp/go-version"
+
+	"github.com/hashicorp/consul/api"
 	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
+	libservice "github.com/hashicorp/consul/test/integration/consul-container/libs/service"
+	libtopology "github.com/hashicorp/consul/test/integration/consul-container/libs/topology"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 )
 
 // Test health check GRPC call using Target Servers and Latest GA Clients
+// Note: this upgrade test doesn't use StandardUpgrade since it requires
+// a cluster with clients and servers with mixed versions
 func TestTargetServersWithLatestGAClients(t *testing.T) {
+	t.Parallel()
+
+	fromVersion, err := version.NewVersion(utils.LatestVersion)
+	require.NoError(t, err)
+	if fromVersion.LessThan(utils.Version_1_14) {
+		t.Skip("TODO: why are we skipping this?")
+	}
+
 	const (
 		numServers = 3
 		numClients = 1
 	)
 
-	cluster := serversCluster(t, numServers, utils.TargetImageName, utils.TargetVersion)
+	clusterConfig := &libtopology.ClusterConfig{
+		NumServers: numServers,
+		NumClients: numClients,
+		BuildOpts: &libcluster.BuildOptions{
+			Datacenter:    "dc1",
+			ConsulVersion: utils.TargetVersion,
+		},
+		ApplyDefaultProxySettings: true,
+	}
 
-	clientsCreate(t, numClients, utils.LatestImageName, utils.LatestVersion, cluster)
+	cluster, _, _ := libtopology.NewCluster(t, clusterConfig)
+
+	// change the version of Client agent to latest version
+	config := cluster.Agents[3].GetConfig()
+	config.Version = utils.LatestVersion
+	cluster.Agents[3].Upgrade(context.Background(), config)
 
 	client := cluster.APIClient(0)
 
@@ -28,33 +58,26 @@ func TestTargetServersWithLatestGAClients(t *testing.T) {
 	libcluster.WaitForMembers(t, client, 4)
 
 	const serviceName = "api"
-	index := serviceCreate(t, client, serviceName)
+	index := libservice.ServiceCreate(t, client, serviceName)
 
-	ch, errCh := serviceHealthBlockingQuery(client, serviceName, index)
 	require.NoError(t, client.Agent().ServiceRegister(
 		&api.AgentServiceRegistration{Name: serviceName, Port: 9998},
 	))
 
-	timer := time.NewTimer(3 * time.Second)
-	select {
-	case err := <-errCh:
-		require.NoError(t, err)
-	case service := <-ch:
-		require.Len(t, service, 1)
-		require.Equal(t, serviceName, service[0].Service.Service)
-		require.Equal(t, 9998, service[0].Service.Port)
-	case <-timer.C:
-		t.Fatalf("test timeout")
-	}
+	checkServiceHealth(t, client, "api", index)
 }
 
 // Test health check GRPC call using Mixed (majority latest) Servers and Latest GA Clients
 func TestMixedServersMajorityLatestGAClient(t *testing.T) {
+	t.Parallel()
+
 	testMixedServersGAClient(t, false)
 }
 
 // Test health check GRPC call using Mixed (majority target) Servers and Latest GA Clients
 func TestMixedServersMajorityTargetGAClient(t *testing.T) {
+	t.Parallel()
+
 	testMixedServersGAClient(t, true)
 }
 
@@ -66,7 +89,7 @@ func testMixedServersGAClient(t *testing.T, majorityIsTarget bool) {
 			ConsulVersion:   utils.LatestVersion,
 		}
 		targetOpts = libcluster.BuildOptions{
-			ConsulImageName: utils.TargetImageName,
+			ConsulImageName: utils.GetTargetImageName(),
 			ConsulVersion:   utils.TargetVersion,
 		}
 
@@ -114,7 +137,7 @@ func testMixedServersGAClient(t *testing.T, majorityIsTarget bool) {
 	cluster, err := libcluster.New(t, configs)
 	require.NoError(t, err)
 
-	clientsCreate(t, numClients, utils.LatestImageName, utils.LatestVersion, cluster)
+	libservice.ClientsCreate(t, numClients, utils.LatestImageName, utils.LatestVersion, cluster)
 
 	client := cluster.APIClient(0)
 
@@ -122,22 +145,9 @@ func testMixedServersGAClient(t *testing.T, majorityIsTarget bool) {
 	libcluster.WaitForMembers(t, client, 4) // TODO(rb): why 4?
 
 	const serviceName = "api"
-	index := serviceCreate(t, client, serviceName)
-
-	ch, errCh := serviceHealthBlockingQuery(client, serviceName, index)
+	index := libservice.ServiceCreate(t, client, serviceName)
 	require.NoError(t, client.Agent().ServiceRegister(
 		&api.AgentServiceRegistration{Name: serviceName, Port: 9998},
 	))
-
-	timer := time.NewTimer(3 * time.Second)
-	select {
-	case err := <-errCh:
-		require.NoError(t, err)
-	case service := <-ch:
-		require.Len(t, service, 1)
-		require.Equal(t, serviceName, service[0].Service.Service)
-		require.Equal(t, 9998, service[0].Service.Port)
-	case <-timer.C:
-		t.Fatalf("test timeout")
-	}
+	checkServiceHealth(t, client, "api", index)
 }

@@ -16,31 +16,31 @@ similarities to one.
 
 The Consul KV datastore is located on the servers, but can be accessed by any
 agent (client or server). The natively integrated [RPC
-functionality](/docs/architecture) allows clients to forward
+functionality](/consul/docs/architecture) allows clients to forward
 requests to servers, including key/value reads and writes. Part of Consul's
 core design allows data to be replicated automatically across all the servers.
 Having a quorum of servers will decrease the risk of data loss if an outage
 occurs.
 
 If you have not used Consul KV, complete this [Getting Started
-tutorial](https://learn.hashicorp.com/tutorials/consul/get-started-key-value-store?utm_source=docs) on HashiCorp.
+tutorial](/consul/tutorials/interactive/get-started-key-value-store?utm_source=docs) on HashiCorp.
 
 ## Accessing the KV store
 
 The KV store can be accessed by the [consul kv CLI
-subcommands](/commands/kv), [HTTP API](/api-docs/kv), and Consul UI.
+subcommands](/consul/commands/kv), [HTTP API](/consul/api-docs/kv), and Consul UI.
 To restrict access, enable and configure
-[ACLs](https://learn.hashicorp.com/tutorials/consul/access-control-setup-production).
+[ACLs](/consul/tutorials/security/access-control-setup-production).
 Once the ACL system has been bootstrapped, users and services, will need a
-valid token with KV [privileges](/docs/security/acl/acl-rules#key-value-rules) to
+valid token with KV [privileges](/consul/docs/security/acl/acl-rules#key-value-rules) to
 access the the data store, this includes even reads. We recommend creating a
 token with limited privileges, for example, you could create a token with write
 privileges on one key for developers to update the value related to their
 application.
 
 The datastore itself is located on the Consul servers in the [data
-directory](/docs/agent/config/cli-flags#_data_dir). To ensure data is not lost in
-the event of a complete outage, use the [`consul snapshot`](/commands/snapshot/restore) feature to backup the data.
+directory](/consul/docs/agent/config/cli-flags#_data_dir). To ensure data is not lost in
+the event of a complete outage, use the [`consul snapshot`](/consul/commands/snapshot/restore) feature to backup the data.
 
 ## Using Consul KV
 
@@ -48,7 +48,7 @@ Objects are opaque to Consul, meaning there are no restrictions on the type of
 object stored in a key/value entry. The main restriction on an object is size -
 the maximum is 512 KB. Due to the maximum object size and main use cases, you
 should not need extra storage; the general [sizing
-recommendations](/docs/agent/config/config-files#kv_max_value_size)
+recommendations](/consul/docs/agent/config/config-files#kv_max_value_size)
 are usually sufficient.
 
 Keys, like objects are not restricted by type and can include any character.
@@ -67,7 +67,7 @@ using the API and in shell scripts.
 
 If you plan to use Consul KV as part of your configuration management process
 review the [Consul
-Template](https://learn.hashicorp.com/tutorials/consul/consul-template?utm_source=docs)
+Template](/consul/tutorials/developer-configuration/consul-template?utm_source=docs)
 tutorial on how to update configuration based on value updates in the KV. Consul
 Template is based on Go Templates and allows for a series of scripted actions
 to be initiated on value changes to a Consul key.
@@ -75,9 +75,9 @@ to be initiated on value changes to a Consul key.
 ### Watches
 
 Consul KV can also be extended with the use of watches.
-[Watches](/docs/dynamic-app-config/watches) are a way to monitor data for updates. When
+[Watches](/consul/docs/dynamic-app-config/watches) are a way to monitor data for updates. When
 an update is detected, an external handler is invoked. To use watches with the
-KV store the [key](/docs/dynamic-app-config/watches#key) watch type should be used.
+KV store the [key](/consul/docs/dynamic-app-config/watches#key) watch type should be used.
 
 ### Consul Sessions
 
@@ -87,10 +87,10 @@ API supports an `acquire` and `release` operation. The `acquire` operation acts
 like a Check-And-Set operation. On success, there is a key update and an
 increment to the `LockIndex` and the session value is updated to reflect the
 session holding the lock. Review the session documentation for more information
-on the [integration](/docs/dynamic-app-config/sessions#k-v-integration).
+on the [integration](/consul/docs/dynamic-app-config/sessions#k-v-integration).
 
-Review the following tutorials to learn how to use Consul sessions for [application leader election](https://learn.hashicorp.com/tutorials/consul/application-leader-elections) and
-to [build distributed semaphores](https://learn.hashicorp.com/consul/developer-configuration/semaphore).
+Review the following tutorials to learn how to use Consul sessions for [application leader election](/consul/tutorials/developer-configuration/application-leader-elections) and
+to [build distributed semaphores](/consul/tutorials/developer-configuration/distributed-semaphore).
 
 ### Vault
 

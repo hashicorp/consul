@@ -1,16 +1,16 @@
+{{!
+  Copyright (c) HashiCorp, Inc.
+  SPDX-License-Identifier: MPL-2.0
+}}
+
 {{#if (eq @type 'remove')}}
-  <Notice
-    class="notification-delete"
-    @type="success"
+  <Hds::Toast
+    @color='success'
     ...attributes
-  as |notice|>
-    <notice.Header>
-      <strong>Success!</strong>
-    </notice.Header>
-    <notice.Body>
-      <p>
-        Your Partition has been marked for deletion.
-      </p>
-    </notice.Body>
-  </Notice>
+    as |T|>
+    <T.Title>Success!</T.Title>
+    <T.Description>
+      Your Partition has been marked for deletion.
+    </T.Description>
+  </Hds::Toast>
 {{/if}}

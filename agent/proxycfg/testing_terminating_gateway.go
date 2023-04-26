@@ -1,9 +1,13 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package proxycfg
 
 import (
 	"github.com/mitchellh/go-testing-interface"
 
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/api"
 )
 
 func TestConfigSnapshotTerminatingGateway(t testing.T, populateServices bool, nsFn func(ns *structs.NodeService), extraUpdates []UpdateEvent) *ConfigSnapshot {
@@ -206,19 +210,19 @@ func TestConfigSnapshotTerminatingGateway(t testing.T, populateServices bool, ns
 			// no intentions defined for these services
 			{
 				CorrelationID: serviceIntentionsIDPrefix + web.String(),
-				Result:        structs.Intentions{},
+				Result:        structs.SimplifiedIntentions{},
 			},
 			{
 				CorrelationID: serviceIntentionsIDPrefix + api.String(),
-				Result:        structs.Intentions{},
+				Result:        structs.SimplifiedIntentions{},
 			},
 			{
 				CorrelationID: serviceIntentionsIDPrefix + db.String(),
-				Result:        structs.Intentions{},
+				Result:        structs.SimplifiedIntentions{},
 			},
 			{
 				CorrelationID: serviceIntentionsIDPrefix + cache.String(),
-				Result:        structs.Intentions{},
+				Result:        structs.SimplifiedIntentions{},
 			},
 			// ========
 			{
@@ -386,23 +390,23 @@ func TestConfigSnapshotTerminatingGatewayDestinations(t testing.T, populateDesti
 			// no intentions defined for these services
 			{
 				CorrelationID: serviceIntentionsIDPrefix + externalIPTCP.String(),
-				Result:        structs.Intentions{},
+				Result:        structs.SimplifiedIntentions{},
 			},
 			{
 				CorrelationID: serviceIntentionsIDPrefix + externalHostnameTCP.String(),
-				Result:        structs.Intentions{},
+				Result:        structs.SimplifiedIntentions{},
 			},
 			{
 				CorrelationID: serviceIntentionsIDPrefix + externalIPHTTP.String(),
-				Result:        structs.Intentions{},
+				Result:        structs.SimplifiedIntentions{},
 			},
 			{
 				CorrelationID: serviceIntentionsIDPrefix + externalHostnameHTTP.String(),
-				Result:        structs.Intentions{},
+				Result:        structs.SimplifiedIntentions{},
 			},
 			{
 				CorrelationID: serviceIntentionsIDPrefix + externalHostnameWithSNI.String(),
-				Result:        structs.Intentions{},
+				Result:        structs.SimplifiedIntentions{},
 			},
 			// ========
 			{
@@ -952,11 +956,10 @@ func TestConfigSnapshotTerminatingGatewayWithLambdaService(t testing.T, extraUpd
 			ProxyConfig: map[string]interface{}{"protocol": "http"},
 			EnvoyExtensions: []structs.EnvoyExtension{
 				{
-					Name: structs.BuiltinAWSLambdaExtension,
+					Name: api.BuiltinAWSLambdaExtension,
 					Arguments: map[string]interface{}{
-						"ARN":                "lambda-arn",
+						"ARN":                "arn:aws:lambda:us-east-1:111111111111:function:lambda-1234",
 						"PayloadPassthrough": true,
-						"Region":             "us-east-1",
 					},
 				},
 			},

@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package peering_test
 
 import (
@@ -38,8 +41,8 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/lib"
-	"github.com/hashicorp/consul/proto/pbpeering"
-	"github.com/hashicorp/consul/proto/prototest"
+	"github.com/hashicorp/consul/proto/private/pbpeering"
+	"github.com/hashicorp/consul/proto/private/prototest"
 	"github.com/hashicorp/consul/sdk/freeport"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
@@ -1693,8 +1696,9 @@ func newDefaultDeps(t *testing.T, c *consul.Config) consul.Deps {
 		Datacenter:      c.Datacenter,
 	}
 
-	balancerBuilder := balancer.NewBuilder(t.Name(), testutil.Logger(t))
+	balancerBuilder := balancer.NewBuilder(builder.Authority(), testutil.Logger(t))
 	balancerBuilder.Register()
+	t.Cleanup(balancerBuilder.Deregister)
 
 	return consul.Deps{
 		EventPublisher:  stream.NewEventPublisher(10 * time.Second),
@@ -1709,7 +1713,6 @@ func newDefaultDeps(t *testing.T, c *consul.Config) consul.Deps {
 			UseTLSForDC:           tls.UseTLS,
 			DialingFromServer:     true,
 			DialingFromDatacenter: c.Datacenter,
-			BalancerBuilder:       balancerBuilder,
 		}),
 		LeaderForwarder:          builder,
 		EnterpriseDeps:           newDefaultDepsEnterprise(t, logger, c),
@@ -1729,28 +1732,24 @@ func upsertTestACLs(t *testing.T, store *state.Store) {
 	)
 	policies := structs.ACLPolicies{
 		{
-			ID:     testPolicyPeeringReadID,
-			Name:   "peering-read",
-			Rules:  `peering = "read"`,
-			Syntax: acl.SyntaxCurrent,
+			ID:    testPolicyPeeringReadID,
+			Name:  "peering-read",
+			Rules: `peering = "read"`,
 		},
 		{
-			ID:     testPolicyPeeringWriteID,
-			Name:   "peering-write",
-			Rules:  `peering = "write"`,
-			Syntax: acl.SyntaxCurrent,
+			ID:    testPolicyPeeringWriteID,
+			Name:  "peering-write",
+			Rules: `peering = "write"`,
 		},
 		{
-			ID:     testPolicyServiceReadID,
-			Name:   "service-read",
-			Rules:  `service "api" { policy = "read" }`,
-			Syntax: acl.SyntaxCurrent,
+			ID:    testPolicyServiceReadID,
+			Name:  "service-read",
+			Rules: `service "api" { policy = "read" }`,
 		},
 		{
-			ID:     testPolicyServiceWriteID,
-			Name:   "service-write",
-			Rules:  `service "api" { policy = "write" }`,
-			Syntax: acl.SyntaxCurrent,
+			ID:    testPolicyServiceWriteID,
+			Name:  "service-write",
+			Rules: `service "api" { policy = "write" }`,
 		},
 	}
 	require.NoError(t, store.ACLPolicyBatchSet(100, policies))

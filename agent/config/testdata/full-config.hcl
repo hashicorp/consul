@@ -1,3 +1,6 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
 acl_agent_master_token = "furuQD0b"
 acl_agent_token = "cOshLOQ2"
 acl_datacenter = "m3urck3z"
@@ -353,14 +356,30 @@ raft_protocol = 3
 raft_snapshot_threshold = 16384
 raft_snapshot_interval = "30s"
 raft_trailing_logs = 83749
-raft_boltdb {
-    NoFreelistSync = true
+raft_logstore {
+    backend = "wal"
+    disable_log_cache = true
+    verification {
+        enabled = true
+        interval = "12345s"
+    }
+    boltdb {
+        no_freelist_sync = true
+    }
+    wal {
+       segment_size_mb = 15
+    }
 }
 read_replica = true
 reconnect_timeout = "23739s"
 reconnect_timeout_wan = "26694s"
 recursors = [ "63.38.39.58", "92.49.18.18" ]
 rejoin_after_leave = true
+reporting = {
+    license = {
+        enabled = false
+    }
+}
 retry_interval = "8067s"
 retry_interval_wan = "28866s"
 retry_join = [ "pbsSFY7U", "l0qLtWij" ]

@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package state
 
 import (
@@ -7,7 +10,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/proto/pbsubscribe"
+	"github.com/hashicorp/consul/proto/private/pbsubscribe"
 )
 
 func TestConfigEntryEventsFromChanges(t *testing.T) {
@@ -20,7 +23,7 @@ func TestConfigEntryEventsFromChanges(t *testing.T) {
 	}{
 		"upsert mesh config": {
 			mutate: func(tx *txn) error {
-				return ensureConfigEntryTxn(tx, 0, &structs.MeshConfigEntry{
+				return ensureConfigEntryTxn(tx, 0, false, &structs.MeshConfigEntry{
 					Meta: map[string]string{"foo": "bar"},
 				})
 			},
@@ -39,7 +42,7 @@ func TestConfigEntryEventsFromChanges(t *testing.T) {
 		},
 		"delete mesh config": {
 			setup: func(tx *txn) error {
-				return ensureConfigEntryTxn(tx, 0, &structs.MeshConfigEntry{})
+				return ensureConfigEntryTxn(tx, 0, false, &structs.MeshConfigEntry{})
 			},
 			mutate: func(tx *txn) error {
 				return deleteConfigEntryTxn(tx, 0, structs.MeshConfig, structs.MeshConfigMesh, nil)
@@ -57,7 +60,7 @@ func TestConfigEntryEventsFromChanges(t *testing.T) {
 		},
 		"upsert service resolver": {
 			mutate: func(tx *txn) error {
-				return ensureConfigEntryTxn(tx, 0, &structs.ServiceResolverConfigEntry{
+				return ensureConfigEntryTxn(tx, 0, false, &structs.ServiceResolverConfigEntry{
 					Name: "web",
 				})
 			},
@@ -76,7 +79,7 @@ func TestConfigEntryEventsFromChanges(t *testing.T) {
 		},
 		"delete service resolver": {
 			setup: func(tx *txn) error {
-				return ensureConfigEntryTxn(tx, 0, &structs.ServiceResolverConfigEntry{
+				return ensureConfigEntryTxn(tx, 0, false, &structs.ServiceResolverConfigEntry{
 					Name: "web",
 				})
 			},
@@ -98,7 +101,7 @@ func TestConfigEntryEventsFromChanges(t *testing.T) {
 		},
 		"upsert ingress gateway": {
 			mutate: func(tx *txn) error {
-				return ensureConfigEntryTxn(tx, 0, &structs.IngressGatewayConfigEntry{
+				return ensureConfigEntryTxn(tx, 0, false, &structs.IngressGatewayConfigEntry{
 					Name: "gw1",
 				})
 			},
@@ -117,7 +120,7 @@ func TestConfigEntryEventsFromChanges(t *testing.T) {
 		},
 		"delete ingress gateway": {
 			setup: func(tx *txn) error {
-				return ensureConfigEntryTxn(tx, 0, &structs.IngressGatewayConfigEntry{
+				return ensureConfigEntryTxn(tx, 0, false, &structs.IngressGatewayConfigEntry{
 					Name: "gw1",
 				})
 			},
@@ -139,7 +142,7 @@ func TestConfigEntryEventsFromChanges(t *testing.T) {
 		},
 		"upsert service intentions": {
 			mutate: func(tx *txn) error {
-				return ensureConfigEntryTxn(tx, 0, &structs.ServiceIntentionsConfigEntry{
+				return ensureConfigEntryTxn(tx, 0, false, &structs.ServiceIntentionsConfigEntry{
 					Name: "web",
 				})
 			},
@@ -158,7 +161,7 @@ func TestConfigEntryEventsFromChanges(t *testing.T) {
 		},
 		"delete service intentions": {
 			setup: func(tx *txn) error {
-				return ensureConfigEntryTxn(tx, 0, &structs.ServiceIntentionsConfigEntry{
+				return ensureConfigEntryTxn(tx, 0, false, &structs.ServiceIntentionsConfigEntry{
 					Name: "web",
 				})
 			},
@@ -180,7 +183,7 @@ func TestConfigEntryEventsFromChanges(t *testing.T) {
 		},
 		"upsert service defaults": {
 			mutate: func(tx *txn) error {
-				return ensureConfigEntryTxn(tx, 0, &structs.ServiceConfigEntry{
+				return ensureConfigEntryTxn(tx, 0, false, &structs.ServiceConfigEntry{
 					Name: "web",
 				})
 			},
@@ -199,7 +202,7 @@ func TestConfigEntryEventsFromChanges(t *testing.T) {
 		},
 		"delete service defaults": {
 			setup: func(tx *txn) error {
-				return ensureConfigEntryTxn(tx, 0, &structs.ServiceConfigEntry{
+				return ensureConfigEntryTxn(tx, 0, false, &structs.ServiceConfigEntry{
 					Name: "web",
 				})
 			},

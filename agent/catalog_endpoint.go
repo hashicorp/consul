@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package agent
 
 import (
@@ -5,7 +8,7 @@ import (
 	"net/http"
 	"strings"
 
-	metrics "github.com/armon/go-metrics"
+	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
 
 	cachetype "github.com/hashicorp/consul/agent/cache-types"

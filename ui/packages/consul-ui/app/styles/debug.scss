@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 @import 'prism-coldark-dark';
 
 // temporary component debugging setup
@@ -11,9 +16,6 @@
 @import 'consul-ui/components/inline-alert/debug';
 @import 'consul-ui/components/definition-table/debug';
 
-.theme-dark {
-  @extend %theme-dark;
-}
 %debug-grid {
   display: flex;
   flex-wrap: wrap;
@@ -31,7 +33,7 @@
   width: 140px;
 }
 %debug-grid figcaption {
-  @extend %p3;
+  @extend %body-100-regular;
   text-align: center;
 }
 [id^='docfy-demo-preview-color'] ul,
@@ -43,7 +45,7 @@
 [id^='docfy-demo-preview-typography'] figure,
 [id^='docfy-demo-preview-icons'] figure {
   border: var(--decor-border-100);
-  border-color: rgb(var(--tone-gray-300));
+  border-color: var(--token-color-palette-neutral-300);
   height: 80px;
 }
 
@@ -55,47 +57,43 @@
   height: 40px;
 }
 #docfy-demo-preview-color0 {
-  @extend %theme-light;
-  background-color: rgb(var(--white));
+  background-color: var(--token-color-surface-primary);
 }
 #docfy-demo-preview-color1 {
-  background-color: rgb(var(--black));
-  @extend %theme-dark;
+  background-color: var(--token-color-hashicorp-brand);
 }
 
 [id^='docfy-demo-preview-typography'] {
-  .debug-h000 {
-    @extend %h000;
-  }
+  .debug-h000,
   .debug-h100 {
-    @extend %h100;
+    @extend %display-500-bold;
   }
   .debug-h200 {
-    @extend %h200;
+    @extend %display-400-semibold;
   }
   .debug-h300 {
-    @extend %h300;
+    @extend %display-300-semibold;
   }
   .debug-h400 {
-    @extend %h400;
+    @extend %display-100-semibold;
   }
   .debug-h500 {
-    @extend %h500;
+    @extend %display-100-medium;
   }
   .debug-h600 {
-    @extend %h600;
+    @extend %display-100-medium;
   }
   .debug-p {
-    @extend %p;
+    @extend %body-200-regular;
   }
   .debug-p1 {
-    @extend %p1;
+    @extend %body-200-regular;
   }
   .debug-p2 {
-    @extend %p2;
+    @extend %body-100-regular;
   }
   .debug-p3 {
-    @extend %p3;
+    @extend %body-100-regular;
   }
 }
 
@@ -120,7 +118,7 @@ html:not(.with-data-source) .data-source-debug {
 }
 html.with-href-to [href^='console://']::before
 {
-  @extend %p3;
+  @extend %body-100-regular;
   @extend %debug-box;
   content: attr(href);
   display: inline;
@@ -140,7 +138,7 @@ html.with-route-announcer .route-title {
 }
 .docs {
   & {
-    background-color: rgb(var(--tone-gray-000));
+    background-color: var(--token-color-surface-primary);
   }
   .tabular-collection,
   .list-collection {
@@ -192,25 +190,25 @@ html.with-route-announcer .route-title {
     }
     > h1 {
       padding-top: 20px;
-      @extend %h100;
+      @extend %display-500-bold;
     }
     > h2 {
-      @extend %h200;
+      @extend %display-400-semibold;
     }
     > h3 {
-      @extend %h300;
+      @extend %display-300-semibold;
     }
     > h4 {
-      @extend %h400;
+      @extend %display-100-semibold;
     }
     > p {
-      @extend %p1;
+      @extend %body-200-regular;
     }
     > table {
       margin-bottom: 3em;
     }
     > table td {
-      font-weight: normal !important;
+      font-weight: var(--token-typography-font-weight-regular) !important;
       cursor: default !important;
     }
     > table td code {
@@ -235,7 +233,7 @@ html.with-route-announcer .route-title {
         border-top: 1px solid;
         border-left: 1px solid;
         border-right: 1px solid;
-        border-color: rgb(var(--tone-gray-200));
+        border-color: var(--token-color-surface-interactive-active);
         padding: 1rem;
         margin-bottom: 0;
       }
@@ -248,19 +246,19 @@ html.with-route-announcer .route-title {
       }
       figcaption {
         margin-bottom: 0.5rem;
-        color: rgb(var(--tone-gray-400));
+        color: var(--token-color-foreground-disabled);
         font-style: italic;
       }
       figcaption code {
         @extend %inline-code;
       }
       figure > [type='text'] {
-        border: 1px solid rgb(var(--tone-gray-999));
+        border: 1px solid var(--token-color-hashicorp-brand);
         width: 100%;
         padding: 0.5rem;
       }
       figure > select {
-        border: 1px solid rgb(var(--tone-gray-999));
+        border: 1px solid var(--token-color-hashicorp-brand);
         padding: 0.5rem;
       }
     }

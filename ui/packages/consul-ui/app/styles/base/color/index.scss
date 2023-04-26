@@ -1,7 +1,7 @@
-/*@import './hex-variables';*/
-@import './base-variables';
-/* load in the ui theme */
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 @import './ui/index';
-/* other themes should be added at a project level */
 @import './semantic-variables';
-/*@import './theme-placeholders';*/
