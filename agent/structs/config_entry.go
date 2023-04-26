@@ -45,6 +45,7 @@ const (
 	TCPRoute           string = "tcp-route"
 	// TODO: decide if we want to highlight 'ip' keyword in the name of RateLimitIPConfig
 	RateLimitIPConfig string = "control-plane-request-limit"
+	JWTProvider       string = "jwt-provider"
 
 	ProxyConfigGlobal string = "global"
 	MeshConfigMesh    string = "mesh"
@@ -72,6 +73,7 @@ var AllConfigEntryKinds = []string{
 	TCPRoute,
 	InlineCertificate,
 	RateLimitIPConfig,
+	JWTProvider,
 }
 
 // ConfigEntry is the interface for centralized configuration stored in Raft.
@@ -730,6 +732,8 @@ func MakeConfigEntry(kind, name string) (ConfigEntry, error) {
 		return &HTTPRouteConfigEntry{Name: name}, nil
 	case TCPRoute:
 		return &TCPRouteConfigEntry{Name: name}, nil
+	case JWTProvider:
+		return &JWTProviderConfigEntry{Name: name}, nil
 	default:
 		return nil, fmt.Errorf("invalid config entry kind: %s", kind)
 	}

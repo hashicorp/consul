@@ -133,9 +133,12 @@ jobs:
     - node-tests
     - ember-build-test
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-small) }}
-    if: |
-      (always() && ! cancelled()) &&
-      !contains(needs.*.result, 'failure') &&
-      !contains(needs.*.result, 'cancelled')
+    if: ${{ always() }}
     steps:
-      - run: echo "frontend succeeded"
+      - name: evaluate upstream job results
+        run: |
+          # exit 1 if failure or cancelled result for any upstream job
+          if printf '${{ toJSON(needs) }}' | grep -E -i '\"result\": \"(failure|cancelled)\"'; then
+            printf "Tests failed or workflow cancelled:\n\n${{ toJSON(needs) }}"
+            exit 1
+          fi
