@@ -74,7 +74,7 @@ func (s *Server) Delete(ctx context.Context, req *pbresource.DeleteRequest) (*pb
 		}
 	}
 
-	if err := s.maybeCreateTombstone(ctx, deleteId, deleteVersion); err != nil {
+	if err := s.maybeCreateTombstone(ctx, deleteId); err != nil {
 		return nil, err
 	}
 
@@ -94,16 +94,13 @@ func (s *Server) Delete(ctx context.Context, req *pbresource.DeleteRequest) (*pb
 // we are currently unaware of the success/failure/no-op of DeleteCAS. In
 // the failure and no-op cases the tombstone is effectively a no-op and will
 // still be deleted from the system by the reaper controller.
-func (s *Server) maybeCreateTombstone(ctx context.Context, deleteId *pbresource.ID, deleteVersion string) error {
+func (s *Server) maybeCreateTombstone(ctx context.Context, deleteId *pbresource.ID) error {
 	// Don't create a tombstone when the resource being deleted is itself a tombstone.
 	if proto.Equal(resource.TypeV1Tombstone, deleteId.Type) {
 		return nil
 	}
 
-	data, err := anypb.New(&pbresource.Tombstone{
-		OwnerId:      deleteId,
-		OwnerVersion: deleteVersion,
-	})
+	data, err := anypb.New(&pbresource.Tombstone{OwnerId: deleteId})
 	if err != nil {
 		return status.Errorf(codes.Internal, "failed creating tombstone: %v", err)
 	}
@@ -112,9 +109,7 @@ func (s *Server) maybeCreateTombstone(ctx context.Context, deleteId *pbresource.
 		Id: &pbresource.ID{
 			Type:    resource.TypeV1Tombstone,
 			Tenancy: deleteId.Tenancy,
-			// Maintain a strict 1:1 mapping between a resource and it's associated tombstone
-			// by embedding the resources's Uid in the tombstone's name.
-			Name: fmt.Sprintf("tombstone-%v-%v", deleteId.Name, deleteId.Uid),
+			Name:    tombstoneName(deleteId),
 		},
 		Data: data,
 		Metadata: map[string]string{
@@ -122,7 +117,8 @@ func (s *Server) maybeCreateTombstone(ctx context.Context, deleteId *pbresource.
 		},
 	}
 
-	if _, err := s.Write(ctx, &pbresource.WriteRequest{Resource: tombstone}); err != nil {
+	_, err = s.Write(ctx, &pbresource.WriteRequest{Resource: tombstone})
+	if err != nil {
 		return fmt.Errorf("failed writing tombstone: %w", err)
 	}
 	return nil
@@ -137,4 +133,11 @@ func validateDeleteRequest(req *pbresource.DeleteRequest) error {
 		return err
 	}
 	return nil
+}
+
+// Maintains a deterministic mapping between a resource and it's tombstone's
+// name by embedding the resources's Uid in the name.
+func tombstoneName(deleteId *pbresource.ID) string {
+	// deleteId.Name is just included for easier identification
+	return fmt.Sprintf("tombstone-%v-%v", deleteId.Name, deleteId.Uid)
 }
