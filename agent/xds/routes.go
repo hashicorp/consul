@@ -6,9 +6,9 @@ package xds
 import (
 	"errors"
 	"fmt"
+	"github.com/hashicorp/consul/agent/consul/discoverychain"
 	"net"
 	"sort"
-	"strconv"
 	"strings"
 	"time"
 
@@ -474,14 +474,8 @@ func (s *ResourceGenerator) routesForAPIGateway(cfgSnap *proxycfg.ConfigSnapshot
 			if !ok {
 				//TODO handle
 			}
-
-			//TODO don't think this is right location for this, but the test fails without this line
-			hostname := listenerCfg.GetHostname()
-			u.IngressHosts = append(u.IngressHosts, hostname)
-
-			fmt.Println(hostname)
-			fmt.Println(route.Hostnames)
-			fmt.Println(u.IngressHosts)
+			//flatten httproute
+			flattenedRoutes := discoverychain.FlattenHTTPRoute(route, &listenerCfg, cfgSnap.APIGateway.GatewayConfig)
 
 			domains := generateUpstreamAPIsDomains(listenerKey, u)
 
@@ -490,38 +484,39 @@ func (s *ResourceGenerator) routesForAPIGateway(cfgSnap *proxycfg.ConfigSnapshot
 				return nil, err
 			}
 
-			//find matching service
-			httpService := findHTTPServiceMatchingUpstream(route, u)
-			fmt.Println(listenerCfg.Name)
-			fmt.Println(route.Name)
-			fmt.Println(httpService.Name)
-			fmt.Println(httpService.ServiceName())
-			fmt.Println("hello")
-			panic("hi")
-			if httpService == nil {
-				return nil, fmt.Errorf("missing service in listener config (service %q listener on proto/port %s/%d)",
-					u.DestinationID(), listenerKey.Protocol, listenerKey.Port)
-			}
-
-			if err := injectHeaderManipToVirtualHostAPIGateway(httpService, virtualHost); err != nil {
-				return nil, err
-			}
-
-			//TODO test fails unless this is the port, but should this instead be httpService.GetName()?
-			svcRouteName := strconv.Itoa(listenerCfg.Port)
-
-			// If the routeName is the same as the default one, merge the virtual host
-			// to the default route
-			if svcRouteName == defaultRoute.Name {
-				defaultRoute.VirtualHosts = append(defaultRoute.VirtualHosts, virtualHost)
-			} else {
-				svcRoute := &envoy_route_v3.RouteConfiguration{
-					Name:             svcRouteName,
-					ValidateClusters: makeBoolValue(true),
-					VirtualHosts:     []*envoy_route_v3.VirtualHost{virtualHost},
+			for _, flattenedRoute := range flattenedRoutes {
+				//dereference the loop pointer for luck
+				flattenedRoute := flattenedRoute
+				//find matching service
+				httpService := findHTTPServiceMatchingUpstream(&flattenedRoute, u)
+				if httpService == nil {
+					panic("you dumb idiot")
+					return nil, fmt.Errorf("missing service in listener config (service %q listener on proto/port %s/%d)",
+						u.DestinationID(), listenerKey.Protocol, listenerKey.Port)
 				}
-				result = append(result, svcRoute)
+
+				if err := injectHeaderManipToVirtualHostAPIGateway(httpService, virtualHost); err != nil {
+					return nil, err
+				}
+
+				////TODO test fails unless this is the port, but should this instead be httpService.GetName()?
+				//svcRouteName := strconv.Itoa(listenerCfg.Port)
+				svcRouteName := httpService.Name
+
+				// If the routeName is the same as the default one, merge the virtual host
+				// to the default route
+				if svcRouteName == defaultRoute.Name {
+					defaultRoute.VirtualHosts = append(defaultRoute.VirtualHosts, virtualHost)
+				} else {
+					svcRoute := &envoy_route_v3.RouteConfiguration{
+						Name:             svcRouteName,
+						ValidateClusters: makeBoolValue(true),
+						VirtualHosts:     []*envoy_route_v3.VirtualHost{virtualHost},
+					}
+					result = append(result, svcRoute)
+				}
 			}
+
 		}
 
 		if len(defaultRoute.VirtualHosts) > 0 {
@@ -531,6 +526,12 @@ func (s *ResourceGenerator) routesForAPIGateway(cfgSnap *proxycfg.ConfigSnapshot
 	}
 
 	return result, nil
+}
+
+type hostnameMatch struct {
+	match    structs.HTTPMatch
+	filters  structs.HTTPFilters
+	services []structs.HTTPService
 }
 
 func findHTTPServiceMatchingUpstream(route *structs.HTTPRouteConfigEntry, upstream structs.Upstream) *structs.HTTPService {
