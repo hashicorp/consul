@@ -104,7 +104,12 @@ func (c *controllerRunner) runMapper(
 			return nil
 		}
 
-		reqs, err := w.mapper(ctx, c.runtime(), res)
+		var reqs []Request
+		err := c.handlePanic(func() error {
+			var err error
+			reqs, err = w.mapper(ctx, c.runtime(), res)
+			return err
+		})
 		if err != nil {
 			from.AddRateLimited(res)
 			from.Done(res)
@@ -135,7 +140,10 @@ func (c *controllerRunner) runReconciler(ctx context.Context, queue queue.WorkQu
 		}
 
 		c.logger.Trace("handling request", "request", req)
-		if err := c.reconcile(ctx, req); err == nil {
+		err := c.handlePanic(func() error {
+			return c.ctrl.reconciler.Reconcile(ctx, c.runtime(), req)
+		})
+		if err == nil {
 			queue.Forget(req)
 		} else {
 			var requeueAfter RequeueAfterError
@@ -150,11 +158,11 @@ func (c *controllerRunner) runReconciler(ctx context.Context, queue queue.WorkQu
 	}
 }
 
-func (c *controllerRunner) reconcile(ctx context.Context, req Request) (err error) {
+func (c *controllerRunner) handlePanic(fn func() error) (err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			stack := hclog.Stacktrace()
-			c.logger.Error("panic from controller reconciler",
+			c.logger.Error("controller panic",
 				"panic", r,
 				"stack", stack,
 			)
@@ -163,7 +171,7 @@ func (c *controllerRunner) reconcile(ctx context.Context, req Request) (err erro
 		}
 	}()
 
-	return c.ctrl.reconciler.Reconcile(ctx, c.runtime(), req)
+	return fn()
 }
 
 func (c *controllerRunner) runtime() Runtime {
