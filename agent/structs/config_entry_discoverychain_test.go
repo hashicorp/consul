@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package structs
 
 import (
@@ -410,8 +413,17 @@ func TestConfigEntries_ListRelatedServices_AndACLs(t *testing.T) {
 			},
 		},
 		{
-			name:  "api-gateway",
-			entry: &APIGatewayConfigEntry{Name: "test"},
+			name: "api-gateway",
+			entry: &APIGatewayConfigEntry{
+				Name: "test",
+				Listeners: []APIGatewayListener{
+					{
+						Name:     "test",
+						Port:     100,
+						Protocol: "http",
+					},
+				},
+			},
 			expectACLs: []testACL{
 				{
 					name:       "no-authz",
@@ -1397,7 +1409,7 @@ func TestServiceResolverConfigEntry(t *testing.T) {
 					"v1": {},
 				},
 			},
-			validateErr: `Bad Failover["v1"]: one of Service, ServiceSubset, Namespace, Targets, or Datacenters is required`,
+			validateErr: `Bad Failover["v1"]: one of Service, ServiceSubset, Namespace, Targets, SamenessGroup, or Datacenters is required`,
 		},
 		{
 			name: "failover to self using invalid subset",

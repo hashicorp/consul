@@ -1,0 +1,3 @@
+```release-note:feature
+connect: **(Consul Enterprise only)** Implement order-by-locality failover.
+```

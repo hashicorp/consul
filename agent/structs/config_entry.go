@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package structs
 
 import (
@@ -40,6 +43,9 @@ const (
 	InlineCertificate  string = "inline-certificate"
 	HTTPRoute          string = "http-route"
 	TCPRoute           string = "tcp-route"
+	// TODO: decide if we want to highlight 'ip' keyword in the name of RateLimitIPConfig
+	RateLimitIPConfig string = "control-plane-request-limit"
+	JWTProvider       string = "jwt-provider"
 
 	ProxyConfigGlobal string = "global"
 	MeshConfigMesh    string = "mesh"
@@ -66,6 +72,8 @@ var AllConfigEntryKinds = []string{
 	HTTPRoute,
 	TCPRoute,
 	InlineCertificate,
+	RateLimitIPConfig,
+	JWTProvider,
 }
 
 // ConfigEntry is the interface for centralized configuration stored in Raft.
@@ -119,6 +127,26 @@ type WarningConfigEntry interface {
 	ConfigEntry
 }
 
+type MutualTLSMode string
+
+const (
+	MutualTLSModeDefault    MutualTLSMode = ""
+	MutualTLSModeStrict     MutualTLSMode = "strict"
+	MutualTLSModePermissive MutualTLSMode = "permissive"
+)
+
+func (m MutualTLSMode) validate() error {
+	switch m {
+	case MutualTLSModeDefault, MutualTLSModeStrict, MutualTLSModePermissive:
+		return nil
+	}
+	return fmt.Errorf("Invalid MutualTLSMode %q. Must be one of %q, %q, or %q.", m,
+		MutualTLSModeDefault,
+		MutualTLSModeStrict,
+		MutualTLSModePermissive,
+	)
+}
+
 // ServiceConfiguration is the top-level struct for the configuration of a service
 // across the entire cluster.
 type ServiceConfigEntry struct {
@@ -127,6 +155,7 @@ type ServiceConfigEntry struct {
 	Protocol                  string
 	Mode                      ProxyMode              `json:",omitempty"`
 	TransparentProxy          TransparentProxyConfig `json:",omitempty" alias:"transparent_proxy"`
+	MutualTLSMode             MutualTLSMode          `json:",omitempty" alias:"mutual_tls_mode"`
 	MeshGateway               MeshGatewayConfig      `json:",omitempty" alias:"mesh_gateway"`
 	Expose                    ExposeConfig           `json:",omitempty"`
 	ExternalSNI               string                 `json:",omitempty" alias:"external_sni"`
@@ -261,6 +290,10 @@ func (e *ServiceConfigEntry) Validate() error {
 		validationErr = multierror.Append(validationErr, err)
 	}
 
+	if err := e.MutualTLSMode.validate(); err != nil {
+		return err
+	}
+
 	return validationErr
 }
 
@@ -361,16 +394,18 @@ func IsIP(address string) bool {
 
 // ProxyConfigEntry is the top-level struct for global proxy configuration defaults.
 type ProxyConfigEntry struct {
-	Kind             string
-	Name             string
-	Config           map[string]interface{}
-	Mode             ProxyMode                      `json:",omitempty"`
-	TransparentProxy TransparentProxyConfig         `json:",omitempty" alias:"transparent_proxy"`
-	MeshGateway      MeshGatewayConfig              `json:",omitempty" alias:"mesh_gateway"`
-	Expose           ExposeConfig                   `json:",omitempty"`
-	AccessLogs       AccessLogsConfig               `json:",omitempty" alias:"access_logs"`
-	EnvoyExtensions  EnvoyExtensions                `json:",omitempty" alias:"envoy_extensions"`
-	FailoverPolicy   *ServiceResolverFailoverPolicy `json:",omitempty" alias:"failover_policy"`
+	Kind                 string
+	Name                 string
+	Config               map[string]interface{}
+	Mode                 ProxyMode                            `json:",omitempty"`
+	TransparentProxy     TransparentProxyConfig               `json:",omitempty" alias:"transparent_proxy"`
+	MutualTLSMode        MutualTLSMode                        `json:",omitempty" alias:"mutual_tls_mode"`
+	MeshGateway          MeshGatewayConfig                    `json:",omitempty" alias:"mesh_gateway"`
+	Expose               ExposeConfig                         `json:",omitempty"`
+	AccessLogs           AccessLogsConfig                     `json:",omitempty" alias:"access_logs"`
+	EnvoyExtensions      EnvoyExtensions                      `json:",omitempty" alias:"envoy_extensions"`
+	FailoverPolicy       *ServiceResolverFailoverPolicy       `json:",omitempty" alias:"failover_policy"`
+	PrioritizeByLocality *ServiceResolverPrioritizeByLocality `json:",omitempty" alias:"prioritize_by_locality"`
 
 	Meta               map[string]string `json:",omitempty"`
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
@@ -437,8 +472,16 @@ func (e *ProxyConfigEntry) Validate() error {
 		return err
 	}
 
-	if !e.FailoverPolicy.isValid() {
-		return fmt.Errorf("Failover policy must be one of '', 'default', or 'order-by-locality'")
+	if err := e.FailoverPolicy.validate(); err != nil {
+		return err
+	}
+
+	if err := e.PrioritizeByLocality.validate(); err != nil {
+		return err
+	}
+
+	if err := e.MutualTLSMode.validate(); err != nil {
+		return err
 	}
 
 	return e.validateEnterpriseMeta()
@@ -653,6 +696,9 @@ func (c *ConfigEntryRequest) UnmarshalBinary(data []byte) error {
 }
 
 func MakeConfigEntry(kind, name string) (ConfigEntry, error) {
+	if configEntry := makeEnterpriseConfigEntry(kind, name); configEntry != nil {
+		return configEntry, nil
+	}
 	switch kind {
 	case ServiceDefaults:
 		return &ServiceConfigEntry{Name: name}, nil
@@ -686,6 +732,8 @@ func MakeConfigEntry(kind, name string) (ConfigEntry, error) {
 		return &HTTPRouteConfigEntry{Name: name}, nil
 	case TCPRoute:
 		return &TCPRouteConfigEntry{Name: name}, nil
+	case JWTProvider:
+		return &JWTProviderConfigEntry{Name: name}, nil
 	default:
 		return nil, fmt.Errorf("invalid config entry kind: %s", kind)
 	}
@@ -766,11 +814,6 @@ type ServiceConfigRequest struct {
 	// UpstreamServiceNames is a list of upstream service names to use for resolving the service config.
 	UpstreamServiceNames []PeeredServiceName
 
-	// DEPRECATED
-	// UpstreamIDs is a list of upstream service names to use for resolving the service config.
-	// This field does not take the peer name into consideration, so it is deprecated.
-	UpstreamIDs []ServiceID
-
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	QueryOptions
 }
@@ -783,12 +826,6 @@ func (s *ServiceConfigRequest) RequestDatacenter() string {
 // This is often used for fetching service-defaults config entries.
 func (s *ServiceConfigRequest) GetLocalUpstreamIDs() []ServiceID {
 	var upstreams []ServiceID
-	if len(s.UpstreamIDs) > 0 {
-		// The legacy mode is mutually exclusive with the new mode, so we don't need
-		// to join the two lists together.
-		upstreams = append(upstreams, s.UpstreamIDs...)
-		return upstreams
-	}
 	for i := range s.UpstreamServiceNames {
 		u := &s.UpstreamServiceNames[i]
 		if u.Peer == "" {
@@ -817,7 +854,6 @@ func (r *ServiceConfigRequest) CacheInfo() cache.RequestInfo {
 		Name                 string
 		EnterpriseMeta       acl.EnterpriseMeta
 		UpstreamServiceNames []PeeredServiceName `hash:"set"`
-		UpstreamIDs          []ServiceID         `hash:"set"`
 		MeshGatewayConfig    MeshGatewayConfig
 		ProxyMode            ProxyMode
 		Filter               string
@@ -825,7 +861,6 @@ func (r *ServiceConfigRequest) CacheInfo() cache.RequestInfo {
 		Name:                 r.Name,
 		EnterpriseMeta:       r.EnterpriseMeta,
 		UpstreamServiceNames: r.UpstreamServiceNames,
-		UpstreamIDs:          r.UpstreamIDs,
 		ProxyMode:            r.Mode,
 		MeshGatewayConfig:    r.MeshGateway,
 		Filter:               r.QueryOptions.Filter,
@@ -1144,12 +1179,6 @@ func (ul UpstreamLimits) Validate() error {
 	return nil
 }
 
-type OpaqueUpstreamConfigDeprecated struct {
-	Upstream ServiceID
-	Config   map[string]interface{}
-}
-type OpaqueUpstreamConfigsDeprecated []OpaqueUpstreamConfigDeprecated
-
 type OpaqueUpstreamConfig struct {
 	Upstream PeeredServiceName
 	Config   map[string]interface{}
@@ -1157,19 +1186,17 @@ type OpaqueUpstreamConfig struct {
 type OpaqueUpstreamConfigs []OpaqueUpstreamConfig
 
 type ServiceConfigResponse struct {
-	ProxyConfig map[string]interface{}
-	// DEPRECATED: UpstreamIDConfigs field exists only for backwards-compatibility
-	// during upgrades and should be removed in Consul 1.16.
-	UpstreamIDConfigs OpaqueUpstreamConfigsDeprecated
-	UpstreamConfigs   OpaqueUpstreamConfigs
-	MeshGateway       MeshGatewayConfig      `json:",omitempty"`
-	Expose            ExposeConfig           `json:",omitempty"`
-	TransparentProxy  TransparentProxyConfig `json:",omitempty"`
-	Mode              ProxyMode              `json:",omitempty"`
-	Destination       DestinationConfig      `json:",omitempty"`
-	AccessLogs        AccessLogsConfig       `json:",omitempty"`
-	Meta              map[string]string      `json:",omitempty"`
-	EnvoyExtensions   []EnvoyExtension       `json:",omitempty"`
+	ProxyConfig      map[string]interface{}
+	UpstreamConfigs  OpaqueUpstreamConfigs
+	MeshGateway      MeshGatewayConfig      `json:",omitempty"`
+	Expose           ExposeConfig           `json:",omitempty"`
+	TransparentProxy TransparentProxyConfig `json:",omitempty"`
+	MutualTLSMode    MutualTLSMode          `json:",omitempty"`
+	Mode             ProxyMode              `json:",omitempty"`
+	Destination      DestinationConfig      `json:",omitempty"`
+	AccessLogs       AccessLogsConfig       `json:",omitempty"`
+	Meta             map[string]string      `json:",omitempty"`
+	EnvoyExtensions  []EnvoyExtension       `json:",omitempty"`
 	QueryMeta
 }
 
@@ -1211,13 +1238,6 @@ func (r *ServiceConfigResponse) UnmarshalBinary(data []byte) error {
 	r.ProxyConfig, err = lib.MapWalk(r.ProxyConfig)
 	if err != nil {
 		return err
-	}
-
-	for k := range r.UpstreamIDConfigs {
-		r.UpstreamIDConfigs[k].Config, err = lib.MapWalk(r.UpstreamIDConfigs[k].Config)
-		if err != nil {
-			return err
-		}
 	}
 
 	for k := range r.UpstreamConfigs {

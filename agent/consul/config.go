@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package consul
 
 import (
@@ -438,6 +441,8 @@ type Config struct {
 
 	Locality *structs.Locality
 
+	Reporting Reporting
+
 	// Embedded Consul Enterprise specific configuration
 	*EnterpriseConfig
 }
@@ -673,6 +678,7 @@ type ReloadableConfig struct {
 	RaftTrailingLogs      int
 	HeartbeatTimeout      time.Duration
 	ElectionTimeout       time.Duration
+	Reporting             Reporting
 }
 
 type RaftLogStoreConfig struct {
@@ -694,4 +700,12 @@ type RaftBoltDBConfig struct {
 
 type WALConfig struct {
 	SegmentSize int
+}
+
+type License struct {
+	Enabled bool
+}
+
+type Reporting struct {
+	License License
 }

@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package config
 
 import (
@@ -1481,7 +1484,17 @@ type RuntimeConfig struct {
 	// here so that tests can use a smaller value.
 	LocalProxyConfigResyncInterval time.Duration
 
+	Reporting ReportingConfig
+
 	EnterpriseRuntimeConfig
+}
+
+type LicenseConfig struct {
+	Enabled bool
+}
+
+type ReportingConfig struct {
+	License LicenseConfig
 }
 
 type AutoConfig struct {

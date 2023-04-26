@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package structs
 
 import (
@@ -84,6 +87,8 @@ const (
 	PeeringTrustBundleDeleteType                = 39
 	PeeringSecretsWriteType                     = 40
 	RaftLogVerifierCheckpoint                   = 41 // Only used for log verifier, no-op on FSM.
+	ResourceOperationType                       = 42
+	UpdateVirtualIPRequestType                  = 43
 )
 
 const (
@@ -151,6 +156,8 @@ var requestTypeStrings = map[MessageType]string{
 	PeeringTrustBundleDeleteType:    "PeeringTrustBundleDelete",
 	PeeringSecretsWriteType:         "PeeringSecret",
 	RaftLogVerifierCheckpoint:       "RaftLogVerifierCheckpoint",
+	ResourceOperationType:           "Resource",
+	UpdateVirtualIPRequestType:      "UpdateManualVirtualIPRequestType",
 }
 
 const (
@@ -3054,4 +3061,11 @@ func (l *Locality) ToAPI() *api.Locality {
 		Region: l.Region,
 		Zone:   l.Zone,
 	}
+}
+
+func (l *Locality) GetRegion() string {
+	if l == nil {
+		return ""
+	}
+	return l.Region
 }

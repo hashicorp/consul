@@ -22,12 +22,74 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type ResourceServiceClient interface {
+	// Read a resource by ID.
+	//
+	// By default, reads are eventually consistent, but you can opt-in to strong
+	// consistency via the x-consul-consistency-mode metadata (see ResourceService
+	// docs for more info).
 	Read(ctx context.Context, in *ReadRequest, opts ...grpc.CallOption) (*ReadResponse, error)
+	// Write a resource.
+	//
+	// To perform a CAS (Compare-And-Swap) write, provide the current resource
+	// version in the Resource.Version field. If the given version doesn't match
+	// what is currently stored, an Aborted error code will be returned.
+	//
+	// Resource.Id.Uid can (and by controllers, should) be provided to avoid
+	// accidentally modifying a resource if it has been deleted and recreated.
+	// If the given Uid doesn't match what is stored, a FailedPrecondition error
+	// code will be returned.
+	//
+	// It is not possible to modify the resource's status using Write. You must
+	// use WriteStatus instead.
 	Write(ctx context.Context, in *WriteRequest, opts ...grpc.CallOption) (*WriteResponse, error)
+	// WriteStatus updates one of the resource's statuses. It should only be used
+	// by controllers.
+	//
+	// To perform a CAS (Compare-And-Swap) write, provide the current resource
+	// version in the Version field. If the given version doesn't match what is
+	// currently stored, an Aborted error code will be returned.
+	//
+	// Note: in most cases, CAS status updates are not necessary because updates
+	// are scoped to a specific status key and controllers are leader-elected so
+	// there is no chance of a conflict.
+	//
+	// Id.Uid must be provided to avoid accidentally modifying a resource if it has
+	// been deleted and recreated. If the given Uid doesn't match what is stored,
+	// a FailedPrecondition error code will be returned.
 	WriteStatus(ctx context.Context, in *WriteStatusRequest, opts ...grpc.CallOption) (*WriteStatusResponse, error)
+	// List resources of a given type, tenancy, and optionally name prefix.
+	//
+	// To list resources across all tenancy units, provide the wildcard "*" value.
+	//
+	// Results are eventually consistent (see ResourceService docs for more info).
 	List(ctx context.Context, in *ListRequest, opts ...grpc.CallOption) (*ListResponse, error)
+	// Delete a resource by ID.
+	//
+	// Deleting a non-existent resource will return a successful response for
+	// idempotency.
+	//
+	// To perform a CAS (Compare-And-Swap) deletion, provide the current resource
+	// version in the Version field. If the given version doesn't match what is
+	// currently stored, an Aborted error code will be returned.
+	//
+	// Resource.Id.Uid can (and by controllers, should) be provided to avoid
+	// accidentally modifying a resource if it has been deleted and recreated.
+	// If the given Uid doesn't match what is stored, a FailedPrecondition error
+	// code will be returned.
 	Delete(ctx context.Context, in *DeleteRequest, opts ...grpc.CallOption) (*DeleteResponse, error)
-	Watch(ctx context.Context, in *WatchRequest, opts ...grpc.CallOption) (ResourceService_WatchClient, error)
+	// WatchList watches resources of the given type, tenancy, and optionally name
+	// prefix. It returns results for the current state-of-the-world at the start
+	// of the stream, and delta events whenever resources are written or deleted.
+	//
+	// To watch resources across all tenancy units, provide the wildcard "*" value.
+	//
+	// WatchList makes no guarantees about event timeliness (e.g. an event for a
+	// write may not be received immediately), but it does guarantee that events
+	// will be emitted in the correct order. See ResourceService docs for more
+	// info about consistency guarentees.
+	//
+	// buf:lint:ignore RPC_RESPONSE_STANDARD_NAME
+	WatchList(ctx context.Context, in *WatchListRequest, opts ...grpc.CallOption) (ResourceService_WatchListClient, error)
 }
 
 type resourceServiceClient struct {
@@ -83,12 +145,12 @@ func (c *resourceServiceClient) Delete(ctx context.Context, in *DeleteRequest, o
 	return out, nil
 }
 
-func (c *resourceServiceClient) Watch(ctx context.Context, in *WatchRequest, opts ...grpc.CallOption) (ResourceService_WatchClient, error) {
-	stream, err := c.cc.NewStream(ctx, &ResourceService_ServiceDesc.Streams[0], "/hashicorp.consul.resource.ResourceService/Watch", opts...)
+func (c *resourceServiceClient) WatchList(ctx context.Context, in *WatchListRequest, opts ...grpc.CallOption) (ResourceService_WatchListClient, error) {
+	stream, err := c.cc.NewStream(ctx, &ResourceService_ServiceDesc.Streams[0], "/hashicorp.consul.resource.ResourceService/WatchList", opts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &resourceServiceWatchClient{stream}
+	x := &resourceServiceWatchListClient{stream}
 	if err := x.ClientStream.SendMsg(in); err != nil {
 		return nil, err
 	}
@@ -98,17 +160,17 @@ func (c *resourceServiceClient) Watch(ctx context.Context, in *WatchRequest, opt
 	return x, nil
 }
 
-type ResourceService_WatchClient interface {
-	Recv() (*WatchResponse, error)
+type ResourceService_WatchListClient interface {
+	Recv() (*WatchEvent, error)
 	grpc.ClientStream
 }
 
-type resourceServiceWatchClient struct {
+type resourceServiceWatchListClient struct {
 	grpc.ClientStream
 }
 
-func (x *resourceServiceWatchClient) Recv() (*WatchResponse, error) {
-	m := new(WatchResponse)
+func (x *resourceServiceWatchListClient) Recv() (*WatchEvent, error) {
+	m := new(WatchEvent)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
@@ -119,12 +181,74 @@ func (x *resourceServiceWatchClient) Recv() (*WatchResponse, error) {
 // All implementations should embed UnimplementedResourceServiceServer
 // for forward compatibility
 type ResourceServiceServer interface {
+	// Read a resource by ID.
+	//
+	// By default, reads are eventually consistent, but you can opt-in to strong
+	// consistency via the x-consul-consistency-mode metadata (see ResourceService
+	// docs for more info).
 	Read(context.Context, *ReadRequest) (*ReadResponse, error)
+	// Write a resource.
+	//
+	// To perform a CAS (Compare-And-Swap) write, provide the current resource
+	// version in the Resource.Version field. If the given version doesn't match
+	// what is currently stored, an Aborted error code will be returned.
+	//
+	// Resource.Id.Uid can (and by controllers, should) be provided to avoid
+	// accidentally modifying a resource if it has been deleted and recreated.
+	// If the given Uid doesn't match what is stored, a FailedPrecondition error
+	// code will be returned.
+	//
+	// It is not possible to modify the resource's status using Write. You must
+	// use WriteStatus instead.
 	Write(context.Context, *WriteRequest) (*WriteResponse, error)
+	// WriteStatus updates one of the resource's statuses. It should only be used
+	// by controllers.
+	//
+	// To perform a CAS (Compare-And-Swap) write, provide the current resource
+	// version in the Version field. If the given version doesn't match what is
+	// currently stored, an Aborted error code will be returned.
+	//
+	// Note: in most cases, CAS status updates are not necessary because updates
+	// are scoped to a specific status key and controllers are leader-elected so
+	// there is no chance of a conflict.
+	//
+	// Id.Uid must be provided to avoid accidentally modifying a resource if it has
+	// been deleted and recreated. If the given Uid doesn't match what is stored,
+	// a FailedPrecondition error code will be returned.
 	WriteStatus(context.Context, *WriteStatusRequest) (*WriteStatusResponse, error)
+	// List resources of a given type, tenancy, and optionally name prefix.
+	//
+	// To list resources across all tenancy units, provide the wildcard "*" value.
+	//
+	// Results are eventually consistent (see ResourceService docs for more info).
 	List(context.Context, *ListRequest) (*ListResponse, error)
+	// Delete a resource by ID.
+	//
+	// Deleting a non-existent resource will return a successful response for
+	// idempotency.
+	//
+	// To perform a CAS (Compare-And-Swap) deletion, provide the current resource
+	// version in the Version field. If the given version doesn't match what is
+	// currently stored, an Aborted error code will be returned.
+	//
+	// Resource.Id.Uid can (and by controllers, should) be provided to avoid
+	// accidentally modifying a resource if it has been deleted and recreated.
+	// If the given Uid doesn't match what is stored, a FailedPrecondition error
+	// code will be returned.
 	Delete(context.Context, *DeleteRequest) (*DeleteResponse, error)
-	Watch(*WatchRequest, ResourceService_WatchServer) error
+	// WatchList watches resources of the given type, tenancy, and optionally name
+	// prefix. It returns results for the current state-of-the-world at the start
+	// of the stream, and delta events whenever resources are written or deleted.
+	//
+	// To watch resources across all tenancy units, provide the wildcard "*" value.
+	//
+	// WatchList makes no guarantees about event timeliness (e.g. an event for a
+	// write may not be received immediately), but it does guarantee that events
+	// will be emitted in the correct order. See ResourceService docs for more
+	// info about consistency guarentees.
+	//
+	// buf:lint:ignore RPC_RESPONSE_STANDARD_NAME
+	WatchList(*WatchListRequest, ResourceService_WatchListServer) error
 }
 
 // UnimplementedResourceServiceServer should be embedded to have forward compatible implementations.
@@ -146,8 +270,8 @@ func (UnimplementedResourceServiceServer) List(context.Context, *ListRequest) (*
 func (UnimplementedResourceServiceServer) Delete(context.Context, *DeleteRequest) (*DeleteResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Delete not implemented")
 }
-func (UnimplementedResourceServiceServer) Watch(*WatchRequest, ResourceService_WatchServer) error {
-	return status.Errorf(codes.Unimplemented, "method Watch not implemented")
+func (UnimplementedResourceServiceServer) WatchList(*WatchListRequest, ResourceService_WatchListServer) error {
+	return status.Errorf(codes.Unimplemented, "method WatchList not implemented")
 }
 
 // UnsafeResourceServiceServer may be embedded to opt out of forward compatibility for this service.
@@ -251,24 +375,24 @@ func _ResourceService_Delete_Handler(srv interface{}, ctx context.Context, dec f
 	return interceptor(ctx, in, info, handler)
 }
 
-func _ResourceService_Watch_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(WatchRequest)
+func _ResourceService_WatchList_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(WatchListRequest)
 	if err := stream.RecvMsg(m); err != nil {
 		return err
 	}
-	return srv.(ResourceServiceServer).Watch(m, &resourceServiceWatchServer{stream})
+	return srv.(ResourceServiceServer).WatchList(m, &resourceServiceWatchListServer{stream})
 }
 
-type ResourceService_WatchServer interface {
-	Send(*WatchResponse) error
+type ResourceService_WatchListServer interface {
+	Send(*WatchEvent) error
 	grpc.ServerStream
 }
 
-type resourceServiceWatchServer struct {
+type resourceServiceWatchListServer struct {
 	grpc.ServerStream
 }
 
-func (x *resourceServiceWatchServer) Send(m *WatchResponse) error {
+func (x *resourceServiceWatchListServer) Send(m *WatchEvent) error {
 	return x.ServerStream.SendMsg(m)
 }
 
@@ -302,8 +426,8 @@ var ResourceService_ServiceDesc = grpc.ServiceDesc{
 	},
 	Streams: []grpc.StreamDesc{
 		{
-			StreamName:    "Watch",
-			Handler:       _ResourceService_Watch_Handler,
+			StreamName:    "WatchList",
+			Handler:       _ResourceService_WatchList_Handler,
 			ServerStreams: true,
 		},
 	},

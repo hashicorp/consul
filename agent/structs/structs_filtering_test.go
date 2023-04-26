@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package structs
 
 import (
@@ -738,6 +741,11 @@ var expectedFieldConfigIntention bexpr.FieldConfigurations = bexpr.FieldConfigur
 	},
 	"SourcePeer": &bexpr.FieldConfiguration{
 		StructFieldName:     "SourcePeer",
+		CoerceFn:            bexpr.CoerceString,
+		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual, bexpr.MatchIn, bexpr.MatchNotIn, bexpr.MatchMatches, bexpr.MatchNotMatches},
+	},
+	"SourceSamenessGroup": &bexpr.FieldConfiguration{
+		StructFieldName:     "SourceSamenessGroup",
 		CoerceFn:            bexpr.CoerceString,
 		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual, bexpr.MatchIn, bexpr.MatchNotIn, bexpr.MatchMatches, bexpr.MatchNotMatches},
 	},

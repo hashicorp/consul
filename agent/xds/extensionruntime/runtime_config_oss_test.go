@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 //go:build !consulent
 // +build !consulent
 
@@ -130,11 +133,11 @@ func TestGetRuntimeConfigurations_ConnectProxy(t *testing.T) {
 	}
 
 	// Setup a snapshot where the db upstream is on a connect proxy.
-	snapConnect := proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", nil, nil, serviceDefaults)
+	snapConnect := proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", false, nil, nil, serviceDefaults)
 	// Setup a snapshot where the db upstream is on a terminating gateway.
-	snapTermGw := proxycfg.TestConfigSnapshotDiscoveryChain(t, "register-to-terminating-gateway", nil, nil, serviceDefaults)
+	snapTermGw := proxycfg.TestConfigSnapshotDiscoveryChain(t, "register-to-terminating-gateway", false, nil, nil, serviceDefaults)
 	// Setup a snapshot with the local service web has extensions.
-	snapWebConnect := proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", func(ns *structs.NodeService) {
+	snapWebConnect := proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", false, func(ns *structs.NodeService) {
 		ns.Proxy.EnvoyExtensions = envoyExtensions
 	}, nil)
 
@@ -253,8 +256,17 @@ func TestGetRuntimeConfigurations_ConnectProxy(t *testing.T) {
 							},
 						},
 						ServiceName: webService,
-						Upstreams:   nil,
 						Kind:        api.ServiceKindConnectProxy,
+						Upstreams:   nil,
+						LocalUpstreams: map[api.CompoundServiceName]*extensioncommon.UpstreamData{
+							dbService: {
+								SNI: map[string]struct{}{
+									"db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul": {},
+								},
+								EnvoyID:           "db",
+								OutgoingProxyKind: "connect-proxy",
+							},
+						},
 					},
 					{
 						EnvoyExtension: api.EnvoyExtension{
@@ -265,8 +277,17 @@ func TestGetRuntimeConfigurations_ConnectProxy(t *testing.T) {
 							},
 						},
 						ServiceName: webService,
-						Upstreams:   nil,
 						Kind:        api.ServiceKindConnectProxy,
+						Upstreams:   nil,
+						LocalUpstreams: map[api.CompoundServiceName]*extensioncommon.UpstreamData{
+							dbService: {
+								SNI: map[string]struct{}{
+									"db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul": {},
+								},
+								EnvoyID:           "db",
+								OutgoingProxyKind: "connect-proxy",
+							},
+						},
 					},
 				},
 			},

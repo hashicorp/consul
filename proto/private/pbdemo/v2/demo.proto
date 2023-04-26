@@ -1,0 +1,37 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
+syntax = "proto3";
+
+// This package contains fake resource types, which are useful for working on
+// Consul's generic storage APIs.
+package hashicorp.consul.internal.demo.v2;
+
+message Artist {
+  string name = 1;
+  Genre genre = 2;
+  map<string, string> group_members = 3;
+}
+
+enum Genre {
+  GENRE_UNSPECIFIED = 0;
+  GENRE_JAZZ = 1;
+  GENRE_FOLK = 2;
+  GENRE_POP = 3;
+  GENRE_METAL = 4;
+  GENRE_PUNK = 5;
+  GENRE_BLUES = 6;
+  GENRE_R_AND_B = 7;
+  GENRE_COUNTRY = 8;
+  GENRE_DISCO = 9;
+  GENRE_SKA = 10;
+  GENRE_HIP_HOP = 11;
+  GENRE_INDIE = 12;
+}
+
+message Album {
+  string title = 1;
+  int32 year_of_release = 2;
+  bool critically_aclaimed = 3;
+  repeated string tracks = 4;
+}

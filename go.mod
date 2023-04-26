@@ -19,7 +19,7 @@ require (
 	github.com/NYTimes/gziphandler v1.0.1
 	github.com/aliyun/alibaba-cloud-sdk-go v1.62.156
 	github.com/armon/circbuf v0.0.0-20150827004946-bbbad097214e
-	github.com/armon/go-metrics v0.3.10
+	github.com/armon/go-metrics v0.4.1
 	github.com/armon/go-radix v1.0.0
 	github.com/aws/aws-sdk-go v1.42.34
 	github.com/coredns/coredns v1.6.6
@@ -48,7 +48,7 @@ require (
 	github.com/hashicorp/go-cleanhttp v0.5.2
 	github.com/hashicorp/go-connlimit v0.3.0
 	github.com/hashicorp/go-discover v0.0.0-20220714221025-1c234a67149a
-	github.com/hashicorp/go-hclog v1.4.0
+	github.com/hashicorp/go-hclog v1.5.0
 	github.com/hashicorp/go-immutable-radix v1.3.1
 	github.com/hashicorp/go-memdb v1.3.4
 	github.com/hashicorp/go-multierror v1.1.1
@@ -64,10 +64,10 @@ require (
 	github.com/hashicorp/hcp-sdk-go v0.23.1-0.20220921131124-49168300a7dc
 	github.com/hashicorp/hil v0.0.0-20200423225030-a18a1cd20038
 	github.com/hashicorp/memberlist v0.5.0
-	github.com/hashicorp/raft v1.3.11
+	github.com/hashicorp/raft v1.5.0
 	github.com/hashicorp/raft-autopilot v0.1.6
 	github.com/hashicorp/raft-boltdb/v2 v2.2.2
-	github.com/hashicorp/raft-wal v0.2.4
+	github.com/hashicorp/raft-wal v0.3.0
 	github.com/hashicorp/serf v0.10.1
 	github.com/hashicorp/vault-plugin-auth-alicloud v0.14.0
 	github.com/hashicorp/vault/api v1.8.3
@@ -85,6 +85,7 @@ require (
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/mitchellh/pointerstructure v1.2.1
 	github.com/mitchellh/reflectwalk v1.0.2
+	github.com/oklog/ulid/v2 v2.1.0
 	github.com/olekukonko/tablewriter v0.0.4
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/pkg/errors v0.9.1
@@ -92,14 +93,14 @@ require (
 	github.com/rboyer/safeio v0.2.1
 	github.com/ryanuber/columnize v2.1.2+incompatible
 	github.com/shirou/gopsutil/v3 v3.22.8
-	github.com/stretchr/testify v1.8.0
+	github.com/stretchr/testify v1.8.2
 	go.etcd.io/bbolt v1.3.6
 	go.uber.org/goleak v1.1.10
 	golang.org/x/crypto v0.0.0-20220622213112-05595931fe9d
-	golang.org/x/net v0.4.0
+	golang.org/x/net v0.7.0
 	golang.org/x/oauth2 v0.0.0-20220909003341-f21342109be1
 	golang.org/x/sync v0.0.0-20220722155255-886fb9371eb4
-	golang.org/x/sys v0.3.0
+	golang.org/x/sys v0.5.0
 	golang.org/x/time v0.3.0
 	google.golang.org/genproto v0.0.0-20220921223823-23cae91e6737
 	google.golang.org/grpc v1.49.0
@@ -215,7 +216,7 @@ require (
 	github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966 // indirect
 	github.com/softlayer/softlayer-go v0.0.0-20180806151055-260589d94c7d // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
-	github.com/stretchr/objx v0.4.0 // indirect
+	github.com/stretchr/objx v0.5.0 // indirect
 	github.com/tencentcloud/tencentcloud-sdk-go v1.0.162 // indirect
 	github.com/tklauser/go-sysconf v0.3.10 // indirect
 	github.com/tklauser/numcpus v0.4.0 // indirect
@@ -226,11 +227,11 @@ require (
 	go.opencensus.io v0.23.0 // indirect
 	go.opentelemetry.io/proto/otlp v0.7.0 // indirect
 	go.uber.org/atomic v1.9.0 // indirect
-	golang.org/x/exp v0.0.0-20220827204233-334a2380cb91 // indirect
+	golang.org/x/exp v0.0.0-20230321023759-10a507213a29 // indirect
 	golang.org/x/lint v0.0.0-20210508222113-6edffad5e616 // indirect
-	golang.org/x/term v0.3.0 // indirect
-	golang.org/x/text v0.5.0 // indirect
-	golang.org/x/tools v0.1.12 // indirect
+	golang.org/x/term v0.5.0 // indirect
+	golang.org/x/text v0.7.0 // indirect
+	golang.org/x/tools v0.2.0 // indirect
 	google.golang.org/api v0.57.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect

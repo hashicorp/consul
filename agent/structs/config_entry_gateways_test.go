@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package structs
 
 import (
@@ -1126,6 +1129,13 @@ func TestGatewayService_Addresses(t *testing.T) {
 
 func TestAPIGateway_Listeners(t *testing.T) {
 	cases := map[string]configEntryTestcase{
+		"no listeners defined": {
+			entry: &APIGatewayConfigEntry{
+				Kind: "api-gateway",
+				Name: "api-gw-one",
+			},
+			validateErr: "api gateway must have at least one listener",
+		},
 		"listener name conflict": {
 			entry: &APIGatewayConfigEntry{
 				Kind: "api-gateway",

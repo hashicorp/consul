@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package proxycfg
 
 import (
@@ -7,6 +10,7 @@ import (
 	"github.com/mitchellh/go-testing-interface"
 	"github.com/stretchr/testify/assert"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/discoverychain"
 	"github.com/hashicorp/consul/agent/structs"
@@ -19,11 +23,11 @@ func TestConfigSnapshot(t testing.T, nsFn func(ns *structs.NodeService), extraUp
 	roots, leaf := TestCerts(t)
 
 	// no entries implies we'll get a default chain
-	dbChain := discoverychain.TestCompileConfigEntries(t, "db", "default", "default", "dc1", connect.TestClusterID+".consul", nil)
+	dbChain := discoverychain.TestCompileConfigEntries(t, "db", "default", "default", "dc1", connect.TestClusterID+".consul", nil, nil)
 	assert.True(t, dbChain.Default)
 
 	var (
-		upstreams   = structs.TestUpstreams(t)
+		upstreams   = structs.TestUpstreams(t, false)
 		dbUpstream  = upstreams[0]
 		geoUpstream = upstreams[1]
 
@@ -44,7 +48,7 @@ func TestConfigSnapshot(t testing.T, nsFn func(ns *structs.NodeService), extraUp
 		},
 		{
 			CorrelationID: intentionsWatchID,
-			Result:        structs.Intentions{}, // no intentions defined
+			Result:        structs.SimplifiedIntentions{}, // no intentions defined
 		},
 		{
 			CorrelationID: svcChecksWatchIDPrefix + webSN,
@@ -93,19 +97,25 @@ func TestConfigSnapshot(t testing.T, nsFn func(ns *structs.NodeService), extraUp
 func TestConfigSnapshotDiscoveryChain(
 	t testing.T,
 	variation string,
+	enterprise bool,
 	nsFn func(ns *structs.NodeService),
 	extraUpdates []UpdateEvent,
 	additionalEntries ...structs.ConfigEntry,
 ) *ConfigSnapshot {
 	roots, leaf := TestCerts(t)
 
+	var entMeta acl.EnterpriseMeta
+	if enterprise {
+		entMeta = acl.NewEnterpriseMetaWithPartition("ap1", "ns1")
+	}
+
 	var (
-		upstreams   = structs.TestUpstreams(t)
+		upstreams   = structs.TestUpstreams(t, enterprise)
 		geoUpstream = upstreams[1]
 
 		geoUID = NewUpstreamID(&geoUpstream)
 
-		webSN = structs.ServiceIDString("web", nil)
+		webSN = structs.ServiceIDString("web", &entMeta)
 	)
 
 	baseEvents := testSpliceEvents([]UpdateEvent{
@@ -119,7 +129,7 @@ func TestConfigSnapshotDiscoveryChain(
 		},
 		{
 			CorrelationID: intentionsWatchID,
-			Result:        structs.Intentions{}, // no intentions defined
+			Result:        structs.SimplifiedIntentions{}, // no intentions defined
 		},
 		{
 			CorrelationID: meshConfigEntryID,
@@ -138,7 +148,7 @@ func TestConfigSnapshotDiscoveryChain(
 			},
 		},
 	}, setupTestVariationConfigEntriesAndSnapshot(
-		t, variation, upstreams, additionalEntries...,
+		t, variation, enterprise, upstreams, additionalEntries...,
 	))
 
 	return testConfigSnapshotFixture(t, &structs.NodeService{
@@ -157,6 +167,7 @@ func TestConfigSnapshotDiscoveryChain(
 		},
 		Meta:            nil,
 		TaggedAddresses: nil,
+		EnterpriseMeta:  entMeta,
 	}, nsFn, nil, testSpliceEvents(baseEvents, extraUpdates))
 }
 
@@ -177,7 +188,7 @@ func TestConfigSnapshotExposeConfig(t testing.T, nsFn func(ns *structs.NodeServi
 		},
 		{
 			CorrelationID: intentionsWatchID,
-			Result:        structs.Intentions{}, // no intentions defined
+			Result:        structs.SimplifiedIntentions{}, // no intentions defined
 		},
 		{
 			CorrelationID: svcChecksWatchIDPrefix + webSN,
@@ -282,7 +293,7 @@ func TestConfigSnapshotGRPCExposeHTTP1(t testing.T) *ConfigSnapshot {
 		},
 		{
 			CorrelationID: intentionsWatchID,
-			Result:        structs.Intentions{}, // no intentions defined
+			Result:        structs.SimplifiedIntentions{}, // no intentions defined
 		},
 		{
 			CorrelationID: svcChecksWatchIDPrefix + structs.ServiceIDString("grpc", nil),
@@ -298,7 +309,7 @@ func TestConfigSnapshotHCPMetrics(t testing.T) *ConfigSnapshot {
 	var (
 		collector      = structs.NewServiceName(api.HCPMetricsCollectorName, nil)
 		collectorUID   = NewUpstreamIDFromServiceName(collector)
-		collectorChain = discoverychain.TestCompileConfigEntries(t, api.HCPMetricsCollectorName, "default", "default", "dc1", connect.TestClusterID+".consul", nil)
+		collectorChain = discoverychain.TestCompileConfigEntries(t, api.HCPMetricsCollectorName, "default", "default", "dc1", connect.TestClusterID+".consul", nil, nil)
 	)
 
 	return TestConfigSnapshot(t, func(ns *structs.NodeService) {

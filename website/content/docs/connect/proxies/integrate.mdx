@@ -138,7 +138,7 @@ documentation for details about supported configuration parameters.
 
 ### Service Discovery
 
-Proxies can use Consul's [service discovery API](https://consul.io/%60/v1/health/connect/:service_id%60) to return all available, Connect-capable endpoints for a given service. This endpoint supports a `cached` query parameter, which uses [agent caching](/consul/api-docs/features/caching) to improve
+Proxies can use Consul's [service discovery API](/consul/api-docs/health#list-service-instances-for-connect-enabled-service) to return all available, Connect-capable endpoints for a given service. This endpoint supports a `cached` query parameter, which uses [agent caching](/consul/api-docs/features/caching) to improve
 performance. The API package provides a [`UseCache`] query option to leverage caching.
 In addition to performance improvements, using the cache makes the mesh more resilient to Consul server outages. This is because the mesh "fails static" with the last known set of service instances still used, rather than errors on new connections.
 

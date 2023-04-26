@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package configentry
 
 import (
@@ -489,6 +492,50 @@ func Test_ComputeResolvedServiceConfig(t *testing.T) {
 						Arguments: map[string]interface{}{"arg": "val"},
 					},
 				},
+			},
+		},
+		{
+			name: "service-defaults inherits mutual_tls_mode from proxy-defaults",
+			args: args{
+				scReq: &structs.ServiceConfigRequest{
+					Name: "sid",
+				},
+				entries: &ResolvedServiceConfigSet{
+					ProxyDefaults: map[string]*structs.ProxyConfigEntry{
+						acl.DefaultEnterpriseMeta().PartitionOrDefault(): {
+							MutualTLSMode: structs.MutualTLSModePermissive,
+						},
+					},
+					ServiceDefaults: map[structs.ServiceID]*structs.ServiceConfigEntry{
+						sid: {},
+					},
+				},
+			},
+			want: &structs.ServiceConfigResponse{
+				MutualTLSMode: structs.MutualTLSModePermissive,
+			},
+		},
+		{
+			name: "service-defaults overrides mutual_tls_mode in proxy-defaults",
+			args: args{
+				scReq: &structs.ServiceConfigRequest{
+					Name: "sid",
+				},
+				entries: &ResolvedServiceConfigSet{
+					ProxyDefaults: map[string]*structs.ProxyConfigEntry{
+						acl.DefaultEnterpriseMeta().PartitionOrDefault(): {
+							MutualTLSMode: structs.MutualTLSModeStrict,
+						},
+					},
+					ServiceDefaults: map[structs.ServiceID]*structs.ServiceConfigEntry{
+						sid: {
+							MutualTLSMode: structs.MutualTLSModePermissive,
+						},
+					},
+				},
+			},
+			want: &structs.ServiceConfigResponse{
+				MutualTLSMode: structs.MutualTLSModePermissive,
 			},
 		},
 	}

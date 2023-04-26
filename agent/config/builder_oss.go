@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 //go:build !consulent
 // +build !consulent
 
@@ -56,6 +59,10 @@ func validateEnterpriseConfigKeys(config *Config) []error {
 	if config.LicensePath != nil {
 		add("license_path")
 		config.LicensePath = nil
+	}
+	if config.Reporting.License.Enabled != nil {
+		add("reporting.license.enabled")
+		config.Reporting.License.Enabled = nil
 	}
 
 	return result

@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package structs
 
 import (
@@ -9,7 +12,8 @@ import (
 
 type SamenessGroupConfigEntry struct {
 	Name               string
-	IsDefault          bool `json:",omitempty" alias:"is_default"`
+	DefaultForFailover bool `json:",omitempty" alias:"default_for_failover"`
+	IncludeLocal       bool `json:",omitempty" alias:"include_local"`
 	Members            []SamenessGroupMember
 	Meta               map[string]string `json:",omitempty"`
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
@@ -67,6 +71,6 @@ func (s *SamenessGroupConfigEntry) MarshalJSON() ([]byte, error) {
 }
 
 type SamenessGroupMember struct {
-	Partition string
-	Peer      string
+	Partition string `json:",omitempty"`
+	Peer      string `json:",omitempty"`
 }

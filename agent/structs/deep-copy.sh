@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
 
 readonly PACKAGE_DIR="$(dirname "${BASH_SOURCE[0]}")"
 cd $PACKAGE_DIR
@@ -20,6 +23,7 @@ deep-copy \
   -type DiscoveryRoute \
   -type DiscoverySplit \
   -type ExposeConfig \
+  -type ExportedServicesConfigEntry \
   -type GatewayService \
   -type GatewayServiceTLSConfig \
   -type HTTPHeaderModifiers \

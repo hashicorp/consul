@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 /*
    Package event provides a service for subscribing to state change events.
 */
@@ -40,7 +43,10 @@ service StateChangeSubscription {
   // because the server state was restored from a snapshot.
   // buf:lint:ignore RPC_RESPONSE_STANDARD_NAME
   rpc Subscribe(SubscribeRequest) returns (stream Event) {
-    option (hashicorp.consul.internal.ratelimit.spec) = {operation_type: OPERATION_TYPE_READ};
+    option (hashicorp.consul.internal.ratelimit.spec) = {
+      operation_type: OPERATION_TYPE_READ,
+      operation_category: OPERATION_CATEGORY_SUBSCRIBE
+    };
   }
 }
 
@@ -91,6 +97,12 @@ enum Topic {
 
   // BoundAPIGateway topic contains events for changes to bound-api-gateways.
   BoundAPIGateway = 13;
+
+  // IPRateLimit topic contains events for changes to control-plane-request-limit
+  IPRateLimit = 14;
+
+  // SamenessGroup topic contains events for changes to Sameness Groups
+  SamenessGroup = 15;
 }
 
 message NamedSubject {

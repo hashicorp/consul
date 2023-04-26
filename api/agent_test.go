@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package api
 
 import (
@@ -1357,6 +1360,20 @@ func TestAPI_AgentForceLeavePrune(t *testing.T) {
 
 	// Eject somebody
 	err := agent.ForceLeavePrune(s.Config.NodeName)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+}
+
+func TestAPI_AgentForceLeaveOptions(t *testing.T) {
+	t.Parallel()
+	c, s := makeClient(t)
+	defer s.Stop()
+
+	agent := c.Agent()
+
+	// Eject somebody with token
+	err := agent.ForceLeaveOptions(s.Config.NodeName, ForceLeaveOpts{Prune: true}, &QueryOptions{Token: "testToken"})
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}

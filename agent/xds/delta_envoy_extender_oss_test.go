@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 //go:build !consulent
 // +build !consulent
 
@@ -92,7 +95,7 @@ end`,
 		{
 			name: "lambda-connect-proxy",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", nil, nil, makeLambdaServiceDefaults(false))
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", false, nil, nil, makeLambdaServiceDefaults(false))
 			},
 		},
 		{
@@ -107,13 +110,13 @@ end`,
 		{
 			name: "lambda-connect-proxy-with-terminating-gateway-upstream",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "register-to-terminating-gateway", nil, nil, makeLambdaServiceDefaults(false))
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "register-to-terminating-gateway", false, nil, nil, makeLambdaServiceDefaults(false))
 			},
 		},
 		{
 			name: "lambda-connect-proxy-opposite-meta",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", nil, nil, makeLambdaServiceDefaults(true))
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", false, nil, nil, makeLambdaServiceDefaults(true))
 			},
 		},
 		{
@@ -129,13 +132,13 @@ end`,
 		{
 			name: "lua-outbound-applies-to-upstreams",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", nil, nil, makeLuaServiceDefaults(false))
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", false, nil, nil, makeLuaServiceDefaults(false))
 			},
 		},
 		{
 			name: "lua-inbound-doesnt-applies-to-upstreams",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", nil, nil, makeLuaServiceDefaults(true))
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", false, nil, nil, makeLuaServiceDefaults(true))
 			},
 		},
 		{
@@ -183,7 +186,7 @@ end`,
 		{
 			name: "lua-connect-proxy-with-terminating-gateway-upstream",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "register-to-terminating-gateway", nil, nil, makeLambdaServiceDefaults(false))
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "register-to-terminating-gateway", false, nil, nil, makeLambdaServiceDefaults(false))
 			},
 		},
 		{
@@ -205,7 +208,7 @@ end`,
 						},
 					}
 				}
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", nsFunc, nil, makeLambdaServiceDefaults(true))
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", false, nsFunc, nil, makeLambdaServiceDefaults(true))
 			},
 		},
 		{
@@ -223,6 +226,66 @@ end`,
 								"FillInterval":   10,
 								"FilterEnabled":  100,
 								"FilterEnforced": 100,
+							},
+						},
+					}
+				}, nil)
+			},
+		},
+		{
+			name: "wasm-http-local-file",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
+					ns.Proxy.Config["protocol"] = "http"
+					ns.Proxy.EnvoyExtensions = []structs.EnvoyExtension{
+						{
+							Name: api.BuiltinWasmExtension,
+							Arguments: map[string]interface{}{
+								"Protocol":     "http",
+								"ListenerType": "inbound",
+								"PluginConfig": map[string]interface{}{
+									"VmConfig": map[string]interface{}{
+										"Code": map[string]interface{}{
+											"Local": map[string]interface{}{
+												"Filename": "/path/to/extension.wasm",
+											},
+										},
+									},
+									"Configuration": `{"foo": "bar"}`,
+								},
+							},
+						},
+					}
+				}, nil)
+			},
+		},
+		{
+			name: "wasm-http-remote-file",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
+					ns.Proxy.Config["protocol"] = "http"
+					ns.Proxy.EnvoyExtensions = []structs.EnvoyExtension{
+						{
+							Name: api.BuiltinWasmExtension,
+							Arguments: map[string]interface{}{
+								"Protocol":     "http",
+								"ListenerType": "inbound",
+								"PluginConfig": map[string]interface{}{
+									"VmConfig": map[string]interface{}{
+										"Code": map[string]interface{}{
+											"Remote": map[string]interface{}{
+												"HttpURI": map[string]interface{}{
+													"Service": map[string]interface{}{
+														"Name": "db",
+													},
+													"URI": "https://db/plugin.wasm",
+												},
+												"SHA256": "d05d88b0ce8a8f1d5176481e0af3ae5c65ed82cbfb8c61506c5354b076078545",
+											},
+										},
+									},
+									"Configuration": `{"foo": "bar"}`,
+								},
 							},
 						},
 					}

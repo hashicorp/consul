@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package api
 
 import (
@@ -75,8 +78,8 @@ type CatalogRegistration struct {
 	Check           *AgentCheck
 	Checks          HealthChecks
 	SkipNodeUpdate  bool
-	Partition       string `json:",omitempty"`
-	Locality        *Locality
+	Partition       string    `json:",omitempty"`
+	Locality        *Locality `json:",omitempty"`
 }
 
 type CatalogDeregistration struct {

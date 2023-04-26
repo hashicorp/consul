@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package hcp
 
 import (
@@ -36,7 +39,6 @@ func TestManager_Run(t *testing.T) {
 
 	// Make sure after manager has stopped no more statuses are pushed.
 	cancel()
-	mgr.SendUpdate()
 	client.AssertExpectations(t)
 }
 

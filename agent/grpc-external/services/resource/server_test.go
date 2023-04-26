@@ -1,15 +1,74 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package resource
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
+	"google.golang.org/protobuf/types/known/anypb"
 
+	"github.com/hashicorp/go-uuid"
+
+	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/acl/resolver"
 	"github.com/hashicorp/consul/agent/grpc-external/testutils"
+	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/internal/resource"
+	"github.com/hashicorp/consul/internal/storage/inmem"
 	"github.com/hashicorp/consul/proto-public/pbresource"
+	pbdemov2 "github.com/hashicorp/consul/proto/private/pbdemo/v2"
+	"github.com/hashicorp/consul/sdk/testutil"
 )
+
+func randomACLIdentity(t *testing.T) structs.ACLIdentity {
+	id, err := uuid.GenerateUUID()
+	require.NoError(t, err)
+
+	return &structs.ACLToken{AccessorID: id}
+}
+
+func AuthorizerFrom(t *testing.T, policyStrs ...string) resolver.Result {
+	policies := []*acl.Policy{}
+	for _, policyStr := range policyStrs {
+		policy, err := acl.NewPolicyFromSource(policyStr, nil, nil)
+		require.NoError(t, err)
+		policies = append(policies, policy)
+	}
+
+	authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), policies, nil)
+	require.NoError(t, err)
+
+	return resolver.Result{
+		Authorizer:  authz,
+		ACLIdentity: randomACLIdentity(t),
+	}
+}
+
+func testServer(t *testing.T) *Server {
+	t.Helper()
+
+	backend, err := inmem.NewBackend()
+	require.NoError(t, err)
+	go backend.Run(testContext(t))
+
+	// Mock the ACL Resolver to allow everything for testing
+	mockACLResolver := &MockACLResolver{}
+	mockACLResolver.On("ResolveTokenAndDefaultMeta", mock.Anything, mock.Anything, mock.Anything).
+		Return(testutils.ACLsDisabled(t), nil)
+
+	return NewServer(Config{
+		Logger:      testutil.Logger(t),
+		Registry:    resource.NewRegistry(),
+		Backend:     backend,
+		ACLResolver: mockACLResolver,
+	})
+}
 
 func testClient(t *testing.T, server *Server) pbresource.ResourceServiceClient {
 	t.Helper()
@@ -26,50 +85,25 @@ func testClient(t *testing.T, server *Server) pbresource.ResourceServiceClient {
 	return pbresource.NewResourceServiceClient(conn)
 }
 
-func TestRead_TODO(t *testing.T) {
-	server := NewServer(Config{})
-	client := testClient(t, server)
-	resp, err := client.Read(context.Background(), &pbresource.ReadRequest{})
-	require.NoError(t, err)
-	require.NotNil(t, resp)
+func testContext(t *testing.T) context.Context {
+	t.Helper()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	t.Cleanup(cancel)
+	return ctx
 }
 
-func TestWrite_TODO(t *testing.T) {
-	server := NewServer(Config{})
-	client := testClient(t, server)
-	resp, err := client.Write(context.Background(), &pbresource.WriteRequest{})
-	require.NoError(t, err)
-	require.NotNil(t, resp)
-}
+func modifyArtist(t *testing.T, res *pbresource.Resource) *pbresource.Resource {
+	t.Helper()
 
-func TestWriteStatus_TODO(t *testing.T) {
-	server := NewServer(Config{})
-	client := testClient(t, server)
-	resp, err := client.WriteStatus(context.Background(), &pbresource.WriteStatusRequest{})
-	require.NoError(t, err)
-	require.NotNil(t, resp)
-}
+	var artist pbdemov2.Artist
+	require.NoError(t, res.Data.UnmarshalTo(&artist))
+	artist.Name = fmt.Sprintf("The artist formerly known as %s", artist.Name)
 
-func TestList_TODO(t *testing.T) {
-	server := NewServer(Config{})
-	client := testClient(t, server)
-	resp, err := client.List(context.Background(), &pbresource.ListRequest{})
+	data, err := anypb.New(&artist)
 	require.NoError(t, err)
-	require.NotNil(t, resp)
-}
 
-func TestDelete_TODO(t *testing.T) {
-	server := NewServer(Config{})
-	client := testClient(t, server)
-	resp, err := client.Delete(context.Background(), &pbresource.DeleteRequest{})
-	require.NoError(t, err)
-	require.NotNil(t, resp)
-}
-
-func TestWatch_TODO(t *testing.T) {
-	server := NewServer(Config{})
-	client := testClient(t, server)
-	wc, err := client.Watch(context.Background(), &pbresource.WatchRequest{})
-	require.NoError(t, err)
-	require.NotNil(t, wc)
+	res = clone(res)
+	res.Data = data
+	return res
 }

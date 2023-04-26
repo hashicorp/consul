@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package logging
 
 const (
@@ -17,6 +20,7 @@ const (
 	Consul                string = "consul"
 	ConsulClient          string = "client"
 	ConsulServer          string = "server"
+	ControllerRuntime     string = "controller-runtime"
 	Coordinate            string = "coordinate"
 	DNS                   string = "dns"
 	Envoy                 string = "envoy"

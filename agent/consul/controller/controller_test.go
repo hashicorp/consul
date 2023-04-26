@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package controller
 
 import (
@@ -7,13 +10,14 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-memdb"
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/agent/consul/fsm"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/go-memdb"
-	"github.com/stretchr/testify/require"
 )
 
 func TestBasicController(t *testing.T) {
@@ -33,7 +37,8 @@ func TestBasicController(t *testing.T) {
 		NewStateStore: func() *state.Store {
 			return state.NewStateStoreWithEventPublisher(nil, publisher)
 		},
-		Publisher: publisher,
+		Publisher:      publisher,
+		StorageBackend: fsm.NullStorageBackend,
 	}).State()
 
 	for i := 0; i < 200; i++ {
@@ -89,7 +94,8 @@ func TestBasicController_Transform(t *testing.T) {
 		NewStateStore: func() *state.Store {
 			return state.NewStateStoreWithEventPublisher(nil, publisher)
 		},
-		Publisher: publisher,
+		Publisher:      publisher,
+		StorageBackend: fsm.NullStorageBackend,
 	}).State()
 
 	go New(publisher, reconciler).Subscribe(&stream.SubscribeRequest{
@@ -134,7 +140,8 @@ func TestBasicController_Retry(t *testing.T) {
 		NewStateStore: func() *state.Store {
 			return state.NewStateStoreWithEventPublisher(nil, publisher)
 		},
-		Publisher: publisher,
+		Publisher:      publisher,
+		StorageBackend: fsm.NullStorageBackend,
 	}).State()
 
 	queueInitialized := make(chan *countingWorkQueue)
@@ -379,7 +386,8 @@ func TestConfigEntrySubscriptions(t *testing.T) {
 				NewStateStore: func() *state.Store {
 					return state.NewStateStoreWithEventPublisher(nil, publisher)
 				},
-				Publisher: publisher,
+				Publisher:      publisher,
+				StorageBackend: fsm.NullStorageBackend,
 			}).State()
 
 			for i := 0; i < 200; i++ {
@@ -515,7 +523,8 @@ func TestDiscoveryChainController(t *testing.T) {
 		NewStateStore: func() *state.Store {
 			return state.NewStateStoreWithEventPublisher(nil, publisher)
 		},
-		Publisher: publisher,
+		Publisher:      publisher,
+		StorageBackend: fsm.NullStorageBackend,
 	}).State()
 
 	controller := New(publisher, reconciler)

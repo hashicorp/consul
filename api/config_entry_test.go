@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package api
 
 import (
@@ -25,6 +28,7 @@ func TestAPI_ConfigEntries(t *testing.T) {
 				"foo": "bar",
 				"bar": 1.0,
 			},
+			MutualTLSMode: MutualTLSModeStrict,
 			Meta: map[string]string{
 				"foo": "bar",
 				"gir": "zim",
@@ -49,7 +53,8 @@ func TestAPI_ConfigEntries(t *testing.T) {
 		require.Equal(t, global_proxy.Kind, readProxy.Kind)
 		require.Equal(t, global_proxy.Name, readProxy.Name)
 		require.Equal(t, global_proxy.Config, readProxy.Config)
-		require.Equal(t, global_proxy.Meta, readProxy.Meta)
+		require.Equal(t, global_proxy.MutualTLSMode, readProxy.MutualTLSMode)
+		require.Equal(t, global_proxy.Meta, readProxy.GetMeta())
 		require.Equal(t, global_proxy.Meta, readProxy.GetMeta())
 
 		global_proxy.Config["baz"] = true
@@ -97,9 +102,10 @@ func TestAPI_ConfigEntries(t *testing.T) {
 
 	t.Run("Service Defaults", func(t *testing.T) {
 		service := &ServiceConfigEntry{
-			Kind:     ServiceDefaults,
-			Name:     "foo",
-			Protocol: "udp",
+			Kind:          ServiceDefaults,
+			Name:          "foo",
+			Protocol:      "udp",
+			MutualTLSMode: MutualTLSModeStrict,
 			Meta: map[string]string{
 				"foo": "bar",
 				"gir": "zim",
@@ -146,6 +152,7 @@ func TestAPI_ConfigEntries(t *testing.T) {
 		require.Equal(t, service.Kind, readService.Kind)
 		require.Equal(t, service.Name, readService.Name)
 		require.Equal(t, service.Protocol, readService.Protocol)
+		require.Equal(t, service.MutualTLSMode, readService.MutualTLSMode)
 		require.Equal(t, service.Meta, readService.Meta)
 		require.Equal(t, service.Meta, readService.GetMeta())
 		require.Equal(t, service.MaxInboundConnections, readService.MaxInboundConnections)
@@ -216,7 +223,8 @@ func TestAPI_ConfigEntries(t *testing.T) {
 
 	t.Run("Mesh", func(t *testing.T) {
 		mesh := &MeshConfigEntry{
-			TransparentProxy: TransparentProxyMeshConfig{MeshDestinationsOnly: true},
+			TransparentProxy:                 TransparentProxyMeshConfig{MeshDestinationsOnly: true},
+			AllowEnablingPermissiveMutualTLS: true,
 			Meta: map[string]string{
 				"foo": "bar",
 				"gir": "zim",
@@ -408,6 +416,9 @@ func TestDecodeConfigEntry(t *testing.T) {
 					"Type": "file",
 					"Path": "/tmp/logs.txt",
 					"TextFormat": "[%START_TIME%]"
+				},
+				"FailoverPolicy": {
+					"Mode": "default"
 				}
 			}
 			`,
@@ -439,6 +450,9 @@ func TestDecodeConfigEntry(t *testing.T) {
 					Type:                FileLogSinkType,
 					Path:                "/tmp/logs.txt",
 					TextFormat:          "[%START_TIME%]",
+				},
+				FailoverPolicy: &ServiceResolverFailoverPolicy{
+					Mode: "default",
 				},
 			},
 		},

@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 // Package controller contains a re-implementation of the Kubernetes
 // [controller-runtime](https://github.com/kubernetes-sigs/controller-runtime)
 // with the core using Consul's event publishing pipeline rather than

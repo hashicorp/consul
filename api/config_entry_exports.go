@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package api
 
 import "encoding/json"
@@ -51,6 +54,9 @@ type ServiceConsumer struct {
 
 	// Peer is the name of the peer to export the service to.
 	Peer string `json:",omitempty" alias:"peer_name"`
+
+	// SamenessGroup is the name of the sameness group to export the service to.
+	SamenessGroup string `json:",omitempty" alias:"sameness_group"`
 }
 
 func (e *ExportedServicesConfigEntry) GetKind() string            { return ExportedServices }

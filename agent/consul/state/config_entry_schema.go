@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package state
 
 import (
@@ -14,7 +17,7 @@ const (
 	indexLink                 = "link"
 	indexIntentionLegacyID    = "intention-legacy-id"
 	indexSource               = "intention-source"
-	indexSamenessGroupDefault = "sameness-group-default"
+	indexSamenessGroupDefault = "sameness-group-default-for-failover"
 )
 
 // configTableSchema returns a new table schema used to store global
@@ -84,6 +87,7 @@ var _ configEntryIndexable = (*structs.ServiceResolverConfigEntry)(nil)
 var _ configEntryIndexable = (*structs.ServiceRouterConfigEntry)(nil)
 var _ configEntryIndexable = (*structs.ServiceSplitterConfigEntry)(nil)
 var _ configEntryIndexable = (*structs.TerminatingGatewayConfigEntry)(nil)
+var _ configEntryIndexable = (*structs.JWTProviderConfigEntry)(nil)
 
 func indexFromConfigEntry(c structs.ConfigEntry) ([]byte, error) {
 	if c.GetName() == "" || c.GetKind() == "" {

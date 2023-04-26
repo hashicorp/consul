@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package middleware
 
 import (
@@ -173,7 +176,8 @@ func GetNetRPCRateLimitingInterceptor(requestLimitsHandler rpcRate.RequestLimits
 		op := rpcRate.Operation{
 			Name:       reqServiceMethod,
 			SourceAddr: sourceAddr,
-			Type:       rpcRateLimitSpecs[reqServiceMethod],
+			Type:       rpcRateLimitSpecs[reqServiceMethod].Type,
+			Category:   rpcRateLimitSpecs[reqServiceMethod].Category,
 		}
 
 		// net/rpc does not provide a way to encode the nuances of the

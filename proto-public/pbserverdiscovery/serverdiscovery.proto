@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 // Package serverdiscovery provides a service on Consul servers to discover the set of servers
 // currently able to handle incoming requests.
 
@@ -13,7 +16,10 @@ service ServerDiscoveryService {
   // should be considered ready for sending general RPC requests towards that would
   // catalog queries, xDS proxy configurations and similar services.
   rpc WatchServers(WatchServersRequest) returns (stream WatchServersResponse) {
-    option (hashicorp.consul.internal.ratelimit.spec) = {operation_type: OPERATION_TYPE_READ};
+    option (hashicorp.consul.internal.ratelimit.spec) = {
+      operation_type: OPERATION_TYPE_READ,
+      operation_category: OPERATION_CATEGORY_SERVER_DISCOVERY
+    };
   }
 }
 

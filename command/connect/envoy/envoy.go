@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package envoy
 
 import (
@@ -718,6 +721,12 @@ func (c *cmd) generateConfig() ([]byte, error) {
 		// The agent will definitely have the definitive answer here.
 		args.Datacenter = datacenter
 	}
+
+	info, err := c.client.Agent().Self()
+	if err != nil {
+		return nil, err
+	}
+	args.NodeID, _ = info["Config"]["NodeID"].(string)
 
 	if err := generateAccessLogs(c, args); err != nil {
 		return nil, err

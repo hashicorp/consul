@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package structs
 
 import (
@@ -86,7 +89,7 @@ func TestExportedServicesConfigEntry(t *testing.T) {
 					},
 				},
 			},
-			validateErr: `Services[0].Consumers[0]: must define at most one of Peer or Partition`,
+			validateErr: `Services[0].Consumers[0]: must define at most one of Peer, Partition, or SamenessGroup`,
 		},
 	}
 

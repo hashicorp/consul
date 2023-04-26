@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package structs
 
 import (
@@ -755,6 +758,7 @@ func (e *APIGatewayConfigEntry) Normalize() error {
 			if cert.Kind == "" {
 				cert.Kind = InlineCertificate
 			}
+			cert.EnterpriseMeta.Merge(e.GetEnterpriseMeta())
 			cert.EnterpriseMeta.Normalize()
 
 			listener.TLS.Certificates[i] = cert
@@ -769,6 +773,9 @@ func (e *APIGatewayConfigEntry) Validate() error {
 		return err
 	}
 
+	if len(e.Listeners) == 0 {
+		return fmt.Errorf("api gateway must have at least one listener")
+	}
 	if err := e.validateListenerNames(); err != nil {
 		return err
 	}
@@ -982,11 +989,13 @@ func (e *BoundAPIGatewayConfigEntry) GetMeta() map[string]string { return e.Meta
 func (e *BoundAPIGatewayConfigEntry) Normalize() error {
 	for i, listener := range e.Listeners {
 		for j, route := range listener.Routes {
+			route.EnterpriseMeta.Merge(&e.EnterpriseMeta)
 			route.EnterpriseMeta.Normalize()
 
 			listener.Routes[j] = route
 		}
 		for j, cert := range listener.Certificates {
+			cert.EnterpriseMeta.Merge(&e.EnterpriseMeta)
 			cert.EnterpriseMeta.Normalize()
 
 			listener.Certificates[j] = cert

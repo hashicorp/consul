@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package health
 
 import (
@@ -976,4 +979,13 @@ func TestHealthView_SkipFilteringTerminatingGateways(t *testing.T) {
 	require.Len(t, node.Nodes, 1)
 	require.Equal(t, "127.0.0.1", node.Nodes[0].Service.Address)
 	require.Equal(t, 8443, node.Nodes[0].Service.Port)
+}
+
+func TestConfigEntryListView_Reset(t *testing.T) {
+	emptyMap := make(map[string]structs.CheckServiceNode)
+	view := &HealthView{state: map[string]structs.CheckServiceNode{
+		"test": {},
+	}}
+	view.Reset()
+	require.Equal(t, emptyMap, view.state)
 }

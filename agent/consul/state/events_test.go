@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package state
 
 import (
@@ -75,6 +78,32 @@ func TestPBToStreamSubscribeRequest(t *testing.T) {
 					Key:            "key",
 					EnterpriseMeta: acl.EnterpriseMeta{},
 					PeerName:       "peer",
+				},
+				Token: aclToken,
+				Index: 2,
+			},
+			err: nil,
+		},
+		"Sameness Group": {
+			req: &pbsubscribe.SubscribeRequest{
+				Topic: EventTopicSamenessGroup,
+				Subject: &pbsubscribe.SubscribeRequest_NamedSubject{
+					NamedSubject: &pbsubscribe.NamedSubject{
+						Key:       "sg",
+						Namespace: "consul",
+						Partition: "partition",
+						PeerName:  "peer",
+					},
+				},
+				Token: aclToken,
+				Index: 2,
+			},
+			entMeta: acl.EnterpriseMeta{},
+			expectedSubscribeRequest: &stream.SubscribeRequest{
+				Topic: EventTopicSamenessGroup,
+				Subject: EventSubjectConfigEntry{
+					Name:           "sg",
+					EnterpriseMeta: &acl.EnterpriseMeta{},
 				},
 				Token: aclToken,
 				Index: 2,
