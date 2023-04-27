@@ -476,12 +476,12 @@ func (s *ResourceGenerator) routesForAPIGateway(cfgSnap *proxycfg.ConfigSnapshot
 			for _, flattenedRoute := range flattenedRoutes {
 				//dereference the loop pointer for luck
 				flattenedRoute := flattenedRoute
-				//reconstruct upstream
-				upstream := discoverychain.RebuildHTTPRouteUpstream(flattenedRoute, listenerCfg)
-				uid := proxycfg.NewUpstreamID(&upstream)
-				fmt.Println(upstream.DestinationName)
-				fmt.Println(uid)
-				fmt.Println(flattenedRoute.Name)
+				////reconstruct upstream
+				//upstream := discoverychain.RebuildHTTPRouteUpstream(flattenedRoute, listenerCfg)
+				//uid := proxycfg.NewUpstreamID(&upstream)
+				//fmt.Println(upstream.DestinationName)
+				//fmt.Println(uid)
+				//fmt.Println(flattenedRoute.Name)
 
 				domains := generateUpstreamAPIsDomains(listenerKey, u, flattenedRoute.Hostnames)
 
