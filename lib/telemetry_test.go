@@ -20,11 +20,9 @@ import (
 )
 
 func newCfg() (TelemetryConfig, error) {
-	// Manual reader outputs the aggregated metrics when reader.Collect is called.
-	reader := metric.NewManualReader()
 	opts := &hcptelemetry.OTELSinkOpts{
 		Logger: hclog.New(&hclog.LoggerOptions{Output: io.Discard}),
-		Reader: reader,
+		Reader: metric.NewManualReader(),
 		Ctx:    context.Background(),
 	}
 

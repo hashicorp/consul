@@ -75,7 +75,7 @@ func verifyCCMRegistration(ctx context.Context, client hcpclient.Client) (string
 	}
 
 	// The endpoint from the HCP gateway is a domain without scheme, so it must be added.
-	url, err := url.Parse(fmt.Sprintf("https://%s", endpoint))
+	url, err := url.Parse(fmt.Sprintf("https://%s/v1/metrics", endpoint))
 	if err != nil {
 		return "", fmt.Errorf("failed to parse url: %w", err)
 	}

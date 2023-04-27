@@ -62,7 +62,7 @@ func TestVerifyCCMRegistration(t *testing.T) {
 				}, nil)
 			},
 			mockCloudCfg: &client.MockCloudCfg{},
-			expectedURL:  "https://test.com",
+			expectedURL:  "https://test.com/v1/metrics",
 		},
 		"successMetricsEndpointOverride": {
 			expect: func(mockClient *client.MockClient) {
@@ -74,7 +74,7 @@ func TestVerifyCCMRegistration(t *testing.T) {
 				}, nil)
 			},
 			mockCloudCfg: &client.MockCloudCfg{},
-			expectedURL:  "https://override.com",
+			expectedURL:  "https://override.com/v1/metrics",
 		},
 	} {
 		t.Run(name, func(t *testing.T) {
