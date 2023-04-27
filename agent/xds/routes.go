@@ -458,8 +458,8 @@ func (s *ResourceGenerator) routesForAPIGateway(cfgSnap *proxycfg.ConfigSnapshot
 			ValidateClusters: makeBoolValue(true),
 		}
 
-		for _, u := range readyUpstreams.upstreams {
-			uid := proxycfg.NewUpstreamID(&u)
+		for _, upstream := range readyUpstreams.upstreams {
+			uid := proxycfg.NewUpstreamID(&upstream)
 			chain := cfgSnap.APIGateway.DiscoveryChain[uid]
 			if chain == nil {
 				continue
@@ -483,7 +483,7 @@ func (s *ResourceGenerator) routesForAPIGateway(cfgSnap *proxycfg.ConfigSnapshot
 				//fmt.Println(uid)
 				//fmt.Println(flattenedRoute.Name)
 
-				domains := generateUpstreamAPIsDomains(listenerKey, u, flattenedRoute.Hostnames)
+				domains := generateUpstreamAPIsDomains(listenerKey, upstream, flattenedRoute.Hostnames)
 
 				virtualHost, err := s.makeUpstreamRouteForDiscoveryChain(cfgSnap, uid, chain, domains, false)
 				if err != nil {
