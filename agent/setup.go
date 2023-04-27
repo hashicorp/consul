@@ -100,13 +100,12 @@ func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer, providedLogger hcl
 	cfg.Telemetry.PrometheusOpts.GaugeDefinitions = gauges
 	cfg.Telemetry.PrometheusOpts.CounterDefinitions = counters
 	cfg.Telemetry.PrometheusOpts.SummaryDefinitions = summaries
-
 	if cfg.IsCloudEnabled() {
 		d.HCP, err = hcp.NewDeps(cfg.Cloud, d.Logger)
 		if err != nil {
 			return d, err
 		}
-		cfg.Telemetry.HCPSink = d.HCP.Sink
+		cfg.Telemetry.HCPSinkOpts = d.HCP.SinkOpts
 	}
 
 	d.MetricsConfig, err = lib.InitTelemetry(cfg.Telemetry, d.Logger)

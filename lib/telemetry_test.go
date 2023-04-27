@@ -19,26 +19,23 @@ import (
 	"go.opentelemetry.io/otel/sdk/metric"
 )
 
-func newCfg() (TelemetryConfig, error) {
+func newCfg() TelemetryConfig {
 	opts := &hcptelemetry.OTELSinkOpts{
 		Logger: hclog.New(&hclog.LoggerOptions{Output: io.Discard}),
 		Reader: metric.NewManualReader(),
 		Ctx:    context.Background(),
 	}
 
-	hcpSink, err := hcptelemetry.NewOTELSink(opts)
-
 	return TelemetryConfig{
 		StatsdAddr:    "statsd.host:1234",
 		StatsiteAddr:  "statsite.host:1234",
 		DogstatsdAddr: "mydog.host:8125",
-		HCPSink:       hcpSink,
-	}, err
+		HCPSinkOpts:   opts,
+	}
 }
 
 func TestConfigureSinks(t *testing.T) {
-	cfg, err := newCfg()
-	require.NoError(t, err)
+	cfg := newCfg()
 	sinks, err := configureSinks(cfg, nil)
 	require.Error(t, err)
 	// 4 sinks: statsd, statsite, inmem, hcp
@@ -71,8 +68,7 @@ func TestInitTelemetryRetrySuccess(t *testing.T) {
 	}, os.Stdout)
 	require.NoError(t, err)
 
-	cfg, err := newCfg()
-	require.NoError(t, err)
+	cfg := newCfg()
 
 	_, err = InitTelemetry(cfg, logger)
 	require.Error(t, err)

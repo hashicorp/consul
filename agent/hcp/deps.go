@@ -20,7 +20,7 @@ import (
 type Deps struct {
 	Client   hcpclient.Client
 	Provider scada.Provider
-	Sink     *telemetry.OTELSink
+	SinkOpts *telemetry.OTELSinkOpts
 }
 
 func NewDeps(cfg config.CloudConfig, logger hclog.Logger) (d Deps, err error) {
@@ -34,15 +34,15 @@ func NewDeps(cfg config.CloudConfig, logger hclog.Logger) (d Deps, err error) {
 		return
 	}
 
-	d.Sink = setupSink(cfg, d.Client, logger)
+	d.SinkOpts = sinkOpts(&cfg, d.Client, logger)
 
 	return
 }
 
-// setupSink will initialize an OTELSink which sends Consul metrics to HCP
+// setupSink provides OTELSink configuration to initialize a Go Metrics sink,
 // only if the server is registered with the management plane (CCM).
 // This step should not block server initialization, so errors are logged, but not returned.
-func setupSink(cfg config.CloudConfig, client hcpclient.Client, logger hclog.Logger) *telemetry.OTELSink {
+func sinkOpts(cfg hcpclient.CloudConfig, client hcpclient.Client, logger hclog.Logger) *telemetry.OTELSinkOpts {
 	ctx := context.Background()
 	url, err := verifyCCMRegistration(ctx, client)
 	if err != nil {
@@ -51,23 +51,27 @@ func setupSink(cfg config.CloudConfig, client hcpclient.Client, logger hclog.Log
 
 	metricsClientOpts := &hcpclient.TelemetryClientCfg{
 		Logger:   logger,
-		CloudCfg: &cfg,
+		CloudCfg: cfg,
+	}
+
+	metricsClient, err := hcpclient.NewMetricsClient(metricsClientOpts)
+	if err != nil {
+		logger.Error("failed to init metrics client: %w", err)
+		return nil
 	}
 
 	sinkOpts := &telemetry.OTELSinkOpts{
 		Ctx:    ctx,
 		Logger: logger,
+		Reader: telemetry.NewOTELReader(metricsClient, url, 10*time.Second),
 	}
 
-	sink, err := initHCPSink(sinkOpts, metricsClientOpts, url)
-	if err != nil {
-		logger.Error("Failed to init telemetry: %w", err)
-		return nil
-	}
-
-	return sink
+	return sinkOpts
 }
 
+// verifyCCMRegistration checks that a server is registered with the HCP management plane
+// by making a HTTP request to the HCP TelemetryConfig endpoint.
+// If registered, it returns the full URL for the HCP Telemetry Gateway endpoint where metrics should be forwarded.
 func verifyCCMRegistration(ctx context.Context, client hcpclient.Client) (string, error) {
 	reqCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
@@ -93,15 +97,4 @@ func verifyCCMRegistration(ctx context.Context, client hcpclient.Client) (string
 	}
 
 	return url.String(), nil
-}
-
-func initHCPSink(sinkOpts *telemetry.OTELSinkOpts, clientCfg *hcpclient.TelemetryClientCfg, url string) (*telemetry.OTELSink, error) {
-	metricsClient, err := hcpclient.NewMetricsClient(clientCfg)
-	if err != nil {
-		return nil, fmt.Errorf("failed to init metrics client: %w", err)
-	}
-
-	sinkOpts.Reader = telemetry.NewOTELReader(metricsClient, url, 10*time.Second)
-
-	return telemetry.NewOTELSink(sinkOpts)
 }
