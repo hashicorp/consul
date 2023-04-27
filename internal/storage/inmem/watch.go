@@ -26,7 +26,6 @@ type Watch struct {
 
 // Next returns the next WatchEvent, blocking until one is available.
 func (w *Watch) Next(ctx context.Context) (*pbresource.WatchEvent, error) {
-	var idx uint64
 	for {
 		e, err := w.nextEvent(ctx)
 		if err == stream.ErrSubForceClosed {
@@ -34,6 +33,31 @@ func (w *Watch) Next(ctx context.Context) (*pbresource.WatchEvent, error) {
 		}
 		if err != nil {
 			return nil, err
+		}
+
+		event := e.Payload.(eventPayload).event
+		if w.query.matches(event.Resource) {
+			return event, nil
+		}
+	}
+}
+
+func (w *Watch) nextEvent(ctx context.Context) (*stream.Event, error) {
+	if len(w.events) != 0 {
+		event := w.events[0]
+		w.events = w.events[1:]
+		return &event, nil
+	}
+
+	var idx uint64
+	for {
+		e, err := w.sub.Next(ctx)
+		if err != nil {
+			return nil, err
+		}
+
+		if e.IsFramingEvent() {
+			continue
 		}
 
 		// This works around a *very* rare race-condition in the EventPublisher where
@@ -55,30 +79,6 @@ func (w *Watch) Next(ctx context.Context) (*pbresource.WatchEvent, error) {
 			continue
 		}
 		idx = e.Index
-
-		event := e.Payload.(eventPayload).event
-		if w.query.matches(event.Resource) {
-			return event, nil
-		}
-	}
-}
-
-func (w *Watch) nextEvent(ctx context.Context) (*stream.Event, error) {
-	if len(w.events) != 0 {
-		event := w.events[0]
-		w.events = w.events[1:]
-		return &event, nil
-	}
-
-	for {
-		e, err := w.sub.Next(ctx)
-		if err != nil {
-			return nil, err
-		}
-
-		if e.IsFramingEvent() {
-			continue
-		}
 
 		switch t := e.Payload.(type) {
 		case eventPayload:

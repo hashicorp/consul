@@ -277,7 +277,7 @@ type SourceIntention struct {
 	Peer string `json:",omitempty"`
 
 	// SamenessGroup is the name of the sameness group, if applicable.
-	SamenessGroup string `json:",omitempty"`
+	SamenessGroup string `json:",omitempty" alias:"sameness_group"`
 }
 
 type IntentionJWTRequirement struct {

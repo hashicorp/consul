@@ -62,8 +62,8 @@ func (s *supervisor) run(ctx context.Context) {
 			return
 
 		// Task stopped running.
-		case err := <-s.errCh:
-			stopBackoffTimer := s.handleError(err)
+		case <-s.errCh:
+			stopBackoffTimer := s.handleError()
 			if stopBackoffTimer != nil {
 				defer stopBackoffTimer()
 			}
@@ -121,9 +121,7 @@ func (s *supervisor) stopTask() {
 	s.running = false
 }
 
-func (s *supervisor) handleError(err error) func() bool {
-	// TODO(spatel): Fix unused err flagged by lint
-	_ = err
+func (s *supervisor) handleError() func() bool {
 	s.running = false
 
 	if time.Since(s.startedAt) > flapThreshold {

@@ -1746,6 +1746,20 @@ represents a location outside the Consul cluster. Services can dial destinations
                        after a passive health check detects an outlier status through consecutive 5xx.`,
                   },
                 },
+                {
+                  name: 'MaxEjectionPercent',
+                  type: 'int: 10',
+                  description: `Measured in percent (%), the maximum percentage of hosts that can be ejected
+                    from a upstream cluster due to passive health check failures. If not specified, inherits 
+                    Envoy's default of 10% or at least one host.`,
+                },
+                {
+                  name: 'BaseEjectionTime',
+                  type: 'duration: 30s',
+                  description: `The base time that a host is ejected for. The real time is equal to the base
+                    time multiplied by the number of times the host has been ejected and is capped by 
+                    max_ejection_time (Default 300s). If not speficied, inherits Envoy's default value of 30s.`,
+                },
               ],
             },
           ],
@@ -1896,6 +1910,20 @@ represents a location outside the Consul cluster. Services can dial destinations
                     yaml: `Measured in percent (%), the probability of a host's ejection
                        after a passive health check detects an outlier status through consecutive 5xx.`,
                   },
+                },
+                {
+                  name: 'MaxEjectionPercent',
+                  type: 'int: 10',
+                  description: `Measured in percent (%), the maximum percentage of hosts that can be ejected
+                    from a upstream cluster due to passive health check failures. If not specified, inherits 
+                    Envoy's default of 10% or at least one host.`,
+                },
+                {
+                  name: 'BaseEjectionTime',
+                  type: 'duration: 30s',
+                  description: `The base time that a host is ejected for. The real time is equal to the base
+                    time multiplied by the number of times the host has been ejected and is capped by 
+                    max_ejection_time (Default 300s). If not speficied, inherits Envoy's default value of 30s.`,
                 },
               ],
             },
