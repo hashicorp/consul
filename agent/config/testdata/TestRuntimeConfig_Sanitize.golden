@@ -328,6 +328,7 @@
     "ServerMode": false,
     "ServerName": "",
     "ServerPort": 0,
+	"ServerRejoinAgeMax": "0s",
     "Services": [
         {
             "Address": "",

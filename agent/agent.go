@@ -104,7 +104,7 @@ const (
 	defaultQueryTime = 300 * time.Second
 
 	// Name of the file to store a server's last seen timestamp.
-	lastSeenFile = "lastseen"
+	serverLastSeenFile = "server_last_seen"
 )
 
 var (
@@ -740,7 +740,7 @@ func (a *Agent) Start(ctx context.Context) error {
 		},
 	)
 
-	// Start writing lastseen timestamps to file in order to age on next startup.
+	// Start writing last seen timestamps to file in order to age on next startup.
 	// TODO: maybe we should do this earlier above in the "if c.ServerMode" block?
 	go a.persistServerLastSeen()
 
@@ -4524,8 +4524,11 @@ func (a *Agent) proxyDataSources() proxycfg.DataSources {
 	return sources
 }
 
+// persistServerLastSeen writes a server's last seen Unix timestamp to a file
+// in the configured data directory, and then periodically updates the timestamp
+// every hour.
 func (a *Agent) persistServerLastSeen() {
-	file := filepath.Join(a.config.DataDir, lastSeenFile)
+	file := filepath.Join(a.config.DataDir, serverLastSeenFile)
 
 	// Create a timer with no initial tick to allow the timestamp to be written immediately.
 	t := time.NewTimer(0)
@@ -4542,7 +4545,7 @@ func (a *Agent) persistServerLastSeen() {
 
 			if err := os.WriteFile(file, []byte(now), 0600); err != nil {
 				// TODO: should we exit if this has happened too many times?
-				a.logger.Error("failed to write lastseen timestamp: %w", err)
+				a.logger.Error("failed to write last seen timestamp: %w", err)
 			}
 		case <-a.shutdownCh:
 			return
@@ -4550,28 +4553,36 @@ func (a *Agent) persistServerLastSeen() {
 	}
 }
 
+// checkServerLastSeen is a safety check for preventing old servers from rejoining a cluster.
+//
+// It attempts to read a server's last seen file and check the Unix timestamp against a
+// confiruable max age. If the last seen file does not exist, we treat this as an initial startup
+// and return no error.
+//
+// Example: if the server recorded a last seen timestamp of now-7d, and we configure a max age
+// of 3d, then we should prevent the server from rejoining.
 func (a *Agent) checkServerLastSeen() error {
-	file := filepath.Join(a.config.DataDir, lastSeenFile)
+	file := filepath.Join(a.config.DataDir, serverLastSeenFile)
 
-	// Check if the lastseen timestamp file exists, and return early if it doesn't
+	// Check if the last seen timestamp file exists, and return early if it doesn't
 	// as this indicates the server is starting for the first time.
 	if _, err := os.Stat(file); errors.Is(err, os.ErrNotExist) {
 		return nil
 	}
 
-	// Read timestamp from lastseen file.
+	// Read timestamp from last seen file.
 	b, err := os.ReadFile(file)
 	if err != nil {
-		return fmt.Errorf("error reading server lastseen timestamp: %w", err)
+		return fmt.Errorf("error reading server last seen timestamp: %w", err)
 	}
 
 	// TODO: again, we probably want to do this more efficiently using binary encoding.
 	i, _ := strconv.Atoi(string(b))
-	lastseen := time.Unix(int64(i), 0)
+	lastSeen := time.Unix(int64(i), 0)
 	maxAge := time.Now().Add(-a.config.ServerRejoinAgeMax)
 
-	if lastseen.Before(maxAge) {
-		return fmt.Errorf("server has not been seen for at least %d, will not rejoin", a.config.ServerRejoinAgeMax)
+	if lastSeen.Before(maxAge) {
+		return fmt.Errorf("server has not been seen since %s, will not rejoin", lastSeen.Format(time.DateTime))
 	}
 
 	return nil
