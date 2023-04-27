@@ -11,10 +11,10 @@ import (
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/demo"
 	"github.com/hashicorp/consul/proto-public/pbresource"
-	"google.golang.org/protobuf/proto"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/proto"
 )
 
 func TestRegister(t *testing.T) {
@@ -34,17 +34,17 @@ func TestRegister(t *testing.T) {
 
 	// type missing required fields should panic
 	testcases := map[string]*pbresource.Type{
-		"empty group": &pbresource.Type{
+		"empty group": {
 			Group:        "",
 			GroupVersion: "v2",
 			Kind:         "artist",
 		},
-		"empty group version": &pbresource.Type{
+		"empty group version": {
 			Group:        "",
 			GroupVersion: "v2",
 			Kind:         "artist",
 		},
-		"empty kind": &pbresource.Type{
+		"empty kind": {
 			Group:        "demo",
 			GroupVersion: "v2",
 			Kind:         "",

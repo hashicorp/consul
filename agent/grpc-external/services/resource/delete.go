@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/proto"
+	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/anypb"
@@ -103,30 +104,42 @@ func (s *Server) maybeCreateTombstone(ctx context.Context, deleteId *pbresource.
 		return status.Errorf(codes.Internal, "failed creating tombstone: %v", err)
 	}
 
-	tombstone := &pbresource.Resource{
+	// Since a tombstone is an internal resource type that should not be visible
+	// or accessible by users, we're writing to the backend directly instead of
+	// using the resource service's Write endpoint. This bypasses resource level
+	// concerns that are either not relevant (valiation and mutation hooks) or
+	// futher complicate the implementation (user provided tokens having
+	// awareness of tombstone ACLs).
+	//
+	// ErrCASFailure should never happen since an empty Version is always passed.
+	//
+	// TODO(spatel): Probably a good idea to block writes of TypeV1Tombstone
+	//  	on the ResourceService.Write() endpoint to lock things down?
+	_, err = s.Backend.WriteCAS(ctx, &pbresource.Resource{
 		Id: &pbresource.ID{
 			Type:    resource.TypeV1Tombstone,
 			Tenancy: deleteId.Tenancy,
 			Name:    tombstoneName(deleteId),
+			Uid:     ulid.Make().String(),
 		},
-		Data: data,
+		Generation: ulid.Make().String(),
+		Data:       data,
 		Metadata: map[string]string{
 			"generated_at": time.Now().Format(time.RFC3339),
 		},
-	}
-	_, err = s.Write(ctx, &pbresource.WriteRequest{Resource: tombstone})
+	})
 
 	switch {
 	case err == nil:
-		// tombstone written!
+		// Success!
 		return nil
-	case isAbortError(err):
-		// CAS write failed but that should be OK. This indicates that a tombstone already
-		// exists (most likely from a previous failed attempt to delete the resource) and
-		// the delete should continue as planned.
+	case errors.Is(err, storage.ErrWrongUid):
+		// Backend has detected that we're trying to change the Uid for an
+		// existing tombstone (probably created from a previously failed Delete
+		// where the tombstone WriteCAS succeeded but the resource DeleteCAS
+		// failed). The fact that the tombstone already exists means we're good.
 		return nil
 	default:
-		// something else went wrong
 		return status.Errorf(codes.Internal, "failed writing tombstone: %v", err)
 	}
 }
@@ -147,15 +160,4 @@ func validateDeleteRequest(req *pbresource.DeleteRequest) error {
 func tombstoneName(deleteId *pbresource.ID) string {
 	// deleteId.Name is just included for easier identification
 	return fmt.Sprintf("tombstone-%v-%v", deleteId.Name, deleteId.Uid)
-}
-
-func isAbortError(err error) bool {
-	if err == nil {
-		return false
-	}
-	s, ok := status.FromError(err)
-	if !ok {
-		return false
-	}
-	return s.Code() == codes.Aborted
 }
