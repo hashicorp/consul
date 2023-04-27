@@ -1121,7 +1121,16 @@ func injectHeaderManipToRoute(dest *structs.ServiceRouteDestination, r *envoy_ro
 }
 
 func injectHeaderManipToVirtualHostAPIGateway(dest *structs.HTTPRouteConfigEntry, vh *envoy_route_v3.VirtualHost) error {
-	//TODO we aren't touching these fields in ToIngress so I'm leaving them alone for now
+	for _, rule := range dest.Rules {
+		for _, header := range rule.Filters.Headers {
+			vh.RequestHeadersToAdd = append(vh.RequestHeadersToAdd, makeHeadersValueOptions(header.Add, true)...)
+			vh.RequestHeadersToAdd = append(vh.RequestHeadersToAdd, makeHeadersValueOptions(header.Set, false)...)
+			vh.RequestHeadersToRemove = append(vh.RequestHeadersToRemove, header.Remove...)
+		}
+	}
+
+	//TODO response headers aren't currently supported in API Gateway spec
+
 	return nil
 }
 
