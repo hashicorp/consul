@@ -33,6 +33,8 @@ type OTELSink struct {
 	meterProvider *otelsdk.MeterProvider
 	meter         *otelmetric.Meter
 
+	gaugeStore *gaugeStore
+
 	gaugeInstruments     map[string]*instrument.Float64ObservableGauge
 	counterInstruments   map[string]*instrument.Float64Counter
 	histogramInstruments map[string]*instrument.Float64Histogram
@@ -58,8 +60,10 @@ func NewOTELSink(opts *OTELSinkOpts) (*OTELSink, error) {
 	meterProvider := otelsdk.NewMeterProvider(otelsdk.WithResource(res), otelsdk.WithReader(opts.Reader))
 	meter := meterProvider.Meter("github.com/hashicorp/consul/agent/hcp/telemetry")
 
-	// Init global gauge store.
-	initGaugeStore()
+	gs := &gaugeStore{
+		store: make(map[string]*gaugeValue, 0),
+		mutex: sync.Mutex{},
+	}
 
 	return &OTELSink{
 		spaceReplacer:        strings.NewReplacer(" ", "_"),
@@ -68,6 +72,7 @@ func NewOTELSink(opts *OTELSinkOpts) (*OTELSink, error) {
 		meterProvider:        meterProvider,
 		meter:                &meter,
 		mutex:                sync.Mutex{},
+		gaugeStore:           gs,
 		gaugeInstruments:     make(map[string]*instrument.Float64ObservableGauge, 0),
 		counterInstruments:   make(map[string]*instrument.Float64Counter, 0),
 		histogramInstruments: make(map[string]*instrument.Float64Histogram, 0),
@@ -95,14 +100,14 @@ func (o *OTELSink) SetGaugeWithLabels(key []string, val float32, labels []gometr
 	k := o.flattenKey(key)
 
 	// Set value in global Gauge store.
-	globalGauges.Store(k, float64(val), toAttributes(labels))
+	o.gaugeStore.Store(k, float64(val), toAttributes(labels))
 
 	o.mutex.Lock()
 	defer o.mutex.Unlock()
 
 	// If instrument does not exist, create it and register callback to emit last value in global Gauge store.
 	if _, ok := o.gaugeInstruments[k]; !ok {
-		inst, err := (*o.meter).Float64ObservableGauge(k, instrument.WithFloat64Callback(gaugeCallback(k)))
+		inst, err := (*o.meter).Float64ObservableGauge(k, instrument.WithFloat64Callback(o.gaugeStore.gaugeCallback(k)))
 		if err != nil {
 			o.logger.Error("Failed to emit gauge: %w", err)
 			return
@@ -183,16 +188,4 @@ func toAttributes(labels []gometrics.Label) []attribute.KeyValue {
 	}
 
 	return attrs
-}
-
-// gaugeCallback returns a callback which gets called when metrics are collected for export.
-// the callback obtains the gauge value from the global gauges.
-func gaugeCallback(key string) instrument.Float64Callback {
-	// Closures keep a reference to the key string, that get garbage collected when code completes.
-	return func(_ context.Context, obs instrument.Float64Observer) error {
-		if gauge, ok := globalGauges.LoadAndDelete(key); ok {
-			obs.Observe(gauge.Value, gauge.Attributes...)
-		}
-		return nil
-	}
 }

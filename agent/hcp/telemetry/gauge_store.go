@@ -1,14 +1,12 @@
 package telemetry
 
 import (
+	"context"
 	"sync"
 
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/metric/instrument"
 )
-
-// Global store for Gauge values as workaround for async OpenTelemetry Gauge instrument.
-var once sync.Once
-var globalGauges *gaugeStore
 
 type gaugeStore struct {
 	store map[string]*gaugeValue
@@ -21,31 +19,11 @@ type gaugeValue struct {
 	Attributes []attribute.KeyValue
 }
 
-// initGaugeStore initializes the global gauge store.
-// initGaugeStore not thread-safe so it must only be init once.
-func initGaugeStore() {
-	// Avoid double initialization with sync.Once
-	once.Do(func() {
-		if globalGauges != nil {
-			return
-		}
-
-		globalGauges = &gaugeStore{
-			store: make(map[string]*gaugeValue, 0),
-			mutex: sync.Mutex{},
-		}
-	})
-}
-
 // LoadAndDelete will read a Gauge value and delete it.
 // Within the OTEL Gauge callbacks we must delete the value once we have read it
 // to ensure we only emit a Gauge value once, as the callbacks continue to execute every collection cycle.
 // The store must be initialized before using this method.
 func (g *gaugeStore) LoadAndDelete(key string) (*gaugeValue, bool) {
-	if g == nil {
-		return nil, false
-	}
-
 	g.mutex.Lock()
 	defer g.mutex.Unlock()
 
@@ -59,10 +37,6 @@ func (g *gaugeStore) LoadAndDelete(key string) (*gaugeValue, bool) {
 // Store adds a gaugeValue to the global gauge store.
 // The store must be initialized before using this method.
 func (g *gaugeStore) Store(key string, value float64, labels []attribute.KeyValue) {
-	if g == nil {
-		return
-	}
-
 	g.mutex.Lock()
 	defer g.mutex.Unlock()
 
@@ -72,4 +46,16 @@ func (g *gaugeStore) Store(key string, value float64, labels []attribute.KeyValu
 	}
 
 	g.store[key] = gv
+}
+
+// gaugeCallback returns a callback which gets called when metrics are collected for export.
+// the callback obtains the gauge value from the global gauges.
+func (g *gaugeStore) gaugeCallback(key string) instrument.Float64Callback {
+	// Closures keep a reference to the key string, that get garbage collected when code completes.
+	return func(_ context.Context, obs instrument.Float64Observer) error {
+		if gauge, ok := g.LoadAndDelete(key); ok {
+			obs.Observe(gauge.Value, gauge.Attributes...)
+		}
+		return nil
+	}
 }

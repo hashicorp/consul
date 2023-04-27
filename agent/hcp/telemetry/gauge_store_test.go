@@ -1,6 +1,7 @@
 package telemetry
 
 import (
+	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -8,7 +9,10 @@ import (
 )
 
 func TestGaugeStore(t *testing.T) {
-	initGaugeStore()
+	globalGauges := &gaugeStore{
+		store: make(map[string]*gaugeValue, 0),
+		mutex: sync.Mutex{},
+	}
 
 	attributes := []attribute.KeyValue{
 		{
@@ -37,26 +41,4 @@ func TestGaugeStore(t *testing.T) {
 	val, ok = globalGauges.LoadAndDelete("duplicate")
 	require.True(t, ok)
 	require.Equal(t, val.Value, float64(6.7))
-
-	// Reset store
-	globalGauges = nil
-}
-
-func TestGaugeStore_WithoutInit(t *testing.T) {
-	attributes := []attribute.KeyValue{
-		{
-			Key:   attribute.Key("test_key"),
-			Value: attribute.StringValue("test_value"),
-		},
-	}
-
-	// Should not store since store not init.
-	globalGauges.Store("test", float64(1.23), attributes)
-	val, ok := globalGauges.LoadAndDelete("test")
-
-	require.False(t, ok)
-	require.Nil(t, val)
-
-	// Reset store
-	globalGauges = nil
 }
