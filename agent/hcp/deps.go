@@ -34,12 +34,19 @@ func NewDeps(cfg config.CloudConfig, logger hclog.Logger) (d Deps, err error) {
 		return
 	}
 
-	// Make telemetry config request here to HCP.
-	// CCM errors should be ignored and not block HCP init.
+	d.Sink = setupSink(cfg, d.Client, logger)
+
+	return
+}
+
+// setupSink will initialize an OTELSink which sends Consul metrics to HCP
+// only if the server is registered with the management plane (CCM).
+// This step should not block server initialization, so errors are logged, but not returned.
+func setupSink(cfg config.CloudConfig, client hcpclient.Client, logger hclog.Logger) *telemetry.OTELSink {
 	ctx := context.Background()
-	url, telemetryErr := verifyCCMRegistration(ctx, d.Client)
-	if telemetryErr != nil {
-		return
+	url, err := verifyCCMRegistration(ctx, client)
+	if err != nil {
+		return nil
 	}
 
 	metricsClientOpts := &hcpclient.TelemetryClientCfg{
@@ -52,12 +59,13 @@ func NewDeps(cfg config.CloudConfig, logger hclog.Logger) (d Deps, err error) {
 		Logger: logger,
 	}
 
-	d.Sink, telemetryErr = initHCPSink(sinkOpts, metricsClientOpts, url)
-	if telemetryErr != nil {
-		logger.Error("Failed to init telemetry.")
+	sink, err := initHCPSink(sinkOpts, metricsClientOpts, url)
+	if err != nil {
+		logger.Error("Failed to init telemetry: %w", err)
+		return nil
 	}
 
-	return
+	return sink
 }
 
 func verifyCCMRegistration(ctx context.Context, client hcpclient.Client) (string, error) {
@@ -88,7 +96,6 @@ func verifyCCMRegistration(ctx context.Context, client hcpclient.Client) (string
 }
 
 func initHCPSink(sinkOpts *telemetry.OTELSinkOpts, clientCfg *hcpclient.TelemetryClientCfg, url string) (*telemetry.OTELSink, error) {
-	// If the above succeeds, the server is registered with CCM, init metrics sink.
 	metricsClient, err := hcpclient.NewMetricsClient(clientCfg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to init metrics client: %w", err)
