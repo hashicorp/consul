@@ -228,6 +228,7 @@ type Config struct {
 	SerfBindAddrWAN                  *string             `mapstructure:"serf_wan" json:"serf_wan,omitempty"`
 	ServerMode                       *bool               `mapstructure:"server" json:"server,omitempty"`
 	ServerName                       *string             `mapstructure:"server_name" json:"server_name,omitempty"`
+	ServerRejoinAgeMax               *string             `mapstructure:"server_rejoin_age_max" json:"server_rejoin_age_max,omitempty"`
 	Service                          *ServiceDefinition  `mapstructure:"service" json:"-"`
 	Services                         []ServiceDefinition `mapstructure:"services" json:"-"`
 	SessionTTLMin                    *string             `mapstructure:"session_ttl_min" json:"session_ttl_min,omitempty"`

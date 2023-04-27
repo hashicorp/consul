@@ -28,8 +28,6 @@ import (
 	"github.com/hashicorp/memberlist"
 	"golang.org/x/time/rate"
 
-	hcpconfig "github.com/hashicorp/consul/agent/hcp/config"
-
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/checks"
 	"github.com/hashicorp/consul/agent/connect/ca"
@@ -37,6 +35,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul/authmethod/ssoauth"
 	consulrate "github.com/hashicorp/consul/agent/consul/rate"
 	"github.com/hashicorp/consul/agent/dns"
+	hcpconfig "github.com/hashicorp/consul/agent/hcp/config"
 	"github.com/hashicorp/consul/agent/rpc/middleware"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
@@ -1090,6 +1089,7 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		ServerMode:                        serverMode,
 		ServerName:                        stringVal(c.ServerName),
 		ServerPort:                        serverPort,
+		ServerRejoinAgeMax:                b.durationValWithDefault("server_rejoin_age_max", c.ServerRejoinAgeMax, 24*7*time.Hour),
 		Services:                          services,
 		SessionTTLMin:                     b.durationVal("session_ttl_min", c.SessionTTLMin),
 		SkipLeaveOnInt:                    skipLeaveOnInt,
