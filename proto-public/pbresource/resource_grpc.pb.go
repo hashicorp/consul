@@ -34,6 +34,11 @@ type ResourceServiceClient interface {
 	// version in the Resource.Version field. If the given version doesn't match
 	// what is currently stored, an Aborted error code will be returned.
 	//
+	// To perform a blanket write (update regardless of the stored version),
+	// provide an empty Version in the Resource.Version field. Note that the
+	// write may still fail due to not being able to internally do a CAS write
+	// and return an Aborted error code.
+	//
 	// Resource.Id.Uid can (and by controllers, should) be provided to avoid
 	// accidentally modifying a resource if it has been deleted and recreated.
 	// If the given Uid doesn't match what is stored, a FailedPrecondition error
@@ -192,6 +197,11 @@ type ResourceServiceServer interface {
 	// To perform a CAS (Compare-And-Swap) write, provide the current resource
 	// version in the Resource.Version field. If the given version doesn't match
 	// what is currently stored, an Aborted error code will be returned.
+	//
+	// To perform a blanket write (update regardless of the stored version),
+	// provide an empty Version in the Resource.Version field. Note that the
+	// write may still fail due to not being able to internally do a CAS write
+	// and return an Aborted error code.
 	//
 	// Resource.Id.Uid can (and by controllers, should) be provided to avoid
 	// accidentally modifying a resource if it has been deleted and recreated.
