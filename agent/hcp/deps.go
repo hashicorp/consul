@@ -35,9 +35,10 @@ func NewDeps(cfg config.CloudConfig, logger hclog.Logger) (d Deps, err error) {
 	}
 
 	// Make telemetry config request here to HCP.
+	// CCM errors should be ignored and not block HCP init.
 	ctx := context.Background()
-	url, err := verifyCCMRegistration(ctx, d.Client)
-	if err != nil {
+	url, telemetryErr := verifyCCMRegistration(ctx, d.Client)
+	if telemetryErr != nil {
 		return
 	}
 
@@ -51,7 +52,10 @@ func NewDeps(cfg config.CloudConfig, logger hclog.Logger) (d Deps, err error) {
 		Logger: logger,
 	}
 
-	d.Sink, err = initHCPSink(sinkOpts, metricsClientOpts, url)
+	d.Sink, telemetryErr = initHCPSink(sinkOpts, metricsClientOpts, url)
+	if telemetryErr != nil {
+		logger.Error("Failed to init telemetry.")
+	}
 
 	return
 }
