@@ -22,10 +22,8 @@ type Limiter[T ItemType] interface {
 	Forget(request T)
 }
 
-var _ Limiter[string] = &ratelimiter[string]{}
-
 type ratelimiter[T ItemType] struct {
-	failures map[T]int
+	failures map[string]int
 	base     time.Duration
 	max      time.Duration
 	mutex    sync.RWMutex
@@ -35,7 +33,7 @@ type ratelimiter[T ItemType] struct {
 // backoff.
 func NewRateLimiter[T ItemType](base, max time.Duration) Limiter[T] {
 	return &ratelimiter[T]{
-		failures: make(map[T]int),
+		failures: make(map[string]int),
 		base:     base,
 		max:      max,
 	}
@@ -47,8 +45,8 @@ func (r *ratelimiter[T]) NextRetry(request T) time.Duration {
 	r.mutex.RLock()
 	defer r.mutex.RUnlock()
 
-	exponent := r.failures[request]
-	r.failures[request] = r.failures[request] + 1
+	exponent := r.failures[request.Key()]
+	r.failures[request.Key()] = r.failures[request.Key()] + 1
 
 	backoff := float64(r.base.Nanoseconds()) * math.Pow(2, float64(exponent))
 	// make sure we don't overflow time.Duration
@@ -69,5 +67,5 @@ func (r *ratelimiter[T]) Forget(request T) {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
-	delete(r.failures, request)
+	delete(r.failures, request.Key())
 }

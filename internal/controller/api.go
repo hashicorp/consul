@@ -127,6 +127,19 @@ type Request struct {
 	ID *pbresource.ID
 }
 
+// Key satisfies the queue.ItemType interface. It returns a string which will be
+// used to de-duplicate requests in the queue.
+func (r Request) Key() string {
+	return fmt.Sprintf(
+		"part=%q,peer=%q,ns=%q,name=%q,uid=%q",
+		r.ID.Tenancy.Partition,
+		r.ID.Tenancy.PeerName,
+		r.ID.Tenancy.Namespace,
+		r.ID.Name,
+		r.ID.Uid,
+	)
+}
+
 // Runtime contains the dependencies required by reconcilers.
 type Runtime struct {
 	Client pbresource.ResourceServiceClient
