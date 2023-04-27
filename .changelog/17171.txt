@@ -1,0 +1,3 @@
+```release-note:improvement
+agent: prevent very old servers re-joining a cluster with stale data 
+```
