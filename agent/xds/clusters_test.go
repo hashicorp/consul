@@ -9,6 +9,7 @@ import (
 	"sort"
 	"testing"
 	"text/template"
+	"time"
 
 	envoy_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	"github.com/hashicorp/consul/agent/xds/testcommon"
@@ -270,7 +271,9 @@ func TestClustersFromSnapshot(t *testing.T) {
 					ns.Proxy.Upstreams[0].Config["passive_health_check"] = map[string]interface{}{
 						"enforcing_consecutive_5xx": float64(80),
 						"max_failures":              float64(5),
-						"interval":                  float64(10),
+						"interval":                  float64(10 * time.Second),
+						"max_ejection_percent":      float64(100),
+						"base_ejection_time":        float64(10 * time.Second),
 					}
 				}, nil)
 			},
