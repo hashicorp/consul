@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -45,12 +46,13 @@ import (
 	grpcDNS "github.com/hashicorp/consul/agent/grpc-external/services/dns"
 	middleware "github.com/hashicorp/consul/agent/grpc-middleware"
 	"github.com/hashicorp/consul/agent/hcp/scada"
-	libscada "github.com/hashicorp/consul/agent/hcp/scada"
 	"github.com/hashicorp/consul/agent/local"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	proxycfgglue "github.com/hashicorp/consul/agent/proxycfg-glue"
 	catalogproxycfg "github.com/hashicorp/consul/agent/proxycfg-sources/catalog"
 	localproxycfg "github.com/hashicorp/consul/agent/proxycfg-sources/local"
+	"github.com/hashicorp/consul/agent/rpcclient"
+	"github.com/hashicorp/consul/agent/rpcclient/configentry"
 	"github.com/hashicorp/consul/agent/rpcclient/health"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/systemd"
@@ -100,6 +102,9 @@ const (
 	// defaultQueryTime is the amount of time we block waiting for a change
 	// if no time is specified. Previously we would wait the maxQueryTime.
 	defaultQueryTime = 300 * time.Second
+
+	// Name of the file to store a server's last seen timestamp.
+	lastSeenFile = "lastseen"
 )
 
 var (
@@ -553,11 +558,11 @@ func (a *Agent) Start(ctx context.Context) error {
 		return err
 	}
 
-	// copy over the existing node id, this cannot be
-	// changed while running anyways but this prevents
-	// breaking some existing behavior. then overwrite
-	// the configuration
+	// Copy over the existing node id. This cannot be
+	// changed while running, but this prevents
+	// breaking some existing behavior.
 	c.NodeID = a.config.NodeID
+	// Overwrite the configuration.
 	a.config = c
 
 	if err := a.tlsConfigurator.Update(a.config.TLS); err != nil {
@@ -603,6 +608,12 @@ func (a *Agent) Start(ctx context.Context) error {
 	if c.ServerMode {
 		serverLogger := a.baseDeps.Logger.NamedIntercept(logging.ConsulServer)
 
+		// TODO: maybe this is called too early?
+		if err := a.checkServerLastSeen(); err != nil {
+			// TODO: log a  bunch of times first?
+			return err
+		}
+
 		incomingRPCLimiter := consul.ConfiguredIncomingRPCLimiter(
 			&lib.StopChannelContext{StopCh: a.shutdownCh},
 			serverLogger,
@@ -639,7 +650,6 @@ func (a *Agent) Start(ctx context.Context) error {
 				return fmt.Errorf("failed to start server cert manager: %w", err)
 			}
 		}
-
 	} else {
 		a.externalGRPCServer = external.NewServer(
 			a.logger.Named("grpc.external"),
@@ -729,6 +739,10 @@ func (a *Agent) Start(ctx context.Context) error {
 			ResyncFrequency: a.config.LocalProxyConfigResyncInterval,
 		},
 	)
+
+	// Start writing lastseen timestamps to file in order to age on next startup.
+	// TODO: maybe we should do this earlier above in the "if c.ServerMode" block?
+	go a.persistServerLastSeen()
 
 	// Start watching for critical services to deregister, based on their
 	// checks.
@@ -1072,7 +1086,7 @@ func (a *Agent) listenHTTP() ([]apiServer, error) {
 				MaxHeaderBytes: a.config.HTTPMaxHeaderBytes,
 			}
 
-			if libscada.IsCapability(l.Addr()) {
+			if scada.IsCapability(l.Addr()) {
 				// wrap in http2 server handler
 				httpServer.Handler = h2c.NewHandler(srv.handler(a.config.EnableDebug), &http2.Server{})
 			}
@@ -4508,7 +4522,59 @@ func (a *Agent) proxyDataSources() proxycfg.DataSources {
 
 	a.fillEnterpriseProxyDataSources(&sources)
 	return sources
+}
 
+func (a *Agent) persistServerLastSeen() {
+	file := filepath.Join(a.config.DataDir, lastSeenFile)
+
+	// Create a timer with no initial tick to allow the timestamp to be written immediately.
+	t := time.NewTimer(0)
+	defer t.Stop()
+
+	for {
+		select {
+		case <-t.C:
+			// Reset the timer to the larger periodic interval.
+			t.Reset(1 * time.Hour)
+
+			// TODO: should we do this properly using binary encoding?
+			now := strconv.FormatInt(time.Now().Unix(), 10)
+
+			if err := os.WriteFile(file, []byte(now), 0600); err != nil {
+				// TODO: should we exit if this has happened too many times?
+				a.logger.Error("failed to write lastseen timestamp: %w", err)
+			}
+		case <-a.shutdownCh:
+			return
+		}
+	}
+}
+
+func (a *Agent) checkServerLastSeen() error {
+	file := filepath.Join(a.config.DataDir, lastSeenFile)
+
+	// Check if the lastseen timestampd file exists, and return early if it doesn't
+	// as this indicates the server is starting for the first time.
+	if _, err := os.Stat(file); errors.Is(err, os.ErrNotExist) {
+		return nil
+	}
+
+	// Read timestamp from lastseen file.
+	b, err := os.ReadFile(file)
+	if err != nil {
+		return fmt.Errorf("error reading server lastseen timestamp: %w", err)
+	}
+
+	// TODO: again, we probably want to do this more efficiently using binary encoding.
+	i, _ := strconv.Atoi(string(b))
+	lastseen := time.Unix(int64(i), 0)
+	maxAge := time.Now().Add(-a.config.ServerRejoinAgeTTL)
+
+	if lastseen.Before(maxAge) {
+		return fmt.Errorf("server has not been seen for at least %d, will not rejoin", a.config.ServerRejoinAgeTTL)
+	}
+
+	return nil
 }
 
 func listenerPortKey(svcID structs.ServiceID, checkID structs.CheckID) string {
