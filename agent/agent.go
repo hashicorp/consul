@@ -4553,10 +4553,10 @@ func (a *Agent) persistServerLastSeen() {
 	}
 }
 
-// checkServerLastSeen is a safety check for preventing old servers from rejoining a cluster.
+// checkServerLastSeen is a safety check for preventing old servers from rejoining an existing cluster.
 //
 // It attempts to read a server's last seen file and check the Unix timestamp against a
-// confiruable max age. If the last seen file does not exist, we treat this as an initial startup
+// configurable max age. If the last seen file does not exist, we treat this as an initial startup
 // and return no error.
 //
 // Example: if the server recorded a last seen timestamp of now-7d, and we configure a max age
