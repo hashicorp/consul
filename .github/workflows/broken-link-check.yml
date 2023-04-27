@@ -12,11 +12,11 @@ jobs:
   linkChecker:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
 
       - name: Run lychee link checker
         id: lychee
-        uses: lycheeverse/lychee-action@v1.6.1
+        uses: lycheeverse/lychee-action@v1.6.1 # TSCCR: no entry for repository "lycheeverse/lychee-action"
         with:
           args: ./website/content/docs/ --base https://developer.hashicorp.com/ --exclude-all-private --exclude '\.(svg|gif|jpg|png)' --exclude 'manage\.auth0\.com' --accept 403 --max-concurrency=24 --no-progress --verbose
           # Fail GitHub action when broken links are found?
@@ -26,7 +26,7 @@ jobs:
 
       - name: Create GitHub Issue From lychee output file
         if: env.lychee_exit_code != 0
-        uses: peter-evans/create-issue-from-file@v4
+        uses: peter-evans/create-issue-from-file@v4 # TSCCR: no entry for repository "peter-evans/create-issue-from-file"
         with:
           title: Link Checker Report
           content-filepath: ./lychee/out.md
