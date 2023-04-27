@@ -102,9 +102,10 @@ func (c *cmd) Run(args []string) int {
 
 	c.UI.Info(fmt.Sprintf("Config entry written: %s/%s", entry.GetKind(), entry.GetName()))
 
-	if msg := config.KindSpecificWarning(entry); msg != "" {
+	if msg := config.KindSpecificWriteWarning(entry); msg != "" {
 		c.UI.Warn("WARNING: " + msg)
 	}
+
 	return 0
 }
 

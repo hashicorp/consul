@@ -14,6 +14,7 @@ import (
 
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/command/config"
 	"github.com/hashicorp/consul/sdk/testutil"
 )
 
@@ -182,37 +183,89 @@ func TestConfigWrite_Warning(t *testing.T) {
 	defer a.Shutdown()
 	client := a.Client()
 
-	_, _, err := client.ConfigEntries().Set(&api.MeshConfigEntry{
-		AllowEnablingPermissiveMutualTLS: true,
-	}, nil)
-	require.NoError(t, err)
-
-	f := testutil.TempFile(t, "config-write-proxy-defaults.hcl")
-	_, err = f.WriteString(`
-    Kind = "proxy-defaults"
-    Name = "global"
-	MutualTLSMode = "permissive"
-	`)
-	require.NoError(t, err)
-
-	args := []string{
-		"-http-addr=" + a.HTTPAddr(),
-		f.Name(),
+	cases := map[string]struct {
+		entry   string
+		warning string
+	}{
+		"service-defaults no warning": {
+			entry: `
+				Kind = "service-defaults"
+				Name = "web"
+				MutualTLSMode = "strict"
+			`,
+		},
+		"proxy-defaults no warning": {
+			entry: `
+				Kind = "proxy-defaults"
+				Name = "global"
+				MutualTLSMode = "strict"
+			`,
+		},
+		"mesh config entry no warning": {
+			entry: `
+				Kind = "mesh"
+				AllowEnablingPermissiveMutualTLS = false
+			`,
+		},
+		"service-defaults warning on MutualTLSMode=permissive": {
+			entry: `
+				Kind = "service-defaults"
+				Name = "web"
+				MutualTLSMode = "permissive"
+			`,
+			warning: config.WarningServiceDefaultsPermissiveMTLS,
+		},
+		"proxy-defaults warning on MutualTLSMode=permissive": {
+			entry: `
+				Kind = "proxy-defaults"
+				Name = "global"
+				MutualTLSMode = "permissive"
+			`,
+			warning: config.WarningProxyDefaultsPermissiveMTLS,
+		},
+		"mesh config entry warning on AllowEnablingPermissiveMutualTLS=true": {
+			entry: `
+				Kind = "mesh"
+				AllowEnablingPermissiveMutualTLS = true
+			`,
+			warning: config.WarningMeshAllowEnablingPermissiveMutualTLS,
+		},
 	}
+	for name, c := range cases {
+		c := c
+		t.Run(name, func(t *testing.T) {
+			// Always reset this setting to avoid causing validation errors.
+			_, _, err := client.ConfigEntries().Set(&api.MeshConfigEntry{
+				AllowEnablingPermissiveMutualTLS: true,
+			}, nil)
+			require.NoError(t, err)
 
-	ui := cli.NewMockUi()
-	c := New(ui)
-	code := c.Run(args)
-	require.Equal(t, 0, code)
+			f := testutil.TempFile(t, "config-write-warning-*.hcl")
+			t.Logf("filename = %s", f.Name())
+			t.Logf("content =\n%s", c.entry)
 
-	errMsg := ui.ErrorWriter.String()
-	require.Contains(t, errMsg, "WARNING: Found MutualTLSMode=permissive.")
-	require.Contains(t, errMsg, "Setting this mode in proxy-defaults enables"+
-		" this insecure mode by default for all services.")
+			_, err = f.WriteString(c.entry)
+			require.NoError(t, err)
 
-	require.Contains(t, ui.OutputWriter.String(),
-		`Config entry written: proxy-defaults/global`)
-	require.Equal(t, 0, code)
+			ui := cli.NewMockUi()
+			code := New(ui).Run([]string{
+				"-http-addr=" + a.HTTPAddr(),
+				f.Name(),
+			})
+
+			t.Logf("output = %s", ui.OutputWriter.String())
+			t.Logf("err = %s", ui.ErrorWriter.String())
+			require.Equal(t, 0, code)
+			require.Contains(t, ui.OutputWriter.String(), `Config entry written`)
+
+			errMsg := ui.ErrorWriter.String()
+			if c.warning != "" {
+				require.Contains(t, errMsg, c.warning)
+			} else {
+				require.Empty(t, errMsg)
+			}
+		})
+	}
 }
 
 func requireContainsLower(t *testing.T, haystack, needle string) {

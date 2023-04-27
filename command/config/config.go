@@ -4,8 +4,6 @@
 package config
 
 import (
-	"fmt"
-
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/flags"
 	"github.com/mitchellh/cli"
@@ -56,53 +54,49 @@ Usage: consul config <subcommand> [options] [args]
   For more examples, ask for subcommand help or view the documentation.
 `
 
-// KindSpecificWarning returns a warning message for the given config entry.
-// Use this to inform the user of (un)recommended settings when they read or
-// write config entries with the CLI.
-func KindSpecificWarning(entry api.ConfigEntry) string {
-	switch e := entry.(type) {
+const (
+	// TODO(pglass): These warnings can go away when the UI provides visibility into
+	// permissive mTLS settings (expected 1.17).
+	WarningServiceDefaultsPermissiveMTLS = "MutualTLSMode=permissive is insecure. " +
+		"Set to `strict` once your service no longer needs to accept incoming non-mTLS " +
+		"traffic. Check the `tcp.permissive_public_listener` metrics in Envoy for " +
+		"non-mTLS traffic. Refer to the Consul documentation for more."
+
+	WarningProxyDefaultsPermissiveMTLS = "MutualTLSMode=permissive is insecure. " +
+		"To keep your services secure, set MutualTLSMode to strict whenever possible " +
+		"and override with service-defaults only if necessary. To check which " +
+		"service-defaults are currently in permissive mode, run `consul config list " +
+		"-kind service-defaults -filter 'MutualTLSMode = \"permissive\"'`."
+
+	WarningMeshAllowEnablingPermissiveMutualTLS = "AllowEnablingPermissiveMutualTLS=true " +
+		"allows the insecure MutualTLSMode=permissive option in the proxy-defaults and " +
+		"service-defaults config entries. You can set AllowEnablingPermissiveMutualTLS=false " +
+		"at any time to disallow additional permissive configurations. To list services in " +
+		"permissive mode, run " +
+		"`consul config list -kind service-defaults -filter 'MutualTLSMode = \"permissive\"'`."
+)
+
+// KindSpecificWriteWarning returns a warning message for the given config
+// entry write. Use this to inform the user of (un)recommended settings when
+// they read or write config entries with the CLI.
+//
+// Do not return a warning on default/zero values. Because the config
+// entry is parsed, we cannot distinguish between an absent field in the
+// user-provided content and a zero value, which means
+func KindSpecificWriteWarning(reqEntry api.ConfigEntry) string {
+	switch req := reqEntry.(type) {
 	case *api.ServiceConfigEntry:
-		if e.MutualTLSMode == api.MutualTLSModePermissive {
-			return "Found MutualTLSMode=permissive. This mode is insecure." +
-				" We recommend transitioning this to MutualTLSMode=strict."
+		if req.MutualTLSMode == api.MutualTLSModePermissive {
+			return WarningServiceDefaultsPermissiveMTLS
 		}
 	case *api.ProxyConfigEntry:
-		if e.MutualTLSMode == api.MutualTLSModePermissive {
-			return "Found MutualTLSMode=permissive. This mode is insecure." +
-				" Setting this mode in proxy-defaults enables this insecure mode by default for all services." +
-				" We recommend setting this to MutualTLSMode=strict."
+		if req.MutualTLSMode == api.MutualTLSModePermissive {
+			return WarningProxyDefaultsPermissiveMTLS
+		}
+	case *api.MeshConfigEntry:
+		if req.AllowEnablingPermissiveMutualTLS == true {
+			return WarningMeshAllowEnablingPermissiveMutualTLS
 		}
 	}
 	return ""
-}
-
-// KindSpecificWarnings returns warning messages for the given config entries.
-// Use this to inform the user of (un)recommended settings when they list
-// config entries with the CLI.
-//
-// When updating this, prefer to squash warnings down into fewer messages to
-// avoid flooding the user with noisey warnings.
-func KindSpecificWarnings(entries []api.ConfigEntry) []string {
-	var result []string
-	servicesInPermissiveMTLS := 0
-	for _, entry := range entries {
-		switch e := entry.(type) {
-		case *api.ServiceConfigEntry:
-			if e.MutualTLSMode == api.MutualTLSModePermissive {
-				servicesInPermissiveMTLS++
-			}
-		case *api.ProxyConfigEntry:
-			if msg := KindSpecificWarning(e); msg != "" {
-				result = append(result, fmt.Sprintf("%s/%s: %s", e.GetKind(), e.GetName(), msg))
-			}
-		}
-	}
-
-	if servicesInPermissiveMTLS > 0 {
-		msg := "Found %d service-default(s) with MutualTLSMode=permissive." +
-			" Use `-filter 'MutualTLSMode == \"permissive\"'` to list service-defaults in permissive MutualTLSMode." +
-			" This mode is insecure. We recommend setting this to MutualTLSMode=strict."
-		result = append(result, fmt.Sprintf(msg, servicesInPermissiveMTLS))
-	}
-	return result
 }

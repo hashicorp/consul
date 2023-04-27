@@ -8,7 +8,6 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/command/config"
 	"github.com/hashicorp/consul/command/flags"
 	"github.com/mitchellh/cli"
 )
@@ -66,9 +65,6 @@ func (c *cmd) Run(args []string) int {
 
 	for _, entry := range entries {
 		c.UI.Info(entry.GetName())
-	}
-	for _, msg := range config.KindSpecificWarnings(entries) {
-		c.UI.Warn("WARNING: " + msg)
 	}
 	return 0
 }
