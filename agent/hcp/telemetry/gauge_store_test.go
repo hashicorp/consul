@@ -28,6 +28,7 @@ func TestGaugeStore(t *testing.T) {
 	// Gauge with key "test" have been deleted.
 	val, ok = globalGauges.LoadAndDelete("test")
 	require.False(t, ok)
+	require.Nil(t, val)
 
 	globalGauges.Store("duplicate", float64(1.5), nil)
 	globalGauges.Store("duplicate", float64(6.7), nil)

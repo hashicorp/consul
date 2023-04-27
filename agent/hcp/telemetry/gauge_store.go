@@ -67,7 +67,7 @@ func (g *gaugeStore) Store(key string, value float64, labels []attribute.KeyValu
 	defer g.mutex.Unlock()
 
 	gv := &gaugeValue{
-		Value:      float64(value),
+		Value:      value,
 		Attributes: labels,
 	}
 
