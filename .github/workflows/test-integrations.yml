@@ -307,7 +307,6 @@ jobs:
     needs:
       - setup
       - dev-build
-      - generate-upgrade-job-matrices
     strategy:
       fail-fast: false
       matrix:
