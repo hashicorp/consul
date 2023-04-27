@@ -9,7 +9,6 @@ import (
 	"github.com/hashicorp/consul/agent/consul/discoverychain"
 	"net"
 	"sort"
-	"strconv"
 	"strings"
 	"time"
 
@@ -440,11 +439,7 @@ func (s *ResourceGenerator) routesForAPIGateway(cfgSnap *proxycfg.ConfigSnapshot
 			continue
 		}
 
-		//boundListenerCfg := readyUpstreams.boundListenerCfg
 		routeRef := readyUpstreams.routeReference
-
-		//boundListenerCfg := readyUpstreams.boundListenerCfg
-
 		listenerKey := readyUpstreams.listenerKey
 
 		// Depending on their TLS config, upstreams are either attached to the
@@ -476,7 +471,7 @@ func (s *ResourceGenerator) routesForAPIGateway(cfgSnap *proxycfg.ConfigSnapshot
 			for _, flattenedRoute := range flattenedRoutes {
 				//dereference the loop pointer for luck
 				flattenedRoute := flattenedRoute
-				////reconstruct upstream
+				//reconstruct upstream
 				//upstream := discoverychain.RebuildHTTPRouteUpstream(flattenedRoute, listenerCfg)
 				//uid := proxycfg.NewUpstreamID(&upstream)
 				//fmt.Println(upstream.DestinationName)
@@ -494,6 +489,22 @@ func (s *ResourceGenerator) routesForAPIGateway(cfgSnap *proxycfg.ConfigSnapshot
 					return nil, err
 				}
 
+				routeName := defaultRoute.Name // TODO Consider what the correct default is
+				// TODO What is the equivalent of routeNameForUpstream for API Gateway?
+				//   In certain cases, the service name is not included in the route name. We're
+				//   including the service name here when we shouldn't currently.
+				if !(len(readyUpstreams.listenerCfg.TLS.Certificates) > 0){
+					for _, serviceName := range flattenedRoute.GetServiceNames() {
+						// Find the service that matches this upstream
+						serviceUpstreamID := proxycfg.NewUpstreamIDFromServiceName(serviceName)
+						if serviceUpstreamID != uid {
+							continue
+						}
+
+						routeName = fmt.Sprintf("%s_%s", listenerKey.RouteName(), serviceName.Name)
+					}
+				}
+
 				// If the routeName is the same as the default one, merge the virtual host
 				// to the default route
 				if flattenedRoute.Name == defaultRoute.Name {
@@ -501,7 +512,7 @@ func (s *ResourceGenerator) routesForAPIGateway(cfgSnap *proxycfg.ConfigSnapshot
 				} else {
 					svcRoute := &envoy_route_v3.RouteConfiguration{
 						//TODO this makes it pass the unit test but is it correct?
-						Name:             strconv.Itoa(listenerCfg.Port),
+						Name:             routeName,
 						ValidateClusters: makeBoolValue(true),
 						VirtualHosts:     []*envoy_route_v3.VirtualHost{virtualHost},
 					}
