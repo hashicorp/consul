@@ -4553,7 +4553,7 @@ func (a *Agent) persistServerLastSeen() {
 func (a *Agent) checkServerLastSeen() error {
 	file := filepath.Join(a.config.DataDir, lastSeenFile)
 
-	// Check if the lastseen timestampd file exists, and return early if it doesn't
+	// Check if the lastseen timestamp file exists, and return early if it doesn't
 	// as this indicates the server is starting for the first time.
 	if _, err := os.Stat(file); errors.Is(err, os.ErrNotExist) {
 		return nil
@@ -4568,10 +4568,10 @@ func (a *Agent) checkServerLastSeen() error {
 	// TODO: again, we probably want to do this more efficiently using binary encoding.
 	i, _ := strconv.Atoi(string(b))
 	lastseen := time.Unix(int64(i), 0)
-	maxAge := time.Now().Add(-a.config.ServerRejoinAgeTTL)
+	maxAge := time.Now().Add(-a.config.ServerRejoinAgeMax)
 
 	if lastseen.Before(maxAge) {
-		return fmt.Errorf("server has not been seen for at least %d, will not rejoin", a.config.ServerRejoinAgeTTL)
+		return fmt.Errorf("server has not been seen for at least %d, will not rejoin", a.config.ServerRejoinAgeMax)
 	}
 
 	return nil
