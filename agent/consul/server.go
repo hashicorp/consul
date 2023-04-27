@@ -60,6 +60,7 @@ import (
 	agentgrpc "github.com/hashicorp/consul/agent/grpc-internal"
 	"github.com/hashicorp/consul/agent/grpc-internal/services/subscribe"
 	"github.com/hashicorp/consul/agent/hcp"
+	hcpclient "github.com/hashicorp/consul/agent/hcp/client"
 	logdrop "github.com/hashicorp/consul/agent/log-drop"
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/pool"
@@ -2027,7 +2028,7 @@ func (s *Server) trackLeaderChanges() {
 // hcpServerStatus is the callback used by the HCP manager to emit status updates to the HashiCorp Cloud Platform when
 // enabled.
 func (s *Server) hcpServerStatus(deps Deps) hcp.StatusCallback {
-	return func(ctx context.Context) (status hcp.ServerStatus, err error) {
+	return func(ctx context.Context) (status hcpclient.ServerStatus, err error) {
 		status.Name = s.config.NodeName
 		status.ID = string(s.config.NodeID)
 		status.Version = cslversion.GetHumanVersion()
