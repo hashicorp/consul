@@ -329,7 +329,7 @@ func newContainerRequest(config Config, opts containerOpts) (podRequest, consulR
 	// TODO: optimize the wait strategy
 	app := testcontainers.ContainerRequest{
 		NetworkMode: dockercontainer.NetworkMode("container:" + opts.name + "-pod"),
-		Image:       config.Image + ":" + config.Version,
+		Image:       utils.DockerImage(config.Image, config.Version),
 		WaitingFor:  wait.ForLog(bootLogLine).WithStartupTimeout(60 * time.Second), // See note above
 		AutoRemove:  false,
 		Name:        opts.name,

@@ -22,10 +22,10 @@ func TestTargetServersWithLatestGAClients(t *testing.T) {
 		numClients = 1
 	)
 
-	cluster := serversCluster(t, numServers, *utils.TargetVersion, *utils.TargetImage)
+	cluster := serversCluster(t, numServers, utils.TargetVersion, utils.TargetImage)
 	defer terminate(t, cluster)
 
-	clients := clientsCreate(t, numClients, *utils.LatestImage, *utils.LatestVersion, cluster)
+	clients := clientsCreate(t, numClients, utils.LatestImage, utils.LatestVersion, cluster)
 
 	require.NoError(t, cluster.Join(clients))
 
@@ -94,8 +94,8 @@ func TestMixedServersMajorityLatestGAClient(t *testing.T) {
 			libagent.Config{
 				JSON:    serverConf,
 				Cmd:     []string{"agent"},
-				Version: *utils.LatestVersion,
-				Image:   *utils.LatestImage,
+				Version: utils.LatestVersion,
+				Image:   utils.LatestImage,
 			})
 	}
 
@@ -107,7 +107,7 @@ func TestMixedServersMajorityLatestGAClient(t *testing.T) {
 		numClients = 1
 	)
 
-	clients := clientsCreate(t, numClients, *utils.LatestImage, *utils.LatestVersion, cluster)
+	clients := clientsCreate(t, numClients, utils.LatestImage, utils.LatestVersion, cluster)
 
 	require.NoError(t, cluster.Join(clients))
 
@@ -172,8 +172,8 @@ func TestMixedServersMajorityTargetGAClient(t *testing.T) {
 		libagent.Config{
 			JSON:    leaderConf,
 			Cmd:     []string{"agent"},
-			Version: *utils.LatestVersion,
-			Image:   *utils.LatestImage,
+			Version: utils.LatestVersion,
+			Image:   utils.LatestImage,
 		})
 
 	cluster, err := libcluster.New(configs)
@@ -184,7 +184,7 @@ func TestMixedServersMajorityTargetGAClient(t *testing.T) {
 		numClients = 1
 	)
 
-	clients := clientsCreate(t, numClients, *utils.LatestImage, *utils.LatestVersion, cluster)
+	clients := clientsCreate(t, numClients, utils.LatestImage, utils.LatestVersion, cluster)
 
 	require.NoError(t, cluster.Join(clients))
 
