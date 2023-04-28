@@ -58,22 +58,22 @@ const (
 	// TODO(pglass): These warnings can go away when the UI provides visibility into
 	// permissive mTLS settings (expected 1.17).
 	WarningServiceDefaultsPermissiveMTLS = "MutualTLSMode=permissive is insecure. " +
-		"Set to `strict` once your service no longer needs to accept incoming non-mTLS " +
-		"traffic. Check the `tcp.permissive_public_listener` metrics in Envoy for " +
-		"non-mTLS traffic. Refer to the Consul documentation for more."
+		"Set to `strict` when your service no longer needs to accept non-mTLS " +
+		"traffic. Check `tcp.permissive_public_listener` metrics in Envoy for " +
+		"non-mTLS traffic. Refer to Consul documentation for more."
 
 	WarningProxyDefaultsPermissiveMTLS = "MutualTLSMode=permissive is insecure. " +
-		"To keep your services secure, set MutualTLSMode to strict whenever possible " +
+		"To keep your services secure, set MutualTLSMode to `strict` whenever possible " +
 		"and override with service-defaults only if necessary. To check which " +
 		"service-defaults are currently in permissive mode, run `consul config list " +
 		"-kind service-defaults -filter 'MutualTLSMode = \"permissive\"'`."
 
 	WarningMeshAllowEnablingPermissiveMutualTLS = "AllowEnablingPermissiveMutualTLS=true " +
-		"allows the insecure MutualTLSMode=permissive option in the proxy-defaults and " +
-		"service-defaults config entries. You can set AllowEnablingPermissiveMutualTLS=false " +
-		"at any time to disallow additional permissive configurations. To list services in " +
-		"permissive mode, run " +
-		"`consul config list -kind service-defaults -filter 'MutualTLSMode = \"permissive\"'`."
+		"allows insecure MutualTLSMode=permissive configurations in the proxy-defaults " +
+		"and service-defaults config entries. You can set " +
+		"AllowEnablingPermissiveMutualTLS=false at any time to disallow additional " +
+		"permissive configurations. To list services in permissive mode, run `consul " +
+		"config list -kind service-defaults -filter 'MutualTLSMode = \"permissive\"'`"
 )
 
 // KindSpecificWriteWarning returns a warning message for the given config

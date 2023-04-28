@@ -241,9 +241,6 @@ func TestConfigWrite_Warning(t *testing.T) {
 			require.NoError(t, err)
 
 			f := testutil.TempFile(t, "config-write-warning-*.hcl")
-			t.Logf("filename = %s", f.Name())
-			t.Logf("content =\n%s", c.entry)
-
 			_, err = f.WriteString(c.entry)
 			require.NoError(t, err)
 
@@ -253,8 +250,6 @@ func TestConfigWrite_Warning(t *testing.T) {
 				f.Name(),
 			})
 
-			t.Logf("output = %s", ui.OutputWriter.String())
-			t.Logf("err = %s", ui.ErrorWriter.String())
 			require.Equal(t, 0, code)
 			require.Contains(t, ui.OutputWriter.String(), `Config entry written`)
 
