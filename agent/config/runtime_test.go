@@ -7094,7 +7094,8 @@ func TestRuntimeConfig_Sanitize(t *testing.T) {
 				},
 			},
 		},
-		Locality: &Locality{Region: strPtr("us-west-1"), Zone: strPtr("us-west-1a")},
+		Locality:           &Locality{Region: strPtr("us-west-1"), Zone: strPtr("us-west-1a")},
+		ServerRejoinAgeMax: time.Duration(168 * time.Hour),
 	}
 
 	b, err := json.MarshalIndent(rt.Sanitized(), "", "    ")
