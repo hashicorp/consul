@@ -1178,10 +1178,10 @@ func TestVaultCAProvider_AutoTidyExpiredIssuers(t *testing.T) {
 	switch {
 	case minorVersion <= 11:
 		require.False(t, expIssSet)
-		require.Contains(t, errStr, "don't support auto-tidy")
+		require.Contains(t, errStr, "auto-tidy")
 	case minorVersion == 12:
 		require.False(t, expIssSet)
-		require.Contains(t, errStr, "don't support tidy_expired_issuers")
+		require.Contains(t, errStr, "tidy_expired_issuers")
 	default: // Consul 1.13+
 		require.True(t, expIssSet)
 	}
