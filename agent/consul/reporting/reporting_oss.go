@@ -3,6 +3,10 @@
 
 package reporting
 
+import (
+	"context"
+)
+
 type EntDeps struct{}
 
 func (rm *ReportingManager) initEnterpriseReporting(entDeps EntDeps) error {
@@ -18,4 +22,8 @@ func (rm *ReportingManager) StartReportingAgent() error {
 func (rm *ReportingManager) StopReportingAgent() error {
 	// no op
 	return nil
+}
+
+func (m *ReportingManager) Run(ctx context.Context) {
+	// no op
 }
