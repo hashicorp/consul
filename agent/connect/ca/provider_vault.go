@@ -880,7 +880,7 @@ func (v *VaultProvider) autotidyIssuers(path string) (bool, string) {
 		case strings.Contains(errStr, "404"):
 			errStr = "vault versions < 1.12 don't support auto-tidy"
 		case strings.Contains(errStr, "400"):
-			errStr = "vault versions < 1.13 don't support tidy_expired_issuers"
+			errStr = "vault versions < 1.13 don't support the tidy_expired_issuers field"
 		case strings.Contains(errStr, "403"):
 			errStr = "permission denied setting auto-tidy in vault"
 		}
