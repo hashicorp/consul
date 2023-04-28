@@ -8,6 +8,19 @@ import (
 	"github.com/hashicorp/consul-topology/topology"
 )
 
+func policyForAgentRead(partition string) *api.ACLPolicy {
+	return &api.ACLPolicy{
+		Name:        "wildcard-agent-read",
+		Description: "wildcard-agent-read",
+		Partition:   partition,
+		Rules: `
+agent_prefix "" {
+  policy = "read"
+}
+`,
+	}
+}
+
 func policyForCrossNamespaceRead(partition string) *api.ACLPolicy {
 	return &api.ACLPolicy{
 		Name:        "cross-ns-catalog-read",
@@ -56,6 +69,9 @@ func tokenForService(svc *topology.Service, overridePolicy *api.ACLPolicy, enter
 			ServiceName: svc.ID.Name,
 		}}
 	}
+
+	// TODO: remove this hack
+	token.Policies = append(token.Policies, &api.ACLTokenPolicyLink{Name: "wildcard-agent-read"})
 
 	if enterprise {
 		token.Namespace = svc.ID.Namespace

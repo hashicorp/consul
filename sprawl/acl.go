@@ -144,8 +144,6 @@ func (s *Sprawl) createCrossNamespaceCatalogReadPolicies(cluster *topology.Clust
 		logger = s.logger.With("cluster", cluster.Name)
 	)
 
-	// TODO: upsert
-
 	op, err := CreateOrUpdatePolicy(client, policyForCrossNamespaceRead(partition))
 	if err != nil {
 		return err
@@ -162,10 +160,36 @@ func (s *Sprawl) createCrossNamespaceCatalogReadPolicies(cluster *topology.Clust
 
 func (s *Sprawl) createAllServiceTokens() error {
 	for _, cluster := range s.topology.Clusters {
+		if err := s.createAgentReadPolicies(cluster); err != nil {
+			return fmt.Errorf("createAgentReadPolicies[%s]: %w", cluster.Name, err)
+		}
 		if err := s.createServiceTokens(cluster); err != nil {
 			return fmt.Errorf("createServiceTokens[%s]: %w", cluster.Name, err)
 		}
 	}
+	return nil
+}
+
+func (s *Sprawl) createAgentReadPolicies(cluster *topology.Cluster) error {
+	var (
+		client = s.clients[cluster.Name]
+		logger = s.logger.With("cluster", cluster.Name)
+	)
+	logger.Info("TODO: REMOVE THIS HACK WHEN NOT NEEDED ANY LONGER")
+
+	for _, part := range cluster.Partitions {
+		op, err := CreateOrUpdatePolicy(client, policyForAgentRead(part.Name))
+		if err != nil {
+			return err
+		}
+
+		logger.Info("created agent read wildcard read policy",
+			"policy-name", op.Name,
+			"policy-id", op.ID,
+			"partition", part.Name,
+		)
+	}
+
 	return nil
 }
 
