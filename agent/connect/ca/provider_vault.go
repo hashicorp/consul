@@ -884,7 +884,7 @@ func (v *VaultProvider) autotidyIssuers(path string) (bool, string) {
 		case strings.Contains(errStr, "403"):
 			errStr = "permission denied setting auto-tidy in vault"
 		}
-		v.logger.Info("Unable to enable Vault's auto-tidy feature for expired issuers", "error", errStr, "path", path)
+		v.logger.Info("Unable to enable Vault's auto-tidy feature for expired issuers", "reason", errStr, "path", path)
 		return false, errStr
 	}
 	tidySet := false
