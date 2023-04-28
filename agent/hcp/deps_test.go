@@ -11,24 +11,25 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestSinkOpts(t *testing.T) {
+func TestSink(t *testing.T) {
 	for name, test := range map[string]struct {
 		expect       func(*client.MockClient)
 		mockCloudCfg client.CloudConfig
-		wantErr      bool
+		expectedSink bool
 	}{
 		"success": {
 			expect: func(mockClient *client.MockClient) {
 				mockClient.EXPECT().FetchTelemetryConfig(mock.Anything).Return(&client.TelemetryConfig{
 					Endpoint: "test.com",
 					MetricsOverride: &client.MetricsConfig{
-						Endpoint: "",
+						Endpoint: "test.com",
 					},
 				}, nil)
 			},
 			mockCloudCfg: client.MockCloudCfg{},
+			expectedSink: true,
 		},
-		"emptyOptsWhenServerNotRegisteredWithCCM": {
+		"noSinkWhenServerNotRegisteredWithCCM": {
 			expect: func(mockClient *client.MockClient) {
 				mockClient.EXPECT().FetchTelemetryConfig(mock.Anything).Return(&client.TelemetryConfig{
 					Endpoint: "",
@@ -38,9 +39,14 @@ func TestSinkOpts(t *testing.T) {
 				}, nil)
 			},
 			mockCloudCfg: client.MockCloudCfg{},
-			wantErr:      true,
 		},
-		"emptyOptsWhenMetricsClientInitFails": {
+		"noSinkWhenCCMVerificationFails": {
+			expect: func(mockClient *client.MockClient) {
+				mockClient.EXPECT().FetchTelemetryConfig(mock.Anything).Return(nil, fmt.Errorf("fetch failed"))
+			},
+			mockCloudCfg: client.MockCloudCfg{},
+		},
+		"noSinkWhenMetricsClientInitFails": {
 			expect: func(mockClient *client.MockClient) {
 				mockClient.EXPECT().FetchTelemetryConfig(mock.Anything).Return(&client.TelemetryConfig{
 					Endpoint: "test.com",
@@ -50,15 +56,14 @@ func TestSinkOpts(t *testing.T) {
 				}, nil)
 			},
 			mockCloudCfg: client.MockErrCloudCfg{},
-			wantErr:      true,
 		},
 	} {
 		t.Run(name, func(t *testing.T) {
 			c := client.NewMockClient(t)
 			l := hclog.NewNullLogger()
 			test.expect(c)
-			sinkOpts := sinkOpts(test.mockCloudCfg, c, l)
-			if test.wantErr {
+			sinkOpts := sink(c, test.mockCloudCfg, l)
+			if !test.expectedSink {
 				require.Nil(t, sinkOpts)
 				return
 			}
@@ -66,6 +71,7 @@ func TestSinkOpts(t *testing.T) {
 		})
 	}
 }
+
 func TestVerifyCCMRegistration(t *testing.T) {
 	for name, test := range map[string]struct {
 		expect      func(*client.MockClient)
@@ -77,17 +83,6 @@ func TestVerifyCCMRegistration(t *testing.T) {
 				mockClient.EXPECT().FetchTelemetryConfig(mock.Anything).Return(nil, fmt.Errorf("FetchTelemetryConfig error"))
 			},
 			wantErr: "failed to fetch telemetry config",
-		},
-		"failsWithEmptyEndpoint": {
-			expect: func(mockClient *client.MockClient) {
-				mockClient.EXPECT().FetchTelemetryConfig(mock.Anything).Return(&client.TelemetryConfig{
-					Endpoint: "",
-					MetricsOverride: &client.MetricsConfig{
-						Endpoint: "",
-					},
-				}, nil)
-			},
-			wantErr: "server not registed with management plane",
 		},
 		"failsWithURLParseErr": {
 			expect: func(mockClient *client.MockClient) {
@@ -101,6 +96,17 @@ func TestVerifyCCMRegistration(t *testing.T) {
 				}, nil)
 			},
 			wantErr: "failed to parse url:",
+		},
+		"noErrWithEmptyEndpoint": {
+			expect: func(mockClient *client.MockClient) {
+				mockClient.EXPECT().FetchTelemetryConfig(mock.Anything).Return(&client.TelemetryConfig{
+					Endpoint: "",
+					MetricsOverride: &client.MetricsConfig{
+						Endpoint: "",
+					},
+				}, nil)
+			},
+			expectedURL: "",
 		},
 		"success": {
 			expect: func(mockClient *client.MockClient) {

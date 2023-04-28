@@ -19,7 +19,6 @@ import (
 	"github.com/hashicorp/go-multierror"
 	prometheuscore "github.com/prometheus/client_golang/prometheus"
 
-	"github.com/hashicorp/consul/agent/hcp/telemetry"
 	"github.com/hashicorp/consul/lib/retry"
 )
 
@@ -212,10 +211,8 @@ type TelemetryConfig struct {
 	// hcl: telemetry { prometheus_retention_time = "duration" }
 	PrometheusOpts prometheus.PrometheusOpts
 
-	// HCPSinkOpts provides configuration for an OpenTelemetry HCP Metrics sink.
-	// The aggregated OpenTelemetry metrics are periodically exported to HCP.
-	// The HCPSinkOpts are created when the HCP Deps are initialized.
-	HCPSinkOpts *telemetry.OTELSinkOpts
+	// ExtraSinks are additional metrics.MetricSink implementations that are to always be added.
+	ExtraSinks []metrics.MetricSink
 }
 
 // MetricsHandler provides an http.Handler for displaying metrics.
@@ -237,13 +234,6 @@ func (cfg *MetricsConfig) Cancel() {
 	if cfg.cancelFn != nil {
 		cfg.cancelFn()
 	}
-}
-
-func hcpSink(cfg TelemetryConfig, _ string) (metrics.MetricSink, error) {
-	if cfg.HCPSinkOpts == nil || cfg.HCPSinkOpts.Reader == nil {
-		return nil, nil
-	}
-	return telemetry.NewOTELSink(cfg.HCPSinkOpts)
 }
 
 func statsiteSink(cfg TelemetryConfig, hostname string) (metrics.MetricSink, error) {
@@ -362,7 +352,11 @@ func configureSinks(cfg TelemetryConfig, memSink metrics.MetricSink) (metrics.Fa
 	addSink(dogstatdSink)
 	addSink(circonusSink)
 	addSink(prometheusSink)
-	addSink(hcpSink)
+	for _, sink := range cfg.ExtraSinks {
+		if sink != nil {
+			sinks = append(sinks, sink)
+		}
+	}
 
 	if len(sinks) > 0 {
 		sinks = append(sinks, memSink)

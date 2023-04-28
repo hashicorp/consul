@@ -4,33 +4,26 @@
 package lib
 
 import (
-	"context"
 	"errors"
-	"io"
 	"net"
 	"os"
 	"testing"
 
-	hcptelemetry "github.com/hashicorp/consul/agent/hcp/telemetry"
+	"github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/logging"
-	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-multierror"
 	"github.com/stretchr/testify/require"
-	"go.opentelemetry.io/otel/sdk/metric"
 )
 
 func newCfg() TelemetryConfig {
-	opts := &hcptelemetry.OTELSinkOpts{
-		Logger: hclog.New(&hclog.LoggerOptions{Output: io.Discard}),
-		Reader: metric.NewManualReader(),
-		Ctx:    context.Background(),
-	}
 
 	return TelemetryConfig{
 		StatsdAddr:    "statsd.host:1234",
 		StatsiteAddr:  "statsite.host:1234",
 		DogstatsdAddr: "mydog.host:8125",
-		HCPSinkOpts:   opts,
+		ExtraSinks: []metrics.MetricSink{
+			&metrics.BlackholeSink{},
+		},
 	}
 }
 
@@ -38,7 +31,7 @@ func TestConfigureSinks(t *testing.T) {
 	cfg := newCfg()
 	sinks, err := configureSinks(cfg, nil)
 	require.Error(t, err)
-	// 4 sinks: statsd, statsite, inmem, hcp
+	// 4 sinks: statsd, statsite, inmem, extra sink (blackhole)
 	require.Equal(t, 4, len(sinks))
 
 	cfg = TelemetryConfig{

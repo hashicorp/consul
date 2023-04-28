@@ -105,7 +105,9 @@ func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer, providedLogger hcl
 		if err != nil {
 			return d, err
 		}
-		cfg.Telemetry.HCPSinkOpts = d.HCP.SinkOpts
+		if d.HCP.Sink != nil {
+			cfg.Telemetry.ExtraSinks = append(cfg.Telemetry.ExtraSinks, d.HCP.Sink)
+		}
 	}
 
 	d.MetricsConfig, err = lib.InitTelemetry(cfg.Telemetry, d.Logger)

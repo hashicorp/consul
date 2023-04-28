@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"time"
 
+	"github.com/coredns/coredns/plugin/pkg/log"
 	hcpclient "github.com/hashicorp/consul/agent/hcp/client"
 	"github.com/hashicorp/consul/agent/hcp/config"
 	"github.com/hashicorp/consul/agent/hcp/scada"
@@ -20,7 +21,7 @@ import (
 type Deps struct {
 	Client   hcpclient.Client
 	Provider scada.Provider
-	SinkOpts *telemetry.OTELSinkOpts
+	Sink     *telemetry.OTELSink
 }
 
 func NewDeps(cfg config.CloudConfig, logger hclog.Logger) (d Deps, err error) {
@@ -34,18 +35,21 @@ func NewDeps(cfg config.CloudConfig, logger hclog.Logger) (d Deps, err error) {
 		return
 	}
 
-	d.SinkOpts = sinkOpts(&cfg, d.Client, logger)
+	d.Sink = sink(d.Client, &cfg, logger)
 
 	return
 }
 
-// setupSink provides OTELSink configuration to initialize a Go Metrics sink,
-// only if the server is registered with the management plane (CCM).
+// sink provides initializes an OTELSink which forwards Consul metrics to HCP.
+// The sink is only initialized if the server is registered with the management plane (CCM).
 // This step should not block server initialization, so errors are logged, but not returned.
-func sinkOpts(cfg hcpclient.CloudConfig, client hcpclient.Client, logger hclog.Logger) *telemetry.OTELSinkOpts {
+func sink(hcpClient hcpclient.Client, cfg hcpclient.CloudConfig, logger hclog.Logger) *telemetry.OTELSink {
 	ctx := context.Background()
-	url, err := verifyCCMRegistration(ctx, client)
-	if err != nil {
+	url, err := verifyCCMRegistration(ctx, hcpClient)
+
+	// if endpoint is empty, no metrics endpoint configuration for this Consul server
+	// (e.g. not registered with CCM or feature flag to control rollout) so do not enable the HCP metrics sink.
+	if url == "" {
 		return nil
 	}
 
@@ -66,12 +70,18 @@ func sinkOpts(cfg hcpclient.CloudConfig, client hcpclient.Client, logger hclog.L
 		Reader: telemetry.NewOTELReader(metricsClient, url, 10*time.Second),
 	}
 
-	return sinkOpts
+	sink, err := telemetry.NewOTELSink(sinkOpts)
+	if err != nil {
+		logger.Error("failed to init OTEL sink: %w", err)
+		return nil
+	}
+
+	return sink
 }
 
 // verifyCCMRegistration checks that a server is registered with the HCP management plane
 // by making a HTTP request to the HCP TelemetryConfig endpoint.
-// If registered, it returns the full URL for the HCP Telemetry Gateway endpoint where metrics should be forwarded.
+// If registered, it returns the endpoint for the HCP Telemetry Gateway endpoint where metrics should be forwarded.
 func verifyCCMRegistration(ctx context.Context, client hcpclient.Client) (string, error) {
 	reqCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
@@ -86,13 +96,15 @@ func verifyCCMRegistration(ctx context.Context, client hcpclient.Client) (string
 		endpoint = override
 	}
 
+	// no error, the server simply isn't configured for metrics forwarding.
 	if endpoint == "" {
-		return "", fmt.Errorf("server not registed with management plane")
+		return "", nil
 	}
 
-	// The endpoint from the HCP gateway is a domain without scheme, so it must be added.
+	// The endpoint from the HCP gateway is a domain without scheme, and without the metrics path, so they must be added.
 	url, err := url.Parse(fmt.Sprintf("https://%s/v1/metrics", endpoint))
 	if err != nil {
+		log.Error("failed to parse url: %w", err)
 		return "", fmt.Errorf("failed to parse url: %w", err)
 	}
 
