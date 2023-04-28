@@ -8,17 +8,14 @@ import (
 	"net/http"
 	"time"
 
-	"golang.org/x/oauth2"
-	"google.golang.org/protobuf/proto"
-
-	colmetricpb "go.opentelemetry.io/proto/otlp/collector/metrics/v1"
-	metricpb "go.opentelemetry.io/proto/otlp/metrics/v1"
-
-	"github.com/hashicorp/consul/version"
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-retryablehttp"
 	hcpcfg "github.com/hashicorp/hcp-sdk-go/config"
+	colmetricpb "go.opentelemetry.io/proto/otlp/collector/metrics/v1"
+	metricpb "go.opentelemetry.io/proto/otlp/metrics/v1"
+	"golang.org/x/oauth2"
+	"google.golang.org/protobuf/proto"
 )
 
 const (
@@ -26,6 +23,7 @@ const (
 	defaultStreamTimeout = 15 * time.Second
 
 	// Retry config
+	// TODO: Evenutally, we'd like to configure these values dynamically.
 	defaultRetryWaitMin = 1 * time.Second
 	defaultRetryWaitMax = 15 * time.Second
 	defaultRetryMax     = 4
@@ -44,36 +42,32 @@ type cloudConfig interface {
 // otlpClient is an implementation of MetricsClient with a retryable http client for retries and to honor throttle.
 // It also holds default HTTP headers to add to export requests.
 type otlpClient struct {
-	client  *retryablehttp.Client
-	headers map[string]string
-}
-
-// TelemetryClientCfg is used to configure the MetricsClient.
-type TelemetryClientCfg struct {
-	CloudCfg cloudConfig
-	Logger   hclog.Logger
+	client *retryablehttp.Client
+	header *http.Header
 }
 
 // NewMetricsClient returns a configured MetricsClient.
 // The current implementation uses otlpClient to provide retry functionality.
-func NewMetricsClient(cfg *TelemetryClientCfg) (MetricsClient, error) {
-	if cfg.CloudCfg == nil || cfg.Logger == nil {
-		return nil, fmt.Errorf("failed to init telemetry client: provide valid TelemetryClientCfg")
+func NewMetricsClient(cfg cloudConfig, logger hclog.Logger) (MetricsClient, error) {
+	if cfg == nil {
+		return nil, fmt.Errorf("failed to init telemetry client: provide valid cloudCfg (Cloud Configuration for TLS)")
 	}
 
-	c, err := newHTTPClient(cfg.CloudCfg, cfg.Logger)
+	if logger == nil {
+		return nil, fmt.Errorf("failed to init telemetry client: provide a valid logger")
+	}
+
+	c, err := newHTTPClient(cfg, logger)
 	if err != nil {
 		return nil, fmt.Errorf("failed to init telemetry client: %v", err)
 	}
 
-	headers := map[string]string{
-		"X-HCP-Source-Channel": fmt.Sprintf("consul %s hcp-go-sdk/%s", version.GetHumanVersion(), version.Version),
-		"Content-Type":         "application/x-protobuf",
-	}
+	header := make(http.Header)
+	header.Set("Content-Type", "application/x-protobuf")
 
 	return &otlpClient{
-		client:  c,
-		headers: headers,
+		client: c,
+		header: &header,
 	}, nil
 }
 
@@ -127,15 +121,13 @@ func (o *otlpClient) ExportMetrics(ctx context.Context, protoMetrics *metricpb.R
 	if err != nil {
 		return fmt.Errorf("failed to export metrics: %v", err)
 	}
+	req.Header = (*o.header).Clone()
 
-	for k, v := range o.headers {
-		req.Header.Set(k, v)
-	}
-
-	resp, err := o.client.Do(req)
+	resp, err := o.client.Do(req.WithContext(ctx))
 	if err != nil {
 		return fmt.Errorf("failed to export metrics: %v", err)
 	}
+	defer resp.Body.Close()
 
 	var respData bytes.Buffer
 	if _, err := io.Copy(&respData, resp.Body); err != nil {
