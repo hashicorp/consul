@@ -9,7 +9,6 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/coredns/coredns/plugin/pkg/log"
 	hcpclient "github.com/hashicorp/consul/agent/hcp/client"
 	"github.com/hashicorp/consul/agent/hcp/config"
 	"github.com/hashicorp/consul/agent/hcp/scada"
@@ -46,6 +45,10 @@ func NewDeps(cfg config.CloudConfig, logger hclog.Logger) (d Deps, err error) {
 func sink(hcpClient hcpclient.Client, cfg hcpclient.CloudConfig, logger hclog.Logger) *telemetry.OTELSink {
 	ctx := context.Background()
 	url, err := verifyCCMRegistration(ctx, hcpClient)
+	if err != nil {
+		logger.Error("failed to verify CCM registration: %w", err)
+		return nil
+	}
 
 	// if endpoint is empty, no metrics endpoint configuration for this Consul server
 	// (e.g. not registered with CCM or feature flag to control rollout) so do not enable the HCP metrics sink.
@@ -98,7 +101,6 @@ func verifyCCMRegistration(ctx context.Context, client hcpclient.Client) (string
 	// The endpoint from the HCP gateway is a domain without scheme, and without the metrics path, so they must be added.
 	url, err := url.Parse(fmt.Sprintf("https://%s/v1/metrics", endpoint))
 	if err != nil {
-		log.Error("failed to parse url: %w", err)
 		return "", fmt.Errorf("failed to parse url: %w", err)
 	}
 
