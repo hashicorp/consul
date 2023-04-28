@@ -21,7 +21,7 @@ func TestSink(t *testing.T) {
 			expect: func(mockClient *client.MockClient) {
 				mockClient.EXPECT().FetchTelemetryConfig(mock.Anything).Return(&client.TelemetryConfig{
 					Endpoint: "test.com",
-					MetricsOverride: &client.MetricsConfig{
+					MetricsConfig: &client.MetricsConfig{
 						Endpoint: "test.com",
 					},
 				}, nil)
@@ -33,7 +33,7 @@ func TestSink(t *testing.T) {
 			expect: func(mockClient *client.MockClient) {
 				mockClient.EXPECT().FetchTelemetryConfig(mock.Anything).Return(&client.TelemetryConfig{
 					Endpoint: "",
-					MetricsOverride: &client.MetricsConfig{
+					MetricsConfig: &client.MetricsConfig{
 						Endpoint: "",
 					},
 				}, nil)
@@ -50,7 +50,7 @@ func TestSink(t *testing.T) {
 			expect: func(mockClient *client.MockClient) {
 				mockClient.EXPECT().FetchTelemetryConfig(mock.Anything).Return(&client.TelemetryConfig{
 					Endpoint: "test.com",
-					MetricsOverride: &client.MetricsConfig{
+					MetricsConfig: &client.MetricsConfig{
 						Endpoint: "",
 					},
 				}, nil)
@@ -89,7 +89,7 @@ func TestVerifyCCMRegistration(t *testing.T) {
 				mockClient.EXPECT().FetchTelemetryConfig(mock.Anything).Return(&client.TelemetryConfig{
 					// Minimum 2 chars for a domain to be valid.
 					Endpoint: "s",
-					MetricsOverride: &client.MetricsConfig{
+					MetricsConfig: &client.MetricsConfig{
 						// Invalid domain chars
 						Endpoint: "			",
 					},
@@ -101,7 +101,7 @@ func TestVerifyCCMRegistration(t *testing.T) {
 			expect: func(mockClient *client.MockClient) {
 				mockClient.EXPECT().FetchTelemetryConfig(mock.Anything).Return(&client.TelemetryConfig{
 					Endpoint: "",
-					MetricsOverride: &client.MetricsConfig{
+					MetricsConfig: &client.MetricsConfig{
 						Endpoint: "",
 					},
 				}, nil)
@@ -112,7 +112,7 @@ func TestVerifyCCMRegistration(t *testing.T) {
 			expect: func(mockClient *client.MockClient) {
 				mockClient.EXPECT().FetchTelemetryConfig(mock.Anything).Return(&client.TelemetryConfig{
 					Endpoint: "test.com",
-					MetricsOverride: &client.MetricsConfig{
+					MetricsConfig: &client.MetricsConfig{
 						Endpoint: "",
 					},
 				}, nil)
@@ -123,7 +123,7 @@ func TestVerifyCCMRegistration(t *testing.T) {
 			expect: func(mockClient *client.MockClient) {
 				mockClient.EXPECT().FetchTelemetryConfig(mock.Anything).Return(&client.TelemetryConfig{
 					Endpoint: "test.com",
-					MetricsOverride: &client.MetricsConfig{
+					MetricsConfig: &client.MetricsConfig{
 						Endpoint: "override.com",
 					},
 				}, nil)

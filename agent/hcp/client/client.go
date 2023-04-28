@@ -36,9 +36,9 @@ type MetricsConfig struct {
 	Endpoint string
 }
 type TelemetryConfig struct {
-	Endpoint        string
-	Labels          map[string]string
-	MetricsOverride *MetricsConfig
+	Endpoint      string
+	Labels        map[string]string
+	MetricsConfig *MetricsConfig
 }
 
 type BootstrapConfig struct {
@@ -106,7 +106,7 @@ func (c *hcpClient) FetchTelemetryConfig(ctx context.Context) (*TelemetryConfig,
 	return &TelemetryConfig{
 		Endpoint: payloadConfig.Endpoint,
 		Labels:   payloadConfig.Labels,
-		MetricsOverride: &MetricsConfig{
+		MetricsConfig: &MetricsConfig{
 			Filters:  payloadConfig.Metrics.IncludeList,
 			Endpoint: payloadConfig.Metrics.Endpoint,
 		},

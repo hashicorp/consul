@@ -53,19 +53,13 @@ func sink(hcpClient hcpclient.Client, cfg hcpclient.CloudConfig, logger hclog.Lo
 		return nil
 	}
 
-	metricsClientOpts := &hcpclient.TelemetryClientCfg{
-		Logger:   logger,
-		CloudCfg: cfg,
-	}
-
-	metricsClient, err := hcpclient.NewMetricsClient(metricsClientOpts)
+	metricsClient, err := hcpclient.NewMetricsClient(cfg, logger)
 	if err != nil {
 		logger.Error("failed to init metrics client: %w", err)
 		return nil
 	}
 
 	sinkOpts := &telemetry.OTELSinkOpts{
-		Ctx:    ctx,
 		Logger: logger,
 		Reader: telemetry.NewOTELReader(metricsClient, url, 10*time.Second),
 	}
@@ -92,7 +86,7 @@ func verifyCCMRegistration(ctx context.Context, client hcpclient.Client) (string
 	}
 
 	endpoint := telemetryCfg.Endpoint
-	if override := telemetryCfg.MetricsOverride.Endpoint; override != "" {
+	if override := telemetryCfg.MetricsConfig.Endpoint; override != "" {
 		endpoint = override
 	}
 
