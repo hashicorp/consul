@@ -60,7 +60,7 @@ const (
 	WarningServiceDefaultsPermissiveMTLS = "MutualTLSMode=permissive is insecure. " +
 		"Set to `strict` when your service no longer needs to accept non-mTLS " +
 		"traffic. Check `tcp.permissive_public_listener` metrics in Envoy for " +
-		"non-mTLS traffic. Refer to Consul documentation for more."
+		"non-mTLS traffic. Refer to Consul documentation for more information."
 
 	WarningProxyDefaultsPermissiveMTLS = "MutualTLSMode=permissive is insecure. " +
 		"To keep your services secure, set MutualTLSMode to `strict` whenever possible " +
@@ -73,7 +73,7 @@ const (
 		"and service-defaults config entries. You can set " +
 		"AllowEnablingPermissiveMutualTLS=false at any time to disallow additional " +
 		"permissive configurations. To list services in permissive mode, run `consul " +
-		"config list -kind service-defaults -filter 'MutualTLSMode = \"permissive\"'`"
+		"config list -kind service-defaults -filter 'MutualTLSMode = \"permissive\"'`."
 )
 
 // KindSpecificWriteWarning returns a warning message for the given config
@@ -82,7 +82,8 @@ const (
 //
 // Do not return a warning on default/zero values. Because the config
 // entry is parsed, we cannot distinguish between an absent field in the
-// user-provided content and a zero value, which means
+// user-provided content and a zero value, so we'd end up warning on
+// every invocation.
 func KindSpecificWriteWarning(reqEntry api.ConfigEntry) string {
 	switch req := reqEntry.(type) {
 	case *api.ServiceConfigEntry:
