@@ -2,60 +2,25 @@ package client
 
 import (
 	"context"
-	"crypto/tls"
-	"errors"
 	"net/http"
 	"net/http/httptest"
-	"net/url"
 	"testing"
 
 	"github.com/hashicorp/go-hclog"
-	hcpcfg "github.com/hashicorp/hcp-sdk-go/config"
 	"github.com/stretchr/testify/require"
 	colpb "go.opentelemetry.io/proto/otlp/collector/metrics/v1"
 	metricpb "go.opentelemetry.io/proto/otlp/metrics/v1"
-	"golang.org/x/oauth2"
 	"google.golang.org/protobuf/proto"
 )
-
-type mockHCPCfg struct{}
-
-func (m *mockHCPCfg) Token() (*oauth2.Token, error) {
-	return &oauth2.Token{
-		AccessToken: "test-token",
-	}, nil
-}
-
-func (m *mockHCPCfg) APITLSConfig() *tls.Config { return nil }
-
-func (m *mockHCPCfg) SCADAAddress() string { return "" }
-
-func (m *mockHCPCfg) SCADATLSConfig() *tls.Config { return &tls.Config{} }
-
-func (m *mockHCPCfg) APIAddress() string { return "" }
-
-func (m *mockHCPCfg) PortalURL() *url.URL { return &url.URL{} }
-
-type mockCloudCfg struct{}
-
-func (m mockCloudCfg) HCPConfig(opts ...hcpcfg.HCPConfigOption) (hcpcfg.HCPConfig, error) {
-	return &mockHCPCfg{}, nil
-}
-
-type mockErrCloudCfg struct{}
-
-func (m mockErrCloudCfg) HCPConfig(opts ...hcpcfg.HCPConfigOption) (hcpcfg.HCPConfig, error) {
-	return nil, errors.New("test bad HCP config")
-}
 
 func TestNewMetricsClient(t *testing.T) {
 	for name, test := range map[string]struct {
 		wantErr string
-		cfg     cloudConfig
+		cfg     CloudConfig
 		logger  hclog.Logger
 	}{
 		"success": {
-			cfg:    &mockCloudCfg{},
+			cfg:    &MockCloudCfg{},
 			logger: hclog.NewNullLogger(),
 		},
 		"failsWithoutCloudCfg": {
@@ -65,12 +30,12 @@ func TestNewMetricsClient(t *testing.T) {
 		},
 		"failsWithoutLogger": {
 			wantErr: "failed to init telemetry client: provide a valid logger",
-			cfg:     mockCloudCfg{},
+			cfg:     MockCloudCfg{},
 			logger:  nil,
 		},
 		"failsHCPConfig": {
 			wantErr: "failed to init telemetry client",
-			cfg:     mockErrCloudCfg{},
+			cfg:     MockErrCloudCfg{},
 			logger:  hclog.NewNullLogger(),
 		},
 	} {
@@ -124,7 +89,7 @@ func TestExportMetrics(t *testing.T) {
 			}))
 			defer srv.Close()
 
-			client, err := NewMetricsClient(mockCloudCfg{}, hclog.NewNullLogger())
+			client, err := NewMetricsClient(MockCloudCfg{}, hclog.NewNullLogger())
 			require.NoError(t, err)
 
 			ctx := context.Background()
@@ -140,5 +105,4 @@ func TestExportMetrics(t *testing.T) {
 			require.NoError(t, err)
 		})
 	}
-
 }
