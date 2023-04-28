@@ -7,6 +7,7 @@ import (
 	"flag"
 	"fmt"
 
+	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/flags"
 	"github.com/mitchellh/cli"
 )
@@ -23,12 +24,14 @@ type cmd struct {
 	http  *flags.HTTPFlags
 	help  string
 
-	kind string
+	kind   string
+	filter string
 }
 
 func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
 	c.flags.StringVar(&c.kind, "kind", "", "The kind of configurations to list.")
+	c.flags.StringVar(&c.filter, "filter", "", "Filter to use with the request.")
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
 	flags.Merge(c.flags, c.http.ServerFlags())
@@ -52,7 +55,9 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	entries, _, err := client.ConfigEntries().List(c.kind, nil)
+	entries, _, err := client.ConfigEntries().List(c.kind, &api.QueryOptions{
+		Filter: c.filter,
+	})
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error listing config entries for kind %q: %v", c.kind, err))
 		return 1
