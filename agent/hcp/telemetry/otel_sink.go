@@ -22,13 +22,11 @@ import (
 type OTELSinkOpts struct {
 	Reader otelsdk.Reader
 	Logger hclog.Logger
-	Ctx    context.Context
 }
 
 type OTELSink struct {
 	spaceReplacer *strings.Replacer
 	logger        hclog.Logger
-	ctx           context.Context
 
 	meterProvider *otelsdk.MeterProvider
 	meter         *otelmetric.Meter
@@ -43,16 +41,17 @@ type OTELSink struct {
 }
 
 func NewOTELReader(client client.MetricsClient, endpoint string, exportInterval time.Duration) otelsdk.Reader {
-	exporter := &OTELExporter{
-		client:   client,
-		endpoint: endpoint,
-	}
+	exporter := NewOTELExporter(client, endpoint)
 	return otelsdk.NewPeriodicReader(exporter, otelsdk.WithInterval(exportInterval))
 }
 
 func NewOTELSink(opts *OTELSinkOpts) (*OTELSink, error) {
-	if opts.Logger == nil || opts.Reader == nil || opts.Ctx == nil {
-		return nil, fmt.Errorf("failed to init OTEL sink: provide valid OTELSinkOpts")
+	if opts.Logger == nil {
+		return nil, fmt.Errorf("failed to init OTEL sink: provide valid OTELSinkOpts Logger")
+	}
+
+	if opts.Reader == nil {
+		return nil, fmt.Errorf("failed to init OTEL sink: provide valid OTELSinkOpts Reader")
 	}
 
 	// Setup OTEL Metrics SDK to aggregate, convert and export metrics periodically.
@@ -68,7 +67,6 @@ func NewOTELSink(opts *OTELSinkOpts) (*OTELSink, error) {
 	return &OTELSink{
 		spaceReplacer:        strings.NewReplacer(" ", "_"),
 		logger:               opts.Logger.Named("otel_sink"),
-		ctx:                  opts.Ctx,
 		meterProvider:        meterProvider,
 		meter:                &meter,
 		mutex:                sync.Mutex{},
@@ -135,7 +133,7 @@ func (o *OTELSink) AddSampleWithLabels(key []string, val float32, labels []gomet
 	}
 
 	attrs := toAttributes(labels)
-	(*inst).Record(o.ctx, float64(val), attrs...)
+	(*inst).Record(context.TODO(), float64(val), attrs...)
 }
 
 // IncrCounterWithLabels emits a Consul counter metric that gets registed by an OpenTelemetry Histogram instrument.
@@ -158,7 +156,7 @@ func (o *OTELSink) IncrCounterWithLabels(key []string, val float32, labels []gom
 	}
 
 	attrs := toAttributes(labels)
-	(*inst).Add(o.ctx, float64(val), attrs...)
+	(*inst).Add(context.TODO(), float64(val), attrs...)
 }
 
 // EmitKey unsupported.

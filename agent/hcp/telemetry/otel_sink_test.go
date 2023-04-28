@@ -114,14 +114,14 @@ func TestNewOTELSink(t *testing.T) {
 		opts    *OTELSinkOpts
 	}{
 		"failsWithEmptyLogger": {
-			wantErr: "failed to init OTEL sink: provide valid OTELSinkOpts",
+			wantErr: "failed to init OTEL sink: provide valid OTELSinkOpts Logger",
 			opts: &OTELSinkOpts{
 				Logger: nil,
 				Reader: metric.NewManualReader(),
 			},
 		},
-		"failsWithEmptyExporter": {
-			wantErr: "failed to init OTEL sink: provide valid OTELSinkOpts",
+		"failsWithEmptyReader": {
+			wantErr: "failed to init OTEL sink: provide valid OTELSinkOpts Reader",
 			opts: &OTELSinkOpts{
 				Logger: hclog.New(&hclog.LoggerOptions{Output: io.Discard}),
 				Reader: nil,
@@ -149,7 +149,6 @@ func TestOTELSink(t *testing.T) {
 	opts := &OTELSinkOpts{
 		Logger: hclog.New(&hclog.LoggerOptions{Output: io.Discard}),
 		Reader: reader,
-		Ctx:    ctx,
 	}
 
 	sink, err := NewOTELSink(opts)
