@@ -99,7 +99,7 @@ func TestTrafficManagement_ResolveDefaultSubset(t *testing.T) {
 	assertionFn()
 
 	// Upgrade cluster, restart sidecars then begin service traffic validation
-	require.NoError(t, cluster.StandardUpgrade(t, context.Background(), utils.TargetVersion))
+	require.NoError(t, cluster.StandardUpgrade(t, context.Background(), utils.GetTargetImageName(), utils.TargetVersion))
 	require.NoError(t, staticClientProxy.Restart())
 	require.NoError(t, staticServerProxy.Restart())
 	require.NoError(t, serverConnectProxyV1.Restart())
@@ -198,7 +198,7 @@ func TestTrafficManagement_ResolverDefaultOnlyPassing(t *testing.T) {
 	assertionFn()
 
 	// Upgrade cluster, restart sidecars then begin service traffic validation
-	require.NoError(t, cluster.StandardUpgrade(t, context.Background(), utils.TargetVersion))
+	require.NoError(t, cluster.StandardUpgrade(t, context.Background(), utils.GetTargetImageName(), utils.TargetVersion))
 	require.NoError(t, staticClientProxy.Restart())
 	require.NoError(t, staticServerProxy.Restart())
 	require.NoError(t, serverConnectProxyV1.Restart())
@@ -307,7 +307,7 @@ func TestTrafficManagement_ResolverSubsetRedirect(t *testing.T) {
 	assertionFn()
 
 	// Upgrade cluster, restart sidecars then begin service traffic validation
-	require.NoError(t, cluster.StandardUpgrade(t, context.Background(), utils.TargetVersion))
+	require.NoError(t, cluster.StandardUpgrade(t, context.Background(), utils.GetTargetImageName(), utils.TargetVersion))
 	require.NoError(t, staticClientProxy.Restart())
 	require.NoError(t, staticServerProxy.Restart())
 	require.NoErrorf(t, server2ConnectProxy.Restart(), "%s", server2ConnectProxy.GetName())
@@ -320,6 +320,7 @@ func TestTrafficManagement_ResolverSubsetRedirect(t *testing.T) {
 
 func setup(t *testing.T) (*libcluster.Cluster, libservice.Service, libservice.Service) {
 	buildOpts := &libcluster.BuildOptions{
+		ConsulImageName:      utils.GetLatestImageName(),
 		ConsulVersion:        utils.LatestVersion,
 		Datacenter:           "dc1",
 		InjectAutoEncryption: true,

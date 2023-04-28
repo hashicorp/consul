@@ -47,6 +47,13 @@ func GetTargetImageName() string {
 	return targetImageName
 }
 
+func GetLatestImageName() string {
+	if Debug {
+		return LatestImageName + "-dbg"
+	}
+	return LatestImageName
+}
+
 func DockerImage(image, version string) string {
 	v := image + ":" + version
 	if image == DefaultImageNameENT && isSemVer(version) {
