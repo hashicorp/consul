@@ -412,6 +412,13 @@ definition](/consul/docs/connect/registration/service-registration) or
     host will be actually ejected when the proxy detects an outlier status
     through consecutive errors in the 500 code range. If not specified, Consul
     uses the proxy's default value. For example, `100` for Envoy proxy.
+  - `max_ejection_percent` - The maximum percentage of hosts that can be ejected
+    from a upstream cluster due to passive health check failures. If not specified,
+    inherits Envoy's default of 10% or at least one host.
+  - `base_ejection_time` - The base time that a host is ejected for. The real 
+     time is equal to the base time multiplied by the number of times the host has 
+     been ejected and is capped by max_ejection_time (Default 300s). If not 
+     speficied, inherits Envoy's default value of 30s.
 
 - `balance_outbound_connections` - Specifies the strategy for balancing outbound connections
   across Envoy worker threads. Consul service mesh Envoy integration supports the

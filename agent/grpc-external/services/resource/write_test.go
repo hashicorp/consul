@@ -491,6 +491,57 @@ func TestWrite_Owner_Immutable(t *testing.T) {
 	require.ErrorContains(t, err, "owner cannot be changed")
 }
 
+func TestWrite_Owner_Uid(t *testing.T) {
+	server := testServer(t)
+	client := testClient(t, server)
+
+	demo.RegisterTypes(server.Registry)
+
+	t.Run("uid given", func(t *testing.T) {
+		artist, err := demo.GenerateV2Artist()
+		require.NoError(t, err)
+
+		album, err := demo.GenerateV2Album(artist.Id)
+		require.NoError(t, err)
+		album.Owner.Uid = ulid.Make().String()
+
+		_, err = client.Write(testContext(t), &pbresource.WriteRequest{Resource: album})
+		require.NoError(t, err)
+	})
+
+	t.Run("no uid - owner not found", func(t *testing.T) {
+		artist, err := demo.GenerateV2Artist()
+		require.NoError(t, err)
+
+		album, err := demo.GenerateV2Album(artist.Id)
+		require.NoError(t, err)
+
+		_, err = client.Write(testContext(t), &pbresource.WriteRequest{Resource: album})
+		require.Error(t, err)
+		require.Equal(t, codes.InvalidArgument.String(), status.Code(err).String())
+	})
+
+	t.Run("no uid - automatically resolved", func(t *testing.T) {
+		artist, err := demo.GenerateV2Artist()
+		require.NoError(t, err)
+
+		rsp1, err := client.Write(testContext(t), &pbresource.WriteRequest{Resource: artist})
+		require.NoError(t, err)
+		artist = rsp1.Resource
+
+		album, err := demo.GenerateV2Album(clone(artist.Id))
+		require.NoError(t, err)
+
+		// Blank out the owner Uid to check it gets automatically filled in.
+		album.Owner.Uid = ""
+
+		rsp2, err := client.Write(testContext(t), &pbresource.WriteRequest{Resource: album})
+		require.NoError(t, err)
+		require.NotEmpty(t, rsp2.Resource.Owner.Uid)
+		require.Equal(t, artist.Id.Uid, rsp2.Resource.Owner.Uid)
+	})
+}
+
 type blockOnceBackend struct {
 	storage.Backend
 

@@ -1529,6 +1529,8 @@ func newConsulConfig(runtimeCfg *config.RuntimeConfig, logger hclog.Logger) (*co
 	cfg.RequestLimitsWriteRate = runtimeCfg.RequestLimitsWriteRate
 	cfg.Locality = runtimeCfg.StructLocality()
 
+	cfg.Cloud.ManagementToken = runtimeCfg.Cloud.ManagementToken
+
 	cfg.Reporting.License.Enabled = runtimeCfg.Reporting.License.Enabled
 
 	enterpriseConsulConfig(cfg, runtimeCfg)

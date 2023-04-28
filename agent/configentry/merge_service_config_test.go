@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 )
 
@@ -271,6 +272,214 @@ func Test_MergeServiceConfig_Extensions(t *testing.T) {
 			// The input defaults must not be modified by the merge.
 			// See PR #10647
 			assert.Equal(t, tt.args.defaults, defaultsCopy)
+		})
+	}
+}
+
+func isEnterprise() bool {
+	return acl.PartitionOrDefault("") == "default"
+}
+
+func Test_MergeServiceConfig_peeredCentralDefaultsMerging(t *testing.T) {
+	partitions := []string{"default"}
+	if isEnterprise() {
+		partitions = append(partitions, "part1")
+	}
+
+	const peerName = "my-peer"
+
+	newDefaults := func(partition string) *structs.ServiceConfigResponse {
+		// client agents
+		return &structs.ServiceConfigResponse{
+			ProxyConfig: map[string]any{
+				"protocol": "http",
+			},
+			UpstreamConfigs: []structs.OpaqueUpstreamConfig{
+				{
+					Upstream: structs.PeeredServiceName{
+						ServiceName: structs.ServiceName{
+							Name:           "*",
+							EnterpriseMeta: acl.NewEnterpriseMetaWithPartition(partition, "*"),
+						},
+					},
+					Config: map[string]any{
+						"mesh_gateway": map[string]any{
+							"Mode": "local",
+						},
+						"protocol": "http",
+					},
+				},
+				{
+					Upstream: structs.PeeredServiceName{
+						ServiceName: structs.ServiceName{
+							Name:           "static-server",
+							EnterpriseMeta: acl.NewEnterpriseMetaWithPartition(partition, "default"),
+						},
+						Peer: peerName,
+					},
+					Config: map[string]any{
+						"mesh_gateway": map[string]any{
+							"Mode": "local",
+						},
+						"protocol": "http",
+					},
+				},
+			},
+			MeshGateway: structs.MeshGatewayConfig{
+				Mode: "local",
+			},
+		}
+	}
+
+	for _, partition := range partitions {
+		t.Run("partition="+partition, func(t *testing.T) {
+			t.Run("clients", func(t *testing.T) {
+				defaults := newDefaults(partition)
+
+				service := &structs.NodeService{
+					Kind:    "connect-proxy",
+					ID:      "static-client-sidecar-proxy",
+					Service: "static-client-sidecar-proxy",
+					Address: "",
+					Port:    21000,
+					Proxy: structs.ConnectProxyConfig{
+						DestinationServiceName: "static-client",
+						DestinationServiceID:   "static-client",
+						LocalServiceAddress:    "127.0.0.1",
+						LocalServicePort:       8080,
+						Upstreams: []structs.Upstream{
+							{
+								DestinationType:      "service",
+								DestinationNamespace: "default",
+								DestinationPartition: partition,
+								DestinationPeer:      peerName,
+								DestinationName:      "static-server",
+								LocalBindAddress:     "0.0.0.0",
+								LocalBindPort:        5000,
+							},
+						},
+					},
+					EnterpriseMeta: acl.NewEnterpriseMetaWithPartition(partition, "default"),
+				}
+
+				expect := &structs.NodeService{
+					Kind:    "connect-proxy",
+					ID:      "static-client-sidecar-proxy",
+					Service: "static-client-sidecar-proxy",
+					Address: "",
+					Port:    21000,
+					Proxy: structs.ConnectProxyConfig{
+						DestinationServiceName: "static-client",
+						DestinationServiceID:   "static-client",
+						LocalServiceAddress:    "127.0.0.1",
+						LocalServicePort:       8080,
+						Config: map[string]any{
+							"protocol": "http",
+						},
+						Upstreams: []structs.Upstream{
+							{
+								DestinationType:      "service",
+								DestinationNamespace: "default",
+								DestinationPartition: partition,
+								DestinationPeer:      peerName,
+								DestinationName:      "static-server",
+								LocalBindAddress:     "0.0.0.0",
+								LocalBindPort:        5000,
+								MeshGateway: structs.MeshGatewayConfig{
+									Mode: "local",
+								},
+								Config: map[string]any{},
+							},
+						},
+						MeshGateway: structs.MeshGatewayConfig{
+							Mode: "local",
+						},
+					},
+					EnterpriseMeta: acl.NewEnterpriseMetaWithPartition(partition, "default"),
+				}
+
+				got, err := MergeServiceConfig(defaults, service)
+				require.NoError(t, err)
+				require.Equal(t, expect, got)
+			})
+
+			t.Run("dataplanes", func(t *testing.T) {
+				defaults := newDefaults(partition)
+
+				service := &structs.NodeService{
+					Kind:    "connect-proxy",
+					ID:      "static-client-sidecar-proxy",
+					Service: "static-client-sidecar-proxy",
+					Address: "10.61.57.9",
+					TaggedAddresses: map[string]structs.ServiceAddress{
+						"consul-virtual": {
+							Address: "240.0.0.2",
+							Port:    20000,
+						},
+					},
+					Port: 20000,
+					Proxy: structs.ConnectProxyConfig{
+						DestinationServiceName: "static-client",
+						DestinationServiceID:   "static-client",
+						LocalServicePort:       8080,
+						Upstreams: []structs.Upstream{
+							{
+								DestinationType:      "",
+								DestinationNamespace: "default",
+								DestinationPeer:      peerName,
+								DestinationName:      "static-server",
+								LocalBindAddress:     "0.0.0.0",
+								LocalBindPort:        5000,
+							},
+						},
+					},
+					EnterpriseMeta: acl.NewEnterpriseMetaWithPartition(partition, "default"),
+				}
+
+				expect := &structs.NodeService{
+					Kind:    "connect-proxy",
+					ID:      "static-client-sidecar-proxy",
+					Service: "static-client-sidecar-proxy",
+					Address: "10.61.57.9",
+					TaggedAddresses: map[string]structs.ServiceAddress{
+						"consul-virtual": {
+							Address: "240.0.0.2",
+							Port:    20000,
+						},
+					},
+					Port: 20000,
+					Proxy: structs.ConnectProxyConfig{
+						DestinationServiceName: "static-client",
+						DestinationServiceID:   "static-client",
+						LocalServicePort:       8080,
+						Config: map[string]any{
+							"protocol": "http",
+						},
+						Upstreams: []structs.Upstream{
+							{
+								DestinationType:      "",
+								DestinationNamespace: "default",
+								DestinationPeer:      peerName,
+								DestinationName:      "static-server",
+								LocalBindAddress:     "0.0.0.0",
+								LocalBindPort:        5000,
+								MeshGateway: structs.MeshGatewayConfig{
+									Mode: "local", // This field vanishes if the merging does not work for dataplanes.
+								},
+								Config: map[string]any{},
+							},
+						},
+						MeshGateway: structs.MeshGatewayConfig{
+							Mode: "local",
+						},
+					},
+					EnterpriseMeta: acl.NewEnterpriseMetaWithPartition(partition, "default"),
+				}
+
+				got, err := MergeServiceConfig(defaults, service)
+				require.NoError(t, err)
+				require.Equal(t, expect, got)
+			})
 		})
 	}
 }

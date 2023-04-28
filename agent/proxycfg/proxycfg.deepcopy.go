@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/proto/private/pbpeering"
 	"github.com/hashicorp/consul/types"
+	"time"
 )
 
 // DeepCopy generates a deep copy of *ConfigSnapshot
@@ -451,6 +452,14 @@ func (o *configSnapshotIngressGateway) DeepCopy() *configSnapshotIngressGateway 
 		if o.Defaults.PassiveHealthCheck.EnforcingConsecutive5xx != nil {
 			cp.Defaults.PassiveHealthCheck.EnforcingConsecutive5xx = new(uint32)
 			*cp.Defaults.PassiveHealthCheck.EnforcingConsecutive5xx = *o.Defaults.PassiveHealthCheck.EnforcingConsecutive5xx
+		}
+		if o.Defaults.PassiveHealthCheck.MaxEjectionPercent != nil {
+			cp.Defaults.PassiveHealthCheck.MaxEjectionPercent = new(uint32)
+			*cp.Defaults.PassiveHealthCheck.MaxEjectionPercent = *o.Defaults.PassiveHealthCheck.MaxEjectionPercent
+		}
+		if o.Defaults.PassiveHealthCheck.BaseEjectionTime != nil {
+			cp.Defaults.PassiveHealthCheck.BaseEjectionTime = new(time.Duration)
+			*cp.Defaults.PassiveHealthCheck.BaseEjectionTime = *o.Defaults.PassiveHealthCheck.BaseEjectionTime
 		}
 	}
 	return &cp
