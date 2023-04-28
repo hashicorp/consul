@@ -121,7 +121,7 @@ func (o *otlpClient) ExportMetrics(ctx context.Context, protoMetrics *metricpb.R
 	if err != nil {
 		return fmt.Errorf("failed to export metrics: %v", err)
 	}
-	req.Header = (*o.header).Clone()
+	req.Header = *o.header
 
 	resp, err := o.client.Do(req.WithContext(ctx))
 	if err != nil {
