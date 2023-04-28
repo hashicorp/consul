@@ -18,6 +18,14 @@ type OTELExporter struct {
 	endpoint string
 }
 
+// NewOTELExporter returns a configured OTELExporter
+func NewOTELExporter(client hcpclient.MetricsClient, endpoint string) *OTELExporter {
+	return &OTELExporter{
+		client:   client,
+		endpoint: endpoint,
+	}
+}
+
 // Temporality returns the Cumulative temporality for metrics aggregation.
 // Telemetry Gateway stores metrics in Prometheus format, so use Cummulative aggregation as default.
 func (e *OTELExporter) Temporality(_ metric.InstrumentKind) metricdata.Temporality {
