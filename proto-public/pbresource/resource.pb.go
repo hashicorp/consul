@@ -722,14 +722,14 @@ func (x *Reference) GetSection() string {
 	return ""
 }
 
-// Given a resource, a tombstone represents a promise to delete all immediately
+// Tombstone represents a promise to delete all of a resource's immediately
 // owned (child) resources, if any.
 type Tombstone struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	// Owning resource identifier.
+	// Owner resource identifier.
 	Owner *ID `protobuf:"bytes,1,opt,name=owner,proto3" json:"owner,omitempty"`
 }
 

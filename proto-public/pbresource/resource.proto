@@ -181,10 +181,10 @@ message Reference {
   string section = 4;
 }
 
-// Given a resource, a tombstone represents a promise to delete all immediately
+// Tombstone represents a promise to delete all of a resource's immediately
 // owned (child) resources, if any.
 message Tombstone {
-  // Owning resource identifier.
+  // Owner resource identifier.
   ID owner = 1;
 }
 
