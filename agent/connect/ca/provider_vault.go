@@ -866,7 +866,7 @@ func (v *VaultProvider) setNamespace(namespace string) func() {
 
 // autotidyIssuers sets Vault's auto-tidy to remove expired issuers
 // Returns a boolean on success for testing (as there is no post-facto way of
-// checking if it is set). Logs warnings on failure to set and why, returning the
+// checking if it is set). Logs at info level on failure to set and why, returning the
 // log message for test purposes as well.
 func (v *VaultProvider) autotidyIssuers(path string) (bool, string) {
 	s, err := v.client.Logical().Write(path+"/config/auto-tidy",
