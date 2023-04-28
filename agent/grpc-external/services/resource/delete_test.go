@@ -13,6 +13,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/hashicorp/consul/acl/resolver"
+	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/demo"
 	"github.com/hashicorp/consul/internal/storage"
 	"github.com/hashicorp/consul/proto-public/pbresource"
@@ -139,8 +140,56 @@ func TestDelete_Success(t *testing.T) {
 			_, err = server.Backend.Read(ctx, storage.StrongConsistency, artistId)
 			require.Error(t, err)
 			require.ErrorIs(t, err, storage.ErrNotFound)
+
+			// verify tombstone created
+			_, err = client.Read(ctx, &pbresource.ReadRequest{
+				Id: &pbresource.ID{
+					Name:    tombstoneName(artistId),
+					Type:    resource.TypeV1Tombstone,
+					Tenancy: artist.Id.Tenancy,
+				},
+			})
+			require.NoError(t, err)
 		})
 	}
+}
+
+func TestDelete_TombstoneDeletionDoesNotCreateNewTombstone(t *testing.T) {
+	t.Parallel()
+
+	server, client, ctx := testDeps(t)
+	demo.RegisterTypes(server.Registry)
+
+	artist, err := demo.GenerateV2Artist()
+	require.NoError(t, err)
+
+	rsp, err := client.Write(ctx, &pbresource.WriteRequest{Resource: artist})
+	require.NoError(t, err)
+	artist = rsp.Resource
+
+	// delete artist
+	_, err = client.Delete(ctx, &pbresource.DeleteRequest{Id: artist.Id, Version: ""})
+	require.NoError(t, err)
+
+	// verify artist's tombstone created
+	rsp2, err := client.Read(ctx, &pbresource.ReadRequest{
+		Id: &pbresource.ID{
+			Name:    tombstoneName(artist.Id),
+			Type:    resource.TypeV1Tombstone,
+			Tenancy: artist.Id.Tenancy,
+		},
+	})
+	require.NoError(t, err)
+	tombstone := rsp2.Resource
+
+	// delete artist's tombstone
+	_, err = client.Delete(ctx, &pbresource.DeleteRequest{Id: tombstone.Id, Version: tombstone.Version})
+	require.NoError(t, err)
+
+	// verify no new tombstones created and artist's existing tombstone deleted
+	rsp3, err := client.List(ctx, &pbresource.ListRequest{Type: resource.TypeV1Tombstone, Tenancy: artist.Id.Tenancy})
+	require.NoError(t, err)
+	require.Empty(t, rsp3.Resources)
 }
 
 func TestDelete_NotFound(t *testing.T) {
