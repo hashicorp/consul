@@ -119,6 +119,31 @@ func (s *Server) Write(ctx context.Context, req *pbresource.WriteRequest) (*pbre
 				return errUseWriteStatus
 			}
 
+			// Generally, we expect resources with owners to be created by controllers,
+			// and they should provide the Uid. In cases where no Uid is given (e.g. the
+			// owner is specified in the resource HCL) we'll look up whatever the current
+			// Uid is and use that.
+			//
+			// An important note on consistency:
+			//
+			// We read the owner with StrongConsistency here to reduce the likelihood of
+			// creating a resource pointing to the wrong "incarnation" of the owner in
+			// cases where the owner is deleted and re-created in quick succession.
+			//
+			// That said, there is still a chance that the owner has been deleted by the
+			// time we write this resource. This is not a relational database and we do
+			// not support ACID transactions or real foreign key constraints.
+			if input.Owner != nil && input.Owner.Uid == "" {
+				owner, err := s.Backend.Read(ctx, storage.StrongConsistency, input.Owner)
+				switch {
+				case errors.Is(err, storage.ErrNotFound):
+					return status.Error(codes.InvalidArgument, "resource.owner does not exist")
+				case err != nil:
+					return status.Errorf(codes.Internal, "failed to resolve owner: %v", err)
+				}
+				input.Owner = owner.Id
+			}
+
 			// TODO(spatel): Revisit owner<->resource tenancy rules post-1.16
 
 		// Update path.

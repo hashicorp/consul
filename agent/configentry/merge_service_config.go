@@ -161,17 +161,31 @@ func MergeServiceConfig(defaults *structs.ServiceConfigResponse, service *struct
 	// remoteUpstreams contains synthetic Upstreams generated from central config (service-defaults.UpstreamConfigs).
 	remoteUpstreams := make(map[structs.PeeredServiceName]structs.Upstream)
 
+	// If the arguments did not fully normalize tenancy stuff, take care of that now.
+	entMeta := ns.EnterpriseMeta
+	entMeta.Normalize()
+
 	for _, us := range defaults.UpstreamConfigs {
 		parsed, err := structs.ParseUpstreamConfigNoDefaults(us.Config)
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse upstream config map for %s: %v", us.Upstream.String(), err)
 		}
 
-		remoteUpstreams[us.Upstream] = structs.Upstream{
-			DestinationNamespace: us.Upstream.ServiceName.NamespaceOrDefault(),
-			DestinationPartition: us.Upstream.ServiceName.PartitionOrDefault(),
-			DestinationName:      us.Upstream.ServiceName.Name,
-			DestinationPeer:      us.Upstream.Peer,
+		// If the defaults did not fully normalize tenancy stuff, take care of
+		// that now too.
+		psn := us.Upstream // only normalize the copy
+		psn.ServiceName.EnterpriseMeta.Normalize()
+
+		// Normalize the partition field specially.
+		if psn.Peer != "" {
+			psn.ServiceName.OverridePartition(entMeta.PartitionOrDefault())
+		}
+
+		remoteUpstreams[psn] = structs.Upstream{
+			DestinationNamespace: psn.ServiceName.NamespaceOrDefault(),
+			DestinationPartition: psn.ServiceName.PartitionOrDefault(),
+			DestinationName:      psn.ServiceName.Name,
+			DestinationPeer:      psn.Peer,
 			Config:               us.Config,
 			MeshGateway:          parsed.MeshGateway,
 			CentrallyConfigured:  true,
@@ -192,6 +206,12 @@ func MergeServiceConfig(defaults *structs.ServiceConfigResponse, service *struct
 		}
 
 		uid := us.DestinationID()
+
+		// Normalize the partition field specially.
+		if uid.Peer != "" {
+			uid.ServiceName.OverridePartition(entMeta.PartitionOrDefault())
+		}
+
 		localUpstreams[uid] = struct{}{}
 		remoteCfg, ok := remoteUpstreams[uid]
 		if !ok {

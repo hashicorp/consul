@@ -722,12 +722,6 @@ func (c *cmd) generateConfig() ([]byte, error) {
 		args.Datacenter = datacenter
 	}
 
-	info, err := c.client.Agent().Self()
-	if err != nil {
-		return nil, err
-	}
-	args.NodeID, _ = info["Config"]["NodeID"].(string)
-
 	if err := generateAccessLogs(c, args); err != nil {
 		return nil, err
 	}
