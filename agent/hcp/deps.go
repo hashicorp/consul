@@ -44,6 +44,7 @@ func NewDeps(cfg config.CloudConfig, logger hclog.Logger) (d Deps, err error) {
 // This step should not block server initialization, so errors are logged, but not returned.
 func sink(hcpClient hcpclient.Client, cfg hcpclient.CloudConfig, logger hclog.Logger) *telemetry.OTELSink {
 	ctx := context.Background()
+	ctx = hclog.WithContext(ctx, logger)
 	url, err := verifyCCMRegistration(ctx, hcpClient)
 	if err != nil {
 		logger.Error("failed to verify CCM registration: %w", err)
@@ -56,7 +57,7 @@ func sink(hcpClient hcpclient.Client, cfg hcpclient.CloudConfig, logger hclog.Lo
 		return nil
 	}
 
-	metricsClient, err := hcpclient.NewMetricsClient(cfg, logger)
+	metricsClient, err := hcpclient.NewMetricsClient(cfg, ctx)
 	if err != nil {
 		logger.Error("failed to init metrics client: %w", err)
 		return nil
