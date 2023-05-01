@@ -79,8 +79,8 @@ var (
 			Name:        "consul.raft.leader.lastContact",
 			Description: "",
 			Unit:        "",
-			Data: metricdata.Histogram[float64]{
-				DataPoints: []metricdata.HistogramDataPoint[float64]{
+			Data: metricdata.Histogram{
+				DataPoints: []metricdata.HistogramDataPoint{
 					{
 						Attributes: *attribute.EmptySet(),
 						Count:      1,
@@ -95,8 +95,8 @@ var (
 			Name:        "consul.raft.commitTime",
 			Description: "",
 			Unit:        "",
-			Data: metricdata.Histogram[float64]{
-				DataPoints: []metricdata.HistogramDataPoint[float64]{
+			Data: metricdata.Histogram{
+				DataPoints: []metricdata.HistogramDataPoint{
 					{
 						Attributes: attrs,
 						Count:      1,
@@ -363,7 +363,7 @@ func isSameDataPoint(t *testing.T, expected []metricdata.DataPoint[float64], act
 	}
 }
 
-func isSameHistogramData(t *testing.T, expected []metricdata.HistogramDataPoint[float64], actual []metricdata.HistogramDataPoint[float64]) {
+func isSameHistogramData(t *testing.T, expected []metricdata.HistogramDataPoint, actual []metricdata.HistogramDataPoint) {
 	require.Equal(t, len(expected), len(actual), "different histogram datapoint length")
 
 	// Sort for predictable data in order of lowest sum.
