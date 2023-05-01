@@ -6,7 +6,6 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/hashicorp/go-hclog"
 	"github.com/stretchr/testify/require"
 	colpb "go.opentelemetry.io/proto/otlp/collector/metrics/v1"
 	metricpb "go.opentelemetry.io/proto/otlp/metrics/v1"
@@ -17,30 +16,30 @@ func TestNewMetricsClient(t *testing.T) {
 	for name, test := range map[string]struct {
 		wantErr string
 		cfg     CloudConfig
-		logger  hclog.Logger
+		ctx     context.Context
 	}{
 		"success": {
-			cfg:    &MockCloudCfg{},
-			logger: hclog.NewNullLogger(),
+			cfg: &MockCloudCfg{},
+			ctx: context.Background(),
 		},
 		"failsWithoutCloudCfg": {
 			wantErr: "failed to init telemetry client: provide valid cloudCfg (Cloud Configuration for TLS)",
 			cfg:     nil,
-			logger:  hclog.NewNullLogger(),
+			ctx:     context.Background(),
 		},
-		"failsWithoutLogger": {
-			wantErr: "failed to init telemetry client: provide a valid logger",
+		"failsWithoutContext": {
+			wantErr: "failed to init telemetry client: provide a valid context",
 			cfg:     MockCloudCfg{},
-			logger:  nil,
+			ctx:     nil,
 		},
 		"failsHCPConfig": {
 			wantErr: "failed to init telemetry client",
 			cfg:     MockErrCloudCfg{},
-			logger:  hclog.NewNullLogger(),
+			ctx:     context.Background(),
 		},
 	} {
 		t.Run(name, func(t *testing.T) {
-			client, err := NewMetricsClient(test.cfg, test.logger)
+			client, err := NewMetricsClient(test.cfg, test.ctx)
 			if test.wantErr != "" {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), test.wantErr)
@@ -89,7 +88,7 @@ func TestExportMetrics(t *testing.T) {
 			}))
 			defer srv.Close()
 
-			client, err := NewMetricsClient(MockCloudCfg{}, hclog.NewNullLogger())
+			client, err := NewMetricsClient(MockCloudCfg{}, context.Background())
 			require.NoError(t, err)
 
 			ctx := context.Background()
