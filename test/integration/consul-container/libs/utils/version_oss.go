@@ -4,6 +4,9 @@
 package utils
 
 const (
-	defaultImageName   = DefaultImageNameOSS
-	ImageVersionSuffix = ""
+	DefaultImageName   = "consul"
 )
+
+func ImageName(image, version string) string {
+	return image + ":" + version
+}
