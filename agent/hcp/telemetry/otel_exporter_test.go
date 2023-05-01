@@ -59,12 +59,12 @@ func (m *mockMetricsClient) ExportMetrics(ctx context.Context, protoMetrics *met
 func TestExport(t *testing.T) {
 	for name, test := range map[string]struct {
 		wantErr string
-		metrics *metricdata.ResourceMetrics
+		metrics metricdata.ResourceMetrics
 		client  client.MetricsClient
 	}{
 		"earlyReturnWithoutScopeMetrics": {
 			client: &mockErrMetricsClient{},
-			metrics: &metricdata.ResourceMetrics{
+			metrics: metricdata.ResourceMetrics{
 				Resource: resource.Empty(),
 				ScopeMetrics: []metricdata.ScopeMetrics{
 					{Metrics: []metricdata.Metrics{}},
@@ -73,14 +73,14 @@ func TestExport(t *testing.T) {
 		},
 		"earlyReturnWithoutMetrics": {
 			client: &mockErrMetricsClient{},
-			metrics: &metricdata.ResourceMetrics{
+			metrics: metricdata.ResourceMetrics{
 				Resource:     resource.Empty(),
 				ScopeMetrics: []metricdata.ScopeMetrics{},
 			},
 		},
 		"errorWithExportFailure": {
 			client: &mockErrMetricsClient{},
-			metrics: &metricdata.ResourceMetrics{
+			metrics: metricdata.ResourceMetrics{
 				Resource: resource.Empty(),
 				ScopeMetrics: []metricdata.ScopeMetrics{
 					{
@@ -97,7 +97,7 @@ func TestExport(t *testing.T) {
 		"errorWithTransformFailure": {
 			wantErr: "unknown aggregation: metricdata.Gauge[int64]",
 			client:  &mockMetricsClient{},
-			metrics: &metricdata.ResourceMetrics{
+			metrics: metricdata.ResourceMetrics{
 				Resource: resource.Empty(),
 				ScopeMetrics: []metricdata.ScopeMetrics{
 					{
@@ -114,7 +114,7 @@ func TestExport(t *testing.T) {
 		"multierrorTransformExportFailure": {
 			wantErr: "2 errors occurred:\n\t* unknown aggregation: metricdata.Gauge[int64]\n\t* failed to export metrics",
 			client:  &mockErrMetricsClient{},
-			metrics: &metricdata.ResourceMetrics{
+			metrics: metricdata.ResourceMetrics{
 				Resource: resource.Empty(),
 				ScopeMetrics: []metricdata.ScopeMetrics{
 					{
