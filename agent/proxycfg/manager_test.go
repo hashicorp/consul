@@ -643,7 +643,7 @@ func TestManager_SyncState_No_Notify(t *testing.T) {
 	// update the intentions
 	notifyCH <- UpdateEvent{
 		CorrelationID: intentionsWatchID,
-		Result:        structs.Intentions{},
+		Result:        structs.SimplifiedIntentions{},
 		Err:           nil,
 	}
 

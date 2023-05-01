@@ -8,7 +8,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/hashicorp/consul/internal/resource"
+	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/grpc-external/testutils"
 	"github.com/hashicorp/consul/internal/resource/demo"
 	"github.com/hashicorp/consul/internal/storage"
 	"github.com/hashicorp/consul/proto-public/pbresource"
@@ -32,14 +33,14 @@ func TestList_TypeNotFound(t *testing.T) {
 	})
 	require.Error(t, err)
 	require.Equal(t, codes.InvalidArgument.String(), status.Code(err).String())
-	require.Contains(t, err.Error(), "resource type demo/v2/artist not registered")
+	require.Contains(t, err.Error(), "resource type demo.v2.artist not registered")
 }
 
 func TestList_Empty(t *testing.T) {
 	for desc, tc := range listTestCases() {
 		t.Run(desc, func(t *testing.T) {
 			server := testServer(t)
-			demo.Register(server.Registry)
+			demo.RegisterTypes(server.Registry)
 			client := testClient(t, server)
 
 			rsp, err := client.List(tc.ctx, &pbresource.ListRequest{
@@ -57,7 +58,7 @@ func TestList_Many(t *testing.T) {
 	for desc, tc := range listTestCases() {
 		t.Run(desc, func(t *testing.T) {
 			server := testServer(t)
-			demo.Register(server.Registry)
+			demo.RegisterTypes(server.Registry)
 			client := testClient(t, server)
 
 			resources := make([]*pbresource.Resource, 10)
@@ -88,7 +89,7 @@ func TestList_GroupVersionMismatch(t *testing.T) {
 	for desc, tc := range listTestCases() {
 		t.Run(desc, func(t *testing.T) {
 			server := testServer(t)
-			demo.Register(server.Registry)
+			demo.RegisterTypes(server.Registry)
 			client := testClient(t, server)
 
 			artist, err := demo.GenerateV2Artist()
@@ -113,11 +114,9 @@ func TestList_VerifyReadConsistencyArg(t *testing.T) {
 	for desc, tc := range listTestCases() {
 		t.Run(desc, func(t *testing.T) {
 			mockBackend := NewMockBackend(t)
-			server := NewServer(Config{
-				Registry: resource.NewRegistry(),
-				Backend:  mockBackend,
-			})
-			demo.Register(server.Registry)
+			server := testServer(t)
+			server.Backend = mockBackend
+			demo.RegisterTypes(server.Registry)
 
 			artist, err := demo.GenerateV2Artist()
 			require.NoError(t, err)
@@ -132,6 +131,77 @@ func TestList_VerifyReadConsistencyArg(t *testing.T) {
 			mockBackend.AssertCalled(t, "List", mock.Anything, tc.consistency, mock.Anything, mock.Anything, mock.Anything)
 		})
 	}
+}
+
+// N.B. Uses key ACLs for now. See demo.RegisterTypes()
+func TestList_ACL_ListDenied(t *testing.T) {
+	t.Parallel()
+
+	// deny all
+	_, _, err := roundTripList(t, testutils.ACLNoPermissions(t))
+
+	// verify key:list denied
+	require.Error(t, err)
+	require.Equal(t, codes.PermissionDenied.String(), status.Code(err).String())
+	require.Contains(t, err.Error(), "lacks permission 'key:list'")
+}
+
+// N.B. Uses key ACLs for now. See demo.RegisterTypes()
+func TestList_ACL_ListAllowed_ReadDenied(t *testing.T) {
+	t.Parallel()
+
+	// allow list, deny read
+	authz := AuthorizerFrom(t, demo.ArtistV2ListPolicy,
+		`key_prefix "resource/demo.v2.artist/" { policy = "deny" }`)
+	_, rsp, err := roundTripList(t, authz)
+
+	// verify resource filtered out by key:read denied hence no results
+	require.NoError(t, err)
+	require.Empty(t, rsp.Resources)
+}
+
+// N.B. Uses key ACLs for now. See demo.RegisterTypes()
+func TestList_ACL_ListAllowed_ReadAllowed(t *testing.T) {
+	t.Parallel()
+
+	// allow list, allow read
+	authz := AuthorizerFrom(t, demo.ArtistV2ListPolicy, demo.ArtistV2ReadPolicy)
+	artist, rsp, err := roundTripList(t, authz)
+
+	// verify resource not filtered out by acl
+	require.NoError(t, err)
+	require.Len(t, rsp.Resources, 1)
+	prototest.AssertDeepEqual(t, artist, rsp.Resources[0])
+}
+
+// roundtrip a List which attempts to return a single resource
+func roundTripList(t *testing.T, authz acl.Authorizer) (*pbresource.Resource, *pbresource.ListResponse, error) {
+	server := testServer(t)
+	client := testClient(t, server)
+	ctx := testContext(t)
+
+	mockACLResolver := &MockACLResolver{}
+	mockACLResolver.On("ResolveTokenAndDefaultMeta", mock.Anything, mock.Anything, mock.Anything).
+		Return(authz, nil)
+	server.ACLResolver = mockACLResolver
+	demo.RegisterTypes(server.Registry)
+
+	artist, err := demo.GenerateV2Artist()
+	require.NoError(t, err)
+
+	artist, err = server.Backend.WriteCAS(ctx, artist)
+	require.NoError(t, err)
+
+	rsp, err := client.List(
+		ctx,
+		&pbresource.ListRequest{
+			Type:       artist.Id.Type,
+			Tenancy:    artist.Id.Tenancy,
+			NamePrefix: "",
+		},
+	)
+
+	return artist, rsp, err
 }
 
 type listTestCase struct {

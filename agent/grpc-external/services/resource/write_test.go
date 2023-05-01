@@ -1,15 +1,21 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package resource
 
 import (
 	"context"
-	"sync"
+	"sync/atomic"
 	"testing"
 
+	"github.com/oklog/ulid/v2"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/anypb"
 
+	"github.com/hashicorp/consul/acl/resolver"
 	"github.com/hashicorp/consul/internal/resource/demo"
 	"github.com/hashicorp/consul/internal/storage"
 	"github.com/hashicorp/consul/proto-public/pbresource"
@@ -20,7 +26,7 @@ func TestWrite_InputValidation(t *testing.T) {
 	server := testServer(t)
 	client := testClient(t, server)
 
-	demo.Register(server.Registry)
+	demo.RegisterTypes(server.Registry)
 
 	testCases := map[string]func(*pbresource.WriteRequest){
 		"no resource": func(req *pbresource.WriteRequest) { req.Resource = nil },
@@ -29,10 +35,29 @@ func TestWrite_InputValidation(t *testing.T) {
 		"no tenancy":  func(req *pbresource.WriteRequest) { req.Resource.Id.Tenancy = nil },
 		"no name":     func(req *pbresource.WriteRequest) { req.Resource.Id.Name = "" },
 		"no data":     func(req *pbresource.WriteRequest) { req.Resource.Data = nil },
+		// clone necessary to not pollute DefaultTenancy
+		"tenancy partition not default": func(req *pbresource.WriteRequest) {
+			req.Resource.Id.Tenancy = clone(req.Resource.Id.Tenancy)
+			req.Resource.Id.Tenancy.Partition = ""
+		},
+		"tenancy namespace not default": func(req *pbresource.WriteRequest) {
+			req.Resource.Id.Tenancy = clone(req.Resource.Id.Tenancy)
+			req.Resource.Id.Tenancy.Namespace = ""
+		},
+		"tenancy peername not local": func(req *pbresource.WriteRequest) {
+			req.Resource.Id.Tenancy = clone(req.Resource.Id.Tenancy)
+			req.Resource.Id.Tenancy.PeerName = ""
+		},
 		"wrong data type": func(req *pbresource.WriteRequest) {
 			var err error
 			req.Resource.Data, err = anypb.New(&pbdemov2.Album{})
 			require.NoError(t, err)
+		},
+		"fail validation hook": func(req *pbresource.WriteRequest) {
+			artist := &pbdemov2.Artist{}
+			require.NoError(t, req.Resource.Data.UnmarshalTo(artist))
+			artist.Name = "" // name cannot be empty
+			require.NoError(t, req.Resource.Data.MarshalFrom(artist))
 		},
 	}
 	for desc, modFn := range testCases {
@@ -50,6 +75,71 @@ func TestWrite_InputValidation(t *testing.T) {
 	}
 }
 
+func TestWrite_OwnerValidation(t *testing.T) {
+	server := testServer(t)
+	client := testClient(t, server)
+
+	demo.RegisterTypes(server.Registry)
+
+	type testCase struct {
+		modReqFn      func(req *pbresource.WriteRequest)
+		errorContains string
+	}
+	testCases := map[string]testCase{
+		"no owner type": {
+			modReqFn:      func(req *pbresource.WriteRequest) { req.Resource.Owner.Type = nil },
+			errorContains: "resource.owner.type",
+		},
+		"no owner tenancy": {
+			modReqFn:      func(req *pbresource.WriteRequest) { req.Resource.Owner.Tenancy = nil },
+			errorContains: "resource.owner.tenancy",
+		},
+		"no owner name": {
+			modReqFn:      func(req *pbresource.WriteRequest) { req.Resource.Owner.Name = "" },
+			errorContains: "resource.owner.name",
+		},
+		// clone necessary to not pollute DefaultTenancy
+		"owner tenancy partition not default": {
+			modReqFn: func(req *pbresource.WriteRequest) {
+				req.Resource.Owner.Tenancy = clone(req.Resource.Owner.Tenancy)
+				req.Resource.Owner.Tenancy.Partition = ""
+			},
+			errorContains: "resource.owner.tenancy.partition",
+		},
+		"owner tenancy namespace not default": {
+			modReqFn: func(req *pbresource.WriteRequest) {
+				req.Resource.Owner.Tenancy = clone(req.Resource.Owner.Tenancy)
+				req.Resource.Owner.Tenancy.Namespace = ""
+			},
+			errorContains: "resource.owner.tenancy.namespace",
+		},
+		"owner tenancy peername not local": {
+			modReqFn: func(req *pbresource.WriteRequest) {
+				req.Resource.Owner.Tenancy = clone(req.Resource.Owner.Tenancy)
+				req.Resource.Owner.Tenancy.PeerName = ""
+			},
+			errorContains: "resource.owner.tenancy.peername",
+		},
+	}
+	for desc, tc := range testCases {
+		t.Run(desc, func(t *testing.T) {
+			artist, err := demo.GenerateV2Artist()
+			require.NoError(t, err)
+
+			album, err := demo.GenerateV2Album(artist.Id)
+			require.NoError(t, err)
+
+			albumReq := &pbresource.WriteRequest{Resource: album}
+			tc.modReqFn(albumReq)
+
+			_, err = client.Write(testContext(t), albumReq)
+			require.Error(t, err)
+			require.Equal(t, codes.InvalidArgument.String(), status.Code(err).String())
+			require.ErrorContains(t, err, tc.errorContains)
+		})
+	}
+}
+
 func TestWrite_TypeNotFound(t *testing.T) {
 	server := testServer(t)
 	client := testClient(t, server)
@@ -60,14 +150,81 @@ func TestWrite_TypeNotFound(t *testing.T) {
 	_, err = client.Write(testContext(t), &pbresource.WriteRequest{Resource: res})
 	require.Error(t, err)
 	require.Equal(t, codes.InvalidArgument.String(), status.Code(err).String())
-	require.Contains(t, err.Error(), "resource type demo/v2/artist not registered")
+	require.Contains(t, err.Error(), "resource type demo.v2.artist not registered")
 }
 
-func TestWrite_ResourceCreation(t *testing.T) {
+func TestWrite_ACLs(t *testing.T) {
+	type testCase struct {
+		authz       resolver.Result
+		assertErrFn func(error)
+	}
+	testcases := map[string]testCase{
+		"write denied": {
+			authz: AuthorizerFrom(t, demo.ArtistV1WritePolicy),
+			assertErrFn: func(err error) {
+				require.Error(t, err)
+				require.Equal(t, codes.PermissionDenied.String(), status.Code(err).String())
+			},
+		},
+		"write allowed": {
+			authz: AuthorizerFrom(t, demo.ArtistV2WritePolicy),
+			assertErrFn: func(err error) {
+				require.NoError(t, err)
+			},
+		},
+	}
+
+	for desc, tc := range testcases {
+		t.Run(desc, func(t *testing.T) {
+			server := testServer(t)
+			client := testClient(t, server)
+
+			mockACLResolver := &MockACLResolver{}
+			mockACLResolver.On("ResolveTokenAndDefaultMeta", mock.Anything, mock.Anything, mock.Anything).
+				Return(tc.authz, nil)
+			server.ACLResolver = mockACLResolver
+			demo.RegisterTypes(server.Registry)
+
+			artist, err := demo.GenerateV2Artist()
+			require.NoError(t, err)
+
+			// exercise ACL
+			_, err = client.Write(testContext(t), &pbresource.WriteRequest{Resource: artist})
+			tc.assertErrFn(err)
+		})
+	}
+}
+
+func TestWrite_Mutate(t *testing.T) {
+	server := testServer(t)
+	client := testClient(t, server)
+	demo.RegisterTypes(server.Registry)
+
+	artist, err := demo.GenerateV2Artist()
+	require.NoError(t, err)
+
+	artistData := &pbdemov2.Artist{}
+	artist.Data.UnmarshalTo(artistData)
+	require.NoError(t, err)
+
+	// mutate hook sets genre to disco when unspecified
+	artistData.Genre = pbdemov2.Genre_GENRE_UNSPECIFIED
+	artist.Data.MarshalFrom(artistData)
+	require.NoError(t, err)
+
+	rsp, err := client.Write(testContext(t), &pbresource.WriteRequest{Resource: artist})
+	require.NoError(t, err)
+
+	// verify mutate hook set genre to disco
+	require.NoError(t, rsp.Resource.Data.UnmarshalTo(artistData))
+	require.Equal(t, pbdemov2.Genre_GENRE_DISCO, artistData.Genre)
+}
+
+func TestWrite_ResourceCreation_Success(t *testing.T) {
 	server := testServer(t)
 	client := testClient(t, server)
 
-	demo.Register(server.Registry)
+	demo.RegisterTypes(server.Registry)
 
 	res, err := demo.GenerateV2Artist()
 	require.NoError(t, err)
@@ -83,7 +240,7 @@ func TestWrite_CASUpdate_Success(t *testing.T) {
 	server := testServer(t)
 	client := testClient(t, server)
 
-	demo.Register(server.Registry)
+	demo.RegisterTypes(server.Registry)
 
 	res, err := demo.GenerateV2Artist()
 	require.NoError(t, err)
@@ -101,11 +258,30 @@ func TestWrite_CASUpdate_Success(t *testing.T) {
 	require.NotEqual(t, rsp1.Resource.Generation, rsp2.Resource.Generation)
 }
 
+func TestWrite_ResourceCreation_StatusProvided(t *testing.T) {
+	server := testServer(t)
+	client := testClient(t, server)
+
+	demo.RegisterTypes(server.Registry)
+
+	res, err := demo.GenerateV2Artist()
+	require.NoError(t, err)
+
+	res.Status = map[string]*pbresource.Status{
+		"consul.io/some-controller": {ObservedGeneration: ulid.Make().String()},
+	}
+
+	_, err = client.Write(testContext(t), &pbresource.WriteRequest{Resource: res})
+	require.Error(t, err)
+	require.Equal(t, codes.InvalidArgument.String(), status.Code(err).String())
+	require.Contains(t, err.Error(), "WriteStatus endpoint")
+}
+
 func TestWrite_CASUpdate_Failure(t *testing.T) {
 	server := testServer(t)
 	client := testClient(t, server)
 
-	demo.Register(server.Registry)
+	demo.RegisterTypes(server.Registry)
 
 	res, err := demo.GenerateV2Artist()
 	require.NoError(t, err)
@@ -126,7 +302,7 @@ func TestWrite_Update_WrongUid(t *testing.T) {
 	server := testServer(t)
 	client := testClient(t, server)
 
-	demo.Register(server.Registry)
+	demo.RegisterTypes(server.Registry)
 
 	res, err := demo.GenerateV2Artist()
 	require.NoError(t, err)
@@ -143,11 +319,65 @@ func TestWrite_Update_WrongUid(t *testing.T) {
 	require.Contains(t, err.Error(), "uid doesn't match")
 }
 
+func TestWrite_Update_StatusModified(t *testing.T) {
+	server := testServer(t)
+	client := testClient(t, server)
+
+	demo.RegisterTypes(server.Registry)
+
+	res, err := demo.GenerateV2Artist()
+	require.NoError(t, err)
+
+	rsp1, err := client.Write(testContext(t), &pbresource.WriteRequest{Resource: res})
+	require.NoError(t, err)
+
+	statusRsp, err := client.WriteStatus(testContext(t), validWriteStatusRequest(t, rsp1.Resource))
+	require.NoError(t, err)
+	res = statusRsp.Resource
+
+	// Passing the staus unmodified should be fine.
+	rsp2, err := client.Write(testContext(t), &pbresource.WriteRequest{Resource: res})
+	require.NoError(t, err)
+
+	// Attempting to modify the status should return an error.
+	res = rsp2.Resource
+	res.Status["consul.io/other-controller"] = &pbresource.Status{ObservedGeneration: res.Generation}
+
+	_, err = client.Write(testContext(t), &pbresource.WriteRequest{Resource: res})
+	require.Error(t, err)
+	require.Equal(t, codes.InvalidArgument.String(), status.Code(err).String())
+	require.Contains(t, err.Error(), "WriteStatus endpoint")
+}
+
+func TestWrite_Update_NilStatus(t *testing.T) {
+	server := testServer(t)
+	client := testClient(t, server)
+
+	demo.RegisterTypes(server.Registry)
+
+	res, err := demo.GenerateV2Artist()
+	require.NoError(t, err)
+
+	rsp1, err := client.Write(testContext(t), &pbresource.WriteRequest{Resource: res})
+	require.NoError(t, err)
+
+	statusRsp, err := client.WriteStatus(testContext(t), validWriteStatusRequest(t, rsp1.Resource))
+	require.NoError(t, err)
+
+	// Passing a nil status should be fine (and carry over the old status).
+	res = statusRsp.Resource
+	res.Status = nil
+
+	rsp2, err := client.Write(testContext(t), &pbresource.WriteRequest{Resource: res})
+	require.NoError(t, err)
+	require.NotEmpty(t, rsp2.Resource.Status)
+}
+
 func TestWrite_Update_NoUid(t *testing.T) {
 	server := testServer(t)
 	client := testClient(t, server)
 
-	demo.Register(server.Registry)
+	demo.RegisterTypes(server.Registry)
 
 	res, err := demo.GenerateV2Artist()
 	require.NoError(t, err)
@@ -166,7 +396,7 @@ func TestWrite_NonCASUpdate_Success(t *testing.T) {
 	server := testServer(t)
 	client := testClient(t, server)
 
-	demo.Register(server.Registry)
+	demo.RegisterTypes(server.Registry)
 
 	res, err := demo.GenerateV2Artist()
 	require.NoError(t, err)
@@ -187,7 +417,7 @@ func TestWrite_NonCASUpdate_Retry(t *testing.T) {
 	server := testServer(t)
 	client := testClient(t, server)
 
-	demo.Register(server.Registry)
+	demo.RegisterTypes(server.Registry)
 
 	res, err := demo.GenerateV2Artist()
 	require.NoError(t, err)
@@ -230,10 +460,92 @@ func TestWrite_NonCASUpdate_Retry(t *testing.T) {
 	require.NoError(t, <-errCh)
 }
 
+func TestWrite_Owner_Immutable(t *testing.T) {
+	// Use of proto.Equal(..) in implementation covers all permutations
+	// (nil -> non-nil, non-nil -> nil, owner1 -> owner2) so only the first one
+	// is tested.
+	server := testServer(t)
+	client := testClient(t, server)
+
+	demo.RegisterTypes(server.Registry)
+
+	artist, err := demo.GenerateV2Artist()
+	require.NoError(t, err)
+	rsp1, err := client.Write(testContext(t), &pbresource.WriteRequest{Resource: artist})
+	require.NoError(t, err)
+	artist = rsp1.Resource
+
+	// create album with no owner
+	album, err := demo.GenerateV2Album(rsp1.Resource.Id)
+	require.NoError(t, err)
+	album.Owner = nil
+	rsp2, err := client.Write(testContext(t), &pbresource.WriteRequest{Resource: album})
+	require.NoError(t, err)
+
+	// setting owner on update should fail
+	album = rsp2.Resource
+	album.Owner = artist.Id
+	_, err = client.Write(testContext(t), &pbresource.WriteRequest{Resource: album})
+	require.Error(t, err)
+	require.Equal(t, codes.InvalidArgument.String(), status.Code(err).String())
+	require.ErrorContains(t, err, "owner cannot be changed")
+}
+
+func TestWrite_Owner_Uid(t *testing.T) {
+	server := testServer(t)
+	client := testClient(t, server)
+
+	demo.RegisterTypes(server.Registry)
+
+	t.Run("uid given", func(t *testing.T) {
+		artist, err := demo.GenerateV2Artist()
+		require.NoError(t, err)
+
+		album, err := demo.GenerateV2Album(artist.Id)
+		require.NoError(t, err)
+		album.Owner.Uid = ulid.Make().String()
+
+		_, err = client.Write(testContext(t), &pbresource.WriteRequest{Resource: album})
+		require.NoError(t, err)
+	})
+
+	t.Run("no uid - owner not found", func(t *testing.T) {
+		artist, err := demo.GenerateV2Artist()
+		require.NoError(t, err)
+
+		album, err := demo.GenerateV2Album(artist.Id)
+		require.NoError(t, err)
+
+		_, err = client.Write(testContext(t), &pbresource.WriteRequest{Resource: album})
+		require.Error(t, err)
+		require.Equal(t, codes.InvalidArgument.String(), status.Code(err).String())
+	})
+
+	t.Run("no uid - automatically resolved", func(t *testing.T) {
+		artist, err := demo.GenerateV2Artist()
+		require.NoError(t, err)
+
+		rsp1, err := client.Write(testContext(t), &pbresource.WriteRequest{Resource: artist})
+		require.NoError(t, err)
+		artist = rsp1.Resource
+
+		album, err := demo.GenerateV2Album(clone(artist.Id))
+		require.NoError(t, err)
+
+		// Blank out the owner Uid to check it gets automatically filled in.
+		album.Owner.Uid = ""
+
+		rsp2, err := client.Write(testContext(t), &pbresource.WriteRequest{Resource: album})
+		require.NoError(t, err)
+		require.NotEmpty(t, rsp2.Resource.Owner.Uid)
+		require.Equal(t, artist.Id.Uid, rsp2.Resource.Owner.Uid)
+	})
+}
+
 type blockOnceBackend struct {
 	storage.Backend
 
-	once    sync.Once
+	done    uint32
 	readCh  chan struct{}
 	blockCh chan struct{}
 }
@@ -241,10 +553,12 @@ type blockOnceBackend struct {
 func (b *blockOnceBackend) Read(ctx context.Context, consistency storage.ReadConsistency, id *pbresource.ID) (*pbresource.Resource, error) {
 	res, err := b.Backend.Read(ctx, consistency, id)
 
-	b.once.Do(func() {
+	// Block for exactly one call to Read. All subsequent calls (including those
+	// concurrent to the blocked call) will return immediately.
+	if atomic.CompareAndSwapUint32(&b.done, 0, 1) {
 		close(b.readCh)
 		<-b.blockCh
-	})
+	}
 
 	return res, err
 }

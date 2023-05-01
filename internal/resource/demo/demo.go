@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 // Package demo includes fake resource types for working on Consul's generic
 // state storage without having to refer to specific features.
 package demo
@@ -8,8 +11,10 @@ import (
 	"strings"
 	"time"
 
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	pbdemov1 "github.com/hashicorp/consul/proto/private/pbdemo/v1"
@@ -53,26 +58,113 @@ var (
 	}
 )
 
-// Register demo types. Should only be called in tests and dev mode.
-func Register(r resource.Registry) {
+const (
+	ArtistV1ReadPolicy  = `key_prefix "resource/demo.v1.artist/" { policy = "read" }`
+	ArtistV1WritePolicy = `key_prefix "resource/demo.v1.artist/" { policy = "write" }`
+	ArtistV2ReadPolicy  = `key_prefix "resource/demo.v2.artist/" { policy = "read" }`
+	ArtistV2WritePolicy = `key_prefix "resource/demo.v2.artist/" { policy = "write" }`
+	ArtistV2ListPolicy  = `key_prefix "resource/" { policy = "list" }`
+)
+
+// RegisterTypes registers the demo types. Should only be called in tests and
+// dev mode.
+//
+// TODO(spatel): We're standing-in key ACLs for demo resources until our ACL
+// system can be more modularly extended (or support generic resource permissions).
+func RegisterTypes(r resource.Registry) {
+	readACL := func(authz acl.Authorizer, id *pbresource.ID) error {
+		key := fmt.Sprintf("resource/%s/%s", resource.ToGVK(id.Type), id.Name)
+		return authz.ToAllowAuthorizer().KeyReadAllowed(key, &acl.AuthorizerContext{})
+	}
+
+	writeACL := func(authz acl.Authorizer, id *pbresource.ID) error {
+		key := fmt.Sprintf("resource/%s/%s", resource.ToGVK(id.Type), id.Name)
+		return authz.ToAllowAuthorizer().KeyWriteAllowed(key, &acl.AuthorizerContext{})
+	}
+
+	makeListACL := func(typ *pbresource.Type) func(acl.Authorizer, *pbresource.Tenancy) error {
+		return func(authz acl.Authorizer, tenancy *pbresource.Tenancy) error {
+			key := fmt.Sprintf("resource/%s", resource.ToGVK(typ))
+			return authz.ToAllowAuthorizer().KeyListAllowed(key, &acl.AuthorizerContext{})
+		}
+	}
+
+	validateV1ArtistFn := func(res *pbresource.Resource) error {
+		artist := &pbdemov1.Artist{}
+		if err := anypb.UnmarshalTo(res.Data, artist, proto.UnmarshalOptions{}); err != nil {
+			return err
+		}
+		if artist.Name == "" {
+			return fmt.Errorf("artist.name required")
+		}
+		return nil
+	}
+
+	validateV2ArtistFn := func(res *pbresource.Resource) error {
+		artist := &pbdemov2.Artist{}
+		if err := anypb.UnmarshalTo(res.Data, artist, proto.UnmarshalOptions{}); err != nil {
+			return err
+		}
+		if artist.Name == "" {
+			return fmt.Errorf("artist.name required")
+		}
+		return nil
+	}
+
+	mutateV2ArtistFn := func(res *pbresource.Resource) error {
+		// Not a realistic use for this hook, but set genre if not specified
+		artist := &pbdemov2.Artist{}
+		if err := anypb.UnmarshalTo(res.Data, artist, proto.UnmarshalOptions{}); err != nil {
+			return err
+		}
+		if artist.Genre == pbdemov2.Genre_GENRE_UNSPECIFIED {
+			artist.Genre = pbdemov2.Genre_GENRE_DISCO
+			return res.Data.MarshalFrom(artist)
+		}
+		return nil
+	}
+
 	r.Register(resource.Registration{
 		Type:  TypeV1Artist,
 		Proto: &pbdemov1.Artist{},
+		ACLs: &resource.ACLHooks{
+			Read:  readACL,
+			Write: writeACL,
+			List:  makeListACL(TypeV1Artist),
+		},
+		Validate: validateV1ArtistFn,
 	})
 
 	r.Register(resource.Registration{
 		Type:  TypeV1Album,
 		Proto: &pbdemov1.Album{},
+		ACLs: &resource.ACLHooks{
+			Read:  readACL,
+			Write: writeACL,
+			List:  makeListACL(TypeV1Album),
+		},
 	})
 
 	r.Register(resource.Registration{
 		Type:  TypeV2Artist,
 		Proto: &pbdemov2.Artist{},
+		ACLs: &resource.ACLHooks{
+			Read:  readACL,
+			Write: writeACL,
+			List:  makeListACL(TypeV2Artist),
+		},
+		Validate: validateV2ArtistFn,
+		Mutate:   mutateV2ArtistFn,
 	})
 
 	r.Register(resource.Registration{
 		Type:  TypeV2Album,
 		Proto: &pbdemov2.Album{},
+		ACLs: &resource.ACLHooks{
+			Read:  readACL,
+			Write: writeACL,
+			List:  makeListACL(TypeV2Album),
+		},
 	})
 }
 
@@ -200,3 +292,5 @@ var (
 		"Standing by the stage looking cool",
 	}
 )
+
+func clone[T proto.Message](v T) T { return proto.Clone(v).(T) }

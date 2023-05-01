@@ -7,12 +7,14 @@ import (
 	"encoding/json"
 	"strings"
 	"testing"
+	"time"
+
+	"github.com/mitchellh/cli"
+	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/testrpc"
-	"github.com/mitchellh/cli"
-	"github.com/stretchr/testify/require"
 )
 
 func TestTokenCreateCommand_noTabs(t *testing.T) {
@@ -118,6 +120,34 @@ func TestTokenCreateCommand_Pretty(t *testing.T) {
 
 		require.Equal(t, "3d852bb8-5153-4388-a3ca-8ca78661889f", token.AccessorID)
 		require.Equal(t, "3a69a8d8-c4d4-485d-9b19-b5b61648ea0c", token.SecretID)
+	})
+
+	// create with an expires-ttl (<24h)
+	t.Run("expires-ttl_short", func(t *testing.T) {
+		token := run(t, []string{
+			"-http-addr=" + a.HTTPAddr(),
+			"-token=root",
+			"-policy-name=" + policy.Name,
+			"-description=test token",
+			"-expires-ttl=1h",
+		})
+
+		// check diff between creation and expires time since we
+		// always set the token.ExpirationTTL value to 0 at the moment
+		require.Equal(t, time.Hour, token.ExpirationTime.Sub(token.CreateTime))
+	})
+
+	// create with an expires-ttl long (>24h)
+	t.Run("expires-ttl_long", func(t *testing.T) {
+		token := run(t, []string{
+			"-http-addr=" + a.HTTPAddr(),
+			"-token=root",
+			"-policy-name=" + policy.Name,
+			"-description=test token",
+			"-expires-ttl=8760h",
+		})
+
+		require.Equal(t, 8760*time.Hour, token.ExpirationTime.Sub(token.CreateTime))
 	})
 }
 

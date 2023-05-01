@@ -113,7 +113,7 @@ func (w *mapWalker) MapElem(m, k, v reflect.Value) error {
 		return nil
 	}
 
-	if inner := v.Elem(); inner.Type() == typMapIfaceIface {
+	if inner := v.Elem(); inner.IsValid() && inner.Type() == typMapIfaceIface {
 		// map[interface{}]interface{}, attempt to weakly decode into string keys
 		var target map[string]interface{}
 		if err := mapstructure.WeakDecode(v.Interface(), &target); err != nil {

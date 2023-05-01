@@ -857,6 +857,10 @@ type ServiceResolverConfigEntry struct {
 	// specified here.
 	Failover map[string]ServiceResolverFailover `json:",omitempty"`
 
+	// PrioritizeByLocality controls whether the locality of services within the
+	// local partition will be used to prioritize connectivity.
+	PrioritizeByLocality *ServiceResolverPrioritizeByLocality `json:",omitempty" alias:"prioritize_by_locality"`
+
 	// ConnectTimeout is the timeout for establishing new network connections
 	// to this service.
 	ConnectTimeout time.Duration `json:",omitempty" alias:"connect_timeout"`
@@ -960,7 +964,8 @@ func (e *ServiceResolverConfigEntry) IsDefault() bool {
 		len(e.Failover) == 0 &&
 		e.ConnectTimeout == 0 &&
 		e.RequestTimeout == 0 &&
-		e.LoadBalancer == nil
+		e.LoadBalancer == nil &&
+		e.PrioritizeByLocality == nil
 }
 
 func (e *ServiceResolverConfigEntry) GetKind() string {
@@ -1029,6 +1034,10 @@ func (e *ServiceResolverConfigEntry) Validate() error {
 
 	if e.DefaultSubset != "" && !isSubset(e.DefaultSubset) {
 		return fmt.Errorf("DefaultSubset %q is not a valid subset", e.DefaultSubset)
+	}
+
+	if err := e.PrioritizeByLocality.validate(); err != nil {
+		return err
 	}
 
 	if e.Redirect != nil {
@@ -1113,8 +1122,8 @@ func (e *ServiceResolverConfigEntry) Validate() error {
 				return fmt.Errorf("Bad Failover[%q]: %s", subset, err)
 			}
 
-			if !f.Policy.isValid() {
-				return fmt.Errorf("Bad Failover[%q]: Policy must be one of '', 'sequential', or 'order-by-locality'", subset)
+			if err := f.Policy.validate(); err != nil {
+				return fmt.Errorf("Bad Failover[%q]: %w", subset, err)
 			}
 
 			if f.ServiceSubset != "" {
@@ -1445,13 +1454,6 @@ type ServiceResolverFailover struct {
 	SamenessGroup string `json:",omitempty"`
 }
 
-type ServiceResolverFailoverPolicy struct {
-	// Mode specifies the type of failover that will be performed. Valid values are
-	// "sequential", "" (equivalent to "sequential") and "order-by-locality".
-	Mode    string   `json:",omitempty"`
-	Regions []string `json:",omitempty"`
-}
-
 func (f *ServiceResolverFailover) ToDiscoveryTargetOpts() DiscoveryTargetOpts {
 	return DiscoveryTargetOpts{
 		Service:       f.Service,
@@ -1469,9 +1471,16 @@ func (f *ServiceResolverFailover) isEmpty() bool {
 		f.SamenessGroup == ""
 }
 
-func (fp *ServiceResolverFailoverPolicy) isValid() bool {
+type ServiceResolverFailoverPolicy struct {
+	// Mode specifies the type of failover that will be performed. Valid values are
+	// "sequential", "" (equivalent to "sequential") and "order-by-locality".
+	Mode    string   `json:",omitempty"`
+	Regions []string `json:",omitempty"`
+}
+
+func (fp *ServiceResolverFailoverPolicy) validate() error {
 	if fp == nil {
-		return true
+		return nil
 	}
 
 	switch fp.Mode {
@@ -1479,10 +1488,16 @@ func (fp *ServiceResolverFailoverPolicy) isValid() bool {
 	case "sequential":
 	case "order-by-locality":
 	default:
-		return false
+		return fmt.Errorf("Failover-policy mode must be one of '', 'sequential', or 'order-by-locality'")
 	}
+	return nil
+}
 
-	return true
+type ServiceResolverPrioritizeByLocality struct {
+	// Mode specifies the type of prioritization that will be performed
+	// when selecting nodes in the local partition.
+	// Valid values are: "" (default "none"), "none", and "failover".
+	Mode string `json:",omitempty"`
 }
 
 type ServiceResolverFailoverTarget struct {

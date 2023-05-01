@@ -125,3 +125,35 @@ func (v *serviceListView) Result(index uint64) any {
 		},
 	}
 }
+
+// filterByEnterpriseMeta filters the given set of events to remove those that
+// don't match the request's enterprise meta - this is necessary because when
+// subscribing to a topic with SubjectWildcard we'll get events for resources
+// in all partitions and namespaces.
+func filterByEnterpriseMeta(events []*pbsubscribe.Event, entMeta acl.EnterpriseMeta) []*pbsubscribe.Event {
+	partition := entMeta.PartitionOrDefault()
+	namespace := entMeta.NamespaceOrDefault()
+
+	filtered := make([]*pbsubscribe.Event, 0, len(events))
+	for _, event := range events {
+		var eventEntMeta *pbcommon.EnterpriseMeta
+		switch payload := event.Payload.(type) {
+		case *pbsubscribe.Event_ConfigEntry:
+			eventEntMeta = payload.ConfigEntry.ConfigEntry.GetEnterpriseMeta()
+		case *pbsubscribe.Event_Service:
+			eventEntMeta = payload.Service.GetEnterpriseMeta()
+		default:
+			continue
+		}
+
+		if partition != acl.WildcardName && !acl.EqualPartitions(partition, eventEntMeta.GetPartition()) {
+			continue
+		}
+		if namespace != acl.WildcardName && !acl.EqualNamespaces(namespace, eventEntMeta.GetNamespace()) {
+			continue
+		}
+
+		filtered = append(filtered, event)
+	}
+	return filtered
+}

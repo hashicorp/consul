@@ -232,6 +232,10 @@ func (o *DiscoveryResolver) DeepCopy() *DiscoveryResolver {
 	if o.Failover != nil {
 		cp.Failover = o.Failover.DeepCopy()
 	}
+	if o.PrioritizeByLocality != nil {
+		cp.PrioritizeByLocality = new(DiscoveryPrioritizeByLocality)
+		*cp.PrioritizeByLocality = *o.PrioritizeByLocality
+	}
 	return &cp
 }
 
@@ -525,6 +529,14 @@ func (o *IngressListener) DeepCopy() *IngressListener {
 					cp.Services[i2].PassiveHealthCheck.EnforcingConsecutive5xx = new(uint32)
 					*cp.Services[i2].PassiveHealthCheck.EnforcingConsecutive5xx = *o.Services[i2].PassiveHealthCheck.EnforcingConsecutive5xx
 				}
+				if o.Services[i2].PassiveHealthCheck.MaxEjectionPercent != nil {
+					cp.Services[i2].PassiveHealthCheck.MaxEjectionPercent = new(uint32)
+					*cp.Services[i2].PassiveHealthCheck.MaxEjectionPercent = *o.Services[i2].PassiveHealthCheck.MaxEjectionPercent
+				}
+				if o.Services[i2].PassiveHealthCheck.BaseEjectionTime != nil {
+					cp.Services[i2].PassiveHealthCheck.BaseEjectionTime = new(time.Duration)
+					*cp.Services[i2].PassiveHealthCheck.BaseEjectionTime = *o.Services[i2].PassiveHealthCheck.BaseEjectionTime
+				}
 			}
 			if o.Services[i2].Meta != nil {
 				cp.Services[i2].Meta = make(map[string]string, len(o.Services[i2].Meta))
@@ -561,6 +573,34 @@ func (o *Intention) DeepCopy() *Intention {
 			}
 		}
 	}
+	if o.JWT != nil {
+		cp.JWT = new(IntentionJWTRequirement)
+		*cp.JWT = *o.JWT
+		if o.JWT.Providers != nil {
+			cp.JWT.Providers = make([]*IntentionJWTProvider, len(o.JWT.Providers))
+			copy(cp.JWT.Providers, o.JWT.Providers)
+			for i4 := range o.JWT.Providers {
+				if o.JWT.Providers[i4] != nil {
+					cp.JWT.Providers[i4] = new(IntentionJWTProvider)
+					*cp.JWT.Providers[i4] = *o.JWT.Providers[i4]
+					if o.JWT.Providers[i4].VerifyClaims != nil {
+						cp.JWT.Providers[i4].VerifyClaims = make([]*IntentionJWTClaimVerification, len(o.JWT.Providers[i4].VerifyClaims))
+						copy(cp.JWT.Providers[i4].VerifyClaims, o.JWT.Providers[i4].VerifyClaims)
+						for i7 := range o.JWT.Providers[i4].VerifyClaims {
+							if o.JWT.Providers[i4].VerifyClaims[i7] != nil {
+								cp.JWT.Providers[i4].VerifyClaims[i7] = new(IntentionJWTClaimVerification)
+								*cp.JWT.Providers[i4].VerifyClaims[i7] = *o.JWT.Providers[i4].VerifyClaims[i7]
+								if o.JWT.Providers[i4].VerifyClaims[i7].Path != nil {
+									cp.JWT.Providers[i4].VerifyClaims[i7].Path = make([]string, len(o.JWT.Providers[i4].VerifyClaims[i7].Path))
+									copy(cp.JWT.Providers[i4].VerifyClaims[i7].Path, o.JWT.Providers[i4].VerifyClaims[i7].Path)
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
 	if o.Meta != nil {
 		cp.Meta = make(map[string]string, len(o.Meta))
 		for k2, v2 := range o.Meta {
@@ -587,6 +627,34 @@ func (o *IntentionPermission) DeepCopy() *IntentionPermission {
 		if o.HTTP.Methods != nil {
 			cp.HTTP.Methods = make([]string, len(o.HTTP.Methods))
 			copy(cp.HTTP.Methods, o.HTTP.Methods)
+		}
+	}
+	if o.JWT != nil {
+		cp.JWT = new(IntentionJWTRequirement)
+		*cp.JWT = *o.JWT
+		if o.JWT.Providers != nil {
+			cp.JWT.Providers = make([]*IntentionJWTProvider, len(o.JWT.Providers))
+			copy(cp.JWT.Providers, o.JWT.Providers)
+			for i4 := range o.JWT.Providers {
+				if o.JWT.Providers[i4] != nil {
+					cp.JWT.Providers[i4] = new(IntentionJWTProvider)
+					*cp.JWT.Providers[i4] = *o.JWT.Providers[i4]
+					if o.JWT.Providers[i4].VerifyClaims != nil {
+						cp.JWT.Providers[i4].VerifyClaims = make([]*IntentionJWTClaimVerification, len(o.JWT.Providers[i4].VerifyClaims))
+						copy(cp.JWT.Providers[i4].VerifyClaims, o.JWT.Providers[i4].VerifyClaims)
+						for i7 := range o.JWT.Providers[i4].VerifyClaims {
+							if o.JWT.Providers[i4].VerifyClaims[i7] != nil {
+								cp.JWT.Providers[i4].VerifyClaims[i7] = new(IntentionJWTClaimVerification)
+								*cp.JWT.Providers[i4].VerifyClaims[i7] = *o.JWT.Providers[i4].VerifyClaims[i7]
+								if o.JWT.Providers[i4].VerifyClaims[i7].Path != nil {
+									cp.JWT.Providers[i4].VerifyClaims[i7].Path = make([]string, len(o.JWT.Providers[i4].VerifyClaims[i7].Path))
+									copy(cp.JWT.Providers[i4].VerifyClaims[i7].Path, o.JWT.Providers[i4].VerifyClaims[i7].Path)
+								}
+							}
+						}
+					}
+				}
+			}
 		}
 	}
 	return &cp
@@ -783,18 +851,6 @@ func (o *ServiceConfigResponse) DeepCopy() *ServiceConfigResponse {
 			cp.ProxyConfig[k2] = v2
 		}
 	}
-	if o.UpstreamIDConfigs != nil {
-		cp.UpstreamIDConfigs = make([]OpaqueUpstreamConfigDeprecated, len(o.UpstreamIDConfigs))
-		copy(cp.UpstreamIDConfigs, o.UpstreamIDConfigs)
-		for i2 := range o.UpstreamIDConfigs {
-			if o.UpstreamIDConfigs[i2].Config != nil {
-				cp.UpstreamIDConfigs[i2].Config = make(map[string]interface{}, len(o.UpstreamIDConfigs[i2].Config))
-				for k4, v4 := range o.UpstreamIDConfigs[i2].Config {
-					cp.UpstreamIDConfigs[i2].Config[k4] = v4
-				}
-			}
-		}
-	}
 	if o.UpstreamConfigs != nil {
 		cp.UpstreamConfigs = make([]OpaqueUpstreamConfig, len(o.UpstreamConfigs))
 		copy(cp.UpstreamConfigs, o.UpstreamConfigs)
@@ -920,6 +976,10 @@ func (o *ServiceResolverConfigEntry) DeepCopy() *ServiceResolverConfigEntry {
 			}
 			cp.Failover[k2] = cp_Failover_v2
 		}
+	}
+	if o.PrioritizeByLocality != nil {
+		cp.PrioritizeByLocality = new(ServiceResolverPrioritizeByLocality)
+		*cp.PrioritizeByLocality = *o.PrioritizeByLocality
 	}
 	if o.LoadBalancer != nil {
 		cp.LoadBalancer = o.LoadBalancer.DeepCopy()
@@ -1082,6 +1142,14 @@ func (o *UpstreamConfiguration) DeepCopy() *UpstreamConfiguration {
 						cp.Overrides[i2].PassiveHealthCheck.EnforcingConsecutive5xx = new(uint32)
 						*cp.Overrides[i2].PassiveHealthCheck.EnforcingConsecutive5xx = *o.Overrides[i2].PassiveHealthCheck.EnforcingConsecutive5xx
 					}
+					if o.Overrides[i2].PassiveHealthCheck.MaxEjectionPercent != nil {
+						cp.Overrides[i2].PassiveHealthCheck.MaxEjectionPercent = new(uint32)
+						*cp.Overrides[i2].PassiveHealthCheck.MaxEjectionPercent = *o.Overrides[i2].PassiveHealthCheck.MaxEjectionPercent
+					}
+					if o.Overrides[i2].PassiveHealthCheck.BaseEjectionTime != nil {
+						cp.Overrides[i2].PassiveHealthCheck.BaseEjectionTime = new(time.Duration)
+						*cp.Overrides[i2].PassiveHealthCheck.BaseEjectionTime = *o.Overrides[i2].PassiveHealthCheck.BaseEjectionTime
+					}
 				}
 			}
 		}
@@ -1111,6 +1179,14 @@ func (o *UpstreamConfiguration) DeepCopy() *UpstreamConfiguration {
 			if o.Defaults.PassiveHealthCheck.EnforcingConsecutive5xx != nil {
 				cp.Defaults.PassiveHealthCheck.EnforcingConsecutive5xx = new(uint32)
 				*cp.Defaults.PassiveHealthCheck.EnforcingConsecutive5xx = *o.Defaults.PassiveHealthCheck.EnforcingConsecutive5xx
+			}
+			if o.Defaults.PassiveHealthCheck.MaxEjectionPercent != nil {
+				cp.Defaults.PassiveHealthCheck.MaxEjectionPercent = new(uint32)
+				*cp.Defaults.PassiveHealthCheck.MaxEjectionPercent = *o.Defaults.PassiveHealthCheck.MaxEjectionPercent
+			}
+			if o.Defaults.PassiveHealthCheck.BaseEjectionTime != nil {
+				cp.Defaults.PassiveHealthCheck.BaseEjectionTime = new(time.Duration)
+				*cp.Defaults.PassiveHealthCheck.BaseEjectionTime = *o.Defaults.PassiveHealthCheck.BaseEjectionTime
 			}
 		}
 	}

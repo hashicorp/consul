@@ -6,6 +6,7 @@ package health
 import (
 	"context"
 
+	"github.com/hashicorp/consul/agent/rpcclient"
 	"google.golang.org/grpc/connectivity"
 
 	"github.com/hashicorp/consul/agent/cache"
@@ -16,27 +17,7 @@ import (
 
 // Client provides access to service health data.
 type Client struct {
-	NetRPC              NetRPC
-	Cache               CacheGetter
-	ViewStore           MaterializedViewStore
-	MaterializerDeps    MaterializerDeps
-	CacheName           string
-	UseStreamingBackend bool
-	QueryOptionDefaults func(options *structs.QueryOptions)
-}
-
-type NetRPC interface {
-	RPC(ctx context.Context, method string, args interface{}, reply interface{}) error
-}
-
-type CacheGetter interface {
-	Get(ctx context.Context, t string, r cache.Request) (interface{}, cache.ResultMeta, error)
-	NotifyCallback(ctx context.Context, t string, r cache.Request, cID string, cb cache.Callback) error
-}
-
-type MaterializedViewStore interface {
-	Get(ctx context.Context, req submatview.Request) (submatview.Result, error)
-	NotifyCallback(ctx context.Context, req submatview.Request, cID string, cb cache.Callback) error
+	rpcclient.Client
 }
 
 // IsReadyForStreaming will indicate if the underlying gRPC connection is ready.
@@ -129,17 +110,11 @@ func (c *Client) newServiceRequest(req structs.ServiceSpecificRequest) serviceRe
 	}
 }
 
-// Close any underlying connections used by the client.
-func (c *Client) Close() error {
-	if c == nil {
-		return nil
-	}
-	return c.MaterializerDeps.Conn.Close()
-}
+var _ submatview.Request = (*serviceRequest)(nil)
 
 type serviceRequest struct {
 	structs.ServiceSpecificRequest
-	deps MaterializerDeps
+	deps rpcclient.MaterializerDeps
 }
 
 func (r serviceRequest) CacheInfo() cache.RequestInfo {

@@ -21,7 +21,10 @@ const (
 )
 
 //go:embed assets/Dockerfile-consul-envoy
-var consulEnvoyDockerfile string
+var consulEnvoyDockerfile []byte
+
+//go:embed assets/tproxy-startup.sh
+var tproxyStartupScript []byte
 
 // getDevContainerDockerfile returns the necessary context to build a combined consul and
 // envoy image for running "consul connect envoy ..."
@@ -29,18 +32,29 @@ func getDevContainerDockerfile() (testcontainers.FromDockerfile, error) {
 	var buf bytes.Buffer
 	tw := tar.NewWriter(&buf)
 
-	dockerfileBytes := []byte(consulEnvoyDockerfile)
-
 	hdr := &tar.Header{
 		Name: "Dockerfile",
 		Mode: 0600,
-		Size: int64(len(dockerfileBytes)),
+		Size: int64(len(consulEnvoyDockerfile)),
 	}
 	if err := tw.WriteHeader(hdr); err != nil {
 		return testcontainers.FromDockerfile{}, err
 	}
 
-	if _, err := tw.Write(dockerfileBytes); err != nil {
+	if _, err := tw.Write(consulEnvoyDockerfile); err != nil {
+		return testcontainers.FromDockerfile{}, err
+	}
+
+	hdr = &tar.Header{
+		Name: "tproxy-startup.sh",
+		Mode: 0600,
+		Size: int64(len(tproxyStartupScript)),
+	}
+	if err := tw.WriteHeader(hdr); err != nil {
+		return testcontainers.FromDockerfile{}, err
+	}
+
+	if _, err := tw.Write(tproxyStartupScript); err != nil {
 		return testcontainers.FromDockerfile{}, err
 	}
 

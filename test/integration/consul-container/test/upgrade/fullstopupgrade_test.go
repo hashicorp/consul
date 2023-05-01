@@ -51,7 +51,7 @@ func TestStandardUpgradeToTarget_fromLatest(t *testing.T) {
 
 	run := func(t *testing.T, tc testcase) {
 		configCtx := libcluster.NewBuildContext(t, libcluster.BuildOptions{
-			ConsulImageName: utils.TargetImageName,
+			ConsulImageName: utils.GetTargetImageName(),
 			ConsulVersion:   tc.oldVersion,
 		})
 

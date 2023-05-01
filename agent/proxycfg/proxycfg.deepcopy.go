@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/proto/private/pbpeering"
 	"github.com/hashicorp/consul/types"
+	"time"
 )
 
 // DeepCopy generates a deep copy of *ConfigSnapshot
@@ -452,6 +453,14 @@ func (o *configSnapshotIngressGateway) DeepCopy() *configSnapshotIngressGateway 
 			cp.Defaults.PassiveHealthCheck.EnforcingConsecutive5xx = new(uint32)
 			*cp.Defaults.PassiveHealthCheck.EnforcingConsecutive5xx = *o.Defaults.PassiveHealthCheck.EnforcingConsecutive5xx
 		}
+		if o.Defaults.PassiveHealthCheck.MaxEjectionPercent != nil {
+			cp.Defaults.PassiveHealthCheck.MaxEjectionPercent = new(uint32)
+			*cp.Defaults.PassiveHealthCheck.MaxEjectionPercent = *o.Defaults.PassiveHealthCheck.MaxEjectionPercent
+		}
+		if o.Defaults.PassiveHealthCheck.BaseEjectionTime != nil {
+			cp.Defaults.PassiveHealthCheck.BaseEjectionTime = new(time.Duration)
+			*cp.Defaults.PassiveHealthCheck.BaseEjectionTime = *o.Defaults.PassiveHealthCheck.BaseEjectionTime
+		}
 	}
 	return &cp
 }
@@ -631,9 +640,9 @@ func (o *configSnapshotTerminatingGateway) DeepCopy() *configSnapshotTerminating
 		}
 	}
 	if o.Intentions != nil {
-		cp.Intentions = make(map[structs.ServiceName]structs.Intentions, len(o.Intentions))
+		cp.Intentions = make(map[structs.ServiceName]structs.SimplifiedIntentions, len(o.Intentions))
 		for k2, v2 := range o.Intentions {
-			var cp_Intentions_v2 structs.Intentions
+			var cp_Intentions_v2 structs.SimplifiedIntentions
 			if v2 != nil {
 				cp_Intentions_v2 = make([]*structs.Intention, len(v2))
 				copy(cp_Intentions_v2, v2)

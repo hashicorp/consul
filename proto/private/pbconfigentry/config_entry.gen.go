@@ -944,6 +944,82 @@ func IntentionHTTPPermissionFromStructs(t *structs.IntentionHTTPPermission, s *I
 	}
 	s.Methods = t.Methods
 }
+func IntentionJWTClaimVerificationToStructs(s *IntentionJWTClaimVerification, t *structs.IntentionJWTClaimVerification) {
+	if s == nil {
+		return
+	}
+	t.Path = s.Path
+	t.Value = s.Value
+}
+func IntentionJWTClaimVerificationFromStructs(t *structs.IntentionJWTClaimVerification, s *IntentionJWTClaimVerification) {
+	if s == nil {
+		return
+	}
+	s.Path = t.Path
+	s.Value = t.Value
+}
+func IntentionJWTProviderToStructs(s *IntentionJWTProvider, t *structs.IntentionJWTProvider) {
+	if s == nil {
+		return
+	}
+	t.Name = s.Name
+	{
+		t.VerifyClaims = make([]*structs.IntentionJWTClaimVerification, len(s.VerifyClaims))
+		for i := range s.VerifyClaims {
+			if s.VerifyClaims[i] != nil {
+				var x structs.IntentionJWTClaimVerification
+				IntentionJWTClaimVerificationToStructs(s.VerifyClaims[i], &x)
+				t.VerifyClaims[i] = &x
+			}
+		}
+	}
+}
+func IntentionJWTProviderFromStructs(t *structs.IntentionJWTProvider, s *IntentionJWTProvider) {
+	if s == nil {
+		return
+	}
+	s.Name = t.Name
+	{
+		s.VerifyClaims = make([]*IntentionJWTClaimVerification, len(t.VerifyClaims))
+		for i := range t.VerifyClaims {
+			if t.VerifyClaims[i] != nil {
+				var x IntentionJWTClaimVerification
+				IntentionJWTClaimVerificationFromStructs(t.VerifyClaims[i], &x)
+				s.VerifyClaims[i] = &x
+			}
+		}
+	}
+}
+func IntentionJWTRequirementToStructs(s *IntentionJWTRequirement, t *structs.IntentionJWTRequirement) {
+	if s == nil {
+		return
+	}
+	{
+		t.Providers = make([]*structs.IntentionJWTProvider, len(s.Providers))
+		for i := range s.Providers {
+			if s.Providers[i] != nil {
+				var x structs.IntentionJWTProvider
+				IntentionJWTProviderToStructs(s.Providers[i], &x)
+				t.Providers[i] = &x
+			}
+		}
+	}
+}
+func IntentionJWTRequirementFromStructs(t *structs.IntentionJWTRequirement, s *IntentionJWTRequirement) {
+	if s == nil {
+		return
+	}
+	{
+		s.Providers = make([]*IntentionJWTProvider, len(t.Providers))
+		for i := range t.Providers {
+			if t.Providers[i] != nil {
+				var x IntentionJWTProvider
+				IntentionJWTProviderFromStructs(t.Providers[i], &x)
+				s.Providers[i] = &x
+			}
+		}
+	}
+}
 func IntentionPermissionToStructs(s *IntentionPermission, t *structs.IntentionPermission) {
 	if s == nil {
 		return
@@ -953,6 +1029,11 @@ func IntentionPermissionToStructs(s *IntentionPermission, t *structs.IntentionPe
 		var x structs.IntentionHTTPPermission
 		IntentionHTTPPermissionToStructs(s.HTTP, &x)
 		t.HTTP = &x
+	}
+	if s.JWT != nil {
+		var x structs.IntentionJWTRequirement
+		IntentionJWTRequirementToStructs(s.JWT, &x)
+		t.JWT = &x
 	}
 }
 func IntentionPermissionFromStructs(t *structs.IntentionPermission, s *IntentionPermission) {
@@ -964,6 +1045,11 @@ func IntentionPermissionFromStructs(t *structs.IntentionPermission, s *Intention
 		var x IntentionHTTPPermission
 		IntentionHTTPPermissionFromStructs(t.HTTP, &x)
 		s.HTTP = &x
+	}
+	if t.JWT != nil {
+		var x IntentionJWTRequirement
+		IntentionJWTRequirementFromStructs(t.JWT, &x)
+		s.JWT = &x
 	}
 }
 func LeastRequestConfigToStructs(s *LeastRequestConfig, t *structs.LeastRequestConfig) {
@@ -1035,6 +1121,7 @@ func MeshConfigToStructs(s *MeshConfig, t *structs.MeshConfigEntry) {
 	if s.TransparentProxy != nil {
 		TransparentProxyMeshConfigToStructs(s.TransparentProxy, &t.TransparentProxy)
 	}
+	t.AllowEnablingPermissiveMutualTLS = s.AllowEnablingPermissiveMutualTLS
 	if s.TLS != nil {
 		var x structs.MeshTLSConfig
 		MeshTLSConfigToStructs(s.TLS, &x)
@@ -1061,6 +1148,7 @@ func MeshConfigFromStructs(t *structs.MeshConfigEntry, s *MeshConfig) {
 		TransparentProxyMeshConfigFromStructs(&t.TransparentProxy, &x)
 		s.TransparentProxy = &x
 	}
+	s.AllowEnablingPermissiveMutualTLS = t.AllowEnablingPermissiveMutualTLS
 	if t.TLS != nil {
 		var x MeshTLSConfig
 		MeshTLSConfigFromStructs(t.TLS, &x)
@@ -1155,6 +1243,8 @@ func PassiveHealthCheckToStructs(s *PassiveHealthCheck, t *structs.PassiveHealth
 	t.Interval = structs.DurationFromProto(s.Interval)
 	t.MaxFailures = s.MaxFailures
 	t.EnforcingConsecutive5xx = pointerToUint32FromUint32(s.EnforcingConsecutive5Xx)
+	t.MaxEjectionPercent = pointerToUint32FromUint32(s.MaxEjectionPercent)
+	t.BaseEjectionTime = structs.DurationPointerFromProto(s.BaseEjectionTime)
 }
 func PassiveHealthCheckFromStructs(t *structs.PassiveHealthCheck, s *PassiveHealthCheck) {
 	if s == nil {
@@ -1163,6 +1253,8 @@ func PassiveHealthCheckFromStructs(t *structs.PassiveHealthCheck, s *PassiveHeal
 	s.Interval = structs.DurationToProto(t.Interval)
 	s.MaxFailures = t.MaxFailures
 	s.EnforcingConsecutive5Xx = uint32FromPointerToUint32(t.EnforcingConsecutive5xx)
+	s.MaxEjectionPercent = uint32FromPointerToUint32(t.MaxEjectionPercent)
+	s.BaseEjectionTime = structs.DurationPointerToProto(t.BaseEjectionTime)
 }
 func PeeringMeshConfigToStructs(s *PeeringMeshConfig, t *structs.PeeringMeshConfig) {
 	if s == nil {
@@ -1208,6 +1300,58 @@ func RingHashConfigFromStructs(t *structs.RingHashConfig, s *RingHashConfig) {
 	s.MinimumRingSize = t.MinimumRingSize
 	s.MaximumRingSize = t.MaximumRingSize
 }
+func SamenessGroupToStructs(s *SamenessGroup, t *structs.SamenessGroupConfigEntry) {
+	if s == nil {
+		return
+	}
+	t.Name = s.Name
+	t.DefaultForFailover = s.DefaultForFailover
+	t.IncludeLocal = s.IncludeLocal
+	{
+		t.Members = make([]structs.SamenessGroupMember, len(s.Members))
+		for i := range s.Members {
+			if s.Members[i] != nil {
+				SamenessGroupMemberToStructs(s.Members[i], &t.Members[i])
+			}
+		}
+	}
+	t.Meta = s.Meta
+	t.EnterpriseMeta = enterpriseMetaToStructs(s.EnterpriseMeta)
+}
+func SamenessGroupFromStructs(t *structs.SamenessGroupConfigEntry, s *SamenessGroup) {
+	if s == nil {
+		return
+	}
+	s.Name = t.Name
+	s.DefaultForFailover = t.DefaultForFailover
+	s.IncludeLocal = t.IncludeLocal
+	{
+		s.Members = make([]*SamenessGroupMember, len(t.Members))
+		for i := range t.Members {
+			{
+				var x SamenessGroupMember
+				SamenessGroupMemberFromStructs(&t.Members[i], &x)
+				s.Members[i] = &x
+			}
+		}
+	}
+	s.Meta = t.Meta
+	s.EnterpriseMeta = enterpriseMetaFromStructs(t.EnterpriseMeta)
+}
+func SamenessGroupMemberToStructs(s *SamenessGroupMember, t *structs.SamenessGroupMember) {
+	if s == nil {
+		return
+	}
+	t.Partition = s.Partition
+	t.Peer = s.Peer
+}
+func SamenessGroupMemberFromStructs(t *structs.SamenessGroupMember, s *SamenessGroupMember) {
+	if s == nil {
+		return
+	}
+	s.Partition = t.Partition
+	s.Peer = t.Peer
+}
 func ServiceDefaultsToStructs(s *ServiceDefaults, t *structs.ServiceConfigEntry) {
 	if s == nil {
 		return
@@ -1217,6 +1361,7 @@ func ServiceDefaultsToStructs(s *ServiceDefaults, t *structs.ServiceConfigEntry)
 	if s.TransparentProxy != nil {
 		TransparentProxyConfigToStructs(s.TransparentProxy, &t.TransparentProxy)
 	}
+	t.MutualTLSMode = mutualTLSModeToStructs(s.MutualTLSMode)
 	if s.MeshGateway != nil {
 		MeshGatewayConfigToStructs(s.MeshGateway, &t.MeshGateway)
 	}
@@ -1252,6 +1397,7 @@ func ServiceDefaultsFromStructs(t *structs.ServiceConfigEntry, s *ServiceDefault
 		TransparentProxyConfigFromStructs(&t.TransparentProxy, &x)
 		s.TransparentProxy = &x
 	}
+	s.MutualTLSMode = mutualTLSModeFromStructs(t.MutualTLSMode)
 	{
 		var x MeshGatewayConfig
 		MeshGatewayConfigFromStructs(&t.MeshGateway, &x)
@@ -1294,6 +1440,11 @@ func ServiceIntentionsToStructs(s *ServiceIntentions, t *structs.ServiceIntentio
 			}
 		}
 	}
+	if s.JWT != nil {
+		var x structs.IntentionJWTRequirement
+		IntentionJWTRequirementToStructs(s.JWT, &x)
+		t.JWT = &x
+	}
 	t.Meta = s.Meta
 }
 func ServiceIntentionsFromStructs(t *structs.ServiceIntentionsConfigEntry, s *ServiceIntentions) {
@@ -1309,6 +1460,11 @@ func ServiceIntentionsFromStructs(t *structs.ServiceIntentionsConfigEntry, s *Se
 				s.Sources[i] = &x
 			}
 		}
+	}
+	if t.JWT != nil {
+		var x IntentionJWTRequirement
+		IntentionJWTRequirementFromStructs(t.JWT, &x)
+		s.JWT = &x
 	}
 	s.Meta = t.Meta
 }
@@ -1341,6 +1497,11 @@ func ServiceResolverToStructs(s *ServiceResolver, t *structs.ServiceResolverConf
 			}
 			t.Failover[k] = y
 		}
+	}
+	if s.PrioritizeByLocality != nil {
+		var x structs.ServiceResolverPrioritizeByLocality
+		ServiceResolverPrioritizeByLocalityToStructs(s.PrioritizeByLocality, &x)
+		t.PrioritizeByLocality = &x
 	}
 	t.ConnectTimeout = structs.DurationFromProto(s.ConnectTimeout)
 	t.RequestTimeout = structs.DurationFromProto(s.RequestTimeout)
@@ -1384,6 +1545,11 @@ func ServiceResolverFromStructs(t *structs.ServiceResolverConfigEntry, s *Servic
 			}
 			s.Failover[k] = y
 		}
+	}
+	if t.PrioritizeByLocality != nil {
+		var x ServiceResolverPrioritizeByLocality
+		ServiceResolverPrioritizeByLocalityFromStructs(t.PrioritizeByLocality, &x)
+		s.PrioritizeByLocality = &x
 	}
 	s.ConnectTimeout = structs.DurationToProto(t.ConnectTimeout)
 	s.RequestTimeout = structs.DurationToProto(t.RequestTimeout)
@@ -1478,6 +1644,18 @@ func ServiceResolverFailoverTargetFromStructs(t *structs.ServiceResolverFailover
 	s.Datacenter = t.Datacenter
 	s.Peer = t.Peer
 }
+func ServiceResolverPrioritizeByLocalityToStructs(s *ServiceResolverPrioritizeByLocality, t *structs.ServiceResolverPrioritizeByLocality) {
+	if s == nil {
+		return
+	}
+	t.Mode = s.Mode
+}
+func ServiceResolverPrioritizeByLocalityFromStructs(t *structs.ServiceResolverPrioritizeByLocality, s *ServiceResolverPrioritizeByLocality) {
+	if s == nil {
+		return
+	}
+	s.Mode = t.Mode
+}
 func ServiceResolverRedirectToStructs(s *ServiceResolverRedirect, t *structs.ServiceResolverRedirect) {
 	if s == nil {
 		return
@@ -1541,6 +1719,7 @@ func SourceIntentionToStructs(s *SourceIntention, t *structs.SourceIntention) {
 	t.LegacyUpdateTime = timeToStructs(s.LegacyUpdateTime)
 	t.EnterpriseMeta = enterpriseMetaToStructs(s.EnterpriseMeta)
 	t.Peer = s.Peer
+	t.SamenessGroup = s.SamenessGroup
 }
 func SourceIntentionFromStructs(t *structs.SourceIntention, s *SourceIntention) {
 	if s == nil {
@@ -1567,6 +1746,7 @@ func SourceIntentionFromStructs(t *structs.SourceIntention, s *SourceIntention) 
 	s.LegacyUpdateTime = timeFromStructs(t.LegacyUpdateTime)
 	s.EnterpriseMeta = enterpriseMetaFromStructs(t.EnterpriseMeta)
 	s.Peer = t.Peer
+	s.SamenessGroup = t.SamenessGroup
 }
 func StatusToStructs(s *Status, t *structs.Status) {
 	if s == nil {

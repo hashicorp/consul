@@ -633,6 +633,131 @@ func TestConfigEntry_ListAll(t *testing.T) {
 	})
 }
 
+func TestConfigEntry_List_Filter(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+
+	dir1, s1 := testServer(t)
+	t.Cleanup(func() { os.RemoveAll(dir1) })
+	t.Cleanup(func() { s1.Shutdown() })
+	codec := rpcClient(t, s1)
+	t.Cleanup(func() { codec.Close() })
+
+	// Create some services
+	state := s1.fsm.State()
+	expected := structs.IndexedConfigEntries{
+		Entries: []structs.ConfigEntry{
+			&structs.ServiceConfigEntry{
+				Kind:          structs.ServiceDefaults,
+				Name:          "svc1",
+				MutualTLSMode: structs.MutualTLSModeDefault,
+			},
+			&structs.ServiceConfigEntry{
+				Kind:          structs.ServiceDefaults,
+				Name:          "svc2",
+				MutualTLSMode: structs.MutualTLSModeStrict,
+			},
+			&structs.ServiceConfigEntry{
+				Kind:          structs.ServiceDefaults,
+				Name:          "svc3",
+				MutualTLSMode: structs.MutualTLSModePermissive,
+			},
+		},
+	}
+
+	require.NoError(t, state.EnsureConfigEntry(1, &structs.MeshConfigEntry{
+		AllowEnablingPermissiveMutualTLS: true,
+	}))
+	for i, e := range expected.Entries {
+		require.NoError(t, state.EnsureConfigEntry(uint64(i+2), e))
+	}
+
+	cases := []struct {
+		filter   string
+		expected []structs.ConfigEntry
+	}{
+		{
+			filter:   `MutualTLSMode == ""`,
+			expected: expected.Entries[0:1],
+		},
+		{
+			filter:   `MutualTLSMode == "strict"`,
+			expected: expected.Entries[1:2],
+		},
+		{
+			filter:   `MutualTLSMode == "permissive"`,
+			expected: expected.Entries[2:3],
+		},
+	}
+	for _, c := range cases {
+		c := c
+		t.Run(c.filter, func(t *testing.T) {
+			args := structs.ConfigEntryQuery{
+				Kind:       structs.ServiceDefaults,
+				Datacenter: "dc1",
+				QueryOptions: structs.QueryOptions{
+					Filter: c.filter,
+				},
+			}
+
+			var out structs.IndexedConfigEntries
+			require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.List", &args, &out))
+			require.Equal(t, out.Entries, c.expected)
+		})
+	}
+}
+
+func TestConfigEntry_List_Filter_UnsupportedType(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+
+	dir1, s1 := testServer(t)
+	t.Cleanup(func() { os.RemoveAll(dir1) })
+	t.Cleanup(func() { s1.Shutdown() })
+	codec := rpcClient(t, s1)
+	t.Cleanup(func() { codec.Close() })
+
+	for _, kind := range []string{
+		// Only service-defaults is supported for now.
+		structs.ProxyDefaults,
+		structs.ServiceRouter,
+		structs.ServiceSplitter,
+		structs.ServiceResolver,
+		structs.IngressGateway,
+		structs.TerminatingGateway,
+		structs.ServiceIntentions,
+		structs.MeshConfig,
+		structs.ExportedServices,
+		structs.SamenessGroup,
+		structs.APIGateway,
+		structs.BoundAPIGateway,
+		structs.InlineCertificate,
+		structs.HTTPRoute,
+		structs.TCPRoute,
+		structs.JWTProvider,
+	} {
+		args := structs.ConfigEntryQuery{
+			Kind:       kind,
+			Datacenter: "dc1",
+			QueryOptions: structs.QueryOptions{
+				Filter: `X == "y"`,
+			},
+		}
+
+		var out structs.IndexedConfigEntries
+		err := msgpackrpc.CallWithCodec(codec, "ConfigEntry.List", &args, &out)
+		require.Error(t, err)
+		require.Equal(t, "filtering not supported for config entry kind="+kind, err.Error())
+	}
+
+}
+
 func TestConfigEntry_List_ACLDeny(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
@@ -1345,66 +1470,6 @@ func TestConfigEntry_ResolveServiceConfig_Upstreams(t *testing.T) {
 			},
 		},
 		{
-			name: "upstream config entries from UpstreamIDs and service-defaults",
-			entries: []structs.ConfigEntry{
-				&structs.ProxyConfigEntry{
-					Kind: structs.ProxyDefaults,
-					Name: structs.ProxyConfigGlobal,
-					Config: map[string]interface{}{
-						"protocol": "grpc",
-					},
-				},
-				&structs.ServiceConfigEntry{
-					Kind: structs.ServiceDefaults,
-					Name: "api",
-					UpstreamConfig: &structs.UpstreamConfiguration{
-						Overrides: []*structs.UpstreamConfig{
-							{
-								Name:     "mysql",
-								Peer:     "peer1", // This should be ignored for legacy UpstreamIDs mode
-								Protocol: "http",
-							},
-						},
-					},
-				},
-			},
-			request: structs.ServiceConfigRequest{
-				Name:       "api",
-				Datacenter: "dc1",
-				UpstreamIDs: []structs.ServiceID{
-					structs.NewServiceID("cache", nil),
-				},
-			},
-			expect: structs.ServiceConfigResponse{
-				ProxyConfig: map[string]interface{}{
-					"protocol": "grpc",
-				},
-				UpstreamIDConfigs: structs.OpaqueUpstreamConfigsDeprecated{
-					{
-						Upstream: structs.NewServiceID(
-							structs.WildcardSpecifier,
-							acl.DefaultEnterpriseMeta().WithWildcardNamespace(),
-						),
-						Config: map[string]interface{}{
-							"protocol": "grpc",
-						},
-					},
-					{
-						Upstream: structs.NewServiceID("cache", nil),
-						Config: map[string]interface{}{
-							"protocol": "grpc",
-						},
-					},
-					{
-						Upstream: structs.NewServiceID("mysql", nil),
-						Config: map[string]interface{}{
-							"protocol": "http",
-						},
-					},
-				},
-			},
-		},
-		{
 			name: "upstream config entries from UpstreamServiceNames and service-defaults",
 			entries: []structs.ConfigEntry{
 				&structs.ProxyConfigEntry{
@@ -1544,6 +1609,8 @@ func TestConfigEntry_ResolveServiceConfig_Upstreams(t *testing.T) {
 								Interval:                10,
 								MaxFailures:             2,
 								EnforcingConsecutive5xx: uintPointer(60),
+								MaxEjectionPercent:      uintPointer(61),
+								BaseEjectionTime:        durationPointer(62 * time.Second),
 							},
 						},
 						Overrides: []*structs.UpstreamConfig{
@@ -1578,6 +1645,8 @@ func TestConfigEntry_ResolveServiceConfig_Upstreams(t *testing.T) {
 								"Interval":                int64(10),
 								"MaxFailures":             int64(2),
 								"EnforcingConsecutive5xx": int64(60),
+								"MaxEjectionPercent":      int64(61),
+								"BaseEjectionTime":        uint64(62 * time.Second),
 							},
 							"mesh_gateway": map[string]interface{}{
 								"Mode": "none",
@@ -1592,6 +1661,8 @@ func TestConfigEntry_ResolveServiceConfig_Upstreams(t *testing.T) {
 								"Interval":                int64(10),
 								"MaxFailures":             int64(2),
 								"EnforcingConsecutive5xx": int64(60),
+								"MaxEjectionPercent":      int64(61),
+								"BaseEjectionTime":        uint64(62 * time.Second),
 							},
 							"mesh_gateway": map[string]interface{}{
 								"Mode": "local",
@@ -1763,9 +1834,6 @@ func TestConfigEntry_ResolveServiceConfig_Upstreams(t *testing.T) {
 			// Order of this slice is also not deterministic since it's populated from a map
 			sort.SliceStable(out.UpstreamConfigs, func(i, j int) bool {
 				return out.UpstreamConfigs[i].Upstream.String() < out.UpstreamConfigs[j].Upstream.String()
-			})
-			sort.SliceStable(out.UpstreamIDConfigs, func(i, j int) bool {
-				return out.UpstreamIDConfigs[i].Upstream.String() < out.UpstreamIDConfigs[j].Upstream.String()
 			})
 
 			require.Equal(t, tc.expect, out)
@@ -2037,9 +2105,9 @@ func TestConfigEntry_ResolveServiceConfig_Upstreams_Blocking(t *testing.T) {
 			&structs.ServiceConfigRequest{
 				Name:       "foo",
 				Datacenter: "dc1",
-				UpstreamIDs: []structs.ServiceID{
-					structs.NewServiceID("bar", nil),
-					structs.NewServiceID("other", nil),
+				UpstreamServiceNames: []structs.PeeredServiceName{
+					{ServiceName: structs.NewServiceName("bar", nil)},
+					{ServiceName: structs.NewServiceName("other", nil)},
 				},
 				QueryOptions: structs.QueryOptions{
 					MinQueryIndex: index,
@@ -2073,9 +2141,9 @@ func TestConfigEntry_ResolveServiceConfig_Upstreams_Blocking(t *testing.T) {
 			&structs.ServiceConfigRequest{
 				Name:       "foo",
 				Datacenter: "dc1",
-				UpstreamIDs: []structs.ServiceID{
-					structs.NewServiceID("bar", nil),
-					structs.NewServiceID("other", nil),
+				UpstreamServiceNames: []structs.PeeredServiceName{
+					{ServiceName: structs.NewServiceName("bar", nil)},
+					{ServiceName: structs.NewServiceName("other", nil)},
 				},
 			},
 			&out,
@@ -2116,9 +2184,9 @@ func TestConfigEntry_ResolveServiceConfig_Upstreams_Blocking(t *testing.T) {
 			&structs.ServiceConfigRequest{
 				Name:       "foo",
 				Datacenter: "dc1",
-				UpstreamIDs: []structs.ServiceID{
-					structs.NewServiceID("bar", nil),
-					structs.NewServiceID("other", nil),
+				UpstreamServiceNames: []structs.PeeredServiceName{
+					{ServiceName: structs.NewServiceName("bar", nil)},
+					{ServiceName: structs.NewServiceName("other", nil)},
 				},
 				QueryOptions: structs.QueryOptions{
 					MinQueryIndex: index,
@@ -2355,8 +2423,8 @@ func TestConfigEntry_ResolveServiceConfig_BlockOnNoChange(t *testing.T) {
 			func(minQueryIndex uint64) (*structs.QueryMeta, <-chan error) {
 				args := structs.ServiceConfigRequest{
 					Name: "foo",
-					UpstreamIDs: []structs.ServiceID{
-						structs.NewServiceID("bar", nil),
+					UpstreamServiceNames: []structs.PeeredServiceName{
+						{ServiceName: structs.NewServiceName("bar", nil)},
 					},
 				}
 				args.QueryOptions.MinQueryIndex = minQueryIndex
@@ -2701,4 +2769,8 @@ func Test_gateWriteToSecondary_AllowedKinds(t *testing.T) {
 
 func uintPointer(v uint32) *uint32 {
 	return &v
+}
+
+func durationPointer(d time.Duration) *time.Duration {
+	return &d
 }

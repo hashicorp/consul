@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package resource
 
 import (
@@ -9,20 +12,53 @@ import (
 	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
 
+	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/storage"
 	"github.com/hashicorp/consul/lib/retry"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
+// errUseWriteStatus is returned when the user attempts to modify the resource
+// status using the Write endpoint.
+//
+// We only allow modifications to the status using the WriteStatus endpoint
+// because:
+//
+//   - Setting statuses should only be done by controllers and requires different
+//     permissions.
+//
+//   - Status-only updates shouldn't increment the resource generation.
+//
+// While we could accomplish both in the Write handler, there's seldom need to
+// update the resource body and status at the same time, so it makes more sense
+// to keep them separate.
+var errUseWriteStatus = status.Error(codes.InvalidArgument, "resource.status can only be set using the WriteStatus endpoint")
+
 func (s *Server) Write(ctx context.Context, req *pbresource.WriteRequest) (*pbresource.WriteResponse, error) {
-	if err := validateWriteRequiredFields(req); err != nil {
+	if err := validateWriteRequest(req); err != nil {
 		return nil, err
 	}
 
 	reg, err := s.resolveType(req.Resource.Id.Type)
 	if err != nil {
 		return nil, err
+	}
+
+	authz, err := s.getAuthorizer(tokenFromContext(ctx))
+	if err != nil {
+		return nil, err
+	}
+
+	// check acls
+	err = reg.ACLs.Write(authz, req.Resource.Id)
+	switch {
+	case acl.IsErrPermissionDenied(err):
+		return nil, status.Error(codes.PermissionDenied, err.Error())
+	case err != nil:
+		return nil, status.Errorf(codes.Internal, "failed write acl: %v", err)
 	}
 
 	// Check the user sent the correct type of data.
@@ -35,6 +71,14 @@ func (s *Server) Write(ctx context.Context, req *pbresource.WriteRequest) (*pbre
 			reg.Proto.ProtoReflect().Descriptor().FullName(),
 			got,
 		)
+	}
+
+	if err = reg.Validate(req.Resource); err != nil {
+		return nil, status.Error(codes.InvalidArgument, err.Error())
+	}
+
+	if err = reg.Mutate(req.Resource); err != nil {
+		return nil, status.Errorf(codes.Internal, "failed mutate hook: %v", err.Error())
 	}
 
 	// At the storage backend layer, all writes are CAS operations.
@@ -70,7 +114,37 @@ func (s *Server) Write(ctx context.Context, req *pbresource.WriteRequest) (*pbre
 		case errors.Is(err, storage.ErrNotFound):
 			input.Id.Uid = ulid.Make().String()
 
-			// TODO: Prevent setting statuses in this endpoint.
+			// Prevent setting statuses in this endpoint.
+			if len(input.Status) != 0 {
+				return errUseWriteStatus
+			}
+
+			// Generally, we expect resources with owners to be created by controllers,
+			// and they should provide the Uid. In cases where no Uid is given (e.g. the
+			// owner is specified in the resource HCL) we'll look up whatever the current
+			// Uid is and use that.
+			//
+			// An important note on consistency:
+			//
+			// We read the owner with StrongConsistency here to reduce the likelihood of
+			// creating a resource pointing to the wrong "incarnation" of the owner in
+			// cases where the owner is deleted and re-created in quick succession.
+			//
+			// That said, there is still a chance that the owner has been deleted by the
+			// time we write this resource. This is not a relational database and we do
+			// not support ACID transactions or real foreign key constraints.
+			if input.Owner != nil && input.Owner.Uid == "" {
+				owner, err := s.Backend.Read(ctx, storage.StrongConsistency, input.Owner)
+				switch {
+				case errors.Is(err, storage.ErrNotFound):
+					return status.Error(codes.InvalidArgument, "resource.owner does not exist")
+				case err != nil:
+					return status.Errorf(codes.Internal, "failed to resolve owner: %v", err)
+				}
+				input.Owner = owner.Id
+			}
+
+			// TODO(spatel): Revisit owner<->resource tenancy rules post-1.16
 
 		// Update path.
 		case err == nil:
@@ -97,13 +171,21 @@ func (s *Server) Write(ctx context.Context, req *pbresource.WriteRequest) (*pbre
 			//	- Read returns stale version `v1`
 			//	- We carry `v1`'s statuses over (effectively overwriting `v2`'s statuses)
 			//	- CAS operation succeeds anyway because user-given version is current
-			//
-			// TODO(boxofrad): add a test for this once the status field has been added.
 			if input.Version != existing.Version {
 				return storage.ErrCASFailure
 			}
 
-			// TODO: Carry over the statuses here.
+			// Owner can only be set on creation. Enforce immutability.
+			if !proto.Equal(input.Owner, existing.Owner) {
+				return status.Errorf(codes.InvalidArgument, "owner cannot be changed")
+			}
+
+			// Carry over status and prevent updates
+			if input.Status == nil {
+				input.Status = existing.Status
+			} else if !resource.EqualStatus(input.Status, existing.Status) {
+				return errUseWriteStatus
+			}
 
 		default:
 			return err
@@ -119,10 +201,11 @@ func (s *Server) Write(ctx context.Context, req *pbresource.WriteRequest) (*pbre
 		return nil, status.Error(codes.Aborted, err.Error())
 	case errors.Is(err, storage.ErrWrongUid):
 		return nil, status.Error(codes.FailedPrecondition, err.Error())
+	case isGRPCStatusError(err):
+		return nil, err
 	case err != nil:
 		return nil, status.Errorf(codes.Internal, "failed to write resource: %v", err.Error())
 	}
-
 	return &pbresource.WriteResponse{Resource: result}, nil
 }
 
@@ -161,25 +244,29 @@ func (s *Server) retryCAS(ctx context.Context, vsn string, cas func() error) err
 	return err
 }
 
-func validateWriteRequiredFields(req *pbresource.WriteRequest) error {
+func validateWriteRequest(req *pbresource.WriteRequest) error {
 	var field string
 	switch {
 	case req.Resource == nil:
 		field = "resource"
 	case req.Resource.Id == nil:
 		field = "resource.id"
-	case req.Resource.Id.Type == nil:
-		field = "resource.id.type"
-	case req.Resource.Id.Tenancy == nil:
-		field = "resource.id.tenancy"
-	case req.Resource.Id.Name == "":
-		field = "resource.id.name"
 	case req.Resource.Data == nil:
 		field = "resource.data"
 	}
 
-	if field == "" {
-		return nil
+	if field != "" {
+		return status.Errorf(codes.InvalidArgument, "%s is required", field)
 	}
-	return status.Errorf(codes.InvalidArgument, "%s is required", field)
+
+	if err := validateId(req.Resource.Id, "resource.id"); err != nil {
+		return err
+	}
+
+	if req.Resource.Owner != nil {
+		if err := validateId(req.Resource.Owner, "resource.owner"); err != nil {
+			return err
+		}
+	}
+	return nil
 }

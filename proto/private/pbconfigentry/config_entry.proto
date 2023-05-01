@@ -21,6 +21,7 @@ enum Kind {
   KindBoundAPIGateway = 8;
   KindHTTPRoute = 9;
   KindTCPRoute = 10;
+  KindSamenessGroup = 11;
 }
 
 message ConfigEntry {
@@ -41,6 +42,7 @@ message ConfigEntry {
     TCPRoute TCPRoute = 12;
     HTTPRoute HTTPRoute = 13;
     InlineCertificate InlineCertificate = 14;
+    SamenessGroup SamenessGroup = 15;
   }
 }
 
@@ -56,6 +58,7 @@ message MeshConfig {
   MeshHTTPConfig HTTP = 3;
   map<string, string> Meta = 4;
   PeeringMeshConfig Peering = 5;
+  bool AllowEnablingPermissiveMutualTLS = 6;
 }
 
 // mog annotation:
@@ -126,6 +129,7 @@ message ServiceResolver {
   map<string, string> Meta = 7;
   // mog: func-to=structs.DurationFromProto func-from=structs.DurationToProto
   google.protobuf.Duration RequestTimeout = 8;
+  ServiceResolverPrioritizeByLocality PrioritizeByLocality = 9;
 }
 
 // mog annotation:
@@ -176,6 +180,15 @@ message ServiceResolverFailover {
 message ServiceResolverFailoverPolicy {
   string Mode = 1;
   repeated string Regions = 2;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.ServiceResolverPrioritizeByLocality
+// output=config_entry.gen.go
+// name=Structs
+message ServiceResolverPrioritizeByLocality {
+  string Mode = 1;
 }
 
 // mog annotation:
@@ -361,6 +374,36 @@ message HTTPHeaderModifiers {
 message ServiceIntentions {
   repeated SourceIntention Sources = 1;
   map<string, string> Meta = 2;
+  IntentionJWTRequirement JWT = 3;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.IntentionJWTRequirement
+// output=config_entry.gen.go
+// name=Structs
+message IntentionJWTRequirement {
+  repeated IntentionJWTProvider Providers = 1;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.IntentionJWTProvider
+// output=config_entry.gen.go
+// name=Structs
+message IntentionJWTProvider {
+  string Name = 1;
+  repeated IntentionJWTClaimVerification VerifyClaims = 2;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.IntentionJWTClaimVerification
+// output=config_entry.gen.go
+// name=Structs
+message IntentionJWTClaimVerification {
+  repeated string Path = 1;
+  string Value = 2;
 }
 
 // mog annotation:
@@ -387,6 +430,7 @@ message SourceIntention {
   // mog: func-to=enterpriseMetaToStructs func-from=enterpriseMetaFromStructs
   common.EnterpriseMeta EnterpriseMeta = 11;
   string Peer = 12;
+  string SamenessGroup = 13;
 }
 
 enum IntentionAction {
@@ -407,6 +451,7 @@ message IntentionPermission {
   // mog: func-to=intentionActionToStructs func-from=intentionActionFromStructs
   IntentionAction Action = 1;
   IntentionHTTPPermission HTTP = 2;
+  IntentionJWTRequirement JWT = 3;
 }
 
 // mog annotation:
@@ -463,12 +508,20 @@ message ServiceDefaults {
   map<string, string> Meta = 13;
   // mog: func-to=EnvoyExtensionsToStructs func-from=EnvoyExtensionsFromStructs
   repeated hashicorp.consul.internal.common.EnvoyExtension EnvoyExtensions = 14;
+  // mog: func-to=mutualTLSModeToStructs func-from=mutualTLSModeFromStructs
+  MutualTLSMode MutualTLSMode = 15;
 }
 
 enum ProxyMode {
   ProxyModeDefault = 0;
   ProxyModeTransparent = 1;
   ProxyModeDirect = 2;
+}
+
+enum MutualTLSMode {
+  MutualTLSModeDefault = 0;
+  MutualTLSModeStrict = 1;
+  MutualTLSModePermissive = 2;
 }
 
 // mog annotation:
@@ -580,6 +633,10 @@ message PassiveHealthCheck {
   uint32 MaxFailures = 2;
   // mog: target=EnforcingConsecutive5xx func-to=pointerToUint32FromUint32 func-from=uint32FromPointerToUint32
   uint32 EnforcingConsecutive5xx = 3;
+  // mog: func-to=pointerToUint32FromUint32 func-from=uint32FromPointerToUint32
+  uint32 MaxEjectionPercent = 4;
+  // mog: func-to=structs.DurationPointerFromProto func-from=structs.DurationPointerToProto
+  google.protobuf.Duration BaseEjectionTime = 5;
 }
 
 // mog annotation:
@@ -883,4 +940,30 @@ message TCPService {
   string Name = 1;
   // mog: func-to=enterpriseMetaToStructs func-from=enterpriseMetaFromStructs
   common.EnterpriseMeta EnterpriseMeta = 2;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.SamenessGroupConfigEntry
+// output=config_entry.gen.go
+// name=Structs
+// ignore-fields=RaftIndex
+message SamenessGroup {
+  string Name = 1;
+  bool DefaultForFailover = 2;
+  bool IncludeLocal = 3;
+  repeated SamenessGroupMember Members = 4;
+  map<string, string> Meta = 5;
+  // mog: func-to=enterpriseMetaToStructs func-from=enterpriseMetaFromStructs
+  common.EnterpriseMeta EnterpriseMeta = 6;
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.SamenessGroupMember
+// output=config_entry.gen.go
+// name=Structs
+message SamenessGroupMember {
+  string Partition = 1;
+  string Peer = 2;
 }

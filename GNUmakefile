@@ -163,6 +163,19 @@ dev-build:
 	rm -f ./bin/consul
 	cp ${MAIN_GOPATH}/bin/consul ./bin/consul
 
+
+dev-docker-dbg: dev-docker linux dev-build
+	@echo "Pulling consul container image - $(CONSUL_IMAGE_VERSION)"
+	@docker pull consul:$(CONSUL_IMAGE_VERSION) >/dev/null
+	@echo "Building Consul Development container - $(CONSUL_DEV_IMAGE)"
+	@#  'consul-dbg:local' tag is needed to run the integration tests
+	@#  'consul-dev:latest' is needed by older workflows
+	@docker buildx use default && docker buildx build -t 'consul-dbg:local' -t '$(CONSUL_DEV_IMAGE)' \
+       --platform linux/$(GOARCH) \
+	   --build-arg CONSUL_IMAGE_VERSION=$(CONSUL_IMAGE_VERSION) \
+       --load \
+       -f $(CURDIR)/build-support/docker/Consul-Dev-Dbg.dockerfile $(CURDIR)/pkg/bin/
+
 dev-docker: linux dev-build
 	@echo "Pulling consul container image - $(CONSUL_IMAGE_VERSION)"
 	@docker pull consul:$(CONSUL_IMAGE_VERSION) >/dev/null
@@ -195,7 +208,7 @@ remote-docker: check-remote-dev-image-env
        --push \
        -f $(CURDIR)/build-support/docker/Consul-Dev-Multiarch.dockerfile $(CURDIR)/pkg/bin/
 
-# In CircleCI, the linux binary will be attached from a previous step at bin/. This make target
+# In CI, the linux binary will be attached from a previous step at bin/. This make target
 # should only run in CI and not locally.
 ci.dev-docker:
 	@echo "Pulling consul container image - $(CONSUL_IMAGE_VERSION)"
@@ -392,6 +405,7 @@ ui-build-image:
 	@echo "Building UI build container"
 	@docker build $(NOCACHE) $(QUIET) -t $(UI_BUILD_TAG) - < build-support/docker/Build-UI.dockerfile
 
+# Builds consul in a docker container and then dumps executable into ./pkg/bin/...
 consul-docker: go-build-image
 	@$(SHELL) $(CURDIR)/build-support/scripts/build-docker.sh consul
 
@@ -460,20 +474,10 @@ test-metrics-integ: test-compat-integ-setup
 		--latest-version latest
 
 test-connect-ca-providers:
-ifeq ("$(CIRCLECI)","true")
-# Run in CI
-	gotestsum --format=short-verbose --junitfile "$(TEST_RESULTS_DIR)/gotestsum-report.xml" -- -cover -coverprofile=coverage.txt ./agent/connect/ca
-# Run leader tests that require Vault
-	gotestsum --format=short-verbose --junitfile "$(TEST_RESULTS_DIR)/gotestsum-report-leader.xml" -- -cover -coverprofile=coverage-leader.txt -run Vault ./agent/consul
-# Run agent tests that require Vault
-	gotestsum --format=short-verbose --junitfile "$(TEST_RESULTS_DIR)/gotestsum-report-agent.xml" -- -cover -coverprofile=coverage-agent.txt -run Vault ./agent
-else
-# Run locally
 	@echo "Running /agent/connect/ca tests in verbose mode"
 	@go test -v ./agent/connect/ca
 	@go test -v ./agent/consul -run Vault
 	@go test -v ./agent -run Vault
-endif
 
 .PHONY: proto
 proto: proto-tools proto-gen proto-mocks
@@ -534,6 +538,11 @@ envoy-regen:
 	@go test -tags '$(GOTAGS)' ./agent/xds -update
 	@find "command/connect/envoy/testdata" -name '*.golden' -delete
 	@go test -tags '$(GOTAGS)' ./command/connect/envoy -update
+
+# Point your web browser to http://localhost:3000/consul to live render docs from ./website/
+.PHONY: docs
+docs:
+	make -C website
 
 .PHONY: help
 help:

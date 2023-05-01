@@ -84,6 +84,40 @@ func ACLServiceRead(t *testing.T, serviceName string) resolver.Result {
 	}
 }
 
+func ACLOperatorRead(t *testing.T) resolver.Result {
+	t.Helper()
+
+	aclRule := &acl.Policy{
+		PolicyRules: acl.PolicyRules{
+			Operator: acl.PolicyRead,
+		},
+	}
+	authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{aclRule}, nil)
+	require.NoError(t, err)
+
+	return resolver.Result{
+		Authorizer:  authz,
+		ACLIdentity: randomACLIdentity(t),
+	}
+}
+
+func ACLOperatorWrite(t *testing.T) resolver.Result {
+	t.Helper()
+
+	aclRule := &acl.Policy{
+		PolicyRules: acl.PolicyRules{
+			Operator: acl.PolicyWrite,
+		},
+	}
+	authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{aclRule}, nil)
+	require.NoError(t, err)
+
+	return resolver.Result{
+		Authorizer:  authz,
+		ACLIdentity: randomACLIdentity(t),
+	}
+}
+
 func randomACLIdentity(t *testing.T) structs.ACLIdentity {
 	id, err := uuid.GenerateUUID()
 	require.NoError(t, err)

@@ -14,23 +14,26 @@ provided for their upgrades as a result of new features or changed behavior.
 This page is used to document those details separately from the standard
 upgrade flow.
 
+## Consul 1.16.x
+
+#### Remove deprecated service-defaults peer upstream override behavior
+
+When configuring a service defaults configuration entry, the [`UpstreamConfig.Overrides` configuration](/consul/docs/connect/config-entries/service-defaults#upstreamconfig-overrides) 
+does not apply to peer upstreams unless the [`Peer`](/consul/docs/connect/config-entries/service-defaults#upstreamconfig-overrides-peer) field is explicitly provided.
+This change removes the backward-compatibility behavior introduced in Consul 1.15.x. Refer to the [upgrade instructions for 1.15.x](#service-defaults-overrides-for-upstream-peered-services) for more information.
+
 ## Consul 1.15.x
 
-#### Service mesh known issue
+#### Service mesh compatibility ((#service-mesh-compatibility-1-15))
 
-To err on the side of caution,
-service mesh deployments should not upgrade to Consul v1.15 at this time.
+Upgrade to **Consul version 1.15.2 or later**.
 
-We are currently investigating a not-consistently-reproducible issue that can cause
+Consul versions 1.15.0 - 1.15.1 contain a race condition that can cause
 some service instances to lose their ability to communicate in the mesh after
 [72 hours (LeafCertTTL)](/consul/docs/connect/ca/consul#leafcertttl)
 due to a problem with leaf certificate rotation.
-We will update this section with more information as our investigation continues,
-including the target availability for a fix.
 
-If you are already operating Consul v1.15, refer to discussion of this issue on
-[GH-16779](https://github.com/hashicorp/consul/issues/16779)
-for potential workarounds and to share your observations.
+This bug is fixed in Consul versions 1.15.2 and newer.
 
 #### Removing configuration options
 
@@ -203,7 +206,7 @@ If you already use gRPC encryption, change the following fields to ensure compat
 [Cluster peering](/consul/docs/connect/cluster-peering) was released in Consul 1.13 as an experimental feature.
 In Consul 1.14, cluster peering has been improved and is now considered stable. All experimental peering
 connections created by 1.13 should be
-[deleted](/consul/docs/connect/cluster-peering/create-manage-peering#delete-peering-connections)
+[deleted](/consul/docs/connect/cluster-peering/usage/manage-connections#delete-peering-connections)
 prior to upgrading, as they will no longer be compatible with 1.14.
 
 ## Consul 1.13.x

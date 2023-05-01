@@ -421,6 +421,11 @@ func (c *FSM) registerStreamSnapshotHandlers() {
 		return c.State().IPRateLimiterSnapshot(req, buf)
 	}, true)
 	panicIfErr(err)
+
+	err = c.deps.Publisher.RegisterHandler(state.EventTopicSamenessGroup, func(req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
+		return c.State().SamenessGroupSnapshot(req, buf)
+	}, true)
+	panicIfErr(err)
 }
 
 func panicIfErr(err error) {

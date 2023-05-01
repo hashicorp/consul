@@ -8,11 +8,17 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/anypb"
 
+	"github.com/hashicorp/go-uuid"
+
+	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/acl/resolver"
 	"github.com/hashicorp/consul/agent/grpc-external/testutils"
+	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/storage/inmem"
 	"github.com/hashicorp/consul/proto-public/pbresource"
@@ -20,12 +26,28 @@ import (
 	"github.com/hashicorp/consul/sdk/testutil"
 )
 
-func TestWriteStatus_TODO(t *testing.T) {
-	server := testServer(t)
-	client := testClient(t, server)
-	resp, err := client.WriteStatus(context.Background(), &pbresource.WriteStatusRequest{})
+func randomACLIdentity(t *testing.T) structs.ACLIdentity {
+	id, err := uuid.GenerateUUID()
 	require.NoError(t, err)
-	require.NotNil(t, resp)
+
+	return &structs.ACLToken{AccessorID: id}
+}
+
+func AuthorizerFrom(t *testing.T, policyStrs ...string) resolver.Result {
+	policies := []*acl.Policy{}
+	for _, policyStr := range policyStrs {
+		policy, err := acl.NewPolicyFromSource(policyStr, nil, nil)
+		require.NoError(t, err)
+		policies = append(policies, policy)
+	}
+
+	authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), policies, nil)
+	require.NoError(t, err)
+
+	return resolver.Result{
+		Authorizer:  authz,
+		ACLIdentity: randomACLIdentity(t),
+	}
 }
 
 func testServer(t *testing.T) *Server {
@@ -35,10 +57,16 @@ func testServer(t *testing.T) *Server {
 	require.NoError(t, err)
 	go backend.Run(testContext(t))
 
+	// Mock the ACL Resolver to allow everything for testing
+	mockACLResolver := &MockACLResolver{}
+	mockACLResolver.On("ResolveTokenAndDefaultMeta", mock.Anything, mock.Anything, mock.Anything).
+		Return(testutils.ACLsDisabled(t), nil)
+
 	return NewServer(Config{
-		Logger:   testutil.Logger(t),
-		Registry: resource.NewRegistry(),
-		Backend:  backend,
+		Logger:      testutil.Logger(t),
+		Registry:    resource.NewRegistry(),
+		Backend:     backend,
+		ACLResolver: mockACLResolver,
 	})
 }
 

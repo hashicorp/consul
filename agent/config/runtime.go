@@ -1484,7 +1484,17 @@ type RuntimeConfig struct {
 	// here so that tests can use a smaller value.
 	LocalProxyConfigResyncInterval time.Duration
 
+	Reporting ReportingConfig
+
 	EnterpriseRuntimeConfig
+}
+
+type LicenseConfig struct {
+	Enabled bool
+}
+
+type ReportingConfig struct {
+	License LicenseConfig
 }
 
 type AutoConfig struct {
@@ -1739,6 +1749,9 @@ func (c *RuntimeConfig) Sanitized() map[string]interface{} {
 
 // IsCloudEnabled returns true if a cloud.resource_id is set and the server mode is enabled
 func (c *RuntimeConfig) IsCloudEnabled() bool {
+	if c == nil {
+		return false
+	}
 	return c.ServerMode && c.Cloud.ResourceID != ""
 }
 
