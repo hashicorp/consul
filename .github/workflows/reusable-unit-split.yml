@@ -68,9 +68,6 @@ jobs:
     name: "go-test"
     needs:
       - set-test-package-matrix
-    permissions:
-      id-token: write # NOTE: this permission is explicitly required for Vault auth.
-      contents: read
     strategy:
       fail-fast: false
       matrix:
