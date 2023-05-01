@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/consul/agent/hcp/client"
+
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/metric/aggregation"

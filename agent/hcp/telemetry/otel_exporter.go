@@ -4,6 +4,7 @@ import (
 	"context"
 
 	hcpclient "github.com/hashicorp/consul/agent/hcp/client"
+
 	"github.com/hashicorp/go-multierror"
 	"go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/metric/aggregation"
