@@ -42,6 +42,9 @@ on:
         required: true
       consul-license:
         required: true
+      datadog-api-key:
+        required: true
+        type: string
 env:
   TEST_RESULTS: /tmp/test-results
   GOTESTSUM_VERSION: 1.8.2
@@ -49,6 +52,7 @@ env:
   TOTAL_RUNNERS: ${{inputs.runner-count}}
   CONSUL_LICENSE: ${{secrets.consul-license}}
   GOTAGS: ${{ inputs.go-tags}}
+  DATADOG_API_KEY: ${{secrets.datadog-api-key}}
   
 jobs:
   set-test-package-matrix:
@@ -155,7 +159,6 @@ jobs:
 
       - name: upload coverage
         env:
-          DATADOG_API_KEY: "${{ endsWith(github.repository, '-enterprise') && env.DATADOG_API_KEY || secrets.DATADOG_API_KEY }}"
           DD_ENV: ci
         run: datadog-ci junit upload --service "$GITHUB_REPOSITORY" ${{env.TEST_RESULTS}}/gotestsum-report.xml
 
