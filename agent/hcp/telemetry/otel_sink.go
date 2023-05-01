@@ -9,9 +9,9 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/agent/hcp/client"
-	"github.com/hashicorp/go-hclog"
 
 	gometrics "github.com/armon/go-metrics"
+	"github.com/hashicorp/go-hclog"
 	"go.opentelemetry.io/otel/attribute"
 	otelmetric "go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/metric/instrument"
