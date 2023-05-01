@@ -29,12 +29,18 @@ module.exports = [
   },
   {
     source: '/consul/docs/connect/intentions#intention-management-permissions',
-    destination: `/consul/docs/connect/intentions/create-manage-intentions#acl-requirements`,
+    destination:
+      '/consul/docs/connect/intentions/create-manage-intentions#acl-requirements',
     permanent: true,
   },
   {
     source: '/consul/docs/connect/intentions#intention-basics',
-    destination: `/consul/docs/connect/intentions`,
+    destination: '/consul/docs/connect/intentions',
+    permanent: true,
+  },
+  {
+    source: '/consul/docs/discovery/dns',
+    destination: '/consul/docs/services/discovery/dns-static-lookups',
     permanent: true,
   },
 ]
