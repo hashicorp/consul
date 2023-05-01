@@ -16,33 +16,32 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
+	"github.com/hashicorp/consul/internal/storage"
+	"github.com/hashicorp/consul/internal/storage/conformance"
 	"github.com/hashicorp/consul/internal/storage/raft"
 	"github.com/hashicorp/consul/sdk/testutil"
 )
 
 func TestBackend_Conformance(t *testing.T) {
-	// TODO(spatel): Temporarily disable to get a green pipeline
-	require.True(t, true)
+	t.Run("Leader", func(t *testing.T) {
+		conformance.Test(t, conformance.TestOptions{
+			NewBackend: func(t *testing.T) storage.Backend {
+				leader, _ := newRaftCluster(t)
+				return leader
+			},
+			SupportsStronglyConsistentList: true,
+		})
+	})
 
-	// t.Run("Leader", func(t *testing.T) {
-	// 	conformance.Test(t, conformance.TestOptions{
-	// 		NewBackend: func(t *testing.T) storage.Backend {
-	// 			leader, _ := newRaftCluster(t)
-	// 			return leader
-	// 		},
-	// 		SupportsStronglyConsistentList: true,
-	// 	})
-	// })
-
-	// t.Run("Follower", func(t *testing.T) {
-	// 	conformance.Test(t, conformance.TestOptions{
-	// 		NewBackend: func(t *testing.T) storage.Backend {
-	// 			_, follower := newRaftCluster(t)
-	// 			return follower
-	// 		},
-	// 		SupportsStronglyConsistentList: true,
-	// 	})
-	// })
+	t.Run("Follower", func(t *testing.T) {
+		conformance.Test(t, conformance.TestOptions{
+			NewBackend: func(t *testing.T) storage.Backend {
+				_, follower := newRaftCluster(t)
+				return follower
+			},
+			SupportsStronglyConsistentList: true,
+		})
+	})
 }
 
 func newRaftCluster(t *testing.T) (*raft.Backend, *raft.Backend) {

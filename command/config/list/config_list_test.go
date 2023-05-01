@@ -28,9 +28,6 @@ func TestConfigList(t *testing.T) {
 	defer a.Shutdown()
 	client := a.Client()
 
-	ui := cli.NewMockUi()
-	c := New(ui)
-
 	_, _, err := client.ConfigEntries().Set(&api.ServiceConfigEntry{
 		Kind:     api.ServiceDefaults,
 		Name:     "web",
@@ -48,21 +45,58 @@ func TestConfigList(t *testing.T) {
 	_, _, err = client.ConfigEntries().Set(&api.ServiceConfigEntry{
 		Kind:     api.ServiceDefaults,
 		Name:     "api",
-		Protocol: "tcp",
+		Protocol: "http",
 	}, nil)
 	require.NoError(t, err)
 
-	args := []string{
-		"-http-addr=" + a.HTTPAddr(),
-		"-kind=" + api.ServiceDefaults,
+	cases := map[string]struct {
+		args     []string
+		expected []string
+		errMsg   string
+	}{
+		"list service-defaults": {
+			args: []string{
+				"-http-addr=" + a.HTTPAddr(),
+				"-kind=" + api.ServiceDefaults,
+			},
+			expected: []string{"web", "foo", "api"},
+		},
+		"filter service-defaults": {
+			args: []string{
+				"-http-addr=" + a.HTTPAddr(),
+				"-kind=" + api.ServiceDefaults,
+				"-filter=" + `Protocol == "http"`,
+			},
+			expected: []string{"api"},
+		},
+		"filter unsupported kind": {
+			args: []string{
+				"-http-addr=" + a.HTTPAddr(),
+				"-kind=" + api.ProxyDefaults,
+				"-filter", `Mode == "transparent"`,
+			},
+			errMsg: "filtering not supported for config entry kind=proxy-defaults",
+		},
 	}
+	for name, c := range cases {
+		c := c
+		t.Run(name, func(t *testing.T) {
+			ui := cli.NewMockUi()
+			cmd := New(ui)
 
-	code := c.Run(args)
-	require.Equal(t, 0, code)
+			code := cmd.Run(c.args)
 
-	services := strings.Split(strings.Trim(ui.OutputWriter.String(), "\n"), "\n")
+			if c.errMsg == "" {
+				require.Equal(t, 0, code)
+				services := strings.Split(strings.Trim(ui.OutputWriter.String(), "\n"), "\n")
+				require.ElementsMatch(t, c.expected, services)
+			} else {
+				require.NotEqual(t, 0, code)
+				require.Contains(t, ui.ErrorWriter.String(), c.errMsg)
+			}
 
-	require.ElementsMatch(t, []string{"web", "foo", "api"}, services)
+		})
+	}
 }
 
 func TestConfigList_InvalidArgs(t *testing.T) {
