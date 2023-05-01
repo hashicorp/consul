@@ -243,15 +243,18 @@ func (c *cmd) Help() string {
 }
 
 const (
-	synopsis = "Export a service"
+	synopsis = "Export a service from one peer or admin partition to another"
 	help     = `
 Usage: consul services export [options] -name <service name> -consumer-peers <other cluster name>
 
-  Export a service. The peers provided will be used locally by
-  this cluster to refer to the other cluster where the services will be exported. 
+  Export a service to a peered cluster.
 
-  Example:
+      $ consul services export -name=web -consumer-peers=other-cluster
 
-  $ consul services export -name=web -consumer-peers=other-cluster
+  Use the -consumer-partitions flag instead of -consumer-peers to export to a different partition in the same cluster.
+
+      $ consul services export -name=web -consumer-partitions=other-partition
+
+  Additional flags and more advanced use cases are detailed below.
 `
 )
