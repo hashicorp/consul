@@ -122,8 +122,8 @@ func (c *cmd) validateFlags() error {
 		return errors.New("Missing the required -name flag")
 	}
 
-	if c.peerNames == "" {
-		return errors.New("Missing the required -consumer-peers flag")
+	if c.peerNames == "" && c.partitionNames == "" {
+		return errors.New("Missing the required -consumer-peers or -consumer-partitions flag")
 	}
 
 	return nil
