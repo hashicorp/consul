@@ -55,9 +55,6 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       package-matrix: ${{ steps.set-matrix.outputs.matrix }}
-    permissions:
-      id-token: write # NOTE: this permission is explicitly required for Vault auth.
-      contents: read
     steps:
       - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # v3.3.0
       - uses: actions/setup-go@6edd4406fa81c3da01a34fa6f6343087c207a568 # pin@v3.5.0
@@ -71,6 +68,9 @@ jobs:
     name: "go-test"
     needs:
       - set-test-package-matrix
+    permissions:
+      id-token: write # NOTE: this permission is explicitly required for Vault auth.
+      contents: read
     strategy:
       fail-fast: false
       matrix:
