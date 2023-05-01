@@ -13,6 +13,8 @@ import (
 	"github.com/hashicorp/consul/agent/hcp/config"
 	"github.com/hashicorp/consul/agent/hcp/scada"
 	"github.com/hashicorp/consul/agent/hcp/telemetry"
+
+	"github.com/armon/go-metrics"
 	"github.com/hashicorp/go-hclog"
 )
 
@@ -20,7 +22,7 @@ import (
 type Deps struct {
 	Client   hcpclient.Client
 	Provider scada.Provider
-	Sink     *telemetry.OTELSink
+	Sink     metrics.MetricSink
 }
 
 func NewDeps(cfg config.CloudConfig, logger hclog.Logger) (d Deps, err error) {
