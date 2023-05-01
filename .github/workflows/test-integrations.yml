@@ -122,7 +122,7 @@ jobs:
 
       - name: upload coverage
         env:
-          DATADOG_API_KEY: "${{ !endsWith(github.repository, '-enterprise') && DATADOG_API_KEY || secrets.DATADOG_API_KEY }}"
+          DATADOG_API_KEY: "${{ !endsWith(github.repository, '-enterprise') && env.DATADOG_API_KEY || secrets.DATADOG_API_KEY }}"
           DD_ENV: ci
         run: datadog-ci junit upload --service "$GITHUB_REPOSITORY" $TEST_RESULTS_DIR/results.xml
 
@@ -201,19 +201,19 @@ jobs:
 
       - name: upload coverage
         env:
-          DATADOG_API_KEY: "${{ !endsWith(github.repository, '-enterprise') && DATADOG_API_KEY || secrets.DATADOG_API_KEY }}"
+          DATADOG_API_KEY: "${{ !endsWith(github.repository, '-enterprise') && env.DATADOG_API_KEY || secrets.DATADOG_API_KEY }}"
           DD_ENV: ci
         run: datadog-ci junit upload --service "$GITHUB_REPOSITORY" "${{ env.TEST_RESULTS_DIR }}/gotestsum-report.xml"
 
       - name: upload leader coverage
         env:
-          DATADOG_API_KEY: "${{ !endsWith(github.repository, '-enterprise') && DATADOG_API_KEY || secrets.DATADOG_API_KEY }}"
+          DATADOG_API_KEY: "${{ !endsWith(github.repository, '-enterprise') && env.DATADOG_API_KEY || secrets.DATADOG_API_KEY }}"
           DD_ENV: ci
         run: datadog-ci junit upload --service "$GITHUB_REPOSITORY" "${{ env.TEST_RESULTS_DIR }}/gotestsum-report-leader.xml"
 
       - name: upload agent coverage
         env:
-          DATADOG_API_KEY: "${{ !endsWith(github.repository, '-enterprise') && DATADOG_API_KEY || secrets.DATADOG_API_KEY }}"
+          DATADOG_API_KEY: "${{ !endsWith(github.repository, '-enterprise') && env.DATADOG_API_KEY || secrets.DATADOG_API_KEY }}"
           DD_ENV: ci
         run: datadog-ci junit upload --service "$GITHUB_REPOSITORY" "${{ env.TEST_RESULTS_DIR }}/gotestsum-report-agent.xml"
 
@@ -339,7 +339,7 @@ jobs:
 
       - name: upload coverage
         env:
-          DATADOG_API_KEY: "${{ !endsWith(github.repository, '-enterprise') && DATADOG_API_KEY || secrets.DATADOG_API_KEY }}"
+          DATADOG_API_KEY: "${{ !endsWith(github.repository, '-enterprise') && env.DATADOG_API_KEY || secrets.DATADOG_API_KEY }}"
           DD_ENV: ci
         run: datadog-ci junit upload --service "$GITHUB_REPOSITORY" $TEST_RESULTS_DIR/results.xml
 
@@ -470,7 +470,7 @@ jobs:
 
       - name: upload coverage
         env:
-          DATADOG_API_KEY: "${{ !endsWith(github.repository, '-enterprise') && DATADOG_API_KEY || secrets.DATADOG_API_KEY }}"
+          DATADOG_API_KEY: "${{ !endsWith(github.repository, '-enterprise') && env.DATADOG_API_KEY || secrets.DATADOG_API_KEY }}"
           DD_ENV: ci
         run: datadog-ci junit upload --service "$GITHUB_REPOSITORY" $TEST_RESULTS_DIR/results.xml
 
