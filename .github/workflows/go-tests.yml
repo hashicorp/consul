@@ -228,6 +228,9 @@ jobs:
       runs-on: ${{ needs.setup.outputs.compute-xl }}
       repository-name: ${{ github.repository }}
       go-tags: ""
+    permissions:
+      id-token: write # NOTE: this permission is explicitly required for Vault auth.
+      contents: read    
     secrets:
       elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
       consul-license: ${{secrets.CONSUL_LICENSE}}
@@ -244,6 +247,9 @@ jobs:
       runs-on: ${{ needs.setup.outputs.compute-xl }}
       repository-name: ${{ github.repository }}
       go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consulprem consuldev' || '' }}"
+    permissions:
+      id-token: write # NOTE: this permission is explicitly required for Vault auth.
+      contents: read    
     secrets:
       elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
       consul-license: ${{secrets.CONSUL_LICENSE}}
@@ -260,6 +266,9 @@ jobs:
       runs-on: ${{ needs.setup.outputs.compute-xl }}
       repository-name: ${{ github.repository }}
       go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consulprem consuldev' || '' }}"
+    permissions:
+      id-token: write # NOTE: this permission is explicitly required for Vault auth.
+      contents: read    
     secrets:
       elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
       consul-license: ${{secrets.CONSUL_LICENSE}}
@@ -276,6 +285,9 @@ jobs:
       runs-on: ${{ needs.setup.outputs.compute-xl }}
       repository-name: ${{ github.repository }}
       go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consulprem consuldev' || '' }}"
+    permissions:
+      id-token: write # NOTE: this permission is explicitly required for Vault auth.
+      contents: read    
     secrets:
       elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
       consul-license: ${{secrets.CONSUL_LICENSE}}
@@ -290,6 +302,9 @@ jobs:
       runs-on: ${{ needs.setup.outputs.compute-xl }}
       repository-name: ${{ github.repository }}
       go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consulprem consuldev' || '' }}"
+    permissions:
+      id-token: write # NOTE: this permission is explicitly required for Vault auth.
+      contents: read    
     secrets:
       elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
       consul-license: ${{secrets.CONSUL_LICENSE}}
@@ -304,6 +319,9 @@ jobs:
       runs-on: ${{ needs.setup.outputs.compute-xl }}
       repository-name: ${{ github.repository }}
       go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consulprem consuldev' || '' }}"
+    permissions:
+      id-token: write # NOTE: this permission is explicitly required for Vault auth.
+      contents: read    
     secrets:
       elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
       consul-license: ${{secrets.CONSUL_LICENSE}}
@@ -318,6 +336,9 @@ jobs:
       runs-on: ${{ needs.setup.outputs.compute-xl }}
       repository-name: ${{ github.repository }}
       go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consulprem consuldev' || '' }}"
+    permissions:
+      id-token: write # NOTE: this permission is explicitly required for Vault auth.
+      contents: read    
     secrets:
       elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
       consul-license: ${{secrets.CONSUL_LICENSE}}
@@ -332,6 +353,9 @@ jobs:
       runs-on: ${{ needs.setup.outputs.compute-xl }}
       repository-name: ${{ github.repository }}
       go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consulprem consuldev' || '' }}"
+    permissions:
+      id-token: write # NOTE: this permission is explicitly required for Vault auth.
+      contents: read    
     secrets:
       elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
       consul-license: ${{secrets.CONSUL_LICENSE}}
@@ -346,6 +370,9 @@ jobs:
       runs-on: ${{ needs.setup.outputs.compute-xl }}
       repository-name: ${{ github.repository }}
       go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consulprem consuldev' || '' }}"
+    permissions:
+      id-token: write # NOTE: this permission is explicitly required for Vault auth.
+      contents: read    
     secrets:
       elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
       consul-license: ${{secrets.CONSUL_LICENSE}}
@@ -360,6 +387,9 @@ jobs:
       runs-on: ${{ needs.setup.outputs.compute-xl }}
       repository-name: ${{ github.repository }}
       go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consulprem consuldev' || '' }}"
+    permissions:
+      id-token: write # NOTE: this permission is explicitly required for Vault auth.
+      contents: read    
     secrets:
       elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
       consul-license: ${{secrets.CONSUL_LICENSE}}
