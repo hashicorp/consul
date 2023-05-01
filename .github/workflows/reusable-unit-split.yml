@@ -44,7 +44,6 @@ on:
         required: true
       datadog-api-key:
         required: true
-        type: string
 env:
   TEST_RESULTS: /tmp/test-results
   GOTESTSUM_VERSION: 1.8.2
