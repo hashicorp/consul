@@ -178,7 +178,7 @@ func (s *Sprawl) createAgentReadPolicies(cluster *topology.Cluster) error {
 	logger.Info("TODO: REMOVE THIS HACK WHEN NOT NEEDED ANY LONGER")
 
 	for _, part := range cluster.Partitions {
-		op, err := CreateOrUpdatePolicy(client, policyForAgentRead(part.Name))
+		op, err := CreateOrUpdatePolicy(client, policyForAgentRead(part.Name, cluster.Enterprise))
 		if err != nil {
 			return err
 		}

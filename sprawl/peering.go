@@ -124,20 +124,22 @@ func (s *Sprawl) waitForPeeringEstablishment(peering *topology.Peering) error {
 			)
 		)
 
-		s.checkPeeringDirection(dialingLogger, dialingClient, peering.Dialing)
-		s.checkPeeringDirection(acceptingLogger, acceptingClient, peering.Accepting)
+		s.checkPeeringDirection(dialingLogger, dialingClient, peering.Dialing, dialingCluster.Enterprise)
+		s.checkPeeringDirection(acceptingLogger, acceptingClient, peering.Accepting, acceptingCluster.Enterprise)
 	}
 	return nil
 }
 
-func (s *Sprawl) checkPeeringDirection(logger hclog.Logger, client *api.Client, pc topology.PeerCluster) {
+func (s *Sprawl) checkPeeringDirection(logger hclog.Logger, client *api.Client, pc topology.PeerCluster, enterprise bool) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	for {
-		res, _, err := client.Peerings().Read(ctx, pc.PeerName, &api.QueryOptions{
-			Partition: pc.Partition,
-		})
+		opts := &api.QueryOptions{}
+		if enterprise {
+			opts.Partition = pc.Partition
+		}
+		res, _, err := client.Peerings().Read(ctx, pc.PeerName, opts)
 		if isWeirdGRPCError(err) {
 			time.Sleep(50 * time.Millisecond)
 			continue

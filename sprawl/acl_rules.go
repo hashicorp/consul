@@ -8,17 +8,21 @@ import (
 	"github.com/hashicorp/consul-topology/topology"
 )
 
-func policyForAgentRead(partition string) *api.ACLPolicy {
-	return &api.ACLPolicy{
+func policyForAgentRead(partition string, enterprise bool) *api.ACLPolicy {
+	p := &api.ACLPolicy{
 		Name:        "wildcard-agent-read",
 		Description: "wildcard-agent-read",
-		Partition:   partition,
 		Rules: `
 agent_prefix "" {
   policy = "read"
 }
 `,
 	}
+	if enterprise {
+		p.Partition = partition
+		p.Namespace = "default"
+	}
+	return p
 }
 
 func policyForCrossNamespaceRead(partition string) *api.ACLPolicy {
