@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/consul/agent/hcp/client"
+
 	"github.com/hashicorp/go-hclog"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"

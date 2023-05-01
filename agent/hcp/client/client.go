@@ -9,11 +9,12 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/hashicorp/consul/agent/hcp/config"
+	"github.com/hashicorp/consul/version"
+
 	httptransport "github.com/go-openapi/runtime/client"
 	"github.com/go-openapi/strfmt"
 
-	"github.com/hashicorp/consul/agent/hcp/config"
-	"github.com/hashicorp/consul/version"
 	hcptelemetry "github.com/hashicorp/hcp-sdk-go/clients/cloud-consul-telemetry-gateway/preview/2023-04-14/client/consul_telemetry_service"
 	hcpgnm "github.com/hashicorp/hcp-sdk-go/clients/cloud-global-network-manager-service/preview/2022-02-15/client/global_network_manager_service"
 	gnmmod "github.com/hashicorp/hcp-sdk-go/clients/cloud-global-network-manager-service/preview/2022-02-15/models"

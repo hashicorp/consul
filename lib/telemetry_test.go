@@ -9,14 +9,14 @@ import (
 	"os"
 	"testing"
 
-	"github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/logging"
+
+	"github.com/armon/go-metrics"
 	"github.com/hashicorp/go-multierror"
 	"github.com/stretchr/testify/require"
 )
 
 func newCfg() TelemetryConfig {
-
 	return TelemetryConfig{
 		StatsdAddr:    "statsd.host:1234",
 		StatsiteAddr:  "statsite.host:1234",
@@ -60,9 +60,7 @@ func TestInitTelemetryRetrySuccess(t *testing.T) {
 		LogLevel: "INFO",
 	}, os.Stdout)
 	require.NoError(t, err)
-
 	cfg := newCfg()
-
 	_, err = InitTelemetry(cfg, logger)
 	require.Error(t, err)
 
