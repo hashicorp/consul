@@ -77,8 +77,8 @@ var (
 			Name:        "consul.raft.leader.lastContact",
 			Description: "",
 			Unit:        "",
-			Data: metricdata.Histogram[float64]{
-				DataPoints: []metricdata.HistogramDataPoint[float64]{
+			Data: metricdata.Histogram{
+				DataPoints: []metricdata.HistogramDataPoint{
 					{
 						Attributes: *attribute.EmptySet(),
 						Count:      1,
@@ -93,8 +93,8 @@ var (
 			Name:        "consul.raft.commitTime",
 			Description: "",
 			Unit:        "",
-			Data: metricdata.Histogram[float64]{
-				DataPoints: []metricdata.HistogramDataPoint[float64]{
+			Data: metricdata.Histogram{
+				DataPoints: []metricdata.HistogramDataPoint{
 					{
 						Attributes: attrs,
 						Count:      1,
@@ -203,9 +203,9 @@ func isSameMetrics(t *testing.T, expected metricdata.Metrics, actual metricdata.
 		require.True(t, ok, "different metric types: expected metricdata.Sum[float64]")
 
 		isSameData(t, expectedData.DataPoints, actualData.DataPoints)
-	case metricdata.Histogram[float64]:
-		actualData, ok := actual.Data.(metricdata.Histogram[float64])
-		require.True(t, ok, "different metric types: expected metricdata.Histogram[float64]")
+	case metricdata.Histogram:
+		actualData, ok := actual.Data.(metricdata.Histogram)
+		require.True(t, ok, "different metric types: expected metricdata.Histogram")
 
 		isSameHistogramData(t, expectedData.DataPoints, actualData.DataPoints)
 	}
@@ -228,7 +228,7 @@ func isSameData(t *testing.T, expected []metricdata.DataPoint[float64], actual [
 	}
 }
 
-func isSameHistogramData(t *testing.T, expected []metricdata.HistogramDataPoint[float64], actual []metricdata.HistogramDataPoint[float64]) {
+func isSameHistogramData(t *testing.T, expected []metricdata.HistogramDataPoint, actual []metricdata.HistogramDataPoint) {
 	require.Equal(t, len(expected), len(actual), "different histogram datapoint length")
 
 	// Only verify the value and the attributes.
