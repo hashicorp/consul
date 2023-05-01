@@ -5,11 +5,13 @@ package tproxy
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	libassert "github.com/hashicorp/consul/test/integration/consul-container/libs/assert"
 	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
@@ -17,8 +19,9 @@ import (
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/topology"
 )
 
-// TestTProxyService
-// This test makes sure two services in the same datacenter have connectivity
+var requestRetryTimer = &retry.Timer{Timeout: 120 * time.Second, Wait: 500 * time.Millisecond}
+
+// TestTProxyService makes sure two services in the same datacenter have connectivity
 // with transparent proxy enabled.
 //
 // Steps:
@@ -30,34 +33,74 @@ import (
 func TestTProxyService(t *testing.T) {
 	t.Parallel()
 
-	cluster, _, _ := topology.NewCluster(t, &topology.ClusterConfig{
-		NumServers:                1,
-		NumClients:                2,
-		ApplyDefaultProxySettings: true,
-		BuildOpts: &libcluster.BuildOptions{
-			Datacenter:             "dc1",
-			InjectAutoEncryption:   true,
-			InjectGossipEncryption: true,
-			// TODO(rb): fix the test to not need the service/envoy stack to use :8500
-			AllowHTTPAnyway: true,
-		},
-	})
+	cluster := createCluster(t, 2) // 2 client agent pods
 
 	clientService := createServices(t, cluster)
 	_, adminPort := clientService.GetAdminAddr()
 
 	libassert.AssertUpstreamEndpointStatus(t, adminPort, "static-server.default", "HEALTHY", 1)
 	libassert.AssertContainerState(t, clientService, "running")
-	assertHTTPRequestToVirtualAddress(t, clientService)
+	assertHTTPRequestToStaticServerVirtual(t, clientService)
 }
 
-func assertHTTPRequestToVirtualAddress(t *testing.T, clientService libservice.Service) {
-	timer := &retry.Timer{Timeout: 120 * time.Second, Wait: 500 * time.Millisecond}
+// TestTProxyPermissiveMTLS makes sure that a service in permissive mTLS mode accepts
+// non-mesh traffic on the upstream service's port.
+//
+// Steps:
+//   - Create a single server cluster
+//   - Create the static-server and static-client services in the mesh
+//   - Create an additional non-mesh container without a mesh service
+//   - In default/strict mTLS mode, make sure requests from static-client to
+//     static-server's virtual address succeed, but requests from the non-mesh
+//     service fail
+//   - In permissive mTLS mode, make sure requests from static-client to
+//     static-server's virtual addresss succeed, and requests from the non-mesh
+//     service to the static-server's normal address/port succeed.
+func TestTProxyPermissiveMTLS(t *testing.T) {
+	t.Parallel()
 
-	retry.RunWith(timer, t, func(r *retry.R) {
+	// Three client containers: static-client, static-server, and a non-mesh service.
+	// To simulate requests from outside the mesh, we use another client agent container
+	// without a mesh service, and run curl to simulate requests from outside the mesh.
+	cluster := createCluster(t, 3)
+
+	staticServerPod := cluster.Agents[1]
+	nonMeshPod := cluster.Agents[3]
+
+	clientService := createServices(t, cluster)
+	_, adminPort := clientService.GetAdminAddr()
+
+	libassert.AssertUpstreamEndpointStatus(t, adminPort, "static-server.default", "HEALTHY", 1)
+	libassert.AssertContainerState(t, clientService, "running")
+
+	// Validate mesh traffic to the virtual address succeeds in strict/default mTLS mode.
+	assertHTTPRequestToStaticServerVirtual(t, clientService)
+	// Validate non-mesh is blocked in strict/default mTLS mode.
+	assertHTTPRequestToStaticServerServiceAddress(t, nonMeshPod, staticServerPod, false)
+
+	// Put the service in permissive mTLS mode
+	require.NoError(t, cluster.ConfigEntryWrite(&api.MeshConfigEntry{
+		AllowEnablingPermissiveMutualTLS: true,
+	}))
+	require.NoError(t, cluster.ConfigEntryWrite(&api.ServiceConfigEntry{
+		Kind:          api.ServiceDefaults,
+		Name:          libservice.StaticServerServiceName,
+		MutualTLSMode: api.MutualTLSModePermissive,
+	}))
+
+	// Validate mesh traffic to the virtual address succeeds in permissive mTLS mode.
+	assertHTTPRequestToStaticServerVirtual(t, clientService)
+	// Validate non-mesh traffic succeeds in permissive mode.
+	assertHTTPRequestToStaticServerServiceAddress(t, nonMeshPod, staticServerPod, true)
+}
+
+// assertHTTPRequestToStaticServerVirtual checks that a request to the static-server's
+// virtual address succeeds.
+func assertHTTPRequestToStaticServerVirtual(t *testing.T, clientService libservice.Service) {
+	retry.RunWith(requestRetryTimer, t, func(r *retry.R) {
 		// Test that we can make a request to the virtual ip to reach the upstream.
 		//
-		// This uses a workaround for DNS because I had trouble modifying
+		// NOTE(pglass): This uses a workaround for DNS because I had trouble modifying
 		// /etc/resolv.conf. There is a --dns option to docker run, but it
 		// didn't seem to be exposed via testcontainers. I'm not sure if it would
 		// do what I want. In any case, Docker sets up /etc/resolv.conf for certain
@@ -85,13 +128,50 @@ func assertHTTPRequestToVirtualAddress(t *testing.T, clientService libservice.Se
 			`,
 			},
 		)
-		t.Logf("making call to upstream\nerr = %v\nout = %s", err, out)
+		t.Logf("curl request to upstream virtual address\nerr = %v\nout = %s", err, out)
 		require.NoError(r, err)
 		require.Regexp(r, `Virtual IP: 240.0.0.\d+`, out)
 		require.Contains(r, out, "FORTIO_NAME=static-server")
 	})
 }
 
+// assertHTTPRequestToStaticServerServiceAddress checks the result of a request
+// from a non-mesh service to the static-server service. If expSuccess is true,
+// we check for a successful request, and otherwise check for a failed request.
+func assertHTTPRequestToStaticServerServiceAddress(t *testing.T, client, server libcluster.Agent, expSuccess bool) {
+	upstreamURL := fmt.Sprintf("http://%s:8080/debug?env=dump", server.GetIP())
+	retry.RunWith(requestRetryTimer, t, func(r *retry.R) {
+		out, err := client.Exec(context.Background(), []string{"curl", "-s", upstreamURL})
+		t.Logf("curl request to upstream service address: url=%s\nerr = %v\nout = %s", upstreamURL, err, out)
+
+		if expSuccess {
+			require.NoError(r, err)
+			require.Contains(r, out, "FORTIO_NAME=static-server")
+		} else {
+			require.Error(r, err)
+			require.Contains(r, err.Error(), "exit code 52")
+		}
+	})
+}
+
+func createCluster(t *testing.T, numClients int) *libcluster.Cluster {
+	cluster, _, _ := topology.NewCluster(t, &topology.ClusterConfig{
+		NumServers:                1,
+		NumClients:                numClients,
+		ApplyDefaultProxySettings: true,
+		BuildOpts: &libcluster.BuildOptions{
+			Datacenter:             "dc1",
+			InjectAutoEncryption:   true,
+			InjectGossipEncryption: true,
+			// TODO(rb): fix the test to not need the service/envoy stack to use :8500
+			AllowHTTPAnyway: true,
+		},
+	})
+	return cluster
+}
+
+// createServices creates the static-client and static-server services with
+// transparent proxy enabled.
 func createServices(t *testing.T, cluster *libcluster.Cluster) libservice.Service {
 	{
 		node := cluster.Agents[1]
