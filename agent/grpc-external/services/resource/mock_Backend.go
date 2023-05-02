@@ -56,8 +56,8 @@ func (_m *MockBackend) List(ctx context.Context, consistency storage.ReadConsist
 	return r0, r1
 }
 
-// OwnerReferences provides a mock function with given fields: ctx, id
-func (_m *MockBackend) OwnerReferences(ctx context.Context, id *pbresource.ID) ([]*pbresource.ID, error) {
+// ListByOwner provides a mock function with given fields: ctx, id
+func (_m *MockBackend) ListByOwner(ctx context.Context, id *pbresource.ID) ([]*pbresource.ID, error) {
 	ret := _m.Called(ctx, id)
 
 	var r0 []*pbresource.ID
