@@ -3304,10 +3304,6 @@ func requireContainsLower(t *testing.T, haystack, needle string) {
 	require.Contains(t, strings.ToLower(haystack), strings.ToLower(needle))
 }
 
-func intPointer(i int) *int {
-	return &i
-}
-
 func TestConfigEntryQuery_CacheInfoKey(t *testing.T) {
 	assertCacheInfoKeyIsComplete(t, &ConfigEntryQuery{})
 }
