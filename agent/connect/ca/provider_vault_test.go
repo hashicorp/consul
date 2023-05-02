@@ -1147,29 +1147,21 @@ func TestVaultCAProvider_GenerateIntermediate(t *testing.T) {
 
 func TestVaultCAProvider_AutoTidyExpiredIssuers(t *testing.T) {
 	SkipIfVaultNotPresent(t)
-
 	t.Parallel()
 
 	testVault := NewTestVaultServer(t)
-
 	attr := &VaultTokenAttributes{
 		RootPath:         "pki-root",
 		IntermediatePath: "pki-intermediate",
 		ConsulManaged:    true,
 	}
 	token := CreateVaultTokenWithAttrs(t, testVault.client, attr)
+	provider := createVaultProvider(t, true, testVault.Addr, token,
+		map[string]any{
+			"RootPKIPath":         "pki-root/",
+			"IntermediatePKIPath": "pki-intermediate/",
+		})
 
-	provider := createVaultProvider(t, true, testVault.Addr, token, map[string]any{
-		"RootPKIPath":         "pki-root/",
-		"IntermediatePKIPath": "pki-intermediate/",
-	})
-
-	// this runs the auto-tidy config call but we can't test that as there
-	// is no way to check. so we re-set it again below checking that it works.
-	_, err := provider.ActiveLeafSigningCert()
-	require.NoError(t, err)
-
-	fmt.Println("vaultTestVersion:", vaultTestVersion)
 	version := strings.Split(vaultTestVersion, ".")
 	require.Len(t, version, 3)
 	minorVersion, err := strconv.Atoi(version[1])
