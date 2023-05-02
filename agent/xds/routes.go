@@ -465,18 +465,18 @@ func (s *ResourceGenerator) routesForAPIGateway(cfgSnap *proxycfg.ConfigSnapshot
 				//TODO handle
 				return nil, fmt.Errorf("missing route for route reference %s:%s", routeRef.Name, routeRef.Kind)
 			}
-			//flatten httproute
+
+			// flatten httproute
 			flattenedRoutes := discoverychain.FlattenHTTPRoute(route, &listenerCfg, cfgSnap.APIGateway.GatewayConfig)
 
 			for _, flattenedRoute := range flattenedRoutes {
-				//dereference the loop pointer for luck
+				// dereference the loop pointer for luck
 				flattenedRoute := flattenedRoute
-				//reconstruct upstream
-				//upstream := discoverychain.RebuildHTTPRouteUpstream(flattenedRoute, listenerCfg)
-				//uid := proxycfg.NewUpstreamID(&upstream)
-				//fmt.Println(upstream.DestinationName)
-				//fmt.Println(uid)
-				//fmt.Println(flattenedRoute.Name)
+
+				// reconstruct upstream
+				// TODO Explain why we have to do this
+				upstream := discoverychain.RebuildHTTPRouteUpstream(flattenedRoute, listenerCfg)
+				uid := proxycfg.NewUpstreamID(&upstream)
 
 				domains := generateUpstreamAPIsDomains(listenerKey, upstream, flattenedRoute.Hostnames)
 
@@ -489,30 +489,13 @@ func (s *ResourceGenerator) routesForAPIGateway(cfgSnap *proxycfg.ConfigSnapshot
 					return nil, err
 				}
 
-				routeName := defaultRoute.Name // TODO Consider what the correct default is
-				// TODO What is the equivalent of routeNameForUpstream for API Gateway?
-				//   In certain cases, the service name is not included in the route name. We're
-				//   including the service name here when we shouldn't currently.
-				if !(len(readyUpstreams.listenerCfg.TLS.Certificates) > 0){
-					for _, serviceName := range flattenedRoute.GetServiceNames() {
-						// Find the service that matches this upstream
-						serviceUpstreamID := proxycfg.NewUpstreamIDFromServiceName(serviceName)
-						if serviceUpstreamID != uid {
-							continue
-						}
-
-						routeName = fmt.Sprintf("%s_%s", listenerKey.RouteName(), serviceName.Name)
-					}
-				}
-
 				// If the routeName is the same as the default one, merge the virtual host
 				// to the default route
 				if flattenedRoute.Name == defaultRoute.Name {
 					defaultRoute.VirtualHosts = append(defaultRoute.VirtualHosts, virtualHost)
 				} else {
 					svcRoute := &envoy_route_v3.RouteConfiguration{
-						//TODO this makes it pass the unit test but is it correct?
-						Name:             routeName,
+						Name:             listenerKey.RouteName(),
 						ValidateClusters: makeBoolValue(true),
 						VirtualHosts:     []*envoy_route_v3.VirtualHost{virtualHost},
 					}
@@ -525,7 +508,6 @@ func (s *ResourceGenerator) routesForAPIGateway(cfgSnap *proxycfg.ConfigSnapshot
 		if len(defaultRoute.VirtualHosts) > 0 {
 			result = append(result, defaultRoute)
 		}
-
 	}
 
 	return result, nil
