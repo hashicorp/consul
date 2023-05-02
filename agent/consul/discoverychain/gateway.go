@@ -209,23 +209,11 @@ func FlattenHTTPRoute(route *structs.HTTPRouteConfigEntry, listener *structs.API
 }
 
 func RebuildHTTPRouteUpstream(route structs.HTTPRouteConfigEntry, listener structs.APIGatewayListener) structs.Upstream {
-	router, _, _ := httpRouteToDiscoveryChain(route)
-	fmt.Println(route.Name)
-	fmt.Println(listener.Port)
-
-	//TODO temporary glue so I can call the x or default function while I'm debugging
-	ingress := structs.IngressService{
-		Name:           router.Name,
-		Hosts:          route.Hostnames,
-		Meta:           route.Meta,
-		EnterpriseMeta: route.EnterpriseMeta,
-	}
-
 	return structs.Upstream{
-		DestinationName:      ingress.Name,
-		DestinationNamespace: ingress.NamespaceOrDefault(),
-		DestinationPartition: ingress.PartitionOrDefault(),
-		IngressHosts:         ingress.Hosts,
+		DestinationName:      route.GetName(),
+		DestinationNamespace: route.NamespaceOrDefault(),
+		DestinationPartition: route.PartitionOrDefault(),
+		IngressHosts:         route.Hostnames,
 		LocalBindPort:        listener.Port,
 		Config: map[string]interface{}{
 			"protocol": string(listener.Protocol),
