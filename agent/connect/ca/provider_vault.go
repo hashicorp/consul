@@ -438,6 +438,9 @@ func (v *VaultProvider) setupIntermediatePKIPath() error {
 		"require_cn":       false,
 	})
 
+	// enable auto-tidy with tidy_expired_issuers
+	v.autotidyIssuers(v.config.IntermediatePKIPath)
+
 	return err
 }
 
@@ -617,7 +620,6 @@ func (v *VaultProvider) GenerateLeafSigningCert() (string, error) {
 			return "", fmt.Errorf("failed to update default intermediate issuer: %w", err)
 		}
 	}
-	v.autotidyIssuers(v.config.IntermediatePKIPath)
 	return v.ActiveLeafSigningCert()
 }
 
