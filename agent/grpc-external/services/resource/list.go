@@ -15,6 +15,10 @@ import (
 )
 
 func (s *Server) List(ctx context.Context, req *pbresource.ListRequest) (*pbresource.ListResponse, error) {
+	if err := validateListRequest(req); err != nil {
+		return nil, err
+	}
+
 	// check type
 	reg, err := s.resolveType(req.Type)
 	if err != nil {
@@ -64,4 +68,17 @@ func (s *Server) List(ctx context.Context, req *pbresource.ListRequest) (*pbreso
 		result = append(result, resource)
 	}
 	return &pbresource.ListResponse{Resources: result}, nil
+}
+
+func validateListRequest(req *pbresource.ListRequest) error {
+	var field string
+	switch {
+	case req.Type == nil:
+		field = "type"
+	case req.Tenancy == nil:
+		field = "tenancy"
+	default:
+		return nil
+	}
+	return status.Errorf(codes.InvalidArgument, "%s is required", field)
 }
