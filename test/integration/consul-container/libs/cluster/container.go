@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -15,11 +16,14 @@ import (
 
 	goretry "github.com/avast/retry-go"
 	dockercontainer "github.com/docker/docker/api/types/container"
+	"github.com/docker/go-connections/nat"
 	"github.com/hashicorp/go-multierror"
 	"github.com/otiai10/copy"
 	"github.com/pkg/errors"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 
 	"github.com/hashicorp/consul/api"
 
@@ -57,6 +61,8 @@ type consulContainerNode struct {
 	clientAddr       string
 	clientCACertFile string
 	ip               string
+
+	grpcConn *grpc.ClientConn
 
 	nextAdminPortOffset   int
 	nextConnectPortOffset int
@@ -168,7 +174,8 @@ func NewConsulContainer(ctx context.Context, config Config, cluster *Cluster, po
 		clientAddr       string
 		clientCACertFile string
 
-		info AgentInfo
+		info     AgentInfo
+		grpcConn *grpc.ClientConn
 	)
 	debugURI := ""
 	if utils.Debug {
@@ -232,6 +239,28 @@ func NewConsulContainer(ctx context.Context, config Config, cluster *Cluster, po
 		info.CACertFile = clientCACertFile
 	}
 
+	// TODO: Support gRPC+TLS port.
+	if pc.Ports.GRPC > 0 {
+		port, err := nat.NewPort("tcp", strconv.Itoa(pc.Ports.GRPC))
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse gRPC TLS port: %w", err)
+		}
+		endpoint, err := podContainer.PortEndpoint(ctx, port, "tcp")
+		if err != nil {
+			return nil, fmt.Errorf("failed to get gRPC TLS endpoint: %w", err)
+		}
+		url, err := url.Parse(endpoint)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse gRPC endpoint URL: %w", err)
+		}
+		conn, err := grpc.Dial(url.Host, grpc.WithTransportCredentials(insecure.NewCredentials()))
+		if err != nil {
+			return nil, fmt.Errorf("failed to dial gRPC connection: %w", err)
+		}
+		deferClean.Add(func() { _ = conn.Close() })
+		grpcConn = conn
+	}
+
 	ip, err := podContainer.ContainerIP(ctx)
 	if err != nil {
 		return nil, err
@@ -278,6 +307,7 @@ func NewConsulContainer(ctx context.Context, config Config, cluster *Cluster, po
 		name:       name,
 		ip:         ip,
 		info:       info,
+		grpcConn:   grpcConn,
 	}
 
 	if httpPort > 0 || httpsPort > 0 {
@@ -370,6 +400,10 @@ func (c *consulContainerNode) IsServer() bool {
 // GetClient returns an API client that can be used to communicate with the Agent.
 func (c *consulContainerNode) GetClient() *api.Client {
 	return c.client
+}
+
+func (c *consulContainerNode) GetGRPCConn() *grpc.ClientConn {
+	return c.grpcConn
 }
 
 // NewClient returns an API client by making a new one based on the provided token
@@ -522,6 +556,13 @@ func (c *consulContainerNode) terminate(retainPod bool, skipFuncs bool) error {
 		c.pod = nil
 	}
 
+	if c.grpcConn != nil {
+		if err := c.grpcConn.Close(); err != nil {
+			merr = multierror.Append(merr, err)
+		}
+		c.grpcConn = nil
+	}
+
 	return merr
 }
 
@@ -561,6 +602,7 @@ func newContainerRequest(config Config, opts containerOpts, ports ...int) (podRe
 		ExposedPorts: []string{
 			"8500/tcp", // Consul HTTP API
 			"8501/tcp", // Consul HTTPs API
+			"8502/tcp", // Consul gRPC API
 
 			"8443/tcp", // Envoy Gateway Listener
 
