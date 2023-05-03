@@ -438,6 +438,9 @@ func (v *VaultProvider) setupIntermediatePKIPath() error {
 		"require_cn":       false,
 	})
 
+	// enable auto-tidy with tidy_expired_issuers
+	v.autotidyIssuers(v.config.IntermediatePKIPath)
+
 	return err
 }
 
@@ -862,6 +865,39 @@ func (v *VaultProvider) setNamespace(namespace string) func() {
 	} else {
 		return func() {}
 	}
+}
+
+// autotidyIssuers sets Vault's auto-tidy to remove expired issuers
+// Returns a boolean on success for testing (as there is no post-facto way of
+// checking if it is set). Logs at info level on failure to set and why,
+// returning the log message for test purposes as well.
+func (v *VaultProvider) autotidyIssuers(path string) (bool, string) {
+	s, err := v.client.Logical().Write(path+"/config/auto-tidy",
+		map[string]interface{}{
+			"enabled":              true,
+			"tidy_expired_issuers": true,
+		})
+	var errStr string
+	if err != nil {
+		errStr = err.Error()
+		switch {
+		case strings.Contains(errStr, "404"):
+			errStr = "vault versions < 1.12 don't support auto-tidy"
+		case strings.Contains(errStr, "400"):
+			errStr = "vault versions < 1.13 don't support the tidy_expired_issuers field"
+		case strings.Contains(errStr, "403"):
+			errStr = "permission denied on auto-tidy path in vault"
+		}
+		v.logger.Info("Unable to enable Vault's auto-tidy feature for expired issuers", "reason", errStr, "path", path)
+	}
+	// return values for tests
+	tidySet := false
+	if s != nil {
+		if tei, ok := s.Data["tidy_expired_issuers"]; ok {
+			tidySet, _ = tei.(bool)
+		}
+	}
+	return tidySet, errStr
 }
 
 func ParseVaultCAConfig(raw map[string]interface{}) (*structs.VaultCAProviderConfig, error) {
