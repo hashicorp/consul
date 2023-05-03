@@ -169,6 +169,29 @@ func MapOwner(_ context.Context, _ Runtime, res *pbresource.Resource) ([]Request
 	return reqs, nil
 }
 
+func MapOwnerFiltered(filter *pbresource.Type) DependencyMapper {
+	return func(_ context.Context, _ Runtime, res *pbresource.Resource) ([]Request, error) {
+		if res.Owner == nil {
+			return nil, nil
+		}
+
+		ownerType := res.Owner.GetType()
+		if ownerType.Group != filter.Group {
+			return nil, nil
+		}
+
+		if ownerType.GroupVersion != filter.GroupVersion {
+			return nil, nil
+		}
+
+		if ownerType.Kind != filter.Kind {
+			return nil, nil
+		}
+
+		return []Request{{ID: res.Owner}}, nil
+	}
+}
+
 // Placement determines where and how many replicas of the controller will run.
 type Placement int
 

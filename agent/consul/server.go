@@ -844,6 +844,8 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server, incom
 
 func (s *Server) registerResources() {
 	catalog.RegisterTypes(s.typeRegistry)
+	catalog.RegisterControllers(s.controllerManager)
+
 	mesh.RegisterTypes(s.typeRegistry)
 	reaper.RegisterControllers(s.controllerManager)
 
