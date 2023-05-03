@@ -1,0 +1,44 @@
+---
+layout: commands
+page_title: 'Commands: Session Renew'
+---
+
+# Consul Session Renew
+
+Command: `consul session renew`
+
+Corresponding HTTP API Endpoint: [\[PUT\] /v1/session/renew/:uuid](/api-docs/session#renew-session)
+
+The `session renew` command renews a session.
+
+The following table shows the [ACL configurations](/api#authentication) required to use the `session renew` command. You cannot configure 
+[blocking queries](/api-docs/features/blocking) or [agent caching](/api-docs/features/caching)
+from the command line, but you can configure them from the corresponding HTTP endpoint.
+
+| ACL Required    |
+| --------------- |
+| `session:write` |
+
+## Usage
+
+Usage: `consul session renew [options] SESSIONID`
+
+#### API Options
+
+@include 'http_api_options_client.mdx'
+
+@include 'http_api_options_server.mdx'
+
+#### Enterprise Options
+
+@include 'http_api_namespace_options.mdx'
+
+@include 'http_api_partition_options.mdx'
+
+## Examples
+
+Renew a session:
+
+```shell-session
+$ consul session renew b2caae8a-e80e-15f4-17aa-2be947c7968e
+```

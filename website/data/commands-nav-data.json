@@ -491,6 +491,35 @@
     ]
   },
   {
+    "title": "session",
+    "routes": [
+      {
+        "title": "Overview",
+        "path": "session"
+      },
+      {
+        "title": "create",
+        "path": "session/create"
+      },
+      {
+        "title": "delete",
+        "path": "session/delete"
+      },
+      {
+        "title": "list",
+        "path": "session/list"
+      },
+      {
+        "title": "read",
+        "path": "session/read"
+      },
+      {
+        "title": "renew",
+        "path": "session/renew"
+      }
+    ]
+  },
+  {
     "title": "snapshot",
     "routes": [
       {

@@ -1,0 +1,98 @@
+---
+layout: commands
+page_title: 'Commands: Session List'
+---
+
+# Consul Session List
+
+Command: `consul session list`
+
+Corresponding HTTP API Endpoint: [\[GET\] /v1/session/list](/api-docs/session#list-sessions), [\[GET\] /v1/session/node/:node](/api-docs/session#list-sessions-for-node).
+
+The `session list` command lists all sessions.
+
+The following table shows the [ACL configurations](/api#authentication) required to use the `session list` command. You cannot configure 
+[blocking queries](/api-docs/features/blocking) or [agent caching](/api-docs/features/caching)
+from the command line, but you can configure them from the corresponding HTTP endpoint.
+
+| ACL Required   |
+| -------------- |
+| `session:read` |
+
+## Usage
+
+Usage: `consul session list [options]`
+
+#### API Options
+
+@include 'http_api_options_client.mdx'
+
+@include 'http_api_options_server.mdx'
+
+#### Command Options
+
+- `-node` - Indicates whether to list all sessions in the cluster or only for a
+  given node.
+
+- `-format={pretty|json}` - Command output format. The default value is `pretty`.
+
+#### Enterprise Options
+
+@include 'http_api_namespace_options.mdx'
+
+@include 'http_api_partition_options.mdx'
+
+## Examples
+
+Default listing.
+
+```shell-session
+$ consul session list
+ID:          b2caae8a-e80e-15f4-17aa-2be947c7968e
+Node:        s1234
+LockDelay:   15s
+Behavior:    release
+Node Checks: serfHealth
+
+ID:          f3a5cc5d-6e20-b990-c85a-67f94c70a803
+Node:        s1234
+LockDelay:   15s
+Behavior:    release
+Node Checks: serfHealth
+```
+
+Format as JSON.
+
+```shell-session
+$ consul session list -format=json
+[
+    {
+        "CreateIndex": 62,
+        "ID": "b2caae8a-e80e-15f4-17aa-2be947c7968e",
+        "Name": "",
+        "Node": "s1234",
+        "LockDelay": 15000000000,
+        "Behavior": "release",
+        "TTL": "",
+        "Checks": null,
+        "NodeChecks": [
+            "serfHealth"
+        ],
+        "ServiceChecks": null
+    },
+    {
+        "CreateIndex": 560,
+        "ID": "f3a5cc5d-6e20-b990-c85a-67f94c70a803",
+        "Name": "",
+        "Node": "s1234",
+        "LockDelay": 15000000000,
+        "Behavior": "release",
+        "TTL": "",
+        "Checks": null,
+        "NodeChecks": [
+            "serfHealth"
+        ],
+        "ServiceChecks": null
+    }
+]
+```

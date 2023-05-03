@@ -1,0 +1,3 @@
+```release-note:feature
+cli: The `consul session` command and its subcommand can now be used to interact with sessions.
+```

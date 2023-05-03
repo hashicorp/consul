@@ -1,0 +1,69 @@
+---
+layout: commands
+page_title: 'Commands: Session'
+---
+
+# Consul Sessions
+
+Command: `consul session`
+
+Use the `session` command to create, renew, read, delete, or list Consul sessions.
+This command is available in Consul 1.13.0 and newer.
+
+You can also manage sessions via the [`session` HTTP API](/api-docs/session) endpoint.
+
+## Usage
+
+Usage: `consul session <subcommand>`
+
+For the exact documentation for your Consul version, run `consul session -h` to view the complete list of subcommands.
+
+```text
+Usage: consul session <subcommand> [options] [args]
+
+  ...
+
+Subcommands:
+    create    Create a new session
+    delete    Delete a session
+    list      List active sessions
+    read      Read session information
+    renew     Renew a session
+```
+
+Refer to the subcommand documentation for usage and examples.
+
+## Basic Examples
+
+Create a new session:
+
+```shell-session
+$ consul session create -lock-delay=15s \
+                        -name=my-service-lock \
+                        -behavior=release \
+                        -ttl=30s
+```
+
+List all sessions:
+
+```shell-session
+$ consul session list
+```
+
+Renew a session:
+
+```shell-session
+$ consul session renew b2caae8a-e80e-15f4-17aa-2be947c7968e
+```
+
+Read a session:
+
+```shell-session
+$ consul session read b2caae8a-e80e-15f4-17aa-2be947c7968e
+```
+
+Delete a session
+
+```shell-session
+$ consul session delete b2caae8a-e80e-15f4-17aa-2be947c7968e
+```

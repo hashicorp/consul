@@ -1,0 +1,44 @@
+---
+layout: commands
+page_title: 'Commands: Session Delete'
+---
+
+# Consul Session Delete
+
+Command: `consul session delete`
+
+Corresponding HTTP API Endpoint: [\[DELETE\] /v1/session/destroy/:uuid](/api-docs/session#delete-session)
+
+The `session delete` command deletes a session.
+
+The table below shows this command's [required ACLs](/api#authentication). Configuration of
+[blocking queries](/api-docs/features/blocking) and [agent caching](/api-docs/features/caching)
+are not supported from commands, but may be from the corresponding HTTP endpoint.
+
+| ACL Required    |
+| --------------- |
+| `session:write` |
+
+## Usage
+
+Usage: `consul session delete [options] SESSIONID`
+
+#### API Options
+
+@include 'http_api_options_client.mdx'
+
+@include 'http_api_options_server.mdx'
+
+#### Enterprise Options
+
+@include 'http_api_namespace_options.mdx'
+
+@include 'http_api_partition_options.mdx'
+
+## Examples
+
+Delete a session:
+
+```shell-session
+$ consul session delete b2caae8a-e80e-15f4-17aa-2be947c7968e
+```

@@ -1,0 +1,73 @@
+---
+layout: commands
+page_title: 'Commands: Session Read'
+---
+
+# Consul Session Read
+
+Command: `consul session read`
+
+Corresponding HTTP API Endpoints: [\[GET\] /v1/session/info/:uuid](/api-docs/session#read-session).
+
+The `session read` command reads and displays a session details.
+
+The following table shows the [ACL configurations](/api#authentication) required to use the `session read` command. You cannot configure 
+[blocking queries](/api-docs/features/blocking) or [agent caching](/api-docs/features/caching)
+from the command line, but you can configure them from the corresponding HTTP endpoint.
+
+| ACL Required   |
+| -------------- |
+| `session:read` |
+
+## Usage
+
+Usage: `consul session read [options] SESSIONID`
+
+#### API Options
+
+@include 'http_api_options_client.mdx'
+
+@include 'http_api_options_server.mdx'
+
+#### Command Options
+
+- `-format={pretty|json}` - Command output format. The default value is `pretty`.
+
+#### Enterprise Options
+
+@include 'http_api_namespace_options.mdx'
+
+@include 'http_api_partition_options.mdx'
+
+## Examples
+
+Get session details:
+
+```shell-session
+$ consul session read b2caae8a-e80e-15f4-17aa-2be947c7968e
+ID:          b2caae8a-e80e-15f4-17aa-2be947c7968e
+Node:        s1234
+LockDelay:   15s
+Behavior:    release
+Node Checks: serfHealth
+```
+
+Format as JSON:
+
+```shell-session
+$ consul session read -format b2caae8a-e80e-15f4-17aa-2be947c7968e
+{
+    "CreateIndex": 62,
+    "ID": "b2caae8a-e80e-15f4-17aa-2be947c7968e",
+    "Name": "",
+    "Node": "s1234",
+    "LockDelay": 15000000000,
+    "Behavior": "release",
+    "TTL": "",
+    "Checks": null,
+    "NodeChecks": [
+        "serfHealth"
+    ],
+    "ServiceChecks": null
+}
+```

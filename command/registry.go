@@ -112,6 +112,12 @@ import (
 	"github.com/hashicorp/consul/command/services"
 	svcsderegister "github.com/hashicorp/consul/command/services/deregister"
 	svcsregister "github.com/hashicorp/consul/command/services/register"
+	session "github.com/hashicorp/consul/command/session"
+	sessioncreate "github.com/hashicorp/consul/command/session/create"
+	sessiondelete "github.com/hashicorp/consul/command/session/delete"
+	sessionlist "github.com/hashicorp/consul/command/session/list"
+	sessionread "github.com/hashicorp/consul/command/session/read"
+	sessionrenew "github.com/hashicorp/consul/command/session/renew"
 	"github.com/hashicorp/consul/command/snapshot"
 	snapinspect "github.com/hashicorp/consul/command/snapshot/inspect"
 	snaprestore "github.com/hashicorp/consul/command/snapshot/restore"
@@ -241,6 +247,12 @@ func RegisteredCommands(ui cli.Ui) map[string]mcli.CommandFactory {
 		entry{"services", func(cli.Ui) (cli.Command, error) { return services.New(), nil }},
 		entry{"services register", func(ui cli.Ui) (cli.Command, error) { return svcsregister.New(ui), nil }},
 		entry{"services deregister", func(ui cli.Ui) (cli.Command, error) { return svcsderegister.New(ui), nil }},
+		entry{"session", func(ui cli.Ui) (cli.Command, error) { return session.New(ui), nil }},
+		entry{"session create", func(ui cli.Ui) (cli.Command, error) { return sessioncreate.New(ui), nil }},
+		entry{"session delete", func(ui cli.Ui) (cli.Command, error) { return sessiondelete.New(ui), nil }},
+		entry{"session list", func(ui cli.Ui) (cli.Command, error) { return sessionlist.New(ui), nil }},
+		entry{"session read", func(ui cli.Ui) (cli.Command, error) { return sessionread.New(ui), nil }},
+		entry{"session renew", func(ui cli.Ui) (cli.Command, error) { return sessionrenew.New(ui), nil }},
 		entry{"snapshot", func(cli.Ui) (cli.Command, error) { return snapshot.New(), nil }},
 		entry{"snapshot inspect", func(ui cli.Ui) (cli.Command, error) { return snapinspect.New(ui), nil }},
 		entry{"snapshot restore", func(ui cli.Ui) (cli.Command, error) { return snaprestore.New(ui), nil }},
