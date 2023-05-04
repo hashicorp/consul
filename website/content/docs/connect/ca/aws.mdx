@@ -49,7 +49,7 @@ optional configuration value.
 
 Example configurations are shown below:
 
-<CodeTabs heading="Connect CA configuration" tabs={["Agent configuration", "API"]}>
+<CodeTabs heading="Service mesh CA configuration" tabs={["Agent configuration", "API"]}>
 
 <CodeBlockConfig filename="/etc/consul.d/config.hcl" highlight="4,6">
 
@@ -116,7 +116,7 @@ ACM Private CA has several
 that restrict how fast certificates can be issued. This may impact how quickly
 large clusters can rotate all issued certificates.
 
-Currently, the ACM Private CA provider for Connect has some additional
+Currently, the ACM Private CA provider for service mesh has some additional
 limitations described below.
 
 ### Unable to Cross-sign Other CAs
@@ -150,7 +150,7 @@ CA](https://aws.amazon.com/certificate-manager/pricing/) for actual cost
 information.
 
 Assume the following Consul datacenters exist and are configured to use ACM
-Private CA as their Connect CA with the default leaf certificate lifetime of
+Private CA as their service mesh CA with the default leaf certificate lifetime of
 72 hours:
 
 | Datacenter | Primary | CA Resource Created | Number of service instances |

@@ -2,7 +2,7 @@
 layout: docs
 page_title: Service Mesh Configuration - Overview
 description: >-
-  Learn how to enable and configure Consul's service mesh capabilities in agent configurations, and how to integrate with schedulers like Kubernetes and Nomad. ""Connect"" is the subsystem that provides Consul’s service mesh capabilities.
+  Learn how to enable and configure Consul's service mesh capabilities in agent configurations, and how to integrate with schedulers like Kubernetes and Nomad. Consul's service mesh capabilities are provided by the ""connect"" subsystem.
 ---
 
 # Service Mesh Configuration Overview
@@ -11,14 +11,17 @@ There are many configuration options exposed for Consul service mesh. The only o
 that must be set is the `connect.enabled` option on Consul servers to enable Consul service mesh.
 All other configurations are optional and have defaults suitable for many environments.
 
-The terms _Consul Connect_ and _Consul service mesh_ are used interchangeably throughout this documentation. 
+The noun _connect_ is used throughout this documentation to refer to the connect
+subsystem that provides Consul's service mesh capabilities.
+Where you encounter the _noun_ connect, it is usually functionality specific to
+service mesh.
 
 ## Agent configuration
 
-Begin by enabling Connect for your Consul
-cluster. By default, Connect is disabled. Enabling Connect requires changing
+Begin by enabling service mesh for your Consul
+cluster. By default, service is disabled. Enabling service mesh requires changing
 the configuration of only your Consul _servers_ (not client agents). To enable
-Connect, add the following to a new or existing
+service mesh, add the following to a new or existing
 [server configuration file](/consul/docs/agent/config/config-files). In an existing cluster, this configuration change requires a Consul server restart, which you can perform one server at a time to maintain availability. In HCL:
 
 
@@ -37,17 +40,17 @@ connect {
 ```
 </CodeTabs>
 
-This will enable Connect and configure your Consul cluster to use the
+This will enable service mesh and configure your Consul cluster to use the
 built-in certificate authority for creating and managing certificates.
 You may also configure Consul to use an external
 [certificate management system](/consul/docs/connect/ca), such as
 [Vault](https://www.vaultproject.io/).
 
-Services and proxies may always register with Connect settings, but they will
-fail to retrieve or verify any TLS certificates. This causes all Connect-based
-connection attempts to fail until Connect is enabled on the server agents.
+Services and proxies may always register with service mesh settings, but unless
+service mesh is enabled on the server agents, their attempts to communicate will fail
+because they have no means to obtain or verify service mesh TLS certificates.
 
-Other optional Connect configurations that you can set in the server
+Other optional service mesh configurations that you can set in the server
 configuration file include:
 
 - [certificate authority settings](/consul/docs/agent/config/config-files#connect)
@@ -55,10 +58,10 @@ configuration file include:
 - [dev mode](/consul/docs/agent/config/cli-flags#_dev)
 - [server host name verification](/consul/docs/agent/config/config-files#tls_internal_rpc_verify_server_hostname)
 
-If you would like to use Envoy as your Connect proxy you will need to [enable
+If you would like to use Envoy as your service mesh proxy you will need to [enable
 gRPC](/consul/docs/agent/config/config-files#grpc_port).
 
-Additionally if you plan on using the observability features of Connect, it can
+Additionally if you plan on using the observability features of Consul service mesh, it can
 be convenient to configure your proxies and services using [configuration
 entries](/consul/docs/agent/config-entries) which you can interact with using the
 CLI or API, or by creating configuration entry files. You will want to enable
@@ -67,8 +70,8 @@ configuration](/consul/docs/agent/config/config-files#enable_central_service_con
 clients, which allows each service's proxy configuration to be managed centrally
 via API.
 
-!> **Security note:** Enabling Connect is enough to try the feature but doesn't
-automatically ensure complete security. Please read the [Connect production
+!> **Security note:** Enabling service mesh is enough to try the feature but doesn't
+automatically ensure complete security. Please read the [service mesh production
 tutorial](/consul/tutorials/developer-mesh/service-mesh-production-checklist) to understand the additional steps
 needed for a secure deployment.
 
@@ -81,7 +84,7 @@ definitions](/consul/docs/services/usage/define-services).
 
 ## Schedulers
 
-Consul Connect is especially useful if you are using an orchestrator like Nomad
+Consul service mesh is especially useful if you are using an orchestrator like Nomad
 or Kubernetes, because these orchestrators can deploy thousands of service instances
 which frequently move hosts. Sidecars for each service can be configured through
 these schedulers, and in some cases they can automate Consul configuration,
@@ -89,16 +92,16 @@ sidecar deployment, and service registration.
 
 ### Nomad
 
-Connect can be used with Nomad to provide secure service-to-service
+Consul service mesh can be used with Nomad to provide secure service-to-service
 communication between Nomad jobs and task groups. The ability to use the dynamic
-port feature of Nomad makes Connect particularly easy to use. Learn about how to
-configure Connect on Nomad by reading the
+port feature of Nomad makes Consul service mesh particularly easy to use. Learn about how to
+configure Consul service mesh on Nomad by reading the
 [integration documentation](/consul/docs/connect/nomad).
 
 ### Kubernetes
 
-The Consul Helm chart can automate much of Consul Connect's configuration, and
+The Consul Helm chart can automate much of Consul's service mesh configuration, and
 makes it easy to automatically inject Envoy sidecars into new pods when they are
 deployed. Learn about the [Helm chart](/consul/docs/k8s/helm) in general,
 or if you are already familiar with it, check out its
-[connect specific configurations](/consul/docs/k8s/connect).
+[service mesh specific configurations](/consul/docs/k8s/connect).

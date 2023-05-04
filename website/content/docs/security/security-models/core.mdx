@@ -102,21 +102,21 @@ environment and adapt these configurations accordingly.
     `server.<datacenter>.<domain>` hostname for outgoing TLS connections. The default configuration does not verify the
     hostname of the certificate, only that it is signed by a trusted CA. This setting is critical to prevent a
     compromised client agent from being restarted as a server and having all cluster state including all ACL tokens and
-    Connect CA root keys replicated to it. This setting was introduced in 0.5.1. From version 0.5.1 to 1.4.0 we
+    service mesh CA root keys replicated to it. This setting was introduced in 0.5.1. From version 0.5.1 to 1.4.0 we
     documented that `verify_server_hostname` being true implied verify_outgoing however due to a bug this was not the
     case so setting only `verify_server_hostname` results in plaintext communication between client and server. See
     [CVE-2018-19653](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2018-19653) for more details. This is fixed
     in 1.4.1.
 
   - [`auto_encrypt`](/consul/docs/agent/config/config-files#auto_encrypt) - Enables automated TLS certificate distribution for client
-    agent RPC communication using the Connect CA. Using this configuration a [`ca_file`](/consul/docs/agent/config/config-files#tls_defaults_ca_file)
+    agent RPC communication using the service mesh CA. Using this configuration a [`ca_file`](/consul/docs/agent/config/config-files#tls_defaults_ca_file)
     and ACL token would still need to be distributed to client agents.
 
     - [`allow_tls`](/consul/docs/agent/config/config-files#allow_tls) - By default this is false, and should be set to true on server
-      agents to allow certificates to be automatically generated and distributed from the Connect CA to client agents.
+      agents to allow certificates to be automatically generated and distributed from the service mesh CA to client agents.
 
     - [`tls`](/consul/docs/agent/config/config-files#tls) - By default this is false, and should be set to true on client agents to
-      automatically request a client TLS certificate from the server's Connect CA.
+      automatically request a client TLS certificate from the server's service mesh CA.
 
     **Example Server Agent TLS Configuration**
 
@@ -321,7 +321,7 @@ The following are parts of the core Consul threat model:
   This requires transport encryption to be enabled on the cluster and covers both TCP and UDP traffic.
 
 - **Consul agent-to-CA communication** - Communication between the Consul server and the configured certificate
-  authority provider for Connect is always encrypted.
+  authority provider for service mesh is always encrypted.
 
 - **Tampering of data in transit** - Any tampering should be detectable and cause Consul to avoid processing
   the request.
@@ -338,13 +338,13 @@ The following are parts of the core Consul threat model:
 - **Denial of Service against a node** - DoS attacks against a node should not compromise the security stance of
   the software.
 
-- **Connect-based Service-to-Service communication** - Communications between two Connect-enabled services (natively or
-  by proxy) should be secure from eavesdropping and provide authentication. This is achieved via mutual TLS.
+- **Communication between mesh services** - Communications between two mesh-enabled services (natively or
+  by sidecar proxy) should be secure from eavesdropping and provide authentication. This is achieved via mutual TLS.
 
 The following are not part of the threat model for server agents:
 
 - **Access (read or write) to the Consul data directory** - All Consul servers, including non-leaders, persist the full
-  set of Consul state to this directory. The data includes all KV, service registrations, ACL tokens, Connect CA
+  set of Consul state to this directory. The data includes all KV, service registrations, ACL tokens, service mesh CA
   configuration, and more. Any read or write to this directory allows an attacker to access and tamper with that data.
 
 - **Access (read or write) to the Consul configuration directory** - Consul configuration can enable or disable the ACL
@@ -353,14 +353,14 @@ The following are not part of the threat model for server agents:
 
 - **Memory access to a running Consul server agent** - If an attacker is able to inspect the memory state of a running
   Consul server agent the confidentiality of almost all Consul data may be compromised. If you're using an external
-  Connect CA, the root private key material is never available to the Consul process and can be considered safe. Service
-  Connect TLS certificates should be considered compromised; they are never persisted by server agents but do exist
+  service mesh CA, the root private key material is never available to the Consul process and can be considered safe. Service
+  service mesh TLS certificates should be considered compromised; they are never persisted by server agents but do exist
   in-memory during at least the duration of a Sign request.
 
 The following are not part of the threat model for client agents:
 
 - **Access (read or write) to the Consul data directory** - Consul clients will use the data directory to cache local
-  state. This includes local services, associated ACL tokens, Connect TLS certificates, and more. Read or write access
+  state. This includes local services, associated ACL tokens, service mesh TLS certificates, and more. Read or write access
   to this directory will allow an attacker to access this data. This data is typically a smaller subset of the full data
   of the cluster.
 - **Access (read or write) to the Consul configuration directory** - Consul client configuration files contain the
@@ -371,18 +371,18 @@ The following are not part of the threat model for client agents:
 
 - **Memory access to a running Consul client agent** - The blast radius of this is much smaller than a server agent but
   the confidentiality of a subset of data can still be compromised. Particularly, any data requested against the agent's
-  API including services, KV, and Connect information may be compromised. If a particular set of data on the server was
+  API including services, KV, and service mesh information may be compromised. If a particular set of data on the server was
   never requested by the agent, it never enters the agent's memory since replication only exists between servers. An
   attacker could also potentially extract ACL tokens used for service registration on this agent, since the tokens must
   be stored in-memory alongside the registered service.
 
-- **Network access to a local Connect proxy or service** - Communications between a service and a Connect-aware proxy
+- **Network access to a local service mesh proxy or service** - Communications between a service and a mesh-aware proxy
   are generally unencrypted and must happen over a trusted network. This is typically a loopback device. This requires
   that other processes on the same machine are trusted, or more complex isolation mechanisms are used such as network
-  namespaces. This also requires that external processes cannot communicate to the Connect service or proxy (except on
-  the inbound port). Therefore, non-native Connect applications should only bind to non-public addresses.
+  namespaces. This also requires that external processes cannot communicate to the mesh service or sidecar proxy (except on
+  the inbound port). Therefore, non-native service mesh applications should only bind to non-public addresses.
 
-- **Improperly Implemented Connect proxy or service** - A Connect proxy or natively integrated service must correctly
+- **Improperly Implemented service mesh proxy or service** - A service mesh proxy or natively integrated service must correctly
   serve a valid leaf certificate, verify the inbound TLS client certificate, and call the Consul agent-local authorized
   endpoint. If any of this isn't performed correctly, the proxy or service may allow unauthenticated or unauthorized
   connections.
