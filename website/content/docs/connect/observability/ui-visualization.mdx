@@ -14,8 +14,7 @@ show a service's immediate connectivity at a glance. It is not intended as a
 replacement for dedicated monitoring solutions, but rather as a quick overview
 of the state of a service and its connections within the Service Mesh.
 
-The topology visualization requires services to be using [Consul
-Connect](/consul/docs/connect) via [side-car proxies](/consul/docs/connect/proxies).
+The topology visualization requires services to be using [service mesh](/consul/docs/connect) via [sidecar proxies](/consul/docs/connect/proxies).
 
 The visualization may optionally be configured to include a link to an external
 per-service dashboard. This is designed to provide convenient deep links to your
@@ -718,7 +717,7 @@ Currently there are some limitations to this feature.
   access likely only has metrics for the local datacenter and a full solution
   would need additional proxying or exposing remote Prometheus servers on the
   network in remote datacenters. Later we may support an easy way to set this up
-  via Consul Connect but initially we don't attempt to fetch metrics in the UI
+  via Consul service mesh but initially we don't attempt to fetch metrics in the UI
   if you are browsing a remote datacenter.
 
 - **Built-in provider requires metrics proxy** Initially the built-in
