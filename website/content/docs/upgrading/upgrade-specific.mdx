@@ -857,7 +857,7 @@ This only applies to users upgrading from an older version of Consul Enterprise 
 
 In addition, this upgrade will only affect clusters where [service mesh is enabled](/consul/docs/connect/configuration) on your servers before the migration.
 
-Multi-datacenter service-mesh uses the same primary/secondary approach as ACLs and
+Multi-datacenter service mesh uses the same primary/secondary approach as ACLs and
 will use the same [primary_datacenter](#primary-datacenter). When a secondary
 datacenter server restarts with 1.4.0 it will detect it is not the primary and
 begin an automatic bootstrap of multi-datacenter CA federation.
