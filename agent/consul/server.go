@@ -782,6 +782,17 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server, incom
 	// to enable RPC forwarding.
 	s.grpcHandler = newGRPCHandlerFromConfig(flat, config, s)
 	s.grpcLeaderForwarder = flat.LeaderForwarder
+
+	if err := s.setupInternalResourceService(logger); err != nil {
+		return nil, err
+	}
+	s.controllerManager = controller.NewManager(
+		s.internalResourceServiceClient,
+		logger.Named(logging.ControllerRuntime),
+	)
+	s.registerResources()
+	go s.controllerManager.Run(&lib.StopChannelContext{StopCh: shutdownCh})
+
 	go s.trackLeaderChanges()
 
 	s.xdsCapacityController = xdscapacity.NewController(xdscapacity.Config{
@@ -790,10 +801,6 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server, incom
 		SessionLimiter: flat.XDSStreamLimiter,
 	})
 	go s.xdsCapacityController.Run(&lib.StopChannelContext{StopCh: s.shutdownCh})
-
-	if err := s.setupInternalResourceService(logger); err != nil {
-		return nil, err
-	}
 
 	// Initialize Autopilot. This must happen before starting leadership monitoring
 	// as establishing leadership could attempt to use autopilot and cause a panic.
@@ -830,13 +837,6 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server, incom
 	if err != nil {
 		return nil, err
 	}
-
-	s.controllerManager = controller.NewManager(
-		s.internalResourceServiceClient,
-		logger.Named(logging.ControllerRuntime),
-	)
-	s.registerResources()
-	go s.controllerManager.Run(&lib.StopChannelContext{StopCh: shutdownCh})
 
 	return s, nil
 }
