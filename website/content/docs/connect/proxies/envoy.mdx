@@ -648,7 +648,7 @@ definition](/consul/docs/connect/registration/service-registration) or
 - `envoy_extra_static_listeners_json` - Similar to
   `envoy_extra_static_clusters_json` but appends one or more [Envoy listeners](https://www.envoyproxy.io/docs/envoy/v1.17.2/api-v3/config/listener/v3/listener.proto) to the array of [static
   listener](https://www.envoyproxy.io/docs/envoy/v1.17.2/api-v3/config/bootstrap/v3/bootstrap.proto#envoy-v3-api-field-config-bootstrap-v3-bootstrap-staticresources-listeners) definitions.
-  Can be used to setup limited access that bypasses service mesh mTLS or
+  Can be used to setup limited access that bypasses the service mesh's mTLS or
   authorization for health checks or metrics.
 
   <CodeBlockConfig heading="Example envoy_extra_static_listeners_json">
