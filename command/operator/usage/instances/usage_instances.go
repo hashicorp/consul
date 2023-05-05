@@ -38,7 +38,7 @@ func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
 	c.flags.BoolVar(&c.onlyBillable, "billable", false, "Display only billable service info. "+
 		"Cannot be used with -connect.")
-	c.flags.BoolVar(&c.onlyConnect, "connect", false, "Display only Connect service info."+
+	c.flags.BoolVar(&c.onlyConnect, "connect", false, "Display only Consul service mesh component info."+
 		"Cannot be used with -billable.")
 	c.flags.BoolVar(&c.allDatacenters, "all-datacenters", false, "Display service counts from "+
 		"all datacenters.")
@@ -242,7 +242,7 @@ Usage: consul operator usage instances [options]
 
       $ consul operator usage instances -billable
 
-  To show only connect service instance counts:
+  To show only service instance counts for service mesh components:
 
       $ consul operator usage instances -connect
 

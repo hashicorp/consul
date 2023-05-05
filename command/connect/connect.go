@@ -26,18 +26,18 @@ func (c *cmd) Help() string {
 	return flags.Usage(help, nil)
 }
 
-const synopsis = "Interact with Consul Connect"
+const synopsis = "Interact with Consul service mesh functionality"
 const help = `
 Usage: consul connect <subcommand> [options] [args]
 
-  This command has subcommands for interacting with Consul Connect.
+  This command has subcommands for interacting with Consul service mesh.
 
   Here are some simple examples, and more detailed examples are available
   in the subcommands or the documentation.
 
-  Run the built-in Connect mTLS proxy
+  Run the production service mesh proxy
 
-      $ consul connect proxy
+      $ consul connect envoy
 
   For more examples, ask for subcommand help or view the documentation.
 `

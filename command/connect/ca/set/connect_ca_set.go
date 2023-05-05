@@ -99,9 +99,9 @@ func (c *cmd) Help() string {
 	return c.help
 }
 
-const synopsis = "Modify the current Connect CA configuration"
+const synopsis = "Modify the current service mesh CA configuration"
 const help = `
 Usage: consul connect ca set-config [options]
 
-  Modifies the current Connect Certificate Authority (CA) configuration.
+  Modifies the current service mesh Certificate Authority (CA) configuration.
 `

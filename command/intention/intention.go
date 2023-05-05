@@ -26,7 +26,7 @@ func (c *cmd) Help() string {
 	return flags.Usage(help, nil)
 }
 
-const synopsis = "Interact with Connect service intentions"
+const synopsis = "Interact with service mesh intentions"
 const help = `
 Usage: consul intention <subcommand> [options] [args]
 

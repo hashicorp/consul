@@ -26,11 +26,11 @@ func (c *cmd) Help() string {
 	return flags.Usage(help, nil)
 }
 
-const synopsis = "Interact with the Consul Connect Certificate Authority (CA)"
+const synopsis = "Interact with the service mesh Certificate Authority (CA)"
 const help = `
 Usage: consul connect ca <subcommand> [options] [args]
 
-  This command has subcommands for interacting with Consul Connect's 
+  This command has subcommands for interacting with the service mesh's
   Certificate Authority (CA).
 
   Here are some simple examples, and more detailed examples are available

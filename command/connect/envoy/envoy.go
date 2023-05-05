@@ -959,13 +959,14 @@ func (c *cmd) Help() string {
 }
 
 const (
-	synopsis = "Runs or Configures Envoy as a Connect proxy"
+	synopsis = "Runs or configures Envoy as a service mesh proxy"
 	help     = `
 Usage: consul connect envoy [options] [-- pass-through options]
 
   Generates the bootstrap configuration needed to start an Envoy proxy instance
-  for use as a Connect sidecar for a particular service instance. By default it
-  will generate the config and then exec Envoy directly until it exits normally.
+  for use as a service mesh sidecar for a particular service instance. By
+  default it will generate the config and then exec Envoy directly until it
+  exits normally.
 
   It will search $PATH for the envoy binary but this can be overridden with
   -envoy-binary.

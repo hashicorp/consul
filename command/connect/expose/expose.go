@@ -244,10 +244,10 @@ func (c *cmd) Help() string {
 	return c.help
 }
 
-const synopsis = "Expose a Connect-enabled service through an Ingress gateway"
+const synopsis = "Expose a mesh-enabled service through an Ingress gateway"
 const help = `
 Usage: consul connect expose [options]
 
-  Exposes a Connect-enabled service through the given ingress gateway, using the
+  Exposes a mesh-enabled service through the given ingress gateway, using the
   given protocol and port.
 `

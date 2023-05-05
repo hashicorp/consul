@@ -167,7 +167,7 @@ func (c *cmd) Run(args []string) int {
 
 	// Output this first since the config watcher below will output
 	// other information.
-	c.UI.Output("Consul Connect proxy starting...")
+	c.UI.Output("Consul service mesh built-in proxy starting...")
 
 	// Get the proper configuration watcher
 	cfgWatcher, err := c.configWatcher(client)
@@ -211,7 +211,7 @@ func (c *cmd) Run(args []string) int {
 		}
 	}
 
-	c.UI.Output("Consul Connect proxy shutdown")
+	c.UI.Output("Consul service mesh built-in proxy shutdown")
 	return 0
 }
 
@@ -405,14 +405,16 @@ func (c *cmd) Help() string {
 	return c.help
 }
 
-const synopsis = "Runs a Consul Connect proxy"
+const synopsis = "Runs a non-production, built-in service mesh sidecar proxy"
 const help = `
 Usage: consul connect proxy [options]
 
-  Starts a Consul Connect proxy and runs until an interrupt is received.
+  Starts a non-production, built-in proxy as a Consul service mesh sidecar
+  and runs until an interrupt is received.
+
   The proxy can be used to accept inbound connections for a service,
   wrap outbound connections to upstream services, or both. This enables
-  a non-Connect-aware application to use Connect.
+  a non-mesh-aware application to use Consul service mesh.
 
   The proxy requires service:write permissions for the service it represents.
   The token may be passed via the CLI or the CONSUL_HTTP_TOKEN environment
