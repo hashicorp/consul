@@ -8,11 +8,11 @@ description: >-
 # Built-in Proxy Configuration for Service Mesh
 
 ~> **Note:** The built-in proxy is not supported for production deployments. It does not
-support many of the Connect service mesh features, and is not under active development.
+support many of Consul's service mesh features, and is not under active development.
 The [Envoy proxy](/consul/docs/connect/proxies/envoy) should be used for production deployments.
 
 Consul comes with a built-in L4 proxy for testing and development with Consul
-Connect service mesh.
+service mesh.
 
 ## Proxy Config Key Reference
 
@@ -61,7 +61,7 @@ All fields are optional with a reasonable default.
   that the proxy should use to connect to the local application instance. By default
   it assumes `127.0.0.1` as the address and takes the port from the service definition's
   `port` field. Note that allowing the application to listen on any non-loopback
-  address may expose it externally and bypass Connect's access enforcement. It may
+  address may expose it externally and bypass the service mesh's access enforcement. It may
   be useful though to allow non-standard loopback addresses or where an alternative
   known-private IP is available for example when using internal networking between
   containers.

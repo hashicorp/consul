@@ -276,7 +276,7 @@ spec:
 Additional services can query the [KubeDNS](https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/) at `sample-app.default.svc.cluster.local` to reach `sample-app`. If ACLs are enabled and configured with default `deny` policies, the configuration also requires a [`ServiceIntention`](/consul/docs/connect/config-entries/service-intentions) to allow it to talk to `sample-app`.
 
 ### Headless Services
-For services that are not addressed using a virtual cluster IP, you must configure the upstream service using the [DialedDirectly](/consul/docs/connect/config-entries/service-defaults#dialeddirectly) option. Then, use DNS to discover individual instance addresses and dial them through the transparent proxy. When this mode is enabled on the upstream, services present connect certificates for mTLS and intentions are enforced at the destination.
+For services that are not addressed using a virtual cluster IP, you must configure the upstream service using the [DialedDirectly](/consul/docs/connect/config-entries/service-defaults#dialeddirectly) option. Then, use DNS to discover individual instance addresses and dial them through the transparent proxy. When this mode is enabled on the upstream, services present service mesh certificates for mTLS and intentions are enforced at the destination.
 
 Note that when dialing individual instances, Consul ignores the HTTP routing rules configured with configuration entries. The transparent proxy acts as a TCP proxy to the original destination IP address.
 
