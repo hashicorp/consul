@@ -221,7 +221,7 @@ A asterisk wildcard (`*`) cannot be specified as the `Partition`.
 ## Examples
 
 
-### Exporting services to peered clusters
+### Exporting specific services
 
 
 <Tabs>
@@ -298,7 +298,7 @@ spec:
 
 <Tab heading="Consul Enterprise (Peers)">
 
-The following example configures Consul to export the `payments` and `refunds` services from the `billing` namespace of the `finance` admin partition to the `web-shop` peer.
+The following example configures Consul to export the `payments` and `refunds` services from the `billing` namespace of the `finance` admin partition to that partition's `web-shop` peer.
 
 <CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
 
@@ -379,6 +379,12 @@ spec:
 
 The following example configures Consul to export the `payments` and `refunds` services from the `billing` namespace of the `finance` admin partition to the `web-shop` partition.
 
+When exporting to datacenter-local admin partitions rather than a cluster peer,
+the exporter's mesh gateway service must also be exported to the consuming partitions.
+If the mesh gateway service is not exported, the consuming partition will not
+be able to access other exported services through the mesh gateway.
+For more information, refer to [Enabling Service-to-Service Traffic Across Admin Partitions using Mesh Gateways](/consul/docs/connect/gateways/mesh-gateway/service-to-service-traffic-partitions).
+
 <CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
 
 ```hcl
@@ -387,6 +393,14 @@ Partition = "finance"
 Name = "finance"
 
 Services = [
+  {
+    Name      = "mesh-gateway"
+    Consumers = [
+        {
+            Partition  = "web-shop"
+        },
+    ]
+  },
   {
     Name      = "payments"
     Namespace = "billing"
@@ -415,6 +429,9 @@ metadata:
   name: finance
 spec:
   services:
+    - name: mesh-gateway
+      consumers:
+        - partition: web-shop
     - name: payments
       namespace: billing
       consumers:
@@ -430,6 +447,14 @@ spec:
   "Partition": "finance",
   "Name": "finance",
   "Services": [
+    {
+      "Name": "mesh-gateway",
+      "Consumers": [
+        {
+          "Partition": "web-shop"
+        },
+      ],
+    },
     {
       "Name": "payments",
       "Namespace": "billing"
@@ -585,6 +610,10 @@ spec:
 <Tab heading="Consul Enterprise (Partitions)">
 
 The following example configures Consul to export all services in all namespaces of the `finance` partition to the `monitoring` and `platform` partitions.
+
+The exporter's mesh gateway service is also exported to the consuming partitions
+by this configuration, enabling the consuming partitions to access other exported services
+through the mesh gateway.
 
 <CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
 
