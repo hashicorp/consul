@@ -122,7 +122,7 @@ func TestStandardUpgradeToTarget_fromLatest(t *testing.T) {
 				require.Equal(r, serviceName, service[0].ServiceName)
 			})
 		} else {
-			require.Error(t, fmt.Errorf("context deadline exceeded"))
+			require.ErrorContains(t, err, "context deadline exceeded")
 		}
 	}
 
