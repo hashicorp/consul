@@ -626,7 +626,7 @@ Repeat the following steps for each datacenter in the cluster:
 
 1. Configure and install Consul in the secondary datacenter (dc2).
 
-    -> **Note**:  To configure Vault as the Connect CA in secondary datacenters, you need to make sure that the Root CA path is the same. The intermediate path is different for each datacenter. In the `connectCA` Helm configuration for a secondary datacenter, you can specify a `intermediatePKIPath` that is, for example, prefixed with the datacenter for which this configuration is intended (e.g. `dc2/connect-intermediate`).
+    -> **Note**:  To configure Vault as the service mesh (connect) CA in secondary datacenters, you need to make sure that the Root CA path is the same. The intermediate path is different for each datacenter. In the `connectCA` Helm configuration for a secondary datacenter, you can specify a `intermediatePKIPath` that is, for example, prefixed with the datacenter for which this configuration is intended (e.g. `dc2/connect-intermediate`).
 
     <CodeBlockConfig filename="consul-dc2.yaml" linenumbers highlight="4,5,6,7,8,9,10,11,12,13,14,15,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,37,38">
 

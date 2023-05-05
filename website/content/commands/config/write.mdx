@@ -79,8 +79,9 @@ supported config entries.
 
 #### Service defaults
 
-Service defaults control default global values for a service, such as the
-protocol and Connect fields.
+Service defaults control default global values for a service in the service mesh.
+For example, the following configuration defines that all instances of the `web`
+service use the `http` protocol.
 
 ```json
 {
@@ -90,33 +91,23 @@ protocol and Connect fields.
 }
 ```
 
-- `Name` - Sets the name of the config entry. For service defaults, this must be
-  the name of the service being configured.
-
-- `Protocol` - Sets the protocol of the service. This is used by Connect proxies
-  for things like observability features.
-
-- `Connect` - This block contains Connect-related fields for the service.
-
-  - `SidecarProxy` - Sets whether or not instances of this service should get a
-    sidecar proxy by default.
+For more information, refer to the [service defaults configuration reference](/consul/docs/connect/config-entries/service-defaults).
 
 #### Proxy defaults
 
-Proxy defaults allow for configuring global config defaults across all services
-for Connect proxy config. Currently, only one global entry is supported.
+Proxy defaults lets you configure global config defaults across all proxies
+in the service mesh. Currently, it supports only one global entry.
+For example, the following configuration overrides a default timeout for all
+Envoy proxies.
 
 ```json
 {
   "Kind": "proxy-defaults",
   "Name": "global",
   "Config": {
-    "foo": 1
+    "local_idle_timeout_ms": 20000
   }
 }
 ```
 
-- `Name` - Sets the name of the config entry. Currently, only a single `proxy-defaults`
-  entry with the name `global` is supported.
-
-* `Config` - An arbitrary map of configuration values used by Connect proxies.
+For more information, refer to the [proxy defaults configuration reference](/consul/docs/connect/config-entries/proxy-defaults).

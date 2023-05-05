@@ -7,7 +7,7 @@ description: >-
 
 # Service Router Configuration Entry
 
-The `service-router` config entry kind (`ServiceRouter` on Kubernetes) controls Connect traffic routing and
+The `service-router` config entry kind (`ServiceRouter` on Kubernetes) controls service mesh traffic routing and
 manipulation at networking layer 7 (e.g. HTTP).
 
 If a router is not explicitly configured or is configured with no routes then
@@ -16,7 +16,7 @@ service of the same name.
 
 ## Requirements
 
-- Consul [service mesh connect](/consul/docs/connect/configuration) enabled services
+- Consul [service mesh](/consul/docs/connect/configuration) enabled services
 - Service to service communication over the protocol `http`
 
 ## Interaction with other Config Entries

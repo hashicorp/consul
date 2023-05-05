@@ -11,7 +11,10 @@ This topic describes how many of the core features of Consul's service mesh func
 It is not a prerequisite,
 but this information will help you understand how Consul service mesh behaves in more complex scenarios.
 
-Consul Connect is the component shipped with Consul that enables service mesh functionality. The terms _Consul Connect_ and _Consul service mesh_ are used interchangeably throughout this documentation.
+The noun _connect_ is used throughout this documentation to refer to the connect
+subsystem that provides Consul's service mesh capabilities.
+Where you encounter the _noun_ connect, it is usually functionality specific to
+service mesh.
 
 To try service mesh locally, complete the [Getting Started with Consul service
 mesh](/consul/tutorials/kubernetes-deploy/service-mesh?utm_source=docs)
@@ -59,7 +62,7 @@ in-memory data.
 
 ## Agent Caching and Performance
 
-To enable fast responses on endpoints such as the [agent Connect
+To enable fast responses on endpoints such as the [agent connect
 API](/consul/api-docs/agent/connect), the Consul agent locally caches most Consul service mesh-related
 data and sets up background [blocking queries](/consul/api-docs/features/blocking) against
 the server to update the cache in the background. This allows most API calls
