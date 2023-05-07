@@ -39,7 +39,7 @@ the [hosts](/consul/docs/connect/config-entries/ingress-gateway#hosts) field.
 Ingress gateways also require that your Consul datacenters are configured correctly:
 
 - You'll need to use Consul version 1.8.0 or newer.
-- Consul [Connect](/consul/docs/agent/config/config-files#connect) must be enabled on the datacenter's Consul servers.
+- Consul [service mesh](/consul/docs/agent/config/config-files#connect) must be enabled on the datacenter's Consul servers.
 - [gRPC](/consul/docs/agent/config/config-files#grpc_port) must be enabled on all client agents.
 
 Currently, [Envoy](https://www.envoyproxy.io/) is the only proxy with ingress gateway capabilities in Consul.
@@ -54,13 +54,13 @@ review the [ingress gateway tutorial](/consul/tutorials/developer-mesh/service-m
 Ingress gateways are configured in service definitions and registered with Consul like other services, with two exceptions.
 The first is that the [kind](/consul/api-docs/agent/service#kind) must be "ingress-gateway". Second,
 the ingress gateway service definition may contain a `Proxy.Config` entry just like a
-Connect proxy service, to define opaque configuration parameters useful for the actual proxy software.
+service mesh proxy service, to define opaque configuration parameters useful for the actual proxy software.
 For Envoy there are some supported [gateway options](/consul/docs/connect/proxies/envoy#gateway-options) as well as
 [escape-hatch overrides](/consul/docs/connect/proxies/envoy#escape-hatch-overrides).
 
 -> **Note:** If ACLs are enabled, ingress gateways must be registered with a token granting `service:write` for the ingress gateway's service name,
 `service:read` for all services in the ingress gateway's configuration entry, and `node:read` for all nodes of the services
-in the ingress gateway's configuration entry. These privileges authorize the token to route communications to other Connect services.
+in the ingress gateway's configuration entry. These privileges authorize the token to route communications to other mesh services.
 If the Consul client agent on the gateway's node is not configured to use the default gRPC port, 8502, then the gateway's token
 must also provide `agent:read` for its node's name in order to discover the agent's gRPC port. gRPC is used to expose Envoy's xDS API to Envoy proxies.
 

@@ -10,10 +10,10 @@ description: >-
 This topic describes how to configure the Consul Helm chart to use TLS certificates issued by Vault for Consul service mesh communication.
 
 -> **Note:** This feature requires Consul 1.11 or higher. As of v1.11,
-Consul allows using Kubernetes auth methods to configure Connect CA.
+Consul allows using Kubernetes auth methods to configure the service mesh CA.
 This allows for automatic token rotation once the renewal is no longer possible.
 
-~> **Compatibility note:** If you use Vault 1.11.0+ as Consul's Connect CA, versions of Consul released before Dec 13, 2022 will develop an issue with Consul control plane or service mesh communication ([GH-15525](https://github.com/hashicorp/consul/pull/15525)). Use or upgrade to a [Consul version that includes the fix](https://support.hashicorp.com/hc/en-us/articles/11308460105491#01GMC24E6PPGXMRX8DMT4HZYTW) to avoid this problem.
+~> **Compatibility note:** If you use Vault 1.11.0+ as Consul's service mesh CA, versions of Consul released before Dec 13, 2022 will develop an issue with Consul control plane or service mesh communication ([GH-15525](https://github.com/hashicorp/consul/pull/15525)). Use or upgrade to a [Consul version that includes the fix](https://support.hashicorp.com/hc/en-us/articles/11308460105491#01GMC24E6PPGXMRX8DMT4HZYTW) to avoid this problem.
 
 ## Overview
 
@@ -46,7 +46,7 @@ Next, you will create Kubernetes auth roles for the Consul servers:
 $ vault write auth/kubernetes/role/consul-server \
     bound_service_account_names=<Consul server service account> \
     bound_service_account_namespaces=<Consul installation namespace> \
-    policies=<Connect CA policy> \
+    policies=<service mesh CA policy> \
     ttl=1h
 ```
 
@@ -58,7 +58,7 @@ $ helm template --release-name ${RELEASE_NAME} --show-only templates/server-serv
 ```
 
 ## Update Consul on Kubernetes Helm chart
-Now you can configure the Consul Helm chart to use Vault as the Connect CA provider:
+Now you can configure the Consul Helm chart to use Vault as the service mesh (connect) CA provider:
 
 <CodeBlockConfig filename="values.yaml">
 
@@ -83,7 +83,7 @@ global:
 The `address` you provide to the `connectCA` configuration can be a Kubernetes DNS
 address if the Vault cluster is running the same Kubernetes cluster.
 The `rootPKIPath` and `intermediatePKIPath` should be the same as the ones
-defined in your Connect CA policy. Behind the scenes, Consul will authenticate to Vault using a Kubernetes
+defined in your service mesh CA policy. Behind the scenes, Consul will authenticate to Vault using a Kubernetes
 service account using the [Kubernetes auth method](/vault/docs/auth/kubernetes) and will use the Vault token for any API calls to Vault. If the Vault token can not be renewed, Consul will re-authenticate to
 generate a new Vault token.
 
@@ -95,7 +95,7 @@ $ kubectl create secret generic vault-ca --from-file vault.ca=/path/to/your/vaul
 
 ### Secondary Datacenters
 
-To configure Vault as the Connect CA in secondary datacenters, you need to make sure that the Root CA path is the same,
+To configure Vault as the service mesh (connect) CA in secondary datacenters, you need to make sure that the Root CA path is the same,
 but the intermediate is different for each datacenter. In the `connectCA` Helm configuration for a secondary datacenter,
 you can specify a `intermediatePKIPath` that is, for example, prefixed with the datacenter
 for which this configuration is intended (e.g. `dc2/connect-intermediate`).
