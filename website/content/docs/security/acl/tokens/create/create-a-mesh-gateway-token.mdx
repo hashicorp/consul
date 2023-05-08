@@ -1,13 +1,13 @@
 ---
 layout: docs
 page_title: Create a token for mesh gateway registration
-Description: >-
+description: >-
   Learn how to create ACL tokens that your mesh gateway can present to Consul servers so that they can register with the Consul catalog.
 ---
 
 # Create a mesh gateway token
 
-This topic describes how to create a token to enable a mesh gateway to register. 
+This topic describes how to create a token to enable a mesh gateway to register.
 
 ## Introduction
 
@@ -27,7 +27,7 @@ To create a token for the mesh gateway, you must define a policy, register the p
 
 ### Define a custom policy
 
-You can send custom policy definitions as command line or API arguments or define them in an external HCL or JSON file. The following example policies are externally defined policies. Refer to [ACL Rules](/consul/docs/security/acl/acl-rules) for details about all of the rules you can use in your policies. 
+You can send custom policy definitions as command line or API arguments or define them in an external HCL or JSON file. The following example policies are externally defined policies. Refer to [ACL Rules](/consul/docs/security/acl/acl-rules) for details about all of the rules you can use in your policies.
 
 #### Consul OSS
 
@@ -35,7 +35,7 @@ The following example policy grants the mesh gateway the appropriate permissions
 
 <CodeTabs>
 
-```hcl 
+```hcl
 mesh = "write"
 peering = "read"
 service "mesh-gateway" {
@@ -246,7 +246,7 @@ You can specify an admin partition when creating policies in Consul Enterprise. 
 consul acl policy create \
   -name mgw-register -rules @mgw-register.hcl \
   -description "Mesh gateway policy" \
-  -partition ptn1 
+  -partition ptn1
 ```
 
 Refer to [Consul ACL Policy Create](/consul/commands/acl/policy/create) for details about the `consul acl policy create` command.
@@ -295,7 +295,7 @@ $ curl --request PUT http://127.0.0.1:8500/v1/acl/policy \
 }'
 ```
 
-Refer to [ACL Policy HTTP API](/consul/api-docs/acl/policies) for additional information about using the API endpoint. 
+Refer to [ACL Policy HTTP API](/consul/api-docs/acl/policies) for additional information about using the API endpoint.
 
 ### Link the policy to a token
 
@@ -307,7 +307,7 @@ Run the `consul acl token create` command and specify the policy name or ID to c
 
 ##### Consul OSS
 
-The following command creates the ACL token linked to the policy `mgw-register`. 
+The following command creates the ACL token linked to the policy `mgw-register`.
 
 ```shell-session
 $ consul acl token create \
@@ -338,10 +338,10 @@ $ curl --request PUT http://127.0.0.1:8500/v1/acl/token \
   --data '{
   "Policies": [
     {
-      "Name": "mgw-register" 
+      "Name": "mgw-register"
     }
   ]
-}' 
+}'
 ```
 
 ##### Consul Enterprise
@@ -354,11 +354,11 @@ $ curl --request PUT http://127.0.0.1:8500/v1/acl/token \
   --data '{
   "Policies": [
     {
-      "Name": "mgw-register" 
+      "Name": "mgw-register"
     }
   ],
   "Partition": "ptn1"
-}' 
+}'
 ```
 
 @include 'create-token-auth-methods.mdx'

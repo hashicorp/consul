@@ -1,7 +1,7 @@
 ---
 layout: docs
 page_title: Create tokens for agent registration
-Description: >- 
+description: >-
   Learn how to create ACL tokens that your Consul agents can present to Consul servers so that they can join the Consul cluster.
 ---
 
@@ -60,9 +60,9 @@ $ consul acl token create -partition "ptn1" \
 
 ### API
 
-Send a PUT request to the `/acl/token` endpoint and specify a node identity in the request body to create a token linked to the node identity. An ACL token linked to a policy with permissions to use the API endpoint is required. Refer to [ACL Token HTTP API](/consul/api-docs/acl/tokens) for additional information about using the API endpoint. 
+Send a PUT request to the `/acl/token` endpoint and specify a node identity in the request body to create a token linked to the node identity. An ACL token linked to a policy with permissions to use the API endpoint is required. Refer to [ACL Token HTTP API](/consul/api-docs/acl/tokens) for additional information about using the API endpoint.
 
-The following example creates a token linked to a node identity named `node1`: 
+The following example creates a token linked to a node identity named `node1`:
 
 #### Consul OSS
 
@@ -72,8 +72,8 @@ $ curl --request PUT http://127.0.0.1:8500/v1/acl/token \
   --data '{
   "NodeIdentities": [
     {
-      "NodeName": "node1", 
-      "Datacenter": "dc1" 
+      "NodeName": "node1",
+      "Datacenter": "dc1"
     }
   ]
 }'
@@ -89,8 +89,8 @@ $ curl --request PUT http://127.0.0.1:8500/v1/acl/token \
   --data '{
   "NodeIdentities": [
     {
-      "NodeName": "node1", 
-      "Datacenter": "dc1" 
+      "NodeName": "node1",
+      "Datacenter": "dc1"
     }
   ],
   "Partition": "ptn1"
@@ -113,7 +113,7 @@ The following example policy grants the agent node `write` permission for node `
 
 <CodeTabs>
 
-```hcl 
+```hcl
 node "node1" {
   policy = "write"
 }
@@ -185,7 +185,7 @@ partition "ptn1" {
 
 ### Register policies with Consul
 
-After defining the custom policies, you can register them with Consul using the command line or API endpoint. 
+After defining the custom policies, you can register them with Consul using the command line or API endpoint.
 
 #### CLI
 
@@ -238,7 +238,7 @@ $ curl --request PUT http://127.0.0.1:8500/v1/acl/policy \
 }'
 ```
 
-Refer to [ACL Policy HTTP API](/consul/api-docs/acl/policies) for additional information about using the API endpoint. 
+Refer to [ACL Policy HTTP API](/consul/api-docs/acl/policies) for additional information about using the API endpoint.
 
 ### Link custom policies to tokens
 
@@ -250,7 +250,7 @@ Run the `consul acl token create` command and specify the policy name or ID to c
 
 ##### Consul OSS
 
-The following command creates the ACL token linked to the policy `node1-register`. 
+The following command creates the ACL token linked to the policy `node1-register`.
 
 ```shell-session
 $ consul acl token create \
@@ -272,7 +272,7 @@ Send a PUT request to the `/acl/token` endpoint and specify the policy name or I
 
 ##### Consul OSS
 
-The following example creates an ACL token that the agent can use to register as node `node1` in the catalog: 
+The following example creates an ACL token that the agent can use to register as node `node1` in the catalog:
 
 ```shell-session
 $ curl --request PUT http://127.0.0.1:8500/v1/acl/token \
@@ -280,10 +280,10 @@ $ curl --request PUT http://127.0.0.1:8500/v1/acl/token \
   --data '{
   "Policies": [
     {
-      "Name": "node1-register" 
+      "Name": "node1-register"
     }
   ]
-}' 
+}'
 ```
 
 ##### Consul Enterprise
@@ -296,24 +296,24 @@ $ curl --request PUT http://127.0.0.1:8500/v1/acl/token \
   --data '{
   "Policies": [
     {
-      "Name": "node1-register" 
+      "Name": "node1-register"
     }
   ],
   "Partition": "ptn1"
-}' 
+}'
 ```
 
 @include 'create-token-auth-methods.mdx'
 
-## Apply the token 
+## Apply the token
 
 Configure the Consul agent to present the token by either specifying the token in the agent configuration file or by using the `consul set-agent-token` command.
 
 ### Apply the token in a file
 
-Specify the token in the [`acl.token.agent`](/consul/docs/agent/config/config-files#acl_tokens_agent) field of the agent configuration file so that the agent can present it and register into the catalog on startup. 
+Specify the token in the [`acl.token.agent`](/consul/docs/agent/config/config-files#acl_tokens_agent) field of the agent configuration file so that the agent can present it and register into the catalog on startup.
 
-```hcl 
+```hcl
 acl = {
   enabled = true
   tokens = {
