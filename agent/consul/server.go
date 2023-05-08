@@ -68,7 +68,9 @@ import (
 	"github.com/hashicorp/consul/agent/rpc/peering"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
+	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/controller"
+	"github.com/hashicorp/consul/internal/mesh"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/demo"
 	"github.com/hashicorp/consul/internal/resource/reaper"
@@ -830,18 +832,21 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server, incom
 		return nil, err
 	}
 
-	s.controllerManager = controller.NewManager(
-		s.internalResourceServiceClient,
-		logger.Named(logging.ControllerRuntime),
-	)
+	s.registerResources()
+	go s.controllerManager.Run(&lib.StopChannelContext{StopCh: shutdownCh})
+
+	return s, nil
+}
+
+func (s *Server) registerResources() {
+	catalog.RegisterTypes(s.typeRegistry)
+	mesh.RegisterTypes(s.typeRegistry)
+	reaper.RegisterControllers(s.controllerManager)
+
 	if s.config.DevMode {
 		demo.RegisterTypes(s.typeRegistry)
 		demo.RegisterControllers(s.controllerManager)
 	}
-	reaper.RegisterControllers(s.controllerManager)
-	go s.controllerManager.Run(&lib.StopChannelContext{StopCh: shutdownCh})
-
-	return s, nil
 }
 
 func newGRPCHandlerFromConfig(deps Deps, config *Config, s *Server) connHandler {

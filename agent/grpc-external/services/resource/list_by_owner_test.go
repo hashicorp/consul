@@ -30,6 +30,7 @@ func TestListByOwner_InputValidation(t *testing.T) {
 		"no type":    func(req *pbresource.ListByOwnerRequest) { req.Owner.Type = nil },
 		"no tenancy": func(req *pbresource.ListByOwnerRequest) { req.Owner.Tenancy = nil },
 		"no name":    func(req *pbresource.ListByOwnerRequest) { req.Owner.Name = "" },
+		"no uid":     func(req *pbresource.ListByOwnerRequest) { req.Owner.Uid = "" },
 		// clone necessary to not pollute DefaultTenancy
 		"tenancy partition not default": func(req *pbresource.ListByOwnerRequest) {
 			req.Owner.Tenancy = clone(req.Owner.Tenancy)
@@ -84,12 +85,12 @@ func TestListByOwner_Empty(t *testing.T) {
 	res, err := demo.GenerateV2Artist()
 	require.NoError(t, err)
 
-	_, err = client.Write(testContext(t), &pbresource.WriteRequest{Resource: res})
+	rsp1, err := client.Write(testContext(t), &pbresource.WriteRequest{Resource: res})
 	require.NoError(t, err)
 
-	rsp, err := client.ListByOwner(testContext(t), &pbresource.ListByOwnerRequest{Owner: res.Id})
+	rsp2, err := client.ListByOwner(testContext(t), &pbresource.ListByOwnerRequest{Owner: rsp1.Resource.Id})
 	require.NoError(t, err)
-	require.Empty(t, rsp.Resources)
+	require.Empty(t, rsp2.Resources)
 }
 
 func TestListByOwner_Many(t *testing.T) {

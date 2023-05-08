@@ -20,14 +20,14 @@ import (
 
 func TestPeering_Basic(t *testing.T) {
 	t.Parallel()
-	accepting, dialing := libtopology.BasicPeeringTwoClustersSetup(t, utils.LatestVersion, false)
+	accepting, dialing := libtopology.BasicPeeringTwoClustersSetup(t, utils.GetLatestImageName(), utils.LatestVersion, false)
 	peeringUpgrade(t, accepting, dialing, utils.TargetVersion)
 	peeringPostUpgradeValidation(t, dialing)
 }
 
 func TestPeering_HTTPRouter(t *testing.T) {
 	t.Parallel()
-	accepting, dialing := libtopology.BasicPeeringTwoClustersSetup(t, utils.LatestVersion, false)
+	accepting, dialing := libtopology.BasicPeeringTwoClustersSetup(t, utils.GetLatestImageName(), utils.LatestVersion, false)
 	acceptingCluster := accepting.Cluster
 
 	// Create a second static-server at the client agent of accepting cluster and
@@ -90,7 +90,7 @@ func TestPeering_HTTPRouter(t *testing.T) {
 func TestPeering_HTTPResolverAndFailover(t *testing.T) {
 	t.Parallel()
 
-	accepting, dialing := libtopology.BasicPeeringTwoClustersSetup(t, utils.LatestVersion, false)
+	accepting, dialing := libtopology.BasicPeeringTwoClustersSetup(t, utils.GetLatestImageName(), utils.LatestVersion, false)
 	dialingCluster := dialing.Cluster
 
 	require.NoError(t, dialingCluster.ConfigEntryWrite(&api.ProxyConfigEntry{
@@ -183,7 +183,7 @@ func TestPeering_HTTPResolverAndFailover(t *testing.T) {
 func TestPeering_HTTPResolverAndSplitter(t *testing.T) {
 	t.Parallel()
 
-	accepting, dialing := libtopology.BasicPeeringTwoClustersSetup(t, utils.LatestVersion, false)
+	accepting, dialing := libtopology.BasicPeeringTwoClustersSetup(t, utils.GetLatestImageName(), utils.LatestVersion, false)
 	dialingCluster := dialing.Cluster
 
 	require.NoError(t, dialingCluster.ConfigEntryWrite(&api.ProxyConfigEntry{
@@ -295,11 +295,11 @@ func peeringUpgrade(t *testing.T, accepting, dialing *libtopology.BuiltCluster, 
 	_, staticClientPort := dialing.Container.GetAddr()
 
 	// Upgrade the accepting cluster and assert peering is still ACTIVE
-	require.NoError(t, accepting.Cluster.StandardUpgrade(t, context.Background(), targetVersion))
+	require.NoError(t, accepting.Cluster.StandardUpgrade(t, context.Background(), utils.GetTargetImageName(), targetVersion))
 	libassert.PeeringStatus(t, acceptingClient, libtopology.AcceptingPeerName, api.PeeringStateActive)
 	libassert.PeeringStatus(t, dialingClient, libtopology.DialingPeerName, api.PeeringStateActive)
 
-	require.NoError(t, dialing.Cluster.StandardUpgrade(t, context.Background(), targetVersion))
+	require.NoError(t, dialing.Cluster.StandardUpgrade(t, context.Background(), utils.GetTargetImageName(), targetVersion))
 	libassert.PeeringStatus(t, acceptingClient, libtopology.AcceptingPeerName, api.PeeringStateActive)
 	libassert.PeeringStatus(t, dialingClient, libtopology.DialingPeerName, api.PeeringStateActive)
 

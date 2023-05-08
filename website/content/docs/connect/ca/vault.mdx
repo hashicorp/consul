@@ -19,7 +19,7 @@ This page describes how configure the Vault CA provider.
 
 - Vault 0.10.3 to 1.10.x.
 
-~> **Compatibility note:** If you use Vault 1.11.0+ as Consul's Connect CA, versions of Consul released before Dec 13, 2022 will develop an issue with Consul control plane or service mesh communication ([GH-15525](https://github.com/hashicorp/consul/pull/15525)). Use or upgrade to a [Consul version that includes the fix](https://support.hashicorp.com/hc/en-us/articles/11308460105491#01GMC24E6PPGXMRX8DMT4HZYTW) to avoid this problem.
+~> **Compatibility note:** If you use Vault 1.11.0+ as Consul's service mesh CA, versions of Consul released before Dec 13, 2022 will develop an issue with Consul control plane or service mesh communication ([GH-15525](https://github.com/hashicorp/consul/pull/15525)). Use or upgrade to a [Consul version that includes the fix](https://support.hashicorp.com/hc/en-us/articles/11308460105491#01GMC24E6PPGXMRX8DMT4HZYTW) to avoid this problem.
 
 ## Enable Vault as the CA
 
@@ -32,7 +32,7 @@ Refer to the [Configuration Reference](#configuration-reference) for details abo
 
 The following example shows the required configurations for a default implementation:
 
-<CodeTabs heading="Connect CA configuration" tabs={["Agent configuration", "API"]}>
+<CodeTabs heading="Service mesh CA configuration" tabs={["Agent configuration", "API"]}>
 
 <CodeBlockConfig filename="/etc/consul.d/config.hcl" highlight="4,6-9">
 

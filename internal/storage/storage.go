@@ -244,33 +244,33 @@ type Backend interface {
 	// events about writes that they then cannot read. In other words, it is *not*
 	// linearizable.
 	//
-	// There's a similar guarantee between WatchList and OwnerReferences, see the
-	// OwnerReferences docs for more information.
+	// There's a similar guarantee between WatchList and ListByOwner, see the
+	// ListByOwner docs for more information.
 	//
 	// See List docs for details about Tenancy Wildcard and GroupVersion.
 	//
 	// [monotonic reads]: https://jepsen.io/consistency/models/monotonic-reads
 	WatchList(ctx context.Context, resType UnversionedType, tenancy *pbresource.Tenancy, namePrefix string) (Watch, error)
 
-	// OwnerReferences returns the IDs of resources owned by the resource with the
-	// given ID. It is typically used to implement cascading deletion.
+	// ListByOwner returns resources owned by the resource with the given ID. It
+	// is typically used to implement cascading deletion.
 	//
 	// # Consistency
 	//
-	// OwnerReferences may return stale results, but guarnantees [monotonic reads]
+	// ListByOwner may return stale results, but guarantees [monotonic reads]
 	// with events received from WatchList. In practice, this means that if you
 	// learn that a resource has been deleted through a watch event, the results
-	// you receive from OwnerReferences will contain all references that existed
+	// you receive from ListByOwner will represent all references that existed
 	// at the time the owner was deleted. It doesn't make any guarantees about
 	// references that are created *after* the owner was deleted, though, so you
 	// must either prevent that from happening (e.g. by performing a consistent
 	// read of the owner in the write-path, which has its own ordering/correctness
-	// challenges), or by calling OwnerReferences after the expected window of
+	// challenges), or by calling ListByOwner after the expected window of
 	// inconsistency (e.g. deferring cascading deletion, or doing a second pass
 	// an hour later).
 	//
 	// [montonic reads]: https://jepsen.io/consistency/models/monotonic-reads
-	OwnerReferences(ctx context.Context, id *pbresource.ID) ([]*pbresource.ID, error)
+	ListByOwner(ctx context.Context, id *pbresource.ID) ([]*pbresource.Resource, error)
 }
 
 // Watch represents a watch on a given set of resources. Call Next to get the

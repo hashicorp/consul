@@ -7,15 +7,20 @@ description: >-
 
 # Consul service mesh
 
-Consul Service Mesh provides service-to-service connection authorization and
-encryption using mutual Transport Layer Security (TLS). Consul Connect is used interchangeably
-with the name Consul Service Mesh and is what this document will use to refer to for Service Mesh functionality within Consul. 
-Applications can use [sidecar proxies](/consul/docs/connect/proxies) in a service mesh configuration to
-establish TLS connections for inbound and outbound connections without being aware of Connect at all. 
-Applications may also [natively integrate with Connect](/consul/docs/connect/native) for optimal performance and security. 
-Connect can help you secure your services and provide data about service-to-service communications.
+Consul service mesh provides service-to-service connection authorization and
+encryption using mutual Transport Layer Security (TLS).
 
-Review the video below to learn more about Consul Connect from HashiCorp's co-founder Armon.
+Applications can use [sidecar proxies](/consul/docs/connect/proxies) in a service mesh configuration to
+establish TLS connections for inbound and outbound connections without being aware of the service mesh at all. 
+Applications may also [natively integrate with Consul service mesh](/consul/docs/connect/native) for optimal performance and security. 
+Consul service mesh can help you secure your services and provide data about service-to-service communications.
+
+The noun _connect_ is used throughout this documentation to refer to the connect
+subsystem that provides Consul's service mesh capabilities.
+Where you encounter the _noun_ connect, it is usually functionality specific to
+service mesh.
+
+Review the video below to learn more about Consul service mesh from HashiCorp's co-founder Armon.
 
 <iframe
   src="https://www.youtube.com/embed/8T8t4-hQY74"
@@ -59,11 +64,10 @@ Complete the following tutorials try Consul service mesh in different environmen
 
 - The [Secure Service-to-Service Communication tutorial](/consul/tutorials/developer-mesh/service-mesh-with-envoy-proxy?utm_source=docs)
   is a simple walk through of connecting two services on your local machine
-  using Consul Connect's built-in proxy and configuring your first intention. The guide also includes an introduction to
-  using Envoy as the Connect sidecar proxy.
+  and configuring your first intention.
 
 - The [Kubernetes tutorial](/consul/tutorials/kubernetes/kubernetes-minikube?utm_source=docs)
-  walks you through configuring Consul Connect in Kubernetes using the Helm
+  walks you through configuring Consul service mesh in Kubernetes using the Helm
   chart, and using intentions. You can run the guide on Minikube or an existing
   Kubernetes cluster.
 
