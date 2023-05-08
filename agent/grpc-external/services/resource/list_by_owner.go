@@ -62,5 +62,9 @@ func validateListByOwnerRequest(req *pbresource.ListByOwnerRequest) error {
 	if err := validateId(req.Owner, "owner"); err != nil {
 		return err
 	}
+
+	if req.Owner.Uid == "" {
+		return status.Errorf(codes.InvalidArgument, "owner uid is required")
+	}
 	return nil
 }
