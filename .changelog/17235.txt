@@ -1,0 +1,3 @@
+```release-note:bug
+peering: Fix issue where peer streams could incorrectly deregister services in various scenarios.
+```
