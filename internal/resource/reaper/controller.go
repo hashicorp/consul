@@ -88,7 +88,7 @@ func (r *tombstoneReconciler) Reconcile(ctx context.Context, rt controller.Runti
 			Status: &pbresource.Status{
 				ObservedGeneration: res.Generation,
 				Conditions: []*pbresource.Condition{
-					&pbresource.Condition{
+					{
 						Type:    conditionTypeFirstPassCompleted,
 						State:   pbresource.Condition_STATE_TRUE,
 						Reason:  "Success",
