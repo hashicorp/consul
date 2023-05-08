@@ -9,7 +9,7 @@ import (
 	"encoding/pem"
 	"fmt"
 	"io/ioutil"
-	mathrand "math/rand"
+	"math/rand"
 	"net"
 	"net/url"
 	"path"
