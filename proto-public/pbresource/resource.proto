@@ -289,6 +289,16 @@ service ResourceService {
     };
   }
 
+  // List resources of a given owner.
+  //
+  // Results are eventually consistent (see ResourceService docs for more info).
+  rpc ListByOwner(ListByOwnerRequest) returns (ListByOwnerResponse) {
+    option (hashicorp.consul.internal.ratelimit.spec) = {
+      operation_type: OPERATION_TYPE_READ,
+      operation_category: OPERATION_CATEGORY_RESOURCE
+    };
+  }
+
   // Delete a resource by ID.
   //
   // Deleting a non-existent resource will return a successful response for
@@ -357,6 +367,17 @@ message ListRequest {
 
 // ListResponse contains the results of calling the List endpoint.
 message ListResponse {
+  // Resources that were listed.
+  repeated Resource resources = 1;
+}
+
+// ListByOwnerRequest contains the parameters to the ListByOwner endpoint.
+message ListByOwnerRequest {
+  ID owner = 1;
+}
+
+// ListByOwnerResponse contains the results of calling the ListByOwner endpoint.
+message ListByOwnerResponse {
   // Resources that were listed.
   repeated Resource resources = 1;
 }
