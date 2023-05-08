@@ -232,6 +232,8 @@ func (h *Health) ServiceNodes(args *structs.ServiceSpecificRequest, reply *struc
 		// TODO(acl-error-enhancements) Look for ways to percolate this information up to give any feedback to the user.
 		if authz.ServiceRead(args.ServiceName, &authzContext) != acl.Allow {
 			// Just return nil, which will return an empty response (tested)
+			// We should be careful to set the index to prevent a busy loop from triggering.
+			reply.Index = 1
 			return nil
 		}
 	}
