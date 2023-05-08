@@ -19,7 +19,7 @@ a snapshot save.
 
 -> Note that saving a snapshot involves the server process writing the snapshot to a
 temporary file on-disk before sending that file to the CLI client. Upon successful completion,
-the temporary file will be removed. The default location of the temporary file
+Consul removes the temporary file. The default location of the temporary file
 can vary depending on operating system, but typically is `/tmp`. You can get more detailed
 information on default locations in the Go documentation for [os.TempDir](https://golang.org/pkg/os/#TempDir).
 If you need to change this location, you can do so by setting the `TMPDIR` environment
