@@ -175,9 +175,9 @@ func (b *Builder) ToAgentConfig() (*Config, error) {
 	conf := &Config{
 		Certs:   b.certs,
 		Cmd:     []string{"agent"},
-		Image:   *utils.TargetImage,
+		Image:   utils.TargetImage,
 		JSON:    string(out),
-		Version: *utils.TargetVersion,
+		Version: utils.TargetVersion,
 	}
 
 	return conf, nil

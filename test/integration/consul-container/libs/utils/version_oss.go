@@ -3,12 +3,10 @@
 
 package utils
 
-import "flag"
+const (
+	DefaultImageName   = "consul"
+)
 
-// TODO: need a better way to abstract the container creation and configuration;
-//       please refer to the discussion in github PR
-
-var TargetImage = flag.String("target-image", "consul", "docker image name to be used under test (Default: consul)")
-var TargetVersion = flag.String("target-version", "local", "docker image version to be used as UUT (unit under test)")
-var LatestImage = flag.String("latest-image", "consul", "docker image name to be used under test (Default: consul)")
-var LatestVersion = flag.String("latest-version", "1.11", "docker image to be used as latest")
+func ImageName(image, version string) string {
+	return image + ":" + version
+}
