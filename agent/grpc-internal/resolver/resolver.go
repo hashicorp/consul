@@ -18,25 +18,45 @@ import (
 // ServerResolvers updated when changes occur.
 type ServerResolverBuilder struct {
 	cfg Config
+
 	// leaderResolver is used to track the address of the leader in the local DC.
 	leaderResolver leaderResolver
+
 	// servers is an index of Servers by area and Server.ID. The map contains server IDs
 	// for all datacenters.
 	servers map[types.AreaID]map[string]*metadata.Server
+
 	// resolvers is an index of connections to the serverResolver which manages
 	// addresses of servers for that connection.
+	//
+	// this is only applicable for non-leader conn types
 	resolvers map[resolver.ClientConn]*serverResolver
+
 	// lock for all stateful fields (excludes config which is immutable).
 	lock sync.RWMutex
 }
 
 type Config struct {
+	// Datacenter is the datacenter of this agent.
+	Datacenter string
+
+	// AgentType is either 'server' or 'client' and is required.
+	AgentType string
+
 	// Authority used to query the server. Defaults to "". Used to support
 	// parallel testing because gRPC registers resolvers globally.
 	Authority string
 }
 
 func NewServerResolverBuilder(cfg Config) *ServerResolverBuilder {
+	if cfg.Datacenter == "" {
+		panic("ServerResolverBuilder needs Config.Datacenter to be nonempty")
+	}
+	switch cfg.AgentType {
+	case "server", "client":
+	default:
+		panic("ServerResolverBuilder needs Config.AgentType to be either server or client")
+	}
 	return &ServerResolverBuilder{
 		cfg:       cfg,
 		servers:   make(map[types.AreaID]map[string]*metadata.Server),
@@ -56,6 +76,7 @@ func (s *ServerResolverBuilder) ServerForGlobalAddr(globalAddr string) (*metadat
 			}
 		}
 	}
+
 	return nil, fmt.Errorf("failed to find Consul server for global address %q", globalAddr)
 }
 
@@ -67,11 +88,11 @@ func (s *ServerResolverBuilder) Build(target resolver.Target, cc resolver.Client
 
 	// If there's already a resolver for this connection, return it.
 	// TODO(streaming): how would this happen since we already cache connections in ClientConnPool?
-	if resolver, ok := s.resolvers[cc]; ok {
-		return resolver, nil
-	}
 	if cc == s.leaderResolver.clientConn {
 		return s.leaderResolver, nil
+	}
+	if resolver, ok := s.resolvers[cc]; ok {
+		return resolver, nil
 	}
 
 	//nolint:staticcheck
@@ -119,6 +140,10 @@ func (s *ServerResolverBuilder) Authority() string {
 
 // AddServer updates the resolvers' states to include the new server's address.
 func (s *ServerResolverBuilder) AddServer(areaID types.AreaID, server *metadata.Server) {
+	if s.shouldIgnoreServer(areaID, server) {
+		return
+	}
+
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
@@ -129,6 +154,10 @@ func (s *ServerResolverBuilder) AddServer(areaID types.AreaID, server *metadata.
 	}
 
 	areaServers[uniqueID(server)] = server
+
+	if areaID == types.AreaLAN || s.cfg.Datacenter == server.Datacenter {
+		s.leaderResolver.updateClientConn()
+	}
 
 	addrs := s.getDCAddrs(server.Datacenter)
 	for _, resolver := range s.resolvers {
@@ -155,6 +184,10 @@ func DCPrefix(datacenter, suffix string) string {
 
 // RemoveServer updates the resolvers' states with the given server removed.
 func (s *ServerResolverBuilder) RemoveServer(areaID types.AreaID, server *metadata.Server) {
+	if s.shouldIgnoreServer(areaID, server) {
+		return
+	}
+
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
@@ -168,6 +201,10 @@ func (s *ServerResolverBuilder) RemoveServer(areaID types.AreaID, server *metada
 		delete(s.servers, areaID)
 	}
 
+	if areaID == types.AreaLAN || s.cfg.Datacenter == server.Datacenter {
+		s.leaderResolver.updateClientConn()
+	}
+
 	addrs := s.getDCAddrs(server.Datacenter)
 	for _, resolver := range s.resolvers {
 		if resolver.datacenter == server.Datacenter {
@@ -176,14 +213,35 @@ func (s *ServerResolverBuilder) RemoveServer(areaID types.AreaID, server *metada
 	}
 }
 
+func (s *ServerResolverBuilder) shouldIgnoreServer(areaID types.AreaID, server *metadata.Server) bool {
+	if s.cfg.AgentType == "client" && areaID != types.AreaLAN {
+		return true
+	}
+
+	if s.cfg.AgentType == "server" &&
+		server.Datacenter == s.cfg.Datacenter &&
+		areaID != types.AreaLAN {
+		return true
+	}
+
+	return false
+}
+
 // getDCAddrs returns a list of the server addresses for the given datacenter.
 // This method requires that lock is held for reads.
 func (s *ServerResolverBuilder) getDCAddrs(dc string) []resolver.Address {
+	lanRequest := (s.cfg.Datacenter == dc)
+
 	var (
 		addrs         []resolver.Address
 		keptServerIDs = make(map[string]struct{})
 	)
-	for _, areaServers := range s.servers {
+	for areaID, areaServers := range s.servers {
+		if (areaID == types.AreaLAN) != lanRequest {
+			// LAN requests only look at LAN data. WAN requests only look at
+			// WAN data.
+			continue
+		}
 		for _, server := range areaServers {
 			if server.Datacenter != dc {
 				continue
@@ -210,8 +268,28 @@ func (s *ServerResolverBuilder) UpdateLeaderAddr(datacenter, addr string) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
-	s.leaderResolver.globalAddr = DCPrefix(datacenter, addr)
-	s.leaderResolver.updateClientConn()
+	lanAddr := DCPrefix(datacenter, addr)
+
+	s.leaderResolver.globalAddr = lanAddr
+
+	if s.lanHasAddrLocked(lanAddr) {
+		s.leaderResolver.updateClientConn()
+	}
+}
+
+func (s *ServerResolverBuilder) lanHasAddrLocked(lanAddr string) bool {
+	areaServers, ok := s.servers[types.AreaLAN]
+	if !ok {
+		return false
+	}
+
+	for _, server := range areaServers {
+		if DCPrefix(server.Datacenter, server.Addr.String()) == lanAddr {
+			return true
+		}
+	}
+
+	return false
 }
 
 // serverResolver is a grpc Resolver that will keep a grpc.ClientConn up to date

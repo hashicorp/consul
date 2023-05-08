@@ -6,6 +6,7 @@ package router
 import (
 	"fmt"
 	"sort"
+	"strings"
 	"sync"
 
 	"github.com/hashicorp/go-hclog"
@@ -280,6 +281,18 @@ func (r *Router) maybeInitializeManager(area *areaInfo, dc string) *Manager {
 
 // addServer does the work of AddServer once the write lock is held.
 func (r *Router) addServer(areaID types.AreaID, area *areaInfo, s *metadata.Server) error {
+	if areaID == types.AreaLAN {
+		if strings.HasSuffix(s.Name, "."+s.Datacenter) {
+			return fmt.Errorf("cannot add WAN/area server to a LAN: area=%v dc=%q srv=%q",
+				areaID, s.Datacenter, s.Name)
+		}
+	} else {
+		if !strings.HasSuffix(s.Name, "."+s.Datacenter) {
+			return fmt.Errorf("cannot add LAN server to a WAN/area: area=%v dc=%q srv=%q",
+				areaID, s.Datacenter, s.Name)
+		}
+	}
+
 	// Make the manager on the fly if this is the first we've seen of it,
 	// and add it to the index.
 	manager := r.maybeInitializeManager(area, s.Datacenter)
