@@ -832,6 +832,11 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server, incom
 		return nil, err
 	}
 
+	s.controllerManager = controller.NewManager(
+		s.internalResourceServiceClient,
+		logger.Named(logging.ControllerRuntime),
+	)
+
 	s.registerResources()
 	go s.controllerManager.Run(&lib.StopChannelContext{StopCh: shutdownCh})
 
