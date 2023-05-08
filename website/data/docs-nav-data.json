@@ -684,6 +684,10 @@
                 "path": "connect/gateways/ingress-gateway/ingress-gateways-usage"
               },
               {
+                "title": "Serve TLS certificates from an external service",
+                "path": "connect/gateways/ingress-gateway/ingress-gateways-tls-external-service"
+              },
+              {
                 "title": "Configuration",
                 "href": "/consul/docs/connect/config-entries/ingress-gateway"
               }
