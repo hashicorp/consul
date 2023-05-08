@@ -20,6 +20,7 @@ import (
 	"github.com/hashicorp/consul/lib"
 	libserf "github.com/hashicorp/consul/lib/serf"
 	"github.com/hashicorp/consul/logging"
+	"github.com/hashicorp/consul/types"
 )
 
 const (
@@ -356,6 +357,7 @@ func (s *Server) lanNodeJoin(me serf.MemberEvent) {
 
 		// Update server lookup
 		s.serverLookup.AddServer(serverMeta)
+		s.router.AddServer(types.AreaLAN, serverMeta)
 
 		// If we're still expecting to bootstrap, may need to handle this.
 		if s.config.BootstrapExpect != 0 {
@@ -377,6 +379,7 @@ func (s *Server) lanNodeUpdate(me serf.MemberEvent) {
 
 		// Update server lookup
 		s.serverLookup.AddServer(serverMeta)
+		s.router.AddServer(types.AreaLAN, serverMeta)
 	}
 }
 
@@ -515,5 +518,6 @@ func (s *Server) lanNodeFailed(me serf.MemberEvent) {
 
 		// Update id to address map
 		s.serverLookup.RemoveServer(serverMeta)
+		s.router.RemoveServer(types.AreaLAN, serverMeta)
 	}
 }

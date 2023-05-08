@@ -106,7 +106,14 @@ func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer) (BaseDeps, error) 
 	d.ViewStore = submatview.NewStore(d.Logger.Named("viewstore"))
 	d.ConnPool = newConnPool(cfg, d.Logger, d.TLSConfigurator)
 
+	agentType := "client"
+	if cfg.ServerMode {
+		agentType = "server"
+	}
+
 	builder := resolver.NewServerResolverBuilder(resolver.Config{
+		AgentType:  agentType,
+		Datacenter: cfg.Datacenter,
 		// Set the authority to something sufficiently unique so any usage in
 		// tests would be self-isolating in the global resolver map, while also
 		// not incurring a huge penalty for non-test code.
