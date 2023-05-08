@@ -680,6 +680,10 @@
                 "path": "connect/gateways/ingress-gateway"
               },
               {
+                "title": "Implement an ingress gateway",
+                "path": "connect/gateways/ingress-gateway/ingress-gateways-usage"
+              },
+              {
                 "title": "Configuration",
                 "href": "/consul/docs/connect/config-entries/ingress-gateway"
               }
