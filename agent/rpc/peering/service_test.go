@@ -8,6 +8,7 @@ import (
 	"net"
 	"os"
 	"path"
+	"strings"
 	"testing"
 	"time"
 
@@ -1438,6 +1439,17 @@ type testingServer struct {
 	PublicGRPCAddr string
 }
 
+func newConfig(t *testing.T, dc, agentType string) resolver.Config {
+	n := t.Name()
+	s := strings.Replace(n, "/", "", -1)
+	s = strings.Replace(s, "_", "", -1)
+	return resolver.Config{
+		Datacenter: dc,
+		AgentType:  agentType,
+		Authority:  strings.ToLower(s),
+	}
+}
+
 // TODO(peering): remove duplication between this and agent/consul tests
 func newDefaultDeps(t *testing.T, c *consul.Config) consul.Deps {
 	t.Helper()
@@ -1452,7 +1464,7 @@ func newDefaultDeps(t *testing.T, c *consul.Config) consul.Deps {
 	require.NoError(t, err, "failed to create tls configuration")
 
 	r := router.NewRouter(logger, c.Datacenter, fmt.Sprintf("%s.%s", c.NodeName, c.Datacenter), nil)
-	builder := resolver.NewServerResolverBuilder(resolver.Config{})
+	builder := resolver.NewServerResolverBuilder(newConfig(t, c.Datacenter, "client"))
 	resolver.Register(builder)
 
 	connPool := &pool.ConnPool{
