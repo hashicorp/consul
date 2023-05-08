@@ -112,4 +112,4 @@ jobs:
           header: Link Checker Report
           number: ${{ steps.findPr.outputs.pr }}
           message: |
-            The link checker has found no broken links in your PR.
+            The link checker has found no broken links in  your PR.
