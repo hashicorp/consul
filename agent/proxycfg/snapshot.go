@@ -838,7 +838,7 @@ func (c *configSnapshotAPIGateway) ToIngress(datacenter string) (configSnapshotI
 }
 
 func (c *configSnapshotAPIGateway) synthesizeChains(datacenter string, listener structs.APIGatewayListener, boundListener structs.BoundAPIGatewayListener) ([]structs.IngressService, structs.Upstreams, []*structs.CompiledDiscoveryChain, error) {
-	chains := []*structs.CompiledDiscoveryChain{}
+	var chains []*structs.CompiledDiscoveryChain
 	trustDomain := ""
 
 DOMAIN_LOOP:
@@ -864,10 +864,11 @@ DOMAIN_LOOP:
 			}
 			synthesizer.AddHTTPRoute(*route)
 			for _, service := range route.GetServices() {
-
 				id := NewUpstreamIDFromServiceName(structs.NewServiceName(service.Name, &service.EnterpriseMeta))
 				if chain := c.DiscoveryChain[id]; chain != nil {
 					chains = append(chains, chain)
+				} else {
+					// TODO Make some noise
 				}
 
 			}

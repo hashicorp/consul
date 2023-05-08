@@ -44,8 +44,8 @@ func httpServiceDefault(entry structs.ConfigEntry, meta map[string]string) *stru
 
 func synthesizeHTTPRouteDiscoveryChain(route structs.HTTPRouteConfigEntry) (structs.IngressService, *structs.ServiceRouterConfigEntry, []*structs.ServiceSplitterConfigEntry, []*structs.ServiceConfigEntry) {
 	meta := route.GetMeta()
-	splitters := []*structs.ServiceSplitterConfigEntry{}
-	defaults := []*structs.ServiceConfigEntry{}
+	var splitters []*structs.ServiceSplitterConfigEntry
+	var defaults []*structs.ServiceConfigEntry
 
 	router, splits, upstreamDefaults := httpRouteToDiscoveryChain(route)
 	serviceDefault := httpServiceDefault(router, meta)

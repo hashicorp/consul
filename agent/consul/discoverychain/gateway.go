@@ -134,7 +134,6 @@ func (l *GatewayChainSynthesizer) Synthesize(chains ...*structs.CompiledDiscover
 			EvaluateInTrustDomain: l.trustDomain,
 			Entries:               entries,
 		})
-
 		if err != nil {
 			return nil, nil, err
 		}
@@ -205,7 +204,6 @@ func FlattenHTTPRoute(route *structs.HTTPRouteConfigEntry, listener *structs.API
 	matches := map[string][]hostnameMatch{}
 	matches = getHostMatches(listener.GetHostname(), route, matches)
 	return consolidateHTTPRoutes(matches, listener.Name, gateway)
-
 }
 
 func RebuildHTTPRouteUpstream(route structs.HTTPRouteConfigEntry, listener structs.APIGatewayListener) structs.Upstream {
@@ -223,10 +221,10 @@ func RebuildHTTPRouteUpstream(route structs.HTTPRouteConfigEntry, listener struc
 
 // ConsolidateHTTPRoutes combines all rules into the shortest possible list of routes
 // with one route per hostname containing all rules for that hostname.
-func consolidateHTTPRoutes(matches map[string][]hostnameMatch, suffix string, gateway *structs.APIGatewayConfigEntry) []structs.HTTPRouteConfigEntry {
+func consolidateHTTPRoutes(matchesByHostname map[string][]hostnameMatch, suffix string, gateway *structs.APIGatewayConfigEntry) []structs.HTTPRouteConfigEntry {
 	var routes []structs.HTTPRouteConfigEntry
 
-	for hostname, rules := range matches {
+	for hostname, rules := range matchesByHostname {
 		// Create route for this hostname
 		route := structs.HTTPRouteConfigEntry{
 			Kind:           structs.HTTPRoute,
@@ -290,16 +288,18 @@ func hostsKey(hosts ...string) string {
 }
 
 func (l *GatewayChainSynthesizer) synthesizeEntries() ([]structs.IngressService, []*configentry.DiscoveryChainSet) {
-	services := []structs.IngressService{}
-	entries := []*configentry.DiscoveryChainSet{}
+	var services []structs.IngressService
+	var entries []*configentry.DiscoveryChainSet
 
 	for _, route := range l.consolidateHTTPRoutes() {
-		entrySet := configentry.NewDiscoveryChainSet()
 		ingress, router, splitters, defaults := synthesizeHTTPRouteDiscoveryChain(route)
+
+		services = append(services, ingress)
+
+		entrySet := configentry.NewDiscoveryChainSet()
 		entrySet.AddRouters(router)
 		entrySet.AddSplitters(splitters...)
 		entrySet.AddServices(defaults...)
-		services = append(services, ingress)
 		entries = append(entries, entrySet)
 	}
 
