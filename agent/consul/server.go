@@ -71,6 +71,7 @@ import (
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/demo"
+	"github.com/hashicorp/consul/internal/resource/reaper"
 	raftstorage "github.com/hashicorp/consul/internal/storage/raft"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/lib/routine"
@@ -837,6 +838,7 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server, incom
 		demo.RegisterTypes(s.typeRegistry)
 		demo.RegisterControllers(s.controllerManager)
 	}
+	reaper.RegisterControllers(s.controllerManager)
 	go s.controllerManager.Run(&lib.StopChannelContext{StopCh: shutdownCh})
 
 	return s, nil

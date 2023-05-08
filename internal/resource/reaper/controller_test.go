@@ -6,15 +6,16 @@ package reaper
 import (
 	"testing"
 
+	"github.com/stretchr/testify/require"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+
 	svctest "github.com/hashicorp/consul/agent/grpc-external/services/resource/testing"
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/demo"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/sdk/testutil"
-	"github.com/stretchr/testify/require"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 func TestReconcile_ResourceWithNoChildren(t *testing.T) {
@@ -31,7 +32,7 @@ func TestReconcile_ResourceWithNoChildren(t *testing.T) {
 	_, err = client.Delete(ctx, &pbresource.DeleteRequest{Id: writeRsp.Resource.Id})
 	require.NoError(t, err)
 
-	// Retrieve the tombstone
+	// Retrieve tombstone
 	listRsp, err := client.List(ctx, &pbresource.ListRequest{
 		Type:    resource.TypeV1Tombstone,
 		Tenancy: writeRsp.Resource.Id.Tenancy,
@@ -40,16 +41,25 @@ func TestReconcile_ResourceWithNoChildren(t *testing.T) {
 	require.Len(t, listRsp.Resources, 1)
 	tombstone := listRsp.Resources[0]
 
-	// Reconcile the tombstone
+	// Verify reconcile does first pass and queues up for a second pass
 	var rec tombstoneReconciler
 	runtime := controller.Runtime{
 		Client: client,
 		Logger: testutil.Logger(t),
 	}
 	req := controller.Request{ID: tombstone.Id}
-	require.NoError(t, rec.Reconcile(ctx, runtime, req))
+	require.ErrorIs(t, controller.RequeueAfterError(secondPassDelay), rec.Reconcile(ctx, runtime, req))
 
-	// Verify tombstone deleted
+	// Verify condition FirstPassCompleted is true
+	readRsp, err := client.Read(ctx, &pbresource.ReadRequest{Id: tombstone.Id})
+	require.NoError(t, err)
+	tombstone = readRsp.Resource
+	condition := tombstone.Status[statusKeyReaperController].Conditions[0]
+	require.Equal(t, conditionTypeFirstPassCompleted, condition.Type)
+	require.Equal(t, pbresource.Condition_STATE_TRUE, condition.State)
+
+	// Verify reconcile does second pass and tombstone is deleted
+	require.NoError(t, rec.Reconcile(ctx, runtime, req))
 	_, err = client.Read(ctx, &pbresource.ReadRequest{Id: tombstone.Id})
 	require.Error(t, err)
 	require.Equal(t, codes.NotFound.String(), status.Code(err).String())
@@ -91,14 +101,14 @@ func TestReconcile_ResourceWithChildren(t *testing.T) {
 	require.Len(t, listRsp.Resources, 1)
 	tombstone := listRsp.Resources[0]
 
-	// Reconcile the tombstone
+	// Verify reconcile does first pass delete and queues up for a second pass
 	var rec tombstoneReconciler
 	runtime := controller.Runtime{
 		Client: client,
 		Logger: testutil.Logger(t),
 	}
 	req := controller.Request{ID: tombstone.Id}
-	require.NoError(t, rec.Reconcile(ctx, runtime, req))
+	require.ErrorIs(t, controller.RequeueAfterError(secondPassDelay), rec.Reconcile(ctx, runtime, req))
 
 	// Verify 3 albums deleted
 	listRsp, err = client.List(ctx, &pbresource.ListRequest{
@@ -108,12 +118,23 @@ func TestReconcile_ResourceWithChildren(t *testing.T) {
 	require.NoError(t, err)
 	require.Empty(t, listRsp.Resources)
 
+	// Verify condition FirstPassCompleted is true
+	readRsp, err := client.Read(ctx, &pbresource.ReadRequest{Id: tombstone.Id})
+	require.NoError(t, err)
+	tombstone = readRsp.Resource
+	condition := tombstone.Status[statusKeyReaperController].Conditions[0]
+	require.Equal(t, conditionTypeFirstPassCompleted, condition.Type)
+	require.Equal(t, pbresource.Condition_STATE_TRUE, condition.State)
+
+	// Verify reconcile does second pass
+	require.NoError(t, rec.Reconcile(ctx, runtime, req))
+
 	// Verify artist tombstone deleted
 	_, err = client.Read(ctx, &pbresource.ReadRequest{Id: tombstone.Id})
 	require.Error(t, err)
 	require.Equal(t, codes.NotFound.String(), status.Code(err).String())
 
-	// Verify 3 albums' tombstones created
+	// Verify tombstones for 3 albums created
 	listRsp, err = client.List(ctx, &pbresource.ListRequest{
 		Type:    resource.TypeV1Tombstone,
 		Tenancy: artist.Id.Tenancy,
