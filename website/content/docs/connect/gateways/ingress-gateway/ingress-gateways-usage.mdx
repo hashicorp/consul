@@ -62,7 +62,7 @@ $ consul config write public-ingress.hcl
 
 To deploy an ingress gateway service, create a service definition and register it with Consul. 
 
-You can also define an ingress gateway service and register it with Consul while starting an Envoy proxy from the command line. Refer to [ Register an ingress service on Envoy startup](#register-an-ingress-service-on-envoy-startup) for details.
+You can also define an ingress gateway service and register it with Consul while starting an Envoy proxy from the command line. Refer to [Register an ingress service on Envoy startup](#register-an-ingress-service-on-envoy-startup) for details.
 ### Create a service definition for the ingress gateway 
 
 Consul applies the settings defined in the ingress gateway configuration entry to ingress gateway services that match the configuration entry name. Refer to [Define services](/consul/docs/services/usage/define-services) for additional information about defining services in Consul. 
@@ -92,6 +92,7 @@ The following example starts Envoy for the `ingress-service` gateway service:
 ```shell-session
 $ consul connect envoy -gateway=ingress ingress-service'
 ```
+
 ### Register an ingress service on Envoy startup
 
 You can also automatically register the ingress gateway service when starting the Envoy proxy. Specify the following flags with the `consul connect envoy` command:  
@@ -106,8 +107,10 @@ The following example starts Envoy and registers an ingress gateway service name
 $ consul connect envoy -gateway=ingress -register -service ingress-service
    -address '{{ GetInterfaceIP "eth0" }}:8888'
 ```
-You cannot register the ingress gateway service and start the proxy at the same time if you configure the gateway to retrieve and serve TLS certificates from their external downstreams. Refer to [Serve custom TLS certificates from an external service]() for more information.
+You cannot register the ingress gateway service and start the proxy at the same time if you configure the gateway to retrieve and serve TLS certificates from their external downstreams. Refer to [Serve custom TLS certificates from an external service](/consul/docs/connect/gateways/ingress-gateway/ingress-gateways-tls-external-service) for more information.
+
 ## Additional Envoy configurations
+
 Ingress gateways support additional Envoy gateway options and escape-hatch overrides. Specify gateway options in the ingress gateway service definition to use them. To use escape-hatch overrides, you must add them to your global proxy defaults configuration entry. Refer to the following documentation for additional information:
 
 - [Gateway options](/consul/docs/connect/proxies/envoy#gateway-options)
