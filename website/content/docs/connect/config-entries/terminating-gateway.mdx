@@ -12,7 +12,7 @@ description: >-
 
 The `terminating-gateway` config entry kind (`TerminatingGateway` on Kubernetes) allows you to configure terminating gateways
 to proxy traffic from services in the Consul service mesh to services registered with Consul that do not have a
-[Connect service sidecar proxy](/consul/docs/connect/proxies). The configuration is associated with the name of a gateway service
+[service mesh sidecar proxy](/consul/docs/connect/proxies). The configuration is associated with the name of a gateway service
 and will apply to all instances of the gateway with that name.
 
 ~> [Configuration entries](/consul/docs/agent/config-entries) are global in scope. A configuration entry for a gateway name applies
@@ -41,7 +41,7 @@ Terminating gateways can optionally target all services within a Consul namespac
 as the service name. Configuration options set on the wildcard act as defaults that can be overridden
 by options set on a specific service name.
 
-Note that if the wildcard specifier is used, and some services in that namespace have a Connect sidecar proxy,
+Note that if the wildcard specifier is used, and some services in that namespace have a service mesh sidecar proxy,
 traffic from the mesh to those services will be evenly load-balanced between the gateway and their sidecars.
 
 ## Sample Config Entries

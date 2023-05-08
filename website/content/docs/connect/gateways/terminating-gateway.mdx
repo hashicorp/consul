@@ -10,8 +10,8 @@ description: >-
 -> **1.8.0+:** This feature is available in Consul versions 1.8.0 and newer.
 
 Terminating gateways enable connectivity within your organizational network from services in the Consul service mesh to
-services and [destinations](/consul/docs/connect/config-entries/service-defaults#terminating-gateway-destination) outside the mesh. These gateways effectively act as Connect proxies that can
-represent more than one service. They terminate Connect mTLS connections, enforce intentions,
+services and [destinations](/consul/docs/connect/config-entries/service-defaults#terminating-gateway-destination) outside the mesh. These gateways effectively act as service mesh proxies that can
+represent more than one service. They terminate service mesh mTLS connections, enforce intentions,
 and forward requests to the appropriate destination.
 
 ![Terminating Gateway Architecture](/img/terminating-gateways.png)
@@ -26,7 +26,7 @@ for filtering by instance.
 ## Security Considerations
 
 ~> We recommend that terminating gateways are not exposed to the WAN or open internet. This is because terminating gateways
-hold certificates to decrypt Consul Connect traffic directed at them and may be configured with credentials to connect
+hold certificates to decrypt Consul service mesh traffic directed at them and may be configured with credentials to connect
 to linked services. Connections over the WAN or open internet should flow through [mesh gateways](/consul/docs/connect/gateways/mesh-gateway)
 whenever possible since they are not capable of decrypting traffic or connecting directly to services.
 
@@ -58,7 +58,7 @@ Each terminating gateway needs:
 Terminating gateways also require that your Consul datacenters are configured correctly:
 
 - You'll need to use Consul version 1.8.0 or newer.
-- Consul [Connect](/consul/docs/agent/config/config-files#connect) must be enabled on the datacenter's Consul servers.
+- Consul [service mesh](/consul/docs/agent/config/config-files#connect) must be enabled on the datacenter's Consul servers.
 - [gRPC](/consul/docs/agent/config/config-files#grpc_port) must be enabled on all client agents.
 
 Currently, [Envoy](https://www.envoyproxy.io/) is the only proxy with terminating gateway capabilities in Consul.
@@ -68,9 +68,9 @@ Currently, [Envoy](https://www.envoyproxy.io/) is the only proxy with terminatin
   can only translate terminating gateway registration information into Envoy
   configuration, therefore the proxies acting as terminating gateways must be Envoy.
 
-Connect proxies that send upstream traffic through a gateway aren't
+Service mesh proxies that send upstream traffic through a gateway aren't
 affected when you deploy terminating gateways. If you are using non-Envoy proxies as
-Connect proxies they will continue to work for traffic directed at services linked to
+Service mesh proxies they will continue to work for traffic directed at services linked to
 a terminating gateway as long as they discover upstreams with the
 [/health/connect](/consul/api-docs/health#list-nodes-for-connect-capable-service) endpoint.
 
@@ -84,7 +84,7 @@ services outside the mesh, review the [terminating gateway tutorial](/consul/tut
 Terminating gateways are configured in service definitions and registered with Consul like other services, with two exceptions.
 The first is that the [kind](/consul/api-docs/agent/service#kind) must be "terminating-gateway". Second,
 the terminating gateway service definition may contain a `Proxy.Config` entry just like a
-Connect proxy service, to define opaque configuration parameters useful for the actual proxy software.
+service mesh proxy service, to define opaque configuration parameters useful for the actual proxy software.
 For Envoy there are some supported [gateway options](/consul/docs/connect/proxies/envoy#gateway-options) as well as
 [escape-hatch overrides](/consul/docs/connect/proxies/envoy#escape-hatch-overrides).
 
