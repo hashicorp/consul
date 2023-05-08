@@ -237,6 +237,7 @@ jobs:
           name: ${{ env.TEST_RESULTS_ARTIFACT_NAME }}
           path: ${{ env.TEST_RESULTS_DIR }}
 
+<<<<<<< HEAD
   # not using test cases on 1.13 branch because the directory 
   # structure is different and we can just test the whole directory.            
   # generate-compatibility-job-matrices:
@@ -263,16 +264,21 @@ jobs:
   #         } >> "$GITHUB_OUTPUT"
   #         cat "$GITHUB_OUTPUT"
         
+=======
+>>>>>>> 861a8151d5 (ci: remove test splitting for compatibility tests (#17166))
   compatibility-integration-test:
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-xl) }}
     needs:
       - setup
       - dev-build
+<<<<<<< HEAD
       # - generate-compatibility-job-matrices
     # strategy:
     #   fail-fast: false
     #   matrix:
     #     test-cases: ${{ fromJSON(needs.generate-compatibility-job-matrices.outputs.compatibility-matrix) }}
+=======
+>>>>>>> 861a8151d5 (ci: remove test splitting for compatibility tests (#17166))
     steps:
       - uses: actions/checkout@24cb9080177205b6e8c946b17badbe402adc938f # v3.4.0
       - uses: actions/setup-go@6edd4406fa81c3da01a34fa6f6343087c207a568 # v3.5.0
@@ -302,36 +308,18 @@ jobs:
             mkdir -p "/tmp/test-results"
             cd ./test/integration/consul-container
             docker run --rm ${{ env.CONSUL_LATEST_IMAGE_NAME }}:local consul version
-            # not using test cases on 1.13 branch because the directory 
-            # structure is different and we can just test the whole directory.
-            # echo "Running $(sed 's,|, ,g' <<< "${{ matrix.test-cases }}" |wc -w) subtests"
-            # # shellcheck disable=SC2001
-            # sed 's,|,\n,g' <<< "${{ matrix.test-cases }}"
-            # go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
-            #   --raw-command \
-            #   --format=short-verbose \
-            #   --debug \
-            #   --rerun-fails=3 \
-            #   -- \
-            #   go test \
-            #   -p=4 \
-            #   -tags "${{ env.GOTAGS }}" \
-            #   -timeout=30m \
-            #   -json \
-            #   "${{ matrix.test-cases }}" \
-            #   --target-image ${{ env.CONSUL_LATEST_IMAGE_NAME }} \
-            #   --target-version local \
-            #   --latest-image ${{ env.CONSUL_LATEST_IMAGE_NAME }} \
-            #   --latest-version latest
             go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
-              --format=short-verbose \
+              --raw-command \
+              --format=standard-verbose \
               --debug \
               --rerun-fails=3 \
               --packages="./..." \
               -- \
               --tags "${GOTAGS}" \
               -timeout=30m \
-              ./... \
+              -json \
+              `go list ./... | grep -v upgrade` \
+              --target-image ${{ env.CONSUL_LATEST_IMAGE_NAME }} \
               --target-version local \
               --latest-version latest
             ls -lrt
@@ -356,7 +344,6 @@ jobs:
     - vault-integration-test
     - generate-envoy-job-matrices
     - envoy-integration-test
-    # - generate-compatibility-job-matrices
     - compatibility-integration-test
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-small) }}
     if: ${{ always() }}
