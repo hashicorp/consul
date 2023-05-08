@@ -867,10 +867,7 @@ DOMAIN_LOOP:
 				id := NewUpstreamIDFromServiceName(structs.NewServiceName(service.Name, &service.EnterpriseMeta))
 				if chain := c.DiscoveryChain[id]; chain != nil {
 					chains = append(chains, chain)
-				} else {
-					// TODO Make some noise
 				}
-
 			}
 		case structs.TCPRoute:
 			route, ok := c.TCPRoutes.Get(routeRef)
