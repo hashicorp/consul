@@ -257,7 +257,7 @@ type Backend interface {
 	//
 	// # Consistency
 	//
-	// ListByOwner may return stale results, but guarnantees [monotonic reads]
+	// ListByOwner may return stale results, but guarantees [monotonic reads]
 	// with events received from WatchList. In practice, this means that if you
 	// learn that a resource has been deleted through a watch event, the results
 	// you receive from ListByOwner will represent all references that existed

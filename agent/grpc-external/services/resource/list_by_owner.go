@@ -5,13 +5,11 @@ package resource
 
 import (
 	"context"
-	"errors"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
 	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/internal/storage"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
@@ -25,9 +23,9 @@ func (s *Server) ListByOwner(ctx context.Context, req *pbresource.ListByOwnerReq
 		return nil, err
 	}
 
-	childIds, err := s.Backend.OwnerReferences(ctx, req.Owner)
+	children, err := s.Backend.ListByOwner(ctx, req.Owner)
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "failed getting owner references: %v", err)
+		return nil, status.Errorf(codes.Internal, "failed list by owner: %v", err)
 	}
 
 	authz, err := s.getAuthorizer(tokenFromContext(ctx))
@@ -36,14 +34,14 @@ func (s *Server) ListByOwner(ctx context.Context, req *pbresource.ListByOwnerReq
 	}
 
 	result := make([]*pbresource.Resource, 0)
-	for _, childId := range childIds {
-		reg, err := s.resolveType(childId.Type)
+	for _, child := range children {
+		reg, err := s.resolveType(child.Id.Type)
 		if err != nil {
 			return nil, err
 		}
 
 		// ACL filter
-		err = reg.ACLs.Read(authz, childId)
+		err = reg.ACLs.Read(authz, child.Id)
 		switch {
 		case acl.IsErrPermissionDenied(err):
 			continue
@@ -51,15 +49,7 @@ func (s *Server) ListByOwner(ctx context.Context, req *pbresource.ListByOwnerReq
 			return nil, status.Errorf(codes.Internal, "failed read acl: %v", err)
 		}
 
-		child, err := s.Backend.Read(ctx, readConsistencyFrom(ctx), childId)
-		switch {
-		case err == nil:
-			result = append(result, child)
-		case errors.Is(err, storage.ErrNotFound):
-			continue
-		default:
-			return nil, status.Errorf(codes.Internal, "failed read: %v", err)
-		}
+		result = append(result, child)
 	}
 	return &pbresource.ListByOwnerResponse{Resources: result}, nil
 }
