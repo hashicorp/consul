@@ -3,13 +3,13 @@ package consul
 import (
 	"bytes"
 	"crypto"
-	"crypto/rand"
+	crand "crypto/rand"
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/pem"
 	"fmt"
 	"io/ioutil"
-	"math/rand"
+	mathrand "math/rand"
 	"net"
 	"net/url"
 	"path"
@@ -884,7 +884,7 @@ func TestAutoConfig_parseAutoConfigCSR(t *testing.T) {
 	// customizations to allow for better unit testing.
 	createCSR := func(tmpl *x509.CertificateRequest, privateKey crypto.Signer) (string, error) {
 		connect.HackSANExtensionForCSR(tmpl)
-		bs, err := x509.CreateCertificateRequest(rand.Reader, tmpl, privateKey)
+		bs, err := x509.CreateCertificateRequest(crand.Reader, tmpl, privateKey)
 		require.NoError(t, err)
 		var csrBuf bytes.Buffer
 		err = pem.Encode(&csrBuf, &pem.Block{Type: "CERTIFICATE REQUEST", Bytes: bs})
