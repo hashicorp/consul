@@ -317,7 +317,7 @@ func TestPeering_UpgradeToTarget_fromLatest(t *testing.T) {
 	}
 
 	run := func(t *testing.T, tc testcase) {
-		accepting, dialing := libtopology.BasicPeeringTwoClustersSetup(t, tc.oldversion, false)
+		accepting, dialing := libtopology.BasicPeeringTwoClustersSetup(t, utils.GetLatestImageName(), tc.oldversion, false)
 		var (
 			acceptingCluster = accepting.Cluster
 			dialingCluster   = dialing.Cluster
@@ -339,11 +339,11 @@ func TestPeering_UpgradeToTarget_fromLatest(t *testing.T) {
 		tc.extraAssertion(appPort)
 
 		// Upgrade the accepting cluster and assert peering is still ACTIVE
-		require.NoError(t, acceptingCluster.StandardUpgrade(t, context.Background(), tc.targetVersion))
+		require.NoError(t, acceptingCluster.StandardUpgrade(t, context.Background(), utils.GetTargetImageName(), tc.targetVersion))
 		libassert.PeeringStatus(t, acceptingClient, libtopology.AcceptingPeerName, api.PeeringStateActive)
 		libassert.PeeringStatus(t, dialingClient, libtopology.DialingPeerName, api.PeeringStateActive)
 
-		require.NoError(t, dialingCluster.StandardUpgrade(t, context.Background(), tc.targetVersion))
+		require.NoError(t, dialingCluster.StandardUpgrade(t, context.Background(), utils.GetTargetImageName(), tc.targetVersion))
 		libassert.PeeringStatus(t, acceptingClient, libtopology.AcceptingPeerName, api.PeeringStateActive)
 		libassert.PeeringStatus(t, dialingClient, libtopology.DialingPeerName, api.PeeringStateActive)
 
