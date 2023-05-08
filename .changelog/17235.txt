@@ -1,0 +1,3 @@
+```release-note:bug
+peering: Fix issue where peer streams could incorrectly deregister services when multiple namespaces are used.
+```
