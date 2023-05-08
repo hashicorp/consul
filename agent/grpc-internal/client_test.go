@@ -36,8 +36,8 @@ func TestNewDialer_WithTLSWrapper(t *testing.T) {
 	require.NoError(t, err)
 	t.Cleanup(logError(t, lis.Close))
 
-	builder := resolver.NewServerResolverBuilder(newConfig(t))
-	builder.AddServer(types.AreaWAN, &metadata.Server{
+	builder := resolver.NewServerResolverBuilder(newConfig(t, "dc1", "server"))
+	builder.AddServer(types.AreaLAN, &metadata.Server{
 		Name:       "server-1",
 		ID:         "ID1",
 		Datacenter: "dc1",
@@ -87,7 +87,7 @@ func TestNewDialer_WithALPNWrapper(t *testing.T) {
 		p.Wait()
 	}()
 
-	builder := resolver.NewServerResolverBuilder(newConfig(t))
+	builder := resolver.NewServerResolverBuilder(newConfig(t, "dc1", "server"))
 	builder.AddServer(types.AreaWAN, &metadata.Server{
 		Name:       "server-1",
 		ID:         "ID1",
@@ -142,7 +142,7 @@ func TestNewDialer_WithALPNWrapper(t *testing.T) {
 func TestNewDialer_IntegrationWithTLSEnabledHandler(t *testing.T) {
 	// if this test is failing because of expired certificates
 	// use the procedure in test/CA-GENERATION.md
-	res := resolver.NewServerResolverBuilder(newConfig(t))
+	res := resolver.NewServerResolverBuilder(newConfig(t, "dc1", "server"))
 	registerWithGRPC(t, res)
 
 	tlsConf, err := tlsutil.NewConfigurator(tlsutil.Config{
@@ -159,8 +159,16 @@ func TestNewDialer_IntegrationWithTLSEnabledHandler(t *testing.T) {
 	srv := newSimpleTestServer(t, "server-1", "dc1", tlsConf)
 
 	md := srv.Metadata()
-	res.AddServer(types.AreaWAN, md)
+	res.AddServer(types.AreaLAN, md)
 	t.Cleanup(srv.shutdown)
+
+	{
+		// Put a duplicate instance of this on the WAN that will
+		// fail if we accidentally use it.
+		srv := newPanicTestServer(t, hclog.Default(), "server-1", "dc1", nil)
+		res.AddServer(types.AreaWAN, srv.Metadata())
+		t.Cleanup(srv.shutdown)
+	}
 
 	pool := NewClientConnPool(ClientConnPoolConfig{
 		Servers:               res,
@@ -190,7 +198,7 @@ func TestNewDialer_IntegrationWithTLSEnabledHandler_viaMeshGateway(t *testing.T)
 	// use the procedure in test/CA-GENERATION.md
 	gwAddr := ipaddr.FormatAddressPort("127.0.0.1", freeport.GetOne(t))
 
-	res := resolver.NewServerResolverBuilder(newConfig(t))
+	res := resolver.NewServerResolverBuilder(newConfig(t, "dc2", "server"))
 	registerWithGRPC(t, res)
 
 	tlsConf, err := tlsutil.NewConfigurator(tlsutil.Config{
@@ -266,7 +274,7 @@ func TestNewDialer_IntegrationWithTLSEnabledHandler_viaMeshGateway(t *testing.T)
 
 func TestClientConnPool_IntegrationWithGRPCResolver_Failover(t *testing.T) {
 	count := 4
-	res := resolver.NewServerResolverBuilder(newConfig(t))
+	res := resolver.NewServerResolverBuilder(newConfig(t, "dc1", "server"))
 	registerWithGRPC(t, res)
 	pool := NewClientConnPool(ClientConnPoolConfig{
 		Servers:               res,
@@ -278,9 +286,18 @@ func TestClientConnPool_IntegrationWithGRPCResolver_Failover(t *testing.T) {
 
 	for i := 0; i < count; i++ {
 		name := fmt.Sprintf("server-%d", i)
-		srv := newSimpleTestServer(t, name, "dc1", nil)
-		res.AddServer(types.AreaWAN, srv.Metadata())
-		t.Cleanup(srv.shutdown)
+		{
+			srv := newSimpleTestServer(t, name, "dc1", nil)
+			res.AddServer(types.AreaLAN, srv.Metadata())
+			t.Cleanup(srv.shutdown)
+		}
+		{
+			// Put a duplicate instance of this on the WAN that will
+			// fail if we accidentally use it.
+			srv := newPanicTestServer(t, hclog.Default(), name, "dc1", nil)
+			res.AddServer(types.AreaWAN, srv.Metadata())
+			t.Cleanup(srv.shutdown)
+		}
 	}
 
 	conn, err := pool.ClientConn("dc1")
@@ -293,7 +310,7 @@ func TestClientConnPool_IntegrationWithGRPCResolver_Failover(t *testing.T) {
 	first, err := client.Something(ctx, &testservice.Req{})
 	require.NoError(t, err)
 
-	res.RemoveServer(types.AreaWAN, &metadata.Server{ID: first.ServerName, Datacenter: "dc1"})
+	res.RemoveServer(types.AreaLAN, &metadata.Server{ID: first.ServerName, Datacenter: "dc1"})
 
 	resp, err := client.Something(ctx, &testservice.Req{})
 	require.NoError(t, err)
@@ -302,7 +319,7 @@ func TestClientConnPool_IntegrationWithGRPCResolver_Failover(t *testing.T) {
 
 func TestClientConnPool_ForwardToLeader_Failover(t *testing.T) {
 	count := 3
-	res := resolver.NewServerResolverBuilder(newConfig(t))
+	res := resolver.NewServerResolverBuilder(newConfig(t, "dc1", "server"))
 	registerWithGRPC(t, res)
 	pool := NewClientConnPool(ClientConnPoolConfig{
 		Servers:               res,
@@ -315,10 +332,19 @@ func TestClientConnPool_ForwardToLeader_Failover(t *testing.T) {
 	var servers []testServer
 	for i := 0; i < count; i++ {
 		name := fmt.Sprintf("server-%d", i)
-		srv := newSimpleTestServer(t, name, "dc1", nil)
-		res.AddServer(types.AreaWAN, srv.Metadata())
-		servers = append(servers, srv)
-		t.Cleanup(srv.shutdown)
+		{
+			srv := newSimpleTestServer(t, name, "dc1", nil)
+			res.AddServer(types.AreaLAN, srv.Metadata())
+			servers = append(servers, srv)
+			t.Cleanup(srv.shutdown)
+		}
+		{
+			// Put a duplicate instance of this on the WAN that will
+			// fail if we accidentally use it.
+			srv := newPanicTestServer(t, hclog.Default(), name, "dc1", nil)
+			res.AddServer(types.AreaWAN, srv.Metadata())
+			t.Cleanup(srv.shutdown)
+		}
 	}
 
 	// Set the leader address to the first server.
@@ -345,17 +371,21 @@ func TestClientConnPool_ForwardToLeader_Failover(t *testing.T) {
 	require.Equal(t, resp.ServerName, servers[1].name)
 }
 
-func newConfig(t *testing.T) resolver.Config {
+func newConfig(t *testing.T, dc, agentType string) resolver.Config {
 	n := t.Name()
 	s := strings.Replace(n, "/", "", -1)
 	s = strings.Replace(s, "_", "", -1)
-	return resolver.Config{Authority: strings.ToLower(s)}
+	return resolver.Config{
+		Datacenter: dc,
+		AgentType:  agentType,
+		Authority:  strings.ToLower(s),
+	}
 }
 
 func TestClientConnPool_IntegrationWithGRPCResolver_MultiDC(t *testing.T) {
 	dcs := []string{"dc1", "dc2", "dc3"}
 
-	res := resolver.NewServerResolverBuilder(newConfig(t))
+	res := resolver.NewServerResolverBuilder(newConfig(t, "dc1", "server"))
 	registerWithGRPC(t, res)
 	pool := NewClientConnPool(ClientConnPoolConfig{
 		Servers:               res,
@@ -368,7 +398,16 @@ func TestClientConnPool_IntegrationWithGRPCResolver_MultiDC(t *testing.T) {
 	for _, dc := range dcs {
 		name := "server-0-" + dc
 		srv := newSimpleTestServer(t, name, dc, nil)
-		res.AddServer(types.AreaWAN, srv.Metadata())
+		if dc == "dc1" {
+			res.AddServer(types.AreaLAN, srv.Metadata())
+			// Put a duplicate instance of this on the WAN that will
+			// fail if we accidentally use it.
+			srvBad := newPanicTestServer(t, hclog.Default(), name, dc, nil)
+			res.AddServer(types.AreaWAN, srvBad.Metadata())
+			t.Cleanup(srvBad.shutdown)
+		} else {
+			res.AddServer(types.AreaWAN, srv.Metadata())
+		}
 		t.Cleanup(srv.shutdown)
 	}
 
