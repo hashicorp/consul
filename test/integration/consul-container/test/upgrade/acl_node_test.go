@@ -41,6 +41,7 @@ func TestACL_Upgrade_Node_Token(t *testing.T) {
 			NumClients: 1,
 			BuildOpts: &libcluster.BuildOptions{
 				Datacenter:           "dc1",
+				ConsulImageName:      utils.GetLatestImageName(),
 				ConsulVersion:        tc.oldversion,
 				InjectAutoEncryption: false,
 				ACLEnabled:           true,
@@ -52,7 +53,7 @@ func TestACL_Upgrade_Node_Token(t *testing.T) {
 			cluster.Agents[1].GetAgentName())
 		require.NoError(t, err)
 
-		err = cluster.StandardUpgrade(t, context.Background(), tc.targetVersion)
+		err = cluster.StandardUpgrade(t, context.Background(), utils.GetTargetImageName(), tc.targetVersion)
 		require.NoError(t, err)
 
 		// Post upgrade validation: agent token can be used to query the node
