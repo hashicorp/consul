@@ -21,10 +21,10 @@ Feature: dc / intentions / deleting: Deleting items with confirmations, success 
     ---
     And I click actions on the intentionList.intentions
     And I click delete on the intentionList.intentions
-    And I click confirmInlineDelete on the intentionList.intentions
+    And I click confirmDelete on the intentionList.intentions
     Then a DELETE request was made to "/v1/connect/intentions/exact?source=default%2Fdefault%2Fname&destination=default%2Fdefault%2Fdestination&dc=datacenter"
-    And "[data-notification]" has the "hds-toast" class
-    And "[data-notification]" has the "hds-alert--color-success" class
+    And "[data-notification]" has the "notification-delete" class
+    And "[data-notification]" has the "success" class
   Scenario: Deleting an intention from the intention detail page
     When I visit the intention page for yaml
     ---
@@ -34,8 +34,8 @@ Feature: dc / intentions / deleting: Deleting items with confirmations, success 
     And I click delete
     And I click confirmDelete
     Then a DELETE request was made to "/v1/connect/intentions/exact?source=default%2Fdefault%2Fname&destination=default%2Fdefault%2Fdestination&dc=datacenter"
-    And "[data-notification]" has the "hds-toast" class
-    And "[data-notification]" has the "hds-alert--color-success" class
+    And "[data-notification]" has the "notification-delete" class
+    And "[data-notification]" has the "success" class
   Scenario: Deleting an intention from the intention detail page and getting an error
     When I visit the intention page for yaml
     ---
@@ -45,8 +45,8 @@ Feature: dc / intentions / deleting: Deleting items with confirmations, success 
     Given the url "/v1/connect/intentions/exact?source=default%2Fdefault%2Fname&destination=default%2Fdefault%2Fdestination&dc=datacenter" responds with a 500 status
     And I click delete
     And I click confirmDelete
-    And "[data-notification]" has the "hds-toast" class
-    And "[data-notification]" has the "hds-alert--color-critical" class
+    And "[data-notification]" has the "notification-update" class
+    And "[data-notification]" has the "error" class
   Scenario: Deleting an intention from the intention detail page and getting an error due to a duplicate intention
     When I visit the intention page for yaml
     ---
@@ -60,5 +60,6 @@ Feature: dc / intentions / deleting: Deleting items with confirmations, success 
     ---
     And I click delete
     And I click confirmDelete
-    And "[data-notification]" has the "hds-toast" class
-    And "[data-notification]" has the "hds-alert--color-critical" class
+    And "[data-notification]" has the "notification-update" class
+    And "[data-notification]" has the "error" class
+    And I see the text "Intention exists" in "[data-notification] strong"

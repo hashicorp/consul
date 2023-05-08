@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 import { getResolvers } from 'consul-ui/components/consul/discovery-chain/utils';
 import { module, test } from 'qunit';
 import { get } from 'consul-ui/tests/helpers/api';
@@ -15,8 +10,6 @@ const request = {
 };
 module('Unit | Component | consul/discovery-chain/get-resolvers', function () {
   test('it assigns Subsets correctly', function (assert) {
-    assert.expect(3);
-
     return get(request.url, {
       headers: {
         cookie: {
@@ -31,14 +24,12 @@ module('Unit | Component | consul/discovery-chain/get-resolvers', function () {
       const childId = Object.keys(Chain.Targets)[1];
       const target = Chain.Targets[`${childId}`];
       const firstChild = actual[0].Children[0];
-      assert.true(firstChild.Subset);
+      assert.equal(firstChild.Subset, true);
       assert.equal(firstChild.ID, target.ID);
       assert.equal(firstChild.Name, target.ServiceSubset);
     });
   });
   test('it assigns Redirects correctly', function (assert) {
-    assert.expect(2);
-
     return get(request.url, {
       headers: {
         cookie: {
@@ -58,8 +49,6 @@ module('Unit | Component | consul/discovery-chain/get-resolvers', function () {
     });
   });
   test('it assigns Failovers to Subsets correctly', function (assert) {
-    assert.expect(4);
-
     return Promise.all(
       ['Datacenter', 'Namespace'].map(function (failoverType) {
         return get(request.url, {
@@ -75,15 +64,13 @@ module('Unit | Component | consul/discovery-chain/get-resolvers', function () {
         }).then(function ({ Chain }) {
           const actual = getResolvers(dc, partition, nspace, Chain.Targets, Chain.Nodes);
           const actualSubset = actual[0].Children[0];
-          assert.true(actualSubset.Subset);
+          assert.equal(actualSubset.Subset, true);
           assert.equal(actualSubset.Failover.Type, failoverType);
         });
       })
     );
   });
   test('it assigns Failovers correctly', function (assert) {
-    assert.expect(6);
-
     return Promise.all(
       ['Datacenter', 'Partition', 'Namespace'].map(function (failoverType, i) {
         return get(request.url, {
@@ -109,8 +96,6 @@ module('Unit | Component | consul/discovery-chain/get-resolvers', function () {
     );
   });
   test('it finds subsets with failovers correctly', function (assert) {
-    assert.expect(1);
-
     return Promise.resolve({
       Chain: {
         ServiceName: 'service-name',
@@ -177,8 +162,6 @@ module('Unit | Component | consul/discovery-chain/get-resolvers', function () {
     });
   });
   test('it finds services with failovers correctly', function (assert) {
-    assert.expect(1);
-
     return Promise.resolve({
       Chain: {
         ServiceName: 'service-name',
@@ -223,8 +206,6 @@ module('Unit | Component | consul/discovery-chain/get-resolvers', function () {
     });
   });
   test('it finds services with redirects with failovers correctly', function (assert) {
-    assert.expect(1);
-
     return Promise.resolve({
       Chain: {
         ServiceName: 'service-name',

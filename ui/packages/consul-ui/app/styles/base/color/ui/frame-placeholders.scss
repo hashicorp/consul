@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 /*TODO: Move this to the reset */
 * {
   border-width: 0;
@@ -11,156 +6,182 @@
   /* same as decor-border-000 - but need to think about being able to import color on its own*/
   border-style: solid;
 }
+%frame-brand-300 {
+  @extend %frame-border-000;
+  background-color: var(--transparent);
+  border-color: rgb(var(--decor-brand-600));
+  color: rgb(var(--typo-brand-600));
+}
 
 /* possibly filter bar */
 /* modal close button */
 %frame-gray-050 {
   @extend %frame-border-000;
-  background-color: var(--token-color-surface-strong);
-  border-color: var(--token-color-palette-neutral-300);
-  color: var(--token-color-foreground-disabled);
+  background-color: rgb(var(--tone-gray-050));
+  border-color: rgb(var(--tone-gray-300));
+  color: rgb(var(--tone-gray-400));
 }
-/* button focus */
+/* modal main content */
+%frame-gray-100 {
+  @extend %frame-border-000;
+  background-color: rgb(var(--tone-gray-000));
+  border-color: rgb(var(--tone-gray-300));
+  color: rgb(var(--tone-gray-600)); /*  wasn't set */
+}
+/* hover */
+%frame-gray-200 {
+  @extend %frame-border-000;
+  background-color: var(--transparent);
+  border-color: rgb(var(--tone-gray-700));
+  color: rgb(var(--tone-gray-800));
+}
 %frame-gray-300 {
   @extend %frame-border-000;
-  background-color: var(--token-color-surface-primary);
-  border-color: var(--token-color-foreground-faint);
-  color: var(--token-color-foreground-primary);
+  background-color: rgb(var(--tone-gray-000));
+  border-color: rgb(var(--tone-gray-700));
+  color: rgb(var(--tone-gray-800));
 }
-/* button secondary*/
+/* button */
+/**/
 %frame-gray-400 {
   @extend %frame-border-000;
-  background-color: var(--token-color-surface-strong);
-  border-color: var(--token-color-palette-neutral-300);
-  color: var(--token-color-foreground-primary);
+  background-color: rgb(var(--tone-gray-050));
+  border-color: rgb(var(--tone-gray-300));
+  color: rgb(var(--tone-gray-800));
+}
+%frame-gray-500 {
+  @extend %frame-border-000;
+  background-color: rgb(var(--tone-gray-050));
+  border-color: rgb(var(--tone-gray-300));
+  color: rgb(var(--tone-gray-400));
 }
 
 /* tabs */
 %frame-gray-600 {
   @extend %frame-border-000;
-  background-color: var(--token-color-surface-strong);
-  border-color: var(--token-color-foreground-faint);
-  color: var(--token-color-foreground-primary);
+  background-color: rgb(var(--tone-gray-100));
+  border-color: rgb(var(--tone-gray-500));
+  color: rgb(var(--tone-gray-500));
 }
-/* button active */
+/* active */
 %frame-gray-700 {
   @extend %frame-border-000;
-  background-color: var(--token-color-surface-interactive-active);
-  border-color: var(--token-color-foreground-faint);
-  color: var(--token-color-foreground-primary);
+  background-color: rgb(var(--tone-gray-200));
+  border-color: rgb(var(--tone-gray-700));
+  color: rgb(var(--tone-gray-800));
 }
 /* modal bars */
 %frame-gray-800 {
   @extend %frame-border-000;
-  background-color: var(--token-color-surface-strong);
-  border-color: var(--token-color-palette-neutral-300);
-  color: var(--token-color-foreground-strong);
+  background-color: rgb(var(--tone-gray-050));
+  border-color: rgb(var(--tone-gray-300));
+  color: rgb(var(--tone-gray-900));
 }
 %frame-gray-900 {
   @extend %frame-border-000;
-  background-color: var(--token-color-surface-strong);
-  border-color: var(--token-color-palette-neutral-300);
-  color: var(--token-color-foreground-strong);
+  background-color: rgb(var(--tone-gray-100));
+  border-color: rgb(var(--tone-gray-300));
+  color: rgb(var(--tone-gray-900));
 }
 
 %frame-yellow-500 {
   @extend %frame-border-000;
-  background-color: var(--token-color-vault-gradient-faint-start);
-  border-color: var(--token-color-vault-brand);
+  background-color: rgb(var(--tone-yellow-050));
+  border-color: rgb(var(--tone-yellow-500));
 }
 %frame-yellow-800 {
   @extend %frame-border-000;
-  background-color: var(--token-color-vault-brand);
-  border-color: var(--token-color-vault-foreground);
-  color: var(--token-color-surface-primary);
+  background-color: rgb(var(--tone-yellow-500));
+  border-color: rgb(var(--tone-yellow-800));
+  color: rgb(var(--tone-gray-000));
 }
 %frame-green-500 {
   @extend %frame-border-000;
-  background-color: var(--token-color-surface-success);
-  border-color: var(--token-color-foreground-success);
-  color: var(--token-color-foreground-success);
+  background-color: rgb(var(--tone-green-050));
+  border-color: rgb(var(--tone-green-500));
+  color: rgb(var(--tone-green-500));
 }
 %frame-green-800 {
   @extend %frame-border-000;
-  background-color: var(--token-color-foreground-success);
-  border-color: var(--token-color-palette-green-400);
-  color: var(--token-color-surface-primary);
+  background-color: rgb(var(--tone-green-500));
+  border-color: rgb(var(--tone-green-800));
+  color: rgb(var(--tone-gray-000));
 }
 %frame-blue-200 {
   @extend %frame-border-000;
-  background-color: var(--token-color-surface-primary);
-  border-color: var(--token-color-foreground-action);
-  color: var(--token-color-foreground-action);
+  background-color: rgb(var(--tone-gray-000));
+  border-color: rgb(var(--tone-blue-300));
+  color: rgb(var(--tone-blue-300));
 }
 %frame-blue-300 {
   @extend %frame-border-000;
-  background-color: var(--token-color-surface-primary);
-  border-color: var(--token-color-foreground-action);
-  color: var(--token-color-foreground-action);
+  background-color: rgb(var(--tone-gray-000));
+  border-color: rgb(var(--tone-blue-500));
+  color: rgb(var(--tone-blue-500));
 }
 %frame-blue-500 {
   @extend %frame-border-000;
-  background-color: var(--token-color-surface-action);
-  border-color: var(--token-color-foreground-action);
-  color: var(--token-color-palette-blue-500);
+  background-color: rgb(var(--tone-blue-050));
+  border-color: rgb(var(--tone-blue-500));
+  color: rgb(var(--tone-blue-800));
 }
 %frame-blue-600 {
   @extend %frame-border-000;
-  background-color: var(--token-color-border-action);
-  border-color: var(--token-color-foreground-disabled);
-  color: var(--token-color-surface-action);
+  background-color: rgb(var(--tone-blue-200));
+  border-color: rgb(var(--tone-gray-400));
+  color: rgb(var(--tone-blue-050));
 }
 %frame-blue-700 {
   @extend %frame-border-000;
-  background-color: var(--token-color-foreground-action);
-  border-color: var(--token-color-palette-blue-500);
-  color: var(--token-color-surface-primary);
+  background-color: rgb(var(--tone-blue-400));
+  border-color: rgb(var(--tone-blue-800));
+  color: rgb(var(--tone-gray-000));
 }
 %frame-blue-800 {
   @extend %frame-border-000;
-  background-color: var(--token-color-foreground-action);
-  border-color: var(--token-color-palette-blue-500);
-  color: var(--token-color-surface-primary);
+  background-color: rgb(var(--tone-blue-500));
+  border-color: rgb(var(--tone-blue-800));
+  color: rgb(var(--tone-gray-000));
 }
 %frame-blue-900 {
   @extend %frame-border-000;
-  background-color: var(--token-color-foreground-action-active);
-  border-color: var(--token-color-palette-blue-500);
-  color: var(--token-color-surface-primary);
+  background-color: rgb(var(--tone-blue-700));
+  border-color: rgb(var(--tone-blue-800));
+  color: rgb(var(--tone-gray-000));
 }
 %frame-red-300 {
   @extend %frame-border-000;
-  background-color: transparent;
-  border-color: var(--token-color-foreground-critical);
-  color: var(--token-color-foreground-critical);
+  background-color: var(--transparent);
+  border-color: rgb(var(--tone-red-500));
+  color: rgb(var(--tone-red-500));
 }
 %frame-red-500 {
   @extend %frame-border-000;
-  background-color: var(--token-color-surface-critical);
-  border-color: var(--token-color-foreground-critical);
-  color: var(--token-color-foreground-critical-high-contrast);
+  background-color: rgb(var(--tone-red-050));
+  border-color: rgb(var(--tone-red-500));
+  color: rgb(var(--tone-red-800));
 }
 %frame-red-600 {
   @extend %frame-border-000;
-  background-color: var(--token-color-border-critical);
-  border-color: var(--token-color-foreground-disabled);
-  color: var(--token-color-surface-primary);
+  background-color: rgb(var(--tone-red-200));
+  border-color: rgb(var(--tone-gray-400));
+  color: rgb(var(--tone-gray-000));
 }
 %frame-red-700 {
   @extend %frame-border-000;
-  background-color: var(--token-color-foreground-critical);
-  border-color: var(--token-color-foreground-critical-high-contrast);
-  color: var(--token-color-surface-primary);
+  background-color: rgb(var(--tone-red-500));
+  border-color: rgb(var(--tone-red-800));
+  color: rgb(var(--tone-gray-000));
 }
 %frame-red-800 {
   @extend %frame-border-000;
-  background-color: var(--token-color-foreground-critical);
-  border-color: var(--token-color-foreground-critical-high-contrast);
-  color: var(--token-color-surface-primary);
+  background-color: rgb(var(--tone-red-500));
+  border-color: rgb(var(--tone-red-800));
+  color: rgb(var(--tone-gray-000));
 }
 %frame-red-900 {
   @extend %frame-border-000;
-  background-color: var(--token-color-palette-red-400);
-  border-color: var(--token-color-foreground-critical-high-contrast);
-  color: var(--token-color-surface-primary);
+  background-color: rgb(var(--tone-red-700));
+  border-color: rgb(var(--tone-red-800));
+  color: rgb(var(--tone-gray-000));
 }

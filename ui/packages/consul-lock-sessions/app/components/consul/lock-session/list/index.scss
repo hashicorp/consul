@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 .consul-lock-session-list ul > li:not(:first-child) {
   @extend %composite-row;
 }

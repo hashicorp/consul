@@ -1,13 +1,8 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 .search-bar {
   &-status {
     & {
       border-bottom: var(--decor-border-100);
-      border-bottom-color: var(--token-color-surface-interactive-active);
+      border-bottom-color: rgb(var(--tone-gray-200));
     }
     .remove-all button {
       @extend %anchor;
@@ -16,15 +11,15 @@
       & {
         @extend %pill-200;
         border: var(--decor-border-100);
-        border-color: var(--token-color-surface-interactive-active);
-        color: var(--token-color-foreground-faint);
+        border-color: rgb(var(--tone-gray-200));
+        color: rgb(var(--tone-gray-600));
       }
       button {
         cursor: pointer;
       }
       button::before {
         @extend %with-cancel-plain-mask, %as-pseudo;
-        color: var(--token-color-foreground-faint);
+        color: rgb(var(--tone-gray-600));
         margin-top: 1px;
         margin-right: 0.2rem;
       }

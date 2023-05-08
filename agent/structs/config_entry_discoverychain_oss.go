@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 //go:build !consulent
 // +build !consulent
 
@@ -41,10 +38,6 @@ func (redir *ServiceResolverRedirect) ValidateEnterprise() error {
 		return fmt.Errorf("Setting Namespace requires Consul Enterprise")
 	}
 
-	if redir.SamenessGroup != "" {
-		return fmt.Errorf("Setting SamenessGroup requires Consul Enterprise")
-	}
-
 	return nil
 }
 
@@ -59,10 +52,6 @@ func (failover *ServiceResolverFailover) GetEnterpriseMeta(_ *acl.EnterpriseMeta
 func (failover *ServiceResolverFailover) ValidateEnterprise() error {
 	if failover.Namespace != "" {
 		return fmt.Errorf("Setting Namespace requires Consul Enterprise")
-	}
-
-	if failover.SamenessGroup != "" {
-		return fmt.Errorf("Setting SamenessGroup requires Consul Enterprise")
 	}
 
 	return nil
@@ -98,31 +87,4 @@ func (req *DiscoveryChainRequest) GetEnterpriseMeta() *acl.EnterpriseMeta {
 // DiscoveryChainRequest from the EnterpriseMeta struct
 func (req *DiscoveryChainRequest) WithEnterpriseMeta(_ *acl.EnterpriseMeta) {
 	// do nothing
-}
-
-// ValidateEnterprise validates that enterprise fields are only set
-// with enterprise binaries.
-func (f *ServiceResolverFailoverPolicy) ValidateEnterprise() error {
-	if f == nil {
-		return nil
-	}
-
-	if f.Mode != "" {
-		return fmt.Errorf("Setting failover policies requires Consul Enterprise")
-	}
-
-	return nil
-}
-
-// RelatedSamenessGroups doesn't return anything on open source.
-func (e *ServiceResolverConfigEntry) RelatedSamenessGroups() []string {
-	return nil
-}
-
-func (pbl *ServiceResolverPrioritizeByLocality) validate() error {
-	var zero ServiceResolverPrioritizeByLocality
-	if pbl == nil || *pbl == zero {
-		return nil
-	}
-	return fmt.Errorf("Prioritize-by-locality requires Consul Enterprise ")
 }

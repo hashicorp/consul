@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package consul
 
 import (
@@ -767,7 +764,7 @@ func (c *Catalog) ServiceNodes(args *structs.ServiceSpecificRequest, reply *stru
 					mergedsn := sn
 					ns := sn.ToNodeService()
 					if ns.IsSidecarProxy() || ns.IsGateway() {
-						cfgIndex, mergedns, err := configentry.MergeNodeServiceWithCentralConfig(ws, state, ns, c.logger)
+						cfgIndex, mergedns, err := configentry.MergeNodeServiceWithCentralConfig(ws, state, args, ns, c.logger)
 						if err != nil {
 							return err
 						}
@@ -971,7 +968,11 @@ func (c *Catalog) NodeServiceList(args *structs.NodeSpecificRequest, reply *stru
 				for _, ns := range services.Services {
 					mergedns := ns
 					if ns.IsSidecarProxy() || ns.IsGateway() {
-						cfgIndex, mergedns, err = configentry.MergeNodeServiceWithCentralConfig(ws, state, ns, c.logger)
+						serviceSpecificReq := structs.ServiceSpecificRequest{
+							Datacenter:   args.Datacenter,
+							QueryOptions: args.QueryOptions,
+						}
+						cfgIndex, mergedns, err = configentry.MergeNodeServiceWithCentralConfig(ws, state, &serviceSpecificReq, ns, c.logger)
 						if err != nil {
 							return err
 						}

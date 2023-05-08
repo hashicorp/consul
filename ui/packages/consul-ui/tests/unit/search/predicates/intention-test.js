@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 import { module, test } from 'qunit';
 
 import ExactSearch from 'consul-ui/utils/search/exact';
@@ -64,8 +59,6 @@ module('Unit | Search | Predicate | intention', function () {
     assert.equal(actual.length, 2);
   });
   test("* items are found by searching anything in 'All Services (*)'", function (assert) {
-    assert.expect(6);
-
     const actual = new ExactSearch(
       [
         {

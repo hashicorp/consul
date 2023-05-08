@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package api
 
 import (
@@ -22,9 +19,8 @@ type Node struct {
 	Meta            map[string]string
 	CreateIndex     uint64
 	ModifyIndex     uint64
-	Partition       string    `json:",omitempty"`
-	PeerName        string    `json:",omitempty"`
-	Locality        *Locality `json:",omitempty"`
+	Partition       string `json:",omitempty"`
+	PeerName        string `json:",omitempty"`
 }
 
 type ServiceAddress struct {
@@ -49,7 +45,6 @@ type CatalogService struct {
 	ServiceWeights           Weights
 	ServiceEnableTagOverride bool
 	ServiceProxy             *AgentServiceConnectProxyConfig
-	ServiceLocality          *Locality `json:",omitempty"`
 	CreateIndex              uint64
 	Checks                   HealthChecks
 	ModifyIndex              uint64
@@ -78,8 +73,7 @@ type CatalogRegistration struct {
 	Check           *AgentCheck
 	Checks          HealthChecks
 	SkipNodeUpdate  bool
-	Partition       string    `json:",omitempty"`
-	Locality        *Locality `json:",omitempty"`
+	Partition       string `json:",omitempty"`
 }
 
 type CatalogDeregistration struct {

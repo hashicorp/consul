@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 %auth-modal footer {
   border-top: 0;
   padding-top: 10px;
@@ -11,7 +6,7 @@
   padding-right: 42px;
 }
 %auth-modal footer {
-  background-color: transparent;
+  background-color: var(--transparent);
 }
 %auth-modal > div > div > div {
   padding-bottom: 0;

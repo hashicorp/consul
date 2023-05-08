@@ -50,7 +50,6 @@ Feature: dc / services / show / services
     | Name                | Kind                |
     | service             | ~                   |
     | ingress-gateway     | ingress-gateway     |
-    | api-gateway         | api-gateway         |
     | mesh-gateway        | mesh-gateway        |
     ---------------------------------------------
 

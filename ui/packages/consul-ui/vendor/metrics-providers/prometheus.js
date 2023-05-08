@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 /*eslint no-console: "off"*/
 (function () {
   var emptySeries = { unitSuffix: '', labels: {}, data: [] };

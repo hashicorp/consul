@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package bootstrap
 
 import (
@@ -13,11 +10,12 @@ import (
 	"net/http"
 	"strings"
 
+	gnmmod "github.com/hashicorp/hcp-sdk-go/clients/cloud-global-network-manager-service/preview/2022-02-15/models"
+	"github.com/hashicorp/hcp-sdk-go/resource"
+
 	"github.com/hashicorp/consul/agent/hcp"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/go-uuid"
-	gnmmod "github.com/hashicorp/hcp-sdk-go/clients/cloud-global-network-manager-service/preview/2022-02-15/models"
-	"github.com/hashicorp/hcp-sdk-go/resource"
 )
 
 // TestEndpoint returns an hcp.TestEndpoint to be used in an hcp.MockHCPServer.
@@ -48,29 +46,6 @@ func handleBootstrap(data map[string]gnmmod.HashicorpCloudGlobalNetworkManager20
 	return resp, nil
 }
 
-const TestExistingClusterID = "133114e7-9745-41ce-b1c9-9644a20d2952"
-
-func testLeaf(caCert, caKey string) (serverCert, serverKey string, err error) {
-	signer, err := tlsutil.ParseSigner(caKey)
-	if err != nil {
-		return "", "", err
-	}
-
-	serverCert, serverKey, err = tlsutil.GenerateCert(tlsutil.CertOpts{
-		Signer:      signer,
-		CA:          caCert,
-		Name:        "server.dc1.consul",
-		Days:        30,
-		DNSNames:    []string{"server.dc1.consul", "localhost"},
-		IPAddresses: append([]net.IP{}, net.ParseIP("127.0.0.1")),
-		ExtKeyUsage: []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth, x509.ExtKeyUsageClientAuth},
-	})
-	if err != nil {
-		return "", "", err
-	}
-	return serverCert, serverKey, nil
-}
-
 func generateClusterData(cluster resource.Resource) (gnmmod.HashicorpCloudGlobalNetworkManager20220215AgentBootstrapResponse, error) {
 	resp := gnmmod.HashicorpCloudGlobalNetworkManager20220215AgentBootstrapResponse{
 		Cluster: &gnmmod.HashicorpCloudGlobalNetworkManager20220215Cluster{},
@@ -78,28 +53,32 @@ func generateClusterData(cluster resource.Resource) (gnmmod.HashicorpCloudGlobal
 			ServerTLS: &gnmmod.HashicorpCloudGlobalNetworkManager20220215ServerTLS{},
 		},
 	}
-	if cluster.ID == TestExistingClusterID {
-		token, err := uuid.GenerateUUID()
-		if err != nil {
-			return resp, err
-		}
-		resp.Bootstrap.ConsulConfig = "{}"
-		resp.Bootstrap.ManagementToken = token
-		return resp, nil
-	}
 
-	caCert, caKey, err := tlsutil.GenerateCA(tlsutil.CAOpts{})
-	if err != nil {
-		return resp, err
-	}
-	serverCert, serverKey, err := testLeaf(caCert, caKey)
+	CACert, CAKey, err := tlsutil.GenerateCA(tlsutil.CAOpts{})
 	if err != nil {
 		return resp, err
 	}
 
-	resp.Bootstrap.ServerTLS.CertificateAuthorities = append(resp.Bootstrap.ServerTLS.CertificateAuthorities, caCert)
-	resp.Bootstrap.ServerTLS.Cert = serverCert
-	resp.Bootstrap.ServerTLS.PrivateKey = serverKey
+	resp.Bootstrap.ServerTLS.CertificateAuthorities = append(resp.Bootstrap.ServerTLS.CertificateAuthorities, CACert)
+	signer, err := tlsutil.ParseSigner(CAKey)
+	if err != nil {
+		return resp, err
+	}
+
+	cert, priv, err := tlsutil.GenerateCert(tlsutil.CertOpts{
+		Signer:      signer,
+		CA:          CACert,
+		Name:        "server.dc1.consul",
+		Days:        30,
+		DNSNames:    []string{"server.dc1.consul", "localhost"},
+		IPAddresses: append([]net.IP{}, net.ParseIP("127.0.0.1")),
+		ExtKeyUsage: []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth, x509.ExtKeyUsageClientAuth},
+	})
+	if err != nil {
+		return resp, err
+	}
+	resp.Bootstrap.ServerTLS.Cert = cert
+	resp.Bootstrap.ServerTLS.PrivateKey = priv
 
 	// Generate Config. We don't use the read config.Config struct because it
 	// doesn't have `omitempty` which makes the output gross. We only want a tiny
@@ -134,9 +113,8 @@ func generateClusterData(cluster resource.Resource) (gnmmod.HashicorpCloudGlobal
 
 		// Enable HTTPS port, disable HTTP
 		"ports": map[string]interface{}{
-			"https":    8501,
-			"http":     -1,
-			"grpc_tls": 8503,
+			"https": 8501,
+			"http":  -1,
 		},
 
 		// RAFT Peers
@@ -147,18 +125,16 @@ func generateClusterData(cluster resource.Resource) (gnmmod.HashicorpCloudGlobal
 	}
 
 	// ACLs
-	token, err := uuid.GenerateUUID()
+	management, err := uuid.GenerateUUID()
 	if err != nil {
 		return resp, err
 	}
-	resp.Bootstrap.ManagementToken = token
-
 	cfg["acl"] = map[string]interface{}{
 		"tokens": map[string]interface{}{
-			// Also setup the server's own agent token to be the management token so it has
+			"initial_management": management,
+			// Also setup the server's own agent token to be the same so it has
 			// permission to register itself.
-			"agent":              token,
-			"initial_management": token,
+			"agent": management,
 		},
 		"default_policy":           "deny",
 		"enabled":                  true,

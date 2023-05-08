@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package xds
 
 import (
@@ -11,7 +8,6 @@ import (
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	envoy_rbac_v3 "github.com/envoyproxy/go-control-plane/envoy/config/rbac/v3"
 	envoy_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
-	envoy_http_header_to_meta_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/header_to_metadata/v3"
 	envoy_http_rbac_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/rbac/v3"
 	envoy_http_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
 	envoy_network_rbac_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/rbac/v3"
@@ -19,11 +15,11 @@ import (
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/proto/private/pbpeering"
+	"github.com/hashicorp/consul/proto/pbpeering"
 )
 
 func makeRBACNetworkFilter(
-	intentions structs.SimplifiedIntentions,
+	intentions structs.Intentions,
 	intentionDefaultAllow bool,
 	localInfo rbacLocalInfo,
 	peerTrustBundles []*pbpeering.PeeringTrustBundle,
@@ -38,7 +34,7 @@ func makeRBACNetworkFilter(
 }
 
 func makeRBACHTTPFilter(
-	intentions structs.SimplifiedIntentions,
+	intentions structs.Intentions,
 	intentionDefaultAllow bool,
 	localInfo rbacLocalInfo,
 	peerTrustBundles []*pbpeering.PeeringTrustBundle,
@@ -52,7 +48,7 @@ func makeRBACHTTPFilter(
 }
 
 func intentionListToIntermediateRBACForm(
-	intentions structs.SimplifiedIntentions,
+	intentions structs.Intentions,
 	localInfo rbacLocalInfo,
 	isHTTP bool,
 	trustBundlesByPeer map[string]*pbpeering.PeeringTrustBundle,
@@ -478,7 +474,7 @@ type rbacLocalInfo struct {
 //
 // Which really is just an allow-list of [A, C AND NOT(B)]
 func makeRBACRules(
-	intentions structs.SimplifiedIntentions,
+	intentions structs.Intentions,
 	intentionDefaultAllow bool,
 	localInfo rbacLocalInfo,
 	isHTTP bool,
@@ -590,13 +586,13 @@ func optimizePrincipals(orig []*envoy_rbac_v3.Principal) []*envoy_rbac_v3.Princi
 //
 // (backend/* -> default/*) was dropped because it is already known that any service
 // in the backend namespace can target default/web.
-func removeSameSourceIntentions(intentions structs.SimplifiedIntentions) structs.SimplifiedIntentions {
+func removeSameSourceIntentions(intentions structs.Intentions) structs.Intentions {
 	if len(intentions) < 2 {
 		return intentions
 	}
 
 	var (
-		out        = make(structs.SimplifiedIntentions, 0, len(intentions))
+		out        = make(structs.Intentions, 0, len(intentions))
 		changed    = false
 		seenSource = make(map[structs.PeeredServiceName]struct{})
 	)
@@ -757,90 +753,6 @@ func xfccPrincipal(src rbacService) *envoy_rbac_v3.Principal {
 }
 
 const anyPath = `[^/]+`
-const trustDomain = anyPath + "." + anyPath
-
-// downstreamServiceIdentityMatcher needs to match XFCC headers in two cases:
-// 1. Requests to cluster peered services through a mesh gateway. In this case, the XFCC header looks like the following (I added a new line after each ; for readability)
-// By=spiffe://950df996-caef-ddef-ec5f-8d18a153b7b2.consul/gateway/mesh/dc/alpha;
-// Hash=...;
-// Cert=...;
-// Chain=...;
-// Subject="";
-// URI=spiffe://c7e1d24a-eed8-10a3-286a-52bdb6b6a6fd.consul/ns/default/dc/primary/svc/s1,By=spiffe://950df996-caef-ddef-ec5f-8d18a153b7b2.consul/ns/default/dc/alpha/svc/s2;
-// Hash=...;
-// Cert=...;
-// Chain=...;
-// Subject="";
-// URI=spiffe://950df996-caef-ddef-ec5f-8d18a153b7b2.consul/gateway/mesh/dc/alpha
-//
-// 2. Requests directly to another service
-// By=spiffe://ae9dbea8-c1dd-7356-b211-c564f7917100.consul/ns/default/dc/primary/svc/s2;
-// Hash=396218588ebc1655d32a49b68cedd6b66b9de7b3d69d0c0451bc5818132377d0;
-// Cert=...;
-// Chain=...;
-// Subject="";
-// URI=spiffe://ae9dbea8-c1dd-7356-b211-c564f7917100.consul/ns/default/dc/primary/svc/s1
-//
-// In either case, the regex matches the downstream service's spiffe id because mesh gateways use a different spiffe id format.
-// Envoy requires us to include the trailing and leading .* to properly extract the properly submatch.
-const downstreamServiceIdentityMatcher = ".*URI=spiffe://(" + trustDomain +
-	")(?:/ap/(" + anyPath +
-	"))?/ns/(" + anyPath +
-	")/dc/(" + anyPath +
-	")/svc/([^/;,]+).*"
-
-func parseXFCCToDynamicMetaHTTPFilter() (*envoy_http_v3.HttpFilter, error) {
-	var rules []*envoy_http_header_to_meta_v3.Config_Rule
-
-	fields := []struct {
-		name string
-		sub  string
-	}{
-		{
-			name: "trust-domain",
-			sub:  `\1`,
-		},
-		{
-			name: "partition",
-			sub:  `\2`,
-		},
-		{
-			name: "namespace",
-			sub:  `\3`,
-		},
-		{
-			name: "datacenter",
-			sub:  `\4`,
-		},
-		{
-			name: "service",
-			sub:  `\5`,
-		},
-	}
-
-	for _, f := range fields {
-		rules = append(rules, &envoy_http_header_to_meta_v3.Config_Rule{
-			Header: "x-forwarded-client-cert",
-			OnHeaderPresent: &envoy_http_header_to_meta_v3.Config_KeyValuePair{
-				MetadataNamespace: "consul",
-				Key:               f.name,
-				RegexValueRewrite: &envoy_matcher_v3.RegexMatchAndSubstitute{
-					Pattern: &envoy_matcher_v3.RegexMatcher{
-						Regex: downstreamServiceIdentityMatcher,
-						EngineType: &envoy_matcher_v3.RegexMatcher_GoogleRe2{
-							GoogleRe2: &envoy_matcher_v3.RegexMatcher_GoogleRE2{},
-						},
-					},
-					Substitution: f.sub,
-				},
-			},
-		})
-	}
-
-	cfg := &envoy_http_header_to_meta_v3.Config{RequestRules: rules}
-
-	return makeEnvoyHTTPFilter("envoy.filters.http.header_to_metadata", cfg)
-}
 
 func makeSpiffePattern(src rbacService) string {
 	var (

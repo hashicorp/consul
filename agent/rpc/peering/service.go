@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package peering
 
 import (
@@ -19,7 +16,6 @@ import (
 	"google.golang.org/grpc/codes"
 	grpcstatus "google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/hashicorp/consul/lib/retry"
 
@@ -31,9 +27,8 @@ import (
 	"github.com/hashicorp/consul/agent/grpc-external/services/peerstream"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
-	"github.com/hashicorp/consul/proto/private/pbcommon"
-	"github.com/hashicorp/consul/proto/private/pbpeering"
-	"github.com/hashicorp/consul/proto/private/pbpeerstream"
+	"github.com/hashicorp/consul/proto/pbpeering"
+	"github.com/hashicorp/consul/proto/pbpeerstream"
 )
 
 var (
@@ -91,7 +86,6 @@ type Config struct {
 	Datacenter     string
 	ConnectEnabled bool
 	PeeringEnabled bool
-	Locality       *structs.Locality
 }
 
 func NewServer(cfg Config) *Server {
@@ -332,7 +326,6 @@ func (s *Server) GenerateToken(
 		Remote: structs.PeeringTokenRemote{
 			Partition:  req.PartitionOrDefault(),
 			Datacenter: s.Datacenter,
-			Locality:   s.Config.Locality,
 		},
 	}
 
@@ -451,7 +444,6 @@ func (s *Server) Establish(
 		Remote: &pbpeering.RemoteInfo{
 			Partition:  tok.Remote.Partition,
 			Datacenter: tok.Remote.Datacenter,
-			Locality:   pbcommon.LocalityToProto(tok.Remote.Locality),
 		},
 	}
 
@@ -726,17 +718,14 @@ func (s *Server) reconcilePeering(peering *pbpeering.Peering) *pbpeering.Peering
 			cp.State = pbpeering.PeeringState_FAILING
 		}
 
-		latest := func(tt ...*time.Time) *time.Time {
+		latest := func(tt ...time.Time) time.Time {
 			latest := time.Time{}
 			for _, t := range tt {
-				if t == nil {
-					continue
-				}
 				if t.After(latest) {
-					latest = *t
+					latest = t
 				}
 			}
-			return &latest
+			return latest
 		}
 
 		lastRecv := latest(streamState.LastRecvHeartbeat, streamState.LastRecvError, streamState.LastRecvResourceSuccess)
@@ -745,9 +734,9 @@ func (s *Server) reconcilePeering(peering *pbpeering.Peering) *pbpeering.Peering
 		cp.StreamStatus = &pbpeering.StreamStatus{
 			ImportedServices: streamState.ImportedServices,
 			ExportedServices: streamState.ExportedServices,
-			LastHeartbeat:    pbpeering.TimePtrToProto(streamState.LastRecvHeartbeat),
-			LastReceive:      pbpeering.TimePtrToProto(lastRecv),
-			LastSend:         pbpeering.TimePtrToProto(lastSend),
+			LastHeartbeat:    structs.TimeToProto(streamState.LastRecvHeartbeat),
+			LastReceive:      structs.TimeToProto(lastRecv),
+			LastSend:         structs.TimeToProto(lastSend),
 		}
 
 		return cp
@@ -886,7 +875,7 @@ func (s *Server) PeeringDelete(ctx context.Context, req *pbpeering.PeeringDelete
 			State:                 pbpeering.PeeringState_DELETING,
 			ManualServerAddresses: existing.ManualServerAddresses,
 			PeerServerAddresses:   existing.PeerServerAddresses,
-			DeletedAt:             timestamppb.New(time.Now().UTC()),
+			DeletedAt:             structs.TimeToProto(time.Now().UTC()),
 
 			// PartitionOrEmpty is used to avoid writing "default" in OSS.
 			Partition: entMeta.PartitionOrEmpty(),

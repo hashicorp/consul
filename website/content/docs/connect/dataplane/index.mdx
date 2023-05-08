@@ -46,13 +46,13 @@ As of Consul on Kubernetes version 1.0 (Consul 1.14) with the new Consul Datapla
 
 To get started with Consul Dataplane, use the following reference resources:
 
-- For `consul-dataplane` commands and usage examples, including required flags for startup, refer to the [`consul-dataplane` CLI reference](/consul/docs/connect/dataplane/consul-dataplane).
-- For Helm chart information, refer to the [Helm Chart reference](/consul/docs/k8s/helm).
-- For Envoy, Consul, and Consul Dataplane version compatibility, refer to the [Envoy compatibility matrix](/consul/docs/connect/proxies/envoy).
+- For `consul-dataplane` commands and usage examples, including required flags for startup, refer to the [`consul-dataplane` CLI reference](/docs/connect/dataplane/consul-dataplane).
+- For Helm chart information, refer to the [Helm Chart reference](/docs/k8s/helm).
+- For Envoy, Consul, and Consul Dataplane version compatibility, refer to the [Envoy compatibility matrix](/docs/connect/proxies/envoy).
 
 ### Installation
 
-To install Consul Dataplane, set `VERSION` to `1.0.0` and then follow the instructions to install a specific version of Consul [with the Helm Chart](/consul/docs/k8s/installation/install#install-consul) or [with the Consul-k8s CLI](/consul/docs/k8s/installation/install-cli#install-a-previous-version).
+To install Consul Dataplane, set `VERSION` to `1.0.0` and then follow the instructions to install a specific version of Consul [with the Helm Chart](/docs/k8s/installation/install#install-consul) or [with the Consul-k8s CLI](/docs/k8s/installation/install-cli#install-a-previous-version).
 
 #### Helm
 
@@ -70,7 +70,7 @@ $ export VERSION=1.0.0 && \
 
 ### Upgrading
 
-Before you upgrade Consul to a version that uses Consul Dataplane, you must edit your Helm chart so that client agents are removed from your deployments. Refer to [upgrading to Consul Dataplane](/consul/docs/k8s/upgrade#upgrading-to-consul-dataplanes) for more information.
+Before you upgrade Consul to a version that uses Consul Dataplane, you must edit your Helm chart so that client agents are removed from your deployments. Refer to [upgrading to Consul Dataplane](/docs/k8s/upgrade#upgrading-to-consul-dataplanes) for more information.
 
 ## Feature support
 
@@ -82,7 +82,6 @@ Consul Dataplane supports the following features:
 - xDS load balancing is supported.
 - Servers running in Kubernetes and servers external to Kubernetes are both supported.
 - HCP Consul is supported.
-- Consul API Gateway is supported.
 
 ### Technical Constraints
 

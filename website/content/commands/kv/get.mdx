@@ -1,15 +1,13 @@
 ---
 layout: commands
 page_title: 'Commands: KV Get'
-description: >-
-  The `consul kv get` command retrieves data from Consul's key/value store.
 ---
 
 # Consul KV Get
 
 Command: `consul kv get`
 
-Corresponding HTTP API Endpoint: [\[GET\] /v1/kv/:key](/consul/api-docs/kv#read-key)
+Corresponding HTTP API Endpoint: [\[GET\] /v1/kv/:key](/api-docs/kv#read-key)
 
 The `kv get` command is used to retrieve the value from Consul's KV
 store at the given key name. If no key exists with that name, an error is
@@ -17,13 +15,13 @@ returned. If a key exists with that name but has no data, nothing is returned.
 A key name or prefix is required.
 
 -> **Note**: When reading many entries under a given prefix, it may be worth
-considering [`kv export`](/consul/commands/kv/export) instead. The kv export output
-can be used with [`kv import`](/consul/commands/kv/import) to move entire trees between
-Consul clusters. Alternatively, the [transaction API](/consul/api-docs/txn) provides
+considering [`kv export`](/commands/kv/export) instead. The kv export output
+can be used with [`kv import`](/commands/kv/import) to move entire trees between
+Consul clusters. Alternatively, the [transaction API](/api-docs/txn) provides
 support for performing up to 64 KV operations atomically.
 
-The table below shows this command's [required ACLs](/consul/api-docs/api-structure#authentication). Configuration of
-[blocking queries](/consul/api-docs/features/blocking) and [agent caching](/consul/api-docs/features/caching)
+The table below shows this command's [required ACLs](/api-docs/api-structure#authentication). Configuration of
+[blocking queries](/api-docs/features/blocking) and [agent caching](/api-docs/features/caching)
 are not supported from commands, but may be from the corresponding HTTP endpoint.
 
 | ACL Required |

@@ -1,6 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
-# SPDX-License-Identifier: MPL-2.0
-
 services {
   name = "s1"
   port = 8080
@@ -13,9 +10,6 @@ services {
             local_bind_port = 5000
             config {
               protocol = "http"
-              passive_health_check {
-                interval = "22s"
-              }
             }
           }
         ]

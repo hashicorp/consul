@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package agent
 
 import (
@@ -8,10 +5,6 @@ import (
 	"net/http"
 	"strconv"
 	"time"
-
-	"github.com/armon/go-metrics"
-	external "github.com/hashicorp/consul/agent/grpc-external"
-	"github.com/hashicorp/consul/proto/private/pboperator"
 
 	multierror "github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/raft"
@@ -31,47 +24,10 @@ func (s *HTTPHandlers) OperatorRaftConfiguration(resp http.ResponseWriter, req *
 	}
 
 	var reply structs.RaftConfigurationResponse
-	if err := s.agent.RPC(req.Context(), "Operator.RaftGetConfiguration", &args, &reply); err != nil {
+	if err := s.agent.RPC("Operator.RaftGetConfiguration", &args, &reply); err != nil {
 		return nil, err
 	}
 
-	return reply, nil
-}
-
-// OperatorRaftTransferLeader is used to transfer raft cluster leadership to another node
-func (s *HTTPHandlers) OperatorRaftTransferLeader(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-
-	var entMeta acl.EnterpriseMeta
-	if err := s.parseEntMetaPartition(req, &entMeta); err != nil {
-		return nil, err
-	}
-
-	params := req.URL.Query()
-	_, hasID := params["id"]
-	ID := ""
-	if hasID {
-		ID = params.Get("id")
-	}
-	args := pboperator.TransferLeaderRequest{
-		ID: ID,
-	}
-
-	var token string
-	s.parseToken(req, &token)
-	ctx, err := external.ContextWithQueryOptions(req.Context(), structs.QueryOptions{Token: token})
-	if err != nil {
-		return nil, err
-	}
-
-	result, err := s.agent.rpcClientOperator.TransferLeader(ctx, &args)
-	if err != nil {
-		return nil, err
-	}
-	if result.Success != true {
-		return nil, HTTPError{StatusCode: http.StatusNotFound, Reason: fmt.Sprintf("Failed to transfer Leader: %s", err.Error())}
-	}
-	reply := new(api.TransferLeaderResponse)
-	pboperator.TransferLeaderResponseToAPI(result, reply)
 	return reply, nil
 }
 
@@ -107,7 +63,7 @@ func (s *HTTPHandlers) OperatorRaftPeer(resp http.ResponseWriter, req *http.Requ
 	if hasAddress {
 		method = "Operator.RaftRemovePeerByAddress"
 	}
-	if err := s.agent.RPC(req.Context(), method, &args, &reply); err != nil {
+	if err := s.agent.RPC(method, &args, &reply); err != nil {
 		return nil, err
 	}
 
@@ -247,7 +203,7 @@ func (s *HTTPHandlers) OperatorAutopilotConfiguration(resp http.ResponseWriter, 
 		}
 
 		var reply structs.AutopilotConfig
-		if err := s.agent.RPC(req.Context(), "Operator.AutopilotGetConfiguration", &args, &reply); err != nil {
+		if err := s.agent.RPC("Operator.AutopilotGetConfiguration", &args, &reply); err != nil {
 			return nil, err
 		}
 
@@ -299,7 +255,7 @@ func (s *HTTPHandlers) OperatorAutopilotConfiguration(resp http.ResponseWriter, 
 		}
 
 		var reply bool
-		if err := s.agent.RPC(req.Context(), "Operator.AutopilotSetConfiguration", &args, &reply); err != nil {
+		if err := s.agent.RPC("Operator.AutopilotSetConfiguration", &args, &reply); err != nil {
 			return nil, err
 		}
 
@@ -322,7 +278,7 @@ func (s *HTTPHandlers) OperatorServerHealth(resp http.ResponseWriter, req *http.
 	}
 
 	var reply structs.AutopilotHealthReply
-	if err := s.agent.RPC(req.Context(), "Operator.ServerHealth", &args, &reply); err != nil {
+	if err := s.agent.RPC("Operator.ServerHealth", &args, &reply); err != nil {
 		return nil, err
 	}
 
@@ -362,48 +318,11 @@ func (s *HTTPHandlers) OperatorAutopilotState(resp http.ResponseWriter, req *htt
 	}
 
 	var reply autopilot.State
-	if err := s.agent.RPC(req.Context(), "Operator.AutopilotState", &args, &reply); err != nil {
+	if err := s.agent.RPC("Operator.AutopilotState", &args, &reply); err != nil {
 		return nil, err
 	}
 
 	out := autopilotToAPIState(&reply)
-	return out, nil
-}
-
-func (s *HTTPHandlers) OperatorUsage(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	metrics.IncrCounterWithLabels([]string{"client", "api", "operator_usage"}, 1,
-		s.nodeMetricsLabels())
-
-	var args structs.OperatorUsageRequest
-
-	if err := s.parseEntMetaNoWildcard(req, &args.EnterpriseMeta); err != nil {
-		return nil, err
-	}
-	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
-		return nil, nil
-	}
-	if _, ok := req.URL.Query()["global"]; ok {
-		args.Global = true
-	}
-
-	// Make the RPC request
-	var out structs.Usage
-	defer setMeta(resp, &out.QueryMeta)
-RETRY_ONCE:
-	err := s.agent.RPC(req.Context(), "Operator.Usage", &args, &out)
-	if err != nil {
-		metrics.IncrCounterWithLabels([]string{"client", "rpc", "error", "operator_usage"}, 1,
-			s.nodeMetricsLabels())
-		return nil, err
-	}
-	if args.QueryOptions.AllowStale && args.MaxStaleDuration > 0 && args.MaxStaleDuration < out.LastContact {
-		args.AllowStale = false
-		args.MaxStaleDuration = 0
-		goto RETRY_ONCE
-	}
-	out.ConsistencyLevel = args.QueryOptions.ConsistencyLevel()
-	metrics.IncrCounterWithLabels([]string{"client", "api", "success", "operator_usage"}, 1,
-		s.nodeMetricsLabels())
 	return out, nil
 }
 

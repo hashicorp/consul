@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package checks
 
 import (
@@ -839,20 +836,10 @@ func TestCheckHTTP_TLS_BadVerify(t *testing.T) {
 		if got, want := notif.State(cid), api.HealthCritical; got != want {
 			r.Fatalf("got state %q want %q", got, want)
 		}
-		if !isInvalidCertificateError(notif.Output(cid)) {
+		if !strings.Contains(notif.Output(cid), "certificate signed by unknown authority") {
 			r.Fatalf("should fail with certificate error %v", notif.OutputMap())
 		}
 	})
-}
-
-// isInvalidCertificateError checks the error string for an untrusted certificate error.
-// The specific error message is different on Linux and macOS.
-//
-// TODO: Revisit this when https://github.com/golang/go/issues/52010 is resolved.
-// We may be able to simplify this to check only one error string.
-func isInvalidCertificateError(err string) bool {
-	return strings.Contains(err, "certificate signed by unknown authority") ||
-		strings.Contains(err, "certificate is not trusted")
 }
 
 func mockTCPServer(network string) net.Listener {
@@ -1410,8 +1397,9 @@ func TestCheckH2PING_TLS_BadVerify(t *testing.T) {
 		if got, want := notif.State(cid), api.HealthCritical; got != want {
 			r.Fatalf("got state %q want %q", got, want)
 		}
-		if !isInvalidCertificateError(notif.Output(cid)) {
-			r.Fatalf("should fail with certificate error %v", notif.OutputMap())
+		expectedOutput := "certificate signed by unknown authority"
+		if !strings.Contains(notif.Output(cid), expectedOutput) {
+			r.Fatalf("should have included output %s: %v", expectedOutput, notif.OutputMap())
 		}
 	})
 }

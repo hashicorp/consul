@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package assert
 
 import (
@@ -15,7 +12,7 @@ import (
 // PeeringStatus verifies the peering connection is the specified state with a default retry.
 func PeeringStatus(t *testing.T, client *api.Client, peerName string, status api.PeeringState) {
 	failer := func() *retry.Timer {
-		return &retry.Timer{Timeout: 180 * time.Second, Wait: defaultWait}
+		return &retry.Timer{Timeout: 20 * time.Second, Wait: defaultWait}
 	}
 
 	retry.RunWith(failer(), t, func(r *retry.R) {

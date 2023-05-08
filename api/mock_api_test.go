@@ -1,11 +1,9 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package api
 
 import (
 	"encoding/json"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -41,7 +39,7 @@ func (m *mockAPI) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var body interface{}
 
 	if r.Body != nil {
-		bodyBytes, err := io.ReadAll(r.Body)
+		bodyBytes, err := ioutil.ReadAll(r.Body)
 		if err == nil && len(bodyBytes) > 0 {
 			body = bodyBytes
 

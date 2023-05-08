@@ -1,7 +1,0 @@
-```release-note:improvement
-* cli: Add `-filter` option to `consul config list` for filtering config entries.
-```
-```release-note:improvement
-* api: Support filtering for config entries.
-```
-

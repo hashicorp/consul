@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package service
 
 import (
@@ -21,10 +18,7 @@ const (
 )
 
 //go:embed assets/Dockerfile-consul-envoy
-var consulEnvoyDockerfile []byte
-
-//go:embed assets/tproxy-startup.sh
-var tproxyStartupScript []byte
+var consulEnvoyDockerfile string
 
 // getDevContainerDockerfile returns the necessary context to build a combined consul and
 // envoy image for running "consul connect envoy ..."
@@ -32,29 +26,18 @@ func getDevContainerDockerfile() (testcontainers.FromDockerfile, error) {
 	var buf bytes.Buffer
 	tw := tar.NewWriter(&buf)
 
+	dockerfileBytes := []byte(consulEnvoyDockerfile)
+
 	hdr := &tar.Header{
 		Name: "Dockerfile",
 		Mode: 0600,
-		Size: int64(len(consulEnvoyDockerfile)),
+		Size: int64(len(dockerfileBytes)),
 	}
 	if err := tw.WriteHeader(hdr); err != nil {
 		return testcontainers.FromDockerfile{}, err
 	}
 
-	if _, err := tw.Write(consulEnvoyDockerfile); err != nil {
-		return testcontainers.FromDockerfile{}, err
-	}
-
-	hdr = &tar.Header{
-		Name: "tproxy-startup.sh",
-		Mode: 0600,
-		Size: int64(len(tproxyStartupScript)),
-	}
-	if err := tw.WriteHeader(hdr); err != nil {
-		return testcontainers.FromDockerfile{}, err
-	}
-
-	if _, err := tw.Write(tproxyStartupScript); err != nil {
+	if _, err := tw.Write(dockerfileBytes); err != nil {
 		return testcontainers.FromDockerfile{}, err
 	}
 

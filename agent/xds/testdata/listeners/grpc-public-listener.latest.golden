@@ -126,6 +126,14 @@
                 },
                 "http2ProtocolOptions": {
 
+                },
+                "forwardClientCertDetails": "APPEND_FORWARD",
+                "setCurrentClientCertDetails": {
+                  "subject": true,
+                  "cert": true,
+                  "chain": true,
+                  "dns": true,
+                  "uri": true
                 }
               }
             }

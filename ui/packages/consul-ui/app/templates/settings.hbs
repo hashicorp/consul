@@ -1,8 +1,3 @@
-{{!
-  Copyright (c) HashiCorp, Inc.
-  SPDX-License-Identifier: MPL-2.0
-}}
-
 <Route
   @name={{routeName}}
 as |route|>
@@ -31,10 +26,18 @@ as |item|}}
       </h1>
     </BlockSlot>
     <BlockSlot @name="content">
-      <Hds::Alert @type="inline" class='mb-3 mt-2' as |A|>
-        <A.Title>Local Storage</A.Title>
-        <A.Description>These settings are immediately saved to local storage and persisted through browser usage.</A.Description>
-      </Hds::Alert>
+      <Notice
+        @type="info"
+      as |notice|>
+        <notice.Header>
+          <h2>Local Storage</h2>
+        </notice.Header>
+        <notice.Body>
+          <p>
+            These settings are immediately saved to local storage and persisted through browser usage.
+          </p>
+        </notice.Body>
+      </Notice>
       <form>
       {{#if (not (env 'CONSUL_UI_DISABLE_REALTIME'))}}
       <Disclosure as |disclosure|>

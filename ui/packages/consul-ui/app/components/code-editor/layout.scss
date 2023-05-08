@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 %code-editor {
   display: block;
   border: 10px;
@@ -16,7 +11,7 @@
   bottom: 0px;
   width: 100%;
   height: 25px;
-  background-color: var(--token-color-hashicorp-brand);
+  background-color: rgb(var(--tone-gray-999));
   content: '';
   display: block;
 }

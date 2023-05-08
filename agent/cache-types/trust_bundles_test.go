@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package cachetype
 
 import (
@@ -14,7 +11,7 @@ import (
 	grpcstatus "google.golang.org/grpc/status"
 
 	"github.com/hashicorp/consul/agent/cache"
-	"github.com/hashicorp/consul/proto/private/pbpeering"
+	"github.com/hashicorp/consul/proto/pbpeering"
 )
 
 func TestTrustBundles(t *testing.T) {

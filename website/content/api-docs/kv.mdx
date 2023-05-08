@@ -19,7 +19,7 @@ replication between datacenters, please view the
 ~> Values in the KV store cannot be larger than 512kb.
 
 In order to perform atomic operations on multiple KV pairs (up to a limit of 64)
-please consider using [transactions](/consul/api-docs/txn) instead.
+please consider using [transactions](/api-docs/txn) instead.
 
 ## Read Key
 
@@ -27,29 +27,29 @@ This endpoint returns the specified key. If no key exists at the given path, a
 404 is returned instead of a 200 response.
 
 For multi-key reads (up to a limit of 64 KV operations) please consider using
-[transactions](/consul/api-docs/txn) instead.
+[transactions](/api-docs/txn) instead.
 
 If the [`recurse`](#recurse) or [`keys`](#keys) query parameters are `true`,
 this endpoint will return an array of keys. In this case,
 the HTTP response includes the `X-Consul-Results-Filtered-By-ACLs: true` header
 if the response array excludes results due to ACL policy configuration.
-Refer to the [HTTP API documentation](/consul/api-docs/api-structure#results-filtered-by-acls) for more information.
+Refer to the [HTTP API documentation](/api-docs/api-structure#results-filtered-by-acls) for more information.
 
 | Method | Path       | Produces           |
 | ------ | ---------- | ------------------ |
 | `GET`  | `/kv/:key` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/consul/api-docs/features/blocking),
-[consistency modes](/consul/api-docs/features/consistency),
-[agent caching](/consul/api-docs/features/caching), and
-[required ACLs](/consul/api-docs/api-structure#authentication).
+[blocking queries](/api-docs/features/blocking),
+[consistency modes](/api-docs/features/consistency),
+[agent caching](/api-docs/features/caching), and
+[required ACLs](/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
 | ---------------- | ----------------- | ------------- | ------------ |
 | `YES`            | `all`             | `none`        | `key:read`   |
 
-The corresponding CLI command is [`consul kv get`](/consul/commands/kv/get).
+The corresponding CLI command is [`consul kv get`](/commands/kv/get).
 
 ### Path Parameters
 
@@ -168,16 +168,16 @@ Even though the return type is `application/json`, the value is either `true` or
 `false`, indicating whether the create/update succeeded.
 
 The table below shows this endpoint's support for
-[blocking queries](/consul/api-docs/features/blocking),
-[consistency modes](/consul/api-docs/features/consistency),
-[agent caching](/consul/api-docs/features/caching), and
-[required ACLs](/consul/api-docs/api-structure#authentication).
+[blocking queries](/api-docs/features/blocking),
+[consistency modes](/api-docs/features/consistency),
+[agent caching](/api-docs/features/caching), and
+[required ACLs](/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
 | ---------------- | ----------------- | ------------- | ------------ |
 | `NO`             | `none`            | `none`        | `key:write`  |
 
-The corresponding CLI command is [`consul kv put`](/consul/commands/kv/put).
+The corresponding CLI command is [`consul kv put`](/commands/kv/put).
 
 ### Path Parameters
 
@@ -210,7 +210,7 @@ The corresponding CLI command is [`consul kv put`](/consul/commands/kv/put).
   session has locked the key.**
 
   For an example of how to use the lock feature, check the
-  [Leader Election tutorial](/consul/tutorials/developer-configuration/application-leader-elections).
+  [Leader Election tutorial](https://learn.hashicorp.com/tutorials/consul/application-leader-elections).
 
 - `release` `(string: "")` - Supply a session ID to use in a release operation. This is
   useful when paired with `?acquire=` as it allows clients to yield a lock. This
@@ -255,16 +255,16 @@ This endpoint deletes a single key or all keys sharing a prefix.
 | `DELETE` | `/kv/:key` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/consul/api-docs/features/blocking),
-[consistency modes](/consul/api-docs/features/consistency),
-[agent caching](/consul/api-docs/features/caching), and
-[required ACLs](/consul/api-docs/api-structure#authentication).
+[blocking queries](/api-docs/features/blocking),
+[consistency modes](/api-docs/features/consistency),
+[agent caching](/api-docs/features/caching), and
+[required ACLs](/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
 | ---------------- | ----------------- | ------------- | ------------ |
 | `NO`             | `none`            | `none`        | `key:write`  |
 
-The corresponding CLI command is [`consul kv delete`](/consul/commands/kv/delete).
+The corresponding CLI command is [`consul kv delete`](/commands/kv/delete).
 
 ### Path Parameters
 

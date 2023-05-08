@@ -29,9 +29,11 @@ If you need to make services available to an admin partition in the same datacen
 
 ### Mesh gateway requirements
 
-Consul's default configuration supports cluster peering connections directly between clusters. In production environments, we recommend using mesh gateways to securely route service mesh traffic between partitions with cluster peering connections.
+Mesh gateways are required for all cluster peering connections. Consider the following architectural requirements when creating mesh gateways:
 
-To enable cluster peering through mesh gateways and configure mesh gateways to support cluster peering, refer to [mesh gateway specifications](/consul/docs/connect/cluster-peering/tech-specs#mesh-gateway-specifications).
+- A registered mesh gateway is required in order to export services to peers.
+- For Enterprise, the mesh gateway that exports services must be registered in the same partition as the exported services and their `exported-services` configuration entry.
+- To use the `local` mesh gateway mode, you must register a mesh gateway in the importing cluster.
 
 ## Create a peering token
 

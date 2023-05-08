@@ -18,6 +18,6 @@ Feature: settings / update: Update Settings
     consul:token: ''
     ---
     And the url should be /settings
-    And "[data-notification]" has the "hds-toast" class
-    And "[data-notification]" has the "hds-alert--color-success" class
+    And "[data-notification]" has the "notification-update" class
+    And "[data-notification]" has the "success" class
 

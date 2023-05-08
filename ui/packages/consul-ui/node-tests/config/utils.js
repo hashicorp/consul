@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 /* eslint-env node */
 
 const test = require('tape');
@@ -16,8 +11,8 @@ test('utils.respositoryYear parses the year out correctly', function (t) {
   t.end();
 });
 test('utils.binaryVersion parses the version out correctly', function (t) {
-  const expected = '1.15.0-dev';
-  const actual = utils.binaryVersion()(`1.15.0-dev`);
+  const expected = '1.9.0';
+  const actual = utils.binaryVersion()(`1.9.0`);
   t.equal(actual, expected, 'It parses the version correctly');
   t.end();
 });

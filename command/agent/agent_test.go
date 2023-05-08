@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package agent
 
 import (
@@ -12,8 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/consul/command/cli"
-	mcli "github.com/mitchellh/cli"
+	"github.com/mitchellh/cli"
 
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/sdk/testutil"
@@ -219,7 +215,7 @@ func TestBadDataDirPermissions(t *testing.T) {
 }
 
 type captureUI struct {
-	*mcli.MockUi
+	*cli.MockUi
 }
 
 func (c *captureUI) Stdout() io.Writer {
@@ -230,24 +226,6 @@ func (c *captureUI) Stderr() io.Writer {
 	return c.MockUi.ErrorWriter
 }
 
-func (c *captureUI) HeaderOutput(s string) {
-}
-
-func (c *captureUI) ErrorOutput(s string) {
-}
-
-func (c *captureUI) WarnOutput(s string) {
-}
-
-func (c *captureUI) SuccessOutput(s string) {
-}
-
-func (c *captureUI) UnchangedOutput(s string) {
-}
-
-func (c *captureUI) Table(tbl *cli.Table) {
-}
-
 func newCaptureUI() *captureUI {
-	return &captureUI{MockUi: mcli.NewMockUi()}
+	return &captureUI{MockUi: cli.NewMockUi()}
 }

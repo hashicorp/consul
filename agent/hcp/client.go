@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package hcp
 
 import (
@@ -37,7 +34,6 @@ type BootstrapConfig struct {
 	TLSCertKey      string
 	TLSCAs          []string
 	ConsulConfig    string
-	ManagementToken string
 }
 
 type hcpClient struct {
@@ -107,7 +103,6 @@ func bootstrapConfigFromHCP(res *gnmmod.HashicorpCloudGlobalNetworkManager202202
 		TLSCertKey:      serverTLS.PrivateKey,
 		TLSCAs:          serverTLS.CertificateAuthorities,
 		ConsulConfig:    res.Bootstrap.ConsulConfig,
-		ManagementToken: res.Bootstrap.ManagementToken,
 	}
 }
 
@@ -117,7 +112,7 @@ func (c *hcpClient) PushServerStatus(ctx context.Context, s *ServerStatus) error
 		WithLocationOrganizationID(c.resource.Organization).
 		WithLocationProjectID(c.resource.Project)
 
-	params.SetBody(hcpgnm.AgentPushServerStateBody{
+	params.SetBody(&gnmmod.HashicorpCloudGlobalNetworkManager20220215AgentPushServerStateRequest{
 		ServerState: serverStatusToHCP(s),
 	})
 

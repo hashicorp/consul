@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package proxycfgglue
 
 import (
@@ -13,7 +10,7 @@ import (
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/proxycfg"
-	"github.com/hashicorp/consul/proto/private/pbpeering"
+	"github.com/hashicorp/consul/proto/pbpeering"
 	"github.com/hashicorp/consul/sdk/testutil"
 )
 
@@ -117,6 +114,6 @@ func TestServerPeeringList_ACLEnforcement(t *testing.T) {
 		require.NoError(t, err)
 
 		err = getEventError(t, eventCh)
-		require.Contains(t, err.Error(), "token with AccessorID '' lacks permission 'peering:read'")
+		require.Contains(t, err.Error(), "provided token lacks permission 'peering:read'")
 	})
 }

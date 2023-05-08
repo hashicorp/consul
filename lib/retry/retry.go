@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package retry
 
 import (
@@ -104,8 +101,8 @@ func (w *Waiter) Failures() int {
 // such as when the context is canceled. This makes it suitable for
 // long-running routines that do not get re-initialized, such as replication.
 func (w *Waiter) Wait(ctx context.Context) error {
-	delay := w.WaitDuration()
-	timer := time.NewTimer(delay)
+	w.failures++
+	timer := time.NewTimer(w.delay())
 	select {
 	case <-ctx.Done():
 		timer.Stop()
@@ -113,15 +110,6 @@ func (w *Waiter) Wait(ctx context.Context) error {
 	case <-timer.C:
 		return nil
 	}
-}
-
-// WaitDuration increases the number of failures by one, and returns the
-// duration the caller must wait for. This is an alternative to the Wait
-// method for cases where you want to handle the timer yourself (e.g. as
-// part of a larger select statement).
-func (w *Waiter) WaitDuration() time.Duration {
-	w.failures++
-	return w.delay()
 }
 
 // NextWait returns the period the next call to Wait with block for assuming

@@ -1,22 +1,17 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 @import './skin';
 a[rel*='external']::after {
   @extend %with-exit-icon, %as-pseudo;
   margin-left: 8px;
 }
 %main-content label a[rel*='help'] {
-  color: var(--token-color-foreground-disabled);
+  color: rgb(var(--tone-gray-400));
 }
 %main-content a[rel*='help']::after {
   @extend %with-info-circle-outline-icon, %as-pseudo;
   opacity: 0.4;
 }
 %main-content h2 a {
-  color: var(--token-color-foreground-strong);
+  color: rgb(var(--tone-gray-900));
 }
 %main-content h2 a[rel*='help']::after {
   font-size: 0.65em;
