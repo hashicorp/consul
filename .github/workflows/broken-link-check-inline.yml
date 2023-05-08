@@ -1,0 +1,115 @@
+name: Broken Link Check
+
+on:
+  workflow_dispatch:
+  push:
+    branches-ignore:    
+      - main
+    paths:
+      - "/website/content/docs/**/*.mdx"
+
+permissions:
+  pull-requests: write
+  checks: read
+  contents: read
+
+jobs:
+  linkChecker:
+    name: link checker
+    runs-on: ubuntu-latest
+    steps:
+
+      #- name: Wait for deploy-preview job in build preview workflow to succeed
+      #  uses: lewagon/wait-on-check-action@v1.3.1
+      #  with:
+      #    ref: ${{ github.ref }}
+      #    #To wait for all other checks to complete you may set running-workflow-name 
+      #    #to the name of the current job and not set a check-name parameter.
+      #    check-name: Deploy Preview
+      #    repo-token: ${{ secrets.GITHUB_TOKEN }}
+      #    wait-interval: 10
+
+      - name: Waiting for 200 from the Vercel Preview
+        uses: patrickedqvist/wait-for-vercel-preview@v1.3.1
+        id: waitFor200
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          max_timeout: 3600
+          environment: Vercel – consul
+      # access preview url
+      - run: echo ${{steps.waitFor200.outputs.url}}
+
+      # Check out the repo
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      # Get the branch name associated with this push
+      - name: Extract branch name
+        shell: bash
+        run: echo "branch=$(echo ${GITHUB_REF#refs/heads/})" >>$GITHUB_OUTPUT
+        id: extract_branch
+
+      # Find the PR associated with this push, if there is one.
+      - uses: jwalton/gh-find-current-pr@v1
+        id: findPr
+        with:
+          # Can be "open", "closed", or "all".  Defaults to "open".
+          state: open
+      # This will echo "Your PR is 7", or be skipped if there is no current PR.
+      - run: echo "Your PR is ${PR}"
+        if: success() && steps.findPr.outputs.number
+        env:
+          PR: ${{ steps.findPr.outputs.pr }}
+
+      - name: Get changed files in the content/tutorials/ subdirectories
+        id: changed-files
+        uses: tj-actions/changed-files@v35
+        with:
+          files: |
+            content/tutorials/**
+            **.mdx
+
+      - name: Run lychee link checker
+        if: steps.changed-files.outputs.any_changed == 'true'
+        id: lychee
+        uses: lycheeverse/lychee-action@v1.6.1
+        with:
+          args: ${{ steps.changed-files.outputs.all_changed_files }} --base https://tutorials-git-${{steps.waitFor200.outputs.url}}-hashicorp.vercel.app/ --exclude-all-private --exclude '\.(svg|gif|jpg|png)' --exclude 'manage\.auth0\.com' --accept 403,200,429 --timeout=60 --max-concurrency 24 --no-progress --verbose
+          jobSummary: true
+          # Fail GitHub action at this step when broken links are found?
+          fail: false
+        env:
+          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+
+      - name: Append text to beginning of Lychee output file if broken links found
+        # Append lychee output file under any lychee condition
+        if: env.lychee_exit_code != 0
+        run: |
+          sed -i '1s/^/The GitHub action "Broken Link Check" has completed running on all content within the scope of this PR.\n/' ./lychee/out.md
+
+      # Comment on PR with lychee output; subsequent runs will modify existing PR comment with latest results
+      - name: Comment on PR with GitHub action context
+        if: env.lychee_exit_code != 0
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          header: Link Checker Report
+          number: ${{ steps.findPr.outputs.pr }}
+          path: ./lychee/out.md
+
+      # Fail github action if lychee exit code is anything other than the success code (0)
+      - name: lychee exit code check
+        if: env.lychee_exit_code != 0
+        uses: actions/github-script@v3
+        with:
+          script: |
+              core.setFailed('lychee failed with exit code ${{env.lychee_exit_code}}')
+
+      # If all previous Github actions run (indicating success), this one will run and overwrite the comment with a success message
+      - name: Clean up PR comments if all previous steps succeed
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          header: Link Checker Report
+          number: ${{ steps.findPr.outputs.pr }}
+          message: |
+            The link checker has found no broken links in your PR.
