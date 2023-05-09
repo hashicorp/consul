@@ -7,7 +7,6 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -4559,13 +4558,20 @@ func (a *Agent) persistServerLastSeen() {
 			// Reset the timer to the larger periodic interval.
 			t.Reset(1 * time.Hour)
 
-			// TODO: should we do this properly using binary encoding?
-			now := strconv.FormatInt(time.Now().Unix(), 10)
-
-			if err := os.WriteFile(file, []byte(now), 0600); err != nil {
-				// TODO: should we exit if this has happened too many times?
-				a.logger.Error("failed to write last seen timestamp: %w", err)
+			f, err := consul.OpenServerMetadata(file)
+			if err != nil {
+				a.logger.Error("failed to open existing server metadata: %w", err)
+				continue
 			}
+
+			if err := consul.WriteServerMetadata(f); err != nil {
+				f.Close()
+				// TODO: should we exit if this has happened too many times?
+				a.logger.Error("failed to write server metadata: %w", err)
+				continue
+			}
+
+			f.Close()
 		case <-a.shutdownCh:
 			return
 		}
@@ -4581,30 +4587,15 @@ func (a *Agent) persistServerLastSeen() {
 // Example: if the server recorded a last seen timestamp of now-7d, and we configure a max age
 // of 3d, then we should prevent the server from rejoining.
 func (a *Agent) checkServerLastSeen() error {
-	file := filepath.Join(a.config.DataDir, serverLastSeenFile)
+	filename := filepath.Join(a.config.DataDir, consul.ServerMetadataFile)
 
-	// Check if the last seen timestamp file exists, and return early if it doesn't
-	// as this indicates the server is starting for the first time.
-	if _, err := os.Stat(file); errors.Is(err, os.ErrNotExist) {
-		return nil
-	}
-
-	// Read timestamp from last seen file.
-	b, err := os.ReadFile(file)
+	// Read server metadata file.
+	md, err := consul.ReadServerMetadata(filename)
 	if err != nil {
-		return fmt.Errorf("error reading server last seen timestamp: %w", err)
+		return fmt.Errorf("error reading server metadata: %w", err)
 	}
 
-	// TODO: again, we probably want to do this more efficiently using binary encoding.
-	i, _ := strconv.Atoi(string(b))
-	lastSeen := time.Unix(int64(i), 0)
-	maxAge := time.Now().Add(-a.config.ServerRejoinAgeMax)
-
-	if lastSeen.Before(maxAge) {
-		return fmt.Errorf("server has not been seen since %s, will not rejoin", lastSeen.Format(time.DateTime))
-	}
-
-	return nil
+	return md.CheckLastSeen(a.config.ServerRejoinAgeMax)
 }
 
 func listenerPortKey(svcID structs.ServiceID, checkID structs.CheckID) string {
