@@ -33,19 +33,19 @@ The service token must be linked to policies that grant the following permission
 
 @include 'create-token-requirements.mdx'
 
-## Create tokens linked to service identities
+## Create a token linked to a service identity in Consul OSS
 
 Refer to [Service identities](/consul/docs/security/acl#service-identities) for information about creating service identities that you can link to tokens.
 
 You can manually create tokens using the Consul command line or API endpoint. You can also enable Consul to dynamically create tokens from trusted external systems using an auth method.
 
-### CLI
+<Tabs>
+
+<Tab heading="CLI" group="CLI">
 
 Run the `consul acl token create` command and specify the policy or service identity to link to create a token. Refer to [Consul ACL Token Create](/consul/commands/acl/token/create) for details about the `consul acl token create` command.
 
 The following example creates an ACL token linked to a service identity for a service named `svc1`.
-
-#### Consul OSS
 
 ```shell-session
 $ consul acl token create \
@@ -53,7 +53,41 @@ $ consul acl token create \
   -service-identity "svc1"
 ```
 
-#### Consul Enterprise  <EnterpriseAlert inline />
+</Tab>
+
+<Tab heading="API" group="API">
+
+Send a PUT request to the `/acl/token` endpoint and specify a service identity in the request body to create a token linked to the service identity. An ACL token linked to a policy with permissions to use the API endpoint is required. Refer to [ACL Token HTTP API](/consul/api-docs/acl/tokens) for additional information about using the API endpoint.
+
+The following example creates a token linked to a service identity named `svc1`:
+
+```shell-session
+$ curl --request PUT http://127.0.0.1:8500/v1/acl/token \
+  --header "X-Consul-Token: $CONSUL_HTTP_TOKEN" \
+  --data '{
+  "ServiceIdentities": [
+    {
+      "ServiceName": "svc1"
+    }
+  ]
+}'
+```
+
+</Tab>
+
+</Tabs>
+
+## Create a token linked to a service identity in Consul Enterprise <EnterpriseAlert inline />
+
+Refer to [Service identities](/consul/docs/security/acl#service-identities) for information about creating service identities that you can link to tokens.
+
+You can manually create tokens using the Consul command line or API endpoint. You can also enable Consul to dynamically create tokens from trusted external systems using an auth method.
+
+<Tabs>
+
+<Tab heading="CLI" group="CLI">
+
+Run the `consul acl token create` command and specify the policy or service identity to link to create a token. Refer to [Consul ACL Token Create](/consul/commands/acl/token/create) for details about the `consul acl token create` command.
 
 You can specify an admin partition, namespace, or both when creating tokens in Consul Enterprise. The token is only valid in the specified network areas. The following example creates an ACL token that the service can use to register in the `ns1` namespace of partition `ptn1`:
 
@@ -63,29 +97,11 @@ $ consul acl token create -partition "ptn1" -namespace "ns1" \
   -service-identity "svc1"
 ```
 
-### API
+</Tab>
+
+<Tab heading="API" group="API">
 
 Send a PUT request to the `/acl/token` endpoint and specify a service identity in the request body to create a token linked to the service identity. An ACL token linked to a policy with permissions to use the API endpoint is required. Refer to [ACL Token HTTP API](/consul/api-docs/acl/tokens) for additional information about using the API endpoint.
-
-The following example creates a token linked to a service identity named `svc1`:
-
-#### Consul OSS
-
-```shell-session
-$ curl --request PUT http://127.0.0.1:8500/v1/acl/token \
-  --header "X-Consul-Token: $CONSUL_HTTP_TOKEN" \
-  --data '{
-  "ServiceIdentities": [
-    {
-      "ServiceName": "svc1",
-      "Datacenters": ["dc1"]
-    }
-  ]
-}'
-
-```
-
-#### Consul Enterprise  <EnterpriseAlert inline />
 
 You can specify an admin partition, namespace, or both when creating tokens in Consul Enterprise. The token is only valid in the specified network areas. The following example creates an ACL token that the service can use to register in the `ns1` namespace of partition `ptn1`:
 
@@ -95,8 +111,7 @@ $ curl --request PUT http://127.0.0.1:8500/v1/acl/token \
   --data '{
   "ServiceIdentities": [
     {
-      "ServiceName": "svc1",
-      "Datacenters": ["dc1"]
+      "ServiceName": "svc1"
     }
   ],
   "Namespace": "ns1",
@@ -104,17 +119,17 @@ $ curl --request PUT http://127.0.0.1:8500/v1/acl/token \
 }'
 ```
 
-@include 'create-token-auth-methods.mdx'
+</Tab>
 
-## Create tokens linked to custom policies
+</Tabs>
+
+## Create a token linked to a custom policy in Consul OSS
 
 When you are unable to link tokens to a service identity, you can define custom policies, register them with Consul, and link the policies to tokens that enable services to register into the Consul catalog.
 
 ### Define a custom policy
 
 You can send custom policy definitions as command line or API arguments or define them in an external HCL or JSON file. The following example policies represent externally defined policies. Refer to [ACL Rules](/consul/docs/security/acl/acl-rules) for details about all of the rules you can use in your policies.
-
-#### Consul OSS
 
 The following example policy grants the `svc1` service `write` permissions so that it can register into the catalog. For service mesh, the policy grants the `svc1-sidecar-proxy` service `write` permissions so that the sidecar proxy can register into the catalog. It grants service and node `read` permissions to discover and route to other services.
 
@@ -160,7 +175,97 @@ node_prefix "" {
 
 </CodeTabs>
 
-#### Consul Enterprise <EnterpriseAlert inline />
+
+### Register the policy with Consul
+
+After defining the custom policies, you can register them with Consul using the command line or API endpoint.
+
+<Tabs>
+
+<Tab heading="CLI" group="CLI">
+
+Run the `consul acl policy create` command and specify the policy rules to create a policy. The following example registers a custom policy defined in `svc1-register.hcl`:
+
+
+```shell-session
+$ consul acl policy create \
+    -name "svc1-register" -rules @svc1-register.hcl \
+    -description "Allow svc1 to register into the catalog"
+```
+
+Refer to [Consul ACL Policy Create](/consul/commands/acl/policy/create) for details about the `consul acl token create` command.
+
+</Tab>
+
+<Tab heading="API" group="API">
+
+Send a PUT request to the `/acl/policy` endpoint and specify the policy rules in the request body to create a policy. The following example registers the custom policy defined in `svc1-register.hcl`. You must embed policy rules in the `Rules` field of the request body
+
+```shell-session
+$ curl --request PUT http://127.0.0.1:8500/v1/acl/policy \
+  --header "X-Consul-Token: $CONSUL_HTTP_TOKEN" \
+  --data '{
+  "Name": "svc1-register",
+  "Description": "Allow svc1 to register into the catalog",
+  "Rules": "service \"svc1\" {\n  policy = \"write\"\n}\nservice \"svc1-sidecar-proxy\" {\n  policy = \"write\"\n}\nservice_prefix \"\" {\n  policy = \"read\"\n}\nnode_prefix \"\" {\n  policy = \"read\"\n}\n"
+}'
+```
+
+Refer to [ACL Policy HTTP API](/consul/api-docs/acl/policies) for additional information about using the API endpoint.
+
+</Tab>
+
+</Tabs>
+
+### Link the custom policy to a token
+
+After registering the policies into Consul, you can create and link tokens using the Consul command line or API endpoint. You can also enable Consul to dynamically create tokens from trusted external systems using an auth method.
+
+<Tabs>
+
+<Tab heading="CLI" group="CLI">
+
+Run the `consul acl token create` command and specify the policy name or ID to create a token linked to the policy. Refer to [Consul ACL Token Create](/consul/commands/acl/token/create) for details about the `consul acl token create` command.
+
+The following commands create the ACL token linked to the policy `svc1-register`.
+
+```shell-session
+$ consul acl token create \
+  -description "Service token for svc1" \
+  -policy-name "svc1-register"
+```
+
+</Tab>
+
+<Tab heading="API" group="API">
+
+Send a PUT request to the `/acl/token` endpoint and specify the policy name or ID in the request to create an ACL token linked to the policy. Refer to [ACL Token HTTP API](/consul/api-docs/acl/tokens) for additional information about using the API endpoint.
+
+The following example creates an ACL token that the `svc1` service can use to register in the `ns1` namespaces of partition `ptn1`:
+
+```shell-session
+$ curl --request PUT http://127.0.0.1:8500/v1/acl/token \
+  --header "X-Consul-Token: $CONSUL_HTTP_TOKEN" \
+  --data '{
+  "Policies": [
+    {
+      "Name": "svc1-register"
+    }
+  ]
+}'
+```
+
+</Tab>
+
+</Tabs>
+
+## Create a token linked to a custom policy in Consul Enterprise <EnterpriseAlert inline/>
+
+When you are unable to link tokens to a service identity, you can define custom policies, register them with Consul, and link the policies to tokens that enable services to register into the Consul catalog.
+
+### Define a custom policy
+
+You can send custom policy definitions as command line or API arguments or define them in an external HCL or JSON file. The following example policies represent externally defined policies. Refer to [ACL Rules](/consul/docs/security/acl/acl-rules) for details about all of the rules you can use in your policies.
 
 You can specify an admin partition, namespace, or both when creating tokens in Consul Enterprise. The token is only valid in the specified network areas. The following example policy allows the `svc1` service to register in the `ns1` namespace of partition `ptn1`. For service mesh, the policy grants the `svc1-sidecar-proxy` service `write` permissions so that the sidecar proxy can register into the catalog. It grants service and node `read` permissions to discover and route to other services.
 
@@ -218,23 +323,17 @@ partition "ptn1" {
 
 </CodeTabs>
 
-### Register policies with Consul
+
+### Register the policy with Consul
 
 After defining the custom policies, you can register them with Consul using the command line or API endpoint.
 
-#### CLI
+<Tabs>
+
+<Tab heading="CLI" group="CLI">
 
 Run the `consul acl policy create` command and specify the policy rules to create a policy. The following example registers a custom policy defined in `svc1-register.hcl`:
 
-##### Consul OSS
-
-```shell-session
-$ consul acl policy create \
-    -name "svc1-register" -rules @svc1-register.hcl \
-    -description "Allow svc1 to register into the catalog"
-```
-
-##### Consul Enterprise <EnterpriseAlert inline />
 
 ```shell-session
 $ consul acl policy create -partition "ptn1" -namespace "ns1" \
@@ -244,23 +343,11 @@ $ consul acl policy create -partition "ptn1" -namespace "ns1" \
 
 Refer to [Consul ACL Policy Create](/consul/commands/acl/policy/create) for details about the `consul acl token create` command.
 
-#### API
+</Tab>
+
+<Tab heading="API" group="API">
 
 Send a PUT request to the `/acl/policy` endpoint and specify the policy rules in the request body to create a policy. The following example registers the custom policy defined in `svc1-register.hcl`. You must embed policy rules in the `Rules` field of the request body
-
-##### Consul OSS
-
-```shell-session
-$ curl --request PUT http://127.0.0.1:8500/v1/acl/policy \
-  --header "X-Consul-Token: $CONSUL_HTTP_TOKEN" \
-  --data '{
-  "Name": "svc1-register",
-  "Description": "Allow svc1 to register into the catalog",
-  "Rules": "service \"svc1\" {\n  policy = \"write\"\n}\nservice \"svc1-sidecar-proxy\" {\n  policy = \"write\"\n}\nservice_prefix \"\" {\n  policy = \"read\"\n}\nnode_prefix \"\" {\n  policy = \"read\"\n}\n"
-}'
-```
-
-##### Consul Enterprise <EnterpriseAlert inline />
 
 ```shell-session
 $ curl --request PUT http://127.0.0.1:8500/v1/acl/policy \
@@ -276,25 +363,19 @@ $ curl --request PUT http://127.0.0.1:8500/v1/acl/policy \
 
 Refer to [ACL Policy HTTP API](/consul/api-docs/acl/policies) for additional information about using the API endpoint.
 
-### Link custom policies to tokens
+</Tab>
+
+</Tabs>
+
+### Link the custom policy to a token
 
 After registering the policies into Consul, you can create and link tokens using the Consul command line or API endpoint. You can also enable Consul to dynamically create tokens from trusted external systems using an auth method.
 
-#### CLI
+<Tabs>
+
+<Tab heading="CLI" group="CLI">
 
 Run the `consul acl token create` command and specify the policy name or ID to create a token linked to the policy. Refer to [Consul ACL Token Create](/consul/commands/acl/token/create) for details about the `consul acl token create` command.
-
-##### Consul OSS
-
-The following commands create the ACL token linked to the policy `svc1-register`.
-
-```shell-session
-$ consul acl token create \
-  -description "Service token for svc1" \
-  -policy-name "svc1-register"
-```
-
-##### Consul Enterprise <EnterpriseAlert inline />
 
 You can specify an admin partition, namespace, or both when creating tokens in Consul Enterprise. The token is only valid in the specified network areas. The following example creates an ACL token that the service can use to register in the `ns1` namespace of partition `ptn1`:
 
@@ -306,27 +387,11 @@ $ consul acl token create -partition "ptn1" -namespace "ns1" \
   -policy-name "svc1-register"
 ```
 
-#### API
+</Tab>
+
+<Tab heading="API" group="API">
 
 Send a PUT request to the `/acl/token` endpoint and specify the policy name or ID in the request to create an ACL token linked to the policy. Refer to [ACL Token HTTP API](/consul/api-docs/acl/tokens) for additional information about using the API endpoint.
-
-##### Consul OSS
-
-The following example creates an ACL token that the `svc1` service can use to register in the `ns1` namespaces of partition `ptn1`:
-
-```shell-session
-$ curl --request PUT http://127.0.0.1:8500/v1/acl/token \
-  --header "X-Consul-Token: $CONSUL_HTTP_TOKEN" \
-  --data '{
-  "Policies": [
-    {
-      "Name": "svc1-register"
-    }
-  ]
-}'
-```
-
-##### Consul Enterprise <EnterpriseAlert inline />
 
 You can specify an admin partition, namespace, or both when creating tokens in Consul Enterprise. The token is only valid in the specified network areas. The following example creates an ACL token that the service can use to register in the `ns1` namespace of partition `ptn1`:
 
@@ -344,4 +409,6 @@ $ curl --request PUT http://127.0.0.1:8500/v1/acl/token \
 }'
 ```
 
-@include 'create-token-auth-methods.mdx'
+</Tab>
+
+</Tabs>
