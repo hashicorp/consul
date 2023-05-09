@@ -107,7 +107,7 @@ func TestAutoConfigInitialConfiguration(t *testing.T) {
 
 	gossipKey := make([]byte, 32)
 	// this is not cryptographic randomness and is not secure but for the sake of this test its all we need.
-	n, err := rand.Read(gossipKey)
+	n, err := crand.Read(gossipKey)
 	require.NoError(t, err)
 	require.Equal(t, 32, n)
 
@@ -505,7 +505,7 @@ func TestAutoConfig_updateGossipEncryptionInConfig(t *testing.T) {
 
 	gossipKey := make([]byte, 32)
 	// this is not cryptographic randomness and is not secure but for the sake of this test its all we need.
-	n, err := rand.Read(gossipKey)
+	n, err := crand.Read(gossipKey)
 	require.NoError(t, err)
 	require.Equal(t, 32, n)
 	gossipKeyEncoded := base64.StdEncoding.EncodeToString(gossipKey)
