@@ -4,13 +4,13 @@ import (
 	"bytes"
 	"context"
 	"crypto/md5"
+	"crypto/rand"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
-	"math/rand"
+	mathrand "math/rand"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -699,7 +699,7 @@ func testAgent_AddServices_AliasUpdateCheckNotReverted(t *testing.T, extraHCL st
 
 func test_createAlias(t *testing.T, agent *TestAgent, chk *structs.CheckType, expectedResult string) func(r *retry.R) {
 	t.Helper()
-	serviceNum := rand.Int()
+	serviceNum := mathrand.Int()
 	srv := &structs.NodeService{
 		Service: fmt.Sprintf("serviceAlias-%d", serviceNum),
 		Tags:    []string{"tag1"},
@@ -2274,7 +2274,7 @@ func testAgent_PersistService(t *testing.T, extraHCL string) {
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	content, err := ioutil.ReadFile(file)
+	content, err := os.ReadFile(file)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -2295,7 +2295,7 @@ func testAgent_PersistService(t *testing.T, extraHCL string) {
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	content, err = ioutil.ReadFile(file)
+	content, err = os.ReadFile(file)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -2364,7 +2364,7 @@ func testAgent_persistedService_compat(t *testing.T, extraHCL string) {
 	if err := os.MkdirAll(filepath.Dir(file), 0700); err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	if err := ioutil.WriteFile(file, encoded, 0600); err != nil {
+	if err := os.WriteFile(file, encoded, 0600); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -2419,7 +2419,7 @@ func testAgent_persistedService_compat_hash(t *testing.T, extraHCL string) {
 	if err := os.MkdirAll(filepath.Dir(file), 0700); err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	if err := ioutil.WriteFile(file, encoded, 0600); err != nil {
+	if err := os.WriteFile(file, encoded, 0600); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -2438,7 +2438,7 @@ func testAgent_persistedService_compat_hash(t *testing.T, extraHCL string) {
 	if err := os.MkdirAll(filepath.Dir(configFile), 0700); err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	if err := ioutil.WriteFile(configFile, encodedConfig, 0600); err != nil {
+	if err := os.WriteFile(configFile, encodedConfig, 0600); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -2619,7 +2619,7 @@ func TestAgent_PersistCheck(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	content, err := ioutil.ReadFile(file)
+	content, err := os.ReadFile(file)
 	require.NoError(t, err)
 
 	require.Equal(t, expected, content)
@@ -2634,7 +2634,7 @@ func TestAgent_PersistCheck(t *testing.T) {
 		Source:  "local",
 	})
 	require.NoError(t, err)
-	content, err = ioutil.ReadFile(file)
+	content, err = os.ReadFile(file)
 	require.NoError(t, err)
 	require.Equal(t, expected, content)
 	a.Shutdown()
@@ -3665,7 +3665,7 @@ func TestAgent_persistCheckState(t *testing.T) {
 
 	// Check the persisted file exists and has the content
 	file := filepath.Join(a.Config.DataDir, checkStateDir, cid.StringHashSHA256())
-	buf, err := ioutil.ReadFile(file)
+	buf, err := os.ReadFile(file)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -5062,9 +5062,9 @@ func TestAutoConfig_Integration(t *testing.T) {
 	caFile := filepath.Join(cfgDir, "cacert.pem")
 	keyFile := filepath.Join(cfgDir, "key.pem")
 
-	require.NoError(t, ioutil.WriteFile(certFile, []byte(cert), 0600))
-	require.NoError(t, ioutil.WriteFile(caFile, []byte(cacert), 0600))
-	require.NoError(t, ioutil.WriteFile(keyFile, []byte(key), 0600))
+	require.NoError(t, os.WriteFile(certFile, []byte(cert), 0600))
+	require.NoError(t, os.WriteFile(caFile, []byte(cacert), 0600))
+	require.NoError(t, os.WriteFile(keyFile, []byte(key), 0600))
 
 	// generate a gossip key
 	gossipKey := make([]byte, 32)
@@ -5191,7 +5191,7 @@ func TestAutoConfig_Integration(t *testing.T) {
 		require.NotEqual(r, cert1, client.Agent.tlsConfigurator.Cert())
 
 		// check that the on disk certs match expectations
-		data, err := ioutil.ReadFile(filepath.Join(client.DataDir, "auto-config.json"))
+		data, err := os.ReadFile(filepath.Join(client.DataDir, "auto-config.json"))
 		require.NoError(r, err)
 		rdr := strings.NewReader(string(data))
 
@@ -5226,9 +5226,9 @@ func TestAgent_AutoEncrypt(t *testing.T) {
 	caFile := filepath.Join(cfgDir, "cacert.pem")
 	keyFile := filepath.Join(cfgDir, "key.pem")
 
-	require.NoError(t, ioutil.WriteFile(certFile, []byte(cert), 0600))
-	require.NoError(t, ioutil.WriteFile(caFile, []byte(cacert), 0600))
-	require.NoError(t, ioutil.WriteFile(keyFile, []byte(key), 0600))
+	require.NoError(t, os.WriteFile(certFile, []byte(cert), 0600))
+	require.NoError(t, os.WriteFile(caFile, []byte(cacert), 0600))
+	require.NoError(t, os.WriteFile(keyFile, []byte(key), 0600))
 
 	hclConfig := TestACLConfigWithParams(nil) + `
 		verify_incoming = true
@@ -5421,9 +5421,9 @@ func TestAgent_AutoReloadDoReload_WhenCertAndKeyUpdated(t *testing.T) {
 	caFile := filepath.Join(certsDir, "cacert.pem")
 	keyFile := filepath.Join(certsDir, "key.pem")
 
-	require.NoError(t, ioutil.WriteFile(certFile, []byte(cert), 0600))
-	require.NoError(t, ioutil.WriteFile(caFile, []byte(ca), 0600))
-	require.NoError(t, ioutil.WriteFile(keyFile, []byte(privateKey), 0600))
+	require.NoError(t, os.WriteFile(certFile, []byte(cert), 0600))
+	require.NoError(t, os.WriteFile(caFile, []byte(ca), 0600))
+	require.NoError(t, os.WriteFile(keyFile, []byte(privateKey), 0600))
 
 	// generate a gossip key
 	gossipKey := make([]byte, 32)
@@ -5463,8 +5463,8 @@ func TestAgent_AutoReloadDoReload_WhenCertAndKeyUpdated(t *testing.T) {
 		ExtKeyUsage: []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth, x509.ExtKeyUsageClientAuth},
 	})
 	require.NoError(t, err)
-	require.NoError(t, ioutil.WriteFile(certFile, []byte(cert2), 0600))
-	require.NoError(t, ioutil.WriteFile(keyFile, []byte(privateKey2), 0600))
+	require.NoError(t, os.WriteFile(certFile, []byte(cert2), 0600))
+	require.NoError(t, os.WriteFile(keyFile, []byte(privateKey2), 0600))
 
 	retry.Run(t, func(r *retry.R) {
 		aeCert2 := srv.tlsConfigurator.Cert()
@@ -5502,9 +5502,9 @@ func TestAgent_AutoReloadDoNotReload_WhenCaUpdated(t *testing.T) {
 	caFile := filepath.Join(certsDir, "cacert.pem")
 	keyFile := filepath.Join(certsDir, "key.pem")
 
-	require.NoError(t, ioutil.WriteFile(certFile, []byte(cert), 0600))
-	require.NoError(t, ioutil.WriteFile(caFile, []byte(ca), 0600))
-	require.NoError(t, ioutil.WriteFile(keyFile, []byte(privateKey), 0600))
+	require.NoError(t, os.WriteFile(certFile, []byte(cert), 0600))
+	require.NoError(t, os.WriteFile(caFile, []byte(ca), 0600))
+	require.NoError(t, os.WriteFile(keyFile, []byte(privateKey), 0600))
 
 	// generate a gossip key
 	gossipKey := make([]byte, 32)
@@ -5537,7 +5537,7 @@ func TestAgent_AutoReloadDoNotReload_WhenCaUpdated(t *testing.T) {
 
 	ca2, _, err := tlsutil.GenerateCA(tlsutil.CAOpts{Signer: signer})
 	require.NoError(t, err)
-	require.NoError(t, ioutil.WriteFile(caFile, []byte(ca2), 0600))
+	require.NoError(t, os.WriteFile(caFile, []byte(ca2), 0600))
 
 	// wait a bit to see if it get updated.
 	time.Sleep(time.Second)
@@ -5576,9 +5576,9 @@ func TestAgent_AutoReloadDoReload_WhenCertThenKeyUpdated(t *testing.T) {
 	caFile := filepath.Join(certsDir, "cacert.pem")
 	keyFile := filepath.Join(certsDir, "key.pem")
 
-	require.NoError(t, ioutil.WriteFile(certFile, []byte(cert), 0600))
-	require.NoError(t, ioutil.WriteFile(caFile, []byte(ca), 0600))
-	require.NoError(t, ioutil.WriteFile(keyFile, []byte(privateKey), 0600))
+	require.NoError(t, os.WriteFile(certFile, []byte(cert), 0600))
+	require.NoError(t, os.WriteFile(caFile, []byte(ca), 0600))
+	require.NoError(t, os.WriteFile(keyFile, []byte(privateKey), 0600))
 
 	// generate a gossip key
 	gossipKey := make([]byte, 32)
@@ -5590,7 +5590,7 @@ func TestAgent_AutoReloadDoReload_WhenCertThenKeyUpdated(t *testing.T) {
 	hclConfig := TestACLConfigWithParams(nil)
 
 	configFile := testutil.TempDir(t, "config") + "/config.hcl"
-	require.NoError(t, ioutil.WriteFile(configFile, []byte(`
+	require.NoError(t, os.WriteFile(configFile, []byte(`
 		encrypt = "`+gossipKeyEncoded+`"
 		encrypt_verify_incoming = true
 		encrypt_verify_outgoing = true
@@ -5622,8 +5622,8 @@ func TestAgent_AutoReloadDoReload_WhenCertThenKeyUpdated(t *testing.T) {
 	})
 	require.NoError(t, err)
 	certFileNew := filepath.Join(certsDir, "cert_new.pem")
-	require.NoError(t, ioutil.WriteFile(certFileNew, []byte(certNew), 0600))
-	require.NoError(t, ioutil.WriteFile(configFile, []byte(`
+	require.NoError(t, os.WriteFile(certFileNew, []byte(certNew), 0600))
+	require.NoError(t, os.WriteFile(configFile, []byte(`
 		encrypt = "`+gossipKeyEncoded+`"
 		encrypt_verify_incoming = true
 		encrypt_verify_outgoing = true
@@ -5646,7 +5646,7 @@ func TestAgent_AutoReloadDoReload_WhenCertThenKeyUpdated(t *testing.T) {
 		require.Equal(r, cert1Key, cert.PrivateKey)
 	})
 
-	require.NoError(t, ioutil.WriteFile(keyFile, []byte(privateKeyNew), 0600))
+	require.NoError(t, os.WriteFile(keyFile, []byte(privateKeyNew), 0600))
 
 	// cert should change as we did not update the associated key
 	time.Sleep(1 * time.Second)
@@ -5685,9 +5685,9 @@ func TestAgent_AutoReloadDoReload_WhenKeyThenCertUpdated(t *testing.T) {
 	caFile := filepath.Join(certsDir, "cacert.pem")
 	keyFile := filepath.Join(certsDir, "key.pem")
 
-	require.NoError(t, ioutil.WriteFile(certFile, []byte(cert), 0600))
-	require.NoError(t, ioutil.WriteFile(caFile, []byte(ca), 0600))
-	require.NoError(t, ioutil.WriteFile(keyFile, []byte(privateKey), 0600))
+	require.NoError(t, os.WriteFile(certFile, []byte(cert), 0600))
+	require.NoError(t, os.WriteFile(caFile, []byte(ca), 0600))
+	require.NoError(t, os.WriteFile(keyFile, []byte(privateKey), 0600))
 
 	// generate a gossip key
 	gossipKey := make([]byte, 32)
@@ -5699,7 +5699,7 @@ func TestAgent_AutoReloadDoReload_WhenKeyThenCertUpdated(t *testing.T) {
 	hclConfig := TestACLConfigWithParams(nil)
 
 	configFile := testutil.TempDir(t, "config") + "/config.hcl"
-	require.NoError(t, ioutil.WriteFile(configFile, []byte(`
+	require.NoError(t, os.WriteFile(configFile, []byte(`
 		encrypt = "`+gossipKeyEncoded+`"
 		encrypt_verify_incoming = true
 		encrypt_verify_outgoing = true
@@ -5732,7 +5732,7 @@ func TestAgent_AutoReloadDoReload_WhenKeyThenCertUpdated(t *testing.T) {
 	})
 	require.NoError(t, err)
 	certFileNew := filepath.Join(certsDir, "cert_new.pem")
-	require.NoError(t, ioutil.WriteFile(keyFile, []byte(privateKeyNew), 0600))
+	require.NoError(t, os.WriteFile(keyFile, []byte(privateKeyNew), 0600))
 	// cert should not change as we did not update the associated key
 	time.Sleep(1 * time.Second)
 	retry.Run(t, func(r *retry.R) {
@@ -5742,8 +5742,8 @@ func TestAgent_AutoReloadDoReload_WhenKeyThenCertUpdated(t *testing.T) {
 		require.Equal(r, cert1Key, cert.PrivateKey)
 	})
 
-	require.NoError(t, ioutil.WriteFile(certFileNew, []byte(certNew), 0600))
-	require.NoError(t, ioutil.WriteFile(configFile, []byte(`
+	require.NoError(t, os.WriteFile(certFileNew, []byte(certNew), 0600))
+	require.NoError(t, os.WriteFile(configFile, []byte(`
 		encrypt = "`+gossipKeyEncoded+`"
 		encrypt_verify_incoming = true
 		encrypt_verify_outgoing = true
@@ -5777,7 +5777,7 @@ func TestAgent_AutoReloadDoReload_WhenKeyThenCertUpdated(t *testing.T) {
 		ExtKeyUsage: []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth, x509.ExtKeyUsageClientAuth},
 	})
 	require.NoError(t, err)
-	require.NoError(t, ioutil.WriteFile(keyFile, []byte(privateKeyNew2), 0600))
+	require.NoError(t, os.WriteFile(keyFile, []byte(privateKeyNew2), 0600))
 	// cert should not change as we did not update the associated cert
 	time.Sleep(1 * time.Second)
 	retry.Run(t, func(r *retry.R) {
@@ -5787,7 +5787,7 @@ func TestAgent_AutoReloadDoReload_WhenKeyThenCertUpdated(t *testing.T) {
 		require.Equal(r, cert2Key, cert.PrivateKey)
 	})
 
-	require.NoError(t, ioutil.WriteFile(certFileNew, []byte(certNew2), 0600))
+	require.NoError(t, os.WriteFile(certFileNew, []byte(certNew2), 0600))
 
 	// cert should change as we did  update the associated key
 	time.Sleep(1 * time.Second)
@@ -5825,9 +5825,9 @@ func Test_coalesceTimerTwoPeriods(t *testing.T) {
 	caFile := filepath.Join(certsDir, "cacert.pem")
 	keyFile := filepath.Join(certsDir, "key.pem")
 
-	require.NoError(t, ioutil.WriteFile(certFile, []byte(cert), 0600))
-	require.NoError(t, ioutil.WriteFile(caFile, []byte(ca), 0600))
-	require.NoError(t, ioutil.WriteFile(keyFile, []byte(privateKey), 0600))
+	require.NoError(t, os.WriteFile(certFile, []byte(cert), 0600))
+	require.NoError(t, os.WriteFile(caFile, []byte(ca), 0600))
+	require.NoError(t, os.WriteFile(keyFile, []byte(privateKey), 0600))
 
 	// generate a gossip key
 	gossipKey := make([]byte, 32)
@@ -5839,7 +5839,7 @@ func Test_coalesceTimerTwoPeriods(t *testing.T) {
 	hclConfig := TestACLConfigWithParams(nil)
 
 	configFile := testutil.TempDir(t, "config") + "/config.hcl"
-	require.NoError(t, ioutil.WriteFile(configFile, []byte(`
+	require.NoError(t, os.WriteFile(configFile, []byte(`
 		encrypt = "`+gossipKeyEncoded+`"
 		encrypt_verify_incoming = true
 		encrypt_verify_outgoing = true
@@ -5875,8 +5875,8 @@ func Test_coalesceTimerTwoPeriods(t *testing.T) {
 	})
 	require.NoError(t, err)
 	certFileNew := filepath.Join(certsDir, "cert_new.pem")
-	require.NoError(t, ioutil.WriteFile(certFileNew, []byte(certNew), 0600))
-	require.NoError(t, ioutil.WriteFile(configFile, []byte(`
+	require.NoError(t, os.WriteFile(certFileNew, []byte(certNew), 0600))
+	require.NoError(t, os.WriteFile(configFile, []byte(`
 		encrypt = "`+gossipKeyEncoded+`"
 		encrypt_verify_incoming = true
 		encrypt_verify_outgoing = true
@@ -5899,7 +5899,7 @@ func Test_coalesceTimerTwoPeriods(t *testing.T) {
 		require.Equal(r, cert1Key, cert.PrivateKey)
 	})
 
-	require.NoError(t, ioutil.WriteFile(keyFile, []byte(privateKeyNew), 0600))
+	require.NoError(t, os.WriteFile(keyFile, []byte(privateKeyNew), 0600))
 
 	// cert should change as we did not update the associated key
 	time.Sleep(coalesceInterval * 2)
@@ -5979,7 +5979,7 @@ func TestAgent_startListeners(t *testing.T) {
 
 func getExpectedCaPoolByFile(t *testing.T) *x509.CertPool {
 	pool := x509.NewCertPool()
-	data, err := ioutil.ReadFile("../test/ca/root.cer")
+	data, err := os.ReadFile("../test/ca/root.cer")
 	require.NoError(t, err)
 	if !pool.AppendCertsFromPEM(data) {
 		t.Fatal("could not add test ca ../test/ca/root.cer to pool")
@@ -5995,7 +5995,7 @@ func getExpectedCaPoolByDir(t *testing.T) *x509.CertPool {
 	for _, entry := range entries {
 		filename := path.Join("../test/ca_path", entry.Name())
 
-		data, err := ioutil.ReadFile(filename)
+		data, err := os.ReadFile(filename)
 		require.NoError(t, err)
 
 		if !pool.AppendCertsFromPEM(data) {

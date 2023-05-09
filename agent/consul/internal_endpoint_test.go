@@ -1,9 +1,9 @@
 package consul
 
 import (
+	"crypto/rand"
 	"encoding/base64"
 	"fmt"
-	"math/rand"
 	"os"
 	"strings"
 	"testing"

@@ -8,10 +8,9 @@ import (
 	"encoding/base64"
 	"encoding/pem"
 	"fmt"
-	"io/ioutil"
-	"math/rand"
 	"net"
 	"net/url"
+	"os"
 	"path"
 	"testing"
 	"time"
@@ -107,7 +106,7 @@ func TestAutoConfigInitialConfiguration(t *testing.T) {
 
 	gossipKey := make([]byte, 32)
 	// this is not cryptographic randomness and is not secure but for the sake of this test its all we need.
-	n, err := rand.Read(gossipKey)
+	n, err := crand.Read(gossipKey)
 	require.NoError(t, err)
 	require.Equal(t, 32, n)
 
@@ -162,15 +161,15 @@ func TestAutoConfigInitialConfiguration(t *testing.T) {
 		c.AutoConfigAuthzAllowReuse = true
 
 		cafile := path.Join(c.DataDir, "cacert.pem")
-		err := ioutil.WriteFile(cafile, []byte(cacert), 0600)
+		err := os.WriteFile(cafile, []byte(cacert), 0600)
 		require.NoError(t, err)
 
 		certfile := path.Join(c.DataDir, "cert.pem")
-		err = ioutil.WriteFile(certfile, []byte(cert), 0600)
+		err = os.WriteFile(certfile, []byte(cert), 0600)
 		require.NoError(t, err)
 
 		keyfile := path.Join(c.DataDir, "key.pem")
-		err = ioutil.WriteFile(keyfile, []byte(key), 0600)
+		err = os.WriteFile(keyfile, []byte(key), 0600)
 		require.NoError(t, err)
 
 		c.TLSConfig.InternalRPC.CAFile = cafile
@@ -426,7 +425,7 @@ func TestAutoConfig_updateTLSSettingsInConfig(t *testing.T) {
 
 	dir := testutil.TempDir(t, "auto-config-tls-settings")
 	cafile := path.Join(dir, "cacert.pem")
-	err = ioutil.WriteFile(cafile, []byte(cacert), 0600)
+	err = os.WriteFile(cafile, []byte(cacert), 0600)
 	require.NoError(t, err)
 
 	type testCase struct {
@@ -505,7 +504,7 @@ func TestAutoConfig_updateGossipEncryptionInConfig(t *testing.T) {
 
 	gossipKey := make([]byte, 32)
 	// this is not cryptographic randomness and is not secure but for the sake of this test its all we need.
-	n, err := rand.Read(gossipKey)
+	n, err := crand.Read(gossipKey)
 	require.NoError(t, err)
 	require.Equal(t, 32, n)
 	gossipKeyEncoded := base64.StdEncoding.EncodeToString(gossipKey)
@@ -632,7 +631,7 @@ func TestAutoConfig_updateTLSCertificatesInConfig(t *testing.T) {
 	// will error if it cannot load the CA certificate from disk
 	dir := testutil.TempDir(t, "auto-config-tls-certificate")
 	cafile := path.Join(dir, "cacert.pem")
-	err = ioutil.WriteFile(cafile, []byte(cacert), 0600)
+	err = os.WriteFile(cafile, []byte(cacert), 0600)
 	require.NoError(t, err)
 
 	// translate the roots response to protobuf to be embedded

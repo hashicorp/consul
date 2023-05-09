@@ -1,6 +1,6 @@
 module github.com/hashicorp/consul/test/integration/consul-container
 
-go 1.19
+go 1.20
 
 require (
 	github.com/docker/docker v20.10.11+incompatible

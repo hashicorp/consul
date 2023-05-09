@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"net/url"
 	"os"
@@ -276,7 +275,7 @@ func (b *builder) sourcesFromPath(path string, format string) ([]Source, error) 
 
 // newSourceFromFile creates a Source from the contents of the file at path.
 func newSourceFromFile(path string, format string) (Source, error) {
-	data, err := ioutil.ReadFile(path)
+	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("config: failed to read %s: %s", path, err)
 	}

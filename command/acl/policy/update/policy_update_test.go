@@ -2,7 +2,7 @@ package policyupdate
 
 import (
 	"encoding/json"
-	"io/ioutil"
+	"os"
 	"strings"
 	"testing"
 
@@ -47,7 +47,7 @@ func TestPolicyUpdateCommand(t *testing.T) {
 	cmd := New(ui)
 
 	rules := []byte("service \"\" { policy = \"write\" }")
-	err := ioutil.WriteFile(testDir+"/rules.hcl", rules, 0644)
+	err := os.WriteFile(testDir+"/rules.hcl", rules, 0644)
 	assert.NoError(t, err)
 
 	// Create a policy
@@ -97,7 +97,7 @@ func TestPolicyUpdateCommand_JSON(t *testing.T) {
 	cmd := New(ui)
 
 	rules := []byte("service \"\" { policy = \"write\" }")
-	err := ioutil.WriteFile(testDir+"/rules.hcl", rules, 0644)
+	err := os.WriteFile(testDir+"/rules.hcl", rules, 0644)
 	assert.NoError(t, err)
 
 	// Create a policy

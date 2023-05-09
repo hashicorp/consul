@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"testing"
 	"time"
 
@@ -292,15 +292,15 @@ func TestLeader_PeeringSync_FailsForTLSError(t *testing.T) {
 	t.Run("server-name-validation", func(t *testing.T) {
 		testLeader_PeeringSync_failsForTLSError(t, func(token *structs.PeeringToken) {
 			token.ServerName = "wrong.name"
-		}, `transport: authentication handshake failed: x509: certificate is valid for server.dc1.consul, bob.server.dc1.consul, not wrong.name`)
+		}, `transport: authentication handshake failed: tls: failed to verify certificate: x509: certificate is valid for server.dc1.consul, bob.server.dc1.consul, not wrong.name`)
 	})
 	t.Run("bad-ca-roots", func(t *testing.T) {
-		wrongRoot, err := ioutil.ReadFile("../../test/client_certs/rootca.crt")
+		wrongRoot, err := os.ReadFile("../../test/client_certs/rootca.crt")
 		require.NoError(t, err)
 
 		testLeader_PeeringSync_failsForTLSError(t, func(token *structs.PeeringToken) {
 			token.CA = []string{string(wrongRoot)}
-		}, `transport: authentication handshake failed: x509: certificate signed by unknown authority`)
+		}, `transport: authentication handshake failed: tls: failed to verify certificate: x509: certificate signed by unknown authority`)
 	})
 }
 
