@@ -211,7 +211,7 @@ Use these links to navigate to a particular top-level stanza.
 
         - `secretKey` ((#v-global-secretsbackend-vault-ca-secretkey)) (`string: ""`) - The key within the Kubernetes or Vault secret that holds the Vault CA certificate.
 
-      - `connectCA` ((#v-global-secretsbackend-vault-connectca)) - Configuration for the Vault Connect CA provider.
+      - `connectCA` ((#v-global-secretsbackend-vault-connectca)) - Configuration for the Vault service mesh CA provider.
         The provider will be configured to use the Vault Kubernetes auth method
         and therefore requires the role provided by `global.secretsBackend.vault.consulServerRole`
         to have permissions to the root and intermediate PKI paths.
@@ -223,13 +223,13 @@ Use these links to navigate to a particular top-level stanza.
         - `authMethodPath` ((#v-global-secretsbackend-vault-connectca-authmethodpath)) (`string: kubernetes`) - The mount path of the Kubernetes auth method in Vault.
 
         - `rootPKIPath` ((#v-global-secretsbackend-vault-connectca-rootpkipath)) (`string: ""`) - The path to a PKI secrets engine for the root certificate.
-          For more details, please refer to [Vault Connect CA configuration](/consul/docs/connect/ca/vault#rootpkipath).
+          For more details, please refer to [Vault service mesh CA configuration](/consul/docs/connect/ca/vault#rootpkipath).
 
         - `intermediatePKIPath` ((#v-global-secretsbackend-vault-connectca-intermediatepkipath)) (`string: ""`) - The path to a PKI secrets engine for the generated intermediate certificate.
-          For more details, please refer to [Vault Connect CA configuration](/consul/docs/connect/ca/vault#intermediatepkipath).
+          For more details, please refer to [Vault service mesh CA configuration](/consul/docs/connect/ca/vault#intermediatepkipath).
 
-        - `additionalConfig` ((#v-global-secretsbackend-vault-connectca-additionalconfig)) (`string: {}`) - Additional Connect CA configuration in JSON format.
-          Please refer to [Vault Connect CA configuration](/consul/docs/connect/ca/vault#configuration)
+        - `additionalConfig` ((#v-global-secretsbackend-vault-connectca-additionalconfig)) (`string: {}`) - Additional service mesh CA configuration in JSON format.
+          Please refer to [Vault service mesh CA configuration](/consul/docs/connect/ca/vault#configuration)
           for all configuration options available for that provider.
 
           Example:
@@ -250,14 +250,14 @@ Use these links to navigate to a particular top-level stanza.
 
         - `caCert` ((#v-global-secretsbackend-vault-connectinject-cacert)) - Configuration to the Vault Secret that Kubernetes uses on
           Kubernetes pod creation, deletion, and update, to get CA certificates
-          used issued from vault to send webhooks to the ConnectInject.
+          used issued from vault to send webhooks to the connect inject.
 
           - `secretName` ((#v-global-secretsbackend-vault-connectinject-cacert-secretname)) (`string: null`) - The Vault secret path that contains the CA certificate for
-            Connect Inject webhooks.
+            connect inject webhooks.
 
         - `tlsCert` ((#v-global-secretsbackend-vault-connectinject-tlscert)) - Configuration to the Vault Secret that Kubernetes uses on
           Kubernetes pod creation, deletion, and update, to get TLS certificates
-          used issued from vault to send webhooks to the ConnectInject.
+          used issued from vault to send webhooks to the connect inject.
 
           - `secretName` ((#v-global-secretsbackend-vault-connectinject-tlscert-secretname)) (`string: null`) - The Vault secret path that issues TLS certificates for connect
             inject webhooks.
@@ -672,10 +672,10 @@ Use these links to navigate to a particular top-level stanza.
     contains best practices and recommendations for selecting suitable
     hardware sizes for your Consul servers.
 
-  - `connect` ((#v-server-connect)) (`boolean: true`) - This will enable/disable [Connect](/consul/docs/connect). Setting this to true
+  - `connect` ((#v-server-connect)) (`boolean: true`) - This will enable/disable [service mesh](/consul/docs/connect). Setting this to true
     _will not_ automatically secure pod communication, this
     setting will only enable usage of the feature. Consul will automatically initialize
-    a new CA and set of certificates. Additional Connect settings can be configured
+    a new CA and set of certificates. Additional service mesh settings can be configured
     by setting the `server.extraConfig` value.
 
   - `serviceAccount` ((#v-server-serviceaccount))
@@ -1027,7 +1027,7 @@ Use these links to navigate to a particular top-level stanza.
 
   - `grpc` ((#v-client-grpc)) (`boolean: true`) - If true, agents will enable their GRPC listener on
     port 8502 and expose it to the host. This will use slightly more resources, but is
-    required for Connect.
+    required for service mesh.
 
   - `nodeMeta` ((#v-client-nodemeta)) - nodeMeta specifies an arbitrary metadata key/value pair to associate with the node
     (refer to [`-node-meta`](/consul/docs/agent/config/cli-flags#_node_meta))
@@ -1228,7 +1228,7 @@ Use these links to navigate to a particular top-level stanza.
 
   - `enabled` ((#v-dns-enabled)) (`boolean: -`)
 
-  - `enableRedirection` ((#v-dns-enableredirection)) (`boolean: -`) - If true, services using Consul Connect will use Consul DNS
+  - `enableRedirection` ((#v-dns-enableredirection)) (`boolean: -`) - If true, services using Consul service mesh will use Consul DNS
     for default DNS resolution. The DNS lookups fall back to the nameserver IPs
     listed in /etc/resolv.conf if not found in Consul.
 
@@ -1538,9 +1538,9 @@ Use these links to navigate to a particular top-level stanza.
 
 ### connectInject ((#h-connectinject))
 
-- `connectInject` ((#v-connectinject)) - Configures the automatic Connect sidecar injector.
+- `connectInject` ((#v-connectinject)) - Configures the automatic service mesh sidecar injector.
 
-  - `enabled` ((#v-connectinject-enabled)) (`boolean: true`) - True if you want to enable connect injection. Set to "-" to inherit from
+  - `enabled` ((#v-connectinject-enabled)) (`boolean: true`) - True if you want to enable service mesh sidecar injection. Set to "-" to inherit from
     global.enabled.
 
   - `replicas` ((#v-connectinject-replicas)) (`integer: 1`) - The number of deployment replicas.
@@ -1550,13 +1550,13 @@ Use these links to navigate to a particular top-level stanza.
   - `default` ((#v-connectinject-default)) (`boolean: false`) - If true, the injector will inject the
     Connect sidecar into all pods by default. Otherwise, pods must specify the
     [injection annotation](/consul/docs/k8s/connect#consul-hashicorp-com-connect-inject)
-    to opt-in to Connect injection. If this is true, pods can use the same annotation
+    to opt-in to service mesh sidecar injection. If this is true, pods can use the same annotation
     to explicitly opt-out of injection.
 
   - `transparentProxy` ((#v-connectinject-transparentproxy)) - Configures Transparent Proxy for Consul Service mesh services.
     Using this feature requires Consul 1.10.0-beta1+.
 
-    - `defaultEnabled` ((#v-connectinject-transparentproxy-defaultenabled)) (`boolean: true`) - If true, then all Consul Service mesh will run with transparent proxy enabled by default,
+    - `defaultEnabled` ((#v-connectinject-transparentproxy-defaultenabled)) (`boolean: true`) - If true, then all Consul service mesh will run with transparent proxy enabled by default,
       i.e. we enforce that all traffic within the pod will go through the proxy.
       This value is overridable via the "consul.hashicorp.com/transparent-proxy" pod annotation.
 
@@ -1651,7 +1651,7 @@ Use these links to navigate to a particular top-level stanza.
         persistent: true
       ```
 
-  - `metrics` ((#v-connectinject-metrics)) - Configures metrics for Consul Connect services. All values are overridable
+  - `metrics` ((#v-connectinject-metrics)) - Configures metrics for services in the Consul service mesh. All values are overridable
     via annotations on a per-pod basis.
 
     - `defaultEnabled` ((#v-connectinject-metrics-defaultenabled)) (`string: -`) - If true, the connect-injector will automatically
@@ -1660,14 +1660,14 @@ Use these links to navigate to a particular top-level stanza.
       metrics will depend on whether metrics merging is enabled:
         - If metrics merging is enabled:
           the consul-dataplane will run a merged metrics server
-          combining Envoy sidecar and Connect service metrics,
+          combining Envoy sidecar and mesh service metrics,
           i.e. if your service exposes its own Prometheus metrics.
         - If metrics merging is disabled:
           the listener will just expose Envoy sidecar metrics.
       This will inherit from `global.metrics.enabled`.
 
     - `defaultEnableMerging` ((#v-connectinject-metrics-defaultenablemerging)) (`boolean: false`) - Configures the consul-dataplane to run a merged metrics server
-      to combine and serve both Envoy and Connect service metrics.
+      to combine and serve both Envoy and mesh service metrics.
       This feature is available only in Consul v1.10.0 or greater.
 
     - `defaultMergedMetricsPort` ((#v-connectinject-metrics-defaultmergedmetricsport)) (`integer: 20100`) - Configures the port at which the consul-dataplane will listen on to return
@@ -1768,13 +1768,13 @@ Use these links to navigate to a particular top-level stanza.
         namespace-label: label-value
     ```
 
-  - `k8sAllowNamespaces` ((#v-connectinject-k8sallownamespaces)) (`array<string>: ["*"]`) - List of k8s namespaces to allow Connect sidecar
+  - `k8sAllowNamespaces` ((#v-connectinject-k8sallownamespaces)) (`array<string>: ["*"]`) - List of k8s namespaces to allow service mesh sidecar
     injection in. If a k8s namespace is not included or is listed in `k8sDenyNamespaces`,
     pods in that k8s namespace will not be injected even if they are explicitly
     annotated. Use `["*"]` to automatically allow all k8s namespaces.
 
     For example, `["namespace1", "namespace2"]` will only allow pods in the k8s
-    namespaces `namespace1` and `namespace2` to have Connect sidecars injected
+    namespaces `namespace1` and `namespace2` to have service mesh sidecars injected
     and registered with Consul. All other k8s namespaces will be ignored.
 
     To deny all namespaces, set this to `[]`.
@@ -1783,7 +1783,7 @@ Use these links to navigate to a particular top-level stanza.
     `namespaceSelector` takes precedence over both since it is applied first.
     `kube-system` and `kube-public` are never injected, even if included here.
 
-  - `k8sDenyNamespaces` ((#v-connectinject-k8sdenynamespaces)) (`array<string>: []`) - List of k8s namespaces that should not allow Connect
+  - `k8sDenyNamespaces` ((#v-connectinject-k8sdenynamespaces)) (`array<string>: []`) - List of k8s namespaces that should not allow service mesh
     sidecar injection. This list takes precedence over `k8sAllowNamespaces`.
     `*` is not supported because then nothing would be allowed to be injected.
 
@@ -1848,7 +1848,7 @@ Use these links to navigate to a particular top-level stanza.
     auth method for Connect inject, set this to the name of your auth method.
 
   - `aclInjectToken` ((#v-connectinject-aclinjecttoken)) - Refers to a Kubernetes secret that you have created that contains
-    an ACL token for your Consul cluster which allows the Connect injector the correct
+    an ACL token for your Consul cluster which allows the connect injector the correct
     permissions. This is only needed if Consul namespaces <EnterpriseAlert inline /> and ACLs
     are enabled on the Consul cluster and you are not setting
     `global.acls.manageSystemACLs` to `true`.
@@ -1892,7 +1892,7 @@ Use these links to navigate to a particular top-level stanza.
 
         - `cpu` ((#v-connectinject-sidecarproxy-resources-limits-cpu)) (`string: null`) - Recommended production default: 100m
 
-  - `initContainer` ((#v-connectinject-initcontainer)) (`map`) - The resource settings for the Connect injected init container. If null, the resources
+  - `initContainer` ((#v-connectinject-initcontainer)) (`map`) - The resource settings for the connect injected init container. If null, the resources
     won't be set for the initContainer. The defaults are optimized for developer instances of 
     Kubernetes, however they should be tweaked with the recommended defaults as shown below to speed up service registration times.
 
@@ -1912,10 +1912,10 @@ Use these links to navigate to a particular top-level stanza.
 
 ### meshGateway ((#h-meshgateway))
 
-- `meshGateway` ((#v-meshgateway)) - [Mesh Gateways](/consul/docs/connect/gateways/mesh-gateway) enable Consul Connect to work across Consul datacenters.
+- `meshGateway` ((#v-meshgateway)) - [Mesh Gateways](/consul/docs/connect/gateways/mesh-gateway) enable Consul service mesh to work across Consul datacenters.
 
   - `enabled` ((#v-meshgateway-enabled)) (`boolean: false`) - If [mesh gateways](/consul/docs/connect/gateways/mesh-gateway) are enabled, a Deployment will be created that runs
-    gateways and Consul Connect will be configured to use gateways.
+    gateways and Consul service mesh will be configured to use gateways.
     This setting is required for [cluster peering](/consul/docs/k8s/connect/cluster-peering/tech-specs).
     Requirements: consul 1.6.0+ if using `global.acls.manageSystemACLs``.
 
@@ -2477,7 +2477,7 @@ ui:
     type: LoadBalancer
 ```
 
-The below `values.yaml` results in a three server Consul Enterprise cluster with 100GB of storage and automatic Connect injection.
+The below `values.yaml` results in a three server Consul Enterprise cluster with 100GB of storage and automatic connect injection.
 
 Note, this would require a secret that contains the enterprise license key.
 

@@ -1691,7 +1691,6 @@ func testMockAgentSelf(
 		resp := agent.Self{
 			Config: map[string]interface{}{
 				"Datacenter": "dc1",
-				"NodeID":     "7cbef9fc-4fb1-4c84-b100-689db9755449",
 			},
 		}
 

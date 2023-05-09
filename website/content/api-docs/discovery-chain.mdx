@@ -9,7 +9,7 @@ description: The /discovery-chain endpoints are for interacting with the discove
 -> **1.6.0+:** The discovery chain API is available in Consul versions 1.6.0 and newer.
 
 ~> This is a low-level API primarily targeted at developers building external
-[Connect proxy integrations](/consul/docs/connect/proxies/integrate). Future
+[service mesh proxy integrations](/consul/docs/connect/proxies/integrate). Future
 high-level proxy integration APIs may obviate the need for this API over time.
 
 The `/discovery-chain` endpoint returns the compiled [discovery
@@ -17,7 +17,7 @@ chain](/consul/docs/connect/l7-traffic/discovery-chain) for a service.
 
 This will fetch all related [configuration
 entries](/consul/docs/agent/config-entries) and render them into a form suitable
-for use by a [connect proxy](/consul/docs/connect/proxies) implementation. This
+for use by a [service mesh proxy](/consul/docs/connect/proxies) implementation. This
 is a key component of [L7 Traffic
 Management](/consul/docs/connect/l7-traffic).
 

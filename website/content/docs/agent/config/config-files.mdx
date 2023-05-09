@@ -245,8 +245,8 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
     The initial RPC uses a JWT specified with either `intro_token`,
     `intro_token_file` or the `CONSUL_INTRO_TOKEN` environment variable to authorize
     the request. How the JWT token is verified is controlled by the `auto_config.authorizer`
-    object available for use on Consul servers. Enabling this option also turns
-    on Connect because it is vital for `auto_config`, more specifically the CA
+    object available for use on Consul servers. Enabling this option also enables
+    service mesh because it is vital for `auto_config`, more specifically the service mesh CA
     and certificates infrastructure.
 
     ~> **Warning:** Enabling `auto_config` conflicts with the [`auto_encrypt.tls`](#tls) feature.
@@ -651,7 +651,7 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
 
 - `primary_datacenter` - This designates the datacenter
   which is authoritative for ACL information, intentions and is the root Certificate
-  Authority for Connect. It must be provided to enable ACLs. All servers and datacenters
+  Authority for service mesh. It must be provided to enable ACLs. All servers and datacenters
   must agree on the primary datacenter. Setting it on the servers is all you need
   for cluster-level enforcement, but for the APIs to forward properly from the clients,
   it must be set on them too. In Consul 0.8 and later, this also enables agent-level
@@ -946,7 +946,7 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
 
     - `replication` ((#acl_tokens_replication)) - The ACL token used to
       authorize secondary datacenters with the primary datacenter for replication
-      operations. This token is required for servers outside the [`primary_datacenter`](#primary_datacenter) when ACLs are enabled. This token may be provided later using the [agent token API](/consul/api-docs/agent#update-acl-tokens) on each server. This token must have at least "read" permissions on ACL data but if ACL token replication is enabled then it must have "write" permissions. This also enables Connect replication, for which the token will require both operator "write" and intention "read" permissions for replicating CA and Intention data.
+      operations. This token is required for servers outside the [`primary_datacenter`](#primary_datacenter) when ACLs are enabled. This token may be provided later using the [agent token API](/consul/api-docs/agent#update-acl-tokens) on each server. This token must have at least "read" permissions on ACL data but if ACL token replication is enabled then it must have "write" permissions. This also enables service mesh data replication, for which the token will require both operator "write" and intention "read" permissions for replicating CA and Intention data.
 
       ~> **Warning:** When enabling ACL token replication on the secondary datacenter,
       policies and roles already present in the secondary datacenter will be lost. For
@@ -1088,7 +1088,10 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
 
 - `bootstrap_expect` Equivalent to the [`-bootstrap-expect` command-line flag](/consul/docs/agent/config/cli-flags#_bootstrap_expect).
 
-## Connect Parameters
+## Service Mesh Parameters ((#connect-parameters))
+
+The noun _connect_ is used throughout this documentation to refer to the connect
+subsystem that provides Consul's service mesh capabilities.
 
 - `connect` This object allows setting options for the Connect feature.
 
@@ -1096,14 +1099,14 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
 
   - `enabled` ((#connect_enabled)) (Defaults to `true`) Controls whether Connect features are
     enabled on this agent. Should be enabled on all servers in the cluster
-    in order for Connect to function properly.
+    in order for service mesh to function properly.
     Will be set to `true` automatically if `auto_config.enabled` or `auto_encrypt.allow_tls` is `true`.
 
   - `enable_mesh_gateway_wan_federation` ((#connect_enable_mesh_gateway_wan_federation)) (Defaults to `false`) Controls whether cross-datacenter federation traffic between servers is funneled
     through mesh gateways. This was added in Consul 1.8.0.
 
   - `ca_provider` ((#connect_ca_provider)) Controls which CA provider to
-    use for Connect's CA. Currently only the `aws-pca`, `consul`, and `vault` providers are supported.
+    use for the service mesh's CA. Currently only the `aws-pca`, `consul`, and `vault` providers are supported.
     This is only used when initially bootstrapping the cluster. For an existing cluster,
     use the [Update CA Configuration Endpoint](/consul/api-docs/connect/ca#update-ca-configuration).
 
@@ -1140,13 +1143,13 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
 
     - `root_pki_path` ((#vault_ca_root_pki)) The path to use for the root
       CA pki backend in Vault. This can be an existing backend with a CA already
-      configured, or a blank/unmounted backend in which case Connect will automatically
+      configured, or a blank/unmounted backend in which case Consul will automatically
       mount/generate the CA. The Vault token given above must have `sudo` access
       to this backend, as well as permission to mount the backend at this path if
       it is not already mounted.
 
     - `intermediate_pki_path` ((#vault_ca_intermediate_pki))
-      The path to use for the temporary intermediate CA pki backend in Vault. **Connect
+      The path to use for the temporary intermediate CA pki backend in Vault. **Consul
       will overwrite any data at this path in order to generate a temporary intermediate
       CA**. The Vault token given above must have `write` access to this backend,
       as well as permission to mount the backend at this path if it is not already
@@ -1391,14 +1394,14 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
 
   - `allow_tls` (Defaults to `false`) This option enables
     `auto_encrypt` on the servers and allows them to automatically distribute certificates
-    from the Connect CA to the clients. If enabled, the server can accept incoming
-    connections from both the built-in CA and the Connect CA, as well as their certificates.
+    from the service mesh CA to the clients. If enabled, the server can accept incoming
+    connections from both the built-in CA and the service mesh CA, as well as their certificates.
     Note, the server will only present the built-in CA and certificate, which the
     client can verify using the CA it received from `auto_encrypt` endpoint. If disabled,
     a client configured with `auto_encrypt.tls` will be unable to start.
 
   - `tls` (Defaults to `false`) Allows the client to request the
-    Connect CA and certificates from the servers, for encrypting RPC communication.
+    service mesh CA and certificates from the servers, for encrypting RPC communication.
     The client will make the request to any servers listed in the `-retry-join`
     option. This requires that every server to have `auto_encrypt.allow_tls` enabled.
     When both `auto_encrypt` options are used, it allows clients to receive certificates
@@ -2186,7 +2189,7 @@ specially crafted certificate signed by the CA can be used to gain full access t
 
       ~> **Security Note:** `verify_server_hostname` *must* be set to true to prevent a
       compromised client from gaining full read and write access to all cluster
-      data *including all ACL tokens and Connect CA root keys*.
+      data *including all ACL tokens and service mesh CA root keys*.
 
 - `server_name` When provided, this overrides the [`node_name`](#_node)
   for the TLS certificate. It can be used to ensure that the certificate name matches

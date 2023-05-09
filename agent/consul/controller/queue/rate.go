@@ -1,7 +1,7 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: MPL-2.0
 
-package controller
+package queue
 
 import (
 	"math"
@@ -14,18 +14,18 @@ import (
 
 // Limiter is an interface for a rate limiter that can limit
 // the number of retries processed in the work queue.
-type Limiter interface {
+type Limiter[T ItemType] interface {
 	// NextRetry returns the remaining time until the queue should
 	// reprocess a Request.
-	NextRetry(request Request) time.Duration
+	NextRetry(request T) time.Duration
 	// Forget causes the Limiter to reset the backoff for the Request.
-	Forget(request Request)
+	Forget(request T)
 }
 
-var _ Limiter = &ratelimiter{}
+var _ Limiter[string] = &ratelimiter[string]{}
 
-type ratelimiter struct {
-	failures map[Request]int
+type ratelimiter[T ItemType] struct {
+	failures map[T]int
 	base     time.Duration
 	max      time.Duration
 	mutex    sync.RWMutex
@@ -33,9 +33,9 @@ type ratelimiter struct {
 
 // NewRateLimiter returns a Limiter that does per-item exponential
 // backoff.
-func NewRateLimiter(base, max time.Duration) Limiter {
-	return &ratelimiter{
-		failures: make(map[Request]int),
+func NewRateLimiter[T ItemType](base, max time.Duration) Limiter[T] {
+	return &ratelimiter[T]{
+		failures: make(map[T]int),
 		base:     base,
 		max:      max,
 	}
@@ -43,7 +43,7 @@ func NewRateLimiter(base, max time.Duration) Limiter {
 
 // NextRetry returns the remaining time until the queue should
 // reprocess a Request.
-func (r *ratelimiter) NextRetry(request Request) time.Duration {
+func (r *ratelimiter[T]) NextRetry(request T) time.Duration {
 	r.mutex.RLock()
 	defer r.mutex.RUnlock()
 
@@ -65,7 +65,7 @@ func (r *ratelimiter) NextRetry(request Request) time.Duration {
 }
 
 // Forget causes the Limiter to reset the backoff for the Request.
-func (r *ratelimiter) Forget(request Request) {
+func (r *ratelimiter[T]) Forget(request T) {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 

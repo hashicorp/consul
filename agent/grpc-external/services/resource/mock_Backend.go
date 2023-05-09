@@ -56,20 +56,20 @@ func (_m *MockBackend) List(ctx context.Context, consistency storage.ReadConsist
 	return r0, r1
 }
 
-// OwnerReferences provides a mock function with given fields: ctx, id
-func (_m *MockBackend) OwnerReferences(ctx context.Context, id *pbresource.ID) ([]*pbresource.ID, error) {
+// ListByOwner provides a mock function with given fields: ctx, id
+func (_m *MockBackend) ListByOwner(ctx context.Context, id *pbresource.ID) ([]*pbresource.Resource, error) {
 	ret := _m.Called(ctx, id)
 
-	var r0 []*pbresource.ID
+	var r0 []*pbresource.Resource
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, *pbresource.ID) ([]*pbresource.ID, error)); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, *pbresource.ID) ([]*pbresource.Resource, error)); ok {
 		return rf(ctx, id)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, *pbresource.ID) []*pbresource.ID); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, *pbresource.ID) []*pbresource.Resource); ok {
 		r0 = rf(ctx, id)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]*pbresource.ID)
+			r0 = ret.Get(0).([]*pbresource.Resource)
 		}
 	}
 
