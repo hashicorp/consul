@@ -3722,7 +3722,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 							DestinationNamespace: "default",
 							DestinationPartition: "default",
 							DestinationName:      apimod.HCPMetricsCollectorName,
-							LocalBindSocketPath:  "/tmp/consul/hcp-metrics/default_web-sidecar-proxy.sock",
+							LocalBindSocketPath:  "/tmp/consul/hcp-metrics/gqmuzdHCUPAEY5mbF8vgkZCNI14.sock",
 							Config: map[string]interface{}{
 								"protocol": "grpc",
 							},
