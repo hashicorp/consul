@@ -1,6 +1,10 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package resource_test
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/oklog/ulid/v2"
@@ -29,6 +33,16 @@ func TestEqualType(t *testing.T) {
 		}
 		b := clone(a)
 		require.True(t, resource.EqualType(a, b))
+	})
+
+	t.Run("nil", func(t *testing.T) {
+		a := &pbresource.Type{
+			Group:        "foo",
+			GroupVersion: "v1",
+			Kind:         "bar",
+		}
+		require.False(t, resource.EqualType(a, nil))
+		require.False(t, resource.EqualType(nil, a))
 	})
 
 	t.Run("different Group", func(t *testing.T) {
@@ -83,6 +97,16 @@ func TestEqualTenancy(t *testing.T) {
 		}
 		b := clone(a)
 		require.True(t, resource.EqualTenancy(a, b))
+	})
+
+	t.Run("nil", func(t *testing.T) {
+		a := &pbresource.Tenancy{
+			Partition: "foo",
+			PeerName:  "bar",
+			Namespace: "baz",
+		}
+		require.False(t, resource.EqualTenancy(a, nil))
+		require.False(t, resource.EqualTenancy(nil, a))
 	})
 
 	t.Run("different Partition", func(t *testing.T) {
@@ -155,6 +179,25 @@ func TestEqualID(t *testing.T) {
 		}
 		b := clone(a)
 		require.True(t, resource.EqualID(a, b))
+	})
+
+	t.Run("nil", func(t *testing.T) {
+		a := &pbresource.ID{
+			Type: &pbresource.Type{
+				Group:        "demo",
+				GroupVersion: "v2",
+				Kind:         "artist",
+			},
+			Tenancy: &pbresource.Tenancy{
+				Partition: "foo",
+				PeerName:  "bar",
+				Namespace: "baz",
+			},
+			Name: "qux",
+			Uid:  ulid.Make().String(),
+		}
+		require.False(t, resource.EqualID(a, nil))
+		require.False(t, resource.EqualID(nil, a))
 	})
 
 	t.Run("different type", func(t *testing.T) {
@@ -238,10 +281,216 @@ func TestEqualID(t *testing.T) {
 	})
 }
 
+func TestEqualStatus(t *testing.T) {
+	orig := &pbresource.Status{
+		ObservedGeneration: ulid.Make().String(),
+		Conditions: []*pbresource.Condition{
+			{
+				Type:    "FooType",
+				State:   pbresource.Condition_STATE_TRUE,
+				Reason:  "FooReason",
+				Message: "Foo is true",
+				Resource: &pbresource.Reference{
+					Type: &pbresource.Type{
+						Group:        "foo-group",
+						GroupVersion: "foo-group-version",
+						Kind:         "foo-kind",
+					},
+					Tenancy: &pbresource.Tenancy{
+						Partition: "foo-partition",
+						PeerName:  "foo-peer-name",
+						Namespace: "foo-namespace",
+					},
+					Name:    "foo-name",
+					Section: "foo-section",
+				},
+			},
+		},
+	}
+
+	// Equal cases.
+	t.Run("same pointer", func(t *testing.T) {
+		require.True(t, resource.EqualStatus(orig, orig))
+	})
+
+	t.Run("equal", func(t *testing.T) {
+		require.True(t, resource.EqualStatus(orig, clone(orig)))
+	})
+
+	// Not equal cases.
+	t.Run("nil", func(t *testing.T) {
+		require.False(t, resource.EqualStatus(orig, nil))
+		require.False(t, resource.EqualStatus(nil, orig))
+	})
+
+	testCases := map[string]func(*pbresource.Status){
+		"different ObservedGeneration": func(s *pbresource.Status) {
+			s.ObservedGeneration = ""
+		},
+		"different Conditions": func(s *pbresource.Status) {
+			s.Conditions = append(s.Conditions, s.Conditions...)
+		},
+		"nil Condition": func(s *pbresource.Status) {
+			s.Conditions[0] = nil
+		},
+		"different Condition.Type": func(s *pbresource.Status) {
+			s.Conditions[0].Type = "BarType"
+		},
+		"different Condition.State": func(s *pbresource.Status) {
+			s.Conditions[0].State = pbresource.Condition_STATE_FALSE
+		},
+		"different Condition.Reason": func(s *pbresource.Status) {
+			s.Conditions[0].Reason = "BarReason"
+		},
+		"different Condition.Message": func(s *pbresource.Status) {
+			s.Conditions[0].Reason = "Bar if false"
+		},
+		"different Condition.Resource": func(s *pbresource.Status) {
+			s.Conditions[0].Resource = nil
+		},
+		"different Condition.Resource.Type": func(s *pbresource.Status) {
+			s.Conditions[0].Resource.Type.Group = "bar-group"
+		},
+		"different Condition.Resource.Tenancy": func(s *pbresource.Status) {
+			s.Conditions[0].Resource.Tenancy.Partition = "bar-partition"
+		},
+		"different Condition.Resource.Name": func(s *pbresource.Status) {
+			s.Conditions[0].Resource.Name = "bar-name"
+		},
+		"different Condition.Resource.Section": func(s *pbresource.Status) {
+			s.Conditions[0].Resource.Section = "bar-section"
+		},
+	}
+	for desc, modFn := range testCases {
+		t.Run(desc, func(t *testing.T) {
+			a, b := clone(orig), clone(orig)
+			modFn(b)
+
+			require.False(t, resource.EqualStatus(a, b))
+			require.False(t, resource.EqualStatus(b, a))
+		})
+	}
+}
+
+func TestEqualStatusMap(t *testing.T) {
+	generation := ulid.Make().String()
+
+	for idx, tc := range []struct {
+		a, b  map[string]*pbresource.Status
+		equal bool
+	}{
+		{nil, nil, true},
+		{nil, map[string]*pbresource.Status{}, true},
+		{
+			map[string]*pbresource.Status{
+				"consul.io/some-controller": {
+					ObservedGeneration: generation,
+					Conditions: []*pbresource.Condition{
+						{
+							Type:    "Foo",
+							State:   pbresource.Condition_STATE_TRUE,
+							Reason:  "Bar",
+							Message: "Foo is true because of Bar",
+						},
+					},
+				},
+			},
+			map[string]*pbresource.Status{
+				"consul.io/some-controller": {
+					ObservedGeneration: generation,
+					Conditions: []*pbresource.Condition{
+						{
+							Type:    "Foo",
+							State:   pbresource.Condition_STATE_TRUE,
+							Reason:  "Bar",
+							Message: "Foo is true because of Bar",
+						},
+					},
+				},
+			},
+			true,
+		},
+		{
+			map[string]*pbresource.Status{
+				"consul.io/some-controller": {
+					ObservedGeneration: generation,
+					Conditions: []*pbresource.Condition{
+						{
+							Type:    "Foo",
+							State:   pbresource.Condition_STATE_TRUE,
+							Reason:  "Bar",
+							Message: "Foo is true because of Bar",
+						},
+					},
+				},
+			},
+			map[string]*pbresource.Status{
+				"consul.io/some-controller": {
+					ObservedGeneration: generation,
+					Conditions: []*pbresource.Condition{
+						{
+							Type:    "Foo",
+							State:   pbresource.Condition_STATE_FALSE,
+							Reason:  "Bar",
+							Message: "Foo is false because of Bar",
+						},
+					},
+				},
+			},
+			false,
+		},
+		{
+			map[string]*pbresource.Status{
+				"consul.io/some-controller": {
+					ObservedGeneration: generation,
+					Conditions: []*pbresource.Condition{
+						{
+							Type:    "Foo",
+							State:   pbresource.Condition_STATE_TRUE,
+							Reason:  "Bar",
+							Message: "Foo is true because of Bar",
+						},
+					},
+				},
+			},
+			map[string]*pbresource.Status{
+				"consul.io/some-controller": {
+					ObservedGeneration: generation,
+					Conditions: []*pbresource.Condition{
+						{
+							Type:    "Foo",
+							State:   pbresource.Condition_STATE_TRUE,
+							Reason:  "Bar",
+							Message: "Foo is true because of Bar",
+						},
+					},
+				},
+				"consul.io/other-controller": {
+					ObservedGeneration: generation,
+					Conditions: []*pbresource.Condition{
+						{
+							Type:    "Foo",
+							State:   pbresource.Condition_STATE_TRUE,
+							Reason:  "Bar",
+							Message: "Foo is true because of Bar",
+						},
+					},
+				},
+			},
+			false,
+		},
+	} {
+		t.Run(fmt.Sprintf("%d", idx), func(t *testing.T) {
+			require.Equal(t, tc.equal, resource.EqualStatusMap(tc.a, tc.b))
+			require.Equal(t, tc.equal, resource.EqualStatusMap(tc.b, tc.a))
+		})
+	}
+}
+
 func BenchmarkEqualType(b *testing.B) {
 	// cpu: Intel(R) Core(TM) i9-9980HK CPU @ 2.40GHz
-	// BenchmarkEqualType/ours-16              197336331                5.877 ns/op
-	// BenchmarkEqualType/reflection-16         2424975               492.3 ns/op
+	// BenchmarkEqualType/ours-16      161532109                7.309 ns/op          0 B/op           0 allocs/op
+	// BenchmarkEqualType/reflection-16                 1584954               748.4 ns/op           160 B/op          9 allocs/op
 	typeA := &pbresource.Type{
 		Group:        "foo",
 		GroupVersion: "v1",
@@ -269,8 +518,8 @@ func BenchmarkEqualType(b *testing.B) {
 
 func BenchmarkEqualTenancy(b *testing.B) {
 	// cpu: Intel(R) Core(TM) i9-9980HK CPU @ 2.40GHz
-	// BenchmarkEqualTenancy/ours-16                   163274274                7.229 ns/op
-	// BenchmarkEqualTenancy/reflection-16              2474611               495.1 ns/op
+	// BenchmarkEqualTenancy/ours-16                   159998534                7.426 ns/op           0 B/op          0 allocs/op
+	// BenchmarkEqualTenancy/reflection-16              2283500               550.3 ns/op           128 B/op          7 allocs/op
 	tenA := &pbresource.Tenancy{
 		Partition: "foo",
 		PeerName:  "bar",
@@ -298,8 +547,8 @@ func BenchmarkEqualTenancy(b *testing.B) {
 
 func BenchmarkEqualID(b *testing.B) {
 	// cpu: Intel(R) Core(TM) i9-9980HK CPU @ 2.40GHz
-	// BenchmarkEqualID/ours-16                        74521321                15.61 ns/op
-	// BenchmarkEqualID/reflection-16                   3794371               292.4 ns/op
+	// BenchmarkEqualID/ours-16                        57818125                21.40 ns/op            0 B/op          0 allocs/op
+	// BenchmarkEqualID/reflection-16                   3596365               330.1 ns/op            96 B/op          5 allocs/op
 	idA := &pbresource.ID{
 		Type: &pbresource.Type{
 			Group:        "demo",
@@ -327,6 +576,52 @@ func BenchmarkEqualID(b *testing.B) {
 	b.Run("reflection", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			_ = proto.Equal(idA, idB)
+		}
+	})
+}
+
+func BenchmarkEqualStatus(b *testing.B) {
+	// 	cpu: Intel(R) Core(TM) i9-9980HK CPU @ 2.40GHz
+	// BenchmarkEqualStatus/ours-16                    38648232                30.75 ns/op            0 B/op          0 allocs/op
+	// BenchmarkEqualStatus/reflection-16                237694              5267 ns/op             944 B/op         51 allocs/op
+	statusA := &pbresource.Status{
+		ObservedGeneration: ulid.Make().String(),
+		Conditions: []*pbresource.Condition{
+			{
+				Type:    "FooType",
+				State:   pbresource.Condition_STATE_TRUE,
+				Reason:  "FooReason",
+				Message: "Foo is true",
+				Resource: &pbresource.Reference{
+					Type: &pbresource.Type{
+						Group:        "foo-group",
+						GroupVersion: "foo-group-version",
+						Kind:         "foo-kind",
+					},
+					Tenancy: &pbresource.Tenancy{
+						Partition: "foo-partition",
+						PeerName:  "foo-peer-name",
+						Namespace: "foo-namespace",
+					},
+					Name:    "foo-name",
+					Section: "foo-section",
+				},
+			},
+		},
+	}
+	statusB := clone(statusA)
+	statusB.Conditions[0].Resource.Section = "bar-section"
+	b.ResetTimer()
+
+	b.Run("ours", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			_ = resource.EqualStatus(statusA, statusB)
+		}
+	})
+
+	b.Run("reflection", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			_ = proto.Equal(statusA, statusB)
 		}
 	})
 }
