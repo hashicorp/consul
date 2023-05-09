@@ -276,6 +276,11 @@ func (s *handlerUpstreams) resetWatchesFromChain(
 			datacenter: target.Datacenter,
 			entMeta:    target.GetEnterpriseMetadata(),
 		}
+		// Peering targets do not set the datacenter field, so we should default it here.
+		if opts.datacenter == "" {
+			opts.datacenter = s.source.Datacenter
+		}
+
 		err := s.watchUpstreamTarget(ctx, snap, opts)
 		if err != nil {
 			return fmt.Errorf("failed to watch target %q for upstream %q", target.ID, uid)
