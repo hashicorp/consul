@@ -3250,6 +3250,15 @@ func TestProxyConfigEntry(t *testing.T) {
 				EnterpriseMeta: *acl.DefaultEnterpriseMeta(),
 			},
 		},
+		"proxy config entry has invalid opaque config": {
+			entry: &ProxyConfigEntry{
+				Name: "global",
+				Config: map[string]interface{}{
+					"envoy_hcp_metrics_bind_socket_dir": "/Consul/is/a/networking/platform/that/enables/securing/your/networking/",
+				},
+			},
+			validateErr: "Config: envoy_hcp_metrics_bind_socket_dir length 71 exceeds max",
+		},
 		"proxy config has invalid access log type": {
 			entry: &ProxyConfigEntry{
 				Name: "global",
@@ -3402,6 +3411,40 @@ func testConfigEntryNormalizeAndValidate(t *testing.T, cases map[string]configEn
 			require.NoError(t, err)
 		})
 	}
+}
+
+func TestValidateOpaqueConfigMap(t *testing.T) {
+	tt := map[string]struct {
+		input     map[string]interface{}
+		expectErr string
+	}{
+		"hcp metrics socket dir is valid": {
+			input: map[string]interface{}{
+				"envoy_hcp_metrics_bind_socket_dir": "/etc/consul.d/hcp"},
+			expectErr: "",
+		},
+		"hcp metrics socket dir is too long": {
+			input: map[string]interface{}{
+				"envoy_hcp_metrics_bind_socket_dir": "/Consul/is/a/networking/platform/that/enables/securing/your/networking/",
+			},
+			expectErr: "envoy_hcp_metrics_bind_socket_dir length 71 exceeds max 70",
+		},
+	}
+
+	for name, tc := range tt {
+		t.Run(name, func(t *testing.T) {
+			err := validateOpaqueProxyConfig(tc.input)
+			if tc.expectErr != "" {
+				require.ErrorContains(t, err, tc.expectErr)
+				return
+			}
+			require.NoError(t, err)
+		})
+	}
+}
+
+func intPointer(i int) *int {
+	return &i
 }
 
 func uintPointer(v uint32) *uint32 {
