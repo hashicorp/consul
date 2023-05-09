@@ -35,7 +35,7 @@ type tombstoneReconciler struct{}
 // Deletes all owned (child) resources of an owner (parent) resource.
 //
 // The reconciliation for tombstones is split into two passes.
-// The first pass attempts to delete child resources created before owner the resource was deleted.
+// The first pass attempts to delete child resources created before the owner resource was deleted.
 // The second pass is run after a reasonable delay to delete child resources that may have been
 // created during or after the completion of the first pass.
 func (r *tombstoneReconciler) Reconcile(ctx context.Context, rt controller.Runtime, req controller.Request) error {
