@@ -9,8 +9,8 @@ import (
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
-// EqualStatus compares two status maps for equality.
-func EqualStatus(a, b map[string]*pbresource.Status) bool {
+// EqualStatusMap compares two status maps for equality.
+func EqualStatusMap(a, b map[string]*pbresource.Status) bool {
 	if len(a) != len(b) {
 		return false
 	}

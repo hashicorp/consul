@@ -13,7 +13,7 @@ import (
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
-func TestEqualStatus(t *testing.T) {
+func TestEqualStatusMap(t *testing.T) {
 	generation := ulid.Make().String()
 
 	for idx, tc := range []struct {
@@ -122,8 +122,8 @@ func TestEqualStatus(t *testing.T) {
 		},
 	} {
 		t.Run(fmt.Sprintf("%d", idx), func(t *testing.T) {
-			require.Equal(t, tc.equal, EqualStatus(tc.a, tc.b))
-			require.Equal(t, tc.equal, EqualStatus(tc.b, tc.a))
+			require.Equal(t, tc.equal, EqualStatusMap(tc.a, tc.b))
+			require.Equal(t, tc.equal, EqualStatusMap(tc.b, tc.a))
 		})
 	}
 }

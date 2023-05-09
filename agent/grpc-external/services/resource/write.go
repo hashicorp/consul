@@ -183,7 +183,7 @@ func (s *Server) Write(ctx context.Context, req *pbresource.WriteRequest) (*pbre
 			// Carry over status and prevent updates
 			if input.Status == nil {
 				input.Status = existing.Status
-			} else if !resource.EqualStatus(input.Status, existing.Status) {
+			} else if !resource.EqualStatusMap(input.Status, existing.Status) {
 				return errUseWriteStatus
 			}
 
