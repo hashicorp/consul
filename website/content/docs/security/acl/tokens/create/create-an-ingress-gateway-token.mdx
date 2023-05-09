@@ -11,7 +11,13 @@ This topic describes how to create a token to enable an ingress gateway to regis
 
 ## Introduction
 
-Gateways must present a token linked to policies that grant the appropriate set of permissions. For an ingress gateway to register and to route to other services in a mesh, the token must be linked to policies that grant the following permissions:
+Gateways must present a token linked to policies that grant the appropriate set of permissions in order to register into the catalog and to route to other services in a mesh.
+
+## Requirements
+
+Core ACL functionality is available in all versions of Consul.
+
+The ingress gateway token must be linked to policies that grant the following permissions:
 
 * `service:write` to allow the ingress gateway to register into the catalog
 * `service:read` for all services and `node:read` for all nodes in order to discover and route to services

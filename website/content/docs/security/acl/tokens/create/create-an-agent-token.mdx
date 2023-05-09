@@ -11,10 +11,7 @@ This topic describes how to create a token that you can use to register an agent
 
 ## Introduction
 
-Consul agents must present a token linked to policies that grant the appropriate set of permissions. For an agent to register into the catalog, the token must be linked to policies that grant the following permissions:
-
-* `node:write`: Enables the agent to update the catalog.
-* `service:read`: Enables the agent to discover other services in the catalog
+Consul agents must present a token linked to policies that grant the appropriate set of permissions in order to register into the catalog and to discover services and nodes in the catalog.
 
 Specify the [`agent`](/consul/docs/agent/config/config-files#acl_tokens_agent) token to the Consul agent so that it can present the token when it registers into the catalog.
 
@@ -25,6 +22,15 @@ You can create tokens linked to custom policies or to node identities. [Node ide
 We recommend using a node identity to grant permissions to the agent rather than creating a custom policy. This is because node identities automatically grant the node `node:write` and `service:read` permission.
 
 Your organization may have requirements or processes for deploying services in a way that is inconsistent with service and node identities. In these cases, you can create custom policies and link them to tokens.
+
+## Requirements
+
+Core ACL functionality is available in all versions of Consul.
+
+The agent token must be linked to policies that grant the following permissions:
+
+* `node:write`: Enables the agent to update the catalog.
+* `service:read`: Enables the agent to discover other services in the catalog
 
 @include 'create-token-requirements.mdx'
 
