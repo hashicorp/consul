@@ -204,6 +204,10 @@ func GenerateV2Artist() (*pbresource.Resource, error) {
 // GenerateV2Album generates a random Album resource, owned by the Artist with
 // the given ID.
 func GenerateV2Album(artistID *pbresource.ID) (*pbresource.Resource, error) {
+	return generateV2Album(artistID, rand.New(rand.NewSource(time.Now().UnixNano())))
+}
+
+func generateV2Album(artistID *pbresource.ID, rand *rand.Rand) (*pbresource.Resource, error) {
 	adjective := adjectives[rand.Intn(len(adjectives))]
 	noun := nouns[rand.Intn(len(nouns))]
 
