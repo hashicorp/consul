@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 import { datacenters } from 'consul-ui/helpers/policy/datacenters';
 import { module, test } from 'qunit';
 

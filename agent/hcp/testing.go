@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package hcp
 
 import (
@@ -13,7 +10,6 @@ import (
 	"sync"
 	"time"
 
-	hcpgnm "github.com/hashicorp/hcp-sdk-go/clients/cloud-global-network-manager-service/preview/2022-02-15/client/global_network_manager_service"
 	gnmmod "github.com/hashicorp/hcp-sdk-go/clients/cloud-global-network-manager-service/preview/2022-02-15/models"
 	"github.com/hashicorp/hcp-sdk-go/resource"
 )
@@ -64,7 +60,7 @@ func (s *MockHCPServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	if r.URL.Path == "/oauth2/token" {
+	if r.URL.Path == "/oauth/token" {
 		mockTokenResponse(w)
 		return
 	}
@@ -137,31 +133,30 @@ func enforceMethod(w http.ResponseWriter, r *http.Request, methods []string) boo
 }
 
 func mockTokenResponse(w http.ResponseWriter) {
-	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-
-	w.Write([]byte(`{"access_token": "token", "token_type": "Bearer"}`))
+	w.Write([]byte(`{access_token: "token", token_type: "Bearer"}`))
 }
 
 func (s *MockHCPServer) handleStatus(r *http.Request, cluster resource.Resource) (interface{}, error) {
-	var req hcpgnm.AgentPushServerStateBody
+	var req gnmmod.HashicorpCloudGlobalNetworkManager20220215AgentPushServerStateRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		return nil, err
 	}
+	status := req.ServerState
 	log.Printf("STATUS UPDATE: server=%s version=%s leader=%v hasLeader=%v healthy=%v tlsCertExpiryDays=%1.0f",
-		req.ServerState.Name,
-		req.ServerState.Version,
-		req.ServerState.Raft.IsLeader,
-		req.ServerState.Raft.KnownLeader,
-		req.ServerState.Autopilot.Healthy,
-		time.Until(time.Time(req.ServerState.TLS.CertExpiry)).Hours()/24,
+		status.Name,
+		status.Version,
+		status.Raft.IsLeader,
+		status.Raft.KnownLeader,
+		status.Autopilot.Healthy,
+		time.Until(time.Time(status.TLS.CertExpiry)).Hours()/24,
 	)
-	s.servers[req.ServerState.Name] = &gnmmod.HashicorpCloudGlobalNetworkManager20220215Server{
-		GossipPort: req.ServerState.GossipPort,
-		ID:         req.ServerState.ID,
-		LanAddress: req.ServerState.LanAddress,
-		Name:       req.ServerState.Name,
-		RPCPort:    req.ServerState.RPCPort,
+	s.servers[status.Name] = &gnmmod.HashicorpCloudGlobalNetworkManager20220215Server{
+		GossipPort: status.GossipPort,
+		ID:         status.ID,
+		LanAddress: status.LanAddress,
+		Name:       status.Name,
+		RPCPort:    status.RPCPort,
 	}
 	return "{}", nil
 }

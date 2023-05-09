@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 .copyable-code {
   & {
     display: flex;
@@ -13,7 +8,7 @@
     padding-bottom: 3px;
 
     border: var(--decor-border-100);
-    border-color: var(--token-color-surface-interactive-active);
+    border-color: rgb(var(--tone-gray-200));
     border-radius: var(--decor-radius-200);
   }
   &.obfuscated {
@@ -27,7 +22,7 @@
     height: 100%;
     display: block;
     content: '';
-    background-color: var(--token-color-surface-strong);
+    background-color: rgb(var(--tone-gray-050));
   }
   .copy-button {
     position: absolute;
@@ -50,12 +45,12 @@
   button[aria-expanded]::before {
     content: '';
     --icon-size: icon-000;
-    --icon-color: var(--token-color-foreground-faint);
+    --icon-color: rgb(var(--tone-gray-500));
   }
-  button[aria-expanded='true']::before {
+  button[aria-expanded=true]::before {
     --icon-name: icon-eye-off;
   }
-  button[aria-expanded='false']::before {
+  button[aria-expanded=false]::before {
     --icon-name: icon-eye;
   }
   pre {
@@ -72,7 +67,7 @@
     margin: 0;
     margin-top: 8px;
     margin-bottom: 13px;
-    border: 3px dashed var(--token-color-palette-neutral-300);
-    background-color: var(--token-color-surface-primary);
+    border: 3px dashed rgb(var(--tone-gray-300));
+    background-color: rgb(var(--tone-gray-000));
   }
 }

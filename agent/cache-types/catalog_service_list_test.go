@@ -1,17 +1,13 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package cachetype
 
 import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/mock"
-	"github.com/stretchr/testify/require"
-
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 )
 
 func TestCatalogServiceList(t *testing.T) {
@@ -21,14 +17,14 @@ func TestCatalogServiceList(t *testing.T) {
 	// Expect the proper RPC call. This also sets the expected value
 	// since that is return-by-pointer in the arguments.
 	var resp *structs.IndexedServiceList
-	rpc.On("RPC", mock.Anything, "Catalog.ServiceList", mock.Anything, mock.Anything).Return(nil).
+	rpc.On("RPC", "Catalog.ServiceList", mock.Anything, mock.Anything).Return(nil).
 		Run(func(args mock.Arguments) {
-			req := args.Get(2).(*structs.DCSpecificRequest)
+			req := args.Get(1).(*structs.DCSpecificRequest)
 			require.Equal(t, uint64(24), req.QueryOptions.MinQueryIndex)
 			require.Equal(t, 1*time.Second, req.QueryOptions.MaxQueryTime)
 			require.True(t, req.AllowStale)
 
-			reply := args.Get(3).(*structs.IndexedServiceList)
+			reply := args.Get(2).(*structs.IndexedServiceList)
 			reply.Services = structs.ServiceList{
 				structs.ServiceName{
 					Name: "foo",

@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package consul
 
 import (
@@ -1127,6 +1124,7 @@ node "foo" {
 	var resp structs.IndexedCheckServiceNodes
 	assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Health.ServiceNodes", &req, &resp))
 	assert.Len(t, resp.Nodes, 0)
+	assert.Greater(t, resp.Index, uint64(0))
 
 	// List w/ token. This should work since we're requesting "foo", but should
 	// also only contain the proxies with names that adhere to our ACL.

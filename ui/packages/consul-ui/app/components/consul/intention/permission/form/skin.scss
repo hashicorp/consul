@@ -1,12 +1,7 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 .consul-intention-permission-form {
   h2 {
-    border-top: 1px solid var(--token-color-foreground-action);
-    @extend %display-400-semibold;
+    border-top: 1px solid rgb(var(--tone-blue-500));
+    @extend %h200;
   }
   button.type-submit {
     @extend %frame-blue-300;
@@ -22,6 +17,6 @@
 
 .consul-intention-view {
   h2 {
-    @extend %display-400-semibold;
+    @extend %h200;
   }
 }

@@ -12,7 +12,7 @@ Command: `consul operator autopilot`
 
 The Autopilot operator command is used to interact with Consul's Autopilot subsystem. The
 command can be used to view or modify the current Autopilot configuration. See the
-[Autopilot Guide](/consul/tutorials/datacenter-operations/autopilot-datacenter-operations) for more information about Autopilot.
+[Autopilot Guide](https://learn.hashicorp.com/tutorials/consul/autopilot-datacenter-operations) for more information about Autopilot.
 
 ```text
 Usage: consul operator autopilot <subcommand> [options]
@@ -28,12 +28,12 @@ Subcommands:
 
 ## get-config
 
-Corresponding HTTP API Endpoint: [\[GET\] /v1/operator/autopilot/configuration](/consul/api-docs/operator/autopilot#read-configuration)
+Corresponding HTTP API Endpoint: [\[GET\] /v1/operator/autopilot/configuration](/api-docs/operator/autopilot#read-configuration)
 
 This command displays the current autopilot configuration.
 
-The table below shows this command's [required ACLs](/consul/api-docs/api-structure#authentication). Configuration of
-[blocking queries](/consul/api-docs/features/blocking) and [agent caching](/consul/api-docs/features/caching)
+The table below shows this command's [required ACLs](/api-docs/api-structure#authentication). Configuration of
+[blocking queries](/api-docs/features/blocking) and [agent caching](/api-docs/features/caching)
 are not supported from commands, but may be from the corresponding HTTP endpoint.
 
 | ACL Required    |
@@ -63,12 +63,12 @@ UpgradeMigrationTag = ""
 
 ## set-config
 
-Corresponding HTTP API Endpoint: [\[PUT\] /v1/operator/autopilot/configuration](/consul/api-docs/operator/autopilot#update-configuration)
+Corresponding HTTP API Endpoint: [\[PUT\] /v1/operator/autopilot/configuration](/api-docs/operator/autopilot#update-configuration)
 
 Modifies the current Autopilot configuration.
 
-The table below shows this command's [required ACLs](/consul/api-docs/api-structure#authentication). Configuration of
-[blocking queries](/consul/api-docs/features/blocking) and [agent caching](/consul/api-docs/features/caching)
+The table below shows this command's [required ACLs](/api-docs/api-structure#authentication). Configuration of
+[blocking queries](/api-docs/features/blocking) and [agent caching](/api-docs/features/caching)
 are not supported from commands, but may be from the corresponding HTTP endpoint.
 
 | ACL Required     |
@@ -107,10 +107,10 @@ The return code indicates success or failure.
 - `-disable-upgrade-migration` <EnterpriseAlert inline /> - Controls whether Consul will avoid promoting
   new servers until it can perform a migration. Must be one of `[true|false]`.
 
-- `-redundancy-zone-tag` <EnterpriseAlert inline /> - Controls the [`-node-meta`](/consul/docs/agent/config/cli-flags#_node_meta)
+- `-redundancy-zone-tag` <EnterpriseAlert inline /> - Controls the [`-node-meta`](/docs/agent/config/cli-flags#_node_meta)
   key name used for separating servers into different redundancy zones.
 
-- `-upgrade-version-tag` <EnterpriseAlert inline /> - Controls the [`-node-meta`](/consul/docs/agent/config/cli-flags#_node_meta)
+- `-upgrade-version-tag` <EnterpriseAlert inline /> - Controls the [`-node-meta`](/docs/agent/config/cli-flags#_node_meta)
   tag to use for version info when performing upgrade migrations. If left blank, the Consul version will be used.
 
 #### API Options
@@ -121,12 +121,12 @@ The return code indicates success or failure.
 
 ## state
 
-Corresponding HTTP API Endpoint: [\[GET\] /v1/operator/autopilot/state](/consul/api-docs/operator/autopilot#read-the-autopilot-state)
+Corresponding HTTP API Endpoint: [\[GET\] /v1/operator/autopilot/state](/api-docs/operator/autopilot#read-the-autopilot-state)
 
 This command displays the current autopilot state.
 
-The table below shows this command's [required ACLs](/consul/api-docs/api-structure#authentication). Configuration of
-[blocking queries](/consul/api-docs/features/blocking) and [agent caching](/consul/api-docs/features/caching)
+The table below shows this command's [required ACLs](/api-docs/api-structure#authentication). Configuration of
+[blocking queries](/api-docs/features/blocking) and [agent caching](/api-docs/features/caching)
 are not supported from commands, but may be from the corresponding HTTP endpoint.
 
 | ACL Required    |

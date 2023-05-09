@@ -6,12 +6,14 @@ description: The /acl/policy endpoints manage Consul's ACL policies.
 
 # ACL Policy HTTP API
 
+-> **1.4.0+:** The APIs are available in Consul versions 1.4.0 and later. The documentation for the legacy ACL API is [here](/api-docs/acl/legacy).
+
 The `/acl/policy` endpoints [create](#create-a-policy), [read](#read-a-policy),
 [update](#update-a-policy), [list](#list-policies) and
 [delete](#delete-a-policy) ACL policies in Consul.
 
 For more information on how to setup ACLs, please check
-the [ACL tutorial](/consul/tutorials/security/access-control-setup-production).
+the [ACL tutorial](https://learn.hashicorp.com/tutorials/consul/access-control-setup-production).
 
 ## Create a Policy
 
@@ -22,16 +24,16 @@ This endpoint creates a new ACL policy.
 | `PUT`  | `/acl/policy` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/consul/api-docs/features/blocking),
-[consistency modes](/consul/api-docs/features/consistency),
-[agent caching](/consul/api-docs/features/caching), and
-[required ACLs](/consul/api-docs/api-structure#authentication).
+[blocking queries](/api-docs/features/blocking),
+[consistency modes](/api-docs/features/consistency),
+[agent caching](/api-docs/features/caching), and
+[required ACLs](/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
 | ---------------- | ----------------- | ------------- | ------------ |
 | `NO`             | `none`            | `none`        | `acl:write`  |
 
-The corresponding CLI command is [`consul acl policy create`](/consul/commands/acl/policy/create).
+The corresponding CLI command is [`consul acl policy create`](/commands/acl/policy/create).
 
 ### Query Parameters
 
@@ -47,7 +49,7 @@ The corresponding CLI command is [`consul acl policy create`](/consul/commands/a
 - `Description` `(string: "")` - Free form human readable description of the policy.
 
 - `Rules` `(string: "")` - Specifies rules for the ACL policy. The format of the
-  `Rules` property is detailed in the [ACL Rules documentation](/consul/docs/security/acl/acl-rules).
+  `Rules` property is detailed in the [ACL Rules documentation](/docs/security/acl/acl-rules).
 
 - `Datacenters` `(array<string>)` - Specifies the datacenters the policy is valid within.
   When no datacenters are provided the policy is valid in all datacenters including
@@ -100,16 +102,16 @@ This endpoint reads an ACL policy with the given ID.
 | `GET`  | `/acl/policy/:id` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/consul/api-docs/features/blocking),
-[consistency modes](/consul/api-docs/features/consistency),
-[agent caching](/consul/api-docs/features/caching), and
-[required ACLs](/consul/api-docs/api-structure#authentication).
+[blocking queries](/api-docs/features/blocking),
+[consistency modes](/api-docs/features/consistency),
+[agent caching](/api-docs/features/caching), and
+[required ACLs](/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
 | ---------------- | ----------------- | ------------- | ------------ |
 | `YES`            | `all`             | `none`        | `acl:read`   |
 
-The corresponding CLI command is [`consul acl policy read`](/consul/commands/acl/policy/read).
+The corresponding CLI command is [`consul acl policy read`](/commands/acl/policy/read).
 
 ### Path Parameters
 
@@ -150,16 +152,16 @@ This endpoint reads an ACL policy with the given ID.
 | `GET`  | `/acl/policy/name/:name` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/consul/api-docs/features/blocking),
-[consistency modes](/consul/api-docs/features/consistency),
-[agent caching](/consul/api-docs/features/caching), and
-[required ACLs](/consul/api-docs/api-structure#authentication).
+[blocking queries](/api-docs/features/blocking),
+[consistency modes](/api-docs/features/consistency),
+[agent caching](/api-docs/features/caching), and
+[required ACLs](/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
 | ---------------- | ----------------- | ------------- | ------------ |
 | `YES`            | `all`             | `none`        | `acl:read`   |
 
-The corresponding CLI command is [`consul acl policy read -name=<string>`](/consul/commands/acl/policy/read#name).
+The corresponding CLI command is [`consul acl policy read -name=<string>`](/commands/acl/policy/read#name).
 
 ### Path Parameters
 
@@ -200,16 +202,16 @@ This endpoint updates an existing ACL policy.
 | `PUT`  | `/acl/policy/:id` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/consul/api-docs/features/blocking),
-[consistency modes](/consul/api-docs/features/consistency),
-[agent caching](/consul/api-docs/features/caching), and
-[required ACLs](/consul/api-docs/api-structure#authentication).
+[blocking queries](/api-docs/features/blocking),
+[consistency modes](/api-docs/features/consistency),
+[agent caching](/api-docs/features/caching), and
+[required ACLs](/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
 | ---------------- | ----------------- | ------------- | ------------ |
 | `NO`             | `none`            | `none`        | `acl:write`  |
 
-The corresponding CLI command is [`consul acl policy update`](/consul/commands/acl/policy/update).
+The corresponding CLI command is [`consul acl policy update`](/commands/acl/policy/update).
 
 ### Path Parameters
 
@@ -232,7 +234,7 @@ The corresponding CLI command is [`consul acl policy update`](/consul/commands/a
 - `Description` `(string: "")` - Free form human readable description of this policy.
 
 - `Rules` `(string: "")` - Specifies rules for this ACL policy. The format of the
-  `Rules` property is detailed in the [ACL Rules documentation](/consul/docs/security/acl/acl-rules).
+  `Rules` property is detailed in the [ACL Rules documentation](/docs/security/acl/acl-rules).
 
 - `Datacenters` `(array<string>)` - Specifies the datacenters this policy is valid within.
   When no datacenters are provided the policy is valid in all datacenters including
@@ -287,16 +289,16 @@ Even though the return type is application/json, the value is either true or
 false indicating whether the delete succeeded.
 
 The table below shows this endpoint's support for
-[blocking queries](/consul/api-docs/features/blocking),
-[consistency modes](/consul/api-docs/features/consistency),
-[agent caching](/consul/api-docs/features/caching), and
-[required ACLs](/consul/api-docs/api-structure#authentication).
+[blocking queries](/api-docs/features/blocking),
+[consistency modes](/api-docs/features/consistency),
+[agent caching](/api-docs/features/caching), and
+[required ACLs](/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
 | ---------------- | ----------------- | ------------- | ------------ |
 | `NO`             | `none`            | `none`        | `acl:write`  |
 
-The corresponding CLI command is [`consul acl policy delete`](/consul/commands/acl/policy/delete).
+The corresponding CLI command is [`consul acl policy delete`](/commands/acl/policy/delete).
 
 ### Path Parameters
 
@@ -329,16 +331,16 @@ This endpoint lists all the ACL policies.
 | `GET`  | `/acl/policies` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/consul/api-docs/features/blocking),
-[consistency modes](/consul/api-docs/features/consistency),
-[agent caching](/consul/api-docs/features/caching), and
-[required ACLs](/consul/api-docs/api-structure#authentication).
+[blocking queries](/api-docs/features/blocking),
+[consistency modes](/api-docs/features/consistency),
+[agent caching](/api-docs/features/caching), and
+[required ACLs](/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
 | ---------------- | ----------------- | ------------- | ------------ |
 | `YES`            | `all`             | `none`        | `acl:read`   |
 
-The corresponding CLI command is [`consul acl policy list`](/consul/commands/acl/policy/list).
+The corresponding CLI command is [`consul acl policy list`](/commands/acl/policy/list).
 
 ### Query Parameters
 

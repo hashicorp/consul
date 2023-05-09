@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package submatview_test
 
 import (
@@ -16,7 +13,6 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
-	"github.com/hashicorp/consul/agent/rpcclient"
 	"github.com/hashicorp/go-hclog"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/sync/errgroup"
@@ -30,7 +26,7 @@ import (
 	"github.com/hashicorp/consul/agent/rpcclient/health"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/submatview"
-	"github.com/hashicorp/consul/proto/private/pbsubscribe"
+	"github.com/hashicorp/consul/proto/pbsubscribe"
 )
 
 func TestStore_IntegrationWithBackend(t *testing.T) {
@@ -304,13 +300,11 @@ func newConsumer(t *testing.T, addr net.Addr, store *submatview.Store, srv strin
 	require.NoError(t, err)
 
 	c := &health.Client{
-		Client: rpcclient.Client{
-			UseStreamingBackend: true,
-			ViewStore:           store,
-			MaterializerDeps: rpcclient.MaterializerDeps{
-				Conn:   conn,
-				Logger: hclog.New(nil),
-			},
+		UseStreamingBackend: true,
+		ViewStore:           store,
+		MaterializerDeps: health.MaterializerDeps{
+			Conn:   conn,
+			Logger: hclog.New(nil),
 		},
 	}
 

@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 import Service from '@ember/service';
 import { getOwner } from '@ember/application';
 import ENV from 'consul-ui/config/environment';

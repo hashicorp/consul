@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package api
 
 import (
@@ -47,16 +44,6 @@ type PeeringRemoteInfo struct {
 	Partition string
 	// Datacenter is the remote peer's datacenter.
 	Datacenter string
-	Locality   *Locality `json:",omitempty"`
-}
-
-// Locality identifies where a given entity is running.
-type Locality struct {
-	// Region is region the zone belongs to.
-	Region string
-
-	// Zone is the zone the entity is running in.
-	Zone string
 }
 
 type Peering struct {
@@ -98,11 +85,11 @@ type PeeringStreamStatus struct {
 	// ExportedServices is the list of services exported to this peering.
 	ExportedServices []string
 	// LastHeartbeat represents when the last heartbeat message was received.
-	LastHeartbeat *time.Time
+	LastHeartbeat time.Time
 	// LastReceive represents when any message was last received, regardless of success or error.
-	LastReceive *time.Time
+	LastReceive time.Time
 	// LastSend represents when any message was last sent, regardless of success or error.
-	LastSend *time.Time
+	LastSend time.Time
 }
 
 type PeeringReadResponse struct {

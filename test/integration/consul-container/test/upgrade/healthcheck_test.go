@@ -1,153 +1,294 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package upgrade
 
 import (
 	"context"
+	"fmt"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/hashicorp/go-version"
-
 	"github.com/hashicorp/consul/api"
+
+	libagent "github.com/hashicorp/consul/test/integration/consul-container/libs/agent"
 	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
-	libservice "github.com/hashicorp/consul/test/integration/consul-container/libs/service"
-	libtopology "github.com/hashicorp/consul/test/integration/consul-container/libs/topology"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 )
 
 // Test health check GRPC call using Target Servers and Latest GA Clients
-// Note: this upgrade test doesn't use StandardUpgrade since it requires
-// a cluster with clients and servers with mixed versions
 func TestTargetServersWithLatestGAClients(t *testing.T) {
-	t.Parallel()
-
-	fromVersion, err := version.NewVersion(utils.LatestVersion)
-	require.NoError(t, err)
-	if fromVersion.LessThan(utils.Version_1_14) {
-		t.Skip("TODO: why are we skipping this?")
-	}
-
 	const (
 		numServers = 3
 		numClients = 1
 	)
 
-	clusterConfig := &libtopology.ClusterConfig{
-		NumServers: numServers,
-		NumClients: numClients,
-		BuildOpts: &libcluster.BuildOptions{
-			Datacenter:    "dc1",
-			ConsulVersion: utils.TargetVersion,
-		},
-		ApplyDefaultProxySettings: true,
-	}
+	cluster := serversCluster(t, numServers, utils.TargetVersion, utils.TargetImage)
+	defer terminate(t, cluster)
 
-	cluster, _, _ := libtopology.NewCluster(t, clusterConfig)
+	clients := clientsCreate(t, numClients, utils.LatestImage, utils.LatestVersion, cluster)
 
-	// change the version of Client agent to latest version
-	config := cluster.Agents[3].GetConfig()
-	config.Version = utils.LatestVersion
-	cluster.Agents[3].Upgrade(context.Background(), config)
+	require.NoError(t, cluster.Join(clients))
 
-	client := cluster.APIClient(0)
+	client := cluster.Agents[0].GetClient()
 
 	libcluster.WaitForLeader(t, cluster, client)
 	libcluster.WaitForMembers(t, client, 4)
 
-	const serviceName = "api"
-	index := libservice.ServiceCreate(t, client, serviceName)
+	serviceName := "api"
+	index := serviceCreate(t, client, serviceName)
+
+	ch := make(chan []*api.ServiceEntry)
+	errCh := make(chan error)
+
+	go func() {
+		service, q, err := client.Health().Service(serviceName, "", false, &api.QueryOptions{WaitIndex: index})
+		if err == nil && q.QueryBackend != api.QueryBackendStreaming {
+			err = fmt.Errorf("invalid backend for this test %s", q.QueryBackend)
+		}
+		if err != nil {
+			errCh <- err
+		} else {
+			ch <- service
+		}
+	}()
 
 	require.NoError(t, client.Agent().ServiceRegister(
 		&api.AgentServiceRegistration{Name: serviceName, Port: 9998},
 	))
 
-	checkServiceHealth(t, client, "api", index)
+	timer := time.NewTimer(1 * time.Second)
+	select {
+	case err := <-errCh:
+		require.NoError(t, err)
+	case service := <-ch:
+		require.Len(t, service, 1)
+		require.Equal(t, serviceName, service[0].Service.Service)
+		require.Equal(t, 9998, service[0].Service.Port)
+	case <-timer.C:
+		t.Fatalf("test timeout")
+	}
 }
 
 // Test health check GRPC call using Mixed (majority latest) Servers and Latest GA Clients
 func TestMixedServersMajorityLatestGAClient(t *testing.T) {
-	t.Parallel()
+	var configs []libagent.Config
 
-	testMixedServersGAClient(t, false)
+	leaderConf, err := libagent.NewConfigBuilder(nil).ToAgentConfig()
+	require.NoError(t, err)
+
+	configs = append(configs, *leaderConf)
+
+	// This needs a specialized config since it is using an older version of the agent.
+	// That is missing fields like GRPC_TLS and PEERING, which are passed as defaults
+	serverConf := `{
+		"advertise_addr": "{{ GetInterfaceIP \"eth0\" }}",
+		"bind_addr": "0.0.0.0",
+		"client_addr": "0.0.0.0",
+		"log_level": "DEBUG",
+		"server": true,
+		"bootstrap_expect": 3
+	}`
+
+	for i := 1; i < 3; i++ {
+		configs = append(configs,
+			libagent.Config{
+				JSON:    serverConf,
+				Cmd:     []string{"agent"},
+				Version: utils.LatestVersion,
+				Image:   utils.LatestImage,
+			})
+	}
+
+	cluster, err := libcluster.New(configs)
+	require.NoError(t, err)
+	defer terminate(t, cluster)
+
+	const (
+		numClients = 1
+	)
+
+	clients := clientsCreate(t, numClients, utils.LatestImage, utils.LatestVersion, cluster)
+
+	require.NoError(t, cluster.Join(clients))
+
+	client := clients[0].GetClient()
+
+	libcluster.WaitForLeader(t, cluster, client)
+	libcluster.WaitForMembers(t, client, 4)
+
+	serviceName := "api"
+	index := serviceCreate(t, client, serviceName)
+
+	ch := make(chan []*api.ServiceEntry)
+	errCh := make(chan error)
+	go func() {
+		service, q, err := client.Health().Service(serviceName, "", false, &api.QueryOptions{WaitIndex: index})
+		if err == nil && q.QueryBackend != api.QueryBackendStreaming {
+			err = fmt.Errorf("invalid backend for this test %s", q.QueryBackend)
+		}
+		if err != nil {
+			errCh <- err
+		} else {
+			ch <- service
+		}
+	}()
+
+	require.NoError(t, client.Agent().ServiceRegister(
+		&api.AgentServiceRegistration{Name: serviceName, Port: 9998},
+	))
+
+	timer := time.NewTimer(1 * time.Second)
+	select {
+	case err := <-errCh:
+		require.NoError(t, err)
+	case service := <-ch:
+		require.Len(t, service, 1)
+		require.Equal(t, serviceName, service[0].Service.Service)
+		require.Equal(t, 9998, service[0].Service.Port)
+	case <-timer.C:
+		t.Fatalf("test timeout")
+	}
 }
 
 // Test health check GRPC call using Mixed (majority target) Servers and Latest GA Clients
 func TestMixedServersMajorityTargetGAClient(t *testing.T) {
-	t.Parallel()
+	var configs []libagent.Config
 
-	testMixedServersGAClient(t, true)
-}
-
-// Test health check GRPC call using Mixed (majority conditional) Servers and Latest GA Clients
-func testMixedServersGAClient(t *testing.T, majorityIsTarget bool) {
-	var (
-		latestOpts = libcluster.BuildOptions{
-			ConsulImageName: utils.LatestImageName,
-			ConsulVersion:   utils.LatestVersion,
-		}
-		targetOpts = libcluster.BuildOptions{
-			ConsulImageName: utils.GetTargetImageName(),
-			ConsulVersion:   utils.TargetVersion,
-		}
-
-		majorityOpts libcluster.BuildOptions
-		minorityOpts libcluster.BuildOptions
-	)
-
-	if majorityIsTarget {
-		majorityOpts = targetOpts
-		minorityOpts = latestOpts
-	} else {
-		majorityOpts = latestOpts
-		minorityOpts = targetOpts
+	for i := 0; i < 2; i++ {
+		serverConf, err := libagent.NewConfigBuilder(nil).Bootstrap(3).ToAgentConfig()
+		require.NoError(t, err)
+		configs = append(configs, *serverConf)
 	}
 
+	leaderConf := `{
+		"advertise_addr": "{{ GetInterfaceIP \"eth0\" }}",
+		"bind_addr": "0.0.0.0",
+		"client_addr": "0.0.0.0",
+		"log_level": "DEBUG",
+		"server": true
+	}`
+
+	configs = append(configs,
+		libagent.Config{
+			JSON:    leaderConf,
+			Cmd:     []string{"agent"},
+			Version: utils.LatestVersion,
+			Image:   utils.LatestImage,
+		})
+
+	cluster, err := libcluster.New(configs)
+	require.NoError(t, err)
+	defer terminate(t, cluster)
+
 	const (
-		numServers = 3
 		numClients = 1
 	)
 
-	var configs []libcluster.Config
-	{
-		ctx := libcluster.NewBuildContext(t, minorityOpts)
+	clients := clientsCreate(t, numClients, utils.LatestImage, utils.LatestVersion, cluster)
 
-		conf := libcluster.NewConfigBuilder(ctx).
-			ToAgentConfig(t)
-		t.Logf("Cluster server (leader) config:\n%s", conf.JSON)
+	require.NoError(t, cluster.Join(clients))
 
-		configs = append(configs, *conf)
-	}
-
-	{
-		ctx := libcluster.NewBuildContext(t, majorityOpts)
-
-		conf := libcluster.NewConfigBuilder(ctx).
-			Bootstrap(numServers).
-			ToAgentConfig(t)
-		t.Logf("Cluster server config:\n%s", conf.JSON)
-
-		for i := 1; i < numServers; i++ {
-			configs = append(configs, *conf)
-		}
-	}
-
-	cluster, err := libcluster.New(t, configs)
-	require.NoError(t, err)
-
-	libservice.ClientsCreate(t, numClients, utils.LatestImageName, utils.LatestVersion, cluster)
-
-	client := cluster.APIClient(0)
+	client := clients[0].GetClient()
 
 	libcluster.WaitForLeader(t, cluster, client)
-	libcluster.WaitForMembers(t, client, 4) // TODO(rb): why 4?
+	libcluster.WaitForMembers(t, client, 4)
 
-	const serviceName = "api"
-	index := libservice.ServiceCreate(t, client, serviceName)
+	serviceName := "api"
+	index := serviceCreate(t, client, serviceName)
+
+	ch := make(chan []*api.ServiceEntry)
+	errCh := make(chan error)
+	go func() {
+		service, q, err := client.Health().Service(serviceName, "", false, &api.QueryOptions{WaitIndex: index})
+		if err == nil && q.QueryBackend != api.QueryBackendStreaming {
+			err = fmt.Errorf("invalid backend for this test %s", q.QueryBackend)
+		}
+		if err != nil {
+			errCh <- err
+		} else {
+			ch <- service
+		}
+	}()
+
 	require.NoError(t, client.Agent().ServiceRegister(
 		&api.AgentServiceRegistration{Name: serviceName, Port: 9998},
 	))
-	checkServiceHealth(t, client, "api", index)
+
+	timer := time.NewTimer(3 * time.Second)
+	select {
+	case err := <-errCh:
+		require.NoError(t, err)
+	case service := <-ch:
+		require.Len(t, service, 1)
+		require.Equal(t, serviceName, service[0].Service.Service)
+		require.Equal(t, 9998, service[0].Service.Port)
+	case <-timer.C:
+		t.Fatalf("test timeout")
+	}
+}
+
+func clientsCreate(t *testing.T, numClients int, image string, version string, cluster *libcluster.Cluster) []libagent.Agent {
+	clients := make([]libagent.Agent, numClients)
+
+	// This needs a specialized config since it is using an older version of the agent.
+	// That is missing fields like GRPC_TLS and PEERING, which are passed as defaults
+	conf := `{
+		"advertise_addr": "{{ GetInterfaceIP \"eth0\" }}",
+		"bind_addr": "0.0.0.0",
+		"client_addr": "0.0.0.0",
+		"log_level": "DEBUG"
+	}`
+
+	for i := 0; i < numClients; i++ {
+		var err error
+		clients[i], err = libagent.NewConsulContainer(context.Background(),
+			libagent.Config{
+				JSON:    conf,
+				Cmd:     []string{"agent"},
+				Version: version,
+				Image:   image,
+			},
+			cluster.NetworkName,
+			cluster.Index)
+		require.NoError(t, err)
+	}
+	return clients
+}
+
+func serviceCreate(t *testing.T, client *api.Client, serviceName string) uint64 {
+	err := client.Agent().ServiceRegister(&api.AgentServiceRegistration{Name: serviceName, Port: 9999})
+	require.NoError(t, err)
+
+	service, meta, err := client.Catalog().Service(serviceName, "", &api.QueryOptions{})
+	require.NoError(t, err)
+	require.Len(t, service, 1)
+	require.Equal(t, serviceName, service[0].ServiceName)
+	require.Equal(t, 9999, service[0].ServicePort)
+
+	return meta.LastIndex
+}
+
+func serversCluster(t *testing.T, numServers int, version string, image string) *libcluster.Cluster {
+	var configs []libagent.Config
+
+	conf, err := libagent.NewConfigBuilder(nil).
+		Bootstrap(3).
+		ToAgentConfig()
+	require.NoError(t, err)
+
+	for i := 0; i < numServers; i++ {
+		configs = append(configs, *conf)
+	}
+	cluster, err := libcluster.New(configs)
+	require.NoError(t, err)
+
+	libcluster.WaitForLeader(t, cluster, nil)
+	libcluster.WaitForMembers(t, cluster.Agents[0].GetClient(), numServers)
+
+	return cluster
+}
+
+func terminate(t *testing.T, cluster *libcluster.Cluster) {
+	err := cluster.Terminate()
+	require.NoError(t, err)
 }

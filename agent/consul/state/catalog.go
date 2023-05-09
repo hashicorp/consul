@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package state
 
 import (
@@ -200,7 +197,6 @@ func (s *Store) ensureRegistrationTxn(tx WriteTxn, idx uint64, preserveIndexes b
 		TaggedAddresses: req.TaggedAddresses,
 		Meta:            req.NodeMeta,
 		PeerName:        req.PeerName,
-		Locality:        req.Locality,
 	}
 	if preserveIndexes {
 		node.CreateIndex = req.CreateIndex
@@ -1088,69 +1084,6 @@ func assignServiceVirtualIP(tx WriteTxn, idx uint64, psn structs.PeeredServiceNa
 		return "", err
 	}
 	return result.String(), nil
-}
-
-func (s *Store) AssignManualVirtualIPs(idx uint64, psn structs.PeeredServiceName, ips []string) error {
-	tx := s.db.WriteTxn(idx)
-	defer tx.Abort()
-
-	// First remove the given IPs from any existing services, to avoid duplicate assignments.
-	assignedIPs := map[string]struct{}{}
-	for _, ip := range ips {
-		assignedIPs[ip] = struct{}{}
-	}
-	for ip := range assignedIPs {
-		entry, err := tx.First(tableServiceVirtualIPs, indexManualVIPs, psn.ServiceName.PartitionOrDefault(), ip)
-		if err != nil {
-			return fmt.Errorf("failed service virtual IP lookup: %s", err)
-		}
-
-		if entry == nil {
-			continue
-		}
-
-		newEntry := entry.(ServiceVirtualIP)
-		if newEntry.Service.ServiceName.Matches(psn.ServiceName) {
-			continue
-		}
-
-		// Rebuild this entry's list of manual IPs, removing any that are present
-		// in new list we're assigning.
-		var filteredIPs []string
-		for _, existingIP := range newEntry.ManualIPs {
-			if _, ok := assignedIPs[existingIP]; !ok {
-				filteredIPs = append(filteredIPs, existingIP)
-			}
-		}
-
-		newEntry.ManualIPs = filteredIPs
-		newEntry.ModifyIndex = idx
-		if err := tx.Insert(tableServiceVirtualIPs, newEntry); err != nil {
-			return fmt.Errorf("failed inserting service virtual IP entry: %s", err)
-		}
-	}
-
-	entry, err := tx.First(tableServiceVirtualIPs, indexID, psn)
-	if err != nil {
-		return fmt.Errorf("failed service virtual IP lookup: %s", err)
-	}
-
-	if entry == nil {
-		return nil
-	}
-
-	newEntry := entry.(ServiceVirtualIP)
-	newEntry.ManualIPs = ips
-	newEntry.ModifyIndex = idx
-
-	if err := tx.Insert(tableServiceVirtualIPs, newEntry); err != nil {
-		return fmt.Errorf("failed inserting service virtual IP entry: %s", err)
-	}
-	if err := updateVirtualIPMaxIndexes(tx, idx, psn.ServiceName.PartitionOrDefault(), psn.Peer); err != nil {
-		return err
-	}
-
-	return tx.Commit()
 }
 
 func updateVirtualIPMaxIndexes(txn WriteTxn, idx uint64, partition, peerName string) error {
@@ -2082,33 +2015,6 @@ func freeServiceVirtualIP(
 		return nil
 	}
 
-	// Don't deregister the virtual IP if at least one instance of this service still exists.
-	q := Query{
-		Value:          psn.ServiceName.Name,
-		EnterpriseMeta: psn.ServiceName.EnterpriseMeta,
-		PeerName:       psn.Peer,
-	}
-	if remainingService, err := tx.First(tableServices, indexService, q); err == nil {
-		if remainingService != nil {
-			return nil
-		}
-	} else {
-		return fmt.Errorf("failed service lookup for %q: %s", psn.ServiceName.Name, err)
-	}
-
-	// Don't deregister the virtual IP if at least one resolver/router/splitter config entry still
-	// references this service.
-	configEntryVIPKinds := []string{structs.ServiceResolver, structs.ServiceRouter, structs.ServiceSplitter}
-	for _, kind := range configEntryVIPKinds {
-		_, entry, err := configEntryTxn(tx, nil, kind, psn.ServiceName.Name, &psn.ServiceName.EnterpriseMeta)
-		if err != nil {
-			return fmt.Errorf("failed config entry lookup for %s/%s: %s", kind, psn.ServiceName.Name, err)
-		}
-		if entry != nil {
-			return nil
-		}
-	}
-
 	// Don't deregister the virtual IP if at least one terminating gateway still references this service.
 	termGatewaySupported, err := terminatingGatewayVirtualIPsSupported(tx, nil)
 	if err != nil {
@@ -3037,46 +2943,6 @@ func (s *Store) VirtualIPForService(psn structs.PeeredServiceName) (string, erro
 		return "", err
 	}
 	return result.String(), nil
-}
-
-func (s *Store) ServiceVirtualIPs() (uint64, []ServiceVirtualIP, error) {
-	tx := s.db.Txn(false)
-	defer tx.Abort()
-
-	return servicesVirtualIPsTxn(tx)
-}
-
-func servicesVirtualIPsTxn(tx ReadTxn) (uint64, []ServiceVirtualIP, error) {
-	iter, err := tx.Get(tableServiceVirtualIPs, indexID)
-	if err != nil {
-		return 0, nil, err
-	}
-
-	var vips []ServiceVirtualIP
-	for raw := iter.Next(); raw != nil; raw = iter.Next() {
-		vip := raw.(ServiceVirtualIP)
-		vips = append(vips, vip)
-	}
-
-	idx := maxIndexWatchTxn(tx, nil, tableServiceVirtualIPs)
-
-	return idx, vips, nil
-}
-
-func (s *Store) ServiceManualVIPs(psn structs.PeeredServiceName) (*ServiceVirtualIP, error) {
-	tx := s.db.Txn(false)
-	defer tx.Abort()
-
-	vip, err := tx.First(tableServiceVirtualIPs, indexID, psn)
-	if err != nil {
-		return nil, fmt.Errorf("failed service virtual IP lookup: %s", err)
-	}
-	if vip == nil {
-		return nil, nil
-	}
-
-	entry := vip.(ServiceVirtualIP)
-	return &entry, nil
 }
 
 // VirtualIPsForAllImportedServices returns a slice of ServiceVirtualIP for all

@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package checks
 
 import (
@@ -8,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strings"
@@ -108,7 +106,7 @@ func (c *DockerClient) call(method, uri string, v interface{}) (*circbuf.Buffer,
 		if err := json.NewEncoder(&b).Encode(v); err != nil {
 			return nil, 0, err
 		}
-		req.Body = io.NopCloser(&b)
+		req.Body = ioutil.NopCloser(&b)
 		req.Header.Set("Content-Type", "application/json")
 	}
 

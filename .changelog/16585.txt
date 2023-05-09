@@ -1,3 +1,0 @@
-```release-note:feature
-xds: Allow for configuring connect proxies to send service mesh telemetry to an HCP metrics collection service.
-```

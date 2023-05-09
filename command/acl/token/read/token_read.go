@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package tokenread
 
 import (
@@ -28,13 +25,11 @@ type cmd struct {
 	http  *flags.HTTPFlags
 	help  string
 
-	tokenAccessorID string
-	self            bool
-	showMeta        bool
-	format          string
-	expanded        bool
-
-	tokenID string // DEPRECATED
+	tokenID  string
+	self     bool
+	showMeta bool
+	format   string
+	expanded bool
 }
 
 func (c *cmd) init() {
@@ -42,10 +37,10 @@ func (c *cmd) init() {
 	c.flags.BoolVar(&c.showMeta, "meta", false, "Indicates that token metadata such "+
 		"as the content hash and Raft indices should be shown for each entry")
 	c.flags.BoolVar(&c.self, "self", false, "Indicates that the current HTTP token "+
-		"should be read by secret ID instead of expecting a -accessor-id option")
+		"should be read by secret ID instead of expecting a -id option")
 	c.flags.BoolVar(&c.expanded, "expanded", false, "Indicates that the contents of the "+
 		" policies and roles affecting the token should also be shown.")
-	c.flags.StringVar(&c.tokenAccessorID, "accessor-id", "", "The Accessor ID of the token to read. "+
+	c.flags.StringVar(&c.tokenID, "id", "", "The Accessor ID of the token to read. "+
 		"It may be specified as a unique ID prefix but will error if the prefix "+
 		"matches multiple token Accessor IDs")
 	c.flags.StringVar(
@@ -59,14 +54,15 @@ func (c *cmd) init() {
 	flags.Merge(c.flags, c.http.ServerFlags())
 	flags.Merge(c.flags, c.http.MultiTenancyFlags())
 	c.help = flags.Usage(help, c.flags)
-
-	// Deprecations
-	c.flags.StringVar(&c.tokenID, "id", "",
-		"DEPRECATED. Use -accessor-id instead.")
 }
 
 func (c *cmd) Run(args []string) int {
 	if err := c.flags.Parse(args); err != nil {
+		return 1
+	}
+
+	if c.tokenID == "" && !c.self {
+		c.UI.Error(fmt.Sprintf("Must specify the -id parameter"))
 		return 1
 	}
 
@@ -79,38 +75,27 @@ func (c *cmd) Run(args []string) int {
 	var t *api.ACLToken
 	var expanded *api.ACLTokenExpanded
 	if !c.self {
-		tokenAccessor := c.tokenAccessorID
-		if tokenAccessor == "" {
-			if c.tokenID == "" {
-				c.UI.Error("Must specify the -accessor-id parameter")
-				return 1
-			} else {
-				tokenAccessor = c.tokenID
-				c.UI.Warn("Use the -accessor-id parameter to specify token by Accessor ID")
-			}
-		}
-
-		tok, err := acl.GetTokenAccessorIDFromPartial(client, tokenAccessor)
+		tokenID, err := acl.GetTokenIDFromPartial(client, c.tokenID)
 		if err != nil {
 			c.UI.Error(fmt.Sprintf("Error determining token ID: %v", err))
 			return 1
 		}
 
 		if !c.expanded {
-			t, _, err = client.ACL().TokenRead(tok, nil)
+			t, _, err = client.ACL().TokenRead(tokenID, nil)
 		} else {
-			expanded, _, err = client.ACL().TokenReadExpanded(tok, nil)
+			expanded, _, err = client.ACL().TokenReadExpanded(tokenID, nil)
 		}
 
 		if err != nil {
-			c.UI.Error(fmt.Sprintf("Error reading token %q: %v", tok, err))
+			c.UI.Error(fmt.Sprintf("Error reading token %q: %v", tokenID, err))
 			return 1
 		}
 	} else {
 		// TODO: consider updating this CLI command and underlying HTTP API endpoint
 		// to support expanded read of a "self" token, which is a much better user workflow.
 		if c.expanded {
-			c.UI.Error("Cannot use both -expanded and -self. Instead, use -expanded and -accessor-id=<accessor id>.")
+			c.UI.Error("Cannot use both -expanded and -self. Instead, use -expanded and -id=<accessor id>.")
 			return 1
 		}
 
@@ -154,17 +139,17 @@ func (c *cmd) Help() string {
 const (
 	synopsis = "Read an ACL token"
 	help     = `
-Usage: consul acl token read [options] -accessor-id TOKENID
+Usage: consul acl token read [options] -id TOKENID
 
   This command will retrieve and print out the details of
   a single token.
 
   Using a partial ID:
 
-          $ consul acl token read -accessor-id 4be56c77-82
+          $ consul acl token read -id 4be56c77-82
 
   Using the full ID:
 
-          $ consul acl token read -accessor-id 4be56c77-8244-4c7d-b08c-667b8c71baed
+          $ consul acl token read -id 4be56c77-8244-4c7d-b08c-667b8c71baed
 `
 )

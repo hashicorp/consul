@@ -1,3 +1,0 @@
-```release-note:feature
-server: added server side RPC requests global read/write rate-limiter.
-```

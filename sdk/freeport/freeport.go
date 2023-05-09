@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 // Package freeport provides a helper for reserving free TCP ports across multiple
 // processes on the same machine. Each process reserves a block of ports outside
 // the ephemeral port range. Tests can request one of these reserved ports

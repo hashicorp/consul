@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package structs
 
 import (
@@ -15,10 +12,6 @@ type MeshConfigEntry struct {
 	// TransparentProxy contains cluster-wide options pertaining to TPROXY mode
 	// when enabled.
 	TransparentProxy TransparentProxyMeshConfig `alias:"transparent_proxy"`
-
-	// AllowEnablingPermissiveMutualTLS must be true in order to allow setting
-	// MutualTLSMode=permissive in either service-defaults or proxy-defaults.
-	AllowEnablingPermissiveMutualTLS bool `json:",omitempty" alias:"allow_enabling_permissive_mutual_tls"`
 
 	TLS *MeshTLSConfig `json:",omitempty"`
 

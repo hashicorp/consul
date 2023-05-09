@@ -1,16 +1,34 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 .consul-external-source {
-  @extend %pill-200, %frame-gray-600, %body-200-regular;
+  @extend %pill-200, %frame-gray-600, %p1;
 }
 
 .consul-external-source::before {
   --icon-size: icon-300;
 }
 
+.consul-external-source.kubernetes::before {
+  @extend %with-logo-kubernetes-color-icon, %as-pseudo;
+}
+.consul-external-source.terraform::before {
+  @extend %with-logo-terraform-color-icon, %as-pseudo;
+}
+.consul-external-source.nomad::before {
+  @extend %with-logo-nomad-color-icon, %as-pseudo;
+}
+.consul-external-source.consul::before,
+.consul-external-source.consul-api-gateway::before {
+  @extend %with-logo-consul-color-icon, %as-pseudo;
+}
+.consul-external-source.vault::before {
+  @extend %with-vault-300;
+}
+.consul-external-source.lambda::before,
+.consul-external-source.aws::before {
+  @extend %with-aws-300;
+}
+.consul-external-source.leader::before {
+  @extend %with-star-outline-mask, %as-pseudo;
+}
 .consul-external-source.jwt::before {
   @extend %with-logo-jwt-color-icon, %as-pseudo;
 }

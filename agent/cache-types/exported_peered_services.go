@@ -1,10 +1,6 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package cachetype
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/hashicorp/consul/agent/cache"
@@ -45,7 +41,7 @@ func (c *ExportedPeeredServices) Fetch(opts cache.FetchOptions, req cache.Reques
 
 	// Fetch
 	var reply structs.IndexedExportedServiceList
-	if err := c.RPC.RPC(context.Background(), "Internal.ExportedPeeredServices", reqReal, &reply); err != nil {
+	if err := c.RPC.RPC("Internal.ExportedPeeredServices", reqReal, &reply); err != nil {
 		return result, err
 	}
 

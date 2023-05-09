@@ -65,19 +65,8 @@ load helpers
   echo "PUB = $PUB"
   echo "UPS = $UPS"
 
-  [ "$PUB" = "envoy.filters.http.rbac,envoy.filters.http.header_to_metadata,envoy.filters.http.router" ]
+  [ "$PUB" = "envoy.filters.http.rbac,envoy.filters.http.router" ]
   [ "$UPS" = "envoy.filters.http.router" ]
-}
-
-@test "s1 proxy should have been configured with passive_health_check" {
-  CLUSTER_CONFIG=$(get_envoy_cluster_config localhost:19000 1a47f6e1~s2.default.primary)
-  echo $CLUSTER_CONFIG
-
-  [ "$(echo $CLUSTER_CONFIG | jq --raw-output '.outlier_detection.interval')" = "22s" ]
-  [ "$(echo $CLUSTER_CONFIG | jq --raw-output '.outlier_detection.consecutive_5xx')" = null ]
-  [ "$(echo $CLUSTER_CONFIG | jq --raw-output '.outlier_detection.enforcing_consecutive_5xx')" = null ]
-  [ "$(echo $CLUSTER_CONFIG | jq --raw-output '.outlier_detection.max_ejection_percent')" = null ]
-  [ "$(echo $CLUSTER_CONFIG | jq --raw-output '.outlier_detection.base_ejection_time')" = null ]
 }
 
 @test "s2 proxy should have been configured with http rbac filters" {
@@ -87,5 +76,5 @@ load helpers
   echo "HTTP_FILTERS = $HTTP_FILTERS"
   echo "PUB = $PUB"
 
-  [ "$PUB" = "envoy.filters.http.rbac,envoy.filters.http.header_to_metadata,envoy.filters.http.router" ]
+  [ "$PUB" = "envoy.filters.http.rbac,envoy.filters.http.router" ]
 }

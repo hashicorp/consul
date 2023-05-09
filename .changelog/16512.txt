@@ -1,3 +1,0 @@
-```release-note:bug
-gateways: fix HTTPRoute bug where service weights could be less than or equal to 0 and result in a downstream envoy protocol error
-```

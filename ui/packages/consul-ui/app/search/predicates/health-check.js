@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 const asArray = function (arr) {
   return Array.isArray(arr) ? arr : arr.toArray();
 };

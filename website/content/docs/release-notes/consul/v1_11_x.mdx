@@ -9,27 +9,27 @@ description: >-
 
 ## Release Highlights
 
-- **Admin Partitions (Enterprise)**: Consul 1.11.0 Enterprise introduces a new entity for defining administrative and networking boundaries within a Consul deployment. This feature also enables servers to communicate with clients over a specific gossip segment created for each partition. This release also enables cross partition communication between services across partitions, using Mesh Gateways. For more information refer to the [Admin Partitions](/consul/docs/enterprise/admin-partitions) documentation.
+- **Admin Partitions (Enterprise)**: Consul 1.11.0 Enterprise introduces a new entity for defining administrative and networking boundaries within a Consul deployment. This feature also enables servers to communicate with clients over a specific gossip segment created for each partition. This release also enables cross partition communication between services across partitions, using Mesh Gateways. For more information refer to the [Admin Partitions](/docs/enterprise/admin-partitions) documentation.
 
 - **Virtual IPs for services deployed with Consul Service Mesh**:  Consul will now generate a unique virtual IP for each service deployed within Consul Service Mesh, allowing transparent proxy to route to services within a data center that exist in different clusters or outside the service mesh.
 
 - **Replace [boltdb](https://github.com/boltdb/bolt) with [etcd-io/bbolt](https://github.com/etcd-io/bbolt) for raft log store**: Consul now leverages `etcd-io/bbolt` as the default implementation of `boltdb` instead of `boltdb/bolt`. This change also exposes a configuration to allow for disabling boltdb freelist syncing. In addition, Consul now emits metrics for the raft boltdb store to provide insights into boltdb performance.
 
-- **TLS Certificates for Ingress Gateways via an SDS source**: Ingress Gateways can now be configured to retrieve TLS certificates from an external SDS Service and load the TLS certificates for Ingress listeners. This configuration is set using the `ingress-gateway` configuration entry via the [SDS](/consul/docs/connect/config-entries/ingress-gateway#sds) stanza within the Ingress Gateway TLS configuration.
+- **TLS Certificates for Ingress Gateways via an SDS source**: Ingress Gateways can now be configured to retrieve TLS certificates from an external SDS Service and load the TLS certificates for Ingress listeners. This configuration is set using the `ingress-gateway` configuration entry via the [SDS](/docs/connect/config-entries/ingress-gateway#sds) stanza within the Ingress Gateway TLS configuration.
 
-- **Vault Auth Method support for service mesh CA Vault Provider**: Consul now supports configuring the service mesh CA Vault provider to use auth methods for authentication to Vault. Consul supports using any non-deprecated auth method that is available in Vault v1.8.5, including AppRole, AliCloud, AWS, Azure, Cloud Foundry, GitHub, Google Cloud, JWT/OIDC, Kerberos, Kubernetes, LDAP, Oracle Cloud Infrastructure, Okta, Radius, TLS Certificates, and Username & Password. The Vault Auth Method for service mesh CA Provider is utilized by default for the [Vault Secrets Backend](/consul/docs/k8s/deployment-configurations/vault) feature on Consul on Kubernetes. Utilizing a Vault Auth method would no longer require a Vault token to be managed or provisioned ahead of time to be used for authentication to Vault.
+- **Vault Auth Method support for Connect CA Vault Provider**: Consul now supports configuring the Connect CA Vault provider to use auth methods for authentication to Vault. Consul supports using any non-deprecated auth method that is available in Vault v1.8.5, including AppRole, AliCloud, AWS, Azure, Cloud Foundry, GitHub, Google Cloud, JWT/OIDC, Kerberos, Kubernetes, LDAP, Oracle Cloud Infrastructure, Okta, Radius, TLS Certificates, and Username & Password. The Vault Auth Method for Connect CA Provider is utilized by default for the [Vault Secrets Backend](/docs/k8s/deployment-configurations/vault) feature on Consul on Kubernetes. Utilizing a Vault Auth method would no longer require a Vault token to be managed or provisioned ahead of time to be used for authentication to Vault.
 
 ## What's Changed
 
-- The legacy ACL system that was deprecated in Consul 1.4.0 has been removed. Before upgrading you should verify that all tokens and policies have been migrated to the newer ACL system. Complete the [Migrate Legacy ACL Tokens](/consul/tutorials/security-operations/access-control-token-migration) tutorial to learn more.
+- The legacy ACL system that was deprecated in Consul 1.4.0 has been removed. Before upgrading you should verify that all tokens and policies have been migrated to the newer ACL system. Complete the [Migrate Legacy ACL Tokens](https://learn.hashicorp.com/consul/day-2-agent-authentication/migrate-acl-tokens) tutorial to learn more.
 
-- The `agent_master` ACL token has been renamed to `agent_recovery` ACL token. In addition, the `consul acl set-agent-token master` command has been replaced with `consul acl set-agent-token recovery`. See [ACL Agent Recovery Token](/consul/docs/security/acl/acl-tokens#acl-agent-recovery-token) and [Consul ACL Set Agent Token](/consul/commands/acl/set-agent-token) for more information.
+- The `agent_master` ACL token has been renamed to `agent_recovery` ACL token. In addition, the `consul acl set-agent-token master` command has been replaced with `consul acl set-agent-token recovery`. See [ACL Agent Recovery Token](/docs/security/acl/acl-tokens#acl-agent-recovery-token) and [Consul ACL Set Agent Token](/commands/acl/set-agent-token) for more information.
 
 - Drops support for Envoy versions 1.15.x and 1.16.x
 
 ## Upgrading
 
-For more detailed information, please refer to the [upgrade details page](/consul/docs/upgrading/upgrade-specific#consul-1-11-0) and the changelogs.
+For more detailed information, please refer to the [upgrade details page](/docs/upgrading/upgrade-specific#consul-1-11-0) and the changelogs.
 
 ## Changelogs
 

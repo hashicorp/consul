@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 html[data-route^='dc.acls.index'] main td strong {
   @extend %pill-500, %frame-gray-900;
   margin-right: 3px;
@@ -12,6 +7,9 @@ html[data-route^='dc.acls.index'] .filter-bar {
 }
 html[data-route^='dc.acls.index'] .filter-bar [role='radiogroup'] {
   @extend %expanded-single-select;
+}
+html[data-route^='dc.acls.tokens.edit'] header .actions button {
+  @extend %secondary-button;
 }
 
 @media #{$--lt-wide-form} {

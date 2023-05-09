@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package ca
 
 import (
@@ -49,9 +46,17 @@ func TestAWSBootstrapAndSignPrimary(t *testing.T) {
 			provider := testAWSProvider(t, testProviderConfigPrimary(t, cfg))
 			defer provider.Cleanup(true, nil)
 
-			root, err := provider.GenerateCAChain()
+			root, err := provider.GenerateRoot()
 			require.NoError(t, err)
 			rootPEM := root.PEM
+
+			// Generate Intermediate (not actually needed for this provider for now
+			// but this simulates the calls in Server.initializeRoot).
+			interPEM, err := provider.GenerateIntermediate()
+			require.NoError(t, err)
+
+			// Should be the same for now
+			require.Equal(t, rootPEM, interPEM)
 
 			// Ensure they use the right key type
 			rootCert, err := connect.ParseCert(rootPEM)
@@ -76,7 +81,7 @@ func TestAWSBootstrapAndSignPrimary(t *testing.T) {
 		provider := testAWSProvider(t, testProviderConfigPrimary(t, nil))
 		defer provider.Cleanup(true, nil)
 
-		root, err := provider.GenerateCAChain()
+		root, err := provider.GenerateRoot()
 		require.NoError(t, err)
 		rootPEM := root.PEM
 
@@ -111,7 +116,7 @@ func TestAWSBootstrapAndSignSecondary(t *testing.T) {
 
 	p1 := testAWSProvider(t, testProviderConfigPrimary(t, nil))
 	defer p1.Cleanup(true, nil)
-	root, err := p1.GenerateCAChain()
+	root, err := p1.GenerateRoot()
 	require.NoError(t, err)
 	rootPEM := root.PEM
 
@@ -121,7 +126,7 @@ func TestAWSBootstrapAndSignSecondary(t *testing.T) {
 	testSignIntermediateCrossDC(t, p1, p2)
 
 	// Fetch intermediate from s2 now for later comparison
-	intPEM, err := p2.ActiveLeafSigningCert()
+	intPEM, err := p2.ActiveIntermediate()
 	require.NoError(t, err)
 
 	// Capture the state of the providers we've setup
@@ -140,15 +145,15 @@ func TestAWSBootstrapAndSignSecondary(t *testing.T) {
 		cfg1 := testProviderConfigPrimary(t, nil)
 		cfg1.State = p1State
 		p1 = testAWSProvider(t, cfg1)
-		root, err := p1.GenerateCAChain()
+		root, err := p1.GenerateRoot()
 		require.NoError(t, err)
 		newRootPEM := root.PEM
 
 		cfg2 := testProviderConfigPrimary(t, nil)
 		cfg2.State = p2State
 		p2 = testAWSProvider(t, cfg2)
-		// Need call ActiveLeafSigningCert like leader would to trigger loading from PCA
-		newIntPEM, err := p2.ActiveLeafSigningCert()
+		// Need call ActiveIntermediate like leader would to trigger loading from PCA
+		newIntPEM, err := p2.ActiveIntermediate()
 		require.NoError(t, err)
 
 		// Root cert should not have changed
@@ -174,7 +179,7 @@ func TestAWSBootstrapAndSignSecondary(t *testing.T) {
 			"ExistingARN": p1State[AWSStateCAARNKey],
 		})
 		p1 = testAWSProvider(t, cfg1)
-		root, err := p1.GenerateCAChain()
+		root, err := p1.GenerateRoot()
 		require.NoError(t, err)
 		newRootPEM := root.PEM
 
@@ -183,8 +188,8 @@ func TestAWSBootstrapAndSignSecondary(t *testing.T) {
 		})
 		cfg1.RawConfig["ExistingARN"] = p2State[AWSStateCAARNKey]
 		p2 = testAWSProvider(t, cfg2)
-		// Need call ActiveLeafSigningCert like leader would to trigger loading from PCA
-		newIntPEM, err := p2.ActiveLeafSigningCert()
+		// Need call ActiveIntermediate like leader would to trigger loading from PCA
+		newIntPEM, err := p2.ActiveIntermediate()
 		require.NoError(t, err)
 
 		// Root cert should not have changed
@@ -213,10 +218,10 @@ func TestAWSBootstrapAndSignSecondary(t *testing.T) {
 		p2 = testAWSProvider(t, cfg2)
 		require.NoError(t, p2.SetIntermediate(newIntPEM, newRootPEM, ""))
 
-		root, err = p1.GenerateCAChain()
+		root, err = p1.GenerateRoot()
 		require.NoError(t, err)
 		newRootPEM = root.PEM
-		newIntPEM, err = p2.ActiveLeafSigningCert()
+		newIntPEM, err = p2.ActiveIntermediate()
 		require.NoError(t, err)
 
 		require.Equal(t, rootPEM, newRootPEM)
@@ -235,7 +240,7 @@ func TestAWSBootstrapAndSignSecondaryConsul(t *testing.T) {
 		p1 := TestConsulProvider(t, delegate)
 		cfg := testProviderConfig(conf)
 		require.NoError(t, p1.Configure(cfg))
-		_, err := p1.GenerateCAChain()
+		_, err := p1.GenerateRoot()
 		require.NoError(t, err)
 
 		p2 := testAWSProvider(t, testProviderConfigSecondary(t, nil))
@@ -248,7 +253,7 @@ func TestAWSBootstrapAndSignSecondaryConsul(t *testing.T) {
 		p1 := testAWSProvider(t, testProviderConfigPrimary(t, nil))
 		defer p1.Cleanup(true, nil)
 
-		_, err := p1.GenerateCAChain()
+		_, err := p1.GenerateRoot()
 		require.NoError(t, err)
 
 		conf := testConsulCAConfig()
@@ -326,7 +331,7 @@ func TestAWSProvider_Cleanup(t *testing.T) {
 		// create a provider with the default config which will create the CA
 		p1Conf := testProviderConfigPrimary(t, nil)
 		p1 := testAWSProvider(t, p1Conf)
-		p1.GenerateCAChain()
+		p1.GenerateRoot()
 
 		t.Cleanup(func() {
 			// This is a fail safe just in case the Cleanup routine of the
@@ -360,7 +365,7 @@ func TestAWSProvider_Cleanup(t *testing.T) {
 		// create a provider with the default config which will create the CA
 		p1Conf := testProviderConfigPrimary(t, nil)
 		p1 := testAWSProvider(t, p1Conf)
-		p1.GenerateCAChain()
+		p1.GenerateRoot()
 
 		t.Cleanup(func() {
 			// This is a fail safe just in case the Cleanup routine of the
@@ -397,7 +402,7 @@ func TestAWSProvider_Cleanup(t *testing.T) {
 		// create a provider with the default config which will create the CA
 		p1Conf := testProviderConfigPrimary(t, nil)
 		p1 := testAWSProvider(t, p1Conf)
-		p1.GenerateCAChain()
+		p1.GenerateRoot()
 
 		t.Cleanup(func() {
 			// the p2 provider should not remove the CA but we need to ensure that

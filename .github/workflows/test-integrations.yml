@@ -153,7 +153,7 @@ jobs:
           # this is further going to multiplied in envoy-integration tests by the 
           # other dimensions in the matrix.  Currently TOTAL_RUNNERS would be
           # multiplied by 8 based on these values:
-          # envoy-version: ["1.23.8", "1.24.6", "1.25.4", "1.26.0"]
+          # envoy-version: ["1.22.11", "1.23.8", "1.24.6", "1.25.4"]
           # xds-target: ["server", "client"]
           TOTAL_RUNNERS: 4 
           JQ_SLICER: '[ inputs ] | [_nwise(length / $runnercount | floor)]'
@@ -184,7 +184,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        envoy-version: ["1.23.8", "1.24.6", "1.25.4", "1.26.0"]
+        envoy-version: ["1.22.11", "1.23.8", "1.24.6", "1.25.4"]
         xds-target: ["server", "client"]
         test-cases: ${{ fromJSON(needs.generate-envoy-job-matrices.outputs.envoy-matrix) }}
     env:
@@ -324,7 +324,7 @@ jobs:
               ${{ matrix.test-cases }} \
               --target-image ${{ env.CONSUL_LATEST_IMAGE_NAME }} \
               --target-version local \
-              --latest-image docker.mirror.hashicorp.services/${{ env.CONSUL_LATEST_IMAGE_NAME }} \
+              --latest-image ${{ env.CONSUL_LATEST_IMAGE_NAME }} \
               --latest-version latest
             ls -lrt
         env:
@@ -376,6 +376,9 @@ jobs:
   
   upgrade-integration-test:
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-xl) }}
+    permissions:
+      id-token: write # NOTE: this permission is explicitly required for Vault auth.
+      contents: read
     needs:
       - setup
       - dev-build
@@ -393,6 +396,33 @@ jobs:
         with:
           go-version-file: 'go.mod'
       - run: go env
+
+      # NOTE: ENT specific step as we store secrets in Vault.
+      - name: Authenticate to Vault
+        if: ${{ endsWith(github.repository, '-enterprise') }}
+        id: vault-auth
+        run: vault-auth
+
+      # NOTE: ENT specific step as we store secrets in Vault.
+      - name: Fetch Secrets
+        if: ${{ endsWith(github.repository, '-enterprise') }}
+        id: secrets
+        uses: hashicorp/vault-action@v2.5.0
+        with:
+          url: ${{ steps.vault-auth.outputs.addr }}
+          caCertificate: ${{ steps.vault-auth.outputs.ca_certificate }}
+          token: ${{ steps.vault-auth.outputs.token }}
+          secrets: |
+              kv/data/github/${{ github.repository }}/dockerhub username | DOCKERHUB_USERNAME;
+              kv/data/github/${{ github.repository }}/dockerhub token | DOCKERHUB_TOKEN;
+
+      # NOTE: conditional specific logic as we store secrets in Vault in ENT and use GHA secrets in OSS.
+      - name: Login to Docker Hub
+        uses: docker/login-action@f4ef78c080cd8ba55a85445d5b36e214a81df20a # pin@v2.1.0
+        with:
+          username: ${{ endsWith(github.repository, '-enterprise') && steps.secrets.outputs.DOCKERHUB_USERNAME || secrets.DOCKERHUB_USERNAME }}
+          password: ${{ endsWith(github.repository, '-enterprise') && steps.secrets.outputs.DOCKERHUB_TOKEN || secrets.DOCKERHUB_TOKEN }}
+
 
       # Get go binary from workspace
       - name: fetch binary

@@ -1,6 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
-# SPDX-License-Identifier: MPL-2.0
-
 tls {
   internal_rpc {
     ca_file                = "/workdir/secondary/tls/consul-agent-ca.pem"

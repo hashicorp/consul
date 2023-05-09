@@ -1,17 +1,13 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package cachetype
 
 import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/mock"
-	"github.com/stretchr/testify/require"
-
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 )
 
 func TestConfigEntries(t *testing.T) {
@@ -21,16 +17,16 @@ func TestConfigEntries(t *testing.T) {
 	// Expect the proper RPC call. This also sets the expected value
 	// since that is return-by-pointer in the arguments.
 	var resp *structs.IndexedConfigEntries
-	rpc.On("RPC", mock.Anything, "ConfigEntry.List", mock.Anything, mock.Anything).Return(nil).
+	rpc.On("RPC", "ConfigEntry.List", mock.Anything, mock.Anything).Return(nil).
 		Run(func(args mock.Arguments) {
-			req := args.Get(2).(*structs.ConfigEntryQuery)
+			req := args.Get(1).(*structs.ConfigEntryQuery)
 			require.Equal(t, uint64(24), req.QueryOptions.MinQueryIndex)
 			require.Equal(t, 1*time.Second, req.QueryOptions.MaxQueryTime)
 			require.True(t, req.AllowStale)
 			require.Equal(t, structs.ServiceResolver, req.Kind)
 			require.Equal(t, "", req.Name)
 
-			reply := args.Get(3).(*structs.IndexedConfigEntries)
+			reply := args.Get(2).(*structs.IndexedConfigEntries)
 			reply.Kind = structs.ServiceResolver
 			reply.Entries = []structs.ConfigEntry{
 				&structs.ServiceResolverConfigEntry{Kind: structs.ServiceResolver, Name: "foo"},
@@ -64,9 +60,9 @@ func TestConfigEntry(t *testing.T) {
 	// Expect the proper RPC call. This also sets the expected value
 	// since that is return-by-pointer in the arguments.
 	var resp *structs.ConfigEntryResponse
-	rpc.On("RPC", mock.Anything, "ConfigEntry.Get", mock.Anything, mock.Anything).Return(nil).
+	rpc.On("RPC", "ConfigEntry.Get", mock.Anything, mock.Anything).Return(nil).
 		Run(func(args mock.Arguments) {
-			req := args.Get(2).(*structs.ConfigEntryQuery)
+			req := args.Get(1).(*structs.ConfigEntryQuery)
 			require.Equal(t, uint64(24), req.QueryOptions.MinQueryIndex)
 			require.Equal(t, 1*time.Second, req.QueryOptions.MaxQueryTime)
 			require.True(t, req.AllowStale)
@@ -77,7 +73,7 @@ func TestConfigEntry(t *testing.T) {
 				Name: "foo",
 				Kind: structs.ServiceResolver,
 			}
-			reply := args.Get(3).(*structs.ConfigEntryResponse)
+			reply := args.Get(2).(*structs.ConfigEntryResponse)
 			reply.Entry = entry
 			reply.QueryMeta.Index = 48
 			resp = reply

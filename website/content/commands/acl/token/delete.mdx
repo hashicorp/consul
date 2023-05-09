@@ -1,20 +1,18 @@
 ---
 layout: commands
 page_title: 'Commands: ACL Token Delete'
-description: |
-  The `consul acl token delete` command deletes an ACL token of a specified ID. Deleting a token affects the ACL policies and roles attached to the token.
 ---
 
 # Consul ACL Token Delete
 
 Command: `consul acl token delete`
 
-Corresponding HTTP API Endpoint: [\[DELETE\] /v1/acl/token/:AccessorID](/consul/api-docs/acl/tokens#delete-a-token)
+Corresponding HTTP API Endpoint: [\[DELETE\] /v1/acl/token/:AccessorID](/api-docs/acl/tokens#delete-a-token)
 
 The `acl token delete` command deletes a token.
 
-The table below shows this command's [required ACLs](/consul/api-docs/api-structure#authentication). Configuration of
-[blocking queries](/consul/api-docs/features/blocking) and [agent caching](/consul/api-docs/features/caching)
+The table below shows this command's [required ACLs](/api-docs/api-structure#authentication). Configuration of
+[blocking queries](/api-docs/features/blocking) and [agent caching](/api-docs/features/caching)
 are not supported from commands, but may be from the corresponding HTTP endpoint.
 
 | ACL Required |

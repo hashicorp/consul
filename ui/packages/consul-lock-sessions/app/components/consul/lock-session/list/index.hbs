@@ -1,8 +1,3 @@
-{{!
-  Copyright (c) HashiCorp, Inc.
-  SPDX-License-Identifier: MPL-2.0
-}}
-
 <ListCollection
   class="consul-lock-session-list"
   ...attributes
@@ -86,30 +81,30 @@ as |item index|>
       @message="Are you sure you want to invalidate this session?"
     >
       <BlockSlot @name="action" as |confirm|>
-        <Hds::Button
-          @text='Invalidate'
-          @color='critical'
+        <Action
           data-test-delete
+          class="type-delete"
           {{on 'click' (fn confirm (fn @ondelete item))}}
-        />
+        >
+          Invalidate
+        </Action>
       </BlockSlot>
       <BlockSlot @name="dialog" as |execute cancel message|>
         <p>
           {{message}}
         </p>
-        <Hds::ButtonSet>
-          <Hds::Button
-            @text='Confirm Invalidate'
-            @color='critical'
-            data-test-delete
-            {{on 'click' (fn execute)}}
-          />
-          <Hds::Button
-            @text='Cancel'
-            @color='secondary'
-            {{on 'click' (fn cancel)}}
-          />
-        </Hds::ButtonSet>
+        <Action
+          class="type-delete"
+          {{on 'click' (fn execute)}}
+        >
+          Confirm Invalidate
+        </Action>
+        <Action
+          class="type-cancel"
+          {{on 'click' (fn cancel)}}
+        >
+          Cancel
+        </Action>
       </BlockSlot>
     </ConfirmationDialog>
   </BlockSlot>

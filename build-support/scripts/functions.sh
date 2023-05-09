@@ -1,6 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
-# SPDX-License-Identifier: MPL-2.0
-
 #
 # NOTE: This file is meant to be sourced from other bash scripts/shells
 #

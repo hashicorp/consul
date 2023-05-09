@@ -1,10 +1,6 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package cachetype
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/hashicorp/consul/agent/cache"
@@ -43,7 +39,7 @@ func (c *PreparedQuery) Fetch(_ cache.FetchOptions, req cache.Request) (cache.Fe
 
 	// Fetch
 	var reply structs.PreparedQueryExecuteResponse
-	if err := c.RPC.RPC(context.Background(), "PreparedQuery.Execute", reqReal, &reply); err != nil {
+	if err := c.RPC.RPC("PreparedQuery.Execute", reqReal, &reply); err != nil {
 		return result, err
 	}
 

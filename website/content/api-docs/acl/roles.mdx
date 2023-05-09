@@ -12,7 +12,7 @@ The `/acl/role` endpoints [create](#create-a-role), [read](#read-a-role),
 [update](#update-a-role), [list](#list-roles) and [delete](#delete-a-role) ACL roles in Consul.
 
 For more information on how to setup ACLs, please check
-the [ACL tutorial](/consul/tutorials/security/access-control-setup-production).
+the [ACL tutorial](https://learn.hashicorp.com/tutorials/consul/access-control-setup-production).
 
 ## Create a Role
 
@@ -23,16 +23,16 @@ This endpoint creates a new ACL role.
 | `PUT`  | `/acl/role` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/consul/api-docs/features/blocking),
-[consistency modes](/consul/api-docs/features/consistency),
-[agent caching](/consul/api-docs/features/caching), and
-[required ACLs](/consul/api-docs/api-structure#authentication).
+[blocking queries](/api-docs/features/blocking),
+[consistency modes](/api-docs/features/consistency),
+[agent caching](/api-docs/features/caching), and
+[required ACLs](/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
 | ---------------- | ----------------- | ------------- | ------------ |
 | `NO`             | `none`            | `none`        | `acl:write`  |
 
-The corresponding CLI command is [`consul acl role create`](/consul/commands/acl/role/create).
+The corresponding CLI command is [`consul acl role create`](/commands/acl/role/create).
 
 ### Query Parameters
 
@@ -56,7 +56,7 @@ The corresponding CLI command is [`consul acl role create`](/consul/commands/acl
   breaking tokens.
 
 - `ServiceIdentities` `(array<ServiceIdentity>)` - The list of [service
-  identities](/consul/docs/security/acl#service-identities) that should be
+  identities](/docs/security/acl#service-identities) that should be
   applied to the role. Added in Consul 1.5.0.
 
   - `ServiceName` `(string: <required>)` - The name of the service. The name
@@ -70,7 +70,7 @@ The corresponding CLI command is [`consul acl role create`](/consul/commands/acl
     but may in the future.
 
 - `NodeIdentities` `(array<NodeIdentity>)` - The list of [node
-  identities](/consul/docs/security/acl#node-identities) that should be
+  identities](/docs/security/acl#node-identities) that should be
   applied to the role. Added in Consul 1.8.1.
 
   - `NodeName` `(string: <required>)` - The name of the node. The name
@@ -169,16 +169,16 @@ given ID, a 404 is returned instead of a 200 response.
 | `GET`  | `/acl/role/:id` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/consul/api-docs/features/blocking),
-[consistency modes](/consul/api-docs/features/consistency),
-[agent caching](/consul/api-docs/features/caching), and
-[required ACLs](/consul/api-docs/api-structure#authentication).
+[blocking queries](/api-docs/features/blocking),
+[consistency modes](/api-docs/features/consistency),
+[agent caching](/api-docs/features/caching), and
+[required ACLs](/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
 | ---------------- | ----------------- | ------------- | ------------ |
 | `YES`            | `all`             | `none`        | `acl:read`   |
 
-The corresponding CLI command is [`consul acl role read`](/consul/commands/acl/role/read).
+The corresponding CLI command is [`consul acl role read`](/commands/acl/role/read).
 
 ### Path Parameters
 
@@ -239,16 +239,16 @@ given name, a 404 is returned instead of a 200 response.
 | `GET`  | `/acl/role/name/:name` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/consul/api-docs/features/blocking),
-[consistency modes](/consul/api-docs/features/consistency),
-[agent caching](/consul/api-docs/features/caching), and
-[required ACLs](/consul/api-docs/api-structure#authentication).
+[blocking queries](/api-docs/features/blocking),
+[consistency modes](/api-docs/features/consistency),
+[agent caching](/api-docs/features/caching), and
+[required ACLs](/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
 | ---------------- | ----------------- | ------------- | ------------ |
 | `YES`            | `all`             | `none`        | `acl:read`   |
 
-The corresponding CLI command is [`consul acl role read -name=<string>`](/consul/commands/acl/role/read#name).
+The corresponding CLI command is [`consul acl role read -name=<string>`](/commands/acl/role/read#name).
 
 ### Path Parameters
 
@@ -308,16 +308,16 @@ This endpoint updates an existing ACL role.
 | `PUT`  | `/acl/role/:id` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/consul/api-docs/features/blocking),
-[consistency modes](/consul/api-docs/features/consistency),
-[agent caching](/consul/api-docs/features/caching), and
-[required ACLs](/consul/api-docs/api-structure#authentication).
+[blocking queries](/api-docs/features/blocking),
+[consistency modes](/api-docs/features/consistency),
+[agent caching](/api-docs/features/caching), and
+[required ACLs](/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
 | ---------------- | ----------------- | ------------- | ------------ |
 | `NO`             | `none`            | `none`        | `acl:write`  |
 
-The corresponding CLI command is [`consul acl role update`](/consul/commands/acl/role/update).
+The corresponding CLI command is [`consul acl role update`](/commands/acl/role/update).
 
 ### Path Parameters
 
@@ -347,11 +347,11 @@ The corresponding CLI command is [`consul acl role update`](/consul/commands/acl
   breaking tokens.
 
 - `ServiceIdentities` `(array<ServiceIdentity>)` - The list of [service
-  identities](/consul/docs/security/acl#service-identities) that should be
+  identities](/docs/security/acl#service-identities) that should be
   applied to the role. Added in Consul 1.5.0.
 
 - `NodeIdentities` `(array<NodeIdentity>)` - The list of [node
-  identities](/consul/docs/security/acl#node-identities) that should be
+  identities](/docs/security/acl#node-identities) that should be
   applied to the role. Added in Consul 1.8.1.
 
 - `Namespace` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace of the role you update.
@@ -432,16 +432,16 @@ Even though the return type is application/json, the value is either true or
 false indicating whether the delete succeeded.
 
 The table below shows this endpoint's support for
-[blocking queries](/consul/api-docs/features/blocking),
-[consistency modes](/consul/api-docs/features/consistency),
-[agent caching](/consul/api-docs/features/caching), and
-[required ACLs](/consul/api-docs/api-structure#authentication).
+[blocking queries](/api-docs/features/blocking),
+[consistency modes](/api-docs/features/consistency),
+[agent caching](/api-docs/features/caching), and
+[required ACLs](/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
 | ---------------- | ----------------- | ------------- | ------------ |
 | `NO`             | `none`            | `none`        | `acl:write`  |
 
-The corresponding CLI command is [`consul acl role delete`](/consul/commands/acl/role/delete).
+The corresponding CLI command is [`consul acl role delete`](/commands/acl/role/delete).
 
 ### Path Parameters
 
@@ -474,16 +474,16 @@ This endpoint lists all the ACL roles.
 | `GET`  | `/acl/roles` | `application/json` |
 
 The table below shows this endpoint's support for
-[blocking queries](/consul/api-docs/features/blocking),
-[consistency modes](/consul/api-docs/features/consistency),
-[agent caching](/consul/api-docs/features/caching), and
-[required ACLs](/consul/api-docs/api-structure#authentication).
+[blocking queries](/api-docs/features/blocking),
+[consistency modes](/api-docs/features/consistency),
+[agent caching](/api-docs/features/caching), and
+[required ACLs](/api-docs/api-structure#authentication).
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
 | ---------------- | ----------------- | ------------- | ------------ |
 | `YES`            | `all`             | `none`        | `acl:read`   |
 
-The corresponding CLI command is [`consul acl role list`](/consul/commands/acl/role/list).
+The corresponding CLI command is [`consul acl role list`](/commands/acl/role/list).
 
 ### Query Parameters
 

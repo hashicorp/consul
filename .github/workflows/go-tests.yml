@@ -89,6 +89,8 @@ jobs:
     - uses: actions/setup-go@6edd4406fa81c3da01a34fa6f6343087c207a568 # pin@v3.5.0
       with:
         go-version-file: 'go.mod'
+    - run: make codegen-tools
+      name: Install deep-copy
     - run: make --always-make deep-copy
     - run: |
         if ! git diff --exit-code; then
@@ -113,23 +115,6 @@ jobs:
       with:
         go-version-file: 'go.mod'
     - run: go install github.com/reillywatson/enumcover/cmd/enumcover@master && enumcover ./...   
-    - name: Notify Slack
-      if: ${{ failure() }}
-      run: .github/scripts/notify_slack.sh
-
-  lint-container-test-deps:
-    needs:
-    - setup
-    runs-on: ${{ fromJSON(needs.setup.outputs.compute-small) }}
-    steps:
-    - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # pin@v3.3.0
-    # NOTE: This step is specifically needed for ENT. It allows us to access the required private HashiCorp repos.
-    - name: Setup Git
-      run: git config --global url."https://${{ secrets.ELEVATED_GITHUB_TOKEN }}:@github.com".insteadOf "https://github.com"
-    - uses: actions/setup-go@6edd4406fa81c3da01a34fa6f6343087c207a568 # pin@v3.5.0
-      with:
-        go-version-file: 'go.mod'
-    - run: make lint-container-test-deps
     - name: Notify Slack
       if: ${{ failure() }}
       run: .github/scripts/notify_slack.sh
@@ -279,34 +264,6 @@ jobs:
       elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
       consul-license: ${{secrets.CONSUL_LICENSE}}
 
-  go-test-envoyextensions:
-    needs:
-    - setup
-    - dev-build
-    uses: ./.github/workflows/reusable-unit.yml
-    with:
-      directory: envoyextensions
-      runs-on: ${{ needs.setup.outputs.compute-xl }}
-      repository-name: ${{ github.repository }}
-      go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consulprem consuldev' || '' }}"
-    secrets:
-      elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
-      consul-license: ${{secrets.CONSUL_LICENSE}}
-
-  go-test-troubleshoot:
-    needs:
-    - setup
-    - dev-build
-    uses: ./.github/workflows/reusable-unit.yml
-    with:
-      directory: troubleshoot
-      runs-on: ${{ needs.setup.outputs.compute-xl }}
-      repository-name: ${{ github.repository }}
-      go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consulprem consuldev' || '' }}"
-    secrets:
-      elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
-      consul-license: ${{secrets.CONSUL_LICENSE}}
-
   go-test-api-1-19:
     needs: 
     - setup   
@@ -389,7 +346,6 @@ jobs:
     - check-generated-protobuf
     - check-go-mod
     - lint-consul-retry
-    - lint-container-test-deps
     - lint-enums
     - lint
     - lint-32bit
@@ -397,8 +353,6 @@ jobs:
     - go-test-enterprise
     - go-test-oss 
     - go-test-race
-    - go-test-envoyextensions
-    - go-test-troubleshoot
     - go-test-api-1-19
     - go-test-api-1-20
     - go-test-sdk-1-19

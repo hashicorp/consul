@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package scada
 
 import "github.com/hashicorp/hcp-scada-provider/capability"

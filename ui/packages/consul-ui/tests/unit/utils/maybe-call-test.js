@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 import maybeCall from 'consul-ui/utils/maybe-call';
 import { module, test } from 'qunit';
 import { Promise } from 'rsvp';

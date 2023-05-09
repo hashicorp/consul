@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 import domClosest from 'consul-ui/utils/dom/closest';
 import { module, skip, test } from 'qunit';
 import sinon from 'sinon';

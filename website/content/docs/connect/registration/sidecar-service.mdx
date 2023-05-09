@@ -33,7 +33,7 @@ To register a service instance with a sidecar, all that's needed is:
 ```
 
 This will register the `web` service as normal, but will also register another
-[proxy service](/consul/docs/connect/proxies) with defaults values used.
+[proxy service](/docs/connect/proxies) with defaults values used.
 
 The above expands out to be equivalent to the following explicit service
 definitions:
@@ -106,9 +106,9 @@ overridden to customize the proxy configuration.
 ```
 
 This example customizes the [proxy
-upstreams](/consul/docs/connect/registration/service-registration#upstream-configuration-reference)
+upstreams](/docs/connect/registration/service-registration#upstream-configuration-reference)
 and some [built-in proxy
-configuration](/consul/docs/connect/proxies/built-in).
+configuration](/docs/connect/proxies/built-in).
 
 ## Sidecar Service Defaults
 
@@ -125,8 +125,8 @@ proxy.
 - `tags` - Defaults to the tags of the parent service.
 - `meta` - Defaults to the service metadata of the parent service.
 - `port` - Defaults to being auto-assigned from a configurable
-  range specified by [`sidecar_min_port`](/consul/docs/agent/config/config-files#sidecar_min_port)
-  and [`sidecar_max_port`](/consul/docs/agent/config/config-files#sidecar_max_port).
+  range specified by [`sidecar_min_port`](/docs/agent/config/config-files#sidecar_min_port)
+  and [`sidecar_max_port`](/docs/agent/config/config-files#sidecar_max_port).
 - `kind` - Defaults to `connect-proxy`. This can't be overridden currently.
 - `check`, `checks` - By default we add a TCP check on the local address and
   port for the proxy, and a [service alias
@@ -149,7 +149,7 @@ The following fields are not supported in the `connect.sidecar_service` block:
   service.
 - `connect.sidecar_service` - Service definitions can't be nested recursively.
 - `connect.native` - Currently the `kind` is fixed to `connect-proxy` and it's
-  an error to register a `connect-proxy` that is also service mesh-native.
+  an error to register a `connect-proxy` that is also Connect-native.
 
 ## Lifecycle
 
