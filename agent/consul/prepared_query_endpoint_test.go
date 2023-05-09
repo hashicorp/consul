@@ -3392,7 +3392,7 @@ func newExecuteServers(t *testing.T) *executeServers {
 	dir3, s3 := testServerWithConfig(t, func(c *Config) {
 		c.Datacenter = "dc3"
 		c.PrimaryDatacenter = "dc3"
-		c.NodeName = "acceptingServer-dc3"
+		c.NodeName = "acceptingServer.dc3"
 		c.GRPCTLSPort = freeport.GetOne(t)
 		c.CAConfig = &structs.CAConfiguration{
 			ClusterID: connect.TestClusterID,
