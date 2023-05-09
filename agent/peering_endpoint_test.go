@@ -189,7 +189,7 @@ advertise_addr_wan = "` + ip + `" `
 		})
 	}
 
-	t.Run("ensure we got the right mixture of responses", func(t *testing.T) {
+	testutil.RunStep(t, "ensure we got the right mixture of responses", func(t *testing.T) {
 		// Each read connected locally initially, so these are equally
 		// distributed with one hit each.
 		assert.Len(t, standardPeers, 3)
@@ -204,22 +204,22 @@ advertise_addr_wan = "` + ip + `" `
 		}
 	})
 
-	// Check them all for the bad error
-	const grpcError = `failed to find Consul server for global address`
+	testutil.RunStep(t, "no server experienced the server resolution error", func(t *testing.T) {
+		// Check them all for the bad error
+		const grpcError = `failed to find Consul server for global address`
 
-	var buf bytes.Buffer
-	buf.ReadFrom(&buf1)
-	buf.ReadFrom(&buf2)
-	buf.ReadFrom(&buf3)
+		var buf bytes.Buffer
+		buf.ReadFrom(&buf1)
+		buf.ReadFrom(&buf2)
+		buf.ReadFrom(&buf3)
 
-	scan := bufio.NewScanner(&buf)
-	for scan.Scan() {
-		line := scan.Text()
-		require.NotContains(t, line, grpcError)
-	}
-	require.NoError(t, scan.Err())
-
-	// addrConn.createTransport failed to connect
+		scan := bufio.NewScanner(&buf)
+		for scan.Scan() {
+			line := scan.Text()
+			require.NotContains(t, line, grpcError)
+		}
+		require.NoError(t, scan.Err())
+	})
 }
 
 func TestHTTP_Peering_GenerateToken(t *testing.T) {
