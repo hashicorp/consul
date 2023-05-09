@@ -288,8 +288,8 @@ func hostsKey(hosts ...string) string {
 }
 
 func (l *GatewayChainSynthesizer) synthesizeEntries() ([]structs.IngressService, []*configentry.DiscoveryChainSet) {
-	var services []structs.IngressService
-	var entries []*configentry.DiscoveryChainSet
+	services := []structs.IngressService{}
+	entries := []*configentry.DiscoveryChainSet{}
 
 	for _, route := range l.consolidateHTTPRoutes() {
 		ingress, router, splitters, defaults := synthesizeHTTPRouteDiscoveryChain(route)

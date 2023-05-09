@@ -838,7 +838,7 @@ func (c *configSnapshotAPIGateway) ToIngress(datacenter string) (configSnapshotI
 }
 
 func (c *configSnapshotAPIGateway) synthesizeChains(datacenter string, listener structs.APIGatewayListener, boundListener structs.BoundAPIGatewayListener) ([]structs.IngressService, structs.Upstreams, []*structs.CompiledDiscoveryChain, error) {
-	var chains []*structs.CompiledDiscoveryChain
+	chains := []*structs.CompiledDiscoveryChain{}
 	trustDomain := ""
 
 DOMAIN_LOOP:
