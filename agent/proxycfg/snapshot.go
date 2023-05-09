@@ -876,6 +876,7 @@ DOMAIN_LOOP:
 			}
 			synthesizer.AddTCPRoute(*route)
 			for _, service := range route.GetServices() {
+
 				id := NewUpstreamIDFromServiceName(structs.NewServiceName(service.Name, &service.EnterpriseMeta))
 				if chain := c.DiscoveryChain[id]; chain != nil {
 					chains = append(chains, chain)

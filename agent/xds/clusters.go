@@ -813,10 +813,10 @@ func (s *ResourceGenerator) clustersFromSnapshotIngressGateway(cfgSnap *proxycfg
 func (s *ResourceGenerator) clustersFromSnapshotAPIGateway(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
 	var clusters []proto.Message
 	createdClusters := make(map[proxycfg.UpstreamID]bool)
-	readyUpstreams := getReadyUpstreams(cfgSnap)
+	readyUpstreamsList := getReadyUpstreams(cfgSnap)
 
-	for listenerKey, upstreams := range readyUpstreams {
-		for _, upstream := range upstreams {
+	for _, readyUpstreams := range readyUpstreamsList {
+		for _, upstream := range readyUpstreams.upstreams {
 			uid := proxycfg.NewUpstreamID(&upstream)
 
 			// If we've already created a cluster for this upstream, skip it. Multiple listeners may
@@ -839,21 +839,13 @@ func (s *ResourceGenerator) clustersFromSnapshotAPIGateway(cfgSnap *proxycfg.Con
 			}
 
 			for _, cluster := range upstreamClusters {
-				// TODO Something analogous to s.configIngressUpstreamCluster(c, cfgSnap, listenerKey, &u)
-				//   but not sure what that func does yet
-				s.configAPIUpstreamCluster(cluster, cfgSnap, listenerKey, &upstream)
 				clusters = append(clusters, cluster)
 			}
-			createdClusters[uid] = true
 
+			createdClusters[uid] = true
 		}
 	}
 	return clusters, nil
-}
-
-func (s *ResourceGenerator) configAPIUpstreamCluster(c *envoy_cluster_v3.Cluster, cfgSnap *proxycfg.ConfigSnapshot, listenerKey proxycfg.APIGatewayListenerKey, u *structs.Upstream) {
-	//TODO I don't think this is currently needed with what api gateway supports, but will be needed in the future
-
 }
 
 func (s *ResourceGenerator) configIngressUpstreamCluster(c *envoy_cluster_v3.Cluster, cfgSnap *proxycfg.ConfigSnapshot, listenerKey proxycfg.IngressListenerKey, u *structs.Upstream) {

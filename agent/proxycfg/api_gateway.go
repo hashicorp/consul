@@ -6,7 +6,6 @@ package proxycfg
 import (
 	"context"
 	"fmt"
-
 	"github.com/hashicorp/consul/acl"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/proxycfg/internal/watch"
@@ -125,7 +124,9 @@ func (h *handlerAPIGateway) handleUpdate(ctx context.Context, u UpdateEvent, sna
 			return err
 		}
 	default:
-		return (*handlerUpstreams)(h).handleUpdateUpstreams(ctx, u, snap)
+		if err := (*handlerUpstreams)(h).handleUpdateUpstreams(ctx, u, snap); err != nil {
+			return err
+		}
 	}
 
 	return h.recompileDiscoveryChains(snap)
@@ -308,7 +309,7 @@ func (h *handlerAPIGateway) handleRouteConfigUpdate(ctx context.Context, u Updat
 						DestinationNamespace: service.NamespaceOrDefault(),
 						DestinationPartition: service.PartitionOrDefault(),
 						LocalBindPort:        listener.Port,
-						// TODO IngressHosts:         g.Hosts,
+						//IngressHosts:         g.Hosts,
 						// Pass the protocol that was configured on the listener in order
 						// to force that protocol on the Envoy listener.
 						Config: map[string]interface{}{
@@ -452,7 +453,11 @@ func (h *handlerAPIGateway) recompileDiscoveryChains(snap *ConfigSnapshot) error
 		}
 	}
 
-	snap.APIGateway.DiscoveryChain = synthesizedChains
+	// Merge in additional discovery chains
+	for id, chain := range synthesizedChains {
+		snap.APIGateway.DiscoveryChain[id] = chain
+	}
+
 	return nil
 }
 
