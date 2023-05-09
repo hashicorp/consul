@@ -27,10 +27,19 @@ func RegisterControllers(mgr *controller.Manager) {
 
 func reaperController() controller.Controller {
 	return controller.ForType(resource.TypeV1Tombstone).
-		WithReconciler(&tombstoneReconciler{})
+		WithReconciler(newReconciler())
 }
 
-type tombstoneReconciler struct{}
+func newReconciler() *tombstoneReconciler {
+	return &tombstoneReconciler{
+		timeNow: time.Now,
+	}
+}
+
+type tombstoneReconciler struct {
+	// Testing shim
+	timeNow func() time.Time
+}
 
 // Deletes all owned (child) resources of an owner (parent) resource.
 //
@@ -56,6 +65,15 @@ func (r *tombstoneReconciler) Reconcile(ctx context.Context, rt controller.Runti
 	}
 
 	firstPassCompletedOnEntry := isFirstPassCompleted(res)
+
+	// Corner case:
+	// Check secondPassDelay has elasped since first pass in cases where queued
+	// reconciliation requests are lost between the first and second pass
+	// (e.g. controller relocated to a different server due to raft leadership
+	// change).
+	if firstPassCompletedOnEntry && !r.secondPassDelayElapsed(res.Status[statusKeyReaperController]) {
+		return controller.RequeueAfter(secondPassDelay)
+	}
 
 	// Retrieve owner's children
 	listRsp, err := rt.Client.ListByOwner(ctx, &pbresource.ListByOwnerRequest{Owner: tombstone.Owner})
@@ -102,6 +120,11 @@ func (r *tombstoneReconciler) Reconcile(ctx context.Context, rt controller.Runti
 		}
 		return controller.RequeueAfter(secondPassDelay)
 	}
+}
+
+func (r *tombstoneReconciler) secondPassDelayElapsed(status *pbresource.Status) bool {
+	firstPassTime := status.UpdatedAt.AsTime()
+	return firstPassTime.Add(secondPassDelay).Before(r.timeNow())
 }
 
 func isFirstPassCompleted(res *pbresource.Resource) bool {
