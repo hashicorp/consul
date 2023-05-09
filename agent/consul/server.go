@@ -73,6 +73,7 @@ import (
 	"github.com/hashicorp/consul/internal/mesh"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/demo"
+	"github.com/hashicorp/consul/internal/resource/reaper"
 	raftstorage "github.com/hashicorp/consul/internal/storage/raft"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/lib/routine"
@@ -844,6 +845,7 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server, incom
 func (s *Server) registerResources() {
 	catalog.RegisterTypes(s.typeRegistry)
 	mesh.RegisterTypes(s.typeRegistry)
+	reaper.RegisterControllers(s.controllerManager)
 
 	if s.config.DevMode {
 		demo.RegisterTypes(s.typeRegistry)

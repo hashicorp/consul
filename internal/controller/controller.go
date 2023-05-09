@@ -11,7 +11,6 @@ import (
 
 	"github.com/hashicorp/go-hclog"
 	"golang.org/x/sync/errgroup"
-	"google.golang.org/protobuf/proto"
 
 	"github.com/hashicorp/consul/agent/consul/controller/queue"
 	"github.com/hashicorp/consul/internal/resource"
@@ -43,11 +42,13 @@ func (c *controllerRunner) run(ctx context.Context) error {
 
 	for _, watch := range c.ctrl.watches {
 		watch := watch
-		mapQueue := runQueue[*pbresource.Resource](groupCtx, c.ctrl)
+		mapQueue := runQueue[mapperRequest](groupCtx, c.ctrl)
 
 		// Watched Type Events → Mapper Queue
 		group.Go(func() error {
-			return c.watch(groupCtx, watch.watchedType, mapQueue.Add)
+			return c.watch(groupCtx, watch.watchedType, func(res *pbresource.Resource) {
+				mapQueue.Add(mapperRequest{res: res})
+			})
 		})
 
 		// Mapper Queue → Mapper → Reconciliation Queue
@@ -96,13 +97,13 @@ func (c *controllerRunner) watch(ctx context.Context, typ *pbresource.Type, add 
 func (c *controllerRunner) runMapper(
 	ctx context.Context,
 	w watch,
-	from queue.WorkQueue[*pbresource.Resource],
+	from queue.WorkQueue[mapperRequest],
 	to queue.WorkQueue[Request],
 ) error {
 	logger := c.logger.With("watched_resource_type", resource.ToGVK(w.watchedType))
 
 	for {
-		res, shutdown := from.Get()
+		item, shutdown := from.Get()
 		if shutdown {
 			return nil
 		}
@@ -110,17 +111,17 @@ func (c *controllerRunner) runMapper(
 		var reqs []Request
 		err := c.handlePanic(func() error {
 			var err error
-			reqs, err = w.mapper(ctx, c.runtime(), res)
+			reqs, err = w.mapper(ctx, c.runtime(), item.res)
 			return err
 		})
 		if err != nil {
-			from.AddRateLimited(res)
-			from.Done(res)
+			from.AddRateLimited(item)
+			from.Done(item)
 			continue
 		}
 
 		for _, r := range reqs {
-			if !proto.Equal(r.ID.Type, c.ctrl.managedType) {
+			if !resource.EqualType(r.ID.Type, c.ctrl.managedType) {
 				logger.Error("dependency mapper returned request for a resource of the wrong type",
 					"type_expected", resource.ToGVK(c.ctrl.managedType),
 					"type_got", resource.ToGVK(r.ID.Type),
@@ -130,8 +131,8 @@ func (c *controllerRunner) runMapper(
 			to.Add(r)
 		}
 
-		from.Forget(res)
-		from.Done(res)
+		from.Forget(item)
+		from.Done(item)
 	}
 }
 
@@ -182,4 +183,20 @@ func (c *controllerRunner) runtime() Runtime {
 		Client: c.client,
 		Logger: c.logger,
 	}
+}
+
+type mapperRequest struct{ res *pbresource.Resource }
+
+// Key satisfies the queue.ItemType interface. It returns a string which will be
+// used to de-duplicate requests in the queue.
+func (i mapperRequest) Key() string {
+	return fmt.Sprintf(
+		"type=%q,part=%q,peer=%q,ns=%q,name=%q,uid=%q",
+		resource.ToGVK(i.res.Id.Type),
+		i.res.Id.Tenancy.Partition,
+		i.res.Id.Tenancy.PeerName,
+		i.res.Id.Tenancy.Namespace,
+		i.res.Id.Name,
+		i.res.Id.Uid,
+	)
 }

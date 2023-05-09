@@ -20,6 +20,18 @@ type Request struct {
 	Meta *acl.EnterpriseMeta
 }
 
+// Key satisfies the queue.ItemType interface. It returns a string which will be
+// used to de-duplicate requests in the queue.
+func (r Request) Key() string {
+	return fmt.Sprintf(
+		`kind=%q,name=%q,part=%q,ns=%q`,
+		r.Kind,
+		r.Name,
+		r.Meta.PartitionOrDefault(),
+		r.Meta.NamespaceOrDefault(),
+	)
+}
+
 // RequeueAfterError is an error that allows a Reconciler to override the
 // exponential backoff behavior of the Controller, rather than applying
 // the backoff algorithm, returning a RequeueAfterError will cause the

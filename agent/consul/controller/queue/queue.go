@@ -13,7 +13,10 @@ import (
 // https://github.com/kubernetes/client-go/blob/release-1.25/util/workqueue/queue.go
 
 // ItemType is the type constraint for items in the WorkQueue.
-type ItemType comparable
+type ItemType interface {
+	// Key returns a string that will be used to de-duplicate items in the queue.
+	Key() string
+}
 
 // WorkQueue is an interface for a work queue with semantics to help with
 // retries and rate limiting.
@@ -43,9 +46,9 @@ type queue[T ItemType] struct {
 
 	// dirty holds the working set of all Requests, whether they are being
 	// processed or not
-	dirty map[T]struct{}
+	dirty map[string]struct{}
 	// processing holds the set of current requests being processed
-	processing map[T]struct{}
+	processing map[string]struct{}
 
 	// deferred is an internal priority queue that tracks deferred
 	// Requests
@@ -66,8 +69,8 @@ type queue[T ItemType] struct {
 func RunWorkQueue[T ItemType](ctx context.Context, baseBackoff, maxBackoff time.Duration) WorkQueue[T] {
 	q := &queue[T]{
 		ratelimiter: NewRateLimiter[T](baseBackoff, maxBackoff),
-		dirty:       make(map[T]struct{}),
-		processing:  make(map[T]struct{}),
+		dirty:       make(map[string]struct{}),
+		processing:  make(map[string]struct{}),
 		cond:        sync.NewCond(&sync.Mutex{}),
 		deferred:    NewDeferQueue[T](500 * time.Millisecond),
 		ctx:         ctx,
@@ -115,8 +118,8 @@ func (q *queue[T]) Get() (item T, shutdown bool) {
 
 	item, q.queue = q.queue[0], q.queue[1:]
 
-	q.processing[item] = struct{}{}
-	delete(q.dirty, item)
+	q.processing[item.Key()] = struct{}{}
+	delete(q.dirty, item.Key())
 
 	return item, false
 }
@@ -129,12 +132,12 @@ func (q *queue[T]) Add(item T) {
 	if q.shuttingDown() {
 		return
 	}
-	if _, ok := q.dirty[item]; ok {
+	if _, ok := q.dirty[item.Key()]; ok {
 		return
 	}
 
-	q.dirty[item] = struct{}{}
-	if _, ok := q.processing[item]; ok {
+	q.dirty[item.Key()] = struct{}{}
+	if _, ok := q.processing[item.Key()]; ok {
 		return
 	}
 
@@ -175,8 +178,8 @@ func (q *queue[T]) Done(item T) {
 	q.cond.L.Lock()
 	defer q.cond.L.Unlock()
 
-	delete(q.processing, item)
-	if _, ok := q.dirty[item]; ok {
+	delete(q.processing, item.Key())
+	if _, ok := q.dirty[item.Key()]; ok {
 		q.queue = append(q.queue, item)
 		q.cond.Signal()
 	}
