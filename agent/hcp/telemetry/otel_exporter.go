@@ -2,28 +2,29 @@ package telemetry
 
 import (
 	"context"
-
-	hcpclient "github.com/hashicorp/consul/agent/hcp/client"
+	"net/url"
 
 	"github.com/hashicorp/go-multierror"
 	"go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/metric/aggregation"
 	"go.opentelemetry.io/otel/sdk/metric/metricdata"
+
+	hcpclient "github.com/hashicorp/consul/agent/hcp/client"
 )
 
 // OTELExporter is a custom implementation of a OTEL Metrics SDK metrics.Exporter.
 // The exporter is used by a OTEL Metrics SDK PeriodicReader to export aggregated metrics.
 // This allows us to use a custom client - HCP authenticated MetricsClient.
 type OTELExporter struct {
-	client   hcpclient.MetricsClient
-	endpoint string
+	client hcpclient.MetricsClient
+	url    url.URL
 }
 
 // NewOTELExporter returns a configured OTELExporter
-func NewOTELExporter(client hcpclient.MetricsClient, endpoint string) *OTELExporter {
+func NewOTELExporter(client hcpclient.MetricsClient, url url.URL) *OTELExporter {
 	return &OTELExporter{
-		client:   client,
-		endpoint: endpoint,
+		client: client,
+		url:    url,
 	}
 }
 
@@ -34,6 +35,8 @@ func (e *OTELExporter) Temporality(_ metric.InstrumentKind) metricdata.Temporali
 }
 
 // Aggregation returns the Aggregation to use for an instrument kind.
+// The default implementation provided by the OTEL Metrics SDK library DefaultAggregationSelector panics.
+// This custom version replicates that logic, but removes the panic.
 func (e *OTELExporter) Aggregation(kind metric.InstrumentKind) aggregation.Aggregation {
 	switch kind {
 	case metric.InstrumentKindObservableGauge:
@@ -55,12 +58,12 @@ func (e *OTELExporter) Export(ctx context.Context, metrics metricdata.ResourceMe
 	}
 
 	otlpMetrics, merr := transformOTLP(&metrics)
-	err := e.client.ExportMetrics(ctx, otlpMetrics, e.endpoint)
+	err := e.client.ExportMetrics(ctx, otlpMetrics, e.url.String())
 	return multierror.Append(merr, err)
 }
 
-// ForceFlush does nothing, as the MetricsClient client holds no state.
+// ForceFlush is a no-op, as the MetricsClient client holds no state.
 func (e *OTELExporter) ForceFlush(ctx context.Context) error { return ctx.Err() }
 
-// Shutdown does nothing, as the MetricsClient is a HTTP client that requires no graceful shutdown.
+// Shutdown is a no-op, as the MetricsClient is a HTTP client that requires no graceful shutdown.
 func (e *OTELExporter) Shutdown(ctx context.Context) error { return ctx.Err() }

@@ -5,14 +5,14 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/hashicorp/consul/agent/hcp/client"
-
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/metric/aggregation"
 	"go.opentelemetry.io/otel/sdk/metric/metricdata"
 	"go.opentelemetry.io/otel/sdk/resource"
 	metricpb "go.opentelemetry.io/proto/otlp/metrics/v1"
+
+	"github.com/hashicorp/consul/agent/hcp/client"
 )
 
 func TestTemporality(t *testing.T) {
