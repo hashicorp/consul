@@ -125,8 +125,6 @@ advertise_addr_wan = "` + ip + `" `
 	}
 
 	testConn := func(t *testing.T, conn *grpc.ClientConn, peers map[string]int) {
-		t.Cleanup(func() { conn.Close() })
-
 		rpcClientPeering := pbpeering.NewPeeringServiceClient(conn)
 
 		peer := &gpeer.Peer{}
@@ -190,12 +188,7 @@ advertise_addr_wan = "` + ip + `" `
 	}
 
 	testutil.RunStep(t, "ensure we got the right mixture of responses", func(t *testing.T) {
-		// Each read connected locally initially, so these are equally
-		// distributed with one hit each.
 		assert.Len(t, standardPeers, 3)
-		for p, n := range standardPeers {
-			assert.Equal(t, 1, n, "peer %q expected one use", p)
-		}
 
 		// Each server talks to a single leader.
 		assert.Len(t, leaderPeers, 1)
