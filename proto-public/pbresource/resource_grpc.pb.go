@@ -27,6 +27,14 @@ type ResourceServiceClient interface {
 	// By default, reads are eventually consistent, but you can opt-in to strong
 	// consistency via the x-consul-consistency-mode metadata (see ResourceService
 	// docs for more info).
+	//
+	// Errors with NotFound if the resource is not found.
+	//
+	// Errors with InvalidArgument if the request fails validation or the resource
+	// is stored as a type with a different GroupVersion than was requested.
+	//
+	// Errors with PermissionDenied if the caller is not authorized to read
+	// the resource.
 	Read(ctx context.Context, in *ReadRequest, opts ...grpc.CallOption) (*ReadResponse, error)
 	// Write a resource.
 	//
@@ -204,6 +212,14 @@ type ResourceServiceServer interface {
 	// By default, reads are eventually consistent, but you can opt-in to strong
 	// consistency via the x-consul-consistency-mode metadata (see ResourceService
 	// docs for more info).
+	//
+	// Errors with NotFound if the resource is not found.
+	//
+	// Errors with InvalidArgument if the request fails validation or the resource
+	// is stored as a type with a different GroupVersion than was requested.
+	//
+	// Errors with PermissionDenied if the caller is not authorized to read
+	// the resource.
 	Read(context.Context, *ReadRequest) (*ReadResponse, error)
 	// Write a resource.
 	//

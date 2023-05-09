@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/hashicorp/consul/acl/resolver"
 	"github.com/hashicorp/consul/internal/resource"
@@ -85,6 +86,7 @@ func TestWriteStatus_InputValidation(t *testing.T) {
 		"no reference type":       func(req *pbresource.WriteStatusRequest) { req.Status.Conditions[0].Resource.Type = nil },
 		"no reference tenancy":    func(req *pbresource.WriteStatusRequest) { req.Status.Conditions[0].Resource.Tenancy = nil },
 		"no reference name":       func(req *pbresource.WriteStatusRequest) { req.Status.Conditions[0].Resource.Name = "" },
+		"updated at provided":     func(req *pbresource.WriteStatusRequest) { req.Status.UpdatedAt = timestamppb.Now() },
 	}
 	for desc, modFn := range testCases {
 		t.Run(desc, func(t *testing.T) {
@@ -140,6 +142,7 @@ func TestWriteStatus_Success(t *testing.T) {
 			require.NotEqual(t, rsp.Resource.Version, res.Version, "version should have changed")
 			require.Contains(t, rsp.Resource.Status, "consul.io/other-controller")
 			require.Contains(t, rsp.Resource.Status, "consul.io/artist-controller")
+			require.NotNil(t, rsp.Resource.Status["consul.io/artist-controller"].UpdatedAt)
 		})
 	}
 }
