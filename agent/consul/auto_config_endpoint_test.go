@@ -8,7 +8,6 @@ import (
 	"encoding/base64"
 	"encoding/pem"
 	"fmt"
-	"math/rand"
 	"net"
 	"net/url"
 	"os"
