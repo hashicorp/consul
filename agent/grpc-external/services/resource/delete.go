@@ -12,7 +12,6 @@ import (
 	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
 
 	"github.com/hashicorp/consul/acl"
@@ -95,7 +94,7 @@ func (s *Server) Delete(ctx context.Context, req *pbresource.DeleteRequest) (*pb
 // still be deleted from the system by the reaper controller.
 func (s *Server) maybeCreateTombstone(ctx context.Context, deleteId *pbresource.ID) error {
 	// Don't create a tombstone when the resource being deleted is itself a tombstone.
-	if proto.Equal(resource.TypeV1Tombstone, deleteId.Type) {
+	if resource.EqualType(resource.TypeV1Tombstone, deleteId.Type) {
 		return nil
 	}
 

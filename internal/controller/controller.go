@@ -11,7 +11,6 @@ import (
 
 	"github.com/hashicorp/go-hclog"
 	"golang.org/x/sync/errgroup"
-	"google.golang.org/protobuf/proto"
 
 	"github.com/hashicorp/consul/agent/consul/controller/queue"
 	"github.com/hashicorp/consul/internal/resource"
@@ -122,7 +121,7 @@ func (c *controllerRunner) runMapper(
 		}
 
 		for _, r := range reqs {
-			if !proto.Equal(r.ID.Type, c.ctrl.managedType) {
+			if !resource.EqualType(r.ID.Type, c.ctrl.managedType) {
 				logger.Error("dependency mapper returned request for a resource of the wrong type",
 					"type_expected", resource.ToGVK(c.ctrl.managedType),
 					"type_got", resource.ToGVK(r.ID.Type),
