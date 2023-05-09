@@ -481,6 +481,7 @@ func (s *ResourceGenerator) routesForAPIGateway(cfgSnap *proxycfg.ConfigSnapshot
 			injectHeaderManipToVirtualHostAPIGateway(&flattenedRoute, virtualHost)
 
 			// TODO Handle TLS config and add new route if appropriate
+			//   We need something analogous to routeNameForUpstream used below
 			defaultRoute.VirtualHosts = append(defaultRoute.VirtualHosts, virtualHost)
 		}
 
