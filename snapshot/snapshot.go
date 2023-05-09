@@ -50,7 +50,7 @@ func New(logger hclog.Logger, r *raft.Raft) (*Snapshot, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to create snapshot file: %v", err)
 	}
-	logger.Info("creating temporary file of snapshot", "path", archive.Name())
+	logger.Debug("creating temporary file of snapshot", "path", archive.Name())
 
 	// If anything goes wrong after this point, we will attempt to clean up
 	// the temp file. The happy path will disarm this.
