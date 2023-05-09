@@ -15,6 +15,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/hcp/config"
 	"github.com/hashicorp/consul/version"
+	consulversion "github.com/hashicorp/consul/version"
 )
 
 // Client interface exposes HCP operations that can be invoked by Consul
@@ -38,15 +39,17 @@ type BootstrapConfig struct {
 }
 
 type hcpClient struct {
-	hc       *httptransport.Runtime
-	cfg      config.CloudConfig
-	gnm      hcpgnm.ClientService
-	resource resource.Resource
+	hc            *httptransport.Runtime
+	cfg           config.CloudConfig
+	gnm           hcpgnm.ClientService
+	resource      resource.Resource
+	consulVersion string
 }
 
 func NewClient(cfg config.CloudConfig) (Client, error) {
 	client := &hcpClient{
-		cfg: cfg,
+		cfg:           cfg,
+		consulVersion: consulversion.GetHumanVersion(),
 	}
 
 	var err error
@@ -80,7 +83,8 @@ func (c *hcpClient) FetchBootstrap(ctx context.Context) (*BootstrapConfig, error
 	params := hcpgnm.NewAgentBootstrapConfigParamsWithContext(ctx).
 		WithID(c.resource.ID).
 		WithLocationOrganizationID(c.resource.Organization).
-		WithLocationProjectID(c.resource.Project)
+		WithLocationProjectID(c.resource.Project).
+		WithConsulVersion(&c.consulVersion)
 
 	resp, err := c.gnm.AgentBootstrapConfig(params, nil)
 	if err != nil {
@@ -129,10 +133,12 @@ type ServerStatus struct {
 	LanAddress string
 	GossipPort int
 	RPCPort    int
+	Datacenter string
 
 	Autopilot ServerAutopilot
 	Raft      ServerRaft
 	TLS       ServerTLSInfo
+	ACL       ServerACLInfo
 
 	ScadaStatus string
 }
@@ -152,6 +158,10 @@ type ServerRaft struct {
 	TimeSinceLastContact time.Duration
 }
 
+type ServerACLInfo struct {
+	Enabled bool
+}
+
 type ServerTLSInfo struct {
 	Enabled              bool
 	CertExpiry           time.Time
@@ -166,7 +176,7 @@ func serverStatusToHCP(s *ServerStatus) *gnmmod.HashicorpCloudGlobalNetworkManag
 	if s == nil {
 		return nil
 	}
-	return &gnmmod.HashicorpCloudGlobalNetworkManager20220215ServerState{
+	state := &gnmmod.HashicorpCloudGlobalNetworkManager20220215ServerState{
 		Autopilot: &gnmmod.HashicorpCloudGlobalNetworkManager20220215AutoPilotInfo{
 			FailureTolerance: int32(s.Autopilot.FailureTolerance),
 			Healthy:          s.Autopilot.Healthy,
@@ -196,7 +206,12 @@ func serverStatusToHCP(s *ServerStatus) *gnmmod.HashicorpCloudGlobalNetworkManag
 		},
 		Version:     s.Version,
 		ScadaStatus: s.ScadaStatus,
+		ACL: &gnmmod.HashicorpCloudGlobalNetworkManager20220215ACLInfo{
+			Enabled: s.ACL.Enabled,
+		},
+		Datacenter: s.Datacenter,
 	}
+	return state
 }
 
 func (c *hcpClient) DiscoverServers(ctx context.Context) ([]string, error) {
