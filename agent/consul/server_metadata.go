@@ -36,10 +36,6 @@ func OpenServerMetadata(filename string) (io.WriteCloser, error) {
 func ReadServerMetadata(filename string) (*ServerMetadata, error) {
 	b, err := os.ReadFile(filename)
 	if err != nil {
-		// Return early if it doesn't as this indicates the server is starting for the first time.
-		if err == os.ErrNotExist {
-			return nil, nil
-		}
 		return nil, err
 	}
 

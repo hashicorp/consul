@@ -104,9 +104,6 @@ const (
 	// defaultQueryTime is the amount of time we block waiting for a change
 	// if no time is specified. Previously we would wait the maxQueryTime.
 	defaultQueryTime = 300 * time.Second
-
-	// Name of the file to store a server's last seen timestamp.
-	serverLastSeenFile = "server_last_seen"
 )
 
 var (
@@ -633,6 +630,9 @@ func (a *Agent) Start(ctx context.Context) error {
 			return err
 		}
 
+		// Start writing last seen timestamps to file in order to age on next startup.
+		go a.persistServerMetadata()
+
 		incomingRPCLimiter := consul.ConfiguredIncomingRPCLimiter(
 			&lib.StopChannelContext{StopCh: a.shutdownCh},
 			serverLogger,
@@ -758,10 +758,6 @@ func (a *Agent) Start(ctx context.Context) error {
 			ResyncFrequency: a.config.LocalProxyConfigResyncInterval,
 		},
 	)
-
-	// Start writing last seen timestamps to file in order to age on next startup.
-	// TODO: maybe we should do this earlier above in the "if c.ServerMode" block?
-	go a.persistServerLastSeen()
 
 	// Start watching for critical services to deregister, based on their
 	// checks.
@@ -4542,11 +4538,10 @@ func (a *Agent) proxyDataSources() proxycfg.DataSources {
 	return sources
 }
 
-// persistServerLastSeen writes a server's last seen Unix timestamp to a file
-// in the configured data directory, and then periodically updates the timestamp
-// every hour.
-func (a *Agent) persistServerLastSeen() {
-	file := filepath.Join(a.config.DataDir, serverLastSeenFile)
+// persistServerMetadata periodically writes a server's metadata to a file
+// in the configured data directory.
+func (a *Agent) persistServerMetadata() {
+	file := filepath.Join(a.config.DataDir, consul.ServerMetadataFile)
 
 	// Create a timer with no initial tick to allow the timestamp to be written immediately.
 	t := time.NewTimer(0)
@@ -4580,8 +4575,8 @@ func (a *Agent) persistServerLastSeen() {
 
 // checkServerLastSeen is a safety check for preventing old servers from rejoining an existing cluster.
 //
-// It attempts to read a server's last seen file and check the Unix timestamp against a
-// configurable max age. If the last seen file does not exist, we treat this as an initial startup
+// It attempts to read a server's metadata file and check the last seen Unix timestamp against a
+// configurable max age. If the metadata file does not exist, we treat this as an initial startup
 // and return no error.
 //
 // Example: if the server recorded a last seen timestamp of now-7d, and we configure a max age
@@ -4592,10 +4587,18 @@ func (a *Agent) checkServerLastSeen() error {
 	// Read server metadata file.
 	md, err := consul.ReadServerMetadata(filename)
 	if err != nil {
+		// Return early if it doesn't as this indicates the server is starting for the first time.
+		if err == os.ErrNotExist {
+			return nil
+		}
 		return fmt.Errorf("error reading server metadata: %w", err)
 	}
 
-	return md.CheckLastSeen(a.config.ServerRejoinAgeMax)
+	if err := md.CheckLastSeen(a.config.ServerRejoinAgeMax); err != nil {
+		return fmt.Errorf("error: server will not rejoin: %w", err)
+	}
+
+	return nil
 }
 
 func listenerPortKey(svcID structs.ServiceID, checkID structs.CheckID) string {
