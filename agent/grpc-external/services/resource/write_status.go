@@ -10,6 +10,7 @@ import (
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/oklog/ulid/v2"
 
@@ -76,7 +77,10 @@ func (s *Server) WriteStatus(ctx context.Context, req *pbresource.WriteStatusReq
 		if resource.Status == nil {
 			resource.Status = make(map[string]*pbresource.Status)
 		}
-		resource.Status[req.Key] = req.Status
+
+		status := clone(req.Status)
+		status.UpdatedAt = timestamppb.Now()
+		resource.Status[req.Key] = status
 
 		result, err = s.Backend.WriteCAS(ctx, resource)
 		return err
@@ -140,6 +144,10 @@ func validateWriteStatusRequest(req *pbresource.WriteStatusRequest) error {
 	}
 	if field != "" {
 		return status.Errorf(codes.InvalidArgument, "%s is required", field)
+	}
+
+	if req.Status.UpdatedAt != nil {
+		return status.Error(codes.InvalidArgument, "status.updated_at is automatically set and cannot be provided")
 	}
 
 	if _, err := ulid.ParseStrict(req.Status.ObservedGeneration); err != nil {
