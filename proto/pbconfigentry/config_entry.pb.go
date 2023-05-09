@@ -3329,6 +3329,10 @@ type PassiveHealthCheck struct {
 	MaxFailures uint32               `protobuf:"varint,2,opt,name=MaxFailures,proto3" json:"MaxFailures,omitempty"`
 	// mog: target=EnforcingConsecutive5xx func-to=pointerToUint32FromUint32 func-from=uint32FromPointerToUint32
 	EnforcingConsecutive5Xx uint32 `protobuf:"varint,3,opt,name=EnforcingConsecutive5xx,proto3" json:"EnforcingConsecutive5xx,omitempty"`
+	// mog: func-to=pointerToUint32FromUint32 func-from=uint32FromPointerToUint32
+	MaxEjectionPercent uint32 `protobuf:"varint,4,opt,name=MaxEjectionPercent,proto3" json:"MaxEjectionPercent,omitempty"`
+	// mog: func-to=structs.DurationPointerFromProto func-from=structs.DurationPointerToProto
+	BaseEjectionTime *durationpb.Duration `protobuf:"bytes,5,opt,name=BaseEjectionTime,proto3" json:"BaseEjectionTime,omitempty"`
 }
 
 func (x *PassiveHealthCheck) Reset() {
@@ -3382,6 +3386,20 @@ func (x *PassiveHealthCheck) GetEnforcingConsecutive5Xx() uint32 {
 		return x.EnforcingConsecutive5Xx
 	}
 	return 0
+}
+
+func (x *PassiveHealthCheck) GetMaxEjectionPercent() uint32 {
+	if x != nil {
+		return x.MaxEjectionPercent
+	}
+	return 0
+}
+
+func (x *PassiveHealthCheck) GetBaseEjectionTime() *durationpb.Duration {
+	if x != nil {
+		return x.BaseEjectionTime
+	}
+	return nil
 }
 
 // mog annotation:
