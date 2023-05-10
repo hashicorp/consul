@@ -61,7 +61,13 @@ func (e *OTELExporter) Export(ctx context.Context, metrics metricdata.ResourceMe
 }
 
 // ForceFlush is a no-op, as the MetricsClient client holds no state.
-func (e *OTELExporter) ForceFlush(ctx context.Context) error { return ctx.Err() }
+func (e *OTELExporter) ForceFlush(ctx context.Context) error {
+	// TODO: Emit metric when this operation occurs.
+	return ctx.Err()
+}
 
 // Shutdown is a no-op, as the MetricsClient is a HTTP client that requires no graceful shutdown.
-func (e *OTELExporter) Shutdown(ctx context.Context) error { return ctx.Err() }
+func (e *OTELExporter) Shutdown(ctx context.Context) error {
+	// TODO: Emit metric when this operation occurs.
+	return ctx.Err()
+}
