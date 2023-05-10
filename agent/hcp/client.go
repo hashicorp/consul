@@ -43,13 +43,11 @@ type hcpClient struct {
 	cfg           config.CloudConfig
 	gnm           hcpgnm.ClientService
 	resource      resource.Resource
-	consulVersion string
 }
 
 func NewClient(cfg config.CloudConfig) (Client, error) {
 	client := &hcpClient{
 		cfg:           cfg,
-		consulVersion: consulversion.GetHumanVersion(),
 	}
 
 	var err error
@@ -80,11 +78,12 @@ func httpClient(c config.CloudConfig) (*httptransport.Runtime, error) {
 }
 
 func (c *hcpClient) FetchBootstrap(ctx context.Context) (*BootstrapConfig, error) {
+  version := consulversion.GetHumanVersion()
 	params := hcpgnm.NewAgentBootstrapConfigParamsWithContext(ctx).
 		WithID(c.resource.ID).
 		WithLocationOrganizationID(c.resource.Organization).
 		WithLocationProjectID(c.resource.Project).
-		WithConsulVersion(&c.consulVersion)
+		WithConsulVersion(&version)
 
 	resp, err := c.gnm.AgentBootstrapConfig(params, nil)
 	if err != nil {
