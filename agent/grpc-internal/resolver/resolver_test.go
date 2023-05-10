@@ -182,9 +182,8 @@ type fakeClientConn struct {
 
 var _ resolver.ClientConn = (*fakeClientConn)(nil)
 
-func (f *fakeClientConn) UpdateState(state resolver.State) error {
+func (f *fakeClientConn) UpdateState(state resolver.State) {
 	f.state = state
-	return nil
 }
 
 func (*fakeClientConn) ReportError(error)                       {}
