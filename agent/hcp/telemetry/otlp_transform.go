@@ -10,6 +10,25 @@ import (
 	rpb "go.opentelemetry.io/proto/otlp/resource/v1"
 )
 
+// isEmpty verifies if the given OTLP protobuf metrics contains metric data.
+// isEmpty returns true if no ScopeMetrics exist or all metrics within ScopeMetrics are empty.
+func isEmpty(rm *mpb.ResourceMetrics) bool {
+	// No ScopeMetrics
+	if len(rm.ScopeMetrics) == 0 {
+		return true
+	}
+
+	// If any inner metrics contain data, return false.
+	for _, v := range rm.ScopeMetrics {
+		if len(v.Metrics) != 0 {
+			return false
+		}
+	}
+
+	// All inner metrics are empty.
+	return true
+}
+
 // TransformOTLP returns an OTLP ResourceMetrics generated from OTEL metrics. If rm
 // contains invalid ScopeMetrics, an error will be returned along with an OTLP
 // ResourceMetrics that contains partial OTLP ScopeMetrics.

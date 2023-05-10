@@ -53,8 +53,7 @@ func (e *OTELExporter) Aggregation(kind metric.InstrumentKind) aggregation.Aggre
 // Export serializes and transmits metric data to a receiver.
 func (e *OTELExporter) Export(ctx context.Context, metrics metricdata.ResourceMetrics) error {
 	otlpMetrics := transformOTLP(&metrics)
-	emptyMetrics := len(otlpMetrics.ScopeMetrics) == 0 || len(metrics.ScopeMetrics[0].Metrics) == 0
-	if emptyMetrics {
+	if isEmpty(otlpMetrics) {
 		return nil
 	}
 	return e.client.ExportMetrics(ctx, otlpMetrics, e.url.String())
