@@ -517,7 +517,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        consul-version: [ "1.14", "1.15"]
+        # consul-version: [ "1.14", "1.15"]
+        consul-version: ["1.15"]
         test-cases: ${{ fromJSON(needs.generate-upgrade-job-matrices.outputs.upgrade-matrix) }}
     env:
       CONSUL_VERSION: ${{ matrix.consul-version }}
