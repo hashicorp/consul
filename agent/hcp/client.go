@@ -39,15 +39,15 @@ type BootstrapConfig struct {
 }
 
 type hcpClient struct {
-	hc            *httptransport.Runtime
-	cfg           config.CloudConfig
-	gnm           hcpgnm.ClientService
-	resource      resource.Resource
+	hc       *httptransport.Runtime
+	cfg      config.CloudConfig
+	gnm      hcpgnm.ClientService
+	resource resource.Resource
 }
 
 func NewClient(cfg config.CloudConfig) (Client, error) {
 	client := &hcpClient{
-		cfg:           cfg,
+		cfg: cfg,
 	}
 
 	var err error
@@ -78,7 +78,7 @@ func httpClient(c config.CloudConfig) (*httptransport.Runtime, error) {
 }
 
 func (c *hcpClient) FetchBootstrap(ctx context.Context) (*BootstrapConfig, error) {
-  version := consulversion.GetHumanVersion()
+	version := consulversion.GetHumanVersion()
 	params := hcpgnm.NewAgentBootstrapConfigParamsWithContext(ctx).
 		WithID(c.resource.ID).
 		WithLocationOrganizationID(c.resource.Organization).
