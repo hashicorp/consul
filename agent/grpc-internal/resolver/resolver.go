@@ -179,10 +179,6 @@ func (s *ServerResolverBuilder) AddServer(areaID types.AreaID, server *metadata.
 
 	areaServers[uniqueID(server)] = server
 
-	if areaID == types.AreaLAN || s.cfg.Datacenter == server.Datacenter {
-		s.leaderResolver.updateClientConn()
-	}
-
 	addrs := s.getDCAddrs(server.Datacenter)
 	for _, resolver := range s.resolvers {
 		if resolver.datacenter == server.Datacenter {
@@ -223,10 +219,6 @@ func (s *ServerResolverBuilder) RemoveServer(areaID types.AreaID, server *metada
 	delete(areaServers, uniqueID(server))
 	if len(areaServers) == 0 {
 		delete(s.servers, areaID)
-	}
-
-	if areaID == types.AreaLAN || s.cfg.Datacenter == server.Datacenter {
-		s.leaderResolver.updateClientConn()
 	}
 
 	addrs := s.getDCAddrs(server.Datacenter)
@@ -305,28 +297,8 @@ func (s *ServerResolverBuilder) UpdateLeaderAddr(datacenter, addr string) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
-	lanAddr := DCPrefix(datacenter, addr)
-
-	s.leaderResolver.globalAddr = lanAddr
-
-	if s.lanHasAddrLocked(lanAddr) {
-		s.leaderResolver.updateClientConn()
-	}
-}
-
-func (s *ServerResolverBuilder) lanHasAddrLocked(lanAddr string) bool {
-	areaServers, ok := s.servers[types.AreaLAN]
-	if !ok {
-		return false
-	}
-
-	for _, server := range areaServers {
-		if DCPrefix(server.Datacenter, server.Addr.String()) == lanAddr {
-			return true
-		}
-	}
-
-	return false
+	s.leaderResolver.globalAddr = DCPrefix(datacenter, addr)
+	s.leaderResolver.updateClientConn()
 }
 
 // serverResolver is a grpc Resolver that will keep a grpc.ClientConn up to date
