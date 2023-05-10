@@ -59,3 +59,15 @@ func (h *HealthSummary) Add(status string) {
 		h.Critical++
 	}
 }
+
+type AssignServiceManualVIPsRequest struct {
+	Service    string
+	ManualVIPs []string
+
+	DCSpecificRequest
+}
+
+type AssignServiceManualVIPsResponse struct {
+	Found          bool
+	UnassignedFrom []PeeredServiceName
+}

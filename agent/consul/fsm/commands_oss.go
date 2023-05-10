@@ -794,9 +794,13 @@ func (c *FSM) applyManualVirtualIPs(buf []byte, index uint64) interface{} {
 		panic(fmt.Errorf("failed to decode request: %v", err))
 	}
 
-	if err := c.state.AssignManualVirtualIPs(index, req.Service, req.ManualIPs); err != nil {
+	found, unassignedFrom, err := c.state.AssignManualServiceVIPs(index, req.Service, req.ManualIPs)
+	if err != nil {
 		c.logger.Warn("AssignManualVirtualIPs failed", "error", err)
 		return err
 	}
-	return nil
+	return structs.AssignServiceManualVIPsResponse{
+		Found:          found,
+		UnassignedFrom: unassignedFrom,
+	}
 }
