@@ -34,7 +34,7 @@ func TestMapOwner(t *testing.T) {
 		Owner: owner,
 	}
 
-	reqs, err := MapOwner(nil, Runtime{}, res)
+	reqs, err := MapOwner(context.Background(), Runtime{}, res)
 	require.NoError(t, err)
 	require.Len(t, reqs, 1)
 	prototest.AssertDeepEqual(t, owner, reqs[0].ID)
