@@ -3436,5 +3436,7 @@ func TestStateStore_DiscoveryChain_AttachVirtualIPs(t *testing.T) {
 	idx, chain, _, err := s.ServiceDiscoveryChain(nil, "foo", structs.DefaultEnterpriseMetaInDefaultPartition(), req)
 	require.NoError(t, err)
 	require.Equal(t, uint64(1), idx)
-	require.Equal(t, []string{"240.0.0.1", "2.2.2.2", "3.3.3.3"}, chain.VirtualIPs)
+	require.Equal(t, []string{"240.0.0.1"}, chain.AutoVirtualIPs)
+	require.Equal(t, []string{"2.2.2.2", "3.3.3.3"}, chain.ManualVirtualIPs)
+
 }

@@ -45,8 +45,10 @@ type CompileRequest struct {
 
 	Entries *configentry.DiscoveryChainSet
 
-	// VirtualIPs is a list of virtual IPs associated with the service.
-	VirtualIPs []string
+	// AutoVirtualIPs and ManualVirtualIPs are lists of IPs associated with
+	// the service.
+	AutoVirtualIPs   []string
+	ManualVirtualIPs []string
 }
 
 // Compile assembles a discovery chain in the form of a graph of nodes using
@@ -101,7 +103,8 @@ func Compile(req CompileRequest) (*structs.CompiledDiscoveryChain, error) {
 		overrideProtocol:       req.OverrideProtocol,
 		overrideConnectTimeout: req.OverrideConnectTimeout,
 		entries:                entries,
-		virtualIPs:             req.VirtualIPs,
+		autoVirtualIPs:         req.AutoVirtualIPs,
+		manualVirtualIPs:       req.ManualVirtualIPs,
 
 		resolvers:     make(map[structs.ServiceID]*structs.ServiceResolverConfigEntry),
 		splitterNodes: make(map[string]*structs.DiscoveryGraphNode),
@@ -143,8 +146,10 @@ type compiler struct {
 	// This is an INPUT field.
 	entries *configentry.DiscoveryChainSet
 
-	// virtualIPs is a list of virtual IPs associated with the service.
-	virtualIPs []string
+	// autoVirtualIPs and manualVirtualIPs are lists of IPs associated with
+	// the service.
+	autoVirtualIPs   []string
+	manualVirtualIPs []string
 
 	// resolvers is initially seeded by copying the provided entries.Resolvers
 	// map and default resolvers are added as they are needed.
@@ -359,7 +364,8 @@ func (c *compiler) compile() (*structs.CompiledDiscoveryChain, error) {
 		StartNode:         c.startNode,
 		Nodes:             c.nodes,
 		Targets:           c.loadedTargets,
-		VirtualIPs:        c.virtualIPs,
+		AutoVirtualIPs:    c.autoVirtualIPs,
+		ManualVirtualIPs:  c.manualVirtualIPs,
 	}, nil
 }
 
