@@ -332,7 +332,7 @@
     "ServerMode": false,
     "ServerName": "",
     "ServerPort": 0,
-	"ServerRejoinAgeMax": "168h0m0s",
+    "ServerRejoinAgeMax": "168h0m0s",
     "Services": [
         {
             "Address": "",

@@ -6418,6 +6418,7 @@ func TestLoad_FullConfig(t *testing.T) {
 		SerfPortWAN:             8302,
 		ServerMode:              true,
 		ServerName:              "Oerr9n1G",
+		ServerRejoinAgeMax:      604800 * time.Second,
 		ServerPort:              3757,
 		Services: []*structs.ServiceDefinition{
 			{
@@ -7163,7 +7164,7 @@ func TestRuntimeConfig_Sanitize(t *testing.T) {
 			},
 		},
 		Locality:           &Locality{Region: strPtr("us-west-1"), Zone: strPtr("us-west-1a")},
-		ServerRejoinAgeMax: time.Duration(168 * time.Hour),
+		ServerRejoinAgeMax: 168 * time.Hour,
 	}
 
 	b, err := json.MarshalIndent(rt.Sanitized(), "", "    ")

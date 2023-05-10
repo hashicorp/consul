@@ -447,6 +447,10 @@ type Config struct {
 
 	// Embedded Consul Enterprise specific configuration
 	*EnterpriseConfig
+
+	// ServerRejoinAgeMax is used to specify the duration of time a server
+	// is allowed to be down/offline before a startup operation is refused.
+	ServerRejoinAgeMax time.Duration
 }
 
 func (c *Config) InPrimaryDatacenter() bool {
