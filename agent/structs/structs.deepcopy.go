@@ -4,6 +4,7 @@ package structs
 
 import (
 	"github.com/hashicorp/consul/types"
+	"time"
 )
 
 // DeepCopy generates a deep copy of *CARoot
@@ -802,6 +803,14 @@ func (o *UpstreamConfiguration) DeepCopy() *UpstreamConfiguration {
 						cp.Overrides[i2].PassiveHealthCheck.EnforcingConsecutive5xx = new(uint32)
 						*cp.Overrides[i2].PassiveHealthCheck.EnforcingConsecutive5xx = *o.Overrides[i2].PassiveHealthCheck.EnforcingConsecutive5xx
 					}
+					if o.Overrides[i2].PassiveHealthCheck.MaxEjectionPercent != nil {
+						cp.Overrides[i2].PassiveHealthCheck.MaxEjectionPercent = new(uint32)
+						*cp.Overrides[i2].PassiveHealthCheck.MaxEjectionPercent = *o.Overrides[i2].PassiveHealthCheck.MaxEjectionPercent
+					}
+					if o.Overrides[i2].PassiveHealthCheck.BaseEjectionTime != nil {
+						cp.Overrides[i2].PassiveHealthCheck.BaseEjectionTime = new(time.Duration)
+						*cp.Overrides[i2].PassiveHealthCheck.BaseEjectionTime = *o.Overrides[i2].PassiveHealthCheck.BaseEjectionTime
+					}
 				}
 			}
 		}
@@ -831,6 +840,14 @@ func (o *UpstreamConfiguration) DeepCopy() *UpstreamConfiguration {
 			if o.Defaults.PassiveHealthCheck.EnforcingConsecutive5xx != nil {
 				cp.Defaults.PassiveHealthCheck.EnforcingConsecutive5xx = new(uint32)
 				*cp.Defaults.PassiveHealthCheck.EnforcingConsecutive5xx = *o.Defaults.PassiveHealthCheck.EnforcingConsecutive5xx
+			}
+			if o.Defaults.PassiveHealthCheck.MaxEjectionPercent != nil {
+				cp.Defaults.PassiveHealthCheck.MaxEjectionPercent = new(uint32)
+				*cp.Defaults.PassiveHealthCheck.MaxEjectionPercent = *o.Defaults.PassiveHealthCheck.MaxEjectionPercent
+			}
+			if o.Defaults.PassiveHealthCheck.BaseEjectionTime != nil {
+				cp.Defaults.PassiveHealthCheck.BaseEjectionTime = new(time.Duration)
+				*cp.Defaults.PassiveHealthCheck.BaseEjectionTime = *o.Defaults.PassiveHealthCheck.BaseEjectionTime
 			}
 		}
 	}
