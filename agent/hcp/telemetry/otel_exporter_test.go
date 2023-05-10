@@ -65,40 +65,31 @@ func TestExport(t *testing.T) {
 		client  client.MetricsClient
 	}{
 		"earlyReturnWithoutScopeMetrics": {
-			client: &mockMetricsClient{
-				exportErr: nil,
-			},
-			metrics: metricdata.ResourceMetrics{
-				Resource:     resource.Empty(),
-				ScopeMetrics: nil,
-			},
+			client:  &mockMetricsClient{},
+			metrics: mutateMetrics(nil),
 		},
 		"earlyReturnWithoutMetrics": {
-			client: &mockMetricsClient{
-				exportErr: nil,
+			client: &mockMetricsClient{},
+			metrics: mutateMetrics([]metricdata.ScopeMetrics{
+				{Metrics: []metricdata.Metrics{}},
 			},
-			metrics: metricdata.ResourceMetrics{
-				Resource:     resource.Empty(),
-				ScopeMetrics: []metricdata.ScopeMetrics{},
-			},
+			),
 		},
 		"errorWithExportFailure": {
 			client: &mockMetricsClient{
 				exportErr: fmt.Errorf("failed to export metrics."),
 			},
-			metrics: metricdata.ResourceMetrics{
-				Resource: resource.Empty(),
-				ScopeMetrics: []metricdata.ScopeMetrics{
-					{
-						Metrics: []metricdata.Metrics{
-							{
-								Name: "consul.raft.commitTime",
-								Data: metricdata.Gauge[float64]{},
-							},
+			metrics: mutateMetrics([]metricdata.ScopeMetrics{
+				{
+					Metrics: []metricdata.Metrics{
+						{
+							Name: "consul.raft.commitTime",
+							Data: metricdata.Gauge[float64]{},
 						},
 					},
 				},
 			},
+			),
 			wantErr: "failed to export metrics",
 		},
 	} {
@@ -139,4 +130,11 @@ func TestShutdown(t *testing.T) {
 
 	err := exp.Shutdown(ctx)
 	require.ErrorIs(t, err, context.Canceled)
+}
+
+func mutateMetrics(m []metricdata.ScopeMetrics) metricdata.ResourceMetrics {
+	return metricdata.ResourceMetrics{
+		Resource:     resource.Empty(),
+		ScopeMetrics: m,
+	}
 }

@@ -35,7 +35,7 @@ var (
 	// DataPoint test case : Histogram Datapoints (Histogram)
 	minA, maxA, sumA = 2.0, 4.0, 90.0
 	minB, maxB, sumB = 4.0, 150.0, 234.0
-	otelHDP          = []metricdata.HistogramDataPoint{{
+	inputHDP         = []metricdata.HistogramDataPoint{{
 		Attributes:   alice,
 		StartTime:    start,
 		Time:         end,
@@ -57,7 +57,7 @@ var (
 		Sum:          sumB,
 	}}
 
-	otlpHDP = []*mpb.HistogramDataPoint{{
+	expectedHDP = []*mpb.HistogramDataPoint{{
 		Attributes:        []*cpb.KeyValue{pbAlice},
 		StartTimeUnixNano: uint64(start.UnixNano()),
 		TimeUnixNano:      uint64(end.UnixNano()),
@@ -79,12 +79,12 @@ var (
 		Max:               &maxB,
 	}}
 	// DataPoint test case : Number Datapoints (Gauge / Counter)
-	otelDP = []metricdata.DataPoint[float64]{
+	inputDP = []metricdata.DataPoint[float64]{
 		{Attributes: alice, StartTime: start, Time: end, Value: 1.0},
 		{Attributes: bob, StartTime: start, Time: end, Value: 2.0},
 	}
 
-	otlpDP = []*mpb.NumberDataPoint{
+	expectedDP = []*mpb.NumberDataPoint{
 		{
 			Attributes:        []*cpb.KeyValue{pbAlice},
 			StartTimeUnixNano: uint64(start.UnixNano()),
@@ -104,12 +104,12 @@ var (
 	// 		- 1 invalid metric type
 	//		- 2 invalid cummulative temporalities (only cummulative supported)
 	// - 3 types (Gauge, Counter, and Histogram) supported
-	otelMetrics = []metricdata.Metrics{
+	inputMetrics = []metricdata.Metrics{
 		{
 			Name:        "float64-gauge",
 			Description: "Gauge with float64 values",
 			Unit:        "1",
-			Data:        metricdata.Gauge[float64]{DataPoints: otelDP},
+			Data:        metricdata.Gauge[float64]{DataPoints: inputDP},
 		},
 		{
 			Name:        "float64-sum",
@@ -118,7 +118,7 @@ var (
 			Data: metricdata.Sum[float64]{
 				Temporality: metricdata.CumulativeTemporality,
 				IsMonotonic: false,
-				DataPoints:  otelDP,
+				DataPoints:  inputDP,
 			},
 		},
 		{
@@ -127,7 +127,7 @@ var (
 			Unit:        "1",
 			Data: metricdata.Histogram{
 				Temporality: metricdata.CumulativeTemporality,
-				DataPoints:  otelHDP,
+				DataPoints:  inputHDP,
 			},
 		},
 		{
@@ -137,7 +137,7 @@ var (
 			Data: metricdata.Sum[float64]{
 				Temporality: metricdata.DeltaTemporality,
 				IsMonotonic: false,
-				DataPoints:  otelDP,
+				DataPoints:  inputDP,
 			},
 		},
 		{
@@ -146,7 +146,7 @@ var (
 			Unit:        "1",
 			Data: metricdata.Histogram{
 				Temporality: metricdata.DeltaTemporality,
-				DataPoints:  otelHDP,
+				DataPoints:  inputHDP,
 			},
 		},
 		{
@@ -157,12 +157,12 @@ var (
 		},
 	}
 
-	otlpMetrics = []*mpb.Metric{
+	expectedMetrics = []*mpb.Metric{
 		{
 			Name:        "float64-gauge",
 			Description: "Gauge with float64 values",
 			Unit:        "1",
-			Data:        &mpb.Metric_Gauge{Gauge: &mpb.Gauge{DataPoints: otlpDP}},
+			Data:        &mpb.Metric_Gauge{Gauge: &mpb.Gauge{DataPoints: expectedDP}},
 		},
 		{
 			Name:        "float64-sum",
@@ -171,7 +171,7 @@ var (
 			Data: &mpb.Metric_Sum{Sum: &mpb.Sum{
 				AggregationTemporality: mpb.AggregationTemporality_AGGREGATION_TEMPORALITY_CUMULATIVE,
 				IsMonotonic:            false,
-				DataPoints:             otlpDP,
+				DataPoints:             expectedDP,
 			}},
 		},
 		{
@@ -180,38 +180,38 @@ var (
 			Unit:        "1",
 			Data: &mpb.Metric_Histogram{Histogram: &mpb.Histogram{
 				AggregationTemporality: mpb.AggregationTemporality_AGGREGATION_TEMPORALITY_CUMULATIVE,
-				DataPoints:             otlpHDP,
+				DataPoints:             expectedHDP,
 			}},
 		},
 	}
 
 	// ScopeMetrics Test Cases
-	otelScopeMetrics = []metricdata.ScopeMetrics{{
+	inputScopeMetrics = []metricdata.ScopeMetrics{{
 		Scope: instrumentation.Scope{
 			Name:    "test/code/path",
 			Version: "v0.1.0",
 		},
-		Metrics: otelMetrics,
+		Metrics: inputMetrics,
 	}}
 
-	otlpScopeMetrics = []*mpb.ScopeMetrics{{
+	expectedScopeMetrics = []*mpb.ScopeMetrics{{
 		Scope: &cpb.InstrumentationScope{
 			Name:    "test/code/path",
 			Version: "v0.1.0",
 		},
-		Metrics: otlpMetrics,
+		Metrics: expectedMetrics,
 	}}
 
 	// ResourceMetrics Test Cases
-	otelResourceMetrics = &metricdata.ResourceMetrics{
+	inputResourceMetrics = &metricdata.ResourceMetrics{
 		Resource: resource.NewSchemaless(
 			semconv.ServiceName("test server"),
 			semconv.ServiceVersion("v0.1.0"),
 		),
-		ScopeMetrics: otelScopeMetrics,
+		ScopeMetrics: inputScopeMetrics,
 	}
 
-	otlpResourceMetrics = &mpb.ResourceMetrics{
+	expectedResourceMetrics = &mpb.ResourceMetrics{
 		Resource: &rpb.Resource{
 			Attributes: []*cpb.KeyValue{
 				{
@@ -228,7 +228,7 @@ var (
 				},
 			},
 		},
-		ScopeMetrics: otlpScopeMetrics,
+		ScopeMetrics: expectedScopeMetrics,
 	}
 )
 
@@ -236,21 +236,21 @@ var (
 func TestTransformOTLP(t *testing.T) {
 	t.Parallel()
 	// Histogram DataPoint Test Case (Histograms)
-	assert.Equal(t, otlpHDP, histogramDataPointsToPB(otelHDP))
+	assert.Equal(t, expectedHDP, histogramDataPointsToPB(inputHDP))
 
 	// Number DataPoint Test Case (Counters / Gauges)
-	require.Equal(t, otlpDP, dataPointsToPB(otelDP))
+	require.Equal(t, expectedDP, dataPointsToPB(inputDP))
 
 	// Metrics Test Case
-	m := metricsToPB(otelMetrics)
-	require.Equal(t, otlpMetrics, m)
-	require.Equal(t, len(otlpMetrics), 3)
+	m := metricsToPB(inputMetrics)
+	require.Equal(t, expectedMetrics, m)
+	require.Equal(t, len(expectedMetrics), 3)
 
 	// Scope Metrics Test Case
-	sm := scopeMetricsToPB(otelScopeMetrics)
-	require.Equal(t, otlpScopeMetrics, sm)
+	sm := scopeMetricsToPB(inputScopeMetrics)
+	require.Equal(t, expectedScopeMetrics, sm)
 
 	// // Resource Metrics Test Case
-	rm := transformOTLP(otelResourceMetrics)
-	require.Equal(t, otlpResourceMetrics, rm)
+	rm := transformOTLP(inputResourceMetrics)
+	require.Equal(t, expectedResourceMetrics, rm)
 }

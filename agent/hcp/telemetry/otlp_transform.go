@@ -45,7 +45,7 @@ func metricsToPB(metrics []metricdata.Metrics) []*mpb.Metric {
 	for _, m := range metrics {
 		o, err := metricTypeToPB(m)
 		if err != nil {
-			// TODO: Emit metric when a transformation occurs.
+			// TODO: Emit metric when a transformation failure occurs.
 			continue
 		}
 		out = append(out, o)
