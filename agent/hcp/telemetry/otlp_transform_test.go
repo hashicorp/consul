@@ -234,6 +234,7 @@ var (
 
 // TestTransformOTLP runs tests from the "bottom-up" of the metricdata data types.
 func TestTransformOTLP(t *testing.T) {
+	t.Parallel()
 	// Histogram DataPoint Test Case (Histograms)
 	assert.Equal(t, otlpHDP, histogramDataPoints(otelHDP))
 

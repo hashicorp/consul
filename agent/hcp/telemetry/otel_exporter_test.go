@@ -16,11 +16,13 @@ import (
 )
 
 func TestTemporality(t *testing.T) {
+	t.Parallel()
 	exp := &OTELExporter{}
 	require.Equal(t, metricdata.CumulativeTemporality, exp.Temporality(metric.InstrumentKindCounter))
 }
 
 func TestAggregation(t *testing.T) {
+	t.Parallel()
 	for name, test := range map[string]struct {
 		kind   metric.InstrumentKind
 		expAgg aggregation.Aggregation
@@ -38,33 +40,34 @@ func TestAggregation(t *testing.T) {
 			expAgg: aggregation.ExplicitBucketHistogram{Boundaries: []float64{0, 5, 10, 25, 50, 75, 100, 250, 500, 750, 1000, 2500, 5000, 7500, 10000}, NoMinMax: false},
 		},
 	} {
+		test := test
 		t.Run(name, func(t *testing.T) {
+			t.Parallel()
 			exp := &OTELExporter{}
 			require.Equal(t, test.expAgg, exp.Aggregation(test.kind))
 		})
 	}
 }
 
-type mockErrMetricsClient struct{}
-
-func (m *mockErrMetricsClient) ExportMetrics(ctx context.Context, protoMetrics *metricpb.ResourceMetrics, endpoint string) error {
-	return fmt.Errorf("failed to export metrics")
+type mockMetricsClient struct {
+	exportErr error
 }
 
-type mockMetricsClient struct{}
-
 func (m *mockMetricsClient) ExportMetrics(ctx context.Context, protoMetrics *metricpb.ResourceMetrics, endpoint string) error {
-	return nil
+	return m.exportErr
 }
 
 func TestExport(t *testing.T) {
+	t.Parallel()
 	for name, test := range map[string]struct {
 		wantErr string
 		metrics metricdata.ResourceMetrics
 		client  client.MetricsClient
 	}{
 		"earlyReturnWithoutScopeMetrics": {
-			client: &mockErrMetricsClient{},
+			client: &mockMetricsClient{
+				exportErr: nil,
+			},
 			metrics: metricdata.ResourceMetrics{
 				Resource: resource.Empty(),
 				ScopeMetrics: []metricdata.ScopeMetrics{
@@ -73,14 +76,18 @@ func TestExport(t *testing.T) {
 			},
 		},
 		"earlyReturnWithoutMetrics": {
-			client: &mockErrMetricsClient{},
+			client: &mockMetricsClient{
+				exportErr: nil,
+			},
 			metrics: metricdata.ResourceMetrics{
 				Resource:     resource.Empty(),
 				ScopeMetrics: []metricdata.ScopeMetrics{},
 			},
 		},
 		"errorWithExportFailure": {
-			client: &mockErrMetricsClient{},
+			client: &mockMetricsClient{
+				exportErr: fmt.Errorf("failed to export metrics."),
+			},
 			metrics: metricdata.ResourceMetrics{
 				Resource: resource.Empty(),
 				ScopeMetrics: []metricdata.ScopeMetrics{
@@ -114,7 +121,9 @@ func TestExport(t *testing.T) {
 		},
 		"multierrorTransformExportFailure": {
 			wantErr: "2 errors occurred:\n\t* unknown aggregation: metricdata.Gauge[int64]\n\t* failed to export metrics",
-			client:  &mockErrMetricsClient{},
+			client: &mockMetricsClient{
+				exportErr: fmt.Errorf("failed to export metrics"),
+			},
 			metrics: metricdata.ResourceMetrics{
 				Resource: resource.Empty(),
 				ScopeMetrics: []metricdata.ScopeMetrics{
@@ -130,7 +139,9 @@ func TestExport(t *testing.T) {
 			},
 		},
 	} {
+		test := test
 		t.Run(name, func(t *testing.T) {
+			t.Parallel()
 			exp := &OTELExporter{
 				client: test.client,
 			}
@@ -148,17 +159,21 @@ func TestExport(t *testing.T) {
 }
 
 func TestForceFlush(t *testing.T) {
+	t.Parallel()
 	exp := &OTELExporter{}
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	require.Error(t, exp.ForceFlush(ctx))
+	err := exp.ForceFlush(ctx)
+	require.ErrorIs(t, err, context.Canceled)
 }
 
 func TestShutdown(t *testing.T) {
+	t.Parallel()
 	exp := &OTELExporter{}
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	require.Error(t, exp.Shutdown(ctx))
+	err := exp.Shutdown(ctx)
+	require.ErrorIs(t, err, context.Canceled)
 }
