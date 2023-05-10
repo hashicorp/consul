@@ -1252,8 +1252,8 @@ func TestStreamResources_Server_DisconnectsOnHeartbeatTimeout(t *testing.T) {
 	})
 
 	testutil.RunStep(t, "stream is disconnected due to heartbeat timeout", func(t *testing.T) {
-		disconnectTime := it.FutureNow(1)
 		retry.Run(t, func(r *retry.R) {
+			disconnectTime := it.StaticNow()
 			status, ok := srv.StreamStatus(testPeerID)
 			require.True(r, ok)
 			require.False(r, status.Connected)
