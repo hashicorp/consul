@@ -7,7 +7,7 @@ import (
 
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes/any"
-	"github.com/golang/protobuf/ptypes/wrappers"
+	wrappers "google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 func createResponse(typeURL string, version, nonce string, resources []proto.Message) (*envoy_discovery_v3.DiscoveryResponse, error) {
