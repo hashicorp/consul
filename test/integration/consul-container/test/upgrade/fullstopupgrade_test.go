@@ -43,7 +43,7 @@ func TestStandardUpgradeToTarget_fromLatest(t *testing.T) {
 
 	run := func(t *testing.T, tc testcase) {
 		configCtx := libcluster.NewBuildContext(t, libcluster.BuildOptions{
-			ConsulImageName: utils.TargetImageName,
+			ConsulImageName: utils.GetLatestImageName(),
 			ConsulVersion:   tc.oldversion,
 		})
 
@@ -88,7 +88,7 @@ func TestStandardUpgradeToTarget_fromLatest(t *testing.T) {
 
 		// upgrade the cluster to the Target version
 		t.Logf("initiating standard upgrade to version=%q", tc.targetVersion)
-		err = cluster.StandardUpgrade(t, context.Background(), tc.targetVersion)
+		err = cluster.StandardUpgrade(t, context.Background(), utils.GetTargetImageName(), tc.targetVersion)
 		if !tc.expectErr {
 			require.NoError(t, err)
 			libcluster.WaitForLeader(t, cluster, client)
@@ -102,7 +102,7 @@ func TestStandardUpgradeToTarget_fromLatest(t *testing.T) {
 				require.Equal(r, serviceName, service[0].ServiceName)
 			})
 		} else {
-			require.Error(t, fmt.Errorf("context deadline exceeded"))
+			require.ErrorContains(t, err, "context deadline exceeded")
 		}
 	}
 

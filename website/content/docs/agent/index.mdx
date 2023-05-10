@@ -62,7 +62,8 @@ its consequences during outage situations). Reaping is similar to leaving,
 causing all associated services to be deregistered.
 
 ## Limit traffic rates
-You can define a set of rate limiting configurations that help operators protect Consul servers from excessive or peak usage. The configurations enable you to gracefully degrade Consul servers to avoid a global interruption of service. You can allocate a set of resources to different Consul users and eliminate the risks that some users consuming too many resources pose to others. Consul supports global server rate limiting, which lets configure Consul servers to deny requests that exceed the read or write limits. Refer to [Traffic Rate Limits Overview](/consul/docs/agent/limits/limit-traffic-rates).
+
+You can define a set of rate limiting configurations that help operators protect Consul servers from excessive or peak usage. The configurations enable you to gracefully degrade Consul servers to avoid a global interruption of service. Consul supports global server rate limiting, which lets configure Consul servers to deny requests that exceed the read or write limits. Refer to [Traffic Rate Limits Overview](/consul/docs/agent/limits).
 
 ## Requirements
 
@@ -201,7 +202,7 @@ The following settings are commonly used in the configuration file (also called 
 ### Server node in a service mesh
 
 The following example configuration is for a server agent named "`consul-server`". The server is [bootstrapped](/consul/docs/agent/config/cli-flags#_bootstrap) and the Consul GUI is enabled.
-The reason this server agent is configured for a service mesh is that the `connect` configuration is enabled. Connect is Consul's service mesh component that provides service-to-service connection authorization and encryption using mutual Transport Layer Security (TLS). Applications can use sidecar proxies in a service mesh configuration to establish TLS connections for inbound and outbound connections without being aware of Connect at all. See [Connect](/consul/docs/connect) for details.
+The reason this server agent is configured for a service mesh is that the `connect` configuration is enabled. The connect subsystem provides Consul's service mesh capabilities, including service-to-service connection authorization and encryption using mutual Transport Layer Security (TLS). Applications can use sidecar proxies in a service mesh configuration to establish TLS connections for inbound and outbound connections without being aware of Consul service mesh at all. Refer to [Consul Service Mesh](/consul/docs/connect) for details.
 
 <CodeTabs>
 

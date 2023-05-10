@@ -794,7 +794,6 @@ $ consul-k8s troubleshoot upstreams -pod <pod> <OPTIONS>
 | Flag                                 | Description                                           | Default                                                                                                                |
 | ------------------------------------ | ----------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
 | <nobr>`-namespace`, `-n`</nobr>      | `String` The Kubernetes namespace to list proxies in. | Current [kubeconfig](https://kubernetes.io/docs/concepts/configuration/organize-cluster-access-kubeconfig/) namespace. |
-| <nobr>`-envoy-admin-endpoint`</nobr> | `String` Envoy sidecar address and port               | `127.0.0.1:19000`                                                                                                      |
 
 #### Example Commands
 
@@ -839,7 +838,6 @@ $ consul-k8s troubleshoot proxy -pod <pod> -upstream-envoy-id <envoy-id> <OPTION
 | Flag                                 | Description                                           | Default                                                                                                                |
 | ------------------------------------ | ----------------------------------------------------------| ---------------------------------------------------------------------------------------------------------------------- |
 | <nobr>`-namespace`, `-n`</nobr>      | `String` The Kubernetes namespace to list proxies in.     | Current [kubeconfig](https://kubernetes.io/docs/concepts/configuration/organize-cluster-access-kubeconfig/) namespace. |
-| <nobr>`-envoy-admin-endpoint`</nobr> | `String` Envoy sidecar address and port                   | `127.0.0.1:19000`                                                                                                               |
 | <nobr>`-upstream-ip`</nobr>          | `String` The IP address of the upstream transparent proxy |                                                                                                                |
 | <nobr>`-upstream-envoy-id`</nobr>    | `String` The Envoy identifier of the upstream             |                                                                                                                |
 

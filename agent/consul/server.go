@@ -39,6 +39,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul/fsm"
 	"github.com/hashicorp/consul/agent/consul/multilimiter"
 	rpcRate "github.com/hashicorp/consul/agent/consul/rate"
+	"github.com/hashicorp/consul/agent/consul/reporting"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/consul/usagemetrics"
@@ -409,6 +410,9 @@ type Server struct {
 	// embedded struct to hold all the enterprise specific data
 	EnterpriseServer
 	operatorServer *operator.Server
+
+	// handles metrics reporting to HashiCorp
+	reportingManager *reporting.ReportingManager
 }
 
 type connHandler interface {
@@ -728,6 +732,9 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server, incom
 	s.overviewManager = NewOverviewManager(s.logger, s.fsm, s.config.MetricsReportingInterval)
 	go s.overviewManager.Run(&lib.StopChannelContext{StopCh: s.shutdownCh})
 
+	s.reportingManager = reporting.NewReportingManager(s.logger, getEnterpriseReportingDeps(flat), s, s.fsm.State())
+	go s.reportingManager.Run(&lib.StopChannelContext{StopCh: s.shutdownCh})
+
 	// Initialize external gRPC server - register services on external gRPC server.
 	s.externalACLServer = aclgrpc.NewServer(aclgrpc.Config{
 		ACLsEnabled: s.config.ACLsEnabled,
@@ -1043,7 +1050,7 @@ func (s *Server) setupRaft() error {
 		log = cacheStore
 
 		// Create the snapshot store.
-		snapshots, err := raft.NewFileSnapshotStoreWithLogger(path, snapshotsRetained, s.logger.Named("snapshot"))
+		snapshots, err := raft.NewFileSnapshotStoreWithLogger(path, snapshotsRetained, s.logger.Named("raft.snapshot"))
 		if err != nil {
 			return err
 		}
@@ -1745,6 +1752,8 @@ func (s *Server) ReloadConfig(config ReloadableConfig) error {
 	if err := s.raft.ReloadConfig(raftCfg); err != nil {
 		return err
 	}
+
+	s.updateReportingConfig(config)
 
 	s.rpcLimiter.Store(rate.NewLimiter(config.RPCRateLimit, config.RPCMaxBurst))
 

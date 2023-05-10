@@ -41,6 +41,7 @@ type BuiltCluster struct {
 // It returns objects of the accepting cluster, dialing cluster, staticServerSvc, and staticClientSvcSidecar
 func BasicPeeringTwoClustersSetup(
 	t *testing.T,
+	consulImage string,
 	consulVersion string,
 	peeringThroughMeshgateway bool,
 ) (*BuiltCluster, *BuiltCluster) {
@@ -49,6 +50,7 @@ func BasicPeeringTwoClustersSetup(
 		NumClients: 1,
 		BuildOpts: &libcluster.BuildOptions{
 			Datacenter:           "dc1",
+			ConsulImageName:      consulImage,
 			ConsulVersion:        consulVersion,
 			InjectAutoEncryption: true,
 		},
@@ -60,6 +62,7 @@ func BasicPeeringTwoClustersSetup(
 		NumClients: 1,
 		BuildOpts: &libcluster.BuildOptions{
 			Datacenter:           "dc2",
+			ConsulImageName:      consulImage,
 			ConsulVersion:        consulVersion,
 			InjectAutoEncryption: true,
 		},

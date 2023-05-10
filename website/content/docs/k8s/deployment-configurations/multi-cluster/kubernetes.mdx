@@ -22,7 +22,7 @@ Consul treats each Kubernetes cluster as a separate Consul datacenter.
 In order to federate clusters, one cluster must be designated the
 primary datacenter. This datacenter will be
 responsible for creating the certificate authority that signs the TLS certificates
-Connect uses to encrypt and authorize traffic. It also handles validating global ACL tokens. All other clusters
+that Consul service mesh uses to encrypt and authorize traffic. It also handles validating global ACL tokens. All other clusters
 that are federated are considered secondaries.
 
 #### First Time Installation

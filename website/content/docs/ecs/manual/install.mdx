@@ -127,7 +127,7 @@ See the [ECS Task Definition](https://docs.aws.amazon.com/AmazonECS/latest/devel
 
 ## `sidecar-proxy` container
 
-The `sidecar-proxy` container runs [Envoy proxy](/consul/docs/connect/proxies/envoy) for Consul Connect. In most cases, the container should contain the following parameters and values.
+The `sidecar-proxy` container runs [Envoy proxy](/consul/docs/connect/proxies/envoy) for Consul service mesh. In most cases, the container should contain the following parameters and values.
 
 The `mountPoints` list must be set as shown in the following example. This will mount the shared `consul_data` volume into the
 `sidecar-proxy` container at the path `/consul`. This volume is where the `consul-ecs-mesh-init` container copies the `envoy-bootstrap.json`

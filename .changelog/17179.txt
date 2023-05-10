@@ -1,0 +1,3 @@
+```release-note:bug
+peering: ensure that merged central configs of peered upstreams for partitioned downstreams work
+```

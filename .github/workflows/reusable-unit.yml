@@ -29,6 +29,10 @@ on:
       repository-name:
         required: true
         type: string
+      go-tags:
+        required: false
+        type: string
+        default: ""
     secrets:
       elevated-github-token:
         required: true
@@ -39,7 +43,7 @@ env:
   GOTESTSUM_VERSION: 1.8.2
   GOARCH: ${{inputs.go-arch}}
   CONSUL_LICENSE: ${{secrets.consul-license}}
-  GOTAGS: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consulprem consuldev' || '' }}"
+  GOTAGS: ${{ inputs.go-tags}}
   
 jobs:
   go-test:
@@ -50,9 +54,6 @@ jobs:
       - name: Setup Git
         if: ${{ endsWith(inputs.repository-name, '-enterprise') }}
         run: git config --global url."https://${{ secrets.elevated-github-token }}:@github.com".insteadOf "https://github.com"
-      - uses: actions/setup-go@6edd4406fa81c3da01a34fa6f6343087c207a568 # pin@v3.5.0
-        with:
-          go-version-file: 'go.mod'
       - uses: actions/setup-go@6edd4406fa81c3da01a34fa6f6343087c207a568 # pin@v3.5.0
         with:
           go-version-file: 'go.mod'

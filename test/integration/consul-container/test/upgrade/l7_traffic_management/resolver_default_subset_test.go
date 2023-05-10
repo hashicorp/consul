@@ -11,6 +11,7 @@ import (
 	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
 	libservice "github.com/hashicorp/consul/test/integration/consul-container/libs/service"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/topology"
+	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 	libutils "github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 	upgrade "github.com/hashicorp/consul/test/integration/consul-container/test/upgrade"
 	"github.com/hashicorp/go-version"
@@ -373,7 +374,7 @@ func TestTrafficManagement_ServiceResolver(t *testing.T) {
 		tc.extraAssertion(staticClientProxy)
 
 		// Upgrade cluster, restart sidecars then begin service traffic validation
-		require.NoError(t, cluster.StandardUpgrade(t, context.Background(), targetVersion))
+		require.NoError(t, cluster.StandardUpgrade(t, context.Background(), utils.GetTargetImageName(), targetVersion))
 		require.NoError(t, staticClientProxy.Restart())
 		require.NoError(t, staticServerProxy.Restart())
 		restartFn()

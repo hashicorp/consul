@@ -291,6 +291,9 @@ type Config struct {
 	LicensePollMaxTime    *string `mapstructure:"license_poll_max_time" json:"-"`
 	LicenseUpdateBaseTime *string `mapstructure:"license_update_base_time" json:"-"`
 	LicenseUpdateMaxTime  *string `mapstructure:"license_update_max_time" json:"-"`
+
+	// license reporting
+	Reporting Reporting `mapstructure:"reporting" json:"-"`
 }
 
 type GossipLANConfig struct {
@@ -942,4 +945,12 @@ type RaftBoltDBConfigRaw struct {
 
 type RaftWALConfigRaw struct {
 	SegmentSizeMB *int `mapstructure:"segment_size_mb" json:"segment_size_mb,omitempty"`
+}
+
+type License struct {
+	Enabled *bool `mapstructure:"enabled"`
+}
+
+type Reporting struct {
+	License License `mapstructure:"license"`
 }

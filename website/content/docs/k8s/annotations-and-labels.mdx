@@ -2,7 +2,7 @@
 layout: docs
 page_title: Annotations and Labels
 description: >-
-  Annotations and labels configure Consul sidecar properties and injection behavior when scheduling Kubernetes clusters. Learn about the annotations and labels that enable Consul’s service mesh and secure upstream communication on k8s in this reference guide.
+  Annotations and labels configure service mesh sidecar properties and injection behavior when scheduling Kubernetes clusters. Learn about the annotations and labels that enable Consul’s service mesh and secure upstream communication on k8s in this reference guide.
 ---
 
 # Annotations and Labels
@@ -14,6 +14,9 @@ This allows the user to configure natively configure Consul on select Kubernetes
 
 - [Annotations](#annotations)
 - [Labels](#labels)
+
+The noun _connect_ is used throughout this documentation to refer to the connect
+subsystem that provides Consul's service mesh capabilities.
 
 ## Annotations
 
@@ -69,7 +72,7 @@ The following Kubernetes resource annotations could be used on a pod to control 
   public listener will listen on a dynamic port.
 
 - `consul.hashicorp.com/connect-service-upstreams` - The list of upstream
-  services that this pod needs to connect to via Connect along with a static
+  services that this pod needs to connect to via the service mesh along with a static
   local port to listen for those connections. When transparent proxy is enabled,
   this annotation is optional. There are a few formats this annotation can take:
 
@@ -236,8 +239,8 @@ The following Kubernetes resource annotations could be used on a pod to control 
 - `consul.hashicorp.com/prometheus-key-file` - Local filesystem path to a private key file for Envoy to use
   when serving TLS on the Prometheus metrics endpoint. Only applicable when `envoy_prometheus_bind_addr`
   is set in proxy config.
-- `consul.hashicorp.com/service-metrics-port` - Set the port where the Connect service exposes metrics.
-- `consul.hashicorp.com/service-metrics-path` - Set the path where the Connect service exposes metrics.
+- `consul.hashicorp.com/service-metrics-port` - Set the port where the mesh service exposes metrics.
+- `consul.hashicorp.com/service-metrics-path` - Set the path where the mesh service exposes metrics.
 - `consul.hashicorp.com/connect-inject-mount-volume` - Comma separated list of container names to mount the connect-inject volume into. The volume will be mounted at `/consul/connect-inject`. The connect-inject volume contains Consul internals data needed by the other sidecar containers, for example the `consul` binary, and the Pod's Consul ACL token. This data can be valuable for advanced use-cases, such as making requests to the Consul API from within application containers.
 - `consul.hashicorp.com/consul-sidecar-user-volume` - JSON objects as specified by the [Volume pod spec](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#volume-v1-core), that define volumes to add to the Envoy sidecar.
   ```yaml

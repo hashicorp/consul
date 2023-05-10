@@ -38,9 +38,9 @@ For example, if you installed Consul with `connectInject.enabled: false` and you
    ```
 
    **Before performing the upgrade, be sure you read the other sections on this page,
-   continuing at [Determining What Will Change](#determining-what-will-change).**
+   continuing at [Determine scope of changes](#determine-scope-of-changes).**
 
-~> Note: You should always set the `--version` flag when upgrading Helm. Otherwise Helm uses the most up-to-date version in its local cache, which may result in an unintended upgrade.
+~> Note: You should always set the `--version` flag when upgrading Helm. Otherwise, Helm uses the most up-to-date version in its local cache, which may result in an unintended upgrade.
 
 ### Upgrade Helm chart version
 
@@ -87,7 +87,7 @@ If you want to upgrade to the latest `0.40.0` version, use the following procedu
   ```
 
   **Before performing the upgrade, be sure you've read the other sections on this page,
-  continuing at [Determining What Will Change](#determining-what-will-change).**
+  continuing at [Determine scope of changes](#determine-scope-of-changes).**
 
 ### Upgrade Consul version
 
@@ -126,9 +126,9 @@ to update to the new version. Before you upgrade to a new version:
   ```
 
   **Before performing the upgrade, be sure you have read the other sections on this page,
-  continuing at [Determining What Will Change](#determining-what-will-change).**
+  continuing at [Determine scope of changes](#determine-scope-of-changes).**
 
-~> Note: You should always set the `--version` flag when upgrading Helm. Otherwise Helm uses the most up-to-date version in its local cache, which may result in an unintended upgrade.
+~> Note: You should always set the `--version` flag when upgrading Helm. Otherwise, Helm uses the most up-to-date version in its local cache, which may result in an unintended upgrade.
 
 ## Determine scope of changes
 
@@ -175,7 +175,7 @@ that can be used.
 Initiate the server upgrade:
 
 1. Change the `global.image` value to the desired Consul version.
-1. Set the `server.updatePartition` value to the number of server replicas. By default there are 3 servers, so you would set this value to `3`.
+1. Set the `server.updatePartition` value to the number of server replicas. By default, there are 3 servers, so you would set this value to `3`.
 1. Set the `updateStrategy` for clients to `OnDelete`.
 
   <CodeBlockConfig filename="values.yaml">
@@ -228,7 +228,7 @@ If you upgrade Consul from a version that uses client agents to a version the us
         type: OnDelete
   ```
 
-1. Add `consul.hashicorp.com/consul-k8s-version: 1.0.0` to the annotations for each pod you upgrade.  
+1. Add `consul.hashicorp.com/consul-k8s-version: 1.0.0` to the annotations for each pod you upgrade.
 
 1. Follow our [recommended procedures to upgrade servers](#upgrading-consul-servers) on Kubernetes deployments to upgrade Helm values for the new version of Consul.
 
@@ -236,7 +236,7 @@ If you upgrade Consul from a version that uses client agents to a version the us
 
 1. Restart all gateways in your service mesh.
 
-1. Disable client agents in your Helm chart by deleting the `client` stanza or setting `client.enabled` to `false`. 
+1. Disable client agents in your Helm chart by deleting the `client` stanza or setting `client.enabled` to `false`.
 
 ## Configuring TLS on an existing cluster
 
