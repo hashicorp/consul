@@ -6,10 +6,12 @@ package resource_test
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/oklog/ulid/v2"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/proto-public/pbresource"
@@ -310,17 +312,17 @@ func TestEqualStatus(t *testing.T) {
 
 	// Equal cases.
 	t.Run("same pointer", func(t *testing.T) {
-		require.True(t, resource.EqualStatus(orig, orig))
+		require.True(t, resource.EqualStatus(orig, orig, true))
 	})
 
 	t.Run("equal", func(t *testing.T) {
-		require.True(t, resource.EqualStatus(orig, clone(orig)))
+		require.True(t, resource.EqualStatus(orig, clone(orig), true))
 	})
 
 	// Not equal cases.
 	t.Run("nil", func(t *testing.T) {
-		require.False(t, resource.EqualStatus(orig, nil))
-		require.False(t, resource.EqualStatus(nil, orig))
+		require.False(t, resource.EqualStatus(orig, nil, true))
+		require.False(t, resource.EqualStatus(nil, orig, true))
 	})
 
 	testCases := map[string]func(*pbresource.Status){
@@ -366,10 +368,24 @@ func TestEqualStatus(t *testing.T) {
 			a, b := clone(orig), clone(orig)
 			modFn(b)
 
-			require.False(t, resource.EqualStatus(a, b))
-			require.False(t, resource.EqualStatus(b, a))
+			require.False(t, resource.EqualStatus(a, b, true))
+			require.False(t, resource.EqualStatus(b, a, true))
 		})
 	}
+
+	t.Run("compareUpdatedAt = true", func(t *testing.T) {
+		a, b := clone(orig), clone(orig)
+		b.UpdatedAt = timestamppb.New(b.UpdatedAt.AsTime().Add(1 * time.Minute))
+		require.False(t, resource.EqualStatus(a, b, true))
+		require.False(t, resource.EqualStatus(b, a, true))
+	})
+
+	t.Run("compareUpdatedAt = false", func(t *testing.T) {
+		a, b := clone(orig), clone(orig)
+		b.UpdatedAt = timestamppb.New(b.UpdatedAt.AsTime().Add(1 * time.Minute))
+		require.True(t, resource.EqualStatus(a, b, false))
+		require.True(t, resource.EqualStatus(b, a, false))
+	})
 }
 
 func TestEqualStatusMap(t *testing.T) {
@@ -615,7 +631,7 @@ func BenchmarkEqualStatus(b *testing.B) {
 
 	b.Run("ours", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
-			_ = resource.EqualStatus(statusA, statusB)
+			_ = resource.EqualStatus(statusA, statusB, true)
 		}
 	})
 
