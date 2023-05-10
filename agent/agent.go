@@ -7,6 +7,7 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -4588,7 +4589,7 @@ func (a *Agent) checkServerLastSeen() error {
 	md, err := consul.ReadServerMetadata(filename)
 	if err != nil {
 		// Return early if it doesn't as this indicates the server is starting for the first time.
-		if err == os.ErrNotExist {
+		if errors.Is(err, os.ErrNotExist) {
 			return nil
 		}
 		return fmt.Errorf("error reading server metadata: %w", err)
