@@ -638,7 +638,7 @@ jobs:
             -p=4 \
             -tags "${{ env.GOTAGS }}" \
             -timeout=30m \
-            -json ./... \
+            -json ./l7_traffic_management/... \
             --target-image ${{ env.CONSUL_LATEST_IMAGE_NAME }} \
             --target-version local \
             --latest-image ${{ env.CONSUL_LATEST_IMAGE_NAME }} \

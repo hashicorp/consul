@@ -113,6 +113,8 @@ func TestTrafficManagement_ResolveDefaultSubset(t *testing.T) {
 // - Create one addtional static-server with checks and V1 subset
 // - resolver directs traffic to "test" service
 func TestTrafficManagement_ResolverDefaultOnlyPassing(t *testing.T) {
+	t.Parallel()
+
 	cluster, staticServerProxy, staticClientProxy := setup(t)
 	node := cluster.Agents[0]
 
