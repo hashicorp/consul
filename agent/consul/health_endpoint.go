@@ -211,6 +211,14 @@ func (h *Health) ServiceNodes(args *structs.ServiceSpecificRequest, reply *struc
 		f = h.serviceNodesDefault
 	}
 
+	authzContext := acl.AuthorizerContext{
+		Peer: args.PeerName,
+	}
+	authz, err := h.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, &authzContext)
+	if err != nil {
+		return err
+	}
+
 	if err := h.srv.validateEnterpriseRequest(&args.EnterpriseMeta, false); err != nil {
 		return err
 	}
@@ -232,14 +240,6 @@ func (h *Health) ServiceNodes(args *structs.ServiceSpecificRequest, reply *struc
 			var thisReply structs.IndexedCheckServiceNodes
 
 			index, nodes, err := f(ws, state, args)
-			if err != nil {
-				return err
-			}
-
-			authzContext := acl.AuthorizerContext{
-				Peer: args.PeerName,
-			}
-			authz, err := h.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, &authzContext)
 			if err != nil {
 				return err
 			}
