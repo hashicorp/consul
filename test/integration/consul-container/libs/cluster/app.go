@@ -63,7 +63,7 @@ func LaunchContainerOnNode(
 		Started:          true,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("creating container: %w", err)
+		return nil, fmt.Errorf("creating container: %s(%s), %w", req.Name, req.Image, err)
 	}
 	deferClean.Add(func() {
 		_ = container.Terminate(ctx)
