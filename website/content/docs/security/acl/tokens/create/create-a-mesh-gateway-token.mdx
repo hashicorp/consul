@@ -2,16 +2,22 @@
 layout: docs
 page_title: Create a token for mesh gateway registration
 description: >-
-  Learn how to create ACL tokens that your mesh gateway can present to Consul servers so that they can register with the Consul catalog.
+  Learn how to create ACL tokens that your mesh gateway can present to Consul servers so that they
+  can register with the Consul catalog.
 ---
 
 # Create a mesh gateway token
 
-This topic describes how to create a token to enable a mesh gateway to register.
+This topic describes how to create a token for a mesh gateway.
 
 ## Introduction
 
-Gateways must present a token linked to policies that grant the appropriate set of permissions in order to be discoverable and to route to other services in a mesh.
+Mesh gateways enable service-to-service traffic between Consul datacenters or between Consul admin
+partitions. They also enable datacenters to be federated across wide area networks. Refer to [Mesh
+Gateways](/consul/docs/connect/gateways#mesh-gateways) for additional information.
+
+Gateways must present a token linked to policies that grant the appropriate set of permissions in
+order to be discoverable and to route to other services in a mesh.
 
 ## Requiremements
 
@@ -20,21 +26,24 @@ Core ACL functionality is available in all versions of Consul.
 The mesh gateway must present a token linked to a policy that grants the following permissions:
 
 * `mesh:write` to obtain leaf certificates for terminating TLS connections
-* `peering:read` for Consul cluster peering. If you are not using Consul cluster peering, then you can omit the `peering:read` permission.
+* `peering:read` for Consul cluster peering through mesh gateways. If you are not using cluster
+  peering or if the mesh gateway is not in the `default` partition, then you can omit the
+  `peering:read` permission.
 * `service:write` to allow the mesh gateway to register into the catalog
 * `service:read` for all services and `node:read` for all nodes in order to discover and route to services
-* `agent:read` to enable the `consul connect envoy` CLI command to automatically discover gRPC settings from the Consul agent. If this command is not used to start the gateway or if the Consul agent uses the default gRPC settings, then you can omit the `agent:read` permission.
+* `agent:read` to enable the `consul connect envoy` CLI command to automatically discover gRPC
+  settings from the Consul agent. If this command is not used to start the gateway or if the Consul
+  agent uses the default gRPC settings, then you can omit the `agent:read` permission.
 
 @include 'create-token-requirements.mdx'
-
 
 ## Consul OSS
 
 To create a token for the mesh gateway, you must define a policy, register the policy with Consul, and link the policy to a token.
 
-### Define a custom policy
+### Define a policy
 
-You can send custom policy definitions as command line or API arguments or define them in an external HCL or JSON file. The following example policies are externally defined policies. Refer to [ACL Rules](/consul/docs/security/acl/acl-rules) for details about all of the rules you can use in your policies.
+You can send policy definitions as command line or API arguments or define them in an external HCL or JSON file. The following example policy is defined in a file. Refer to [ACL Rules](/consul/docs/security/acl/acl-rules) for details about all of the rules you can use in your policies.
 
 The following example policy grants the mesh gateway the appropriate permissions for the mesh gateway to register as a service named `mesh-gateway`.
 
@@ -97,7 +106,7 @@ The following commands create the ACL policy and token.
 
 <Tab heading="CLI" group="CLI">
 
-Run the `consul acl policy create` command and specify the policy rules to create a policy. The following example registers a custom policy defined in `mgw-register.hcl`:
+Run the `consul acl policy create` command and specify the policy rules to create a policy. The following example registers a policy defined in `mgw-register.hcl`:
 
 ```shell-session
 $ consul acl policy create \
@@ -109,7 +118,7 @@ $ consul acl policy create \
 
 <Tab heading="API" group="API">
 
-Send a PUT request to the `/acl/policy` endpoint and specify the policy rules in the request body to create a policy. The following example registers the custom policy defined in `mgw-register.hcl`. You must embed policy rules in the `Rules` field of the request body.
+Send a PUT request to the `/acl/policy` endpoint and specify the policy rules in the request body to create a policy. The following example registers the policy defined in `mgw-register.hcl`. You must embed policy rules in the `Rules` field of the request body.
 
 ```shell-session
 $ curl --request PUT http://127.0.0.1:8500/v1/acl/policy \
@@ -171,9 +180,9 @@ $ curl --request PUT http://127.0.0.1:8500/v1/acl/token \
 
 To create a token for the mesh gateway, you must define a policy, register the policy with Consul, and link the policy to a token.
 
-### Define a custom policy
+### Define a policy
 
-You can send custom policy definitions as command line or API arguments or define them in an external HCL or JSON file. The following example policies are externally defined policies. Refer to [ACL Rules](/consul/docs/security/acl/acl-rules) for details about all of the rules you can use in your policies.
+You can send policy definitions as command line or API arguments or define them in an external HCL or JSON file. The following example policy is defined in a file. Refer to [ACL Rules](/consul/docs/security/acl/acl-rules) for details about all of the rules you can use in your policies.
 
 You can specify an admin partition and namespace when using Consul Enterprise. Mesh gateways must register into the `default` namespace. The following policy allows a mesh gateway to register as a service named `mesh-gateway` in the default partition.
 
@@ -181,24 +190,25 @@ You can specify an admin partition and namespace when using Consul Enterprise. M
 
 ```hcl
 mesh = "write"
-peering = "read"
 partition_prefix "" {
   peering = "read"
 }
-namespace "default" {
-  service "mesh-gateway" {
-     policy = "write"
+partition "default" {
+  namespace "default" {
+    service "mesh-gateway" {
+       policy = "write"
+    }
+    agent_prefix "" {
+       policy = "read"
+    }
   }
-  agent_prefix "" {
-     policy = "read"
-  }
-}
-namespace_prefix "" {
-  node_prefix "" {
-  	policy = "read"
-  }
-  service_prefix "" {
-     policy = "read"
+  namespace_prefix "" {
+    node_prefix "" {
+    	policy = "read"
+    }
+    service_prefix "" {
+       policy = "read"
+    }
   }
 }
 ```
@@ -206,38 +216,41 @@ namespace_prefix "" {
 ```json
 {
   "mesh": "write",
-  "peering": "read",
+  "partition": {
+    "default": [{
+      "namespace": {
+        "default": [{
+          "service": {
+            "mesh-gateway": [{
+              "policy": "write"
+            }]
+          },
+          "agent_prefix": {
+            "": [{
+              "policy": "read"
+            }]
+          }
+        }]
+      },
+      "namespace_prefix": {
+        "": [{
+          "node_prefix": {
+            "": [{
+              "policy": "read"
+            }]
+          },
+          "service_prefix": {
+            "": [{
+              "policy": "read"
+            }]
+          }
+        }]
+      }
+    }]
+  },
   "partition_prefix": {
     "": [{
       "peering": "read"
-    }]
-  },
-  "namespace": {
-    "default": [{
-      "agent_prefix": {
-        "": [{
-          "policy": "read"
-        }]
-      },
-      "service": {
-        "mesh-gateway": [{
-          "policy": "write"
-        }]
-      }
-    }]
-  },
-  "namespace_prefix": {
-    "": [{
-      "node_prefix": {
-        "": [{
-          "policy": "read"
-        }]
-      },
-      "service_prefix": {
-        "": [{
-          "policy": "read"
-        }]
-      }
     }]
   }
 }
@@ -256,7 +269,7 @@ The following commands create the ACL policy and token.
 
 <Tab heading="CLI" group="CLI">
 
-Run the `consul acl policy create` command and specify the policy rules to create a policy. The following example registers a custom policy defined in `mgw-register.hcl`:
+Run the `consul acl policy create` command and specify the policy rules to create a policy. The following example registers a policy defined in `mgw-register.hcl`:
 
 You can specify an admin partition when creating policies in Consul Enterprise. The policy is only valid in the specified admin partition. You must create the policy in the partition where the mesh gateway registers. The following example creates the policy in the `default` partition.
 
@@ -272,7 +285,7 @@ Refer to [Consul ACL Policy Create](/consul/commands/acl/policy/create) for deta
 
 <Tab heading="API" group="API">
 
-Send a PUT request to the `/acl/policy` endpoint and specify the policy rules in the request body to create a policy. The following example registers the custom policy defined in `mgw-register.hcl`. You must embed policy rules in the `Rules` field of the request body.
+Send a PUT request to the `/acl/policy` endpoint and specify the policy rules in the request body to create a policy. The following example registers the policy defined in `mgw-register.hcl`. You must embed policy rules in the `Rules` field of the request body.
 
 ```shell-session
 $ curl --request PUT http://127.0.0.1:8500/v1/acl/policy \
@@ -338,9 +351,9 @@ $ curl --request PUT http://127.0.0.1:8500/v1/acl/token \
 
 To create a token for the mesh gateway, you must define a policy, register the policy with Consul, and link the policy to a token.
 
-### Define a custom policy
+### Define a policy
 
-You can send custom policy definitions as command line or API arguments or define them in an external HCL or JSON file. The following example policies are externally defined policies. Refer to [ACL Rules](/consul/docs/security/acl/acl-rules) for details about all of the rules you can use in your policies.
+You can send policy definitions as command line or API arguments or define them in an external HCL or JSON file. The following example policy is defined in a file. Refer to [ACL Rules](/consul/docs/security/acl/acl-rules) for details about all of the rules you can use in your policies.
 
 You can specify an admin partition and namespace when using Consul Enterprise. Mesh gateways must register into the `default` namespace. To register a mesh gateway in a non-default partition, create the ACL policy and token in the partition where the mesh gateway registers. The following ACL policy rules allow a mesh gateway to register as the `mesh-gateway` service in a non-default partition.
 
@@ -348,7 +361,6 @@ You can specify an admin partition and namespace when using Consul Enterprise. M
 
 ```hcl
 mesh = "write"
-peering = "read"
 namespace "default" {
   service "mesh-gateway" {
      policy = "write"
@@ -370,17 +382,16 @@ namespace_prefix "" {
 ```json
 {
   "mesh": "write",
-  "peering": "read",
   "namespace": {
     "default": [{
-      "agent_prefix": {
-        "": [{
-          "policy": "read"
-        }]
-      },
       "service": {
         "mesh-gateway": [{
           "policy": "write"
+        }]
+      },
+      "agent_prefix": {
+        "": [{
+          "policy": "read"
         }]
       }
     }]
@@ -414,7 +425,7 @@ The following commands create the ACL policy and token.
 
 <Tab heading="CLI" group="CLI">
 
-Run the `consul acl policy create` command and specify the policy rules to create a policy. The following example registers a custom policy defined in `mgw-register.hcl`:
+Run the `consul acl policy create` command and specify the policy rules to create a policy. The following example registers a policy defined in `mgw-register.hcl`:
 
 You can specify an admin partition when creating policies in Consul Enterprise. The policy is only valid in the specified admin partition. You must create the policy in the partition where the mesh gateway registers. The following example creates the policy in the partition `ptn1`.
 
@@ -430,7 +441,7 @@ Refer to [Consul ACL Policy Create](/consul/commands/acl/policy/create) for deta
 
 <Tab heading="API" group="API">
 
-Send a PUT request to the `/acl/policy` endpoint and specify the policy rules in the request body to create a policy. The following example registers the custom policy defined in `mgw-register.hcl`. You must embed policy rules in the `Rules` field of the request body.
+Send a PUT request to the `/acl/policy` endpoint and specify the policy rules in the request body to create a policy. The following example registers the policy defined in `mgw-register.hcl`. You must embed policy rules in the `Rules` field of the request body.
 
 ```shell-session
 $ curl --request PUT http://127.0.0.1:8500/v1/acl/policy \

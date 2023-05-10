@@ -7,7 +7,7 @@ description: >-
 
 # Create a service token
 
-This topic describes how to create a token that you can use to discover services and to register services into the Consul catalog. If you are using Consul service mesh, this token can be used by a sidecar proxy to discover and route to other services.
+This topic describes how to create a token that you can use to register a service and discover services in the Consul catalog. If you are using Consul service mesh, this token can be used by a sidecar proxy to discover and route to other services.
 
 ## Introduction
 
@@ -27,7 +27,7 @@ Core ACL functionality is available in all versions of Consul.
 
 The service token must be linked to policies that grant the following permissions:
 
-* `service:write`: Enables the service to update the catalog. If service mesh is enabled, the service's sidecar proxy can also update the catalog.Note that this permission implicitly grants `intention:read` permission to sidecar proxies so that they can read and enforce intentions. Refer to [Intention Management Permissions](/consul/docs/connect/intentions#intention-management-permissions) for details.
+* `service:write`: Enables the service to update the catalog. If service mesh is enabled, the service's sidecar proxy can also update the catalog. Note that this permission implicitly grants `intention:read` permission to sidecar proxies so that they can read and enforce intentions. Refer to [Intention Management Permissions](/consul/docs/connect/intentions#intention-management-permissions) for details.
 * `service:read`: Enables the service to learn about other services in the network. If service mesh is enabled, the service's sidecar proxy can also learn about other services in the network.
 * `node:read`: Enables the sidecar proxy to discover and route traffic to other services in the catalog if service mesh is enabled.
 
@@ -125,11 +125,11 @@ $ curl --request PUT http://127.0.0.1:8500/v1/acl/token \
 
 ## Custom policy in Consul OSS
 
-When you are unable to link tokens to a service identity, you can define custom policies, register them with Consul, and link the policies to tokens that enable services to register into the Consul catalog.
+When you are unable to link tokens to a service identity, you can define policies, register them with Consul, and link the policies to tokens that enable services to register into the Consul catalog.
 
-### Define a custom policy
+### Define a policy
 
-You can send custom policy definitions as command line or API arguments or define them in an external HCL or JSON file. The following example policies represent externally defined policies. Refer to [ACL Rules](/consul/docs/security/acl/acl-rules) for details about all of the rules you can use in your policies.
+You can send policy definitions as command line or API arguments or define them in an external HCL or JSON file. The following example policy is defined in a file. Refer to [ACL Rules](/consul/docs/security/acl/acl-rules) for details about all of the rules you can use in your policies.
 
 The following example policy grants the `svc1` service `write` permissions so that it can register into the catalog. For service mesh, the policy grants the `svc1-sidecar-proxy` service `write` permissions so that the sidecar proxy can register into the catalog. It grants service and node `read` permissions to discover and route to other services.
 
@@ -178,13 +178,13 @@ node_prefix "" {
 
 ### Register the policy with Consul
 
-After defining the custom policies, you can register them with Consul using the command line or API endpoint.
+After defining the policies, you can register them with Consul using the command line or API endpoint.
 
 <Tabs>
 
 <Tab heading="CLI" group="CLI">
 
-Run the `consul acl policy create` command and specify the policy rules to create a policy. The following example registers a custom policy defined in `svc1-register.hcl`:
+Run the `consul acl policy create` command and specify the policy rules to create a policy. The following example registers a policy defined in `svc1-register.hcl`:
 
 
 ```shell-session
@@ -199,7 +199,7 @@ Refer to [Consul ACL Policy Create](/consul/commands/acl/policy/create) for deta
 
 <Tab heading="API" group="API">
 
-Send a PUT request to the `/acl/policy` endpoint and specify the policy rules in the request body to create a policy. The following example registers the custom policy defined in `svc1-register.hcl`. You must embed policy rules in the `Rules` field of the request body
+Send a PUT request to the `/acl/policy` endpoint and specify the policy rules in the request body to create a policy. The following example registers the policy defined in `svc1-register.hcl`. You must embed policy rules in the `Rules` field of the request body
 
 ```shell-session
 $ curl --request PUT http://127.0.0.1:8500/v1/acl/policy \
@@ -217,7 +217,7 @@ Refer to [ACL Policy HTTP API](/consul/api-docs/acl/policies) for additional inf
 
 </Tabs>
 
-### Link the custom policy to a token
+### Link the policy to a token
 
 After registering the policies into Consul, you can create and link tokens using the Consul command line or API endpoint. You can also enable Consul to dynamically create tokens from trusted external systems using an auth method.
 
@@ -261,11 +261,11 @@ $ curl --request PUT http://127.0.0.1:8500/v1/acl/token \
 
 ## Custom policy in Consul Enterprise <EnterpriseAlert inline/>
 
-When you are unable to link tokens to a service identity, you can define custom policies, register them with Consul, and link the policies to tokens that enable services to register into the Consul catalog.
+When you are unable to link tokens to a service identity, you can define policies, register them with Consul, and link the policies to tokens that enable services to register into the Consul catalog.
 
-### Define a custom policy
+### Define a policy
 
-You can send custom policy definitions as command line or API arguments or define them in an external HCL or JSON file. The following example policies represent externally defined policies. Refer to [ACL Rules](/consul/docs/security/acl/acl-rules) for details about all of the rules you can use in your policies.
+You can send policy definitions as command line or API arguments or define them in an external HCL or JSON file. The following example policy is defined in a file. Refer to [ACL Rules](/consul/docs/security/acl/acl-rules) for details about all of the rules you can use in your policies.
 
 You can specify an admin partition, namespace, or both when creating tokens in Consul Enterprise. The token is only valid in the specified network areas. The following example policy allows the `svc1` service to register in the `ns1` namespace of partition `ptn1`. For service mesh, the policy grants the `svc1-sidecar-proxy` service `write` permissions so that the sidecar proxy can register into the catalog. It grants service and node `read` permissions to discover and route to other services.
 
@@ -326,13 +326,13 @@ partition "ptn1" {
 
 ### Register the policy with Consul
 
-After defining the custom policies, you can register them with Consul using the command line or API endpoint.
+After defining the policies, you can register them with Consul using the command line or API endpoint.
 
 <Tabs>
 
 <Tab heading="CLI" group="CLI">
 
-Run the `consul acl policy create` command and specify the policy rules to create a policy. The following example registers a custom policy defined in `svc1-register.hcl`:
+Run the `consul acl policy create` command and specify the policy rules to create a policy. The following example registers a policy defined in `svc1-register.hcl`:
 
 
 ```shell-session
@@ -347,7 +347,7 @@ Refer to [Consul ACL Policy Create](/consul/commands/acl/policy/create) for deta
 
 <Tab heading="API" group="API">
 
-Send a PUT request to the `/acl/policy` endpoint and specify the policy rules in the request body to create a policy. The following example registers the custom policy defined in `svc1-register.hcl`. You must embed policy rules in the `Rules` field of the request body
+Send a PUT request to the `/acl/policy` endpoint and specify the policy rules in the request body to create a policy. The following example registers the policy defined in `svc1-register.hcl`. You must embed policy rules in the `Rules` field of the request body
 
 ```shell-session
 $ curl --request PUT http://127.0.0.1:8500/v1/acl/policy \
@@ -367,7 +367,7 @@ Refer to [ACL Policy HTTP API](/consul/api-docs/acl/policies) for additional inf
 
 </Tabs>
 
-### Link the custom policy to a token
+### Link the policy to a token
 
 After registering the policies into Consul, you can create and link tokens using the Consul command line or API endpoint. You can also enable Consul to dynamically create tokens from trusted external systems using an auth method.
 

@@ -25,7 +25,7 @@ This section describes how to create a token that grants read-only access to the
 
 ### Define a policy
 
-You can send custom policy definitions as command line or API arguments or define them in an external HCL or JSON file. The following example policies are externally defined policies. Refer to [ACL Rules](/consul/docs/security/acl/acl-rules) for details about all of the rules you can use in your policies.
+You can send policy definitions as command line or API arguments or define them in an external HCL or JSON file. The following example policy is defined in a file. Refer to [ACL Rules](/consul/docs/security/acl/acl-rules) for details about all of the rules you can use in your policies.
 
 The following policy allows you to view all services and nodes in the catalog.
 
@@ -57,7 +57,7 @@ node_prefix "" {
 
 </CodeTabs>
 
-### Register policies with Consul
+### Register the policy with Consul
 
 After defining the policies, you can register them with Consul using the command line or API endpoint.
 
@@ -65,7 +65,7 @@ After defining the policies, you can register them with Consul using the command
 
 <Tab heading="CLI" group="CLI">
 
-Run the `consul acl policy create` command and specify the policy rules to create a policy. The following example registers a custom policy defined in `ui-view-catalog.hcl`.
+Run the `consul acl policy create` command and specify the policy rules to create a policy. The following example registers a policy defined in `ui-view-catalog.hcl`.
 
 ```shell-session
 $ consul acl policy create \
@@ -79,7 +79,7 @@ efer to [Consul ACL Policy Create](/consul/commands/acl/policy/create) for detai
 
 <Tab heading="API" group="API">
 
-Send a PUT request to the `/acl/policy` endpoint and specify the policy rules in the request body to create a policy. The following example registers the custom policy defined in `view-catalog.hcl`. You must embed the policy rules in the `Rules` field of the request body.
+Send a PUT request to the `/acl/policy` endpoint and specify the policy rules in the request body to create a policy. The following example registers the policy defined in `view-catalog.hcl`. You must embed the policy rules in the `Rules` field of the request body.
 
 ```shell-session
 $ curl --request PUT http://127.0.0.1:8500/v1/acl/policy \
@@ -95,7 +95,7 @@ $ curl --request PUT http://127.0.0.1:8500/v1/acl/policy \
 
 </Tabs>
 
-### Link custom policies to tokens
+### Link the policy to a token
 
 After registering the policies into Consul, you can create and link tokens using the Consul command line or API endpoint. You can also enable Consul to dynamically create tokens from trusted external systems using an auth method.
 
@@ -143,7 +143,7 @@ This section describes how to create a token that grants read-only access to the
 
 ### Define a policy
 
-You can send custom policy definitions as command line or API arguments or define them in an external HCL or JSON file. The following example policies are externally defined policies. Refer to [ACL Rules](/consul/docs/security/acl/acl-rules) for details about all of the rules you can use in your policies.
+You can send policy definitions as command line or API arguments or define them in an external HCL or JSON file. The following example policy is defined in a file. Refer to [ACL Rules](/consul/docs/security/acl/acl-rules) for details about all of the rules you can use in your policies.
 
 The following policy allows users that log in with the token to view services and nodes in the catalog in any partition and in any namespace.
 
@@ -191,7 +191,7 @@ partition_prefix "" {
 
 </CodeTabs>
 
-### Register policies with Consul
+### Register the policy with Consul
 
 After defining the policies, you can register them with Consul using the command line or API endpoint.
 
@@ -199,7 +199,7 @@ After defining the policies, you can register them with Consul using the command
 
 <Tab heading="CLI" group="CLI">
 
-Run the `consul acl policy create` command and specify the policy rules to create a policy. The following example registers a custom policy defined in `ui-view-catalog.hcl`.
+Run the `consul acl policy create` command and specify the policy rules to create a policy. The following example registers a policy defined in `ui-view-catalog.hcl`.
 
 You can specify an admin partition, namespace, or both when registering policies in Consul Enterprise. Policies are only valid in the network areas specified during registration, but you can grant tokens registered in the `default` partition permission to access resources in a different partition than where the token was registered. Refer to the [admin partition documentation](/consul/docs/enterprise/admin-partitions#default-admin-partition) for additional information.
 
@@ -217,7 +217,7 @@ Refer to [Consul ACL Policy Create](/consul/commands/acl/policy/create) for deta
 
 <Tab heading="API" group="API">
 
-Send a PUT request to the `/acl/policy` endpoint and specify the policy rules in the request body to create a policy. The following example registers the custom policy defined in `view-catalog.hcl`. You must embed the policy rules in the `Rules` field of the request body.
+Send a PUT request to the `/acl/policy` endpoint and specify the policy rules in the request body to create a policy. The following example registers the policy defined in `view-catalog.hcl`. You must embed the policy rules in the `Rules` field of the request body.
 
 ```shell-session
 $ curl --request PUT http://127.0.0.1:8500/v1/acl/policy \
@@ -235,7 +235,7 @@ $ curl --request PUT http://127.0.0.1:8500/v1/acl/policy \
 
 </Tabs>
 
-### Link custom policies to tokens
+### Link the policy to a token
 
 After registering the policies into Consul, you can create and link tokens using the Consul command line or API endpoint. You can also enable Consul to dynamically create tokens from trusted external systems using an auth method.
 
@@ -285,7 +285,7 @@ This section describes how to create a token with read-only access to all resour
 
 ### Define a policy
 
-You can send custom policy definitions as command line or API arguments or define them in an external HCL or JSON file. The following example policies represent externally defined policies. Refer to [ACL Rules](/consul/docs/security/acl/acl-rules) for details about all of the rules you can use in your policies.
+You can send policy definitions as command line or API arguments or define them in an external HCL or JSON file. The following example policy is defined in a file. Refer to [ACL Rules](/consul/docs/security/acl/acl-rules) for details about all of the rules you can use in your policies.
 
 The following policy allows viewing all services and nodes in the catalog, all objects in the key/value store, all intentions, and all ACL resources. The `acl:read` permission does not allow viewing the token secret ids.
 
@@ -331,7 +331,7 @@ service_prefix "" {
 
 </CodeTabs>
 
-### Register policies with Consul
+### Register the policy with Consul
 
 After defining the policies, you can register them with Consul using the command line or API endpoint.
 
@@ -339,7 +339,7 @@ After defining the policies, you can register them with Consul using the command
 
 <Tab heading="CLI" group="CLI">
 
-Run the `consul acl policy create` command and specify the policy rules to create a policy. The following example registers a custom policy defined in `ui-view-all.hcl`.
+Run the `consul acl policy create` command and specify the policy rules to create a policy. The following example registers a policy defined in `ui-view-all.hcl`.
 
 ```shell-session
 $ consul acl policy create \
@@ -353,7 +353,7 @@ Refer to [Consul ACL Policy Create](/consul/commands/acl/policy/create) for deta
 
 <Tab heading="API" group="API">
 
-Send a PUT request to the `/acl/policy` endpoint and specify the policy rules in the request body to create a policy. The following example registers the custom policy defined in `ui-view-all.hcl`. You must embed the policy rules in the `Rules` field of the request body.
+Send a PUT request to the `/acl/policy` endpoint and specify the policy rules in the request body to create a policy. The following example registers the policy defined in `ui-view-all.hcl`. You must embed the policy rules in the `Rules` field of the request body.
 
 ```shell-session
 $ curl --request PUT http://127.0.0.1:8500/v1/acl/policy \
@@ -369,7 +369,7 @@ $ curl --request PUT http://127.0.0.1:8500/v1/acl/policy \
 
 </Tabs>
 
-### Link custom policies to tokens
+### Link the policy to a token
 
 After registering the policies into Consul, you can create and link tokens using the Consul command line or API endpoint. You can also enable Consul to dynamically create tokens from trusted external systems using an auth method.
 
@@ -417,7 +417,7 @@ This section describes how to create a token with read-only access to all resour
 
 ### Define a policy
 
-You can send custom policy definitions as command line or API arguments or define them in an external HCL or JSON file. The following example policies represent externally defined policies. Refer to [ACL Rules](/consul/docs/security/acl/acl-rules) for details about all of the rules you can use in your policies.
+You can send policy definitions as command line or API arguments or define them in an external HCL or JSON file. The following example policy is defined in a file. Refer to [ACL Rules](/consul/docs/security/acl/acl-rules) for details about all of the rules you can use in your policies.
 
 The following policy allows users that log in with the token to view all services and nodes in the catalog, all objects in the key-value store, all intentions, and all ACL resources in any namespace and any partition. The `acl:read` permission does not allow viewing the token secret ids.
 
@@ -475,7 +475,7 @@ partition_prefix "" {
 
 </CodeTabs>
 
-### Register policies with Consul
+### Register the policy with Consul
 
 After defining the policies, you can register them with Consul using the command line or API endpoint.
 
@@ -483,7 +483,7 @@ After defining the policies, you can register them with Consul using the command
 
 <Tab heading="CLI" group="CLI">
 
-Run the `consul acl policy create` command and specify the policy rules to create a policy. The following example registers a custom policy defined in `ui-view-all.hcl`.
+Run the `consul acl policy create` command and specify the policy rules to create a policy. The following example registers a policy defined in `ui-view-all.hcl`.
 
 You can specify an admin partition, namespace, or both when creating policies in Consul Enterprise. The policy is only valid in the specified network areas. Because the policy grants cross-partition and cross-namespace access, the policy must be created in the `default` partition and the `default` namespace.
 
@@ -499,7 +499,7 @@ Refer to [Consul ACL Policy Create](/consul/commands/acl/policy/create) for deta
 
 <Tab heading="API" group="API">
 
-Send a PUT request to the `/acl/policy` endpoint and specify the policy rules in the request body to create a policy. The following example registers the custom policy defined in `ui-view-all.hcl`. You must embed the policy rules in the `Rules` field of the request body.
+Send a PUT request to the `/acl/policy` endpoint and specify the policy rules in the request body to create a policy. The following example registers the policy defined in `ui-view-all.hcl`. You must embed the policy rules in the `Rules` field of the request body.
 
 ```shell-session
 $ curl --request PUT http://127.0.0.1:8500/v1/acl/policy \
@@ -517,7 +517,7 @@ $ curl --request PUT http://127.0.0.1:8500/v1/acl/policy \
 
 </Tabs>
 
-### Link custom policies to tokens
+### Link the policy to a token
 
 After registering the policies into Consul, you can create and link tokens using the Consul command line or API endpoint. You can also enable Consul to dynamically create tokens from trusted external systems using an auth method.
 
