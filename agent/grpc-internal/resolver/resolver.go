@@ -213,6 +213,19 @@ func (s *ServerResolverBuilder) RemoveServer(areaID types.AreaID, server *metada
 	}
 }
 
+// shouldIgnoreServer is used to contextually decide if a particular kind of
+// server should be accepted into a given area.
+//
+// On client agents it's pretty easy: clients only participate in the standard
+// LAN, so we only accept servers from the LAN.
+//
+// On server agents it's a little less obvious. This resolver is ultimately
+// used to have servers dial other servers. If a server is going to cross
+// between datacenters (using traditional federation) then we want to use the
+// WAN addresses for them, but if a server is going to dial a sibling server in
+// the same datacenter we want it to use the LAN addresses always. To achieve
+// that here we simply never allow WAN servers for our current datacenter to be
+// added into the resolver, letting only the LAN instances through.
 func (s *ServerResolverBuilder) shouldIgnoreServer(areaID types.AreaID, server *metadata.Server) bool {
 	if s.cfg.AgentType == "client" && areaID != types.AreaLAN {
 		return true
