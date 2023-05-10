@@ -814,7 +814,8 @@ jobs:
     # - compatibility-integration-test
     - generate-upgrade-job-matrices
     # - upgrade-integration-test
-    - upgrade-integration-test-one-runner
+    - upgrade-integration-test-one-runner-L7-xl
+    - upgrade-integration-test-one-runner-L7-large
     - upgrade-integration-test-one-runner-peering
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-small) }}
     if: ${{ always() }}
