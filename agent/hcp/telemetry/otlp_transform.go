@@ -1,6 +1,7 @@
 package telemetry
 
 import (
+	"errors"
 	"fmt"
 
 	"go.opentelemetry.io/otel/attribute"
@@ -8,6 +9,11 @@ import (
 	cpb "go.opentelemetry.io/proto/otlp/common/v1"
 	mpb "go.opentelemetry.io/proto/otlp/metrics/v1"
 	rpb "go.opentelemetry.io/proto/otlp/resource/v1"
+)
+
+var (
+	aggregationErr = errors.New("unsupported aggregation")
+	temporalityErr = errors.New("unsupported temporality")
 )
 
 // isEmpty verifies if the given OTLP protobuf metrics contains metric data.
@@ -89,7 +95,7 @@ func metricTypeToPB(m metricdata.Metrics) (*mpb.Metric, error) {
 		}
 	case metricdata.Sum[float64]:
 		if a.Temporality != metricdata.CumulativeTemporality {
-			return out, fmt.Errorf("%s: %T", "unsupported temporality", a)
+			return out, fmt.Errorf("error: %w: %T", temporalityErr, a)
 		}
 		out.Data = &mpb.Metric_Sum{
 			Sum: &mpb.Sum{
@@ -100,7 +106,7 @@ func metricTypeToPB(m metricdata.Metrics) (*mpb.Metric, error) {
 		}
 	case metricdata.Histogram:
 		if a.Temporality != metricdata.CumulativeTemporality {
-			return out, fmt.Errorf("%s: %T", "unsupported temporality", a)
+			return out, fmt.Errorf("error: %w: %T", temporalityErr, a)
 		}
 		out.Data = &mpb.Metric_Histogram{
 			Histogram: &mpb.Histogram{
@@ -109,7 +115,7 @@ func metricTypeToPB(m metricdata.Metrics) (*mpb.Metric, error) {
 			},
 		}
 	default:
-		return out, fmt.Errorf("%s: %T", "unknown aggregation", a)
+		return out, fmt.Errorf("error: %w: %T", aggregationErr, a)
 	}
 	return out, nil
 }

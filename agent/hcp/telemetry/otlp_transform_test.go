@@ -99,6 +99,34 @@ var (
 		},
 	}
 
+	invalidSumTemporality = metricdata.Metrics{
+		Name:        "invalid-sum",
+		Description: "Sum with invalid temporality",
+		Unit:        "1",
+		Data: metricdata.Sum[float64]{
+			Temporality: metricdata.DeltaTemporality,
+			IsMonotonic: false,
+			DataPoints:  inputDP,
+		},
+	}
+
+	invalidSumAgg = metricdata.Metrics{
+		Name:        "unknown",
+		Description: "Unknown aggregation",
+		Unit:        "1",
+		Data:        metricdata.Sum[int64]{},
+	}
+
+	invalidHistTemporality = metricdata.Metrics{
+		Name:        "invalid-histogram",
+		Description: "Invalid histogram",
+		Unit:        "1",
+		Data: metricdata.Histogram{
+			Temporality: metricdata.DeltaTemporality,
+			DataPoints:  inputHDP,
+		},
+	}
+
 	// Metrics Test Case
 	// - 3 invalid metrics and 3 Valid to test filtering
 	// 		- 1 invalid metric type
@@ -130,31 +158,9 @@ var (
 				DataPoints:  inputHDP,
 			},
 		},
-		{
-			Name:        "invalid-sum",
-			Description: "Sum with invalid temporality",
-			Unit:        "1",
-			Data: metricdata.Sum[float64]{
-				Temporality: metricdata.DeltaTemporality,
-				IsMonotonic: false,
-				DataPoints:  inputDP,
-			},
-		},
-		{
-			Name:        "invalid-histogram",
-			Description: "Invalid histogram",
-			Unit:        "1",
-			Data: metricdata.Histogram{
-				Temporality: metricdata.DeltaTemporality,
-				DataPoints:  inputHDP,
-			},
-		},
-		{
-			Name:        "unknown",
-			Description: "Unknown aggregation",
-			Unit:        "1",
-			Data:        metricdata.Sum[int64]{},
-		},
+		invalidSumTemporality,
+		invalidHistTemporality,
+		invalidSumAgg,
 	}
 
 	expectedMetrics = []*mpb.Metric{
@@ -240,6 +246,19 @@ func TestTransformOTLP(t *testing.T) {
 
 	// Number DataPoint Test Case (Counters / Gauges)
 	require.Equal(t, expectedDP, dataPointsToPB(inputDP))
+
+	// MetricType Error Test Cases
+	_, err := metricTypeToPB(invalidHistTemporality)
+	require.Error(t, err)
+	require.ErrorIs(t, err, temporalityErr)
+
+	_, err = metricTypeToPB(invalidSumTemporality)
+	require.Error(t, err)
+	require.ErrorIs(t, err, temporalityErr)
+
+	_, err = metricTypeToPB(invalidSumAgg)
+	require.Error(t, err)
+	require.ErrorIs(t, err, aggregationErr)
 
 	// Metrics Test Case
 	m := metricsToPB(inputMetrics)
