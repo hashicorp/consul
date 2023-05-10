@@ -236,24 +236,21 @@ var (
 func TestTransformOTLP(t *testing.T) {
 	t.Parallel()
 	// Histogram DataPoint Test Case (Histograms)
-	assert.Equal(t, otlpHDP, histogramDataPoints(otelHDP))
+	assert.Equal(t, otlpHDP, histogramDataPointsToPB(otelHDP))
 
 	// Number DataPoint Test Case (Counters / Gauges)
-	require.Equal(t, otlpDP, dataPoints(otelDP))
+	require.Equal(t, otlpDP, dataPointsToPB(otelDP))
 
 	// Metrics Test Case
-	m, err := metrics(otelMetrics)
+	m := metricsToPB(otelMetrics)
 	require.Equal(t, otlpMetrics, m)
 	require.Equal(t, len(otlpMetrics), 3)
-	require.Contains(t, err.Error(), "3 errors occurred")
 
 	// Scope Metrics Test Case
-	sm, err := scopeMetrics(otelScopeMetrics)
+	sm := scopeMetricsToPB(otelScopeMetrics)
 	require.Equal(t, otlpScopeMetrics, sm)
-	require.Contains(t, err.Error(), "3 errors occurred")
 
-	// Resource Metrics Test Case
-	rm, err := transformOTLP(otelResourceMetrics)
+	// // Resource Metrics Test Case
+	rm := transformOTLP(otelResourceMetrics)
 	require.Equal(t, otlpResourceMetrics, rm)
-	require.Contains(t, err.Error(), "3 errors occurred")
 }

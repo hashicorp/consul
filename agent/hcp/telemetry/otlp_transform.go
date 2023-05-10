@@ -3,7 +3,6 @@ package telemetry
 import (
 	"fmt"
 
-	"github.com/hashicorp/go-multierror"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/sdk/metric/metricdata"
 	cpb "go.opentelemetry.io/proto/otlp/common/v1"
@@ -14,26 +13,21 @@ import (
 // TransformOTLP returns an OTLP ResourceMetrics generated from OTEL metrics. If rm
 // contains invalid ScopeMetrics, an error will be returned along with an OTLP
 // ResourceMetrics that contains partial OTLP ScopeMetrics.
-func transformOTLP(rm *metricdata.ResourceMetrics) (*mpb.ResourceMetrics, error) {
-	sms, err := scopeMetrics(rm.ScopeMetrics)
+func transformOTLP(rm *metricdata.ResourceMetrics) *mpb.ResourceMetrics {
+	sms := scopeMetricsToPB(rm.ScopeMetrics)
 	return &mpb.ResourceMetrics{
 		Resource: &rpb.Resource{
-			Attributes: attributes(rm.Resource.Iter()),
+			Attributes: attributesToPB(rm.Resource.Iter()),
 		},
 		ScopeMetrics: sms,
-	}, err
+	}
 }
 
 // scopeMetrics returns a slice of OTLP ScopeMetrics.
-func scopeMetrics(scopeMetrics []metricdata.ScopeMetrics) ([]*mpb.ScopeMetrics, error) {
-	var merr error
+func scopeMetricsToPB(scopeMetrics []metricdata.ScopeMetrics) []*mpb.ScopeMetrics {
 	out := make([]*mpb.ScopeMetrics, 0, len(scopeMetrics))
 	for _, sm := range scopeMetrics {
-		ms, err := metrics(sm.Metrics)
-		if err != nil {
-			merr = multierror.Append(merr, err)
-		}
-
+		ms := metricsToPB(sm.Metrics)
 		out = append(out, &mpb.ScopeMetrics{
 			Scope: &cpb.InstrumentationScope{
 				Name:    sm.Scope.Name,
@@ -42,27 +36,26 @@ func scopeMetrics(scopeMetrics []metricdata.ScopeMetrics) ([]*mpb.ScopeMetrics, 
 			Metrics: ms,
 		})
 	}
-	return out, merr
+	return out
 }
 
 // metrics returns a slice of OTLP Metric generated from OTEL metrics sdk ones.
-func metrics(metrics []metricdata.Metrics) ([]*mpb.Metric, error) {
-	var merr error
+func metricsToPB(metrics []metricdata.Metrics) []*mpb.Metric {
 	out := make([]*mpb.Metric, 0, len(metrics))
 	for _, m := range metrics {
-		o, err := metricType(m)
+		o, err := metricTypeToPB(m)
 		if err != nil {
-			merr = multierror.Append(merr, err)
+			// TODO: Emit metric when a transformation occurs.
 			continue
 		}
 		out = append(out, o)
 	}
-	return out, merr
+	return out
 }
 
 // metricType identifies the instrument type and converts it to OTLP format.
 // only float64 values are accepted since the go metrics sink only receives float64 values.
-func metricType(m metricdata.Metrics) (*mpb.Metric, error) {
+func metricTypeToPB(m metricdata.Metrics) (*mpb.Metric, error) {
 	out := &mpb.Metric{
 		Name:        m.Name,
 		Description: m.Description,
@@ -72,7 +65,7 @@ func metricType(m metricdata.Metrics) (*mpb.Metric, error) {
 	case metricdata.Gauge[float64]:
 		out.Data = &mpb.Metric_Gauge{
 			Gauge: &mpb.Gauge{
-				DataPoints: dataPoints(a.DataPoints),
+				DataPoints: dataPointsToPB(a.DataPoints),
 			},
 		}
 	case metricdata.Sum[float64]:
@@ -83,7 +76,7 @@ func metricType(m metricdata.Metrics) (*mpb.Metric, error) {
 			Sum: &mpb.Sum{
 				AggregationTemporality: mpb.AggregationTemporality_AGGREGATION_TEMPORALITY_CUMULATIVE,
 				IsMonotonic:            a.IsMonotonic,
-				DataPoints:             dataPoints(a.DataPoints),
+				DataPoints:             dataPointsToPB(a.DataPoints),
 			},
 		}
 	case metricdata.Histogram:
@@ -93,7 +86,7 @@ func metricType(m metricdata.Metrics) (*mpb.Metric, error) {
 		out.Data = &mpb.Metric_Histogram{
 			Histogram: &mpb.Histogram{
 				AggregationTemporality: mpb.AggregationTemporality_AGGREGATION_TEMPORALITY_CUMULATIVE,
-				DataPoints:             histogramDataPoints(a.DataPoints),
+				DataPoints:             histogramDataPointsToPB(a.DataPoints),
 			},
 		}
 	default:
@@ -103,11 +96,11 @@ func metricType(m metricdata.Metrics) (*mpb.Metric, error) {
 }
 
 // DataPoints returns a slice of OTLP NumberDataPoint generated from OTEL metrics sdk ones.
-func dataPoints(dataPoints []metricdata.DataPoint[float64]) []*mpb.NumberDataPoint {
+func dataPointsToPB(dataPoints []metricdata.DataPoint[float64]) []*mpb.NumberDataPoint {
 	out := make([]*mpb.NumberDataPoint, 0, len(dataPoints))
 	for _, dp := range dataPoints {
 		ndp := &mpb.NumberDataPoint{
-			Attributes:        attributes(dp.Attributes.Iter()),
+			Attributes:        attributesToPB(dp.Attributes.Iter()),
 			StartTimeUnixNano: uint64(dp.StartTime.UnixNano()),
 			TimeUnixNano:      uint64(dp.Time.UnixNano()),
 		}
@@ -121,12 +114,12 @@ func dataPoints(dataPoints []metricdata.DataPoint[float64]) []*mpb.NumberDataPoi
 }
 
 // HistogramDataPoints returns a slice of OTLP HistogramDataPoint from OTEL metrics sdk ones.
-func histogramDataPoints(dataPoints []metricdata.HistogramDataPoint) []*mpb.HistogramDataPoint {
+func histogramDataPointsToPB(dataPoints []metricdata.HistogramDataPoint) []*mpb.HistogramDataPoint {
 	out := make([]*mpb.HistogramDataPoint, 0, len(dataPoints))
 	for _, dp := range dataPoints {
 		sum := dp.Sum
 		hdp := &mpb.HistogramDataPoint{
-			Attributes:        attributes(dp.Attributes.Iter()),
+			Attributes:        attributesToPB(dp.Attributes.Iter()),
 			StartTimeUnixNano: uint64(dp.StartTime.UnixNano()),
 			TimeUnixNano:      uint64(dp.Time.UnixNano()),
 			Count:             dp.Count,
@@ -147,7 +140,7 @@ func histogramDataPoints(dataPoints []metricdata.HistogramDataPoint) []*mpb.Hist
 
 // attributes transforms items of an attribute iterator into OTLP key-values.
 // Currently, labels are only <string, string> key-value pairs.
-func attributes(iter attribute.Iterator) []*cpb.KeyValue {
+func attributesToPB(iter attribute.Iterator) []*cpb.KeyValue {
 	l := iter.Len()
 	if iter.Len() == 0 {
 		return nil

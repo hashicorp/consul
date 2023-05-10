@@ -4,7 +4,6 @@ import (
 	"context"
 	"net/url"
 
-	"github.com/hashicorp/go-multierror"
 	"go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/metric/aggregation"
 	"go.opentelemetry.io/otel/sdk/metric/metricdata"
@@ -53,13 +52,12 @@ func (e *OTELExporter) Aggregation(kind metric.InstrumentKind) aggregation.Aggre
 
 // Export serializes and transmits metric data to a receiver.
 func (e *OTELExporter) Export(ctx context.Context, metrics metricdata.ResourceMetrics) error {
-	if len(metrics.ScopeMetrics) == 0 || len(metrics.ScopeMetrics[0].Metrics) == 0 {
+	otlpMetrics := transformOTLP(&metrics)
+	emptyMetrics := len(otlpMetrics.ScopeMetrics) == 0 || len(metrics.ScopeMetrics[0].Metrics) == 0
+	if emptyMetrics {
 		return nil
 	}
-
-	otlpMetrics, merr := transformOTLP(&metrics)
-	err := e.client.ExportMetrics(ctx, otlpMetrics, e.url.String())
-	return multierror.Append(merr, err)
+	return e.client.ExportMetrics(ctx, otlpMetrics, e.url.String())
 }
 
 // ForceFlush is a no-op, as the MetricsClient client holds no state.

@@ -69,10 +69,8 @@ func TestExport(t *testing.T) {
 				exportErr: nil,
 			},
 			metrics: metricdata.ResourceMetrics{
-				Resource: resource.Empty(),
-				ScopeMetrics: []metricdata.ScopeMetrics{
-					{Metrics: []metricdata.Metrics{}},
-				},
+				Resource:     resource.Empty(),
+				ScopeMetrics: nil,
 			},
 		},
 		"earlyReturnWithoutMetrics": {
@@ -95,48 +93,13 @@ func TestExport(t *testing.T) {
 						Metrics: []metricdata.Metrics{
 							{
 								Name: "consul.raft.commitTime",
+								Data: metricdata.Gauge[float64]{},
 							},
 						},
 					},
 				},
 			},
 			wantErr: "failed to export metrics",
-		},
-		"errorWithTransformFailure": {
-			wantErr: "unknown aggregation: metricdata.Gauge[int64]",
-			client:  &mockMetricsClient{},
-			metrics: metricdata.ResourceMetrics{
-				Resource: resource.Empty(),
-				ScopeMetrics: []metricdata.ScopeMetrics{
-					{
-						Metrics: []metricdata.Metrics{
-							{
-								// unsupported, only float64 supported
-								Data: metricdata.Gauge[int64]{},
-							},
-						},
-					},
-				},
-			},
-		},
-		"multierrorTransformExportFailure": {
-			wantErr: "2 errors occurred:\n\t* unknown aggregation: metricdata.Gauge[int64]\n\t* failed to export metrics",
-			client: &mockMetricsClient{
-				exportErr: fmt.Errorf("failed to export metrics"),
-			},
-			metrics: metricdata.ResourceMetrics{
-				Resource: resource.Empty(),
-				ScopeMetrics: []metricdata.ScopeMetrics{
-					{
-						Metrics: []metricdata.Metrics{
-							{
-								// unsupported, only float64 supported
-								Data: metricdata.Gauge[int64]{},
-							},
-						},
-					},
-				},
-			},
 		},
 	} {
 		test := test
