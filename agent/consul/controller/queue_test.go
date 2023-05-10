@@ -10,8 +10,6 @@ import (
 	"github.com/hashicorp/consul/agent/consul/controller/queue"
 )
 
-var _ queue.WorkQueue[string] = &countingWorkQueue[string]{}
-
 type countingWorkQueue[T queue.ItemType] struct {
 	getCounter            uint64
 	addCounter            uint64

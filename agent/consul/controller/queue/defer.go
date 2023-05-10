@@ -41,7 +41,7 @@ type deferredRequest[T ItemType] struct {
 // future processing
 type deferQueue[T ItemType] struct {
 	heap    *deferHeap[T]
-	entries map[T]*deferredRequest[T]
+	entries map[string]*deferredRequest[T]
 
 	addChannel     chan *deferredRequest[T]
 	heartbeat      *time.Ticker
@@ -55,7 +55,7 @@ func NewDeferQueue[T ItemType](tick time.Duration) DeferQueue[T] {
 
 	return &deferQueue[T]{
 		heap:       dHeap,
-		entries:    make(map[T]*deferredRequest[T]),
+		entries:    make(map[string]*deferredRequest[T]),
 		addChannel: make(chan *deferredRequest[T]),
 		heartbeat:  time.NewTicker(tick),
 	}
@@ -78,7 +78,7 @@ func (q *deferQueue[T]) Defer(ctx context.Context, item T, until time.Time) {
 
 // deferEntry adds a deferred request to the priority queue
 func (q *deferQueue[T]) deferEntry(entry *deferredRequest[T]) {
-	existing, exists := q.entries[entry.item]
+	existing, exists := q.entries[entry.item.Key()]
 	if exists {
 		// insert or update the item deferral time
 		if existing.enqueueAt.After(entry.enqueueAt) {
@@ -90,7 +90,7 @@ func (q *deferQueue[T]) deferEntry(entry *deferredRequest[T]) {
 	}
 
 	heap.Push(q.heap, entry)
-	q.entries[entry.item] = entry
+	q.entries[entry.item.Key()] = entry
 }
 
 // readyRequest returns a pointer to the next ready Request or
@@ -108,7 +108,7 @@ func (q *deferQueue[T]) readyRequest() *T {
 	}
 
 	entry = heap.Pop(q.heap).(*deferredRequest[T])
-	delete(q.entries, entry.item)
+	delete(q.entries, entry.item.Key())
 	return &entry.item
 }
 
@@ -181,8 +181,6 @@ func (q *deferQueue[T]) Process(ctx context.Context, callback func(item T)) {
 		}
 	}
 }
-
-var _ heap.Interface = &deferHeap[string]{}
 
 // deferHeap implements heap.Interface
 type deferHeap[T ItemType] []*deferredRequest[T]

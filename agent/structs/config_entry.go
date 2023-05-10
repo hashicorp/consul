@@ -468,6 +468,10 @@ func (e *ProxyConfigEntry) Validate() error {
 		return err
 	}
 
+	if err := validateOpaqueProxyConfig(e.Config); err != nil {
+		return fmt.Errorf("Config: %w", err)
+	}
+
 	if err := envoyextensions.ValidateExtensions(e.EnvoyExtensions.ToAPI()); err != nil {
 		return err
 	}
@@ -1326,6 +1330,17 @@ func (c *ConfigEntryResponse) UnmarshalBinary(data []byte) error {
 		return err
 	}
 
+	return nil
+}
+
+func validateOpaqueProxyConfig(config map[string]interface{}) error {
+	// This max is chosen to stay under the 104 character limit on OpenBSD, FreeBSD, MacOS.
+	// It assumes the socket's filename is fixed at 32 characters.
+	const maxSocketDirLen = 70
+
+	if path, _ := config["envoy_hcp_metrics_bind_socket_dir"].(string); len(path) > maxSocketDirLen {
+		return fmt.Errorf("envoy_hcp_metrics_bind_socket_dir length %d exceeds max %d", len(path), maxSocketDirLen)
+	}
 	return nil
 }
 

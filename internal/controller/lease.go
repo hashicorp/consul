@@ -22,3 +22,8 @@ type raftLease struct {
 
 func (l *raftLease) Held() bool               { return l.m.raftLeader.Load() }
 func (l *raftLease) Changed() <-chan struct{} { return l.ch }
+
+type eternalLease struct{}
+
+func (eternalLease) Held() bool               { return true }
+func (eternalLease) Changed() <-chan struct{} { return nil }
