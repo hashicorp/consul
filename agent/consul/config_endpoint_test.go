@@ -1541,6 +1541,8 @@ func TestConfigEntry_ResolveServiceConfig_Upstreams(t *testing.T) {
 								Interval:                10,
 								MaxFailures:             2,
 								EnforcingConsecutive5xx: uintPointer(60),
+								MaxEjectionPercent:      uintPointer(61),
+								BaseEjectionTime:        durationPointer(62 * time.Second),
 							},
 						},
 						Overrides: []*structs.UpstreamConfig{
@@ -1575,6 +1577,8 @@ func TestConfigEntry_ResolveServiceConfig_Upstreams(t *testing.T) {
 								"Interval":                int64(10),
 								"MaxFailures":             int64(2),
 								"EnforcingConsecutive5xx": int64(60),
+								"MaxEjectionPercent":      int64(61),
+								"BaseEjectionTime":        uint64(62 * time.Second),
 							},
 							"mesh_gateway": map[string]interface{}{
 								"Mode": "none",
@@ -1589,6 +1593,8 @@ func TestConfigEntry_ResolveServiceConfig_Upstreams(t *testing.T) {
 								"Interval":                int64(10),
 								"MaxFailures":             int64(2),
 								"EnforcingConsecutive5xx": int64(60),
+								"MaxEjectionPercent":      int64(61),
+								"BaseEjectionTime":        uint64(62 * time.Second),
 							},
 							"mesh_gateway": map[string]interface{}{
 								"Mode": "local",
@@ -2698,4 +2704,8 @@ func Test_gateWriteToSecondary_AllowedKinds(t *testing.T) {
 
 func uintPointer(v uint32) *uint32 {
 	return &v
+}
+
+func durationPointer(d time.Duration) *time.Duration {
+	return &d
 }
