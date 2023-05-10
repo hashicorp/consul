@@ -1371,6 +1371,21 @@ func serviceDiscoveryChainTxn(
 	}
 	req.EvaluateInTrustDomain = signingID.Host()
 
+	psn := structs.PeeredServiceName{ServiceName: structs.NewServiceName(serviceName, entMeta)}
+	serviceVIPEntry, err := serviceVIPsTxn(tx, psn)
+	if err != nil {
+		return 0, nil, nil, err
+	}
+
+	if serviceVIPEntry != nil {
+		assignedIP, err := serviceVIPEntry.IPWithOffset()
+		if err != nil {
+			return 0, nil, nil, err
+		}
+		req.VirtualIPs = []string{assignedIP}
+		req.VirtualIPs = append(req.VirtualIPs, serviceVIPEntry.ManualIPs...)
+	}
+
 	// Then we compile it into something useful.
 	chain, err := discoverychain.Compile(req)
 	if err != nil {

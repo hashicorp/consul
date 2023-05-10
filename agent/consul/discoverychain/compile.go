@@ -44,6 +44,9 @@ type CompileRequest struct {
 	OverrideConnectTimeout time.Duration
 
 	Entries *configentry.DiscoveryChainSet
+
+	// VirtualIPs is a list of virtual IPs associated with the service.
+	VirtualIPs []string
 }
 
 // Compile assembles a discovery chain in the form of a graph of nodes using
@@ -98,6 +101,7 @@ func Compile(req CompileRequest) (*structs.CompiledDiscoveryChain, error) {
 		overrideProtocol:       req.OverrideProtocol,
 		overrideConnectTimeout: req.OverrideConnectTimeout,
 		entries:                entries,
+		virtualIPs:             req.VirtualIPs,
 
 		resolvers:     make(map[structs.ServiceID]*structs.ServiceResolverConfigEntry),
 		splitterNodes: make(map[string]*structs.DiscoveryGraphNode),
@@ -138,6 +142,9 @@ type compiler struct {
 	//
 	// This is an INPUT field.
 	entries *configentry.DiscoveryChainSet
+
+	// virtualIPs is a list of virtual IPs associated with the service.
+	virtualIPs []string
 
 	// resolvers is initially seeded by copying the provided entries.Resolvers
 	// map and default resolvers are added as they are needed.
@@ -352,6 +359,7 @@ func (c *compiler) compile() (*structs.CompiledDiscoveryChain, error) {
 		StartNode:         c.startNode,
 		Nodes:             c.nodes,
 		Targets:           c.loadedTargets,
+		VirtualIPs:        c.virtualIPs,
 	}, nil
 }
 
