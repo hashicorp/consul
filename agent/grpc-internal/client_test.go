@@ -92,6 +92,13 @@ func TestNewDialer_WithALPNWrapper(t *testing.T) {
 		Addr:       lis1.Addr(),
 		UseTLS:     true,
 	})
+	builder.AddServer(types.AreaLAN, &metadata.Server{
+		Name:       "server-1",
+		ID:         "ID1",
+		Datacenter: "dc1",
+		Addr:       lis1.Addr(),
+		UseTLS:     true,
+	})
 	builder.AddServer(types.AreaWAN, &metadata.Server{
 		Name:       "server-2",
 		ID:         "ID2",
@@ -389,8 +396,13 @@ func TestClientConnPool_IntegrationWithGRPCResolver_Rebalance(t *testing.T) {
 	for i := 0; i < count; i++ {
 		name := fmt.Sprintf("server-%d", i)
 		srv := newSimpleTestServer(t, name, "dc1", nil)
-		res.AddServer(types.AreaWAN, srv.Metadata())
+		res.AddServer(types.AreaLAN, srv.Metadata())
 		t.Cleanup(srv.shutdown)
+		// Put a duplicate instance of this on the WAN that will
+		// fail if we accidentally use it.
+		srvBad := newPanicTestServer(t, hclog.Default(), name, "dc1", nil)
+		res.AddServer(types.AreaWAN, srvBad.Metadata())
+		t.Cleanup(srvBad.shutdown)
 	}
 
 	conn, err := pool.ClientConn("dc1")
