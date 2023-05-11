@@ -1088,6 +1088,22 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
 
 - `bootstrap_expect` Equivalent to the [`-bootstrap-expect` command-line flag](/consul/docs/agent/config/cli-flags#_bootstrap_expect).
 
+## HCP Parameters
+
+- `cloud` This object specifies settings for connecting to HCP. This was added in Consul 1.14
+
+  - `client_id` The OAuth2 client ID for authentication with HCP
+
+  - `client_secret` The OAuth2 client secret for authentication with HCP
+
+  - `resource_id` The HCP resource identifier
+
+  - `hostname` (optional) The HCP hostname
+
+  - `auth_url` (optional) The HCP authentication URL
+
+  - `scada_address` (optional) The HCP SCADA address
+
 ## Service Mesh Parameters ((#connect-parameters))
 
 The noun _connect_ is used throughout this documentation to refer to the connect
