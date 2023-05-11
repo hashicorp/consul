@@ -99,10 +99,10 @@ func testSnapShotRestoreForLogStore(t *testing.T, logStore libcluster.LogStore) 
 
 	retry.RunWith(failer(), t, func(r *retry.R) {
 		kv, _, err := fc.KV().Get(fmt.Sprintf("key-%d", 1), &api.QueryOptions{AllowStale: true})
-		require.NoError(t, err)
-		require.NotNil(t, kv)
-		require.Equal(t, kv.Key, fmt.Sprintf("key-%d", 1))
-		require.Equal(t, kv.Value, []byte(fmt.Sprintf("value-%d", 1)))
+		require.NoError(r, err)
+		require.NotNil(r, kv)
+		require.Equal(r, kv.Key, fmt.Sprintf("key-%d", 1))
+		require.Equal(r, kv.Value, []byte(fmt.Sprintf("value-%d", 1)))
 	})
 
 	// Now we have at least one non-nil key, the snapshot must be loaded so check
