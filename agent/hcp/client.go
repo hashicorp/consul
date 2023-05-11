@@ -15,7 +15,6 @@ import (
 
 	"github.com/hashicorp/consul/agent/hcp/config"
 	"github.com/hashicorp/consul/version"
-	consulversion "github.com/hashicorp/consul/version"
 )
 
 // Client interface exposes HCP operations that can be invoked by Consul
@@ -78,7 +77,7 @@ func httpClient(c config.CloudConfig) (*httptransport.Runtime, error) {
 }
 
 func (c *hcpClient) FetchBootstrap(ctx context.Context) (*BootstrapConfig, error) {
-	version := consulversion.GetHumanVersion()
+  version := version.GetHumanVersion()
 	params := hcpgnm.NewAgentBootstrapConfigParamsWithContext(ctx).
 		WithID(c.resource.ID).
 		WithLocationOrganizationID(c.resource.Organization).
