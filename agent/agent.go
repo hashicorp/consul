@@ -4599,7 +4599,7 @@ func (a *Agent) checkServerLastSeen() error {
 
 	maxAge := a.config.ServerRejoinAgeMax
 	if md.IsLastSeenStale(maxAge) {
-		return fmt.Errorf("error: server is older than specified %s max age, will not rejoin", maxAge)
+		return fmt.Errorf("refusing to rejoin cluster because server has been offline for more than the configured server_rejoin_age_max (%s) - consider wiping your data dir", maxAge)
 	}
 
 	return nil
