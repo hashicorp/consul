@@ -42,6 +42,9 @@ function main {
         esac
     done
 
+    # clear old ratelimit.tmp files
+    find . -name .ratelimit.tmp -delete
+
     local mods=$(find . -name 'buf.gen.yaml' -exec dirname {} \; | sort)
     for mod in $mods
     do
