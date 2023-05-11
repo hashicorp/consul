@@ -61,6 +61,7 @@ GO_BUILD_TAG?=consul-build-go
 UI_BUILD_TAG?=consul-build-ui
 BUILD_CONTAINER_NAME?=consul-builder
 CONSUL_IMAGE_VERSION?=latest
+ENVOY_VERSION?=1.24.6
 
 ################
 # CI Variables #
@@ -463,6 +464,8 @@ endif
 test-compat-integ-setup: dev-docker
 	@docker tag consul-dev:latest $(CONSUL_COMPAT_TEST_IMAGE):local
 	@docker run --rm -t $(CONSUL_COMPAT_TEST_IMAGE):local consul version
+	@#  'consul-envoy:target-version' is needed by compatibility integ test
+	@docker build -t consul-envoy:target-version --build-arg CONSUL_IMAGE=$(CONSUL_COMPAT_TEST_IMAGE):local --build-arg ENVOY_VERSION=${ENVOY_VERSION} -f ./test/integration/consul-container/assets/Dockerfile-consul-envoy ./test/integration/consul-container/assets
 
 .PHONY: test-metrics-integ
 test-metrics-integ: test-compat-integ-setup
