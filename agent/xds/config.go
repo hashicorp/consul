@@ -1,6 +1,7 @@
 package xds
 
 import (
+	"google.golang.org/protobuf/types/known/wrapperspb"
 	"strings"
 
 	envoy_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
@@ -192,7 +193,14 @@ func ToOutlierDetection(p *structs.PassiveHealthCheck) *envoy_cluster_v3.Outlier
 	}
 
 	if p.EnforcingConsecutive5xx != nil {
+		// NOTE: EnforcingConsecutive5xx must be greater than 0 for ingress-gateway
 		od.EnforcingConsecutive_5Xx = &wrappers.UInt32Value{Value: *p.EnforcingConsecutive5xx}
+	}
+	if p.MaxEjectionPercent != nil {
+		od.MaxEjectionPercent = &wrapperspb.UInt32Value{Value: *p.MaxEjectionPercent}
+	}
+	if p.BaseEjectionTime != nil {
+		od.BaseEjectionTime = durationpb.New(*p.BaseEjectionTime)
 	}
 
 	return od

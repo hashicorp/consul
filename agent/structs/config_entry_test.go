@@ -407,6 +407,9 @@ func TestDecodeConfigEntry(t *testing.T) {
 							passive_health_check {
 								interval = "2s"
 								max_failures = 3
+								enforcing_consecutive_5xx = 4
+								max_ejection_percent = 5
+								base_ejection_time = "6s"
 							}
 						},
 						{
@@ -450,6 +453,9 @@ func TestDecodeConfigEntry(t *testing.T) {
 							PassiveHealthCheck {
 								MaxFailures = 3
 								Interval = "2s"
+								EnforcingConsecutive5xx = 4
+								MaxEjectionPercent = 5
+								BaseEjectionTime = "6s"
 							}
 						},
 						{
@@ -2242,6 +2248,39 @@ func TestPassiveHealthCheck_Validate(t *testing.T) {
 			wantErr: true,
 			wantMsg: "cannot be negative",
 		},
+		{
+			name:    "valid enforcing_consecutive_5xx",
+			input:   PassiveHealthCheck{EnforcingConsecutive5xx: uintPointer(100)},
+			wantErr: false,
+		},
+		{
+			name:    "invalid enforcing_consecutive_5xx",
+			input:   PassiveHealthCheck{EnforcingConsecutive5xx: uintPointer(101)},
+			wantErr: true,
+			wantMsg: "must be a percentage",
+		},
+		{
+			name:    "valid max_ejection_percent",
+			input:   PassiveHealthCheck{MaxEjectionPercent: uintPointer(100)},
+			wantErr: false,
+		},
+		{
+			name:    "invalid max_ejection_percent",
+			input:   PassiveHealthCheck{MaxEjectionPercent: uintPointer(101)},
+			wantErr: true,
+			wantMsg: "must be a percentage",
+		},
+		{
+			name:    "valid base_ejection_time",
+			input:   PassiveHealthCheck{BaseEjectionTime: durationPointer(0 * time.Second)},
+			wantErr: false,
+		},
+		{
+			name:    "negative base_ejection_time",
+			input:   PassiveHealthCheck{BaseEjectionTime: durationPointer(-1 * time.Second)},
+			wantErr: true,
+			wantMsg: "cannot be negative",
+		},
 	}
 
 	for _, tc := range tt {
@@ -2726,8 +2765,11 @@ func TestUpstreamConfig_MergeInto(t *testing.T) {
 					MaxConcurrentRequests: intPointer(5),
 				},
 				PassiveHealthCheck: &PassiveHealthCheck{
-					MaxFailures: 3,
-					Interval:    2 * time.Second,
+					MaxFailures:             3,
+					Interval:                2 * time.Second,
+					EnforcingConsecutive5xx: uintPointer(4),
+					MaxEjectionPercent:      uintPointer(5),
+					BaseEjectionTime:        durationPointer(6 * time.Second),
 				},
 				MeshGateway: MeshGatewayConfig{Mode: MeshGatewayModeRemote},
 			},
@@ -2744,8 +2786,11 @@ func TestUpstreamConfig_MergeInto(t *testing.T) {
 					MaxConcurrentRequests: intPointer(5),
 				},
 				"passive_health_check": &PassiveHealthCheck{
-					MaxFailures: 3,
-					Interval:    2 * time.Second,
+					MaxFailures:             3,
+					Interval:                2 * time.Second,
+					EnforcingConsecutive5xx: uintPointer(4),
+					MaxEjectionPercent:      uintPointer(5),
+					BaseEjectionTime:        durationPointer(6 * time.Second),
 				},
 				"mesh_gateway": MeshGatewayConfig{Mode: MeshGatewayModeRemote},
 			},
@@ -2764,8 +2809,11 @@ func TestUpstreamConfig_MergeInto(t *testing.T) {
 					MaxConcurrentRequests: intPointer(5),
 				},
 				PassiveHealthCheck: &PassiveHealthCheck{
-					MaxFailures: 3,
-					Interval:    2 * time.Second,
+					MaxFailures:             3,
+					Interval:                2 * time.Second,
+					EnforcingConsecutive5xx: uintPointer(4),
+					MaxEjectionPercent:      uintPointer(5),
+					BaseEjectionTime:        durationPointer(6 * time.Second),
 				},
 				MeshGateway: MeshGatewayConfig{Mode: MeshGatewayModeRemote},
 			},
@@ -2781,8 +2829,11 @@ func TestUpstreamConfig_MergeInto(t *testing.T) {
 					MaxConcurrentRequests: intPointer(12),
 				},
 				"passive_health_check": &PassiveHealthCheck{
-					MaxFailures: 13,
-					Interval:    14 * time.Second,
+					MaxFailures:             13,
+					Interval:                14 * time.Second,
+					EnforcingConsecutive5xx: uintPointer(15),
+					MaxEjectionPercent:      uintPointer(16),
+					BaseEjectionTime:        durationPointer(17 * time.Second),
 				},
 				"mesh_gateway": MeshGatewayConfig{Mode: MeshGatewayModeLocal},
 			},
@@ -2798,8 +2849,11 @@ func TestUpstreamConfig_MergeInto(t *testing.T) {
 					MaxConcurrentRequests: intPointer(5),
 				},
 				"passive_health_check": &PassiveHealthCheck{
-					MaxFailures: 3,
-					Interval:    2 * time.Second,
+					MaxFailures:             3,
+					Interval:                2 * time.Second,
+					EnforcingConsecutive5xx: uintPointer(4),
+					MaxEjectionPercent:      uintPointer(5),
+					BaseEjectionTime:        durationPointer(6 * time.Second),
 				},
 				"mesh_gateway": MeshGatewayConfig{Mode: MeshGatewayModeRemote},
 			},
@@ -2821,7 +2875,9 @@ func TestUpstreamConfig_MergeInto(t *testing.T) {
 				"passive_health_check": &PassiveHealthCheck{
 					MaxFailures:             13,
 					Interval:                14 * time.Second,
-					EnforcingConsecutive5xx: uintPointer(80),
+					EnforcingConsecutive5xx: uintPointer(15),
+					MaxEjectionPercent:      uintPointer(16),
+					BaseEjectionTime:        durationPointer(17 * time.Second),
 				},
 				"mesh_gateway": MeshGatewayConfig{Mode: MeshGatewayModeLocal},
 			},
@@ -2839,7 +2895,9 @@ func TestUpstreamConfig_MergeInto(t *testing.T) {
 				"passive_health_check": &PassiveHealthCheck{
 					MaxFailures:             13,
 					Interval:                14 * time.Second,
-					EnforcingConsecutive5xx: uintPointer(80),
+					EnforcingConsecutive5xx: uintPointer(15),
+					MaxEjectionPercent:      uintPointer(16),
+					BaseEjectionTime:        durationPointer(17 * time.Second),
 				},
 				"mesh_gateway": MeshGatewayConfig{Mode: MeshGatewayModeLocal},
 			},
@@ -2974,15 +3032,21 @@ func TestParseUpstreamConfig(t *testing.T) {
 			name: "passive health check map",
 			input: map[string]interface{}{
 				"passive_health_check": map[string]interface{}{
-					"interval":     "22s",
-					"max_failures": 7,
+					"interval":                  "22s",
+					"max_failures":              7,
+					"enforcing_consecutive_5xx": 8,
+					"max_ejection_percent":      9,
+					"base_ejection_time":        "10s",
 				},
 			},
 			want: UpstreamConfig{
 				ConnectTimeoutMs: 5000,
 				PassiveHealthCheck: &PassiveHealthCheck{
-					Interval:    22 * time.Second,
-					MaxFailures: 7,
+					Interval:                22 * time.Second,
+					MaxFailures:             7,
+					EnforcingConsecutive5xx: uintPointer(8),
+					MaxEjectionPercent:      uintPointer(9),
+					BaseEjectionTime:        durationPointer(10 * time.Second),
 				},
 				Protocol: "tcp",
 			},
@@ -3037,10 +3101,6 @@ func TestProxyConfigEntry(t *testing.T) {
 func requireContainsLower(t *testing.T, haystack, needle string) {
 	t.Helper()
 	require.Contains(t, strings.ToLower(haystack), strings.ToLower(needle))
-}
-
-func intPointer(i int) *int {
-	return &i
 }
 
 func TestConfigEntryQuery_CacheInfoKey(t *testing.T) {
@@ -3136,7 +3196,14 @@ func testConfigEntryNormalizeAndValidate(t *testing.T, cases map[string]configEn
 		})
 	}
 }
+func intPointer(i int) *int {
+	return &i
+}
 
 func uintPointer(v uint32) *uint32 {
 	return &v
+}
+
+func durationPointer(d time.Duration) *time.Duration {
+	return &d
 }

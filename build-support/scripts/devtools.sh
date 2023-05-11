@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
 
 readonly SCRIPT_NAME="$(basename ${BASH_SOURCE[0]})"
 readonly SCRIPT_DIR="$(dirname "${BASH_SOURCE[0]}")"
@@ -68,7 +71,7 @@ function proto_tools_install {
     local mockery_version
 
     mockery_version="$(make --no-print-directory print-MOCKERY_VERSION)"
-    protoc_gen_go_version="$(grep github.com/golang/protobuf go.mod | awk '{print $2}')"
+    protoc_gen_go_version="$(grep google.golang.org/protobuf go.mod | awk '{print $2}')"
     protoc_gen_go_grpc_version="$(make --no-print-directory print-PROTOC_GEN_GO_GRPC_VERSION)"
     mog_version="$(make --no-print-directory print-MOG_VERSION)"
     protoc_go_inject_tag_version="$(make --no-print-directory print-PROTOC_GO_INJECT_TAG_VERSION)"
@@ -93,9 +96,9 @@ function proto_tools_install {
 
     install_versioned_tool \
         'protoc-gen-go' \
-        'github.com/golang/protobuf' \
+        'google.golang.org/protobuf' \
         "${protoc_gen_go_version}" \
-        'github.com/golang/protobuf/protoc-gen-go'
+        'google.golang.org/protobuf/cmd/protoc-gen-go'
 
     install_versioned_tool \
         'protoc-gen-go-grpc' \

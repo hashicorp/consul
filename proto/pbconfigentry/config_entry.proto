@@ -549,6 +549,10 @@ message PassiveHealthCheck {
   uint32 MaxFailures = 2;
   // mog: target=EnforcingConsecutive5xx func-to=pointerToUint32FromUint32 func-from=uint32FromPointerToUint32
   uint32 EnforcingConsecutive5xx = 3;
+  // mog: func-to=pointerToUint32FromUint32 func-from=uint32FromPointerToUint32
+  uint32 MaxEjectionPercent = 4;
+  // mog: func-to=structs.DurationPointerFromProto func-from=structs.DurationPointerToProto
+  google.protobuf.Duration BaseEjectionTime = 5;
 }
 
 // mog annotation:

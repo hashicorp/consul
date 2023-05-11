@@ -356,6 +356,7 @@ ui-build-image:
 	@echo "Building UI build container"
 	@docker build $(NOCACHE) $(QUIET) -t $(UI_BUILD_TAG) - < build-support/docker/Build-UI.dockerfile
 
+# Builds consul in a docker container and then dumps executable into ./pkg/bin/...
 consul-docker: go-build-image
 	@$(SHELL) $(CURDIR)/build-support/scripts/build-docker.sh consul
 
@@ -466,6 +467,11 @@ envoy-regen:
 	@go test -tags '$(GOTAGS)' ./agent/xds -update
 	@find "command/connect/envoy/testdata" -name '*.golden' -delete
 	@go test -tags '$(GOTAGS)' ./command/connect/envoy -update
+
+# Point your web browser to http://localhost:3000/consul to live render docs from ./website/
+.PHONY: docs
+docs:
+	make -C website
 
 .PHONY: help
 help:
