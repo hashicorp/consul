@@ -115,7 +115,7 @@ func (o *OTELSink) SetGaugeWithLabels(key []string, val float32, labels []gometr
 	k := o.flattenKey(key)
 
 	// Set value in global Gauge store.
-	o.gaugeStore.Store(k, float64(val), toAttributes(labels))
+	o.gaugeStore.Set(k, float64(val), toAttributes(labels))
 
 	o.mutex.Lock()
 	defer o.mutex.Unlock()

@@ -3,6 +3,7 @@ package telemetry
 import (
 	"context"
 	"sort"
+	"sync"
 	"testing"
 
 	gometrics "github.com/armon/go-metrics"
@@ -108,6 +109,7 @@ var (
 )
 
 func TestNewOTELSink(t *testing.T) {
+	t.Parallel()
 	for name, test := range map[string]struct {
 		wantErr string
 		opts    *OTELSinkOpts
@@ -126,7 +128,9 @@ func TestNewOTELSink(t *testing.T) {
 			},
 		},
 	} {
+		test := test
 		t.Run(name, func(t *testing.T) {
+			t.Parallel()
 			sink, err := NewOTELSink(test.opts)
 			if test.wantErr != "" {
 				require.Error(t, err)
@@ -139,14 +143,18 @@ func TestNewOTELSink(t *testing.T) {
 	}
 }
 
+// TestOTELSink performs concurrent metric instrument operations on the sink.
+// When run with go test -race, this test should pass if implementation is concurrency safe.
 func TestOTELSink(t *testing.T) {
+	t.Parallel()
+
 	// Manual reader outputs the aggregated metrics when reader.Collect is called.
 	reader := metric.NewManualReader()
 
 	ctx := context.Background()
 	opts := &OTELSinkOpts{
 		Reader: reader,
-		Ctx:    context.Background(),
+		Ctx:    ctx,
 	}
 
 	sink, err := NewOTELSink(opts)
@@ -159,14 +167,29 @@ func TestOTELSink(t *testing.T) {
 		},
 	}
 
-	sink.SetGauge([]string{"consul", "raft", "leader"}, float32(0))
-	sink.SetGaugeWithLabels([]string{"consul", "autopilot", "healthy"}, float32(1.23), labels)
+	wg := &sync.WaitGroup{}
+	wg.Add(3)
 
-	sink.IncrCounter([]string{"consul", "raft", "state", "leader"}, float32(23.23))
-	sink.IncrCounterWithLabels([]string{"consul", "raft", "apply"}, float32(1.44), labels)
+	go func() {
+		sink.SetGauge([]string{"consul", "raft", "leader"}, float32(0))
+		sink.SetGaugeWithLabels([]string{"consul", "autopilot", "healthy"}, float32(1.23), labels)
+		wg.Done()
 
-	sink.AddSample([]string{"consul", "raft", "leader", "lastContact"}, float32(45.32))
-	sink.AddSampleWithLabels([]string{"consul", "raft", "commitTime"}, float32(26.34), labels)
+	}()
+
+	go func() {
+		sink.IncrCounter([]string{"consul", "raft", "state", "leader"}, float32(23.23))
+		sink.IncrCounterWithLabels([]string{"consul", "raft", "apply"}, float32(1.44), labels)
+		wg.Done()
+	}()
+
+	go func() {
+		sink.AddSample([]string{"consul", "raft", "leader", "lastContact"}, float32(45.32))
+		sink.AddSampleWithLabels([]string{"consul", "raft", "commitTime"}, float32(26.34), labels)
+		wg.Done()
+	}()
+
+	wg.Wait()
 
 	var collected metricdata.ResourceMetrics
 	err = reader.Collect(ctx, &collected)

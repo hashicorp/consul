@@ -47,8 +47,8 @@ func (g *gaugeStore) LoadAndDelete(key string) (*gaugeValue, bool) {
 	return gauge, ok
 }
 
-// Store adds a gaugeValue to the global gauge store.
-func (g *gaugeStore) Store(key string, value float64, labels []attribute.KeyValue) {
+// Set adds a gaugeValue to the global gauge store.
+func (g *gaugeStore) Set(key string, value float64, labels []attribute.KeyValue) {
 	g.mutex.Lock()
 	defer g.mutex.Unlock()
 
