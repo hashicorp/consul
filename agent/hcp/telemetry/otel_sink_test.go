@@ -168,23 +168,35 @@ func TestOTELSink(t *testing.T) {
 	}
 
 	wg := &sync.WaitGroup{}
-	wg.Add(3)
+	wg.Add(6)
 
 	go func() {
 		sink.SetGauge([]string{"consul", "raft", "leader"}, float32(0))
-		sink.SetGaugeWithLabels([]string{"consul", "autopilot", "healthy"}, float32(1.23), labels)
 		wg.Done()
 
 	}()
 
 	go func() {
+		sink.SetGaugeWithLabels([]string{"consul", "autopilot", "healthy"}, float32(1.23), labels)
+		wg.Done()
+	}()
+
+	go func() {
 		sink.IncrCounter([]string{"consul", "raft", "state", "leader"}, float32(23.23))
+		wg.Done()
+	}()
+
+	go func() {
 		sink.IncrCounterWithLabels([]string{"consul", "raft", "apply"}, float32(1.44), labels)
 		wg.Done()
 	}()
 
 	go func() {
 		sink.AddSample([]string{"consul", "raft", "leader", "lastContact"}, float32(45.32))
+		wg.Done()
+	}()
+
+	go func() {
 		sink.AddSampleWithLabels([]string{"consul", "raft", "commitTime"}, float32(26.34), labels)
 		wg.Done()
 	}()
