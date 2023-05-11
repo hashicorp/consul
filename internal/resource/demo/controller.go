@@ -111,7 +111,7 @@ func (r *artistReconciler) Reconcile(ctx context.Context, rt controller.Runtime,
 		Conditions:         conditions,
 	}
 
-	if resource.EqualStatus(res.Status[statusKeyArtistController], newStatus) {
+	if resource.EqualStatus(res.Status[statusKeyArtistController], newStatus, false) {
 		return nil
 	}
 

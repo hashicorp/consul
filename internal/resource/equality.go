@@ -52,7 +52,10 @@ func EqualID(a, b *pbresource.ID) bool {
 }
 
 // EqualStatus compares two statuses for equality without reflection.
-func EqualStatus(a, b *pbresource.Status) bool {
+//
+// Pass true for compareUpdatedAt to compare the UpdatedAt timestamps, which you
+// generally *don't* want when dirty checking the status in a controller.
+func EqualStatus(a, b *pbresource.Status, compareUpdatedAt bool) bool {
 	if a == b {
 		return true
 	}
@@ -62,6 +65,10 @@ func EqualStatus(a, b *pbresource.Status) bool {
 	}
 
 	if a.ObservedGeneration != b.ObservedGeneration {
+		return false
+	}
+
+	if compareUpdatedAt && !a.UpdatedAt.AsTime().Equal(b.UpdatedAt.AsTime()) {
 		return false
 	}
 
@@ -125,7 +132,7 @@ func EqualStatusMap(a, b map[string]*pbresource.Status) bool {
 		if !ok {
 			return false
 		}
-		if !EqualStatus(av, bv) {
+		if !EqualStatus(av, bv, true) {
 			return false
 		}
 		compared[k] = struct{}{}
@@ -141,7 +148,7 @@ func EqualStatusMap(a, b map[string]*pbresource.Status) bool {
 			return false
 		}
 
-		if !EqualStatus(av, bv) {
+		if !EqualStatus(av, bv, true) {
 			return false
 		}
 	}
