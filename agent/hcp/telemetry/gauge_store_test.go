@@ -7,7 +7,6 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/hashicorp/go-uuid"
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/otel/attribute"
 )
@@ -68,14 +67,14 @@ func TestGaugeStore_Race(t *testing.T) {
 
 	gaugeStore := NewGaugeStore()
 	wg := &sync.WaitGroup{}
-	for i := 0; i < 100; i++ {
-		wg.Add(1)
+	samples := 100
+	for i := 0; i < samples; i++ {
+		k := fmt.Sprintf("consul.test.%d", i)
 		v := rand.Float64()
-		uuid, err := uuid.GenerateUUID()
-		require.NoError(t, err)
-
-		go storeAndRetrieve(t, fmt.Sprintf("%s%f", uuid, v), v, gaugeStore, wg)
+		wg.Add(1)
+		go storeAndRetrieve(t, k, v, gaugeStore, wg)
 	}
+
 	wg.Wait()
 }
 
