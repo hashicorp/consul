@@ -4,24 +4,25 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"net/url"
 	"strings"
 	"sync"
 	"time"
 
-	"github.com/hashicorp/consul/agent/hcp/client"
-
 	gometrics "github.com/armon/go-metrics"
 	"github.com/hashicorp/go-hclog"
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/metric"
 	otelmetric "go.opentelemetry.io/otel/metric"
-	"go.opentelemetry.io/otel/metric/instrument"
 	otelsdk "go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/resource"
+
+	"github.com/hashicorp/consul/agent/hcp/client"
 )
 
 type OTELSinkOpts struct {
 	Reader otelsdk.Reader
-	Logger hclog.Logger
+	Ctx    context.Context
 }
 
 type OTELSink struct {
@@ -33,25 +34,25 @@ type OTELSink struct {
 
 	gaugeStore *gaugeStore
 
-	gaugeInstruments     map[string]*instrument.Float64ObservableGauge
-	counterInstruments   map[string]*instrument.Float64Counter
-	histogramInstruments map[string]*instrument.Float64Histogram
+	gaugeInstruments     map[string]metric.Float64ObservableGauge
+	counterInstruments   map[string]metric.Float64Counter
+	histogramInstruments map[string]metric.Float64Histogram
 
 	mutex sync.Mutex
 }
 
-func NewOTELReader(client client.MetricsClient, endpoint string, exportInterval time.Duration) otelsdk.Reader {
-	exporter := NewOTELExporter(client, endpoint)
+func NewOTELReader(client client.MetricsClient, url url.URL, exportInterval time.Duration) otelsdk.Reader {
+	exporter := NewOTELExporter(client, url)
 	return otelsdk.NewPeriodicReader(exporter, otelsdk.WithInterval(exportInterval))
 }
 
 func NewOTELSink(opts *OTELSinkOpts) (*OTELSink, error) {
-	if opts.Logger == nil {
-		return nil, fmt.Errorf("failed to init OTEL sink: provide valid OTELSinkOpts Logger")
+	if opts.Reader == nil {
+		return nil, fmt.Errorf("ferror: provide valid reader")
 	}
 
-	if opts.Reader == nil {
-		return nil, fmt.Errorf("failed to init OTEL sink: provide valid OTELSinkOpts Reader")
+	if opts.Ctx == nil {
+		return nil, fmt.Errorf("ferror: provide valid context")
 	}
 
 	// Setup OTEL Metrics SDK to aggregate, convert and export metrics periodically.
@@ -61,19 +62,17 @@ func NewOTELSink(opts *OTELSinkOpts) (*OTELSink, error) {
 
 	gs := &gaugeStore{
 		store: make(map[string]*gaugeValue, 0),
-		mutex: sync.Mutex{},
 	}
 
 	return &OTELSink{
 		spaceReplacer:        strings.NewReplacer(" ", "_"),
-		logger:               opts.Logger.Named("otel_sink"),
+		logger:               hclog.FromContext(opts.Ctx).Named("otel_sink"),
 		meterProvider:        meterProvider,
 		meter:                &meter,
-		mutex:                sync.Mutex{},
 		gaugeStore:           gs,
-		gaugeInstruments:     make(map[string]*instrument.Float64ObservableGauge, 0),
-		counterInstruments:   make(map[string]*instrument.Float64Counter, 0),
-		histogramInstruments: make(map[string]*instrument.Float64Histogram, 0),
+		gaugeInstruments:     make(map[string]metric.Float64ObservableGauge, 0),
+		counterInstruments:   make(map[string]metric.Float64Counter, 0),
+		histogramInstruments: make(map[string]metric.Float64Histogram, 0),
 	}, nil
 }
 
@@ -105,12 +104,12 @@ func (o *OTELSink) SetGaugeWithLabels(key []string, val float32, labels []gometr
 
 	// If instrument does not exist, create it and register callback to emit last value in global Gauge store.
 	if _, ok := o.gaugeInstruments[k]; !ok {
-		inst, err := (*o.meter).Float64ObservableGauge(k, instrument.WithFloat64Callback(o.gaugeStore.gaugeCallback(k)))
+		inst, err := (*o.meter).Float64ObservableGauge(k, metric.WithFloat64Callback(o.gaugeStore.gaugeCallback(k)))
 		if err != nil {
 			o.logger.Error("Failed to emit gauge: %w", err)
 			return
 		}
-		o.gaugeInstruments[k] = &inst
+		o.gaugeInstruments[k] = inst
 	}
 }
 
@@ -128,12 +127,12 @@ func (o *OTELSink) AddSampleWithLabels(key []string, val float32, labels []gomet
 			o.logger.Error("Failed to emit gauge: %w", err)
 			return
 		}
-		inst = &histogram
+		inst = histogram
 		o.histogramInstruments[k] = inst
 	}
 
 	attrs := toAttributes(labels)
-	(*inst).Record(context.TODO(), float64(val), attrs...)
+	inst.Record(context.TODO(), float64(val), metric.WithAttributes(attrs...))
 }
 
 // IncrCounterWithLabels emits a Consul counter metric that gets registed by an OpenTelemetry Histogram instrument.
@@ -151,12 +150,12 @@ func (o *OTELSink) IncrCounterWithLabels(key []string, val float32, labels []gom
 			return
 		}
 
-		inst = &counter
+		inst = counter
 		o.counterInstruments[k] = inst
 	}
 
 	attrs := toAttributes(labels)
-	(*inst).Add(context.TODO(), float64(val), attrs...)
+	inst.Add(context.TODO(), float64(val), metric.WithAttributes(attrs...))
 }
 
 // EmitKey unsupported.

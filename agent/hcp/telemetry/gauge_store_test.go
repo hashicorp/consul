@@ -1,7 +1,6 @@
 package telemetry
 
 import (
-	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -11,7 +10,6 @@ import (
 func TestGaugeStore(t *testing.T) {
 	globalGauges := &gaugeStore{
 		store: make(map[string]*gaugeValue, 0),
-		mutex: sync.Mutex{},
 	}
 
 	attributes := []attribute.KeyValue{

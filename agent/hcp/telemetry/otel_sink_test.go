@@ -2,11 +2,9 @@ package telemetry
 
 import (
 	"context"
-	"io"
 	"testing"
 
 	gometrics "github.com/armon/go-metrics"
-	"github.com/hashicorp/go-hclog"
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/sdk/metric"
@@ -20,7 +18,7 @@ var (
 		Value: attribute.StringValue("test"),
 	})
 
-	expectedMetrics = map[string]metricdata.Metrics{
+	expectedSinkMetrics = map[string]metricdata.Metrics{
 		"consul.raft.leader": {
 			Name:        "consul.raft.leader",
 			Description: "",
@@ -77,8 +75,8 @@ var (
 			Name:        "consul.raft.leader.lastContact",
 			Description: "",
 			Unit:        "",
-			Data: metricdata.Histogram{
-				DataPoints: []metricdata.HistogramDataPoint{
+			Data: metricdata.Histogram[float64]{
+				DataPoints: []metricdata.HistogramDataPoint[float64]{
 					{
 						Attributes: *attribute.EmptySet(),
 						Count:      1,
@@ -93,8 +91,8 @@ var (
 			Name:        "consul.raft.commitTime",
 			Description: "",
 			Unit:        "",
-			Data: metricdata.Histogram{
-				DataPoints: []metricdata.HistogramDataPoint{
+			Data: metricdata.Histogram[float64]{
+				DataPoints: []metricdata.HistogramDataPoint[float64]{
 					{
 						Attributes: attrs,
 						Count:      1,
@@ -114,17 +112,16 @@ func TestNewOTELSink(t *testing.T) {
 		opts    *OTELSinkOpts
 	}{
 		"failsWithEmptyLogger": {
-			wantErr: "failed to init OTEL sink: provide valid OTELSinkOpts Logger",
+			wantErr: "ferror: provide valid context",
 			opts: &OTELSinkOpts{
-				Logger: nil,
 				Reader: metric.NewManualReader(),
 			},
 		},
 		"failsWithEmptyReader": {
-			wantErr: "failed to init OTEL sink: provide valid OTELSinkOpts Reader",
+			wantErr: "ferror: provide valid reader",
 			opts: &OTELSinkOpts{
-				Logger: hclog.New(&hclog.LoggerOptions{Output: io.Discard}),
 				Reader: nil,
+				Ctx:    context.Background(),
 			},
 		},
 	} {
@@ -147,8 +144,8 @@ func TestOTELSink(t *testing.T) {
 
 	ctx := context.Background()
 	opts := &OTELSinkOpts{
-		Logger: hclog.New(&hclog.LoggerOptions{Output: io.Discard}),
 		Reader: reader,
+		Ctx:    context.Background(),
 	}
 
 	sink, err := NewOTELSink(opts)
@@ -180,7 +177,7 @@ func TestOTELSink(t *testing.T) {
 	// Validate metrics
 	for _, actual := range collected.ScopeMetrics[0].Metrics {
 		name := actual.Name
-		expected, ok := expectedMetrics[name]
+		expected, ok := expectedSinkMetrics[name]
 		require.True(t, ok, "metric key %s should be in expectedMetrics map", name)
 		isSameMetrics(t, expected, actual)
 	}
@@ -203,8 +200,8 @@ func isSameMetrics(t *testing.T, expected metricdata.Metrics, actual metricdata.
 		require.True(t, ok, "different metric types: expected metricdata.Sum[float64]")
 
 		isSameData(t, expectedData.DataPoints, actualData.DataPoints)
-	case metricdata.Histogram:
-		actualData, ok := actual.Data.(metricdata.Histogram)
+	case metricdata.Histogram[float64]:
+		actualData, ok := actual.Data.(metricdata.Histogram[float64])
 		require.True(t, ok, "different metric types: expected metricdata.Histogram")
 
 		isSameHistogramData(t, expectedData.DataPoints, actualData.DataPoints)
@@ -228,7 +225,7 @@ func isSameData(t *testing.T, expected []metricdata.DataPoint[float64], actual [
 	}
 }
 
-func isSameHistogramData(t *testing.T, expected []metricdata.HistogramDataPoint, actual []metricdata.HistogramDataPoint) {
+func isSameHistogramData(t *testing.T, expected []metricdata.HistogramDataPoint[float64], actual []metricdata.HistogramDataPoint[float64]) {
 	require.Equal(t, len(expected), len(actual), "different histogram datapoint length")
 
 	// Only verify the value and the attributes.

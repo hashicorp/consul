@@ -5,7 +5,7 @@ import (
 	"sync"
 
 	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/metric/instrument"
+	"go.opentelemetry.io/otel/metric"
 )
 
 type gaugeStore struct {
@@ -50,11 +50,11 @@ func (g *gaugeStore) Store(key string, value float64, labels []attribute.KeyValu
 
 // gaugeCallback returns a callback which gets called when metrics are collected for export.
 // the callback obtains the gauge value from the global gauges.
-func (g *gaugeStore) gaugeCallback(key string) instrument.Float64Callback {
+func (g *gaugeStore) gaugeCallback(key string) metric.Float64Callback {
 	// Closures keep a reference to the key string, that get garbage collected when code completes.
-	return func(_ context.Context, obs instrument.Float64Observer) error {
+	return func(_ context.Context, obs metric.Float64Observer) error {
 		if gauge, ok := g.LoadAndDelete(key); ok {
-			obs.Observe(gauge.Value, gauge.Attributes...)
+			obs.Observe(gauge.Value, metric.WithAttributes(gauge.Attributes...))
 		}
 		return nil
 	}
