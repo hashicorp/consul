@@ -631,7 +631,7 @@ func (a *Agent) Start(ctx context.Context) error {
 			return err
 		}
 
-		// Start writing last seen timestamps to file in order to age on next startup.
+		// periodically write server metadata to disk.
 		go a.persistServerMetadata()
 
 		incomingRPCLimiter := consul.ConfiguredIncomingRPCLimiter(
@@ -4546,7 +4546,7 @@ func (a *Agent) proxyDataSources() proxycfg.DataSources {
 func (a *Agent) persistServerMetadata() {
 	file := filepath.Join(a.config.DataDir, consul.ServerMetadataFile)
 
-	// Create a timer with no initial tick to allow the timestamp to be written immediately.
+	// Create a timer with no initial tick to allow metadata to be written immediately.
 	t := time.NewTimer(0)
 	defer t.Stop()
 
