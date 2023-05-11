@@ -23,6 +23,13 @@ type gaugeValue struct {
 	Attributes []attribute.KeyValue
 }
 
+// NewGaugeStore returns an initialized empty gaugeStore.
+func NewGaugeStore() *gaugeStore {
+	return &gaugeStore{
+		store: make(map[string]*gaugeValue, 0),
+	}
+}
+
 // LoadAndDelete will read a Gauge value and delete it.
 // Once registered for a metric name, a Gauge callback will continue to execute every collection cycel.
 // We must delete the value once we have read it, to avoid repeat values being sent.

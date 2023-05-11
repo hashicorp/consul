@@ -82,16 +82,12 @@ func NewOTELSink(opts *OTELSinkOpts) (*OTELSink, error) {
 	meterProvider := otelsdk.NewMeterProvider(otelsdk.WithResource(res), otelsdk.WithReader(opts.Reader))
 	meter := meterProvider.Meter("github.com/hashicorp/consul/agent/hcp/telemetry")
 
-	gs := &gaugeStore{
-		store: make(map[string]*gaugeValue, 0),
-	}
-
 	return &OTELSink{
 		spaceReplacer:        strings.NewReplacer(" ", "_"),
 		logger:               hclog.FromContext(opts.Ctx).Named("otel_sink"),
 		meterProvider:        meterProvider,
 		meter:                &meter,
-		gaugeStore:           gs,
+		gaugeStore:           NewGaugeStore(),
 		gaugeInstruments:     make(map[string]otelmetric.Float64ObservableGauge, 0),
 		counterInstruments:   make(map[string]otelmetric.Float64Counter, 0),
 		histogramInstruments: make(map[string]otelmetric.Float64Histogram, 0),
