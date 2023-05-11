@@ -1,6 +1,7 @@
 package telemetry
 
 import (
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -39,4 +40,19 @@ func TestGaugeStore(t *testing.T) {
 	val, ok = globalGauges.LoadAndDelete("duplicate")
 	require.True(t, ok)
 	require.Equal(t, val.Value, float64(6.7))
+}
+
+func TestGaugeCallback_Failure(t *testing.T) {
+	k := "consul.raft.apply"
+	globalGauges := &gaugeStore{
+		store: make(map[string]*gaugeValue, 0),
+	}
+	globalGauges.Store(k, 1.23, nil)
+
+	cb := globalGauges.gaugeCallback(k)
+	ctx, cancel := context.WithCancel(context.Background())
+
+	cancel()
+	err := cb(ctx, nil)
+	require.ErrorIs(t, err, context.Canceled)
 }

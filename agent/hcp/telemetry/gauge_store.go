@@ -56,10 +56,15 @@ func (g *gaugeStore) Store(key string, value float64, labels []attribute.KeyValu
 // gaugeCallback returns a callback which gets called when metrics are collected for export.
 func (g *gaugeStore) gaugeCallback(key string) metric.Float64Callback {
 	// Closures keep a reference to the key string, that get garbage collected when code completes.
-	return func(_ context.Context, obs metric.Float64Observer) error {
-		if gauge, ok := g.LoadAndDelete(key); ok {
-			obs.Observe(gauge.Value, metric.WithAttributes(gauge.Attributes...))
+	return func(ctx context.Context, obs metric.Float64Observer) error {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+			if gauge, ok := g.LoadAndDelete(key); ok {
+				obs.Observe(gauge.Value, metric.WithAttributes(gauge.Attributes...))
+			}
+			return nil
 		}
-		return nil
 	}
 }
