@@ -611,6 +611,10 @@ jobs:
           path: .
       - name: restore mode+x
         run: chmod +x consul
+      - name: docker verson and info
+        run: |
+          docker version
+          docker info
       - name: Build consul:local image
         run: docker build -t ${{ env.CONSUL_LATEST_IMAGE_NAME }}:local -f ./build-support/docker/Consul-Dev.dockerfile .
       - name: Configure GH workaround for ipv6 loopback
@@ -684,6 +688,10 @@ jobs:
           path: .
       - name: restore mode+x
         run: chmod +x consul
+      - name: docker verson and info
+        run: |
+          docker version
+          docker info
       - name: Build consul:local image
         run: docker build -t ${{ env.CONSUL_LATEST_IMAGE_NAME }}:local -f ./build-support/docker/Consul-Dev.dockerfile .
       - name: Configure GH workaround for ipv6 loopback
@@ -757,6 +765,10 @@ jobs:
           path: .
       - name: restore mode+x
         run: chmod +x consul
+      - name: docker verson and info
+        run: |
+          docker version
+          docker info
       - name: Build consul:local image
         run: docker build -t ${{ env.CONSUL_LATEST_IMAGE_NAME }}:local -f ./build-support/docker/Consul-Dev.dockerfile .
       - name: Configure GH workaround for ipv6 loopback

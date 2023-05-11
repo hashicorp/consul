@@ -196,7 +196,7 @@ func NewGatewayServiceReg(ctx context.Context, gwCfg GatewayConfig, node libclus
 
 	req := testcontainers.ContainerRequest{
 		FromDockerfile: dockerfileCtx,
-		WaitingFor:     wait.ForLog("").WithStartupTimeout(10 * time.Second),
+		WaitingFor:     wait.ForLog("").WithStartupTimeout(60 * time.Second),
 		AutoRemove:     false,
 		Name:           containerName,
 		Env:            make(map[string]string),

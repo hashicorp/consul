@@ -39,6 +39,7 @@ func LaunchContainerOnNode(
 	if req.Name == "" {
 		return nil, fmt.Errorf("ContainerRequest requires the Name field")
 	}
+
 	if req.NetworkMode != "" {
 		return nil, fmt.Errorf("caller should not configure ContainerRequest.NetworkMode")
 	}
