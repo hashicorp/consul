@@ -61,7 +61,7 @@ GO_BUILD_TAG?=consul-build-go
 UI_BUILD_TAG?=consul-build-ui
 BUILD_CONTAINER_NAME?=consul-builder
 CONSUL_IMAGE_VERSION?=latest
-ENVOY_VERSION?=1.24.6
+ENVOY_VERSION?='1.25.4'
 
 ################
 # CI Variables #

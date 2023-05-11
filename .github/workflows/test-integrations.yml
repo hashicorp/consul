@@ -389,7 +389,7 @@ jobs:
       matrix:
         test-cases: ${{ fromJSON(needs.generate-compatibility-job-matrices.outputs.compatibility-matrix) }}
     env:
-      ENVOY_VERSION: "1.24.6"
+      ENVOY_VERSION: "1.25.4"
     steps:
       - uses: actions/checkout@24cb9080177205b6e8c946b17badbe402adc938f # v3.4.0
       - uses: actions/setup-go@6edd4406fa81c3da01a34fa6f6343087c207a568 # v3.5.0
