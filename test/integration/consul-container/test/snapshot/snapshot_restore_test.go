@@ -2,13 +2,17 @@ package snapshot
 
 import (
 	"fmt"
+	"io"
+	"testing"
+	"time"
+
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
 	libtopology "github.com/hashicorp/consul/test/integration/consul-container/libs/topology"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
-	"github.com/stretchr/testify/require"
-	"io"
-	"testing"
 )
 
 func TestSnapshotRestore(t *testing.T) {
@@ -87,11 +91,27 @@ func testSnapShotRestoreForLogStore(t *testing.T, logStore libcluster.LogStore) 
 	// to test the follower snapshot install code path as well.
 	fc := followers[0].GetClient()
 
-	for i := 0; i < 100; i++ {
+	// Follower might not have finished loading snapshot yet which means attempts
+	// could return nil or "key not found" for a while.
+	failer := func() *retry.Timer {
+		return &retry.Timer{Timeout: 10 * time.Second, Wait: 100 * time.Millisecond}
+	}
+
+	retry.RunWith(failer(), t, func(r *retry.R) {
+		kv, _, err := fc.KV().Get(fmt.Sprintf("key-%d", 1), &api.QueryOptions{AllowStale: true})
+		require.NoError(r, err)
+		require.NotNil(r, kv)
+		require.Equal(r, kv.Key, fmt.Sprintf("key-%d", 1))
+		require.Equal(r, kv.Value, []byte(fmt.Sprintf("value-%d", 1)))
+	})
+
+	// Now we have at least one non-nil key, the snapshot must be loaded so check
+	// we can read all the rest of them too.
+	for i := 2; i < 100; i++ {
 		kv, _, err := fc.KV().Get(fmt.Sprintf("key-%d", i), &api.QueryOptions{AllowStale: true})
 		require.NoError(t, err)
+		require.NotNil(t, kv)
 		require.Equal(t, kv.Key, fmt.Sprintf("key-%d", i))
 		require.Equal(t, kv.Value, []byte(fmt.Sprintf("value-%d", i)))
 	}
-
 }
