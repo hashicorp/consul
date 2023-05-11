@@ -11,7 +11,8 @@ export default function (
   collection,
   text,
   intentions,
-  tabs
+  tabs,
+  poapis
 ) {
   const page = {
     visit: visitable('/:dc/services/:service'),
@@ -33,6 +34,7 @@ export default function (
       'intentions',
       'routing',
       'tags',
+      'poapis',
     ]),
     // TODO: These need to somehow move to subpages
     instances: collection('.consul-service-instance-list > ul > li:not(:first-child)', {
@@ -76,6 +78,11 @@ export default function (
   };
   page.tabs.tagsTab = {
     tags: collection('.tag-list dd > span', {
+      name: text(),
+    }),
+  };
+  page.tabs.poapis = {
+    poapis: collection('', {
       name: text(),
     }),
   };

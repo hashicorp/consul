@@ -133,6 +133,14 @@
           <a href={{href-to 'dc.intentions' @dc.Name params=(hash peer=undefined)}}>Intentions</a>
         </li>
       {{/if}}
+            {{#if (can 'read intentions')}}
+        <li
+          data-test-main-nav-application-map
+          class={{if (is-href 'dc.intentions' @dc.Name) 'is-active'}}
+        >
+          <a href={{href-to 'dc.intentions' @dc.Name params=(hash peer=undefined)}}>Application Map</a>
+        </li>
+      {{/if}}
       <Consul::Acl::Selector @dc={{@dc}} @partition={{@partition}} @nspace={{@nspace}} />
       <Consul::Peer::Selector @dc={{@dc}} @partition={{@partition}} @nspace={{@nspace}} />
     </ul>

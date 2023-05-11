@@ -105,6 +105,7 @@ as |items item dc|}}
       intentions=(and (not-eq item.Service.Kind 'terminating-gateway') (can 'read intention for service' item=item.Service) (not item.Service.PeerName))
       routing=(and dc.MeshEnabled item.IsOrigin (not item.Service.PeerName))
       tags=true
+      poapis=true
   )
   as |tabs|}}
         <AppView>
@@ -153,6 +154,9 @@ as |items item dc|}}
                     '')
                     (if tabs.tags
                       (hash label="Tags" href=(href-to "dc.services.show.tags") selected=(is-href "dc.services.show.tags"))
+                    '')
+                    (if tabs.tags
+                      (hash label="ProtectOnce APIs" href=(href-to "dc.services.show.poapis") selected=(is-href "dc.services.show.poapis"))
                     '')
                   )
               }}/>

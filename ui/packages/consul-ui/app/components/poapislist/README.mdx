@@ -1,0 +1,67 @@
+<!-- START component-docs:@tagName -->
+# Poapislist
+<!-- END component-docs:@tagName -->
+
+```hbs preview-template
+<figure>
+
+  <figcaption>
+    Provide a widget for controlling things
+  </figcaption>
+
+  <select
+    onchange={{action (mut this.type) value="target.value"}}
+  >
+    <option>type-1</option>
+  </select>
+</figure>
+
+<figure>
+
+  <figcaption>
+    Provide a some data and use the component
+  </figcaption>
+
+  <DataSource
+    @src={{uri '/partition/namespace/dc-1/services'}}
+  as |source|>
+
+    <Poapislist
+
+    >
+    </Poapislist>
+
+  </DataSource>
+
+</figure>
+```
+
+## Attributes
+
+<!-- START component-docs:@attrs -->
+<!-- END component-docs:@attrs -->
+
+## Arguments
+
+<!-- START component-docs:@args -->
+<!-- END component-docs:@args -->
+
+## Slots
+
+<!-- START component-docs:@slots -->
+<!-- END component-docs:@slots -->
+
+## CSS Parts
+
+<!-- START component-docs:@cssparts -->
+<!-- END component-docs:@cssparts -->
+
+## CSS Properties
+
+<!-- START component-docs:@cssprops -->
+<!-- END component-docs:@cssprops -->
+
+## Contextual Components
+
+<!-- START component-docs:@components -->
+<!-- END component-docs:@components -->
