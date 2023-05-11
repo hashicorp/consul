@@ -12,7 +12,6 @@ import (
 	gometrics "github.com/armon/go-metrics"
 	"github.com/hashicorp/go-hclog"
 	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/metric"
 	otelmetric "go.opentelemetry.io/otel/metric"
 	otelsdk "go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/resource"
@@ -45,9 +44,9 @@ type OTELSink struct {
 	// for each gauge, counter and histogram types.
 	// An instrument allows us to record a measurement for a particular metric, and continuously aggregates metrics.
 	// We lazy load the creation of these intruments until a metric is seen, and use them repeatedly to record measurements.
-	gaugeInstruments     map[string]metric.Float64ObservableGauge
-	counterInstruments   map[string]metric.Float64Counter
-	histogramInstruments map[string]metric.Float64Histogram
+	gaugeInstruments     map[string]otelmetric.Float64ObservableGauge
+	counterInstruments   map[string]otelmetric.Float64Counter
+	histogramInstruments map[string]otelmetric.Float64Histogram
 
 	// gaugeStore is required to hold last-seen values of gauges
 	// This is a workaround, as OTEL currently does not have synchronous gauge instruments.
@@ -93,9 +92,9 @@ func NewOTELSink(opts *OTELSinkOpts) (*OTELSink, error) {
 		meterProvider:        meterProvider,
 		meter:                &meter,
 		gaugeStore:           gs,
-		gaugeInstruments:     make(map[string]metric.Float64ObservableGauge, 0),
-		counterInstruments:   make(map[string]metric.Float64Counter, 0),
-		histogramInstruments: make(map[string]metric.Float64Histogram, 0),
+		gaugeInstruments:     make(map[string]otelmetric.Float64ObservableGauge, 0),
+		counterInstruments:   make(map[string]otelmetric.Float64Counter, 0),
+		histogramInstruments: make(map[string]otelmetric.Float64Histogram, 0),
 	}, nil
 }
 
@@ -130,7 +129,7 @@ func (o *OTELSink) SetGaugeWithLabels(key []string, val float32, labels []gometr
 		// The registration of a callback only needs to happen once, when the instrument is created.
 		// The callback will be triggered every export cycle for that metric.
 		// It must be explicitly de-registered to be removed (which we do not do), to ensure new gauge values are exported every cycle.
-		inst, err := (*o.meter).Float64ObservableGauge(k, metric.WithFloat64Callback(o.gaugeStore.gaugeCallback(k)))
+		inst, err := (*o.meter).Float64ObservableGauge(k, otelmetric.WithFloat64Callback(o.gaugeStore.gaugeCallback(k)))
 		if err != nil {
 			o.logger.Error("Failed to emit gauge: %w", err)
 			return
@@ -158,7 +157,7 @@ func (o *OTELSink) AddSampleWithLabels(key []string, val float32, labels []gomet
 	}
 
 	attrs := toAttributes(labels)
-	inst.Record(context.TODO(), float64(val), metric.WithAttributes(attrs...))
+	inst.Record(context.TODO(), float64(val), otelmetric.WithAttributes(attrs...))
 }
 
 // IncrCounterWithLabels emits a Consul counter metric that gets registed by an OpenTelemetry Histogram instrument.
@@ -181,7 +180,7 @@ func (o *OTELSink) IncrCounterWithLabels(key []string, val float32, labels []gom
 	}
 
 	attrs := toAttributes(labels)
-	inst.Add(context.TODO(), float64(val), metric.WithAttributes(attrs...))
+	inst.Add(context.TODO(), float64(val), otelmetric.WithAttributes(attrs...))
 }
 
 // EmitKey unsupported.
