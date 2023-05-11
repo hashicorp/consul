@@ -1525,6 +1525,22 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
     part of the cluster before declaring it dead, giving that suspect node more time
     to refute if it is indeed still alive. The default is 6.
 
+## HCP Parameters
+
+- `cloud` This object specifies settings for connecting to HCP. This was added in Consul 1.14
+
+  - `client_id` The OAuth2 client ID for authentication with HCP
+
+  - `client_secret` The OAuth2 client secret for authentication with HCP
+
+  - `resource_id` The HCP resource identifier
+
+  - `hostname` (optional) The HCP hostname
+
+  - `auth_url` (optional) The HCP authentication URL
+
+  - `scada_address` (optional) The HCP SCADA address
+
 ## Join Parameters
 
 - `rejoin_after_leave` Equivalent to the [`-rejoin` command-line flag](/docs/agent/config/cli-flags#_rejoin).
