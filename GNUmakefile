@@ -460,6 +460,7 @@ else
 		--latest-version latest
 endif
 
+# NOTE: Use DOCKER_BUILDKIT=0, if docker build fails to resolve consul:local base image
 .PHONY: test-compat-integ-setup
 test-compat-integ-setup: dev-docker
 	@docker tag consul-dev:latest $(CONSUL_COMPAT_TEST_IMAGE):local
