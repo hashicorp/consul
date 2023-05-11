@@ -2,6 +2,7 @@ package telemetry
 
 import (
 	"context"
+	"sort"
 	"testing"
 
 	gometrics "github.com/armon/go-metrics"
@@ -174,16 +175,22 @@ func TestOTELSink(t *testing.T) {
 	// Validate resource
 	require.Equal(t, resource.NewSchemaless(), collected.Resource)
 
-	// Validate metrics
-	for _, actual := range collected.ScopeMetrics[0].Metrics {
+	// Validate Metrics
+	require.NotEmpty(t, collected.ScopeMetrics)
+	actualMetrics := collected.ScopeMetrics[0].Metrics
+	require.Equal(t, len(actualMetrics), len(expectedSinkMetrics))
+
+	for _, actual := range actualMetrics {
 		name := actual.Name
-		expected, ok := expectedSinkMetrics[name]
+		expected, ok := expectedSinkMetrics[actual.Name]
 		require.True(t, ok, "metric key %s should be in expectedMetrics map", name)
 		isSameMetrics(t, expected, actual)
 	}
 }
 
 // compareMetrics verifies if two metricdata.Metric objects are equal by ignoring the time component.
+// test metrics should not contain duplicate sums for histograms nor duplicate values for counters/gauges
+// to ensure predictable order of data.
 func isSameMetrics(t *testing.T, expected metricdata.Metrics, actual metricdata.Metrics) {
 	require.Equal(t, expected.Name, actual.Name, "different .Name field")
 	require.Equal(t, expected.Description, actual.Description, "different .Description field")
@@ -211,22 +218,34 @@ func isSameMetrics(t *testing.T, expected metricdata.Metrics, actual metricdata.
 func isSameData(t *testing.T, expected []metricdata.DataPoint[float64], actual []metricdata.DataPoint[float64]) {
 	require.Equal(t, len(expected), len(actual), "different datapoints length")
 
-	// Only verify the value and the attributes.
+	// Sort for predictable data in order of lowest value.
+	// Test cases should not contain duplicate values.
+	sort.Slice(expected, func(i, j int) bool {
+		return expected[i].Value < expected[j].Value
+	})
+	sort.Slice(actual, func(i, j int) bool {
+		return expected[i].Value < expected[j].Value
+	})
+
+	// Only verify the value and  attributes.
 	for i, dp := range expected {
 		currActual := actual[i]
 		require.Equal(t, dp.Value, currActual.Value, "different datapoint value")
-		require.Equal(t, dp.Attributes.Len(), currActual.Attributes.Len(), "different attributes of datapoint length")
-
-		iter := dp.Attributes.Iter()
-		for iter.Next() {
-			attr := iter.Attribute()
-			require.True(t, currActual.Attributes.HasValue(attr.Key), "missing attribute in expected")
-		}
+		require.Equal(t, dp.Attributes, currActual.Attributes, "different attributes")
 	}
 }
 
 func isSameHistogramData(t *testing.T, expected []metricdata.HistogramDataPoint[float64], actual []metricdata.HistogramDataPoint[float64]) {
 	require.Equal(t, len(expected), len(actual), "different histogram datapoint length")
+
+	// Sort for predictable data in order of lowest sum.
+	// Test cases should not contain duplicate sums.
+	sort.Slice(expected, func(i, j int) bool {
+		return expected[i].Sum < expected[j].Sum
+	})
+	sort.Slice(actual, func(i, j int) bool {
+		return expected[i].Sum < expected[j].Sum
+	})
 
 	// Only verify the value and the attributes.
 	for i, dp := range expected {
@@ -235,13 +254,6 @@ func isSameHistogramData(t *testing.T, expected []metricdata.HistogramDataPoint[
 		require.Equal(t, dp.Max, currActual.Max, "different histogram datapoint .Max value")
 		require.Equal(t, dp.Min, currActual.Min, "different histogram datapoint .Min value")
 		require.Equal(t, dp.Count, currActual.Count, "different histogram datapoint .Count value")
-
-		require.Equal(t, dp.Attributes.Len(), currActual.Attributes.Len(), "different attributes of datapoint length")
-
-		iter := dp.Attributes.Iter()
-		for iter.Next() {
-			attr := iter.Attribute()
-			require.True(t, currActual.Attributes.HasValue(attr.Key), "missing attribute in expected")
-		}
+		require.Equal(t, dp.Attributes, currActual.Attributes, "different attributes")
 	}
 }
