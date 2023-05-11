@@ -178,7 +178,7 @@ func serverStatusToHCP(s *ServerStatus) *gnmmod.HashicorpCloudGlobalNetworkManag
 	if s == nil {
 		return nil
 	}
-	state := &gnmmod.HashicorpCloudGlobalNetworkManager20220215ServerState{
+	return &gnmmod.HashicorpCloudGlobalNetworkManager20220215ServerState{
 		Autopilot: &gnmmod.HashicorpCloudGlobalNetworkManager20220215AutoPilotInfo{
 			FailureTolerance: int32(s.Autopilot.FailureTolerance),
 			Healthy:          s.Autopilot.Healthy,
@@ -213,7 +213,6 @@ func serverStatusToHCP(s *ServerStatus) *gnmmod.HashicorpCloudGlobalNetworkManag
 		},
 		Datacenter: s.Datacenter,
 	}
-	return state
 }
 
 func (c *hcpClient) DiscoverServers(ctx context.Context) ([]string, error) {
