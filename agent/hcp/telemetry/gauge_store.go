@@ -8,26 +8,32 @@ import (
 	"go.opentelemetry.io/otel/metric"
 )
 
+// gaugeStore holds last seen Gauge values for a particular metric (<name,last_value>) in the store.
+// OTEL does not currently have a synchronous Gauge instrument. Instead, it allows the registration of callbacks.
+// The callbacks are called during export, where the Gauge value must be returned.
+// This store is a workaround, which holds last seen Gauge values until the callback is called.
 type gaugeStore struct {
 	store map[string]*gaugeValue
 	mutex sync.Mutex
 }
 
-// gaugeValues hold both the float64 value and the labels.
+// gaugeValues are the last seen measurement for a Gauge metric, which contains a float64 value and labels.
 type gaugeValue struct {
 	Value      float64
 	Attributes []attribute.KeyValue
 }
 
 // LoadAndDelete will read a Gauge value and delete it.
-// Within the OTEL Gauge callbacks we must delete the value once we have read it
-// to ensure we only emit a Gauge value once, as the callbacks continue to execute every collection cycle.
-// The store must be initialized before using this method.
+// Once registered for a metric name, a Gauge callback will continue to execute every collection cycel.
+// We must delete the value once we have read it, to avoid repeat values being sent.
 func (g *gaugeStore) LoadAndDelete(key string) (*gaugeValue, bool) {
 	g.mutex.Lock()
 	defer g.mutex.Unlock()
 
 	gauge, ok := g.store[key]
+	if !ok {
+		return nil, ok
+	}
 
 	delete(g.store, key)
 
@@ -35,7 +41,6 @@ func (g *gaugeStore) LoadAndDelete(key string) (*gaugeValue, bool) {
 }
 
 // Store adds a gaugeValue to the global gauge store.
-// The store must be initialized before using this method.
 func (g *gaugeStore) Store(key string, value float64, labels []attribute.KeyValue) {
 	g.mutex.Lock()
 	defer g.mutex.Unlock()
@@ -49,7 +54,6 @@ func (g *gaugeStore) Store(key string, value float64, labels []attribute.KeyValu
 }
 
 // gaugeCallback returns a callback which gets called when metrics are collected for export.
-// the callback obtains the gauge value from the global gauges.
 func (g *gaugeStore) gaugeCallback(key string) metric.Float64Callback {
 	// Closures keep a reference to the key string, that get garbage collected when code completes.
 	return func(_ context.Context, obs metric.Float64Observer) error {
