@@ -27,24 +27,24 @@ func (m *mockServerMetadataWriter) Write(p []byte) (n int, err error) {
 func TestServerMetadata(t *testing.T) {
 	now := time.Now()
 
-	t.Run("TestCheckLastSeenError", func(t *testing.T) {
+	t.Run("TestIsLastSeenStaleTrue", func(t *testing.T) {
 		// Create a server that is 24 hours old.
 		md := &ServerMetadata{
 			LastSeenUnix: now.Add(-24 * time.Hour).Unix(),
 		}
 
-		err := md.CheckLastSeen(1 * time.Hour)
-		assert.Error(t, err)
+		ok := md.IsLastSeenStale(1 * time.Hour)
+		assert.True(t, ok)
 	})
 
-	t.Run("TestCheckLastSeenOK", func(t *testing.T) {
+	t.Run("TestIsLastSeenStaleFalse", func(t *testing.T) {
 		// Create a server that is 24 hours old.
 		md := &ServerMetadata{
 			LastSeenUnix: now.Add(-1 * time.Hour).Unix(),
 		}
 
-		err := md.CheckLastSeen(24 * time.Hour)
-		assert.NoError(t, err)
+		ok := md.IsLastSeenStale(24 * time.Hour)
+		assert.False(t, ok)
 	})
 }
 

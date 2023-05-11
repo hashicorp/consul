@@ -4597,8 +4597,9 @@ func (a *Agent) checkServerLastSeen() error {
 		return fmt.Errorf("error reading server metadata: %w", err)
 	}
 
-	if err := md.CheckLastSeen(a.config.ServerRejoinAgeMax); err != nil {
-		return fmt.Errorf("error: server will not rejoin: %w", err)
+	maxAge := a.config.ServerRejoinAgeMax
+	if md.IsLastSeenStale(maxAge) {
+		return fmt.Errorf("error: server is older than specified %s max age, will not rejoin", maxAge)
 	}
 
 	return nil
