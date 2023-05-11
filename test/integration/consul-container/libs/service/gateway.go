@@ -9,7 +9,6 @@ import (
 	"io"
 	"path/filepath"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/testcontainers/testcontainers-go"
@@ -17,7 +16,6 @@ import (
 
 	"github.com/hashicorp/consul/api"
 
-	"github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
 	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 )
@@ -103,7 +101,7 @@ func (g gatewayContainer) Stop() error {
 }
 
 func (c gatewayContainer) Terminate() error {
-	return cluster.TerminateContainer(c.ctx, c.container, true)
+	return libcluster.TerminateContainer(c.ctx, c.container, true)
 }
 
 func (g gatewayContainer) GetAdminAddr() (string, int) {
@@ -184,12 +182,7 @@ func NewGatewayServiceReg(ctx context.Context, gwCfg GatewayConfig, node libclus
 	}
 
 	fmt.Println("agent image name", agentConfig.DockerImage())
-	imageVersion := ""
-	if strings.Contains(agentConfig.DockerImage(), "local") {
-		imageVersion = "target-version"
-	} else {
-		imageVersion = "latest-version"
-	}
+	imageVersion := utils.SideCarVersion(agentConfig.DockerImage())
 	req := testcontainers.ContainerRequest{
 		Image:      fmt.Sprintf("consul-envoy:%s", imageVersion),
 		WaitingFor: wait.ForLog("").WithStartupTimeout(100 * time.Second),
@@ -236,7 +229,7 @@ func NewGatewayServiceReg(ctx context.Context, gwCfg GatewayConfig, node libclus
 		extraPorts = append(extraPorts, strconv.Itoa(port))
 	}
 
-	info, err := cluster.LaunchContainerOnNode(ctx, node, req, append(
+	info, err := libcluster.LaunchContainerOnNode(ctx, node, req, append(
 		extraPorts,
 		portStr,
 		adminPortStr,

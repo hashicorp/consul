@@ -174,12 +174,7 @@ func NewConnectService(ctx context.Context, sidecarCfg SidecarConfig, serviceBin
 	}
 
 	fmt.Println("agent image name", agentConfig.DockerImage())
-	imageVersion := ""
-	if strings.Contains(agentConfig.DockerImage(), "local") {
-		imageVersion = "target-version"
-	} else {
-		imageVersion = "latest-version"
-	}
+	imageVersion := utils.SideCarVersion(agentConfig.DockerImage())
 	req := testcontainers.ContainerRequest{
 		Image:      fmt.Sprintf("consul-envoy:%s", imageVersion),
 		WaitingFor: wait.ForLog("").WithStartupTimeout(100 * time.Second),

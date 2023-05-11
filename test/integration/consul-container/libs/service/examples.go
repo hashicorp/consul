@@ -15,7 +15,6 @@ import (
 
 	"github.com/hashicorp/consul/api"
 
-	"github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
 	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 )
@@ -120,7 +119,7 @@ func (g exampleContainer) Stop() error {
 }
 
 func (c exampleContainer) Terminate() error {
-	return cluster.TerminateContainer(c.ctx, c.container, true)
+	return libcluster.TerminateContainer(c.ctx, c.container, true)
 }
 
 func (c exampleContainer) GetStatus() (string, error) {
@@ -160,7 +159,7 @@ func NewExampleService(ctx context.Context, name string, httpPort int, grpcPort 
 		Env:        map[string]string{"FORTIO_NAME": name},
 	}
 
-	info, err := cluster.LaunchContainerOnNode(ctx, node, req, []string{httpPortStr, grpcPortStr})
+	info, err := libcluster.LaunchContainerOnNode(ctx, node, req, []string{httpPortStr, grpcPortStr})
 	if err != nil {
 		return nil, err
 	}
