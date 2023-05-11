@@ -26,11 +26,11 @@ func TestHandler_PanicRecoveryInterceptor(t *testing.T) {
 		Output: &buf,
 	})
 
-	res := resolver.NewServerResolverBuilder(newConfig(t))
+	res := resolver.NewServerResolverBuilder(newConfig(t, "dc1", "server"))
 	registerWithGRPC(t, res)
 
 	srv := newPanicTestServer(t, logger, "server-1", "dc1", nil)
-	res.AddServer(types.AreaWAN, srv.Metadata())
+	res.AddServer(types.AreaLAN, srv.Metadata())
 	t.Cleanup(srv.shutdown)
 
 	pool := NewClientConnPool(ClientConnPoolConfig{
