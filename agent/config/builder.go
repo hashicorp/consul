@@ -1089,7 +1089,7 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		ServerMode:                        serverMode,
 		ServerName:                        stringVal(c.ServerName),
 		ServerPort:                        serverPort,
-		ServerRejoinAgeMax:                b.durationValWithDefault("server_rejoin_age_max", c.ServerRejoinAgeMax, 24*7*time.Hour),
+		ServerRejoinAgeMax:                b.durationValWithDefaultMin("server_rejoin_age_max", c.ServerRejoinAgeMax, 24*7*time.Hour, time.Hour),
 		Services:                          services,
 		SessionTTLMin:                     b.durationVal("session_ttl_min", c.SessionTTLMin),
 		SkipLeaveOnInt:                    skipLeaveOnInt,
@@ -1949,6 +1949,16 @@ func (b *builder) durationValWithDefault(name string, v *string, defaultVal time
 	if err != nil {
 		b.err = multierror.Append(b.err, fmt.Errorf("%s: invalid duration: %q: %s", name, *v, err))
 	}
+	return d
+}
+
+// durationValWithDefaultMin is equivalent to durationValWithDefault, but enforces a minimum duration.
+func (b *builder) durationValWithDefaultMin(name string, v *string, defaultVal, minVal time.Duration) (d time.Duration) {
+	d = b.durationValWithDefault(name, v, defaultVal)
+	if d < minVal {
+		b.err = multierror.Append(b.err, fmt.Errorf("%s: duration '%s' cannot be less than: %s", name, *v, minVal))
+	}
+
 	return d
 }
 
