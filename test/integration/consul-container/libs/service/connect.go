@@ -167,29 +167,24 @@ func NewConnectService(ctx context.Context, sidecarCfg SidecarConfig, serviceBin
 	namePrefix := fmt.Sprintf("%s-service-connect-%s", node.GetDatacenter(), sidecarCfg.Name)
 	containerName := utils.RandName(namePrefix)
 
-	envoyVersion := getEnvoyVersion()
 	agentConfig := node.GetConfig()
-	buildargs := map[string]*string{
-		"ENVOY_VERSION": utils.StringToPointer(envoyVersion),
-		"CONSUL_IMAGE":  utils.StringToPointer(agentConfig.DockerImage()),
-	}
-
-	dockerfileCtx, err := getDevContainerDockerfile()
-	if err != nil {
-		return nil, err
-	}
-	dockerfileCtx.BuildArgs = buildargs
-
 	internalAdminPort, err := node.ClaimAdminPort()
 	if err != nil {
 		return nil, err
 	}
 
+	fmt.Println("agent image name", agentConfig.DockerImage())
+	imageVersion := ""
+	if strings.Contains(agentConfig.DockerImage(), "local") {
+		imageVersion = "target-version"
+	} else {
+		imageVersion = "latest-version"
+	}
 	req := testcontainers.ContainerRequest{
-		FromDockerfile: dockerfileCtx,
-		WaitingFor:     wait.ForLog("").WithStartupTimeout(10 * time.Second),
-		AutoRemove:     false,
-		Name:           containerName,
+		Image:      fmt.Sprintf("consul-envoy:%s", imageVersion),
+		WaitingFor: wait.ForLog("").WithStartupTimeout(100 * time.Second),
+		AutoRemove: false,
+		Name:       containerName,
 		Cmd: []string{
 			"consul", "connect", "envoy",
 			"-sidecar-for", sidecarCfg.ServiceID,
