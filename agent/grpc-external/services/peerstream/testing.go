@@ -150,6 +150,16 @@ func (t *incrementalTime) Now() time.Time {
 	return t.base.Add(dur)
 }
 
+// StaticNow returns the current internal clock without advancing it.
+func (t *incrementalTime) StaticNow() time.Time {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+
+	dur := time.Duration(t.next) * time.Second
+
+	return t.base.Add(dur)
+}
+
 // FutureNow will return a given future value of the Now() function.
 // The numerical argument indicates which future Now value you wanted. The
 // value must be > 0.

@@ -377,7 +377,10 @@ func newClientWithGRPCResolver(t *testing.T, ops ...func(*Config)) (*Client, *re
 	}
 
 	builder := resolver.NewServerResolverBuilder(newTestResolverConfig(t,
-		"client."+config.Datacenter+"."+string(config.NodeID)))
+		"client."+config.Datacenter+"."+string(config.NodeID),
+		config.Datacenter,
+		"client",
+	))
 
 	resolver.Register(builder)
 	t.Cleanup(func() {
