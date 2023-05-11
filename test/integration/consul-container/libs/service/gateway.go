@@ -9,6 +9,7 @@ import (
 	"io"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/testcontainers/testcontainers-go"
@@ -161,19 +162,7 @@ func NewGatewayServiceReg(ctx context.Context, gwCfg GatewayConfig, node libclus
 	namePrefix := fmt.Sprintf("%s-service-gateway-%s", node.GetDatacenter(), gwCfg.Name)
 	containerName := utils.RandName(namePrefix)
 
-	envoyVersion := getEnvoyVersion()
 	agentConfig := node.GetConfig()
-	buildargs := map[string]*string{
-		"ENVOY_VERSION": utils.StringToPointer(envoyVersion),
-		"CONSUL_IMAGE":  utils.StringToPointer(agentConfig.DockerImage()),
-	}
-
-	dockerfileCtx, err := getDevContainerDockerfile()
-	if err != nil {
-		return nil, err
-	}
-	dockerfileCtx.BuildArgs = buildargs
-
 	adminPort, err := node.ClaimAdminPort()
 	if err != nil {
 		return nil, err
@@ -194,13 +183,20 @@ func NewGatewayServiceReg(ctx context.Context, gwCfg GatewayConfig, node libclus
 		"--log-level", envoyLogLevel,
 	}
 
+	fmt.Println("agent image name", agentConfig.DockerImage())
+	imageVersion := ""
+	if strings.Contains(agentConfig.DockerImage(), "local") {
+		imageVersion = "target-version"
+	} else {
+		imageVersion = "latest-version"
+	}
 	req := testcontainers.ContainerRequest{
-		FromDockerfile: dockerfileCtx,
-		WaitingFor:     wait.ForLog("").WithStartupTimeout(10 * time.Second),
-		AutoRemove:     false,
-		Name:           containerName,
-		Env:            make(map[string]string),
-		Cmd:            append(cmd, envoyArgs...),
+		Image:      fmt.Sprintf("consul-envoy:%s", imageVersion),
+		WaitingFor: wait.ForLog("").WithStartupTimeout(100 * time.Second),
+		AutoRemove: false,
+		Name:       containerName,
+		Env:        make(map[string]string),
+		Cmd:        append(cmd, envoyArgs...),
 	}
 
 	nodeInfo := node.GetInfo()
