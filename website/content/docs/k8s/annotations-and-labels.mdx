@@ -74,7 +74,7 @@ The following Kubernetes resource annotations could be used on a pod to control 
 - `consul.hashicorp.com/connect-service-upstreams` - The list of upstream
   services that this pod needs to connect to via the service mesh along with a static
   local port to listen for those connections. When transparent proxy is enabled,
-  this annotation is optional. This annotation can be either _unlabeled_ or _labeled_. Unlabeled annotations use component names, and then infer component types based on the annotation's syntax. Labeled annotations explicitly associate component names and types in Consul DNS addressing. To configure upstreams for [cluster peering](/consul/docs/k8s/connect/cluster-peering/tech-specs), use the labeled format.
+  this annotation is optional. This annotation can be either _unlabeled_ or _labeled_. Unlabeled annotations use component names, and the component types are inferred through the annotation's syntax. Labeled annotations explicitly associate component names and types to form Consul DNS addresses. To configure upstreams for [cluster peering](/consul/docs/k8s/connect/cluster-peering/tech-specs), use the labeled format.
 
     - **Unlabeled**:
        Use the unlabeled annotation format to specify a service name, Consul Enterprise namespaces and partitions, and
@@ -132,7 +132,6 @@ The following Kubernetes resource annotations could be used on a pod to control 
         ```yaml
         annotations:
           "consul.hashicorp.com/connect-service-upstreams":"[service-name].svc.[service-peer].peer:[port]"
-        
         ```
         
         ```yaml
