@@ -343,51 +343,14 @@ jobs:
           DD_ENV: ci
         run: datadog-ci junit upload --service "$GITHUB_REPOSITORY" $TEST_RESULTS_DIR/results.xml
 
-  generate-compatibility-job-matrices:
-    needs: [setup]
-    runs-on: ${{ fromJSON(needs.setup.outputs.compute-small) }}
-    name: Generate Compatibility Job Matrices
-    outputs:
-      compatibility-matrix: ${{ steps.set-matrix.outputs.compatibility-matrix }}
-    steps:
-      - uses: actions/checkout@24cb9080177205b6e8c946b17badbe402adc938f # v3.4.0
-      - name: Generate Compatibility Job Matrix
-        id: set-matrix
-        env:
-          TOTAL_RUNNERS: 6
-          JQ_SLICER: '[ inputs ] | [_nwise(length / $runnercount | floor)]'
-        run: |
-          cd ./test/integration/consul-container
-          NUM_RUNNERS=$TOTAL_RUNNERS
-          NUM_DIRS=$(find ./test -mindepth 1 -maxdepth 2 -type d | wc -l)
-
-          if [ "$NUM_DIRS" -lt "$NUM_RUNNERS" ]; then
-            echo "TOTAL_RUNNERS is larger than the number of tests/packages to split."
-            NUM_RUNNERS=$((NUM_DIRS-1))
-          fi
-          # fix issue where test splitting calculation generates 1 more split than TOTAL_RUNNERS.
-          NUM_RUNNERS=$((NUM_RUNNERS-1))
-          {
-            echo -n "compatibility-matrix="
-            find ./test -maxdepth 2 -type d -print0 | xargs -0 -n 1 \
-              | grep -v util | grep -v upgrade \
-              | jq --raw-input --argjson runnercount "$NUM_RUNNERS" "$JQ_SLICER" \
-              | jq --compact-output 'map(join(" "))'
-          } >> "$GITHUB_OUTPUT"
-
   compatibility-integration-test:
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-xl) }}
     needs:
       - setup
       - dev-build
-      - generate-compatibility-job-matrices
     permissions:
       id-token: write # NOTE: this permission is explicitly required for Vault auth.
       contents: read
-    strategy:
-      fail-fast: false
-      matrix:
-        test-cases: ${{ fromJSON(needs.generate-compatibility-job-matrices.outputs.compatibility-matrix) }}
     env:
       ENVOY_VERSION: "1.25.4"
     steps:
@@ -421,21 +384,18 @@ jobs:
             mkdir -p "/tmp/test-results"
             cd ./test/integration/consul-container
             docker run --rm ${{ env.CONSUL_LATEST_IMAGE_NAME }}:local consul version
-            echo "Running $(sed 's,|, ,g' <<< "${{ matrix.test-cases }}" |wc -w) subtests"
-            # shellcheck disable=SC2001
-            sed 's, ,\n,g' <<< "${{ matrix.test-cases }}"
             go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
               --raw-command \
-              --format=short-verbose \
+              --format=standard-verbose \
               --debug \
-              --rerun-fails=3 \
+              --rerun-fails=2 \
               -- \
               go test \
               -p=4 \
               -tags "${{ env.GOTAGS }}" \
               -timeout=30m \
               -json \
-              ${{ matrix.test-cases }} \
+              `go list ./... | grep -v upgrade` \
               --target-image ${{ env.CONSUL_LATEST_IMAGE_NAME }} \
               --target-version local \
               --latest-image docker.mirror.hashicorp.services/${{ env.CONSUL_LATEST_IMAGE_NAME }} \
@@ -512,7 +472,7 @@ jobs:
             | jq --raw-input --argjson runnercount "$NUM_RUNNERS" "$JQ_SLICER" \
             | jq --compact-output 'map(join("|"))'
           } >> "$GITHUB_OUTPUT"
-  
+
   upgrade-integration-test:
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-xl) }}
     needs:
@@ -600,7 +560,6 @@ jobs:
     - vault-integration-test
     - generate-envoy-job-matrices
     - envoy-integration-test
-    - generate-compatibility-job-matrices
     - compatibility-integration-test
     - generate-upgrade-job-matrices
     - upgrade-integration-test
