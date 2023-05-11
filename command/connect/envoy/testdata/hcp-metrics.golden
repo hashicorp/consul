@@ -67,7 +67,7 @@
                   "endpoint": {
                     "address": {
                       "pipe": {
-                        "path": "/tmp/consul/hcp-metrics/default_test-proxy.sock"
+                        "path": "/tmp/consul/hcp-metrics/k3bWnyJyKvjUYXrBdOX2nXzSSCQ.sock"
                       }
                     }
                   }

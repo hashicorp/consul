@@ -1508,6 +1508,10 @@ func (s *NodeService) ValidateForAgent() error {
 				"A Proxy cannot also be Connect Native, only typical services"))
 		}
 
+		if err := validateOpaqueProxyConfig(s.Proxy.Config); err != nil {
+			result = multierror.Append(result, fmt.Errorf("Proxy.Config: %w", err))
+		}
+
 		// ensure we don't have multiple upstreams for the same service
 		var (
 			upstreamKeys = make(map[UpstreamKey]struct{})

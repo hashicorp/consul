@@ -7,6 +7,7 @@ package hashicorp.consul.resource;
 
 import "annotations/ratelimit/ratelimit.proto";
 import "google/protobuf/any.proto";
+import "google/protobuf/timestamp.proto";
 
 // Type describes a resource's type. It follows the GVK (Group Version Kind)
 // [pattern](https://book.kubebuilder.io/cronjob-tutorial/gvks.html) established
@@ -124,6 +125,9 @@ message Status {
   // Conditions contains a set of discreet observations about the resource in
   // relation to the current state of the system (e.g. it is semantically valid).
   repeated Condition conditions = 2;
+
+  // UpdatedAt is the time at which the status was last written.
+  google.protobuf.Timestamp updated_at = 3;
 }
 
 // Condition represents a discreet observation about a resource in relation to
@@ -224,6 +228,14 @@ service ResourceService {
   // By default, reads are eventually consistent, but you can opt-in to strong
   // consistency via the x-consul-consistency-mode metadata (see ResourceService
   // docs for more info).
+  //
+  // Errors with NotFound if the resource is not found.
+  //
+  // Errors with InvalidArgument if the request fails validation or the resource
+  // is stored as a type with a different GroupVersion than was requested.
+  //
+  // Errors with PermissionDenied if the caller is not authorized to read
+  // the resource.
   rpc Read(ReadRequest) returns (ReadResponse) {
     option (hashicorp.consul.internal.ratelimit.spec) = {
       operation_type: OPERATION_TYPE_READ,

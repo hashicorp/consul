@@ -73,6 +73,7 @@ import (
 	"github.com/hashicorp/consul/internal/mesh"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/demo"
+	"github.com/hashicorp/consul/internal/resource/reaper"
 	raftstorage "github.com/hashicorp/consul/internal/storage/raft"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/lib/routine"
@@ -507,7 +508,6 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server, incom
 		incomingRPCLimiter:      incomingRPCLimiter,
 		routineManager:          routine.NewManager(logger.Named(logging.ConsulServer)),
 		typeRegistry:            resource.NewRegistry(),
-		controllerManager:       controller.NewManager(logger.Named(logging.ControllerRuntime)),
 	}
 	incomingRPCLimiter.Register(s)
 
@@ -783,6 +783,17 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server, incom
 	// to enable RPC forwarding.
 	s.grpcHandler = newGRPCHandlerFromConfig(flat, config, s)
 	s.grpcLeaderForwarder = flat.LeaderForwarder
+
+	if err := s.setupInternalResourceService(logger); err != nil {
+		return nil, err
+	}
+	s.controllerManager = controller.NewManager(
+		s.internalResourceServiceClient,
+		logger.Named(logging.ControllerRuntime),
+	)
+	s.registerResources()
+	go s.controllerManager.Run(&lib.StopChannelContext{StopCh: shutdownCh})
+
 	go s.trackLeaderChanges()
 
 	s.xdsCapacityController = xdscapacity.NewController(xdscapacity.Config{
@@ -791,10 +802,6 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server, incom
 		SessionLimiter: flat.XDSStreamLimiter,
 	})
 	go s.xdsCapacityController.Run(&lib.StopChannelContext{StopCh: s.shutdownCh})
-
-	if err := s.setupInternalResourceService(logger); err != nil {
-		return nil, err
-	}
 
 	// Initialize Autopilot. This must happen before starting leadership monitoring
 	// as establishing leadership could attempt to use autopilot and cause a panic.
@@ -832,15 +839,13 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server, incom
 		return nil, err
 	}
 
-	s.registerResources()
-	go s.controllerManager.Run(&lib.StopChannelContext{StopCh: shutdownCh})
-
 	return s, nil
 }
 
 func (s *Server) registerResources() {
 	catalog.RegisterTypes(s.typeRegistry)
 	mesh.RegisterTypes(s.typeRegistry)
+	reaper.RegisterControllers(s.controllerManager)
 
 	if s.config.DevMode {
 		demo.RegisterTypes(s.typeRegistry)
@@ -1051,7 +1056,7 @@ func (s *Server) setupRaft() error {
 		log = cacheStore
 
 		// Create the snapshot store.
-		snapshots, err := raft.NewFileSnapshotStoreWithLogger(path, snapshotsRetained, s.logger.Named("snapshot"))
+		snapshots, err := raft.NewFileSnapshotStoreWithLogger(path, snapshotsRetained, s.logger.Named("raft.snapshot"))
 		if err != nil {
 			return err
 		}

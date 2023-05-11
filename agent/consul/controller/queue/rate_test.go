@@ -12,6 +12,8 @@ import (
 
 type Request struct{ Kind string }
 
+func (r Request) Key() string { return r.Kind }
+
 func TestRateLimiter_Backoff(t *testing.T) {
 	t.Parallel()
 

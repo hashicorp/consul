@@ -12,7 +12,6 @@ import (
 	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/proto"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/internal/resource"
@@ -176,14 +175,14 @@ func (s *Server) Write(ctx context.Context, req *pbresource.WriteRequest) (*pbre
 			}
 
 			// Owner can only be set on creation. Enforce immutability.
-			if !proto.Equal(input.Owner, existing.Owner) {
+			if !resource.EqualID(input.Owner, existing.Owner) {
 				return status.Errorf(codes.InvalidArgument, "owner cannot be changed")
 			}
 
 			// Carry over status and prevent updates
 			if input.Status == nil {
 				input.Status = existing.Status
-			} else if !resource.EqualStatus(input.Status, existing.Status) {
+			} else if !resource.EqualStatusMap(input.Status, existing.Status) {
 				return errUseWriteStatus
 			}
 
