@@ -38,12 +38,15 @@ on:
         required: true
       consul-license:
         required: true
+      datadog-api-key:
+        required: true
 env:
   TEST_RESULTS: /tmp/test-results
   GOTESTSUM_VERSION: 1.8.2
   GOARCH: ${{inputs.go-arch}}
   CONSUL_LICENSE: ${{secrets.consul-license}}
   GOTAGS: ${{ inputs.go-tags}}
+  DATADOG_API_KEY: ${{secrets.datadog-api-key}}
   
 jobs:
   go-test:
@@ -96,6 +99,36 @@ jobs:
               -tags="${{env.GOTAGS}}" \
               ${GO_TEST_FLAGS-} \
               -cover -coverprofile=coverage.txt
+
+      # NOTE: ENT specific step as we store secrets in Vault.
+      - name: Authenticate to Vault
+        if: ${{ endsWith(github.repository, '-enterprise') }}
+        id: vault-auth
+        run: vault-auth
+
+      # NOTE: ENT specific step as we store secrets in Vault.
+      - name: Fetch Secrets
+        if: ${{ endsWith(github.repository, '-enterprise') }}
+        id: secrets
+        uses: hashicorp/vault-action@v2.5.0
+        with:
+          url: ${{ steps.vault-auth.outputs.addr }}
+          caCertificate: ${{ steps.vault-auth.outputs.ca_certificate }}
+          token: ${{ steps.vault-auth.outputs.token }}
+          secrets: |
+              kv/data/github/${{ github.repository }}/datadog apikey | DATADOG_API_KEY;
+
+      - name: prepare datadog-ci
+        if: ${{ !endsWith(github.repository, '-enterprise') }}
+        run: |
+          curl -L --fail "https://github.com/DataDog/datadog-ci/releases/latest/download/datadog-ci_linux-x64" --output "/usr/local/bin/datadog-ci"
+          chmod +x /usr/local/bin/datadog-ci
+
+      - name: upload coverage
+        env:
+          DD_ENV: ci
+        run: datadog-ci junit upload --service "$GITHUB_REPOSITORY" ${{env.TEST_RESULTS}}/gotestsum-report.xml
+
       - uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # pin@v3.1.2
         with:
           name: test-results

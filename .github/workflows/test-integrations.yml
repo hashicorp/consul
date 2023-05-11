@@ -54,6 +54,9 @@ jobs:
     needs:
       - setup
       - dev-build
+    permissions:
+      id-token: write # NOTE: this permission is explicitly required for Vault auth.
+      contents: read
     strategy:
       matrix:
         nomad-version: ['v1.3.3', 'v1.2.10', 'v1.1.16']
@@ -92,12 +95,45 @@ jobs:
             --packages="./command/agent/consul" \
             --junitfile $TEST_RESULTS_DIR/results.xml -- \
             -run TestConsul
+      
+      # NOTE: ENT specific step as we store secrets in Vault.
+      - name: Authenticate to Vault
+        if: ${{ endsWith(github.repository, '-enterprise') }}
+        id: vault-auth
+        run: vault-auth
+
+      # NOTE: ENT specific step as we store secrets in Vault.
+      - name: Fetch Secrets
+        if: ${{ endsWith(github.repository, '-enterprise') }}
+        id: secrets
+        uses: hashicorp/vault-action@v2.5.0
+        with:
+          url: ${{ steps.vault-auth.outputs.addr }}
+          caCertificate: ${{ steps.vault-auth.outputs.ca_certificate }}
+          token: ${{ steps.vault-auth.outputs.token }}
+          secrets: |
+              kv/data/github/${{ github.repository }}/datadog apikey | DATADOG_API_KEY;
+
+      - name: prepare datadog-ci
+        if: ${{ !endsWith(github.repository, '-enterprise') }}
+        run: |
+          curl -L --fail "https://github.com/DataDog/datadog-ci/releases/latest/download/datadog-ci_linux-x64" --output "/usr/local/bin/datadog-ci"
+          chmod +x /usr/local/bin/datadog-ci
+
+      - name: upload coverage
+        env:
+          DATADOG_API_KEY: "${{ endsWith(github.repository, '-enterprise') && env.DATADOG_API_KEY || secrets.DATADOG_API_KEY }}"
+          DD_ENV: ci
+        run: datadog-ci junit upload --service "$GITHUB_REPOSITORY" $TEST_RESULTS_DIR/results.xml
 
   vault-integration-test:
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-large) }}
     needs:
       - setup
       - dev-build
+    permissions:
+      id-token: write # NOTE: this permission is explicitly required for Vault auth.
+      contents: read
     strategy:
       matrix:
         vault-version: ["1.13.1", "1.12.5", "1.11.9", "1.10.11"]
@@ -138,6 +174,48 @@ jobs:
             --format=short-verbose \
             --junitfile "${{ env.TEST_RESULTS_DIR }}/gotestsum-report-agent.xml" \
             -- -tags "${{ env.GOTAGS }}" -cover -coverprofile=coverage-agent.txt -run Vault ./agent
+
+      # NOTE: ENT specific step as we store secrets in Vault.
+      - name: Authenticate to Vault
+        if: ${{ endsWith(github.repository, '-enterprise') }}
+        id: vault-auth
+        run: vault-auth
+
+      # NOTE: ENT specific step as we store secrets in Vault.
+      - name: Fetch Secrets
+        if: ${{ endsWith(github.repository, '-enterprise') }}
+        id: secrets
+        uses: hashicorp/vault-action@v2.5.0
+        with:
+          url: ${{ steps.vault-auth.outputs.addr }}
+          caCertificate: ${{ steps.vault-auth.outputs.ca_certificate }}
+          token: ${{ steps.vault-auth.outputs.token }}
+          secrets: |
+              kv/data/github/${{ github.repository }}/datadog apikey | DATADOG_API_KEY;
+
+      - name: prepare datadog-ci
+        if: ${{ !endsWith(github.repository, '-enterprise') }}
+        run: |
+          curl -L --fail "https://github.com/DataDog/datadog-ci/releases/latest/download/datadog-ci_linux-x64" --output "/usr/local/bin/datadog-ci"
+          chmod +x /usr/local/bin/datadog-ci
+
+      - name: upload coverage
+        env:
+          DATADOG_API_KEY: "${{ endsWith(github.repository, '-enterprise') && env.DATADOG_API_KEY || secrets.DATADOG_API_KEY }}"
+          DD_ENV: ci
+        run: datadog-ci junit upload --service "$GITHUB_REPOSITORY" "${{ env.TEST_RESULTS_DIR }}/gotestsum-report.xml"
+
+      - name: upload leader coverage
+        env:
+          DATADOG_API_KEY: "${{ endsWith(github.repository, '-enterprise') && env.DATADOG_API_KEY || secrets.DATADOG_API_KEY }}"
+          DD_ENV: ci
+        run: datadog-ci junit upload --service "$GITHUB_REPOSITORY" "${{ env.TEST_RESULTS_DIR }}/gotestsum-report-leader.xml"
+
+      - name: upload agent coverage
+        env:
+          DATADOG_API_KEY: "${{ endsWith(github.repository, '-enterprise') && env.DATADOG_API_KEY || secrets.DATADOG_API_KEY }}"
+          DD_ENV: ci
+        run: datadog-ci junit upload --service "$GITHUB_REPOSITORY" "${{ env.TEST_RESULTS_DIR }}/gotestsum-report-agent.xml"
 
   generate-envoy-job-matrices:
     needs: [setup]
@@ -181,6 +259,9 @@ jobs:
       - setup
       - generate-envoy-job-matrices
       - dev-build
+    permissions:
+      id-token: write # NOTE: this permission is explicitly required for Vault auth.
+      contents: read
     strategy:
       fail-fast: false
       matrix:
@@ -232,10 +313,35 @@ jobs:
               --packages=./test/integration/connect/envoy \
               -- -timeout=30m -tags integration -run="TestEnvoy/(${{ matrix.test-cases }})"
 
-      - uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
+      # NOTE: ENT specific step as we store secrets in Vault.
+      - name: Authenticate to Vault
+        if: ${{ endsWith(github.repository, '-enterprise') }}
+        id: vault-auth
+        run: vault-auth
+
+      # NOTE: ENT specific step as we store secrets in Vault.
+      - name: Fetch Secrets
+        if: ${{ endsWith(github.repository, '-enterprise') }}
+        id: secrets
+        uses: hashicorp/vault-action@v2.5.0
         with:
-          name: ${{ env.TEST_RESULTS_ARTIFACT_NAME }}
-          path: ${{ env.TEST_RESULTS_DIR }}
+          url: ${{ steps.vault-auth.outputs.addr }}
+          caCertificate: ${{ steps.vault-auth.outputs.ca_certificate }}
+          token: ${{ steps.vault-auth.outputs.token }}
+          secrets: |
+              kv/data/github/${{ github.repository }}/datadog apikey | DATADOG_API_KEY;
+
+      - name: prepare datadog-ci
+        if: ${{ !endsWith(github.repository, '-enterprise') }}
+        run: |
+          curl -L --fail "https://github.com/DataDog/datadog-ci/releases/latest/download/datadog-ci_linux-x64" --output "/usr/local/bin/datadog-ci"
+          chmod +x /usr/local/bin/datadog-ci
+
+      - name: upload coverage
+        env:
+          DATADOG_API_KEY: "${{ endsWith(github.repository, '-enterprise') && env.DATADOG_API_KEY || secrets.DATADOG_API_KEY }}"
+          DD_ENV: ci
+        run: datadog-ci junit upload --service "$GITHUB_REPOSITORY" $TEST_RESULTS_DIR/results.xml
 
   # not using test cases on 1.13 branch because the directory 
   # structure is different and we can just test the whole directory.            
@@ -343,10 +449,35 @@ jobs:
           # tput complains if this isn't set to something.
           TERM: ansi
 
-      - uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
+      # NOTE: ENT specific step as we store secrets in Vault.
+      - name: Authenticate to Vault
+        if: ${{ endsWith(github.repository, '-enterprise') }}
+        id: vault-auth
+        run: vault-auth
+
+      # NOTE: ENT specific step as we store secrets in Vault.
+      - name: Fetch Secrets
+        if: ${{ endsWith(github.repository, '-enterprise') }}
+        id: secrets
+        uses: hashicorp/vault-action@v2.5.0
         with:
-          name: ${{ env.TEST_RESULTS_ARTIFACT_NAME }}
-          path: ${{ env.TEST_RESULTS_DIR }}
+          url: ${{ steps.vault-auth.outputs.addr }}
+          caCertificate: ${{ steps.vault-auth.outputs.ca_certificate }}
+          token: ${{ steps.vault-auth.outputs.token }}
+          secrets: |
+              kv/data/github/${{ github.repository }}/datadog apikey | DATADOG_API_KEY;
+
+      - name: prepare datadog-ci
+        if: ${{ !endsWith(github.repository, '-enterprise') }}
+        run: |
+          curl -L --fail "https://github.com/DataDog/datadog-ci/releases/latest/download/datadog-ci_linux-x64" --output "/usr/local/bin/datadog-ci"
+          chmod +x /usr/local/bin/datadog-ci
+
+      - name: upload coverage
+        env:
+          DATADOG_API_KEY: "${{ endsWith(github.repository, '-enterprise') && env.DATADOG_API_KEY || secrets.DATADOG_API_KEY }}"
+          DD_ENV: ci
+        run: datadog-ci junit upload --service "$GITHUB_REPOSITORY" $TEST_RESULTS_DIR/results.xml
 
   test-integrations-success:
     needs: 
