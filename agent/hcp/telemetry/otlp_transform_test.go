@@ -35,7 +35,7 @@ var (
 	// DataPoint test case : Histogram Datapoints (Histogram)
 	minA, maxA, sumA = 2.0, 4.0, 90.0
 	minB, maxB, sumB = 4.0, 150.0, 234.0
-	inputHDP         = []metricdata.HistogramDataPoint{{
+	inputHDP         = []metricdata.HistogramDataPoint[float64]{{
 		Attributes:   alice,
 		StartTime:    start,
 		Time:         end,
@@ -121,7 +121,7 @@ var (
 		Name:        "invalid-histogram",
 		Description: "Invalid histogram",
 		Unit:        "1",
-		Data: metricdata.Histogram{
+		Data: metricdata.Histogram[float64]{
 			Temporality: metricdata.DeltaTemporality,
 			DataPoints:  inputHDP,
 		},
@@ -153,7 +153,7 @@ var (
 			Name:        "float64-histogram",
 			Description: "Histogram",
 			Unit:        "1",
-			Data: metricdata.Histogram{
+			Data: metricdata.Histogram[float64]{
 				Temporality: metricdata.CumulativeTemporality,
 				DataPoints:  inputHDP,
 			},

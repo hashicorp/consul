@@ -104,7 +104,7 @@ func metricTypeToPB(m metricdata.Metrics) (*mpb.Metric, error) {
 				DataPoints:             dataPointsToPB(a.DataPoints),
 			},
 		}
-	case metricdata.Histogram:
+	case metricdata.Histogram[float64]:
 		if a.Temporality != metricdata.CumulativeTemporality {
 			return out, fmt.Errorf("error: %w: %T", temporalityErr, a)
 		}
@@ -139,7 +139,7 @@ func dataPointsToPB(dataPoints []metricdata.DataPoint[float64]) []*mpb.NumberDat
 }
 
 // HistogramDataPoints returns a slice of OTLP HistogramDataPoint from OTEL metrics sdk ones.
-func histogramDataPointsToPB(dataPoints []metricdata.HistogramDataPoint) []*mpb.HistogramDataPoint {
+func histogramDataPointsToPB(dataPoints []metricdata.HistogramDataPoint[float64]) []*mpb.HistogramDataPoint {
 	out := make([]*mpb.HistogramDataPoint, 0, len(dataPoints))
 	for _, dp := range dataPoints {
 		sum := dp.Sum

@@ -61,7 +61,7 @@ func TestExport(t *testing.T) {
 	t.Parallel()
 	for name, test := range map[string]struct {
 		wantErr string
-		metrics metricdata.ResourceMetrics
+		metrics *metricdata.ResourceMetrics
 		client  client.MetricsClient
 	}{
 		"earlyReturnWithoutScopeMetrics": {
@@ -132,8 +132,8 @@ func TestShutdown(t *testing.T) {
 	require.ErrorIs(t, err, context.Canceled)
 }
 
-func mutateMetrics(m []metricdata.ScopeMetrics) metricdata.ResourceMetrics {
-	return metricdata.ResourceMetrics{
+func mutateMetrics(m []metricdata.ScopeMetrics) *metricdata.ResourceMetrics {
+	return &metricdata.ResourceMetrics{
 		Resource:     resource.Empty(),
 		ScopeMetrics: m,
 	}

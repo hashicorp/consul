@@ -51,8 +51,8 @@ func (e *OTELExporter) Aggregation(kind metric.InstrumentKind) aggregation.Aggre
 }
 
 // Export serializes and transmits metric data to a receiver.
-func (e *OTELExporter) Export(ctx context.Context, metrics metricdata.ResourceMetrics) error {
-	otlpMetrics := transformOTLP(&metrics)
+func (e *OTELExporter) Export(ctx context.Context, metrics *metricdata.ResourceMetrics) error {
+	otlpMetrics := transformOTLP(metrics)
 	if isEmpty(otlpMetrics) {
 		return nil
 	}
