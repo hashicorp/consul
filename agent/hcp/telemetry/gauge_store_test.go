@@ -2,9 +2,12 @@ package telemetry
 
 import (
 	"context"
+	"fmt"
+	"math/rand"
 	"sync"
 	"testing"
 
+	"github.com/hashicorp/go-uuid"
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/otel/attribute"
 )
@@ -65,9 +68,13 @@ func TestGaugeStore_Race(t *testing.T) {
 
 	gaugeStore := NewGaugeStore()
 	wg := &sync.WaitGroup{}
-	for k, v := range map[string]float64{"consul.raft.apply": 23.23, "consul.raft.test": 14.3} {
+	for i := 0; i < 100; i++ {
 		wg.Add(1)
-		go storeAndRetrieve(t, k, v, gaugeStore, wg)
+		v := rand.Float64()
+		uuid, err := uuid.GenerateUUID()
+		require.NoError(t, err)
+
+		go storeAndRetrieve(t, fmt.Sprintf("%s%f", uuid, v), v, gaugeStore, wg)
 	}
 	wg.Wait()
 }
