@@ -25,27 +25,50 @@ type OTELSinkOpts struct {
 	Ctx    context.Context
 }
 
+// OTELSink captures and aggregates telemetry data as per the OpenTelemetry (OTEL) specification.
+// Metric data is exported in OpenTelemetry Protocol (OTLP) wire format.
+// This should be used as a Go Metrics backend, as it implements the MetricsSink interface.
 type OTELSink struct {
+	// spaceReplacer cleans the flattened key by removing any spaces.
 	spaceReplacer *strings.Replacer
 	logger        hclog.Logger
 
+	// meterProvider is an OTEL MeterProvider, the entrypoint to the OTEL Metrics SDK.
+	// It handles reading/export of aggregated metric data.
+	// It enables creation and usage of an OTEL Meter.
 	meterProvider *otelsdk.MeterProvider
-	meter         *otelmetric.Meter
 
-	gaugeStore *gaugeStore
+	// meter is an OTEL Meter, which enables the creation of OTEL instruments.
+	meter *otelmetric.Meter
 
+	// Instrument stores contain an OTEL Instrument per metric name (<name, instrument>)
+	// for each gauge, counter and histogram types.
+	// An instrument allows us to record a measurement for a particular metric, and continuously aggregates metrics.
+	// We lazy load the creation of these intruments until a metric is seen, and use them repeatedly to record measurements.
 	gaugeInstruments     map[string]metric.Float64ObservableGauge
 	counterInstruments   map[string]metric.Float64Counter
 	histogramInstruments map[string]metric.Float64Histogram
 
+	// gaugeStore is required to hold last-seen values of gauges
+	// This is a workaround, as OTEL currently does not have synchronous gauge instruments.
+	// It only allows the registration of "callbacks", which obtain values when the callback is called.
+	// We must hold gauge values until the callback is called, when the measurement is exported, and can be removed.
+	gaugeStore *gaugeStore
+
 	mutex sync.Mutex
 }
 
+// NewOTELReader returns a configured OTEL PeriodicReader to export metrics every X seconds.
+// It configures the reader with a custom OTELExporter with a MetricsClient to transform and export
+// metrics in OTLP format to an external url.
 func NewOTELReader(client client.MetricsClient, url url.URL, exportInterval time.Duration) otelsdk.Reader {
 	exporter := NewOTELExporter(client, url)
 	return otelsdk.NewPeriodicReader(exporter, otelsdk.WithInterval(exportInterval))
 }
 
+// NewOTELSink returns a sink which fits the Go Metrics MetricsSink interface.
+// It sets up a MeterProvider and Meter, key pieces of the OTEL Metrics SDK which
+// enable us to create OTEL Instruments to record measurements.
 func NewOTELSink(opts *OTELSinkOpts) (*OTELSink, error) {
 	if opts.Reader == nil {
 		return nil, fmt.Errorf("ferror: provide valid reader")
@@ -55,7 +78,7 @@ func NewOTELSink(opts *OTELSinkOpts) (*OTELSink, error) {
 		return nil, fmt.Errorf("ferror: provide valid context")
 	}
 
-	// Setup OTEL Metrics SDK to aggregate, convert and export metrics periodically.
+	// Setup OTEL Metrics SDK to aggregate, convert and export metrics.
 	res := resource.NewSchemaless()
 	meterProvider := otelsdk.NewMeterProvider(otelsdk.WithResource(res), otelsdk.WithReader(opts.Reader))
 	meter := meterProvider.Meter("github.com/hashicorp/consul/agent/hcp/telemetry")
@@ -104,6 +127,9 @@ func (o *OTELSink) SetGaugeWithLabels(key []string, val float32, labels []gometr
 
 	// If instrument does not exist, create it and register callback to emit last value in global Gauge store.
 	if _, ok := o.gaugeInstruments[k]; !ok {
+		// The registration of a callback only needs to happen once, when the instrument is created.
+		// The callback will be triggered every export cycle for that metric.
+		// It must be explicitly de-registered to be removed (which we do not do), to ensure new gauge values are exported every cycle.
 		inst, err := (*o.meter).Float64ObservableGauge(k, metric.WithFloat64Callback(o.gaugeStore.gaugeCallback(k)))
 		if err != nil {
 			o.logger.Error("Failed to emit gauge: %w", err)
