@@ -5,20 +5,9 @@ package service
 
 import (
 	_ "embed"
-	"os"
 )
 
 const (
-	envoyEnvKey   = "ENVOY_VERSION"
-	envoyLogLevel = "debug"
-	envoyVersion  = "1.23.1"
-
+	envoyLogLevel        = "debug"
 	hashicorpDockerProxy = "docker.mirror.hashicorp.services"
 )
-
-func getEnvoyVersion() string {
-	if version, ok := os.LookupEnv(envoyEnvKey); ok && version != "" {
-		return version
-	}
-	return envoyVersion
-}
