@@ -3045,11 +3045,7 @@ func (s *Store) VirtualIPForService(psn structs.PeeredServiceName) (string, erro
 		return "", nil
 	}
 
-	result, err := addIPOffset(startingVirtualIP, vip.(ServiceVirtualIP).IP)
-	if err != nil {
-		return "", err
-	}
-	return result.String(), nil
+	return vip.(ServiceVirtualIP).IPWithOffset()
 }
 
 func (s *Store) ServiceVirtualIPs() (uint64, []ServiceVirtualIP, error) {
@@ -3080,6 +3076,10 @@ func (s *Store) ServiceManualVIPs(psn structs.PeeredServiceName) (*ServiceVirtua
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
+	return serviceVIPsTxn(tx, psn)
+}
+
+func serviceVIPsTxn(tx ReadTxn, psn structs.PeeredServiceName) (*ServiceVirtualIP, error) {
 	vip, err := tx.First(tableServiceVirtualIPs, indexID, psn)
 	if err != nil {
 		return nil, fmt.Errorf("failed service virtual IP lookup: %s", err)
