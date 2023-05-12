@@ -12,6 +12,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/hashicorp/consul/agent/hcp"
 	"github.com/hashicorp/go-checkpoint"
 	"github.com/hashicorp/go-hclog"
 	mcli "github.com/mitchellh/cli"
@@ -156,13 +157,27 @@ func (c *cmd) run(args []string) int {
 	go handleStartupSignals(ctx, cancel, signalCh, suLogger)
 
 	// See if we need to bootstrap config from HCP before we go any further with
-	// agent startup. We override loader with the one returned as it may be
-	// modified to include HCP-provided config.
-	var err error
-	_, loader, err = hcpbootstrap.MaybeBootstrap(ctx, loader, ui)
+	// agent startup. First do a preliminary load of agent configuration using the given loader.
+	// This is just to peek whether bootstrapping from HCP is enabled. The result is discarded
+	// on the call to agent.NewBaseDeps so that the wrapped loader takes effect.
+	res, err := loader(nil)
 	if err != nil {
 		ui.Error(err.Error())
 		return 1
+	}
+	if res.RuntimeConfig.IsCloudEnabled() {
+		client, err := hcp.NewClient(res.RuntimeConfig.Cloud)
+		if err != nil {
+			ui.Error("error building HCP HTTP client: " + err.Error())
+			return 1
+		}
+
+		// We override loader with the one returned as it was modified to include HCP-provided config.
+		loader, err = hcpbootstrap.LoadConfig(ctx, client, res.RuntimeConfig.DataDir, loader, ui)
+		if err != nil {
+			ui.Error(err.Error())
+			return 1
+		}
 	}
 
 	bd, err := agent.NewBaseDeps(loader, logGate, nil)
