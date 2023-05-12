@@ -390,7 +390,7 @@ jobs:
               --debug \
               -- \
               go test \
-              -p=6 \
+              -p=8 \
               -tags "${{ env.GOTAGS }}" \
               -timeout=30m \
               -json \
