@@ -388,10 +388,9 @@ jobs:
               --raw-command \
               --format=standard-verbose \
               --debug \
-              --rerun-fails=2 \
               -- \
               go test \
-              -p=5 \
+              -p=6 \
               -tags "${{ env.GOTAGS }}" \
               -timeout=30m \
               -json \
