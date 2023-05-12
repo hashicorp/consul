@@ -77,7 +77,7 @@ func httpClient(c config.CloudConfig) (*httptransport.Runtime, error) {
 }
 
 func (c *hcpClient) FetchBootstrap(ctx context.Context) (*BootstrapConfig, error) {
-  version := version.GetHumanVersion()
+	version := version.GetHumanVersion()
 	params := hcpgnm.NewAgentBootstrapConfigParamsWithContext(ctx).
 		WithID(c.resource.ID).
 		WithLocationOrganizationID(c.resource.Organization).
