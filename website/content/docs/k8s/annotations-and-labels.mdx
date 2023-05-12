@@ -146,7 +146,7 @@ The following Kubernetes resource annotations could be used on a pod to control 
           "consul.hashicorp.com/connect-service-upstreams":"[service-name].svc.[service-namespace].ns:[port]"
         ```
         
-        When namespaces are enabled, you must include the namespace in the annotation before specifying a peer, datacenter, or admin partition.
+        When namespaces are enabled, you must include the namespace in the annotation before specifying a cluster peer, WAN federated datacenter, or admin partition in the same datacenter.
         
         ```yaml
         annotations:
