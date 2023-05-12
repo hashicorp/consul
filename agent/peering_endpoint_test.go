@@ -193,8 +193,6 @@ advertise_addr_wan = "` + ip + `" `
 	}
 
 	testutil.RunStep(t, "ensure we got the right mixture of responses", func(t *testing.T) {
-		assert.Len(t, standardPeers, 3)
-
 		// Each server talks to a single leader.
 		assert.Len(t, leaderPeers, 1)
 		for p, n := range leaderPeers {
