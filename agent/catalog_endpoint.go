@@ -573,3 +573,34 @@ RETRY_ONCE:
 		s.nodeMetricsLabels())
 	return out.Services, nil
 }
+
+func (s *HTTPHandlers) AssignManualServiceVIPs(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	metrics.IncrCounterWithLabels([]string{"client", "api", "service_virtual_ips"}, 1,
+		s.nodeMetricsLabels())
+
+	var args structs.AssignServiceManualVIPsRequest
+	if err := s.parseEntMetaNoWildcard(req, &args.EnterpriseMeta); err != nil {
+		return nil, err
+	}
+
+	if err := s.rewordUnknownEnterpriseFieldError(decodeBody(req.Body, &args)); err != nil {
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: fmt.Sprintf("Request decode failed: %v", err)}
+	}
+
+	// Setup the default DC if not provided
+	if args.Datacenter == "" {
+		args.Datacenter = s.agent.config.Datacenter
+	}
+	s.parseToken(req, &args.Token)
+
+	// Forward to the servers
+	var out structs.AssignServiceManualVIPsResponse
+	if err := s.agent.RPC(req.Context(), "Internal.AssignManualServiceVIPs", &args, &out); err != nil {
+		metrics.IncrCounterWithLabels([]string{"client", "rpc", "error", "service_virtual_ips"}, 1,
+			s.nodeMetricsLabels())
+		return nil, err
+	}
+	metrics.IncrCounterWithLabels([]string{"client", "api", "success", "service_virtual_ips"}, 1,
+		s.nodeMetricsLabels())
+	return out, nil
+}

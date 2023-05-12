@@ -85,7 +85,7 @@ func TestMixedServersMajorityTargetGAClient(t *testing.T) {
 func testMixedServersGAClient(t *testing.T, majorityIsTarget bool) {
 	var (
 		latestOpts = libcluster.BuildOptions{
-			ConsulImageName: utils.LatestImageName,
+			ConsulImageName: utils.GetLatestImageName(),
 			ConsulVersion:   utils.LatestVersion,
 		}
 		targetOpts = libcluster.BuildOptions{
@@ -137,7 +137,7 @@ func testMixedServersGAClient(t *testing.T, majorityIsTarget bool) {
 	cluster, err := libcluster.New(t, configs)
 	require.NoError(t, err)
 
-	libservice.ClientsCreate(t, numClients, utils.LatestImageName, utils.LatestVersion, cluster)
+	libservice.ClientsCreate(t, numClients, utils.GetLatestImageName(), utils.LatestVersion, cluster)
 
 	client := cluster.APIClient(0)
 
