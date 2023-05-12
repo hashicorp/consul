@@ -21,7 +21,7 @@ import (
 // Test resolver directs traffic to default subset
 // - Create 2 additional static-server instances: one in V1 subset and the other in V2 subset
 // - resolver directs traffic to the default subset, which is V2.
-func TestTrafficManagement_ResolveDefaultSubset(t *testing.T) {
+func TestTrafficManagement_ResolverDefaultSubset(t *testing.T) {
 	t.Parallel()
 
 	cluster, staticServerProxy, staticClientProxy := setup(t)
@@ -113,6 +113,8 @@ func TestTrafficManagement_ResolveDefaultSubset(t *testing.T) {
 // - Create one addtional static-server with checks and V1 subset
 // - resolver directs traffic to "test" service
 func TestTrafficManagement_ResolverDefaultOnlyPassing(t *testing.T) {
+	t.Parallel()
+
 	cluster, staticServerProxy, staticClientProxy := setup(t)
 	node := cluster.Agents[0]
 
@@ -211,6 +213,8 @@ func TestTrafficManagement_ResolverDefaultOnlyPassing(t *testing.T) {
 // - Create 3 static-server-2 server instances: one in V1, one in V2, one without any version
 // - service2Resolver directs traffic to static-server-2-v2V
 func TestTrafficManagement_ResolverSubsetRedirect(t *testing.T) {
+	t.Parallel()
+
 	cluster, staticServerProxy, staticClientProxy := setup(t)
 
 	node := cluster.Agents[0]
