@@ -118,7 +118,7 @@ The following Kubernetes resource annotations could be used on a pod to control 
 
     - **Labeled** (requires Consul for Kubernetes v0.45.0+):
 
-      The labeled annotation format is required when specifying an upstream service in a different datacenter. You can specify a peer, namespace, partition, or datacenter, but the format supports only one peer, datacenter, or partition per annotation.
+      The labeled annotation format allows you to reference any service as an upstream. You can specify a Consul Enterprise namespace. You can also specify an admin partition in the same datacenter, a cluster peer, or a WAN federated datacenter.
 
       - Service name: Place the service name at the beginning of the annotation followed by `.svc` to specify the upstream service.
 
