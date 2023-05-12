@@ -21,9 +21,9 @@ func (h *cpuStatsCalculator) calculate(times cpu.TimesStat) (idle float64, user 
 	currentIdle := times.Idle
 	currentUser := times.User
 	currentSystem := times.System
-	currentTotal := times.Total()
 	currentBusy := times.User + times.System + times.Nice + times.Iowait + times.Irq +
 		times.Softirq + times.Steal + times.Guest + times.GuestNice
+	currentTotal := currentBusy + currentIdle
 
 	deltaTotal := currentTotal - h.prevTotal
 	idle = ((currentIdle - h.prevIdle) / deltaTotal) * 100

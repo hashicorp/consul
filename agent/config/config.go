@@ -690,6 +690,7 @@ type Telemetry struct {
 	CirconusCheckTags                  *string  `mapstructure:"circonus_check_tags" json:"circonus_check_tags,omitempty"`
 	CirconusSubmissionInterval         *string  `mapstructure:"circonus_submission_interval" json:"circonus_submission_interval,omitempty"`
 	CirconusSubmissionURL              *string  `mapstructure:"circonus_submission_url" json:"circonus_submission_url,omitempty"`
+	DisableHostMetrics                 *bool    `mapstructure:"disable_host_metrics" json:"disable_host_metrics,omitempty"`
 	DisableHostname                    *bool    `mapstructure:"disable_hostname" json:"disable_hostname,omitempty"`
 	DogstatsdAddr                      *string  `mapstructure:"dogstatsd_addr" json:"dogstatsd_addr,omitempty"`
 	DogstatsdTags                      []string `mapstructure:"dogstatsd_tags" json:"dogstatsd_tags,omitempty"`

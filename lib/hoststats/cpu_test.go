@@ -27,12 +27,9 @@ func TestCpuStats_percent(t *testing.T) {
 }
 
 func TestHostStats_CPU(t *testing.T) {
-
-	assert := assert.New(t)
-
 	logger := testutil.Logger(t)
 	cwd, err := os.Getwd()
-	assert.Nil(err)
+	assert.Nil(t, err)
 	hs := initCollector(logger, cwd)
 
 	// Collect twice so we can calculate percents we need to generate some work
@@ -45,18 +42,18 @@ func TestHostStats_CPU(t *testing.T) {
 	}
 	hs.collect()
 	stats := hs.Stats()
-	assert.NotZero(len(stats.CPU))
+	assert.NotZero(t, len(stats.CPU))
 
 	for _, cpu := range stats.CPU {
-		assert.False(math.IsNaN(cpu.Idle))
-		assert.False(math.IsNaN(cpu.Total))
-		assert.False(math.IsNaN(cpu.System))
-		assert.False(math.IsNaN(cpu.User))
+		assert.False(t, math.IsNaN(cpu.Idle))
+		assert.False(t, math.IsNaN(cpu.Total))
+		assert.False(t, math.IsNaN(cpu.System))
+		assert.False(t, math.IsNaN(cpu.User))
 
-		assert.False(math.IsInf(cpu.Idle, 0))
-		assert.False(math.IsInf(cpu.Total, 0))
-		assert.False(math.IsInf(cpu.System, 0))
-		assert.False(math.IsInf(cpu.User, 0))
+		assert.False(t, math.IsInf(cpu.Idle, 0))
+		assert.False(t, math.IsInf(cpu.Total, 0))
+		assert.False(t, math.IsInf(cpu.System, 0))
+		assert.False(t, math.IsInf(cpu.User, 0))
 	}
 }
 
