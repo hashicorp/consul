@@ -113,9 +113,9 @@ jobs:
             --format=short-verbose \
             --jsonfile /tmp/jsonfile/go-test.log \
             --debug \
-            --rerun-fails=3 \
-            --rerun-fails-max-failures=40 \
-            --rerun-fails-report=/tmp/gotestsum-rerun-fails \
+            # --rerun-fails=3 \
+            # --rerun-fails-max-failures=40 \
+            # --rerun-fails-report=/tmp/gotestsum-rerun-fails \
             go test \
             -p=4 \
             -tags "${{ env.GOTAGS }}" \
