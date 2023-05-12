@@ -104,20 +104,29 @@ jobs:
           # some tests expect this umask, and arm images have a different default
           umask 0022
 
-          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
-          --format=short-verbose \
-          --jsonfile /tmp/jsonfile/go-test.log \
-          --debug \
-          --rerun-fails=3 \
-          --rerun-fails-max-failures=40 \
-          --rerun-fails-report=/tmp/gotestsum-rerun-fails \
-          -json ./... \
-          -run "${{ matrix.test-cases }}" \  
-          --junitfile ${{env.TEST_RESULTS}}/gotestsum-report.xml -- \
-          -tags="${{env.GOTAGS}}" -p 2 \
-          ${GO_TEST_FLAGS-} \
-          -cover -coverprofile=coverage.txt
+          echo "Running $(sed 's,|, ,g' <<< "${{ matrix.test-cases }}" |wc -w) subtests"
+          # shellcheck disable=SC2001
+          sed 's,|,\n,g' <<< "${{ matrix.test-cases }}"
+          
 
+          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
+            --format=short-verbose \
+            --jsonfile /tmp/jsonfile/go-test.log \
+            --debug \
+            --rerun-fails=3 \
+            --rerun-fails-max-failures=40 \
+            --rerun-fails-report=/tmp/gotestsum-rerun-fails \
+            go test \
+            -p=4 \
+            -tags "${{ env.GOTAGS }}" \
+            -timeout=30m \
+            -json ./... \
+            ${{ matrix.test-cases }} \
+            -run "${{ matrix.test-cases }}"
+        env:
+          # this is needed because of incompatibility between RYUK container and GHA
+          GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS }}/gotestsum-report.xml
+          
       # NOTE: ENT specific step as we store secrets in Vault.
       - name: Authenticate to Vault
         if: ${{ endsWith(github.repository, '-enterprise') }}
