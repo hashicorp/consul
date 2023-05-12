@@ -6254,13 +6254,13 @@ func TestAgent_checkServerLastSeen(t *testing.T) {
 		require.ErrorContains(t, err, "refusing to rejoin cluster because server has been offline for more than the configured server_rejoin_age_max")
 	})
 
-	// Test that a server with a 1h old last seen timestamp is not treated as an error.
+	// Test that a server with a 6h old last seen timestamp is not treated as an error.
 	t.Run("TestNoErr", func(t *testing.T) {
 		agent.config.ServerRejoinAgeMax = 24 * 7 * time.Hour
 
 		readFn := func(filename string) (*consul.ServerMetadata, error) {
 			return &consul.ServerMetadata{
-				LastSeenUnix: time.Now().Add(-time.Hour).Unix(),
+				LastSeenUnix: time.Now().Add(-6 * time.Hour).Unix(),
 			}, nil
 		}
 

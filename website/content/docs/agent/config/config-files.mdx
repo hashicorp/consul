@@ -736,12 +736,10 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
 
 - `server` Equivalent to the [`-server` command-line flag](/consul/docs/agent/config/cli-flags#_server).
 
-- `server_rejoin_age_max` controls the allowed maximum age of a stale server attempting to rejoin a cluster.
-  E.g., A user attempts to start a previously running server with the following last seen Unix timestamp `1672531200` (2023-Jan-01 00:00:00)
-  saved in the `server_metadata.json` file in the configured data directory.
-  Setting this config value to `server_rejoin_age_max = "3d"` will prevent this server from starting and require an operator to manually
-  update the timestampd or remove the metadata file from the data directory in order to force the server to rejoin.
-  Note: the default value is 7d and the minimum value is 1h.
+- `server_rejoin_age_max` - controls the allowed maximum age of a stale server attempting to rejoin a cluster.
+  If a server is not running for this period, then it will refuse to start up again until an operator intervenes. This is to protect
+  clusters from instability caused by decommissioned servers accidentally being started again.
+  Note: the default value is 7d and the minimum value is 6h.
 
 - `non_voting_server` - **This field is deprecated in Consul 1.9.1. See the [`read_replica`](#read_replica) field instead.**
 
