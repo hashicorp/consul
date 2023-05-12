@@ -186,7 +186,7 @@ jobs:
   set-test-package-matrix:
     needs:
       - setup
-    runs-on: ${{ needs.setup.outputs.compute-small }}
+    runs-on: ${{ needs.setup.outputs.compute-medium }}
     outputs:
       package-matrix: ${{ steps.set-matrix.outputs.matrix }}
     steps:
