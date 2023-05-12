@@ -108,7 +108,7 @@ The following Kubernetes resource annotations could be used on a pod to control 
           "consul.hashicorp.com/connect-service-upstreams":"[service-name].[service-namespace].[service-partition]:[port]:[optional datacenter]"
         ```
         
-      - Prepared queries: To configure a [prepared query](/consul/api-docs/query) in an upstream annotation, prepend the annotation
+      - Prepared queries: To reference a [prepared query](/consul/api-docs/query) in an upstream annotation, prepend the annotation
         with `prepared_query` and then invoke the name of the query.
 
         ```yaml
