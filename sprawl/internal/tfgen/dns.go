@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"text/template"
 
 	"github.com/hashicorp/consul-topology/topology"
@@ -70,7 +71,10 @@ func (g *Generator) writeCoreDNSFiles(net *topology.Network, dnsIPAddress string
 
 		_, err := UpdateFileIfDifferent(
 			g.logger,
-			generateCoreDNSConfigFile(clusterDNSName, discoveryName),
+			generateCoreDNSConfigFile(
+				clusterDNSName,
+				addrs,
+			),
 			corefilePath,
 			0644,
 		)
@@ -84,7 +88,12 @@ func (g *Generator) writeCoreDNSFiles(net *topology.Network, dnsIPAddress string
 
 		_, err = UpdateFileIfDifferent(
 			g.logger,
-			generateCoreDNSZoneFile(dnsIPAddress, discoveryName, clusterDNSName, addrs),
+			generateCoreDNSZoneFile(
+				dnsIPAddress,
+				discoveryName,
+				clusterDNSName,
+				addrs,
+			),
 			zonefilePath,
 			0644,
 		)
@@ -102,7 +111,26 @@ func (g *Generator) writeCoreDNSFiles(net *topology.Network, dnsIPAddress string
 	return false, nil, nil
 }
 
-func generateCoreDNSConfigFile(clusterDNSName, discoveryName string) []byte {
+func generateCoreDNSConfigFile(
+	clusterDNSName string,
+	addrs []string,
+) []byte {
+	serverPart := ""
+	if len(addrs) > 0 {
+		var servers []string
+		for _, addr := range addrs {
+			servers = append(servers, addr+":8600")
+		}
+		serverPart = fmt.Sprintf(`
+consul:53 {
+  forward . %s
+  log
+  errors
+  whoami
+}
+`, strings.Join(servers, " "))
+	}
+
 	return []byte(fmt.Sprintf(`
 %[1]s:53 {
   file /config/servers %[1]s
@@ -111,16 +139,23 @@ func generateCoreDNSConfigFile(clusterDNSName, discoveryName string) []byte {
   whoami
 }
 
+%[2]s
+
 .:53 {
   forward . 8.8.8.8:53
   log
   errors
   whoami
 }
-`, clusterDNSName))
+`, clusterDNSName, serverPart))
 }
 
-func generateCoreDNSZoneFile(dnsIPAddress, discoveryName, clusterDNSName string, addrs []string) []byte {
+func generateCoreDNSZoneFile(
+	dnsIPAddress string,
+	discoveryName string,
+	clusterDNSName string,
+	addrs []string,
+) []byte {
 	var buf bytes.Buffer
 	buf.WriteString(fmt.Sprintf(`
 $TTL 60

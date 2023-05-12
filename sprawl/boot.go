@@ -248,6 +248,10 @@ func (s *Sprawl) initConsulServers() error {
 			return fmt.Errorf("populateInitialConfigEntries[%s]: %w", cluster.Name, err)
 		}
 
+		if err := s.createAnonymousToken(cluster); err != nil {
+			return fmt.Errorf("createAnonymousToken[%s]: %w", cluster.Name, err)
+		}
+
 		// Create tokens for all of the agents to use for anti-entropy.
 		//
 		// NOTE: this will cause the servers to roll to pick up the change to

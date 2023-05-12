@@ -102,6 +102,47 @@ func (s *Sprawl) isACLBootstrapped(cluster string, client *api.Client) (bool, er
 	return policy != nil, nil
 }
 
+func (s *Sprawl) createAnonymousToken(cluster *topology.Cluster) error {
+	var (
+		client = s.clients[cluster.Name]
+		logger = s.logger.With("cluster", cluster.Name)
+	)
+
+	if err := s.createAnonymousPolicy(cluster); err != nil {
+		return err
+	}
+
+	token, err := CreateOrUpdateToken(client, anonymousToken())
+	if err != nil {
+		return err
+	}
+
+	logger.Info("created anonymous token",
+		"token", token.SecretID,
+	)
+
+	return nil
+}
+
+func (s *Sprawl) createAnonymousPolicy(cluster *topology.Cluster) error {
+	var (
+		client = s.clients[cluster.Name]
+		logger = s.logger.With("cluster", cluster.Name)
+	)
+
+	op, err := CreateOrUpdatePolicy(client, anonymousPolicy(cluster.Enterprise))
+	if err != nil {
+		return err
+	}
+
+	logger.Info("created anonymous policy",
+		"policy-name", op.Name,
+		"policy-id", op.ID,
+	)
+
+	return nil
+}
+
 func (s *Sprawl) createAgentTokens(cluster *topology.Cluster) error {
 	var (
 		client = s.clients[cluster.Name]

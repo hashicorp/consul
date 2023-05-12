@@ -24,6 +24,45 @@ partition %[1]q {
 	}
 }
 
+const anonymousTokenAccessorID = "00000000-0000-0000-0000-000000000002"
+
+func anonymousToken() *api.ACLToken {
+	return &api.ACLToken{
+		AccessorID: anonymousTokenAccessorID,
+		// SecretID: "anonymous",
+		Description: "anonymous",
+		Local:       false,
+		Policies: []*api.ACLTokenPolicyLink{
+			{
+				Name: "anonymous",
+			},
+		},
+	}
+}
+
+func anonymousPolicy(enterprise bool) *api.ACLPolicy {
+	p := &api.ACLPolicy{
+		Name:        "anonymous",
+		Description: "anonymous",
+	}
+	if enterprise {
+		p.Rules = `
+partition_prefix "" {
+  namespace_prefix "" {
+    node_prefix "" { policy = "read" }
+    service_prefix "" { policy = "read" }
+  }
+}
+`
+	} else {
+		p.Rules = `
+node_prefix "" { policy = "read" }
+service_prefix "" { policy = "read" }
+`
+	}
+	return p
+}
+
 func tokenForNode(node *topology.Node, enterprise bool) *api.ACLToken {
 	nid := node.ID()
 

@@ -107,7 +107,10 @@ func (g *Generator) generateAgentHCL(step Step, node *topology.Node) (string, er
 			b.add("grpc", 8502)
 			b.add("grpc_tls", -1)
 		}
+		b.add("dns", 8600)
 	})
+
+	b.addSlice("recursors", []string{"8.8.8.8"})
 
 	b.addBlock("acl", func() {
 		b.add("enabled", true)
