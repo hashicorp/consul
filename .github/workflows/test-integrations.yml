@@ -514,7 +514,7 @@ jobs:
           } >> "$GITHUB_OUTPUT"
   
   upgrade-integration-test:
-    runs-on: ${{ fromJSON(needs.setup.outputs.compute-xl) }}
+    runs-on: ${{ fromJSON(needs.setup.outputs.compute-large) }}
     needs:
       - setup
       - dev-build
@@ -548,6 +548,8 @@ jobs:
         run: docker build -t consul-envoy:latest-version --build-arg CONSUL_IMAGE=docker.mirror.hashicorp.services/${{ env.CONSUL_LATEST_IMAGE_NAME }}:${{ env.CONSUL_LATEST_VERSION }} --build-arg ENVOY_VERSION=${{ env.ENVOY_VERSION }} -f ./test/integration/consul-container/assets/Dockerfile-consul-envoy ./test/integration/consul-container/assets
       - name: Build consul-envoy:target-version image
         run: docker build -t consul-envoy:target-version --build-arg CONSUL_IMAGE=${{ env.CONSUL_LATEST_IMAGE_NAME }}:local --build-arg ENVOY_VERSION=${{ env.ENVOY_VERSION }} -f ./test/integration/consul-container/assets/Dockerfile-consul-envoy ./test/integration/consul-container/assets
+      - name: Build sds image
+        run: docker build -t consul-sds-server ./test/integration/connect/envoy/test-sds-server/
       - name: Configure GH workaround for ipv6 loopback
         if: ${{ !endsWith(github.repository, '-enterprise') }}
         run: |
@@ -566,7 +568,7 @@ jobs:
             --raw-command \
             --format=short-verbose \
             --debug \
-            --rerun-fails=3 \
+            --rerun-fails=2 \
             --packages="./..." \
             -- \
             go test \
