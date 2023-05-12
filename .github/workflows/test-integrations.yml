@@ -359,7 +359,10 @@ jobs:
         with:
           go-version-file: 'go.mod'
       - run: go env
-
+      - name: docker env
+        run: |
+          docker version
+          docker info
       # Build the consul:local image from the already built binary
       - name: fetch binary
         uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
@@ -390,7 +393,7 @@ jobs:
               --debug \
               -- \
               go test \
-              -p=8 \
+              -p=6 \
               -tags "${{ env.GOTAGS }}" \
               -timeout=30m \
               -json \
