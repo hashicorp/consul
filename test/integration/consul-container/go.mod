@@ -176,3 +176,6 @@ replace github.com/hashicorp/consul/api => ../../../api
 replace github.com/hashicorp/consul/sdk => ../../../sdk
 
 replace github.com/hashicorp/consul => ../../..
+
+// Workaround to deal with https://github.com/kubernetes/klog/issues/253
+replace github.com/go-logr/logr => github.com/go-logr/logr v0.4.0
