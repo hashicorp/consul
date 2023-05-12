@@ -60,8 +60,6 @@ jobs:
   go-test:
     runs-on: ${{ fromJSON(inputs.runs-on) }}
     name: "go-test"
-    needs:
-      - set-test-package-matrix
     strategy:
       fail-fast: false
       matrix:
