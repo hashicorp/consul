@@ -116,7 +116,9 @@ func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer, providedLogger hcl
 	if err != nil {
 		return d, fmt.Errorf("failed to initialize telemetry: %w", err)
 	}
-	hoststats.NewCollector(context.Background(), d.Logger, cfg.DataDir)
+	if !cfg.Telemetry.DisableHostMetrics {
+		hoststats.NewCollector(context.Background(), d.Logger, cfg.DataDir)
+	}
 
 	d.TLSConfigurator, err = tlsutil.NewConfigurator(cfg.TLS, d.Logger)
 	if err != nil {

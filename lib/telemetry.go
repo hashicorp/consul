@@ -207,6 +207,11 @@ type TelemetryConfig struct {
 	//
 	// hcl: telemetry { prometheus_retention_time = "duration" }
 	PrometheusOpts prometheus.PrometheusOpts
+
+	// DisableHostMetrics will disable metrics collected about the host system such as cpu memory and disk usage.
+	//
+	// hcl: telemetry { disable_host_metrics = (true|false) }
+	DisableHostMetrics bool
 }
 
 // MetricsHandler provides an http.Handler for displaying metrics.

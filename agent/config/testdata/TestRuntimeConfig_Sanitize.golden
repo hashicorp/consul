@@ -457,6 +457,7 @@
         "CirconusSubmissionInterval": "",
         "CirconusSubmissionURL": "",
         "Disable": false,
+        "DisableHostMetrics": false,
         "DisableHostname": false,
         "DogstatsdAddr": "",
         "DogstatsdTags": [],

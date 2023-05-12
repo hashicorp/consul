@@ -737,3 +737,27 @@ Consul attaches the following labels to metric values.
 | `peer_id`                             | The ID of a peer connected to the reporting cluster or leader.                   | Any UUID                                  |
 | `partition`                           | <EnterpriseAlert inline /> Name of the partition that the peering is created in. | Any defined partition name in the cluster |
 
+## Server Host Metrics
+
+Consul servers report the following metrics about the host's system resources
+
+**Requirements:**
+- Consul 1.15.3+
+
+| Metric                              | Description                                                                                                                                                                                                                                                       | Unit        | Type    |
+| ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- | ------- |
+| `consul.host.memory.total`          | The total physical memory in bytes                                                                                                                                                                                                   | mixed       | mixed   |
+| `consul.host.memory.available`      | The available physical memory in bytes                                                                                                                                                                                                   | mixed       | mixed   |
+| `consul.host.memory.free`           | The free physical memory in bytes                                                                                                                                                                                                   | mixed       | mixed   |
+| `consul.host.memory.used`           | The used physical memory in bytes                                                                                                                                                                                                   | mixed       | mixed   |
+| `consul.host.memory.used_percent`   | The used physical memory as a percentage of total physical memory                                                                                                                                                                                                 | mixed       | mixed   |
+| `consul.host.cpu.total`             | The host's total cpu utilization
+| `consul.host.cpu.user`              | The cpu utilization in user space
+| `consul.host.cpu.idle`              | The cpu utilization in idle state
+| `consul.host.cpu.system`            | The cpu utilization in system space
+| `consul.host.disk.size`             | The size in bytes of the data_dir disk
+| `consul.host.disk.used`             | The number of bytes used on the data_dir disk
+| `consul.host.disk.available`        | The number of bytes available on the data_dir disk
+| `consul.host.disk.used_percent`     | The percentage of disk space used on the data_dir disk
+| `consul.host.disk.inodes_percent`   | The percentage of inode usage on the data_dir disk
+| `consul.host.uptime`                | The uptime of the host in seconds

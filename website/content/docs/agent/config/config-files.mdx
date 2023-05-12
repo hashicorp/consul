@@ -1817,6 +1817,9 @@ subsystem that provides Consul's service mesh capabilities.
     be used based on **where** this particular instance is running (e.g. a specific
     geo location or datacenter, dc:sfo). By default, this is left blank and not used.
 
+  - `disable_host_metrics` ((#telemetry-disable_host_metrics))
+    This disables reporting of host metrics about system resources, defaults to false.
+
   - `disable_hostname` ((#telemetry-disable_hostname))
     This controls whether or not to prepend runtime telemetry with the machine's
     hostname, defaults to false.
