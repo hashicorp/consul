@@ -37,6 +37,9 @@ on:
         required: false
         type: string
         default: ""
+      package-matrix:
+        required: true
+        type: string
     secrets:
       elevated-github-token:
         required: true
@@ -54,18 +57,6 @@ env:
   DATADOG_API_KEY: ${{secrets.datadog-api-key}}
   
 jobs:
-  set-test-package-matrix:
-    runs-on: ubuntu-latest
-    outputs:
-      package-matrix: ${{ steps.set-matrix.outputs.matrix }}
-    steps:
-      - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # v3.3.0
-      - uses: actions/setup-go@6edd4406fa81c3da01a34fa6f6343087c207a568 # pin@v3.5.0
-        with:
-          go-version-file: 'go.mod'
-      - id: set-matrix
-        run: ./.github/scripts/set_test_package_matrix.sh ${{env.TOTAL_RUNNERS}}
-
   go-test:
     runs-on: ${{ fromJSON(inputs.runs-on) }}
     name: "go-test"
@@ -74,7 +65,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        package: ${{ fromJson(needs.set-test-package-matrix.outputs.package-matrix) }}
+        package: ${{ fromJson(inputs.package-matrix) }}
     steps:   
       - name: ulimit
         run: |

@@ -182,6 +182,18 @@ jobs:
       repository-name: ${{ github.repository }}
     secrets:
       elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
+  
+  set-test-package-matrix:
+    runs-on: ${{ needs.setup.outputs.compute-small }}
+    outputs:
+      package-matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # v3.3.0
+      - uses: actions/setup-go@6edd4406fa81c3da01a34fa6f6343087c207a568 # pin@v3.5.0
+        with:
+          go-version-file: 'go.mod'
+      - id: set-matrix
+        run: ./.github/scripts/set_test_package_matrix.sh ${{env.TOTAL_RUNNERS}}
 
   # dev-build-arm64:
   #   # only run on enterprise because GHA does not have arm64 runners in OSS
@@ -203,6 +215,7 @@ jobs:
   #   needs: 
   #   - setup   
   #   - dev-build-arm64
+  #   - set-test-package-matrix
   #   uses: ./.github/workflows/reusable-unit-split.yml
   #   with:
   #     directory: .
@@ -211,6 +224,7 @@ jobs:
   #     runs-on: "['self-hosted', 'ondemand', 'os=macos-arm', 'arm64']"
   #     go-test-flags: 'if ! [[ "$GITHUB_REF_NAME" =~ ^main$|^release/ ]]; then export GO_TEST_FLAGS="-short"; fi'
   #     repository-name: ${{ github.repository }}
+  #     package-matrix: ${{ needs.set-test-package-matrix.outputs.package-matrix }}
   #   secrets:
   #     elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
   #     consul-license: ${{secrets.CONSUL_LICENSE}}
@@ -220,6 +234,7 @@ jobs:
     needs: 
     - setup   
     - dev-build
+    - set-test-package-matrix
     uses: ./.github/workflows/reusable-unit-split.yml
     with:
       directory: .
@@ -227,6 +242,7 @@ jobs:
       runs-on: ${{ needs.setup.outputs.compute-xl }}
       repository-name: ${{ github.repository }}
       go-tags: ""
+      package-matrix: ${{ needs.set-test-package-matrix.outputs.package-matrix }}
     permissions:
       id-token: write # NOTE: this permission is explicitly required for Vault auth.
       contents: read    
@@ -240,6 +256,7 @@ jobs:
     needs: 
     - setup   
     - dev-build
+    - set-test-package-matrix
     uses: ./.github/workflows/reusable-unit-split.yml
     with:
       directory: .
@@ -247,6 +264,7 @@ jobs:
       runs-on: ${{ needs.setup.outputs.compute-xl }}
       repository-name: ${{ github.repository }}
       go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consulprem consuldev' || '' }}"
+      package-matrix: ${{ needs.set-test-package-matrix.outputs.package-matrix }}
     permissions:
       id-token: write # NOTE: this permission is explicitly required for Vault auth.
       contents: read    
