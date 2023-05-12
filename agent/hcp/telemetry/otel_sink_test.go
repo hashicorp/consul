@@ -2,7 +2,10 @@ package telemetry
 
 import (
 	"context"
+	"fmt"
+	"math/rand"
 	"sort"
+	"strings"
 	"sync"
 	"testing"
 
@@ -143,8 +146,6 @@ func TestNewOTELSink(t *testing.T) {
 	}
 }
 
-// TestOTELSink performs concurrent metric instrument operations on the sink.
-// When run with go test -race, this test should pass if implementation is concurrency safe.
 func TestOTELSink(t *testing.T) {
 	t.Parallel()
 
@@ -167,65 +168,152 @@ func TestOTELSink(t *testing.T) {
 		},
 	}
 
+	sink.SetGauge([]string{"consul", "raft", "leader"}, float32(0))
+	sink.SetGaugeWithLabels([]string{"consul", "autopilot", "healthy"}, float32(1.23), labels)
+
+	sink.IncrCounter([]string{"consul", "raft", "state", "leader"}, float32(23.23))
+	sink.IncrCounterWithLabels([]string{"consul", "raft", "apply"}, float32(1.44), labels)
+
+	sink.AddSample([]string{"consul", "raft", "leader", "lastContact"}, float32(45.32))
+	sink.AddSampleWithLabels([]string{"consul", "raft", "commitTime"}, float32(26.34), labels)
+
+	var collected metricdata.ResourceMetrics
+	err = reader.Collect(ctx, &collected)
+	require.NoError(t, err)
+
+	isSame(t, expectedSinkMetrics, collected)
+}
+
+func TestOTELSink_Race(t *testing.T) {
+	reader := metric.NewManualReader()
+	ctx := context.Background()
+	opts := &OTELSinkOpts{
+		Ctx:    ctx,
+		Reader: reader,
+	}
+
+	sink, err := NewOTELSink(opts)
+	require.NoError(t, err)
+
+	expectedMetrics := generateSamples(100)
+
 	wg := &sync.WaitGroup{}
-	wg.Add(6)
-
-	go func() {
-		sink.SetGauge([]string{"consul", "raft", "leader"}, float32(0))
-		wg.Done()
-
-	}()
-
-	go func() {
-		sink.SetGaugeWithLabels([]string{"consul", "autopilot", "healthy"}, float32(1.23), labels)
-		wg.Done()
-	}()
-
-	go func() {
-		sink.IncrCounter([]string{"consul", "raft", "state", "leader"}, float32(23.23))
-		wg.Done()
-	}()
-
-	go func() {
-		sink.IncrCounterWithLabels([]string{"consul", "raft", "apply"}, float32(1.44), labels)
-		wg.Done()
-	}()
-
-	go func() {
-		sink.AddSample([]string{"consul", "raft", "leader", "lastContact"}, float32(45.32))
-		wg.Done()
-	}()
-
-	go func() {
-		sink.AddSampleWithLabels([]string{"consul", "raft", "commitTime"}, float32(26.34), labels)
-		wg.Done()
-	}()
-
+	for k, v := range expectedMetrics {
+		wg.Add(1)
+		go performSinkOperation(t, sink, k, v, wg)
+	}
 	wg.Wait()
 
 	var collected metricdata.ResourceMetrics
 	err = reader.Collect(ctx, &collected)
 	require.NoError(t, err)
 
+	isSame(t, expectedMetrics, collected)
+}
+
+// generateSamples generates n of each gauges, counter and histogram measurements to use for test purposes.
+func generateSamples(n int) map[string]metricdata.Metrics {
+	generated := make(map[string]metricdata.Metrics, 3*n)
+
+	for i := 0; i < n; i++ {
+		v := rand.Float64()
+		k := fmt.Sprintf("consul.test.gauges.%d", i)
+		generated[k] = metricdata.Metrics{
+			Name: k,
+			Data: metricdata.Gauge[float64]{
+				DataPoints: []metricdata.DataPoint[float64]{
+					{
+						Attributes: *attribute.EmptySet(),
+						Value:      float64(float32(v)),
+					},
+				},
+			},
+		}
+	}
+
+	for i := 0; i < n; i++ {
+		v := rand.Float64()
+		k := fmt.Sprintf("consul.test.sum.%d", i)
+		generated[k] = metricdata.Metrics{
+			Name: k,
+			Data: metricdata.Sum[float64]{
+				DataPoints: []metricdata.DataPoint[float64]{
+					{
+						Attributes: *attribute.EmptySet(),
+						Value:      float64(float32(v)),
+					},
+				},
+			},
+		}
+
+	}
+
+	for i := 0; i < n; i++ {
+		v := rand.Float64()
+		k := fmt.Sprintf("consul.test.hist.%d", i)
+		generated[k] = metricdata.Metrics{
+			Name: k,
+			Data: metricdata.Histogram[float64]{
+				DataPoints: []metricdata.HistogramDataPoint[float64]{
+					{
+						Attributes: *attribute.EmptySet(),
+						Sum:        float64(float32(v)),
+						Max:        metricdata.NewExtrema(float64(float32(v))),
+						Min:        metricdata.NewExtrema(float64(float32(v))),
+						Count:      1,
+					},
+				},
+			},
+		}
+	}
+
+	return generated
+}
+
+// performSinkOperation emits a measurement using the OTELSink and calls wg.Done() when completed.
+func performSinkOperation(t *testing.T, sink *OTELSink, k string, v metricdata.Metrics, wg *sync.WaitGroup) {
+	key := strings.Split(k, ".")
+	data := v.Data
+	switch data.(type) {
+	case metricdata.Gauge[float64]:
+		gauge, ok := data.(metricdata.Gauge[float64])
+		require.True(t, ok)
+
+		sink.SetGauge(key, float32(gauge.DataPoints[0].Value))
+	case metricdata.Sum[float64]:
+		sum, ok := data.(metricdata.Sum[float64])
+		require.True(t, ok)
+
+		sink.IncrCounter(key, float32(sum.DataPoints[0].Value))
+	case metricdata.Histogram[float64]:
+		hist, ok := data.(metricdata.Histogram[float64])
+		require.True(t, ok)
+
+		sink.AddSample(key, float32(hist.DataPoints[0].Sum))
+	}
+
+	wg.Done()
+}
+
+func isSame(t *testing.T, expectedMap map[string]metricdata.Metrics, actual metricdata.ResourceMetrics) {
 	// Validate resource
-	require.Equal(t, resource.NewSchemaless(), collected.Resource)
+	require.Equal(t, resource.NewSchemaless(), actual.Resource)
 
 	// Validate Metrics
-	require.NotEmpty(t, collected.ScopeMetrics)
-	actualMetrics := collected.ScopeMetrics[0].Metrics
-	require.Equal(t, len(actualMetrics), len(expectedSinkMetrics))
+	require.NotEmpty(t, actual.ScopeMetrics)
+	actualMetrics := actual.ScopeMetrics[0].Metrics
+	require.Equal(t, len(expectedMap), len(actualMetrics))
 
 	for _, actual := range actualMetrics {
 		name := actual.Name
-		expected, ok := expectedSinkMetrics[actual.Name]
+		expected, ok := expectedMap[actual.Name]
 		require.True(t, ok, "metric key %s should be in expectedMetrics map", name)
 		isSameMetrics(t, expected, actual)
 	}
 }
 
 // compareMetrics verifies if two metricdata.Metric objects are equal by ignoring the time component.
-// test metrics should not contain duplicate sums for histograms nor duplicate values for counters/gauges
-// to ensure predictable order of data.
+// avoid duplicate datapoint values to ensure predictable order of sort.
 func isSameMetrics(t *testing.T, expected metricdata.Metrics, actual metricdata.Metrics) {
 	require.Equal(t, expected.Name, actual.Name, "different .Name field")
 	require.Equal(t, expected.Description, actual.Description, "different .Description field")
@@ -236,12 +324,12 @@ func isSameMetrics(t *testing.T, expected metricdata.Metrics, actual metricdata.
 		actualData, ok := actual.Data.(metricdata.Gauge[float64])
 		require.True(t, ok, "different metric types: expected metricdata.Gauge[float64]")
 
-		isSameData(t, expectedData.DataPoints, actualData.DataPoints)
+		isSameDataPoint(t, expectedData.DataPoints, actualData.DataPoints)
 	case metricdata.Sum[float64]:
 		actualData, ok := actual.Data.(metricdata.Sum[float64])
 		require.True(t, ok, "different metric types: expected metricdata.Sum[float64]")
 
-		isSameData(t, expectedData.DataPoints, actualData.DataPoints)
+		isSameDataPoint(t, expectedData.DataPoints, actualData.DataPoints)
 	case metricdata.Histogram[float64]:
 		actualData, ok := actual.Data.(metricdata.Histogram[float64])
 		require.True(t, ok, "different metric types: expected metricdata.Histogram")
@@ -250,11 +338,10 @@ func isSameMetrics(t *testing.T, expected metricdata.Metrics, actual metricdata.
 	}
 }
 
-func isSameData(t *testing.T, expected []metricdata.DataPoint[float64], actual []metricdata.DataPoint[float64]) {
+func isSameDataPoint(t *testing.T, expected []metricdata.DataPoint[float64], actual []metricdata.DataPoint[float64]) {
 	require.Equal(t, len(expected), len(actual), "different datapoints length")
 
 	// Sort for predictable data in order of lowest value.
-	// Test cases should not contain duplicate values.
 	sort.Slice(expected, func(i, j int) bool {
 		return expected[i].Value < expected[j].Value
 	})
@@ -274,7 +361,6 @@ func isSameHistogramData(t *testing.T, expected []metricdata.HistogramDataPoint[
 	require.Equal(t, len(expected), len(actual), "different histogram datapoint length")
 
 	// Sort for predictable data in order of lowest sum.
-	// Test cases should not contain duplicate sums.
 	sort.Slice(expected, func(i, j int) bool {
 		return expected[i].Sum < expected[j].Sum
 	})
