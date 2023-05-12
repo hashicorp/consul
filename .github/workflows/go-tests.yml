@@ -186,8 +186,7 @@ jobs:
   set-test-package-matrix:
     needs:
       - setup
-    # runs-on: ${{ needs.setup.outputs.compute-medium }}
-    runs-on: ubuntu-latest
+    runs-on: ${{ needs.setup.outputs.compute-xl }}
     outputs:
       package-matrix: ${{ steps.set-matrix.outputs.matrix }}
     steps:
