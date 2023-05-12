@@ -34,6 +34,8 @@ func OpenServerMetadata(filename string) (io.WriteCloser, error) {
 	return os.OpenFile(filename, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
 }
 
+type ServerMetadataReadFunc func(filename string) (*ServerMetadata, error)
+
 // ReadServerMetadata is a helper function for reading the contents of a server
 // metadata file and unmarshaling the data from JSON.
 func ReadServerMetadata(filename string) (*ServerMetadata, error) {

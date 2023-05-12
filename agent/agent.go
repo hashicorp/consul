@@ -625,8 +625,9 @@ func (a *Agent) Start(ctx context.Context) error {
 	if c.ServerMode {
 		serverLogger := a.baseDeps.Logger.NamedIntercept(logging.ConsulServer)
 
-		// TODO: maybe this is called too early?
-		if err := a.checkServerLastSeen(); err != nil {
+		// Check for a last seen timestamp and exit if deemed stale before attempting to join
+		// Serf/Raft or listen for requests.
+		if err := a.checkServerLastSeen(consul.ReadServerMetadata); err != nil {
 			// TODO: log a  bunch of times first?
 			return err
 		}
@@ -4576,7 +4577,8 @@ func (a *Agent) persistServerMetadata() {
 	}
 }
 
-// checkServerLastSeen is a safety check for preventing old servers from rejoining an existing cluster.
+// checkServerLastSeen is a safety check that only occurs once of startup to prevent old servers
+// with stale data from rejoining an existing cluster.
 //
 // It attempts to read a server's metadata file and check the last seen Unix timestamp against a
 // configurable max age. If the metadata file does not exist, we treat this as an initial startup
@@ -4584,13 +4586,13 @@ func (a *Agent) persistServerMetadata() {
 //
 // Example: if the server recorded a last seen timestamp of now-7d, and we configure a max age
 // of 3d, then we should prevent the server from rejoining.
-func (a *Agent) checkServerLastSeen() error {
+func (a *Agent) checkServerLastSeen(readFn consul.ServerMetadataReadFunc) error {
 	filename := filepath.Join(a.config.DataDir, consul.ServerMetadataFile)
 
 	// Read server metadata file.
-	md, err := consul.ReadServerMetadata(filename)
+	md, err := readFn(filename)
 	if err != nil {
-		// Return early if it doesn't as this indicates the server is starting for the first time.
+		// Return early if it doesn't exist as this likely indicates the server is starting for the first time.
 		if errors.Is(err, os.ErrNotExist) {
 			return nil
 		}
