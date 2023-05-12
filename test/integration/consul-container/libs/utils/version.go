@@ -5,6 +5,7 @@ package utils
 
 import (
 	"flag"
+	"strings"
 
 	"github.com/hashicorp/go-version"
 )
@@ -56,7 +57,7 @@ func GetLatestImageName() string {
 
 func DockerImage(image, version string) string {
 	v := image + ":" + version
-	if image == DefaultImageNameENT && isSemVer(version) {
+	if strings.Contains(image, DefaultImageNameENT) && isSemVer(version) {
 		// Enterprise versions get a suffix.
 		v += ImageVersionSuffixENT
 	}
@@ -80,4 +81,18 @@ func VersionLT(a, b string) bool {
 	av := version.Must(version.NewVersion(a))
 	bv := version.Must(version.NewVersion(b))
 	return av.LessThan(bv)
+}
+
+// SideCarVersion returns version based on the agent
+// version in the test: if agent has local, the sidecar
+// version is target-version; otherwise use "latest-version"
+func SideCarVersion(agentVersion string) string {
+	imageVersion := ""
+	if strings.Contains(agentVersion, "local") {
+		imageVersion = "target-version"
+	} else {
+		imageVersion = "latest-version"
+	}
+
+	return imageVersion
 }
