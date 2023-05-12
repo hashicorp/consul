@@ -75,8 +75,8 @@ Usage: `consul connect envoy [options] [-- pass-through options]`
   In cases where either assumption is violated this flag will prevent the
   command attempting to resolve config from the local agent.
 
-- `envoy_hcp_metrics_bind_socket_dir` - Specifies the directory where Envoy creates a unix socket. 
-  Envoy sends metrics to the socket so that HCP collectors can connect to collect them." 
+- `envoy_telemetry_collector_bind_socket_dir` - Specifies the directory where Envoy creates a unix socket. 
+  Envoy sends metrics to the socket so that a consul telemetry collector can connect to collect them." 
   The socket is not configured by default.
 
 - `-envoy-ready-bind-address` - By default the proxy does not have a readiness probe
