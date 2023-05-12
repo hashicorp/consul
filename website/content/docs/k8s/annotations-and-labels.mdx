@@ -96,7 +96,7 @@ The following Kubernetes resource annotations could be used on a pod to control 
         ```
 
         If the namespace is not specified, the annotation defaults to the namespace of the source service.
-        If your version of Consul Enterprise in lower than v1.7, Consul interprets the value placed in the namespace position as part of the service name.
+        Consul Enterprise v1.7 and older interprets the value placed in the namespace position as part of the service name.
 
       - Admin partitions (requires Consul Enterprise 1.11+): Upstream services may be running in a different
         partition. When specifying a partition, you must also specify a namespace. Place the partition name after the namespace. If you specify the name of the datacenter, it must be the local datacenter. Communicating across partitions using this method is only supported within a
