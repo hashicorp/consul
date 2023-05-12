@@ -146,7 +146,14 @@ func TestVerifyCCMRegistration(t *testing.T) {
 			}
 
 			require.NoError(t, err)
-			require.Equal(t, url, test.expectedURL)
+			if test.expectedURL == "" {
+				require.Nil(t, url)
+				return
+			}
+
+			expURL, err := url.Parse(test.expectedURL)
+			require.NoError(t, err)
+			require.Equal(t, url, expURL)
 		})
 	}
 }

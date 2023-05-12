@@ -9,9 +9,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/hashicorp/consul/agent/hcp/config"
-	"github.com/hashicorp/consul/version"
-
 	httptransport "github.com/go-openapi/runtime/client"
 	"github.com/go-openapi/strfmt"
 
@@ -20,6 +17,9 @@ import (
 	gnmmod "github.com/hashicorp/hcp-sdk-go/clients/cloud-global-network-manager-service/preview/2022-02-15/models"
 	"github.com/hashicorp/hcp-sdk-go/httpclient"
 	"github.com/hashicorp/hcp-sdk-go/resource"
+
+	"github.com/hashicorp/consul/agent/hcp/config"
+	"github.com/hashicorp/consul/version"
 )
 
 // Client interface exposes HCP operations that can be invoked by Consul

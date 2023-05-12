@@ -60,7 +60,7 @@ type OTELSink struct {
 // NewOTELReader returns a configured OTEL PeriodicReader to export metrics every X seconds.
 // It configures the reader with a custom OTELExporter with a MetricsClient to transform and export
 // metrics in OTLP format to an external url.
-func NewOTELReader(client client.MetricsClient, url url.URL, exportInterval time.Duration) otelsdk.Reader {
+func NewOTELReader(client client.MetricsClient, url *url.URL, exportInterval time.Duration) otelsdk.Reader {
 	exporter := NewOTELExporter(client, url)
 	return otelsdk.NewPeriodicReader(exporter, otelsdk.WithInterval(exportInterval))
 }
