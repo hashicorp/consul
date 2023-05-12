@@ -184,6 +184,8 @@ jobs:
       elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
   
   set-test-package-matrix:
+    needs:
+      - setup
     runs-on: ${{ needs.setup.outputs.compute-small }}
     outputs:
       package-matrix: ${{ steps.set-matrix.outputs.matrix }}
