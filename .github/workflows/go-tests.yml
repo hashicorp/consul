@@ -195,7 +195,25 @@ jobs:
         with:
           go-version-file: 'go.mod'
       - id: set-matrix
-        run: ./.github/scripts/set_test_package_matrix.sh ${{env.TOTAL_RUNNERS}}
+        env:
+          TOTAL_RUNNERS: 5
+          JQ_SLICER: '[ inputs ] | [_nwise(length / $runnercount | floor)]'
+        run: |
+          NUM_RUNNERS=$TOTAL_RUNNERS
+          NUM_DIRS=$(go test ./...  -list=. -json | jq -r '.Output | select (. !=null) |  select(. | startswith("Test")) | gsub("[\\n\\t]"; "")' | wc -l)
+          
+          if [ "$NUM_DIRS" -lt "$NUM_RUNNERS" ]; then
+            echo "TOTAL_RUNNERS is larger than the number of tests/packages to split."
+            NUM_RUNNERS=$((NUM_DIRS-1))
+          fi
+          # fix issue where test splitting calculation generates 1 more split than TOTAL_RUNNERS.
+          NUM_RUNNERS=$((NUM_RUNNERS-1))
+          {
+            echo -n "matrix="
+            go test ./...  -list=. -json | jq -r '.Output | select (. !=null) |  select(. | startswith("Test")) | gsub("[\\n\\t]"; "")' \
+            | jq --raw-input --argjson runnercount "$NUM_RUNNERS" "$JQ_SLICER" \
+            | jq --compact-output 'map(join("|"))'
+          } >> "$GITHUB_OUTPUT"
 
   # dev-build-arm64:
   #   # only run on enterprise because GHA does not have arm64 runners in OSS
