@@ -63,7 +63,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        package: ${{ fromJson(inputs.package-matrix) }}
+        test-cases: ${{ fromJson(inputs.package-matrix) }}
     steps:   
       - name: ulimit
         run: |
@@ -99,10 +99,6 @@ jobs:
       - name: Run tests 
         working-directory: ${{inputs.directory}}
         run: |
-          # separate the list
-          PACKAGE_NAMES="${{ join(matrix.package, ' ') }}"
-          # PACKAGE_NAMES="${{ matrix.package }}"
-
           ${{inputs.go-test-flags}}
           
           # some tests expect this umask, and arm images have a different default
@@ -115,7 +111,8 @@ jobs:
           --rerun-fails=3 \
           --rerun-fails-max-failures=40 \
           --rerun-fails-report=/tmp/gotestsum-rerun-fails \
-          --packages="$PACKAGE_NAMES" \
+          -json ./... \
+          -run "${{ matrix.test-cases }}" \  
           --junitfile ${{env.TEST_RESULTS}}/gotestsum-report.xml -- \
           -tags="${{env.GOTAGS}}" -p 2 \
           ${GO_TEST_FLAGS-} \
