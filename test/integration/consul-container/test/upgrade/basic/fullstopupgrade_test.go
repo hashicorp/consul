@@ -32,7 +32,7 @@ var (
 
 // Test upgrade a cluster of latest version to the target version
 func TestStandardUpgradeToTarget_fromLatest(t *testing.T) {
-	t.Parallel()
+	// t.Parallel()
 
 	tcs = append(tcs,
 		testcase{

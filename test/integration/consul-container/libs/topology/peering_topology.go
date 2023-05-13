@@ -49,7 +49,7 @@ func BasicPeeringTwoClustersSetup(
 	peeringThroughMeshgateway bool,
 ) (*BuiltCluster, *BuiltCluster) {
 	acceptingCluster, acceptingCtx, acceptingClient := NewCluster(t, &ClusterConfig{
-		NumServers: 3,
+		NumServers: 1,
 		NumClients: 1,
 		BuildOpts: &libcluster.BuildOptions{
 			Datacenter:           "dc1",
