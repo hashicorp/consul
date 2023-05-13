@@ -481,6 +481,7 @@ jobs:
       - setup
       - dev-build
     strategy:
+      fail-fast: false
       matrix:
         consul-version: [ "1.14", "1.15"]
     env:
@@ -524,6 +525,7 @@ jobs:
             --raw-command \
             --format=short-verbose \
             --debug \
+            --rerun-fails=3 \
             --packages="./..." \
             -- \
             go test \
