@@ -525,7 +525,6 @@ jobs:
             --raw-command \
             --format=short-verbose \
             --debug \
-            --rerun-fails=3 \
             --packages="./..." \
             -- \
             go test \
