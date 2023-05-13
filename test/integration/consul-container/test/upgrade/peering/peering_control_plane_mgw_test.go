@@ -25,9 +25,16 @@ import (
 // 3. Upgrade both clusters
 // 4. Verify the peering is re-established through mesh gateway
 func TestPeering_ControlPlaneMGW(t *testing.T) {
-	// t.Parallel()
+	t.Parallel()
 
-	accepting, dialing := libtopology.BasicPeeringTwoClustersSetup(t, utils.GetLatestImageName(), utils.LatestVersion, true)
+	accepting, dialing := libtopology.BasicPeeringTwoClustersSetup(t, utils.GetLatestImageName(), utils.LatestVersion,
+		libtopology.PeeringClusterSize{
+			AcceptingNumServers: 1,
+			AcceptingNumClients: 1,
+			DialingNumServers:   1,
+			DialingNumClients:   1,
+		},
+		true)
 	var (
 		acceptingCluster = accepting.Cluster
 		dialingCluster   = dialing.Cluster
