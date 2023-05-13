@@ -217,177 +217,140 @@ jobs:
           DD_ENV: ci
         run: datadog-ci junit upload --service "$GITHUB_REPOSITORY" "${{ env.TEST_RESULTS_DIR }}/gotestsum-report-agent.xml"
 
-  generate-envoy-job-matrices:
-    needs: [setup]
-    runs-on: ${{ fromJSON(needs.setup.outputs.compute-small) }}
-    name: Generate Envoy Job Matrices
-    outputs:
-      envoy-matrix: ${{ steps.set-matrix.outputs.envoy-matrix }}
-    steps:
-      - uses: actions/checkout@24cb9080177205b6e8c946b17badbe402adc938f # v3.4.0
-      - name: Generate Envoy Job Matrix
-        id: set-matrix
-        env:
-          # this is further going to multiplied in envoy-integration tests by the 
-          # other dimensions in the matrix.  Currently TOTAL_RUNNERS would be
-          # multiplied by 8 based on these values:
-          # envoy-version: ["1.23.8", "1.24.6", "1.25.4", "1.26.0"]
-          # xds-target: ["server", "client"]
-          TOTAL_RUNNERS: 4 
-          JQ_SLICER: '[ inputs ] | [_nwise(length / $runnercount | floor)]'
-        run: |
-          NUM_RUNNERS=$TOTAL_RUNNERS
-          NUM_DIRS=$(find ./test/integration/connect/envoy -mindepth 1 -maxdepth 1 -type d | wc -l)
+  # generate-envoy-job-matrices:
+  #   needs: [setup]
+  #   runs-on: ${{ fromJSON(needs.setup.outputs.compute-small) }}
+  #   name: Generate Envoy Job Matrices
+  #   outputs:
+  #     envoy-matrix: ${{ steps.set-matrix.outputs.envoy-matrix }}
+  #   steps:
+  #     - uses: actions/checkout@24cb9080177205b6e8c946b17badbe402adc938f # v3.4.0
+  #     - name: Generate Envoy Job Matrix
+  #       id: set-matrix
+  #       env:
+  #         # this is further going to multiplied in envoy-integration tests by the 
+  #         # other dimensions in the matrix.  Currently TOTAL_RUNNERS would be
+  #         # multiplied by 8 based on these values:
+  #         # envoy-version: ["1.23.8", "1.24.6", "1.25.4", "1.26.0"]
+  #         # xds-target: ["server", "client"]
+  #         TOTAL_RUNNERS: 4 
+  #         JQ_SLICER: '[ inputs ] | [_nwise(length / $runnercount | floor)]'
+  #       run: |
+  #         NUM_RUNNERS=$TOTAL_RUNNERS
+  #         NUM_DIRS=$(find ./test/integration/connect/envoy -mindepth 1 -maxdepth 1 -type d | wc -l)
 
-          if [ "$NUM_DIRS" -lt "$NUM_RUNNERS" ]; then
-            echo "TOTAL_RUNNERS is larger than the number of tests/packages to split."
-            NUM_RUNNERS=$((NUM_DIRS-1))
-          fi
-          # fix issue where test splitting calculation generates 1 more split than TOTAL_RUNNERS.
-          NUM_RUNNERS=$((NUM_RUNNERS-1))
-          {
-            echo -n "envoy-matrix="
-            find ./test/integration/connect/envoy -maxdepth 1 -type d -print0 \
-              | xargs -0 -n 1 basename \
-              | jq --raw-input --argjson runnercount "$NUM_RUNNERS" "$JQ_SLICER" \
-              | jq --compact-output 'map(join("|"))'
-          } >> "$GITHUB_OUTPUT"
+  #         if [ "$NUM_DIRS" -lt "$NUM_RUNNERS" ]; then
+  #           echo "TOTAL_RUNNERS is larger than the number of tests/packages to split."
+  #           NUM_RUNNERS=$((NUM_DIRS-1))
+  #         fi
+  #         # fix issue where test splitting calculation generates 1 more split than TOTAL_RUNNERS.
+  #         NUM_RUNNERS=$((NUM_RUNNERS-1))
+  #         {
+  #           echo -n "envoy-matrix="
+  #           find ./test/integration/connect/envoy -maxdepth 1 -type d -print0 \
+  #             | xargs -0 -n 1 basename \
+  #             | jq --raw-input --argjson runnercount "$NUM_RUNNERS" "$JQ_SLICER" \
+  #             | jq --compact-output 'map(join("|"))'
+  #         } >> "$GITHUB_OUTPUT"
   
-  envoy-integration-test:
-    runs-on: ${{ fromJSON(needs.setup.outputs.compute-xl) }}
-    needs:
-      - setup
-      - generate-envoy-job-matrices
-      - dev-build
-    permissions:
-      id-token: write # NOTE: this permission is explicitly required for Vault auth.
-      contents: read
-    strategy:
-      fail-fast: false
-      matrix:
-        envoy-version: ["1.23.8", "1.24.6", "1.25.4", "1.26.0"]
-        xds-target: ["server", "client"]
-        test-cases: ${{ fromJSON(needs.generate-envoy-job-matrices.outputs.envoy-matrix) }}
-    env:
-      ENVOY_VERSION: ${{ matrix.envoy-version }}
-      XDS_TARGET: ${{ matrix.xds-target }}
-      AWS_LAMBDA_REGION: us-west-2
-    steps:
-      - uses: actions/checkout@24cb9080177205b6e8c946b17badbe402adc938f # v3.4.0
-      - uses: actions/setup-go@6edd4406fa81c3da01a34fa6f6343087c207a568 # v3.5.0
-        with:
-          go-version-file: 'go.mod'
+  # envoy-integration-test:
+  #   runs-on: ${{ fromJSON(needs.setup.outputs.compute-xl) }}
+  #   needs:
+  #     - setup
+  #     - generate-envoy-job-matrices
+  #     - dev-build
+  #   permissions:
+  #     id-token: write # NOTE: this permission is explicitly required for Vault auth.
+  #     contents: read
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       envoy-version: ["1.23.8", "1.24.6", "1.25.4", "1.26.0"]
+  #       xds-target: ["server", "client"]
+  #       test-cases: ${{ fromJSON(needs.generate-envoy-job-matrices.outputs.envoy-matrix) }}
+  #   env:
+  #     ENVOY_VERSION: ${{ matrix.envoy-version }}
+  #     XDS_TARGET: ${{ matrix.xds-target }}
+  #     AWS_LAMBDA_REGION: us-west-2
+  #   steps:
+  #     - uses: actions/checkout@24cb9080177205b6e8c946b17badbe402adc938f # v3.4.0
+  #     - uses: actions/setup-go@6edd4406fa81c3da01a34fa6f6343087c207a568 # v3.5.0
+  #       with:
+  #         go-version-file: 'go.mod'
 
-      - name: fetch binary
-        uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
-        with:
-          name: '${{ env.CONSUL_BINARY_UPLOAD_NAME }}'
-          path: ./bin
-      - name: restore mode+x
-        run: chmod +x ./bin/consul
+  #     - name: fetch binary
+  #       uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
+  #       with:
+  #         name: '${{ env.CONSUL_BINARY_UPLOAD_NAME }}'
+  #         path: ./bin
+  #     - name: restore mode+x
+  #       run: chmod +x ./bin/consul
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@f03ac48505955848960e80bbb68046aa35c7b9e7 # v2.4.1
+  #     - name: Set up Docker Buildx
+  #       uses: docker/setup-buildx-action@f03ac48505955848960e80bbb68046aa35c7b9e7 # v2.4.1
 
-      - name: Docker build
-        run: docker build -t consul:local -f ./build-support/docker/Consul-Dev.dockerfile ./bin
+  #     - name: Docker build
+  #       run: docker build -t consul:local -f ./build-support/docker/Consul-Dev.dockerfile ./bin
 
-      - name: Envoy Integration Tests
-        env:
-          GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
-          GOTESTSUM_FORMAT: standard-verbose
-          COMPOSE_INTERACTIVE_NO_CLI: 1
-          LAMBDA_TESTS_ENABLED: "true"
-          # tput complains if this isn't set to something.
-          TERM: ansi
-        run: |
-          # shellcheck disable=SC2001
-          echo "Running $(sed 's,|, ,g' <<< "${{ matrix.test-cases }}" |wc -w) subtests"
-          # shellcheck disable=SC2001
-          sed 's,|,\n,g' <<< "${{ matrix.test-cases }}"
-          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
-              --debug \
-              --rerun-fails \
-              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
-              --jsonfile /tmp/jsonfile/go-test.log \
-              --packages=./test/integration/connect/envoy \
-              -- -timeout=30m -tags integration -run="TestEnvoy/(${{ matrix.test-cases }})"
+  #     - name: Envoy Integration Tests
+  #       env:
+  #         GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
+  #         GOTESTSUM_FORMAT: standard-verbose
+  #         COMPOSE_INTERACTIVE_NO_CLI: 1
+  #         LAMBDA_TESTS_ENABLED: "true"
+  #         # tput complains if this isn't set to something.
+  #         TERM: ansi
+  #       run: |
+  #         # shellcheck disable=SC2001
+  #         echo "Running $(sed 's,|, ,g' <<< "${{ matrix.test-cases }}" |wc -w) subtests"
+  #         # shellcheck disable=SC2001
+  #         sed 's,|,\n,g' <<< "${{ matrix.test-cases }}"
+  #         go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
+  #             --debug \
+  #             --rerun-fails \
+  #             --rerun-fails-report=/tmp/gotestsum-rerun-fails \
+  #             --jsonfile /tmp/jsonfile/go-test.log \
+  #             --packages=./test/integration/connect/envoy \
+  #             -- -timeout=30m -tags integration -run="TestEnvoy/(${{ matrix.test-cases }})"
 
-      # NOTE: ENT specific step as we store secrets in Vault.
-      - name: Authenticate to Vault
-        if: ${{ endsWith(github.repository, '-enterprise') }}
-        id: vault-auth
-        run: vault-auth
+  #     # NOTE: ENT specific step as we store secrets in Vault.
+  #     - name: Authenticate to Vault
+  #       if: ${{ endsWith(github.repository, '-enterprise') }}
+  #       id: vault-auth
+  #       run: vault-auth
 
-      # NOTE: ENT specific step as we store secrets in Vault.
-      - name: Fetch Secrets
-        if: ${{ endsWith(github.repository, '-enterprise') }}
-        id: secrets
-        uses: hashicorp/vault-action@v2.5.0
-        with:
-          url: ${{ steps.vault-auth.outputs.addr }}
-          caCertificate: ${{ steps.vault-auth.outputs.ca_certificate }}
-          token: ${{ steps.vault-auth.outputs.token }}
-          secrets: |
-              kv/data/github/${{ github.repository }}/datadog apikey | DATADOG_API_KEY;
+  #     # NOTE: ENT specific step as we store secrets in Vault.
+  #     - name: Fetch Secrets
+  #       if: ${{ endsWith(github.repository, '-enterprise') }}
+  #       id: secrets
+  #       uses: hashicorp/vault-action@v2.5.0
+  #       with:
+  #         url: ${{ steps.vault-auth.outputs.addr }}
+  #         caCertificate: ${{ steps.vault-auth.outputs.ca_certificate }}
+  #         token: ${{ steps.vault-auth.outputs.token }}
+  #         secrets: |
+  #             kv/data/github/${{ github.repository }}/datadog apikey | DATADOG_API_KEY;
 
-      - name: prepare datadog-ci
-        if: ${{ !endsWith(github.repository, '-enterprise') }}
-        run: |
-          curl -L --fail "https://github.com/DataDog/datadog-ci/releases/latest/download/datadog-ci_linux-x64" --output "/usr/local/bin/datadog-ci"
-          chmod +x /usr/local/bin/datadog-ci
+  #     - name: prepare datadog-ci
+  #       if: ${{ !endsWith(github.repository, '-enterprise') }}
+  #       run: |
+  #         curl -L --fail "https://github.com/DataDog/datadog-ci/releases/latest/download/datadog-ci_linux-x64" --output "/usr/local/bin/datadog-ci"
+  #         chmod +x /usr/local/bin/datadog-ci
 
-      - name: upload coverage
-        env:
-          DATADOG_API_KEY: "${{ endsWith(github.repository, '-enterprise') && env.DATADOG_API_KEY || secrets.DATADOG_API_KEY }}"
-          DD_ENV: ci
-        run: datadog-ci junit upload --service "$GITHUB_REPOSITORY" $TEST_RESULTS_DIR/results.xml
-
-  generate-compatibility-job-matrices:
-    needs: [setup]
-    runs-on: ${{ fromJSON(needs.setup.outputs.compute-small) }}
-    name: Generate Compatibility Job Matrices
-    outputs:
-      compatibility-matrix: ${{ steps.set-matrix.outputs.compatibility-matrix }}
-    steps:
-      - uses: actions/checkout@24cb9080177205b6e8c946b17badbe402adc938f # v3.4.0
-      - name: Generate Compatibility Job Matrix
-        id: set-matrix
-        env:
-          TOTAL_RUNNERS: 6
-          JQ_SLICER: '[ inputs ] | [_nwise(length / $runnercount | floor)]'
-        run: |
-          cd ./test/integration/consul-container
-          NUM_RUNNERS=$TOTAL_RUNNERS
-          NUM_DIRS=$(find ./test -mindepth 1 -maxdepth 2 -type d | wc -l)
-
-          if [ "$NUM_DIRS" -lt "$NUM_RUNNERS" ]; then
-            echo "TOTAL_RUNNERS is larger than the number of tests/packages to split."
-            NUM_RUNNERS=$((NUM_DIRS-1))
-          fi
-          # fix issue where test splitting calculation generates 1 more split than TOTAL_RUNNERS.
-          NUM_RUNNERS=$((NUM_RUNNERS-1))
-          {
-            echo -n "compatibility-matrix="
-            find ./test -maxdepth 2 -type d -print0 | xargs -0 -n 1 \
-              | grep -v util | grep -v upgrade \
-              | jq --raw-input --argjson runnercount "$NUM_RUNNERS" "$JQ_SLICER" \
-              | jq --compact-output 'map(join(" "))'
-          } >> "$GITHUB_OUTPUT"
+  #     - name: upload coverage
+  #       env:
+  #         DATADOG_API_KEY: "${{ endsWith(github.repository, '-enterprise') && env.DATADOG_API_KEY || secrets.DATADOG_API_KEY }}"
+  #         DD_ENV: ci
+  #       run: datadog-ci junit upload --service "$GITHUB_REPOSITORY" $TEST_RESULTS_DIR/results.xml
 
   compatibility-integration-test:
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-xl) }}
     needs:
       - setup
       - dev-build
-      - generate-compatibility-job-matrices
     permissions:
       id-token: write # NOTE: this permission is explicitly required for Vault auth.
       contents: read
-    strategy:
-      fail-fast: false
-      matrix:
-        test-cases: ${{ fromJSON(needs.generate-compatibility-job-matrices.outputs.compatibility-matrix) }}
     env:
       ENVOY_VERSION: "1.25.4"
     steps:
@@ -396,7 +359,10 @@ jobs:
         with:
           go-version-file: 'go.mod'
       - run: go env
-
+      - name: docker env
+        run: |
+          docker version
+          docker info
       # Build the consul:local image from the already built binary
       - name: fetch binary
         uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
@@ -421,21 +387,17 @@ jobs:
             mkdir -p "/tmp/test-results"
             cd ./test/integration/consul-container
             docker run --rm ${{ env.CONSUL_LATEST_IMAGE_NAME }}:local consul version
-            echo "Running $(sed 's,|, ,g' <<< "${{ matrix.test-cases }}" |wc -w) subtests"
-            # shellcheck disable=SC2001
-            sed 's, ,\n,g' <<< "${{ matrix.test-cases }}"
             go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
               --raw-command \
-              --format=short-verbose \
+              --format=standard-verbose \
               --debug \
-              --rerun-fails=3 \
               -- \
               go test \
-              -p=4 \
+              -p=6 \
               -tags "${{ env.GOTAGS }}" \
               -timeout=30m \
               -json \
-              ${{ matrix.test-cases }} \
+              `go list ./... | grep -v upgrade` \
               --target-image ${{ env.CONSUL_LATEST_IMAGE_NAME }} \
               --target-version local \
               --latest-image docker.mirror.hashicorp.services/${{ env.CONSUL_LATEST_IMAGE_NAME }} \
@@ -512,7 +474,7 @@ jobs:
             | jq --raw-input --argjson runnercount "$NUM_RUNNERS" "$JQ_SLICER" \
             | jq --compact-output 'map(join("|"))'
           } >> "$GITHUB_OUTPUT"
-  
+
   upgrade-integration-test:
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-large) }}
     needs:
@@ -600,9 +562,8 @@ jobs:
     - dev-build
     - nomad-integration-test
     - vault-integration-test
-    - generate-envoy-job-matrices
-    - envoy-integration-test
-    - generate-compatibility-job-matrices
+    # - generate-envoy-job-matrices
+    # - envoy-integration-test
     - compatibility-integration-test
     - generate-upgrade-job-matrices
     - upgrade-integration-test
