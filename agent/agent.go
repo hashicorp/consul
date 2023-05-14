@@ -4569,7 +4569,6 @@ func (a *Agent) persistServerMetadata() {
 
 			if err := consul.WriteServerMetadata(f); err != nil {
 				f.Close()
-				// TODO: should we exit if this has happened too many times?
 				a.logger.Error("failed to write server metadata: %w", err)
 				continue
 			}
