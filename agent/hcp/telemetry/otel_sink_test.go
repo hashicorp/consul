@@ -3,7 +3,6 @@ package telemetry
 import (
 	"context"
 	"fmt"
-	"math/rand"
 	"sort"
 	"strings"
 	"sync"
@@ -195,14 +194,20 @@ func TestOTELSink_Race(t *testing.T) {
 	sink, err := NewOTELSink(opts)
 	require.NoError(t, err)
 
-	expectedMetrics := generateSamples(100)
-
+	samples := 100
+	expectedMetrics := generateSamples(samples)
 	wg := &sync.WaitGroup{}
+	errCh := make(chan error, samples)
 	for k, v := range expectedMetrics {
 		wg.Add(1)
-		go performSinkOperation(t, sink, k, v, wg)
+		go func(k string, v metricdata.Metrics) {
+			performSinkOperation(t, sink, k, v, errCh)
+			wg.Done()
+		}(k, v)
 	}
 	wg.Wait()
+
+	require.Empty(t, errCh)
 
 	var collected metricdata.ResourceMetrics
 	err = reader.Collect(ctx, &collected)
@@ -216,7 +221,7 @@ func generateSamples(n int) map[string]metricdata.Metrics {
 	generated := make(map[string]metricdata.Metrics, 3*n)
 
 	for i := 0; i < n; i++ {
-		v := rand.Float64()
+		v := 12.3
 		k := fmt.Sprintf("consul.test.gauges.%d", i)
 		generated[k] = metricdata.Metrics{
 			Name: k,
@@ -232,7 +237,7 @@ func generateSamples(n int) map[string]metricdata.Metrics {
 	}
 
 	for i := 0; i < n; i++ {
-		v := rand.Float64()
+		v := 22.23
 		k := fmt.Sprintf("consul.test.sum.%d", i)
 		generated[k] = metricdata.Metrics{
 			Name: k,
@@ -249,7 +254,7 @@ func generateSamples(n int) map[string]metricdata.Metrics {
 	}
 
 	for i := 0; i < n; i++ {
-		v := rand.Float64()
+		v := 13.24
 		k := fmt.Sprintf("consul.test.hist.%d", i)
 		generated[k] = metricdata.Metrics{
 			Name: k,
@@ -271,28 +276,29 @@ func generateSamples(n int) map[string]metricdata.Metrics {
 }
 
 // performSinkOperation emits a measurement using the OTELSink and calls wg.Done() when completed.
-func performSinkOperation(t *testing.T, sink *OTELSink, k string, v metricdata.Metrics, wg *sync.WaitGroup) {
+func performSinkOperation(t *testing.T, sink *OTELSink, k string, v metricdata.Metrics, errCh chan error) {
 	key := strings.Split(k, ".")
 	data := v.Data
 	switch data.(type) {
 	case metricdata.Gauge[float64]:
 		gauge, ok := data.(metricdata.Gauge[float64])
-		require.True(t, ok)
-
+		if !ok {
+			errCh <- fmt.Errorf("unexpected type assertion error for key: %s", key)
+		}
 		sink.SetGauge(key, float32(gauge.DataPoints[0].Value))
 	case metricdata.Sum[float64]:
 		sum, ok := data.(metricdata.Sum[float64])
-		require.True(t, ok)
-
+		if !ok {
+			errCh <- fmt.Errorf("unexpected type assertion error for key: %s", key)
+		}
 		sink.IncrCounter(key, float32(sum.DataPoints[0].Value))
 	case metricdata.Histogram[float64]:
 		hist, ok := data.(metricdata.Histogram[float64])
-		require.True(t, ok)
-
+		if !ok {
+			errCh <- fmt.Errorf("unexpected type assertion error for key: %s", key)
+		}
 		sink.AddSample(key, float32(hist.DataPoints[0].Sum))
 	}
-
-	wg.Done()
 }
 
 func isSame(t *testing.T, expectedMap map[string]metricdata.Metrics, actual metricdata.ResourceMetrics) {

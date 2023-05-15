@@ -3,7 +3,6 @@ package telemetry
 import (
 	"context"
 	"fmt"
-	"math/rand"
 	"sync"
 	"testing"
 
@@ -66,22 +65,25 @@ func TestGaugeStore_Race(t *testing.T) {
 	t.Parallel()
 
 	gaugeStore := NewGaugeStore()
+
 	wg := &sync.WaitGroup{}
 	samples := 100
+	errCh := make(chan error, samples)
 	for i := 0; i < samples; i++ {
-		k := fmt.Sprintf("consul.test.%d", i)
-		v := rand.Float64()
 		wg.Add(1)
-		go storeAndRetrieve(t, k, v, gaugeStore, wg)
+		key := fmt.Sprintf("consul.test.%d", i)
+		value := 12.34
+		go func() {
+			defer wg.Done()
+			gaugeStore.Set(key, value, nil)
+			gv, _ := gaugeStore.LoadAndDelete(key)
+			if gv.Value != value {
+				errCh <- fmt.Errorf("expected value: '%f', but got: '%f' for key: '%s'", value, gv.Value, key)
+			}
+		}()
 	}
 
 	wg.Wait()
-}
 
-func storeAndRetrieve(t *testing.T, k string, v float64, gaugeStore *gaugeStore, wg *sync.WaitGroup) {
-	gaugeStore.Set(k, v, nil)
-	gv, ok := gaugeStore.LoadAndDelete(k)
-	require.True(t, ok)
-	require.Equal(t, v, gv.Value)
-	wg.Done()
+	require.Empty(t, errCh)
 }
