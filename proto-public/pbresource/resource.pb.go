@@ -7,6 +7,8 @@
 // 	protoc        (unknown)
 // source: pbresource/resource.proto
 
+// For more information, see: https://github.com/hashicorp/consul/tree/main/docs/resources
+
 package pbresource
 
 import (
