@@ -49,6 +49,9 @@ func TestSink(t *testing.T) {
 			mockCloudCfg: client.MockCloudCfg{},
 		},
 		"noSinkWhenMetricsClientInitFails": {
+			mockCloudCfg: client.MockCloudCfg{
+				ConfigErr: fmt.Errorf("test bad hcp config"),
+			},
 			expect: func(mockClient *client.MockClient) {
 				mockClient.EXPECT().FetchTelemetryConfig(mock.Anything).Return(&client.TelemetryConfig{
 					Endpoint: "https://test.com",
@@ -57,7 +60,6 @@ func TestSink(t *testing.T) {
 					},
 				}, nil)
 			},
-			mockCloudCfg: client.MockErrCloudCfg{},
 		},
 		"failsWithFetchTelemetryFailure": {
 			expect: func(mockClient *client.MockClient) {

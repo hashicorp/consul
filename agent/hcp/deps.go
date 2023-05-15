@@ -73,14 +73,10 @@ func sink(hcpClient hcpclient.Client, cfg hcpclient.CloudConfig, logger hclog.Lo
 		return nil
 	}
 
-	// Set default labels
-	telemetryCfg.Labels["__replica__"] = string(nodeID)
-	telemetryCfg.Labels["node_id"] = string(nodeID)
-
 	sinkOpts := &telemetry.OTELSinkOpts{
 		Ctx:     ctx,
 		Reader:  telemetry.NewOTELReader(metricsClient, u, telemetry.DefaultExportInterval),
-		Labels:  telemetryCfg.Labels,
+		Labels:  defaultLabels(telemetryCfg.Labels, nodeID),
 		Filters: telemetryCfg.MetricsConfig.Filters,
 	}
 
@@ -91,4 +87,20 @@ func sink(hcpClient hcpclient.Client, cfg hcpclient.CloudConfig, logger hclog.Lo
 	}
 
 	return sink
+}
+
+// defaultLabels returns a set of string labels to be sent with each metrics Sink export
+// to the HCP Telemetry Gateway.
+func defaultLabels(cfgLabels map[string]string, nodeID types.NodeID) map[string]string {
+	// Use configured labels, if any.
+	labels := cfgLabels
+	if len(labels) == 0 {
+		labels = make(map[string]string, 2)
+	}
+
+	// Set default labels
+	labels["__replica__"] = string(nodeID)
+	labels["node_id"] = string(nodeID)
+
+	return labels
 }
