@@ -535,6 +535,9 @@ Specifies the type of load balancing policy for selecting a host. Supported load
 - Least request
 - Ring hash
 - Maglev
+- Cookie
+- Header
+- Query Parameter
 
 #### Values
 
@@ -548,6 +551,9 @@ Specifies the type of load balancing policy for selecting a host. Supported load
   | `least_request` | The load balancer forwards a client request to the server with the fewest connections. When using this policy, you can specify additional parameters in [`LoadBalancer{}.LeastRequestConfig`](#loadbalancer-leastrequestconfig). |
   | `ring_hash`     | The load balancer forwards requests from the same client to the same group of servers. When using this policy, you can specify additional parameters in [`LoadBalancer{}.RingHashConfig`](#loadbalancer-ringhashconfig).         |
   | `maglev`        | The load balancer uses a hashing algorithm to spread requests evenly across servers. When using this policy, you can specify additional parameters in [`LoadBalancer{}.HashPolicies`](#loadbalancer-hashpolicies).               |
+  | `cookie` | x | 
+  | `header` | x | 
+  | `query_parameter` | x |
 
 ### `LoadBalancer{}.LeastRequestConfig`
 
