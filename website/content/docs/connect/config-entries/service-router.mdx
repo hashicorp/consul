@@ -26,7 +26,7 @@ The following list outlines field hierarchy, language-specific data types, and r
 - [`Meta`](#meta): map 
 - [`Routes`](#routes): list
   - [`Match`](#routes-match): map
-    - [‘HTTP`](#routes-match-http): map
+    - [`HTTP`](#routes-match-http): map
       - [`PathExact`](#routes-match-http-pathexact): string
       - [`PathPrefix`](#routes-match-http-pathprefix): string
       - [`PathRegex`](#routes-match-http-pathregex): string
@@ -390,12 +390,12 @@ Specifies the [admin partition](/consul/docs/enterprise/admin-partitions) to app
 
 ### `Meta`
 
-Specifies key/value pairs to add to the KV store.
+Specifies key-value pairs to add to the KV store.
 
 #### Values
 
 - Default: None
-- Data type: Map of one or more key/value pairs
+- Data type: Map of one or more key-value pairs
   - `<KEY>`: String
   - `<VALUE>`: String or integer
 
@@ -514,10 +514,10 @@ Specifies the target service to route matching requests to, as well as behavior 
 
 | Parameter | Description                                                                                                                            | Data type | Default |
 | :-------- | :------------------------------------------------------------------------------------------------------------------------------------- | --------- | ------- |
-| `Service` | Specifies the name of the service to resolve instead of the default. If empty, the default service name is inherited from the configuration entry’s [`Name` field](#name). | String | None |
-| `ServiceSubset` | Specifies a named subset of the given service to resolve instead of the one defined as that service's `DefaultSubset` in the [service resolver configuration entry](/consul/docs/connect/config-entries/service-resolver). If empty, the default subset is used. | String | None |
-| `Namespace` <EnterpriseAlert inline /> | Specifies the Consul namespace to resolve the service from instead of the current namespace. If empty, the current namespace is used. | String | None |
-| `Partition` <EnterpriseAlert inline /> | Specifies the Consul admin partition to resolve the service from instead of the current partition. If empty, the current partition is used. | String | None |
+| `Service` | Specifies the name of the service to resolve. If this parameter is not specified, the default service name is inherited from the configuration entry’s [`Name` field](#name). | String | None |
+| `ServiceSubset` | Specifies a named subset of the given service to resolve instead of the one defined as that service's `DefaultSubset` in the [service resolver configuration entry](/consul/docs/connect/config-entries/service-resolver). If this parameter is not specified, the default subset is used. | String | None |
+| `Namespace` <EnterpriseAlert inline /> | Specifies the Consul namespace to resolve the service from instead of the current namespace. If this parameter is not specified, the current namespace is used. | String | None |
+| `Partition` <EnterpriseAlert inline /> | Specifies the Consul admin partition to resolve the service from instead of the current partition. If this parameter is not specified, the current partition is used. | String | None |
 | `PrefixRewrite` | Specifies rewrites to the HTTP request path before proxying it to its final destination. This field requires that either [`Routes[].Match{}.HTTP{}.PathPrefix`](#routes-match-http-pathprefix) or [`Routes[].Match{}.HTTP{}.PathExact`](#routes-match-http-pathexact) be configured on this route. | String | None |
 | `RequestTimeout` | Specifies the total amount of time permitted for the entire downstream request to be processed, including retry attempts. | Integer | `0` |
 | `IdleTimeout` | Specifies the total amount of time permitted for the request stream to be idle. | Integer | `0` |
@@ -560,16 +560,16 @@ Specifies a set of HTTP-specific header modification rules applied to requests r
 
 - Default: None
 - Values: Object containing one or more fields that define header modification rules:
-  - `Add`: Map of one or more key/value pairs.
-  - `Set`: Map of one or more key/value pairs.
-  - `Remove`: Map of one or more key/value pairs.
+  - `Add`: Map of one or more key-value pairs.
+  - `Set`: Map of one or more key-value pairs.
+  - `Remove`: Map of one or more key-value pairs.
 
 The following table describes how to configure values for request headers:
 
 | Rule | Description | Type |   
 | ---       | ---         | ---         |  
-| `Add` | Defines a set of key/value pairs to add to the header. Use header names as the keys. Header names are not case-sensitive. If header values with the same name already exist, the value is appended and Consul applies both headers. You can [use variable placeholders](#use-variable-placeholders). | map of strings | 
-| `Set` | Defines a set of key/value pairs to add to the request header or to replace existing header values with. Use header names as the keys. Header names are not case-sensitive. If header values with the same names already exist, Consul replaces the header values. You can [use variable placeholders](#use-variable-placeholders). | map of strings | 
+| `Add` | Defines a set of key-value pairs to add to the header. Use header names as the keys. Header names are not case-sensitive. If header values with the same name already exist, the value is appended and Consul applies both headers. You can [use variable placeholders](#use-variable-placeholders). | map of strings | 
+| `Set` | Defines a set of key-value pairs to add to the request header or to replace existing header values with. Use header names as the keys. Header names are not case-sensitive. If header values with the same names already exist, Consul replaces the header values. You can [use variable placeholders](#use-variable-placeholders). | map of strings | 
 | `Remove` | Defines a list of headers to remove. Consul removes only headers containing exact matches. Header names are not case-sensitive. | list of strings |
 
 #### Use variable placeholders
@@ -584,16 +584,16 @@ Specifies a set of HTTP-specific header modification rules applied to responses 
 
 - Default: None
 - Values: Object containing one or more fields that define header modification rules:
-  - `Add`: Map of one or more string key/value pairs.
-  - `Set`: Map of one or more string key/value pairs.
-  - `Remove`: Map of one or more string key/value pairs.
+  - `Add`: Map of one or more string key-value pairs.
+  - `Set`: Map of one or more string key-value pairs.
+  - `Remove`: Map of one or more string key-value pairs.
 
 The following table describes how to configure values for response headers:
   
 | Rule | Description | Type | 
 | ---       | ---         | ---         |  
-| `Add` | Defines a set of key/value pairs to add to the header. Use header names as the keys. Header names are not case-sensitive. If header values with the same name already exist, the value is appended and Consul applies both headers. You can [use variable placeholders](#use-variable-placeholders). | map of strings | 
-| `Set` | Defines a set of key/value pairs to add to the request header or to replace existing header values with. Use header names as the keys. Header names are not case-sensitive. If header values with the same names already exist, Consul replaces the header values. You can [use variable placeholders](#use-variable-placeholders). | map of strings | 
+| `Add` | Defines a set of key-value pairs to add to the header. Use header names as the keys. Header names are not case-sensitive. If header values with the same name already exist, the value is appended and Consul applies both headers. You can [use variable placeholders](#use-variable-placeholders). | map of strings | 
+| `Set` | Defines a set of key-value pairs to add to the request header or to replace existing header values with. Use header names as the keys. Header names are not case-sensitive. If header values with the same names already exist, Consul replaces the header values. You can [use variable placeholders](#use-variable-placeholders). | map of strings | 
 | `Remove` | Defines a list of headers to remove. Consul removes only headers containing exact matches. Header names are not case-sensitive. | list of strings | 
 
 #### Use variable placeholders
@@ -614,7 +614,7 @@ Specifies the type of configuration entry to implement.
 
 #### Values
 
-- Default: none
+- Default: None
 - This field is required.
 - Data type: String value that must be set to `ServiceRouter`. 
 
@@ -648,12 +648,12 @@ Map that contains the details about the `ServiceRouter` configuration entry. The
 
 ### `spec.meta`
 
-Specifies key/value pairs to add to the KV store.
+Specifies key-value pairs to add to the KV store.
 
 #### Values
 
 - Default: none 
-- Data type: Map of one or more key/value pairs 
+- Data type: Map of one or more key-value pairs 
   - keys: String
   - values: String, integer, or float 
 
@@ -772,10 +772,10 @@ Specifies the target service to route matching requests to, as well as behavior 
 
 | Parameter | Description                                                                                                                            | Data type | Default |
 | :-------- | :------------------------------------------------------------------------------------------------------------------------------------- | --------- | ------- |
-| `service` | Specifies the name of the service to resolve instead of the default. If empty, the default service name is inherited from the configuration entry’s [`name` field](#name). | String | None |
-| `serviceSubset` | Specifies a named subset of the given service to resolve instead of the one defined as that service's `defaultSubset` in the [service resolver configuration entry](/consul/docs/connect/config-entries/service-resolver). If empty, the default subset is used. | String | None |
-| `namespace` <EnterpriseAlert inline /> | Specifies the Consul namespace to resolve the service from instead of the current namespace. If empty, the current namespace is used. | String | None |
-| `partition` <EnterpriseAlert inline /> | Specifies the Consul admin partition to resolve the service from instead of the current partition. If empty, the current partition is used. | String | None |
+| `service` | Specifies the name of the service to resolve. If this parameter is not specified, the default service name is inherited from the configuration entry’s [`name` field](#name). | String | None |
+| `serviceSubset` | Specifies a named subset of the given service to resolve instead of the one defined as that service's `defaultSubset` in the [service resolver configuration entry](/consul/docs/connect/config-entries/service-resolver). If this parameter is not specified, the default subset is used. | String | None |
+| `namespace` <EnterpriseAlert inline /> | Specifies the Consul namespace to resolve the service from instead of the current namespace. If this parameter is not specified, the current namespace is used. | String | None |
+| `partition` <EnterpriseAlert inline /> | Specifies the Consul admin partition to resolve the service from instead of the current partition. If this parameter is not specified, the current partition is used. | String | None |
 | `prefixRewrite` | Specifies rewrites to the HTTP request path before proxying it to its final destination. This field requires that either [`spec.routes[].match.http.pathPrefix`](#spec-routes-match-http-pathprefix) or [`spec.routes[].match.http.pathExact`](#spec-routes-match-http-pathexact) be configured on this route. | String | None |
 | `requestTimeout` | Specifies the total amount of time permitted for the entire downstream request to be processed, including retry attempts. | Integer | `0` |
 | `idleTimeout` | Specifies the total amount of time permitted for the request stream to be idle. | Integer | `0` |
@@ -818,16 +818,16 @@ Specifies a set of HTTP-specific header modification rules applied to requests r
 
 - Default: None
 - Values: Object containing one or more fields that define header modification rules:
-  - `add`: Map of one or more key/value pairs.
-  - `set`: Map of one or more key/value pairs.
-  - `remove`: Map of one or more key/value pairs.
+  - `add`: Map of one or more key-value pairs.
+  - `set`: Map of one or more key-value pairs.
+  - `remove`: Map of one or more key-value pairs.
 
 The following table describes how to configure values for request headers:
 
 | Rule | Description | Type |   
 | --- 	    | ---	       | ---         |  
-| `add` | Defines a set of key/value pairs to add to the header. Use header names as the keys. Header names are not case-sensitive. If header values with the same name already exist, the value is appended and Consul applies both headers. You can [use variable placeholders](#use-variable-placeholders). | map of strings | 
-| `set` | Defines a set of key/value pairs to add to the request header or to replace existing header values with. Use header names as the keys. Header names are not case-sensitive. If header values with the same names already exist, Consul replaces the header values. You can [use variable placeholders](#use-variable-placeholders). | map of strings | 
+| `add` | Defines a set of key-value pairs to add to the header. Use header names as the keys. Header names are not case-sensitive. If header values with the same name already exist, the value is appended and Consul applies both headers. You can [use variable placeholders](#use-variable-placeholders). | map of strings | 
+| `set` | Defines a set of key-value pairs to add to the request header or to replace existing header values with. Use header names as the keys. Header names are not case-sensitive. If header values with the same names already exist, Consul replaces the header values. You can [use variable placeholders](#use-variable-placeholders). | map of strings | 
 | `remove` | Defines a list of headers to remove. Consul removes only headers containing exact matches. Header names are not case-sensitive. | list of strings |
 
 #### Use variable placeholders
@@ -842,16 +842,16 @@ Specifies a set of HTTP-specific header modification rules applied to responses 
 
 - Default: None
 - Values: Object containing one or more fields that define header modification rules:
-  - `add`: Map of one or more string key/value pairs.
-  - `set`: Map of one or more string key/value pairs.
-  - `remove`: Map of one or more string key/value pairs.
+  - `add`: Map of one or more string key-value pairs.
+  - `set`: Map of one or more string key-value pairs.
+  - `remove`: Map of one or more string key-value pairs.
 
 The following table describes how to configure values for response headers:
   
 | Rule | Description | Type | 
 | --- 	    | ---	       | ---         |  
-| `add` | Defines a set of key/value pairs to add to the header. Use header names as the keys. Header names are not case-sensitive. If header values with the same name already exist, the value is appended and Consul applies both headers. You can [use variable placeholders](#use-variable-placeholders). | map of strings | 
-| `set` | Defines a set of key/value pairs to add to the request header or to replace existing header values with. Use header names as the keys. Header names are not case-sensitive. If header values with the same names already exist, Consul replaces the header values. You can [use variable placeholders](#use-variable-placeholders). | map of strings | 
+| `add` | Defines a set of key-value pairs to add to the header. Use header names as the keys. Header names are not case-sensitive. If header values with the same name already exist, the value is appended and Consul applies both headers. You can [use variable placeholders](#use-variable-placeholders). | map of strings | 
+| `set` | Defines a set of key-value pairs to add to the request header or to replace existing header values with. Use header names as the keys. Header names are not case-sensitive. If header values with the same names already exist, Consul replaces the header values. You can [use variable placeholders](#use-variable-placeholders). | map of strings | 
 | `remove` | Defines a list of headers to remove. Consul removes only headers containing exact matches. Header names are not case-sensitive. | list of strings | 
 
 #### Use variable placeholders
