@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/agent/hcp/client"
+	"github.com/hashicorp/consul/types"
 )
 
 func TestSink(t *testing.T) {
@@ -70,7 +71,7 @@ func TestSink(t *testing.T) {
 			c := client.NewMockClient(t)
 			l := hclog.NewNullLogger()
 			test.expect(c)
-			sinkOpts := sink(c, test.mockCloudCfg, l)
+			sinkOpts := sink(c, test.mockCloudCfg, l, types.NodeID("server1234"))
 			if !test.expectedSink {
 				require.Nil(t, sinkOpts)
 				return
