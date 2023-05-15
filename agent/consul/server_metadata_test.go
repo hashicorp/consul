@@ -28,23 +28,23 @@ func TestServerMetadata(t *testing.T) {
 	now := time.Now()
 
 	t.Run("TestIsLastSeenStaleTrue", func(t *testing.T) {
-		// Create a server that is 24 hours old.
+		// Create a server that is 48 hours old.
 		md := &ServerMetadata{
-			LastSeenUnix: now.Add(-24 * time.Hour).Unix(),
+			LastSeenUnix: now.Add(-48 * time.Hour).Unix(),
 		}
 
-		ok := md.IsLastSeenStale(1 * time.Hour)
-		assert.True(t, ok)
+		stale := md.IsLastSeenStale(24 * time.Hour)
+		assert.True(t, stale)
 	})
 
 	t.Run("TestIsLastSeenStaleFalse", func(t *testing.T) {
-		// Create a server that is 24 hours old.
+		// Create a server that is 1 hour old.
 		md := &ServerMetadata{
 			LastSeenUnix: now.Add(-1 * time.Hour).Unix(),
 		}
 
-		ok := md.IsLastSeenStale(24 * time.Hour)
-		assert.False(t, ok)
+		stale := md.IsLastSeenStale(24 * time.Hour)
+		assert.False(t, stale)
 	})
 }
 

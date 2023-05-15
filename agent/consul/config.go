@@ -578,6 +578,8 @@ func DefaultConfig() *Config {
 		PeeringTestAllowPeerRegistrations: false,
 
 		EnterpriseConfig: DefaultEnterpriseConfig(),
+
+		ServerRejoinAgeMax: 24 * 7 * time.Hour,
 	}
 
 	// Increase our reap interval to 3 days instead of 24h.

@@ -630,7 +630,7 @@ func (a *Agent) Start(ctx context.Context) error {
 		if err := a.checkServerLastSeen(consul.ReadServerMetadata); err != nil {
 			deadline := time.Now().Add(time.Minute)
 			for time.Now().Before(deadline) {
-				a.logger.Error("startup error: %s", err)
+				a.logger.Error("startup error", "error", err)
 				time.Sleep(10 * time.Second)
 			}
 			return err
