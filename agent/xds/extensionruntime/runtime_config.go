@@ -92,6 +92,7 @@ func GetRuntimeConfigurations(cfgSnap *proxycfg.ConfigSnapshot) map[api.Compound
 				Upstreams:      nil,
 				LocalUpstreams: upstreamMap,
 				Kind:           kind,
+				Protocol:       proxyConfigProtocol(cfgSnap.Proxy.Config),
 			}
 			extensionConfigurationsMap[localSvc] = append(extensionConfigurationsMap[localSvc], extCfg)
 		}
@@ -131,6 +132,7 @@ func GetRuntimeConfigurations(cfgSnap *proxycfg.ConfigSnapshot) map[api.Compound
 				Kind:           kind,
 				ServiceName:    svc,
 				Upstreams:      upstreamMap,
+				Protocol:       proxyConfigProtocol(cfgSnap.Proxy.Config),
 			}
 			extensionConfigurationsMap[svc] = append(extensionConfigurationsMap[svc], extCfg)
 		}
@@ -157,4 +159,13 @@ func upstreamIDToCompoundServiceName(uid proxycfg.UpstreamID) api.CompoundServic
 
 func convertEnvoyExtensions(structExtensions structs.EnvoyExtensions) []api.EnvoyExtension {
 	return structExtensions.ToAPI()
+}
+
+func proxyConfigProtocol(cfg map[string]any) string {
+	if p, exists := cfg["protocol"]; exists {
+		if protocol, ok := p.(string); ok {
+			return protocol
+		}
+	}
+	return ""
 }

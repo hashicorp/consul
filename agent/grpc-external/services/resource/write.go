@@ -107,6 +107,7 @@ func (s *Server) Write(ctx context.Context, req *pbresource.WriteRequest) (*pbre
 		//
 		//	- CAS failures will be retried by retryCAS anyway. So the read-modify-write
 		//	  cycle should eventually succeed.
+		var mismatchError storage.GroupVersionMismatchError
 		existing, err := s.Backend.Read(ctx, storage.EventualConsistency, input.Id)
 		switch {
 		// Create path.
@@ -146,7 +147,11 @@ func (s *Server) Write(ctx context.Context, req *pbresource.WriteRequest) (*pbre
 			// TODO(spatel): Revisit owner<->resource tenancy rules post-1.16
 
 		// Update path.
-		case err == nil:
+		case err == nil || errors.As(err, &mismatchError):
+			// Allow writes that update GroupVersion.
+			if mismatchError.Stored != nil {
+				existing = mismatchError.Stored
+			}
 			// Use the stored ID because it includes the Uid.
 			//
 			// Generally, users won't provide the Uid but controllers will, because

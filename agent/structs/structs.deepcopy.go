@@ -133,6 +133,14 @@ func (o *CompiledDiscoveryChain) DeepCopy() *CompiledDiscoveryChain {
 			cp.Targets[k2] = cp_Targets_v2
 		}
 	}
+	if o.AutoVirtualIPs != nil {
+		cp.AutoVirtualIPs = make([]string, len(o.AutoVirtualIPs))
+		copy(cp.AutoVirtualIPs, o.AutoVirtualIPs)
+	}
+	if o.ManualVirtualIPs != nil {
+		cp.ManualVirtualIPs = make([]string, len(o.ManualVirtualIPs))
+		copy(cp.ManualVirtualIPs, o.ManualVirtualIPs)
+	}
 	return &cp
 }
 

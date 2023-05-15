@@ -7,7 +7,7 @@ description: >-
 
 # Agents Configuration File Reference ((#configuration_files))
 
-This topic describes the parameters for configuring Consul agents. For information about how to start Consul agents, refer to [Starting the Consul Agent](/consul/docs/agent#starting-the-consul-agent). 
+This topic describes the parameters for configuring Consul agents. For information about how to start Consul agents, refer to [Starting the Consul Agent](/consul/docs/agent#starting-the-consul-agent).
 
 ## Overview
 
@@ -63,25 +63,25 @@ telemetry {
 
 </CodeTabs>
 
-### Time-to-live values 
+### Time-to-live values
 
 Consul uses the Go `time` package to parse all time-to-live (TTL) values used in Consul agent configuration files. Specify integer and float values as a string and include one or more of the following units of time:
 
 - `ns`
-- `us` 
-- `µs` 
+- `us`
+- `µs`
 - `ms`
-- `s` 
+- `s`
 - `m`
 - `h`
 
-Examples: 
+Examples:
 
-- `'300ms'` 
-- `'1.5h'` 
+- `'300ms'`
+- `'1.5h'`
 - `'2h45m'`
 
-Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDuration) for additional information. 
+Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDuration) for additional information.
 
 ## General parameters
 
@@ -549,9 +549,9 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
   - `https_handshake_timeout` - Configures the limit for how long the HTTPS server in both client and server agents will wait for a client to complete a TLS handshake. This should be kept conservative as it limits how many connections an unauthenticated attacker can open if `verify_incoming` is being using to authenticate clients (strongly recommended in production). Default value is `5s`.
   - `request_limits` - This object specifies configurations that limit the rate of RPC and gRPC requests on the Consul server. Limiting the rate of gRPC and RPC requests also limits HTTP requests to the Consul server.
     - `mode` - String value that specifies an action to take if the rate of requests exceeds the limit. You can specify the following values:
-      - `permissive`: The server continues to allow requests and records an error in the logs. 
-      - `enforcing`: The server stops accepting requests and records an error in the logs. 
-      - `disabled`: Limits are not enforced or tracked. This is the default value for `mode`.    
+      - `permissive`: The server continues to allow requests and records an error in the logs.
+      - `enforcing`: The server stops accepting requests and records an error in the logs.
+      - `disabled`: Limits are not enforced or tracked. This is the default value for `mode`.
     - `read_rate` - Integer value that specifies the number of read requests per second. Default is `100`.
     - `write_rate` - Integer value that specifies the number of write requests per second. Default is `100`.
   - `rpc_handshake_timeout` - Configures the limit for how long servers will wait after a client TCP connection is established before they complete the connection handshake. When TLS is used, the same timeout applies to the TLS handshake separately from the initial protocol negotiation. All Consul clients should perform this immediately on establishing a new connection. This should be kept conservative as it limits how many connections an unauthenticated attacker can open if `verify_incoming` is being using to authenticate clients (strongly recommended in production). When `verify_incoming` is true on servers, this limits how long the connection socket and associated goroutines will be held open before the client successfully authenticates. Default value is `5s`.
@@ -735,6 +735,11 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
     address. Defaults to false.
 
 - `server` Equivalent to the [`-server` command-line flag](/consul/docs/agent/config/cli-flags#_server).
+
+- `server_rejoin_age_max` - controls the allowed maximum age of a stale server attempting to rejoin a cluster.
+  If a server is not running for this period, then it will refuse to start up again until an operator intervenes. This is to protect
+  clusters from instability caused by decommissioned servers accidentally being started again.
+  Note: the default value is 7d and the minimum value is 6h.
 
 - `non_voting_server` - **This field is deprecated in Consul 1.9.1. See the [`read_replica`](#read_replica) field instead.**
 
@@ -924,7 +929,7 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
       [`acl.tokens.agent_recovery`](#acl_tokens_agent_recovery).**
 
     - `config_file_service_registration` ((#acl_tokens_config_file_service_registration)) - Specifies the ACL
-      token the agent uses to register services and checks from [service](/consul/docs/services/usage/define-services) and [check](/consul/docs/services/usage/checks) definitions 
+      token the agent uses to register services and checks from [service](/consul/docs/services/usage/define-services) and [check](/consul/docs/services/usage/checks) definitions
       specified in configuration files or fragments passed to the agent using the `-hcl`
       flag.
 
@@ -1087,6 +1092,16 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
 - `bootstrap` Equivalent to the [`-bootstrap` command-line flag](/consul/docs/agent/config/cli-flags#_bootstrap).
 
 - `bootstrap_expect` Equivalent to the [`-bootstrap-expect` command-line flag](/consul/docs/agent/config/cli-flags#_bootstrap_expect).
+
+## Self-managed HCP Parameters
+
+- `cloud` This object specifies settings for connecting self-managed clusters to HCP. This was added in Consul 1.14
+
+  - `client_id` The OAuth2 client ID for authentication with HCP. This can be overridden using the `HCP_CLIENT_ID` environment variable.
+
+  - `client_secret` The OAuth2 client secret for authentication with HCP. This can be overridden using the `HCP_CLIENT_SECRET` environment variable.
+
+  - `resource_id` The HCP resource identifier. This can be overridden using the `HCP_RESOURCE_ID` environment variable.
 
 ## Service Mesh Parameters ((#connect-parameters))
 
@@ -1616,12 +1631,12 @@ subsystem that provides Consul's service mesh capabilities.
 
   - `backend` ((#raft_logstore_backend)) Specifies which storage
     engine to use to persist logs. Valid options are `boltdb` or `wal`. Default
-    is `boltdb`. The `wal` option specifies an experimental backend that 
-    should be used with caution. Refer to 
-    [Experimental WAL LogStore backend](/consul/docs/agent/wal-logstore) 
+    is `boltdb`. The `wal` option specifies an experimental backend that
+    should be used with caution. Refer to
+    [Experimental WAL LogStore backend](/consul/docs/agent/wal-logstore)
     for more information.
 
-  - `disable_log_cache` ((#raft_logstore_disable_log_cache)) Disables the in-memory cache for recent logs. We recommend using it for performance testing purposes, as no significant improvement has been measured when the cache is disabled. While the in-memory log cache theoretically prevents disk reads for recent logs, recent logs are also stored in the OS page cache, which does not slow either the `boltdb` or `wal` backend's ability to read them. 
+  - `disable_log_cache` ((#raft_logstore_disable_log_cache)) Disables the in-memory cache for recent logs. We recommend using it for performance testing purposes, as no significant improvement has been measured when the cache is disabled. While the in-memory log cache theoretically prevents disk reads for recent logs, recent logs are also stored in the OS page cache, which does not slow either the `boltdb` or `wal` backend's ability to read them.
 
   - `verification` ((#raft_logstore_verification)) This is a nested object that
     allows configuring the online verification of the LogStore. Verification
@@ -1642,43 +1657,43 @@ subsystem that provides Consul's service mesh capabilities.
     on that server. The only correct response is to stop the server, remove its
     data directory, and restart so it can be caught back up with a correct
     server again. Please report verification failures including details about
-    your hardware and workload via GitHub issues. Refer to 
-    [Experimental WAL LogStore backend](/consul/docs/agent/wal-logstore) 
+    your hardware and workload via GitHub issues. Refer to
+    [Experimental WAL LogStore backend](/consul/docs/agent/wal-logstore)
     for more information.
 
     - `enabled` ((#raft_logstore_verification_enabled)) - Set to `true` to
-    allow this Consul server to write and verify log verification checkpoints 
+    allow this Consul server to write and verify log verification checkpoints
     when elected leader.
 
-    - `interval` ((#raft_logstore_verification_interval)) - Specifies the time 
-      interval between checkpoints. There is no default value. You must 
-      configure the `interval` and set [`enabled`](#raft_logstore_verification_enabled) 
-      to `true` to correctly enable intervals. We recommend using an interval 
-      between `30s` and `5m`. The performance overhead is insignificant when the 
+    - `interval` ((#raft_logstore_verification_interval)) - Specifies the time
+      interval between checkpoints. There is no default value. You must
+      configure the `interval` and set [`enabled`](#raft_logstore_verification_enabled)
+      to `true` to correctly enable intervals. We recommend using an interval
+      between `30s` and `5m`. The performance overhead is insignificant when the
       interval is set to `5m` or less.
 
-  - `boltdb` ((#raft_logstore_boltdb)) - Object that configures options for 
+  - `boltdb` ((#raft_logstore_boltdb)) - Object that configures options for
     Raft's `boltdb` backend. It has no effect if the `backend` is not `boltdb`.
 
-    - `no_freelist_sync` ((#raft_logstore_boltdb_no_freelist_sync)) - Set to 
+    - `no_freelist_sync` ((#raft_logstore_boltdb_no_freelist_sync)) - Set to
     `true` to disable storing BoltDB's freelist to disk within the
     `raft.db` file. Disabling freelist syncs reduces the disk IO required
     for write operations, but could potentially increase start up time
     because Consul must scan the database to find free space
     within the file.
 
-  - - `wal` ((#raft_logstore_wal)) - Object that configures the `wal` backend. 
-    Refer to [Experimental WAL LogStore backend](/consul/docs/agent/wal-logstore) 
+  - - `wal` ((#raft_logstore_wal)) - Object that configures the `wal` backend.
+    Refer to [Experimental WAL LogStore backend](/consul/docs/agent/wal-logstore)
     for more information.
 
-    - `segment_size_mb` ((#raft_logstore_wal_segment_size_mb)) - Integer value 
+    - `segment_size_mb` ((#raft_logstore_wal_segment_size_mb)) - Integer value
       that represents the target size in MB for each segment file before
       rolling to a new segment. The default value is `64` and is suitable for
-      most deployments. While a smaller value may use less disk space because you 
+      most deployments. While a smaller value may use less disk space because you
       can reclaim space by deleting old segments sooner, the smaller segment that results
       may affect performance because safely rotating to a new file more
       frequently can impact tail latencies. Larger values are unlikely
-      to improve performance significantly. We recommend using this 
+      to improve performance significantly. We recommend using this
       configuration for performance testing purposes.
 
 - `raft_protocol` ((#raft_protocol)) Equivalent to the [`-raft-protocol`
