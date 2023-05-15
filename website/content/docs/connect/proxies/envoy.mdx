@@ -190,8 +190,8 @@ the [`sidecar_service`](/consul/docs/connect/registration/sidecar-service) block
 - `envoy_stats_flush_interval` - Configures Envoy's
   [`stats_flush_interval`](https://www.envoyproxy.io/docs/envoy/v1.17.2/api-v3/config/bootstrap/v3/bootstrap.proto#envoy-v3-api-field-config-bootstrap-v3-bootstrap-stats-flush-interval).
 
-- `envoy_telemetry_collector_bind_socket_dir` - Specifies the directory where Envoy creates a unix socket. 
-  Envoy sends metrics to the socket with which a consul telemetry collector can collect them.
+- `envoy_telemetry_collector_bind_socket_dir` - Specifies the directory where Envoy creates a Unix socket.
+  Envoy sends metrics to the socket where a Consul telemetry collector can collect them.
   The socket is not configured by default.
   
 The [Advanced Configuration](#advanced-configuration) section describes additional configurations that allow incremental or complete control over the bootstrap configuration generated.
