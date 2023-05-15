@@ -51,11 +51,11 @@ The following list outlines field hierarchy, language-specific data types, and r
     - [`Peer`](#failover-targets-peer): string
 - [`LoadBalancer`](#loadbalancer): map
   - [`Policy`](#loadbalancer-policy): string
-  - [`RingHashConfig`](#loadbalancer-ringhashconfig): map
-    - [`MinimumRingSize`](#loadbalancer-ringhashconfig-minimum): integer | `1024`
-    - [`MaximumRingSize`](#loadbalancer-ringhashconfig-maximum): integer | `8192`
   - [`LeastRequestConfig`](#loadbalancer-leastrequestconfig): map
-  - [`ChoiceCount`](#loadbalancer-leastrequestconfig-choicecount): integer `2`
+    - [`ChoiceCount`](#loadbalancer-leastrequestconfig-choicecount): integer `2`
+  - [`RingHashConfig`](#loadbalancer-ringhashconfig): map
+    - [`MinimumRingSize`](#loadbalancer-ringhashconfig): integer | `1024`
+    - [`MaximumRingSize`](#loadbalancer-ringhashconfig): integer | `8192`
   - [`HashPolicies`](#loadbalancer-hashpolicies): map
     - [`Field`](#loadbalancer-hashpolicies-field): string
     - [`FieldValue`](#loadbalancer-hashpolicies-fieldvalue): string
@@ -104,10 +104,10 @@ The following list outlines field hierarchy, language-specific data types, and r
   - [`loadBalancer`](#spec-loadbalancer): map
     - [`policy`](#spec-loadbalancer-policy): string
     - [`leastRequestConfig`](#spec-loadbalancer-leastrequestconfig): map
-      - [`choiceCount`](#spec-loadbalancer-leastrequestconfig-choicecount): integer | `2`
+      - [`choiceCount`](#spec-loadbalancer-leastrequestconfig): integer | `2`
     - [`ringHashConfig`](#spec-loadbalancer-ringhashconfig): map
-      - [`minimumRingSize`](#spec-loadbalancer-ringhashconfig-minimum): integer | `1024`
-      - [`maximumRingSize`](#spec-loadbalancer-ringhashconfig-maximum): integer | `8192`
+      - [`minimumRingSize`](#spec-loadbalancer-ringhashconfig): integer | `1024`
+      - [`maximumRingSize`](#spec-loadbalancer-ringhashconfig): integer | `8192`
   - [`hashPolicies`](#spec-loadbalancer-hashpolicies): list
     - [`field`](#spec-loadbalancer-hashpolicies-field): string
     - [`fieldValue`](#spec-loadbalancer-hashpolicies-fieldvalue): string
@@ -182,12 +182,12 @@ Failover = {                   ## requires at least one of the following: Servic
 
 LoadBalancer = {
  Policy = "random"
- RingHashConfig = {                         ## requires Policy = "ring_hash"
+  LeastRequestConfig = {                     ## requires Policy = "least_request"
+   ChoiceCount = 2
+  RingHashConfig = {                         ## requires Policy = "ring_hash"
    MinimumRingSize = 1024
    MaximumRingSize = 8192
  }
- LeastRequestConfig = {                     ## requires Policy = "least_request"
-   ChoiceCount = 2
  }
  HashPolicies = [
    {
@@ -264,12 +264,12 @@ LoadBalancer = {
 
   "LoadBalancer":{
    "Policy":"random",
+      "LeastRequestConfig":{                     // requires Policy":"least_request"
+     "ChoiceCount":2
+   },
    "RingHashConfig":{                         // requires Policy":"ring_hash"
      "MinimumRingSize":1024,
      "MaximumRingSize":8192
-   },
-   "LeastRequestConfig":{                     // requires Policy":"least_request"
-     "ChoiceCount":2
    },
    "HashPolicies":[
     {
@@ -459,15 +459,67 @@ Specifies redirect instructions for local service traffic so that services deplo
 
 - Default: None
 - Data type: Map that can contain the following parameters:
-  
-    | Parameter                              | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             | Data type | Default |
-    | :------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------- | ------- |
-    | `Service`                              | Specifies the name of a service at the redirect’s destination that resolves local upstream requests.                                                                                                                                                                                                                                                                                                                                                                                                                                                    | String    | None    |
-    | `ServiceSubset`                        | Specifies the name of a subset of services at the redirect’s destination that resolves local upstream requests. If empty, the default subset is used. If specified, you must also specify at least one of the following in the same `Redirect` map: `Service`, `Namespace`, and`Datacenter`.                                                                                                                                                                                                                                                                | String    | None    |
-    | `Namespace` <EnterpriseAlert inline /> | Specifies the namespace at the redirect’s destination that resolves local upstream requests.                                                                                                                                                                                                                                                                                                                                                                                                                                                            | String    | None    |
-    | `Partition` <EnterpriseAlert inline /> | Specifies the admin partition at the redirect’s destination that resolves local upstream requests.                                                                                                                                                                                                                                                                                                                                                                                                                                                      | String    | None    |
-    | `Datacenter`                           | Specifies the datacenter at the redirect’s destination that resolves local upstream requests.                                                                                                                                                                                                                                                                                                                                                                                                                                                           | String    | None    |
-    | `Peer`                                 | Specifies the cluster with an active cluster peering connection at the redirect’s destination that resolves local upstream requests. Requires separately defined service intentions that [authorize services for peers](/consul/docs/connect/cluster-peering/usage/establish-cluster-peering#authorize-services-for-peers). When Consul runs a health check before resolving requests from the peer, it does not apply health checks that were defined on the peer and exported to the local cluster through the exported services configuration entry. | String    | None    |
+  - [`Service`](#redirect-service)
+  - [`ServiceSubset`](#redirect-servicesubset)
+  - [`Namespace`](#redirect-namespace)
+  - [`Partition`](#redirect-partition)
+  - [`Datacenter`](#redirect-datacenter)
+  - [`Peer`](#redirect-peer)
+
+### `Redirect{}.Service`
+
+Specifies the name of a service at the redirect’s destination that resolves local upstream requests.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `Redirect{}.ServiceSubset`
+
+Specifies the name of a subset of services at the redirect’s destination that resolves local upstream requests. If empty, the default subset is used. If specified, you must also specify at least one of the following in the same `Redirect` map: `Service`, `Namespace`, and`Datacenter`.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `Redirect{}.Namespace` <EnterpriseAlert inline />
+
+Specifies the namespace at the redirect’s destination that resolves local upstream requests.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `Redirect{}.Partition` <EnterpriseAlert inline />
+
+Specifies the admin partition at the redirect’s destination that resolves local upstream requests.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+
+### `Redirect{}.Datacenter`
+
+Specifies the datacenter at the redirect’s destination that resolves local upstream requests.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `Redirect{}.Peer`
+
+Specifies the cluster with an active cluster peering connection at the redirect’s destination that resolves local upstream requests. Requires separately defined service intentions that [authorize services for peers](/consul/docs/connect/cluster-peering/usage/establish-cluster-peering#authorize-services-for-peers). When Consul runs a health check before resolving requests from the peer, it does not apply health checks that were defined on the peer and exported to the local cluster through the exported services configuration entry.
+
+#### Values
+
+- Default: None
+- Data type: String
 
 ### `Failover`
 
@@ -481,14 +533,47 @@ This parameter is a map, and its key is the name of the local service subset tha
 
 - Default: None
 - Data type: Map that can contain the following parameters:
+  - [`Service`](#failover-service)
+  - [`ServiceSubset`](#failover-servicesubset)
+  - [`Namespace`](#failover-namespace)
+  - [`Datacenters`](#failover-datacenters)
+  - [`Targets`](#failover-targets)
   
-    | Parameter                              | Description                                                                                                                                                                                                                                                                                 | Data type | Default |
-    | :------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------- | ------- |
-    | `Service`                              | Specifies the name of the service to resolve at the failover location during a failover scenario.                                                                                                                                                                                           | String    | None    |
-    | `ServiceSubset`                        | Specifies the name of a subset of service instances to resolve at the failover location during a failover scenario. If empty, Consul uses the service’s [`DefaultSubset`](#defaultsubset).                                                                                                   | String    | None    |
-    | `Namespace` <EnterpriseAlert inline /> | Specifies the namespace at the failover location where the failover services are deployed. If empty, the current namespace is used.                                                                                                                                                         | String    | None    |
-    | `Datacenters`                          | Specifies an ordered list of datacenters at the failover location to attempt connections to during a failover scenario. When Consul cannot establish a connection with the first datacenter in the list, it proceeds sequentially until establishing a connection with another datacenter.  | String    | None    |
-    | `Targets`                              | Specifies a fixed list of failover targets to try during failover. This list can express complicated failover scenarios. Refer to [`Failover{}.Targets`](#failover-targets) for configuration details.                                                                                      | List      | None    |
+### `Failover{}.Service`
+
+Specifies the name of the service to resolve at the failover location during a failover scenario.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `Failover{}.ServiceSubset`
+
+Specifies the name of a subset of service instances to resolve at the failover location during a failover scenario. If empty, Consul uses the service’s [`DefaultSubset`](#defaultsubset).
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `Failover{}.Namespace` <EnterpriseAlert inline />
+
+Specifies the namespace at the failover location where the failover services are deployed. If empty, the current namespace is used.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `Failover{}.Datacenters`
+
+Specifies an ordered list of datacenters at the failover location to attempt connections to during a failover scenario. When Consul cannot establish a connection with the first datacenter in the list, it proceeds sequentially until establishing a connection with another datacenter.
+
+#### Values
+
+- Default: None
+- Data type: String
 
 ### `Failover{}.Targets`
 
@@ -500,15 +585,66 @@ For examples, refer to the [failover example configurations](#examples-failover)
 
 - Default: None
 - Data type: List of maps that can contain the following parameters:
-  
-    | Parameter                              | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | Data type | Default |
-    | :------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------- | ------- |
-    | `Service`                              | Specifies the service name to use for the failover target. If empty, the current service name is used.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          | String    | None    |
-    | `ServiceSubset`                        | Specifies the named subset to use for the failover target. If empty, the default subset for the requested service name is used.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 | String    | None    |
-    | `Namespace` <EnterpriseAlert inline /> | Specifies the namespace to use for the failover target. If empty, the default namespace is used.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                | String    | None    |
-    | `Partition` <EnterpriseAlert inline /> | Specifies the admin partition within the same datacenter to use for the failover target. If empty, the `default` partition is used. To use an admin partition in a different datacenter for the failover target, use the `Peer` field instead.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  | String    | None    |
-    | `Datacenter`                           | Specifies the WAN federated datacenter to use for the failover target. If empty, the current datacenter is used. To use a datacenter for the failover target that is connected with a cluster peering relationship rather than WAN federation, use the `Peer` field instead.                                                                                                                                                                                                                                                                                                                                                                                                                                                    | String    | None    |
-    | `Peer`                                 | Specifies the destination cluster peer to resolve the target service name from. [Intentions](/consul/docs/connect/cluster-peering/create-manage-peering#authorize-services-for-peers) must be defined on the peered cluster so that the source service can access this failover target service as an upstream. When the peer name is specified, Consul uses Envoy's outlier detection to determine the health of the failover target based on whether services can communicate with the failover target. Consul ignores service health checks imported from a peer for failover targets because the checks do not account for service routers, splitters, and resolvers that may be defined in the peer for the target service. | String    | None    |
+  - [`Service`](#failover-targets-service)
+  - [`ServiceSubset`](#failover-targets-servicesubset)
+  - [`Namespace`](#failover-targets-namespace)
+  - [`Partition`](#failover-targets-partition)
+  - [`Datacenter`](#failover-targets-datacenter)
+  - [`Peer`](#failover-targets-peer)
+
+### `Failover{}.Targets[].Service`
+
+Specifies the service name to use for the failover target. If empty, the current service name is used.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `Failover{}.Targets[].ServiceSubset`
+
+Specifies the named subset to use for the failover target. If empty, the default subset for the requested service name is used.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `Failover{}.Targets[].Namespace` <EnterpriseAlert inline />
+
+Specifies the namespace to use for the failover target. If empty, the default namespace is used.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `Failover{}.Targets[].Partition` <EnterpriseAlert inline />
+
+Specifies the admin partition within the same datacenter to use for the failover target. If empty, the `default` partition is used. To use an admin partition in a different datacenter for the failover target, use the `Peer` field instead.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `Failover{}.Targets[].Datacenter`
+
+Specifies the WAN federated datacenter to use for the failover target. If empty, the current datacenter is used. To use a datacenter for the failover target that is connected with a cluster peering relationship rather than WAN federation, use the `Peer` field instead.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `Failover{}.Targets[].Peer`
+
+Specifies the destination cluster peer to resolve the target service name from. [Intentions](/consul/docs/connect/cluster-peering/create-manage-peering#authorize-services-for-peers) must be defined on the peered cluster so that the source service can access this failover target service as an upstream. When the peer name is specified, Consul uses Envoy's outlier detection to determine the health of the failover target based on whether services can communicate with the failover target. Consul ignores service health checks imported from a peer for failover targets because the checks do not account for service routers, splitters, and resolvers that may be defined in the peer for the target service.
+
+#### Values
+
+- Default: None
+- Data type: String
 
 ### `LoadBalancer`
 
@@ -518,23 +654,20 @@ Specifies the load balancing policy and configuration for services issuing reque
 
 - Default: None
 - Data type: Map that can contain the following parameters:
-  
-  | Parameter      | Description                                                                       | Data type | Default |
-  | :------------- | :-------------------------------------------------------------------------------- | --------- | ------- |
-  | `Policy`      | Specifies the type of load balancing policy for selecting a host. Refer to [`LoadBalancer{}.Policy`](#loadbalancer-policy) for additional configuration parameters. | Map   | None |
-  | `LeastRequestConfig`         | Specifies configuration for the `least_request policy` type. Refer to [`LoadBalancer{}.LeastRequestConfig`](#loadbalancer-leastrequestconfig) for additional configuration parameters. | Map   | None    |
-  | `RingHashConfig`          | Specifies configuration for the `ring_hash` policy type. Refer to [`LoadBalancer{}.RingHashConfig`](#loadbalancer-ringhashconfig) for additional configuration parameters. | Map    | None    |
-  | `HashPolicies`         | Specifies a list of hash policies to use for hashing load balancing algorithms. Refer to [`LoadBalancer{}.HashPolicies`](#loadbalancer-hashpolicies) for additional configuration parameters. | Map    | None    |
+  - [`Policy`](#loadbalancer-policy)
+  - [`RingHashConfig`](#loadbalancer-ringhashconfig)
+  - [`LeastRequestConfig`](#loadbalancer-leastrequestconfig)
+  - [`HashPolicies`](#loadbalancer-hashpolicies)
 
 ### `LoadBalancer{}.Policy`
 
 Specifies the type of load balancing policy for selecting a host. Supported load balancing policies include:
 
-- Random
-- Round robin
-- Least request
-- Ring hash
-- Maglev
+- Random: The load balancer forwards a client request to a server chosen at random from a fixed list.
+- Round robin: The load balancer proceeds through a fixed list of servers and forwards a client request to each one in order.
+- Least request: The load balancer forwards a client request to the server with the fewest connections. When using this policy, you can specify additional parameters in [`LoadBalancer{}.LeastRequestConfig`](#loadbalancer-leastrequestconfig).
+- Ring hash: The load balancer forwards requests from the same client to the same group of servers. When using this policy, you can specify additional parameters in [`LoadBalancer{}.RingHashConfig`](#loadbalancer-ringhashconfig).
+- Maglev: The load balancer uses a hashing algorithm to spread requests evenly across servers. When using this policy, you can specify additional parameters in [`LoadBalancer{}.HashPolicies`](#loadbalancer-hashpolicies).
 - Cookie
 - Header
 - Query Parameter
@@ -543,17 +676,15 @@ Specifies the type of load balancing policy for selecting a host. Supported load
 
 - Default: None
 - Data type: String containing one of the following values:
-  
-  | Policy type     | Description                                                                                                                                                                                                                      |
-  | :-------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-  | `random`        | The load balancer forwards a client request to a server chosen at random from a fixed list.                                                                                                                                      |
-  | `round_robin`   | The load balancer proceeds through a fixed list of servers and forwards a client request to each one in order.                                                                                                                   |
-  | `least_request` | The load balancer forwards a client request to the server with the fewest connections. When using this policy, you can specify additional parameters in [`LoadBalancer{}.LeastRequestConfig`](#loadbalancer-leastrequestconfig). |
-  | `ring_hash`     | The load balancer forwards requests from the same client to the same group of servers. When using this policy, you can specify additional parameters in [`LoadBalancer{}.RingHashConfig`](#loadbalancer-ringhashconfig).         |
-  | `maglev`        | The load balancer uses a hashing algorithm to spread requests evenly across servers. When using this policy, you can specify additional parameters in [`LoadBalancer{}.HashPolicies`](#loadbalancer-hashpolicies).               |
-  | `cookie` | x | 
-  | `header` | x | 
-  | `query_parameter` | x |
+
+  - `random`
+  - `round_robin` 
+  - `least_request`
+  - `ring_hash` 
+  - `maglev`  
+  - `cookie` 
+  - `header` 
+  - `query_parameter`
 
 ### `LoadBalancer{}.LeastRequestConfig`
 
@@ -590,14 +721,29 @@ Specifies a list of hash policies to use for hashing load balancing algorithms. 
 
 - Default: None
 - Data type:  List of maps for the following parameters:
-  
-  | Parameter      | Description                                                    | Data type | Default |
-  | :------------- | :------------------------------------------------------------- | --------- | ------- |
-  | `Field`        | Specifies the attribute type to hash on. Must be one of the following values: `header`, `cookie`, or `query_parameter`. You cannot specify the `Field` parameter if `SourceIP` is also configured. | String   | None  |
-  | `FieldValue`   | Specifies the value to hash, such as a header name, cookie name, or a URL query parameter name. You cannot specify the `FieldValue` parameter if `SourceIP` is also configured. | String   | None  |
-  | `CookieConfig` | Specifies additional configuration options for the `cookie` hash policy type. Refer to [`LoadBalancer{}.HashPolicies[].CookieConfig`](#loadbalancer-hashpolicies-cookieconfig) for additional configuration parameters. | Map   | None  |
-  | `SourceIP`     | Determines if the hash type should besource IP address. You cannot specify `SourceIP` if `Field` or `FieldValue` are configured. | Boolean   | `false`  |
-  | `Terminal`     | Determines if Consul should stop computing the hash when multiple hash policies are present. If a hash is computed when a terminal policy is evaluated, then that hash is used and subsequent hash policies are ignored. | Boolean  | `false`  |
+  - [`Field`](#loadbalancer-hashpolicies-field)
+  - [`FieldValue`](#loadbalancer-hashpolicies-fieldvalue)
+  - [`CookieConfig`](#loadbalancer-hashpolicies-cookieconfig)
+  - [`SourceIP`](#loadbalancer-hashpolicies-sourceip)
+  - [`Terminal`](#loadbalancer-hashpolicies-terminal)
+
+### `LoadBalancer{}.HashPolicies[].Field`
+
+ Specifies the attribute type to hash on. Must be one of the following values: `header`, `cookie`, or `query_parameter`. You cannot specify the `Field` parameter if `SourceIP` is also configured.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `LoadBalancer{}.HashPolicies[].FieldValue`
+
+Specifies the value to hash, such as a header name, cookie name, or a URL query parameter name. You cannot specify the `FieldValue` parameter if `SourceIP` is also configured.
+
+#### Values
+
+- Default: None
+- Data type: String
 
 ### `LoadBalancer{}.HashPolicies[].CookieConfig`
 
@@ -614,6 +760,24 @@ Specifies additional configuration options for the `cookie` hash policy type. Th
   | `TTL`          | Specifies the TTL for generated cookies. Cannot be specified for session cookies. | String    | `0s`    |
   | `Path`         | Specifies the path to set for the cookie.                                         | String    | None    |
 
+### `LoadBalancer{}.HashPolicies[].SourceIP`
+
+Determines if the hash type should besource IP address. You cannot specify `SourceIP` if `Field` or `FieldValue` are configured.
+
+#### Values
+
+- Default: `false`
+- Data type: Boolean
+  
+### `LoadBalancer{}.HashPolicies[].Terminal`
+
+ Determines if Consul should stop computing the hash when multiple hash policies are present. If a hash is computed when a terminal policy is evaluated, then that hash is used and subsequent hash policies are ignored.
+
+#### Values
+
+- Default: `false`
+- Data type: Boolean
+  
 </Tab>
 
 <Tab heading="YAML" group="yaml">
@@ -727,15 +891,67 @@ Specifies redirect instructions for local service traffic so that services deplo
 
 - Default: None
 - Data type: Map that can contain the following parameters:
+  - [`service`](#spec-redirect-service)
+  - [`serviceSubset`](#spec-redirect-servicesubset)
+  - [`namespace`](#spec-redirect-namespace)
+  - [`partition`](#spec-redirect-partition)
+  - [`datacenter`](#spec-redirect-datacenter)
+  - [`peer`](#spec-redirect-peer)
 
-    | Parameter                              | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             | Data type | Default |
-    | :------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------- | ------- |
-    | `service`                              | Specifies the name of a service at the redirect’s destination that resolves local upstream requests.                                                                                                                                                                                                                                                                                                                                                                                                                                                    | String    | None    |
-    | `serviceSubset`                        | Specifies the name of a subset of services at the redirect’s destination that resolves local upstream requests. If empty, the default subset is used. If specified, you must also specify at least one of the following in the same `redirect` map: `service`, `namespace`, and `datacenter`.                                                                                                                                                                                                                                                                | String    | None    |
-    | `namespace` <EnterpriseAlert inline /> | Specifies the namespace at the redirect’s destination that resolves local upstream requests.                                                                                                                                                                                                                                                                                                                                                                                                                                                            | String    | None    |
-    | `partition` <EnterpriseAlert inline /> | Specifies the admin partition at the redirect’s destination that resolves local upstream requests.                                                                                                                                                                                                                                                                                                                                                                                                                                                      | String    | None    |
-    | `datacenter`                           | Specifies the datacenter at the redirect’s destination that resolves local upstream requests.                                                                                                                                                                                                                                                                                                                                                                                                                                                           | String    | None    |
-    | `peer`                                 | Specifies the cluster with an active cluster peering connection at the redirect’s destination that resolves local upstream requests. Requires separately defined service intentions that [authorize services for peers](/consul/docs/connect/cluster-peering/usage/establish-cluster-peering#authorize-services-for-peers). When Consul runs a health check before resolving requests from the peer, it does not apply health checks that were defined on the peer and exported to the local cluster through the exported services configuration entry. | String    | None    |
+### `spec.redirect.service`
+
+Specifies the name of a service at the redirect’s destination that resolves local upstream requests.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec.redirect.serviceSubset`
+
+Specifies the name of a subset of services at the redirect’s destination that resolves local upstream requests. If empty, the default subset is used. If specified, you must also specify at least one of the following in the same `redirect` map: `service`, `namespace`, and`datacenter`.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec.redirect.namespace` <EnterpriseAlert inline />
+
+Specifies the namespace at the redirect’s destination that resolves local upstream requests.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec.redirect.partition` <EnterpriseAlert inline />
+
+Specifies the admin partition at the redirect’s destination that resolves local upstream requests.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+
+### `spec.redirect.datacenter`
+
+Specifies the datacenter at the redirect’s destination that resolves local upstream requests.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec.redirect.peer`
+
+Specifies the cluster with an active cluster peering connection at the redirect’s destination that resolves local upstream requests. Requires separately defined service intentions that [authorize services for peers](/consul/docs/connect/cluster-peering/usage/establish-cluster-peering#authorize-services-for-peers). When Consul runs a health check before resolving requests from the peer, it does not apply health checks that were defined on the peer and exported to the local cluster through the exported services configuration entry.
+
+#### Values
+
+- Default: None
+- Data type: String
 
 ### `spec.failover`
 
@@ -749,14 +965,47 @@ This parameter is a map, and its key is the name of the local service subset tha
 
 - Default: None
 - Data type: Map that can contain the following parameters:
+  - [`service`](#spec-failover-service)
+  - [`serviceSubset`](#spec-failover-servicesubset)
+  - [`namespace`](#spec-failover-namespace)
+  - [`datacenters`](#spec-failover-datacenters)
+  - [`targets`](#spec-failover-targets)
   
-    | Parameter                              | Description                                                                                                                                                                                                                                                                                 | Data type | Default |
-    | :------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------- | ------- |
-    | `service`                              | Specifies the name of the service to resolve at the failover location during a failover scenario.                                                                                                                                                                                           | String    | None    |
-    | `serviceSubset`                        | Specifies the name of a subset of service instances to resolve at the failover location during a failover scenario. If empty, Consul uses the service’s [`defaultSubset](#spec-defaultsubset).                                                                                                   | String    | None    |
-    | `namespace` <EnterpriseAlert inline /> | Specifies the namespace at the failover location where the failover services are deployed. If empty, the current namespace is used.                                                                                                                                                         | String    | None    |
-    | `datacenters`                          | Specifies an ordered list of datacenters at the failover location to attempt connections to during a failover scenario. When Consul cannot establish a connection with the first datacenter in the list, it proceeds sequentially until establishing a connection with another datacenter.  | String    | None    |
-    | `targets`                              | Specifies a fixed list of failover targets to try during failover. This list can express complicated failover scenarios. Refer to [`spec-failover.targets`](#spec-failover-targets) for configuration details.                                                                                      | List      | None    |
+### `spec.failover.service`
+
+Specifies the name of the service to resolve at the failover location during a failover scenario.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec.failover.serviceSubset`
+
+Specifies the name of a subset of service instances to resolve at the failover location during a failover scenario. If empty, Consul uses the service’s [`defaultSubset`](#defaultsubset).
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec.failover.namespace` <EnterpriseAlert inline />
+
+Specifies the namespace at the failover location where the failover services are deployed. If empty, the current namespace is used.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec.failover.datacenters`
+
+Specifies an ordered list of datacenters at the failover location to attempt connections to during a failover scenario. When Consul cannot establish a connection with the first datacenter in the list, it proceeds sequentially until establishing a connection with another datacenter.
+
+#### Values
+
+- Default: None
+- Data type: String
 
 ### `spec.failover.targets`
 
@@ -768,15 +1017,66 @@ For examples, refer to the [failover example configurations](#examples-failover)
 
 - Default: None
 - Data type: List of maps that can contain the following parameters:
-  
-    | Parameter                              | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | Data type | Default |
-    | :------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------- | ------- |
-    | `service`                              | Specifies the service name to use for the failover target. If empty, the current service name is used.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          | String    | None    |
-    | `serviceSubset`                        | Specifies the named subset to use for the failover target. If empty, the default subset for the requested service name is used.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 | String    | None    |
-    | `namespace` <EnterpriseAlert inline /> | Specifies the namespace to use for the failover target. If empty, the default namespace is used.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                | String    | None    |
-    | `partition` <EnterpriseAlert inline /> | Specifies the admin partition within the same datacenter to use for the failover target. If empty, the `default` partition is used. To use an admin partition in a different datacenter for the failover target, use the `peer` field instead.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  | String    | None    |
-    | `datacenter`                           | Specifies the WAN federated datacenter to use for the failover target. If empty, the current datacenter is used. To use a datacenter for the failover target that is connected with a cluster peering relationship rather than WAN federation, use the `peer` field instead.                                                                                                                                                                                                                                                                                                                                                                                                                                                    | String    | None    |
-    | `peer`                                 | Specifies the destination cluster peer to resolve the target service name from. [Intentions](/consul/docs/connect/cluster-peering/create-manage-peering#authorize-services-for-peers) must be defined on the peered cluster so that the source service can access this failover target service as an upstream. When the peer name is specified, Consul uses Envoy's outlier detection to determine the health of the failover target based on whether services can communicate with the failover target. Consul ignores service health checks imported from a peer for failover targets because the checks do not account for service routers, splitters, and resolvers that may be defined in the peer for the target service. | String    | None    |
+  - [`service`](#spec-failover-targets-service)
+  - [`serviceSubset`](#spec-failover-targets-servicesubset)
+  - [`namespace`](#spec-failover-targets-namespace)
+  - [`partition`](#spec-failover-targets-partition)
+  - [`datacenter`](#spec-failover-targets-datacenter)
+  - [`peer](#spec-failover-targets-peer)
+
+### `spec.failover.targets.service`
+
+Specifies the service name to use for the failover target. If empty, the current service name is used.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec.failover.targets.serviceSubset`
+
+Specifies the named subset to use for the failover target. If empty, the default subset for the requested service name is used.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec.failover.targets.namespace` <EnterpriseAlert inline />
+
+Specifies the namespace to use for the failover target. If empty, the default namespace is used.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec.failover.targets.partition` <EnterpriseAlert inline />
+
+Specifies the admin partition within the same datacenter to use for the failover target. If empty, the `default` partition is used. To use an admin partition in a different datacenter for the failover target, use the `peer` field instead.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec.failover.targets.datacenter`
+
+Specifies the WAN federated datacenter to use for the failover target. If empty, the current datacenter is used. To use a datacenter for the failover target that is connected with a cluster peering relationship rather than WAN federation, use the `peer` field instead.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec.failover.targets.peer`
+
+Specifies the destination cluster peer to resolve the target service name from. [Intentions](/consul/docs/k8s/connect/cluster-peering/usage/establish-peering#authorize-services-for-peers) must be defined on the peered cluster so that the source service can access this failover target service as an upstream. When the peer name is specified, Consul uses Envoy's outlier detection to determine the health of the failover target based on whether services can communicate with the failover target. Consul ignores service health checks imported from a peer for failover targets because the checks do not account for service routers, splitters, and resolvers that may be defined in the peer for the target service.
+
+#### Values
+
+- Default: None
+- Data type: String
 
 ### `spec.loadBalancer`
 
