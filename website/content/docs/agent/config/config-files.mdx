@@ -1527,6 +1527,16 @@ subsystem that provides Consul's service mesh capabilities.
     part of the cluster before declaring it dead, giving that suspect node more time
     to refute if it is indeed still alive. The default is 6.
 
+## Self-managed HCP Parameters
+
+- `cloud` This object specifies settings for connecting self-managed clusters to HCP. This was added in Consul 1.14
+
+  - `client_id` The OAuth2 client ID for authentication with HCP. This can be overridden using the `HCP_CLIENT_ID` environment variable.
+
+  - `client_secret` The OAuth2 client secret for authentication with HCP. This can be overridden using the `HCP_CLIENT_SECRET` environment variable.
+
+  - `resource_id` The HCP resource identifier. This can be overridden using the `HCP_RESOURCE_ID` environment variable.
+
 ## Join Parameters
 
 - `rejoin_after_leave` Equivalent to the [`-rejoin` command-line flag](/consul/docs/agent/config/cli-flags#_rejoin).
