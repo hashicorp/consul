@@ -98,7 +98,7 @@ $ consul connect envoy -gateway=ingress ingress-service'
 You can also automatically register the ingress gateway service when starting the Envoy proxy. Specify the following flags with the `consul connect envoy` command:  
 
 - `-gateway=ingress`
-- `-register`: This  
+- `-register`
 - `-service=<name of the service>`
 
 The following example starts Envoy and registers an ingress gateway service named `ingress-service` bound to the agent address at port `8888`: 
