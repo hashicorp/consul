@@ -1705,8 +1705,9 @@ func newDefaultDeps(t *testing.T, c *consul.Config) consul.Deps {
 		Datacenter:      c.Datacenter,
 	}
 
-	balancerBuilder := balancer.NewBuilder(t.Name(), testutil.Logger(t))
+	balancerBuilder := balancer.NewBuilder(builder.Authority(), testutil.Logger(t))
 	balancerBuilder.Register()
+	t.Cleanup(balancerBuilder.Deregister)
 
 	return consul.Deps{
 		EventPublisher:  stream.NewEventPublisher(10 * time.Second),
@@ -1721,7 +1722,6 @@ func newDefaultDeps(t *testing.T, c *consul.Config) consul.Deps {
 			UseTLSForDC:           tls.UseTLS,
 			DialingFromServer:     true,
 			DialingFromDatacenter: c.Datacenter,
-			BalancerBuilder:       balancerBuilder,
 		}),
 		LeaderForwarder:          builder,
 		EnterpriseDeps:           newDefaultDepsEnterprise(t, logger, c),
