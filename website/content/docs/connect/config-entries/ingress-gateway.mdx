@@ -549,7 +549,7 @@ Specifies a list of cipher suites that gateway listeners support when negotiatin
 
 ### `TSL.SDS`
 
-Specifies parameters for loading the TLS certificates from an external SDS service. Refer to [Serve custom TLS certificates from an external service](/consul/docs/connect/gateways/ingress-gateway/ingress-gateways-tls-external-service) for additional information. 
+Specifies parameters for loading the TLS certificates from an external SDS service. Refer to [Serve custom TLS certificates from an external service](/consul/docs/connect/gateways/ingress-gateway/tls-external-service) for additional information. 
 
 Consul applies the SDS configuration specified in this field as defaults for all listeners defined in the gateway. You can override the SDS settings for per listener or per service defined in the listener. Refer to the following configurations for additional information:
 
@@ -792,7 +792,7 @@ Specifies a TLS configuration for a specific service. The settings in this confi
 
 ### `Listeners[].Services[].TLS.SDS`
 
-Specifies parameters that configure the listener to load TLS certificates from an external SDS. Refer to [Serve custom TLS certificates from an external service](/consul/docs/connect/gateways/ingress-gateway/ingress-gateways-tls-external-service) for additional information. 
+Specifies parameters that configure the listener to load TLS certificates from an external SDS. Refer to [Serve custom TLS certificates from an external service](/consul/docs/connect/gateways/ingress-gateway/tls-external-service) for additional information. 
 
 This configuration overrides the main [`TLS.SDS`](#tls-sds) settings for configuration entry. If unspecified, Consul applies the top-level [`TLS.SDS`](#tls-sds) settings. 
 
@@ -804,7 +804,7 @@ This configuration overrides the main [`TLS.SDS`](#tls-sds) settings for configu
   - `ClusterName`
   - `CertResource`
 
-The following table describes how to configure SDS parameters. Refer to [Configure static SDS clusters](/consul/docs/connect/gateways/ingress-gateway/ingress-gateways-tls-external-service#configure-static-sds-clusters) for usage information:
+The following table describes how to configure SDS parameters. Refer to [Configure static SDS clusters](/consul/docs/connect/gateways/ingress-gateway/tls-external-service#configure-static-sds-clusters) for usage information:
 
 | Parameter | Description | Data type |
 | `ClusterName` | Specifies the name of the SDS cluster where Consul should retrieve certificates. The cluster must be specified in the gateway's bootstrap configuration.  | String |
@@ -926,7 +926,7 @@ Specifies a list of cipher suites that the listener supports when negotiating co
 
 ### `Listeners[].TLS.SDS`
 
-Specifies parameters for loading the TLS certificates from an external SDS service. Refer to [Serve custom TLS certificates from an external service](/consul/docs/connect/gateways/ingress-gateway/ingress-gateways-tls-external-service) for additional information.
+Specifies parameters for loading the TLS certificates from an external SDS service. Refer to [Serve custom TLS certificates from an external service](/consul/docs/connect/gateways/ingress-gateway/tls-external-service) for additional information.
 
 Consul applies the SDS configuration specified in this field to all services in the listener. You can override the `Listeners.TLS.SDS` configuration per service by configuring the  [`Listeners.Services.TLS.SDS`](#listeners-services-tls-sds) settings for each service. 
 
@@ -935,7 +935,7 @@ Consul applies the SDS configuration specified in this field to all services in 
 - Default: None
 - The data type is a map containing `ClusterName` and `CertResource` fields.
 
-The following table describes how to configure SDS parameters. Refer to [Configure static SDS clusters](/consul/docs/connect/gateways/ingress-gateway/ingress-gateways-tls-external-service#configure-static-sds-clusters) for usage information:
+The following table describes how to configure SDS parameters. Refer to [Configure static SDS clusters](/consul/docs/connect/gateways/ingress-gateway/tls-external-service#configure-static-sds-clusters) for usage information:
 
 | Parameter | Description | Data type |
 | ---       | ---         | ---       |
@@ -1068,7 +1068,7 @@ Specifies a list of cipher suites that gateway listeners support when negotiatin
 
 ### `spec.tls.sds`
 
-Specifies parameters for loading the TLS certificates from an external SDS service. Refer to [Serve custom TLS certificates from an external service](/consul/docs/connect/gateways/ingress-gateway/ingress-gateways-tls-external-service) for additional information. 
+Specifies parameters for loading the TLS certificates from an external SDS service. Refer to [Serve custom TLS certificates from an external service](/consul/docs/connect/gateways/ingress-gateway/tls-external-service) for additional information. 
 
 Consul applies the SDS configuration specified in this field as defaults for all listeners defined in the gateway. You can override the SDS settings for per listener or per service defined in the listener. Refer to the following configurations for additional information:
 
@@ -1317,7 +1317,7 @@ Specifies a TLS configuration for a specific service. The settings in this confi
 
 ### `spec.listeners[].services[].tls.sds`
 
-Specifies parameters that configure the listener to load TLS certificates from an external SDS. Refer to [Serve custom TLS certificates from an external service](/consul/docs/connect/gateways/ingress-gateway/ingress-gateways-tls-external-service) for additional information. 
+Specifies parameters that configure the listener to load TLS certificates from an external SDS. Refer to [Serve custom TLS certificates from an external service](/consul/docs/connect/gateways/ingress-gateway/tls-external-service) for additional information. 
 
 If unspecified, Consul applies the [`sds`](#spec-tls-sds) settings configured for the ingress gateway. If both are specified, this configuration overrides the settings for configuration entry. 
 
@@ -1329,7 +1329,7 @@ If unspecified, Consul applies the [`sds`](#spec-tls-sds) settings configured fo
   - `clusterName`
   - `certResource`
 
-The following table describes how to configure SDS parameters. Refer to [Serve custom TLS certificates from an external service](/consul/docs/connect/gateways/ingress-gateway/ingress-gateways-tls-external-service) for usage information:
+The following table describes how to configure SDS parameters. Refer to [Serve custom TLS certificates from an external service](/consul/docs/connect/gateways/ingress-gateway/tls-external-service) for usage information:
 
 | Parameter | Description | Data type |
 | ---       | ---         | ---       |
@@ -1452,7 +1452,7 @@ Specifies a list of cipher suites that the listener supports when negotiating co
 
 ### `spec.listeners[].tls.sds`
 
-Specifies parameters for loading the TLS certificates from an external SDS service. Refer to [Serve custom TLS certificates from an external service](/consul/docs/connect/gateways/ingress-gateway/ingress-gateways-tls-external-service) for additional information.
+Specifies parameters for loading the TLS certificates from an external SDS service. Refer to [Serve custom TLS certificates from an external service](/consul/docs/connect/gateways/ingress-gateway/tls-external-service) for additional information.
 
 Consul applies the SDS configuration specified in this field to all services in the listener. You can override the `spec.listeners[].tls.sds` configuration per service by configuring the  [`spec.listeners.services.tls.sds`](#spec-listeners-services-tls-sds) settings for each service. 
 
@@ -1463,7 +1463,7 @@ Consul applies the SDS configuration specified in this field to all services in 
   - `clusterName` 
   - `certResource`
 
-The following table describes how to configure SDS parameters. Refer to [Configure static SDS clusters](/consul/docs/connect/gateways/ingress-gateway/ingress-gateways-tls-external-service#configure-static-sds-clusters) for usage information:
+The following table describes how to configure SDS parameters. Refer to [Configure static SDS clusters](/consul/docs/connect/gateways/ingress-gateway/tls-external-service#configure-static-sds-clusters) for usage information:
 
 | Parameter | Description | Data type |
 | ---       | ---         | ---       |

@@ -107,7 +107,7 @@ The following example starts Envoy and registers an ingress gateway service name
 $ consul connect envoy -gateway=ingress -register -service ingress-service
    -address '{{ GetInterfaceIP "eth0" }}:8888'
 ```
-You cannot register the ingress gateway service and start the proxy at the same time if you configure the gateway to retrieve and serve TLS certificates from their external downstreams. Refer to [Serve custom TLS certificates from an external service](/consul/docs/connect/gateways/ingress-gateway/ingress-gateways-tls-external-service) for more information.
+You cannot register the ingress gateway service and start the proxy at the same time if you configure the gateway to retrieve and serve TLS certificates from their external downstreams. Refer to [Serve custom TLS certificates from an external service](/consul/docs/connect/gateways/ingress-gateway/tls-external-service) for more information.
 
 ## Additional Envoy configurations
 

@@ -681,11 +681,11 @@
               },
               {
                 "title": "Implement an ingress gateway",
-                "path": "connect/gateways/ingress-gateway/ingress-gateways-usage"
+                "path": "connect/gateways/ingress-gateway/usage"
               },
               {
                 "title": "Serve TLS certificates from an external service",
-                "path": "connect/gateways/ingress-gateway/ingress-gateways-tls-external-service"
+                "path": "connect/gateways/ingress-gateway/tls-external-service"
               },
               {
                 "title": "Configuration",
