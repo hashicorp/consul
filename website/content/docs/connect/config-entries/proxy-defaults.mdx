@@ -53,6 +53,7 @@ TransparentProxy {
   OutboundListenerPort = <port the proxy should listen on for outbound traffic>
   DialedDirectly       = <true if proxy instances should be dialed directly>
 }
+MutualTLSMode = "<mutual TLS mode for all proxies>"
 MeshGateway {
   Mode = "<name of mesh gateway configuration for all proxies>"
 }
@@ -92,6 +93,7 @@ spec:
   transparentProxy:
     outboundListenerPort: <port the proxy should listen on for outbound traffic>
     dialedDirectly: <true if proxy instances should be dialed directly>
+  mutualTLSMode: <mutual TLS mode for all proxies>
   meshGateway:
     mode: <name of mesh gateway configuration for all proxies>
   expose:
@@ -120,6 +122,7 @@ spec:
   "Config": {
     "<arbitrary string key>": <arbitrary value>
   },
+  "MutualTLSMode": "<mutual TLS mode for all proxies>",
   "Mode": "<name of proxy mode>",
   "TransparentProxy": {
     "OutboundListenerPort": <port the proxy should listen on for outbound traffic>,
@@ -175,6 +178,7 @@ TransparentProxy {
   OutboundListenerPort = <port the proxy should listen on for outbound traffic>
   DialedDirectly       = <true if proxy instances should be dialed directly>
 }
+MutualTLSMode = "<mutual TLS mode for all proxies>"
 MeshGateway {
   Mode = "<name of mesh gateway configuration for all proxies>"
 }
@@ -215,6 +219,7 @@ spec:
   transparentProxy:
     outboundListenerPort: <port the proxy should listen on for outbound traffic>
     dialedDirectly: <true if proxy instances should be dialed directly>
+  mutualTLSMode: <mutual TLS mode for all proxies>
   meshGateway:
     mode: <name of mesh gateway configuration for all proxies>
   expose:
@@ -249,6 +254,7 @@ spec:
     "OutboundListenerPort": <port the proxy should listen on for outbound traffic>,
     "DialedDirectly": <true if proxy instances should be dialed directly>
   },
+  "MutualTLSMode": "<mutual TLS mode for all proxies>",
   "MeshGateway": {
     "Mode": = "<name of mesh gateway configuration for all proxies>"
   },
@@ -404,6 +410,17 @@ spec:
                         as a database cluster with a leader. `,
         },
       ],
+    },
+    {
+      name: 'MutualTLSMode',
+      type: 'string: ""',
+      description: `Controls the default mutual TLS mode for all proxies. This setting is only
+                    supported for services with transparent proxy enabled. One of \`""\`, \`strict\`, or \`permissive\`.
+                    When unset or \`""\`, the mode defaults to \`strict\`. When set to \`strict\`, the sidecar proxy
+                    requires mutual TLS for incoming traffic. When set to \`permissive\`, the sidecar proxy accepts
+                    mutual TLS traffic on the sidecar proxy service port, and accepts any traffic on the destination
+                    service port. We recommend only using \`permissive\` mode if necessary while onboarding services to
+                    the service mesh. Added in v1.16.0.`,
     },
     {
       name: 'MeshGateway',
