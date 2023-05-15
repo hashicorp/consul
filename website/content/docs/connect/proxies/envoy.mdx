@@ -170,6 +170,10 @@ the [`sidecar_service`](/consul/docs/connect/registration/sidecar-service) block
   - As well as `udp://`, a `unix://` URL may be specified if your agent can
     listen on a unix socket (e.g. the dogstatsd agent).
 
+- `envoy_hcp_metrics_bind_socket_dir` - Specifies the directory where Envoy creates a unix socket. 
+  Envoy sends metrics to the socket from which HCP collectors collect them. 
+  The socket is not configured by default.
+
 - `envoy_prometheus_bind_addr` - Specifies that the proxy should expose a Prometheus
   metrics endpoint to the _public_ network. It must be supplied in the form
   `ip:port` and port and the ip/port combination must be free within the network
