@@ -912,6 +912,11 @@ type APIGatewayTLSConfiguration struct {
 	CipherSuites []types.TLSCipherSuite
 }
 
+// IsEmpty returns if struct is empty because field isn't currently nullable
+func (a *APIGatewayTLSConfiguration) IsEmpty() bool {
+	return len(a.Certificates) == 0 && len(a.MaxVersion) == 0 && len(a.MinVersion) == 0 && len(a.CipherSuites) == 0
+}
+
 // BoundAPIGatewayConfigEntry manages the configuration for a bound API
 // gateway with the given name. This type is never written from the client.
 // It is only written by the controller in order to represent an API gateway
