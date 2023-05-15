@@ -53,6 +53,8 @@ type BaseDeps struct {
 	Cache         *cache.Cache
 	ViewStore     *submatview.Store
 	WatchedFiles  []string
+
+	deregisterBalancer, deregisterResolver func()
 }
 
 type ConfigLoader func(source config.Source) (config.LoadResult, error)
@@ -129,14 +131,16 @@ func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer, providedLogger hcl
 		Authority: cfg.Datacenter + "." + string(cfg.NodeID),
 	})
 	resolver.Register(resolverBuilder)
+	d.deregisterResolver = func() {
+		resolver.Deregister(resolverBuilder.Authority())
+	}
 
 	balancerBuilder := balancer.NewBuilder(
-		// Balancer name doesn't really matter, we set it to the resolver authority
-		// to keep it unique for tests.
 		resolverBuilder.Authority(),
 		d.Logger.Named("grpc.balancer"),
 	)
 	balancerBuilder.Register()
+	d.deregisterBalancer = balancerBuilder.Deregister
 
 	d.GRPCConnPool = grpcInt.NewClientConnPool(grpcInt.ClientConnPoolConfig{
 		Servers:               resolverBuilder,
@@ -146,7 +150,6 @@ func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer, providedLogger hcl
 		UseTLSForDC:           d.TLSConfigurator.UseTLS,
 		DialingFromServer:     cfg.ServerMode,
 		DialingFromDatacenter: cfg.Datacenter,
-		BalancerBuilder:       balancerBuilder,
 	})
 	d.LeaderForwarder = resolverBuilder
 
@@ -194,6 +197,20 @@ func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer, providedLogger hcl
 	}
 
 	return d, nil
+}
+
+// Close cleans up any state and goroutines associated to bd's members not
+// handled by something else (e.g. the agent stop channel).
+func (bd BaseDeps) Close() {
+	bd.AutoConfig.Stop()
+	bd.MetricsConfig.Cancel()
+
+	if fn := bd.deregisterBalancer; fn != nil {
+		fn()
+	}
+	if fn := bd.deregisterResolver; fn != nil {
+		fn()
+	}
 }
 
 // grpcLogInitOnce because the test suite will call NewBaseDeps in many tests and
