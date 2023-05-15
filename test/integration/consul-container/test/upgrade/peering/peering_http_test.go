@@ -12,22 +12,22 @@ import (
 
 	"github.com/hashicorp/consul/api"
 	libassert "github.com/hashicorp/consul/test/integration/consul-container/libs/assert"
-	"github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
 	libservice "github.com/hashicorp/consul/test/integration/consul-container/libs/service"
 	libtopology "github.com/hashicorp/consul/test/integration/consul-container/libs/topology"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
+	"github.com/hashicorp/consul/test/integration/consul-container/test/upgrade"
 )
 
 func TestPeering_Basic(t *testing.T) {
 	t.Parallel()
-	accepting, dialing := libtopology.BasicPeeringTwoClustersSetup(t, utils.LatestVersion, false)
+	accepting, dialing := libtopology.BasicPeeringTwoClustersSetup(t, utils.GetLatestImageName(), utils.LatestVersion, false)
 	peeringUpgrade(t, accepting, dialing, utils.TargetVersion)
 	peeringPostUpgradeValidation(t, dialing)
 }
 
 func TestPeering_HTTPRouter(t *testing.T) {
 	t.Parallel()
-	accepting, dialing := libtopology.BasicPeeringTwoClustersSetup(t, utils.LatestVersion, false)
+	accepting, dialing := libtopology.BasicPeeringTwoClustersSetup(t, utils.GetLatestImageName(), utils.LatestVersion, false)
 	acceptingCluster := accepting.Cluster
 
 	// Create a second static-server at the client agent of accepting cluster and
@@ -90,7 +90,7 @@ func TestPeering_HTTPRouter(t *testing.T) {
 func TestPeering_HTTPResolverAndFailover(t *testing.T) {
 	t.Parallel()
 
-	accepting, dialing := libtopology.BasicPeeringTwoClustersSetup(t, utils.LatestVersion, false)
+	accepting, dialing := libtopology.BasicPeeringTwoClustersSetup(t, utils.GetLatestImageName(), utils.LatestVersion, false)
 	dialingCluster := dialing.Cluster
 
 	require.NoError(t, dialingCluster.ConfigEntryWrite(&api.ProxyConfigEntry{
@@ -101,7 +101,7 @@ func TestPeering_HTTPResolverAndFailover(t *testing.T) {
 		},
 	}))
 
-	clientConnectProxy, err := createAndRegisterStaticClientSidecarWith2Upstreams(dialingCluster,
+	clientConnectProxy, err := upgrade.CreateAndRegisterStaticClientSidecarWith2Upstreams(dialingCluster,
 		[]string{libservice.StaticServerServiceName, "peer-static-server"}, true,
 	)
 	require.NoErrorf(t, err, "error creating client connect proxy in cluster %s", dialingCluster.NetworkName)
@@ -183,7 +183,7 @@ func TestPeering_HTTPResolverAndFailover(t *testing.T) {
 func TestPeering_HTTPResolverAndSplitter(t *testing.T) {
 	t.Parallel()
 
-	accepting, dialing := libtopology.BasicPeeringTwoClustersSetup(t, utils.LatestVersion, false)
+	accepting, dialing := libtopology.BasicPeeringTwoClustersSetup(t, utils.GetLatestImageName(), utils.LatestVersion, false)
 	dialingCluster := dialing.Cluster
 
 	require.NoError(t, dialingCluster.ConfigEntryWrite(&api.ProxyConfigEntry{
@@ -194,7 +194,7 @@ func TestPeering_HTTPResolverAndSplitter(t *testing.T) {
 		},
 	}))
 
-	clientConnectProxy, err := createAndRegisterStaticClientSidecarWith2Upstreams(dialingCluster,
+	clientConnectProxy, err := upgrade.CreateAndRegisterStaticClientSidecarWith2Upstreams(dialingCluster,
 		[]string{"split-static-server", "peer-static-server"}, true,
 	)
 	require.NoErrorf(t, err, "creating client connect proxy in cluster %s", dialingCluster.NetworkName)
@@ -295,11 +295,11 @@ func peeringUpgrade(t *testing.T, accepting, dialing *libtopology.BuiltCluster, 
 	_, staticClientPort := dialing.Container.GetAddr()
 
 	// Upgrade the accepting cluster and assert peering is still ACTIVE
-	require.NoError(t, accepting.Cluster.StandardUpgrade(t, context.Background(), targetVersion))
+	require.NoError(t, accepting.Cluster.StandardUpgrade(t, context.Background(), utils.GetTargetImageName(), targetVersion))
 	libassert.PeeringStatus(t, acceptingClient, libtopology.AcceptingPeerName, api.PeeringStateActive)
 	libassert.PeeringStatus(t, dialingClient, libtopology.DialingPeerName, api.PeeringStateActive)
 
-	require.NoError(t, dialing.Cluster.StandardUpgrade(t, context.Background(), targetVersion))
+	require.NoError(t, dialing.Cluster.StandardUpgrade(t, context.Background(), utils.GetTargetImageName(), targetVersion))
 	libassert.PeeringStatus(t, acceptingClient, libtopology.AcceptingPeerName, api.PeeringStateActive)
 	libassert.PeeringStatus(t, dialingClient, libtopology.DialingPeerName, api.PeeringStateActive)
 
@@ -331,74 +331,4 @@ func peeringPostUpgradeValidation(t *testing.T, dialing *libtopology.BuiltCluste
 	libassert.AssertUpstreamEndpointStatus(t, adminPort, fmt.Sprintf("static-server.default.%s.external", libtopology.DialingPeerName), "HEALTHY", 1)
 	libassert.HTTPServiceEchoes(t, "localhost", port, "")
 	libassert.AssertFortioName(t, fmt.Sprintf("http://localhost:%d", port), libservice.StaticServerServiceName, "")
-}
-
-// createAndRegisterStaticClientSidecarWith2Upstreams creates a static-client that
-// has two upstreams connecting to destinationNames: local bind addresses are 5000
-// and 5001.
-// - crossCluster: true if upstream is in another cluster
-func createAndRegisterStaticClientSidecarWith2Upstreams(c *cluster.Cluster, destinationNames []string, crossCluster bool) (*libservice.ConnectContainer, error) {
-	// Do some trickery to ensure that partial completion is correctly torn
-	// down, but successful execution is not.
-	var deferClean utils.ResettableDefer
-	defer deferClean.Execute()
-
-	node := c.Servers()[0]
-	mgwMode := api.MeshGatewayModeLocal
-
-	// Register the static-client service and sidecar first to prevent race with sidecar
-	// trying to get xDS before it's ready
-	req := &api.AgentServiceRegistration{
-		Name: libservice.StaticClientServiceName,
-		Port: 8080,
-		Connect: &api.AgentServiceConnect{
-			SidecarService: &api.AgentServiceRegistration{
-				Proxy: &api.AgentServiceConnectProxyConfig{
-					Upstreams: []api.Upstream{
-						{
-							DestinationName:  destinationNames[0],
-							LocalBindAddress: "0.0.0.0",
-							LocalBindPort:    cluster.ServiceUpstreamLocalBindPort,
-						},
-						{
-							DestinationName:  destinationNames[1],
-							LocalBindAddress: "0.0.0.0",
-							LocalBindPort:    cluster.ServiceUpstreamLocalBindPort2,
-						},
-					},
-				},
-			},
-		},
-	}
-
-	if crossCluster {
-		for _, upstream := range req.Connect.SidecarService.Proxy.Upstreams {
-			upstream.MeshGateway = api.MeshGatewayConfig{
-				Mode: mgwMode,
-			}
-		}
-	}
-
-	if err := node.GetClient().Agent().ServiceRegister(req); err != nil {
-		return nil, err
-	}
-
-	// Create a service and proxy instance
-	sidecarCfg := libservice.SidecarConfig{
-		Name:      fmt.Sprintf("%s-sidecar", libservice.StaticClientServiceName),
-		ServiceID: libservice.StaticClientServiceName,
-	}
-
-	clientConnectProxy, err := libservice.NewConnectService(context.Background(), sidecarCfg, []int{cluster.ServiceUpstreamLocalBindPort, cluster.ServiceUpstreamLocalBindPort2}, node)
-	if err != nil {
-		return nil, err
-	}
-	deferClean.Add(func() {
-		_ = clientConnectProxy.Terminate()
-	})
-
-	// disable cleanup functions now that we have an object with a Terminate() function
-	deferClean.Reset()
-
-	return clientConnectProxy, nil
 }

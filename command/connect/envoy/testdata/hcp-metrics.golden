@@ -67,7 +67,7 @@
                   "endpoint": {
                     "address": {
                       "pipe": {
-                        "path": "/tmp/consul/hcp-metrics/default_test-proxy.sock"
+                        "path": "/tmp/consul/hcp-metrics/k3bWnyJyKvjUYXrBdOX2nXzSSCQ.sock"
                       }
                     }
                   }
@@ -221,10 +221,12 @@
   "dynamic_resources": {
     "lds_config": {
       "ads": {},
+      "initial_fetch_timeout": "0s",
       "resource_api_version": "V3"
     },
     "cds_config": {
       "ads": {},
+      "initial_fetch_timeout": "0s",
       "resource_api_version": "V3"
     },
     "ads_config": {

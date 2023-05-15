@@ -5,6 +5,8 @@ package envoy
 
 import (
 	"bytes"
+	"crypto/sha1"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"net"
@@ -14,7 +16,6 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/api"
 )
 
@@ -811,13 +812,28 @@ func (c *BootstrapConfig) generateListenerConfig(args *BootstrapTplArgs, bindAdd
 	return nil
 }
 
-// appendHCPMetricsConfig generates config to enable a socket at path: <hcpMetricsBindSocketDir>/<namespace>_<proxy_id>.sock
-// or <hcpMetricsBindSocketDir>/<proxy_id>.sock, if namespace is empty.
+// appendHCPMetricsConfig generates config to enable a socket at path: <hcpMetricsBindSocketDir>/<hash of compound proxy ID>.sock
+// We take the hash of the compound proxy ID for a few reasons:
+//
+//   - The proxy ID is included because this socket path must be unique per proxy. Each Envoy proxy will ship
+//     its metrics to HCP using its own loopback listener at this path.
+//
+//   - The hash is needed because UNIX domain socket paths must be less than 104 characters. By using a b64 encoded
+//     SHA1 hash we end up with 27 chars for the name, 5 chars for the extension, and the remainder is saved for
+//     the configurable socket dir. The length of the directory's path is validated on writes to avoid going over.
 func appendHCPMetricsConfig(args *BootstrapTplArgs, hcpMetricsBindSocketDir string) {
 	// Normalize namespace to "default". This ensures we match the namespace behaviour in proxycfg package,
 	// where a dynamic listener will be created at the same socket path via xDS.
-	sock := fmt.Sprintf("%s_%s.sock", acl.NamespaceOrDefault(args.Namespace), args.ProxyID)
-	path := path.Join(hcpMetricsBindSocketDir, sock)
+	ns := args.Namespace
+	if ns == "" {
+		ns = "default"
+	}
+	id := ns + "_" + args.ProxyID
+
+	h := sha1.New()
+	h.Write([]byte(id))
+	hash := base64.RawURLEncoding.EncodeToString(h.Sum(nil))
+	path := path.Join(hcpMetricsBindSocketDir, hash+".sock")
 
 	if args.StatsSinksJSON != "" {
 		args.StatsSinksJSON += ",\n"

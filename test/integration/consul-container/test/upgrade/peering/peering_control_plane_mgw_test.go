@@ -27,7 +27,7 @@ import (
 func TestPeering_ControlPlaneMGW(t *testing.T) {
 	t.Parallel()
 
-	accepting, dialing := libtopology.BasicPeeringTwoClustersSetup(t, utils.LatestVersion, true)
+	accepting, dialing := libtopology.BasicPeeringTwoClustersSetup(t, utils.GetLatestImageName(), utils.LatestVersion, true)
 	var (
 		acceptingCluster = accepting.Cluster
 		dialingCluster   = dialing.Cluster
@@ -51,11 +51,11 @@ func TestPeering_ControlPlaneMGW(t *testing.T) {
 		"upstream_cx_total", 1)
 
 	// Upgrade the accepting cluster and assert peering is still ACTIVE
-	require.NoError(t, acceptingCluster.StandardUpgrade(t, context.Background(), utils.TargetVersion))
+	require.NoError(t, acceptingCluster.StandardUpgrade(t, context.Background(), utils.GetTargetImageName(), utils.TargetVersion))
 	libassert.PeeringStatus(t, acceptingClient, libtopology.AcceptingPeerName, api.PeeringStateActive)
 	libassert.PeeringStatus(t, dialingClient, libtopology.DialingPeerName, api.PeeringStateActive)
 
-	require.NoError(t, dialingCluster.StandardUpgrade(t, context.Background(), utils.TargetVersion))
+	require.NoError(t, dialingCluster.StandardUpgrade(t, context.Background(), utils.GetTargetImageName(), utils.TargetVersion))
 	libassert.PeeringStatus(t, acceptingClient, libtopology.AcceptingPeerName, api.PeeringStateActive)
 	libassert.PeeringStatus(t, dialingClient, libtopology.DialingPeerName, api.PeeringStateActive)
 

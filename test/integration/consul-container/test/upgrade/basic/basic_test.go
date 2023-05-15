@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
 	libservice "github.com/hashicorp/consul/test/integration/consul-container/libs/service"
+	"github.com/hashicorp/consul/test/integration/consul-container/libs/topology"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 )
 
@@ -21,21 +22,19 @@ import (
 func TestBasic(t *testing.T) {
 	t.Parallel()
 
-	configCtx := libcluster.NewBuildContext(t, libcluster.BuildOptions{
-		ConsulImageName: utils.GetTargetImageName(),
-		ConsulVersion:   utils.TargetVersion,
-	})
-
 	const numServers = 1
+	buildOpts := &libcluster.BuildOptions{
+		ConsulImageName:      utils.GetLatestImageName(),
+		ConsulVersion:        utils.LatestVersion,
+		Datacenter:           "dc1",
+		InjectAutoEncryption: true,
+	}
 
-	serverConf := libcluster.NewConfigBuilder(configCtx).
-		Bootstrap(numServers).
-		ToAgentConfig(t)
-	t.Logf("Cluster config:\n%s", serverConf.JSON)
-	require.Equal(t, utils.TargetVersion, serverConf.Version) // TODO: remove
-
-	cluster, err := libcluster.NewN(t, *serverConf, numServers)
-	require.NoError(t, err)
+	cluster, _, _ := topology.NewCluster(t, &topology.ClusterConfig{
+		NumServers:                1,
+		BuildOpts:                 buildOpts,
+		ApplyDefaultProxySettings: true,
+	})
 
 	client := cluster.APIClient(0)
 
@@ -53,7 +52,7 @@ func TestBasic(t *testing.T) {
 
 	// upgrade the cluster to the Target version
 	t.Logf("initiating standard upgrade to version=%q", utils.TargetVersion)
-	err = cluster.StandardUpgrade(t, context.Background(), utils.TargetVersion)
+	err := cluster.StandardUpgrade(t, context.Background(), utils.GetTargetImageName(), utils.TargetVersion)
 
 	require.NoError(t, err)
 	libcluster.WaitForLeader(t, cluster, client)

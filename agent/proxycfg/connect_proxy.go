@@ -5,6 +5,8 @@ package proxycfg
 
 import (
 	"context"
+	"crypto/sha1"
+	"encoding/base64"
 	"fmt"
 	"path"
 	"strings"
@@ -660,8 +662,14 @@ func (s *handlerConnectProxy) maybeInitializeHCPMetricsWatches(ctx context.Conte
 
 	// The path includes the proxy ID so that when multiple proxies are on the same host
 	// they each have a distinct path to send their metrics.
-	sock := fmt.Sprintf("%s_%s.sock", s.proxyID.NamespaceOrDefault(), s.proxyID.ID)
-	path := path.Join(hcpCfg.HCPMetricsBindSocketDir, sock)
+	id := s.proxyID.NamespaceOrDefault() + "_" + s.proxyID.ID
+
+	// UNIX domain sockets paths have a max length of 108, so we take a hash of the compound ID
+	// to limit the length of the socket path.
+	h := sha1.New()
+	h.Write([]byte(id))
+	hash := base64.RawURLEncoding.EncodeToString(h.Sum(nil))
+	path := path.Join(hcpCfg.HCPMetricsBindSocketDir, hash+".sock")
 
 	upstream := structs.Upstream{
 		DestinationNamespace: acl.DefaultNamespaceName,

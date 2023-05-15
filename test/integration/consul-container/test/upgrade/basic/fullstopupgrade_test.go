@@ -16,6 +16,7 @@ import (
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
 	libservice "github.com/hashicorp/consul/test/integration/consul-container/libs/service"
+	"github.com/hashicorp/consul/test/integration/consul-container/libs/topology"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 )
 
@@ -50,24 +51,19 @@ func TestStandardUpgradeToTarget_fromLatest(t *testing.T) {
 	)
 
 	run := func(t *testing.T, tc testcase) {
-		configCtx := libcluster.NewBuildContext(t, libcluster.BuildOptions{
-			ConsulImageName: utils.GetTargetImageName(),
-			ConsulVersion:   tc.oldVersion,
+		const numServers = 1
+		buildOpts := &libcluster.BuildOptions{
+			ConsulImageName:      utils.GetLatestImageName(),
+			ConsulVersion:        utils.LatestVersion,
+			Datacenter:           "dc1",
+			InjectAutoEncryption: true,
+		}
+
+		cluster, _, _ := topology.NewCluster(t, &topology.ClusterConfig{
+			NumServers:                numServers,
+			BuildOpts:                 buildOpts,
+			ApplyDefaultProxySettings: true,
 		})
-
-		const (
-			numServers = 1
-		)
-
-		serverConf := libcluster.NewConfigBuilder(configCtx).
-			Bootstrap(numServers).
-			ToAgentConfig(t)
-		t.Logf("Cluster config:\n%s", serverConf.JSON)
-		require.Equal(t, tc.oldVersion, serverConf.Version) // TODO: remove
-
-		cluster, err := libcluster.NewN(t, *serverConf, numServers)
-		require.NoError(t, err)
-
 		client := cluster.APIClient(0)
 
 		libcluster.WaitForLeader(t, cluster, client)
@@ -80,7 +76,7 @@ func TestStandardUpgradeToTarget_fromLatest(t *testing.T) {
 		require.NoError(t, client.Agent().ServiceRegister(
 			&api.AgentServiceRegistration{Name: serviceName, Port: 9998},
 		))
-		err = goretry.Do(
+		err := goretry.Do(
 			func() error {
 				ch, errCh := libservice.ServiceHealthBlockingQuery(client, serviceName, index)
 				select {
@@ -107,7 +103,7 @@ func TestStandardUpgradeToTarget_fromLatest(t *testing.T) {
 
 		// upgrade the cluster to the Target version
 		t.Logf("initiating standard upgrade to version=%q", tc.targetVersion)
-		err = cluster.StandardUpgrade(t, context.Background(), tc.targetVersion)
+		err = cluster.StandardUpgrade(t, context.Background(), utils.GetTargetImageName(), tc.targetVersion)
 
 		if !tc.expectErr {
 			require.NoError(t, err)
@@ -122,7 +118,7 @@ func TestStandardUpgradeToTarget_fromLatest(t *testing.T) {
 				require.Equal(r, serviceName, service[0].ServiceName)
 			})
 		} else {
-			require.Error(t, fmt.Errorf("context deadline exceeded"))
+			require.ErrorContains(t, err, "context deadline exceeded")
 		}
 	}
 
