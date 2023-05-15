@@ -75,12 +75,25 @@ func TestResources(t *testing.T) {
 			GroupVersion: "v2",
 			Kind:         "album",
 		},
-		Tenancy: &pbresource.Tenancy{
-			Partition: "default",
-			PeerName:  "local",
-			Namespace: "default",
-		},
+		Tenancy: writeRsp.Resource.Id.Tenancy,
 	})
 	require.NoError(t, err)
 	require.Len(t, listRsp.Resources, 3)
+
+	// Delete the artist and check the albums are also cleaned up.
+	_, err = client.Delete(ctx, &pbresource.DeleteRequest{Id: writeRsp.Resource.Id})
+	require.NoError(t, err)
+
+	retry.Run(t, func(r *retry.R) {
+		listRsp, err := client.List(ctx, &pbresource.ListRequest{
+			Type: &pbresource.Type{
+				Group:        "demo",
+				GroupVersion: "v2",
+				Kind:         "album",
+			},
+			Tenancy: writeRsp.Resource.Id.Tenancy,
+		})
+		require.NoError(r, err)
+		require.Empty(r, listRsp.Resources)
+	})
 }
