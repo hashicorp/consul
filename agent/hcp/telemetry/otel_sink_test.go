@@ -136,6 +136,7 @@ func TestNewOTELSink(t *testing.T) {
 		},
 		"success": {
 			opts: &OTELSinkOpts{
+				Ctx:    context.Background(),
 				Reader: metric.NewManualReader(),
 				Labels: map[string]string{
 					"server": "test",
@@ -205,8 +206,11 @@ func TestOTELSink_Race(t *testing.T) {
 	reader := metric.NewManualReader()
 	ctx := context.Background()
 	opts := &OTELSinkOpts{
-		Ctx:     ctx,
-		Reader:  reader,
+		Ctx:    ctx,
+		Reader: reader,
+		Labels: map[string]string{
+			"server.id": "test",
+		},
 		Filters: []string{"test"},
 	}
 
@@ -322,7 +326,7 @@ func performSinkOperation(sink *OTELSink, k string, v metricdata.Metrics, errCh 
 
 func isSame(t *testing.T, expectedMap map[string]metricdata.Metrics, actual metricdata.ResourceMetrics) {
 	// Validate resource
-	require.Equal(t, resource.NewSchemaless(), actual.Resource)
+	require.Equal(t, expectedResource, actual.Resource)
 
 	// Validate Metrics
 	require.NotEmpty(t, actual.ScopeMetrics)

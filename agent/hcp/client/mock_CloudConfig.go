@@ -28,11 +28,13 @@ func (m *mockHCPCfg) PortalURL() *url.URL           { return &url.URL{} }
 func (m *mockHCPCfg) Profile() *profile.UserProfile { return nil }
 
 type MockCloudCfg struct {
-	ConfigErr error
+	ConfigErr   error
+	ResourceErr error
 }
 
 func (m MockCloudCfg) Resource() (resource.Resource, error) {
-	return resource.FromString(testResourceID)
+	r, _ := resource.FromString(testResourceID)
+	return r, m.ResourceErr
 }
 
 func (m MockCloudCfg) HCPConfig(opts ...hcpcfg.HCPConfigOption) (hcpcfg.HCPConfig, error) {
