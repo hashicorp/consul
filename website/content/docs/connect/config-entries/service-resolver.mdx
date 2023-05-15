@@ -5,7 +5,7 @@ description: >-
   Service resolver configuration entries are L7 traffic management tools for defining sets of service instances that resolve upstream requests and Consul’s behavior when resolving them. Learn how to write `service-resolver` config entries in HCL or YAML with a specification reference, configuration model, a complete example, and example code by use case.
 ---
 
-# Service Resolver Configuration Reference
+# Service resolver configuration entry reference
 
 This page provides reference information for service resolver configuration entries. Configure and apply service resolvers to create named subsets of service instances and define their behavior when satisfying upstream requests.
 
@@ -399,12 +399,12 @@ Specifies the admin partition that the service resolver applies to. Refer to [ad
 
 ### `Meta`
 
-Specifies key/value pairs to add to the KV store.
+Specifies key-value pairs to add to the KV store.
 
 #### Values
 
 - Default: none
-- Data type: Map of one or more key/value pairs
+- Data type: Map of one or more key-value pairs
   - `<KEY>`: String
   - `<VALUE>`: String or integer
 
@@ -414,7 +414,7 @@ Specifies the timeout duration for establishing new network connections to this 
 
 #### Values
 
-- Default: `0s`
+- Default: None
 - Data type: String
 
 ### `RequestTimeout`
@@ -428,12 +428,12 @@ Specifies the timeout duration for receiving an HTTP response from this service,
 
 ### `Subsets`
 
-Specifies names for service subsets and the conditions under which service instances belong to each subset. Subsets are defined in the form of a key/value pair, where the key is the subset’s name and the value is a map that contains a [filtering expression](/consul/api-docs/features/filtering). If empty, only the unnamed default subset is usable.
+Specifies names for custom service subsets and the conditions under which service instances belong to each subset. Define a subset by specifying a key and a value where the key is the subset’s name and the value is a map that contains a [filtering expression](/consul/api-docs/features/filtering). If this parameter is not specified, only the unnamed default subset is usable.
 
 #### Values
 
 - Default: None
-- Data type: Map containing a key/value pair.
+- Data type: Map containing a key-value pair.
   - `<KEY>`: String that names the subset. The string must be valid as a DNS subdomain element.
   - `<VALUE>`: Map that can contain the following parameters:
   
@@ -444,7 +444,7 @@ Specifies names for service subsets and the conditions under which service insta
 
 ### `DefaultSubset`
 
-Specifies a defined subset of service instances to use when no explicit subset is requested. If empty, Consul uses the unnamed default subset.
+Specifies a defined subset of service instances to use when no explicit subset is requested. If this parameter is not specified, Consul uses the unnamed default subset.
 
 #### Values
 
@@ -473,7 +473,7 @@ Specifies redirect instructions for local service traffic so that services deplo
 
 Specifies controls for rerouting traffic to an alternate pool of service instances if the target service fails.
 
-This map is keyed by the name of the local service subset whose traffic should resolve elsewhere when it fails. The `"*"` wildcard can be used to apply failovers to any subset.
+This parameter is a map, and its key is the name of the local service subset that resolves to another location when it fails. You can specify a `"*"` wildcard to apply failovers to any subset.
 
 `Service`, `ServiceSubset`, `Namespace`, `Targets`, and `Datacenters` cannot all be empty at the same time.
 
@@ -551,7 +551,7 @@ Specifies the type of load balancing policy for selecting a host. Supported load
 
 ### `LoadBalancer{}.LeastRequestConfig`
 
-Specifies configuration for the `least_request policy` type.
+Specifies configuration for the `least_request` policy type.
 
 #### Values
 
@@ -591,7 +591,7 @@ Specifies a list of hash policies to use for hashing load balancing algorithms. 
   | `FieldValue`   | Specifies the value to hash, such as a header name, cookie name, or a URL query parameter name. You cannot specify the `FieldValue` parameter if `SourceIP` is also configured. | String   | None  |
   | `CookieConfig` | Specifies additional configuration options for the `cookie` hash policy type. Refer to [`LoadBalancer{}.HashPolicies[].CookieConfig`](#loadbalancer-hashpolicies-cookieconfig) for additional configuration parameters. | Map   | None  |
   | `SourceIP`     | Determines if the hash type should besource IP address. You cannot specify `SourceIP` if `Field` or `FieldValue` are configured. | Boolean   | `false`  |
-  | `Terminal`     | Determines if Consul should short circuit the computation of the hash when multiple hash policies are present. If a hash is computed when a terminal policy is evaluated, then that hash is used and subsequent hash policies are ignored. | Boolean  | `false`  |
+  | `Terminal`     | Determines if Consul should stop computing the hash when multiple hash policies are present. If a hash is computed when a terminal policy is evaluated, then that hash is used and subsequent hash policies are ignored. | Boolean  | `false`  |
 
 ### `LoadBalancer{}.HashPolicies[].CookieConfig`
 
@@ -676,7 +676,7 @@ Specifies the timeout duration for establishing new network connections to this 
 
 #### Values
 
-- Default: `0s`
+- Default: None
 - Data type: String
 
 ### `spec.requestTimeout`
@@ -690,12 +690,12 @@ Specifies the timeout duration for receiving an HTTP response from this service,
 
 ### `spec.subsets`
 
-Specifies names for service subsets and the conditions under which service instances belong to each subset. Subsets are defined in the form of a key/value pair, where the key is the subset’s name and the value is a map that contains a [filtering expression](/consul/api-docs/features/filtering). If empty, only the unnamed default subset is usable.
+Specifies names for custom service subsets and the conditions under which service instances belong to each subset. Define a subset by specifying a key and a value where the key is the subset’s name and the value is a map that contains a [filtering expression](/consul/api-docs/features/filtering). If this parameter is not specified, only the unnamed default subset is usable.
 
 #### Values
 
 - Default: None
-- Data type: Map containing a key/value pair.
+- Data type: Map containing a key-value pair.
   - `<KEY>`: String that names the subset. The string must be valid as a DNS subdomain element.
   - `<VALUE>`: Map that can contain the following parameters:
 
@@ -706,7 +706,7 @@ Specifies names for service subsets and the conditions under which service insta
 
 ### `spec.defaultSubset`
 
-Specifies a defined subset of service instances to use when no explicit subset is requested. If empty, Consul uses the unnamed default subset.
+Specifies a defined subset of service instances to use when no explicit subset is requested. If this parameter is not specified, Consul uses the unnamed default subset.
 
 #### Values
 
@@ -735,7 +735,7 @@ Specifies redirect instructions for local service traffic so that services deplo
 
 Specifies controls for rerouting traffic to an alternate pool of service instances if the target service fails.
 
-This map is keyed by the name of the local service subset whose traffic should redirect when it fails. The `"*"` wildcard can be used to apply failovers to any subset.
+This parameter is a map, and its key is the name of the local service subset that resolves to another location when it fails. You can specify a `"*"` wildcard to apply failovers to any subset.
 
 `service`, `serviceSubset`, `namespace`, `targets`, and `datacenters` cannot all be empty at the same time.
 
@@ -797,6 +797,9 @@ Specifies the type of load balancing policy for selecting a host. Supported load
 - Least request
 - Ring hash
 - Maglev
+- Cookie
+- Header
+- Query parameter
 
 #### Values
 
@@ -810,6 +813,11 @@ Specifies the type of load balancing policy for selecting a host. Supported load
   | `least_request` | The load balancer forwards a client request to the server with the fewest connections. When using this policy, you can specify additional parameters in [`spec.loadBalancer.leastRequestConfig`](#spec-loadbalancer-leastrequestconfig). |
   | `ring_hash`     | The load balancer forwards requests from the same client to the same group of servers. When using this policy, you can specify additional parameters in [`spec.loadBalancer.ringHashConfig`](#spec-loadbalancer-ringhashconfig).         |
   | `maglev`        | The load balancer uses a hashing algorithm to spread requests evenly across servers. When using this policy, you can specify additional parameters in [`spec.loadBalancer.hashPolicies`](#spec-loadbalancer-hashpolicies).               |
+  | `cookie` | description |
+  | `header` | description |
+  | `query_param` | description |
+
+  
 
 ### `spec.loadBalancer.leastRequestConfig`
 
@@ -853,7 +861,7 @@ Specifies a list of hash policies to use for hashing load balancing algorithms. 
   | `fieldValue`   | Specifies the value to hash, such as a header name, cookie name, or a URL query parameter name. You cannot specify the `fieldValue` parameter if `sourceIP` is also configured. | String   | None  |
   | `cookieConfig` | Specifies additional configuration options for the `cookie` hash policy type. Refer to [`spec.loadBalancer.hashPolicies[].cookieConfig`](#spec-loadbalancer-hashpolicies-cookieconfig) for additional configuration parameters. | Map   | None  |
   | `sourceIP`     | Determines if the hash type should besource IP address. You cannot specify `sourceIP` if `field` or `fieldValue` are configured. | Boolean   | `false`  |
-  | `terminal`     | Determines if Consul should short circuit the computation of the hash when multiple hash policies are present. If a hash is computed when a terminal policy is evaluated, then that hash is used and subsequent hash policies are ignored. | Boolean  | `false`  |
+  | `terminal`     | Determines if Consul should stop computing the hash when multiple hash policies are present. If a hash is computed when a terminal policy is evaluated, then that hash is used and subsequent hash policies are ignored. | Boolean  | `false`  |
 
 ### `spec.loadBalancer{}.hashPolicies[].cookieConfig`
 
@@ -879,7 +887,7 @@ The following examples demonstrate common service resolver configuration pattern
 
 ### Filter on service version
 
-The following example creates two subsets of the `web` service, and assigns service instances to subsets based on each instance's version metadata. It also defined `v1` as the default subset.
+The following example creates two subsets of the `web` service and assigns service instances to subsets based on each instance's version metadata. It also defined `v1` as the default subset.
 
 <Tabs>
 <Tab heading="HCL" group="hcl">
