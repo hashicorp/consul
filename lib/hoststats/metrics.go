@@ -45,6 +45,10 @@ var Gauges = []prometheus.GaugeDefinition{
 		Help: "Idle cpu utilization",
 	},
 	{
+		Name: []string{"host", "cpu", "iowait"},
+		Help: "Iowait cpu utilization",
+	},
+	{
 		Name: []string{"host", "cpu", "system"},
 		Help: "System cpu utilization",
 	},

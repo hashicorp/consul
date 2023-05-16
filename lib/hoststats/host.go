@@ -47,6 +47,7 @@ func (hs *HostStats) Emit(sink Metrics, baseLabels []metrics.Label) {
 		sink.SetGaugeWithLabels([]string{"host", "cpu", "total"}, float32(cpu.Total), labels)
 		sink.SetGaugeWithLabels([]string{"host", "cpu", "user"}, float32(cpu.User), labels)
 		sink.SetGaugeWithLabels([]string{"host", "cpu", "idle"}, float32(cpu.Idle), labels)
+		sink.SetGaugeWithLabels([]string{"host", "cpu", "iowait"}, float32(cpu.Iowait), labels)
 		sink.SetGaugeWithLabels([]string{"host", "cpu", "system"}, float32(cpu.System), labels)
 	}
 
@@ -72,6 +73,7 @@ type CPUStats struct {
 	User   float64
 	System float64
 	Idle   float64
+	Iowait float64
 	Total  float64
 }
 
