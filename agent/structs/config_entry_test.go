@@ -499,8 +499,11 @@ func TestDecodeConfigEntry(t *testing.T) {
 						{
 							Name: "redis",
 							PassiveHealthCheck: &PassiveHealthCheck{
-								MaxFailures: 3,
-								Interval:    2 * time.Second,
+								MaxFailures:             3,
+								Interval:                2 * time.Second,
+								EnforcingConsecutive5xx: uintPointer(4),
+								MaxEjectionPercent:      uintPointer(5),
+								BaseEjectionTime:        durationPointer(6 * time.Second),
 							},
 						},
 						{
