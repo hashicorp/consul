@@ -410,7 +410,7 @@ Specifies key-value pairs to add to the KV store.
 
 ### `ConnectTimeout`
 
-Specifies the timeout duration for establishing new network connections to this service. The duration is measured in seconds.
+Specifies the timeout duration for establishing new network connections to this service. By default, the duration is measured in nanoseconds (ns).
 
 #### Values
 
@@ -419,7 +419,7 @@ Specifies the timeout duration for establishing new network connections to this 
 
 ### `RequestTimeout`
 
-Specifies the timeout duration for receiving an HTTP response from this service, measured in seconds. When set to `0s`, the default value of `15s` is used instead.
+Specifies the timeout duration for receiving an HTTP response from this service. When set to `0s`, the default value of `15s` is used instead. By default, the duration is measured in nanoseconds (ns).
 
 #### Values
 
@@ -850,7 +850,7 @@ Map that contains the details about the `ServiceResolver` configuration entry. T
 
 ### `spec.connectTimeout`
 
-Specifies the timeout duration for establishing new network connections to this service. The duration is measured in seconds.
+Specifies the timeout duration for establishing new network connections to this service. By default, the duration is measured in nanoseconds (ns).
 
 #### Values
 
@@ -859,7 +859,7 @@ Specifies the timeout duration for establishing new network connections to this 
 
 ### `spec.requestTimeout`
 
-Specifies the timeout duration for receiving an HTTP response from this service, measured in seconds. When set to `0s`, the default value of `15s` is used instead.
+Specifies the timeout duration for receiving an HTTP response from this service. When set to `0s`, the default value of `15s` is used instead. By default, the duration is measured in nanoseconds (ns).
 
 #### Values
 
