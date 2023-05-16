@@ -44,6 +44,9 @@ type RuntimeConfig struct {
 	// Kind is mode the local Envoy proxy is running in. For now, only connect proxy and
 	// terminating gateways are supported.
 	Kind api.ServiceKind
+
+	// Protocol is the protocol configured for the local service. It may be empty which implies tcp.
+	Protocol string
 }
 
 // IsLocal indicates if the extension configuration is for the proxy's local service.

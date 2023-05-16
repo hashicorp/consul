@@ -342,8 +342,8 @@ spec:
     {
       name: 'Config',
       type: 'map[string]arbitrary',
-      description: `An arbitrary map of configuration values used by Connect proxies.
-    The available configurations depend on the Connect proxy you use.
+      description: `An arbitrary map of configuration values used by service mesh proxies.
+    The available configurations depend on the mesh proxy you use.
      Any values that your proxy allows can be configured globally here. To explore these options please see the documentation for your chosen proxy.
      <ul><li>[Envoy](/consul/docs/connect/proxies/envoy#proxy-config-options)</li>
      <li>[Consul's built-in proxy](/consul/docs/connect/proxies/built-in#proxy-config-key-reference)</li></ul>`,
@@ -409,7 +409,7 @@ spec:
       name: 'MeshGateway',
       type: 'MeshGatewayConfig: <optional>',
       description: `Controls the default
-      [mesh gateway configuration](/consul/docs/connect/gateways/mesh-gateway#connect-proxy-configuration)
+      [mesh gateway configuration](/consul/docs/connect/gateways/mesh-gateway#service-mesh-proxy-configuration)
       for all proxies. Added in v1.6.0.`,
       children: [
         {
@@ -426,7 +426,7 @@ spec:
                       [expose path configuration](/consul/docs/connect/registration/service-registration#expose-paths-configuration-reference)
                       for Envoy. Added in v1.6.2.<br><br>
                       Exposing paths through Envoy enables a service to protect itself by only listening on localhost, while still allowing
-                      non-Connect-enabled applications to contact an HTTP endpoint.
+                      non-mesh-enabled applications to contact an HTTP endpoint.
                       Some examples include: exposing a \`/metrics\` path for Prometheus or \`/healthz\` for kubelet liveness checks.`,
       children: [
         {

@@ -556,7 +556,7 @@ const (
 			  "endpoint": {
 				"address": {
 				  "pipe": {
-					"path": "/tmp/consul/hcp-metrics/default_web-sidecar-proxy.sock"
+					"path": "/tmp/consul/hcp-metrics/gqmuzdHCUPAEY5mbF8vgkZCNI14.sock"
 				  }
 				}
 			  }
@@ -654,7 +654,7 @@ func TestBootstrapConfig_ConfigureArgs(t *testing.T) {
 							  "endpoint": {
 								"address": {
 								  "pipe": {
-									"path": "/tmp/consul/hcp-metrics/default_web-sidecar-proxy.sock"
+									"path": "/tmp/consul/hcp-metrics/gqmuzdHCUPAEY5mbF8vgkZCNI14.sock"
 								  }
 								}
 							  }

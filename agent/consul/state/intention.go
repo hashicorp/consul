@@ -1079,16 +1079,21 @@ func (s *Store) intentionTopologyTxn(
 		}
 		addSvcs(tempServices)
 
-		// Query the virtual ip table as well to include virtual services that don't have a registered instance yet.
-		vipIndex, vipServices, err := servicesVirtualIPsTxn(tx)
-		if err != nil {
-			return index, nil, fmt.Errorf("failed to list service virtual IPs: %v", err)
-		}
-		for _, svc := range vipServices {
-			services[svc.Service.ServiceName] = struct{}{}
-		}
-		if vipIndex > index {
-			index = vipIndex
+		if !downstreams {
+			// Query the virtual ip table as well to include virtual services that don't have a registered instance yet.
+			// We only need to do this for upstreams currently, so that tproxy can find which discovery chains should be
+			// contacted for failover scenarios. Virtual services technically don't need to be considered as downstreams,
+			// because they will take on the identity of the calling service, rather than the chain itself.
+			vipIndex, vipServices, err := servicesVirtualIPsTxn(tx)
+			if err != nil {
+				return index, nil, fmt.Errorf("failed to list service virtual IPs: %v", err)
+			}
+			for _, svc := range vipServices {
+				services[svc.Service.ServiceName] = struct{}{}
+			}
+			if vipIndex > index {
+				index = vipIndex
+			}
 		}
 	} else {
 		// destinations can only ever be upstream, since they are only allowed as intention destination.

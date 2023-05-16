@@ -66,12 +66,12 @@ const (
 	ArtistV2ListPolicy  = `key_prefix "resource/" { policy = "list" }`
 )
 
-// Register demo types. Should only be called in tests and dev mode.
-// acls are optional.
+// RegisterTypes registers the demo types. Should only be called in tests and
+// dev mode.
 //
 // TODO(spatel): We're standing-in key ACLs for demo resources until our ACL
 // system can be more modularly extended (or support generic resource permissions).
-func Register(r resource.Registry) {
+func RegisterTypes(r resource.Registry) {
 	readACL := func(authz acl.Authorizer, id *pbresource.ID) error {
 		key := fmt.Sprintf("resource/%s/%s", resource.ToGVK(id.Type), id.Name)
 		return authz.ToAllowAuthorizer().KeyReadAllowed(key, &acl.AuthorizerContext{})
@@ -204,6 +204,10 @@ func GenerateV2Artist() (*pbresource.Resource, error) {
 // GenerateV2Album generates a random Album resource, owned by the Artist with
 // the given ID.
 func GenerateV2Album(artistID *pbresource.ID) (*pbresource.Resource, error) {
+	return generateV2Album(artistID, rand.New(rand.NewSource(time.Now().UnixNano())))
+}
+
+func generateV2Album(artistID *pbresource.ID, rand *rand.Rand) (*pbresource.Resource, error) {
 	adjective := adjectives[rand.Intn(len(adjectives))]
 	noun := nouns[rand.Intn(len(nouns))]
 

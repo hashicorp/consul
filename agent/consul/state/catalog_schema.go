@@ -616,6 +616,14 @@ type ServiceVirtualIP struct {
 	structs.RaftIndex
 }
 
+func (s ServiceVirtualIP) IPWithOffset() (string, error) {
+	result, err := addIPOffset(startingVirtualIP, s.IP)
+	if err != nil {
+		return "", err
+	}
+	return result.String(), nil
+}
+
 // FreeVirtualIP is used to store a virtual IP freed up by a service deregistration.
 // It is also used to store free virtual IPs when a snapshot is created.
 type FreeVirtualIP struct {

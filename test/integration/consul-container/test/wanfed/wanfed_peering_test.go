@@ -57,7 +57,7 @@ func TestPeering_WanFedSecondaryDC(t *testing.T) {
 		require.NoError(t, service.Export("default", "alpha-to-secondary", c3Agent.GetClient()))
 
 		// Create a testing sidecar to proxy requests through
-		clientConnectProxy, err := libservice.CreateAndRegisterStaticClientSidecar(c2Agent, "secondary-to-alpha", false)
+		clientConnectProxy, err := libservice.CreateAndRegisterStaticClientSidecar(c2Agent, "secondary-to-alpha", false, false)
 		require.NoError(t, err)
 		libassert.CatalogServiceExists(t, c2Agent.GetClient(), "static-client-sidecar-proxy", nil)
 

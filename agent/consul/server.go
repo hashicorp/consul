@@ -68,8 +68,12 @@ import (
 	"github.com/hashicorp/consul/agent/rpc/peering"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
+	"github.com/hashicorp/consul/internal/catalog"
+	"github.com/hashicorp/consul/internal/controller"
+	"github.com/hashicorp/consul/internal/mesh"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/demo"
+	"github.com/hashicorp/consul/internal/resource/reaper"
 	raftstorage "github.com/hashicorp/consul/internal/storage/raft"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/lib/routine"
@@ -435,6 +439,10 @@ type Server struct {
 	// with the Resource Service in-process (i.e. not via the network) without auth.
 	// It should only be used for purely-internal workloads, such as controllers.
 	internalResourceServiceClient pbresource.ResourceServiceClient
+
+	// controllerManager schedules the execution of controllers.
+	controllerManager *controller.Manager
+
 	// handles metrics reporting to HashiCorp
 	reportingManager *reporting.ReportingManager
 }
@@ -763,7 +771,8 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server, incom
 	s.overviewManager = NewOverviewManager(s.logger, s.fsm, s.config.MetricsReportingInterval)
 	go s.overviewManager.Run(&lib.StopChannelContext{StopCh: s.shutdownCh})
 
-	s.reportingManager = reporting.NewReportingManager(s.logger, getEnterpriseReportingDeps(flat), s)
+	s.reportingManager = reporting.NewReportingManager(s.logger, getEnterpriseReportingDeps(flat), s, s.fsm.State())
+	go s.reportingManager.Run(&lib.StopChannelContext{StopCh: s.shutdownCh})
 
 	// Initialize external gRPC server
 	s.setupExternalGRPC(config, logger)
@@ -774,6 +783,17 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server, incom
 	// to enable RPC forwarding.
 	s.grpcHandler = newGRPCHandlerFromConfig(flat, config, s)
 	s.grpcLeaderForwarder = flat.LeaderForwarder
+
+	if err := s.setupInternalResourceService(logger); err != nil {
+		return nil, err
+	}
+	s.controllerManager = controller.NewManager(
+		s.internalResourceServiceClient,
+		logger.Named(logging.ControllerRuntime),
+	)
+	s.registerResources()
+	go s.controllerManager.Run(&lib.StopChannelContext{StopCh: shutdownCh})
+
 	go s.trackLeaderChanges()
 
 	s.xdsCapacityController = xdscapacity.NewController(xdscapacity.Config{
@@ -782,10 +802,6 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server, incom
 		SessionLimiter: flat.XDSStreamLimiter,
 	})
 	go s.xdsCapacityController.Run(&lib.StopChannelContext{StopCh: s.shutdownCh})
-
-	if err := s.setupInternalResourceService(logger); err != nil {
-		return nil, err
-	}
 
 	// Initialize Autopilot. This must happen before starting leadership monitoring
 	// as establishing leadership could attempt to use autopilot and cause a panic.
@@ -823,11 +839,20 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server, incom
 		return nil, err
 	}
 
-	if s.config.DevMode {
-		demo.Register(s.typeRegistry)
-	}
-
 	return s, nil
+}
+
+func (s *Server) registerResources() {
+	catalog.RegisterTypes(s.typeRegistry)
+	catalog.RegisterControllers(s.controllerManager)
+
+	mesh.RegisterTypes(s.typeRegistry)
+	reaper.RegisterControllers(s.controllerManager)
+
+	if s.config.DevMode {
+		demo.RegisterTypes(s.typeRegistry)
+		demo.RegisterControllers(s.controllerManager)
+	}
 }
 
 func newGRPCHandlerFromConfig(deps Deps, config *Config, s *Server) connHandler {
@@ -1033,7 +1058,7 @@ func (s *Server) setupRaft() error {
 		log = cacheStore
 
 		// Create the snapshot store.
-		snapshots, err := raft.NewFileSnapshotStoreWithLogger(path, snapshotsRetained, s.logger.Named("snapshot"))
+		snapshots, err := raft.NewFileSnapshotStoreWithLogger(path, snapshotsRetained, s.logger.Named("raft.snapshot"))
 		if err != nil {
 			return err
 		}
@@ -1951,6 +1976,7 @@ func (s *Server) trackLeaderChanges() {
 			s.grpcLeaderForwarder.UpdateLeaderAddr(s.config.Datacenter, string(leaderObs.LeaderAddr))
 			s.peeringBackend.SetLeaderAddress(string(leaderObs.LeaderAddr))
 			s.raftStorageBackend.LeaderChanged()
+			s.controllerManager.SetRaftLeader(s.IsLeader())
 
 			// Trigger sending an update to HCP status
 			s.hcpManager.SendUpdate()
@@ -1971,6 +1997,7 @@ func (s *Server) hcpServerStatus(deps Deps) hcp.StatusCallback {
 		status.LanAddress = s.config.RPCAdvertise.IP.String()
 		status.GossipPort = s.config.SerfLANConfig.MemberlistConfig.AdvertisePort
 		status.RPCPort = s.config.RPCAddr.Port
+		status.Datacenter = s.config.Datacenter
 
 		tlsCert := s.tlsConfigurator.Cert()
 		if tlsCert != nil {
@@ -2011,6 +2038,8 @@ func (s *Server) hcpServerStatus(deps Deps) hcp.StatusCallback {
 		if deps.HCP.Provider != nil {
 			status.ScadaStatus = deps.HCP.Provider.SessionStatus()
 		}
+
+		status.ACL.Enabled = s.config.ACLsEnabled
 
 		return status, nil
 	}

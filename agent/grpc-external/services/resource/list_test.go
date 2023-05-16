@@ -22,6 +22,31 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+func TestList_InputValidation(t *testing.T) {
+	server := testServer(t)
+	client := testClient(t, server)
+
+	demo.RegisterTypes(server.Registry)
+
+	testCases := map[string]func(*pbresource.ListRequest){
+		"no type":    func(req *pbresource.ListRequest) { req.Type = nil },
+		"no tenancy": func(req *pbresource.ListRequest) { req.Tenancy = nil },
+	}
+	for desc, modFn := range testCases {
+		t.Run(desc, func(t *testing.T) {
+			req := &pbresource.ListRequest{
+				Type:    demo.TypeV2Album,
+				Tenancy: demo.TenancyDefault,
+			}
+			modFn(req)
+
+			_, err := client.List(testContext(t), req)
+			require.Error(t, err)
+			require.Equal(t, codes.InvalidArgument.String(), status.Code(err).String())
+		})
+	}
+}
+
 func TestList_TypeNotFound(t *testing.T) {
 	server := testServer(t)
 	client := testClient(t, server)
@@ -40,7 +65,7 @@ func TestList_Empty(t *testing.T) {
 	for desc, tc := range listTestCases() {
 		t.Run(desc, func(t *testing.T) {
 			server := testServer(t)
-			demo.Register(server.Registry)
+			demo.RegisterTypes(server.Registry)
 			client := testClient(t, server)
 
 			rsp, err := client.List(tc.ctx, &pbresource.ListRequest{
@@ -58,7 +83,7 @@ func TestList_Many(t *testing.T) {
 	for desc, tc := range listTestCases() {
 		t.Run(desc, func(t *testing.T) {
 			server := testServer(t)
-			demo.Register(server.Registry)
+			demo.RegisterTypes(server.Registry)
 			client := testClient(t, server)
 
 			resources := make([]*pbresource.Resource, 10)
@@ -89,7 +114,7 @@ func TestList_GroupVersionMismatch(t *testing.T) {
 	for desc, tc := range listTestCases() {
 		t.Run(desc, func(t *testing.T) {
 			server := testServer(t)
-			demo.Register(server.Registry)
+			demo.RegisterTypes(server.Registry)
 			client := testClient(t, server)
 
 			artist, err := demo.GenerateV2Artist()
@@ -116,7 +141,7 @@ func TestList_VerifyReadConsistencyArg(t *testing.T) {
 			mockBackend := NewMockBackend(t)
 			server := testServer(t)
 			server.Backend = mockBackend
-			demo.Register(server.Registry)
+			demo.RegisterTypes(server.Registry)
 
 			artist, err := demo.GenerateV2Artist()
 			require.NoError(t, err)
@@ -133,7 +158,7 @@ func TestList_VerifyReadConsistencyArg(t *testing.T) {
 	}
 }
 
-// N.B. Uses key ACLs for now. See demo.Register()
+// N.B. Uses key ACLs for now. See demo.RegisterTypes()
 func TestList_ACL_ListDenied(t *testing.T) {
 	t.Parallel()
 
@@ -146,7 +171,7 @@ func TestList_ACL_ListDenied(t *testing.T) {
 	require.Contains(t, err.Error(), "lacks permission 'key:list'")
 }
 
-// N.B. Uses key ACLs for now. See demo.Register()
+// N.B. Uses key ACLs for now. See demo.RegisterTypes()
 func TestList_ACL_ListAllowed_ReadDenied(t *testing.T) {
 	t.Parallel()
 
@@ -160,7 +185,7 @@ func TestList_ACL_ListAllowed_ReadDenied(t *testing.T) {
 	require.Empty(t, rsp.Resources)
 }
 
-// N.B. Uses key ACLs for now. See demo.Register()
+// N.B. Uses key ACLs for now. See demo.RegisterTypes()
 func TestList_ACL_ListAllowed_ReadAllowed(t *testing.T) {
 	t.Parallel()
 
@@ -184,7 +209,7 @@ func roundTripList(t *testing.T, authz acl.Authorizer) (*pbresource.Resource, *p
 	mockACLResolver.On("ResolveTokenAndDefaultMeta", mock.Anything, mock.Anything, mock.Anything).
 		Return(authz, nil)
 	server.ACLResolver = mockACLResolver
-	demo.Register(server.Registry)
+	demo.RegisterTypes(server.Registry)
 
 	artist, err := demo.GenerateV2Artist()
 	require.NoError(t, err)

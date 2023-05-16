@@ -650,9 +650,9 @@ $ curl \
   [service registration API](/consul/api-docs/agent/service#kind) for more information.
 
 - `ServiceProxy` is the proxy config as specified in
-  [Connect Proxies](/consul/docs/connect/proxies).
+  [service mesh Proxies](/consul/docs/connect/proxies).
 
-- `ServiceConnect` are the [Connect](/consul/docs/connect) settings. The
+- `ServiceConnect` are the [service mesh](/consul/docs/connect) settings. The
   value of this struct is equivalent to the `Connect` field for service
   registration.
 
@@ -704,13 +704,13 @@ following selectors and filter operations being supported:
 | `TaggedAddresses.<any>`                              | Equal, Not Equal, In, Not In, Matches, Not Matches |
 | `TaggedAddresses`                                    | Is Empty, Is Not Empty, In, Not In                 |
 
-## List Nodes for Connect-capable Service
+## List Nodes for Mesh-capable Service
 
 This endpoint returns the nodes providing a
-[Connect-capable](/consul/docs/connect) service in a given datacenter.
+[mesh-capable](/consul/docs/connect) service in a given datacenter.
 This will include both proxies and native integrations. A service may
-register both Connect-capable and incapable services at the same time,
-so this endpoint may be used to filter only the Connect-capable endpoints.
+register both mesh-capable and incapable services at the same time,
+so this endpoint may be used to filter only the mesh-capable endpoints.
 
 @include 'http_api_results_filtered_by_acls.mdx'
 

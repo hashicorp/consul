@@ -234,8 +234,11 @@ config to take effect.
 1. Requests through [Ingress Gateways](/consul/docs/connect/gateways/ingress-gateway) will not be traced unless the header
    `x-client-trace-id: 1` is set (see [hashicorp/consul#6645](https://github.com/hashicorp/consul/issues/6645)).
 
-1. Consul does not currently support interoperation with [OpenTelemetry](https://opentelemetry.io/) libraries due to
-   Envoy not yet having support.
+1. Consul's proxies do not currently support [OpenTelemetry](https://opentelemetry.io/) spans, as Envoy has not
+   [fully implemented](https://github.com/envoyproxy/envoy/issues/9958) it. Instead, you can add
+   OpenTelemetry libraries to your application to emit spans for other
+   [tracing protocols](https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/observability/tracing)
+   supported by Envoy, such as Zipkin or Jaeger.
 
 1. Tracing is only supported with Envoy proxies, not the built-in proxy.
 
