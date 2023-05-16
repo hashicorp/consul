@@ -58,6 +58,7 @@ type BaseDeps struct {
 	WatchedFiles  []string
 
 	deregisterBalancer, deregisterResolver func()
+	stopHostCollector                      func()
 }
 
 type ConfigLoader func(source config.Source) (config.LoadResult, error)
@@ -116,8 +117,10 @@ func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer, providedLogger hcl
 	if err != nil {
 		return d, fmt.Errorf("failed to initialize telemetry: %w", err)
 	}
-	if !cfg.Telemetry.DisableHostMetrics {
-		hoststats.NewCollector(context.Background(), d.Logger, cfg.DataDir)
+	if !cfg.Telemetry.Disable && !cfg.Telemetry.DisableHostMetrics {
+		ctx, cancel := context.WithCancel(context.Background())
+		hoststats.NewCollector(ctx, d.Logger, cfg.DataDir)
+		d.stopHostCollector = cancel
 	}
 
 	d.TLSConfigurator, err = tlsutil.NewConfigurator(cfg.TLS, d.Logger)
@@ -216,11 +219,10 @@ func (bd BaseDeps) Close() {
 	bd.AutoConfig.Stop()
 	bd.MetricsConfig.Cancel()
 
-	if fn := bd.deregisterBalancer; fn != nil {
-		fn()
-	}
-	if fn := bd.deregisterResolver; fn != nil {
-		fn()
+	for _, fn := range []func(){bd.deregisterBalancer, bd.deregisterResolver, bd.stopHostCollector} {
+		if fn != nil {
+			fn()
+		}
 	}
 }
 
