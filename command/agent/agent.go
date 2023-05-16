@@ -19,10 +19,9 @@ import (
 	"github.com/hashicorp/go-hclog"
 	mcli "github.com/mitchellh/cli"
 
-	"github.com/hashicorp/consul/agent/hcp"
-
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/agent/config"
+	"github.com/hashicorp/consul/agent/hcp"
 	hcpbootstrap "github.com/hashicorp/consul/agent/hcp/bootstrap"
 	"github.com/hashicorp/consul/command/cli"
 	"github.com/hashicorp/consul/command/flags"
