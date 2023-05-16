@@ -1086,44 +1086,37 @@ Specifies the load balancing policy and configuration for services issuing reque
 
 - Default: None
 - Data type: Map that can contain the following parameters:
-  
-  | Parameter      | Description                                                                       | Data type | Default |
-  | :------------- | :-------------------------------------------------------------------------------- | --------- | ------- |
-  | `policy`      | Specifies the type of load balancing policy for selecting a host. Refer to [`spec.loadBalancer.policy`](#spec-loadbalancer-policy) for additional configuration parameters. | Map   | None |
-  | `leastRequestConfig`         | Specifies configuration for the `least_request policy` type. Refer to [`spec.loadBalancer.leastRequestConfig`](#spec-loadbalancer-leastrequestconfig) for additional configuration parameters. | Map   | None    |
-  | `ringHashConfig`          | Specifies configuration for the `ring_hash` policy type. Refer to [`spec.loadBalancer.ringHashConfig`](#spec-loadbalancer-ringhashconfig) for additional configuration parameters. | Map    | None    |
-  | `hashPolicies`         | Specifies a list of hash policies to use for hashing load balancing algorithms. Refer to [`spec.loadBalancer.hashPolicies`](#spec-loadbalancer-hashpolicies) for additional configuration parameters. | Map    | None    |
+  - [`policy`](#spec-loadbalancer-policy)
+  - [`leastRequestConfig`](#spec-loadbalancer-leastrequestconfig)
+  - [`ringHashConfig`](#spec-loadbalancer-ringhashconfig)
+  - [`hashPolicies`](#spec-loadbalancer-hashpolicies)
 
 ### `spec.loadBalancer.policy`
 
 Specifies the type of load balancing policy for selecting a host. Supported load balancing policies include:
 
-- Random
-- Round robin
-- Least request
-- Ring hash
-- Maglev
+- Random: The load balancer forwards a client request to a server chosen at random from a fixed list.
+- Round robin: The load balancer proceeds through a fixed list of servers and forwards a client request to each one in order.
+- Least request: The load balancer forwards a client request to the server with the fewest connections. When using this policy, you can specify additional parameters in [`LoadBalancer{}.LeastRequestConfig`](#loadbalancer-leastrequestconfig).
+- Ring hash: The load balancer forwards requests from the same client to the same group of servers. When using this policy, you can specify additional parameters in [`LoadBalancer{}.RingHashConfig`](#loadbalancer-ringhashconfig).
+- Maglev: The load balancer uses a hashing algorithm to spread requests evenly across servers. When using this policy, you can specify additional parameters in [`LoadBalancer{}.HashPolicies`](#loadbalancer-hashpolicies).
 - Cookie
 - Header
-- Query parameter
+- Query Parameter
 
 #### Values
 
 - Default: None
 - Data type: String containing one of the following values:
-  
-  | Policy type     | Description                                                                                                                                                                                                                      |
-  | :-------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-  | `random`        | The load balancer forwards a client request to a server chosen at random from a fixed list.                                                                                                                                      |
-  | `round_robin`   | The load balancer proceeds through a fixed list of servers and forwards a client request to each one in order.                                                                                                                   |
-  | `least_request` | The load balancer forwards a client request to the server with the fewest connections. When using this policy, you can specify additional parameters in [`spec.loadBalancer.leastRequestConfig`](#spec-loadbalancer-leastrequestconfig). |
-  | `ring_hash`     | The load balancer forwards requests from the same client to the same group of servers. When using this policy, you can specify additional parameters in [`spec.loadBalancer.ringHashConfig`](#spec-loadbalancer-ringhashconfig).         |
-  | `maglev`        | The load balancer uses a hashing algorithm to spread requests evenly across servers. When using this policy, you can specify additional parameters in [`spec.loadBalancer.hashPolicies`](#spec-loadbalancer-hashpolicies).               |
-  | `cookie` | description |
-  | `header` | description |
-  | `query_param` | description |
 
-  
+  - `random`
+  - `round_robin` 
+  - `least_request`
+  - `ring_hash` 
+  - `maglev`  
+  - `cookie` 
+  - `header` 
+  - `query_parameter`
 
 ### `spec.loadBalancer.leastRequestConfig`
 
@@ -1160,16 +1153,31 @@ Specifies a list of hash policies to use for hashing load balancing algorithms. 
 
 - Default: None
 - Data type:  List that can contain the following parameters:
-  
-  | Parameter      | Description                                                    | Data type | Default |
-  | :------------- | :------------------------------------------------------------- | --------- | ------- |
-  | `field`        | Specifies the attribute type to hash on. Must be one of the following values: `header`, `cookie`, or `query_parameter`. You cannot specify the `field` parameter if `sourceIP` is also configured. | String   | None  |
-  | `fieldValue`   | Specifies the value to hash, such as a header name, cookie name, or a URL query parameter name. You cannot specify the `fieldValue` parameter if `sourceIP` is also configured. | String   | None  |
-  | `cookieConfig` | Specifies additional configuration options for the `cookie` hash policy type. Refer to [`spec.loadBalancer.hashPolicies[].cookieConfig`](#spec-loadbalancer-hashpolicies-cookieconfig) for additional configuration parameters. | Map   | None  |
-  | `sourceIP`     | Determines if the hash type should besource IP address. You cannot specify `sourceIP` if `field` or `fieldValue` are configured. | Boolean   | `false`  |
-  | `terminal`     | Determines if Consul should stop computing the hash when multiple hash policies are present. If a hash is computed when a terminal policy is evaluated, then that hash is used and subsequent hash policies are ignored. | Boolean  | `false`  |
+  - [`field`](#spec-loadbalancer-hashpolicies-field)
+  - [`fieldValue`](#spec-loadbalancer-hashpolicies-fieldvalue)
+  - [`cookieConfig`](#spec-loadbalancer-hashpolicies-cookieconfig)
+  - [`sourceIP`](#spec-loadbalancer-hashpolicies-sourceip)
+  - [`terminal`](#spec-loadbalancer-hashpolicies-terminal)
 
-### `spec.loadBalancer{}.hashPolicies[].cookieConfig`
+### `spec.loadBalancer.hashPolicies[].field`
+
+ Specifies the attribute type to hash on. Must be one of the following values: `header`, `cookie`, or `query_parameter`. You cannot specify the `field` parameter if `sourceIP` is also configured.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec.loadBalancer.hashPolicies[].fieldValue`
+
+Specifies the value to hash, such as a header name, cookie name, or a URL query parameter name. You cannot specify the `fieldValue` parameter if `sourceIP` is also configured.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec.loadBalancer.hashPolicies[].cookieConfig`
 
 Specifies additional configuration options for the `cookie` hash policy type. This field causes Envoy to generate a cookie for a client on its first request.
 
@@ -1183,6 +1191,24 @@ Specifies additional configuration options for the `cookie` hash policy type. Th
   | `session`      | Directs Consul to generate a session cookie with no expiration.                   | Boolean   | `false` |
   | `ttl`          | Specifies the TTL for generated cookies. Cannot be specified for session cookies. | String    | `0s`    |
   | `path`         | Specifies the path to set for the cookie.                                         | String    | None    |
+
+### `spec.loadBalancer.hashPolicies[].sourceIP`
+
+Determines if the hash type should besource IP address. You cannot specify `sourceIP` if `field` or `fieldValue` are configured.
+
+#### Values
+
+- Default: `false`
+- Data type: Boolean
+
+### `spec.loadBalancer.hashPolicies[].terminal`
+
+Determines if Consul should stop computing the hash when multiple hash policies are present. If a hash is computed when a terminal policy is evaluated, then that hash is used and subsequent hash policies are ignored.
+
+#### Values
+
+- Default: `false`
+- Data type: Boolean
 
 </Tab>
 </Tabs>
