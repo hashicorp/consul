@@ -9,48 +9,50 @@ import (
 
 // cpuStatsCalculator calculates cpu usage percentages
 type cpuStatsCalculator struct {
-	prevIdle   float64
-	prevUser   float64
-	prevSystem float64
-	prevBusy   float64
-	prevTotal  float64
+	prev      cpu.TimesStat
+	prevBusy  float64
+	prevTotal float64
 }
 
 // calculate calculates the current cpu usage percentages
-func (h *cpuStatsCalculator) calculate(times cpu.TimesStat) (idle float64, user float64, system float64, total float64) {
-	currentIdle := times.Idle
-	currentUser := times.User
-	currentSystem := times.System
+func (h *cpuStatsCalculator) calculate(times cpu.TimesStat) *CPUStats {
+
 	currentBusy := times.User + times.System + times.Nice + times.Iowait + times.Irq +
 		times.Softirq + times.Steal + times.Guest + times.GuestNice
-	currentTotal := currentBusy + currentIdle
+	currentTotal := currentBusy + times.Idle
 
 	deltaTotal := currentTotal - h.prevTotal
-	idle = ((currentIdle - h.prevIdle) / deltaTotal) * 100
-	user = ((currentUser - h.prevUser) / deltaTotal) * 100
-	system = ((currentSystem - h.prevSystem) / deltaTotal) * 100
-	total = ((currentBusy - h.prevBusy) / deltaTotal) * 100
+	stats := &CPUStats{
+		CPU: times.CPU,
+
+		Idle:   ((times.Idle - h.prev.Idle) / deltaTotal) * 100,
+		User:   ((times.User - h.prev.User) / deltaTotal) * 100,
+		System: ((times.System - h.prev.System) / deltaTotal) * 100,
+		Iowait: ((times.Iowait - h.prev.Iowait) / deltaTotal) * 100,
+		Total:  ((currentBusy - h.prevBusy) / deltaTotal) * 100,
+	}
 
 	// Protect against any invalid values
-	if math.IsNaN(idle) || math.IsInf(idle, 0) {
-		idle = 100.0
+	if math.IsNaN(stats.Idle) || math.IsInf(stats.Idle, 0) {
+		stats.Idle = 100.0
 	}
-	if math.IsNaN(user) || math.IsInf(user, 0) {
-		user = 0.0
+	if math.IsNaN(stats.User) || math.IsInf(stats.User, 0) {
+		stats.User = 0.0
 	}
-	if math.IsNaN(system) || math.IsInf(system, 0) {
-		system = 0.0
+	if math.IsNaN(stats.System) || math.IsInf(stats.System, 0) {
+		stats.System = 0.0
 	}
-	if math.IsNaN(total) || math.IsInf(total, 0) {
-		total = 0.0
+	if math.IsNaN(stats.Iowait) || math.IsInf(stats.Iowait, 0) {
+		stats.Iowait = 0.0
+	}
+	if math.IsNaN(stats.Total) || math.IsInf(stats.Total, 0) {
+		stats.Total = 0.0
 	}
 
-	h.prevIdle = currentIdle
-	h.prevUser = currentUser
-	h.prevSystem = currentSystem
+	h.prev = times
 	h.prevTotal = currentTotal
 	h.prevBusy = currentBusy
-	return
+	return stats
 }
 
 // cpuStats calculates cpu usage percentage
@@ -59,36 +61,6 @@ type cpuStats struct {
 	prevTime    time.Time
 
 	totalCpus int
-}
-
-// percent calculates the cpu usage percentage based on the current cpu usage
-// and the previous cpu usage where usage is given as time in nanoseconds spend
-// in the cpu
-func (c *cpuStats) percent(cpuTime float64) float64 {
-	now := time.Now()
-
-	if c.prevCpuTime == 0.0 {
-		// invoked first time
-		c.prevCpuTime = cpuTime
-		c.prevTime = now
-		return 0.0
-	}
-
-	timeDelta := now.Sub(c.prevTime).Nanoseconds()
-	ret := c.calculatePercent(c.prevCpuTime, cpuTime, timeDelta)
-	c.prevCpuTime = cpuTime
-	c.prevTime = now
-	return ret
-}
-
-func (c *cpuStats) calculatePercent(t1, t2 float64, timeDelta int64) float64 {
-	vDelta := t2 - t1
-	if timeDelta <= 0 || vDelta <= 0.0 {
-		return 0.0
-	}
-
-	overall_percent := (vDelta / float64(timeDelta)) * 100.0
-	return overall_percent
 }
 
 func (h *Collector) collectCPUStats() (cpus []*CPUStats, err error) {
@@ -104,14 +76,7 @@ func (h *Collector) collectCPUStats() (cpus []*CPUStats, err error) {
 			percentCalculator = &cpuStatsCalculator{}
 			h.cpuCalculator[cpuStat.CPU] = percentCalculator
 		}
-		idle, user, system, total := percentCalculator.calculate(cpuStat)
-		cs[idx] = &CPUStats{
-			CPU:    cpuStat.CPU,
-			User:   user,
-			System: system,
-			Idle:   idle,
-			Total:  total,
-		}
+		cs[idx] = percentCalculator.calculate(cpuStat)
 	}
 
 	return cs, nil

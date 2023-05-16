@@ -3,28 +3,13 @@ package hoststats
 import (
 	"math"
 	"os"
-	"runtime"
 	"testing"
-	"time"
 
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/shirou/gopsutil/v3/cpu"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
-
-func TestCpuStats_percent(t *testing.T) {
-	cs := &cpuStats{
-		totalCpus: runtime.NumCPU(),
-	}
-	cs.percent(79.7)
-	time.Sleep(1 * time.Second)
-	percent := cs.percent(80.69)
-	expectedPercent := 98.00
-	if percent < expectedPercent && percent > (expectedPercent+1.00) {
-		t.Fatalf("expected: %v, actual: %v", expectedPercent, percent)
-	}
-}
 
 func TestHostStats_CPU(t *testing.T) {
 	logger := testutil.Logger(t)
@@ -66,9 +51,10 @@ func TestCpuStatsCalculator_Nan(t *testing.T) {
 
 	calculator := &cpuStatsCalculator{}
 	calculator.calculate(times)
-	idle, user, system, total := calculator.calculate(times)
-	require.Equal(t, 100.0, idle)
-	require.Zero(t, user)
-	require.Zero(t, system)
-	require.Zero(t, total)
+	stats := calculator.calculate(times)
+	require.Equal(t, 100.0, stats.Idle)
+	require.Zero(t, stats.User)
+	require.Zero(t, stats.System)
+	require.Zero(t, stats.Iowait)
+	require.Zero(t, stats.Total)
 }
