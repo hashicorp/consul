@@ -7,9 +7,7 @@ description: >-
 
 # Enabling Peering Control Plane Traffic
 
-In addition to [service-to-service traffic routing](/consul/docs/connect/gateways/mesh-gateway/service-to-service-traffic-peers),
-we recommend routing control plane traffic between cluster peers through mesh gateways
-to simplfy networking requirements.
+In addition to service-to-service traffic routing, we recommend routing control plane traffic between cluster peers through mesh gateways to simplify networking requirements.
 
 Control plane traffic between cluster peers includes
 the initial secret handshake and the bi-directional stream replicating peering data.
@@ -59,7 +57,7 @@ For Consul Enterprise clusters, mesh gateways must be registered in the "default
 <Tabs>
 <Tab heading="Consul OSS">
 
-In addition to the [ACL Configuration](/consul/docs/connect/gateways/mesh-gateway/service-to-service-traffic-peers#acl-configuration) necessary for service-to-service traffic, mesh gateways that route peering control plane traffic must be granted `peering:read` access to all peerings. 
+In addition to the ACL Configuration necessary for service-to-service traffic, mesh gateways that route peering control plane traffic must be granted `peering:read` access to all peerings. 
 This access allows the mesh gateway to list all peerings in a Consul cluster and generate unique routing per peered datacenter.
 
 <CodeTabs heading="Example ACL rules for Mesh Gateway Peering Control Plane Traffic in Consul OSS">
@@ -80,7 +78,7 @@ peering = "read"
 
 <Tab heading="Consul Enterprise">
 
-In addition to the [ACL Configuration](/consul/docs/connect/gateways/mesh-gateway/service-to-service-traffic-peers#acl-configuration) necessary for service-to-service traffic, mesh gateways that route peering control plane traffic must be granted `peering:read` access to all peerings in all partitions. 
+In addition to the ACL Configuration necessary for service-to-service traffic, mesh gateways that route peering control plane traffic must be granted `peering:read` access to all peerings in all partitions. 
 This access allows the mesh gateway to list all peerings in a Consul cluster and generate unique routing per peered partition.
 
 <CodeTabs heading="Example ACL rules for Mesh Gateway Peering Control Plane Traffic in Consul Enterprise">
