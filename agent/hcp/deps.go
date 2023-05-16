@@ -92,15 +92,14 @@ func sink(hcpClient hcpclient.Client, cfg hcpclient.CloudConfig, logger hclog.Lo
 // defaultLabels returns a set of string labels to be sent with each metrics Sink export
 // to the HCP Telemetry Gateway.
 func defaultLabels(cfgLabels map[string]string, nodeID types.NodeID) map[string]string {
-	// Use configured labels, if any.
-	labels := cfgLabels
-	if len(labels) == 0 {
-		labels = make(map[string]string, 2)
+	labels := map[string]string{
+		"__replica__": string(nodeID), // used for Cortex HA-metrics (deduplication)
+		"node_id":     string(nodeID), // used to delineate Consul nodes in graphs
 	}
 
-	// Set default labels
-	labels["__replica__"] = string(nodeID)
-	labels["node_id"] = string(nodeID)
+	for k, v := range cfgLabels {
+		labels[k] = v
+	}
 
 	return labels
 }
