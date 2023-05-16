@@ -614,8 +614,10 @@ func (a *Agent) Start(ctx context.Context) error {
 			return err
 		}
 
-		// periodically write server metadata to disk.
-		go a.persistServerMetadata()
+		// Periodically write server metadata to disk.
+		if !consulCfg.DevMode {
+			go a.persistServerMetadata()
+		}
 
 		incomingRPCLimiter := consul.ConfiguredIncomingRPCLimiter(
 			&lib.StopChannelContext{StopCh: a.shutdownCh},
