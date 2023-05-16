@@ -1245,6 +1245,8 @@ func (a ServiceAddress) ToAPIServiceAddress() api.ServiceAddress {
 	return api.ServiceAddress{Address: a.Address, Port: a.Port}
 }
 
+const SidecarProxySuffix = "-sidecar-proxy"
+
 // NodeService is a service provided by a node
 type NodeService struct {
 	// Kind is the kind of service this is. Different kinds of services may

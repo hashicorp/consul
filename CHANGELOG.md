@@ -1,3 +1,14 @@
+## 1.14.6 (March 30, 2023)
+BUG FIXES:
+* audit-logging: (Enterprise only) Fix a bug where `/agent/monitor` and `/agent/metrics` endpoints return a `Streaming not supported` error when audit logs are enabled. This also fixes the delay receiving logs when running `consul monitor` against an agent with audit logs enabled. [[GH-16700](https://github.com/hashicorp/consul/issues/16700)]
+* ca: Fixes a bug where updating Vault CA Provider config would cause TLS issues in the service mesh [[GH-16592](https://github.com/hashicorp/consul/issues/16592)]
+* peering: **(Consul Enterprise only)** Fix issue where connect-enabled services with peer upstreams incorrectly required `service:write` access in the `default` namespace to query data, which was too restrictive. Now having `service:write` to any namespace is sufficient to query the peering data.
+* peering: **(Consul Enterprise only)** Fix issue where resolvers, routers, and splitters referencing peer targets may not work correctly for non-default partitions and namespaces. Enterprise customers leveraging peering are encouraged to upgrade both servers and agents to avoid this problem.
+* peering: Fix issue resulting in prepared query failover to cluster peers never un-failing over. [[GH-16729](https://github.com/hashicorp/consul/issues/16729)]
+* peering: Fixes a bug that can lead to peering service deletes impacting the state of local services [[GH-16570](https://github.com/hashicorp/consul/issues/16570)]
+* peering: Fixes a bug where the importing partition was not added to peered failover targets, which causes issues when the importing partition is a non-default partition. [[GH-16693](https://github.com/hashicorp/consul/issues/16693)]
+* ui: fix PUT token request with adding missed AccessorID property to requestBody [[GH-16660](https://github.com/hashicorp/consul/issues/16660)]
+
 ## 1.14.5 (March 7, 2023)
 
 SECURITY:
