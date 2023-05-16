@@ -201,8 +201,8 @@ func TestOTELSink_Race(t *testing.T) {
 	for k, v := range expectedMetrics {
 		wg.Add(1)
 		go func(k string, v metricdata.Metrics) {
-			performSinkOperation(t, sink, k, v, errCh)
-			wg.Done()
+			defer wg.Done()
+			performSinkOperation(sink, k, v, errCh)
 		}(k, v)
 	}
 	wg.Wait()
@@ -276,7 +276,7 @@ func generateSamples(n int) map[string]metricdata.Metrics {
 }
 
 // performSinkOperation emits a measurement using the OTELSink and calls wg.Done() when completed.
-func performSinkOperation(t *testing.T, sink *OTELSink, k string, v metricdata.Metrics, errCh chan error) {
+func performSinkOperation(sink *OTELSink, k string, v metricdata.Metrics, errCh chan error) {
 	key := strings.Split(k, ".")
 	data := v.Data
 	switch data.(type) {
