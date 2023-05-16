@@ -55,6 +55,8 @@ func GetLatestImageName() string {
 	return LatestImageName
 }
 
+func IsEnterprise() bool { return isInEnterpriseRepo }
+
 func DockerImage(image, version string) string {
 	v := image + ":" + version
 	if strings.Contains(image, DefaultImageNameENT) && isSemVer(version) {
