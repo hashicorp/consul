@@ -52,7 +52,7 @@ The following list outlines field hierarchy, language-specific data types, and r
 - [`LoadBalancer`](#loadbalancer): map
   - [`Policy`](#loadbalancer-policy): string
   - [`LeastRequestConfig`](#loadbalancer-leastrequestconfig): map
-    - [`ChoiceCount`](#loadbalancer-leastrequestconfig-choicecount): integer `2`
+    - [`ChoiceCount`](#loadbalancer-leastrequestconfig-choicecount): integer | `2`
   - [`RingHashConfig`](#loadbalancer-ringhashconfig): map
     - [`MinimumRingSize`](#loadbalancer-ringhashconfig): integer | `1024`
     - [`MaximumRingSize`](#loadbalancer-ringhashconfig): integer | `8192`
@@ -579,7 +579,7 @@ Specifies an ordered list of datacenters at the failover location to attempt con
 
 Specifies a fixed list of failover targets to try during failover. This list can express complicated failover scenarios.
 
-For examples, refer to the [failover example configurations](#examples-failover).
+For examples, refer to the [failover example configurations](#service-failover).
 
 #### Values
 
@@ -663,14 +663,14 @@ Specifies the load balancing policy and configuration for services issuing reque
 
 Specifies the type of load balancing policy for selecting a host. Supported load balancing policies include:
 
-- Random: The load balancer forwards a client request to a server chosen at random from a fixed list.
-- Round robin: The load balancer proceeds through a fixed list of servers and forwards a client request to each one in order.
-- Least request: The load balancer forwards a client request to the server with the fewest connections. When using this policy, you can specify additional parameters in [`LoadBalancer{}.LeastRequestConfig`](#loadbalancer-leastrequestconfig).
-- Ring hash: The load balancer forwards requests from the same client to the same group of servers. When using this policy, you can specify additional parameters in [`LoadBalancer{}.RingHashConfig`](#loadbalancer-ringhashconfig).
-- Maglev: The load balancer uses a hashing algorithm to spread requests evenly across servers. When using this policy, you can specify additional parameters in [`LoadBalancer{}.HashPolicies`](#loadbalancer-hashpolicies).
-- Cookie
-- Header
-- Query Parameter
+| Policy | Description                                                     |
+| :----- | :-------------------------------------------------------------- |
+| Random | The load balancer forwards a client request to an available server chosen at random from a fixed list. |
+| Round robin | The load balancer proceeds through a fixed list of servers and forwards a client request to each available server in order. |
+| Least request | The load balancer forwards a client request to the server with the fewest connections. When using this policy, you can specify additional parameters in [`LoadBalancer{}.LeastRequestConfig`](#loadbalancer-leastrequestconfig). |
+| Ring hash | The load balancer forwards requests from the same client to the same group of servers. When using this policy, you can specify additional parameters in [`LoadBalancer{}.RingHashConfig`](#loadbalancer-ringhashconfig). |
+| Maglev | The load balancer uses a hashing algorithm to spread requests evenly across servers. When using this policy, you can specify additional parameters in [`LoadBalancer{}.HashPolicies`](#loadbalancer-hashpolicies). |
+
 
 #### Values
 
@@ -682,9 +682,6 @@ Specifies the type of load balancing policy for selecting a host. Supported load
   - `least_request`
   - `ring_hash` 
   - `maglev`  
-  - `cookie` 
-  - `header` 
-  - `query_parameter`
 
 ### `LoadBalancer{}.LeastRequestConfig`
 
@@ -729,12 +726,23 @@ Specifies a list of hash policies to use for hashing load balancing algorithms. 
 
 ### `LoadBalancer{}.HashPolicies[].Field`
 
- Specifies the attribute type to hash on. Must be one of the following values: `header`, `cookie`, or `query_parameter`. You cannot specify the `Field` parameter if `SourceIP` is also configured.
+ Specifies the attribute type to hash on. You cannot specify the `Field` parameter if `SourceIP` is also configured.
+
+ Supported attribute types include the following:
+
+| Attribute | Description                                                     |
+| :--------- | :-------------------------------------------------------------- |
+| Cookie     | The load balancer uses a cookie to obtain a hash key. Refer to the [Envoy documentation](https://www.envoyproxy.io/docs/envoy/latest/api-v3/config/route/v3/route_components.proto#envoy-v3-api-msg-config-route-v3-routeaction-hashpolicy-cookie) for more information. |
+| Header     | The load balancer uses a request header to obtain a hash key. Refer to the [Envoy documentation](https://www.envoyproxy.io/docs/envoy/latest/api-v3/config/route/v3/route_components.proto#envoy-v3-api-msg-config-route-v3-routeaction-hashpolicy-header) for more information. |
+| Query Parameter | The load balancer uses a URL query parameter to obtain the hash key. Refer to the [Envoy documentation](https://www.envoyproxy.io/docs/envoy/latest/api-v3/config/route/v3/route_components.proto#envoy-v3-api-msg-config-route-v3-routeaction-hashpolicy-queryparameter) for more information. |
 
 #### Values
 
 - Default: None
-- Data type: String
+- Data type: String containing one of the following values:
+  - `cookie`
+  - `header`
+  - `query_parameter`
 
 ### `LoadBalancer{}.HashPolicies[].FieldValue`
 
@@ -1011,7 +1019,7 @@ Specifies an ordered list of datacenters at the failover location to attempt con
 
 Specifies a fixed list of failover targets to try during failover. This list can express complicated failover scenarios.
 
-For examples, refer to the [failover example configurations](#examples-failover).
+For examples, refer to the [failover example configurations](#service-failover).
 
 #### Values
 
@@ -1095,14 +1103,13 @@ Specifies the load balancing policy and configuration for services issuing reque
 
 Specifies the type of load balancing policy for selecting a host. Supported load balancing policies include:
 
-- Random: The load balancer forwards a client request to a server chosen at random from a fixed list.
-- Round robin: The load balancer proceeds through a fixed list of servers and forwards a client request to each one in order.
-- Least request: The load balancer forwards a client request to the server with the fewest connections. When using this policy, you can specify additional parameters in [`LoadBalancer{}.LeastRequestConfig`](#loadbalancer-leastrequestconfig).
-- Ring hash: The load balancer forwards requests from the same client to the same group of servers. When using this policy, you can specify additional parameters in [`LoadBalancer{}.RingHashConfig`](#loadbalancer-ringhashconfig).
-- Maglev: The load balancer uses a hashing algorithm to spread requests evenly across servers. When using this policy, you can specify additional parameters in [`LoadBalancer{}.HashPolicies`](#loadbalancer-hashpolicies).
-- Cookie
-- Header
-- Query Parameter
+| Policy | Description                                                     |
+| :----- | :-------------------------------------------------------------- |
+| Random | The load balancer forwards a client request to an available server chosen at random from a fixed list. |
+| Round robin | The load balancer proceeds through a fixed list of servers and forwards a client request to each available server in order. |
+| Least request | The load balancer forwards a client request to the server with the fewest connections. When using this policy, you can specify additional parameters in [`spec.loadBalancer.leastRequestConfig`](#spec-loadbalancer-leastrequestconfig). |
+| Ring hash | The load balancer forwards requests from the same client to the same group of servers. When using this policy, you can specify additional parameters in [`spec.loadBalancer.ringHashConfig`](#spec-loadbalancer-ringhashconfig). |
+| Maglev | The load balancer uses a hashing algorithm to spread requests evenly across servers. When using this policy, you can specify additional parameters in [`spec.loadBalancer.hashPolicies`](#spec-loadbalancer-hashpolicies). |
 
 #### Values
 
@@ -1113,10 +1120,7 @@ Specifies the type of load balancing policy for selecting a host. Supported load
   - `round_robin` 
   - `least_request`
   - `ring_hash` 
-  - `maglev`  
-  - `cookie` 
-  - `header` 
-  - `query_parameter`
+  - `maglev`
 
 ### `spec.loadBalancer.leastRequestConfig`
 
@@ -1161,12 +1165,23 @@ Specifies a list of hash policies to use for hashing load balancing algorithms. 
 
 ### `spec.loadBalancer.hashPolicies[].field`
 
- Specifies the attribute type to hash on. Must be one of the following values: `header`, `cookie`, or `query_parameter`. You cannot specify the `field` parameter if `sourceIP` is also configured.
+ Specifies the attribute type to hash on. You cannot specify the `field` parameter if `sourceIP` is also configured.
+
+Supported attribute types include the following: 
+
+| Attribute | Description                                                     |
+| :--------- | :-------------------------------------------------------------- |
+| Cookie     | The load balancer uses a cookie to obtain a hash key. Refer to the [Envoy documentation](https://www.envoyproxy.io/docs/envoy/latest/api-v3/config/route/v3/route_components.proto#envoy-v3-api-msg-config-route-v3-routeaction-hashpolicy-cookie) for more information. |
+| Header     | The load balancer uses a request header to obtain a hash key. Refer to the [Envoy documentation](https://www.envoyproxy.io/docs/envoy/latest/api-v3/config/route/v3/route_components.proto#envoy-v3-api-msg-config-route-v3-routeaction-hashpolicy-header) for more information. |
+| Query Parameter | The load balancer uses a URL query parameter to obtain the hash key. Refer to the [Envoy documentation](https://www.envoyproxy.io/docs/envoy/latest/api-v3/config/route/v3/route_components.proto#envoy-v3-api-msg-config-route-v3-routeaction-hashpolicy-queryparameter) for more information. |
 
 #### Values
 
 - Default: None
-- Data type: String
+- Data type: String containing one of the following values:
+  - `cookie`
+  - `header`
+  - `query_parameter`
 
 ### `spec.loadBalancer.hashPolicies[].fieldValue`
 
@@ -1328,7 +1343,7 @@ spec:
 </Tab>
 </Tabs>
 
-### Failover
+### Service failover
 
 The following example enables failover for subset `v2` to `dc2`. All other subsets attempt failover to `dc3`, and when it is not available, to `dc4`:
 

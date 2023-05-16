@@ -372,7 +372,7 @@ Specifies a name for the configuration entry. The name is metadata that you can 
 
 ### `Namespace` <EnterpriseAlert inline />
 
-Specifies the [namespace](/consul/docs/enterprise/namespaces) to apply the configuration entry to. Refer to [Namespaces](/consul/docs/enterprise/namespaces) for additional information about Consul namespaces.
+Specifies the namespace to apply the configuration entry to. Refer to [Namespaces](/consul/docs/enterprise/namespaces) for additional information about Consul namespaces.
 
 #### Values
 
@@ -381,7 +381,7 @@ Specifies the [namespace](/consul/docs/enterprise/namespaces) to apply the confi
 
 ### `Partition` <EnterpriseAlert inline />
 
-Specifies the [admin partition](/consul/docs/enterprise/admin-partitions) to apply the configuration entry to. Refer to [Admin partitions](/consul/docs/enterprise/admin-partitions) for additional information.
+Specifies the admin partition to apply the configuration entry to. Refer to [Admin partitions](/consul/docs/enterprise/admin-partitions) for additional information.
 
 #### Values
 
@@ -469,10 +469,12 @@ Specifies a regular expression to match on the HTTP request path. When using thi
 
 Specifies HTTP methods that the match applies to. If not specified, the request matches on all HTTP methods. If provided, the name must be a valid method formatted as a string.
 
+String values must be a valid [HTTP request method](https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods).
+
 #### Values
 
 - Default: None
-- Data type: List of strings. String values must be a valid [HTTP request method](https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods):
+- Data type: List of strings. Each string must match one of the following values:
   - `GET`
   - `HEAD`
   - `POST`
@@ -723,27 +725,42 @@ Specifies that connection failure errors that trigger a retry request. Configure
 
 ### `Routes[].Destination{}.RetryOn[]`
 
-Specifies a list of conditions for Consul to retry requests. Configure this field and other retry fields in the `Destination` object to configure the logic for retry attempts. For examples, refer to the [retry logic example configurations](#retry-logic).
+Specifies a list of conditions for Consul to retry requests based on the response from an upstream service. Configure this field and other retry fields in the `Destination` object to configure the logic for retry attempts. For examples, refer to the [retry logic example configurations](#retry-logic).
+
+The following retry conditions are supported:
+
+| Conditions           | Description                                                                                              |
+| :------------------- | :------------------------------------------------------------------------------------------------------- |
+| `5xx`                | Consul retries the request when an upstream responds with any 5xx error code or does not respond at all. |
+| `gateway-error`      | Consul retries the request when the upstream responds with a 502, 503, or 504 error.                     |
+| `reset`              | Consul retries the request when the upstream does not respond at all.                                    |
+| `connect-failure`    | Consul retries the request when the connection to the upstream fails.                                    |
+| `envoy-ratelimited`  | Consul retries the request when the header `x-envoy-ratelimited` is present.                             |
+| `retriable-4xx`      | Consul retries the request when the upstream responds with a retriable 4xx code.                         |
+| `refused-stream`     | Consul retries the request when the upstream resets the stream with a `REFUSED_STREAM` error code.       |
+| `cancelled`          | Consul retries the request when the gRPC status code in the response headers is `cancelled`.             |
+| `deadline-exceeded`  | Consul retries the request when the gRPC status code in the response headers is `deadline-exceeded`.     |
+| `internal`           | Consul retries the request when the gRPC status code in the response headers is `internal`.              |
+| `resource-exhausted` | Consul retries the request when the gRPC status code in the response headers is `resource-exhausted`.    |
+| `unavailable`        | Consul retries the request when the gRPC status code in the response headers is `unavailable`.           |
 
 #### Values
 
 - Default: None
 - Data type: List of strings. Strings must match one of the following values:
 
-| Conditions           | Description                                                                                          |
-| :------------------- | :--------------------------------------------------------------------------------------------------- |
-| `5xx`                | Consul encountered a 5xx HTTP response code error code while routing the request.                    |
-| `gateway-error`      | Consul encountered a gateway error while routing the request.                                        |
-| `reset`              | The Consul server was reset while routing the request.                                               |
-| `connect-failure`    | Consul encountered a service mesh failure while routing the request.                                 |
-| `envoy-ratelimited`  | An Envoy proxy did not complete the request because it was rate limited.                             |
-| `retriable-4xx`      | Consul encountered a retriable 4xx HTTP response code while routing the request.                     |
-| `refused-stream`     | An upstream service refused the connection while Consul was routing the request.                     |
-| `cancelled`          | The request was canceled while Consul was routing it.                                                |
-| `deadline-exceeded`  | Consul did not receive a response that the request  was routed within the configured timeout period. |
-| `internal`           | Consul encountered an internal error while routing the request.                                      |
-| `resource-exhausted` | Available resources were exhausted, preventing Consul from routing the request.                      |
-| `unavailable`        | Consul was unavailable to route the request when it was made.                                        |
+  - `5xx`
+  - `gateway-error`
+  - `reset`
+  - `connect-failure`
+  - `envoy-ratelimited`
+  - `retriable-4xx`
+  - `refused-stream`
+  - `cancelled`
+  - `deadline-exceeded`
+  - `internal`
+  - `resource-exhausted`
+  - `unavailable`
 
 ### `Routes[].Destination{}.RetryOnStatusCodes`
 
@@ -929,10 +946,12 @@ Specifies a regular expression to match on the HTTP request path. When using thi
 
 Specifies HTTP methods that the match applies to. If not specified, the request matches on all HTTP methods. If provided, the name must be a valid method formatted as a string.
 
+String values must be a valid [HTTP request method](https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods).
+
 #### Values
 
 - Default: None
-- Data type: List of strings. String values must be a valid [HTTP request method](https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods):
+- Data type: List of strings. Each string must match one of the following values:
   - `GET`
   - `HEAD`
   - `POST`
@@ -1182,27 +1201,42 @@ Specifies that connection failure errors that trigger a retry request. Configure
 
 ### `spec.routes[].destination.retryOn`
 
-Specifies a list of conditions for Consul to retry requests. Configure this field and other retry fields in the `spec.routes[].destination` object to configure the logic for retry attempts. For examples, refer to the [retry logic example configurations](#retry-logic).
+Specifies a list of conditions for Consul to retry requests based on the response from an upstream service. Configure this field and other retry fields in the `spec.routes[].destination` object to configure the logic for retry attempts. For examples, refer to the [retry logic example configurations](#retry-logic).
+
+The following retry conditions are supported:
+
+| Conditions           | Description                                                                                              |
+| :------------------- | :------------------------------------------------------------------------------------------------------- |
+| `5xx`                | Consul retries the request when an upstream responds with any 5xx error code or does not respond at all. |
+| `gateway-error`      | Consul retries the request when the upstream responds with a 502, 503, or 504 error.                     |
+| `reset`              | Consul retries the request when the upstream does not respond at all.                                    |
+| `connect-failure`    | Consul retries the request when the connection to the upstream fails.                                    |
+| `envoy-ratelimited`  | Consul retries the request when the header `x-envoy-ratelimited` is present.                             |
+| `retriable-4xx`      | Consul retries the request when the upstream responds with a retriable 4xx code.                         |
+| `refused-stream`     | Consul retries the request when the upstream resets the stream with a `REFUSED_STREAM` error code.       |
+| `cancelled`          | Consul retries the request when the gRPC status code in the response headers is `cancelled`.             |
+| `deadline-exceeded`  | Consul retries the request when the gRPC status code in the response headers is `deadline-exceeded`.     |
+| `internal`           | Consul retries the request when the gRPC status code in the response headers is `internal`.              |
+| `resource-exhausted` | Consul retries the request when the gRPC status code in the response headers is `resource-exhausted`.    |
+| `unavailable`        | Consul retries the request when the gRPC status code in the response headers is `unavailable`.           |
 
 #### Values
 
 - Default: None
 - Data type: List of strings. Strings must match one of the following values:
 
-| Conditions           | Description                                                                                          |
-| :------------------- | :--------------------------------------------------------------------------------------------------- |
-| `5xx`                | Consul encountered a 5xx HTTP response code error code while routing the request.                    |
-| `gateway-error`      | Consul encountered a gateway error while routing the request.                                        |
-| `reset`              | The Consul server was reset while routing the request.                                               |
-| `connect-failure`    | Consul encountered a service mesh failure while routing the request.                                 |
-| `envoy-ratelimited`  | An Envoy proxy did not complete the request because it was rate limited.                             |
-| `retriable-4xx`      | Consul encountered a retriable 4xx HTTP response code while routing the request.                     |
-| `refused-stream`     | An upstream service refused the connection while Consul was routing the request.                     |
-| `cancelled`          | The request was canceled while Consul was routing it.                                                |
-| `deadline-exceeded`  | Consul did not receive a response that the request  was routed within the configured timeout period. |
-| `internal`           | Consul encountered an internal error while routing the request.                                      |
-| `resource-exhausted` | Available resources were exhausted, preventing Consul from routing the request.                      |
-| `unavailable`        | Consul was unavailable to route the request when it was made.                                        |
+  - `5xx`
+  - `gateway-error`
+  - `reset`
+  - `connect-failure`
+  - `envoy-ratelimited`
+  - `retriable-4xx`
+  - `refused-stream`
+  - `cancelled`
+  - `deadline-exceeded`
+  - `internal`
+  - `resource-exhausted`
+  - `unavailable`
 
 ### `spec.routes[].destination.retryOnStatusCodes`
 
