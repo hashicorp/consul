@@ -21,10 +21,13 @@ Ingress gateways are a type of proxy service included with Consul. Complete the 
 After specifying listeners and services in the  ingress gateway configuration entry, you can register the gateway service and start Envoy with a single CLI command instead of completing these steps separately. Refer [Register an ingress service on Envoy startup](#register-an-ingress-service-on-envoy-startup).
 
 ## Requirements
+
 - Service mesh must be enabled for all agents. Set the [`connect.enabled` parameter](/consul/docs/agent/config/config-files#connect) to `true` to enable service mesh.
 - The gRPC port must be configured for all server agents in the datacenter. Specify the gRPC port in the [`ports.grpc` parameter](/consul/docs/agent/config/config-files#grpc_port). We recommend setting the port to `8502` to simplify configuration when ACLs are enabled. Refer to [ACL requirements](#acl-requirements) for additional information.
 - You must use Envoy for sidecar proxies in your service mesh. Refer to [Envoy Proxy Configuration for Service Mesh](/consul/docs/connect/proxies/envoy) for supported versions. 
+
 ### ACL requirements
+
 If ACLs are enabled, you must present a token when registering ingress gateways that grant the following permissions:
 
 `service:write` for the ingress gateway's service name 
@@ -36,7 +39,9 @@ These privileges authorize the token to route communications to other services i
 ## Expose services
 
 Define and apply an ingress gateway configuration entry to specify which services in the mesh to expose to external services.  
+
 ### Define an ingress gateway configuration entry
+
 Ingress gateway configuration entries map downstream ingress listeners to upstream services. When you register an ingress gateway proxy that matches the configuration entry name, Consul applies the settings specified in the configuration entry. Configure the following fields:
 
 - [`Kind`](/consul/docs/connect/config-entries/ingress-gateway#kind): Set the value to `ingress-gateway`.
@@ -49,6 +54,7 @@ Ingress gateway configuration entries map downstream ingress listeners to upstre
 For Consul Enterprise service meshes, you may also need to configure the [`Partition`](/consul/docs/connect/config-entries/ingress-gateway#partition) and [`Namespace`](/consul/docs/connect/config-entries/ingress-gateway#namespace) fields for the gateway and for each exposed service. 
 
 Refer to [Ingress gateway configuration entry reference](/consul/docs/connect/config-entries/ingress-gateway) for details about the supported parameters. 
+
 ###  Register an ingress gateway configuration entry
 
 You can register the configuration entry using the [`consul config` command](/consul/commands/config) or by calling the [`/config` API endpoint](/consul/api-docs/config). Refer to [How to Use Configuration Entries](/consul/docs/agent/config-entries) for details about applying configuration entries. 
@@ -58,19 +64,21 @@ The following example registers an ingress gateway configuration entry named `pu
 ```shell-session
 $ consul config write public-ingress.hcl
 ```
+
 ## Deploy an ingress gateway service
 
 To deploy an ingress gateway service, create a service definition and register it with Consul. 
 
 You can also define an ingress gateway service and register it with Consul while starting an Envoy proxy from the command line. Refer to [Register an ingress service on Envoy startup](#register-an-ingress-service-on-envoy-startup) for details.
+
 ### Create a service definition for the ingress gateway 
 
 Consul applies the settings defined in the ingress gateway configuration entry to ingress gateway services that match the configuration entry name. Refer to [Define services](/consul/docs/services/usage/define-services) for additional information about defining services in Consul. 
 
 The following fields are required for the ingress gateway service definition:
 
-[`Kind`](/consul/docs/services/configuration/services-configuration-reference#kind): The field must be set to `ingress-gateway`.
-[`Name`](/consul/docs/services/configuration/services-configuration-reference#name): The name should match the value specified for the `Name` field in the configuration entry.
+- [`Kind`](/consul/docs/services/configuration/services-configuration-reference#kind): The field must be set to `ingress-gateway`.
+- [`Name`](/consul/docs/services/configuration/services-configuration-reference#name): The name should match the value specified for the `Name` field in the configuration entry.
 
 All other service definition fields are optional, but we recommend defining health checks to verify the health of the gateway. Refer to [Services configuration reference](/consul/docs/services/configuration/services-configuration-reference) for information about defining services. 
 
@@ -83,6 +91,7 @@ The following example registers an ingress gateway defined in `ingress-gateway.h
 ```shell-session
 $ consul services register ingress-service.hcl
 ```
+
 ## Start an Envoy proxy
 
 Run the `consul connect envoy` command to start Envoy. Specify the name of the ingress gateway service and include the `-gateway=ingress` flag. Refer to [Consul Connect Envoy](/consul/commands/connect/envoy) for details about using the command.
@@ -90,7 +99,7 @@ Run the `consul connect envoy` command to start Envoy. Specify the name of the i
 The following example starts Envoy for the `ingress-service` gateway service:
 
 ```shell-session
-$ consul connect envoy -gateway=ingress ingress-service'
+$ consul connect envoy -gateway=ingress ingress-service
 ```
 
 ### Register an ingress service on Envoy startup
@@ -104,7 +113,8 @@ You can also automatically register the ingress gateway service when starting th
 The following example starts Envoy and registers an ingress gateway service named `ingress-service` bound to the agent address at port `8888`: 
 
 ```shell-session
-$ consul connect envoy -gateway=ingress -register -service ingress-service
+$ consul connect envoy -gateway=ingress -register \
+   -service ingress-service \
    -address '{{ GetInterfaceIP "eth0" }}:8888'
 ```
 You cannot register the ingress gateway service and start the proxy at the same time if you configure the gateway to retrieve and serve TLS certificates from their external downstreams. Refer to [Serve custom TLS certificates from an external service](/consul/docs/connect/gateways/ingress-gateway/tls-external-service) for more information.

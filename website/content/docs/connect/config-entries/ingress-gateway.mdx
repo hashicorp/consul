@@ -465,6 +465,7 @@ If unspecified, the ingress gateway is applied to the `default` namespace. You c
 Specifies the admin partition that the ingress gateway applies to. The value must match the partition in which the gateway is registered. Refer to [Admin partitions](/consul/docs/enterprise/admin-partitions) for additional information.
 
 If unspecified, the ingress gateway is applied to the `default` partition. You can override the partition when using the [`/config` API endpoint](/consul/api-docs/config) to register the configuration entry by specifying the `partition` query parameter.
+
 #### Values
 
 - Default: `default
@@ -643,10 +644,12 @@ Specifies a list of listeners in the mesh for the gateway. Listeners are uniquel
 ### `Listeners[].Port`
 
 Specifies the port that the listener receives traffic on. The port is bound to the IP address specified in the [`-address`](/consul/commands/connect/envoy#address) flag when starting the gateway. The listener port must not conflict with the health check port. 
+
 #### Values
 
 - Default: `0`
 - Data type: Integer
+
 ### `Listeners[].Protocol`
 
 Specifies the protocol associated with the listener. To enable L7 network management capabilities, specify one of the following values:
@@ -949,6 +952,7 @@ The following table describes how to configure SDS parameters. Refer to [Configu
 ### `apiVersion`
 
 Kubernetes-only parameter that specifies the version of the Consul API that the configuration entry maps to Kubernetes configurations. The value must be `consul.hashicorp.com/v1alpha1`.
+
 ### `kind`
 
 Specifies the type of configuration entry to implement. Must be set to `IngressGatewa`.
@@ -1018,15 +1022,18 @@ Specifies the TLS configuration settings for the gateway.
   - [`tlsMaxVersion`](#spec-tls-tlsmaxversion)
   - [`cipherSuites`](#spec-tls-tlsciphersuites)
   - [`sds`](#spec-tls-sds) 
+
 ### `spec.tls.enabled`
 
 Enables and disables TLS for the configuration entry. Set to `true` to enable built-in TLS for every listener on the gateway. TLS is disabled by default.
 
 When enabled, Consul adds each host defined in every service's `Hosts` field to the gateway's x509 certificate as a DNS subject alternative name (SAN). 
+
 #### Values
 
  - Default: `false`
  - Data type: boolean 
+
 ### `spec.tls.tlsMinVersion`
 
 Specifies the minimum TLS version supported for gateway listeners.
@@ -1042,9 +1049,11 @@ Specifies the minimum TLS version supported for gateway listeners.
   - `TLSv1_1`
   - `TLSv1_2`
   - `TLSv1_3`
+
 ### `spec.tls.tlsMaxVersion`
 
 Specifies the maximum TLS version supported for gateway listeners.
+
 #### Values
 
 - Default: Depends on the version of Envoy:

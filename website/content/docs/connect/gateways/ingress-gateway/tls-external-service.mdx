@@ -49,7 +49,7 @@ You must manually register the ingress gateway with Consul proxy to define extra
 In the following example, the `public-ingress` gateway includes a static cluster named `sds-cluster` that specifies paths to the SDS certificate and SDS certification validation files:
 
 
-<CodeBlock heading="public-ingress-service.hcl">
+<CodeBlockConfig heading="public-ingress-service.hcl">
 
 ```hcl
 Services {
@@ -112,7 +112,7 @@ EOF
 }
 ```
 
-</CodeBlock>
+</CodeBlockConfig>
 
 Refer to the [Envoy documentation](https://www.envoyproxy.io/docs/envoy/v1.17.2/api-v3/config/bootstrap/v3/bootstrap.proto#envoy-v3-api-field-config-bootstrap-v3-bootstrap-staticresources-clusters) for details about configuration parameters for SDS clusters. 
 
@@ -133,7 +133,7 @@ Store TLS client authentication files, certificate files, and keys on disk where
 The following example specifies certificate chain:
 
 
-<CodeBlock heading="certs/sds-auth-cert.json">
+<CodeBlockConfig heading="certs/sds-auth-cert.json">
 
 ```json
 {
@@ -154,10 +154,11 @@ The following example specifies certificate chain:
 }
 ```
 
-</CodeBlock>
+</CodeBlockConfig>
+
 The following example specifies the validation context:
 
-<CodeBlock heading="/certs/sds-validation.json">
+<CodeBlockConfig heading="/certs/sds-validation.json">
 
 ```json
 {
@@ -175,7 +176,7 @@ The following example specifies the validation context:
 }
 ```
 
-</CodeBlock>
+</CodeBlockConfig>
 
 ## Start Envoy
 
@@ -208,7 +209,7 @@ Refer to [Ingress gateway configuration entry reference](/consul/docs/connect/co
 
 The following example directs Consul to retrieve `example.com-public-cert` certificates from an SDS cluster named `sds-cluster` and serve them to all listeners:
 
-<CodeBlock heading="public-ingress-cfg.hcl">
+<CodeBlockConfig heading="public-ingress-cfg.hcl">
 
 ```hcl
 Kind = "ingress-gateway"
@@ -230,7 +231,7 @@ Listeners = [
 ]
 ```
 
-</CodeBlock>
+</CodeBlockConfig>
 
 ##  Register the ingress gateway configuration entry
 
