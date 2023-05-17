@@ -32,10 +32,15 @@ type Client interface {
 	DiscoverServers(ctx context.Context) ([]string, error)
 }
 
+// MetricsConfig holds metrics specific configuration for the TelemetryConfig.
+// The endpoint field overrides the TelemetryConfig endpoint.
 type MetricsConfig struct {
 	Filters  []string
 	Endpoint string
 }
+
+// TelemetryConfig contains configuration for telemetry data forwarded by Consul servers
+// to the HCP Telemetry gateway.
 type TelemetryConfig struct {
 	Endpoint      string
 	Labels        map[string]string
@@ -93,6 +98,8 @@ func httpClient(c config.CloudConfig) (*httptransport.Runtime, error) {
 		SourceChannel: "consul " + version.GetHumanVersion(),
 	})
 }
+
+// FetchTelemetryConfig obtains telemetry configuration from the Telemetry Gateway.
 func (c *hcpClient) FetchTelemetryConfig(ctx context.Context) (*TelemetryConfig, error) {
 	params := hcptelemetry.NewAgentTelemetryConfigParamsWithContext(ctx).
 		WithLocationOrganizationID(c.resource.Organization).
@@ -254,4 +261,20 @@ func (c *hcpClient) DiscoverServers(ctx context.Context) ([]string, error) {
 	}
 
 	return servers, nil
+}
+
+// Enabled verifies if telemetry is enabled by ensuring a valid endpoint has been retrieved.
+// It returns full metrics endpoint and true if a valid endpoint was obtained.
+func (t *TelemetryConfig) Enabled() (string, bool) {
+	endpoint := t.Endpoint
+	if override := t.MetricsConfig.Endpoint; override != "" {
+		endpoint = override
+	}
+
+	if endpoint == "" {
+		return "", false
+	}
+
+	// The endpoint from the HCP gateway is a domain without scheme, and without the metrics path, so they must be added.
+	return fmt.Sprintf("https://%s/v1/metrics", endpoint), true
 }

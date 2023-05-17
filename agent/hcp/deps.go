@@ -5,7 +5,6 @@ package hcp
 
 import (
 	"context"
-	"fmt"
 	"net/url"
 	"time"
 
@@ -47,15 +46,24 @@ func NewDeps(cfg config.CloudConfig, logger hclog.Logger) (d Deps, err error) {
 func sink(hcpClient hcpclient.Client, cfg hcpclient.CloudConfig, logger hclog.Logger) *telemetry.OTELSink {
 	ctx := context.Background()
 	ctx = hclog.WithContext(ctx, logger)
-	u, err := verifyCCMRegistration(ctx, hcpClient)
+
+	reqCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	telemetryCfg, err := hcpClient.FetchTelemetryConfig(reqCtx)
 	if err != nil {
-		logger.Error("failed to verify CCM registration: %w", err)
+		logger.Error("failed to fetch telemetry config %w", err)
 		return nil
 	}
 
-	// if endpoint is empty, no metrics endpoint configuration for this Consul server
-	// (e.g. not registered with CCM or feature flag to control rollout) so do not enable the HCP metrics sink.
-	if u == nil {
+	endpoint, isEnabled := telemetryCfg.Enabled()
+	if !isEnabled {
+		return nil
+	}
+
+	u, err := url.Parse(endpoint)
+	if err != nil {
+		logger.Error("failed to parse url endpoint %w", err)
 		return nil
 	}
 
@@ -77,35 +85,4 @@ func sink(hcpClient hcpclient.Client, cfg hcpclient.CloudConfig, logger hclog.Lo
 	}
 
 	return sink
-}
-
-// verifyCCMRegistration checks that a server is registered with the HCP management plane
-// by making a HTTP request to the HCP TelemetryConfig endpoint.
-// If registered, it returns the endpoint for the HCP Telemetry Gateway endpoint where metrics should be forwarded.
-func verifyCCMRegistration(ctx context.Context, client hcpclient.Client) (*url.URL, error) {
-	reqCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
-	defer cancel()
-
-	telemetryCfg, err := client.FetchTelemetryConfig(reqCtx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to fetch telemetry config %w", err)
-	}
-
-	endpoint := telemetryCfg.Endpoint
-	if override := telemetryCfg.MetricsConfig.Endpoint; override != "" {
-		endpoint = override
-	}
-
-	// no error, the server simply isn't configured for metrics forwarding.
-	if endpoint == "" {
-		return nil, nil
-	}
-
-	// The endpoint from the HCP gateway is a domain without scheme, and without the metrics path, so they must be added.
-	u, err := url.Parse(fmt.Sprintf("https://%s/v1/metrics", endpoint))
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse url: %w", err)
-	}
-
-	return u, nil
 }

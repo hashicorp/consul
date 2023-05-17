@@ -1,7 +1,6 @@
 package hcp
 
 import (
-	"context"
 	"fmt"
 	"testing"
 
@@ -58,32 +57,10 @@ func TestSink(t *testing.T) {
 			},
 			mockCloudCfg: client.MockErrCloudCfg{},
 		},
-	} {
-		t.Run(name, func(t *testing.T) {
-			c := client.NewMockClient(t)
-			l := hclog.NewNullLogger()
-			test.expect(c)
-			sinkOpts := sink(c, test.mockCloudCfg, l)
-			if !test.expectedSink {
-				require.Nil(t, sinkOpts)
-				return
-			}
-			require.NotNil(t, sinkOpts)
-		})
-	}
-}
-
-func TestVerifyCCMRegistration(t *testing.T) {
-	for name, test := range map[string]struct {
-		expect      func(*client.MockClient)
-		wantErr     string
-		expectedURL string
-	}{
 		"failsWithFetchTelemetryFailure": {
 			expect: func(mockClient *client.MockClient) {
 				mockClient.EXPECT().FetchTelemetryConfig(mock.Anything).Return(nil, fmt.Errorf("FetchTelemetryConfig error"))
 			},
-			wantErr: "failed to fetch telemetry config",
 		},
 		"failsWithURLParseErr": {
 			expect: func(mockClient *client.MockClient) {
@@ -96,7 +73,6 @@ func TestVerifyCCMRegistration(t *testing.T) {
 					},
 				}, nil)
 			},
-			wantErr: "failed to parse url:",
 		},
 		"noErrWithEmptyEndpoint": {
 			expect: func(mockClient *client.MockClient) {
@@ -107,53 +83,18 @@ func TestVerifyCCMRegistration(t *testing.T) {
 					},
 				}, nil)
 			},
-			expectedURL: "",
-		},
-		"success": {
-			expect: func(mockClient *client.MockClient) {
-				mockClient.EXPECT().FetchTelemetryConfig(mock.Anything).Return(&client.TelemetryConfig{
-					Endpoint: "test.com",
-					MetricsConfig: &client.MetricsConfig{
-						Endpoint: "",
-					},
-				}, nil)
-			},
-			expectedURL: "https://test.com/v1/metrics",
-		},
-		"successMetricsEndpointOverride": {
-			expect: func(mockClient *client.MockClient) {
-				mockClient.EXPECT().FetchTelemetryConfig(mock.Anything).Return(&client.TelemetryConfig{
-					Endpoint: "test.com",
-					MetricsConfig: &client.MetricsConfig{
-						Endpoint: "override.com",
-					},
-				}, nil)
-			},
-			expectedURL: "https://override.com/v1/metrics",
 		},
 	} {
 		t.Run(name, func(t *testing.T) {
-			ctx := context.Background()
-			mClient := client.NewMockClient(t)
-			test.expect(mClient)
-
-			url, err := verifyCCMRegistration(ctx, mClient)
-			if test.wantErr != "" {
-				require.Empty(t, url)
-				require.Error(t, err)
-				require.Contains(t, err.Error(), test.wantErr)
+			c := client.NewMockClient(t)
+			l := hclog.NewNullLogger()
+			test.expect(c)
+			sinkOpts := sink(c, test.mockCloudCfg, l)
+			if !test.expectedSink {
+				require.Nil(t, sinkOpts)
 				return
 			}
-
-			require.NoError(t, err)
-			if test.expectedURL == "" {
-				require.Nil(t, url)
-				return
-			}
-
-			expURL, err := url.Parse(test.expectedURL)
-			require.NoError(t, err)
-			require.Equal(t, url, expURL)
+			require.NotNil(t, sinkOpts)
 		})
 	}
 }
