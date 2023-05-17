@@ -411,6 +411,8 @@ type Config struct {
 
 	PeeringTestAllowPeerRegistrations bool
 
+	Cloud CloudConfig
+
 	Reporting Reporting
 
 	// Embedded Consul Enterprise specific configuration

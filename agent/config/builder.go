@@ -1039,7 +1039,7 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		RPCMaxBurst:                       intVal(c.Limits.RPCMaxBurst),
 		RPCMaxConnsPerClient:              intVal(c.Limits.RPCMaxConnsPerClient),
 		RPCProtocol:                       intVal(c.RPCProtocol),
-		RPCRateLimit:                      rate.Limit(float64Val(c.Limits.RPCRate)),
+		RPCRateLimit:                      limitVal(c.Limits.RPCRate),
 		RPCConfig:                         consul.RPCConfig{EnableStreaming: boolValWithDefault(c.RPC.EnableStreaming, serverMode)},
 		RaftProtocol:                      intVal(c.RaftProtocol),
 		RaftSnapshotThreshold:             intVal(c.RaftSnapshotThreshold),
@@ -1997,6 +1997,14 @@ func float64Val(v *float64) float64 {
 	return float64ValWithDefault(v, 0)
 }
 
+func limitVal(v *float64) rate.Limit {
+	f := float64Val(v)
+	if f < 0 {
+		return rate.Inf
+	}
+	return rate.Limit(f)
+}
+
 func (b *builder) cidrsVal(name string, v []string) (nets []*net.IPNet) {
 	if v == nil {
 		return
@@ -2472,18 +2480,23 @@ func validateAutoConfigAuthorizer(rt RuntimeConfig) error {
 	return nil
 }
 
-func (b *builder) cloudConfigVal(v *CloudConfigRaw) (val hcpconfig.CloudConfig) {
+func (b *builder) cloudConfigVal(v *CloudConfigRaw) hcpconfig.CloudConfig {
+	val := hcpconfig.CloudConfig{
+		ResourceID: os.Getenv("HCP_RESOURCE_ID"),
+	}
 	if v == nil {
 		return val
 	}
 
-	val.ResourceID = stringVal(v.ResourceID)
 	val.ClientID = stringVal(v.ClientID)
 	val.ClientSecret = stringVal(v.ClientSecret)
 	val.AuthURL = stringVal(v.AuthURL)
 	val.Hostname = stringVal(v.Hostname)
 	val.ScadaAddress = stringVal(v.ScadaAddress)
 
+	if resourceID := stringVal(v.ResourceID); resourceID != "" {
+		val.ResourceID = resourceID
+	}
 	return val
 }
 

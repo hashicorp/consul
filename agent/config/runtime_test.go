@@ -2277,6 +2277,74 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		},
 	})
 	run(t, testCase{
+		desc: "cloud resource id from env",
+		args: []string{
+			`-server`,
+			`-data-dir=` + dataDir,
+		},
+		setup: func() {
+			os.Setenv("HCP_RESOURCE_ID", "env-id")
+			t.Cleanup(func() {
+				os.Unsetenv("HCP_RESOURCE_ID")
+			})
+		},
+		expected: func(rt *RuntimeConfig) {
+			rt.DataDir = dataDir
+			rt.Cloud = hcpconfig.CloudConfig{
+				// ID is only populated from env if not populated from other sources.
+				ResourceID: "env-id",
+			}
+
+			// server things
+			rt.ServerMode = true
+			rt.TLS.ServerMode = true
+			rt.LeaveOnTerm = false
+			rt.SkipLeaveOnInt = true
+			rt.RPCConfig.EnableStreaming = true
+			rt.GRPCTLSPort = 8503
+			rt.GRPCTLSAddrs = []net.Addr{defaultGrpcTlsAddr}
+		},
+	})
+	run(t, testCase{
+		desc: "cloud resource id from file",
+		args: []string{
+			`-server`,
+			`-data-dir=` + dataDir,
+		},
+		setup: func() {
+			os.Setenv("HCP_RESOURCE_ID", "env-id")
+			t.Cleanup(func() {
+				os.Unsetenv("HCP_RESOURCE_ID")
+			})
+		},
+		json: []string{`{
+			  "cloud": {
+              	"resource_id": "file-id" 
+              }
+			}`},
+		hcl: []string{`
+			  cloud = {
+	            resource_id = "file-id" 
+			  }
+			`},
+		expected: func(rt *RuntimeConfig) {
+			rt.DataDir = dataDir
+			rt.Cloud = hcpconfig.CloudConfig{
+				// ID is only populated from env if not populated from other sources.
+				ResourceID: "file-id",
+			}
+
+			// server things
+			rt.ServerMode = true
+			rt.TLS.ServerMode = true
+			rt.LeaveOnTerm = false
+			rt.SkipLeaveOnInt = true
+			rt.RPCConfig.EnableStreaming = true
+			rt.GRPCTLSPort = 8503
+			rt.GRPCTLSAddrs = []net.Addr{defaultGrpcTlsAddr}
+		},
+	})
+	run(t, testCase{
 		desc: "sidecar_service can't have ID",
 		args: []string{
 			`-data-dir=` + dataDir,

@@ -34,6 +34,7 @@ type BootstrapConfig struct {
 	TLSCertKey      string
 	TLSCAs          []string
 	ConsulConfig    string
+	ManagementToken string
 }
 
 type hcpClient struct {
@@ -76,10 +77,12 @@ func httpClient(c config.CloudConfig) (*httptransport.Runtime, error) {
 }
 
 func (c *hcpClient) FetchBootstrap(ctx context.Context) (*BootstrapConfig, error) {
+	version := version.GetHumanVersion()
 	params := hcpgnm.NewAgentBootstrapConfigParamsWithContext(ctx).
 		WithID(c.resource.ID).
 		WithLocationOrganizationID(c.resource.Organization).
-		WithLocationProjectID(c.resource.Project)
+		WithLocationProjectID(c.resource.Project).
+		WithConsulVersion(&version)
 
 	resp, err := c.gnm.AgentBootstrapConfig(params, nil)
 	if err != nil {
@@ -103,6 +106,7 @@ func bootstrapConfigFromHCP(res *gnmmod.HashicorpCloudGlobalNetworkManager202202
 		TLSCertKey:      serverTLS.PrivateKey,
 		TLSCAs:          serverTLS.CertificateAuthorities,
 		ConsulConfig:    res.Bootstrap.ConsulConfig,
+		ManagementToken: res.Bootstrap.ManagementToken,
 	}
 }
 
@@ -112,7 +116,7 @@ func (c *hcpClient) PushServerStatus(ctx context.Context, s *ServerStatus) error
 		WithLocationOrganizationID(c.resource.Organization).
 		WithLocationProjectID(c.resource.Project)
 
-	params.SetBody(&gnmmod.HashicorpCloudGlobalNetworkManager20220215AgentPushServerStateRequest{
+	params.SetBody(hcpgnm.AgentPushServerStateBody{
 		ServerState: serverStatusToHCP(s),
 	})
 
@@ -127,10 +131,12 @@ type ServerStatus struct {
 	LanAddress string
 	GossipPort int
 	RPCPort    int
+	Datacenter string
 
 	Autopilot ServerAutopilot
 	Raft      ServerRaft
 	TLS       ServerTLSInfo
+	ACL       ServerACLInfo
 
 	ScadaStatus string
 }
@@ -148,6 +154,10 @@ type ServerRaft struct {
 	KnownLeader          bool
 	AppliedIndex         uint64
 	TimeSinceLastContact time.Duration
+}
+
+type ServerACLInfo struct {
+	Enabled bool
 }
 
 type ServerTLSInfo struct {
@@ -194,6 +204,10 @@ func serverStatusToHCP(s *ServerStatus) *gnmmod.HashicorpCloudGlobalNetworkManag
 		},
 		Version:     s.Version,
 		ScadaStatus: s.ScadaStatus,
+		ACL: &gnmmod.HashicorpCloudGlobalNetworkManager20220215ACLInfo{
+			Enabled: s.ACL.Enabled,
+		},
+		Datacenter: s.Datacenter,
 	}
 }
 
