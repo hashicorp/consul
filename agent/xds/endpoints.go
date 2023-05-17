@@ -41,13 +41,7 @@ func (s *ResourceGenerator) endpointsFromSnapshot(cfgSnap *proxycfg.ConfigSnapsh
 	case structs.ServiceKindIngressGateway:
 		return s.endpointsFromSnapshotIngressGateway(cfgSnap)
 	case structs.ServiceKindAPIGateway:
-		// TODO Find a cleaner solution, can't currently pass unexported property types
-		var err error
-		cfgSnap.IngressGateway, err = cfgSnap.APIGateway.ToIngress(cfgSnap.Datacenter)
-		if err != nil {
-			return nil, err
-		}
-		return s.endpointsFromSnapshotIngressGateway(cfgSnap)
+		return s.endpointsFromSnapshotAPIGateway(cfgSnap)
 	default:
 		return nil, fmt.Errorf("Invalid service kind: %v", cfgSnap.Kind)
 	}
@@ -527,6 +521,87 @@ func (s *ResourceGenerator) endpointsFromSnapshotIngressGateway(cfgSnap *proxycf
 	return resources, nil
 }
 
+// helper struct to persist upstream parent information when ready upstream list is built out
+type readyUpstreams struct {
+	listenerKey      proxycfg.APIGatewayListenerKey
+	listenerCfg      structs.APIGatewayListener
+	boundListenerCfg structs.BoundAPIGatewayListener
+	routeReference   structs.ResourceReference
+	upstreams        []structs.Upstream
+}
+
+func getReadyUpstreams(cfgSnap *proxycfg.ConfigSnapshot) map[string]readyUpstreams {
+
+	ready := map[string]readyUpstreams{}
+	for _, l := range cfgSnap.APIGateway.Listeners {
+		//need to account for the state of the Listener when building the upstreams list
+		if !cfgSnap.APIGateway.GatewayConfig.ListenerIsReady(l.Name) {
+			continue
+		}
+		boundListener := cfgSnap.APIGateway.BoundListeners[l.Name]
+		//get route ref
+		for _, routeRef := range boundListener.Routes {
+			//get upstreams
+			upstreamMap := cfgSnap.APIGateway.Upstreams[routeRef]
+			for _, upstreams := range upstreamMap {
+				for _, u := range upstreams {
+					r, ok := ready[l.Name]
+					if !ok {
+						r = readyUpstreams{
+							listenerKey: proxycfg.APIGatewayListenerKey{
+								Protocol: string(l.Protocol),
+								Port:     l.Port,
+							},
+							listenerCfg:      l,
+							boundListenerCfg: boundListener,
+							routeReference:   routeRef,
+						}
+					}
+					r.upstreams = append(r.upstreams, u)
+					ready[l.Name] = r
+				}
+			}
+		}
+	}
+	return ready
+}
+
+func (s *ResourceGenerator) endpointsFromSnapshotAPIGateway(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
+	var resources []proto.Message
+	createdClusters := make(map[proxycfg.UpstreamID]bool)
+
+	readyUpstreamsList := getReadyUpstreams(cfgSnap)
+
+	for _, readyUpstreams := range readyUpstreamsList {
+		for _, u := range readyUpstreams.upstreams {
+			uid := proxycfg.NewUpstreamID(&u)
+
+			// If we've already created endpoints for this upstream, skip it. Multiple listeners may
+			// reference the same upstream, so we don't need to create duplicate endpoints in that case.
+			if createdClusters[uid] {
+				continue
+			}
+
+			es, err := s.endpointsFromDiscoveryChain(
+				uid,
+				cfgSnap.APIGateway.DiscoveryChain[uid],
+				cfgSnap,
+				proxycfg.GatewayKey{Datacenter: cfgSnap.Datacenter, Partition: u.DestinationPartition},
+				u.Config,
+				cfgSnap.APIGateway.WatchedUpstreamEndpoints[uid],
+				cfgSnap.APIGateway.WatchedGatewayEndpoints[uid],
+				false,
+			)
+			if err != nil {
+				return nil, err
+			}
+			resources = append(resources, es...)
+			createdClusters[uid] = true
+		}
+	}
+	return resources, nil
+}
+
 // used in clusters.go
 func makeEndpoint(host string, port int) *envoy_endpoint_v3.LbEndpoint {
 	return &envoy_endpoint_v3.LbEndpoint{
@@ -628,6 +703,7 @@ func (s *ResourceGenerator) endpointsFromDiscoveryChain(
 
 	var escapeHatchCluster *envoy_cluster_v3.Cluster
 	if !forMeshGateway {
+
 		cfg, err := structs.ParseUpstreamConfigNoDefaults(upstreamConfigMap)
 		if err != nil {
 			// Don't hard fail on a config typo, just warn. The parse func returns
