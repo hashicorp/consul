@@ -103,7 +103,8 @@ func httpClient(c config.CloudConfig) (*httptransport.Runtime, error) {
 func (c *hcpClient) FetchTelemetryConfig(ctx context.Context) (*TelemetryConfig, error) {
 	params := hcptelemetry.NewAgentTelemetryConfigParamsWithContext(ctx).
 		WithLocationOrganizationID(c.resource.Organization).
-		WithLocationProjectID(c.resource.Project)
+		WithLocationProjectID(c.resource.Project).
+		WithClusterID(c.resource.ID)
 
 	resp, err := c.tgw.AgentTelemetryConfig(params, nil)
 	if err != nil {
