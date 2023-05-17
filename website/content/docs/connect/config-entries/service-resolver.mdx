@@ -430,6 +430,8 @@ Specifies the timeout duration for receiving an HTTP response from this service.
 
 Specifies names for custom service subsets and the conditions under which service instances belong to each subset. Define a subset by specifying a key and a value where the key is the subset’s name and the value is a map that contains a [filtering expression](/consul/api-docs/features/filtering). If this parameter is not specified, only the unnamed default subset is usable.
 
+For additional guidance, refer to the [filter on service version configuration example](#filter-on-service-version).
+
 #### Values
 
 - Default: None
@@ -870,6 +872,8 @@ Specifies the timeout duration for receiving an HTTP response from this service.
 
 Specifies names for custom service subsets and the conditions under which service instances belong to each subset. Define a subset by specifying a key and a value where the key is the subset’s name and the value is a map that contains a [filtering expression](/consul/api-docs/features/filtering). If this parameter is not specified, only the unnamed default subset is usable.
 
+For additional guidance, refer to the [filter on service version configuration example](#filter-on-service-version).
+
 #### Values
 
 - Default: None
@@ -1234,7 +1238,7 @@ The following examples demonstrate common service resolver configuration pattern
 
 ### Filter on service version
 
-The following example creates two subsets of the `web` service and assigns service instances to subsets based on each instance's version metadata. It also defined `v1` as the default subset.
+The following example creates two subsets of the `web` service and assigns service instances to subsets based on each instance's version metadata. It also defines `v1` as the default subset.
 
 <Tabs>
 <Tab heading="HCL" group="hcl">
