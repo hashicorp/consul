@@ -76,7 +76,7 @@ func sink(hcpClient hcpclient.Client, cfg hcpclient.CloudConfig, logger hclog.Lo
 	sinkOpts := &telemetry.OTELSinkOpts{
 		Ctx:     ctx,
 		Reader:  telemetry.NewOTELReader(metricsClient, u, telemetry.DefaultExportInterval),
-		Labels:  defaultLabels(telemetryCfg.Labels, nodeID),
+		Labels:  telemetryCfg.DefaultLabels(string(nodeID)),
 		Filters: telemetryCfg.MetricsConfig.Filters,
 	}
 
@@ -87,19 +87,4 @@ func sink(hcpClient hcpclient.Client, cfg hcpclient.CloudConfig, logger hclog.Lo
 	}
 
 	return sink
-}
-
-// defaultLabels returns a set of string labels to be sent with each metrics Sink export
-// to the HCP Telemetry Gateway.
-func defaultLabels(cfgLabels map[string]string, nodeID types.NodeID) map[string]string {
-	labels := map[string]string{
-		"__replica__": string(nodeID), // used for Cortex HA-metrics (deduplication)
-		"node_id":     string(nodeID), // used to delineate Consul nodes in graphs
-	}
-
-	for k, v := range cfgLabels {
-		labels[k] = v
-	}
-
-	return labels
 }
