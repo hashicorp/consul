@@ -19,6 +19,10 @@ import (
 	"github.com/hashicorp/consul/agent/hcp/client"
 )
 
+// DefaultExportInterval is a default time interval between export of aggregated metrics.
+const DefaultExportInterval = 10 * time.Second
+
+// OTELSinkOpts is used to provide configuration when initializing an OTELSink using NewOTELSink.
 type OTELSinkOpts struct {
 	Reader otelsdk.Reader
 	Ctx    context.Context

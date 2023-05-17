@@ -67,7 +67,7 @@ func sink(hcpClient hcpclient.Client, cfg hcpclient.CloudConfig, logger hclog.Lo
 
 	sinkOpts := &telemetry.OTELSinkOpts{
 		Ctx:    ctx,
-		Reader: telemetry.NewOTELReader(metricsClient, u, 10*time.Second),
+		Reader: telemetry.NewOTELReader(metricsClient, u, telemetry.DefaultExportInterval),
 	}
 
 	sink, err := telemetry.NewOTELSink(sinkOpts)
