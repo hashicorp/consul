@@ -22,13 +22,12 @@ import (
 	"github.com/stretchr/testify/require"
 	"golang.org/x/time/rate"
 
-	hcpconfig "github.com/hashicorp/consul/agent/hcp/config"
-
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/checks"
 	"github.com/hashicorp/consul/agent/consul"
 	consulrate "github.com/hashicorp/consul/agent/consul/rate"
+	hcpconfig "github.com/hashicorp/consul/agent/hcp/config"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/lib"
@@ -6416,6 +6415,7 @@ func TestLoad_FullConfig(t *testing.T) {
 		SerfPortWAN:             8302,
 		ServerMode:              true,
 		ServerName:              "Oerr9n1G",
+		ServerRejoinAgeMax:      604800 * time.Second,
 		ServerPort:              3757,
 		Services: []*structs.ServiceDefinition{
 			{
@@ -7160,6 +7160,7 @@ func TestRuntimeConfig_Sanitize(t *testing.T) {
 				},
 			},
 		},
+		ServerRejoinAgeMax: 24 * 7 * time.Hour,
 	}
 
 	b, err := json.MarshalIndent(rt.Sanitized(), "", "    ")

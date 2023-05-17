@@ -391,6 +391,7 @@ serf_lan = "99.43.63.15"
 serf_wan = "67.88.33.19"
 server = true
 server_name = "Oerr9n1G"
+server_rejoin_age_max = "604800s"
 service = {
     id = "dLOXpSCI"
     name = "o1ynPkp0"
