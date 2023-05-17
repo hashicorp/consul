@@ -24,10 +24,6 @@ import (
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
 
-	"github.com/hashicorp/consul/agent/rpcclient"
-	"github.com/hashicorp/consul/agent/rpcclient/configentry"
-	"github.com/hashicorp/consul/version"
-
 	"github.com/hashicorp/go-connlimit"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
@@ -59,6 +55,8 @@ import (
 	proxycfgglue "github.com/hashicorp/consul/agent/proxycfg-glue"
 	catalogproxycfg "github.com/hashicorp/consul/agent/proxycfg-sources/catalog"
 	localproxycfg "github.com/hashicorp/consul/agent/proxycfg-sources/local"
+	"github.com/hashicorp/consul/agent/rpcclient"
+	"github.com/hashicorp/consul/agent/rpcclient/configentry"
 	"github.com/hashicorp/consul/agent/rpcclient/health"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/systemd"
@@ -459,13 +457,6 @@ func New(bd BaseDeps) (*Agent, error) {
 		cache:           bd.Cache,
 		routineManager:  routine.NewManager(bd.Logger),
 		scadaProvider:   bd.HCP.Provider,
-	}
-
-	if version.IsFIPS() {
-		// validate FIPS config before startup
-		if a.baseDeps.RuntimeConfig.EncryptKey == "" {
-			return nil, errors.New("invalid FIPS config")
-		}
 	}
 
 	// TODO: create rpcClientHealth in BaseDeps once NetRPC is available without Agent
