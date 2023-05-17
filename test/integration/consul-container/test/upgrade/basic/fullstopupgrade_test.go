@@ -32,8 +32,6 @@ var (
 
 // Test upgrade a cluster of latest version to the target version
 func TestStandardUpgradeToTarget_fromLatest(t *testing.T) {
-	t.Parallel()
-
 	tcs = append(tcs,
 		testcase{
 			// Use the case of "1.12.3" ==> "1.13.0" to verify the test can
