@@ -63,7 +63,6 @@ func (s *ResourceGenerator) makeAPIGatewayListeners(address string, cfgSnap *pro
 
 			chain := cfgSnap.APIGateway.DiscoveryChain[uid]
 			if chain == nil {
-				fmt.Println("hello")
 				// Wait until a chain is present in the snapshot.
 				continue
 			}
@@ -73,12 +72,9 @@ func (s *ResourceGenerator) makeAPIGatewayListeners(address string, cfgSnap *pro
 
 			var clusterName string
 			if !useRDS {
-				fmt.Println("we ain't using RDS in API gateway")
 				// When not using RDS we must generate a cluster name to attach to the filter chain.
 				// With RDS, cluster names get attached to the dynamic routes instead.
 				target, err := simpleChainTarget(chain)
-				fmt.Println("target")
-				fmt.Println(target)
 				if err != nil {
 					return nil, err
 				}
@@ -115,8 +111,7 @@ func (s *ResourceGenerator) makeAPIGatewayListeners(address string, cfgSnap *pro
 
 			if isAPIGatewayWithTLS {
 				// construct SNI filter chains
-				fmt.Println(cfgSnap.APIGateway.TLSConfig)
-				l.FilterChains, err = makeInlineOverrideFilterChains(cfgSnap, cfgSnap.APIGateway.TLSConfig, listenerKey, listenerFilterOpts{
+				l.FilterChains, err = makeInlineOverrideFilterChainsAPIGateway(cfgSnap, cfgSnap.APIGateway.TLSConfig, listenerKey.Protocol, listenerFilterOpts{
 					useRDS:     useRDS,
 					protocol:   listenerKey.Protocol,
 					routeName:  listenerKey.RouteName(),
@@ -126,9 +121,6 @@ func (s *ResourceGenerator) makeAPIGatewayListeners(address string, cfgSnap *pro
 					logger:     s.Logger,
 				}, certs)
 				if err != nil {
-					fmt.Println(err)
-					panic("hi")
-
 					return nil, err
 				}
 
@@ -171,7 +163,7 @@ func (s *ResourceGenerator) makeAPIGatewayListeners(address string, cfgSnap *pro
 			sniFilterChains := []*envoy_listener_v3.FilterChain{}
 
 			if isAPIGatewayWithTLS {
-				sniFilterChains, err = makeInlineOverrideFilterChains(cfgSnap, cfgSnap.IngressGateway.TLSConfig, listenerKey, filterOpts, certs)
+				sniFilterChains, err = makeInlineOverrideFilterChainsAPIGateway(cfgSnap, cfgSnap.IngressGateway.TLSConfig, listenerKey.Protocol, filterOpts, certs)
 				if err != nil {
 					return nil, err
 				}
@@ -214,9 +206,7 @@ func (s *ResourceGenerator) makeAPIGatewayListeners(address string, cfgSnap *pro
 		}
 
 	}
-
-	fmt.Println(len(resources))
-
+	
 	return resources, nil
 }
 
@@ -348,7 +338,7 @@ func routeNameForAPIGatewayUpstream(l structs.IngressListener, s structs.Ingress
 // when we have multiple certificates on a single listener, we need
 // to duplicate the filter chains with multiple TLS contexts
 
-// TODO this and makeInlineOverrideFilterChains can be consolidated since all it needed was the protocold
+// TODO this function and makeInlineOverrideFilterChains can be consolidated since it only uses the protocol from listener key
 func makeInlineOverrideFilterChainsAPIGateway(cfgSnap *proxycfg.ConfigSnapshot,
 	tlsCfg structs.GatewayTLSConfig,
 	protocol string,
