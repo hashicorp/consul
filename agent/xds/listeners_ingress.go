@@ -43,6 +43,11 @@ func (s *ResourceGenerator) makeIngressGatewayListeners(address string, cfgSnap 
 			return nil, err
 		}
 
+		fmt.Println(listenerCfg.TLS)
+
+		fmt.Println(tlsContext)
+		panic("hi2")
+
 		if listenerKey.Protocol == "tcp" {
 			// We rely on the invariant of upstreams slice always having at least 1
 			// member, because this key/value pair is created only when a

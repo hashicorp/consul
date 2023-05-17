@@ -41,6 +41,9 @@ func (s *ResourceGenerator) makeAPIGatewayListeners(address string, cfgSnap *pro
 			return nil, err
 		}
 
+		fmt.Println(tlsContext)
+		panic("hi")
+
 		if listenerKey.Protocol == "tcp" {
 			//TODO not sure if we can rely on this the same way ingress can
 			u := readyUpstreams.upstreams[0]
@@ -232,6 +235,7 @@ func makeCommonTLSContextFromSnapshotAPIGatewayListenerConfig(cfgSnap *proxycfg.
 		//TODO I think this is unreachable with current setup
 		//but apparently it isn't so what do I know
 		// Set up listener TLS from SDS
+		panic("hihihi")
 		tlsContext = makeCommonTLSContextFromGatewayTLSConfig(*tlsCfg)
 	} else if connectTLSEnabled {
 		tlsContext = makeCommonTLSContext(cfgSnap.Leaf(), cfgSnap.RootPEMs(), makeTLSParametersFromGatewayTLSConfig(*tlsCfg))
@@ -248,7 +252,7 @@ func resolveAPIListenerTLSConfig(listenerTLSCfg structs.APIGatewayTLSConfigurati
 	//TODO, handle SDS configuration , some equivalent of resolveListenerSDSConfig
 	//tracing through out code I think this is always going to be empty on our end, but I'm not sure if it needs
 	//to be initialized
-	mergedCfg.SDS = &structs.GatewayTLSSDSConfig{}
+	//mergedCfg.SDS = &structs.GatewayTLSSDSConfig{}
 
 	//TODO check gateway config if needed? We might only be supporting listener tls at this time
 
