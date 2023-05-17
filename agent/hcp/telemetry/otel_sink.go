@@ -86,8 +86,6 @@ func NewOTELSink(opts *OTELSinkOpts) (*OTELSink, error) {
 
 	logger := hclog.FromContext(opts.Ctx).Named("otel_sink")
 
-	// Setup OTEL Metrics SDK to aggregate, convert and export metrics.
-
 	filterList, err := newFilterList(opts.Filters)
 	if err != nil {
 		logger.Error("Failed to initialize all filters: %w", err)

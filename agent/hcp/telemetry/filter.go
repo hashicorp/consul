@@ -3,6 +3,7 @@ package telemetry
 import (
 	"fmt"
 	"regexp"
+	"strings"
 
 	"github.com/hashicorp/go-multierror"
 )
@@ -10,33 +11,45 @@ import (
 // filterList holds a map of filters, i.e. regular expressions.
 // These filters are used to identify which Consul metrics can be transmitted to HCP.
 type filterList struct {
-	filters map[string]*regexp.Regexp
+	isValid *regexp.Regexp
 }
 
-// newFilterList returns a FilterList which holds valid regex
-// used to filter metrics. It will not fail if invalid REGEX is given, but returns a list of errors.
+// newFilterList returns a FilterList which holds valid regex used to filter metrics.
+// It will fail if there are 0 valid regex filters given.
 func newFilterList(filters []string) (*filterList, error) {
 	var mErr error
-	compiledList := make(map[string]*regexp.Regexp, len(filters))
+	var validFilters []string
 	for _, filter := range filters {
-		re, err := regexp.Compile(filter)
+		_, err := regexp.Compile(filter)
 		if err != nil {
 			mErr = multierror.Append(mErr, fmt.Errorf("compilation of filter %q failed: %w", filter, err))
+			continue
 		}
-		compiledList[filter] = re
+		validFilters = append(validFilters, filter)
 	}
+
+	if len(validFilters) == 0 {
+		return nil, multierror.Append(mErr, fmt.Errorf("no valid filters"))
+	}
+
+	// Combine the valid regex strings with an OR.
+	finalRegex := strings.Join(validFilters, "|")
+	composedRegex, err := regexp.Compile(finalRegex)
+	if err != nil {
+		return nil, err
+	}
+
 	f := &filterList{
-		filters: compiledList,
+		isValid: composedRegex,
 	}
-	return f, mErr
+	return f, nil
 }
 
 // Match returns true if the metric name matches a REGEX in the allowed metric filters.
 func (fl *filterList) Match(name string) bool {
-	for _, re := range fl.filters {
-		if re.Match([]byte(name)) {
-			return true
-		}
+	if fl.isValid.MatchString(name) {
+		return true
 	}
+
 	return false
 }
