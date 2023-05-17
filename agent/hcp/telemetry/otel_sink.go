@@ -37,7 +37,7 @@ type OTELSink struct {
 	// spaceReplacer cleans the flattened key by removing any spaces.
 	spaceReplacer *strings.Replacer
 	logger        hclog.Logger
-	filters       *FilterList
+	filters       *filterList
 
 	// meterProvider is an OTEL MeterProvider, the entrypoint to the OTEL Metrics SDK.
 	// It handles reading/export of aggregated metric data.
@@ -88,7 +88,7 @@ func NewOTELSink(opts *OTELSinkOpts) (*OTELSink, error) {
 
 	// Setup OTEL Metrics SDK to aggregate, convert and export metrics.
 
-	filterList, err := NewFilterList(opts.Filters)
+	filterList, err := newFilterList(opts.Filters)
 	if err != nil {
 		logger.Error("Failed to initialize all filters: %w", err)
 	}

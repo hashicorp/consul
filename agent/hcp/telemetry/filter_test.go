@@ -29,7 +29,7 @@ func TestFilter(t *testing.T) {
 		tc := tc
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
-			f, err := NewFilterList(tc.filters)
+			f, err := newFilterList(tc.filters)
 			if tc.wantErr != "" {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), tc.wantErr)
