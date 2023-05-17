@@ -55,10 +55,10 @@ type BootstrapConfig struct {
 	// stats_config.stats_tags can be made by overriding envoy_stats_config_json.
 	StatsTags []string `mapstructure:"envoy_stats_tags"`
 
-	// HCPMetricsBindSocketDir is a string that configures the directory for a
+	// TelemetryCollectorBindSocketDir is a string that configures the directory for a
 	// unix socket where Envoy will forward metrics. These metrics get pushed to
-	// the HCP Metrics collector to show service mesh metrics on HCP.
-	HCPMetricsBindSocketDir string `mapstructure:"envoy_hcp_metrics_bind_socket_dir"`
+	// the telemetry collector.
+	TelemetryCollectorBindSocketDir string `mapstructure:"envoy_telemetry_collector_bind_socket_dir"`
 
 	// PrometheusBindAddr configures an <ip>:<port> on which the Envoy will listen
 	// and expose a single /metrics HTTP endpoint for Prometheus to scrape. It
@@ -249,9 +249,9 @@ func (c *BootstrapConfig) ConfigureArgs(args *BootstrapTplArgs, omitDeprecatedTa
 		args.StatsFlushInterval = c.StatsFlushInterval
 	}
 
-	// Setup HCP Metrics if needed. This MUST happen after the Static*JSON is set above
-	if c.HCPMetricsBindSocketDir != "" {
-		appendHCPMetricsConfig(args, c.HCPMetricsBindSocketDir)
+	// Setup telemetry collector if needed. This MUST happen after the Static*JSON is set above
+	if c.TelemetryCollectorBindSocketDir != "" {
+		appendTelemetryCollectorConfig(args, c.TelemetryCollectorBindSocketDir)
 	}
 
 	return nil
@@ -812,16 +812,16 @@ func (c *BootstrapConfig) generateListenerConfig(args *BootstrapTplArgs, bindAdd
 	return nil
 }
 
-// appendHCPMetricsConfig generates config to enable a socket at path: <hcpMetricsBindSocketDir>/<hash of compound proxy ID>.sock
+// appendTelemetryCollectorConfig generates config to enable a socket at path: <TelemetryCollectorBindSocketDir>/<hash of compound proxy ID>.sock
 // We take the hash of the compound proxy ID for a few reasons:
 //
 //   - The proxy ID is included because this socket path must be unique per proxy. Each Envoy proxy will ship
-//     its metrics to HCP using its own loopback listener at this path.
+//     its metrics to the collector using its own loopback listener at this path.
 //
 //   - The hash is needed because UNIX domain socket paths must be less than 104 characters. By using a b64 encoded
 //     SHA1 hash we end up with 27 chars for the name, 5 chars for the extension, and the remainder is saved for
 //     the configurable socket dir. The length of the directory's path is validated on writes to avoid going over.
-func appendHCPMetricsConfig(args *BootstrapTplArgs, hcpMetricsBindSocketDir string) {
+func appendTelemetryCollectorConfig(args *BootstrapTplArgs, telemetryCollectorBindSocketDir string) {
 	// Normalize namespace to "default". This ensures we match the namespace behaviour in proxycfg package,
 	// where a dynamic listener will be created at the same socket path via xDS.
 	ns := args.Namespace
@@ -833,7 +833,7 @@ func appendHCPMetricsConfig(args *BootstrapTplArgs, hcpMetricsBindSocketDir stri
 	h := sha1.New()
 	h.Write([]byte(id))
 	hash := base64.RawURLEncoding.EncodeToString(h.Sum(nil))
-	path := path.Join(hcpMetricsBindSocketDir, hash+".sock")
+	path := path.Join(telemetryCollectorBindSocketDir, hash+".sock")
 
 	if args.StatsSinksJSON != "" {
 		args.StatsSinksJSON += ",\n"
@@ -845,7 +845,7 @@ func appendHCPMetricsConfig(args *BootstrapTplArgs, hcpMetricsBindSocketDir stri
 		  "transport_api_version": "V3",
 		  "grpc_service": {
 			"envoy_grpc": {
-			  "cluster_name": "hcp_metrics_collector"
+			  "cluster_name": "consul_telemetry_collector_loopback"
 			}
 		  }
 		}
@@ -855,11 +855,11 @@ func appendHCPMetricsConfig(args *BootstrapTplArgs, hcpMetricsBindSocketDir stri
 		args.StaticClustersJSON += ",\n"
 	}
 	args.StaticClustersJSON += fmt.Sprintf(`{
-		"name": "hcp_metrics_collector",
+		"name": "consul_telemetry_collector_loopback",
 		"type": "STATIC",
 		"http2_protocol_options": {},
 		"loadAssignment": {
-		  "clusterName": "hcp_metrics_collector",
+		  "clusterName": "consul_telemetry_collector_loopback",
 		  "endpoints": [
 			{
 			  "lbEndpoints": [
