@@ -36,7 +36,7 @@ func newFilterList(filters []string) (*filterList, error) {
 	finalRegex := strings.Join(validFilters, "|")
 	composedRegex, err := regexp.Compile(finalRegex)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to compile regex: %w", err)
 	}
 
 	f := &filterList{
@@ -47,9 +47,5 @@ func newFilterList(filters []string) (*filterList, error) {
 
 // Match returns true if the metric name matches a REGEX in the allowed metric filters.
 func (fl *filterList) Match(name string) bool {
-	if fl.isValid.MatchString(name) {
-		return true
-	}
-
-	return false
+	return fl.isValid.MatchString(name)
 }

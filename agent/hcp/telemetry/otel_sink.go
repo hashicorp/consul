@@ -91,12 +91,13 @@ func NewOTELSink(opts *OTELSinkOpts) (*OTELSink, error) {
 		logger.Error("Failed to initialize all filters: %w", err)
 	}
 
-	attrs := make([]attribute.KeyValue, len(opts.Labels))
+	attrs := make([]attribute.KeyValue, 0)
 	for k, v := range opts.Labels {
-		attrs = append(attrs, attribute.KeyValue{
+		kv := attribute.KeyValue{
 			Key:   attribute.Key(k),
 			Value: attribute.StringValue(v),
-		})
+		}
+		attrs = append(attrs, kv)
 	}
 	// Setup OTEL Metrics SDK to aggregate, convert and export metrics periodically.
 	res := resource.NewWithAttributes("", attrs...)
