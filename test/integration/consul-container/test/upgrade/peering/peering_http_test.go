@@ -20,14 +20,28 @@ import (
 
 func TestPeering_Basic(t *testing.T) {
 	t.Parallel()
-	accepting, dialing := libtopology.BasicPeeringTwoClustersSetup(t, utils.GetLatestImageName(), utils.LatestVersion, false)
+	accepting, dialing := libtopology.BasicPeeringTwoClustersSetup(t, utils.GetLatestImageName(), utils.LatestVersion,
+		libtopology.PeeringClusterSize{
+			AcceptingNumServers: 1,
+			AcceptingNumClients: 1,
+			DialingNumServers:   1,
+			DialingNumClients:   1,
+		},
+		false)
 	peeringUpgrade(t, accepting, dialing, utils.TargetVersion)
 	peeringPostUpgradeValidation(t, dialing)
 }
 
 func TestPeering_HTTPRouter(t *testing.T) {
 	t.Parallel()
-	accepting, dialing := libtopology.BasicPeeringTwoClustersSetup(t, utils.GetLatestImageName(), utils.LatestVersion, false)
+	accepting, dialing := libtopology.BasicPeeringTwoClustersSetup(t, utils.GetLatestImageName(), utils.LatestVersion,
+		libtopology.PeeringClusterSize{
+			AcceptingNumServers: 1,
+			AcceptingNumClients: 1,
+			DialingNumServers:   1,
+			DialingNumClients:   1,
+		},
+		false)
 	acceptingCluster := accepting.Cluster
 
 	// Create a second static-server at the client agent of accepting cluster and
@@ -90,7 +104,14 @@ func TestPeering_HTTPRouter(t *testing.T) {
 func TestPeering_HTTPResolverAndFailover(t *testing.T) {
 	t.Parallel()
 
-	accepting, dialing := libtopology.BasicPeeringTwoClustersSetup(t, utils.GetLatestImageName(), utils.LatestVersion, false)
+	accepting, dialing := libtopology.BasicPeeringTwoClustersSetup(t, utils.GetLatestImageName(), utils.LatestVersion,
+		libtopology.PeeringClusterSize{
+			AcceptingNumServers: 1,
+			AcceptingNumClients: 1,
+			DialingNumServers:   1,
+			DialingNumClients:   1,
+		},
+		false)
 	dialingCluster := dialing.Cluster
 
 	require.NoError(t, dialingCluster.ConfigEntryWrite(&api.ProxyConfigEntry{
@@ -183,7 +204,14 @@ func TestPeering_HTTPResolverAndFailover(t *testing.T) {
 func TestPeering_HTTPResolverAndSplitter(t *testing.T) {
 	t.Parallel()
 
-	accepting, dialing := libtopology.BasicPeeringTwoClustersSetup(t, utils.GetLatestImageName(), utils.LatestVersion, false)
+	accepting, dialing := libtopology.BasicPeeringTwoClustersSetup(t, utils.GetLatestImageName(), utils.LatestVersion,
+		libtopology.PeeringClusterSize{
+			AcceptingNumServers: 1,
+			AcceptingNumClients: 1,
+			DialingNumServers:   1,
+			DialingNumClients:   1,
+		},
+		false)
 	dialingCluster := dialing.Cluster
 
 	require.NoError(t, dialingCluster.ConfigEntryWrite(&api.ProxyConfigEntry{
