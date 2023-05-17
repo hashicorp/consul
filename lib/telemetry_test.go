@@ -21,15 +21,13 @@ func newCfg() TelemetryConfig {
 		StatsdAddr:    "statsd.host:1234",
 		StatsiteAddr:  "statsite.host:1234",
 		DogstatsdAddr: "mydog.host:8125",
-		ExtraSinks: []metrics.MetricSink{
-			&metrics.BlackholeSink{},
-		},
 	}
 }
 
 func TestConfigureSinks(t *testing.T) {
 	cfg := newCfg()
-	sinks, err := configureSinks(cfg, nil)
+	extraSinks := []metrics.MetricSink{&metrics.BlackholeSink{}}
+	sinks, err := configureSinks(cfg, nil, extraSinks)
 	require.Error(t, err)
 	// 4 sinks: statsd, statsite, inmem, extra sink (blackhole)
 	require.Equal(t, 4, len(sinks))
@@ -37,7 +35,7 @@ func TestConfigureSinks(t *testing.T) {
 	cfg = TelemetryConfig{
 		DogstatsdAddr: "",
 	}
-	_, err = configureSinks(cfg, nil)
+	_, err = configureSinks(cfg, nil, nil)
 	require.NoError(t, err)
 
 }
