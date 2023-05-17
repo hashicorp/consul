@@ -7,6 +7,7 @@ import (
 )
 
 func TestFilter(t *testing.T) {
+	t.Parallel()
 	for name, tc := range map[string]struct {
 		filters   []string
 		wantMatch bool
@@ -25,7 +26,9 @@ func TestFilter(t *testing.T) {
 			wantMatch: false,
 		},
 	} {
+		tc := tc
 		t.Run(name, func(t *testing.T) {
+			t.Parallel()
 			f, err := NewFilterList(tc.filters)
 			if tc.wantErr != "" {
 				require.Error(t, err)

@@ -18,7 +18,7 @@ import (
 
 var (
 	expectedResource = resource.NewWithAttributes("", attribute.KeyValue{
-		Key:   attribute.Key("server.id"),
+		Key:   attribute.Key("node_id"),
 		Value: attribute.StringValue("test"),
 	})
 
@@ -172,7 +172,7 @@ func TestOTELSink(t *testing.T) {
 		Ctx:     ctx,
 		Filters: []string{"raft", "autopilot"},
 		Labels: map[string]string{
-			"server.id": "test",
+			"node_id": "test",
 		},
 	}
 
@@ -209,7 +209,7 @@ func TestOTELSink_Race(t *testing.T) {
 		Ctx:    ctx,
 		Reader: reader,
 		Labels: map[string]string{
-			"server.id": "test",
+			"node_id": "test",
 		},
 		Filters: []string{"test"},
 	}
