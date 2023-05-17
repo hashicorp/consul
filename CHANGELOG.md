@@ -1,3 +1,36 @@
+## 1.13.8 (May 16, 2023)
+
+SECURITY:
+
+* Upgrade to use Go 1.20.1.
+  This resolves vulnerabilities [CVE-2022-41724](https://go.dev/issue/58001) in `crypto/tls` and [CVE-2022-41723](https://go.dev/issue/57855) in `net/http`. [[GH-16263](https://github.com/hashicorp/consul/issues/16263)]
+* Upgrade to use Go 1.20.4.
+  This resolves vulnerabilities [CVE-2023-24537](https://github.com/advisories/GHSA-9f7g-gqwh-jpf5)(`go/scanner`),
+  [CVE-2023-24538](https://github.com/advisories/GHSA-v4m2-x4rp-hv22)(`html/template`),
+  [CVE-2023-24534](https://github.com/advisories/GHSA-8v5j-pwr7-w5f8)(`net/textproto`) and
+  [CVE-2023-24536](https://github.com/advisories/GHSA-9f7g-gqwh-jpf5)(`mime/multipart`).
+  Also, `golang.org/x/net` has been updated to v0.7.0 to resolve CVEs [CVE-2022-41721
+  ](https://github.com/advisories/GHSA-fxg5-wq6x-vr4w
+  ), [CVE-2022-27664](https://github.com/advisories/GHSA-69cg-p879-7622) and [CVE-2022-41723
+  ](https://github.com/advisories/GHSA-vvpx-j8f3-3w6h
+  .) [[GH-17240](https://github.com/hashicorp/consul/issues/17240)]
+
+IMPROVEMENTS:
+
+* api: updated the go module directive to 1.18. [[GH-15297](https://github.com/hashicorp/consul/issues/15297)]
+* connect: update supported envoy versions to 1.20.7, 1.21.6, 1.22.11, 1.23.8 [[GH-16891](https://github.com/hashicorp/consul/issues/16891)]
+* sdk: updated the go module directive to 1.18. [[GH-15297](https://github.com/hashicorp/consul/issues/15297)]
+
+BUG FIXES:
+
+* Fix an bug where decoding some Config structs with unset pointer fields could fail with `reflect: call of reflect.Value.Type on zero Value`. [[GH-17048](https://github.com/hashicorp/consul/issues/17048)]
+* audit-logging: (Enterprise only) Fix a bug where `/agent/monitor` and `/agent/metrics` endpoints return a `Streaming not supported` error when audit logs are enabled. This also fixes the delay receiving logs when running `consul monitor` against an agent with audit logs enabled. [[GH-16700](https://github.com/hashicorp/consul/issues/16700)]
+* ca: Fixes a bug where updating Vault CA Provider config would cause TLS issues in the service mesh [[GH-16592](https://github.com/hashicorp/consul/issues/16592)]
+* connect: Fix multiple inefficient behaviors when querying service health. [[GH-17241](https://github.com/hashicorp/consul/issues/17241)]
+* grpc: ensure grpc resolver correctly uses lan/wan addresses on servers [[GH-17270](https://github.com/hashicorp/consul/issues/17270)]
+* peering: Fixes a bug that can lead to peering service deletes impacting the state of local services [[GH-16570](https://github.com/hashicorp/consul/issues/16570)]
+* xds: Fix possible panic that can when generating clusters before the root certificates have been fetched. [[GH-17185](https://github.com/hashicorp/consul/issues/17185)]
+
 ## 1.13.7 (March 7, 2023)
 
 SECURITY:
