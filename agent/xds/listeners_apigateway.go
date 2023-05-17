@@ -26,10 +26,25 @@ func (s *ResourceGenerator) makeAPIGatewayListeners(address string, cfgSnap *pro
 	for _, readyUpstreams := range readyUpstreamsList {
 		listenerCfg := readyUpstreams.listenerCfg
 		listenerKey := readyUpstreams.listenerKey
+		boundListener := readyUpstreams.boundListenerCfg
+
+		//TODO I'm positive this doesn't go here but I'm just trying to get this thing to work
+		if cfgSnap.APIGateway.ListenerCertificates == nil {
+			cfgSnap.APIGateway.ListenerCertificates = make(map[proxycfg.IngressListenerKey][]structs.InlineCertificateConfigEntry)
+		}
+
+		for _, certRef := range boundListener.Certificates {
+			cert, ok := cfgSnap.APIGateway.Certificates.Get(certRef)
+			if !ok {
+				continue
+			}
+			cfgSnap.APIGateway.ListenerCertificates[listenerKey] = append(cfgSnap.APIGateway.ListenerCertificates[listenerKey], *cert)
+		}
 
 		var isAPIGatewayWithTLS bool
 		var certs []structs.InlineCertificateConfigEntry
 		if cfgSnap.APIGateway.ListenerCertificates != nil {
+
 			certs = cfgSnap.APIGateway.ListenerCertificates[listenerKey]
 		}
 		if certs != nil {
@@ -41,27 +56,29 @@ func (s *ResourceGenerator) makeAPIGatewayListeners(address string, cfgSnap *pro
 			return nil, err
 		}
 
-		fmt.Println(tlsContext)
-		panic("hi")
-
 		if listenerKey.Protocol == "tcp" {
 			//TODO not sure if we can rely on this the same way ingress can
 			u := readyUpstreams.upstreams[0]
 			uid := proxycfg.NewUpstreamID(&u)
 
-			chain := cfgSnap.IngressGateway.DiscoveryChain[uid]
+			chain := cfgSnap.APIGateway.DiscoveryChain[uid]
 			if chain == nil {
+				fmt.Println("hello")
 				// Wait until a chain is present in the snapshot.
 				continue
 			}
+
 			cfg := s.getAndModifyUpstreamConfigForListener(uid, &u, chain)
 			useRDS := cfg.Protocol != "tcp" && !chain.Default
 
 			var clusterName string
 			if !useRDS {
+				fmt.Println("we ain't using RDS in API gateway")
 				// When not using RDS we must generate a cluster name to attach to the filter chain.
 				// With RDS, cluster names get attached to the dynamic routes instead.
 				target, err := simpleChainTarget(chain)
+				fmt.Println("target")
+				fmt.Println(target)
 				if err != nil {
 					return nil, err
 				}
@@ -98,7 +115,8 @@ func (s *ResourceGenerator) makeAPIGatewayListeners(address string, cfgSnap *pro
 
 			if isAPIGatewayWithTLS {
 				// construct SNI filter chains
-				l.FilterChains, err = makeInlineOverrideFilterChains(cfgSnap, cfgSnap.IngressGateway.TLSConfig, listenerKey, listenerFilterOpts{
+				fmt.Println(cfgSnap.APIGateway.TLSConfig)
+				l.FilterChains, err = makeInlineOverrideFilterChains(cfgSnap, cfgSnap.APIGateway.TLSConfig, listenerKey, listenerFilterOpts{
 					useRDS:     useRDS,
 					protocol:   listenerKey.Protocol,
 					routeName:  listenerKey.RouteName(),
@@ -108,8 +126,12 @@ func (s *ResourceGenerator) makeAPIGatewayListeners(address string, cfgSnap *pro
 					logger:     s.Logger,
 				}, certs)
 				if err != nil {
+					fmt.Println(err)
+					panic("hi")
+
 					return nil, err
 				}
+
 				// add the tls inspector to do SNI introspection
 				tlsInspector, err := makeTLSInspectorListenerFilter()
 				if err != nil {
@@ -192,6 +214,8 @@ func (s *ResourceGenerator) makeAPIGatewayListeners(address string, cfgSnap *pro
 		}
 
 	}
+
+	fmt.Println(len(resources))
 
 	return resources, nil
 }

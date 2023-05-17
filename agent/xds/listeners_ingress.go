@@ -42,11 +42,8 @@ func (s *ResourceGenerator) makeIngressGatewayListeners(address string, cfgSnap 
 		if err != nil {
 			return nil, err
 		}
-
-		fmt.Println(listenerCfg.TLS)
-
+		fmt.Println("ingress tls context")
 		fmt.Println(tlsContext)
-		panic("hi2")
 
 		if listenerKey.Protocol == "tcp" {
 			// We rely on the invariant of upstreams slice always having at least 1
@@ -56,11 +53,17 @@ func (s *ResourceGenerator) makeIngressGatewayListeners(address string, cfgSnap 
 
 			uid := proxycfg.NewUpstreamID(&u)
 
+			fmt.Println("ingress Gateway")
+			fmt.Println(u)
+			fmt.Println(uid)
+
 			chain := cfgSnap.IngressGateway.DiscoveryChain[uid]
 			if chain == nil {
 				// Wait until a chain is present in the snapshot.
 				continue
 			}
+
+			fmt.Println("ingress Gateway")
 
 			cfg := s.getAndModifyUpstreamConfigForListener(uid, &u, chain)
 
@@ -70,13 +73,16 @@ func (s *ResourceGenerator) makeIngressGatewayListeners(address string, cfgSnap 
 
 			var clusterName string
 			if !useRDS {
+
 				// When not using RDS we must generate a cluster name to attach to the filter chain.
 				// With RDS, cluster names get attached to the dynamic routes instead.
 				target, err := simpleChainTarget(chain)
+
 				if err != nil {
 					return nil, err
 				}
 				clusterName = CustomizeClusterName(target.Name, chain)
+
 			}
 
 			filterName := fmt.Sprintf("%s.%s.%s.%s", chain.ServiceName, chain.Namespace, chain.Partition, chain.Datacenter)
@@ -100,6 +106,7 @@ func (s *ResourceGenerator) makeIngressGatewayListeners(address string, cfgSnap 
 				protocol:    cfg.Protocol,
 				tlsContext:  tlsContext,
 			})
+
 			if err != nil {
 				return nil, err
 			}
@@ -109,6 +116,8 @@ func (s *ResourceGenerator) makeIngressGatewayListeners(address string, cfgSnap 
 
 			if isAPIGatewayWithTLS {
 				// construct SNI filter chains
+				fmt.Println(cfgSnap.IngressGateway.TLSConfig)
+
 				l.FilterChains, err = makeInlineOverrideFilterChains(cfgSnap, cfgSnap.IngressGateway.TLSConfig, listenerKey, listenerFilterOpts{
 					useRDS:     useRDS,
 					protocol:   listenerKey.Protocol,
@@ -204,6 +213,8 @@ func (s *ResourceGenerator) makeIngressGatewayListeners(address string, cfgSnap 
 			resources = append(resources, listener)
 		}
 	}
+
+	fmt.Println(len(resources))
 
 	return resources, nil
 }
@@ -427,11 +438,13 @@ func makeSDSOverrideFilterChains(cfgSnap *proxycfg.ConfigSnapshot,
 	return chains, nil
 }
 
+// TODO this function is the issue
 // when we have multiple certificates on a single listener, we need
 // to duplicate the filter chains with multiple TLS contexts
 func makeInlineOverrideFilterChains(cfgSnap *proxycfg.ConfigSnapshot,
 	tlsCfg structs.GatewayTLSConfig,
 	listenerKey proxycfg.IngressListenerKey,
+
 	filterOpts listenerFilterOpts,
 	certs []structs.InlineCertificateConfigEntry) ([]*envoy_listener_v3.FilterChain, error) {
 
