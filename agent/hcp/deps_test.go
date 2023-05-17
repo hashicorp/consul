@@ -4,14 +4,15 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/hashicorp/consul/agent/hcp/client"
-
 	"github.com/hashicorp/go-hclog"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/agent/hcp/client"
 )
 
 func TestSink(t *testing.T) {
+	t.Parallel()
 	for name, test := range map[string]struct {
 		expect       func(*client.MockClient)
 		mockCloudCfg client.CloudConfig
@@ -85,7 +86,9 @@ func TestSink(t *testing.T) {
 			},
 		},
 	} {
+		test := test
 		t.Run(name, func(t *testing.T) {
+			t.Parallel()
 			c := client.NewMockClient(t)
 			l := hclog.NewNullLogger()
 			test.expect(c)
