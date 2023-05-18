@@ -238,9 +238,7 @@ func makeDownstreamTLSContextFromSnapshotAPIListenerConfig(cfgSnap *proxycfg.Con
 func makeCommonTLSContextFromSnapshotAPIGatewayListenerConfig(cfgSnap *proxycfg.ConfigSnapshot, listenerCfg structs.APIGatewayListener) (*envoy_tls_v3.CommonTlsContext, error) {
 	var tlsContext *envoy_tls_v3.CommonTlsContext
 
-	//TODO if needed, get TLS configuration from the gateway itself
-
-	//TODO gateway config doesn't seem to support TLS config so we might only need to pull from listener at the moment
+	//API Gateway TLS config is per listener
 	tlsCfg, err := resolveAPIListenerTLSConfig(listenerCfg.TLS)
 	if err != nil {
 		return nil, err
@@ -250,10 +248,7 @@ func makeCommonTLSContextFromSnapshotAPIGatewayListenerConfig(cfgSnap *proxycfg.
 	connectTLSEnabled := (!listenerCfg.TLS.IsEmpty())
 
 	if tlsCfg.SDS != nil {
-		//TODO I think this is unreachable with current setup
-		//but apparently it isn't so what do I know
 		// Set up listener TLS from SDS
-		panic("hihihi")
 		tlsContext = makeCommonTLSContextFromGatewayTLSConfig(*tlsCfg)
 	} else if connectTLSEnabled {
 		tlsContext = makeCommonTLSContext(cfgSnap.Leaf(), cfgSnap.RootPEMs(), makeTLSParametersFromGatewayTLSConfig(*tlsCfg))
