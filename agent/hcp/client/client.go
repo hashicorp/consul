@@ -290,6 +290,6 @@ func (t *TelemetryConfig) Enabled() (string, bool) {
 		return "", false
 	}
 
-	// The endpoint from the HCP gateway is a domain without scheme, and without the metrics path, so they must be added.
+	// The endpoint from Telemetry Gateway is a domain without scheme, and without the metrics path, so they must be added.
 	return fmt.Sprintf("https://%s/v1/metrics", endpoint), true
 }
