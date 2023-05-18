@@ -8,6 +8,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"strconv"
+	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -1141,6 +1143,45 @@ func TestVaultCAProvider_GenerateIntermediate(t *testing.T) {
 
 	require.Equal(t, new, newActive)
 	require.NotEqual(t, orig, new)
+}
+
+func TestVaultCAProvider_AutoTidyExpiredIssuers(t *testing.T) {
+	SkipIfVaultNotPresent(t)
+	t.Parallel()
+
+	testVault := NewTestVaultServer(t)
+	attr := &VaultTokenAttributes{
+		RootPath:         "pki-root",
+		IntermediatePath: "pki-intermediate",
+		ConsulManaged:    true,
+	}
+	token := CreateVaultTokenWithAttrs(t, testVault.client, attr)
+	provider := createVaultProvider(t, true, testVault.Addr, token,
+		map[string]any{
+			"RootPKIPath":         "pki-root/",
+			"IntermediatePKIPath": "pki-intermediate/",
+		})
+
+	version := strings.Split(vaultTestVersion, ".")
+	require.Len(t, version, 3)
+	minorVersion, err := strconv.Atoi(version[1])
+	require.NoError(t, err)
+	expIssSet, errStr := provider.autotidyIssuers("pki-intermediate/")
+	switch {
+	case minorVersion <= 11:
+		require.False(t, expIssSet)
+		require.Contains(t, errStr, "auto-tidy")
+	case minorVersion == 12:
+		require.False(t, expIssSet)
+		require.Contains(t, errStr, "tidy_expired_issuers")
+	default: // Consul 1.13+
+		require.True(t, expIssSet)
+	}
+
+	// check permission denied
+	expIssSet, errStr = provider.autotidyIssuers("pki-bad/")
+	require.False(t, expIssSet)
+	require.Contains(t, errStr, "permission denied")
 }
 
 func TestVaultCAProvider_GenerateIntermediate_inSecondary(t *testing.T) {

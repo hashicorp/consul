@@ -1427,6 +1427,10 @@ func (s *ResourceGenerator) makeExportedUpstreamClustersForMeshGateway(cfgSnap *
 
 // injectSANMatcher updates a TLS context so that it verifies the upstream SAN.
 func injectSANMatcher(tlsContext *envoy_tls_v3.CommonTlsContext, matchStrings ...string) error {
+	if tlsContext == nil {
+		return fmt.Errorf("invalid type: expected CommonTlsContext_ValidationContext not to be nil")
+	}
+
 	validationCtx, ok := tlsContext.ValidationContextType.(*envoy_tls_v3.CommonTlsContext_ValidationContext)
 	if !ok {
 		return fmt.Errorf("invalid type: expected CommonTlsContext_ValidationContext, got %T",

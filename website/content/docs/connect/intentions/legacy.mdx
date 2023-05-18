@@ -10,8 +10,7 @@ description: >-
 ~> **1.8.x and earlier:** This document only applies in Consul versions 1.8.x
 and before. If you are using version 1.9.0 or later, refer to the [current intentions documentation](/consul/docs/connect/intentions).
 
-Intentions define access control for services via Connect and are used
-to control which services may establish connections. Intentions can be
+Intentions define access control for service-to-service connections in the service mesh. Intentions can be
 managed via the API, CLI, or UI.
 
 Intentions are enforced by the [proxy](/consul/docs/connect/proxies)
@@ -23,8 +22,8 @@ connection must be terminated.
 
 The default intention behavior is defined by the default [ACL
 policy](/consul/docs/agent/config/config-files#acl_default_policy). If the default ACL policy is
-"allow all", then all Connect connections are allowed by default. If the
-default ACL policy is "deny all", then all Connect connections are denied by
+"allow all", then all service-to-service connections in the mesh are allowed by default. If the
+default ACL policy is "deny all", then all service-to-service connections are denied by
 default.
 
 ## Intention Basics
@@ -130,7 +129,7 @@ of the intention, not the source.
 
 Intention permissions are by default implicitly granted at `read` level
 when granting `service:read` or `service:write`. This is because a
-service registered that wants to use Connect needs `intentions:read`
+service registered that wants to use service mesh needs `intentions:read`
 for its own service name in order to know whether or not to authorize
 connections. The following ACL policy will implicitly grant `intentions:read`
 (note _read_) for service `web`.
@@ -152,7 +151,7 @@ service "web" {
 }
 ```
 
-Note that `intentions:read` is required for a token that a Connect-enabled
+Note that `intentions:read` is required for a token that a mesh-enabled
 service uses to register itself or its proxy. If the token used does not
 have `intentions:read` then the agent will be unable to resolve intentions
 for the service and so will not be able to authorize any incoming connections.
@@ -173,7 +172,7 @@ The intentions for services registered with a Consul agent are cached
 locally on that agent. They are then updated via a background blocking query
 against the Consul servers.
 
-Connect connection attempts require only local agent
+Service mesh connection attempts require only local agent
 communication for authorization and generally only impose microseconds
 of latency to the connection. All actions in the data path of connections
 require only local data to ensure minimal performance overhead.

@@ -124,9 +124,7 @@
               "name": "envoy.filters.network.rbac",
               "typedConfig": {
                 "@type": "type.googleapis.com/envoy.extensions.filters.network.rbac.v3.RBAC",
-                "rules": {
-
-                },
+                "rules": {},
                 "statPrefix": "connect_authz"
               }
             },
@@ -144,9 +142,7 @@
             "typedConfig": {
               "@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.DownstreamTlsContext",
               "commonTlsContext": {
-                "tlsParams": {
-
-                },
+                "tlsParams": {},
                 "tlsCertificates": [
                   {
                     "certificateChain": {

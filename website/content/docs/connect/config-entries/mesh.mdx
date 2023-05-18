@@ -333,7 +333,7 @@ Note that the Kubernetes example does not include a `partition` field. Configura
           type: 'bool: false',
           description: `Determines whether sidecar proxies operating in transparent mode can
                         proxy traffic to IP addresses not registered in Consul's mesh. If enabled, traffic will only be proxied
-                        to upstream proxies or Connect-native services. If disabled, requests will be proxied as-is to the
+                        to upstream proxies or mesh-native services. If disabled, requests will be proxied as-is to the
                         original destination IP address. Consul will not encrypt the connection.`,
         },
       ],

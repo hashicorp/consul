@@ -3,10 +3,12 @@
 
 syntax = "proto3";
 
+// For more information, see: https://github.com/hashicorp/consul/tree/main/docs/resources
 package hashicorp.consul.resource;
 
 import "annotations/ratelimit/ratelimit.proto";
 import "google/protobuf/any.proto";
+import "google/protobuf/timestamp.proto";
 
 // Type describes a resource's type. It follows the GVK (Group Version Kind)
 // [pattern](https://book.kubebuilder.io/cronjob-tutorial/gvks.html) established
@@ -124,6 +126,9 @@ message Status {
   // Conditions contains a set of discreet observations about the resource in
   // relation to the current state of the system (e.g. it is semantically valid).
   repeated Condition conditions = 2;
+
+  // UpdatedAt is the time at which the status was last written.
+  google.protobuf.Timestamp updated_at = 3;
 }
 
 // Condition represents a discreet observation about a resource in relation to
@@ -181,6 +186,13 @@ message Reference {
   string section = 4;
 }
 
+// Tombstone represents a promise to delete all of a resource's immediately
+// owned (child) resources, if any.
+message Tombstone {
+  // Owner resource identifier.
+  ID owner = 1;
+}
+
 // ResourceService provides the shared primitives for storing, querying, and
 // watching resources of different types.
 //
@@ -217,6 +229,14 @@ service ResourceService {
   // By default, reads are eventually consistent, but you can opt-in to strong
   // consistency via the x-consul-consistency-mode metadata (see ResourceService
   // docs for more info).
+  //
+  // Errors with NotFound if the resource is not found.
+  //
+  // Errors with InvalidArgument if the request fails validation or the resource
+  // is stored as a type with a different GroupVersion than was requested.
+  //
+  // Errors with PermissionDenied if the caller is not authorized to read
+  // the resource.
   rpc Read(ReadRequest) returns (ReadResponse) {
     option (hashicorp.consul.internal.ratelimit.spec) = {
       operation_type: OPERATION_TYPE_READ,
@@ -229,6 +249,11 @@ service ResourceService {
   // To perform a CAS (Compare-And-Swap) write, provide the current resource
   // version in the Resource.Version field. If the given version doesn't match
   // what is currently stored, an Aborted error code will be returned.
+  //
+  // To perform a blanket write (update regardless of the stored version),
+  // provide an empty Version in the Resource.Version field. Note that the
+  // write may still fail due to not being able to internally do a CAS write
+  // and return an Aborted error code.
   //
   // Resource.Id.Uid can (and by controllers, should) be provided to avoid
   // accidentally modifying a resource if it has been deleted and recreated.
@@ -271,6 +296,16 @@ service ResourceService {
   //
   // Results are eventually consistent (see ResourceService docs for more info).
   rpc List(ListRequest) returns (ListResponse) {
+    option (hashicorp.consul.internal.ratelimit.spec) = {
+      operation_type: OPERATION_TYPE_READ,
+      operation_category: OPERATION_CATEGORY_RESOURCE
+    };
+  }
+
+  // List resources of a given owner.
+  //
+  // Results are eventually consistent (see ResourceService docs for more info).
+  rpc ListByOwner(ListByOwnerRequest) returns (ListByOwnerResponse) {
     option (hashicorp.consul.internal.ratelimit.spec) = {
       operation_type: OPERATION_TYPE_READ,
       operation_category: OPERATION_CATEGORY_RESOURCE
@@ -345,6 +380,17 @@ message ListRequest {
 
 // ListResponse contains the results of calling the List endpoint.
 message ListResponse {
+  // Resources that were listed.
+  repeated Resource resources = 1;
+}
+
+// ListByOwnerRequest contains the parameters to the ListByOwner endpoint.
+message ListByOwnerRequest {
+  ID owner = 1;
+}
+
+// ListByOwnerResponse contains the results of calling the ListByOwner endpoint.
+message ListByOwnerResponse {
   // Resources that were listed.
   repeated Resource resources = 1;
 }

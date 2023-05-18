@@ -12,7 +12,6 @@
     "cluster": "test",
     "id": "test-proxy",
     "metadata": {
-      "node_id": "7cbef9fc-4fb1-4c84-b100-689db9755449",
       "namespace": "default",
       "partition": "default"
     }
@@ -185,10 +184,12 @@
   "dynamic_resources": {
     "lds_config": {
       "ads": {},
+      "initial_fetch_timeout": "0s",
       "resource_api_version": "V3"
     },
     "cds_config": {
       "ads": {},
+      "initial_fetch_timeout": "0s",
       "resource_api_version": "V3"
     },
     "ads_config": {

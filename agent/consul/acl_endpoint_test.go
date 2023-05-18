@@ -3261,21 +3261,6 @@ func TestACLEndpoint_AuthMethodSet(t *testing.T) {
 		err := aclEp.AuthMethodSet(&req, &resp)
 		testutil.RequireErrorContains(t, err, "MaxTokenTTL 1ms cannot be less than")
 	})
-
-	t.Run("Create with MaxTokenTTL too big", func(t *testing.T) {
-		reqMethod := newAuthMethod("test")
-		reqMethod.MaxTokenTTL = 25 * time.Hour
-
-		req := structs.ACLAuthMethodSetRequest{
-			Datacenter:   "dc1",
-			AuthMethod:   reqMethod,
-			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
-		}
-		resp := structs.ACLAuthMethod{}
-
-		err := aclEp.AuthMethodSet(&req, &resp)
-		testutil.RequireErrorContains(t, err, "MaxTokenTTL 25h0m0s cannot be more than")
-	})
 }
 
 func TestACLEndpoint_AuthMethodDelete(t *testing.T) {

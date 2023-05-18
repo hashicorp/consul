@@ -311,6 +311,21 @@ func TestBuilder_DurationVal_InvalidDuration(t *testing.T) {
 	require.Contains(t, b.err.Error(), badDuration2)
 }
 
+func TestBuilder_DurationValWithDefaultMin(t *testing.T) {
+	b := builder{}
+
+	// Attempt to validate that a duration of 10 hours will not error when the min val is 1 hour.
+	dur := "10h0m0s"
+	b.durationValWithDefaultMin("field2", &dur, 24*7*time.Hour, time.Hour)
+	require.NoError(t, b.err)
+
+	// Attempt to validate that a duration of 1 min will error when the min val is 1 hour.
+	dur = "0h1m0s"
+	b.durationValWithDefaultMin("field1", &dur, 24*7*time.Hour, time.Hour)
+	require.Error(t, b.err)
+	require.Contains(t, b.err.Error(), "1 error")
+}
+
 func TestBuilder_ServiceVal_MultiError(t *testing.T) {
 	b := builder{}
 	b.serviceVal(&ServiceDefinition{
