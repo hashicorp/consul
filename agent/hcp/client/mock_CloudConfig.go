@@ -10,7 +10,7 @@ import (
 	"golang.org/x/oauth2"
 )
 
-const testResourceID = "organization/ccbdd191-5dc3-4a73-9e05-6ac30ca67992/project/36019e0d-ed59-4df6-9990-05bb7fc793b6/hashicorp.consul.linked-cluster/prod-on-prem"
+const testResourceID = "organization/test-org/project/test-project/test-type/test-id"
 
 type mockHCPCfg struct{}
 
@@ -33,7 +33,12 @@ type MockCloudCfg struct {
 }
 
 func (m MockCloudCfg) Resource() (resource.Resource, error) {
-	r, _ := resource.FromString(testResourceID)
+	r := resource.Resource{
+		ID:           "test-id",
+		Type:         "test-type",
+		Organization: "test-org",
+		Project:      "test-project",
+	}
 	return r, m.ResourceErr
 }
 
