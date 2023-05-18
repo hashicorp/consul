@@ -309,7 +309,6 @@ func (h *handlerAPIGateway) handleRouteConfigUpdate(ctx context.Context, u Updat
 						DestinationNamespace: service.NamespaceOrDefault(),
 						DestinationPartition: service.PartitionOrDefault(),
 						LocalBindPort:        listener.Port,
-						//IngressHosts:         g.Hosts,
 						// Pass the protocol that was configured on the listener in order
 						// to force that protocol on the Envoy listener.
 						Config: map[string]interface{}{
