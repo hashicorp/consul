@@ -530,36 +530,40 @@ type readyUpstreams struct {
 	upstreams        []structs.Upstream
 }
 
+// getReadyUpstreams returns a map containing the list of upstreams for each listener that is ready
 func getReadyUpstreams(cfgSnap *proxycfg.ConfigSnapshot) map[string]readyUpstreams {
 
 	ready := map[string]readyUpstreams{}
 	for _, l := range cfgSnap.APIGateway.Listeners {
-		//need to account for the state of the Listener when building the upstreams list
+		// Only include upstreams for listeners that are ready
 		if !cfgSnap.APIGateway.GatewayConfig.ListenerIsReady(l.Name) {
 			continue
 		}
+
+		// For each route bound to the listener
 		boundListener := cfgSnap.APIGateway.BoundListeners[l.Name]
-		//get route ref
 		for _, routeRef := range boundListener.Routes {
-			//get upstreams
-			upstreamMap := cfgSnap.APIGateway.Upstreams[routeRef]
-			for _, upstreams := range upstreamMap {
-				for _, u := range upstreams {
-					r, ok := ready[l.Name]
-					if !ok {
-						r = readyUpstreams{
-							listenerKey: proxycfg.APIGatewayListenerKey{
-								Protocol: string(l.Protocol),
-								Port:     l.Port,
-							},
-							listenerCfg:      l,
-							boundListenerCfg: boundListener,
-							routeReference:   routeRef,
-						}
+			// Get all upstreams for the route
+			routeUpstreams := cfgSnap.APIGateway.Upstreams[routeRef]
+
+			// Filter to upstreams that attach to this specific listener since
+			// a route can bind to + have upstreams for multiple listeners
+			listenerKey := proxycfg.APIGatewayListenerKeyFromListener(l)
+			routeUpstreamsForListener := routeUpstreams[listenerKey]
+
+			for _, upstream := range routeUpstreamsForListener {
+				// Insert or update readyUpstreams for the listener to include this upstream
+				r, ok := ready[l.Name]
+				if !ok {
+					r = readyUpstreams{
+						listenerKey:      listenerKey,
+						listenerCfg:      l,
+						boundListenerCfg: boundListener,
+						routeReference:   routeRef,
 					}
-					r.upstreams = append(r.upstreams, u)
-					ready[l.Name] = r
 				}
+				r.upstreams = append(r.upstreams, upstream)
+				ready[l.Name] = r
 			}
 		}
 	}

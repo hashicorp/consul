@@ -87,5 +87,5 @@ intentions should be consulted for each incoming connection/request to
 determine if it should be accepted or rejected.
 
 The default intention behavior is defined by the [`default_policy`](/consul/docs/agent/config/config-files#acl_default_policy) configuration.
-If the configuration is set `allow`, then all service mesh Connect connections will be allowed by default.
+If the configuration is set `allow`, then all service-to-service connections in the mesh will be allowed by default.
 If is set to `deny`, then all connections or requests will be denied by default.

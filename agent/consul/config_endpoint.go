@@ -10,6 +10,7 @@ import (
 
 	metrics "github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
+	"github.com/hashicorp/go-bexpr"
 	"github.com/hashicorp/go-hclog"
 	memdb "github.com/hashicorp/go-memdb"
 	hashstructure_v2 "github.com/mitchellh/hashstructure/v2"
@@ -248,6 +249,22 @@ func (c *ConfigEntry) List(args *structs.ConfigEntryQuery, reply *structs.Indexe
 		}
 	}
 
+	// Filtering.
+	// This is only supported for certain config entries.
+	var filter *bexpr.Filter
+	if args.Filter != "" {
+		switch args.Kind {
+		case structs.ServiceDefaults:
+			f, err := bexpr.CreateFilter(args.Filter, nil, []*structs.ServiceConfigEntry{})
+			if err != nil {
+				return err
+			}
+			filter = f
+		default:
+			return fmt.Errorf("filtering not supported for config entry kind=%v", args.Kind)
+		}
+	}
+
 	var (
 		priorHash uint64
 		ranOnce   bool
@@ -281,6 +298,14 @@ func (c *ConfigEntry) List(args *structs.ConfigEntryQuery, reply *structs.Indexe
 			newHash, err := hashstructure_v2.Hash(filteredEntries, hashstructure_v2.FormatV2, nil)
 			if err != nil {
 				return fmt.Errorf("error hashing reply for spurious wakeup suppression: %w", err)
+			}
+
+			if filter != nil {
+				raw, err := filter.Execute(reply.Entries)
+				if err != nil {
+					return err
+				}
+				reply.Entries = raw.([]structs.ConfigEntry)
 			}
 
 			if ranOnce && priorHash == newHash {

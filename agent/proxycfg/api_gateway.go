@@ -317,7 +317,7 @@ func (h *handlerAPIGateway) handleRouteConfigUpdate(ctx context.Context, u Updat
 						},
 					}
 
-					listenerKey := APIGatewayListenerKey{Protocol: string(listener.Protocol), Port: listener.Port}
+					listenerKey := APIGatewayListenerKeyFromListener(listener)
 					upstreams[listenerKey] = append(upstreams[listenerKey], upstream)
 				}
 
@@ -371,7 +371,7 @@ func (h *handlerAPIGateway) handleRouteConfigUpdate(ctx context.Context, u Updat
 					},
 				}
 
-				listenerKey := APIGatewayListenerKey{Protocol: string(listener.Protocol), Port: listener.Port}
+				listenerKey := APIGatewayListenerKeyFromListener(listener)
 				upstreams[listenerKey] = append(upstreams[listenerKey], upstream)
 			}
 
@@ -426,12 +426,8 @@ func (h *handlerAPIGateway) recompileDiscoveryChains(snap *ConfigSnapshot) error
 
 	for name, listener := range snap.APIGateway.Listeners {
 		boundListener, ok := snap.APIGateway.BoundListeners[name]
-		if !ok {
+		if !(ok && snap.APIGateway.GatewayConfig.ListenerIsReady(name)) {
 			// Skip any listeners that don't have a bound listener. Once the bound listener is created, this will be run again.
-			continue
-		}
-
-		if !snap.APIGateway.GatewayConfig.ListenerIsReady(name) {
 			// skip any listeners that might be in an invalid state
 			continue
 		}

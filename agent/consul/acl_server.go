@@ -153,7 +153,7 @@ func (s *Server) ResolveIdentityFromToken(token string) (bool, structs.ACLIdenti
 	}
 	if aclToken == nil && token == acl.AnonymousTokenSecret {
 		// synthesize the anonymous token for early use, bootstrapping has not completed
-		s.InsertAnonymousToken()
+		s.insertAnonymousToken()
 		fallbackId := structs.ACLToken{
 			AccessorID:  acl.AnonymousTokenID,
 			SecretID:    acl.AnonymousTokenSecret,

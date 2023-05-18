@@ -130,7 +130,7 @@ following selectors and filter operations being supported:
 
 This endpoint was added in Consul 1.3.0 and returns the full service definition
 for a single service instance registered on the local agent. It is used by
-[Connect proxies](/consul/docs/connect/proxies) to discover the embedded proxy
+[service mesh proxies](/consul/docs/connect/proxies) to discover the embedded proxy
 configuration that was registered with the instance.
 
 It is important to note that the services known by the agent may be different
@@ -632,18 +632,18 @@ The `/agent/service/register` endpoint supports camel case and _snake case_ for 
 
 - `Kind` `(string: "")` - The kind of service. Defaults to "" which is a
   typical Consul service. This value may also be "connect-proxy" for
-  [Connect](/consul/docs/connect) proxies representing another service,
-  "mesh-gateway" for instances of a [mesh gateway](/consul/docs/connect/gateways/mesh-gateway#connect-proxy-configuration),
+  [service mesh](/consul/docs/connect) proxies representing another service,
+  "mesh-gateway" for instances of a [mesh gateway](/consul/docs/connect/gateways/mesh-gateway#service-mesh-proxy-configuration),
   "terminating-gateway" for instances of a [terminating gateway](/consul/docs/connect/gateways/terminating-gateway),
   or "ingress-gateway" for instances of a [ingress gateway](/consul/docs/connect/gateways/ingress-gateway).
 
 - `Proxy` `(Proxy: nil)` - From 1.2.3 on, specifies the configuration for a
-  Connect service proxy instance. This is only valid if `Kind` defines a proxy or gateway.
+  service mesh proxy instance. This is only valid if `Kind` defines a proxy or gateway.
   See the [Proxy documentation](/consul/docs/connect/registration/service-registration)
   for full details.
 
 - `Connect` `(Connect: nil)` - Specifies the
-  [configuration for Connect](/consul/docs/connect/configuration). See the
+  [configuration for service mesh](/consul/docs/connect/configuration). The connect subsystem provides Consul's service mesh capabilities. Refer to the
   [Connect Structure](#connect-structure) section below for supported fields.
 
 - `Check` `(Check: nil)` - Specifies a check. Please see the
@@ -689,12 +689,12 @@ The `/agent/service/register` endpoint supports camel case and _snake case_ for 
 For the `Connect` field, the parameters are:
 
 - `Native` `(bool: false)` - Specifies whether this service supports
-  the [Connect](/consul/docs/connect) protocol [natively](/consul/docs/connect/native).
-  If this is true, then Connect proxies, DNS queries, etc. will be able to
+  the [Consul service mesh](/consul/docs/connect) protocol [natively](/consul/docs/connect/native).
+  If this is true, then service mesh proxies, DNS queries, etc. will be able to
   service discover this service.
 - `Proxy` `(Proxy: nil)` -
   [**Deprecated**](/consul/docs/connect/proxies/managed-deprecated) Specifies that
-  a managed Connect proxy should be started for this service instance, and
+  a managed service mesh proxy should be started for this service instance, and
   optionally provides configuration for the proxy. The format is as documented
   in [Managed Proxy Deprecation](/consul/docs/connect/proxies/managed-deprecated).
 - `SidecarService` `(ServiceDefinition: nil)` - Specifies an optional nested

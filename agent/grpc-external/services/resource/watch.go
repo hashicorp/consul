@@ -4,6 +4,8 @@
 package resource
 
 import (
+	"errors"
+
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
@@ -13,6 +15,10 @@ import (
 )
 
 func (s *Server) WatchList(req *pbresource.WatchListRequest, stream pbresource.ResourceService_WatchListServer) error {
+	if err := validateWatchListRequest(req); err != nil {
+		return err
+	}
+
 	// check type exists
 	reg, err := s.resolveType(req.Type)
 	if err != nil {
@@ -47,7 +53,10 @@ func (s *Server) WatchList(req *pbresource.WatchListRequest, stream pbresource.R
 
 	for {
 		event, err := watch.Next(stream.Context())
-		if err != nil {
+		switch {
+		case errors.Is(err, storage.ErrWatchClosed):
+			return status.Error(codes.Aborted, "watch closed by the storage backend (possibly due to snapshot restoration)")
+		case err != nil:
 			return status.Errorf(codes.Internal, "failed next: %v", err)
 		}
 
@@ -69,4 +78,17 @@ func (s *Server) WatchList(req *pbresource.WatchListRequest, stream pbresource.R
 			return err
 		}
 	}
+}
+
+func validateWatchListRequest(req *pbresource.WatchListRequest) error {
+	var field string
+	switch {
+	case req.Type == nil:
+		field = "type"
+	case req.Tenancy == nil:
+		field = "tenancy"
+	default:
+		return nil
+	}
+	return status.Errorf(codes.InvalidArgument, "%s is required", field)
 }

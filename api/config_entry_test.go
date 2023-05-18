@@ -484,7 +484,9 @@ func TestDecodeConfigEntry(t *testing.T) {
 							"PassiveHealthCheck": {
 								"MaxFailures": 3,
 								"Interval": "2s",
-								"EnforcingConsecutive5xx": 60
+								"EnforcingConsecutive5xx": 60,
+								"MaxEjectionPercent": 4,
+								"BaseEjectionTime": "5s"
 							},
 							"BalanceOutboundConnections": "exact_balance"
 						},
@@ -507,7 +509,11 @@ func TestDecodeConfigEntry(t *testing.T) {
 						},
 						"PassiveHealthCheck": {
 								"MaxFailures": 5,
-								"Interval": "4s"
+								"Interval": "4s",
+								"EnforcingConsecutive5xx": 61,
+								"MaxEjectionPercent": 5,
+								"BaseEjectionTime": "6s"
+
 						}
 					}
 				}
@@ -539,6 +545,8 @@ func TestDecodeConfigEntry(t *testing.T) {
 								MaxFailures:             3,
 								Interval:                2 * time.Second,
 								EnforcingConsecutive5xx: uint32Pointer(60),
+								MaxEjectionPercent:      uint32Pointer(4),
+								BaseEjectionTime:        durationPointer(5 * time.Second),
 							},
 							BalanceOutboundConnections: "exact_balance",
 						},
@@ -558,8 +566,11 @@ func TestDecodeConfigEntry(t *testing.T) {
 							MaxConcurrentRequests: intPointer(5),
 						},
 						PassiveHealthCheck: &PassiveHealthCheck{
-							MaxFailures: 5,
-							Interval:    4 * time.Second,
+							MaxFailures:             5,
+							Interval:                4 * time.Second,
+							EnforcingConsecutive5xx: uint32Pointer(61),
+							MaxEjectionPercent:      uint32Pointer(5),
+							BaseEjectionTime:        durationPointer(6 * time.Second),
 						},
 					},
 				},
@@ -1428,4 +1439,8 @@ func intPointer(v int) *int {
 
 func uint32Pointer(v uint32) *uint32 {
 	return &v
+}
+
+func durationPointer(d time.Duration) *time.Duration {
+	return &d
 }
