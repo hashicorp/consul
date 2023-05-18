@@ -17,6 +17,7 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/controller"
+	"github.com/hashicorp/consul/agent/consul/controller/queue"
 	"github.com/hashicorp/consul/agent/consul/fsm"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/consul/stream"
@@ -4096,7 +4097,7 @@ func (n *noopController) Subscribe(request *stream.SubscribeRequest, transformer
 func (n *noopController) WithBackoff(base, max time.Duration) controller.Controller { return n }
 func (n *noopController) WithLogger(logger hclog.Logger) controller.Controller      { return n }
 func (n *noopController) WithWorkers(i int) controller.Controller                   { return n }
-func (n *noopController) WithQueueFactory(fn func(ctx context.Context, baseBackoff time.Duration, maxBackoff time.Duration) controller.WorkQueue) controller.Controller {
+func (n *noopController) WithQueueFactory(fn func(ctx context.Context, baseBackoff time.Duration, maxBackoff time.Duration) queue.WorkQueue[controller.Request]) controller.Controller {
 	return n
 }
 

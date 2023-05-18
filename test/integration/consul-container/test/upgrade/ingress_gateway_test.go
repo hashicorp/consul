@@ -49,8 +49,9 @@ func TestIngressGateway_UpgradeToTarget_fromLatest(t *testing.T) {
 		NumServers: 1,
 		NumClients: 2,
 		BuildOpts: &libcluster.BuildOptions{
-			Datacenter:    "dc1",
-			ConsulVersion: utils.LatestVersion,
+			Datacenter:      "dc1",
+			ConsulImageName: utils.GetLatestImageName(),
+			ConsulVersion:   utils.LatestVersion,
 		},
 		ApplyDefaultProxySettings: true,
 	})
@@ -481,7 +482,7 @@ func TestIngressGateway_UpgradeToTarget_fromLatest(t *testing.T) {
 
 	// Upgrade the cluster to utils.utils.TargetVersion
 	t.Logf("Upgrade to version %s", utils.TargetVersion)
-	err = cluster.StandardUpgrade(t, context.Background(), utils.TargetVersion)
+	err = cluster.StandardUpgrade(t, context.Background(), utils.GetTargetImageName(), utils.TargetVersion)
 	require.NoError(t, err)
 	require.NoError(t, igw.Restart())
 

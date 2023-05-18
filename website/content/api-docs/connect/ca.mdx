@@ -8,7 +8,7 @@ description: |-
 
 # Certificate Authority (CA) - Connect HTTP API
 
-The `/connect/ca` endpoints provide tools for interacting with Connect's
+The `/connect/ca` endpoints provide tools for interacting with the service mesh's
 Certificate Authority mechanism.
 
 ## List CA Root Certificates
@@ -33,7 +33,7 @@ The table below shows this endpoint's support for
 ### Query Parameters
 
 - `pem` `(boolean: false)` - Specifies that the return body should be a PEM encoded
-  certificate chain suitable for use by applications needing to trust Connect CA
+  certificate chain suitable for use by applications needing to trust service mesh CA
   signed certificates. The Content-Type will be set to `application/pem-certificate-chain`
   to indicate the format of the response.
 
@@ -181,7 +181,7 @@ The corresponding CLI command is [`consul connect ca set-config`](/consul/comman
 - `Provider` `(string: <required>)` - Specifies the CA provider type to use.
 
 - `Config` `(map[string]string: <required>)` - The raw configuration to use
-  for the chosen provider. For more information on configuring the Connect CA
+  for the chosen provider. For more information on configuring the service mesh CA
   providers, see [Provider Config](/consul/docs/connect/ca).
 
 - `ForceWithoutCrossSigning` `(bool: false)` - Indicates that the CA change

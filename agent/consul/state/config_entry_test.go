@@ -9,9 +9,12 @@ import (
 	"time"
 
 	memdb "github.com/hashicorp/go-memdb"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/configentry"
+	"github.com/hashicorp/consul/agent/consul/discoverychain"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/proto/private/pbpeering"
 	"github.com/hashicorp/consul/proto/private/prototest"
@@ -3388,4 +3391,52 @@ func writeConfigAndBumpIndexForTest(s *Store, idx uint64, entry structs.ConfigEn
 		idx++
 	}
 	return idx, err
+}
+
+func TestStateStore_DiscoveryChain_AttachVirtualIPs(t *testing.T) {
+	s := testStateStore(t)
+	setVirtualIPFlags(t, s)
+
+	ca := &structs.CAConfiguration{
+		Provider: "consul",
+	}
+	err := s.CASetConfig(0, ca)
+	require.NoError(t, err)
+
+	// Attempt to assign manual virtual IPs to a service that doesn't exist - should be a no-op.
+	psn := structs.PeeredServiceName{ServiceName: structs.ServiceName{Name: "foo", EnterpriseMeta: *acl.DefaultEnterpriseMeta()}}
+
+	// Register a service via config entry.
+	s.EnsureConfigEntry(1, &structs.ServiceResolverConfigEntry{
+		Kind: structs.ServiceResolver,
+		Name: "foo",
+	})
+
+	vip, err := s.VirtualIPForService(psn)
+	require.NoError(t, err)
+	assert.Equal(t, "240.0.0.1", vip)
+
+	// Assign manual virtual IPs for foo
+	found, _, err := s.AssignManualServiceVIPs(2, psn, []string{"2.2.2.2", "3.3.3.3"})
+	require.NoError(t, err)
+	require.True(t, found)
+
+	serviceVIP, err := s.ServiceManualVIPs(psn)
+	require.NoError(t, err)
+	require.Equal(t, uint64(2), serviceVIP.ModifyIndex)
+	require.Equal(t, "0.0.0.1", serviceVIP.IP.String())
+	require.Equal(t, []string{"2.2.2.2", "3.3.3.3"}, serviceVIP.ManualIPs)
+
+	req := discoverychain.CompileRequest{
+		ServiceName:          "foo",
+		EvaluateInNamespace:  psn.ServiceName.NamespaceOrDefault(),
+		EvaluateInPartition:  psn.ServiceName.PartitionOrDefault(),
+		EvaluateInDatacenter: "dc1",
+	}
+	idx, chain, _, err := s.ServiceDiscoveryChain(nil, "foo", structs.DefaultEnterpriseMetaInDefaultPartition(), req)
+	require.NoError(t, err)
+	require.Equal(t, uint64(1), idx)
+	require.Equal(t, []string{"240.0.0.1"}, chain.AutoVirtualIPs)
+	require.Equal(t, []string{"2.2.2.2", "3.3.3.3"}, chain.ManualVirtualIPs)
+
 }

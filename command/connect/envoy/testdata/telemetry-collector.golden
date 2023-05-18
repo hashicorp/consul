@@ -1,0 +1,249 @@
+{
+  "admin": {
+    "access_log_path": "/dev/null",
+    "address": {
+      "socket_address": {
+        "address": "127.0.0.1",
+        "port_value": 19000
+      }
+    }
+  },
+  "node": {
+    "cluster": "test",
+    "id": "test-proxy",
+    "metadata": {
+      "namespace": "default",
+      "partition": "default"
+    }
+  },
+  "layered_runtime": {
+    "layers": [
+      {
+        "name": "base",
+        "static_layer": {
+          "re2.max_program_size.error_level": 1048576
+        }
+      }
+    ]
+  },
+  "static_resources": {
+    "clusters": [
+      {
+        "name": "local_agent",
+        "ignore_health_on_host_removal": false,
+        "connect_timeout": "1s",
+        "type": "STATIC",
+        "http2_protocol_options": {},
+        "loadAssignment": {
+          "clusterName": "local_agent",
+          "endpoints": [
+            {
+              "lbEndpoints": [
+                {
+                  "endpoint": {
+                    "address": {
+                      "socket_address": {
+                        "address": "127.0.0.1",
+                        "port_value": 8502
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "name": "consul_telemetry_collector_loopback",
+        "type": "STATIC",
+        "http2_protocol_options": {},
+        "loadAssignment": {
+          "clusterName": "consul_telemetry_collector_loopback",
+          "endpoints": [
+            {
+              "lbEndpoints": [
+                {
+                  "endpoint": {
+                    "address": {
+                      "pipe": {
+                        "path": "/tmp/consul/telemetry-collector/k3bWnyJyKvjUYXrBdOX2nXzSSCQ.sock"
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "stats_sinks": [
+    {
+      "name": "envoy.stat_sinks.metrics_service",
+      "typed_config": {
+        "@type": "type.googleapis.com/envoy.config.metrics.v3.MetricsServiceConfig",
+        "transport_api_version": "V3",
+        "grpc_service": {
+          "envoy_grpc": {
+            "cluster_name": "consul_telemetry_collector_loopback"
+          }
+        }
+      }
+    }
+  ],
+  "stats_config": {
+    "stats_tags": [
+      {
+        "regex": "^cluster\\.(?:passthrough~)?((?:([^.]+)~)?(?:[^.]+\\.)?[^.]+\\.[^.]+\\.(?:[^.]+\\.)?[^.]+\\.[^.]+\\.[^.]+\\.consul\\.)",
+        "tag_name": "consul.destination.custom_hash"
+      },
+      {
+        "regex": "^cluster\\.(?:passthrough~)?((?:[^.]+~)?(?:([^.]+)\\.)?[^.]+\\.[^.]+\\.(?:[^.]+\\.)?[^.]+\\.[^.]+\\.[^.]+\\.consul\\.)",
+        "tag_name": "consul.destination.service_subset"
+      },
+      {
+        "regex": "^cluster\\.(?:passthrough~)?((?:[^.]+~)?(?:[^.]+\\.)?([^.]+)\\.[^.]+\\.(?:[^.]+\\.)?[^.]+\\.[^.]+\\.[^.]+\\.consul\\.)",
+        "tag_name": "consul.destination.service"
+      },
+      {
+        "regex": "^cluster\\.(?:passthrough~)?((?:[^.]+~)?(?:[^.]+\\.)?[^.]+\\.([^.]+)\\.(?:[^.]+\\.)?[^.]+\\.[^.]+\\.[^.]+\\.consul\\.)",
+        "tag_name": "consul.destination.namespace"
+      },
+      {
+        "regex": "^cluster\\.(?:passthrough~)?((?:[^.]+~)?(?:[^.]+\\.)?[^.]+\\.[^.]+\\.(?:([^.]+)\\.)?[^.]+\\.internal[^.]*\\.[^.]+\\.consul\\.)",
+        "tag_name": "consul.destination.partition"
+      },
+      {
+        "regex": "^cluster\\.(?:passthrough~)?((?:[^.]+~)?(?:[^.]+\\.)?[^.]+\\.[^.]+\\.(?:[^.]+\\.)?([^.]+)\\.internal[^.]*\\.[^.]+\\.consul\\.)",
+        "tag_name": "consul.destination.datacenter"
+      },
+      {
+        "regex": "^cluster\\.([^.]+\\.(?:[^.]+\\.)?([^.]+)\\.external\\.[^.]+\\.consul\\.)",
+        "tag_name": "consul.destination.peer"
+      },
+      {
+        "regex": "^cluster\\.(?:passthrough~)?((?:[^.]+~)?(?:[^.]+\\.)?[^.]+\\.[^.]+\\.(?:[^.]+\\.)?[^.]+\\.([^.]+)\\.[^.]+\\.consul\\.)",
+        "tag_name": "consul.destination.routing_type"
+      },
+      {
+        "regex": "^cluster\\.(?:passthrough~)?((?:[^.]+~)?(?:[^.]+\\.)?[^.]+\\.[^.]+\\.(?:[^.]+\\.)?[^.]+\\.[^.]+\\.([^.]+)\\.consul\\.)",
+        "tag_name": "consul.destination.trust_domain"
+      },
+      {
+        "regex": "^cluster\\.(?:passthrough~)?(((?:[^.]+~)?(?:[^.]+\\.)?[^.]+\\.[^.]+\\.(?:[^.]+\\.)?[^.]+)\\.[^.]+\\.[^.]+\\.consul\\.)",
+        "tag_name": "consul.destination.target"
+      },
+      {
+        "regex": "^cluster\\.(?:passthrough~)?(((?:[^.]+~)?(?:[^.]+\\.)?[^.]+\\.[^.]+\\.(?:[^.]+\\.)?[^.]+\\.[^.]+\\.[^.]+)\\.consul\\.)",
+        "tag_name": "consul.destination.full_target"
+      },
+      {
+        "regex": "^(?:tcp|http)\\.upstream(?:_peered)?\\.(([^.]+)(?:\\.[^.]+)?(?:\\.[^.]+)?\\.[^.]+\\.)",
+        "tag_name": "consul.upstream.service"
+      },
+      {
+        "regex": "^(?:tcp|http)\\.upstream\\.([^.]+(?:\\.[^.]+)?(?:\\.[^.]+)?\\.([^.]+)\\.)",
+        "tag_name": "consul.upstream.datacenter"
+      },
+      {
+        "regex": "^(?:tcp|http)\\.upstream_peered\\.([^.]+(?:\\.[^.]+)?\\.([^.]+)\\.)",
+        "tag_name": "consul.upstream.peer"
+      },
+      {
+        "regex": "^(?:tcp|http)\\.upstream(?:_peered)?\\.([^.]+(?:\\.([^.]+))?(?:\\.[^.]+)?\\.[^.]+\\.)",
+        "tag_name": "consul.upstream.namespace"
+      },
+      {
+        "regex": "^(?:tcp|http)\\.upstream\\.([^.]+(?:\\.[^.]+)?(?:\\.([^.]+))?\\.[^.]+\\.)",
+        "tag_name": "consul.upstream.partition"
+      },
+      {
+        "regex": "^cluster\\.((?:([^.]+)~)?(?:[^.]+\\.)?[^.]+\\.[^.]+\\.(?:[^.]+\\.)?[^.]+\\.[^.]+\\.[^.]+\\.consul\\.)",
+        "tag_name": "consul.custom_hash"
+      },
+      {
+        "regex": "^cluster\\.((?:[^.]+~)?(?:([^.]+)\\.)?[^.]+\\.[^.]+\\.(?:[^.]+\\.)?[^.]+\\.[^.]+\\.[^.]+\\.consul\\.)",
+        "tag_name": "consul.service_subset"
+      },
+      {
+        "regex": "^cluster\\.((?:[^.]+~)?(?:[^.]+\\.)?([^.]+)\\.[^.]+\\.(?:[^.]+\\.)?[^.]+\\.[^.]+\\.[^.]+\\.consul\\.)",
+        "tag_name": "consul.service"
+      },
+      {
+        "regex": "^cluster\\.((?:[^.]+~)?(?:[^.]+\\.)?[^.]+\\.([^.]+)\\.(?:[^.]+\\.)?[^.]+\\.[^.]+\\.[^.]+\\.consul\\.)",
+        "tag_name": "consul.namespace"
+      },
+      {
+        "regex": "^cluster\\.((?:[^.]+~)?(?:[^.]+\\.)?[^.]+\\.[^.]+\\.(?:[^.]+\\.)?([^.]+)\\.internal[^.]*\\.[^.]+\\.consul\\.)",
+        "tag_name": "consul.datacenter"
+      },
+      {
+        "regex": "^cluster\\.((?:[^.]+~)?(?:[^.]+\\.)?[^.]+\\.[^.]+\\.(?:[^.]+\\.)?[^.]+\\.([^.]+)\\.[^.]+\\.consul\\.)",
+        "tag_name": "consul.routing_type"
+      },
+      {
+        "regex": "^cluster\\.((?:[^.]+~)?(?:[^.]+\\.)?[^.]+\\.[^.]+\\.(?:[^.]+\\.)?[^.]+\\.[^.]+\\.([^.]+)\\.consul\\.)",
+        "tag_name": "consul.trust_domain"
+      },
+      {
+        "regex": "^cluster\\.(((?:[^.]+~)?(?:[^.]+\\.)?[^.]+\\.[^.]+\\.(?:[^.]+\\.)?[^.]+)\\.[^.]+\\.[^.]+\\.consul\\.)",
+        "tag_name": "consul.target"
+      },
+      {
+        "regex": "^cluster\\.(((?:[^.]+~)?(?:[^.]+\\.)?[^.]+\\.[^.]+\\.(?:[^.]+\\.)?[^.]+\\.[^.]+\\.[^.]+)\\.consul\\.)",
+        "tag_name": "consul.full_target"
+      },
+      {
+        "tag_name": "local_cluster",
+        "fixed_value": "test"
+      },
+      {
+        "tag_name": "consul.source.service",
+        "fixed_value": "test"
+      },
+      {
+        "tag_name": "consul.source.namespace",
+        "fixed_value": "default"
+      },
+      {
+        "tag_name": "consul.source.partition",
+        "fixed_value": "default"
+      },
+      {
+        "tag_name": "consul.source.datacenter",
+        "fixed_value": "dc1"
+      }
+    ],
+    "use_all_default_tags": true
+  },
+  "dynamic_resources": {
+    "lds_config": {
+      "ads": {},
+      "initial_fetch_timeout": "0s",
+      "resource_api_version": "V3"
+    },
+    "cds_config": {
+      "ads": {},
+      "initial_fetch_timeout": "0s",
+      "resource_api_version": "V3"
+    },
+    "ads_config": {
+      "api_type": "DELTA_GRPC",
+      "transport_api_version": "V3",
+      "grpc_services": {
+        "initial_metadata": [
+          {
+            "key": "x-consul-token",
+            "value": ""
+          }
+        ],
+        "envoy_grpc": {
+          "cluster_name": "local_agent"
+        }
+      }
+    }
+  }
+}
+

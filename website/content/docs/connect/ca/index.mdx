@@ -7,8 +7,8 @@ description: >-
 
 # Service Mesh Certificate Authority Overview
 
-Certificate management in Connect is done centrally through the Consul
-servers using the configured CA (Certificate Authority) provider. A CA provider
+Service mesh certificate management is done centrally through the Consul
+servers using the configured service mesh CA (Certificate Authority) provider. A CA provider
 manages root and intermediate certificates and performs certificate signing
 operations. The Consul leader orchestrates CA provider operations as necessary,
 such as when a service needs a new certificate or during CA rotation events.
@@ -42,7 +42,7 @@ datacenter.
 
 CA initialization happens automatically when a new Consul leader is elected
 as long as
-[Connect is enabled](/consul/docs/connect/configuration#agent-configuration),
+[service mesh is enabled](/consul/docs/connect/configuration#agent-configuration),
 and the CA system has not already been initialized. This initialization process
 will generate the initial root certificates and setup the internal Consul server
 state.
@@ -55,7 +55,7 @@ If a CA is already initialized, any changes to the CA configuration in the
 agent configuration file (including removing the configuration completely)
 will have no effect.
 
-If no specific provider is configured when Connect is enabled, the built-in
+If no specific provider is configured when service mesh is enabled, the built-in
 Consul CA provider will be used and a private key and root certificate will
 be generated automatically.
 
@@ -133,7 +133,7 @@ Cross-Signing](#forced-rotation-without-cross-signing).
 This also automatically occurs when a completely different CA provider is
 configured (since this changes the root key). Therefore, this automatic rotation
 process can also be used to cleanly transition between CA providers. For example,
-updating Connect to use Vault instead of the built-in CA.
+updating the service mesh to use Vault instead of the built-in CA.
 
 During rotation, an intermediate CA certificate is requested from the new root,
 which is then cross-signed by the old root. This cross-signed certificate is

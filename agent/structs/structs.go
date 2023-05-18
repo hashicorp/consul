@@ -1270,6 +1270,8 @@ func (a ServiceAddress) ToAPIServiceAddress() api.ServiceAddress {
 	return api.ServiceAddress{Address: a.Address, Port: a.Port}
 }
 
+const SidecarProxySuffix = "-sidecar-proxy"
+
 // NodeService is a service provided by a node
 type NodeService struct {
 	// Kind is the kind of service this is. Different kinds of services may
@@ -1506,6 +1508,10 @@ func (s *NodeService) ValidateForAgent() error {
 		if s.Connect.Native {
 			result = multierror.Append(result, fmt.Errorf(
 				"A Proxy cannot also be Connect Native, only typical services"))
+		}
+
+		if err := validateOpaqueProxyConfig(s.Proxy.Config); err != nil {
+			result = multierror.Append(result, fmt.Errorf("Proxy.Config: %w", err))
 		}
 
 		// ensure we don't have multiple upstreams for the same service

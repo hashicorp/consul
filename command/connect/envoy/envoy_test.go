@@ -199,10 +199,10 @@ func TestGenerateConfig(t *testing.T) {
 			},
 		},
 		{
-			Name:  "hcp-metrics",
+			Name:  "telemetry-collector",
 			Flags: []string{"-proxy-id", "test-proxy"},
 			ProxyConfig: map[string]interface{}{
-				"envoy_hcp_metrics_bind_socket_dir": "/tmp/consul/hcp-metrics",
+				"envoy_telemetry_collector_bind_socket_dir": "/tmp/consul/telemetry-collector",
 			},
 			WantArgs: BootstrapTplArgs{
 				ProxyCluster: "test-proxy",

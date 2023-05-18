@@ -7,12 +7,12 @@ description: >-
 
 # Built-In Certificate Authority for Service Mesh
 
-Consul ships with a built-in CA system so that Connect can be
+Consul ships with a built-in CA system so that service mesh can be
 easily enabled out of the box. The built-in CA generates and stores the
 root certificate and private key on Consul servers. It can also be
 configured with a custom certificate and private key if needed.
 
-If Connect is enabled and no CA provider is specified, the built-in
+If service mesh is enabled and no CA provider is specified, the built-in
 CA is the default provider used. The provider can be
 [updated and rotated](/consul/docs/connect/ca#root-certificate-rotation)
 at any point to migrate to a new provider.
@@ -24,7 +24,7 @@ CA providers.
 
 ## Configuration
 
-The built-in CA provider has no required configuration. Enabling Connect
+The built-in CA provider has no required configuration. Enabling service mesh
 alone will configure the built-in CA provider, and will automatically generate
 a root certificate and private key:
 
@@ -84,8 +84,8 @@ $ curl localhost:8500/v1/connect/ca/configuration
 }
 ```
 
-This is the default Connect CA configuration if nothing is explicitly set when
-Connect is enabled - the PrivateKey and RootCert fields have not been set, so those have
+This is the default service mesh CA configuration if nothing is explicitly set when
+service mesh is enabled - the PrivateKey and RootCert fields have not been set, so those have
 been generated (as seen above in the roots list).
 
 There are two ways to have the Consul CA use a custom private key and root certificate:
