@@ -317,7 +317,7 @@ func (h *handlerAPIGateway) handleRouteConfigUpdate(ctx context.Context, u Updat
 						},
 					}
 
-					listenerKey := APIGatewayListenerKey{Protocol: string(listener.Protocol), Port: listener.Port}
+					listenerKey := APIGatewayListenerKeyFromListener(listener)
 					upstreams[listenerKey] = append(upstreams[listenerKey], upstream)
 				}
 
@@ -371,7 +371,7 @@ func (h *handlerAPIGateway) handleRouteConfigUpdate(ctx context.Context, u Updat
 					},
 				}
 
-				listenerKey := APIGatewayListenerKey{Protocol: string(listener.Protocol), Port: listener.Port}
+				listenerKey := APIGatewayListenerKeyFromListener(listener)
 				upstreams[listenerKey] = append(upstreams[listenerKey], upstream)
 			}
 
