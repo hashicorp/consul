@@ -6,6 +6,7 @@ package proxycfg
 import (
 	"context"
 	"fmt"
+
 	"github.com/hashicorp/consul/acl"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/proxycfg/internal/watch"
