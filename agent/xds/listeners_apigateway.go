@@ -43,7 +43,6 @@ func (s *ResourceGenerator) makeAPIGatewayListeners(address string, cfgSnap *pro
 		var isAPIGatewayWithTLS bool
 		var certs []structs.InlineCertificateConfigEntry
 		if cfgSnap.APIGateway.ListenerCertificates != nil {
-
 			certs = cfgSnap.APIGateway.ListenerCertificates[listenerKey]
 		}
 		if certs != nil {
@@ -57,15 +56,12 @@ func (s *ResourceGenerator) makeAPIGatewayListeners(address string, cfgSnap *pro
 
 		if listenerKey.Protocol == "tcp" {
 			// Find the upstream matching this listener
-			// TODO update this block of code to match Nathan's change when its merged in
-			var u structs.Upstream
-			var uid proxycfg.UpstreamID
-			for _, upstream := range readyUpstreams.upstreams {
-				if upstream.LocalBindPort == listenerKey.Port {
-					u = upstream
-					uid = proxycfg.NewUpstreamID(&u)
-				}
-			}
+
+			// We rely on the invariant of upstreams slice always having at least 1
+			// member, because this key/value pair is created only when a
+			// GatewayService is returned in the RPC
+			u := readyUpstreams.upstreams[0]
+			uid := proxycfg.NewUpstreamID(&u)
 
 			chain := cfgSnap.APIGateway.DiscoveryChain[uid]
 			if chain == nil {
