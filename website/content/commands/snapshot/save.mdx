@@ -18,7 +18,8 @@ If ACLs are enabled, a management token must be supplied in order to perform
 a snapshot save.
 
 -> Note that saving a snapshot involves the server process writing the snapshot to a
-temporary file on-disk before sending that file to the CLI client. The default location
+temporary file on-disk before sending that file to the CLI client. Upon successful completion,
+Consul removes the temporary file. The default location of the temporary file
 can vary depending on operating system, but typically is `/tmp`. You can get more detailed
 information on default locations in the Go documentation for [os.TempDir](https://golang.org/pkg/os/#TempDir).
 If you need to change this location, you can do so by setting the `TMPDIR` environment
@@ -26,6 +27,7 @@ variable for the Consul server processes. Keep in mind that setting the environm
 the CLI client attempting to perform a snapshot save will have no effect. It _must_ be set in
 the context of the server process. If you're using Systemd to manage your Consul server
 processes, then adding `Environment=TMPDIR=/path/to/dir` to your Consul unit file will work.
+As a result of the Raft snapshot, Consul also saves one snapshot file at `data_dir/raft/snapshots`.
 
 The table below shows this command's [required ACLs](/api-docs/api-structure#authentication). Configuration of
 [blocking queries](/api-docs/features/blocking) and [agent caching](/api-docs/features/caching)

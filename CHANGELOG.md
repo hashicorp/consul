@@ -1,3 +1,49 @@
+## 1.14.7 (May 16, 2023)
+
+SECURITY:
+
+* Upgrade to use Go 1.20.4.
+  This resolves vulnerabilities [CVE-2023-24537](https://github.com/advisories/GHSA-9f7g-gqwh-jpf5)(`go/scanner`),
+  [CVE-2023-24538](https://github.com/advisories/GHSA-v4m2-x4rp-hv22)(`html/template`),
+  [CVE-2023-24534](https://github.com/advisories/GHSA-8v5j-pwr7-w5f8)(`net/textproto`) and
+  [CVE-2023-24536](https://github.com/advisories/GHSA-9f7g-gqwh-jpf5)(`mime/multipart`).
+  Also, `golang.org/x/net` has been updated to v0.7.0 to resolve CVEs [CVE-2022-41721
+  ](https://github.com/advisories/GHSA-fxg5-wq6x-vr4w
+  ), [CVE-2022-27664](https://github.com/advisories/GHSA-69cg-p879-7622) and [CVE-2022-41723
+  ](https://github.com/advisories/GHSA-vvpx-j8f3-3w6h
+  .) [[GH-17240](https://github.com/hashicorp/consul/issues/17240)]
+
+IMPROVEMENTS:
+
+* connect: update supported envoy versions to 1.21.6, 1.22.11, 1.23.8, 1.24.6 [[GH-16888](https://github.com/hashicorp/consul/issues/16888)]
+* envoy: add `MaxEjectionPercent` and `BaseEjectionTime` to passive health check configs. [[GH-15979](https://github.com/hashicorp/consul/issues/15979)]
+* hcp: Add support for linking existing Consul clusters to HCP management plane. [[GH-16916](https://github.com/hashicorp/consul/issues/16916)]
+* logging: change snapshot log header from `agent.server.snapshot` to `agent.server.raft.snapshot` [[GH-17236](https://github.com/hashicorp/consul/issues/17236)]
+* peering: allow re-establishing terminated peering from new token without deleting existing peering first. [[GH-16776](https://github.com/hashicorp/consul/issues/16776)]
+
+BUG FIXES:
+
+* Fix an bug where decoding some Config structs with unset pointer fields could fail with `reflect: call of reflect.Value.Type on zero Value`. [[GH-17048](https://github.com/hashicorp/consul/issues/17048)]
+* acl: **(Enterprise only)** Check permissions in correct partition/namespace when resolving service in non-default partition/namespace
+* acls: Fix ACL bug that can result in sidecar proxies having incorrect endpoints.
+* connect: Fix multiple inefficient behaviors when querying service health. [[GH-17241](https://github.com/hashicorp/consul/issues/17241)]
+* connect: fix a bug with Envoy potentially starting with incomplete configuration by not waiting enough for initial xDS configuration. [[GH-17317](https://github.com/hashicorp/consul/issues/17317)]
+* grpc: ensure grpc resolver correctly uses lan/wan addresses on servers [[GH-17270](https://github.com/hashicorp/consul/issues/17270)]
+* peering: Fix issue where peer streams could incorrectly deregister services in various scenarios. [[GH-17235](https://github.com/hashicorp/consul/issues/17235)]
+* proxycfg: ensure that an irrecoverable error in proxycfg closes the xds session and triggers a replacement proxycfg watcher [[GH-16497](https://github.com/hashicorp/consul/issues/16497)]
+* xds: Fix possible panic that can when generating clusters before the root certificates have been fetched. [[GH-17185](https://github.com/hashicorp/consul/issues/17185)]
+
+## 1.14.6 (March 30, 2023)
+BUG FIXES:
+* audit-logging: (Enterprise only) Fix a bug where `/agent/monitor` and `/agent/metrics` endpoints return a `Streaming not supported` error when audit logs are enabled. This also fixes the delay receiving logs when running `consul monitor` against an agent with audit logs enabled. [[GH-16700](https://github.com/hashicorp/consul/issues/16700)]
+* ca: Fixes a bug where updating Vault CA Provider config would cause TLS issues in the service mesh [[GH-16592](https://github.com/hashicorp/consul/issues/16592)]
+* peering: **(Consul Enterprise only)** Fix issue where connect-enabled services with peer upstreams incorrectly required `service:write` access in the `default` namespace to query data, which was too restrictive. Now having `service:write` to any namespace is sufficient to query the peering data.
+* peering: **(Consul Enterprise only)** Fix issue where resolvers, routers, and splitters referencing peer targets may not work correctly for non-default partitions and namespaces. Enterprise customers leveraging peering are encouraged to upgrade both servers and agents to avoid this problem.
+* peering: Fix issue resulting in prepared query failover to cluster peers never un-failing over. [[GH-16729](https://github.com/hashicorp/consul/issues/16729)]
+* peering: Fixes a bug that can lead to peering service deletes impacting the state of local services [[GH-16570](https://github.com/hashicorp/consul/issues/16570)]
+* peering: Fixes a bug where the importing partition was not added to peered failover targets, which causes issues when the importing partition is a non-default partition. [[GH-16693](https://github.com/hashicorp/consul/issues/16693)]
+* ui: fix PUT token request with adding missed AccessorID property to requestBody [[GH-16660](https://github.com/hashicorp/consul/issues/16660)]
+
 ## 1.14.5 (March 7, 2023)
 
 SECURITY:
