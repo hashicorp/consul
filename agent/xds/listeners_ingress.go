@@ -135,6 +135,7 @@ func (s *ResourceGenerator) makeIngressGatewayListeners(address string, cfgSnap 
 				direction:  envoy_core_v3.TrafficDirection_OUTBOUND,
 				logger:     s.Logger,
 			}
+
 			listener := makeListener(listenerOpts)
 
 			filterOpts := listenerFilterOpts{

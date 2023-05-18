@@ -5,6 +5,7 @@ package xds
 
 import (
 	"fmt"
+	"sort"
 
 	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
@@ -57,7 +58,10 @@ func (s *ResourceGenerator) makeAPIGatewayListeners(address string, cfgSnap *pro
 		}
 
 		if listenerKey.Protocol == "tcp" {
-			//TODO not sure if we can rely on this the same way ingress can
+			//TODO this is required for a deterministic unit test output, but I'm not sure it is needed
+			sort.Slice(readyUpstreams.upstreams, func(i, j int) bool {
+				return readyUpstreams.upstreams[i].LocalBindPort < readyUpstreams.upstreams[j].LocalBindPort
+			})
 			u := readyUpstreams.upstreams[0]
 			uid := proxycfg.NewUpstreamID(&u)
 
@@ -206,7 +210,7 @@ func (s *ResourceGenerator) makeAPIGatewayListeners(address string, cfgSnap *pro
 		}
 
 	}
-	
+
 	return resources, nil
 }
 
