@@ -73,14 +73,6 @@ The following Kubernetes resource annotations could be used on a pod to control 
   local port to listen for those connections. When transparent proxy is enabled,
   this annotation is optional. This annotation can be either _labeled_ or _unlabeled_. We recommend the labeled format because it has a more consistent syntax and can be used to reference cluster peers as upstreams.
 
-<<<<<<< HEAD
-    - Unlabeled:
-       Use the unlabeled annotation format to specify a service name, Consul Enterprise namespaces and partitions, and
-       datacenters. To use [cluster peering](/docs/connect/cluster-peering/k8s) with upstreams, use the following
-       labeled format.
-      - Service name: Place the service name at the beginning of the annotation to specify the upstream service. You can
-      also append the datacenter where the service is deployed (optional).
-=======
  - **Labeled** (requires Consul on Kubernetes v0.45.0+):
 
       The labeled annotation format allows you to reference any service as an upstream. You can specify a Consul Enterprise namespace. You can also specify an admin partition in the same datacenter, a cluster peer, or a WAN-federated datacenter.
@@ -133,7 +125,6 @@ The following Kubernetes resource annotations could be used on a pod to control 
 
       - Service name: Place the service name at the beginning of the annotation to specify the upstream service. You also have the option to append the WAN federated datacenter where the service is deployed.
    
->>>>>>> 8dce0ba504 (docs: connect-service-upstreams annotation fixes (#17312))
         ```yaml
         annotations:
           "consul.hashicorp.com/connect-service-upstreams":"[service-name]:[port]:[optional datacenter]"
