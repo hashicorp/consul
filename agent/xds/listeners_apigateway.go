@@ -56,12 +56,11 @@ func (s *ResourceGenerator) makeAPIGatewayListeners(address string, cfgSnap *pro
 		}
 
 		if listenerKey.Protocol == "tcp" {
-			//TODO not sure if we can rely on this the same way ingress can
-			//u := readyUpstreams.upstreams[0]
-			//uid := proxycfg.NewUpstreamID(&u)
-
 			// Find the upstream matching this listener
-			// TODO This might be simpler if getReadyUpstreams were keyed by listenerKey
+			// TODO This might be simpler if getReadyUpstreams were keyed by listenerKey.
+			//   Today, it's keyed by route, which means a route attaching to multiple listeners
+			//   will have multiple ready upstreams, one for each listener. We aren't certain
+			//   if anything depends on the upstreams being grouped by route currently vs. listener.
 			var u structs.Upstream
 			var uid proxycfg.UpstreamID
 			for _, upstream := range readyUpstreams.upstreams {
