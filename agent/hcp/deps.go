@@ -51,7 +51,7 @@ func sink(hcpClient hcpclient.Client, cfg hcpclient.CloudConfig, logger hclog.Lo
 
 	telemetryCfg, err := hcpClient.FetchTelemetryConfig(reqCtx)
 	if err != nil {
-		logger.Error("failed to fetch telemetry config %w", err)
+		logger.Error("failed to fetch telemetry config", "error", err)
 		return nil
 	}
 
@@ -62,13 +62,13 @@ func sink(hcpClient hcpclient.Client, cfg hcpclient.CloudConfig, logger hclog.Lo
 
 	u, err := url.Parse(endpoint)
 	if err != nil {
-		logger.Error("failed to parse url endpoint %w", err)
+		logger.Error("failed to parse url endpoint", "error", err)
 		return nil
 	}
 
 	metricsClient, err := hcpclient.NewMetricsClient(cfg, ctx)
 	if err != nil {
-		logger.Error("failed to init metrics client: %w", err)
+		logger.Error("failed to init metrics client", "error", err)
 		return nil
 	}
 
@@ -79,7 +79,7 @@ func sink(hcpClient hcpclient.Client, cfg hcpclient.CloudConfig, logger hclog.Lo
 
 	sink, err := telemetry.NewOTELSink(sinkOpts)
 	if err != nil {
-		logger.Error("failed to init OTEL sink: %w", err)
+		logger.Error("failed to init OTEL sink", "error", err)
 		return nil
 	}
 

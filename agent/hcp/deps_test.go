@@ -21,9 +21,9 @@ func TestSink(t *testing.T) {
 		"success": {
 			expect: func(mockClient *client.MockClient) {
 				mockClient.EXPECT().FetchTelemetryConfig(mock.Anything).Return(&client.TelemetryConfig{
-					Endpoint: "test.com",
+					Endpoint: "https://test.com",
 					MetricsConfig: &client.MetricsConfig{
-						Endpoint: "test.com",
+						Endpoint: "https://test.com",
 					},
 				}, nil)
 			},
@@ -50,7 +50,7 @@ func TestSink(t *testing.T) {
 		"noSinkWhenMetricsClientInitFails": {
 			expect: func(mockClient *client.MockClient) {
 				mockClient.EXPECT().FetchTelemetryConfig(mock.Anything).Return(&client.TelemetryConfig{
-					Endpoint: "test.com",
+					Endpoint: "https://test.com",
 					MetricsConfig: &client.MetricsConfig{
 						Endpoint: "",
 					},

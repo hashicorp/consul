@@ -18,7 +18,7 @@ func TestFetchTelemetryConfig(t *testing.T) {
 		"success": {
 			expect: func(mockClient *MockClient) {
 				mockClient.EXPECT().FetchTelemetryConfig(mock.Anything).Return(&TelemetryConfig{
-					Endpoint: "test.com",
+					Endpoint: "https://test.com",
 					MetricsConfig: &MetricsConfig{
 						Endpoint: "",
 					},
@@ -29,9 +29,9 @@ func TestFetchTelemetryConfig(t *testing.T) {
 		"overrideMetricsEndpoint": {
 			expect: func(mockClient *MockClient) {
 				mockClient.EXPECT().FetchTelemetryConfig(mock.Anything).Return(&TelemetryConfig{
-					Endpoint: "test.com",
+					Endpoint: "https://test.com",
 					MetricsConfig: &MetricsConfig{
-						Endpoint: "test.com",
+						Endpoint: "https://test.com",
 					},
 				}, nil)
 			},

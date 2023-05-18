@@ -22,6 +22,9 @@ import (
 	"github.com/hashicorp/consul/version"
 )
 
+// metricsGatewayPath is the default path for metrics export request on the Telemetry Gateway.
+const metricsGatewayPath = "/v1/metrics"
+
 // Client interface exposes HCP operations that can be invoked by Consul
 //
 //go:generate mockery --name Client --with-expecter --inpackage
@@ -291,5 +294,5 @@ func (t *TelemetryConfig) Enabled() (string, bool) {
 	}
 
 	// The endpoint from Telemetry Gateway is a domain without scheme, and without the metrics path, so they must be added.
-	return fmt.Sprintf("https://%s/v1/metrics", endpoint), true
+	return endpoint + metricsGatewayPath, true
 }
