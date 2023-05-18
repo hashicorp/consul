@@ -42,7 +42,7 @@ func NewDeps(cfg config.CloudConfig, logger hclog.Logger) (d Deps, err error) {
 // sink provides initializes an OTELSink which forwards Consul metrics to HCP.
 // The sink is only initialized if the server is registered with the management plane (CCM).
 // This step should not block server initialization, so errors are logged, but not returned.
-func sink(hcpClient hcpclient.Client, cfg hcpclient.CloudConfig, logger hclog.Logger) *telemetry.OTELSink {
+func sink(hcpClient hcpclient.Client, cfg hcpclient.CloudConfig, logger hclog.Logger) metrics.MetricSink {
 	ctx := context.Background()
 	ctx = hclog.WithContext(ctx, logger)
 
