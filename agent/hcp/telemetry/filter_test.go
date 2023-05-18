@@ -39,7 +39,7 @@ func TestFilter(t *testing.T) {
 		tc := tc
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
-			f, err := newFilterList(tc.filters)
+			f, err := newFilterRegex(tc.filters)
 
 			if tc.wantErr != "" {
 				require.Error(t, err)
@@ -48,9 +48,9 @@ func TestFilter(t *testing.T) {
 			}
 
 			require.NoError(t, err)
-			require.Equal(t, tc.expectedRegexString, f.isValid.String())
+			require.Equal(t, tc.expectedRegexString, f.String())
 			for _, metric := range tc.matches {
-				m := f.Match(metric)
+				m := f.MatchString(metric)
 				require.Equal(t, tc.wantMatch, m)
 			}
 		})

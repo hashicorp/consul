@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"net/url"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -37,7 +38,7 @@ type OTELSink struct {
 	// spaceReplacer cleans the flattened key by removing any spaces.
 	spaceReplacer *strings.Replacer
 	logger        hclog.Logger
-	filters       *filterList
+	filters       *regexp.Regexp
 
 	// meterProvider is an OTEL MeterProvider, the entrypoint to the OTEL Metrics SDK.
 	// It handles reading/export of aggregated metric data.
@@ -86,7 +87,7 @@ func NewOTELSink(opts *OTELSinkOpts) (*OTELSink, error) {
 
 	logger := hclog.FromContext(opts.Ctx).Named("otel_sink")
 
-	filterList, err := newFilterList(opts.Filters)
+	filterList, err := newFilterRegex(opts.Filters)
 	if err != nil {
 		logger.Error("Failed to initialize all filters: %w", err)
 	}
@@ -137,7 +138,7 @@ func (o *OTELSink) IncrCounter(key []string, val float32) {
 func (o *OTELSink) SetGaugeWithLabels(key []string, val float32, labels []gometrics.Label) {
 	k := o.flattenKey(key)
 
-	if !o.filters.Match(k) {
+	if !o.filters.MatchString(k) {
 		return
 	}
 
@@ -165,7 +166,7 @@ func (o *OTELSink) SetGaugeWithLabels(key []string, val float32, labels []gometr
 func (o *OTELSink) AddSampleWithLabels(key []string, val float32, labels []gometrics.Label) {
 	k := o.flattenKey(key)
 
-	if !o.filters.Match(k) {
+	if !o.filters.MatchString(k) {
 		return
 	}
 
@@ -191,7 +192,7 @@ func (o *OTELSink) AddSampleWithLabels(key []string, val float32, labels []gomet
 func (o *OTELSink) IncrCounterWithLabels(key []string, val float32, labels []gometrics.Label) {
 	k := o.flattenKey(key)
 
-	if !o.filters.Match(k) {
+	if !o.filters.MatchString(k) {
 		return
 	}
 

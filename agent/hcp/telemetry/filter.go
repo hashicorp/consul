@@ -8,17 +8,11 @@ import (
 	"github.com/hashicorp/go-multierror"
 )
 
-// filterList holds a map of filters, i.e. regular expressions.
-// These filters are used to identify which Consul metrics can be transmitted to HCP.
-type filterList struct {
-	isValid *regexp.Regexp
-}
-
-// newFilterList returns a FilterList which holds valid regex used to filter metrics.
+// newFilterRegex returns a valid regex used to filter metrics.
 // It will fail if there are 0 valid regex filters given.
-func newFilterList(filters []string) (*filterList, error) {
+func newFilterRegex(filters []string) (*regexp.Regexp, error) {
 	var mErr error
-	var validFilters []string
+	validFilters := make([]string, 0, len(filters))
 	for _, filter := range filters {
 		_, err := regexp.Compile(filter)
 		if err != nil {
@@ -39,13 +33,5 @@ func newFilterList(filters []string) (*filterList, error) {
 		return nil, fmt.Errorf("failed to compile regex: %w", err)
 	}
 
-	f := &filterList{
-		isValid: composedRegex,
-	}
-	return f, nil
-}
-
-// Match returns true if the metric name matches a REGEX in the allowed metric filters.
-func (fl *filterList) Match(name string) bool {
-	return fl.isValid.MatchString(name)
+	return composedRegex, nil
 }
