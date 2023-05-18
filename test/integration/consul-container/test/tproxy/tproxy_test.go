@@ -40,7 +40,7 @@ func TestTProxyService(t *testing.T) {
 
 	libassert.AssertUpstreamEndpointStatus(t, adminPort, "static-server.default", "HEALTHY", 1)
 	libassert.AssertContainerState(t, clientService, "running")
-	assertHTTPRequestToStaticServerVirtual(t, clientService)
+	assertHTTPRequestToVirtualAddress(t, clientService, "static-server")
 }
 
 // TestTProxyPermissiveMTLS makes sure that a service in permissive mTLS mode accepts
@@ -49,19 +49,20 @@ func TestTProxyService(t *testing.T) {
 // Steps:
 //   - Create a single server cluster
 //   - Create the static-server and static-client services in the mesh
-//   - Create an additional non-mesh container without a mesh service
-//   - In default/strict mTLS mode, make sure requests from static-client to
-//     static-server's virtual address succeed, but requests from the non-mesh
-//     service fail
-//   - In permissive mTLS mode, make sure requests from static-client to
-//     static-server's virtual addresss succeed, and requests from the non-mesh
-//     service to the static-server's normal address/port succeed.
+//   - In default/strict mTLS mode, check that requests to static-server's
+//     virtual address succeed, but requests from outside the mesh fail.
+//   - In permissive mTLS mode, check that both requests to static-server's
+//     virtual addresss succeed and that requests from outside the mesh to
+//     the static-server's regular address/port succeed.
 func TestTProxyPermissiveMTLS(t *testing.T) {
 	t.Parallel()
 
-	// Three client containers: static-client, static-server, and a non-mesh service.
-	// To simulate requests from outside the mesh, we use another client agent container
-	// without a mesh service, and run curl to simulate requests from outside the mesh.
+	// Create three client "pods" each running a client agent and (optionally) a service:
+	//   cluster.Agents[0] - consul server
+	//   cluster.Agents[1] - static-client
+	//   cluster.Agents[2] - static-server
+	//   cluster.Agents[3] - (no service)
+	// We run curl requests from cluster.Agents[3] to simulate requests from outside the mesh.
 	cluster := createCluster(t, 3)
 
 	staticServerPod := cluster.Agents[1]
@@ -74,9 +75,9 @@ func TestTProxyPermissiveMTLS(t *testing.T) {
 	libassert.AssertContainerState(t, clientService, "running")
 
 	// Validate mesh traffic to the virtual address succeeds in strict/default mTLS mode.
-	assertHTTPRequestToStaticServerVirtual(t, clientService)
+	assertHTTPRequestToVirtualAddress(t, clientService, "static-server")
 	// Validate non-mesh is blocked in strict/default mTLS mode.
-	assertHTTPRequestToStaticServerServiceAddress(t, nonMeshPod, staticServerPod, false)
+	assertHTTPRequestToServiceAddress(t, nonMeshPod, staticServerPod, "static-server", false)
 
 	// Put the service in permissive mTLS mode
 	require.NoError(t, cluster.ConfigEntryWrite(&api.MeshConfigEntry{
@@ -89,14 +90,21 @@ func TestTProxyPermissiveMTLS(t *testing.T) {
 	}))
 
 	// Validate mesh traffic to the virtual address succeeds in permissive mTLS mode.
-	assertHTTPRequestToStaticServerVirtual(t, clientService)
+	assertHTTPRequestToVirtualAddress(t, clientService, "static-server")
 	// Validate non-mesh traffic succeeds in permissive mode.
-	assertHTTPRequestToStaticServerServiceAddress(t, nonMeshPod, staticServerPod, true)
+	assertHTTPRequestToServiceAddress(t, nonMeshPod, staticServerPod, "static-server", true)
 }
 
-// assertHTTPRequestToStaticServerVirtual checks that a request to the static-server's
-// virtual address succeeds.
-func assertHTTPRequestToStaticServerVirtual(t *testing.T, clientService libservice.Service) {
+// assertHTTPRequestToVirtualAddress checks that a request to the
+// static-server's virtual address succeeds by running curl in the given
+// `clientService` container.
+//
+// This assumes the destination service is running Fortio. The request is made
+// to `<serverName>.virtual.consul/debug?env=dump` and this checks that
+// `FORTIO_NAME=<serverName>` is contained in the response.
+func assertHTTPRequestToVirtualAddress(t *testing.T, clientService libservice.Service, serverName string) {
+	virtualHostname := fmt.Sprintf("%s.virtual.consul", serverName)
+
 	retry.RunWith(requestRetryTimer, t, func(r *retry.R) {
 		// Test that we can make a request to the virtual ip to reach the upstream.
 		//
@@ -120,25 +128,30 @@ func assertHTTPRequestToStaticServerVirtual(t *testing.T, clientService libservi
 		// make the request as root.
 		out, err := clientService.Exec(
 			context.Background(),
-			[]string{"sudo", "sh", "-c", `
+			[]string{"sudo", "sh", "-c", fmt.Sprintf(`
 			set -e
-			VIRTUAL=$(dig @localhost +short static-server.virtual.consul)
+			VIRTUAL=$(dig @localhost +short %[1]s)
 			echo "Virtual IP: $VIRTUAL"
 			curl -s "$VIRTUAL/debug?env=dump"
-			`,
+			`, virtualHostname),
 			},
 		)
 		t.Logf("curl request to upstream virtual address\nerr = %v\nout = %s", err, out)
 		require.NoError(r, err)
 		require.Regexp(r, `Virtual IP: 240.0.0.\d+`, out)
-		require.Contains(r, out, "FORTIO_NAME=static-server")
+		require.Contains(r, out, fmt.Sprintf("FORTIO_NAME=%s", serverName))
 	})
 }
 
-// assertHTTPRequestToStaticServerServiceAddress checks the result of a request
-// from a non-mesh service to the static-server service. If expSuccess is true,
-// we check for a successful request, and otherwise check for a failed request.
-func assertHTTPRequestToStaticServerServiceAddress(t *testing.T, client, server libcluster.Agent, expSuccess bool) {
+// assertHTTPRequestToServiceAddress checks the result of a request from the
+// given `client` container to the given `server` container. If expSuccess is
+// true, this checks for a successful request and otherwise it checks for the
+// error we expect when traffic is rejected by mTLS.
+//
+// This assumes the destination service is running Fortio. It makes the request
+// to `<serverIP>:8080/debug?env=dump` and checks for `FORTIO_NAME=<expServiceName>`
+// in the response.
+func assertHTTPRequestToServiceAddress(t *testing.T, client, server libcluster.Agent, expServiceName string, expSuccess bool) {
 	upstreamURL := fmt.Sprintf("http://%s:8080/debug?env=dump", server.GetIP())
 	retry.RunWith(requestRetryTimer, t, func(r *retry.R) {
 		out, err := client.Exec(context.Background(), []string{"curl", "-s", upstreamURL})
@@ -146,7 +159,7 @@ func assertHTTPRequestToStaticServerServiceAddress(t *testing.T, client, server 
 
 		if expSuccess {
 			require.NoError(r, err)
-			require.Contains(r, out, "FORTIO_NAME=static-server")
+			require.Contains(r, out, fmt.Sprintf("FORTIO_NAME=%s", expServiceName))
 		} else {
 			require.Error(r, err)
 			require.Contains(r, err.Error(), "exit code 52")
@@ -171,7 +184,7 @@ func createCluster(t *testing.T, numClients int) *libcluster.Cluster {
 }
 
 // createServices creates the static-client and static-server services with
-// transparent proxy enabled.
+// transparent proxy enabled. It returns a Service for the static-client.
 func createServices(t *testing.T, cluster *libcluster.Cluster) libservice.Service {
 	{
 		node := cluster.Agents[1]
