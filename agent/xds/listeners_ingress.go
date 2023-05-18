@@ -29,15 +29,6 @@ func (s *ResourceGenerator) makeIngressGatewayListeners(address string, cfgSnap 
 			return nil, fmt.Errorf("no listener config found for listener on proto/port %s/%d", listenerKey.Protocol, listenerKey.Port)
 		}
 
-		var isAPIGatewayWithTLS bool
-		var certs []structs.InlineCertificateConfigEntry
-		if cfgSnap.APIGateway.ListenerCertificates != nil {
-			certs = cfgSnap.APIGateway.ListenerCertificates[listenerKey]
-		}
-		if certs != nil {
-			isAPIGatewayWithTLS = true
-		}
-
 		tlsContext, err := makeDownstreamTLSContextFromSnapshotListenerConfig(cfgSnap, listenerCfg)
 		if err != nil {
 			return nil, err
@@ -102,28 +93,6 @@ func (s *ResourceGenerator) makeIngressGatewayListeners(address string, cfgSnap 
 				filterChain,
 			}
 
-			if isAPIGatewayWithTLS {
-				// construct SNI filter chains
-				l.FilterChains, err = makeInlineOverrideFilterChains(cfgSnap, cfgSnap.IngressGateway.TLSConfig, listenerKey, listenerFilterOpts{
-					useRDS:     useRDS,
-					protocol:   listenerKey.Protocol,
-					routeName:  listenerKey.RouteName(),
-					cluster:    clusterName,
-					statPrefix: "ingress_upstream_",
-					accessLogs: &cfgSnap.Proxy.AccessLogs,
-					logger:     s.Logger,
-				}, certs)
-				if err != nil {
-					return nil, err
-				}
-				// add the tls inspector to do SNI introspection
-				tlsInspector, err := makeTLSInspectorListenerFilter()
-				if err != nil {
-					return nil, err
-				}
-				l.ListenerFilters = []*envoy_listener_v3.ListenerFilter{tlsInspector}
-			}
-
 			resources = append(resources, l)
 		} else {
 			// If multiple upstreams share this port, make a special listener for the protocol.
@@ -158,13 +127,6 @@ func (s *ResourceGenerator) makeIngressGatewayListeners(address string, cfgSnap 
 				return nil, err
 			}
 
-			if isAPIGatewayWithTLS {
-				sniFilterChains, err = makeInlineOverrideFilterChains(cfgSnap, cfgSnap.IngressGateway.TLSConfig, listenerKey, filterOpts, certs)
-				if err != nil {
-					return nil, err
-				}
-			}
-
 			// If there are any sni filter chains, we need a TLS inspector filter!
 			if len(sniFilterChains) > 0 {
 				tlsInspector, err := makeTLSInspectorListenerFilter()
@@ -178,7 +140,7 @@ func (s *ResourceGenerator) makeIngressGatewayListeners(address string, cfgSnap 
 
 			// See if there are other services that didn't have specific SNI-matching
 			// filter chains. If so add a default filterchain to serve them.
-			if len(sniFilterChains) < len(upstreams) && !isAPIGatewayWithTLS {
+			if len(sniFilterChains) < len(upstreams) {
 				defaultFilter, err := makeListenerFilter(filterOpts)
 				if err != nil {
 					return nil, err

@@ -57,10 +57,7 @@ func (s *ResourceGenerator) makeAPIGatewayListeners(address string, cfgSnap *pro
 
 		if listenerKey.Protocol == "tcp" {
 			// Find the upstream matching this listener
-			// TODO This might be simpler if getReadyUpstreams were keyed by listenerKey.
-			//   Today, it's keyed by route, which means a route attaching to multiple listeners
-			//   will have multiple ready upstreams, one for each listener. We aren't certain
-			//   if anything depends on the upstreams being grouped by route currently vs. listener.
+			// TODO update this block of code to match Nathan's change when its merged in
 			var u structs.Upstream
 			var uid proxycfg.UpstreamID
 			for _, upstream := range readyUpstreams.upstreams {
@@ -166,7 +163,8 @@ func (s *ResourceGenerator) makeAPIGatewayListeners(address string, cfgSnap *pro
 				logger:           s.Logger,
 			}
 
-			//TODO equivalent of makeSDSOverrideFilterChains
+			//TODO equivalent of makeSDSOverrideFilterChains, if needed
+
 			// Generate any filter chains needed for services with custom TLS certs
 			// via SDS.
 			sniFilterChains := []*envoy_listener_v3.FilterChain{}
@@ -191,7 +189,6 @@ func (s *ResourceGenerator) makeAPIGatewayListeners(address string, cfgSnap *pro
 
 			// See if there are other services that didn't have specific SNI-matching
 			// filter chains. If so add a default filterchain to serve them.
-			//TODO I'm not sure if we can delete this code block or not
 			if len(sniFilterChains) < len(readyUpstreams.upstreams) && !isAPIGatewayWithTLS {
 				defaultFilter, err := makeListenerFilter(filterOpts)
 				if err != nil {
@@ -262,17 +259,10 @@ func makeCommonTLSContextFromSnapshotAPIGatewayListenerConfig(cfgSnap *proxycfg.
 	return tlsContext, nil
 }
 
-// API-ified
-// TODO if multiple tls configuragtions are available, pass them in here to be consolidated
 func resolveAPIListenerTLSConfig(listenerTLSCfg structs.APIGatewayTLSConfiguration) (*structs.GatewayTLSConfig, error) {
 	var mergedCfg structs.GatewayTLSConfig
 
 	//TODO, handle SDS configuration , some equivalent of resolveListenerSDSConfig
-	//tracing through out code I think this is always going to be empty on our end, but I'm not sure if it needs
-	//to be initialized
-	//mergedCfg.SDS = &structs.GatewayTLSSDSConfig{}
-
-	//TODO check gateway config if needed? We might only be supporting listener tls at this time
 
 	if !listenerTLSCfg.IsEmpty() {
 		if listenerTLSCfg.MinVersion != types.TLSVersionUnspecified {
