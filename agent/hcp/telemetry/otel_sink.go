@@ -89,7 +89,7 @@ func NewOTELSink(opts *OTELSinkOpts) (*OTELSink, error) {
 
 	filterList, err := newFilterRegex(opts.Filters)
 	if err != nil {
-		logger.Error("Failed to initialize all filters: %w", err)
+		logger.Error("Failed to initialize all filters", "error", err)
 	}
 
 	attrs := make([]attribute.KeyValue, 0)
@@ -155,7 +155,7 @@ func (o *OTELSink) SetGaugeWithLabels(key []string, val float32, labels []gometr
 		// It must be explicitly de-registered to be removed (which we do not do), to ensure new gauge values are exported every cycle.
 		inst, err := (*o.meter).Float64ObservableGauge(k, otelmetric.WithFloat64Callback(o.gaugeStore.gaugeCallback(k)))
 		if err != nil {
-			o.logger.Error("Failed to emit gauge: %w", err)
+			o.logger.Error("Failed to create gauge instrument", "error", err)
 			return
 		}
 		o.gaugeInstruments[k] = inst
@@ -177,7 +177,7 @@ func (o *OTELSink) AddSampleWithLabels(key []string, val float32, labels []gomet
 	if !ok {
 		histogram, err := (*o.meter).Float64Histogram(k)
 		if err != nil {
-			o.logger.Error("Failed to emit gauge: %w", err)
+			o.logger.Error("Failed create histogram instrument", "error", err)
 			return
 		}
 		inst = histogram
@@ -203,7 +203,7 @@ func (o *OTELSink) IncrCounterWithLabels(key []string, val float32, labels []gom
 	if !ok {
 		counter, err := (*o.meter).Float64Counter(k)
 		if err != nil {
-			o.logger.Error("Failed to emit gauge: %w", err)
+			o.logger.Error("Failed to create counter instrument:", "error", err)
 			return
 		}
 
