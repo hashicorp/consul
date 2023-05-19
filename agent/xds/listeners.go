@@ -228,6 +228,15 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 		endpoints := cfgSnap.ConnectProxy.WatchedUpstreamEndpoints[uid][chain.ID()]
 		uniqueAddrs := make(map[string]struct{})
 
+		if chain.Partition == cfgSnap.ProxyID.PartitionOrDefault() {
+			for _, ip := range chain.AutoVirtualIPs {
+				uniqueAddrs[ip] = struct{}{}
+			}
+			for _, ip := range chain.ManualVirtualIPs {
+				uniqueAddrs[ip] = struct{}{}
+			}
+		}
+
 		// Match on the virtual IP for the upstream service (identified by the chain's ID).
 		// We do not match on all endpoints here since it would lead to load balancing across
 		// all instances when any instance address is dialed.
