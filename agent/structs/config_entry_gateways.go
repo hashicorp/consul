@@ -912,7 +912,7 @@ type APIGatewayTLSConfiguration struct {
 	CipherSuites []types.TLSCipherSuite
 }
 
-// IsEmpty returns if struct is empty because field isn't currently nullable
+// IsEmpty returns true if all values in the struct are nil or empty.
 func (a *APIGatewayTLSConfiguration) IsEmpty() bool {
 	return len(a.Certificates) == 0 && len(a.MaxVersion) == 0 && len(a.MinVersion) == 0 && len(a.CipherSuites) == 0
 }
