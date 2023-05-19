@@ -195,9 +195,9 @@ func makeRemoteJWKS(r *structs.RemoteJWKS) (*envoy_http_jwt_authn_v3.JwtProvider
 }
 
 func buildJWTRetryPolicy(r *structs.JWKSRetryPolicy) *envoy_core_v3.RetryPolicy {
-	var pol *envoy_core_v3.RetryPolicy
+	var pol envoy_core_v3.RetryPolicy
 	if r == nil {
-		return pol
+		return nil
 	}
 
 	if r.RetryPolicyBackOff != nil {
@@ -211,7 +211,7 @@ func buildJWTRetryPolicy(r *structs.JWKSRetryPolicy) *envoy_core_v3.RetryPolicy 
 		Value: uint32(r.NumRetries),
 	}
 
-	return pol
+	return &pol
 }
 
 func buildRouteRule(provider *structs.IntentionJWTProvider, perm *structs.IntentionPermission, defaultPrefix string) *envoy_http_jwt_authn_v3.RequirementRule {
