@@ -445,6 +445,9 @@ func (h *handlerAPIGateway) recompileDiscoveryChains(snap *ConfigSnapshot) error
 
 		for i, service := range services {
 			id := NewUpstreamIDFromServiceName(structs.NewServiceName(service.Name, &service.EnterpriseMeta))
+			if compiled[i].ServiceName != service.Name {
+				return fmt.Errorf("Compiled Discovery chain for %s does not match service %s", compiled[i].ServiceName, id)
+			}
 			synthesizedChains[id] = compiled[i]
 		}
 	}
