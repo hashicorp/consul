@@ -463,7 +463,7 @@ func (s *ResourceGenerator) routesForAPIGateway(cfgSnap *proxycfg.ConfigSnapshot
 		for _, flattenedRoute := range flattenedRoutes {
 			flattenedRoute := flattenedRoute
 
-			upstream := discoverychain.RebuildHTTPRouteUpstream(flattenedRoute, listenerCfg)
+			upstream := buildHTTPRouteUpstream(flattenedRoute, listenerCfg)
 			uid := proxycfg.NewUpstreamID(&upstream)
 			chain := cfgSnap.APIGateway.DiscoveryChain[uid]
 			if chain == nil {
@@ -492,6 +492,19 @@ func (s *ResourceGenerator) routesForAPIGateway(cfgSnap *proxycfg.ConfigSnapshot
 	}
 
 	return result, nil
+}
+
+func buildHTTPRouteUpstream(route structs.HTTPRouteConfigEntry, listener structs.APIGatewayListener) structs.Upstream {
+	return structs.Upstream{
+		DestinationName:      route.GetName(),
+		DestinationNamespace: route.NamespaceOrDefault(),
+		DestinationPartition: route.PartitionOrDefault(),
+		IngressHosts:         route.Hostnames,
+		LocalBindPort:        listener.Port,
+		Config: map[string]interface{}{
+			"protocol": string(listener.Protocol),
+		},
+	}
 }
 
 func makeHeadersValueOptions(vals map[string]string, add bool) []*envoy_core_v3.HeaderValueOption {
