@@ -463,7 +463,7 @@ func (s *ResourceGenerator) routesForAPIGateway(cfgSnap *proxycfg.ConfigSnapshot
 		for _, flattenedRoute := range flattenedRoutes {
 			flattenedRoute := flattenedRoute
 
-			upstream := discoverychain.RebuildHTTPRouteUpstream(flattenedRoute, listenerCfg)
+			upstream := discoverychain.BuildHTTPRouteUpstream(flattenedRoute, listenerCfg)
 			uid := proxycfg.NewUpstreamID(&upstream)
 			chain := cfgSnap.APIGateway.DiscoveryChain[uid]
 			if chain == nil {
