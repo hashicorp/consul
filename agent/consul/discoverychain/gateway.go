@@ -217,7 +217,7 @@ func RebuildHTTPRouteUpstream(route structs.HTTPRouteConfigEntry, listener struc
 	}
 }
 
-// ConsolidateHTTPRoutes combines all rules into the shortest possible list of routes
+// consolidateHTTPRoutes combines all rules into the shortest possible list of routes
 // with one route per hostname containing all rules for that hostname.
 func consolidateHTTPRoutes(matchesByHostname map[string][]hostnameMatch, suffix string, gateway *structs.APIGatewayConfigEntry) []structs.HTTPRouteConfigEntry {
 	var routes []structs.HTTPRouteConfigEntry
