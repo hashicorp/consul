@@ -120,33 +120,15 @@ func (r *workloadHealthReconciler) Reconcile(ctx context.Context, rt controller.
 		health = workloadHealth
 	}
 
-	statusState := pbresource.Condition_STATE_TRUE
-	if health != pbcatalog.Health_HEALTH_PASSING {
-		statusState = pbresource.Condition_STATE_FALSE
-	}
-
-	message := WorkloadHealthyMessage
+	condition := WorkloadConditions[workloadHealth]
 	if workload.NodeName != "" {
-		message = NodeAndWorkloadHealthyMessage
-	}
-	switch {
-	case workloadHealth != pbcatalog.Health_HEALTH_PASSING && nodeHealth != pbcatalog.Health_HEALTH_PASSING:
-		message = NodeAndWorkloadUnhealthyMessage
-	case workloadHealth != pbcatalog.Health_HEALTH_PASSING:
-		message = WorkloadUnhealthyMessage
-	case nodeHealth != pbcatalog.Health_HEALTH_PASSING:
-		message = nodehealth.NodeUnhealthyMessage
+		condition = NodeAndWorkloadConditions[workloadHealth][nodeHealth]
 	}
 
 	newStatus := &pbresource.Status{
 		ObservedGeneration: res.Generation,
 		Conditions: []*pbresource.Condition{
-			{
-				Type:    StatusConditionHealthy,
-				State:   statusState,
-				Reason:  health.String(),
-				Message: message,
-			},
+			condition,
 		},
 	}
 

@@ -1,0 +1,46 @@
+{
+   "id": {
+      "type": {
+         "group": "catalog",
+         "group_version": "v1alpha1",
+         "kind": "Workload"
+      },
+      "tenancy": {
+         "partition": "default",
+         "namespace": "default",
+         "peer_name": "local"
+      },
+      "name": "api-14"
+   },
+   "data": {
+      "@type": "hashicorp.consul.catalog.v1alpha1.Workload",
+      "addresses": [
+         {
+            "host": "172.16.1.14"
+         },
+         {
+            "host": "198.18.2.14",
+            "external": true,
+            "ports": [
+               "mesh"
+            ]
+         }
+      ],
+      "ports": {
+         "http": {
+            "port": 8080,
+            "protocol": "PROTOCOL_HTTP"
+         },
+         "grpc": {
+            "port": 9090,
+            "protocol": "PROTOCOL_GRPC"
+         },
+         "mesh": {
+            "port": 10000,
+            "protocol": "PROTOCOL_MESH"
+         }
+      },
+      "identity": "api",
+      "node_name": "node-4"
+   }
+}
