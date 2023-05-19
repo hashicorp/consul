@@ -92,7 +92,7 @@ func NewOTELSink(opts *OTELSinkOpts) (*OTELSink, error) {
 		logger.Error("Failed to initialize all filters", "error", err)
 	}
 
-	attrs := make([]attribute.KeyValue, 0)
+	attrs := make([]attribute.KeyValue, 0, len(opts.Labels))
 	for k, v := range opts.Labels {
 		kv := attribute.KeyValue{
 			Key:   attribute.Key(k),
