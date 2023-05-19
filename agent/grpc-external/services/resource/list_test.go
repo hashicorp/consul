@@ -20,11 +20,6 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/testing/protocmp"
-)
-
-var (
-	ignoreVersion = protocmp.IgnoreFields(&pbresource.Resource{}, "version")
 )
 
 func TestList_InputValidation(t *testing.T) {
