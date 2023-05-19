@@ -62,17 +62,16 @@ func TestEnvoyExtenderWithSnapshot(t *testing.T) {
 		}
 	}
 
-	makeLuaServiceDefaults := func(inbound bool) *structs.ServiceConfigEntry {
+	// Apply Lua extension to the local service and ensure http is used so the extension can be applied.
+	makeLuaNsFunc := func(inbound bool) func(ns *structs.NodeService) {
 		listener := "inbound"
 		if !inbound {
 			listener = "outbound"
 		}
 
-		return &structs.ServiceConfigEntry{
-			Kind:     structs.ServiceDefaults,
-			Name:     "db",
-			Protocol: "http",
-			EnvoyExtensions: []structs.EnvoyExtension{
+		return func(ns *structs.NodeService) {
+			ns.Proxy.Config["protocol"] = "http"
+			ns.Proxy.EnvoyExtensions = []structs.EnvoyExtension{
 				{
 					Name: api.BuiltinLuaExtension,
 					Arguments: map[string]interface{}{
@@ -84,7 +83,7 @@ function envoy_on_request(request_handle)
 end`,
 					},
 				},
-			},
+			}
 		}
 	}
 
@@ -130,57 +129,47 @@ end`,
 			create: proxycfg.TestConfigSnapshotTerminatingGatewayWithLambdaServiceAndServiceResolvers,
 		},
 		{
-			name: "lua-outbound-applies-to-upstreams",
+			name: "lua-outbound-applies-to-local-upstreams",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", false, nil, nil, makeLuaServiceDefaults(false))
+				// upstreams need to be http in order for lua to be applied to listeners.
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", false, makeLuaNsFunc(false), nil, &structs.ServiceConfigEntry{
+					Kind:     structs.ServiceDefaults,
+					Name:     "db",
+					Protocol: "http",
+				}, &structs.ServiceConfigEntry{
+					Kind:     structs.ServiceDefaults,
+					Name:     "geo-cache",
+					Protocol: "http",
+				})
 			},
 		},
 		{
-			name: "lua-inbound-doesnt-applies-to-upstreams",
+			// We expect an inbound public listener lua filter here because the extension targets inbound.
+			// The only difference between goldens for this and lua-inbound-applies-to-inbound
+			// should be that db has HTTP filters rather than TCP.
+			name: "lua-inbound-doesnt-apply-to-local-upstreams",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", false, nil, nil, makeLuaServiceDefaults(true))
+				// db is made an HTTP upstream so that the extension _could_ apply, but does not because
+				// the direction for the extension is inbound.
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", false, makeLuaNsFunc(true), nil, &structs.ServiceConfigEntry{
+					Kind:     structs.ServiceDefaults,
+					Name:     "db",
+					Protocol: "http",
+				})
 			},
 		},
 		{
 			name: "lua-inbound-applies-to-inbound",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
-					ns.Proxy.Config["protocol"] = "http"
-					ns.Proxy.EnvoyExtensions = []structs.EnvoyExtension{
-						{
-							Name: api.BuiltinLuaExtension,
-							Arguments: map[string]interface{}{
-								"ProxyType": "connect-proxy",
-								"Listener":  "inbound",
-								"Script": `
-function envoy_on_request(request_handle)
-  request_handle:headers():add("test", "test")
-end`,
-							},
-						},
-					}
-				}, nil)
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", false, makeLuaNsFunc(true), nil)
 			},
 		},
 		{
+			// We expect _no_ lua filters here, because the extension targets outbound, but there are
+			// no upstream HTTP services. We also should not see public listener, which is HTTP, patched.
 			name: "lua-outbound-doesnt-apply-to-inbound",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
-					ns.Proxy.Config["protocol"] = "http"
-					ns.Proxy.EnvoyExtensions = []structs.EnvoyExtension{
-						{
-							Name: api.BuiltinLuaExtension,
-							Arguments: map[string]interface{}{
-								"ProxyType": "connect-proxy",
-								"Listener":  "outbound",
-								"Script": `
-function envoy_on_request(request_handle)
-  request_handle:headers():add("test", "test")
-end`,
-							},
-						},
-					}
-				}, nil)
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", false, makeLuaNsFunc(false), nil)
 			},
 		},
 		{

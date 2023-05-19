@@ -78,7 +78,8 @@ func Validate(indexedResources *xdscommon.IndexedResources, envoyID string, vip 
 				"envoyID": envoyID,
 			},
 		},
-		ServiceName: emptyServiceKey,
+		ServiceName:           emptyServiceKey,
+		IsSourcedFromUpstream: true,
 		Upstreams: map[api.CompoundServiceName]*extensioncommon.UpstreamData{
 			emptyServiceKey: {
 				VIP: vip,
@@ -92,12 +93,12 @@ func Validate(indexedResources *xdscommon.IndexedResources, envoyID string, vip 
 		},
 		Kind: api.ServiceKindConnectProxy,
 	}
-	basicExtension, err := validate.MakeValidate(extConfig)
+	ext, err := validate.MakeValidate(extConfig)
 	if err != nil {
 		return []validate.Message{{Message: err.Error()}}
 	}
-	extender := extensioncommon.BasicEnvoyExtender{
-		Extension: basicExtension,
+	extender := extensioncommon.UpstreamEnvoyExtender{
+		Extension: ext,
 	}
 	err = extender.Validate(&extConfig)
 	if err != nil {

@@ -86,7 +86,7 @@ func TestConstructor(t *testing.T) {
 
 			if tc.ok {
 				require.NoError(t, err)
-				require.Equal(t, &extensioncommon.BasicEnvoyExtender{Extension: &tc.expected}, e)
+				require.Equal(t, &extensioncommon.UpstreamEnvoyExtender{Extension: &tc.expected}, e)
 			} else {
 				require.Error(t, err)
 			}
@@ -323,10 +323,11 @@ func TestPatchFilter(t *testing.T) {
 		return v
 	}
 	tests := map[string]struct {
-		filter       *envoy_listener_v3.Filter
-		expectFilter *envoy_listener_v3.Filter
-		expectBool   bool
-		expectErr    string
+		filter          *envoy_listener_v3.Filter
+		isInboundFilter bool
+		expectFilter    *envoy_listener_v3.Filter
+		expectBool      bool
+		expectErr       string
 	}{
 		"invalid filter name is ignored": {
 			filter:       &envoy_listener_v3.Filter{Name: "something"},
@@ -416,6 +417,36 @@ func TestPatchFilter(t *testing.T) {
 			},
 			expectBool: true,
 		},
+		"inbound filter ignored": {
+			filter: &envoy_listener_v3.Filter{
+				Name: "envoy.filters.network.http_connection_manager",
+				ConfigType: &envoy_listener_v3.Filter_TypedConfig{
+					TypedConfig: makeAny(&envoy_http_v3.HttpConnectionManager{
+						HttpFilters: []*envoy_http_v3.HttpFilter{
+							{Name: "one"},
+							{Name: "two"},
+							{Name: "envoy.filters.http.router"},
+							{Name: "three"},
+						},
+					}),
+				},
+			},
+			expectFilter: &envoy_listener_v3.Filter{
+				Name: "envoy.filters.network.http_connection_manager",
+				ConfigType: &envoy_listener_v3.Filter_TypedConfig{
+					TypedConfig: makeAny(&envoy_http_v3.HttpConnectionManager{
+						HttpFilters: []*envoy_http_v3.HttpFilter{
+							{Name: "one"},
+							{Name: "two"},
+							{Name: "envoy.filters.http.router"},
+							{Name: "three"},
+						},
+					}),
+				},
+			},
+			isInboundFilter: true,
+			expectBool:      false,
+		},
 	}
 
 	for name, tc := range tests {
@@ -425,7 +456,7 @@ func TestPatchFilter(t *testing.T) {
 				PayloadPassthrough: true,
 				InvocationMode:     "asynchronous",
 			}
-			f, ok, err := l.PatchFilter(nil, tc.filter)
+			f, ok, err := l.PatchFilter(nil, tc.filter, tc.isInboundFilter)
 			require.Equal(t, tc.expectBool, ok)
 			if tc.expectErr == "" {
 				require.NoError(t, err)

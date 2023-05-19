@@ -5,8 +5,6 @@ package extensioncommon
 
 import (
 	"fmt"
-	"strings"
-
 	envoy_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	envoy_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
@@ -37,7 +35,7 @@ type BasicExtension interface {
 
 	// PatchFilter patches an Envoy filter to include the custom Envoy
 	// configuration required to integrate with the built in extension template.
-	PatchFilter(*RuntimeConfig, *envoy_listener_v3.Filter) (*envoy_listener_v3.Filter, bool, error)
+	PatchFilter(cfg *RuntimeConfig, f *envoy_listener_v3.Filter, isInboundListener bool) (*envoy_listener_v3.Filter, bool, error)
 }
 
 var _ EnvoyExtender = (*BasicEnvoyExtender)(nil)
@@ -48,12 +46,18 @@ type BasicEnvoyExtender struct {
 	Extension BasicExtension
 }
 
-func (envoyExtension *BasicEnvoyExtender) Validate(config *RuntimeConfig) error {
+func (b *BasicEnvoyExtender) Validate(_ *RuntimeConfig) error {
 	return nil
 }
 
-func (envoyExtender *BasicEnvoyExtender) Extend(resources *xdscommon.IndexedResources, config *RuntimeConfig) (*xdscommon.IndexedResources, error) {
+func (b *BasicEnvoyExtender) Extend(resources *xdscommon.IndexedResources, config *RuntimeConfig) (*xdscommon.IndexedResources, error) {
 	var resultErr error
+
+	// We don't support patching the local proxy with an upstream's config except in special
+	// cases supported by UpstreamEnvoyExtender.
+	if config.IsSourcedFromUpstream {
+		return nil, fmt.Errorf("%q extension applied as local config but is sourced from an upstream of the local service", config.EnvoyExtension.Name)
+	}
 
 	switch config.Kind {
 	case api.ServiceKindTerminatingGateway, api.ServiceKindConnectProxy:
@@ -61,7 +65,7 @@ func (envoyExtender *BasicEnvoyExtender) Extend(resources *xdscommon.IndexedReso
 		return resources, nil
 	}
 
-	if !envoyExtender.Extension.CanApply(config) {
+	if !b.Extension.CanApply(config) {
 		return resources, nil
 	}
 
@@ -73,19 +77,7 @@ func (envoyExtender *BasicEnvoyExtender) Extend(resources *xdscommon.IndexedReso
 		for nameOrSNI, msg := range resources.Index[indexType] {
 			switch resource := msg.(type) {
 			case *envoy_cluster_v3.Cluster:
-				// If the Envoy extension configuration is for an upstream service, the Cluster's
-				// name must match the upstream service's SNI.
-				if config.IsUpstream() && !config.MatchesUpstreamServiceSNI(nameOrSNI) {
-					continue
-				}
-
-				// If the extension's config is for an an inbound listener, the Cluster's name
-				// must be xdscommon.LocalAppClusterName.
-				if !config.IsUpstream() && nameOrSNI == xdscommon.LocalAppClusterName {
-					continue
-				}
-
-				newCluster, patched, err := envoyExtender.Extension.PatchCluster(config, resource)
+				newCluster, patched, err := b.Extension.PatchCluster(config, resource)
 				if err != nil {
 					resultErr = multierror.Append(resultErr, fmt.Errorf("error patching cluster: %w", err))
 					continue
@@ -95,7 +87,7 @@ func (envoyExtender *BasicEnvoyExtender) Extend(resources *xdscommon.IndexedReso
 				}
 
 			case *envoy_listener_v3.Listener:
-				newListener, patched, err := envoyExtender.patchListener(config, resource)
+				newListener, patched, err := b.patchListener(config, resource)
 				if err != nil {
 					resultErr = multierror.Append(resultErr, fmt.Errorf("error patching listener: %w", err))
 					continue
@@ -105,19 +97,7 @@ func (envoyExtender *BasicEnvoyExtender) Extend(resources *xdscommon.IndexedReso
 				}
 
 			case *envoy_route_v3.RouteConfiguration:
-				// If the Envoy extension configuration is for an upstream service, the route's
-				// name must match the upstream service's Envoy ID.
-				matchesEnvoyID := config.EnvoyID() == nameOrSNI
-				if config.IsUpstream() && !config.MatchesUpstreamServiceSNI(nameOrSNI) && !matchesEnvoyID {
-					continue
-				}
-
-				// There aren't routes for inbound services.
-				if !config.IsUpstream() {
-					continue
-				}
-
-				newRoute, patched, err := envoyExtender.Extension.PatchRoute(config, resource)
+				newRoute, patched, err := b.Extension.PatchRoute(config, resource)
 				if err != nil {
 					resultErr = multierror.Append(resultErr, fmt.Errorf("error patching route: %w", err))
 					continue
@@ -134,40 +114,25 @@ func (envoyExtender *BasicEnvoyExtender) Extend(resources *xdscommon.IndexedReso
 	return resources, resultErr
 }
 
-func (envoyExtension BasicEnvoyExtender) patchListener(config *RuntimeConfig, l *envoy_listener_v3.Listener) (proto.Message, bool, error) {
+func (b *BasicEnvoyExtender) patchListener(config *RuntimeConfig, l *envoy_listener_v3.Listener) (proto.Message, bool, error) {
 	switch config.Kind {
 	case api.ServiceKindTerminatingGateway:
-		return envoyExtension.patchTerminatingGatewayListener(config, l)
+		return b.patchTerminatingGatewayListener(config, l)
 	case api.ServiceKindConnectProxy:
-		return envoyExtension.patchConnectProxyListener(config, l)
+		return b.patchConnectProxyListener(config, l)
 	}
 	return l, false, nil
 }
 
-func (b BasicEnvoyExtender) patchTerminatingGatewayListener(config *RuntimeConfig, l *envoy_listener_v3.Listener) (proto.Message, bool, error) {
-	// We don't support directly targeting terminating gateways with extensions.
-	if !config.IsUpstream() {
-		return l, false, nil
-	}
-
+func (b *BasicEnvoyExtender) patchTerminatingGatewayListener(config *RuntimeConfig, l *envoy_listener_v3.Listener) (proto.Message, bool, error) {
 	var resultErr error
 	patched := false
+
 	for _, filterChain := range l.FilterChains {
-		sni := getSNI(filterChain)
-
-		if sni == "" {
-			continue
-		}
-
-		// The filter chain's SNI must match the upstream service's SNI.
-		if !config.MatchesUpstreamServiceSNI(sni) {
-			continue
-		}
-
 		var filters []*envoy_listener_v3.Filter
 
 		for _, filter := range filterChain.Filters {
-			newFilter, ok, err := b.Extension.PatchFilter(config, filter)
+			newFilter, ok, err := b.Extension.PatchFilter(config, filter, IsInboundPublicListener(l))
 
 			if err != nil {
 				resultErr = multierror.Append(resultErr, fmt.Errorf("error patching listener filter: %w", err))
@@ -187,37 +152,19 @@ func (b BasicEnvoyExtender) patchTerminatingGatewayListener(config *RuntimeConfi
 	return l, patched, resultErr
 }
 
-func (b BasicEnvoyExtender) patchConnectProxyListener(config *RuntimeConfig, l *envoy_listener_v3.Listener) (proto.Message, bool, error) {
+func (b *BasicEnvoyExtender) patchConnectProxyListener(config *RuntimeConfig, l *envoy_listener_v3.Listener) (proto.Message, bool, error) {
 	var resultErr error
+	patched := false
 
-	envoyID := ""
-	if i := strings.IndexByte(l.Name, ':'); i != -1 {
-		envoyID = l.Name[:i]
-	}
-
-	if config.IsUpstream() && envoyID == xdscommon.OutboundListenerName {
+	if IsOutboundTProxyListener(l) {
 		return b.patchTProxyListener(config, l)
 	}
 
-	// If the Envoy extension configuration is for an upstream service, the listener's
-	// name must match the upstream service's EnvoyID or be the outbound listener.
-	if config.IsUpstream() && envoyID != config.EnvoyID() {
-		return l, false, nil
-	}
-
-	// If the Envoy extension configuration is for inbound resources, the
-	// listener must be named xdscommon.PublicListenerName.
-	if !config.IsUpstream() && envoyID != xdscommon.PublicListenerName {
-		return l, false, nil
-	}
-
-	var patched bool
-
 	for _, filterChain := range l.FilterChains {
 		var filters []*envoy_listener_v3.Filter
 
 		for _, filter := range filterChain.Filters {
-			newFilter, ok, err := b.Extension.PatchFilter(config, filter)
+			newFilter, ok, err := b.Extension.PatchFilter(config, filter, IsInboundPublicListener(l))
 			if err != nil {
 				resultErr = multierror.Append(resultErr, fmt.Errorf("error patching listener filter: %w", err))
 				filters = append(filters, filter)
@@ -237,7 +184,7 @@ func (b BasicEnvoyExtender) patchConnectProxyListener(config *RuntimeConfig, l *
 	return l, patched, resultErr
 }
 
-func (b BasicEnvoyExtender) patchTProxyListener(config *RuntimeConfig, l *envoy_listener_v3.Listener) (proto.Message, bool, error) {
+func (b *BasicEnvoyExtender) patchTProxyListener(config *RuntimeConfig, l *envoy_listener_v3.Listener) (proto.Message, bool, error) {
 	var resultErr error
 	patched := false
 
@@ -252,7 +199,7 @@ func (b BasicEnvoyExtender) patchTProxyListener(config *RuntimeConfig, l *envoy_
 		}
 
 		for _, filter := range filterChain.Filters {
-			newFilter, ok, err := b.Extension.PatchFilter(config, filter)
+			newFilter, ok, err := b.Extension.PatchFilter(config, filter, IsInboundPublicListener(l))
 			if err != nil {
 				resultErr = multierror.Append(resultErr, fmt.Errorf("error patching listener filter: %w", err))
 				filters = append(filters, filter)
