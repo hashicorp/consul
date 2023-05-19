@@ -199,7 +199,6 @@ func (l *GatewayChainSynthesizer) consolidateHTTPRoutes() []structs.HTTPRouteCon
 
 // FlattenHTTPRoute takes in a route and its parent config entries and returns a list of flattened routes
 func FlattenHTTPRoute(route *structs.HTTPRouteConfigEntry, listener *structs.APIGatewayListener, gateway *structs.APIGatewayConfigEntry) []structs.HTTPRouteConfigEntry {
-	//build map[string][]hostnameMatch for route
 	matches := map[string][]hostnameMatch{}
 	matches = getHostMatches(listener.GetHostname(), route, matches)
 	return consolidateHTTPRoutes(matches, listener.Name, gateway)
