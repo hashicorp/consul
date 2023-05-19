@@ -21,6 +21,9 @@ func makeJWTAuthFilter(pCE map[string]*structs.JWTProviderConfigEntry, intention
 	var rules []*envoy_http_jwt_authn_v3.RequirementRule
 
 	for _, intention := range intentions {
+		if intention.JWT == nil && !hasJWTconfig(intention.Permissions) {
+			continue
+		}
 		for _, jwtReq := range collectJWTRequirements(intention) {
 			if _, ok := providers[jwtReq.Name]; ok {
 				continue
