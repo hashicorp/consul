@@ -27,27 +27,23 @@ func (s *ResourceGenerator) makeAPIGatewayListeners(address string, cfgSnap *pro
 		listenerKey := readyUpstreams.listenerKey
 		boundListener := readyUpstreams.boundListenerCfg
 
-		//TODO I'm positive this doesn't go here but I'm just trying to get this thing to work
-		if cfgSnap.APIGateway.ListenerCertificates == nil {
-			cfgSnap.APIGateway.ListenerCertificates = make(map[proxycfg.IngressListenerKey][]structs.InlineCertificateConfigEntry)
-		}
+		//TODO, it's possible that this can be pulled off of the snapshot APIGateway.ListenerCertificates
+		// if that value is being appropriately updated	so we don't have to build this out every time
+		certificates := make(map[proxycfg.IngressListenerKey][]structs.InlineCertificateConfigEntry)
 
 		for _, certRef := range boundListener.Certificates {
 			cert, ok := cfgSnap.APIGateway.Certificates.Get(certRef)
 			if !ok {
 				continue
 			}
-			cfgSnap.APIGateway.ListenerCertificates[listenerKey] = append(cfgSnap.APIGateway.ListenerCertificates[listenerKey], *cert)
+			certificates[listenerKey] = append(certificates[listenerKey], *cert)
 		}
 
-		var isAPIGatewayWithTLS bool
 		var certs []structs.InlineCertificateConfigEntry
-		if cfgSnap.APIGateway.ListenerCertificates != nil {
-			certs = cfgSnap.APIGateway.ListenerCertificates[listenerKey]
+		if certificates != nil {
+			certs = certificates[listenerKey]
 		}
-		if certs != nil {
-			isAPIGatewayWithTLS = true
-		}
+		isAPIGatewayWithTLS := certs != nil
 
 		tlsContext, err := makeDownstreamTLSContextFromSnapshotAPIListenerConfig(cfgSnap, listenerCfg)
 		if err != nil {
@@ -159,7 +155,7 @@ func (s *ResourceGenerator) makeAPIGatewayListeners(address string, cfgSnap *pro
 				logger:           s.Logger,
 			}
 
-			//TODO equivalent of makeSDSOverrideFilterChains, if needed
+			//TODO equivalent of makeSDSOverrideFilterChains, when needed
 
 			// Generate any filter chains needed for services with custom TLS certs
 			// via SDS.
@@ -242,7 +238,6 @@ func makeCommonTLSContextFromSnapshotAPIGatewayListenerConfig(cfgSnap *proxycfg.
 		return nil, err
 	}
 
-	//TODO do we have an equivalent of Enabled field for API Gateway
 	connectTLSEnabled := (!listenerCfg.TLS.IsEmpty())
 
 	if tlsCfg.SDS != nil {
@@ -257,8 +252,6 @@ func makeCommonTLSContextFromSnapshotAPIGatewayListenerConfig(cfgSnap *proxycfg.
 
 func resolveAPIListenerTLSConfig(listenerTLSCfg structs.APIGatewayTLSConfiguration) (*structs.GatewayTLSConfig, error) {
 	var mergedCfg structs.GatewayTLSConfig
-
-	//TODO, handle SDS configuration , some equivalent of resolveListenerSDSConfig
 
 	if !listenerTLSCfg.IsEmpty() {
 		if listenerTLSCfg.MinVersion != types.TLSVersionUnspecified {
@@ -301,29 +294,6 @@ func routeNameForAPIGatewayUpstream(l structs.IngressListener, s structs.Ingress
 	}
 	return fmt.Sprintf("%s_%s", key.RouteName(), svcIdentifier)
 }
-
-//TODO Delete, this is a reference
-//func (c *configSnapshotAPIGateway) toIngressTLS(key IngressListenerKey, listener structs.APIGatewayListener, bound structs.BoundAPIGatewayListener) (*structs.GatewayTLSConfig, error) {
-//	if len(listener.TLS.Certificates) == 0 {
-//		return nil, nil
-//	}
-//
-//	for _, certRef := range bound.Certificates {
-//		cert, ok := c.Certificates.Get(certRef)
-//		if !ok {
-//			continue
-//		}
-//		c.ListenerCertificates[key] = append(c.ListenerCertificates[key], *cert)
-//	}
-//
-//	return &structs.GatewayTLSConfig{
-//		Enabled:       true,
-//		TLSMinVersion: listener.TLS.MinVersion,
-//		TLSMaxVersion: listener.TLS.MaxVersion,
-//		CipherSuites:  listener.TLS.CipherSuites,
-//	}, nil
-//}
-//
 
 // when we have multiple certificates on a single listener, we need
 // to duplicate the filter chains with multiple TLS contexts
