@@ -99,10 +99,10 @@ func TestList_Many(t *testing.T) {
 				// Prevent test flakes if the generated names collide.
 				artist.Id.Name = fmt.Sprintf("%s-%d", artist.Id.Name, i)
 
-				_, err = server.Backend.WriteCAS(tc.ctx, artist)
+				rsp, err := client.Write(tc.ctx, &pbresource.WriteRequest{Resource: artist})
 				require.NoError(t, err)
 
-				resources[i] = artist
+				resources[i] = rsp.Resource
 			}
 
 			rsp, err := client.List(tc.ctx, &pbresource.ListRequest{
@@ -111,7 +111,7 @@ func TestList_Many(t *testing.T) {
 				NamePrefix: "",
 			})
 			require.NoError(t, err)
-			prototest.AssertElementsMatch(t, resources, rsp.Resources, ignoreVersion)
+			prototest.AssertElementsMatch(t, resources, rsp.Resources)
 		})
 	}
 }
