@@ -45,6 +45,10 @@ func diffElements[V any](
 		return ""
 	}
 
+	if len(listX) != len(listY) {
+		return cmp.Diff(listX, listY, opts...)
+	}
+
 	opts = append(opts, protocmp.Transform())
 
 	// dump into a map keyed by sliceID

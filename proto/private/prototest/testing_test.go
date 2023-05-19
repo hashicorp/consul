@@ -53,6 +53,10 @@ func TestDiffElements_noProtobufs(t *testing.T) {
 			a: []*wrap{w(1), w(22), w(303), w(43004), w(-5)},
 			b: []*wrap{w(-5), w(43004), w(303), w(22), w(1)},
 		},
+		"duplicates": {
+			a: []*wrap{w(1), w(2), w(2), w(3)},
+			b: []*wrap{w(2), w(1), w(3), w(2)},
+		},
 		// no match
 		"1 vs nil": {
 			a:       []*wrap{w(1)},
@@ -72,6 +76,11 @@ func TestDiffElements_noProtobufs(t *testing.T) {
 		"1,2 vs 1,2,3": {
 			a:       []*wrap{w(1), w(2)},
 			b:       []*wrap{w(1), w(2), w(3)},
+			notSame: true,
+		},
+		"duplicates omitted": {
+			a:       []*wrap{w(1), w(2), w(2), w(3)},
+			b:       []*wrap{w(1), w(3), w(2)},
 			notSame: true,
 		},
 	}
