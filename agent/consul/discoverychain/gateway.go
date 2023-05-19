@@ -59,7 +59,6 @@ func (l *GatewayChainSynthesizer) SetHostname(hostname string) {
 // single hostname can be specified in multiple routes. Routing for a given
 // hostname must behave based on the aggregate of all rules that apply to it.
 func (l *GatewayChainSynthesizer) AddHTTPRoute(route structs.HTTPRouteConfigEntry) {
-	//TODO maps are pointers in golang, might not need to set it like this, test later
 	l.matchesByHostname = getHostMatches(l.hostname, &route, l.matchesByHostname)
 }
 
