@@ -20,6 +20,11 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/testing/protocmp"
+)
+
+var (
+	ignoreVersion = protocmp.IgnoreFields(&pbresource.Resource{}, "version")
 )
 
 func TestList_InputValidation(t *testing.T) {
@@ -80,12 +85,6 @@ func TestList_Empty(t *testing.T) {
 }
 
 func TestList_Many(t *testing.T) {
-	removeVersions := func(resources []*pbresource.Resource) {
-		for _, res := range resources {
-			res.Version = "" // ignore for test comparisons
-		}
-	}
-
 	for desc, tc := range listTestCases() {
 		t.Run(desc, func(t *testing.T) {
 			server := testServer(t)
@@ -112,10 +111,7 @@ func TestList_Many(t *testing.T) {
 				NamePrefix: "",
 			})
 			require.NoError(t, err)
-
-			removeVersions(resources)
-			removeVersions(rsp.Resources)
-			prototest.AssertElementsMatch(t, resources, rsp.Resources)
+			prototest.AssertElementsMatch(t, resources, rsp.Resources, ignoreVersion)
 		})
 	}
 }
