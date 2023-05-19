@@ -7,7 +7,7 @@
         "issuer": "test-issuer",
         "remoteJwks": {
           "httpUri": {
-            "uri": "https://example.com/.well-known/jwks.json",
+            "uri": "https://example-okta.com/.well-known/jwks.json",
             "cluster": "jwks_cluster",
             "timeout": "0s"
           },
@@ -20,7 +20,7 @@
         "issuer": "another-issuer",
         "remoteJwks": {
           "httpUri": {
-            "uri": "https://example.com/.well-known/jwks.json",
+            "uri": "https://example-auth0.com/.well-known/jwks.json",
             "cluster": "jwks_cluster",
             "timeout": "0s"
           },

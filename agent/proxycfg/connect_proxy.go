@@ -91,7 +91,9 @@ func (s *handlerConnectProxy) initialize(ctx context.Context) (ConfigSnapshot, e
 	}
 
 	// Watch for JWT provider updates.
-	// TODO: move this to only watch providers reference by intentions.
+	// While we could optimize by only watching providers referenced by intentions,
+	// this should be okay because we expect few JWT providers and infrequent JWT
+	// provider updates.
 	err = s.dataSources.ConfigEntryList.Notify(ctx, &structs.ConfigEntryQuery{
 		Kind:           structs.JWTProvider,
 		Datacenter:     s.source.Datacenter,

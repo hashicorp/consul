@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package xds
 
 import (
@@ -34,32 +37,28 @@ func makeJWTAuthFilter(pCE map[string]*structs.JWTProviderConfigEntry, intention
 			}
 			providers[jwtReq.Name] = envoyCfg
 		}
-	}
 
-	for _, intention := range intentions {
-		if hasJWTconfig(intention.Permissions) {
-			for _, perm := range intention.Permissions {
-				if perm.JWT == nil {
-					continue
-				}
-				for _, prov := range perm.JWT.Providers {
-					rule := buildRouteRule(prov, perm, "/")
-					rules = append(rules, rule)
-				}
+		for _, perm := range intention.Permissions {
+			if perm.JWT == nil {
+				continue
+			}
+			for _, prov := range perm.JWT.Providers {
+				rule := buildRouteRule(prov, perm, "/")
+				rules = append(rules, rule)
 			}
 		}
 
 		if intention.JWT != nil {
 			for _, provider := range intention.JWT.Providers {
 				// The top-level provider applies to all requests.
-				// TODO: Handle provider.VerifyClaims
+				// TODO(roncodingenthusiast): Handle provider.VerifyClaims
 				rule := buildRouteRule(provider, nil, "/")
 				rules = append(rules, rule)
 			}
 		}
 	}
 
-	if len(intentions) == 0 && len(providers) == 0 {
+	if len(intentions) == 0 {
 		//do not add jwt_authn filter when intentions don't have a JWT
 		return nil, nil
 	}
@@ -119,8 +118,6 @@ func buildJWTProviderConfig(p *structs.JWTProviderConfigEntry) (*envoy_http_jwt_
 		return nil, fmt.Errorf("invalid jwt provider config; missing JSONWebKeySet for provider: %s", p.Name)
 	}
 
-	envoyCfg.Audiences = append(envoyCfg.Audiences, p.Audiences...)
-
 	for _, location := range p.Locations {
 		if location.Header != nil {
 			//only setting forward here because it is only useful for headers not the other options
@@ -173,7 +170,8 @@ func makeRemoteJWKS(r *structs.RemoteJWKS) (*envoy_http_jwt_authn_v3.JwtProvider
 		RemoteJwks: &envoy_http_jwt_authn_v3.RemoteJwks{
 			HttpUri: &envoy_core_v3.HttpUri{
 				Uri: r.URI,
-				// TODO: An explicit cluster is required.
+				// TODO(roncodingenthusiast): An explicit cluster is required.
+				// Need to figure out replacing `jwks_cluster` will an actual cluster
 				HttpUpstreamType: &envoy_core_v3.HttpUri_Cluster{Cluster: "jwks_cluster"},
 			},
 			AsyncFetch: &envoy_http_jwt_authn_v3.JwksAsyncFetch{
@@ -181,25 +179,39 @@ func makeRemoteJWKS(r *structs.RemoteJWKS) (*envoy_http_jwt_authn_v3.JwtProvider
 			},
 		},
 	}
-	remote_specifier.RemoteJwks.HttpUri.Timeout = &durationpb.Duration{Seconds: int64(r.RequestTimeoutMs)}
+	timeOutSecond := int64(r.RequestTimeoutMs) / 1000
+	remote_specifier.RemoteJwks.HttpUri.Timeout = &durationpb.Duration{Seconds: timeOutSecond}
 	cacheDuration := int64(r.CacheDuration)
 	if cacheDuration > 0 {
 		remote_specifier.RemoteJwks.CacheDuration = &durationpb.Duration{Seconds: cacheDuration}
 	}
 
-	if r.RetryPolicy != nil {
-		remote_specifier.RemoteJwks.RetryPolicy = &envoy_core_v3.RetryPolicy{
-			RetryBackOff: &envoy_core_v3.BackoffStrategy{
-				BaseInterval: &durationpb.Duration{Seconds: int64(r.RetryPolicy.RetryPolicyBackOff.BaseInterval)},
-				MaxInterval:  &durationpb.Duration{Seconds: int64(r.RetryPolicy.RetryPolicyBackOff.MaxInterval)},
-			},
-			NumRetries: &wrapperspb.UInt32Value{
-				Value: uint32(r.RetryPolicy.NumRetries),
-			},
-		}
+	p := buildJWTRetryPolicy(r.RetryPolicy)
+	if p != nil {
+		remote_specifier.RemoteJwks.RetryPolicy = p
 	}
 
 	return &remote_specifier, nil
+}
+
+func buildJWTRetryPolicy(r *structs.JWKSRetryPolicy) *envoy_core_v3.RetryPolicy {
+	var pol *envoy_core_v3.RetryPolicy
+	if r == nil {
+		return pol
+	}
+
+	if r.RetryPolicyBackOff != nil {
+		pol.RetryBackOff = &envoy_core_v3.BackoffStrategy{
+			BaseInterval: structs.DurationToProto(r.RetryPolicyBackOff.BaseInterval),
+			MaxInterval:  structs.DurationToProto(r.RetryPolicyBackOff.MaxInterval),
+		}
+	}
+
+	pol.NumRetries = &wrapperspb.UInt32Value{
+		Value: uint32(r.NumRetries),
+	}
+
+	return pol
 }
 
 func buildRouteRule(provider *structs.IntentionJWTProvider, perm *structs.IntentionPermission, defaultPrefix string) *envoy_http_jwt_authn_v3.RequirementRule {

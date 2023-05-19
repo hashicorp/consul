@@ -65,7 +65,7 @@ func TestMakeJWTAUTHFilters(t *testing.T) {
 				JSONWebKeySet: &structs.JSONWebKeySet{
 					Remote: &structs.RemoteJWKS{
 						FetchAsynchronously: true,
-						URI:                 "https://example.com/.well-known/jwks.json",
+						URI:                 "https://example-okta.com/.well-known/jwks.json",
 					},
 				},
 			},
@@ -76,7 +76,7 @@ func TestMakeJWTAUTHFilters(t *testing.T) {
 				JSONWebKeySet: &structs.JSONWebKeySet{
 					Remote: &structs.RemoteJWKS{
 						FetchAsynchronously: true,
-						URI:                 "https://example.com/.well-known/jwks.json",
+						URI:                 "https://example-auth0.com/.well-known/jwks.json",
 					},
 				},
 			},
@@ -94,13 +94,6 @@ func TestMakeJWTAUTHFilters(t *testing.T) {
 			},
 		}
 		pWithOneProvider = &structs.IntentionPermission{
-			Action: structs.IntentionActionAllow,
-			HTTP: &structs.IntentionHTTPPermission{
-				PathPrefix: "/some-special-path",
-			},
-			JWT: singleProviderIntention,
-		}
-		permWithPath = &structs.IntentionPermission{
 			Action: structs.IntentionActionAllow,
 			HTTP: &structs.IntentionHTTPPermission{
 				PathPrefix: "/some-special-path",
@@ -126,11 +119,11 @@ func TestMakeJWTAUTHFilters(t *testing.T) {
 			provider:   remoteCE,
 		},
 		"top-level-provider-with-permission": {
-			intentions: simplified(testIntention(t, ixnOpts{src: "web", action: structs.IntentionActionAllow, jwt: singleProviderIntention, perms: permWithPath})),
+			intentions: simplified(testIntention(t, ixnOpts{src: "web", action: structs.IntentionActionAllow, jwt: singleProviderIntention, perms: pWithOneProvider})),
 			provider:   remoteCE,
 		},
-		"multiple-providers-and-permissions": {
-			intentions: simplified(testIntention(t, ixnOpts{src: "web", action: structs.IntentionActionAllow, jwt: multiProviderIntentions, perms: permWithPath})),
+		"multiple-providers-and-one-permission": {
+			intentions: simplified(testIntention(t, ixnOpts{src: "web", action: structs.IntentionActionAllow, jwt: multiProviderIntentions, perms: pWithOneProvider})),
 			provider:   remoteCE,
 		},
 	}
