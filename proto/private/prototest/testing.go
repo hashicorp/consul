@@ -45,11 +45,11 @@ func diffElements[V any](
 		return ""
 	}
 
+	opts = append(opts, protocmp.Transform())
+
 	if len(listX) != len(listY) {
 		return cmp.Diff(listX, listY, opts...)
 	}
-
-	opts = append(opts, protocmp.Transform())
 
 	// dump into a map keyed by sliceID
 	mapX := make(map[int]V)
