@@ -578,7 +578,7 @@ func getReadyUpstreams(cfgSnap *proxycfg.ConfigSnapshot) map[string]readyUpstrea
 
 func (s *ResourceGenerator) endpointsFromSnapshotAPIGateway(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
 	var resources []proto.Message
-	createdClusters := make(map[proxycfg.UpstreamID]bool)
+	createdClusters := make(map[proxycfg.UpstreamID]struct{})
 
 	readyUpstreamsList := getReadyUpstreams(cfgSnap)
 
@@ -588,11 +588,12 @@ func (s *ResourceGenerator) endpointsFromSnapshotAPIGateway(cfgSnap *proxycfg.Co
 
 			// If we've already created endpoints for this upstream, skip it. Multiple listeners may
 			// reference the same upstream, so we don't need to create duplicate endpoints in that case.
-			if createdClusters[uid] {
+			_, ok := createdClusters[uid]
+			if ok {
 				continue
 			}
 
-			es, err := s.endpointsFromDiscoveryChain(
+			endpoints, err := s.endpointsFromDiscoveryChain(
 				uid,
 				cfgSnap.APIGateway.DiscoveryChain[uid],
 				cfgSnap,
@@ -605,8 +606,8 @@ func (s *ResourceGenerator) endpointsFromSnapshotAPIGateway(cfgSnap *proxycfg.Co
 			if err != nil {
 				return nil, err
 			}
-			resources = append(resources, es...)
-			createdClusters[uid] = true
+			resources = append(resources, endpoints...)
+			createdClusters[uid] = struct{}{}
 		}
 	}
 	return resources, nil
