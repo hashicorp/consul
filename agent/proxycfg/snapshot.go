@@ -914,7 +914,6 @@ DOMAIN_LOOP:
 	return services, upstreams, compiled, err
 }
 
-// TODO use this in listener code
 func (c *configSnapshotAPIGateway) toIngressTLS(key IngressListenerKey, listener structs.APIGatewayListener, bound structs.BoundAPIGatewayListener) (*structs.GatewayTLSConfig, error) {
 	if len(listener.TLS.Certificates) == 0 {
 		return nil, nil
