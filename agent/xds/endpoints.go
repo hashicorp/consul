@@ -544,12 +544,18 @@ func getReadyUpstreams(cfgSnap *proxycfg.ConfigSnapshot) map[string]readyUpstrea
 		boundListener := cfgSnap.APIGateway.BoundListeners[l.Name]
 		for _, routeRef := range boundListener.Routes {
 			// Get all upstreams for the route
-			routeUpstreams := cfgSnap.APIGateway.Upstreams[routeRef]
+			routeUpstreams, ok := cfgSnap.APIGateway.Upstreams[routeRef]
+			if !ok {
+				continue
+			}
 
 			// Filter to upstreams that attach to this specific listener since
 			// a route can bind to + have upstreams for multiple listeners
 			listenerKey := proxycfg.APIGatewayListenerKeyFromListener(l)
-			routeUpstreamsForListener := routeUpstreams[listenerKey]
+			routeUpstreamsForListener, ok := routeUpstreams[listenerKey]
+			if !ok {
+				continue
+			}
 
 			for _, upstream := range routeUpstreamsForListener {
 				// Insert or update readyUpstreams for the listener to include this upstream
@@ -572,7 +578,7 @@ func getReadyUpstreams(cfgSnap *proxycfg.ConfigSnapshot) map[string]readyUpstrea
 
 func (s *ResourceGenerator) endpointsFromSnapshotAPIGateway(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
 	var resources []proto.Message
-	createdClusters := make(map[proxycfg.UpstreamID]bool)
+	createdClusters := make(map[proxycfg.UpstreamID]struct{})
 
 	readyUpstreamsList := getReadyUpstreams(cfgSnap)
 
@@ -582,11 +588,12 @@ func (s *ResourceGenerator) endpointsFromSnapshotAPIGateway(cfgSnap *proxycfg.Co
 
 			// If we've already created endpoints for this upstream, skip it. Multiple listeners may
 			// reference the same upstream, so we don't need to create duplicate endpoints in that case.
-			if createdClusters[uid] {
+			_, ok := createdClusters[uid]
+			if ok {
 				continue
 			}
 
-			es, err := s.endpointsFromDiscoveryChain(
+			endpoints, err := s.endpointsFromDiscoveryChain(
 				uid,
 				cfgSnap.APIGateway.DiscoveryChain[uid],
 				cfgSnap,
@@ -599,8 +606,9 @@ func (s *ResourceGenerator) endpointsFromSnapshotAPIGateway(cfgSnap *proxycfg.Co
 			if err != nil {
 				return nil, err
 			}
-			resources = append(resources, es...)
-			createdClusters[uid] = true
+
+			resources = append(resources, endpoints...)
+			createdClusters[uid] = struct{}{}
 		}
 	}
 	return resources, nil

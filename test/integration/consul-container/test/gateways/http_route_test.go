@@ -502,8 +502,6 @@ func TestHTTPRouteParentRefChange(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
-
 	// infrastructure set up
 	address := "localhost"
 

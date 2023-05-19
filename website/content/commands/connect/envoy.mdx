@@ -165,11 +165,9 @@ compatibility with Envoy and prevent potential issues. Default is `false`.
   If Envoy is configured as a terminating or mesh gateway, traffic from services
   within the mesh will be received at the specified IP and port.
 
-  If Envoy is configured as an ingress gateway, a `/ready` HTTP endpoint will be
-  instantiated at the specified IP and port. Consul uses `/ready` HTTP endpoints
-  to check gateway health. The specified IP will also be used by the ingress
-  gateway when instantiating user-defined listeners configured in the
-  [ingress gateway](/consul/docs/connect/gateways/ingress-gateway) configuration entry.
+  If Envoy is configured as an ingress gateway, Consul instantiates a `/ready` HTTP endpoint at the specified IP and port. Consul uses `/ready` HTTP endpoints
+  to check gateway health. Ingress gateways also use the specified IP when instantiating user-defined listeners configured in the
+  [ingress gateway configuration entry](/consul/docs/connect/config-entries/ingress-gateway).
 
   ~> **Note**: Ensure that user-defined ingress gateway listeners use a
      different port than the port specified in `-address` so that they do not
