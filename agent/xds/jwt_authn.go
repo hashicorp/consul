@@ -58,8 +58,8 @@ func makeJWTAuthFilter(pCE map[string]*structs.JWTProviderConfigEntry, intention
 		}
 	}
 
-	if len(intentions) == 0 {
-		//do not add jwt_authn filter when intentions don't have a JWT
+	if len(intentions) == 0 && len(providers) == 0 {
+		//do not add jwt_authn filter when intentions don't have JWT
 		return nil, nil
 	}
 
