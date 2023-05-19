@@ -28,22 +28,18 @@ func (s *ResourceGenerator) makeAPIGatewayListeners(address string, cfgSnap *pro
 		boundListener := readyUpstreams.boundListenerCfg
 
 		//TODO, it's possible that this can be pulled off of the snapshot APIGateway.ListenerCertificates
-		// if that value is being appropriately updated	so we don't have to build this out every time
-		certificates := make(map[proxycfg.IngressListenerKey][]structs.InlineCertificateConfigEntry)
+		// if that value is being appropriately updated	so we don't have to build this list out every time
 
+		var certs []structs.InlineCertificateConfigEntry
 		for _, certRef := range boundListener.Certificates {
 			cert, ok := cfgSnap.APIGateway.Certificates.Get(certRef)
 			if !ok {
 				continue
 			}
-			certificates[listenerKey] = append(certificates[listenerKey], *cert)
+			certs = append(certs, *cert)
 		}
 
-		var certs []structs.InlineCertificateConfigEntry
-		if certificates != nil {
-			certs = certificates[listenerKey]
-		}
-		isAPIGatewayWithTLS := certs != nil
+		isAPIGatewayWithTLS := len(boundListener.Certificates) > 0
 
 		tlsContext, err := makeDownstreamTLSContextFromSnapshotAPIListenerConfig(cfgSnap, listenerCfg)
 		if err != nil {
