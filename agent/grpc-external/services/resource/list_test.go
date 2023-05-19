@@ -80,6 +80,12 @@ func TestList_Empty(t *testing.T) {
 }
 
 func TestList_Many(t *testing.T) {
+	removeVersions := func(resources []*pbresource.Resource) {
+		for _, res := range resources {
+			res.Version = "" // ignore for test comparisons
+		}
+	}
+
 	for desc, tc := range listTestCases() {
 		t.Run(desc, func(t *testing.T) {
 			server := testServer(t)
@@ -93,6 +99,7 @@ func TestList_Many(t *testing.T) {
 
 				// Prevent test flakes if the generated names collide.
 				artist.Id.Name = fmt.Sprintf("%s-%d", artist.Id.Name, i)
+
 				_, err = server.Backend.WriteCAS(tc.ctx, artist)
 				require.NoError(t, err)
 
@@ -105,6 +112,9 @@ func TestList_Many(t *testing.T) {
 				NamePrefix: "",
 			})
 			require.NoError(t, err)
+
+			removeVersions(resources)
+			removeVersions(rsp.Resources)
 			prototest.AssertElementsMatch(t, resources, rsp.Resources)
 		})
 	}
