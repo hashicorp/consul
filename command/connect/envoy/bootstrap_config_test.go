@@ -530,25 +530,25 @@ const (
 	}
 }`
 
-	expectedHCPMetricsStatsSink = `{
+	expectedTelemetryCollectorStatsSink = `{
 	"name": "envoy.stat_sinks.metrics_service",
 	"typed_config": {
 	  "@type": "type.googleapis.com/envoy.config.metrics.v3.MetricsServiceConfig",
 	  "transport_api_version": "V3",
 	  "grpc_service": {
 		"envoy_grpc": {
-		  "cluster_name": "hcp_metrics_collector"
+		  "cluster_name": "consul_telemetry_collector_loopback"
 		}
 	  }
 	}
   }`
 
-	expectedHCPMetricsCluster = `{
-	"name": "hcp_metrics_collector",
+	expectedTelemetryCollectorCluster = `{
+	"name": "consul_telemetry_collector_loopback",
 	"type": "STATIC",
 	"http2_protocol_options": {},
 	"loadAssignment": {
-	  "clusterName": "hcp_metrics_collector",
+	  "clusterName": "consul_telemetry_collector_loopback",
 	  "endpoints": [
 		{
 		  "lbEndpoints": [
@@ -556,7 +556,7 @@ const (
 			  "endpoint": {
 				"address": {
 				  "pipe": {
-					"path": "/tmp/consul/hcp-metrics/default_web-sidecar-proxy.sock"
+					"path": "/tmp/consul/telemetry-collector/gqmuzdHCUPAEY5mbF8vgkZCNI14.sock"
 				  }
 				}
 			  }
@@ -619,12 +619,12 @@ func TestBootstrapConfig_ConfigureArgs(t *testing.T) {
 			},
 		},
 		{
-			name: "hcp-metrics-sink",
+			name: "telemetry-collector-sink",
 			baseArgs: BootstrapTplArgs{
 				ProxyID: "web-sidecar-proxy",
 			},
 			input: BootstrapConfig{
-				HCPMetricsBindSocketDir: "/tmp/consul/hcp-metrics",
+				TelemetryCollectorBindSocketDir: "/tmp/consul/telemetry-collector",
 			},
 			wantArgs: BootstrapTplArgs{
 				ProxyID:         "web-sidecar-proxy",
@@ -636,17 +636,17 @@ func TestBootstrapConfig_ConfigureArgs(t *testing.T) {
 					  "transport_api_version": "V3",
 					  "grpc_service": {
 						"envoy_grpc": {
-						  "cluster_name": "hcp_metrics_collector"
+						  "cluster_name": "consul_telemetry_collector_loopback"
 						}
 					  }
 					}
 				  }`,
 				StaticClustersJSON: `{
-					"name": "hcp_metrics_collector",
+					"name": "consul_telemetry_collector_loopback",
 					"type": "STATIC",
 					"http2_protocol_options": {},
 					"loadAssignment": {
-					  "clusterName": "hcp_metrics_collector",
+					  "clusterName": "consul_telemetry_collector_loopback",
 					  "endpoints": [
 						{
 						  "lbEndpoints": [
@@ -654,7 +654,7 @@ func TestBootstrapConfig_ConfigureArgs(t *testing.T) {
 							  "endpoint": {
 								"address": {
 								  "pipe": {
-									"path": "/tmp/consul/hcp-metrics/default_web-sidecar-proxy.sock"
+									"path": "/tmp/consul/telemetry-collector/gqmuzdHCUPAEY5mbF8vgkZCNI14.sock"
 								  }
 								}
 							  }
@@ -1631,7 +1631,7 @@ func TestConsulTagSpecifiers(t *testing.T) {
 	}
 }
 
-func TestAppendHCPMetrics(t *testing.T) {
+func TestAppendTelemetryCollectorMetrics(t *testing.T) {
 	tests := map[string]struct {
 		inputArgs     *BootstrapTplArgs
 		bindSocketDir string
@@ -1641,22 +1641,22 @@ func TestAppendHCPMetrics(t *testing.T) {
 			inputArgs: &BootstrapTplArgs{
 				ProxyID: "web-sidecar-proxy",
 			},
-			bindSocketDir: "/tmp/consul/hcp-metrics",
+			bindSocketDir: "/tmp/consul/telemetry-collector",
 			wantArgs: &BootstrapTplArgs{
 				ProxyID:            "web-sidecar-proxy",
-				StatsSinksJSON:     expectedHCPMetricsStatsSink,
-				StaticClustersJSON: expectedHCPMetricsCluster,
+				StatsSinksJSON:     expectedTelemetryCollectorStatsSink,
+				StaticClustersJSON: expectedTelemetryCollectorCluster,
 			},
 		},
 		"dir-with-trailing-slash": {
 			inputArgs: &BootstrapTplArgs{
 				ProxyID: "web-sidecar-proxy",
 			},
-			bindSocketDir: "/tmp/consul/hcp-metrics",
+			bindSocketDir: "/tmp/consul/telemetry-collector",
 			wantArgs: &BootstrapTplArgs{
 				ProxyID:            "web-sidecar-proxy",
-				StatsSinksJSON:     expectedHCPMetricsStatsSink,
-				StaticClustersJSON: expectedHCPMetricsCluster,
+				StatsSinksJSON:     expectedTelemetryCollectorStatsSink,
+				StaticClustersJSON: expectedTelemetryCollectorCluster,
 			},
 		},
 		"append-clusters-and-stats-sink": {
@@ -1665,18 +1665,18 @@ func TestAppendHCPMetrics(t *testing.T) {
 				StatsSinksJSON:     expectedStatsdSink,
 				StaticClustersJSON: expectedSelfAdminCluster,
 			},
-			bindSocketDir: "/tmp/consul/hcp-metrics",
+			bindSocketDir: "/tmp/consul/telemetry-collector",
 			wantArgs: &BootstrapTplArgs{
 				ProxyID:            "web-sidecar-proxy",
-				StatsSinksJSON:     expectedStatsdSink + ",\n" + expectedHCPMetricsStatsSink,
-				StaticClustersJSON: expectedSelfAdminCluster + ",\n" + expectedHCPMetricsCluster,
+				StatsSinksJSON:     expectedStatsdSink + ",\n" + expectedTelemetryCollectorStatsSink,
+				StaticClustersJSON: expectedSelfAdminCluster + ",\n" + expectedTelemetryCollectorCluster,
 			},
 		},
 	}
 
 	for name, tt := range tests {
 		t.Run(name, func(t *testing.T) {
-			appendHCPMetricsConfig(tt.inputArgs, tt.bindSocketDir)
+			appendTelemetryCollectorConfig(tt.inputArgs, tt.bindSocketDir)
 
 			// Some of our JSON strings are comma separated objects to be
 			// insertedinto an array which is not valid JSON on it's own so wrap

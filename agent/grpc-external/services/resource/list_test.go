@@ -22,6 +22,31 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+func TestList_InputValidation(t *testing.T) {
+	server := testServer(t)
+	client := testClient(t, server)
+
+	demo.RegisterTypes(server.Registry)
+
+	testCases := map[string]func(*pbresource.ListRequest){
+		"no type":    func(req *pbresource.ListRequest) { req.Type = nil },
+		"no tenancy": func(req *pbresource.ListRequest) { req.Tenancy = nil },
+	}
+	for desc, modFn := range testCases {
+		t.Run(desc, func(t *testing.T) {
+			req := &pbresource.ListRequest{
+				Type:    demo.TypeV2Album,
+				Tenancy: demo.TenancyDefault,
+			}
+			modFn(req)
+
+			_, err := client.List(testContext(t), req)
+			require.Error(t, err)
+			require.Equal(t, codes.InvalidArgument.String(), status.Code(err).String())
+		})
+	}
+}
+
 func TestList_TypeNotFound(t *testing.T) {
 	server := testServer(t)
 	client := testClient(t, server)

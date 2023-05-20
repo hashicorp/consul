@@ -108,6 +108,14 @@ func ConfigEntryToStructs(s *ConfigEntry) structs.ConfigEntry {
 		pbcommon.RaftIndexToStructs(s.RaftIndex, &target.RaftIndex)
 		pbcommon.EnterpriseMetaToStructs(s.EnterpriseMeta, &target.EnterpriseMeta)
 		return &target
+	case Kind_KindJWTProvider:
+		var target structs.JWTProviderConfigEntry
+		target.Name = s.Name
+
+		JWTProviderToStructs(s.GetJWTProvider(), &target)
+		pbcommon.RaftIndexToStructs(s.RaftIndex, &target.RaftIndex)
+		pbcommon.EnterpriseMetaToStructs(s.EnterpriseMeta, &target.EnterpriseMeta)
+		return &target
 	default:
 		panic(fmt.Sprintf("unable to convert ConfigEntry of kind %s to structs", s.Kind))
 	}
@@ -211,7 +219,14 @@ func ConfigEntryFromStructs(s structs.ConfigEntry) *ConfigEntry {
 		configEntry.Entry = &ConfigEntry_SamenessGroup{
 			SamenessGroup: &sg,
 		}
+	case *structs.JWTProviderConfigEntry:
+		var jwtProvider JWTProvider
+		JWTProviderFromStructs(v, &jwtProvider)
 
+		configEntry.Kind = Kind_KindJWTProvider
+		configEntry.Entry = &ConfigEntry_JWTProvider{
+			JWTProvider: &jwtProvider,
+		}
 	default:
 		panic(fmt.Sprintf("unable to convert %T to proto", s))
 	}

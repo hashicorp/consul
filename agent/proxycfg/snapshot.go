@@ -984,6 +984,10 @@ func (c *configSnapshotIngressGateway) isEmpty() bool {
 
 type APIGatewayListenerKey = IngressListenerKey
 
+func APIGatewayListenerKeyFromListener(l structs.APIGatewayListener) APIGatewayListenerKey {
+	return APIGatewayListenerKey{Protocol: string(l.Protocol), Port: l.Port}
+}
+
 type IngressListenerKey struct {
 	Protocol string
 	Port     int
@@ -1016,6 +1020,7 @@ type ConfigSnapshot struct {
 	Datacenter            string
 	IntentionDefaultAllow bool
 	Locality              GatewayKey
+	JWTProviders          map[string]*structs.JWTProviderConfigEntry
 
 	ServerSNIFn ServerSNIFunc
 	Roots       *structs.IndexedCARoots

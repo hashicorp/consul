@@ -70,7 +70,7 @@ func (b *Backend) WatchList(_ context.Context, resType storage.UnversionedType, 
 	return b.store.WatchList(resType, tenancy, namePrefix)
 }
 
-// OwnerReferences implements the storage.Backend interface.
-func (b *Backend) OwnerReferences(_ context.Context, id *pbresource.ID) ([]*pbresource.ID, error) {
-	return b.store.OwnerReferences(id)
+// ListByOwner implements the storage.Backend interface.
+func (b *Backend) ListByOwner(_ context.Context, id *pbresource.ID) ([]*pbresource.Resource, error) {
+	return b.store.ListByOwner(id)
 }

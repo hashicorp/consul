@@ -82,7 +82,9 @@ func testSnapShotRestoreForLogStore(t *testing.T, logStore libcluster.LogStore) 
 	libcluster.WaitForMembers(t, client2, 3)
 
 	// Restore the saved snapshot
-	require.NoError(t, client2.Snapshot().Restore(nil, snapshot))
+	retry.RunWith(libcluster.LongFailer(), t, func(r *retry.R) {
+		require.NoError(r, client2.Snapshot().Restore(nil, snapshot))
+	})
 
 	libcluster.WaitForLeader(t, cluster2, client2)
 
