@@ -16,7 +16,6 @@ import (
 
 // Test upgrade a cluster of latest version to the target version
 func TestStandardUpgradeToTarget_fromLatest(t *testing.T) {
-	t.Parallel()
 
 	type testcase struct {
 		oldversion    string

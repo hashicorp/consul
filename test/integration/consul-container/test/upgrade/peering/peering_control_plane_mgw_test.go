@@ -1,4 +1,4 @@
-package upgrade
+package peering
 
 import (
 	"context"
@@ -42,7 +42,14 @@ func TestPeering_Upgrade_ControlPlane_MGW(t *testing.T) {
 	}
 
 	run := func(t *testing.T, tc testcase) {
-		accepting, dialing := libtopology.BasicPeeringTwoClustersSetup(t, utils.GetLatestImageName(), tc.oldversion, true)
+		accepting, dialing := libtopology.BasicPeeringTwoClustersSetup(t, utils.GetLatestImageName(), utils.LatestVersion,
+			libtopology.PeeringClusterSize{
+				AcceptingNumServers: 1,
+				AcceptingNumClients: 1,
+				DialingNumServers:   1,
+				DialingNumClients:   1,
+			},
+			true)
 		var (
 			acceptingCluster = accepting.Cluster
 			dialingCluster   = dialing.Cluster

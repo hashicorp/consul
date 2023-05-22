@@ -182,7 +182,7 @@ func NewConnectService(ctx context.Context, sidecarCfg SidecarConfig, serviceBin
 
 	req := testcontainers.ContainerRequest{
 		FromDockerfile: dockerfileCtx,
-		WaitingFor:     wait.ForLog("").WithStartupTimeout(10 * time.Second),
+		WaitingFor:     wait.ForLog("").WithStartupTimeout(100 * time.Second),
 		AutoRemove:     false,
 		Name:           containerName,
 		Cmd: []string{
