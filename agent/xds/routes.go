@@ -478,7 +478,7 @@ func (s *ResourceGenerator) routesForAPIGateway(cfgSnap *proxycfg.ConfigSnapshot
 				return nil, err
 			}
 
-			injectHeaderManipToVirtualHostAPIGateway(&flattenedRoute, virtualHost)
+			addHeaderFiltersToVirtualHost(&flattenedRoute, virtualHost)
 
 			defaultRoute.VirtualHosts = append(defaultRoute.VirtualHosts, virtualHost)
 		}
@@ -1098,7 +1098,7 @@ func injectHeaderManipToRoute(dest *structs.ServiceRouteDestination, r *envoy_ro
 	return nil
 }
 
-func injectHeaderManipToVirtualHostAPIGateway(dest *structs.HTTPRouteConfigEntry, vh *envoy_route_v3.VirtualHost) {
+func addHeaderFiltersToVirtualHost(dest *structs.HTTPRouteConfigEntry, vh *envoy_route_v3.VirtualHost) {
 	for _, rule := range dest.Rules {
 		for _, header := range rule.Filters.Headers {
 			vh.RequestHeadersToAdd = append(vh.RequestHeadersToAdd, makeHeadersValueOptions(header.Add, true)...)
