@@ -204,19 +204,6 @@ func FlattenHTTPRoute(route *structs.HTTPRouteConfigEntry, listener *structs.API
 	return consolidateHTTPRoutes(matches, listener.Name, gateway)
 }
 
-func RebuildHTTPRouteUpstream(route structs.HTTPRouteConfigEntry, listener structs.APIGatewayListener) structs.Upstream {
-	return structs.Upstream{
-		DestinationName:      route.GetName(),
-		DestinationNamespace: route.NamespaceOrDefault(),
-		DestinationPartition: route.PartitionOrDefault(),
-		IngressHosts:         route.Hostnames,
-		LocalBindPort:        listener.Port,
-		Config: map[string]interface{}{
-			"protocol": string(listener.Protocol),
-		},
-	}
-}
-
 // ConsolidateHTTPRoutes combines all rules into the shortest possible list of routes
 // with one route per hostname containing all rules for that hostname.
 func consolidateHTTPRoutes(matchesByHostname map[string][]hostnameMatch, suffix string, gateway *structs.APIGatewayConfigEntry) []structs.HTTPRouteConfigEntry {
