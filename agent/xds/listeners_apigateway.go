@@ -148,8 +148,6 @@ func (s *ResourceGenerator) makeAPIGatewayListeners(address string, cfgSnap *pro
 				logger:           s.Logger,
 			}
 
-			//TODO equivalent of makeSDSOverrideFilterChains, when needed
-
 			// Generate any filter chains needed for services with custom TLS certs
 			// via SDS.
 			sniFilterChains := []*envoy_listener_v3.FilterChain{}
@@ -193,9 +191,7 @@ func (s *ResourceGenerator) makeAPIGatewayListeners(address string, cfgSnap *pro
 					})
 			}
 			resources = append(resources, listener)
-
 		}
-
 	}
 
 	return resources, nil
