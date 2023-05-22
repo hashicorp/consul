@@ -206,7 +206,7 @@ func FlattenHTTPRoute(route *structs.HTTPRouteConfigEntry, listener *structs.API
 
 // ConsolidateHTTPRoutes combines all rules into the shortest possible list of routes
 // with one route per hostname containing all rules for that hostname.
-func consolidateHTTPRoutes(matchesByHostname map[string][]hostnameMatch, suffix string, gateway *structs.APIGatewayConfigEntry) []structs.HTTPRouteConfigEntry {
+func consolidateHTTPRoutes(matchesByHostname map[string][]hostnameMatch, listenerName string, gateway *structs.APIGatewayConfigEntry) []structs.HTTPRouteConfigEntry {
 	var routes []structs.HTTPRouteConfigEntry
 
 	for hostname, rules := range matchesByHostname {
