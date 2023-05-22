@@ -59,7 +59,7 @@ func initCollector(logger hclog.Logger, dataDir string, opts ...CollectorOption)
 	return collector
 }
 
-func (h *Collector) loop(ctx context.Context) {
+func (c *Collector) loop(ctx context.Context) {
 	// Start collecting host stats right away and then keep collecting every
 	// collection interval
 	next := time.NewTimer(0)
@@ -67,9 +67,9 @@ func (h *Collector) loop(ctx context.Context) {
 	for {
 		select {
 		case <-next.C:
-			h.collect()
+			c.collect()
 			next.Reset(hostStatsCollectionInterval)
-			h.Stats().Emit(h.metrics, h.baseLabels)
+			c.Stats().Emit(c.metrics, c.baseLabels)
 
 		case <-ctx.Done():
 			return
@@ -78,55 +78,55 @@ func (h *Collector) loop(ctx context.Context) {
 }
 
 // collect will collect stats related to resource usage of the host
-func (h *Collector) collect() {
-	h.hostStatsLock.Lock()
-	defer h.hostStatsLock.Unlock()
+func (c *Collector) collect() {
 	hs := &HostStats{Timestamp: time.Now().UTC().UnixNano()}
 
 	// Determine up-time
 	uptime, err := host.Uptime()
 	if err != nil {
-		h.logger.Error("failed to collect uptime stats", "error", err)
+		c.logger.Error("failed to collect uptime stats", "error", err)
 		uptime = 0
 	}
 	hs.Uptime = uptime
 
 	// Collect memory stats
-	mstats, err := h.collectMemoryStats()
+	mstats, err := c.collectMemoryStats()
 	if err != nil {
-		h.logger.Error("failed to collect memory stats", "error", err)
+		c.logger.Error("failed to collect memory stats", "error", err)
 		mstats = &MemoryStats{}
 	}
 	hs.Memory = mstats
 
 	// Collect cpu stats
-	cpus, err := h.collectCPUStats()
+	cpus, err := c.collectCPUStats()
 	if err != nil {
-		h.logger.Error("failed to collect cpu stats", "error", err)
+		c.logger.Error("failed to collect cpu stats", "error", err)
 		cpus = []*CPUStats{}
 	}
 	hs.CPU = cpus
 
 	// Collect disk stats
-	diskStats, err := h.collectDiskStats(h.dataDir)
+	diskStats, err := c.collectDiskStats(c.dataDir)
 	if err != nil {
-		h.logger.Error("failed to collect dataDir disk stats", "error", err)
+		c.logger.Error("failed to collect dataDir disk stats", "error", err)
 	}
 	hs.DataDirStats = diskStats
 
 	// Update the collected status object.
-	h.hostStats = hs
+	c.hostStatsLock.Lock()
+	c.hostStats = hs
+	c.hostStatsLock.Unlock()
 }
 
-func (h *Collector) collectDiskStats(dir string) (*DiskStats, error) {
+func (c *Collector) collectDiskStats(dir string) (*DiskStats, error) {
 	usage, err := disk.Usage(dir)
 	if err != nil {
 		return nil, fmt.Errorf("failed to collect disk usage stats: %w", err)
 	}
-	return h.toDiskStats(usage), nil
+	return c.toDiskStats(usage), nil
 }
 
-func (h *Collector) collectMemoryStats() (*MemoryStats, error) {
+func (c *Collector) collectMemoryStats() (*MemoryStats, error) {
 	memStats, err := mem.VirtualMemory()
 	if err != nil {
 		return nil, err
@@ -143,19 +143,19 @@ func (h *Collector) collectMemoryStats() (*MemoryStats, error) {
 }
 
 // Stats returns the host stats that has been collected
-func (h *Collector) Stats() *HostStats {
-	h.hostStatsLock.RLock()
-	defer h.hostStatsLock.RUnlock()
+func (c *Collector) Stats() *HostStats {
+	c.hostStatsLock.RLock()
+	defer c.hostStatsLock.RUnlock()
 
-	if h.hostStats == nil {
+	if c.hostStats == nil {
 		return &HostStats{}
 	}
 
-	return h.hostStats.Clone()
+	return c.hostStats.Clone()
 }
 
 // toDiskStats merges UsageStat and PartitionStat to create a DiskStat
-func (h *Collector) toDiskStats(usage *disk.UsageStat) *DiskStats {
+func (c *Collector) toDiskStats(usage *disk.UsageStat) *DiskStats {
 	ds := DiskStats{
 		Size:              usage.Total,
 		Used:              usage.Used,

@@ -4,6 +4,7 @@ import (
 	"math"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/shirou/gopsutil/v3/cpu"
@@ -20,10 +21,7 @@ func TestHostStats_CPU(t *testing.T) {
 	// Collect twice so we can calculate percents we need to generate some work
 	// so that the cpu values change
 	hs.collect()
-	total := 0
-	for i := 1; i < 1000000000; i++ {
-		total *= i
-		total = total % i
+	for begin := time.Now(); time.Now().Sub(begin) < 100*time.Millisecond; {
 	}
 	hs.collect()
 	stats := hs.Stats()

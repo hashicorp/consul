@@ -739,7 +739,10 @@ Consul attaches the following labels to metric values.
 
 ## Server Host Metrics
 
-Consul servers report the following metrics about the host's system resources
+Consul servers report the following metrics about the host's system resources.
+Note that if the Consul server is operating inside a container these metrics
+still report host resource usage and do not report any resource limits placed
+on the container.  
 
 **Requirements:**
 - Consul 1.15.3+
