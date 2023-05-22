@@ -736,6 +736,7 @@ type configSnapshotAPIGateway struct {
 	// entry to save us trying to pass fields through Upstreams
 	Listeners map[string]structs.APIGatewayListener
 	// this acts as an intermediary for inlining certificates
+	// FUTURE(nathancoleman) Remove when ToIngress is removed
 	ListenerCertificates map[IngressListenerKey][]structs.InlineCertificateConfigEntry
 
 	BoundListeners map[string]structs.BoundAPIGatewayListener
@@ -745,7 +746,7 @@ type configSnapshotAPIGateway struct {
 // This is temporary, for the sake of re-using existing codepaths when integrating
 // Consul API Gateway into Consul core.
 //
-// FUTURE: Remove when API gateways have custom snapshot generation
+// FUTURE(nathancoleman): Remove when API gateways have custom snapshot generation
 func (c *configSnapshotAPIGateway) ToIngress(datacenter string) (configSnapshotIngressGateway, error) {
 	// Convert API Gateway Listeners to Ingress Listeners.
 	ingressListeners := make(map[IngressListenerKey]structs.IngressListener, len(c.Listeners))
@@ -1020,6 +1021,7 @@ type ConfigSnapshot struct {
 	Datacenter            string
 	IntentionDefaultAllow bool
 	Locality              GatewayKey
+	JWTProviders          map[string]*structs.JWTProviderConfigEntry
 
 	ServerSNIFn ServerSNIFunc
 	Roots       *structs.IndexedCARoots

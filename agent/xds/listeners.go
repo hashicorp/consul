@@ -860,16 +860,11 @@ func (s *ResourceGenerator) listenersFromSnapshotGateway(cfgSnap *proxycfg.Confi
 				return nil, err
 			}
 		case structs.ServiceKindAPIGateway:
-			// TODO Find a cleaner solution, can't currently pass unexported property types
-			var err error
-			cfgSnap.IngressGateway, err = cfgSnap.APIGateway.ToIngress(cfgSnap.Datacenter)
+			listeners, err := s.makeAPIGatewayListeners(a.Address, cfgSnap)
 			if err != nil {
 				return nil, err
 			}
-			listeners, err := s.makeIngressGatewayListeners(a.Address, cfgSnap)
-			if err != nil {
-				return nil, err
-			}
+
 			resources = append(resources, listeners...)
 		case structs.ServiceKindIngressGateway:
 			listeners, err := s.makeIngressGatewayListeners(a.Address, cfgSnap)
@@ -1369,6 +1364,10 @@ func (s *ResourceGenerator) makeInboundListener(cfgSnap *proxycfg.ConfigSnapshot
 		logger:           s.Logger,
 	}
 	if useHTTPFilter {
+		jwtFilter, jwtFilterErr := makeJWTAuthFilter(cfgSnap.JWTProviders, cfgSnap.ConnectProxy.Intentions)
+		if jwtFilterErr != nil {
+			return nil, jwtFilterErr
+		}
 		rbacFilter, err := makeRBACHTTPFilter(
 			cfgSnap.ConnectProxy.Intentions,
 			cfgSnap.IntentionDefaultAllow,
@@ -1384,6 +1383,10 @@ func (s *ResourceGenerator) makeInboundListener(cfgSnap *proxycfg.ConfigSnapshot
 		}
 
 		filterOpts.httpAuthzFilters = []*envoy_http_v3.HttpFilter{rbacFilter}
+
+		if jwtFilter != nil {
+			filterOpts.httpAuthzFilters = append(filterOpts.httpAuthzFilters, jwtFilter)
+		}
 
 		meshConfig := cfgSnap.MeshConfig()
 		includeXFCC := meshConfig == nil || meshConfig.HTTP == nil || !meshConfig.HTTP.SanitizeXForwardedClientCert

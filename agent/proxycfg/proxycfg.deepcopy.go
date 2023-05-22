@@ -29,6 +29,77 @@ func (o *ConfigSnapshot) DeepCopy() *ConfigSnapshot {
 		retV := o.Proxy.DeepCopy()
 		cp.Proxy = *retV
 	}
+	if o.JWTProviders != nil {
+		cp.JWTProviders = make(map[string]*structs.JWTProviderConfigEntry, len(o.JWTProviders))
+		for k2, v2 := range o.JWTProviders {
+			var cp_JWTProviders_v2 *structs.JWTProviderConfigEntry
+			if v2 != nil {
+				cp_JWTProviders_v2 = new(structs.JWTProviderConfigEntry)
+				*cp_JWTProviders_v2 = *v2
+				if v2.JSONWebKeySet != nil {
+					cp_JWTProviders_v2.JSONWebKeySet = new(structs.JSONWebKeySet)
+					*cp_JWTProviders_v2.JSONWebKeySet = *v2.JSONWebKeySet
+					if v2.JSONWebKeySet.Local != nil {
+						cp_JWTProviders_v2.JSONWebKeySet.Local = new(structs.LocalJWKS)
+						*cp_JWTProviders_v2.JSONWebKeySet.Local = *v2.JSONWebKeySet.Local
+					}
+					if v2.JSONWebKeySet.Remote != nil {
+						cp_JWTProviders_v2.JSONWebKeySet.Remote = new(structs.RemoteJWKS)
+						*cp_JWTProviders_v2.JSONWebKeySet.Remote = *v2.JSONWebKeySet.Remote
+						if v2.JSONWebKeySet.Remote.RetryPolicy != nil {
+							cp_JWTProviders_v2.JSONWebKeySet.Remote.RetryPolicy = new(structs.JWKSRetryPolicy)
+							*cp_JWTProviders_v2.JSONWebKeySet.Remote.RetryPolicy = *v2.JSONWebKeySet.Remote.RetryPolicy
+							if v2.JSONWebKeySet.Remote.RetryPolicy.RetryPolicyBackOff != nil {
+								cp_JWTProviders_v2.JSONWebKeySet.Remote.RetryPolicy.RetryPolicyBackOff = new(structs.RetryPolicyBackOff)
+								*cp_JWTProviders_v2.JSONWebKeySet.Remote.RetryPolicy.RetryPolicyBackOff = *v2.JSONWebKeySet.Remote.RetryPolicy.RetryPolicyBackOff
+							}
+						}
+					}
+				}
+				if v2.Audiences != nil {
+					cp_JWTProviders_v2.Audiences = make([]string, len(v2.Audiences))
+					copy(cp_JWTProviders_v2.Audiences, v2.Audiences)
+				}
+				if v2.Locations != nil {
+					cp_JWTProviders_v2.Locations = make([]*structs.JWTLocation, len(v2.Locations))
+					copy(cp_JWTProviders_v2.Locations, v2.Locations)
+					for i5 := range v2.Locations {
+						if v2.Locations[i5] != nil {
+							cp_JWTProviders_v2.Locations[i5] = new(structs.JWTLocation)
+							*cp_JWTProviders_v2.Locations[i5] = *v2.Locations[i5]
+							if v2.Locations[i5].Header != nil {
+								cp_JWTProviders_v2.Locations[i5].Header = new(structs.JWTLocationHeader)
+								*cp_JWTProviders_v2.Locations[i5].Header = *v2.Locations[i5].Header
+							}
+							if v2.Locations[i5].QueryParam != nil {
+								cp_JWTProviders_v2.Locations[i5].QueryParam = new(structs.JWTLocationQueryParam)
+								*cp_JWTProviders_v2.Locations[i5].QueryParam = *v2.Locations[i5].QueryParam
+							}
+							if v2.Locations[i5].Cookie != nil {
+								cp_JWTProviders_v2.Locations[i5].Cookie = new(structs.JWTLocationCookie)
+								*cp_JWTProviders_v2.Locations[i5].Cookie = *v2.Locations[i5].Cookie
+							}
+						}
+					}
+				}
+				if v2.Forwarding != nil {
+					cp_JWTProviders_v2.Forwarding = new(structs.JWTForwardingConfig)
+					*cp_JWTProviders_v2.Forwarding = *v2.Forwarding
+				}
+				if v2.CacheConfig != nil {
+					cp_JWTProviders_v2.CacheConfig = new(structs.JWTCacheConfig)
+					*cp_JWTProviders_v2.CacheConfig = *v2.CacheConfig
+				}
+				if v2.Meta != nil {
+					cp_JWTProviders_v2.Meta = make(map[string]string, len(v2.Meta))
+					for k5, v5 := range v2.Meta {
+						cp_JWTProviders_v2.Meta[k5] = v5
+					}
+				}
+			}
+			cp.JWTProviders[k2] = cp_JWTProviders_v2
+		}
+	}
 	if o.Roots != nil {
 		cp.Roots = o.Roots.DeepCopy()
 	}

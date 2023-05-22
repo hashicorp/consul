@@ -90,6 +90,20 @@ func (s *handlerConnectProxy) initialize(ctx context.Context) (ConfigSnapshot, e
 		return snap, err
 	}
 
+	// Watch for JWT provider updates.
+	// While we could optimize by only watching providers referenced by intentions,
+	// this should be okay because we expect few JWT providers and infrequent JWT
+	// provider updates.
+	err = s.dataSources.ConfigEntryList.Notify(ctx, &structs.ConfigEntryQuery{
+		Kind:           structs.JWTProvider,
+		Datacenter:     s.source.Datacenter,
+		QueryOptions:   structs.QueryOptions{Token: s.token},
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInPartition(s.proxyID.PartitionOrDefault()),
+	}, jwtProviderID, s.ch)
+	if err != nil {
+		return snap, err
+	}
+
 	// Get information about the entire service mesh.
 	err = s.dataSources.ConfigEntry.Notify(ctx, &structs.ConfigEntryQuery{
 		Kind:           structs.MeshConfig,
@@ -322,6 +336,23 @@ func (s *handlerConnectProxy) handleUpdate(ctx context.Context, u UpdateEvent, s
 		snap.ConnectProxy.Intentions = resp
 		snap.ConnectProxy.IntentionsSet = true
 
+	case u.CorrelationID == jwtProviderID:
+		resp, ok := u.Result.(*structs.IndexedConfigEntries)
+
+		if !ok {
+			return fmt.Errorf("invalid type for response: %T", u.Result)
+		}
+
+		providers := make(map[string]*structs.JWTProviderConfigEntry, len(resp.Entries))
+		for _, entry := range resp.Entries {
+			jwtEntry, ok := entry.(*structs.JWTProviderConfigEntry)
+			if !ok {
+				return fmt.Errorf("invalid type for response: %T", entry)
+			}
+			providers[jwtEntry.Name] = jwtEntry
+		}
+
+		snap.JWTProviders = providers
 	case u.CorrelationID == peeredUpstreamsID:
 		resp, ok := u.Result.(*structs.IndexedPeeredServiceList)
 		if !ok {
