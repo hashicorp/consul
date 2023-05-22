@@ -6,7 +6,6 @@ package xds
 import (
 	"errors"
 	"fmt"
-	"github.com/hashicorp/consul/agent/consul/discoverychain"
 	"net"
 	"sort"
 	"strings"
@@ -20,6 +19,7 @@ import (
 	"google.golang.org/protobuf/types/known/durationpb"
 
 	"github.com/hashicorp/consul/agent/connect"
+	"github.com/hashicorp/consul/agent/consul/discoverychain"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
 )
@@ -435,16 +435,13 @@ func (s *ResourceGenerator) routesForAPIGateway(cfgSnap *proxycfg.ConfigSnapshot
 	for _, readyUpstreams := range readyUpstreamsList {
 		listenerCfg := readyUpstreams.listenerCfg
 		// Do not create any route configuration for TCP listeners
-		if listenerCfg.Protocol != "http" && listenerCfg.Protocol != "HTTP" {
+		if listenerCfg.Protocol != "http" {
 			continue
 		}
 
 		routeRef := readyUpstreams.routeReference
 		listenerKey := readyUpstreams.listenerKey
 
-		// Depending on their TLS config, upstreams are either attached to the
-		// default route or have their own routes. We'll add any upstreams that
-		// don't have custom filter chains and routes to this.
 		defaultRoute := &envoy_route_v3.RouteConfiguration{
 			Name: listenerKey.RouteName(),
 			// ValidateClusters defaults to true when defined statically and false
@@ -458,6 +455,9 @@ func (s *ResourceGenerator) routesForAPIGateway(cfgSnap *proxycfg.ConfigSnapshot
 			return nil, fmt.Errorf("missing route for route reference %s:%s", routeRef.Name, routeRef.Kind)
 		}
 
+		// Flatten the routes here since discovery chains were indexed earlier using the
+		// specific naming convention in discoverychain.consolidateHTTPRoutes. If we don't
+		// convert our route to use the same naming convention, we won't find any chains below.
 		flattenedRoutes := discoverychain.FlattenHTTPRoute(route, &listenerCfg, cfgSnap.APIGateway.GatewayConfig)
 
 		for _, flattenedRoute := range flattenedRoutes {
