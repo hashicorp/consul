@@ -96,7 +96,6 @@ func getHostMatches(hostname string, route *structs.HTTPRouteConfigEntry, curren
 
 		currentMatches[host] = matches
 	}
-	//TODO def don't think this is needed just testing for now, remove if not needed
 	return currentMatches
 }
 
