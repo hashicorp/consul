@@ -105,7 +105,7 @@ func (s *ResourceGenerator) makeAPIGatewayListeners(address string, cfgSnap *pro
 
 			if isAPIGatewayWithTLS {
 				// construct SNI filter chains
-				l.FilterChains, err = makeInlineOverrideFilterChainsAPIGateway(cfgSnap, cfgSnap.APIGateway.TLSConfig, listenerKey.Protocol, listenerFilterOpts{
+				l.FilterChains, err = makeInlineOverrideFilterChains(cfgSnap, cfgSnap.APIGateway.TLSConfig, listenerKey.Protocol, listenerFilterOpts{
 					useRDS:     useRDS,
 					protocol:   listenerKey.Protocol,
 					routeName:  listenerKey.RouteName(),
@@ -158,7 +158,7 @@ func (s *ResourceGenerator) makeAPIGatewayListeners(address string, cfgSnap *pro
 			sniFilterChains := []*envoy_listener_v3.FilterChain{}
 
 			if isAPIGatewayWithTLS {
-				sniFilterChains, err = makeInlineOverrideFilterChainsAPIGateway(cfgSnap, cfgSnap.IngressGateway.TLSConfig, listenerKey.Protocol, filterOpts, certs)
+				sniFilterChains, err = makeInlineOverrideFilterChains(cfgSnap, cfgSnap.IngressGateway.TLSConfig, listenerKey.Protocol, filterOpts, certs)
 				if err != nil {
 					return nil, err
 				}
@@ -293,9 +293,7 @@ func routeNameForAPIGatewayUpstream(l structs.IngressListener, s structs.Ingress
 
 // when we have multiple certificates on a single listener, we need
 // to duplicate the filter chains with multiple TLS contexts
-
-// TODO this function and makeInlineOverrideFilterChains can be consolidated since it only uses the protocol from listener key
-func makeInlineOverrideFilterChainsAPIGateway(cfgSnap *proxycfg.ConfigSnapshot,
+func makeInlineOverrideFilterChains(cfgSnap *proxycfg.ConfigSnapshot,
 	tlsCfg structs.GatewayTLSConfig,
 	protocol string,
 	filterOpts listenerFilterOpts,
