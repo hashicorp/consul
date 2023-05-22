@@ -480,9 +480,6 @@ func (s *ResourceGenerator) routesForAPIGateway(cfgSnap *proxycfg.ConfigSnapshot
 
 			injectHeaderManipToVirtualHostAPIGateway(&flattenedRoute, virtualHost)
 
-			// TODO Handle TLS config and add new route if appropriate
-			//   We need something analogous to routeNameForUpstream used below
-			//   But currently ToIngress is not handeling this usecase
 			defaultRoute.VirtualHosts = append(defaultRoute.VirtualHosts, virtualHost)
 		}
 
