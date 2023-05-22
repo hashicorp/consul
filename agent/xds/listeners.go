@@ -1364,6 +1364,10 @@ func (s *ResourceGenerator) makeInboundListener(cfgSnap *proxycfg.ConfigSnapshot
 		logger:           s.Logger,
 	}
 	if useHTTPFilter {
+		jwtFilter, jwtFilterErr := makeJWTAuthFilter(cfgSnap.JWTProviders, cfgSnap.ConnectProxy.Intentions)
+		if jwtFilterErr != nil {
+			return nil, jwtFilterErr
+		}
 		rbacFilter, err := makeRBACHTTPFilter(
 			cfgSnap.ConnectProxy.Intentions,
 			cfgSnap.IntentionDefaultAllow,
@@ -1379,6 +1383,10 @@ func (s *ResourceGenerator) makeInboundListener(cfgSnap *proxycfg.ConfigSnapshot
 		}
 
 		filterOpts.httpAuthzFilters = []*envoy_http_v3.HttpFilter{rbacFilter}
+
+		if jwtFilter != nil {
+			filterOpts.httpAuthzFilters = append(filterOpts.httpAuthzFilters, jwtFilter)
+		}
 
 		meshConfig := cfgSnap.MeshConfig()
 		includeXFCC := meshConfig == nil || meshConfig.HTTP == nil || !meshConfig.HTTP.SanitizeXForwardedClientCert
