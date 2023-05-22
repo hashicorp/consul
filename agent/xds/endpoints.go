@@ -544,7 +544,6 @@ func getReadyUpstreams(cfgSnap *proxycfg.ConfigSnapshot) map[string]readyUpstrea
 		boundListener := cfgSnap.APIGateway.BoundListeners[l.Name]
 		for _, routeRef := range boundListener.Routes {
 			// Get all upstreams for the route
-
 			routeUpstreams, ok := cfgSnap.APIGateway.Upstreams[routeRef]
 			if !ok {
 				continue
