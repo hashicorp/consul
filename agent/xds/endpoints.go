@@ -606,6 +606,7 @@ func (s *ResourceGenerator) endpointsFromSnapshotAPIGateway(cfgSnap *proxycfg.Co
 			if err != nil {
 				return nil, err
 			}
+
 			resources = append(resources, endpoints...)
 			createdClusters[uid] = struct{}{}
 		}

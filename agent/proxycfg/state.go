@@ -44,6 +44,7 @@ const (
 	serviceResolverIDPrefix            = "service-resolver:"
 	serviceIntentionsIDPrefix          = "service-intentions:"
 	intentionUpstreamsID               = "intention-upstreams"
+	jwtProviderID                      = "jwt-provider"
 	peerServersWatchID                 = "peer-servers"
 	peeredUpstreamsID                  = "peered-upstreams"
 	intentionUpstreamsDestinationID    = "intention-upstreams-destination"
