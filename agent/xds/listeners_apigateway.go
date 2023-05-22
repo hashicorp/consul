@@ -27,9 +27,6 @@ func (s *ResourceGenerator) makeAPIGatewayListeners(address string, cfgSnap *pro
 		listenerKey := readyUpstreams.listenerKey
 		boundListener := readyUpstreams.boundListenerCfg
 
-		//TODO, it's possible that this can be pulled off of the snapshot APIGateway.ListenerCertificates
-		// if that value is being appropriately updated	so we don't have to build this list out every time
-
 		var certs []structs.InlineCertificateConfigEntry
 		for _, certRef := range boundListener.Certificates {
 			cert, ok := cfgSnap.APIGateway.Certificates.Get(certRef)
