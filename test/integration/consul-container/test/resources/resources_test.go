@@ -4,6 +4,9 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/types/known/anypb"
 
 	"github.com/hashicorp/consul/sdk/testutil"
@@ -11,89 +14,112 @@ import (
 	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
 	libtopology "github.com/hashicorp/consul/test/integration/consul-container/libs/topology"
 
+	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
 	pbresource "github.com/hashicorp/consul/proto-public/pbresource"
-	pbdemov2 "github.com/hashicorp/consul/proto/private/pbdemo/v2"
 )
 
-// TestResources exercises the full Resource Service and Controller stack.
 func TestResources(t *testing.T) {
 	t.Parallel()
 
+	ctx := testutil.TestContext(t)
+
 	cluster, _, _ := libtopology.NewCluster(t, &libtopology.ClusterConfig{
 		NumServers: 2,
-		Cmd:        `-hcl=enable_dev_resources = true`,
 		BuildOpts:  &libcluster.BuildOptions{Datacenter: "dc1"},
 	})
 
-	// Write an artist resource to a follower to exercise leader forwarding.
+	// This test specifically targets a follower because:
+	//
+	//	1. It ensures leader-forwarding works (as only leaders can process writes).
+	//	2. It exercises the full Raft replication and FSM flow (as writes will only
+	//	   be readable once they are replicated to the follower).
 	followers, err := cluster.Followers()
 	require.NoError(t, err)
+	client := pbresource.NewResourceServiceClient(followers[0].GetGRPCConn())
 
-	conn := followers[0].GetGRPCConn()
-	client := pbresource.NewResourceServiceClient(conn)
-	ctx := testutil.TestContext(t)
-
-	artist, err := anypb.New(&pbdemov2.Artist{
-		Name:  "Five Iron Frenzy",
-		Genre: pbdemov2.Genre_GENRE_SKA,
-	})
-	require.NoError(t, err)
-
-	writeRsp, err := client.Write(ctx, &pbresource.WriteRequest{
+	// Write a Node and HealthStatus resource. We want to observe the node health
+	// controller running (to exercise the full controller runtime machinery) and
+	// later, observe the deletion of the Node cascading to the HealthStatus.
+	nodeRsp, err := client.Write(ctx, &pbresource.WriteRequest{
 		Resource: &pbresource.Resource{
 			Id: &pbresource.ID{
-				Type: &pbresource.Type{
-					Group:        "demo",
-					GroupVersion: "v2",
-					Kind:         "artist",
-				},
-				Tenancy: &pbresource.Tenancy{
-					Partition: "default",
-					PeerName:  "local",
-					Namespace: "default",
-				},
-				Name: "five-iron-frenzy",
+				Type:    typeNode,
+				Tenancy: tenancyDefault,
+				Name:    "node1",
 			},
-			Data: artist,
+			Data: any(t, &pbcatalog.Node{
+				Addresses: []*pbcatalog.NodeAddress{
+					{Host: "127.0.0.1"},
+				},
+			}),
 		},
 	})
 	require.NoError(t, err)
 
-	// Wait for controller to run and update the artist's status. Also checks
-	// leader to follower replication is working.
-	retry.Run(t, func(r *retry.R) {
-		readRsp, err := client.Read(ctx, &pbresource.ReadRequest{Id: writeRsp.Resource.Id})
-		require.NoError(r, err)
-		require.NotNil(r, readRsp.Resource.Status)
-		require.Contains(r, readRsp.Resource.Status, "consul.io/artist-controller")
-	})
-
-	// Controller will create albums for the artist.
-	listRsp, err := client.List(ctx, &pbresource.ListRequest{
-		Type: &pbresource.Type{
-			Group:        "demo",
-			GroupVersion: "v2",
-			Kind:         "album",
-		},
-		Tenancy: writeRsp.Resource.Id.Tenancy,
-	})
-	require.NoError(t, err)
-	require.Len(t, listRsp.Resources, 3)
-
-	// Delete the artist and check the albums are also cleaned up.
-	_, err = client.Delete(ctx, &pbresource.DeleteRequest{Id: writeRsp.Resource.Id})
-	require.NoError(t, err)
-
-	retry.Run(t, func(r *retry.R) {
-		listRsp, err := client.List(ctx, &pbresource.ListRequest{
-			Type: &pbresource.Type{
-				Group:        "demo",
-				GroupVersion: "v2",
-				Kind:         "album",
+	statusRsp, err := client.Write(ctx, &pbresource.WriteRequest{
+		Resource: &pbresource.Resource{
+			Id: &pbresource.ID{
+				Type:    typeHealthStatus,
+				Tenancy: tenancyDefault,
+				Name:    "node1-http",
 			},
-			Tenancy: writeRsp.Resource.Id.Tenancy,
+			Owner: nodeRsp.Resource.Id,
+			Data: any(t, &pbcatalog.HealthStatus{
+				Type:   "http",
+				Status: pbcatalog.Health_HEALTH_MAINTENANCE,
+			}),
+		},
+	})
+	require.NoError(t, err)
+
+	// Check that the node health controller ran and updated the node's status.
+	//
+	// We don't actually care _what_ it wrote to the status in this test, as we're
+	// just trying to exercise the controller runtime.
+	retry.Run(t, func(r *retry.R) {
+		readRsp, err := client.Read(ctx, &pbresource.ReadRequest{
+			Id: nodeRsp.Resource.Id,
 		})
 		require.NoError(r, err)
-		require.Empty(r, listRsp.Resources)
+		require.Contains(r, readRsp.Resource.Status, "consul.io/node-health")
+	})
+
+	// Delete the node and check it cascades to also delete the HealthStatus.
+	_, err = client.Delete(ctx, &pbresource.DeleteRequest{Id: nodeRsp.Resource.Id})
+	require.NoError(t, err)
+
+	retry.Run(t, func(r *retry.R) {
+		_, err = client.Read(ctx, &pbresource.ReadRequest{Id: statusRsp.Resource.Id})
+		require.Error(r, err)
+		require.Equal(r, codes.NotFound.String(), status.Code(err).String())
 	})
 }
+
+func any(t *testing.T, m protoreflect.ProtoMessage) *anypb.Any {
+	t.Helper()
+
+	any, err := anypb.New(m)
+	require.NoError(t, err)
+
+	return any
+}
+
+var (
+	tenancyDefault = &pbresource.Tenancy{
+		Partition: "default",
+		PeerName:  "local",
+		Namespace: "default",
+	}
+
+	typeNode = &pbresource.Type{
+		Group:        "catalog",
+		GroupVersion: "v1alpha1",
+		Kind:         "Node",
+	}
+
+	typeHealthStatus = &pbresource.Type{
+		Group:        "catalog",
+		GroupVersion: "v1alpha1",
+		Kind:         "HealthStatus",
+	}
+)

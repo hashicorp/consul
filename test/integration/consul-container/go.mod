@@ -7,7 +7,6 @@ require (
 	github.com/avast/retry-go v3.0.0+incompatible
 	github.com/docker/docker v23.0.6+incompatible
 	github.com/docker/go-connections v0.4.0
-	github.com/hashicorp/consul v0.0.0-00010101000000-000000000000
 	github.com/hashicorp/consul/api v1.20.0
 	github.com/hashicorp/consul/envoyextensions v0.1.2
 	github.com/hashicorp/consul/proto-public v0.2.1
@@ -90,7 +89,6 @@ require (
 )
 
 replace (
-	github.com/hashicorp/consul => ../../..
 	github.com/hashicorp/consul/api => ../../../api
 	github.com/hashicorp/consul/envoyextensions => ../../../envoyextensions
 	github.com/hashicorp/consul/proto-public => ../../../proto-public
