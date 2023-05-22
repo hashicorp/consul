@@ -355,7 +355,7 @@ func (s *ResourceGenerator) routesForIngressGateway(cfgSnap *proxycfg.ConfigSnap
 	var result []proto.Message
 	for listenerKey, upstreams := range cfgSnap.IngressGateway.Upstreams {
 		// Do not create any route configuration for TCP listeners
-		if listenerKey.Protocol != "http" {
+		if listenerKey.Protocol == "tcp" {
 			continue
 		}
 
@@ -435,7 +435,7 @@ func (s *ResourceGenerator) routesForAPIGateway(cfgSnap *proxycfg.ConfigSnapshot
 	for _, readyUpstreams := range readyUpstreamsList {
 		listenerCfg := readyUpstreams.listenerCfg
 		// Do not create any route configuration for TCP listeners
-		if listenerCfg.Protocol == "tcp" {
+		if listenerCfg.Protocol != "http" && listenerCfg.Protocol != "HTTP" {
 			continue
 		}
 

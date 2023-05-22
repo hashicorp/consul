@@ -213,7 +213,7 @@ func consolidateHTTPRoutes(matchesByHostname map[string][]hostnameMatch, listene
 		// Create route for this hostname
 		route := structs.HTTPRouteConfigEntry{
 			Kind:           structs.HTTPRoute,
-			Name:           fmt.Sprintf("%s-%s-%s", gateway.Name, suffix, hostsKey(hostname)),
+			Name:           fmt.Sprintf("%s-%s-%s", gateway.Name, listenerName, hostsKey(hostname)),
 			Hostnames:      []string{hostname},
 			Rules:          make([]structs.HTTPRouteRule, 0, len(rules)),
 			Meta:           gateway.Meta,
