@@ -13,7 +13,6 @@ import (
 
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
-	"github.com/hashicorp/consul/lib/hoststats"
 	"github.com/hashicorp/go-hclog"
 	wal "github.com/hashicorp/raft-wal"
 	"github.com/hashicorp/raft-wal/verifier"
@@ -43,6 +42,7 @@ import (
 	"github.com/hashicorp/consul/agent/xds"
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/lib/hoststats"
 	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/consul/tlsutil"
 )
@@ -61,7 +61,7 @@ type BaseDeps struct {
 	WatchedFiles  []string
 
 	deregisterBalancer, deregisterResolver func()
-	stopHostCollector                      func()
+	stopHostCollector                      context.CancelFunc
 }
 
 type ConfigLoader func(source config.Source) (config.LoadResult, error)

@@ -18,14 +18,9 @@ type HostStats struct {
 }
 
 func (hs *HostStats) Clone() *HostStats {
-	clone := *hs
-
-	clone.CPU = make([]*CPUStats, len(hs.CPU))
-	for i := range hs.CPU {
-		cpu := *hs.CPU[i]
-		clone.CPU[i] = &cpu
-	}
-	return &clone
+	clone := &HostStats{}
+	*clone = *hs
+	return clone
 }
 
 func (hs *HostStats) Emit(sink Metrics, baseLabels []metrics.Label) {
