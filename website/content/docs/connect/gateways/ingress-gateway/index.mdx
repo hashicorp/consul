@@ -1,0 +1,26 @@
+---
+layout: docs
+page_title: Ingress gateway overview
+description: >-
+   Ingress gateways enable you to connect external services to services in your mesh. Ingress gateways are a type of proxy that listens for requests from external network locations and route authorized traffic to destinations in the service mesh. 
+---
+
+# Ingress gateways overview
+
+An ingress gateway is a type of proxy that enables network connectivity from external services to services inside the mesh. The following diagram describes the ingress gateway workflow:
+
+![Ingress Gateway Architecture](/img/ingress-gateways.png)
+
+## Workflow
+
+The following stages describe how to add an ingress gateway to your service mesh: 
+
+1. Configure ingress gateway listeners: Create an ingress gateway configuration entry and specify which services to expose to external requests. The configuration entry allows you to define what services should be exposed, on what port, and by what hostname. You can expose services registered with Consul or expose virtual services defined in other configuration entries. Refer to [Ingress gateway configuration entry reference](/consul/docs/connect/config-entries/ingress-gateway) for details on the configuration parameters you can specify.
+
+1. Define an ingress gateway proxy service: Ingress gateways are a special-purpose proxy service that you can define and register in a similar manner to other services. When you register the ingress gateway service, Consul applies the configurations defined in the ingress gateway configuration reference. Refer to [Implement an ingress gateway](/consul/docs/connect/gateways/ingress-gateway/ingress-gateways-usage) for additional information.
+
+1. Start the network proxy: The ingress gateway proxy service accepts configurations from the configuration entry and directs requests to the exposed services. When the external traffic passes through the ingress gateway, your sidecar proxy handles the inbound and outbound connections between the exposed services and the gateway. Refer to [Service mesh proxy overview](/consul/docs/connect/proxies) to learn more about the proxies Consul supports.
+
+## Integrations with custom TLS management solutions
+
+You can configure the ingress gateway to retrieve and serve custom TLS certificates from external systems. This functionality is designed to help you integrate with custom TLS management software. Refer to [Serve custom TLS certificates from an external service](/consul/docs/connect/gateways/ingress-gateway/ingress-gateways-tls-external-service) for additional information. 

@@ -169,8 +169,8 @@ func TestAllResourcesFromSnapshot(t *testing.T) {
 			create: proxycfg.TestConfigSnapshotPeeringLocalMeshGateway,
 		},
 		{
-			name:   "hcp-metrics",
-			create: proxycfg.TestConfigSnapshotHCPMetrics,
+			name:   "telemetry-collector",
+			create: proxycfg.TestConfigSnapshotTelemetryCollector,
 		},
 	}
 	tests = append(tests, getConnectProxyTransparentProxyGoldenTestCases()...)

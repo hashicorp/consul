@@ -1353,6 +1353,18 @@ type RuntimeConfig struct {
 	// hcl: ports { server = int }
 	ServerPort int
 
+	// ServerRejoinAgeMax is used to specify the duration of time a server
+	// is allowed to be down/offline before a startup operation is refused.
+	//
+	// For example: if a server has been offline for 5 days, and this option
+	// is configured to 3 days, then any subsequent startup operation will fail
+	// and require an operator to manually intervene.
+	//
+	// The default is: 7 days
+	//
+	// hcl: server_rejoin_age_max = "duration"
+	ServerRejoinAgeMax time.Duration
+
 	// Services contains the provided service definitions:
 	//
 	// hcl: services = [
@@ -1733,6 +1745,9 @@ func (c *RuntimeConfig) Sanitized() map[string]interface{} {
 
 // IsCloudEnabled returns true if a cloud.resource_id is set and the server mode is enabled
 func (c *RuntimeConfig) IsCloudEnabled() bool {
+	if c == nil {
+		return false
+	}
 	return c.ServerMode && c.Cloud.ResourceID != ""
 }
 

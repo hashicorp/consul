@@ -436,10 +436,16 @@ type Config struct {
 
 	PeeringTestAllowPeerRegistrations bool
 
+	Cloud CloudConfig
+
 	Reporting Reporting
 
 	// Embedded Consul Enterprise specific configuration
 	*EnterpriseConfig
+
+	// ServerRejoinAgeMax is used to specify the duration of time a server
+	// is allowed to be down/offline before a startup operation is refused.
+	ServerRejoinAgeMax time.Duration
 }
 
 func (c *Config) InPrimaryDatacenter() bool {
@@ -565,6 +571,8 @@ func DefaultConfig() *Config {
 		PeeringTestAllowPeerRegistrations: false,
 
 		EnterpriseConfig: DefaultEnterpriseConfig(),
+
+		ServerRejoinAgeMax: 24 * 7 * time.Hour,
 	}
 
 	// Increase our reap interval to 3 days instead of 24h.

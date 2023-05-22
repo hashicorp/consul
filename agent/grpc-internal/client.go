@@ -8,12 +8,12 @@ import (
 	"time"
 
 	"google.golang.org/grpc"
-	gbalancer "google.golang.org/grpc/balancer"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/keepalive"
 
 	"github.com/armon/go-metrics"
 
+	"github.com/hashicorp/consul/agent/grpc-internal/balancer"
 	agentmiddleware "github.com/hashicorp/consul/agent/grpc-middleware"
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/pool"
@@ -22,8 +22,8 @@ import (
 
 // grpcServiceConfig is provided as the default service config.
 //
-// It configures our custom balancer (via the %s directive to interpolate its
-// name) which will automatically switch servers on error.
+// It configures our custom balancer which will automatically switch servers
+// on error.
 //
 // It also enables gRPC's built-in automatic retries for RESOURCE_EXHAUSTED
 // errors *only*, as this is the status code servers will return for an
@@ -41,7 +41,7 @@ import (
 // but we're working on generating them automatically from the protobuf files
 const grpcServiceConfig = `
 {
-	"loadBalancingConfig": [{"%s":{}}],
+	"loadBalancingConfig": [{"` + balancer.BuilderName + `":{}}],
 	"methodConfig": [
 		{
 			"name": [{}],
@@ -131,12 +131,11 @@ const grpcServiceConfig = `
 
 // ClientConnPool creates and stores a connection for each datacenter.
 type ClientConnPool struct {
-	dialer          dialer
-	servers         ServerLocator
-	gwResolverDep   gatewayResolverDep
-	conns           map[string]*grpc.ClientConn
-	connsLock       sync.Mutex
-	balancerBuilder gbalancer.Builder
+	dialer        dialer
+	servers       ServerLocator
+	gwResolverDep gatewayResolverDep
+	conns         map[string]*grpc.ClientConn
+	connsLock     sync.Mutex
 }
 
 type ServerLocator interface {
@@ -198,21 +197,14 @@ type ClientConnPoolConfig struct {
 	// DialingFromDatacenter is the datacenter of the consul agent using this
 	// pool.
 	DialingFromDatacenter string
-
-	// BalancerBuilder is a builder for the gRPC balancer that will be used.
-	BalancerBuilder gbalancer.Builder
 }
 
 // NewClientConnPool create new GRPC client pool to connect to servers using
 // GRPC over RPC.
 func NewClientConnPool(cfg ClientConnPoolConfig) *ClientConnPool {
-	if cfg.BalancerBuilder == nil {
-		panic("missing required BalancerBuilder")
-	}
 	c := &ClientConnPool{
-		servers:         cfg.Servers,
-		conns:           make(map[string]*grpc.ClientConn),
-		balancerBuilder: cfg.BalancerBuilder,
+		servers: cfg.Servers,
+		conns:   make(map[string]*grpc.ClientConn),
 	}
 	c.dialer = newDialer(cfg, &c.gwResolverDep)
 	return c
@@ -251,9 +243,7 @@ func (c *ClientConnPool) dial(datacenter string, serverType string) (*grpc.Clien
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithContextDialer(c.dialer),
 		grpc.WithStatsHandler(agentmiddleware.NewStatsHandler(metrics.Default(), metricsLabels)),
-		grpc.WithDefaultServiceConfig(
-			fmt.Sprintf(grpcServiceConfig, c.balancerBuilder.Name()),
-		),
+		grpc.WithDefaultServiceConfig(grpcServiceConfig),
 		// Keep alive parameters are based on the same default ones we used for
 		// Yamux. These are somewhat arbitrary but we did observe in scale testing
 		// that the gRPC defaults (servers send keepalives only every 2 hours,

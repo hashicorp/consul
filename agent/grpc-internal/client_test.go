@@ -13,7 +13,6 @@ import (
 	"github.com/hashicorp/go-hclog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	gbalancer "google.golang.org/grpc/balancer"
 
 	"github.com/hashicorp/consul/agent/grpc-internal/balancer"
 	"github.com/hashicorp/consul/agent/grpc-internal/resolver"
@@ -143,7 +142,8 @@ func TestNewDialer_IntegrationWithTLSEnabledHandler(t *testing.T) {
 	// if this test is failing because of expired certificates
 	// use the procedure in test/CA-GENERATION.md
 	res := resolver.NewServerResolverBuilder(newConfig(t, "dc1", "server"))
-	registerWithGRPC(t, res)
+	bb := balancer.NewBuilder(res.Authority(), testutil.Logger(t))
+	registerWithGRPC(t, res, bb)
 
 	tlsConf, err := tlsutil.NewConfigurator(tlsutil.Config{
 		InternalRPC: tlsutil.ProtocolConfig{
@@ -176,7 +176,6 @@ func TestNewDialer_IntegrationWithTLSEnabledHandler(t *testing.T) {
 		UseTLSForDC:           tlsConf.UseTLS,
 		DialingFromServer:     true,
 		DialingFromDatacenter: "dc1",
-		BalancerBuilder:       balancerBuilder(t, res.Authority()),
 	})
 
 	conn, err := pool.ClientConn("dc1")
@@ -199,7 +198,8 @@ func TestNewDialer_IntegrationWithTLSEnabledHandler_viaMeshGateway(t *testing.T)
 	gwAddr := ipaddr.FormatAddressPort("127.0.0.1", freeport.GetOne(t))
 
 	res := resolver.NewServerResolverBuilder(newConfig(t, "dc2", "server"))
-	registerWithGRPC(t, res)
+	bb := balancer.NewBuilder(res.Authority(), testutil.Logger(t))
+	registerWithGRPC(t, res, bb)
 
 	tlsConf, err := tlsutil.NewConfigurator(tlsutil.Config{
 		InternalRPC: tlsutil.ProtocolConfig{
@@ -252,7 +252,6 @@ func TestNewDialer_IntegrationWithTLSEnabledHandler_viaMeshGateway(t *testing.T)
 		UseTLSForDC:           tlsConf.UseTLS,
 		DialingFromServer:     true,
 		DialingFromDatacenter: "dc2",
-		BalancerBuilder:       balancerBuilder(t, res.Authority()),
 	})
 	pool.SetGatewayResolver(func(addr string) string {
 		return gwAddr
@@ -275,13 +274,13 @@ func TestNewDialer_IntegrationWithTLSEnabledHandler_viaMeshGateway(t *testing.T)
 func TestClientConnPool_IntegrationWithGRPCResolver_Failover(t *testing.T) {
 	count := 4
 	res := resolver.NewServerResolverBuilder(newConfig(t, "dc1", "server"))
-	registerWithGRPC(t, res)
+	bb := balancer.NewBuilder(res.Authority(), testutil.Logger(t))
+	registerWithGRPC(t, res, bb)
 	pool := NewClientConnPool(ClientConnPoolConfig{
 		Servers:               res,
 		UseTLSForDC:           useTLSForDcAlwaysTrue,
 		DialingFromServer:     true,
 		DialingFromDatacenter: "dc1",
-		BalancerBuilder:       balancerBuilder(t, res.Authority()),
 	})
 
 	for i := 0; i < count; i++ {
@@ -320,13 +319,13 @@ func TestClientConnPool_IntegrationWithGRPCResolver_Failover(t *testing.T) {
 func TestClientConnPool_ForwardToLeader_Failover(t *testing.T) {
 	count := 3
 	res := resolver.NewServerResolverBuilder(newConfig(t, "dc1", "server"))
-	registerWithGRPC(t, res)
+	bb := balancer.NewBuilder(res.Authority(), testutil.Logger(t))
+	registerWithGRPC(t, res, bb)
 	pool := NewClientConnPool(ClientConnPoolConfig{
 		Servers:               res,
 		UseTLSForDC:           useTLSForDcAlwaysTrue,
 		DialingFromServer:     true,
 		DialingFromDatacenter: "dc1",
-		BalancerBuilder:       balancerBuilder(t, res.Authority()),
 	})
 
 	var servers []testServer
@@ -386,13 +385,13 @@ func TestClientConnPool_IntegrationWithGRPCResolver_MultiDC(t *testing.T) {
 	dcs := []string{"dc1", "dc2", "dc3"}
 
 	res := resolver.NewServerResolverBuilder(newConfig(t, "dc1", "server"))
-	registerWithGRPC(t, res)
+	bb := balancer.NewBuilder(res.Authority(), testutil.Logger(t))
+	registerWithGRPC(t, res, bb)
 	pool := NewClientConnPool(ClientConnPoolConfig{
 		Servers:               res,
 		UseTLSForDC:           useTLSForDcAlwaysTrue,
 		DialingFromServer:     true,
 		DialingFromDatacenter: "dc1",
-		BalancerBuilder:       balancerBuilder(t, res.Authority()),
 	})
 
 	for _, dc := range dcs {
@@ -425,18 +424,11 @@ func TestClientConnPool_IntegrationWithGRPCResolver_MultiDC(t *testing.T) {
 	}
 }
 
-func registerWithGRPC(t *testing.T, b *resolver.ServerResolverBuilder) {
-	resolver.Register(b)
-	t.Cleanup(func() {
-		resolver.Deregister(b.Authority())
-	})
-}
-
-func balancerBuilder(t *testing.T, name string) gbalancer.Builder {
-	t.Helper()
-
-	bb := balancer.NewBuilder(name, testutil.Logger(t))
+func registerWithGRPC(t *testing.T, rb *resolver.ServerResolverBuilder, bb *balancer.Builder) {
+	resolver.Register(rb)
 	bb.Register()
-
-	return bb
+	t.Cleanup(func() {
+		resolver.Deregister(rb.Authority())
+		bb.Deregister()
+	})
 }

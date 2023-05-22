@@ -57,6 +57,7 @@ func (e *ExportedServicesConfigEntry) ToMap() map[string]map[string][]string {
 				consumers = append(consumers, c.Partition)
 			}
 			resp[svc.Namespace][svc.Name] = consumers
+			resp[svc.Namespace][svc.Name+SidecarProxySuffix] = consumers
 		}
 	}
 	return resp
