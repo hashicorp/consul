@@ -197,27 +197,6 @@ func (l *GatewayChainSynthesizer) consolidateHTTPRoutes() []structs.HTTPRouteCon
 	return consolidateHTTPRoutes(l.matchesByHostname, l.suffix, l.gateway)
 }
 
-// FlattenHTTPRoute takes in a route and its parent config entries and consolidates the routes by hostname
-func FlattenHTTPRoute(route *structs.HTTPRouteConfigEntry, listener *structs.APIGatewayListener, gateway *structs.APIGatewayConfigEntry) []structs.HTTPRouteConfigEntry {
-	matches := map[string][]hostnameMatch{}
-	matches = getHostMatches(listener.GetHostname(), route, matches)
-	return consolidateHTTPRoutes(matches, listener.Name, gateway)
-}
-
-// BuilsHTTPRouteUpstream takes a route and a listener and builds out a corresponding Upstream struct
-func BuildHTTPRouteUpstream(route structs.HTTPRouteConfigEntry, listener structs.APIGatewayListener) structs.Upstream {
-	return structs.Upstream{
-		DestinationName:      route.GetName(),
-		DestinationNamespace: route.NamespaceOrDefault(),
-		DestinationPartition: route.PartitionOrDefault(),
-		IngressHosts:         route.Hostnames,
-		LocalBindPort:        listener.Port,
-		Config: map[string]interface{}{
-			"protocol": string(listener.Protocol),
-		},
-	}
-}
-
 // consolidateHTTPRoutes combines all rules into the shortest possible list of routes
 // with one route per hostname containing all rules for that hostname.
 func consolidateHTTPRoutes(matchesByHostname map[string][]hostnameMatch, suffix string, gateway *structs.APIGatewayConfigEntry) []structs.HTTPRouteConfigEntry {

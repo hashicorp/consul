@@ -6,7 +6,6 @@ package xds
 import (
 	"errors"
 	"fmt"
-	"github.com/hashicorp/consul/agent/consul/discoverychain"
 	"net"
 	"sort"
 	"strings"
@@ -37,7 +36,13 @@ func (s *ResourceGenerator) routesFromSnapshot(cfgSnap *proxycfg.ConfigSnapshot)
 	case structs.ServiceKindIngressGateway:
 		return s.routesForIngressGateway(cfgSnap)
 	case structs.ServiceKindAPIGateway:
-		return s.routesForAPIGateway(cfgSnap)
+		// TODO Find a cleaner solution, can't currently pass unexported property types
+		var err error
+		cfgSnap.IngressGateway, err = cfgSnap.APIGateway.ToIngress(cfgSnap.Datacenter)
+		if err != nil {
+			return nil, err
+		}
+		return s.routesForIngressGateway(cfgSnap)
 	case structs.ServiceKindTerminatingGateway:
 		return s.routesForTerminatingGateway(cfgSnap)
 	case structs.ServiceKindMeshGateway:
@@ -425,75 +430,6 @@ func (s *ResourceGenerator) routesForIngressGateway(cfgSnap *proxycfg.ConfigSnap
 	return result, nil
 }
 
-// routesForAPIGateway returns the xDS API representation of the
-// "routes" in the snapshot.
-func (s *ResourceGenerator) routesForAPIGateway(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
-	var result []proto.Message
-
-	readyUpstreamsList := getReadyUpstreams(cfgSnap)
-
-	for _, readyUpstreams := range readyUpstreamsList {
-		listenerCfg := readyUpstreams.listenerCfg
-		// Do not create any route configuration for TCP listeners
-		if listenerCfg.Protocol == "tcp" {
-			continue
-		}
-
-		routeRef := readyUpstreams.routeReference
-		listenerKey := readyUpstreams.listenerKey
-
-		// Depending on their TLS config, upstreams are either attached to the
-		// default route or have their own routes. We'll add any upstreams that
-		// don't have custom filter chains and routes to this.
-		defaultRoute := &envoy_route_v3.RouteConfiguration{
-			Name: listenerKey.RouteName(),
-			// ValidateClusters defaults to true when defined statically and false
-			// when done via RDS. Re-set the reasonable value of true to prevent
-			// null-routing traffic.
-			ValidateClusters: makeBoolValue(true),
-		}
-
-		route, ok := cfgSnap.APIGateway.HTTPRoutes.Get(routeRef)
-		if !ok {
-			return nil, fmt.Errorf("missing route for route reference %s:%s", routeRef.Name, routeRef.Kind)
-		}
-
-		flattenedRoutes := discoverychain.FlattenHTTPRoute(route, &listenerCfg, cfgSnap.APIGateway.GatewayConfig)
-
-		for _, flattenedRoute := range flattenedRoutes {
-			flattenedRoute := flattenedRoute
-
-			upstream := discoverychain.BuildHTTPRouteUpstream(flattenedRoute, listenerCfg)
-			uid := proxycfg.NewUpstreamID(&upstream)
-			chain := cfgSnap.APIGateway.DiscoveryChain[uid]
-			if chain == nil {
-				s.Logger.Debug("Discovery chain not found for flattened route", "discovery chain ID", uid)
-				continue
-			}
-
-			domains := generateUpstreamAPIsDomains(listenerKey, upstream, flattenedRoute.Hostnames)
-
-			virtualHost, err := s.makeUpstreamRouteForDiscoveryChain(cfgSnap, uid, chain, domains, false)
-			if err != nil {
-				return nil, err
-			}
-
-			injectHeaderManipToVirtualHostAPIGateway(&flattenedRoute, virtualHost)
-
-			// TODO Handle TLS config and add new route if appropriate
-			//   We need something analogous to routeNameForUpstream used below
-			//   But currently ToIngress is not handeling this usecase
-			defaultRoute.VirtualHosts = append(defaultRoute.VirtualHosts, virtualHost)
-		}
-
-		if len(defaultRoute.VirtualHosts) > 0 {
-			result = append(result, defaultRoute)
-		}
-	}
-
-	return result, nil
-}
-
 func makeHeadersValueOptions(vals map[string]string, add bool) []*envoy_core_v3.HeaderValueOption {
 	opts := make([]*envoy_core_v3.HeaderValueOption, 0, len(vals))
 	for k, v := range vals {
@@ -578,11 +514,6 @@ func generateUpstreamIngressDomains(listenerKey proxycfg.IngressListenerKey, u s
 	}
 
 	return domains
-}
-
-func generateUpstreamAPIsDomains(listenerKey proxycfg.APIGatewayListenerKey, u structs.Upstream, hosts []string) []string {
-	u.IngressHosts = hosts
-	return generateUpstreamIngressDomains(listenerKey, u)
 }
 
 func (s *ResourceGenerator) makeUpstreamRouteForDiscoveryChain(
@@ -1086,16 +1017,6 @@ func injectHeaderManipToRoute(dest *structs.ServiceRouteDestination, r *envoy_ro
 		)
 	}
 	return nil
-}
-
-func injectHeaderManipToVirtualHostAPIGateway(dest *structs.HTTPRouteConfigEntry, vh *envoy_route_v3.VirtualHost) {
-	for _, rule := range dest.Rules {
-		for _, header := range rule.Filters.Headers {
-			vh.RequestHeadersToAdd = append(vh.RequestHeadersToAdd, makeHeadersValueOptions(header.Add, true)...)
-			vh.RequestHeadersToAdd = append(vh.RequestHeadersToAdd, makeHeadersValueOptions(header.Set, false)...)
-			vh.RequestHeadersToRemove = append(vh.RequestHeadersToRemove, header.Remove...)
-		}
-	}
 }
 
 func injectHeaderManipToVirtualHost(dest *structs.IngressService, vh *envoy_route_v3.VirtualHost) error {
