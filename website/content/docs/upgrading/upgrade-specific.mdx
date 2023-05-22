@@ -16,6 +16,20 @@ upgrade flow.
 
 ## Consul 1.16.x
 
+#### API health endpoints return different status code
+
+Consul versions 1.16.0+ will now return an error 403 "Permission denied" status
+whenever the `/v1/health/connect/` and `/v1/health/ingress/` endpoints are
+queried with insufficient ACL `service:read` privileges.
+
+In Consul versions prior to 1.16.0, the service health API would not explicitly
+return an error whenever a token with invalid permissions was given. It would
+instead return an empty list with a success status code.
+
+Ensure that all of your applications can handle this new API behavior properly
+before upgrading. No change is necessary if you do not have a custom application
+that is querying this API directly.
+
 #### Remove deprecated service-defaults peer upstream override behavior
 
 When configuring a service defaults configuration entry, the [`UpstreamConfig.Overrides` configuration](/consul/docs/connect/config-entries/service-defaults#upstreamconfig-overrides) 
