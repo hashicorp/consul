@@ -547,7 +547,7 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 	it := incrementalTime{
 		base: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
 	}
-	waitUntil := it.FutureNow(6)
+	waitUntil := it.FutureNow(7)
 
 	srv, store := newTestServer(t, nil)
 	srv.Tracker.setClock(it.Now)
@@ -1439,7 +1439,9 @@ func makeClient(t *testing.T, srv *testServer, peerID string) *MockClient {
 	// Note that server address may not come as an initial message
 	for _, resourceURL := range []string{
 		pbpeerstream.TypeURLExportedService,
+		pbpeerstream.TypeURLExportedServiceList,
 		pbpeerstream.TypeURLPeeringTrustBundle,
+		// only dialers request, which is why this is absent below
 		pbpeerstream.TypeURLPeeringServerAddresses,
 	} {
 		init := &pbpeerstream.ReplicationMessage{
@@ -1468,7 +1470,7 @@ func makeClient(t *testing.T, srv *testServer, peerID string) *MockClient {
 		{
 			Payload: &pbpeerstream.ReplicationMessage_Request_{
 				Request: &pbpeerstream.ReplicationMessage_Request{
-					ResourceURL: pbpeerstream.TypeURLPeeringTrustBundle,
+					ResourceURL: pbpeerstream.TypeURLExportedServiceList,
 					// The PeerID field is only set for the messages coming FROM
 					// the establishing side and are going to be empty from the
 					// other side.
@@ -1479,7 +1481,7 @@ func makeClient(t *testing.T, srv *testServer, peerID string) *MockClient {
 		{
 			Payload: &pbpeerstream.ReplicationMessage_Request_{
 				Request: &pbpeerstream.ReplicationMessage_Request{
-					ResourceURL: pbpeerstream.TypeURLPeeringServerAddresses,
+					ResourceURL: pbpeerstream.TypeURLPeeringTrustBundle,
 					// The PeerID field is only set for the messages coming FROM
 					// the establishing side and are going to be empty from the
 					// other side.
