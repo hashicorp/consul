@@ -46,6 +46,6 @@ func (c *CloudConfig) HCPConfig(opts ...hcpcfg.HCPConfigOption) (hcpcfg.HCPConfi
 	if c.ScadaAddress != "" {
 		opts = append(opts, hcpcfg.WithSCADA(c.ScadaAddress, c.TLSConfig))
 	}
-	opts = append(opts, hcpcfg.FromEnv())
+	opts = append(opts, hcpcfg.FromEnv(), hcpcfg.WithoutBrowserLogin())
 	return hcpcfg.NewHCPConfig(opts...)
 }
