@@ -37,6 +37,7 @@ func decodeJWKS(t *testing.T, jw string) string {
 }
 
 var (
+	token         = "eyJrZXlzIjogW3sKICAiY3J2IjogIlAtMjU2IiwKICAia2V5X29wcyI6IFsKICAgICJ2ZXJpZnkiCiAgXSwKICAia3R5IjogIkVDIiwKICAieCI6ICJXYzl1WnVQYUI3S2gyRk1jOXd0SmpSZThYRDR5VDJBWU5BQWtyWWJWanV3IiwKICAieSI6ICI2OGhSVEppSk5Pd3RyaDRFb1BYZVZuUnVIN2hpU0RKX2xtYmJqZkRmV3EwIiwKICAiYWxnIjogIkVTMjU2IiwKICAidXNlIjogInNpZyIsCiAgImtpZCI6ICJhYzFlOGY5MGVkZGY2MWM0MjljNjFjYTA1YjRmMmUwNyIKfV19"
 	oktaProvider  = makeProvider("okta")
 	auth0Provider = makeProvider("auth0")
 	fakeProvider  = makeProvider("fake-provider")
@@ -106,14 +107,14 @@ var (
 		CacheDuration:       20,
 	}
 	localJWKS = &structs.LocalJWKS{
-		JWKS: "eyJrZXlzIjogW3sKICAiY3J2IjogIlAtMjU2IiwKICAia2V5X29wcyI6IFsKICAgICJ2ZXJpZnkiCiAgXSwKICAia3R5IjogIkVDIiwKICAieCI6ICJXYzl1WnVQYUI3S2gyRk1jOXd0SmpSZThYRDR5VDJBWU5BQWtyWWJWanV3IiwKICAieSI6ICI2OGhSVEppSk5Pd3RyaDRFb1BYZVZuUnVIN2hpU0RKX2xtYmJqZkRmV3EwIiwKICAiYWxnIjogIkVTMjU2IiwKICAidXNlIjogInNpZyIsCiAgImtpZCI6ICJhYzFlOGY5MGVkZGY2MWM0MjljNjFjYTA1YjRmMmUwNyIKfV19",
+		JWKS: token,
 	}
 	localJWKSFilename = &structs.LocalJWKS{
 		Filename: "file.txt",
 	}
 )
 
-func testIntention(t *testing.T, opts ixnOpts) *structs.Intention {
+func makeTestIntention(t *testing.T, opts ixnOpts) *structs.Intention {
 	t.Helper()
 	ixn := structs.TestIntention(t)
 	ixn.SourceName = opts.src
@@ -173,23 +174,23 @@ func TestMakeJWTAUTHFilters(t *testing.T) {
 		provider   map[string]*structs.JWTProviderConfigEntry
 	}{
 		"remote-provider": {
-			intentions: simplified(testIntention(t, ixnOpts{src: "web", action: structs.IntentionActionAllow, jwt: oktaIntention})),
+			intentions: simplified(makeTestIntention(t, ixnOpts{src: "web", action: structs.IntentionActionAllow, jwt: oktaIntention})),
 			provider:   remoteCE,
 		},
 		"local-provider": {
-			intentions: simplified(testIntention(t, ixnOpts{src: "web", action: structs.IntentionActionAllow, jwt: oktaIntention})),
+			intentions: simplified(makeTestIntention(t, ixnOpts{src: "web", action: structs.IntentionActionAllow, jwt: oktaIntention})),
 			provider:   localCE,
 		},
 		"intention-with-path": {
-			intentions: simplified(testIntention(t, ixnOpts{src: "web", action: structs.IntentionActionAllow, perms: pWithOktaProvider})),
+			intentions: simplified(makeTestIntention(t, ixnOpts{src: "web", action: structs.IntentionActionAllow, perms: pWithOktaProvider})),
 			provider:   remoteCE,
 		},
 		"top-level-provider-with-permission": {
-			intentions: simplified(testIntention(t, ixnOpts{src: "web", action: structs.IntentionActionAllow, jwt: oktaIntention, perms: pWithOktaProvider})),
+			intentions: simplified(makeTestIntention(t, ixnOpts{src: "web", action: structs.IntentionActionAllow, jwt: oktaIntention, perms: pWithOktaProvider})),
 			provider:   remoteCE,
 		},
 		"multiple-providers-and-one-permission": {
-			intentions: simplified(testIntention(t, ixnOpts{src: "web", action: structs.IntentionActionAllow, jwt: multiProviderIntentions, perms: pWithOktaProvider})),
+			intentions: simplified(makeTestIntention(t, ixnOpts{src: "web", action: structs.IntentionActionAllow, jwt: multiProviderIntentions, perms: pWithOktaProvider})),
 			provider:   remoteCE,
 		},
 	}
@@ -197,12 +198,10 @@ func TestMakeJWTAUTHFilters(t *testing.T) {
 	for name, tt := range tests {
 		tt := tt
 		t.Run(name, func(t *testing.T) {
-			t.Run("jwt filter", func(t *testing.T) {
-				filter, err := makeJWTAuthFilter(tt.provider, tt.intentions)
-				require.NoError(t, err)
-				gotJSON := protoToJSON(t, filter)
-				require.JSONEq(t, goldenSimple(t, filepath.Join("jwt_authn", name), gotJSON), gotJSON)
-			})
+			filter, err := makeJWTAuthFilter(tt.provider, tt.intentions)
+			require.NoError(t, err)
+			gotJSON := protoToJSON(t, filter)
+			require.JSONEq(t, goldenSimple(t, filepath.Join("jwt_authn", name), gotJSON), gotJSON)
 		})
 	}
 }
@@ -219,31 +218,31 @@ func TestCollectJWTRequirements(t *testing.T) {
 		expected  []*structs.IntentionJWTProvider
 	}{
 		"empty-top-level-jwt-and-empty-permissions": {
-			intention: testIntention(t, ixnOpts{src: "web"}),
+			intention: makeTestIntention(t, ixnOpts{src: "web"}),
 			expected:  emptyReq,
 		},
 		"top-level-jwt-and-empty-permissions": {
-			intention: testIntention(t, ixnOpts{src: "web", jwt: oktaIntention}),
+			intention: makeTestIntention(t, ixnOpts{src: "web", jwt: oktaIntention}),
 			expected:  oneReq,
 		},
 		"multi-top-level-jwt-and-empty-permissions": {
-			intention: testIntention(t, ixnOpts{src: "web", jwt: multiProviderIntentions}),
+			intention: makeTestIntention(t, ixnOpts{src: "web", jwt: multiProviderIntentions}),
 			expected:  multiReq,
 		},
 		"top-level-jwt-and-one-jwt-permission": {
-			intention: testIntention(t, ixnOpts{src: "web", jwt: auth0Intention, perms: pWithOktaProvider}),
+			intention: makeTestIntention(t, ixnOpts{src: "web", jwt: auth0Intention, perms: pWithOktaProvider}),
 			expected:  multiReq,
 		},
 		"top-level-jwt-and-multi-jwt-permissions": {
-			intention: testIntention(t, ixnOpts{src: "web", jwt: fakeIntention, perms: pWithMultiProviders}),
+			intention: makeTestIntention(t, ixnOpts{src: "web", jwt: fakeIntention, perms: pWithMultiProviders}),
 			expected:  append(multiReq, &fakeProvider),
 		},
 		"empty-top-level-jwt-and-one-jwt-permission": {
-			intention: testIntention(t, ixnOpts{src: "web", perms: pWithOktaProvider}),
+			intention: makeTestIntention(t, ixnOpts{src: "web", perms: pWithOktaProvider}),
 			expected:  oneReq,
 		},
 		"empty-top-level-jwt-and-multi-jwt-permission": {
-			intention: testIntention(t, ixnOpts{src: "web", perms: pWithMultiProviders}),
+			intention: makeTestIntention(t, ixnOpts{src: "web", perms: pWithMultiProviders}),
 			expected:  multiReq,
 		},
 	}
@@ -251,11 +250,8 @@ func TestCollectJWTRequirements(t *testing.T) {
 	for name, tt := range tests {
 		tt := tt
 		t.Run(name, func(t *testing.T) {
-			t.Run("collectJWTRequirements", func(t *testing.T) {
-				reqs := collectJWTRequirements(tt.intention)
-
-				require.ElementsMatch(t, reqs, tt.expected)
-			})
+			reqs := collectJWTRequirements(tt.intention)
+			require.ElementsMatch(t, reqs, tt.expected)
 		})
 	}
 }
@@ -307,7 +303,7 @@ func TestBuildJWTProviderConfig(t *testing.T) {
 			Audiences: []string{"aud"},
 			JSONWebKeySet: &structs.JSONWebKeySet{
 				Local: &structs.LocalJWKS{
-					JWKS: "eyJrZXlzIjogW3sKICAiY3J2IjogIlAtMjU2IiwKICAia2V5X29wcyI6IFsKICAgICJ2ZXJpZnkiCiAgXSwKICAia3R5IjogIkVDIiwKICAieCI6ICJXYzl1WnVQYUI3S2gyRk1jOXd0SmpSZThYRDR5VDJBWU5BQWtyWWJWanV3IiwKICAieSI6ICI2OGhSVEppSk5Pd3RyaDRFb1BYZVZuUnVIN2hpU0RKX2xtYmJqZkRmV3EwIiwKICAiYWxnIjogIkVTMjU2IiwKICAidXNlIjogInNpZyIsCiAgImtpZCI6ICJhYzFlOGY5MGVkZGY2MWM0MjljNjFjYTA1YjRmMmUwNyIKfV19",
+					JWKS: token,
 				},
 			},
 			Forwarding: &structs.JWTForwardingConfig{HeaderName: "user-token"},
@@ -378,16 +374,14 @@ func TestBuildJWTProviderConfig(t *testing.T) {
 	for name, tt := range tests {
 		tt := tt
 		t.Run(name, func(t *testing.T) {
-			t.Run("buildJWTProviderConfig", func(t *testing.T) {
-				res, err := buildJWTProviderConfig(tt.ce)
+			res, err := buildJWTProviderConfig(tt.ce)
 
-				if tt.expectedError != "" {
-					require.Error(t, err)
-					require.Contains(t, err.Error(), tt.expectedError)
-				} else {
-					require.Equal(t, res, tt.expected)
-				}
-			})
+			if tt.expectedError != "" {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), tt.expectedError)
+			} else {
+				require.Equal(t, res, tt.expected)
+			}
 		})
 	}
 
@@ -433,16 +427,14 @@ func TestMakeLocalJWKS(t *testing.T) {
 	for name, tt := range tests {
 		tt := tt
 		t.Run(name, func(t *testing.T) {
-			t.Run("makeLocalJWKS", func(t *testing.T) {
-				res, err := makeLocalJWKS(tt.jwks, tt.providerName)
+			res, err := makeLocalJWKS(tt.jwks, tt.providerName)
 
-				if tt.expectedError != "" {
-					require.Error(t, err)
-					require.Contains(t, err.Error(), tt.expectedError)
-				} else {
-					require.Equal(t, res, tt.expected)
-				}
-			})
+			if tt.expectedError != "" {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), tt.expectedError)
+			} else {
+				require.Equal(t, res, tt.expected)
+			}
 		})
 	}
 }
@@ -489,11 +481,8 @@ func TestMakeRemoteJWKS(t *testing.T) {
 	for name, tt := range tests {
 		tt := tt
 		t.Run(name, func(t *testing.T) {
-			t.Run("makeRemoteJWKS", func(t *testing.T) {
-				res := makeRemoteJWKS(tt.jwks)
-
-				require.Equal(t, res, tt.expected)
-			})
+			res := makeRemoteJWKS(tt.jwks)
+			require.Equal(t, res, tt.expected)
 		})
 	}
 }
@@ -542,11 +531,9 @@ func TestBuildJWTRetryPolicy(t *testing.T) {
 	for name, tt := range tests {
 		tt := tt
 		t.Run(name, func(t *testing.T) {
-			t.Run("buildJWTRetryPolicy", func(t *testing.T) {
-				res := buildJWTRetryPolicy(tt.retryPolicy)
+			res := buildJWTRetryPolicy(tt.retryPolicy)
 
-				require.Equal(t, res, tt.expected)
-			})
+			require.Equal(t, res, tt.expected)
 		})
 	}
 }
@@ -643,11 +630,8 @@ func TestBuildRouteRule(t *testing.T) {
 	for name, tt := range tests {
 		tt := tt
 		t.Run(name, func(t *testing.T) {
-			t.Run("hasJWTconfig", func(t *testing.T) {
-				res := buildRouteRule(tt.provider, tt.perm, tt.route)
-
-				require.Equal(t, res, tt.expected)
-			})
+			res := buildRouteRule(tt.provider, tt.perm, tt.route)
+			require.Equal(t, res, tt.expected)
 		})
 	}
 }
@@ -682,11 +666,8 @@ func TestHasJWTconfig(t *testing.T) {
 	for name, tt := range tests {
 		tt := tt
 		t.Run(name, func(t *testing.T) {
-			t.Run("hasJWTconfig", func(t *testing.T) {
-				res := hasJWTconfig(tt.perms)
-
-				require.Equal(t, res, tt.expected)
-			})
+			res := hasJWTconfig(tt.perms)
+			require.Equal(t, res, tt.expected)
 		})
 	}
 }
