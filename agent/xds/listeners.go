@@ -228,6 +228,15 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 		endpoints := cfgSnap.ConnectProxy.WatchedUpstreamEndpoints[uid][chain.ID()]
 		uniqueAddrs := make(map[string]struct{})
 
+		if chain.Partition == cfgSnap.ProxyID.PartitionOrDefault() {
+			for _, ip := range chain.AutoVirtualIPs {
+				uniqueAddrs[ip] = struct{}{}
+			}
+			for _, ip := range chain.ManualVirtualIPs {
+				uniqueAddrs[ip] = struct{}{}
+			}
+		}
+
 		// Match on the virtual IP for the upstream service (identified by the chain's ID).
 		// We do not match on all endpoints here since it would lead to load balancing across
 		// all instances when any instance address is dialed.
@@ -851,16 +860,11 @@ func (s *ResourceGenerator) listenersFromSnapshotGateway(cfgSnap *proxycfg.Confi
 				return nil, err
 			}
 		case structs.ServiceKindAPIGateway:
-			// TODO Find a cleaner solution, can't currently pass unexported property types
-			var err error
-			cfgSnap.IngressGateway, err = cfgSnap.APIGateway.ToIngress(cfgSnap.Datacenter)
+			listeners, err := s.makeAPIGatewayListeners(a.Address, cfgSnap)
 			if err != nil {
 				return nil, err
 			}
-			listeners, err := s.makeIngressGatewayListeners(a.Address, cfgSnap)
-			if err != nil {
-				return nil, err
-			}
+
 			resources = append(resources, listeners...)
 		case structs.ServiceKindIngressGateway:
 			listeners, err := s.makeIngressGatewayListeners(a.Address, cfgSnap)
@@ -1360,6 +1364,10 @@ func (s *ResourceGenerator) makeInboundListener(cfgSnap *proxycfg.ConfigSnapshot
 		logger:           s.Logger,
 	}
 	if useHTTPFilter {
+		jwtFilter, jwtFilterErr := makeJWTAuthFilter(cfgSnap.JWTProviders, cfgSnap.ConnectProxy.Intentions)
+		if jwtFilterErr != nil {
+			return nil, jwtFilterErr
+		}
 		rbacFilter, err := makeRBACHTTPFilter(
 			cfgSnap.ConnectProxy.Intentions,
 			cfgSnap.IntentionDefaultAllow,
@@ -1375,6 +1383,10 @@ func (s *ResourceGenerator) makeInboundListener(cfgSnap *proxycfg.ConfigSnapshot
 		}
 
 		filterOpts.httpAuthzFilters = []*envoy_http_v3.HttpFilter{rbacFilter}
+
+		if jwtFilter != nil {
+			filterOpts.httpAuthzFilters = append(filterOpts.httpAuthzFilters, jwtFilter)
+		}
 
 		meshConfig := cfgSnap.MeshConfig()
 		includeXFCC := meshConfig == nil || meshConfig.HTTP == nil || !meshConfig.HTTP.SanitizeXForwardedClientCert

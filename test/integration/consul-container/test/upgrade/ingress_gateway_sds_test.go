@@ -22,6 +22,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/testcontainers/testcontainers-go"
+	"github.com/testcontainers/testcontainers-go/wait"
 )
 
 const sdsServerPort = 1234
@@ -313,10 +314,8 @@ func createSDSServer(t *testing.T, cluster *libcluster.Cluster) (containerName s
 	_, err = testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
 		Started: true,
 		ContainerRequest: testcontainers.ContainerRequest{
-			FromDockerfile: testcontainers.FromDockerfile{
-				Context: sdsServerFilesPath,
-			},
-			Name: containerName,
+			Image: "consul-sds-server",
+			Name:  containerName,
 			Networks: []string{
 				cluster.NetworkName,
 			},
@@ -332,6 +331,7 @@ func createSDSServer(t *testing.T, cluster *libcluster.Cluster) (containerName s
 					ReadOnly: true,
 				},
 			},
+			WaitingFor: wait.ForLog("").WithStartupTimeout(60 * time.Second),
 		},
 	})
 	require.NoError(t, err, "create SDS server container")

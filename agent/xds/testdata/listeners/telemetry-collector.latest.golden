@@ -3,11 +3,10 @@
   "resources":  [
     {
       "@type":  "type.googleapis.com/envoy.config.listener.v3.Listener",
-      "name":  "db:127.0.0.1:9191",
+      "name":  "consul-telemetry-collector:/tmp/consul/telemetry-collector/gqmuzdHCUPAEY5mbF8vgkZCNI14.sock",
       "address":  {
-        "socketAddress":  {
-          "address":  "127.0.0.1",
-          "portValue":  9191
+        "pipe":  {
+          "path":  "/tmp/consul/telemetry-collector/gqmuzdHCUPAEY5mbF8vgkZCNI14.sock"
         }
       },
       "filterChains":  [
@@ -17,12 +16,12 @@
               "name":  "envoy.filters.network.http_connection_manager",
               "typedConfig":  {
                 "@type":  "type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager",
-                "statPrefix":  "upstream.db.default.default.dc1",
+                "statPrefix":  "upstream.consul-telemetry-collector.default.default.dc1",
                 "routeConfig":  {
-                  "name":  "db",
+                  "name":  "consul-telemetry-collector",
                   "virtualHosts":  [
                     {
-                      "name":  "db.default.default.dc1",
+                      "name":  "consul-telemetry-collector.default.default.dc1",
                       "domains":  [
                         "*"
                       ],
@@ -32,7 +31,7 @@
                             "prefix":  "/"
                           },
                           "route":  {
-                            "cluster":  "db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
+                            "cluster":  "consul-telemetry-collector.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
                           }
                         }
                       ]
@@ -41,10 +40,16 @@
                 },
                 "httpFilters":  [
                   {
-                    "name":  "envoy.filters.http.lua",
+                    "name":  "envoy.filters.http.grpc_stats",
                     "typedConfig":  {
-                      "@type":  "type.googleapis.com/envoy.extensions.filters.http.lua.v3.Lua",
-                      "inlineCode":  "\nfunction envoy_on_request(request_handle)\n  request_handle:headers():add(\"test\", \"test\")\nend"
+                      "@type":  "type.googleapis.com/envoy.extensions.filters.http.grpc_stats.v3.FilterConfig",
+                      "statsForAllMethods":  true
+                    }
+                  },
+                  {
+                    "name":  "envoy.filters.http.grpc_http1_bridge",
+                    "typedConfig":  {
+                      "@type":  "type.googleapis.com/envoy.extensions.filters.http.grpc_http1_bridge.v3.Config"
                     }
                   },
                   {
@@ -56,7 +61,33 @@
                 ],
                 "tracing":  {
                   "randomSampling":  {}
-                }
+                },
+                "http2ProtocolOptions":  {}
+              }
+            }
+          ]
+        }
+      ],
+      "trafficDirection":  "OUTBOUND"
+    },
+    {
+      "@type":  "type.googleapis.com/envoy.config.listener.v3.Listener",
+      "name":  "db:127.0.0.1:9191",
+      "address":  {
+        "socketAddress":  {
+          "address":  "127.0.0.1",
+          "portValue":  9191
+        }
+      },
+      "filterChains":  [
+        {
+          "filters":  [
+            {
+              "name":  "envoy.filters.network.tcp_proxy",
+              "typedConfig":  {
+                "@type":  "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
+                "statPrefix":  "upstream.db.default.default.dc1",
+                "cluster":  "db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
               }
             }
           ]

@@ -55,11 +55,11 @@
         }
       },
       {
-        "name": "hcp_metrics_collector",
+        "name": "consul_telemetry_collector_loopback",
         "type": "STATIC",
         "http2_protocol_options": {},
         "loadAssignment": {
-          "clusterName": "hcp_metrics_collector",
+          "clusterName": "consul_telemetry_collector_loopback",
           "endpoints": [
             {
               "lbEndpoints": [
@@ -67,7 +67,7 @@
                   "endpoint": {
                     "address": {
                       "pipe": {
-                        "path": "/tmp/consul/hcp-metrics/k3bWnyJyKvjUYXrBdOX2nXzSSCQ.sock"
+                        "path": "/tmp/consul/telemetry-collector/k3bWnyJyKvjUYXrBdOX2nXzSSCQ.sock"
                       }
                     }
                   }
@@ -87,7 +87,7 @@
         "transport_api_version": "V3",
         "grpc_service": {
           "envoy_grpc": {
-            "cluster_name": "hcp_metrics_collector"
+            "cluster_name": "consul_telemetry_collector_loopback"
           }
         }
       }
@@ -221,10 +221,12 @@
   "dynamic_resources": {
     "lds_config": {
       "ads": {},
+      "initial_fetch_timeout": "0s",
       "resource_api_version": "V3"
     },
     "cds_config": {
       "ads": {},
+      "initial_fetch_timeout": "0s",
       "resource_api_version": "V3"
     },
     "ads_config": {

@@ -215,6 +215,7 @@ func NewHandlerWithLimiter(
 		logger:    logger,
 	}
 	h.globalCfg.Store(&cfg)
+	h.ipCfg.Store(&IPLimitConfig{})
 
 	return h
 }
@@ -248,45 +249,39 @@ func (h *Handler) Allow(op Operation) error {
 		return nil
 	}
 
-	for _, l := range h.limits(op) {
-		if l.mode == ModeDisabled {
-			continue
-		}
+	allow, throttledLimits := h.allowAllLimits(h.limits(op))
 
-		if h.limiter.Allow(l.ent) {
-			continue
-		}
+	if !allow {
+		for _, l := range throttledLimits {
+			enforced := l.mode == ModeEnforcing
+			h.logger.Debug("RPC exceeded allowed rate limit",
+				"rpc", op.Name,
+				"source_addr", op.SourceAddr,
+				"limit_type", l.desc,
+				"limit_enforced", enforced,
+			)
 
-		// TODO(NET-1382): is this the correct log-level?
+			metrics.IncrCounterWithLabels([]string{"rpc", "rate_limit", "exceeded"}, 1, []metrics.Label{
+				{
+					Name:  "limit_type",
+					Value: l.desc,
+				},
+				{
+					Name:  "op",
+					Value: op.Name,
+				},
+				{
+					Name:  "mode",
+					Value: l.mode.String(),
+				},
+			})
 
-		enforced := l.mode == ModeEnforcing
-		h.logger.Debug("RPC exceeded allowed rate limit",
-			"rpc", op.Name,
-			"source_addr", op.SourceAddr,
-			"limit_type", l.desc,
-			"limit_enforced", enforced,
-		)
-
-		metrics.IncrCounterWithLabels([]string{"rpc", "rate_limit", "exceeded"}, 1, []metrics.Label{
-			{
-				Name:  "limit_type",
-				Value: l.desc,
-			},
-			{
-				Name:  "op",
-				Value: op.Name,
-			},
-			{
-				Name:  "mode",
-				Value: l.mode.String(),
-			},
-		})
-
-		if enforced {
-			if h.leaderStatusProvider.IsLeader() && op.Type == OperationTypeWrite {
-				return ErrRetryLater
+			if enforced {
+				if h.leaderStatusProvider.IsLeader() && op.Type == OperationTypeWrite {
+					return ErrRetryLater
+				}
+				return ErrRetryElsewhere
 			}
-			return ErrRetryElsewhere
 		}
 	}
 	return nil
@@ -320,6 +315,23 @@ type limit struct {
 	desc string
 }
 
+func (h *Handler) allowAllLimits(limits []limit) (bool, []limit) {
+	allow := true
+	throttledLimits := make([]limit, 0)
+
+	for _, l := range limits {
+		if l.mode == ModeDisabled {
+			continue
+		}
+
+		if !h.limiter.Allow(l.ent) {
+			throttledLimits = append(throttledLimits, l)
+			allow = false
+		}
+	}
+	return allow, throttledLimits
+}
+
 // limits returns the limits to check for the given operation (e.g. global +
 // ip-based + tenant-based).
 func (h *Handler) limits(op Operation) []limit {
@@ -327,6 +339,14 @@ func (h *Handler) limits(op Operation) []limit {
 
 	if global := h.globalLimit(op); global != nil {
 		limits = append(limits, *global)
+	}
+
+	if ipGlobal := h.ipGlobalLimit(op); ipGlobal != nil {
+		limits = append(limits, *ipGlobal)
+	}
+
+	if ipCategory := h.ipCategoryLimit(op); ipCategory != nil {
+		limits = append(limits, *ipCategory)
 	}
 
 	return limits
@@ -354,23 +374,23 @@ func (h *Handler) globalLimit(op Operation) *limit {
 
 var (
 	// globalWrite identifies the global rate limit applied to write operations.
-	globalWrite = globalLimit("global.write")
+	globalWrite = limitedEntity("global.write")
 
 	// globalRead identifies the global rate limit applied to read operations.
-	globalRead = globalLimit("global.read")
+	globalRead = limitedEntity("global.read")
 
 	// globalIPRead identifies the global rate limit applied to read operations.
-	globalIPRead = globalLimit("global.ip.read")
+	globalIPRead = limitedEntity("global.ip.read")
 
 	// globalIPWrite identifies the global rate limit applied to read operations.
-	globalIPWrite = globalLimit("global.ip.write")
+	globalIPWrite = limitedEntity("global.ip.write")
 )
 
-// globalLimit represents a limit that applies to all writes or reads.
-type globalLimit []byte
+// limitedEntity convert the string type to Multilimiter.LimitedEntity
+type limitedEntity []byte
 
 // Key satisfies the multilimiter.LimitedEntity interface.
-func (prefix globalLimit) Key() multilimiter.KeyType {
+func (prefix limitedEntity) Key() multilimiter.KeyType {
 	return multilimiter.Key(prefix, nil)
 }
 

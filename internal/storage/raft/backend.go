@@ -44,6 +44,9 @@ import (
 // intended to communicate over Consul's multiplexed server port (which handles
 // TLS).
 //
+// For more information, see here:
+// https://github.com/hashicorp/consul/tree/main/docs/resources#raft-storage-backend
+//
 // You must call Run before using the backend.
 func NewBackend(h Handle, l hclog.Logger) (*Backend, error) {
 	s, err := inmem.NewStore()
