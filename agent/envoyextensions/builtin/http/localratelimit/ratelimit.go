@@ -97,9 +97,7 @@ func (r *ratelimit) validate() error {
 
 // CanApply determines if the extension can apply to the given extension configuration.
 func (p *ratelimit) CanApply(config *extensioncommon.RuntimeConfig) bool {
-	// rate limit is only applied to the service itself since the limit is
-	// aggregated from all downstream connections.
-	return string(config.Kind) == p.ProxyType && !config.IsUpstream()
+	return string(config.Kind) == p.ProxyType
 }
 
 // PatchRoute does nothing.
@@ -114,7 +112,13 @@ func (p ratelimit) PatchCluster(_ *extensioncommon.RuntimeConfig, c *envoy_clust
 
 // PatchFilter inserts a http local rate_limit filter at the head of
 // envoy.filters.network.http_connection_manager filters
-func (p ratelimit) PatchFilter(_ *extensioncommon.RuntimeConfig, filter *envoy_listener_v3.Filter) (*envoy_listener_v3.Filter, bool, error) {
+func (p ratelimit) PatchFilter(_ *extensioncommon.RuntimeConfig, filter *envoy_listener_v3.Filter, isInboundListener bool) (*envoy_listener_v3.Filter, bool, error) {
+	// rate limit is only applied to the inbound listener of the service itself
+	// since the limit is aggregated from all downstream connections.
+	if !isInboundListener {
+		return filter, false, nil
+	}
+
 	if filter.Name != "envoy.filters.network.http_connection_manager" {
 		return filter, false, nil
 	}

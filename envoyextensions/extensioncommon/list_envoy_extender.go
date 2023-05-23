@@ -5,8 +5,6 @@ package extensioncommon
 
 import (
 	"fmt"
-	"strings"
-
 	envoy_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	envoy_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
@@ -54,6 +52,12 @@ func (*ListEnvoyExtender) Validate(config *RuntimeConfig) error {
 func (e *ListEnvoyExtender) Extend(resources *xdscommon.IndexedResources, config *RuntimeConfig) (*xdscommon.IndexedResources, error) {
 	var resultErr error
 
+	// We don't support patching the local proxy with an upstream's config except in special
+	// cases supported by UpstreamEnvoyExtender.
+	if config.IsSourcedFromUpstream {
+		return nil, fmt.Errorf("%q extension applied as local config but is sourced from an upstream of the local service", config.EnvoyExtension.Name)
+	}
+
 	switch config.Kind {
 	case api.ServiceKindTerminatingGateway, api.ServiceKindConnectProxy:
 	default:
@@ -67,7 +71,6 @@ func (e *ListEnvoyExtender) Extend(resources *xdscommon.IndexedResources, config
 	clusters := make(ClusterMap)
 	routes := make(RouteMap)
 	listeners := make(ListenerMap)
-	isUpstream := config.IsUpstream()
 
 	for _, indexType := range []string{
 		xdscommon.ListenerType,
@@ -77,36 +80,12 @@ func (e *ListEnvoyExtender) Extend(resources *xdscommon.IndexedResources, config
 		for nameOrSNI, msg := range resources.Index[indexType] {
 			switch resource := msg.(type) {
 			case *envoy_cluster_v3.Cluster:
-				// If the Envoy extension configuration is for an upstream service, the Cluster's
-				// name must match the upstream service's SNI.
-				if isUpstream && !config.MatchesUpstreamServiceSNI(nameOrSNI) {
-					continue
-				}
-
-				// If the extension's config is for an an inbound listener, the Cluster's name
-				// must be xdscommon.LocalAppClusterName.
-				if !isUpstream && nameOrSNI == xdscommon.LocalAppClusterName {
-					continue
-				}
-
 				clusters[nameOrSNI] = resource
 
 			case *envoy_listener_v3.Listener:
 				listeners[nameOrSNI] = resource
 
 			case *envoy_route_v3.RouteConfiguration:
-				// If the Envoy extension configuration is for an upstream service, the route's
-				// name must match the upstream service's Envoy ID.
-				matchesEnvoyID := config.EnvoyID() == nameOrSNI
-				if isUpstream && !config.MatchesUpstreamServiceSNI(nameOrSNI) && !matchesEnvoyID {
-					continue
-				}
-
-				// There aren't routes for inbound services.
-				if !isUpstream {
-					continue
-				}
-
 				routes[nameOrSNI] = resource
 
 			default:
@@ -156,22 +135,12 @@ func (e ListEnvoyExtender) patchListeners(config *RuntimeConfig, m ListenerMap) 
 }
 
 func (e ListEnvoyExtender) patchTerminatingGatewayListeners(config *RuntimeConfig, l ListenerMap) (ListenerMap, error) {
-	// We don't support directly targeting terminating gateways with extensions.
-	if !config.IsUpstream() {
-		return l, nil
-	}
-
 	var resultErr error
 	for _, listener := range l {
 		for _, filterChain := range listener.FilterChains {
 			sni := getSNI(filterChain)
 
 			if sni == "" {
-				continue
-			}
-
-			// The filter chain's SNI must match the upstream service's SNI.
-			if !config.MatchesUpstreamServiceSNI(sni) {
 				continue
 			}
 
@@ -191,32 +160,14 @@ func (e ListEnvoyExtender) patchTerminatingGatewayListeners(config *RuntimeConfi
 func (e ListEnvoyExtender) patchConnectProxyListeners(config *RuntimeConfig, l ListenerMap) (ListenerMap, error) {
 	var resultErr error
 
-	isUpstream := config.IsUpstream()
 	for nameOrSNI, listener := range l {
-		envoyID := ""
-		if id, _, found := strings.Cut(listener.Name, ":"); found {
-			envoyID = id
-		}
-
-		if isUpstream && envoyID == xdscommon.OutboundListenerName {
+		if IsOutboundTProxyListener(listener) {
 			patchedListener, err := e.patchTProxyListener(config, listener)
 			if err == nil {
 				l[nameOrSNI] = patchedListener
 			} else {
 				resultErr = multierror.Append(resultErr, fmt.Errorf("error patching TProxy listener %q: %w", nameOrSNI, err))
 			}
-			continue
-		}
-
-		// If the Envoy extension configuration is for an upstream service, the listener's
-		// name must match the upstream service's EnvoyID or be the outbound listener.
-		if isUpstream && envoyID != config.EnvoyID() {
-			continue
-		}
-
-		// If the Envoy extension configuration is for inbound resources, the
-		// listener must be named xdscommon.PublicListenerName.
-		if config.IsLocal() && envoyID != xdscommon.PublicListenerName {
 			continue
 		}
 
