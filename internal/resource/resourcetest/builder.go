@@ -3,9 +3,12 @@ package resourcetest
 import (
 	"context"
 
+	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/oklog/ulid/v2"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/types/known/anypb"
@@ -33,6 +36,14 @@ func Resource(rtype *pbresource.Type, name string) *resourceBuilder {
 				},
 				Name: name,
 			},
+		},
+	}
+}
+
+func ResourceID(id *pbresource.ID) *resourceBuilder {
+	return &resourceBuilder{
+		resource: &pbresource.Resource{
+			Id: id,
 		},
 	}
 }
@@ -123,7 +134,11 @@ func (b *resourceBuilder) Write(t T, client pbresource.ResourceServiceClient) *p
 			_, err := client.Delete(context.Background(), &pbresource.DeleteRequest{
 				Id: rsp.Resource.Id,
 			})
-			require.NoError(t, err)
+
+			// ignore not found errors
+			if err != nil && status.Code(err) != codes.NotFound {
+				t.Fatalf("Failed to delete resource %s of type %s: %v", rsp.Resource.Id.Name, resource.ToGVK(rsp.Resource.Id.Type), err)
+			}
 		})
 	}
 

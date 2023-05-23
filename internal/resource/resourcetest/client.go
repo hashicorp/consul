@@ -35,6 +35,7 @@ func (client *Client) SetRetryerConfig(timeout time.Duration, wait time.Duration
 }
 
 func (client *Client) retry(t T, fn func(r *retry.R)) {
+	t.Helper()
 	retryer := &retry.Timer{Timeout: client.timeout, Wait: client.wait}
 	retry.RunWith(retryer, t, fn)
 }
@@ -181,7 +182,7 @@ func (client *Client) WaitForStatusCondition(t T, id *pbresource.ID, statusKey s
 
 	var res *pbresource.Resource
 	client.retry(t, func(r *retry.R) {
-		res = client.RequireStatusConditionForCurrentGen(t, id, statusKey, condition)
+		res = client.RequireStatusConditionForCurrentGen(r, id, statusKey, condition)
 	})
 
 	return res
@@ -209,10 +210,27 @@ func (client *Client) WaitForResourceState(t T, id *pbresource.ID, verify func(T
 	return res
 }
 
+func (client *Client) WaitForDeletion(t T, id *pbresource.ID) {
+	t.Helper()
+
+	client.retry(t, func(r *retry.R) {
+		client.RequireResourceNotFound(r, id)
+	})
+}
+
 // ResolveResourceID will read the specified resource and returns its full ID.
 // This is mainly useful to get the ID with the Uid filled out.
 func (client *Client) ResolveResourceID(t T, id *pbresource.ID) *pbresource.ID {
 	t.Helper()
 
 	return client.RequireResourceExists(t, id).Id
+}
+
+func (client *Client) MustDelete(t T, id *pbresource.ID) {
+	_, err := client.Delete(context.Background(), &pbresource.DeleteRequest{Id: id})
+	if status.Code(err) == codes.NotFound {
+		return
+	}
+
+	require.NoError(t, err)
 }
