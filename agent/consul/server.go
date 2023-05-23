@@ -1660,6 +1660,20 @@ func (s *Server) IsLeader() bool {
 	return s.raft.State() == raft.Leader
 }
 
+// IsServer checks if this addr is of a server
+func (s *Server) IsServer(addr string) bool {
+	for _, s := range s.raft.GetConfiguration().Configuration().Servers {
+		a, err := net.ResolveTCPAddr("tcp", string(s.Address))
+		if err != nil {
+			continue
+		}
+		if string(metadata.GetIP(a)) == addr {
+			return true
+		}
+	}
+	return false
+}
+
 // LeaderLastContact returns the time of last contact by a leader.
 // This only makes sense if we are currently a follower.
 func (s *Server) LeaderLastContact() time.Time {
