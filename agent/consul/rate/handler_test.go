@@ -19,22 +19,6 @@ import (
 	"github.com/hashicorp/consul/agent/consul/multilimiter"
 )
 
-//
-// Revisit test when handler.go:189 TODO implemented
-//
-// func TestHandler_Allow_PanicsWhenLeaderStatusProviderNotRegistered(t *testing.T) {
-// 	defer func() {
-// 		err := recover()
-// 		if err == nil {
-// 			t.Fatal("Run should panic")
-// 		}
-// 	}()
-
-// 	handler := NewHandler(HandlerConfig{}, hclog.NewNullLogger())
-// 	handler.Allow(Operation{})
-// 	// intentionally skip handler.Register(...)
-// }
-
 func TestHandler(t *testing.T) {
 	var (
 		rpcName    = "Foo.Bar"
@@ -50,6 +34,7 @@ func TestHandler(t *testing.T) {
 		globalMode        Mode
 		checks            []limitCheck
 		isLeader          bool
+		isServer          bool
 		expectErr         error
 		expectLog         bool
 		expectMetric      bool
@@ -230,8 +215,9 @@ func TestHandler(t *testing.T) {
 				limiter.On("Allow", mock.Anything).Return(c.allow)
 			}
 
-			leaderStatusProvider := NewMockLeaderStatusProvider(t)
-			leaderStatusProvider.On("IsLeader").Return(tc.isLeader).Maybe()
+			serversStatusProvider := NewMockServersStatusProvider(t)
+			serversStatusProvider.On("IsLeader").Return(tc.isLeader).Maybe()
+			serversStatusProvider.On("IsServer", mock.Anything).Return(tc.isServer).Maybe()
 
 			var output bytes.Buffer
 			logger := hclog.NewInterceptLogger(&hclog.LoggerOptions{
@@ -252,7 +238,7 @@ func TestHandler(t *testing.T) {
 				limiter,
 				logger,
 			)
-			handler.Register(leaderStatusProvider)
+			handler.Register(serversStatusProvider)
 
 			require.Equal(t, tc.expectErr, handler.Allow(tc.op))
 
@@ -426,8 +412,9 @@ func TestAllow(t *testing.T) {
 			}
 			mockRateLimiter.On("UpdateConfig", mock.Anything, mock.Anything).Return()
 			logger := hclog.NewNullLogger()
-			delegate := NewMockLeaderStatusProvider(t)
+			delegate := NewMockServersStatusProvider(t)
 			delegate.On("IsLeader").Return(true).Maybe()
+			delegate.On("IsServer", mock.Anything).Return(false).Maybe()
 			handler := NewHandlerWithLimiter(*tc.cfg, mockRateLimiter, logger)
 			handler.Register(delegate)
 			addr := net.TCPAddrFromAddrPort(netip.MustParseAddrPort("127.0.0.1:1234"))
