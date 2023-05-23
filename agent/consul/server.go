@@ -39,6 +39,7 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/acl/resolver"
+	"github.com/hashicorp/consul/agent/blockingquery"
 	"github.com/hashicorp/consul/agent/consul/authmethod"
 	"github.com/hashicorp/consul/agent/consul/authmethod/ssoauth"
 	"github.com/hashicorp/consul/agent/consul/fsm"
@@ -172,6 +173,8 @@ type raftStore interface {
 }
 
 const requestLimitsBurstMultiplier = 10
+
+var _ blockingquery.FSMServer = (*Server)(nil)
 
 // Server is Consul server which manages the service discovery,
 // health checking, DC forwarding, Raft, and multiple Serf pools.
@@ -445,6 +448,18 @@ type Server struct {
 
 	// handles metrics reporting to HashiCorp
 	reportingManager *reporting.ReportingManager
+}
+
+func (s *Server) DecrementBlockingQueries() uint64 {
+	return atomic.AddUint64(&s.queriesBlocking, ^uint64(0))
+}
+
+func (s *Server) GetShutdownChannel() chan struct{} {
+	return s.shutdownCh
+}
+
+func (s *Server) IncrementBlockingQueries() uint64 {
+	return atomic.AddUint64(&s.queriesBlocking, 1)
 }
 
 type connHandler interface {
@@ -875,6 +890,7 @@ func newGRPCHandlerFromConfig(deps Deps, config *Config, s *Server) connHandler 
 		ConnectEnabled: config.ConnectEnabled,
 		PeeringEnabled: config.PeeringEnabled,
 		Locality:       config.Locality,
+		FSMServer:      s,
 	})
 	s.peeringServer = p
 	o := operator.NewServer(operator.Config{
@@ -1817,6 +1833,13 @@ func (s *Server) RegisterEndpoint(name string, handler interface{}) error {
 
 func (s *Server) FSM() *fsm.FSM {
 	return s.fsm
+}
+
+func (s *Server) GetState() *state.Store {
+	if s == nil || s.FSM() == nil {
+		return nil
+	}
+	return s.FSM().State()
 }
 
 // Stats is used to return statistics for debugging and insight
