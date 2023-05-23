@@ -72,9 +72,6 @@ jobs:
             fi
     - run: make proto-lint
       name: "Protobuf Lint"
-    - name: Notify Slack
-      if: ${{ failure() }}
-      run: .github/scripts/notify_slack.sh 
   check-generated-deep-copy:
     needs: 
     - setup   
@@ -94,9 +91,6 @@ jobs:
           echo "Generated code was not updated correctly"
           exit 1
         fi
-    - name: Notify Slack
-      if: ${{ failure() }}
-      run: .github/scripts/notify_slack.sh
 
   lint-enums:
     needs: 
@@ -112,9 +106,6 @@ jobs:
       with:
         go-version-file: 'go.mod'
     - run: go install github.com/reillywatson/enumcover/cmd/enumcover@master && enumcover ./...   
-    - name: Notify Slack
-      if: ${{ failure() }}
-      run: .github/scripts/notify_slack.sh
 
   lint-container-test-deps:
     needs:
@@ -129,9 +120,6 @@ jobs:
       with:
         go-version-file: 'go.mod'
     - run: make lint-container-test-deps
-    - name: Notify Slack
-      if: ${{ failure() }}
-      run: .github/scripts/notify_slack.sh
 
   lint-consul-retry:
     needs: 
@@ -147,9 +135,6 @@ jobs:
       with:
         go-version-file: 'go.mod'
     - run: go install github.com/hashicorp/lint-consul-retry@master && lint-consul-retry
-    - name: Notify Slack
-      if: ${{ failure() }}
-      run: .github/scripts/notify_slack.sh
 
   lint:
     needs: 
@@ -454,3 +439,20 @@ jobs:
             printf "Tests failed or workflow cancelled:\n\n${{ toJSON(needs) }}"
             exit 1
           fi
+
+  slack-failure-notification:
+    runs-on: ubuntu-latest
+    needs: [check-generated-protobuf, check-generated-deep-copy, lint-enums, lint-container-test-deps, lint-consul-retry]
+    if: ${{ failure() }}
+    steps:
+      - name: Slack Notification
+        id: slack
+        uses: slackapi/slack-github-action@007b2c3c751a190b6f0f040e47ed024deaa72844 # v1.23.0
+        with:
+          payload: |
+            {
+              "message": "One or more go tests have failed on branch ${{ env.BRANCH }} for Consul. ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.CONSUL_UI_SLACK_WEBHOOK }}
+          
