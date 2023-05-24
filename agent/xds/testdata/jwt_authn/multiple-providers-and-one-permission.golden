@@ -5,6 +5,7 @@
     "providers": {
       "okta": {
         "issuer": "test-issuer",
+        "payloadInMetadata": "jwt_payload",
         "remoteJwks": {
           "httpUri": {
             "uri": "https://example-okta.com/.well-known/jwks.json",
@@ -18,6 +19,7 @@
       },
       "auth0": {
         "issuer": "another-issuer",
+        "payloadInMetadata": "jwt_payload",
         "remoteJwks": {
           "httpUri": {
             "uri": "https://example-auth0.com/.well-known/jwks.json",

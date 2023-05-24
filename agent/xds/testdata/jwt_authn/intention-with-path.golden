@@ -5,6 +5,7 @@
     "providers": {
       "okta": {
         "issuer": "test-issuer",
+        "payloadInMetadata": "jwt_payload",
         "remoteJwks": {
           "httpUri": {
             "uri": "https://example-okta.com/.well-known/jwks.json",

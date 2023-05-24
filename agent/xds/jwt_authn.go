@@ -99,8 +99,9 @@ func getPermissionsProviders(p []*structs.IntentionPermission) []*structs.Intent
 
 func buildJWTProviderConfig(p *structs.JWTProviderConfigEntry) (*envoy_http_jwt_authn_v3.JwtProvider, error) {
 	envoyCfg := envoy_http_jwt_authn_v3.JwtProvider{
-		Issuer:    p.Issuer,
-		Audiences: p.Audiences,
+		Issuer:            p.Issuer,
+		Audiences:         p.Audiences,
+		PayloadInMetadata: "jwt_payload",
 	}
 
 	if p.Forwarding != nil {

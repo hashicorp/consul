@@ -232,16 +232,28 @@ func intentionToIntermediateRBACForm(
 		rixn.Source.TrustDomain = bundle.TrustDomain
 	}
 
+	if isHTTP && ixn.JWT != nil {
+		for _, prov := range ixn.JWT.Providers {
+			rixn.Claims = append(rixn.Claims, prov.VerifyClaims...)
+		}
+	}
+
 	if len(ixn.Permissions) > 0 {
 		if isHTTP {
 			rixn.Action = intentionActionLayer7
 			rixn.Permissions = make([]*rbacPermission, 0, len(ixn.Permissions))
 			for _, perm := range ixn.Permissions {
-				rixn.Permissions = append(rixn.Permissions, &rbacPermission{
+				rbacPerm := rbacPermission{
 					Definition: perm,
 					Action:     intentionActionFromString(perm.Action),
 					Perm:       convertPermission(perm),
-				})
+				}
+				if perm.JWT != nil {
+					for _, prov := range perm.JWT.Providers {
+						rbacPerm.Claims = append(rbacPerm.Claims, prov.VerifyClaims...)
+					}
+				}
+				rixn.Permissions = append(rixn.Permissions, &rbacPerm)
 			}
 		} else {
 			// In case L7 intentions slip through to here, treat them as deny intentions.
@@ -293,6 +305,10 @@ type rbacIntention struct {
 	Action      intentionAction
 	Permissions []*rbacPermission
 	Precedence  int
+
+	// Claims is field used for JWT Authentication to verify claims
+	// these claims and under intention.JWT or intention.permissions.jwt
+	Claims []*structs.IntentionJWTClaimVerification
 
 	// Skip is field used to indicate that this intention can be deleted in the
 	// final pass. Items marked as true should generally not escape the method
@@ -365,6 +381,10 @@ type rbacPermission struct {
 	Action   intentionAction
 	Perm     *envoy_rbac_v3.Permission
 	NotPerms []*envoy_rbac_v3.Permission
+
+	// Claims is field used for JWT Authentication to verify claims
+	// these claims and under intention.JWT or intention.permissions.jwt
+	Claims []*structs.IntentionJWTClaimVerification
 
 	// Skip is field used to indicate that this permission can be deleted in
 	// the final pass. Items marked as true should generally not escape the
@@ -539,9 +559,15 @@ func makeRBACRules(
 				panic("invalid state: L7 permissions present for TCP service")
 			}
 
+			finalPrincipals := optimizePrincipals([]*envoy_rbac_v3.Principal{rbacIxn.ComputedPrincipal})
+
+			if len(rbacIxn.Claims) > 0 {
+				claimsPrincipal := claimsListToPrincipals(rbacIxn.Claims)
+				finalPrincipals = append(finalPrincipals, claimsPrincipal)
+			}
 			// For L7: we should generate one Policy per Principal and list all of the Permissions
 			policy := &envoy_rbac_v3.Policy{
-				Principals:  optimizePrincipals([]*envoy_rbac_v3.Principal{rbacIxn.ComputedPrincipal}),
+				Principals:  finalPrincipals,
 				Permissions: make([]*envoy_rbac_v3.Permission, 0, len(rbacIxn.Permissions)),
 			}
 			for _, perm := range rbacIxn.Permissions {
@@ -564,6 +590,54 @@ func makeRBACRules(
 		rbac.Policies = nil
 	}
 	return rbac
+}
+
+func claimsListToPrincipals(c []*structs.IntentionJWTClaimVerification) *envoy_rbac_v3.Principal {
+	ps := make([]*envoy_rbac_v3.Principal, len(c))
+	for _, claim := range c {
+		ps = append(ps, claimToPrincipal(claim))
+	}
+	return orPrincipals(ps)
+}
+
+func claimToPrincipal(c *structs.IntentionJWTClaimVerification) *envoy_rbac_v3.Principal {
+	segments := pathToSegments(c.Path)
+
+	return &envoy_rbac_v3.Principal{
+		Identifier: &envoy_rbac_v3.Principal_Metadata{
+			Metadata: &envoy_matcher_v3.MetadataMatcher{
+				Filter: "envoy.filters.http.jwt_authn",
+				Path:   segments,
+				Value: &envoy_matcher_v3.ValueMatcher{
+					MatchPattern: &envoy_matcher_v3.ValueMatcher_StringMatch{
+						StringMatch: &envoy_matcher_v3.StringMatcher{
+							MatchPattern: &envoy_matcher_v3.StringMatcher_Exact{
+								Exact: c.Value,
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+func pathToSegments(paths []string) []*envoy_matcher_v3.MetadataMatcher_PathSegment {
+
+	segments := make([]*envoy_matcher_v3.MetadataMatcher_PathSegment, 0, len(paths))
+	segments = append(segments, makeSegment("jwt_payload"))
+
+	for _, p := range paths {
+		segments = append(segments, makeSegment(p))
+	}
+
+	return segments
+}
+
+func makeSegment(key string) *envoy_matcher_v3.MetadataMatcher_PathSegment {
+	return &envoy_matcher_v3.MetadataMatcher_PathSegment{
+		Segment: &envoy_matcher_v3.MetadataMatcher_PathSegment_Key{Key: key},
+	}
 }
 
 func optimizePrincipals(orig []*envoy_rbac_v3.Principal) []*envoy_rbac_v3.Principal {

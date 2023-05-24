@@ -5,6 +5,7 @@
     "providers": {
       "okta": {
         "issuer": "test-issuer",
+        "payloadInMetadata": "jwt_payload",
         "localJwks": {
           "inlineString": "{\"keys\": [{\n  \"crv\": \"P-256\",\n  \"key_ops\": [\n    \"verify\"\n  ],\n  \"kty\": \"EC\",\n  \"x\": \"Wc9uZuPaB7Kh2FMc9wtJjRe8XD4yT2AYNAAkrYbVjuw\",\n  \"y\": \"68hRTJiJNOwtrh4EoPXeVnRuH7hiSDJ_lmbbjfDfWq0\",\n  \"alg\": \"ES256\",\n  \"use\": \"sig\",\n  \"kid\": \"ac1e8f90eddf61c429c61ca05b4f2e07\"\n}]}"
         }
