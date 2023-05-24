@@ -1957,7 +1957,7 @@ func processResponse_ExportedServiceUpdates(
 	localEntMeta acl.EnterpriseMeta,
 	peerName string,
 	tests []PeeringProcessResponse_testCase,
-) {
+) *MutableStatus {
 	// create a peering in the state store
 	peerID := "1fabcd52-1d46-49b0-b1d8-71559aee47f5"
 	require.NoError(t, store.PeeringWrite(31, &pbpeering.PeeringWriteRequest{
@@ -2038,6 +2038,7 @@ func processResponse_ExportedServiceUpdates(
 			run(t, tc)
 		})
 	}
+	return mst
 }
 
 func Test_processResponse_ExportedServiceUpdates(t *testing.T) {
