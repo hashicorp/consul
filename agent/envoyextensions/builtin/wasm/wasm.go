@@ -68,12 +68,13 @@ func (w *wasm) fromArguments(args map[string]any) error {
 
 // CanApply indicates if the WASM extension can be applied to the given extension configuration.
 // Currently the Wasm extension can be applied if the extension configuration is for an inbound
-// listener on the a local connect-proxy.
-// It does not patch extensions for service upstreams.
+// listener (checked below) on a local connect-proxy.
 func (w wasm) CanApply(config *extensioncommon.RuntimeConfig) bool {
-	return config.IsLocal() && w.wasmConfig.ListenerType == "inbound" &&
-		config.Kind == w.wasmConfig.ProxyType
+	return config.Kind == w.wasmConfig.ProxyType
+}
 
+func (w wasm) matchesConfigDirection(isInboundListener bool) bool {
+	return isInboundListener && w.wasmConfig.ListenerType == "inbound"
 }
 
 // PatchRoute does nothing for the WASM extension.
@@ -88,7 +89,11 @@ func (w wasm) PatchCluster(_ *extensioncommon.RuntimeConfig, c *envoy_cluster_v3
 
 // PatchFilter adds a Wasm filter to the HTTP filter chain.
 // TODO (wasm/tcp): Add support for TCP filters.
-func (w wasm) PatchFilter(cfg *extensioncommon.RuntimeConfig, filter *envoy_listener_v3.Filter) (*envoy_listener_v3.Filter, bool, error) {
+func (w wasm) PatchFilter(cfg *extensioncommon.RuntimeConfig, filter *envoy_listener_v3.Filter, isInboundListener bool) (*envoy_listener_v3.Filter, bool, error) {
+	if !w.matchesConfigDirection(isInboundListener) {
+		return filter, false, nil
+	}
+
 	if filter.Name != "envoy.filters.network.http_connection_manager" {
 		return filter, false, nil
 	}

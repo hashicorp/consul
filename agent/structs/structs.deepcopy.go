@@ -133,6 +133,14 @@ func (o *CompiledDiscoveryChain) DeepCopy() *CompiledDiscoveryChain {
 			cp.Targets[k2] = cp_Targets_v2
 		}
 	}
+	if o.AutoVirtualIPs != nil {
+		cp.AutoVirtualIPs = make([]string, len(o.AutoVirtualIPs))
+		copy(cp.AutoVirtualIPs, o.AutoVirtualIPs)
+	}
+	if o.ManualVirtualIPs != nil {
+		cp.ManualVirtualIPs = make([]string, len(o.ManualVirtualIPs))
+		copy(cp.ManualVirtualIPs, o.ManualVirtualIPs)
+	}
 	return &cp
 }
 
@@ -528,6 +536,14 @@ func (o *IngressListener) DeepCopy() *IngressListener {
 				if o.Services[i2].PassiveHealthCheck.EnforcingConsecutive5xx != nil {
 					cp.Services[i2].PassiveHealthCheck.EnforcingConsecutive5xx = new(uint32)
 					*cp.Services[i2].PassiveHealthCheck.EnforcingConsecutive5xx = *o.Services[i2].PassiveHealthCheck.EnforcingConsecutive5xx
+				}
+				if o.Services[i2].PassiveHealthCheck.MaxEjectionPercent != nil {
+					cp.Services[i2].PassiveHealthCheck.MaxEjectionPercent = new(uint32)
+					*cp.Services[i2].PassiveHealthCheck.MaxEjectionPercent = *o.Services[i2].PassiveHealthCheck.MaxEjectionPercent
+				}
+				if o.Services[i2].PassiveHealthCheck.BaseEjectionTime != nil {
+					cp.Services[i2].PassiveHealthCheck.BaseEjectionTime = new(time.Duration)
+					*cp.Services[i2].PassiveHealthCheck.BaseEjectionTime = *o.Services[i2].PassiveHealthCheck.BaseEjectionTime
 				}
 			}
 			if o.Services[i2].Meta != nil {
@@ -1134,6 +1150,14 @@ func (o *UpstreamConfiguration) DeepCopy() *UpstreamConfiguration {
 						cp.Overrides[i2].PassiveHealthCheck.EnforcingConsecutive5xx = new(uint32)
 						*cp.Overrides[i2].PassiveHealthCheck.EnforcingConsecutive5xx = *o.Overrides[i2].PassiveHealthCheck.EnforcingConsecutive5xx
 					}
+					if o.Overrides[i2].PassiveHealthCheck.MaxEjectionPercent != nil {
+						cp.Overrides[i2].PassiveHealthCheck.MaxEjectionPercent = new(uint32)
+						*cp.Overrides[i2].PassiveHealthCheck.MaxEjectionPercent = *o.Overrides[i2].PassiveHealthCheck.MaxEjectionPercent
+					}
+					if o.Overrides[i2].PassiveHealthCheck.BaseEjectionTime != nil {
+						cp.Overrides[i2].PassiveHealthCheck.BaseEjectionTime = new(time.Duration)
+						*cp.Overrides[i2].PassiveHealthCheck.BaseEjectionTime = *o.Overrides[i2].PassiveHealthCheck.BaseEjectionTime
+					}
 				}
 			}
 		}
@@ -1163,6 +1187,14 @@ func (o *UpstreamConfiguration) DeepCopy() *UpstreamConfiguration {
 			if o.Defaults.PassiveHealthCheck.EnforcingConsecutive5xx != nil {
 				cp.Defaults.PassiveHealthCheck.EnforcingConsecutive5xx = new(uint32)
 				*cp.Defaults.PassiveHealthCheck.EnforcingConsecutive5xx = *o.Defaults.PassiveHealthCheck.EnforcingConsecutive5xx
+			}
+			if o.Defaults.PassiveHealthCheck.MaxEjectionPercent != nil {
+				cp.Defaults.PassiveHealthCheck.MaxEjectionPercent = new(uint32)
+				*cp.Defaults.PassiveHealthCheck.MaxEjectionPercent = *o.Defaults.PassiveHealthCheck.MaxEjectionPercent
+			}
+			if o.Defaults.PassiveHealthCheck.BaseEjectionTime != nil {
+				cp.Defaults.PassiveHealthCheck.BaseEjectionTime = new(time.Duration)
+				*cp.Defaults.PassiveHealthCheck.BaseEjectionTime = *o.Defaults.PassiveHealthCheck.BaseEjectionTime
 			}
 		}
 	}

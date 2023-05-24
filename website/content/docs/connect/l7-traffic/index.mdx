@@ -12,7 +12,7 @@ description: >-
 Layer 7 traffic management allows operators to divide L7 traffic between
 different
 [subsets](/consul/docs/connect/config-entries/service-resolver#service-subsets) of
-service instances when using Connect.
+service instances when using service mesh.
 
 There are many ways you may wish to carve up a single datacenter's pool of
 services beyond simply returning all healthy instances for load balancing.
@@ -28,7 +28,7 @@ and some [Envoy proxy escape hatches](/consul/docs/connect/proxies/envoy#escape-
 
 ## Stages
 
-Connect proxy upstreams are discovered using a series of stages: routing,
+Service mesh proxy upstreams are discovered using a series of stages: routing,
 splitting, and resolution. These stages represent different ways of managing L7
 traffic.
 

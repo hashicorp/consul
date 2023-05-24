@@ -58,6 +58,7 @@ func DefaultSource() Source {
 		segment_limit = 64
 
 		server = false
+		server_rejoin_age_max = "168h"
 		syslog_facility = "LOCAL0"
 
 		tls = {

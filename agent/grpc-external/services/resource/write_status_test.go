@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/hashicorp/consul/acl/resolver"
 	"github.com/hashicorp/consul/internal/resource"
@@ -49,7 +50,7 @@ func TestWriteStatus_ACL(t *testing.T) {
 			mockACLResolver.On("ResolveTokenAndDefaultMeta", mock.Anything, mock.Anything, mock.Anything).
 				Return(tc.authz, nil)
 			server.ACLResolver = mockACLResolver
-			demo.Register(server.Registry)
+			demo.RegisterTypes(server.Registry)
 
 			artist, err := demo.GenerateV2Artist()
 			require.NoError(t, err)
@@ -69,7 +70,7 @@ func TestWriteStatus_InputValidation(t *testing.T) {
 	server := testServer(t)
 	client := testClient(t, server)
 
-	demo.Register(server.Registry)
+	demo.RegisterTypes(server.Registry)
 
 	testCases := map[string]func(*pbresource.WriteStatusRequest){
 		"no id":                   func(req *pbresource.WriteStatusRequest) { req.Id = nil },
@@ -85,6 +86,7 @@ func TestWriteStatus_InputValidation(t *testing.T) {
 		"no reference type":       func(req *pbresource.WriteStatusRequest) { req.Status.Conditions[0].Resource.Type = nil },
 		"no reference tenancy":    func(req *pbresource.WriteStatusRequest) { req.Status.Conditions[0].Resource.Tenancy = nil },
 		"no reference name":       func(req *pbresource.WriteStatusRequest) { req.Status.Conditions[0].Resource.Name = "" },
+		"updated at provided":     func(req *pbresource.WriteStatusRequest) { req.Status.UpdatedAt = timestamppb.Now() },
 	}
 	for desc, modFn := range testCases {
 		t.Run(desc, func(t *testing.T) {
@@ -113,7 +115,7 @@ func TestWriteStatus_Success(t *testing.T) {
 			server := testServer(t)
 			client := testClient(t, server)
 
-			demo.Register(server.Registry)
+			demo.RegisterTypes(server.Registry)
 
 			res, err := demo.GenerateV2Artist()
 			require.NoError(t, err)
@@ -140,6 +142,7 @@ func TestWriteStatus_Success(t *testing.T) {
 			require.NotEqual(t, rsp.Resource.Version, res.Version, "version should have changed")
 			require.Contains(t, rsp.Resource.Status, "consul.io/other-controller")
 			require.Contains(t, rsp.Resource.Status, "consul.io/artist-controller")
+			require.NotNil(t, rsp.Resource.Status["consul.io/artist-controller"].UpdatedAt)
 		})
 	}
 }
@@ -148,7 +151,7 @@ func TestWriteStatus_CASFailure(t *testing.T) {
 	server := testServer(t)
 	client := testClient(t, server)
 
-	demo.Register(server.Registry)
+	demo.RegisterTypes(server.Registry)
 
 	res, err := demo.GenerateV2Artist()
 	require.NoError(t, err)
@@ -183,7 +186,7 @@ func TestWriteStatus_TypeNotFound(t *testing.T) {
 func TestWriteStatus_ResourceNotFound(t *testing.T) {
 	server := testServer(t)
 	client := testClient(t, server)
-	demo.Register(server.Registry)
+	demo.RegisterTypes(server.Registry)
 
 	res, err := demo.GenerateV2Artist()
 	require.NoError(t, err)
@@ -198,7 +201,7 @@ func TestWriteStatus_ResourceNotFound(t *testing.T) {
 func TestWriteStatus_WrongUid(t *testing.T) {
 	server := testServer(t)
 	client := testClient(t, server)
-	demo.Register(server.Registry)
+	demo.RegisterTypes(server.Registry)
 
 	res, err := demo.GenerateV2Artist()
 	require.NoError(t, err)
@@ -219,7 +222,7 @@ func TestWriteStatus_NonCASUpdate_Retry(t *testing.T) {
 	server := testServer(t)
 	client := testClient(t, server)
 
-	demo.Register(server.Registry)
+	demo.RegisterTypes(server.Registry)
 
 	res, err := demo.GenerateV2Artist()
 	require.NoError(t, err)

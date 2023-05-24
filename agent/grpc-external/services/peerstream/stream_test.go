@@ -550,7 +550,7 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 	it := incrementalTime{
 		base: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
 	}
-	waitUntil := it.FutureNow(6)
+	waitUntil := it.FutureNow(7)
 
 	srv, store := newTestServer(t, nil)
 	srv.Tracker.setClock(it.Now)
@@ -1442,7 +1442,9 @@ func makeClient(t *testing.T, srv *testServer, peerID string) *MockClient {
 	// Note that server address may not come as an initial message
 	for _, resourceURL := range []string{
 		pbpeerstream.TypeURLExportedService,
+		pbpeerstream.TypeURLExportedServiceList,
 		pbpeerstream.TypeURLPeeringTrustBundle,
+		// only dialers request, which is why this is absent below
 		pbpeerstream.TypeURLPeeringServerAddresses,
 	} {
 		init := &pbpeerstream.ReplicationMessage{
@@ -1471,7 +1473,7 @@ func makeClient(t *testing.T, srv *testServer, peerID string) *MockClient {
 		{
 			Payload: &pbpeerstream.ReplicationMessage_Request_{
 				Request: &pbpeerstream.ReplicationMessage_Request{
-					ResourceURL: pbpeerstream.TypeURLPeeringTrustBundle,
+					ResourceURL: pbpeerstream.TypeURLExportedServiceList,
 					// The PeerID field is only set for the messages coming FROM
 					// the establishing side and are going to be empty from the
 					// other side.
@@ -1482,7 +1484,7 @@ func makeClient(t *testing.T, srv *testServer, peerID string) *MockClient {
 		{
 			Payload: &pbpeerstream.ReplicationMessage_Request_{
 				Request: &pbpeerstream.ReplicationMessage_Request{
-					ResourceURL: pbpeerstream.TypeURLPeeringServerAddresses,
+					ResourceURL: pbpeerstream.TypeURLPeeringTrustBundle,
 					// The PeerID field is only set for the messages coming FROM
 					// the establishing side and are going to be empty from the
 					// other side.
@@ -1594,7 +1596,11 @@ func Test_ExportedServicesCount(t *testing.T) {
 	mst, err := srv.Tracker.Connected(peerID)
 	require.NoError(t, err)
 
-	services := []string{"web", "api", "mongo"}
+	services := []string{
+		structs.NewServiceName("web", nil).String(),
+		structs.NewServiceName("api", nil).String(),
+		structs.NewServiceName("mongo", nil).String(),
+	}
 	update := cache.UpdateEvent{
 		CorrelationID: subExportedServiceList,
 		Result: &pbpeerstream.ExportedServiceList{
@@ -1938,36 +1944,30 @@ func expectReplEvents(t *testing.T, client *MockClient, checkFns ...func(t *test
 	}
 }
 
-func Test_processResponse_ExportedServiceUpdates(t *testing.T) {
-	srv, store := newTestServer(t, func(c *Config) {
-		backend := c.Backend.(*testStreamBackend)
-		backend.leader = func() bool {
-			return false
-		}
-	})
+type PeeringProcessResponse_testCase struct {
+	name             string
+	seed             []*structs.RegisterRequest
+	inputServiceName structs.ServiceName
+	input            *pbpeerstream.ExportedService
+	expect           map[structs.ServiceName]structs.CheckServiceNodes
+	exportedServices []string
+}
 
-	type testCase struct {
-		name             string
-		seed             []*structs.RegisterRequest
-		input            *pbpeerstream.ExportedService
-		expect           map[string]structs.CheckServiceNodes
-		exportedServices []string
-	}
-
-	peerName := "billing"
-	peerID := "1fabcd52-1d46-49b0-b1d8-71559aee47f5"
-	remoteMeta := pbcommon.NewEnterpriseMetaFromStructs(*structs.DefaultEnterpriseMetaInPartition("billing-ap"))
-
-	// "api" service is imported from the billing-ap partition, corresponding to the billing peer.
-	// Locally it is stored to the default partition.
-	defaultMeta := *acl.DefaultEnterpriseMeta()
-	apiSN := structs.NewServiceName("api", &defaultMeta)
-
+func processResponse_ExportedServiceUpdates(
+	t *testing.T,
+	srv *testServer,
+	store *state.Store,
+	localEntMeta acl.EnterpriseMeta,
+	peerName string,
+	tests []PeeringProcessResponse_testCase,
+) {
 	// create a peering in the state store
+	peerID := "1fabcd52-1d46-49b0-b1d8-71559aee47f5"
 	require.NoError(t, store.PeeringWrite(31, &pbpeering.PeeringWriteRequest{
 		Peering: &pbpeering.Peering{
-			ID:   peerID,
-			Name: peerName,
+			ID:        peerID,
+			Name:      peerName,
+			Partition: localEntMeta.PartitionOrDefault(),
 		},
 	}))
 
@@ -1975,7 +1975,7 @@ func Test_processResponse_ExportedServiceUpdates(t *testing.T) {
 	mst, err := srv.Tracker.Connected(peerID)
 	require.NoError(t, err)
 
-	run := func(t *testing.T, tc testCase) {
+	run := func(t *testing.T, tc PeeringProcessResponse_testCase) {
 		// Seed the local catalog with some data to reconcile against.
 		// and increment the tracker's imported services count
 		var serviceNames []structs.ServiceName
@@ -1989,14 +1989,14 @@ func Test_processResponse_ExportedServiceUpdates(t *testing.T) {
 
 		in := &pbpeerstream.ReplicationMessage_Response{
 			ResourceURL: pbpeerstream.TypeURLExportedService,
-			ResourceID:  apiSN.String(),
+			ResourceID:  tc.inputServiceName.String(),
 			Nonce:       "1",
 			Operation:   pbpeerstream.Operation_OPERATION_UPSERT,
 			Resource:    makeAnyPB(t, tc.input),
 		}
 
 		// Simulate an update arriving for billing/api.
-		_, err = srv.processResponse(peerName, acl.DefaultPartitionName, mst, in)
+		_, err = srv.processResponse(peerName, localEntMeta.PartitionOrDefault(), mst, in)
 		require.NoError(t, err)
 
 		if len(tc.exportedServices) > 0 {
@@ -2009,63 +2009,81 @@ func Test_processResponse_ExportedServiceUpdates(t *testing.T) {
 			}
 
 			// Simulate an update arriving for billing/api.
-			_, err = srv.processResponse(peerName, acl.DefaultPartitionName, mst, resp)
+			_, err = srv.processResponse(peerName, localEntMeta.PartitionOrDefault(), mst, resp)
 			require.NoError(t, err)
 			// Test the count and contents separately to ensure the count code path is hit.
 			require.Equal(t, mst.GetImportedServicesCount(), len(tc.exportedServices))
 			require.ElementsMatch(t, mst.ImportedServices, tc.exportedServices)
 		}
 
-		_, allServices, err := srv.GetStore().ServiceList(nil, &defaultMeta, peerName)
+		wildcardNS := acl.NewEnterpriseMetaWithPartition(localEntMeta.PartitionOrDefault(), acl.WildcardName)
+		_, allServices, err := srv.GetStore().ServiceList(nil, &wildcardNS, peerName)
 		require.NoError(t, err)
 
 		// This ensures that only services specified under tc.expect are stored. It includes
 		// all exported services plus their sidecar proxies.
 		for _, svc := range allServices {
-			_, ok := tc.expect[svc.Name]
+			_, ok := tc.expect[svc]
 			require.True(t, ok)
 		}
 
 		for svc, expect := range tc.expect {
-			t.Run(svc, func(t *testing.T) {
-				_, got, err := srv.GetStore().CheckServiceNodes(nil, svc, &defaultMeta, peerName)
+			t.Run(svc.String(), func(t *testing.T) {
+				_, got, err := srv.GetStore().CheckServiceNodes(nil, svc.Name, &svc.EnterpriseMeta, peerName)
 				require.NoError(t, err)
 				requireEqualInstances(t, expect, got)
 			})
 		}
 	}
 
-	tt := []testCase{
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			run(t, tc)
+		})
+	}
+}
+
+func Test_processResponse_ExportedServiceUpdates(t *testing.T) {
+	peerName := "billing"
+	localEntMeta := *acl.DefaultEnterpriseMeta()
+
+	remoteMeta := *structs.DefaultEnterpriseMetaInPartition("billing-ap")
+	pbRemoteMeta := pbcommon.NewEnterpriseMetaFromStructs(remoteMeta)
+
+	apiLocalSN := structs.NewServiceName("api", &localEntMeta)
+	redisLocalSN := structs.NewServiceName("redis", &localEntMeta)
+	tests := []PeeringProcessResponse_testCase{
 		{
 			name:             "upsert two service instances to the same node",
-			exportedServices: []string{"api"},
+			exportedServices: []string{apiLocalSN.String()},
+			inputServiceName: structs.NewServiceName("api", &remoteMeta),
 			input: &pbpeerstream.ExportedService{
 				Nodes: []*pbservice.CheckServiceNode{
 					{
 						Node: &pbservice.Node{
 							ID:        "af913374-68ea-41e5-82e8-6ffd3dffc461",
 							Node:      "node-foo",
-							Partition: remoteMeta.Partition,
+							Partition: pbRemoteMeta.Partition,
 							PeerName:  peerName,
 						},
 						Service: &pbservice.NodeService{
 							ID:             "api-1",
 							Service:        "api",
-							EnterpriseMeta: remoteMeta,
+							EnterpriseMeta: pbRemoteMeta,
 							PeerName:       peerName,
 						},
 						Checks: []*pbservice.HealthCheck{
 							{
 								CheckID:        "node-foo-check",
 								Node:           "node-foo",
-								EnterpriseMeta: remoteMeta,
+								EnterpriseMeta: pbRemoteMeta,
 								PeerName:       peerName,
 							},
 							{
 								CheckID:        "api-1-check",
 								ServiceID:      "api-1",
 								Node:           "node-foo",
-								EnterpriseMeta: remoteMeta,
+								EnterpriseMeta: pbRemoteMeta,
 								PeerName:       peerName,
 							},
 						},
@@ -2074,42 +2092,42 @@ func Test_processResponse_ExportedServiceUpdates(t *testing.T) {
 						Node: &pbservice.Node{
 							ID:        "af913374-68ea-41e5-82e8-6ffd3dffc461",
 							Node:      "node-foo",
-							Partition: remoteMeta.Partition,
+							Partition: pbRemoteMeta.Partition,
 							PeerName:  peerName,
 						},
 						Service: &pbservice.NodeService{
 							ID:             "api-2",
 							Service:        "api",
-							EnterpriseMeta: remoteMeta,
+							EnterpriseMeta: pbRemoteMeta,
 							PeerName:       peerName,
 						},
 						Checks: []*pbservice.HealthCheck{
 							{
 								CheckID:        "node-foo-check",
 								Node:           "node-foo",
-								EnterpriseMeta: remoteMeta,
+								EnterpriseMeta: pbRemoteMeta,
 								PeerName:       peerName,
 							},
 							{
 								CheckID:        "api-2-check",
 								ServiceID:      "api-2",
 								Node:           "node-foo",
-								EnterpriseMeta: remoteMeta,
+								EnterpriseMeta: pbRemoteMeta,
 								PeerName:       peerName,
 							},
 						},
 					},
 				},
 			},
-			expect: map[string]structs.CheckServiceNodes{
-				"api": {
+			expect: map[structs.ServiceName]structs.CheckServiceNodes{
+				structs.NewServiceName("api", &localEntMeta): {
 					{
 						Node: &structs.Node{
 							ID:   "af913374-68ea-41e5-82e8-6ffd3dffc461",
 							Node: "node-foo",
 
 							// The remote billing-ap partition is overwritten for all resources with the local default.
-							Partition: defaultMeta.PartitionOrEmpty(),
+							Partition: localEntMeta.PartitionOrEmpty(),
 
 							// The name of the peer "billing" is attached as well.
 							PeerName: peerName,
@@ -2117,21 +2135,21 @@ func Test_processResponse_ExportedServiceUpdates(t *testing.T) {
 						Service: &structs.NodeService{
 							ID:             "api-1",
 							Service:        "api",
-							EnterpriseMeta: defaultMeta,
+							EnterpriseMeta: localEntMeta,
 							PeerName:       peerName,
 						},
 						Checks: []*structs.HealthCheck{
 							{
 								CheckID:        "node-foo-check",
 								Node:           "node-foo",
-								EnterpriseMeta: defaultMeta,
+								EnterpriseMeta: localEntMeta,
 								PeerName:       peerName,
 							},
 							{
 								CheckID:        "api-1-check",
 								ServiceID:      "api-1",
 								Node:           "node-foo",
-								EnterpriseMeta: defaultMeta,
+								EnterpriseMeta: localEntMeta,
 								PeerName:       peerName,
 							},
 						},
@@ -2140,27 +2158,27 @@ func Test_processResponse_ExportedServiceUpdates(t *testing.T) {
 						Node: &structs.Node{
 							ID:        "af913374-68ea-41e5-82e8-6ffd3dffc461",
 							Node:      "node-foo",
-							Partition: defaultMeta.PartitionOrEmpty(),
+							Partition: localEntMeta.PartitionOrEmpty(),
 							PeerName:  peerName,
 						},
 						Service: &structs.NodeService{
 							ID:             "api-2",
 							Service:        "api",
-							EnterpriseMeta: defaultMeta,
+							EnterpriseMeta: localEntMeta,
 							PeerName:       peerName,
 						},
 						Checks: []*structs.HealthCheck{
 							{
 								CheckID:        "node-foo-check",
 								Node:           "node-foo",
-								EnterpriseMeta: defaultMeta,
+								EnterpriseMeta: localEntMeta,
 								PeerName:       peerName,
 							},
 							{
 								CheckID:        "api-2-check",
 								ServiceID:      "api-2",
 								Node:           "node-foo",
-								EnterpriseMeta: defaultMeta,
+								EnterpriseMeta: localEntMeta,
 								PeerName:       peerName,
 							},
 						},
@@ -2170,7 +2188,7 @@ func Test_processResponse_ExportedServiceUpdates(t *testing.T) {
 		},
 		{
 			name:             "deleting a service with an empty exported service event",
-			exportedServices: []string{"api"},
+			exportedServices: []string{apiLocalSN.String()},
 			seed: []*structs.RegisterRequest{
 				{
 					ID:       types.NodeID("af913374-68ea-41e5-82e8-6ffd3dffc461"),
@@ -2179,7 +2197,7 @@ func Test_processResponse_ExportedServiceUpdates(t *testing.T) {
 					Service: &structs.NodeService{
 						ID:             "api-2",
 						Service:        "api",
-						EnterpriseMeta: defaultMeta,
+						EnterpriseMeta: localEntMeta,
 						PeerName:       peerName,
 					},
 					Checks: structs.HealthChecks{
@@ -2197,41 +2215,43 @@ func Test_processResponse_ExportedServiceUpdates(t *testing.T) {
 					},
 				},
 			},
-			input: &pbpeerstream.ExportedService{},
-			expect: map[string]structs.CheckServiceNodes{
-				"api": {},
+			inputServiceName: structs.NewServiceName("api", &remoteMeta),
+			input:            &pbpeerstream.ExportedService{},
+			expect: map[structs.ServiceName]structs.CheckServiceNodes{
+				structs.NewServiceName("api", &localEntMeta): {},
 			},
 		},
 		{
 			name:             "upsert two service instances to different nodes",
-			exportedServices: []string{"api"},
+			exportedServices: []string{apiLocalSN.String()},
+			inputServiceName: structs.NewServiceName("api", &remoteMeta),
 			input: &pbpeerstream.ExportedService{
 				Nodes: []*pbservice.CheckServiceNode{
 					{
 						Node: &pbservice.Node{
 							ID:        "af913374-68ea-41e5-82e8-6ffd3dffc461",
 							Node:      "node-foo",
-							Partition: remoteMeta.Partition,
+							Partition: pbRemoteMeta.Partition,
 							PeerName:  peerName,
 						},
 						Service: &pbservice.NodeService{
 							ID:             "api-1",
 							Service:        "api",
-							EnterpriseMeta: remoteMeta,
+							EnterpriseMeta: pbRemoteMeta,
 							PeerName:       peerName,
 						},
 						Checks: []*pbservice.HealthCheck{
 							{
 								CheckID:        "node-foo-check",
 								Node:           "node-foo",
-								EnterpriseMeta: remoteMeta,
+								EnterpriseMeta: pbRemoteMeta,
 								PeerName:       peerName,
 							},
 							{
 								CheckID:        "api-1-check",
 								ServiceID:      "api-1",
 								Node:           "node-foo",
-								EnterpriseMeta: remoteMeta,
+								EnterpriseMeta: pbRemoteMeta,
 								PeerName:       peerName,
 							},
 						},
@@ -2240,60 +2260,60 @@ func Test_processResponse_ExportedServiceUpdates(t *testing.T) {
 						Node: &pbservice.Node{
 							ID:        "c0f97de9-4e1b-4e80-a1c6-cd8725835ab2",
 							Node:      "node-bar",
-							Partition: remoteMeta.Partition,
+							Partition: pbRemoteMeta.Partition,
 							PeerName:  peerName,
 						},
 						Service: &pbservice.NodeService{
 							ID:             "api-2",
 							Service:        "api",
-							EnterpriseMeta: remoteMeta,
+							EnterpriseMeta: pbRemoteMeta,
 							PeerName:       peerName,
 						},
 						Checks: []*pbservice.HealthCheck{
 							{
 								CheckID:        "node-bar-check",
 								Node:           "node-bar",
-								EnterpriseMeta: remoteMeta,
+								EnterpriseMeta: pbRemoteMeta,
 								PeerName:       peerName,
 							},
 							{
 								CheckID:        "api-2-check",
 								ServiceID:      "api-2",
 								Node:           "node-bar",
-								EnterpriseMeta: remoteMeta,
+								EnterpriseMeta: pbRemoteMeta,
 								PeerName:       peerName,
 							},
 						},
 					},
 				},
 			},
-			expect: map[string]structs.CheckServiceNodes{
-				"api": {
+			expect: map[structs.ServiceName]structs.CheckServiceNodes{
+				structs.NewServiceName("api", &localEntMeta): {
 					{
 						Node: &structs.Node{
 							ID:        "c0f97de9-4e1b-4e80-a1c6-cd8725835ab2",
 							Node:      "node-bar",
-							Partition: defaultMeta.PartitionOrEmpty(),
+							Partition: localEntMeta.PartitionOrEmpty(),
 							PeerName:  peerName,
 						},
 						Service: &structs.NodeService{
 							ID:             "api-2",
 							Service:        "api",
-							EnterpriseMeta: defaultMeta,
+							EnterpriseMeta: localEntMeta,
 							PeerName:       peerName,
 						},
 						Checks: []*structs.HealthCheck{
 							{
 								CheckID:        "node-bar-check",
 								Node:           "node-bar",
-								EnterpriseMeta: defaultMeta,
+								EnterpriseMeta: localEntMeta,
 								PeerName:       peerName,
 							},
 							{
 								CheckID:        "api-2-check",
 								ServiceID:      "api-2",
 								Node:           "node-bar",
-								EnterpriseMeta: defaultMeta,
+								EnterpriseMeta: localEntMeta,
 								PeerName:       peerName,
 							},
 						},
@@ -2304,7 +2324,7 @@ func Test_processResponse_ExportedServiceUpdates(t *testing.T) {
 							Node: "node-foo",
 
 							// The remote billing-ap partition is overwritten for all resources with the local default.
-							Partition: defaultMeta.PartitionOrEmpty(),
+							Partition: localEntMeta.PartitionOrEmpty(),
 
 							// The name of the peer "billing" is attached as well.
 							PeerName: peerName,
@@ -2312,21 +2332,21 @@ func Test_processResponse_ExportedServiceUpdates(t *testing.T) {
 						Service: &structs.NodeService{
 							ID:             "api-1",
 							Service:        "api",
-							EnterpriseMeta: defaultMeta,
+							EnterpriseMeta: localEntMeta,
 							PeerName:       peerName,
 						},
 						Checks: []*structs.HealthCheck{
 							{
 								CheckID:        "node-foo-check",
 								Node:           "node-foo",
-								EnterpriseMeta: defaultMeta,
+								EnterpriseMeta: localEntMeta,
 								PeerName:       peerName,
 							},
 							{
 								CheckID:        "api-1-check",
 								ServiceID:      "api-1",
 								Node:           "node-foo",
-								EnterpriseMeta: defaultMeta,
+								EnterpriseMeta: localEntMeta,
 								PeerName:       peerName,
 							},
 						},
@@ -2336,7 +2356,7 @@ func Test_processResponse_ExportedServiceUpdates(t *testing.T) {
 		},
 		{
 			name:             "deleting one service name from a node does not delete other service names",
-			exportedServices: []string{"api", "redis"},
+			exportedServices: []string{apiLocalSN.String(), redisLocalSN.String()},
 			seed: []*structs.RegisterRequest{
 				{
 					ID:       types.NodeID("af913374-68ea-41e5-82e8-6ffd3dffc461"),
@@ -2345,7 +2365,7 @@ func Test_processResponse_ExportedServiceUpdates(t *testing.T) {
 					Service: &structs.NodeService{
 						ID:             "redis-2",
 						Service:        "redis",
-						EnterpriseMeta: defaultMeta,
+						EnterpriseMeta: localEntMeta,
 						PeerName:       peerName,
 					},
 					Checks: structs.HealthChecks{
@@ -2369,7 +2389,7 @@ func Test_processResponse_ExportedServiceUpdates(t *testing.T) {
 					Service: &structs.NodeService{
 						ID:             "api-1",
 						Service:        "api",
-						EnterpriseMeta: defaultMeta,
+						EnterpriseMeta: localEntMeta,
 						PeerName:       peerName,
 					},
 					Checks: structs.HealthChecks{
@@ -2387,37 +2407,38 @@ func Test_processResponse_ExportedServiceUpdates(t *testing.T) {
 					},
 				},
 			},
+			inputServiceName: structs.NewServiceName("api", &remoteMeta),
 			// Nil input is for the "api" service.
 			input: &pbpeerstream.ExportedService{},
-			expect: map[string]structs.CheckServiceNodes{
-				"api": {},
+			expect: map[structs.ServiceName]structs.CheckServiceNodes{
+				structs.NewServiceName("api", &localEntMeta): {},
 				// Existing redis service was not affected by deletion.
-				"redis": {
+				structs.NewServiceName("redis", &localEntMeta): {
 					{
 						Node: &structs.Node{
 							ID:        "af913374-68ea-41e5-82e8-6ffd3dffc461",
 							Node:      "node-foo",
-							Partition: defaultMeta.PartitionOrEmpty(),
+							Partition: localEntMeta.PartitionOrEmpty(),
 							PeerName:  peerName,
 						},
 						Service: &structs.NodeService{
 							ID:             "redis-2",
 							Service:        "redis",
-							EnterpriseMeta: defaultMeta,
+							EnterpriseMeta: localEntMeta,
 							PeerName:       peerName,
 						},
 						Checks: []*structs.HealthCheck{
 							{
 								CheckID:        "node-foo-check",
 								Node:           "node-foo",
-								EnterpriseMeta: defaultMeta,
+								EnterpriseMeta: localEntMeta,
 								PeerName:       peerName,
 							},
 							{
 								CheckID:        "redis-2-check",
 								ServiceID:      "redis-2",
 								Node:           "node-foo",
-								EnterpriseMeta: defaultMeta,
+								EnterpriseMeta: localEntMeta,
 								PeerName:       peerName,
 							},
 						},
@@ -2435,7 +2456,7 @@ func Test_processResponse_ExportedServiceUpdates(t *testing.T) {
 					Service: &structs.NodeService{
 						ID:             "redis-2",
 						Service:        "redis",
-						EnterpriseMeta: defaultMeta,
+						EnterpriseMeta: localEntMeta,
 						PeerName:       peerName,
 					},
 					Checks: structs.HealthChecks{
@@ -2459,7 +2480,7 @@ func Test_processResponse_ExportedServiceUpdates(t *testing.T) {
 					Service: &structs.NodeService{
 						ID:             "redis-2-sidecar-proxy",
 						Service:        "redis-sidecar-proxy",
-						EnterpriseMeta: defaultMeta,
+						EnterpriseMeta: localEntMeta,
 						PeerName:       peerName,
 					},
 					Checks: structs.HealthChecks{
@@ -2483,7 +2504,7 @@ func Test_processResponse_ExportedServiceUpdates(t *testing.T) {
 					Service: &structs.NodeService{
 						ID:             "api-1",
 						Service:        "api",
-						EnterpriseMeta: defaultMeta,
+						EnterpriseMeta: localEntMeta,
 						PeerName:       peerName,
 					},
 					Checks: structs.HealthChecks{
@@ -2507,7 +2528,7 @@ func Test_processResponse_ExportedServiceUpdates(t *testing.T) {
 					Service: &structs.NodeService{
 						ID:             "api-1-sidecar-proxy",
 						Service:        "api-sidecar-proxy",
-						EnterpriseMeta: defaultMeta,
+						EnterpriseMeta: localEntMeta,
 						PeerName:       peerName,
 					},
 					Checks: structs.HealthChecks{
@@ -2526,68 +2547,69 @@ func Test_processResponse_ExportedServiceUpdates(t *testing.T) {
 					},
 				},
 			},
+			inputServiceName: structs.NewServiceName("api", &remoteMeta),
 			// Nil input is for the "api" service.
 			input:            &pbpeerstream.ExportedService{},
-			exportedServices: []string{"redis"},
-			expect: map[string]structs.CheckServiceNodes{
+			exportedServices: []string{redisLocalSN.String()},
+			expect: map[structs.ServiceName]structs.CheckServiceNodes{
 				// Existing redis service was not affected by deletion.
-				"redis": {
+				structs.NewServiceName("redis", &localEntMeta): {
 					{
 						Node: &structs.Node{
 							ID:        "af913374-68ea-41e5-82e8-6ffd3dffc461",
 							Node:      "node-foo",
-							Partition: defaultMeta.PartitionOrEmpty(),
+							Partition: localEntMeta.PartitionOrEmpty(),
 							PeerName:  peerName,
 						},
 						Service: &structs.NodeService{
 							ID:             "redis-2",
 							Service:        "redis",
-							EnterpriseMeta: defaultMeta,
+							EnterpriseMeta: localEntMeta,
 							PeerName:       peerName,
 						},
 						Checks: []*structs.HealthCheck{
 							{
 								CheckID:        "node-foo-check",
 								Node:           "node-foo",
-								EnterpriseMeta: defaultMeta,
+								EnterpriseMeta: localEntMeta,
 								PeerName:       peerName,
 							},
 							{
 								CheckID:        "redis-2-check",
 								ServiceID:      "redis-2",
 								Node:           "node-foo",
-								EnterpriseMeta: defaultMeta,
+								EnterpriseMeta: localEntMeta,
 								PeerName:       peerName,
 							},
 						},
 					},
 				},
-				"redis-sidecar-proxy": {
+				structs.NewServiceName("redis-sidecar-proxy", &localEntMeta): {
 					{
 						Node: &structs.Node{
 							ID:        "af913374-68ea-41e5-82e8-6ffd3dffc461",
 							Node:      "node-foo",
-							Partition: defaultMeta.PartitionOrEmpty(),
+							Partition: localEntMeta.PartitionOrEmpty(),
 							PeerName:  peerName,
 						},
 						Service: &structs.NodeService{
 							ID:             "redis-2-sidecar-proxy",
 							Service:        "redis-sidecar-proxy",
-							EnterpriseMeta: defaultMeta,
+							EnterpriseMeta: localEntMeta,
 							PeerName:       peerName,
 						},
 						Checks: []*structs.HealthCheck{
 							{
 								CheckID:        "node-foo-check",
 								Node:           "node-foo",
-								EnterpriseMeta: defaultMeta,
+								EnterpriseMeta: localEntMeta,
 								PeerName:       peerName,
 							},
 							{
 								CheckID:        "redis-2-sidecar-proxy-check",
 								ServiceID:      "redis-2-sidecar-proxy",
 								Node:           "node-foo",
-								EnterpriseMeta: defaultMeta,
+								EnterpriseMeta: localEntMeta,
 								PeerName:       peerName,
 							},
 						},
@@ -2597,7 +2619,7 @@ func Test_processResponse_ExportedServiceUpdates(t *testing.T) {
 		},
 		{
 			name:             "service checks are cleaned up when not present in a response",
-			exportedServices: []string{"api"},
+			exportedServices: []string{apiLocalSN.String()},
 			seed: []*structs.RegisterRequest{
 				{
 					ID:       types.NodeID("af913374-68ea-41e5-82e8-6ffd3dffc461"),
@@ -2606,7 +2628,7 @@ func Test_processResponse_ExportedServiceUpdates(t *testing.T) {
 					Service: &structs.NodeService{
 						ID:             "api-1",
 						Service:        "api",
-						EnterpriseMeta: defaultMeta,
+						EnterpriseMeta: localEntMeta,
 						PeerName:       peerName,
 					},
 					Checks: structs.HealthChecks{
@@ -2624,19 +2646,20 @@ func Test_processResponse_ExportedServiceUpdates(t *testing.T) {
 					},
 				},
 			},
+			inputServiceName: structs.NewServiceName("api", &remoteMeta),
 			input: &pbpeerstream.ExportedService{
 				Nodes: []*pbservice.CheckServiceNode{
 					{
 						Node: &pbservice.Node{
 							ID:        "af913374-68ea-41e5-82e8-6ffd3dffc461",
 							Node:      "node-foo",
-							Partition: remoteMeta.Partition,
+							Partition: pbRemoteMeta.Partition,
 							PeerName:  peerName,
 						},
 						Service: &pbservice.NodeService{
 							ID:             "api-1",
 							Service:        "api",
-							EnterpriseMeta: remoteMeta,
+							EnterpriseMeta: pbRemoteMeta,
 							PeerName:       peerName,
 						},
 						Checks: []*pbservice.HealthCheck{
@@ -2645,20 +2668,20 @@ func Test_processResponse_ExportedServiceUpdates(t *testing.T) {
 					},
 				},
 			},
-			expect: map[string]structs.CheckServiceNodes{
+			expect: map[structs.ServiceName]structs.CheckServiceNodes{
 				// Service check should be gone
-				"api": {
+				structs.NewServiceName("api", &localEntMeta): {
 					{
 						Node: &structs.Node{
 							ID:        "af913374-68ea-41e5-82e8-6ffd3dffc461",
 							Node:      "node-foo",
-							Partition: defaultMeta.PartitionOrEmpty(),
+							Partition: localEntMeta.PartitionOrEmpty(),
 							PeerName:  peerName,
 						},
 						Service: &structs.NodeService{
 							ID:             "api-1",
 							Service:        "api",
-							EnterpriseMeta: defaultMeta,
+							EnterpriseMeta: localEntMeta,
 							PeerName:       peerName,
 						},
 						Checks: []*structs.HealthCheck{},
@@ -2668,7 +2691,7 @@ func Test_processResponse_ExportedServiceUpdates(t *testing.T) {
 		},
 		{
 			name:             "node checks are cleaned up when not present in a response",
-			exportedServices: []string{"api", "redis"},
+			exportedServices: []string{apiLocalSN.String(), redisLocalSN.String()},
 			seed: []*structs.RegisterRequest{
 				{
 					ID:       types.NodeID("af913374-68ea-41e5-82e8-6ffd3dffc461"),
@@ -2677,7 +2700,7 @@ func Test_processResponse_ExportedServiceUpdates(t *testing.T) {
 					Service: &structs.NodeService{
 						ID:             "redis-2",
 						Service:        "redis",
-						EnterpriseMeta: defaultMeta,
+						EnterpriseMeta: localEntMeta,
 						PeerName:       peerName,
 					},
 					Checks: structs.HealthChecks{
@@ -2701,7 +2724,7 @@ func Test_processResponse_ExportedServiceUpdates(t *testing.T) {
 					Service: &structs.NodeService{
 						ID:             "api-1",
 						Service:        "api",
-						EnterpriseMeta: defaultMeta,
+						EnterpriseMeta: localEntMeta,
 						PeerName:       peerName,
 					},
 					Checks: structs.HealthChecks{
@@ -2719,19 +2742,20 @@ func Test_processResponse_ExportedServiceUpdates(t *testing.T) {
 					},
 				},
 			},
+			inputServiceName: structs.NewServiceName("api", &remoteMeta),
 			input: &pbpeerstream.ExportedService{
 				Nodes: []*pbservice.CheckServiceNode{
 					{
 						Node: &pbservice.Node{
 							ID:        "af913374-68ea-41e5-82e8-6ffd3dffc461",
 							Node:      "node-foo",
-							Partition: remoteMeta.Partition,
+							Partition: pbRemoteMeta.Partition,
 							PeerName:  peerName,
 						},
 						Service: &pbservice.NodeService{
 							ID:             "api-1",
 							Service:        "api",
-							EnterpriseMeta: remoteMeta,
+							EnterpriseMeta: pbRemoteMeta,
 							PeerName:       peerName,
 						},
 						Checks: []*pbservice.HealthCheck{
@@ -2740,27 +2764,27 @@ func Test_processResponse_ExportedServiceUpdates(t *testing.T) {
 								CheckID:        "api-1-check",
 								ServiceID:      "api-1",
 								Node:           "node-foo",
-								EnterpriseMeta: remoteMeta,
+								EnterpriseMeta: pbRemoteMeta,
 								PeerName:       peerName,
 							},
 						},
 					},
 				},
 			},
-			expect: map[string]structs.CheckServiceNodes{
+			expect: map[structs.ServiceName]structs.CheckServiceNodes{
 				// Node check should be gone
-				"api": {
+				structs.NewServiceName("api", &localEntMeta): {
 					{
 						Node: &structs.Node{
 							ID:        "af913374-68ea-41e5-82e8-6ffd3dffc461",
 							Node:      "node-foo",
-							Partition: defaultMeta.PartitionOrEmpty(),
+							Partition: localEntMeta.PartitionOrEmpty(),
 							PeerName:  peerName,
 						},
 						Service: &structs.NodeService{
 							ID:             "api-1",
 							Service:        "api",
-							EnterpriseMeta: defaultMeta,
+							EnterpriseMeta: localEntMeta,
 							PeerName:       peerName,
 						},
 						Checks: []*structs.HealthCheck{
@@ -2768,24 +2792,24 @@ func Test_processResponse_ExportedServiceUpdates(t *testing.T) {
 								CheckID:        "api-1-check",
 								ServiceID:      "api-1",
 								Node:           "node-foo",
-								EnterpriseMeta: defaultMeta,
+								EnterpriseMeta: localEntMeta,
 								PeerName:       peerName,
 							},
 						},
 					},
 				},
-				"redis": {
+				structs.NewServiceName("redis", &localEntMeta): {
 					{
 						Node: &structs.Node{
 							ID:        "af913374-68ea-41e5-82e8-6ffd3dffc461",
 							Node:      "node-foo",
-							Partition: defaultMeta.PartitionOrEmpty(),
+							Partition: localEntMeta.PartitionOrEmpty(),
 							PeerName:  peerName,
 						},
 						Service: &structs.NodeService{
 							ID:             "redis-2",
 							Service:        "redis",
-							EnterpriseMeta: defaultMeta,
+							EnterpriseMeta: localEntMeta,
 							PeerName:       peerName,
 						},
 						Checks: []*structs.HealthCheck{
@@ -2793,7 +2817,7 @@ func Test_processResponse_ExportedServiceUpdates(t *testing.T) {
 								CheckID:        "redis-2-check",
 								ServiceID:      "redis-2",
 								Node:           "node-foo",
-								EnterpriseMeta: defaultMeta,
+								EnterpriseMeta: localEntMeta,
 								PeerName:       peerName,
 							},
 						},
@@ -2803,7 +2827,7 @@ func Test_processResponse_ExportedServiceUpdates(t *testing.T) {
 		},
 		{
 			name:             "replacing a service instance on a node cleans up the old instance",
-			exportedServices: []string{"api", "redis"},
+			exportedServices: []string{apiLocalSN.String(), redisLocalSN.String()},
 			seed: []*structs.RegisterRequest{
 				{
 					ID:       types.NodeID("af913374-68ea-41e5-82e8-6ffd3dffc461"),
@@ -2812,7 +2836,7 @@ func Test_processResponse_ExportedServiceUpdates(t *testing.T) {
 					Service: &structs.NodeService{
 						ID:             "redis-2",
 						Service:        "redis",
-						EnterpriseMeta: defaultMeta,
+						EnterpriseMeta: localEntMeta,
 						PeerName:       peerName,
 					},
 					Checks: structs.HealthChecks{
@@ -2836,7 +2860,7 @@ func Test_processResponse_ExportedServiceUpdates(t *testing.T) {
 					Service: &structs.NodeService{
 						ID:             "api-1",
 						Service:        "api",
-						EnterpriseMeta: defaultMeta,
+						EnterpriseMeta: localEntMeta,
 						PeerName:       peerName,
 					},
 					Checks: structs.HealthChecks{
@@ -2854,20 +2878,21 @@ func Test_processResponse_ExportedServiceUpdates(t *testing.T) {
 					},
 				},
 			},
+			inputServiceName: structs.NewServiceName("api", &remoteMeta),
 			input: &pbpeerstream.ExportedService{
 				Nodes: []*pbservice.CheckServiceNode{
 					{
 						Node: &pbservice.Node{
 							ID:        "af913374-68ea-41e5-82e8-6ffd3dffc461",
 							Node:      "node-foo",
-							Partition: remoteMeta.Partition,
+							Partition: pbRemoteMeta.Partition,
 							PeerName:  peerName,
 						},
 						// New service ID and checks for the api service.
 						Service: &pbservice.NodeService{
 							ID:             "new-api-v2",
 							Service:        "api",
-							EnterpriseMeta: remoteMeta,
+							EnterpriseMeta: pbRemoteMeta,
 							PeerName:       peerName,
 						},
 						Checks: []*pbservice.HealthCheck{
@@ -2886,19 +2911,19 @@ func Test_processResponse_ExportedServiceUpdates(t *testing.T) {
 					},
 				},
 			},
-			expect: map[string]structs.CheckServiceNodes{
-				"api": {
+			expect: map[structs.ServiceName]structs.CheckServiceNodes{
+				structs.NewServiceName("api", &localEntMeta): {
 					{
 						Node: &structs.Node{
 							ID:        "af913374-68ea-41e5-82e8-6ffd3dffc461",
 							Node:      "node-foo",
-							Partition: defaultMeta.PartitionOrEmpty(),
+							Partition: localEntMeta.PartitionOrEmpty(),
 							PeerName:  peerName,
 						},
 						Service: &structs.NodeService{
 							ID:             "new-api-v2",
 							Service:        "api",
-							EnterpriseMeta: defaultMeta,
+							EnterpriseMeta: localEntMeta,
 							PeerName:       peerName,
 						},
 						Checks: []*structs.HealthCheck{
@@ -2911,24 +2936,24 @@ func Test_processResponse_ExportedServiceUpdates(t *testing.T) {
 								CheckID:        "new-api-v2-check",
 								ServiceID:      "new-api-v2",
 								Node:           "node-foo",
-								EnterpriseMeta: defaultMeta,
+								EnterpriseMeta: localEntMeta,
 								PeerName:       peerName,
 							},
 						},
 					},
 				},
-				"redis": {
+				structs.NewServiceName("redis", &localEntMeta): {
 					{
 						Node: &structs.Node{
 							ID:        "af913374-68ea-41e5-82e8-6ffd3dffc461",
 							Node:      "node-foo",
-							Partition: defaultMeta.PartitionOrEmpty(),
+							Partition: localEntMeta.PartitionOrEmpty(),
 							PeerName:  peerName,
 						},
 						Service: &structs.NodeService{
 							ID:             "redis-2",
 							Service:        "redis",
-							EnterpriseMeta: defaultMeta,
+							EnterpriseMeta: localEntMeta,
 							PeerName:       peerName,
 						},
 						Checks: []*structs.HealthCheck{
@@ -2941,7 +2966,7 @@ func Test_processResponse_ExportedServiceUpdates(t *testing.T) {
 								CheckID:        "redis-2-check",
 								ServiceID:      "redis-2",
 								Node:           "node-foo",
-								EnterpriseMeta: defaultMeta,
+								EnterpriseMeta: localEntMeta,
 								PeerName:       peerName,
 							},
 						},
@@ -2950,12 +2975,13 @@ func Test_processResponse_ExportedServiceUpdates(t *testing.T) {
 			},
 		},
 	}
-
-	for _, tc := range tt {
-		t.Run(tc.name, func(t *testing.T) {
-			run(t, tc)
-		})
-	}
+	srv, store := newTestServer(t, func(c *Config) {
+		backend := c.Backend.(*testStreamBackend)
+		backend.leader = func() bool {
+			return false
+		}
+	})
+	processResponse_ExportedServiceUpdates(t, srv, store, localEntMeta, peerName, tests)
 }
 
 // TestLogTraceProto tests that all PB trace log helpers redact the

@@ -61,6 +61,7 @@ GO_BUILD_TAG?=consul-build-go
 UI_BUILD_TAG?=consul-build-ui
 BUILD_CONTAINER_NAME?=consul-builder
 CONSUL_IMAGE_VERSION?=latest
+ENVOY_VERSION?='1.25.4'
 
 ################
 # CI Variables #
@@ -405,6 +406,7 @@ ui-build-image:
 	@echo "Building UI build container"
 	@docker build $(NOCACHE) $(QUIET) -t $(UI_BUILD_TAG) - < build-support/docker/Build-UI.dockerfile
 
+# Builds consul in a docker container and then dumps executable into ./pkg/bin/...
 consul-docker: go-build-image
 	@$(SHELL) $(CURDIR)/build-support/scripts/build-docker.sh consul
 
@@ -458,10 +460,13 @@ else
 		--latest-version latest
 endif
 
+# NOTE: Use DOCKER_BUILDKIT=0, if docker build fails to resolve consul:local base image
 .PHONY: test-compat-integ-setup
 test-compat-integ-setup: dev-docker
 	@docker tag consul-dev:latest $(CONSUL_COMPAT_TEST_IMAGE):local
 	@docker run --rm -t $(CONSUL_COMPAT_TEST_IMAGE):local consul version
+	@#  'consul-envoy:target-version' is needed by compatibility integ test
+	@docker build -t consul-envoy:target-version --build-arg CONSUL_IMAGE=$(CONSUL_COMPAT_TEST_IMAGE):local --build-arg ENVOY_VERSION=${ENVOY_VERSION} -f ./test/integration/consul-container/assets/Dockerfile-consul-envoy ./test/integration/consul-container/assets
 
 .PHONY: test-metrics-integ
 test-metrics-integ: test-compat-integ-setup
@@ -537,6 +542,11 @@ envoy-regen:
 	@go test -tags '$(GOTAGS)' ./agent/xds -update
 	@find "command/connect/envoy/testdata" -name '*.golden' -delete
 	@go test -tags '$(GOTAGS)' ./command/connect/envoy -update
+
+# Point your web browser to http://localhost:3000/consul to live render docs from ./website/
+.PHONY: docs
+docs:
+	make -C website
 
 .PHONY: help
 help:

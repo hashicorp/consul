@@ -65,13 +65,7 @@ func (s *ResourceGenerator) clustersFromSnapshot(cfgSnap *proxycfg.ConfigSnapsho
 		}
 		return res, nil
 	case structs.ServiceKindAPIGateway:
-		// TODO Find a cleaner solution, can't currently pass unexported property types
-		var err error
-		cfgSnap.IngressGateway, err = cfgSnap.APIGateway.ToIngress(cfgSnap.Datacenter)
-		if err != nil {
-			return nil, err
-		}
-		res, err := s.clustersFromSnapshotIngressGateway(cfgSnap)
+		res, err := s.clustersFromSnapshotAPIGateway(cfgSnap)
 		if err != nil {
 			return nil, err
 		}
@@ -816,6 +810,44 @@ func (s *ResourceGenerator) clustersFromSnapshotIngressGateway(cfgSnap *proxycfg
 	return clusters, nil
 }
 
+func (s *ResourceGenerator) clustersFromSnapshotAPIGateway(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
+	var clusters []proto.Message
+	createdClusters := make(map[proxycfg.UpstreamID]bool)
+	readyUpstreamsList := getReadyUpstreams(cfgSnap)
+
+	for _, readyUpstreams := range readyUpstreamsList {
+		for _, upstream := range readyUpstreams.upstreams {
+			uid := proxycfg.NewUpstreamID(&upstream)
+
+			// If we've already created a cluster for this upstream, skip it. Multiple listeners may
+			// reference the same upstream, so we don't need to create duplicate clusters in that case.
+			if createdClusters[uid] {
+				continue
+			}
+
+			// Grab the discovery chain compiled in handlerAPIGateway.recompileDiscoveryChains
+			chain, ok := cfgSnap.APIGateway.DiscoveryChain[uid]
+			if !ok {
+				// this should not happen
+				return nil, fmt.Errorf("no discovery chain for upstream %q", uid)
+			}
+
+			// Generate the list of upstream clusters for the discovery chain
+			upstreamClusters, err := s.makeUpstreamClustersForDiscoveryChain(uid, &upstream, chain, cfgSnap, false)
+			if err != nil {
+				return nil, err
+			}
+
+			for _, cluster := range upstreamClusters {
+				clusters = append(clusters, cluster)
+			}
+
+			createdClusters[uid] = true
+		}
+	}
+	return clusters, nil
+}
+
 func (s *ResourceGenerator) configIngressUpstreamCluster(c *envoy_cluster_v3.Cluster, cfgSnap *proxycfg.ConfigSnapshot, listenerKey proxycfg.IngressListenerKey, u *structs.Upstream) {
 	var threshold *envoy_cluster_v3.CircuitBreakers_Thresholds
 	setThresholdLimit := func(limitType string, limit int) {
@@ -1427,6 +1459,10 @@ func (s *ResourceGenerator) makeExportedUpstreamClustersForMeshGateway(cfgSnap *
 
 // injectSANMatcher updates a TLS context so that it verifies the upstream SAN.
 func injectSANMatcher(tlsContext *envoy_tls_v3.CommonTlsContext, matchStrings ...string) error {
+	if tlsContext == nil {
+		return fmt.Errorf("invalid type: expected CommonTlsContext_ValidationContext not to be nil")
+	}
+
 	validationCtx, ok := tlsContext.ValidationContextType.(*envoy_tls_v3.CommonTlsContext_ValidationContext)
 	if !ok {
 		return fmt.Errorf("invalid type: expected CommonTlsContext_ValidationContext, got %T",

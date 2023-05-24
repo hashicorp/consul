@@ -8,20 +8,27 @@ package structs
 
 import "fmt"
 
+// Validate assures that the sameness-groups are an enterprise only feature
 func (s *SamenessGroupConfigEntry) Validate() error {
 	return fmt.Errorf("sameness-groups are an enterprise-only feature")
 }
 
-// RelatedPeers returns all peers that are members of a sameness group config entry.
+// RelatedPeers is an OSS placeholder noop
 func (s *SamenessGroupConfigEntry) RelatedPeers() []string {
 	return nil
 }
 
-// AllMembers adds the local partition to Members when it is set.
+// AllMembers is an OSS placeholder noop
 func (s *SamenessGroupConfigEntry) AllMembers() []SamenessGroupMember {
 	return nil
 }
 
-func (s *SamenessGroupConfigEntry) ToFailoverTargets() []ServiceResolverFailoverTarget {
+// ToServiceResolverFailoverTargets is an OSS placeholder noop
+func (s *SamenessGroupConfigEntry) ToServiceResolverFailoverTargets() []ServiceResolverFailoverTarget {
+	return nil
+}
+
+// ToQueryFailoverTargets is an OSS placeholder noop
+func (s *SamenessGroupConfigEntry) ToQueryFailoverTargets(namespace string) []QueryFailoverTarget {
 	return nil
 }

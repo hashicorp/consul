@@ -1,0 +1,7 @@
+```release-note:security
+extensions: Disable remote downstream proxy patching by Envoy Extensions other than AWS Lambda. Previously, an operator with service:write ACL permissions for an upstream service could modify Envoy proxy config for downstream services without equivalent permissions for those services. This issue only impacts the Lua extension. [[CVE-2023-2816](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2023-2816)]
+```
+
+```release-note:breaking-change
+extensions: The Lua extension now targets local proxy listeners for the configured service's upstreams, rather than remote downstream listeners for the configured service, when ListenerType is set to outbound in extension configuration. See [CVE-2023-2816](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2023-2816) changelog entry for more details.
+```

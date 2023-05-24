@@ -10,7 +10,7 @@ description: >-
 -> **1.6.0+:** This feature is available in Consul versions 1.6.0 and newer.
 
 ~> This topic is part of a [low-level API](/consul/api-docs/discovery-chain)
-primarily targeted at developers building external [Connect proxy
+primarily targeted at developers building external [Consul service mesh proxy
 integrations](/consul/docs/connect/proxies/integrate).
 
 The service discovery process can be modeled as a "discovery chain" which
@@ -21,7 +21,7 @@ the discovery chain a user can control how proxy upstreams are ultimately
 resolved to specific instances for load balancing.
 
 -> **Note:** The discovery chain is currently only used to discover
-[Connect](/consul/docs/connect) proxy upstreams.
+[service mesh](/consul/docs/connect) proxy upstreams.
 
 ## Configuration
 
@@ -69,7 +69,7 @@ various configuration entries interact in more complex ways. For example:
 
 To correctly interpret a collection of configuration entries as a valid
 discovery chain, we first compile them into a form more directly usable by the
-layers responsible for configuring Connect sidecar proxies.
+layers responsible for configuring service mesh sidecar proxies.
 
 You can interact with the compiler directly using the [discovery-chain
 API](/consul/api-docs/discovery-chain).
@@ -100,7 +100,7 @@ The response is a single wrapped `CompiledDiscoveryChain` field:
 The chain encodes a digraph of [nodes](#discoverygraphnode) and
 [targets](#discoverytarget). Nodes are the compiled representation of various
 discovery chain stages and targets are instructions on how to use the [health
-API](/consul/api-docs/health#list-nodes-for-connect-capable-service) to retrieve
+API](/consul/api-docs/health#list-nodes-for-mesh-capable-service) to retrieve
 relevant service instance lists.
 
 You should traverse the nodes starting with [`StartNode`](#startnode). The
@@ -228,7 +228,7 @@ A single node in the compiled discovery chain.
     be considered healthy.
 
 - `MeshGateway` `(MeshGatewayConfig)` - The [mesh gateway
-  configuration](/consul/docs/connect/gateways/mesh-gateway#connect-proxy-configuration)
+  configuration](/consul/docs/connect/gateways/mesh-gateway#service-mesh-proxy-configuration)
   to use when connecting to this target's service instances.
 
   - `Mode` `(string: "")` - One of `none`, `local`, or `remote`.

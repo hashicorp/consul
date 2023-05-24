@@ -39,7 +39,7 @@ func Test(t *testing.T, opts TestOptions) {
 	t.Run("Read", func(t *testing.T) { testRead(t, opts) })
 	t.Run("CAS Write", func(t *testing.T) { testCASWrite(t, opts) })
 	t.Run("CAS Delete", func(t *testing.T) { testCASDelete(t, opts) })
-	t.Run("OwnerReferences", func(t *testing.T) { testOwnerReferences(t, opts) })
+	t.Run("ListByOwner", func(t *testing.T) { testListByOwner(t, opts) })
 
 	testListWatch(t, opts)
 }
@@ -518,7 +518,7 @@ func testListWatch(t *testing.T, opts TestOptions) {
 	})
 }
 
-func testOwnerReferences(t *testing.T, opts TestOptions) {
+func testListByOwner(t *testing.T, opts TestOptions) {
 	backend := opts.NewBackend(t)
 	ctx := testContext(t)
 
@@ -555,9 +555,9 @@ func testOwnerReferences(t *testing.T, opts TestOptions) {
 	require.NoError(t, err)
 
 	eventually(t, func(t testingT) {
-		refs, err := backend.OwnerReferences(ctx, owner.Id)
+		res, err := backend.ListByOwner(ctx, owner.Id)
 		require.NoError(t, err)
-		prototest.AssertElementsMatch(t, refs, []*pbresource.ID{r1.Id, r2.Id})
+		prototest.AssertElementsMatch(t, res, []*pbresource.Resource{r1, r2})
 	})
 
 	t.Run("references are anchored to a specific uid", func(t *testing.T) {
@@ -565,9 +565,9 @@ func testOwnerReferences(t *testing.T, opts TestOptions) {
 		id.Uid = "different"
 
 		eventually(t, func(t testingT) {
-			refs, err := backend.OwnerReferences(ctx, id)
+			res, err := backend.ListByOwner(ctx, id)
 			require.NoError(t, err)
-			require.Empty(t, refs)
+			require.Empty(t, res)
 		})
 	})
 
@@ -575,9 +575,9 @@ func testOwnerReferences(t *testing.T, opts TestOptions) {
 		require.NoError(t, backend.DeleteCAS(ctx, owner.Id, owner.Version))
 
 		eventually(t, func(t testingT) {
-			refs, err := backend.OwnerReferences(ctx, owner.Id)
+			res, err := backend.ListByOwner(ctx, owner.Id)
 			require.NoError(t, err)
-			prototest.AssertElementsMatch(t, refs, []*pbresource.ID{r1.Id, r2.Id})
+			prototest.AssertElementsMatch(t, res, []*pbresource.Resource{r1, r2})
 		})
 	})
 
@@ -585,9 +585,9 @@ func testOwnerReferences(t *testing.T, opts TestOptions) {
 		require.NoError(t, backend.DeleteCAS(ctx, r2.Id, r2.Version))
 
 		eventually(t, func(t testingT) {
-			refs, err := backend.OwnerReferences(ctx, owner.Id)
+			res, err := backend.ListByOwner(ctx, owner.Id)
 			require.NoError(t, err)
-			prototest.AssertElementsMatch(t, refs, []*pbresource.ID{r1.Id})
+			prototest.AssertElementsMatch(t, res, []*pbresource.Resource{r1})
 		})
 	})
 }

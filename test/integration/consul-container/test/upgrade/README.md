@@ -49,6 +49,7 @@ To run the upgrade test, the following tools are required:
 
 ### Running Upgrade integration tests
 - run `make dev-docker`
+- build a consul-envoy container image `cd test/integration/consul-container docker build -t consul-envoy:latest-version --build-arg CONSUL_IMAGE=docker.mirror.hashicorp.services/consul:1.15  --build-arg ENVOY_VERSION=1.24.6  -f ./assets/Dockerfile-consul-envoy ./assets`
 - run the single test `go test -v -timeout 30m -run ^TestACL_Upgrade_Node_Token$ ./.../upgrade/`
 - run all upgrade tests `go test -v -timeout 30m -run ./.../upgrade`
 

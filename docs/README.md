@@ -25,6 +25,7 @@ be found in the public [user documentation].
 1. [Agent Configuration](./config)
 1. [RPC](./rpc)
 1. [Cluster Persistence](./persistence)
+1. [Resources and Controllers](./resources)
 1. [Client Agent](./client-agent)
 1. [Service Discovery](./service-discovery)
 1. [Service Mesh (Connect)](./service-mesh)
