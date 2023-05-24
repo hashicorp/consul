@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 
+	goMetrics "github.com/armon/go-metrics"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/sdk/metric/metricdata"
 	cpb "go.opentelemetry.io/proto/otlp/common/v1"
@@ -70,7 +71,7 @@ func metricsToPB(metrics []metricdata.Metrics) []*mpb.Metric {
 	for _, m := range metrics {
 		o, err := metricTypeToPB(m)
 		if err != nil {
-			// TODO: Emit metric when a transformation failure occurs.
+			goMetrics.IncrCounter(transformFailureMetric, 1)
 			continue
 		}
 		out = append(out, o)

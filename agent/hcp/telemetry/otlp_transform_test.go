@@ -1,9 +1,11 @@
 package telemetry
 
 import (
+	"strings"
 	"testing"
 	"time"
 
+	"github.com/armon/go-metrics"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/otel/attribute"
@@ -17,7 +19,6 @@ import (
 )
 
 var (
-
 	// Common attributes for test cases.
 	start = time.Date(2000, time.January, 01, 0, 0, 0, 0, time.FixedZone("GMT", 0))
 	end   = start.Add(30 * time.Second)
@@ -127,37 +128,43 @@ var (
 		},
 	}
 
+	validFloat64Gauge = metricdata.Metrics{
+		Name:        "float64-gauge",
+		Description: "Gauge with float64 values",
+		Unit:        "1",
+		Data:        metricdata.Gauge[float64]{DataPoints: inputDP},
+	}
+
+	validFloat64Sum = metricdata.Metrics{
+		Name:        "float64-sum",
+		Description: "Sum with float64 values",
+		Unit:        "1",
+		Data: metricdata.Sum[float64]{
+			Temporality: metricdata.CumulativeTemporality,
+			IsMonotonic: false,
+			DataPoints:  inputDP,
+		},
+	}
+
+	validFloat64Hist = metricdata.Metrics{
+		Name:        "float64-histogram",
+		Description: "Histogram",
+		Unit:        "1",
+		Data: metricdata.Histogram[float64]{
+			Temporality: metricdata.CumulativeTemporality,
+			DataPoints:  inputHDP,
+		},
+	}
+
 	// Metrics Test Case
 	// - 3 invalid metrics and 3 Valid to test filtering
-	// 		- 1 invalid metric type
-	//		- 2 invalid cummulative temporalities (only cummulative supported)
+	//      - 1 invalid metric type
+	//      - 2 invalid cummulative temporalities (only cummulative supported)
 	// - 3 types (Gauge, Counter, and Histogram) supported
 	inputMetrics = []metricdata.Metrics{
-		{
-			Name:        "float64-gauge",
-			Description: "Gauge with float64 values",
-			Unit:        "1",
-			Data:        metricdata.Gauge[float64]{DataPoints: inputDP},
-		},
-		{
-			Name:        "float64-sum",
-			Description: "Sum with float64 values",
-			Unit:        "1",
-			Data: metricdata.Sum[float64]{
-				Temporality: metricdata.CumulativeTemporality,
-				IsMonotonic: false,
-				DataPoints:  inputDP,
-			},
-		},
-		{
-			Name:        "float64-histogram",
-			Description: "Histogram",
-			Unit:        "1",
-			Data: metricdata.Histogram[float64]{
-				Temporality: metricdata.CumulativeTemporality,
-				DataPoints:  inputHDP,
-			},
-		},
+		validFloat64Gauge,
+		validFloat64Sum,
+		validFloat64Hist,
 		invalidSumTemporality,
 		invalidHistTemporality,
 		invalidSumAgg,
@@ -272,4 +279,64 @@ func TestTransformOTLP(t *testing.T) {
 	// // Resource Metrics Test Case
 	rm := transformOTLP(inputResourceMetrics)
 	require.Equal(t, expectedResourceMetrics, rm)
+}
+
+// TestTransformOTLP_CustomMetrics tests that a custom metric (hcp.otel.transform.failure) is emitted
+// when transform fails. This test cannot be run in parallel as the metrics.NewGlobal()
+// sets a shared global sink.
+func TestTransformOTLP_CustomMetrics(t *testing.T) {
+	for name, tc := range map[string]struct {
+		inputRM             *metricdata.ResourceMetrics
+		expectedMetricCount int
+	}{
+		"successNoMetric": {
+			inputRM: &metricdata.ResourceMetrics{
+				// 3 valid metrics.
+				ScopeMetrics: []metricdata.ScopeMetrics{
+					{
+						Metrics: []metricdata.Metrics{
+							validFloat64Gauge,
+							validFloat64Hist,
+							validFloat64Sum,
+						},
+					},
+				},
+			},
+		},
+		"failureEmitsMetric": {
+			// inputScopeMetrics contains 3 bad metrics.
+			inputRM:             inputResourceMetrics,
+			expectedMetricCount: 3,
+		},
+	} {
+		tc := tc
+		t.Run(name, func(t *testing.T) {
+			// Init global sink.
+			serviceName := "test.transform"
+			cfg := metrics.DefaultConfig(serviceName)
+			cfg.EnableHostname = false
+
+			sink := metrics.NewInmemSink(10*time.Second, 10*time.Second)
+			metrics.NewGlobal(cfg, sink)
+
+			// Perform operation that emits metric.
+			transformOTLP(tc.inputRM)
+
+			// Collect sink metrics.
+			intervals := sink.Data()
+			require.Len(t, intervals, 1)
+			key := serviceName + "." + strings.Join(transformFailureMetric, ".")
+			sv := intervals[0].Counters[key]
+
+			if tc.expectedMetricCount == 0 {
+				require.Empty(t, sv)
+				return
+			}
+
+			// Verify count for transform failure metric.
+			require.NotNil(t, sv)
+			require.NotNil(t, sv.AggregateSample)
+			require.Equal(t, 3, sv.AggregateSample.Count)
+		})
+	}
 }

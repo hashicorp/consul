@@ -4,8 +4,11 @@ import (
 	"context"
 	"fmt"
 	"net/url"
+	"strings"
 	"testing"
+	"time"
 
+	"github.com/armon/go-metrics"
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/metric/aggregation"
@@ -15,6 +18,14 @@ import (
 
 	"github.com/hashicorp/consul/agent/hcp/client"
 )
+
+type mockMetricsClient struct {
+	exportErr error
+}
+
+func (m *mockMetricsClient) ExportMetrics(ctx context.Context, protoMetrics *metricpb.ResourceMetrics, endpoint string) error {
+	return m.exportErr
+}
 
 func TestTemporality(t *testing.T) {
 	t.Parallel()
@@ -48,14 +59,6 @@ func TestAggregation(t *testing.T) {
 			require.Equal(t, test.expAgg, exp.Aggregation(test.kind))
 		})
 	}
-}
-
-type mockMetricsClient struct {
-	exportErr error
-}
-
-func (m *mockMetricsClient) ExportMetrics(ctx context.Context, protoMetrics *metricpb.ResourceMetrics, endpoint string) error {
-	return m.exportErr
 }
 
 func TestExport(t *testing.T) {
@@ -111,6 +114,58 @@ func TestExport(t *testing.T) {
 	}
 }
 
+// TestExport_CustomMetrics tests that a custom metric (hcp.otel.exporter.*) is emitted
+// for exporter operations. This test cannot be run in parallel as the metrics.NewGlobal()
+// sets a shared global sink.
+func TestExport_CustomMetrics(t *testing.T) {
+	for name, tc := range map[string]struct {
+		client    client.MetricsClient
+		metricKey []string
+	}{
+		"exportSuccess": {
+			client:    &mockMetricsClient{},
+			metricKey: exportSuccessMetric,
+		},
+		"exportFailure": {
+			client: &mockMetricsClient{
+				exportErr: fmt.Errorf("failed to export metrics"),
+			},
+			metricKey: exportFailureMetric,
+		},
+		"shutdown": {
+			metricKey: exporterShutdownMetric,
+		},
+		"forceFlush": {
+			metricKey: exporterForceFlushMetric,
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			// Init global sink.
+			serviceName := "test.transform"
+			cfg := metrics.DefaultConfig(serviceName)
+			cfg.EnableHostname = false
+
+			sink := metrics.NewInmemSink(10*time.Second, 10*time.Second)
+			metrics.NewGlobal(cfg, sink)
+
+			// Perform operation that emits metric.
+			exp := NewOTELExporter(tc.client, &url.URL{})
+			performExporterOperation(exp, name)
+
+			// Collect sink metrics.
+			intervals := sink.Data()
+			require.Len(t, intervals, 1)
+			key := serviceName + "." + strings.Join(tc.metricKey, ".")
+			sv := intervals[0].Counters[key]
+
+			// Verify count for transform failure metric.
+			require.NotNil(t, sv)
+			require.NotNil(t, sv.AggregateSample)
+			require.Equal(t, 1, sv.AggregateSample.Count)
+		})
+	}
+}
+
 func TestForceFlush(t *testing.T) {
 	t.Parallel()
 	exp := &OTELExporter{}
@@ -135,5 +190,17 @@ func mutateMetrics(m []metricdata.ScopeMetrics) *metricdata.ResourceMetrics {
 	return &metricdata.ResourceMetrics{
 		Resource:     resource.Empty(),
 		ScopeMetrics: m,
+	}
+}
+
+func performExporterOperation(exp metric.Exporter, operation string) {
+	ctx := context.Background()
+	switch operation {
+	case "forceFlush":
+		exp.ForceFlush(ctx)
+	case "shutdown":
+		exp.Shutdown(ctx)
+	default:
+		exp.Export(ctx, inputResourceMetrics)
 	}
 }
