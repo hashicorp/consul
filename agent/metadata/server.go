@@ -221,3 +221,13 @@ func AddFeatureFlags(tags map[string]string, flags ...string) {
 		tags[featureFlagPrefix+flag] = "1"
 	}
 }
+
+func GetIP(addr net.Addr) []byte {
+	switch a := addr.(type) {
+	case *net.UDPAddr:
+		return []byte(a.IP.String())
+	case *net.TCPAddr:
+		return []byte(a.IP.String())
+	}
+	return []byte{}
+}
