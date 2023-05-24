@@ -3,6 +3,7 @@ package telemetry
 import (
 	"context"
 	"fmt"
+	"net/url"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -96,9 +97,7 @@ func TestExport(t *testing.T) {
 		test := test
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
-			exp := &OTELExporter{
-				client: test.client,
-			}
+			exp := NewOTELExporter(test.client, &url.URL{})
 
 			err := exp.Export(context.Background(), test.metrics)
 			if test.wantErr != "" {

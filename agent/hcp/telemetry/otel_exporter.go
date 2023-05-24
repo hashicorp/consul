@@ -15,15 +15,15 @@ import (
 // The exporter is used by a OTEL Metrics SDK PeriodicReader to export aggregated metrics.
 // This allows us to use a custom client - HCP authenticated MetricsClient.
 type OTELExporter struct {
-	client hcpclient.MetricsClient
-	url    url.URL
+	client   hcpclient.MetricsClient
+	endpoint *url.URL
 }
 
 // NewOTELExporter returns a configured OTELExporter
-func NewOTELExporter(client hcpclient.MetricsClient, url url.URL) *OTELExporter {
+func NewOTELExporter(client hcpclient.MetricsClient, endpoint *url.URL) *OTELExporter {
 	return &OTELExporter{
-		client: client,
-		url:    url,
+		client:   client,
+		endpoint: endpoint,
 	}
 }
 
@@ -56,7 +56,7 @@ func (e *OTELExporter) Export(ctx context.Context, metrics *metricdata.ResourceM
 	if isEmpty(otlpMetrics) {
 		return nil
 	}
-	return e.client.ExportMetrics(ctx, otlpMetrics, e.url.String())
+	return e.client.ExportMetrics(ctx, otlpMetrics, e.endpoint.String())
 }
 
 // ForceFlush is a no-op, as the MetricsClient client holds no state.
