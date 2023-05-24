@@ -7,16 +7,25 @@
       "type": "EDS",
       "edsClusterConfig": {
         "edsConfig": {
-          "ads": {
-
-          },
+          "ads": {},
           "resourceApiVersion": "V3"
         }
       },
       "connectTimeout": "5s",
-      "outlierDetection": {
-
-      }
+      "outlierDetection": {}
+    },
+    {
+      "@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
+      "name": "server.dc2.peering.f3f41279-001d-42bb-912e-f6103fb036b8",
+      "type": "EDS",
+      "edsClusterConfig": {
+        "edsConfig": {
+          "ads": {},
+          "resourceApiVersion": "V3"
+        }
+      },
+      "connectTimeout": "5s",
+      "outlierDetection": {}
     },
     {
       "@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
@@ -44,9 +53,7 @@
       },
       "dnsRefreshRate": "10s",
       "dnsLookupFamily": "V4_ONLY",
-      "outlierDetection": {
-
-      }
+      "outlierDetection": {}
     }
   ],
   "typeUrl": "type.googleapis.com/envoy.config.cluster.v3.Cluster",

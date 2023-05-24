@@ -806,14 +806,13 @@ func TestConfigSnapshotPeeredMeshGateway(t testing.T, variant string, nsFn func(
 				CorrelationID: peerServersWatchID,
 				Result: &pbpeering.PeeringListResponse{
 					Peerings: []*pbpeering.Peering{
-						// Not active
+						// Empty state should be included. This could result from a query being served by a follower.
 						{
 							Name:           "peer-a",
 							PeerServerName: connect.PeeringServerSAN("dc2", "f3f41279-001d-42bb-912e-f6103fb036b8"),
 							PeerServerAddresses: []string{
 								"1.2.3.4:5200",
 							},
-							State:       pbpeering.PeeringState_TERMINATED,
 							ModifyIndex: 2,
 						},
 						// No server addresses, so this should only be accepting connections
