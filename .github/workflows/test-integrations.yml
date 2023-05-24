@@ -499,7 +499,6 @@ jobs:
     - vault-integration-test
     - generate-envoy-job-matrices
     - envoy-integration-test
-    # - generate-compatibility-job-matrices
     - compatibility-integration-test
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-small) }}
     if: ${{ always() }}
