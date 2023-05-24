@@ -1,0 +1,3 @@
+```release-note:bug
+peering: Fix issue where modifying the list of exported services did not correctly replicate changes for services that exist in a non-default namespace.
+```
