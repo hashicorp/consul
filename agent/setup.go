@@ -117,7 +117,7 @@ func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer, providedLogger hcl
 	if err != nil {
 		return d, fmt.Errorf("failed to initialize telemetry: %w", err)
 	}
-	if !cfg.Telemetry.Disable && !cfg.Telemetry.DisableHostMetrics {
+	if !cfg.Telemetry.Disable && cfg.Telemetry.EnableHostMetrics {
 		ctx, cancel := context.WithCancel(context.Background())
 		hoststats.NewCollector(ctx, d.Logger, cfg.DataDir)
 		d.stopHostCollector = cancel

@@ -1817,9 +1817,6 @@ subsystem that provides Consul's service mesh capabilities.
     be used based on **where** this particular instance is running (e.g. a specific
     geo location or datacenter, dc:sfo). By default, this is left blank and not used.
 
-  - `disable_host_metrics` ((#telemetry-disable_host_metrics))
-    This disables reporting of host metrics about system resources, defaults to false.
-
   - `disable_hostname` ((#telemetry-disable_hostname))
     This controls whether or not to prepend runtime telemetry with the machine's
     hostname, defaults to false.
@@ -1833,6 +1830,9 @@ subsystem that provides Consul's service mesh capabilities.
   - `dogstatsd_tags` ((#telemetry-dogstatsd_tags)) This provides a list
     of global tags that will be added to all telemetry packets sent to DogStatsD.
     It is a list of strings, where each string looks like "my_tag_name:my_tag_value".
+
+  - `enable_host_metrics` ((#telemetry-enable_host_metrics))
+    This enables reporting of host metrics about system resources, defaults to false.
 
   - `filter_default` ((#telemetry-filter_default))
     This controls whether to allow metrics that have not been specified by the filter.
