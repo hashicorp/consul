@@ -157,6 +157,7 @@ jobs:
           chmod +x /usr/local/bin/datadog-ci
 
       - name: upload coverage
+        if: ${{ env.DATADOG_API_KEY}}
         env:
           DD_ENV: ci
         run: datadog-ci junit upload --service "$GITHUB_REPOSITORY" ${{env.TEST_RESULTS}}/gotestsum-report.xml
