@@ -8,6 +8,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/hashicorp/consul/agent/metadata"
 	"net"
 	"reflect"
 	"sync/atomic"
@@ -153,14 +154,14 @@ type RequestLimitsHandler interface {
 	Allow(op Operation) error
 	UpdateConfig(cfg HandlerConfig)
 	UpdateIPConfig(cfg IPLimitConfig)
-	Register(leaderStatusProvider LeaderStatusProvider)
+	Register(serversStatusProvider ServersStatusProvider)
 }
 
 // Handler enforces rate limits for incoming RPCs.
 type Handler struct {
-	globalCfg            *atomic.Pointer[HandlerConfig]
-	ipCfg                *atomic.Pointer[IPLimitConfig]
-	leaderStatusProvider LeaderStatusProvider
+	globalCfg             *atomic.Pointer[HandlerConfig]
+	ipCfg                 *atomic.Pointer[IPLimitConfig]
+	serversStatusProvider ServersStatusProvider
 
 	limiter multilimiter.RateLimiter
 
@@ -186,13 +187,14 @@ type HandlerConfig struct {
 	GlobalLimitConfig GlobalLimitConfig
 }
 
-//go:generate mockery --name LeaderStatusProvider --inpackage --filename mock_LeaderStatusProvider_test.go
-type LeaderStatusProvider interface {
+//go:generate mockery --name ServersStatusProvider --inpackage --filename mock_ServersStatusProvider_test.go
+type ServersStatusProvider interface {
 	// IsLeader is used to determine whether the operation is being performed
 	// against the cluster leader, such that if it can _only_ be performed by
 	// the leader (e.g. write operations) we don't tell clients to retry against
 	// a different server.
 	IsLeader() bool
+	IsServer(addr string) bool
 }
 
 func isInfRate(cfg multilimiter.LimiterConfig) bool {
@@ -237,11 +239,11 @@ func (h *Handler) Run(ctx context.Context) {
 // because of an exhausted rate-limit.
 func (h *Handler) Allow(op Operation) error {
 
-	if h.leaderStatusProvider == nil {
-		h.logger.Error("leaderStatusProvider required to be set via Register(). bailing on rate limiter")
+	if h.serversStatusProvider == nil {
+		h.logger.Error("serversStatusProvider required to be set via Register(). bailing on rate limiter")
 		return nil
 		// TODO: panic and make sure to use the server's recovery handler
-		// panic("leaderStatusProvider required to be set via Register(..)")
+		// panic("serversStatusProvider required to be set via Register(..)")
 	}
 
 	cfg := h.globalCfg.Load()
@@ -249,7 +251,7 @@ func (h *Handler) Allow(op Operation) error {
 		return nil
 	}
 
-	allow, throttledLimits := h.allowAllLimits(h.limits(op))
+	allow, throttledLimits := h.allowAllLimits(h.limits(op), h.serversStatusProvider.IsServer(string(metadata.GetIP(op.SourceAddr))))
 
 	if !allow {
 		for _, l := range throttledLimits {
@@ -277,7 +279,7 @@ func (h *Handler) Allow(op Operation) error {
 			})
 
 			if enforced {
-				if h.leaderStatusProvider.IsLeader() && op.Type == OperationTypeWrite {
+				if h.serversStatusProvider.IsLeader() && op.Type == OperationTypeWrite {
 					return ErrRetryLater
 				}
 				return ErrRetryElsewhere
@@ -305,22 +307,27 @@ func (h *Handler) UpdateConfig(cfg HandlerConfig) {
 
 }
 
-func (h *Handler) Register(leaderStatusProvider LeaderStatusProvider) {
-	h.leaderStatusProvider = leaderStatusProvider
+func (h *Handler) Register(serversStatusProvider ServersStatusProvider) {
+	h.serversStatusProvider = serversStatusProvider
 }
 
 type limit struct {
-	mode Mode
-	ent  multilimiter.LimitedEntity
-	desc string
+	mode          Mode
+	ent           multilimiter.LimitedEntity
+	desc          string
+	applyOnServer bool
 }
 
-func (h *Handler) allowAllLimits(limits []limit) (bool, []limit) {
+func (h *Handler) allowAllLimits(limits []limit, isServer bool) (bool, []limit) {
 	allow := true
 	throttledLimits := make([]limit, 0)
 
 	for _, l := range limits {
 		if l.mode == ModeDisabled {
+			continue
+		}
+
+		if isServer && !l.applyOnServer {
 			continue
 		}
 
@@ -358,7 +365,7 @@ func (h *Handler) globalLimit(op Operation) *limit {
 	}
 	cfg := h.globalCfg.Load()
 
-	lim := &limit{mode: cfg.GlobalLimitConfig.Mode}
+	lim := &limit{mode: cfg.GlobalLimitConfig.Mode, applyOnServer: true}
 	switch op.Type {
 	case OperationTypeRead:
 		lim.desc = "global/read"
@@ -409,4 +416,4 @@ func (nullRequestLimitsHandler) Run(_ context.Context) {}
 
 func (nullRequestLimitsHandler) UpdateConfig(_ HandlerConfig) {}
 
-func (nullRequestLimitsHandler) Register(_ LeaderStatusProvider) {}
+func (nullRequestLimitsHandler) Register(_ ServersStatusProvider) {}

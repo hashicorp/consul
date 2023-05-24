@@ -68,10 +68,13 @@ func createAndRegisterStaticServerAndSidecar(node libcluster.Agent, httpPort int
 		_ = serverService.Terminate()
 	})
 	sidecarCfg := SidecarConfig{
-		Name:         fmt.Sprintf("%s-sidecar", svc.ID),
-		ServiceID:    svc.ID,
-		Namespace:    svc.Namespace,
-		EnableTProxy: svc.Proxy != nil && svc.Proxy.Mode == "transparent",
+		Name:      fmt.Sprintf("%s-sidecar", svc.ID),
+		ServiceID: svc.ID,
+		Namespace: svc.Namespace,
+		EnableTProxy: svc.Connect != nil &&
+			svc.Connect.SidecarService != nil &&
+			svc.Connect.SidecarService.Proxy != nil &&
+			svc.Connect.SidecarService.Proxy.Mode == api.ProxyModeTransparent,
 	}
 	serverConnectProxy, err := NewConnectService(context.Background(), sidecarCfg, []int{svc.Port}, node) // bindPort not used
 	if err != nil {
@@ -129,8 +132,10 @@ func CreateAndRegisterStaticServerAndSidecarWithChecks(node libcluster.Agent, se
 		Port: serviceOpts.HTTPPort,
 		Connect: &api.AgentServiceConnect{
 			SidecarService: &api.AgentServiceRegistration{
-				Proxy: &api.AgentServiceConnectProxyConfig{},
-				Port:  serviceOpts.Connect.Port,
+				Proxy: &api.AgentServiceConnectProxyConfig{
+					Mode: api.ProxyMode(serviceOpts.Connect.Proxy.Mode),
+				},
+				Port: serviceOpts.Connect.Port,
 			},
 		},
 		Checks: api.AgentServiceChecks{

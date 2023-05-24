@@ -1446,7 +1446,8 @@ func (s *ResourceGenerator) makeInboundListener(cfgSnap *proxycfg.ConfigSnapshot
 	// that matches on the `destination_port == <service port>`. Traffic sent
 	// directly to the service port is passed through to the application
 	// unmodified.
-	if cfgSnap.Proxy.MutualTLSMode == structs.MutualTLSModePermissive {
+	if cfgSnap.Proxy.Mode == structs.ProxyModeTransparent &&
+		cfgSnap.Proxy.MutualTLSMode == structs.MutualTLSModePermissive {
 		chain, err := makePermissiveFilterChain(cfgSnap, filterOpts)
 		if err != nil {
 			return nil, fmt.Errorf("unable to add permissive mtls filter chain: %w", err)
@@ -1459,7 +1460,11 @@ func (s *ResourceGenerator) makeInboundListener(cfgSnap *proxycfg.ConfigSnapshot
 			// With tproxy, the REDIRECT iptables target rewrites the destination ip/port
 			// to the proxy ip/port (e.g. 127.0.0.1:20000) for incoming packets.
 			// We need the original_dst filter to recover the original destination address.
-			l.UseOriginalDst = &wrapperspb.BoolValue{Value: true}
+			originalDstFilter, err := makeEnvoyListenerFilter("envoy.filters.listener.original_dst", &envoy_original_dst_v3.OriginalDst{})
+			if err != nil {
+				return nil, err
+			}
+			l.ListenerFilters = append(l.ListenerFilters, originalDstFilter)
 		}
 	}
 	return l, err

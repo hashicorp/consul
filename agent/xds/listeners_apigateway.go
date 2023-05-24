@@ -43,7 +43,7 @@ func (s *ResourceGenerator) makeAPIGatewayListeners(address string, cfgSnap *pro
 			return nil, err
 		}
 
-		if listenerKey.Protocol == "tcp" {
+		if listenerCfg.Protocol == structs.ListenerProtocolTCP {
 			// Find the upstream matching this listener
 
 			// We rely on the invariant of upstreams slice always having at least 1

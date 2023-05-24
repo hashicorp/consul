@@ -193,7 +193,7 @@ func (p *pluginConfig) asyncDataSource(rtCfg *extensioncommon.RuntimeConfig) (*e
 	// fetch the data from the upstream source.
 	remote := &p.VmConfig.Code.Remote
 	clusterSNI := ""
-	for service, upstream := range rtCfg.LocalUpstreams {
+	for service, upstream := range rtCfg.Upstreams {
 		if service == remote.HttpURI.Service {
 			for sni := range upstream.SNI {
 				clusterSNI = sni

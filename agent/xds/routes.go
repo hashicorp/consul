@@ -434,7 +434,7 @@ func (s *ResourceGenerator) routesForAPIGateway(cfgSnap *proxycfg.ConfigSnapshot
 	for _, readyUpstreams := range readyUpstreamsList {
 		listenerCfg := readyUpstreams.listenerCfg
 		// Do not create any route configuration for TCP listeners
-		if listenerCfg.Protocol != "http" {
+		if listenerCfg.Protocol != structs.ListenerProtocolHTTP {
 			continue
 		}
 
@@ -454,15 +454,15 @@ func (s *ResourceGenerator) routesForAPIGateway(cfgSnap *proxycfg.ConfigSnapshot
 			return nil, fmt.Errorf("missing route for route reference %s:%s", routeRef.Name, routeRef.Kind)
 		}
 
-		// Flatten the routes here since discovery chains were indexed earlier using the
+		// Reformat the route here since discovery chains were indexed earlier using the
 		// specific naming convention in discoverychain.consolidateHTTPRoutes. If we don't
 		// convert our route to use the same naming convention, we won't find any chains below.
-		flattenedRoutes := discoverychain.FlattenHTTPRoute(route, &listenerCfg, cfgSnap.APIGateway.GatewayConfig)
+		reformatedRoutes := discoverychain.ReformatHTTPRoute(route, &listenerCfg, cfgSnap.APIGateway.GatewayConfig)
 
-		for _, flattenedRoute := range flattenedRoutes {
-			flattenedRoute := flattenedRoute
+		for _, reformatedRoute := range reformatedRoutes {
+			reformatedRoute := reformatedRoute
 
-			upstream := buildHTTPRouteUpstream(flattenedRoute, listenerCfg)
+			upstream := buildHTTPRouteUpstream(reformatedRoute, listenerCfg)
 			uid := proxycfg.NewUpstreamID(&upstream)
 			chain := cfgSnap.APIGateway.DiscoveryChain[uid]
 			if chain == nil {
@@ -470,14 +470,14 @@ func (s *ResourceGenerator) routesForAPIGateway(cfgSnap *proxycfg.ConfigSnapshot
 				continue
 			}
 
-			domains := generateUpstreamAPIsDomains(listenerKey, upstream, flattenedRoute.Hostnames)
+			domains := generateUpstreamAPIsDomains(listenerKey, upstream, reformatedRoute.Hostnames)
 
 			virtualHost, err := s.makeUpstreamRouteForDiscoveryChain(cfgSnap, uid, chain, domains, false)
 			if err != nil {
 				return nil, err
 			}
 
-			addHeaderFiltersToVirtualHost(&flattenedRoute, virtualHost)
+			addHeaderFiltersToVirtualHost(&reformatedRoute, virtualHost)
 
 			defaultRoute.VirtualHosts = append(defaultRoute.VirtualHosts, virtualHost)
 		}

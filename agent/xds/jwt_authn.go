@@ -88,6 +88,9 @@ func collectJWTRequirements(i *structs.Intention) []*structs.IntentionJWTProvide
 func getPermissionsProviders(p []*structs.IntentionPermission) []*structs.IntentionJWTProvider {
 	intentionProviders := []*structs.IntentionJWTProvider{}
 	for _, perm := range p {
+		if perm.JWT == nil {
+			continue
+		}
 		intentionProviders = append(intentionProviders, perm.JWT.Providers...)
 	}
 
@@ -111,12 +114,8 @@ func buildJWTProviderConfig(p *structs.JWTProviderConfigEntry) (*envoy_http_jwt_
 			return nil, err
 		}
 		envoyCfg.JwksSourceSpecifier = specifier
-	} else if remote := p.JSONWebKeySet.Remote; remote.URI != "" {
-		specifier, err := makeRemoteJWKS(remote)
-		if err != nil {
-			return nil, err
-		}
-		envoyCfg.JwksSourceSpecifier = specifier
+	} else if remote := p.JSONWebKeySet.Remote; remote != nil && remote.URI != "" {
+		envoyCfg.JwksSourceSpecifier = makeRemoteJWKS(remote)
 	} else {
 		return nil, fmt.Errorf("invalid jwt provider config; missing JSONWebKeySet for provider: %s", p.Name)
 	}
@@ -168,7 +167,7 @@ func makeLocalJWKS(l *structs.LocalJWKS, pName string) (*envoy_http_jwt_authn_v3
 	return specifier, nil
 }
 
-func makeRemoteJWKS(r *structs.RemoteJWKS) (*envoy_http_jwt_authn_v3.JwtProvider_RemoteJwks, error) {
+func makeRemoteJWKS(r *structs.RemoteJWKS) *envoy_http_jwt_authn_v3.JwtProvider_RemoteJwks {
 	remote_specifier := envoy_http_jwt_authn_v3.JwtProvider_RemoteJwks{
 		RemoteJwks: &envoy_http_jwt_authn_v3.RemoteJwks{
 			HttpUri: &envoy_core_v3.HttpUri{
@@ -194,7 +193,7 @@ func makeRemoteJWKS(r *structs.RemoteJWKS) (*envoy_http_jwt_authn_v3.JwtProvider
 		remote_specifier.RemoteJwks.RetryPolicy = p
 	}
 
-	return &remote_specifier, nil
+	return &remote_specifier
 }
 
 func buildJWTRetryPolicy(r *structs.JWKSRetryPolicy) *envoy_core_v3.RetryPolicy {
@@ -231,7 +230,7 @@ func buildRouteRule(provider *structs.IntentionJWTProvider, perm *structs.Intent
 		},
 	}
 
-	if perm != nil {
+	if perm != nil && perm.HTTP != nil {
 		if perm.HTTP.PathPrefix != "" {
 			rule.Match.PathSpecifier = &envoy_route_v3.RouteMatch_Prefix{
 				Prefix: perm.HTTP.PathPrefix,
