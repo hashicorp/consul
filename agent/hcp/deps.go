@@ -27,15 +27,17 @@ type Deps struct {
 func NewDeps(cfg config.CloudConfig, logger hclog.Logger, nodeID types.NodeID) (d Deps, err error) {
 	d.Client, err = hcpclient.NewClient(cfg)
 	if err != nil {
+		logger.Error("failed to init HCP deps - client:", "error", err)
 		return
 	}
 
-	d.Provider, err = scada.New(cfg, logger.Named("hcp.scada"))
+	d.Provider, err = scada.New(cfg, logger.Named("scada"))
 	if err != nil {
+		logger.Error("failed to init HCP deps - scada:", "error", err)
 		return
 	}
 
-	d.Sink = sink(d.Client, &cfg, logger, nodeID)
+	d.Sink = sink(d.Client, &cfg, logger.Named("sink"), nodeID)
 
 	return
 }
@@ -85,6 +87,8 @@ func sink(hcpClient hcpclient.Client, cfg hcpclient.CloudConfig, logger hclog.Lo
 		logger.Error("failed to init OTEL sink", "error", err)
 		return nil
 	}
+
+	logger.Info("Initialized HCP Metrics Sink")
 
 	return sink
 }
