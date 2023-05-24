@@ -45,7 +45,7 @@ func TestServerPeeringList(t *testing.T) {
 		result := getEventResult[*pbpeering.PeeringListResponse](t, eventCh)
 		require.Len(t, result.Peerings, 1)
 		require.Equal(t, "peer-01", result.Peerings[0].Name)
-		require.Equal(t, index, result.Index)
+		require.Equal(t, index, result.OBSOLETE_Index)
 	})
 
 	testutil.RunStep(t, "add peering", func(t *testing.T) {
@@ -60,7 +60,7 @@ func TestServerPeeringList(t *testing.T) {
 		result := getEventResult[*pbpeering.PeeringListResponse](t, eventCh)
 		require.Len(t, result.Peerings, 2)
 		require.Equal(t, "peer-02", result.Peerings[1].Name)
-		require.Equal(t, index+1, result.Index)
+		require.Equal(t, index+1, result.OBSOLETE_Index)
 	})
 }
 
@@ -97,7 +97,7 @@ func TestServerPeeringList_ACLEnforcement(t *testing.T) {
 		result := getEventResult[*pbpeering.PeeringListResponse](t, eventCh)
 		require.Len(t, result.Peerings, 1)
 		require.Equal(t, "peer-01", result.Peerings[0].Name)
-		require.Equal(t, index, result.Index)
+		require.Equal(t, index, result.OBSOLETE_Index)
 	})
 
 	testutil.RunStep(t, "can't read", func(t *testing.T) {

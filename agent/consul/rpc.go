@@ -1,7 +1,6 @@
 package consul
 
 import (
-	"context"
 	"crypto/tls"
 	"encoding/binary"
 	"errors"
@@ -10,7 +9,6 @@ import (
 	"math"
 	"net"
 	"strings"
-	"sync/atomic"
 	"time"
 
 	"github.com/armon/go-metrics"
@@ -27,6 +25,7 @@ import (
 	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/blockingquery"
 	"github.com/hashicorp/consul/agent/consul/rate"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/consul/wanfed"
@@ -992,167 +991,26 @@ type blockingQueryResponseMeta interface {
 	SetResultsFilteredByACLs(bool)
 }
 
-// blockingQuery performs a blocking query if opts.GetMinQueryIndex is
-// greater than 0, otherwise performs a non-blocking query. Blocking queries will
-// block until responseMeta.Index is greater than opts.GetMinQueryIndex,
-// or opts.GetMaxQueryTime is reached. Non-blocking queries return immediately
-// after performing the query.
-//
-// If opts.GetRequireConsistent is true, blockingQuery will first verify it is
-// still the cluster leader before performing the query.
-//
-// The query function is expected to be a closure that has access to responseMeta
-// so that it can set the Index. The actual result of the query is opaque to blockingQuery.
-//
-// The query function can return errNotFound, which is a sentinel error. Returning
-// errNotFound indicates that the query found no results, which allows
-// blockingQuery to keep blocking until the query returns a non-nil error.
-// The query function must take care to set the actual result of the query to
-// nil in these cases, otherwise when blockingQuery times out it may return
-// a previous result. errNotFound will never be returned to the caller, it is
-// converted to nil before returning.
-//
-// The query function can return errNotChanged, which is a sentinel error. This
-// can only be returned on calls AFTER the first call, as it would not be
-// possible to detect the absence of a change on the first call. Returning
-// errNotChanged indicates that the query results are identical to the prior
-// results which allows blockingQuery to keep blocking until the query returns
-// a real changed result.
-//
-// The query function must take care to ensure the actual result of the query
-// is either left unmodified or explicitly left in a good state before
-// returning, otherwise when blockingQuery times out it may return an
-// incomplete or unexpected result. errNotChanged will never be returned to the
-// caller, it is converted to nil before returning.
-//
-// If query function returns any other error, the error is returned to the caller
-// immediately.
-//
-// The query function must follow these rules:
-//
-//  1. to access data it must use the passed in state.Store.
-//  2. it must set the responseMeta.Index to an index greater than
-//     opts.GetMinQueryIndex if the results return by the query have changed.
-//  3. any channels added to the memdb.WatchSet must unblock when the results
-//     returned by the query have changed.
-//
-// To ensure optimal performance of the query, the query function should make a
-// best-effort attempt to follow these guidelines:
-//
-//  1. only set responseMeta.Index to an index greater than
-//     opts.GetMinQueryIndex when the results returned by the query have changed.
-//  2. any channels added to the memdb.WatchSet should only unblock when the
-//     results returned by the query have changed.
+// blockingQuery is a passthrough to blockingquery.Query that keeps API
+// compatibility with Server. That has RPC and FSM machinery mixed in the same consul
+// package.
 func (s *Server) blockingQuery(
-	opts blockingQueryOptions,
-	responseMeta blockingQueryResponseMeta,
-	query queryFn,
+	requestOpts blockingquery.RequestOptions,
+	responseMeta blockingquery.ResponseMeta,
+	query blockingquery.QueryFn,
 ) error {
-	var ctx context.Context = &lib.StopChannelContext{StopCh: s.shutdownCh}
-
-	metrics.IncrCounter([]string{"rpc", "query"}, 1)
-
-	minQueryIndex := opts.GetMinQueryIndex()
-	// Perform a non-blocking query
-	if minQueryIndex == 0 {
-		if opts.GetRequireConsistent() {
-			if err := s.consistentRead(); err != nil {
-				return err
-			}
-		}
-
-		var ws memdb.WatchSet
-		err := query(ws, s.fsm.State())
-		s.setQueryMeta(responseMeta, opts.GetToken())
-		if errors.Is(err, errNotFound) || errors.Is(err, errNotChanged) {
-			return nil
-		}
-		return err
-	}
-
-	maxQueryTimeout, err := opts.GetMaxQueryTime()
-	if err != nil {
-		return err
-	}
-	timeout := s.rpcQueryTimeout(maxQueryTimeout)
-	ctx, cancel := context.WithTimeout(ctx, timeout)
-	defer cancel()
-
-	count := atomic.AddUint64(&s.queriesBlocking, 1)
-	metrics.SetGauge([]string{"rpc", "queries_blocking"}, float32(count))
-	// decrement the count when the function returns.
-	defer atomic.AddUint64(&s.queriesBlocking, ^uint64(0))
-
-	var (
-		notFound bool
-		ranOnce  bool
-	)
-
-	for {
-		if opts.GetRequireConsistent() {
-			if err := s.consistentRead(); err != nil {
-				return err
-			}
-		}
-
-		// Operate on a consistent set of state. This makes sure that the
-		// abandon channel goes with the state that the caller is using to
-		// build watches.
-		state := s.fsm.State()
-
-		ws := memdb.NewWatchSet()
-		// This channel will be closed if a snapshot is restored and the
-		// whole state store is abandoned.
-		ws.Add(state.AbandonCh())
-
-		err := query(ws, state)
-		s.setQueryMeta(responseMeta, opts.GetToken())
-
-		switch {
-		case errors.Is(err, errNotFound):
-			if notFound {
-				// query result has not changed
-				minQueryIndex = responseMeta.GetIndex()
-			}
-			notFound = true
-		case errors.Is(err, errNotChanged):
-			if ranOnce {
-				// query result has not changed
-				minQueryIndex = responseMeta.GetIndex()
-			}
-		case err != nil:
-			return err
-		}
-		ranOnce = true
-
-		if responseMeta.GetIndex() > minQueryIndex {
-			return nil
-		}
-
-		// block until something changes, or the timeout
-		if err := ws.WatchCtx(ctx); err != nil {
-			// exit if we've reached the timeout, or other cancellation
-			return nil
-		}
-
-		// exit if the state store has been abandoned
-		select {
-		case <-state.AbandonCh():
-			return nil
-		default:
-		}
-	}
+	return blockingquery.Query(s, requestOpts, responseMeta, query)
 }
 
 var (
-	errNotFound   = fmt.Errorf("no data found for query")
-	errNotChanged = fmt.Errorf("data did not change for query")
+	errNotFound   = blockingquery.ErrNotFound
+	errNotChanged = blockingquery.ErrNotChanged
 )
 
-// setQueryMeta is used to populate the QueryMeta data for an RPC call
+// SetQueryMeta is used to populate the QueryMeta data for an RPC call
 //
 // Note: This method must be called *after* filtering query results with ACLs.
-func (s *Server) setQueryMeta(m blockingQueryResponseMeta, token string) {
+func (s *Server) SetQueryMeta(m blockingquery.ResponseMeta, token string) {
 	if s.IsLeader() {
 		m.SetLastContact(0)
 		m.SetKnownLeader(true)
@@ -1176,7 +1034,7 @@ func (s *Server) setQueryMeta(m blockingQueryResponseMeta, token string) {
 
 // consistentRead is used to ensure we do not perform a stale
 // read. This is done by verifying leadership before the read.
-func (s *Server) consistentRead() error {
+func (s *Server) ConsistentRead() error {
 	defer metrics.MeasureSince([]string{"rpc", "consistentRead"}, time.Now())
 	future := s.raft.VerifyLeader()
 	if err := future.Error(); err != nil {
@@ -1207,10 +1065,10 @@ func (s *Server) consistentRead() error {
 	return structs.ErrNotReadyForConsistentReads
 }
 
-// rpcQueryTimeout calculates the timeout for the query, ensures it is
+// RPCQueryTimeout calculates the timeout for the query, ensures it is
 // constrained to the configured limit, and adds jitter to prevent multiple
 // blocking queries from all timing out at the same time.
-func (s *Server) rpcQueryTimeout(queryTimeout time.Duration) time.Duration {
+func (s *Server) RPCQueryTimeout(queryTimeout time.Duration) time.Duration {
 	// Restrict the max query time, and ensure there is always one.
 	if queryTimeout > s.config.MaxQueryTime {
 		queryTimeout = s.config.MaxQueryTime
