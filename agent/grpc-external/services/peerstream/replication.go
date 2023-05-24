@@ -285,9 +285,11 @@ func (s *Server) handleUpsertExportedServiceList(
 		exportedServices[snSidecarProxy] = struct{}{}
 		serviceNames = append(serviceNames, sn)
 	}
-	entMeta := structs.NodeEnterpriseMetaInPartition(partition)
 
-	_, serviceList, err := s.GetStore().ServiceList(nil, entMeta, peerName)
+	// Ensure we query services from all namespaces in this partition when we perform
+	// this query or else we may not propagate updates / deletes correctly.
+	entMeta := acl.NewEnterpriseMetaWithPartition(partition, acl.WildcardName)
+	_, serviceList, err := s.GetStore().ServiceList(nil, &entMeta, peerName)
 	if err != nil {
 		return err
 	}
