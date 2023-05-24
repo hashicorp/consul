@@ -144,16 +144,8 @@ func (o *otlpClient) ExportMetrics(ctx context.Context, protoMetrics *metricpb.R
 		return fmt.Errorf("failed to export metrics: %v", err)
 	}
 
-	if respData.Len() != 0 {
-		var respProto colmetricpb.ExportMetricsServiceResponse
-		if err := proto.Unmarshal(respData.Bytes(), &respProto); err != nil {
-			return fmt.Errorf("failed to export metrics: %v", err)
-		}
-
-		if respProto.PartialSuccess != nil {
-			msg := respProto.PartialSuccess.GetErrorMessage()
-			return fmt.Errorf("failed to export metrics: partial success: %s", msg)
-		}
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("failed to export metrics: code %d: %s", resp.StatusCode, string(body))
 	}
 
 	return nil

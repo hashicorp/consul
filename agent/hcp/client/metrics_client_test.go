@@ -72,7 +72,7 @@ func TestExportMetrics(t *testing.T) {
 		},
 		"failsWithNonRetryableError": {
 			status:  http.StatusBadRequest,
-			wantErr: "failed to export metrics",
+			wantErr: "failed to export metrics: code 400",
 		},
 	} {
 		t.Run(name, func(t *testing.T) {
@@ -82,12 +82,6 @@ func TestExportMetrics(t *testing.T) {
 				require.Equal(t, r.Header.Get("Authorization"), "Bearer test-token")
 
 				body := colpb.ExportMetricsServiceResponse{}
-
-				if test.wantErr != "" {
-					body.PartialSuccess = &colpb.ExportMetricsPartialSuccess{
-						ErrorMessage: "partial failure",
-					}
-				}
 				bytes, err := proto.Marshal(&body)
 
 				require.NoError(t, err)
