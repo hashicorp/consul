@@ -38,21 +38,6 @@ type ExampleDatacenter struct {
 	Datacenter string
 }
 
-// @consul-rpc-glue: ReadTODO
-type ExampleReadTODO struct {
-	Value string
-}
-
-// @consul-rpc-glue: LeaderReadTODO
-type ExampleLeaderReadTODO struct {
-	Value string
-}
-
-// @consul-rpc-glue: WriteTODO
-type ExampleWriteTODO struct {
-	Value string
-}
-
 // @consul-rpc-glue: WriteRequest=AltWriteRequest
 type AltExampleWriteRequest struct {
 	Value           int
