@@ -157,6 +157,7 @@ jobs:
           chmod +x /usr/local/bin/datadog-ci
 
       - name: upload coverage
+        # do not run on forks
         if: ${{ env.DATADOG_API_KEY}}
         env:
           DD_ENV: ci
