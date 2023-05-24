@@ -2,6 +2,7 @@ package client
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -34,8 +35,17 @@ func TestNewMetricsClient(t *testing.T) {
 		},
 		"failsHCPConfig": {
 			wantErr: "failed to init telemetry client",
-			cfg:     MockErrCloudCfg{},
-			ctx:     context.Background(),
+			cfg: MockCloudCfg{
+				ConfigErr: fmt.Errorf("test bad hcp config"),
+			},
+			ctx: context.Background(),
+		},
+		"failsBadResource": {
+			wantErr: "failed to init telemetry client",
+			cfg: MockCloudCfg{
+				ResourceErr: fmt.Errorf("test bad resource"),
+			},
+			ctx: context.Background(),
 		},
 	} {
 		t.Run(name, func(t *testing.T) {
@@ -68,7 +78,7 @@ func TestExportMetrics(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				require.Equal(t, r.Header.Get("Content-Type"), "application/x-protobuf")
-
+				require.Equal(t, r.Header.Get("x-hcp-resource-id"), testResourceID)
 				require.Equal(t, r.Header.Get("Authorization"), "Bearer test-token")
 
 				body := colpb.ExportMetricsServiceResponse{}

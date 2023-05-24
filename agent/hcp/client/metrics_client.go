@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-retryablehttp"
 	hcpcfg "github.com/hashicorp/hcp-sdk-go/config"
+	"github.com/hashicorp/hcp-sdk-go/resource"
 	colmetricpb "go.opentelemetry.io/proto/otlp/collector/metrics/v1"
 	metricpb "go.opentelemetry.io/proto/otlp/metrics/v1"
 	"golang.org/x/oauth2"
@@ -37,6 +38,7 @@ type MetricsClient interface {
 // cloudConfig represents cloud config for TLS abstracted in an interface for easy testing.
 type CloudConfig interface {
 	HCPConfig(opts ...hcpcfg.HCPConfigOption) (hcpcfg.HCPConfig, error)
+	Resource() (resource.Resource, error)
 }
 
 // otlpClient is an implementation of MetricsClient with a retryable http client for retries and to honor throttle.
@@ -64,8 +66,14 @@ func NewMetricsClient(cfg CloudConfig, ctx context.Context) (MetricsClient, erro
 		return nil, fmt.Errorf("failed to init telemetry client: %v", err)
 	}
 
+	r, err := cfg.Resource()
+	if err != nil {
+		return nil, fmt.Errorf("failed to init telemetry client: %v", err)
+	}
+
 	header := make(http.Header)
 	header.Set("Content-Type", "application/x-protobuf")
+	header.Set("x-hcp-resource-id", r.String())
 
 	return &otlpClient{
 		client: c,

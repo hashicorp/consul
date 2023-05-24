@@ -17,8 +17,13 @@ import (
 )
 
 var (
+	expectedResource = resource.NewWithAttributes("", attribute.KeyValue{
+		Key:   attribute.Key("node_id"),
+		Value: attribute.StringValue("test"),
+	})
+
 	attrs = attribute.NewSet(attribute.KeyValue{
-		Key:   attribute.Key("server.id"),
+		Key:   attribute.Key("metric.label"),
 		Value: attribute.StringValue("test"),
 	})
 
@@ -129,6 +134,16 @@ func TestNewOTELSink(t *testing.T) {
 				Ctx:    context.Background(),
 			},
 		},
+		"success": {
+			opts: &OTELSinkOpts{
+				Ctx:    context.Background(),
+				Reader: metric.NewManualReader(),
+				Labels: map[string]string{
+					"server": "test",
+				},
+				Filters: []string{"raft"},
+			},
+		},
 	} {
 		test := test
 		t.Run(name, func(t *testing.T) {
@@ -153,8 +168,12 @@ func TestOTELSink(t *testing.T) {
 
 	ctx := context.Background()
 	opts := &OTELSinkOpts{
-		Reader: reader,
-		Ctx:    ctx,
+		Reader:  reader,
+		Ctx:     ctx,
+		Filters: []string{"raft", "autopilot"},
+		Labels: map[string]string{
+			"node_id": "test",
+		},
 	}
 
 	sink, err := NewOTELSink(opts)
@@ -162,7 +181,7 @@ func TestOTELSink(t *testing.T) {
 
 	labels := []gometrics.Label{
 		{
-			Name:  "server.id",
+			Name:  "metric.label",
 			Value: "test",
 		},
 	}
@@ -189,6 +208,10 @@ func TestOTELSink_Race(t *testing.T) {
 	opts := &OTELSinkOpts{
 		Ctx:    ctx,
 		Reader: reader,
+		Labels: map[string]string{
+			"node_id": "test",
+		},
+		Filters: []string{"test"},
 	}
 
 	sink, err := NewOTELSink(opts)
@@ -303,7 +326,7 @@ func performSinkOperation(sink *OTELSink, k string, v metricdata.Metrics, errCh 
 
 func isSame(t *testing.T, expectedMap map[string]metricdata.Metrics, actual metricdata.ResourceMetrics) {
 	// Validate resource
-	require.Equal(t, resource.NewSchemaless(), actual.Resource)
+	require.Equal(t, expectedResource, actual.Resource)
 
 	// Validate Metrics
 	require.NotEmpty(t, actual.ScopeMetrics)

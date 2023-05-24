@@ -7,6 +7,7 @@ import (
 	"crypto/tls"
 
 	hcpcfg "github.com/hashicorp/hcp-sdk-go/config"
+	"github.com/hashicorp/hcp-sdk-go/resource"
 )
 
 // CloudConfig defines configuration for connecting to HCP services
@@ -28,6 +29,10 @@ type CloudConfig struct {
 
 func (c *CloudConfig) WithTLSConfig(cfg *tls.Config) {
 	c.TLSConfig = cfg
+}
+
+func (c *CloudConfig) Resource() (resource.Resource, error) {
+	return resource.FromString(c.ResourceID)
 }
 
 func (c *CloudConfig) HCPConfig(opts ...hcpcfg.HCPConfigOption) (hcpcfg.HCPConfig, error) {

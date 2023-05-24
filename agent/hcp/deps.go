@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/consul/agent/hcp/config"
 	"github.com/hashicorp/consul/agent/hcp/scada"
 	"github.com/hashicorp/consul/agent/hcp/telemetry"
+	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/go-hclog"
 )
 
@@ -23,7 +24,7 @@ type Deps struct {
 	Sink     metrics.MetricSink
 }
 
-func NewDeps(cfg config.CloudConfig, logger hclog.Logger) (d Deps, err error) {
+func NewDeps(cfg config.CloudConfig, logger hclog.Logger, nodeID types.NodeID) (d Deps, err error) {
 	d.Client, err = hcpclient.NewClient(cfg)
 	if err != nil {
 		return
@@ -34,7 +35,7 @@ func NewDeps(cfg config.CloudConfig, logger hclog.Logger) (d Deps, err error) {
 		return
 	}
 
-	d.Sink = sink(d.Client, &cfg, logger)
+	d.Sink = sink(d.Client, &cfg, logger, nodeID)
 
 	return
 }
@@ -42,7 +43,7 @@ func NewDeps(cfg config.CloudConfig, logger hclog.Logger) (d Deps, err error) {
 // sink provides initializes an OTELSink which forwards Consul metrics to HCP.
 // The sink is only initialized if the server is registered with the management plane (CCM).
 // This step should not block server initialization, so errors are logged, but not returned.
-func sink(hcpClient hcpclient.Client, cfg hcpclient.CloudConfig, logger hclog.Logger) metrics.MetricSink {
+func sink(hcpClient hcpclient.Client, cfg hcpclient.CloudConfig, logger hclog.Logger, nodeID types.NodeID) metrics.MetricSink {
 	ctx := context.Background()
 	ctx = hclog.WithContext(ctx, logger)
 
@@ -73,8 +74,10 @@ func sink(hcpClient hcpclient.Client, cfg hcpclient.CloudConfig, logger hclog.Lo
 	}
 
 	sinkOpts := &telemetry.OTELSinkOpts{
-		Ctx:    ctx,
-		Reader: telemetry.NewOTELReader(metricsClient, u, telemetry.DefaultExportInterval),
+		Ctx:     ctx,
+		Reader:  telemetry.NewOTELReader(metricsClient, u, telemetry.DefaultExportInterval),
+		Labels:  telemetryCfg.DefaultLabels(string(nodeID)),
+		Filters: telemetryCfg.MetricsConfig.Filters,
 	}
 
 	sink, err := telemetry.NewOTELSink(sinkOpts)

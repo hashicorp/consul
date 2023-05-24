@@ -2,13 +2,15 @@ package client
 
 import (
 	"crypto/tls"
-	"errors"
 	"net/url"
 
 	hcpcfg "github.com/hashicorp/hcp-sdk-go/config"
 	"github.com/hashicorp/hcp-sdk-go/profile"
+	"github.com/hashicorp/hcp-sdk-go/resource"
 	"golang.org/x/oauth2"
 )
+
+const testResourceID = "organization/test-org/project/test-project/test-type/test-id"
 
 type mockHCPCfg struct{}
 
@@ -25,14 +27,21 @@ func (m *mockHCPCfg) APIAddress() string            { return "" }
 func (m *mockHCPCfg) PortalURL() *url.URL           { return &url.URL{} }
 func (m *mockHCPCfg) Profile() *profile.UserProfile { return nil }
 
-type MockCloudCfg struct{}
-
-func (m MockCloudCfg) HCPConfig(opts ...hcpcfg.HCPConfigOption) (hcpcfg.HCPConfig, error) {
-	return &mockHCPCfg{}, nil
+type MockCloudCfg struct {
+	ConfigErr   error
+	ResourceErr error
 }
 
-type MockErrCloudCfg struct{}
+func (m MockCloudCfg) Resource() (resource.Resource, error) {
+	r := resource.Resource{
+		ID:           "test-id",
+		Type:         "test-type",
+		Organization: "test-org",
+		Project:      "test-project",
+	}
+	return r, m.ResourceErr
+}
 
-func (m MockErrCloudCfg) HCPConfig(opts ...hcpcfg.HCPConfigOption) (hcpcfg.HCPConfig, error) {
-	return nil, errors.New("test bad HCP config")
+func (m MockCloudCfg) HCPConfig(opts ...hcpcfg.HCPConfigOption) (hcpcfg.HCPConfig, error) {
+	return &mockHCPCfg{}, m.ConfigErr
 }

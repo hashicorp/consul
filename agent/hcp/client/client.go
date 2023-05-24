@@ -296,3 +296,17 @@ func (t *TelemetryConfig) Enabled() (string, bool) {
 	// The endpoint from Telemetry Gateway is a domain without scheme, and without the metrics path, so they must be added.
 	return endpoint + metricsGatewayPath, true
 }
+
+// DefaultLabels returns a set of <key, value> string pairs that must be added as attributes to all exported telemetry data.
+func (t *TelemetryConfig) DefaultLabels(nodeID string) map[string]string {
+	labels := map[string]string{
+		"__replica__": nodeID, // used for Cortex HA-metrics (deduplication)
+		"node_id":     nodeID, // used to delineate Consul nodes in graphs
+	}
+
+	for k, v := range t.Labels {
+		labels[k] = v
+	}
+
+	return labels
+}

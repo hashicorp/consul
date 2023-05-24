@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"net/url"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -24,8 +25,10 @@ const DefaultExportInterval = 10 * time.Second
 
 // OTELSinkOpts is used to provide configuration when initializing an OTELSink using NewOTELSink.
 type OTELSinkOpts struct {
-	Reader otelsdk.Reader
-	Ctx    context.Context
+	Reader  otelsdk.Reader
+	Ctx     context.Context
+	Filters []string
+	Labels  map[string]string
 }
 
 // OTELSink captures and aggregates telemetry data as per the OpenTelemetry (OTEL) specification.
@@ -35,6 +38,7 @@ type OTELSink struct {
 	// spaceReplacer cleans the flattened key by removing any spaces.
 	spaceReplacer *strings.Replacer
 	logger        hclog.Logger
+	filters       *regexp.Regexp
 
 	// meterProvider is an OTEL MeterProvider, the entrypoint to the OTEL Metrics SDK.
 	// It handles reading/export of aggregated metric data.
@@ -81,14 +85,30 @@ func NewOTELSink(opts *OTELSinkOpts) (*OTELSink, error) {
 		return nil, fmt.Errorf("ferror: provide valid context")
 	}
 
-	// Setup OTEL Metrics SDK to aggregate, convert and export metrics.
-	res := resource.NewSchemaless()
+	logger := hclog.FromContext(opts.Ctx).Named("otel_sink")
+
+	filterList, err := newFilterRegex(opts.Filters)
+	if err != nil {
+		logger.Error("Failed to initialize all filters", "error", err)
+	}
+
+	attrs := make([]attribute.KeyValue, 0, len(opts.Labels))
+	for k, v := range opts.Labels {
+		kv := attribute.KeyValue{
+			Key:   attribute.Key(k),
+			Value: attribute.StringValue(v),
+		}
+		attrs = append(attrs, kv)
+	}
+	// Setup OTEL Metrics SDK to aggregate, convert and export metrics periodically.
+	res := resource.NewWithAttributes("", attrs...)
 	meterProvider := otelsdk.NewMeterProvider(otelsdk.WithResource(res), otelsdk.WithReader(opts.Reader))
 	meter := meterProvider.Meter("github.com/hashicorp/consul/agent/hcp/telemetry")
 
 	return &OTELSink{
+		filters:              filterList,
 		spaceReplacer:        strings.NewReplacer(" ", "_"),
-		logger:               hclog.FromContext(opts.Ctx).Named("otel_sink"),
+		logger:               logger,
 		meterProvider:        meterProvider,
 		meter:                &meter,
 		gaugeStore:           NewGaugeStore(),
@@ -118,6 +138,10 @@ func (o *OTELSink) IncrCounter(key []string, val float32) {
 func (o *OTELSink) SetGaugeWithLabels(key []string, val float32, labels []gometrics.Label) {
 	k := o.flattenKey(key)
 
+	if !o.filters.MatchString(k) {
+		return
+	}
+
 	// Set value in global Gauge store.
 	o.gaugeStore.Set(k, float64(val), toAttributes(labels))
 
@@ -131,7 +155,7 @@ func (o *OTELSink) SetGaugeWithLabels(key []string, val float32, labels []gometr
 		// It must be explicitly de-registered to be removed (which we do not do), to ensure new gauge values are exported every cycle.
 		inst, err := (*o.meter).Float64ObservableGauge(k, otelmetric.WithFloat64Callback(o.gaugeStore.gaugeCallback(k)))
 		if err != nil {
-			o.logger.Error("Failed to emit gauge: %w", err)
+			o.logger.Error("Failed to create gauge instrument", "error", err)
 			return
 		}
 		o.gaugeInstruments[k] = inst
@@ -142,6 +166,10 @@ func (o *OTELSink) SetGaugeWithLabels(key []string, val float32, labels []gometr
 func (o *OTELSink) AddSampleWithLabels(key []string, val float32, labels []gometrics.Label) {
 	k := o.flattenKey(key)
 
+	if !o.filters.MatchString(k) {
+		return
+	}
+
 	o.mutex.Lock()
 	defer o.mutex.Unlock()
 
@@ -149,7 +177,7 @@ func (o *OTELSink) AddSampleWithLabels(key []string, val float32, labels []gomet
 	if !ok {
 		histogram, err := (*o.meter).Float64Histogram(k)
 		if err != nil {
-			o.logger.Error("Failed to emit gauge: %w", err)
+			o.logger.Error("Failed create histogram instrument", "error", err)
 			return
 		}
 		inst = histogram
@@ -164,6 +192,10 @@ func (o *OTELSink) AddSampleWithLabels(key []string, val float32, labels []gomet
 func (o *OTELSink) IncrCounterWithLabels(key []string, val float32, labels []gometrics.Label) {
 	k := o.flattenKey(key)
 
+	if !o.filters.MatchString(k) {
+		return
+	}
+
 	o.mutex.Lock()
 	defer o.mutex.Unlock()
 
@@ -171,7 +203,7 @@ func (o *OTELSink) IncrCounterWithLabels(key []string, val float32, labels []gom
 	if !ok {
 		counter, err := (*o.meter).Float64Counter(k)
 		if err != nil {
-			o.logger.Error("Failed to emit gauge: %w", err)
+			o.logger.Error("Failed to create counter instrument:", "error", err)
 			return
 		}
 
