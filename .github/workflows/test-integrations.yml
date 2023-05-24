@@ -121,7 +121,7 @@ jobs:
           chmod +x /usr/local/bin/datadog-ci
 
       - name: upload coverage
-        if: ${{ env.DATADOG_API_KEY || secrets.DATADOG_API_KEY }}
+        if: ${{ env.DATADOG_API_KEY || (secrets && secrets.DATADOG_API_KEY) }}
         env:
           DATADOG_API_KEY: "${{ endsWith(github.repository, '-enterprise') && env.DATADOG_API_KEY || secrets.DATADOG_API_KEY }}"
           DD_ENV: ci
@@ -201,7 +201,7 @@ jobs:
           chmod +x /usr/local/bin/datadog-ci
 
       - name: upload coverage
-        if: ${{ env.DATADOG_API_KEY || secrets.DATADOG_API_KEY }}
+        if: ${{ env.DATADOG_API_KEY || (secrets && secrets.DATADOG_API_KEY) }}
         env:
           DATADOG_API_KEY: "${{ endsWith(github.repository, '-enterprise') && env.DATADOG_API_KEY || secrets.DATADOG_API_KEY }}"
           DD_ENV: ci
@@ -340,7 +340,7 @@ jobs:
           chmod +x /usr/local/bin/datadog-ci
 
       - name: upload coverage
-        if: ${{ env.DATADOG_API_KEY || secrets.DATADOG_API_KEY }}
+        if: ${{ env.DATADOG_API_KEY || (secrets && secrets.DATADOG_API_KEY) }}
         env:
           DATADOG_API_KEY: "${{ endsWith(github.repository, '-enterprise') && env.DATADOG_API_KEY || secrets.DATADOG_API_KEY }}"
           DD_ENV: ci
@@ -445,7 +445,7 @@ jobs:
           chmod +x /usr/local/bin/datadog-ci
 
       - name: upload coverage
-        if: ${{ env.DATADOG_API_KEY || secrets.DATADOG_API_KEY }}
+        if: ${{ env.DATADOG_API_KEY || (secrets && secrets.DATADOG_API_KEY) }}
         env:
           DATADOG_API_KEY: "${{ endsWith(github.repository, '-enterprise') && env.DATADOG_API_KEY || secrets.DATADOG_API_KEY }}"
           DD_ENV: ci
