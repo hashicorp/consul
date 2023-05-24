@@ -307,7 +307,6 @@ type rbacIntention struct {
 	Precedence  int
 
 	// Claims is field used for JWT Authentication to verify claims
-	// these claims and under intention.JWT or intention.permissions.jwt
 	Claims []*structs.IntentionJWTClaimVerification
 
 	// Skip is field used to indicate that this intention can be deleted in the
@@ -383,7 +382,6 @@ type rbacPermission struct {
 	NotPerms []*envoy_rbac_v3.Permission
 
 	// Claims is field used for JWT Authentication to verify claims
-	// these claims and under intention.JWT or intention.permissions.jwt
 	Claims []*structs.IntentionJWTClaimVerification
 
 	// Skip is field used to indicate that this permission can be deleted in
@@ -606,7 +604,7 @@ func claimToPrincipal(c *structs.IntentionJWTClaimVerification) *envoy_rbac_v3.P
 	return &envoy_rbac_v3.Principal{
 		Identifier: &envoy_rbac_v3.Principal_Metadata{
 			Metadata: &envoy_matcher_v3.MetadataMatcher{
-				Filter: "envoy.filters.http.jwt_authn",
+				Filter: jwt_envoy_filter,
 				Path:   segments,
 				Value: &envoy_matcher_v3.ValueMatcher{
 					MatchPattern: &envoy_matcher_v3.ValueMatcher_StringMatch{
@@ -625,7 +623,7 @@ func claimToPrincipal(c *structs.IntentionJWTClaimVerification) *envoy_rbac_v3.P
 func pathToSegments(paths []string) []*envoy_matcher_v3.MetadataMatcher_PathSegment {
 
 	segments := make([]*envoy_matcher_v3.MetadataMatcher_PathSegment, 0, len(paths))
-	segments = append(segments, makeSegment("jwt_payload"))
+	segments = append(segments, makeSegment(jwt_payload))
 
 	for _, p := range paths {
 		segments = append(segments, makeSegment(p))

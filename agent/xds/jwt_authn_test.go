@@ -338,6 +338,7 @@ func TestBuildJWTProviderConfig(t *testing.T) {
 				Issuer:                  fullCE.Issuer,
 				Audiences:               fullCE.Audiences,
 				ForwardPayloadHeader:    "user-token",
+				PayloadInMetadata:       jwt_payload,
 				PadForwardPayloadHeader: false,
 				Forward:                 true,
 				JwksSourceSpecifier: &envoy_http_jwt_authn_v3.JwtProvider_LocalJwks{
@@ -353,8 +354,9 @@ func TestBuildJWTProviderConfig(t *testing.T) {
 		"entry-with-remote-jwks": {
 			ce: &ceRemoteJWKS,
 			expected: &envoy_http_jwt_authn_v3.JwtProvider{
-				Issuer:    fullCE.Issuer,
-				Audiences: fullCE.Audiences,
+				Issuer:            fullCE.Issuer,
+				Audiences:         fullCE.Audiences,
+				PayloadInMetadata: jwt_payload,
 				JwksSourceSpecifier: &envoy_http_jwt_authn_v3.JwtProvider_RemoteJwks{
 					RemoteJwks: &envoy_http_jwt_authn_v3.RemoteJwks{
 						HttpUri: &envoy_core_v3.HttpUri{

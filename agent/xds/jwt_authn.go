@@ -16,6 +16,11 @@ import (
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
+var (
+	jwt_envoy_filter = "envoy.filters.http.jwt_authn"
+	jwt_payload      = "jwt_payload"
+)
+
 func makeJWTAuthFilter(pCE map[string]*structs.JWTProviderConfigEntry, intentions structs.SimplifiedIntentions) (*envoy_http_v3.HttpFilter, error) {
 	providers := map[string]*envoy_http_jwt_authn_v3.JwtProvider{}
 	var rules []*envoy_http_jwt_authn_v3.RequirementRule
@@ -70,7 +75,7 @@ func makeJWTAuthFilter(pCE map[string]*structs.JWTProviderConfigEntry, intention
 		Providers: providers,
 		Rules:     rules,
 	}
-	return makeEnvoyHTTPFilter("envoy.filters.http.jwt_authn", cfg)
+	return makeEnvoyHTTPFilter(jwt_envoy_filter, cfg)
 }
 
 func collectJWTRequirements(i *structs.Intention) []*structs.IntentionJWTProvider {
@@ -101,7 +106,7 @@ func buildJWTProviderConfig(p *structs.JWTProviderConfigEntry) (*envoy_http_jwt_
 	envoyCfg := envoy_http_jwt_authn_v3.JwtProvider{
 		Issuer:            p.Issuer,
 		Audiences:         p.Audiences,
-		PayloadInMetadata: "jwt_payload",
+		PayloadInMetadata: jwt_payload,
 	}
 
 	if p.Forwarding != nil {
