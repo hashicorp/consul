@@ -815,7 +815,7 @@ func (m *Internal) EventFire(args *structs.EventFireRequest,
 	}
 
 	// Set the query meta data
-	m.srv.setQueryMeta(&reply.QueryMeta, args.Token)
+	m.srv.SetQueryMeta(&reply.QueryMeta, args.Token)
 
 	// Add the consul prefix to the event name
 	eventName := userEventName(args.Name)

@@ -1905,7 +1905,7 @@ func TestServer_ReloadConfig(t *testing.T) {
 	defaults := DefaultConfig()
 	got := s.raft.ReloadableConfig()
 	require.Equal(t, uint64(4321), got.SnapshotThreshold,
-		"should have be reloaded to new value")
+		"should have been reloaded to new value")
 	require.Equal(t, defaults.RaftConfig.SnapshotInterval, got.SnapshotInterval,
 		"should have remained the default interval")
 	require.Equal(t, defaults.RaftConfig.TrailingLogs, got.TrailingLogs,

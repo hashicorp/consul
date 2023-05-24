@@ -33,21 +33,24 @@ import (
 func TestHttpWasmExtension(t *testing.T) {
 	t.Parallel()
 	cases := map[string]struct {
-		extName      string
-		canApply     bool
-		args         func(bool) map[string]any
-		rtCfg        func(bool) *extensioncommon.RuntimeConfig
-		inputFilters func() []*envoy_http_v3.HttpFilter
-		expFilters   func(tc testWasmConfig) []*envoy_http_v3.HttpFilter
-		errStr       string
-		debug        bool
+		extName         string
+		canApply        bool
+		args            func(bool) map[string]any
+		rtCfg           func(bool) *extensioncommon.RuntimeConfig
+		isInboundFilter bool
+		inputFilters    func() []*envoy_http_v3.HttpFilter
+		expFilters      func(tc testWasmConfig) []*envoy_http_v3.HttpFilter
+		expPatched      bool
+		errStr          string
+		debug           bool
 	}{
 		"http remote file": {
-			extName:      api.BuiltinWasmExtension,
-			canApply:     true,
-			args:         func(ent bool) map[string]any { return makeTestWasmConfig(ent).toMap(t) },
-			rtCfg:        func(ent bool) *extensioncommon.RuntimeConfig { return makeTestRuntimeConfig(ent) },
-			inputFilters: makeTestHttpFilters,
+			extName:         api.BuiltinWasmExtension,
+			canApply:        true,
+			args:            func(ent bool) map[string]any { return makeTestWasmConfig(ent).toMap(t) },
+			rtCfg:           func(ent bool) *extensioncommon.RuntimeConfig { return makeTestRuntimeConfig(ent) },
+			isInboundFilter: true,
+			inputFilters:    makeTestHttpFilters,
 			expFilters: func(tc testWasmConfig) []*envoy_http_v3.HttpFilter {
 				return []*envoy_http_v3.HttpFilter{
 					{Name: "one"},
@@ -65,6 +68,7 @@ func TestHttpWasmExtension(t *testing.T) {
 					{Name: "three"},
 				}
 			},
+			expPatched: true,
 		},
 		"local file": {
 			extName:  api.BuiltinWasmExtension,
@@ -76,8 +80,9 @@ func TestHttpWasmExtension(t *testing.T) {
 				cfg.PluginConfig.VmConfig.Code.Local.Filename = "plugin.wasm"
 				return cfg.toMap(t)
 			},
-			rtCfg:        func(ent bool) *extensioncommon.RuntimeConfig { return makeTestRuntimeConfig(ent) },
-			inputFilters: makeTestHttpFilters,
+			rtCfg:           func(ent bool) *extensioncommon.RuntimeConfig { return makeTestRuntimeConfig(ent) },
+			isInboundFilter: true,
+			inputFilters:    makeTestHttpFilters,
 			expFilters: func(tc testWasmConfig) []*envoy_http_v3.HttpFilter {
 				return []*envoy_http_v3.HttpFilter{
 					{Name: "one"},
@@ -95,6 +100,24 @@ func TestHttpWasmExtension(t *testing.T) {
 					{Name: "three"},
 				}
 			},
+			expPatched: true,
+		},
+		"inbound filters ignored": {
+			extName:         api.BuiltinWasmExtension,
+			canApply:        true,
+			args:            func(ent bool) map[string]any { return makeTestWasmConfig(ent).toMap(t) },
+			rtCfg:           func(ent bool) *extensioncommon.RuntimeConfig { return makeTestRuntimeConfig(ent) },
+			isInboundFilter: false,
+			inputFilters:    makeTestHttpFilters,
+			expFilters: func(tc testWasmConfig) []*envoy_http_v3.HttpFilter {
+				return []*envoy_http_v3.HttpFilter{
+					{Name: "one"},
+					{Name: "two"},
+					{Name: "envoy.filters.http.router"},
+					{Name: "three"},
+				}
+			},
+			expPatched: false,
 		},
 		"no cluster for remote file": {
 			extName:  api.BuiltinWasmExtension,
@@ -102,11 +125,13 @@ func TestHttpWasmExtension(t *testing.T) {
 			args:     func(ent bool) map[string]any { return makeTestWasmConfig(ent).toMap(t) },
 			rtCfg: func(ent bool) *extensioncommon.RuntimeConfig {
 				rt := makeTestRuntimeConfig(ent)
-				rt.LocalUpstreams = nil
+				rt.Upstreams = nil
 				return rt
 			},
-			inputFilters: makeTestHttpFilters,
-			errStr:       "no upstream found for remote service",
+			isInboundFilter: true,
+			inputFilters:    makeTestHttpFilters,
+			errStr:          "no upstream found for remote service",
+			expPatched:      false,
 		},
 	}
 
@@ -140,10 +165,10 @@ func TestHttpWasmExtension(t *testing.T) {
 				require.NoError(t, err)
 
 				inputHttpConMgr := makeHttpConMgr(t, c.inputFilters())
-				obsHttpConMgr, patched, err := w.PatchFilter(c.rtCfg(enterprise), inputHttpConMgr)
+				obsHttpConMgr, patched, err := w.PatchFilter(c.rtCfg(enterprise), inputHttpConMgr, c.isInboundFilter)
 				if c.errStr == "" {
 					require.NoError(t, err)
-					require.True(t, patched)
+					require.Equal(t, c.expPatched, patched)
 
 					cfg := testWasmConfigFromMap(t, c.args(enterprise))
 					expHttpConMgr := makeHttpConMgr(t, c.expFilters(cfg))
@@ -156,6 +181,7 @@ func TestHttpWasmExtension(t *testing.T) {
 
 					prototest.AssertDeepEqual(t, expHttpConMgr, obsHttpConMgr)
 				} else {
+					require.Error(t, err)
 					require.Contains(t, err.Error(), c.errStr)
 				}
 
@@ -554,7 +580,7 @@ func makeTestRuntimeConfig(enterprise bool) *extensioncommon.RuntimeConfig {
 	return &extensioncommon.RuntimeConfig{
 		Kind:        api.ServiceKindConnectProxy,
 		ServiceName: api.CompoundServiceName{Name: "test-service"},
-		LocalUpstreams: map[api.CompoundServiceName]*extensioncommon.UpstreamData{
+		Upstreams: map[api.CompoundServiceName]*extensioncommon.UpstreamData{
 			{
 				Name:      "test-file-server",
 				Namespace: acl.NamespaceOrDefault(ns),

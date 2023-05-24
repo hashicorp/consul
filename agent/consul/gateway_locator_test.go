@@ -13,6 +13,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/hashicorp/consul/agent/blockingquery"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
@@ -475,6 +476,8 @@ func TestGatewayLocator(t *testing.T) {
 	})
 }
 
+var _ serverDelegate = (*testServerDelegate)(nil)
+
 type testServerDelegate struct {
 	dcSupportsFederationStates int32 // atomically accessed, at start to prevent alignment issues
 
@@ -496,9 +499,9 @@ func (d *testServerDelegate) datacenterSupportsFederationStates() bool {
 
 // This is just enough to exercise the logic.
 func (d *testServerDelegate) blockingQuery(
-	queryOpts blockingQueryOptions,
-	queryMeta blockingQueryResponseMeta,
-	fn queryFn,
+	queryOpts blockingquery.RequestOptions,
+	queryMeta blockingquery.ResponseMeta,
+	fn blockingquery.QueryFn,
 ) error {
 	minQueryIndex := queryOpts.GetMinQueryIndex()
 

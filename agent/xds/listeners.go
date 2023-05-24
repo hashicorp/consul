@@ -860,16 +860,11 @@ func (s *ResourceGenerator) listenersFromSnapshotGateway(cfgSnap *proxycfg.Confi
 				return nil, err
 			}
 		case structs.ServiceKindAPIGateway:
-			// TODO Find a cleaner solution, can't currently pass unexported property types
-			var err error
-			cfgSnap.IngressGateway, err = cfgSnap.APIGateway.ToIngress(cfgSnap.Datacenter)
+			listeners, err := s.makeAPIGatewayListeners(a.Address, cfgSnap)
 			if err != nil {
 				return nil, err
 			}
-			listeners, err := s.makeIngressGatewayListeners(a.Address, cfgSnap)
-			if err != nil {
-				return nil, err
-			}
+
 			resources = append(resources, listeners...)
 		case structs.ServiceKindIngressGateway:
 			listeners, err := s.makeIngressGatewayListeners(a.Address, cfgSnap)
@@ -1369,6 +1364,10 @@ func (s *ResourceGenerator) makeInboundListener(cfgSnap *proxycfg.ConfigSnapshot
 		logger:           s.Logger,
 	}
 	if useHTTPFilter {
+		jwtFilter, jwtFilterErr := makeJWTAuthFilter(cfgSnap.JWTProviders, cfgSnap.ConnectProxy.Intentions)
+		if jwtFilterErr != nil {
+			return nil, jwtFilterErr
+		}
 		rbacFilter, err := makeRBACHTTPFilter(
 			cfgSnap.ConnectProxy.Intentions,
 			cfgSnap.IntentionDefaultAllow,
@@ -1384,6 +1383,10 @@ func (s *ResourceGenerator) makeInboundListener(cfgSnap *proxycfg.ConfigSnapshot
 		}
 
 		filterOpts.httpAuthzFilters = []*envoy_http_v3.HttpFilter{rbacFilter}
+
+		if jwtFilter != nil {
+			filterOpts.httpAuthzFilters = append(filterOpts.httpAuthzFilters, jwtFilter)
+		}
 
 		meshConfig := cfgSnap.MeshConfig()
 		includeXFCC := meshConfig == nil || meshConfig.HTTP == nil || !meshConfig.HTTP.SanitizeXForwardedClientCert
@@ -1443,7 +1446,8 @@ func (s *ResourceGenerator) makeInboundListener(cfgSnap *proxycfg.ConfigSnapshot
 	// that matches on the `destination_port == <service port>`. Traffic sent
 	// directly to the service port is passed through to the application
 	// unmodified.
-	if cfgSnap.Proxy.MutualTLSMode == structs.MutualTLSModePermissive {
+	if cfgSnap.Proxy.Mode == structs.ProxyModeTransparent &&
+		cfgSnap.Proxy.MutualTLSMode == structs.MutualTLSModePermissive {
 		chain, err := makePermissiveFilterChain(cfgSnap, filterOpts)
 		if err != nil {
 			return nil, fmt.Errorf("unable to add permissive mtls filter chain: %w", err)
@@ -1456,7 +1460,11 @@ func (s *ResourceGenerator) makeInboundListener(cfgSnap *proxycfg.ConfigSnapshot
 			// With tproxy, the REDIRECT iptables target rewrites the destination ip/port
 			// to the proxy ip/port (e.g. 127.0.0.1:20000) for incoming packets.
 			// We need the original_dst filter to recover the original destination address.
-			l.UseOriginalDst = &wrapperspb.BoolValue{Value: true}
+			originalDstFilter, err := makeEnvoyListenerFilter("envoy.filters.listener.original_dst", &envoy_original_dst_v3.OriginalDst{})
+			if err != nil {
+				return nil, err
+			}
+			l.ListenerFilters = append(l.ListenerFilters, originalDstFilter)
 		}
 	}
 	return l, err

@@ -21,8 +21,6 @@ import (
 	"github.com/hashicorp/consul/envoyextensions/extensioncommon"
 )
 
-const builtinValidateExtension = "builtin/proxy/validate"
-
 // Validate contains input information about which proxy resources to validate and output information about resources it
 // has validated.
 type Validate struct {
@@ -81,8 +79,8 @@ func MakeValidate(ext extensioncommon.RuntimeConfig) (extensioncommon.BasicExten
 	var resultErr error
 	var plugin Validate
 
-	if name := ext.EnvoyExtension.Name; name != builtinValidateExtension {
-		return nil, fmt.Errorf("expected extension name 'builtin/proxy/validate' but got %q", name)
+	if name := ext.EnvoyExtension.Name; name != api.BuiltinValidateExtension {
+		return nil, fmt.Errorf("expected extension name '%s' but got %q", api.BuiltinValidateExtension, name)
 	}
 
 	envoyID, _ := ext.EnvoyExtension.Arguments["envoyID"]
@@ -366,7 +364,7 @@ func (p *Validate) PatchCluster(config *extensioncommon.RuntimeConfig, c *envoy_
 	return c, false, nil
 }
 
-func (p *Validate) PatchFilter(config *extensioncommon.RuntimeConfig, filter *envoy_listener_v3.Filter) (*envoy_listener_v3.Filter, bool, error) {
+func (p *Validate) PatchFilter(config *extensioncommon.RuntimeConfig, filter *envoy_listener_v3.Filter, _ bool) (*envoy_listener_v3.Filter, bool, error) {
 	// If a single filter exists for a listener we say it exists.
 	p.listener = true
 
