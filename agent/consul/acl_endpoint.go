@@ -1110,7 +1110,7 @@ func (a *ACL) PolicyResolve(args *structs.ACLPolicyBatchGetRequest, reply *struc
 		}
 	}
 
-	a.srv.setQueryMeta(&reply.QueryMeta, args.Token)
+	a.srv.SetQueryMeta(&reply.QueryMeta, args.Token)
 
 	return nil
 }
@@ -1517,7 +1517,7 @@ func (a *ACL) RoleResolve(args *structs.ACLRoleBatchGetRequest, reply *structs.A
 		}
 	}
 
-	a.srv.setQueryMeta(&reply.QueryMeta, args.Token)
+	a.srv.SetQueryMeta(&reply.QueryMeta, args.Token)
 
 	return nil
 }
