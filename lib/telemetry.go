@@ -204,17 +204,17 @@ type TelemetryConfig struct {
 	// hcl: telemetry { statsite_address = string }
 	StatsiteAddr string `json:"statsite_address,omitempty" mapstructure:"statsite_address"`
 
+	// EnableHostMetrics will enable metrics collected about the host system such as cpu memory and disk usage.
+	//
+	// hcl: telemetry { enable_host_metrics = (true|false) }
+	EnableHostMetrics bool `json:"enable_host_metrics,omitempty" mapstructure:"enable_host_metrics"`
+
 	// PrometheusOpts provides configuration for the PrometheusSink. Currently the only configuration
 	// we acquire from hcl is the retention time. We also use definition slices that are set in agent setup
 	// before being passed to InitTelemmetry.
 	//
 	// hcl: telemetry { prometheus_retention_time = "duration" }
 	PrometheusOpts prometheus.PrometheusOpts
-
-	// DisableHostMetrics will disable metrics collected about the host system such as cpu memory and disk usage.
-	//
-	// hcl: telemetry { disable_host_metrics = (true|false) }
-	DisableHostMetrics bool
 }
 
 // MetricsHandler provides an http.Handler for displaying metrics.
