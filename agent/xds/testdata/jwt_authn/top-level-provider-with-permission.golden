@@ -9,7 +9,7 @@
           "httpUri": {
             "uri": "https://example-okta.com/.well-known/jwks.json",
             "cluster": "jwks_cluster",
-            "timeout": "0s"
+            "timeout": "1s"
           },
           "asyncFetch": {
             "fastListener": true
