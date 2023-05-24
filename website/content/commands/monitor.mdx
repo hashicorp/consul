@@ -29,6 +29,8 @@ Usage: `consul monitor [options]`
   is "info". This log level can be more verbose than what the agent is
   configured to run at. Available log levels are "trace", "debug", "info",
   "warn", and "error".
+- `-log-sublevels` - Sets the log level of a subsystem in `<subsystem>:<log-level>`
+  format (e.g. `agent.leader:warn`). Can be specified multiple times.
 - `-log-json` - Toggles whether the messages are streamed in JSON format.
   By default this is false.
 

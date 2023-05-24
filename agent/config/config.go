@@ -191,6 +191,7 @@ type Config struct {
 	Limits                           Limits              `mapstructure:"limits" json:"-"`
 	Locality                         *Locality           `mapstructure:"locality" json:"-"`
 	LogLevel                         *string             `mapstructure:"log_level" json:"log_level,omitempty"`
+	LogSublevels                     map[string]string   `mapstructure:"log_sublevels" json:"log_sublevels,omitempty"`
 	LogJSON                          *bool               `mapstructure:"log_json" json:"log_json,omitempty"`
 	LogFile                          *string             `mapstructure:"log_file" json:"log_file,omitempty"`
 	LogRotateDuration                *string             `mapstructure:"log_rotate_duration" json:"log_rotate_duration,omitempty"`

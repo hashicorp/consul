@@ -1029,6 +1029,7 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 
 		Logging: logging.Config{
 			LogLevel:          stringVal(c.LogLevel),
+			LogSublevels:      c.LogSublevels,
 			LogJSON:           boolVal(c.LogJSON),
 			LogFilePath:       stringVal(c.LogFile),
 			EnableSyslog:      boolVal(c.EnableSyslog),

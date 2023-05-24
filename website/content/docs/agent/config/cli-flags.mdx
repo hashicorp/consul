@@ -449,6 +449,9 @@ information.
   via [`consul monitor`](/consul/commands/monitor) and use any log level. Also,
   the log level can be changed during a config reload.
 
+- `-log-sublevels` ((#\_log_sublevels)) Sets the log level of a subsystem in `<subsystem>:<log-level>`
+  format (e.g. `agent.leader:warn`). Can be specified multiple times.
+
 - `-log-json` ((#\_log_json)) - This flag enables the agent to output logs
   in a JSON format. By default this is false.
 

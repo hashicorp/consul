@@ -10,13 +10,27 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-hclog"
+	iradix "github.com/hashicorp/go-immutable-radix/v2"
 	gsyslog "github.com/hashicorp/go-syslog"
 )
 
 // Config is used to set up logging.
 type Config struct {
 	// LogLevel is the minimum level to be logged.
+	// This value is inherited by subcomponents but
+	// may be overridden by LogSublevels.
 	LogLevel string
+
+	// LogSublevels is a map of subcomponent loggers and their
+	// minimum levels to be logged.
+	//
+	// Example:
+	//   map[string]string{
+	//     "agent.server":      "info",
+	//     "agent.server.serf": "trace",
+	//     "connect.ca":        "debug",
+	//   }
+	LogSublevels map[string]string
 
 	// LogJSON controls outputing logs in a JSON format.
 	LogJSON bool
@@ -64,9 +78,28 @@ func (w noErrorWriter) Write(p []byte) (n int, err error) {
 // Logs may be written to out, and optionally to syslog, and a file.
 func Setup(config Config, out io.Writer) (hclog.InterceptLogger, error) {
 	if !ValidateLogLevel(config.LogLevel) {
-		return nil, fmt.Errorf("Invalid log level: %s. Valid log levels are: %v",
+		return nil, fmt.Errorf("Invalid log level: %q. Valid log levels are: %v",
 			config.LogLevel,
 			allowedLogLevels)
+	}
+
+	// Set up a prefix tree of LogSublevels so we can override
+	// log levels for named subcomponents.
+	var tree *iradix.Tree[hclog.Level]
+	if len(config.LogSublevels) > 0 {
+		tree = iradix.New[hclog.Level]()
+		for k, v := range config.LogSublevels {
+			if !ValidateLogLevel(v) {
+				return nil, fmt.Errorf("Invalid log level: %q. Valid log levels are: %v",
+					v,
+					allowedLogLevels)
+			}
+			// Special case for when a user provides the root logger name (e.g. "agent").
+			if k == config.Name {
+				config.LogLevel = v
+			}
+			tree, _, _ = tree.Insert([]byte(k), LevelFromString(v))
+		}
 	}
 
 	// If out is os.Stdout and Consul is being run as a Windows Service, writes will
@@ -119,10 +152,36 @@ func Setup(config Config, out io.Writer) (hclog.InterceptLogger, error) {
 	}
 
 	logger := hclog.NewInterceptLogger(&hclog.LoggerOptions{
-		Level:      LevelFromString(config.LogLevel),
-		Name:       config.Name,
-		Output:     io.MultiWriter(writers...),
-		JSONFormat: config.LogJSON,
+		Level:             LevelFromString(config.LogLevel),
+		Name:              config.Name,
+		Output:            io.MultiWriter(writers...),
+		JSONFormat:        config.LogJSON,
+		SubloggerHook:     MakeSubloggerHook(tree),
+		IndependentLevels: true, // required so the sublogger hook doesn't modify parent logger level
 	})
 	return logger, nil
+}
+
+// MakeSubloggerHook takes a prefix tree of subsystem names to log levels
+// then returns a closure which sets sublogger levels to the longest prefix
+// match that exists in the tree. If tree is nil, the closure is a no-op.
+func MakeSubloggerHook(tree *iradix.Tree[hclog.Level]) func(logger hclog.Logger) hclog.Logger {
+	return func(sub hclog.Logger) hclog.Logger {
+		if tree == nil {
+			return sub
+		}
+		if prefix, level, ok := tree.Root().LongestPrefix([]byte(sub.Name())); ok {
+			// If not an exact match, look ahead one char to determine
+			// if we are at a name boundary.
+			//
+			// Example: -log-sublevels agent.peering:trace
+			//   sublogger: 	"agent.peering-syncer" <- should not apply
+			//   sublogger:		"agent.peering.grpc"
+			if len(prefix) < len(sub.Name()) && sub.Name()[len(prefix)] != '.' {
+				return sub
+			}
+			sub.SetLevel(level)
+		}
+		return sub
+	}
 }
