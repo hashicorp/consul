@@ -299,7 +299,10 @@ func getPrometheusDefs(cfg *config.RuntimeConfig, isServer bool) ([]prometheus.G
 		Gauges,
 		raftGauges,
 		serverGauges,
-		hoststats.Gauges,
+	}
+
+	if cfg.Telemetry.EnableHostMetrics {
+		gauges = append(gauges, hoststats.Gauges)
 	}
 
 	// TODO(ffmmm): conditionally add only leader specific metrics to gauges, counters, summaries, etc

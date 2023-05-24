@@ -739,7 +739,8 @@ Consul attaches the following labels to metric values.
 
 ## Server Host Metrics
 
-Consul servers report the following metrics about the host's system resources.
+Consul servers can report the following metrics about the host's system resources.
+This feature must be enabled in the [agent telemetry configuration](/consul/docs/agent/config/config-files#telemetry-enable_host_metrics).
 Note that if the Consul server is operating inside a container these metrics
 still report host resource usage and do not report any resource limits placed
 on the container.  
