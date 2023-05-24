@@ -429,7 +429,7 @@ func (s *ResourceGenerator) routesForIngressGateway(cfgSnap *proxycfg.ConfigSnap
 func (s *ResourceGenerator) routesForAPIGateway(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
 	var result []proto.Message
 
-	readyUpstreamsList := getReadyUpstreams(cfgSnap)
+	readyUpstreamsList := getReadyListeners(cfgSnap)
 
 	for _, readyUpstreams := range readyUpstreamsList {
 		listenerCfg := readyUpstreams.listenerCfg

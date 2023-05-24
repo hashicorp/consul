@@ -20,12 +20,12 @@ import (
 func (s *ResourceGenerator) makeAPIGatewayListeners(address string, cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
 	var resources []proto.Message
 
-	readyUpstreamsList := getReadyUpstreams(cfgSnap)
+	readyListeners := getReadyListeners(cfgSnap)
 
-	for _, readyUpstreams := range readyUpstreamsList {
-		listenerCfg := readyUpstreams.listenerCfg
-		listenerKey := readyUpstreams.listenerKey
-		boundListener := readyUpstreams.boundListenerCfg
+	for _, readyListener := range readyListeners {
+		listenerCfg := readyListener.listenerCfg
+		listenerKey := readyListener.listenerKey
+		boundListener := readyListener.boundListenerCfg
 
 		var certs []structs.InlineCertificateConfigEntry
 		for _, certRef := range boundListener.Certificates {
@@ -49,7 +49,7 @@ func (s *ResourceGenerator) makeAPIGatewayListeners(address string, cfgSnap *pro
 			// We rely on the invariant of upstreams slice always having at least 1
 			// member, because this key/value pair is created only when a
 			// GatewayService is returned in the RPC
-			u := readyUpstreams.upstreams[0]
+			u := readyListener.upstreams[0]
 			uid := proxycfg.NewUpstreamID(&u)
 
 			chain := cfgSnap.APIGateway.DiscoveryChain[uid]
@@ -172,7 +172,7 @@ func (s *ResourceGenerator) makeAPIGatewayListeners(address string, cfgSnap *pro
 
 			// See if there are other services that didn't have specific SNI-matching
 			// filter chains. If so add a default filterchain to serve them.
-			if len(sniFilterChains) < len(readyUpstreams.upstreams) && !isAPIGatewayWithTLS {
+			if len(sniFilterChains) < len(readyListener.upstreams) && !isAPIGatewayWithTLS {
 				defaultFilter, err := makeListenerFilter(filterOpts)
 				if err != nil {
 					return nil, err
@@ -195,6 +195,61 @@ func (s *ResourceGenerator) makeAPIGatewayListeners(address string, cfgSnap *pro
 	}
 
 	return resources, nil
+}
+
+// helper struct to persist upstream parent information when ready upstream list is built out
+type readyListener struct {
+	listenerKey      proxycfg.APIGatewayListenerKey
+	listenerCfg      structs.APIGatewayListener
+	boundListenerCfg structs.BoundAPIGatewayListener
+	routeReference   structs.ResourceReference
+	upstreams        []structs.Upstream
+}
+
+// getReadyListeners returns a map containing the list of upstreams for each listener that is ready
+func getReadyListeners(cfgSnap *proxycfg.ConfigSnapshot) map[string]readyListener {
+
+	ready := map[string]readyListener{}
+	for _, l := range cfgSnap.APIGateway.Listeners {
+		// Only include upstreams for listeners that are ready
+		if !cfgSnap.APIGateway.GatewayConfig.ListenerIsReady(l.Name) {
+			continue
+		}
+
+		// For each route bound to the listener
+		boundListener := cfgSnap.APIGateway.BoundListeners[l.Name]
+		for _, routeRef := range boundListener.Routes {
+			// Get all upstreams for the route
+			routeUpstreams, ok := cfgSnap.APIGateway.Upstreams[routeRef]
+			if !ok {
+				continue
+			}
+
+			// Filter to upstreams that attach to this specific listener since
+			// a route can bind to + have upstreams for multiple listeners
+			listenerKey := proxycfg.APIGatewayListenerKeyFromListener(l)
+			routeUpstreamsForListener, ok := routeUpstreams[listenerKey]
+			if !ok {
+				continue
+			}
+
+			for _, upstream := range routeUpstreamsForListener {
+				// Insert or update readyListener for the listener to include this upstream
+				r, ok := ready[l.Name]
+				if !ok {
+					r = readyListener{
+						listenerKey:      listenerKey,
+						listenerCfg:      l,
+						boundListenerCfg: boundListener,
+						routeReference:   routeRef,
+					}
+				}
+				r.upstreams = append(r.upstreams, upstream)
+				ready[l.Name] = r
+			}
+		}
+	}
+	return ready
 }
 
 func makeDownstreamTLSContextFromSnapshotAPIListenerConfig(cfgSnap *proxycfg.ConfigSnapshot, listenerCfg structs.APIGatewayListener) (*envoy_tls_v3.DownstreamTlsContext, error) {
