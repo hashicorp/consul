@@ -17,9 +17,14 @@ import (
 )
 
 var (
-	jwt_envoy_filter = "envoy.filters.http.jwt_authn"
-	jwt_payload      = "jwt_payload"
+	jwtEnvoyFilter = "envoy.filters.http.jwt_authn"
+	jwtPayload     = "jwt_payload"
 )
+
+type JWTAuthnProvider struct {
+	ComputedName string
+	Provider     *structs.IntentionJWTProvider
+}
 
 func makeJWTAuthFilter(pCE map[string]*structs.JWTProviderConfigEntry, intentions structs.SimplifiedIntentions) (*envoy_http_v3.HttpFilter, error) {
 	providers := map[string]*envoy_http_jwt_authn_v3.JwtProvider{}
@@ -29,21 +34,21 @@ func makeJWTAuthFilter(pCE map[string]*structs.JWTProviderConfigEntry, intention
 		if intention.JWT == nil && !hasJWTconfig(intention.Permissions) {
 			continue
 		}
-		for _, jwtReq := range collectJWTRequirements(intention) {
-			if _, ok := providers[jwtReq.Name]; ok {
+		for _, jwtReq := range collectJWTAuthnProviders(intention) {
+			if _, ok := providers[jwtReq.ComputedName]; ok {
 				continue
 			}
 
-			jwtProvider, ok := pCE[jwtReq.Name]
+			jwtProvider, ok := pCE[jwtReq.Provider.Name]
 
 			if !ok {
-				return nil, fmt.Errorf("provider specified in intention does not exist. Provider name: %s", jwtReq.Name)
+				return nil, fmt.Errorf("provider specified in intention does not exist. Provider name: %s", jwtReq.Provider.Name)
 			}
-			envoyCfg, err := buildJWTProviderConfig(jwtProvider)
+			envoyCfg, err := buildJWTProviderConfig(jwtProvider, jwtReq.ComputedName)
 			if err != nil {
 				return nil, err
 			}
-			providers[jwtReq.Name] = envoyCfg
+			providers[jwtReq.ComputedName] = envoyCfg
 		}
 
 		for _, perm := range intention.Permissions {
@@ -59,7 +64,6 @@ func makeJWTAuthFilter(pCE map[string]*structs.JWTProviderConfigEntry, intention
 		if intention.JWT != nil {
 			for _, provider := range intention.JWT.Providers {
 				// The top-level provider applies to all requests.
-				// TODO(roncodingenthusiast): Handle provider.VerifyClaims
 				rule := buildRouteRule(provider, nil, "/")
 				rules = append(rules, rule)
 			}
@@ -75,38 +79,69 @@ func makeJWTAuthFilter(pCE map[string]*structs.JWTProviderConfigEntry, intention
 		Providers: providers,
 		Rules:     rules,
 	}
-	return makeEnvoyHTTPFilter(jwt_envoy_filter, cfg)
+	return makeEnvoyHTTPFilter(jwtEnvoyFilter, cfg)
 }
 
-func collectJWTRequirements(i *structs.Intention) []*structs.IntentionJWTProvider {
-	var jReqs []*structs.IntentionJWTProvider
+func collectJWTAuthnProviders(i *structs.Intention) []*JWTAuthnProvider {
+	var reqs []*JWTAuthnProvider
 
 	if i.JWT != nil {
-		jReqs = append(jReqs, i.JWT.Providers...)
+		for _, prov := range i.JWT.Providers {
+			reqs = append(reqs, &JWTAuthnProvider{Provider: prov, ComputedName: prov.Name})
+		}
 	}
 
-	jReqs = append(jReqs, getPermissionsProviders(i.Permissions)...)
+	reqs = append(reqs, getPermissionsProviders(i.Permissions)...)
 
-	return jReqs
+	return reqs
 }
 
-func getPermissionsProviders(p []*structs.IntentionPermission) []*structs.IntentionJWTProvider {
-	intentionProviders := []*structs.IntentionJWTProvider{}
+func getPermissionsProviders(p []*structs.IntentionPermission) []*JWTAuthnProvider {
+	var reqs []*JWTAuthnProvider
 	for _, perm := range p {
 		if perm.JWT == nil {
 			continue
 		}
-		intentionProviders = append(intentionProviders, perm.JWT.Providers...)
+		for _, prov := range perm.JWT.Providers {
+			reqs = append(reqs, &JWTAuthnProvider{Provider: prov, ComputedName: makeComputedProviderName(prov.Name, perm)})
+		}
 	}
 
-	return intentionProviders
+	return reqs
 }
 
-func buildJWTProviderConfig(p *structs.JWTProviderConfigEntry) (*envoy_http_jwt_authn_v3.JwtProvider, error) {
+func makeComputedProviderName(name string, perm *structs.IntentionPermission) string {
+	if perm == nil || perm.HTTP == nil {
+		return name
+	}
+	var suffix string
+	if perm.HTTP.PathPrefix != "" {
+		suffix = perm.HTTP.PathPrefix
+	}
+	if perm.HTTP.PathRegex != "" {
+		suffix = perm.HTTP.PathRegex
+	}
+	if perm.HTTP.PathExact != "" {
+		suffix = perm.HTTP.PathExact
+	}
+	if suffix == "" {
+		return name
+	}
+	return fmt.Sprintf("%s_%s", name, suffix)
+}
+
+func buildPayloadInMetadataKey(providerName string, perm *structs.IntentionPermission) string {
+	if perm == nil {
+		return fmt.Sprintf("%s_%s", jwtPayload, providerName)
+	}
+	return fmt.Sprintf("%s_%s", jwtPayload, makeComputedProviderName(providerName, perm))
+}
+
+func buildJWTProviderConfig(p *structs.JWTProviderConfigEntry, payloadSuffix string) (*envoy_http_jwt_authn_v3.JwtProvider, error) {
 	envoyCfg := envoy_http_jwt_authn_v3.JwtProvider{
 		Issuer:            p.Issuer,
 		Audiences:         p.Audiences,
-		PayloadInMetadata: jwt_payload,
+		PayloadInMetadata: buildPayloadInMetadataKey(payloadSuffix, nil),
 	}
 
 	if p.Forwarding != nil {
@@ -230,7 +265,7 @@ func buildRouteRule(provider *structs.IntentionJWTProvider, perm *structs.Intent
 		RequirementType: &envoy_http_jwt_authn_v3.RequirementRule_Requires{
 			Requires: &envoy_http_jwt_authn_v3.JwtRequirement{
 				RequiresType: &envoy_http_jwt_authn_v3.JwtRequirement_ProviderName{
-					ProviderName: provider.Name,
+					ProviderName: makeComputedProviderName(provider.Name, perm),
 				},
 			},
 		},

@@ -233,8 +233,15 @@ func intentionToIntermediateRBACForm(
 	}
 
 	if isHTTP && ixn.JWT != nil {
+		var c []*JWTInfo
 		for _, prov := range ixn.JWT.Providers {
-			rixn.Claims = append(rixn.Claims, prov.VerifyClaims...)
+			if len(prov.VerifyClaims) > 0 {
+				ji := &JWTInfo{Claims: prov.VerifyClaims, PayloadKey: buildPayloadInMetadataKey(prov.Name, nil)}
+				c = append(c, ji)
+			}
+		}
+		if len(c) > 0 {
+			rixn.jwtInfos = c
 		}
 	}
 
@@ -249,8 +256,15 @@ func intentionToIntermediateRBACForm(
 					Perm:       convertPermission(perm),
 				}
 				if perm.JWT != nil {
+					var c []*JWTInfo
 					for _, prov := range perm.JWT.Providers {
-						rbacPerm.Claims = append(rbacPerm.Claims, prov.VerifyClaims...)
+						if len(prov.VerifyClaims) > 0 {
+							ji := &JWTInfo{Claims: prov.VerifyClaims, PayloadKey: buildPayloadInMetadataKey(prov.Name, perm)}
+							c = append(c, ji)
+						}
+					}
+					if len(c) > 0 {
+						rbacPerm.jwtInfos = c
 					}
 				}
 				rixn.Permissions = append(rixn.Permissions, &rbacPerm)
@@ -267,6 +281,11 @@ func intentionToIntermediateRBACForm(
 }
 
 type intentionAction int
+
+type JWTInfo struct {
+	Claims     []*structs.IntentionJWTClaimVerification
+	PayloadKey string
+}
 
 const (
 	intentionActionDeny intentionAction = iota
@@ -306,8 +325,10 @@ type rbacIntention struct {
 	Permissions []*rbacPermission
 	Precedence  int
 
-	// Claims is field used for JWT Authentication to verify claims
-	Claims []*structs.IntentionJWTClaimVerification
+	// JWTInfo is used to track intentions' JWT information
+	// This information is used to update HTTP filters for
+	// JWT Payload validation
+	jwtInfos []*JWTInfo
 
 	// Skip is field used to indicate that this intention can be deleted in the
 	// final pass. Items marked as true should generally not escape the method
@@ -380,9 +401,7 @@ type rbacPermission struct {
 	Action   intentionAction
 	Perm     *envoy_rbac_v3.Permission
 	NotPerms []*envoy_rbac_v3.Permission
-
-	// Claims is field used for JWT Authentication to verify claims
-	Claims []*structs.IntentionJWTClaimVerification
+	jwtInfos []*JWTInfo
 
 	// Skip is field used to indicate that this permission can be deleted in
 	// the final pass. Items marked as true should generally not escape the
@@ -549,6 +568,10 @@ func makeRBACRules(
 
 	var principalsL4 []*envoy_rbac_v3.Principal
 	for i, rbacIxn := range rbacIxns {
+		var infos []*JWTInfo
+		if isHTTP {
+			infos = collectJWTInfos(rbacIxn)
+		}
 		if rbacIxn.Action == intentionActionLayer7 {
 			if len(rbacIxn.Permissions) == 0 {
 				panic("invalid state: L7 intention has no permissions")
@@ -558,9 +581,8 @@ func makeRBACRules(
 			}
 
 			finalPrincipals := optimizePrincipals([]*envoy_rbac_v3.Principal{rbacIxn.ComputedPrincipal})
-
-			if len(rbacIxn.Claims) > 0 {
-				claimsPrincipal := claimsListToPrincipals(rbacIxn.Claims)
+			if len(infos) > 0 {
+				claimsPrincipal := infoListToPrincipals(infos)
 				finalPrincipals = append(finalPrincipals, claimsPrincipal)
 			}
 			// For L7: we should generate one Policy per Principal and list all of the Permissions
@@ -575,6 +597,11 @@ func makeRBACRules(
 		} else {
 			// For L4: we should generate one big Policy listing all Principals
 			principalsL4 = append(principalsL4, rbacIxn.ComputedPrincipal)
+			// Append JWT principals to list of principals
+			if len(infos) > 0 {
+				claimsPrincipal := infoListToPrincipals(infos)
+				principalsL4 = append(principalsL4, claimsPrincipal)
+			}
 		}
 	}
 	if len(principalsL4) > 0 {
@@ -590,21 +617,39 @@ func makeRBACRules(
 	return rbac
 }
 
-func claimsListToPrincipals(c []*structs.IntentionJWTClaimVerification) *envoy_rbac_v3.Principal {
-	ps := make([]*envoy_rbac_v3.Principal, len(c))
-	for _, claim := range c {
-		ps = append(ps, claimToPrincipal(claim))
+func collectJWTInfos(rbacIxn *rbacIntention) []*JWTInfo {
+	infos := make([]*JWTInfo, 0, len(rbacIxn.jwtInfos))
+
+	if len(rbacIxn.jwtInfos) > 0 {
+		infos = append(infos, rbacIxn.jwtInfos...)
+	}
+	for _, perm := range rbacIxn.Permissions {
+		infos = append(infos, perm.jwtInfos...)
+	}
+
+	return infos
+}
+
+func infoListToPrincipals(c []*JWTInfo) *envoy_rbac_v3.Principal {
+	ps := make([]*envoy_rbac_v3.Principal, 0)
+
+	for _, jwtInfo := range c {
+		if jwtInfo != nil {
+			for _, claim := range jwtInfo.Claims {
+				ps = append(ps, claimToPrincipal(claim, jwtInfo.PayloadKey))
+			}
+		}
 	}
 	return orPrincipals(ps)
 }
 
-func claimToPrincipal(c *structs.IntentionJWTClaimVerification) *envoy_rbac_v3.Principal {
-	segments := pathToSegments(c.Path)
+func claimToPrincipal(c *structs.IntentionJWTClaimVerification, payloadKey string) *envoy_rbac_v3.Principal {
+	segments := pathToSegments(c.Path, payloadKey)
 
 	return &envoy_rbac_v3.Principal{
 		Identifier: &envoy_rbac_v3.Principal_Metadata{
 			Metadata: &envoy_matcher_v3.MetadataMatcher{
-				Filter: jwt_envoy_filter,
+				Filter: jwtEnvoyFilter,
 				Path:   segments,
 				Value: &envoy_matcher_v3.ValueMatcher{
 					MatchPattern: &envoy_matcher_v3.ValueMatcher_StringMatch{
@@ -620,10 +665,10 @@ func claimToPrincipal(c *structs.IntentionJWTClaimVerification) *envoy_rbac_v3.P
 	}
 }
 
-func pathToSegments(paths []string) []*envoy_matcher_v3.MetadataMatcher_PathSegment {
+func pathToSegments(paths []string, payloadKey string) []*envoy_matcher_v3.MetadataMatcher_PathSegment {
 
 	segments := make([]*envoy_matcher_v3.MetadataMatcher_PathSegment, 0, len(paths))
-	segments = append(segments, makeSegment(jwt_payload))
+	segments = append(segments, makeSegment(payloadKey))
 
 	for _, p := range paths {
 		segments = append(segments, makeSegment(p))

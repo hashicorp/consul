@@ -484,6 +484,21 @@ func TestMakeRBACNetworkAndHTTPFilters(t *testing.T) {
 		ixn.Permissions = perms
 		return ixn
 	}
+	testIntentionWithJWT := func(src string, action structs.IntentionAction, jwt *structs.IntentionJWTRequirement, perms ...*structs.IntentionPermission) *structs.Intention {
+		ixn := testIntention(t, src, "api", action)
+		if jwt != nil {
+			ixn.JWT = jwt
+		}
+		if action != "" {
+			ixn.Action = action
+		}
+		if perms != nil {
+			ixn.Permissions = perms
+			ixn.Action = ""
+		}
+
+		return ixn
+	}
 	testPeerTrustBundle := []*pbpeering.PeeringTrustBundle{
 		{
 			PeerName:          "peer1",
@@ -504,6 +519,28 @@ func TestMakeRBACNetworkAndHTTPFilters(t *testing.T) {
 			Action: structs.IntentionActionAllow,
 			HTTP: &structs.IntentionHTTPPermission{
 				PathPrefix: "/",
+			},
+		}
+		oktaWithClaims = structs.IntentionJWTProvider{
+			Name: "okta",
+			VerifyClaims: []*structs.IntentionJWTClaimVerification{
+				{Path: []string{"roles"}, Value: "testing"},
+			},
+		}
+		auth0WithClaims = structs.IntentionJWTProvider{
+			Name: "auth0",
+			VerifyClaims: []*structs.IntentionJWTClaimVerification{
+				{Path: []string{"perms", "role"}, Value: "admin"},
+			},
+		}
+		jwtRequirement = &structs.IntentionJWTRequirement{
+			Providers: []*structs.IntentionJWTProvider{
+				&oktaWithClaims,
+			},
+		}
+		auth0Requirement = &structs.IntentionJWTRequirement{
+			Providers: []*structs.IntentionJWTProvider{
+				&auth0WithClaims,
 			},
 		}
 		permDenySlashPrefix = &structs.IntentionPermission{
@@ -800,6 +837,70 @@ func TestMakeRBACNetworkAndHTTPFilters(t *testing.T) {
 								{Name: "z-zim", Regex: "gi[rR]", Invert: true},
 							},
 						},
+					},
+				),
+			),
+		},
+		// ========= JWTAuthn Filter checks
+		"top-level-jwt-no-permissions": {
+			intentionDefaultAllow: false,
+			intentions: sorted(
+				testIntentionWithJWT("web", structs.IntentionActionAllow, jwtRequirement),
+			),
+		},
+		"empty-top-level-jwt-with-one-permission": {
+			intentionDefaultAllow: false,
+			intentions: sorted(
+				testIntentionWithJWT("web", structs.IntentionActionAllow, nil, &structs.IntentionPermission{
+					Action: structs.IntentionActionAllow,
+					HTTP: &structs.IntentionHTTPPermission{
+						PathPrefix: "some-path",
+					},
+					JWT: jwtRequirement,
+				}),
+			),
+		},
+		"top-level-jwt-with-one-permission": {
+			intentionDefaultAllow: false,
+			intentions: sorted(
+				testIntentionWithJWT("web",
+					structs.IntentionActionAllow,
+					jwtRequirement,
+					&structs.IntentionPermission{
+						Action: structs.IntentionActionAllow,
+						HTTP: &structs.IntentionHTTPPermission{
+							PathExact: "/v1/secret",
+						},
+						JWT: auth0Requirement,
+					},
+					&structs.IntentionPermission{
+						Action: structs.IntentionActionAllow,
+						HTTP: &structs.IntentionHTTPPermission{
+							PathExact: "/v1/admin",
+						},
+					},
+				),
+			),
+		},
+		"top-level-jwt-with-multiple-permissions": {
+			intentionDefaultAllow: false,
+			intentions: sorted(
+				testIntentionWithJWT("web",
+					structs.IntentionActionAllow,
+					jwtRequirement,
+					&structs.IntentionPermission{
+						Action: structs.IntentionActionAllow,
+						HTTP: &structs.IntentionHTTPPermission{
+							PathExact: "/v1/secret",
+						},
+						JWT: auth0Requirement,
+					},
+					&structs.IntentionPermission{
+						Action: structs.IntentionActionAllow,
+						HTTP: &structs.IntentionHTTPPermission{
+							PathExact: "/v1/admin",
+						},
+						JWT: auth0Requirement,
 					},
 				),
 			),

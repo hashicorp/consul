@@ -65,21 +65,21 @@ var (
 	pWithOktaProvider = &structs.IntentionPermission{
 		Action: structs.IntentionActionAllow,
 		HTTP: &structs.IntentionHTTPPermission{
-			PathPrefix: "/some-special-path",
+			PathPrefix: "some-special-path",
 		},
 		JWT: oktaIntention,
 	}
 	pWithMultiProviders = &structs.IntentionPermission{
 		Action: structs.IntentionActionAllow,
 		HTTP: &structs.IntentionHTTPPermission{
-			PathPrefix: "/some-special-path",
+			PathPrefix: "some-special-path",
 		},
 		JWT: multiProviderIntentions,
 	}
 	pWithNoJWT = &structs.IntentionPermission{
 		Action: structs.IntentionActionAllow,
 		HTTP: &structs.IntentionHTTPPermission{
-			PathPrefix: "/some-special-path",
+			PathPrefix: "some-special-path",
 		},
 	}
 	fullRetryPolicy = &structs.JWKSRetryPolicy{
@@ -206,51 +206,58 @@ func TestMakeJWTAUTHFilters(t *testing.T) {
 	}
 }
 
-func TestCollectJWTRequirements(t *testing.T) {
-	var (
-		emptyReq = []*structs.IntentionJWTProvider{}
-		oneReq   = []*structs.IntentionJWTProvider{&oktaProvider}
-		multiReq = append(oneReq, &auth0Provider)
-	)
-
+func TestCollectJWTAuthnProviders(t *testing.T) {
 	tests := map[string]struct {
 		intention *structs.Intention
-		expected  []*structs.IntentionJWTProvider
+		expected  []*JWTAuthnProvider
 	}{
 		"empty-top-level-jwt-and-empty-permissions": {
 			intention: makeTestIntention(t, ixnOpts{src: "web"}),
-			expected:  emptyReq,
+			expected:  []*JWTAuthnProvider{},
 		},
 		"top-level-jwt-and-empty-permissions": {
 			intention: makeTestIntention(t, ixnOpts{src: "web", jwt: oktaIntention}),
-			expected:  oneReq,
+			expected:  []*JWTAuthnProvider{{Provider: &oktaProvider, ComputedName: oktaProvider.Name}},
 		},
 		"multi-top-level-jwt-and-empty-permissions": {
 			intention: makeTestIntention(t, ixnOpts{src: "web", jwt: multiProviderIntentions}),
-			expected:  multiReq,
+			expected: []*JWTAuthnProvider{
+				{Provider: &oktaProvider, ComputedName: oktaProvider.Name},
+				{Provider: &auth0Provider, ComputedName: auth0Provider.Name},
+			},
 		},
 		"top-level-jwt-and-one-jwt-permission": {
 			intention: makeTestIntention(t, ixnOpts{src: "web", jwt: auth0Intention, perms: pWithOktaProvider}),
-			expected:  multiReq,
+			expected: []*JWTAuthnProvider{
+				{Provider: &auth0Provider, ComputedName: auth0Provider.Name},
+				{Provider: &oktaProvider, ComputedName: "okta_some-special-path"},
+			},
 		},
 		"top-level-jwt-and-multi-jwt-permissions": {
 			intention: makeTestIntention(t, ixnOpts{src: "web", jwt: fakeIntention, perms: pWithMultiProviders}),
-			expected:  append(multiReq, &fakeProvider),
+			expected: []*JWTAuthnProvider{
+				{Provider: &fakeProvider, ComputedName: fakeProvider.Name},
+				{Provider: &oktaProvider, ComputedName: "okta_some-special-path"},
+				{Provider: &auth0Provider, ComputedName: "auth0_some-special-path"},
+			},
 		},
 		"empty-top-level-jwt-and-one-jwt-permission": {
 			intention: makeTestIntention(t, ixnOpts{src: "web", perms: pWithOktaProvider}),
-			expected:  oneReq,
+			expected:  []*JWTAuthnProvider{{Provider: &oktaProvider, ComputedName: "okta_some-special-path"}},
 		},
 		"empty-top-level-jwt-and-multi-jwt-permission": {
 			intention: makeTestIntention(t, ixnOpts{src: "web", perms: pWithMultiProviders}),
-			expected:  multiReq,
+			expected: []*JWTAuthnProvider{
+				{Provider: &oktaProvider, ComputedName: "okta_some-special-path"},
+				{Provider: &auth0Provider, ComputedName: "auth0_some-special-path"},
+			},
 		},
 	}
 
 	for name, tt := range tests {
 		tt := tt
 		t.Run(name, func(t *testing.T) {
-			reqs := collectJWTRequirements(tt.intention)
+			reqs := collectJWTAuthnProviders(tt.intention)
 			require.ElementsMatch(t, reqs, tt.expected)
 		})
 	}
@@ -259,27 +266,32 @@ func TestCollectJWTRequirements(t *testing.T) {
 func TestGetPermissionsProviders(t *testing.T) {
 	tests := map[string]struct {
 		perms    []*structs.IntentionPermission
-		expected []*structs.IntentionJWTProvider
+		expected []*JWTAuthnProvider
 	}{
 		"empty-permissions": {
 			perms:    []*structs.IntentionPermission{},
-			expected: []*structs.IntentionJWTProvider{},
+			expected: []*JWTAuthnProvider{},
 		},
 		"nil-permissions": {
 			perms:    nil,
-			expected: []*structs.IntentionJWTProvider{},
+			expected: []*JWTAuthnProvider{},
 		},
 		"permissions-with-no-jwt": {
 			perms:    []*structs.IntentionPermission{pWithNoJWT},
-			expected: []*structs.IntentionJWTProvider{},
+			expected: []*JWTAuthnProvider{},
 		},
 		"permissions-with-one-jwt": {
-			perms:    []*structs.IntentionPermission{pWithOktaProvider, pWithNoJWT},
-			expected: []*structs.IntentionJWTProvider{&oktaProvider},
+			perms: []*structs.IntentionPermission{pWithOktaProvider, pWithNoJWT},
+			expected: []*JWTAuthnProvider{
+				{Provider: &oktaProvider, ComputedName: "okta_some-special-path"},
+			},
 		},
 		"permissions-with-multiple-jwt": {
-			perms:    []*structs.IntentionPermission{pWithMultiProviders, pWithNoJWT},
-			expected: []*structs.IntentionJWTProvider{&oktaProvider, &auth0Provider},
+			perms: []*structs.IntentionPermission{pWithMultiProviders, pWithNoJWT},
+			expected: []*JWTAuthnProvider{
+				{Provider: &auth0Provider, ComputedName: "auth0_some-special-path"},
+				{Provider: &oktaProvider, ComputedName: "okta_some-special-path"},
+			},
 		},
 	}
 
@@ -338,7 +350,7 @@ func TestBuildJWTProviderConfig(t *testing.T) {
 				Issuer:                  fullCE.Issuer,
 				Audiences:               fullCE.Audiences,
 				ForwardPayloadHeader:    "user-token",
-				PayloadInMetadata:       jwt_payload,
+				PayloadInMetadata:       buildPayloadInMetadataKey(ceRemoteJWKS.Name, nil),
 				PadForwardPayloadHeader: false,
 				Forward:                 true,
 				JwksSourceSpecifier: &envoy_http_jwt_authn_v3.JwtProvider_LocalJwks{
@@ -356,7 +368,7 @@ func TestBuildJWTProviderConfig(t *testing.T) {
 			expected: &envoy_http_jwt_authn_v3.JwtProvider{
 				Issuer:            fullCE.Issuer,
 				Audiences:         fullCE.Audiences,
-				PayloadInMetadata: jwt_payload,
+				PayloadInMetadata: buildPayloadInMetadataKey(ceRemoteJWKS.Name, nil),
 				JwksSourceSpecifier: &envoy_http_jwt_authn_v3.JwtProvider_RemoteJwks{
 					RemoteJwks: &envoy_http_jwt_authn_v3.RemoteJwks{
 						HttpUri: &envoy_core_v3.HttpUri{
@@ -376,7 +388,7 @@ func TestBuildJWTProviderConfig(t *testing.T) {
 	for name, tt := range tests {
 		tt := tt
 		t.Run(name, func(t *testing.T) {
-			res, err := buildJWTProviderConfig(tt.ce)
+			res, err := buildJWTProviderConfig(tt.ce, tt.ce.GetName())
 
 			if tt.expectedError != "" {
 				require.Error(t, err)
@@ -587,7 +599,7 @@ func TestBuildRouteRule(t *testing.T) {
 				RequirementType: &envoy_http_jwt_authn_v3.RequirementRule_Requires{
 					Requires: &envoy_http_jwt_authn_v3.JwtRequirement{
 						RequiresType: &envoy_http_jwt_authn_v3.JwtRequirement_ProviderName{
-							ProviderName: oktaProvider.Name,
+							ProviderName: makeComputedProviderName(oktaProvider.Name, pWithMultiProviders),
 						},
 					},
 				},
@@ -604,7 +616,7 @@ func TestBuildRouteRule(t *testing.T) {
 				RequirementType: &envoy_http_jwt_authn_v3.RequirementRule_Requires{
 					Requires: &envoy_http_jwt_authn_v3.JwtRequirement{
 						RequiresType: &envoy_http_jwt_authn_v3.JwtRequirement_ProviderName{
-							ProviderName: oktaProvider.Name,
+							ProviderName: makeComputedProviderName(oktaProvider.Name, pWithExactPath),
 						},
 					},
 				},
@@ -621,7 +633,7 @@ func TestBuildRouteRule(t *testing.T) {
 				RequirementType: &envoy_http_jwt_authn_v3.RequirementRule_Requires{
 					Requires: &envoy_http_jwt_authn_v3.JwtRequirement{
 						RequiresType: &envoy_http_jwt_authn_v3.JwtRequirement_ProviderName{
-							ProviderName: oktaProvider.Name,
+							ProviderName: makeComputedProviderName(oktaProvider.Name, pWithRegex),
 						},
 					},
 				},

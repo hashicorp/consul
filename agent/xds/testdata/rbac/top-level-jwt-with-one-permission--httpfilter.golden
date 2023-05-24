@@ -1,0 +1,92 @@
+{
+  "name": "envoy.filters.http.rbac",
+  "typedConfig": {
+    "@type": "type.googleapis.com/envoy.extensions.filters.http.rbac.v3.RBAC",
+    "rules": {
+      "policies": {
+        "consul-intentions-layer7-0": {
+          "permissions": [
+            {
+              "urlPath": {
+                "path": {
+                  "exact": "/v1/secret"
+                }
+              }
+            },
+            {
+              "andRules": {
+                "rules": [
+                  {
+                    "urlPath": {
+                      "path": {
+                        "exact": "/v1/admin"
+                      }
+                    }
+                  },
+                  {
+                    "notRule": {
+                      "urlPath": {
+                        "path": {
+                          "exact": "/v1/secret"
+                        }
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          ],
+          "principals": [
+            {
+              "authenticated": {
+                "principalName": {
+                  "safeRegex": {
+                    "googleRe2": {
+
+                    },
+                    "regex": "^spiffe://test.consul/ns/default/dc/[^/]+/svc/web$"
+                  }
+                }
+              }
+            },
+            {
+              "orIds": {
+                "ids": [
+                  { 
+                    "metadata": {
+                      "filter":"envoy.filters.http.jwt_authn",
+                      "path": [
+                        {"key": "jwt_payload_okta"},
+                        {"key": "roles"}
+                      ],
+                      "value": {
+                        "stringMatch": {
+                          "exact": "testing"
+                        }
+                      }
+                    }
+                  },
+                  { 
+                    "metadata": {
+                      "filter":"envoy.filters.http.jwt_authn",
+                      "path": [
+                        {"key": "jwt_payload_auth0_/v1/secret"},
+                        {"key": "perms"},
+                        {"key": "role"}
+                      ],
+                      "value": {
+                        "stringMatch": {
+                          "exact": "admin"
+                        }
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      }
+    }
+  }
+}
