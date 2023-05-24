@@ -3,6 +3,8 @@
   <span>Consul</span>
 </h1>
 
+Added comments!
+
 [![Docker Pulls](https://img.shields.io/docker/pulls/_/consul.svg)](https://hub.docker.com/_/consul)
 [![Go Report Card](https://goreportcard.com/badge/github.com/hashicorp/consul)](https://goreportcard.com/report/github.com/hashicorp/consul)
 
