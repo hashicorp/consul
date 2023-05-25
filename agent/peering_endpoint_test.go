@@ -566,6 +566,13 @@ func TestHTTP_Peering_Read(t *testing.T) {
 		a.srv.h.ServeHTTP(resp, req)
 		require.Equal(t, http.StatusOK, resp.Code)
 
+		httpResult := resp.Result()
+		_, ok := httpResult.Header["X-Consul-Index"]
+		require.True(t, ok)
+		idx, err := strconv.Atoi(httpResult.Header.Get("X-Consul-Index"))
+		require.NoError(t, err)
+		require.Greater(t, idx, 0) // the raft index is not deterministic at this point
+
 		var apiResp api.Peering
 		require.NoError(t, json.NewDecoder(resp.Body).Decode(&apiResp))
 
@@ -694,6 +701,13 @@ func TestHTTP_Peering_List(t *testing.T) {
 		resp := httptest.NewRecorder()
 		a.srv.h.ServeHTTP(resp, req)
 		require.Equal(t, http.StatusOK, resp.Code)
+
+		httpResult := resp.Result()
+		_, ok := httpResult.Header["X-Consul-Index"]
+		require.True(t, ok)
+		idx, err := strconv.Atoi(httpResult.Header.Get("X-Consul-Index"))
+		require.NoError(t, err)
+		require.Greater(t, idx, 0) // the raft index is not deterministic at this point
 
 		var apiResp []*api.Peering
 		require.NoError(t, json.NewDecoder(resp.Body).Decode(&apiResp))
