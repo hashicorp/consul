@@ -1,5 +1,9 @@
 # Resources
 
+> **Note**  
+> Looking for guidance on adding new resources and controllers to Consul? Check
+> out the [developer guide](./guide.md).
+
 Consul 1.16 introduced a set of [generic APIs] for managing resources, and a
 [controller runtime] for building functionality on top of them.
 

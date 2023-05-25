@@ -816,6 +816,8 @@ Sources = [
 ```yaml
 apiVersion: consul.hashicorp.com/v1alpha1
 kind: ServiceIntentions
+metadata:
+  name: db
 spec:
   destination:
     name: db
@@ -865,6 +867,8 @@ Sources = [
 ```yaml
 apiVersion: consul.hashicorp.com/v1alpha1
 kind: ServiceIntentions
+metadata:
+  name: web-deny-all
 spec:
   destination:
     name: *
@@ -908,6 +912,8 @@ Sources = [
 ```yaml
 apiVersion: consul.hashicorp.com/v1alpha1
 kind: ServiceIntentions
+metadata:
+  name: db
 spec:
   destination:
     name: db
@@ -1251,20 +1257,19 @@ When using cluster peering connections, intentions secure your deployments with 
   ```
 
   ```yaml
-      ```yaml
-    apiVersion: consul.hashicorp.com/v1alpha1
-    kind: ServiceIntentions
-    metadata:
-      name: backend-deny
-    spec:
-      destination:
-        name: backend
-      sources:
-       - name: "*"
-         action: deny
-       - name: frontend
-         action: allow
-         peer: cluster-01 ## The peer of the source service
+  apiVersion: consul.hashicorp.com/v1alpha1
+  kind: ServiceIntentions
+  metadata:
+    name: backend-deny
+  spec:
+    destination:
+      name: backend
+    sources:
+     - name: "*"
+       action: deny
+     - name: frontend
+       action: allow
+       peer: cluster-01 ## The peer of the source service
   ```
 
   ```json

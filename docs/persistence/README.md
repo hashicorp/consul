@@ -1,6 +1,6 @@
 # Cluster Persistence
 
-> **Note**
+> **Note**  
 > While the content of this document is still accurate, it doesn't cover the new
 > generic resource-oriented storage layer introduced in Consul 1.16. Please see
 > [Resources](../resources) for more information.

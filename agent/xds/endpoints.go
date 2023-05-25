@@ -521,69 +521,14 @@ func (s *ResourceGenerator) endpointsFromSnapshotIngressGateway(cfgSnap *proxycf
 	return resources, nil
 }
 
-// helper struct to persist upstream parent information when ready upstream list is built out
-type readyUpstreams struct {
-	listenerKey      proxycfg.APIGatewayListenerKey
-	listenerCfg      structs.APIGatewayListener
-	boundListenerCfg structs.BoundAPIGatewayListener
-	routeReference   structs.ResourceReference
-	upstreams        []structs.Upstream
-}
-
-// getReadyUpstreams returns a map containing the list of upstreams for each listener that is ready
-func getReadyUpstreams(cfgSnap *proxycfg.ConfigSnapshot) map[string]readyUpstreams {
-
-	ready := map[string]readyUpstreams{}
-	for _, l := range cfgSnap.APIGateway.Listeners {
-		// Only include upstreams for listeners that are ready
-		if !cfgSnap.APIGateway.GatewayConfig.ListenerIsReady(l.Name) {
-			continue
-		}
-
-		// For each route bound to the listener
-		boundListener := cfgSnap.APIGateway.BoundListeners[l.Name]
-		for _, routeRef := range boundListener.Routes {
-			// Get all upstreams for the route
-			routeUpstreams, ok := cfgSnap.APIGateway.Upstreams[routeRef]
-			if !ok {
-				continue
-			}
-
-			// Filter to upstreams that attach to this specific listener since
-			// a route can bind to + have upstreams for multiple listeners
-			listenerKey := proxycfg.APIGatewayListenerKeyFromListener(l)
-			routeUpstreamsForListener, ok := routeUpstreams[listenerKey]
-			if !ok {
-				continue
-			}
-
-			for _, upstream := range routeUpstreamsForListener {
-				// Insert or update readyUpstreams for the listener to include this upstream
-				r, ok := ready[l.Name]
-				if !ok {
-					r = readyUpstreams{
-						listenerKey:      listenerKey,
-						listenerCfg:      l,
-						boundListenerCfg: boundListener,
-						routeReference:   routeRef,
-					}
-				}
-				r.upstreams = append(r.upstreams, upstream)
-				ready[l.Name] = r
-			}
-		}
-	}
-	return ready
-}
-
 func (s *ResourceGenerator) endpointsFromSnapshotAPIGateway(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
 	var resources []proto.Message
 	createdClusters := make(map[proxycfg.UpstreamID]struct{})
 
-	readyUpstreamsList := getReadyUpstreams(cfgSnap)
+	readyListeners := getReadyListeners(cfgSnap)
 
-	for _, readyUpstreams := range readyUpstreamsList {
-		for _, u := range readyUpstreams.upstreams {
+	for _, readyListener := range readyListeners {
+		for _, u := range readyListener.upstreams {
 			uid := proxycfg.NewUpstreamID(&u)
 
 			// If we've already created endpoints for this upstream, skip it. Multiple listeners may
