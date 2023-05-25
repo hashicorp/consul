@@ -69,6 +69,23 @@ The following example command reads the Helm configuration in the `myNS` namespa
 $ consul-k8s config read -namespace=myNS
 ```
 
+```
+global:
+  cloud:
+    clientId:
+      secretKey: client-id
+      secretName: consul-hcp-client-id
+    clientSecret:
+      secretKey: client-secret
+      secretName: consul-hcp-client-secret
+    enabled: true
+    resourceId:
+      secretKey: resource-id
+      secretName: consul-hcp-resource-id
+  image: hashicorp/consul:1.14.7
+  name: consul
+```
+
 ### `install`
 
 The `install` command installs Consul on your Kubernetes cluster.
