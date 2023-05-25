@@ -776,8 +776,8 @@ func (s *ResourceGenerator) makeExportedUpstreamEndpointsForMeshGateway(cfgSnap 
 
 		chainEndpoints := make(map[string]structs.CheckServiceNodes)
 		for _, target := range chain.Targets {
-			if !cfgSnap.Locality.Matches(target.Datacenter, target.Partition) {
-				s.Logger.Warn("ignoring discovery chain target that crosses a datacenter or partition boundary in a mesh gateway",
+			if !cfgSnap.Locality.Matches(target.Datacenter, target.Partition) || target.Peer != "" {
+				s.Logger.Warn("ignoring discovery chain target that crosses a datacenter, peer, or partition boundary in a mesh gateway",
 					"target", target,
 					"gatewayLocality", cfgSnap.Locality,
 				)
