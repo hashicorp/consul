@@ -224,7 +224,7 @@ If you upgrade Consul from a version that uses client agents to a version the us
   ```yaml filename="values.yaml"
   client:
       enabled: true
-      updateStrategy:
+      updateStrategy: |
         type: OnDelete
   ```
 
