@@ -79,7 +79,7 @@ func NewGatewayService(ctx context.Context, name string, kind string, node libno
 
 	req := testcontainers.ContainerRequest{
 		FromDockerfile: dockerfileCtx,
-		WaitingFor:     wait.ForLog("").WithStartupTimeout(10 * time.Second),
+		WaitingFor:     wait.ForLog("").WithStartupTimeout(100 * time.Second),
 		AutoRemove:     false,
 		Name:           containerName,
 		Cmd: []string{
