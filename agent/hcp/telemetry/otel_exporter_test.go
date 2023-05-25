@@ -121,22 +121,27 @@ func TestExport_CustomMetrics(t *testing.T) {
 	for name, tc := range map[string]struct {
 		client    client.MetricsClient
 		metricKey []string
+		operation string
 	}{
-		"exportSuccess": {
+		"exportSuccessEmitsCustomMetric": {
 			client:    &mockMetricsClient{},
 			metricKey: exportSuccessMetric,
+			operation: "export",
 		},
-		"exportFailure": {
+		"exportFailureEmitsCustomMetric": {
 			client: &mockMetricsClient{
 				exportErr: fmt.Errorf("failed to export metrics"),
 			},
 			metricKey: exportFailureMetric,
+			operation: "export",
 		},
-		"shutdown": {
+		"shutdownEmitsCustomMetric": {
 			metricKey: exporterShutdownMetric,
+			operation: "shutdown",
 		},
-		"forceFlush": {
+		"forceFlushEmitsCustomMetric": {
 			metricKey: exporterForceFlushMetric,
+			operation: "flush",
 		},
 	} {
 		t.Run(name, func(t *testing.T) {
@@ -150,7 +155,16 @@ func TestExport_CustomMetrics(t *testing.T) {
 
 			// Perform operation that emits metric.
 			exp := NewOTELExporter(tc.client, &url.URL{})
-			performExporterOperation(exp, name)
+
+			ctx := context.Background()
+			switch tc.operation {
+			case "flush":
+				exp.ForceFlush(ctx)
+			case "shutdown":
+				exp.Shutdown(ctx)
+			default:
+				exp.Export(ctx, inputResourceMetrics)
+			}
 
 			// Collect sink metrics.
 			intervals := sink.Data()
@@ -190,17 +204,5 @@ func mutateMetrics(m []metricdata.ScopeMetrics) *metricdata.ResourceMetrics {
 	return &metricdata.ResourceMetrics{
 		Resource:     resource.Empty(),
 		ScopeMetrics: m,
-	}
-}
-
-func performExporterOperation(exp metric.Exporter, operation string) {
-	ctx := context.Background()
-	switch operation {
-	case "forceFlush":
-		exp.ForceFlush(ctx)
-	case "shutdown":
-		exp.Shutdown(ctx)
-	default:
-		exp.Export(ctx, inputResourceMetrics)
 	}
 }
