@@ -51,7 +51,8 @@ func TestGetRuntimeConfigurations_TerminatingGateway(t *testing.T) {
 						"PayloadPassthrough": true,
 					},
 				},
-				ServiceName: webService,
+				ServiceName:           webService,
+				IsSourcedFromUpstream: true,
 				Upstreams: map[api.CompoundServiceName]*extensioncommon.UpstreamData{
 					apiService: {
 						SNI: map[string]struct{}{
@@ -104,7 +105,8 @@ func TestGetRuntimeConfigurations_ConnectProxy(t *testing.T) {
 		Namespace: "default",
 	}
 
-	// Setup multiple extensions to ensure all of them are in the ExtensionConfiguration map.
+	// Setup multiple extensions to ensure only the expected one (AWS) is in the ExtensionConfiguration map
+	// sourced from upstreams, and all local extensions are included.
 	envoyExtensions := []structs.EnvoyExtension{
 		{
 			Name: api.BuiltinAWSLambdaExtension,
@@ -155,27 +157,8 @@ func TestGetRuntimeConfigurations_ConnectProxy(t *testing.T) {
 								"PayloadPassthrough": true,
 							},
 						},
-						ServiceName: dbService,
-						Upstreams: map[api.CompoundServiceName]*extensioncommon.UpstreamData{
-							dbService: {
-								SNI: map[string]struct{}{
-									"db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul": {},
-								},
-								EnvoyID:           "db",
-								OutgoingProxyKind: "connect-proxy",
-							},
-						},
-						Kind: api.ServiceKindConnectProxy,
-					},
-					{
-						EnvoyExtension: api.EnvoyExtension{
-							Name: "ext2",
-							Arguments: map[string]interface{}{
-								"arg1": 1,
-								"arg2": "val2",
-							},
-						},
-						ServiceName: dbService,
+						ServiceName:           dbService,
+						IsSourcedFromUpstream: true,
 						Upstreams: map[api.CompoundServiceName]*extensioncommon.UpstreamData{
 							dbService: {
 								SNI: map[string]struct{}{
@@ -203,27 +186,8 @@ func TestGetRuntimeConfigurations_ConnectProxy(t *testing.T) {
 								"PayloadPassthrough": true,
 							},
 						},
-						ServiceName: dbService,
-						Upstreams: map[api.CompoundServiceName]*extensioncommon.UpstreamData{
-							dbService: {
-								SNI: map[string]struct{}{
-									"db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul": {},
-								},
-								EnvoyID:           "db",
-								OutgoingProxyKind: "terminating-gateway",
-							},
-						},
-						Kind: api.ServiceKindConnectProxy,
-					},
-					{
-						EnvoyExtension: api.EnvoyExtension{
-							Name: "ext2",
-							Arguments: map[string]interface{}{
-								"arg1": 1,
-								"arg2": "val2",
-							},
-						},
-						ServiceName: dbService,
+						ServiceName:           dbService,
+						IsSourcedFromUpstream: true,
 						Upstreams: map[api.CompoundServiceName]*extensioncommon.UpstreamData{
 							dbService: {
 								SNI: map[string]struct{}{
@@ -252,9 +216,18 @@ func TestGetRuntimeConfigurations_ConnectProxy(t *testing.T) {
 								"PayloadPassthrough": true,
 							},
 						},
-						ServiceName: webService,
-						Upstreams:   nil,
-						Kind:        api.ServiceKindConnectProxy,
+						ServiceName:           webService,
+						Kind:                  api.ServiceKindConnectProxy,
+						IsSourcedFromUpstream: false,
+						Upstreams: map[api.CompoundServiceName]*extensioncommon.UpstreamData{
+							dbService: {
+								SNI: map[string]struct{}{
+									"db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul": {},
+								},
+								EnvoyID:           "db",
+								OutgoingProxyKind: "connect-proxy",
+							},
+						},
 					},
 					{
 						EnvoyExtension: api.EnvoyExtension{
@@ -264,9 +237,18 @@ func TestGetRuntimeConfigurations_ConnectProxy(t *testing.T) {
 								"arg2": "val2",
 							},
 						},
-						ServiceName: webService,
-						Upstreams:   nil,
-						Kind:        api.ServiceKindConnectProxy,
+						ServiceName:           webService,
+						Kind:                  api.ServiceKindConnectProxy,
+						IsSourcedFromUpstream: false,
+						Upstreams: map[api.CompoundServiceName]*extensioncommon.UpstreamData{
+							dbService: {
+								SNI: map[string]struct{}{
+									"db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul": {},
+								},
+								EnvoyID:           "db",
+								OutgoingProxyKind: "connect-proxy",
+							},
+						},
 					},
 				},
 			},
