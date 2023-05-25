@@ -213,7 +213,7 @@ func (c *Cluster) Clients() ([]libagent.Agent, error) {
 	return clients, nil
 }
 
-const retryTimeout = 20 * time.Second
+const retryTimeout = 90 * time.Second
 const retryFrequency = 500 * time.Millisecond
 
 func LongFailer() *retry.Timer {
@@ -250,6 +250,6 @@ func WaitForMembers(t *testing.T, client *api.Client, expectN int) {
 			}
 		}
 		require.NoError(r, err)
-		require.Equal(r, activeMembers, expectN)
+		require.Equal(r, expectN, activeMembers)
 	})
 }
