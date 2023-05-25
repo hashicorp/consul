@@ -17,6 +17,8 @@ import (
 	metricpb "go.opentelemetry.io/proto/otlp/metrics/v1"
 	"golang.org/x/oauth2"
 	"google.golang.org/protobuf/proto"
+
+	"github.com/hashicorp/consul/version"
 )
 
 const (
@@ -72,8 +74,9 @@ func NewMetricsClient(cfg CloudConfig, ctx context.Context) (MetricsClient, erro
 	}
 
 	header := make(http.Header)
-	header.Set("Content-Type", "application/x-protobuf")
+	header.Set("content-type", "application/x-protobuf")
 	header.Set("x-hcp-resource-id", r.String())
+	header.Set("x-channel", fmt.Sprintf("consul/%s", version.Version))
 
 	return &otlpClient{
 		client: c,
