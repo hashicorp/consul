@@ -829,16 +829,35 @@ func (s *Store) IntentionMatch(ws memdb.WatchSet, args *structs.IntentionQueryMa
 	var out []structs.Intentions
 	for i, ixns := range ixnsList {
 		entry := args.Entries[i]
-		idx, simplifiedIxns, err := getSimplifiedIntentions(tx, ws, ixns, *entry.GetEnterpriseMeta())
+		idx, simplifiedIxns, err := getSimplifiedIntentions(tx, ws, ixns)
 		if err != nil {
 			return 0, nil, err
 		}
 		if idx > maxIdx {
 			maxIdx = idx
 		}
-		out = append(out, simplifiedIxns)
+
+		filteredIxns := filterIntentionsMatching(simplifiedIxns, args.Type, entry.GetEnterpriseMeta().PartitionOrDefault())
+
+		out = append(out, filteredIxns)
 	}
+
 	return maxIdx, out, nil
+}
+
+func filterIntentionsMatching(ixns structs.Intentions, matchType structs.IntentionMatchType, partition string) structs.Intentions {
+	var filteredIxns structs.Intentions
+	if matchType == structs.IntentionMatchSource {
+		for _, ixn := range ixns {
+			if partition == ixn.SourcePartitionOrDefault() {
+				filteredIxns = append(filteredIxns, ixn)
+			}
+		}
+	} else {
+		filteredIxns = ixns
+	}
+
+	return filteredIxns
 }
 
 func (s *Store) legacyIntentionMatchTxn(tx ReadTxn, ws memdb.WatchSet, args *structs.IntentionQueryMatch) (uint64, []structs.Intentions, error) {
@@ -909,15 +928,18 @@ func compatIntentionMatchOneTxn(
 		return 0, nil, err
 	}
 
-	idx, simplifiedIxns, err := getSimplifiedIntentions(tx, ws, ixns, *entry.GetEnterpriseMeta())
+	idx, simplifiedIxns, err := getSimplifiedIntentions(tx, ws, ixns)
 	if err != nil {
 		return 0, nil, err
 	}
+
 	if idx > maxIdx {
 		maxIdx = idx
 	}
 
-	return maxIdx, structs.SimplifiedIntentions(simplifiedIxns), nil
+	filteredIxns := filterIntentionsMatching(simplifiedIxns, matchType, entry.GetEnterpriseMeta().PartitionOrDefault())
+
+	return maxIdx, structs.SimplifiedIntentions(filteredIxns), nil
 }
 
 func legacyIntentionMatchOneTxn(
