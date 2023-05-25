@@ -130,7 +130,7 @@ func TestExport_CustomMetrics(t *testing.T) {
 		},
 		"exportFailureEmitsCustomMetric": {
 			client: &mockMetricsClient{
-				exportErr: fmt.Errorf("failed to export metrics"),
+				exportErr: fmt.Errorf("client err"),
 			},
 			metricKey: exportFailureMetric,
 			operation: "export",

@@ -2,6 +2,7 @@ package telemetry
 
 import (
 	"context"
+	"fmt"
 	"net/url"
 
 	goMetrics "github.com/armon/go-metrics"
@@ -60,7 +61,7 @@ func (e *OTELExporter) Export(ctx context.Context, metrics *metricdata.ResourceM
 	err := e.client.ExportMetrics(ctx, otlpMetrics, e.endpoint.String())
 	if err != nil {
 		goMetrics.IncrCounter(exportFailureMetric, 1)
-		return err
+		return fmt.Errorf("failed to export metrics: %w", err)
 	}
 
 	goMetrics.IncrCounter(exportSuccessMetric, 1)

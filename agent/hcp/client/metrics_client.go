@@ -127,24 +127,24 @@ func (o *otlpClient) ExportMetrics(ctx context.Context, protoMetrics *metricpb.R
 
 	body, err := proto.Marshal(pbRequest)
 	if err != nil {
-		return fmt.Errorf("failed to export metrics: %v", err)
+		return fmt.Errorf("failed to marshal the request: %w", err)
 	}
 
 	req, err := retryablehttp.NewRequest(http.MethodPost, endpoint, bytes.NewBuffer(body))
 	if err != nil {
-		return fmt.Errorf("failed to export metrics: %v", err)
+		return fmt.Errorf("failed to create request: %w", err)
 	}
 	req.Header = *o.header
 
 	resp, err := o.client.Do(req.WithContext(ctx))
 	if err != nil {
-		return fmt.Errorf("failed to export metrics: %v", err)
+		return fmt.Errorf("failed to post metrics: %w", err)
 	}
 	defer resp.Body.Close()
 
 	var respData bytes.Buffer
 	if _, err := io.Copy(&respData, resp.Body); err != nil {
-		return fmt.Errorf("failed to export metrics: %v", err)
+		return fmt.Errorf("failed to read body: %w", err)
 	}
 
 	if resp.StatusCode != http.StatusOK {
