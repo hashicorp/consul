@@ -425,12 +425,11 @@ func (s *ResourceGenerator) routesForIngressGateway(cfgSnap *proxycfg.ConfigSnap
 	return result, nil
 }
 
-// routesForAPIGateway returns the xDS API representation of the
-// "routes" in the snapshot.
+// routesForAPIGateway returns the xDS API representation of the "routes" in the snapshot.
 func (s *ResourceGenerator) routesForAPIGateway(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
 	var result []proto.Message
 
-	readyUpstreamsList := getReadyUpstreams(cfgSnap)
+	readyUpstreamsList := getReadyListeners(cfgSnap)
 
 	for _, readyUpstreams := range readyUpstreamsList {
 		listenerCfg := readyUpstreams.listenerCfg
@@ -478,7 +477,7 @@ func (s *ResourceGenerator) routesForAPIGateway(cfgSnap *proxycfg.ConfigSnapshot
 				return nil, err
 			}
 
-			injectHeaderManipToVirtualHostAPIGateway(&reformatedRoute, virtualHost)
+			addHeaderFiltersToVirtualHost(&reformatedRoute, virtualHost)
 
 			defaultRoute.VirtualHosts = append(defaultRoute.VirtualHosts, virtualHost)
 		}
@@ -1098,7 +1097,7 @@ func injectHeaderManipToRoute(dest *structs.ServiceRouteDestination, r *envoy_ro
 	return nil
 }
 
-func injectHeaderManipToVirtualHostAPIGateway(dest *structs.HTTPRouteConfigEntry, vh *envoy_route_v3.VirtualHost) {
+func addHeaderFiltersToVirtualHost(dest *structs.HTTPRouteConfigEntry, vh *envoy_route_v3.VirtualHost) {
 	for _, rule := range dest.Rules {
 		for _, header := range rule.Filters.Headers {
 			vh.RequestHeadersToAdd = append(vh.RequestHeadersToAdd, makeHeadersValueOptions(header.Add, true)...)

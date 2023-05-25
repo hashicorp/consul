@@ -378,23 +378,6 @@ func (o *configSnapshotAPIGateway) DeepCopy() *configSnapshotAPIGateway {
 			cp.Listeners[k2] = cp_Listeners_v2
 		}
 	}
-	if o.ListenerCertificates != nil {
-		cp.ListenerCertificates = make(map[IngressListenerKey][]structs.InlineCertificateConfigEntry, len(o.ListenerCertificates))
-		for k2, v2 := range o.ListenerCertificates {
-			var cp_ListenerCertificates_v2 []structs.InlineCertificateConfigEntry
-			if v2 != nil {
-				cp_ListenerCertificates_v2 = make([]structs.InlineCertificateConfigEntry, len(v2))
-				copy(cp_ListenerCertificates_v2, v2)
-				for i3 := range v2 {
-					{
-						retV := v2[i3].DeepCopy()
-						cp_ListenerCertificates_v2[i3] = *retV
-					}
-				}
-			}
-			cp.ListenerCertificates[k2] = cp_ListenerCertificates_v2
-		}
-	}
 	if o.BoundListeners != nil {
 		cp.BoundListeners = make(map[string]structs.BoundAPIGatewayListener, len(o.BoundListeners))
 		for k2, v2 := range o.BoundListeners {
