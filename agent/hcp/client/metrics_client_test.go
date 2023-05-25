@@ -81,7 +81,7 @@ func TestExportMetrics(t *testing.T) {
 			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				require.Equal(t, r.Header.Get("content-type"), "application/x-protobuf")
 				require.Equal(t, r.Header.Get("x-hcp-resource-id"), testResourceID)
-				require.Equal(t, r.Header.Get("x-channel"), fmt.Sprintf("consul/%s", version.Version))
+				require.Equal(t, r.Header.Get("x-channel"), fmt.Sprintf("consul/%s", version.GetHumanVersion()))
 				require.Equal(t, r.Header.Get("Authorization"), "Bearer test-token")
 
 				body := colpb.ExportMetricsServiceResponse{}

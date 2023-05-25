@@ -76,7 +76,7 @@ func NewMetricsClient(cfg CloudConfig, ctx context.Context) (MetricsClient, erro
 	header := make(http.Header)
 	header.Set("content-type", "application/x-protobuf")
 	header.Set("x-hcp-resource-id", r.String())
-	header.Set("x-channel", fmt.Sprintf("consul/%s", version.Version))
+	header.Set("x-channel", fmt.Sprintf("consul/%s", version.GetHumanVersion()))
 
 	return &otlpClient{
 		client: c,
