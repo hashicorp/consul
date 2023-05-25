@@ -813,10 +813,10 @@ func (s *ResourceGenerator) clustersFromSnapshotIngressGateway(cfgSnap *proxycfg
 func (s *ResourceGenerator) clustersFromSnapshotAPIGateway(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
 	var clusters []proto.Message
 	createdClusters := make(map[proxycfg.UpstreamID]bool)
-	readyUpstreamsList := getReadyUpstreams(cfgSnap)
+	readyListeners := getReadyListeners(cfgSnap)
 
-	for _, readyUpstreams := range readyUpstreamsList {
-		for _, upstream := range readyUpstreams.upstreams {
+	for _, readyListener := range readyListeners {
+		for _, upstream := range readyListener.upstreams {
 			uid := proxycfg.NewUpstreamID(&upstream)
 
 			// If we've already created a cluster for this upstream, skip it. Multiple listeners may

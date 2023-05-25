@@ -22,7 +22,6 @@ func getSimplifiedIntentions(
 	tx ReadTxn,
 	ws memdb.WatchSet,
 	ixns structs.Intentions,
-	entMeta acl.EnterpriseMeta,
 ) (uint64, structs.Intentions, error) {
 	return 0, ixns, nil
 }

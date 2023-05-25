@@ -1121,20 +1121,23 @@ func validateProposedConfigEntryInServiceGraph(
 		svcTopNodeType              = make(map[structs.ServiceID]string)
 		exportedServicesByPartition = make(map[string]map[structs.ServiceName]struct{})
 	)
-	for chain := range checkChains {
-		protocol, topNode, newTargets, err := testCompileDiscoveryChain(tx, chain.ID, overrides, &chain.EnterpriseMeta)
+	for serviceID := range checkChains {
+		chain, err := testCompileDiscoveryChain(tx, serviceID.ID, overrides, &serviceID.EnterpriseMeta)
 		if err != nil {
 			return err
 		}
-		svcProtocols[chain] = protocol
-		svcTopNodeType[chain] = topNode.Type
+		topNode := chain.Nodes[chain.StartNode]
+		protocol := chain.Protocol
 
-		chainSvc := structs.NewServiceName(chain.ID, &chain.EnterpriseMeta)
+		svcProtocols[serviceID] = protocol
+		svcTopNodeType[serviceID] = topNode.Type
+
+		chainSvc := structs.NewServiceName(serviceID.ID, &serviceID.EnterpriseMeta)
 
 		// Validate that we aren't adding a cross-datacenter or cross-partition
 		// reference to a peer-exported service's discovery chain by this pending
 		// edit.
-		partition := chain.PartitionOrDefault()
+		partition := serviceID.PartitionOrDefault()
 		exportedServices, ok := exportedServicesByPartition[partition]
 		if !ok {
 			entMeta := structs.NodeEnterpriseMetaInPartition(partition)
@@ -1152,15 +1155,15 @@ func validateProposedConfigEntryInServiceGraph(
 			// If a TCP (L4) discovery chain is peer exported we have to take
 			// care to prohibit certain edits to service-resolvers.
 			if !structs.IsProtocolHTTPLike(protocol) {
-				_, _, oldTargets, err := testCompileDiscoveryChain(tx, chain.ID, nil, &chain.EnterpriseMeta)
+				oldChain, err := testCompileDiscoveryChain(tx, serviceID.ID, nil, &serviceID.EnterpriseMeta)
 				if err != nil {
 					return fmt.Errorf("error compiling current discovery chain for %q: %w", chainSvc, err)
 				}
 
 				// Ensure that you can't introduce any new targets that would
 				// produce a new SpiffeID for this L4 service.
-				oldSpiffeIDs := convertTargetsToTestSpiffeIDs(oldTargets)
-				newSpiffeIDs := convertTargetsToTestSpiffeIDs(newTargets)
+				oldSpiffeIDs := convertTargetsToTestSpiffeIDs(oldChain)
+				newSpiffeIDs := convertTargetsToTestSpiffeIDs(chain)
 				for id, targetID := range newSpiffeIDs {
 					if _, exists := oldSpiffeIDs[id]; !exists {
 						return fmt.Errorf("peer exported service %q uses protocol=%q and cannot introduce new discovery chain targets like %q",
@@ -1270,6 +1273,11 @@ func validateChainIsPeerExportSafe(
 			if e.Redirect.Datacenter != "" {
 				return fmt.Errorf("peer exported service %q contains cross-datacenter resolver redirect", exportedSvc)
 			}
+
+			if e.Redirect.Peer != "" {
+				return fmt.Errorf("peer exported service %q contains cross-peer resolver redirect", exportedSvc)
+			}
+
 			if !emptyOrMatchesEntryPartition(e, e.Redirect.Partition) {
 				return fmt.Errorf("peer exported service %q contains cross-partition resolver redirect", exportedSvc)
 			}
@@ -1278,6 +1286,14 @@ func validateChainIsPeerExportSafe(
 			for _, failover := range e.Failover {
 				if len(failover.Datacenters) > 0 {
 					return fmt.Errorf("peer exported service %q contains cross-datacenter failover", exportedSvc)
+				}
+
+				// We don't exclude Peer and Partition here because it's equivalent to sameness group failover behavior.
+				// Cross-peer and partition behavior is ignored by mesh gateways in xds/endpoints.
+				for _, t := range failover.Targets {
+					if t.Datacenter != "" {
+						return fmt.Errorf("peer exported service %q contains cross-datacenter failover", exportedSvc)
+					}
 				}
 			}
 		}
@@ -1303,10 +1319,10 @@ func testCompileDiscoveryChain(
 	chainName string,
 	overrides map[configentry.KindName]structs.ConfigEntry,
 	entMeta *acl.EnterpriseMeta,
-) (string, *structs.DiscoveryGraphNode, map[string]*structs.DiscoveryTarget, error) {
+) (*structs.CompiledDiscoveryChain, error) {
 	_, speculativeEntries, err := readDiscoveryChainConfigEntriesTxn(tx, nil, chainName, overrides, entMeta)
 	if err != nil {
-		return "", nil, nil, err
+		return nil, err
 	}
 
 	// Note we use an arbitrary namespace and datacenter as those would not
@@ -1323,10 +1339,10 @@ func testCompileDiscoveryChain(
 	}
 	chain, err := discoverychain.Compile(req)
 	if err != nil {
-		return "", nil, nil, err
+		return nil, err
 	}
 
-	return chain.Protocol, chain.Nodes[chain.StartNode], chain.Targets, nil
+	return chain, nil
 }
 
 func (s *Store) ServiceDiscoveryChain(
@@ -2053,6 +2069,7 @@ func protocolForService(
 }
 
 const dummyTrustDomain = "b6fc9da3-03d4-4b5a-9134-c045e9b20152.consul"
+const dummyPeerTrustDomain = "4945bd44-b427-4cf5-b19a-5f54b195bf6e.consul"
 
 func newConfigEntryQuery(c structs.ConfigEntry) configentry.KindName {
 	return configentry.NewKindName(c.GetKind(), c.GetName(), c.GetEnterpriseMeta())
@@ -2079,9 +2096,24 @@ func (q ConfigEntryKindQuery) PartitionOrDefault() string {
 // convertTargetsToTestSpiffeIDs indexes the provided targets by their eventual
 // spiffeid values using a dummy trust domain. Returns a map of SpiffeIDs to
 // targetID values which can be used for error output.
-func convertTargetsToTestSpiffeIDs(targets map[string]*structs.DiscoveryTarget) map[string]string {
+func convertTargetsToTestSpiffeIDs(chain *structs.CompiledDiscoveryChain) map[string]string {
+	excludedTargets := make(map[string]struct{})
+
+	for _, n := range chain.Nodes {
+		if n != nil && n.Resolver != nil && n.Resolver.Failover != nil {
+			failover := n.Resolver.Failover
+			for _, t := range failover.Targets {
+				excludedTargets[t] = struct{}{}
+			}
+		}
+	}
+
 	out := make(map[string]string)
-	for tid, t := range targets {
+	for tid, t := range chain.Targets {
+		if _, ok := excludedTargets[tid]; ok {
+			continue
+		}
+
 		testSpiffeID := connect.SpiffeIDService{
 			Host:       dummyTrustDomain,
 			Partition:  t.Partition,
@@ -2089,6 +2121,15 @@ func convertTargetsToTestSpiffeIDs(targets map[string]*structs.DiscoveryTarget) 
 			Datacenter: t.Datacenter,
 			Service:    t.Service,
 		}
+
+		// Setting peer to dc allows spiffe ids to compare peered services to non-peered services.
+		// We also have to use a distinct trust domain for peering services so we handle
+		// clashes between peers and datacenters.
+		if t.Peer != "" {
+			testSpiffeID.Datacenter = t.Peer
+			testSpiffeID.Host = dummyPeerTrustDomain
+		}
+
 		uri := testSpiffeID.URI().String()
 		if _, ok := out[uri]; !ok {
 			out[uri] = tid

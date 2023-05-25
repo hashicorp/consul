@@ -1663,6 +1663,280 @@ func TestStore_ConfigEntry_GraphValidation(t *testing.T) {
 			},
 			expectErr: `cannot introduce new discovery chain targets like`,
 		},
+		"can redirect a peer exported http service to another service": {
+			entries: []structs.ConfigEntry{
+				&structs.ServiceConfigEntry{
+					Kind:     structs.ServiceDefaults,
+					Name:     "main",
+					Protocol: "http",
+				},
+				&structs.ServiceConfigEntry{
+					Kind:     structs.ServiceDefaults,
+					Name:     "other",
+					Protocol: "http",
+				},
+				&structs.ExportedServicesConfigEntry{
+					Name: "default",
+					Services: []structs.ExportedService{{
+						Name:      "main",
+						Consumers: []structs.ServiceConsumer{{Peer: "my-peer"}},
+					}},
+				},
+			},
+			opAdd: &structs.ServiceResolverConfigEntry{
+				Kind: structs.ServiceResolver,
+				Name: "main",
+				Redirect: &structs.ServiceResolverRedirect{
+					Service: "other",
+				},
+			},
+		},
+		"cannot redirect a peer exported http service to another peer service": {
+			entries: []structs.ConfigEntry{
+				&structs.ServiceConfigEntry{
+					Kind:     structs.ServiceDefaults,
+					Name:     "main",
+					Protocol: "http",
+				},
+				&structs.ExportedServicesConfigEntry{
+					Name: "default",
+					Services: []structs.ExportedService{{
+						Name:      "main",
+						Consumers: []structs.ServiceConsumer{{Peer: "my-peer"}},
+					}},
+				},
+			},
+			opAdd: &structs.ServiceResolverConfigEntry{
+				Kind: structs.ServiceResolver,
+				Name: "main",
+				Redirect: &structs.ServiceResolverRedirect{
+					Service: "other",
+					Peer:    "something",
+				},
+			},
+			expectErr: `contains cross-peer resolver redirect`,
+		},
+		"cannot redirect a peer exported http service to a service in another datacenter": {
+			entries: []structs.ConfigEntry{
+				&structs.ServiceConfigEntry{
+					Kind:     structs.ServiceDefaults,
+					Name:     "main",
+					Protocol: "http",
+				},
+				&structs.ServiceConfigEntry{
+					Kind:     structs.ServiceDefaults,
+					Name:     "other",
+					Protocol: "http",
+				},
+				&structs.ExportedServicesConfigEntry{
+					Name: "default",
+					Services: []structs.ExportedService{{
+						Name:      "main",
+						Consumers: []structs.ServiceConsumer{{Peer: "my-peer"}},
+					}},
+				},
+			},
+			opAdd: &structs.ServiceResolverConfigEntry{
+				Kind: structs.ServiceResolver,
+				Name: "main",
+				Redirect: &structs.ServiceResolverRedirect{
+					Service:    "other",
+					Datacenter: "dc12",
+				},
+			},
+			expectErr: `contains cross-datacenter resolver redirect`,
+		},
+		"can failover a peer exported http service to another service": {
+			entries: []structs.ConfigEntry{
+				&structs.ServiceConfigEntry{
+					Kind:     structs.ServiceDefaults,
+					Name:     "main",
+					Protocol: "http",
+				},
+				&structs.ServiceConfigEntry{
+					Kind:     structs.ServiceDefaults,
+					Name:     "other",
+					Protocol: "http",
+				},
+				&structs.ExportedServicesConfigEntry{
+					Name: "default",
+					Services: []structs.ExportedService{{
+						Name:      "main",
+						Consumers: []structs.ServiceConsumer{{Peer: "my-peer"}},
+					}},
+				},
+			},
+			opAdd: &structs.ServiceResolverConfigEntry{
+				Kind: structs.ServiceResolver,
+				Name: "main",
+				Failover: map[string]structs.ServiceResolverFailover{
+					"*": {
+						Service: "other",
+					},
+				},
+			},
+		},
+		"can failover a peer exported http service to another peer service": {
+			entries: []structs.ConfigEntry{
+				&structs.ServiceConfigEntry{
+					Kind:     structs.ServiceDefaults,
+					Name:     "main",
+					Protocol: "http",
+				},
+				&structs.ExportedServicesConfigEntry{
+					Name: "default",
+					Services: []structs.ExportedService{{
+						Name:      "main",
+						Consumers: []structs.ServiceConsumer{{Peer: "my-peer"}},
+					}},
+				},
+			},
+			opAdd: &structs.ServiceResolverConfigEntry{
+				Kind: structs.ServiceResolver,
+				Name: "main",
+				Failover: map[string]structs.ServiceResolverFailover{
+					"*": {
+						Targets: []structs.ServiceResolverFailoverTarget{
+							{
+								Service: "other",
+								Peer:    "some-peer",
+							},
+						},
+					},
+				},
+			},
+		},
+		"can't failover a peer exported http service to another service in a different datacenter": {
+			entries: []structs.ConfigEntry{
+				&structs.ServiceConfigEntry{
+					Kind:     structs.ServiceDefaults,
+					Name:     "main",
+					Protocol: "http",
+				},
+				&structs.ServiceConfigEntry{
+					Kind:     structs.ServiceDefaults,
+					Name:     "other",
+					Protocol: "http",
+				},
+				&structs.ExportedServicesConfigEntry{
+					Name: "default",
+					Services: []structs.ExportedService{{
+						Name:      "main",
+						Consumers: []structs.ServiceConsumer{{Peer: "my-peer"}},
+					}},
+				},
+			},
+			opAdd: &structs.ServiceResolverConfigEntry{
+				Kind: structs.ServiceResolver,
+				Name: "main",
+				Failover: map[string]structs.ServiceResolverFailover{
+					"*": {
+						Service:     "other",
+						Datacenters: []string{"dc12"},
+					},
+				},
+			},
+			expectErr: `contains cross-datacenter failover`,
+		},
+		"can't failover a peer exported http service to another service in a different datacenter using targets": {
+			entries: []structs.ConfigEntry{
+				&structs.ServiceConfigEntry{
+					Kind:     structs.ServiceDefaults,
+					Name:     "main",
+					Protocol: "http",
+				},
+				&structs.ServiceConfigEntry{
+					Kind:     structs.ServiceDefaults,
+					Name:     "other",
+					Protocol: "http",
+				},
+				&structs.ExportedServicesConfigEntry{
+					Name: "default",
+					Services: []structs.ExportedService{{
+						Name:      "main",
+						Consumers: []structs.ServiceConsumer{{Peer: "my-peer"}},
+					}},
+				},
+			},
+			opAdd: &structs.ServiceResolverConfigEntry{
+				Kind: structs.ServiceResolver,
+				Name: "main",
+				Failover: map[string]structs.ServiceResolverFailover{
+					"*": {
+						Targets: []structs.ServiceResolverFailoverTarget{
+							{
+								Service:    "other",
+								Datacenter: "dc12",
+							},
+						},
+					},
+				},
+			},
+			expectErr: `contains cross-datacenter failover`,
+		},
+		"can failover a peer exported tcp service": {
+			entries: []structs.ConfigEntry{
+				&structs.ExportedServicesConfigEntry{
+					Name: "default",
+					Services: []structs.ExportedService{{
+						Name:      "main",
+						Consumers: []structs.ServiceConsumer{{Peer: "my-peer"}},
+					}},
+				},
+			},
+			opAdd: &structs.ServiceResolverConfigEntry{
+				Kind: structs.ServiceResolver,
+				Name: "main",
+				Failover: map[string]structs.ServiceResolverFailover{
+					"*": {
+						Targets: []structs.ServiceResolverFailoverTarget{
+							{
+								Service: "other",
+							},
+							{
+								Service: "other",
+								Peer:    "cluster-01",
+							},
+						},
+					},
+				},
+			},
+		},
+		"can failover a peer exported tcp service from a redirect": {
+			entries: []structs.ConfigEntry{
+				&structs.ExportedServicesConfigEntry{
+					Name: "default",
+					Services: []structs.ExportedService{{
+						Name:      "main",
+						Consumers: []structs.ServiceConsumer{{Peer: "my-peer"}},
+					}},
+				},
+				&structs.ServiceResolverConfigEntry{
+					Kind: structs.ServiceResolver,
+					Name: "other",
+					Redirect: &structs.ServiceResolverRedirect{
+						Service: "main",
+					},
+				},
+			},
+			opAdd: &structs.ServiceResolverConfigEntry{
+				Kind: structs.ServiceResolver,
+				Name: "main",
+				Failover: map[string]structs.ServiceResolverFailover{
+					"*": {
+						Targets: []structs.ServiceResolverFailoverTarget{
+							{
+								Service: "another",
+							},
+							{
+								Service: "other",
+								Peer:    "cluster-01",
+							},
+						},
+					},
+				},
+			},
+		},
 	}
 
 	for name, tc := range cases {
