@@ -51,6 +51,7 @@ jobs:
           working-directory: ${{ matrix.directory }}
           version: v1.51.1
           args: --build-tags="${{ env.GOTAGS }}" -v
+          skip-cache: true
       - name: Notify Slack
         if: ${{ failure() }}
         run: .github/scripts/notify_slack.sh
