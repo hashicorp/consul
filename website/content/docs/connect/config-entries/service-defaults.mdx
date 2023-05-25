@@ -1418,6 +1418,7 @@ represents a location outside the Consul cluster. Services can dial destinations
   metadata:
     name: test-destination
   spec:
+    protocol: tcp
     destination:
       addresses:
         - "test.com"
