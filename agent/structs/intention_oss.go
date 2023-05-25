@@ -78,3 +78,7 @@ func (ixn *Intention) FillPartitionAndNamespace(entMeta *acl.EnterpriseMeta, fil
 	ixn.SourcePartition = ""
 	ixn.DestinationPartition = ""
 }
+
+func (ixn *Intention) SourcePartitionOrDefault() string {
+	return "default"
+}
