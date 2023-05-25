@@ -28,6 +28,8 @@ $ consul-k8s <COMMAND> <OPTIONS>
 
 You can use the following commands with `consul-k8s`.
 
+  - [`config`](#config): Interact with helm configuration.
+      - [`config read`](#config-read): Read helm configuration of a Consul installation.
   - [`install`](#install): Install Consul on Kubernetes.
   - [`proxy`](#proxy): Inspect Envoy proxies managed by Consul.
       - [`proxy list`](#proxy-list): List all Pods running proxies managed by Consul.
@@ -38,6 +40,34 @@ You can use the following commands with `consul-k8s`.
   - [`uninstall`](#uninstall): Uninstall Consul deployment.
   - [`upgrade`](#upgrade): Upgrade Consul on Kubernetes from an existing installation.
   - [`version`](#version): Print the version of the Consul on Kubernetes CLI.
+
+### `config`
+
+The `config` command exposes the `read` subcommand that allows to read the helm configuration of a Consul installation.
+
+- [`config read`](#config-read): Read helm configuration of a Consul installation.
+
+### `config read`
+
+```shell-session
+$ consul-k8s config read <OPTIONS>
+```
+
+| Flag                                 | Description                                           | Default                                                                                                                |
+| ------------------------------------ | ----------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| <nobr>`-all-namespaces`, `-A`</nobr> | `Boolean` List pods in all Kubernetes namespaces.     | `false`                                                                                                                |
+| <nobr>`-namespace`, `-n`</nobr>      | `String` The Kubernetes namespace to list proxies in. | Current [kubeconfig](https://kubernetes.io/docs/concepts/configuration/organize-cluster-access-kubeconfig/) namespace. |
+
+Refer to the [Global Options](#global-options) for additional options that you can use
+when installing Consul on Kubernetes.
+
+#### Example Commands
+
+The following example command reads the Helm configuration in the `myNS` namespace.
+
+```shell-session
+$ consul-k8s config read -namespace=myNS
+```
 
 ### `install`
 
