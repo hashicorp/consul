@@ -91,7 +91,7 @@ func sink(hcpClient hcpclient.Client, cfg hcpclient.CloudConfig, logger hclog.Lo
 		return nil
 	}
 
-	logger.Info("Initialized HCP Metrics Sink")
+	logger.Debug("initialized HCP metrics sink")
 
 	return sink
 }
