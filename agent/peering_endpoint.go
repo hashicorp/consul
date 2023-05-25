@@ -5,6 +5,9 @@ import (
 	"net/http"
 	"strings"
 
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/metadata"
+
 	"github.com/hashicorp/consul/acl"
 	external "github.com/hashicorp/consul/agent/grpc-external"
 	"github.com/hashicorp/consul/agent/structs"
@@ -46,17 +49,27 @@ func (s *HTTPHandlers) peeringRead(resp http.ResponseWriter, req *http.Request, 
 	var dc string
 	options := structs.QueryOptions{}
 	s.parse(resp, req, &dc, &options)
+	options.AllowStale = false // To get all information on a peering, this request must be forward to a leader
 	ctx, err := external.ContextWithQueryOptions(req.Context(), options)
 	if err != nil {
 		return nil, err
 	}
 
-	result, err := s.agent.rpcClientPeering.PeeringRead(ctx, &args)
+	var header metadata.MD
+	result, err := s.agent.rpcClientPeering.PeeringRead(ctx, &args, grpc.Header(&header))
 	if err != nil {
 		return nil, err
 	}
 	if result.Peering == nil {
 		return nil, HTTPError{StatusCode: http.StatusNotFound, Reason: fmt.Sprintf("Peering not found for %q", name)}
+	}
+
+	meta, err := external.QueryMetaFromGRPCMeta(header)
+	if err != nil {
+		return result.Peering.ToAPI(), fmt.Errorf("could not convert gRPC metadata to query meta: %w", err)
+	}
+	if err := setMeta(resp, &meta); err != nil {
+		return nil, err
 	}
 
 	return result.Peering.ToAPI(), nil
@@ -75,13 +88,23 @@ func (s *HTTPHandlers) PeeringList(resp http.ResponseWriter, req *http.Request) 
 	var dc string
 	options := structs.QueryOptions{}
 	s.parse(resp, req, &dc, &options)
+	options.AllowStale = false // To get all information on a peering, this request must be forward to a leader
 	ctx, err := external.ContextWithQueryOptions(req.Context(), options)
 	if err != nil {
 		return nil, err
 	}
 
-	pbresp, err := s.agent.rpcClientPeering.PeeringList(ctx, &args)
+	var header metadata.MD
+	pbresp, err := s.agent.rpcClientPeering.PeeringList(ctx, &args, grpc.Header(&header))
 	if err != nil {
+		return nil, err
+	}
+
+	meta, err := external.QueryMetaFromGRPCMeta(header)
+	if err != nil {
+		return pbresp.ToAPI(), fmt.Errorf("could not convert gRPC metadata to query meta: %w", err)
+	}
+	if err := setMeta(resp, &meta); err != nil {
 		return nil, err
 	}
 

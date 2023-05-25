@@ -4,22 +4,24 @@ import (
 	"context"
 	"fmt"
 	"strconv"
-	"time"
 
-	external "github.com/hashicorp/consul/agent/grpc-external"
-	"github.com/hashicorp/consul/proto/pbpeering"
 	"github.com/mitchellh/hashstructure"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 
 	"github.com/hashicorp/consul/agent/cache"
+	external "github.com/hashicorp/consul/agent/grpc-external"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/proto/pbpeering"
 )
 
 // PeeringListName is the recommended name for registration.
 const PeeringListName = "peers"
 
+// PeeringListRequest represents the combination of request payload
+// and options that would normally be sent over headers.
 type PeeringListRequest struct {
 	Request *pbpeering.PeeringListRequest
 	structs.QueryOptions
@@ -29,13 +31,10 @@ func (r *PeeringListRequest) CacheInfo() cache.RequestInfo {
 	info := cache.RequestInfo{
 		Token:          r.Token,
 		Datacenter:     "",
-		MinIndex:       0,
-		Timeout:        0,
-		MustRevalidate: false,
-
-		// OPTIMIZE(peering): Cache.notifyPollingQuery polls at this interval. We need to revisit how that polling works.
-		//        	          Using an exponential backoff when the result hasn't changed may be preferable.
-		MaxAge: 1 * time.Second,
+		MinIndex:       r.MinQueryIndex,
+		Timeout:        r.MaxQueryTime,
+		MaxAge:         r.MaxAge,
+		MustRevalidate: r.MustRevalidate,
 	}
 
 	v, err := hashstructure.Hash([]interface{}{
@@ -53,7 +52,7 @@ func (r *PeeringListRequest) CacheInfo() cache.RequestInfo {
 
 // Peerings supports fetching the list of peers for a given partition or wildcard-specifier.
 type Peerings struct {
-	RegisterOptionsNoRefresh
+	RegisterOptionsBlockingRefresh
 	Client PeeringLister
 }
 
@@ -64,7 +63,7 @@ type PeeringLister interface {
 	) (*pbpeering.PeeringListResponse, error)
 }
 
-func (t *Peerings) Fetch(_ cache.FetchOptions, req cache.Request) (cache.FetchResult, error) {
+func (t *Peerings) Fetch(opts cache.FetchOptions, req cache.Request) (cache.FetchResult, error) {
 	var result cache.FetchResult
 
 	// The request should be a PeeringListRequest.
@@ -76,10 +75,17 @@ func (t *Peerings) Fetch(_ cache.FetchOptions, req cache.Request) (cache.FetchRe
 			"Internal cache failure: request wrong type: %T", req)
 	}
 
-	// Always allow stale - there's no point in hitting leader if the request is
-	// going to be served from cache and end up arbitrarily stale anyway. This
-	// allows cached service-discover to automatically read scale across all
-	// servers too.
+	// Lightweight copy this object so that manipulating QueryOptions doesn't race.
+	dup := *reqReal
+	reqReal = &dup
+
+	// Set the minimum query index to our current index, so we block
+	reqReal.QueryOptions.MinQueryIndex = opts.MinIndex
+	reqReal.QueryOptions.MaxQueryTime = opts.Timeout
+
+	// We allow stale queries here to spread out the RPC load, but peerstream information, including the STATUS,
+	// will not be returned. Right now this is fine for the watch in proxycfg/mesh_gateway.go,
+	// but it could be a problem for a future consumer.
 	reqReal.QueryOptions.SetAllowStale(true)
 
 	ctx, err := external.ContextWithQueryOptions(context.Background(), reqReal.QueryOptions)
@@ -88,7 +94,8 @@ func (t *Peerings) Fetch(_ cache.FetchOptions, req cache.Request) (cache.FetchRe
 	}
 
 	// Fetch
-	reply, err := t.Client.PeeringList(ctx, reqReal.Request)
+	var header metadata.MD
+	reply, err := t.Client.PeeringList(ctx, reqReal.Request, grpc.Header(&header))
 	if err != nil {
 		// Return an empty result if the error is due to peering being disabled.
 		// This allows mesh gateways to receive an update and confirm that the watch is set.
@@ -100,8 +107,19 @@ func (t *Peerings) Fetch(_ cache.FetchOptions, req cache.Request) (cache.FetchRe
 		return result, err
 	}
 
+	// This first case is using the legacy index field
+	// It should be removed in a future version in favor of the index from QueryMeta
+	if reply.OBSOLETE_Index != 0 {
+		result.Index = reply.OBSOLETE_Index
+	} else {
+		meta, err := external.QueryMetaFromGRPCMeta(header)
+		if err != nil {
+			return result, fmt.Errorf("could not convert gRPC metadata to query meta: %w", err)
+		}
+		result.Index = meta.GetIndex()
+	}
+
 	result.Value = reply
-	result.Index = reply.Index
 
 	return result, nil
 }
