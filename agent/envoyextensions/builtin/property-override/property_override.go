@@ -49,13 +49,15 @@ type ResourceFilter struct {
 type ResourceType string
 
 const (
-	ResourceTypeCluster ResourceType = "cluster"
-	ResourceTypeRoute   ResourceType = "route"
+	ResourceTypeCluster  ResourceType = "cluster"
+	ResourceTypeListener ResourceType = "listener"
+	ResourceTypeRoute    ResourceType = "route"
 )
 
 var ResourceTypes = stringSet{
-	string(ResourceTypeCluster): {},
-	string(ResourceTypeRoute):   {},
+	string(ResourceTypeCluster):  {},
+	string(ResourceTypeListener): {},
+	string(ResourceTypeRoute):    {},
 }
 
 // TrafficDirection determines whether inbound or outbound Envoy resources will be patched.
@@ -179,6 +181,8 @@ func (p *Patch) validate(debug bool) error {
 		_, err = PatchStruct(&envoy_cluster_v3.Cluster{}, *p, debug)
 	case ResourceTypeRoute:
 		_, err = PatchStruct(&envoy_route_v3.RouteConfiguration{}, *p, debug)
+	case ResourceTypeListener:
+		_, err = PatchStruct(&envoy_listener_v3.Listener{}, *p, debug)
 	default:
 		return fmt.Errorf("path validation unimplemented for %q", p.ResourceFilter.ResourceType)
 	}
@@ -249,6 +253,15 @@ func (p *propertyOverride) PatchCluster(_ *extensioncommon.RuntimeConfig, c *env
 		d = TrafficDirectionInbound
 	}
 	return patchResourceType[*envoy_cluster_v3.Cluster](c, p, ResourceTypeCluster, d, &defaultStructPatcher[*envoy_cluster_v3.Cluster]{})
+}
+
+// PatchListener patches the provided Envoy Listener with any applicable `listener` ResourceType patches.
+func (p *propertyOverride) PatchListener(_ *extensioncommon.RuntimeConfig, l *envoy_listener_v3.Listener) (*envoy_listener_v3.Listener, bool, error) {
+	d := TrafficDirectionOutbound
+	if extensioncommon.IsInboundPublicListener(l) {
+		d = TrafficDirectionInbound
+	}
+	return patchResourceType[*envoy_listener_v3.Listener](l, p, ResourceTypeListener, d, &defaultStructPatcher[*envoy_listener_v3.Listener]{})
 }
 
 // PatchFilter does nothing as this extension does not target Filters directly.

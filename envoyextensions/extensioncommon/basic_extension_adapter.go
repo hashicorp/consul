@@ -28,6 +28,16 @@ func (BasicExtensionAdapter) PatchClusters(_ *RuntimeConfig, c ClusterMap) (Clus
 	return c, nil
 }
 
+// PatchListener provides a default implementation of the PatchListener interface that does nothing.
+func (BasicExtensionAdapter) PatchListener(_ *RuntimeConfig, l *envoy_listener_v3.Listener) (*envoy_listener_v3.Listener, bool, error) {
+	return l, false, nil
+}
+
+// PatchListeners provides a default implementation of the PatchListeners interface that does nothing.
+func (BasicExtensionAdapter) PatchListeners(_ *RuntimeConfig, l ListenerMap) (ListenerMap, error) {
+	return l, nil
+}
+
 // PatchFilter provides a default implementation of the PatchFilter interface that does nothing.
 func (BasicExtensionAdapter) PatchFilter(_ *RuntimeConfig, f *envoy_listener_v3.Filter, _ bool) (*envoy_listener_v3.Filter, bool, error) {
 	return f, false, nil
