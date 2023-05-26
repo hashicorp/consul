@@ -8,10 +8,8 @@ import (
 	"fmt"
 	"time"
 
-	envoy_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
-	envoy_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	envoy_ratelimit "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/local_ratelimit/v3"
 	envoy_http_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
 	envoy_type_v3 "github.com/envoyproxy/go-control-plane/envoy/type/v3"
@@ -26,6 +24,8 @@ import (
 )
 
 type ratelimit struct {
+	extensioncommon.BasicExtensionAdapter
+
 	ProxyType string
 
 	// Token bucket of the rate limit
@@ -98,16 +98,6 @@ func (r *ratelimit) validate() error {
 // CanApply determines if the extension can apply to the given extension configuration.
 func (p *ratelimit) CanApply(config *extensioncommon.RuntimeConfig) bool {
 	return string(config.Kind) == p.ProxyType
-}
-
-// PatchRoute does nothing.
-func (p ratelimit) PatchRoute(_ *extensioncommon.RuntimeConfig, route *envoy_route_v3.RouteConfiguration) (*envoy_route_v3.RouteConfiguration, bool, error) {
-	return route, false, nil
-}
-
-// PatchCluster does nothing.
-func (p ratelimit) PatchCluster(_ *extensioncommon.RuntimeConfig, c *envoy_cluster_v3.Cluster) (*envoy_cluster_v3.Cluster, bool, error) {
-	return c, false, nil
 }
 
 // PatchFilter inserts a http local rate_limit filter at the head of

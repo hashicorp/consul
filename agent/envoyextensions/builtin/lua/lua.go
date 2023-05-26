@@ -7,9 +7,7 @@ import (
 	"errors"
 	"fmt"
 
-	envoy_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
-	envoy_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	envoy_lua_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/lua/v3"
 	envoy_http_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
 	envoy_resource_v3 "github.com/envoyproxy/go-control-plane/pkg/resource/v3"
@@ -22,6 +20,8 @@ import (
 var _ extensioncommon.BasicExtension = (*lua)(nil)
 
 type lua struct {
+	extensioncommon.BasicExtensionAdapter
+
 	ProxyType string
 	Listener  string
 	Script    string
@@ -69,16 +69,6 @@ func (l *lua) CanApply(config *extensioncommon.RuntimeConfig) bool {
 
 func (l *lua) matchesListenerDirection(isInboundListener bool) bool {
 	return (!isInboundListener && l.Listener == "outbound") || (isInboundListener && l.Listener == "inbound")
-}
-
-// PatchRoute does nothing.
-func (l *lua) PatchRoute(_ *extensioncommon.RuntimeConfig, route *envoy_route_v3.RouteConfiguration) (*envoy_route_v3.RouteConfiguration, bool, error) {
-	return route, false, nil
-}
-
-// PatchCluster does nothing.
-func (l *lua) PatchCluster(_ *extensioncommon.RuntimeConfig, c *envoy_cluster_v3.Cluster) (*envoy_cluster_v3.Cluster, bool, error) {
-	return c, false, nil
 }
 
 // PatchFilter inserts a lua filter directly prior to envoy.filters.http.router.

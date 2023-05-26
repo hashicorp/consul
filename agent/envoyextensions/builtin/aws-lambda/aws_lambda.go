@@ -28,6 +28,8 @@ import (
 var _ extensioncommon.BasicExtension = (*awsLambda)(nil)
 
 type awsLambda struct {
+	extensioncommon.BasicExtensionAdapter
+
 	ARN                string
 	PayloadPassthrough bool
 	InvocationMode     string
