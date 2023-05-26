@@ -23,7 +23,7 @@ jobs:
           GIT_SHA: ${{ github.sha }}
           GH_PAT: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
           GIT_ACTOR: ${{ github.actor }}
-          GIT_ASSIGNEES: ${{ join(github.event.pull_request.assignees, ',') }}
+          GIT_ASSIGNEES: ${{ join(github.event.pull_request.assignees.*.login, ',') }}
         run: |
           echo "github: ${{ toJson(github) }}"
           echo "env: ${{ toJson(env) }}"
