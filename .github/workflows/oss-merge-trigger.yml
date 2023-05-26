@@ -3,13 +3,12 @@
 
 name: Trigger OSS to Enterprise Merge
 on: 
-  pull_request:
-  # pull_request_target:
-    # types:
-    #   - closed
-    # branches:
-    #   - main
-    #   - 'release/*.*.x'
+  pull_request_target:
+    types:
+      - closed
+    branches:
+      - main
+      - 'release/*.*.x'
 
 jobs:
   trigger-oss-merge:
