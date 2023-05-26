@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	awslambda "github.com/hashicorp/consul/agent/envoyextensions/builtin/aws-lambda"
+	extauthz "github.com/hashicorp/consul/agent/envoyextensions/builtin/ext-authz"
 	"github.com/hashicorp/consul/agent/envoyextensions/builtin/http/localratelimit"
 	"github.com/hashicorp/consul/agent/envoyextensions/builtin/lua"
 	"github.com/hashicorp/consul/agent/envoyextensions/builtin/wasm"
@@ -22,6 +23,7 @@ var extensionConstructors = map[string]extensionConstructor{
 	api.BuiltinAWSLambdaExtension:      awslambda.Constructor,
 	api.BuiltinLocalRatelimitExtension: localratelimit.Constructor,
 	api.BuiltinWasmExtension:           wasm.Constructor,
+	api.BuiltinExtAuthzExtension:       extauthz.Constructor,
 }
 
 // ConstructExtension attempts to lookup and build an extension from the registry with the

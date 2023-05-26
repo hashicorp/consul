@@ -281,6 +281,91 @@ end`,
 				}, nil)
 			},
 		},
+		{
+			// Insert an HTTP ext_authz filter at the start of the filter chain with the default gRPC config options.
+			name: "ext-authz-http-local-grpc-service",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
+					ns.Proxy.Config = map[string]any{"protocol": "http"}
+					ns.Proxy.EnvoyExtensions = makeExtAuthzEnvoyExtension(
+						"grpc",
+						"dest=local",
+					)
+				}, nil)
+			},
+		},
+		{
+			// Insert an ext_authz HTTP filter after all the header_to_metadata filters, with the default HTTP config options.
+			name: "ext-authz-http-local-http-service",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
+					ns.Proxy.Config = map[string]any{"protocol": "http"}
+					ns.Proxy.EnvoyExtensions = makeExtAuthzEnvoyExtension(
+						"http",
+						"dest=local",
+						"insert=AfterLastMatch:envoy.filters.http.header_to_metadata",
+					)
+				}, nil)
+			},
+		},
+		{
+			// Insert an ext_authz HTTP filter before the router filter, specifying all gRPC config options.
+			name: "ext-authz-http-upstream-grpc-service",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
+					ns.Proxy.Config = map[string]any{"protocol": "http"}
+					ns.Proxy.EnvoyExtensions = makeExtAuthzEnvoyExtension(
+						"grpc",
+						"required=true",
+						"dest=upstream",
+						"insert=BeforeFirstMatch:envoy.filters.http.router",
+						"config-type=full",
+					)
+				}, nil)
+			},
+		},
+		{
+			// Insert an ext_authz HTTP filter after intentions, specifying all HTTP config options.
+			name: "ext-authz-http-upstream-http-service",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
+					ns.Proxy.Config = map[string]any{"protocol": "http"}
+					ns.Proxy.EnvoyExtensions = makeExtAuthzEnvoyExtension(
+						"http",
+						"required=true",
+						"dest=upstream",
+						"insert=AfterLastMatch:envoy.filters.http.rbac",
+						"config-type=full",
+					)
+				}, nil)
+			},
+		},
+		{
+			// Insert an ext_authz TCP filter at the start of the filter chain, with the default gRPC config options.
+			name: "ext-authz-tcp-local-grpc-service",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
+					ns.Proxy.Config = map[string]any{"protocol": "tcp"}
+					ns.Proxy.EnvoyExtensions = makeExtAuthzEnvoyExtension("grpc")
+				}, nil)
+			},
+		},
+		{
+			// Insert an ext_authz TCP filter after intentions, specifying all gRPC config options.
+			name: "ext-authz-tcp-upstream-grpc-service",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
+					ns.Proxy.Config = map[string]any{"protocol": "tcp"}
+					ns.Proxy.EnvoyExtensions = makeExtAuthzEnvoyExtension(
+						"grpc",
+						"required=true",
+						"dest=upstream",
+						"insert=AfterLastMatch:envoy.filters.network.rbac",
+						"config-type=full",
+					)
+				}, nil)
+			},
+		},
 	}
 
 	latestEnvoyVersion := xdscommon.EnvoyVersions[0]
