@@ -38,7 +38,7 @@ func TestAggregation(t *testing.T) {
 		},
 		"histogram": {
 			kind:   metric.InstrumentKindHistogram,
-			expAgg: aggregation.ExplicitBucketHistogram{Boundaries: []float64{0, 5, 10, 25, 50, 75, 100, 250, 500, 750, 1000, 2500, 5000, 7500, 10000}, NoMinMax: false},
+			expAgg: aggregation.ExplicitBucketHistogram{Boundaries: defaultHistogramBuckets, NoMinMax: false},
 		},
 	} {
 		test := test

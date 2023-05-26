@@ -11,6 +11,10 @@ import (
 	hcpclient "github.com/hashicorp/consul/agent/hcp/client"
 )
 
+var (
+	defaultHistogramBuckets = []float64{0, 5, 10, 15, 20, 40, 60, 80, 100, 125, 150, 175, 200, 300, 500, 750, 1000, 2500, 5000, 7500, 10000}
+)
+
 // OTELExporter is a custom implementation of a OTEL Metrics SDK metrics.Exporter.
 // The exporter is used by a OTEL Metrics SDK PeriodicReader to export aggregated metrics.
 // This allows us to use a custom client - HCP authenticated MetricsClient.
@@ -42,7 +46,7 @@ func (e *OTELExporter) Aggregation(kind metric.InstrumentKind) aggregation.Aggre
 		return aggregation.LastValue{}
 	case metric.InstrumentKindHistogram:
 		return aggregation.ExplicitBucketHistogram{
-			Boundaries: []float64{0, 5, 10, 15, 20, 40, 60, 80, 100, 125, 150, 175, 200, 300, 500, 750, 1000, 2500, 5000, 7500, 10000},
+			Boundaries: defaultHistogramBuckets,
 			NoMinMax:   false,
 		}
 	}
