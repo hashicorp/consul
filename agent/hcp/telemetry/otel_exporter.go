@@ -42,7 +42,7 @@ func (e *OTELExporter) Aggregation(kind metric.InstrumentKind) aggregation.Aggre
 		return aggregation.LastValue{}
 	case metric.InstrumentKindHistogram:
 		return aggregation.ExplicitBucketHistogram{
-			Boundaries: []float64{0, 5, 10, 25, 50, 75, 100, 250, 500, 750, 1000, 2500, 5000, 7500, 10000},
+			Boundaries: []float64{0, 5, 10, 15, 20, 40, 60, 80, 100, 125, 150, 175, 200, 300, 500, 750, 1000, 2500, 5000, 7500, 10000},
 			NoMinMax:   false,
 		}
 	}

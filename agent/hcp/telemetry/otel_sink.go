@@ -11,11 +11,12 @@ import (
 	"time"
 
 	gometrics "github.com/armon/go-metrics"
-	"github.com/hashicorp/go-hclog"
 	"go.opentelemetry.io/otel/attribute"
 	otelmetric "go.opentelemetry.io/otel/metric"
 	otelsdk "go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/resource"
+
+	"github.com/hashicorp/go-hclog"
 
 	"github.com/hashicorp/consul/agent/hcp/client"
 )
@@ -118,6 +119,8 @@ func NewOTELSink(opts *OTELSinkOpts) (*OTELSink, error) {
 	}, nil
 }
 
+var _ gometrics.MetricSink = &OTELSink{}
+
 // SetGauge emits a Consul gauge metric.
 func (o *OTELSink) SetGauge(key []string, val float32) {
 	o.SetGaugeWithLabels(key, val, nil)
@@ -133,8 +136,7 @@ func (o *OTELSink) IncrCounter(key []string, val float32) {
 	o.IncrCounterWithLabels(key, val, nil)
 }
 
-// AddSampleWithLabels emits a Consul gauge metric that gets
-// registed by an OpenTelemetry Histogram instrument.
+// SetGaugeWithLabels emits a Consul gauge metric that gets registed by an OpenTelemetry Histogram instrument.
 func (o *OTELSink) SetGaugeWithLabels(key []string, val float32, labels []gometrics.Label) {
 	k := o.flattenKey(key)
 
