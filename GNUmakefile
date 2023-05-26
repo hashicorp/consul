@@ -334,6 +334,7 @@ codegen-tools:
 deep-copy:
 	@$(SHELL) $(CURDIR)/agent/structs/deep-copy.sh
 	@$(SHELL) $(CURDIR)/agent/proxycfg/deep-copy.sh
+	@$(SHELL) $(CURDIR)/agent/consul/state/deep-copy.sh
 
 version:
 	@echo -n "Version:                    "
