@@ -28,7 +28,7 @@ const (
 	defaultRetryWaitMin = 1 * time.Second
 	defaultRetryWaitMax = 15 * time.Second
 	// defaultRetryMax is set to 0 to turn off retry functionality, until dynamic configuration is possible.
-	// This reduces load on the Telemetry Gateway for now.
+	// This is to circumvent any spikes in load that may cause or exacerbate server-side issues for now.
 	defaultRetryMax = 0
 )
 
