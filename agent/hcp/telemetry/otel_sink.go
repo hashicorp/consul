@@ -11,12 +11,11 @@ import (
 	"time"
 
 	gometrics "github.com/armon/go-metrics"
+	"github.com/hashicorp/go-hclog"
 	"go.opentelemetry.io/otel/attribute"
 	otelmetric "go.opentelemetry.io/otel/metric"
 	otelsdk "go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/resource"
-
-	"github.com/hashicorp/go-hclog"
 
 	"github.com/hashicorp/consul/agent/hcp/client"
 )
