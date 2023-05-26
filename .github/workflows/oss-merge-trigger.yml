@@ -27,6 +27,7 @@ jobs:
         run: |
           echo "github: ${{ toJson(github) }}"
           echo "env: ${{ toJson(env) }}"
+          echo "blah"
           # curl -H "Authorization: token $GH_PAT" \
           #   -H 'Accept: application/json' \
           #   -d "{\"event_type\": \"oss-merge\", \"client_payload\": {\"git-ref\": \"${GIT_REF}\", \"git-sha\": \"${GIT_SHA}\", \"git-actor\": \"${GIT_ACTOR}\" }}, \"git-assignees\": \"${GIT_ASSIGNEES}\" }}" \
