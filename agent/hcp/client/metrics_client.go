@@ -24,10 +24,12 @@ const (
 	defaultStreamTimeout = 15 * time.Second
 
 	// Retry config
-	// TODO: Evenutally, we'd like to configure these values dynamically.
+	// TODO: Eventually, we'd like to configure these values dynamically.
 	defaultRetryWaitMin = 1 * time.Second
 	defaultRetryWaitMax = 15 * time.Second
-	defaultRetryMax     = 4
+	// defaultRetryMax is set to 0 to turn off retry functionality, until dynamic configuration is possible.
+	// This reduces load on the Telemetry Gateway for now.
+	defaultRetryMax = 0
 )
 
 // MetricsClient exports Consul metrics in OTLP format to the HCP Telemetry Gateway.
