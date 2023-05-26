@@ -46,6 +46,7 @@ type testCase struct {
 	desc             string
 	args             []string
 	setup            func() // TODO: accept a testing.T instead of panic
+	cleanup          func()
 	expected         func(rt *RuntimeConfig)
 	expectedErr      string
 	expectedWarnings []string
@@ -2308,9 +2309,9 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		},
 		setup: func() {
 			os.Setenv("HCP_RESOURCE_ID", "env-id")
-			t.Cleanup(func() {
-				os.Unsetenv("HCP_RESOURCE_ID")
-			})
+		},
+		cleanup: func() {
+			os.Unsetenv("HCP_RESOURCE_ID")
 		},
 		expected: func(rt *RuntimeConfig) {
 			rt.DataDir = dataDir
@@ -2321,6 +2322,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 
 			// server things
 			rt.ServerMode = true
+			rt.Telemetry.EnableHostMetrics = true
 			rt.TLS.ServerMode = true
 			rt.LeaveOnTerm = false
 			rt.SkipLeaveOnInt = true
@@ -2337,9 +2339,9 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		},
 		setup: func() {
 			os.Setenv("HCP_RESOURCE_ID", "env-id")
-			t.Cleanup(func() {
-				os.Unsetenv("HCP_RESOURCE_ID")
-			})
+		},
+		cleanup: func() {
+			os.Unsetenv("HCP_RESOURCE_ID")
 		},
 		json: []string{`{
 			  "cloud": {
@@ -2360,6 +2362,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 
 			// server things
 			rt.ServerMode = true
+			rt.Telemetry.EnableHostMetrics = true
 			rt.TLS.ServerMode = true
 			rt.LeaveOnTerm = false
 			rt.SkipLeaveOnInt = true
@@ -6032,6 +6035,9 @@ func (tc testCase) run(format string, dataDir string) func(t *testing.T) {
 		expected.ACLResolverSettings.EnterpriseMeta = *structs.NodeEnterpriseMetaInPartition(expected.PartitionOrDefault())
 
 		prototest.AssertDeepEqual(t, expected, actual, cmpopts.EquateEmpty())
+		if tc.cleanup != nil {
+			tc.cleanup()
+		}
 	}
 }
 
