@@ -71,7 +71,7 @@ func metricsToPB(metrics []metricdata.Metrics) []*mpb.Metric {
 	for _, m := range metrics {
 		o, err := metricTypeToPB(m)
 		if err != nil {
-			goMetrics.IncrCounter(transformFailureMetric, 1)
+			goMetrics.IncrCounter(internalMetricTransformFailure, 1)
 			continue
 		}
 		out = append(out, o)

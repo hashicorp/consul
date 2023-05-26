@@ -60,22 +60,22 @@ func (e *OTELExporter) Export(ctx context.Context, metrics *metricdata.ResourceM
 	}
 	err := e.client.ExportMetrics(ctx, otlpMetrics, e.endpoint.String())
 	if err != nil {
-		goMetrics.IncrCounter(exportFailureMetric, 1)
+		goMetrics.IncrCounter(internalMetricExportFailure, 1)
 		return fmt.Errorf("failed to export metrics: %w", err)
 	}
 
-	goMetrics.IncrCounter(exportSuccessMetric, 1)
+	goMetrics.IncrCounter(internalMetricExportSuccess, 1)
 	return nil
 }
 
 // ForceFlush is a no-op, as the MetricsClient client holds no state.
 func (e *OTELExporter) ForceFlush(ctx context.Context) error {
-	goMetrics.IncrCounter(exporterForceFlushMetric, 1)
+	goMetrics.IncrCounter(internalMetricExporterForceFlush, 1)
 	return ctx.Err()
 }
 
 // Shutdown is a no-op, as the MetricsClient is a HTTP client that requires no graceful shutdown.
 func (e *OTELExporter) Shutdown(ctx context.Context) error {
-	goMetrics.IncrCounter(exporterShutdownMetric, 1)
+	goMetrics.IncrCounter(internalMetricExporterShutdown, 1)
 	return ctx.Err()
 }

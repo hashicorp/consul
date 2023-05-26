@@ -325,7 +325,7 @@ func TestTransformOTLP_CustomMetrics(t *testing.T) {
 			// Collect sink metrics.
 			intervals := sink.Data()
 			require.Len(t, intervals, 1)
-			key := serviceName + "." + strings.Join(transformFailureMetric, ".")
+			key := serviceName + "." + strings.Join(internalMetricTransformFailure, ".")
 			sv := intervals[0].Counters[key]
 
 			if tc.expectedMetricCount == 0 {

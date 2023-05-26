@@ -4,11 +4,11 @@ package telemetry
 // export (exporter.go) and transform (transform.go) failures and successes.
 // These enable us to monitor OTEL operations.
 var (
-	transformFailureMetric []string = []string{"hcp", "otel", "transform", "failure"}
+	internalMetricTransformFailure []string = []string{"hcp", "otel", "transform", "failure"}
 
-	exportSuccessMetric []string = []string{"hcp", "otel", "exporter", "export", "sucess"}
-	exportFailureMetric []string = []string{"hcp", "otel", "exporter", "export", "failure"}
+	internalMetricExportSuccess []string = []string{"hcp", "otel", "exporter", "export", "sucess"}
+	internalMetricExportFailure []string = []string{"hcp", "otel", "exporter", "export", "failure"}
 
-	exporterShutdownMetric   []string = []string{"hcp", "otel", "exporter", "shutdown"}
-	exporterForceFlushMetric []string = []string{"hcp", "otel", "exporter", "force_flush"}
+	internalMetricExporterShutdown   []string = []string{"hcp", "otel", "exporter", "shutdown"}
+	internalMetricExporterForceFlush []string = []string{"hcp", "otel", "exporter", "force_flush"}
 )

@@ -125,22 +125,22 @@ func TestExport_CustomMetrics(t *testing.T) {
 	}{
 		"exportSuccessEmitsCustomMetric": {
 			client:    &mockMetricsClient{},
-			metricKey: exportSuccessMetric,
+			metricKey: internalMetricExportSuccess,
 			operation: "export",
 		},
 		"exportFailureEmitsCustomMetric": {
 			client: &mockMetricsClient{
 				exportErr: fmt.Errorf("client err"),
 			},
-			metricKey: exportFailureMetric,
+			metricKey: internalMetricExportFailure,
 			operation: "export",
 		},
 		"shutdownEmitsCustomMetric": {
-			metricKey: exporterShutdownMetric,
+			metricKey: internalMetricExporterShutdown,
 			operation: "shutdown",
 		},
 		"forceFlushEmitsCustomMetric": {
-			metricKey: exporterForceFlushMetric,
+			metricKey: internalMetricExporterForceFlush,
 			operation: "flush",
 		},
 	} {
