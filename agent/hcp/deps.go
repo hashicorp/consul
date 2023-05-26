@@ -5,6 +5,7 @@ package hcp
 
 import (
 	"context"
+	"fmt"
 	"net/url"
 	"time"
 
@@ -24,20 +25,24 @@ type Deps struct {
 	Sink     metrics.MetricSink
 }
 
-func NewDeps(cfg config.CloudConfig, logger hclog.Logger, nodeID types.NodeID) (d Deps, err error) {
-	d.Client, err = hcpclient.NewClient(cfg)
+func NewDeps(cfg config.CloudConfig, logger hclog.Logger, nodeID types.NodeID) (Deps, error) {
+	client, err := hcpclient.NewClient(cfg)
 	if err != nil {
-		return
+		return Deps{}, fmt.Errorf("failed to init client: %w:", err)
 	}
 
-	d.Provider, err = scada.New(cfg, logger.Named("hcp.scada"))
+	provider, err := scada.New(cfg, logger.Named("scada"))
 	if err != nil {
-		return
+		return Deps{}, fmt.Errorf("failed to init scada: %w", err)
 	}
 
-	d.Sink = sink(d.Client, &cfg, logger, nodeID)
+	sink := sink(client, &cfg, logger.Named("sink"), nodeID)
 
-	return
+	return Deps{
+		Client:   client,
+		Provider: provider,
+		Sink:     sink,
+	}, nil
 }
 
 // sink provides initializes an OTELSink which forwards Consul metrics to HCP.
@@ -85,6 +90,8 @@ func sink(hcpClient hcpclient.Client, cfg hcpclient.CloudConfig, logger hclog.Lo
 		logger.Error("failed to init OTEL sink", "error", err)
 		return nil
 	}
+
+	logger.Debug("initialized HCP metrics sink")
 
 	return sink
 }

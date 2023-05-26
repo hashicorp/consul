@@ -2,8 +2,10 @@ package telemetry
 
 import (
 	"context"
+	"fmt"
 	"net/url"
 
+	goMetrics "github.com/armon/go-metrics"
 	"go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/metric/aggregation"
 	"go.opentelemetry.io/otel/sdk/metric/metricdata"
@@ -56,17 +58,24 @@ func (e *OTELExporter) Export(ctx context.Context, metrics *metricdata.ResourceM
 	if isEmpty(otlpMetrics) {
 		return nil
 	}
-	return e.client.ExportMetrics(ctx, otlpMetrics, e.endpoint.String())
+	err := e.client.ExportMetrics(ctx, otlpMetrics, e.endpoint.String())
+	if err != nil {
+		goMetrics.IncrCounter(internalMetricExportFailure, 1)
+		return fmt.Errorf("failed to export metrics: %w", err)
+	}
+
+	goMetrics.IncrCounter(internalMetricExportSuccess, 1)
+	return nil
 }
 
 // ForceFlush is a no-op, as the MetricsClient client holds no state.
 func (e *OTELExporter) ForceFlush(ctx context.Context) error {
-	// TODO: Emit metric when this operation occurs.
+	goMetrics.IncrCounter(internalMetricExporterForceFlush, 1)
 	return ctx.Err()
 }
 
 // Shutdown is a no-op, as the MetricsClient is a HTTP client that requires no graceful shutdown.
 func (e *OTELExporter) Shutdown(ctx context.Context) error {
-	// TODO: Emit metric when this operation occurs.
+	goMetrics.IncrCounter(internalMetricExporterShutdown, 1)
 	return ctx.Err()
 }

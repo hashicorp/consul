@@ -17,6 +17,8 @@ import (
 	metricpb "go.opentelemetry.io/proto/otlp/metrics/v1"
 	"golang.org/x/oauth2"
 	"google.golang.org/protobuf/proto"
+
+	"github.com/hashicorp/consul/version"
 )
 
 const (
@@ -72,8 +74,9 @@ func NewMetricsClient(cfg CloudConfig, ctx context.Context) (MetricsClient, erro
 	}
 
 	header := make(http.Header)
-	header.Set("Content-Type", "application/x-protobuf")
+	header.Set("content-type", "application/x-protobuf")
 	header.Set("x-hcp-resource-id", r.String())
+	header.Set("x-channel", fmt.Sprintf("consul/%s", version.GetHumanVersion()))
 
 	return &otlpClient{
 		client: c,
@@ -124,36 +127,28 @@ func (o *otlpClient) ExportMetrics(ctx context.Context, protoMetrics *metricpb.R
 
 	body, err := proto.Marshal(pbRequest)
 	if err != nil {
-		return fmt.Errorf("failed to export metrics: %v", err)
+		return fmt.Errorf("failed to marshal the request: %w", err)
 	}
 
 	req, err := retryablehttp.NewRequest(http.MethodPost, endpoint, bytes.NewBuffer(body))
 	if err != nil {
-		return fmt.Errorf("failed to export metrics: %v", err)
+		return fmt.Errorf("failed to create request: %w", err)
 	}
 	req.Header = *o.header
 
 	resp, err := o.client.Do(req.WithContext(ctx))
 	if err != nil {
-		return fmt.Errorf("failed to export metrics: %v", err)
+		return fmt.Errorf("failed to post metrics: %w", err)
 	}
 	defer resp.Body.Close()
 
 	var respData bytes.Buffer
 	if _, err := io.Copy(&respData, resp.Body); err != nil {
-		return fmt.Errorf("failed to export metrics: %v", err)
+		return fmt.Errorf("failed to read body: %w", err)
 	}
 
-	if respData.Len() != 0 {
-		var respProto colmetricpb.ExportMetricsServiceResponse
-		if err := proto.Unmarshal(respData.Bytes(), &respProto); err != nil {
-			return fmt.Errorf("failed to export metrics: %v", err)
-		}
-
-		if respProto.PartialSuccess != nil {
-			msg := respProto.PartialSuccess.GetErrorMessage()
-			return fmt.Errorf("failed to export metrics: partial success: %s", msg)
-		}
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("failed to export metrics: code %d: %s", resp.StatusCode, string(body))
 	}
 
 	return nil

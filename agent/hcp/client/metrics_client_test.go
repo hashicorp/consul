@@ -11,6 +11,8 @@ import (
 	colpb "go.opentelemetry.io/proto/otlp/collector/metrics/v1"
 	metricpb "go.opentelemetry.io/proto/otlp/metrics/v1"
 	"google.golang.org/protobuf/proto"
+
+	"github.com/hashicorp/consul/version"
 )
 
 func TestNewMetricsClient(t *testing.T) {
@@ -72,22 +74,17 @@ func TestExportMetrics(t *testing.T) {
 		},
 		"failsWithNonRetryableError": {
 			status:  http.StatusBadRequest,
-			wantErr: "failed to export metrics",
+			wantErr: "failed to export metrics: code 400",
 		},
 	} {
 		t.Run(name, func(t *testing.T) {
 			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				require.Equal(t, r.Header.Get("Content-Type"), "application/x-protobuf")
+				require.Equal(t, r.Header.Get("content-type"), "application/x-protobuf")
 				require.Equal(t, r.Header.Get("x-hcp-resource-id"), testResourceID)
+				require.Equal(t, r.Header.Get("x-channel"), fmt.Sprintf("consul/%s", version.GetHumanVersion()))
 				require.Equal(t, r.Header.Get("Authorization"), "Bearer test-token")
 
 				body := colpb.ExportMetricsServiceResponse{}
-
-				if test.wantErr != "" {
-					body.PartialSuccess = &colpb.ExportMetricsPartialSuccess{
-						ErrorMessage: "partial failure",
-					}
-				}
 				bytes, err := proto.Marshal(&body)
 
 				require.NoError(t, err)
