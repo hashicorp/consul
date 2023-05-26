@@ -1161,3 +1161,142 @@ func TestSpiffeMatcher(t *testing.T) {
 		})
 	}
 }
+
+func TestPathToSegments(t *testing.T) {
+	tests := map[string]struct {
+		key      string
+		paths    []string
+		expected []*envoy_matcher_v3.MetadataMatcher_PathSegment
+	}{
+		"single-path": {
+			key:   "jwt_payload_okta",
+			paths: []string{"perms"},
+			expected: []*envoy_matcher_v3.MetadataMatcher_PathSegment{
+				{
+					Segment: &envoy_matcher_v3.MetadataMatcher_PathSegment_Key{Key: "jwt_payload_okta"},
+				},
+				{
+					Segment: &envoy_matcher_v3.MetadataMatcher_PathSegment_Key{Key: "perms"},
+				},
+			},
+		},
+		"multi-paths": {
+			key:   "jwt_payload_okta",
+			paths: []string{"perms", "roles"},
+			expected: []*envoy_matcher_v3.MetadataMatcher_PathSegment{
+				{
+					Segment: &envoy_matcher_v3.MetadataMatcher_PathSegment_Key{Key: "jwt_payload_okta"},
+				},
+				{
+					Segment: &envoy_matcher_v3.MetadataMatcher_PathSegment_Key{Key: "perms"},
+				},
+				{
+					Segment: &envoy_matcher_v3.MetadataMatcher_PathSegment_Key{Key: "roles"},
+				},
+			},
+		},
+	}
+
+	for name, tt := range tests {
+		tt := tt
+		t.Run(name, func(t *testing.T) {
+			segments := pathToSegments(tt.paths, tt.key)
+			require.ElementsMatch(t, segments, tt.expected)
+		})
+	}
+}
+
+func TestClaimToPrincipal(t *testing.T) {
+	var (
+		firstClaim = structs.IntentionJWTClaimVerification{
+			Path:  []string{"perms"},
+			Value: "admin",
+		}
+		secondClaim = structs.IntentionJWTClaimVerification{
+			Path:  []string{"passage"},
+			Value: "secret",
+		}
+		payloadKey     = "dummy-key"
+		firstPrincipal = envoy_rbac_v3.Principal{
+			Identifier: &envoy_rbac_v3.Principal_Metadata{
+				Metadata: &envoy_matcher_v3.MetadataMatcher{
+					Filter: jwtEnvoyFilter,
+					Path:   pathToSegments(firstClaim.Path, payloadKey),
+					Value: &envoy_matcher_v3.ValueMatcher{
+						MatchPattern: &envoy_matcher_v3.ValueMatcher_StringMatch{
+							StringMatch: &envoy_matcher_v3.StringMatcher{
+								MatchPattern: &envoy_matcher_v3.StringMatcher_Exact{
+									Exact: firstClaim.Value,
+								},
+							},
+						},
+					},
+				},
+			},
+		}
+		secondPrincipal = envoy_rbac_v3.Principal{
+			Identifier: &envoy_rbac_v3.Principal_Metadata{
+				Metadata: &envoy_matcher_v3.MetadataMatcher{
+					Filter: jwtEnvoyFilter,
+					Path:   pathToSegments(secondClaim.Path, "second-key"),
+					Value: &envoy_matcher_v3.ValueMatcher{
+						MatchPattern: &envoy_matcher_v3.ValueMatcher_StringMatch{
+							StringMatch: &envoy_matcher_v3.StringMatcher{
+								MatchPattern: &envoy_matcher_v3.StringMatcher_Exact{
+									Exact: secondClaim.Value,
+								},
+							},
+						},
+					},
+				},
+			},
+		}
+	)
+	tests := map[string]struct {
+		jwtInfos []*JWTInfo
+		expected *envoy_rbac_v3.Principal
+	}{
+		"single-jwt-info": {
+			jwtInfos: []*JWTInfo{
+				{
+					Claims:     []*structs.IntentionJWTClaimVerification{&firstClaim},
+					PayloadKey: payloadKey,
+				},
+			},
+			expected: &envoy_rbac_v3.Principal{
+				Identifier: &envoy_rbac_v3.Principal_OrIds{
+					OrIds: &envoy_rbac_v3.Principal_Set{
+						Ids: []*envoy_rbac_v3.Principal{&firstPrincipal},
+					},
+				},
+			},
+		},
+		"multiple-jwt-info": {
+			jwtInfos: []*JWTInfo{
+				{
+					Claims:     []*structs.IntentionJWTClaimVerification{&firstClaim},
+					PayloadKey: payloadKey,
+				},
+				{
+					Claims:     []*structs.IntentionJWTClaimVerification{&secondClaim},
+					PayloadKey: "second-key",
+				},
+			},
+			expected: &envoy_rbac_v3.Principal{
+				Identifier: &envoy_rbac_v3.Principal_OrIds{
+					OrIds: &envoy_rbac_v3.Principal_Set{
+						Ids: []*envoy_rbac_v3.Principal{&firstPrincipal, &secondPrincipal},
+					},
+				},
+			},
+		},
+	}
+
+	for name, tt := range tests {
+		tt := tt
+		t.Run(name, func(t *testing.T) {
+			principal := infoListToPrincipals(tt.jwtInfos)
+			require.Equal(t, principal, tt.expected)
+		})
+	}
+}

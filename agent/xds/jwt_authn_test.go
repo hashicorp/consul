@@ -206,6 +206,116 @@ func TestMakeJWTAUTHFilters(t *testing.T) {
 	}
 }
 
+func TestMakeComputedProviderName(t *testing.T) {
+	tests := map[string]struct {
+		name     string
+		perm     *structs.IntentionPermission
+		expected string
+	}{
+		"no-permissions": {
+			name:     "okta",
+			expected: "okta",
+		},
+		"path-prefix-permission": {
+			name: "auth0",
+			perm: &structs.IntentionPermission{
+				HTTP: &structs.IntentionHTTPPermission{
+					PathPrefix: "admin",
+				},
+			},
+			expected: "auth0_admin",
+		},
+		"path-regex-permission": {
+			name: "auth0",
+			perm: &structs.IntentionPermission{
+				HTTP: &structs.IntentionHTTPPermission{
+					PathRegex: "p([a-z]+)ch",
+				},
+			},
+			expected: "auth0_p([a-z]+)ch",
+		},
+		"permission-with-no-path": {
+			name: "auth0",
+			perm: &structs.IntentionPermission{
+				HTTP: &structs.IntentionHTTPPermission{},
+			},
+			expected: "auth0",
+		},
+		"exact-path-permission": {
+			name: "auth0",
+			perm: &structs.IntentionPermission{
+				HTTP: &structs.IntentionHTTPPermission{
+					PathExact: "admin",
+				},
+			},
+			expected: "auth0_admin",
+		},
+	}
+
+	for name, tt := range tests {
+		tt := tt
+		t.Run(name, func(t *testing.T) {
+			reqs := makeComputedProviderName(tt.name, tt.perm)
+			require.Equal(t, reqs, tt.expected)
+		})
+	}
+}
+
+func TestBuildPayloadInMetadataKey(t *testing.T) {
+	tests := map[string]struct {
+		name     string
+		perm     *structs.IntentionPermission
+		expected string
+	}{
+		"no-permissions": {
+			name:     "okta",
+			expected: "jwt_payload_okta",
+		},
+		"path-prefix-permission": {
+			name: "auth0",
+			perm: &structs.IntentionPermission{
+				HTTP: &structs.IntentionHTTPPermission{
+					PathPrefix: "admin",
+				},
+			},
+			expected: "jwt_payload_auth0_admin",
+		},
+		"path-regex-permission": {
+			name: "auth0",
+			perm: &structs.IntentionPermission{
+				HTTP: &structs.IntentionHTTPPermission{
+					PathRegex: "p([a-z]+)ch",
+				},
+			},
+			expected: "jwt_payload_auth0_p([a-z]+)ch",
+		},
+		"permission-with-no-path": {
+			name: "auth0",
+			perm: &structs.IntentionPermission{
+				HTTP: &structs.IntentionHTTPPermission{},
+			},
+			expected: "jwt_payload_auth0",
+		},
+		"exact-path-permission": {
+			name: "auth0",
+			perm: &structs.IntentionPermission{
+				HTTP: &structs.IntentionHTTPPermission{
+					PathExact: "admin",
+				},
+			},
+			expected: "jwt_payload_auth0_admin",
+		},
+	}
+
+	for name, tt := range tests {
+		tt := tt
+		t.Run(name, func(t *testing.T) {
+			reqs := buildPayloadInMetadataKey(tt.name, tt.perm)
+			require.Equal(t, reqs, tt.expected)
+		})
+	}
+}
+
 func TestCollectJWTAuthnProviders(t *testing.T) {
 	tests := map[string]struct {
 		intention *structs.Intention
