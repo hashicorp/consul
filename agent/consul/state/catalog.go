@@ -11,7 +11,6 @@ import (
 	"strings"
 
 	"github.com/hashicorp/go-memdb"
-	"github.com/mitchellh/copystructure"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/configentry"
@@ -4711,14 +4710,7 @@ func updateMeshTopology(tx WriteTxn, idx uint64, node string, svc *structs.NodeS
 
 		var mapping *upstreamDownstream
 		if existing, ok := obj.(*upstreamDownstream); ok {
-			rawCopy, err := copystructure.Copy(existing)
-			if err != nil {
-				return fmt.Errorf("failed to copy existing topology mapping: %v", err)
-			}
-			mapping, ok = rawCopy.(*upstreamDownstream)
-			if !ok {
-				return fmt.Errorf("unexpected topology type %T", rawCopy)
-			}
+			mapping := existing.DeepCopy()
 			mapping.Refs[uid] = struct{}{}
 			mapping.ModifyIndex = idx
 
@@ -4784,14 +4776,7 @@ func cleanupMeshTopology(tx WriteTxn, idx uint64, service *structs.ServiceNode) 
 
 	// Do the updates in a separate loop so we don't trash the iterator.
 	for _, m := range mappings {
-		rawCopy, err := copystructure.Copy(m)
-		if err != nil {
-			return fmt.Errorf("failed to copy existing topology mapping: %v", err)
-		}
-		copy, ok := rawCopy.(*upstreamDownstream)
-		if !ok {
-			return fmt.Errorf("unexpected topology type %T", rawCopy)
-		}
+		copy := m.DeepCopy()
 
 		// Bail early if there's no reference to the proxy ID we're deleting
 		if _, ok := copy.Refs[uid]; !ok {
