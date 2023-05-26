@@ -7,9 +7,7 @@ import (
 	"errors"
 	"fmt"
 
-	envoy_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
-	envoy_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	envoy_http_wasm_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/wasm/v3"
 	envoy_http_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
 	envoy_resource_v3 "github.com/envoyproxy/go-control-plane/pkg/resource/v3"
@@ -20,6 +18,8 @@ import (
 
 // wasm is a built-in Envoy extension that can patch filter chains to insert Wasm plugins.
 type wasm struct {
+	extensioncommon.BasicExtensionAdapter
+
 	name       string
 	wasmConfig *wasmConfig
 }
@@ -75,16 +75,6 @@ func (w wasm) CanApply(config *extensioncommon.RuntimeConfig) bool {
 
 func (w wasm) matchesConfigDirection(isInboundListener bool) bool {
 	return isInboundListener && w.wasmConfig.ListenerType == "inbound"
-}
-
-// PatchRoute does nothing for the WASM extension.
-func (w wasm) PatchRoute(_ *extensioncommon.RuntimeConfig, r *envoy_route_v3.RouteConfiguration) (*envoy_route_v3.RouteConfiguration, bool, error) {
-	return r, false, nil
-}
-
-// PatchCluster does nothing for the WASM extension.
-func (w wasm) PatchCluster(_ *extensioncommon.RuntimeConfig, c *envoy_cluster_v3.Cluster) (*envoy_cluster_v3.Cluster, bool, error) {
-	return c, false, nil
 }
 
 // PatchFilter adds a Wasm filter to the HTTP filter chain.

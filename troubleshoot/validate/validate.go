@@ -24,6 +24,8 @@ import (
 // Validate contains input information about which proxy resources to validate and output information about resources it
 // has validated.
 type Validate struct {
+	extensioncommon.BasicExtensionAdapter
+
 	// envoyID is an argument to the Validate plugin and identifies which listener to begin the validation with.
 	envoyID string
 
