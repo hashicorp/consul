@@ -40,6 +40,7 @@ const (
 
 const (
 	BuiltinAWSLambdaExtension      string = "builtin/aws/lambda"
+	BuiltinExtAuthzExtension       string = "builtin/ext-authz"
 	BuiltinLuaExtension            string = "builtin/lua"
 	BuiltinLocalRatelimitExtension string = "builtin/http/localratelimit"
 	BuiltinWasmExtension           string = "builtin/wasm"
