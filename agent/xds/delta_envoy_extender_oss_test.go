@@ -21,6 +21,7 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	"github.com/hashicorp/consul/agent/envoyextensions"
+	propertyoverride "github.com/hashicorp/consul/agent/envoyextensions/builtin/property-override"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/xds/extensionruntime"
@@ -87,10 +88,133 @@ end`,
 		}
 	}
 
+	// Apply Prop Override extension to the local service and ensure http is used so the extension can be applied.
+	makePropOverrideNsFunc := func(args map[string]interface{}) func(ns *structs.NodeService) {
+		return func(ns *structs.NodeService) {
+			ns.Proxy.Config["protocol"] = "http"
+			if _, ok := args["ProxyType"]; !ok {
+				args["ProxyType"] = api.ServiceKindConnectProxy
+			}
+			ns.Proxy.EnvoyExtensions = []structs.EnvoyExtension{
+				{
+					Name:      api.BuiltinPropertyOverrideExtension,
+					Arguments: args,
+				},
+			}
+		}
+	}
+
+	propertyOverrideServiceDefaultsAddOutlierDetectionSingle := makePropOverrideNsFunc(
+		map[string]interface{}{
+			"Patches": []map[string]interface{}{
+				{
+					"ResourceFilter": map[string]interface{}{
+						"ResourceType":     propertyoverride.ResourceTypeCluster,
+						"TrafficDirection": propertyoverride.TrafficDirectionOutbound,
+					},
+					"Op":    "add",
+					"Path":  "/outlier_detection/success_rate_minimum_hosts",
+					"Value": 1234,
+				},
+			},
+		})
+
+	propertyOverrideServiceDefaultsAddOutlierDetectionMultiple := makePropOverrideNsFunc(
+		map[string]interface{}{
+			"Patches": []map[string]interface{}{
+				{
+					"ResourceFilter": map[string]interface{}{
+						"ResourceType":     propertyoverride.ResourceTypeCluster,
+						"TrafficDirection": propertyoverride.TrafficDirectionOutbound,
+					},
+					"Op":   "add",
+					"Path": "/outlier_detection",
+					"Value": map[string]interface{}{
+						"success_rate_minimum_hosts":        1234,
+						"failure_percentage_request_volume": 2345,
+					},
+				},
+			},
+		})
+
+	propertyOverrideServiceDefaultsRemoveOutlierDetection := makePropOverrideNsFunc(
+		map[string]interface{}{
+			"Patches": []map[string]interface{}{
+				{
+					"ResourceFilter": map[string]interface{}{
+						"ResourceType":     propertyoverride.ResourceTypeCluster,
+						"TrafficDirection": propertyoverride.TrafficDirectionOutbound,
+					},
+					"Op":   "remove",
+					"Path": "/outlier_detection",
+				},
+			},
+		})
+
+	propertyOverrideServiceDefaultsAddKeepalive := makePropOverrideNsFunc(
+		map[string]interface{}{
+			"Patches": []map[string]interface{}{
+				{
+					"ResourceFilter": map[string]interface{}{
+						"ResourceType":     propertyoverride.ResourceTypeCluster,
+						"TrafficDirection": propertyoverride.TrafficDirectionOutbound,
+					},
+					"Op":    "add",
+					"Path":  "/upstream_connection_options/tcp_keepalive/keepalive_probes",
+					"Value": 5,
+				},
+			},
+		})
+
+	propertyOverrideServiceDefaultsAddRoundRobinLbConfig := makePropOverrideNsFunc(
+		map[string]interface{}{
+			"Patches": []map[string]interface{}{
+				{
+					"ResourceFilter": map[string]interface{}{
+						"ResourceType":     propertyoverride.ResourceTypeCluster,
+						"TrafficDirection": propertyoverride.TrafficDirectionOutbound,
+					},
+					"Op":    "add",
+					"Path":  "/round_robin_lb_config",
+					"Value": map[string]interface{}{},
+				},
+			},
+		})
+
 	tests := []struct {
 		name   string
 		create func(t testinf.T) *proxycfg.ConfigSnapshot
 	}{
+		{
+			name: "propertyoverride-add-outlier-detection",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", false, propertyOverrideServiceDefaultsAddOutlierDetectionSingle, nil)
+			},
+		},
+		{
+			name: "propertyoverride-add-outlier-detection-multiple",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", false, propertyOverrideServiceDefaultsAddOutlierDetectionMultiple, nil)
+			},
+		},
+		{
+			name: "propertyoverride-add-keepalive",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", false, propertyOverrideServiceDefaultsAddKeepalive, nil)
+			},
+		},
+		{
+			name: "propertyoverride-add-round-robin-lb-config",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", false, propertyOverrideServiceDefaultsAddRoundRobinLbConfig, nil)
+			},
+		},
+		{
+			name: "propertyoverride-remove-outlier-detection",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", false, propertyOverrideServiceDefaultsRemoveOutlierDetection, nil)
+			},
+		},
 		{
 			name: "lambda-connect-proxy",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
