@@ -69,8 +69,11 @@ func TestConstructor(t *testing.T) {
 			v = nil
 		}
 
-		// Use a valid field (name) for all resource types.
+		// Use a valid field for all resource types.
 		path := "/name"
+		if t == ResourceTypeClusterLoadAssignment {
+			path = "/cluster_name"
+		}
 
 		return testCase{
 			arguments: makeArguments(map[string]any{

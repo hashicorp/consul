@@ -181,6 +181,36 @@ end`,
 			},
 		})
 
+	propertyOverrideServiceDefaultsClusterLoadAssignmentOutboundAdd := makePropOverrideNsFunc(
+		map[string]interface{}{
+			"Patches": []map[string]interface{}{
+				{
+					"ResourceFilter": map[string]interface{}{
+						"ResourceType":     propertyoverride.ResourceTypeClusterLoadAssignment,
+						"TrafficDirection": propertyoverride.TrafficDirectionOutbound,
+					},
+					"Op":    "add",
+					"Path":  "/policy/overprovisioning_factor",
+					"Value": 123,
+				},
+			},
+		})
+
+	propertyOverrideServiceDefaultsClusterLoadAssignmentInboundAdd := makePropOverrideNsFunc(
+		map[string]interface{}{
+			"Patches": []map[string]interface{}{
+				{
+					"ResourceFilter": map[string]interface{}{
+						"ResourceType":     propertyoverride.ResourceTypeClusterLoadAssignment,
+						"TrafficDirection": propertyoverride.TrafficDirectionInbound,
+					},
+					"Op":    "add",
+					"Path":  "/policy/overprovisioning_factor",
+					"Value": 123,
+				},
+			},
+		})
+
 	propertyOverrideServiceDefaultsListenerInboundAdd := makePropOverrideNsFunc(
 		map[string]interface{}{
 			"Patches": []map[string]interface{}{
@@ -292,6 +322,18 @@ end`,
 			name: "propertyoverride-remove-outlier-detection",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", false, propertyOverrideServiceDefaultsRemoveOutlierDetection, nil)
+			},
+		},
+		{
+			name: "propertyoverride-cluster-load-assignment-outbound-add",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", false, propertyOverrideServiceDefaultsClusterLoadAssignmentOutboundAdd, nil)
+			},
+		},
+		{
+			name: "propertyoverride-cluster-load-assignment-inbound-add",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", false, propertyOverrideServiceDefaultsClusterLoadAssignmentInboundAdd, nil)
 			},
 		},
 		{

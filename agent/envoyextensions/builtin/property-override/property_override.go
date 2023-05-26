@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	envoy_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
+	envoy_endpoint_v3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	envoy_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	"github.com/hashicorp/go-multierror"
@@ -49,15 +50,17 @@ type ResourceFilter struct {
 type ResourceType string
 
 const (
-	ResourceTypeCluster  ResourceType = "cluster"
-	ResourceTypeListener ResourceType = "listener"
-	ResourceTypeRoute    ResourceType = "route"
+	ResourceTypeCluster               ResourceType = "cluster"
+	ResourceTypeClusterLoadAssignment ResourceType = "cluster-load-assignment"
+	ResourceTypeListener              ResourceType = "listener"
+	ResourceTypeRoute                 ResourceType = "route"
 )
 
 var ResourceTypes = stringSet{
-	string(ResourceTypeCluster):  {},
-	string(ResourceTypeListener): {},
-	string(ResourceTypeRoute):    {},
+	string(ResourceTypeCluster):               {},
+	string(ResourceTypeClusterLoadAssignment): {},
+	string(ResourceTypeListener):              {},
+	string(ResourceTypeRoute):                 {},
 }
 
 // TrafficDirection determines whether inbound or outbound Envoy resources will be patched.
@@ -179,6 +182,8 @@ func (p *Patch) validate(debug bool) error {
 	switch p.ResourceFilter.ResourceType {
 	case ResourceTypeCluster:
 		_, err = PatchStruct(&envoy_cluster_v3.Cluster{}, *p, debug)
+	case ResourceTypeClusterLoadAssignment:
+		_, err = PatchStruct(&envoy_endpoint_v3.ClusterLoadAssignment{}, *p, debug)
 	case ResourceTypeRoute:
 		_, err = PatchStruct(&envoy_route_v3.RouteConfiguration{}, *p, debug)
 	case ResourceTypeListener:
@@ -253,6 +258,15 @@ func (p *propertyOverride) PatchCluster(_ *extensioncommon.RuntimeConfig, c *env
 		d = TrafficDirectionInbound
 	}
 	return patchResourceType[*envoy_cluster_v3.Cluster](c, p, ResourceTypeCluster, d, &defaultStructPatcher[*envoy_cluster_v3.Cluster]{})
+}
+
+// PatchClusterLoadAssignment patches the provided Envoy ClusterLoadAssignment with any applicable `cluster-load-assignment` ResourceType patches.
+func (p *propertyOverride) PatchClusterLoadAssignment(_ *extensioncommon.RuntimeConfig, c *envoy_endpoint_v3.ClusterLoadAssignment) (*envoy_endpoint_v3.ClusterLoadAssignment, bool, error) {
+	d := TrafficDirectionOutbound
+	if extensioncommon.IsLocalAppClusterLoadAssignment(c) {
+		d = TrafficDirectionInbound
+	}
+	return patchResourceType[*envoy_endpoint_v3.ClusterLoadAssignment](c, p, ResourceTypeClusterLoadAssignment, d, &defaultStructPatcher[*envoy_endpoint_v3.ClusterLoadAssignment]{})
 }
 
 // PatchListener patches the provided Envoy Listener with any applicable `listener` ResourceType patches.

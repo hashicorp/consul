@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	envoy_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
+	envoy_endpoint_v3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	envoy_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	"github.com/hashicorp/go-multierror"
@@ -17,6 +18,9 @@ import (
 
 // ClusterMap is a map of clusters indexed by name.
 type ClusterMap map[string]*envoy_cluster_v3.Cluster
+
+// ClusterLoadAssignmentMap is a map of cluster load assignments indexed by name.
+type ClusterLoadAssignmentMap map[string]*envoy_endpoint_v3.ClusterLoadAssignment
 
 // ListenerMap is a map of listeners indexed by name.
 type ListenerMap map[string]*envoy_listener_v3.Listener
@@ -56,6 +60,10 @@ type BasicExtension interface {
 	// PatchClusters is always called first with the entire collection of clusters.
 	// Then PatchClusters is called for each individual cluster.
 	PatchClusters(*RuntimeConfig, ClusterMap) (ClusterMap, error)
+
+	// PatchClusterLoadAssignment patches a cluster load assignment to include the custom Envoy configuration
+	// required to integrate with the built in extension template.
+	PatchClusterLoadAssignment(*RuntimeConfig, *envoy_endpoint_v3.ClusterLoadAssignment) (*envoy_endpoint_v3.ClusterLoadAssignment, bool, error)
 
 	// PatchListener patches a listener to include the custom Envoy configuration
 	// required to integrate with the built in extension template.
@@ -120,6 +128,7 @@ func (b *BasicEnvoyExtender) Extend(resources *xdscommon.IndexedResources, confi
 	}
 
 	clusters := make(ClusterMap)
+	clusterLoadAssignments := make(ClusterLoadAssignmentMap)
 	routes := make(RouteMap)
 	listeners := make(ListenerMap)
 
@@ -127,11 +136,14 @@ func (b *BasicEnvoyExtender) Extend(resources *xdscommon.IndexedResources, confi
 		xdscommon.ListenerType,
 		xdscommon.RouteType,
 		xdscommon.ClusterType,
+		xdscommon.EndpointType,
 	} {
 		for nameOrSNI, msg := range resources.Index[indexType] {
 			switch resource := msg.(type) {
 			case *envoy_cluster_v3.Cluster:
 				clusters[nameOrSNI] = resource
+			case *envoy_endpoint_v3.ClusterLoadAssignment:
+				clusterLoadAssignments[nameOrSNI] = resource
 			case *envoy_listener_v3.Listener:
 				listeners[nameOrSNI] = resource
 			case *envoy_route_v3.RouteConfiguration:
@@ -145,6 +157,14 @@ func (b *BasicEnvoyExtender) Extend(resources *xdscommon.IndexedResources, confi
 	if patchedClusters, err := b.patchClusters(config, clusters); err == nil {
 		for k, v := range patchedClusters {
 			resources.Index[xdscommon.ClusterType][k] = v
+		}
+	} else {
+		resultErr = multierror.Append(resultErr, err)
+	}
+
+	if patchedClusterLoadAssignments, err := b.patchClusterLoadAssignments(config, clusterLoadAssignments); err == nil {
+		for k, v := range patchedClusterLoadAssignments {
+			resources.Index[xdscommon.EndpointType][k] = v
 		}
 	} else {
 		resultErr = multierror.Append(resultErr, err)
@@ -181,13 +201,41 @@ func (b *BasicEnvoyExtender) patchClusters(config *RuntimeConfig, clusters Clust
 		if err != nil {
 			resultErr = multierror.Append(resultErr, fmt.Errorf("error patching cluster %q: %w", nameOrSNI, err))
 		}
-		if patched {
-			patchedClusters[nameOrSNI] = patchedCluster
-		} else {
-			patchedClusters[nameOrSNI] = cluster
+		if !patched {
+			patchedCluster = cluster
 		}
+
+		// We patch cluster load assignments directly above for EDS, but also here for CDS,
+		// since updates can come from either.
+		if patchedCluster.LoadAssignment != nil {
+			patchedClusterLoadAssignment, patched, err := b.Extension.PatchClusterLoadAssignment(config, patchedCluster.LoadAssignment)
+			if err != nil {
+				resultErr = multierror.Append(resultErr, fmt.Errorf("error patching load assignment for cluster %q: %w", nameOrSNI, err))
+			} else if patched {
+				patchedCluster.LoadAssignment = patchedClusterLoadAssignment
+			}
+		}
+
+		patchedClusters[nameOrSNI] = patchedCluster
 	}
 	return patchedClusters, resultErr
+}
+
+func (b *BasicEnvoyExtender) patchClusterLoadAssignments(config *RuntimeConfig, clusterLoadAssignments ClusterLoadAssignmentMap) (ClusterLoadAssignmentMap, error) {
+	var resultErr error
+
+	for nameOrSNI, clusterLoadAssignment := range clusterLoadAssignments {
+		patchedClusterLoadAssignment, patched, err := b.Extension.PatchClusterLoadAssignment(config, clusterLoadAssignment)
+		if err != nil {
+			resultErr = multierror.Append(resultErr, fmt.Errorf("error patching cluster load assignment %q: %w", nameOrSNI, err))
+		}
+		if patched {
+			clusterLoadAssignments[nameOrSNI] = patchedClusterLoadAssignment
+		} else {
+			clusterLoadAssignments[nameOrSNI] = clusterLoadAssignment
+		}
+	}
+	return clusterLoadAssignments, resultErr
 }
 
 func (b *BasicEnvoyExtender) patchRoutes(config *RuntimeConfig, routes RouteMap) (RouteMap, error) {

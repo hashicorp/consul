@@ -5,6 +5,7 @@ package extensioncommon
 
 import (
 	envoy_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
+	envoy_endpoint_v3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	envoy_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 )
@@ -26,6 +27,11 @@ func (BasicExtensionAdapter) PatchCluster(_ *RuntimeConfig, c *envoy_cluster_v3.
 // PatchClusters provides a default implementation of the PatchClusters interface that does nothing.
 func (BasicExtensionAdapter) PatchClusters(_ *RuntimeConfig, c ClusterMap) (ClusterMap, error) {
 	return c, nil
+}
+
+// PatchClusterLoadAssignment provides a default implementation of the PatchClusterLoadAssignment interface that does nothing.
+func (BasicExtensionAdapter) PatchClusterLoadAssignment(_ *RuntimeConfig, c *envoy_endpoint_v3.ClusterLoadAssignment) (*envoy_endpoint_v3.ClusterLoadAssignment, bool, error) {
+	return c, false, nil
 }
 
 // PatchListener provides a default implementation of the PatchListener interface that does nothing.

@@ -10,6 +10,7 @@ import (
 
 	envoy_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+	envoy_endpoint_v3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	envoy_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	envoy_http_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
@@ -82,6 +83,12 @@ func GetListenerEnvoyID(l *envoy_listener_v3.Listener) string {
 // the local proxy.
 func IsLocalAppCluster(c *envoy_cluster_v3.Cluster) bool {
 	return c.Name == xdscommon.LocalAppClusterName
+}
+
+// IsLocalAppClusterLoadAssignment returns true if the given ClusterLoadAssignment represents the local Cluster, which
+// receives inbound traffic to the local proxy.
+func IsLocalAppClusterLoadAssignment(a *envoy_endpoint_v3.ClusterLoadAssignment) bool {
+	return a.ClusterName == xdscommon.LocalAppClusterName
 }
 
 // IsRouteToLocalAppCluster takes a RouteConfiguration and returns true if all routes within it target the local
