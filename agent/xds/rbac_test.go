@@ -1259,8 +1259,8 @@ func TestClaimToPrincipal(t *testing.T) {
 		"single-jwt-info": {
 			jwtInfos: []*JWTInfo{
 				{
-					Claims:     []*structs.IntentionJWTClaimVerification{&firstClaim},
-					PayloadKey: payloadKey,
+					Claims:             []*structs.IntentionJWTClaimVerification{&firstClaim},
+					MetadataPayloadKey: payloadKey,
 				},
 			},
 			expected: &envoy_rbac_v3.Principal{
@@ -1274,12 +1274,12 @@ func TestClaimToPrincipal(t *testing.T) {
 		"multiple-jwt-info": {
 			jwtInfos: []*JWTInfo{
 				{
-					Claims:     []*structs.IntentionJWTClaimVerification{&firstClaim},
-					PayloadKey: payloadKey,
+					Claims:             []*structs.IntentionJWTClaimVerification{&firstClaim},
+					MetadataPayloadKey: payloadKey,
 				},
 				{
-					Claims:     []*structs.IntentionJWTClaimVerification{&secondClaim},
-					PayloadKey: "second-key",
+					Claims:             []*structs.IntentionJWTClaimVerification{&secondClaim},
+					MetadataPayloadKey: "second-key",
 				},
 			},
 			expected: &envoy_rbac_v3.Principal{

@@ -17,9 +17,9 @@
           }
         }
       },
-      "okta_some-special-path": {
+      "okta_0": {
         "issuer": "test-issuer",
-        "payloadInMetadata": "jwt_payload_okta_some-special-path",
+        "payloadInMetadata": "jwt_payload_okta_0",
         "remoteJwks": {
           "httpUri": {
             "uri": "https://example-okta.com/.well-known/jwks.json",
@@ -52,7 +52,7 @@
           "prefix": "some-special-path"
         },
         "requires": {
-          "providerName": "okta_some-special-path"
+          "providerName": "okta_0"
         }
       },
       {

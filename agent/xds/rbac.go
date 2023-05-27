@@ -236,7 +236,7 @@ func intentionToIntermediateRBACForm(
 		var c []*JWTInfo
 		for _, prov := range ixn.JWT.Providers {
 			if len(prov.VerifyClaims) > 0 {
-				ji := &JWTInfo{Claims: prov.VerifyClaims, PayloadKey: buildPayloadInMetadataKey(prov.Name, nil)}
+				ji := &JWTInfo{Claims: prov.VerifyClaims, MetadataPayloadKey: buildPayloadInMetadataKey(prov.Name, nil, 0)}
 				c = append(c, ji)
 			}
 		}
@@ -249,7 +249,7 @@ func intentionToIntermediateRBACForm(
 		if isHTTP {
 			rixn.Action = intentionActionLayer7
 			rixn.Permissions = make([]*rbacPermission, 0, len(ixn.Permissions))
-			for _, perm := range ixn.Permissions {
+			for k, perm := range ixn.Permissions {
 				rbacPerm := rbacPermission{
 					Definition: perm,
 					Action:     intentionActionFromString(perm.Action),
@@ -259,7 +259,7 @@ func intentionToIntermediateRBACForm(
 					var c []*JWTInfo
 					for _, prov := range perm.JWT.Providers {
 						if len(prov.VerifyClaims) > 0 {
-							ji := &JWTInfo{Claims: prov.VerifyClaims, PayloadKey: buildPayloadInMetadataKey(prov.Name, perm)}
+							ji := &JWTInfo{Claims: prov.VerifyClaims, MetadataPayloadKey: buildPayloadInMetadataKey(prov.Name, perm, k)}
 							c = append(c, ji)
 						}
 					}
@@ -283,8 +283,8 @@ func intentionToIntermediateRBACForm(
 type intentionAction int
 
 type JWTInfo struct {
-	Claims     []*structs.IntentionJWTClaimVerification
-	PayloadKey string
+	Claims             []*structs.IntentionJWTClaimVerification
+	MetadataPayloadKey string
 }
 
 const (
@@ -636,7 +636,7 @@ func infoListToPrincipals(c []*JWTInfo) *envoy_rbac_v3.Principal {
 	for _, jwtInfo := range c {
 		if jwtInfo != nil {
 			for _, claim := range jwtInfo.Claims {
-				ps = append(ps, claimToPrincipal(claim, jwtInfo.PayloadKey))
+				ps = append(ps, claimToPrincipal(claim, jwtInfo.MetadataPayloadKey))
 			}
 		}
 	}

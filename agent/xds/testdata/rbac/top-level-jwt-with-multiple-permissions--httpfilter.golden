@@ -70,7 +70,7 @@
                     "metadata": {
                       "filter":"envoy.filters.http.jwt_authn",
                       "path": [
-                        {"key": "jwt_payload_auth0_/v1/secret"},
+                        {"key": "jwt_payload_auth0_0"},
                         {"key": "perms"},
                         {"key": "role"}
                       ],
@@ -85,7 +85,7 @@
                     "metadata": {
                       "filter":"envoy.filters.http.jwt_authn",
                       "path": [
-                        {"key": "jwt_payload_auth0_/v1/admin"},
+                        {"key": "jwt_payload_auth0_1"},
                         {"key": "perms"},
                         {"key": "role"}
                       ],

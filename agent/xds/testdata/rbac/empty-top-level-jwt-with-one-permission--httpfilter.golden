@@ -32,7 +32,7 @@
                     "metadata": {
                       "filter":"envoy.filters.http.jwt_authn",
                       "path": [
-                        {"key": "jwt_payload_okta_some-path"},
+                        {"key": "jwt_payload_okta_0"},
                         {"key": "roles"}
                       ],
                       "value": {
