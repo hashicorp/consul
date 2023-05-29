@@ -10,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
 	"github.com/hashicorp/go-hclog"
 	wal "github.com/hashicorp/raft-wal"
@@ -101,7 +102,18 @@ func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer, providedLogger hcl
 	cfg.Telemetry.PrometheusOpts.CounterDefinitions = counters
 	cfg.Telemetry.PrometheusOpts.SummaryDefinitions = summaries
 
-	d.MetricsConfig, err = lib.InitTelemetry(cfg.Telemetry, d.Logger)
+	var extraSinks []metrics.MetricSink
+	if cfg.IsCloudEnabled() {
+		d.HCP, err = hcp.NewDeps(cfg.Cloud, d.Logger.Named("hcp"), cfg.NodeID)
+		if err != nil {
+			return d, err
+		}
+		if d.HCP.Sink != nil {
+			extraSinks = append(extraSinks, d.HCP.Sink)
+		}
+	}
+
+	d.MetricsConfig, err = lib.InitTelemetry(cfg.Telemetry, d.Logger, extraSinks...)
 	if err != nil {
 		return d, fmt.Errorf("failed to initialize telemetry: %w", err)
 	}
@@ -192,12 +204,6 @@ func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer, providedLogger hcl
 	d.EventPublisher = stream.NewEventPublisher(10 * time.Second)
 
 	d.XDSStreamLimiter = limiter.NewSessionLimiter()
-	if cfg.IsCloudEnabled() {
-		d.HCP, err = hcp.NewDeps(cfg.Cloud, d.Logger)
-		if err != nil {
-			return d, err
-		}
-	}
 
 	return d, nil
 }

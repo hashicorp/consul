@@ -1,7 +1,7 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: MPL-2.0
 
-package hcp
+package client
 
 import (
 	"context"
@@ -11,6 +11,8 @@ import (
 
 	httptransport "github.com/go-openapi/runtime/client"
 	"github.com/go-openapi/strfmt"
+
+	hcptelemetry "github.com/hashicorp/hcp-sdk-go/clients/cloud-consul-telemetry-gateway/preview/2023-04-14/client/consul_telemetry_service"
 	hcpgnm "github.com/hashicorp/hcp-sdk-go/clients/cloud-global-network-manager-service/preview/2022-02-15/client/global_network_manager_service"
 	gnmmod "github.com/hashicorp/hcp-sdk-go/clients/cloud-global-network-manager-service/preview/2022-02-15/models"
 	"github.com/hashicorp/hcp-sdk-go/httpclient"
@@ -20,13 +22,32 @@ import (
 	"github.com/hashicorp/consul/version"
 )
 
+// metricsGatewayPath is the default path for metrics export request on the Telemetry Gateway.
+const metricsGatewayPath = "/v1/metrics"
+
 // Client interface exposes HCP operations that can be invoked by Consul
 //
 //go:generate mockery --name Client --with-expecter --inpackage
 type Client interface {
 	FetchBootstrap(ctx context.Context) (*BootstrapConfig, error)
+	FetchTelemetryConfig(ctx context.Context) (*TelemetryConfig, error)
 	PushServerStatus(ctx context.Context, status *ServerStatus) error
 	DiscoverServers(ctx context.Context) ([]string, error)
+}
+
+// MetricsConfig holds metrics specific configuration for the TelemetryConfig.
+// The endpoint field overrides the TelemetryConfig endpoint.
+type MetricsConfig struct {
+	Filters  []string
+	Endpoint string
+}
+
+// TelemetryConfig contains configuration for telemetry data forwarded by Consul servers
+// to the HCP Telemetry gateway.
+type TelemetryConfig struct {
+	Endpoint      string
+	Labels        map[string]string
+	MetricsConfig *MetricsConfig
 }
 
 type BootstrapConfig struct {
@@ -44,6 +65,7 @@ type hcpClient struct {
 	hc       *httptransport.Runtime
 	cfg      config.CloudConfig
 	gnm      hcpgnm.ClientService
+	tgw      hcptelemetry.ClientService
 	resource resource.Resource
 }
 
@@ -64,6 +86,8 @@ func NewClient(cfg config.CloudConfig) (Client, error) {
 	}
 
 	client.gnm = hcpgnm.New(client.hc, nil)
+	client.tgw = hcptelemetry.New(client.hc, nil)
+
 	return client, nil
 }
 
@@ -77,6 +101,29 @@ func httpClient(c config.CloudConfig) (*httptransport.Runtime, error) {
 		HCPConfig:     cfg,
 		SourceChannel: "consul " + version.GetHumanVersion(),
 	})
+}
+
+// FetchTelemetryConfig obtains telemetry configuration from the Telemetry Gateway.
+func (c *hcpClient) FetchTelemetryConfig(ctx context.Context) (*TelemetryConfig, error) {
+	params := hcptelemetry.NewAgentTelemetryConfigParamsWithContext(ctx).
+		WithLocationOrganizationID(c.resource.Organization).
+		WithLocationProjectID(c.resource.Project).
+		WithClusterID(c.resource.ID)
+
+	resp, err := c.tgw.AgentTelemetryConfig(params, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	payloadConfig := resp.Payload.TelemetryConfig
+	return &TelemetryConfig{
+		Endpoint: payloadConfig.Endpoint,
+		Labels:   payloadConfig.Labels,
+		MetricsConfig: &MetricsConfig{
+			Filters:  payloadConfig.Metrics.IncludeList,
+			Endpoint: payloadConfig.Metrics.Endpoint,
+		},
+	}, nil
 }
 
 func (c *hcpClient) FetchBootstrap(ctx context.Context) (*BootstrapConfig, error) {
@@ -232,4 +279,33 @@ func (c *hcpClient) DiscoverServers(ctx context.Context) ([]string, error) {
 	}
 
 	return servers, nil
+}
+
+// Enabled verifies if telemetry is enabled by ensuring a valid endpoint has been retrieved.
+// It returns full metrics endpoint and true if a valid endpoint was obtained.
+func (t *TelemetryConfig) Enabled() (string, bool) {
+	endpoint := t.Endpoint
+	if override := t.MetricsConfig.Endpoint; override != "" {
+		endpoint = override
+	}
+
+	if endpoint == "" {
+		return "", false
+	}
+
+	// The endpoint from Telemetry Gateway is a domain without scheme, and without the metrics path, so they must be added.
+	return endpoint + metricsGatewayPath, true
+}
+
+// DefaultLabels returns a set of <key, value> string pairs that must be added as attributes to all exported telemetry data.
+func (t *TelemetryConfig) DefaultLabels(nodeID string) map[string]string {
+	labels := map[string]string{
+		"node_id": nodeID, // used to delineate Consul nodes in graphs
+	}
+
+	for k, v := range t.Labels {
+		labels[k] = v
+	}
+
+	return labels
 }
