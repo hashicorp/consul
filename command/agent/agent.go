@@ -12,7 +12,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/hashicorp/consul/agent/hcp"
 	"github.com/hashicorp/go-checkpoint"
 	"github.com/hashicorp/go-hclog"
 	mcli "github.com/mitchellh/cli"
@@ -20,6 +19,7 @@ import (
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/agent/config"
 	hcpbootstrap "github.com/hashicorp/consul/agent/hcp/bootstrap"
+	hcpclient "github.com/hashicorp/consul/agent/hcp/client"
 	"github.com/hashicorp/consul/command/cli"
 	"github.com/hashicorp/consul/command/flags"
 	"github.com/hashicorp/consul/lib"
@@ -166,7 +166,7 @@ func (c *cmd) run(args []string) int {
 		return 1
 	}
 	if res.RuntimeConfig.IsCloudEnabled() {
-		client, err := hcp.NewClient(res.RuntimeConfig.Cloud)
+		client, err := hcpclient.NewClient(res.RuntimeConfig.Cloud)
 		if err != nil {
 			ui.Error("error building HCP HTTP client: " + err.Error())
 			return 1

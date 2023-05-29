@@ -6,7 +6,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/hashicorp/consul/agent/hcp"
+	hcpclient "github.com/hashicorp/consul/agent/hcp/client"
 	"github.com/hashicorp/consul/agent/hcp/config"
 )
 
@@ -29,7 +29,7 @@ func (p *Provider) Addrs(args map[string]string, l *log.Logger) ([]string, error
 		return nil, err
 	}
 
-	client, err := hcp.NewClient(cfg.CloudConfig)
+	client, err := hcpclient.NewClient(cfg.CloudConfig)
 	if err != nil {
 		return nil, err
 	}
