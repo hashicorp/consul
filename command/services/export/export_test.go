@@ -127,7 +127,7 @@ func TestExportCommand(t *testing.T) {
 
 		code := New(ui).Run(args)
 		require.Equal(t, 0, code)
-		require.Contains(t, ui.OutputWriter.String(), `Successfully exported service "testservice" to peers "a,b"`)
+		require.Contains(t, ui.OutputWriter.String(), `Successfully exported service "testservice" to cluster peers "a,b"`)
 
 		args = []string{
 			"-http-addr=" + a.HTTPAddr(),
@@ -137,7 +137,7 @@ func TestExportCommand(t *testing.T) {
 
 		code = New(ui).Run(args)
 		require.Equal(t, 0, code)
-		require.Contains(t, ui.OutputWriter.String(), `Successfully exported service "testservice" to peers "c"`)
+		require.Contains(t, ui.OutputWriter.String(), `Successfully exported service "testservice" to cluster peers "c"`)
 
 		args = []string{
 			"-http-addr=" + a.HTTPAddr(),
