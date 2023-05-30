@@ -1679,12 +1679,18 @@ func (s *Server) IsLeader() bool {
 
 // IsServer checks if this addr is of a server
 func (s *Server) IsServer(addr string) bool {
-	for _, s := range s.raft.GetConfiguration().Configuration().Servers {
-		a, err := net.ResolveTCPAddr("tcp", string(s.Address))
+
+	for _, ss := range s.raft.GetConfiguration().Configuration().Servers {
+		a, err := net.ResolveTCPAddr("tcp", string(ss.Address))
 		if err != nil {
 			continue
 		}
-		if string(metadata.GetIP(a)) == addr {
+		localIP, err := net.ResolveTCPAddr("tcp", string(s.config.RaftConfig.LocalID))
+		if err != nil {
+			continue
+		}
+		// only return true if it's another server and not our local address
+		if string(metadata.GetIP(a)) == addr && string(metadata.GetIP(localIP)) != addr {
 			return true
 		}
 	}
