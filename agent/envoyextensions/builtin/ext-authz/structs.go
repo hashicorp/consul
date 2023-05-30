@@ -601,7 +601,7 @@ func (t Target) clusterName(cfg *cmn.RuntimeConfig) (string, error) {
 
 	for service, upstream := range cfg.Upstreams {
 		if service == t.Service {
-			for sni := range upstream.SNI {
+			for sni := range upstream.SNIs {
 				return sni, nil
 			}
 		}

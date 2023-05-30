@@ -74,7 +74,7 @@ func (ext *UpstreamEnvoyExtender) Extend(resources *xdscommon.IndexedResources, 
 					continue
 				}
 
-				newCluster, patched, err := ext.Extension.PatchCluster(config, resource)
+				newCluster, patched, err := ext.Extension.PatchCluster(config.GetClusterPayload(resource))
 				if err != nil {
 					resultErr = multierror.Append(resultErr, fmt.Errorf("error patching cluster: %w", err))
 					continue
@@ -101,7 +101,7 @@ func (ext *UpstreamEnvoyExtender) Extend(resources *xdscommon.IndexedResources, 
 					continue
 				}
 
-				newRoute, patched, err := ext.Extension.PatchRoute(config, resource)
+				newRoute, patched, err := ext.Extension.PatchRoute(config.GetRoutePayload(resource))
 				if err != nil {
 					resultErr = multierror.Append(resultErr, fmt.Errorf("error patching route: %w", err))
 					continue
@@ -146,7 +146,7 @@ func (ext *UpstreamEnvoyExtender) patchTerminatingGatewayListener(config *Runtim
 		var filters []*envoy_listener_v3.Filter
 
 		for _, filter := range filterChain.Filters {
-			newFilter, ok, err := ext.Extension.PatchFilter(config, filter, IsInboundPublicListener(l))
+			newFilter, ok, err := ext.Extension.PatchFilter(config.GetFilterPayload(filter, l))
 
 			if err != nil {
 				resultErr = multierror.Append(resultErr, fmt.Errorf("error patching listener filter: %w", err))
@@ -190,7 +190,7 @@ func (ext *UpstreamEnvoyExtender) patchConnectProxyListener(config *RuntimeConfi
 		var filters []*envoy_listener_v3.Filter
 
 		for _, filter := range filterChain.Filters {
-			newFilter, ok, err := ext.Extension.PatchFilter(config, filter, IsInboundPublicListener(l))
+			newFilter, ok, err := ext.Extension.PatchFilter(config.GetFilterPayload(filter, l))
 			if err != nil {
 				resultErr = multierror.Append(resultErr, fmt.Errorf("error patching listener filter: %w", err))
 				filters = append(filters, filter)
@@ -225,7 +225,7 @@ func (ext *UpstreamEnvoyExtender) patchTProxyListener(config *RuntimeConfig, l *
 		}
 
 		for _, filter := range filterChain.Filters {
-			newFilter, ok, err := ext.Extension.PatchFilter(config, filter, IsInboundPublicListener(l))
+			newFilter, ok, err := ext.Extension.PatchFilter(config.GetFilterPayload(filter, l))
 			if err != nil {
 				resultErr = multierror.Append(resultErr, fmt.Errorf("error patching listener filter: %w", err))
 				filters = append(filters, filter)

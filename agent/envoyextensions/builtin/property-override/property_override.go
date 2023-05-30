@@ -2,7 +2,6 @@ package propertyoverride
 
 import (
 	"fmt"
-	"strings"
 
 	envoy_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	envoy_endpoint_v3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
@@ -14,14 +13,10 @@ import (
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/envoyextensions/extensioncommon"
-	"github.com/hashicorp/consul/lib/maps"
 )
-
-type stringSet map[string]struct{}
 
 type propertyOverride struct {
 	extensioncommon.BasicExtensionAdapter
-
 	// Patches are an array of Patch operations to be applied to the target resource(s).
 	Patches []Patch
 	// Debug controls error messages when Path matching fails.
@@ -43,7 +38,42 @@ type ResourceFilter struct {
 	// TrafficDirection determines whether the patch will be applied to a service's inbound
 	// or outbound resources.
 	// This field is required.
-	TrafficDirection TrafficDirection
+	TrafficDirection extensioncommon.TrafficDirection
+
+	//  Services indicates which upstream services will have corresponding Envoy resources patched.
+	// This includes directly targeted and discovery chain services. If Services is omitted or
+	// empty, all resources matching the filter will be targeted (including TProxy, which
+	// implicitly corresponds to any number of upstreams). Services must be omitted unless
+	// TrafficDirection is set to outbound.
+	Services []*ServiceName
+}
+
+func matchesResourceFilter[K proto.Message](rf ResourceFilter, resourceType ResourceType, payload extensioncommon.Payload[K]) bool {
+	if resourceType != rf.ResourceType {
+		return false
+	}
+
+	if payload.TrafficDirection != rf.TrafficDirection {
+		return false
+	}
+
+	if len(rf.Services) == 0 {
+		return true
+	}
+
+	for _, s := range rf.Services {
+		if payload.ServiceName == nil || s.CompoundServiceName != *payload.ServiceName {
+			continue
+		}
+
+		return true
+	}
+
+	return false
+}
+
+type ServiceName struct {
+	api.CompoundServiceName
 }
 
 // ResourceType is the type of Envoy resource being patched.
@@ -56,22 +86,12 @@ const (
 	ResourceTypeRoute                 ResourceType = "route"
 )
 
-var ResourceTypes = stringSet{
+var ResourceTypes = extensioncommon.StringSet{
 	string(ResourceTypeCluster):               {},
 	string(ResourceTypeClusterLoadAssignment): {},
-	string(ResourceTypeListener):              {},
 	string(ResourceTypeRoute):                 {},
+	string(ResourceTypeListener):              {},
 }
-
-// TrafficDirection determines whether inbound or outbound Envoy resources will be patched.
-type TrafficDirection string
-
-const (
-	TrafficDirectionInbound  TrafficDirection = "inbound"
-	TrafficDirectionOutbound TrafficDirection = "outbound"
-)
-
-var TrafficDirections = stringSet{string(TrafficDirectionInbound): {}, string(TrafficDirectionOutbound): {}}
 
 // Op is the type of JSON Patch operation being applied.
 type Op string
@@ -81,10 +101,10 @@ const (
 	OpRemove Op = "remove"
 )
 
-var Ops = stringSet{string(OpAdd): {}, string(OpRemove): {}}
+var Ops = extensioncommon.StringSet{string(OpAdd): {}, string(OpRemove): {}}
 
 // validProxyTypes is the set of supported proxy types for this extension.
-var validProxyTypes = stringSet{
+var validProxyTypes = extensioncommon.StringSet{
 	string(api.ServiceKindConnectProxy):       struct{}{},
 	string(api.ServiceKindTerminatingGateway): struct{}{},
 }
@@ -139,27 +159,58 @@ type Patch struct {
 
 var _ extensioncommon.BasicExtension = (*propertyOverride)(nil)
 
-func (c *stringSet) checkRequired(v, fieldName string) error {
-	if _, ok := (*c)[v]; !ok {
-		if v == "" {
-			return fmt.Errorf("field %s is required", fieldName)
-		}
-		return fmt.Errorf("invalid %s '%q'; supported values: %s",
-			fieldName, v, strings.Join(maps.SliceOfKeys(*c), ", "))
+func (f *ResourceFilter) isEmpty() bool {
+	if f == nil {
+		return true
 	}
-	return nil
+
+	if len(f.Services) > 0 {
+		return false
+	}
+
+	if string(f.TrafficDirection) != "" {
+		return false
+	}
+
+	if string(f.ResourceType) != "" {
+		return false
+	}
+
+	return true
 }
 
 func (f *ResourceFilter) validate() error {
-	if f == nil || *f == (ResourceFilter{}) {
+	if f == nil || f.isEmpty() {
 		return fmt.Errorf("field ResourceFilter is required")
 	}
-	if err := ResourceTypes.checkRequired(string(f.ResourceType), "ResourceType"); err != nil {
+	if err := ResourceTypes.CheckRequired(string(f.ResourceType), "ResourceType"); err != nil {
 		return err
 	}
-	if err := TrafficDirections.checkRequired(string(f.TrafficDirection), "TrafficDirection"); err != nil {
+	if err := extensioncommon.TrafficDirections.CheckRequired(string(f.TrafficDirection), "TrafficDirection"); err != nil {
 		return err
 	}
+
+	for i := range f.Services {
+		sn := f.Services[i]
+		sn.normalize()
+
+		if err := sn.validate(); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (sn *ServiceName) normalize() {
+	extensioncommon.NormalizeServiceName(&sn.CompoundServiceName)
+}
+
+func (sn *ServiceName) validate() error {
+	if sn.Name == "" {
+		return fmt.Errorf("service name is required")
+	}
+
 	return nil
 }
 
@@ -169,7 +220,7 @@ func (p *Patch) validate(debug bool) error {
 		return err
 	}
 
-	if err := Ops.checkRequired(string(p.Op), "Op"); err != nil {
+	if err := Ops.CheckRequired(string(p.Op), "Op"); err != nil {
 		return err
 	}
 
@@ -209,7 +260,7 @@ func (p *propertyOverride) validate() error {
 		}
 	}
 
-	if err := validProxyTypes.checkRequired(string(p.ProxyType), "ProxyType"); err != nil {
+	if err := validProxyTypes.CheckRequired(string(p.ProxyType), "ProxyType"); err != nil {
 		resultErr = multierror.Append(resultErr, err)
 	}
 
@@ -243,57 +294,35 @@ func (p *propertyOverride) CanApply(config *extensioncommon.RuntimeConfig) bool 
 }
 
 // PatchRoute patches the provided Envoy Route with any applicable `route` ResourceType patches.
-func (p *propertyOverride) PatchRoute(_ *extensioncommon.RuntimeConfig, r *envoy_route_v3.RouteConfiguration) (*envoy_route_v3.RouteConfiguration, bool, error) {
-	d := TrafficDirectionOutbound
-	if extensioncommon.IsRouteToLocalAppCluster(r) {
-		d = TrafficDirectionInbound
-	}
-	return patchResourceType[*envoy_route_v3.RouteConfiguration](r, p, ResourceTypeRoute, d, &defaultStructPatcher[*envoy_route_v3.RouteConfiguration]{})
+func (p *propertyOverride) PatchRoute(payload extensioncommon.RoutePayload) (*envoy_route_v3.RouteConfiguration, bool, error) {
+	return patchResourceType[*envoy_route_v3.RouteConfiguration](p, ResourceTypeRoute, payload, &defaultStructPatcher[*envoy_route_v3.RouteConfiguration]{})
 }
 
 // PatchCluster patches the provided Envoy Cluster with any applicable `cluster` ResourceType patches.
-func (p *propertyOverride) PatchCluster(_ *extensioncommon.RuntimeConfig, c *envoy_cluster_v3.Cluster) (*envoy_cluster_v3.Cluster, bool, error) {
-	d := TrafficDirectionOutbound
-	if extensioncommon.IsLocalAppCluster(c) {
-		d = TrafficDirectionInbound
-	}
-	return patchResourceType[*envoy_cluster_v3.Cluster](c, p, ResourceTypeCluster, d, &defaultStructPatcher[*envoy_cluster_v3.Cluster]{})
+func (p *propertyOverride) PatchCluster(payload extensioncommon.ClusterPayload) (*envoy_cluster_v3.Cluster, bool, error) {
+	return patchResourceType[*envoy_cluster_v3.Cluster](p, ResourceTypeCluster, payload, &defaultStructPatcher[*envoy_cluster_v3.Cluster]{})
 }
 
 // PatchClusterLoadAssignment patches the provided Envoy ClusterLoadAssignment with any applicable `cluster-load-assignment` ResourceType patches.
-func (p *propertyOverride) PatchClusterLoadAssignment(_ *extensioncommon.RuntimeConfig, c *envoy_endpoint_v3.ClusterLoadAssignment) (*envoy_endpoint_v3.ClusterLoadAssignment, bool, error) {
-	d := TrafficDirectionOutbound
-	if extensioncommon.IsLocalAppClusterLoadAssignment(c) {
-		d = TrafficDirectionInbound
-	}
-	return patchResourceType[*envoy_endpoint_v3.ClusterLoadAssignment](c, p, ResourceTypeClusterLoadAssignment, d, &defaultStructPatcher[*envoy_endpoint_v3.ClusterLoadAssignment]{})
+func (p *propertyOverride) PatchClusterLoadAssignment(payload extensioncommon.ClusterLoadAssignmentPayload) (*envoy_endpoint_v3.ClusterLoadAssignment, bool, error) {
+	return patchResourceType[*envoy_endpoint_v3.ClusterLoadAssignment](p, ResourceTypeClusterLoadAssignment, payload, &defaultStructPatcher[*envoy_endpoint_v3.ClusterLoadAssignment]{})
 }
 
 // PatchListener patches the provided Envoy Listener with any applicable `listener` ResourceType patches.
-func (p *propertyOverride) PatchListener(_ *extensioncommon.RuntimeConfig, l *envoy_listener_v3.Listener) (*envoy_listener_v3.Listener, bool, error) {
-	d := TrafficDirectionOutbound
-	if extensioncommon.IsInboundPublicListener(l) {
-		d = TrafficDirectionInbound
-	}
-	return patchResourceType[*envoy_listener_v3.Listener](l, p, ResourceTypeListener, d, &defaultStructPatcher[*envoy_listener_v3.Listener]{})
-}
-
-// PatchFilter does nothing as this extension does not target Filters directly.
-func (p *propertyOverride) PatchFilter(_ *extensioncommon.RuntimeConfig, f *envoy_listener_v3.Filter, _ bool) (*envoy_listener_v3.Filter, bool, error) {
-	return f, false, nil
+func (p *propertyOverride) PatchListener(payload extensioncommon.ListenerPayload) (*envoy_listener_v3.Listener, bool, error) {
+	return patchResourceType[*envoy_listener_v3.Listener](p, ResourceTypeListener, payload, &defaultStructPatcher[*envoy_listener_v3.Listener]{})
 }
 
 // patchResourceType applies Patches matching the given ResourceType to the target K.
 // This helper simplifies implementation of the above per-type patch methods defined by BasicExtension.
-func patchResourceType[K proto.Message](k K, p *propertyOverride, t ResourceType, d TrafficDirection, patcher structPatcher[K]) (K, bool, error) {
+func patchResourceType[K proto.Message](p *propertyOverride, resourceType ResourceType, payload extensioncommon.Payload[K], patcher structPatcher[K]) (K, bool, error) {
 	resultPatched := false
 	var resultErr error
 
+	k := payload.Message
+
 	for _, patch := range p.Patches {
-		if patch.ResourceFilter.ResourceType != t {
-			continue
-		}
-		if patch.ResourceFilter.TrafficDirection != d {
+		if !matchesResourceFilter(patch.ResourceFilter, resourceType, payload) {
 			continue
 		}
 		newK, err := patcher.applyPatch(k, patch, p.Debug)

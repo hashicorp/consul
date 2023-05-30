@@ -26,6 +26,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/xds/extensionruntime"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/envoyextensions/extensioncommon"
 	"github.com/hashicorp/consul/envoyextensions/xdscommon"
 	"github.com/hashicorp/consul/sdk/testutil"
 )
@@ -110,7 +111,7 @@ end`,
 				{
 					"ResourceFilter": map[string]interface{}{
 						"ResourceType":     propertyoverride.ResourceTypeCluster,
-						"TrafficDirection": propertyoverride.TrafficDirectionOutbound,
+						"TrafficDirection": extensioncommon.TrafficDirectionOutbound,
 					},
 					"Op":    "add",
 					"Path":  "/outlier_detection/success_rate_minimum_hosts",
@@ -125,7 +126,7 @@ end`,
 				{
 					"ResourceFilter": map[string]interface{}{
 						"ResourceType":     propertyoverride.ResourceTypeCluster,
-						"TrafficDirection": propertyoverride.TrafficDirectionOutbound,
+						"TrafficDirection": extensioncommon.TrafficDirectionOutbound,
 					},
 					"Op":   "add",
 					"Path": "/outlier_detection",
@@ -143,7 +144,7 @@ end`,
 				{
 					"ResourceFilter": map[string]interface{}{
 						"ResourceType":     propertyoverride.ResourceTypeCluster,
-						"TrafficDirection": propertyoverride.TrafficDirectionOutbound,
+						"TrafficDirection": extensioncommon.TrafficDirectionOutbound,
 					},
 					"Op":   "remove",
 					"Path": "/outlier_detection",
@@ -157,7 +158,7 @@ end`,
 				{
 					"ResourceFilter": map[string]interface{}{
 						"ResourceType":     propertyoverride.ResourceTypeCluster,
-						"TrafficDirection": propertyoverride.TrafficDirectionOutbound,
+						"TrafficDirection": extensioncommon.TrafficDirectionOutbound,
 					},
 					"Op":    "add",
 					"Path":  "/upstream_connection_options/tcp_keepalive/keepalive_probes",
@@ -172,7 +173,7 @@ end`,
 				{
 					"ResourceFilter": map[string]interface{}{
 						"ResourceType":     propertyoverride.ResourceTypeCluster,
-						"TrafficDirection": propertyoverride.TrafficDirectionOutbound,
+						"TrafficDirection": extensioncommon.TrafficDirectionOutbound,
 					},
 					"Op":    "add",
 					"Path":  "/round_robin_lb_config",
@@ -180,6 +181,27 @@ end`,
 				},
 			},
 		})
+
+	propertyOverridePatchSpecificUpstreamService := func(ns *structs.NodeService) {
+		ns.Proxy.Config["protocol"] = "http"
+	}
+	// propertyOverridePatchSpecificUpstreamService := makePropOverrideNsFunc(
+	// 	map[string]interface{}{
+	// 		"Patches": []map[string]interface{}{
+	// 			{
+	// 				"ResourceFilter": map[string]interface{}{
+	// 					"ResourceType":     propertyoverride.ResourceTypeListener,
+	// 					"TrafficDirection": propertyoverride.TrafficDirectionOutbound,
+	// 					"Services": []propertyoverride.ServiceName{
+	// 						{CompoundServiceName: api.CompoundServiceName{Name: "db"}},
+	// 					},
+	// 				},
+	// 				"Op":    "add",
+	// 				"Path":  "/stat_prefix",
+	// 				"Value": "custom.stats.outbound.only",
+	// 			},
+	// 		},
+	// 	})
 
 	tests := []struct {
 		name   string
