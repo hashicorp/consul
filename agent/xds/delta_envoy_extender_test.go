@@ -115,3 +115,43 @@ func makeStringMatcherSlice(match, name string, count int) []map[string]any {
 	}
 	return s
 }
+
+func makeWasmEnvoyExtension(proto, listener, locale string) []structs.EnvoyExtension {
+	var code map[string]interface{}
+	if locale == "local" {
+		code = map[string]interface{}{
+			"Local": map[string]interface{}{
+				"Filename": "/path/to/extension.wasm",
+			},
+		}
+	} else {
+		code = map[string]interface{}{
+			"Remote": map[string]interface{}{
+				"HttpURI": map[string]interface{}{
+					"Service": map[string]interface{}{
+						"Name":      "db",
+						"Namespace": "bar",
+						"Partition": "zip",
+					},
+					"URI": "https://db/plugin.wasm",
+				},
+				"SHA256": "d05d88b0ce8a8f1d5176481e0af3ae5c65ed82cbfb8c61506c5354b076078545",
+			},
+		}
+	}
+	return []structs.EnvoyExtension{
+		{
+			Name: api.BuiltinWasmExtension,
+			Arguments: map[string]interface{}{
+				"Protocol":     proto,
+				"ListenerType": listener,
+				"PluginConfig": map[string]interface{}{
+					"VmConfig": map[string]interface{}{
+						"Code": code,
+					},
+					"Configuration": `{"foo": "bar"}`,
+				},
+			},
+		},
+	}
+}
