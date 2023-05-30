@@ -12,7 +12,7 @@ import (
 )
 
 var (
-	defaultHistogramBuckets = []float64{0, 5, 10, 15, 20, 40, 60, 80, 100, 125, 150, 175, 200, 300, 500, 750, 1000, 2500, 5000, 7500, 10000}
+	defaultHistogramBuckets = []float64{0, 10, 20, 40, 60, 80, 100, 125, 150, 175, 200, 300, 500, 1000, 2000, 4000, 8000}
 )
 
 // OTELExporter is a custom implementation of a OTEL Metrics SDK metrics.Exporter.
