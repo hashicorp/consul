@@ -1793,6 +1793,13 @@ func (a *Agent) JoinWAN(addrs []string) (n int, err error) {
 	a.logger.Info("(WAN) joining", "wan_addresses", addrs)
 	if srv, ok := a.delegate.(*consul.Server); ok {
 		n, err = srv.JoinWAN(addrs)
+		// SKP:
+		//if version.GetFIPSInfo() != "" {
+		//	srv.WANMembers()
+		//	if fipsErr := a.validateFIPSMembers(); fipsErr != nil {
+		//		return 0, fipsErr
+		//	}
+		//}
 	} else {
 		err = fmt.Errorf("Must be a server to join WAN cluster")
 	}

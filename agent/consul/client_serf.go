@@ -16,6 +16,7 @@ import (
 	libserf "github.com/hashicorp/consul/lib/serf"
 	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/consul/types"
+	"github.com/hashicorp/consul/version"
 )
 
 // setupSerf is used to setup and initialize a Serf
@@ -58,6 +59,7 @@ func (c *Client) setupSerf(conf *serf.Config, ch chan serf.Event, path string) (
 		segment:   c.config.Segment,
 		server:    false,
 		partition: c.config.AgentEnterpriseMeta().PartitionOrDefault(),
+		FIPS:      version.IsFIPS(),
 	}
 
 	conf.SnapshotPath = filepath.Join(c.config.DataDir, path)
