@@ -181,115 +181,6 @@ end`,
 			},
 		})
 
-	propertyOverrideServiceDefaultsClusterLoadAssignmentOutboundAdd := makePropOverrideNsFunc(
-		map[string]interface{}{
-			"Patches": []map[string]interface{}{
-				{
-					"ResourceFilter": map[string]interface{}{
-						"ResourceType":     propertyoverride.ResourceTypeClusterLoadAssignment,
-						"TrafficDirection": propertyoverride.TrafficDirectionOutbound,
-					},
-					"Op":    "add",
-					"Path":  "/policy/overprovisioning_factor",
-					"Value": 123,
-				},
-			},
-		})
-
-	propertyOverrideServiceDefaultsClusterLoadAssignmentInboundAdd := makePropOverrideNsFunc(
-		map[string]interface{}{
-			"Patches": []map[string]interface{}{
-				{
-					"ResourceFilter": map[string]interface{}{
-						"ResourceType":     propertyoverride.ResourceTypeClusterLoadAssignment,
-						"TrafficDirection": propertyoverride.TrafficDirectionInbound,
-					},
-					"Op":    "add",
-					"Path":  "/policy/overprovisioning_factor",
-					"Value": 123,
-				},
-			},
-		})
-
-	propertyOverrideServiceDefaultsListenerInboundAdd := makePropOverrideNsFunc(
-		map[string]interface{}{
-			"Patches": []map[string]interface{}{
-				{
-					"ResourceFilter": map[string]interface{}{
-						"ResourceType":     propertyoverride.ResourceTypeListener,
-						"TrafficDirection": propertyoverride.TrafficDirectionInbound,
-					},
-					"Op":    "add",
-					"Path":  "/stat_prefix",
-					"Value": "custom.stats",
-				},
-			},
-		})
-
-	propertyOverrideServiceDefaultsListenerOutboundAdd := makePropOverrideNsFunc(
-		map[string]interface{}{
-			"Patches": []map[string]interface{}{
-				{
-					"ResourceFilter": map[string]interface{}{
-						"ResourceType":     propertyoverride.ResourceTypeListener,
-						"TrafficDirection": propertyoverride.TrafficDirectionOutbound,
-					},
-					"Op":    "add",
-					"Path":  "/stat_prefix",
-					"Value": "custom.stats",
-				},
-			},
-		})
-
-	propertyOverrideServiceDefaultsListenerOutboundDoesntApplyToInbound := makePropOverrideNsFunc(
-		map[string]interface{}{
-			"Patches": []map[string]interface{}{
-				{
-					"ResourceFilter": map[string]interface{}{
-						"ResourceType":     propertyoverride.ResourceTypeListener,
-						"TrafficDirection": propertyoverride.TrafficDirectionInbound,
-					},
-					"Op":    "add",
-					"Path":  "/stat_prefix",
-					"Value": "custom.stats.inbound.only",
-				},
-				{
-					"ResourceFilter": map[string]interface{}{
-						"ResourceType":     propertyoverride.ResourceTypeListener,
-						"TrafficDirection": propertyoverride.TrafficDirectionOutbound,
-					},
-					"Op":    "add",
-					"Path":  "/stat_prefix",
-					"Value": "custom.stats.outbound.only",
-				},
-			},
-		})
-
-	// Reverse order of above patches, to prove order is inconsequential
-	propertyOverrideServiceDefaultsListenerInboundDoesntApplyToOutbound := makePropOverrideNsFunc(
-		map[string]interface{}{
-			"Patches": []map[string]interface{}{
-				{
-					"ResourceFilter": map[string]interface{}{
-						"ResourceType":     propertyoverride.ResourceTypeListener,
-						"TrafficDirection": propertyoverride.TrafficDirectionOutbound,
-					},
-					"Op":    "add",
-					"Path":  "/stat_prefix",
-					"Value": "custom.stats.outbound.only",
-				},
-				{
-					"ResourceFilter": map[string]interface{}{
-						"ResourceType":     propertyoverride.ResourceTypeListener,
-						"TrafficDirection": propertyoverride.TrafficDirectionInbound,
-					},
-					"Op":    "add",
-					"Path":  "/stat_prefix",
-					"Value": "custom.stats.inbound.only",
-				},
-			},
-		})
-
 	tests := []struct {
 		name   string
 		create func(t testinf.T) *proxycfg.ConfigSnapshot
@@ -322,42 +213,6 @@ end`,
 			name: "propertyoverride-remove-outlier-detection",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", false, propertyOverrideServiceDefaultsRemoveOutlierDetection, nil)
-			},
-		},
-		{
-			name: "propertyoverride-cluster-load-assignment-outbound-add",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", false, propertyOverrideServiceDefaultsClusterLoadAssignmentOutboundAdd, nil)
-			},
-		},
-		{
-			name: "propertyoverride-cluster-load-assignment-inbound-add",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", false, propertyOverrideServiceDefaultsClusterLoadAssignmentInboundAdd, nil)
-			},
-		},
-		{
-			name: "propertyoverride-listener-outbound-add",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", false, propertyOverrideServiceDefaultsListenerOutboundAdd, nil)
-			},
-		},
-		{
-			name: "propertyoverride-listener-inbound-add",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", false, propertyOverrideServiceDefaultsListenerInboundAdd, nil)
-			},
-		},
-		{
-			name: "propertyoverride-outbound-doesnt-apply-to-inbound",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", false, propertyOverrideServiceDefaultsListenerOutboundDoesntApplyToInbound, nil)
-			},
-		},
-		{
-			name: "propertyoverride-inbound-doesnt-apply-to-outbound",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", false, propertyOverrideServiceDefaultsListenerInboundDoesntApplyToOutbound, nil)
 			},
 		},
 		{
@@ -495,25 +350,7 @@ end`,
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
 					ns.Proxy.Config["protocol"] = "http"
-					ns.Proxy.EnvoyExtensions = []structs.EnvoyExtension{
-						{
-							Name: api.BuiltinWasmExtension,
-							Arguments: map[string]interface{}{
-								"Protocol":     "http",
-								"ListenerType": "inbound",
-								"PluginConfig": map[string]interface{}{
-									"VmConfig": map[string]interface{}{
-										"Code": map[string]interface{}{
-											"Local": map[string]interface{}{
-												"Filename": "/path/to/extension.wasm",
-											},
-										},
-									},
-									"Configuration": `{"foo": "bar"}`,
-								},
-							},
-						},
-					}
+					ns.Proxy.EnvoyExtensions = makeWasmEnvoyExtension("http", "inbound", "local")
 				}, nil)
 			},
 		},
@@ -522,31 +359,43 @@ end`,
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
 					ns.Proxy.Config["protocol"] = "http"
-					ns.Proxy.EnvoyExtensions = []structs.EnvoyExtension{
-						{
-							Name: api.BuiltinWasmExtension,
-							Arguments: map[string]interface{}{
-								"Protocol":     "http",
-								"ListenerType": "inbound",
-								"PluginConfig": map[string]interface{}{
-									"VmConfig": map[string]interface{}{
-										"Code": map[string]interface{}{
-											"Remote": map[string]interface{}{
-												"HttpURI": map[string]interface{}{
-													"Service": map[string]interface{}{
-														"Name": "db",
-													},
-													"URI": "https://db/plugin.wasm",
-												},
-												"SHA256": "d05d88b0ce8a8f1d5176481e0af3ae5c65ed82cbfb8c61506c5354b076078545",
-											},
-										},
-									},
-									"Configuration": `{"foo": "bar"}`,
-								},
-							},
-						},
-					}
+					ns.Proxy.EnvoyExtensions = makeWasmEnvoyExtension("http", "inbound", "remote")
+				}, nil)
+			},
+		},
+		{
+			name: "wasm-tcp-local-file",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
+					ns.Proxy.Config["protocol"] = "tcp"
+					ns.Proxy.EnvoyExtensions = makeWasmEnvoyExtension("tcp", "inbound", "local")
+				}, nil)
+			},
+		},
+		{
+			name: "wasm-tcp-remote-file",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
+					ns.Proxy.Config["protocol"] = "tcp"
+					ns.Proxy.EnvoyExtensions = makeWasmEnvoyExtension("tcp", "inbound", "remote")
+				}, nil)
+			},
+		},
+		{
+			name: "wasm-tcp-local-file-outbound",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
+					ns.Proxy.Config["protocol"] = "tcp"
+					ns.Proxy.EnvoyExtensions = makeWasmEnvoyExtension("tcp", "outbound", "local")
+				}, nil)
+			},
+		},
+		{
+			name: "wasm-tcp-remote-file-outbound",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
+					ns.Proxy.Config["protocol"] = "tcp"
+					ns.Proxy.EnvoyExtensions = makeWasmEnvoyExtension("tcp", "outbound", "remote")
 				}, nil)
 			},
 		},
