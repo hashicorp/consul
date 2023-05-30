@@ -107,9 +107,9 @@ func (c *cmd) Run(args []string) int {
 
 	switch {
 	case len(c.peerNames) > 0 && len(c.partitionNames) > 0:
-		c.UI.Info(fmt.Sprintf("Successfully exported service %q to peers %q and to partitions %q", c.serviceName, c.peerNames, c.partitionNames))
+		c.UI.Info(fmt.Sprintf("Successfully exported service %q to cluster peers %q and to partitions %q", c.serviceName, c.peerNames, c.partitionNames))
 	case len(c.peerNames) > 0:
-		c.UI.Info(fmt.Sprintf("Successfully exported service %q to peers %q", c.serviceName, c.peerNames))
+		c.UI.Info(fmt.Sprintf("Successfully exported service %q to cluster peers %q", c.serviceName, c.peerNames))
 	case len(c.partitionNames) > 0:
 		c.UI.Info(fmt.Sprintf("Successfully exported service %q to partitions %q", c.serviceName, c.partitionNames))
 	}
