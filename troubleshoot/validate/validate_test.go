@@ -349,7 +349,7 @@ func TestMakeValidate(t *testing.T) {
 				},
 				Upstreams: map[api.CompoundServiceName]*extensioncommon.UpstreamData{
 					svc: {
-						SNI: tc.snis,
+						SNIs: tc.snis,
 					},
 				},
 			}

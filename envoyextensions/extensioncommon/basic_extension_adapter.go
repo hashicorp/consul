@@ -20,8 +20,8 @@ type BasicExtensionAdapter struct{}
 func (BasicExtensionAdapter) CanApply(_ *RuntimeConfig) bool { return false }
 
 // PatchCluster provides a default implementation of the PatchCluster interface that does nothing.
-func (BasicExtensionAdapter) PatchCluster(_ *RuntimeConfig, c *envoy_cluster_v3.Cluster) (*envoy_cluster_v3.Cluster, bool, error) {
-	return c, false, nil
+func (BasicExtensionAdapter) PatchCluster(p ClusterPayload) (*envoy_cluster_v3.Cluster, bool, error) {
+	return p.Message, false, nil
 }
 
 // PatchClusters provides a default implementation of the PatchClusters interface that does nothing.
@@ -30,13 +30,13 @@ func (BasicExtensionAdapter) PatchClusters(_ *RuntimeConfig, c ClusterMap) (Clus
 }
 
 // PatchClusterLoadAssignment provides a default implementation of the PatchClusterLoadAssignment interface that does nothing.
-func (BasicExtensionAdapter) PatchClusterLoadAssignment(_ *RuntimeConfig, c *envoy_endpoint_v3.ClusterLoadAssignment) (*envoy_endpoint_v3.ClusterLoadAssignment, bool, error) {
-	return c, false, nil
+func (BasicExtensionAdapter) PatchClusterLoadAssignment(p ClusterLoadAssignmentPayload) (*envoy_endpoint_v3.ClusterLoadAssignment, bool, error) {
+	return p.Message, false, nil
 }
 
 // PatchListener provides a default implementation of the PatchListener interface that does nothing.
-func (BasicExtensionAdapter) PatchListener(_ *RuntimeConfig, l *envoy_listener_v3.Listener) (*envoy_listener_v3.Listener, bool, error) {
-	return l, false, nil
+func (BasicExtensionAdapter) PatchListener(p ListenerPayload) (*envoy_listener_v3.Listener, bool, error) {
+	return p.Message, false, nil
 }
 
 // PatchListeners provides a default implementation of the PatchListeners interface that does nothing.
@@ -45,8 +45,8 @@ func (BasicExtensionAdapter) PatchListeners(_ *RuntimeConfig, l ListenerMap) (Li
 }
 
 // PatchFilter provides a default implementation of the PatchFilter interface that does nothing.
-func (BasicExtensionAdapter) PatchFilter(_ *RuntimeConfig, f *envoy_listener_v3.Filter, _ bool) (*envoy_listener_v3.Filter, bool, error) {
-	return f, false, nil
+func (BasicExtensionAdapter) PatchFilter(p FilterPayload) (*envoy_listener_v3.Filter, bool, error) {
+	return p.Message, false, nil
 }
 
 // PatchFilters provides a default implementation of the PatchFilters interface that does nothing.
@@ -55,8 +55,8 @@ func (BasicExtensionAdapter) PatchFilters(_ *RuntimeConfig, f []*envoy_listener_
 }
 
 // PatchRoute provides a default implementation of the PatchRoute interface that does nothing.
-func (BasicExtensionAdapter) PatchRoute(_ *RuntimeConfig, r *envoy_route_v3.RouteConfiguration) (*envoy_route_v3.RouteConfiguration, bool, error) {
-	return r, false, nil
+func (BasicExtensionAdapter) PatchRoute(p RoutePayload) (*envoy_route_v3.RouteConfiguration, bool, error) {
+	return p.Message, false, nil
 }
 
 // PatchRoutes provides a default implementation of the PatchRoutes interface that does nothing.

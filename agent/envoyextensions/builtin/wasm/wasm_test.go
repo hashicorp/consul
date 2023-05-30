@@ -609,7 +609,7 @@ func makeTestRuntimeConfig(protocol string, enterprise bool) *extensioncommon.Ru
 				Namespace: acl.NamespaceOrDefault(ns),
 				Partition: acl.PartitionOrDefault(ap),
 			}: {
-				SNI:     map[string]struct{}{"test-file-server": {}},
+				SNIs:    map[string]struct{}{"test-file-server": {}},
 				EnvoyID: "test-file-server",
 			},
 		},
