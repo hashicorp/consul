@@ -16,13 +16,13 @@ import (
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
-var (
+const (
 	jwtEnvoyFilter       = "envoy.filters.http.jwt_authn"
 	jwtMetadataKeyPrefix = "jwt_payload"
 )
 
 // This is an intermediate JWTProvider form used to associate
-// unique keys to providers
+// unique payload keys to providers
 type jwtAuthnProvider struct {
 	ComputedName string
 	Provider     *structs.IntentionJWTProvider
@@ -116,6 +116,11 @@ func getPermissionsProviders(p []*structs.IntentionPermission) []*jwtAuthnProvid
 	return reqs
 }
 
+// makeComputedProviderName is used to create names for unique provider per permission
+// This is to stop jwt claims cross validation across permissions/providers.
+//
+// eg. If Permission x is the 3rd permission and has a provider of original name okta
+// this function will return okta_3 as the computed provider name
 func makeComputedProviderName(name string, perm *structs.IntentionPermission, idx int) string {
 	if perm == nil {
 		return name
@@ -123,6 +128,13 @@ func makeComputedProviderName(name string, perm *structs.IntentionPermission, id
 	return fmt.Sprintf("%s_%d", name, idx)
 }
 
+// buildPayloadInMetadataKey is used to create a unique payload key per provider/permissions.
+// This is to ensure claims are validated/forwarded specifically under the right permission/path
+// and ensure we don't accidentally validate claims from different permissions/providers.
+//
+// eg. With a provider named okta, the second permission in permission list will have a provider of:
+// okta_2 and a payload key of: jwt_payload_okta_2. Whereas an okta provider with no specific permission
+// will have a payload key of: jwt_payload_okta
 func buildPayloadInMetadataKey(providerName string, perm *structs.IntentionPermission, idx int) string {
 	return fmt.Sprintf("%s_%s", jwtMetadataKeyPrefix, makeComputedProviderName(providerName, perm, idx))
 }

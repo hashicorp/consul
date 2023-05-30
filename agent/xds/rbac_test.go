@@ -486,12 +486,8 @@ func TestMakeRBACNetworkAndHTTPFilters(t *testing.T) {
 	}
 	testIntentionWithJWT := func(src string, action structs.IntentionAction, jwt *structs.IntentionJWTRequirement, perms ...*structs.IntentionPermission) *structs.Intention {
 		ixn := testIntention(t, src, "api", action)
-		if jwt != nil {
-			ixn.JWT = jwt
-		}
-		if action != "" {
-			ixn.Action = action
-		}
+		ixn.JWT = jwt
+		ixn.Action = action
 		if perms != nil {
 			ixn.Permissions = perms
 			ixn.Action = ""
@@ -1206,7 +1202,7 @@ func TestPathToSegments(t *testing.T) {
 	}
 }
 
-func TestClaimToPrincipal(t *testing.T) {
+func TestJwtClaimToPrincipal(t *testing.T) {
 	var (
 		firstClaim = structs.IntentionJWTClaimVerification{
 			Path:  []string{"perms"},
@@ -1295,7 +1291,7 @@ func TestClaimToPrincipal(t *testing.T) {
 	for name, tt := range tests {
 		tt := tt
 		t.Run(name, func(t *testing.T) {
-			principal := infoListToPrincipals(tt.jwtInfos)
+			principal := jwtInfosToPrincipals(tt.jwtInfos)
 			require.Equal(t, principal, tt.expected)
 		})
 	}
