@@ -35,7 +35,7 @@ func (c *cmd) init() {
 
 	c.flags.StringVar(&c.serviceName, "name", "", "(Required) Specify the name of the service you want to export.")
 	c.flags.StringVar(&c.peerNames, "consumer-peers", "", "(Required) Peers the service will be exported to, formatted as a comma-separated list. Not required for Enterprise if setting -consumer-partitions.")
-	c.flags.StringVar(&c.partitionNames, "consumer-partitions", "", "Required if not setting -consumer-peers. The local partitions within the same datacenter that the service will be exported to, formatted as a comma-separated list. Admin Partitions are a Consul Enterprise feature.")
+	c.flags.StringVar(&c.partitionNames, "consumer-partitions", "", "(Enterprise only) A comma-separated list of admin partitions within the same datacenter to export the service to. This flag is optional if -consumer-peers is specified.")
 
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
