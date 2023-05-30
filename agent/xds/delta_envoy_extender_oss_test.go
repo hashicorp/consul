@@ -182,26 +182,168 @@ end`,
 			},
 		})
 
-	propertyOverridePatchSpecificUpstreamService := func(ns *structs.NodeService) {
-		ns.Proxy.Config["protocol"] = "http"
-	}
-	// propertyOverridePatchSpecificUpstreamService := makePropOverrideNsFunc(
-	// 	map[string]interface{}{
-	// 		"Patches": []map[string]interface{}{
-	// 			{
-	// 				"ResourceFilter": map[string]interface{}{
-	// 					"ResourceType":     propertyoverride.ResourceTypeListener,
-	// 					"TrafficDirection": propertyoverride.TrafficDirectionOutbound,
-	// 					"Services": []propertyoverride.ServiceName{
-	// 						{CompoundServiceName: api.CompoundServiceName{Name: "db"}},
-	// 					},
-	// 				},
-	// 				"Op":    "add",
-	// 				"Path":  "/stat_prefix",
-	// 				"Value": "custom.stats.outbound.only",
-	// 			},
-	// 		},
-	// 	})
+	propertyOverrideServiceDefaultsClusterLoadAssignmentOutboundAdd := makePropOverrideNsFunc(
+		map[string]interface{}{
+			"Patches": []map[string]interface{}{
+				{
+					"ResourceFilter": map[string]interface{}{
+						"ResourceType":     propertyoverride.ResourceTypeClusterLoadAssignment,
+						"TrafficDirection": extensioncommon.TrafficDirectionOutbound,
+					},
+					"Op":    "add",
+					"Path":  "/policy/overprovisioning_factor",
+					"Value": 123,
+				},
+			},
+		})
+
+	propertyOverrideServiceDefaultsClusterLoadAssignmentInboundAdd := makePropOverrideNsFunc(
+		map[string]interface{}{
+			"Patches": []map[string]interface{}{
+				{
+					"ResourceFilter": map[string]interface{}{
+						"ResourceType":     propertyoverride.ResourceTypeClusterLoadAssignment,
+						"TrafficDirection": extensioncommon.TrafficDirectionInbound,
+					},
+					"Op":    "add",
+					"Path":  "/policy/overprovisioning_factor",
+					"Value": 123,
+				},
+			},
+		})
+
+	propertyOverrideServiceDefaultsListenerInboundAdd := makePropOverrideNsFunc(
+		map[string]interface{}{
+			"Patches": []map[string]interface{}{
+				{
+					"ResourceFilter": map[string]interface{}{
+						"ResourceType":     propertyoverride.ResourceTypeListener,
+						"TrafficDirection": extensioncommon.TrafficDirectionInbound,
+					},
+					"Op":    "add",
+					"Path":  "/stat_prefix",
+					"Value": "custom.stats",
+				},
+			},
+		})
+
+	propertyOverrideServiceDefaultsListenerOutboundAdd := makePropOverrideNsFunc(
+		map[string]interface{}{
+			"Patches": []map[string]interface{}{
+				{
+					"ResourceFilter": map[string]interface{}{
+						"ResourceType":     propertyoverride.ResourceTypeListener,
+						"TrafficDirection": extensioncommon.TrafficDirectionOutbound,
+					},
+					"Op":    "add",
+					"Path":  "/stat_prefix",
+					"Value": "custom.stats",
+				},
+			},
+		})
+
+	propertyOverrideServiceDefaultsListenerOutboundDoesntApplyToInbound := makePropOverrideNsFunc(
+		map[string]interface{}{
+			"Patches": []map[string]interface{}{
+				{
+					"ResourceFilter": map[string]interface{}{
+						"ResourceType":     propertyoverride.ResourceTypeListener,
+						"TrafficDirection": extensioncommon.TrafficDirectionInbound,
+					},
+					"Op":    "add",
+					"Path":  "/stat_prefix",
+					"Value": "custom.stats.inbound.only",
+				},
+				{
+					"ResourceFilter": map[string]interface{}{
+						"ResourceType":     propertyoverride.ResourceTypeListener,
+						"TrafficDirection": extensioncommon.TrafficDirectionOutbound,
+					},
+					"Op":    "add",
+					"Path":  "/stat_prefix",
+					"Value": "custom.stats.outbound.only",
+				},
+			},
+		})
+
+	// Reverse order of above patches, to prove order is inconsequential
+	propertyOverrideServiceDefaultsListenerInboundDoesntApplyToOutbound := makePropOverrideNsFunc(
+		map[string]interface{}{
+			"Patches": []map[string]interface{}{
+				{
+					"ResourceFilter": map[string]interface{}{
+						"ResourceType":     propertyoverride.ResourceTypeListener,
+						"TrafficDirection": extensioncommon.TrafficDirectionOutbound,
+					},
+					"Op":    "add",
+					"Path":  "/stat_prefix",
+					"Value": "custom.stats.outbound.only",
+				},
+				{
+					"ResourceFilter": map[string]interface{}{
+						"ResourceType":     propertyoverride.ResourceTypeListener,
+						"TrafficDirection": extensioncommon.TrafficDirectionInbound,
+					},
+					"Op":    "add",
+					"Path":  "/stat_prefix",
+					"Value": "custom.stats.inbound.only",
+				},
+			},
+		})
+
+	propertyOverridePatchSpecificUpstreamService := makePropOverrideNsFunc(
+		map[string]interface{}{
+			"Patches": []map[string]interface{}{
+				{
+					"ResourceFilter": map[string]interface{}{
+						"ResourceType":     propertyoverride.ResourceTypeListener,
+						"TrafficDirection": extensioncommon.TrafficDirectionOutbound,
+						"Services": []propertyoverride.ServiceName{
+							{CompoundServiceName: api.CompoundServiceName{Name: "db"}},
+						},
+					},
+					"Op":    "add",
+					"Path":  "/stat_prefix",
+					"Value": "custom.stats.outbound.only",
+				},
+				{
+					"ResourceFilter": map[string]interface{}{
+						"ResourceType":     propertyoverride.ResourceTypeRoute,
+						"TrafficDirection": extensioncommon.TrafficDirectionOutbound,
+						"Services": []propertyoverride.ServiceName{
+							{CompoundServiceName: api.CompoundServiceName{Name: "db"}},
+						},
+					},
+					"Op":    "add",
+					"Path":  "/most_specific_header_mutations_wins",
+					"Value": true,
+				},
+				{
+					"ResourceFilter": map[string]interface{}{
+						"ResourceType":     propertyoverride.ResourceTypeCluster,
+						"TrafficDirection": extensioncommon.TrafficDirectionOutbound,
+						"Services": []propertyoverride.ServiceName{
+							{CompoundServiceName: api.CompoundServiceName{Name: "db"}},
+						},
+					},
+					"Op":    "add",
+					"Path":  "/outlier_detection/success_rate_minimum_hosts",
+					"Value": 1234,
+				},
+				{
+					"ResourceFilter": map[string]interface{}{
+						"ResourceType":     propertyoverride.ResourceTypeClusterLoadAssignment,
+						"TrafficDirection": extensioncommon.TrafficDirectionOutbound,
+						"Services": []propertyoverride.ServiceName{
+							{CompoundServiceName: api.CompoundServiceName{Name: "db"}},
+						},
+					},
+					"Op":    "add",
+					"Path":  "/policy/overprovisioning_factor",
+					"Value": 1234,
+				},
+			},
+		})
 
 	tests := []struct {
 		name   string
@@ -235,6 +377,54 @@ end`,
 			name: "propertyoverride-remove-outlier-detection",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", false, propertyOverrideServiceDefaultsRemoveOutlierDetection, nil)
+			},
+		},
+		{
+			name: "propertyoverride-cluster-load-assignment-outbound-add",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", false, propertyOverrideServiceDefaultsClusterLoadAssignmentOutboundAdd, nil)
+			},
+		},
+		{
+			name: "propertyoverride-cluster-load-assignment-inbound-add",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", false, propertyOverrideServiceDefaultsClusterLoadAssignmentInboundAdd, nil)
+			},
+		},
+		{
+			name: "propertyoverride-listener-outbound-add",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", false, propertyOverrideServiceDefaultsListenerOutboundAdd, nil)
+			},
+		},
+		{
+			name: "propertyoverride-listener-inbound-add",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", false, propertyOverrideServiceDefaultsListenerInboundAdd, nil)
+			},
+		},
+		{
+			name: "propertyoverride-outbound-doesnt-apply-to-inbound",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", false, propertyOverrideServiceDefaultsListenerOutboundDoesntApplyToInbound, nil)
+			},
+		},
+		{
+			name: "propertyoverride-inbound-doesnt-apply-to-outbound",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", false, propertyOverrideServiceDefaultsListenerInboundDoesntApplyToOutbound, nil)
+			},
+		},
+		{
+			name: "propertyoverride-patch-specific-upstream-service-splitter",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "splitter-with-resolver-redirect-multidc", false, propertyOverridePatchSpecificUpstreamService, nil)
+			},
+		},
+		{
+			name: "propertyoverride-patch-specific-upstream-service-failover",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "failover", false, propertyOverridePatchSpecificUpstreamService, nil)
 			},
 		},
 		{

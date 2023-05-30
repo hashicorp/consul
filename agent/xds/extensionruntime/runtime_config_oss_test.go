@@ -185,7 +185,7 @@ func TestGetRuntimeConfigurations_ConnectProxy(t *testing.T) {
 							dbService: {
 								PrimarySNI: "db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
 								SNIs: map[string]struct{}{
-									"db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul": {},
+									"db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul":    {},
 									"db-v2.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul": {},
 								},
 								EnvoyID:           "db",
@@ -216,7 +216,7 @@ func TestGetRuntimeConfigurations_ConnectProxy(t *testing.T) {
 							dbService: {
 								PrimarySNI: "db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
 								SNIs: map[string]struct{}{
-									"db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul": {},
+									"db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul":    {},
 									"db-v2.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul": {},
 								},
 								EnvoyID:           "db",

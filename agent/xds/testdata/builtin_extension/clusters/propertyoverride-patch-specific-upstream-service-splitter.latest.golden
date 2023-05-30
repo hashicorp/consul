@@ -86,7 +86,9 @@
       },
       "connectTimeout": "5s",
       "circuitBreakers": {},
-      "outlierDetection": {},
+      "outlierDetection": {
+        "successRateMinimumHosts": 1234
+      },
       "commonLbConfig": {
         "healthyPanicThreshold": {}
       },
@@ -134,7 +136,9 @@
       },
       "connectTimeout": "5s",
       "circuitBreakers": {},
-      "outlierDetection": {},
+      "outlierDetection": {
+        "successRateMinimumHosts": 1234
+      },
       "commonLbConfig": {
         "healthyPanicThreshold": {}
       },

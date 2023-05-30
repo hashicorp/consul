@@ -40,7 +40,7 @@ type ResourceFilter struct {
 	// This field is required.
 	TrafficDirection extensioncommon.TrafficDirection
 
-	//  Services indicates which upstream services will have corresponding Envoy resources patched.
+	// Services indicates which upstream services will have corresponding Envoy resources patched.
 	// This includes directly targeted and discovery chain services. If Services is omitted or
 	// empty, all resources matching the filter will be targeted (including TProxy, which
 	// implicitly corresponds to any number of upstreams). Services must be omitted unless
