@@ -172,11 +172,6 @@ const (
 	// Partitions are a Consul Enterprise feature.
 	MemberTagKeyPartition = "ap"
 
-	// MemberTagKeyFIPS is the key name of the tag used to indicate whether this is a FIPS
-	// mode member.
-	// FIPS mode is a Consul Enterprise feature.
-	MemberTagKeyFIPS = "fips"
-
 	// MemberTagKeyBootstrap is the key name of the tag used to indicate whether this
 	// agent was started with the "bootstrap" configuration enabled
 	MemberTagKeyBootstrap = "bootstrap"

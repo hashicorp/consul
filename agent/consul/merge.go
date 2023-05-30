@@ -25,7 +25,6 @@ type lanMergeDelegate struct {
 	segment   string
 	server    bool
 	partition string
-	FIPS      bool
 }
 
 // uniqueIDMinVersion is the lowest version where we insist that nodes
