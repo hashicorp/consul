@@ -21,7 +21,10 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
+
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/version"
+
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/serf/serf"
@@ -8079,6 +8082,32 @@ func TestAgent_HostBadACL(t *testing.T) {
 	_, err := a.srv.AgentHost(resp, req)
 	assert.EqualError(t, err, "ACL not found")
 	assert.Equal(t, http.StatusOK, resp.Code)
+}
+
+func TestAgent_Version(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+
+	dc1 := "dc1"
+	a := NewTestAgent(t, `
+		primary_datacenter = "`+dc1+`"
+	`)
+	defer a.Shutdown()
+
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
+	req, _ := http.NewRequest("GET", "/v1/agent/version", nil)
+	// req.Header.Add("X-Consul-Token", "initial-management")
+	resp := httptest.NewRecorder()
+	respRaw, err := a.srv.AgentVersion(resp, req)
+	assert.Nil(t, err)
+	assert.Equal(t, http.StatusOK, resp.Code)
+	assert.NotNil(t, respRaw)
+
+	obj := respRaw.(*version.BuildInfo)
+	assert.NotNil(t, obj.HumanVersion)
 }
 
 // Thie tests that a proxy with an ExposeConfig is returned as expected.
