@@ -115,15 +115,7 @@ func (c *hcpClient) FetchTelemetryConfig(ctx context.Context) (*TelemetryConfig,
 		return nil, err
 	}
 
-	payloadConfig := resp.Payload.TelemetryConfig
-	return &TelemetryConfig{
-		Endpoint: payloadConfig.Endpoint,
-		Labels:   payloadConfig.Labels,
-		MetricsConfig: &MetricsConfig{
-			Filters:  payloadConfig.Metrics.IncludeList,
-			Endpoint: payloadConfig.Metrics.Endpoint,
-		},
-	}, nil
+	return convertTelemetryConfig(resp)
 }
 
 func (c *hcpClient) FetchBootstrap(ctx context.Context) (*BootstrapConfig, error) {
@@ -279,6 +271,29 @@ func (c *hcpClient) DiscoverServers(ctx context.Context) ([]string, error) {
 	}
 
 	return servers, nil
+}
+
+// convertTelemetryConfig validates the AgentTelemetryConfig payload and converts it into a TelemetryConfig object.
+func convertTelemetryConfig(resp *hcptelemetry.AgentTelemetryConfigOK) (*TelemetryConfig, error) {
+	if resp.Payload == nil {
+		return nil, fmt.Errorf("missing payload")
+	}
+
+	if resp.Payload.TelemetryConfig == nil {
+		return nil, fmt.Errorf("missing telemetry config")
+	}
+
+	payloadConfig := resp.Payload.TelemetryConfig
+	var metricsConfig MetricsConfig
+	if payloadConfig.Metrics != nil {
+		metricsConfig.Endpoint = payloadConfig.Metrics.Endpoint
+		metricsConfig.Filters = payloadConfig.Metrics.IncludeList
+	}
+	return &TelemetryConfig{
+		Endpoint:      payloadConfig.Endpoint,
+		Labels:        payloadConfig.Labels,
+		MetricsConfig: &metricsConfig,
+	}, nil
 }
 
 // Enabled verifies if telemetry is enabled by ensuring a valid endpoint has been retrieved.

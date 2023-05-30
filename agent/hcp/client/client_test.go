@@ -4,6 +4,8 @@ import (
 	"context"
 	"testing"
 
+	"github.com/hashicorp/hcp-sdk-go/clients/cloud-consul-telemetry-gateway/preview/2023-04-14/client/consul_telemetry_service"
+	"github.com/hashicorp/hcp-sdk-go/clients/cloud-consul-telemetry-gateway/preview/2023-04-14/models"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
@@ -70,6 +72,78 @@ func TestFetchTelemetryConfig(t *testing.T) {
 
 			require.True(t, ok)
 			require.Equal(t, test.metricsEndpoint, endpoint)
+		})
+	}
+}
+
+func TestConvertTelemetryConfig(t *testing.T) {
+	t.Parallel()
+	for name, test := range map[string]struct {
+		resp                 *consul_telemetry_service.AgentTelemetryConfigOK
+		expectedTelemetryCfg *TelemetryConfig
+		wantErr              string
+	}{
+		"success": {
+			resp: &consul_telemetry_service.AgentTelemetryConfigOK{
+				Payload: &models.HashicorpCloudConsulTelemetry20230414AgentTelemetryConfigResponse{
+					TelemetryConfig: &models.HashicorpCloudConsulTelemetry20230414TelemetryConfig{
+						Endpoint: "https://test.com",
+						Labels:   map[string]string{"test": "test"},
+					},
+				},
+			},
+			expectedTelemetryCfg: &TelemetryConfig{
+				Endpoint:      "https://test.com",
+				Labels:        map[string]string{"test": "test"},
+				MetricsConfig: &MetricsConfig{},
+			},
+		},
+		"successWithMetricsConfig": {
+			resp: &consul_telemetry_service.AgentTelemetryConfigOK{
+				Payload: &models.HashicorpCloudConsulTelemetry20230414AgentTelemetryConfigResponse{
+					TelemetryConfig: &models.HashicorpCloudConsulTelemetry20230414TelemetryConfig{
+						Endpoint: "https://test.com",
+						Labels:   map[string]string{"test": "test"},
+						Metrics: &models.HashicorpCloudConsulTelemetry20230414TelemetryMetricsConfig{
+							Endpoint:    "https://metrics-test.com",
+							IncludeList: []string{"consul.raft.apply"},
+						},
+					},
+				},
+			},
+			expectedTelemetryCfg: &TelemetryConfig{
+				Endpoint: "https://test.com",
+				Labels:   map[string]string{"test": "test"},
+				MetricsConfig: &MetricsConfig{
+					Endpoint: "https://metrics-test.com",
+					Filters:  []string{"consul.raft.apply"},
+				},
+			},
+		},
+		"errorsWithNilPayload": {
+			resp:    &consul_telemetry_service.AgentTelemetryConfigOK{},
+			wantErr: "missing payload",
+		},
+		"errorsWithNilTelemetryConfig": {
+			resp: &consul_telemetry_service.AgentTelemetryConfigOK{
+				Payload: &models.HashicorpCloudConsulTelemetry20230414AgentTelemetryConfigResponse{},
+			},
+			wantErr: "missing telemetry config",
+		},
+	} {
+		test := test
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			telemetryCfg, err := convertTelemetryConfig(test.resp)
+			if test.wantErr != "" {
+				require.Error(t, err)
+				require.Nil(t, telemetryCfg)
+				require.Contains(t, err.Error(), test.wantErr)
+				return
+			}
+
+			require.NoError(t, err)
+			require.Equal(t, test.expectedTelemetryCfg, telemetryCfg)
 		})
 	}
 }
