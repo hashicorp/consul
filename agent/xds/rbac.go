@@ -623,6 +623,8 @@ func makeRBACRules(
 	return rbac
 }
 
+// combineBasePrincipalWithJWTPrincipals ensure each RBAC/Network principal is associated with
+// the JWT principal
 func combineBasePrincipalWithJWTPrincipals(p []*envoy_rbac_v3.Principal, cp *envoy_rbac_v3.Principal) []*envoy_rbac_v3.Principal {
 	res := make([]*envoy_rbac_v3.Principal, 0)
 

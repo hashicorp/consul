@@ -1,0 +1,5 @@
+```release-note:feature
+xds: Add JWT authentication for intention.
+
+cli: A jwt-provider config entry can now be written and intention can reference JWT Providers/claims
+```
