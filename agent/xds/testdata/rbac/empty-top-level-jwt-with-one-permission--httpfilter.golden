@@ -16,30 +16,36 @@
           ],
           "principals": [
             {
-              "authenticated": {
-                "principalName": {
-                  "safeRegex": {
-                    "googleRe2": {},
-                    "regex": "^spiffe://test.consul/ns/default/dc/[^/]+/svc/web$"
-                  }
-                }
-              }
-            },
-            {
-              "orIds": {
+              "andIds": {
                 "ids": [
-                  { 
-                    "metadata": {
-                      "filter":"envoy.filters.http.jwt_authn",
-                      "path": [
-                        {"key": "jwt_payload_okta_0"},
-                        {"key": "roles"}
-                      ],
-                      "value": {
-                        "stringMatch": {
-                          "exact": "testing"
+                  {
+                    "authenticated": {
+                      "principalName": {
+                        "safeRegex": {
+                          "googleRe2": {},
+                          "regex": "^spiffe://test.consul/ns/default/dc/[^/]+/svc/web$"
                         }
                       }
+                    }
+                  },
+                  {
+                    "orIds": {
+                      "ids": [
+                        { 
+                          "metadata": {
+                            "filter":"envoy.filters.http.jwt_authn",
+                            "path": [
+                              {"key": "jwt_payload_okta_0"},
+                              {"key": "roles"}
+                            ],
+                            "value": {
+                              "stringMatch": {
+                                "exact": "testing"
+                              }
+                            }
+                          }
+                        }
+                      ]
                     }
                   }
                 ]

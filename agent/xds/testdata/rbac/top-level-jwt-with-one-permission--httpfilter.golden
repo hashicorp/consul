@@ -38,47 +38,53 @@
           ],
           "principals": [
             {
-              "authenticated": {
-                "principalName": {
-                  "safeRegex": {
-                    "googleRe2": {
-
-                    },
-                    "regex": "^spiffe://test.consul/ns/default/dc/[^/]+/svc/web$"
-                  }
-                }
-              }
-            },
-            {
-              "orIds": {
+              "andIds": {
                 "ids": [
-                  { 
-                    "metadata": {
-                      "filter":"envoy.filters.http.jwt_authn",
-                      "path": [
-                        {"key": "jwt_payload_okta"},
-                        {"key": "roles"}
-                      ],
-                      "value": {
-                        "stringMatch": {
-                          "exact": "testing"
+                  {
+                    "authenticated": {
+                      "principalName": {
+                        "safeRegex": {
+                          "googleRe2": {
+
+                          },
+                          "regex": "^spiffe://test.consul/ns/default/dc/[^/]+/svc/web$"
                         }
                       }
                     }
                   },
-                  { 
-                    "metadata": {
-                      "filter":"envoy.filters.http.jwt_authn",
-                      "path": [
-                        {"key": "jwt_payload_auth0_0"},
-                        {"key": "perms"},
-                        {"key": "role"}
-                      ],
-                      "value": {
-                        "stringMatch": {
-                          "exact": "admin"
+                  {
+                    "orIds": {
+                      "ids": [
+                        { 
+                          "metadata": {
+                            "filter":"envoy.filters.http.jwt_authn",
+                            "path": [
+                              {"key": "jwt_payload_okta"},
+                              {"key": "roles"}
+                            ],
+                            "value": {
+                              "stringMatch": {
+                                "exact": "testing"
+                              }
+                            }
+                          }
+                        },
+                        { 
+                          "metadata": {
+                            "filter":"envoy.filters.http.jwt_authn",
+                            "path": [
+                              {"key": "jwt_payload_auth0_0"},
+                              {"key": "perms"},
+                              {"key": "role"}
+                            ],
+                            "value": {
+                              "stringMatch": {
+                                "exact": "admin"
+                              }
+                            }
+                          }
                         }
-                      }
+                      ]
                     }
                   }
                 ]

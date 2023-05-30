@@ -586,14 +586,14 @@ func makeRBACRules(
 				panic("invalid state: L7 permissions present for TCP service")
 			}
 
-			finalPrincipals := optimizePrincipals([]*envoy_rbac_v3.Principal{rbacIxn.ComputedPrincipal})
+			rbacPrincipals := optimizePrincipals([]*envoy_rbac_v3.Principal{rbacIxn.ComputedPrincipal})
 			if len(infos) > 0 {
 				claimsPrincipal := jwtInfosToPrincipals(infos)
-				finalPrincipals = append(finalPrincipals, claimsPrincipal)
+				rbacPrincipals = combineBasePrincipalWithJWTPrincipals(rbacPrincipals, claimsPrincipal)
 			}
 			// For L7: we should generate one Policy per Principal and list all of the Permissions
 			policy := &envoy_rbac_v3.Policy{
-				Principals:  finalPrincipals,
+				Principals:  rbacPrincipals,
 				Permissions: make([]*envoy_rbac_v3.Permission, 0, len(rbacIxn.Permissions)),
 			}
 			for _, perm := range rbacIxn.Permissions {
@@ -606,7 +606,7 @@ func makeRBACRules(
 			// Append JWT principals to list of principals
 			if len(infos) > 0 {
 				claimsPrincipal := jwtInfosToPrincipals(infos)
-				principalsL4 = append(principalsL4, claimsPrincipal)
+				principalsL4 = combineBasePrincipalWithJWTPrincipals(principalsL4, claimsPrincipal)
 			}
 		}
 	}
@@ -621,6 +621,18 @@ func makeRBACRules(
 		rbac.Policies = nil
 	}
 	return rbac
+}
+
+func combineBasePrincipalWithJWTPrincipals(p []*envoy_rbac_v3.Principal, cp *envoy_rbac_v3.Principal) []*envoy_rbac_v3.Principal {
+	res := make([]*envoy_rbac_v3.Principal, 0)
+
+	for _, principal := range p {
+		if principal != nil && cp != nil {
+			p := andPrincipals([]*envoy_rbac_v3.Principal{principal, cp})
+			res = append(res, p)
+		}
+	}
+	return res
 }
 
 // collectJWTInfos extracts all the collected JWTInfos top level infos
