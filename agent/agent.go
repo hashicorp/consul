@@ -597,6 +597,12 @@ func (a *Agent) Start(ctx context.Context) error {
 	// regular and on-demand state synchronizations (anti-entropy).
 	a.sync = ae.NewStateSyncer(a.State, c.AEInterval, a.shutdownCh, a.logger)
 
+	err = validateFIPSConfig(a.config)
+	if err != nil {
+		// Log warning, rather than force breaking
+		a.logger.Warn("FIPS 140-2 Compliance", "issue", err)
+	}
+
 	// create the config for the rpc server/client
 	consulCfg, err := newConsulConfig(a.config, a.logger)
 	if err != nil {
