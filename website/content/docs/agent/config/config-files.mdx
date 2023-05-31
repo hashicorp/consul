@@ -1831,6 +1831,9 @@ subsystem that provides Consul's service mesh capabilities.
     of global tags that will be added to all telemetry packets sent to DogStatsD.
     It is a list of strings, where each string looks like "my_tag_name:my_tag_value".
 
+  - `enable_host_metrics` ((#telemetry-enable_host_metrics))
+    This enables reporting of host metrics about system resources, defaults to false.
+
   - `filter_default` ((#telemetry-filter_default))
     This controls whether to allow metrics that have not been specified by the filter.
     Defaults to `true`, which will allow all metrics when no filters are provided.

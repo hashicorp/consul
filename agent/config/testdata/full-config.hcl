@@ -687,6 +687,7 @@ telemetry {
     circonus_check_tags = "prvO4uBl"
     circonus_submission_interval = "DolzaflP"
     circonus_submission_url = "gTcbS93G"
+    enable_host_metrics = true
     disable_hostname = true
     dogstatsd_addr = "0wSndumK"
     dogstatsd_tags = [ "3N81zSUB","Xtj8AnXZ" ]

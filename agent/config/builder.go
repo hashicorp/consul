@@ -1094,6 +1094,9 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		LocalProxyConfigResyncInterval:    30 * time.Second,
 	}
 
+	// host metrics are enabled by default if consul is configured with HashiCorp Cloud Platform integration
+	rt.Telemetry.EnableHostMetrics = boolValWithDefault(c.Telemetry.EnableHostMetrics, rt.IsCloudEnabled())
+
 	rt.TLS, err = b.buildTLSConfig(rt, c.TLS)
 	if err != nil {
 		return RuntimeConfig{}, err
