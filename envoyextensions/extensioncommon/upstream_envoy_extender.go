@@ -214,7 +214,11 @@ func (ext *UpstreamEnvoyExtender) patchTProxyListener(config *RuntimeConfig, l *
 	var resultErr error
 	patched := false
 
-	vip := config.Upstreams[config.ServiceName].VIP
+	upstream := config.Upstreams[config.ServiceName]
+	if upstream == nil {
+		return l, false, nil
+	}
+	vip := upstream.VIP
 
 	for _, filterChain := range l.FilterChains {
 		var filters []*envoy_listener_v3.Filter
