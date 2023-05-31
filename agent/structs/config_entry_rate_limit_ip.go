@@ -97,7 +97,9 @@ func (r *RateLimitIPConfigEntry) CanRead(authz acl.Authorizer) error {
 func (r *RateLimitIPConfigEntry) CanWrite(authz acl.Authorizer) error {
 	var authzContext acl.AuthorizerContext
 	r.FillAuthzContext(&authzContext)
-	return authz.ToAllowAuthorizer().MeshWriteAllowed(&authzContext)
+	// TODO: Implement
+	// return authz.ToAllowAuthorizer().RateLimitIPAllowed(&authzContext)
+	return nil
 }
 
 func (r *RateLimitIPConfigEntry) Validate() error {
