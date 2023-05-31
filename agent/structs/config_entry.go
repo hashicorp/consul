@@ -736,6 +736,8 @@ func MakeConfigEntry(kind, name string) (ConfigEntry, error) {
 		return &HTTPRouteConfigEntry{Name: name}, nil
 	case TCPRoute:
 		return &TCPRouteConfigEntry{Name: name}, nil
+	case RateLimitIPConfig:
+		return &RateLimitIPConfigEntry{Name: name}, nil
 	case JWTProvider:
 		return &JWTProviderConfigEntry{Name: name}, nil
 	default:
