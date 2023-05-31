@@ -881,6 +881,15 @@ func TestParseSource(t *testing.T) {
 		t.Fatalf("bad: %v", source)
 	}
 
+	// We should follow whatever datacenter parameter was given so that the node is
+	// looked up correctly on the receiving end.
+	req, _ = http.NewRequest("GET", "/v1/catalog/nodes?near=bob&datacenter=foo", nil)
+	source = structs.QuerySource{}
+	a.srv.parseSource(req, &source)
+	if source.Datacenter != "foo" || source.Node != "bob" {
+		t.Fatalf("bad: %v", source)
+	}
+
 	// The magic "_agent" node name will use the agent's local node name.
 	req, _ = http.NewRequest("GET", "/v1/catalog/nodes?near=_agent", nil)
 	source = structs.QuerySource{}
