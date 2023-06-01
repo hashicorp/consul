@@ -47,7 +47,6 @@ BUG FIXES:
 * acl: Fix an issue where the anonymous token was synthesized in non-primary datacenters which could cause permission errors when federating clusters with ACL replication enabled. [[GH-17231](https://github.com/hashicorp/consul/issues/17231)]
 * acls: Fix ACL bug that can result in sidecar proxies having incorrect endpoints.
 * connect: Fix multiple inefficient behaviors when querying service health. [[GH-17241](https://github.com/hashicorp/consul/issues/17241)]
-* connect: fix a bug with Envoy potentially starting with incomplete configuration by not waiting enough for initial xDS configuration. [[GH-17317](https://github.com/hashicorp/consul/issues/17317)]
 * gateways: Fix an bug where targeting a virtual service defined by a service-resolver was broken for HTTPRoutes. [[GH-17055](https://github.com/hashicorp/consul/issues/17055)]
 * grpc: ensure grpc resolver correctly uses lan/wan addresses on servers [[GH-17270](https://github.com/hashicorp/consul/issues/17270)]
 * namespaces: adjusts the return type from HTTP list API to return the `api` module representation of a namespace.
