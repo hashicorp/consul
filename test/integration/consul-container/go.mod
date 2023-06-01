@@ -26,6 +26,7 @@ require (
 	github.com/testcontainers/testcontainers-go v0.20.1
 	golang.org/x/mod v0.10.0
 	google.golang.org/grpc v1.55.0
+	gopkg.in/square/go-jose.v2 v2.5.1
 )
 
 require (
@@ -83,6 +84,7 @@ require (
 	github.com/sean-/seed v0.0.0-20170313163322-e2103e2c3529 // indirect
 	github.com/sirupsen/logrus v1.9.0 // indirect
 	github.com/stretchr/objx v0.5.0 // indirect
+	golang.org/x/crypto v0.1.0 // indirect
 	golang.org/x/exp v0.0.0-20230321023759-10a507213a29 // indirect
 	golang.org/x/net v0.10.0 // indirect
 	golang.org/x/sync v0.2.0 // indirect
