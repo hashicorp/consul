@@ -275,7 +275,7 @@ func (b *BasicEnvoyExtender) patchListeners(config *RuntimeConfig, listeners Lis
 			patchedListener = listener
 		}
 
-		if patchedListener, err = b.patchListenerFilterChains(config, patchedListener, nameOrSNI); err == nil {
+		if patchedListener, err = b.patchSupportedListenerFilterChains(config, patchedListener, nameOrSNI); err == nil {
 			patchedListeners[nameOrSNI] = patchedListener
 		} else {
 			resultErr = multierror.Append(resultErr, err)
@@ -285,76 +285,22 @@ func (b *BasicEnvoyExtender) patchListeners(config *RuntimeConfig, listeners Lis
 	return patchedListeners, resultErr
 }
 
-func (b *BasicEnvoyExtender) patchListenerFilterChains(config *RuntimeConfig, l *envoy_listener_v3.Listener, nameOrSNI string) (*envoy_listener_v3.Listener, error) {
+func (b *BasicEnvoyExtender) patchSupportedListenerFilterChains(config *RuntimeConfig, l *envoy_listener_v3.Listener, nameOrSNI string) (*envoy_listener_v3.Listener, error) {
 	switch config.Kind {
-	case api.ServiceKindTerminatingGateway:
-		return b.patchTerminatingGatewayListenerFilterChains(config, l, nameOrSNI)
-	case api.ServiceKindConnectProxy:
-		return b.patchConnectProxyListenerFilterChains(config, l, nameOrSNI)
+	case api.ServiceKindTerminatingGateway, api.ServiceKindConnectProxy:
+		return b.patchListenerFilterChains(config, l, nameOrSNI)
 	}
 	return l, nil
 }
 
-func (b *BasicEnvoyExtender) patchTerminatingGatewayListenerFilterChains(config *RuntimeConfig, l *envoy_listener_v3.Listener, nameOrSNI string) (*envoy_listener_v3.Listener, error) {
-	var resultErr error
-	for idx, filterChain := range l.FilterChains {
-		if patchedFilterChain, err := b.patchFilterChain(config, filterChain, l); err == nil {
-			l.FilterChains[idx] = patchedFilterChain
-		} else {
-			resultErr = multierror.Append(resultErr, fmt.Errorf("error patching filter chain of terminating gateway listener %q: %w", nameOrSNI, err))
-		}
-	}
-
-	return l, resultErr
-}
-
-func (b *BasicEnvoyExtender) patchConnectProxyListenerFilterChains(config *RuntimeConfig, l *envoy_listener_v3.Listener, nameOrSNI string) (*envoy_listener_v3.Listener, error) {
-	if IsOutboundTProxyListener(l) {
-		patchedListener, err := b.patchTProxyListenerFilterChains(config, l)
-		if err == nil {
-			return patchedListener, nil
-		} else {
-			return l, fmt.Errorf("error patching filter chain of TProxy listener %q: %w", nameOrSNI, err)
-		}
-	} else {
-
-		patchedListener, err := b.patchNonTProxyConnectProxyListenerFilterChains(config, l)
-		if err == nil {
-			return patchedListener, nil
-		} else {
-			return l, fmt.Errorf("error patching filter chain of connect proxy listener %q: %w", nameOrSNI, err)
-		}
-	}
-}
-
-func (b *BasicEnvoyExtender) patchNonTProxyConnectProxyListenerFilterChains(config *RuntimeConfig, l *envoy_listener_v3.Listener) (*envoy_listener_v3.Listener, error) {
+func (b *BasicEnvoyExtender) patchListenerFilterChains(config *RuntimeConfig, l *envoy_listener_v3.Listener, nameOrSNI string) (*envoy_listener_v3.Listener, error) {
 	var resultErr error
 
 	for idx, filterChain := range l.FilterChains {
 		if patchedFilterChain, err := b.patchFilterChain(config, filterChain, l); err == nil {
 			l.FilterChains[idx] = patchedFilterChain
 		} else {
-			resultErr = multierror.Append(resultErr, fmt.Errorf("error patching filter chain: %w", err))
-		}
-	}
-	return l, resultErr
-}
-
-func (b *BasicEnvoyExtender) patchTProxyListenerFilterChains(config *RuntimeConfig, l *envoy_listener_v3.Listener) (*envoy_listener_v3.Listener, error) {
-	var resultErr error
-
-	vip := config.Upstreams[config.ServiceName].VIP
-
-	for idx, filterChain := range l.FilterChains {
-		match := filterChainTProxyMatch(vip, filterChain)
-		if !match {
-			continue
-		}
-
-		if patchedFilterChain, err := b.patchFilterChain(config, filterChain, l); err == nil {
-			l.FilterChains[idx] = patchedFilterChain
-		} else {
-			resultErr = multierror.Append(resultErr, fmt.Errorf("error patching filter chain for %q: %w", vip, err))
+			resultErr = multierror.Append(resultErr, fmt.Errorf("error patching listener filter chain %q: %w", nameOrSNI, err))
 		}
 	}
 

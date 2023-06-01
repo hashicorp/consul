@@ -509,6 +509,13 @@ end`,
 			},
 		},
 		{
+			name: "lua-outbound-applies-to-local-upstreams-tproxy",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				// upstreams need to be http in order for lua to be applied to listeners.
+				return proxycfg.TestConfigSnapshotTransparentProxyDestinationHTTP(t, makeLuaNsFunc(false))
+			},
+		},
+		{
 			name: "lua-connect-proxy-with-terminating-gateway-upstream",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "register-to-terminating-gateway", false, nil, nil, makeLambdaServiceDefaults(false))
