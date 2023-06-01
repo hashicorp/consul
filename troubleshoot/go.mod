@@ -2,9 +2,9 @@ module github.com/hashicorp/consul/troubleshoot
 
 go 1.19
 
-replace github.com/hashicorp/consul/api => ../api
+// replace github.com/hashicorp/consul/api => ../api
 
-replace github.com/hashicorp/consul/envoyextensions => ../envoyextensions
+// replace github.com/hashicorp/consul/envoyextensions => ../envoyextensions
 
 exclude (
 	github.com/hashicorp/go-msgpack v1.1.5 // has breaking changes and must be avoided
@@ -13,8 +13,8 @@ exclude (
 
 require (
 	github.com/envoyproxy/go-control-plane v0.10.2-0.20220325020618-49ff273808a1
-	github.com/hashicorp/consul/api v1.20.0
-	github.com/hashicorp/consul/envoyextensions v0.1.2
+	github.com/hashicorp/consul/api v1.21.0
+	github.com/hashicorp/consul/envoyextensions v0.2.1
 	github.com/stretchr/testify v1.8.0
 	google.golang.org/protobuf v1.28.1
 )
