@@ -716,7 +716,7 @@ func TestConfigSnapshotTransparentProxyDestination(t testing.T) *ConfigSnapshot 
 	})
 }
 
-func TestConfigSnapshotTransparentProxyDestinationHTTP(t testing.T) *ConfigSnapshot {
+func TestConfigSnapshotTransparentProxyDestinationHTTP(t testing.T, nsFn func(ns *structs.NodeService)) *ConfigSnapshot {
 	// DiscoveryChain without an UpstreamConfig should yield a
 	// filter chain when in transparent proxy mode
 	var (
@@ -761,6 +761,9 @@ func TestConfigSnapshotTransparentProxyDestinationHTTP(t testing.T) *ConfigSnaps
 		},
 	}
 	return TestConfigSnapshot(t, func(ns *structs.NodeService) {
+		if nsFn != nil {
+			nsFn(ns)
+		}
 		ns.Proxy.Mode = structs.ProxyModeTransparent
 	}, []UpdateEvent{
 		{

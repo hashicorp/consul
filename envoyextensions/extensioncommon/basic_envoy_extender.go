@@ -84,7 +84,7 @@ func (b *BasicEnvoyExtender) Extend(resources *xdscommon.IndexedResources, confi
 				}
 
 			case *envoy_listener_v3.Listener:
-				newListener, patched, err := b.patchListener(config, resource)
+				newListener, patched, err := b.patchSupportedListenerFilterChains(config, resource)
 				if err != nil {
 					resultErr = multierror.Append(resultErr, fmt.Errorf("error patching listener: %w", err))
 					continue
@@ -111,89 +111,20 @@ func (b *BasicEnvoyExtender) Extend(resources *xdscommon.IndexedResources, confi
 	return resources, resultErr
 }
 
-func (b *BasicEnvoyExtender) patchListener(config *RuntimeConfig, l *envoy_listener_v3.Listener) (proto.Message, bool, error) {
+func (b *BasicEnvoyExtender) patchSupportedListenerFilterChains(config *RuntimeConfig, l *envoy_listener_v3.Listener) (proto.Message, bool, error) {
 	switch config.Kind {
-	case api.ServiceKindTerminatingGateway:
-		return b.patchTerminatingGatewayListener(config, l)
-	case api.ServiceKindConnectProxy:
-		return b.patchConnectProxyListener(config, l)
+	case api.ServiceKindTerminatingGateway, api.ServiceKindConnectProxy:
+		return b.patchListenerFilterChains(config, l)
 	}
 	return l, false, nil
 }
 
-func (b *BasicEnvoyExtender) patchTerminatingGatewayListener(config *RuntimeConfig, l *envoy_listener_v3.Listener) (proto.Message, bool, error) {
+func (b *BasicEnvoyExtender) patchListenerFilterChains(config *RuntimeConfig, l *envoy_listener_v3.Listener) (proto.Message, bool, error) {
 	var resultErr error
 	patched := false
 
 	for _, filterChain := range l.FilterChains {
 		var filters []*envoy_listener_v3.Filter
-
-		for _, filter := range filterChain.Filters {
-			newFilter, ok, err := b.Extension.PatchFilter(config, filter, IsInboundPublicListener(l))
-
-			if err != nil {
-				resultErr = multierror.Append(resultErr, fmt.Errorf("error patching listener filter: %w", err))
-				filters = append(filters, filter)
-				continue
-			}
-			if ok {
-				filters = append(filters, newFilter)
-				patched = true
-			} else {
-				filters = append(filters, filter)
-			}
-		}
-		filterChain.Filters = filters
-	}
-
-	return l, patched, resultErr
-}
-
-func (b *BasicEnvoyExtender) patchConnectProxyListener(config *RuntimeConfig, l *envoy_listener_v3.Listener) (proto.Message, bool, error) {
-	var resultErr error
-	patched := false
-
-	if IsOutboundTProxyListener(l) {
-		return b.patchTProxyListener(config, l)
-	}
-
-	for _, filterChain := range l.FilterChains {
-		var filters []*envoy_listener_v3.Filter
-
-		for _, filter := range filterChain.Filters {
-			newFilter, ok, err := b.Extension.PatchFilter(config, filter, IsInboundPublicListener(l))
-			if err != nil {
-				resultErr = multierror.Append(resultErr, fmt.Errorf("error patching listener filter: %w", err))
-				filters = append(filters, filter)
-				continue
-			}
-
-			if ok {
-				filters = append(filters, newFilter)
-				patched = true
-			} else {
-				filters = append(filters, filter)
-			}
-		}
-		filterChain.Filters = filters
-	}
-
-	return l, patched, resultErr
-}
-
-func (b *BasicEnvoyExtender) patchTProxyListener(config *RuntimeConfig, l *envoy_listener_v3.Listener) (proto.Message, bool, error) {
-	var resultErr error
-	patched := false
-
-	vip := config.Upstreams[config.ServiceName].VIP
-
-	for _, filterChain := range l.FilterChains {
-		var filters []*envoy_listener_v3.Filter
-
-		match := filterChainTProxyMatch(vip, filterChain)
-		if !match {
-			continue
-		}
 
 		for _, filter := range filterChain.Filters {
 			newFilter, ok, err := b.Extension.PatchFilter(config, filter, IsInboundPublicListener(l))
