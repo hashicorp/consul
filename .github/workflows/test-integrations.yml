@@ -231,7 +231,7 @@ jobs:
           # this is further going to multiplied in envoy-integration tests by the 
           # other dimensions in the matrix.  Currently TOTAL_RUNNERS would be
           # multiplied by 8 based on these values:
-          # envoy-version: ["1.22.11", "1.23.8", "1.24.6", "1.25.4"]
+          # envoy-version: ["1.21.6", "1.22.11", "1.23.9", "1.24.7"]
           # xds-target: ["server", "client"]
           TOTAL_RUNNERS: 4 
           JQ_SLICER: '[ inputs ] | [_nwise(length / $runnercount | floor)]'
@@ -265,7 +265,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        envoy-version: ["1.22.11", "1.23.8", "1.24.6", "1.25.4"]
+        envoy-version: ["1.21.6", "1.22.11", "1.23.9", "1.24.7"]
         xds-target: ["server", "client"]
         test-cases: ${{ fromJSON(needs.generate-envoy-job-matrices.outputs.envoy-matrix) }}
     env:
