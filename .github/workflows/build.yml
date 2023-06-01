@@ -31,16 +31,16 @@ jobs:
         run: |
           CONSUL_DATE=$(build-support/scripts/build-date.sh)
           ## TODO: This assumes `make version` outputs 1.1.1+ent-prerel
-          echo "::set-output name=product-date::${CONSUL_DATE}"
+          echo "product-date=${CONSUL_DATE}" >> "$GITHUB_OUTPUT"
 
       - name: Set shared -ldflags
         id: shared-ldflags
         run: |
           T="github.com/hashicorp/consul/version"
-           echo "::set-output name=shared-ldflags::-X ${T}.GitCommit=${GITHUB_SHA::8} \
+          echo "shared-ldflags=-X ${T}.GitCommit=${GITHUB_SHA::8} \
           -X ${T}.GitDescribe=${{ steps.set-product-version.outputs.product-version }} \
           -X ${T}.BuildDate=${{ steps.get-product-version.outputs.product-date }} \
-          "
+          " >> "$GITHUB_OUTPUT"
   validate-outputs:
     needs: set-product-version
     runs-on: ubuntu-latest
