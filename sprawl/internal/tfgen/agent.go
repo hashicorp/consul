@@ -107,6 +107,7 @@ func (g *Generator) generateAgentHCL(step Step, node *topology.Node) (string, er
 			b.add("grpc", 8502)
 			b.add("grpc_tls", -1)
 		}
+		b.add("http", 8500)
 		b.add("dns", 8600)
 	})
 

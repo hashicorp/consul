@@ -24,7 +24,7 @@ type terraformConsulAgent struct {
 	ImageResource     string
 	HCL               string
 	EnterpriseLicense string
-	// Env:        map[string]string{"CONSUL_LICENSE": opts.license},
+	Env               []string
 }
 
 type terraformMeshGatewayService struct {
@@ -94,6 +94,7 @@ func (g *Generator) generateNodeContainers(
 			ImageResource:     DockerImageResourceName(node.Images.Consul),
 			HCL:               agentHCL,
 			EnterpriseLicense: g.license,
+			Env:               node.AgentEnv,
 		}
 
 		switch {

@@ -429,6 +429,9 @@ type Node struct {
 	// the enclosing Cluster.
 	Images Images
 
+	// AgentEnv contains optional environment variables to attach to Consul agents.
+	AgentEnv []string
+
 	Disabled bool `json:",omitempty"`
 
 	Addresses []*Address
@@ -437,8 +440,10 @@ type Node struct {
 	// denormalized at topology compile
 	Cluster    string
 	Datacenter string
+
 	// computed at topology compile
 	Index int
+
 	// generated during network-and-tls
 	TLSCertPrefix string `json:",omitempty"`
 
