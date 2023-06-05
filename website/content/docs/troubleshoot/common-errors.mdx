@@ -213,6 +213,56 @@ as doing so gives the Consul client unnecessary access to all network traffic on
 We recommend raising an issue with the CNI you're using to add support for `hostPort`
 and switching back to `hostPort` eventually.
 
+### consul-server-connection-manager: ACL auth method login failed: error="rpc error: code = PermissionDenied desc = Permission denied"
+
+If you see this error in the init container logs of service mesh pods, check that the pod has a service account name that matches its Service.
+For example, this deployment:
+
+```
+apiVersion: v1
+kind: Service
+metadata:
+  # This name will be the service name in Consul.
+  name: static-server
+spec:
+  selector:
+    app: static-server
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8080
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: static-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: static-server
+  template:
+    metadata:
+      name: static-server
+      labels:
+        app: static-server
+      annotations:
+        'consul.hashicorp.com/connect-inject': 'true'
+    spec:
+      containers:
+        - name: static-server
+          image: hashicorp/http-echo:latest
+          args:
+            - -text="hello world"
+            - -listen=:8080
+          ports:
+            - containerPort: 8080
+              name: http
+      serviceAccountName: does-not-match
+```
+
+Will fail because the `serviceAccountName` is `does-not-match` instead of `static-server`.
+
 [troubleshooting]: /consul/tutorials/datacenter-operations/troubleshooting
 [node_name]: /consul/docs/agent/config/config-files#node_name
 [retry_join]: /consul/docs/agent/config/cli-flags#retry-join

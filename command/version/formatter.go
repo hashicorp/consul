@@ -49,6 +49,10 @@ func (_ *prettyFormatter) Format(info *VersionInfo) (string, error) {
 
 	buffer.WriteString(fmt.Sprintf("Build Date %s\n", info.BuildDate.Format(time.RFC3339)))
 
+	if info.FIPS != "" {
+		buffer.WriteString(fmt.Sprintf("FIPS: %s\n", info.FIPS))
+	}
+
 	var supplement string
 	if info.RPC.Default < info.RPC.Max {
 		supplement = fmt.Sprintf(" (agent will automatically use protocol >%d when speaking to compatible agents)",

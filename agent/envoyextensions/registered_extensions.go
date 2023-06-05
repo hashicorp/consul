@@ -7,8 +7,10 @@ import (
 	"fmt"
 
 	awslambda "github.com/hashicorp/consul/agent/envoyextensions/builtin/aws-lambda"
+	extauthz "github.com/hashicorp/consul/agent/envoyextensions/builtin/ext-authz"
 	"github.com/hashicorp/consul/agent/envoyextensions/builtin/http/localratelimit"
 	"github.com/hashicorp/consul/agent/envoyextensions/builtin/lua"
+	propertyoverride "github.com/hashicorp/consul/agent/envoyextensions/builtin/property-override"
 	"github.com/hashicorp/consul/agent/envoyextensions/builtin/wasm"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/envoyextensions/extensioncommon"
@@ -18,10 +20,12 @@ import (
 type extensionConstructor func(api.EnvoyExtension) (extensioncommon.EnvoyExtender, error)
 
 var extensionConstructors = map[string]extensionConstructor{
-	api.BuiltinLuaExtension:            lua.Constructor,
-	api.BuiltinAWSLambdaExtension:      awslambda.Constructor,
-	api.BuiltinLocalRatelimitExtension: localratelimit.Constructor,
-	api.BuiltinWasmExtension:           wasm.Constructor,
+	api.BuiltinLuaExtension:              lua.Constructor,
+	api.BuiltinAWSLambdaExtension:        awslambda.Constructor,
+	api.BuiltinLocalRatelimitExtension:   localratelimit.Constructor,
+	api.BuiltinPropertyOverrideExtension: propertyoverride.Constructor,
+	api.BuiltinWasmExtension:             wasm.Constructor,
+	api.BuiltinExtAuthzExtension:         extauthz.Constructor,
 }
 
 // ConstructExtension attempts to lookup and build an extension from the registry with the

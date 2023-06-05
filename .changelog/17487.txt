@@ -1,0 +1,3 @@
+```release-note:feature
+xds: Add `property-override` built-in Envoy extension that directly patches Envoy resources.
+```

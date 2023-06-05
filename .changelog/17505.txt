@@ -1,0 +1,3 @@
+```release-note:feature
+xds: Add a built-in Envoy extension that inserts Wasm network filters.
+```

@@ -5,11 +5,26 @@
     "providers": {
       "okta": {
         "issuer": "test-issuer",
+        "payloadInMetadata": "jwt_payload_okta",
         "remoteJwks": {
           "httpUri": {
             "uri": "https://example-okta.com/.well-known/jwks.json",
             "cluster": "jwks_cluster",
-            "timeout": "0s"
+            "timeout": "1s"
+          },
+          "asyncFetch": {
+            "fastListener": true
+          }
+        }
+      },
+      "okta_0": {
+        "issuer": "test-issuer",
+        "payloadInMetadata": "jwt_payload_okta_0",
+        "remoteJwks": {
+          "httpUri": {
+            "uri": "https://example-okta.com/.well-known/jwks.json",
+            "cluster": "jwks_cluster",
+            "timeout": "1s"
           },
           "asyncFetch": {
             "fastListener": true
@@ -20,10 +35,10 @@
     "rules": [
       {
         "match": {
-          "prefix": "/some-special-path"
+          "prefix": "some-special-path"
         },
         "requires": {
-          "providerName": "okta"
+          "providerName": "okta_0"
         }
       },
       {

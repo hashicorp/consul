@@ -29,6 +29,7 @@ func init() {
 	registerEndpoint("/v1/agent/token/", []string{"PUT"}, (*HTTPHandlers).AgentToken)
 	registerEndpoint("/v1/agent/self", []string{"GET"}, (*HTTPHandlers).AgentSelf)
 	registerEndpoint("/v1/agent/host", []string{"GET"}, (*HTTPHandlers).AgentHost)
+	registerEndpoint("/v1/agent/version", []string{"GET"}, (*HTTPHandlers).AgentVersion)
 	registerEndpoint("/v1/agent/maintenance", []string{"PUT"}, (*HTTPHandlers).AgentNodeMaintenance)
 	registerEndpoint("/v1/agent/reload", []string{"PUT"}, (*HTTPHandlers).AgentReload)
 	registerEndpoint("/v1/agent/monitor", []string{"GET"}, (*HTTPHandlers).AgentMonitor)

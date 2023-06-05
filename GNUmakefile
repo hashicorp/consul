@@ -165,13 +165,13 @@ dev-build:
 	cp ${MAIN_GOPATH}/bin/consul ./bin/consul
 
 
-dev-docker-dbg: dev-docker linux dev-build
+dev-docker-dbg: dev-docker
 	@echo "Pulling consul container image - $(CONSUL_IMAGE_VERSION)"
 	@docker pull consul:$(CONSUL_IMAGE_VERSION) >/dev/null
 	@echo "Building Consul Development container - $(CONSUL_DEV_IMAGE)"
 	@#  'consul-dbg:local' tag is needed to run the integration tests
 	@#  'consul-dev:latest' is needed by older workflows
-	@docker buildx use default && docker buildx build -t 'consul-dbg:local' -t '$(CONSUL_DEV_IMAGE)' \
+	@docker buildx use default && docker buildx build -t $(CONSUL_COMPAT_TEST_IMAGE)-dbg:local \
        --platform linux/$(GOARCH) \
 	   --build-arg CONSUL_IMAGE_VERSION=$(CONSUL_IMAGE_VERSION) \
        --load \
@@ -384,6 +384,7 @@ codegen-tools:
 deep-copy: codegen-tools
 	@$(SHELL) $(CURDIR)/agent/structs/deep-copy.sh
 	@$(SHELL) $(CURDIR)/agent/proxycfg/deep-copy.sh
+	@$(SHELL) $(CURDIR)/agent/consul/state/deep-copy.sh
 
 version:
 	@echo -n "Version:                    "

@@ -154,7 +154,7 @@ The table below shows this endpoint's support for
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required   |
 | ---------------- | ----------------- | ------------- | -------------- |
-| `NO`             | `consistent`      | `none`        | `peering:read` |
+| `YES`            | `consistent`      | `none`        | `peering:read` |
 
 ### Path Parameters
 
@@ -263,9 +263,9 @@ The table below shows this endpoint's support for
 [agent caching](/consul/api-docs/features/caching), and
 [required ACLs](/consul/api-docs/api-structure#authentication).
 
-| Blocking Queries | Consistency Modes | Agent Caching | ACL Required   |
-| ---------------- | ----------------- | ------------- | -------------- |
-| `NO`             | `consistent`      | `none`        | `peering:read` |
+| Blocking Queries | Consistency Modes | Agent Caching        | ACL Required   |
+| ---------------- | ----------------- | -------------------- | -------------- |
+| `YES`            | `consistent`      | `background refresh` | `peering:read` |
 
 ### Query Parameters
 

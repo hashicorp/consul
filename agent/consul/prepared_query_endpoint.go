@@ -312,9 +312,9 @@ func (p *PreparedQuery) Explain(args *structs.PreparedQueryExecuteRequest,
 	defer metrics.MeasureSince([]string{"prepared-query", "explain"}, time.Now())
 
 	// We have to do this ourselves since we are not doing a blocking RPC.
-	p.srv.setQueryMeta(&reply.QueryMeta, args.Token)
+	p.srv.SetQueryMeta(&reply.QueryMeta, args.Token)
 	if args.RequireConsistent {
-		if err := p.srv.consistentRead(); err != nil {
+		if err := p.srv.ConsistentRead(); err != nil {
 			return err
 		}
 	}
@@ -360,7 +360,7 @@ func (p *PreparedQuery) Execute(args *structs.PreparedQueryExecuteRequest,
 
 	// We have to do this ourselves since we are not doing a blocking RPC.
 	if args.RequireConsistent {
-		if err := p.srv.consistentRead(); err != nil {
+		if err := p.srv.ConsistentRead(); err != nil {
 			return err
 		}
 	}
@@ -404,7 +404,7 @@ func (p *PreparedQuery) Execute(args *structs.PreparedQueryExecuteRequest,
 		// though, since this is essentially a misconfiguration.
 
 		// We have to do this ourselves since we are not doing a blocking RPC.
-		p.srv.setQueryMeta(&reply.QueryMeta, token)
+		p.srv.SetQueryMeta(&reply.QueryMeta, token)
 
 		// Shuffle the results in case coordinates are not available if they
 		// requested an RTT sort.
@@ -506,7 +506,7 @@ func (p *PreparedQuery) ExecuteRemote(args *structs.PreparedQueryExecuteRemoteRe
 
 	// We have to do this ourselves since we are not doing a blocking RPC.
 	if args.RequireConsistent {
-		if err := p.srv.consistentRead(); err != nil {
+		if err := p.srv.ConsistentRead(); err != nil {
 			return err
 		}
 	}
@@ -527,7 +527,7 @@ func (p *PreparedQuery) ExecuteRemote(args *structs.PreparedQueryExecuteRemoteRe
 	}
 
 	// We have to do this ourselves since we are not doing a blocking RPC.
-	p.srv.setQueryMeta(&reply.QueryMeta, token)
+	p.srv.SetQueryMeta(&reply.QueryMeta, token)
 
 	// We don't bother trying to do an RTT sort here since we are by
 	// definition in another DC. We just shuffle to make sure that we
