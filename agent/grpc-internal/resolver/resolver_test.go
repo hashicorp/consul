@@ -3,6 +3,7 @@ package resolver
 import (
 	"fmt"
 	"net"
+	"net/url"
 	"strings"
 	"testing"
 
@@ -40,7 +41,7 @@ func TestServerResolverBuilder(t *testing.T) {
 		_, err := rs.Build(resolver.Target{
 			Scheme:    "consul",
 			Authority: rs.Authority(),
-			Endpoint:  endpoint,
+			URL:       url.URL{Opaque: endpoint},
 		}, cc, resolver.BuildOptions{})
 		require.NoError(t, err)
 
