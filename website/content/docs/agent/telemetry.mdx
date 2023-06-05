@@ -28,7 +28,7 @@ getting a better view of what Consul is doing. Review the [Monitoring and
 Metrics tutorial](/consul/tutorials/day-2-operations/monitor-datacenter-health?utm_source=docs) to learn how collect and interpret Consul data.
 
 By default, all metric names of gauge type are prefixed with the hostname of the consul agent, e.g.,
-`consul.<hostname>.server.isLeader`. To disable prefixing the hostname, set
+`consul.hostname.server.isLeader`. To disable prefixing the hostname, set
 `telemetry.disable_hostname=true` in the [agent configuration](/consul/docs/agent/config/config-files#telemetry).
 
 Additionally, if the [`telemetry` configuration options](/consul/docs/agent/config/config-files#telemetry)
