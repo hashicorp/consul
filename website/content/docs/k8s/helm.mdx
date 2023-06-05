@@ -212,7 +212,7 @@ Use these links to navigate to a particular top-level stanza.
 
         - `secretKey` ((#v-global-secretsbackend-vault-ca-secretkey)) (`string: ""`) - The key within the Kubernetes or Vault secret that holds the Vault CA certificate.
 
-      - `connectCA` ((#v-global-secretsbackend-vault-connectca)) - Configuration for the Vault Connect CA provider.
+      - `connectCA` ((#v-global-secretsbackend-vault-connectca)) - Configuration for the Vault service mesh CA provider.
         The provider will be configured to use the Vault Kubernetes auth method
         and therefore requires the role provided by `global.secretsBackend.vault.consulServerRole`
         to have permissions to the root and intermediate PKI paths.
@@ -224,13 +224,13 @@ Use these links to navigate to a particular top-level stanza.
         - `authMethodPath` ((#v-global-secretsbackend-vault-connectca-authmethodpath)) (`string: kubernetes`) - The mount path of the Kubernetes auth method in Vault.
 
         - `rootPKIPath` ((#v-global-secretsbackend-vault-connectca-rootpkipath)) (`string: ""`) - The path to a PKI secrets engine for the root certificate.
-          For more details, please refer to [Vault Connect CA configuration](https://developer.hashicorp.com/consul/docs/connect/ca/vault#rootpkipath).
+          For more details, please refer to [Vault service mesh CA configuration](https://developer.hashicorp.com/consul/docs/connect/ca/vault#rootpkipath).
 
         - `intermediatePKIPath` ((#v-global-secretsbackend-vault-connectca-intermediatepkipath)) (`string: ""`) - The path to a PKI secrets engine for the generated intermediate certificate.
-          For more details, please refer to [Vault Connect CA configuration](https://developer.hashicorp.com/consul/docs/connect/ca/vault#intermediatepkipath).
+          For more details, please refer to [Vault service mesh CA configuration](https://developer.hashicorp.com/consul/docs/connect/ca/vault#intermediatepkipath).
 
-        - `additionalConfig` ((#v-global-secretsbackend-vault-connectca-additionalconfig)) (`string: {}`) - Additional Connect CA configuration in JSON format.
-          Please refer to [Vault Connect CA configuration](https://developer.hashicorp.com/consul/docs/connect/ca/vault#configuration)
+        - `additionalConfig` ((#v-global-secretsbackend-vault-connectca-additionalconfig)) (`string: {}`) - Additional service mesh CA configuration in JSON format.
+          Please refer to [Vault service mesh CA configuration](https://developer.hashicorp.com/consul/docs/connect/ca/vault#configuration)
           for all configuration options available for that provider.
 
           Example:
