@@ -440,6 +440,18 @@ func (c *cmd) run(args []string) int {
 			meta = map[string]string{structs.MetaWANFederationKey: "1"}
 		}
 
+		var defaultCheck *api.AgentServiceCheck
+		// API Gateways do not get a service check because, unlike ingress gateways,
+		// they do not have any default listeners w/o a config entry definition.
+		if c.gatewayKind != api.ServiceKindAPIGateway {
+			defaultCheck = &api.AgentServiceCheck{
+				Name:                           fmt.Sprintf("%s listening", c.gatewayKind),
+				TCP:                            ipaddr.FormatAddressPort(tcpCheckAddr, lanAddr.Port),
+				Interval:                       "10s",
+				DeregisterCriticalServiceAfter: c.deregAfterCritical,
+			}
+		}
+
 		svc := api.AgentServiceRegistration{
 			Kind:            c.gatewayKind,
 			Name:            c.gatewaySvcName,
@@ -449,12 +461,7 @@ func (c *cmd) run(args []string) int {
 			Meta:            meta,
 			TaggedAddresses: taggedAddrs,
 			Proxy:           proxyConf,
-			Check: &api.AgentServiceCheck{
-				Name:                           fmt.Sprintf("%s listening", c.gatewayKind),
-				TCP:                            ipaddr.FormatAddressPort(tcpCheckAddr, lanAddr.Port),
-				Interval:                       "10s",
-				DeregisterCriticalServiceAfter: c.deregAfterCritical,
-			},
+			Check:           defaultCheck,
 		}
 
 		if err := c.client.Agent().ServiceRegister(&svc); err != nil {

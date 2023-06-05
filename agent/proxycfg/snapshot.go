@@ -815,6 +815,18 @@ DOMAIN_LOOP:
 	return services, upstreams, compiled, err
 }
 
+// valid tests for two valid api gateway snapshot states:
+//  1. waiting: the watch on api and bound gateway entries is set, but none were received
+//  2. loaded: both the valid config entries AND the leaf certs are set
+func (c *configSnapshotAPIGateway) valid() bool {
+	waiting := c.GatewayConfigLoaded && len(c.Upstreams) == 0 && c.BoundGatewayConfigLoaded && c.Leaf == nil
+
+	// If we have a leaf, it implies we successfully watched parent resources
+	loaded := c.GatewayConfigLoaded && c.BoundGatewayConfigLoaded && c.Leaf != nil
+
+	return waiting || loaded
+}
+
 type configSnapshotIngressGateway struct {
 	ConfigSnapshotUpstreams
 
@@ -861,6 +873,18 @@ func (c *configSnapshotIngressGateway) isEmpty() bool {
 		len(c.WatchedUpstreams) == 0 &&
 		len(c.WatchedUpstreamEndpoints) == 0 &&
 		!c.MeshConfigSet
+}
+
+// valid tests for two valid ingress snapshot states:
+//  1. waiting: the watch on ingress config entries is set, but none were received
+//  2. loaded: both the ingress config entry AND the leaf cert are set
+func (c *configSnapshotIngressGateway) valid() bool {
+	waiting := c.GatewayConfigLoaded && len(c.Upstreams) == 0 && c.Leaf == nil
+
+	// If we have a leaf, it implies we successfully watched parent resources
+	loaded := c.GatewayConfigLoaded && c.Leaf != nil
+
+	return waiting || loaded
 }
 
 type APIGatewayListenerKey = IngressListenerKey
@@ -955,17 +979,14 @@ func (s *ConfigSnapshot) Valid() bool {
 
 	case structs.ServiceKindIngressGateway:
 		return s.Roots != nil &&
-			s.IngressGateway.Leaf != nil &&
-			s.IngressGateway.GatewayConfigLoaded &&
+			s.IngressGateway.valid() &&
 			s.IngressGateway.HostsSet &&
 			s.IngressGateway.MeshConfigSet
 
 	case structs.ServiceKindAPIGateway:
 		// TODO Is this the proper set of things to validate?
 		return s.Roots != nil &&
-			s.APIGateway.Leaf != nil &&
-			s.APIGateway.GatewayConfigLoaded &&
-			s.APIGateway.BoundGatewayConfigLoaded &&
+			s.APIGateway.valid() &&
 			s.APIGateway.MeshConfigSet
 	default:
 		return false
