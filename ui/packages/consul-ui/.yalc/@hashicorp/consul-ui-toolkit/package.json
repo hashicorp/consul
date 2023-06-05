@@ -1,0 +1,69 @@
+{
+  "name": "@hashicorp/consul-ui-toolkit",
+  "version": "0.0.0",
+  "description": "The default blueprint for Embroider v2 addons.",
+  "keywords": [
+    "ember-addon"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hashicorp/consul-ui-toolkit",
+    "directory": "toolkit"
+  },
+  "license": "MPL-2.0",
+  "author": "",
+  "files": [
+    "addon-main.cjs",
+    "dist"
+  ],
+  "scripts": {
+    "build": "rollup --config",
+    "cleanup:local": "yalc installations clean @hashicorp/consul-ui-toolkit",
+    "lint": "concurrently 'npm:lint:*(!fix)' --names 'lint:'",
+    "lint:fix": "concurrently 'npm:lint:*:fix' --names 'fix:'",
+    "lint:hbs": "ember-template-lint . --no-error-on-unmatched-pattern",
+    "lint:js": "eslint . --cache",
+    "lint:hbs:fix": "ember-template-lint . --fix --no-error-on-unmatched-pattern",
+    "lint:js:fix": "eslint . --fix",
+    "start": "rollup --config --watch",
+    "test": "echo 'A v2 addon does not have tests, run tests in documentation'",
+    "prepack": "rollup --config",
+    "publish:local": "yalc publish --content"
+  },
+  "dependencies": {
+    "@embroider/addon-shim": "^1.0.0",
+    "ember-composable-helpers": "^5.0.0",
+    "ember-concurrency": "^2.3.7",
+    "ember-concurrency-decorators": "^2.0.3"
+  },
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org"
+  },
+  "ember": {
+    "edition": "octane"
+  },
+  "ember-addon": {
+    "version": 2,
+    "type": "addon",
+    "main": "addon-main.cjs",
+    "app-js": {
+      "./components/cut/copy-block/index.js": "./dist/_app_/components/cut/copy-block/index.js",
+      "./components/cut/list-item/action-generic.js": "./dist/_app_/components/cut/list-item/action-generic.js",
+      "./components/cut/list-item/content.js": "./dist/_app_/components/cut/list-item/content.js",
+      "./components/cut/list-item/health-check-badge-set/index.js": "./dist/_app_/components/cut/list-item/health-check-badge-set/index.js",
+      "./components/cut/list-item/index.js": "./dist/_app_/components/cut/list-item/index.js",
+      "./components/cut/list-item/label/index.js": "./dist/_app_/components/cut/list-item/label/index.js",
+      "./components/cut/list-item/label/metadata.js": "./dist/_app_/components/cut/list-item/label/metadata.js",
+      "./components/cut/list-item/label/title.js": "./dist/_app_/components/cut/list-item/label/title.js",
+      "./components/cut/list-item/service/index.js": "./dist/_app_/components/cut/list-item/service/index.js",
+      "./components/cut/list-item/template/index.js": "./dist/_app_/components/cut/list-item/template/index.js",
+      "./components/cut/text-with-icon/index.js": "./dist/_app_/components/cut/text-with-icon/index.js"
+    }
+  },
+  "exports": {
+    ".": "./dist/index.js",
+    "./*": "./dist/*.js",
+    "./addon-main.js": "./addon-main.cjs"
+  },
+  "yalcSig": "ac067307c76a91f9b7c42aaca560260c"
+}

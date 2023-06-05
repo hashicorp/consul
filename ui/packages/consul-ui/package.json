@@ -73,6 +73,7 @@
     "@hashicorp/design-system-tokens": "^1.0.0",
     "@hashicorp/ember-cli-api-double": "^4.0.0",
     "@hashicorp/ember-flight-icons": "^3.0.2",
+    "@hashicorp/consul-ui-toolkit": "file:.yalc/@hashicorp/consul-ui-toolkit",
     "@html-next/vertical-collection": "^4.0.0",
     "@lit/reactive-element": "^1.2.1",
     "@xstate/fsm": "^1.4.0",

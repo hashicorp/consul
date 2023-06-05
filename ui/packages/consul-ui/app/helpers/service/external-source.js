@@ -6,7 +6,7 @@
 import { helper } from '@ember/component/helper';
 import { get } from '@ember/object';
 
-export function serviceExternalSource(params, hash) {
+export function serviceExternalSource(params, hash = {}) {
   let source = get(params[0], 'ExternalSources.firstObject');
   if (!source) {
     source = get(params[0], 'Meta.external-source');

@@ -124,6 +124,7 @@ module.exports = function (defaults, $ = process.env) {
     trees.styles = mergeTrees(
       [
         new Funnel('app/styles', { include: ['**/*.{scss,css}'] }),
+        new Funnel('.yalc/@hashicorp/consul-ui-toolkit/dist/styles', { include: ['**/*.{scss,css}'] }),
         new Funnel('app', { include: ['components/**/*.{scss,css}'], destDir: 'consul-ui' }),
       ].concat(
         apps
@@ -170,6 +171,7 @@ module.exports = function (defaults, $ = process.env) {
               options: {
                 includePaths: [
                   '../../node_modules/@hashicorp/design-system-tokens/dist/products/css',
+                  '../node_modules/@hashicorp/consul-ui-toolkit/dist/styles',
                 ],
               },
             },

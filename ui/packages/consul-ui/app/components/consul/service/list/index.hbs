@@ -3,6 +3,25 @@
   SPDX-License-Identifier: MPL-2.0
 }}
 
+{{#each @items as |item|}}
+  <Cut::ListItem::Service
+    @isHrefExternal={{false}}
+    @href={{if (gt item.InstanceCount 0) (href-to
+    'dc.services.show.index'
+    item.Name
+    params=(if
+      (not-eq item.Partition @partition)
+      (hash partition=item.Partition nspace=item.Namespace peer=item.PeerName)
+      (hash peer=item.PeerName)
+    )) null}}
+    @service={{service/transform-data-to-list-item item 'service'}}
+    @type="service"
+  }}
+
+  />
+{{/each}}
+
+
 <ListCollection
   class='consul-service-list'
   ...attributes

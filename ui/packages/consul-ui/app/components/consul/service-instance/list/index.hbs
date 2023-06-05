@@ -8,7 +8,25 @@
   (to-hash @proxies "Service.Proxy.DestinationServiceID")
 
 as |proxies|}}
-<ListCollection
+  <div class="flex flex-col gap-2 pt-2 pb-8">
+    {{#each @items as |item|}}
+      {{#let
+        (get proxies item.Service.ID)
+      as |proxy|}}
+        <Cut::ListItem::Service @isHrefExternal={{false}}
+                                @href={{if
+          (eq @routeName "dc.services.show")
+          (href-to @routeName item.Service.Service)
+          (href-to @routeName item.Service.Service item.Node.Node (or item.Service.ID item.Service.Service))
+        }}
+            @service={{service/transform-data-to-list-item item 'service-instance' node proxy (not this.areAllExternalSourcesMatching)}}
+            @type="service-instance"
+        />
+      {{/let}}
+    {{/each}}
+  </div>
+
+  <ListCollection
   class="consul-service-instance-list"
   ...attributes
   @items={{@items}}
