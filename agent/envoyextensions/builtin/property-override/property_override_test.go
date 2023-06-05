@@ -559,6 +559,7 @@ type MockPatcher[K proto.Message] struct {
 	appliedPatches []Patch
 }
 
+//nolint:unparam
 func (m *MockPatcher[K]) applyPatch(k K, p Patch, _ bool) (result K, e error) {
 	m.appliedPatches = append(m.appliedPatches, p)
 	return k, nil

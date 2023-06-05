@@ -11,10 +11,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hashicorp/consul/envoyextensions/xdscommon"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
 	"github.com/mitchellh/hashstructure"
+
+	"github.com/hashicorp/consul/envoyextensions/xdscommon"
+	"github.com/hashicorp/consul/version"
 
 	"github.com/hashicorp/go-bexpr"
 	"github.com/hashicorp/serf/coordinate"
@@ -1682,4 +1684,13 @@ func (s *HTTPHandlers) AgentHost(resp http.ResponseWriter, req *http.Request) (i
 	}
 
 	return debug.CollectHostInfo(), nil
+}
+
+// AgentVersion
+//
+// GET /v1/agent/version
+//
+// Retrieves Consul version information.
+func (s *HTTPHandlers) AgentVersion(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	return version.GetBuildInfo(), nil
 }

@@ -1106,7 +1106,7 @@ func (s *Store) intentionTopologyTxn(
 			// We only need to do this for upstreams currently, so that tproxy can find which discovery chains should be
 			// contacted for failover scenarios. Virtual services technically don't need to be considered as downstreams,
 			// because they will take on the identity of the calling service, rather than the chain itself.
-			vipIndex, vipServices, err := servicesVirtualIPsTxn(tx)
+			vipIndex, vipServices, err := servicesVirtualIPsTxn(tx, ws)
 			if err != nil {
 				return index, nil, fmt.Errorf("failed to list service virtual IPs: %v", err)
 			}

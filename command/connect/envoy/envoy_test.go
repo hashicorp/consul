@@ -1466,6 +1466,9 @@ func testMockAgentGatewayConfig(namespacesEnabled bool) http.HandlerFunc {
 func namespaceFromQuery(r *http.Request) string {
 	// Use the namespace in the request if there is one, otherwise
 	// use-default.
+	if queryNamespace := r.URL.Query().Get("namespace"); queryNamespace != "" {
+		return queryNamespace
+	}
 	if queryNs := r.URL.Query().Get("ns"); queryNs != "" {
 		return queryNs
 	}
@@ -1475,8 +1478,11 @@ func namespaceFromQuery(r *http.Request) string {
 func partitionFromQuery(r *http.Request) string {
 	// Use the partition in the request if there is one, otherwise
 	// use-default.
-	if queryAP := r.URL.Query().Get("partition"); queryAP != "" {
-		return queryAP
+	if queryPartition := r.URL.Query().Get("partition"); queryPartition != "" {
+		return queryPartition
+	}
+	if queryAp := r.URL.Query().Get("ap"); queryAp != "" {
+		return queryAp
 	}
 	return "default"
 }

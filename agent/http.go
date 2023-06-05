@@ -983,9 +983,12 @@ func parseConsistencyReadRequest(resp http.ResponseWriter, req *http.Request, b 
 	}
 }
 
-// parseDC is used to parse the ?dc query param
+// parseDC is used to parse the datacenter from the query params.
+// ?datacenter has precedence over ?dc.
 func (s *HTTPHandlers) parseDC(req *http.Request, dc *string) {
-	if other := req.URL.Query().Get("dc"); other != "" {
+	if other := req.URL.Query().Get("datacenter"); other != "" {
+		*dc = other
+	} else if other = req.URL.Query().Get("dc"); other != "" {
 		*dc = other
 	} else if *dc == "" {
 		*dc = s.agent.config.Datacenter
