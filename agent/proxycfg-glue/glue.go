@@ -137,6 +137,12 @@ func newUpdateEvent(correlationID string, result any, err error) proxycfg.Update
 	if acl.IsErrNotFound(err) {
 		err = proxycfg.TerminalError(err)
 	}
+	// these are also errors where we should mark them
+	// as terminal for the sake of proxycfg, since they require
+	// a resubscribe.
+	if err == stream.ErrSubForceClosed || err == stream.ErrShuttingDown {
+		err = proxycfg.TerminalError(err)
+	}
 	return proxycfg.UpdateEvent{
 		CorrelationID: correlationID,
 		Result:        result,
