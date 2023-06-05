@@ -2,6 +2,7 @@ package proxycfgglue
 
 import (
 	"context"
+	"errors"
 
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
@@ -140,7 +141,7 @@ func newUpdateEvent(correlationID string, result any, err error) proxycfg.Update
 	// these are also errors where we should mark them
 	// as terminal for the sake of proxycfg, since they require
 	// a resubscribe.
-	if err == stream.ErrSubForceClosed || err == stream.ErrShuttingDown {
+	if errors.Is(err, stream.ErrSubForceClosed) || errors.Is(err, stream.ErrShuttingDown) {
 		err = proxycfg.TerminalError(err)
 	}
 	return proxycfg.UpdateEvent{
