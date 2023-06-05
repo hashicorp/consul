@@ -2,6 +2,7 @@ package proxycfgglue
 
 import (
 	"context"
+	"errors"
 
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
@@ -135,6 +136,12 @@ func dispatchBlockingQueryUpdate[ResultType any](ch chan<- proxycfg.UpdateEvent)
 func newUpdateEvent(correlationID string, result any, err error) proxycfg.UpdateEvent {
 	// This roughly matches the logic in agent/submatview.LocalMaterializer.isTerminalError.
 	if acl.IsErrNotFound(err) {
+		err = proxycfg.TerminalError(err)
+	}
+	// these are also errors where we should mark them
+	// as terminal for the sake of proxycfg, since they require
+	// a resubscribe.
+	if errors.Is(err, stream.ErrSubForceClosed) || errors.Is(err, stream.ErrShuttingDown) {
 		err = proxycfg.TerminalError(err)
 	}
 	return proxycfg.UpdateEvent{
