@@ -251,14 +251,14 @@ Use these links to navigate to a particular top-level stanza.
 
         - `caCert` ((#v-global-secretsbackend-vault-connectinject-cacert)) - Configuration to the Vault Secret that Kubernetes uses on
           Kubernetes pod creation, deletion, and update, to get CA certificates
-          used issued from vault to send webhooks to the ConnectInject.
+          used issued from vault to send webhooks to the connect inject.
 
           - `secretName` ((#v-global-secretsbackend-vault-connectinject-cacert-secretname)) (`string: null`) - The Vault secret path that contains the CA certificate for
-            ConnectInject webhooks.
+            connect inject webhooks.
 
         - `tlsCert` ((#v-global-secretsbackend-vault-connectinject-tlscert)) - Configuration to the Vault Secret that Kubernetes uses on
           Kubernetes pod creation, deletion, and update, to get TLS certificates
-          used issued from vault to send webhooks to the ConnectInject.
+          used issued from vault to send webhooks to the connect inject.
 
           - `secretName` ((#v-global-secretsbackend-vault-connectinject-tlscert-secretname)) (`string: null`) - The Vault secret path that issues TLS certificates for connect
             inject webhooks.
@@ -689,7 +689,7 @@ Use these links to navigate to a particular top-level stanza.
     contains best practices and recommendations for selecting suitable
     hardware sizes for your Consul servers.
 
-  - `connect` ((#v-server-connect)) (`boolean: true`) - This will enable/disable [Connect](https://developer.hashicorp.com/consul/docs/connect). Setting this to true
+  - `connect` ((#v-server-connect)) (`boolean: true`) - This will enable/disable [service mesh](https://developer.hashicorp.com/consul/docs/connect). Setting this to true
     _will not_ automatically secure pod communication, this
     setting will only enable usage of the feature. Consul will automatically initialize
     a new CA and set of certificates. Additional service mesh settings can be configured
@@ -1946,7 +1946,7 @@ Use these links to navigate to a particular top-level stanza.
 
   - `enabled` ((#v-meshgateway-enabled)) (`boolean: false`) - If [mesh gateways](https://developer.hashicorp.com/consul/docs/connect/gateways/mesh-gateway) are enabled, a Deployment will be created that runs
     gateways and Consul service mesh will be configured to use gateways.
-    This setting is required for [Cluster Peering](https://developer.hashicorp.com/consul/docs/connect/cluster-peering/k8s).
+    This setting is required for [cluster peering](https://developer.hashicorp.com/consul/docs/connect/cluster-peering/k8s).
     Requirements: consul 1.6.0+ if using `global.acls.manageSystemACLs``.
 
   - `replicas` ((#v-meshgateway-replicas)) (`integer: 1`) - Number of replicas for the Deployment.
