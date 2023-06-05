@@ -1625,7 +1625,7 @@ func TestHTTPHandlers_AgentMetricsStream_ACLDeny(t *testing.T) {
 	resp := httptest.NewRecorder()
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "/v1/agent/metrics/stream", nil)
 	require.NoError(t, err)
-	handle := h.handler(false)
+	handle := h.handler()
 	handle.ServeHTTP(resp, req)
 	require.Equal(t, http.StatusForbidden, resp.Code)
 	require.Contains(t, resp.Body.String(), "Permission denied")
@@ -1662,7 +1662,7 @@ func TestHTTPHandlers_AgentMetricsStream(t *testing.T) {
 	resp := httptest.NewRecorder()
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "/v1/agent/metrics/stream", nil)
 	require.NoError(t, err)
-	handle := h.handler(false)
+	handle := h.handler()
 	handle.ServeHTTP(resp, req)
 	require.Equal(t, http.StatusOK, resp.Code)
 
@@ -6011,7 +6011,7 @@ func TestAgent_Monitor(t *testing.T) {
 			req = req.WithContext(cancelCtx)
 
 			resp := httptest.NewRecorder()
-			handler := a.srv.handler(true)
+			handler := a.srv.handler()
 			go handler.ServeHTTP(resp, req)
 
 			args := &structs.ServiceDefinition{
