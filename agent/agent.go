@@ -1049,13 +1049,13 @@ func (a *Agent) listenHTTP() ([]apiServer, error) {
 			httpServer := &http.Server{
 				Addr:           l.Addr().String(),
 				TLSConfig:      tlscfg,
-				Handler:        srv.handler(a.config.EnableDebug),
+				Handler:        srv.handler(),
 				MaxHeaderBytes: a.config.HTTPMaxHeaderBytes,
 			}
 
 			if libscada.IsCapability(l.Addr()) {
 				// wrap in http2 server handler
-				httpServer.Handler = h2c.NewHandler(srv.handler(a.config.EnableDebug), &http2.Server{})
+				httpServer.Handler = h2c.NewHandler(srv.handler(), &http2.Server{})
 			}
 
 			// Load the connlimit helper into the server
@@ -4192,6 +4192,8 @@ func (a *Agent) reloadConfigInternal(newCfg *config.RuntimeConfig) error {
 	}
 
 	a.proxyConfig.SetUpdateRateLimit(newCfg.XDSUpdateRateLimit)
+
+	a.config.EnableDebug = newCfg.EnableDebug
 
 	return nil
 }
