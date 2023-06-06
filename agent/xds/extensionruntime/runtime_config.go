@@ -56,19 +56,27 @@ func GetRuntimeConfigurations(cfgSnap *proxycfg.ConfigSnapshot) map[api.Compound
 
 		// TODO(peering): consider PeerUpstreamEndpoints in addition to DiscoveryChain
 		// These are the discovery chains for upstreams which have the Envoy Extensions applied to the local service.
-		for uid, dc := range cfgSnap.ConnectProxy.DiscoveryChain {
+		for uid, chain := range cfgSnap.ConnectProxy.DiscoveryChain {
 			compoundServiceName := upstreamIDToCompoundServiceName(uid)
-			extensionsMap[compoundServiceName] = convertEnvoyExtensions(dc.EnvoyExtensions)
+			extensionsMap[compoundServiceName] = convertEnvoyExtensions(chain.EnvoyExtensions)
 
-			meta := uid.EnterpriseMeta
-			sni := connect.ServiceSNI(uid.Name, "", meta.NamespaceOrDefault(), meta.PartitionOrDefault(), cfgSnap.Datacenter, trustDomain)
+			primarySNI := connect.ServiceSNI(uid.Name, "", chain.Namespace, chain.Partition, cfgSnap.Datacenter, trustDomain)
+			snis := make(map[string]struct{})
+			for _, t := range chain.Targets {
+				// SNI isn't set for peered services. We don't support peered services yet.
+				if t.SNI != "" {
+					snis[t.SNI] = struct{}{}
+				}
+			}
+
 			outgoingKind, ok := outgoingKindByService[compoundServiceName]
 			if !ok {
 				outgoingKind = api.ServiceKindConnectProxy
 			}
 
 			upstreamMap[compoundServiceName] = &extensioncommon.UpstreamData{
-				SNI:               map[string]struct{}{sni: {}},
+				PrimarySNI:        primarySNI,
+				SNIs:              snis,
 				VIP:               vipForService[compoundServiceName],
 				EnvoyID:           uid.EnvoyID(),
 				OutgoingProxyKind: outgoingKind,
@@ -101,10 +109,10 @@ func GetRuntimeConfigurations(cfgSnap *proxycfg.ConfigSnapshot) map[api.Compound
 			compoundServiceName := serviceNameToCompoundServiceName(svc)
 			extensionsMap[compoundServiceName] = convertEnvoyExtensions(c.EnvoyExtensions)
 
-			sni := connect.ServiceSNI(svc.Name, "", svc.NamespaceOrDefault(), svc.PartitionOrDefault(), cfgSnap.Datacenter, trustDomain)
+			primarySNI := connect.ServiceSNI(svc.Name, "", svc.NamespaceOrDefault(), svc.PartitionOrDefault(), cfgSnap.Datacenter, trustDomain)
 			envoyID := proxycfg.NewUpstreamIDFromServiceName(svc)
 
-			snis := map[string]struct{}{sni: {}}
+			snis := map[string]struct{}{primarySNI: {}}
 
 			resolver, hasResolver := cfgSnap.TerminatingGateway.ServiceResolvers[svc]
 			if hasResolver {
@@ -115,7 +123,8 @@ func GetRuntimeConfigurations(cfgSnap *proxycfg.ConfigSnapshot) map[api.Compound
 			}
 
 			upstreamMap[compoundServiceName] = &extensioncommon.UpstreamData{
-				SNI:               snis,
+				PrimarySNI:        primarySNI,
+				SNIs:              snis,
 				EnvoyID:           envoyID.EnvoyID(),
 				OutgoingProxyKind: api.ServiceKindTerminatingGateway,
 			}

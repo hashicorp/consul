@@ -556,3 +556,22 @@ func TestBuilder_parsePrefixFilter(t *testing.T) {
 		}
 	})
 }
+
+func TestBuidler_hostMetricsWithCloud(t *testing.T) {
+	devMode := true
+	builderOpts := LoadOpts{
+		DevMode: &devMode,
+		DefaultConfig: FileSource{
+			Name:   "test",
+			Format: "hcl",
+			Data:   `cloud{ resource_id = "abc" client_id = "abc" client_secret = "abc"}`,
+		},
+	}
+
+	result, err := Load(builderOpts)
+	require.NoError(t, err)
+	require.Empty(t, result.Warnings)
+	cfg := result.RuntimeConfig
+	require.NotNil(t, cfg)
+	require.True(t, cfg.Telemetry.EnableHostMetrics)
+}

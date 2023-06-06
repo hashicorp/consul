@@ -167,7 +167,7 @@ func (c extAuthzConfig) isHTTP() bool {
 //
 // If the extension is configured with the ext_authz service as an upstream there is no need to insert
 // a new cluster so this method returns nil.
-func (c *extAuthzConfig) toEnvoyCluster(cfg *cmn.RuntimeConfig) (*envoy_cluster_v3.Cluster, error) {
+func (c *extAuthzConfig) toEnvoyCluster(_ *cmn.RuntimeConfig) (*envoy_cluster_v3.Cluster, error) {
 	var target *Target
 	if c.isHTTP() {
 		target = c.HttpService.Target
@@ -601,7 +601,7 @@ func (t Target) clusterName(cfg *cmn.RuntimeConfig) (string, error) {
 
 	for service, upstream := range cfg.Upstreams {
 		if service == t.Service {
-			for sni := range upstream.SNI {
+			for sni := range upstream.SNIs {
 				return sni, nil
 			}
 		}
@@ -678,8 +678,10 @@ type TransportApiVersion string
 func (t TransportApiVersion) toEnvoy() envoy_core_v3.ApiVersion {
 	switch strings.ToLower(string(t)) {
 	case "v2":
+		//nolint:staticcheck
 		return envoy_core_v3.ApiVersion_V2
 	case "auto":
+		//nolint:staticcheck
 		return envoy_core_v3.ApiVersion_AUTO
 	default:
 		return envoy_core_v3.ApiVersion_V3

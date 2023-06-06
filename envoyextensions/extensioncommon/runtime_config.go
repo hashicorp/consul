@@ -8,8 +8,11 @@ import "github.com/hashicorp/consul/api"
 // UpstreamData has the SNI, EnvoyID, and OutgoingProxyKind of the upstream services for the local proxy and this data
 // is used to choose which Envoy resources to patch.
 type UpstreamData struct {
-	// SNI is the SNI header used to reach an upstream service.
-	SNI map[string]struct{}
+	// This is the SNI for the upstream service without accounting for any discovery chain magic.
+	PrimarySNI string
+
+	// SNIs is the SNIs header used to reach an upstream service.
+	SNIs map[string]struct{}
 
 	// EnvoyID is the envoy ID of an upstream service, structured <service> or <partition>/<ns>/<service> when using a
 	// non-default namespace or partition.
@@ -68,7 +71,7 @@ type RuntimeConfig struct {
 // Only used when IsSourcedFromUpstream is true.
 func (c RuntimeConfig) MatchesUpstreamServiceSNI(sni string) bool {
 	u := c.Upstreams[c.ServiceName]
-	_, match := u.SNI[sni]
+	_, match := u.SNIs[sni]
 	return match
 }
 

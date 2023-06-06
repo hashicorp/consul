@@ -2,11 +2,13 @@ package propertyoverride
 
 import (
 	"fmt"
-	routev3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	"strings"
 	"testing"
 
 	clusterv3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
+	endpointv3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
+	listenerv3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
+	routev3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/envoyextensions/extensioncommon"
 	"github.com/stretchr/testify/require"
@@ -32,7 +34,7 @@ func TestConstructor(t *testing.T) {
 	makeResourceFilter := func(overrides map[string]any) map[string]any {
 		f := map[string]any{
 			"ResourceType":     ResourceTypeRoute,
-			"TrafficDirection": TrafficDirectionOutbound,
+			"TrafficDirection": extensioncommon.TrafficDirectionOutbound,
 		}
 		return applyOverrides(f, overrides)
 	}
@@ -63,7 +65,7 @@ func TestConstructor(t *testing.T) {
 		errMsg        string
 	}
 
-	validTestCase := func(o Op, d TrafficDirection, t ResourceType) testCase {
+	validTestCase := func(o Op, d extensioncommon.TrafficDirection, t ResourceType) testCase {
 		var v any = "foo"
 		if o != OpAdd {
 			v = nil
@@ -214,6 +216,19 @@ func TestConstructor(t *testing.T) {
 			ok:     false,
 			errMsg: fmt.Sprintf("field Value is not supported for %s operation", OpRemove),
 		},
+		"empty service name": {
+			arguments: makeArguments(map[string]any{"Patches": []map[string]any{
+				makePatch(map[string]any{
+					"ResourceFilter": makeResourceFilter(map[string]any{
+						"Services": []ServiceName{
+							{CompoundServiceName: api.CompoundServiceName{}},
+						},
+					}),
+				}),
+			}}),
+			ok:     false,
+			errMsg: "service name is required",
+		},
 		// See decode.HookWeakDecodeFromSlice for more details. In practice, we can end up
 		// with a "Patches" field decoded to the single "Patch" value contained in the
 		// serialized slice (raised from the containing slice). Using WeakDecode solves
@@ -222,7 +237,7 @@ func TestConstructor(t *testing.T) {
 		// by WeakDecode as it is a more-permissive version of the default behavior.
 		"single value Patches decoded as map construction succeeds": {
 			arguments: makeArguments(map[string]any{"Patches": makePatch(map[string]any{})}),
-			expected:  validTestCase(OpAdd, TrafficDirectionOutbound, ResourceTypeRoute).expected,
+			expected:  validTestCase(OpAdd, extensioncommon.TrafficDirectionOutbound, ResourceTypeRoute).expected,
 			ok:        true,
 		},
 		"invalid ProxyType": {
@@ -248,10 +263,10 @@ func TestConstructor(t *testing.T) {
 	}
 
 	for o := range Ops {
-		for d := range TrafficDirections {
+		for d := range extensioncommon.TrafficDirections {
 			for t := range ResourceTypes {
 				cases["valid everything: "+strings.Join([]string{o, d, t}, ",")] =
-					validTestCase(Op(o), TrafficDirection(d), ResourceType(t))
+					validTestCase(Op(o), extensioncommon.TrafficDirection(d), ResourceType(t))
 			}
 		}
 	}
@@ -294,32 +309,62 @@ func Test_patchResourceType(t *testing.T) {
 			Patches: patches,
 		}
 	}
-	makePatchWithPath := func(t ResourceType, d TrafficDirection, p string) Patch {
+	makePatchWithPath := func(filter ResourceFilter, p string) Patch {
 		return Patch{
-			ResourceFilter: ResourceFilter{
-				ResourceType:     t,
-				TrafficDirection: d,
-			},
-			Op:    OpAdd,
-			Path:  p,
-			Value: 1,
+			ResourceFilter: filter,
+			Op:             OpAdd,
+			Path:           p,
+			Value:          1,
 		}
 	}
-	makePatch := func(t ResourceType, d TrafficDirection) Patch {
-		return makePatchWithPath(t, d, "/foo")
+	makePatch := func(filter ResourceFilter) Patch {
+		return makePatchWithPath(filter, "/foo")
 	}
 
-	clusterOutbound := makePatch(ResourceTypeCluster, TrafficDirectionOutbound)
-	clusterInbound := makePatch(ResourceTypeCluster, TrafficDirectionInbound)
-	routeOutbound := makePatch(ResourceTypeRoute, TrafficDirectionOutbound)
-	routeOutbound2 := makePatchWithPath(ResourceTypeRoute, TrafficDirectionOutbound, "/bar")
-	routeInbound := makePatch(ResourceTypeRoute, TrafficDirectionInbound)
+	svc1 := ServiceName{
+		CompoundServiceName: api.CompoundServiceName{Name: "svc1"},
+	}
+	svc2 := ServiceName{
+		CompoundServiceName: api.CompoundServiceName{Name: "svc2"},
+	}
+
+	clusterOutbound := makePatch(ResourceFilter{
+		ResourceType:     ResourceTypeCluster,
+		TrafficDirection: extensioncommon.TrafficDirectionOutbound,
+	})
+	clusterInbound := makePatch(ResourceFilter{
+		ResourceType:     ResourceTypeCluster,
+		TrafficDirection: extensioncommon.TrafficDirectionInbound,
+	})
+	listenerOutbound := makePatch(ResourceFilter{
+		ResourceType:     ResourceTypeListener,
+		TrafficDirection: extensioncommon.TrafficDirectionOutbound,
+	})
+	listenerOutbound2 := makePatchWithPath(ResourceFilter{
+		ResourceType:     ResourceTypeListener,
+		TrafficDirection: extensioncommon.TrafficDirectionOutbound,
+	}, "/bar")
+	listenerInbound := makePatch(ResourceFilter{
+		ResourceType:     ResourceTypeListener,
+		TrafficDirection: extensioncommon.TrafficDirectionInbound,
+	})
+	routeOutbound := makePatch(ResourceFilter{
+		ResourceType:     ResourceTypeRoute,
+		TrafficDirection: extensioncommon.TrafficDirectionOutbound,
+	})
+	routeOutbound2 := makePatchWithPath(ResourceFilter{
+		ResourceType:     ResourceTypeRoute,
+		TrafficDirection: extensioncommon.TrafficDirectionOutbound,
+	}, "/bar")
+	routeInbound := makePatch(ResourceFilter{
+		ResourceType:     ResourceTypeRoute,
+		TrafficDirection: extensioncommon.TrafficDirectionInbound,
+	})
 
 	type args struct {
-		d TrafficDirection
-		k proto.Message
-		p *propertyOverride
-		t ResourceType
+		resourceType ResourceType
+		payload      extensioncommon.Payload[proto.Message]
+		p            *propertyOverride
 	}
 	type testCase struct {
 		args          args
@@ -329,79 +374,179 @@ func Test_patchResourceType(t *testing.T) {
 	cases := map[string]testCase{
 		"outbound gets matching patch": {
 			args: args{
-				d: TrafficDirectionOutbound,
-				k: &clusterv3.Cluster{},
+				resourceType: ResourceTypeCluster,
+				payload: extensioncommon.Payload[proto.Message]{
+					TrafficDirection: extensioncommon.TrafficDirectionOutbound,
+					Message:          &clusterv3.Cluster{},
+				},
 				p: makeExtension(clusterOutbound),
-				t: ResourceTypeCluster,
 			},
 			expectPatched: true,
 			wantApplied:   []Patch{clusterOutbound},
 		},
 		"inbound gets matching patch": {
 			args: args{
-				d: TrafficDirectionInbound,
-				k: &clusterv3.Cluster{},
+				resourceType: ResourceTypeCluster,
+				payload: extensioncommon.Payload[proto.Message]{
+					TrafficDirection: extensioncommon.TrafficDirectionInbound,
+					Message:          &clusterv3.Cluster{},
+				},
 				p: makeExtension(clusterInbound),
-				t: ResourceTypeCluster,
 			},
 			expectPatched: true,
 			wantApplied:   []Patch{clusterInbound},
 		},
 		"multiple resources same direction only gets matching resource": {
 			args: args{
-				d: TrafficDirectionOutbound,
-				k: &clusterv3.Cluster{},
-				p: makeExtension(clusterOutbound, routeOutbound),
-				t: ResourceTypeCluster,
+				resourceType: ResourceTypeCluster,
+				payload: extensioncommon.Payload[proto.Message]{
+					TrafficDirection: extensioncommon.TrafficDirectionOutbound,
+					Message:          &clusterv3.Cluster{},
+				},
+				p: makeExtension(clusterOutbound, listenerOutbound),
 			},
 			expectPatched: true,
 			wantApplied:   []Patch{clusterOutbound},
 		},
 		"multiple directions same resource only gets matching direction": {
 			args: args{
-				d: TrafficDirectionOutbound,
-				k: &clusterv3.Cluster{},
+				resourceType: ResourceTypeCluster,
+				payload: extensioncommon.Payload[proto.Message]{
+					TrafficDirection: extensioncommon.TrafficDirectionOutbound,
+					Message:          &clusterv3.Cluster{},
+				},
 				p: makeExtension(clusterOutbound, clusterInbound),
-				t: ResourceTypeCluster,
 			},
 			expectPatched: true,
 			wantApplied:   []Patch{clusterOutbound},
 		},
 		"multiple directions and resources only gets matching patch": {
 			args: args{
-				d: TrafficDirectionInbound,
-				k: &routev3.RouteConfiguration{},
-				p: makeExtension(clusterOutbound, clusterInbound, routeOutbound, routeInbound),
-				t: ResourceTypeRoute,
+				resourceType: ResourceTypeRoute,
+				payload: extensioncommon.Payload[proto.Message]{
+					TrafficDirection: extensioncommon.TrafficDirectionInbound,
+					Message:          &routev3.RouteConfiguration{},
+				},
+				p: makeExtension(clusterOutbound, clusterInbound, listenerOutbound, listenerInbound, routeOutbound, routeOutbound2, routeInbound),
 			},
 			expectPatched: true,
 			wantApplied:   []Patch{routeInbound},
 		},
 		"multiple directions and resources multiple matches gets all matching patches": {
 			args: args{
-				d: TrafficDirectionOutbound,
-				k: &routev3.RouteConfiguration{},
-				p: makeExtension(clusterOutbound, clusterInbound, routeOutbound, routeInbound, routeOutbound2),
-				t: ResourceTypeRoute,
+				resourceType: ResourceTypeRoute,
+				payload: extensioncommon.Payload[proto.Message]{
+					TrafficDirection: extensioncommon.TrafficDirectionOutbound,
+					Message:          &routev3.RouteConfiguration{},
+				},
+				p: makeExtension(clusterOutbound, clusterInbound, listenerOutbound, listenerInbound, listenerOutbound2, routeOutbound, routeOutbound2, routeInbound),
 			},
 			expectPatched: true,
 			wantApplied:   []Patch{routeOutbound, routeOutbound2},
 		},
 		"multiple directions and resources no matches gets no patches": {
 			args: args{
-				d: TrafficDirectionOutbound,
-				k: &routev3.RouteConfiguration{},
-				p: makeExtension(clusterInbound, routeOutbound, routeInbound, routeOutbound2),
-				t: ResourceTypeCluster,
+				resourceType: ResourceTypeCluster,
+				payload: extensioncommon.Payload[proto.Message]{
+					TrafficDirection: extensioncommon.TrafficDirectionOutbound,
+					Message:          &clusterv3.Cluster{},
+				},
+				p: makeExtension(clusterInbound, listenerOutbound, listenerInbound, listenerOutbound2, routeInbound, routeOutbound),
 			},
 			expectPatched: false,
 			wantApplied:   nil,
 		},
 	}
+
+	type resourceTypeServiceMatch struct {
+		resourceType ResourceType
+		message      proto.Message
+	}
+
+	resourceTypeCases := []resourceTypeServiceMatch{
+		{
+			resourceType: ResourceTypeCluster,
+			message:      &clusterv3.Cluster{},
+		},
+		{
+			resourceType: ResourceTypeListener,
+			message:      &listenerv3.Listener{},
+		},
+		{
+			resourceType: ResourceTypeRoute,
+			message:      &routev3.RouteConfiguration{},
+		},
+		{
+			resourceType: ResourceTypeClusterLoadAssignment,
+			message:      &endpointv3.ClusterLoadAssignment{},
+		},
+	}
+
+	for _, tc := range resourceTypeCases {
+		{
+			patch := makePatch(ResourceFilter{
+				ResourceType:     tc.resourceType,
+				TrafficDirection: extensioncommon.TrafficDirectionOutbound,
+				Services: []*ServiceName{
+					{CompoundServiceName: svc2.CompoundServiceName},
+				},
+			})
+
+			cases[fmt.Sprintf("%s - no match", tc.resourceType)] = testCase{
+				args: args{
+					resourceType: tc.resourceType,
+					payload: extensioncommon.Payload[proto.Message]{
+						TrafficDirection: extensioncommon.TrafficDirectionOutbound,
+						ServiceName:      &svc1.CompoundServiceName,
+						Message:          tc.message,
+						RuntimeConfig: &extensioncommon.RuntimeConfig{
+							Upstreams: map[api.CompoundServiceName]*extensioncommon.UpstreamData{
+								svc1.CompoundServiceName: {},
+							},
+						},
+					},
+					p: makeExtension(patch),
+				},
+				expectPatched: false,
+				wantApplied:   nil,
+			}
+		}
+
+		{
+			patch := makePatch(ResourceFilter{
+				ResourceType:     tc.resourceType,
+				TrafficDirection: extensioncommon.TrafficDirectionOutbound,
+				Services: []*ServiceName{
+					{CompoundServiceName: svc2.CompoundServiceName},
+					{CompoundServiceName: svc1.CompoundServiceName},
+				},
+			})
+
+			cases[fmt.Sprintf("%s - match", tc.resourceType)] = testCase{
+				args: args{
+					resourceType: tc.resourceType,
+					payload: extensioncommon.Payload[proto.Message]{
+						TrafficDirection: extensioncommon.TrafficDirectionOutbound,
+						ServiceName:      &svc1.CompoundServiceName,
+						Message:          tc.message,
+						RuntimeConfig: &extensioncommon.RuntimeConfig{
+							Upstreams: map[api.CompoundServiceName]*extensioncommon.UpstreamData{
+								svc1.CompoundServiceName: {},
+							},
+						},
+					},
+					p: makeExtension(patch),
+				},
+				expectPatched: true,
+				wantApplied:   []Patch{patch},
+			}
+		}
+	}
+
 	for n, tc := range cases {
 		t.Run(n, func(t *testing.T) {
 			mockPatcher := MockPatcher[proto.Message]{}
-			_, patched, err := patchResourceType[proto.Message](tc.args.k, tc.args.p, tc.args.t, tc.args.d, &mockPatcher)
+			_, patched, err := patchResourceType[proto.Message](tc.args.p, tc.args.resourceType, tc.args.payload, &mockPatcher)
 
 			require.NoError(t, err, "unexpected error from mock")
 			require.Equal(t, tc.expectPatched, patched)
@@ -414,6 +559,7 @@ type MockPatcher[K proto.Message] struct {
 	appliedPatches []Patch
 }
 
+//nolint:unparam
 func (m *MockPatcher[K]) applyPatch(k K, p Patch, _ bool) (result K, e error) {
 	m.appliedPatches = append(m.appliedPatches, p)
 	return k, nil
