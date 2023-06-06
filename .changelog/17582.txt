@@ -1,0 +1,3 @@
+```release-note:feature
+improved consul operator raft list-peers command added -detailed flag which will print CommitIndex in the table in response
+```
