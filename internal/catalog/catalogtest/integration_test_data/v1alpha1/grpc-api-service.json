@@ -1,0 +1,42 @@
+{
+   "id": {
+      "type": {
+         "group": "catalog",
+         "group_version": "v1alpha1",
+         "kind": "Service"
+      },
+      "tenancy": {
+         "partition": "default",
+         "namespace": "default",
+         "peer_name": "local"
+      },
+      "name": "grpc-api"
+   },
+   "data": {
+      "@type": "hashicorp.consul.catalog.v1alpha1.Service",
+      "workloads": {
+         "names": [
+            "api-1",
+            "api-2",
+            "api-3",
+            "api-4",
+            "api-5",
+            "api-6",
+            "api-7",
+            "api-8",
+            "api-9",
+            "api-20"
+         ]
+      },
+      "ports": [
+         {
+            "target_port": "grpc",
+            "protocol": "PROTOCOL_GRPC"
+         },
+         {
+            "target_port": "mesh",
+            "protocol": "PROTOCOL_MESH"
+         }
+      ]
+   }
+}

@@ -203,11 +203,11 @@ func TestValidateHealthStatus_InvalidOwner(t *testing.T) {
 			res := createHealthStatusResource(t, data, tcase.owner)
 			err := ValidateHealthStatus(res)
 			require.Error(t, err)
-			expected := resource.ErrOwnerInvalid{
+			expected := resource.ErrOwnerTypeInvalid{
 				ResourceType: HealthStatusType,
 				OwnerType:    tcase.owner.Type,
 			}
-			var actual resource.ErrOwnerInvalid
+			var actual resource.ErrOwnerTypeInvalid
 			require.ErrorAs(t, err, &actual)
 			require.Equal(t, expected, actual)
 		})
