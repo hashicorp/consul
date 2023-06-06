@@ -13,14 +13,13 @@ as |proxies|}}
       {{#let
         (get proxies item.Service.ID)
       as |proxy|}}
-        <Cut::ListItem::Service @isHrefExternal={{false}}
+        <Cut::ListItem::ServiceInstance @isHrefExternal={{false}}
                                 @href={{if
           (eq @routeName "dc.services.show")
           (href-to @routeName item.Service.Service)
           (href-to @routeName item.Service.Service item.Node.Node (or item.Service.ID item.Service.Service))
         }}
             @service={{service/transform-data-to-list-item item 'service-instance' node proxy (not this.areAllExternalSourcesMatching)}}
-            @type="service-instance"
         />
       {{/let}}
     {{/each}}

@@ -12,6 +12,14 @@ import { humanize } from 'ember-cli-string-helpers/helpers/humanize';
 export const ServiceListItemType = {
   ServiceInstance: 'service-instance',
   Service: 'service',
+  ServiceTerminatingGateway: 'service-terminating-gateway',
+  ServiceIngressGateway: 'service-ingress-gateway',
+};
+const normalizedGatewayLabels = {
+  'api-gateway': 'API Gateway',
+  'mesh-gateway': 'Mesh Gateway',
+  'ingress-gateway': 'Ingress Gateway',
+  'terminating-gateway': 'Terminating Gateway',
 };
 
 function serviceInstanceListItem(serviceInstance, node, proxy, isExternalSource) {
@@ -52,13 +60,6 @@ function serviceInstanceListItem(serviceInstance, node, proxy, isExternalSource)
   };
 }
 
-const normalizedGatewayLabels = {
-  'api-gateway': 'API Gateway',
-  'mesh-gateway': 'Mesh Gateway',
-  'ingress-gateway': 'Ingress Gateway',
-  'terminating-gateway': 'Terminating Gateway',
-};
-
 function serviceListItem(service) {
   const kind = service.Kind;
   let kindName = normalizedGatewayLabels[kind];
@@ -67,22 +68,57 @@ function serviceListItem(service) {
   return {
     name: service.Name,
     metadata: {
-      kind: service.Kind,
+      instanceCount: service.InstanceCount,
       kindName,
-      instanceCount: ['terminating-gateway', 'ingress-gateway'].includes(service.Kind)
-        ? undefined
-        : service.InstanceCount,
-      linkedServiceCount:
-        service.Kind === 'terminating-gateway'
-          ? service.GatewayConfig.AssociatedServiceCount
-          : undefined,
-      upstreamCount:
-        service.Kind === 'ingress-gateway'
-          ? service.GatewayConfig.AssociatedServiceCount
-          : undefined,
+      healthCheck: {
+        instance: {
+          success: service.MeshChecksPassing,
+          warning: service.MeshChecksWarning,
+          critical: service.MeshChecksCritical,
+        },
+      },
+      connectedWithGateway: service.ConnectedWithGateway,
+      connectedWithProxy: service.ConnectedWithProxy,
+    },
+  };
+}
+
+function serviceTerminatingGatewayListItem(service) {
+  const kind = service.Kind;
+  let kindName = normalizedGatewayLabels[kind];
+  kindName = kindName || (kind ? titleize(humanize(kind)) : undefined);
+
+  return {
+    name: service.Name,
+    metadata: {
+      kindName,
+      linkedServiceCount: service.GatewayConfig.AssociatedServiceCount,
       externalSource: serviceExternalSource([service]),
       healthCheck: {
-        isInstanceChecks: true,
+        instance: {
+          success: service.MeshChecksPassing,
+          warning: service.MeshChecksWarning,
+          critical: service.MeshChecksCritical,
+        },
+      },
+      connectedWithGateway: service.ConnectedWithGateway,
+      connectedWithProxy: service.ConnectedWithProxy,
+    },
+  };
+}
+
+function serviceIngressGatewayListItem(service) {
+  const kind = service.Kind;
+  let kindName = normalizedGatewayLabels[kind];
+  kindName = kindName || (kind ? titleize(humanize(kind)) : undefined);
+
+  return {
+    name: service.Name,
+    metadata: {
+      kindName,
+      upstreamCount: service.GatewayConfig.AssociatedServiceCount,
+      externalSource: serviceExternalSource([service]),
+      healthCheck: {
         instance: {
           success: service.MeshChecksPassing,
           warning: service.MeshChecksWarning,
@@ -103,6 +139,12 @@ export default helper(function transformDataToListItem(
       return serviceInstanceListItem(service, node, proxy, isExternalSource);
     case ServiceListItemType.Service: {
       return serviceListItem(service);
+    }
+    case ServiceListItemType.ServiceTerminatingGateway: {
+      return serviceTerminatingGatewayListItem(service);
+    }
+    case ServiceListItemType.ServiceIngressGateway: {
+      return serviceIngressGatewayListItem(service);
     }
     default:
       return null;
