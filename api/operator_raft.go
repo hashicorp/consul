@@ -119,3 +119,20 @@ func (op *Operator) RaftRemovePeerByID(id string, q *WriteOptions) error {
 	}
 	return nil
 }
+
+// GetAutoPilotHealth is used to query the autopilot health.
+func (op *Operator) GetAutoPilotHealth(q *QueryOptions) (*OperatorHealthReply, error) {
+	r := op.c.newRequest("GET", "/v1/operator/autopilot/health")
+	r.setQueryOptions(q)
+	_, resp, err := op.c.doRequest(r)
+	if err != nil {
+		return nil, err
+	}
+	defer closeResponseBody(resp)
+
+	var out OperatorHealthReply
+	if err := decodeBody(resp, &out); err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
