@@ -57,3 +57,22 @@ func TestAPI_OperatorRaftLeaderTransfer(t *testing.T) {
 		t.Fatalf("err:%v", transfer)
 	}
 }
+
+func TestAPI_GetAutoPilotHealth(t *testing.T) {
+	t.Parallel()
+	c, s := makeClient(t)
+	defer s.Stop()
+
+	operator := c.Operator()
+	out, err := operator.GetAutoPilotHealth(nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if len(out.Servers) != 1 ||
+		!out.Servers[0].Leader ||
+		!out.Servers[0].Voter ||
+		out.Servers[0].LastIndex <= 0 {
+		t.Fatalf("bad: %v", out)
+	}
+}
