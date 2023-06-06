@@ -30,6 +30,12 @@ EnvoyExtensions = [
 
 upsert_config_entry primary '
 Kind = "service-defaults"
+Name = "s3"
+Protocol = "http"
+'
+
+upsert_config_entry primary '
+Kind = "service-defaults"
 Name = "s1"
 Protocol = "http"
 EnvoyExtensions = [
@@ -37,7 +43,8 @@ EnvoyExtensions = [
     Name = "builtin/property-override"
     Arguments = {
       ProxyType = "connect-proxy"
-      Patches = [{
+      Patches = [
+        {
           ResourceFilter = {
             ResourceType = "cluster"
             TrafficDirection = "outbound"
@@ -45,7 +52,19 @@ EnvoyExtensions = [
           Op = "add"
           Path = "/upstream_connection_options/tcp_keepalive/keepalive_probes"
           Value = 1234
-      }]
+        },
+        {
+          ResourceFilter = {
+            ResourceType = "cluster"
+            TrafficDirection = "outbound"
+            Services = [{
+              Name = "s2"
+            }]
+          }
+          Op = "remove"
+          Path = "/outlier_detection"
+        }
+      ]
     }
   }
 ]
