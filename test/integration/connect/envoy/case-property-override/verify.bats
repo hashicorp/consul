@@ -19,6 +19,13 @@ load helpers
   [ "$status" == 0 ]
 
   [ "$(echo "$output" | jq -r '.upstream_connection_options.tcp_keepalive.keepalive_probes')" == "1234" ]
+  [ "$(echo "$output" | jq -r '.outlier_detection')" == "null" ]
+
+  run get_envoy_cluster_config localhost:19000 s3
+  [ "$status" == 0 ]
+
+  [ "$(echo "$output" | jq -r '.upstream_connection_options.tcp_keepalive.keepalive_probes')" == "1234" ]
+  [ "$(echo "$output" | jq -r '.outlier_detection')" == "{}" ]
 }
 
 @test "s2 proxy is configured with the expected envoy patches" {
