@@ -19,6 +19,7 @@ import (
 	"github.com/hashicorp/consul/agent/grpc-external/testutils"
 	structs "github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/proto-public/pbdataplane"
+	"github.com/hashicorp/consul/version"
 )
 
 const testACLToken = "acl-token"
@@ -50,6 +51,8 @@ func TestSupportedDataplaneFeatures_Success(t *testing.T) {
 			require.True(t, feature.GetSupported())
 		case pbdataplane.DataplaneFeatures_DATAPLANE_FEATURES_ENVOY_BOOTSTRAP_CONFIGURATION:
 			require.True(t, feature.GetSupported())
+		case pbdataplane.DataplaneFeatures_DATAPLANE_FEATURES_FIPS:
+			require.Equal(t, version.IsFIPS(), feature.GetSupported())
 		default:
 			require.False(t, feature.GetSupported())
 		}
