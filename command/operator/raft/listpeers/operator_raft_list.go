@@ -56,55 +56,17 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	// Fetch the current configuration.
-	if c.detailed {
-		result, err := raftListPeersDetailed(client, c.http.Stale())
-		if err != nil {
-			c.UI.Error(fmt.Sprintf("Error getting peers: %v", err))
-			return 1
-		}
-		c.UI.Output(result)
-	} else {
-		result, err := raftListPeers(client, c.http.Stale())
-		if err != nil {
-			c.UI.Error(fmt.Sprintf("Error getting peers: %v", err))
-			return 1
-		}
-		c.UI.Output(result)
+	result, err := raftListPeers(client, c.http.Stale())
+	if err != nil {
+		c.UI.Error(fmt.Sprintf("Error getting peers: %v", err))
+		return 1
 	}
+	c.UI.Output(result)
 
 	return 0
 }
 
 func raftListPeers(client *api.Client, stale bool) (string, error) {
-	q := &api.QueryOptions{
-		AllowStale: stale,
-	}
-	reply, err := client.Operator().RaftGetConfiguration(q)
-	if err != nil {
-		return "", fmt.Errorf("Failed to retrieve raft configuration: %v", err)
-	}
-
-	// Format it as a nice table.
-	result := []string{"Node\x1fID\x1fAddress\x1fState\x1fVoter\x1fRaftProtocol"}
-	for _, s := range reply.Servers {
-		raftProtocol := s.ProtocolVersion
-
-		if raftProtocol == "" {
-			raftProtocol = "<=1"
-		}
-		state := "follower"
-		if s.Leader {
-			state = "leader"
-		}
-		result = append(result, fmt.Sprintf("%s\x1f%s\x1f%s\x1f%s\x1f%v\x1f%s",
-			s.Node, s.ID, s.Address, state, s.Voter, raftProtocol))
-	}
-
-	return columnize.Format(result, &columnize.Config{Delim: string([]byte{0x1f})}), nil
-}
-
-func raftListPeersDetailed(client *api.Client, stale bool) (string, error) {
 	q := &api.QueryOptions{
 		AllowStale: stale,
 	}
@@ -119,13 +81,23 @@ func raftListPeersDetailed(client *api.Client, stale bool) (string, error) {
 	}
 
 	serverHealthDataMap := make(map[string]api.ServerHealth)
+	leaderLastCommitIndex := uint64(0)
 
 	for _, serverHealthData := range autoPilotReply.Servers {
 		serverHealthDataMap[serverHealthData.ID] = serverHealthData
 	}
 
+	for _, s := range reply.Servers {
+		if s.Leader {
+			serverHealthDataLeader, ok := serverHealthDataMap[s.ID]
+			if ok {
+				leaderLastCommitIndex = serverHealthDataLeader.LastIndex
+			}
+		}
+	}
+
 	// Format it as a nice table.
-	result := []string{"Node\x1fID\x1fAddress\x1fState\x1fVoter\x1fRaftProtocol\x1fCommitIndex"}
+	result := []string{"Node\x1fID\x1fAddress\x1fState\x1fVoter\x1fRaftProtocol\x1fCommit Index\x1fTrails Leader By"}
 	for _, s := range reply.Servers {
 		raftProtocol := s.ProtocolVersion
 
@@ -139,11 +111,18 @@ func raftListPeersDetailed(client *api.Client, stale bool) (string, error) {
 
 		serverHealthData, ok := serverHealthDataMap[s.ID]
 		if ok {
-			result = append(result, fmt.Sprintf("%s\x1f%s\x1f%s\x1f%s\x1f%v\x1f%s\x1f%v",
-				s.Node, s.ID, s.Address, state, s.Voter, raftProtocol, serverHealthData.LastIndex))
+			trailsLeaderBy := leaderLastCommitIndex - serverHealthData.LastIndex
+			trailsLeaderByText := fmt.Sprintf("%d Commits", trailsLeaderBy)
+			if s.Leader {
+				trailsLeaderByText = "_"
+			} else if trailsLeaderBy <= 1 {
+				trailsLeaderByText = fmt.Sprintf("%d Commit", trailsLeaderBy)
+			}
+			result = append(result, fmt.Sprintf("%s\x1f%s\x1f%s\x1f%s\x1f%v\x1f%s\x1f%v\x1f%s",
+				s.Node, s.ID, s.Address, state, s.Voter, raftProtocol, serverHealthData.LastIndex, trailsLeaderByText))
 		} else {
 			result = append(result, fmt.Sprintf("%s\x1f%s\x1f%s\x1f%s\x1f%v\x1f%s\x1f%v",
-				s.Node, s.ID, s.Address, state, s.Voter, raftProtocol, ""))
+				s.Node, s.ID, s.Address, state, s.Voter, raftProtocol, "_"))
 		}
 	}
 
