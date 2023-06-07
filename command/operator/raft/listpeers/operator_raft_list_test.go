@@ -34,7 +34,7 @@ func TestOperatorRaftListPeersCommand(t *testing.T) {
 	// Test the list-peers subcommand directly
 	ui := cli.NewMockUi()
 	c := New(ui)
-	args := []string{"-http-addr=" + a.HTTPAddr(), "-detailed"}
+	args := []string{"-http-addr=" + a.HTTPAddr()}
 
 	code := c.Run(args)
 	if code != 0 {
