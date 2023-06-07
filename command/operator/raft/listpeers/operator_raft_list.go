@@ -50,13 +50,13 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
+	// Fetch the current configuration.
 	result, err := raftListPeers(client, c.http.Stale())
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error getting peers: %v", err))
 		return 1
 	}
 	c.UI.Output(result)
-
 	return 0
 }
 
