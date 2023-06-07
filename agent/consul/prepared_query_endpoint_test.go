@@ -1539,8 +1539,7 @@ func TestPreparedQuery_Execute(t *testing.T) {
 		assert.Len(t, reply.Nodes, 0)
 	})
 
-	expectNodes := func(t *testing.T, query *structs.PreparedQueryRequest, reply *structs.PreparedQueryExecuteResponse, n int) {
-		t.Helper()
+	expectNodes := func(t require.TestingT, query *structs.PreparedQueryRequest, reply *structs.PreparedQueryExecuteResponse, n int) {
 		assert.Len(t, reply.Nodes, n)
 		assert.Equal(t, "dc1", reply.Datacenter)
 		assert.Equal(t, 0, reply.Failovers)
@@ -1548,8 +1547,7 @@ func TestPreparedQuery_Execute(t *testing.T) {
 		assert.Equal(t, query.Query.DNS, reply.DNS)
 		assert.True(t, reply.QueryMeta.KnownLeader)
 	}
-	expectFailoverNodes := func(t *testing.T, query *structs.PreparedQueryRequest, reply *structs.PreparedQueryExecuteResponse, n int) {
-		t.Helper()
+	expectFailoverNodes := func(t require.TestingT, query *structs.PreparedQueryRequest, reply *structs.PreparedQueryExecuteResponse, n int) {
 		assert.Len(t, reply.Nodes, n)
 		assert.Equal(t, "dc2", reply.Datacenter)
 		assert.Equal(t, 1, reply.Failovers)
@@ -1558,8 +1556,7 @@ func TestPreparedQuery_Execute(t *testing.T) {
 		assert.True(t, reply.QueryMeta.KnownLeader)
 	}
 
-	expectFailoverPeerNodes := func(t *testing.T, query *structs.PreparedQueryRequest, reply *structs.PreparedQueryExecuteResponse, n int) {
-		t.Helper()
+	expectFailoverPeerNodes := func(t require.TestingT, query *structs.PreparedQueryRequest, reply *structs.PreparedQueryExecuteResponse, n int) {
 		assert.Len(t, reply.Nodes, n)
 		assert.Equal(t, "", reply.Datacenter)
 		assert.Equal(t, es.peeringServer.acceptingPeerName, reply.PeerName)
