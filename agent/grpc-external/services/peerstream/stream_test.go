@@ -1016,7 +1016,7 @@ func TestStreamResources_Server_ServiceUpdates(t *testing.T) {
 			require.Equal(r, mongo.Service.CompoundServiceName().String(), msg.GetResponse().ResourceID)
 
 			var nodes pbpeerstream.ExportedService
-			require.NoError(t, msg.GetResponse().Resource.UnmarshalTo(&nodes))
+			require.NoError(r, msg.GetResponse().Resource.UnmarshalTo(&nodes))
 			require.Len(r, nodes.Nodes, 1)
 		})
 	})
@@ -1214,8 +1214,8 @@ func TestStreamResources_Server_SendsHeartbeats(t *testing.T) {
 			Wait:    outgoingHeartbeatInterval / 2,
 		}, t, func(r *retry.R) {
 			heartbeat, err := client.Recv()
-			require.NoError(t, err)
-			require.NotNil(t, heartbeat.GetHeartbeat())
+			require.NoError(r, err)
+			require.NotNil(r, heartbeat.GetHeartbeat())
 		})
 	})
 
@@ -1225,8 +1225,8 @@ func TestStreamResources_Server_SendsHeartbeats(t *testing.T) {
 			Wait:    outgoingHeartbeatInterval / 2,
 		}, t, func(r *retry.R) {
 			heartbeat, err := client.Recv()
-			require.NoError(t, err)
-			require.NotNil(t, heartbeat.GetHeartbeat())
+			require.NoError(r, err)
+			require.NotNil(r, heartbeat.GetHeartbeat())
 		})
 	})
 }
