@@ -93,7 +93,7 @@ func (r *apiGatewayReconciler) enqueueCertificateReferencedGateways(store *state
 	logger.Trace("certificate changed, enqueueing dependent gateways")
 	defer logger.Trace("finished enqueuing gateways")
 
-	_, entries, err := store.ConfigEntriesByKind(nil, structs.APIGateway, acl.WildcardEnterpriseMeta())
+	_, entries, err := store.ConfigEntriesByKind(nil, structs.APIGateway, wildcardMeta())
 	if err != nil {
 		logger.Warn("error retrieving api gateways", "error", err)
 		return err
@@ -564,11 +564,11 @@ type gatewayMeta struct {
 // tuples based on the state coming from the store. Any gateway that does not have
 // a corresponding bound-api-gateway config entry will be filtered out.
 func getAllGatewayMeta(store *state.Store) ([]*gatewayMeta, error) {
-	_, gateways, err := store.ConfigEntriesByKind(nil, structs.APIGateway, acl.WildcardEnterpriseMeta())
+	_, gateways, err := store.ConfigEntriesByKind(nil, structs.APIGateway, wildcardMeta())
 	if err != nil {
 		return nil, err
 	}
-	_, boundGateways, err := store.ConfigEntriesByKind(nil, structs.BoundAPIGateway, acl.WildcardEnterpriseMeta())
+	_, boundGateways, err := store.ConfigEntriesByKind(nil, structs.BoundAPIGateway, wildcardMeta())
 	if err != nil {
 		return nil, err
 	}
@@ -1074,12 +1074,12 @@ func requestToResourceRef(req controller.Request) structs.ResourceReference {
 
 // retrieveAllRoutesFromStore retrieves all HTTP and TCP routes from the given store
 func retrieveAllRoutesFromStore(store *state.Store) ([]structs.BoundRoute, error) {
-	_, httpRoutes, err := store.ConfigEntriesByKind(nil, structs.HTTPRoute, acl.WildcardEnterpriseMeta())
+	_, httpRoutes, err := store.ConfigEntriesByKind(nil, structs.HTTPRoute, wildcardMeta())
 	if err != nil {
 		return nil, err
 	}
 
-	_, tcpRoutes, err := store.ConfigEntriesByKind(nil, structs.TCPRoute, acl.WildcardEnterpriseMeta())
+	_, tcpRoutes, err := store.ConfigEntriesByKind(nil, structs.TCPRoute, wildcardMeta())
 	if err != nil {
 		return nil, err
 	}
@@ -1140,4 +1140,10 @@ func routeRequestLogger(logger hclog.Logger, request controller.Request) hclog.L
 func routeLogger(logger hclog.Logger, route structs.ConfigEntry) hclog.Logger {
 	meta := route.GetEnterpriseMeta()
 	return logger.With("route.kind", route.GetKind(), "route.name", route.GetName(), "route.namespace", meta.NamespaceOrDefault(), "route.partition", meta.PartitionOrDefault())
+}
+
+func wildcardMeta() *acl.EnterpriseMeta {
+	meta := acl.WildcardEnterpriseMeta()
+	meta.OverridePartition(acl.WildcardPartitionName)
+	return meta
 }

@@ -220,8 +220,8 @@ func TestConstructor(t *testing.T) {
 			arguments: makeArguments(map[string]any{"Patches": []map[string]any{
 				makePatch(map[string]any{
 					"ResourceFilter": makeResourceFilter(map[string]any{
-						"Services": []ServiceName{
-							{CompoundServiceName: api.CompoundServiceName{}},
+						"Services": []map[string]any{
+							{},
 						},
 					}),
 				}),
@@ -239,6 +239,42 @@ func TestConstructor(t *testing.T) {
 			arguments: makeArguments(map[string]any{"Patches": makePatch(map[string]any{})}),
 			expected:  validTestCase(OpAdd, extensioncommon.TrafficDirectionOutbound, ResourceTypeRoute).expected,
 			ok:        true,
+		},
+		// Ensure that embedded api struct used for Services is parsed correctly.
+		// See also above comment on decode.HookWeakDecodeFromSlice.
+		"single value Services decoded as map construction succeeds": {
+			arguments: makeArguments(map[string]any{"Patches": []map[string]any{
+				makePatch(map[string]any{
+					"ResourceFilter": makeResourceFilter(map[string]any{
+						"Services": []map[string]any{
+							{"Name": "foo"},
+						},
+					}),
+				}),
+			}}),
+			expected: propertyOverride{
+				Patches: []Patch{
+					{
+						ResourceFilter: ResourceFilter{
+							ResourceType:     ResourceTypeRoute,
+							TrafficDirection: extensioncommon.TrafficDirectionOutbound,
+							Services: []*ServiceName{
+								{CompoundServiceName: api.CompoundServiceName{
+									Name:      "foo",
+									Namespace: "default",
+									Partition: "default",
+								}},
+							},
+						},
+						Op:    OpAdd,
+						Path:  "/name",
+						Value: "foo",
+					},
+				},
+				Debug:     true,
+				ProxyType: api.ServiceKindConnectProxy,
+			},
+			ok: true,
 		},
 		"invalid ProxyType": {
 			arguments: makeArguments(map[string]any{
