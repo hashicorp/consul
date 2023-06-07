@@ -2372,13 +2372,13 @@ func TestPreparedQuery_Execute(t *testing.T) {
 			}
 
 			var reply structs.PreparedQueryExecuteResponse
-			require.NoError(t, msgpackrpc.CallWithCodec(es.server.codec, "PreparedQuery.Execute", &req, &reply))
+			require.NoError(r, msgpackrpc.CallWithCodec(es.server.codec, "PreparedQuery.Execute", &req, &reply))
 
 			for _, node := range reply.Nodes {
-				assert.NotEqual(t, "node3", node.Node.Node)
+				assert.NotEqual(r, "node3", node.Node.Node)
 			}
 
-			expectNodes(t, &query, &reply, 9)
+			expectNodes(r, &query, &reply, 9)
 		})
 	})
 }
