@@ -15,7 +15,6 @@ import (
 
 	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
 	"github.com/hashicorp/consul-net-rpc/net/rpc"
-
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/authmethod/kubeauth"
 	"github.com/hashicorp/consul/agent/consul/authmethod/testauth"
@@ -94,7 +93,7 @@ func TestACLEndpoint_ReplicationStatus(t *testing.T) {
 	retry.Run(t, func(r *retry.R) {
 		var status structs.ACLReplicationStatus
 		err := msgpackrpc.CallWithCodec(codec, "ACL.ReplicationStatus", &getR, &status)
-		require.NoError(t, err)
+		require.NoError(r, err)
 
 		require.True(r, status.Enabled)
 		require.True(r, status.Running)
@@ -5626,6 +5625,7 @@ func deleteTestAuthMethod(codec rpc.ClientCodec, initialManagementToken string, 
 	err := msgpackrpc.CallWithCodec(codec, "ACL.AuthMethodDelete", &arg, &ignored)
 	return err
 }
+
 func upsertTestAuthMethod(
 	codec rpc.ClientCodec, initialManagementToken string, datacenter string,
 	sessionID string,

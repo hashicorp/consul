@@ -479,6 +479,7 @@ func TestDNSCycleRecursorCheck(t *testing.T) {
 	}
 	require.Equal(t, wantAnswer, in.Answer)
 }
+
 func TestDNSCycleRecursorCheckAllFail(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
@@ -512,6 +513,7 @@ func TestDNSCycleRecursorCheckAllFail(t *testing.T) {
 	// Verify if we hit SERVFAIL from Consul
 	require.Equal(t, dns.RcodeServerFailure, in.Rcode)
 }
+
 func TestDNS_NodeLookup_CNAME(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
@@ -3178,7 +3180,7 @@ func TestDNS_ServiceLookup_WanTranslation(t *testing.T) {
 				}
 
 				var out struct{}
-				require.NoError(t, a2.RPC("Catalog.Register", args, &out))
+				require.NoError(r, a2.RPC("Catalog.Register", args, &out))
 			})
 
 			// Look up the SRV record via service and prepared query.
@@ -3506,11 +3508,11 @@ func TestDNS_CaseInsensitiveServiceLookup(t *testing.T) {
 				retry.Run(t, func(r *retry.R) {
 					in, _, err := c.Exchange(m, a.DNSAddr())
 					if err != nil {
-						t.Fatalf("err: %v", err)
+						r.Fatalf("err: %v", err)
 					}
 
 					if len(in.Answer) != 1 {
-						t.Fatalf("question %v, empty lookup: %#v", question, in)
+						r.Fatalf("question %v, empty lookup: %#v", question, in)
 					}
 				})
 			}
@@ -6357,6 +6359,7 @@ func TestDNS_ServiceLookup_FilterACL(t *testing.T) {
 		})
 	}
 }
+
 func TestDNS_ServiceLookup_MetaTXT(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
