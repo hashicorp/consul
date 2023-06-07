@@ -1818,8 +1818,7 @@ subsystem that provides Consul's service mesh capabilities.
     geo location or datacenter, dc:sfo). By default, this is left blank and not used.
 
   - `disable_hostname` ((#telemetry-disable_hostname))
-    This controls whether or not to prepend runtime telemetry with the machine's
-    hostname, defaults to false.
+    Set to `true` to stop prepending the machine's hostname to gauge-type metrics. Default is `false`.
 
   - `dogstatsd_addr` ((#telemetry-dogstatsd_addr)) This provides the address
     of a DogStatsD instance in the format `host:port`. DogStatsD is a protocol-compatible
