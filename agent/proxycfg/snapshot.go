@@ -741,14 +741,23 @@ type configSnapshotAPIGateway struct {
 
 func (c *configSnapshotAPIGateway) synthesizeChains(datacenter string, listener structs.APIGatewayListener, boundListener structs.BoundAPIGatewayListener) ([]structs.IngressService, structs.Upstreams, []*structs.CompiledDiscoveryChain, error) {
 	chains := []*structs.CompiledDiscoveryChain{}
-	trustDomain := ""
+
+	// We leverage the test trust domain knowing
+	// that the domain will get overridden if
+	// there is a target to something other than an
+	// external/peered service. If the below
+	// code doesn't get a trust domain due to all the
+	// targets being external, the chain will
+	// have the domain munged anyway during synthesis.
+	trustDomain := connect.TestTrustDomain
 
 DOMAIN_LOOP:
 	for _, chain := range c.DiscoveryChain {
 		for _, target := range chain.Targets {
 			if !target.External {
-				trustDomain = connect.TrustDomainForTarget(*target)
-				if trustDomain != "" {
+				domain := connect.TrustDomainForTarget(*target)
+				if domain != "" {
+					trustDomain = domain
 					break DOMAIN_LOOP
 				}
 			}
