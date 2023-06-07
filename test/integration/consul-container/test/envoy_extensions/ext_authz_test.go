@@ -6,8 +6,11 @@ package envoyextensions
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"os"
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 	"github.com/testcontainers/testcontainers-go"
@@ -17,18 +20,23 @@ import (
 	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
 	libservice "github.com/hashicorp/consul/test/integration/consul-container/libs/service"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/topology"
-	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 )
 
 // TestExtAuthz Summary
 // This test makes sure two services in the same datacenter have connectivity.
-// A simulated client (a direct HTTP call) talks to it's upstream proxy through the
+// A simulated client (a direct HTTP call) talks to it's upstream proxy through the mesh.
+// The upstream (static-server) is configured with a `builtin/ext-authz` extension that
+// calls an OPA external authorization service to authorize incoming HTTP requests.
 //
 // Steps:
 //   - Create a single agent cluster.
 //   - Create the example static-server and sidecar containers, then register them both with Consul
 //   - Create an example static-client sidecar, then register both the service and sidecar with Consul
-//   - Make sure a call to the client sidecar local bind port returns a response from the upstream, static-server
+//   - Create an OPA external authorization container on the local network, this doesn't need to be registered with Consul.
+//   - Configure the static-server service with a `builtin/ext-authz` EnvoyExtension.
+//   - Make sure a call to the client sidecar local bind port returns the expected response from the upstream, static-server:
+//   - A call to `/allow` returns 200 OK.
+//   - A call to any other endpoint returns 403 Forbidden.
 func TestExtAuthz(t *testing.T) {
 	t.Parallel()
 
@@ -53,10 +61,9 @@ func TestExtAuthz(t *testing.T) {
 	libassert.GetEnvoyListenerTCPFilters(t, adminPort)
 
 	libassert.AssertContainerState(t, clientService, "running")
-	libassert.HTTPServiceEchoes(t, "localhost", port, "")
 	libassert.AssertFortioName(t, fmt.Sprintf("http://localhost:%d", port), "static-server", "")
 
-	// wire up ext-authz envoy extension
+	// wire up ext-authz envoy extension for the static-server
 	consul := cluster.APIClient(0)
 	defaults := api.ServiceConfigEntry{
 		Kind:     api.ServiceDefaults,
@@ -73,10 +80,13 @@ func TestExtAuthz(t *testing.T) {
 			},
 		}},
 	}
-
 	consul.ConfigEntries().Set(&defaults, nil)
-
-	utils.Wait()
+	entry, _, _ := consul.ConfigEntries().Get("service-defaults", "static-server", nil)
+	fmt.Printf("\n\n!!! entry = %#v\n\n", entry)
+	baseURL := fmt.Sprintf("http://localhost:%d/", port)
+	doRequest(t, baseURL, http.StatusForbidden)
+	doRequest(t, baseURL+"/allow", http.StatusOK)
+	wait()
 }
 
 func createServices(t *testing.T, cluster *libcluster.Cluster) libservice.Service {
@@ -108,7 +118,6 @@ func createServices(t *testing.T, cluster *libcluster.Cluster) libservice.Servic
 
 func createLocalAuthzService(t *testing.T, cluster *libcluster.Cluster) {
 	node := cluster.Agents[0]
-	//client := node.GetClient()
 
 	cwd, err := os.Getwd()
 	if err != nil {
@@ -144,10 +153,49 @@ func createLocalAuthzService(t *testing.T, cluster *libcluster.Cluster) {
 	ctx := context.Background()
 
 	exposedPorts := []string{}
-	info, err := libcluster.LaunchContainerOnNode(ctx, node, req, exposedPorts)
+	_, err = libcluster.LaunchContainerOnNode(ctx, node, req, exposedPorts)
 	if err != nil {
 		t.Fatal(err)
 	}
+}
 
-	fmt.Printf("\n!!! ext-authz info = %#v\n\n", *info)
+func doRequest(t *testing.T, url string, expStatus int) {
+	var errs []string
+	for i := 0; i < 5; i++ {
+		req, err := http.NewRequest(http.MethodGet, url, nil)
+		if err != nil {
+			t.Log(err)
+			t.FailNow()
+		}
+		req.Header.Set("user-agent", "foo")
+		client := &http.Client{}
+		res, err := client.Do(req)
+		if err == nil {
+			if res.StatusCode == expStatus {
+				return
+			} else {
+				fmt.Printf("\n\n!!! response from %s: %#v\n\nrequest = %#v\n\n", url, *res, res.Request)
+				errs = append(errs, fmt.Sprintf("%s unexpected status code: want: %d, have: %d", time.Now().Format(time.RFC3339), expStatus, res.StatusCode))
+			}
+		} else {
+			errs = append(errs, fmt.Sprintf("unexpected error: %s", err.Error()))
+		}
+		if res != nil {
+			res.Body.Close()
+		}
+		time.Sleep(time.Duration(i+1) * time.Second)
+	}
+	t.Logf("request failed:    \n%s", strings.Join(errs, "    \n"))
+	t.Fail()
+}
+
+func wait() {
+	for {
+		_, err := os.Stat("continue")
+		if err == nil {
+			_ = os.Remove("continue")
+			break
+		}
+		time.Sleep(time.Second)
+	}
 }

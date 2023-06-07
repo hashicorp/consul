@@ -6,9 +6,7 @@ package utils
 import (
 	"encoding/json"
 	"fmt"
-	"os"
 	"strings"
-	"time"
 
 	"github.com/itchyny/gojq"
 	"github.com/teris-io/shortid"
@@ -67,15 +65,4 @@ func BoolToPointer(b bool) *bool {
 
 func StringToPointer(s string) *string {
 	return &s
-}
-
-func Wait() {
-	for {
-		_, err := os.Stat("continue")
-		if err == nil {
-			_ = os.Remove("continue")
-			break
-		}
-		time.Sleep(time.Second)
-	}
 }
