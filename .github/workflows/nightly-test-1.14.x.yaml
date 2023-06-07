@@ -223,7 +223,7 @@ jobs:
     steps:
       - name: Slack Notification
         id: slack
-        uses: slackapi/slack-github-action@v1.19
+        uses: slackapi/slack-github-action@v1.24
         with:
           payload: |
             {
