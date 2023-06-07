@@ -1621,7 +1621,18 @@ func (a *Agent) RPC(ctx context.Context, method string, args interface{}, reply 
 			method = e + "." + p[1]
 		}
 	}
+
+	// audit log only on consul clients
+	_, ok := a.delegate.(*consul.Client)
+	if ok {
+		a.writeAuditRPCEvent(method, "OperationStart")
+	}
+
 	a.endpointsLock.RUnlock()
+
+	defer func() {
+		a.writeAuditRPCEvent(method, "OperationComplete")
+	}()
 	return a.delegate.RPC(ctx, method, args, reply)
 }
 
