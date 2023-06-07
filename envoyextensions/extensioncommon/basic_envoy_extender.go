@@ -38,7 +38,7 @@ type BasicExtension interface {
 	// PatchRoute patches a route to include the custom Envoy configuration
 	// required to integrate with the built in extension template.
 	// See also PatchRoutes.
-	PatchRoute(*RuntimeConfig, *envoy_route_v3.RouteConfiguration) (*envoy_route_v3.RouteConfiguration, bool, error)
+	PatchRoute(RoutePayload) (*envoy_route_v3.RouteConfiguration, bool, error)
 
 	// PatchRoutes patches routes to include the custom Envoy configuration
 	// required to integrate with the built in extension template.
@@ -51,7 +51,7 @@ type BasicExtension interface {
 	// PatchCluster patches a cluster to include the custom Envoy configuration
 	// required to integrate with the built in extension template.
 	// See also PatchClusters.
-	PatchCluster(*RuntimeConfig, *envoy_cluster_v3.Cluster) (*envoy_cluster_v3.Cluster, bool, error)
+	PatchCluster(ClusterPayload) (*envoy_cluster_v3.Cluster, bool, error)
 
 	// PatchClusters patches clusters to include the custom Envoy configuration
 	// required to integrate with the built in extension template.
@@ -63,12 +63,12 @@ type BasicExtension interface {
 
 	// PatchClusterLoadAssignment patches a cluster load assignment to include the custom Envoy configuration
 	// required to integrate with the built in extension template.
-	PatchClusterLoadAssignment(*RuntimeConfig, *envoy_endpoint_v3.ClusterLoadAssignment) (*envoy_endpoint_v3.ClusterLoadAssignment, bool, error)
+	PatchClusterLoadAssignment(ClusterLoadAssignmentPayload) (*envoy_endpoint_v3.ClusterLoadAssignment, bool, error)
 
 	// PatchListener patches a listener to include the custom Envoy configuration
 	// required to integrate with the built in extension template.
 	// See also PatchListeners.
-	PatchListener(*RuntimeConfig, *envoy_listener_v3.Listener) (*envoy_listener_v3.Listener, bool, error)
+	PatchListener(ListenerPayload) (*envoy_listener_v3.Listener, bool, error)
 
 	// PatchListeners patches listeners to include the custom Envoy configuration
 	// required to integrate with the built in extension template.
@@ -81,7 +81,7 @@ type BasicExtension interface {
 	// PatchFilter patches an Envoy filter to include the custom Envoy
 	// configuration required to integrate with the built in extension template.
 	// See also PatchFilters.
-	PatchFilter(cfg *RuntimeConfig, f *envoy_listener_v3.Filter, isInboundListener bool) (*envoy_listener_v3.Filter, bool, error)
+	PatchFilter(FilterPayload) (*envoy_listener_v3.Filter, bool, error)
 
 	// PatchFilters patches Envoy filters to include the custom Envoy
 	// configuration required to integrate with the built in extension template.
@@ -197,7 +197,7 @@ func (b *BasicEnvoyExtender) patchClusters(config *RuntimeConfig, clusters Clust
 		return clusters, fmt.Errorf("error patching clusters: %w", err)
 	}
 	for nameOrSNI, cluster := range clusters {
-		patchedCluster, patched, err := b.Extension.PatchCluster(config, cluster)
+		patchedCluster, patched, err := b.Extension.PatchCluster(config.GetClusterPayload(cluster))
 		if err != nil {
 			resultErr = multierror.Append(resultErr, fmt.Errorf("error patching cluster %q: %w", nameOrSNI, err))
 		}
@@ -208,7 +208,7 @@ func (b *BasicEnvoyExtender) patchClusters(config *RuntimeConfig, clusters Clust
 		// We patch cluster load assignments directly above for EDS, but also here for CDS,
 		// since updates can come from either.
 		if patchedCluster.LoadAssignment != nil {
-			patchedClusterLoadAssignment, patched, err := b.Extension.PatchClusterLoadAssignment(config, patchedCluster.LoadAssignment)
+			patchedClusterLoadAssignment, patched, err := b.Extension.PatchClusterLoadAssignment(config.GetClusterLoadAssignmentPayload(patchedCluster.LoadAssignment))
 			if err != nil {
 				resultErr = multierror.Append(resultErr, fmt.Errorf("error patching load assignment for cluster %q: %w", nameOrSNI, err))
 			} else if patched {
@@ -225,7 +225,7 @@ func (b *BasicEnvoyExtender) patchClusterLoadAssignments(config *RuntimeConfig, 
 	var resultErr error
 
 	for nameOrSNI, clusterLoadAssignment := range clusterLoadAssignments {
-		patchedClusterLoadAssignment, patched, err := b.Extension.PatchClusterLoadAssignment(config, clusterLoadAssignment)
+		patchedClusterLoadAssignment, patched, err := b.Extension.PatchClusterLoadAssignment(config.GetClusterLoadAssignmentPayload(clusterLoadAssignment))
 		if err != nil {
 			resultErr = multierror.Append(resultErr, fmt.Errorf("error patching cluster load assignment %q: %w", nameOrSNI, err))
 		}
@@ -246,7 +246,7 @@ func (b *BasicEnvoyExtender) patchRoutes(config *RuntimeConfig, routes RouteMap)
 		return routes, fmt.Errorf("error patching routes: %w", err)
 	}
 	for nameOrSNI, route := range patchedRoutes {
-		patchedRoute, patched, err := b.Extension.PatchRoute(config, route)
+		patchedRoute, patched, err := b.Extension.PatchRoute(config.GetRoutePayload(route))
 		if err != nil {
 			resultErr = multierror.Append(resultErr, fmt.Errorf("error patching route %q: %w", nameOrSNI, err))
 		}
@@ -267,7 +267,7 @@ func (b *BasicEnvoyExtender) patchListeners(config *RuntimeConfig, listeners Lis
 		return listeners, fmt.Errorf("error patching listeners: %w", err)
 	}
 	for nameOrSNI, listener := range listeners {
-		patchedListener, patched, err := b.Extension.PatchListener(config, listener)
+		patchedListener, patched, err := b.Extension.PatchListener(config.GetListenerPayload(listener))
 		if err != nil {
 			resultErr = multierror.Append(resultErr, fmt.Errorf("error patching listener %q: %w", nameOrSNI, err))
 		}
@@ -275,7 +275,7 @@ func (b *BasicEnvoyExtender) patchListeners(config *RuntimeConfig, listeners Lis
 			patchedListener = listener
 		}
 
-		if patchedListener, err = b.patchListenerFilterChains(config, patchedListener, nameOrSNI); err == nil {
+		if patchedListener, err = b.patchSupportedListenerFilterChains(config, patchedListener, nameOrSNI); err == nil {
 			patchedListeners[nameOrSNI] = patchedListener
 		} else {
 			resultErr = multierror.Append(resultErr, err)
@@ -285,93 +285,37 @@ func (b *BasicEnvoyExtender) patchListeners(config *RuntimeConfig, listeners Lis
 	return patchedListeners, resultErr
 }
 
-func (b *BasicEnvoyExtender) patchListenerFilterChains(config *RuntimeConfig, l *envoy_listener_v3.Listener, nameOrSNI string) (*envoy_listener_v3.Listener, error) {
+func (b *BasicEnvoyExtender) patchSupportedListenerFilterChains(config *RuntimeConfig, l *envoy_listener_v3.Listener, nameOrSNI string) (*envoy_listener_v3.Listener, error) {
 	switch config.Kind {
-	case api.ServiceKindTerminatingGateway:
-		return b.patchTerminatingGatewayListenerFilterChains(config, l, nameOrSNI)
-	case api.ServiceKindConnectProxy:
-		return b.patchConnectProxyListenerFilterChains(config, l, nameOrSNI)
+	case api.ServiceKindTerminatingGateway, api.ServiceKindConnectProxy:
+		return b.patchListenerFilterChains(config, l, nameOrSNI)
 	}
 	return l, nil
 }
 
-func (b *BasicEnvoyExtender) patchTerminatingGatewayListenerFilterChains(config *RuntimeConfig, l *envoy_listener_v3.Listener, nameOrSNI string) (*envoy_listener_v3.Listener, error) {
+func (b *BasicEnvoyExtender) patchListenerFilterChains(config *RuntimeConfig, l *envoy_listener_v3.Listener, nameOrSNI string) (*envoy_listener_v3.Listener, error) {
 	var resultErr error
+
 	for idx, filterChain := range l.FilterChains {
-		if patchedFilterChain, err := b.patchFilterChain(config, filterChain, IsInboundPublicListener(l)); err == nil {
+		if patchedFilterChain, err := b.patchFilterChain(config, filterChain, l); err == nil {
 			l.FilterChains[idx] = patchedFilterChain
 		} else {
-			resultErr = multierror.Append(resultErr, fmt.Errorf("error patching filter chain of terminating gateway listener %q: %w", nameOrSNI, err))
+			resultErr = multierror.Append(resultErr, fmt.Errorf("error patching listener filter chain %q: %w", nameOrSNI, err))
 		}
 	}
 
 	return l, resultErr
 }
 
-func (b *BasicEnvoyExtender) patchConnectProxyListenerFilterChains(config *RuntimeConfig, l *envoy_listener_v3.Listener, nameOrSNI string) (*envoy_listener_v3.Listener, error) {
-	if IsOutboundTProxyListener(l) {
-		patchedListener, err := b.patchTProxyListenerFilterChains(config, l)
-		if err == nil {
-			return patchedListener, nil
-		} else {
-			return l, fmt.Errorf("error patching filter chain of TProxy listener %q: %w", nameOrSNI, err)
-		}
-	} else {
-
-		patchedListener, err := b.patchNonTProxyConnectProxyListenerFilterChains(config, l)
-		if err == nil {
-			return patchedListener, nil
-		} else {
-			return l, fmt.Errorf("error patching filter chain of connect proxy listener %q: %w", nameOrSNI, err)
-		}
-	}
-}
-
-func (b *BasicEnvoyExtender) patchNonTProxyConnectProxyListenerFilterChains(config *RuntimeConfig, l *envoy_listener_v3.Listener) (*envoy_listener_v3.Listener, error) {
+func (b *BasicEnvoyExtender) patchFilterChain(config *RuntimeConfig, filterChain *envoy_listener_v3.FilterChain, l *envoy_listener_v3.Listener) (*envoy_listener_v3.FilterChain, error) {
 	var resultErr error
-
 	inbound := IsInboundPublicListener(l)
-
-	for idx, filterChain := range l.FilterChains {
-		if patchedFilterChain, err := b.patchFilterChain(config, filterChain, inbound); err == nil {
-			l.FilterChains[idx] = patchedFilterChain
-		} else {
-			resultErr = multierror.Append(resultErr, fmt.Errorf("error patching filter chain: %w", err))
-		}
-	}
-	return l, resultErr
-}
-
-func (b *BasicEnvoyExtender) patchTProxyListenerFilterChains(config *RuntimeConfig, l *envoy_listener_v3.Listener) (*envoy_listener_v3.Listener, error) {
-	var resultErr error
-
-	vip := config.Upstreams[config.ServiceName].VIP
-	inbound := IsInboundPublicListener(l)
-
-	for idx, filterChain := range l.FilterChains {
-		match := filterChainTProxyMatch(vip, filterChain)
-		if !match {
-			continue
-		}
-
-		if patchedFilterChain, err := b.patchFilterChain(config, filterChain, inbound); err == nil {
-			l.FilterChains[idx] = patchedFilterChain
-		} else {
-			resultErr = multierror.Append(resultErr, fmt.Errorf("error patching filter chain for %q: %w", vip, err))
-		}
-	}
-
-	return l, resultErr
-}
-
-func (b *BasicEnvoyExtender) patchFilterChain(config *RuntimeConfig, filterChain *envoy_listener_v3.FilterChain, isInboundListener bool) (*envoy_listener_v3.FilterChain, error) {
-	var resultErr error
-	patchedFilters, err := b.Extension.PatchFilters(config, filterChain.Filters, isInboundListener)
+	patchedFilters, err := b.Extension.PatchFilters(config, filterChain.Filters, inbound)
 	if err != nil {
 		return filterChain, fmt.Errorf("error patching filters: %w", err)
 	}
 	for idx, filter := range patchedFilters {
-		patchedFilter, patched, err := b.Extension.PatchFilter(config, filter, isInboundListener)
+		patchedFilter, patched, err := b.Extension.PatchFilter(config.GetFilterPayload(filter, l))
 		if err != nil {
 			resultErr = multierror.Append(resultErr, fmt.Errorf("error patching filter: %w", err))
 		}

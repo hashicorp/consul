@@ -17,9 +17,11 @@ import (
 	envoy_tcp_proxy_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/tcp_proxy/v3"
 	envoy_tls_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 	envoy_resource_v3 "github.com/envoyproxy/go-control-plane/pkg/resource/v3"
-	"github.com/hashicorp/consul/envoyextensions/xdscommon"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
+
+	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/envoyextensions/xdscommon"
 )
 
 // MakeUpstreamTLSTransportSocket generates an Envoy transport socket for the given TLS context.
@@ -68,6 +70,206 @@ func MakeFilter(name string, cfg proto.Message) (*envoy_listener_v3.Filter, erro
 		Name:       name,
 		ConfigType: &envoy_listener_v3.Filter_TypedConfig{TypedConfig: any},
 	}, nil
+}
+
+// TrafficDirection determines whether inbound or outbound Envoy resources will be patched.
+type TrafficDirection string
+
+const (
+	TrafficDirectionInbound  TrafficDirection = "inbound"
+	TrafficDirectionOutbound TrafficDirection = "outbound"
+)
+
+var TrafficDirections = StringSet{string(TrafficDirectionInbound): {}, string(TrafficDirectionOutbound): {}}
+
+type StringSet map[string]struct{}
+
+func (c *StringSet) CheckRequired(v, fieldName string) error {
+	if _, ok := (*c)[v]; !ok {
+		if v == "" {
+			return fmt.Errorf("field %s is required", fieldName)
+		}
+
+		var keys []string
+		for k := range *c {
+			keys = append(keys, k)
+		}
+
+		return fmt.Errorf("invalid %s '%q'; supported values: %s",
+			fieldName, v, strings.Join(keys, ", "))
+	}
+	return nil
+}
+
+func NormalizeEmptyToDefault(s string) string {
+	if s == "" {
+		return "default"
+	}
+
+	return s
+}
+
+func NormalizeServiceName(sn *api.CompoundServiceName) {
+	sn.Namespace = NormalizeEmptyToDefault(sn.Namespace)
+	sn.Partition = NormalizeEmptyToDefault(sn.Partition)
+}
+
+// Payload represents a single Envoy resource to be modified by extensions.
+// It associates the RuntimeConfig of the local proxy, the TrafficDirection
+// of the resource, and the CompoundServiceName and UpstreamData (if outbound)
+// of a service the Envoy resource corresponds to.
+type Payload[K proto.Message] struct {
+	RuntimeConfig    *RuntimeConfig
+	ServiceName      *api.CompoundServiceName
+	Upstream         *UpstreamData
+	TrafficDirection TrafficDirection
+	Message          K
+}
+
+func (p Payload[K]) IsInbound() bool {
+	return p.TrafficDirection == TrafficDirectionInbound
+}
+
+type ClusterPayload = Payload[*envoy_cluster_v3.Cluster]
+type ClusterLoadAssignmentPayload = Payload[*envoy_endpoint_v3.ClusterLoadAssignment]
+type ListenerPayload = Payload[*envoy_listener_v3.Listener]
+type FilterPayload = Payload[*envoy_listener_v3.Filter]
+type RoutePayload = Payload[*envoy_route_v3.RouteConfiguration]
+
+func (cfg *RuntimeConfig) GetClusterPayload(c *envoy_cluster_v3.Cluster) ClusterPayload {
+	d := TrafficDirectionOutbound
+	var u *UpstreamData
+	var sn *api.CompoundServiceName
+
+	if IsLocalAppCluster(c) {
+		d = TrafficDirectionInbound
+	} else {
+		u, sn = cfg.findUpstreamBySNI(c.Name)
+	}
+
+	return ClusterPayload{
+		RuntimeConfig:    cfg,
+		ServiceName:      sn,
+		Upstream:         u,
+		TrafficDirection: d,
+		Message:          c,
+	}
+}
+
+func (c *RuntimeConfig) GetListenerPayload(l *envoy_listener_v3.Listener) ListenerPayload {
+	d := TrafficDirectionOutbound
+	var u *UpstreamData
+	var sn *api.CompoundServiceName
+
+	if IsInboundPublicListener(l) {
+		d = TrafficDirectionInbound
+	} else {
+		u, sn = c.findUpstreamByEnvoyID(GetListenerEnvoyID(l))
+	}
+
+	return ListenerPayload{
+		RuntimeConfig:    c,
+		ServiceName:      sn,
+		Upstream:         u,
+		TrafficDirection: d,
+		Message:          l,
+	}
+}
+
+func (c *RuntimeConfig) GetFilterPayload(f *envoy_listener_v3.Filter, l *envoy_listener_v3.Listener) FilterPayload {
+	d := TrafficDirectionOutbound
+	var u *UpstreamData
+	var sn *api.CompoundServiceName
+
+	if IsInboundPublicListener(l) {
+		d = TrafficDirectionInbound
+	} else {
+		u, sn = c.findUpstreamByEnvoyID(GetListenerEnvoyID(l))
+	}
+
+	return FilterPayload{
+		RuntimeConfig:    c,
+		ServiceName:      sn,
+		Upstream:         u,
+		TrafficDirection: d,
+		Message:          f,
+	}
+}
+
+func (c *RuntimeConfig) GetRoutePayload(r *envoy_route_v3.RouteConfiguration) RoutePayload {
+	d := TrafficDirectionOutbound
+	var u *UpstreamData
+	var sn *api.CompoundServiceName
+
+	if IsRouteToLocalAppCluster(r) {
+		d = TrafficDirectionInbound
+	} else {
+		u, sn = c.findUpstreamByEnvoyID(r.Name)
+	}
+
+	return RoutePayload{
+		RuntimeConfig:    c,
+		ServiceName:      sn,
+		Upstream:         u,
+		TrafficDirection: d,
+		Message:          r,
+	}
+}
+
+func (cfg *RuntimeConfig) GetClusterLoadAssignmentPayload(c *envoy_endpoint_v3.ClusterLoadAssignment) ClusterLoadAssignmentPayload {
+	d := TrafficDirectionOutbound
+	var u *UpstreamData
+	var sn *api.CompoundServiceName
+
+	if IsLocalAppClusterLoadAssignment(c) {
+		d = TrafficDirectionInbound
+	} else {
+		u, sn = cfg.findUpstreamBySNI(c.ClusterName)
+
+	}
+
+	return ClusterLoadAssignmentPayload{
+		RuntimeConfig:    cfg,
+		ServiceName:      sn,
+		Upstream:         u,
+		TrafficDirection: d,
+		Message:          c,
+	}
+}
+
+func (c *RuntimeConfig) findUpstreamByEnvoyID(envoyID string) (*UpstreamData, *api.CompoundServiceName) {
+	for sn, u := range c.Upstreams {
+		if u.EnvoyID == envoyID {
+			return u, &sn
+		}
+	}
+
+	return nil, nil
+}
+
+func (c *RuntimeConfig) findUpstreamBySNI(sni string) (*UpstreamData, *api.CompoundServiceName) {
+	for sn, u := range c.Upstreams {
+		_, ok := u.SNIs[sni]
+		if ok {
+			return u, &sn
+		}
+
+		if strings.HasPrefix(sni, xdscommon.FailoverClusterNamePrefix) {
+			parts := strings.Split(sni, "~")
+
+			if len(parts) != 3 {
+				continue
+			}
+
+			id := parts[2]
+			_, ok := u.SNIs[id]
+			if ok {
+				return u, &sn
+			}
+		}
+	}
+
+	return nil, nil
 }
 
 // GetListenerEnvoyID returns the Envoy ID string parsed from the name of the given Listener. If none is found, it

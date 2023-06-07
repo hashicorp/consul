@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/envoyextensions/xdscommon"
 )
 
 type discoChainTargets struct {
@@ -149,7 +150,7 @@ func (ft discoChainTargets) sequential() ([]discoChainTargetGroup, error) {
 	var targetGroups []discoChainTargetGroup
 	for i, t := range ft.targets {
 		targetGroups = append(targetGroups, discoChainTargetGroup{
-			ClusterName: fmt.Sprintf("%s%d~%s", failoverClusterNamePrefix, i, ft.baseClusterName),
+			ClusterName: fmt.Sprintf("%s%d~%s", xdscommon.FailoverClusterNamePrefix, i, ft.baseClusterName),
 			Targets:     []targetInfo{t},
 		})
 	}

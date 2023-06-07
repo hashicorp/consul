@@ -6,6 +6,7 @@ package state
 import (
 	"errors"
 	"fmt"
+	"strings"
 
 	memdb "github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/go-multierror"
@@ -465,9 +466,8 @@ func deleteConfigEntryTxn(tx WriteTxn, idx uint64, kind, name string, entMeta *a
 		return fmt.Errorf("failed updating index: %s", err)
 	}
 
-	// If this is a resolver/router/splitter, attempt to delete the virtual IP associated
-	// with this service.
-	if kind == structs.ServiceResolver || kind == structs.ServiceRouter || kind == structs.ServiceSplitter {
+	// Attempt to delete the virtual IP associated with this service, if applicable.
+	if configEntryHasVirtualIP(c) {
 		psn := structs.PeeredServiceName{ServiceName: sn}
 		if err := freeServiceVirtualIP(tx, idx, psn, nil); err != nil {
 			return fmt.Errorf("failed to clean up virtual IP for %q: %v", psn.String(), err)
@@ -519,11 +519,14 @@ func insertConfigEntryWithTxn(tx WriteTxn, idx uint64, conf structs.ConfigEntry)
 		if err != nil {
 			return err
 		}
-	case structs.ServiceResolver:
-		fallthrough
-	case structs.ServiceRouter:
-		fallthrough
-	case structs.ServiceSplitter:
+	}
+
+	// Assign virtual-ips, if needed
+	supported, err := virtualIPsSupported(tx, nil)
+	if err != nil {
+		return err
+	}
+	if supported && configEntryHasVirtualIP(conf) {
 		psn := structs.PeeredServiceName{ServiceName: structs.NewServiceName(conf.GetName(), conf.GetEnterpriseMeta())}
 		if _, err := assignServiceVirtualIP(tx, idx, psn); err != nil {
 			return err
@@ -539,6 +542,28 @@ func insertConfigEntryWithTxn(tx WriteTxn, idx uint64, conf structs.ConfigEntry)
 	}
 
 	return nil
+}
+
+func configEntryHasVirtualIP(c structs.ConfigEntry) bool {
+	if c == nil || c.GetName() == "" {
+		return false
+	}
+	switch c.GetKind() {
+	case structs.ServiceRouter:
+		return true
+	case structs.ServiceResolver:
+		return true
+	case structs.ServiceSplitter:
+		return true
+	case structs.ServiceDefaults:
+		return true
+	case structs.ServiceIntentions:
+		entMeta := c.GetEnterpriseMeta()
+		return !strings.Contains(c.GetName(), "*") &&
+			!strings.Contains(entMeta.NamespaceOrDefault(), "*") &&
+			!strings.Contains(entMeta.PartitionOrDefault(), "*")
+	}
+	return false
 }
 
 // validateProposedConfigEntryInGraph can be used to verify graph integrity for

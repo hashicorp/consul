@@ -67,14 +67,16 @@ func (l *lua) CanApply(config *extensioncommon.RuntimeConfig) bool {
 	return string(config.Kind) == l.ProxyType
 }
 
-func (l *lua) matchesListenerDirection(isInboundListener bool) bool {
+func (l *lua) matchesListenerDirection(p extensioncommon.FilterPayload) bool {
+	isInboundListener := p.IsInbound()
 	return (!isInboundListener && l.Listener == "outbound") || (isInboundListener && l.Listener == "inbound")
 }
 
 // PatchFilter inserts a lua filter directly prior to envoy.filters.http.router.
-func (l *lua) PatchFilter(_ *extensioncommon.RuntimeConfig, filter *envoy_listener_v3.Filter, isInboundListener bool) (*envoy_listener_v3.Filter, bool, error) {
+func (l *lua) PatchFilter(p extensioncommon.FilterPayload) (*envoy_listener_v3.Filter, bool, error) {
+	filter := p.Message
 	// Make sure filter matches extension config.
-	if !l.matchesListenerDirection(isInboundListener) {
+	if !l.matchesListenerDirection(p) {
 		return filter, false, nil
 	}
 
