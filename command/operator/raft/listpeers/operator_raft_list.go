@@ -24,9 +24,6 @@ type cmd struct {
 	flags *flag.FlagSet
 	http  *flags.HTTPFlags
 	help  string
-
-	// flags
-	detailed bool
 }
 
 func (c *cmd) init() {
