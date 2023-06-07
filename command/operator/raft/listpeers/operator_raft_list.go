@@ -56,6 +56,7 @@ func (c *cmd) Run(args []string) int {
 		c.UI.Error(fmt.Sprintf("Error getting peers: %v", err))
 		return 1
 	}
+
 	c.UI.Output(result)
 	return 0
 }
