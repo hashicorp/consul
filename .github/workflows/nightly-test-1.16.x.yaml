@@ -1,7 +1,7 @@
 # Copyright (c) HashiCorp, Inc.
 # SPDX-License-Identifier: MPL-2.0
 
-name: Nightly Test 1.12.x
+name: Nightly Test 1.16.x
 on:
   schedule:
     - cron: '0 4 * * *'
@@ -9,8 +9,8 @@ on:
 
 env:
   EMBER_PARTITION_TOTAL: 4      # Has to be changed in tandem with the matrix.partition
-  BRANCH: "release/1.12.x"
-  BRANCH_NAME: "release-1.12.x" # Used for naming artifacts
+  BRANCH: "release/1.16.x"
+  BRANCH_NAME: "release-1.16.x" # Used for naming artifacts
 
 jobs:
   frontend-test-workspace-node:
