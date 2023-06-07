@@ -1,3 +1,5 @@
 ```release-note:feature
-improved consul operator raft list-peers command added -detailed flag which will print CommitIndex in the table in response
+improved consul operator raft list-peers command added CommitIndex as well as Trails Leader By in the output table
+Commit Index is the LastIndex from /v1/operator/autopilot/health and Trails Leader By is the difference from leader
+last index and followers last index
 ```
