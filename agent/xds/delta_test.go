@@ -858,7 +858,7 @@ func TestServer_DeltaAggregatedResources_v3_BasicProtocol_TCP_clusterChangeBefor
 	var newSnap *proxycfg.ConfigSnapshot
 	testutil.RunStep(t, "resend cluster immediately", func(t *testing.T) {
 		// Deliver updated snapshot with new CA roots and leaf certificate. This will not be
-		// sent to Envoy until the initial set of cluster message is ack'd.
+		// sent to Envoy until the initial set of cluster message is ACKed.
 		newSnap = newTestSnapshot(t, nil, "", nil)
 		mgr.DeliverConfig(t, sid, newSnap)
 
@@ -887,7 +887,7 @@ func TestServer_DeltaAggregatedResources_v3_BasicProtocol_TCP_clusterChangeBefor
 		envoy.SendDeltaReqACK(t, xdscommon.ClusterType, 1)
 
 		// The updated cluster snapshot with new certificates is sent immediately
-		// after the first is ack'd.
+		// after the first is ACKed.
 		assertDeltaResponseSent(t, envoy.deltaStream.sendCh, &envoy_discovery_v3.DeltaDiscoveryResponse{
 			TypeUrl: xdscommon.ClusterType,
 			Nonce:   hexString(3),
@@ -899,26 +899,32 @@ func TestServer_DeltaAggregatedResources_v3_BasicProtocol_TCP_clusterChangeBefor
 		})
 	})
 
-	testutil.RunStep(t, "block waiting for endpoints", func(t *testing.T) {
+	testutil.RunStep(t, "resend endpoints", func(t *testing.T) {
 		// Envoy requests listeners because it has received endpoints. We won't send listeners
-		// until Envoy acks the second cluster update.
+		// until Envoy ACKs the second cluster update.
 		envoy.SendDeltaReq(t, xdscommon.ListenerType, nil)
 
-		// Envoy acks the endpoints from the first cluster update.
+		// Envoy ACKs the endpoints from the first cluster update.
 		envoy.SendDeltaReqACK(t, xdscommon.EndpointType, 2)
 
-		// Envoy is waiting for endpoints for the second cluster update before it acks,
-		// but we don't send them. Sending the listeners is blocked until Envoy acks
-		// the second cluster update.
-		assertDeltaChanBlocked(t, envoy.deltaStream.sendCh)
+		// Resend endpoints because the clusters changed.
+		assertDeltaResponseSent(t, envoy.deltaStream.sendCh, &envoy_discovery_v3.DeltaDiscoveryResponse{
+			TypeUrl: xdscommon.EndpointType,
+			Nonce:   hexString(4),
+			Resources: makeTestResources(t,
+				makeTestEndpoints(t, newSnap, "tcp:db"),
+				makeTestEndpoints(t, newSnap, "tcp:geo-cache"),
+			),
+		})
 
-		// Envoy times out waiting for endpoints again and acks the second cluster update.
+		// Envoy ACKs the new cluster and endpoints.
 		envoy.SendDeltaReqACK(t, xdscommon.ClusterType, 3)
+		envoy.SendDeltaReqACK(t, xdscommon.EndpointType, 4)
 
-		// And should get a response immediately.
+		// Listeners are sent after the cluster and endpoints are ACKed.
 		assertDeltaResponseSent(t, envoy.deltaStream.sendCh, &envoy_discovery_v3.DeltaDiscoveryResponse{
 			TypeUrl: xdscommon.ListenerType,
-			Nonce:   hexString(4),
+			Nonce:   hexString(5),
 			Resources: makeTestResources(t,
 				makeTestListener(t, newSnap, "tcp:public_listener"),
 				makeTestListener(t, newSnap, "tcp:db"),
@@ -930,7 +936,7 @@ func TestServer_DeltaAggregatedResources_v3_BasicProtocol_TCP_clusterChangeBefor
 		assertDeltaChanBlocked(t, envoy.deltaStream.sendCh)
 
 		// ACKs the listener
-		envoy.SendDeltaReqACK(t, xdscommon.ListenerType, 4)
+		envoy.SendDeltaReqACK(t, xdscommon.ListenerType, 5)
 	})
 
 	envoy.Close()
