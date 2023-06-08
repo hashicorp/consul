@@ -711,6 +711,10 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
     servers in all federated datacenters must have this enabled before any client can use
     [`use_streaming_backend`](#use_streaming_backend).
 
+- `reporting`<EnterpriseAlert inline /> - This option allows options for HashiCorp reporting.
+    - `license` - The license object allows users to control automatic reporting of license utilization metrics to HashiCorp.
+      - `enabled`: (Defaults to `true`) Enables automatic license utilization reporting.
+
 - `segment` <EnterpriseAlert inline /> - Equivalent to the [`-segment` command-line flag](/consul/docs/agent/config/cli-flags#_segment).
 
   ~> **Warning:** The `segment` option cannot be used with the [`partition`](#partition-1) option.
