@@ -60,6 +60,7 @@ func TestOperator_RaftGetConfiguration(t *testing.T) {
 				Leader:          true,
 				Voter:           true,
 				ProtocolVersion: "3",
+				LastIndex:       uint64(14),
 			},
 		},
 		Index: future.Index(),
