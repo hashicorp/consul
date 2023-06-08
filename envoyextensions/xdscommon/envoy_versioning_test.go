@@ -59,7 +59,7 @@ func TestDetermineEnvoyVersionFromNode(t *testing.T) {
 	for name, tc := range cases {
 		tc := tc
 		t.Run(name, func(t *testing.T) {
-			got := determineEnvoyVersionFromNode(tc.node)
+			got := DetermineEnvoyVersionFromNode(tc.node)
 			if tc.expect != nil {
 				require.Equal(t, tc.expect, got)
 			} else {
