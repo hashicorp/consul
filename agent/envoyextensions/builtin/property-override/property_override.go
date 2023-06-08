@@ -106,8 +106,8 @@ var Ops = extensioncommon.StringSet{string(OpAdd): {}, string(OpRemove): {}}
 
 // validProxyTypes is the set of supported proxy types for this extension.
 var validProxyTypes = extensioncommon.StringSet{
-	string(api.ServiceKindConnectProxy):       struct{}{},
-	string(api.ServiceKindTerminatingGateway): struct{}{},
+	// For now, we only support `connect-proxy`.
+	string(api.ServiceKindConnectProxy): struct{}{},
 }
 
 // Patch describes a single patch operation to modify the specific field of matching

@@ -807,8 +807,9 @@ type ConfigEntries struct {
 
 // Audit allows us to enable and define destinations for auditing
 type Audit struct {
-	Enabled *bool                `mapstructure:"enabled"`
-	Sinks   map[string]AuditSink `mapstructure:"sink"`
+	Enabled    *bool                `mapstructure:"enabled"`
+	Sinks      map[string]AuditSink `mapstructure:"sink"`
+	RPCEnabled *bool                `mapstructure:"rpc_enabled"`
 }
 
 // AuditSink can be provided multiple times to define pipelines for auditing

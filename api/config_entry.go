@@ -144,9 +144,11 @@ type ExposeConfig struct {
 
 // EnvoyExtension has configuration for an extension that patches Envoy resources.
 type EnvoyExtension struct {
-	Name      string
-	Required  bool
-	Arguments map[string]interface{} `bexpr:"-"`
+	Name          string
+	Required      bool
+	Arguments     map[string]interface{} `bexpr:"-"`
+	ConsulVersion string
+	EnvoyVersion  string
 }
 
 type ExposePath struct {

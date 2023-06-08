@@ -618,7 +618,7 @@ func TestCanApply(t *testing.T) {
 		},
 		"invalid proxy type": {
 			ext: &propertyOverride{
-				ProxyType: api.ServiceKindTerminatingGateway,
+				ProxyType: api.ServiceKindConnectProxy,
 			},
 			conf: &extensioncommon.RuntimeConfig{
 				Kind: api.ServiceKindMeshGateway,
