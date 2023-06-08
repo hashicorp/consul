@@ -33,36 +33,36 @@ var (
 	TypeV1Artist = &pbresource.Type{
 		Group:        "demo",
 		GroupVersion: "v1",
-		Kind:         "artist",
+		Kind:         "Artist",
 	}
 
 	// TypeV1Album represents a collection of an artist's songs.
 	TypeV1Album = &pbresource.Type{
 		Group:        "demo",
 		GroupVersion: "v1",
-		Kind:         "album",
+		Kind:         "Album",
 	}
 
 	// TypeV2Artist represents a musician or group of musicians.
 	TypeV2Artist = &pbresource.Type{
 		Group:        "demo",
 		GroupVersion: "v2",
-		Kind:         "artist",
+		Kind:         "Artist",
 	}
 
 	// TypeV2Album represents a collection of an artist's songs.
 	TypeV2Album = &pbresource.Type{
 		Group:        "demo",
 		GroupVersion: "v2",
-		Kind:         "album",
+		Kind:         "Album",
 	}
 )
 
 const (
-	ArtistV1ReadPolicy  = `key_prefix "resource/demo.v1.artist/" { policy = "read" }`
-	ArtistV1WritePolicy = `key_prefix "resource/demo.v1.artist/" { policy = "write" }`
-	ArtistV2ReadPolicy  = `key_prefix "resource/demo.v2.artist/" { policy = "read" }`
-	ArtistV2WritePolicy = `key_prefix "resource/demo.v2.artist/" { policy = "write" }`
+	ArtistV1ReadPolicy  = `key_prefix "resource/demo.v1.Artist/" { policy = "read" }`
+	ArtistV1WritePolicy = `key_prefix "resource/demo.v1.Artist/" { policy = "write" }`
+	ArtistV2ReadPolicy  = `key_prefix "resource/demo.v2.Artist/" { policy = "read" }`
+	ArtistV2WritePolicy = `key_prefix "resource/demo.v2.Artist/" { policy = "write" }`
 	ArtistV2ListPolicy  = `key_prefix "resource/" { policy = "list" }`
 )
 

@@ -151,7 +151,7 @@ func TestWrite_TypeNotFound(t *testing.T) {
 	_, err = client.Write(testContext(t), &pbresource.WriteRequest{Resource: res})
 	require.Error(t, err)
 	require.Equal(t, codes.InvalidArgument.String(), status.Code(err).String())
-	require.Contains(t, err.Error(), "resource type demo.v2.artist not registered")
+	require.Contains(t, err.Error(), "resource type demo.v2.Artist not registered")
 }
 
 func TestWrite_ACLs(t *testing.T) {
