@@ -453,6 +453,10 @@
             "path": "connect/config-entries/proxy-defaults"
           },
           {
+            "title": "Sameness Group",
+            "path": "connect/config-entries/sameness-group"
+          },
+          {
             "title": "Service Defaults",
             "path": "connect/config-entries/service-defaults"
           },
@@ -724,6 +728,10 @@
               {
                 "title": "Manage L7 Traffic With Cluster Peering",
                 "path": "connect/cluster-peering/usage/peering-traffic-management"
+              },
+              {
+                "title": "Create Sameness Groups",
+                "path": "connect/cluster-peering/usage/create-sameness-groups"
               }
             ]
           }
@@ -1215,6 +1223,10 @@
                   {
                     "title": "Manage L7 Traffic With Cluster Peering",
                     "path": "k8s/connect/cluster-peering/usage/l7-traffic"
+                  },
+                  {
+                    "title": "Create Sameness Groups",
+                    "path": "k8s/connect/cluster-peering/usage/create-sameness-groups"
                   }
                 ]
               }
