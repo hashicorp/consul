@@ -560,10 +560,6 @@
         ]
       },
       {
-        "title": "Transparent Proxy",
-        "path": "connect/transparent-proxy"
-      },
-      {
         "title": "Observability",
         "routes": [
           {
@@ -724,6 +720,45 @@
               {
                 "title": "Manage L7 Traffic With Cluster Peering",
                 "path": "connect/cluster-peering/usage/peering-traffic-management"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "title": "Failover",
+        "routes": [
+          {
+            "title": "Overview",
+            "path": "connect/failover"
+          },
+          {
+            "title": "Usage",
+            "routes": [
+              {
+                "title": "Configure failover services for Kubernetes",
+                "href": "/docs/k8s/l7-traffic/failover-tproxy"
+              },
+              {
+                "title": "Automate geo-failover with prepared queries",
+                "href": "/tutorials/developer-discovery/automate-geo-failover"
+              }
+            ]
+          },
+          {
+            "title": "Configuration",
+            "routes": [
+              {
+                "title": "Sameness groups",
+                "href": "/consul/docs/connect/config-entries/service-resolver"
+              },
+              {
+                "title": "Service resolver",
+                "href": "/consul/docs/connect/config-entries/service-resolver"
+              },
+              {
+                "title": "Service intentions",
+                "href": "/consul/docs/connect/config-entries/service-intentions"
               }
             ]
           }
@@ -1222,7 +1257,24 @@
           },
           {
             "title": "Transparent Proxy",
-            "href": "/docs/connect/transparent-proxy"
+            "routes": [
+              {
+                "title": "Overview",
+                "path": "k8s/connect/transparent-proxy"
+              },
+              {
+                "title": "Enable transparent proxy",
+                "path": "k8s/connect/transparent-proxy/enable-transparent-proxy"
+              },
+              {
+                "title": "Route traffic to virtual services",
+                "href": "/docs/k8s/l7-traffic/route-to-virtual-services"
+              }
+            ]
+          },
+          {
+            "title": "Onboarding services in transparent proxy mode",
+            "path": "k8s/connect/onboarding-tproxy-mode"
           },
           {
             "title": "Ingress Gateways",
@@ -1252,6 +1304,23 @@
                 "path": "k8s/connect/observability/metrics"
               }
             ]
+          }
+        ]
+      },
+      {
+        "title": "L7 traffic management",
+        "routes": [
+          {
+            "title": "Overview",
+            "href": "/docs/connect/l7-traffic"
+          },
+          {
+            "title": "Configure failover services",
+            "path": "k8s/l7-traffic/failover-tproxy"
+          },
+          {
+            "title": "Route traffic to virtual services",
+            "path": "k8s/l7-traffic/route-to-virtual-services"
           }
         ]
       },
