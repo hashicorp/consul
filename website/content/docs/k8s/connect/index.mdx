@@ -11,9 +11,11 @@ Consul service mesh automates service-to-service authorization and encryption ac
 
 ## Workflow
 
-Consul service mesh is enabled by default when you install Consul on Kubernetes using the Consul Helm chart. You can also enable Consul to automatically inject sidecars that run Envoy into the pods in your cluster by setting the `connectInject.default` option to `true` during installation. Refer to the [Installation and Configuration](#installation-and-configuration) for additional installation information. Refer to the [Consul Helm chart reference](/consul/docs/k8s/helm) for information about all configuration options. 
+Consul service mesh is enabled by default when you install Consul on Kubernetes using the Consul Helm chart. Consul also automatically injects sidecars into the pods in your cluster that run Envoy. The sidecar proxies injected into are called Consul dataplanes and are enabled when `connectInject.default` is set to `false` in the Helm chart. Refer to the following documentation for additional information about these concepts:
 
-You can also configure Consul to inject a Consul Dataplane sidecar to connect to your service mesh. Refer to [Simplified Service Mesh with Consul Dataplane](/consul/docs/connect/dataplane) for more information.
+- [Installation and Configuration](#installation-and-configuration) in this topic. 
+- [Consul Helm chart reference](/consul/docs/k8s/helm)
+- [Simplified Service Mesh with Consul Dataplane](/consul/docs/connect/dataplane)
 
 If `connectInject.default` is set to `false` or you want to explicitly enable service mesh sidecar proxy injection for a specific deployment, add the `consul.hashicorp.com/connect-inject` annotation to the pod specification template and set it to `true` when connecting services to the mesh. 
 
