@@ -2,13 +2,13 @@ module github.com/hashicorp/consul
 
 go 1.20
 
-replace (
-	github.com/hashicorp/consul/api => ./api
-	github.com/hashicorp/consul/envoyextensions => ./envoyextensions
-	github.com/hashicorp/consul/proto-public => ./proto-public
-	github.com/hashicorp/consul/sdk => ./sdk
-	github.com/hashicorp/consul/troubleshoot => ./troubleshoot
-)
+// replace (
+//	github.com/hashicorp/consul/api => ./api
+//	github.com/hashicorp/consul/envoyextensions => ./envoyextensions
+//	github.com/hashicorp/consul/proto-public => ./proto-public
+//	github.com/hashicorp/consul/sdk => ./sdk
+//	github.com/hashicorp/consul/troubleshoot => ./troubleshoot
+// )
 
 exclude (
 	github.com/hashicorp/go-msgpack v1.1.5 // has breaking changes and must be avoided
@@ -38,11 +38,11 @@ require (
 	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0
 	github.com/hashicorp/consul-awsauth v0.0.0-20220713182709-05ac1c5c2706
 	github.com/hashicorp/consul-net-rpc v0.0.0-20221205195236-156cfab66a69
-	github.com/hashicorp/consul/api v1.20.0
-	github.com/hashicorp/consul/envoyextensions v0.1.2
-	github.com/hashicorp/consul/proto-public v0.2.1
-	github.com/hashicorp/consul/sdk v0.13.1
-	github.com/hashicorp/consul/troubleshoot v0.1.2
+	github.com/hashicorp/consul/api v1.22.0-rc1
+	github.com/hashicorp/consul/envoyextensions v0.3.0-rc1
+	github.com/hashicorp/consul/proto-public v0.4.0-rc1
+	github.com/hashicorp/consul/sdk v0.14.0-rc1
+	github.com/hashicorp/consul/troubleshoot v0.3.0-rc1
 	github.com/hashicorp/go-bexpr v0.1.2
 	github.com/hashicorp/go-checkpoint v0.5.0
 	github.com/hashicorp/go-cleanhttp v0.5.2
