@@ -504,14 +504,42 @@
                 "title": "Usage",
                 "routes": [
                   {
+                    "title": "Delegate authorization to external services",
+                    "path": "connect/proxies/envoy-extensions/usage/ext-authz"
+                  },                  
+                  {
                     "title": "Run Lua scripts in Envoy proxies",
                     "path": "connect/proxies/envoy-extensions/usage/lua"
                   },
                   {
                     "title": "Invoke Lambda functions in Envoy proxies",
                     "path": "connect/proxies/envoy-extensions/usage/lambda"
+                  },
+                  {
+                    "title": "Configure Envoy proxy properties",
+                    "path": "connect/proxies/envoy-extensions/usage/property-override"
+                  },
+                  {
+                    "title": "Run WebAssembly plug-ins in Envoy proxies",
+                    "path": "connect/proxies/envoy-extensions/usage/wasm"
+                  }                ]
+              },
+              {
+                "title": "Configuration",
+                "routes": [
+                  {
+                    "title": "External authorization",
+                    "path": "connect/proxies/envoy-extensions/configuration/ext-authz"
+                  },                  
+                  {
+                    "title": "Property override",
+                    "path": "connect/proxies/envoy-extensions/configuration/property-override"
+                  },                  
+                  {
+                    "title": "WebAssembly",
+                    "path": "connect/proxies/envoy-extensions/configuration/wasm"
                   }
-                ]
+                ]              
               }
             ]
           },
