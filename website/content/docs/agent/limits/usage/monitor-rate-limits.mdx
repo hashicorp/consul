@@ -1,0 +1,77 @@
+--- 
+layout: docs
+page_title: Monitor traffic rate limit data 
+description: Learn about the metrics and logs you can use to monitor server rate limiting activity, include rate limits for read operations and writer operations
+---
+
+# Monitor traffic rate limit data
+
+This topic describes Consul functionality that enables you to monitor read and write request operations taking place in your network. Use the functionality to help you understand normal workloads and set safe limits on the number of requests Consul client agents and services can make to Consul servers. 
+
+## Access rate limit logs 
+
+Consul prints a log line for each rate limit request. The log provides the necessary information for identifying the source of the request and the configured limit. The log provides the information necessary for identifying the source of the request and the configured limit. Consul prints the log `DEBUG` log level and can drop the log to avoid affecting the server health. Dropping a log line increments the `rpc.rate_limit.log_dropped` metric.
+
+The following example log shows that RPC request from `127.0.0.1:53562` to `KVS.Apply` exceeded the limit:
+
+```text
+2023-02-17T10:01:15.565-0500 [DEBUG] agent.server.rpc-rate-limit: RPC 
+exceeded allowed rate limit: rpc=KVS.Apply source_addr=127.0.0.1:53562 
+limit_type=global/write limit_enforced=false
+```
+
+Refer to [`log_file`](/consul/docs/agent/config/config-files#log_file) for information about where to retrieve log files.
+
+## Review rate limit metrics
+
+Consul captures the following metrics associated with rate limits:
+
+- Type of limit
+- Operation
+- Rate limit mode
+
+Call the `/agent/metrics` API endpoint to view the metrics associated with rate limits. Refer to [View Metrics](/consul/api-docs/agent#view-metrics) for API usage information. In the following example, Consul dropped a call to the consul service because it exceeded the limit by one call:
+
+```shell-session
+$ curl http://127.0.0.1:8500/v1/agent/metrics
+{
+  . . .  
+  "Counters": [
+    {
+      "Name": "consul.rpc.rate_limit.exceeded",
+      "Count": 1,
+      "Sum": 1,
+      "Min": 1,
+      "Max": 1,
+      "Mean": 1,
+      "Stddev": 0,
+      "Labels": {
+        "service": "consul"
+      }
+    },
+    {
+      "Name": "consul.rpc.rate_limit.log_dropped",
+      "Count": 1,
+      "Sum": 1,
+      "Min": 1,
+      "Max": 1,
+      "Mean": 1,
+      "Stddev": 0,
+      "Labels": {}
+    }
+  ],
+  . . .
+}
+```
+
+Refer to [Telemetry](/consul/docs/telemetry) for additional information.
+
+## Request denials
+
+When an HTTP request is denied for rate limiting reason, Consul returns one of the following errors:
+
+- **429 Resource Exhausted**: Indicates that a server is not able to perform the request but that another server could potentially fulfill it. This error is most common on stale reads because any server may fulfill stale read requests. To resolve this type of error,  we recommend immediately retrying the request to another server. If the request came from a Consul client agent, the agent automatically retries the request up to the limit set in the [`rpc_hold_timeout`](/consul/docs/agent/config/config-files#rpc_hold_timeout) configuration .
+
+- **503 Service Unavailable**: Indicates that server is unable to perform the request and that no other server can fulfill the request, either. This usually occurs on consistent reads or for writes. In this case we recommend retrying according to an exponential backoff schedule. If the request came from a Consul client agent, the agent automatically retries the request according to the [`rpc_hold_timeout`](/consul/docs/agent/config/config-files#rpc_hold_timeout) configuration. 
+
+Refer to [Rate limit reached on the server](/consul/docs/troubleshoot/common-errors#rate-limit-reached-on-the-server) for additional information.
