@@ -70,7 +70,7 @@ func raftListPeers(client *api.Client, stale bool) (string, error) {
 		return "", fmt.Errorf("Failed to retrieve raft configuration: %v", err)
 	}
 
-	autoPilotReply, err := client.Operator().GetAutoPilotHealth(q)
+	autoPilotReply, err := client.Operator().AutopilotServerHealth(q)
 	if err != nil {
 		return "", fmt.Errorf("Failed to retrieve autopilot health: %v", err)
 	}
@@ -107,17 +107,17 @@ func raftListPeers(client *api.Client, stale bool) (string, error) {
 		serverHealthData, ok := serverHealthDataMap[s.ID]
 		if ok {
 			trailsLeaderBy := leaderLastCommitIndex - serverHealthData.LastIndex
-			trailsLeaderByText := fmt.Sprintf("%d Commits", trailsLeaderBy)
+			trailsLeaderByText := fmt.Sprintf("%d commits", trailsLeaderBy)
 			if s.Leader {
-				trailsLeaderByText = "_"
+				trailsLeaderByText = "-"
 			} else if trailsLeaderBy <= 1 {
-				trailsLeaderByText = fmt.Sprintf("%d Commit", trailsLeaderBy)
+				trailsLeaderByText = fmt.Sprintf("%d commit", trailsLeaderBy)
 			}
 			result = append(result, fmt.Sprintf("%s\x1f%s\x1f%s\x1f%s\x1f%v\x1f%s\x1f%v\x1f%s",
 				s.Node, s.ID, s.Address, state, s.Voter, raftProtocol, serverHealthData.LastIndex, trailsLeaderByText))
 		} else {
 			result = append(result, fmt.Sprintf("%s\x1f%s\x1f%s\x1f%s\x1f%v\x1f%s\x1f%v",
-				s.Node, s.ID, s.Address, state, s.Voter, raftProtocol, "_"))
+				s.Node, s.ID, s.Address, state, s.Voter, raftProtocol, "-"))
 		}
 	}
 
