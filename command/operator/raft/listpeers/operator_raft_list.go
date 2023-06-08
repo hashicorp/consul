@@ -70,23 +70,18 @@ func raftListPeers(client *api.Client, stale bool) (string, error) {
 		return "", fmt.Errorf("Failed to retrieve raft configuration: %v", err)
 	}
 
-	autoPilotReply, err := client.Operator().AutopilotServerHealth(q)
-	if err != nil {
-		return "", fmt.Errorf("Failed to retrieve autopilot health: %v", err)
-	}
-
-	serverHealthDataMap := make(map[string]api.ServerHealth)
 	leaderLastCommitIndex := uint64(0)
+	serverIdLastIndexMap := make(map[string]uint64)
 
-	for _, serverHealthData := range autoPilotReply.Servers {
-		serverHealthDataMap[serverHealthData.ID] = serverHealthData
+	for _, raftServer := range reply.Servers {
+		serverIdLastIndexMap[raftServer.ID] = raftServer.LastIndex
 	}
 
 	for _, s := range reply.Servers {
 		if s.Leader {
-			serverHealthDataLeader, ok := serverHealthDataMap[s.ID]
+			lastIndex, ok := serverIdLastIndexMap[s.ID]
 			if ok {
-				leaderLastCommitIndex = serverHealthDataLeader.LastIndex
+				leaderLastCommitIndex = lastIndex
 			}
 		}
 	}
@@ -104,9 +99,9 @@ func raftListPeers(client *api.Client, stale bool) (string, error) {
 			state = "leader"
 		}
 
-		serverHealthData, ok := serverHealthDataMap[s.ID]
+		serverLastIndex, ok := serverIdLastIndexMap[s.ID]
 		if ok {
-			trailsLeaderBy := leaderLastCommitIndex - serverHealthData.LastIndex
+			trailsLeaderBy := leaderLastCommitIndex - serverLastIndex
 			trailsLeaderByText := fmt.Sprintf("%d commits", trailsLeaderBy)
 			if s.Leader {
 				trailsLeaderByText = "-"
@@ -114,7 +109,7 @@ func raftListPeers(client *api.Client, stale bool) (string, error) {
 				trailsLeaderByText = fmt.Sprintf("%d commit", trailsLeaderBy)
 			}
 			result = append(result, fmt.Sprintf("%s\x1f%s\x1f%s\x1f%s\x1f%v\x1f%s\x1f%v\x1f%s",
-				s.Node, s.ID, s.Address, state, s.Voter, raftProtocol, serverHealthData.LastIndex, trailsLeaderByText))
+				s.Node, s.ID, s.Address, state, s.Voter, raftProtocol, serverLastIndex, trailsLeaderByText))
 		} else {
 			result = append(result, fmt.Sprintf("%s\x1f%s\x1f%s\x1f%s\x1f%v\x1f%s\x1f%v",
 				s.Node, s.ID, s.Address, state, s.Voter, raftProtocol, "-"))
