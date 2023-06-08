@@ -1,0 +1,273 @@
+--- 
+layout: docs
+page_title: Property override configuration reference
+description: Learn how to configure the property-override plugin, which is a builtin Consul plugin that allows you to set and remove Envoy proxy properties.
+--- 
+
+# Property override configuration reference
+
+This topic describes how to configure the `property-override` extension so that you can set and remove individual properties on the Envoy resources Consul generates. Refer to [Configure Envoy proxy properties](/consul/docs/connect/proxies/envoy-extensions/usage/property-override) for usage information.
+
+## Configuration model
+
+The following list outlines the field hierarchy, data types, and requirements for the `property-override` configuration. Place the configuration inside the `EnvoyExtension.Arguments` field in the proxy defaults or service defaults configuration entry. Refer the following documentation for additional information:
+
+- [`EnvoyExtensions` in proxy defaults](/consul/docs/connect/config-entries/proxy-defaults#envoyextensions)
+- [`EnvoyExtensions` in service defaults](/consul/docs/connect/config-entries/service-defaults#envoyextensions)
+
+Click on a property name to view additional details, including default values.
+  
+- [`ProxyType`](#proxytype): string | required 
+- [`Debug`](#debug): bool | `false` 
+- [`Patches`](#patches): list | required
+   - [`ResourceFilter`](#patches-resourcefilter): map         
+      - [`ResourceType`](patches-resourcefilter-resourcetype): string | required
+      - [`TrafficDirection`](patches-resourcefilter-trafficdirection): string | required
+      - [`Services`](patches-resourcefilter-services): list
+         - [`Name`](patches-resourcefilter-services-name): string
+         - [`Namespace`](patches-resourcefilter-services-namespace): string | `default` | <EnterpriseAlert inline/>
+         - [`Partition`](patches-resourcefilter-services-partition): string | `default` | <EnterpriseAlert inline/>
+   - [`Op`](#patches-op): string | required
+   - [`Path`](#patches-path): string | required
+   - [`Value`](#patches-value): map, number, boolean, or string
+
+## Complete configuration
+
+When each field is defined, a `property-override` configuration has the following form:
+
+
+```hcl
+ProxyType = "connect-proxy"
+Debug = false
+Patches = [
+  {
+    ResourceFilter = {
+      ResourceType = "<type of resource>"
+      TrafficDirection = "<inbound or outbound>"
+      Services = [
+        {
+          Name = "<name of service to filter for>", 
+          Namespace = "<Consul namespace containing the service>"
+          Partition = "<Consul partition containing the service>"
+        }
+      ]
+    Op = "<add or remove>",
+    Path = "<path/to/field>",
+    Value = "<values or map of field-values>"
+  }
+]
+```       
+
+## Specification
+
+This section provides details about the fields you can configure for the `property-override` extension.
+
+### `ProxyType`
+
+Specifies the type of Envoy proxy that the extension applies to. The only supported value is `connect-proxy`.
+
+#### Values
+
+- Default: `connect-proxy`
+- This field is required.
+- Data type: String 
+
+### `Debug`
+
+Enables full debug mode. When `Debug` is set to `true`, all possible fields for the given `ResourceType` and first unmatched segment of `Path` are returned on error. When set to `false`, the error message only includes the first ten possible fields. 
+
+#### Values
+
+- Default: `false`
+- Data type: Boolean
+
+### `Patches[]`
+
+Specifies a list of one or more JSON Patches that map to the Envoy proxy configurations you want to modify. Refer to [IETF RFC 6902](https://datatracker.ietf.org/doc/html/rfc6902/) for information about the JSON Patch specification. 
+
+#### Values
+
+- Default: None
+- The `Patches` parameter is a list of configurations in JSON Patch format. Each patch can contain the following fields:
+   - [`ResourceFilter`](#patches-resourcefilter)
+   - [`Op`](#patches-op)
+   - [`Path`](#patches-path)
+   - [`Value`](#patches-value)
+
+
+### `Patches[].ResourceFilter{}`
+
+Specifies the filter for targeting specific Envoy resources. The `ResourceFilter` configuration is not part of the JSON Patch specification. 
+
+#### Values
+
+- Default: None
+- This field is required.
+- Data type: Map
+
+The following table describes how to configure a `ResourceFilter`:
+
+| Parameter | Description | Type |
+| ---       | ---         | ---  |
+| `ProxyType` | Specifies the proxy type that the extension applies to. The only supported value is `connect-proxy`. | String |
+| `ResourceType` | Specifies the Envoy resource type that the extension applies to. You can specify one of the following values for each `ResourceFilter`: <ul><li>`cluster`</li><li>`cluster-load-assignment`</li><li>`route`</li><li>`listener`</li></ul> | String |
+| `TrafficDirection` | Specifies the type of traffic that the extension applies to relative to the current proxy. You can specify one of the following values for each `ResourceFilter`: <ul><li>`inbound`: Targets resources for the proxy's inbound traffic.</li> <li>`outbound`: Targets resources for the proxy's upstream services.</li></ul> | String |
+| `Services` | Specifies a list of services to target. Each member of the list has the following fields:<ul><li>`Name`: Specifies the service associated with the traffic.</li><li>`Namespace`: Specifies the Consul Enterprise namespace the service is in.</li><li>`Partition`: Specifies the Consul Enterprise admin partition the service is in.</li> </ul>If `TrafficDirection` is set to `outbound`, upstream services in this field correspond to local Envoy resources that Consul patches at runtime. <p>Do not configure the `Services` field if `TrafficDirection` is set to `inbound`.</p> If this field is not set, Envoy targets all applicable resources. When patching outbound listeners, the patch includes the outbound transparent proxy listener only if `Services` is unset and if the local service is in transparent proxy mode. | List of maps |
+
+### `Patches[].Op`
+
+Specifies the JSON Patch operation to perform when the `ResourceFilter` matches a local Envoy proxy configuration. You can specify one of the following values for each patch:
+
+- `add`: Replaces a property or message specified by [`Path`](#patches-path) with the given value. The JSON patch format does not merge objects. To emulate merges, you must configure discrete `add` operations for each changed field. Consul returns an error if the target field does not exist in the corresponding schema.
+- `remove`: Unsets the value of the field specified by [`Path`](#patches-path). If the field is not set, no changes are made. Consul returns an error if the target field does not exist in the corresponding schema.
+
+#### Values
+
+- Default: None
+- This field is required.
+- Data type is one of the following string values:
+   - `add`
+   - `remove`
+
+### `Patches[].Path`
+
+Specifies where the extension performs the associated operation on the specified resource type. Refer to [`ResourceType`](#patches-resourcefilter) for information about specifying a resource type to target. Refer to [`Op`](#patches-op) for information about setting an operation to perform on the resources. 
+
+The `Path` field does not support addressing array elements or protobuf map field entries. Refer to [Constructing paths](/consul/docs/connect/proxies/envoy-extensions/usage/property-override#constructing-paths) for information about how to construct paths. 
+
+When setting fields, the extension sets any unset intermediate fields to their default values. A a single operation on a nested field can set multiple intermediate fields. Because Consul sets the intermediate fields to their default values, you may need to configure subsequent patches to satisfy Envoy or Consul validation. 
+
+#### Values
+
+- Default: None
+- This field is required.
+- Data type: String
+
+### `Patches[].Value{}`
+
+Defines a value to set at the specified [path](#patches-path) if the [operation](#patches-op) is set to `add`.  You can specify either a scalar or enum value or define a map that contains string keys and values corresponding to scalar or enum child fields. Refer to the [example configurations](#examples) for additional guidance and to the [Envoy API documentation](https://www.envoyproxy.io/docs/envoy/latest/api-v3/api) for additional information about Envoy proxy interfaces.
+
+If Envoy specifies a wrapper as the target field type, the extension automatically coerces simple values to the wrapped type when patching. For example, the value `32768` is allowed when targeting a cluster's `per_connection_buffer_limit_bytes`, which is a `UInt32Value` field. Refer to the [protobuf documentation](https://github.com/protocolbuffers/protobuf/blob/main/src/google/protobuf/wrappers.proto) for additional information about wrappers.
+#### Values
+
+- Default: None
+- This field is required if [`Op`](#patches-op) is set to `add`, otherwise you must omit the field.
+- This field takes one of the following data types:
+   - scalar
+   - enum
+   - map 
+
+## Examples
+
+The following examples demonstrate patterns that you may be able to model your configurations on.
+
+### Enable `enforcing_consecutive_5xx` outlier detection 
+
+In the following example, the `add` operation patches an outlier detection property into outbound cluster traffic. The `Path` specifies the `enforcing_consecutive_5xx` interface and sets a value of `1234`:
+
+```hcl
+Kind = "service-defaults"
+Name = "my-svc"
+Protocol = "http"
+EnvoyExtensions = [
+  {
+    Name = "builtin/property-override",
+    Arguments = {
+      ProxyType = "connect-proxy",
+      Patches = [
+        {
+          "ResourceFilter" = {
+            "ResourceType" = "cluster",
+            "TrafficDirection" = "outbound",
+            "Service" = {
+              "Name" = "other-svc"
+            },
+          },
+          "Op" = "add",
+          "Path" =  "/outlier_detection/enforcing_consecutive_5xx",
+          "Value" = 1234,
+        }
+      ]
+    }
+  }
+]
+```
+
+### Update multiple values in the default map
+
+In the following example, two `ResourceFilter` blocks target outbound traffic to the `db` service and add `/outlier_detection/enforcing_consecutive_5xx` and `/outlier_detection/failure_percentage_request_volume` properties:
+
+```hcl
+Kind = "service-defaults"
+Name = "my-svc"
+Protocol = "http"
+EnvoyExtensions = [
+  {
+    Name = "builtin/property-override",
+    Arguments = {
+      ProxyType = "connect-proxy",
+      Patches = [
+        {
+          ResourceFilter = {
+            ResourceType = "cluster",
+            TrafficDirection = "outbound",
+            Services = [{
+              Name = "other-svc"
+            }],
+          },
+          Op = "add",
+          Path =  "/outlier_detection/enforcing_consecutive_5xx",
+          Value = 1234,
+        },
+        {
+          ResourceFilter = {
+            ResourceType = "cluster",
+            TrafficDirection = "outbound",
+            Services = [{
+              Name = "other-svc"
+            }],
+          },
+          Op = "add",
+          Path =  "/outlier_detection/failure_percentage_request_volume",
+          Value = 2345,
+        }
+      ]
+    }
+  }
+]
+```
+
+### Set multiple values that replace the map
+
+In the following example, a `ResourceFilter` targets outbound traffic to the `db` service and replaces the map of properties located at `/outlier_detection` with `enforcing_consecutive_5xx` and `failure_percentage_request_volume` and properties:
+
+```hcl
+Kind = "service-defaults"
+Name = "my-svc"
+Protocol = "http"
+EnvoyExtensions = [
+  {
+    Name = "builtin/property-override",
+    Arguments = {
+      ProxyType = "connect-proxy",
+      Patches = [
+        {
+          ResourceFilter = {
+            ResourceType = "cluster",
+            TrafficDirection = "outbound",
+            Services = [{
+              Name = "other-svc"
+            }],
+          },
+          Op = "add",
+          Path =  "/outlier_detection",
+          Value = {
+            "enforcing_consecutive_5xx" = 1234,
+            "failure_percentage_request_volume" = 2345,
+          },
+        }
+      ]
+    }
+  }
+]
+```
