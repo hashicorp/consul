@@ -274,7 +274,7 @@ func assignValueStringSlice(params map[string]interface{}, name string, out *[]s
 // Parse the 'http_handler_config' parameters
 func parseHttpHandlerConfig(configParams interface{}) (*HttpHandlerConfig, error) {
 	var config HttpHandlerConfig
-	if err := mapstructure.Decode(configParams, &config); err != nil {
+	if err := mapstructure.WeakDecode(configParams, &config); err != nil {
 		return nil, err
 	}
 
