@@ -14,9 +14,9 @@ By specifying a JSON Web Key Set (JWKS) in the configuration entry and referenci
 
 The process to configure your network to enforce service intentions based on JSON web tokens consists of the following steps:
 
-1. Create a JWT provider configuration entry. This configuration entry defines rules and behaviors for verifying tokens. These configurations apply at the level of the admin partition in Consul Enterprise, which is functionally equivalent to a datacenter in Consul OSS. Then, write the `jwt-provider` configuration entry to Consul. The ACL policy requirement to read and modify this configuration entry is `mesh:write`.
+1. **Create a JWT provider configuration entry**. This configuration entry defines rules and behaviors for verifying tokens. These configurations apply at the level of the admin partition in Consul Enterprise, which is functionally equivalent to a datacenter in Consul OSS. Then, write the `jwt-provider` configuration entry to Consul. The ACL policy requirement to read and modify this configuration entry is `mesh:write`.
 
-1. Create or update a service intentions configuration entry to reference the JWT provider. This configuration invokes the name of the `jwt-provider` configuration entry you created, which causes the Envoy proxy to verify the token and the permissions it authorizes before the incoming request is accepted. Then, write the `service-intentions` configuration entry that references the JWT to Consul. The ACL policy requirement to read and modify this configuration entry is `mesh:write`.
+1. **Create or update a service intentions configuration entry to reference the JWT provider**. This configuration invokes the name of the `jwt-provider` configuration entry you created, which causes the Envoy proxy to verify the token and the permissions it authorizes before the incoming request is accepted. Then, write the `service-intentions` configuration entry that references the JWT to Consul. The ACL policy requirement to read and modify this configuration entry is `mesh:write`.
 
 ### Wildcards and intention defaults
 
@@ -78,3 +78,24 @@ $ consul config write okta.hcl
 
 ### Update service intentions
 
+After you create the JWT provider entry, you can update your service intentions so that proxies validate the token before authorizing a request. The following example includes the minimum required configuration to enable JWT authorization with service intentions:
+
+```hcl
+Kind = "service-intentions"
+Name = "web"
+JWT = {
+  Providers = [
+    {
+      Provider = "okta"
+    }
+  ]
+}
+```
+
+You can include additional configuration information to require the token to match specific claims. You can also configure the `JWT` field to apply only to requests that come from certain HTTP paths. Refer to [JWT validations with intentions](/consul/docs/conntect/config-entries/service-intentions#jwt-validations-with-intentions) for an example configuration.
+
+After you update the service intention, write the configuration to Consul so that it takes effect:
+
+```shell-session
+$ consul config write web.hcl
+```
