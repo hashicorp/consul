@@ -53,6 +53,7 @@ func TestOperator_Usage(t *testing.T) {
 			Services:         5,
 			ServiceInstances: 6,
 			ConnectServiceInstances: map[string]int{
+				"api-gateway":         0,
 				"connect-native":      1,
 				"connect-proxy":       1,
 				"ingress-gateway":     0,
