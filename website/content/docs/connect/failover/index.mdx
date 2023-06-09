@@ -6,7 +6,7 @@ description: Learn about failover strategies and service mesh features you can i
 
 # Failover overview
 
-Services in your mesh may become unhealthy or unreachable for many reasons, but you can mitigate some of the effects associated with infrastructure issues by configuring Consul to automatically route traffic to and from failover service instances. This topic provides an overview of approaches to the failover configurations you can implement with Consul.
+Services in your mesh may become unhealthy or unreachable for many reasons, but you can mitigate some of the effects associated with infrastructure issues by configuring Consul to automatically route traffic to and from failover service instances. This topic provides an overview of the failover strategies you can implement with Consul.
 
 ## Service failover strategies in Consul
 
@@ -14,7 +14,7 @@ There are several methods for implementing failover strategies between datacente
 
 - Configure the `Failover` stanza in a service resolver configuration entry to explicitly define which services should failover and the targeting logic they should follow.
 - Make a prepared query for each service that you can use to automate geo-failover.
-- Create a sameness group to identify partitions with identical namespaces and service instance names to establish default failover targets.
+- Create a sameness group to identify partitions with identical namespaces and service names to establish default failover targets.
 
 The following table compares these strategies in deployments with multiple datacenters to help you determine the best approach for your service:
 
@@ -28,11 +28,11 @@ The following table compares these strategies in deployments with multiple datac
 
 You can implement a service resolver configuration entry and specify a pool of failover service instances that other services can exchange messages with when the primary service becomes unhealthy or unreachable. We recommend adopting this strategy as a minimum baseline when implementing Consul service mesh and layering additional failover strategies to build resilience into your application network. 
 
-Refer to the [`Failover` configuration ](/consul/docs/connect/config-entries/service-resolver#failover) for details on how to configure failover services in the service resolver configuration entry on VMs. For Kubernetes-orchestrated networks, refer to [Configure failover services instances]().
+Refer to the [`Failover` configuration ](/consul/docs/connect/config-entries/service-resolver#failover) for examples of how to configure failover services in the service resolver configuration entry on both VMs and Kubernetes deployments.
 
 ### Failover configuration for WAN-federated datacenters
 
-If your network has multiple Consul datacenters that are federated over the WAN, you can configure your applications to look for failover services with prepared queries. [Prepared queries](/consul/api-docs/) are configurations that enable you to define complex service discovery lookups. This strategy hinges on the secondary datacenter containing service instances that have the same name and residing in the same namespace as their counterparts in the primary datacenter. 
+If your network has multiple Consul datacenters that are WAN-federated, you can configure your applications to look for failover services with prepared queries. [Prepared queries](/consul/api-docs/) are configurations that enable you to define complex service discovery lookups. This strategy hinges on the secondary datacenter containing service instances that have the same name and residing in the same namespace as their counterparts in the primary datacenter. 
 
 Refer to the [Automate geo-failover with prepared queries tutorial](/consul/tutorials/developer-discovery/automate-geo-failover) for additional information. 
 
@@ -40,6 +40,6 @@ Refer to the [Automate geo-failover with prepared queries tutorial](/consul/tuto
 
 In networks with multiple datacenters or partitions that share a peer connection, each datacenter or partition functions as an independent unit. As a result, Consul does not correlate services that have the same name, even if they are in the same namespace.
 
-You can configure sameness groups for this type of network. Sameness groups allow you to define a group of admin partitions where identical service instances are deployed in identical namespaces. After you configure the sameness group, you can reference the `SamenessGroup` parameter in service resolver, exported service, and service intention configuration entries, enabling you to add or remove cluster peers from the group without making changes to every cluster peer every time. 
+You can configure sameness groups for this type of network. Sameness groups allow you to define a group of admin partitions where identical services are deployed in identical namespaces. After you configure the sameness group, you can reference the `SamenessGroup` parameter in service resolver, exported service, and service intention configuration entries, enabling you to add or remove cluster peers from the group without making changes to every cluster peer every time. 
 
 Refer to [Sameness groups usage page](/consul/docs/connect/cluster-peering/usage/sameness-groups) for more information.

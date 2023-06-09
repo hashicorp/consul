@@ -1,26 +1,26 @@
 ---
 layout: docs
 page_title: Onboard services in transparent proxy mode
-description: Learn how to enable permissive mutual transport layer security (permissive mTLS) so that you can safely add services to your service mesh when transparent proxy is enabled. 
+description: Learn how to enable permissive mutual transport layer security (permissive mTLS) so that you can safely add services to your service mesh when transparent proxy is enabled in Kubernetes deployments. 
 ---
 
 # Onboard services while in transparent proxy mode
 
-This topic describes how to run Consul in permissive mTLS mode so that you can safely onboarding existing applications to Consul service mesh when transparent proxy mode is enabled.
+This topic describes how to run Consul in permissive mTLS mode so that you can safely onboard existing applications to Consul service mesh when transparent proxy mode is enabled.
 
 ## Background
 
-When [transparent proxy mode](/consul/docs/k8s/transparent-proxy/) is enabled, all service-to-service traffic is secured by mTLS. Until the services that you want to add to the network are fully onboarded, your network may have a mix of mTLS and non-mTLS traffic, which can result in broken service-to-service communication. This is because sidecar proxies for existing mesh services reject traffic from services that are not yet onboarded.
+When [transparent proxy mode](/consul/docs/k8s/transparent-proxy/) is enabled, all service-to-service traffic is secured by mTLS. Until the services that you want to add to the network are fully onboarded, your network may have a mix of mTLS and non-mTLS traffic, which can result in broken service-to-service communication. This situation occurs because sidecar proxies for existing mesh services reject traffic from services that are not yet onboarded.
 
 You can enable the `permissive` mTLS mode to ensure existing non-mTLS service-to-service traffic is allowed during the onboarding phase. The `permissive` mTLS mode enables sidecar proxies to accept both mTLS and non-mTLS traffic to an application. Using this mode enables you to onboard without downtime and without being required to reconfigure or redeploy your application.
 
-We recommend enabling permissive mTLS as a temporary operating mode. After onboarding is complete, all services should be placed into `strict` mTLS mode to ensure all service-to-service communication is automatically secured by Consul service mesh. 
+We recommend enabling permissive mTLS as a temporary operating mode. After onboarding is complete, you should reconfigure all services to `strict` mTLS mode to ensure all service-to-service communication is automatically secured by Consul service mesh. 
 
 !> **Security warning**: We recommend that you disable permissive mTLS mode after onboarding services to prevent non-mTLS connections to the service. Intentions are not enforced and encryption is not enabled for non-mTLS connections.
 
 ## Workflow
 
-The workflow toggling mTLS settings depends on the applications you are onboarding and the order you intend to onboard them, but the following steps describe the general workflow:
+The workflow to configure mTLS settings depends on the applications you are onboarding and the order you intend to onboard them, but the following steps describe the general workflow:
 
 1. **Configure global settings**: Configure the mesh to allow services to send non-mTLS messages to services outside the mesh. Additionally, configure the mesh to let services in the mesh use permissive mTLS mode.
 1. **Enable permissive mTLS mode**: If you are onboarding an upstream service prior to its related downstream services, then enable permissive mTLS mode in the service defaults configuration entry. This allows the upstream service to send encrypted messages from the mesh when you register the service with Consul.
@@ -30,7 +30,7 @@ The workflow toggling mTLS settings depends on the applications you are onboardi
 
 ## Requirements
 
-Permissive mTLS is only supported for services running in transparent proxy mode.
+Permissive mTLS is only supported for services running in transparent proxy mode. Transparent proxy mode is only available on Kubernetes deployments.
 
 ## Configure global settings
 
@@ -116,7 +116,7 @@ spec:
 
 </CodeTabs>
 
-You can toggle this setting back to `false` at any time, even if there are services currently in permissive mode. This allows you to decide at which point during the onboarding process to stop allowing services to use permissive mTLS. When the `MeshDestinationOnly` is set to `false`, you must configure all new services added to the mesh with  `MutualTLSMode=strict` for the Consul to securely route traffic throughout the mesh. 
+You can change this setting back to `false` at any time, even if there are services currently running in permissive mode. Doing so allows you to decide at which point during the onboarding process to stop allowing services to use permissive mTLS. When the `MeshDestinationOnly` is set to `false`, you must configure all new services added to the mesh with  `MutualTLSMode=strict` for the Consul to securely route traffic throughout the mesh. 
 
 ## Enable permissive mTLS mode 
 
@@ -154,15 +154,17 @@ spec:
 
 Refer to the [service defaults configuration reference](/consul/docs/connect/config-entries/service-defaults) for information about all settings.
 
-You can toggle this setting back to `strict` at any time to ensure mTLS is required for incoming traffic to this service.
+You can change this setting back to `strict` at any time to ensure mTLS is required for incoming traffic to this service.
 
 ## Configure intentions
 
-Intentions are mechanisms in Consul that control traffic between mesh services. Refer to [Service intentions](/consul/docs/connect/intentions) for additional information about intentions. 
+Service intentions are mechanisms in Consul that control traffic between services in the mesh. 
 
-We recommend creating intentions that allow services to accept only necessary traffic. You must identify the downstream services that send messages to the service you want to add to the mesh and create an intention to allow traffic from each of those downstream services to this service.
+We recommend creating intentions that restrict services to accepting only necessary traffic. You must identify the downstream services that send messages to the service you want to add to the mesh and then create an intention to allow traffic to the service from its downstreams.
 
 When transparent proxy enabled and the `MutualTLSMode` parameter is set to `permissive`, incoming traffic from a downstream service to another upstream service is not secured by mTLS unless that upstream relationship is known to Consul. You must either define an intention so that Consul can infer the upstream relationship from the intention, or you must include an explicit upstream as part of the service definition for the downstream.
+
+Refer to [Service intentions](/consul/docs/connect/intentions) for additional information about how intentions work and how to create them.
 
 ## Add the service to the mesh
 
@@ -170,16 +172,16 @@ Register your service into the catalog and update your application to deploy a s
 
 ## Re-secure mesh traffic
 
-If the newly-added service was placed in permissive mTLS mode, then you should switch to strict mode when it is safe to do so. You should also revert the global settings that allow services to send and receive non-mTLS traffic.  
+If the newly added service was placed in permissive mTLS mode for onboarding, then you should switch to strict mode when it is safe to do so. You should also revert the global settings that allow services to send and receive non-mTLS traffic.  
 
 ### Disable permissive mTLS mode
 
-Configure the service to operate in strict mTLS mode after the service is no longer receiving incoming non-mTLS traffic. Once the downstream services that send messages to this service are all onboarded to the mesh, this service should no longer receive non-mTLS traffic.
+Configure the service to operate in strict mTLS mode after the service is no longer receiving incoming non-mTLS traffic. After the downstream services that send messages to this service are all onboarded to the mesh, this service should no longer receive non-mTLS traffic.
 
 Check the following Envoy listener statistics for the sidecar proxy to determine if the sidecar is receiving non-mTLS traffic: 
 
-- The `tcp.permissive_public_listener.*` statistics indicate non-mTLS traffic. If these statistics are unchanged for a sufficient period of time, that indicates the sidecar is not receiving non-mTLS traffic.
-- The `tcp.public_listener.*` statistics indicate mTLS traffic. If incoming traffic is expected to this service and if these statistics are changing, then the sidecar is receiving mTLS traffic.
+- The `tcp.permissive_public_listener.*` statistics indicate non-mTLS traffic. If these metrics are static over a sufficient period of time, that indicates the sidecar is not receiving non-mTLS traffic.
+- The `tcp.public_listener.*` statistics indicate mTLS traffic. If incoming traffic is expected to this service and these statistics are changing, then the sidecar is receiving mTLS traffic.
 
 Refer to the [service mesh observability overview](/consul/docs/connect/observability) and [metrics configuration for Consul on Kubernetes documentation](/consul/docs/k8s/connect/observability/metrics) for additional information.
 
@@ -187,9 +189,9 @@ If your service is still receiving non-mTLS traffic, complete the following step
 
 1. Verify the list of downstream services. Optionally, you can enable [Envoy access logging](/consul/docs/connect/observability/access-logs) to determine source IP addresses for incoming traffic, and cross-reference those IP addresses with services in your network.
 1. Verify that each downstream is onboarded to the service mesh. If a downstream is not onboarded, consider onboarding it next.
-1. Verify that each downstream has an intention that allows it send traffic.
+1. Verify that each downstream has an intention that allows it to send traffic to the upstream service.
 
-Once you’ve determined it is safe to move the service to strict mode, set `MutualTLSMode=strict` in the service defaults configuration entry. 
+After you determine it is safe to move the service to strict mode, set `MutualTLSMode=strict` in the service defaults configuration entry. 
 
 <CodeTabs heading="Enable strict mTLS mode for applicable services">
 
@@ -262,15 +264,17 @@ spec:
 
 </CodeTabs>
 
-Run the `consul config list` and `consul config read` commands in each namespace in each admin partition and datacenter to verify that no services are using `permissive` mTLS mode. 
+For each namespace, admin partition, and datacenter in your Consul deployment, run the `consul config list` and `consul config read` commands to verify that no services are using `permissive` mTLS mode. 
 
-The following command returns any service-defaults that contain `'MutualTLSMode = "permissive"'`:
+The following command returns any service defaults configuration entries that contain `'MutualTLSMode = "permissive"'`:
 
 ```shell-session
 $ consul config list -kind service-defaults -filter 'MutualTLSMode == "permissive"'
 ```
 
-The following command fetches the proxy defaults configuration entry. Verify that `MutualTLSMode = "permissive"` is not set in the proxy defaults configuration entry in each admin partition and datacenter. If `MutualTLSMode` is either empty or if the configuration entry is not found, then the mode is `strict` by default.
+ In each admin partition and datacenter, verify that `MutualTLSMode = "permissive"` is not set in the proxy defaults configuration entry . If `MutualTLSMode` is either empty or if the configuration entry is not found, then the mode is `strict` by default.
+ 
+ The following command fetches the proxy defaults configuration entry:
 
 ```shell-session
 $ consul config read -kind proxy-defaults -name global

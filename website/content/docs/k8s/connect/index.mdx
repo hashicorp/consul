@@ -11,7 +11,7 @@ Consul service mesh automates service-to-service authorization and encryption ac
 
 ## Workflow
 
-Consul service mesh is enabled by default when you install Consul on Kubernetes using the Consul Helm chart. Consul also automatically injects sidecars into the pods in your cluster that run Envoy. The sidecar proxies injected into are called Consul dataplanes and are enabled when `connectInject.default` is set to `false` in the Helm chart. Refer to the following documentation for additional information about these concepts:
+Consul service mesh is enabled by default when you install Consul on Kubernetes using the Consul Helm chart. Consul also automatically injects sidecars into the pods in your clusters that run Envoy. These sidecar proxies,  called Consul dataplanes, are enabled when `connectInject.default` is set to `false` in the Helm chart. Refer to the following documentation for additional information about these concepts:
 
 - [Installation and Configuration](#installation-and-configuration) in this topic 
 - [Consul Helm chart reference](/consul/docs/k8s/helm)
@@ -80,7 +80,7 @@ When the service is onboarded, the name registered in Consul is set to the name 
 
 ### Transparent proxy mode
 
-By default, the Consul service mesh runs in transparent proxy mode, which forces inbound and outbound traffic through the sidecar proxy, even though the service binds to all interfaces. Transparent proxy infers the location of upstream services using Consul service intentions, as well as allows you to use Kubernetes DNS as you normally would. 
+By default, the Consul service mesh runs in transparent proxy mode. This mode forces inbound and outbound traffic through the sidecar proxy even though the service binds to all interfaces. Transparent proxy infers the location of upstream services using Consul service intentions, and also allows you to use Kubernetes DNS as you normally would for your workloads. 
 
 When transparent proxy mode is enabled, all service-to-service traffic is required to use mTLS. While onboarding new services to service mesh, your network may have mixed mTLS and non-mTLS traffic, which can result in broken service-to-service communication. You can temporarily enable permissive mTLS mode during the onboarding process so that existing mesh services can accept traffic from services that are not yet fully onboarded. Permissive mTLS enables sidecar proxies to access both mTLS and non-mTLS traffic. Refer to [Onboard mesh services in transparent proxy mode](/consul/docs/k8s/connect/onboarding-tproxy-mode) for additional information.
 
