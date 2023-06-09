@@ -1,31 +1,31 @@
 ---
 layout: docs
-page_title: API Gateway for Kubernetes Technical Specifications
+page_title: API gateway for Kubernetes technical specifications
 description: >-
-  Consul API Gateway is a service mesh add-on for Kubernetes deployments. Learn about its requirements for system resources, ports, and component versions, its Enterprise limitations, and compatible k8s cloud environments.
+  Learn about the requirements for installing and using the Consul API gateway for Kubernetes, including required ports, component version minimums, Consul Enterprise limitations, and compatible k8s cloud environments.
 ---
 
-# API Gateway for Kubernetes Technical Specifications
+# API gateway for Kubernetes technical specifications
 
-This topic describes the technical specifications associated with using Consul API Gateway.
+This topic describes the technical specifications associated with using Consul API gateway.
 
 ## Requirements
 
-Verify that your environment meets the following requirements prior to using Consul API Gateway.
+Verify that your environment meets the following requirements prior to using Consul API gateway.
 
-### Datacenter Requirements
+### Datacenter requirements
 
-Your datacenter must meet the following requirements prior to configuring the Consul API Gateway:
+Your datacenter must meet the following requirements prior to configuring the Consul API gateway:
 
-- Kubernetes 1.21+
-- `kubectl` 1.21+
-- HashiCorp Consul Helm chart 1.20.0
+- Kubernetes v1.24.x - v1.27.x
+- `kubectl` v1.24.x - v1.27.x
+- HashiCorp Consul Helm chart v1.20.0 and later
 - Consul service mesh must be deployed on the Kubernetes cluster that API gateway is deployed on.
 - Envoy proxy support is determined by the Consul version deployed. Refer to [Envoy Integration](/consul/docs/connect/proxies/envoy) for details.
 
-### TCP Port Requirements
+### TCP port requirements
 
-The following table describes the TCP port requirements for each component of the API Gateway.
+The following table describes the TCP port requirements for each component of the API gateway.
 
 | Port | Description | Component |
 | ---- | ----------- | --------- |
@@ -33,7 +33,7 @@ The following table describes the TCP port requirements for each component of th
 | 20000 | Kubernetes readiness probe | Gateway instance pod |
 | Configurable | Port for scraping Prometheus metrics. Disabled by default. | Gateway controller pod |
 
-## Consul Server Deployments
+## Consul server deployments
 
 - Consul Editions supported: OSS and Enterprise
 - Supported Consul Server deployment types:
@@ -42,36 +42,36 @@ The following table describes the TCP port requirements for each component of th
 
 ### Limited Support of some Consul Features
 
-The following table lists API Gateway limitations related to specific Consul features
+The following table lists API gateway limitations related to specific Consul features
 
 | Consul Feature | Limitation |
 | -------------- | ---------- |
-| [Admin partitions](/consul/docs/enterprise/admin-partitions) | You can deploy Consul API Gateway into the `default` admin partition only. You can route to services in other `default` admin partitions through peered connections. Refer to [Route Traffic to Peered Services](/consul/docs/api-gateway/usage/route-to-peered-services) for additional information. |
+| [Admin partitions](/consul/docs/enterprise/admin-partitions) | You can deploy Consul API gateway into the `default` admin partition only. You can route to services in other `default` admin partitions through peered connections. Refer to [Route Traffic to Peered Services](/consul/docs/api-gateway/usage/route-to-peered-services) for additional information. |
 | Routing between datacenters | If you are connecting multiple Consul datacenters to create a federated network, you can route to services in other datacenters through peered connections. Refer to [Route Traffic to Peered Services](/consul/docs/api-gateway/usage/route-to-peered-services) for additional information. |
 
 ## Deployment Environments
 
-Consul API Gateway can be deployed in the following Kubernetes-based environments:
+Consul API gateway can be deployed in the following Kubernetes-based environments:
 
 - Generic Kubernetes
 - AWS Elastic Kubernetes Service (EKS)
 - Google Kubernetes Engine (GKE)
 - Azure Kubernetes Service (AKS)
 
-## Kubernetes Gateway API Specification - Supported Versions
+## Supported versions of Kubernetes gateway API specification 
 
-See the Release Notes for the version of Consul API Gateway being used.
+Refer to the [release notes](/consul/docs/release-notes) for your version of Consul.
 
-## Resource Allocations
+## Resource allocations
 
-The following resources are allocated for each component of the API Gateway.
+The following resources are allocated for each component of the API gateway.
 
-### Gateway Controller Pod
+### Gateway controller pod
 
 - **CPU**: None. Either the namespace or cluster default is allocated, depending on the Kubernetes cluster configuration.
 - **Memory**: None. Either the the namespace or cluster default is allocated, depending on the Kubernetes cluster configuration.
 
-### Gateway Instance Pod
+### Gateway instance pod
 
 - **CPU**: None. Either the namespace or cluster default is allocated, depending on the Kubernetes cluster configuration.
 - **Memory**: None. Either the namespace or cluster default is allocated, depending on the Kubernetes cluster configuration.
