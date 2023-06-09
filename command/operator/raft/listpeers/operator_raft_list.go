@@ -99,21 +99,19 @@ func raftListPeers(client *api.Client, stale bool) (string, error) {
 			state = "leader"
 		}
 
+		trailsLeaderByText := "-"
 		serverLastIndex, ok := serverIdLastIndexMap[s.ID]
 		if ok {
 			trailsLeaderBy := leaderLastCommitIndex - serverLastIndex
-			trailsLeaderByText := fmt.Sprintf("%d commits", trailsLeaderBy)
+			trailsLeaderByText = fmt.Sprintf("%d commits", trailsLeaderBy)
 			if s.Leader {
 				trailsLeaderByText = "-"
-			} else if trailsLeaderBy <= 1 {
+			} else if trailsLeaderBy == 1 {
 				trailsLeaderByText = fmt.Sprintf("%d commit", trailsLeaderBy)
 			}
-			result = append(result, fmt.Sprintf("%s\x1f%s\x1f%s\x1f%s\x1f%v\x1f%s\x1f%v\x1f%s",
-				s.Node, s.ID, s.Address, state, s.Voter, raftProtocol, serverLastIndex, trailsLeaderByText))
-		} else {
-			result = append(result, fmt.Sprintf("%s\x1f%s\x1f%s\x1f%s\x1f%v\x1f%s\x1f%v",
-				s.Node, s.ID, s.Address, state, s.Voter, raftProtocol, "-"))
 		}
+		result = append(result, fmt.Sprintf("%s\x1f%s\x1f%s\x1f%s\x1f%v\x1f%s\x1f%v\x1f%s",
+			s.Node, s.ID, s.Address, state, s.Voter, raftProtocol, serverLastIndex, trailsLeaderByText))
 	}
 
 	return columnize.Format(result, &columnize.Config{Delim: string([]byte{0x1f})}), nil
