@@ -418,9 +418,9 @@ spec:
                     supported for services with transparent proxy enabled. One of \`""\`, \`strict\`, or \`permissive\`.
                     When unset or \`""\`, the mode defaults to \`strict\`. When set to \`strict\`, the sidecar proxy
                     requires mutual TLS for incoming traffic. When set to \`permissive\`, the sidecar proxy accepts
-                    mutual TLS traffic on the sidecar proxy service port, and accepts any traffic on the destination
+                    mutual TLS traffic on the sidecar proxy service port and accepts any traffic on the destination
                     service port. We recommend only using \`permissive\` mode if necessary while onboarding services to
-                    the service mesh. Added in v1.16.0.`,
+                    the service mesh. ,
     },
     {
       name: 'MeshGateway',
