@@ -7,7 +7,7 @@ description: >-
 
 # Install API gateway for Kubernetes
 
-The Consul API gateway ships with Consul and is automatically installed when you install Consul on Kubernetes. Before you begin the installation process, verify that the environment you are deploying Consul and the API gateway in meets the requirements listed in the [Technical Specifications][tech-specs]. Refer to the [Release Notes][rel-notes] for any additional information about the version you are deploying.
+The Consul API gateway ships with Consul and is automatically installed when you install Consul on Kubernetes. Before you begin the installation process, verify that the environment you are deploying Consul and the API gateway in meets the requirements listed in the [Technical Specifications](/consul/docs/api-gateway/tech-specs). Refer to the [Release Notes](/consul/docs/release-notes) for any additional information about the version you are deploying.
 
 1. Create a `values.yaml` file for configuring your Consul API gateway deployment and include the following settings:
 
@@ -23,7 +23,7 @@ The Consul API gateway ships with Consul and is automatically installed when you
       ```
     </CodeBlockConfig>
 
-   The Consul Helm chart deploys the API gateway using configuration specified in the `values.yaml` file. Refer to [Helm Chart Configuration - apiGateway](/consul/docs/k8s/helm#apigateway) for information about all Helm chart configuration options.
+The Consul Helm chart deploys the API gateway using the configuration specified in the `values.yaml` file. Refer to [Helm Chart Configuration - `apiGateway`](/consul/docs/k8s/helm#apigateway) for information about the Helm chart configuration options.
 
 1. Install Consul API Gateway using the standard Consul Helm chart or Consul K8s CLI specify the custom values file. Refer to the [Consul Helm chart](https://github.com/hashicorp/consul-k8s/releases) in GitHub releases for the available versions.
 
@@ -41,7 +41,7 @@ $ brew install hashicorp/tap/consul-k8s
 ```
 
 ```shell-session
-$ consul-k8s install -config-file=values.yaml -set global.image=hashicorp/consul:1.14.3
+$ consul-k8s install -config-file=values.yaml -set global.image=hashicorp/consul:1.16.0
 ```
 
 </Tab>
