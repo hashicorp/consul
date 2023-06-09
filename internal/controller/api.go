@@ -152,46 +152,6 @@ type Reconciler interface {
 	Reconcile(ctx context.Context, rt Runtime, req Request) error
 }
 
-// DependencyMapper is called when a dependency watched via WithWatch is changed
-// to determine which of the controller's managed resources need to be reconciled.
-type DependencyMapper func(
-	ctx context.Context,
-	rt Runtime,
-	res *pbresource.Resource,
-) ([]Request, error)
-
-// MapOwner implements a DependencyMapper that returns the updated resource's owner.
-func MapOwner(_ context.Context, _ Runtime, res *pbresource.Resource) ([]Request, error) {
-	var reqs []Request
-	if res.Owner != nil {
-		reqs = append(reqs, Request{ID: res.Owner})
-	}
-	return reqs, nil
-}
-
-func MapOwnerFiltered(filter *pbresource.Type) DependencyMapper {
-	return func(_ context.Context, _ Runtime, res *pbresource.Resource) ([]Request, error) {
-		if res.Owner == nil {
-			return nil, nil
-		}
-
-		ownerType := res.Owner.GetType()
-		if ownerType.Group != filter.Group {
-			return nil, nil
-		}
-
-		if ownerType.GroupVersion != filter.GroupVersion {
-			return nil, nil
-		}
-
-		if ownerType.Kind != filter.Kind {
-			return nil, nil
-		}
-
-		return []Request{{ID: res.Owner}}, nil
-	}
-}
-
 // Placement determines where and how many replicas of the controller will run.
 type Placement int
 

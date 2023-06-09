@@ -78,7 +78,8 @@ func Validate(indexedResources *xdscommon.IndexedResources, envoyID string, vip 
 				"envoyID": envoyID,
 			},
 		},
-		ServiceName: emptyServiceKey,
+		ServiceName:           emptyServiceKey,
+		IsSourcedFromUpstream: true,
 		Upstreams: map[api.CompoundServiceName]*extensioncommon.UpstreamData{
 			emptyServiceKey: {
 				VIP: vip,
@@ -86,18 +87,18 @@ func Validate(indexedResources *xdscommon.IndexedResources, envoyID string, vip 
 				// the cluster SNIs configured on this proxy, not just the upstream being validated. This means the
 				// PatchCluster function in the Validate plugin will be run on all clusters, but errors will only
 				// surface for clusters related to the upstream being validated.
-				SNI:     snis,
+				SNIs:    snis,
 				EnvoyID: envoyID,
 			},
 		},
 		Kind: api.ServiceKindConnectProxy,
 	}
-	basicExtension, err := validate.MakeValidate(extConfig)
+	ext, err := validate.MakeValidate(extConfig)
 	if err != nil {
 		return []validate.Message{{Message: err.Error()}}
 	}
-	extender := extensioncommon.BasicEnvoyExtender{
-		Extension: basicExtension,
+	extender := extensioncommon.UpstreamEnvoyExtender{
+		Extension: ext,
 	}
 	err = extender.Validate(&extConfig)
 	if err != nil {

@@ -28,7 +28,7 @@ if [[ ! -f GNUmakefile ]] || [[ ! -f go.mod ]]; then
     exit 1
 fi
 
-readonly LIBRARY_VERSION="$(grep github.com/envoyproxy/go-control-plane go.mod | awk '{print $2}')"
+readonly LIBRARY_VERSION="$(grep -e "github.com/envoyproxy/go-control-plane[[:space:]]" go.mod | awk '{print $2}')"
 readonly OUTFILE=z_xds_packages.go
 
 echo "Fetching envoyproxy/go-control-plane @ ${LIBRARY_VERSION}..."
@@ -39,7 +39,7 @@ trap "rm -rf _envoy_tmp" EXIT
 (
 cd _envoy_tmp
 
-git clone git@github.com:envoyproxy/go-control-plane
+git clone https://github.com/envoyproxy/go-control-plane
 cd go-control-plane
 git checkout -b consul-temp "${LIBRARY_VERSION}"
 
@@ -64,7 +64,6 @@ echo ")" >> "${OUTFILE}"
 goimports -w "${OUTFILE}"
 
 mv -f "${OUTFILE}" ../../agent/xds
-)
 
 echo "Generating a fresh troubleshoot ${OUTFILE} file..."
 cat <<-EOF > "${OUTFILE}"
@@ -84,7 +83,7 @@ echo ")" >> "${OUTFILE}"
 
 goimports -w "${OUTFILE}"
 
-mv -f "${OUTFILE}" ../../troubleshoot/connect
+mv -f "${OUTFILE}" ../../troubleshoot/proxy
 )
 
 

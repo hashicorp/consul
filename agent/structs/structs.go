@@ -420,6 +420,17 @@ func (q QueryBackend) String() string {
 	}
 }
 
+func QueryBackendFromString(s string) QueryBackend {
+	switch s {
+	case "blocking-query":
+		return QueryBackendBlocking
+	case "streaming":
+		return QueryBackendStreaming
+	default:
+		return QueryBackendBlocking
+	}
+}
+
 // QueryMeta allows a query response to include potentially
 // useful metadata about a query
 type QueryMeta struct {
@@ -2308,6 +2319,11 @@ type PeeredServiceName struct {
 
 func (psn PeeredServiceName) String() string {
 	return fmt.Sprintf("%v:%v", psn.ServiceName.String(), psn.Peer)
+}
+
+type ServiceNameWithSamenessGroup struct {
+	SamenessGroup string
+	ServiceName
 }
 
 type ServiceName struct {

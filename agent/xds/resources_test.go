@@ -172,8 +172,8 @@ func TestAllResourcesFromSnapshot(t *testing.T) {
 			create: proxycfg.TestConfigSnapshotPeeringLocalMeshGateway,
 		},
 		{
-			name:   "hcp-metrics",
-			create: proxycfg.TestConfigSnapshotHCPMetrics,
+			name:   "telemetry-collector",
+			create: proxycfg.TestConfigSnapshotTelemetryCollector,
 		},
 	}
 	tests = append(tests, getConnectProxyTransparentProxyGoldenTestCases()...)
@@ -203,8 +203,10 @@ func getConnectProxyTransparentProxyGoldenTestCases() []goldenTestCase {
 			create: proxycfg.TestConfigSnapshotTransparentProxyDestination,
 		},
 		{
-			name:   "transparent-proxy-destination-http",
-			create: proxycfg.TestConfigSnapshotTransparentProxyDestinationHTTP,
+			name: "transparent-proxy-destination-http",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotTransparentProxyDestinationHTTP(t, nil)
+			},
 		},
 		{
 			name: "transparent-proxy-terminating-gateway-destinations-only",
@@ -365,20 +367,27 @@ func getAPIGatewayGoldenTestCases(t *testing.T) []goldenTestCase {
 							}},
 						},
 					}
-				}, []structs.BoundRoute{
-					&structs.TCPRouteConfigEntry{
-						Kind: structs.TCPRoute,
-						Name: "route",
-						Services: []structs.TCPService{{
-							Name: "service",
-						}},
-					},
-				}, []structs.InlineCertificateConfigEntry{{
-					Kind:        structs.InlineCertificate,
-					Name:        "certificate",
-					PrivateKey:  gatewayTestPrivateKey,
-					Certificate: gatewayTestCertificate,
-				}}, nil)
+				},
+					[]structs.BoundRoute{
+						&structs.TCPRouteConfigEntry{
+							Kind: structs.TCPRoute,
+							Name: "route",
+							Services: []structs.TCPService{{
+								Name: "service",
+							}},
+							Parents: []structs.ResourceReference{
+								{
+									Kind: structs.APIGateway,
+									Name: "api-gateway",
+								},
+							},
+						},
+					}, []structs.InlineCertificateConfigEntry{{
+						Kind:        structs.InlineCertificate,
+						Name:        "certificate",
+						PrivateKey:  gatewayTestPrivateKey,
+						Certificate: gatewayTestCertificate,
+					}}, nil)
 			},
 		},
 		{
@@ -410,6 +419,12 @@ func getAPIGatewayGoldenTestCases(t *testing.T) []goldenTestCase {
 								Name: "service",
 							}},
 						}},
+						Parents: []structs.ResourceReference{
+							{
+								Kind: structs.APIGateway,
+								Name: "api-gateway",
+							},
+						},
 					},
 				}, nil, []proxycfg.UpdateEvent{{
 					CorrelationID: "discovery-chain:" + serviceUID.String(),

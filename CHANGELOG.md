@@ -1,3 +1,129 @@
+## 1.15.3 (June 1, 2023)
+
+BREAKING CHANGES:
+
+* extensions: The Lua extension now targets local proxy listeners for the configured service's upstreams, rather than remote downstream listeners for the configured service, when ListenerType is set to outbound in extension configuration. See [CVE-2023-2816](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2023-2816) changelog entry for more details. [[GH-17415](https://github.com/hashicorp/consul/issues/17415)]
+
+SECURITY:
+
+* Update to UBI base image to 9.2. [[GH-17513](https://github.com/hashicorp/consul/issues/17513)]
+* Upgrade golang.org/x/net to address [CVE-2022-41723](https://nvd.nist.gov/vuln/detail/CVE-2022-41723) [[GH-16754](https://github.com/hashicorp/consul/issues/16754)]
+* Upgrade to use Go 1.20.4.
+This resolves vulnerabilities [CVE-2023-24537](https://github.com/advisories/GHSA-9f7g-gqwh-jpf5)(`go/scanner`),
+[CVE-2023-24538](https://github.com/advisories/GHSA-v4m2-x4rp-hv22)(`html/template`),
+[CVE-2023-24534](https://github.com/advisories/GHSA-8v5j-pwr7-w5f8)(`net/textproto`) and
+[CVE-2023-24536](https://github.com/advisories/GHSA-9f7g-gqwh-jpf5)(`mime/multipart`).
+Also, `golang.org/x/net` has been updated to v0.7.0 to resolve CVEs [CVE-2022-41721
+](https://github.com/advisories/GHSA-fxg5-wq6x-vr4w
+), [CVE-2022-27664](https://github.com/advisories/GHSA-69cg-p879-7622) and [CVE-2022-41723
+](https://github.com/advisories/GHSA-vvpx-j8f3-3w6h
+.) [[GH-17240](https://github.com/hashicorp/consul/issues/17240)]
+* extensions: Disable remote downstream proxy patching by Envoy Extensions other than AWS Lambda. Previously, an operator with service:write ACL permissions for an upstream service could modify Envoy proxy config for downstream services without equivalent permissions for those services. This issue only impacts the Lua extension. [[CVE-2023-2816](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2023-2816)] [[GH-17415](https://github.com/hashicorp/consul/issues/17415)]
+
+FEATURES:
+
+* hcp: Add new metrics sink to collect, aggregate and export server metrics to HCP in OTEL format. [[GH-17460](https://github.com/hashicorp/consul/issues/17460)]
+
+IMPROVEMENTS:
+
+* Fixes a performance issue in Raft where commit latency can increase by 100x or more when under heavy load. For more details see https://github.com/hashicorp/raft/pull/541. [[GH-17081](https://github.com/hashicorp/consul/issues/17081)]
+* agent: add a configurable maximimum age (default: 7 days) to prevent servers re-joining a cluster with stale data [[GH-17171](https://github.com/hashicorp/consul/issues/17171)]
+* agent: add new metrics to track cpu disk and memory usage for server hosts (defaults to: enabled) [[GH-17038](https://github.com/hashicorp/consul/issues/17038)]
+* connect: update supported envoy versions to 1.22.11, 1.23.8, 1.24.6, 1.25.4 [[GH-16889](https://github.com/hashicorp/consul/issues/16889)]
+* envoy: add `MaxEjectionPercent` and `BaseEjectionTime` to passive health check configs. [[GH-15979](https://github.com/hashicorp/consul/issues/15979)]
+* hcp: Add support for linking existing Consul clusters to HCP management plane. [[GH-16916](https://github.com/hashicorp/consul/issues/16916)]
+* logging: change snapshot log header from `agent.server.snapshot` to `agent.server.raft.snapshot` [[GH-17236](https://github.com/hashicorp/consul/issues/17236)]
+* peering: allow re-establishing terminated peering from new token without deleting existing peering first. [[GH-16776](https://github.com/hashicorp/consul/issues/16776)]
+* peering: gRPC queries for TrustBundleList, TrustBundleRead, PeeringList, and PeeringRead now support blocking semantics,
+ reducing network and CPU demand.
+ The HTTP APIs for Peering List and Read have been updated to support blocking. [[GH-17426](https://github.com/hashicorp/consul/issues/17426)]
+* raft: Remove expensive reflection from raft/mesh hot path [[GH-16552](https://github.com/hashicorp/consul/issues/16552)]
+* xds: rename envoy_hcp_metrics_bind_socket_dir to envoy_telemetry_collector_bind_socket_dir to remove HCP naming references. [[GH-17327](https://github.com/hashicorp/consul/issues/17327)]
+
+BUG FIXES:
+
+* Fix an bug where decoding some Config structs with unset pointer fields could fail with `reflect: call of reflect.Value.Type on zero Value`. [[GH-17048](https://github.com/hashicorp/consul/issues/17048)]
+* acl: **(Enterprise only)** Check permissions in correct partition/namespace when resolving service in non-default partition/namespace
+* acl: Fix an issue where the anonymous token was synthesized in non-primary datacenters which could cause permission errors when federating clusters with ACL replication enabled. [[GH-17231](https://github.com/hashicorp/consul/issues/17231)]
+* acls: Fix ACL bug that can result in sidecar proxies having incorrect endpoints.
+* connect: Fix multiple inefficient behaviors when querying service health. [[GH-17241](https://github.com/hashicorp/consul/issues/17241)]
+* gateways: Fix an bug where targeting a virtual service defined by a service-resolver was broken for HTTPRoutes. [[GH-17055](https://github.com/hashicorp/consul/issues/17055)]
+* grpc: ensure grpc resolver correctly uses lan/wan addresses on servers [[GH-17270](https://github.com/hashicorp/consul/issues/17270)]
+* namespaces: adjusts the return type from HTTP list API to return the `api` module representation of a namespace.
+This fixes an error with the `consul namespace list` command when a namespace has a deferred deletion timestamp.
+* peering: Fix issue where modifying the list of exported services did not correctly replicate changes for services that exist in a non-default namespace. [[GH-17456](https://github.com/hashicorp/consul/issues/17456)]
+* peering: Fix issue where peer streams could incorrectly deregister services in various scenarios. [[GH-17235](https://github.com/hashicorp/consul/issues/17235)]
+* peering: ensure that merged central configs of peered upstreams for partitioned downstreams work [[GH-17179](https://github.com/hashicorp/consul/issues/17179)]
+* xds: Fix possible panic that can when generating clusters before the root certificates have been fetched. [[GH-17185](https://github.com/hashicorp/consul/issues/17185)]
+
+## 1.14.7 (May 16, 2023)
+
+SECURITY:
+
+* Upgrade to use Go 1.20.4.
+  This resolves vulnerabilities [CVE-2023-24537](https://github.com/advisories/GHSA-9f7g-gqwh-jpf5)(`go/scanner`),
+  [CVE-2023-24538](https://github.com/advisories/GHSA-v4m2-x4rp-hv22)(`html/template`),
+  [CVE-2023-24534](https://github.com/advisories/GHSA-8v5j-pwr7-w5f8)(`net/textproto`) and
+  [CVE-2023-24536](https://github.com/advisories/GHSA-9f7g-gqwh-jpf5)(`mime/multipart`).
+  Also, `golang.org/x/net` has been updated to v0.7.0 to resolve CVEs [CVE-2022-41721
+  ](https://github.com/advisories/GHSA-fxg5-wq6x-vr4w
+  ), [CVE-2022-27664](https://github.com/advisories/GHSA-69cg-p879-7622) and [CVE-2022-41723
+  ](https://github.com/advisories/GHSA-vvpx-j8f3-3w6h
+  .) [[GH-17240](https://github.com/hashicorp/consul/issues/17240)]
+
+IMPROVEMENTS:
+
+* connect: update supported envoy versions to 1.21.6, 1.22.11, 1.23.8, 1.24.6 [[GH-16888](https://github.com/hashicorp/consul/issues/16888)]
+* envoy: add `MaxEjectionPercent` and `BaseEjectionTime` to passive health check configs. [[GH-15979](https://github.com/hashicorp/consul/issues/15979)]
+* hcp: Add support for linking existing Consul clusters to HCP management plane. [[GH-16916](https://github.com/hashicorp/consul/issues/16916)]
+* logging: change snapshot log header from `agent.server.snapshot` to `agent.server.raft.snapshot` [[GH-17236](https://github.com/hashicorp/consul/issues/17236)]
+* peering: allow re-establishing terminated peering from new token without deleting existing peering first. [[GH-16776](https://github.com/hashicorp/consul/issues/16776)]
+
+BUG FIXES:
+
+* Fix an bug where decoding some Config structs with unset pointer fields could fail with `reflect: call of reflect.Value.Type on zero Value`. [[GH-17048](https://github.com/hashicorp/consul/issues/17048)]
+* acl: **(Enterprise only)** Check permissions in correct partition/namespace when resolving service in non-default partition/namespace
+* acls: Fix ACL bug that can result in sidecar proxies having incorrect endpoints.
+* connect: Fix multiple inefficient behaviors when querying service health. [[GH-17241](https://github.com/hashicorp/consul/issues/17241)]
+* connect: fix a bug with Envoy potentially starting with incomplete configuration by not waiting enough for initial xDS configuration. [[GH-17317](https://github.com/hashicorp/consul/issues/17317)]
+* grpc: ensure grpc resolver correctly uses lan/wan addresses on servers [[GH-17270](https://github.com/hashicorp/consul/issues/17270)]
+* peering: Fix issue where peer streams could incorrectly deregister services in various scenarios. [[GH-17235](https://github.com/hashicorp/consul/issues/17235)]
+* proxycfg: ensure that an irrecoverable error in proxycfg closes the xds session and triggers a replacement proxycfg watcher [[GH-16497](https://github.com/hashicorp/consul/issues/16497)]
+* xds: Fix possible panic that can when generating clusters before the root certificates have been fetched. [[GH-17185](https://github.com/hashicorp/consul/issues/17185)]
+
+## 1.13.8 (May 16, 2023)
+
+SECURITY:
+
+* Upgrade to use Go 1.20.1.
+  This resolves vulnerabilities [CVE-2022-41724](https://go.dev/issue/58001) in `crypto/tls` and [CVE-2022-41723](https://go.dev/issue/57855) in `net/http`. [[GH-16263](https://github.com/hashicorp/consul/issues/16263)]
+* Upgrade to use Go 1.20.4.
+  This resolves vulnerabilities [CVE-2023-24537](https://github.com/advisories/GHSA-9f7g-gqwh-jpf5)(`go/scanner`),
+  [CVE-2023-24538](https://github.com/advisories/GHSA-v4m2-x4rp-hv22)(`html/template`),
+  [CVE-2023-24534](https://github.com/advisories/GHSA-8v5j-pwr7-w5f8)(`net/textproto`) and
+  [CVE-2023-24536](https://github.com/advisories/GHSA-9f7g-gqwh-jpf5)(`mime/multipart`).
+  Also, `golang.org/x/net` has been updated to v0.7.0 to resolve CVEs [CVE-2022-41721
+  ](https://github.com/advisories/GHSA-fxg5-wq6x-vr4w
+  ), [CVE-2022-27664](https://github.com/advisories/GHSA-69cg-p879-7622) and [CVE-2022-41723
+  ](https://github.com/advisories/GHSA-vvpx-j8f3-3w6h
+  .) [[GH-17240](https://github.com/hashicorp/consul/issues/17240)]
+
+IMPROVEMENTS:
+
+* api: updated the go module directive to 1.18. [[GH-15297](https://github.com/hashicorp/consul/issues/15297)]
+* connect: update supported envoy versions to 1.20.7, 1.21.6, 1.22.11, 1.23.8 [[GH-16891](https://github.com/hashicorp/consul/issues/16891)]
+* sdk: updated the go module directive to 1.18. [[GH-15297](https://github.com/hashicorp/consul/issues/15297)]
+
+BUG FIXES:
+
+* Fix an bug where decoding some Config structs with unset pointer fields could fail with `reflect: call of reflect.Value.Type on zero Value`. [[GH-17048](https://github.com/hashicorp/consul/issues/17048)]
+* audit-logging: (Enterprise only) Fix a bug where `/agent/monitor` and `/agent/metrics` endpoints return a `Streaming not supported` error when audit logs are enabled. This also fixes the delay receiving logs when running `consul monitor` against an agent with audit logs enabled. [[GH-16700](https://github.com/hashicorp/consul/issues/16700)]
+* ca: Fixes a bug where updating Vault CA Provider config would cause TLS issues in the service mesh [[GH-16592](https://github.com/hashicorp/consul/issues/16592)]
+* connect: Fix multiple inefficient behaviors when querying service health. [[GH-17241](https://github.com/hashicorp/consul/issues/17241)]
+* grpc: ensure grpc resolver correctly uses lan/wan addresses on servers [[GH-17270](https://github.com/hashicorp/consul/issues/17270)]
+* peering: Fixes a bug that can lead to peering service deletes impacting the state of local services [[GH-16570](https://github.com/hashicorp/consul/issues/16570)]
+* xds: Fix possible panic that can when generating clusters before the root certificates have been fetched. [[GH-17185](https://github.com/hashicorp/consul/issues/17185)]
+
 ## 1.15.2 (March 30, 2023)
 
 FEATURES:

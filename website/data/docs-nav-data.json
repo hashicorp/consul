@@ -674,7 +674,24 @@
           },
           {
             "title": "Ingress Gateways",
-            "path": "connect/gateways/ingress-gateway"
+            "routes": [
+              {
+                "title": "Overview",
+                "path": "connect/gateways/ingress-gateway"
+              },
+              {
+                "title": "Implement an ingress gateway",
+                "path": "connect/gateways/ingress-gateway/usage"
+              },
+              {
+                "title": "Serve TLS certificates from an external service",
+                "path": "connect/gateways/ingress-gateway/tls-external-service"
+              },
+              {
+                "title": "Configuration",
+                "href": "/consul/docs/connect/config-entries/ingress-gateway"
+              }
+            ]
           },
           {
             "title": "Terminating Gateways",

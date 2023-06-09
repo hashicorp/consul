@@ -197,6 +197,16 @@ var expectedFieldConfigEnvoyExtensions bexpr.FieldConfigurations = bexpr.FieldCo
 		CoerceFn:            bexpr.CoerceBool,
 		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual},
 	},
+	"ConsulVersion": &bexpr.FieldConfiguration{
+		StructFieldName:     "ConsulVersion",
+		CoerceFn:            bexpr.CoerceString,
+		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual, bexpr.MatchIn, bexpr.MatchNotIn, bexpr.MatchMatches, bexpr.MatchNotMatches},
+	},
+	"EnvoyVersion": &bexpr.FieldConfiguration{
+		StructFieldName:     "EnvoyVersion",
+		CoerceFn:            bexpr.CoerceString,
+		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual, bexpr.MatchIn, bexpr.MatchNotIn, bexpr.MatchMatches, bexpr.MatchNotMatches},
+	},
 }
 var expectedFieldConfigUpstreams bexpr.FieldConfigurations = bexpr.FieldConfigurations{
 	"DestinationType": &bexpr.FieldConfiguration{

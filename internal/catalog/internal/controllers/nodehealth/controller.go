@@ -25,7 +25,7 @@ func NodeHealthController() controller.Controller {
 type nodeHealthReconciler struct{}
 
 func (r *nodeHealthReconciler) Reconcile(ctx context.Context, rt controller.Runtime, req controller.Request) error {
-	// The runtime is passed by value so replacing it here for the remaineder of this
+	// The runtime is passed by value so replacing it here for the remainder of this
 	// reconciliation request processing will not affect future invocations.
 	rt.Logger = rt.Logger.With("resource-id", req.ID)
 
@@ -50,22 +50,10 @@ func (r *nodeHealthReconciler) Reconcile(ctx context.Context, rt controller.Runt
 		return err
 	}
 
-	message := NodeHealthyMessage
-	statusState := pbresource.Condition_STATE_TRUE
-	if health != pbcatalog.Health_HEALTH_PASSING {
-		statusState = pbresource.Condition_STATE_FALSE
-		message = NodeUnhealthyMessage
-	}
-
 	newStatus := &pbresource.Status{
 		ObservedGeneration: res.Generation,
 		Conditions: []*pbresource.Condition{
-			{
-				Type:    StatusConditionHealthy,
-				State:   statusState,
-				Reason:  health.String(),
-				Message: message,
-			},
+			Conditions[health],
 		},
 	}
 

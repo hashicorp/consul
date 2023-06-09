@@ -9,4 +9,5 @@ package utils
 const (
 	defaultImageName   = DefaultImageNameOSS
 	ImageVersionSuffix = ""
+	isInEnterpriseRepo = false
 )

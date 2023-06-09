@@ -571,6 +571,25 @@ func TestWrite_Owner_Uid(t *testing.T) {
 		require.NotEmpty(t, rsp2.Resource.Owner.Uid)
 		require.Equal(t, artist.Id.Uid, rsp2.Resource.Owner.Uid)
 	})
+
+	t.Run("no-uid - update auto resolve", func(t *testing.T) {
+		artist, err := demo.GenerateV2Artist()
+		require.NoError(t, err)
+
+		uid := ulid.Make().String()
+		album, err := demo.GenerateV2Album(artist.Id)
+		require.NoError(t, err)
+		album.Owner.Uid = uid
+
+		_, err = client.Write(testContext(t), &pbresource.WriteRequest{Resource: album})
+		require.NoError(t, err)
+
+		// unset the uid and rewrite the resource
+		album.Owner.Uid = ""
+		rsp, err := client.Write(testContext(t), &pbresource.WriteRequest{Resource: album})
+		require.NoError(t, err)
+		require.Equal(t, uid, rsp.GetResource().GetOwner().GetUid())
+	})
 }
 
 type blockOnceBackend struct {
