@@ -12,12 +12,11 @@ import (
 	"github.com/mitchellh/hashstructure"
 
 	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/lib"
-
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/lib"
 )
 
 // Recommended name for registration.
@@ -426,20 +425,25 @@ func (c *ConnectCALeaf) Fetch(opts cache.FetchOptions, req cache.Request) (cache
 
 	// Setup the timeout chan outside the loop so we don't keep bumping the timeout
 	// later if we loop around.
-	timeoutCh := time.After(opts.Timeout)
+	timeoutTimer := time.NewTimer(opts.Timeout)
+	defer timeoutTimer.Stop()
 
 	// Setup initial expiry chan. We may change this if root update occurs in the
 	// loop below.
-	expiresCh := time.After(expiresAt.Sub(now))
+	expiresTimer := time.NewTimer(expiresAt.Sub(now))
+	defer func() {
+		// Resolve the timer reference at defer time, so we use the latest one each time.
+		expiresTimer.Stop()
+	}()
 
 	// Current cert is valid so just wait until it expires or we time out.
 	for {
 		select {
-		case <-timeoutCh:
+		case <-timeoutTimer.C:
 			// We timed out the request with same cert.
 			return lastResultWithNewState(), nil
 
-		case <-expiresCh:
+		case <-expiresTimer.C:
 			// Cert expired or was force-expired by a root change.
 			return c.generateNewLeaf(reqReal, lastResultWithNewState())
 
@@ -480,7 +484,9 @@ func (c *ConnectCALeaf) Fetch(opts cache.FetchOptions, req cache.Request) (cache
 			// loop back around, we'll wait at most delay until generating a new cert.
 			if state.forceExpireAfter.Before(expiresAt) {
 				expiresAt = state.forceExpireAfter
-				expiresCh = time.After(delay)
+				// Stop the former one and create a new one.
+				expiresTimer.Stop()
+				expiresTimer = time.NewTimer(delay)
 			}
 			continue
 		}
