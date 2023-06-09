@@ -1,12 +1,12 @@
 ---
 page_title: JWT provider configuration entry reference
 description: |-
-  
+ JWT provider configuration entries add JSON Web Token token validation to intentions in the service mesh. Learn how to write `jwt-provider` config entries in HCL or YAML with a specification reference, configuration model, a complete example, and example code by use case.
 ---
 
 # JWT provider configuration entry reference
 
-This page provides reference information for the JWT provider configuration entry, which configures a JSON Web Token (JWT) and JSON Web Key Set (JWKS) for Consul. JWT provider configuration entries are used to add JWT validation to proxies in the service mesh. Refer to [Use JWT authorization with service intentions](/consul/docs/connect/intentions/jwt-authorization) for more information.
+This page provides reference information for the JWT provider configuration entry, which configures Consul to use a JSON Web Token (JWT) and JSON Web Key Set (JWKS) in order to add JWT validation to proxies in the service mesh. Refer to [Use JWT authorization with service intentions](/consul/docs/connect/intentions/jwt-authorization) for more information.
 
 ## Configuration model
 
@@ -173,7 +173,7 @@ CacheConfig = {
             "NumRetries": "0"
           }
         }
-}
+},
 "Audiences": ["<aud-claims>"],
 "Locations": [
     {
@@ -193,7 +193,7 @@ CacheConfig = {
             "Name": "<name-of-cookie-with-token>"
         }
     }
-]
+],
 "Forwarding": {
     "HeaderName": "<name-appended-to-forwarding-header>",
     "PadForwardPayloadHeader": "false"
@@ -204,6 +204,8 @@ CacheConfig = {
 }
 }
 ```
+
+</Tab>
 
 <Tab heading="YAML" group="yaml">
 
@@ -403,7 +405,7 @@ Specifies a set of audiences that the JWT is allowed to access, formatted as a l
 
 - Default: None
 - Data type: List of strings
-- 
+
 ### `Locations`
 
 Specifies the locations in requests where the JWT can be found. Envoy checks all of these locations to extract a JWT. 
@@ -459,7 +461,7 @@ For example, `Bearer` is a standard value prefix for a header named "Authorizati
 
 Specifies whether the header with the JWT is forwarded after the token is verified. When set to false, the header is not forwarded.
 
-- Default value is false.
+The default value is false.
 
 #### Values
 
@@ -517,7 +519,7 @@ The header value is base64 URL encoded. It is not padded by default.
 
 ### `Forwarding{}.PadForwardPayloadHeader`
 
-Determines whether to add padding to the base64 encoded token specified in [Forwarding{}.HeaderName`](#forwarding-header-name). 
+Determines whether to add padding to the base64 encoded token specified in [`Forwarding{}.HeaderName`](#forwarding-header-name). 
 
 By default, this field is set to `false`.
 
