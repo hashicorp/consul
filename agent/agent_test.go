@@ -6243,7 +6243,13 @@ func TestAgent_checkServerLastSeen(t *testing.T) {
 		},
 		RuntimeConfig: &config.RuntimeConfig{},
 		Cache:         cache.New(cache.Options{}),
+		NetRPC:        &LazyNetRPC{},
 	}
+	bd.LeafCertManager = leafcert.NewManager(leafcert.Deps{
+		CertSigner:  leafcert.NewNetRPCCertSigner(bd.NetRPC),
+		RootsReader: leafcert.NewCachedRootsReader(bd.Cache, "dc1"),
+		Config:      leafcert.Config{},
+	})
 	agent, err := New(bd)
 	require.NoError(t, err)
 
