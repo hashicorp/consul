@@ -21,38 +21,44 @@ The following outline shows how to format the service intentions configuration e
 - [`Name`](#name): string | required  
 - [`Namespace`](#namespace): string |  `default` | <EnterpriseAlert inline/>
 - [`Partition`](#partition): string |  `default` | <EnterpriseAlert inline />
-- [`Meta`](#meta): map | no default 
-- [`Sources`](#sources): list | no default
-  - [`Name`](#sources-name): string | no default
-  - [`Peer`](#sources-peer): string | no default
-  - [`Namespace`](#sources-namespace): string | no default  | <EnterpriseAlert inline />
-  - [`Partition`](#sources-partition): string | no default  | <EnterpriseAlert inline />
-  - [`Action`](#sources-action): string | no default  | required for L4 intentions
-  - [`Permissions`](#sources-permissions): list | no default
-    - [`Action`](#sources-permissions-action): string | no default  | required
+- [`Meta`](#meta): map 
+- [`JWT`](#jwt): map 
+  - [`Providers`](#jwt-providers): list of maps
+    - [`Provider`](#jwt-providers-provider): string
+    - [`VerifyClaims`](#jwt-provider-verifyclaims): list of maps
+      - [`Path`](#jwt-provider-verifyclaims-path): list of strings
+      - [`Value`](#jwt-provider-verifyclaims-value): string
+- [`Sources`](#sources): list 
+  - [`Name`](#sources-name): string 
+  - [`Peer`](#sources-peer): string 
+  - [`Namespace`](#sources-namespace): string | <EnterpriseAlert inline />
+  - [`Partition`](#sources-partition): string | <EnterpriseAlert inline />
+  - [`Action`](#sources-action): string | required for L4 intentions
+  - [`Permissions`](#sources-permissions): list
+    - [`Action`](#sources-permissions-action): string | required
     - [`HTTP`](#sources-permissions-http): map | required
-      - [`PathExact`](#sources-permissions-http): string | no default 
-      - [`PathPrefix`](#sources-permissions-http): string | no default 
-      - [`PathRegex`](#sources-permissions-http): string | no default 
-      - [`Methods`](#sources-permissions-http): list | no default 
-      - [`Header`](#sources-permissions-http-header): list of maps |no default 
+      - [`PathExact`](#sources-permissions-http): string
+      - [`PathPrefix`](#sources-permissions-http): string
+      - [`PathRegex`](#sources-permissions-http): string
+      - [`Methods`](#sources-permissions-http): list | no default
+      - [`Header`](#sources-permissions-http-header): list of maps
         - [`Name`](#sources-permissions-http-header): string | required
-        - [`Present`](#sources-permissions-http-header): boolean | `false` 
-        - [`Exact`](#sources-permissions-http-header): string | no default
-        - [`Prefix`](#sources-permissions-http-header): string | no default
-        - [`Suffix`](#sources-permissions-http-header): string | no default
-        - [`Regex`](#sources-permissions-http-header): string | no default
-        - [`Invert`](#sources-permissions-http-header): boolean | `false` 
-  - [`Precedence`](#sources-precedence): number | no default | _read-only_   
-  - [`Type`](#sources-type): string | `consul` 
-  - [`Description`](#sources-description): string 
-  - [`LegacyID`](#sources-legacyid): string | no default | _read-only_ 
-  - [`LegacyMeta`](#sources-legacymeta): map | no default | _read-only_ 
-  - [`LegacyCreateTime`](#sources-legacycreatetime): string | no default | _read-only_
-  - [`LegacyUpdateTime`](#sources-legacyupdatetime): string | no default | _read-only_
+        - [`Present`](#sources-permissions-http-header): boolean | `false`
+        - [`Exact`](#sources-permissions-http-header): string
+        - [`Prefix`](#sources-permissions-http-header): string
+        - [`Suffix`](#sources-permissions-http-header): string
+        - [`Regex`](#sources-permissions-http-header): string
+        - [`Invert`](#sources-permissions-http-header): boolean | `false`
+  - [`Precedence`](#sources-precedence): number 
+  - [`Type`](#sources-type): string | `consul`
+  - [`Description`](#sources-description): string
+  - [`LegacyID`](#sources-legacyid): string
+  - [`LegacyMeta`](#sources-legacymeta): map
+  - [`LegacyCreateTime`](#sources-legacycreatetime): string 
+  - [`LegacyUpdateTime`](#sources-legacyupdatetime): string 
 
 </Tab>
-<Tab heading="YAML" group="yaml">
+<Tab heading= "YAML" group="yaml">
 
 - [`apiVersion`](#apiversion): string | must be set to `consul.hashicorp.com/v1alpha1`
 - [`kind`](#kind): string | must be set to `ServiceIntentions` 
@@ -63,6 +69,12 @@ The following outline shows how to format the service intentions configuration e
   - [`destination`](#spec-destination): map | no default
     - [`name`](#spec-destination-name): string | required
     - [`namespace`](#metadata-namespace): string | `default` | <EnterpriseAlert inline/>
+  - [`jwt`](#spec-jwt): map 
+  - [`providers`](#spec-jwt-providers): list of maps
+    - [`provider`](#spec-jwt-providers-provider): string
+    - [`verifyClaims`](#spec-jwt-provider-verifyclaims): list of maps
+      - [`path`](#spec-jwt-provider-verifyclaims-path): list of strings
+      - [`value`](#spec-jwt-provider-verifyclaims-value): string
   - [`sources`](#spec-sources): list | no default
     - [`name`](#spec-sources-name): string | no default
     - [`peer`](#spec-sources-peer): string | no default
@@ -107,6 +119,19 @@ Meta = {
   "<key-1>" = "<value-1>"    
   "<key-2>" = "<value-2>"    
   } 
+JWT = {
+    Providers = [
+      {
+        Provider = "<JWT-provider-name>"
+        VerifyClaims = [
+            {
+                Path = ["<claim>"]
+                Value = "<api.apps.organization.com>"
+            }
+        ]
+      }
+    ]
+}
 Sources = [
   {
     Name =  "<name of service sending traffic>"            # string
@@ -176,6 +201,12 @@ spec:
     destination: 
       name: <name of destination service>
       namespace: <destination namespace>
+  jwt:
+    providers:
+      provider: <JWT-provider-name>
+      verifyClaims:
+                path: [<aud>]
+                value: <api.apps.organization.com>
   sources:
     name: <name of service sending traffic>
     peer: <name of cluster containing source service>
@@ -219,6 +250,19 @@ spec:
    "Meta":{
       "key-1":"<value-1>",
       "key-2":"<value-2>"
+   },
+   "JWT": {
+    "Providers": [
+      {
+        "Provider": "<JWT-provider-name>",
+        "VerifyClaims": [
+            {
+                "Path": ["<aud>"],
+                "Value": "<api.apps.organization.com>"
+            }
+        ]
+      }
+    ]
    },
    "Sources":[
       {
@@ -340,6 +384,71 @@ Specifies key-value pairs to add to the KV store when the configuration entry is
 - Data type: Map of one or more key-value pairs
   - keys: String
   - values: String, integer, or float
+
+### `JWT`
+
+Specifies a JSON Web Token provider configured in a [JWT provider configuration entry](/consul/docs/connect/config-entries/jwt-provider), as well as additional configurations for verifying a service's JWT before authorizing communication between services
+
+#### Values
+
+- Default: None
+- Data type: Map that contains [`JWT{}.Providers`](#jwt-providers)
+
+### `JWT{}.Providers`
+
+Specifies the names of one or more previously configured [JWT provider configuration entries](/consul/docs/connect/config-entries/jwt-provider), which include the information necessary to calidate a JSON web token.
+
+#### Values
+
+- Default: None
+- Data type: List of maps
+
+### `JWT{}.Providers[].Provider`
+
+Specifies the name of a JWT provider defined in the `Name` field of the [`jwt-provider` configuration entry](/consul/docs/connect/config-entries/jwt-provider). You must write the JWT Provider to Consul before referencing it in a service intention.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `JWT{}.Providers[].VerifyClaims`
+
+Specifies additional token information to verify beyond what is configured in the JWT provider configuration entry. This map takes the form of a JSON web token claim and a value to match for verification.
+
+#### Values
+
+- Default: None
+- Data type: List of maps that can contain the following parameters:
+- 
+  - [`Path`](#jwt-providers-verifyclaims-path)
+  - [`Value`](#jwt-providers-verifyclaims-value)
+
+### `JWT{}.Providers[].VerifyClaims[].Path`
+
+Specifies the path to the claim in the JSON web token. For more information about JWT claims, refer to the [IETF standards documentation](https://datatracker.ietf.org/doc/html/rfc7519#section-4.1).
+
+#### Values
+
+- Default: None
+- Data type: List of strings that can contain one of the following values:
+
+  - `iss`: Issuer claim
+  - `sub`: Subject claim
+  - `aud`: Audience claim
+  - `exp`: Expiration Time claim
+  - `nbf`: Not Before claim
+  - `iat`: Issued At claim
+  - `jti`: JWT ID claim
+
+### `JWT{}.Providers[].VerifyClaims.Value`
+
+Specifies the value to match on when verifying the the claim designated in [`JWT{}.Providers[].VerifyClaims[].Path`](#jwt-providers-verifyclaims-path).
+
+#### Values
+
+- Default: None
+- Data type: String
 
 ### `Sources[]`
 
@@ -621,17 +730,71 @@ You can also specify a wildcard character (`*`) to match all services that are m
 - This field is required.
 - Data type: String 
 
-### `spec.metadata.namespace` <EnterpriseAlert inline /> 
+### `spec.jwt`
 
-Specifies the [namespace](/consul/docs/enterprise/namespaces) that the configuration entry applies to. You can also specify a wildcard character (`*`) to match all namespaces. Intentions that are applied with a wildcard, however, are not supported when defining L7 [`permissions`](#spec-sources-permissions). 
-
-Refer to [Consul Enterprise](/consul/docs/k8s/crds#consul-enterprise) for information about how Consul namespaces map to Kubernetes Namespaces. Open source Consul distributions (Consul OSS) ignore the `metadata.namespace` configuration.
+Specifies a JSON Web Token provider configured in a [JWT provider configuration entry](/consul/docs/connect/config-entries/jwt-provider), as well as additional configurations for verifying a service's JWT before authorizing communication between services
 
 #### Values
 
-- Default: If not set, destination service namespace is inherited from the `connectInject.consulNamespaces` configuration. Refer to [ServiceIntentions Special Case (Enterprise)](/consul/docs/k8s/crds#serviceintentions-special-case-enterprise) for details. 
+- Default: None
+- Data type: Map that contains [`spec.jwt.providers`](#spec-jwt-providers)
+
+### `spec.jwt.providers`
+
+Specifies the names of one or more previously configured [JWT provider configuration entries](/consul/docs/connect/config-entries/jwt-provider), which include the information necessary to calidate a JSON web token.
+
+#### Values
+
+- Default: None
+- Data type: List of maps
+
+### `spec.jwt.providers[].provider`
+
+Specifies the name of a JWT provider defined in the `metadata.name` field of the [JWT provider configuration entry](/consul/docs/connect/config-entries/jwt-provider). You must write the JWT Provider to Consul before referencing it in a service intention.
+
+#### Values
+
+- Default: None
 - Data type: String
 
+### `spec.jwt.providers[].verifyClaims`
+
+Specifies additional token information to verify beyond what is configured in the JWT provider configuration entry. This map takes the form of a JSON web token claim and a value to match for verification.
+
+#### Values
+
+- Default: None
+- Data type: List of maps that can contain the following parameters:
+- 
+  - [`path`](#spec-jwt-providers-verifyclaims-path)
+  - [`value`](#spec-jwt-providers-verifyclaims-value)
+
+### `spec.jwt.providers[].verifyClaims[].path`
+
+Specifies the path to the claim in the JSON web token. For more information about JWT claims, refer to the [IETF standards documentation](https://datatracker.ietf.org/doc/html/rfc7519#section-4.1).
+
+#### Values
+
+- Default: None
+- Data type: List of strings that can contain one of the following values:
+
+  - `iss`: Issuer claim
+  - `sub`: Subject claim
+  - `aud`: Audience claim
+  - `exp`: Expiration Time claim
+  - `nbf`: Not Before claim
+  - `iat`: Issued At claim
+  - `jti`: JWT ID claim
+
+### `spec.jwt.providers[].verifyClaims[].value`
+
+Specifies the value to match on when verifying the the claim designated in [`JWT{}.Providers[].VerifyClaims[].Path`](#jwt-providers-verifyclaims-path).
+
+#### Values
+
+- Default: None
+- Data type: String
+  
 ### `spec.sources[]`
 
 List of configurations that define intention sources and the authorization granted to the sources. You can specify source configurations in any order, but Consul stores and evaluates them in order of reverse precedence at runtime. 
@@ -1287,3 +1450,111 @@ When using cluster peering connections, intentions secure your deployments with 
   ```
 
   </CodeTabs>
+
+### JWT validation with intentions
+
+The following example configures a service intention that evaluates requests when a service named `backend` receives a request from the `frontend` service. When the request comes from from the `/admin` HTTP path, a JSON Web Token provided by Okta is evaluated. In addition to the validation requirements in a separate JWT provider configuration entry, an additional check occurs to confirm that the token has either a `perms` or `role` claim with the `admin` value. If it does, the request is authorized.
+
+Because the intention allows requests that come from the `/` HTTP path, only requests on the `/admin` path are subject to token validation.
+
+<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
+
+```hcl
+Kind = "service-intentions"
+Name = "backend"
+Sources = [
+  {
+    Name = "frontend"
+    Permissions = [
+      {
+        HTTP = {
+          PathExact = "/admin"
+        }
+        JWT = {
+          Providers = [
+            {
+              Provider = "okta"
+              VerifyClaims = [
+                {
+                  Path = ["perms", "role"]
+                  Value = "admin"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      {
+        Action = "allow"
+        HTTP = {
+          PathPrefix = "/"
+        }
+      }
+    ]
+  }
+]
+```
+
+```yaml
+  apiVersion: consul.hashicorp.com/v1alpha1
+  kind: ServiceIntentions
+  metadata:
+    name: backend
+  spec:
+    sources:
+      name: frontend
+      permissions:
+        http:
+          pathExact: /admin
+        jwt:
+          providers:
+            provider: okta
+            verifyClaims:
+              path: 
+                - perms
+                - role
+              value: admin
+      action: allow
+      http:
+        pathPrefix: /
+```
+
+```json
+{
+"Kind": "service-intentions",
+"Name": "backend",
+"Sources": [
+  {
+    "Name": "frontend",
+    "Permissions": [
+      {
+        "HTTP": {
+          "PathExact": "/admin"
+        },
+        "JWT": {
+          "Providers": [
+            {
+              "Provider": "okta",
+              "VerifyClaims": [
+                {
+                  "Path": ["perms", "role"],
+                  "Value": "admin"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "Action": "allow",
+        "HTTP": {
+          "PathPrefix": "/"
+        }
+      }
+    ]
+  }
+]
+}
+```
+
+</CodeTabs>
