@@ -7,11 +7,11 @@ description: >-
 
 # Service mesh traffic management overview
 
-This topic provides overview information about the application layer, or layer 7 (L7), traffic management capabilities available in Consul service mesh.
+This topic provides overview information about the application layer traffic management capabilities available in Consul service mesh. These capabilities are also referred to as *Layer 7* or *L7 traffic management*.
 
 ## Introduction
 
-Consul service mesh allows you to divide application layer traffic between different subsets of service instances. You can leverage L7 traffic management capabilities to perform complex processes, such as configuring backup services for failover scenarios, canary and A-B testing, blue-green deployments, and soft multi-tenancy in which production, QA, and staging environments share compute resources. L7 traffic management with Consul service mesh allows you to carve out portions of the Consul catalog smaller than a single service and configure when that subset should receive traffic.
+Consul service mesh allows you to divide application layer traffic between different subsets of service instances. You can leverage L7 traffic management capabilities to perform complex processes, such as configuring backup services for failover scenarios, canary and A-B testing, blue-green deployments, and soft multi-tenancy in which production, QA, and staging environments share compute resources. L7 traffic management with Consul service mesh allows you to designate groups of service instances in the Consul catalog smaller than all instances of single service and configure when that subset should receive traffic.
 
 You cannot manage L7 traffic with the [built-in proxy](/consul/docs/connect/proxies/built-in),
 [native proxies](/consul/docs/connect/native), or some [Envoy proxy escape hatches](/consul/docs/connect/proxies/envoy#escape-hatch-overrides).
@@ -31,6 +31,8 @@ The Consul UI shows discovery chain stages in the **Routing** tab of the **Servi
 ![screenshot of L7 traffic visualization in the UI](/img/l7-routing/full.png)
 
 You can define how Consul manages each stage of the discovery chain in a Consul _configuration entry_. [Configuration entries](/consul/docs/connect/config-entries) modify the default behavior of the Consul service mesh.   
+
+When managing L7 traffic with cluster peering, there are additional configuration requirements to resolve peers in the discovery chain. Refer to [Cluster peering L7 traffic management](/consul/docs/connect/cluster-peering/usage/peering-traffic-management) for more information.
 
 ### Routing
 
