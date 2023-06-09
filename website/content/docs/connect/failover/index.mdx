@@ -21,7 +21,7 @@ The following table compares these strategies in deployments with multiple datac
 | Failover Strategy | Supports WAN Federation | Supports Cluster Peering | Multi-Datacenter Failover Strength | Multi-Datacenter Usage Scenario |
 | :---------------: | :---------------------: | :----------------------: | :--------------------------------- | :------------------------------ |
 | `Failover` stanza | &#9989;                 | &#9989;                  | Enables more granular logic for failover targeting | Configuring failover for a single service or service subset, especially for testing or debugging purposes |
-| Prepared query    | &#9989;                 | &#10060;                 | Central policies that can automatically target the nearest datacenter | WAN-federated deployments where a primary datacenter is configured |
+| Prepared query    | &#9989;                 |   &#9989;              | Central policies that can automatically target the nearest datacenter | WAN-federated deployments where a primary datacenter is configured. Prepared queries are not replicated over peer connections. |
 | Sameness groups   | &#10060;                | &#9989;                  | Group size changes without edits to existing member configurations | Cluster peering deployments with consistently named services and namespaces |
 
 ### Failover configurations for a service mesh with a single datacenter
