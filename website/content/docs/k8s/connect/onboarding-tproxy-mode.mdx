@@ -34,7 +34,8 @@ Permissive mTLS is only supported for services running in transparent proxy mode
 
 ## Configure global settings
 
-Configure the mesh to allow services that are already in the mesh to send non-mTLS messages to services outside the mesh. You can also configure the mesh to allow services to run in permissive mTLS mode. Set both configurations in the mesh gateway configuration entry, which is the global configuration that defines service mesh proxy behavior.
+Configure Consul to allow services that are already in the mesh to send non-mTLS messages to services outside the mesh. You can also Consul to allow services to run in permissive mTLS mode. Set both configurations in the mesh gateway configuration entry, which is the global configuration that defines service mesh proxy behavior.
+
 ### Allow outgoing non-mTLS traffic
 
 You can configure a global setting that allows services in the mesh to send non-mTLS messages to services outside the mesh.
@@ -122,7 +123,7 @@ You can change this setting back to `false` at any time, even if there are servi
 
 Depending on the services you are onboarding, you may not need to enable permissive mTLS mode. If the service does not accept incoming traffic or accepts traffic from downstream services that are already part of the service mesh, then permissive mTLS mode is not required to continue. 
 
-To enable permissive mTLS mode for the service, set `MutualTLSMode=permissive` in the service defaults configuration entry for the service. The following example shows how to configure this setting for a service named `example-service`.
+To enable permissive mTLS mode for the service, set [`MutualTLSMode=permissive`](/consul/docs/connect/config-entries/service-defaults#mutualtlsmode) in the service defaults configuration entry for the service. The following example shows how to configure this setting for a service named `example-service`.
 
 <CodeTabs heading="Enable permissive mTLS for applicable services">
 
