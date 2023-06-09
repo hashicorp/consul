@@ -1,6 +1,6 @@
 {
   "name": "@hashicorp/consul-ui-toolkit",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "The default blueprint for Embroider v2 addons.",
   "keywords": [
     "ember-addon"
@@ -54,16 +54,15 @@
       "./components/cut/list-item/label/index.js": "./dist/_app_/components/cut/list-item/label/index.js",
       "./components/cut/list-item/label/metadata.js": "./dist/_app_/components/cut/list-item/label/metadata.js",
       "./components/cut/list-item/label/title.js": "./dist/_app_/components/cut/list-item/label/title.js",
-      "./components/cut/list-item/service-ingress-gateway/index.js": "./dist/_app_/components/cut/list-item/service-ingress-gateway/index.js",
       "./components/cut/list-item/service-instance/index.js": "./dist/_app_/components/cut/list-item/service-instance/index.js",
-      "./components/cut/list-item/service-terminating-gateway/index.js": "./dist/_app_/components/cut/list-item/service-terminating-gateway/index.js",
       "./components/cut/list-item/service/index.js": "./dist/_app_/components/cut/list-item/service/index.js",
       "./components/cut/list-item/template/index.js": "./dist/_app_/components/cut/list-item/template/index.js",
       "./components/cut/metadata/external-source/index.js": "./dist/_app_/components/cut/metadata/external-source/index.js",
       "./components/cut/metadata/health-check-badge-set/index.js": "./dist/_app_/components/cut/metadata/health-check-badge-set/index.js",
       "./components/cut/metadata/in-service-mesh/index.js": "./dist/_app_/components/cut/metadata/in-service-mesh/index.js",
       "./components/cut/metadata/tags/index.js": "./dist/_app_/components/cut/metadata/tags/index.js",
-      "./components/cut/text-with-icon/index.js": "./dist/_app_/components/cut/text-with-icon/index.js"
+      "./components/cut/text-with-icon/index.js": "./dist/_app_/components/cut/text-with-icon/index.js",
+      "./utils/service-list-item.js": "./dist/_app_/utils/service-list-item.js"
     }
   },
   "exports": {
@@ -71,5 +70,5 @@
     "./*": "./dist/*.js",
     "./addon-main.js": "./addon-main.cjs"
   },
-  "yalcSig": "854b461fc79efe2add4f674bebee7b9a"
+  "yalcSig": "892d5be1e5d785808d3b0ec9450b799b"
 }

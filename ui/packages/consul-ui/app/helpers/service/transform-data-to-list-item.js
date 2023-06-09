@@ -6,20 +6,12 @@
 import { helper } from '@ember/component/helper';
 import mergeChecks from '../../utils/merge-checks';
 import { serviceExternalSource } from './external-source';
-import { titleize } from 'ember-cli-string-helpers/helpers/titleize';
-import { humanize } from 'ember-cli-string-helpers/helpers/humanize';
+import { CUT_SERVICE_LIST_ITEM_TYPE } from '@hashicorp/consul-ui-toolkit/utils/service-list-item';
 
+// will be used from cut import
 export const ServiceListItemType = {
   ServiceInstance: 'service-instance',
   Service: 'service',
-  ServiceTerminatingGateway: 'service-terminating-gateway',
-  ServiceIngressGateway: 'service-ingress-gateway',
-};
-const normalizedGatewayLabels = {
-  'api-gateway': 'API Gateway',
-  'mesh-gateway': 'Mesh Gateway',
-  'ingress-gateway': 'Ingress Gateway',
-  'terminating-gateway': 'Terminating Gateway',
 };
 
 function serviceInstanceListItem(serviceInstance, node, proxy, isExternalSource) {
@@ -61,15 +53,13 @@ function serviceInstanceListItem(serviceInstance, node, proxy, isExternalSource)
 }
 
 function serviceListItem(service) {
-  const kind = service.Kind;
-  let kindName = normalizedGatewayLabels[kind];
-  kindName = kindName || (kind ? titleize(humanize(kind)) : undefined);
-
   return {
     name: service.Name,
     metadata: {
       instanceCount: service.InstanceCount,
-      kindName,
+      upstreamCount: service.GatewayConfig?.AssociatedServiceCount,
+      linkedServiceCount: service.GatewayConfig?.AssociatedServiceCount,
+      kind: service.Kind,
       healthCheck: {
         instance: {
           success: service.MeshChecksPassing,
@@ -79,54 +69,8 @@ function serviceListItem(service) {
       },
       connectedWithGateway: service.ConnectedWithGateway,
       connectedWithProxy: service.ConnectedWithProxy,
-    },
-  };
-}
-
-function serviceTerminatingGatewayListItem(service) {
-  const kind = service.Kind;
-  let kindName = normalizedGatewayLabels[kind];
-  kindName = kindName || (kind ? titleize(humanize(kind)) : undefined);
-
-  return {
-    name: service.Name,
-    metadata: {
-      kindName,
-      linkedServiceCount: service.GatewayConfig.AssociatedServiceCount,
+      tags: service.Tags,
       externalSource: serviceExternalSource([service]),
-      healthCheck: {
-        instance: {
-          success: service.MeshChecksPassing,
-          warning: service.MeshChecksWarning,
-          critical: service.MeshChecksCritical,
-        },
-      },
-      connectedWithGateway: service.ConnectedWithGateway,
-      connectedWithProxy: service.ConnectedWithProxy,
-    },
-  };
-}
-
-function serviceIngressGatewayListItem(service) {
-  const kind = service.Kind;
-  let kindName = normalizedGatewayLabels[kind];
-  kindName = kindName || (kind ? titleize(humanize(kind)) : undefined);
-
-  return {
-    name: service.Name,
-    metadata: {
-      kindName,
-      upstreamCount: service.GatewayConfig.AssociatedServiceCount,
-      externalSource: serviceExternalSource([service]),
-      healthCheck: {
-        instance: {
-          success: service.MeshChecksPassing,
-          warning: service.MeshChecksWarning,
-          critical: service.MeshChecksCritical,
-        },
-      },
-      connectedWithGateway: service.ConnectedWithGateway,
-      connectedWithProxy: service.ConnectedWithProxy,
     },
   };
 }
@@ -135,16 +79,10 @@ export default helper(function transformDataToListItem(
   [service, type, node, proxy, isExternalSource] /*, hash*/
 ) {
   switch (type) {
-    case ServiceListItemType.ServiceInstance:
+    case CUT_SERVICE_LIST_ITEM_TYPE.ServiceInstance:
       return serviceInstanceListItem(service, node, proxy, isExternalSource);
-    case ServiceListItemType.Service: {
+    case CUT_SERVICE_LIST_ITEM_TYPE.Service: {
       return serviceListItem(service);
-    }
-    case ServiceListItemType.ServiceTerminatingGateway: {
-      return serviceTerminatingGatewayListItem(service);
-    }
-    case ServiceListItemType.ServiceIngressGateway: {
-      return serviceIngressGatewayListItem(service);
     }
     default:
       return null;

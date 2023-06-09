@@ -5,53 +5,20 @@
 
 <div class="flex flex-col gap-2 pt-2 pb-8">
   {{#each @items as |item|}}
-    {{#if (eq item.Kind 'ingress-gateway')}}
-      <Cut::ListItem::ServiceIngressGateway
-        @isHrefExternal={{false}}
-        @href={{if (gt item.InstanceCount 0) (href-to
-        'dc.services.show.index'
-        item.Name
-        params=(if
-          (not-eq item.Partition @partition)
-          (hash partition=item.Partition nspace=item.Namespace peer=item.PeerName)
-          (hash peer=item.PeerName)
-        )) null}}
-        @service={{service/transform-data-to-list-item item 'service-ingress-gateway'}}
-        }}
-
-      />
-    {{else if (eq item.Kind 'terminating-gateway')}}
-      <Cut::ListItem::ServiceTerminatingGateway
-        @isHrefExternal={{false}}
-        @href={{if (gt item.InstanceCount 0) (href-to
-        'dc.services.show.index'
-        item.Name
-        params=(if
-          (not-eq item.Partition @partition)
-          (hash partition=item.Partition nspace=item.Namespace peer=item.PeerName)
-          (hash peer=item.PeerName)
-        )) null}}
-        @service={{service/transform-data-to-list-item item 'service-terminating-gateway'}}
-        @type="service"
-        }}
-
-      />
-    {{else}}
-      <Cut::ListItem::Service
-        @isHrefExternal={{false}}
-        @href={{if (gt item.InstanceCount 0) (href-to
-        'dc.services.show.index'
-        item.Name
-        params=(if
-          (not-eq item.Partition @partition)
-          (hash partition=item.Partition nspace=item.Namespace peer=item.PeerName)
-          (hash peer=item.PeerName)
-        )) null}}
-        @service={{service/transform-data-to-list-item item 'service'}}
-        @type="service"
-        }}
-      />
-    {{/if}}
+    <Cut::ListItem::Service
+      @isHrefExternal={{false}}
+      @href={{if (gt item.InstanceCount 0) (href-to
+      'dc.services.show.index'
+      item.Name
+      params=(if
+        (not-eq item.Partition @partition)
+        (hash partition=item.Partition nspace=item.Namespace peer=item.PeerName)
+        (hash peer=item.PeerName)
+      )) null}}
+      @service={{service/transform-data-to-list-item item 'service'}}
+      @type="service"
+      }}
+    />
   {{/each}}
 </div>
 
