@@ -18,8 +18,46 @@
               },
               "route":  {
                 "cluster":  "service.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
-              }
+              },
+              "requestHeadersToAdd":  [
+                {
+                  "header":  {
+                    "key":  "X-Header-Add",
+                    "value":  "added"
+                  },
+                  "append":  true
+                },
+                {
+                  "header":  {
+                    "key":  "X-Header-Set",
+                    "value":  "set"
+                  },
+                  "append":  false
+                }
+              ],
+              "requestHeadersToRemove":  [
+                "X-Header-Remove"
+              ]
             }
+          ],
+          "requestHeadersToAdd":  [
+            {
+              "header":  {
+                "key":  "X-Header-Add",
+                "value":  "added"
+              },
+              "append":  true
+            },
+            {
+              "header":  {
+                "key":  "X-Header-Set",
+                "value":  "set"
+              },
+              "append":  false
+            }
+          ],
+          "requestHeadersToRemove":  [
+            "X-Header-Remove"
           ]
         }
       ],
