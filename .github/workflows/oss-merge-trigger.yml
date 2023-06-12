@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MPL-2.0
 
 name: Trigger OSS to Enterprise Merge
-on: 
+on:
   pull_request_target:
     types:
       - closed
@@ -13,7 +13,7 @@ on:
 jobs:
   trigger-oss-merge:
     # run this only on merge events in OSS repo
-    # if: ${{ github.event.pull_request.merged && github.repository == 'hashicorp/consul' }}
+    if: ${{ github.event.pull_request.merged && github.repository == 'hashicorp/consul' }}
     runs-on: ubuntu-latest
     steps:
       - name: Trigger Merge
