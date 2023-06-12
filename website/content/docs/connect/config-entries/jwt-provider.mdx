@@ -19,17 +19,20 @@ The following list outlines field hierarchy, language-specific data types, and r
 - [`Kind`](#kind): string | required | must be set to `jwt-provider`
 - [`Name`](#name): string | required
 - [`Issuer`](#issuer): string
-- [`JWKS`](#jwks): map
-  - [`Local`](#jwks-local): map
-    - [`String`](#jwks-local-string): string
-    - [`Filename`](#jwks-local-filename): string
-  - [`Remote`](#jwks-remote): map
-    - [`URI`](#jwks-remote-uri): string
-    - [`RequestTimeoutMs`](#jwks-remote-requesttimeoutms): integer
-    - [`CacheDuration`](#jwks-remote-cacheduration): string | `5m`
-    - [`FetchAsynchronously`](#jwks-remote-fetchasynchronously): boolean | `false`
-    - [`RetryPolicy`](#jwks-remote-retrypolicy): map
-      - [`NumRetries`](#jwks-remote-retrypolicy): integer | `0`
+- [`JSONWebKeySet`](#jsonwebkeyset): map
+  - [`Local`](#jsonwebkeyset-local): map
+    - [`JWKS`](#jsonwebkeyset-local-jwks): string
+    - [`Filename`](#jsonwebkeyset-local-filename): string
+  - [`Remote`](#jsonwebkeyset-remote): map
+    - [`URI`](#jsonwebkeyset-remote-uri): string
+    - [`RequestTimeoutMs`](#jsonwebkeyset-remote-requesttimeoutms): integer
+    - [`CacheDuration`](#jsonwebkeyset-remote-cacheduration): string | `5m`
+    - [`FetchAsynchronously`](#jsonwebkeyset-remote-fetchasynchronously): boolean | `false`
+    - [`RetryPolicy`](#jsonwebkeyset-remote-retrypolicy): map
+      - [`NumRetries`](#jsonwebkeyset-remote-retrypolicy-numretries): integer | `0`
+      - [`RetryPolicyBackoff`](#jsonwebkeyset-remote-retrypolicy-retry-policy-backoff): map
+        - [`BaseInterval`](#jsonwebkeyset-remote-retrypolicy-retry-policy-backoff): string
+        - [`MaxInterval`](#jsonwebkeyset-remote-retrypolicy-retry-policy-backoff): string
 - [`Audiences`](#audiences): list of strings
 - [`Locations`](#locations): list of maps
   - [`Header`](#locations-header): map
@@ -58,17 +61,20 @@ The following list outlines field hierarchy, language-specific data types, and r
   - [`namespace`](#metadata-namespace): string
 - [`spec`](#spec): map | required
   - [`issuer`](#spec-issuer): string
-  - [`jwks`](#spec-jwks): map
-    - [`local`](#spec-jwks-local): map
-      - [`string`](#spec-jwks-local-string): string
-      - [`filename`](#spec-jwks-local-filename): string
-    - [`remote`](#spec-jwks-remote): map
-      - [`uri`](#spec-jwks-remote-uri): string
-      - [`requestTimeoutMs`](#spec-jwks-remote-requesttimeoutms): integer
-      - [`cacheDuration`](#spec-jwks-remote-cacheduration): string | `5m` 
-      - [`fetchAsynchronously`](#spec-jwks-remote-fetchasynchronously): boolean | `false`
-      - [`retryPolicy`](#spec-jwks-remote-retrypolicy): map
-        - [`numRetries`](#spec-jwks-remote-retrypolicy): integer | `0`
+  - [`jsonWebKeySet`](#spec-jsonwebkeyset): map
+    - [`local`](#spec-jsonwebkeyset-local): map
+      - [`jwks`](#spec-jsonwebkeyset-local-jwks): string
+      - [`filename`](#spec-jsonwebkeyset-local-filename): string
+    - [`remote`](#spec-jsonwebkeyset-remote): map
+      - [`uri`](#spec-jsonwebkeyset-remote-uri): string
+      - [`requestTimeoutMs`](#spec-jsonwebkeyset-remote-requesttimeoutms): integer
+      - [`cacheDuration`](#spec-jsonwebkeyset-remote-cacheduration): string | `5m` 
+      - [`fetchAsynchronously`](#spec-jsonwebkeyset-remote-fetchasynchronously): boolean | `false`
+      - [`retryPolicy`](#spec-jsonwebkeyset-remote-retrypolicy): map
+        - [`numRetries`](#spec-jsonwebkeyset-remote-retrypolicy-numretries): integer | `0`
+        - [`retryPolicyBackoff`](#spec-jsonwebkeyset-remote-retrypolicy-retry-policy-backoff): map
+          - [`baseInterval`](#spec-jsonwebkeyset-remote-retrypolicy-retry-policy-backoff): string
+          - [`maxInterval`](#spec-jsonwebkeyset-remote-retrypolicy-retry-policy-backoff): string
   - [`audiences`](#spec-audiences): list of strings
   - [`locations`](#spec-locations): list of maps
     - [`header`](#spec-locations-header): map
@@ -101,13 +107,13 @@ When every field is defined, a JWT provider configuration entry has the followin
 Kind = "jwt-provider"                                # required
 Name = "<name-of-provider-configuration-entry>"      # required
 Issuer = "<jwt-issuer>"                              # required
-JWKS = {                                             # required
+JSONWebKeySet = {                                    # required
     Local = {                                        # cannot specify with JWKS{}.Remote
-        String = "<JWKS-formatted-as-string>"        # cannot specify with JWKS{}.Remote{}.Filename
-        Filename = "<path/to/JWKS/file>"             # cannot specify with JWKS{}.Remote{}.String
+        JWKS = "<JWKS-formatted-as-string>"          # cannot specify with JWKS{}.Local{}.Filename
+        Filename = "<path/to/JWKS/file>"             # cannot specify with JWKS{}.Local{}.String
     }
 }
-JWKS = {
+JSONWebKeySet = {
         Remote = {                                   # cannot specify with JWKS{}.Local
           URI = "<uniform-resource-identifier>"
           RequestTimeoutMs = 1500
@@ -115,6 +121,10 @@ JWKS = {
           FetchAsynchronously = false
           RetryPolicy = {
             NumRetries = 0
+            RetryPolicyBackoff = {
+              BaseInterval = "1s"
+              MaxInterval = "10s"
+            }
           }
         }
       }
@@ -157,20 +167,24 @@ CacheConfig = {
 "Kind": "jwt-provider",                               // required
 "Name": "<name-of-provider-configuration-entry>",     // required
 "Issuer": "<jwt-issuer>",                             // required
-"JWKS": {                                             // required
+"JSONWebKeySet": {                                    // required
     "Local": {                                        // cannot specify with JWKS.Remote
-        "String": "<JWKS-formatted-as-string>",       // cannot specify with JWKS.Local.Filename
+        "JWKS": "<JWKS-formatted-as-string>",         // cannot specify with JWKS.Local.Filename
         "Filename": "<path/to/JWKS/file>"             // cannot specify with JWKS.Local.String
     }
 },
-"JWKS": {
+"JSONWebKeySet": {
         "Remote": {                                   // cannot specify with JWKS.Local
           "URI": "<uniform-resource-identifier>",
           "RequestTimeoutMs": "1500",
           "CacheDuration": "5m",
           "FetchAsynchronously": "false",
           "RetryPolicy": {
-            "NumRetries": "0"
+            "NumRetries": "0",
+            "RetryPolicyBackOff": {
+              "BaseInterval": "1s",
+              "MaxInterval": "10s"
+            }
           }
         }
 },
@@ -217,18 +231,21 @@ metadata:                                         # required
   namespace: <namespace>
 spec:                                             # required
   issuer: <jwt-issuer>
-  jwks:
-    local:                                        # cannot specify with spec.jwks.remote
-     string: <jwks-formatted-as-string>           # cannot specify with spec.jwks.local.filename
-     filename: <path/to/jwks/file>                # cannot specify with spec.jwks.local.string
-  jwks:
-    remote:                                       # cannot specify with spec.jwks.local
+  jsonWebKeySet:
+    local:                                        # cannot specify with spec.jsonWebKeySet.remote
+     jwks: <jwks-formatted-as-string>             # cannot specify with spec.jsonWebKeySet.local.filename
+     filename: <path/to/jwks/file>                # cannot specify with spec.jsonWebKeySet.local.string
+  jsonWebKeySet:
+    remote:                                       # cannot specify with spec.jsonWebKeySet.local
       uri: <uniform-resource-identifier>
       requestTimeoutMs: 1500
       cacheDuration: 5m
       fetchAsynchronously: false
       retryPolicy:
         numRetries: 0
+        retryPolicyBackoff:
+          baseInterval: 1s
+          maxInterval: 10s
   audiences: [<aud-claims>]
   locations: 
     header: 
@@ -287,49 +304,49 @@ Specifies the provider that issued the JWT. This value must match the token’s 
 - Default: None
 - Data type: String
 
-### `JWKS`
+### `JSONWebKeySet`
 
-Defines a JSON Web Key Set. This field can be configured for a local file, or it can specify instructions to fetch a key set from a remote server. You cannot specify [`JWKS{}.Local`](#jwks-local) and [`JWKS{}.Remote`](#jwks-remote) in the same map.
-
-#### Values
-
-- Default: None
-- Data type: Map that can contain one of the following parameters:
-
-  - [`Local`](#jwks-local)
-  - [`Remote`](#jwks-remote)
-
-### `JWKS{}.Local`
-
-Specifies a local source for the JSON Web Key Set. You can specify the source as a string in the configuration entry or you can include a local filename that contains the set. You cannot specify both `String` and `Filename` in the same map.
+Defines a JSON Web Key Set. This field can be configured for a local file, or it can specify instructions to fetch a key set from a remote server. You cannot specify [`JSONWebKeySet{}.Local`](#jsonwebkeyset-local) and [`JSONWebKeySet{}.Remote`](#jsonwebkeyset-remote) in the same map.
 
 #### Values
 
 - Default: None
 - Data type: Map that can contain one of the following parameters:
 
-  - [`String`](#jwks-local-string)
-  - [`Filename`](#jwks-local-filename)
+  - [`Local`](#jsonwebkeyset-local)
+  - [`Remote`](#jsonwebkeyset-remote)
 
-### `JWKS{}.Local{}.String`
+### `JSONWebKeySet{}.Local`
 
-Specifies the JSON Web Key Set that validates the JWT’s signature, formatted as a base64 encoded string. You cannot specify the `String` parameter if [`JWKS{}.Local{}.Filename`](#jwks-local-filename) is also specified in the same map.
+Specifies a local source for the JSON Web Key Set. You can specify the source as a string in the configuration entry or you can include a local filename that contains the set. You cannot specify both `JWKS` and `Filename` in the same map.
+
+#### Values
+
+- Default: None
+- Data type: Map that can contain one of the following parameters:
+
+  - [`JWKS`](#jsonwebkeyset-local-jwks)
+  - [`Filename`](#jsonwebkeyset-local-filename)
+
+### `JSONWebKeySet{}.Local{}.JWKS`
+
+Specifies the JSON Web Key Set that validates the JWT’s signature, formatted as a base64 encoded string. You cannot specify the `JWKS` parameter if [`JWKS{}.Local{}.Filename`](#jsonwebkeyset-local-filename) is also specified in the same map.
 
 #### Values
 
 - Default: None
 - Data type: String
 
-### `JWKS{}.Local{}.Filename`
+### `JSONWebKeySet{}.Local{}.Filename`
 
-Specifies the path to the JSON Web Key Set’s location on the local disk. When this field is specified, the file must be present on the disk for all proxies with service intentions referencing this provider. You cannot specify the `Filename` parameter if [`JWKS{}.Local{}.String`](#jwks-local-string) is also specified in the same map.
+Specifies the path to the JSON Web Key Set’s location on the local disk. When this field is specified, the file must be present on the disk for all proxies with service intentions referencing this provider. You cannot specify the `Filename` parameter if [`JWKS{}.Local{}.String`](#jsonwebkeyset-local-string) is also specified in the same map.
 
 #### Values
 
 - Default: None
 - Data type: String
 
-### `JWKS{}.Remote`
+### `JSONWebKeySet{}.Remote`
 
 Specifies a remote source for the JSON Web Key Set and configures behavior when fetching the key set.
 
@@ -338,13 +355,13 @@ Specifies a remote source for the JSON Web Key Set and configures behavior when 
 - Default: None
 - Data type: Map that can contain the following parameters:
 
-  - [`URI`](#jwks-remote-uri)
-  - [`RequestTimeoutMs`](#jwks-remote-requesttimeoutms) 
-  - [`CacheDuration`](#jwks-remote-cacheduration) 
-  - [`FetchAsynchronously`](#jwks-remote-fetchasynchronously)
-  - [`RetryPolicy`](#jwks-remote-retrypolicy)
+  - [`URI`](#jsonwebkeyset-remote-uri)
+  - [`RequestTimeoutMs`](#jsonwebkeyset-remote-requesttimeoutms) 
+  - [`CacheDuration`](#jsonwebkeyset-remote-cacheduration) 
+  - [`FetchAsynchronously`](#jsonwebkeyset-remote-fetchasynchronously)
+  - [`RetryPolicy`](#jsonwebkeyset-remote-retrypolicy)
 
-### `JWKS.Remote{}.URI`
+### `JSONWebKeySet{}.Remote{}.URI`
 
 Specifies the URI of the server to query for the JSON Key Web Set.
 
@@ -353,7 +370,7 @@ Specifies the URI of the server to query for the JSON Key Web Set.
 - Default: None
 - Data type: String
 
-### `JWKS.Remote{}.RequestTimeoutMs`
+### `JSONWebKeySet{}.Remote{}.RequestTimeoutMs`
 
 Specifies the length of time before a request to the remote URI times out, measured in milliseconds (ms).
 
@@ -362,7 +379,7 @@ Specifies the length of time before a request to the remote URI times out, measu
 - Default: None
 - Data type: Integer
 
-### `JWKS.Remote{}.CacheDuration`
+### `JSONWebKeySet{}.Remote{}.CacheDuration`
 
 Specifies the amount of time cached keys are available before they expire.
 
@@ -373,7 +390,7 @@ The default cache duration is 5 minutes.
 - Default: `5m`
 - Data type: String
 
-### `JWKS.Remote{}.FetchAsynchronously`
+### `JSONWebKeySet{}.Remote{}.FetchAsynchronously`
 
 Determines if the JSON Web Key Set is fetched before a client request arrives. When enabled, the JWKS is fetched before incoming requests. When not enabled, the JWKS is fetched after each request arrives and the proxy listener waits for the JWKS to be fetched before activating.
 
@@ -384,18 +401,40 @@ This parameter is set to `false` by default.
 - Default: `false`
 - Data type: Boolean
 
-### `JWKS.Remote{}.RetryPolicy`
+### `JSONWebKeySet{}.Remote{}.RetryPolicy`
 
 Defines a retry policy when fetching the JSON Web Key Set from the remote location.
 
 #### Values
 
 - Default: None
-- Data type: Map that contains the following parameter:
+- Data type: Map that can contain the following parameters:
 
-| Parameter | Description | Data type | Default value| 
-| -------------- | --------------- | ------------- | ---------------- |
-| `NumRetries`| Specifies the number of times to attempt to fetch the JSON Web Key Set when the previous attempt fails. | Integer | `0` |
+  - [`NumRetries`](#jsonwebkeyset-remote-retrypolicy-numretries)
+  - [`RetryPolicyBackoff`](#jsonwebkeyset-remote-retrypolicy-retrypolicybackoff)
+
+### `JSONWebKeySet{}.Remote{}.RetryPolicy{}.NumRetries`
+
+Specifies the number of times to attempt to fetch the JSON Web Key Set when the previous attempt fails.
+
+#### Values
+
+- Default: `0`
+- Data type: Integer
+
+## `JSONWebKeySet{}.Remote{}.RetryPolicy{}.RetryPolicyBackoff`
+
+Specifies a jittered exponential backoff strategy. When this field is empty, Envoy's default policy is used. This policy has a 1 second base interval and a 10 second max interval. 
+
+#### Values
+
+- Default: None
+- Data type: Map that can contain the following parameters:
+
+| Parameter | Description                                        | Data type | Default value |
+| :-------- | :------------------------------------------------- | :-------- | :------------ |
+| `BaseInterval`| Specifies the base interval to use for the next back off computation. | String | `1s` |
+| `MaxInterval` | Specifies the maximum interval between retries. By default, this value is 10 times `BaseInterval`. | String | `10s` |
 
 ### `Audiences`
 
@@ -623,19 +662,19 @@ Specifies the provider that issued the JWT. This value must match the token’s 
 - Default: None
 - Data type: String
 
-### `spec.jwks`
+### `spec.jsonWebKeySet`
 
-Defines a JSON Web Key Set. This field can be configured for a local file, or it can specify instructions to fetch a key set from a remote server. You cannot specify [`spec.jwks.local`](#spec-jwks-local) and [`spec.jwks.remote`](#spec-jwks-remote) in the same map.
+Defines a JSON Web Key Set. This field can be configured for a local file, or it can specify instructions to fetch a key set from a remote server. You cannot specify [`spec.jsonWebKeySet.local`](#spec-jsonwebkeyset-local) and [`spec.jsonWebKeySet.remote`](#spec-jsonwebkeyset-remote) in the same map.
 
 #### Values
 
 - Default: None
 - Data type: Map that can contain one of the following parameters:
 
-  - [`local`](#spec-jwks-local)
-  - [`remote`](#spec-jwks-remote)
+  - [`local`](#spec-jsonwebkeyset-local)
+  - [`remote`](#spec-jsonwebkeyset-remote)
 
-### `spec.jwks.local`
+### `spec.jsonWebKeySet.local`
 
 Specifies a local source for the JSON Web Key Set. You can specify the source as a string in the configuration entry or you can include a local filename that contains the set. You cannot specify both `string` and `filename` in the same map.
 
@@ -644,28 +683,28 @@ Specifies a local source for the JSON Web Key Set. You can specify the source as
 - Default: None
 - Data type: Map that can contain one of the following parameters:
 
-  - [`string`](#spec-jwks-local-string)
-  - [`filename`](#spec-jwks-local-filename)
+  - [`jwks`](#spec-jsonwebkeyset-local-jwks)
+  - [`filename`](#spec-jsonwebkeyset-local-filename)
 
-### `spec.jwks.local.string`
+### `spec.jsonWebKeySet.local.jwks`
 
-Specifies the JSON Web Key Set that validates the JWT’s signature, formatted as a base64 encoded string. You cannot specify the `string` parameter if [`spec.jwks.local.filename`](#spec-jwks-local-filename) is also specified in the same map.
-
-#### Values
-
-- Default: None
-- Data type: String
-
-### `spec.jwks.local.filename`
-
-Specifies the path to the JSON Web Key Set’s location on the local disk. When this field is specified, the file must be present on the disk for all proxies with service intentions referencing this provider. You cannot specify the `filename` parameter if [`spec.jwks.local.string`](#spec-jwks-local-string) is also specified in the same map.
+Specifies the JSON Web Key Set that validates the JWT’s signature, formatted as a base64 encoded string. You cannot specify the `jwks` parameter if [`spec.jsonWebKeySet.local.filename`](#spec-jsonwebkeyset-local-filename) is also specified in the same map.
 
 #### Values
 
 - Default: None
 - Data type: String
 
-### `spec.jwks.remote`
+### `spec.jsonWebKeySet.local.filename`
+
+Specifies the path to the JSON Web Key Set’s location on the local disk. When this field is specified, the file must be present on the disk for all proxies with service intentions referencing this provider. You cannot specify the `filename` parameter if [`spec.jsonWebKeySet.local.jwks`](#spec-jsonwebkeyset-local-jwks) is also specified in the same map.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec.jsonWebKeySet.remote`
 
 Specifies a remote source for the JSON Web Key Set and configures behavior when fetching the key set.
 
@@ -674,13 +713,13 @@ Specifies a remote source for the JSON Web Key Set and configures behavior when 
 - Default: None
 - Data type: Map that can contain the following parameters:
 
-  - [`uri`](#spec-jwks-remote-uri)
-  - [`requestTimeoutMs`](#spec-jwks-remote-requesttimeoutms)
-  - [`cacheDuration`](#spec-jwks-remote-cacheduration)
-  - [`fetchAsynchronously`](#spec-jwks-remote-fetchasynchronously)
-  - [`retryPolicy`](#spec-jwks-remote-retrypolicy)
+  - [`uri`](#spec-jsonwebkeyset-remote-uri)
+  - [`requestTimeoutMs`](#spec-jsonwebkeyset-remote-requesttimeoutms)
+  - [`cacheDuration`](#spec-jsonwebkeyset-remote-cacheduration)
+  - [`fetchAsynchronously`](#spec-jsonwebkeyset-remote-fetchasynchronously)
+  - [`retryPolicy`](#spec-jsonwebkeyset-remote-retrypolicy)
 
-### `spec.jwks.remote.uri`
+### `spec.jsonWebKeySet.remote.uri`
 
 Specifies the URI of the server to query for the JSON Key Web Set.
 
@@ -689,7 +728,7 @@ Specifies the URI of the server to query for the JSON Key Web Set.
 - Default: None
 - Data type: String
 
-### `spec.jwks.remote.requestTimeoutMs`
+### `spec.jsonWebKeySet.remote.requestTimeoutMs`
 
 Specifies the length of time before a request to the remote URI times out, measured in milliseconds (ms).
 
@@ -698,7 +737,7 @@ Specifies the length of time before a request to the remote URI times out, measu
 - Default: None
 - Data type: Integer
 
-### `spec.jwks.remote.cacheDuration`
+### `spec.jsonWebKeySet.remote.cacheDuration`
 
 Specifies the amount of time cached keys are available before they expire.
 
@@ -709,7 +748,7 @@ The default cache duration is 5 minutes.
 - Default: `5m`
 - Data type: String
 
-### `spec.jwks.remote.fetchAsynchronously`
+### `spec.jsonWebKeySet.remote.fetchAsynchronously`
 
 Determines if the JSON Web Key Set is fetched before a client request arrives. When enabled, the JWKS is fetched before incoming requests. When not enabled, the JWKS is fetched after each request arrives and the proxy listener waits for the JWKS to be fetched before activating.
 
@@ -720,7 +759,7 @@ This parameter is set to `false` by default.
 - Default: `false`
 - Data type: Boolean
 
-### `spec.jwks.remote.retryPolicy`
+### `spec.jsonWebKeySet.remote.retryPolicy`
 
 Defines a retry policy when fetching the JSON Web Key Set from the remote location.
 
@@ -729,9 +768,31 @@ Defines a retry policy when fetching the JSON Web Key Set from the remote locati
 - Default: None
 - Data type: Map that contains the following parameter:
 
-| Parameter   | Description                                                                                             | Data type | Default value |
-| :---------- | :------------------------------------------------------------------------------------------------------ | :-------- | :------------ |
-| `numRetries`| Specifies the number of times to attempt to fetch the JSON Web Key Set when the previous attempt fails. | Integer   | `0`           |
+  - [`numRetries`](#spec-jsonwebkeyset-remote-retrypolicy-numretries)
+  - [`retryPolicyBackoff`](#spec-jsonwebkeyset-remote-retrypolicy-retrypolicybackoff)
+
+### `spec.jsonWebKeySet.remote.retryPolicy.numRetries`
+
+Specifies the number of times to attempt to fetch the JSON Web Key Set when the previous attempt fails.
+
+#### Values
+
+- Default: `0`
+- Data type: Integer
+
+## `spec.jsonWebKeySet.remote.retryPolicy.retryPolicyBackoff`
+
+Specifies a jittered exponential backoff strategy. When this field is empty, Envoy's default policy is used. This policy has a 1 second base interval and a 10 second max interval. 
+
+#### Values
+
+- Default: None
+- Data type: Map that can contain the following parameters:
+
+| Parameter | Description                                        | Data type | Default value |
+| :-------- | :------------------------------------------------- | :-------- | :------------ |
+| `baseInterval`| Specifies the base interval to use for the next back off computation. | String | `1s` |
+| `maxInterval` | Specifies the maximum interval between retries. By default, this value is 10 times `BaseInterval`. | String | `10s` |
 
 ### `spec.audiences`
 
@@ -909,9 +970,9 @@ Name = "okta"
 
 Issuer = "okta"
 
-JWKS = {
+JSONWebKeySet = {
     Remote = {
-        URI = "https://dev-850216.okta.com/oauth2/default/v1/keys"
+        URI = "https://<org>.okta.com/oauth2/default/v1/keys"
         CacheDuration = "30m"
     }
 }
@@ -930,9 +991,9 @@ Forwarding = {
   "Kind": "jwt-provider",
   "Name": "okta",
   "Issuer": "okta",
-  "JWKS": {
+  "JSONWebKeySet": {
     "Remote": {
-        "URI": "https://dev-850216.okta.com/oauth2/default/v1/keys",
+        "URI": "https://<org>.okta.com/oauth2/default/v1/keys",
         "CacheDuration": "30m"
     }
   },
@@ -953,9 +1014,9 @@ metadata:
   name: okta
 spec:
   issuer: okta
-  jwks:
+  jsonwebkeyset:
     remote:
-      uri: https://dev-850216.okta.com/oauth2/default/v1/keys
+      uri: https://<org>.okta.com/oauth2/default/v1/keys
       cacheDuration: 30m
   forwarding:
     headerName: user-token
