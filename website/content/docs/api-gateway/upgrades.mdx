@@ -7,7 +7,7 @@ description: >-
 
 # Upgrade Consul API gateway for Kubernetes
 
-Since Consul v1.16, the Consul API gateway is a native feature within the Consul binary and is installed during the normal Consul installation process. Consul v1.16 also includes the CRDs necessary for using the Consul API gateway for Kubernetes. You can install Consul v1.16 using the Consul Helm chart v1.2 and later. Refer to [Install API gateway for Kubernetes](/consul/docs/api-gateway/install) for additional information.
+Since Consul v1.15, the Consul API gateway is a native feature within the Consul binary and is installed during the normal Consul installation process. Since Consul v1.16, the CRDs necessary for using the Consul API gateway for Kubernetes are also included. You can install Consul v1.16 using the Consul Helm chart v1.2 and later. Refer to [Install API gateway for Kubernetes](/consul/docs/api-gateway/install) for additional information.
 
 ## Introduction
 
@@ -47,9 +47,13 @@ To begin using the native API gateway, complete one of the following upgrade pat
 
 ## Upgrade to native Consul API gateway
 
-You must begin the upgrade procedure with Consul API gateway v1.1 installed. If you are currently using a version of Consul API gateway older than v1.1, complete the necessary stages of the upgrade path to v1.1 before you begin upgrading to v1.2. Refer to the [Introduction](#introduction) for an overview of the upgrade paths.
+You must begin the upgrade procedure with Consul API gateway v1.1 installed. If you are currently using a version of Consul API gateway older than v1.1, complete the necessary stages of the upgrade path to v1.1 before you begin upgrading to the native API gateway. Refer to the [Introduction](#introduction) for an overview of the upgrade paths.
 
-1. To prevent collisions between previously installed CRDs and the CRDs installed with Consul, delete the existing CRDs. Note that deleting the CRDs will result in downtime.
+### Consul-managed CRDs
+
+If you are able to tolerate downtime for your applications, you should delete previously installed CRDs and allow Consul to install and manage them for future updates. The amount of downtime depends on how quickly you are able to install the new version of Consul. If you are unable to tolerate any downtime, refer to [Self-managed CRDs](#self-managed-crds) for instructions on how to upgrade without downtime.
+
+1. Run the `kubectl delete` command and reference the kustomize directory to delete the existing CRDs. The following example deletes the CRDs that were installed with API gateway v0.5.1: 
 
   ```shell-session
   $ kubectl delete --kustomize="github.com/hashicorp/consul-api-gateway/config/crd?ref=v0.5.1"
@@ -90,6 +94,39 @@ You must begin the upgrade procedure with Consul API gateway v1.1 installed. If 
   ```
 
 1. Change any existing `Gateways` to reference the new `GatewayClass` `consul`. Refer to [gatewayClass](/consul/docs/api-gateway/configuration/gateway#gatewayclassname) for additional information.
+
+### Self-managed CRDs
+
+If you are unable to tolerate any downtime, you can complete the following steps to upgrade to the native Consul API gateway. If you choose this upgrade option, you must continue to manually install the CRDs necessary for operating the API gateway. 
+
+1. Create a values file that installs the version of Consul API gateway that ships with Consul and disables externally-managed CRDs:
+
+  <CodeBlock heading="apigw-installation.yaml">
+
+  ```yaml
+  global:
+    image: hashicorp/consul:1.16
+    imageK8S: hashicorp/consul-k8s-control-plane
+  connectInject:
+    apiGateway:
+      manageExternalCRDs: false
+  apiGateway:
+    enabled: true
+    image: hashicorp/consul-api-gateway:0.5.4
+    managedGatewayClass:
+      enabled: true
+  ```
+
+  </CodeBlock>
+
+1. Issue the following command to apply the configuration and complete the installation:
+
+  ```shell-session
+  $ kubectl apply -f apigw-installation.yaml
+  ```
+
+1. Change any existing `Gateways` to reference the new `GatewayClass` `consul`. Refer to [gatewayClass](/consul/docs/api-gateway/configuration/gateway#gatewayclassname) for additional information.
+
 
 ## Upgrade to v0.4.0
 

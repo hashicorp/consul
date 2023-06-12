@@ -23,7 +23,7 @@ The Consul API gateway ships with Consul and is automatically installed when you
       ```
     </CodeBlockConfig>
 
-The Consul Helm chart deploys the API gateway using the configuration specified in the `values.yaml` file. Refer to [Helm Chart Configuration - `apiGateway`](/consul/docs/k8s/helm#apigateway) for information about the Helm chart configuration options.
+  The Consul Helm chart deploys the API gateway using the configuration specified in the `values.yaml` file. Refer to [Helm Chart Configuration - `connectInject.apiGateway`](/consul/docs/k8s/helm#apigateway) for information about the Helm chart configuration options.
 
 1. Install Consul API Gateway using the standard Consul Helm chart or Consul K8s CLI specify the custom values file. Refer to the [Consul Helm chart](https://github.com/hashicorp/consul-k8s/releases) in GitHub releases for the available versions.
 
@@ -55,7 +55,7 @@ $ helm repo add hashicorp https://helm.releases.hashicorp.com
 Install Consul with API Gateway on your Kubernetes cluster by specifying the `values.yaml` file.
 
 ```shell-session
-$ helm install consul hashicorp/consul --version 1.0.2 --values values.yaml --create-namespace --namespace consul
+$ helm install consul hashicorp/consul --version 1.2.0 --values values.yaml --create-namespace --namespace consul
 ```
 </Tab>
 </Tabs>
