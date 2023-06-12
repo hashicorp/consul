@@ -236,7 +236,7 @@ func TestConstructor(t *testing.T) {
 		// enforces expected behavior until we do. Multi-member slices should be unaffected
 		// by WeakDecode as it is a more-permissive version of the default behavior.
 		"single value Patches decoded as map construction succeeds": {
-			arguments: makeArguments(map[string]any{"Patches": makePatch(map[string]any{})}),
+			arguments: makeArguments(map[string]any{"Patches": makePatch(map[string]any{}), "ProxyType": nil}),
 			expected:  validTestCase(OpAdd, extensioncommon.TrafficDirectionOutbound, ResourceTypeRoute).expected,
 			ok:        true,
 		},
