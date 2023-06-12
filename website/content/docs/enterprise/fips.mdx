@@ -22,7 +22,7 @@ To use this feature, you must have an [active or trial license for Consul Enterp
 
 FIPS 140-2 builds of Consul Enterprise behave in the same way as non-FIPS builds. There are no restrictions on Consul algorithms and ensuring that Consul remains in a FIPS-compliant mode of operation is your responsibility. To maintain FIPS-compliant operation, you must [ensure that TLS is enabled](consul/tutorials/security/tls-encryption-secure) so that communication is encrypted. Consul products surface some helpful warnings where settings are insecure.
 
-Because Consul Enterprise’s default settings may transmit sensitive control plane information without encryption, it is especially important to ensure that all agents have gossip encryption and mTLS enabled when running Consul with FIPS-compliant settings. In addition, be aware that TLSv1.3 does not work with FIPS 140-2, as HKDF is not a certified primitive.
+Encryption is disabled in Consul Enterprise by default. As a result, Consul may transmit sensitive control plane information. You must ensure that gossip encryption and mTLS is enabled for all agents when running Consul with FIPS-compliant settings. In addition, be aware that TLSv1.3 does not work with FIPS 140-2, as HKDF is not a certified primitive.
 HashiCorp is limited to providing general guidance regarding using Consul Enterprise in a FIPS-compliant manner. We are not a NIST-certified testing laboratory and thus organizations may need to consult an approved auditor for further information.
 
 The FIPS 140-2 variant of Consul uses separate binaries that are available available from the following sources:
