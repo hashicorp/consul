@@ -101,6 +101,8 @@ If you are unable to tolerate any downtime, you can complete the following steps
 
 1. Change any existing `Gateways` to reference the new `GatewayClass` `consul`. Refer to [gatewayClass](/consul/docs/api-gateway/configuration/gateway#gatewayclassname) for additional information.
 
+1. After updating all of your `gateway` configurations to use the new controller, you can complete the upgrade again and completely remove the `apiGateway` block to remove the old controller. 
+
 
 ## Upgrade to v0.4.0
 
