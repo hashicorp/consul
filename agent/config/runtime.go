@@ -1498,6 +1498,9 @@ type RuntimeConfig struct {
 
 	Reporting ReportingConfig
 
+	// List of experiments to enable
+	Experiments []string
+
 	EnterpriseRuntimeConfig
 }
 

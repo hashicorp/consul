@@ -337,7 +337,7 @@ fmt: $(foreach mod,$(GO_MODULES),fmt/$(mod))
 .PHONY: fmt/%
 fmt/%:
 	@echo "--> Running go fmt ($*)"
-	@cd $* && go fmt ./...
+	@cd $* && gofmt -s -l -w .
 
 .PHONY: lint
 lint: $(foreach mod,$(GO_MODULES),lint/$(mod)) lint-container-test-deps
