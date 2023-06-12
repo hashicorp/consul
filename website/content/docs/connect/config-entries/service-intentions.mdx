@@ -24,7 +24,7 @@ The following outline shows how to format the service intentions configuration e
 - [`Meta`](#meta): map 
 - [`JWT`](#jwt): map 
   - [`Providers`](#jwt-providers): list of maps
-    - [`Provider`](#jwt-providers-provider): string
+    - [`Name`](#jwt-providers-name): string
     - [`VerifyClaims`](#jwt-provider-verifyclaims): list of maps
       - [`Path`](#jwt-provider-verifyclaims-path): list of strings
       - [`Value`](#jwt-provider-verifyclaims-value): string
@@ -40,7 +40,7 @@ The following outline shows how to format the service intentions configuration e
       - [`PathExact`](#sources-permissions-http): string
       - [`PathPrefix`](#sources-permissions-http): string
       - [`PathRegex`](#sources-permissions-http): string
-      - [`Methods`](#sources-permissions-http): list | no default
+      - [`Methods`](#sources-permissions-http): list
       - [`Header`](#sources-permissions-http-header): list of maps
         - [`Name`](#sources-permissions-http-header): string | required
         - [`Present`](#sources-permissions-http-header): boolean | `false`
@@ -49,13 +49,13 @@ The following outline shows how to format the service intentions configuration e
         - [`Suffix`](#sources-permissions-http-header): string
         - [`Regex`](#sources-permissions-http-header): string
         - [`Invert`](#sources-permissions-http-header): boolean | `false`
-  - [`Precedence`](#sources-precedence): number 
+  - [`Precedence`](#sources-precedence): number
   - [`Type`](#sources-type): string | `consul`
   - [`Description`](#sources-description): string
   - [`LegacyID`](#sources-legacyid): string
   - [`LegacyMeta`](#sources-legacymeta): map
-  - [`LegacyCreateTime`](#sources-legacycreatetime): string 
-  - [`LegacyUpdateTime`](#sources-legacyupdatetime): string 
+  - [`LegacyCreateTime`](#sources-legacycreatetime): string
+  - [`LegacyUpdateTime`](#sources-legacyupdatetime): string
 
 </Tab>
 <Tab heading= "YAML" group="yaml">
@@ -71,7 +71,7 @@ The following outline shows how to format the service intentions configuration e
     - [`namespace`](#metadata-namespace): string | `default` | <EnterpriseAlert inline/>
   - [`jwt`](#spec-jwt): map 
   - [`providers`](#spec-jwt-providers): list of maps
-    - [`provider`](#spec-jwt-providers-provider): string
+    - [`name`](#spec-jwt-providers-name): string
     - [`verifyClaims`](#spec-jwt-provider-verifyclaims): list of maps
       - [`path`](#spec-jwt-provider-verifyclaims-path): list of strings
       - [`value`](#spec-jwt-provider-verifyclaims-value): string
@@ -122,7 +122,7 @@ Meta = {
 JWT = {
     Providers = [
       {
-        Provider = "<JWT-provider-name>"
+        Name = "<JWT-provider-name>"
         VerifyClaims = [
             {
                 Path = ["<claim>"]
@@ -203,7 +203,7 @@ spec:
       namespace: <destination namespace>
   jwt:
     providers:
-      provider: <JWT-provider-name>
+      name: <JWT-provider-name>
       verifyClaims:
                 path: [<aud>]
                 value: <api.apps.organization.com>
@@ -254,7 +254,7 @@ spec:
    "JWT": {
     "Providers": [
       {
-        "Provider": "<JWT-provider-name>",
+        "Name": "<JWT-provider-name>",
         "VerifyClaims": [
             {
                 "Path": ["<aud>"],
@@ -396,14 +396,14 @@ Specifies a JSON Web Token provider configured in a [JWT provider configuration 
 
 ### `JWT{}.Providers`
 
-Specifies the names of one or more previously configured [JWT provider configuration entries](/consul/docs/connect/config-entries/jwt-provider), which include the information necessary to calidate a JSON web token.
+Specifies the names of one or more previously configured [JWT provider configuration entries](/consul/docs/connect/config-entries/jwt-provider), which include the information necessary to validate a JSON web token.
 
 #### Values
 
 - Default: None
 - Data type: List of maps
 
-### `JWT{}.Providers[].Provider`
+### `JWT{}.Providers[].Name`
 
 Specifies the name of a JWT provider defined in the `Name` field of the [`jwt-provider` configuration entry](/consul/docs/connect/config-entries/jwt-provider). You must write the JWT Provider to Consul before referencing it in a service intention.
 
@@ -420,7 +420,7 @@ Specifies additional token information to verify beyond what is configured in th
 
 - Default: None
 - Data type: List of maps that can contain the following parameters:
-- 
+
   - [`Path`](#jwt-providers-verifyclaims-path)
   - [`Value`](#jwt-providers-verifyclaims-value)
 
@@ -431,15 +431,7 @@ Specifies the path to the claim in the JSON web token. For more information abou
 #### Values
 
 - Default: None
-- Data type: List of strings that can contain one of the following values:
-
-  - `iss`: Issuer claim
-  - `sub`: Subject claim
-  - `aud`: Audience claim
-  - `exp`: Expiration Time claim
-  - `nbf`: Not Before claim
-  - `iat`: Issued At claim
-  - `jti`: JWT ID claim
+- Data type: List of strings
 
 ### `JWT{}.Providers[].VerifyClaims.Value`
 
@@ -607,7 +599,6 @@ Each member of the `Header` list is a map that contains a `Name` field and at le
 | `Regex` | Specifies a regular expression pattern as the value for the header key set in the `Name` field. If the request header value matches the regex, Consul applies the permission. Do not specify `Regex` if `Present`, `Exact`, `Prefix`, or `Suffix` are configured in the same `Header` configuration. The regex syntax is proxy-specific. If using Envoy, refer to the [re2 documentation](https://github.com/google/re2/wiki/Syntax) for details. | string | optional |
 | `Invert` | Inverts the matching logic configured in the `Header`. Default is `false`. | boolean | optional |
 
-
 ### `Sources[].Precedence`
 
 The `Precedence` field contains a read-only integer. Consul generates the value based on name configurations for the source and destination services. Refer to [Precedence and matching order](/consul/docs/connect/intentions/create-manage-intentions#precedence-and-matching-order) for additional information. 
@@ -701,23 +692,24 @@ Specifies the [namespace](/consul/docs/enterprise/namespaces) that the configura
 - Data type: String
 
 ### `spec`
+
 Map that contains the details about the `ServiceIntentions` configuration entry. The `apiVersion`, `kind`, and `metadata` fields are siblings of the spec field. All other configurations are children.
 
 #### Values
 
 - Default: None
 - This field is required.
-- Data type: Map 
+- Data type: Map
 
 ### `spec.destination`
 
-Map that identifies the destination name and destination namespace that source services are allowed or denied access to. 
+Map that identifies the destination name and destination namespace that source services are allowed or denied access to.
 
 #### Values
 
 - Default: None
 - This field is required.
-- Data type: Map 
+- Data type: Map
 
 ### `spec.destination.name`
 
@@ -741,14 +733,14 @@ Specifies a JSON Web Token provider configured in a [JWT provider configuration 
 
 ### `spec.jwt.providers`
 
-Specifies the names of one or more previously configured [JWT provider configuration entries](/consul/docs/connect/config-entries/jwt-provider), which include the information necessary to calidate a JSON web token.
+Specifies the names of one or more previously configured [JWT provider configuration entries](/consul/docs/connect/config-entries/jwt-provider), which include the information necessary to validate a JSON web token.
 
 #### Values
 
 - Default: None
 - Data type: List of maps
 
-### `spec.jwt.providers[].provider`
+### `spec.jwt.providers[].name`
 
 Specifies the name of a JWT provider defined in the `metadata.name` field of the [JWT provider configuration entry](/consul/docs/connect/config-entries/jwt-provider). You must write the JWT Provider to Consul before referencing it in a service intention.
 
@@ -765,7 +757,7 @@ Specifies additional token information to verify beyond what is configured in th
 
 - Default: None
 - Data type: List of maps that can contain the following parameters:
-- 
+
   - [`path`](#spec-jwt-providers-verifyclaims-path)
   - [`value`](#spec-jwt-providers-verifyclaims-value)
 
@@ -776,15 +768,7 @@ Specifies the path to the claim in the JSON web token. For more information abou
 #### Values
 
 - Default: None
-- Data type: List of strings that can contain one of the following values:
-
-  - `iss`: Issuer claim
-  - `sub`: Subject claim
-  - `aud`: Audience claim
-  - `exp`: Expiration Time claim
-  - `nbf`: Not Before claim
-  - `iat`: Issued At claim
-  - `jti`: JWT ID claim
+- Data type: List of strings
 
 ### `spec.jwt.providers[].verifyClaims[].value`
 
@@ -1473,7 +1457,7 @@ Sources = [
         JWT = {
           Providers = [
             {
-              Provider = "okta"
+              Name = "okta"
               VerifyClaims = [
                 {
                   Path = ["perms", "role"]
@@ -1508,7 +1492,7 @@ Sources = [
           pathExact: /admin
         jwt:
           providers:
-            provider: okta
+            name: okta
             verifyClaims:
               path: 
                 - perms
@@ -1534,7 +1518,7 @@ Sources = [
         "JWT": {
           "Providers": [
             {
-              "Provider": "okta",
+              "Name": "okta",
               "VerifyClaims": [
                 {
                   "Path": ["perms", "role"],
