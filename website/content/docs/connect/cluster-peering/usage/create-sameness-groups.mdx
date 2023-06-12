@@ -291,3 +291,11 @@ $ consul config write api.hcl
 It is possible to combine the service intentions configuration entry for creating sameness groups with the entry required to [authorize services for peers](/consul/docs/connect/cluster-peering/usage/establish-cluster-peering#authorize-services-for-peers).
 
 In this workflow, configure the `Sources` block with the `SamenessGroup` field instead of the `Peer` field. You should write the `sameness-group` configuration entry to Consul before referencing it in the `service-intentions` configuration entry.
+
+## Next steps
+
+After creating a sameness group, you can use them with static Consul DNS lookups and dynamic DNS lookups (prepared queries) for service discovery use cases. You can also set up failover between services in a sameness group. Refer to the following topics for more details:
+
+- [Static Consul DNS lookups](/consul/docs/services/discovery/dns-static-lookups)
+- [Dynamic Consul DNS lookups](/consul/docs/services/discovery/dns-dynamic-lookups)
+- [Failover overview](/consul/docs/connect/failover)
