@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"strings"
 	"testing"
 	"time"
 
@@ -20,24 +19,27 @@ import (
 	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
 	libservice "github.com/hashicorp/consul/test/integration/consul-container/libs/service"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/topology"
+	"github.com/hashicorp/go-cleanhttp"
+	"github.com/hashicorp/go-multierror"
 )
 
-// TestExtAuthz Summary
+// TestExtAuthzLocal Summary
 // This test makes sure two services in the same datacenter have connectivity.
 // A simulated client (a direct HTTP call) talks to it's upstream proxy through the mesh.
 // The upstream (static-server) is configured with a `builtin/ext-authz` extension that
 // calls an OPA external authorization service to authorize incoming HTTP requests.
+// The external authorization service is deployed as a container on the local network.
 //
 // Steps:
-//   - Create a single agent cluster.
-//   - Create the example static-server and sidecar containers, then register them both with Consul
-//   - Create an example static-client sidecar, then register both the service and sidecar with Consul
-//   - Create an OPA external authorization container on the local network, this doesn't need to be registered with Consul.
-//   - Configure the static-server service with a `builtin/ext-authz` EnvoyExtension.
-//   - Make sure a call to the client sidecar local bind port returns the expected response from the upstream, static-server:
+// - Create a single agent cluster.
+// - Create the example static-server and sidecar containers, then register them both with Consul
+// - Create an example static-client sidecar, then register both the service and sidecar with Consul
+// - Create an OPA external authorization container on the local network, this doesn't need to be registered with Consul.
+// - Configure the static-server service with a `builtin/ext-authz` EnvoyExtension targeting the OPA ext-authz service.
+// - Make sure a call to the client sidecar local bind port returns the expected response from the upstream static-server:
 //   - A call to `/allow` returns 200 OK.
 //   - A call to any other endpoint returns 403 Forbidden.
-func TestExtAuthz(t *testing.T) {
+func TestExtAuthzLocal(t *testing.T) {
 	t.Parallel()
 
 	cluster, _, _ := topology.NewCluster(t, &topology.ClusterConfig{
@@ -63,7 +65,7 @@ func TestExtAuthz(t *testing.T) {
 	libassert.AssertContainerState(t, clientService, "running")
 	libassert.AssertFortioName(t, fmt.Sprintf("http://localhost:%d", port), "static-server", "")
 
-	// wire up ext-authz envoy extension for the static-server
+	// wire up the ext-authz envoy extension for the static-server
 	consul := cluster.APIClient(0)
 	defaults := api.ServiceConfigEntry{
 		Kind:     api.ServiceDefaults,
@@ -81,12 +83,10 @@ func TestExtAuthz(t *testing.T) {
 		}},
 	}
 	consul.ConfigEntries().Set(&defaults, nil)
-	entry, _, _ := consul.ConfigEntries().Get("service-defaults", "static-server", nil)
-	fmt.Printf("\n\n!!! entry = %#v\n\n", entry)
-	baseURL := fmt.Sprintf("http://localhost:%d/", port)
+
+	baseURL := fmt.Sprintf("http://localhost:%d", port)
 	doRequest(t, baseURL, http.StatusForbidden)
 	doRequest(t, baseURL+"/allow", http.StatusOK)
-	wait()
 }
 
 func createServices(t *testing.T, cluster *libcluster.Cluster) libservice.Service {
@@ -160,36 +160,38 @@ func createLocalAuthzService(t *testing.T, cluster *libcluster.Cluster) {
 }
 
 func doRequest(t *testing.T, url string, expStatus int) {
-	var errs []string
+	var errs error
 	for i := 0; i < 5; i++ {
 		req, err := http.NewRequest(http.MethodGet, url, nil)
 		if err != nil {
-			t.Log(err)
-			t.FailNow()
+			errs = multierror.Append(errs, fmt.Errorf("failed to create HTTP request: %w", err))
 		}
-		req.Header.Set("user-agent", "foo")
-		client := &http.Client{}
-		res, err := client.Do(req)
+		res, err := cleanhttp.DefaultClient().Do(req)
 		if err == nil {
+			res.Body.Close()
+			fmt.Printf("\n\n!!! GET %s: exp %d, obs %d\n\n", url, expStatus, res.StatusCode)
 			if res.StatusCode == expStatus {
 				return
 			} else {
-				fmt.Printf("\n\n!!! response from %s: %#v\n\nrequest = %#v\n\n", url, *res, res.Request)
-				errs = append(errs, fmt.Sprintf("%s unexpected status code: want: %d, have: %d", time.Now().Format(time.RFC3339), expStatus, res.StatusCode))
+				errs = multierror.Append(errs, fmt.Errorf("unexpected status code: want: %d, have: %d", expStatus, res.StatusCode))
 			}
 		} else {
-			errs = append(errs, fmt.Sprintf("unexpected error: %s", err.Error()))
-		}
-		if res != nil {
-			res.Body.Close()
+			errs = multierror.Append(errs, fmt.Errorf("unexpected error: %w", err))
 		}
 		time.Sleep(time.Duration(i+1) * time.Second)
 	}
-	t.Logf("request failed:    \n%s", strings.Join(errs, "    \n"))
-	t.Fail()
+	t.Fatalf("request failed:\n%s", errs.Error())
 }
 
-func wait() {
+type MeshServiceRequest struct {
+	Agent                libcluster.Agent
+	ServiceOpts          *libservice.ServiceOpts
+	ContainerRequest     testcontainers.ContainerRequest
+	MapPorts             []string
+	DisableTestdataMount bool
+}
+
+func Wait() {
 	for {
 		_, err := os.Stat("continue")
 		if err == nil {
