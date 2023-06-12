@@ -231,6 +231,9 @@ func (c *cmd) run(args []string) int {
 	ui.Info(fmt.Sprintf(" Gossip Encryption: %t", config.EncryptKey != ""))
 	ui.Info(fmt.Sprintf("  Auto-Encrypt-TLS: %t", config.AutoEncryptTLS || config.AutoEncryptAllowTLS))
 	ui.Info(fmt.Sprintf("       ACL Enabled: %t", config.ACLsEnabled))
+	if config.ServerMode {
+		ui.Info(fmt.Sprintf(" Reporting Enabled: %t", config.Reporting.License.Enabled))
+	}
 	ui.Info(fmt.Sprintf("ACL Default Policy: %s", config.ACLResolverSettings.ACLDefaultPolicy))
 	ui.Info(fmt.Sprintf("         HTTPS TLS: Verify Incoming: %t, Verify Outgoing: %t, Min Version: %s",
 		config.TLS.HTTPS.VerifyIncoming, config.TLS.HTTPS.VerifyOutgoing, config.TLS.HTTPS.TLSMinVersion))
