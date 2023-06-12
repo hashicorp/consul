@@ -38,7 +38,7 @@ The `jwt-provider` configuration requires the following fields:
 - `Name`: We recommend naming the configuration file after the JWT provider used in the configuration.
 - `Issuer`: This field must match the token's `iss` claim
 
-You must also specify a JSON Web Key Set in the `JWKS` field. You can specify the JWKS as one of the following:
+You must also specify a JSON Web Key Set in the `JSONWebKeySet` field. You can specify the JWKS as one of the following:
 
 - A local string
 - A path to a local file
@@ -56,9 +56,9 @@ Name = "okta"
 
 Issuer = "okta"
 
-JWKS = {
+JSONWebKeySet = {
     Remote = {
-        URI = "https://dev-850216.okta.com/oauth2/default/v1/keys"
+        URI = "https://<org>.okta.com/oauth2/default/v1/keys"
         CacheDuration = "30m"
     }
 }
@@ -73,7 +73,7 @@ Refer to [JWT provider configuration entry](/consul/docs/connect/config-entries/
 To write the configuration entry to Consul, use the [`consul config write` command](/consul/commands/config/write):
 
 ```shell-session
-$ consul config write okta.hcl
+$ consul config write okta-provider.hcl
 ```
 
 ### Update service intentions
@@ -86,7 +86,7 @@ Name = "web"
 JWT = {
   Providers = [
     {
-      Provider = "okta"
+      Name = "okta"
     }
   ]
 }
@@ -97,5 +97,5 @@ You can include additional configuration information to require the token to mat
 After you update the service intention, write the configuration to Consul so that it takes effect:
 
 ```shell-session
-$ consul config write web.hcl
+$ consul config write web-intention.hcl
 ```
