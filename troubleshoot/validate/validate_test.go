@@ -332,7 +332,7 @@ func TestMakeValidate(t *testing.T) {
 	for n, tc := range cases {
 		t.Run(n, func(t *testing.T) {
 
-			extensionName := builtinValidateExtension
+			extensionName := api.BuiltinValidateExtension
 			if tc.extensionName != "" {
 				extensionName = tc.extensionName
 			}

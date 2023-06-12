@@ -1816,7 +1816,7 @@ func TestAgent_ReloadDoesNotTriggerWatch(t *testing.T) {
 		for i := 1; i < 7; i++ {
 			contents, err := os.ReadFile(tmpFile)
 			if err != nil {
-				t.Fatalf("should be able to read file, but had: %#v", err)
+				r.Fatalf("should be able to read file, but had: %#v", err)
 			}
 			contentsStr = string(contents)
 			if contentsStr != "" {
@@ -1903,14 +1903,14 @@ func TestAgent_ReloadDoesNotTriggerWatch(t *testing.T) {
 		ensureNothingCritical(r, "red-is-dead")
 
 		if err := a.reloadConfigInternal(cfg2); err != nil {
-			t.Fatalf("got error %v want nil", err)
+			r.Fatalf("got error %v want nil", err)
 		}
 
 		// We check that reload does not go to critical
 		ensureNothingCritical(r, "red-is-dead")
 		ensureNothingCritical(r, "testing-agent-reload-001")
 
-		require.NoError(t, a.updateTTLCheck(checkID, api.HealthPassing, "testing-agent-reload-002"))
+		require.NoError(r, a.updateTTLCheck(checkID, api.HealthPassing, "testing-agent-reload-002"))
 
 		ensureNothingCritical(r, "red-is-dead")
 	})
@@ -2920,7 +2920,7 @@ func TestAgent_RegisterCheck_ACLDeny(t *testing.T) {
 			req, _ := http.NewRequest("PUT", "/v1/agent/check/register", jsonReader(nodeCheck))
 			resp := httptest.NewRecorder()
 			a.srv.h.ServeHTTP(resp, req)
-			require.Equal(t, http.StatusForbidden, resp.Code)
+			require.Equal(r, http.StatusForbidden, resp.Code)
 		})
 	})
 
@@ -2930,7 +2930,7 @@ func TestAgent_RegisterCheck_ACLDeny(t *testing.T) {
 			req.Header.Add("X-Consul-Token", svcToken.SecretID)
 			resp := httptest.NewRecorder()
 			a.srv.h.ServeHTTP(resp, req)
-			require.Equal(t, http.StatusForbidden, resp.Code)
+			require.Equal(r, http.StatusForbidden, resp.Code)
 		})
 	})
 
@@ -2940,7 +2940,7 @@ func TestAgent_RegisterCheck_ACLDeny(t *testing.T) {
 			req.Header.Add("X-Consul-Token", nodeToken.SecretID)
 			resp := httptest.NewRecorder()
 			a.srv.h.ServeHTTP(resp, req)
-			require.Equal(t, http.StatusOK, resp.Code)
+			require.Equal(r, http.StatusOK, resp.Code)
 		})
 	})
 
@@ -2949,7 +2949,7 @@ func TestAgent_RegisterCheck_ACLDeny(t *testing.T) {
 			req, _ := http.NewRequest("PUT", "/v1/agent/check/register", jsonReader(svcCheck))
 			resp := httptest.NewRecorder()
 			a.srv.h.ServeHTTP(resp, req)
-			require.Equal(t, http.StatusForbidden, resp.Code)
+			require.Equal(r, http.StatusForbidden, resp.Code)
 		})
 	})
 
@@ -2959,7 +2959,7 @@ func TestAgent_RegisterCheck_ACLDeny(t *testing.T) {
 			req.Header.Add("X-Consul-Token", nodeToken.SecretID)
 			resp := httptest.NewRecorder()
 			a.srv.h.ServeHTTP(resp, req)
-			require.Equal(t, http.StatusForbidden, resp.Code)
+			require.Equal(r, http.StatusForbidden, resp.Code)
 		})
 	})
 
@@ -2969,7 +2969,7 @@ func TestAgent_RegisterCheck_ACLDeny(t *testing.T) {
 			req.Header.Add("X-Consul-Token", svcToken.SecretID)
 			resp := httptest.NewRecorder()
 			a.srv.h.ServeHTTP(resp, req)
-			require.Equal(t, http.StatusOK, resp.Code)
+			require.Equal(r, http.StatusOK, resp.Code)
 		})
 	})
 }
@@ -5970,17 +5970,17 @@ func TestAgent_Monitor(t *testing.T) {
 			res := httptest.NewRecorder()
 			a.srv.h.ServeHTTP(res, registerReq)
 			if http.StatusOK != res.Code {
-				t.Fatalf("expected 200 but got %v", res.Code)
+				r.Fatalf("expected 200 but got %v", res.Code)
 			}
 
 			// Wait until we have received some type of logging output
-			require.Eventually(t, func() bool {
+			require.Eventually(r, func() bool {
 				return len(resp.Body.Bytes()) > 0
 			}, 3*time.Second, 100*time.Millisecond)
 
 			cancelFunc()
 			code := <-codeCh
-			require.Equal(t, http.StatusOK, code)
+			require.Equal(r, http.StatusOK, code)
 			got := resp.Body.String()
 
 			// Only check a substring that we are highly confident in finding
@@ -6020,11 +6020,11 @@ func TestAgent_Monitor(t *testing.T) {
 			res := httptest.NewRecorder()
 			a.srv.h.ServeHTTP(res, registerReq)
 			if http.StatusOK != res.Code {
-				t.Fatalf("expected 200 but got %v", res.Code)
+				r.Fatalf("expected 200 but got %v", res.Code)
 			}
 
 			// Wait until we have received some type of logging output
-			require.Eventually(t, func() bool {
+			require.Eventually(r, func() bool {
 				return len(resp.Body.Bytes()) > 0
 			}, 3*time.Second, 100*time.Millisecond)
 			cancelFunc()
@@ -6057,24 +6057,24 @@ func TestAgent_Monitor(t *testing.T) {
 			res := httptest.NewRecorder()
 			a.srv.h.ServeHTTP(res, registerReq)
 			if http.StatusOK != res.Code {
-				t.Fatalf("expected 200 but got %v", res.Code)
+				r.Fatalf("expected 200 but got %v", res.Code)
 			}
 
 			// Wait until we have received some type of logging output
-			require.Eventually(t, func() bool {
+			require.Eventually(r, func() bool {
 				return len(resp.Body.Bytes()) > 0
 			}, 3*time.Second, 100*time.Millisecond)
 
 			cancelFunc()
 			code := <-codeCh
-			require.Equal(t, http.StatusOK, code)
+			require.Equal(r, http.StatusOK, code)
 
 			// Each line is output as a separate JSON object, we grab the first and
 			// make sure it can be unmarshalled.
 			firstLine := bytes.Split(resp.Body.Bytes(), []byte("\n"))[0]
 			var output map[string]interface{}
 			if err := json.Unmarshal(firstLine, &output); err != nil {
-				t.Fatalf("err: %v", err)
+				r.Fatalf("err: %v", err)
 			}
 		})
 	})
@@ -6666,7 +6666,7 @@ func TestAgentConnectCARoots_list(t *testing.T) {
 
 			dec := json.NewDecoder(resp.Body)
 			value := &structs.IndexedCARoots{}
-			require.NoError(t, dec.Decode(value))
+			require.NoError(r, dec.Decode(value))
 			if ca.ID != value.ActiveRootID {
 				r.Fatalf("%s != %s", ca.ID, value.ActiveRootID)
 			}
@@ -7074,7 +7074,7 @@ func TestAgentConnectCALeafCert_goodNotLocal(t *testing.T) {
 
 			dec := json.NewDecoder(resp.Body)
 			issued2 := &structs.IssuedCert{}
-			require.NoError(t, dec.Decode(issued2))
+			require.NoError(r, dec.Decode(issued2))
 			if issued.CertPEM == issued2.CertPEM {
 				r.Fatalf("leaf has not updated")
 			}
@@ -7086,9 +7086,9 @@ func TestAgentConnectCALeafCert_goodNotLocal(t *testing.T) {
 			}
 
 			// Verify that the cert is signed by the new CA
-			requireLeafValidUnderCA(t, issued2, ca)
+			requireLeafValidUnderCA(r, issued2, ca)
 
-			require.NotEqual(t, issued, issued2)
+			require.NotEqual(r, issued, issued2)
 		})
 	}
 }
@@ -7465,11 +7465,11 @@ func TestAgentConnectCALeafCert_secondaryDC_good(t *testing.T) {
 		// Try and sign again (note no index/wait arg since cache should update in
 		// background even if we aren't actively blocking)
 		a2.srv.h.ServeHTTP(resp, req)
-		require.Equal(t, http.StatusOK, resp.Code)
+		require.Equal(r, http.StatusOK, resp.Code)
 
 		dec := json.NewDecoder(resp.Body)
 		issued2 := &structs.IssuedCert{}
-		require.NoError(t, dec.Decode(issued2))
+		require.NoError(r, dec.Decode(issued2))
 		if issued.CertPEM == issued2.CertPEM {
 			r.Fatalf("leaf has not updated")
 		}
@@ -7481,9 +7481,9 @@ func TestAgentConnectCALeafCert_secondaryDC_good(t *testing.T) {
 		}
 
 		// Verify that the cert is signed by the new CA
-		requireLeafValidUnderCA(t, issued2, dc1_ca2)
+		requireLeafValidUnderCA(r, issued2, dc1_ca2)
 
-		require.NotEqual(t, issued, issued2)
+		require.NotEqual(r, issued, issued2)
 	})
 }
 
@@ -7493,12 +7493,12 @@ func waitForActiveCARoot(t *testing.T, srv *HTTPHandlers, expect *structs.CARoot
 		resp := httptest.NewRecorder()
 		srv.h.ServeHTTP(resp, req)
 		if http.StatusOK != resp.Code {
-			t.Fatalf("expected 200 but got %v", resp.Code)
+			r.Fatalf("expected 200 but got %v", resp.Code)
 		}
 
 		dec := json.NewDecoder(resp.Body)
 		roots := &structs.IndexedCARoots{}
-		require.NoError(t, dec.Decode(roots))
+		require.NoError(r, dec.Decode(roots))
 
 		var root *structs.CARoot
 		for _, r := range roots.Roots {

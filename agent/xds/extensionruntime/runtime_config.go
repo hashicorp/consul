@@ -83,11 +83,11 @@ func GetRuntimeConfigurations(cfgSnap *proxycfg.ConfigSnapshot) map[api.Compound
 		cfgSnapExts := convertEnvoyExtensions(cfgSnap.Proxy.EnvoyExtensions)
 		for _, ext := range cfgSnapExts {
 			extCfg := extensioncommon.RuntimeConfig{
-				EnvoyExtension: ext,
-				ServiceName:    localSvc,
-				// Upstreams is nil to signify this extension is not being applied to an upstream service, but rather to the local service.
-				Upstreams: nil,
-				Kind:      kind,
+				EnvoyExtension:        ext,
+				ServiceName:           localSvc,
+				IsSourcedFromUpstream: false,
+				Upstreams:             upstreamMap,
+				Kind:                  kind,
 			}
 			extensionConfigurationsMap[localSvc] = append(extensionConfigurationsMap[localSvc], extCfg)
 		}
@@ -119,16 +119,21 @@ func GetRuntimeConfigurations(cfgSnap *proxycfg.ConfigSnapshot) map[api.Compound
 		}
 	}
 
+	// If applicable, include extension configuration for remote upstreams of the local service.
+	// This only applies to specific extensions authorized to apply to remote proxies.
 	for svc, exts := range extensionsMap {
 		extensionConfigurationsMap[svc] = []extensioncommon.RuntimeConfig{}
 		for _, ext := range exts {
-			extCfg := extensioncommon.RuntimeConfig{
-				EnvoyExtension: ext,
-				Kind:           kind,
-				ServiceName:    svc,
-				Upstreams:      upstreamMap,
+			if appliesToRemoteDownstreams(ext) {
+				extCfg := extensioncommon.RuntimeConfig{
+					EnvoyExtension:        ext,
+					Kind:                  kind,
+					ServiceName:           svc,
+					IsSourcedFromUpstream: true,
+					Upstreams:             upstreamMap,
+				}
+				extensionConfigurationsMap[svc] = append(extensionConfigurationsMap[svc], extCfg)
 			}
-			extensionConfigurationsMap[svc] = append(extensionConfigurationsMap[svc], extCfg)
 		}
 	}
 
@@ -153,4 +158,17 @@ func upstreamIDToCompoundServiceName(uid proxycfg.UpstreamID) api.CompoundServic
 
 func convertEnvoyExtensions(structExtensions structs.EnvoyExtensions) []api.EnvoyExtension {
 	return structExtensions.ToAPI()
+}
+
+// appliesToRemoteDownstreams returns true if the given extension should be applied to remote downstream proxies of the
+// service targeted by the extension, rather than just the local proxy. In the context of GetRuntimeConfigurations, this
+// determines whether the extension should apply to the local proxy (a downstream of the configured service).
+//
+// Currently, only the AWS Lambda and Validate extensions are allowed to apply to downstream proxies.
+//
+// See extensioncommon.RuntimeConfig.IsSourcedFromUpstream and UpstreamEnvoyExtender doc for more information. We make
+// this check here out of precaution s.t. even if an unauthorized extension is erroneously constructed with the
+// UpstreamEnvoyExtender, this check will not allow the upstream extension configuration to be provided.
+func appliesToRemoteDownstreams(extension api.EnvoyExtension) bool {
+	return extension.Name == api.BuiltinAWSLambdaExtension || extension.Name == api.BuiltinValidateExtension
 }

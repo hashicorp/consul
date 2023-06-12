@@ -61,11 +61,11 @@ func (l *lua) validate() error {
 
 // CanApply determines if the extension can apply to the given extension configuration.
 func (l *lua) CanApply(config *extensioncommon.RuntimeConfig) bool {
-	return string(config.Kind) == l.ProxyType && l.matchesListenerDirection(config)
+	return string(config.Kind) == l.ProxyType
 }
 
-func (l *lua) matchesListenerDirection(config *extensioncommon.RuntimeConfig) bool {
-	return (config.IsUpstream() && l.Listener == "outbound") || (!config.IsUpstream() && l.Listener == "inbound")
+func (l *lua) matchesListenerDirection(isInboundListener bool) bool {
+	return (!isInboundListener && l.Listener == "outbound") || (isInboundListener && l.Listener == "inbound")
 }
 
 // PatchRoute does nothing.
@@ -79,7 +79,12 @@ func (l *lua) PatchCluster(_ *extensioncommon.RuntimeConfig, c *envoy_cluster_v3
 }
 
 // PatchFilter inserts a lua filter directly prior to envoy.filters.http.router.
-func (l *lua) PatchFilter(_ *extensioncommon.RuntimeConfig, filter *envoy_listener_v3.Filter) (*envoy_listener_v3.Filter, bool, error) {
+func (l *lua) PatchFilter(_ *extensioncommon.RuntimeConfig, filter *envoy_listener_v3.Filter, isInboundListener bool) (*envoy_listener_v3.Filter, bool, error) {
+	// Make sure filter matches extension config.
+	if !l.matchesListenerDirection(isInboundListener) {
+		return filter, false, nil
+	}
+
 	if filter.Name != "envoy.filters.network.http_connection_manager" {
 		return filter, false, nil
 	}

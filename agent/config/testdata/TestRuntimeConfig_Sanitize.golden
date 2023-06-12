@@ -460,6 +460,7 @@
         "DisableHostname": false,
         "DogstatsdAddr": "",
         "DogstatsdTags": [],
+        "EnableHostMetrics": false,
         "FilterDefault": false,
         "MetricsPrefix": "",
         "PrometheusOpts": {

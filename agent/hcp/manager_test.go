@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	hcpclient "github.com/hashicorp/consul/agent/hcp/client"
 	"github.com/hashicorp/go-hclog"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -12,12 +13,12 @@ import (
 )
 
 func TestManager_Run(t *testing.T) {
-	client := NewMockClient(t)
-	statusF := func(ctx context.Context) (ServerStatus, error) {
-		return ServerStatus{ID: t.Name()}, nil
+	client := hcpclient.NewMockClient(t)
+	statusF := func(ctx context.Context) (hcpclient.ServerStatus, error) {
+		return hcpclient.ServerStatus{ID: t.Name()}, nil
 	}
 	updateCh := make(chan struct{}, 1)
-	client.EXPECT().PushServerStatus(mock.Anything, &ServerStatus{ID: t.Name()}).Return(nil).Once()
+	client.EXPECT().PushServerStatus(mock.Anything, &hcpclient.ServerStatus{ID: t.Name()}).Return(nil).Once()
 	mgr := NewManager(ManagerConfig{
 		Client:   client,
 		Logger:   hclog.New(&hclog.LoggerOptions{Output: io.Discard}),
@@ -40,14 +41,14 @@ func TestManager_Run(t *testing.T) {
 }
 
 func TestManager_SendUpdate(t *testing.T) {
-	client := NewMockClient(t)
-	statusF := func(ctx context.Context) (ServerStatus, error) {
-		return ServerStatus{ID: t.Name()}, nil
+	client := hcpclient.NewMockClient(t)
+	statusF := func(ctx context.Context) (hcpclient.ServerStatus, error) {
+		return hcpclient.ServerStatus{ID: t.Name()}, nil
 	}
 	updateCh := make(chan struct{}, 1)
 
 	// Expect two calls, once during run startup and again when SendUpdate is called
-	client.EXPECT().PushServerStatus(mock.Anything, &ServerStatus{ID: t.Name()}).Return(nil).Twice()
+	client.EXPECT().PushServerStatus(mock.Anything, &hcpclient.ServerStatus{ID: t.Name()}).Return(nil).Twice()
 	mgr := NewManager(ManagerConfig{
 		Client:   client,
 		Logger:   hclog.New(&hclog.LoggerOptions{Output: io.Discard}),
@@ -70,14 +71,14 @@ func TestManager_SendUpdate(t *testing.T) {
 }
 
 func TestManager_SendUpdate_Periodic(t *testing.T) {
-	client := NewMockClient(t)
-	statusF := func(ctx context.Context) (ServerStatus, error) {
-		return ServerStatus{ID: t.Name()}, nil
+	client := hcpclient.NewMockClient(t)
+	statusF := func(ctx context.Context) (hcpclient.ServerStatus, error) {
+		return hcpclient.ServerStatus{ID: t.Name()}, nil
 	}
 	updateCh := make(chan struct{}, 1)
 
 	// Expect two calls, once during run startup and again when SendUpdate is called
-	client.EXPECT().PushServerStatus(mock.Anything, &ServerStatus{ID: t.Name()}).Return(nil).Twice()
+	client.EXPECT().PushServerStatus(mock.Anything, &hcpclient.ServerStatus{ID: t.Name()}).Return(nil).Twice()
 	mgr := NewManager(ManagerConfig{
 		Client:      client,
 		Logger:      hclog.New(&hclog.LoggerOptions{Output: io.Discard}),

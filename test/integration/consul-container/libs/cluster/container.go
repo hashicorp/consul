@@ -64,6 +64,10 @@ func (c *consulContainerNode) GetPod() testcontainers.Container {
 	return c.pod
 }
 
+func (c *consulContainerNode) Logs(context context.Context) (io.ReadCloser, error) {
+	return c.container.Logs(context)
+}
+
 func (c *consulContainerNode) ClaimAdminPort() (int, error) {
 	if c.nextAdminPortOffset >= MaxEnvoyOnNode {
 		return 0, fmt.Errorf("running out of envoy admin port, max %d, already claimed %d",
