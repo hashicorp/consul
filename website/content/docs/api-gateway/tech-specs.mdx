@@ -17,11 +17,7 @@ Verify that your environment meets the following requirements prior to using Con
 
 Your datacenter must meet the following requirements prior to configuring the Consul API gateway:
 
-- Kubernetes v1.24.x - v1.27.x
-- `kubectl` v1.24.x - v1.27.x
-- HashiCorp Consul Helm chart v1.20.0 and later
-- Consul service mesh must be deployed on the Kubernetes cluster that API gateway is deployed on.
-- Envoy proxy support is determined by the Consul version deployed. Refer to [Envoy Integration](/consul/docs/connect/proxies/envoy) for details.
+- HashiCorp Consul Helm chart v1.2.0 and later
 
 ### TCP port requirements
 
@@ -29,7 +25,6 @@ The following table describes the TCP port requirements for each component of th
 
 | Port | Description | Component |
 | ---- | ----------- | --------- |
-| 9090 | Secret discovery service (SDS) | Gateway controller pod <br/> Gateway instance pod |
 | 20000 | Kubernetes readiness probe | Gateway instance pod |
 | Configurable | Port for scraping Prometheus metrics. Disabled by default. | Gateway controller pod |
 
@@ -46,7 +41,6 @@ The following table lists API gateway limitations related to specific Consul fea
 
 | Consul Feature | Limitation |
 | -------------- | ---------- |
-| [Admin partitions](/consul/docs/enterprise/admin-partitions) | You can deploy Consul API gateway into the `default` admin partition only. You can route to services in other `default` admin partitions through peered connections. Refer to [Route Traffic to Peered Services](/consul/docs/api-gateway/usage/route-to-peered-services) for additional information. |
 | Routing between datacenters | If you are connecting multiple Consul datacenters to create a federated network, you can route to services in other datacenters through peered connections. Refer to [Route Traffic to Peered Services](/consul/docs/api-gateway/usage/route-to-peered-services) for additional information. |
 
 ## Deployment Environments
@@ -58,7 +52,7 @@ Consul API gateway can be deployed in the following Kubernetes-based environment
 - Google Kubernetes Engine (GKE)
 - Azure Kubernetes Service (AKS)
 
-## Supported versions of Kubernetes gateway API specification 
+## Supported versions of Kubernetes Gateway API specification 
 
 Refer to the [release notes](/consul/docs/release-notes) for your version of Consul.
 
