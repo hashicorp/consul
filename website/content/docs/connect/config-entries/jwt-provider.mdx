@@ -422,7 +422,7 @@ Specifies the number of times to attempt to fetch the JSON Web Key Set when the 
 - Default: `0`
 - Data type: Integer
 
-## `JSONWebKeySet{}.Remote{}.RetryPolicy{}.RetryPolicyBackoff`
+### `JSONWebKeySet{}.Remote{}.RetryPolicy{}.RetryPolicyBackoff`
 
 Specifies a jittered exponential backoff strategy. When this field is empty, Envoy's default policy is used. This policy has a 1 second base interval and a 10 second max interval. 
 
@@ -615,7 +615,7 @@ Specifies the type of configuration entry to implement. Must be set to `jwtProvi
 - This field is required.
 - Data type: String value that must be set to `jwtProvider`.
 
-## `metadata`
+### `metadata`
 
 Map that contains an arbitrary name for the configuration entry and the namespace it applies to.
 
@@ -780,7 +780,7 @@ Specifies the number of times to attempt to fetch the JSON Web Key Set when the 
 - Default: `0`
 - Data type: Integer
 
-## `spec.jsonWebKeySet.remote.retryPolicy.retryPolicyBackoff`
+### `spec.jsonWebKeySet.remote.retryPolicy.retryPolicyBackoff`
 
 Specifies a jittered exponential backoff strategy. When this field is empty, Envoy's default policy is used. This policy has a 1 second base interval and a 10 second max interval. 
 
