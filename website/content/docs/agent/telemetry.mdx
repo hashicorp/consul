@@ -27,6 +27,10 @@ This telemetry information can be used for debugging or otherwise
 getting a better view of what Consul is doing. Review the [Monitoring and
 Metrics tutorial](/consul/tutorials/day-2-operations/monitor-datacenter-health?utm_source=docs) to learn how collect and interpret Consul data.
 
+By default, all metric names of gauge type are prefixed with the hostname of the consul agent, e.g.,
+`consul.<hostname>.server.isLeader`. To disable prefixing the hostname, set
+`telemetry.disable_hostname=true` in the [agent configuration](/consul/docs/agent/config/config-files#telemetry).
+
 Additionally, if the [`telemetry` configuration options](/consul/docs/agent/config/config-files#telemetry)
 are provided, the telemetry information will be streamed to a
 [statsite](http://github.com/armon/statsite) or [statsd](http://github.com/etsy/statsd) server where
@@ -737,3 +741,32 @@ Consul attaches the following labels to metric values.
 | `peer_id`                             | The ID of a peer connected to the reporting cluster or leader.                   | Any UUID                                  |
 | `partition`                           | <EnterpriseAlert inline /> Name of the partition that the peering is created in. | Any defined partition name in the cluster |
 
+## Server Host Metrics
+
+Consul servers can report the following metrics about the host's system resources.
+This feature must be enabled in the [agent telemetry configuration](/consul/docs/agent/config/config-files#telemetry-enable_host_metrics).
+Note that if the Consul server is operating inside a container these metrics
+still report host resource usage and do not report any resource limits placed
+on the container.  
+
+**Requirements:**
+- Consul 1.15.3+
+
+| Metric                              | Description                                                                                                                                                                                                                                                       | Unit        | Type    |
+| ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- | ------- |
+| `consul.host.memory.total`          | The total physical memory in bytes                                                                                                                                                                                                   | mixed       | mixed   |
+| `consul.host.memory.available`      | The available physical memory in bytes                                                                                                                                                                                                   | mixed       | mixed   |
+| `consul.host.memory.free`           | The free physical memory in bytes                                                                                                                                                                                                   | mixed       | mixed   |
+| `consul.host.memory.used`           | The used physical memory in bytes                                                                                                                                                                                                   | mixed       | mixed   |
+| `consul.host.memory.used_percent`   | The used physical memory as a percentage of total physical memory                                                                                                                                                                                                 | mixed       | mixed   |
+| `consul.host.cpu.total`             | The host's total cpu utilization
+| `consul.host.cpu.user`              | The cpu utilization in user space
+| `consul.host.cpu.idle`              | The cpu utilization in idle state
+| `consul.host.cpu.iowait`            | The cpu utilization in iowait state
+| `consul.host.cpu.system`            | The cpu utilization in system space
+| `consul.host.disk.size`             | The size in bytes of the data_dir disk
+| `consul.host.disk.used`             | The number of bytes used on the data_dir disk
+| `consul.host.disk.available`        | The number of bytes available on the data_dir disk
+| `consul.host.disk.used_percent`     | The percentage of disk space used on the data_dir disk
+| `consul.host.disk.inodes_percent`   | The percentage of inode usage on the data_dir disk
+| `consul.host.uptime`                | The uptime of the host in seconds

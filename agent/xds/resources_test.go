@@ -200,8 +200,10 @@ func getConnectProxyTransparentProxyGoldenTestCases() []goldenTestCase {
 			create: proxycfg.TestConfigSnapshotTransparentProxyDestination,
 		},
 		{
-			name:   "transparent-proxy-destination-http",
-			create: proxycfg.TestConfigSnapshotTransparentProxyDestinationHTTP,
+			name: "transparent-proxy-destination-http",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotTransparentProxyDestinationHTTP(t, nil)
+			},
 		},
 		{
 			name: "transparent-proxy-terminating-gateway-destinations-only",

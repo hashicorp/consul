@@ -88,7 +88,7 @@ func TestRateLimiterCleanup(t *testing.T) {
 	retry.RunWith(&retry.Timer{Wait: 100 * time.Millisecond, Timeout: 2 * time.Second}, t, func(r *retry.R) {
 		v, ok := limiters.Get(key)
 		require.True(r, ok)
-		require.NotNil(t, v)
+		require.NotNil(r, v)
 	})
 
 	time.Sleep(c.ReconcileCheckInterval)

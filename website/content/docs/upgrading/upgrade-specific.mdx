@@ -384,6 +384,12 @@ if the Vault policy is not modified as described.
 As a precaution, we recommend both modifying the Vault policy and upgrading
 to Consul 1.13.3 or later to avoid the breaking nature of that change.
 
+### Nomad Incompatibility
+
+Nomad users should not upgrade to Consul 1.13.8 as an API change in Consul
+prevents Nomad from correctly detecting the Consul agent version, resulting in
+allocations not being placed in those clients.
+
 ## Consul 1.12.x ((#consul-1-12-0))
 
 ### Modify Vault Policy for Vault CA Provider
