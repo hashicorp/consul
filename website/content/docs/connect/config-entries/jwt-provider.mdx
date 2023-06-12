@@ -108,53 +108,53 @@ Kind = "jwt-provider"                                # required
 Name = "<name-of-provider-configuration-entry>"      # required
 Issuer = "<jwt-issuer>"                              # required
 JSONWebKeySet = {                                    # required
-    Local = {                                        # cannot specify with JWKS{}.Remote
-        JWKS = "<JWKS-formatted-as-string>"          # cannot specify with JWKS{}.Local{}.Filename
-        Filename = "<path/to/JWKS/file>"             # cannot specify with JWKS{}.Local{}.String
-    }
+  Local = {                                          # cannot specify with JWKS{}.Remote
+    JWKS = "<JWKS-as-base64-string>"                 # cannot specify with JWKS{}.Local{}.Filename
+    Filename = "<path/to/JWKS/file>"                 # cannot specify with JWKS{}.Local{}.String
+  }
 }
 JSONWebKeySet = {
-        Remote = {                                   # cannot specify with JWKS{}.Local
-          URI = "<uniform-resource-identifier>"
-          RequestTimeoutMs = 1500
-          CacheDuration = "5m"
-          FetchAsynchronously = false
-          RetryPolicy = {
-            NumRetries = 0
-            RetryPolicyBackoff = {
-              BaseInterval = "1s"
-              MaxInterval = "10s"
-            }
-          }
-        }
+  Remote = {                                         # cannot specify with JWKS{}.Local
+    URI = "<uniform-resource-identifier>"
+    RequestTimeoutMs = 1500
+    CacheDuration = "5m"
+    FetchAsynchronously = false
+    RetryPolicy = {
+      NumRetries = 0
+      RetryPolicyBackoff = {
+        BaseInterval = "1s"
+        MaxInterval = "10s"
       }
+    }
+  }
+}
 Audiences = ["<aud-claims>"]
 Locations = [
-    {
-        Header = {
-            Name = "<name-of-header-with-token>"
-            ValuePrefix = "<prefix-in-header-before-token>"
-            Forward = false
-        }
-    },
-    {
-        QueryParam = {
-            Name = "<name-of-query-parameter-with-token>"
-        }
-    },
-    {
-        Cookie = {
-            Name = "<name-of-cookie-with-token>"
-        }
+  {
+    Header = {
+      Name = "<name-of-header-with-token>"
+      ValuePrefix = "<prefix-in-header-before-token>"
+      Forward = false
     }
+  },
+  {
+    QueryParam = {
+      Name = "<name-of-query-parameter-with-token>"
+    }
+  },
+  {
+    Cookie = {
+      Name = "<name-of-cookie-with-token>"
+    }
+  }
 ]
 Forwarding = {
-    HeaderName = "<name-appended-to-forwarding-header>"
-    PadForwardPayloadHeader = false
+  HeaderName = "<name-appended-to-forwarding-header>"
+  PadForwardPayloadHeader = false
 }
 ClockSkewSeconds = 30
 CacheConfig = {
-    Size = 0
+  Size = 0
 }
 ```
 
@@ -164,58 +164,58 @@ CacheConfig = {
 
 ```json
 {
-"Kind": "jwt-provider",                               // required
-"Name": "<name-of-provider-configuration-entry>",     // required
-"Issuer": "<jwt-issuer>",                             // required
-"JSONWebKeySet": {                                    // required
-    "Local": {                                        // cannot specify with JWKS.Remote
-        "JWKS": "<JWKS-formatted-as-string>",         // cannot specify with JWKS.Local.Filename
-        "Filename": "<path/to/JWKS/file>"             // cannot specify with JWKS.Local.String
+  "Kind": "jwt-provider",                               // required
+  "Name": "<name-of-provider-configuration-entry>",     // required
+  "Issuer": "<jwt-issuer>",                             // required
+  "JSONWebKeySet": {                                    // required
+    "Local": {                                          // cannot specify with JWKS.Remote
+      "JWKS": "<JWKS-as-base64-string>",                // cannot specify with JWKS.Local.Filename
+      "Filename": "<path/to/JWKS/file>"                 // cannot specify with JWKS.Local.String
     }
-},
-"JSONWebKeySet": {
-        "Remote": {                                   // cannot specify with JWKS.Local
-          "URI": "<uniform-resource-identifier>",
-          "RequestTimeoutMs": "1500",
-          "CacheDuration": "5m",
-          "FetchAsynchronously": "false",
-          "RetryPolicy": {
-            "NumRetries": "0",
-            "RetryPolicyBackOff": {
-              "BaseInterval": "1s",
-              "MaxInterval": "10s"
-            }
-          }
+  },
+  "JSONWebKeySet": {
+    "Remote": {                                         // cannot specify with JWKS.Local
+      "URI": "<uniform-resource-identifier>",
+      "RequestTimeoutMs": "1500",
+      "CacheDuration": "5m",
+      "FetchAsynchronously": "false",
+      "RetryPolicy": {
+        "NumRetries": "0",
+        "RetryPolicyBackOff": {
+          "BaseInterval": "1s",
+          "MaxInterval": "10s"
         }
-},
-"Audiences": ["<aud-claims>"],
-"Locations": [
+      }
+    }
+  },
+  "Audiences": ["<aud-claims>"],
+  "Locations": [
     {
-        "Header": {
-            "Name": "<name-of-header-with-token>",
-            "ValuePrefix": "<prefix-in-header-before-token>",
-            "Forward": "false"
-        }
+      "Header": {
+        "Name": "<name-of-header-with-token>",
+        "ValuePrefix": "<prefix-in-header-before-token>",
+        "Forward": "false"
+      }
     },
     {
-        "QueryParam": {
-            "Name":"<name-of-query-parameter-with-token>",
-        }
+      "QueryParam": {
+        "Name":"<name-of-query-parameter-with-token>",
+      }
     },
     {
-        "Cookie": {
-            "Name": "<name-of-cookie-with-token>"
-        }
+      "Cookie": {
+        "Name": "<name-of-cookie-with-token>"
+      }
     }
-],
-"Forwarding": {
-    "HeaderName": "<name-appended-to-forwarding-header>",
-    "PadForwardPayloadHeader": "false"
-},
-"ClockSkewSeconds": "30",
-"CacheConfig": {
+  ],
+  "Forwarding": {
+      "HeaderName": "<name-appended-to-forwarding-header>",
+      "PadForwardPayloadHeader": "false"
+  },
+  "ClockSkewSeconds": "30",
+  "CacheConfig": {
     "Size": "0"
-}
+  }
 }
 ```
 
@@ -233,7 +233,7 @@ spec:                                             # required
   issuer: <jwt-issuer>
   jsonWebKeySet:
     local:                                        # cannot specify with spec.jsonWebKeySet.remote
-     jwks: <jwks-formatted-as-string>             # cannot specify with spec.jsonWebKeySet.local.filename
+     jwks: <jwks-as-base64-string>                # cannot specify with spec.jsonWebKeySet.local.filename
      filename: <path/to/jwks/file>                # cannot specify with spec.jsonWebKeySet.local.string
   jsonWebKeySet:
     remote:                                       # cannot specify with spec.jsonWebKeySet.local
@@ -1014,7 +1014,7 @@ metadata:
   name: okta
 spec:
   issuer: okta
-  jsonwebkeyset:
+  jsonWebKeySet:
     remote:
       uri: https://<org>.okta.com/oauth2/default/v1/keys
       cacheDuration: 30m
