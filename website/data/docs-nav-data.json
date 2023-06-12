@@ -402,39 +402,19 @@
           },
           {
             "title": "API gateway",
-            "href": "/consul/docs/connect/gateways/api-gateway/configuration/api-gateway",
-            "badge": {
-              "text": "BETA",
-              "type": "outlined",
-              "color": "neutral"
-            }
+            "href": "/consul/docs/connect/gateways/api-gateway/configuration/api-gateway"
           },
           {
             "title": "HTTP route",
-            "href": "/consul/docs/connect/gateways/api-gateway/configuration/http-route",
-            "badge": {
-              "text": "BETA",
-              "type": "outlined",
-              "color": "neutral"
-            }
+            "href": "/consul/docs/connect/gateways/api-gateway/configuration/http-route"
           },
           {
             "title": "TCP route",
-            "href": "/consul/docs/connect/gateways/api-gateway/configuration/tcp-route",
-            "badge": {
-              "text": "BETA",
-              "type": "outlined",
-              "color": "neutral"
-            }
+            "href": "/consul/docs/connect/gateways/api-gateway/configuration/tcp-route"
           },
           {
             "title": "Inline certificate",
-            "href": "/consul/docs/connect/gateways/api-gateway/configuration/inline-certificate",
-            "badge": {
-              "text": "BETA",
-              "type": "outlined",
-              "color": "neutral"
-            }
+            "href": "/consul/docs/connect/gateways/api-gateway/configuration/inline-certificate"
           },
           {
             "title": "Ingress gateway",
@@ -506,7 +486,7 @@
                   {
                     "title": "Delegate authorization to external services",
                     "path": "connect/proxies/envoy-extensions/usage/ext-authz"
-                  },                  
+                  },
                   {
                     "title": "Run Lua scripts in Envoy proxies",
                     "path": "connect/proxies/envoy-extensions/usage/lua"
@@ -522,7 +502,8 @@
                   {
                     "title": "Run WebAssembly plug-ins in Envoy proxies",
                     "path": "connect/proxies/envoy-extensions/usage/wasm"
-                  }                ]
+                  }
+                ]
               },
               {
                 "title": "Configuration",
@@ -530,16 +511,16 @@
                   {
                     "title": "External authorization",
                     "path": "connect/proxies/envoy-extensions/configuration/ext-authz"
-                  },                  
+                  },
                   {
                     "title": "Property override",
                     "path": "connect/proxies/envoy-extensions/configuration/property-override"
-                  },                  
+                  },
                   {
                     "title": "WebAssembly",
                     "path": "connect/proxies/envoy-extensions/configuration/wasm"
                   }
-                ]              
+                ]
               }
             ]
           },
@@ -638,11 +619,6 @@
           },
           {
             "title": "API Gateways",
-            "badge": {
-              "text": "BETA",
-              "type": "outlined",
-              "color": "neutral"
-            },
             "routes": [
               {
                 "title": "Overview",
@@ -1016,7 +992,7 @@
               {
                 "title": "Limit traffic rates from source IP addresses",
                 "path": "agent/limits/usage/limit-request-rates-from-ips"
-              }    
+              }
             ]
           },
           {
