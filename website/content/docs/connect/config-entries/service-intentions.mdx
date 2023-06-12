@@ -25,8 +25,9 @@ The following outline shows how to format the service intentions configuration e
 - [`Sources`](#sources): list | no default
   - [`Name`](#sources-name): string | no default
   - [`Peer`](#sources-peer): string | no default
-  - [`Namespace`](#sources-namespace): string | no default  | <EnterpriseAlert inline />
-  - [`Partition`](#sources-partition): string | no default  | <EnterpriseAlert inline />
+  - [`Namespace`](#sources-namespace): string | no default | <EnterpriseAlert inline />
+  - [`Partition`](#sources-partition): string | no default | <EnterpriseAlert inline />
+  - [`SamenessGroup`](#sources-samenessgroup): string | no default | <EnterpriseAlert inline />
   - [`Action`](#sources-action): string | no default  | required for L4 intentions
   - [`Permissions`](#sources-permissions): list | no default
     - [`Action`](#sources-permissions-action): string | no default  | required
@@ -68,6 +69,7 @@ The following outline shows how to format the service intentions configuration e
     - [`peer`](#spec-sources-peer): string | no default
     - [`namespace`](#spec-sources-namespace): string | no default  | <EnterpriseAlert inline />
     - [`partition`](#spec-sources-partition): string | no default  | <EnterpriseAlert inline />
+    - [`samenessGroup`](#spec-sources-samenessgroup): string | no default | <EnterpriseAlert inline />
     - [`action`](#spec-sources-action): string | no default  | required for L4 intentions
     - [`permissions`](#spec-sources-permissions): list | no default
       - [`action`](#spec-sources-permissions-action): string | no default  | required
@@ -113,6 +115,7 @@ Sources = [
     Peer =  "<name of cluster containing source service>"  # string
     Namespace = "<namespace containing source service>"    # string
     Partition = "<sources-partition>"                      # string
+    SamenessGroup = "<group-name>"                         # string
     Action = "allow" or "deny"                             # string for L4 intentions
     Permissions = [                                        
       {                                                  
@@ -181,6 +184,7 @@ spec:
     peer: <name of cluster containing source service>
     namespace: <namespace containing source service>
     partition: <sources-partition>
+    samenessGroup: <group-name>
     action: allow or deny
     permissions:
     - action: allow or deny
@@ -226,6 +230,7 @@ spec:
          "Peer":"<name of cluster containing source service>",
          "Namespace":"<namespace containing source service>",
          "Partition":"<sources-partition>",
+         "SamenessGroup":"<group-name>",
          "Action":"allow or deny",
          "Permissions":[
             {
@@ -353,6 +358,7 @@ List of configurations that define intention sources and the authorization grant
   - `Peer`
   - `Namespace` <EnterpriseAlert inline/>
   - `Partition` <EnterpriseAlert inline/>
+  - `SamenessGroup` <EnterpriseAlert inline/>
   - `Action`
   - `Permissions`
   - `Precedence`
@@ -403,6 +409,16 @@ The `Peer` and `Partition` fields are mutually exclusive.
 
 - Default: If [`Peer`](#sources-peer) is unspecified, defaults to the destination [`Partition`](#partition).
 - Data type: string
+
+### `Sources[].SamenessGroup` <EnterpriseAlert inline /> 
+
+Specifies the name of a sameness group that the intention allows or denies traffic from. Refer to [create samenes groups](/consul/docs/connect/cluster-peering/usage/create-sameness-groups) for additional information.
+
+#### Values
+
+- Default: None
+- Data type: string
+
 
 ### `Sources[].Action`
 
@@ -644,7 +660,8 @@ List of configurations that define intention sources and the authorization grant
   - `peer`
   - `namespace` <EnterpriseAlert inline/>
   - `partition` <EnterpriseAlert inline/>
-  - `Action`
+  - `samenessGroup` <EnterpriseAlert inline/>
+  - `action`
   - `permissions`
   - `type`
   - `description`
@@ -685,6 +702,15 @@ Specifies the name of an admin partition that the intention allows or denies tra
 - Default: If [`peer`](#sources-peer) is unspecified, defaults to the partition specified in  [`spec.destination.partition`](#spec-destination-partition).
 - Data type: String
 
+### `spec.sources[].samenessGroup` <EnterpriseAlert inline /> 
+
+Specifies the name of a sameness group that the intention allows or denies traffic from. Refer to [create samenes groups](/consul/docs/k8s/connect/cluster-peering/usage/create-sameness-groups) for additional information.
+
+#### Values
+
+- Default: None
+- Data type: string
+  
 ### `spec.sources[].action`
 
 Specifies the action to take when the source sends traffic to the destination service. The value  is either `allow` or `deny`. Do not configure this field for L7 intentions. Configure the [`spec.sources.permissions`](#spec-sources-permissions) field instead. 
