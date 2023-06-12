@@ -5,9 +5,91 @@ description: >-
   Upgrade Consul API Gateway to use newly supported features. Learn about the requirements, procedures, and post-configuration changes involved in standard and specific version upgrades.
 ---
 
-# Upgrade API Gateway for Kubernetes
+# Upgrade Consul API gateway for Kubernetes
 
-This topic describes how to upgrade Consul API Gateway.
+Since Consul v1.16, the Consul API gateway is a native feature within the Consul binary and is installed during the normal Consul installation process. Consul v1.16 also includes the CRDs necessary for using the Consul API gateway for Kubernetes. You can install Consul v1.16 using the Consul Helm chart v1.2 and later. Refer to [Install API gateway for Kubernetes](/consul/docs/api-gateway/install) for additional information.
+
+## Introduction
+
+Because Consul API gateway releases as part of Consul, it no longer has an independent version number. Instead, the API gateway inherits the same version number as the Consul binary. Refer to the [release notes](/consul/docs/release-notes) for additional information. 
+
+To begin using the native API gateway, complete one of the following upgrade paths:
+
+### Upgrade from Consul on Kubernetes v1.1.x
+
+1. Complete the instructions for [upgrading to the native Consul API gateway](#upgrade-to-native-consul-api-gateway).
+
+### Upgrade from v0.4.x - v0.5.x
+ 
+1. Complete the [standard upgrade instructions](#standard-upgrade)
+1. Complete the instructions for [upgrading to the native Consul API gateway](#upgrade-to-native-consul-api-gateway).
+
+### Upgrade from v0.3.x
+
+1. Complete the instructions for [upgrading to v0.4.0](#upgrade-to-v0-4-0)
+1. Complete the [standard upgrade instructions](#standard-upgrade)
+1. Complete the instructions for [upgrading to the native Consul API gateway](#upgrade-to-native-consul-api-gateway).
+
+### Upgrade from v0.2.x
+
+1. Complete the instructions for [upgrading to v0.3.0](#upgrade-to-v0-2-0)
+1. Complete the instructions for [upgrading to v0.4.0](#upgrade-to-v0-4-0)
+1. Complete the [standard upgrade instructions](#standard-upgrade)
+1. Complete the instructions for [upgrading to the native Consul API gateway](#upgrade-to-native-consul-api-gateway).
+
+### Upgrade from v0.1.x
+
+1. Complete the instructions for [upgrading to v0.2.0](#upgrade-to-v0-2-0)
+1. Complete the instructions for [upgrading to v0.3.0](#upgrade-to-v0-3-0)
+1. Complete the instructions for [upgrading to v0.4.0](#upgrade-to-v0-4-0)
+1. Complete the [standard upgrade instructions](#standard-upgrade)
+1. Complete the instructions for [upgrading to the native Consul API gateway](#upgrade-to-native-consul-api-gateway).
+
+## Upgrade to native Consul API gateway
+
+You must begin the upgrade procedure with Consul API gateway v1.1 installed. If you are currently using a version of Consul API gateway older than v1.1, complete the necessary stages of the upgrade path to v1.1 before you begin upgrading to v1.2. Refer to the [Introduction](#introduction) for an overview of the upgrade paths.
+
+1. To prevent collisions between previously installed CRDs and the CRDs installed with Consul, delete the existing CRDs. Note that deleting the CRDs will result in downtime.
+
+  ```shell-session
+  $ kubectl delete --kustomize="github.com/hashicorp/consul-api-gateway/config/crd?ref=v0.5.1"
+  ``` 
+
+  You must also remove the `connectInject.apiGateway.manageExternalCRDs=false` configuration from your values file. 
+
+1. Issue the following command to manually update the Consul API gateway CRDs:
+
+  ```shell-session
+  $ kubectl apply -k "github.com/kubernetes-sigs/gateway-api/config/crd/experimental?ref=v0.6.2" 
+  ```
+
+1. Create a values file that installs the version of Consul API gateway that ships with Consul and disables externally-managed CRDs:
+
+  <CodeBlock heading="apigw-installation.yaml">
+
+  ```yaml
+  global:
+    image: hashicorp/consul:1.16
+    imageK8S: hashicorp/consul-k8s-control-plane
+  connectInject:
+    apiGateway:
+      manageExternalCRDs: false
+  apiGateway:
+    enabled: true
+    image: hashicorp/consul-api-gateway:0.5.4
+    managedGatewayClass:
+      enabled: true
+  ```
+  
+  </CodeBlock>
+
+1. Issue the following command to apply the configuration and complete the installation:
+
+  ```shell-session
+  $ kubectl apply -f apigw-installation.yaml
+  ```
+
+1. Change any existing `Gateways` to reference the new `GatewayClass` `consul`. Refer to [gatewayClass](/consul/docs/api-gateway/configuration/gateway#gatewayclassname) for additional information.
 
 ## Upgrade to v0.4.0
 
@@ -34,7 +116,9 @@ Ensure that the following requirements are met prior to upgrading:
 <a name="v0.4.0-post-upgrade-configuration-changes"/>
 
 ### Post-upgrade configuration changes
+
 Complete the following steps after performing standard upgrade procedure.
+
 #### Requirements
 
 - Consul API Gateway should be running version v0.4.0.
