@@ -421,6 +421,10 @@
             "path": "connect/config-entries/ingress-gateway"
           },
           {
+            "title": "JWT Provider",
+            "path": "connect/config-entries/jwt-provider"
+          },
+          {
             "title": "Mesh",
             "path": "connect/config-entries/mesh"
           },
@@ -565,6 +569,10 @@
           {
             "title": "Create and manage service intentions",
             "path": "connect/intentions/create-manage-intentions"
+          },
+          {
+            "title": "JWT authorization for intentions",
+            "path": "connect/intentions/jwt-authorization"
           },
           {
             "title": "Service intentions legacy mode",
