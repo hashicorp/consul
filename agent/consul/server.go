@@ -79,6 +79,7 @@ import (
 	raftstorage "github.com/hashicorp/consul/internal/storage/raft"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/lib/routine"
+	"github.com/hashicorp/consul/lib/stringslice"
 	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/proto/private/pbsubscribe"
@@ -131,6 +132,8 @@ const (
 	reconcileChSize = 256
 
 	LeaderTransferMinVersion = "1.6.0"
+
+	catalogResourceExperimentName = "resource-apis"
 )
 
 const (
@@ -807,7 +810,7 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server, incom
 		s.internalResourceServiceClient,
 		logger.Named(logging.ControllerRuntime),
 	)
-	s.registerResources()
+	s.registerResources(flat)
 	go s.controllerManager.Run(&lib.StopChannelContext{StopCh: shutdownCh})
 
 	go s.trackLeaderChanges()
@@ -858,11 +861,14 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server, incom
 	return s, nil
 }
 
-func (s *Server) registerResources() {
-	catalog.RegisterTypes(s.typeRegistry)
-	catalog.RegisterControllers(s.controllerManager, catalog.DefaultControllerDependencies())
+func (s *Server) registerResources(deps Deps) {
+	if stringslice.Contains(deps.Experiments, catalogResourceExperimentName) {
+		catalog.RegisterTypes(s.typeRegistry)
+		catalog.RegisterControllers(s.controllerManager, catalog.DefaultControllerDependencies())
 
-	mesh.RegisterTypes(s.typeRegistry)
+		mesh.RegisterTypes(s.typeRegistry)
+	}
+
 	reaper.RegisterControllers(s.controllerManager)
 
 	if s.config.DevMode {
