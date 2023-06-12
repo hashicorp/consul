@@ -15,7 +15,7 @@ description: >-
 
 - **Enables TLS on the Envoy Prometheus endpoint**: The Envoy prometheus endpoint can be enabled when `envoy_prometheus_bind_addr` is set and then secured over TLS using new CLI flags for the `consul connect envoy` command. These commands are: `-prometheus-ca-file`, `-prometheus-ca-path`, `-prometheus-cert-file` and `-prometheus-key-file`. The CA, cert, and key can be provided to Envoy by a Kubernetes mounted volume so that Envoy can watch the files and dynamically reload the certs when the volume is updated.
 
-- **UDP Health Checks**: Adds the ability to register service discovery health checks that periodically send UDP datagrams to the specified IP/hostname and port. Refer to [UDP checks](/consul/docs//services/usage/checks#udp-checks).
+- **UDP Health Checks**: Adds the ability to register service discovery health checks that periodically send UDP datagrams to the specified IP/hostname and port. Refer to [UDP checks](/consul/docs/services/usage/checks#udp-checks).
 
 ## What's Changed
 
