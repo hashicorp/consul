@@ -52,6 +52,10 @@ func GetHumanVersion() string {
 		version += fmt.Sprintf("-%s", release)
 	}
 
+	if IsFIPS() {
+		version += ".fips1402"
+	}
+
 	if metadata != "" {
 		version += fmt.Sprintf("+%s", metadata)
 	}

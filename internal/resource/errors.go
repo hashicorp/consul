@@ -92,16 +92,30 @@ func (err ErrInvalidMapKey) Unwrap() error {
 	return err.Wrapped
 }
 
-type ErrOwnerInvalid struct {
+type ErrOwnerTypeInvalid struct {
 	ResourceType *pbresource.Type
 	OwnerType    *pbresource.Type
 }
 
-func (err ErrOwnerInvalid) Error() string {
+func (err ErrOwnerTypeInvalid) Error() string {
 	return fmt.Sprintf(
 		"resources of type %s cannot be owned by resources with type %s",
 		ToGVK(err.ResourceType),
 		ToGVK(err.OwnerType),
+	)
+}
+
+type ErrOwnerTenantInvalid struct {
+	ResourceType    *pbresource.Type
+	ResourceTenancy *pbresource.Tenancy
+	OwnerTenancy    *pbresource.Tenancy
+}
+
+func (err ErrOwnerTenantInvalid) Error() string {
+	return fmt.Sprintf(
+		"resource in partition %s, namespace %s and peer %s cannot be owned by a resource in partition %s, namespace %s and peer %s",
+		err.ResourceTenancy.Partition, err.ResourceTenancy.Namespace, err.ResourceTenancy.PeerName,
+		err.OwnerTenancy.Partition, err.OwnerTenancy.Namespace, err.OwnerTenancy.PeerName,
 	)
 }
 

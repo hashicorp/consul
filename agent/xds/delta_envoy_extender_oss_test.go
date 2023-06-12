@@ -16,11 +16,12 @@ import (
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	envoy_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	"github.com/hashicorp/consul/agent/xds/testcommon"
+	"github.com/hashicorp/go-hclog"
+	goversion "github.com/hashicorp/go-version"
 	testinf "github.com/mitchellh/go-testing-interface"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/proto"
 
-	"github.com/hashicorp/consul/agent/envoyextensions"
 	propertyoverride "github.com/hashicorp/consul/agent/envoyextensions/builtin/property-override"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
@@ -29,9 +30,12 @@ import (
 	"github.com/hashicorp/consul/envoyextensions/extensioncommon"
 	"github.com/hashicorp/consul/envoyextensions/xdscommon"
 	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/consul/version"
 )
 
 func TestEnvoyExtenderWithSnapshot(t *testing.T) {
+	consulVersion, _ := goversion.NewVersion(version.Version)
+
 	// If opposite is true, the returned service defaults config entry will have
 	// payload-passthrough=true and invocation-mode=asynchronous.
 	// Otherwise payload-passthrough=false and invocation-mode=synchronous.
@@ -65,7 +69,7 @@ func TestEnvoyExtenderWithSnapshot(t *testing.T) {
 	}
 
 	// Apply Lua extension to the local service and ensure http is used so the extension can be applied.
-	makeLuaNsFunc := func(inbound bool) func(ns *structs.NodeService) {
+	makeLuaNsFunc := func(inbound bool, envoyVersion, consulVersion string) func(ns *structs.NodeService) {
 		listener := "inbound"
 		if !inbound {
 			listener = "outbound"
@@ -75,7 +79,9 @@ func TestEnvoyExtenderWithSnapshot(t *testing.T) {
 			ns.Proxy.Config["protocol"] = "http"
 			ns.Proxy.EnvoyExtensions = []structs.EnvoyExtension{
 				{
-					Name: api.BuiltinLuaExtension,
+					Name:          api.BuiltinLuaExtension,
+					EnvoyVersion:  envoyVersion,
+					ConsulVersion: consulVersion,
 					Arguments: map[string]interface{}{
 						"ProxyType": "connect-proxy",
 						"Listener":  listener,
@@ -465,10 +471,40 @@ end`,
 			create: proxycfg.TestConfigSnapshotTerminatingGatewayWithLambdaServiceAndServiceResolvers,
 		},
 		{
+			name: "lua-outbound-doesnt-apply-to-local-upstreams-with-envoy-constraint-violation",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				// upstreams need to be http in order for lua to be applied to listeners.
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", false, makeLuaNsFunc(false, "< 1.0.0", ">= 1.0.0"), nil, &structs.ServiceConfigEntry{
+					Kind:     structs.ServiceDefaults,
+					Name:     "db",
+					Protocol: "http",
+				}, &structs.ServiceConfigEntry{
+					Kind:     structs.ServiceDefaults,
+					Name:     "geo-cache",
+					Protocol: "http",
+				})
+			},
+		},
+		{
+			name: "lua-outbound-doesnt-apply-to-local-upstreams-with-consul-constraint-violation",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				// upstreams need to be http in order for lua to be applied to listeners.
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", false, makeLuaNsFunc(false, ">= 1.0.0", "< 1.0.0"), nil, &structs.ServiceConfigEntry{
+					Kind:     structs.ServiceDefaults,
+					Name:     "db",
+					Protocol: "http",
+				}, &structs.ServiceConfigEntry{
+					Kind:     structs.ServiceDefaults,
+					Name:     "geo-cache",
+					Protocol: "http",
+				})
+			},
+		},
+		{
 			name: "lua-outbound-applies-to-local-upstreams",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				// upstreams need to be http in order for lua to be applied to listeners.
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", false, makeLuaNsFunc(false), nil, &structs.ServiceConfigEntry{
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", false, makeLuaNsFunc(false, ">= 1.0.0", ">= 1.0.0"), nil, &structs.ServiceConfigEntry{
 					Kind:     structs.ServiceDefaults,
 					Name:     "db",
 					Protocol: "http",
@@ -487,7 +523,7 @@ end`,
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				// db is made an HTTP upstream so that the extension _could_ apply, but does not because
 				// the direction for the extension is inbound.
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", false, makeLuaNsFunc(true), nil, &structs.ServiceConfigEntry{
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", false, makeLuaNsFunc(true, "", ""), nil, &structs.ServiceConfigEntry{
 					Kind:     structs.ServiceDefaults,
 					Name:     "db",
 					Protocol: "http",
@@ -497,7 +533,7 @@ end`,
 		{
 			name: "lua-inbound-applies-to-inbound",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", false, makeLuaNsFunc(true), nil)
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", false, makeLuaNsFunc(true, "", ""), nil)
 			},
 		},
 		{
@@ -505,14 +541,14 @@ end`,
 			// no upstream HTTP services. We also should not see public listener, which is HTTP, patched.
 			name: "lua-outbound-doesnt-apply-to-inbound",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", false, makeLuaNsFunc(false), nil)
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", false, makeLuaNsFunc(false, "", ""), nil)
 			},
 		},
 		{
 			name: "lua-outbound-applies-to-local-upstreams-tproxy",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				// upstreams need to be http in order for lua to be applied to listeners.
-				return proxycfg.TestConfigSnapshotTransparentProxyDestinationHTTP(t, makeLuaNsFunc(false))
+				return proxycfg.TestConfigSnapshotTransparentProxyDestinationHTTP(t, makeLuaNsFunc(false, "", ""))
 			},
 		},
 		{
@@ -707,6 +743,7 @@ end`,
 
 	latestEnvoyVersion := xdscommon.EnvoyVersions[0]
 	for _, envoyVersion := range xdscommon.EnvoyVersions {
+		parsedEnvoyVersion, _ := goversion.NewVersion(envoyVersion)
 		sf, err := xdscommon.DetermineSupportedProxyFeaturesFromString(envoyVersion)
 		require.NoError(t, err)
 		t.Run("envoy-"+envoyVersion, func(t *testing.T) {
@@ -730,11 +767,7 @@ end`,
 					cfgs := extensionruntime.GetRuntimeConfigurations(snap)
 					for _, extensions := range cfgs {
 						for _, ext := range extensions {
-							extender, err := envoyextensions.ConstructExtension(ext.EnvoyExtension)
-							require.NoError(t, err)
-							err = extender.Validate(&ext)
-							require.NoError(t, err)
-							indexedResources, err = extender.Extend(indexedResources, &ext)
+							err := applyEnvoyExtension(hclog.NewNullLogger(), snap, indexedResources, ext, parsedEnvoyVersion, consulVersion)
 							require.NoError(t, err)
 						}
 					}

@@ -69,3 +69,7 @@ func (a *Agent) AgentEnterpriseMeta() *acl.EnterpriseMeta {
 func (a *Agent) registerEntCache() {}
 
 func (*Agent) fillEnterpriseProxyDataSources(*proxycfg.DataSources) {}
+
+func (a *Agent) writeAuditRPCEvent(_ string, _ string) interface{} {
+	return nil
+}
