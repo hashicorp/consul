@@ -2,7 +2,6 @@
 layout: docs
 page_title: Limit Traffic Rates Overview
 description: Rate limiting is a set of Consul server agent configurations that you can use to mitigate the risks to Consul servers when clients send excessive requests to Consul resources. 
-
 ---
 
 # Traffic rate limiting overview
@@ -50,4 +49,4 @@ You can define request rate limits in the agent configuration and in the control
 
 ## Kubernetes
 
-To define global rate limits, configure the `request_limits` settings in the Consul Helm chart. Refer to the [Helm chart reference]() for additional information. Refer to the [control plane request limit configuration entry reference](/consul/docs/connect/config-entries/control-plane-request-limit) for information about applying a CRD for limiting traffic rates from source IPs. 
+To define global rate limits, configure the `request_limits` settings in the Consul Helm chart. Refer to the [Helm chart reference](/consul/docs/k8s/helm) for additional information. Refer to the [control plane request limit configuration entry reference](/consul/docs/connect/config-entries/control-plane-request-limit) for information about applying a CRD for limiting traffic rates from source IPs. 
