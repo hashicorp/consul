@@ -61,7 +61,7 @@ Finally, only TLSv1.2 is supported in FIPS mode. These settings are in line with
 
 #### Heterogeneous cluster deployments
 
-Hashicorp does not support mixed deployment scenarios within the same Consul cluster. An example of an unsupported deployment scenario is one that mixes FIPS and non-FIPS Consul binary versions. Nodes across the entire cluster must use a single binary or deployment type.
+We do not support mixed deployment scenarios within the same Consul cluster. An example of an unsupported deployment scenario is one that mixes FIPS and non-FIPS Consul binaries. Nodes across the entire cluster must use a single binary or deployment type.
 
 Running a heterogeneous cluster is not permitted by FIPS, as components of the system are not compliant with FIPS. Attempts to join non-FIPS and FIPS nodes or servers may fail.
 
