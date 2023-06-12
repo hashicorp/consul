@@ -40,7 +40,7 @@ When using Consul Enterprise with FIPS 140-2, be aware of the following operatio
 
 #### Migration restrictions
 
-Hashicorp does not support in-place migrations from non-FIPS versions of Consul to FIPS versions of Consul, regardless of version. A fresh cluster installation is required to support FIPPS 140-2. It is not possible to upgrade directly.
+We do not support in-place migrations from non-FIPS builds of Consul to FIPS builds of Consul, regardless of version. A fresh cluster installation is required to support FIPS 140-2. You cannot upgrade directly to a FIPS-compliant build.
 
 #### TLS restrictions
 Consul Enterprise's FIPS modifications include restrictions to supported TLS cipher suites and key information. Only the following cipher suites are allowed:
