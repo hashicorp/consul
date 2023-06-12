@@ -1,0 +1,965 @@
+---
+page_title: JWT provider configuration entry reference
+description: |-
+ JWT provider configuration entries add JSON Web Token token validation to intentions in the service mesh. Learn how to write `jwt-provider` config entries in HCL or YAML with a specification reference, configuration model, a complete example, and example code by use case.
+---
+
+# JWT provider configuration entry reference
+
+This page provides reference information for the JWT provider configuration entry, which configures Consul to use a JSON Web Token (JWT) and JSON Web Key Set (JWKS) in order to add JWT validation to proxies in the service mesh. Refer to [Use JWT authorization with service intentions](/consul/docs/connect/intentions/jwt-authorization) for more information.
+
+## Configuration model
+
+The following list outlines field hierarchy, language-specific data types, and requirements in a JWT provider configuration entry. Click on a property name to view additional details, including default values.
+
+<Tabs>
+
+<Tab heading="HCL and JSON" group="hcl">
+
+- [`Kind`](#kind): string | required | must be set to `jwt-provider`
+- [`Name`](#name): string | required
+- [`Issuer`](#issuer): string
+- [`JWKS`](#jwks): map
+  - [`Local`](#jwks-local): map
+    - [`String`](#jwks-local-string): string
+    - [`Filename`](#jwks-local-filename): string
+  - [`Remote`](#jwks-remote): map
+    - [`URI`](#jwks-remote-uri): string
+    - [`RequestTimeoutMs`](#jwks-remote-requesttimeoutms): integer
+    - [`CacheDuration`](#jwks-remote-cacheduration): string | `5m`
+    - [`FetchAsynchronously`](#jwks-remote-fetchasynchronously): boolean | `false`
+    - [`RetryPolicy`](#jwks-remote-retrypolicy): map
+      - [`NumRetries`](#jwks-remote-retrypolicy): integer | `0`
+- [`Audiences`](#audiences): list of strings
+- [`Locations`](#locations): list of maps
+  - [`Header`](#locations-header): map
+    - [`Name`](#locations-header-name): string
+    - [`ValuePrefix`](#locations-header-valueprefix): string
+    - [`Forward`](#locations-header-forward): boolean | `false`
+  - [`QueryParam`](#locations-queryparam): map
+    - [`Name`](#locations-queryparam): string
+  - [`Cookie`](#locations-cookie): map
+    - [`Name`](#locations-cookie): string
+- [`Forwarding`](#forwarding): map
+  - [`HeaderName`](#forwarding-headername): string
+  - [`PadForwardPayloadHeader`](#forwarding-padforwardpayloadheader): boolean | `false`
+- [`ClockSkewSeconds`](#clockskewseconds): integer | `30`
+- [`CacheConfig`](#cacheconfig): map
+  - [`Size`](#cacheconfig-size): integer | `0`
+
+</Tab>
+
+<Tab heading="YAML" group="yaml">
+
+- [`apiVersion`](#apiversion): string | required | must be set to `consul.hashicorp.com/v1alpha1`
+- [`kind`](#kind): string | required | must be set to `jwtProvider`
+- [`metadata`](#metadata): map | required
+  - [`name`](#metadata-name): string | required
+  - [`namespace`](#metadata-namespace): string
+- [`spec`](#spec): map | required
+  - [`issuer`](#spec-issuer): string
+  - [`jwks`](#spec-jwks): map
+    - [`local`](#spec-jwks-local): map
+      - [`string`](#spec-jwks-local-string): string
+      - [`filename`](#spec-jwks-local-filename): string
+    - [`remote`](#spec-jwks-remote): map
+      - [`uri`](#spec-jwks-remote-uri): string
+      - [`requestTimeoutMs`](#spec-jwks-remote-requesttimeoutms): integer
+      - [`cacheDuration`](#spec-jwks-remote-cacheduration): string | `5m` 
+      - [`fetchAsynchronously`](#spec-jwks-remote-fetchasynchronously): boolean | `false`
+      - [`retryPolicy`](#spec-jwks-remote-retrypolicy): map
+        - [`numRetries`](#spec-jwks-remote-retrypolicy): integer | `0`
+  - [`audiences`](#spec-audiences): list of strings
+  - [`locations`](#spec-locations): list of maps
+    - [`header`](#spec-locations-header): map
+      - [`name`](#spec-locations-header-name): string
+      - [`valuePrefix`](#spec-locations-header-valueprefix): string
+      - [`forward`](#spec-locations-header-forward): boolean | `false`
+    - [`queryParam`](#spec-locations-queryparam): map
+      - [`name`](#spec-locations-queryparam): string
+    - [`cookie`](#spec-locations-cookie): map
+      - [`name`](#spec-locations-cookie): string
+  - [`forwarding`](#spec-forwarding): map
+    - [`headerName`](#spec-forwarding-headername): string
+    - [`padForwardPayloadHeader`](#spec-forwarding-padforwardpayloadheader): boolean | `false`
+  - [`clockSkewSeconds`](#spec-clockskewseconds): integer | `30`
+  - [`cacheConfig`](#spec-cacheconfig): map
+    - [`size`](#spec-cacheconfig-size): integer | `0`
+
+</Tab>
+</Tabs>
+
+## Complete configuration
+
+When every field is defined, a JWT provider configuration entry has the following form:
+
+<Tabs>
+
+<Tab heading="HCL" group="hcl">
+
+```hcl
+Kind = "jwt-provider"                                # required
+Name = "<name-of-provider-configuration-entry>"      # required
+Issuer = "<jwt-issuer>"                              # required
+JWKS = {                                             # required
+    Local = {                                        # cannot specify with JWKS{}.Remote
+        String = "<JWKS-formatted-as-string>"        # cannot specify with JWKS{}.Remote{}.Filename
+        Filename = "<path/to/JWKS/file>"             # cannot specify with JWKS{}.Remote{}.String
+    }
+}
+JWKS = {
+        Remote = {                                   # cannot specify with JWKS{}.Local
+          URI = "<uniform-resource-identifier>"
+          RequestTimeoutMs = 1500
+          CacheDuration = "5m"
+          FetchAsynchronously = false
+          RetryPolicy = {
+            NumRetries = 0
+          }
+        }
+      }
+Audiences = ["<aud-claims>"]
+Locations = [
+    {
+        Header = {
+            Name = "<name-of-header-with-token>"
+            ValuePrefix = "<prefix-in-header-before-token>"
+            Forward = false
+        }
+    },
+    {
+        QueryParam = {
+            Name = "<name-of-query-parameter-with-token>"
+        }
+    },
+    {
+        Cookie = {
+            Name = "<name-of-cookie-with-token>"
+        }
+    }
+]
+Forwarding = {
+    HeaderName = "<name-appended-to-forwarding-header>"
+    PadForwardPayloadHeader = false
+}
+ClockSkewSeconds = 30
+CacheConfig = {
+    Size = 0
+}
+```
+
+</Tab>
+
+<Tab heading="JSON" group="json">
+
+```json
+{
+"Kind": "jwt-provider",                               // required
+"Name": "<name-of-provider-configuration-entry>",     // required
+"Issuer": "<jwt-issuer>",                             // required
+"JWKS": {                                             // required
+    "Local": {                                        // cannot specify with JWKS.Remote
+        "String": "<JWKS-formatted-as-string>",       // cannot specify with JWKS.Local.Filename
+        "Filename": "<path/to/JWKS/file>"             // cannot specify with JWKS.Local.String
+    }
+},
+"JWKS": {
+        "Remote": {                                   // cannot specify with JWKS.Local
+          "URI": "<uniform-resource-identifier>",
+          "RequestTimeoutMs": "1500",
+          "CacheDuration": "5m",
+          "FetchAsynchronously": "false",
+          "RetryPolicy": {
+            "NumRetries": "0"
+          }
+        }
+},
+"Audiences": ["<aud-claims>"],
+"Locations": [
+    {
+        "Header": {
+            "Name": "<name-of-header-with-token>",
+            "ValuePrefix": "<prefix-in-header-before-token>",
+            "Forward": "false"
+        }
+    },
+    {
+        "QueryParam": {
+            "Name":"<name-of-query-parameter-with-token>",
+        }
+    },
+    {
+        "Cookie": {
+            "Name": "<name-of-cookie-with-token>"
+        }
+    }
+],
+"Forwarding": {
+    "HeaderName": "<name-appended-to-forwarding-header>",
+    "PadForwardPayloadHeader": "false"
+},
+"ClockSkewSeconds": "30",
+"CacheConfig": {
+    "Size": "0"
+}
+}
+```
+
+</Tab>
+
+<Tab heading="YAML" group="yaml">
+
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1         # required
+kind: jwtProvider                                 # required            
+metadata:                                         # required    
+  name: <name-of-provider-configuration-entry>    # required
+  namespace: <namespace>
+spec:                                             # required
+  issuer: <jwt-issuer>
+  jwks:
+    local:                                        # cannot specify with spec.jwks.remote
+     string: <jwks-formatted-as-string>           # cannot specify with spec.jwks.local.filename
+     filename: <path/to/jwks/file>                # cannot specify with spec.jwks.local.string
+  jwks:
+    remote:                                       # cannot specify with spec.jwks.local
+      uri: <uniform-resource-identifier>
+      requestTimeoutMs: 1500
+      cacheDuration: 5m
+      fetchAsynchronously: false
+      retryPolicy:
+        numRetries: 0
+  audiences: [<aud-claims>]
+  locations: 
+    header: 
+      name: <name-of-header-with-token>
+      valuePrefix: "<prefix-in-header-before-token>"
+      forward: false
+    queryParam:
+      name: "<name-of-query-parameter-with-token>"
+    cookie:
+      name: "<name-of-cookie-with-token>"
+  forwarding: 
+    headerName: "<name-appended-to-forwarding-header>"
+    padForwardPayloadHeader: false
+  clockSkewSeconds: 30
+  cacheConfig:
+    size: 0
+```
+
+</Tab>
+</Tabs>
+
+## Specification
+
+This section provides details about the fields you can configure in the JWT provider configuration entry.
+
+<Tabs>
+
+<Tab heading="HCL" group="hcl">
+
+### `Kind`
+
+Specifies the type of configuration entry to implement.
+
+#### Values
+
+- Default: None
+- This field is required.
+- Data type: String value that must be set to `jwt-provider`.
+
+### `Name`
+
+Specifies a name for the configuration entry. We recommend naming the configuration file after the JWT provider used in the configuration. Refer to the [Okta JWT Provider example](#okta-jwt-provider) for an example configuration.
+
+#### Values
+
+- Default: None
+- This field is required.
+- Data type: String
+
+### `Issuer`
+
+Specifies the provider that issued the JWT. This value must match the token’s `iss` (issuer) claim.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `JWKS`
+
+Defines a JSON Web Key Set. This field can be configured for a local file, or it can specify instructions to fetch a key set from a remote server. You cannot specify [`JWKS{}.Local`](#jwks-local) and [`JWKS{}.Remote`](#jwks-remote) in the same map.
+
+#### Values
+
+- Default: None
+- Data type: Map that can contain one of the following parameters:
+
+  - [`Local`](#jwks-local)
+  - [`Remote`](#jwks-remote)
+
+### `JWKS{}.Local`
+
+Specifies a local source for the JSON Web Key Set. You can specify the source as a string in the configuration entry or you can include a local filename that contains the set. You cannot specify both `String` and `Filename` in the same map.
+
+#### Values
+
+- Default: None
+- Data type: Map that can contain one of the following parameters:
+
+  - [`String`](#jwks-local-string)
+  - [`Filename`](#jwks-local-filename)
+
+### `JWKS{}.Local{}.String`
+
+Specifies the JSON Web Key Set that validates the JWT’s signature, formatted as a base64 encoded string. You cannot specify the `String` parameter if [`JWKS{}.Local{}.Filename`](#jwks-local-filename) is also specified in the same map.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `JWKS{}.Local{}.Filename`
+
+Specifies the path to the JSON Web Key Set’s location on the local disk. When this field is specified, the file must be present on the disk for all proxies with service intentions referencing this provider. You cannot specify the `Filename` parameter if [`JWKS{}.Local{}.String`](#jwks-local-string) is also specified in the same map.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `JWKS{}.Remote`
+
+Specifies a remote source for the JSON Web Key Set and configures behavior when fetching the key set.
+
+#### Values
+
+- Default: None
+- Data type: Map that can contain the following parameters:
+
+  - [`URI`](#jwks-remote-uri)
+  - [`RequestTimeoutMs`](#jwks-remote-requesttimeoutms) 
+  - [`CacheDuration`](#jwks-remote-cacheduration) 
+  - [`FetchAsynchronously`](#jwks-remote-fetchasynchronously)
+  - [`RetryPolicy`](#jwks-remote-retrypolicy)
+
+### `JWKS.Remote{}.URI`
+
+Specifies the URI of the server to query for the JSON Key Web Set.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `JWKS.Remote{}.RequestTimeoutMs`
+
+Specifies the length of time before a request to the remote URI times out, measured in milliseconds (ms).
+
+#### Values
+
+- Default: None
+- Data type: Integer
+
+### `JWKS.Remote{}.CacheDuration`
+
+Specifies the amount of time cached keys are available before they expire.
+
+The default cache duration is 5 minutes.
+
+#### Values
+
+- Default: `5m`
+- Data type: String
+
+### `JWKS.Remote{}.FetchAsynchronously`
+
+Determines if the JSON Web Key Set is fetched before a client request arrives. When enabled, the JWKS is fetched before incoming requests. When not enabled, the JWKS is fetched after each request arrives and the proxy listener waits for the JWKS to be fetched before activating.
+
+This parameter is set to `false` by default.
+
+#### Values
+
+- Default: `false`
+- Data type: Boolean
+
+### `JWKS.Remote{}.RetryPolicy`
+
+Defines a retry policy when fetching the JSON Web Key Set from the remote location.
+
+#### Values
+
+- Default: None
+- Data type: Map that contains the following parameter:
+
+| Parameter | Description | Data type | Default value| 
+| -------------- | --------------- | ------------- | ---------------- |
+| `NumRetries`| Specifies the number of times to attempt to fetch the JSON Web Key Set when the previous attempt fails. | Integer | `0` |
+
+### `Audiences`
+
+Specifies a set of audiences that the JWT is allowed to access, formatted as a list of `aud` (audience) claims. When this field is specified, all JWTs verified with the provider must address at least one of the audiences in order to be considered valid.
+
+#### Values
+
+- Default: None
+- Data type: List of strings
+
+### `Locations`
+
+Specifies the locations in requests where the JWT can be found. Envoy checks all of these locations to extract a JWT. 
+
+This field can specify token locations in a header, a query parameter, or a cookie. When no locations are specified, Envoy defaults to the following locations:
+
+1. Authorization header with Bearer schema: `"Authorization: Bearer <token>"`
+1. `access_token` query parameter.
+
+#### Values
+
+- Default: None
+- Data type: List that can contain maps of the following parameters:
+
+  - [`Header`](#locations-header)
+  - [`QueryParam`](#locations-queryparam)
+  - [`Cookie`](#locations-cookie)
+
+### `Locations[].Header`
+
+Defines how to extract a JWT from an HTTP request header.
+
+#### Values
+
+- Default: None
+- Data type: Map that can contain the following parameters:
+
+  - [`Name`](#locations-header-name)
+  - [`ValuePrefix`](#locations-header-valueprefix)
+  - [`Forward`](#locations-header-forward)
+
+### `Locations[].Header{}.Name`
+
+Specifies the name of the HTTP request header containing the token.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `Locations[].Header{}.ValuePrefix`
+
+Specifies a prefix that must precede the token in the header value.
+
+For example, `Bearer` is a standard value prefix for a header named "Authorization" that is formatted as `Authorization: Bearer <token>`. The prefix is not part of the token itself.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `Locations[].Header{}.Forward`
+
+Specifies whether the header with the JWT is forwarded after the token is verified. When set to false, the header is not forwarded.
+
+The default value is false.
+
+#### Values
+
+- Default: `false`
+- Data type: Boolean
+
+### `Locations[].QueryParam`
+
+Defines how to extract a JWT from an HTTP request query parameter.
+
+#### Values
+
+- Default: None
+- Data type: Map that contains the following parameter:
+
+| Parameter | Description                                                     | Data type | Default value |
+| :-------- | :-------------------------------------------------------------- | :-------- | :------------ |
+| `Name`    | Specifies the name of the query parameter containing the token. | String    | None          |
+
+### `Locations[].Cookie`
+
+Defines how to extract a JWT from an HTTP request cookie.
+
+#### Values
+
+- Default: None
+- Data type: Map that contains the following parameter:
+
+| Parameter | Description                                        | Data type | Default value |
+| :-------- | :------------------------------------------------- | :-------- | :------------ |
+| `Name`| Specifies the name of the cookie containing the token. | String    | None          |
+
+### `Forwarding`
+
+Defines rules for forwarding JWTs to the backend after they are verified.
+
+#### Values
+
+- Default: None
+- Data type: Map that can contain the following parameters:
+
+  - [`HeaderName`](#forwarding-headername)
+  - [`PadForwardPayloadHeader`](#forwarding-padforwardpayloadheader)
+
+### `Forwarding{}.HeaderName`
+
+Specifies a header name to use when forwarding a verified JWT to the backend. This field does not assume where the JWT was extracted from, and it can be applied to tokens extracted from headers, query parameters, or cookies.
+
+The header value is base64 URL encoded. It is not padded by default.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `Forwarding{}.PadForwardPayloadHeader`
+
+Determines whether to add padding to the base64 encoded token specified in [`Forwarding{}.HeaderName`](#forwarding-header-name). 
+
+By default, this field is set to `false`.
+
+#### Values
+
+- Default: `false`
+- Data type: Boolean
+
+### `ClockSkewSeconds`
+
+Specifies the maximum allowable time difference from clock skew when validating the JSON web token’s `exp` (expiration) and `nbf`  (not before) claims, measured in seconds. 
+
+By default, this parameter is configured to 30 seconds.
+
+#### Values
+
+- Default: `30`
+- Data type: Integer
+
+### `CacheConfig`
+
+Defines behavior for caching the validation result of previously encountered JWTs. Caching results can speed up verification when the same tokens are expected to be handled multiple times. By default, the cache can hold 100 JWTs.
+
+#### Values
+
+- Default: None
+- Data type: Map that contains the following parameter:
+
+| Parameter | Description                                        | Data type | Default value |
+| :-------- | :------------------------------------------------- | :-------- | :------------ |
+| `Size`    | Specifies the number of JSON web tokens to cache.  | Integer   | `100`         |
+
+</Tab>
+
+<Tab heading="YAML" group="yaml">
+
+### `apiVersion`
+
+Specifies the version of the Consul API for integrating with Kubernetes. The value must be `consul.hashicorp.com/v1alpha1`.
+
+#### Values
+
+- Default: None
+- This field is required.
+- String value that must be set to `consul.hashicorp.com/v1alpha1`.
+
+### `kind`
+
+Specifies the type of configuration entry to implement. Must be set to `jwtProvider`.
+
+#### Values
+
+- Default: None
+- This field is required.
+- Data type: String value that must be set to `jwtProvider`.
+
+## `metadata`
+
+Map that contains an arbitrary name for the configuration entry and the namespace it applies to.
+
+#### Values
+
+- Default: None
+- Data type: Map
+
+### `metadata.name`
+
+Specifies a name for the configuration entry. The name is metadata that you can use to reference the configuration entry when performing Consul operations, such as applying a configuration entry to a specific cluster. We recommend naming the configuration file after the JWT provider used in the configuration. Refer to the [Okta JWT Provider example](#okta-jwt-provider) for an example configuration.
+
+#### Values
+
+- Default: None
+- This field is required.
+- Data type: String
+
+### `metadata.namespace` <EnterpriseAlert inline />
+
+Specifies the namespace that the configuration applies to. Refer to [namespaces](/consul/docs/enterprise/namespaces) for more information.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec`
+
+Map that contains the details about the `jwtProvider` configuration entry. The `apiVersion`, `kind`, and `metadata` fields are siblings of the spec field. All other configurations are children.
+
+#### Values
+
+- Default: None
+- This field is required.
+- Data type: Map
+
+### `spec.issuer`
+
+Specifies the provider that issued the JWT. This value must match the token’s `iss` (issuer) claim.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec.jwks`
+
+Defines a JSON Web Key Set. This field can be configured for a local file, or it can specify instructions to fetch a key set from a remote server. You cannot specify [`spec.jwks.local`](#spec-jwks-local) and [`spec.jwks.remote`](#spec-jwks-remote) in the same map.
+
+#### Values
+
+- Default: None
+- Data type: Map that can contain one of the following parameters:
+
+  - [`local`](#spec-jwks-local)
+  - [`remote`](#spec-jwks-remote)
+
+### `spec.jwks.local`
+
+Specifies a local source for the JSON Web Key Set. You can specify the source as a string in the configuration entry or you can include a local filename that contains the set. You cannot specify both `string` and `filename` in the same map.
+
+#### Values
+
+- Default: None
+- Data type: Map that can contain one of the following parameters:
+
+  - [`string`](#spec-jwks-local-string)
+  - [`filename`](#spec-jwks-local-filename)
+
+### `spec.jwks.local.string`
+
+Specifies the JSON Web Key Set that validates the JWT’s signature, formatted as a base64 encoded string. You cannot specify the `string` parameter if [`spec.jwks.local.filename`](#spec-jwks-local-filename) is also specified in the same map.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec.jwks.local.filename`
+
+Specifies the path to the JSON Web Key Set’s location on the local disk. When this field is specified, the file must be present on the disk for all proxies with service intentions referencing this provider. You cannot specify the `filename` parameter if [`spec.jwks.local.string`](#spec-jwks-local-string) is also specified in the same map.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec.jwks.remote`
+
+Specifies a remote source for the JSON Web Key Set and configures behavior when fetching the key set.
+
+#### Values
+
+- Default: None
+- Data type: Map that can contain the following parameters:
+
+  - [`uri`](#spec-jwks-remote-uri)
+  - [`requestTimeoutMs`](#spec-jwks-remote-requesttimeoutms)
+  - [`cacheDuration`](#spec-jwks-remote-cacheduration)
+  - [`fetchAsynchronously`](#spec-jwks-remote-fetchasynchronously)
+  - [`retryPolicy`](#spec-jwks-remote-retrypolicy)
+
+### `spec.jwks.remote.uri`
+
+Specifies the URI of the server to query for the JSON Key Web Set.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec.jwks.remote.requestTimeoutMs`
+
+Specifies the length of time before a request to the remote URI times out, measured in milliseconds (ms).
+
+#### Values
+
+- Default: None
+- Data type: Integer
+
+### `spec.jwks.remote.cacheDuration`
+
+Specifies the amount of time cached keys are available before they expire.
+
+The default cache duration is 5 minutes.
+
+#### Values
+
+- Default: `5m`
+- Data type: String
+
+### `spec.jwks.remote.fetchAsynchronously`
+
+Determines if the JSON Web Key Set is fetched before a client request arrives. When enabled, the JWKS is fetched before incoming requests. When not enabled, the JWKS is fetched after each request arrives and the proxy listener waits for the JWKS to be fetched before activating.
+
+This parameter is set to `false` by default.
+
+#### Values
+
+- Default: `false`
+- Data type: Boolean
+
+### `spec.jwks.remote.retryPolicy`
+
+Defines a retry policy when fetching the JSON Web Key Set from the remote location.
+
+#### Values
+
+- Default: None
+- Data type: Map that contains the following parameter:
+
+| Parameter   | Description                                                                                             | Data type | Default value |
+| :---------- | :------------------------------------------------------------------------------------------------------ | :-------- | :------------ |
+| `numRetries`| Specifies the number of times to attempt to fetch the JSON Web Key Set when the previous attempt fails. | Integer   | `0`           |
+
+### `spec.audiences`
+
+Specifies a set of audiences that the JWT is allowed to access, formatted as a list of `aud` (audience) claims. When this field is specified, all JWTs verified with the provider must address at least one of the audiences in order to be considered valid.
+
+#### Values
+
+- Default: None
+- Data type: List of strings
+
+### `spec.locations`
+
+Specifies the locations in requests where the JWT can be found. Envoy checks all of these locations to extract a JWT.
+
+This field can specify token locations in a header, a query parameter, or a cookie. When no locations are specified, Envoy defaults to the following locations:
+
+1. Authorization header with Bearer schema: `"Authorization: Bearer <token>"`
+1. `access_token` query parameter.
+
+#### Values
+
+- Default: None
+- Data type: List that can contain maps of the following parameters:
+
+  - [`header`](#spec-locations-header)
+  - [`queryParam`](#spec-locations-queryparam)
+  - [`cookie`](#spec-locations-cookie)
+
+### `spec.locations[].header`
+
+Defines how to extract a JWT from an HTTP request header.
+
+#### Values
+
+- Default: None
+- Data type: Map that can contain the following parameters:
+
+  - [`name`](#spec-locations-header-name)
+  - [`valuePrefix`](#spec-locations-header-valueprefix)
+  - [`forward`](#spec-locations-header-forward)
+
+### `spec.locations[].header.name`
+
+Specifies the name of the HTTP request header containing the token.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec.locations[].header.valuePrefix`
+
+Specifies a prefix that must precede the token in the header value.
+
+For example, `Bearer` is a standard value prefix for a header named "Authorization" that is formatted as `Authorization: Bearer <token>`. The prefix is not part of the token itself.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec.locations[].header.forward`
+
+Specifies whether the header with the JWT is forwarded after the token is verified. When set to  false, the header is not forwarded.
+
+The default value is false.
+
+#### Values
+
+- Default: `false`
+- Data type: Boolean
+
+### `spec.locations[].queryParam`
+
+Defines how to extract a JWT from an HTTP request query parameter.
+
+#### Values
+
+- Default: None
+- Data type: Map that contains the following parameter:
+
+| Parameter | Description                                                     | Data type | Default value |
+| :-------- | :-------------------------------------------------------------- | :-------- | :------------ |
+| `name`    | Specifies the name of the query parameter containing the token. | String    | None          |
+
+### `spec.locations[].cookie`
+
+Defines how to extract a JWT from an HTTP request cookie.
+
+#### Values
+
+- Default: None
+- Data type: Map that contains the following parameter:
+
+| Parameter | Description                                        | Data type | Default value |
+| :-------- | :------------------------------------------------- | :-------- | :------------ |
+| `name`| Specifies the name of the cookie containing the token. | String    | None          |
+
+### `spec.forwarding`
+
+Defines rules for forwarding JWTs to the backend after they are verified.
+
+#### Values
+
+- Default: None
+- Data type: Map that can contain the following parameters:
+
+  - [`headerName`](#spec-forwarding-headername)
+  - [`padForwardPayloadHeader`](#spec-forwarding-padforwardpayloadheader)
+
+### `spec.forwarding.headerName`
+
+Specifies a header name to use when forwarding a verified JWT to the backend. This field does not assume where the JWT was extracted from, and it can be applied to tokens extracted from headers, query parameters, or cookies.
+
+The header value is base64 URL encoded. It is not padded by default.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec.forwarding.padForwardPayloadHeader`
+
+Determines whether to add padding to the base64 encoded token specified in [spec.forwarding.headerName`](#spec-forwarding-header-name). 
+
+By default, this field is set to `false`.
+
+#### Values
+
+- Default: `false`
+- Data type: Boolean
+
+### `spec.clockSkewSeconds`
+
+Specifies the maximum allowable time difference from clock skew when validating the JSON web token’s `exp` (expiration) and `nbf`  (not before) claims, measured in seconds. 
+
+By default, this parameter is configured to 30 seconds.
+
+#### Values
+
+- Default: `30`
+- Data type: Integer
+
+### `spec.cacheConfig`
+
+Defines behavior for caching the validation result of previously encountered JWTs. Caching results can speed up verification when the same tokens are expected to be handled multiple times. By default, the cache can hold 100 JWTs.
+
+#### Values
+
+- Default: None
+- Data type: Map that contains the following parameter:
+
+| Parameter | Description                                        | Data type | Default value |
+| :-------- | :------------------------------------------------- | :-------- | :------------ |
+| `size`    | Specifies the number of JSON web tokens to cache.  | Integer   | `100`         |
+
+</Tab>
+</Tabs>
+
+## Examples
+
+The following examples demonstrate common JWT provider configuration patterns for specific use cases.
+
+### Okta JWT provider
+
+The following example configures Consul to fetch a JSON Web Token issued by Okta. Consul fetches the token from the URI and keeps it in its cache for 30 minutes before the token expires. After validation, the token is forwarded to the backend with `user-token` appended to the HTTP header.
+
+<Tabs>
+
+<Tab heading="HCL" group="hcl">
+
+```hcl
+Kind = "jwt-provider"
+Name = "okta"
+
+Issuer = "okta"
+
+JWKS = {
+    Remote = {
+        URI = "https://dev-850216.okta.com/oauth2/default/v1/keys"
+        CacheDuration = "30m"
+    }
+}
+
+Forwarding = {
+    HeaderName = "user-token"
+}
+```
+
+</Tab>
+
+<Tab heading="JSON" group="json">
+
+```json
+{
+  "Kind": "jwt-provider",
+  "Name": "okta",
+  "Issuer": "okta",
+  "JWKS": {
+    "Remote": {
+        "URI": "https://dev-850216.okta.com/oauth2/default/v1/keys",
+        "CacheDuration": "30m"
+    }
+  },
+  "Forwarding": {
+    "HeaderName": "user-token"
+  }
+}
+```
+
+</Tab>
+
+<Tab heading="YAML" group="yaml">
+
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: jwtProvider
+metadata:
+  name: okta
+spec:
+  issuer: okta
+  jwks:
+    remote:
+      uri: https://dev-850216.okta.com/oauth2/default/v1/keys
+      cacheDuration: 30m
+  forwarding:
+    headerName: user-token
+```
+
+</Tab>
+</Tabs>
