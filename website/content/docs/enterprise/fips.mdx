@@ -31,7 +31,7 @@ The FIPS 140-2 variant of Consul uses separate binaries that are available avail
 - From the [AWS ECR `hashicorp/consul-enterprise-fips`](https://gallery.ecr.aws/hashicorp/consul-enterprise-fips) container repository.
 - From the [Red Hat Access `hashicorp/consul-enterprise-fips`](https://catalog.redhat.com/software/containers/hashicorp/consul-enterprise-fips/628d50e37ff70c66a88517ea) container repository.
 
-The above naming conventions, which append `.fips1402` to binary names and tags, and `-fips` to registry names, also apply to `consul-k8s`, `consul-dataplane`, and `consul-ecs`, which are packaged separately from Consul Enterprise.
+The above naming conventions, which append `.fips1402` to binary names and tags, and `-fips` to registry names, also apply to `consul-k8s`, `consul-k8s-control-plane`, `consul-dataplane`, and `consul-ecs`, which are packaged separately from Consul Enterprise.
 
 ### Usage restrictions
 
@@ -80,10 +80,6 @@ If using Consul on VMs, you must use a FIPS compliant version of Envoy. Contact 
 
 When deploying the FIPS builds of Consul on Kubernetes using `consul-k8s` or Helm, you must ensure that the Helm chart is updated to use FIPS builds of Consul Enterprise, Consul Dataplane, and Envoy images.
 
-### ECS
-
-[TODO]
-
 ## Technical details
 
 Consul's FIPS 140-2 Linux products use the BoringCrypto integration in the official Go 1.20+ toolchain, which include a FIPS-validated crypto module.
@@ -126,6 +122,7 @@ Similarly, on a FIPS Windows binary, run `go tool nm` on the binary to get a sym
 
 On both Linux and Windows non-FIPS builds, the search output yields no results.
 
-### Leidos compliance
+### Compliance Validation
 
-As of the release of Consul v1.16, a compliance letter from Leidos is available for FIPS Consul products using the Boring Crypto and Microsoft CNG libraries.
+A Lab, authorized by the U.S. Government to certify FIPS 140-2 compliance, is in the process of verifying that Consul Enterprise and it's related packages are compliant with the requirements of FIPS 140-2 Level 1.
+
