@@ -506,7 +506,7 @@
                   {
                     "title": "Delegate authorization to external services",
                     "path": "connect/proxies/envoy-extensions/usage/ext-authz"
-                  },                  
+                  },
                   {
                     "title": "Run Lua scripts in Envoy proxies",
                     "path": "connect/proxies/envoy-extensions/usage/lua"
@@ -522,7 +522,8 @@
                   {
                     "title": "Run WebAssembly plug-ins in Envoy proxies",
                     "path": "connect/proxies/envoy-extensions/usage/wasm"
-                  }                ]
+                  }
+                ]
               },
               {
                 "title": "Configuration",
@@ -530,16 +531,16 @@
                   {
                     "title": "External authorization",
                     "path": "connect/proxies/envoy-extensions/configuration/ext-authz"
-                  },                  
+                  },
                   {
                     "title": "Property override",
                     "path": "connect/proxies/envoy-extensions/configuration/property-override"
-                  },                  
+                  },
                   {
                     "title": "WebAssembly",
                     "path": "connect/proxies/envoy-extensions/configuration/wasm"
                   }
-                ]              
+                ]
               }
             ]
           },
@@ -1016,7 +1017,7 @@
               {
                 "title": "Limit traffic rates from source IP addresses",
                 "path": "agent/limits/usage/limit-request-rates-from-ips"
-              }    
+              }
             ]
           },
           {
@@ -1611,6 +1612,10 @@
       {
         "title": "Enhanced Read Scalability",
         "path": "enterprise/read-scale"
+      },
+      {
+        "title": "FIPS",
+        "path": "enterprise/fips"
       },
       {
         "title": "Single sign-on - OIDC",
