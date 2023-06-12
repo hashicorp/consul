@@ -59,34 +59,6 @@ If you are able to tolerate downtime for your applications, you should delete pr
   $ kubectl delete --kustomize="github.com/hashicorp/consul-api-gateway/config/crd?ref=v0.5.1"
   ``` 
 
-  You must also remove the `connectInject.apiGateway.manageExternalCRDs=false` configuration from your values file. 
-
-1. Issue the following command to manually update the Consul API gateway CRDs:
-
-  ```shell-session
-  $ kubectl apply -k "github.com/kubernetes-sigs/gateway-api/config/crd/experimental?ref=v0.6.2" 
-  ```
-
-1. Create a values file that installs the version of Consul API gateway that ships with Consul and disables externally-managed CRDs:
-
-  <CodeBlock heading="apigw-installation.yaml">
-
-  ```yaml
-  global:
-    image: hashicorp/consul:1.16
-    imageK8S: hashicorp/consul-k8s-control-plane
-  connectInject:
-    apiGateway:
-      manageExternalCRDs: false
-  apiGateway:
-    enabled: true
-    image: hashicorp/consul-api-gateway:0.5.4
-    managedGatewayClass:
-      enabled: true
-  ```
-  
-  </CodeBlock>
-
 1. Issue the following command to apply the configuration and complete the installation:
 
   ```shell-session
@@ -94,6 +66,8 @@ If you are able to tolerate downtime for your applications, you should delete pr
   ```
 
 1. Change any existing `Gateways` to reference the new `GatewayClass` `consul`. Refer to [gatewayClass](/consul/docs/api-gateway/configuration/gateway#gatewayclassname) for additional information.
+
+1. After updating all of your `gateway` configurations to use the new controller, you can complete the upgrade again and completely remove the `apiGateway` block to remove the old controller. 
 
 ### Self-managed CRDs
 
