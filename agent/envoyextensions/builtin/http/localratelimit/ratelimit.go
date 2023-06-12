@@ -60,6 +60,9 @@ func (r *ratelimit) fromArguments(args map[string]interface{}) error {
 	if err := mapstructure.Decode(args, r); err != nil {
 		return fmt.Errorf("error decoding extension arguments: %v", err)
 	}
+	if r.ProxyType == "" {
+		r.ProxyType = string(api.ServiceKindConnectProxy)
+	}
 	return r.validate()
 }
 
@@ -188,7 +191,7 @@ func (r ratelimit) PatchFilter(p extensioncommon.FilterPayload) (*envoy_listener
 }
 
 func validateProxyType(t string) error {
-	if t != "connect-proxy" {
+	if t != string(api.ServiceKindConnectProxy) {
 		return fmt.Errorf("unexpected ProxyType %q", t)
 	}
 

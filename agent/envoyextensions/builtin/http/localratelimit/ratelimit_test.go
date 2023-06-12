@@ -111,6 +111,30 @@ func TestConstructor(t *testing.T) {
 			expectedErrMsg: "cannot parse 'FilterEnforced', -1 overflows uint",
 			ok:             false,
 		},
+		"invalid proxy type": {
+			arguments: makeArguments(map[string]interface{}{
+				"ProxyType":     "invalid",
+				"FillInterval":  30,
+				"MaxTokens":     20,
+				"TokensPerFill": 5,
+			}),
+			expectedErrMsg: `unexpected ProxyType "invalid"`,
+			ok:             false,
+		},
+		"default proxy type": {
+			arguments: makeArguments(map[string]interface{}{
+				"FillInterval":  30,
+				"MaxTokens":     20,
+				"TokensPerFill": 5,
+			}),
+			expected: ratelimit{
+				ProxyType:     "connect-proxy",
+				MaxTokens:     intPointer(20),
+				FillInterval:  intPointer(30),
+				TokensPerFill: intPointer(5),
+			},
+			ok: true,
+		},
 		"valid everything": {
 			arguments: makeArguments(map[string]interface{}{
 				"ProxyType":     "connect-proxy",
