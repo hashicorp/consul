@@ -394,14 +394,14 @@
         "path": "connect/configuration"
       },
       {
-        "title": "Configuration Entries",
+        "title": "Configuration entries",
         "routes": [
           {
             "title": "Overview",
             "path": "connect/config-entries"
           },
           {
-            "title": "API Gateway",
+            "title": "API gateway",
             "href": "/consul/docs/connect/gateways/api-gateway/configuration/api-gateway",
             "badge": {
               "text": "BETA",
@@ -410,7 +410,7 @@
             }
           },
           {
-            "title": "HTTP Route",
+            "title": "HTTP route",
             "href": "/consul/docs/connect/gateways/api-gateway/configuration/http-route",
             "badge": {
               "text": "BETA",
@@ -419,7 +419,7 @@
             }
           },
           {
-            "title": "TCP Route",
+            "title": "TCP route",
             "href": "/consul/docs/connect/gateways/api-gateway/configuration/tcp-route",
             "badge": {
               "text": "BETA",
@@ -428,7 +428,7 @@
             }
           },
           {
-            "title": "Inline Certificate",
+            "title": "Inline certificate",
             "href": "/consul/docs/connect/gateways/api-gateway/configuration/inline-certificate",
             "badge": {
               "text": "BETA",
@@ -437,7 +437,7 @@
             }
           },
           {
-            "title": "Ingress Gateway",
+            "title": "Ingress gateway",
             "path": "connect/config-entries/ingress-gateway"
           },
           {
@@ -445,11 +445,11 @@
             "path": "connect/config-entries/mesh"
           },
           {
-            "title": "Exported Services",
+            "title": "Exported services",
             "path": "connect/config-entries/exported-services"
           },
           {
-            "title": "Proxy Defaults",
+            "title": "Proxy defaults",
             "path": "connect/config-entries/proxy-defaults"
           },
           {
@@ -461,24 +461,28 @@
             "path": "connect/config-entries/service-defaults"
           },
           {
-            "title": "Service Intentions",
+            "title": "Service intentions",
             "path": "connect/config-entries/service-intentions"
           },
           {
-            "title": "Service Resolver",
+            "title": "Service resolver",
             "path": "connect/config-entries/service-resolver"
           },
           {
-            "title": "Service Router",
+            "title": "Service router",
             "path": "connect/config-entries/service-router"
           },
           {
-            "title": "Service Splitter",
+            "title": "Service splitter",
             "path": "connect/config-entries/service-splitter"
           },
           {
-            "title": "Terminating Gateway",
+            "title": "Terminating gateway",
             "path": "connect/config-entries/terminating-gateway"
+          },
+          {
+            "title": "Control plane request limit",
+            "path": "connect/config-entries/control-plane-request-limit"
           }
         ]
       },
@@ -504,14 +508,42 @@
                 "title": "Usage",
                 "routes": [
                   {
+                    "title": "Delegate authorization to external services",
+                    "path": "connect/proxies/envoy-extensions/usage/ext-authz"
+                  },                  
+                  {
                     "title": "Run Lua scripts in Envoy proxies",
                     "path": "connect/proxies/envoy-extensions/usage/lua"
                   },
                   {
                     "title": "Invoke Lambda functions in Envoy proxies",
                     "path": "connect/proxies/envoy-extensions/usage/lambda"
+                  },
+                  {
+                    "title": "Configure Envoy proxy properties",
+                    "path": "connect/proxies/envoy-extensions/usage/property-override"
+                  },
+                  {
+                    "title": "Run WebAssembly plug-ins in Envoy proxies",
+                    "path": "connect/proxies/envoy-extensions/usage/wasm"
+                  }                ]
+              },
+              {
+                "title": "Configuration",
+                "routes": [
+                  {
+                    "title": "External authorization",
+                    "path": "connect/proxies/envoy-extensions/configuration/ext-authz"
+                  },                  
+                  {
+                    "title": "Property override",
+                    "path": "connect/proxies/envoy-extensions/configuration/property-override"
+                  },                  
+                  {
+                    "title": "WebAssembly",
+                    "path": "connect/proxies/envoy-extensions/configuration/wasm"
                   }
-                ]
+                ]              
               }
             ]
           },
@@ -562,10 +594,6 @@
             "href": "/consul/docs/connect/config-entries/service-intentions"
           }
         ]
-      },
-      {
-        "title": "Transparent Proxy",
-        "path": "connect/transparent-proxy"
       },
       {
         "title": "Observability",
@@ -732,6 +760,45 @@
               {
                 "title": "Create Sameness Groups",
                 "path": "connect/cluster-peering/usage/create-sameness-groups"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "title": "Failover",
+        "routes": [
+          {
+            "title": "Overview",
+            "path": "connect/failover"
+          },
+          {
+            "title": "Usage",
+            "routes": [
+              {
+                "title": "Configure failover services for Kubernetes",
+                "href": "/docs/k8s/l7-traffic/failover-tproxy"
+              },
+              {
+                "title": "Automate geo-failover with prepared queries",
+                "href": "/tutorials/developer-discovery/automate-geo-failover"
+              }
+            ]
+          },
+          {
+            "title": "Configuration",
+            "routes": [
+              {
+                "title": "Sameness groups",
+                "href": "/consul/docs/connect/config-entries/service-resolver"
+              },
+              {
+                "title": "Service resolver",
+                "href": "/consul/docs/connect/config-entries/service-resolver"
+              },
+              {
+                "title": "Service intentions",
+                "href": "/consul/docs/connect/config-entries/service-intentions"
               }
             ]
           }
@@ -933,19 +1000,36 @@
         ]
       },
       {
-        "title": "Limit Traffic Rates",
+        "title": "Limit traffic rates",
         "routes": [
           {
             "title": "Overview",
             "path": "agent/limits"
           },
           {
-            "title": "Initialize Rate Limit Settings",
-            "path": "agent/limits/init-rate-limits"
+            "title": "Usage",
+            "routes": [
+              {
+                "title": "Initialize rate limit settings",
+                "path": "agent/limits/usage/init-rate-limits"
+              },
+              {
+                "title": "Monitor traffic rate limits",
+                "path": "agent/limits/usage/monitor-rate-limits"
+              },
+              {
+                "title": "Set global traffic rate limits",
+                "path": "agent/limits/usage/set-global-traffic-rate-limits"
+              },
+              {
+                "title": "Limit traffic rates from source IP addresses",
+                "path": "agent/limits/usage/limit-request-rates-from-ips"
+              }    
+            ]
           },
           {
-            "title": "Set Global Traffic Rate Limits",
-            "path": "agent/limits/set-global-traffic-rate-limits"
+            "title": "Configuration",
+            "href": "/docs/connect/config-entries/control-plane-request-limit"
           }
         ]
       },
@@ -1234,7 +1318,24 @@
           },
           {
             "title": "Transparent Proxy",
-            "href": "/docs/connect/transparent-proxy"
+            "routes": [
+              {
+                "title": "Overview",
+                "path": "k8s/connect/transparent-proxy"
+              },
+              {
+                "title": "Enable transparent proxy",
+                "path": "k8s/connect/transparent-proxy/enable-transparent-proxy"
+              },
+              {
+                "title": "Route traffic to virtual services",
+                "href": "/docs/k8s/l7-traffic/route-to-virtual-services"
+              }
+            ]
+          },
+          {
+            "title": "Onboarding services in transparent proxy mode",
+            "path": "k8s/connect/onboarding-tproxy-mode"
           },
           {
             "title": "Ingress Gateways",
@@ -1264,6 +1365,23 @@
                 "path": "k8s/connect/observability/metrics"
               }
             ]
+          }
+        ]
+      },
+      {
+        "title": "L7 traffic management",
+        "routes": [
+          {
+            "title": "Overview",
+            "href": "/docs/connect/l7-traffic"
+          },
+          {
+            "title": "Configure failover services",
+            "path": "k8s/l7-traffic/failover-tproxy"
+          },
+          {
+            "title": "Route traffic to virtual services",
+            "path": "k8s/l7-traffic/route-to-virtual-services"
           }
         ]
       },
@@ -1549,6 +1667,10 @@
           {
             "title": "Overview",
             "path": "enterprise/license/overview"
+          },
+          {
+            "title": "Automated entitlement utilization reporting",
+            "path": "enterprise/license/utilization-reporting"
           },
           {
             "title": "FAQ",

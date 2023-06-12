@@ -261,6 +261,9 @@ func (p *propertyOverride) validate() error {
 		}
 	}
 
+	if p.ProxyType == "" {
+		p.ProxyType = api.ServiceKindConnectProxy
+	}
 	if err := validProxyTypes.CheckRequired(string(p.ProxyType), "ProxyType"); err != nil {
 		resultErr = multierror.Append(resultErr, err)
 	}

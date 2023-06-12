@@ -73,6 +73,7 @@ func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer, providedLogger hcl
 		return d, err
 	}
 	d.WatchedFiles = result.WatchedFiles
+	d.Experiments = result.RuntimeConfig.Experiments
 	cfg := result.RuntimeConfig
 	logConf := cfg.Logging
 	logConf.Name = logging.Agent
