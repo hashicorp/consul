@@ -37,7 +37,7 @@ Before creating a sameness group, take the following actions to prepare your net
 
 Sameness groups are defined at the partition level. As a result, Consul assumes that namespaces and services in a sameness group that have the same name are identical. This behavior occurs even when two different partitions in the group contain functionally different services that share a name and namespace. This situation would lead to errors, as requests will be sent to the incorrect service.
 
-To prevent errors, check the names of the services deployed to your network and the namespaces they are deployed in. Pay particular attention to the default namespace to confirm that services have unique names. If different services share a name, you should either change one service’s name or deploy one of the services to a different namespace. After you add the partition to the sameness group, the difference in the service or namespace name enables Consul to correctly assume which services are identical.
+To prevent errors, check the names of the services deployed to your network and the namespaces they are deployed in. Pay particular attention to the default namespace to confirm that services have unique names. If different services share a name, you should either change one of the service’s name or deploy one of the services to a different namespace. After adding the partition to the sameness group, differentiating the names of services or namespaces enables Consul to correctly assume which services are identical.
 
 #### Deploy mesh gateways for each partition
 
