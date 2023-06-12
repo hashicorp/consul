@@ -2,9 +2,11 @@ package resourcetest
 
 import (
 	"context"
+	"strings"
 
-	"github.com/hashicorp/consul/internal/resource"
+	"github.com/hashicorp/consul/internal/storage"
 	"github.com/hashicorp/consul/proto-public/pbresource"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/oklog/ulid/v2"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
@@ -121,8 +123,24 @@ func (b *resourceBuilder) Write(t T, client pbresource.ResourceServiceClient) *p
 
 	res := b.resource
 
-	rsp, err := client.Write(context.Background(), &pbresource.WriteRequest{
-		Resource: res,
+	var rsp *pbresource.WriteResponse
+	var err error
+
+	// Retry any writes where the error is a UID mismatch and the UID was not specified. This is indicative
+	// of using a follower to rewrite an object who is not perfectly in-sync with the leader.
+	retry.Run(t, func(r *retry.R) {
+		rsp, err = client.Write(context.Background(), &pbresource.WriteRequest{
+			Resource: res,
+		})
+
+		if err == nil || res.Id.Uid != "" || status.Code(err) != codes.FailedPrecondition {
+			return
+		}
+
+		if strings.Contains(err.Error(), storage.ErrWrongUid.Error()) {
+			r.Fatalf("resource write failed due to uid mismatch - most likely a transient issue when talking to a non-leader")
+		}
+		// other failed precondition errors will be checked outside of the retry
 	})
 
 	require.NoError(t, err)
@@ -130,15 +148,10 @@ func (b *resourceBuilder) Write(t T, client pbresource.ResourceServiceClient) *p
 	if !b.dontCleanup {
 		cleaner, ok := t.(CleanupT)
 		require.True(t, ok, "T does not implement a Cleanup method and cannot be used with automatic resource cleanup")
+		id := proto.Clone(rsp.Resource.Id).(*pbresource.ID)
+		id.Uid = ""
 		cleaner.Cleanup(func() {
-			_, err := client.Delete(context.Background(), &pbresource.DeleteRequest{
-				Id: rsp.Resource.Id,
-			})
-
-			// ignore not found errors
-			if err != nil && status.Code(err) != codes.NotFound {
-				t.Fatalf("Failed to delete resource %s of type %s: %v", rsp.Resource.Id.Name, resource.ToGVK(rsp.Resource.Id.Type), err)
-			}
+			NewClient(client).MustDelete(t, id)
 		})
 	}
 

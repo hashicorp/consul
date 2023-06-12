@@ -2,6 +2,7 @@ package resourcetest
 
 import (
 	"context"
+	"fmt"
 	"math/rand"
 	"time"
 
@@ -12,6 +13,7 @@ import (
 	"golang.org/x/exp/slices"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
 )
 
 type Client struct {
@@ -75,12 +77,20 @@ func (client *Client) PublishResources(t T, resources []*pbresource.Resource) {
 			}
 
 			t.Logf("Writing resource %s with type %s", res.Id.Name, resource.ToGVK(res.Id.Type))
-			_, err := client.Write(context.Background(), &pbresource.WriteRequest{
+			rsp, err := client.Write(context.Background(), &pbresource.WriteRequest{
 				Resource: res,
 			})
 			require.NoError(t, err)
 
-			// track the number o
+			cleaner, ok := t.(CleanupT)
+			if ok {
+				id := proto.Clone(rsp.Resource.Id).(*pbresource.ID)
+				cleaner.Cleanup(func() {
+					client.MustDelete(t, id)
+				})
+			}
+
+			// track the number of resources published
 			published += 1
 			written = append(written, res.Id)
 		}
@@ -227,10 +237,22 @@ func (client *Client) ResolveResourceID(t T, id *pbresource.ID) *pbresource.ID {
 }
 
 func (client *Client) MustDelete(t T, id *pbresource.ID) {
-	_, err := client.Delete(context.Background(), &pbresource.DeleteRequest{Id: id})
-	if status.Code(err) == codes.NotFound {
-		return
-	}
+	client.retry(t, func(r *retry.R) {
+		_, err := client.Delete(context.Background(), &pbresource.DeleteRequest{Id: id})
+		if status.Code(err) == codes.NotFound {
+			return
+		}
 
-	require.NoError(t, err)
+		if err != nil && status.Code(err) != codes.Aborted {
+			r.Stop(fmt.Errorf("failed to delete the resource: %w", err))
+		}
+
+		require.NoError(r, err)
+	})
+	// _, err := client.Delete(context.Background(), &pbresource.DeleteRequest{Id: id})
+	// if status.Code(err) == codes.NotFound {
+	// 	return
+	// }
+
+	// require.NoError(t, err)
 }

@@ -3,6 +3,7 @@
 
 SHELL = bash
 
+
 GO_MODULES := $(shell find . -name go.mod -exec dirname {} \; | grep -v "proto-gen-rpc-glue/e2e" | sort)
 
 ###
@@ -351,16 +352,17 @@ lint/%:
 	@echo "--> Running enumcover ($*)"
 	@cd $* && GOWORK=off enumcover ./...
 
+# check that the test-container module only imports allowlisted packages
+# from the root consul module. Generally we don't want to allow these imports.
+# In a few specific instances though it is okay to import test definitions and
+# helpers from some of the packages in the root module.
 .PHONY: lint-container-test-deps
 lint-container-test-deps:
 	@echo "--> Checking container tests for bad dependencies"
-	@cd test/integration/consul-container && ( \
-		found="$$(go list -m all | grep -c '^github.com/hashicorp/consul ')" ; \
-		if [[ "$$found" != "0" ]]; then \
-			echo "test/integration/consul-container: This project should not depend on the root consul module" >&2 ; \
-			exit 1 ; \
-		fi \
-	)
+	@cd test/integration/consul-container && \
+		$(CURDIR)/build-support/scripts/check-allowed-imports.sh \
+			github.com/hashicorp/consul \
+			internal/catalog/catalogtest
 
 # Build the static web ui inside a Docker container. For local testing only; do not commit these assets.
 ui: ui-docker
