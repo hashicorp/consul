@@ -1506,64 +1506,64 @@ Sources = [
 ```
 
 ```yaml
-  apiVersion: consul.hashicorp.com/v1alpha1
-  kind: ServiceIntentions
-  metadata:
-    name: backend
-  spec:
-    sources:
-      name: frontend
-      permissions:
-        http:
-          pathExact: /admin
-        jwt:
-          providers:
-            name: okta
-            verifyClaims:
-              path: 
-                - perms
-                - role
-              value: admin
-      action: allow
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ServiceIntentions
+metadata:
+  name: backend
+spec:
+  sources:
+    name: frontend
+    permissions:
       http:
-        pathPrefix: /
+        pathExact: /admin
+      jwt:
+        providers:
+          name: okta
+          verifyClaims:
+            path: 
+              - perms
+              - role
+            value: admin
+    action: allow
+    http:
+      pathPrefix: /
 ```
 
 ```json
 {
-"Kind": "service-intentions",
-"Name": "backend",
-"Sources": [
-  {
-    "Name": "frontend",
-    "Permissions": [
-      {
-        "HTTP": {
-          "PathExact": "/admin"
+  "Kind": "service-intentions",
+  "Name": "backend",
+  "Sources": [
+    {
+      "Name": "frontend",
+      "Permissions": [
+        {
+          "HTTP": {
+            "PathExact": "/admin"
+          },
+          "JWT": {
+            "Providers": [
+              {
+                "Name": "okta",
+                "VerifyClaims": [
+                  {
+                    "Path": ["perms", "role"],
+                    "Value": "admin"
+                  }
+                ]
+              }
+            ]
+          }
         },
-        "JWT": {
-          "Providers": [
-            {
-              "Name": "okta",
-              "VerifyClaims": [
-                {
-                  "Path": ["perms", "role"],
-                  "Value": "admin"
-                }
-              ]
-            }
-          ]
+        {
+          "Action": "allow",
+          "HTTP": {
+            "PathPrefix": "/"
+          }
         }
-      },
-      {
-        "Action": "allow",
-        "HTTP": {
-          "PathPrefix": "/"
-        }
-      }
-    ]
-  }
-]
+      ]
+    }
+  ]
 }
 ```
 
