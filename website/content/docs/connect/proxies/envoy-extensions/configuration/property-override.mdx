@@ -1,8 +1,8 @@
---- 
+---
 layout: docs
 page_title: Property override configuration reference
 description: Learn how to configure the property-override plugin, which is a builtin Consul plugin that allows you to set and remove Envoy proxy properties.
---- 
+---
 
 # Property override configuration reference
 
@@ -21,12 +21,12 @@ Click on a property name to view additional details, including default values.
 - [`Debug`](#debug): bool | `false` 
 - [`Patches`](#patches): list | required
    - [`ResourceFilter`](#patches-resourcefilter): map         
-      - [`ResourceType`](patches-resourcefilter-resourcetype): string | required
-      - [`TrafficDirection`](patches-resourcefilter-trafficdirection): string | required
-      - [`Services`](patches-resourcefilter-services): list
-         - [`Name`](patches-resourcefilter-services-name): string
-         - [`Namespace`](patches-resourcefilter-services-namespace): string | `default` | <EnterpriseAlert inline/>
-         - [`Partition`](patches-resourcefilter-services-partition): string | `default` | <EnterpriseAlert inline/>
+      - [`ResourceType`](#patches-resourcefilter-resourcetype): string | required
+      - [`TrafficDirection`](#patches-resourcefilter-trafficdirection): string | required
+      - [`Services`](#patches-resourcefilter-services): list
+         - [`Name`](#patches-resourcefilter-services-name): string
+         - [`Namespace`](#patches-resourcefilter-services-namespace): string | `default` | <EnterpriseAlert inline/>
+         - [`Partition`](#patches-resourcefilter-services-partition): string | `default` | <EnterpriseAlert inline/>
    - [`Op`](#patches-op): string | required
    - [`Path`](#patches-path): string | required
    - [`Value`](#patches-value): map, number, boolean, or string
