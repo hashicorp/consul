@@ -1,0 +1,124 @@
+--- 
+layout: docs
+page_title: Configure failover service instances
+description: Learn how to define failover services in Consul on Kubernetes when proxies are in transparent proxy mode. Consul can send traffic to backup service instances if a destination service becomes unhealthy or unresponsive. 
+--- 
+
+# Configure failover service instances
+
+This topic describes how to configure failover service instances in Consul on Kubernetes when proxies are in transparent proxy mode. If a service becomes unhealthy or unresponsive, Consul can use the service resolver configuration entry to send inbound requests to backup services. Service resolvers are part of the service mesh proxy upstream discovery chain. Refer to [Service mesh traffic management](/consul/docs/connect/l7-traffic) for additional information.
+
+## Overview
+
+Complete the following steps to configure failover service instances in Consul on Kubernetes when proxies are in transparent proxy mode:
+
+- Create a service resolver configuration entry
+- Create intentions that allow the downstream service to access the primary and failover service instances.
+- Configure your application to call the discovery chain using the Consul DNS or KubeDNS.
+
+## Requirements
+ 
+- `consul-k8s` v1.2.0-beta1 or newer.
+- Consul service mesh must be enabled. Refer to [How does Consul Service Mesh Work on Kubernetes](/consul/docs/k8s/connect).
+- Proxies must be configured to run in transparent proxy mode. 
+- To query virtual DNS names, you must use Consul DNS.
+- To query the discovery chain using KubeDNS, the service resolver must be in the same partition as the running service. 
+
+### ACL requirements
+
+The default ACLs that the Consul Helm chart configures are suitable for most cases, but if you have more complex security policies for Consul API access, refer to the [ACL documentation](/consul/docs/security/acl) for additional guidance. 
+
+## Create a service resolver configuration entry
+
+Specify the target failover in the [`spec.failover.targets`](/consul/docs/connect/config-entries/service-resolver#failover-targets-service) field in the service resolver configuration entry. In the following example, the `api-beta` service is configured to failover to the `api` service in any service subset:
+
+<CodeBlockConfig heading="api-beta-failover.yaml">
+
+```yaml
+apiversion: consul.hashicorp.com/v1alpha1
+kind: ServiceResolver
+metadata: 
+  name: api-beta
+spec:
+  failover:
+    '*':
+      targets:
+        - service: api
+```
+
+</CodeBlockConfig>
+
+Refer to the [service resolver configuration entry reference](/consul/docs/connect/config-entries/service-resolver) documentation for information about all service resolver configurations.
+
+You can apply the configuration using the `kubectl apply` command:
+
+```shell-session
+$ kubectl apply -f api-beta-failover.yaml
+```
+
+## Create service intentions 
+
+If intentions are not already defined, create and apply intentions that allow the appropriate downstream to access the target service and the failover service. In the following examples, the `frontend` service is allowed to send messages to the `api` service, which is allowed to send messages to the `api-beta` failover service.
+
+
+<CodeBlockConfig heading="frontend-api-api-beta-allow.yaml">
+
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ServiceIntentions
+metadata:
+  name: api
+spec:
+  destination:
+    name: api
+      sources:
+        - name: frontend
+     action: allow
+---
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ServiceIntentions
+metadata:
+  name: api-beta
+spec:
+  destination:
+    name: api-beta
+      sources:
+   - name: frontend
+     action: allow
+```
+
+</CodeBlockConfig>
+
+Refer to the [service intentions configuration entry reference](/consul/docs/connect/config-entries/service-intentions) for additional information about configuring service intentions. 
+
+You can apply the configuration using the `kubectl apply` command:
+
+```shell-session
+$ kubectl apply -f frontend-api-api-beta-allow.yaml
+```
+
+## Configure your application to call the DNS
+
+Configure your application to contact the discovery chain in either the Consul DNS or the KubeDNS. 
+
+### Consul DNS
+
+You can query the Consul DNS using the `<service>.virtual.consul` lookup format. For Consul Enterprise, your query string may need to include the namespace, partition, or both. Refer to the [DNS documentation](/consul/docs/services/discovery/dns-static-lookups#service-virtual-ip-lookups) for details on building virtual service lookups.
+
+In the following example, the application queries the Consul catalog for `api-beta` over HTTP. By default, the lookup would query the `default` partition and `default` namespace if Consul Enterprise manages the network infrastructure:
+
+```text
+http://api-beta.virtual.consul/
+```
+
+### KubeDNS
+
+You can query the KubeDNS if the failover service is in the same Kubernetes cluster as the primary service. In the following example, the application queries KubeDNS for `api-beta` over HTTP:
+
+```text
+http://api-beta.<namespace>.svc.cluster.local
+```
+
+Note that you cannot use KubeDNS if a corresponding Kubernetes service and pod do not exist. 
+
+
