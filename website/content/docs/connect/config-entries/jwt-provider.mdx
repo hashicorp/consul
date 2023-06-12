@@ -489,7 +489,7 @@ Specifies the name of the HTTP request header containing the token.
 
 Specifies a prefix that must precede the token in the header value.
 
-For example, `Bearer` is a standard value prefix for a header named "Authorization" that is formatted as `Authorization: Bearer <token>`. The prefix is not part of the token itself.
+For example, `Bearer` is a standard value prefix for a header named "Authorization" that is formatted as `Authorization: Bearer <token>`. The prefix is not part of the token.
 
 #### Values
 
@@ -498,9 +498,9 @@ For example, `Bearer` is a standard value prefix for a header named "Authorizati
 
 ### `Locations[].Header{}.Forward`
 
-Specifies whether the header with the JWT is forwarded after the token is verified. When set to false, the header is not forwarded.
+Specifies whether the header with the JWT is forwarded after the token is verified. When set to `false`, the header is not forwarded.
 
-The default value is false.
+The default value is `false`.
 
 #### Values
 
@@ -847,7 +847,7 @@ Specifies the name of the HTTP request header containing the token.
 
 Specifies a prefix that must precede the token in the header value.
 
-For example, `Bearer` is a standard value prefix for a header named "Authorization" that is formatted as `Authorization: Bearer <token>`. The prefix is not part of the token itself.
+For example, `Bearer` is a standard value prefix for a header named "Authorization" that is formatted as `Authorization: Bearer <token>`. The prefix is not part of the token.
 
 #### Values
 
@@ -856,9 +856,9 @@ For example, `Bearer` is a standard value prefix for a header named "Authorizati
 
 ### `spec.locations[].header.forward`
 
-Specifies whether the header with the JWT is forwarded after the token is verified. When set to  false, the header is not forwarded.
+Specifies whether the header with the JWT is forwarded after the token is verified. When set to  `false`, the header is not forwarded.
 
-The default value is false.
+The default value is `false`.
 
 #### Values
 
