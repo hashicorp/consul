@@ -1,0 +1,3 @@
+```release-note:bug
+docs: fix list of telemetry metrics
+```

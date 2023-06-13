@@ -121,6 +121,8 @@ jobs:
           chmod +x /usr/local/bin/datadog-ci
 
       - name: upload coverage
+        # do not run on forks
+        if: github.event.pull_request.head.repo.full_name == github.repository
         env:
           DATADOG_API_KEY: "${{ endsWith(github.repository, '-enterprise') && env.DATADOG_API_KEY || secrets.DATADOG_API_KEY }}"
           DD_ENV: ci
@@ -200,18 +202,24 @@ jobs:
           chmod +x /usr/local/bin/datadog-ci
 
       - name: upload coverage
+        # do not run on forks
+        if: github.event.pull_request.head.repo.full_name == github.repository
         env:
           DATADOG_API_KEY: "${{ endsWith(github.repository, '-enterprise') && env.DATADOG_API_KEY || secrets.DATADOG_API_KEY }}"
           DD_ENV: ci
         run: datadog-ci junit upload --service "$GITHUB_REPOSITORY" "${{ env.TEST_RESULTS_DIR }}/gotestsum-report.xml"
 
       - name: upload leader coverage
+        # do not run on forks
+        if: github.event.pull_request.head.repo.full_name == github.repository
         env:
           DATADOG_API_KEY: "${{ endsWith(github.repository, '-enterprise') && env.DATADOG_API_KEY || secrets.DATADOG_API_KEY }}"
           DD_ENV: ci
         run: datadog-ci junit upload --service "$GITHUB_REPOSITORY" "${{ env.TEST_RESULTS_DIR }}/gotestsum-report-leader.xml"
 
       - name: upload agent coverage
+        # do not run on forks
+        if: github.event.pull_request.head.repo.full_name == github.repository
         env:
           DATADOG_API_KEY: "${{ endsWith(github.repository, '-enterprise') && env.DATADOG_API_KEY || secrets.DATADOG_API_KEY }}"
           DD_ENV: ci
@@ -338,6 +346,8 @@ jobs:
           chmod +x /usr/local/bin/datadog-ci
 
       - name: upload coverage
+        # do not run on forks
+        if: github.event.pull_request.head.repo.full_name == github.repository
         env:
           DATADOG_API_KEY: "${{ endsWith(github.repository, '-enterprise') && env.DATADOG_API_KEY || secrets.DATADOG_API_KEY }}"
           DD_ENV: ci
@@ -352,15 +362,17 @@ jobs:
       id-token: write # NOTE: this permission is explicitly required for Vault auth.
       contents: read
     env:
-      ENVOY_VERSION: "1.24.6"
+      ENVOY_VERSION: "1.25.4"
     steps:
       - uses: actions/checkout@24cb9080177205b6e8c946b17badbe402adc938f # v3.4.0
       - uses: actions/setup-go@6edd4406fa81c3da01a34fa6f6343087c207a568 # v3.5.0
         with:
           go-version-file: 'go.mod'
       - run: go env
-
-      # Build the consul:local image from the already built binary
+      - name: docker env
+        run: |
+          docker version
+          docker info
       - name: fetch binary
         uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
         with:
@@ -368,6 +380,7 @@ jobs:
           path: .
       - name: restore mode+x
         run: chmod +x consul
+      # Build the consul:local image from the already built binary
       - name: Build consul:local image
         run: docker build -t ${{ env.CONSUL_LATEST_IMAGE_NAME }}:local -f ./build-support/docker/Consul-Dev.dockerfile .
       - name: Configure GH workaround for ipv6 loopback
@@ -389,6 +402,7 @@ jobs:
               -- \
               go test \
               -p=6 \
+              -parallel=4 \
               -tags "${{ env.GOTAGS }}" \
               -timeout=30m \
               -json \
@@ -431,11 +445,12 @@ jobs:
           chmod +x /usr/local/bin/datadog-ci
 
       - name: upload coverage
+        # do not run on forks
+        if: github.event.pull_request.head.repo.full_name == github.repository
         env:
           DATADOG_API_KEY: "${{ endsWith(github.repository, '-enterprise') && env.DATADOG_API_KEY || secrets.DATADOG_API_KEY }}"
           DD_ENV: ci
         run: datadog-ci junit upload --service "$GITHUB_REPOSITORY" $TEST_RESULTS_DIR/results.xml
-
   
   upgrade-integration-test:
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-xl) }}
@@ -484,7 +499,7 @@ jobs:
             --raw-command \
             --format=short-verbose \
             --debug \
-            --rerun-fails=3 \
+            --rerun-fails=2 \
             --packages="./..." \
             -- \
             go test \
@@ -529,6 +544,7 @@ jobs:
           chmod +x /usr/local/bin/datadog-ci
 
       - name: upload coverage
+        if: github.event.pull_request.head.repo.full_name == github.repository
         env:
           DATADOG_API_KEY: "${{ endsWith(github.repository, '-enterprise') && env.DATADOG_API_KEY || secrets.DATADOG_API_KEY }}"
           DD_ENV: ci
