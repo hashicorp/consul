@@ -8,9 +8,7 @@ description: >-
 # FIPS 140-2
 
 <EnterpriseAlert>
-
-This feature requires requires Consul Enterprise.
-
+  This feature requires Consul Enterprise.
 </EnterpriseAlert>
 
 Builds of Consul Enterprise marked with a `fips1402` feature name include built-in support for FIPS 140-2 compliance.
@@ -22,9 +20,10 @@ To use this feature, you must have an [active or trial license for Consul Enterp
 FIPS 140-2 builds of Consul Enterprise behave in the same way as non-FIPS builds. There are no restrictions on Consul algorithms and ensuring that Consul remains in a FIPS-compliant mode of operation is your responsibility. To maintain FIPS-compliant operation, you must [ensure that TLS is enabled](/consul/tutorials/security/tls-encryption-secure) so that communication is encrypted. Consul products surface some helpful warnings where settings are insecure.
 
 Encryption is disabled in Consul Enterprise by default. As a result, Consul may transmit sensitive control plane information. You must ensure that gossip encryption and mTLS is enabled for all agents when running Consul with FIPS-compliant settings. In addition, be aware that TLSv1.3 does not work with FIPS 140-2, as HKDF is not a certified primitive.
+
 HashiCorp is not a NIST-certified testing laboratory and can only provide general guidance about using Consul Enterprise in a FIPS-compliant manner. We recommend consulting an approved auditor for further information.
 
-The FIPS 140-2 variant of Consul uses separate binaries that are available available from the following sources:
+The FIPS 140-2 variant of Consul uses separate binaries that are available from the following sources:
 
 - From the [HashiCorp Releases page](https://releases.hashicorp.com/consul), releases ending with the `+ent.fips1402` suffix.
 - From the [Docker Hub `hashicorp/consul-enterprise-fips`](https://hub.docker.com/r/hashicorp/consul-enterprise-fips) container repository.
@@ -86,15 +85,15 @@ Consul's FIPS 140-2 Linux products use the BoringCrypto integration in the offic
 
 Consul's FIPS 140-2 products on Windows use the CNGCrypto integration in Microsoft's Go toolchain, which include a FIPS-validated crypto module.
 
-To ensure your build of Consul Enterprise includes FIPS support, confirm that a line with `FIPS: Enabled` appears when you run a `version` command. For example, the following message appears for Linux users
+To ensure your build of Consul Enterprise includes FIPS support, confirm that a line with `FIPS: Enabled` appears when you run a `version` command. For example, the following message appears for Linux users:
 
-```shell-session
+```shell-session hideClipboard
 FIPS: FIPS 140-2 Enabled, crypto module boringcrypto
 ```
 
 The following message appears for Windows users:
 
-```shell-session
+```shell-session hideClipboard
 FIPS: FIPS 140-2 Enabled, crypto module cngcrypto
 ```
 
@@ -111,11 +110,11 @@ To validate that a FIPS 140-2 Linux binary correctly includes BoringCrypto, run 
 
 ```shell-session
 $ go tool nm consul | grep -i goboringcrypto
- 4014d0 T _cgo_6880f0fbb71e_Cfunc__goboringcrypto_AES_cbc_encrypt
- 4014f0 T _cgo_6880f0fbb71e_Cfunc__goboringcrypto_AES_ctr128_encrypt
- 401520 T _cgo_6880f0fbb71e_Cfunc__goboringcrypto_AES_decrypt
- 401540 T _cgo_6880f0fbb71e_Cfunc__goboringcrypto_AES_encrypt
- 401560 T _cgo_6880f0fbb71e_Cfunc__goboringcrypto_AES_set_decrypt_key
+4014d0 T _cgo_6880f0fbb71e_Cfunc__goboringcrypto_AES_cbc_encrypt
+4014f0 T _cgo_6880f0fbb71e_Cfunc__goboringcrypto_AES_ctr128_encrypt
+401520 T _cgo_6880f0fbb71e_Cfunc__goboringcrypto_AES_decrypt
+401540 T _cgo_6880f0fbb71e_Cfunc__goboringcrypto_AES_encrypt
+401560 T _cgo_6880f0fbb71e_Cfunc__goboringcrypto_AES_set_decrypt_key
 ```
 
 Similarly, on a FIPS Windows binary, run `go tool nm` on the binary to get a symbol dump, and then search for `go-crypto-winnative`. 
