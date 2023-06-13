@@ -17,7 +17,7 @@ The following list outlines the field hierarchy, data types, and requirements fo
 
 Click on a property name to view additional details, including default values.
   
-- [`ProxyType`](#proxytype): string | required 
+- [`ProxyType`](#proxytype): string | `connect-proxy`
 - [`Debug`](#debug): bool | `false` 
 - [`Patches`](#patches): list | required
    - [`ResourceFilter`](#patches-resourcefilter): map         
@@ -69,7 +69,6 @@ Specifies the type of Envoy proxy that the extension applies to. The only suppor
 #### Values
 
 - Default: `connect-proxy`
-- This field is required.
 - Data type: String 
 
 ### `Debug`
