@@ -16,21 +16,26 @@ import (
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	envoy_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	"github.com/hashicorp/consul/agent/xds/testcommon"
+	"github.com/hashicorp/go-hclog"
+	goversion "github.com/hashicorp/go-version"
 	testinf "github.com/mitchellh/go-testing-interface"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/proto"
 
-	"github.com/hashicorp/consul/agent/envoyextensions"
 	propertyoverride "github.com/hashicorp/consul/agent/envoyextensions/builtin/property-override"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/xds/extensionruntime"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/envoyextensions/extensioncommon"
 	"github.com/hashicorp/consul/envoyextensions/xdscommon"
 	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/consul/version"
 )
 
 func TestEnvoyExtenderWithSnapshot(t *testing.T) {
+	consulVersion, _ := goversion.NewVersion(version.Version)
+
 	// If opposite is true, the returned service defaults config entry will have
 	// payload-passthrough=true and invocation-mode=asynchronous.
 	// Otherwise payload-passthrough=false and invocation-mode=synchronous.
@@ -64,7 +69,7 @@ func TestEnvoyExtenderWithSnapshot(t *testing.T) {
 	}
 
 	// Apply Lua extension to the local service and ensure http is used so the extension can be applied.
-	makeLuaNsFunc := func(inbound bool) func(ns *structs.NodeService) {
+	makeLuaNsFunc := func(inbound bool, envoyVersion, consulVersion string) func(ns *structs.NodeService) {
 		listener := "inbound"
 		if !inbound {
 			listener = "outbound"
@@ -74,7 +79,9 @@ func TestEnvoyExtenderWithSnapshot(t *testing.T) {
 			ns.Proxy.Config["protocol"] = "http"
 			ns.Proxy.EnvoyExtensions = []structs.EnvoyExtension{
 				{
-					Name: api.BuiltinLuaExtension,
+					Name:          api.BuiltinLuaExtension,
+					EnvoyVersion:  envoyVersion,
+					ConsulVersion: consulVersion,
 					Arguments: map[string]interface{}{
 						"ProxyType": "connect-proxy",
 						"Listener":  listener,
@@ -110,7 +117,7 @@ end`,
 				{
 					"ResourceFilter": map[string]interface{}{
 						"ResourceType":     propertyoverride.ResourceTypeCluster,
-						"TrafficDirection": propertyoverride.TrafficDirectionOutbound,
+						"TrafficDirection": extensioncommon.TrafficDirectionOutbound,
 					},
 					"Op":    "add",
 					"Path":  "/outlier_detection/success_rate_minimum_hosts",
@@ -125,7 +132,7 @@ end`,
 				{
 					"ResourceFilter": map[string]interface{}{
 						"ResourceType":     propertyoverride.ResourceTypeCluster,
-						"TrafficDirection": propertyoverride.TrafficDirectionOutbound,
+						"TrafficDirection": extensioncommon.TrafficDirectionOutbound,
 					},
 					"Op":   "add",
 					"Path": "/outlier_detection",
@@ -143,7 +150,7 @@ end`,
 				{
 					"ResourceFilter": map[string]interface{}{
 						"ResourceType":     propertyoverride.ResourceTypeCluster,
-						"TrafficDirection": propertyoverride.TrafficDirectionOutbound,
+						"TrafficDirection": extensioncommon.TrafficDirectionOutbound,
 					},
 					"Op":   "remove",
 					"Path": "/outlier_detection",
@@ -157,7 +164,7 @@ end`,
 				{
 					"ResourceFilter": map[string]interface{}{
 						"ResourceType":     propertyoverride.ResourceTypeCluster,
-						"TrafficDirection": propertyoverride.TrafficDirectionOutbound,
+						"TrafficDirection": extensioncommon.TrafficDirectionOutbound,
 					},
 					"Op":    "add",
 					"Path":  "/upstream_connection_options/tcp_keepalive/keepalive_probes",
@@ -172,7 +179,7 @@ end`,
 				{
 					"ResourceFilter": map[string]interface{}{
 						"ResourceType":     propertyoverride.ResourceTypeCluster,
-						"TrafficDirection": propertyoverride.TrafficDirectionOutbound,
+						"TrafficDirection": extensioncommon.TrafficDirectionOutbound,
 					},
 					"Op":    "add",
 					"Path":  "/round_robin_lb_config",
@@ -187,7 +194,7 @@ end`,
 				{
 					"ResourceFilter": map[string]interface{}{
 						"ResourceType":     propertyoverride.ResourceTypeClusterLoadAssignment,
-						"TrafficDirection": propertyoverride.TrafficDirectionOutbound,
+						"TrafficDirection": extensioncommon.TrafficDirectionOutbound,
 					},
 					"Op":    "add",
 					"Path":  "/policy/overprovisioning_factor",
@@ -202,7 +209,7 @@ end`,
 				{
 					"ResourceFilter": map[string]interface{}{
 						"ResourceType":     propertyoverride.ResourceTypeClusterLoadAssignment,
-						"TrafficDirection": propertyoverride.TrafficDirectionInbound,
+						"TrafficDirection": extensioncommon.TrafficDirectionInbound,
 					},
 					"Op":    "add",
 					"Path":  "/policy/overprovisioning_factor",
@@ -217,7 +224,7 @@ end`,
 				{
 					"ResourceFilter": map[string]interface{}{
 						"ResourceType":     propertyoverride.ResourceTypeListener,
-						"TrafficDirection": propertyoverride.TrafficDirectionInbound,
+						"TrafficDirection": extensioncommon.TrafficDirectionInbound,
 					},
 					"Op":    "add",
 					"Path":  "/stat_prefix",
@@ -232,7 +239,7 @@ end`,
 				{
 					"ResourceFilter": map[string]interface{}{
 						"ResourceType":     propertyoverride.ResourceTypeListener,
-						"TrafficDirection": propertyoverride.TrafficDirectionOutbound,
+						"TrafficDirection": extensioncommon.TrafficDirectionOutbound,
 					},
 					"Op":    "add",
 					"Path":  "/stat_prefix",
@@ -247,7 +254,7 @@ end`,
 				{
 					"ResourceFilter": map[string]interface{}{
 						"ResourceType":     propertyoverride.ResourceTypeListener,
-						"TrafficDirection": propertyoverride.TrafficDirectionInbound,
+						"TrafficDirection": extensioncommon.TrafficDirectionInbound,
 					},
 					"Op":    "add",
 					"Path":  "/stat_prefix",
@@ -256,7 +263,7 @@ end`,
 				{
 					"ResourceFilter": map[string]interface{}{
 						"ResourceType":     propertyoverride.ResourceTypeListener,
-						"TrafficDirection": propertyoverride.TrafficDirectionOutbound,
+						"TrafficDirection": extensioncommon.TrafficDirectionOutbound,
 					},
 					"Op":    "add",
 					"Path":  "/stat_prefix",
@@ -272,7 +279,7 @@ end`,
 				{
 					"ResourceFilter": map[string]interface{}{
 						"ResourceType":     propertyoverride.ResourceTypeListener,
-						"TrafficDirection": propertyoverride.TrafficDirectionOutbound,
+						"TrafficDirection": extensioncommon.TrafficDirectionOutbound,
 					},
 					"Op":    "add",
 					"Path":  "/stat_prefix",
@@ -281,11 +288,65 @@ end`,
 				{
 					"ResourceFilter": map[string]interface{}{
 						"ResourceType":     propertyoverride.ResourceTypeListener,
-						"TrafficDirection": propertyoverride.TrafficDirectionInbound,
+						"TrafficDirection": extensioncommon.TrafficDirectionInbound,
 					},
 					"Op":    "add",
 					"Path":  "/stat_prefix",
 					"Value": "custom.stats.inbound.only",
+				},
+			},
+		})
+
+	propertyOverridePatchSpecificUpstreamService := makePropOverrideNsFunc(
+		map[string]interface{}{
+			"Patches": []map[string]interface{}{
+				{
+					"ResourceFilter": map[string]interface{}{
+						"ResourceType":     propertyoverride.ResourceTypeListener,
+						"TrafficDirection": extensioncommon.TrafficDirectionOutbound,
+						"Services": []propertyoverride.ServiceName{
+							{CompoundServiceName: api.CompoundServiceName{Name: "db"}},
+						},
+					},
+					"Op":    "add",
+					"Path":  "/stat_prefix",
+					"Value": "custom.stats.outbound.only",
+				},
+				{
+					"ResourceFilter": map[string]interface{}{
+						"ResourceType":     propertyoverride.ResourceTypeRoute,
+						"TrafficDirection": extensioncommon.TrafficDirectionOutbound,
+						"Services": []propertyoverride.ServiceName{
+							{CompoundServiceName: api.CompoundServiceName{Name: "db"}},
+						},
+					},
+					"Op":    "add",
+					"Path":  "/most_specific_header_mutations_wins",
+					"Value": true,
+				},
+				{
+					"ResourceFilter": map[string]interface{}{
+						"ResourceType":     propertyoverride.ResourceTypeCluster,
+						"TrafficDirection": extensioncommon.TrafficDirectionOutbound,
+						"Services": []propertyoverride.ServiceName{
+							{CompoundServiceName: api.CompoundServiceName{Name: "db"}},
+						},
+					},
+					"Op":    "add",
+					"Path":  "/outlier_detection/success_rate_minimum_hosts",
+					"Value": 1234,
+				},
+				{
+					"ResourceFilter": map[string]interface{}{
+						"ResourceType":     propertyoverride.ResourceTypeClusterLoadAssignment,
+						"TrafficDirection": extensioncommon.TrafficDirectionOutbound,
+						"Services": []propertyoverride.ServiceName{
+							{CompoundServiceName: api.CompoundServiceName{Name: "db"}},
+						},
+					},
+					"Op":    "add",
+					"Path":  "/policy/overprovisioning_factor",
+					"Value": 1234,
 				},
 			},
 		})
@@ -361,6 +422,18 @@ end`,
 			},
 		},
 		{
+			name: "propertyoverride-patch-specific-upstream-service-splitter",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "splitter-with-resolver-redirect-multidc", false, propertyOverridePatchSpecificUpstreamService, nil)
+			},
+		},
+		{
+			name: "propertyoverride-patch-specific-upstream-service-failover",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "failover", false, propertyOverridePatchSpecificUpstreamService, nil)
+			},
+		},
+		{
 			name: "lambda-connect-proxy",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", false, nil, nil, makeLambdaServiceDefaults(false))
@@ -398,10 +471,40 @@ end`,
 			create: proxycfg.TestConfigSnapshotTerminatingGatewayWithLambdaServiceAndServiceResolvers,
 		},
 		{
+			name: "lua-outbound-doesnt-apply-to-local-upstreams-with-envoy-constraint-violation",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				// upstreams need to be http in order for lua to be applied to listeners.
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", false, makeLuaNsFunc(false, "< 1.0.0", ">= 1.0.0"), nil, &structs.ServiceConfigEntry{
+					Kind:     structs.ServiceDefaults,
+					Name:     "db",
+					Protocol: "http",
+				}, &structs.ServiceConfigEntry{
+					Kind:     structs.ServiceDefaults,
+					Name:     "geo-cache",
+					Protocol: "http",
+				})
+			},
+		},
+		{
+			name: "lua-outbound-doesnt-apply-to-local-upstreams-with-consul-constraint-violation",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				// upstreams need to be http in order for lua to be applied to listeners.
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", false, makeLuaNsFunc(false, ">= 1.0.0", "< 1.0.0"), nil, &structs.ServiceConfigEntry{
+					Kind:     structs.ServiceDefaults,
+					Name:     "db",
+					Protocol: "http",
+				}, &structs.ServiceConfigEntry{
+					Kind:     structs.ServiceDefaults,
+					Name:     "geo-cache",
+					Protocol: "http",
+				})
+			},
+		},
+		{
 			name: "lua-outbound-applies-to-local-upstreams",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				// upstreams need to be http in order for lua to be applied to listeners.
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", false, makeLuaNsFunc(false), nil, &structs.ServiceConfigEntry{
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", false, makeLuaNsFunc(false, ">= 1.0.0", ">= 1.0.0"), nil, &structs.ServiceConfigEntry{
 					Kind:     structs.ServiceDefaults,
 					Name:     "db",
 					Protocol: "http",
@@ -420,7 +523,7 @@ end`,
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				// db is made an HTTP upstream so that the extension _could_ apply, but does not because
 				// the direction for the extension is inbound.
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", false, makeLuaNsFunc(true), nil, &structs.ServiceConfigEntry{
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", false, makeLuaNsFunc(true, "", ""), nil, &structs.ServiceConfigEntry{
 					Kind:     structs.ServiceDefaults,
 					Name:     "db",
 					Protocol: "http",
@@ -430,7 +533,7 @@ end`,
 		{
 			name: "lua-inbound-applies-to-inbound",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", false, makeLuaNsFunc(true), nil)
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", false, makeLuaNsFunc(true, "", ""), nil)
 			},
 		},
 		{
@@ -438,7 +541,14 @@ end`,
 			// no upstream HTTP services. We also should not see public listener, which is HTTP, patched.
 			name: "lua-outbound-doesnt-apply-to-inbound",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", false, makeLuaNsFunc(false), nil)
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", false, makeLuaNsFunc(false, "", ""), nil)
+			},
+		},
+		{
+			name: "lua-outbound-applies-to-local-upstreams-tproxy",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				// upstreams need to be http in order for lua to be applied to listeners.
+				return proxycfg.TestConfigSnapshotTransparentProxyDestinationHTTP(t, makeLuaNsFunc(false, "", ""))
 			},
 		},
 		{
@@ -495,25 +605,7 @@ end`,
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
 					ns.Proxy.Config["protocol"] = "http"
-					ns.Proxy.EnvoyExtensions = []structs.EnvoyExtension{
-						{
-							Name: api.BuiltinWasmExtension,
-							Arguments: map[string]interface{}{
-								"Protocol":     "http",
-								"ListenerType": "inbound",
-								"PluginConfig": map[string]interface{}{
-									"VmConfig": map[string]interface{}{
-										"Code": map[string]interface{}{
-											"Local": map[string]interface{}{
-												"Filename": "/path/to/extension.wasm",
-											},
-										},
-									},
-									"Configuration": `{"foo": "bar"}`,
-								},
-							},
-						},
-					}
+					ns.Proxy.EnvoyExtensions = makeWasmEnvoyExtension("http", "inbound", "local")
 				}, nil)
 			},
 		},
@@ -522,31 +614,43 @@ end`,
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
 					ns.Proxy.Config["protocol"] = "http"
-					ns.Proxy.EnvoyExtensions = []structs.EnvoyExtension{
-						{
-							Name: api.BuiltinWasmExtension,
-							Arguments: map[string]interface{}{
-								"Protocol":     "http",
-								"ListenerType": "inbound",
-								"PluginConfig": map[string]interface{}{
-									"VmConfig": map[string]interface{}{
-										"Code": map[string]interface{}{
-											"Remote": map[string]interface{}{
-												"HttpURI": map[string]interface{}{
-													"Service": map[string]interface{}{
-														"Name": "db",
-													},
-													"URI": "https://db/plugin.wasm",
-												},
-												"SHA256": "d05d88b0ce8a8f1d5176481e0af3ae5c65ed82cbfb8c61506c5354b076078545",
-											},
-										},
-									},
-									"Configuration": `{"foo": "bar"}`,
-								},
-							},
-						},
-					}
+					ns.Proxy.EnvoyExtensions = makeWasmEnvoyExtension("http", "inbound", "remote")
+				}, nil)
+			},
+		},
+		{
+			name: "wasm-tcp-local-file",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
+					ns.Proxy.Config["protocol"] = "tcp"
+					ns.Proxy.EnvoyExtensions = makeWasmEnvoyExtension("tcp", "inbound", "local")
+				}, nil)
+			},
+		},
+		{
+			name: "wasm-tcp-remote-file",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
+					ns.Proxy.Config["protocol"] = "tcp"
+					ns.Proxy.EnvoyExtensions = makeWasmEnvoyExtension("tcp", "inbound", "remote")
+				}, nil)
+			},
+		},
+		{
+			name: "wasm-tcp-local-file-outbound",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
+					ns.Proxy.Config["protocol"] = "tcp"
+					ns.Proxy.EnvoyExtensions = makeWasmEnvoyExtension("tcp", "outbound", "local")
+				}, nil)
+			},
+		},
+		{
+			name: "wasm-tcp-remote-file-outbound",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
+					ns.Proxy.Config["protocol"] = "tcp"
+					ns.Proxy.EnvoyExtensions = makeWasmEnvoyExtension("tcp", "outbound", "remote")
 				}, nil)
 			},
 		},
@@ -639,6 +743,7 @@ end`,
 
 	latestEnvoyVersion := xdscommon.EnvoyVersions[0]
 	for _, envoyVersion := range xdscommon.EnvoyVersions {
+		parsedEnvoyVersion, _ := goversion.NewVersion(envoyVersion)
 		sf, err := xdscommon.DetermineSupportedProxyFeaturesFromString(envoyVersion)
 		require.NoError(t, err)
 		t.Run("envoy-"+envoyVersion, func(t *testing.T) {
@@ -662,11 +767,7 @@ end`,
 					cfgs := extensionruntime.GetRuntimeConfigurations(snap)
 					for _, extensions := range cfgs {
 						for _, ext := range extensions {
-							extender, err := envoyextensions.ConstructExtension(ext.EnvoyExtension)
-							require.NoError(t, err)
-							err = extender.Validate(&ext)
-							require.NoError(t, err)
-							indexedResources, err = extender.Extend(indexedResources, &ext)
+							err := applyEnvoyExtension(hclog.NewNullLogger(), snap, indexedResources, ext, parsedEnvoyVersion, consulVersion)
 							require.NoError(t, err)
 						}
 					}

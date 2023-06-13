@@ -46,6 +46,7 @@ type testCase struct {
 	desc             string
 	args             []string
 	setup            func() // TODO: accept a testing.T instead of panic
+	cleanup          func()
 	expected         func(rt *RuntimeConfig)
 	expectedErr      string
 	expectedWarnings []string
@@ -324,6 +325,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.DisableAnonymousSignature = true
 			rt.DisableKeyringFile = true
 			rt.EnableDebug = true
+			rt.Experiments = []string{"resource-apis"}
 			rt.UIConfig.Enabled = true
 			rt.LeaveOnTerm = false
 			rt.Logging.LogLevel = "DEBUG"
@@ -2308,9 +2310,9 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		},
 		setup: func() {
 			os.Setenv("HCP_RESOURCE_ID", "env-id")
-			t.Cleanup(func() {
-				os.Unsetenv("HCP_RESOURCE_ID")
-			})
+		},
+		cleanup: func() {
+			os.Unsetenv("HCP_RESOURCE_ID")
 		},
 		expected: func(rt *RuntimeConfig) {
 			rt.DataDir = dataDir
@@ -2321,6 +2323,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 
 			// server things
 			rt.ServerMode = true
+			rt.Telemetry.EnableHostMetrics = true
 			rt.TLS.ServerMode = true
 			rt.LeaveOnTerm = false
 			rt.SkipLeaveOnInt = true
@@ -2337,9 +2340,9 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		},
 		setup: func() {
 			os.Setenv("HCP_RESOURCE_ID", "env-id")
-			t.Cleanup(func() {
-				os.Unsetenv("HCP_RESOURCE_ID")
-			})
+		},
+		cleanup: func() {
+			os.Unsetenv("HCP_RESOURCE_ID")
 		},
 		json: []string{`{
 			  "cloud": {
@@ -2360,6 +2363,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 
 			// server things
 			rt.ServerMode = true
+			rt.Telemetry.EnableHostMetrics = true
 			rt.TLS.ServerMode = true
 			rt.LeaveOnTerm = false
 			rt.SkipLeaveOnInt = true
@@ -6032,6 +6036,9 @@ func (tc testCase) run(format string, dataDir string) func(t *testing.T) {
 		expected.ACLResolverSettings.EnterpriseMeta = *structs.NodeEnterpriseMetaInPartition(expected.PartitionOrDefault())
 
 		prototest.AssertDeepEqual(t, expected, actual, cmpopts.EquateEmpty())
+		if tc.cleanup != nil {
+			tc.cleanup()
+		}
 	}
 }
 
@@ -6349,6 +6356,7 @@ func TestLoad_FullConfig(t *testing.T) {
 		EnableRemoteScriptChecks:         true,
 		EnableLocalScriptChecks:          true,
 		EncryptKey:                       "A4wELWqH",
+		Experiments:                      []string{"foo"},
 		StaticRuntimeConfig: StaticRuntimeConfig{
 			EncryptVerifyIncoming: true,
 			EncryptVerifyOutgoing: true,
@@ -6754,6 +6762,7 @@ func TestLoad_FullConfig(t *testing.T) {
 				Expiration: 15 * time.Second,
 				Name:       "ftO6DySn", // notice this is the same as the metrics prefix
 			},
+			EnableHostMetrics: true,
 		},
 		TLS: tlsutil.Config{
 			InternalRPC: tlsutil.ProtocolConfig{

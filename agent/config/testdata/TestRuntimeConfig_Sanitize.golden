@@ -199,6 +199,7 @@
     "EnableRemoteScriptChecks": false,
     "EncryptKey": "hidden",
     "EnterpriseRuntimeConfig": {},
+    "Experiments": [],
     "ExposeMaxPort": 0,
     "ExposeMinPort": 0,
     "GRPCAddrs": [],
@@ -465,6 +466,7 @@
         "DisableHostname": false,
         "DogstatsdAddr": "",
         "DogstatsdTags": [],
+        "EnableHostMetrics": false,
         "FilterDefault": false,
         "MetricsPrefix": "",
         "PrometheusOpts": {

@@ -5,6 +5,7 @@ package cluster
 
 import (
 	"context"
+	"io"
 
 	"github.com/testcontainers/testcontainers-go"
 
@@ -22,6 +23,7 @@ type Agent interface {
 	GetAgentName() string
 	GetPartition() string
 	GetPod() testcontainers.Container
+	Logs(context.Context) (io.ReadCloser, error)
 	ClaimAdminPort() (int, error)
 	GetConfig() Config
 	GetInfo() AgentInfo

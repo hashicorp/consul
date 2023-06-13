@@ -828,6 +828,7 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		Version:                    stringVal(c.Version),
 		VersionPrerelease:          stringVal(c.VersionPrerelease),
 		VersionMetadata:            stringVal(c.VersionMetadata),
+		Experiments:                c.Experiments,
 		// What is a sensible default for BuildDate?
 		BuildDate: timeValWithDefault(c.BuildDate, time.Date(1970, 1, 00, 00, 00, 01, 0, time.UTC)),
 
@@ -1105,6 +1106,9 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		AutoReloadConfigCoalesceInterval:  1 * time.Second,
 		LocalProxyConfigResyncInterval:    30 * time.Second,
 	}
+
+	// host metrics are enabled by default if consul is configured with HashiCorp Cloud Platform integration
+	rt.Telemetry.EnableHostMetrics = boolValWithDefault(c.Telemetry.EnableHostMetrics, rt.IsCloudEnabled())
 
 	rt.TLS, err = b.buildTLSConfig(rt, c.TLS)
 	if err != nil {

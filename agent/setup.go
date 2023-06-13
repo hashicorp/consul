@@ -4,6 +4,7 @@
 package agent
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net"
@@ -41,6 +42,7 @@ import (
 	"github.com/hashicorp/consul/agent/xds"
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/lib/hoststats"
 	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/consul/tlsutil"
 )
@@ -59,6 +61,7 @@ type BaseDeps struct {
 	WatchedFiles  []string
 
 	deregisterBalancer, deregisterResolver func()
+	stopHostCollector                      context.CancelFunc
 }
 
 type ConfigLoader func(source config.Source) (config.LoadResult, error)
@@ -70,6 +73,7 @@ func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer, providedLogger hcl
 		return d, err
 	}
 	d.WatchedFiles = result.WatchedFiles
+	d.Experiments = result.RuntimeConfig.Experiments
 	cfg := result.RuntimeConfig
 	logConf := cfg.Logging
 	logConf.Name = logging.Agent
@@ -116,6 +120,11 @@ func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer, providedLogger hcl
 	d.MetricsConfig, err = lib.InitTelemetry(cfg.Telemetry, d.Logger, extraSinks...)
 	if err != nil {
 		return d, fmt.Errorf("failed to initialize telemetry: %w", err)
+	}
+	if !cfg.Telemetry.Disable && cfg.Telemetry.EnableHostMetrics {
+		ctx, cancel := context.WithCancel(context.Background())
+		hoststats.NewCollector(ctx, d.Logger, cfg.DataDir)
+		d.stopHostCollector = cancel
 	}
 
 	d.TLSConfigurator, err = tlsutil.NewConfigurator(cfg.TLS, d.Logger)
@@ -214,11 +223,10 @@ func (bd BaseDeps) Close() {
 	bd.AutoConfig.Stop()
 	bd.MetricsConfig.Cancel()
 
-	if fn := bd.deregisterBalancer; fn != nil {
-		fn()
-	}
-	if fn := bd.deregisterResolver; fn != nil {
-		fn()
+	for _, fn := range []func(){bd.deregisterBalancer, bd.deregisterResolver, bd.stopHostCollector} {
+		if fn != nil {
+			fn()
+		}
 	}
 }
 
@@ -295,6 +303,10 @@ func getPrometheusDefs(cfg *config.RuntimeConfig, isServer bool) ([]prometheus.G
 		Gauges,
 		raftGauges,
 		serverGauges,
+	}
+
+	if cfg.Telemetry.EnableHostMetrics {
+		gauges = append(gauges, hoststats.Gauges)
 	}
 
 	// TODO(ffmmm): conditionally add only leader specific metrics to gauges, counters, summaries, etc

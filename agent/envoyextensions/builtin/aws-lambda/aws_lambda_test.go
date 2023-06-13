@@ -202,7 +202,10 @@ func TestPatchCluster(t *testing.T) {
 
 			// Test patching the cluster
 			rc := extensioncommon.RuntimeConfig{}
-			patchedCluster, patchSuccess, err := tc.lambda.PatchCluster(&rc, tc.input)
+			patchedCluster, patchSuccess, err := tc.lambda.PatchCluster(extensioncommon.ClusterPayload{
+				RuntimeConfig: &rc,
+				Message:       tc.input,
+			})
 			if tc.isErrExpected {
 				assert.Error(t, err)
 				assert.False(t, patchSuccess)
@@ -307,7 +310,10 @@ func TestPatchRoute(t *testing.T) {
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
 			l := awsLambda{}
-			r, ok, err := l.PatchRoute(tc.conf, tc.route)
+			r, ok, err := l.PatchRoute(extensioncommon.RoutePayload{
+				RuntimeConfig: tc.conf,
+				Message:       tc.route,
+			})
 			require.NoError(t, err)
 			require.Equal(t, tc.expectRoute, r)
 			require.Equal(t, tc.expectBool, ok)
@@ -456,7 +462,14 @@ func TestPatchFilter(t *testing.T) {
 				PayloadPassthrough: true,
 				InvocationMode:     "asynchronous",
 			}
-			f, ok, err := l.PatchFilter(nil, tc.filter, tc.isInboundFilter)
+			d := extensioncommon.TrafficDirectionOutbound
+			if tc.isInboundFilter {
+				d = extensioncommon.TrafficDirectionInbound
+			}
+			f, ok, err := l.PatchFilter(extensioncommon.FilterPayload{
+				Message:          tc.filter,
+				TrafficDirection: d,
+			})
 			require.Equal(t, tc.expectBool, ok)
 			if tc.expectErr == "" {
 				require.NoError(t, err)

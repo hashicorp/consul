@@ -47,9 +47,11 @@ func EnvoyExtensionsToStructs(args []*EnvoyExtension) []structs.EnvoyExtension {
 		var e structs.EnvoyExtension
 		if args[i] != nil {
 			e = structs.EnvoyExtension{
-				Name:      args[i].Name,
-				Required:  args[i].Required,
-				Arguments: ProtobufTypesStructToMapStringInterface(args[i].Arguments),
+				Name:          args[i].Name,
+				Required:      args[i].Required,
+				ConsulVersion: args[i].ConsulVersion,
+				EnvoyVersion:  args[i].EnvoyVersion,
+				Arguments:     ProtobufTypesStructToMapStringInterface(args[i].Arguments),
 			}
 		}
 
@@ -65,9 +67,11 @@ func EnvoyExtensionsFromStructs(args []structs.EnvoyExtension) []*EnvoyExtension
 	o := make([]*EnvoyExtension, len(args))
 	for i, e := range args {
 		o[i] = &EnvoyExtension{
-			Name:      e.Name,
-			Required:  e.Required,
-			Arguments: MapStringInterfaceToProtobufTypesStruct(e.Arguments),
+			Name:          e.Name,
+			Required:      e.Required,
+			ConsulVersion: e.ConsulVersion,
+			EnvoyVersion:  e.EnvoyVersion,
+			Arguments:     MapStringInterfaceToProtobufTypesStruct(e.Arguments),
 		}
 	}
 

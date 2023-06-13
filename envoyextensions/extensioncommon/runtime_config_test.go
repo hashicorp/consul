@@ -20,7 +20,7 @@ func makeTestRuntimeConfig() RuntimeConfig {
 			sn: {
 				EnvoyID:           "eid",
 				OutgoingProxyKind: api.ServiceKindTerminatingGateway,
-				SNI: map[string]struct{}{
+				SNIs: map[string]struct{}{
 					"sni1": {},
 					"sni2": {},
 				},
