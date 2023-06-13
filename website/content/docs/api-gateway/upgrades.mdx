@@ -69,20 +69,20 @@ If you are able to tolerate downtime for your applications, you should delete pr
 
 1. After updating all of your `gateway` configurations to use the new controller, you can remove the `apiGateway` block from the Helm chart and upgrade your Consul cluster. This completely removes the old gateway controller. 
 
-  <CodeBlock heading="values.yaml">
+  <CodeBlockConfig filename="values.yaml">
 
-  ```diff
-  global:
-    image: hashicorp/consul:1.15
-    imageK8S: hashicorp/consul-k8s-control-plane:1.1
-  - apiGateway:
-  -  enabled: true
-  -  image: hashicorp/consul-api-gateway:0.5.4
-  -  managedGatewayClass:
-  -    enabled: true
-  ```
+    ```diff
+    global:
+      image: hashicorp/consul:1.15
+      imageK8S: hashicorp/consul-k8s-control-plane:1.1
+    - apiGateway:
+    -  enabled: true
+    -  image: hashicorp/consul-api-gateway:0.5.4
+    -  managedGatewayClass:
+    -    enabled: true
+    ```
 
-  </CodeBlock>
+  </CodeBlockConfig>
 
   ```shell-session
   $ consul-k8s install -config-file values.yaml
@@ -98,23 +98,23 @@ If you are unable to tolerate any downtime, you can complete the following steps
 
 1. Create a Helm chart that installs the version of Consul API gateway that ships with Consul and disables externally-managed CRDs:
 
-  <CodeBlock heading="values.yaml" highlight="2-3,5-6">
+  <CodeBlockConfig filename="values.yaml" highlight="2-3,5-6">
 
-  ```yaml
-  global:
-    image: hashicorp/consul:1.16
-    imageK8S: hashicorp/consul-k8s-control-plane:1.2
-  connectInject:
+    ```yaml
+    global:
+      image: hashicorp/consul:1.16
+      imageK8S: hashicorp/consul-k8s-control-plane:1.2
+    connectInject:
+      apiGateway:
+        manageExternalCRDs: false
     apiGateway:
-      manageExternalCRDs: false
-  apiGateway:
-    enabled: true
-    image: hashicorp/consul-api-gateway:0.5.4
-    managedGatewayClass:
       enabled: true
-  ```
+      image: hashicorp/consul-api-gateway:0.5.4
+      managedGatewayClass:
+        enabled: true
+    ```
 
-  </CodeBlock>
+  </CodeBlockConfig>
 
   <Note> 
   
@@ -132,23 +132,23 @@ If you are unable to tolerate any downtime, you can complete the following steps
 
 1. After updating all of your `gateway` configurations to use the new controller, you can remove the `apiGateway` block from the Helm chart and upgrade your Consul cluster. This completely removes the old gateway controller. 
 
-  <CodeBlock heading="values.yaml">
+  <CodeBlockConfig filename="values.yaml">
 
-  ```diff
-  global:
-    image: hashicorp/consul:1.16
-    imageK8S: hashicorp/consul-k8s-control-plane:1.2
-  connectInject:
-    apiGateway:
-      manageExternalCRDs: false
-  - apiGateway:
-  -  enabled: true
-  -  image: hashicorp/consul-api-gateway:0.5.4
-  -  managedGatewayClass:
-  -    enabled: true
-  ```
+    ```diff
+    global:
+      image: hashicorp/consul:1.16
+      imageK8S: hashicorp/consul-k8s-control-plane:1.2
+    connectInject:
+      apiGateway:
+        manageExternalCRDs: false
+    - apiGateway:
+    -  enabled: true
+    -  image: hashicorp/consul-api-gateway:0.5.4
+    -  managedGatewayClass:
+    -    enabled: true
+    ```
 
-  </CodeBlock>
+  </CodeBlockConfig>
 
   ```shell-session
   $ consul-k8s install -config-file values.yaml
