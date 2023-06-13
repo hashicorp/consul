@@ -11,9 +11,9 @@ We are pleased to announce the following Consul updates.
 
 ## Release Highlights
 
-- **Sameness groups:** Sameness groups are a user-defined set of partitions that Consul uses to identify services in different administrative partitions with the same name as being the same services. You can use sameness groups to create a blanket failover policy for deployments with cluster peering connections. Refer to the [Sameness groups overview](/consul/docs/connect/cluster-peering/usage/create-sameness-groups) for more information.
+- **Sameness groups (Enterprise):** Sameness groups are a user-defined set of partitions that Consul uses to identify services in different administrative partitions with the same name as being the same services. You can use sameness groups to create a blanket failover policy for deployments with cluster peering connections. Refer to the [Sameness groups overview](/consul/docs/connect/cluster-peering/usage/create-sameness-groups) for more information.
 
-   <Note> Sameness groups is currently a "Beta" feature in Consul v1.16.0 and is an Enterprise feature. </Note>
+   <Note> Sameness groups is currently a _beta_ feature in Consul Enterprise v1.16.0. </Note>
 
 - **Permissive mTLS:** You can enable the `permissive` mTLS mode to enable sidecar proxies to accept both mTLS and non-mTLS traffic. Using this mode enables you to onboard services without downtime and without reconfiguring or redeploying your application. Refer to the [Onboard services while in transparent proxy mode](/consul/docs/k8s/connect/onboarding-tproxy-mode) for more information on how to use permissive mTLS to onboard services to Consul.
 
@@ -39,11 +39,11 @@ We are pleased to announce the following Consul updates.
 
 - **Simplified API Gateway installation for Consul on Kubernetes:** API Gateway is now built into Consul. This enables a simplified installation and configuration process for Consul on Kubernetes. Refer to the [API Gateway installation](/consul/docs/api-gateway/install) for more information on the simplified native installation method. 
 
-- **FIPS compliance:** Consul Enterprise now offers FIPS 140-2 compliant builds that meet the security needs of federal agencies protecting sensitive, unclassified information with approved cryptographic measures. These builds use certified cryptographic modules and restrict configuration settings to comply with FIPS 140-2 Level 1 requirements, enabling compliant Consul deployments. Refer to the [Consul Enterprise FIPS](/consul/docs/enterprise/fips) for more information on FIPS compliance.
+- **FIPS compliance (Enterprise):** HashiCorp now offers FIPS 140-2 compliant builds of Consul Enterprise that meet the security needs of federal agencies protecting sensitive, unclassified information with approved cryptographic measures. These builds use certified cryptographic modules and restrict configuration settings to comply with FIPS 140-2 Level 1 requirements, enabling compliant Consul deployments. Refer to the [Consul Enterprise FIPS](/consul/docs/enterprise/fips) for more information on FIPS compliance.
 
 - **JWT Authorization with service intentions:** Consul can now authorize connections based on claims present in JSON Web Token (JWT). You can configure Consul to use one or more JWT providers, which lets you control access to services and specific HTTP paths based on the validity of JWT claims embedded in the service traffic. This ensures a uniform and low latency mechanism to validate and authorize communication based on JWT claims across all services in a diverse service-oriented architecture. Refer to the [Use JWT authorization with service intentions](/consul/docs/connect/intentions/jwt-authorization) for more information.
 
-- **Automated license utilization reporting:** Consul Enteprise now provides automated license utilization reporting, which sends minimal product-license metering data to HashiCorp. You can use these reports to understand how much more you can deploy under your current contract, which can help you protect against overutilization and budget for predicted consumption. Refer to the [Automated license utilization reporting documentation](/consul/docs/enterprise/license/utilization-reporting) for more information. 
+- **Automated license utilization reporting (Enterprise):** Consul Enteprise now provides automated license utilization reporting, which sends minimal product-license metering data to HashiCorp. You can use these reports to understand how much more you can deploy under your current contract, which can help you protect against overutilization and budget for predicted consumption. Refer to the [Automated license utilization reporting documentation](/consul/docs/enterprise/license/utilization-reporting) for more information. 
 
 ## Upgrading
 
