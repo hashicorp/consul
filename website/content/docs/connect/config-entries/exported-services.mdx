@@ -9,8 +9,6 @@ description: >-
 
 This topic describes the `exported-services` configuration entry type. The `exported-services` configuration entry enables Consul to export service instances to other clusters from a single file and connect services across clusters. For additional information, refer to [Cluster Peering](/consul/docs/connect/cluster-peering) and [Admin Partitions](/consul/docs/enterprise/admin-partitions).
 
--> **v1.11.0+:** This config entry is supported in Consul versions 1.11.0+.
-
 ## Introduction
 
 To configure Consul to export services contained in a Consul Enterprise admin partition or Consul OSS datacenter to one or more additional clusters, create a new configuration entry and declare `exported-services` in the `kind` field. This configuration entry enables you to route traffic between services in different clusters.
