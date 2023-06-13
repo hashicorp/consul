@@ -23,7 +23,7 @@ We are pleased to announce the following Consul updates.
     - [Route traffic to virtual services](/consul/docs/k8s/l7-traffic/route-to-virtual-services)
     - [Configure failover services](/consul/docs/k8s/l7-traffic/failover-tproxy).
 
-- **Granular server-side rate limits:** You can now set limits per source IP address. The following steps describe the general process for setting global read and write rate limits:
+- **Granular server-side rate limits:** You can now set limits per source IP address in Consul Enterprise. The following steps describe the general process for setting global read and write rate limits:
 
     1. Set arbitrary limits to begin understanding the upper boundary of RPC and gRPC loads in your network. Refer to [Initialize rate limit settings](/consul/docs/agent/limits/usage/init-rate-limits) for additional information.
     1. Monitor the metrics and logs and readjust the initial configurations as necessary. Refer to [Monitor rate limit data](/consul/docs/agent/limits/usage/monitor-rate-limits)
