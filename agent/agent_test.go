@@ -52,6 +52,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/hcp"
 	"github.com/hashicorp/consul/agent/hcp/scada"
+	"github.com/hashicorp/consul/agent/leafcert"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/api"
@@ -328,8 +329,15 @@ func TestAgent_HTTPMaxHeaderBytes(t *testing.T) {
 					},
 					HTTPMaxHeaderBytes: tt.maxHeaderBytes,
 				},
-				Cache: cache.New(cache.Options{}),
+				Cache:  cache.New(cache.Options{}),
+				NetRPC: &LazyNetRPC{},
 			}
+
+			bd.LeafCertManager = leafcert.NewManager(leafcert.Deps{
+				CertSigner:  leafcert.NewNetRPCCertSigner(bd.NetRPC),
+				RootsReader: leafcert.NewCachedRootsReader(bd.Cache, "dc1"),
+				Config:      leafcert.Config{},
+			})
 
 			cfg := config.RuntimeConfig{BuildDate: time.Date(2000, 1, 1, 0, 0, 1, 0, time.UTC)}
 			bd, err = initEnterpriseBaseDeps(bd, &cfg)
@@ -5443,8 +5451,15 @@ func TestAgent_ListenHTTP_MultipleAddresses(t *testing.T) {
 				&net.TCPAddr{IP: net.ParseIP("127.0.0.1"), Port: ports[1]},
 			},
 		},
-		Cache: cache.New(cache.Options{}),
+		Cache:  cache.New(cache.Options{}),
+		NetRPC: &LazyNetRPC{},
 	}
+
+	bd.LeafCertManager = leafcert.NewManager(leafcert.Deps{
+		CertSigner:  leafcert.NewNetRPCCertSigner(bd.NetRPC),
+		RootsReader: leafcert.NewCachedRootsReader(bd.Cache, "dc1"),
+		Config:      leafcert.Config{},
+	})
 
 	cfg := config.RuntimeConfig{BuildDate: time.Date(2000, 1, 1, 0, 0, 1, 0, time.UTC)}
 	bd, err = initEnterpriseBaseDeps(bd, &cfg)
@@ -6029,8 +6044,15 @@ func TestAgent_startListeners(t *testing.T) {
 		RuntimeConfig: &config.RuntimeConfig{
 			HTTPAddrs: []net.Addr{},
 		},
-		Cache: cache.New(cache.Options{}),
+		Cache:  cache.New(cache.Options{}),
+		NetRPC: &LazyNetRPC{},
 	}
+
+	bd.LeafCertManager = leafcert.NewManager(leafcert.Deps{
+		CertSigner:  leafcert.NewNetRPCCertSigner(bd.NetRPC),
+		RootsReader: leafcert.NewCachedRootsReader(bd.Cache, "dc1"),
+		Config:      leafcert.Config{},
+	})
 
 	bd, err := initEnterpriseBaseDeps(bd, &config.RuntimeConfig{})
 	require.NoError(t, err)
@@ -6161,7 +6183,14 @@ func TestAgent_startListeners_scada(t *testing.T) {
 		},
 		RuntimeConfig: &config.RuntimeConfig{},
 		Cache:         cache.New(cache.Options{}),
+		NetRPC:        &LazyNetRPC{},
 	}
+
+	bd.LeafCertManager = leafcert.NewManager(leafcert.Deps{
+		CertSigner:  leafcert.NewNetRPCCertSigner(bd.NetRPC),
+		RootsReader: leafcert.NewCachedRootsReader(bd.Cache, "dc1"),
+		Config:      leafcert.Config{},
+	})
 
 	cfg := config.RuntimeConfig{BuildDate: time.Date(2000, 1, 1, 0, 0, 1, 0, time.UTC)}
 	bd, err := initEnterpriseBaseDeps(bd, &cfg)
@@ -6214,7 +6243,13 @@ func TestAgent_checkServerLastSeen(t *testing.T) {
 		},
 		RuntimeConfig: &config.RuntimeConfig{},
 		Cache:         cache.New(cache.Options{}),
+		NetRPC:        &LazyNetRPC{},
 	}
+	bd.LeafCertManager = leafcert.NewManager(leafcert.Deps{
+		CertSigner:  leafcert.NewNetRPCCertSigner(bd.NetRPC),
+		RootsReader: leafcert.NewCachedRootsReader(bd.Cache, "dc1"),
+		Config:      leafcert.Config{},
+	})
 	agent, err := New(bd)
 	require.NoError(t, err)
 
