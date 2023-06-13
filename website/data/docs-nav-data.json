@@ -1613,6 +1613,10 @@
         "path": "enterprise/read-scale"
       },
       {
+        "title": "FIPS",
+        "path": "enterprise/fips"
+      },
+      {
         "title": "Single sign-on - OIDC",
         "href": "/docs/security/acl/auth-methods/oidc"
       },
