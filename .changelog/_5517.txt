@@ -1,0 +1,3 @@
+```release-note:bug
+namespaces: **(Enterprise only)** fixes a bug where agent health checks stop syncing for all services on a node if the namespace of any service has been removed from the server.
+```
