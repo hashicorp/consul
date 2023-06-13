@@ -78,7 +78,7 @@ jobs:
         echo "GITHUB_BUILD_URL=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" >> $GITHUB_ENV
 
     - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@4b4e9c3e2d4531116a6f8ba8e71fc6e2cb6e6c8c # v2.5.0
+      uses: docker/setup-buildx-action@ecf95283f03858871ff00b787d79c419715afc34 # v2.7.0
 
     # NOTE: conditional specific logic as we store secrets in Vault in ENT and use GHA secrets in OSS.
     - name: Login to Docker Hub
