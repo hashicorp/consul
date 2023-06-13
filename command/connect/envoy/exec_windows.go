@@ -12,13 +12,15 @@ import (
 	"path/filepath"
 
 	"time"
+
+	"github.com/go-mmap/mmap"
 )
 
 func makeBootstrapTemp(bootstrapJSON []byte) (string, error) {
 	tempFile := filepath.Join(os.TempDir(),
 		fmt.Sprintf("envoy-%x-bootstrap.json", time.Now().UnixNano()+int64(os.Getpid())))
 
-	f, err := os.Create(tempFile)
+	f, err := mmap.Open(tempFile, mmap.Write)
 	if err != nil {
 		return tempFile, err
 	}
