@@ -406,43 +406,27 @@
           },
           {
             "title": "API gateway",
-            "href": "/consul/docs/connect/gateways/api-gateway/configuration/api-gateway",
-            "badge": {
-              "text": "BETA",
-              "type": "outlined",
-              "color": "neutral"
-            }
+            "href": "/consul/docs/connect/gateways/api-gateway/configuration/api-gateway"
           },
           {
             "title": "HTTP route",
-            "href": "/consul/docs/connect/gateways/api-gateway/configuration/http-route",
-            "badge": {
-              "text": "BETA",
-              "type": "outlined",
-              "color": "neutral"
-            }
+            "href": "/consul/docs/connect/gateways/api-gateway/configuration/http-route"
           },
           {
             "title": "TCP route",
-            "href": "/consul/docs/connect/gateways/api-gateway/configuration/tcp-route",
-            "badge": {
-              "text": "BETA",
-              "type": "outlined",
-              "color": "neutral"
-            }
+            "href": "/consul/docs/connect/gateways/api-gateway/configuration/tcp-route"
           },
           {
             "title": "Inline certificate",
-            "href": "/consul/docs/connect/gateways/api-gateway/configuration/inline-certificate",
-            "badge": {
-              "text": "BETA",
-              "type": "outlined",
-              "color": "neutral"
-            }
+            "href": "/consul/docs/connect/gateways/api-gateway/configuration/inline-certificate"
           },
           {
             "title": "Ingress gateway",
             "path": "connect/config-entries/ingress-gateway"
+          },
+          {
+            "title": "JWT Provider",
+            "path": "connect/config-entries/jwt-provider"
           },
           {
             "title": "Mesh",
@@ -457,7 +441,11 @@
             "path": "connect/config-entries/proxy-defaults"
           },
           {
-            "title": "Service defaults",
+            "title": "Sameness Group",
+            "path": "connect/config-entries/sameness-group"
+          },
+          {
+            "title": "Service Defaults",
             "path": "connect/config-entries/service-defaults"
           },
           {
@@ -510,7 +498,7 @@
                   {
                     "title": "Delegate authorization to external services",
                     "path": "connect/proxies/envoy-extensions/usage/ext-authz"
-                  },                  
+                  },
                   {
                     "title": "Run Lua scripts in Envoy proxies",
                     "path": "connect/proxies/envoy-extensions/usage/lua"
@@ -526,7 +514,8 @@
                   {
                     "title": "Run WebAssembly plug-ins in Envoy proxies",
                     "path": "connect/proxies/envoy-extensions/usage/wasm"
-                  }                ]
+                  }
+                ]
               },
               {
                 "title": "Configuration",
@@ -534,16 +523,16 @@
                   {
                     "title": "External authorization",
                     "path": "connect/proxies/envoy-extensions/configuration/ext-authz"
-                  },                  
+                  },
                   {
                     "title": "Property override",
                     "path": "connect/proxies/envoy-extensions/configuration/property-override"
-                  },                  
+                  },
                   {
                     "title": "WebAssembly",
                     "path": "connect/proxies/envoy-extensions/configuration/wasm"
                   }
-                ]              
+                ]
               }
             ]
           },
@@ -584,6 +573,10 @@
           {
             "title": "Create and manage service intentions",
             "path": "connect/intentions/create-manage-intentions"
+          },
+          {
+            "title": "JWT authorization for intentions",
+            "path": "connect/intentions/jwt-authorization"
           },
           {
             "title": "Service intentions legacy mode",
@@ -642,11 +635,6 @@
           },
           {
             "title": "API Gateways",
-            "badge": {
-              "text": "BETA",
-              "type": "outlined",
-              "color": "neutral"
-            },
             "routes": [
               {
                 "title": "Overview",
@@ -756,6 +744,10 @@
               {
                 "title": "Manage L7 Traffic With Cluster Peering",
                 "path": "connect/cluster-peering/usage/peering-traffic-management"
+              },
+              {
+                "title": "Create Sameness Groups",
+                "path": "connect/cluster-peering/usage/create-sameness-groups"
               }
             ]
           }
@@ -1020,7 +1012,7 @@
               {
                 "title": "Limit traffic rates from source IP addresses",
                 "path": "agent/limits/usage/limit-request-rates-from-ips"
-              }    
+              }
             ]
           },
           {
@@ -1303,6 +1295,10 @@
                   {
                     "title": "Manage L7 Traffic With Cluster Peering",
                     "path": "k8s/connect/cluster-peering/usage/l7-traffic"
+                  },
+                  {
+                    "title": "Create Sameness Groups",
+                    "path": "k8s/connect/cluster-peering/usage/create-sameness-groups"
                   }
                 ]
               }
