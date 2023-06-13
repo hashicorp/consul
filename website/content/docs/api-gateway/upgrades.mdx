@@ -91,7 +91,9 @@ If you are able to tolerate downtime for your applications, you should delete pr
 ### Self-managed CRDs
 
 <Note>
-  Since the Consul on Kubernetes 1.2 introduces `connectInject.apiGateway.manageExternalCRDs`, you must be on at least Consul on Kubernetes v1.2 for this upgrade method.
+
+  This upgrade method uses `connectInject.apiGateway.manageExternalCRDs`, which was introduced in Consul on Kubernetes v1.2. As a result, you must be on at least Consul on Kubernetes v1.2 for this upgrade method.
+
 </Note>
 
 If you are unable to tolerate any downtime, you can complete the following steps to upgrade to the native Consul API gateway. If you choose this upgrade option, you must continue to manually install the CRDs necessary for operating the API gateway. 
@@ -115,12 +117,8 @@ If you are unable to tolerate any downtime, you can complete the following steps
     ```
 
   </CodeBlockConfig>
-
-  <Note> 
   
   You must set `connectInject.apiGateway.manageExternalCRDs` to `false`. If you have external CRDs with legacy installation and you do not set this, you will get an error when you try to upgrade because Helm will try to install CRDs that already exist.
-
-  </Note>
 
 1. Issue the following command to install the new version of API gateway and disables externally-managed CRDs:
 
