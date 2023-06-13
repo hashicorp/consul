@@ -218,6 +218,9 @@ func (c *cmd) run(args []string) int {
 	ui.Info(fmt.Sprintf("     Cluster Addr: %v (LAN: %d, WAN: %d)", config.AdvertiseAddrLAN,
 		config.SerfPortLAN, config.SerfPortWAN))
 	ui.Info(fmt.Sprintf("Gossip Encryption: %t", config.EncryptKey != ""))
+	if config.ServerMode {
+		ui.Info(fmt.Sprintf(" Reporting Enabled: %t", config.Reporting.License.Enabled))
+	}
 	ui.Info(fmt.Sprintf(" Auto-Encrypt-TLS: %t", config.AutoEncryptTLS || config.AutoEncryptAllowTLS))
 	ui.Info(fmt.Sprintf("        HTTPS TLS: Verify Incoming: %t, Verify Outgoing: %t, Min Version: %s",
 		config.TLS.HTTPS.VerifyIncoming, config.TLS.HTTPS.VerifyOutgoing, config.TLS.HTTPS.TLSMinVersion))
