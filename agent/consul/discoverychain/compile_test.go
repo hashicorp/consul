@@ -3301,6 +3301,7 @@ func newTarget(opts structs.DiscoveryTargetOpts, modFn func(t *structs.Discovery
 	t.SNI = connect.TargetSNI(t, "trustdomain.consul")
 	t.Name = t.SNI
 	t.ConnectTimeout = 5 * time.Second // default
+	t.PrioritizeByLocality = opts.PrioritizeByLocality
 	if modFn != nil {
 		modFn(t)
 	}
