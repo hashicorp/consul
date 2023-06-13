@@ -364,6 +364,8 @@ func (s *Server) revokeLeadership() {
 
 	s.revokeEnterpriseLeadership()
 
+	s.stopDeferredDeletion()
+
 	s.stopFederationStateAntiEntropy()
 
 	s.stopFederationStateReplication()

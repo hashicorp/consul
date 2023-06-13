@@ -7,7 +7,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/hashicorp/consul/acl"
-	cachetype "github.com/hashicorp/consul/agent/cache-types"
+	"github.com/hashicorp/consul/agent/leafcert"
 	"github.com/hashicorp/consul/agent/proxycfg/internal/watch"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/proto/private/pbpeering"
@@ -489,7 +489,7 @@ func (h *handlerAPIGateway) watchIngressLeafCert(ctx context.Context, snap *Conf
 		snap.APIGateway.LeafCertWatchCancel()
 	}
 	ctx, cancel := context.WithCancel(ctx)
-	err := h.dataSources.LeafCertificate.Notify(ctx, &cachetype.ConnectCALeafRequest{
+	err := h.dataSources.LeafCertificate.Notify(ctx, &leafcert.ConnectCALeafRequest{
 		Datacenter:     h.source.Datacenter,
 		Token:          h.token,
 		Service:        h.service,
