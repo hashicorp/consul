@@ -1,0 +1,58 @@
+---
+layout: docs
+page_title: 1.16.x
+description: >-
+  Consul release notes for version 1.16.x
+---
+
+# Consul 1.16.0
+
+We are pleased to announce the following Consul updates. 
+
+## Release Highlights
+
+- **Sameness groups:** Sameness groups are a user-defined set of partitions that Consul uses to identify services in different administrative partitions with the same name as being the same services. You can use sameness groups to create a blanket failover policy for deployments with cluster peering connections. Refer to the [Sameness groups overview](/consul/docs/v1.16.x/connect/cluster-peering/usage/create-sameness-groups) for more information.
+
+   <Note> Sameness groups is currently a “Beta” feature in Consul v1.16.0 and is an Enterprise feature. </Note>
+
+- **Permissive mTLS:** You can enable the `permissive` mTLS mode to enable sidecar proxies to accept both mTLS and non-mTLS traffic. Using this mode enables you to onboard services without downtime and without reconfiguring or redeploying your application. Refer to the [Onboard services while in transparent proxy mode](/consul/docs/v1.16.x/k8s/connect/onboarding-tproxy-mode) for more information on how to use permissive mTLS to onboard services to Consul.
+
+- **Transparent proxy enhancements for failover and virtual services:** We have made several internal improvements, such as ensuring that virtual IPs are always available, to reduce the friction associated with operating Consul in transparent proxy mode. Onboarding services, configuring failover redirects, and other operations require less administrative effort and ensure a smoother experience. Refer to the following documentation for additional information: 
+
+    - [Onboard services while in transparent proxy mode](/consul/docs/v1.16.x/k8s/connect/onboarding-tproxy-mode)
+    - [Route traffic to virtual services](/consul/docs/v1.16.x/k8s/l7-traffic/route-to-virtual-services)
+    - [Configure failover services](/consul/docs/v1.16.x/k8s/l7-traffic/failover-tproxy).
+
+- **Granular server-side rate limits:** You can now set limits per source IP address. The following steps describe the general process for setting global read and write rate limits:
+
+    1. Set arbitrary limits to begin understanding the upper boundary of RPC and gRPC loads in your network. Refer to [Initialize rate limit settings](/consul/docs/v1.16.x/agent/limits/usage/init-rate-limits) for additional information.
+    1. Monitor the metrics and logs and readjust the initial configurations as necessary. Refer to [Monitor rate limit data](/consul/docs/v1.16.x/agent/limits/usage/monitor-rate-limits)
+    1. Define your final operational limits based on your observations. If you are defining global rate limits, refer to [Set global traffic rate limits](/consul/docs/v1.16.x/agent/limits/usage/set-global-traffic-rate-limits) for additional information. For information about setting limits based on source IP, refer to [Limit traffic rates for a source IP](/consul/docs/v1.16.x/agent/limits/usage/limit-request-rates-from-ips).
+
+- **Consul Envoy Extensions:** Consul Envoy extension system enables you to modify Consul-generated Envoy resources. Refer to [Envoy extension overview](/consul/docs/connect/proxies/envoy-extensions) for more information on how to use these extensions for Consul service mesh.
+
+    - **Property Override:** The property override Envoy extension lets you set, remove, or modify individual properties for the Envoy resources Consul generates. Refer to the [Configure Envoy proxy properties](/consul/docs/v1.16.x/connect/proxies/envoy-extensions/usage/property-override) for more information on how to use this extension. 
+
+    - **Wasm:** The Wasm Envoy extension lets you configure Wasm programs to be used as filters in the service's sidecar proxy. Refer to the [Run WebAssembly plug-ins in Envoy proxy](/consul/docs/v1.16.x/connect/proxies/envoy-extensions/usage/wasm) for more information on how to use this extension. 
+
+    - **External Authorization:** The external authorization Envoy extension lets you delegate data plane authorization requests to external systems. Refer to the [Delegate authorization to an external service](/consul/docs/v1.16.x/connect/proxies/envoy-extensions/usage/ext-authz) for more information on how to use this extension. 
+
+- **Simplified API Gateway installation for Consul on Kubernetes:** API Gateway is now built into Consul. This enables a simplified installation and configuration process for Consul on Kubernetes. Refer to the [API Gateway installation](/consul/docs/v1.16.x/api-gateway/install) for more information on the simplified native installation method. 
+
+- **FIPS compliance:** Consul Enterprise now offers FIPS 140-2 compliant builds that meet the security needs of federal agencies protecting sensitive, unclassified information with approved cryptographic measures. These builds use certified cryptographic modules and restrict configuration settings to comply with FIPS 140-2 Level 1 requirements, enabling compliant Consul deployments. Refer to the [Consul Enterprise FIPS](/consul/docs/v1.16.x/enterprise/fips)for more information on FIPS compliance.
+
+- **JWT Authorization with service intentions:** Consul can now authorize connections based on claims present in JSON Web Token (JWT). You can configure Consul to use one or more JWT providers, which lets you control access to services and specific HTTP paths based on the validity of JWT claims embedded in the service traffic. This ensures a uniform and low latency mechanism to validate and authorize communication based on JWT claims across all services in a diverse service-oriented architecture. Refer to the [Use JWT authorization with service intentions](/consul/docs/v1.16.x/connect/intentions/jwt-authorization) for more information.
+
+- **Automated license utilization reporting:** Consul Enteprise now provides automated license utilization reporting, which sends minimal product-license metering data to HashiCorp. You can use these reports to understand how much more you can deploy under your current contract, which can help you protect against overutilization and budget for predicted consumption. Refer to the [Automated license utilization reporting documentation](/consul/docs/v1.16.x/enterprise/license/utilization-reporting) for more information. 
+
+## Upgrading
+
+For more detailed information, please refer to the [upgrade details page](/consul/docs/upgrading/upgrade-specific) and the changelogs.
+
+## Changelogs
+
+The changelogs for this major release version and any maintenance versions are listed below.
+
+<Note> These links take you to the changelogs on the GitHub website. </Note>
+
+- [1.16.0-rc1](https://github.com/hashicorp/consul/releases/tag/v1.16.0-rc1)
