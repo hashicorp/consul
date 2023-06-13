@@ -8,6 +8,12 @@ description: Learn how to set read and request rate limits on RPC and gRPC traff
 
 This topic describes how to configure RPC and gRPC traffic rate limits for source IP addresses. This enables you to specify a budget for read and write requests to prevent any single source IP from overwhelming the Consul server and negatively affecting the network. For information about setting global traffic rate limits, refer to [Set a global limit on traffic rates](/consul/docs/agent/limits/usage/set-glogal-traffic-rate-limits). For an overview of Consul's server rate limiting capabilities, refer to [Limit traffic rates overview](/consul/docs/agent/limits/overview). 
 
+<EnterpriseAlert>
+
+This feature requires Consul Enterprise. Refer to the [feature compatibility matrix](/consul/docs/enterprise#consul-enterprise-feature-availability) for additional information.
+
+</EnterpriseAlert>
+
 ## Overview
 
 You can set limits on the rate of read and write requests from source IP addresses to specific resources, which mitigates the risks to Consul servers when consul clients send excessive requests to a specific resource type. Before configuring traffic rate limits, you should complete the initialization process to understand normal traffic loads in your network. Refer to [Initialize rate limit settings](/consul/docs/agent/limits/init-rate-limits) for additional information.
@@ -22,7 +28,7 @@ You should also monitor read and write rate activity and make any necessary adju
 
 ## Define rate limits
 
-Create a control plane request limit configuration entry in the `default` partition. The configuration entry applies to all client requests targeting any partition. Refer to the [control plane request limit configuration entry](/consul/docs/connect/config-entries/control-plan-request-limit) reference documentation for details about the available configuration parameters. 
+Create a control plane request limit configuration entry in the `default` partition. The configuration entry applies to all client requests targeting any partition. Refer to the [control plane request limit configuration entry](/consul/docs/connect/config-entries/control-plane-request-limit) reference documentation for details about the available configuration parameters. 
 
 Specify the following parameters:
 
