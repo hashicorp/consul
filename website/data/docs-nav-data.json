@@ -146,6 +146,10 @@
         "title": "Consul",
         "routes": [
           {
+            "title": "v1.16.x",
+            "path": "release-notes/consul/v1_16_x"
+          },
+          {
             "title": "v1.15.x",
             "path": "release-notes/consul/v1_15_x"
           },
@@ -1631,6 +1635,10 @@
       {
         "title": "Enhanced Read Scalability",
         "path": "enterprise/read-scale"
+      },
+      {
+        "title": "FIPS",
+        "path": "enterprise/fips"
       },
       {
         "title": "Single sign-on - OIDC",
