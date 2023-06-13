@@ -31,6 +31,7 @@ import (
 const (
 	LocalExtAuthzClusterName = "local_ext_authz"
 
+	defaultMetadataNS    = "consul"
 	defaultStatPrefix    = "response"
 	defaultStatusOnError = 403
 )
@@ -44,7 +45,6 @@ type extAuthzConfig struct {
 	MetadataContextNamespaces  []string
 	StatusOnError              *int
 	StatPrefix                 string
-	TransportApiVersion        TransportApiVersion
 	WithRequestBody            *BufferSettings
 
 	failureModeAllow bool
@@ -238,8 +238,8 @@ func (c extAuthzConfig) toEnvoyHttpFilter(cfg *cmn.RuntimeConfig) (*envoy_http_v
 	extAuthzFilter := &envoy_http_ext_authz_v3.ExtAuthz{
 		StatPrefix:                 c.StatPrefix,
 		WithRequestBody:            c.WithRequestBody.toEnvoy(),
-		TransportApiVersion:        c.TransportApiVersion.toEnvoy(),
-		MetadataContextNamespaces:  c.MetadataContextNamespaces,
+		TransportApiVersion:        envoy_core_v3.ApiVersion_V3,
+		MetadataContextNamespaces:  append(c.MetadataContextNamespaces, defaultMetadataNS),
 		FailureModeAllow:           c.failureModeAllow,
 		BootstrapMetadataLabelsKey: c.BootstrapMetadataLabelsKey,
 	}
@@ -281,7 +281,7 @@ func (c extAuthzConfig) toEnvoyNetworkFilter(cfg *cmn.RuntimeConfig) (*envoy_lis
 	extAuthzFilter := &envoy_ext_authz_v3.ExtAuthz{
 		GrpcService:         grpcSvc,
 		StatPrefix:          c.StatPrefix,
-		TransportApiVersion: c.TransportApiVersion.toEnvoy(),
+		TransportApiVersion: envoy_core_v3.ApiVersion_V3,
 		FailureModeAllow:    c.failureModeAllow,
 	}
 
@@ -671,19 +671,4 @@ func (t *Target) validate() error {
 		}
 	}
 	return resultErr
-}
-
-type TransportApiVersion string
-
-func (t TransportApiVersion) toEnvoy() envoy_core_v3.ApiVersion {
-	switch strings.ToLower(string(t)) {
-	case "v2":
-		//nolint:staticcheck
-		return envoy_core_v3.ApiVersion_V2
-	case "auto":
-		//nolint:staticcheck
-		return envoy_core_v3.ApiVersion_AUTO
-	default:
-		return envoy_core_v3.ApiVersion_V3
-	}
 }
