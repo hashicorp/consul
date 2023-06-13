@@ -38,7 +38,7 @@ func New(ui cli.Ui) *cmd {
 	return c
 }
 
-const DefaultAdminAccessLogPath = "/dev/null"
+const DefaultAdminAccessLogPath = os.DevNull
 
 type cmd struct {
 	UI     cli.Ui
