@@ -25,9 +25,9 @@ This section describes how to create a token that grants read-only access to the
 
 ### Define a policy
 
-You can send policy definitions as command line or API arguments or define them in an external HCL or JSON file. The following example policy is defined in a file. Refer to [ACL Rules](/consul/docs/security/acl/acl-rules) for details about all of the rules you can use in your policies.
+You can send policy definitions as command line or API arguments or define them in an external HCL or JSON file. Refer to [ACL Rules](/consul/docs/security/acl/acl-rules) for details about all of the rules you can use in your policies.
 
-The following policy allows you to view all services and nodes in the catalog.
+The following example policy is defined in a file. The policy allows users that login with the token to view all services and nodes in the catalog.
 
 <CodeTabs>
 
@@ -143,12 +143,9 @@ This section describes how to create a token that grants read-only access to the
 
 ### Define a policy
 
-You can send policy definitions as command line or API arguments or define them in an external HCL or JSON file. The following example policy is defined in a file. Refer to [ACL Rules](/consul/docs/security/acl/acl-rules) for details about all of the rules you can use in your policies.
+You can send policy definitions as command line or API arguments or define them in an external HCL or JSON file. Refer to [ACL Rules](/consul/docs/security/acl/acl-rules) for details about all of the rules you can use in your policies.
 
-The following policy allows users that log in with the token to view services and nodes in the catalog in any partition and in any namespace.
-
-The `operator:read` permission is needed to list partitions. Without this permission, you can still
-view resources within a partition but cannot easily navigate to other partitions in the Consul UI.
+The following example policy is defined in a file. The following policy allows users that log in with the token to view services and nodes in the catalog in any partition and in any namespace. The `operator:read` permission is needed to list partitions. Without this permission, you can still view resources within a partition but cannot easily navigate to other partitions in the Consul UI.
 
 <CodeTabs>
 
@@ -201,7 +198,7 @@ After defining the policies, you can register them with Consul using the command
 
 Run the `consul acl policy create` command and specify the policy rules to create a policy. The following example registers a policy defined in `ui-view-catalog.hcl`.
 
-You can specify an admin partition, namespace, or both when registering policies in Consul Enterprise. Policies are only valid in the network areas specified during registration, but you can grant tokens registered in the `default` partition permission to access resources in a different partition than where the token was registered. Refer to the [admin partition documentation](/consul/docs/enterprise/admin-partitions#default-admin-partition) for additional information.
+You can specify an admin partition and namespace when registering policies in Consul Enterprise. Policies are only valid in the scopes specified during registration, but you can grant tokens registered in the `default` partition permission to access resources in a different partition than where the token was registered. Refer to the [admin partition documentation](/consul/docs/enterprise/admin-partitions#default-admin-partition) for additional information.
 
 The following example registers the policy in the `default` partition and the `default` namespace because the policy grants cross-partition and cross-namespace access.
 
@@ -257,7 +254,7 @@ $ consul acl token create -partition "default" -namespace "default" \
 
 Send a PUT request to the `/acl/token` endpoint and specify the policy name or ID in the request to create an ACL token linked to the policy. Refer to [ACL Token HTTP API](/consul/api-docs/acl/tokens) for additional information about using the API endpoint.
 
-You can specify an admin partition, namespace, or both when registering policies in Consul Enterprise. Policies are only valid in the network areas specified during registration, but you can grant tokens registered in the `default` partition permission to access resources in a different partition than where the token was registered. Refer to the [admin partition documentation](/consul/docs/enterprise/admin-partitions#default-admin-partition) for additional information.
+You can specify an admin partition and namespace when registering policies in Consul Enterprise. Policies are only valid in the scopes specified during registration, but you can grant tokens registered in the `default` partition permission to access resources in a different partition than where the token was registered. Refer to the [admin partition documentation](/consul/docs/enterprise/admin-partitions#default-admin-partition) for additional information.
 
 The following example registers the policy in the `default` partition and the `default` namespace because the policy grants cross-partition and cross-namespace access.
 
@@ -285,9 +282,9 @@ This section describes how to create a token with read-only access to all resour
 
 ### Define a policy
 
-You can send policy definitions as command line or API arguments or define them in an external HCL or JSON file. The following example policy is defined in a file. Refer to [ACL Rules](/consul/docs/security/acl/acl-rules) for details about all of the rules you can use in your policies.
+You can send policy definitions as command line or API arguments or define them in an external HCL or JSON file. Refer to [ACL Rules](/consul/docs/security/acl/acl-rules) for details about all of the rules you can use in your policies.
 
-The following policy allows users that log in with the token to view all services and nodes in the catalog, all objects in the key/value store, all intentions, and all ACL resources. The `acl:read` permission does not allow viewing the token secret ids.
+The following example policy is defined in a file. The policy allows users that log in with the token to view all services and nodes in the catalog, all objects in the key/value store, all intentions, and all ACL resources. The `acl:read` permission does not allow viewing the token secret ids.
 
 <CodeTabs>
 
@@ -417,9 +414,9 @@ This section describes how to create a token with read-only access to all resour
 
 ### Define a policy
 
-You can send policy definitions as command line or API arguments or define them in an external HCL or JSON file. The following example policy is defined in a file. Refer to [ACL Rules](/consul/docs/security/acl/acl-rules) for details about all of the rules you can use in your policies.
+You can send policy definitions as command line or API arguments or define them in an external HCL or JSON file. Refer to [ACL Rules](/consul/docs/security/acl/acl-rules) for details about all of the rules you can use in your policies.
 
-The following policy allows users that log in with the token to view all services and nodes in the catalog, all objects in the key-value store, all intentions, and all ACL resources in any namespace and any partition. The `acl:read` permission does not allow viewing the token secret ids.
+The following example policy is defined in a file. The policy allows users that log in with the token to view all services and nodes in the catalog, all objects in the key-value store, all intentions, and all ACL resources in any namespace and any partition. The `acl:read` permission does not allow viewing the token secret ids.
 
 <CodeTabs>
 
@@ -485,7 +482,7 @@ After defining the policies, you can register them with Consul using the command
 
 Run the `consul acl policy create` command and specify the policy rules to create a policy. The following example registers a policy defined in `ui-view-all.hcl`.
 
-You can specify an admin partition, namespace, or both when creating policies in Consul Enterprise. The policy is only valid in the specified network areas. Because the policy grants cross-partition and cross-namespace access, the policy must be created in the `default` partition and the `default` namespace.
+You can specify an admin partition and namespace when creating policies in Consul Enterprise. The policy is only valid in the specified scopes. Because the policy grants cross-partition and cross-namespace access, the policy must be created in the `default` partition and the `default` namespace.
 
 ```shell-session
 $ consul acl policy create -partition "default" -namespace "default" \
@@ -539,7 +536,7 @@ $ consul acl token create -partition "default" -namespace "default" \
 
 Send a PUT request to the `/acl/token` endpoint and specify the policy name or ID in the request to create an ACL token linked to the policy. Refer to [ACL Token HTTP API](/consul/api-docs/acl/tokens) for additional information about using the API endpoint.
 
-You can specify an admin partition, namespace, or both when creating tokens in Consul Enterprise. The token is only valid in the specified network areas. Because the policy was created in the `default` partition and `default` namespace, the token must also be created in the `default` partition and `default` namespace.
+You can specify an admin partition and namespace when creating tokens in Consul Enterprise. The token is only valid in the specified scopes. Because the policy was created in the `default` partition and `default` namespace, the token must also be created in the `default` partition and `default` namespace.
 
 ```shell-session
 $ curl --request PUT http://127.0.0.1:8500/v1/acl/token \

@@ -31,9 +31,9 @@ To create a token for the ingress gateway, you must define a policy, register th
 
 ### Define a policy
 
-You can send policy definitions as command line or API arguments or define them in an external HCL or JSON file. The following example policy is defined in a file. Refer to [ACL Rules](/consul/docs/security/acl/acl-rules) for details about all of the rules you can use in your policies.
+You can send policy definitions as command line or API arguments or define them in an external HCL or JSON file. Refer to [ACL Rules](/consul/docs/security/acl/acl-rules) for details about all of the rules you can use in your policies.
 
-The following example policy grants the ingress gateway the appropriate permissions to register as a service named `ingress-gateway`.
+The following example policy is defined in a file. The policy grants the ingress gateway the appropriate permissions to register as a service named `ingress-gateway` and to operate as an ingress gateway.
 
 <CodeTabs>
 
@@ -167,11 +167,11 @@ To create a token for the ingress gateway, you must define a policy, register th
 
 ### Define a policy
 
-You can send policy definitions as command line or API arguments or define them in an external HCL or JSON file. The following example policy is defined in a file. Refer to [ACL Rules](/consul/docs/security/acl/acl-rules) for details about all of the rules you can use in your policies.
+You can send policy definitions as command line or API arguments or define them in an external HCL or JSON file. Refer to [ACL Rules](/consul/docs/security/acl/acl-rules) for details about all of the rules you can use in your policies.
 
-You can specify an admin partition and namespace when using Consul Enterprise. The following policy allows an ingress gateway to register as a service named `ingress-gateway` in the `ptn1` partition and `ns1` namespace.
+You can specify an admin partition and namespace when creating policies in Consul Enterprise. The policy is only valid in the specified scopes.
 
-The example policy contains permissions for resources in multiple namespaces. You must create ACL policies that grant permissions for multiple namespaces in the `default` namespace.
+The following example policy is defined in a file. The policy allows an ingress gateway to register as a service named `ingress-gateway` in the `ptn1` partition and `ns1` namespace. The policy contains permissions for resources in multiple namespaces. You must create ACL policies that grant permissions for multiple namespaces in the `default` namespace.
 
 <CodeTabs>
 

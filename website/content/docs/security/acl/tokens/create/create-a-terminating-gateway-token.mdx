@@ -35,9 +35,9 @@ To create a token for the terminating gateway, you must define a policy, registe
 
 ### Define a policy
 
-You can send policy definitions as command line or API arguments or define them in an external HCL or JSON file. The following example policy is defined in a file. Refer to [ACL Rules](/consul/docs/security/acl/acl-rules) for details about all of the rules you can use in your policies.
+You can send policy definitions as command line or API arguments or define them in an external HCL or JSON file. Refer to [ACL Rules](/consul/docs/security/acl/acl-rules) for details about all of the rules you can use in your policies.
 
-The following example policy allows a terminating gateway to register as a service named `terminating-gateway`. For this example, the terminating gateway forwards traffic for two services named `external-service-1` and `external-service-2`. The policy examples include `service:write` permissions for these services. If you have additional services, your policy must include `service:write` permissions for the additional services to be included in the policy rules.
+The following example policy is defined in a file. The policy grants the appropriate permissions to register as a service named `terminating-gateway` and to operate as a terminating gateway. For this example, the terminating gateway forwards traffic for two services named `external-service-1` and `external-service-2`. The policy examples include `service:write` permissions for these services. If you have additional services, your policy must include `service:write` permissions for the additional services to be included in the policy rules.
 
 <CodeTabs>
 
@@ -176,16 +176,20 @@ To create a token for the terminating gateway, you must define a policy, registe
 
 ### Define a policy
 
-You can send policy definitions as command line or API arguments or define them in an external HCL or JSON file. The following example policy is defined in a file. Refer to [ACL Rules](/consul/docs/security/acl/acl-rules) for details about all of the rules you can use in your policies.
+You can send policy definitions as command line or API arguments or define them in an external HCL or JSON file. Refer to [ACL Rules](/consul/docs/security/acl/acl-rules) for details about all of the rules you can use in your policies.
 
-You can specify an admin partition and namespace when using Consul Enterprise. The following example policy allows a terminating gateway to register as a service named `terminating-gateway` in namespace `ns1` in partition `ptn1`.
+You can specify an admin partition and namespace when creating policies in Consul Enterprise. The policy is only valid in the specified scopes.
+
+The following example policy is defined in a file. The policy grants the appropriate permissions for a terminating gateway to register as a service named `terminating-gateway` in namespace `ns1` in partition `ptn1`.
 
 For this example, the terminating gateway forwards traffic for the following two services:
 
 * `external-service-1` in the `default` namespace
 * `external-service-2` in the `ns1` namespace
 
-The example policy contains permissions for resources in multiple namespaces. You must create ACL policies that grant permissions for multiple namespaces in the `default` namespace.
+The policy examples include `service:write` permissions for these services. If you have additional services, your policy must include `service:write` permissions for the additional services to be included in the policy rules.
+
+The policy contains permissions for resources in multiple namespaces. You must create ACL policies that grant permissions for multiple namespaces in the `default` namespace.
 
 <CodeTabs>
 

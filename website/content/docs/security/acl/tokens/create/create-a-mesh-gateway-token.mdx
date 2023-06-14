@@ -43,9 +43,9 @@ To create a token for the mesh gateway, you must define a policy, register the p
 
 ### Define a policy
 
-You can send policy definitions as command line or API arguments or define them in an external HCL or JSON file. The following example policy is defined in a file. Refer to [ACL Rules](/consul/docs/security/acl/acl-rules) for details about all of the rules you can use in your policies.
+You can send policy definitions as command line or API arguments or define them in an external HCL or JSON file. Refer to [ACL Rules](/consul/docs/security/acl/acl-rules) for details about all of the rules you can use in your policies.
 
-The following example policy grants the mesh gateway the appropriate permissions for the mesh gateway to register as a service named `mesh-gateway`.
+The following example policy is defined in a file. The policy grants the appropriate permissions to register as a service named `mesh-gateway` and to operate as a mesh gateway.
 
 <CodeTabs>
 
@@ -182,9 +182,11 @@ To create a token for the mesh gateway, you must define a policy, register the p
 
 ### Define a policy
 
-You can send policy definitions as command line or API arguments or define them in an external HCL or JSON file. The following example policy is defined in a file. Refer to [ACL Rules](/consul/docs/security/acl/acl-rules) for details about all of the rules you can use in your policies.
+You can send policy definitions as command line or API arguments or define them in an external HCL or JSON file. Refer to [ACL Rules](/consul/docs/security/acl/acl-rules) for details about all of the rules you can use in your policies.
 
-You can specify an admin partition and namespace when using Consul Enterprise. Mesh gateways must register into the `default` namespace. The following policy allows a mesh gateway to register as a service named `mesh-gateway` in the default partition.
+You can specify an admin partition and namespace when using Consul Enterprise. Mesh gateways must register into the `default` namespace.
+
+The following example policy is defined in a file. The policy grants the appropriate permissions to register as a service named `mesh-gateway` and to operate as a mesh gateway in the default partition.
 
 <CodeTabs>
 
@@ -353,9 +355,11 @@ To create a token for the mesh gateway, you must define a policy, register the p
 
 ### Define a policy
 
-You can send policy definitions as command line or API arguments or define them in an external HCL or JSON file. The following example policy is defined in a file. Refer to [ACL Rules](/consul/docs/security/acl/acl-rules) for details about all of the rules you can use in your policies.
+You can send policy definitions as command line or API arguments or define them in an external HCL or JSON file. Refer to [ACL Rules](/consul/docs/security/acl/acl-rules) for details about all of the rules you can use in your policies.
 
-You can specify an admin partition and namespace when using Consul Enterprise. Mesh gateways must register into the `default` namespace. To register a mesh gateway in a non-default partition, create the ACL policy and token in the partition where the mesh gateway registers. The following ACL policy rules allow a mesh gateway to register as the `mesh-gateway` service in a non-default partition.
+You can specify an admin partition and namespace when using Consul Enterprise. Mesh gateways must register into the `default` namespace. To register a mesh gateway in a non-default partition, create the ACL policy and token in the partition where the mesh gateway registers.
+
+The following example policy is defined in a file. The policy grants the appropriate permissions to register as a service named `mesh-gateway` and to operate as a mesh gateway in a non-default partition.
 
 <CodeTabs>
 

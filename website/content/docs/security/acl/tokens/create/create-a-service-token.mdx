@@ -103,7 +103,7 @@ $ consul acl token create -partition "ptn1" -namespace "ns1" \
 
 Send a PUT request to the `/acl/token` endpoint and specify a service identity in the request body to create a token linked to the service identity. An ACL token linked to a policy with permissions to use the API endpoint is required. Refer to [ACL Token HTTP API](/consul/api-docs/acl/tokens) for additional information about using the API endpoint.
 
-You can specify an admin partition, namespace, or both when creating tokens in Consul Enterprise. The token is only valid in the specified network areas. The following example creates an ACL token that the service can use to register in the `ns1` namespace of partition `ptn1`:
+You can specify an admin partition and namespace when creating tokens in Consul Enterprise. The token is only valid in the specified scopes. The following example creates an ACL token that the service can use to register in the `ns1` namespace of partition `ptn1`:
 
 ```shell-session
 $ curl --request PUT http://127.0.0.1:8500/v1/acl/token \
@@ -129,9 +129,9 @@ When you are unable to link tokens to a service identity, you can define policie
 
 ### Define a policy
 
-You can send policy definitions as command line or API arguments or define them in an external HCL or JSON file. The following example policy is defined in a file. Refer to [ACL Rules](/consul/docs/security/acl/acl-rules) for details about all of the rules you can use in your policies.
+You can send policy definitions as command line or API arguments or define them in an external HCL or JSON file. Refer to [ACL Rules](/consul/docs/security/acl/acl-rules) for details about all of the rules you can use in your policies.
 
-The following example policy grants the `svc1` service `write` permissions so that it can register into the catalog. For service mesh, the policy grants the `svc1-sidecar-proxy` service `write` permissions so that the sidecar proxy can register into the catalog. It grants service and node `read` permissions to discover and route to other services.
+The following example policy is defined in a file. The policy grants the `svc1` service `write` permissions so that it can register into the catalog. For service mesh, the policy grants the `svc1-sidecar-proxy` service `write` permissions so that the sidecar proxy can register into the catalog. It grants service and node `read` permissions to discover and route to other services.
 
 <CodeTabs>
 
@@ -265,9 +265,11 @@ When you are unable to link tokens to a service identity, you can define policie
 
 ### Define a policy
 
-You can send policy definitions as command line or API arguments or define them in an external HCL or JSON file. The following example policy is defined in a file. Refer to [ACL Rules](/consul/docs/security/acl/acl-rules) for details about all of the rules you can use in your policies.
+You can send policy definitions as command line or API arguments or define them in an external HCL or JSON file. Refer to [ACL Rules](/consul/docs/security/acl/acl-rules) for details about all of the rules you can use in your policies.
 
-You can specify an admin partition, namespace, or both when creating tokens in Consul Enterprise. The token is only valid in the specified network areas. The following example policy allows the `svc1` service to register in the `ns1` namespace of partition `ptn1`. For service mesh, the policy grants the `svc1-sidecar-proxy` service `write` permissions so that the sidecar proxy can register into the catalog. It grants service and node `read` permissions to discover and route to other services.
+You can specify an admin partition and namespace when creating policies in Consul Enterprise. The policy is only valid in the specified scopes.
+
+The following example policy is defined in a file. The policy allows the `svc1` service to register in the `ns1` namespace of partition `ptn1`. For service mesh, the policy grants the `svc1-sidecar-proxy` service `write` permissions so that the sidecar proxy can register into the catalog. It grants service and node `read` permissions to discover and route to other services.
 
 <CodeTabs>
 
@@ -377,7 +379,7 @@ After registering the policies into Consul, you can create and link tokens using
 
 Run the `consul acl token create` command and specify the policy name or ID to create a token linked to the policy. Refer to [Consul ACL Token Create](/consul/commands/acl/token/create) for details about the `consul acl token create` command.
 
-You can specify an admin partition, namespace, or both when creating tokens in Consul Enterprise. The token is only valid in the specified network areas. The following example creates an ACL token that the service can use to register in the `ns1` namespace of partition `ptn1`:
+You can specify an admin partition and namespace when creating tokens in Consul Enterprise. The token is only valid in the specified scopes. The following example creates an ACL token that the service can use to register in the `ns1` namespace of partition `ptn1`:
 
 The following commands create the ACL token linked to the policy `svc1-register`.
 
@@ -393,7 +395,7 @@ $ consul acl token create -partition "ptn1" -namespace "ns1" \
 
 Send a PUT request to the `/acl/token` endpoint and specify the policy name or ID in the request to create an ACL token linked to the policy. Refer to [ACL Token HTTP API](/consul/api-docs/acl/tokens) for additional information about using the API endpoint.
 
-You can specify an admin partition, namespace, or both when creating tokens in Consul Enterprise. The token is only valid in the specified network areas. The following example creates an ACL token that the service can use to register in the `ns1` namespace of partition `ptn1`:
+You can specify an admin partition and namespace when creating tokens in Consul Enterprise. The token is only valid in the specified scopes. The following example creates an ACL token that the service can use to register in the `ns1` namespace of partition `ptn1`:
 
 ```shell-session
 $ curl --request PUT http://127.0.0.1:8500/v1/acl/token \
