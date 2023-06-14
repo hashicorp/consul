@@ -542,6 +542,10 @@ func (c *consulContainerNode) terminate(retainPod bool, skipFuncs bool) error {
 				continue
 			}
 		}
+
+		// if the pod is retained and therefore the IP then the grpc conn
+		// should handle reconnecting so there is no reason to close it.
+		c.closeGRPC()
 	}
 
 	var merr error
@@ -560,14 +564,17 @@ func (c *consulContainerNode) terminate(retainPod bool, skipFuncs bool) error {
 		c.pod = nil
 	}
 
+	return merr
+}
+
+func (c *consulContainerNode) closeGRPC() error {
 	if c.grpcConn != nil {
 		if err := c.grpcConn.Close(); err != nil {
-			merr = multierror.Append(merr, err)
+			return err
 		}
 		c.grpcConn = nil
 	}
-
-	return merr
+	return nil
 }
 
 func (c *consulContainerNode) DataDir() string {

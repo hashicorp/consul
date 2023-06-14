@@ -18,6 +18,7 @@ func TestCatalog(t *testing.T) {
 	cluster, _, _ := libtopology.NewCluster(t, &libtopology.ClusterConfig{
 		NumServers: 3,
 		BuildOpts:  &libcluster.BuildOptions{Datacenter: "dc1"},
+		Cmd:        `-hcl=experiments=["resource-apis"]`,
 	})
 
 	followers, err := cluster.Followers()

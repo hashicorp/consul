@@ -73,6 +73,7 @@ CI_DEV_DOCKER_NAMESPACE?=hashicorpdev
 CI_DEV_DOCKER_IMAGE_NAME?=consul
 CI_DEV_DOCKER_WORKDIR?=bin/
 ################
+CONSUL_VERSION?=$(shell cat version/VERSION)
 
 TEST_MODCACHE?=1
 TEST_BUILDCACHE?=1
@@ -189,6 +190,8 @@ dev-docker: linux dev-build
 	@docker buildx use default && docker buildx build -t 'consul:local' -t '$(CONSUL_DEV_IMAGE)' \
        --platform linux/$(GOARCH) \
 	   --build-arg CONSUL_IMAGE_VERSION=$(CONSUL_IMAGE_VERSION) \
+		--label org.opencontainers.image.version=$(CONSUL_VERSION) \
+		--label version=$(CONSUL_VERSION) \
        --load \
        -f $(CURDIR)/build-support/docker/Consul-Dev-Multiarch.dockerfile $(CURDIR)/pkg/bin/
 
@@ -209,6 +212,8 @@ remote-docker: check-remote-dev-image-env
 	@docker buildx use consul-builder && docker buildx build -t '$(REMOTE_DEV_IMAGE)' \
        --platform linux/amd64,linux/arm64 \
 	   --build-arg CONSUL_IMAGE_VERSION=$(CONSUL_IMAGE_VERSION) \
+		--label org.opencontainers.image.version=$(CONSUL_VERSION) \
+		--label version=$(CONSUL_VERSION) \
        --push \
        -f $(CURDIR)/build-support/docker/Consul-Dev-Multiarch.dockerfile $(CURDIR)/pkg/bin/
 
