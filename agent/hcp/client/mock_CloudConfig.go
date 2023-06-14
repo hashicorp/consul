@@ -48,7 +48,3 @@ func (m MockCloudCfg) Resource() (resource.Resource, error) {
 func (m MockCloudCfg) HCPConfig(opts ...hcpcfg.HCPConfigOption) (hcpcfg.HCPConfig, error) {
 	return &mockHCPCfg{}, m.ConfigErr
 }
-
-func (m MockCloudCfg) NodeMeta() (types.NodeID, string) {
-	return m.NodeID, m.NodeName
-}

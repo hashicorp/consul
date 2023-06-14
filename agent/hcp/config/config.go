@@ -39,10 +39,6 @@ func (c *CloudConfig) Resource() (resource.Resource, error) {
 	return resource.FromString(c.ResourceID)
 }
 
-func (c *CloudConfig) NodeMeta() (types.NodeID, string) {
-	return c.NodeID, c.NodeName
-}
-
 func (c *CloudConfig) HCPConfig(opts ...hcpcfg.HCPConfigOption) (hcpcfg.HCPConfig, error) {
 	if c.TLSConfig == nil {
 		c.TLSConfig = &tls.Config{}

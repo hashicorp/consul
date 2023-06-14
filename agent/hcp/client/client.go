@@ -315,13 +315,12 @@ func (t *TelemetryConfig) Enabled() (string, bool) {
 // DefaultLabels returns a set of <key, value> string pairs that must be added as attributes to all exported telemetry data.
 func (t *TelemetryConfig) DefaultLabels(cfg config.CloudConfig) map[string]string {
 	labels := make(map[string]string)
-	nID, nodeName := cfg.NodeMeta()
-	nodeID := string(nID)
+	nodeID := string(cfg.NodeID)
 	if nodeID != "" {
 		labels["node_id"] = nodeID
 	}
-	if nodeName != "" {
-		labels["node_name"] = nodeName
+	if cfg.NodeName != "" {
+		labels["node_name"] = cfg.NodeName
 	}
 
 	for k, v := range t.Labels {
