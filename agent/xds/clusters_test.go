@@ -50,7 +50,7 @@ func TestClustersFromSnapshot(t *testing.T) {
 							},
 						},
 					},
-				})
+				}, false)
 			},
 		},
 		{
@@ -69,7 +69,7 @@ func TestClustersFromSnapshot(t *testing.T) {
 							},
 						},
 					},
-				})
+				}, false)
 			},
 		},
 		{
@@ -88,7 +88,7 @@ func TestClustersFromSnapshot(t *testing.T) {
 							},
 						},
 					},
-				})
+				}, false)
 			},
 		},
 		{
@@ -110,7 +110,7 @@ func TestClustersFromSnapshot(t *testing.T) {
 							},
 						},
 					},
-				})
+				}, false)
 			},
 		},
 		{
@@ -121,7 +121,7 @@ func TestClustersFromSnapshot(t *testing.T) {
 						customAppClusterJSON(t, customClusterJSONOptions{
 							Name: "mylocal",
 						})
-				}, nil)
+				}, nil, false)
 			},
 		},
 		{
@@ -132,7 +132,7 @@ func TestClustersFromSnapshot(t *testing.T) {
 						customAppClusterJSON(t, customClusterJSONOptions{
 							Name: "myservice",
 						})
-				}, nil)
+				}, nil, false)
 			},
 		},
 		{
@@ -157,7 +157,7 @@ func TestClustersFromSnapshot(t *testing.T) {
 							// Attempt to override the TLS context should be ignored
 							TLSContext: `"allowRenegotiation": false`,
 						})
-				}, nil)
+				}, nil, false)
 			},
 		},
 		{
@@ -166,7 +166,7 @@ func TestClustersFromSnapshot(t *testing.T) {
 				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
 					ns.Proxy.Config["local_connect_timeout_ms"] = 1234
 					ns.Proxy.Upstreams[0].Config["connect_timeout_ms"] = 2345
-				}, nil)
+				}, nil, false)
 			},
 		},
 		{
@@ -178,7 +178,7 @@ func TestClustersFromSnapshot(t *testing.T) {
 						"max_failures":              float64(5),
 						"interval":                  float64(10),
 					}
-				}, nil)
+				}, nil, false)
 			},
 		},
 		{
@@ -186,7 +186,7 @@ func TestClustersFromSnapshot(t *testing.T) {
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
 					ns.Proxy.Config["max_inbound_connections"] = 3456
-				}, nil)
+				}, nil, false)
 			},
 		},
 		{
@@ -206,7 +206,7 @@ func TestClustersFromSnapshot(t *testing.T) {
 							"max_connections": 500,
 						}
 					}
-				}, nil)
+				}, nil, false)
 			},
 		},
 		{
@@ -224,7 +224,7 @@ func TestClustersFromSnapshot(t *testing.T) {
 							"max_concurrent_requests": 0,
 						}
 					}
-				}, nil)
+				}, nil, false)
 			},
 		},
 		{
@@ -242,7 +242,7 @@ func TestClustersFromSnapshot(t *testing.T) {
 							"max_concurrent_requests": 700,
 						}
 					}
-				}, nil)
+				}, nil, false)
 			},
 		},
 		{
@@ -344,7 +344,7 @@ func TestClustersFromSnapshot(t *testing.T) {
 					ns.Proxy.LocalServiceAddress = ""
 					ns.Proxy.LocalServicePort = 0
 					ns.Proxy.LocalServiceSocketPath = "/tmp/downstream_proxy.sock"
-				}, nil)
+				}, nil, false)
 			},
 		},
 		{

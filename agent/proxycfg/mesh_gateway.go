@@ -32,17 +32,24 @@ func (s *handlerMeshGateway) initialize(ctx context.Context) (ConfigSnapshot, er
 	}
 
 	// Watch for all peer trust bundles we may need.
-	err = s.dataSources.TrustBundleList.Notify(ctx, &cachetype.TrustBundleListRequest{
-		Request: &pbpeering.TrustBundleListByServiceRequest{
-			Kind:        string(structs.ServiceKindMeshGateway),
-			ServiceName: s.service,
-			Namespace:   s.proxyID.NamespaceOrDefault(),
-			Partition:   s.proxyID.PartitionOrDefault(),
-		},
-		QueryOptions: structs.QueryOptions{Token: s.token},
-	}, peeringTrustBundlesWatchID, s.ch)
-	if err != nil {
-		return snap, err
+	if s.peeringEnabled {
+		err = s.dataSources.TrustBundleList.Notify(ctx, &cachetype.TrustBundleListRequest{
+			Request: &pbpeering.TrustBundleListByServiceRequest{
+				Kind:        string(structs.ServiceKindMeshGateway),
+				ServiceName: s.service,
+				Namespace:   s.proxyID.NamespaceOrDefault(),
+				Partition:   s.proxyID.PartitionOrDefault(),
+			},
+			QueryOptions: structs.QueryOptions{Token: s.token},
+		}, peeringTrustBundlesWatchID, s.ch)
+		if err != nil {
+			return snap, err
+		}
+	} else {
+		// Initialize these fields even when peering is not enabled, so that the mesh gateway
+		// returns the proper value in calls to `Valid()`
+		snap.MeshGateway.PeeringTrustBundles = make([]*pbpeering.PeeringTrustBundle, 0)
+		snap.MeshGateway.PeeringTrustBundlesSet = true
 	}
 
 	wildcardEntMeta := s.proxyID.WithWildcardNamespace()
@@ -448,14 +455,16 @@ func (s *handlerMeshGateway) handleUpdate(ctx context.Context, u UpdateEvent, sn
 		snap.MeshGateway.Leaf = leaf
 
 	case peeringTrustBundlesWatchID:
-		resp, ok := u.Result.(*pbpeering.TrustBundleListByServiceResponse)
-		if !ok {
-			return fmt.Errorf("invalid type for response: %T", u.Result)
+		if s.peeringEnabled {
+			resp, ok := u.Result.(*pbpeering.TrustBundleListByServiceResponse)
+			if !ok {
+				return fmt.Errorf("invalid type for response: %T", u.Result)
+			}
+			if len(resp.Bundles) > 0 {
+				snap.MeshGateway.PeeringTrustBundles = resp.Bundles
+			}
+			snap.MeshGateway.PeeringTrustBundlesSet = true
 		}
-		if len(resp.Bundles) > 0 {
-			snap.MeshGateway.PeeringTrustBundles = resp.Bundles
-		}
-		snap.MeshGateway.PeeringTrustBundlesSet = true
 
 	case meshConfigEntryID:
 		resp, ok := u.Result.(*structs.ConfigEntryResponse)

@@ -106,7 +106,7 @@ func TestConfigSnapshotPeering(t testing.T) *ConfigSnapshot {
 				},
 			},
 		},
-	})
+	}, true)
 }
 
 func TestConfigSnapshotPeeringTProxy(t testing.T) *ConfigSnapshot {
@@ -247,5 +247,5 @@ func TestConfigSnapshotPeeringTProxy(t testing.T) *ConfigSnapshot {
 				},
 			},
 		},
-	})
+	}, true)
 }

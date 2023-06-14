@@ -54,6 +54,7 @@ type stateConfig struct {
 	dnsConfig             DNSConfig
 	serverSNIFn           ServerSNIFunc
 	intentionDefaultAllow bool
+	peeringEnabled        bool
 }
 
 // state holds all the state needed to maintain the config for a registered

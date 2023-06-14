@@ -646,6 +646,7 @@ func (a *Agent) Start(ctx context.Context) error {
 		},
 		TLSConfigurator:       a.tlsConfigurator,
 		IntentionDefaultAllow: intentionDefaultAllow,
+		PeeringEnabled:        a.config.PeeringEnabled,
 	})
 	if err != nil {
 		return err
