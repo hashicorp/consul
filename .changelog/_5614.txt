@@ -1,0 +1,4 @@
+```release-note:bug
+namespaces: **(Enterprise only)** fixes a bug where namespaces are stuck in a deferred deletion state indefinitely under some conditions.
+Also fixes the Consul query metadata present in the HTTP headers of the namespace read and list endpoints.
+```

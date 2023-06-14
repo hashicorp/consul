@@ -56,6 +56,7 @@ func TestAPI_OperatorUsage(t *testing.T) {
 	require.Equal(t, 4, usage.Usage["dc1"].Services)
 	require.Equal(t, 5, usage.Usage["dc1"].ServiceInstances)
 	require.Equal(t, map[string]int{
+		"api-gateway":         0,
 		"connect-native":      1,
 		"connect-proxy":       1,
 		"ingress-gateway":     0,
