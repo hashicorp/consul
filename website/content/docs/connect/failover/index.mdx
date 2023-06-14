@@ -24,7 +24,7 @@ The following table compares these strategies in deployments with multiple datac
 | Prepared query    | &#9989;                 |   &#10060;               | Central policies that can automatically target the nearest datacenter | WAN-federated deployments where a primary datacenter is configured. |
 | Sameness groups   | &#10060;                | &#9989;                  | Group size changes without edits to existing member configurations | Cluster peering deployments with consistently named services and namespaces |
 
-While cluster peering connections support the [`Failover` field of the prepared query request schema](/consul/api-docs/query#failover) when using Consul's service discovery features to perform [dynamic DNS queries](/consul/docs/services/discovery/dns-dynamic-lookups), they do not support prepared queries for service mesh failover scenarios.
+Although cluster peering connections support the [`Failover` field of the prepared query request schema](/consul/api-docs/query#failover) when using Consul's service discovery features to [perform dynamic DNS queries](/consul/docs/services/discovery/dns-dynamic-lookups), they do not support prepared queries for service mesh failover scenarios.
 
 ### Failover configurations for a service mesh with a single datacenter
 
