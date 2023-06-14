@@ -68,6 +68,8 @@ func (a *extAuthz) PatchFilters(cfg *ext_cmn.RuntimeConfig, filters []*envoy_lis
 		return filters, nil
 	}
 
+	a.configureInsertOptions(cfg.Protocol)
+
 	switch cfg.Protocol {
 	case "grpc", "http2", "http":
 		extAuthzFilter, err := a.Config.toEnvoyHttpFilter(cfg)
@@ -107,12 +109,25 @@ func (a *extAuthz) fromArguments(args map[string]any) error {
 	return a.validate()
 }
 
+func (a *extAuthz) configureInsertOptions(protocol string) {
+	// If the insert options have been expressly configured, then use them.
+	if a.InsertOptions.Location != "" {
+		return
+	}
+
+	// Configure the default, insert the filter immediately before the terminal filter.
+	a.InsertOptions.Location = ext_cmn.InsertBeforeFirstMatch
+	switch protocol {
+	case "grpc", "http2", "http":
+		a.InsertOptions.FilterName = "envoy.filters.http.router"
+	default:
+		a.InsertOptions.FilterName = "envoy.filters.network.tcp_proxy"
+	}
+}
+
 func (a *extAuthz) normalize() {
 	if a.ProxyType == "" {
 		a.ProxyType = api.ServiceKindConnectProxy
-	}
-	if a.InsertOptions.Location == "" {
-		a.InsertOptions.Location = ext_cmn.InsertFirst
 	}
 	a.Config.normalize()
 }

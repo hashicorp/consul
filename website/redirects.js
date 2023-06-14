@@ -37,4 +37,20 @@ module.exports = [
     destination: `/consul/docs/connect/intentions`,
     permanent: true,
   },
+  {
+    source: '/consul/docs/v1.16.x/connect/transparent-proxy',
+    destination: '/consul/docs/v1.16.x/k8s/connect/transparent-proxy',
+    permanent: true,
+  },
+  {
+    source: '/consul/docs/1.16.x/agent/limits/init-rate-limits',
+    destination: '/consul/docs/1.16.x/agent/limits/usage/init-rate-limits',
+    permanent: true,
+  },
+  {
+    source: '/consul/docs/1.16.x/agent/limits/set-global-traffic-rate-limits',
+    destination:
+      '/consul/docs/1.16.x/agent/limits/usage/set-global-traffic-rate-limits',
+    permanent: true,
+  },
 ]
