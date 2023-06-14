@@ -7,7 +7,7 @@ description: >-
 
 # Create a service token
 
-This topic describes how to create a token that you can use to register a service and discover services in the Consul catalog. If you are using Consul service mesh, this token can be used by a sidecar proxy to discover and route to other services.
+This topic describes how to create a token that you can use to register a service and discover services in the Consul catalog. If you are using Consul service mesh, a sidecar proxy can use the token to discover and route traffic to other services.
 
 ## Introduction
 
@@ -89,7 +89,7 @@ You can manually create tokens using the Consul command line or API endpoint. Yo
 
 Run the `consul acl token create` command and specify the policy or service identity to link to create a token. Refer to [Consul ACL Token Create](/consul/commands/acl/token/create) for details about the `consul acl token create` command.
 
-You can specify an admin partition, namespace, or both when creating tokens in Consul Enterprise. The token is only valid in the specified network areas. The following example creates an ACL token that the service can use to register in the `ns1` namespace of partition `ptn1`:
+You can specify an admin partition, namespace, or both when creating tokens in Consul Enterprise. The token can only include permissions in the specified scope, if any. The following example creates an ACL token that the service can use to register in the `ns1` namespace of partition `ptn1`:
 
 ```shell-session
 $ consul acl token create -partition "ptn1" -namespace "ns1" \

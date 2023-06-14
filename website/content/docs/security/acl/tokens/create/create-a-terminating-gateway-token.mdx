@@ -11,13 +11,7 @@ This topic describes how to create an ACL token that enables a terminating gatew
 
 ## Introduction
 
-Gateways must present a token linked to policies that grant the appropriate set of permissions in order to be discoverable and to forward traffic out of the mesh.
-
-### External services
-
 Terminating gateways enable connectivity within your organizational network from services in the Consul service mesh to services and destinations outside the mesh.
-
-The following policy examples assume the terminating gateway only needs to forward traffic to two external services named `external-service-1` and `external-service-2`. The policy examples include `service:write` permissions for these two services. If you have additional services, `service:write` permissions for those services also need to be included in the policy rules.
 
 To learn how to configure terminating gateways, refer to the [Terminating Gateways](/consul/docs/connect/gateways/terminating-gateway#terminating-gateway-configuration) documentation and the [Understand Terminating Gateways](/consul/tutorials/developer-mesh/service-mesh-terminating-gateways) tutorial.
 
@@ -25,7 +19,7 @@ To learn how to configure terminating gateways, refer to the [Terminating Gatewa
 
 Core ACL functionality is available in all versions of Consul.
 
-The terminating gateway token must be linked to policies that grant the following permissions:
+The terminating gateway token must be linked to policies that grant the appropriate set of permissions in order to be discoverable and to forward traffic out of the mesh. The following permissions are required:
 
 * `service:write` to allow the terminating gateway to register into the catalog
 * `service:write` for each service that it forwards traffic for
@@ -43,7 +37,7 @@ To create a token for the terminating gateway, you must define a policy, registe
 
 You can send policy definitions as command line or API arguments or define them in an external HCL or JSON file. The following example policy is defined in a file. Refer to [ACL Rules](/consul/docs/security/acl/acl-rules) for details about all of the rules you can use in your policies.
 
-The following example policy allows a terminating gateway to register as a service named `terminating-gateway`. For this example, the terminating gateway forwards traffic for two services named `external-service-1` and `external-service-2`.
+The following example policy allows a terminating gateway to register as a service named `terminating-gateway`. For this example, the terminating gateway forwards traffic for two services named `external-service-1` and `external-service-2`. The policy examples include `service:write` permissions for these services. If you have additional services, your policy must include `service:write` permissions for the additional services to be included in the policy rules.
 
 <CodeTabs>
 

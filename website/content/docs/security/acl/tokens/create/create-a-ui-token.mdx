@@ -73,7 +73,7 @@ $ consul acl policy create \
     -description "Allow viewing the catalog"
 ```
 
-efer to [Consul ACL Policy Create](/consul/commands/acl/policy/create) for details about the `consul acl policy create` command.
+Refer to [Consul ACL Policy Create](/consul/commands/acl/policy/create) for details about the `consul acl policy create` command.
 
 </Tab>
 
@@ -287,7 +287,7 @@ This section describes how to create a token with read-only access to all resour
 
 You can send policy definitions as command line or API arguments or define them in an external HCL or JSON file. The following example policy is defined in a file. Refer to [ACL Rules](/consul/docs/security/acl/acl-rules) for details about all of the rules you can use in your policies.
 
-The following policy allows viewing all services and nodes in the catalog, all objects in the key/value store, all intentions, and all ACL resources. The `acl:read` permission does not allow viewing the token secret ids.
+The following policy allows users that log in with the token to view all services and nodes in the catalog, all objects in the key/value store, all intentions, and all ACL resources. The `acl:read` permission does not allow viewing the token secret ids.
 
 <CodeTabs>
 
