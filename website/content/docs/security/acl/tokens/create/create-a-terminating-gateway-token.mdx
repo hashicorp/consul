@@ -132,7 +132,7 @@ Refer to [ACL Policy HTTP API](/consul/api-docs/acl/policies) for additional inf
 
 ### Link the policy to a token
 
-After registering the policy into Consul, you can create and link tokens using the Consul command line or API endpoint. You can also enable Consul to dynamically create tokens from trusted external systems using an auth method.
+After registering the policy into Consul, you can create and link tokens using the Consul command line or API endpoint. You can also enable Consul to dynamically create tokens from trusted external systems using an [auth method](/consul/docs/security/acl/auth-methods).
 
 <Tabs>
 
@@ -311,7 +311,7 @@ Refer to [ACL Policy HTTP API](/consul/api-docs/acl/policies) for additional inf
 
 ### Link the policy to a token
 
-After registering the policy into Consul, you can create and link tokens using the Consul command line or API endpoint. You can also enable Consul to dynamically create tokens from trusted external systems using an auth method.
+After registering the policy into Consul, you can create and link tokens using the Consul command line or API endpoint. You can also enable Consul to dynamically create tokens from trusted external systems using an [auth method](/consul/docs/security/acl/auth-methods).
 
 You can specify an admin partition when creating tokens in Consul Enterprise. The token is only valid in the specified admin partition. You must create the token in the partition where the terminating gateway is registered. If the terminating gateway requires permissions for multiple namespaces, then the token must be created in the `default` namespace. The following example creates the token in the `default` namespace in the `ptn1` partition because the example policy contains permissions for multiple namespaces.
 
