@@ -56,7 +56,7 @@ type otlpClient struct {
 
 // NewMetricsClient returns a configured MetricsClient.
 // The current implementation uses otlpClient to provide retry functionality.
-func NewMetricsClient(cfg CloudConfig, ctx context.Context) (MetricsClient, error) {
+func NewMetricsClient(ctx context.Context, cfg CloudConfig) (MetricsClient, error) {
 	if cfg == nil {
 		return nil, fmt.Errorf("failed to init telemetry client: provide valid cloudCfg (Cloud Configuration for TLS)")
 	}

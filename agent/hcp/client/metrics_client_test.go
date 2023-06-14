@@ -51,7 +51,7 @@ func TestNewMetricsClient(t *testing.T) {
 		},
 	} {
 		t.Run(name, func(t *testing.T) {
-			client, err := NewMetricsClient(test.cfg, test.ctx)
+			client, err := NewMetricsClient(test.ctx, test.cfg)
 			if test.wantErr != "" {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), test.wantErr)
@@ -95,7 +95,7 @@ func TestExportMetrics(t *testing.T) {
 			}))
 			defer srv.Close()
 
-			client, err := NewMetricsClient(MockCloudCfg{}, context.Background())
+			client, err := NewMetricsClient(context.Background(), MockCloudCfg{})
 			require.NoError(t, err)
 
 			ctx := context.Background()

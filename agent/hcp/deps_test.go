@@ -1,10 +1,11 @@
 package hcp
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
-	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/consul/agent/hcp/config"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
@@ -16,7 +17,7 @@ func TestSink(t *testing.T) {
 	t.Parallel()
 	for name, test := range map[string]struct {
 		expect       func(*client.MockClient)
-		mockCloudCfg client.CloudConfig
+		cloudCfg     config.CloudConfig
 		expectedSink bool
 	}{
 		"success": {
@@ -28,7 +29,7 @@ func TestSink(t *testing.T) {
 					},
 				}, nil)
 			},
-			mockCloudCfg: client.MockCloudCfg{
+			cloudCfg: config.CloudConfig{
 				NodeID:   types.NodeID("nodeyid"),
 				NodeName: "nodey",
 			},
@@ -43,26 +44,13 @@ func TestSink(t *testing.T) {
 					},
 				}, nil)
 			},
-			mockCloudCfg: client.MockCloudCfg{},
+			cloudCfg: config.CloudConfig{},
 		},
 		"noSinkWhenCCMVerificationFails": {
 			expect: func(mockClient *client.MockClient) {
 				mockClient.EXPECT().FetchTelemetryConfig(mock.Anything).Return(nil, fmt.Errorf("fetch failed"))
 			},
-			mockCloudCfg: client.MockCloudCfg{},
-		},
-		"noSinkWhenMetricsClientInitFails": {
-			mockCloudCfg: client.MockCloudCfg{
-				ConfigErr: fmt.Errorf("test bad hcp config"),
-			},
-			expect: func(mockClient *client.MockClient) {
-				mockClient.EXPECT().FetchTelemetryConfig(mock.Anything).Return(&client.TelemetryConfig{
-					Endpoint: "https://test.com",
-					MetricsConfig: &client.MetricsConfig{
-						Endpoint: "",
-					},
-				}, nil)
-			},
+			cloudCfg: config.CloudConfig{},
 		},
 		"failsWithFetchTelemetryFailure": {
 			expect: func(mockClient *client.MockClient) {
@@ -96,9 +84,12 @@ func TestSink(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 			c := client.NewMockClient(t)
-			l := hclog.NewNullLogger()
+			mc := client.MockMetricsClient{}
+
 			test.expect(c)
-			s := sink(c, test.mockCloudCfg, l)
+			ctx := context.Background()
+
+			s := sink(ctx, c, mc, test.cloudCfg)
 			if !test.expectedSink {
 				require.Nil(t, s)
 				return

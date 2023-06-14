@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/hashicorp/consul/agent/hcp/config"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/hcp-sdk-go/clients/cloud-consul-telemetry-gateway/preview/2023-04-14/client/consul_telemetry_service"
 	"github.com/hashicorp/hcp-sdk-go/clients/cloud-consul-telemetry-gateway/preview/2023-04-14/models"
@@ -151,11 +152,11 @@ func TestConvertTelemetryConfig(t *testing.T) {
 
 func Test_DefaultLabels(t *testing.T) {
 	for name, tc := range map[string]struct {
-		mockCloudCfg   CloudConfig
+		cfg            config.CloudConfig
 		expectedLabels map[string]string
 	}{
 		"Success": {
-			mockCloudCfg: MockCloudCfg{
+			cfg: config.CloudConfig{
 				NodeID:   types.NodeID("nodeyid"),
 				NodeName: "nodey",
 			},
@@ -166,7 +167,7 @@ func Test_DefaultLabels(t *testing.T) {
 		},
 
 		"NoNodeID": {
-			mockCloudCfg: MockCloudCfg{
+			cfg: config.CloudConfig{
 				NodeID:   types.NodeID(""),
 				NodeName: "nodey",
 			},
@@ -175,7 +176,7 @@ func Test_DefaultLabels(t *testing.T) {
 			},
 		},
 		"NoNodeName": {
-			mockCloudCfg: MockCloudCfg{
+			cfg: config.CloudConfig{
 				NodeID:   types.NodeID("nodeyid"),
 				NodeName: "",
 			},
@@ -184,18 +185,16 @@ func Test_DefaultLabels(t *testing.T) {
 			},
 		},
 		"Empty": {
-			mockCloudCfg: MockCloudCfg{
+			cfg: config.CloudConfig{
 				NodeID:   "",
 				NodeName: "",
 			},
-			expectedLabels: map[string]string{
-				"node_id": "nodeyid",
-			},
+			expectedLabels: map[string]string{},
 		},
 	} {
 		t.Run(name, func(t *testing.T) {
 			tCfg := &TelemetryConfig{}
-			labels := tCfg.DefaultLabels(tc.mockCloudCfg)
+			labels := tCfg.DefaultLabels(tc.cfg)
 			require.Equal(t, labels, tc.expectedLabels)
 		})
 	}
