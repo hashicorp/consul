@@ -1,0 +1,3 @@
+```release-note:security
+audit-logging: **(Enterprise only)** limit `v1/operator/audit-hash` endpoint to ACL token with `operator:read` privileges.
+```

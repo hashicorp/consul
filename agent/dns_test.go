@@ -3189,7 +3189,7 @@ func TestDNS_ServiceLookup_WanTranslation(t *testing.T) {
 				}
 
 				var out struct{}
-				require.NoError(t, a2.RPC(context.Background(), "Catalog.Register", args, &out))
+				require.NoError(r, a2.RPC(context.Background(), "Catalog.Register", args, &out))
 			})
 
 			// Look up the SRV record via service and prepared query.
@@ -3517,11 +3517,11 @@ func TestDNS_CaseInsensitiveServiceLookup(t *testing.T) {
 				retry.Run(t, func(r *retry.R) {
 					in, _, err := c.Exchange(m, a.DNSAddr())
 					if err != nil {
-						t.Fatalf("err: %v", err)
+						r.Fatalf("err: %v", err)
 					}
 
 					if len(in.Answer) != 1 {
-						t.Fatalf("question %v, empty lookup: %#v", question, in)
+						r.Fatalf("question %v, empty lookup: %#v", question, in)
 					}
 				})
 			}

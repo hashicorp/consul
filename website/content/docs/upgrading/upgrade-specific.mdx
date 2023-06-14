@@ -16,9 +16,19 @@ upgrade flow.
 
 ## Consul 1.16.x
 
+#### API health endpoints return different status code
+
+Consul versions 1.16.0+ now return an error 403 "Permission denied" status
+whenever the `/v1/health/connect/` and `/v1/health/ingress/` endpoints are
+queried with insufficient ACL `service:read` privileges.
+
+In Consul versions older than 1.16.0, the service health API did not return an explicit error when given a token with invalid permissions. Instead, it returned an empty list with a success status code.
+
+Before upgrading, ensure that all of your applications can handle this new API behavior properly. An update is not required unless you have a custom application that is querying one of these API endpoints directly.
+
 #### Remove deprecated service-defaults peer upstream override behavior
 
-When configuring a service defaults configuration entry, the [`UpstreamConfig.Overrides` configuration](/consul/docs/connect/config-entries/service-defaults#upstreamconfig-overrides) 
+When configuring a service defaults configuration entry, the [`UpstreamConfig.Overrides` configuration](/consul/docs/connect/config-entries/service-defaults#upstreamconfig-overrides)
 does not apply to peer upstreams unless the [`Peer`](/consul/docs/connect/config-entries/service-defaults#upstreamconfig-overrides-peer) field is explicitly provided.
 This change removes the backward-compatibility behavior introduced in Consul 1.15.x. Refer to the [upgrade instructions for 1.15.x](#service-defaults-overrides-for-upstream-peered-services) for more information.
 
@@ -142,7 +152,7 @@ In Consul v1.15 and higher:
    UpstreamConfig = {
      Overrides = [
        {
-          Name = foo  # Applies to local service `foo` 
+          Name = foo  # Applies to local service `foo`
        },
        {
           Name = foo  # Applies to `foo` imported from peered cluster `bar`
@@ -391,6 +401,12 @@ A breaking change was made in Consul 1.13.2 that impacts service mesh operation
 if the Vault policy is not modified as described.
 As a precaution, we recommend both modifying the Vault policy and upgrading
 to Consul 1.13.3 or later to avoid the breaking nature of that change.
+
+### Nomad Incompatibility
+
+Nomad users should not upgrade to Consul v1.13.8. An API change in this Consul
+release prevents Nomad from correctly detecting the Consul agent version. As a
+result, allocations are not placed in clients running v1.13.8.
 
 ## Consul 1.12.x ((#consul-1-12-0))
 

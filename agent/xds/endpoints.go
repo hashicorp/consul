@@ -41,13 +41,7 @@ func (s *ResourceGenerator) endpointsFromSnapshot(cfgSnap *proxycfg.ConfigSnapsh
 	case structs.ServiceKindIngressGateway:
 		return s.endpointsFromSnapshotIngressGateway(cfgSnap)
 	case structs.ServiceKindAPIGateway:
-		// TODO Find a cleaner solution, can't currently pass unexported property types
-		var err error
-		cfgSnap.IngressGateway, err = cfgSnap.APIGateway.ToIngress(cfgSnap.Datacenter)
-		if err != nil {
-			return nil, err
-		}
-		return s.endpointsFromSnapshotIngressGateway(cfgSnap)
+		return s.endpointsFromSnapshotAPIGateway(cfgSnap)
 	default:
 		return nil, fmt.Errorf("Invalid service kind: %v", cfgSnap.Kind)
 	}
@@ -527,6 +521,44 @@ func (s *ResourceGenerator) endpointsFromSnapshotIngressGateway(cfgSnap *proxycf
 	return resources, nil
 }
 
+func (s *ResourceGenerator) endpointsFromSnapshotAPIGateway(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
+	var resources []proto.Message
+	createdClusters := make(map[proxycfg.UpstreamID]struct{})
+
+	readyListeners := getReadyListeners(cfgSnap)
+
+	for _, readyListener := range readyListeners {
+		for _, u := range readyListener.upstreams {
+			uid := proxycfg.NewUpstreamID(&u)
+
+			// If we've already created endpoints for this upstream, skip it. Multiple listeners may
+			// reference the same upstream, so we don't need to create duplicate endpoints in that case.
+			_, ok := createdClusters[uid]
+			if ok {
+				continue
+			}
+
+			endpoints, err := s.endpointsFromDiscoveryChain(
+				uid,
+				cfgSnap.APIGateway.DiscoveryChain[uid],
+				cfgSnap,
+				proxycfg.GatewayKey{Datacenter: cfgSnap.Datacenter, Partition: u.DestinationPartition},
+				u.Config,
+				cfgSnap.APIGateway.WatchedUpstreamEndpoints[uid],
+				cfgSnap.APIGateway.WatchedGatewayEndpoints[uid],
+				false,
+			)
+			if err != nil {
+				return nil, err
+			}
+
+			resources = append(resources, endpoints...)
+			createdClusters[uid] = struct{}{}
+		}
+	}
+	return resources, nil
+}
+
 // used in clusters.go
 func makeEndpoint(host string, port int) *envoy_endpoint_v3.LbEndpoint {
 	return &envoy_endpoint_v3.LbEndpoint{
@@ -628,6 +660,7 @@ func (s *ResourceGenerator) endpointsFromDiscoveryChain(
 
 	var escapeHatchCluster *envoy_cluster_v3.Cluster
 	if !forMeshGateway {
+
 		cfg, err := structs.ParseUpstreamConfigNoDefaults(upstreamConfigMap)
 		if err != nil {
 			// Don't hard fail on a config typo, just warn. The parse func returns
@@ -743,8 +776,8 @@ func (s *ResourceGenerator) makeExportedUpstreamEndpointsForMeshGateway(cfgSnap 
 
 		chainEndpoints := make(map[string]structs.CheckServiceNodes)
 		for _, target := range chain.Targets {
-			if !cfgSnap.Locality.Matches(target.Datacenter, target.Partition) {
-				s.Logger.Warn("ignoring discovery chain target that crosses a datacenter or partition boundary in a mesh gateway",
+			if !cfgSnap.Locality.Matches(target.Datacenter, target.Partition) || target.Peer != "" {
+				s.Logger.Warn("ignoring discovery chain target that crosses a datacenter, peer, or partition boundary in a mesh gateway",
 					"target", target,
 					"gatewayLocality", cfgSnap.Locality,
 				)

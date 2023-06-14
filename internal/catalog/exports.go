@@ -5,6 +5,8 @@ package catalog
 
 import (
 	"github.com/hashicorp/consul/internal/catalog/internal/controllers"
+	"github.com/hashicorp/consul/internal/catalog/internal/mappers/nodemapper"
+	"github.com/hashicorp/consul/internal/catalog/internal/mappers/selectiontracker"
 	"github.com/hashicorp/consul/internal/catalog/internal/types"
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/resource"
@@ -46,8 +48,17 @@ func RegisterTypes(r resource.Registry) {
 	types.Register(r)
 }
 
+type ControllerDependencies = controllers.Dependencies
+
+func DefaultControllerDependencies() ControllerDependencies {
+	return ControllerDependencies{
+		WorkloadHealthNodeMapper: nodemapper.New(),
+		EndpointsWorkloadMapper:  selectiontracker.New(),
+	}
+}
+
 // RegisterControllers registers controllers for the catalog types with
 // the given controller Manager.
-func RegisterControllers(mgr *controller.Manager) {
-	controllers.Register(mgr)
+func RegisterControllers(mgr *controller.Manager, deps ControllerDependencies) {
+	controllers.Register(mgr, deps)
 }

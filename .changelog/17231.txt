@@ -1,0 +1,3 @@
+```release-note:bug
+acl: Fix an issue where the anonymous token was synthesized in non-primary datacenters which could cause permission errors when federating clusters with ACL replication enabled.
+```

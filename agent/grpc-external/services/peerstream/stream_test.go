@@ -550,7 +550,7 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 	it := incrementalTime{
 		base: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
 	}
-	waitUntil := it.FutureNow(6)
+	waitUntil := it.FutureNow(7)
 
 	srv, store := newTestServer(t, nil)
 	srv.Tracker.setClock(it.Now)
@@ -1048,7 +1048,7 @@ func TestStreamResources_Server_ServiceUpdates(t *testing.T) {
 			require.Equal(r, mongo.Service.CompoundServiceName().String(), msg.GetResponse().ResourceID)
 
 			var nodes pbpeerstream.ExportedService
-			require.NoError(t, msg.GetResponse().Resource.UnmarshalTo(&nodes))
+			require.NoError(r, msg.GetResponse().Resource.UnmarshalTo(&nodes))
 			require.Len(r, nodes.Nodes, 1)
 		})
 	})
@@ -1077,12 +1077,12 @@ func TestStreamResources_Server_ServiceUpdates(t *testing.T) {
 			msg, err := client.RecvWithTimeout(100 * time.Millisecond)
 			require.NoError(r, err)
 			require.Equal(r, pbpeerstream.TypeURLExportedServiceList, msg.GetResponse().ResourceURL)
-			require.Equal(t, subExportedServiceList, msg.GetResponse().ResourceID)
-			require.Equal(t, pbpeerstream.Operation_OPERATION_UPSERT, msg.GetResponse().Operation)
+			require.Equal(r, subExportedServiceList, msg.GetResponse().ResourceID)
+			require.Equal(r, pbpeerstream.Operation_OPERATION_UPSERT, msg.GetResponse().Operation)
 
 			var exportedServices pbpeerstream.ExportedServiceList
-			require.NoError(t, msg.GetResponse().Resource.UnmarshalTo(&exportedServices))
-			require.Equal(t, []string{structs.ServiceName{Name: "mongo"}.String()}, exportedServices.Services)
+			require.NoError(r, msg.GetResponse().Resource.UnmarshalTo(&exportedServices))
+			require.Equal(r, []string{structs.ServiceName{Name: "mongo"}.String()}, exportedServices.Services)
 		})
 	})
 
@@ -1094,12 +1094,12 @@ func TestStreamResources_Server_ServiceUpdates(t *testing.T) {
 			msg, err := client.RecvWithTimeout(100 * time.Millisecond)
 			require.NoError(r, err)
 			require.Equal(r, pbpeerstream.TypeURLExportedServiceList, msg.GetResponse().ResourceURL)
-			require.Equal(t, subExportedServiceList, msg.GetResponse().ResourceID)
-			require.Equal(t, pbpeerstream.Operation_OPERATION_UPSERT, msg.GetResponse().Operation)
+			require.Equal(r, subExportedServiceList, msg.GetResponse().ResourceID)
+			require.Equal(r, pbpeerstream.Operation_OPERATION_UPSERT, msg.GetResponse().Operation)
 
 			var exportedServices pbpeerstream.ExportedServiceList
-			require.NoError(t, msg.GetResponse().Resource.UnmarshalTo(&exportedServices))
-			require.Len(t, exportedServices.Services, 0)
+			require.NoError(r, msg.GetResponse().Resource.UnmarshalTo(&exportedServices))
+			require.Len(r, exportedServices.Services, 0)
 		})
 	})
 }
@@ -1442,7 +1442,9 @@ func makeClient(t *testing.T, srv *testServer, peerID string) *MockClient {
 	// Note that server address may not come as an initial message
 	for _, resourceURL := range []string{
 		pbpeerstream.TypeURLExportedService,
+		pbpeerstream.TypeURLExportedServiceList,
 		pbpeerstream.TypeURLPeeringTrustBundle,
+		// only dialers request, which is why this is absent below
 		pbpeerstream.TypeURLPeeringServerAddresses,
 	} {
 		init := &pbpeerstream.ReplicationMessage{
@@ -1471,7 +1473,7 @@ func makeClient(t *testing.T, srv *testServer, peerID string) *MockClient {
 		{
 			Payload: &pbpeerstream.ReplicationMessage_Request_{
 				Request: &pbpeerstream.ReplicationMessage_Request{
-					ResourceURL: pbpeerstream.TypeURLPeeringTrustBundle,
+					ResourceURL: pbpeerstream.TypeURLExportedServiceList,
 					// The PeerID field is only set for the messages coming FROM
 					// the establishing side and are going to be empty from the
 					// other side.
@@ -1482,7 +1484,7 @@ func makeClient(t *testing.T, srv *testServer, peerID string) *MockClient {
 		{
 			Payload: &pbpeerstream.ReplicationMessage_Request_{
 				Request: &pbpeerstream.ReplicationMessage_Request{
-					ResourceURL: pbpeerstream.TypeURLPeeringServerAddresses,
+					ResourceURL: pbpeerstream.TypeURLPeeringTrustBundle,
 					// The PeerID field is only set for the messages coming FROM
 					// the establishing side and are going to be empty from the
 					// other side.
@@ -1958,7 +1960,7 @@ func processResponse_ExportedServiceUpdates(
 	localEntMeta acl.EnterpriseMeta,
 	peerName string,
 	tests []PeeringProcessResponse_testCase,
-) {
+) *MutableStatus {
 	// create a peering in the state store
 	peerID := "1fabcd52-1d46-49b0-b1d8-71559aee47f5"
 	require.NoError(t, store.PeeringWrite(31, &pbpeering.PeeringWriteRequest{
@@ -2039,6 +2041,7 @@ func processResponse_ExportedServiceUpdates(
 			run(t, tc)
 		})
 	}
+	return mst
 }
 
 func Test_processResponse_ExportedServiceUpdates(t *testing.T) {

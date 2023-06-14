@@ -49,6 +49,7 @@ import (
 	grpcDNS "github.com/hashicorp/consul/agent/grpc-external/services/dns"
 	middleware "github.com/hashicorp/consul/agent/grpc-middleware"
 	"github.com/hashicorp/consul/agent/hcp/scada"
+	"github.com/hashicorp/consul/agent/leafcert"
 	"github.com/hashicorp/consul/agent/local"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	proxycfgglue "github.com/hashicorp/consul/agent/proxycfg-glue"
@@ -123,6 +124,7 @@ var configSourceToName = map[configSource]string{
 	ConfigSourceLocal:  "local",
 	ConfigSourceRemote: "remote",
 }
+
 var configSourceFromName = map[string]configSource{
 	"local":  ConfigSourceLocal,
 	"remote": ConfigSourceRemote,
@@ -246,6 +248,9 @@ type Agent struct {
 
 	// cache is the in-memory cache for data the Agent requests.
 	cache *cache.Cache
+
+	// leafCertManager issues and caches leaf certs as needed.
+	leafCertManager *leafcert.Manager
 
 	// checkReapAfter maps the check ID to a timeout after which we should
 	// reap its associated service
@@ -428,6 +433,12 @@ type Agent struct {
 //   - create the AutoConfig object for future use in fully
 //     resolving the configuration
 func New(bd BaseDeps) (*Agent, error) {
+	if bd.LeafCertManager == nil {
+		return nil, errors.New("LeafCertManager is required")
+	}
+	if bd.NetRPC == nil {
+		return nil, errors.New("NetRPC is required")
+	}
 	a := Agent{
 		checkReapAfter:  make(map[structs.CheckID]time.Duration),
 		checkMonitors:   make(map[structs.CheckID]*checks.CheckMonitor),
@@ -454,6 +465,7 @@ func New(bd BaseDeps) (*Agent, error) {
 		tlsConfigurator: bd.TLSConfigurator,
 		config:          bd.RuntimeConfig,
 		cache:           bd.Cache,
+		leafCertManager: bd.LeafCertManager,
 		routineManager:  routine.NewManager(bd.Logger),
 		scadaProvider:   bd.HCP.Provider,
 	}
@@ -496,6 +508,9 @@ func New(bd BaseDeps) (*Agent, error) {
 			QueryOptionDefaults: config.ApplyDefaultQueryOptions(a.config),
 		},
 	}
+
+	// TODO(rb): remove this once NetRPC is properly available in BaseDeps without an Agent
+	bd.NetRPC.SetNetRPC(&a)
 
 	// We used to do this in the Start method. However it doesn't need to go
 	// there any longer. Originally it did because we passed the agent
@@ -597,6 +612,12 @@ func (a *Agent) Start(ctx context.Context) error {
 	// regular and on-demand state synchronizations (anti-entropy).
 	a.sync = ae.NewStateSyncer(a.State, c.AEInterval, a.shutdownCh, a.logger)
 
+	err = validateFIPSConfig(a.config)
+	if err != nil {
+		// Log warning, rather than force breaking
+		a.logger.Warn("FIPS 140-2 Compliance", "issue", err)
+	}
+
 	// create the config for the rpc server/client
 	consulCfg, err := newConsulConfig(a.config, a.logger)
 	if err != nil {
@@ -636,8 +657,10 @@ func (a *Agent) Start(ctx context.Context) error {
 			return err
 		}
 
-		// periodically write server metadata to disk.
-		go a.persistServerMetadata()
+		// Periodically write server metadata to disk.
+		if !consulCfg.DevMode {
+			go a.persistServerMetadata()
+		}
 
 		incomingRPCLimiter := consul.ConfiguredIncomingRPCLimiter(
 			&lib.StopChannelContext{StopCh: a.shutdownCh},
@@ -666,7 +689,7 @@ func (a *Agent) Start(ctx context.Context) error {
 					Datacenter:  a.config.Datacenter,
 					ACLsEnabled: a.config.ACLsEnabled,
 				},
-				Cache:           a.cache,
+				LeafCertManager: a.leafCertManager,
 				GetStore:        func() servercert.Store { return server.FSM().State() },
 				TLSConfigurator: a.tlsConfigurator,
 			}
@@ -1613,7 +1636,18 @@ func (a *Agent) RPC(ctx context.Context, method string, args interface{}, reply 
 			method = e + "." + p[1]
 		}
 	}
+
+	// audit log only on consul clients
+	_, ok := a.delegate.(*consul.Client)
+	if ok {
+		a.writeAuditRPCEvent(method, "OperationStart")
+	}
+
 	a.endpointsLock.RUnlock()
+
+	defer func() {
+		a.writeAuditRPCEvent(method, "OperationComplete")
+	}()
 	return a.delegate.RPC(ctx, method, args, reply)
 }
 
@@ -4335,13 +4369,6 @@ func (a *Agent) registerCache() {
 
 	a.cache.RegisterType(cachetype.ConnectCARootName, &cachetype.ConnectCARoot{RPC: a})
 
-	a.cache.RegisterType(cachetype.ConnectCALeafName, &cachetype.ConnectCALeaf{
-		RPC:                              a,
-		Cache:                            a.cache,
-		Datacenter:                       a.config.Datacenter,
-		TestOverrideCAChangeInitialDelay: a.config.ConnectTestCALeafRootChangeSpread,
-	})
-
 	a.cache.RegisterType(cachetype.IntentionMatchName, &cachetype.IntentionMatch{RPC: a})
 
 	a.cache.RegisterType(cachetype.IntentionUpstreamsName, &cachetype.IntentionUpstreams{RPC: a})
@@ -4502,7 +4529,7 @@ func (a *Agent) proxyDataSources() proxycfg.DataSources {
 		IntentionUpstreams:              proxycfgglue.CacheIntentionUpstreams(a.cache),
 		IntentionUpstreamsDestination:   proxycfgglue.CacheIntentionUpstreamsDestination(a.cache),
 		InternalServiceDump:             proxycfgglue.CacheInternalServiceDump(a.cache),
-		LeafCertificate:                 proxycfgglue.CacheLeafCertificate(a.cache),
+		LeafCertificate:                 proxycfgglue.LocalLeafCerts(a.leafCertManager),
 		PeeredUpstreams:                 proxycfgglue.CachePeeredUpstreams(a.cache),
 		PeeringList:                     proxycfgglue.CachePeeringList(a.cache),
 		PreparedQuery:                   proxycfgglue.CachePrepraredQuery(a.cache),
@@ -4563,13 +4590,13 @@ func (a *Agent) persistServerMetadata() {
 
 			f, err := consul.OpenServerMetadata(file)
 			if err != nil {
-				a.logger.Error("failed to open existing server metadata: %w", err)
+				a.logger.Error("failed to open existing server metadata", "error", err)
 				continue
 			}
 
 			if err := consul.WriteServerMetadata(f); err != nil {
 				f.Close()
-				a.logger.Error("failed to write server metadata: %w", err)
+				a.logger.Error("failed to write server metadata", "error", err)
 				continue
 			}
 

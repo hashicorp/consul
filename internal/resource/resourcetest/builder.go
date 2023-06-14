@@ -2,7 +2,6 @@ package resourcetest
 
 import (
 	"context"
-	"testing"
 
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/oklog/ulid/v2"
@@ -38,10 +37,21 @@ func Resource(rtype *pbresource.Type, name string) *resourceBuilder {
 	}
 }
 
-func (b *resourceBuilder) WithData(t *testing.T, data protoreflect.ProtoMessage) *resourceBuilder {
+func (b *resourceBuilder) WithData(t T, data protoreflect.ProtoMessage) *resourceBuilder {
+	t.Helper()
+
 	anyData, err := anypb.New(data)
 	require.NoError(t, err)
 	b.resource.Data = anyData
+	return b
+}
+
+func (b *resourceBuilder) WithMeta(key string, value string) *resourceBuilder {
+	if b.resource.Metadata == nil {
+		b.resource.Metadata = make(map[string]string)
+	}
+
+	b.resource.Metadata[key] = value
 	return b
 }
 
@@ -91,7 +101,13 @@ func (b *resourceBuilder) Build() *pbresource.Resource {
 	return res
 }
 
-func (b *resourceBuilder) Write(t *testing.T, client pbresource.ResourceServiceClient) *pbresource.Resource {
+func (b *resourceBuilder) ID() *pbresource.ID {
+	return b.resource.Id
+}
+
+func (b *resourceBuilder) Write(t T, client pbresource.ResourceServiceClient) *pbresource.Resource {
+	t.Helper()
+
 	res := b.resource
 
 	rsp, err := client.Write(context.Background(), &pbresource.WriteRequest{
@@ -101,7 +117,9 @@ func (b *resourceBuilder) Write(t *testing.T, client pbresource.ResourceServiceC
 	require.NoError(t, err)
 
 	if !b.dontCleanup {
-		t.Cleanup(func() {
+		cleaner, ok := t.(CleanupT)
+		require.True(t, ok, "T does not implement a Cleanup method and cannot be used with automatic resource cleanup")
+		cleaner.Cleanup(func() {
 			_, err := client.Delete(context.Background(), &pbresource.DeleteRequest{
 				Id: rsp.Resource.Id,
 			})

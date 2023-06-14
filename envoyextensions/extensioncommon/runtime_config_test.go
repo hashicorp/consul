@@ -20,7 +20,7 @@ func makeTestRuntimeConfig() RuntimeConfig {
 			sn: {
 				EnvoyID:           "eid",
 				OutgoingProxyKind: api.ServiceKindTerminatingGateway,
-				SNI: map[string]struct{}{
+				SNIs: map[string]struct{}{
 					"sni1": {},
 					"sni2": {},
 				},
@@ -28,13 +28,6 @@ func makeTestRuntimeConfig() RuntimeConfig {
 		},
 	}
 	return rc
-}
-
-func TestRuntimeConfig_IsUpstream(t *testing.T) {
-	rc := makeTestRuntimeConfig()
-	require.True(t, rc.IsUpstream())
-	delete(rc.Upstreams, rc.ServiceName)
-	require.False(t, rc.IsUpstream())
 }
 
 func TestRuntimeConfig_MatchesUpstreamServiceSNI(t *testing.T) {
@@ -46,10 +39,10 @@ func TestRuntimeConfig_MatchesUpstreamServiceSNI(t *testing.T) {
 
 func TestRuntimeConfig_EnvoyID(t *testing.T) {
 	rc := makeTestRuntimeConfig()
-	require.Equal(t, "eid", rc.EnvoyID())
+	require.Equal(t, "eid", rc.UpstreamEnvoyID())
 }
 
 func TestRuntimeConfig_OutgoingProxyKind(t *testing.T) {
 	rc := makeTestRuntimeConfig()
-	require.Equal(t, api.ServiceKindTerminatingGateway, rc.OutgoingProxyKind())
+	require.Equal(t, api.ServiceKindTerminatingGateway, rc.UpstreamOutgoingProxyKind())
 }

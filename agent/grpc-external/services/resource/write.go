@@ -179,6 +179,15 @@ func (s *Server) Write(ctx context.Context, req *pbresource.WriteRequest) (*pbre
 				return storage.ErrCASFailure
 			}
 
+			// Fill in an empty Owner UID with the existing owner's UID. If other parts
+			// of the owner ID like the type or name have changed then the subsequent
+			// EqualID call will still error as you are not allowed to change the owner.
+			// This is a small UX nicety to repeatedly "apply" a resource that should
+			// have an owner without having to care about the current owners incarnation.
+			if input.Owner != nil && existing.Owner != nil && input.Owner.Uid == "" {
+				input.Owner.Uid = existing.Owner.Uid
+			}
+
 			// Owner can only be set on creation. Enforce immutability.
 			if !resource.EqualID(input.Owner, existing.Owner) {
 				return status.Errorf(codes.InvalidArgument, "owner cannot be changed")
