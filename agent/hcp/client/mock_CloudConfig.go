@@ -4,7 +4,6 @@ import (
 	"crypto/tls"
 	"net/url"
 
-	"github.com/hashicorp/consul/types"
 	hcpcfg "github.com/hashicorp/hcp-sdk-go/config"
 	"github.com/hashicorp/hcp-sdk-go/profile"
 	"github.com/hashicorp/hcp-sdk-go/resource"
@@ -29,8 +28,6 @@ func (m *mockHCPCfg) PortalURL() *url.URL           { return &url.URL{} }
 func (m *mockHCPCfg) Profile() *profile.UserProfile { return nil }
 
 type MockCloudCfg struct {
-	NodeID      types.NodeID
-	NodeName    string
 	ConfigErr   error
 	ResourceErr error
 }

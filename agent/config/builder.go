@@ -2546,7 +2546,7 @@ func (b *builder) cloudConfigVal(v Config) hcpconfig.CloudConfig {
 		ResourceID: os.Getenv("HCP_RESOURCE_ID"),
 	}
 	if v.NodeName != nil {
-		val.NodeName = *v.NodeName
+		val.NodeName = b.nodeName(v.NodeName)
 	}
 	if v.NodeID != nil {
 		val.NodeID = types.NodeID(*v.NodeID)
