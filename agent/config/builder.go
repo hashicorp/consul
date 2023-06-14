@@ -2549,7 +2549,7 @@ func (b *builder) cloudConfigVal(v Config) hcpconfig.CloudConfig {
 		val.NodeName = b.nodeName(v.NodeName)
 	}
 	if v.NodeID != nil {
-		val.NodeID = types.NodeID(*v.NodeID)
+		val.NodeID = types.NodeID(stringVal(v.NodeID))
 	}
 
 	if v.Cloud == nil {
