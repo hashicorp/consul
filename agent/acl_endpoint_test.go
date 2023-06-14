@@ -909,7 +909,7 @@ func TestACL_HTTP(t *testing.T) {
 
 			// Secret will be filled in
 			tokenInput := &structs.ACLToken{
-				Description: "Better description for this cloned token",
+				Description: "Even Better description for this cloned token",
 				Policies: []structs.ACLTokenPolicyLink{
 					{
 						ID:   idMap["policy-read-all-nodes"],
