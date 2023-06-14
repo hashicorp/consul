@@ -46,16 +46,18 @@ func (s *handlerConnectProxy) initialize(ctx context.Context) (ConfigSnapshot, e
 		return snap, err
 	}
 
-	err = s.dataSources.TrustBundleList.Notify(ctx, &cachetype.TrustBundleListRequest{
-		Request: &pbpeering.TrustBundleListByServiceRequest{
-			ServiceName: s.proxyCfg.DestinationServiceName,
-			Namespace:   s.proxyID.NamespaceOrDefault(),
-			Partition:   s.proxyID.PartitionOrDefault(),
-		},
-		QueryOptions: structs.QueryOptions{Token: s.token},
-	}, peeringTrustBundlesWatchID, s.ch)
-	if err != nil {
-		return snap, err
+	if s.peeringEnabled {
+		err = s.dataSources.TrustBundleList.Notify(ctx, &cachetype.TrustBundleListRequest{
+			Request: &pbpeering.TrustBundleListByServiceRequest{
+				ServiceName: s.proxyCfg.DestinationServiceName,
+				Namespace:   s.proxyID.NamespaceOrDefault(),
+				Partition:   s.proxyID.PartitionOrDefault(),
+			},
+			QueryOptions: structs.QueryOptions{Token: s.token},
+		}, peeringTrustBundlesWatchID, s.ch)
+		if err != nil {
+			return snap, err
+		}
 	}
 
 	// Watch the leaf cert
@@ -112,13 +114,15 @@ func (s *handlerConnectProxy) initialize(ctx context.Context) (ConfigSnapshot, e
 		if err != nil {
 			return snap, err
 		}
-		err = s.dataSources.PeeredUpstreams.Notify(ctx, &structs.PartitionSpecificRequest{
-			QueryOptions:   structs.QueryOptions{Token: s.token},
-			Datacenter:     s.source.Datacenter,
-			EnterpriseMeta: s.proxyID.EnterpriseMeta,
-		}, peeredUpstreamsID, s.ch)
-		if err != nil {
-			return snap, err
+		if s.peeringEnabled {
+			err = s.dataSources.PeeredUpstreams.Notify(ctx, &structs.PartitionSpecificRequest{
+				QueryOptions:   structs.QueryOptions{Token: s.token},
+				Datacenter:     s.source.Datacenter,
+				EnterpriseMeta: s.proxyID.EnterpriseMeta,
+			}, peeredUpstreamsID, s.ch)
+			if err != nil {
+				return snap, err
+			}
 		}
 		// We also infer upstreams from destinations (egress points)
 		err = s.dataSources.IntentionUpstreamsDestination.Notify(ctx, &structs.ServiceSpecificRequest{
@@ -194,7 +198,7 @@ func (s *handlerConnectProxy) initialize(ctx context.Context) (ConfigSnapshot, e
 			fallthrough
 
 		case "":
-			if u.DestinationPeer != "" {
+			if u.DestinationPeer != "" && s.peeringEnabled {
 				// NOTE: An upstream that points to a peer by definition will
 				// only ever watch a single catalog query, so a map key of just
 				// "UID" is sufficient to cover the peer data watches here.
@@ -285,7 +289,7 @@ func (s *handlerConnectProxy) handleUpdate(ctx context.Context, u UpdateEvent, s
 			snap.ConnectProxy.UpstreamPeerTrustBundles.Set(peer, resp.Bundle)
 		}
 
-	case u.CorrelationID == peeringTrustBundlesWatchID:
+	case u.CorrelationID == peeringTrustBundlesWatchID && s.peeringEnabled:
 		resp, ok := u.Result.(*pbpeering.TrustBundleListByServiceResponse)
 		if !ok {
 			return fmt.Errorf("invalid type for response: %T", u.Result)
@@ -303,7 +307,7 @@ func (s *handlerConnectProxy) handleUpdate(ctx context.Context, u UpdateEvent, s
 		snap.ConnectProxy.Intentions = resp
 		snap.ConnectProxy.IntentionsSet = true
 
-	case u.CorrelationID == peeredUpstreamsID:
+	case u.CorrelationID == peeredUpstreamsID && s.peeringEnabled:
 		resp, ok := u.Result.(*structs.IndexedPeeredServiceList)
 		if !ok {
 			return fmt.Errorf("invalid type for response %T", u.Result)

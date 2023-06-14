@@ -75,6 +75,8 @@ type ManagerConfig struct {
 	// information to proxies that need to make intention decisions on their
 	// own.
 	IntentionDefaultAllow bool
+
+	PeeringEnabled bool
 }
 
 // NewManager constructs a Manager.
@@ -137,6 +139,7 @@ func (m *Manager) Register(id ProxyID, ns *structs.NodeService, source ProxySour
 		source:                m.Source,
 		dnsConfig:             m.DNSConfig,
 		intentionDefaultAllow: m.IntentionDefaultAllow,
+		peeringEnabled:        m.PeeringEnabled,
 	}
 	if m.TLSConfigurator != nil {
 		stateConfig.serverSNIFn = m.TLSConfigurator.ServerSNI

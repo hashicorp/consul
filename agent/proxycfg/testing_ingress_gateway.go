@@ -99,7 +99,7 @@ func TestConfigSnapshotIngressGateway(
 		Address:         "1.2.3.4",
 		Meta:            nil,
 		TaggedAddresses: nil,
-	}, nsFn, nil, testSpliceEvents(baseEvents, extraUpdates))
+	}, nsFn, nil, testSpliceEvents(baseEvents, extraUpdates), true)
 }
 
 func TestConfigSnapshotIngressGatewaySDS_GatewayLevel_MixedTLS(t testing.T) *ConfigSnapshot {

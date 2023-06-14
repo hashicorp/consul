@@ -321,7 +321,7 @@ func TestConfigSnapshotTerminatingGateway(t testing.T, populateServices bool, ns
 				Port:    443,
 			},
 		},
-	}, nsFn, nil, testSpliceEvents(baseEvents, extraUpdates))
+	}, nsFn, nil, testSpliceEvents(baseEvents, extraUpdates), false)
 }
 
 func TestConfigSnapshotTerminatingGatewayDestinations(t testing.T, populateDestinations bool, extraUpdates []UpdateEvent) *ConfigSnapshot {
@@ -520,7 +520,7 @@ func TestConfigSnapshotTerminatingGatewayDestinations(t testing.T, populateDesti
 				Port:    443,
 			},
 		},
-	}, nil, nil, testSpliceEvents(baseEvents, extraUpdates))
+	}, nil, nil, testSpliceEvents(baseEvents, extraUpdates), false)
 }
 
 func TestConfigSnapshotTerminatingGatewayServiceSubsets(t testing.T) *ConfigSnapshot {
