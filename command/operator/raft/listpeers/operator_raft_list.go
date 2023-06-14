@@ -21,16 +21,10 @@ type cmd struct {
 	flags *flag.FlagSet
 	http  *flags.HTTPFlags
 	help  string
-
-	// flags
-	detailed bool
 }
 
 func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
-	c.flags.BoolVar(&c.detailed, "detailed", false,
-		"Outputs additional information 'commit_index' which is "+
-			"the index of the server's last committed Raft log entry.")
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
 	flags.Merge(c.flags, c.http.ServerFlags())
@@ -54,21 +48,6 @@ func (c *cmd) Run(args []string) int {
 	}
 
 	// Fetch the current configuration.
-	if c.detailed {
-		result, err := raftListPeers(client, c.http.Stale())
-		if err != nil {
-			c.UI.Error(fmt.Sprintf("Error getting peers: %v", err))
-			return 1
-		}
-		c.UI.Output(result)
-	} else {
-		result, err := raftListPeers(client, c.http.Stale())
-		if err != nil {
-			c.UI.Error(fmt.Sprintf("Error getting peers: %v", err))
-			return 1
-		}
-		c.UI.Output(result)
-	}
 
 	return 0
 }
