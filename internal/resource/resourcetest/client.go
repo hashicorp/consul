@@ -13,7 +13,6 @@ import (
 	"golang.org/x/exp/slices"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/proto"
 )
 
 type Client struct {
@@ -84,7 +83,7 @@ func (client *Client) PublishResources(t T, resources []*pbresource.Resource) {
 
 			cleaner, ok := t.(CleanupT)
 			if ok {
-				id := proto.Clone(rsp.Resource.Id).(*pbresource.ID)
+				id := rsp.Resource.Id
 				cleaner.Cleanup(func() {
 					client.MustDelete(t, id)
 				})
@@ -237,22 +236,19 @@ func (client *Client) ResolveResourceID(t T, id *pbresource.ID) *pbresource.ID {
 }
 
 func (client *Client) MustDelete(t T, id *pbresource.ID) {
+
 	client.retry(t, func(r *retry.R) {
 		_, err := client.Delete(context.Background(), &pbresource.DeleteRequest{Id: id})
 		if status.Code(err) == codes.NotFound {
 			return
 		}
 
+		// codes.Aborted indicates a CAS failure and that the delete request should
+		// be retried. Anything else should be considered an unrecoverable error.
 		if err != nil && status.Code(err) != codes.Aborted {
 			r.Stop(fmt.Errorf("failed to delete the resource: %w", err))
 		}
 
 		require.NoError(r, err)
 	})
-	// _, err := client.Delete(context.Background(), &pbresource.DeleteRequest{Id: id})
-	// if status.Code(err) == codes.NotFound {
-	// 	return
-	// }
-
-	// require.NoError(t, err)
 }

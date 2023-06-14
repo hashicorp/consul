@@ -139,11 +139,11 @@ func (b *resourceBuilder) Write(t T, client pbresource.ResourceServiceClient) *p
 
 		if strings.Contains(err.Error(), storage.ErrWrongUid.Error()) {
 			r.Fatalf("resource write failed due to uid mismatch - most likely a transient issue when talking to a non-leader")
+		} else {
+			// other errors are unexpected and should cause an immediate failure
+			r.Stop(err)
 		}
-		// other failed precondition errors will be checked outside of the retry
 	})
-
-	require.NoError(t, err)
 
 	if !b.dontCleanup {
 		cleaner, ok := t.(CleanupT)

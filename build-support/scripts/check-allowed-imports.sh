@@ -52,6 +52,12 @@ function main {
       esac
    done
    
+   # If we could guarantee this ran with bash 4.2+ then the final argument could
+   # be just ${allowed_packages[@]}. However that with older versions of bash
+   # in combination with set -u causes bash to emit errors about using unbound
+   # variables when no allowed packages have been specified (i.e. the module should
+   # generally be disallowed with no exceptions). This syntax is very strange
+   # but seems to be the prescribed workaround I found.
    check_imports "$module_root" ${allowed_packages[@]+"${allowed_packages[@]}"}
    return $?
 }
