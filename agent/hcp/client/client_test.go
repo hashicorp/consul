@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/hcp-sdk-go/clients/cloud-consul-telemetry-gateway/preview/2023-04-14/client/consul_telemetry_service"
 	"github.com/hashicorp/hcp-sdk-go/clients/cloud-consul-telemetry-gateway/preview/2023-04-14/models"
 	"github.com/stretchr/testify/mock"
@@ -144,6 +145,58 @@ func TestConvertTelemetryConfig(t *testing.T) {
 
 			require.NoError(t, err)
 			require.Equal(t, test.expectedTelemetryCfg, telemetryCfg)
+		})
+	}
+}
+
+func Test_DefaultLabels(t *testing.T) {
+	for name, tc := range map[string]struct {
+		mockCloudCfg   CloudConfig
+		expectedLabels map[string]string
+	}{
+		"Success": {
+			mockCloudCfg: MockCloudCfg{
+				NodeID:   types.NodeID("nodeyid"),
+				NodeName: "nodey",
+			},
+			expectedLabels: map[string]string{
+				"node_id":   "nodeyid",
+				"node_name": "nodey",
+			},
+		},
+
+		"NoNodeID": {
+			mockCloudCfg: MockCloudCfg{
+				NodeID:   types.NodeID(""),
+				NodeName: "nodey",
+			},
+			expectedLabels: map[string]string{
+				"node_name": "nodey",
+			},
+		},
+		"NoNodeName": {
+			mockCloudCfg: MockCloudCfg{
+				NodeID:   types.NodeID("nodeyid"),
+				NodeName: "",
+			},
+			expectedLabels: map[string]string{
+				"node_id": "nodeyid",
+			},
+		},
+		"Empty": {
+			mockCloudCfg: MockCloudCfg{
+				NodeID:   "",
+				NodeName: "",
+			},
+			expectedLabels: map[string]string{
+				"node_id": "nodeyid",
+			},
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			tCfg := &TelemetryConfig{}
+			labels := tCfg.DefaultLabels(tc.mockCloudCfg)
+			require.Equal(t, labels, tc.expectedLabels)
 		})
 	}
 }

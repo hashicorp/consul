@@ -28,7 +28,10 @@ func TestSink(t *testing.T) {
 					},
 				}, nil)
 			},
-			mockCloudCfg: client.MockCloudCfg{},
+			mockCloudCfg: client.MockCloudCfg{
+				NodeID:   types.NodeID("nodeyid"),
+				NodeName: "nodey",
+			},
 			expectedSink: true,
 		},
 		"noSinkWhenServerNotRegisteredWithCCM": {
@@ -95,12 +98,12 @@ func TestSink(t *testing.T) {
 			c := client.NewMockClient(t)
 			l := hclog.NewNullLogger()
 			test.expect(c)
-			sinkOpts := sink(c, test.mockCloudCfg, l, types.NodeID("server1234"))
+			s := sink(c, test.mockCloudCfg, l)
 			if !test.expectedSink {
-				require.Nil(t, sinkOpts)
+				require.Nil(t, s)
 				return
 			}
-			require.NotNil(t, sinkOpts)
+			require.NotNil(t, s)
 		})
 	}
 }

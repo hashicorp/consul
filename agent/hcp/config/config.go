@@ -6,6 +6,7 @@ package config
 import (
 	"crypto/tls"
 
+	"github.com/hashicorp/consul/types"
 	hcpcfg "github.com/hashicorp/hcp-sdk-go/config"
 	"github.com/hashicorp/hcp-sdk-go/resource"
 )
@@ -25,6 +26,9 @@ type CloudConfig struct {
 
 	// TlsConfig for testing.
 	TLSConfig *tls.Config
+
+	NodeID   types.NodeID
+	NodeName string
 }
 
 func (c *CloudConfig) WithTLSConfig(cfg *tls.Config) {
@@ -33,6 +37,10 @@ func (c *CloudConfig) WithTLSConfig(cfg *tls.Config) {
 
 func (c *CloudConfig) Resource() (resource.Resource, error) {
 	return resource.FromString(c.ResourceID)
+}
+
+func (c *CloudConfig) NodeMeta() (types.NodeID, string) {
+	return c.NodeID, c.NodeName
 }
 
 func (c *CloudConfig) HCPConfig(opts ...hcpcfg.HCPConfigOption) (hcpcfg.HCPConfig, error) {

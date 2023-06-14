@@ -18,6 +18,7 @@ import (
 	"golang.org/x/oauth2"
 	"google.golang.org/protobuf/proto"
 
+	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/consul/version"
 )
 
@@ -43,6 +44,7 @@ type MetricsClient interface {
 type CloudConfig interface {
 	HCPConfig(opts ...hcpcfg.HCPConfigOption) (hcpcfg.HCPConfig, error)
 	Resource() (resource.Resource, error)
+	NodeMeta() (NodeID types.NodeID, NodeName string)
 }
 
 // otlpClient is an implementation of MetricsClient with a retryable http client for retries and to honor throttle.
