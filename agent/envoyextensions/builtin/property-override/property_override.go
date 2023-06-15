@@ -259,9 +259,9 @@ func (p *propertyOverride) validate() error {
 	}
 
 	var resultErr error
-	for _, patch := range p.Patches {
+	for i, patch := range p.Patches {
 		if err := patch.validate(p.Debug); err != nil {
-			resultErr = multierror.Append(resultErr, err)
+			resultErr = multierror.Append(resultErr, fmt.Errorf("invalid Patches[%d]: %w", i, err))
 		}
 	}
 
