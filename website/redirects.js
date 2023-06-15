@@ -53,4 +53,11 @@ module.exports = [
       '/consul/docs/1.16.x/agent/limits/usage/set-global-traffic-rate-limits',
     permanent: true,
   },
+  {
+    source:
+      '/consul/docs/connect/gateways/mesh-gateway/service-to-service-traffic-peers',
+    destination:
+      '/consul/docs/connect/cluster-peering/usage/establish-cluster-peering',
+    permanent: true,
+  },
 ]
