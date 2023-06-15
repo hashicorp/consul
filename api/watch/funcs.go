@@ -186,6 +186,13 @@ func checksWatch(params map[string]interface{}) (WatcherFunc, error) {
 		state = "any"
 	}
 
+	var (
+		tags []string
+	)
+	if err := assignValueStringSlice(params, "tag", &tags); err != nil {
+		return nil, err
+	}
+
 	fn := func(p *Plan) (BlockingParamVal, interface{}, error) {
 		health := p.client.Health()
 		opts := makeQueryOptionsWithContext(p, stale)
@@ -201,9 +208,39 @@ func checksWatch(params map[string]interface{}) (WatcherFunc, error) {
 		if err != nil {
 			return nil, nil, err
 		}
+		if len(tags) > 0 {
+			checks = filterChecksByTags(checks, tags)
+		}
+
 		return WaitIndexVal(meta.LastIndex), checks, err
 	}
 	return fn, nil
+}
+
+// filterChecksByTags filters HealthChecks by the tags
+func filterChecksByTags(checks consulapi.HealthChecks, tags []string) consulapi.HealthChecks {
+	filteredChecks := consulapi.HealthChecks{}
+
+	for _, check := range checks {
+		// the check is appended to the filteredChecks if its tags
+		// contain every tag in tags
+		svcTagMap := map[string]struct{}{}
+		for _, svcTag := range check.ServiceTags {
+			svcTagMap[svcTag] = struct{}{}
+		}
+
+		count := 0
+		for _, tag := range tags {
+			if _, ok := svcTagMap[tag]; ok {
+				count++
+			}
+
+			if count == len(tags) {
+				filteredChecks = append(filteredChecks, check)
+			}
+		}
+	}
+	return filteredChecks
 }
 
 // eventWatch is used to watch for events, optionally filtering on name
