@@ -82,7 +82,7 @@ jobs:
 
     # NOTE: conditional specific logic as we store secrets in Vault in ENT and use GHA secrets in OSS.
     - name: Login to Docker Hub
-      uses: docker/login-action@f4ef78c080cd8ba55a85445d5b36e214a81df20a # v2.1.0
+      uses: docker/login-action@465a07811f14bebb1938fbed4728c6a1ff8901fc # v2.2.0
       with:
         username: ${{ endsWith(github.repository, '-enterprise') && steps.secrets.outputs.DOCKERHUB_USERNAME || secrets.DOCKERHUB_USERNAME }}
         password: ${{ endsWith(github.repository, '-enterprise') && steps.secrets.outputs.DOCKERHUB_TOKEN || secrets.DOCKERHUB_TOKEN }}
