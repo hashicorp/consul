@@ -634,6 +634,12 @@ func validateProposedConfigEntryInGraph(
 	case structs.TCPRoute:
 	case structs.RateLimitIPConfig:
 	case structs.JWTProvider:
+		if newEntry == nil && existingEntry != nil {
+			err := validateJWTProviderIsReferenced(tx, kindName, existingEntry)
+			if err != nil {
+				return err
+			}
+		}
 	default:
 		return fmt.Errorf("unhandled kind %q during validation of %q", kindName.Kind, kindName.Name)
 	}
@@ -702,6 +708,63 @@ func getReferencedProviderNames(j *structs.IntentionJWTRequirement, s []*structs
 	}
 
 	return providerNames
+}
+
+func validateJWTProviderIsReferenced(tx ReadTxn, kn configentry.KindName, ce structs.ConfigEntry) error {
+	meta := acl.NewEnterpriseMetaWithPartition(
+		kn.EnterpriseMeta.PartitionOrDefault(),
+		acl.DefaultNamespaceName,
+	)
+	entry, ok := ce.(*structs.JWTProviderConfigEntry)
+	if !ok {
+		return fmt.Errorf("invalid jwt provider config entry: %T", entry)
+	}
+
+	_, ixnEntries, err := configEntriesByKindTxn(tx, nil, structs.ServiceIntentions, &meta)
+	if err != nil {
+		return err
+	}
+
+	providerNames, err := collectJWTProviderNames(ixnEntries)
+	if err != nil {
+		return err
+	}
+
+	_, exist := providerNames[entry.Name]
+	if exist {
+		return fmt.Errorf("cannot delete jwt provider config entry referenced by an intention. Provider name:%s", entry.Name)
+	}
+
+	return nil
+}
+
+func collectJWTProviderNames(e []structs.ConfigEntry) (map[string]struct{}, error) {
+	names := make(map[string]struct{})
+
+	for _, entry := range e {
+		ixn, ok := entry.(*structs.ServiceIntentionsConfigEntry)
+		if !ok {
+			return names, fmt.Errorf("type %T is not a service intentions config entry", entry)
+		}
+
+		if ixn.JWT != nil {
+			for _, prov := range ixn.JWT.Providers {
+				names[prov.Name] = struct{}{}
+			}
+		}
+
+		for _, s := range ixn.Sources {
+			for _, perm := range s.Permissions {
+				if perm.JWT == nil {
+					continue
+				}
+				for _, prov := range perm.JWT.Providers {
+					names[prov.Name] = struct{}{}
+				}
+			}
+		}
+	}
+	return names, nil
 }
 
 // This fetches all the jwt-providers config entries and iterates over them

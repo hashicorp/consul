@@ -3714,3 +3714,132 @@ func TestStateStore_DiscoveryChain_AttachVirtualIPs(t *testing.T) {
 	require.Equal(t, []string{"2.2.2.2", "3.3.3.3"}, chain.ManualVirtualIPs)
 
 }
+
+func TestCollectJWTProviderNames(t *testing.T) {
+	oktaProvider := structs.IntentionJWTProvider{Name: "okta"}
+	auth0Provider := structs.IntentionJWTProvider{Name: "auth0"}
+	cases := map[string]struct {
+		entries  []structs.ConfigEntry
+		expected map[string]struct{}
+	}{
+		"no jwt at any level": {
+			entries:  []structs.ConfigEntry{},
+			expected: map[string]struct{}{},
+		},
+		"only top level jwt with no permissions": {
+			entries: []structs.ConfigEntry{
+				&structs.ServiceIntentionsConfigEntry{
+					Kind: "service-intentions",
+					Name: "api-intention",
+					JWT: &structs.IntentionJWTRequirement{
+						Providers: []*structs.IntentionJWTProvider{&oktaProvider, &auth0Provider},
+					},
+				},
+			},
+			expected: map[string]struct{}{
+				"okta": {}, "auth0": {},
+			},
+		},
+		"top level jwt with permissions": {
+			entries: []structs.ConfigEntry{
+				&structs.ServiceIntentionsConfigEntry{
+					Kind: "service-intentions",
+					Name: "api-intention",
+					JWT: &structs.IntentionJWTRequirement{
+						Providers: []*structs.IntentionJWTProvider{&oktaProvider},
+					},
+					Sources: []*structs.SourceIntention{
+						{
+							Name:   "api",
+							Action: "allow",
+							Permissions: []*structs.IntentionPermission{
+								{
+									Action: "allow",
+									JWT: &structs.IntentionJWTRequirement{
+										Providers: []*structs.IntentionJWTProvider{&oktaProvider},
+									},
+								},
+							},
+						},
+						{
+							Name:   "serv",
+							Action: "allow",
+							Permissions: []*structs.IntentionPermission{
+								{
+									Action: "allow",
+									JWT: &structs.IntentionJWTRequirement{
+										Providers: []*structs.IntentionJWTProvider{&auth0Provider},
+									},
+								},
+							},
+						},
+						{
+							Name:   "web",
+							Action: "allow",
+							Permissions: []*structs.IntentionPermission{
+								{Action: "allow"},
+							},
+						},
+					},
+				},
+			},
+			expected: map[string]struct{}{
+				"okta": {}, "auth0": {},
+			},
+		},
+		"no top level jwt and existing permissions": {
+			entries: []structs.ConfigEntry{
+				&structs.ServiceIntentionsConfigEntry{
+					Kind: "service-intentions",
+					Name: "api-intention",
+					Sources: []*structs.SourceIntention{
+						{
+							Name:   "api",
+							Action: "allow",
+							Permissions: []*structs.IntentionPermission{
+								{
+									Action: "allow",
+									JWT: &structs.IntentionJWTRequirement{
+										Providers: []*structs.IntentionJWTProvider{&oktaProvider},
+									},
+								},
+							},
+						},
+						{
+							Name:   "serv",
+							Action: "allow",
+							Permissions: []*structs.IntentionPermission{
+								{
+									Action: "allow",
+									JWT: &structs.IntentionJWTRequirement{
+										Providers: []*structs.IntentionJWTProvider{&auth0Provider},
+									},
+								},
+							},
+						},
+						{
+							Name:   "web",
+							Action: "allow",
+							Permissions: []*structs.IntentionPermission{
+								{Action: "allow"},
+							},
+						},
+					},
+				},
+			},
+			expected: map[string]struct{}{
+				"okta": {}, "auth0": {},
+			},
+		},
+	}
+
+	for name, tt := range cases {
+		tt := tt
+		t.Run(name, func(t *testing.T) {
+			names, err := collectJWTProviderNames(tt.entries)
+
+			require.NoError(t, err)
+			require.Equal(t, tt.expected, names)
+		})
+	}
+}
