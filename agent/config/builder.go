@@ -1290,6 +1290,10 @@ func (b *builder) validate(rt RuntimeConfig) error {
 			"1 and 63 bytes.", rt.NodeName)
 	}
 
+	if err := rt.StructLocality().Validate(); err != nil {
+		return fmt.Errorf("locality is invalid: %s", err)
+	}
+
 	if ipaddr.IsAny(rt.AdvertiseAddrLAN.IP) {
 		return fmt.Errorf("Advertise address cannot be 0.0.0.0, :: or [::]")
 	}
