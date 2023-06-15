@@ -167,7 +167,8 @@ Licensed Features:
 
 Corresponding HTTP API Endpoint: [\[GET\] /v1/operator/license](/consul/api-docs/operator/license#getting-the-consul-license)
 
-This command gets the Consul Enterprise license.
+This command gets the Consul Enterprise license. If the leader hasn't been updated with the newer license, the followers
+will display the outdated license in their GET output.
 
 The table below shows this command's [required ACLs](/consul/api-docs/api-structure#authentication). Configuration of
 [blocking queries](/consul/api-docs/features/blocking) and [agent caching](/consul/api-docs/features/caching)
