@@ -229,6 +229,20 @@ func TestConstructor(t *testing.T) {
 			ok:     false,
 			errMsg: "service name is required",
 		},
+		"non-empty services with invalid traffic direction": {
+			arguments: makeArguments(map[string]any{"Patches": []map[string]any{
+				makePatch(map[string]any{
+					"ResourceFilter": makeResourceFilter(map[string]any{
+						"TrafficDirection": extensioncommon.TrafficDirectionInbound,
+						"Services": []map[string]any{
+							{"Name:": "foo"},
+						},
+					}),
+				}),
+			}}),
+			ok:     false,
+			errMsg: "patch contains non-empty ResourceFilter.Services but ResourceFilter.TrafficDirection is not \"outbound\"",
+		},
 		// See decode.HookWeakDecodeFromSlice for more details. In practice, we can end up
 		// with a "Patches" field decoded to the single "Patch" value contained in the
 		// serialized slice (raised from the containing slice). Using WeakDecode solves

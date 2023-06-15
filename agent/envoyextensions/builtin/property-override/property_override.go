@@ -191,6 +191,10 @@ func (f *ResourceFilter) validate() error {
 		return err
 	}
 
+	if len(f.Services) > 0 && f.TrafficDirection != extensioncommon.TrafficDirectionOutbound {
+		return fmt.Errorf("patch contains non-empty ResourceFilter.Services but ResourceFilter.TrafficDirection is not %q",
+			extensioncommon.TrafficDirectionOutbound)
+	}
 	for i := range f.Services {
 		sn := f.Services[i]
 		sn.normalize()
