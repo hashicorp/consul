@@ -754,7 +754,9 @@ func shouldPersistNewRootAndConfig(newActiveRoot *structs.CARoot, oldConfig, new
 	if newConfig == nil {
 		return false
 	}
-	return newConfig.Provider == oldConfig.Provider && reflect.DeepEqual(newConfig.Config, oldConfig.Config)
+
+	// Need not persist when the provider, old and new config is the same
+	return !(newConfig.Provider == oldConfig.Provider && reflect.DeepEqual(newConfig.Config, oldConfig.Config))
 }
 
 func (c *CAManager) UpdateConfiguration(args *structs.CARequest) (reterr error) {
