@@ -19,13 +19,14 @@ load helpers
   [ "$status" == 0 ]
 
   [ "$(echo "$output" | jq -r '.upstream_connection_options.tcp_keepalive.keepalive_probes')" == "1234" ]
-  [ "$(echo "$output" | jq -r '.outlier_detection')" == "null" ]
+  [ "$(echo "$output" | jq -r '.outlier_detection.max_ejection_time')" == "120s" ]
+  [ "$(echo "$output" | jq -r '.outlier_detection.max_ejection_time_jitter')" == "1s" ]
 
   run get_envoy_cluster_config localhost:19000 s3
   [ "$status" == 0 ]
 
   [ "$(echo "$output" | jq -r '.upstream_connection_options.tcp_keepalive.keepalive_probes')" == "1234" ]
-  [ "$(echo "$output" | jq -r '.outlier_detection')" == "{}" ]
+  [ "$(echo "$output" | jq -r '.outlier_detection')" == "null" ]
 }
 
 @test "s2 proxy is configured with the expected envoy patches" {
