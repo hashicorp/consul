@@ -206,7 +206,7 @@ func checksWatch(params map[string]interface{}) (WatcherFunc, error) {
 		if state != "" {
 			checks, meta, err = health.StateTags(state, tags, &opts)
 		} else {
-			checks, meta, err = health.Checks(service, &opts)
+			checks, meta, err = health.ChecksTags(service, tags, &opts)
 		}
 		if err != nil {
 			return nil, nil, err

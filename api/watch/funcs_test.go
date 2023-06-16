@@ -772,7 +772,111 @@ func TestChecksWatch_Service(t *testing.T) {
 	}
 }
 
-func TestChecksWatch_Service_Tags(t *testing.T) {
+func TestChecksWatch_Service_Tag(t *testing.T) {
+	t.Parallel()
+	c, s := makeClient(t)
+	defer s.Stop()
+
+	s.WaitForSerfCheck(t)
+
+	var (
+		wakeups  [][]*api.HealthCheck
+		notifyCh = make(chan struct{})
+	)
+
+	plan := mustParse(t, `{"type":"checks", "service":"foobar", "tag":["b", "a"]}`)
+	plan.Handler = func(idx uint64, raw interface{}) {
+		if raw == nil {
+			return // ignore
+		}
+		v, ok := raw.([]*api.HealthCheck)
+		if !ok {
+			return // ignore
+		}
+		wakeups = append(wakeups, v)
+		notifyCh <- struct{}{}
+	}
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		if err := plan.Run(s.HTTPAddr); err != nil {
+			t.Errorf("err: %v", err)
+		}
+	}()
+	defer plan.Stop()
+
+	// Wait for first wakeup.
+	<-notifyCh
+	{
+		catalog := c.Catalog()
+
+		// we want to find this one
+		reg := &api.CatalogRegistration{
+			Node:       "foobar",
+			Address:    "1.1.1.1",
+			Datacenter: "dc1",
+			Service: &api.AgentService{
+				ID:      "foobar",
+				Service: "foobar",
+				Tags:    []string{"a", "b"},
+			},
+			Check: &api.AgentCheck{
+				Node:      "foobar",
+				CheckID:   "foobar",
+				Name:      "foobar",
+				Status:    api.HealthPassing,
+				ServiceID: "foobar",
+			},
+		}
+		if _, err := catalog.Register(reg, nil); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		// we don't want to find this one
+		reg = &api.CatalogRegistration{
+			Node:       "bar",
+			Address:    "2.2.2.2",
+			Datacenter: "dc1",
+			Service: &api.AgentService{
+				ID:      "foobar",
+				Service: "foobar",
+				Tags:    []string{"a"},
+			},
+			Check: &api.AgentCheck{
+				Node:      "bar",
+				CheckID:   "foobar",
+				Name:      "foobar",
+				Status:    api.HealthPassing,
+				ServiceID: "foobar",
+			},
+		}
+		if _, err := catalog.Register(reg, nil); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}
+
+	// Wait for second wakeup.
+	<-notifyCh
+
+	plan.Stop()
+	wg.Wait()
+
+	require.Len(t, wakeups, 2)
+
+	{
+		v := wakeups[0]
+		require.Len(t, v, 0)
+	}
+	{
+		v := wakeups[1]
+		require.Len(t, v, 1)
+		require.Equal(t, "foobar", v[0].CheckID)
+	}
+}
+
+func TestChecksWatch_Tag(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
