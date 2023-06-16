@@ -140,6 +140,18 @@ func (s *HTTPHandlers) HealthServiceChecks(resp http.ResponseWriter, req *http.R
 		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Missing service name"}
 	}
 
+	// build tag filter
+	params := req.URL.Query()
+	if tags, ok := params["tag"]; ok {
+		for i, tag := range tags {
+			expr := fmt.Sprintf(`%s in ServiceTags`, tag)
+			if i < len(tags)-1 {
+				expr += " and "
+			}
+			args.Filter += expr
+		}
+	}
+
 	// Make the RPC request
 	var out structs.IndexedHealthChecks
 	defer setMeta(resp, &out.QueryMeta)
