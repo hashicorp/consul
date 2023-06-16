@@ -25,7 +25,6 @@ type Deps struct {
 }
 
 func NewDeps(cfg config.CloudConfig, logger hclog.Logger) (Deps, error) {
-	logger = logger.Named("sink")
 	ctx := context.Background()
 	ctx = hclog.WithContext(ctx, logger)
 
@@ -63,7 +62,7 @@ func sink(
 	metricsClient hcpclient.MetricsClient,
 	cfg config.CloudConfig,
 ) metrics.MetricSink {
-	logger := hclog.FromContext(ctx)
+	logger := hclog.FromContext(ctx).Named("sink")
 	reqCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 

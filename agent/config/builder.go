@@ -2549,7 +2549,7 @@ func (b *builder) cloudConfigVal(v Config) hcpconfig.CloudConfig {
 	val := hcpconfig.CloudConfig{
 		ResourceID: os.Getenv("HCP_RESOURCE_ID"),
 	}
-
+	// Node id might get overriden in setup.go:142
 	nodeID := stringVal(v.NodeID)
 	val.NodeID = types.NodeID(nodeID)
 	val.NodeName = b.nodeName(v.NodeName)
