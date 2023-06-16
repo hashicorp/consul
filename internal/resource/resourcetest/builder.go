@@ -1,10 +1,12 @@
 package resourcetest
 
 import (
-	"context"
+	"strings"
 
-	"github.com/hashicorp/consul/internal/resource"
+	"github.com/hashicorp/consul/internal/storage"
 	"github.com/hashicorp/consul/proto-public/pbresource"
+	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/oklog/ulid/v2"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
@@ -119,26 +121,37 @@ func (b *resourceBuilder) ID() *pbresource.ID {
 func (b *resourceBuilder) Write(t T, client pbresource.ResourceServiceClient) *pbresource.Resource {
 	t.Helper()
 
+	ctx := testutil.TestContext(t)
+
 	res := b.resource
 
-	rsp, err := client.Write(context.Background(), &pbresource.WriteRequest{
-		Resource: res,
+	var rsp *pbresource.WriteResponse
+	var err error
+
+	// Retry any writes where the error is a UID mismatch and the UID was not specified. This is indicative
+	// of using a follower to rewrite an object who is not perfectly in-sync with the leader.
+	retry.Run(t, func(r *retry.R) {
+		rsp, err = client.Write(ctx, &pbresource.WriteRequest{
+			Resource: res,
+		})
+
+		if err == nil || res.Id.Uid != "" || status.Code(err) != codes.FailedPrecondition {
+			return
+		}
+
+		if strings.Contains(err.Error(), storage.ErrWrongUid.Error()) {
+			r.Fatalf("resource write failed due to uid mismatch - most likely a transient issue when talking to a non-leader")
+		} else {
+			// other errors are unexpected and should cause an immediate failure
+			r.Stop(err)
+		}
 	})
 
-	require.NoError(t, err)
-
 	if !b.dontCleanup {
-		cleaner, ok := t.(CleanupT)
-		require.True(t, ok, "T does not implement a Cleanup method and cannot be used with automatic resource cleanup")
-		cleaner.Cleanup(func() {
-			_, err := client.Delete(context.Background(), &pbresource.DeleteRequest{
-				Id: rsp.Resource.Id,
-			})
-
-			// ignore not found errors
-			if err != nil && status.Code(err) != codes.NotFound {
-				t.Fatalf("Failed to delete resource %s of type %s: %v", rsp.Resource.Id.Name, resource.ToGVK(rsp.Resource.Id.Type), err)
-			}
+		id := proto.Clone(rsp.Resource.Id).(*pbresource.ID)
+		id.Uid = ""
+		t.Cleanup(func() {
+			NewClient(client).MustDelete(t, id)
 		})
 	}
 
@@ -151,7 +164,7 @@ func (b *resourceBuilder) Write(t T, client pbresource.ResourceServiceClient) *p
 			ObservedGeneration: rsp.Resource.Generation,
 			Conditions:         original.Conditions,
 		}
-		_, err := client.WriteStatus(context.Background(), &pbresource.WriteStatusRequest{
+		_, err := client.WriteStatus(ctx, &pbresource.WriteStatusRequest{
 			Id:     rsp.Resource.Id,
 			Key:    key,
 			Status: status,
@@ -159,7 +172,7 @@ func (b *resourceBuilder) Write(t T, client pbresource.ResourceServiceClient) *p
 		require.NoError(t, err)
 	}
 
-	readResp, err := client.Read(context.Background(), &pbresource.ReadRequest{
+	readResp, err := client.Read(ctx, &pbresource.ReadRequest{
 		Id: rsp.Resource.Id,
 	})
 
