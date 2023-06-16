@@ -53,6 +53,8 @@ type R struct {
 	// and triggers t.FailNow()
 	done   bool
 	output []string
+
+	cleanups []func()
 }
 
 func (r *R) Logf(format string, args ...interface{}) {
@@ -64,6 +66,41 @@ func (r *R) Log(args ...interface{}) {
 }
 
 func (r *R) Helper() {}
+
+// Cleanup register a function to be run to cleanup resources that
+// were allocated during the retry attempt. These functions are executed
+// after a retry attempt. If they panic, it will not stop further retry
+// attempts but will be cause for the overall test failure.
+func (r *R) Cleanup(fn func()) {
+	r.cleanups = append(r.cleanups, fn)
+}
+
+func (r *R) runCleanup() {
+
+	// Make sure that if a cleanup function panics,
+	// we still run the remaining cleanup functions.
+	defer func() {
+		err := recover()
+		if err != nil {
+			r.Stop(fmt.Errorf("error when performing test cleanup: %v", err))
+		}
+		if len(r.cleanups) > 0 {
+			r.runCleanup()
+		}
+	}()
+
+	for len(r.cleanups) > 0 {
+		var cleanup func()
+		if len(r.cleanups) > 0 {
+			last := len(r.cleanups) - 1
+			cleanup = r.cleanups[last]
+			r.cleanups = r.cleanups[:last]
+		}
+		if cleanup != nil {
+			cleanup()
+		}
+	}
+}
 
 // runFailed is a sentinel value to indicate that the func itself
 // didn't panic, rather that `FailNow` was called.
@@ -190,6 +227,7 @@ func run(r Retryer, t Failer, f func(r *R)) {
 		// run f(rr), but if recover yields a runFailed value, we know
 		// FailNow was called.
 		func() {
+			defer rr.runCleanup()
 			defer func() {
 				if p := recover(); p != nil && p != (runFailed{}) {
 					panic(p)
@@ -216,64 +254,10 @@ func DefaultFailer() *Timer {
 	return &Timer{Timeout: 7 * time.Second, Wait: 25 * time.Millisecond}
 }
 
-// TwoSeconds repeats an operation for two seconds and waits 25ms in between.
-func TwoSeconds() *Timer {
-	return &Timer{Timeout: 2 * time.Second, Wait: 25 * time.Millisecond}
-}
-
-// ThreeTimes repeats an operation three times and waits 25ms in between.
-func ThreeTimes() *Counter {
-	return &Counter{Count: 3, Wait: 25 * time.Millisecond}
-}
-
 // Retryer provides an interface for repeating operations
 // until they succeed or an exit condition is met.
 type Retryer interface {
 	// Continue returns true if the operation should be repeated, otherwise it
 	// returns false to indicate retrying should stop.
 	Continue() bool
-}
-
-// Counter repeats an operation a given number of
-// times and waits between subsequent operations.
-type Counter struct {
-	Count int
-	Wait  time.Duration
-
-	count int
-}
-
-func (r *Counter) Continue() bool {
-	if r.count == r.Count {
-		return false
-	}
-	if r.count > 0 {
-		time.Sleep(r.Wait)
-	}
-	r.count++
-	return true
-}
-
-// Timer repeats an operation for a given amount
-// of time and waits between subsequent operations.
-type Timer struct {
-	Timeout time.Duration
-	Wait    time.Duration
-
-	// stop is the timeout deadline.
-	// TODO: Next()?
-	// Set on the first invocation of Next().
-	stop time.Time
-}
-
-func (r *Timer) Continue() bool {
-	if r.stop.IsZero() {
-		r.stop = time.Now().Add(r.Timeout)
-		return true
-	}
-	if time.Now().After(r.stop) {
-		return false
-	}
-	time.Sleep(r.Wait)
-	return true
 }
