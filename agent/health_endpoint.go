@@ -4,6 +4,7 @@
 package agent
 
 import (
+	"fmt"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -35,6 +36,18 @@ func (s *HTTPHandlers) HealthChecksInState(resp http.ResponseWriter, req *http.R
 	args.State = strings.TrimPrefix(req.URL.Path, "/v1/health/state/")
 	if args.State == "" {
 		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Missing check state"}
+	}
+
+	// build tag filter
+	params := req.URL.Query()
+	if tags, ok := params["tag"]; ok {
+		for i, tag := range tags {
+			expr := fmt.Sprintf(`%s in ServiceTags`, tag)
+			if i < len(tags)-1 {
+				expr += " and "
+			}
+			args.Filter += expr
+		}
 	}
 
 	// Make the RPC request

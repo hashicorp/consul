@@ -366,6 +366,12 @@ func (h *Health) service(service string, tags []string, passingOnly bool, q *Que
 // State is used to retrieve all the checks in a given state.
 // The wildcard "any" state can also be used for all checks.
 func (h *Health) State(state string, q *QueryOptions) (HealthChecks, *QueryMeta, error) {
+	return h.StateTags(state, nil, q)
+}
+
+// StateTags is used to retrieve all the checks in a given state and tags.
+// The wildcard "any" state can also be used for all checks.
+func (h *Health) StateTags(state string, tags []string, q *QueryOptions) (HealthChecks, *QueryMeta, error) {
 	switch state {
 	case HealthAny:
 	case HealthWarning:
@@ -376,6 +382,13 @@ func (h *Health) State(state string, q *QueryOptions) (HealthChecks, *QueryMeta,
 	}
 	r := h.c.newRequest("GET", "/v1/health/state/"+state)
 	r.setQueryOptions(q)
+
+	if len(tags) > 0 {
+		for _, tag := range tags {
+			r.params.Add("tag", tag)
+		}
+	}
+
 	rtt, resp, err := h.c.doRequest(r)
 	if err != nil {
 		return nil, nil, err
