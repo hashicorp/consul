@@ -710,6 +710,11 @@ func getReferencedProviderNames(j *structs.IntentionJWTRequirement, s []*structs
 	return providerNames
 }
 
+// validateJWTProviderIsReferenced iterates over intentions to determine if the provider being
+// deleted is referenced by any intention.
+//
+// This could be an expensive operation based on the number of intentions. We purposely set this to only
+// run on delete and don't expect this to be called often.
 func validateJWTProviderIsReferenced(tx ReadTxn, kn configentry.KindName, ce structs.ConfigEntry) error {
 	meta := acl.NewEnterpriseMetaWithPartition(
 		kn.EnterpriseMeta.PartitionOrDefault(),
@@ -725,31 +730,27 @@ func validateJWTProviderIsReferenced(tx ReadTxn, kn configentry.KindName, ce str
 		return err
 	}
 
-	providerNames, err := collectJWTProviderNames(ixnEntries)
+	err = findJWTProviderNameReferences(ixnEntries, entry.Name)
 	if err != nil {
 		return err
-	}
-
-	_, exist := providerNames[entry.Name]
-	if exist {
-		return fmt.Errorf("cannot delete jwt provider config entry referenced by an intention. Provider name:%s", entry.Name)
 	}
 
 	return nil
 }
 
-func collectJWTProviderNames(e []structs.ConfigEntry) (map[string]struct{}, error) {
-	names := make(map[string]struct{})
-
-	for _, entry := range e {
+func findJWTProviderNameReferences(entries []structs.ConfigEntry, pName string) error {
+	errMsg := "cannot delete jwt provider config entry referenced by an intention. Provider name: %s, intention name: %s"
+	for _, entry := range entries {
 		ixn, ok := entry.(*structs.ServiceIntentionsConfigEntry)
 		if !ok {
-			return names, fmt.Errorf("type %T is not a service intentions config entry", entry)
+			return fmt.Errorf("type %T is not a service intentions config entry", entry)
 		}
 
 		if ixn.JWT != nil {
 			for _, prov := range ixn.JWT.Providers {
-				names[prov.Name] = struct{}{}
+				if prov.Name == pName {
+					return fmt.Errorf(errMsg, pName, ixn.Name)
+				}
 			}
 		}
 
@@ -759,12 +760,14 @@ func collectJWTProviderNames(e []structs.ConfigEntry) (map[string]struct{}, erro
 					continue
 				}
 				for _, prov := range perm.JWT.Providers {
-					names[prov.Name] = struct{}{}
+					if prov.Name == pName {
+						return fmt.Errorf(errMsg, pName, ixn.Name)
+					}
 				}
 			}
 		}
 	}
-	return names, nil
+	return nil
 }
 
 // This fetches all the jwt-providers config entries and iterates over them
