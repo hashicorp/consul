@@ -1,0 +1,3 @@
+```release-note:bug
+xds: Fix a bug that causes xDS generation to panic when fetching leaf certificates is slow.
+```

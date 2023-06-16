@@ -2646,6 +2646,9 @@ func makeCommonTLSContext(
 	if rootPEMs == "" {
 		return nil
 	}
+	if leaf == nil {
+		return nil
+	}
 	if tlsParams == nil {
 		tlsParams = &envoy_tls_v3.TlsParameters{}
 	}
