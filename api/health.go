@@ -258,7 +258,17 @@ func (h *Health) Node(node string, q *QueryOptions) (HealthChecks, *QueryMeta, e
 
 // Checks is used to return the checks associated with a service
 func (h *Health) Checks(service string, q *QueryOptions) (HealthChecks, *QueryMeta, error) {
+	return h.ChecksTags(service, nil, q)
+}
+
+// ChecksTags is used to return the checks associated with a service filtered by tags
+func (h *Health) ChecksTags(service string, tags []string, q *QueryOptions) (HealthChecks, *QueryMeta, error) {
 	r := h.c.newRequest("GET", "/v1/health/checks/"+service)
+	if len(tags) > 0 {
+		for _, tag := range tags {
+			r.params.Add("tag", tag)
+		}
+	}
 	r.setQueryOptions(q)
 	rtt, resp, err := h.c.doRequest(r)
 	if err != nil {
