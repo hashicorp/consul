@@ -784,7 +784,7 @@ func TestChecksWatch_Service_Tags(t *testing.T) {
 		notifyCh = make(chan struct{})
 	)
 
-	plan := mustParse(t, `{"type":"checks", "tag":["a", "b"]}`)
+	plan := mustParse(t, `{"type":"checks", "tag":["b", "a"]}`)
 	plan.Handler = func(idx uint64, raw interface{}) {
 		if raw == nil {
 			return // ignore
