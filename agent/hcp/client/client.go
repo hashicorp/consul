@@ -313,9 +313,14 @@ func (t *TelemetryConfig) Enabled() (string, bool) {
 }
 
 // DefaultLabels returns a set of <key, value> string pairs that must be added as attributes to all exported telemetry data.
-func (t *TelemetryConfig) DefaultLabels(nodeID string) map[string]string {
-	labels := map[string]string{
-		"node_id": nodeID, // used to delineate Consul nodes in graphs
+func (t *TelemetryConfig) DefaultLabels(cfg config.CloudConfig) map[string]string {
+	labels := make(map[string]string)
+	nodeID := string(cfg.NodeID)
+	if nodeID != "" {
+		labels["node_id"] = nodeID
+	}
+	if cfg.NodeName != "" {
+		labels["node_name"] = cfg.NodeName
 	}
 
 	for k, v := range t.Labels {
