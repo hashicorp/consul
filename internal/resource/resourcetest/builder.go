@@ -1,11 +1,11 @@
 package resourcetest
 
 import (
-	"context"
 	"strings"
 
 	"github.com/hashicorp/consul/internal/storage"
 	"github.com/hashicorp/consul/proto-public/pbresource"
+	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/oklog/ulid/v2"
 	"github.com/stretchr/testify/require"
@@ -121,6 +121,8 @@ func (b *resourceBuilder) ID() *pbresource.ID {
 func (b *resourceBuilder) Write(t T, client pbresource.ResourceServiceClient) *pbresource.Resource {
 	t.Helper()
 
+	ctx := testutil.TestContext(t)
+
 	res := b.resource
 
 	var rsp *pbresource.WriteResponse
@@ -129,7 +131,7 @@ func (b *resourceBuilder) Write(t T, client pbresource.ResourceServiceClient) *p
 	// Retry any writes where the error is a UID mismatch and the UID was not specified. This is indicative
 	// of using a follower to rewrite an object who is not perfectly in-sync with the leader.
 	retry.Run(t, func(r *retry.R) {
-		rsp, err = client.Write(context.Background(), &pbresource.WriteRequest{
+		rsp, err = client.Write(ctx, &pbresource.WriteRequest{
 			Resource: res,
 		})
 
@@ -146,11 +148,9 @@ func (b *resourceBuilder) Write(t T, client pbresource.ResourceServiceClient) *p
 	})
 
 	if !b.dontCleanup {
-		cleaner, ok := t.(CleanupT)
-		require.True(t, ok, "T does not implement a Cleanup method and cannot be used with automatic resource cleanup")
 		id := proto.Clone(rsp.Resource.Id).(*pbresource.ID)
 		id.Uid = ""
-		cleaner.Cleanup(func() {
+		t.Cleanup(func() {
 			NewClient(client).MustDelete(t, id)
 		})
 	}
@@ -164,7 +164,7 @@ func (b *resourceBuilder) Write(t T, client pbresource.ResourceServiceClient) *p
 			ObservedGeneration: rsp.Resource.Generation,
 			Conditions:         original.Conditions,
 		}
-		_, err := client.WriteStatus(context.Background(), &pbresource.WriteStatusRequest{
+		_, err := client.WriteStatus(ctx, &pbresource.WriteStatusRequest{
 			Id:     rsp.Resource.Id,
 			Key:    key,
 			Status: status,
@@ -172,7 +172,7 @@ func (b *resourceBuilder) Write(t T, client pbresource.ResourceServiceClient) *p
 		require.NoError(t, err)
 	}
 
-	readResp, err := client.Read(context.Background(), &pbresource.ReadRequest{
+	readResp, err := client.Read(ctx, &pbresource.ReadRequest{
 		Id: rsp.Resource.Id,
 	})
 
