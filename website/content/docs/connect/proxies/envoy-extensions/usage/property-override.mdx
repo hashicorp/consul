@@ -8,6 +8,13 @@ description: Learn how to use the property-override extension for Envoy proxies 
 
 This topic describes how to use the `property-override` extension to set and remove individual properties for the Envoy resources Consul generates. The extension uses the [protoreflect](https://pkg.go.dev/google.golang.org/protobuf/reflect/protoreflect), which enables Consul to dynamically manipulate messages.
 
+The extension currently supports setting scalar and enum fields, removing individual fields addressable by `Path`, and initializing unset intermediate message fields indicated in `Path`.
+
+It currently does _not_ support the following use cases:
+- Adding, updating, or removing repeated field members
+- Adding or updating [protobuf `map`](https://protobuf.dev/programming-guides/proto3/#maps) fields
+- Adding or updating [protobuf `Any`](https://protobuf.dev/programming-guides/proto3/#any) fields
+
 ## Workflow
 
 - Complete the following steps to use the `property-override` extension:
