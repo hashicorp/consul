@@ -3715,16 +3715,29 @@ func TestStateStore_DiscoveryChain_AttachVirtualIPs(t *testing.T) {
 
 }
 
-func TestCollectJWTProviderNames(t *testing.T) {
+func TestFindJWTProviderNameReferences(t *testing.T) {
 	oktaProvider := structs.IntentionJWTProvider{Name: "okta"}
 	auth0Provider := structs.IntentionJWTProvider{Name: "auth0"}
 	cases := map[string]struct {
-		entries  []structs.ConfigEntry
-		expected map[string]struct{}
+		entries       []structs.ConfigEntry
+		providerName  string
+		expectedError string
 	}{
 		"no jwt at any level": {
-			entries:  []structs.ConfigEntry{},
-			expected: map[string]struct{}{},
+			entries:      []structs.ConfigEntry{},
+			providerName: "okta",
+		},
+		"provider not referenced": {
+			entries: []structs.ConfigEntry{
+				&structs.ServiceIntentionsConfigEntry{
+					Kind: "service-intentions",
+					Name: "api-intention",
+					JWT: &structs.IntentionJWTRequirement{
+						Providers: []*structs.IntentionJWTProvider{&oktaProvider, &auth0Provider},
+					},
+				},
+			},
+			providerName: "fake-provider",
 		},
 		"only top level jwt with no permissions": {
 			entries: []structs.ConfigEntry{
@@ -3736,9 +3749,8 @@ func TestCollectJWTProviderNames(t *testing.T) {
 					},
 				},
 			},
-			expected: map[string]struct{}{
-				"okta": {}, "auth0": {},
-			},
+			providerName:  "okta",
+			expectedError: "cannot delete jwt provider config entry referenced by an intention. Provider name: okta, intention name: api-intention",
 		},
 		"top level jwt with permissions": {
 			entries: []structs.ConfigEntry{
@@ -3783,9 +3795,8 @@ func TestCollectJWTProviderNames(t *testing.T) {
 					},
 				},
 			},
-			expected: map[string]struct{}{
-				"okta": {}, "auth0": {},
-			},
+			providerName:  "auth0",
+			expectedError: "cannot delete jwt provider config entry referenced by an intention. Provider name: auth0, intention name: api-intention",
 		},
 		"no top level jwt and existing permissions": {
 			entries: []structs.ConfigEntry{
@@ -3827,19 +3838,55 @@ func TestCollectJWTProviderNames(t *testing.T) {
 					},
 				},
 			},
-			expected: map[string]struct{}{
-				"okta": {}, "auth0": {},
-			},
+			providerName:  "okta",
+			expectedError: "cannot delete jwt provider config entry referenced by an intention. Provider name: okta, intention name: api-intention",
 		},
 	}
 
 	for name, tt := range cases {
 		tt := tt
 		t.Run(name, func(t *testing.T) {
-			names, err := collectJWTProviderNames(tt.entries)
+			err := findJWTProviderNameReferences(tt.entries, tt.providerName)
 
-			require.NoError(t, err)
-			require.Equal(t, tt.expected, names)
+			if tt.expectedError != "" {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), tt.expectedError)
+			} else {
+				require.NoError(t, err)
+			}
 		})
 	}
+}
+
+func TestStore_ValidateJWTProviderIsReferenced(t *testing.T) {
+	s := testStateStore(t)
+
+	// First create a config entry
+	provider := &structs.JWTProviderConfigEntry{
+		Kind: structs.JWTProvider,
+		Name: "okta",
+	}
+	require.NoError(t, s.EnsureConfigEntry(0, provider))
+
+	// create a service intention referencing the config entry
+	ixn := &structs.ServiceIntentionsConfigEntry{
+		Name: "api",
+		JWT: &structs.IntentionJWTRequirement{
+			Providers: []*structs.IntentionJWTProvider{
+				{Name: provider.Name},
+			},
+		},
+	}
+
+	require.NoError(t, s.EnsureConfigEntry(1, ixn))
+
+	// attempt deleting a referenced provider
+	err := s.DeleteConfigEntry(0, structs.JWTProvider, provider.Name, nil)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), `cannot delete jwt provider config entry referenced by an intention. Provider name: okta, intention name: api`)
+
+	// delete the intention
+	require.NoError(t, s.DeleteConfigEntry(1, structs.ServiceIntentions, ixn.Name, nil))
+	// successfully delete the provider after deleting the intention
+	require.NoError(t, s.DeleteConfigEntry(0, structs.JWTProvider, provider.Name, nil))
 }
