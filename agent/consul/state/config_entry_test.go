@@ -3877,7 +3877,6 @@ func TestStore_ValidateJWTProviderIsReferenced(t *testing.T) {
 			},
 		},
 	}
-
 	require.NoError(t, s.EnsureConfigEntry(1, ixn))
 
 	// attempt deleting a referenced provider
