@@ -289,6 +289,9 @@ type ConnectProxyConfig struct {
 	// transparent mode.
 	TransparentProxy TransparentProxyConfig `json:",omitempty" alias:"transparent_proxy"`
 
+	// MutualTLSMode allows configuring the proxy to allow non-mTLS traffic.
+	MutualTLSMode MutualTLSMode `json:"-" bexpr:"-"`
+
 	// AccessLogs configures the output and format of Envoy access logs
 	AccessLogs AccessLogsConfig `json:",omitempty" alias:"access_logs"`
 }

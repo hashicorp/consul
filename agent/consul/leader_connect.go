@@ -207,7 +207,7 @@ func (s *Server) setVirtualIPFlags() (bool, error) {
 }
 
 func (s *Server) setVirtualIPVersionFlag() (bool, error) {
-	val, err := s.getSystemMetadata(structs.SystemMetadataVirtualIPsEnabled)
+	val, err := s.GetSystemMetadata(structs.SystemMetadataVirtualIPsEnabled)
 	if err != nil {
 		return false, err
 	}
@@ -220,7 +220,7 @@ func (s *Server) setVirtualIPVersionFlag() (bool, error) {
 			minVirtualIPVersion.String())
 	}
 
-	if err := s.setSystemMetadataKey(structs.SystemMetadataVirtualIPsEnabled, "true"); err != nil {
+	if err := s.SetSystemMetadataKey(structs.SystemMetadataVirtualIPsEnabled, "true"); err != nil {
 		return false, nil
 	}
 
@@ -228,7 +228,7 @@ func (s *Server) setVirtualIPVersionFlag() (bool, error) {
 }
 
 func (s *Server) setVirtualIPTerminatingGatewayVersionFlag() (bool, error) {
-	val, err := s.getSystemMetadata(structs.SystemMetadataTermGatewayVirtualIPsEnabled)
+	val, err := s.GetSystemMetadata(structs.SystemMetadataTermGatewayVirtualIPsEnabled)
 	if err != nil {
 		return false, err
 	}
@@ -241,7 +241,7 @@ func (s *Server) setVirtualIPTerminatingGatewayVersionFlag() (bool, error) {
 			minVirtualIPTerminatingGatewayVersion.String())
 	}
 
-	if err := s.setSystemMetadataKey(structs.SystemMetadataTermGatewayVirtualIPsEnabled, "true"); err != nil {
+	if err := s.SetSystemMetadataKey(structs.SystemMetadataTermGatewayVirtualIPsEnabled, "true"); err != nil {
 		return false, nil
 	}
 

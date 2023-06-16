@@ -1,0 +1,57 @@
+{
+  "name": "envoy.filters.http.rbac",
+  "typedConfig": {
+    "@type": "type.googleapis.com/envoy.extensions.filters.http.rbac.v3.RBAC",
+    "rules": {
+      "policies": {
+        "consul-intentions-layer4": {
+          "permissions": [
+            {
+              "any": true
+            }
+          ],
+          "principals": [
+            {
+              "andIds": {
+                "ids": [
+                  {
+                    "authenticated": {
+                      "principalName": {
+                        "safeRegex": {
+                          "googleRe2": {
+
+                          },
+                          "regex": "^spiffe://test.consul/ns/default/dc/[^/]+/svc/web$"
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "orIds": {
+                      "ids": [
+                        { 
+                          "metadata": {
+                            "filter":"envoy.filters.http.jwt_authn",
+                            "path": [
+                              {"key": "jwt_payload_okta"},
+                              {"key": "roles"}
+                            ],
+                            "value": {
+                              "stringMatch": {
+                                "exact": "testing"
+                              }
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      }
+    }
+  }
+}

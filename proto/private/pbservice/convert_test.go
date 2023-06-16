@@ -19,7 +19,7 @@ import (
 
 func TestNewCheckServiceNodeFromStructs_RoundTrip(t *testing.T) {
 	repeat(t, func(t *testing.T, fuzzer *fuzz.Fuzzer) {
-		fuzzer.Funcs(randInt32, randUint32, randInterface, randStructsUpstream, randEnterpriseMeta)
+		fuzzer.Funcs(randInt32, randUint32, randInterface, randStructsUpstream, randEnterpriseMeta, randStructsConnectProxyConfig)
 		var target structs.CheckServiceNode
 		fuzzer.Fuzz(&target)
 
@@ -75,6 +75,19 @@ func randUint32(i *uint, c fuzz.Continue) {
 // see randUint32
 func randInt32(i *int, c fuzz.Continue) {
 	*i = int(c.Rand.Int31())
+}
+
+// randStructsConnectProxyConfig is a custom fuzzer function which skips
+// generating values for fields enumerated in the ignore-fields annotation.
+func randStructsConnectProxyConfig(p *structs.ConnectProxyConfig, c fuzz.Continue) {
+	v := reflect.ValueOf(p).Elem()
+	for i := 0; i < v.NumField(); i++ {
+		switch v.Type().Field(i).Name {
+		case "MutualTLSMode":
+			continue
+		}
+		c.Fuzz(v.Field(i).Addr().Interface())
+	}
 }
 
 // randStructsUpstream is a custom fuzzer function which skips generating values

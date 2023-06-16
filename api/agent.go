@@ -503,6 +503,24 @@ func (a *Agent) Host() (map[string]interface{}, error) {
 	return out, nil
 }
 
+// Version is used to retrieve information about the running Consul version and build.
+func (a *Agent) Version() (map[string]interface{}, error) {
+	r := a.c.newRequest("GET", "/v1/agent/version")
+	_, resp, err := a.c.doRequest(r)
+	if err != nil {
+		return nil, err
+	}
+	defer closeResponseBody(resp)
+	if err := requireOK(resp); err != nil {
+		return nil, err
+	}
+	var out map[string]interface{}
+	if err := decodeBody(resp, &out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // Metrics is used to query the agent we are speaking to for
 // its current internal metric data
 func (a *Agent) Metrics() (*MetricsInfo, error) {
@@ -1055,8 +1073,17 @@ func (a *Agent) ForceLeavePrune(node string) error {
 
 // ForceLeaveOpts is used to have the agent eject a failed node or remove it
 // completely from the list of members.
+//
+// DEPRECATED - Use ForceLeaveOptions instead.
 func (a *Agent) ForceLeaveOpts(node string, opts ForceLeaveOpts) error {
+	return a.ForceLeaveOptions(node, opts, nil)
+}
+
+// ForceLeaveOptions is used to have the agent eject a failed node or remove it
+// completely from the list of members. Allows usage of QueryOptions on-top of ForceLeaveOpts
+func (a *Agent) ForceLeaveOptions(node string, opts ForceLeaveOpts, q *QueryOptions) error {
 	r := a.c.newRequest("PUT", "/v1/agent/force-leave/"+node)
+	r.setQueryOptions(q)
 	if opts.Prune {
 		r.params.Set("prune", "1")
 	}

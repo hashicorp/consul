@@ -341,6 +341,10 @@ func (s *Server) establishLeadership(ctx context.Context) error {
 		s.startLogVerification(ctx)
 	}
 
+	if s.config.Reporting.License.Enabled && s.reportingManager != nil {
+		s.reportingManager.StartReportingAgent()
+	}
+
 	s.logger.Debug("successfully established leadership", "duration", time.Since(start))
 	return nil
 }
@@ -360,6 +364,8 @@ func (s *Server) revokeLeadership() {
 
 	s.revokeEnterpriseLeadership()
 
+	s.stopDeferredDeletion()
+
 	s.stopFederationStateAntiEntropy()
 
 	s.stopFederationStateReplication()
@@ -377,6 +383,8 @@ func (s *Server) revokeLeadership() {
 	s.resetConsistentReadReady()
 
 	s.autopilot.DisableReconciliation()
+
+	s.reportingManager.StopReportingAgent()
 }
 
 // initializeACLs is used to setup the ACLs if we are the leader
@@ -444,72 +452,22 @@ func (s *Server) initializeACLs(ctx context.Context) error {
 
 		// Check for configured initial management token.
 		if initialManagement := s.config.ACLInitialManagementToken; len(initialManagement) > 0 {
-			state := s.fsm.State()
-			if _, err := uuid.ParseUUID(initialManagement); err != nil {
-				s.logger.Warn("Configuring a non-UUID initial management token is deprecated")
-			}
-
-			_, token, err := state.ACLTokenGetBySecret(nil, initialManagement, nil)
+			err := s.initializeManagementToken("Initial Management Token", initialManagement)
 			if err != nil {
-				return fmt.Errorf("failed to get initial management token: %v", err)
+				return fmt.Errorf("failed to initialize initial management token: %w", err)
 			}
-			// Ignoring expiration times to avoid an insertion collision.
-			if token == nil {
-				accessor, err := lib.GenerateUUID(s.checkTokenUUID)
-				if err != nil {
-					return fmt.Errorf("failed to generate the accessor ID for the initial management token: %v", err)
-				}
+		}
 
-				token := structs.ACLToken{
-					AccessorID:  accessor,
-					SecretID:    initialManagement,
-					Description: "Initial Management Token",
-					Policies: []structs.ACLTokenPolicyLink{
-						{
-							ID: structs.ACLPolicyGlobalManagementID,
-						},
-					},
-					CreateTime:     time.Now(),
-					Local:          false,
-					EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
-				}
-
-				token.SetHash(true)
-
-				done := false
-				if canBootstrap, _, err := state.CanBootstrapACLToken(); err == nil && canBootstrap {
-					req := structs.ACLTokenBootstrapRequest{
-						Token:      token,
-						ResetIndex: 0,
-					}
-					if _, err := s.raftApply(structs.ACLBootstrapRequestType, &req); err == nil {
-						s.logger.Info("Bootstrapped ACL initial management token from configuration")
-						done = true
-					} else {
-						if err.Error() != structs.ACLBootstrapNotAllowedErr.Error() &&
-							err.Error() != structs.ACLBootstrapInvalidResetIndexErr.Error() {
-							return fmt.Errorf("failed to bootstrap initial management token: %v", err)
-						}
-					}
-				}
-
-				if !done {
-					// either we didn't attempt to or setting the token with a bootstrap request failed.
-					req := structs.ACLTokenBatchSetRequest{
-						Tokens: structs.ACLTokens{&token},
-						CAS:    false,
-					}
-					if _, err := s.raftApply(structs.ACLTokenSetRequestType, &req); err != nil {
-						return fmt.Errorf("failed to create initial management token: %v", err)
-					}
-
-					s.logger.Info("Created ACL initial management token from configuration")
-				}
+		// Check for configured management token from HCP. It MUST NOT override the user-provided initial management token.
+		if hcpManagement := s.config.Cloud.ManagementToken; len(hcpManagement) > 0 {
+			err := s.initializeManagementToken("HCP Management Token", hcpManagement)
+			if err != nil {
+				return fmt.Errorf("failed to initialize HCP management token: %w", err)
 			}
 		}
 
 		// Insert the anonymous token if it does not exist.
-		if err := s.InsertAnonymousToken(); err != nil {
+		if err := s.insertAnonymousToken(); err != nil {
 			return err
 		}
 	} else {
@@ -525,7 +483,7 @@ func (s *Server) initializeACLs(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("failed to generate the secret ID for the server management token: %w", err)
 	}
-	if err := s.setSystemMetadataKey(structs.ServerManagementTokenAccessorID, secretID); err != nil {
+	if err := s.SetSystemMetadataKey(structs.ServerManagementTokenAccessorID, secretID); err != nil {
 		return fmt.Errorf("failed to persist server management token: %w", err)
 	}
 
@@ -534,7 +492,74 @@ func (s *Server) initializeACLs(ctx context.Context) error {
 	return nil
 }
 
-func (s *Server) InsertAnonymousToken() error {
+func (s *Server) initializeManagementToken(name, secretID string) error {
+	state := s.fsm.State()
+	if _, err := uuid.ParseUUID(secretID); err != nil {
+		s.logger.Warn("Configuring a non-UUID management token is deprecated")
+	}
+
+	_, token, err := state.ACLTokenGetBySecret(nil, secretID, nil)
+	if err != nil {
+		return fmt.Errorf("failed to get %s: %v", name, err)
+	}
+	// Ignoring expiration times to avoid an insertion collision.
+	if token == nil {
+		accessor, err := lib.GenerateUUID(s.checkTokenUUID)
+		if err != nil {
+			return fmt.Errorf("failed to generate the accessor ID for %s: %v", name, err)
+		}
+
+		token := structs.ACLToken{
+			AccessorID:  accessor,
+			SecretID:    secretID,
+			Description: name,
+			Policies: []structs.ACLTokenPolicyLink{
+				{
+					ID: structs.ACLPolicyGlobalManagementID,
+				},
+			},
+			CreateTime:     time.Now(),
+			Local:          false,
+			EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+		}
+
+		token.SetHash(true)
+
+		done := false
+		if canBootstrap, _, err := state.CanBootstrapACLToken(); err == nil && canBootstrap {
+			req := structs.ACLTokenBootstrapRequest{
+				Token:      token,
+				ResetIndex: 0,
+			}
+			if _, err := s.raftApply(structs.ACLBootstrapRequestType, &req); err == nil {
+				s.logger.Info("Bootstrapped ACL token from configuration", "description", name)
+				done = true
+			} else {
+				if err.Error() != structs.ACLBootstrapNotAllowedErr.Error() &&
+					err.Error() != structs.ACLBootstrapInvalidResetIndexErr.Error() {
+					return fmt.Errorf("failed to bootstrap with %s: %v", name, err)
+				}
+			}
+		}
+
+		if !done {
+			// either we didn't attempt to or setting the token with a bootstrap request failed.
+			req := structs.ACLTokenBatchSetRequest{
+				Tokens: structs.ACLTokens{&token},
+				CAS:    false,
+			}
+			if _, err := s.raftApply(structs.ACLTokenSetRequestType, &req); err != nil {
+				return fmt.Errorf("failed to create %s: %v", name, err)
+			}
+
+			s.logger.Info("Created ACL token from configuration", "description", name)
+		}
+	}
+
+	return nil
+}
+
+func (s *Server) insertAnonymousToken() error {
 	state := s.fsm.State()
 	_, token, err := state.ACLTokenGetBySecret(nil, anonymousToken, nil)
 	if err != nil {

@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package service
 
 import (
@@ -24,7 +27,12 @@ type Checks struct {
 }
 
 type SidecarService struct {
-	Port int
+	Port  int
+	Proxy ConnectProxy
+}
+
+type ConnectProxy struct {
+	Mode string
 }
 
 type ServiceOpts struct {
@@ -63,6 +71,10 @@ func createAndRegisterStaticServerAndSidecar(node libcluster.Agent, httpPort int
 		Name:      fmt.Sprintf("%s-sidecar", svc.ID),
 		ServiceID: svc.ID,
 		Namespace: svc.Namespace,
+		EnableTProxy: svc.Connect != nil &&
+			svc.Connect.SidecarService != nil &&
+			svc.Connect.SidecarService.Proxy != nil &&
+			svc.Connect.SidecarService.Proxy.Mode == api.ProxyModeTransparent,
 	}
 	serverConnectProxy, err := NewConnectService(context.Background(), sidecarCfg, []int{svc.Port}, node) // bindPort not used
 	if err != nil {
@@ -99,7 +111,9 @@ func CreateAndRegisterStaticServerAndSidecar(node libcluster.Agent, serviceOpts 
 		Port: p,
 		Connect: &api.AgentServiceConnect{
 			SidecarService: &api.AgentServiceRegistration{
-				Proxy: &api.AgentServiceConnectProxyConfig{},
+				Proxy: &api.AgentServiceConnectProxyConfig{
+					Mode: api.ProxyMode(serviceOpts.Connect.Proxy.Mode),
+				},
 			},
 		},
 		Namespace: serviceOpts.Namespace,
@@ -118,8 +132,10 @@ func CreateAndRegisterStaticServerAndSidecarWithChecks(node libcluster.Agent, se
 		Port: serviceOpts.HTTPPort,
 		Connect: &api.AgentServiceConnect{
 			SidecarService: &api.AgentServiceRegistration{
-				Proxy: &api.AgentServiceConnectProxyConfig{},
-				Port:  serviceOpts.Connect.Port,
+				Proxy: &api.AgentServiceConnectProxyConfig{
+					Mode: api.ProxyMode(serviceOpts.Connect.Proxy.Mode),
+				},
+				Port: serviceOpts.Connect.Port,
 			},
 		},
 		Checks: api.AgentServiceChecks{
@@ -138,15 +154,34 @@ func CreateAndRegisterStaticClientSidecar(
 	node libcluster.Agent,
 	peerName string,
 	localMeshGateway bool,
+	enableTProxy bool,
 ) (*ConnectContainer, error) {
 	// Do some trickery to ensure that partial completion is correctly torn
 	// down, but successful execution is not.
 	var deferClean utils.ResettableDefer
 	defer deferClean.Execute()
 
-	mgwMode := api.MeshGatewayModeRemote
-	if localMeshGateway {
-		mgwMode = api.MeshGatewayModeLocal
+	var proxy *api.AgentServiceConnectProxyConfig
+	if enableTProxy {
+		proxy = &api.AgentServiceConnectProxyConfig{
+			Mode: "transparent",
+		}
+	} else {
+		mgwMode := api.MeshGatewayModeRemote
+		if localMeshGateway {
+			mgwMode = api.MeshGatewayModeLocal
+		}
+		proxy = &api.AgentServiceConnectProxyConfig{
+			Upstreams: []api.Upstream{{
+				DestinationName:  StaticServerServiceName,
+				DestinationPeer:  peerName,
+				LocalBindAddress: "0.0.0.0",
+				LocalBindPort:    libcluster.ServiceUpstreamLocalBindPort,
+				MeshGateway: api.MeshGatewayConfig{
+					Mode: mgwMode,
+				},
+			}},
+		}
 	}
 
 	// Register the static-client service and sidecar first to prevent race with sidecar
@@ -156,17 +191,7 @@ func CreateAndRegisterStaticClientSidecar(
 		Port: 8080,
 		Connect: &api.AgentServiceConnect{
 			SidecarService: &api.AgentServiceRegistration{
-				Proxy: &api.AgentServiceConnectProxyConfig{
-					Upstreams: []api.Upstream{{
-						DestinationName:  StaticServerServiceName,
-						DestinationPeer:  peerName,
-						LocalBindAddress: "0.0.0.0",
-						LocalBindPort:    libcluster.ServiceUpstreamLocalBindPort,
-						MeshGateway: api.MeshGatewayConfig{
-							Mode: mgwMode,
-						},
-					}},
-				},
+				Proxy: proxy,
 			},
 		},
 	}
@@ -177,8 +202,9 @@ func CreateAndRegisterStaticClientSidecar(
 
 	// Create a service and proxy instance
 	sidecarCfg := SidecarConfig{
-		Name:      fmt.Sprintf("%s-sidecar", StaticClientServiceName),
-		ServiceID: StaticClientServiceName,
+		Name:         fmt.Sprintf("%s-sidecar", StaticClientServiceName),
+		ServiceID:    StaticClientServiceName,
+		EnableTProxy: enableTProxy,
 	}
 
 	clientConnectProxy, err := NewConnectService(context.Background(), sidecarCfg, []int{libcluster.ServiceUpstreamLocalBindPort}, node)

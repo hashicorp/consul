@@ -59,6 +59,10 @@ func (r *R) Logf(format string, args ...interface{}) {
 	r.log(fmt.Sprintf(format, args...))
 }
 
+func (r *R) Log(args ...interface{}) {
+	r.log(fmt.Sprintln(args...))
+}
+
 func (r *R) Helper() {}
 
 // runFailed is a sentinel value to indicate that the func itself

@@ -19,6 +19,7 @@ import (
 	"github.com/hashicorp/consul/agent/grpc-external/testutils"
 	structs "github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/proto-public/pbdataplane"
+	"github.com/hashicorp/consul/version"
 )
 
 const testACLToken = "acl-token"
@@ -40,7 +41,7 @@ func TestSupportedDataplaneFeatures_Success(t *testing.T) {
 	client := testClient(t, server)
 	resp, err := client.GetSupportedDataplaneFeatures(ctx, &pbdataplane.GetSupportedDataplaneFeaturesRequest{})
 	require.NoError(t, err)
-	require.Equal(t, 3, len(resp.SupportedDataplaneFeatures))
+	require.Equal(t, 4, len(resp.SupportedDataplaneFeatures))
 
 	for _, feature := range resp.SupportedDataplaneFeatures {
 		switch feature.GetFeatureName() {
@@ -50,6 +51,8 @@ func TestSupportedDataplaneFeatures_Success(t *testing.T) {
 			require.True(t, feature.GetSupported())
 		case pbdataplane.DataplaneFeatures_DATAPLANE_FEATURES_ENVOY_BOOTSTRAP_CONFIGURATION:
 			require.True(t, feature.GetSupported())
+		case pbdataplane.DataplaneFeatures_DATAPLANE_FEATURES_FIPS:
+			require.Equal(t, version.IsFIPS(), feature.GetSupported())
 		default:
 			require.False(t, feature.GetSupported())
 		}
@@ -72,7 +75,7 @@ func TestSupportedDataplaneFeatures_ACLsDisabled(t *testing.T) {
 	client := testClient(t, server)
 	resp, err := client.GetSupportedDataplaneFeatures(ctx, &pbdataplane.GetSupportedDataplaneFeaturesRequest{})
 	require.NoError(t, err)
-	require.Equal(t, 3, len(resp.SupportedDataplaneFeatures))
+	require.Equal(t, 4, len(resp.SupportedDataplaneFeatures))
 }
 
 func TestSupportedDataplaneFeatures_InvalidACLToken(t *testing.T) {

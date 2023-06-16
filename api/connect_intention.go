@@ -43,6 +43,10 @@ type Intention struct {
 	// same level of tenancy (partition is local to cluster, peer is remote).
 	SourcePeer string `json:",omitempty"`
 
+	// SourceSamenessGroup cannot be wildcards "*" and
+	// is not compatible with legacy intentions.
+	SourceSamenessGroup string `json:",omitempty"`
+
 	// SourceType is the type of the value for the source.
 	SourceType IntentionSourceType
 

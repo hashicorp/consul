@@ -8,24 +8,24 @@ import (
 	"fmt"
 	"time"
 
-	envoy_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
-	envoy_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	envoy_ratelimit "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/local_ratelimit/v3"
 	envoy_http_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
 	envoy_type_v3 "github.com/envoyproxy/go-control-plane/envoy/type/v3"
 	envoy_resource_v3 "github.com/envoyproxy/go-control-plane/pkg/resource/v3"
-	"github.com/golang/protobuf/ptypes/wrappers"
 	"github.com/hashicorp/go-multierror"
 	"github.com/mitchellh/mapstructure"
 	"google.golang.org/protobuf/types/known/durationpb"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/envoyextensions/extensioncommon"
 )
 
 type ratelimit struct {
+	extensioncommon.BasicExtensionAdapter
+
 	ProxyType string
 
 	// Token bucket of the rate limit
@@ -59,6 +59,9 @@ func Constructor(ext api.EnvoyExtension) (extensioncommon.EnvoyExtender, error) 
 func (r *ratelimit) fromArguments(args map[string]interface{}) error {
 	if err := mapstructure.Decode(args, r); err != nil {
 		return fmt.Errorf("error decoding extension arguments: %v", err)
+	}
+	if r.ProxyType == "" {
+		r.ProxyType = string(api.ServiceKindConnectProxy)
 	}
 	return r.validate()
 }
@@ -97,24 +100,19 @@ func (r *ratelimit) validate() error {
 
 // CanApply determines if the extension can apply to the given extension configuration.
 func (p *ratelimit) CanApply(config *extensioncommon.RuntimeConfig) bool {
-	// rate limit is only applied to the service itself since the limit is
-	// aggregated from all downstream connections.
-	return string(config.Kind) == p.ProxyType && !config.IsUpstream()
-}
-
-// PatchRoute does nothing.
-func (p ratelimit) PatchRoute(_ *extensioncommon.RuntimeConfig, route *envoy_route_v3.RouteConfiguration) (*envoy_route_v3.RouteConfiguration, bool, error) {
-	return route, false, nil
-}
-
-// PatchCluster does nothing.
-func (p ratelimit) PatchCluster(_ *extensioncommon.RuntimeConfig, c *envoy_cluster_v3.Cluster) (*envoy_cluster_v3.Cluster, bool, error) {
-	return c, false, nil
+	return string(config.Kind) == p.ProxyType
 }
 
 // PatchFilter inserts a http local rate_limit filter at the head of
 // envoy.filters.network.http_connection_manager filters
-func (p ratelimit) PatchFilter(_ *extensioncommon.RuntimeConfig, filter *envoy_listener_v3.Filter) (*envoy_listener_v3.Filter, bool, error) {
+func (r ratelimit) PatchFilter(p extensioncommon.FilterPayload) (*envoy_listener_v3.Filter, bool, error) {
+	filter := p.Message
+	// rate limit is only applied to the inbound listener of the service itself
+	// since the limit is aggregated from all downstream connections.
+	if !p.IsInbound() {
+		return filter, false, nil
+	}
+
 	if filter.Name != "envoy.filters.network.http_connection_manager" {
 		return filter, false, nil
 	}
@@ -129,34 +127,34 @@ func (p ratelimit) PatchFilter(_ *extensioncommon.RuntimeConfig, filter *envoy_l
 
 	tokenBucket := envoy_type_v3.TokenBucket{}
 
-	if p.TokensPerFill != nil {
-		tokenBucket.TokensPerFill = &wrappers.UInt32Value{
-			Value: uint32(*p.TokensPerFill),
+	if r.TokensPerFill != nil {
+		tokenBucket.TokensPerFill = &wrapperspb.UInt32Value{
+			Value: uint32(*r.TokensPerFill),
 		}
 	}
-	if p.MaxTokens != nil {
-		tokenBucket.MaxTokens = uint32(*p.MaxTokens)
+	if r.MaxTokens != nil {
+		tokenBucket.MaxTokens = uint32(*r.MaxTokens)
 	}
 
-	if p.FillInterval != nil {
-		tokenBucket.FillInterval = durationpb.New(time.Duration(*p.FillInterval) * time.Second)
+	if r.FillInterval != nil {
+		tokenBucket.FillInterval = durationpb.New(time.Duration(*r.FillInterval) * time.Second)
 	}
 
 	var FilterEnabledDefault *envoy_core_v3.RuntimeFractionalPercent
-	if p.FilterEnabled != nil {
+	if r.FilterEnabled != nil {
 		FilterEnabledDefault = &envoy_core_v3.RuntimeFractionalPercent{
 			DefaultValue: &envoy_type_v3.FractionalPercent{
-				Numerator:   *p.FilterEnabled,
+				Numerator:   *r.FilterEnabled,
 				Denominator: envoy_type_v3.FractionalPercent_HUNDRED,
 			},
 		}
 	}
 
 	var FilterEnforcedDefault *envoy_core_v3.RuntimeFractionalPercent
-	if p.FilterEnforced != nil {
+	if r.FilterEnforced != nil {
 		FilterEnforcedDefault = &envoy_core_v3.RuntimeFractionalPercent{
 			DefaultValue: &envoy_type_v3.FractionalPercent{
-				Numerator:   *p.FilterEnforced,
+				Numerator:   *r.FilterEnforced,
 				Denominator: envoy_type_v3.FractionalPercent_HUNDRED,
 			},
 		}
@@ -193,7 +191,7 @@ func (p ratelimit) PatchFilter(_ *extensioncommon.RuntimeConfig, filter *envoy_l
 }
 
 func validateProxyType(t string) error {
-	if t != "connect-proxy" {
+	if t != string(api.ServiceKindConnectProxy) {
 		return fmt.Errorf("unexpected ProxyType %q", t)
 	}
 

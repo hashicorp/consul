@@ -1959,6 +1959,87 @@ func TestStateStore_EnsureService_VirtualIPAssign(t *testing.T) {
 	assert.Equal(t, ns5.Port, taggedAddress.Port)
 }
 
+func TestStateStore_AssignManualVirtualIPs(t *testing.T) {
+	s := testStateStore(t)
+	setVirtualIPFlags(t, s)
+
+	// Attempt to assign manual virtual IPs to a service that doesn't exist - should be a no-op.
+	psn := structs.PeeredServiceName{ServiceName: structs.ServiceName{Name: "foo", EnterpriseMeta: *acl.DefaultEnterpriseMeta()}}
+	found, svcs, err := s.AssignManualServiceVIPs(0, psn, []string{"7.7.7.7", "8.8.8.8"})
+	require.NoError(t, err)
+	require.False(t, found)
+	require.Empty(t, svcs)
+	serviceVIP, err := s.ServiceManualVIPs(psn)
+	require.NoError(t, err)
+	require.Nil(t, serviceVIP)
+
+	// Create the service registration.
+	entMeta := structs.DefaultEnterpriseMetaInDefaultPartition()
+	ns1 := &structs.NodeService{
+		ID:             "foo",
+		Service:        "foo",
+		Address:        "1.1.1.1",
+		Port:           1111,
+		Connect:        structs.ServiceConnect{Native: true},
+		EnterpriseMeta: *entMeta,
+	}
+
+	// Service successfully registers into the state store.
+	testRegisterNode(t, s, 0, "node1")
+	require.NoError(t, s.EnsureService(1, "node1", ns1))
+
+	// Make sure there's a virtual IP for the foo service.
+	vip, err := s.VirtualIPForService(psn)
+	require.NoError(t, err)
+	assert.Equal(t, "240.0.0.1", vip)
+
+	// No manual IP should be set yet.
+	serviceVIP, err = s.ServiceManualVIPs(psn)
+	require.NoError(t, err)
+	require.Equal(t, "0.0.0.1", serviceVIP.IP.String())
+	require.Empty(t, serviceVIP.ManualIPs)
+
+	// Attempt to assign manual virtual IPs again.
+	found, svcs, err = s.AssignManualServiceVIPs(2, psn, []string{"7.7.7.7", "8.8.8.8"})
+	require.NoError(t, err)
+	require.True(t, found)
+	require.Empty(t, svcs)
+	serviceVIP, err = s.ServiceManualVIPs(psn)
+	require.NoError(t, err)
+	require.Equal(t, "0.0.0.1", serviceVIP.IP.String())
+	require.Equal(t, serviceVIP.ManualIPs, []string{"7.7.7.7", "8.8.8.8"})
+
+	// Register another service via config entry.
+	s.EnsureConfigEntry(3, &structs.ServiceResolverConfigEntry{
+		Kind: structs.ServiceResolver,
+		Name: "bar",
+	})
+
+	psn2 := structs.PeeredServiceName{ServiceName: structs.ServiceName{Name: "bar"}}
+	vip, err = s.VirtualIPForService(psn2)
+	require.NoError(t, err)
+	assert.Equal(t, "240.0.0.2", vip)
+
+	// Attempt to assign manual virtual IPs for bar, with one IP overlapping with foo.
+	// This should cause the ip to be removed from foo's list of manual IPs.
+	found, svcs, err = s.AssignManualServiceVIPs(4, psn2, []string{"7.7.7.7", "9.9.9.9"})
+	require.NoError(t, err)
+	require.True(t, found)
+	require.ElementsMatch(t, svcs, []structs.PeeredServiceName{psn})
+
+	serviceVIP, err = s.ServiceManualVIPs(psn)
+	require.NoError(t, err)
+	require.Equal(t, "0.0.0.1", serviceVIP.IP.String())
+	require.Equal(t, []string{"8.8.8.8"}, serviceVIP.ManualIPs)
+	require.Equal(t, uint64(4), serviceVIP.ModifyIndex)
+
+	serviceVIP, err = s.ServiceManualVIPs(psn2)
+	require.NoError(t, err)
+	require.Equal(t, "0.0.0.2", serviceVIP.IP.String())
+	require.Equal(t, []string{"7.7.7.7", "9.9.9.9"}, serviceVIP.ManualIPs)
+	require.Equal(t, uint64(4), serviceVIP.ModifyIndex)
+}
+
 func TestStateStore_EnsureService_ReassignFreedVIPs(t *testing.T) {
 	s := testStateStore(t)
 	setVirtualIPFlags(t, s)

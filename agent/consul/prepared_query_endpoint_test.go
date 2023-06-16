@@ -6,6 +6,7 @@ package consul
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"reflect"
@@ -36,6 +37,8 @@ import (
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/types"
 )
+
+const localTestDC = "dc1"
 
 func TestPreparedQuery_Apply(t *testing.T) {
 	if testing.Short() {
@@ -1536,8 +1539,7 @@ func TestPreparedQuery_Execute(t *testing.T) {
 		assert.Len(t, reply.Nodes, 0)
 	})
 
-	expectNodes := func(t *testing.T, query *structs.PreparedQueryRequest, reply *structs.PreparedQueryExecuteResponse, n int) {
-		t.Helper()
+	expectNodes := func(t require.TestingT, query *structs.PreparedQueryRequest, reply *structs.PreparedQueryExecuteResponse, n int) {
 		assert.Len(t, reply.Nodes, n)
 		assert.Equal(t, "dc1", reply.Datacenter)
 		assert.Equal(t, 0, reply.Failovers)
@@ -1545,8 +1547,7 @@ func TestPreparedQuery_Execute(t *testing.T) {
 		assert.Equal(t, query.Query.DNS, reply.DNS)
 		assert.True(t, reply.QueryMeta.KnownLeader)
 	}
-	expectFailoverNodes := func(t *testing.T, query *structs.PreparedQueryRequest, reply *structs.PreparedQueryExecuteResponse, n int) {
-		t.Helper()
+	expectFailoverNodes := func(t require.TestingT, query *structs.PreparedQueryRequest, reply *structs.PreparedQueryExecuteResponse, n int) {
 		assert.Len(t, reply.Nodes, n)
 		assert.Equal(t, "dc2", reply.Datacenter)
 		assert.Equal(t, 1, reply.Failovers)
@@ -1555,8 +1556,7 @@ func TestPreparedQuery_Execute(t *testing.T) {
 		assert.True(t, reply.QueryMeta.KnownLeader)
 	}
 
-	expectFailoverPeerNodes := func(t *testing.T, query *structs.PreparedQueryRequest, reply *structs.PreparedQueryExecuteResponse, n int) {
-		t.Helper()
+	expectFailoverPeerNodes := func(t require.TestingT, query *structs.PreparedQueryRequest, reply *structs.PreparedQueryExecuteResponse, n int) {
 		assert.Len(t, reply.Nodes, n)
 		assert.Equal(t, "", reply.Datacenter)
 		assert.Equal(t, es.peeringServer.acceptingPeerName, reply.PeerName)
@@ -2369,13 +2369,13 @@ func TestPreparedQuery_Execute(t *testing.T) {
 			}
 
 			var reply structs.PreparedQueryExecuteResponse
-			require.NoError(t, msgpackrpc.CallWithCodec(es.server.codec, "PreparedQuery.Execute", &req, &reply))
+			require.NoError(r, msgpackrpc.CallWithCodec(es.server.codec, "PreparedQuery.Execute", &req, &reply))
 
 			for _, node := range reply.Nodes {
-				assert.NotEqual(t, "node3", node.Node.Node)
+				assert.NotEqual(r, "node3", node.Node.Node)
 			}
 
-			expectNodes(t, &query, &reply, 9)
+			expectNodes(r, &query, &reply, 9)
 		})
 	})
 }
@@ -2814,13 +2814,17 @@ func TestPreparedQuery_Wrapper(t *testing.T) {
 	})
 }
 
+var _ queryServer = (*mockQueryServer)(nil)
+
 type mockQueryServer struct {
+	queryServerWrapper
 	Datacenters      []string
 	DatacentersError error
 	QueryLog         []string
 	QueryFn          func(args *structs.PreparedQueryExecuteRemoteRequest, reply *structs.PreparedQueryExecuteResponse) error
 	Logger           hclog.Logger
 	LogBuffer        *bytes.Buffer
+	SamenessGroup    map[string]*structs.SamenessGroupConfigEntry
 }
 
 func (m *mockQueryServer) JoinQueryLog() string {
@@ -2841,7 +2845,7 @@ func (m *mockQueryServer) GetLogger() hclog.Logger {
 }
 
 func (m *mockQueryServer) GetLocalDC() string {
-	return "dc1"
+	return localTestDC
 }
 
 func (m *mockQueryServer) GetOtherDatacentersByDistance() ([]string, error) {
@@ -2850,19 +2854,53 @@ func (m *mockQueryServer) GetOtherDatacentersByDistance() ([]string, error) {
 
 func (m *mockQueryServer) ExecuteRemote(args *structs.PreparedQueryExecuteRemoteRequest, reply *structs.PreparedQueryExecuteResponse) error {
 	peerName := args.Query.Service.Peer
+	partitionName := args.Query.Service.PartitionOrEmpty()
+	namespaceName := args.Query.Service.NamespaceOrEmpty()
 	dc := args.Datacenter
 	if peerName != "" {
 		m.QueryLog = append(m.QueryLog, fmt.Sprintf("peer:%s", peerName))
+	} else if partitionName != "" {
+		m.QueryLog = append(m.QueryLog, fmt.Sprintf("partition:%s", partitionName))
+	} else if namespaceName != "" {
+		m.QueryLog = append(m.QueryLog, fmt.Sprintf("namespace:%s", namespaceName))
 	} else {
 		m.QueryLog = append(m.QueryLog, fmt.Sprintf("%s:%s", dc, "PreparedQuery.ExecuteRemote"))
 	}
 	reply.PeerName = peerName
 	reply.Datacenter = dc
+	reply.EnterpriseMeta = acl.NewEnterpriseMetaWithPartition(partitionName, namespaceName)
 
 	if m.QueryFn != nil {
 		return m.QueryFn(args, reply)
 	}
 	return nil
+}
+
+type mockStateLookup struct {
+	SamenessGroup map[string]*structs.SamenessGroupConfigEntry
+}
+
+func (sl mockStateLookup) samenessGroupLookup(name string, entMeta acl.EnterpriseMeta) (uint64, *structs.SamenessGroupConfigEntry, error) {
+	lookup := name
+	if ap := entMeta.PartitionOrEmpty(); ap != "" {
+		lookup = fmt.Sprintf("%s-%s", lookup, ap)
+	} else if ns := entMeta.NamespaceOrEmpty(); ns != "" {
+		lookup = fmt.Sprintf("%s-%s", lookup, ns)
+	}
+
+	sg, ok := sl.SamenessGroup[lookup]
+	if !ok {
+		return 0, nil, errors.New("unable to find sameness group")
+	}
+
+	return 0, sg, nil
+}
+
+func (m *mockQueryServer) GetSamenessGroupFailoverTargets(name string, entMeta acl.EnterpriseMeta) ([]structs.QueryFailoverTarget, error) {
+	m.sl = mockStateLookup{
+		SamenessGroup: m.SamenessGroup,
+	}
+	return m.queryServerWrapper.GetSamenessGroupFailoverTargets(name, entMeta)
 }
 
 func TestPreparedQuery_queryFailover(t *testing.T) {

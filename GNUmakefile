@@ -3,6 +3,8 @@
 
 SHELL = bash
 
+GO_MODULES := $(shell find . -name go.mod -exec dirname {} \; | grep -v "proto-gen-rpc-glue/e2e" | sort)
+
 ###
 # These version variables can either be a valid string for "go install <module>@<version>"
 # or the string @DEV to imply use what is currently installed locally.
@@ -61,6 +63,7 @@ GO_BUILD_TAG?=consul-build-go
 UI_BUILD_TAG?=consul-build-ui
 BUILD_CONTAINER_NAME?=consul-builder
 CONSUL_IMAGE_VERSION?=latest
+ENVOY_VERSION?='1.25.4'
 
 ################
 # CI Variables #
@@ -163,6 +166,19 @@ dev-build:
 	rm -f ./bin/consul
 	cp ${MAIN_GOPATH}/bin/consul ./bin/consul
 
+
+dev-docker-dbg: dev-docker
+	@echo "Pulling consul container image - $(CONSUL_IMAGE_VERSION)"
+	@docker pull consul:$(CONSUL_IMAGE_VERSION) >/dev/null
+	@echo "Building Consul Development container - $(CONSUL_DEV_IMAGE)"
+	@#  'consul-dbg:local' tag is needed to run the integration tests
+	@#  'consul-dev:latest' is needed by older workflows
+	@docker buildx use default && docker buildx build -t $(CONSUL_COMPAT_TEST_IMAGE)-dbg:local \
+       --platform linux/$(GOARCH) \
+	   --build-arg CONSUL_IMAGE_VERSION=$(CONSUL_IMAGE_VERSION) \
+       --load \
+       -f $(CURDIR)/build-support/docker/Consul-Dev-Dbg.dockerfile $(CURDIR)/pkg/bin/
+
 dev-docker: linux dev-build
 	@echo "Pulling consul container image - $(CONSUL_IMAGE_VERSION)"
 	@docker pull consul:$(CONSUL_IMAGE_VERSION) >/dev/null
@@ -195,7 +211,7 @@ remote-docker: check-remote-dev-image-env
        --push \
        -f $(CURDIR)/build-support/docker/Consul-Dev-Multiarch.dockerfile $(CURDIR)/pkg/bin/
 
-# In CircleCI, the linux binary will be attached from a previous step at bin/. This make target
+# In CI, the linux binary will be attached from a previous step at bin/. This make target
 # should only run in CI and not locally.
 ci.dev-docker:
 	@echo "Pulling consul container image - $(CONSUL_IMAGE_VERSION)"
@@ -235,19 +251,13 @@ cov: other-consul dev-build
 
 test: other-consul dev-build lint test-internal
 
-go-mod-tidy:
-	@echo "--> Running go mod tidy"
-	@cd sdk && go mod tidy
-	@cd api && go mod tidy
-	@go mod tidy
-	@cd test/integration/consul-container && go mod tidy
-	@cd test/integration/connect/envoy/test-sds-server && go mod tidy
-	@cd proto-public && go mod tidy
-	@cd internal/tools/proto-gen-rpc-glue && go mod tidy
-	@cd internal/tools/proto-gen-rpc-glue/e2e && go mod tidy
-	@cd internal/tools/proto-gen-rpc-glue/e2e/consul && go mod tidy
-	@cd internal/tools/protoc-gen-consul-rate-limit && go mod tidy
+.PHONY: go-mod-tidy
+go-mod-tidy: $(foreach mod,$(GO_MODULES),go-mod-tidy/$(mod))
 
+.PHONY: mod-tidy/%
+go-mod-tidy/%:
+	@echo "--> Running go mod tidy ($*)"
+	@cd $* && go mod tidy
 
 test-internal:
 	@echo "--> Running go test"
@@ -277,6 +287,12 @@ test-internal:
 	@awk '/^[^[:space:]]/ {do_print=0} /--- FAIL/ {do_print=1} do_print==1 {print}' test.log
 	@grep '^FAIL' test.log || true
 	@if [ "$$(cat exit-code)" == "0" ] ; then echo "PASS" ; exit 0 ; else exit 1 ; fi
+
+test-all: other-consul dev-build lint $(foreach mod,$(GO_MODULES),test-module/$(mod))
+
+test-module/%:
+	@echo "--> Running go test ($*)"
+	cd $* && go test $(GOTEST_FLAGS) -tags '$(GOTAGS)' ./...
 
 test-race:
 	$(MAKE) GOTEST_FLAGS=-race
@@ -314,21 +330,26 @@ other-consul:
 		echo "Found other running consul agents. This may affect your tests." ; \
 		exit 1 ; \
 	fi
+	
+.PHONY: fmt
+fmt: $(foreach mod,$(GO_MODULES),fmt/$(mod)) 
 
-lint: -lint-main lint-container-test-deps
+.PHONY: fmt/%
+fmt/%:
+	@echo "--> Running go fmt ($*)"
+	@cd $* && gofmt -s -l -w .
 
-.PHONY: -lint-main
--lint-main: lint-tools
-	@echo "--> Running golangci-lint"
-	@golangci-lint run --build-tags '$(GOTAGS)' && \
-		(cd api && golangci-lint run --build-tags '$(GOTAGS)') && \
-		(cd sdk && golangci-lint run --build-tags '$(GOTAGS)')
-	@echo "--> Running golangci-lint (container tests)"
-	@cd test/integration/consul-container && golangci-lint run --build-tags '$(GOTAGS)'
-	@echo "--> Running lint-consul-retry"
-	@lint-consul-retry
-	@echo "--> Running enumcover"
-	@enumcover ./...
+.PHONY: lint
+lint: $(foreach mod,$(GO_MODULES),lint/$(mod)) lint-container-test-deps
+
+.PHONY: lint/%
+lint/%:
+	@echo "--> Running golangci-lint ($*)"
+	@cd $* && GOWORK=off golangci-lint run --build-tags '$(GOTAGS)'
+	@echo "--> Running lint-consul-retry ($*)"
+	@cd $* && GOWORK=off lint-consul-retry
+	@echo "--> Running enumcover ($*)"
+	@cd $* && GOWORK=off enumcover ./...
 
 .PHONY: lint-container-test-deps
 lint-container-test-deps:
@@ -370,6 +391,7 @@ codegen-tools:
 deep-copy: codegen-tools
 	@$(SHELL) $(CURDIR)/agent/structs/deep-copy.sh
 	@$(SHELL) $(CURDIR)/agent/proxycfg/deep-copy.sh
+	@$(SHELL) $(CURDIR)/agent/consul/state/deep-copy.sh
 
 version:
 	@echo -n "Version:                    "
@@ -392,6 +414,7 @@ ui-build-image:
 	@echo "Building UI build container"
 	@docker build $(NOCACHE) $(QUIET) -t $(UI_BUILD_TAG) - < build-support/docker/Build-UI.dockerfile
 
+# Builds consul in a docker container and then dumps executable into ./pkg/bin/...
 consul-docker: go-build-image
 	@$(SHELL) $(CURDIR)/build-support/scripts/build-docker.sh consul
 
@@ -445,10 +468,13 @@ else
 		--latest-version latest
 endif
 
+# NOTE: Use DOCKER_BUILDKIT=0, if docker build fails to resolve consul:local base image
 .PHONY: test-compat-integ-setup
 test-compat-integ-setup: dev-docker
 	@docker tag consul-dev:latest $(CONSUL_COMPAT_TEST_IMAGE):local
 	@docker run --rm -t $(CONSUL_COMPAT_TEST_IMAGE):local consul version
+	@#  'consul-envoy:target-version' is needed by compatibility integ test
+	@docker build -t consul-envoy:target-version --build-arg CONSUL_IMAGE=$(CONSUL_COMPAT_TEST_IMAGE):local --build-arg ENVOY_VERSION=${ENVOY_VERSION} -f ./test/integration/consul-container/assets/Dockerfile-consul-envoy ./test/integration/consul-container/assets
 
 .PHONY: test-metrics-integ
 test-metrics-integ: test-compat-integ-setup
@@ -460,20 +486,10 @@ test-metrics-integ: test-compat-integ-setup
 		--latest-version latest
 
 test-connect-ca-providers:
-ifeq ("$(CIRCLECI)","true")
-# Run in CI
-	gotestsum --format=short-verbose --junitfile "$(TEST_RESULTS_DIR)/gotestsum-report.xml" -- -cover -coverprofile=coverage.txt ./agent/connect/ca
-# Run leader tests that require Vault
-	gotestsum --format=short-verbose --junitfile "$(TEST_RESULTS_DIR)/gotestsum-report-leader.xml" -- -cover -coverprofile=coverage-leader.txt -run Vault ./agent/consul
-# Run agent tests that require Vault
-	gotestsum --format=short-verbose --junitfile "$(TEST_RESULTS_DIR)/gotestsum-report-agent.xml" -- -cover -coverprofile=coverage-agent.txt -run Vault ./agent
-else
-# Run locally
 	@echo "Running /agent/connect/ca tests in verbose mode"
 	@go test -v ./agent/connect/ca
 	@go test -v ./agent/consul -run Vault
 	@go test -v ./agent -run Vault
-endif
 
 .PHONY: proto
 proto: proto-tools proto-gen proto-mocks
@@ -534,6 +550,11 @@ envoy-regen:
 	@go test -tags '$(GOTAGS)' ./agent/xds -update
 	@find "command/connect/envoy/testdata" -name '*.golden' -delete
 	@go test -tags '$(GOTAGS)' ./command/connect/envoy -update
+
+# Point your web browser to http://localhost:3000/consul to live render docs from ./website/
+.PHONY: docs
+docs:
+	make -C website
 
 .PHONY: help
 help:

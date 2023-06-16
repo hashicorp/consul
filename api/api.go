@@ -836,12 +836,21 @@ func (r *request) setQueryOptions(q *QueryOptions) {
 		return
 	}
 	if q.Namespace != "" {
+		// For backwards-compatibility with existing tests,
+		// use the short-hand query param name "ns"
+		// rather than the alternative long-hand "namespace"
 		r.params.Set("ns", q.Namespace)
 	}
 	if q.Partition != "" {
+		// For backwards-compatibility with existing tests,
+		// use the long-hand query param name "partition"
+		// rather than the alternative short-hand "ap"
 		r.params.Set("partition", q.Partition)
 	}
 	if q.Datacenter != "" {
+		// For backwards-compatibility with existing tests,
+		// use the short-hand query param name "dc"
+		// rather than the alternative long-hand "datacenter"
 		r.params.Set("dc", q.Datacenter)
 	}
 	if q.Peer != "" {
@@ -949,12 +958,16 @@ func (r *request) setWriteOptions(q *WriteOptions) {
 	if q == nil {
 		return
 	}
+	// For backwards-compatibility, continue to use the shorthand "ns"
+	// rather than "namespace"
 	if q.Namespace != "" {
 		r.params.Set("ns", q.Namespace)
 	}
 	if q.Partition != "" {
 		r.params.Set("partition", q.Partition)
 	}
+	// For backwards-compatibility, continue to use the shorthand "dc"
+	// rather than "datacenter"
 	if q.Datacenter != "" {
 		r.params.Set("dc", q.Datacenter)
 	}

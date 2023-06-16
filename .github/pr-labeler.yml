@@ -60,7 +60,7 @@ theme/ui:
 # thinking:
 # type/bug:
 type/ci:
-    - .circleci/*
+    - .github/workflows/*
 # type/crash:
 type/docs:
     - website/**/*

@@ -27,6 +27,7 @@ var configEntryKindToTopic = map[string]stream.Topic{
 	structs.BoundAPIGateway:   EventTopicBoundAPIGateway,
 	structs.RateLimitIPConfig: EventTopicIPRateLimit,
 	structs.SamenessGroup:     EventTopicSamenessGroup,
+	structs.JWTProvider:       EventTopicJWTProvider,
 }
 
 // EventSubjectConfigEntry is a stream.Subject used to route and receive events
@@ -167,6 +168,12 @@ func (s *Store) IPRateLimiterSnapshot(req stream.SubscribeRequest, buf stream.Sn
 // "sameness-group" config entries.
 func (s *Store) SamenessGroupSnapshot(req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
 	return s.configEntrySnapshot(structs.SamenessGroup, req, buf)
+}
+
+// JWTProviderSnapshot is a stream.SnapshotFunc that returns a snapshot of
+// jwt-provider config entries.
+func (s *Store) JWTProviderSnapshot(req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
+	return s.configEntrySnapshot(structs.JWTProvider, req, buf)
 }
 
 func (s *Store) configEntrySnapshot(kind string, req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {

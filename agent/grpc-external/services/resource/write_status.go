@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package resource
 
 import (
@@ -7,19 +10,35 @@ import (
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/oklog/ulid/v2"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/internal/storage"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
 func (s *Server) WriteStatus(ctx context.Context, req *pbresource.WriteStatusRequest) (*pbresource.WriteStatusResponse, error) {
+	authz, err := s.getAuthorizer(tokenFromContext(ctx))
+	if err != nil {
+		return nil, err
+	}
+
+	// check acls
+	err = authz.ToAllowAuthorizer().OperatorWriteAllowed(&acl.AuthorizerContext{})
+	switch {
+	case acl.IsErrPermissionDenied(err):
+		return nil, status.Error(codes.PermissionDenied, err.Error())
+	case err != nil:
+		return nil, status.Errorf(codes.Internal, "failed operator:write allowed acl: %v", err)
+	}
+
 	if err := validateWriteStatusRequest(req); err != nil {
 		return nil, err
 	}
 
-	_, err := s.resolveType(req.Id.Type)
+	_, err = s.resolveType(req.Id.Type)
 	if err != nil {
 		return nil, err
 	}
@@ -58,7 +77,10 @@ func (s *Server) WriteStatus(ctx context.Context, req *pbresource.WriteStatusReq
 		if resource.Status == nil {
 			resource.Status = make(map[string]*pbresource.Status)
 		}
-		resource.Status[req.Key] = req.Status
+
+		status := clone(req.Status)
+		status.UpdatedAt = timestamppb.Now()
+		resource.Status[req.Key] = status
 
 		result, err = s.Backend.WriteCAS(ctx, resource)
 		return err
@@ -122,6 +144,10 @@ func validateWriteStatusRequest(req *pbresource.WriteStatusRequest) error {
 	}
 	if field != "" {
 		return status.Errorf(codes.InvalidArgument, "%s is required", field)
+	}
+
+	if req.Status.UpdatedAt != nil {
+		return status.Error(codes.InvalidArgument, "status.updated_at is automatically set and cannot be provided")
 	}
 
 	if _, err := ulid.ParseStrict(req.Status.ObservedGeneration); err != nil {

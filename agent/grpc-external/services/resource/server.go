@@ -116,4 +116,36 @@ func isGRPCStatusError(err error) bool {
 	return ok
 }
 
+func validateId(id *pbresource.ID, errorPrefix string) error {
+	var field string
+	switch {
+	case id.Type == nil:
+		field = "type"
+	case id.Tenancy == nil:
+		field = "tenancy"
+	case id.Name == "":
+		field = "name"
+	}
+
+	if field != "" {
+		return status.Errorf(codes.InvalidArgument, "%s.%s is required", errorPrefix, field)
+	}
+
+	// Revisit defaulting and non-namespaced resources post-1.16
+	var expected string
+	switch {
+	case id.Tenancy.Partition != "default":
+		field, expected = "partition", "default"
+	case id.Tenancy.Namespace != "default":
+		field, expected = "namespace", "default"
+	case id.Tenancy.PeerName != "local":
+		field, expected = "peername", "local"
+	}
+
+	if field != "" {
+		return status.Errorf(codes.InvalidArgument, "%s.tenancy.%s must be %s", errorPrefix, field, expected)
+	}
+	return nil
+}
+
 func clone[T proto.Message](v T) T { return proto.Clone(v).(T) }

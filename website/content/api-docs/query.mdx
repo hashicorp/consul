@@ -177,13 +177,22 @@ The table below shows this endpoint's support for
   - `Service` `(string: <required>)` - Specifies the name of the service to
     query.
 
-  - `Namespace` `(string: "")` <EnterpriseAlert inline /> - Specifies the Consul namespace
-    to query. If not provided the query will use Consul default namespace for resolution.
+  - `SamenessGroup` `(string: "")` <EnterpriseAlert inline /> - Specifies a Sameness group to forward the
+  query to. The `SamenessGroup` will forward to its members in the order defined, returning on the first
+  healthy query. `SamenessGroup` is mutually exclusive with `Failover` as `SamenessGroup` members will be used
+  in place of a defined list of failovers.
 
-  - `Failover` contains two fields, both of which are optional, and determine
-    what happens if no healthy nodes are available in the local datacenter when
+  - `Namespace` `(string: "")` <EnterpriseAlert inline /> - Specifies the Consul namespace
+    to query. If not provided the query will use Consul default namespace for resolution. When combined with
+  `SamenessGroup` this will specify the namespaces in which the `SamenessGroup` will resolve all members listed.
+
+  - `Partition` `(string: "")` <EnterpriseAlert inline /> - Specifies the Consul partition
+  to query. If not provided the query will use Consul's default partition for resolution. When combined with
+  `SamenessGroup`, this will specify the partition where the `SamenessGroup` exists.
+
+  - `Failover` Determines what happens if no healthy nodes are available in the local datacenter when
     the query is executed. It allows the use of nodes in other datacenters with
-    very little configuration.
+    very little configuration. This field is mutually exclusive with `SamenessGroup`.
 
     - `NearestN` `(int: 0)` - Specifies that the query will be forwarded to up
       to `NearestN` other datacenters based on their estimated network round
@@ -257,12 +266,12 @@ The table below shows this endpoint's support for
   key/value pairs that will be used for filtering the query results to services
   with the given metadata values present.
 
-* `Connect` `(bool: false)` - If true, only [Connect-capable](/consul/docs/connect) services
+* `Connect` `(bool: false)` - If true, only [mesh-capable](/consul/docs/connect) services
   for the specified service name will be returned. This includes both
   natively integrated services and proxies. For proxies, the proxy name
   may not match `Service`, because the proxy destination will. Any
-  constrains beyond the service name such as `Near`, `Tags`, and `NodeMeta`
-  are applied to Connect-capable service.
+  constraints beyond the service name such as `Near`, `Tags`, and `NodeMeta`
+  are applied to mesh-capable service.
 
 * `DNS` `(DNS: nil)` - Specifies DNS configuration
 
@@ -541,8 +550,8 @@ be used.
   This is applied after any sorting or shuffling.
 
 - `connect` `(bool: false)` - If true, limit results to nodes that are
-  Connect-capable only. This parameter can also be specified directly on the template
-  itself to force all executions of a query to be Connect-only. See the
+  mesh-capable only. This parameter can also be specified directly on the template
+  itself to force all executions of a query to be mesh-only. See the
   template documentation for more information.
 
 ### Sample Request

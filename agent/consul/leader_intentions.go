@@ -25,7 +25,7 @@ func (s *Server) startIntentionConfigEntryMigration(ctx context.Context) error {
 
 	// Check for the system metadata first, as that's the most trustworthy in
 	// both the primary and secondaries.
-	intentionFormat, err := s.getSystemMetadata(structs.SystemMetadataIntentionFormatKey)
+	intentionFormat, err := s.GetSystemMetadata(structs.SystemMetadataIntentionFormatKey)
 	if err != nil {
 		return err
 	}
@@ -243,7 +243,7 @@ func (s *Server) legacyIntentionMigrationInSecondaryDC(ctx context.Context) erro
 		// error.
 		for {
 			// Check for the system metadata first, as that's the most trustworthy.
-			intentionFormat, err := s.getSystemMetadata(structs.SystemMetadataIntentionFormatKey)
+			intentionFormat, err := s.GetSystemMetadata(structs.SystemMetadataIntentionFormatKey)
 			if err != nil {
 				return err
 			}

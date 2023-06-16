@@ -25,6 +25,7 @@ be found in the public [user documentation].
 1. [Agent Configuration](./config)
 1. [RPC](./rpc)
 1. [Cluster Persistence](./persistence)
+1. [Resources and Controllers](./resources)
 1. [Client Agent](./client-agent)
 1. [Service Discovery](./service-discovery)
 1. [Service Mesh (Connect)](./service-mesh)
@@ -48,7 +49,7 @@ contain other important source related to Consul.
 * [ui] contains the source code for the Consul UI.
 * [website] contains the source for [consul.io](https://www.consul.io/). A pull requests
   can update the source code and Consul's documentation at the same time.
-* [.circleci] and [.github] contain the source for our CI and GitHub repository
+* [.github] contains the source for our CI and GitHub repository
   automation.
 * [.changelog] contains markdown files that are used by [hashicorp/go-changelog] to produce the
   [CHANGELOG.md].
@@ -59,7 +60,6 @@ contain other important source related to Consul.
 
 [ui]: https://github.com/hashicorp/consul/tree/main/ui
 [website]: https://github.com/hashicorp/consul/tree/main/website
-[.circleci]: https://github.com/hashicorp/consul/tree/main/.circleci
 [.github]: https://github.com/hashicorp/consul/tree/main/.github
 [.changelog]: https://github.com/hashicorp/consul/tree/main/.changelog
 [hashicorp/go-changelog]: https://github.com/hashicorp/go-changelog

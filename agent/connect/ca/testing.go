@@ -149,7 +149,7 @@ func NewTestVaultServer(t testing.T) *TestVaultServer {
 		// We pass '-dev-no-store-token' to avoid having multiple vaults oddly
 		// interact and fail like this:
 		//
-		//   Error initializing Dev mode: rename /home/circleci/.vault-token.tmp /home/circleci/.vault-token: no such file or directory
+		//   Error initializing Dev mode: rename /.vault-token.tmp /.vault-token: no such file or directory
 		//
 		"-dev-no-store-token",
 	}
@@ -184,6 +184,7 @@ type TestVaultServer struct {
 }
 
 var printedVaultVersion sync.Once
+var vaultTestVersion string
 
 func (v *TestVaultServer) Client() *vaultapi.Client {
 	return v.client
@@ -205,6 +206,7 @@ func (v *TestVaultServer) WaitUntilReady(t testing.T) {
 		version = resp.Version
 	})
 	printedVaultVersion.Do(func() {
+		vaultTestVersion = version
 		fmt.Fprintf(os.Stderr, "[INFO] agent/connect/ca: testing with vault server version: %s\n", version)
 	})
 }

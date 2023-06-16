@@ -16,6 +16,10 @@ import (
 )
 
 func (s *Server) Read(ctx context.Context, req *pbresource.ReadRequest) (*pbresource.ReadResponse, error) {
+	if err := validateReadRequest(req); err != nil {
+		return nil, err
+	}
+
 	// check type exists
 	reg, err := s.resolveType(req.Id.Type)
 	if err != nil {
@@ -47,4 +51,15 @@ func (s *Server) Read(ctx context.Context, req *pbresource.ReadRequest) (*pbreso
 	default:
 		return nil, status.Errorf(codes.Internal, "failed read: %v", err)
 	}
+}
+
+func validateReadRequest(req *pbresource.ReadRequest) error {
+	if req.Id == nil {
+		return status.Errorf(codes.InvalidArgument, "id is required")
+	}
+
+	if err := validateId(req.Id, "id"); err != nil {
+		return err
+	}
+	return nil
 }

@@ -23,7 +23,7 @@ Admin partitions exist a level above namespaces in the identity hierarchy. They 
 
 As of Consul v1.11, every _datacenter_ contains a single administrative partition named `default` when created. With Consul Enterprise, operators have the option of creating multiple partitions within a single datacenter.
 
--> **Preexisting resource nodes and namespaces**: Admin partitions were introduced in Consul 1.11. Resource nodes were not namespaced prior to 1.11. After upgrading to Consul 1.11 or later, all resource nodes will be namespaced.
+-> **Preexisting nodes**: Admin partitions were introduced in Consul 1.11. Nodes existed in global scope prior to 1.11. After upgrading to Consul 1.11 or later, all nodes will be scoped to an admin partition, which will be the `default` partition when initially upgrading an existing deployment or for OSS versions.
 
 There are tutorials available to help you get started with admin partitions.
 
@@ -65,9 +65,7 @@ You can configure services to be discoverable by downstream services in any part
 
 ### Cluster Peering
 
-You can use [cluster peering](/consul/docs/connect/cluster-peering/) between two admin partitions to connect clusters owned by different operators. Without Consul Enterprise, cluster peering is limited to the `default` partitions in each datacenter. Enterprise users can [create and manage cluster peering connections](/consul/docs/connect/cluster-peering/create-manage-peering) between any two admin partitions as long as the partitions are in separate datacenters. It is not possible to establish cluster peering connections between two partitions in a single datacenter.
-
-To use mesh gateways with admin partitions and cluster peering, refer to [Mesh Gateways between Peered Clusters](/consul/docs/connect/gateways/mesh-gateway/service-to-service-traffic-peers).
+You can use [cluster peering](/consul/docs/connect/cluster-peering/) between two admin partitions to connect clusters owned by different operators. Without Consul Enterprise, cluster peering is limited to the `default` partitions in each datacenter. Enterprise users can [establish cluster peering connections](/consul/docs/connect/cluster-peering/usage/establish-cluster-peering) between any two admin partitions as long as the partitions are in separate datacenters. It is not possible to establish cluster peering connections between two partitions in a single datacenter.
 
 ## Requirements
 

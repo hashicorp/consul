@@ -22,6 +22,7 @@ import (
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/agent/config"
 	hcpbootstrap "github.com/hashicorp/consul/agent/hcp/bootstrap"
+	hcpclient "github.com/hashicorp/consul/agent/hcp/client"
 	"github.com/hashicorp/consul/command/cli"
 	"github.com/hashicorp/consul/command/flags"
 	"github.com/hashicorp/consul/lib"
@@ -159,13 +160,27 @@ func (c *cmd) run(args []string) int {
 	go handleStartupSignals(ctx, cancel, signalCh, suLogger)
 
 	// See if we need to bootstrap config from HCP before we go any further with
-	// agent startup. We override loader with the one returned as it may be
-	// modified to include HCP-provided config.
-	var err error
-	_, loader, err = hcpbootstrap.MaybeBootstrap(ctx, loader, ui)
+	// agent startup. First do a preliminary load of agent configuration using the given loader.
+	// This is just to peek whether bootstrapping from HCP is enabled. The result is discarded
+	// on the call to agent.NewBaseDeps so that the wrapped loader takes effect.
+	res, err := loader(nil)
 	if err != nil {
 		ui.Error(err.Error())
 		return 1
+	}
+	if res.RuntimeConfig.IsCloudEnabled() {
+		client, err := hcpclient.NewClient(res.RuntimeConfig.Cloud)
+		if err != nil {
+			ui.Error("error building HCP HTTP client: " + err.Error())
+			return 1
+		}
+
+		// We override loader with the one returned as it was modified to include HCP-provided config.
+		loader, err = hcpbootstrap.LoadConfig(ctx, client, res.RuntimeConfig.DataDir, loader, ui)
+		if err != nil {
+			ui.Error(err.Error())
+			return 1
+		}
 	}
 
 	bd, err := agent.NewBaseDeps(loader, logGate, nil)
@@ -197,28 +212,33 @@ func (c *cmd) run(args []string) int {
 	if config.ServerMode {
 		segment = "<all>"
 	}
-	ui.Info(fmt.Sprintf("          Version: '%s'", c.versionHuman))
+	ui.Info(fmt.Sprintf("           Version: '%s'", c.versionHuman))
 	if strings.Contains(c.versionHuman, "dev") {
-		ui.Info(fmt.Sprintf("         Revision: '%s'", c.revision))
+		ui.Info(fmt.Sprintf("          Revision: '%s'", c.revision))
 	}
-	ui.Info(fmt.Sprintf("       Build Date: '%s'", c.buildDate))
-	ui.Info(fmt.Sprintf("          Node ID: '%s'", config.NodeID))
-	ui.Info(fmt.Sprintf("        Node name: '%s'", config.NodeName))
+	ui.Info(fmt.Sprintf("        Build Date: '%s'", c.buildDate))
+	ui.Info(fmt.Sprintf("           Node ID: '%s'", config.NodeID))
+	ui.Info(fmt.Sprintf("         Node name: '%s'", config.NodeName))
 	if ap := config.PartitionOrEmpty(); ap != "" {
-		ui.Info(fmt.Sprintf("        Partition: '%s'", ap))
+		ui.Info(fmt.Sprintf("         Partition: '%s'", ap))
 	}
-	ui.Info(fmt.Sprintf("       Datacenter: '%s' (Segment: '%s')", config.Datacenter, segment))
-	ui.Info(fmt.Sprintf("           Server: %v (Bootstrap: %v)", config.ServerMode, config.Bootstrap))
-	ui.Info(fmt.Sprintf("      Client Addr: %v (HTTP: %d, HTTPS: %d, gRPC: %d, gRPC-TLS: %d, DNS: %d)", config.ClientAddrs,
+	ui.Info(fmt.Sprintf("        Datacenter: '%s' (Segment: '%s')", config.Datacenter, segment))
+	ui.Info(fmt.Sprintf("            Server: %v (Bootstrap: %v)", config.ServerMode, config.Bootstrap))
+	ui.Info(fmt.Sprintf("       Client Addr: %v (HTTP: %d, HTTPS: %d, gRPC: %d, gRPC-TLS: %d, DNS: %d)", config.ClientAddrs,
 		config.HTTPPort, config.HTTPSPort, config.GRPCPort, config.GRPCTLSPort, config.DNSPort))
-	ui.Info(fmt.Sprintf("     Cluster Addr: %v (LAN: %d, WAN: %d)", config.AdvertiseAddrLAN,
+	ui.Info(fmt.Sprintf("      Cluster Addr: %v (LAN: %d, WAN: %d)", config.AdvertiseAddrLAN,
 		config.SerfPortLAN, config.SerfPortWAN))
-	ui.Info(fmt.Sprintf("Gossip Encryption: %t", config.EncryptKey != ""))
-	ui.Info(fmt.Sprintf(" Auto-Encrypt-TLS: %t", config.AutoEncryptTLS || config.AutoEncryptAllowTLS))
-	ui.Info(fmt.Sprintf("        HTTPS TLS: Verify Incoming: %t, Verify Outgoing: %t, Min Version: %s",
+	ui.Info(fmt.Sprintf(" Gossip Encryption: %t", config.EncryptKey != ""))
+	ui.Info(fmt.Sprintf("  Auto-Encrypt-TLS: %t", config.AutoEncryptTLS || config.AutoEncryptAllowTLS))
+	ui.Info(fmt.Sprintf("       ACL Enabled: %t", config.ACLsEnabled))
+	if config.ServerMode {
+		ui.Info(fmt.Sprintf(" Reporting Enabled: %t", config.Reporting.License.Enabled))
+	}
+	ui.Info(fmt.Sprintf("ACL Default Policy: %s", config.ACLResolverSettings.ACLDefaultPolicy))
+	ui.Info(fmt.Sprintf("         HTTPS TLS: Verify Incoming: %t, Verify Outgoing: %t, Min Version: %s",
 		config.TLS.HTTPS.VerifyIncoming, config.TLS.HTTPS.VerifyOutgoing, config.TLS.HTTPS.TLSMinVersion))
-	ui.Info(fmt.Sprintf("         gRPC TLS: Verify Incoming: %t, Min Version: %s", config.TLS.GRPC.VerifyIncoming, config.TLS.GRPC.TLSMinVersion))
-	ui.Info(fmt.Sprintf(" Internal RPC TLS: Verify Incoming: %t, Verify Outgoing: %t (Verify Hostname: %t), Min Version: %s",
+	ui.Info(fmt.Sprintf("          gRPC TLS: Verify Incoming: %t, Min Version: %s", config.TLS.GRPC.VerifyIncoming, config.TLS.GRPC.TLSMinVersion))
+	ui.Info(fmt.Sprintf("  Internal RPC TLS: Verify Incoming: %t, Verify Outgoing: %t (Verify Hostname: %t), Min Version: %s",
 		config.TLS.InternalRPC.VerifyIncoming, config.TLS.InternalRPC.VerifyOutgoing, config.TLS.InternalRPC.VerifyServerHostname, config.TLS.InternalRPC.TLSMinVersion))
 	// Enable log streaming
 	ui.Output("")

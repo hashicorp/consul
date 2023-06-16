@@ -121,7 +121,7 @@ func NewBuildContext(t *testing.T, opts BuildOptions) *BuildContext {
 	}
 
 	if ctx.consulImageName == "" {
-		ctx.consulImageName = utils.TargetImageName
+		ctx.consulImageName = utils.GetTargetImageName()
 	}
 	if ctx.consulVersion == "" {
 		ctx.consulVersion = utils.TargetVersion
@@ -311,11 +311,15 @@ func (b *Builder) ToAgentConfig(t *testing.T) *Config {
 	confCopy, err := b.conf.Clone()
 	require.NoError(t, err)
 
+	cmd := []string{"agent"}
+	if utils.Debug {
+		cmd = []string{"/root/go/bin/dlv", "exec", "/bin/consul", "--listen=:4000", "--headless=true", "", "--accept-multiclient", "--continue", "--api-version=2", "--", "agent", "--config-file=/consul/config/config.json"}
+	}
 	return &Config{
 		JSON:          string(out),
 		ConfigBuilder: confCopy,
 
-		Cmd: []string{"agent"},
+		Cmd: cmd,
 
 		Image:   b.context.consulImageName,
 		Version: b.context.consulVersion,
