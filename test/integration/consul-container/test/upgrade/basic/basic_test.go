@@ -25,7 +25,6 @@ func TestBasic(t *testing.T) {
 	const numServers = 1
 	buildOpts := &libcluster.BuildOptions{
 		ConsulImageName:      utils.GetLatestImageName(),
-		ConsulVersion:        utils.LatestVersion,
 		Datacenter:           "dc1",
 		InjectAutoEncryption: true,
 	}
