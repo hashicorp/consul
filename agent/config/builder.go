@@ -984,7 +984,7 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		AutoEncryptIPSAN:                       autoEncryptIPSAN,
 		AutoEncryptAllowTLS:                    autoEncryptAllowTLS,
 		AutoConfig:                             autoConfig,
-		Cloud:                                  b.cloudConfigVal(c.Cloud),
+		Cloud:                                  b.cloudConfigVal(c),
 		ConnectEnabled:                         connectEnabled,
 		ConnectCAProvider:                      connectCAProvider,
 		ConnectCAConfig:                        connectCAConfig,
@@ -1288,6 +1288,10 @@ func (b *builder) validate(rt RuntimeConfig) error {
 		b.warn("Node name %q will not be discoverable "+
 			"via DNS due to it being too long. Valid lengths are between "+
 			"1 and 63 bytes.", rt.NodeName)
+	}
+
+	if err := rt.StructLocality().Validate(); err != nil {
+		return fmt.Errorf("locality is invalid: %s", err)
 	}
 
 	if ipaddr.IsAny(rt.AdvertiseAddrLAN.IP) {
@@ -2541,21 +2545,26 @@ func validateAutoConfigAuthorizer(rt RuntimeConfig) error {
 	return nil
 }
 
-func (b *builder) cloudConfigVal(v *CloudConfigRaw) hcpconfig.CloudConfig {
+func (b *builder) cloudConfigVal(v Config) hcpconfig.CloudConfig {
 	val := hcpconfig.CloudConfig{
 		ResourceID: os.Getenv("HCP_RESOURCE_ID"),
 	}
-	if v == nil {
+	// Node id might get overriden in setup.go:142
+	nodeID := stringVal(v.NodeID)
+	val.NodeID = types.NodeID(nodeID)
+	val.NodeName = b.nodeName(v.NodeName)
+
+	if v.Cloud == nil {
 		return val
 	}
 
-	val.ClientID = stringVal(v.ClientID)
-	val.ClientSecret = stringVal(v.ClientSecret)
-	val.AuthURL = stringVal(v.AuthURL)
-	val.Hostname = stringVal(v.Hostname)
-	val.ScadaAddress = stringVal(v.ScadaAddress)
+	val.ClientID = stringVal(v.Cloud.ClientID)
+	val.ClientSecret = stringVal(v.Cloud.ClientSecret)
+	val.AuthURL = stringVal(v.Cloud.AuthURL)
+	val.Hostname = stringVal(v.Cloud.Hostname)
+	val.ScadaAddress = stringVal(v.Cloud.ScadaAddress)
 
-	if resourceID := stringVal(v.ResourceID); resourceID != "" {
+	if resourceID := stringVal(v.Cloud.ResourceID); resourceID != "" {
 		val.ResourceID = resourceID
 	}
 	return val

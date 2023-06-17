@@ -107,13 +107,7 @@ Take note of which agent is the leader.
 binary with the new one.
 
 **3.** The following steps must be done in order on the server agents, leaving the leader
-agent for last. First force the server agent to leave the cluster with the following command:
-
-```
-consul leave
-```
-
-Then, use a service management system (e.g., systemd, upstart, etc.) to restart the Consul service. If
+agent for last. First, use a service management system (e.g., systemd, upstart, etc.) to restart the Consul service. If
 you are not using a service management system, you must restart the agent manually.
 
 To validate that the agent has rejoined the cluster and is in sync with the leader, issue the

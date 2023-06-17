@@ -492,6 +492,7 @@ func applyEnvoyExtension(logger hclog.Logger, cfgSnap *proxycfg.ConfigSnapshot, 
 	extender, err := envoyextensions.ConstructExtension(ext)
 	metrics.MeasureSinceWithLabels([]string{"envoy_extension", "validate_arguments"}, now, getMetricLabels(err))
 	if err != nil {
+		errorParams = append(errorParams, "error", err)
 		logFn("failed to construct extension", errorParams...)
 
 		if ext.Required {
@@ -507,6 +508,7 @@ func applyEnvoyExtension(logger hclog.Logger, cfgSnap *proxycfg.ConfigSnapshot, 
 	if err != nil {
 		errorParams = append(errorParams, "error", err)
 		logFn("failed to validate extension arguments", errorParams...)
+
 		if ext.Required {
 			return status.Errorf(codes.InvalidArgument, "failed to validate arguments for extension %q for service %q", ext.Name, svc.Name)
 		}
@@ -517,9 +519,13 @@ func applyEnvoyExtension(logger hclog.Logger, cfgSnap *proxycfg.ConfigSnapshot, 
 	now = time.Now()
 	_, err = extender.Extend(resources, &runtimeConfig)
 	metrics.MeasureSinceWithLabels([]string{"envoy_extension", "extend"}, now, getMetricLabels(err))
-	logFn("failed to apply envoy extension", errorParams...)
-	if err != nil && ext.Required {
-		return status.Errorf(codes.InvalidArgument, "failed to patch xDS resources in the %q extension: %v", ext.Name, err)
+	if err != nil {
+		errorParams = append(errorParams, "error", err)
+		logFn("failed to apply envoy extension", errorParams...)
+
+		if ext.Required {
+			return status.Errorf(codes.InvalidArgument, "failed to patch xDS resources in the %q extension: %v", ext.Name, err)
+		}
 	}
 
 	return nil
