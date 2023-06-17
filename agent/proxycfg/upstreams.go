@@ -89,7 +89,7 @@ func (s *handlerUpstreams) handleUpdateUpstreams(ctx context.Context, u UpdateEv
 			return err
 		}
 
-	case strings.HasPrefix(u.CorrelationID, upstreamPeerWatchIDPrefix):
+	case strings.HasPrefix(u.CorrelationID, upstreamPeerWatchIDPrefix) && s.peeringEnabled:
 		resp, ok := u.Result.(*structs.IndexedCheckServiceNodes)
 		if !ok {
 			return fmt.Errorf("invalid type for response: %T", u.Result)

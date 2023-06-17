@@ -719,6 +719,7 @@ func testConfigSnapshotFixture(
 	nsFn func(ns *structs.NodeService),
 	serverSNIFn ServerSNIFunc,
 	updates []UpdateEvent,
+	peeringEnabled bool,
 ) *ConfigSnapshot {
 	const token = ""
 
@@ -761,6 +762,7 @@ func testConfigSnapshotFixture(
 		},
 		serverSNIFn:           serverSNIFn,
 		intentionDefaultAllow: false, // TODO: make configurable
+		peeringEnabled:        peeringEnabled,
 	}
 	testConfigSnapshotFixtureEnterprise(&config)
 	s, err := newServiceInstanceFromNodeService(ProxyID{ServiceID: ns.CompoundServiceID()}, ns, token)

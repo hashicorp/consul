@@ -13,7 +13,7 @@ import (
 )
 
 // TestConfigSnapshot returns a fully populated snapshot
-func TestConfigSnapshot(t testing.T, nsFn func(ns *structs.NodeService), extraUpdates []UpdateEvent) *ConfigSnapshot {
+func TestConfigSnapshot(t testing.T, nsFn func(ns *structs.NodeService), extraUpdates []UpdateEvent, peeringEnabled bool) *ConfigSnapshot {
 	roots, leaf := TestCerts(t)
 
 	// no entries implies we'll get a default chain
@@ -84,7 +84,7 @@ func TestConfigSnapshot(t testing.T, nsFn func(ns *structs.NodeService), extraUp
 		},
 		Meta:            nil,
 		TaggedAddresses: nil,
-	}, nsFn, nil, testSpliceEvents(baseEvents, extraUpdates))
+	}, nsFn, nil, testSpliceEvents(baseEvents, extraUpdates), peeringEnabled)
 }
 
 // TestConfigSnapshotDiscoveryChain returns a fully populated snapshot using a discovery chain
@@ -155,7 +155,7 @@ func TestConfigSnapshotDiscoveryChain(
 		},
 		Meta:            nil,
 		TaggedAddresses: nil,
-	}, nsFn, nil, testSpliceEvents(baseEvents, extraUpdates))
+	}, nsFn, nil, testSpliceEvents(baseEvents, extraUpdates), false)
 }
 
 func TestConfigSnapshotExposeConfig(t testing.T, nsFn func(ns *structs.NodeService)) *ConfigSnapshot {
@@ -210,7 +210,7 @@ func TestConfigSnapshotExposeConfig(t testing.T, nsFn func(ns *structs.NodeServi
 		},
 		Meta:            nil,
 		TaggedAddresses: nil,
-	}, nsFn, nil, baseEvents)
+	}, nsFn, nil, baseEvents, false)
 }
 
 func TestConfigSnapshotExposeChecks(t testing.T) *ConfigSnapshot {
@@ -237,7 +237,7 @@ func TestConfigSnapshotExposeChecks(t testing.T) *ConfigSnapshot {
 				}},
 			},
 		},
-	)
+		false)
 }
 
 func TestConfigSnapshotGRPCExposeHTTP1(t testing.T) *ConfigSnapshot {
@@ -286,5 +286,5 @@ func TestConfigSnapshotGRPCExposeHTTP1(t testing.T) *ConfigSnapshot {
 			CorrelationID: svcChecksWatchIDPrefix + structs.ServiceIDString("grpc", nil),
 			Result:        []structs.CheckType{},
 		},
-	})
+	}, false)
 }

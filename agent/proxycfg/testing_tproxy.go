@@ -113,7 +113,7 @@ func TestConfigSnapshotTransparentProxy(t testing.T) *ConfigSnapshot {
 				Nodes: []structs.CheckServiceNode{},
 			},
 		},
-	})
+	}, false)
 }
 
 func TestConfigSnapshotTransparentProxyHTTPUpstream(t testing.T) *ConfigSnapshot {
@@ -226,7 +226,7 @@ func TestConfigSnapshotTransparentProxyHTTPUpstream(t testing.T) *ConfigSnapshot
 				Nodes: []structs.CheckServiceNode{},
 			},
 		},
-	})
+	}, false)
 }
 
 func TestConfigSnapshotTransparentProxyCatalogDestinationsOnly(t testing.T) *ConfigSnapshot {
@@ -312,7 +312,7 @@ func TestConfigSnapshotTransparentProxyCatalogDestinationsOnly(t testing.T) *Con
 				Nodes: []structs.CheckServiceNode{},
 			},
 		},
-	})
+	}, false)
 }
 
 func TestConfigSnapshotTransparentProxyDialDirectly(t testing.T) *ConfigSnapshot {
@@ -434,7 +434,7 @@ func TestConfigSnapshotTransparentProxyDialDirectly(t testing.T) *ConfigSnapshot
 				},
 			},
 		},
-	})
+	}, false)
 }
 
 func TestConfigSnapshotTransparentProxyResolverRedirectUpstream(t testing.T) *ConfigSnapshot {
@@ -503,7 +503,7 @@ func TestConfigSnapshotTransparentProxyResolverRedirectUpstream(t testing.T) *Co
 				},
 			},
 		},
-	})
+	}, false)
 }
 
 func TestConfigSnapshotTransparentProxyTerminatingGatewayCatalogDestinationsOnly(t testing.T) *ConfigSnapshot {
@@ -591,7 +591,7 @@ func TestConfigSnapshotTransparentProxyTerminatingGatewayCatalogDestinationsOnly
 				Nodes: []structs.CheckServiceNode{tgate},
 			},
 		},
-	})
+	}, false)
 }
 
 func TestConfigSnapshotTransparentProxyDestination(t testing.T) *ConfigSnapshot {
@@ -698,7 +698,7 @@ func TestConfigSnapshotTransparentProxyDestination(t testing.T) *ConfigSnapshot 
 				Nodes: serviceNodes,
 			},
 		},
-	})
+	}, false)
 }
 
 func TestConfigSnapshotTransparentProxyDestinationHTTP(t testing.T) *ConfigSnapshot {
@@ -804,5 +804,5 @@ func TestConfigSnapshotTransparentProxyDestinationHTTP(t testing.T) *ConfigSnaps
 				Nodes: serviceNodes,
 			},
 		},
-	})
+	}, false)
 }
