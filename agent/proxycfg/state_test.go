@@ -441,9 +441,10 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 	type testCase struct {
 		// the state to operate on. the logger, source, cache,
 		// ctx and cancel fields will be filled in by the test
-		ns       structs.NodeService
-		sourceDC string
-		stages   []verificationStage
+		ns             structs.NodeService
+		sourceDC       string
+		stages         []verificationStage
+		peeringEnabled bool
 	}
 
 	newConnectProxyCase := func(meshGatewayProxyConfigValue structs.MeshGatewayMode) testCase {
@@ -747,7 +748,6 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						rootsWatchID:               genVerifyDCSpecificWatch("dc1"),
 						exportedServiceListWatchID: genVerifyDCSpecificWatch("dc1"),
 						meshConfigEntryID:          genVerifyMeshConfigWatch("dc1"),
-						peeringTrustBundlesWatchID: genVerifyTrustBundleListWatchForMeshGateway(""),
 					},
 					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
 						require.False(t, snap.Valid(), "gateway without root is not valid")
@@ -827,7 +827,6 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						rootsWatchID:               genVerifyDCSpecificWatch("dc1"),
 						exportedServiceListWatchID: genVerifyDCSpecificWatch("dc1"),
 						meshConfigEntryID:          genVerifyMeshConfigWatch("dc1"),
-						peeringTrustBundlesWatchID: genVerifyTrustBundleListWatchForMeshGateway(""),
 					},
 					events: []UpdateEvent{
 						rootWatchEvent(),
@@ -2715,6 +2714,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 			},
 		},
 		"transparent-proxy-initial-with-peers": {
+			peeringEnabled: true,
 			ns: structs.NodeService{
 				Kind:    structs.ServiceKindConnectProxy,
 				ID:      "api-proxy",
@@ -2964,6 +2964,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 		"connect-proxy":                    newConnectProxyCase(structs.MeshGatewayModeDefault),
 		"connect-proxy-mesh-gateway-local": newConnectProxyCase(structs.MeshGatewayModeLocal),
 		"connect-proxy-with-peers": {
+			peeringEnabled: true,
 			ns: structs.NodeService{
 				Kind:    structs.ServiceKindConnectProxy,
 				ID:      "web-sidecar-proxy",
@@ -3141,6 +3142,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 					Domain:    "consul.",
 					AltDomain: "alt.consul.",
 				},
+				peeringEnabled: tc.peeringEnabled,
 			}
 			wr := recordWatches(&sc)
 

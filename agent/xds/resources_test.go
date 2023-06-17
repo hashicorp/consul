@@ -126,7 +126,7 @@ func TestAllResourcesFromSnapshot(t *testing.T) {
 		{
 			name: "defaults",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshot(t, nil, nil)
+				return proxycfg.TestConfigSnapshot(t, nil, nil, false)
 			},
 		},
 		{
@@ -141,7 +141,7 @@ func TestAllResourcesFromSnapshot(t *testing.T) {
 						CorrelationID: "peering-trust-bundles",
 						Result:        proxycfg.TestPeerTrustBundles(t),
 					},
-				})
+				}, true)
 			},
 		},
 		{
