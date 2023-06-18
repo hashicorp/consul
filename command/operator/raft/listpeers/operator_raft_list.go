@@ -55,7 +55,6 @@ func (c *cmd) Run(args []string) int {
 	}
 
 	c.UI.Output(result)
-
 	return 0
 }
 
