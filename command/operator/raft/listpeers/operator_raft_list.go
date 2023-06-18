@@ -67,8 +67,24 @@ func raftListPeers(client *api.Client, stale bool) (string, error) {
 		return "", fmt.Errorf("Failed to retrieve raft configuration: %v", err)
 	}
 
+	leaderLastCommitIndex := uint64(0)
+	serverIdLastIndexMap := make(map[string]uint64)
+
+	for _, raftServer := range reply.Servers {
+		serverIdLastIndexMap[raftServer.ID] = raftServer.LastIndex
+	}
+
+	for _, s := range reply.Servers {
+		if s.Leader {
+			lastIndex, ok := serverIdLastIndexMap[s.ID]
+			if ok {
+				leaderLastCommitIndex = lastIndex
+			}
+		}
+	}
+
 	// Format it as a nice table.
-	result := []string{"Node\x1fID\x1fAddress\x1fState\x1fVoter\x1fRaftProtocol"}
+	result := []string{"Node\x1fID\x1fAddress\x1fState\x1fVoter\x1fRaftProtocol\x1fCommit Index\x1fTrails Leader By"}
 	for _, s := range reply.Servers {
 		raftProtocol := s.ProtocolVersion
 
@@ -79,8 +95,20 @@ func raftListPeers(client *api.Client, stale bool) (string, error) {
 		if s.Leader {
 			state = "leader"
 		}
-		result = append(result, fmt.Sprintf("%s\x1f%s\x1f%s\x1f%s\x1f%v\x1f%s",
-			s.Node, s.ID, s.Address, state, s.Voter, raftProtocol))
+
+		trailsLeaderByText := "-"
+		serverLastIndex, ok := serverIdLastIndexMap[s.ID]
+		if ok {
+			trailsLeaderBy := leaderLastCommitIndex - serverLastIndex
+			trailsLeaderByText = fmt.Sprintf("%d commits", trailsLeaderBy)
+			if s.Leader {
+				trailsLeaderByText = "-"
+			} else if trailsLeaderBy == 1 {
+				trailsLeaderByText = fmt.Sprintf("%d commit", trailsLeaderBy)
+			}
+		}
+		result = append(result, fmt.Sprintf("%s\x1f%s\x1f%s\x1f%s\x1f%v\x1f%s\x1f%v\x1f%s",
+			s.Node, s.ID, s.Address, state, s.Voter, raftProtocol, serverLastIndex, trailsLeaderByText))
 	}
 
 	return columnize.Format(result, &columnize.Config{Delim: string([]byte{0x1f})}), nil
