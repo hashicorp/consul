@@ -129,6 +129,10 @@ func (o *CompiledDiscoveryChain) DeepCopy() *CompiledDiscoveryChain {
 					cp_Targets_v2.Locality = new(Locality)
 					*cp_Targets_v2.Locality = *v2.Locality
 				}
+				if v2.PrioritizeByLocality != nil {
+					cp_Targets_v2.PrioritizeByLocality = new(DiscoveryPrioritizeByLocality)
+					*cp_Targets_v2.PrioritizeByLocality = *v2.PrioritizeByLocality
+				}
 			}
 			cp.Targets[k2] = cp_Targets_v2
 		}
@@ -239,10 +243,6 @@ func (o *DiscoveryResolver) DeepCopy() *DiscoveryResolver {
 	var cp DiscoveryResolver = *o
 	if o.Failover != nil {
 		cp.Failover = o.Failover.DeepCopy()
-	}
-	if o.PrioritizeByLocality != nil {
-		cp.PrioritizeByLocality = new(DiscoveryPrioritizeByLocality)
-		*cp.PrioritizeByLocality = *o.PrioritizeByLocality
 	}
 	return &cp
 }

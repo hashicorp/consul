@@ -64,6 +64,14 @@
         {
           "filters": [
             {
+              "name": "envoy.filters.network.rbac",
+              "typedConfig": {
+                "@type": "type.googleapis.com/envoy.extensions.filters.network.rbac.v3.RBAC",
+                "rules": {},
+                "statPrefix": "connect_authz"
+              }
+            },
+            {
               "name": "envoy.filters.network.ext_authz",
               "typedConfig": {
                 "@type": "type.googleapis.com/envoy.extensions.filters.network.ext_authz.v3.ExtAuthz",
@@ -75,14 +83,6 @@
                 },
                 "failureModeAllow": true,
                 "transportApiVersion": "V3"
-              }
-            },
-            {
-              "name": "envoy.filters.network.rbac",
-              "typedConfig": {
-                "@type": "type.googleapis.com/envoy.extensions.filters.network.rbac.v3.RBAC",
-                "rules": {},
-                "statPrefix": "connect_authz"
               }
             },
             {
