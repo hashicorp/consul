@@ -1,0 +1,3 @@
+```release-note:bug
+peering: Fix a bug that caused server agents to continue cleaning up peering resources even after loss of leadership.
+```

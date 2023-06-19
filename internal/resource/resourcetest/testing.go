@@ -9,9 +9,5 @@ type T interface {
 	Errorf(format string, args ...interface{})
 	Fatalf(format string, args ...interface{})
 	FailNow()
-}
-
-type CleanupT interface {
-	T
 	Cleanup(func())
 }
