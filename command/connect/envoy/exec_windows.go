@@ -20,7 +20,7 @@ func makeBootstrapTemp(bootstrapJSON []byte) (string, error) {
 	tempFile := filepath.Join(os.TempDir(),
 		fmt.Sprintf("envoy-%x-bootstrap.json", time.Now().UnixNano()+int64(os.Getpid())))
 
-	f, err := mmap.Open(tempFile, mmap.Write)
+	f, err := mmap.Open(tempFile)
 	if err != nil {
 		return tempFile, err
 	}
