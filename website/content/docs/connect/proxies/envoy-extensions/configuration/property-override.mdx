@@ -46,13 +46,14 @@ Patches = [
       TrafficDirection = "<inbound or outbound>"
       Services = [
         {
-          Name = "<name of service to filter for>", 
+          Name = "<name of service to filter for>"
           Namespace = "<Consul namespace containing the service>"
           Partition = "<Consul partition containing the service>"
         }
       ]
-    Op = "<add or remove>",
-    Path = "<path/to/field>",
+    }
+    Op = "<add or remove>"
+    Path = "</path/to/field>"
     Value = "<values or map of field-values>"
   }
 ]
@@ -160,9 +161,9 @@ If Envoy specifies a wrapper as the target field type, the extension automatical
 
 The following examples demonstrate patterns that you may be able to model your configurations on.
 
-### Enable `enforcing_consecutive_5xx` outlier detection 
+### Enable `respect_dns_ttl` in a cluster
 
-In the following example, the `add` operation patches an outlier detection property into outbound cluster traffic. The `Path` specifies the `enforcing_consecutive_5xx` interface and sets a value of `1234`:
+In the following example, the `add` operation patches the outbound cluster corresponding to the `other-svc` upstream service to enable `respect_dns_ttl`. The `Path` specifies the [Cluster `/respect_dns_ttl`](https://www.envoyproxy.io/docs/envoy/latest/api-v3/config/cluster/v3/cluster.proto#envoy-v3-api-field-config-cluster-v3-cluster-respect-dns-ttl) top-level field and `Value` specifies a value of `true`:
 
 ```hcl
 Kind = "service-defaults"
@@ -183,8 +184,8 @@ EnvoyExtensions = [
             },
           },
           "Op" = "add",
-          "Path" =  "/outlier_detection/enforcing_consecutive_5xx",
-          "Value" = 1234,
+          "Path" =  "/respect_dns_ttl",
+          "Value" = true,
         }
       ]
     }
@@ -192,9 +193,9 @@ EnvoyExtensions = [
 ]
 ```
 
-### Update multiple values in the default map
+### Update multiple values in a message field
 
-In the following example, two `ResourceFilter` blocks target outbound traffic to the `db` service and add `/outlier_detection/enforcing_consecutive_5xx` and `/outlier_detection/failure_percentage_request_volume` properties:
+In the following example, both `ResourceFilter` blocks target the cluster corresponding to the `other-svc` upstream service and modify [Cluster `/outlier_detection`](https://www.envoyproxy.io/docs/envoy/latest/api-v3/config/cluster/v3/outlier_detection.proto) properties:
 
 ```hcl
 Kind = "service-defaults"
@@ -208,27 +209,27 @@ EnvoyExtensions = [
       Patches = [
         {
           ResourceFilter = {
-            ResourceType = "cluster",
-            TrafficDirection = "outbound",
+            ResourceType = "cluster"
+            TrafficDirection = "outbound"
             Services = [{
               Name = "other-svc"
-            }],
-          },
-          Op = "add",
-          Path =  "/outlier_detection/enforcing_consecutive_5xx",
-          Value = 1234,
+            }]
+          }
+          Op = "add"
+          Path = "/outlier_detection/max_ejection_time/seconds"
+          Value = 120
         },
         {
           ResourceFilter = {
-            ResourceType = "cluster",
-            TrafficDirection = "outbound",
+            ResourceType = "cluster"
+            TrafficDirection = "outbound"
             Services = [{
               Name = "other-svc"
-            }],
-          },
-          Op = "add",
-          Path =  "/outlier_detection/failure_percentage_request_volume",
-          Value = 2345,
+            }]
+          }
+          Op = "add"
+          Path = "/outlier_detection/max_ejection_time_jitter/seconds"
+          Value = 1
         }
       ]
     }
@@ -236,9 +237,13 @@ EnvoyExtensions = [
 ]
 ```
 
-### Set multiple values that replace the map
+The use of `/seconds` in these examples corresponds to the same field in the [google.protobuf.Duration](https://github.com/protocolbuffers/protobuf/blob/main/src/google/protobuf/duration.proto) proto definition, since the extension does not support JSON serialized string forms of common protobuf types (e.g. `120s`).
 
-In the following example, a `ResourceFilter` targets outbound traffic to the `db` service and replaces the map of properties located at `/outlier_detection` with `enforcing_consecutive_5xx` and `failure_percentage_request_volume` and properties:
+-> **Note:** Using separate patches per field preserves any existing configuration of other fields in `outlier_detection` that may be directly set by Consul, such as [`enforcing_consecutive_5xx`](https://developer.hashicorp.com/consul/docs/connect/proxies/envoy#enforcing_consecutive_5xx).
+
+### Replace a message field
+
+In the following example, a `ResourceFilter` targets the cluster corresponding to the `other-svc` upstream service and _replaces_ the entire map of properties located at `/outlier_detection`, including explicitly set `enforcing_success_rate` and `success_rate_minimum_hosts` properties:
 
 ```hcl
 Kind = "service-defaults"
@@ -246,27 +251,29 @@ Name = "my-svc"
 Protocol = "http"
 EnvoyExtensions = [
   {
-    Name = "builtin/property-override",
+    Name = "builtin/property-override"
     Arguments = {
-      ProxyType = "connect-proxy",
+      ProxyType = "connect-proxy"
       Patches = [
         {
           ResourceFilter = {
-            ResourceType = "cluster",
-            TrafficDirection = "outbound",
+            ResourceType = "cluster"
+            TrafficDirection = "outbound"
             Services = [{
               Name = "other-svc"
-            }],
-          },
-          Op = "add",
-          Path =  "/outlier_detection",
+            }]
+          }
+          Op = "add"
+          Path =  "/outlier_detection"
           Value = {
-            "enforcing_consecutive_5xx" = 1234,
-            "failure_percentage_request_volume" = 2345,
-          },
+            "enforcing_success_rate" = 80
+            "success_rate_minimum_hosts" = 2
+          }
         }
       ]
     }
   }
 ]
 ```
+
+Unlike the previous example, other `/outlier_detection` values set by Consul will _not_ be retained unless they match Envoy's defaults, because the entire value of `/outlier_detection` will be replaced.
